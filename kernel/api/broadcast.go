@@ -17,9 +17,12 @@
 package api
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/88250/gulu"
 	"github.com/gin-gonic/gin"
@@ -223,5 +226,105 @@ func getChannels(c *gin.Context) {
 	})
 	ret.Data = map[string]interface{}{
 		"channels": channels,
+	}
+}
+
+func handleExternalRequest(c *gin.Context) {
+	channel := c.Param("channel")  // 获取 channel 参数
+	requestPath := c.Param("path") // 获取 path 参数，包含所有子路由
+
+	if channel == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Channel is required"})
+		return
+	}
+
+	// 封装完整的HTTP请求信息
+	requestDetails := map[string]interface{}{
+		"method":  c.Request.Method,
+		"headers": c.Request.Header,
+		"path":    requestPath,
+		"query":   c.Request.URL.Query(),
+	}
+
+	var message []byte
+	var err error
+
+	// 根据请求方法获取消息体
+	if c.Request.Method == "POST" {
+		body, err := c.GetRawData() // 从请求体中获取消息
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read request body"})
+			return
+		}
+		requestDetails["body"] = body
+	}
+
+	// 序列化请求详情为JSON，以便发送到WebSocket
+	message, err = json.Marshal(requestDetails)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to serialize request details"})
+		return
+	}
+
+	// 检查channel是否存在
+	if broadcastChannel, ok := BroadcastChannels.Load(channel); ok {
+		melodyChannel := broadcastChannel.(*melody.Melody)
+
+		// 创建一个channel以接收第一个响应
+		responseCh := make(chan []byte, 1)
+
+		// 设置一个临时的消息处理器来捕获第一个响应
+		melodyChannel.HandleMessage(func(s *melody.Session, msg []byte) {
+			select {
+			case responseCh <- msg:
+			default:
+			}
+		})
+
+		// 广播消息
+		if err := melodyChannel.Broadcast(message); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to broadcast message"})
+			return
+		}
+
+		// 等待响应或超时
+		select {
+		case response := <-responseCh:
+			// 解析响应 JSON
+			var respDetails map[string]interface{}
+			if err := json.Unmarshal(response, &respDetails); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse response details"})
+				return
+			}
+			// 设置响应头
+			if headers, ok := respDetails["headers"].(map[string]interface{}); ok {
+				for key, value := range headers {
+					c.Header(key, value.(string))
+				}
+			}
+			// 解码 base64 数据
+			if body, ok := respDetails["body"].(string); ok {
+				decodedData, err := base64.StdEncoding.DecodeString(body)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode base64 data"})
+					return
+				}
+				// 设置状态码和响应体
+				statusCode := http.StatusOK
+				if code, ok := respDetails["statusCode"].(float64); ok {
+					statusCode = int(code)
+				}
+				c.Data(statusCode, c.GetHeader("Content-Type"), decodedData)
+			} else {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "No body found in response"})
+			}
+		case <-time.After(10 * time.Second): // 10秒超时
+			c.String(http.StatusGatewayTimeout, "Request timed out")
+		}
+
+		// 清理临时的消息处理器
+		melodyChannel.HandleMessage(nil)
+	} else {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Channel not found"})
 	}
 }

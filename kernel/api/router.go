@@ -441,6 +441,8 @@ func ServeAPI(ginServer *gin.Engine) {
 	ginServer.Handle("POST", "/api/broadcast/postMessage", model.CheckAuth, postMessage)
 	ginServer.Handle("POST", "/api/broadcast/getChannels", model.CheckAuth, getChannels)
 	ginServer.Handle("POST", "/api/broadcast/getChannelInfo", model.CheckAuth, getChannelInfo)
+	ginServer.Handle("POST", "/api/broadcast/rpc/:channel/*path", model.CheckAuth, handleExternalRequest)
+	ginServer.Handle("GET", "/api/broadcast/rpc/:channel/*path", model.CheckAuth, handleExternalRequest)
 
 	ginServer.Handle("POST", "/api/archive/zip", model.CheckAuth, model.CheckReadonly, zip)
 	ginServer.Handle("POST", "/api/archive/unzip", model.CheckAuth, model.CheckReadonly, unzip)

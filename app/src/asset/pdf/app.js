@@ -80,7 +80,7 @@ import { Toolbar } from "./toolbar.js";
 import { ViewHistory } from "./view_history.js";
 import { DefaultExternalServices } from './genericcom'
 import { getPdfInstance, hlPDFRect } from '../anno'
-import {hasClosestByClassName} from "../../protyle/util/hasClosest";
+import { hasClosestByClassName } from "../../protyle/util/hasClosest";
 
 const FORCE_PAGES_LOADED_TIMEOUT = 10000; // ms
 const WHEEL_ZOOM_DISABLED_TIMEOUT = 1000; // ms
@@ -99,7 +99,7 @@ const ViewerCssTheme = {
 
 // NOTE
 class PDFViewerApplication {
-  constructor (pdfId) {
+  constructor(pdfId) {
     this.pdfId = pdfId
     this.initialBookmark = document.location.hash.substring(1)
     this._initializedCapability = createPromiseCapability()
@@ -207,7 +207,7 @@ class PDFViewerApplication {
     // We can start UI localization now.
     const appContainer = appConfig.appContainer || document.documentElement;
     // NOTE
-    this.eventBus.dispatch('localized', {source: this})
+    this.eventBus.dispatch('localized', { source: this })
 
     this._initializedCapability.resolve();
   }
@@ -228,7 +228,7 @@ class PDFViewerApplication {
       if (AppOptions._hasUserOptions()) {
         console.warn(
           "_initializeOptions: The Preferences may override manually set AppOptions; " +
-            'please use the "disablePreferences"-option in order to prevent that.'
+          'please use the "disablePreferences"-option in order to prevent that.'
         );
       }
     }
@@ -427,7 +427,7 @@ class PDFViewerApplication {
       eventBus,
       sandboxBundleSrc:
         typeof PDFJSDev === "undefined" ||
-        PDFJSDev.test("!PRODUCTION || GENERIC || CHROME")
+          PDFJSDev.test("!PRODUCTION || GENERIC || CHROME")
           ? AppOptions.get("sandboxBundleSrc")
           : null,
       scriptingFactory: externalServices,
@@ -440,11 +440,11 @@ class PDFViewerApplication {
     const annotationEditorMode = AppOptions.get("annotationEditorMode");
     const pageColors =
       AppOptions.get("forcePageColors") ||
-      window.matchMedia("(forced-colors: active)").matches
+        window.matchMedia("(forced-colors: active)").matches
         ? {
-            background: AppOptions.get("pageColorsBackground"),
-            foreground: AppOptions.get("pageColorsForeground"),
-          }
+          background: AppOptions.get("pageColorsBackground"),
+          foreground: AppOptions.get("pageColorsForeground"),
+        }
         : null;
 
     this.pdfViewer = new PDFViewer({
@@ -459,7 +459,7 @@ class PDFViewerApplication {
         AppOptions.get("enableScripting") && pdfScriptingManager,
       renderer:
         typeof PDFJSDev === "undefined" ||
-        PDFJSDev.test("!PRODUCTION || GENERIC")
+          PDFJSDev.test("!PRODUCTION || GENERIC")
           ? AppOptions.get("renderer")
           : null,
       l10n: this.l10n,
@@ -522,7 +522,7 @@ class PDFViewerApplication {
         this.overlayManager,
         eventBus,
         this.l10n,
-        /* fileNameLookup = */ () => {
+        /* fileNameLookup = */() => {
           return this._docFilename;
         }
       );
@@ -946,7 +946,7 @@ class PDFViewerApplication {
           key = "unexpectedResponseError";
         }
         // NOTE
-        this._documentError(window.siyuan.languages[key], {message: reason?.message})
+        this._documentError(window.siyuan.languages[key], { message: reason?.message })
         throw reason
       }
     );
@@ -2076,7 +2076,7 @@ class PDFViewerApplication {
     document.blockUnblockOnload?.(false);
 
     // Ensure that this method is only ever run once.
-    this._unblockDocumentLoadEvent = () => {};
+    this._unblockDocumentLoadEvent = () => { };
   }
 
   /**
@@ -3129,7 +3129,7 @@ function webViewerClick(evt) {
   if (
     pdfInstance.pdfViewer.containsElement(evt.target) ||
     (appConfig.toolbar?.container.contains(evt.target) &&
-        !appConfig.secondaryToolbar.toggleButton.contains(evt.target)) // NOTE
+      !appConfig.secondaryToolbar.toggleButton.contains(evt.target)) // NOTE
   ) {
     pdfInstance.secondaryToolbar.close();
   }
@@ -3148,7 +3148,7 @@ function webViewerKeyUp(evt) {
   // 快捷键高亮取消
   if (evt.keyCode === 68 && pdfInstance.appConfig.toolbar.rectAnno.classList.contains('toggled')) {
     pdfInstance.appConfig.toolbar.rectAnno.dispatchEvent(
-        new MouseEvent('click'))
+      new MouseEvent('click'))
   }
 }
 
@@ -3187,20 +3187,20 @@ function webViewerKeyDown(evt) {
 
   // NOTE
   if (!evt.repeat && (cmd === 8 || cmd === 1 || cmd === 2) && evt.keyCode === 68 &&  // D
-      !pdfInstance.appConfig.toolbar.rectAnno.classList.contains('toggled')) {
+    !pdfInstance.appConfig.toolbar.rectAnno.classList.contains('toggled')) {
     pdfInstance.appConfig.toolbar.rectAnno.dispatchEvent(
-        new MouseEvent('click'))
+      new MouseEvent('click'))
     evt.preventDefault()
     return
   }
 
-  if (!evt.repeat &&  cmd !== 1 && cmd !== 2 && cmd !== 4  && cmd !== 8 &&
-      [48, 49, 50, 51, 52, 53, 54, 55].includes(evt.keyCode) &&
-      getSelection().rangeCount > 0 &&
-      !pdfInstance.appConfig.toolbar.rectAnno.classList.contains('toggled')) {
+  if (!evt.repeat && cmd !== 1 && cmd !== 2 && cmd !== 4 && cmd !== 8 &&
+    [48, 49, 50, 51, 52, 53, 54, 55].includes(evt.keyCode) &&
+    getSelection().rangeCount > 0 &&
+    !pdfInstance.appConfig.toolbar.rectAnno.classList.contains('toggled')) {
     const range = getSelection().getRangeAt(0);
     if (range.toString() !== "" && hasClosestByClassName(range.commonAncestorContainer, "pdfViewer")) {
-      pdfInstance.appConfig.appContainer.dispatchEvent(new CustomEvent("click", {detail: (evt.keyCode - 48).toString()}));
+      pdfInstance.appConfig.appContainer.dispatchEvent(new CustomEvent("click", { detail: (evt.keyCode - 48).toString() }));
       evt.preventDefault()
       return
     }
@@ -3533,3 +3533,4 @@ export {
   PDFViewerApplication,
   webViewerPageNumberChanged,
 };
+
