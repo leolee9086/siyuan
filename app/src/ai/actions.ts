@@ -1,18 +1,19 @@
-import {fetchPost} from "../util/fetch";
-import {focusByRange, setLastNodeRange} from "../protyle/util/selection";
-import {insertHTML} from "../protyle/util/insertHTML";
-import {Dialog} from "../dialog";
-import {isMobile} from "../util/functions";
-import {getContenteditableElement} from "../protyle/wysiwyg/getBlock";
-import {blockRender} from "../protyle/render/blockRender";
-import {processRender} from "../protyle/util/processCode";
-import {highlightRender} from "../protyle/render/highlightRender";
-import {Constants} from "../constants";
-import {setStorageVal} from "../protyle/util/compatibility";
-import {escapeAriaLabel, escapeAttr, escapeHtml} from "../util/escape";
-import {showMessage} from "../dialog/message";
-import {Menu} from "../plugin/Menu";
-import {upDownHint} from "../util/upDownHint";
+import { fetchPost } from "../util/fetch";
+import { focusByRange, setLastNodeRange } from "../protyle/util/selection";
+import { insertHTML } from "../protyle/util/insertHTML";
+import { Dialog } from "../dialog";
+import { isMobile } from "../util/functions";
+import { getContenteditableElement } from "../protyle/wysiwyg/getBlock";
+import { blockRender } from "../protyle/render/blockRender";
+import { processRender } from "../protyle/util/processCode";
+import { highlightRender } from "../protyle/render/highlightRender";
+import { Constants } from "../constants";
+import { setStorageVal } from "../protyle/util/compatibility";
+import { escapeAriaLabel, escapeAttr, escapeHtml } from "../util/escape";
+import { showMessage } from "../dialog/message";
+import { Menu } from "../plugin/Menu";
+import { upDownHint } from "../util/upDownHint";
+import { editDialogContent, customDialogContent } from "./templates/dialogs";
 
 export const fillContent = (protyle: IProtyle, data: string, elements: Element[]) => {
     if (!data) {
@@ -25,20 +26,10 @@ export const fillContent = (protyle: IProtyle, data: string, elements: Element[]
     processRender(protyle.wysiwyg.element);
     highlightRender(protyle.wysiwyg.element);
 };
-
 const editDialog = (customName: string, customMemo: string) => {
     const dialog = new Dialog({
         title: window.siyuan.languages.update,
-        content: `<div class="b3-dialog__content">
-    <input class="b3-text-field fn__block" placeholder="${window.siyuan.languages.memo}">
-    <div class="fn__hr"></div>
-    <textarea class="b3-text-field fn__block" placeholder="${window.siyuan.languages.aiCustomAction}"></textarea>
-</div>
-<div class="b3-dialog__action">
-    <button class="b3-button b3-button--remove">${window.siyuan.languages.delete}</button><div class="fn__space"></div>
-    <button class="b3-button b3-button--cancel">${window.siyuan.languages.cancel}</button><div class="fn__space"></div>
-    <button class="b3-button b3-button--text">${window.siyuan.languages.confirm}</button>
-</div>`,
+        content: editDialogContent(window.siyuan.languages),
         width: isMobile() ? "92vw" : "520px",
     });
     dialog.element.setAttribute("data-key", Constants.DIALOG_AIUPDATECUSTOMACTION);
@@ -83,19 +74,11 @@ const editDialog = (customName: string, customMemo: string) => {
     nameElement.focus();
 };
 
+
 const customDialog = (protyle: IProtyle, ids: string[], elements: Element[]) => {
     const dialog = new Dialog({
         title: window.siyuan.languages.aiCustomAction,
-        content: `<div class="b3-dialog__content">
-    <input class="b3-text-field fn__block" value="" placeholder="${window.siyuan.languages.memo}">
-    <div class="fn__hr"></div>
-    <textarea class="b3-text-field fn__block" placeholder="${window.siyuan.languages.aiCustomAction}"></textarea>
-</div>
-<div class="b3-dialog__action">
-    <button class="b3-button b3-button--cancel">${window.siyuan.languages.cancel}</button><div class="fn__space"></div>
-    <button class="b3-button b3-button--text">${window.siyuan.languages.use}</button><div class="fn__space"></div>
-    <button class="b3-button b3-button--text">${window.siyuan.languages.save}</button>
-</div>`,
+        content: customDialogContent(window.siyuan.languages),
         width: isMobile() ? "92vw" : "520px",
     });
     dialog.element.setAttribute("data-key", Constants.DIALOG_AICUSTOMACTION);
@@ -268,11 +251,11 @@ export const AIActions = (elements: Element[], protyle: IProtyle) => {
                             customDialog(protyle, ids, elements);
                             menu.close();
                         } else {
-                            fetchPost("/api/ai/chatGPTWithAction", {ids, action: target.dataset.action}, (response) => {
+                            fetchPost("/api/ai/chatGPTWithAction", { ids, action: target.dataset.action }, (response) => {
                                 fillContent(protyle, response.data, elements);
                             });
                             if (target.dataset.action === clearContext) {
-                               showMessage(window.siyuan.languages.clearContextSucc);
+                                showMessage(window.siyuan.languages.clearContextSucc);
                             } else {
                                 menu.close();
                             }

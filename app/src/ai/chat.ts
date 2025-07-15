@@ -2,7 +2,13 @@ import {Dialog} from "../dialog";
 import {isMobile} from "../util/functions";
 import {fetchPost} from "../util/fetch";
 import {fillContent} from "./actions";
-
+const AICHatDialogContent = (languages: any) => {
+    return `<div class="b3-dialog__content"><textarea class="b3-text-field fn__block"></textarea></div>
+    <div class="b3-dialog__action">
+        <button class="b3-button b3-button--cancel">${languages.cancel}</button><div class="fn__space"></div>
+        <button class="b3-button b3-button--text">${languages.confirm}</button>
+    </div>`;
+};
 export const AIChat = (protyle: IProtyle, element: Element) => {
     const dialog = new Dialog({
         title: "✨ " + window.siyuan.languages.aiWriting,
