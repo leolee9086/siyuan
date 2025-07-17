@@ -18,6 +18,7 @@ package model
 
 import (
 	"bytes"
+	"errors"
 	"strings"
 
 	"github.com/88250/lute/ast"
@@ -42,7 +43,7 @@ func ChatGPTWithAction(ids []string, action string) (ret string) {
 
 	if "Clear context" == action {
 		// AI clear context action https://github.com/siyuan-note/siyuan/issues/10255
-		cachedContextMsg = nil
+		CachedContextMsg = nil
 		return
 	}
 
@@ -51,20 +52,20 @@ func ChatGPTWithAction(ids []string, action string) (ret string) {
 	return
 }
 
-var cachedContextMsg []string
+var CachedContextMsg []string
 
 func chatGPT(msg string, cloud bool) (ret string) {
 	if "Clear context" == strings.TrimSpace(msg) {
 		// AI clear context action https://github.com/siyuan-note/siyuan/issues/10255
-		cachedContextMsg = nil
+		CachedContextMsg = nil
 		return
 	}
 
-	ret, retCtxMsgs, err := chatGPTContinueWrite(msg, cachedContextMsg, cloud)
+	ret, retCtxMsgs, err := chatGPTContinueWrite(msg, CachedContextMsg, cloud)
 	if err != nil {
 		return
 	}
-	cachedContextMsg = append(cachedContextMsg, retCtxMsgs...)
+	CachedContextMsg = append(CachedContextMsg, retCtxMsgs...)
 	return
 }
 
@@ -113,6 +114,19 @@ func chatGPTContinueWrite(msg string, contextMsgs []string, cloud bool) (ret str
 		retContextMsgs = append(retContextMsgs, msg, ret)
 	}
 	return
+}
+
+func ChatGPTContinueWriteStream(msg string, contextMsgs []string, cloud bool) (stream *openai.ChatCompletionStream, err error) {
+	if Conf.AI.OpenAI.APIMaxContexts < len(contextMsgs) {
+		contextMsgs = contextMsgs[len(contextMsgs)-Conf.AI.OpenAI.APIMaxContexts:]
+	}
+
+	if cloud {
+		return nil, errors.New("streaming not supported for CloudGPT")
+	}
+
+	gpt := &OpenAIGPT{c: util.NewOpenAIClient(Conf.AI.OpenAI.APIKey, Conf.AI.OpenAI.APIProxy, Conf.AI.OpenAI.APIBaseURL, Conf.AI.OpenAI.APIUserAgent, Conf.AI.OpenAI.APIVersion, Conf.AI.OpenAI.APIProvider)}
+	return gpt.chatStream(msg, contextMsgs)
 }
 
 func isOpenAIAPIEnabled() bool {
@@ -165,6 +179,7 @@ func getBlocksContent(ids []string) string {
 
 type GPT interface {
 	chat(msg string, contextMsgs []string) (partRet string, stop bool, err error)
+	chatStream(msg string, contextMsgs []string) (stream *openai.ChatCompletionStream, err error)
 }
 
 type OpenAIGPT struct {
@@ -175,9 +190,17 @@ func (gpt *OpenAIGPT) chat(msg string, contextMsgs []string) (partRet string, st
 	return util.ChatGPT(msg, contextMsgs, gpt.c, Conf.AI.OpenAI.APIModel, Conf.AI.OpenAI.APIMaxTokens, Conf.AI.OpenAI.APITemperature, Conf.AI.OpenAI.APITimeout)
 }
 
+func (gpt *OpenAIGPT) chatStream(msg string, contextMsgs []string) (stream *openai.ChatCompletionStream, err error) {
+	return util.ChatGPTStream(msg, contextMsgs, gpt.c, Conf.AI.OpenAI.APIModel, Conf.AI.OpenAI.APIMaxTokens, Conf.AI.OpenAI.APITemperature, Conf.AI.OpenAI.APITimeout)
+}
+
 type CloudGPT struct {
 }
 
 func (gpt *CloudGPT) chat(msg string, contextMsgs []string) (partRet string, stop bool, err error) {
 	return CloudChatGPT(msg, contextMsgs)
+}
+
+func (gpt *CloudGPT) chatStream(msg string, contextMsgs []string) (stream *openai.ChatCompletionStream, err error) {
+	return nil, errors.New("streaming not supported for CloudGPT")
 }

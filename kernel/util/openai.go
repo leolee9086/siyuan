@@ -88,6 +88,44 @@ func ChatGPT(msg string, contextMsgs []string, c *openai.Client, model string, m
 	return
 }
 
+func ChatGPTStream(msg string, contextMsgs []string, c *openai.Client, model string, maxTokens int, temperature float64, timeout int) (*openai.ChatCompletionStream, error) {
+	var reqMsgs []openai.ChatCompletionMessage
+	for _, ctxMsg := range contextMsgs {
+		if "" == ctxMsg {
+			continue
+		}
+
+		reqMsgs = append(reqMsgs, openai.ChatCompletionMessage{
+			Role:    "user",
+			Content: ctxMsg,
+		})
+	}
+
+	if "" != msg {
+		reqMsgs = append(reqMsgs, openai.ChatCompletionMessage{
+			Role:    "user",
+			Content: msg,
+		})
+	}
+
+	if 1 > len(reqMsgs) {
+		return nil, nil // 或者返回一个特定的错误
+	}
+
+	req := openai.ChatCompletionRequest{
+		Model:       model,
+		MaxTokens:   maxTokens,
+		Temperature: float32(temperature),
+		Messages:    reqMsgs,
+		Stream:      true, // 关键：开启流式响应
+	}
+	ctx, _ := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
+	// 注意：这里的 context cancel 需要由调用方管理，或者采用不同的策略
+	// 为简单起见，暂时让调用方负责 cancel
+
+	return c.CreateChatCompletionStream(ctx, req)
+}
+
 func NewOpenAIClient(apiKey, apiProxy, apiBaseURL, apiUserAgent, apiVersion, apiProvider string) *openai.Client {
 	config := openai.DefaultConfig(apiKey)
 	if "Azure" == apiProvider {

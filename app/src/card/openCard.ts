@@ -640,7 +640,11 @@ export const bindCardEvent = async (options: {
         event.preventDefault();
         event.stopPropagation();
         hideElements(["toolbar", "hint", "util", "gutter"], editor.protyle);
-        if (type === "-1") {    // 显示答案
+        const typeDict={
+            showAnswer: "-1",
+            previousStep: "-2",
+        }
+        if (type === typeDict.showAnswer) {    // 显示答案
             if (actionElements[0].classList.contains("fn__none")) {
                 type = "3";
             } else {
@@ -656,7 +660,7 @@ export const bindCardEvent = async (options: {
                 emitEvent(options.app, currentCard, type);
                 return;
             }
-        } else if (type === "-2") {    // 上一步
+        } else if (type === typeDict.previousStep) {    // 上一步
             if (index > 0) {
                 index--;
                 nextCard({
@@ -751,14 +755,18 @@ export const openCard = (app: App) => {
     });
 };
 
-export const openCardByData = async (app: App, cardsData: ICardData, cardType: TCardType, id?: string, title?: string) => {
-    const exit = window.siyuan.dialogs.find(item => {
+
+const findExitCardDialog = (siyuan: ISiyuan) => {
+    return siyuan.dialogs.find(item => {
         if (item.element.getAttribute("data-key") === Constants.DIALOG_OPENCARD) {
-            item.destroy();
-            return true;
+            return item;
         }
     });
+}
+export const openCardByData = async (app: App, cardsData: ICardData, cardType: TCardType, id?: string, title?: string) => {
+    const exit = findExitCardDialog(window.siyuan);
     if (exit) {
+        exit.destroy();
         return;
     }
     let lastRange: Range;

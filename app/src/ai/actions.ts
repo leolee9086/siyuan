@@ -1,7 +1,7 @@
 import { fetchPost } from "../util/fetch";
 import { focusByRange, setLastNodeRange } from "../protyle/util/selection";
 import { insertHTML } from "../protyle/util/insertHTML";
-import { Dialog } from "../dialog";
+import { Dialog } from "./runtimeImports";
 import { isMobile } from "../util/functions";
 import { getContenteditableElement } from "../protyle/wysiwyg/getBlock";
 import { blockRender } from "../protyle/render/blockRender";
@@ -11,9 +11,10 @@ import { Constants } from "../constants";
 import { setStorageVal } from "../protyle/util/compatibility";
 import { escapeAriaLabel, escapeAttr, escapeHtml } from "../util/escape";
 import { showMessage } from "../dialog/message";
-import { Menu } from "../plugin/Menu";
+import { Menu } from "./runtimeImports";
 import { upDownHint } from "../util/upDownHint";
 import { editDialogContent, customDialogContent } from "./templates/dialogs";
+import { AIChat } from "./chat";
 
 export const fillContent = (protyle: IProtyle, data: string, elements: Element[]) => {
     if (!data) {
@@ -26,6 +27,46 @@ export const fillContent = (protyle: IProtyle, data: string, elements: Element[]
     processRender(protyle.wysiwyg.element);
     highlightRender(protyle.wysiwyg.element);
 };
+
+/**
+ * 更新自定义动作
+ * @param customName 自定义动作名称
+ * @param customMemo 自定义动作内容
+ * @param newName 新名称
+ * @param newMemo 新内容
+ */
+const updateCustomAction = (customName: string, customMemo: string, newName: string, newMemo: string) => {
+    window.siyuan.storage[Constants.LOCAL_AI].find((subItem: {
+        name: string,
+        memo: string
+    }) => {
+        if (customName === subItem.name && customMemo === subItem.memo) {
+            subItem.name = newName;
+            subItem.memo = newMemo;
+            setStorageVal(Constants.LOCAL_AI, window.siyuan.storage[Constants.LOCAL_AI]);
+            return true;
+        }
+    });
+};
+
+/**
+ * 删除自定义动作
+ * @param customName 自定义动作名称
+ * @param customMemo 自定义动作内容
+ */
+const deleteCustomAction = (customName: string, customMemo: string) => {
+    window.siyuan.storage[Constants.LOCAL_AI].find((subItem: {
+        name: string,
+        memo: string
+    }, index: number) => {
+        if (customName === subItem.name && customMemo === subItem.memo) {
+            window.siyuan.storage[Constants.LOCAL_AI].splice(index, 1);
+            setStorageVal(Constants.LOCAL_AI, window.siyuan.storage[Constants.LOCAL_AI]);
+            return true;
+        }
+    });
+};
+
 const editDialog = (customName: string, customMemo: string) => {
     const dialog = new Dialog({
         title: window.siyuan.languages.update,
@@ -45,30 +86,11 @@ const editDialog = (customName: string, customMemo: string) => {
         dialog.destroy();
     });
     btnsElement[2].addEventListener("click", () => {
-        window.siyuan.storage[Constants.LOCAL_AI].find((subItem: {
-            name: string,
-            memo: string
-        }) => {
-            if (customName === subItem.name && customMemo === subItem.memo) {
-                subItem.name = nameElement.value;
-                subItem.memo = customElement.value;
-                setStorageVal(Constants.LOCAL_AI, window.siyuan.storage[Constants.LOCAL_AI]);
-                return true;
-            }
-        });
+        updateCustomAction(customName, customMemo, nameElement.value, customElement.value);
         dialog.destroy();
     });
     btnsElement[0].addEventListener("click", () => {
-        window.siyuan.storage[Constants.LOCAL_AI].find((subItem: {
-            name: string,
-            memo: string
-        }, index: number) => {
-            if (customName === subItem.name && customMemo === subItem.memo) {
-                window.siyuan.storage[Constants.LOCAL_AI].splice(index, 1);
-                setStorageVal(Constants.LOCAL_AI, window.siyuan.storage[Constants.LOCAL_AI]);
-                return true;
-            }
-        });
+        deleteCustomAction(customName, customMemo);
         dialog.destroy();
     });
     nameElement.focus();
@@ -191,9 +213,7 @@ export const AIActions = (elements: Element[], protyle: IProtyle) => {
         bind(element) {
             /// #if MOBILE
             element.setAttribute("style", "height: 100%;padding: 0 16px;");
-            element.querySelectorAll(".b3-menu__separator").forEach(item => {
-                item.remove();
-            });
+            removeAllBySelector(element, ".b3-menu__separator");
             /// #endif
             const listElement = element.querySelector(".b3-list");
             const inputElement = element.querySelector("input");
@@ -212,6 +232,9 @@ export const AIActions = (elements: Element[], protyle: IProtyle) => {
                     if (currentElement.dataset.type === "custom") {
                         customDialog(protyle, ids, elements);
                         menu.close();
+                    } else if (currentElement.dataset.action === "Continue writing" || currentElement.textContent === window.siyuan.languages.aiContinueWrite || currentElement.textContent === window.siyuan.languages.aiWriting) {
+                        menu.close();
+                        AIChat(protyle, elements[0]);
                     } else {
                         fetchPost("/api/ai/chatGPTWithAction", {
                             ids,
@@ -250,6 +273,9 @@ export const AIActions = (elements: Element[], protyle: IProtyle) => {
                         if (target.dataset.type === "custom") {
                             customDialog(protyle, ids, elements);
                             menu.close();
+                        } else if (target.dataset.action === "Continue writing" || target.textContent === window.siyuan.languages.aiContinueWrite || target.textContent === window.siyuan.languages.aiWriting) {
+                            menu.close();
+                            AIChat(protyle, elements[0]);
                         } else {
                             fetchPost("/api/ai/chatGPTWithAction", { ids, action: target.dataset.action }, (response) => {
                                 fillContent(protyle, response.data, elements);
@@ -269,16 +295,42 @@ export const AIActions = (elements: Element[], protyle: IProtyle) => {
             });
         }
     });
-    menu.element.querySelector(".b3-menu__items").setAttribute("style", "overflow: initial");
+    setChildStyle(menu.element, ".b3-menu__items", "overflow: initial");
     /// #if MOBILE
     menu.fullscreen();
     /// #else
-    const rect = elements[elements.length - 1].getBoundingClientRect();
+    openMenuAtLeftBottom(menu, elements[elements.length - 1]);
+    focusMenuElement(menu, "input");
+    /// #endif
+};
+const removeAllBySelector = (element: HTMLElement, selector: string) => {
+    const children = element.querySelectorAll(selector) as NodeListOf<HTMLElement>;
+    children.forEach(child => {
+        child.remove();
+    });
+}
+const setChildStyle = (element: HTMLElement, selector: string, style: string) => {
+    const child = element.querySelector(selector) as HTMLElement;
+    if (child) {
+        setStyle(child, style);
+    }
+}
+
+const setStyle = (element: HTMLElement, style: string) => {
+    element.setAttribute("style", style);
+}
+
+const openMenuAtLeftBottom = (menu: Menu, element: Element) => {
+    const rect = element.getBoundingClientRect();
     menu.open({
         x: rect.left,
         y: rect.bottom,
         h: rect.height,
     });
-    menu.element.querySelector("input").focus();
-    /// #endif
 };
+const focusMenuElement = (menu: Menu, selector: string) => {
+    const element = menu.element.querySelector(selector) as HTMLElement;
+    if (element) {
+        element.focus();
+    }
+}

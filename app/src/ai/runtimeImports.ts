@@ -1,0 +1,10 @@
+import { Menu } from "../plugin/Menu";
+export { Menu };
+import { Dialog } from "../dialog";
+export { Dialog };
+import { blockRender } from "../protyle/render/blockRender";
+export { blockRender };
+import { processRender } from "../protyle/util/processCode";
+export { processRender };
+import { highlightRender } from "../protyle/render/highlightRender";
+export { highlightRender };

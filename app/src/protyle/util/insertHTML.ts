@@ -22,6 +22,7 @@ const processAV = (range: Range, html: string, protyle: IProtyle, blockElement: 
     const tempElement = document.createElement("template");
     tempElement.innerHTML = html;
     let values: string[][] = [];
+
     if (html.endsWith("]") && html.startsWith("[")) {
         try {
             values = JSON.parse(html);
@@ -206,6 +207,9 @@ const processAV = (range: Range, html: string, protyle: IProtyle, blockElement: 
         }
     });
 };
+
+
+
 
 const processTable = (range: Range, html: string, protyle: IProtyle, blockElement: HTMLElement) => {
     const tempElement = document.createElement("template");

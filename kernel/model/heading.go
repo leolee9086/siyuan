@@ -273,10 +273,11 @@ func Doc2Heading(srcID, targetID string, after bool) (srcTreeBox, srcTreePath st
 	treenode.RemoveBlockTreesByRootID(targetTree.ID)
 	err = indexWriteTreeUpsertQueue(targetTree)
 	IncSync()
+	sql.FlushQueue()
+
 	RefreshBacklink(srcTree.ID)
 	RefreshBacklink(targetTree.ID)
 	go func() {
-		sql.FlushQueue()
 		ResetVirtualBlockRefCache()
 	}()
 	return

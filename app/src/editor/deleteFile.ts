@@ -6,6 +6,7 @@ import {Constants} from "../constants";
 import {showMessage} from "../dialog/message";
 import {escapeHtml} from "../util/escape";
 
+
 export const deleteFile = (notebookId: string, pathString: string) => {
     if (window.siyuan.config.fileTree.removeDocWithoutConfirm) {
         fetchPost("/api/filetree/removeDoc", {
