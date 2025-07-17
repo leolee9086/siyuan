@@ -14,7 +14,7 @@ import { showMessage } from "../dialog/message";
 import { Menu } from "./runtimeImports";
 import { upDownHint } from "../util/upDownHint";
 import { editDialogContent, customDialogContent } from "./templates/dialogs";
-import { AIChat } from "./chat";
+import { openAIChat } from "./chat";
 
 export const fillContent = (protyle: IProtyle, data: string, elements: Element[]) => {
     if (!data) {
@@ -204,6 +204,10 @@ export const AIActions = (elements: Element[], protyle: IProtyle) => {
             ${window.siyuan.languages.clearContext}
         </div>
         <div class="b3-menu__separator"></div>
+        <div class="b3-list-item b3-list-item--narrow" data-action="openChat">
+            ${window.siyuan.languages.aiWriting} (聊天模式)
+        </div>
+        <div class="b3-menu__separator"></div>
         <div class="b3-list-item b3-list-item--narrow" data-type="custom">
             ${window.siyuan.languages.aiCustomAction}
         </div>
@@ -232,9 +236,9 @@ export const AIActions = (elements: Element[], protyle: IProtyle) => {
                     if (currentElement.dataset.type === "custom") {
                         customDialog(protyle, ids, elements);
                         menu.close();
-                    } else if (currentElement.dataset.action === "Continue writing" || currentElement.textContent === window.siyuan.languages.aiContinueWrite || currentElement.textContent === window.siyuan.languages.aiWriting) {
-                        menu.close();
-                        AIChat(protyle, elements[0]);
+                                            } else if (currentElement.dataset.action === "Continue writing" || currentElement.textContent === window.siyuan.languages.aiContinueWrite || currentElement.textContent === window.siyuan.languages.aiWriting) {
+                            menu.close();
+                            openAIChat(protyle);
                     } else {
                         fetchPost("/api/ai/chatGPTWithAction", {
                             ids,
@@ -275,7 +279,10 @@ export const AIActions = (elements: Element[], protyle: IProtyle) => {
                             menu.close();
                         } else if (target.dataset.action === "Continue writing" || target.textContent === window.siyuan.languages.aiContinueWrite || target.textContent === window.siyuan.languages.aiWriting) {
                             menu.close();
-                            AIChat(protyle, elements[0]);
+                            openAIChat(protyle);
+                        } else if (target.dataset.action === "openChat") {
+                            menu.close();
+                            openAIChat(protyle);
                         } else {
                             fetchPost("/api/ai/chatGPTWithAction", { ids, action: target.dataset.action }, (response) => {
                                 fillContent(protyle, response.data, elements);

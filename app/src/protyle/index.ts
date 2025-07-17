@@ -48,6 +48,7 @@ import {getAllModels} from "../layout/getAll";
 import {isSupportCSSHL} from "./render/searchMarkRender";
 import {renderAVAttribute} from "./render/av/blockAttr";
 import {genEmptyElement} from "../block/util";
+import {CustomPanelManager, ICustomPanelOptions} from "./ui/CustomPanel";
 
 export class Protyle {
 
@@ -403,6 +404,27 @@ export class Protyle {
 
         this.protyle.preview = new Preview(this.protyle);
 
+        // 添加自定义面板方法到protyle对象
+        this.protyle.addCustomPanel = (options: ICustomPanelOptions) => {
+            return CustomPanelManager.addPanel(this.protyle, options);
+        };
+
+        this.protyle.getCustomPanel = (id: string) => {
+            return CustomPanelManager.getPanel(id);
+        };
+
+        this.protyle.removeCustomPanel = (id: string) => {
+            CustomPanelManager.removePanel(id);
+        };
+
+        this.protyle.getAllCustomPanels = () => {
+            return CustomPanelManager.getAllPanels();
+        };
+
+        this.protyle.clearAllCustomPanels = () => {
+            CustomPanelManager.clearAllPanels();
+        };
+
         initUI(this.protyle);
     }
 
@@ -499,5 +521,46 @@ export class Protyle {
 
     public renderAVAttribute(element: HTMLElement, id: string, cb?: (element: HTMLElement) => void) {
         renderAVAttribute(element, id, this.protyle, cb);
+    }
+
+    /**
+     * 添加自定义面板
+     * @param options 面板选项
+     * @returns 面板实例
+     */
+    public addCustomPanel(options: ICustomPanelOptions) {
+        return CustomPanelManager.addPanel(this.protyle, options);
+    }
+
+    /**
+     * 获取自定义面板
+     * @param id 面板ID
+     * @returns 面板实例
+     */
+    public getCustomPanel(id: string) {
+        return CustomPanelManager.getPanel(id);
+    }
+
+    /**
+     * 移除自定义面板
+     * @param id 面板ID
+     */
+    public removeCustomPanel(id: string) {
+        CustomPanelManager.removePanel(id);
+    }
+
+    /**
+     * 获取所有自定义面板
+     * @returns 面板实例数组
+     */
+    public getAllCustomPanels() {
+        return CustomPanelManager.getAllPanels();
+    }
+
+    /**
+     * 清除所有自定义面板
+     */
+    public clearAllCustomPanels() {
+        CustomPanelManager.clearAllPanels();
     }
 }

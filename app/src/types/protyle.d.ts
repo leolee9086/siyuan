@@ -525,7 +525,7 @@ interface IProtyle {
     gutter?: import("../protyle/gutter").Gutter,
     breadcrumb?: import("../protyle/breadcrumb").Breadcrumb,
     title?: import("../protyle/header/Title").Title,
-    background?: import("../protyle/header/background").Background,
+    background?: import("../protyle/header/Background").Background,
     contentElement?: HTMLElement,
     options: IProtyleOptions;
     lute?: Lute;
@@ -534,5 +534,13 @@ interface IProtyle {
     hint?: import("../protyle/hint").Hint;
     upload?: import("../protyle/upload").Upload;
     undo?: import("../protyle/undo").Undo;
-    wysiwyg?: import("../protyle/wysiwyg").WYSIWYG
+    wysiwyg?: import("../protyle/wysiwyg").WYSIWYG;
+    customPanelsElement?: HTMLElement;
+    
+    // 自定义面板相关方法
+    addCustomPanel?(options: import("../protyle/ui/CustomPanel").ICustomPanelOptions): import("../protyle/ui/CustomPanel").CustomPanel;
+    getCustomPanel?(id: string): import("../protyle/ui/CustomPanel").CustomPanel | undefined;
+    removeCustomPanel?(id: string): void;
+    getAllCustomPanels?(): import("../protyle/ui/CustomPanel").CustomPanel[];
+    clearAllCustomPanels?(): void;
 }

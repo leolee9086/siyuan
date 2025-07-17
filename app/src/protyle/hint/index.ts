@@ -36,7 +36,7 @@ import {openFileById} from "../../editor/util";
 /// #endif
 import {openMobileFileById} from "../../mobile/editor";
 import {processRender} from "../util/processCode";
-import {AIChat} from "../../ai/chat";
+import {openAIChat} from "../../ai/chat";
 import {isMobile} from "../../util/functions";
 import {isIPhone, isNotCtrl, isOnlyMeta} from "../util/compatibility";
 import {avRender} from "../render/av/render";
@@ -695,7 +695,7 @@ ${genHintItemHTML(item)}
                 return;
             } else if (value === Constants.ZWSP + 5) {
                 range.deleteContents();
-                AIChat(protyle, nodeElement);
+                openAIChat(protyle);
                 return;
             } else if (Constants.INLINE_TYPE.includes(value)) {
                 range.deleteContents();

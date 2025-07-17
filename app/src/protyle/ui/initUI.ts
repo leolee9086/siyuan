@@ -72,6 +72,17 @@ export const initUI = (protyle: IProtyle) => {
     });
     /// #endif
 
+    // 创建自定义面板容器
+    protyle.customPanelsElement = document.createElement("div");
+    protyle.customPanelsElement.className = "protyle-custom-panels fn__none";
+    protyle.customPanelsElement.style.cssText = `
+        position: relative;
+        overflow: hidden;
+    `;
+    protyle.element.appendChild(protyle.customPanelsElement);
+
+    // 自定义面板容器已创建，调节手柄将在具体功能中动态添加
+
     protyle.element.append(protyle.highlight.styleElement);
 
     addLoading(protyle);
