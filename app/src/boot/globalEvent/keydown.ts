@@ -33,7 +33,7 @@ import {openFileById} from "../../editor/util";
 import {getAllDocks, getAllModels, getAllTabs} from "../../layout/getAll";
 import {focusBlock, focusByOffset, focusByRange, getSelectionOffset} from "../../protyle/util/selection";
 import {initFileMenu, initNavigationMenu} from "../../menus/navigation";
-import {bindMenuKeydown} from "../../menus/Menu";
+import { bindMenuKeydown } from "../../menus/Menu.bindMenuKeydown";
 import {Dialog} from "../../dialog";
 import {unicode2Emoji} from "../../emoji";
 import {deleteFiles} from "../../editor/deleteFile";

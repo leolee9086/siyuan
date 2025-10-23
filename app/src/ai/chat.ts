@@ -1,7 +1,7 @@
-import {Dialog} from "../dialog";
-import {isMobile} from "../util/functions";
-import {fetchPost} from "../util/fetch";
-import {fillContent} from "./actions";
+import { Dialog } from "../dialog";
+import { isMobile } from "../util/functions";
+import { fetchPost } from "../util/fetch";
+import { fillContent } from "./actions";
 
 export const AIChat = (protyle: IProtyle, element: Element) => {
     const dialog = new Dialog({
@@ -15,6 +15,7 @@ export const AIChat = (protyle: IProtyle, element: Element) => {
     });
     const inputElement = dialog.element.querySelector("textarea");
     const btnsElement = dialog.element.querySelectorAll(".b3-button");
+
     dialog.bindInput(inputElement, () => {
         (btnsElement[1] as HTMLButtonElement).click();
     });
@@ -22,20 +23,22 @@ export const AIChat = (protyle: IProtyle, element: Element) => {
     btnsElement[0].addEventListener("click", () => {
         dialog.destroy();
     });
-    btnsElement[1].addEventListener("click", () => {
-        let inputValue = inputElement.value;
-        fetchPost("/api/ai/chatGPT", {
-            msg: inputValue,
-        }, (response) => {
-            dialog.destroy();
-            let respContent = "";
-            if (response.data && "" !== response.data) {
-                respContent = "\n\n" + response.data;
-            }
-            if (inputValue === "Clear context") {
-                inputValue = "";
-            }
-            fillContent(protyle, `${inputValue}${respContent}`, [element]);
-        });
+    btnsElement[1].addEventListener("click", () => 处理确认点击(inputElement, dialog, protyle, element));
+};
+
+const 处理确认点击 = (inputElement: HTMLTextAreaElement, dialog: Dialog, protyle: IProtyle, element: Element) => {
+    let inputValue = inputElement.value;
+    fetchPost("/api/ai/chatGPT", {
+        msg: inputValue,
+    }, (response) => {
+        dialog.destroy();
+        let respContent = "";
+        if (response.data && "" !== response.data) {
+            respContent = "\n\n" + response.data;
+        }
+        if (inputValue === "Clear context") {
+            inputValue = "";
+        }
+        fillContent(protyle, `${inputValue}${respContent}`, [element]);
     });
 };
