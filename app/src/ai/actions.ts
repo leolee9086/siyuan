@@ -13,6 +13,7 @@ import { escapeAriaLabel, escapeAttr, escapeHtml } from "../util/escape";
 import { showMessage } from "../dialog/message";
 import { Menu } from "../plugin/Menu";
 import { upDownHint } from "../util/upDownHint";
+import { getElementsBlockId } from "../util/DOM/blockLikeElements";
 
 export const fillContent = (protyle: IProtyle, data: string, elements: Element[]) => {
     if (!data) {
@@ -154,16 +155,6 @@ const filterAI = (element: HTMLElement, inputElement: HTMLInputElement) => {
     element.querySelector(".b3-list-item--focus").classList.remove("b3-list-item--focus");
     element.querySelector(".b3-list-item:not(.fn__none)").classList.add("b3-list-item--focus");
 };
-const getElementBlockId = (element: Element) => {
-    return element.getAttribute("data-node-id")
-}
-const getElementsBlockId = (elements: Element[]) => {
-    const ids: string[] = [];
-    elements.forEach(item => {
-        ids.push(getElementBlockId(item));
-    });
-    return ids
-}
 export const AIActions = (elements: Element[], protyle: IProtyle) => {
     window.siyuan.menus.menu.remove();
     const ids=getElementsBlockId(elements)
