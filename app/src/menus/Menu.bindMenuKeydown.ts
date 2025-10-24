@@ -2,19 +2,68 @@ import { Constants } from "../constants";
 import { getEventName } from "../protyle/util/compatibility";
 import { hasClosestByClassName } from "../protyle/util/hasClosest";
 import { getActionMenu } from "./Menu";
+import { isMenuElementHidden, isTargetInMenu, isInputAbleMenuItemElement, isEventUpDown, setNotCurrent, setNotShow } from "./Menu.uills";
 
+
+/**
+ * 处理已有当前元素时的上下箭头键导航
+ * @param {Element} currentElement - 当前选中的菜单项元素
+ * @param {string} eventCode - 事件代码（"↑" 或 "↓"）
+ * @returns {Element|null} 下一个要选中的菜单项元素
+ */
+const 处理已有当前元素的上下导航 = (currentElement: Element, eventCode: string): Element | null => {
+    setNotCurrent(currentElement);
+    setNotShow(currentElement)
+    let actionMenuElement;
+    if (eventCode === "↑") {
+        actionMenuElement = getActionMenu(currentElement.previousElementSibling, false);
+        if (!actionMenuElement) {
+            actionMenuElement = getActionMenu(currentElement.parentElement.lastElementChild, false);
+        }
+    } else {
+        actionMenuElement = getActionMenu(currentElement.nextElementSibling, true);
+        if (!actionMenuElement) {
+            actionMenuElement = getActionMenu(currentElement.parentElement.firstElementChild, true);
+        }
+    }
+    return actionMenuElement;
+};
+
+/**
+ * 处理菜单项的选中状态和滚动
+ * @param {Element} actionMenuElement - 要选中的菜单项元素
+ */
+const 处理菜单项选中状态 = (actionMenuElement: Element): void => {
+    if (actionMenuElement.classList.contains("b3-menu__item")) {
+        actionMenuElement.classList.add("b3-menu__item--current");
+    }
+    const inputElement = actionMenuElement.querySelector(":scope > .b3-text-field") as HTMLInputElement;
+    if (inputElement) {
+        inputElement.focus();
+    }
+    actionMenuElement.classList.remove("b3-menu__item--show");
+    const parentRect = actionMenuElement.parentElement.getBoundingClientRect();
+    const actionMenuRect = actionMenuElement.getBoundingClientRect();
+    if (parentRect.top > actionMenuRect.top || parentRect.bottom < actionMenuRect.bottom) {
+        actionMenuElement.scrollIntoView(parentRect.top > actionMenuRect.top);
+    }
+};
 
 export const bindMenuKeydown = (event: KeyboardEvent) => {
-    if (window.siyuan.menus.menu.element.classList.contains("fn__none")
+    if (isMenuElementHidden()
         || event.altKey || event.shiftKey || event.ctrlKey || event.metaKey) {
         return false;
     }
-    const target = event.target as HTMLElement;
-    if (window.siyuan.menus.menu.element.contains(target) && ["INPUT", "TEXTAREA"].includes(target.tagName)) {
+    const target = event.target;
+    if(!(target instanceof HTMLElement)){
+        return false
+    }
+    if (isTargetInMenu(target) && isInputAbleMenuItemElement(target)) {
         return false;
     }
     const eventCode = Constants.KEYCODELIST[event.keyCode];
-    if (eventCode === "↓" || eventCode === "↑") {
+
+    if (isEventUpDown(event)) {
         const currentElement = window.siyuan.menus.menu.element.querySelector(".b3-menu__item--current");
         let actionMenuElement;
         if (!currentElement) {
@@ -24,33 +73,10 @@ export const bindMenuKeydown = (event: KeyboardEvent) => {
                 actionMenuElement = getActionMenu(window.siyuan.menus.menu.element.lastElementChild.firstElementChild, true);
             }
         } else {
-            currentElement.classList.remove("b3-menu__item--current", "b3-menu__item--show");
-            if (eventCode === "↑") {
-                actionMenuElement = getActionMenu(currentElement.previousElementSibling, false);
-                if (!actionMenuElement) {
-                    actionMenuElement = getActionMenu(currentElement.parentElement.lastElementChild, false);
-                }
-            } else {
-                actionMenuElement = getActionMenu(currentElement.nextElementSibling, true);
-                if (!actionMenuElement) {
-                    actionMenuElement = getActionMenu(currentElement.parentElement.firstElementChild, true);
-                }
-            }
+            actionMenuElement = 处理已有当前元素的上下导航(currentElement, eventCode);
         }
         if (actionMenuElement) {
-            if (actionMenuElement.classList.contains("b3-menu__item")) {
-                actionMenuElement.classList.add("b3-menu__item--current");
-            }
-            const inputElement = actionMenuElement.querySelector(":scope > .b3-text-field") as HTMLInputElement;
-            if (inputElement) {
-                inputElement.focus();
-            }
-            actionMenuElement.classList.remove("b3-menu__item--show");
-            const parentRect = actionMenuElement.parentElement.getBoundingClientRect();
-            const actionMenuRect = actionMenuElement.getBoundingClientRect();
-            if (parentRect.top > actionMenuRect.top || parentRect.bottom < actionMenuRect.bottom) {
-                actionMenuElement.scrollIntoView(parentRect.top > actionMenuRect.top);
-            }
+            处理菜单项选中状态(actionMenuElement);
         }
         return true;
     } else if (eventCode === "→") {
