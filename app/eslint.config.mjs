@@ -5,6 +5,7 @@ import path from "node:path";
 import {fileURLToPath} from "node:url";
 import js from "@eslint/js";
 import {FlatCompat} from "@eslint/eslintrc";
+import pluginVue from "eslint-plugin-vue";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,9 +24,10 @@ export default [{
         "stage",
         "appearance",
     ],
-}, ...compat.extends("eslint:recommended", "plugin:@typescript-eslint/recommended"), {
+}, ...compat.extends("eslint:recommended", "plugin:vue/vue3-essential", "plugin:@typescript-eslint/recommended"), {
     plugins: {
         "@typescript-eslint": typescriptEslint,
+        "vue": pluginVue,
     },
 
     languageOptions: {
@@ -35,6 +37,13 @@ export default [{
         },
 
         parser: tsParser,
+        parserOptions: {
+            ecmaVersion: "latest",
+            sourceType: "module",
+            ecmaFeatures: {
+                jsx: true,
+            },
+        },
     },
 
     rules: {
@@ -53,5 +62,10 @@ export default [{
         "@typescript-eslint/explicit-module-boundary-types": "off",
         "@typescript-eslint/no-explicit-any": "off",
         "@typescript-eslint/no-require-imports": "off",
+        "vue/multi-word-component-names": "off",
+        "vue/no-unused-components": "warn",
+        "vue/no-unused-vars": "warn",
+        "vue/require-default-prop": "off",
+        "vue/require-explicit-emits": "off",
     },
 }];

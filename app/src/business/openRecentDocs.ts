@@ -1,72 +1,11 @@
-import {fetchPost, fetchSyncPost} from "../util/fetch";
-import {unicode2Emoji} from "../emoji";
-import {Constants} from "../constants";
-import {escapeHtml} from "../util/escape";
-import {isWindow} from "../util/functions";
-import {updateHotkeyTip} from "../protyle/util/compatibility";
-import {getAllDocks} from "../layout/getAll";
+import {fetchPost} from "../util/fetch";
+import {createApp} from "vue";
 import {Dialog} from "../dialog";
+import {Constants} from "../constants";
 import {focusByRange} from "../protyle/util/selection";
 import {hasClosestByClassName} from "../protyle/util/hasClosest";
 import {hideElements} from "../protyle/ui/hideElements";
-
-const getHTML = async (data: { rootID: string, icon: string, title: string }[], element: Element, key?: string) => {
-    let tabHtml = "";
-    let index = 0;
-    data.forEach((item) => {
-        if (!key || item.title.toLowerCase().includes(key.toLowerCase())) {
-            tabHtml += `<li data-index="${index}" data-node-id="${item.rootID}" class="b3-list-item${index === 0 ? " b3-list-item--focus" : ""}">
-${unicode2Emoji(item.icon || window.siyuan.storage[Constants.LOCAL_IMAGES].file, "b3-list-item__graphic", true)}
-<span class="b3-list-item__text">${escapeHtml(item.title)}</span>
-</li>`;
-            index++;
-        }
-    });
-    let switchPath = "";
-    if (tabHtml) {
-        const pathResponse = await fetchSyncPost("/api/filetree/getFullHPathByID", {
-            id: data[0].rootID
-        });
-        switchPath = escapeHtml(pathResponse.data);
-    }
-    let dockHtml = "";
-    if (!isWindow()) {
-        dockHtml = '<ul class="b3-list b3-list--background" style="overflow: auto;width: 200px;">';
-        if (!key || window.siyuan.languages.riffCard.toLowerCase().includes(key.toLowerCase())) {
-            dockHtml += `<li data-type="riffCard" data-index="0" class="b3-list-item${!switchPath ? " b3-list-item--focus" : ""}">
-    <svg class="b3-list-item__graphic"><use xlink:href="#iconRiffCard"></use></svg>
-    <span class="b3-list-item__text">${window.siyuan.languages.riffCard}</span>
-    <span class="b3-list-item__meta">${updateHotkeyTip(window.siyuan.config.keymap.general.riffCard.custom)}</span>
-</li>`;
-            if (!switchPath) {
-                switchPath = window.siyuan.languages.riffCard;
-            }
-        }
-        let docIndex = 1;
-        getAllDocks().forEach((item) => {
-            if (!key || item.title.toLowerCase().includes(key.toLowerCase())) {
-                dockHtml += `<li data-type="${item.type}" data-index="${docIndex}" class="b3-list-item${!switchPath ? " b3-list-item--focus" : ""}">
-    <svg class="b3-list-item__graphic"><use xlink:href="#${item.icon}"></use></svg>
-    <span class="b3-list-item__text">${item.title}</span>
-    <span class="b3-list-item__meta">${updateHotkeyTip(item.hotkey || "")}</span>
-</li>`;
-                docIndex++;
-                if (!switchPath) {
-                    switchPath = window.siyuan.languages.riffCard;
-                }
-            }
-        });
-        dockHtml = dockHtml + "</ul>";
-    }
-
-    const pathElement = element.querySelector(".switch-doc__path");
-    pathElement.innerHTML = switchPath;
-    pathElement.previousElementSibling.innerHTML = `<div class="fn__flex fn__flex-1" style="overflow:auto;">
-        ${dockHtml}
-        <ul style="${isWindow() ? "border-left:0;" : ""}min-width:360px;" class="b3-list b3-list--background fn__flex-1">${tabHtml}</ul>
-    </div>`;
-};
-
+import RecentDocs from "./recentDocs.vue";
 export const openRecentDocs = () => {
     const openRecentDocsDialog = window.siyuan.dialogs.find(item => {
         if (item.element.getAttribute("data-key") === Constants.DIALOG_RECENTDOCS) {
@@ -92,10 +31,7 @@ export const openRecentDocs = () => {
     <input placeholder="${window.siyuan.languages.search}" class="b3-text-field fn__block b3-form__icon-input">
 </div>
 </div>`,
-            content: `<div class="fn__flex-column switch-doc">
-    <div class="fn__flex fn__flex-1" style="overflow:auto;"></div>
-    <div class="switch-doc__path"></div>
-</div>`,
+            content: "",
             height: "80vh",
             destroyCallback: () => {
                 if (range && range.getBoundingClientRect().height !== 0) {
@@ -103,28 +39,66 @@ export const openRecentDocs = () => {
                 }
             }
         });
+        
+        // 创建一个容器元素用于挂载 Vue 应用
+        const container = document.createElement("div");
+        dialog.element.querySelector(".b3-dialog__body").appendChild(container);
+        
+        // 创建 Vue 应用实例并挂载
+        const vueInstance = createApp({
+            components: {
+                RecentDocs
+            },
+            setup() {
+                const recentDocs = response.data;
+                
+                const handleDocSelected = (doc: { rootID: string, icon: string, title: string }) => {
+                    fetchPost("/api/filetree/openDoc", {
+                        id: doc.rootID,
+                        action: [0, 1]
+                    });
+                };
+                
+                return {
+                    recentDocs,
+                    handleDocSelected
+                };
+            },
+            template: `<RecentDocs :recent-docs="recentDocs" @doc-selected="handleDocSelected" ref="recentDocsComponent" />`
+        }).mount(container);
+        
+        // 获取搜索输入框并添加事件监听
         const searchElement = dialog.element.querySelector("input");
         searchElement.focus();
+        
+        // 当搜索框内容变化时，调用 Vue 组件的 setSearchKey 方法
         searchElement.addEventListener("compositionend", () => {
-            getHTML(response.data, dialog.element, searchElement.value);
+            const component = vueInstance.$refs.recentDocsComponent as InstanceType<typeof RecentDocs>;
+            if (component && component.setSearchKey) {
+                component.setSearchKey(searchElement.value);
+            }
         });
+        
         searchElement.addEventListener("input", (event: InputEvent) => {
             if (event.isComposing) {
                 return;
             }
-            getHTML(response.data, dialog.element, searchElement.value);
+            const component = vueInstance.$refs.recentDocsComponent as InstanceType<typeof RecentDocs>;
+            if (component && component.setSearchKey) {
+                component.setSearchKey(searchElement.value);
+            }
         });
+        
         dialog.element.setAttribute("data-key", Constants.DIALOG_RECENTDOCS);
         dialog.element.addEventListener("click", (event) => {
             const liElement = hasClosestByClassName(event.target as HTMLElement, "b3-list-item");
             if (liElement) {
-                dialog.element.querySelector(".b3-list-item--focus").classList.remove("b3-list-item--focus");
+                dialog.element.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
                 liElement.classList.add("b3-list-item--focus");
                 window.dispatchEvent(new KeyboardEvent("keydown", {key: "Enter"}));
                 event.stopPropagation();
                 event.preventDefault();
             }
         });
-        getHTML(response.data, dialog.element);
     });
 };

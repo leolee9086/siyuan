@@ -5,6 +5,7 @@ const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const {CleanWebpackPlugin} = require("clean-webpack-plugin");
 const {EsbuildPlugin} = require("esbuild-loader");
+const {VueLoaderPlugin} = require("vue-loader");
 
 module.exports = (env, argv) => {
     return {
@@ -22,7 +23,10 @@ module.exports = (env, argv) => {
             "window": "./src/window/index.ts",
         },
         resolve: {
-            extensions: [".ts", ".js", ".tpl", ".scss", ".png", ".svg"],
+            extensions: [".vue", ".ts", ".js", ".tpl", ".scss", ".png", ".svg"],
+            alias: {
+                '@': path.resolve(__dirname, 'src'),
+            },
         },
         optimization: {
             minimize: argv.mode === "production",
@@ -35,6 +39,17 @@ module.exports = (env, argv) => {
         },
         module: {
             rules: [
+                {
+                    test: /\.vue$/,
+                    loader: "vue-loader",
+                    options: {
+                        compilerOptions: {
+                            hoistStatic: false,
+                            cacheHandlers: false,
+                            isTS: true,
+                        }
+                    }
+                },
                 {
                     test: /\.tpl/,
                     include: [
@@ -54,12 +69,41 @@ module.exports = (env, argv) => {
                             options: {
                                 target: "es2021",
                                 sourcemap: argv.mode !== "production",
+                                loader: "ts",
                             },
                         },
                         {
                             loader: "ifdef-loader", options: {
                                 BROWSER: false,
                                 MOBILE: false,
+                            },
+                        },
+                    ],
+                },
+                {
+                    test: /\.js$/,
+                    include: [path.resolve(__dirname, "src")],
+                    enforce: "post",
+                    use: [
+                        {
+                            loader: "esbuild-loader",
+                            options: {
+                                target: "es2021",
+                                sourcemap: argv.mode !== "production",
+                            },
+                        },
+                    ],
+                },
+                {
+                    test: /\.js$/,
+                    include: [path.resolve(__dirname, "src")],
+                    enforce: "post",
+                    use: [
+                        {
+                            loader: "esbuild-loader",
+                            options: {
+                                target: "es2021",
+                                sourcemap: argv.mode !== "production",
                             },
                         },
                     ],
@@ -108,7 +152,10 @@ module.exports = (env, argv) => {
             new webpack.DefinePlugin({
                 SIYUAN_VERSION: JSON.stringify(pkg.version),
                 NODE_ENV: JSON.stringify(argv.mode),
+                __VUE_OPTIONS_API__: JSON.stringify(true),
+                __VUE_PROD_DEVTOOLS__: JSON.stringify(false),
             }),
+            new VueLoaderPlugin(),
             new MiniCssExtractPlugin({
                 filename: "base.[contenthash].css",
             }),
@@ -127,3 +174,4 @@ module.exports = (env, argv) => {
         ],
     };
 };
+
