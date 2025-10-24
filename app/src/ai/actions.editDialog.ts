@@ -2,11 +2,9 @@ import { Constants } from "../constants";
 import { Dialog } from "../dialog";
 import { setStorageVal } from "../protyle/util/compatibility";
 import { isMobile } from "../util/functions";
+const genEditDialogHtml = () => {
 
-export const editDialog = (customName: string, customMemo: string) => {
-    const dialog = new Dialog({
-        title: window.siyuan.languages.update,
-        content: `<div class="b3-dialog__content">
+    return `<div class="b3-dialog__content">
     <input class="b3-text-field fn__block" placeholder="${window.siyuan.languages.memo}">
     <div class="fn__hr"></div>
     <textarea class="b3-text-field fn__block" placeholder="${window.siyuan.languages.aiCustomAction}"></textarea>
@@ -15,7 +13,12 @@ export const editDialog = (customName: string, customMemo: string) => {
     <button class="b3-button b3-button--remove">${window.siyuan.languages.delete}</button><div class="fn__space"></div>
     <button class="b3-button b3-button--cancel">${window.siyuan.languages.cancel}</button><div class="fn__space"></div>
     <button class="b3-button b3-button--text">${window.siyuan.languages.confirm}</button>
-</div>`,
+</div>`
+}
+export const editDialog = (customName: string, customMemo: string) => {
+    const dialog = new Dialog({
+        title: window.siyuan.languages.update,
+        content: genEditDialogHtml(),
         width: isMobile() ? "92vw" : "520px",
     });
     dialog.element.setAttribute("data-key", Constants.DIALOG_AIUPDATECUSTOMACTION);
