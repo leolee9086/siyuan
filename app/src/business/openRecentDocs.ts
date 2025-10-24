@@ -38,12 +38,26 @@ const createRecentDocsDialog = (recentDocs: any) => {
         range = getSelection().getRangeAt(0);
     }
     
-    const dialog = new Dialog({
-        positionId: Constants.DIALOG_RECENTDOCS,
-        title: `<div class="fn__flex">
+    // 创建标题Vue组件配置
+    const titleVueConfig: VueComponentMountConfig = {
+        components: {
+            RecentDocs
+        },
+        data: {
+            recentDocs
+        },
+        eventHandlers: {
+            handleDocSelected
+        },
+        template: `<div class="fn__flex">
 <div class="fn__flex-center">${window.siyuan.languages.recentDocs}</div>
 <div class="fn__flex-1"></div>
 </div>`,
+    };
+    
+    const dialog = new Dialog({
+        positionId: Constants.DIALOG_RECENTDOCS,
+        titleVueConfig: titleVueConfig,
         content: "",
         height: "80vh",
         destroyCallback: () => {
@@ -53,7 +67,7 @@ const createRecentDocsDialog = (recentDocs: any) => {
         }
     });
     
-    // 使用通用Vue组件加载器创建并挂载Vue应用
+    // 使用通用Vue组件加载器创建并挂载Vue应用到对话框内容区域
     createVueComponentInDialog(dialog, createRecentDocsVueConfig(recentDocs));
     
     dialog.element.setAttribute("data-key", Constants.DIALOG_RECENTDOCS);
@@ -107,13 +121,42 @@ export const selectRecentDoc = (): Promise<string | null> => {
             range = getSelection().getRangeAt(0);
         }
 
-        // 创建对话框
-        const dialog = new Dialog({
-            positionId: Constants.DIALOG_RECENTDOCS,
-            title: `<div class="fn__flex">
+        // 处理文档选择事件
+        const handleDocSelectedForSelect = (doc: { rootID: string, icon: string, title: string }) => {
+            // 打开选中的文档
+            fetchPost("/api/filetree/openDoc", {
+                id: doc.rootID,
+                action: [0, 1]
+            });
+            
+            // 销毁对话框
+            dialog.destroy();
+            
+            // 返回选中的文档ID
+            resolve(doc.rootID);
+        };
+
+        // 创建标题Vue组件配置
+        const titleVueConfig: VueComponentMountConfig = {
+            components: {
+                RecentDocs
+            },
+            data: {
+                recentDocs: [] // 这里先传空数组，后面会更新
+            },
+            eventHandlers: {
+                handleDocSelected: handleDocSelectedForSelect
+            },
+            template: `<div class="fn__flex">
 <div class="fn__flex-center">${window.siyuan.languages.recentDocs}</div>
 <div class="fn__flex-1"></div>
 </div>`,
+        };
+
+        // 创建对话框
+        const dialog = new Dialog({
+            positionId: Constants.DIALOG_RECENTDOCS,
+            titleVueConfig: titleVueConfig,
             content: "",
             height: "80vh",
             destroyCallback: () => {
@@ -132,21 +175,6 @@ export const selectRecentDoc = (): Promise<string | null> => {
 
         // 获取最近文档数据
         fetchPost("/api/storage/getRecentDocs", {}, (response) => {
-            // 处理文档选择事件
-            const handleDocSelectedForSelect = (doc: { rootID: string, icon: string, title: string }) => {
-                // 打开选中的文档
-                fetchPost("/api/filetree/openDoc", {
-                    id: doc.rootID,
-                    action: [0, 1]
-                });
-                
-                // 销毁对话框
-                dialog.destroy();
-                
-                // 返回选中的文档ID
-                resolve(doc.rootID);
-            };
-
             // 使用通用Vue组件加载器创建并挂载Vue应用
             createSimpleVueComponentLoader(
                 container,

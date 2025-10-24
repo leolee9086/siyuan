@@ -6,7 +6,8 @@ import {isMobile} from "../util/functions";
 import {isNotCtrl} from "../protyle/util/compatibility";
 import {Protyle} from "../protyle";
 import {Constants} from "../constants";
-
+import {createVueComponentLoader, VueComponentMountConfig, VueComponentLoaderContext} from "../util/vue/mount";
+import {App} from "vue";
 export class Dialog {
     private destroyCallback: (options?: IObject) => void;
     public element: HTMLElement;
@@ -14,10 +15,13 @@ export class Dialog {
     private disableClose: boolean;
     public editors: { [key: string]: Protyle };
     public data: any;
+    private titleVueApp: App | null; // 存储标题Vue应用实例
 
     constructor(options: {
         positionId?: string,
         title?: string,
+        titleVueConfig?: VueComponentMountConfig, // 新增：标题Vue组件配置
+        titleVueContext?: VueComponentLoaderContext, // 新增：标题Vue组件上下文
         transparent?: boolean,
         content: string,
         width?: string,
@@ -48,12 +52,15 @@ export class Dialog {
                 }
             }
         }
+        // 判断是否有标题（字符串或Vue组件）
+        const hasTitle = !!(options.title || options.titleVueConfig);
+        
         this.element.innerHTML = `<div class="b3-dialog" style="z-index: ${++window.siyuan.zIndex};${typeof left === "string" ? "display:block" : ""}">
 <div class="b3-dialog__scrim"${options.transparent ? 'style="background-color:transparent"' : ""}></div>
 <div class="b3-dialog__container ${options.containerClassName || ""}" style="width:${options.width || "auto"};height:${options.height || "auto"};
 left:${left || "auto"};top:${top || "auto"}">
-  <svg ${(isMobile() && options.title) ? 'style="top:0;right:0;"' : ""} class="b3-dialog__close${(this.disableClose || options.hideCloseIcon) ? " fn__none" : ""}"><use xlink:href="#iconCloseRound"></use></svg>
-  <div class="resize__move b3-dialog__header${options.title ? "" : " fn__none"}" onselectstart="return false;">${options.title || ""}</div>
+  <svg ${(isMobile() && hasTitle) ? 'style="top:0;right:0;"' : ""} class="b3-dialog__close${(this.disableClose || options.hideCloseIcon) ? " fn__none" : ""}"><use xlink:href="#iconCloseRound"></use></svg>
+  <div class="resize__move b3-dialog__header${hasTitle ? "" : " fn__none"}" onselectstart="return false;">${options.title || ""}</div>
   <div class="b3-dialog__body">${options.content}</div>
   <div class="resize__rd"></div><div class="resize__ld"></div><div class="resize__lt"></div><div class="resize__rt"></div><div class="resize__r"></div><div class="resize__d"></div><div class="resize__t"></div><div class="resize__l"></div>
 </div></div>`;
@@ -80,6 +87,21 @@ left:${left || "auto"};top:${top || "auto"}">
                 this.element.classList.add("b3-dialog--open");
             }, Constants.TIMEOUT_OPENDIALOG);
         }
+        // 如果提供了标题Vue组件配置，则挂载Vue组件到标题区域
+        if (options.titleVueConfig) {
+            const titleElement = this.element.querySelector(".b3-dialog__header");
+            if (titleElement) {
+                // 清空标题内容，为Vue组件腾出空间
+                titleElement.innerHTML = "";
+                // 挂载Vue组件
+                this.titleVueApp = createVueComponentLoader(
+                    titleElement as HTMLElement,
+                    options.titleVueConfig,
+                    options.titleVueContext
+                );
+            }
+        }
+
         /// #if !MOBILE
         moveResize(this.element.querySelector(".b3-dialog__container"), options.resizeCallback);
         /// #endif
@@ -93,6 +115,13 @@ left:${left || "auto"};top:${top || "auto"}">
                 // https://github.com/siyuan-note/siyuan/issues/6783
                 window.siyuan.menus.menu.remove();
             }
+            
+            // 销毁标题Vue应用实例
+            if (this.titleVueApp) {
+                this.titleVueApp.unmount();
+                this.titleVueApp = null;
+            }
+            
             this.element.remove();
             if (this.destroyCallback) {
                 this.destroyCallback(options);
