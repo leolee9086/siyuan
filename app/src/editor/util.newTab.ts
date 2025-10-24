@@ -33,44 +33,47 @@ const newAssetPathTab = (options:IOpenFileOptions) => {
         return tab
     }
 }
+const newCustomTab = (options: IOpenFileOptions) => {
+    return new Tab({
+        icon: options.custom.icon,
+        title: options.custom.title,
+        callback(tab) {
+            if (options.custom.id) {
+                if (options.custom.id === "siyuan-card") {
+                    tab.addModel(newCardModel({
+                        app: options.app,
+                        tab,
+                        data: options.custom.data
+                    }));
+                } else {
+                    options.app.plugins.find(p => {
+                        if (p.models[options.custom.id]) {
+                            tab.addModel(p.models[options.custom.id]({
+                                tab,
+                                data: options.custom.data
+                            }));
+                            return true;
+                        }
+                    });
+                }
+            } else {
+                // plugin 0.8.3 历史兼容
+                console.warn("0.8.3 将移除 custom.fn 参数，请参照 https://github.com/siyuan-note/plugin-sample/blob/91a716358941791b4269241f21db25fd22ae5ff5/src/index.ts 将其修改为 custom.id");
+                tab.addModel(options.custom.fn({
+                    tab,
+                    data: options.custom.data
+                }));
+            }
+            setPanelFocus(tab.panelElement.parentElement.parentElement);
+        }
+    });
+}
 export const newTab = (options: IOpenFileOptions) => {
     let tab: Tab;
     if (options.assetPath) {
         tab = newAssetPathTab(options)
     } else if (options.custom) {
-        tab = new Tab({
-            icon: options.custom.icon,
-            title: options.custom.title,
-            callback(tab) {
-                if (options.custom.id) {
-                    if (options.custom.id === "siyuan-card") {
-                        tab.addModel(newCardModel({
-                            app: options.app,
-                            tab,
-                            data: options.custom.data
-                        }));
-                    } else {
-                        options.app.plugins.find(p => {
-                            if (p.models[options.custom.id]) {
-                                tab.addModel(p.models[options.custom.id]({
-                                    tab,
-                                    data: options.custom.data
-                                }));
-                                return true;
-                            }
-                        });
-                    }
-                } else {
-                    // plugin 0.8.3 历史兼容
-                    console.warn("0.8.3 将移除 custom.fn 参数，请参照 https://github.com/siyuan-note/plugin-sample/blob/91a716358941791b4269241f21db25fd22ae5ff5/src/index.ts 将其修改为 custom.id");
-                    tab.addModel(options.custom.fn({
-                        tab,
-                        data: options.custom.data
-                    }));
-                }
-                setPanelFocus(tab.panelElement.parentElement.parentElement);
-            }
-        });
+        tab = newCustomTab(options);
     } else if (options.searchData) {
         tab = new Tab({
             icon: "iconSearch",
