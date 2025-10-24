@@ -91,16 +91,12 @@ export const createVueComponentInDialog = (
     context?: VueComponentLoaderContext
 ): App => {
     // 创建容器元素
-    const container = document.createElement("div");
-    
     // 将容器添加到对话框主体
     const dialogBody = dialogInstance.element.querySelector(".b3-dialog__body");
-    if (dialogBody) {
-        dialogBody.appendChild(container);
-    }
+  
 
     // 创建并挂载Vue应用
-    return createVueComponentLoader(container, config, context);
+    return createVueComponentLoader(dialogBody, config, context);
 };
 
 /**

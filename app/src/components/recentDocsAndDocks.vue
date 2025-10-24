@@ -1,26 +1,24 @@
 <template>
-  <div class="fn__flex-column  switch-doc">
-    <!-- 左右布局容器 -->
-    <div class="fn__flex fn__flex-1" style="overflow: hidden;">
-      <!-- 左侧：Dock选择面板 -->
-      <DockPanel
-        ref="dockPanelRef"
-        :search-key="searchKey"
-        :switch-path="switchPath"
-        @item-selected="handleDockItemSelected"
-        @path-updated="handlePathUpdated" />
+  <div class="fn__flex-column">
+  <div class="fn__flex fn__flex-1">
+    <div class="fn__flex-column  switch-doc">
+      <!-- 左右布局容器 -->
+      <div class="fn__flex fn__flex-1" style="overflow: hidden;">
+        <!-- 左侧：Dock选择面板 -->
+        <DockPanel ref="dockPanelRef" :search-key="searchKey" :switch-path="switchPath"
+          @item-selected="handleDockItemSelected" @path-updated="handlePathUpdated" />
 
-      <!-- 右侧：文档选择部分 -->
-      <DocsPanel
-        ref="docsPanelRef"
-        :recent-docs="recentDocs"
-        @doc-selected="handleDocSelected"
-        @search-key-changed="handleSearchKeyChanged" />
+        <!-- 右侧：文档选择部分 -->
+        <DocsPanel ref="docsPanelRef" :recent-docs="recentDocs" @doc-selected="handleDocSelected"
+          @search-key-changed="handleSearchKeyChanged" />
+      </div>
+
     </div>
 
-    <!-- 底部路径显示 -->
-    <div class="switch-doc__path">{{ switchPath }}</div>
   </div>
+  <!-- 底部路径显示 -->
+  <div class="switch-doc__path">{{ switchPath }}</div>
+</div>
 </template>
 
 <script setup lang="ts">
