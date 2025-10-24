@@ -36,7 +36,8 @@ import {onGet} from "../protyle/util/onGet";
 import {getAllModels} from "../layout/getAll";
 import {paste, pasteAsPlainText, pasteEscaped} from "../protyle/util/paste";
 /// #if !MOBILE
-import {openFileById, updateBacklinkGraph} from "../editor/util";
+import {openFileById} from "../editor/util";
+import { updateBacklinkGraph } from "../editor/util.updateBacklinkGraph";
 import {openGlobalSearch} from "../search/util";
 import {openNewWindowById} from "../window/openNewWindow";
 /// #endif

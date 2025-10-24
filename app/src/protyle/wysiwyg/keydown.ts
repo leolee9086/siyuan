@@ -50,7 +50,8 @@ import {newFileContentBySelect, rename, replaceFileName} from "../../editor/rena
 import {cancelSB, insertEmptyBlock, jumpToParent} from "../../block/util";
 import {isLocalPath} from "../../util/pathName";
 /// #if !MOBILE
-import {openBy, openFileById} from "../../editor/util";
+import {openFileById} from "../../editor/util";
+import { openBy } from "../../editor/utils.openBy";
 /// #endif
 import {alignImgCenter, alignImgLeft, commonHotkey, downSelect, getStartEndElement, upSelect} from "./commonHotkey";
 import {fileAnnotationRefMenu, inlineMathMenu, linkMenu, refMenu, setFold, tagMenu} from "../../menus/protyle";

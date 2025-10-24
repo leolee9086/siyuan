@@ -10,7 +10,7 @@ import {getSearch, isMobile} from "../../util/functions";
 import {shell} from "electron";
 /// #endif
 /// #if !MOBILE
-import {openBy} from "../../editor/util";
+import { openBy } from "../../editor/utils.openBy";
 import { openAsset } from "../../editor/util.openAsset";
 import {getAllModels} from "../../layout/getAll";
 /// #endif

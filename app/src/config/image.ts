@@ -7,7 +7,7 @@ import {fetchPost} from "../util/fetch";
 /// #if !MOBILE
 import {getAllModels} from "../layout/getAll";
 /// #endif
-import {openBy} from "../editor/util";
+import { openBy } from "../editor/utils.openBy";
 import {renderAssetsPreview} from "../asset/renderAssets";
 import {writeText} from "../protyle/util/compatibility";
 

@@ -6,7 +6,7 @@ import {getSearch} from "../util/functions";
 import {openByMobile} from "../protyle/util/compatibility";
 import {Constants} from "../constants";
 import {showMessage} from "../dialog/message";
-import {openBy} from "./util";
+import { openBy } from "./utils.openBy";
 import { openAsset } from "./util.openAsset";
 
 export const openLink = (protyle: IProtyle, aLink: string, event?: MouseEvent, ctrlIsPressed = false) => {

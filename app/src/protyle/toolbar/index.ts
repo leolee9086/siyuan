@@ -26,7 +26,7 @@ import {BlockRef} from "./BlockRef";
 import {hintRenderTemplate, hintRenderWidget} from "../hint/extend";
 import {blockRender} from "../render/blockRender";
 /// #if !BROWSER
-import {openBy} from "../../editor/util";
+import { openBy } from "../../editor/utils.openBy";
 /// #endif
 import {fetchPost} from "../../util/fetch";
 import {isArrayEqual, isMobile} from "../../util/functions";
