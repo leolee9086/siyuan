@@ -112,8 +112,8 @@ const 处理回车键导航 = (currentElement: Element): boolean => {
         return false;
     }
     
-    const subMenuElement = currentElement.querySelector(".b3-menu__submenu") as HTMLElement;
-    if (subMenuElement) {
+    const subMenuElement = currentElement.querySelector(".b3-menu__submenu") ;
+    if (subMenuElement instanceof HTMLElement) {
         setNotCurrent(currentElement);
         currentElement.classList.add("b3-menu__item--show");
         const actionMenuElement = getActionMenu(subMenuElement.firstElementChild.firstElementChild, true);
@@ -156,11 +156,7 @@ export const bindMenuKeydown = (event: KeyboardEvent) => {
         return false;
     }
     const eventCode = Constants.KEYCODELIST[event.keyCode];
-
     if (isEventUpDown(event)) {
-        /**
-         * 将此分支拆分为独立函数
-         */
         const menuElement = getMenuElement();
         const currentElement = getCurrentMenuItem();
         let actionMenuElement;
