@@ -3,7 +3,7 @@ import {Editor} from "./index";
 import {Wnd} from "../layout/Wnd";
 import {getInstanceById, getWndByLayout, pdfIsLoading, setPanelFocus} from "../layout/util";
 import {getDockByType} from "../layout/tabUtil";
-import {getAllModels, getAllTabs} from "../layout/getAll";
+import {getAllModels} from "../layout/getAll";
 import {highlightById, scrollCenter} from "../util/highlightById";
 import {getDisplayName, useShell, pathPosix} from "../util/pathName";
 import {Constants} from "../constants";
@@ -35,6 +35,7 @@ import {newCardModel} from "../card/newCardTab";
 import {preventScroll} from "../protyle/scroll/preventScroll";
 import {clearOBG} from "../layout/dock/util";
 import {Model} from "../layout/Model";
+import { getUnInitTab } from "./util.getUnInitTab";
 
 export const openFileById = async (options: {
     app: App,
@@ -305,32 +306,6 @@ export const openFile = async (options: IOpenFileOptions) => {
         }
         return createdTab;
     }
-};
-
-// 没有初始化的页签无法检测到
-const getUnInitTab = (options: IOpenFileOptions) => {
-    return getAllTabs().find(item => {
-        const initData = item.headElement?.getAttribute("data-initdata");
-        if (initData) {
-            const initObj = JSON.parse(initData);
-            if (initObj.instance === "Editor" &&
-                (initObj.rootId === options.rootID || initObj.blockId === options.rootID)) {
-                initObj.blockId = options.id;
-                initObj.mode = options.mode;
-                if (options.zoomIn) {
-                    initObj.action = [Constants.CB_GET_ALL, Constants.CB_GET_FOCUS];
-                } else {
-                    initObj.action = options.action;
-                }
-                item.headElement.setAttribute("data-initdata", JSON.stringify(initObj));
-                item.parent.switchTab(item.headElement);
-                return true;
-            } else if (initObj.instance === "Custom" && options.custom && objEquals(initObj.customModelData, options.custom.data)) {
-                item.parent.switchTab(item.headElement);
-                return true;
-            }
-        }
-    });
 };
 
 const switchEditor = (editor: Editor, options: IOpenFileOptions, allModels: IModels) => {
