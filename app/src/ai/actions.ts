@@ -1,18 +1,18 @@
-import {fetchPost} from "../util/fetch";
-import {focusByRange, setLastNodeRange} from "../protyle/util/selection";
-import {insertHTML} from "../protyle/util/insertHTML";
-import {Dialog} from "../dialog";
-import {isMobile} from "../util/functions";
-import {getContenteditableElement} from "../protyle/wysiwyg/getBlock";
-import {blockRender} from "../protyle/render/blockRender";
-import {processRender} from "../protyle/util/processCode";
-import {highlightRender} from "../protyle/render/highlightRender";
-import {Constants} from "../constants";
-import {setStorageVal} from "../protyle/util/compatibility";
-import {escapeAriaLabel, escapeAttr, escapeHtml} from "../util/escape";
-import {showMessage} from "../dialog/message";
-import {Menu} from "../plugin/Menu";
-import {upDownHint} from "../util/upDownHint";
+import { fetchPost } from "../util/fetch";
+import { focusByRange, setLastNodeRange } from "../protyle/util/selection";
+import { insertHTML } from "../protyle/util/insertHTML";
+import { Dialog } from "../dialog";
+import { isMobile } from "../util/functions";
+import { getContenteditableElement } from "../protyle/wysiwyg/getBlock";
+import { blockRender } from "../protyle/render/blockRender";
+import { processRender } from "../protyle/util/processCode";
+import { highlightRender } from "../protyle/render/highlightRender";
+import { Constants } from "../constants";
+import { setStorageVal } from "../protyle/util/compatibility";
+import { escapeAriaLabel, escapeAttr, escapeHtml } from "../util/escape";
+import { showMessage } from "../dialog/message";
+import { Menu } from "../plugin/Menu";
+import { upDownHint } from "../util/upDownHint";
 
 export const fillContent = (protyle: IProtyle, data: string, elements: Element[]) => {
     if (!data) {
@@ -154,13 +154,19 @@ const filterAI = (element: HTMLElement, inputElement: HTMLInputElement) => {
     element.querySelector(".b3-list-item--focus").classList.remove("b3-list-item--focus");
     element.querySelector(".b3-list-item:not(.fn__none)").classList.add("b3-list-item--focus");
 };
-
-export const AIActions = (elements: Element[], protyle: IProtyle) => {
-    window.siyuan.menus.menu.remove();
+const getElementBlockId = (element: Element) => {
+    return element.getAttribute("data-node-id")
+}
+const getElementsBlockId = (elements: Element[]) => {
     const ids: string[] = [];
     elements.forEach(item => {
-        ids.push(item.getAttribute("data-node-id"));
+        ids.push(getElementBlockId(item));
     });
+    return ids
+}
+export const AIActions = (elements: Element[], protyle: IProtyle) => {
+    window.siyuan.menus.menu.remove();
+    const ids=getElementsBlockId(elements)
     const menu = new Menu("ai", () => {
         focusByRange(protyle.toolbar.range);
     });
@@ -268,7 +274,7 @@ export const AIActions = (elements: Element[], protyle: IProtyle) => {
                             customDialog(protyle, ids, elements);
                             menu.close();
                         } else {
-                            fetchPost("/api/ai/chatGPTWithAction", {ids, action: target.dataset.action}, (response) => {
+                            fetchPost("/api/ai/chatGPTWithAction", { ids, action: target.dataset.action }, (response) => {
                                 fillContent(protyle, response.data, elements);
                             });
                             if (target.dataset.action === clearContext) {
