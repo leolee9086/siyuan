@@ -1,11 +1,8 @@
 import {fetchPost} from "../util/fetch";
 
-export const ai = {
-    element: undefined as Element,
-    genHTML: () => {
-        let responsiveHTML = "";
-        /// #if MOBILE
-        responsiveHTML = `<div class="b3-label">
+// 生成移动端HTML的独立函数
+function genMobileHTML() {
+    return `<div class="b3-label">
     ${window.siyuan.languages.apiProvider}
     <div class="b3-label__text">
         ${window.siyuan.languages.apiProviderTip}
@@ -84,8 +81,11 @@ export const ai = {
     <input class="b3-text-field fn__block" id="apiUserAgent" value="${window.siyuan.config.ai.openAI.apiUserAgent}"/>
     <div class="b3-label__text">${window.siyuan.languages.apiUserAgentTip}</div>
 </div>`;
-        /// #else
-        responsiveHTML = `<div class="fn__flex b3-label config__item">
+}
+
+// 生成桌面端HTML的独立函数
+function genDesktopHTML() {
+        return `<div class="fn__flex b3-label config__item">
     <div class="fn__flex-1">
         ${window.siyuan.languages.apiProvider}
         <div class="b3-label__text">${window.siyuan.languages.apiProviderTip}</div>
@@ -183,6 +183,16 @@ export const ai = {
         <input class="b3-text-field fn__block" id="apiUserAgent" value="${window.siyuan.config.ai.openAI.apiUserAgent}"/>
     </div>
 </div>`;
+}
+
+export const ai = {
+    element: undefined as Element,
+    genHTML: () => {
+        let responsiveHTML = "";
+        /// #if MOBILE
+        responsiveHTML = genMobileHTML();
+        /// #else
+        responsiveHTML = genDesktopHTML();
         /// #endif
         return `<div class="fn__flex-column" style="height: 100%">
 <div class="layout-tab-bar fn__flex">
