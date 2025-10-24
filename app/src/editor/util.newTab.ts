@@ -6,34 +6,37 @@ import { Tab } from "../layout/Tab";
 import { setPanelFocus } from "../layout/util";
 import { Search } from "../search";
 import { pathPosix, getDisplayName } from "../util/pathName";
-
+const newAssetPathTab = (options:IOpenFileOptions) => {
+    const suffix = pathPosix().extname(options.assetPath).split("?")[0];
+    if (Constants.SIYUAN_ASSETS_EXTS.includes(suffix)) {
+        let icon = "iconPDF";
+        if (Constants.SIYUAN_ASSETS_IMAGE.includes(suffix)) {
+            icon = "iconImage";
+        } else if (Constants.SIYUAN_ASSETS_AUDIO.includes(suffix)) {
+            icon = "iconRecord";
+        } else if (Constants.SIYUAN_ASSETS_VIDEO.includes(suffix)) {
+            icon = "iconVideo";
+        }
+        const tab = new Tab({
+            icon,
+            title: getDisplayName(options.assetPath),
+            callback(tab) {
+                tab.addModel(new Asset({
+                    app: options.app,
+                    tab,
+                    path: options.assetPath,
+                    page: options.page,
+                }));
+                setPanelFocus(tab.panelElement.parentElement.parentElement);
+            }
+        });
+        return tab
+    }
+}
 export const newTab = (options: IOpenFileOptions) => {
     let tab: Tab;
     if (options.assetPath) {
-        const suffix = pathPosix().extname(options.assetPath).split("?")[0];
-        if (Constants.SIYUAN_ASSETS_EXTS.includes(suffix)) {
-            let icon = "iconPDF";
-            if (Constants.SIYUAN_ASSETS_IMAGE.includes(suffix)) {
-                icon = "iconImage";
-            } else if (Constants.SIYUAN_ASSETS_AUDIO.includes(suffix)) {
-                icon = "iconRecord";
-            } else if (Constants.SIYUAN_ASSETS_VIDEO.includes(suffix)) {
-                icon = "iconVideo";
-            }
-            tab = new Tab({
-                icon,
-                title: getDisplayName(options.assetPath),
-                callback(tab) {
-                    tab.addModel(new Asset({
-                        app: options.app,
-                        tab,
-                        path: options.assetPath,
-                        page: options.page,
-                    }));
-                    setPanelFocus(tab.panelElement.parentElement.parentElement);
-                }
-            });
-        }
+        tab = newAssetPathTab(options)
     } else if (options.custom) {
         tab = new Tab({
             icon: options.custom.icon,
