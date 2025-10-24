@@ -23,10 +23,10 @@ export const AIChat = (protyle: IProtyle, element: Element) => {
     btnsElement[0].addEventListener("click", () => {
         dialog.destroy();
     });
-    btnsElement[1].addEventListener("click", () => 处理确认点击(inputElement, dialog, protyle, element));
+    btnsElement[1].addEventListener("click", () => handleAIChatConfirm(inputElement, dialog, protyle, element));
 };
 
-const 处理确认点击 = (inputElement: HTMLTextAreaElement, dialog: Dialog, protyle: IProtyle, element: Element) => {
+const handleAIChatConfirm = (inputElement: HTMLTextAreaElement, dialog: Dialog, protyle: IProtyle, element: Element) => {
     let inputValue = inputElement.value;
     fetchPost("/api/ai/chatGPT", {
         msg: inputValue,
