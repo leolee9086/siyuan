@@ -68,6 +68,48 @@ const newCustomTab = (options: IOpenFileOptions) => {
         }
     });
 }
+const newSearchTab = (options: IOpenFileOptions) => {
+    return new Tab({
+        icon: "iconSearch",
+        title: window.siyuan.languages.search,
+        callback(tab) {
+            tab.addModel(new Search({
+                app: options.app,
+                tab,
+                config: options.searchData
+            }));
+            setPanelFocus(tab.panelElement.parentElement.parentElement);
+        }
+    });
+}
+const newEditorTab = (options: IOpenFileOptions) => {
+    return new Tab({
+        title: getDisplayName(options.fileName, true, true),
+        docIcon: options.rootIcon,
+        callback(tab) {
+            let editor;
+            if (options.zoomIn) {
+                editor = new Editor({
+                    app: options.app,
+                    tab,
+                    blockId: options.id,
+                    rootId: options.rootID,
+                    action: [Constants.CB_GET_ALL, Constants.CB_GET_FOCUS],
+                });
+            } else {
+                editor = new Editor({
+                    app: options.app,
+                    tab,
+                    blockId: options.id,
+                    rootId: options.rootID,
+                    mode: options.mode,
+                    action: options.action,
+                });
+            }
+            tab.addModel(editor);
+        }
+    });
+}
 export const newTab = (options: IOpenFileOptions) => {
     let tab: Tab;
     if (options.assetPath) {
@@ -75,45 +117,9 @@ export const newTab = (options: IOpenFileOptions) => {
     } else if (options.custom) {
         tab = newCustomTab(options);
     } else if (options.searchData) {
-        tab = new Tab({
-            icon: "iconSearch",
-            title: window.siyuan.languages.search,
-            callback(tab) {
-                tab.addModel(new Search({
-                    app: options.app,
-                    tab,
-                    config: options.searchData
-                }));
-                setPanelFocus(tab.panelElement.parentElement.parentElement);
-            }
-        });
+        tab = newSearchTab(options);
     } else {
-        tab = new Tab({
-            title: getDisplayName(options.fileName, true, true),
-            docIcon: options.rootIcon,
-            callback(tab) {
-                let editor;
-                if (options.zoomIn) {
-                    editor = new Editor({
-                        app: options.app,
-                        tab,
-                        blockId: options.id,
-                        rootId: options.rootID,
-                        action: [Constants.CB_GET_ALL, Constants.CB_GET_FOCUS],
-                    });
-                } else {
-                    editor = new Editor({
-                        app: options.app,
-                        tab,
-                        blockId: options.id,
-                        rootId: options.rootID,
-                        mode: options.mode,
-                        action: options.action,
-                    });
-                }
-                tab.addModel(editor);
-            }
-        });
+        tab = newEditorTab(options);
     }
     return tab;
 };
