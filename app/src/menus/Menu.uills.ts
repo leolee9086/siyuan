@@ -1,4 +1,5 @@
 import { Constants } from "../constants"
+import { updateHotkeyTip } from "../protyle/util/compatibility"
 
 /**
  * 获取全局菜单的 DOM 元素
@@ -82,4 +83,66 @@ export const setCurrent = (element: Element): void => {
  */
 export const getCurrentSubMenuItem = (): Element | null => {
     return getMenuElement().querySelector(".b3-menu__submenu .b3-menu__item--current");
+}
+
+/**
+ * Reset menu element state, clear all styles and attributes
+ * @param {HTMLElement} menuElement - Menu element to reset
+ */
+export const resetMenuState = (menuElement: HTMLElement): void => {
+    menuElement.firstElementChild.classList.add("fn__none");
+    menuElement.lastElementChild.innerHTML = "";
+    menuElement.lastElementChild.removeAttribute("style");  // Remove style for input box focus boxShadow display issue
+    menuElement.classList.add("fn__none");
+    menuElement.classList.remove("b3-menu--list", "b3-menu--fullscreen");
+    menuElement.removeAttribute("style");  // zIndex
+    menuElement.removeAttribute("data-name");    // Flag for not disappearing on click again
+    menuElement.removeAttribute("data-from");    // Flag for whether opened in floating window
+}
+
+/**
+ * Position submenu to ensure it's visible within viewport
+ * @param {HTMLElement} subMenuElement - Submenu element to position
+ */
+export const positionSubMenu = (subMenuElement: HTMLElement): void => {
+    const itemRect = subMenuElement.parentElement.getBoundingClientRect();
+    subMenuElement.style.top = (itemRect.top - 8) + "px";
+    subMenuElement.style.left = (itemRect.right + 8) + "px";
+    subMenuElement.style.bottom = "auto";
+    const rect = subMenuElement.getBoundingClientRect();
+    if (rect.right > window.innerWidth) {
+        if (itemRect.left - 8 > rect.width) {
+            subMenuElement.style.left = (itemRect.left - 8 - rect.width) + "px";
+        } else {
+            subMenuElement.style.left = (window.innerWidth - rect.width) + "px";
+        }
+    }
+    if (rect.bottom > window.innerHeight) {
+        subMenuElement.style.top = "auto";
+        subMenuElement.style.bottom = "8px";
+    }
+}
+
+/**
+ * Generate HTML for menu item based on options
+ * @param {IMenu} options - Menu item options
+ * @returns {string} Generated HTML string
+ */
+export const generateMenuItemHTML = (options: IMenu): string => {
+    let html = `<span class="b3-menu__label">${options.label || "&nbsp;"}</span>`;
+    if (typeof options.iconHTML === "string") {
+        html = options.iconHTML + html;
+    } else {
+        html = `<svg class="b3-menu__icon ${options.iconClass || ""}" style="${options.icon === "iconClose" ? "height:10px;" : ""}"><use xlink:href="#${options.icon || ""}"></use></svg>${html}`;
+    }
+    if (options.accelerator) {
+        html += `<span class="b3-menu__accelerator b3-menu__accelerator--hotkey">${updateHotkeyTip(options.accelerator)}</span>`;
+    }
+    if (options.action) {
+        html += `<svg class="b3-menu__action${options.action === "iconCloseRound" ? " b3-menu__action--close" : ""}"><use xlink:href="#${options.action}"></use></svg>`;
+    }
+    if (options.checked) {
+        html += '<svg class="b3-menu__checked"><use xlink:href="#iconSelect"></use></svg></span>';
+    }
+    return html;
 }

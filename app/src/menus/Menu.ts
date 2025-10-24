@@ -3,6 +3,7 @@ import {setPosition} from "../util/setPosition";
 import {hasClosestByClassName} from "../protyle/util/hasClosest";
 import {isMobile} from "../util/functions";
 import {Constants} from "../constants";
+import {resetMenuState, positionSubMenu, generateMenuItemHTML} from "./Menu.uills";
 
 export class Menu {
     public element: HTMLElement;
@@ -61,22 +62,7 @@ export class Menu {
     }
 
     public showSubMenu(subMenuElement: HTMLElement) {
-        const itemRect = subMenuElement.parentElement.getBoundingClientRect();
-        subMenuElement.style.top = (itemRect.top - 8) + "px";
-        subMenuElement.style.left = (itemRect.right + 8) + "px";
-        subMenuElement.style.bottom = "auto";
-        const rect = subMenuElement.getBoundingClientRect();
-        if (rect.right > window.innerWidth) {
-            if (itemRect.left - 8 > rect.width) {
-                subMenuElement.style.left = (itemRect.left - 8 - rect.width) + "px";
-            } else {
-                subMenuElement.style.left = (window.innerWidth - rect.width) + "px";
-            }
-        }
-        if (rect.bottom > window.innerHeight) {
-            subMenuElement.style.top = "auto";
-            subMenuElement.style.bottom = "8px";
-        }
+        positionSubMenu(subMenuElement);
     }
 
     private preventDefault(event: KeyboardEvent) {
@@ -113,14 +99,7 @@ export class Menu {
             window.siyuan.menus.menu.removeCB = undefined;
         }
         this.removeScrollEvent();
-        this.element.firstElementChild.classList.add("fn__none");
-        this.element.lastElementChild.innerHTML = "";
-        this.element.lastElementChild.removeAttribute("style");  // 输入框 focus 后 boxShadow 显示不全
-        this.element.classList.add("fn__none");
-        this.element.classList.remove("b3-menu--list", "b3-menu--fullscreen");
-        this.element.removeAttribute("style");  // zIndex
-        this.element.removeAttribute("data-name");    // 标识再次点击不消失
-        this.element.removeAttribute("data-from");    // 标识是否在浮窗内打开
+        resetMenuState(this.element);
         this.data = undefined;    // 移除数据
     }
 
@@ -229,22 +208,7 @@ export class MenuItem {
         if (options.element) {
             this.element.append(options.element);
         } else {
-            let html = `<span class="b3-menu__label">${options.label || "&nbsp;"}</span>`;
-            if (typeof options.iconHTML === "string") {
-                html = options.iconHTML + html;
-            } else {
-                html = `<svg class="b3-menu__icon ${options.iconClass || ""}" style="${options.icon === "iconClose" ? "height:10px;" : ""}"><use xlink:href="#${options.icon || ""}"></use></svg>${html}`;
-            }
-            if (options.accelerator) {
-                html += `<span class="b3-menu__accelerator b3-menu__accelerator--hotkey">${updateHotkeyTip(options.accelerator)}</span>`;
-            }
-            if (options.action) {
-                html += `<svg class="b3-menu__action${options.action === "iconCloseRound" ? " b3-menu__action--close" : ""}"><use xlink:href="#${options.action}"></use></svg>`;
-            }
-            if (options.checked) {
-                html += '<svg class="b3-menu__checked"><use xlink:href="#iconSelect"></use></svg></span>';
-            }
-            this.element.innerHTML = html;
+            this.element.innerHTML = generateMenuItemHTML(options);
         }
 
         if (options.bind) {
