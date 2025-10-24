@@ -21,12 +21,13 @@ const newAssetPathTab = (options:IOpenFileOptions) => {
             icon,
             title: getDisplayName(options.assetPath),
             callback(tab) {
-                tab.addModel(new Asset({
+                const assetModel = new Asset({
                     app: options.app,
                     tab,
                     path: options.assetPath,
                     page: options.page,
-                }));
+                })
+                tab.addModel(assetModel);
                 setPanelFocus(tab.panelElement.parentElement.parentElement);
             }
         });

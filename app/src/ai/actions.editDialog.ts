@@ -23,17 +23,24 @@ export const editDialog = (customName: string, customMemo: string) => {
     });
     dialog.element.setAttribute("data-key", Constants.DIALOG_AIUPDATECUSTOMACTION);
     const nameElement = dialog.element.querySelector("input");
-    nameElement.value = customName;
     const customElement = dialog.element.querySelector("textarea");
-    const btnsElement = dialog.element.querySelectorAll(".b3-button");
+    const deleteButton = dialog.element.querySelector(".b3-button--remove");
+    const cancelButton = dialog.element.querySelector(".b3-button--cancel");
+    const confirmButton = dialog.element.querySelector(".b3-button--text");
+
+    nameElement.value = customName;
     dialog.bindInput(customElement, () => {
-        (btnsElement[2] as HTMLButtonElement).click();
+        if (confirmButton instanceof HTMLButtonElement) {
+            confirmButton.click();
+        }
     });
     customElement.value = customMemo;
-    btnsElement[1].addEventListener("click", () => {
+
+    cancelButton.addEventListener("click", () => {
         dialog.destroy();
     });
-    btnsElement[2].addEventListener("click", () => {
+
+    confirmButton.addEventListener("click", () => {
         window.siyuan.storage[Constants.LOCAL_AI].find((subItem: {
             name: string;
             memo: string;
@@ -47,7 +54,8 @@ export const editDialog = (customName: string, customMemo: string) => {
         });
         dialog.destroy();
     });
-    btnsElement[0].addEventListener("click", () => {
+
+    deleteButton.addEventListener("click", () => {
         window.siyuan.storage[Constants.LOCAL_AI].find((subItem: {
             name: string;
             memo: string;

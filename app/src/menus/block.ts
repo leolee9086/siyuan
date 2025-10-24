@@ -1,8 +1,8 @@
-import {MenuItem} from "./Menu";
-import {Dialog} from "../dialog";
-import {isMobile} from "../util/functions";
-import {fetchPost} from "../util/fetch";
-import {Constants} from "../constants";
+import { MenuItem } from "./Menu";
+import { Dialog } from "../dialog";
+import { isMobile } from "../util/functions";
+import { fetchPost } from "../util/fetch";
+import { Constants } from "../constants";
 
 export const transferBlockRef = (id: string) => {
     window.siyuan.menus.menu.append(new MenuItem({
@@ -23,10 +23,12 @@ export const transferBlockRef = (id: string) => {
                 width: isMobile() ? "92vw" : "520px",
             });
             renameDialog.element.setAttribute("data-key", Constants.DIALOG_TRANSFERBLOCKREF);
-            const inputElement = renameDialog.element.querySelector("input") as HTMLInputElement;
+            const inputElement = renameDialog.element.querySelector("input");
             const btnsElement = renameDialog.element.querySelectorAll(".b3-button");
             renameDialog.bindInput(inputElement, () => {
-                (btnsElement[1] as HTMLButtonElement).click();
+                if (btnsElement[1] instanceof HTMLButtonElement) {
+                    btnsElement[1].click();
+                }
             });
             inputElement.focus();
             btnsElement[0].addEventListener("click", () => {

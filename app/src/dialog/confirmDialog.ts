@@ -1,11 +1,11 @@
-import {isMobile} from "../util/functions";
-import {Dialog} from "./index";
-import {Constants} from "../constants";
+import { isMobile } from "../util/functions";
+import { Dialog } from "./index";
+import { Constants } from "../constants";
 
 export const confirmDialog = (title: string, text: string,
-                              confirm?: (dialog?: Dialog) => void,
-                              cancel?: (dialog: Dialog) => void,
-                              isDelete = false) => {
+    confirm?: (dialog?: Dialog) => void,
+    cancel?: (dialog: Dialog) => void,
+    isDelete = false) => {
     if (!text && !title) {
         confirm();
         return;
@@ -26,13 +26,13 @@ export const confirmDialog = (title: string, text: string,
         let target = event.target as HTMLElement;
         const isDispatch = typeof event.detail === "string";
         while (target && target !== dialog.element || isDispatch) {
-            if (target.id === "cancelDialogConfirmBtn" || (isDispatch && event.detail=== "Escape")) {
+            if (target.id === "cancelDialogConfirmBtn" || (isDispatch && event.detail === "Escape")) {
                 if (cancel) {
                     cancel(dialog);
                 }
                 dialog.destroy();
                 break;
-            } else if (target.id === "confirmDialogConfirmBtn" || (isDispatch && event.detail=== "Enter")) {
+            } else if (target.id === "confirmDialogConfirmBtn" || (isDispatch && event.detail === "Enter")) {
                 if (confirm) {
                     confirm(dialog);
                 }
