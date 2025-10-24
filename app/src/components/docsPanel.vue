@@ -29,6 +29,7 @@ import { ref, computed, nextTick } from 'vue'
 import { unicode2Emoji } from "../emoji"
 import { Constants } from "../constants"
 import { isWindow } from "../util/functions"
+import { matchPinyinSearch } from "../util/pinyin"
 
 // 定义 props
 const props = defineProps<{
@@ -52,7 +53,7 @@ const siyuanStorage = window.siyuan?.storage
 const filteredDocs = computed(() => {
     if (!searchKey.value) return props.recentDocs
     return props.recentDocs.filter(doc =>
-        doc.title.toLowerCase().includes(searchKey.value.toLowerCase())
+        matchPinyinSearch(doc.title, searchKey.value)
     )
 })
 
