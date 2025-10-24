@@ -26,10 +26,6 @@ export const openRecentDocs = () => {
             title: `<div class="fn__flex">
 <div class="fn__flex-center">${window.siyuan.languages.recentDocs}</div>
 <div class="fn__flex-1"></div>
-<div class="b3-form__icon fn__size200">
-    <svg class="b3-form__icon-icon"><use xlink:href="#iconSearch"></use></svg>
-    <input placeholder="${window.siyuan.languages.search}" class="b3-text-field fn__block b3-form__icon-input">
-</div>
 </div>`,
             content: "",
             height: "80vh",
@@ -67,38 +63,12 @@ export const openRecentDocs = () => {
             template: `<RecentDocs :recent-docs="recentDocs" @doc-selected="handleDocSelected" ref="recentDocsComponent" />`
         }).mount(container);
         
-        // 获取搜索输入框并添加事件监听
-        const searchElement = dialog.element.querySelector("input");
-        searchElement.focus();
-        
-        // 当搜索框内容变化时，调用 Vue 组件的 setSearchKey 方法
-        searchElement.addEventListener("compositionend", () => {
-            const component = vueInstance.$refs.recentDocsComponent as InstanceType<typeof RecentDocs>;
-            if (component && component.setSearchKey) {
-                component.setSearchKey(searchElement.value);
-            }
-        });
-        
-        searchElement.addEventListener("input", (event: InputEvent) => {
-            if (event.isComposing) {
-                return;
-            }
-            const component = vueInstance.$refs.recentDocsComponent as InstanceType<typeof RecentDocs>;
-            if (component && component.setSearchKey) {
-                component.setSearchKey(searchElement.value);
-            }
-        });
+        // 聚焦搜索框（现在由组件内部处理）
+        const component = vueInstance.$refs.recentDocsComponent as InstanceType<typeof RecentDocs>;
+        if (component && component.focusSearchInput) {
+            component.focusSearchInput();
+        }
         
         dialog.element.setAttribute("data-key", Constants.DIALOG_RECENTDOCS);
-        dialog.element.addEventListener("click", (event) => {
-            const liElement = hasClosestByClassName(event.target as HTMLElement, "b3-list-item");
-            if (liElement) {
-                dialog.element.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
-                liElement.classList.add("b3-list-item--focus");
-                window.dispatchEvent(new KeyboardEvent("keydown", {key: "Enter"}));
-                event.stopPropagation();
-                event.preventDefault();
-            }
-        });
     });
 };
