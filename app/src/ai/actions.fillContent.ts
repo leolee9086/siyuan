@@ -28,8 +28,6 @@ import { getContenteditableElement } from "../protyle/wysiwyg/getBlock";
  * // 将AI内容填充到编辑器
  * fillContent(editorInstance, aiGeneratedContent, currentElements);
  * ```
- *
- * @since 1.0.0
  */
 export const fillContent = (protyle: IProtyle, data: string, elements: Element[]) => {
     // 检查数据是否为空，如果为空则直接返回
@@ -43,8 +41,9 @@ export const fillContent = (protyle: IProtyle, data: string, elements: Element[]
     // 折叠选区到范围的末尾，确保新内容插入到正确位置
     protyle.toolbar.range.collapse(true);
     
+    const blockDom  = protyle.lute.SpinBlockDOM(data)
     // 使用lute引擎将数据转换为块级DOM并插入到编辑器中
-    insertHTML(protyle.lute.SpinBlockDOM(data), protyle, true, true);
+    insertHTML(blockDom, protyle, true, true);
     
     // 渲染块级元素，确保新插入的内容正确显示
     blockRender(protyle, protyle.wysiwyg.element);

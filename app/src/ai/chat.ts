@@ -1,7 +1,6 @@
 import { Dialog } from "../dialog";
 import { isMobile } from "../util/functions";
-import { fetchPost } from "../util/fetch";
-import { fillContent } from "./actions.fillContent";
+import { handleAIChatConfirm } from "./chat.confirm";
 
 export const AIChat = (protyle: IProtyle, element: Element) => {
     const dialog = new Dialog({
@@ -26,19 +25,4 @@ export const AIChat = (protyle: IProtyle, element: Element) => {
     btnsElement[1].addEventListener("click", () => handleAIChatConfirm(inputElement, dialog, protyle, element));
 };
 
-const handleAIChatConfirm = (inputElement: HTMLTextAreaElement, dialog: Dialog, protyle: IProtyle, element: Element) => {
-    let inputValue = inputElement.value;
-    fetchPost("/api/ai/chatGPT", {
-        msg: inputValue,
-    }, (response) => {
-        dialog.destroy();
-        let respContent = "";
-        if (response.data && "" !== response.data) {
-            respContent = "\n\n" + response.data;
-        }
-        if (inputValue === "Clear context") {
-            inputValue = "";
-        }
-        fillContent(protyle, `${inputValue}${respContent}`, [element]);
-    });
-};
+
