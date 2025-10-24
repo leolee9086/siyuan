@@ -10,10 +10,10 @@ import { Menu } from "../plugin/Menu";
 import { upDownHint } from "../util/upDownHint";
 import { getElementsBlockId } from "../util/DOM/blockLikeElements";
 import { switchFnNoneByFlag } from "../util/DOM/fnClasses";
-import { editDialog } from "./actions.editDialog";
 import { fillContent } from "./actions.fillContent";
+import { AIMenuContext, AIMenuRequest, handleAIMenuItemClick } from "./actions.handleAIMenuItemClick";
 
-const customDialog = (protyle: IProtyle, ids: string[], elements: Element[]) => {
+export const customDialog = (protyle: IProtyle, ids: string[], elements: Element[]) => {
     const dialog = new Dialog({
         title: window.siyuan.languages.aiCustomAction,
         content: `<div class="b3-dialog__content">
@@ -206,50 +206,3 @@ export const AIActions = (elements: Element[], protyle: IProtyle) => {
     menu.element.querySelector("input").focus();
     /// #endif
 };
-interface AIMenuContext {
-    protyle: IProtyle;
-    ids: string[];
-    elements: Element[];
-    menu: Menu;
-    clearContext: string;
-}
-
-interface AIMenuRequest {
-    target: HTMLElement;
-    element: HTMLElement;
-    event: Event;
-}
-const handleAIMenuItemClick = (context: AIMenuContext, request: AIMenuRequest) => {
-    const { protyle, ids, elements, menu, clearContext } = context;
-    const { target: initialTarget, element, event } = request;
-
-    let currentTarget = initialTarget;
-    while (currentTarget !== element) {
-        if (currentTarget.classList.contains("b3-list-item__action")) {
-            const subItem = window.siyuan.storage[Constants.LOCAL_AI][currentTarget.parentElement.dataset.index];
-            editDialog(subItem.name, subItem.memo);
-            menu.close();
-            event.stopPropagation();
-            event.preventDefault();
-            break;
-        } else if (currentTarget.classList.contains("b3-list-item")) {
-            if (currentTarget.dataset.type === "custom") {
-                customDialog(protyle, ids, elements);
-                menu.close();
-            } else {
-                fetchPost("/api/ai/chatGPTWithAction", { ids, action: currentTarget.dataset.action }, (response) => {
-                    fillContent(protyle, response.data, elements);
-                });
-                if (currentTarget.dataset.action === clearContext) {
-                    showMessage(window.siyuan.languages.clearContextSucc);
-                } else {
-                    menu.close();
-                }
-            }
-            event.stopPropagation();
-            event.preventDefault();
-            break;
-        }
-        currentTarget = currentTarget.parentElement;
-    }
-}
