@@ -2,7 +2,14 @@ import { Constants } from "../constants";
 import { getEventName } from "../protyle/util/compatibility";
 import { hasClosestByClassName } from "../protyle/util/hasClosest";
 import { getActionMenu } from "./Menu";
-import { isMenuElementHidden, isTargetInMenu, isInputAbleMenuItemElement, isEventUpDown, setNotCurrent, setNotShow } from "./Menu.uills";
+import { 
+    isMenuElementHidden, 
+    isTargetInMenu, 
+    isInputAbleMenuItemElement, 
+    isEventUpDown, 
+    setNotCurrent, 
+    setNotShow 
+} from "./Menu.uills";
 
 
 /**
@@ -49,6 +56,89 @@ const 处理菜单项选中状态 = (actionMenuElement: Element): void => {
     }
 };
 
+/**
+ * 处理右箭头键导航
+ * @param {Element} currentElement - 当前选中的菜单项元素
+ * @returns {boolean} 是否成功处理了右箭头键导航
+ */
+const 处理右箭头键导航 = (currentElement: Element): boolean => {
+    if (!currentElement) {
+        return true;
+    }
+    const subMenuElement = currentElement.querySelector(".b3-menu__submenu") as HTMLElement;
+    if (!subMenuElement) {
+        return true;
+    }
+    currentElement.classList.remove("b3-menu__item--current");
+    currentElement.classList.add("b3-menu__item--show");
+
+    const actionMenuElement = getActionMenu(subMenuElement.firstElementChild.firstElementChild, true);
+    if (actionMenuElement) {
+        actionMenuElement.classList.add("b3-menu__item--current");
+    }
+    window.siyuan.menus.menu.showSubMenu(subMenuElement);
+    return true;
+};
+
+/**
+ * 处理左箭头键导航
+ * @param {Element} currentElement - 当前选中的子菜单项元素
+ * @returns {boolean} 是否成功处理了左箭头键导航
+ */
+const 处理左箭头键导航 = (currentElement: Element): boolean => {
+    if (!currentElement) {
+        return true;
+    }
+    const parentItemElement = hasClosestByClassName(currentElement, "b3-menu__item--show");
+    if (parentItemElement) {
+        parentItemElement.classList.remove("b3-menu__item--show");
+        parentItemElement.classList.add("b3-menu__item--current");
+        currentElement.classList.remove("b3-menu__item--current");
+    }
+    return true;
+};
+
+/**
+ * 处理回车键导航
+ * @param {Element} currentElement - 当前选中的菜单项元素
+ * @returns {boolean} 是否成功处理了回车键导航
+ */
+const 处理回车键导航 = (currentElement: Element): boolean => {
+    if (!currentElement) {
+        return false;
+    }
+    
+    const subMenuElement = currentElement.querySelector(".b3-menu__submenu") as HTMLElement;
+    if (subMenuElement) {
+        currentElement.classList.remove("b3-menu__item--current");
+        currentElement.classList.add("b3-menu__item--show");
+        const actionMenuElement = getActionMenu(subMenuElement.firstElementChild.firstElementChild, true);
+        if (actionMenuElement) {
+            actionMenuElement.classList.add("b3-menu__item--current");
+        }
+        window.siyuan.menus.menu.showSubMenu(subMenuElement);
+        return true;
+    }
+    
+    const textElement = currentElement.querySelector(".b3-text-field") as HTMLInputElement;
+    const checkElement = currentElement.querySelector(".b3-switch") as HTMLInputElement;
+    if (textElement) {
+        textElement.focus();
+        return true;
+    } else if (checkElement) {
+        checkElement.click();
+    } else {
+        currentElement.dispatchEvent(new CustomEvent(getEventName()));
+    }
+    
+    if (window.siyuan.menus.menu.element.contains(currentElement)) {
+        // 块标上 AI 会使用新的 menu，不能移除
+        window.siyuan.menus.menu.remove();
+    }
+    
+    return true;
+};
+
 export const bindMenuKeydown = (event: KeyboardEvent) => {
     if (isMenuElementHidden()
         || event.altKey || event.shiftKey || event.ctrlKey || event.metaKey) {
@@ -64,6 +154,9 @@ export const bindMenuKeydown = (event: KeyboardEvent) => {
     const eventCode = Constants.KEYCODELIST[event.keyCode];
 
     if (isEventUpDown(event)) {
+        /**
+         * 将此分支拆分为独立函数
+         */
         const currentElement = window.siyuan.menus.menu.element.querySelector(".b3-menu__item--current");
         let actionMenuElement;
         if (!currentElement) {
@@ -81,65 +174,12 @@ export const bindMenuKeydown = (event: KeyboardEvent) => {
         return true;
     } else if (eventCode === "→") {
         const currentElement = window.siyuan.menus.menu.element.querySelector(".b3-menu__item--current");
-        if (!currentElement) {
-            return true;
-        }
-        const subMenuElement = currentElement.querySelector(".b3-menu__submenu") as HTMLElement;
-        if (!subMenuElement) {
-            return true;
-        }
-        currentElement.classList.remove("b3-menu__item--current");
-        currentElement.classList.add("b3-menu__item--show");
-
-        const actionMenuElement = getActionMenu(subMenuElement.firstElementChild.firstElementChild, true);
-        if (actionMenuElement) {
-            actionMenuElement.classList.add("b3-menu__item--current");
-        }
-        window.siyuan.menus.menu.showSubMenu(subMenuElement);
-        return true;
+        return 处理右箭头键导航(currentElement);
     } else if (eventCode === "←") {
         const currentElement = window.siyuan.menus.menu.element.querySelector(".b3-menu__submenu .b3-menu__item--current");
-        if (!currentElement) {
-            return true;
-        }
-        const parentItemElement = hasClosestByClassName(currentElement, "b3-menu__item--show");
-        if (parentItemElement) {
-            parentItemElement.classList.remove("b3-menu__item--show");
-            parentItemElement.classList.add("b3-menu__item--current");
-            currentElement.classList.remove("b3-menu__item--current");
-        }
-        return true;
+        return 处理左箭头键导航(currentElement);
     } else if (eventCode === "↩") {
         const currentElement = window.siyuan.menus.menu.element.querySelector(".b3-menu__item--current");
-        if (!currentElement) {
-            return false;
-        } else {
-            const subMenuElement = currentElement.querySelector(".b3-menu__submenu") as HTMLElement;
-            if (subMenuElement) {
-                currentElement.classList.remove("b3-menu__item--current");
-                currentElement.classList.add("b3-menu__item--show");
-                const actionMenuElement = getActionMenu(subMenuElement.firstElementChild.firstElementChild, true);
-                if (actionMenuElement) {
-                    actionMenuElement.classList.add("b3-menu__item--current");
-                }
-                window.siyuan.menus.menu.showSubMenu(subMenuElement);
-                return true;
-            }
-            const textElement = currentElement.querySelector(".b3-text-field") as HTMLInputElement;
-            const checkElement = currentElement.querySelector(".b3-switch") as HTMLInputElement;
-            if (textElement) {
-                textElement.focus();
-                return true;
-            } else if (checkElement) {
-                checkElement.click();
-            } else {
-                currentElement.dispatchEvent(new CustomEvent(getEventName()));
-            }
-            if (window.siyuan.menus.menu.element.contains(currentElement)) {
-                // 块标上 AI 会使用新的 menu，不能移除
-                window.siyuan.menus.menu.remove();
-            }
-        }
-        return true;
+        return 处理回车键导航(currentElement);
     }
 };
