@@ -59,3 +59,27 @@ export const setNotCurrent = (element: Element): void => {
 export const setNotShow = (element: Element): void => {
     element.classList.remove("b3-menu__item--show");
 }
+
+/**
+ * 获取当前选中的菜单项元素
+ * @returns {Element|null} 当前选中的菜单项元素，如果没有则返回 null
+ */
+export const getCurrentMenuItem = (): Element | null => {
+    return getMenuElement().querySelector(".b3-menu__item--current");
+}
+
+/**
+ * 设置元素的当前选中状态
+ * @param {Element} element - 要设置为当前选中状态的元素
+ */
+export const setCurrent = (element: Element): void => {
+    element.classList.add("b3-menu__item--current");
+}
+
+/**
+ * 获取子菜单中的当前选中元素
+ * @returns {Element|null} 子菜单中的当前选中元素，如果没有则返回 null
+ */
+export const getCurrentSubMenuItem = (): Element | null => {
+    return getMenuElement().querySelector(".b3-menu__submenu .b3-menu__item--current");
+}
