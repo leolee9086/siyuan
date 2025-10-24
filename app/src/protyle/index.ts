@@ -24,7 +24,7 @@ import {
 } from "./wysiwyg/transaction";
 import {fetchPost} from "../util/fetch";
 /// #if !MOBILE
-import {updatePanelByEditor} from "../editor/util";
+import { updatePanelByEditor } from "../editor/util.updatePanelByEditor";
 import {setPanelFocus} from "../layout/util";
 /// #endif
 import {Title} from "./header/Title";

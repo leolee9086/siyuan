@@ -1,36 +1,25 @@
 import {Tab} from "../layout/Tab";
 import {Editor} from "./index";
 import {Wnd} from "../layout/Wnd";
-import {getInstanceById, getWndByLayout, pdfIsLoading, setPanelFocus} from "../layout/util";
-import {getDockByType} from "../layout/tabUtil";
+import {getInstanceById, getWndByLayout, pdfIsLoading} from "../layout/util";
 import {getAllModels} from "../layout/getAll";
-import {getDisplayName, pathPosix} from "../util/pathName";
 import {Constants} from "../constants";
-import {Files} from "../layout/dock/Files";
-import {fetchPost, fetchSyncPost} from "../util/fetch";
-import {focusBlock, focusByRange} from "../protyle/util/selection";
+import {fetchSyncPost} from "../util/fetch";
 /// #if !BROWSER
 import {ipcRenderer} from "electron";
 /// #endif
-import {pushBack} from "../util/backForward";
-import {Asset} from "../asset";
 import {Layout} from "../layout";
 import {
-    hasClosestByAttribute,
     hasClosestByClassName,
 } from "../protyle/util/hasClosest";
-import {countBlockWord, countSelectWord} from "../layout/status";
 import {showMessage} from "../dialog/message";
 import {objEquals} from "../util/functions";
-import {resize} from "../protyle/util/resize";
-import {Search} from "../search";
 import {App} from "../index";
-import {newCardModel} from "../card/newCardTab";
 import {clearOBG} from "../layout/dock/util";
 import {Model} from "../layout/Model";
 import { getUnInitTab } from "./util.getUnInitTab";
 import { switchEditor } from "./util.switchEditor";
-import { updateBacklinkGraph } from "./util.updateBacklinkGraph";
+import { newTab } from "./util.newTab";
 
 export const openFileById = async (options: {
     app: App,
@@ -301,224 +290,6 @@ export const openFile = async (options: IOpenFileOptions) => {
         }
         return createdTab;
     }
-};
-
-const newTab = (options: IOpenFileOptions) => {
-    let tab: Tab;
-    if (options.assetPath) {
-        const suffix = pathPosix().extname(options.assetPath).split("?")[0];
-        if (Constants.SIYUAN_ASSETS_EXTS.includes(suffix)) {
-            let icon = "iconPDF";
-            if (Constants.SIYUAN_ASSETS_IMAGE.includes(suffix)) {
-                icon = "iconImage";
-            } else if (Constants.SIYUAN_ASSETS_AUDIO.includes(suffix)) {
-                icon = "iconRecord";
-            } else if (Constants.SIYUAN_ASSETS_VIDEO.includes(suffix)) {
-                icon = "iconVideo";
-            }
-            tab = new Tab({
-                icon,
-                title: getDisplayName(options.assetPath),
-                callback(tab) {
-                    tab.addModel(new Asset({
-                        app: options.app,
-                        tab,
-                        path: options.assetPath,
-                        page: options.page,
-                    }));
-                    setPanelFocus(tab.panelElement.parentElement.parentElement);
-                }
-            });
-        }
-    } else if (options.custom) {
-        tab = new Tab({
-            icon: options.custom.icon,
-            title: options.custom.title,
-            callback(tab) {
-                if (options.custom.id) {
-                    if (options.custom.id === "siyuan-card") {
-                        tab.addModel(newCardModel({
-                            app: options.app,
-                            tab,
-                            data: options.custom.data
-                        }));
-                    } else {
-                        options.app.plugins.find(p => {
-                            if (p.models[options.custom.id]) {
-                                tab.addModel(p.models[options.custom.id]({
-                                    tab,
-                                    data: options.custom.data
-                                }));
-                                return true;
-                            }
-                        });
-                    }
-                } else {
-                    // plugin 0.8.3 历史兼容
-                    console.warn("0.8.3 将移除 custom.fn 参数，请参照 https://github.com/siyuan-note/plugin-sample/blob/91a716358941791b4269241f21db25fd22ae5ff5/src/index.ts 将其修改为 custom.id");
-                    tab.addModel(options.custom.fn({
-                        tab,
-                        data: options.custom.data
-                    }));
-                }
-                setPanelFocus(tab.panelElement.parentElement.parentElement);
-            }
-        });
-    } else if (options.searchData) {
-        tab = new Tab({
-            icon: "iconSearch",
-            title: window.siyuan.languages.search,
-            callback(tab) {
-                tab.addModel(new Search({
-                    app: options.app,
-                    tab,
-                    config: options.searchData
-                }));
-                setPanelFocus(tab.panelElement.parentElement.parentElement);
-            }
-        });
-    } else {
-        tab = new Tab({
-            title: getDisplayName(options.fileName, true, true),
-            docIcon: options.rootIcon,
-            callback(tab) {
-                let editor;
-                if (options.zoomIn) {
-                    editor = new Editor({
-                        app: options.app,
-                        tab,
-                        blockId: options.id,
-                        rootId: options.rootID,
-                        action: [Constants.CB_GET_ALL, Constants.CB_GET_FOCUS],
-                    });
-                } else {
-                    editor = new Editor({
-                        app: options.app,
-                        tab,
-                        blockId: options.id,
-                        rootId: options.rootID,
-                        mode: options.mode,
-                        action: options.action,
-                    });
-                }
-                tab.addModel(editor);
-            }
-        });
-    }
-    return tab;
-};
-
-export const updatePanelByEditor = (options: {
-    protyle?: IProtyle,
-    focus: boolean,
-    pushBackStack: boolean,
-    reload: boolean,
-    resize: boolean
-}) => {
-    if (options.protyle && options.protyle.path) {
-        // https://ld246.com/article/1637636106054/comment/1641485541929#comments
-        if (options.protyle.element.classList.contains("fn__none") ||
-            (!hasClosestByClassName(options.protyle.element, "layout__wnd--active") &&
-                document.querySelector(".layout__wnd--active")  // https://github.com/siyuan-note/siyuan/issues/4414
-            )
-        ) {
-            return;
-        }
-        if (options.resize) {
-            resize(options.protyle);
-        }
-        if (options.focus) {
-            if (options.protyle.toolbar.range) {
-                focusByRange(options.protyle.toolbar.range);
-                countSelectWord(options.protyle.toolbar.range, options.protyle.block.rootID);
-                if (options.pushBackStack && options.protyle.preview.element.classList.contains("fn__none")) {
-                    pushBack(options.protyle, options.protyle.toolbar.range);
-                }
-            } else {
-                focusBlock(options.protyle.wysiwyg.element.firstElementChild);
-                if (options.pushBackStack && options.protyle.preview.element.classList.contains("fn__none")) {
-                    pushBack(options.protyle, undefined, options.protyle.wysiwyg.element.firstElementChild);
-                }
-                countBlockWord([], options.protyle.block.rootID);
-            }
-        }
-        if (window.siyuan.config.fileTree.alwaysSelectOpenedFile && options.protyle) {
-            const fileModel = getDockByType("file")?.data.file;
-            if (fileModel instanceof Files) {
-                const target = fileModel.element.querySelector(`li[data-path="${options.protyle.path}"]`);
-                if (!target || (target && !target.classList.contains("b3-list-item--focus"))) {
-                    fileModel.selectItem(options.protyle.notebookId, options.protyle.path);
-                }
-            }
-        }
-        options.protyle.app.plugins.forEach(item => {
-            item.eventBus.emit("switch-protyle", {protyle: options.protyle});
-        });
-    }
-    // 切换页签或关闭所有页签时，需更新对应的面板
-    const models = getAllModels();
-    updateOutline(models, options.protyle, options.reload);
-    updateBacklinkGraph(models, options.protyle);
-};
-
-export const isCurrentEditor = (blockId: string) => {
-    const activeElement = document.querySelector(".layout__wnd--active > .fn__flex > .layout-tab-bar > .item--focus");
-    if (activeElement) {
-        const tab = getInstanceById(activeElement.getAttribute("data-id"));
-        if (tab instanceof Tab && tab.model instanceof Editor) {
-            if (tab.model.editor.protyle.block.rootID === blockId ||
-                tab.model.editor.protyle.block.parentID === blockId ||  // updateBacklinkGraph 时会传入 parentID
-                tab.model.editor.protyle.block.id === blockId) {
-                return true;
-            }
-        }
-    }
-    return false;
-};
-
-export const updateOutline = (models: IModels, protyle: IProtyle, reload = false) => {
-    models.outline.find(item => {
-        if (reload ||
-            (item.type === "pin" &&
-                (!protyle || item.blockId !== protyle.block?.rootID ||
-                    item.isPreview === protyle.preview.element.classList.contains("fn__none"))
-            )
-        ) {
-            let blockId = "";
-            if (protyle && protyle.block) {
-                blockId = protyle.block.rootID;
-            }
-            if (blockId === item.blockId && !reload && item.isPreview !== protyle.preview.element.classList.contains("fn__none")) {
-                return;
-            }
-
-            fetchPost("/api/outline/getDocOutline", {
-                id: blockId,
-                preview: !protyle.preview.element.classList.contains("fn__none")
-            }, response => {
-                if (!reload && (!isCurrentEditor(blockId) || item.blockId === blockId) &&
-                    item.isPreview !== protyle.preview.element.classList.contains("fn__none")) {
-                    return;
-                }
-                item.isPreview = !protyle.preview.element.classList.contains("fn__none");
-                item.update(response, blockId);
-                if (protyle) {
-                    item.updateDocTitle(protyle.background.ial);
-                    if (getSelection().rangeCount > 0) {
-                        const startContainer = getSelection().getRangeAt(0).startContainer;
-                        if (protyle.wysiwyg.element.contains(startContainer)) {
-                            const currentElement = hasClosestByAttribute(startContainer, "data-node-id", null);
-                            if (currentElement) {
-                                item.setCurrent(currentElement);
-                            }
-                        }
-                    }
-                } else {
-                    item.updateDocTitle();
-                }
-            });
-        }
-    });
 };
 
 

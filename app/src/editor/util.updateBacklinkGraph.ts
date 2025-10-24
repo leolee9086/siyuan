@@ -1,6 +1,6 @@
 import { hasClosestByClassName } from "../protyle/util/hasClosest";
 import { fetchPost } from "../util/fetch";
-import { isCurrentEditor } from "./util";
+import { isCurrentEditor } from "./util.isCurrentEditor";
 
 
 export const updateBacklinkGraph = (models: IModels, protyle: IProtyle) => {

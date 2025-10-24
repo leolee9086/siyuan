@@ -17,7 +17,7 @@ import {fetchPost, fetchSyncPost} from "../../util/fetch";
 import {onGet} from "./onGet";
 /// #if !MOBILE
 import {getAllEditor} from "../../layout/getAll";
-import {updatePanelByEditor} from "../../editor/util";
+import { updatePanelByEditor } from "../../editor/util.updatePanelByEditor";
 /// #endif
 import {blockRender} from "../render/blockRender";
 import {uploadLocalFiles} from "../upload";

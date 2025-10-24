@@ -1,6 +1,6 @@
 import {hideElements} from "../ui/hideElements";
 import {getAllModels} from "../../layout/getAll";
-import {updateOutline} from "../../editor/util";
+import { updateOutline } from "../../editor/util.updateOutline";
 import {resize} from "./resize";
 
 export const setEditMode = (protyle: IProtyle, type: TEditorMode) => {
