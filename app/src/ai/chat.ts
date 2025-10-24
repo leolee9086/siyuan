@@ -1,7 +1,7 @@
 import { Dialog } from "../dialog";
 import { isMobile } from "../util/functions";
 import { fetchPost } from "../util/fetch";
-import { fillContent } from "./actions";
+import { fillContent } from "./actions.fillContent";
 
 export const AIChat = (protyle: IProtyle, element: Element) => {
     const dialog = new Dialog({

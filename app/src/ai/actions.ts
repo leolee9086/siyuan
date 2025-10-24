@@ -1,12 +1,7 @@
 import { fetchPost } from "../util/fetch";
-import { focusByRange, setLastNodeRange } from "../protyle/util/selection";
-import { insertHTML } from "../protyle/util/insertHTML";
+import { focusByRange } from "../protyle/util/selection";
 import { Dialog } from "../dialog";
 import { isMobile } from "../util/functions";
-import { getContenteditableElement } from "../protyle/wysiwyg/getBlock";
-import { blockRender } from "../protyle/render/blockRender";
-import { processRender } from "../protyle/util/processCode";
-import { highlightRender } from "../protyle/render/highlightRender";
 import { Constants } from "../constants";
 import { setStorageVal } from "../protyle/util/compatibility";
 import { escapeAriaLabel, escapeAttr, escapeHtml } from "../util/escape";
@@ -15,75 +10,8 @@ import { Menu } from "../plugin/Menu";
 import { upDownHint } from "../util/upDownHint";
 import { getElementsBlockId } from "../util/DOM/blockLikeElements";
 import { switchFnNoneByFlag } from "../util/DOM/fnClasses";
-
-export const fillContent = (protyle: IProtyle, data: string, elements: Element[]) => {
-    if (!data) {
-        return;
-    }
-    setLastNodeRange(getContenteditableElement(elements[elements.length - 1]), protyle.toolbar.range);
-    protyle.toolbar.range.collapse(true);
-    insertHTML(protyle.lute.SpinBlockDOM(data), protyle, true, true);
-    blockRender(protyle, protyle.wysiwyg.element);
-    processRender(protyle.wysiwyg.element);
-    highlightRender(protyle.wysiwyg.element);
-};
-
-const editDialog = (customName: string, customMemo: string) => {
-    const dialog = new Dialog({
-        title: window.siyuan.languages.update,
-        content: `<div class="b3-dialog__content">
-    <input class="b3-text-field fn__block" placeholder="${window.siyuan.languages.memo}">
-    <div class="fn__hr"></div>
-    <textarea class="b3-text-field fn__block" placeholder="${window.siyuan.languages.aiCustomAction}"></textarea>
-</div>
-<div class="b3-dialog__action">
-    <button class="b3-button b3-button--remove">${window.siyuan.languages.delete}</button><div class="fn__space"></div>
-    <button class="b3-button b3-button--cancel">${window.siyuan.languages.cancel}</button><div class="fn__space"></div>
-    <button class="b3-button b3-button--text">${window.siyuan.languages.confirm}</button>
-</div>`,
-        width: isMobile() ? "92vw" : "520px",
-    });
-    dialog.element.setAttribute("data-key", Constants.DIALOG_AIUPDATECUSTOMACTION);
-    const nameElement = dialog.element.querySelector("input");
-    nameElement.value = customName;
-    const customElement = dialog.element.querySelector("textarea");
-    const btnsElement = dialog.element.querySelectorAll(".b3-button");
-    dialog.bindInput(customElement, () => {
-        (btnsElement[2] as HTMLButtonElement).click();
-    });
-    customElement.value = customMemo;
-    btnsElement[1].addEventListener("click", () => {
-        dialog.destroy();
-    });
-    btnsElement[2].addEventListener("click", () => {
-        window.siyuan.storage[Constants.LOCAL_AI].find((subItem: {
-            name: string,
-            memo: string
-        }) => {
-            if (customName === subItem.name && customMemo === subItem.memo) {
-                subItem.name = nameElement.value;
-                subItem.memo = customElement.value;
-                setStorageVal(Constants.LOCAL_AI, window.siyuan.storage[Constants.LOCAL_AI]);
-                return true;
-            }
-        });
-        dialog.destroy();
-    });
-    btnsElement[0].addEventListener("click", () => {
-        window.siyuan.storage[Constants.LOCAL_AI].find((subItem: {
-            name: string,
-            memo: string
-        }, index: number) => {
-            if (customName === subItem.name && customMemo === subItem.memo) {
-                window.siyuan.storage[Constants.LOCAL_AI].splice(index, 1);
-                setStorageVal(Constants.LOCAL_AI, window.siyuan.storage[Constants.LOCAL_AI]);
-                return true;
-            }
-        });
-        dialog.destroy();
-    });
-    nameElement.focus();
-};
+import { editDialog } from "./actions.editDialog";
+import { fillContent } from "./actions.fillContent";
 
 const customDialog = (protyle: IProtyle, ids: string[], elements: Element[]) => {
     const dialog = new Dialog({
