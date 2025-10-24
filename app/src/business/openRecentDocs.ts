@@ -5,7 +5,7 @@ import {Constants} from "../constants";
 import {focusByRange} from "../protyle/util/selection";
 import {hasClosestByClassName} from "../protyle/util/hasClosest";
 import {hideElements} from "../protyle/ui/hideElements";
-import RecentDocs from "./recentDocs.vue";
+import RecentDocs from "../components/recentDocs.vue";
 export const openRecentDocs = () => {
     const openRecentDocsDialog = window.siyuan.dialogs.find(item => {
         if (item.element.getAttribute("data-key") === Constants.DIALOG_RECENTDOCS) {

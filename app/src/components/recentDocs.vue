@@ -74,9 +74,9 @@ const selectedDockIndex = ref(0)
 const docks = ref<{ type: string, title: string, icon: string, hotkey: string }[]>([])
 
 // 获取全局变量
-const siyuanLanguages = (window as any).siyuan?.languages || {}
-const siyuanConfig = (window as any).siyuan?.config || {}
-const siyuanStorage = (window as any).siyuan?.storage || {}
+const siyuanLanguages = window.siyuan?.languages 
+const siyuanConfig = window.siyuan?.config 
+const siyuanStorage = window.siyuan?.storage 
 
 // 计算属性
 const filteredDocs = computed(() => {
