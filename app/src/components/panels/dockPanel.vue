@@ -24,9 +24,9 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { isWindow } from "../util/functions"
-import { updateHotkeyTip } from "../protyle/util/compatibility"
-import { getAllDocks } from "../layout/getAll"
+import { isWindow } from "../../util/functions"
+import { updateHotkeyTip } from "../../protyle/util/compatibility"
+import { getAllDocks } from "../../layout/getAll"
 
 // 定义 props
 const props = defineProps<{

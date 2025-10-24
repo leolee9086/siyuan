@@ -26,8 +26,8 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { fetchSyncPost } from "../util/fetch"
 import { escapeHtml } from "../util/escape"
 import { hasClosestByClassName } from "../protyle/util/hasClosest"
-import DockPanel from "./dockPanel.vue"
-import DocsPanel from "./docsPanel.vue"
+import DockPanel from "./panels/dockPanel.vue"
+import DocsPanel from "./panels/docsPanel.vue"
 
 // 定义 props
 const props = defineProps<{
