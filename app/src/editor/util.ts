@@ -73,20 +73,6 @@ export const openFileById = async (options: {
     });
 };
 
-export const openAsset = (app: App, assetPath: string, page: number | string, position?: string) => {
-    const suffix = pathPosix().extname(assetPath).split("?")[0];
-    if (!Constants.SIYUAN_ASSETS_EXTS.includes(suffix)) {
-        return;
-    }
-    openFile({
-        app,
-        assetPath,
-        page,
-        position,
-        removeCurrentTab: true
-    });
-};
-
 export const openFile = async (options: IOpenFileOptions) => {
     if (typeof options.removeCurrentTab === "undefined") {
         options.removeCurrentTab = true;

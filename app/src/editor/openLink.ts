@@ -6,7 +6,8 @@ import {getSearch} from "../util/functions";
 import {openByMobile} from "../protyle/util/compatibility";
 import {Constants} from "../constants";
 import {showMessage} from "../dialog/message";
-import {openAsset, openBy} from "./util";
+import {openBy} from "./util";
+import { openAsset } from "./util.openAsset";
 
 export const openLink = (protyle: IProtyle, aLink: string, event?: MouseEvent, ctrlIsPressed = false) => {
     let linkAddress = Lute.UnEscapeHTMLStr(aLink);

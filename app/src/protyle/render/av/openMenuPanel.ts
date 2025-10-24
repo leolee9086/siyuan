@@ -25,7 +25,7 @@ import {isLocalPath, pathPosix} from "../../../util/pathName";
 import {openEmojiPanel, unicode2Emoji} from "../../../emoji";
 import {getSearch, isMobile} from "../../../util/functions";
 /// #if !MOBILE
-import {openAsset} from "../../../editor/util";
+import { openAsset } from "../../../editor/util.openAsset";
 /// #endif
 import {previewAttrViewImages} from "../../preview/image";
 import {assetMenu} from "../../../menus/protyle";

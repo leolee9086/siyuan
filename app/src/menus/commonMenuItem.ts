@@ -12,7 +12,8 @@ import {hideMessage, showMessage} from "../dialog/message";
 import {Dialog} from "../dialog";
 import {focusBlock, focusByRange, getEditorRange} from "../protyle/util/selection";
 /// #if !MOBILE
-import {openAsset, openBy} from "../editor/util";
+import {openBy} from "../editor/util";
+import { openAsset } from "../editor/util.openAsset";
 /// #endif
 import {rename, replaceFileName} from "../editor/rename";
 import * as dayjs from "dayjs";
