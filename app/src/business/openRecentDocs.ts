@@ -68,7 +68,6 @@ const createRecentDocsDialog = (recentDocs: any) => {
     
     // 使用通用Vue组件加载器创建并挂载Vue应用到对话框内容区域
     createVueComponentInDialog(dialog, createRecentDocsVueConfig(recentDocs));
-    
     dialog.element.setAttribute("data-key", Constants.DIALOG_RECENTDOCS);
     
     return dialog;

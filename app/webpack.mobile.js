@@ -38,6 +38,7 @@ module.exports = (env, argv) => {
             extensions: [".vue", ".ts", ".js", ".tpl", ".scss", ".png", ".svg"],
             alias: {
                 '@': path.resolve(__dirname, 'src'),
+                "vue": "vue/dist/vue.esm-bundler.js"
             },
         },
         module: {

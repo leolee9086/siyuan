@@ -35,7 +35,9 @@ module.exports = (env, argv) => {
                 "path": require.resolve("path-browserify"),
             },
             extensions: [".vue", ".ts", ".js", ".tpl", ".scss", ".png", ".svg"],
-       
+            alias: {
+                "vue": "vue/dist/vue.esm-bundler.js"
+            }
         },
         module: {
             rules: [
