@@ -2,7 +2,6 @@ import { MenuItem } from "../../menus/Menu.Item";
 import { copySubMenu } from "../../menus/commonMenuItem.copy";
 import { addEditorToDatabase } from "../render/av/addToDatabase";
 import { deleteFile } from "../../editor/deleteFile";
-import { transferBlockRef } from "../../menus/block";
 import { openDocHistory } from "../../history/doc";
 
 export const createProtyleCopyMenu = (protyle: IProtyle) => {

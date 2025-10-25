@@ -25,6 +25,53 @@ import { createProtyleCopyMenu, createFileHistoryMenuItem } from "./openTitleMen
 import { closeTitleMenuIfOpened } from "./openTitleMenu.util";
 import { transferBlockRef } from "../../menus/block";
 import { appendFileOperationsMenuItemGroup } from "./openTitleMenu.FileOperations";
+
+const appendDesktopOnlyMenuItemGroup = (protyle: IProtyle) => {
+    /// #if !MOBILE
+    window.siyuan.menus.menu.append(new MenuItem({ id: "separator_1", type: "separator" }).element);
+    window.siyuan.menus.menu.append(new MenuItem({
+        id: "outline",
+        icon: "iconAlignCenter",
+        label: window.siyuan.languages.outline,
+        accelerator: window.siyuan.config.keymap.editor.general.outline.custom,
+        click: () => {
+            openOutline(protyle);
+        }
+    }).element);
+    window.siyuan.menus.menu.append(new MenuItem({
+        id: "backlinks",
+        icon: "iconLink",
+        label: window.siyuan.languages.backlinks,
+        accelerator: window.siyuan.config.keymap.editor.general.backlinks.custom,
+        click: () => {
+            openBacklink({
+                app: protyle.app,
+                blockId: protyle.block.id,
+                rootId: protyle.block.rootID,
+                useBlockId: protyle.block.showAll,
+                title: protyle.title ? (protyle.title.editElement.textContent || window.siyuan.languages.untitled) : null
+            });
+        }
+    }).element);
+    window.siyuan.menus.menu.append(new MenuItem({
+        id: "graphView",
+        icon: "iconGraph",
+        label: window.siyuan.languages.graphView,
+        accelerator: window.siyuan.config.keymap.editor.general.graphView.custom,
+        click: () => {
+            openGraph({
+                app: protyle.app,
+                blockId: protyle.block.id,
+                rootId: protyle.block.rootID,
+                useBlockId: protyle.block.showAll,
+                title: protyle.title ? (protyle.title.editElement.textContent || window.siyuan.languages.untitled) : null
+            });
+        }
+    }).element);
+    /// #endif
+}
+
+
 export const openTitleMenu = (protyle: IProtyle, position: IPosition) => {
     hideTooltip();
     if (closeTitleMenuIfOpened()) {
@@ -40,46 +87,7 @@ export const openTitleMenu = (protyle: IProtyle, position: IPosition) => {
             appendFileOperationsMenuItemGroup(protyle)
         }
         /// #if !MOBILE
-        window.siyuan.menus.menu.append(new MenuItem({ id: "separator_1", type: "separator" }).element);
-        window.siyuan.menus.menu.append(new MenuItem({
-            id: "outline",
-            icon: "iconAlignCenter",
-            label: window.siyuan.languages.outline,
-            accelerator: window.siyuan.config.keymap.editor.general.outline.custom,
-            click: () => {
-                openOutline(protyle);
-            }
-        }).element);
-        window.siyuan.menus.menu.append(new MenuItem({
-            id: "backlinks",
-            icon: "iconLink",
-            label: window.siyuan.languages.backlinks,
-            accelerator: window.siyuan.config.keymap.editor.general.backlinks.custom,
-            click: () => {
-                openBacklink({
-                    app: protyle.app,
-                    blockId: protyle.block.id,
-                    rootId: protyle.block.rootID,
-                    useBlockId: protyle.block.showAll,
-                    title: protyle.title ? (protyle.title.editElement.textContent || window.siyuan.languages.untitled) : null
-                });
-            }
-        }).element);
-        window.siyuan.menus.menu.append(new MenuItem({
-            id: "graphView",
-            icon: "iconGraph",
-            label: window.siyuan.languages.graphView,
-            accelerator: window.siyuan.config.keymap.editor.general.graphView.custom,
-            click: () => {
-                openGraph({
-                    app: protyle.app,
-                    blockId: protyle.block.id,
-                    rootId: protyle.block.rootID,
-                    useBlockId: protyle.block.showAll,
-                    title: protyle.title ? (protyle.title.editElement.textContent || window.siyuan.languages.untitled) : null
-                });
-            }
-        }).element);
+        appendDesktopOnlyMenuItemGroup(protyle)
         /// #endif
         window.siyuan.menus.menu.append(new MenuItem({ id: "separator_2", type: "separator" }).element);
         window.siyuan.menus.menu.append(new MenuItem({
