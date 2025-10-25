@@ -22,7 +22,7 @@ import {
  * @param {string} eventCode - 事件代码（"↑" 或 "↓"）
  * @returns {Element|null} 下一个要选中的菜单项元素
  */
-const 处理已有当前元素的上下导航 = (currentElement: Element, eventCode: string): Element | null => {
+const handleUpDownNavigationWithCurrent = (currentElement: Element, eventCode: string): Element | null => {
     setNotCurrent(currentElement);
     setNotShow(currentElement)
     let actionMenuElement;
@@ -44,7 +44,7 @@ const 处理已有当前元素的上下导航 = (currentElement: Element, eventC
  * 处理菜单项的选中状态和滚动
  * @param {Element} actionMenuElement - 要选中的菜单项元素
  */
-const 处理菜单项选中状态 = (actionMenuElement: Element): void => {
+const handleMenuItemSelection = (actionMenuElement: Element): void => {
     if (actionMenuElement.classList.contains("b3-menu__item")) {
         setCurrent(actionMenuElement);
     }
@@ -65,7 +65,7 @@ const 处理菜单项选中状态 = (actionMenuElement: Element): void => {
  * @param {Element} currentElement - 当前选中的菜单项元素
  * @returns {boolean} 是否成功处理了右箭头键导航
  */
-const 处理右箭头键导航 = (currentElement: Element): boolean => {
+const handleRightArrowNavigation = (currentElement: Element): boolean => {
     if (!currentElement) {
         return true;
     }
@@ -89,7 +89,7 @@ const 处理右箭头键导航 = (currentElement: Element): boolean => {
  * @param {Element} currentElement - 当前选中的子菜单项元素
  * @returns {boolean} 是否成功处理了左箭头键导航
  */
-const 处理左箭头键导航 = (currentElement: Element): boolean => {
+const handleLeftArrowNavigation = (currentElement: Element): boolean => {
     if (!currentElement) {
         return true;
     }
@@ -107,7 +107,7 @@ const 处理左箭头键导航 = (currentElement: Element): boolean => {
  * @param {Element} currentElement - 当前选中的菜单项元素
  * @returns {boolean} 是否成功处理了回车键导航
  */
-const 处理回车键导航 = (currentElement: Element): boolean => {
+const handleEnterKeyNavigation = (currentElement: Element): boolean => {
     if (!currentElement) {
         return false;
     }
@@ -149,6 +149,9 @@ export const bindMenuKeydown = (event: KeyboardEvent) => {
         return false;
     }
     const target = event.target;
+    /**
+     * eventTarget是Element类型,因为还有可能是svg之类
+     */
     if(!(target instanceof Element)){
         return false
     }
@@ -167,20 +170,20 @@ export const bindMenuKeydown = (event: KeyboardEvent) => {
                 actionMenuElement = getActionMenu(menuElement.lastElementChild.firstElementChild, true);
             }
         } else {
-            actionMenuElement = 处理已有当前元素的上下导航(currentElement, eventCode);
+            actionMenuElement = handleUpDownNavigationWithCurrent(currentElement, eventCode);
         }
         if (actionMenuElement) {
-            处理菜单项选中状态(actionMenuElement);
+            handleMenuItemSelection(actionMenuElement);
         }
         return true;
     } else if (eventCode === "→") {
         const currentElement = getCurrentMenuItem();
-        return 处理右箭头键导航(currentElement);
+        return handleRightArrowNavigation(currentElement);
     } else if (eventCode === "←") {
         const currentElement = getCurrentSubMenuItem();
-        return 处理左箭头键导航(currentElement);
+        return handleLeftArrowNavigation(currentElement);
     } else if (eventCode === "↩") {
         const currentElement = getCurrentMenuItem();
-        return 处理回车键导航(currentElement);
+        return handleEnterKeyNavigation(currentElement);
     }
 };
