@@ -6,7 +6,7 @@ import { updateHotkeyTip } from "../util/compatibility";
 import { openBacklink, openGraph, openOutline } from "../../layout/dock/util";
 import * as path from "path";
 /// #else
-import {openMobileFileById} from "../../mobile/editor";
+import { openMobileFileById } from "../../mobile/editor";
 /// #endif
 import { Constants } from "../../constants";
 import { openCardByData } from "../../card/openCard";
@@ -33,7 +33,14 @@ const appendDesktopOnlyMenuItemGroup = (protyle: IProtyle) => {
         label: window.siyuan.languages.outline,
         accelerator: window.siyuan.config.keymap.editor.general.outline.custom,
         click: () => {
-            openOutline(protyle);
+            openOutline(
+                {
+                    app: protyle.app,
+                    rootId: protyle.block.rootID,
+                    title: protyle.options.render.title ? (protyle.title.editElement.textContent || window.siyuan.languages.untitled) : "",
+                    isPreview: !protyle.preview.element.classList.contains("fn__none")
+                }
+            );
         }
     }).element);
     window.siyuan.menus.menu.append(new MenuItem({
