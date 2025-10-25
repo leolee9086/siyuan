@@ -40,3 +40,6 @@ yarn.lock
 
 # Workflows
 **/__pycache__
+
+# toread
+/toread
