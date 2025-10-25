@@ -15,6 +15,52 @@ const genEditDialogHtml = () => {
     <button class="b3-button b3-button--text">${window.siyuan.languages.confirm}</button>
 </div>`
 }
+// 取消按钮回调函数
+const handleCancelClick = (dialog: Dialog) => {
+    dialog.destroy();
+};
+
+// 确认按钮回调函数
+const handleConfirmClick = (
+    dialog: Dialog,
+    nameElement: HTMLInputElement,
+    customElement: HTMLTextAreaElement,
+    originalName: string,
+    originalMemo: string
+) => {
+    window.siyuan.storage[Constants.LOCAL_AI].find((subItem: {
+        name: string;
+        memo: string;
+    }) => {
+        if (originalName === subItem.name && originalMemo === subItem.memo) {
+            subItem.name = nameElement.value;
+            subItem.memo = customElement.value;
+            setStorageVal(Constants.LOCAL_AI, window.siyuan.storage[Constants.LOCAL_AI]);
+            return true;
+        }
+    });
+    dialog.destroy();
+};
+
+// 删除按钮回调函数
+const handleDeleteClick = (
+    dialog: Dialog,
+    originalName: string,
+    originalMemo: string
+) => {
+    window.siyuan.storage[Constants.LOCAL_AI].find((subItem: {
+        name: string;
+        memo: string;
+    }, index: number) => {
+        if (originalName === subItem.name && originalMemo === subItem.memo) {
+            window.siyuan.storage[Constants.LOCAL_AI].splice(index, 1);
+            setStorageVal(Constants.LOCAL_AI, window.siyuan.storage[Constants.LOCAL_AI]);
+            return true;
+        }
+    });
+    dialog.destroy();
+};
+
 export const editDialog = (customName: string, customMemo: string) => {
     const dialog = new Dialog({
         title: window.siyuan.languages.update,
@@ -22,11 +68,11 @@ export const editDialog = (customName: string, customMemo: string) => {
         width: isMobile() ? "92vw" : "520px",
     });
     dialog.element.setAttribute("data-key", Constants.DIALOG_AIUPDATECUSTOMACTION);
-    const nameElement = dialog.element.querySelector("input");
-    const customElement = dialog.element.querySelector("textarea");
-    const deleteButton = dialog.element.querySelector(".b3-button--remove");
-    const cancelButton = dialog.element.querySelector(".b3-button--cancel");
-    const confirmButton = dialog.element.querySelector(".b3-button--text");
+    const nameElement = dialog.element.querySelector("input") as HTMLInputElement;
+    const customElement = dialog.element.querySelector("textarea") as HTMLTextAreaElement;
+    const deleteButton = dialog.element.querySelector(".b3-button--remove") as HTMLButtonElement;
+    const cancelButton = dialog.element.querySelector(".b3-button--cancel") as HTMLButtonElement;
+    const confirmButton = dialog.element.querySelector(".b3-button--text") as HTMLButtonElement;
 
     nameElement.value = customName;
     dialog.bindInput(customElement, () => {
@@ -37,36 +83,15 @@ export const editDialog = (customName: string, customMemo: string) => {
     customElement.value = customMemo;
 
     cancelButton.addEventListener("click", () => {
-        dialog.destroy();
+        handleCancelClick(dialog);
     });
 
     confirmButton.addEventListener("click", () => {
-        window.siyuan.storage[Constants.LOCAL_AI].find((subItem: {
-            name: string;
-            memo: string;
-        }) => {
-            if (customName === subItem.name && customMemo === subItem.memo) {
-                subItem.name = nameElement.value;
-                subItem.memo = customElement.value;
-                setStorageVal(Constants.LOCAL_AI, window.siyuan.storage[Constants.LOCAL_AI]);
-                return true;
-            }
-        });
-        dialog.destroy();
+        handleConfirmClick(dialog, nameElement, customElement, customName, customMemo);
     });
 
     deleteButton.addEventListener("click", () => {
-        window.siyuan.storage[Constants.LOCAL_AI].find((subItem: {
-            name: string;
-            memo: string;
-        }, index: number) => {
-            if (customName === subItem.name && customMemo === subItem.memo) {
-                window.siyuan.storage[Constants.LOCAL_AI].splice(index, 1);
-                setStorageVal(Constants.LOCAL_AI, window.siyuan.storage[Constants.LOCAL_AI]);
-                return true;
-            }
-        });
-        dialog.destroy();
+        handleDeleteClick(dialog, customName, customMemo);
     });
     nameElement.focus();
 };
