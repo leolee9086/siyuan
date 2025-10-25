@@ -1,28 +1,51 @@
 import { Dialog } from "../dialog";
 import { isMobile } from "../util/functions";
 import { handleAIChatConfirm } from "./chat.confirm";
+import { createVueComponentInDialog, VueComponentMountConfig } from "../util/vue/mount";
+import AiChatDialog from "../components/aiChatDialog.vue";
+
+// 处理取消事件
+const handleCancel = (dialog: Dialog) => {
+    dialog.destroy();
+};
+
+// 处理确认事件
+const handleConfirm = (
+    dialog: Dialog,
+    message: string,
+    protyle: IProtyle,
+    element: Element
+) => {
+    // 创建一个模拟的输入元素以保持与原有 handleAIChatConfirm 函数的兼容性
+    const mockInputElement = { value: message } as HTMLTextAreaElement;
+    handleAIChatConfirm(mockInputElement, dialog, protyle, element);
+};
+
+// 创建聊天对话框Vue应用配置
+const createChatDialogVueConfig = (protyle: IProtyle, element: Element, dialog: Dialog): VueComponentMountConfig => {
+    return {
+        components: {
+            AiChatDialog
+        },
+        eventHandlers: {
+            handleCancel: () => handleCancel(dialog),
+            handleConfirm: (message: string) => handleConfirm(dialog, message, protyle, element)
+        },
+        template: `<AiChatDialog @cancel="handleCancel" @confirm="handleConfirm" ref="aiChatDialogComponent" />`,
+        initMethodName: "focusChatInput"
+    };
+};
 
 export const AIChat = (protyle: IProtyle, element: Element) => {
     const dialog = new Dialog({
         title: "✨ " + window.siyuan.languages.aiWriting,
-        content: `<div class="b3-dialog__content"><textarea class="b3-text-field fn__block"></textarea></div>
-<div class="b3-dialog__action">
-    <button class="b3-button b3-button--cancel">${window.siyuan.languages.cancel}</button><div class="fn__space"></div>
-    <button class="b3-button b3-button--text">${window.siyuan.languages.confirm}</button>
-</div>`,
+        content: "",
         width: isMobile() ? "92vw" : "520px",
     });
-    const inputElement = dialog.element.querySelector("textarea");
-    const btnsElement = dialog.element.querySelectorAll(".b3-button");
-
-    dialog.bindInput(inputElement, () => {
-        (btnsElement[1] as HTMLButtonElement).click();
-    });
-    inputElement.focus();
-    btnsElement[0].addEventListener("click", () => {
-        dialog.destroy();
-    });
-    btnsElement[1].addEventListener("click", () => handleAIChatConfirm(inputElement, dialog, protyle, element));
+    
+    createVueComponentInDialog(dialog, createChatDialogVueConfig(protyle, element, dialog));
+    
+    return dialog;
 };
 
 

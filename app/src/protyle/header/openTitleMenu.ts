@@ -25,7 +25,13 @@ import {transferBlockRef} from "../../menus/block";
 import {addEditorToDatabase} from "../render/av/addToDatabase";
 import {openFileById} from "../../editor/util";
 import {hasTopClosestByClassName} from "../util/hasClosest";
-
+const fn1 =()=>{
+       if (!window.siyuan.menus.menu.element.classList.contains("fn__none") &&
+        window.siyuan.menus.menu.element.getAttribute("data-name") === "titleMenu") {
+        window.siyuan.menus.menu.remove();
+        return;
+    }
+}
 export const openTitleMenu = (protyle: IProtyle, position: IPosition) => {
     hideTooltip();
     if (!window.siyuan.menus.menu.element.classList.contains("fn__none") &&
