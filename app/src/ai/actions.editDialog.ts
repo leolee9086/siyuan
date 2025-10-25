@@ -1,14 +1,18 @@
 import { Constants } from "../constants";
 import { Dialog } from "../dialog";
 import { setStorageVal } from "../protyle/util/compatibility";
-import { isMobile } from "../util/functions";
-import { createVueComponentInDialog, VueComponentMountConfig } from "../util/vue/mount";
+import { VueComponentMountConfig } from "../util/vue/mount";
+import { createVueDialog } from "../util/dialog/createVueDialog";
 import AiEditDialog from "../components/aiEditDialog.vue";
 
-
-// 处理确认事件
-const handleConfirm = (
-    dialog: Dialog,
+/**
+ * 更新AI自定义动作配置
+ * @param name - 更新后的动作名称
+ * @param memo - 更新后的动作描述
+ * @param originalName - 原始动作名称
+ * @param originalMemo - 原始动作描述
+ */
+const updateAiActionConfig = (
     name: string,
     memo: string,
     originalName: string,
@@ -25,12 +29,14 @@ const handleConfirm = (
             return true;
         }
     });
-    dialog.destroy();
 };
 
-// 处理删除事件
-const handleDelete = (
-    dialog: Dialog,
+/**
+ * 删除AI自定义动作配置
+ * @param originalName - 要删除的动作名称
+ * @param originalMemo - 要删除的动作描述
+ */
+const deleteAiActionConfig = (
     originalName: string,
     originalMemo: string
 ) => {
@@ -44,10 +50,17 @@ const handleDelete = (
             return true;
         }
     });
-    dialog.destroy();
 };
 
-// 创建编辑对话框Vue应用配置
+/**
+ * 创建编辑对话框的Vue应用配置
+ * 为AI编辑对话框组件提供必要的数据、事件处理器和模板配置
+ *
+ * @param customName - 自定义动作名称
+ * @param customMemo - 自定义动作描述
+ * @param dialog - 对话框实例
+ * @returns Vue组件挂载配置对象
+ */
 const createEditDialogVueConfig = (customName: string, customMemo: string, dialog: Dialog): VueComponentMountConfig => {
     return {
         components: {
@@ -59,21 +72,32 @@ const createEditDialogVueConfig = (customName: string, customMemo: string, dialo
         },
         eventHandlers: {
             handleCancel: () => dialog.destroy(),
-            handleConfirm: (name: string, memo: string) => handleConfirm(dialog, name, memo, customName, customMemo),
-            handleDelete: () => handleDelete(dialog, customName, customMemo)
+            handleConfirm: (name: string, memo: string) => {
+                updateAiActionConfig(name, memo, customName, customMemo);
+                dialog.destroy();
+            },
+            handleDelete: () => {
+                deleteAiActionConfig(customName, customMemo);
+                dialog.destroy();
+            }
         },
         template: `<AiEditDialog :name="name" :memo="memo" @cancel="handleCancel" @confirm="handleConfirm" @delete="handleDelete" ref="aiEditDialogComponent" />`,
         initMethodName: "focusSearchInput"
     };
 };
 
+/**
+ * 创建并显示AI自定义动作编辑对话框
+ * 提供用户界面用于编辑现有的AI自定义动作配置
+ *
+ * @param customName - 要编辑的自定义动作名称
+ * @param customMemo - 要编辑的自定义动作描述
+ * @returns 创建的对话框实例
+ */
 export const editDialog = (customName: string, customMemo: string) => {
-    const dialog = new Dialog({
+    return createVueDialog({
         title: window.siyuan.languages.update,
-        content: "",
-        width: isMobile() ? "92vw" : "520px",
+        dataKey: Constants.DIALOG_AIUPDATECUSTOMACTION,
+        vueConfigFactory: (dialog: Dialog) => createEditDialogVueConfig(customName, customMemo, dialog)
     });
-    dialog.element.setAttribute("data-key", Constants.DIALOG_AIUPDATECUSTOMACTION);
-    createVueComponentInDialog(dialog, createEditDialogVueConfig(customName, customMemo, dialog))
-    return dialog;
 };

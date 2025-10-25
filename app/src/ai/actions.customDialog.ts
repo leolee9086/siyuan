@@ -2,9 +2,9 @@ import { Constants } from "../constants";
 import { Dialog } from "../dialog";
 import { setStorageVal } from "../protyle/util/compatibility";
 import { fetchPost } from "../util/fetch";
-import { isMobile } from "../util/functions";
 import { fillContent } from "./actions.fillContent";
-import { createVueComponentInDialog, VueComponentMountConfig } from "../util/vue/mount";
+import { VueComponentMountConfig } from "../util/vue/mount";
+import { createVueDialog } from "../util/dialog/createVueDialog";
 import AiCustomDialog from "../components/aiCustomDialog.vue";
 
 /**
@@ -95,12 +95,9 @@ const createCustomDialogVueConfig = (
  * @returns 创建的对话框实例
  */
 export const customDialog = (protyle: IProtyle, ids: string[], elements: Element[]) => {
-    const dialog = new Dialog({
+    return createVueDialog({
         title: window.siyuan.languages.aiCustomAction,
-        content: "",
-        width: isMobile() ? "92vw" : "520px",
+        dataKey: Constants.DIALOG_AICUSTOMACTION,
+        vueConfigFactory: (dialog: Dialog) => createCustomDialogVueConfig(protyle, ids, elements, dialog)
     });
-    dialog.element.setAttribute("data-key", Constants.DIALOG_AICUSTOMACTION);
-    createVueComponentInDialog(dialog, createCustomDialogVueConfig(protyle, ids, elements, dialog))
-    return dialog;
 };
