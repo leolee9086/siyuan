@@ -4,7 +4,7 @@ import {
     fixWndFlex1,
     getInstanceById,
     getWndByLayout,
-    JSONToCenter,
+    JSONToCenter, layoutToJSON,
     newModelByInitData,
     pdfIsLoading,
     saveLayout,
@@ -31,6 +31,7 @@ import {showMessage} from "../dialog/message";
 import {openFileById} from "../editor/util";
 import { updatePanelByEditor } from "../editor/util.updatePanelByEditor";
 import {scrollCenter} from "../util/highlightById";
+import {fetchPost} from "../util/fetch";
 import {getAllModels} from "./getAll";
 import {clearCounter} from "./status";
 import {saveScroll} from "../protyle/scroll/saveScroll";
@@ -488,6 +489,10 @@ export class Wnd {
                             isInitActive = true;
                         } else {
                             item.headElement.setAttribute("data-activetime", (new Date()).getTime().toString());
+                            // 更新文档浏览时间
+                            if (item.model instanceof Editor) {
+                                fetchPost("/api/storage/updateRecentDocViewTime", {rootID: item.model.editor.protyle.block.rootID});
+                            }
                         }
                     }
                     item.panelElement.classList.remove("fn__none");
@@ -633,6 +638,7 @@ export class Wnd {
         if (tab.callback) {
             tab.callback(tab);
         }
+
         // 移除 centerLayout 中的 empty
         if (this.parent.type === "center" && this.children.length === 2 && !this.children[0].headElement) {
             this.removeTab(this.children[0].id);
@@ -655,7 +661,7 @@ export class Wnd {
 
     private renderTabList(target: HTMLElement) {
         if (!window.siyuan.menus.menu.element.classList.contains("fn__none") &&
-            window.siyuan.menus.menu.element.getAttribute("data-name") === "tabList") {
+            window.siyuan.menus.menu.element.getAttribute("data-name") === Constants.MENU_TAB_LIST) {
             window.siyuan.menus.menu.remove();
             return;
         }
@@ -704,7 +710,7 @@ export class Wnd {
                 current: item.classList.contains("item--focus")
             }).element);
         });
-        window.siyuan.menus.menu.element.setAttribute("data-name", "tabList");
+        window.siyuan.menus.menu.element.setAttribute("data-name", Constants.MENU_TAB_LIST);
         const rect = target.getBoundingClientRect();
         window.siyuan.menus.menu.popup({
             x: rect.left + rect.width,
@@ -777,11 +783,20 @@ export class Wnd {
         clearCounter();
         this.children.find((item, index) => {
             if (item.id === id) {
+                if (window.siyuan.closedTabs.length > Constants.SIZE_UNDO) {
+                    window.siyuan.closedTabs.pop();
+                }
+                const tabJSON = {};
+                layoutToJSON(item, tabJSON);
+                window.siyuan.closedTabs.push(tabJSON);
+
                 if (item.model instanceof Custom && item.model.beforeDestroy) {
                     item.model.beforeDestroy();
                 }
                 if (item.model instanceof Editor) {
                     saveScroll(item.model.editor.protyle);
+                    // 更新文档关闭时间
+                    fetchPost("/api/storage/updateRecentDocCloseTime", {rootID: item.model.editor.protyle.block.rootID});
                 }
                 if (this.children.length === 1) {
                     this.destroyModel(this.children[0].model);

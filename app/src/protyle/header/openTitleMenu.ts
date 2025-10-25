@@ -6,7 +6,7 @@ import { updateHotkeyTip } from "../util/compatibility";
 import { openBacklink, openGraph, openOutline } from "../../layout/dock/util";
 import * as path from "path";
 /// #else
-import { openMobileFileById } from "../../mobile/editor";
+import {openMobileFileById} from "../../mobile/editor";
 /// #endif
 import { Constants } from "../../constants";
 import { openCardByData } from "../../card/openCard";
@@ -110,6 +110,7 @@ export const openTitleMenu = (protyle: IProtyle, position: IPosition) => {
                     }
                 }).element);
             }
+            const isCardMade = !!response.data.ial[Constants.CUSTOM_RIFF_DECKS];
             const riffCardMenu: IMenu[] = [{
                 id: "spaceRepetition",
                 iconHTML: "",
@@ -132,9 +133,9 @@ export const openTitleMenu = (protyle: IProtyle, position: IPosition) => {
                     });
                 }
             }, {
-                id: "quickMakeCard",
+                id: isCardMade ? "removeCard" : "quickMakeCard",
                 iconHTML: "",
-                label: window.siyuan.languages.quickMakeCard,
+                label: isCardMade ? window.siyuan.languages.removeCard : window.siyuan.languages.quickMakeCard,
                 accelerator: window.siyuan.config.keymap.editor.general.quickMakeCard.custom,
                 click: () => {
                     let titleElement = protyle.title?.element;
@@ -261,7 +262,5 @@ export const openTitleMenu = (protyle: IProtyle, position: IPosition) => {
         /// #else
         window.siyuan.menus.menu.popup(position);
         /// #endif
-        const popoverElement = hasTopClosestByClassName(protyle.element, "block__popover", true);
-        window.siyuan.menus.menu.element.setAttribute("data-from", popoverElement ? popoverElement.dataset.level + "popover" : "app");
     });
 };

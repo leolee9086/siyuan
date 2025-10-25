@@ -34,8 +34,10 @@ export class Menu {
 
     public addItem(option: IMenu) {
         const menuItem = new MenuItem(option);
-        this.append(menuItem.element, option.index);
-        return menuItem.element;
+        if (menuItem) {
+            this.append(menuItem.element, option.index);
+            return menuItem.element;
+        }
     }
 
     public removeScrollEvent() {

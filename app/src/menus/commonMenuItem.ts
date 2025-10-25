@@ -4,8 +4,8 @@ import {confirmDialog} from "../dialog/confirmDialog";
 import {isMobile, isValidAttrName} from "../util/functions";
 import {movePathTo, moveToPath} from "../util/pathName";
 import { MenuItem } from "./Menu.Item";
-import {saveExport} from "../protyle/export";
-import {openByMobile, writeText} from "../protyle/util/compatibility";
+import {onExport, saveExport} from "../protyle/export";
+import {openByMobile, writeText, writeText} from "../protyle/util/compatibility";
 import {fetchPost, fetchSyncPost} from "../util/fetch";
 import {hideMessage, showMessage} from "../dialog/message";
 import {Dialog} from "../dialog";
@@ -20,6 +20,8 @@ import {renderAVAttribute} from "../protyle/render/av/blockAttr";
 import {escapeHtml} from "../util/escape";
 import {copyTextByType} from "../protyle/toolbar/util";
 import {hideElements} from "../protyle/ui/hideElements";
+import {Protyle} from "../protyle";
+import {getAllEditor} from "../layout/getAll";
 import {Protyle} from "../protyle";
 import {getAllEditor} from "../layout/getAll";
 
@@ -653,7 +655,34 @@ export const exportMd = (id: string) => {
                     }
                 },
                 ]
-            }
+            },
+            /// #else
+            {
+                id: "exportPDF",
+                label: window.siyuan.languages.print,
+                icon: "iconPDF",
+                ignore: !isInAndroid() && !isInHarmony(),
+                click: () => {
+                    const msId = showMessage(window.siyuan.languages.exporting);
+                    const localData = window.siyuan.storage[Constants.LOCAL_EXPORTPDF];
+                    fetchPost("/api/export/exportPreviewHTML", {
+                        id,
+                        keepFold: localData.keepFold,
+                        merge: localData.mergeSubdocs,
+                    }, async response => {
+                        const html = await onExport(response, undefined, {type: "pdf", id});
+                        if (isInAndroid()) {
+                            window.JSAndroid.print(html);
+                        } else if (isInHarmony()) {
+                            window.JSHarmony.print(html);
+                        }
+
+                        setTimeout(() => {
+                            hideMessage(msId);
+                        }, 3000);
+                    });
+                }
+            },
             /// #endif
         ]
     }).element;

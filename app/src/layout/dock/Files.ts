@@ -7,6 +7,7 @@ import {Constants} from "../../constants";
 import {getDisplayName, pathPosix, setNoteBook} from "../../util/pathName";
 import {newFile} from "../../util/newFile";
 import {initFileMenu, initNavigationMenu, sortMenu} from "../../menus/navigation";
+import {MenuItem} from "../../menus/Menu";
 import { MenuItem } from "../../menus/Menu.Item";
 import {showMessage} from "../../dialog/message";
 import {fetchPost, fetchSyncPost} from "../../util/fetch";

@@ -6,6 +6,26 @@ import {getFieldsByData} from "./view";
 import {fetchSyncPost} from "../../../util/fetch";
 import {Menu} from "../../../plugin/Menu";
 import {objEquals} from "../../../util/functions";
+import {Constants} from "../../../constants";
+
+export const getPageSize = (blockElement: Element) => {
+    const groupPageSize: {
+        [key: string]: {
+            pageSize: number
+        }
+    } = {};
+    let unGroupPageSize: number;
+    blockElement.querySelectorAll(".av__body").forEach((item: HTMLElement) => {
+        const id = item.dataset.groupId;
+        const pageSize = parseInt(item.dataset.pageSize);
+        if (id) {
+            groupPageSize[id] = {pageSize};
+        } else if (!unGroupPageSize) {
+            unGroupPageSize = pageSize;
+        }
+    });
+    return {groupPageSize, unGroupPageSize};
+};
 
 export const getPageSize = (blockElement: Element) => {
     const groupPageSize: {
@@ -304,7 +324,7 @@ export const goGroupsDate = (options: {
     data: IAV;
     blockElement: Element;
 }) => {
-    const menu = new Menu("avGroupDate");
+    const menu = new Menu(Constants.MENU_AV_GROUP_DATE);
     if (menu.isOpen) {
         return;
     }
@@ -351,7 +371,7 @@ export const goGroupsSort = (options: {
     menuElement: HTMLElement;
     blockElement: Element;
 }) => {
-    const menu = new Menu("avGroupSort");
+    const menu = new Menu(Constants.MENU_AV_GROUP_SORT);
     if (menu.isOpen) {
         return;
     }
