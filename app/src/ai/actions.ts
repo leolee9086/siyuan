@@ -66,6 +66,134 @@ const generateMenuHTML = (customHTML: string): string => {
 };
 
 /**
+ * 处理键盘按下事件
+ * @param event 键盘事件
+ * @param listElement 列表元素
+ * @param protyle Protyle实例
+ * @param ids 元素ID列表
+ * @param elements 元素列表
+ * @param menu 菜单实例
+ * @param clearContext 清除上下文的标识
+ */
+const handleKeyDown = (
+    event: KeyboardEvent,
+    listElement: HTMLElement,
+    protyle: IProtyle,
+    ids: string[],
+    elements: HTMLElement[],
+    menu: Menu,
+    clearContext: string
+) => {
+    if (event.isComposing) {
+        return;
+    }
+    const currentElement = upDownHint(listElement, event);
+    if (currentElement) {
+        event.stopPropagation();
+    }
+    if (event.key === "Enter") {
+        event.preventDefault();
+        event.stopPropagation();
+        const currentElement = listElement.querySelector(".b3-list-item--focus") as HTMLElement;
+        if (currentElement.dataset.type === "custom") {
+            customDialog(protyle, ids, elements);
+            menu.close();
+        } else {
+            fetchPost("/api/ai/chatGPTWithAction", {
+                ids,
+                action: currentElement.dataset.action
+            }, (response) => {
+                fillContent(protyle, response.data, elements);
+            });
+            if (currentElement.dataset.action === clearContext) {
+                showMessage(window.siyuan.languages.clearContextSucc);
+            } else {
+                menu.close();
+            }
+        }
+    }
+};
+
+/**
+ * 处理输入事件
+ * @param event 输入事件
+ * @param element 菜单元素
+ * @param inputElement 输入元素
+ */
+const handleInput = (
+    event: KeyboardEvent,
+    element: HTMLElement,
+    inputElement: HTMLInputElement
+) => {
+    if (event.isComposing) {
+        return;
+    }
+    filterAI(element, inputElement);
+};
+
+/**
+ * 处理组合输入结束事件
+ * @param element 菜单元素
+ * @param inputElement 输入元素
+ */
+const handleCompositionEnd = (
+    element: HTMLElement,
+    inputElement: HTMLInputElement
+) => {
+    filterAI(element, inputElement);
+};
+
+/**
+ * 处理点击事件
+ * @param event 点击事件
+ * @param protyle Protyle实例
+ * @param ids 元素ID列表
+ * @param elements 元素列表
+ * @param menu 菜单实例
+ * @param clearContext 清除上下文的标识
+ */
+const handleClick = (
+    event: Event,
+    protyle: IProtyle,
+    ids: string[],
+    elements: HTMLElement[],
+    menu: Menu,
+    clearContext: string,
+    menuElement: HTMLElement
+) => {
+    const target = event.target;
+    if (target instanceof HTMLElement) {
+        const context: AIMenuContext = {
+            protyle,
+            ids,
+            elements: elements,
+            menu,
+            clearContext
+        };
+        const request: AIMenuRequest = {
+            target,
+            element: menuElement,
+            event
+        };
+
+        handleAIMenuItemClick(context, request);
+    }
+};
+
+/**
+ * 设置移动端样式
+ * @param element 菜单元素
+ */
+const setupMobileStyles = (element: HTMLElement) => {
+    /// #if MOBILE
+    element.setAttribute("style", "height: 100%;padding: 0 16px;");
+    element.querySelectorAll(".b3-menu__separator").forEach(item => {
+        item.remove();
+    });
+    /// #endif
+};
+
+/**
  * 绑定AI菜单的事件处理
  * @param element 菜单元素
  * @param protyle Protyle实例
@@ -78,79 +206,37 @@ const bindMenuEvents = (
     element: HTMLElement,
     protyle: IProtyle,
     ids: string[],
-    elements: Element[],
+    elements: HTMLElement[],
     menu: Menu,
     clearContext: string
 ) => {
-    /// #if MOBILE
-    element.setAttribute("style", "height: 100%;padding: 0 16px;");
-    element.querySelectorAll(".b3-menu__separator").forEach(item => {
-        item.remove();
-    });
-    /// #endif
+    // 设置移动端样式
+    setupMobileStyles(element);
+    
+    // 获取元素引用
     const listElement = element.querySelector(".b3-list");
-    const inputElement = element.querySelector("input");
+    const inputElement = element.querySelector("input") ;
     
+    // 绑定键盘事件
     inputElement.addEventListener("keydown", (event: KeyboardEvent) => {
-        if (event.isComposing) {
-            return;
-        }
-        const currentElement = upDownHint(listElement, event);
-        if (currentElement) {
-            event.stopPropagation();
-        }
-        if (event.key === "Enter") {
-            event.preventDefault();
-            event.stopPropagation();
-            const currentElement = listElement.querySelector(".b3-list-item--focus") as HTMLElement;
-            if (currentElement.dataset.type === "custom") {
-                customDialog(protyle, ids, elements);
-                menu.close();
-            } else {
-                fetchPost("/api/ai/chatGPTWithAction", {
-                    ids,
-                    action: currentElement.dataset.action
-                }, (response) => {
-                    fillContent(protyle, response.data, elements);
-                });
-                if (currentElement.dataset.action === clearContext) {
-                    showMessage(window.siyuan.languages.clearContextSucc);
-                } else {
-                    menu.close();
-                }
-            }
+        if(listElement instanceof HTMLElement){
+        handleKeyDown(event, listElement, protyle, ids, elements, menu, clearContext);
         }
     });
     
+    // 绑定组合输入结束事件
     inputElement.addEventListener("compositionend", () => {
-        filterAI(element, inputElement);
+        handleCompositionEnd(element, inputElement);
     });
     
+    // 绑定输入事件
     inputElement.addEventListener("input", (event: KeyboardEvent) => {
-        if (event.isComposing) {
-            return;
-        }
-        filterAI(element, inputElement);
+        handleInput(event, element, inputElement);
     });
     
+    // 绑定点击事件
     element.addEventListener("click", (event) => {
-        const target = event.target;
-        if (target instanceof HTMLElement) {
-            const context: AIMenuContext = {
-                protyle,
-                ids,
-                elements: elements,
-                menu,
-                clearContext
-            };
-            const request: AIMenuRequest = {
-                target,
-                element,
-                event
-            };
-
-            handleAIMenuItemClick(context, request);
-        }
+        handleClick(event, protyle, ids, elements, menu, clearContext, element);
     });
 };
 
@@ -179,13 +265,16 @@ export const AIActions = (elements: Element[], protyle: IProtyle) => {
     // 使用独立函数生成菜单HTML模板
     const menuHTML = generateMenuHTML(customHTML);
     
+    // 将Element[]转换为HTMLElement[]
+    const htmlElements = elements as HTMLElement[];
+    
     menu.addItem({
         iconHTML: "",
         type: "empty",
         label: menuHTML,
         bind(element) {
             // 使用独立函数绑定菜单事件
-            bindMenuEvents(element, protyle, ids, elements, menu, clearContext);
+            bindMenuEvents(element, protyle, ids, htmlElements, menu, clearContext);
         }
     });
     
