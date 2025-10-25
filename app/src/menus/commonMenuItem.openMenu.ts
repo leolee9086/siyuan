@@ -1,17 +1,23 @@
+/// #if !BROWSER
 import { shell } from "electron";
+import { openAssetNewWindow } from "../window/openNewWindow";
+
+/// #endif
 import { App } from "..";
 import { Constants } from "../constants";
 import { showMessage } from "../dialog/message";
+/// #if !MOBILE
 import { openAsset } from "../editor/util.openAsset";
+/// #endif
 import { openBy } from "../editor/utils.openBy";
 import { isInAndroid, openByMobile, isInHarmony } from "../protyle/util/compatibility";
 import { getSearch } from "../util/functions";
 import { isLocalPath, pathPosix } from "../util/pathName";
-import { openAssetNewWindow } from "../window/openNewWindow";
 import { MenuItem } from "./Menu.Item";
 
 
 // 移动端菜单项生成函数
+
 const generateMobileMenuItems = (src: string, showAccelerator: boolean) => {
     return [{
         id: isInAndroid() ? "useDefault" : "useBrowserView",
@@ -19,6 +25,30 @@ const generateMobileMenuItems = (src: string, showAccelerator: boolean) => {
         accelerator: showAccelerator ? window.siyuan.languages.click : "",
         click: () => {
             openByMobile(src);
+        }
+    }];
+};
+// 非资源本地文件移动端菜单项生成函数
+const generateLocalFileMobileMenuItems = (src: string, showAccelerator: boolean) => {
+    return [{
+        id: isInAndroid() || isInHarmony() ? "useDefault" : "useBrowserView",
+        label: isInAndroid() || isInHarmony() ? window.siyuan.languages.useDefault : window.siyuan.languages.useBrowserView,
+        icon: "",
+        accelerator: showAccelerator ? window.siyuan.languages.click : "",
+        click: () => {
+            openByMobile(src);
+        }
+    }];
+};
+// 外部链接移动端菜单项生成函数
+const generateExternalLinkMobileMenuItems = (processedSrc: string, showAccelerator: boolean) => {
+    return [{
+        id: isInAndroid() || isInHarmony() ? "useDefault" : "useBrowserView",
+        label: isInAndroid() || isInHarmony() ? window.siyuan.languages.useDefault : window.siyuan.languages.useBrowserView,
+        icon: "",
+        accelerator: showAccelerator ? window.siyuan.languages.click : "",
+        click: () => {
+            openByMobile(processedSrc);
         }
     }];
 };
@@ -113,18 +143,7 @@ const generateLocalFileDesktopMenuItems = (src: string, showAccelerator: boolean
     ];
 };
 
-// 非资源本地文件移动端菜单项生成函数
-const generateLocalFileMobileMenuItems = (src: string, showAccelerator: boolean) => {
-    return [{
-        id: isInAndroid() || isInHarmony() ? "useDefault" : "useBrowserView",
-        label: isInAndroid() || isInHarmony() ? window.siyuan.languages.useDefault : window.siyuan.languages.useBrowserView,
-        icon: "",
-        accelerator: showAccelerator ? window.siyuan.languages.click : "",
-        click: () => {
-            openByMobile(src);
-        }
-    }];
-};
+
 
 // 非资源本地文件菜单项生成函数
 const generateLocalFileMenuItems = (src: string, showAccelerator: boolean) => {
@@ -150,18 +169,6 @@ const generateExternalLinkDesktopMenuItems = (processedSrc: string, showAccelera
     }];
 };
 
-// 外部链接移动端菜单项生成函数
-const generateExternalLinkMobileMenuItems = (processedSrc: string, showAccelerator: boolean) => {
-    return [{
-        id: isInAndroid() || isInHarmony() ? "useDefault" : "useBrowserView",
-        label: isInAndroid() || isInHarmony() ? window.siyuan.languages.useDefault : window.siyuan.languages.useBrowserView,
-        icon: "",
-        accelerator: showAccelerator ? window.siyuan.languages.click : "",
-        click: () => {
-            openByMobile(processedSrc);
-        }
-    }];
-};
 
 // 外部链接菜单项生成函数
 const generateExternalLinkMenuItems = (src: string, showAccelerator: boolean) => {

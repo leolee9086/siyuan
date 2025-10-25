@@ -14,6 +14,7 @@ import { copyTextByType } from "../protyle/toolbar/util";
 
 /**
  * 复制菜单上下文数据接口
+ * @todo 不同类型的菜单上下文应该整理归并,菜单应该以更加声明式的形式实现
  * @interface copyMenuCtxData
  */
 interface copyMenuCtxData {

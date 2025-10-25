@@ -5,6 +5,7 @@ const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const {CleanWebpackPlugin} = require("clean-webpack-plugin");
 // const BundleAnalyzerPlugin = require("webpack-bundle-analyzer").BundleAnalyzerPlugin;
 const {EsbuildPlugin} = require("esbuild-loader");
+const {VueLoaderPlugin} = require("vue-loader");
 
 module.exports = (env, argv) => {
     return {
@@ -35,10 +36,24 @@ module.exports = (env, argv) => {
             fallback: {
                 "path": require.resolve("path-browserify"),
             },
-            extensions: [".ts", ".js", ".scss"],
+            extensions: [".vue", ".ts", ".js", ".scss", ".png", ".svg"],
+            alias: {
+                '@': path.resolve(__dirname, 'src'),
+            },
         },
         module: {
             rules: [
+                {
+                    test: /\.vue$/,
+                    loader: "vue-loader",
+                    options: {
+                        compilerOptions: {
+                            hoistStatic: false,
+                            cacheHandlers: false,
+                            isTS: true,
+                        }
+                    }
+                },
                 {
                     test: /\.ts(x?)$/,
                     include: [path.resolve(__dirname, "src")],
@@ -48,6 +63,7 @@ module.exports = (env, argv) => {
                             options: {
                                 target: "es6",
                                 sourcemap: argv.mode !== "production",
+                                loader: "ts",
                             }
                         },
                         {
@@ -56,6 +72,28 @@ module.exports = (env, argv) => {
                                 "ifdef-verbose": false,
                                 BROWSER: true,
                                 MOBILE: true,
+                            },
+                        },
+                    ],
+                },
+                {
+                    test: /\.js$/,
+                    include: [path.resolve(__dirname, "src")],
+                    enforce: "post",
+                    use: [
+                        {
+                            loader: "esbuild-loader",
+                            options: {
+                                target: "es6",
+                                sourcemap: argv.mode !== "production",
+                            },
+                        },
+                        {
+                            loader: "ifdef-loader",
+                            options: {
+                                "ifdef-verbose": false,
+                                BROWSER: true,
+                                MOBILE: false,
                             },
                         },
                     ],
@@ -92,10 +130,14 @@ module.exports = (env, argv) => {
             new webpack.DefinePlugin({
                 NODE_ENV: JSON.stringify(argv.mode),
                 SIYUAN_VERSION: JSON.stringify(pkg.version),
+                __VUE_OPTIONS_API__: JSON.stringify(true),
+                __VUE_PROD_DEVTOOLS__: JSON.stringify(false),
             }),
+            new VueLoaderPlugin(),
             new MiniCssExtractPlugin({
                 filename: "base.css",
             }),
         ],
     };
 };
+

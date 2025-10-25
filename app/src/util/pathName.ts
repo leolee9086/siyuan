@@ -1,4 +1,5 @@
 import * as path from "path";
+
 import {fetchPost} from "./fetch";
 import {Dialog} from "../dialog";
 import {escapeHtml} from "./escape";
