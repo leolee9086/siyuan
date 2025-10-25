@@ -14,7 +14,7 @@ export interface AIMenuContext {
     menu: Menu;
     clearContext: string;
 }export interface AIMenuRequest {
-    target: HTMLElement;
+    target: HTMLElement | SVGElement;
     element: HTMLElement;
     event: Event;
 }
@@ -25,11 +25,16 @@ export interface AIMenuContext {
  * @param event 事件对象
  */
 const handleListItemActionClick = (
-    currentTarget: HTMLElement,
+    currentTarget: HTMLElement | SVGElement,
     menu: Menu,
     event: Event
 ): void => {
-    const subItem = window.siyuan.storage[Constants.LOCAL_AI][currentTarget.parentElement.dataset.index];
+    // 对于SVG元素，需要找到包含dataset的父元素
+    const parentElement = currentTarget.parentElement;
+    if (!parentElement || !('dataset' in parentElement)) {
+        return;
+    }
+    const subItem = window.siyuan.storage[Constants.LOCAL_AI][parentElement.dataset.index];
     editDialog(subItem.name, subItem.memo);
     menu.close();
     event.stopPropagation();
@@ -43,20 +48,30 @@ const handleListItemActionClick = (
  * @param event 事件对象
  */
 const handleListItemClick = (
-    currentTarget: HTMLElement,
+    currentTarget: HTMLElement | SVGElement,
     context: AIMenuContext,
     event: Event
 ): void => {
     const { protyle, ids, elements, menu, clearContext } = context;
     
-    if (currentTarget.dataset.type === "custom") {
+    // 对于SVG元素，需要找到包含dataset的元素
+    let targetElement: HTMLElement | SVGElement | ParentNode = currentTarget;
+    while (targetElement && !('dataset' in targetElement)) {
+        targetElement = targetElement.parentElement;
+    }
+    
+    if (!targetElement || !('dataset' in targetElement)) {
+        return;
+    }
+    
+    if (targetElement.dataset.type === "custom") {
         customDialog(protyle, ids, elements);
         menu.close();
     } else {
-        fetchPost("/api/ai/chatGPTWithAction", { ids, action: currentTarget.dataset.action }, (response) => {
+        fetchPost("/api/ai/chatGPTWithAction", { ids, action: targetElement.dataset.action }, (response) => {
             fillContent(protyle, response.data, elements);
         });
-        if (currentTarget.dataset.action === clearContext) {
+        if (targetElement.dataset.action === clearContext) {
             showMessage(window.siyuan.languages.clearContextSucc);
         } else {
             menu.close();

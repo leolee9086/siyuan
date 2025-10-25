@@ -162,7 +162,10 @@ const handleClick = (
     menuElement: HTMLElement
 ) => {
     const target = event.target;
-    if (target instanceof HTMLElement) {
+    /**
+     * 修复：支持 HTMLElement 和 SVGElement，使 SVGSymbol 图标能够响应点击
+     */
+    if (target instanceof HTMLElement || target instanceof SVGElement) {
         const context: AIMenuContext = {
             protyle,
             ids,
@@ -171,7 +174,7 @@ const handleClick = (
             clearContext
         };
         const request: AIMenuRequest = {
-            target,
+            target: target , // 类型转换，因为 handleAIMenuItemClick 期望 HTMLElement
             element: menuElement,
             event
         };

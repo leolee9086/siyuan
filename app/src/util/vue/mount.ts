@@ -93,7 +93,12 @@ export const createVueComponentInDialog = (
     // 创建容器元素
     // 将容器添加到对话框主体
     const dialogBody = dialogInstance.element.querySelector(".b3-dialog__body");
-  
+    
+    // 确保找到了对话框主体元素
+    if (!dialogBody) {
+        console.error("无法找到对话框主体元素 .b3-dialog__body");
+        throw new Error("无法找到对话框主体元素");
+    }
 
     // 创建并挂载Vue应用
     return createVueComponentLoader(dialogBody, config, context);
