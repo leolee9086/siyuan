@@ -8,7 +8,7 @@ import {hasClosestByAttribute, hasClosestByClassName} from "../protyle/util/hasC
 import {hideElements} from "../protyle/ui/hideElements";
 import {isPaidUser, needSubscribe} from "../util/needSubscribe";
 import {fullscreen} from "../protyle/breadcrumb/action";
-import {MenuItem} from "../menus/Menu";
+import { MenuItem } from "../menus/Menu.Item";
 import {escapeHtml} from "../util/escape";
 /// #if !MOBILE
 import {openFile} from "../editor/util";

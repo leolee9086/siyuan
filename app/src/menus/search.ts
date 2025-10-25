@@ -1,4 +1,4 @@
-import {MenuItem} from "./Menu";
+import { MenuItem } from "./Menu.Item";
 import {copySubMenu} from "./commonMenuItem";
 
 export const initSearchMenu = (id: string) => {

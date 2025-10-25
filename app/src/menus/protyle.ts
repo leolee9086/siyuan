@@ -4,7 +4,7 @@ import {
     hasClosestByClassName, hasClosestByTag,
     hasTopClosestByClassName, isInEmbedBlock
 } from "../protyle/util/hasClosest";
-import {MenuItem} from "./Menu";
+import { MenuItem } from "./Menu.Item";
 import {focusBlock, focusByRange, focusByWbr, getEditorRange, selectAll,} from "../protyle/util/selection";
 import {
     deleteColumn,

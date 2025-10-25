@@ -4,7 +4,7 @@ import {shell} from "electron";
 import {confirmDialog} from "../dialog/confirmDialog";
 import {getSearch, isMobile, isValidAttrName} from "../util/functions";
 import {isLocalPath, movePathTo, moveToPath, pathPosix} from "../util/pathName";
-import {MenuItem} from "./Menu";
+import { MenuItem } from "./Menu.Item";
 import {saveExport} from "../protyle/export";
 import {isInAndroid, isInHarmony, openByMobile, writeText} from "../protyle/util/compatibility";
 import {fetchPost, fetchSyncPost} from "../util/fetch";

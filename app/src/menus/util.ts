@@ -7,7 +7,7 @@ import {getAssetName, pathPosix, useShell} from "../util/pathName";
 import {openFileById} from "../editor/util";
 import {Constants} from "../constants";
 import {openNewWindowById} from "../window/openNewWindow";
-import {MenuItem} from "./Menu";
+import { MenuItem } from "./Menu.Item";
 import {App} from "../index";
 import {exportByMobile, isInAndroid, updateHotkeyTip} from "../protyle/util/compatibility";
 import {checkFold} from "../util/noRelyPCFunction";

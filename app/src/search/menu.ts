@@ -1,6 +1,6 @@
 import {Dialog} from "../dialog";
 import {isMobile, objEquals} from "../util/functions";
-import {MenuItem} from "../menus/Menu";
+import { MenuItem } from "../menus/Menu.Item";
 import {Constants} from "../constants";
 import {showMessage} from "../dialog/message";
 import {fetchPost} from "../util/fetch";

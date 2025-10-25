@@ -1,4 +1,4 @@
-import {MenuItem} from "./Menu";
+import { MenuItem } from "./Menu.Item";
 import {fetchPost} from "../util/fetch";
 import {confirmDialog} from "../dialog/confirmDialog";
 import {escapeHtml} from "../util/escape";

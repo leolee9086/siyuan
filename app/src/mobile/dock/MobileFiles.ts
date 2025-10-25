@@ -10,7 +10,7 @@ import {openMobileFileById} from "../editor";
 import {unicode2Emoji} from "../../emoji";
 import {mountHelp, newNotebook} from "../../util/mount";
 import {newFile} from "../../util/newFile";
-import {MenuItem} from "../../menus/Menu";
+import { MenuItem } from "../../menus/Menu.Item";
 import {App} from "../../index";
 import {refreshFileTree} from "../../dialog/processSystem";
 import {setStorageVal} from "../../protyle/util/compatibility";

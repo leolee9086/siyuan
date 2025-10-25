@@ -8,7 +8,7 @@ import {
 } from "../util/selection";
 import {fetchPost} from "../../util/fetch";
 import {replaceFileName, validateName} from "../../editor/rename";
-import {MenuItem} from "../../menus/Menu";
+import { MenuItem } from "../../menus/Menu.Item";
 import {openFileAttr,} from "../../menus/commonMenuItem";
 import {Constants} from "../../constants";
 import {matchHotKey} from "../util/hotKey";

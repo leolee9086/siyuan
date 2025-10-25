@@ -3,7 +3,7 @@ import {copySubMenu, exportMd, movePathToMenu, openFileAttr, renameMenu,} from "
 import {FileFilter, ipcRenderer} from "electron";
 import * as path from "path";
 /// #endif
-import {MenuItem} from "./Menu";
+import { MenuItem } from "./Menu.Item";
 import {getDisplayName, getNotebookName, getTopPaths, useShell, pathPosix} from "../util/pathName";
 import {hideMessage, showMessage} from "../dialog/message";
 import {fetchPost, fetchSyncPost} from "../util/fetch";

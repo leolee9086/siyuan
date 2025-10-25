@@ -8,7 +8,7 @@ import {Constants} from "../../constants";
 import {updateHotkeyAfterTip} from "../../protyle/util/compatibility";
 import {openFileById} from "../../editor/util";
 import {Protyle} from "../../protyle";
-import {MenuItem} from "../../menus/Menu";
+import { MenuItem } from "../../menus/Menu.Item";
 import {App} from "../../index";
 import {isSupportCSSHL, searchMarkRender} from "../../protyle/render/searchMarkRender";
 

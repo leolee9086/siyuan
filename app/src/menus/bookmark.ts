@@ -1,4 +1,4 @@
-import {MenuItem} from "./Menu";
+import { MenuItem } from "./Menu.Item";
 import {Dialog} from "../dialog";
 import {fetchPost} from "../util/fetch";
 import {confirmDialog} from "../dialog/confirmDialog";

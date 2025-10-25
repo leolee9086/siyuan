@@ -1,5 +1,5 @@
 import {fetchPost, fetchSyncPost} from "../../util/fetch";
-import {MenuItem} from "../../menus/Menu";
+import { MenuItem } from "../../menus/Menu.Item";
 import {copySubMenu, exportMd, movePathToMenu, openFileAttr, openFileWechatNotify,} from "../../menus/commonMenuItem";
 import {deleteFile} from "../../editor/deleteFile";
 import {updateHotkeyTip} from "../util/compatibility";

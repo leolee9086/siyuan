@@ -1,7 +1,7 @@
 import {Tree} from "../../util/Tree";
 import {fetchPost} from "../../util/fetch";
 import {hasClosestByClassName} from "../../protyle/util/hasClosest";
-import {MenuItem} from "../../menus/Menu";
+import { MenuItem } from "../../menus/Menu.Item";
 import {popSearch} from "../menu/search";
 import {App} from "../../index";
 import {openTagMenu} from "../../menus/tag";

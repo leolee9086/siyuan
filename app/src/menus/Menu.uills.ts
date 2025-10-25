@@ -1,5 +1,8 @@
 import { Constants } from "../constants"
 import { updateHotkeyTip } from "../protyle/util/compatibility"
+import { hasClosestByClassName } from "../protyle/util/hasClosest"
+import { isMobile } from "../util/functions"
+import { MenuItem } from "./Menu.Item"
 
 /**
  * 获取全局菜单的 DOM 元素
@@ -145,4 +148,81 @@ export const generateMenuItemHTML = (options: IMenu): string => {
         html += '<svg class="b3-menu__checked"><use xlink:href="#iconSelect"></use></svg></span>';
     }
     return html;
+}
+
+/**
+ * Create submenu element with items
+ * @param {IMenu[]} submenuItems - Array of submenu items
+ * @returns {HTMLElement} Created submenu element
+ */
+export const createSubmenuElement = (submenuItems: IMenu[]): HTMLElement => {
+    const submenuElement = document.createElement("div");
+    submenuElement.classList.add("b3-menu__submenu");
+    submenuElement.innerHTML = '<div class="b3-menu__items"></div>';
+    submenuItems.forEach((item) => {
+        submenuElement.firstElementChild.append(new MenuItem(item).element);
+    });
+    return submenuElement;
+}
+
+/**
+ * Handle menu event interactions
+ * @param {HTMLElement} menuElement - Menu element
+ * @param {PointerEvent|MouseEvent} event - Event object
+ * @param {() => void} removeCallback - Callback to remove menu
+ */
+export const handleMenuEvent = (menuElement: HTMLElement, event: PointerEvent|MouseEvent, removeCallback: () => void): void => {
+    const target = event.target as Element;
+    if (isMobile()) {
+        const titleElement = hasClosestByClassName(target, "b3-menu__title");
+        if (titleElement || (typeof event.detail === "string" && event.detail === "back")) {
+            const lastShowElements = menuElement.querySelectorAll(".b3-menu__item--show");
+            if (lastShowElements.length > 0) {
+                lastShowElements[lastShowElements.length - 1].classList.remove("b3-menu__item--show");
+            } else {
+                menuElement.style.transform = "";
+                setTimeout(() => {
+                    removeCallback();
+                }, Constants.TIMEOUT_DBLCLICK);
+            }
+            return;
+        }
+    }
+
+    const itemElement = hasClosestByClassName(target, "b3-menu__item");
+    if (!itemElement) {
+        return;
+    }
+    if (itemElement.classList.contains("b3-menu__item--readonly")) {
+        return;
+    }
+    const subMenuElement = itemElement.querySelector(".b3-menu__submenu") as HTMLElement;
+    menuElement.querySelectorAll(".b3-menu__item--show").forEach((item) => {
+        if (!item.contains(itemElement) && item !== itemElement && !itemElement.contains(item)) {
+            item.classList.remove("b3-menu__item--show");
+        }
+    });
+    menuElement.querySelectorAll(".b3-menu__item--current").forEach((item) => {
+        item.classList.remove("b3-menu__item--current");
+    });
+    itemElement.classList.add("b3-menu__item--current");
+    if (!subMenuElement) {
+        return;
+    }
+    itemElement.classList.add("b3-menu__item--show");
+    if (!menuElement.classList.contains("b3-menu--fullscreen")) {
+        positionSubMenu(subMenuElement);
+    }
+}
+
+/**
+ * Prevent default behavior for keyboard events outside menu
+ * @param {KeyboardEvent} event - Keyboard event
+ */
+export const preventMenuDefault = (event: KeyboardEvent): void => {
+    if (!hasClosestByClassName(event.target as Element, "b3-menu") &&
+        // 移动端底部键盘菜单
+        !hasClosestByClassName(event.target as Element, "keyboard__bar")) {
+        event.preventDefault();
+    }
 }

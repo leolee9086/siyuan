@@ -7,7 +7,7 @@ import {mountHelp} from "../util/mount";
 import {ipcRenderer} from "electron";
 /// #endif
 /// #endif
-import {MenuItem} from "../menus/Menu";
+import { MenuItem } from "../menus/Menu.Item";
 import {Constants} from "../constants";
 import {toggleDockBar} from "./dock/util";
 import {isIPad, updateHotkeyTip} from "../protyle/util/compatibility";

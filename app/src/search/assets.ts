@@ -5,7 +5,7 @@ import {setStorageVal, updateHotkeyTip} from "../protyle/util/compatibility";
 /// #if !MOBILE
 import {genQueryHTML} from "./util";
 /// #endif
-import {MenuItem} from "../menus/Menu";
+import { MenuItem } from "../menus/Menu.Item";
 import {Dialog} from "../dialog";
 import {addClearButton} from "../util/addClearButton";
 import {saveAssetKeyList} from "./toggleHistory";

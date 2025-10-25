@@ -6,7 +6,7 @@ import {getDockByType} from "../tabUtil";
 import {fetchPost} from "../../util/fetch";
 import {updateHotkeyAfterTip} from "../../protyle/util/compatibility";
 import {openGlobalSearch} from "../../search/util";
-import {MenuItem} from "../../menus/Menu";
+import { MenuItem } from "../../menus/Menu.Item";
 import {App} from "../../index";
 import {openTagMenu} from "../../menus/tag";
 import {hasClosestByClassName} from "../../protyle/util/hasClosest";

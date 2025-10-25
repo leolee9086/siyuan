@@ -1,4 +1,4 @@
-import {MenuItem} from "./Menu";
+import { MenuItem } from "./Menu.Item";
 /// #if !BROWSER
 import {ipcRenderer} from "electron";
 /// #endif

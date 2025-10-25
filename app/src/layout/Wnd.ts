@@ -36,7 +36,7 @@ import {clearCounter} from "./status";
 import {saveScroll} from "../protyle/scroll/saveScroll";
 import {Asset} from "../asset";
 import {newFile} from "../util/newFile";
-import {MenuItem} from "../menus/Menu";
+import { MenuItem } from "../menus/Menu.Item";
 import {escapeHtml} from "../util/escape";
 import {getFrontend, isWindow} from "../util/functions";
 import {hideAllElements} from "../protyle/ui/hideElements";

@@ -6,7 +6,7 @@ import {Constants} from "../../../constants";
 import {uploadFiles} from "../../upload";
 import {pathPosix} from "../../../util/pathName";
 import {openMenu} from "../../../menus/commonMenuItem";
-import {MenuItem} from "../../../menus/Menu";
+import { MenuItem } from "../../../menus/Menu.Item";
 import {copyPNGByLink, exportAsset} from "../../../menus/util";
 import {setPosition} from "../../../util/setPosition";
 import {previewAttrViewImages} from "../../preview/image";

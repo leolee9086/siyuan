@@ -1,5 +1,5 @@
 import {Tab} from "../layout/Tab";
-import {MenuItem} from "./Menu";
+import { MenuItem } from "./Menu.Item";
 import {Editor} from "../editor";
 import {closeTabByType, copyTab, resizeTabs} from "../layout/tabUtil";
 /// #if !BROWSER

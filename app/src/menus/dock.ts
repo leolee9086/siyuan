@@ -1,4 +1,4 @@
-import {MenuItem} from "./Menu";
+import { MenuItem } from "./Menu.Item";
 
 const moveMenuItem = (label: string, target: Element) => {
     return new MenuItem({

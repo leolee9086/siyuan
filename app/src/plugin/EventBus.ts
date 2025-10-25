@@ -1,4 +1,5 @@
-import {MenuItem, subMenu} from "../menus/Menu";
+import { MenuItem } from "../menus/Menu.Item";
+import { subMenu } from "../menus/Menu.subMenu";
 
 export class EventBus<DetailType = any> {
     private eventTarget: EventTarget;
