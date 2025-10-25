@@ -67,7 +67,7 @@ import {popSearch} from "../../mobile/menu/search";
 /// #endif
 import {BlockPanel} from "../../block/Panel";
 import {copyPlainText, isInIOS, isMac, isOnlyMeta, readClipboard, encodeBase64} from "../util/compatibility";
-import {MenuItem} from "../../menus/Menu";
+import {MenuItem} from "../../menus/Menu.Item";
 import {fetchPost, fetchSyncPost} from "../../util/fetch";
 import {onGet} from "../util/onGet";
 import {clearTableCell, isIncludeCell, setTableAlign} from "../util/table";

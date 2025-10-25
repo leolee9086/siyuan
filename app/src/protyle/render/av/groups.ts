@@ -8,24 +8,6 @@ import {Menu} from "../../../plugin/Menu";
 import {objEquals} from "../../../util/functions";
 import {Constants} from "../../../constants";
 
-export const getPageSize = (blockElement: Element) => {
-    const groupPageSize: {
-        [key: string]: {
-            pageSize: number
-        }
-    } = {};
-    let unGroupPageSize: number;
-    blockElement.querySelectorAll(".av__body").forEach((item: HTMLElement) => {
-        const id = item.dataset.groupId;
-        const pageSize = parseInt(item.dataset.pageSize);
-        if (id) {
-            groupPageSize[id] = {pageSize};
-        } else if (!unGroupPageSize) {
-            unGroupPageSize = pageSize;
-        }
-    });
-    return {groupPageSize, unGroupPageSize};
-};
 
 export const getPageSize = (blockElement: Element) => {
     const groupPageSize: {

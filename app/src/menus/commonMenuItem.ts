@@ -5,7 +5,7 @@ import {isMobile, isValidAttrName} from "../util/functions";
 import {movePathTo, moveToPath} from "../util/pathName";
 import { MenuItem } from "./Menu.Item";
 import {onExport, saveExport} from "../protyle/export";
-import {openByMobile, writeText, writeText} from "../protyle/util/compatibility";
+import {isInAndroid, isInHarmony, openByMobile} from "../protyle/util/compatibility";
 import {fetchPost, fetchSyncPost} from "../util/fetch";
 import {hideMessage, showMessage} from "../dialog/message";
 import {Dialog} from "../dialog";
@@ -22,9 +22,6 @@ import {copyTextByType} from "../protyle/toolbar/util";
 import {hideElements} from "../protyle/ui/hideElements";
 import {Protyle} from "../protyle";
 import {getAllEditor} from "../layout/getAll";
-import {Protyle} from "../protyle";
-import {getAllEditor} from "../layout/getAll";
-
 const bindAttrInput = (inputElement: HTMLInputElement, id: string) => {
     inputElement.addEventListener("change", () => {
         fetchPost("/api/attr/setBlockAttrs", {

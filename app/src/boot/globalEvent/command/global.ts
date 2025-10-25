@@ -8,7 +8,7 @@ import {popSearch} from "../../../mobile/menu/search";
 import {getRecentDocs} from "../../../mobile/menu/getRecentDocs";
 /// #else
 import {openNewWindow} from "../../../window/openNewWindow";
-import {selectOpenTab, openBacklink, openGraph, openOutline, selectOpenTab, toggleDockBar} from "../../../layout/dock/util";
+import {selectOpenTab, openBacklink, openGraph, openOutline,  toggleDockBar} from "../../../layout/dock/util";
 import {openGlobalSearch} from "../../../search/util";
 import {workspaceMenu} from "../../../menus/workspace";
 import {isWindow} from "../../../util/functions";

@@ -20,12 +20,10 @@ import { popSearch } from "../../mobile/menu/search";
 import { openSearch } from "../../search/spread";
 import { openNewWindowById } from "../../window/openNewWindow";
 import { openFileById } from "../../editor/util";
-import { hasTopClosestByClassName } from "../util/hasClosest";
 import { createProtyleCopyMenu, createFileHistoryMenuItem } from "./openTitleMenu.items";
 import { closeTitleMenuIfOpened } from "./openTitleMenu.util";
 import { transferBlockRef } from "../../menus/block";
 import { appendFileOperationsMenuItemGroup } from "./openTitleMenu.FileOperations";
-
 const appendDesktopOnlyMenuItemGroup = (protyle: IProtyle) => {
     /// #if !MOBILE
     window.siyuan.menus.menu.append(new MenuItem({ id: "separator_1", type: "separator" }).element);

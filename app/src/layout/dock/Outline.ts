@@ -15,7 +15,7 @@ import {
 } from "../../protyle/util/compatibility";
 import {openFileById} from "../../editor/util";
 import {Constants} from "../../constants";
-import {MenuItem} from "../../menus/Menu";
+import {MenuItem} from "../../menus/Menu.Item";
 import {escapeAttr, escapeHtml} from "../../util/escape";
 import {unicode2Emoji} from "../../emoji";
 import {getPreviousBlock} from "../../protyle/wysiwyg/getBlock";
