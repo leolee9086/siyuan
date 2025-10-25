@@ -1,99 +1,106 @@
 import { Constants } from "../constants";
 import { Dialog } from "../dialog";
-import { showMessage } from "../dialog/message";
 import { setStorageVal } from "../protyle/util/compatibility";
 import { fetchPost } from "../util/fetch";
 import { isMobile } from "../util/functions";
 import { fillContent } from "./actions.fillContent";
+import { createVueComponentInDialog, VueComponentMountConfig } from "../util/vue/mount";
+import AiCustomDialog from "../components/aiCustomDialog.vue";
 
-const genCustomDialogHtml = () => {
-    return `<div class="b3-dialog__content">
-    <input class="b3-text-field fn__block" value="" placeholder="${window.siyuan.languages.memo}">
-    <div class="fn__hr"></div>
-    <textarea class="b3-text-field fn__block" placeholder="${window.siyuan.languages.aiCustomAction}"></textarea>
-</div>
-<div class="b3-dialog__action">
-    <button class="b3-button b3-button--cancel">${window.siyuan.languages.cancel}</button><div class="fn__space"></div>
-    <button class="b3-button b3-button--text">${window.siyuan.languages.use}</button><div class="fn__space"></div>
-    <button class="b3-button b3-button--text">${window.siyuan.languages.save}</button>
-</div>`;
-};
-
-// 取消按钮回调函数
-const handleCancelClick = (dialog: Dialog) => {
-    dialog.destroy();
-};
-
-// 使用按钮回调函数
+/**
+ * 处理使用按钮的点击事件
+ * 调用AI API并填充内容
+ *
+ * @param dialog - 对话框实例
+ * @param protyle - Protyle实例
+ * @param ids - 文档ID列表
+ * @param elements - 元素列表
+ * @param customAction - 自定义动作内容
+ */
 const handleUseClick = (
     dialog: Dialog,
     protyle: IProtyle,
     ids: string[],
     elements: Element[],
-    customElement: HTMLTextAreaElement
+    customAction: string
 ) => {
-    if (!customElement.value) {
-        showMessage(window.siyuan.languages["_kernel"][142]);
-        return;
-    }
     fetchPost("/api/ai/chatGPTWithAction", {
         ids,
-        action: customElement.value,
+        action: customAction,
     }, (response) => {
         dialog.destroy();
         fillContent(protyle, response.data, elements);
     });
 };
 
-// 保存按钮回调函数
+/**
+ * 处理保存按钮的点击事件
+ * 将自定义动作保存到本地存储
+ *
+ * @param dialog - 对话框实例
+ * @param name - 动作名称
+ * @param customAction - 自定义动作内容
+ */
 const handleSaveClick = (
     dialog: Dialog,
-    nameElement: HTMLInputElement,
-    customElement: HTMLTextAreaElement
+    name: string,
+    customAction: string
 ) => {
-    if (!nameElement.value && !customElement.value) {
-        showMessage(window.siyuan.languages["_kernel"][142]);
-        return;
-    }
     window.siyuan.storage[Constants.LOCAL_AI].push({
-        name: nameElement.value,
-        memo: customElement.value
+        name: name,
+        memo: customAction
     });
     setStorageVal(Constants.LOCAL_AI, window.siyuan.storage[Constants.LOCAL_AI]);
     dialog.destroy();
 };
 
+/**
+ * 创建自定义对话框的Vue应用配置
+ * 为AI自定义对话框组件提供必要的数据、事件处理器和模板配置
+ *
+ * @param protyle - Protyle实例
+ * @param ids - 文档ID列表
+ * @param elements - 元素列表
+ * @param dialog - 对话框实例
+ * @returns Vue组件挂载配置对象
+ */
+const createCustomDialogVueConfig = (
+    protyle: IProtyle,
+    ids: string[],
+    elements: Element[],
+    dialog: Dialog
+): VueComponentMountConfig => {
+    return {
+        components: {
+            AiCustomDialog
+        },
+        data: {},
+        eventHandlers: {
+            handleCancel: () => dialog.destroy(),
+            handleUse: (customAction: string) => handleUseClick(dialog, protyle, ids, elements, customAction),
+            handleSave: (name: string, customAction: string) => handleSaveClick(dialog, name, customAction)
+        },
+        template: `<AiCustomDialog @cancel="handleCancel" @use="handleUse" @save="handleSave" ref="aiCustomDialogComponent" />`,
+        initMethodName: "focusNameInput"
+    };
+};
+
+/**
+ * 创建并显示AI自定义动作对话框
+ * 提供用户界面用于创建和使用AI自定义动作
+ *
+ * @param protyle - Protyle实例
+ * @param ids - 文档ID列表
+ * @param elements - 元素列表
+ * @returns 创建的对话框实例
+ */
 export const customDialog = (protyle: IProtyle, ids: string[], elements: Element[]) => {
     const dialog = new Dialog({
         title: window.siyuan.languages.aiCustomAction,
-        content: genCustomDialogHtml(),
+        content: "",
         width: isMobile() ? "92vw" : "520px",
     });
     dialog.element.setAttribute("data-key", Constants.DIALOG_AICUSTOMACTION);
-    
-    const nameElement = dialog.element.querySelector("input") as HTMLInputElement;
-    const customElement = dialog.element.querySelector("textarea") as HTMLTextAreaElement;
-    const cancelButton = dialog.element.querySelector(".b3-button--cancel") as HTMLButtonElement;
-    const useButton = dialog.element.querySelectorAll(".b3-button--text")[0] as HTMLButtonElement;
-    const saveButton = dialog.element.querySelectorAll(".b3-button--text")[1] as HTMLButtonElement;
-    
-    dialog.bindInput(customElement, () => {
-        if (useButton instanceof HTMLButtonElement) {
-            useButton.click();
-        }
-    });
-
-    cancelButton.addEventListener("click", () => {
-        handleCancelClick(dialog);
-    });
-
-    useButton.addEventListener("click", () => {
-        handleUseClick(dialog, protyle, ids, elements, customElement);
-    });
-
-    saveButton.addEventListener("click", () => {
-        handleSaveClick(dialog, nameElement, customElement);
-    });
-    
-    nameElement.focus();
+    createVueComponentInDialog(dialog, createCustomDialogVueConfig(protyle, ids, elements, dialog))
+    return dialog;
 };
