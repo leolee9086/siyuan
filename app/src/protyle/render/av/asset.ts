@@ -5,7 +5,7 @@ import {isMobile} from "../../../util/functions";
 import {Constants} from "../../../constants";
 import {uploadFiles} from "../../upload";
 import {pathPosix} from "../../../util/pathName";
-import {openMenu} from "../../../menus/commonMenuItem";
+import { openMenu } from "../../../menus/commonMenuItem.openMenu";
 import { MenuItem } from "../../../menus/Menu.Item";
 import {copyPNGByLink, exportAsset} from "../../../menus/util";
 import {setPosition} from "../../../util/setPosition";

@@ -21,7 +21,7 @@ import {
 } from "../protyle/util/table";
 import {mathRender} from "../protyle/render/mathRender";
 import {transaction, updateTransaction} from "../protyle/wysiwyg/transaction";
-import {openMenu} from "./commonMenuItem";
+import { openMenu } from "./commonMenuItem.openMenu";
 import {fetchPost, fetchSyncPost} from "../util/fetch";
 import {Constants} from "../constants";
 import {

@@ -208,11 +208,9 @@ export const copySubMenu = (ids: string[], showAccelerator = true, focusElement?
         copyHPathItem(ctx),
         copyIDItem(ctx)
     ];
-
     if (ctx.stdMarkdownId) {
         menuItems.push(copyMarkdownItem(ctx));
     }
-
     return menuItems;
 };
 

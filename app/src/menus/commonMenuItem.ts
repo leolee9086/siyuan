@@ -1,27 +1,22 @@
 /// #if !BROWSER
-import {shell} from "electron";
 /// #endif
 import {confirmDialog} from "../dialog/confirmDialog";
-import {getSearch, isMobile, isValidAttrName} from "../util/functions";
-import {isLocalPath, movePathTo, moveToPath, pathPosix} from "../util/pathName";
+import {isMobile, isValidAttrName} from "../util/functions";
+import {movePathTo, moveToPath} from "../util/pathName";
 import { MenuItem } from "./Menu.Item";
 import {saveExport} from "../protyle/export";
-import {isInAndroid, isInHarmony, openByMobile, writeText} from "../protyle/util/compatibility";
+import {openByMobile, writeText} from "../protyle/util/compatibility";
 import {fetchPost, fetchSyncPost} from "../util/fetch";
 import {hideMessage, showMessage} from "../dialog/message";
 import {Dialog} from "../dialog";
 import {focusBlock, focusByRange, getEditorRange} from "../protyle/util/selection";
 /// #if !MOBILE
-import { openBy } from "../editor/utils.openBy";
-import { openAsset } from "../editor/util.openAsset";
 /// #endif
 import {rename, replaceFileName} from "../editor/rename";
 import * as dayjs from "dayjs";
 import {Constants} from "../constants";
 import {exportImage} from "../protyle/export/util";
-import {App} from "../index";
 import {renderAVAttribute} from "../protyle/render/av/blockAttr";
-import {openAssetNewWindow} from "../window/openNewWindow";
 import {escapeHtml} from "../util/escape";
 import {copyTextByType} from "../protyle/toolbar/util";
 import {hideElements} from "../protyle/ui/hideElements";
@@ -662,138 +657,6 @@ export const exportMd = (id: string) => {
             /// #endif
         ]
     }).element;
-};
-
-export const openMenu = (app: App, src: string, onlyMenu: boolean, showAccelerator: boolean) => {
-    const submenu = [];
-    /// #if MOBILE
-    submenu.push({
-        id: isInAndroid() ? "useDefault" : "useBrowserView",
-        label: isInAndroid() ? window.siyuan.languages.useDefault : window.siyuan.languages.useBrowserView,
-        accelerator: showAccelerator ? window.siyuan.languages.click : "",
-        click: () => {
-            openByMobile(src);
-        }
-    });
-    /// #else
-    if (isLocalPath(src)) {
-        if (Constants.SIYUAN_ASSETS_EXTS.includes(pathPosix().extname(src).split("?")[0]) &&
-            (!src.endsWith(".pdf") ||
-                (src.endsWith(".pdf") && !src.startsWith("file://")))
-        ) {
-            submenu.push({
-                id: "insertRight",
-                icon: "iconLayoutRight",
-                label: window.siyuan.languages.insertRight,
-                accelerator: showAccelerator ? window.siyuan.languages.click : "",
-                click() {
-                    openAsset(app, src.trim(), parseInt(getSearch("page", src)), "right");
-                }
-            });
-            submenu.push({
-                id: "openBy",
-                label: window.siyuan.languages.openBy,
-                icon: "iconOpen",
-                accelerator: showAccelerator ? "⌥" + window.siyuan.languages.click : "",
-                click() {
-                    openAsset(app, src.trim(), parseInt(getSearch("page", src)));
-                }
-            });
-            /// #if !BROWSER
-            submenu.push({
-                id: "openByNewWindow",
-                label: window.siyuan.languages.openByNewWindow,
-                icon: "iconOpenWindow",
-                click() {
-                    openAssetNewWindow(src.trim());
-                }
-            });
-            submenu.push({
-                id: "showInFolder",
-                icon: "iconFolder",
-                label: window.siyuan.languages.showInFolder,
-                accelerator: showAccelerator ? "⌘" + window.siyuan.languages.click : "",
-                click: () => {
-                    openBy(src, "folder");
-                }
-            });
-            submenu.push({
-                id: "useDefault",
-                label: window.siyuan.languages.useDefault,
-                accelerator: showAccelerator ? "⇧" + window.siyuan.languages.click : "",
-                click() {
-                    openBy(src, "app");
-                }
-            });
-            /// #endif
-        } else {
-            /// #if !BROWSER
-            submenu.push({
-                id: "useDefault",
-                label: window.siyuan.languages.useDefault,
-                accelerator: showAccelerator ? window.siyuan.languages.click : "",
-                click() {
-                    openBy(src, "app");
-                }
-            });
-            submenu.push({
-                id: "showInFolder",
-                icon: "iconFolder",
-                label: window.siyuan.languages.showInFolder,
-                accelerator: showAccelerator ? "⌘" + window.siyuan.languages.click : "",
-                click: () => {
-                    openBy(src, "folder");
-                }
-            });
-            /// #else
-            submenu.push({
-                id: isInAndroid() || isInHarmony() ? "useDefault" : "useBrowserView",
-                label: isInAndroid() || isInHarmony() ? window.siyuan.languages.useDefault : window.siyuan.languages.useBrowserView,
-                accelerator: showAccelerator ? window.siyuan.languages.click : "",
-                click: () => {
-                    openByMobile(src);
-                }
-            });
-            /// #endif
-        }
-    } else if (src) {
-        if (0 > src.indexOf(":")) {
-            // 使用 : 判断，不使用 :// 判断 Open external application protocol invalid https://github.com/siyuan-note/siyuan/issues/10075
-            // Support click to open hyperlinks like `www.foo.com` https://github.com/siyuan-note/siyuan/issues/9986
-            src = `https://${src}`;
-        }
-        /// #if !BROWSER
-        submenu.push({
-            id: "useDefault",
-            label: window.siyuan.languages.useDefault,
-            accelerator: showAccelerator ? window.siyuan.languages.click : "",
-            click: () => {
-                shell.openExternal(src).catch((e) => {
-                    showMessage(e);
-                });
-            }
-        });
-        /// #else
-        submenu.push({
-            id: isInAndroid() || isInHarmony() ? "useDefault" : "useBrowserView",
-            label: isInAndroid() || isInHarmony() ? window.siyuan.languages.useDefault : window.siyuan.languages.useBrowserView,
-            accelerator: showAccelerator ? window.siyuan.languages.click : "",
-            click: () => {
-                openByMobile(src);
-            }
-        });
-        /// #endif
-    }
-    /// #endif
-    if (onlyMenu) {
-        return submenu;
-    }
-    window.siyuan.menus.menu.append(new MenuItem({
-        id: "openBy",
-        label: window.siyuan.languages.openBy,
-        icon: "iconOpen",
-        submenu
-    }).element);
 };
 
 export const renameMenu = (options: {
