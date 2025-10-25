@@ -5,10 +5,6 @@ import { isMobile } from "../util/functions";
 import { createVueComponentInDialog, VueComponentMountConfig } from "../util/vue/mount";
 import AiEditDialog from "../components/aiEditDialog.vue";
 
-// 处理取消事件
-const handleCancel = (dialog: Dialog) => {
-    dialog.destroy();
-};
 
 // 处理确认事件
 const handleConfirm = (
@@ -62,7 +58,7 @@ const createEditDialogVueConfig = (customName: string, customMemo: string, dialo
             memo: customMemo
         },
         eventHandlers: {
-            handleCancel: () => handleCancel(dialog),
+            handleCancel: () => dialog.destroy(),
             handleConfirm: (name: string, memo: string) => handleConfirm(dialog, name, memo, customName, customMemo),
             handleDelete: () => handleDelete(dialog, customName, customMemo)
         },
@@ -78,9 +74,6 @@ export const editDialog = (customName: string, customMemo: string) => {
         width: isMobile() ? "92vw" : "520px",
     });
     dialog.element.setAttribute("data-key", Constants.DIALOG_AIUPDATECUSTOMACTION);
-    
-     createVueComponentInDialog(dialog, createEditDialogVueConfig(customName, customMemo, dialog))
-
-    
+    createVueComponentInDialog(dialog, createEditDialogVueConfig(customName, customMemo, dialog))
     return dialog;
 };
