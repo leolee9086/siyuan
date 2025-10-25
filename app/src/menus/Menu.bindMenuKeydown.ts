@@ -149,7 +149,7 @@ export const bindMenuKeydown = (event: KeyboardEvent) => {
         return false;
     }
     const target = event.target;
-    if(!(target instanceof HTMLElement)){
+    if(!(target instanceof Element)){
         return false
     }
     if (isTargetInMenu(target) && isInputAbleMenuItemElement(target)) {
