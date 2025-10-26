@@ -517,4 +517,19 @@ export class Protyle {
     public renderAVAttribute(element: HTMLElement, id: string, cb?: (element: HTMLElement) => void) {
         renderAVAttribute(element, id, this.protyle, cb);
     }
+    
+    
+    /**
+     * 定制添加的方法
+     */
+    public getSelectedBlockElements(){
+        return this.protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select")
+    }
+    public getSelectedBlockIds(){
+        return this.protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select")?.forEach(
+            (element)=>{
+                return element.getAttribute("data-node-id")
+            }
+        )
+    }
 }
