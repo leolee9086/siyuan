@@ -13,6 +13,9 @@ export class Dialog {
     public element: HTMLElement;
     private id: string;
     private disableClose: boolean;
+    private disableScrimClose: boolean; // 是否禁用点击遮罩关闭
+    private disableEscapeClose: boolean; // 是否禁用 Escape 键关闭
+    private scrimPointerEvents: boolean; // 是否允许遮罩层鼠标事件穿透
     public editors: { [key: string]: Protyle };
     public data: any;
     private titleVueApp: App | null; // 存储标题Vue应用实例
@@ -31,9 +34,15 @@ export class Dialog {
         hideCloseIcon?: boolean,
         disableAnimation?: boolean,
         resizeCallback?: (type: string) => void,
-        containerClassName?: string
+        containerClassName?: string,
+        disableScrimClose?: boolean, // 是否禁用点击遮罩关闭
+        disableEscapeClose?: boolean,  // 是否禁用 Escape 键关闭
+        scrimPointerEvents?: boolean // 是否允许遮罩层鼠标事件穿透
     }) {
         this.disableClose = options.disableClose;
+        this.disableScrimClose = options.disableScrimClose || false; // 默认允许点击遮罩关闭
+        this.disableEscapeClose = options.disableEscapeClose || false; // 默认允许 Escape 键关闭
+        this.scrimPointerEvents = options.scrimPointerEvents || false; // 默认不穿透鼠标事件
         this.id = genUUID();
         window.siyuan.dialogs.push(this);
         this.destroyCallback = options.destroyCallback;
@@ -55,10 +64,10 @@ export class Dialog {
         // 判断是否有标题（字符串或Vue组件）
         const hasTitle = !!(options.title || options.titleVueConfig);
         
-        this.element.innerHTML = `<div class="b3-dialog" style="z-index: ${++window.siyuan.zIndex};${typeof left === "string" ? "display:block" : ""}">
+        this.element.innerHTML = `<div class="b3-dialog" style="z-index: ${++window.siyuan.zIndex};${typeof left === "string" ? "display:block" : ""};${this.scrimPointerEvents ? ' pointer-events:none' : ""}">
 <div class="b3-dialog__scrim"${options.transparent ? 'style="background-color:transparent"' : ""}></div>
 <div class="b3-dialog__container ${options.containerClassName || ""}" style="width:${options.width || "auto"};height:${options.height || "auto"};
-left:${left || "auto"};top:${top || "auto"}">
+left:${left || "auto"};top:${top || "auto"};${this.scrimPointerEvents ? ' pointer-events:auto' : ""}">
   <svg ${(isMobile() && hasTitle) ? 'style="top:0;right:0;"' : ""} class="b3-dialog__close${(this.disableClose || options.hideCloseIcon) ? " fn__none" : ""}"><use xlink:href="#iconCloseRound"></use></svg>
   <div class="resize__move b3-dialog__header${hasTitle ? "" : " fn__none"}" onselectstart="return false;">${options.title || ""}</div>
   <div class="b3-dialog__body">${options.content}</div>
@@ -66,7 +75,7 @@ left:${left || "auto"};top:${top || "auto"}">
 </div></div>`;
 
         this.element.querySelector(".b3-dialog__scrim").addEventListener("click", (event) => {
-            if (!this.disableClose) {
+            if (!this.disableClose && !this.disableScrimClose) {
                 this.destroy();
             }
             event.preventDefault();
@@ -115,13 +124,13 @@ left:${left || "auto"};top:${top || "auto"}">
                 // https://github.com/siyuan-note/siyuan/issues/6783
                 window.siyuan.menus.menu.remove();
             }
-            
+           
             // 销毁标题Vue应用实例
             if (this.titleVueApp) {
                 this.titleVueApp.unmount();
                 this.titleVueApp = null;
             }
-            
+           
             this.element.remove();
             if (this.destroyCallback) {
                 this.destroyCallback(options);
@@ -145,7 +154,7 @@ left:${left || "auto"};top:${top || "auto"}">
                 event.preventDefault();
                 return;
             }
-            if (event.key === "Escape") {
+            if (event.key === "Escape" && !this.disableEscapeClose) {
                 this.destroy();
                 event.preventDefault();
                 event.stopPropagation();
