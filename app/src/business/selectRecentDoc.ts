@@ -3,7 +3,7 @@ import { Constants } from "../constants";
 import { Dialog } from "../dialog";
 import { focusByRange } from "../protyle/util/selection";
 import { fetchPost } from "../util/fetch";
-import { VueComponentMountConfig, createSimpleVueComponentLoader } from "../util/vue/mount";
+import { VueComponentMountConfig, createVueComponentInDialog } from "../util/vue/mount";
 
 /**
  * 创建一个函数,作用如下:
@@ -46,6 +46,23 @@ export const selectRecentDoc = (): Promise<string | null> => {
             resolve(doc.rootID);
         };
 
+        // 创建最近文档Vue应用配置
+        const createRecentDocsVueConfig = (recentDocs: any): VueComponentMountConfig => {
+            return {
+                components: {
+                    RecentDocs
+                },
+                data: {
+                    recentDocs
+                },
+                eventHandlers: {
+                    handleDocSelected: handleDocSelectedForSelect
+                },
+                template: `<RecentDocs :recent-docs="recentDocs" @doc-selected="handleDocSelected" ref="recentDocsComponent" />`,
+                initMethodName: "focusSearchInput"
+            };
+        };
+
         // 创建标题Vue组件配置
         const titleVueConfig: VueComponentMountConfig = {
             components: {
@@ -79,25 +96,10 @@ export const selectRecentDoc = (): Promise<string | null> => {
             }
         });
 
-        // 创建容器元素用于挂载 Vue 应用
-        const container = document.createElement("div");
-        dialog.element.querySelector(".b3-dialog__body").appendChild(container);
-
         // 获取最近文档数据
         fetchPost("/api/storage/getRecentDocs", {}, (response) => {
-            // 使用通用Vue组件加载器创建并挂载Vue应用
-            createSimpleVueComponentLoader(
-                container,
-                RecentDocs,
-                {
-                    recentDocs: response.data
-                },
-                {
-                    handleDocSelected: handleDocSelectedForSelect
-                },
-                `<RecentDocs :recent-docs="recentDocs" @doc-selected="handleDocSelected" ref="recentDocsComponent" />`,
-                "focusSearchInput"
-            );
+            // 使用通用Vue组件加载器创建并挂载Vue应用到对话框内容区域
+            createVueComponentInDialog(dialog, createRecentDocsVueConfig(response.data));
         });
 
         dialog.element.setAttribute("data-key", Constants.DIALOG_RECENTDOCS);
