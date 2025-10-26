@@ -1,6 +1,6 @@
 import { Dialog } from "../dialog";
 import { isMobile } from "../util/functions";
-import { handleAIChatConfirm } from "./chat.confirm";
+import {  processAIChatRequestWithProtyle } from "./chat.confirm";
 import { createVueComponentInDialog, VueComponentMountConfig } from "../util/vue/mount";
 import AiChatDialog from "../components/aiChatDialog.vue";
 
@@ -16,9 +16,10 @@ const handleConfirm = (
     protyle: IProtyle,
     element: Element
 ) => {
-    // 创建一个模拟的输入元素以保持与原有 handleAIChatConfirm 函数的兼容性
-    const mockInputElement = { value: message } as HTMLTextAreaElement;
-    handleAIChatConfirm(mockInputElement, dialog, protyle, element);
+    processAIChatRequestWithProtyle(
+        { dialog, element, protyle },
+        { msg: message }
+    );
 };
 
 // 创建聊天对话框Vue应用配置
@@ -42,9 +43,9 @@ export const AIChat = (protyle: IProtyle, element: Element) => {
         content: "",
         width: isMobile() ? "92vw" : "520px",
     });
-    
+
     createVueComponentInDialog(dialog, createChatDialogVueConfig(protyle, element, dialog));
-    
+
     return dialog;
 };
 

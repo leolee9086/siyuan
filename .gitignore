@@ -43,3 +43,5 @@ yarn.lock
 
 # toread
 /toread
+# Plan files
+**.plan.md

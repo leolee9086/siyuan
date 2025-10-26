@@ -13,8 +13,8 @@ import { getContenteditableElement } from "../protyle/wysiwyg/getBlock";
  * 主要用于AI功能模块，当AI生成内容后调用此函数将内容填充到当前编辑位置。
  *
  * @param {IProtyle} protyle - 思源笔记的编辑器实例，包含编辑器的所有核心功能和状态
- * @param {string} data - 要插入的内容字符串，通常是AI生成的文本或HTML内容
- * @param {Element[]} elements - DOM元素数组，用于确定插入位置，通常使用最后一个元素作为插入点
+ * @param {string} rawContent - 要插入的内容字符串，通常是AI生成的文本或HTML内容
+ * @param {Element[]} blockElements - DOM元素数组，用于确定插入位置，通常使用最后一个元素作为插入点
  *
  * @returns {void} 无返回值
  *
@@ -29,19 +29,31 @@ import { getContenteditableElement } from "../protyle/wysiwyg/getBlock";
  * fillContent(editorInstance, aiGeneratedContent, currentElements);
  * ```
  */
-export const fillContent = (protyle: IProtyle, data: string, elements: Element[]) => {
+export const fillContent = (protyle: IProtyle, rawContent: string, blockElements: Element[]) => {
     // 检查数据是否为空，如果为空则直接返回
-    if (!data) {
+    if (!rawContent) {
+        return;
+    }
+    
+    // 检查blockElements是否为空数组，如果为空则直接返回
+    if (!blockElements || blockElements.length === 0) {
+        return;
+    }
+    
+    // 确保最后一个块元素在protyle的编辑器中
+    const lastBlockElement = blockElements[blockElements.length - 1];
+    if (!protyle.wysiwyg.element.contains(lastBlockElement)) {
+        console.warn("最后一个块元素不在protyle编辑器中，无法插入内容");
         return;
     }
     
     // 设置最后一个节点的范围，确保插入位置正确
-    setLastNodeRange(getContenteditableElement(elements[elements.length - 1]), protyle.toolbar.range);
+    setLastNodeRange(getContenteditableElement(lastBlockElement), protyle.toolbar.range);
     
     // 折叠选区到范围的末尾，确保新内容插入到正确位置
     protyle.toolbar.range.collapse(true);
     
-    const blockDom  = protyle.lute.SpinBlockDOM(data)
+    const blockDom = protyle.lute.SpinBlockDOM(rawContent);
     // 使用lute引擎将数据转换为块级DOM并插入到编辑器中
     insertHTML(blockDom, protyle, true, true);
     
