@@ -18,15 +18,27 @@ export const updateChatState = (state: ChatState, updates: Partial<ChatState>): 
 };
 
 // 构建AI请求参数
-export const buildAIRequest = (inputValue: string) => {
+export const buildAIRequest = (inputValue: string, blockContent?: string) => {
     const aiConfig = getAIConfigFromSiyuan();
+    
+    // 构建包含块内容的提示词
+    let promptContent = inputValue;
+    if (blockContent) {
+        promptContent = `请基于以下块内容回答用户的问题：
+
+块内容：
+${blockContent}
+
+用户问题：
+${inputValue}`;
+    }
     
     return {
         model: aiConfig.apiModel,
         messages: [
             {
                 role: "user",
-                content: inputValue
+                content: promptContent
             }
         ],
         temperature: aiConfig.apiTemperature,

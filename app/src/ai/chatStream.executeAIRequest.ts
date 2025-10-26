@@ -3,6 +3,8 @@ import { AIRequestConfig, StreamResponseHandlers } from "./chatStream.types";
 import { updateChatState, buildAIRequest, buildRequestHeaders, handleOpenAILikeStreamResponse } from "./chatStream.utils";
 import { showResponseContainer, hideResponseContainer, handleRequestComplete, handleRequestError, handleRequestAbort } from "./chatStream.ui";
 import { getAIConfigFromSiyuan } from "./types";
+import { hasClosestBlock } from "../protyle/util/hasClosest";
+import { getContenteditableElement } from "../protyle/wysiwyg/getBlock";
 
 // 执行AI请求
 export const executeAIRequest = async (config: AIRequestConfig) => {
@@ -29,7 +31,20 @@ export const executeAIRequest = async (config: AIRequestConfig) => {
 
     try {
         const aiConfig = getAIConfigFromSiyuan();
-        const requestBody = buildAIRequest(inputValue);
+        // 获取块内容
+        let blockContent = "";
+        if (config.protyle && config.element) {
+            const blockElement = hasClosestBlock(config.element);
+            if (blockElement) {
+                // 获取块的文本内容
+                const editableElement = getContenteditableElement(blockElement);
+                if (editableElement) {
+                    blockContent = editableElement.textContent || "";
+                }
+            }
+        }
+        
+        const requestBody = buildAIRequest(inputValue, blockContent);
         const headers = buildRequestHeaders();
 
         // 创建流式响应处理器

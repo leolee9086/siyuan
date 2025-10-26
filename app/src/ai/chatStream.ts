@@ -1,7 +1,7 @@
 import {Dialog} from "../dialog";
 import {isMobile} from "../util/functions";
 import {fillContent} from "./actions.fillContent";
-import { ChatState, DialogElements, AIRequestConfig } from "./chatStream.types";
+import {  AIRequestConfig } from "./chatStream.types";
 import { createChatResponseState, bindDialogDestroy } from "./chatStream.utils";
 import { initializeDialogElements, createStatusAnimationManager, AIChatDialogContent } from "./chatStream.ui";
 import { executeAIRequest } from "./chatStream.executeAIRequest";
@@ -34,6 +34,55 @@ export const AIChat = (protyle: IProtyle, element: Element) => {
     const state = createChatResponseState();
     const animationManager = createStatusAnimationManager(elements.statusDots);
     
+    // 创建观察器，监听块元素是否被删除
+    const observer = new MutationObserver((mutations) => {
+        // 检查块元素是否还在DOM中
+        if (!document.contains(element)) {
+            // 块元素已被删除，关闭对话框
+            observer.disconnect();
+            dialog.destroy();
+            移除遮罩元素(maskElement);
+            return;
+        }
+        
+        // 检查块元素是否被直接删除
+        mutations.forEach((mutation) => {
+            if (mutation.type === 'childList') {
+                mutation.removedNodes.forEach((removedNode) => {
+                    if (removedNode === element || (removedNode as Element).contains?.(element)) {
+                        // 块元素已被删除，关闭对话框
+                        observer.disconnect();
+                        dialog.destroy();
+                        移除遮罩元素(maskElement);
+                        return;
+                    }
+                });
+            }
+        });
+    });
+    
+    // 开始观察块元素的父节点，以便检测块元素的删除
+    if (element.parentNode) {
+        observer.observe(element.parentNode, {
+            childList: true,
+            subtree: false
+        });
+    }
+    
+    // 同时观察document.body，以防块元素被从DOM中完全移除
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+    
+    // 对话框销毁时断开观察器
+    const originalDestroy = dialog.destroy.bind(dialog);
+    dialog.destroy = (options?: any) => {
+        observer.disconnect();
+        移除遮罩元素(maskElement);
+        originalDestroy(options);
+    };
+    
     // 获取输入值的函数
     const getInputValue = () => {
         return elements.inputElement.value;
@@ -65,7 +114,8 @@ export const AIChat = (protyle: IProtyle, element: Element) => {
             state,
             elements,
             animationManager,
-            protyle // 传递protyle实例用于blockDOM渲染
+            protyle, // 传递protyle实例用于blockDOM渲染
+            element // 传递块元素用于获取块内容
         };
         executeAIRequest(config);
     });
@@ -78,9 +128,9 @@ export const AIChat = (protyle: IProtyle, element: Element) => {
     });
     
     // 对话框销毁时也移除遮罩元素
-    const originalDestroy = dialog.destroy.bind(dialog);
+    const dialogDestroy = dialog.destroy.bind(dialog);
     dialog.destroy = (options?: any) => {
         移除遮罩元素(maskElement);
-        originalDestroy(options);
+        dialogDestroy(options);
     };
 };
