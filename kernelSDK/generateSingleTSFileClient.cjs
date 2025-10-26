@@ -288,7 +288,8 @@ function zodToTsType(zodType) {
                 }
                 
                 const propTypeString = zodToTsType(innerType);
-                return `${key}${isOptional ? '?' : ''}: ${propTypeString}`;
+                const finalKey = /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key) ? key : `"${key}"`;
+                return `${finalKey}${isOptional ? '?' : ''}: ${propTypeString}`;
             });
             if (properties.length === 0) return '{}';
             return `{ ${properties.join('; ')} }`;
