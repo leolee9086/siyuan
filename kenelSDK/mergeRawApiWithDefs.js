@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const RAW_API_LIST_PATH = join(__dirname, 'rawApiList.json');
-const API_DEFS_DIR = join(__dirname, 'apiDefs');
+const API_DEFS_DIR = join(__dirname, 'packages', 'apiDefs');
 
 // Helper function to ensure a directory exists
 async function ensureDirExists(dirPath) {

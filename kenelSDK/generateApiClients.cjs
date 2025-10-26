@@ -3,8 +3,8 @@ const path = require('path');
 const { pathToFileURL } = require('url');
 const z = require('zod');
 
-const API_DEFS_DIR = path.join(__dirname, 'apiDefs');
-const OUTPUT_CLIENT_DIR = path.join(__dirname, 'client');
+const API_DEFS_DIR = path.join(__dirname, 'packages', 'apiDefs');
+const OUTPUT_CLIENT_DIR = path.join(__dirname, 'packages','client');
 const OUTPUT_DTS_FILE = path.join(OUTPUT_CLIENT_DIR, 'index.d.ts');
 const OUTPUT_CLIENT_INDEX_JS_PATH = path.join(OUTPUT_CLIENT_DIR, 'index.js');
 
