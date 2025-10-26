@@ -2,7 +2,7 @@
  * 生成随机颜色
  * @returns 随机生成的十六进制颜色值
  */
-export const 生成随机颜色 = (): string => {
+export const genMaskColor = (): string => {
     // 生成柔和的随机颜色，避免过于鲜艳的颜色
     const hue = Math.floor(Math.random() * 360);
     const saturation = Math.floor(Math.random() * 30) + 20; // 20-50% 饱和度
@@ -29,7 +29,7 @@ export const 生成随机颜色 = (): string => {
  * @param color 遮罩颜色
  * @returns 创建的遮罩元素
  */
-export const 创建遮罩元素 = (element: Element, color: string): HTMLElement => {
+export const createBlockMask = (element: Element, color: string): HTMLElement => {
     
     // 创建遮罩元素
     const maskElement = document.createElement('div');
@@ -55,7 +55,7 @@ export const 创建遮罩元素 = (element: Element, color: string): HTMLElement
  * @param dialog 对话框实例
  * @param color 背景颜色
  */
-export const 设置对话框背景色 = (dialog: any, color: string): void => {
+export const setDialogColor = (dialog: any, color: string): void => {
     // 获取对话框容器元素
     const dialogContainer = dialog.element.querySelector('.b3-dialog__container');
     if (dialogContainer) {
@@ -68,7 +68,7 @@ export const 设置对话框背景色 = (dialog: any, color: string): void => {
  * 移除遮罩元素
  * @param maskElement 要移除的遮罩元素
  */
-export const 移除遮罩元素 = (maskElement: HTMLElement): void => {
+export const removeBlockMask = (maskElement: HTMLElement): void => {
     if (maskElement && maskElement.parentNode) {
         maskElement.parentNode.removeChild(maskElement);
     }

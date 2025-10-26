@@ -147,7 +147,7 @@ export const handleRequestAbort = (config: RequestAbortConfig) => {
 export const AIChatDialogContent = (languages: any) => {
     return `<div class="b3-dialog__content">
         <textarea class="b3-text-field fn__block" placeholder="${languages.aiWriting}"></textarea>
-        <div class="ai-response-container fn__none protyle-wysiwyg protyle-wysiwyg--attr" style="margin-top: 8px; padding: 8px; background: var(--b3-theme-background); border: 1px solid var(--b3-border-color); border-radius: 4px;">
+        <div class="ai-response-container fn__none protyle-wysiwyg protyle-wysiwyg--attr" style="margin-top: 8px; padding: 8px; background: var(--b3-theme-background); border: 1px solid var(--b3-border-color); border-radius: 4px; max-width: 60vw; max-height: 60vh; overflow: auto;">
             <div class="ai-response-content"></div>
             <div class="ai-response-status fn__none" style="margin-top: 4px; font-size: 12px; color: var(--b3-theme-on-surface);">
                 <span class="ai-status-text">正在生成回复...</span>

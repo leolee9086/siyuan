@@ -5,11 +5,11 @@ import {  AIRequestConfig } from "./chatStream.types";
 import { createChatResponseState, bindDialogDestroy } from "./chatStream.utils";
 import { initializeDialogElements, createStatusAnimationManager, AIChatDialogContent } from "./chatStream.ui";
 import { executeAIRequest } from "./chatStream.executeAIRequest";
-import { 生成随机颜色, 创建遮罩元素, 设置对话框背景色, 移除遮罩元素 } from "./chatStream.mask";
+import { genMaskColor, createBlockMask, setDialogColor, removeBlockMask } from "./chatStream.mask";
 
 export const AIChat = (protyle: IProtyle, element: Element) => {
     // 生成随机颜色
-    const randomColor = 生成随机颜色();
+    const randomColor = genMaskColor();
     
     const dialog = new Dialog({
         title: "✨ " + window.siyuan.languages.aiWriting,
@@ -24,10 +24,10 @@ export const AIChat = (protyle: IProtyle, element: Element) => {
     });
     
     // 设置对话框背景色
-    设置对话框背景色(dialog, randomColor);
+    setDialogColor(dialog, randomColor);
     
     // 创建遮罩元素
-    const maskElement = 创建遮罩元素(element, randomColor);
+    const maskElement = createBlockMask(element, randomColor);
     
     // 初始化UI元素
     const elements = initializeDialogElements(dialog);
@@ -41,7 +41,7 @@ export const AIChat = (protyle: IProtyle, element: Element) => {
             // 块元素已被删除，关闭对话框
             observer.disconnect();
             dialog.destroy();
-            移除遮罩元素(maskElement);
+            removeBlockMask(maskElement);
             return;
         }
         
@@ -53,7 +53,7 @@ export const AIChat = (protyle: IProtyle, element: Element) => {
                         // 块元素已被删除，关闭对话框
                         observer.disconnect();
                         dialog.destroy();
-                        移除遮罩元素(maskElement);
+                        removeBlockMask(maskElement);
                         return;
                     }
                 });
@@ -79,7 +79,7 @@ export const AIChat = (protyle: IProtyle, element: Element) => {
     const originalDestroy = dialog.destroy.bind(dialog);
     dialog.destroy = (options?: any) => {
         observer.disconnect();
-        移除遮罩元素(maskElement);
+        removeBlockMask(maskElement);
         originalDestroy(options);
     };
     
@@ -123,14 +123,14 @@ export const AIChat = (protyle: IProtyle, element: Element) => {
     // 取消按钮处理
     elements.cancelButtonElement.addEventListener("click", () => {
         // 移除遮罩元素
-        移除遮罩元素(maskElement);
+        removeBlockMask(maskElement);
         dialog.destroy();
     });
     
     // 对话框销毁时也移除遮罩元素
     const dialogDestroy = dialog.destroy.bind(dialog);
     dialog.destroy = (options?: any) => {
-        移除遮罩元素(maskElement);
+        removeBlockMask(maskElement);
         dialogDestroy(options);
     };
 };
