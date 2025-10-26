@@ -7,6 +7,7 @@ import { Menu } from "../plugin/Menu";
 import { upDownHint } from "../util/upDownHint";
 import { getElementsBlockId } from "../util/DOM/blockLikeElements";
 import { fillContent } from "./actions.fillContent";
+import { AIChat } from "./chatStream";
 import { AIMenuContext, AIMenuRequest, handleAIMenuItemClick } from "./actions.handleAIMenuItemClick";
 import { customDialog } from "./actions.customDialog";
 import { filterAIMenuItems } from "./actions.filterAIMenuItems";
@@ -24,8 +25,15 @@ const generateCustomMenuItems = (): string => {
     <span data-type="edit" class="b3-list-item__action"><svg><use xlink:href="#iconEdit"></use></svg></span>
 </div>`;
     });
-    if (customHTML) {
-        customHTML = `<div class="b3-menu__separator"></div>${customHTML}`;
+    
+    // 添加AI聊天菜单项
+    const aiChatHTML = `<div data-action="aiChat" class="b3-list-item b3-list-item--narrow ariaLabel" aria-label="AI聊天">
+    <span class="b3-list-item__text">AI聊天</span>
+    <span class="b3-list-item__action"><svg><use xlink:href="#iconChat"></use></svg></span>
+</div>`;
+    
+    if (customHTML || aiChatHTML) {
+        customHTML = `<div class="b3-menu__separator"></div>${customHTML}${aiChatHTML}`;
     }
     return customHTML;
 };
@@ -62,6 +70,9 @@ const handleKeyDown = (
         const currentElement = listElement.querySelector(".b3-list-item--focus") as HTMLElement;
         if (currentElement.dataset.type === "custom") {
             customDialog(protyle, ids, elements);
+            menu.close();
+        } else if (currentElement.dataset.action === "aiChat") {
+            AIChat(protyle, elements[0]);
             menu.close();
         } else {
             fetchPost("/api/ai/chatGPTWithAction", {
@@ -131,6 +142,13 @@ const handleClick = (
      * 修复：支持 HTMLElement 和 SVGElement，使 SVGSymbol 图标能够响应点击
      */
     if (target instanceof HTMLElement || target instanceof SVGElement) {
+        const currentElement = target.closest(".b3-list-item") as HTMLElement;
+        if (currentElement && currentElement.dataset.action === "aiChat") {
+            AIChat(protyle, elements[0]);
+            menu.close();
+            return;
+        }
+        
         const context: AIMenuContext = {
             protyle,
             ids,

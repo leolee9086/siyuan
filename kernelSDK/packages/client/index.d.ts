@@ -415,57 +415,6 @@ interface AvAppendAttributeViewDetachedBlocksWithValuesResponse {
   data: any | null;
 }
 
-interface AvBatchReplaceAttributeViewBlocksParams {
-  avID: string; // 属性视图的 ID
-  isDetached: boolean; // 是否处理独立的（未附加的）属性视图块
-  oldNew: Array<Record<string, string>>; // 包含旧块 ID 和新块 ID 映射关系的数组，例如：[{'oldID1': 'newID1'}, {'oldID2': 'newID2'}]
-}
-
-interface AvBatchReplaceAttributeViewBlocksResponse {
-  code: number; // 返回码，0 表示成功
-  msg: string; // 返回消息
-  data?: null;
-}
-
-interface AvBatchSetAttributeViewBlockAttrsParamsValuesItem {
-  blockID: string; // 数据块的 ID
-  keyID: string; // 列的 ID (Key ID)
-  value: any; // 要设置的新值，具体类型取决于列的类型
-}
-
-interface AvBatchSetAttributeViewBlockAttrsParams {
-  avID: string; // 属性视图的 ID
-  values: Array<AvBatchSetAttributeViewBlockAttrsParamsValuesItem>; // 包含多个要更新单元格信息的数组，每个对象包含 blockID, keyID 和 value
-}
-
-interface AvBatchSetAttributeViewBlockAttrsResponse {
-  code: number; // 返回码，0 表示成功
-  msg: string; // 返回消息
-  data?: null;
-}
-
-interface AvChangeAttrViewLayoutParams {
-  blockID: string; // 属性视图块的 ID
-  avID: string; // 属性视图的 ID
-  layoutType: 'table' | 'board' | 'calendar' | 'list' | 'gallery'; // 新的布局类型：table, board, calendar, list, gallery
-}
-
-interface AvChangeAttrViewLayoutResponseData {
-  name: string; // 属性视图的名称
-  id: string; // 属性视图的 ID
-  viewType: any; // 当前视图的类型 (具体类型需查阅 kernel.AVViewType)
-  viewID: any; // 当前视图的 ID (具体类型需查阅 kernel.AVViewID)
-  views: Array<any>; // 属性视图包含的所有视图定义数组，元素结构参考 `kernel.AVView`
-  view: any; // 当前渲染的视图的详细数据，结构复杂，取决于视图类型
-  isMirror: boolean; // 是否为镜像属性视图
-}
-
-interface AvChangeAttrViewLayoutResponse {
-  code: number; // 返回码，0 表示成功
-  msg: string; // 返回消息
-  data: AvChangeAttrViewLayoutResponseData | null;
-}
-
 interface AvDuplicateAttributeViewBlockParams {
   avID: string; // 要复制的属性视图块的 ID
 }
@@ -548,18 +497,6 @@ interface AvGetAttributeViewPrimaryKeyValuesResponse {
   code: number; // 返回码，0 表示成功
   msg: string; // 返回消息
   data: AvGetAttributeViewPrimaryKeyValuesResponseData | null;
-}
-
-interface AvGetCurrentAttrViewImagesParams {
-  id: string; // 属性视图的 ID
-  viewID?: string;
-  query?: string;
-}
-
-interface AvGetCurrentAttrViewImagesResponse {
-  code: number; // 返回码，0 表示成功
-  msg: string; // 返回消息
-  data: Array<string>; // 当前属性视图中图片 URL 数组
 }
 
 interface AvGetMirrorDatabaseBlocksParams {
@@ -715,18 +652,6 @@ interface AvSearchAttributeViewRelationKeyResponse {
   data: AvSearchAttributeViewRelationKeyResponseData | null;
 }
 
-interface AvSetAttrViewGroupParams {
-  avID: string; // 属性视图的 ID
-  blockID: string; // 属性视图关联的块 ID
-  group: any; // 分组配置对象，具体结构请参考 Go 源码 `av.ViewGroup`
-}
-
-interface AvSetAttrViewGroupResponse {
-  code: number; // 返回码，0 表示成功
-  msg: string; // 返回消息
-  data?: null;
-}
-
 interface AvSetAttributeViewBlockAttrParams {
   avID: string; // 属性视图的 ID
   keyID: string; // 列的 ID (Key ID)
@@ -778,6 +703,81 @@ interface AvSortAttributeViewViewKeyResponse {
   code: number; // 返回码，0 表示成功
   msg: string; // 返回消息
   data: any | null;
+}
+
+interface AvBatchSetAttributeViewBlockAttrsParamsValuesItem {
+  blockID: string; // 数据块的 ID
+  keyID: string; // 列的 ID (Key ID)
+  value: any; // 要设置的新值，具体类型取决于列的类型
+}
+
+interface AvBatchSetAttributeViewBlockAttrsParams {
+  avID: string; // 属性视图的 ID
+  values: Array<AvBatchSetAttributeViewBlockAttrsParamsValuesItem>; // 包含多个要更新单元格信息的数组，每个对象包含 blockID, keyID 和 value
+}
+
+interface AvBatchSetAttributeViewBlockAttrsResponse {
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  Data?: null;
+}
+
+interface AvGetCurrentAttrViewImagesParams {
+  id: string; // 属性视图的 ID
+  viewID?: string;
+  query?: string;
+}
+
+interface AvGetCurrentAttrViewImagesResponse {
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: Array<string>; // 当前属性视图中图片 URL 数组
+}
+
+interface AvChangeAttrViewLayoutParams {
+  blockID: string; // 属性视图块的 ID
+  avID: string; // 属性视图的 ID
+  layoutType: 'table' | 'board' | 'calendar' | 'list' | 'gallery'; // 新的布局类型：table, board, calendar, list, gallery
+}
+
+interface AvChangeAttrViewLayoutResponseData {
+  name: string; // 属性视图的名称
+  id: string; // 属性视图的 ID
+  viewType: any; // 当前视图的类型 (具体类型需查阅 kernel.AVViewType)
+  viewID: any; // 当前视图的 ID (具体类型需查阅 kernel.AVViewID)
+  views: Array<any>; // 属性视图包含的所有视图定义数组，元素结构参考 `kernel.AVView`
+  view: any; // 当前渲染的视图的详细数据，结构复杂，取决于视图类型
+  isMirror: boolean; // 是否为镜像属性视图
+}
+
+interface AvChangeAttrViewLayoutResponse {
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: AvChangeAttrViewLayoutResponseData | null;
+}
+
+interface AvSetAttrViewGroupParams {
+  avID: string; // 属性视图的 ID
+  blockID: string; // 属性视图关联的块 ID
+  group: any; // 分组配置对象，具体结构请参考 Go 源码 `av.ViewGroup`
+}
+
+interface AvSetAttrViewGroupResponse {
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  Data?: null;
+}
+
+interface AvBatchReplaceAttributeViewBlocksParams {
+  avID: string; // 属性视图的 ID
+  isDetached: boolean; // 是否处理独立的（未附加的）属性视图块
+  oldNew: Array<Record<string, string>>; // 包含旧块 ID 和新块 ID 映射关系的数组，例如：[{'oldID1': 'newID1'}, {'oldID2': 'newID2'}]
+}
+
+interface AvBatchReplaceAttributeViewBlocksResponse {
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  Data?: null;
 }
 
 interface BazaarBatchUpdatePackageParams {
@@ -1167,68 +1167,6 @@ interface BlockAppendDailyNoteBlockResponse {
   data: Array<BlockAppendDailyNoteBlockResponseDataItem> | null;
 }
 
-interface BlockBatchAppendBlockParamsBlocksItem {
-  data: string; // 要插入的内容，可以是 Markdown 或 DOM 字符串
-  dataType: 'markdown' | 'dom'; // 指定 data 参数的类型
-  parentID: string; // 父块的 ID
-}
-
-interface BlockBatchAppendBlockParams {
-  blocks: Array<BlockBatchAppendBlockParamsBlocksItem>; // 包含多个待插入块信息的数组
-}
-
-interface BlockBatchAppendBlockResponseDataItem {
-  id: string; // 新创建块的 ID
-}
-
-interface BlockBatchAppendBlockResponse {
-  code: number; // API 调用返回码，0 表示成功
-  msg: string; // API 调用返回消息
-  data: Array<BlockBatchAppendBlockResponseDataItem> | null;
-}
-
-interface BlockBatchInsertBlockParamsBlocksItem {
-  data: string; // 要插入的内容，可以是 Markdown 或 DOM 字符串
-  dataType: 'markdown' | 'dom'; // 指定 data 参数的类型
-  parentID?: string;
-  previousID?: string;
-  nextID?: string;
-}
-
-interface BlockBatchInsertBlockParams {
-  blocks: Array<BlockBatchInsertBlockParamsBlocksItem>; // 包含多个待插入块信息的数组
-}
-
-interface BlockBatchInsertBlockResponseDataItem {
-  id: string; // 新创建块的 ID
-}
-
-interface BlockBatchInsertBlockResponse {
-  code: number; // API 调用返回码，0 表示成功
-  msg: string; // API 调用返回消息
-  data: Array<BlockBatchInsertBlockResponseDataItem> | null;
-}
-
-interface BlockBatchPrependBlockParamsBlocksItem {
-  data: string; // 要插入的内容，可以是 Markdown 或 DOM 字符串
-  dataType: 'markdown' | 'dom'; // 指定 data 参数的类型
-  parentID: string; // 父块的 ID
-}
-
-interface BlockBatchPrependBlockParams {
-  blocks: Array<BlockBatchPrependBlockParamsBlocksItem>; // 包含多个待插入块信息的数组
-}
-
-interface BlockBatchPrependBlockResponseDataItem {
-  id: string; // 新创建块的 ID
-}
-
-interface BlockBatchPrependBlockResponse {
-  code: number; // API 调用返回码，0 表示成功
-  msg: string; // API 调用返回消息
-  data: Array<BlockBatchPrependBlockResponseDataItem> | null;
-}
-
 interface BlockBatchUpdateBlockParamsBlocksItem {
   id: string; // 要更新的块 ID
   data: string; // 新的块内容，可以是 Markdown 或 DOM 字符串
@@ -1341,16 +1279,6 @@ interface BlockGetBlockDOMResponse {
   code: number; // API 调用返回码，0 表示成功
   msg: string; // API 调用返回消息
   data: BlockGetBlockDOMResponseData; // 包含块 ID 和其 DOM 内容的对象
-}
-
-interface BlockGetBlockDOMsParams {
-  ids: Array<string>; // 要获取 DOM 的块 ID 数组
-}
-
-interface BlockGetBlockDOMsResponse {
-  code: number; // API 调用返回码，0 表示成功
-  msg: string; // API 调用返回消息
-  data: Record<string, string>; // 一个记录对象，键为块 ID，值为该块的 DOM 内容
 }
 
 interface BlockGetBlockDefIDsByRefTextParams {
@@ -1832,30 +1760,6 @@ interface BlockInsertBlockResponse {
   data: Array<BlockInsertBlockResponseDataItem> | null;
 }
 
-interface BlockMoveBlockParams {
-  id: string; // 要移动的块的 ID。
-  parentID?: string;
-  previousID?: string;
-}
-
-interface BlockMoveBlockResponse {
-  code: number; // API 调用返回码，0 表示成功
-  msg: string; // API 调用返回消息
-  data: null; // 此接口成功时不返回具体数据，UI 通常通过 WebSocket 消息更新。
-}
-
-interface BlockMoveOutlineHeadingParams {
-  id: string; // 要移动的大纲标题块的 ID。
-  parentID?: string;
-  previousID?: string;
-}
-
-interface BlockMoveOutlineHeadingResponse {
-  code: number; // API 调用返回码，0 表示成功
-  msg: string; // API 调用返回消息
-  data: Array<any> | null;
-}
-
 interface BlockPrependBlockParams {
   data: string; // 要插入的内容，可以是 Markdown 或 DOM 字符串
   dataType: 'markdown' | 'dom'; // 指定 data 参数的类型
@@ -1870,18 +1774,6 @@ interface BlockPrependBlockResponse {
   code: number; // API 调用返回码，0 表示成功
   msg: string; // API 调用返回消息
   data: Array<BlockPrependBlockResponseDataItem> | null;
-}
-
-interface BlockPrependDailyNoteBlockParams {
-  data: string; // 要追加的内容，可以是 Markdown 或 DOM 字符串。如果 dataType 为 'markdown'，内容会先转换为 DOM。注意：后端实现中此接口行为类似 appendDailyNoteBlock，均在末尾追加，但定义保留 prepend 以匹配接口名和潜在的未来行为调整。建议使用 appendDailyNoteBlock 以获得明确的末尾追加行为。后端 action 为 prependInsert。 
-  dataType: 'markdown' | 'dom'; // 指定 data 参数的类型 ('markdown' 或 'dom')。 
-  notebook: string; // 目标笔记本的 ID。
-}
-
-interface BlockPrependDailyNoteBlockResponse {
-  code: number; // API 调用返回码，0 表示成功
-  msg: string; // API 调用返回消息
-  data: Array<any> | null;
 }
 
 interface BlockSetBlockReminderParams {
@@ -1946,6 +1838,114 @@ interface BlockUpdateBlockResponse {
   data: Array<BlockUpdateBlockResponseDataItem> | null;
 }
 
+interface BlockPrependDailyNoteBlockParams {
+  data: string; // 要追加的内容，可以是 Markdown 或 DOM 字符串。如果 dataType 为 'markdown'，内容会先转换为 DOM。注意：后端实现中此接口行为类似 appendDailyNoteBlock，均在末尾追加，但定义保留 prepend 以匹配接口名和潜在的未来行为调整。建议使用 appendDailyNoteBlock 以获得明确的末尾追加行为。后端 action 为 prependInsert。 
+  dataType: 'markdown' | 'dom'; // 指定 data 参数的类型 ('markdown' 或 'dom')。 
+  notebook: string; // 目标笔记本的 ID。
+}
+
+interface BlockPrependDailyNoteBlockResponse {
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: Array<any> | null;
+}
+
+interface BlockMoveBlockParams {
+  id: string; // 要移动的块的 ID。
+  parentID?: string;
+  previousID?: string;
+}
+
+interface BlockMoveBlockResponse {
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: null; // 此接口成功时不返回具体数据，UI 通常通过 WebSocket 消息更新。
+}
+
+interface BlockMoveOutlineHeadingParams {
+  id: string; // 要移动的大纲标题块的 ID。
+  parentID?: string;
+  previousID?: string;
+}
+
+interface BlockMoveOutlineHeadingResponse {
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: Array<any> | null;
+}
+
+interface BlockGetBlockDOMsParams {
+  ids: Array<string>; // 要获取 DOM 的块 ID 数组
+}
+
+interface BlockGetBlockDOMsResponse {
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: Record<string, string>; // 一个记录对象，键为块 ID，值为该块的 DOM 内容
+}
+
+interface BlockBatchInsertBlockParamsBlocksItem {
+  data: string; // 要插入的内容，可以是 Markdown 或 DOM 字符串
+  dataType: 'markdown' | 'dom'; // 指定 data 参数的类型
+  parentID?: string;
+  previousID?: string;
+  nextID?: string;
+}
+
+interface BlockBatchInsertBlockParams {
+  blocks: Array<BlockBatchInsertBlockParamsBlocksItem>; // 包含多个待插入块信息的数组
+}
+
+interface BlockBatchInsertBlockResponseDataItem {
+  id: string; // 新创建块的 ID
+}
+
+interface BlockBatchInsertBlockResponse {
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: Array<BlockBatchInsertBlockResponseDataItem> | null;
+}
+
+interface BlockBatchPrependBlockParamsBlocksItem {
+  data: string; // 要插入的内容，可以是 Markdown 或 DOM 字符串
+  dataType: 'markdown' | 'dom'; // 指定 data 参数的类型
+  parentID: string; // 父块的 ID
+}
+
+interface BlockBatchPrependBlockParams {
+  blocks: Array<BlockBatchPrependBlockParamsBlocksItem>; // 包含多个待插入块信息的数组
+}
+
+interface BlockBatchPrependBlockResponseDataItem {
+  id: string; // 新创建块的 ID
+}
+
+interface BlockBatchPrependBlockResponse {
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: Array<BlockBatchPrependBlockResponseDataItem> | null;
+}
+
+interface BlockBatchAppendBlockParamsBlocksItem {
+  data: string; // 要插入的内容，可以是 Markdown 或 DOM 字符串
+  dataType: 'markdown' | 'dom'; // 指定 data 参数的类型
+  parentID: string; // 父块的 ID
+}
+
+interface BlockBatchAppendBlockParams {
+  blocks: Array<BlockBatchAppendBlockParamsBlocksItem>; // 包含多个待插入块信息的数组
+}
+
+interface BlockBatchAppendBlockResponseDataItem {
+  id: string; // 新创建块的 ID
+}
+
+interface BlockBatchAppendBlockResponse {
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: Array<BlockBatchAppendBlockResponseDataItem> | null;
+}
+
 interface BookmarkGetBookmarkResponseDataItemBlocksItem {
   id: string; // 块的 ID
   type: string; // 块的类型 (例如 Paragraph, Heading, List, Document 等)
@@ -1986,7 +1986,7 @@ interface BookmarkRemoveBookmarkResponseData {
 interface BookmarkRemoveBookmarkResponse {
   code: number; // API 调用返回码，0 表示成功，其他表示失败
   msg: string; // API 调用返回消息
-  data?: BookmarkRemoveBookmarkResponseData | null;
+  Data?: BookmarkRemoveBookmarkResponseData | null;
 }
 
 interface BookmarkRenameBookmarkParams {
@@ -2001,7 +2001,7 @@ interface BookmarkRenameBookmarkResponseData {
 interface BookmarkRenameBookmarkResponse {
   code: number; // API 调用返回码，0 表示成功，其他表示失败
   msg: string; // API 调用返回消息
-  data?: BookmarkRenameBookmarkResponseData | null;
+  Data?: BookmarkRenameBookmarkResponseData | null;
 }
 
 interface BroadcastGetChannelInfoParams {
@@ -2135,7 +2135,7 @@ interface ExportExport2LiandiParams {
 interface ExportExport2LiandiResponse {
   code: number; // 响应状态码，0 表示成功
   msg: string; // 响应消息
-  data?: null;
+  Data?: null;
 }
 
 interface ExportExportAsFileParams {
@@ -2554,7 +2554,7 @@ interface ExportProcessPDFParams {
 interface ExportProcessPDFResponse {
   code: number; // 响应状态码，0 表示成功
   msg: string; // 响应消息
-  data?: null;
+  Data?: null;
 }
 
 interface ExtensionExtensionCopyParams {
@@ -2620,7 +2620,7 @@ interface FileGlobalCopyFilesParams {
 interface FileGlobalCopyFilesResponse {
   code: number; // 响应状态码，0 表示成功
   msg: string; // 响应消息
-  data?: null;
+  Data?: null;
 }
 
 interface FilePutFileParams {
@@ -2632,7 +2632,7 @@ interface FilePutFileParams {
 interface FilePutFileResponse {
   code: number; // 响应状态码，0 表示成功
   msg: string; // 响应消息
-  data?: null;
+  Data?: null;
 }
 
 interface FileReadDirParams {
@@ -2659,7 +2659,7 @@ interface FileRemoveFileParams {
 interface FileRemoveFileResponse {
   code: number; // 响应状态码，0 表示成功
   msg: string; // 响应消息
-  data?: null;
+  Data?: null;
 }
 
 interface FileRenameFileParams {
@@ -2670,7 +2670,7 @@ interface FileRenameFileParams {
 interface FileRenameFileResponse {
   code: number; // 响应状态码，0 表示成功
   msg: string; // 响应消息
-  data?: null;
+  Data?: null;
 }
 
 interface FiletreeChangeSortParams {
@@ -2681,7 +2681,7 @@ interface FiletreeChangeSortParams {
 interface FiletreeChangeSortResponse {
   code: number; // 响应状态码，0 表示成功
   msg: string; // 响应消息
-  data?: null;
+  Data?: null;
 }
 
 interface FiletreeCreateDailyNoteParams {
@@ -2697,7 +2697,7 @@ interface FiletreeCreateDailyNoteResponseData {
 interface FiletreeCreateDailyNoteResponse {
   code: number; // 响应状态码。0 表示成功创建或获取；1 表示笔记本未找到；-1 表示其他错误。
   msg: string; // 响应消息。
-  data?: FiletreeCreateDailyNoteResponseData;
+  Data?: FiletreeCreateDailyNoteResponseData;
 }
 
 interface FiletreeCreateDocParams {
@@ -2737,7 +2737,7 @@ interface FiletreeCreateDocWithMdParams {
 interface FiletreeCreateDocWithMdResponse {
   code: number; // 响应状态码，0 表示成功
   msg: string; // 响应消息
-  data?: string;
+  Data?: string;
 }
 
 interface FiletreeDoc2HeadingParams {
@@ -2816,7 +2816,7 @@ interface FiletreeGetDocResponseData {
 interface FiletreeGetDocResponse {
   code: number; // 响应状态码。0: 成功；1: 通用错误；3: 块未找到。
   msg: string; // 响应消息。
-  data?: FiletreeGetDocResponseData;
+  Data?: FiletreeGetDocResponseData;
 }
 
 interface FiletreeGetDocCreateSavePathParams {
@@ -2831,7 +2831,7 @@ interface FiletreeGetDocCreateSavePathResponseData {
 interface FiletreeGetDocCreateSavePathResponse {
   code: number; // 响应状态码，0 表示成功
   msg: string; // 响应消息
-  data?: FiletreeGetDocCreateSavePathResponseData;
+  Data?: FiletreeGetDocCreateSavePathResponseData;
 }
 
 interface FiletreeGetFullHPathByIDParams {
@@ -2841,7 +2841,7 @@ interface FiletreeGetFullHPathByIDParams {
 interface FiletreeGetFullHPathByIDResponse {
   code: number; // 响应状态码，0 表示成功
   msg: string; // 响应消息
-  data?: string;
+  Data?: string;
 }
 
 interface FiletreeGetHPathByIDParams {
@@ -2851,7 +2851,7 @@ interface FiletreeGetHPathByIDParams {
 interface FiletreeGetHPathByIDResponse {
   code: number; // 响应状态码，0 表示成功
   msg: string; // 响应消息
-  data?: string;
+  Data?: string;
 }
 
 interface FiletreeGetHPathByPathParams {
@@ -2862,7 +2862,7 @@ interface FiletreeGetHPathByPathParams {
 interface FiletreeGetHPathByPathResponse {
   code: number; // 响应状态码，0 表示成功
   msg: string; // 响应消息
-  data?: string;
+  Data?: string;
 }
 
 interface FiletreeGetHPathsByPathsParamsPathsItem {
@@ -2877,7 +2877,7 @@ interface FiletreeGetHPathsByPathsParams {
 interface FiletreeGetHPathsByPathsResponse {
   code: number; // 响应状态码，0 表示成功
   msg: string; // 响应消息
-  data?: Array<string>;
+  Data?: Array<string>;
 }
 
 interface FiletreeGetIDsByHPathParams {
@@ -2888,7 +2888,7 @@ interface FiletreeGetIDsByHPathParams {
 interface FiletreeGetIDsByHPathResponse {
   code: number; // 响应状态码，0 表示成功
   msg: string; // 响应消息
-  data?: Array<string>;
+  Data?: Array<string>;
 }
 
 interface FiletreeGetPathByIDParams {
@@ -2903,7 +2903,7 @@ interface FiletreeGetPathByIDResponseData {
 interface FiletreeGetPathByIDResponse {
   code: number; // 响应状态码，0 表示成功
   msg: string; // 响应消息
-  data?: FiletreeGetPathByIDResponseData;
+  Data?: FiletreeGetPathByIDResponseData;
 }
 
 interface FiletreeGetRefCreateSavePathParams {
@@ -2918,7 +2918,7 @@ interface FiletreeGetRefCreateSavePathResponseData {
 interface FiletreeGetRefCreateSavePathResponse {
   code: number; // 响应状态码，0 表示成功
   msg: string; // 响应消息
-  data?: FiletreeGetRefCreateSavePathResponseData;
+  Data?: FiletreeGetRefCreateSavePathResponseData;
 }
 
 interface FiletreeHeading2DocParams {
@@ -2978,7 +2978,7 @@ interface FiletreeListDocTreeResponseData {
 interface FiletreeListDocTreeResponse {
   code: number; // 响应状态码，0 表示成功
   msg: string; // 响应消息
-  data?: FiletreeListDocTreeResponseData;
+  Data?: FiletreeListDocTreeResponseData;
 }
 
 interface FiletreeListDocsByPathParams {
@@ -3021,7 +3021,7 @@ interface FiletreeListDocsByPathResponseData {
 interface FiletreeListDocsByPathResponse {
   code: number; // 响应状态码，0 表示成功
   msg: string; // 响应消息
-  data?: FiletreeListDocsByPathResponseData;
+  Data?: FiletreeListDocsByPathResponseData;
 }
 
 interface FiletreeMoveDocsParams {
@@ -3066,13 +3066,13 @@ interface FiletreeMoveLocalShorthandsParams {
 interface FiletreeMoveLocalShorthandsResponse {
   code: number; // 响应状态码，0 表示成功
   msg: string; // 响应消息
-  data?: null;
+  Data?: null;
 }
 
 interface FiletreeRefreshFiletreeResponse {
   code: number; // 响应状态码，0 表示成功（操作已异步启动）
   msg: string; // 响应消息
-  data?: null;
+  Data?: null;
 }
 
 interface FiletreeRemoveDocParams {
@@ -3083,7 +3083,7 @@ interface FiletreeRemoveDocParams {
 interface FiletreeRemoveDocResponse {
   code: number; // 响应状态码，0 表示成功
   msg: string; // 响应消息
-  data?: null;
+  Data?: null;
 }
 
 interface FiletreeRemoveDocByIDParams {
@@ -3107,7 +3107,7 @@ interface FiletreeRemoveDocsParams {
 interface FiletreeRemoveDocsResponse {
   code: number; // 响应状态码，0 表示成功（即使部分路径无效也可能返回0，具体需看Msg）
   msg: string; // 响应消息。如果部分文档移除失败，Msg中可能会有提示。
-  data?: null;
+  Data?: null;
 }
 
 interface FiletreeRemoveIndexesParams {
@@ -3117,7 +3117,7 @@ interface FiletreeRemoveIndexesParams {
 interface FiletreeRemoveIndexesResponse {
   code: number; // 响应状态码，0 表示成功（操作已接受）
   msg: string; // 响应消息
-  data?: null;
+  Data?: null;
 }
 
 interface FiletreeRenameDocParams {
@@ -3129,7 +3129,7 @@ interface FiletreeRenameDocParams {
 interface FiletreeRenameDocResponse {
   code: number; // 响应状态码，0 表示成功
   msg: string; // 响应消息
-  data?: null;
+  Data?: null;
 }
 
 interface FiletreeRenameDocByIDParams {
@@ -3167,7 +3167,7 @@ interface FiletreeSearchDocsResponseDataItem {
 interface FiletreeSearchDocsResponse {
   code: number; // 响应状态码，0 表示成功
   msg: string; // 响应消息
-  data?: Array<FiletreeSearchDocsResponseDataItem>;
+  Data?: Array<FiletreeSearchDocsResponseDataItem>;
 }
 
 interface FiletreeUpsertIndexesParams {
@@ -3177,7 +3177,7 @@ interface FiletreeUpsertIndexesParams {
 interface FiletreeUpsertIndexesResponse {
   code: number; // 响应状态码，0 表示成功（操作已接受）
   msg: string; // 响应消息
-  data?: null;
+  Data?: null;
 }
 
 interface FormatAutoSpaceParams {
@@ -3671,13 +3671,13 @@ interface IconGetDynamicIconParams {
 interface ImportImportDataResponse {
   code: number; // 返回码，0 表示成功
   msg: string; // 错误信息，成功时为空字符串
-  data?: null;
+  Data?: null;
 }
 
 interface ImportImportSYResponse {
   code: number; // 返回码，0 表示成功
   msg: string; // 错误信息，成功时为空字符串
-  data?: null;
+  Data?: null;
 }
 
 interface ImportImportStdMdParams {
@@ -3689,13 +3689,13 @@ interface ImportImportStdMdParams {
 interface ImportImportStdMdResponse {
   code: number; // 返回码，0 表示成功
   msg: string; // 错误信息，成功时为空字符串
-  data?: null;
+  Data?: null;
 }
 
 interface ImportImportZipMdResponse {
   code: number; // 返回码，0 表示成功
   msg: string; // 错误信息，成功时为空字符串
-  data?: null;
+  Data?: null;
 }
 
 interface InboxGetShorthandParams {
@@ -3747,7 +3747,7 @@ interface InboxRemoveShorthandsParams {
 interface InboxRemoveShorthandsResponse {
   code: number; // 返回码，0 表示成功
   msg: string; // 错误信息，成功时为空字符串
-  data?: null;
+  Data?: null;
 }
 
 interface LuteCopyStdMarkdownParams {
@@ -3843,7 +3843,7 @@ interface NotebookChangeSortNotebookParams {
 interface NotebookChangeSortNotebookResponse {
   code: number; // 返回码，0 表示成功
   msg: string; // 错误信息，成功时为空字符串
-  data?: null;
+  Data?: null;
 }
 
 interface NotebookCloseNotebookParams {
@@ -3854,7 +3854,7 @@ interface NotebookCloseNotebookParams {
 interface NotebookCloseNotebookResponse {
   code: number; // 返回码，0 表示成功
   msg: string; // 错误信息，成功时为空字符串
-  data?: null;
+  Data?: null;
 }
 
 interface NotebookCreateNotebookParams {
@@ -4010,7 +4010,7 @@ interface NotebookRemoveNotebookParams {
 interface NotebookRemoveNotebookResponse {
   code: number; // 返回码，0 表示成功
   msg: string; // 错误信息，成功时为空字符串
-  data?: null;
+  Data?: null;
 }
 
 interface NotebookRenameNotebookParams {
@@ -4047,7 +4047,7 @@ interface NotebookSetNotebookConfParams {
 interface NotebookSetNotebookConfResponse {
   code: number; // 返回码，0 表示成功
   msg: string; // 错误信息，成功时为空字符串
-  data?: null;
+  Data?: null;
 }
 
 interface NotebookSetNotebookIconParams {
@@ -4058,7 +4058,7 @@ interface NotebookSetNotebookIconParams {
 interface NotebookSetNotebookIconResponse {
   code: number; // 返回码，0 表示成功
   msg: string; // 错误信息，成功时为空字符串
-  data?: null;
+  Data?: null;
 }
 
 interface NotificationPushErrMsgParams {
@@ -5706,24 +5706,6 @@ interface SnippetGetSnippetResponse {
   data: SnippetGetSnippetResponseData | null;
 }
 
-interface SnippetRemoveSnippetParams {
-  id: string; // 要移除的代码片段的唯一ID。
-}
-
-interface SnippetRemoveSnippetResponseData {
-  id: string; // 被移除代码片段的唯一ID。
-  name: string; // 被移除代码片段的名称。
-  type: 'js' | 'css'; // 被移除代码片段的类型。
-  enabled: boolean; // 被移除代码片段的启用状态。
-  content: string; // 被移除代码片段的内容。
-}
-
-interface SnippetRemoveSnippetResponse {
-  code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
-  msg: string; // API 执行结果的描述信息。
-  data: SnippetRemoveSnippetResponseData | null;
-}
-
 interface SnippetSetSnippetParamsSnippetsItem {
   id: string; // 片段的唯一ID。对于新片段或希望系统生成ID的片段，可设置为空字符串。
   name: string; // 代码片段的名称。
@@ -5740,6 +5722,24 @@ interface SnippetSetSnippetResponse {
   code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
   msg: string; // API 执行结果的描述信息。
   data: null; // 此接口成功时不返回具体数据，直接修改配置。
+}
+
+interface SnippetRemoveSnippetParams {
+  id: string; // 要移除的代码片段的唯一ID。
+}
+
+interface SnippetRemoveSnippetResponseData {
+  id: string; // 被移除代码片段的唯一ID。
+  name: string; // 被移除代码片段的名称。
+  type: 'js' | 'css'; // 被移除代码片段的类型。
+  enabled: boolean; // 被移除代码片段的启用状态。
+  content: string; // 被移除代码片段的内容。
+}
+
+interface SnippetRemoveSnippetResponse {
+  code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
+  msg: string; // API 执行结果的描述信息。
+  data: SnippetRemoveSnippetResponseData | null;
 }
 
 interface SqliteFlushTransactionResponse {
@@ -7108,30 +7108,6 @@ export interface AvApi {
   appendAttributeViewDetachedBlocksWithValues(params: AvAppendAttributeViewDetachedBlocksWithValuesParams): Promise<AvAppendAttributeViewDetachedBlocksWithValuesResponse>;
 
   /**
-   * 批量替换属性视图中的现有块ID。
-   * (Requires authentication)
-   * @param params Request parameters (AvBatchReplaceAttributeViewBlocksParams)
-   * @returns Promise<AvBatchReplaceAttributeViewBlocksResponse> 
-   */
-  batchReplaceAttributeViewBlocks(params: AvBatchReplaceAttributeViewBlocksParams): Promise<AvBatchReplaceAttributeViewBlocksResponse>;
-
-  /**
-   * 批量更新属性视图中多个单元格（行和列）的值。
-   * (Requires authentication, Requires admin role, Unavailable in read-only mode)
-   * @param params Request parameters (AvBatchSetAttributeViewBlockAttrsParams)
-   * @returns Promise<AvBatchSetAttributeViewBlockAttrsResponse> 
-   */
-  batchSetAttributeViewBlockAttrs(params: AvBatchSetAttributeViewBlockAttrsParams): Promise<AvBatchSetAttributeViewBlockAttrsResponse>;
-
-  /**
-   * 改变指定属性视图的显示布局类型（如表格、看板、日历等）。
-   * (Requires authentication)
-   * @param params Request parameters (AvChangeAttrViewLayoutParams)
-   * @returns Promise<AvChangeAttrViewLayoutResponse> 
-   */
-  changeAttrViewLayout(params: AvChangeAttrViewLayoutParams): Promise<AvChangeAttrViewLayoutResponse>;
-
-  /**
    * 复制一个属性视图块（数据库块）。
    * (Requires authentication, Requires admin role, Unavailable in read-only mode)
    * @param params Request parameters (AvDuplicateAttributeViewBlockParams)
@@ -7148,33 +7124,12 @@ export interface AvApi {
   getAttributeView(params: AvGetAttributeViewParams): Promise<AvGetAttributeViewResponse>;
 
   /**
-   * getAttributeViewAddingBlockDefaultValues
-   * (Requires authentication)
-   * @returns Promise<Record<string, never>> 
-   */
-  getAttributeViewAddingBlockDefaultValues(): Promise<Record<string, never>>;
-
-  /**
-   * getAttributeViewBoundBlockIDsByItemIDs
-   * (Requires authentication)
-   * @returns Promise<Record<string, never>> 
-   */
-  getAttributeViewBoundBlockIDsByItemIDs(): Promise<Record<string, never>>;
-
-  /**
    * 获取指定属性视图（或其关联块）的筛选条件和排序规则。
    * (Requires authentication, Requires admin role, Unavailable in read-only mode)
    * @param params Request parameters (AvGetAttributeViewFilterSortParams)
    * @returns Promise<AvGetAttributeViewFilterSortResponse> 
    */
   getAttributeViewFilterSort(params: AvGetAttributeViewFilterSortParams): Promise<AvGetAttributeViewFilterSortResponse>;
-
-  /**
-   * getAttributeViewItemIDsByBoundIDs
-   * (Requires authentication)
-   * @returns Promise<Record<string, never>> 
-   */
-  getAttributeViewItemIDsByBoundIDs(): Promise<Record<string, never>>;
 
   /**
    * 获取指定属性视图ID的所有列定义 (keys)。
@@ -7193,27 +7148,12 @@ export interface AvApi {
   getAttributeViewKeysByAvID(params: AvGetAttributeViewKeysByAvIDParams): Promise<AvGetAttributeViewKeysByAvIDResponse>;
 
   /**
-   * getAttributeViewKeysByID
-   * (Requires authentication)
-   * @returns Promise<Record<string, never>> 
-   */
-  getAttributeViewKeysByID(): Promise<Record<string, never>>;
-
-  /**
    * 获取指定属性视图的主键列的值，支持分页和关键词搜索。
    * (Requires authentication, Requires admin role, Unavailable in read-only mode)
    * @param params Request parameters (AvGetAttributeViewPrimaryKeyValuesParams)
    * @returns Promise<AvGetAttributeViewPrimaryKeyValuesResponse> 
    */
   getAttributeViewPrimaryKeyValues(params: AvGetAttributeViewPrimaryKeyValuesParams): Promise<AvGetAttributeViewPrimaryKeyValuesResponse>;
-
-  /**
-   * 获取当前属性视图中包含的所有图片资源。
-   * (Requires authentication)
-   * @param params Request parameters (AvGetCurrentAttrViewImagesParams)
-   * @returns Promise<AvGetCurrentAttrViewImagesResponse> 
-   */
-  getCurrentAttrViewImages(params: AvGetCurrentAttrViewImagesParams): Promise<AvGetCurrentAttrViewImagesResponse>;
 
   /**
    * 获取指定属性视图ID的镜像数据库块ID列表。
@@ -7288,21 +7228,6 @@ export interface AvApi {
   searchAttributeViewRelationKey(params: AvSearchAttributeViewRelationKeyParams): Promise<AvSearchAttributeViewRelationKeyResponse>;
 
   /**
-   * searchAttributeViewRollupDestKeys
-   * (Requires authentication, Requires admin role, Unavailable in read-only mode)
-   * @returns Promise<Record<string, never>> 
-   */
-  searchAttributeViewRollupDestKeys(): Promise<Record<string, never>>;
-
-  /**
-   * 设置属性视图的块分组规则。
-   * (Requires authentication)
-   * @param params Request parameters (AvSetAttrViewGroupParams)
-   * @returns Promise<AvSetAttrViewGroupResponse> 
-   */
-  setAttrViewGroup(params: AvSetAttrViewGroupParams): Promise<AvSetAttrViewGroupResponse>;
-
-  /**
    * 更新属性视图中指定行（块ID）、指定列（KeyID）的单元格的值。
    * (Requires authentication, Requires admin role, Unavailable in read-only mode)
    * @param params Request parameters (AvSetAttributeViewBlockAttrParams)
@@ -7333,6 +7258,46 @@ export interface AvApi {
    * @returns Promise<AvSortAttributeViewViewKeyResponse> 
    */
   sortAttributeViewViewKey(params: AvSortAttributeViewViewKeyParams): Promise<AvSortAttributeViewViewKeyResponse>;
+
+  /**
+   * 批量更新属性视图中多个单元格（行和列）的值。
+   * (Requires authentication, Requires admin role, Unavailable in read-only mode)
+   * @param params Request parameters (AvBatchSetAttributeViewBlockAttrsParams)
+   * @returns Promise<AvBatchSetAttributeViewBlockAttrsResponse> 
+   */
+  batchSetAttributeViewBlockAttrs(params: AvBatchSetAttributeViewBlockAttrsParams): Promise<AvBatchSetAttributeViewBlockAttrsResponse>;
+
+  /**
+   * 获取当前属性视图中包含的所有图片资源。
+   * (Requires authentication)
+   * @param params Request parameters (AvGetCurrentAttrViewImagesParams)
+   * @returns Promise<AvGetCurrentAttrViewImagesResponse> 
+   */
+  getCurrentAttrViewImages(params: AvGetCurrentAttrViewImagesParams): Promise<AvGetCurrentAttrViewImagesResponse>;
+
+  /**
+   * 改变指定属性视图的显示布局类型（如表格、看板、日历等）。
+   * (Requires authentication)
+   * @param params Request parameters (AvChangeAttrViewLayoutParams)
+   * @returns Promise<AvChangeAttrViewLayoutResponse> 
+   */
+  changeAttrViewLayout(params: AvChangeAttrViewLayoutParams): Promise<AvChangeAttrViewLayoutResponse>;
+
+  /**
+   * 设置属性视图的块分组规则。
+   * (Requires authentication)
+   * @param params Request parameters (AvSetAttrViewGroupParams)
+   * @returns Promise<AvSetAttrViewGroupResponse> 
+   */
+  setAttrViewGroup(params: AvSetAttrViewGroupParams): Promise<AvSetAttrViewGroupResponse>;
+
+  /**
+   * 批量替换属性视图中的现有块ID。
+   * (Requires authentication)
+   * @param params Request parameters (AvBatchReplaceAttributeViewBlocksParams)
+   * @returns Promise<AvBatchReplaceAttributeViewBlocksResponse> 
+   */
+  batchReplaceAttributeViewBlocks(params: AvBatchReplaceAttributeViewBlocksParams): Promise<AvBatchReplaceAttributeViewBlocksResponse>;
 
 }
 
@@ -7541,37 +7506,6 @@ export interface BlockApi {
   appendDailyNoteBlock(params: BlockAppendDailyNoteBlockParams): Promise<BlockAppendDailyNoteBlockResponse>;
 
   /**
-   * appendHeadingChildren
-   * (Requires authentication)
-   * @returns Promise<Record<string, never>> 
-   */
-  appendHeadingChildren(): Promise<Record<string, never>>;
-
-  /**
-   * 在指定父块的末尾批量插入新的子块。
-   * (Requires authentication, Requires admin role, Unavailable in read-only mode)
-   * @param params Request parameters (BlockBatchAppendBlockParams)
-   * @returns Promise<BlockBatchAppendBlockResponse> 
-   */
-  batchAppendBlock(params: BlockBatchAppendBlockParams): Promise<BlockBatchAppendBlockResponse>;
-
-  /**
-   * 在指定的锚点块（anchorID）之前或之后批量插入新的内容块。每个新块可以指定其插入位置。
-   * (Requires authentication, Requires admin role, Unavailable in read-only mode)
-   * @param params Request parameters (BlockBatchInsertBlockParams)
-   * @returns Promise<BlockBatchInsertBlockResponse> 
-   */
-  batchInsertBlock(params: BlockBatchInsertBlockParams): Promise<BlockBatchInsertBlockResponse>;
-
-  /**
-   * 在指定父块的开头批量插入新的子块。
-   * (Requires authentication, Requires admin role, Unavailable in read-only mode)
-   * @param params Request parameters (BlockBatchPrependBlockParams)
-   * @returns Promise<BlockBatchPrependBlockResponse> 
-   */
-  batchPrependBlock(params: BlockBatchPrependBlockParams): Promise<BlockBatchPrependBlockResponse>;
-
-  /**
    * 批量更新多个块的内容。
    * (Requires authentication, Requires admin role, Unavailable in read-only mode)
    * @param params Request parameters (BlockBatchUpdateBlockParams)
@@ -7636,14 +7570,6 @@ export interface BlockApi {
   getBlockDOM(params: BlockGetBlockDOMParams): Promise<BlockGetBlockDOMResponse>;
 
   /**
-   * 批量获取指定块ID列表的DOM表示（HTML字符串）。
-   * (Requires authentication)
-   * @param params Request parameters (BlockGetBlockDOMsParams)
-   * @returns Promise<BlockGetBlockDOMsResponse> 
-   */
-  getBlockDOMs(params: BlockGetBlockDOMsParams): Promise<BlockGetBlockDOMsResponse>;
-
-  /**
    * 根据引用文本（锚文本）搜索并返回其可能指向的块定义ID列表。
    * (Requires authentication)
    * @param params Request parameters (BlockGetBlockDefIDsByRefTextParams)
@@ -7674,13 +7600,6 @@ export interface BlockApi {
    * @returns Promise<BlockGetBlockKramdownResponse> 
    */
   getBlockKramdown(params: BlockGetBlockKramdownParams): Promise<BlockGetBlockKramdownResponse>;
-
-  /**
-   * getBlockRelevantIDs
-   * (Requires authentication)
-   * @returns Promise<Record<string, never>> 
-   */
-  getBlockRelevantIDs(): Promise<Record<string, never>>;
 
   /**
    * 获取指定块ID的父块ID、上一个同级块ID和下一个同级块ID。
@@ -7779,13 +7698,6 @@ export interface BlockApi {
   getHeadingDeleteTransaction(params: BlockGetHeadingDeleteTransactionParams): Promise<BlockGetHeadingDeleteTransactionResponse>;
 
   /**
-   * getHeadingInsertTransaction
-   * (Requires authentication)
-   * @returns Promise<Record<string, never>> 
-   */
-  getHeadingInsertTransaction(): Promise<Record<string, never>>;
-
-  /**
    * 获取调整指定标题块级别所需的事务操作列表。此接口仅返回事务，不实际执行调整。
    * (Requires authentication)
    * @param params Request parameters (BlockGetHeadingLevelTransactionParams)
@@ -7857,36 +7769,12 @@ export interface BlockApi {
   insertBlock(params: BlockInsertBlockParams): Promise<BlockInsertBlockResponse>;
 
   /**
-   * 将指定的块移动到新的父块下或同级块的特定位置。移动后会触发相关文档编辑器的重载。
-   * (Requires authentication, Requires admin role, Unavailable in read-only mode)
-   * @param params Request parameters (BlockMoveBlockParams)
-   * @returns Promise<BlockMoveBlockResponse> 
-   */
-  moveBlock(params: BlockMoveBlockParams): Promise<BlockMoveBlockResponse>;
-
-  /**
-   * 移动大纲中的标题块到新的父级或同级位置。
-   * (Requires authentication, Requires admin role, Unavailable in read-only mode)
-   * @param params Request parameters (BlockMoveOutlineHeadingParams)
-   * @returns Promise<BlockMoveOutlineHeadingResponse> 
-   */
-  moveOutlineHeading(params: BlockMoveOutlineHeadingParams): Promise<BlockMoveOutlineHeadingResponse>;
-
-  /**
    * 在指定父块的开头插入新的子块。
    * (Requires authentication, Requires admin role, Unavailable in read-only mode)
    * @param params Request parameters (BlockPrependBlockParams)
    * @returns Promise<BlockPrependBlockResponse> 
    */
   prependBlock(params: BlockPrependBlockParams): Promise<BlockPrependBlockResponse>;
-
-  /**
-   * 在指定笔记本的当日日记文档开头追加新的内容块。
-   * (Requires authentication, Requires admin role, Unavailable in read-only mode)
-   * @param params Request parameters (BlockPrependDailyNoteBlockParams)
-   * @returns Promise<BlockPrependDailyNoteBlockResponse> 
-   */
-  prependDailyNoteBlock(params: BlockPrependDailyNoteBlockParams): Promise<BlockPrependDailyNoteBlockResponse>;
 
   /**
    * 为指定的块ID设置一个提醒时间。
@@ -7927,6 +7815,62 @@ export interface BlockApi {
    * @returns Promise<BlockUpdateBlockResponse> 
    */
   updateBlock(params: BlockUpdateBlockParams): Promise<BlockUpdateBlockResponse>;
+
+  /**
+   * 在指定笔记本的当日日记文档开头追加新的内容块。
+   * (Requires authentication, Requires admin role, Unavailable in read-only mode)
+   * @param params Request parameters (BlockPrependDailyNoteBlockParams)
+   * @returns Promise<BlockPrependDailyNoteBlockResponse> 
+   */
+  prependDailyNoteBlock(params: BlockPrependDailyNoteBlockParams): Promise<BlockPrependDailyNoteBlockResponse>;
+
+  /**
+   * 将指定的块移动到新的父块下或同级块的特定位置。移动后会触发相关文档编辑器的重载。
+   * (Requires authentication, Requires admin role, Unavailable in read-only mode)
+   * @param params Request parameters (BlockMoveBlockParams)
+   * @returns Promise<BlockMoveBlockResponse> 
+   */
+  moveBlock(params: BlockMoveBlockParams): Promise<BlockMoveBlockResponse>;
+
+  /**
+   * 移动大纲中的标题块到新的父级或同级位置。
+   * (Requires authentication, Requires admin role, Unavailable in read-only mode)
+   * @param params Request parameters (BlockMoveOutlineHeadingParams)
+   * @returns Promise<BlockMoveOutlineHeadingResponse> 
+   */
+  moveOutlineHeading(params: BlockMoveOutlineHeadingParams): Promise<BlockMoveOutlineHeadingResponse>;
+
+  /**
+   * 批量获取指定块ID列表的DOM表示（HTML字符串）。
+   * (Requires authentication)
+   * @param params Request parameters (BlockGetBlockDOMsParams)
+   * @returns Promise<BlockGetBlockDOMsResponse> 
+   */
+  getBlockDOMs(params: BlockGetBlockDOMsParams): Promise<BlockGetBlockDOMsResponse>;
+
+  /**
+   * 在指定的锚点块（anchorID）之前或之后批量插入新的内容块。每个新块可以指定其插入位置。
+   * (Requires authentication, Requires admin role, Unavailable in read-only mode)
+   * @param params Request parameters (BlockBatchInsertBlockParams)
+   * @returns Promise<BlockBatchInsertBlockResponse> 
+   */
+  batchInsertBlock(params: BlockBatchInsertBlockParams): Promise<BlockBatchInsertBlockResponse>;
+
+  /**
+   * 在指定父块的开头批量插入新的子块。
+   * (Requires authentication, Requires admin role, Unavailable in read-only mode)
+   * @param params Request parameters (BlockBatchPrependBlockParams)
+   * @returns Promise<BlockBatchPrependBlockResponse> 
+   */
+  batchPrependBlock(params: BlockBatchPrependBlockParams): Promise<BlockBatchPrependBlockResponse>;
+
+  /**
+   * 在指定父块的末尾批量插入新的子块。
+   * (Requires authentication, Requires admin role, Unavailable in read-only mode)
+   * @param params Request parameters (BlockBatchAppendBlockParams)
+   * @returns Promise<BlockBatchAppendBlockResponse> 
+   */
+  batchAppendBlock(params: BlockBatchAppendBlockParams): Promise<BlockBatchAppendBlockResponse>;
 
 }
 
@@ -8505,17 +8449,9 @@ export interface FiletreeApi {
   /**
    * 触发一次全局的文档树刷新和全量索引重建。这是一个耗时操作，请谨慎调用。
    * (Requires authentication, Requires admin role, Unavailable in read-only mode)
-   * @deprecated
    * @returns Promise<FiletreeRefreshFiletreeResponse> 
    */
   refreshFiletree(): Promise<FiletreeRefreshFiletreeResponse>;
-
-  /**
-   * rebuildDataIndex
-   * (Requires authentication, Requires admin role, Unavailable in read-only mode)
-   * @returns Promise<Record<string, never>> 
-   */
-  rebuildDataIndex(): Promise<Record<string, never>>;
 
   /**
    * 根据指定的笔记本ID和文档相对路径，移除（删除）该文档。
@@ -9639,20 +9575,20 @@ export interface SnippetApi {
   getSnippet(params: SnippetGetSnippetParams): Promise<SnippetGetSnippetResponse>;
 
   /**
-   * 根据ID移除指定的代码片段。
-   * (Requires authentication, Requires admin role, Unavailable in read-only mode)
-   * @param params Request parameters (SnippetRemoveSnippetParams)
-   * @returns Promise<SnippetRemoveSnippetResponse> 
-   */
-  removeSnippet(params: SnippetRemoveSnippetParams): Promise<SnippetRemoveSnippetResponse>;
-
-  /**
    * 设置全新的代码片段列表。这是一个全量替换操作，提供的 snippets 数组将完全覆盖当前所有的代码片段。如果只想修改或添加单个片段，需要先获取所有现有片段，在本地修改/添加后，将修改后的完整列表通过此API发送。
    * (Requires authentication, Requires admin role, Unavailable in read-only mode)
    * @param params Request parameters (SnippetSetSnippetParams)
    * @returns Promise<SnippetSetSnippetResponse> 
    */
   setSnippet(params: SnippetSetSnippetParams): Promise<SnippetSetSnippetResponse>;
+
+  /**
+   * 根据ID移除指定的代码片段。
+   * (Requires authentication, Requires admin role, Unavailable in read-only mode)
+   * @param params Request parameters (SnippetRemoveSnippetParams)
+   * @returns Promise<SnippetRemoveSnippetResponse> 
+   */
+  removeSnippet(params: SnippetRemoveSnippetParams): Promise<SnippetRemoveSnippetResponse>;
 
 }
 
@@ -10055,13 +9991,6 @@ export interface SystemApi {
   LogoutAuth(): Promise<SystemLogoutAuthResponse>;
 
   /**
-   * rebuildDataIndex
-   * (Requires authentication, Requires admin role, Unavailable in read-only mode)
-   * @returns Promise<Record<string, never>> 
-   */
-  rebuildDataIndex(): Promise<Record<string, never>>;
-
-  /**
    * 命令客户端重新加载思源笔记的用户界面。
    * (Requires authentication, Requires admin role, Unavailable in read-only mode)
    * @returns Promise<SystemReloadUIResponse> 
@@ -10181,13 +10110,6 @@ export interface SystemApi {
   addUIProcess(params: SystemAddUIProcessParams): Promise<SystemAddUIProcessResponse>;
 
   /**
-   * vacuumDataIndex
-   * (Requires authentication, Requires admin role, Unavailable in read-only mode)
-   * @returns Promise<Record<string, never>> 
-   */
-  vacuumDataIndex(): Promise<Record<string, never>>;
-
-  /**
    * 获取当前思源笔记内核的版本号。此接口也接受 POST 请求。
    * @returns Promise<SystemVersionResponse> 
    */
@@ -10283,13 +10205,6 @@ export interface UiApi {
   reloadFiletree(): Promise<UiReloadFiletreeResponse>;
 
   /**
-   * reloadIcon
-   * (Requires authentication, Requires admin role, Unavailable in read-only mode)
-   * @returns Promise<Record<string, never>> 
-   */
-  reloadIcon(): Promise<Record<string, never>>;
-
-  /**
    * 重新加载指定的 Protyle 编辑器实例。通常在编辑器内容或状态在后端被修改后调用，以刷新前端显示。
    * (Requires authentication, Requires admin role, Unavailable in read-only mode)
    * @param params Request parameters (UiReloadProtyleParams)
@@ -10346,7 +10261,6 @@ export class SiyuanClient {
   icon: IconApi;
   import: ImportApi;
   inbox: InboxApi;
-  index: IndexApi;
   lute: LuteApi;
   misc: MiscApi;
   network: NetworkApi;
