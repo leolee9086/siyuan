@@ -1,0 +1,42 @@
+{
+  "name": "@leolee9086/siyuan-kernel-client-esm",
+  "version": "0.1.0",
+  "description": "A single-file ESM client for SiYuan Note Kernel API, providing direct access to all API methods.",
+  "type": "module",
+  "main": "kernelApiClient.js",
+  "module": "kernelApiClient.js",
+  "files": [
+    "kernelApiClient.js",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node generateSingleFileClient.cjs",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "siyuan",
+    "siyuan-note",
+    "api",
+    "sdk",
+    "client",
+    "kernel",
+    "esm"
+  ],
+  "author": "leolee9086",
+  "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/leolee9086/my-siyuan-kernel-SDK.git",
+    "directory": "packages/client-esm"
+  },
+  "homepage": "https://github.com/leolee9086/my-siyuan-kernel-SDK/tree/main/packages/client-esm#readme",
+  "bugs": {
+    "url": "https://github.com/leolee9086/my-siyuan-kernel-SDK/issues"
+  },
+  "devDependencies": {
+    "zod": "^3.23.8"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+} 

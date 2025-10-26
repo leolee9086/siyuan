@@ -26,6 +26,10 @@ export const generateBuildingMenuHTML = (customHTML: string): string => {
             ${window.siyuan.languages.clearContext}
         </div>
         <div class="b3-menu__separator"></div>
+        <div class="b3-list-item b3-list-item--narrow" data-type="recentDocs">
+            ${window.siyuan.languages.recentDocs}
+        </div>
+        <div class="b3-menu__separator"></div>
         <div class="b3-list-item b3-list-item--narrow" data-type="custom">
             ${window.siyuan.languages.aiCustomAction}
         </div>

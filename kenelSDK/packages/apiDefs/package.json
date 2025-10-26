@@ -1,0 +1,46 @@
+{
+  "name": "@leolee9086/siyuan-kernel-api-schemas",
+  "version": "0.1.0",
+  "description": "Zod schema definitions for the SiYuan Note Kernel API, usable for client generation, server mocking, and validation.",
+  "type": "module",
+  "main": "index.js",
+  "module": "index.js",
+  "files": [
+    "*.js",
+    "!AInote.md",
+    "!generateIndex.cjs",
+    "README.md",
+    "README_zh-CN.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "generate-index": "node generateIndex.cjs",
+    "build": "npm run generate-index",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "siyuan",
+    "siyuan-note",
+    "api",
+    "sdk",
+    "schemas",
+    "definitions",
+    "zod",
+    "kernel",
+    "leolee9086"
+  ],
+  "author": "leolee9086",
+  "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/leolee9086/my-siyuan-kernel-SDK.git",
+    "directory": "packages/apiDefs"
+  },
+  "homepage": "https://github.com/leolee9086/my-siyuan-kernel-SDK/tree/main/packages/apiDefs",
+  "peerDependencies": {
+    "zod": ">=3.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+} 

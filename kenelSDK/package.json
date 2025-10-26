@@ -1,0 +1,22 @@
+{
+  "name": "my-siyuan-kernel-sdk",
+  "version": "0.1.0",
+  "description": "SDK for SiYuan Kernel API",
+  "main": "kernelApi.js",
+  "type": "module",
+  "scripts": {
+    "generate-api": "node genKernelApi.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "siyuan",
+    "api",
+    "sdk",
+    "kernel"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "zod": "3.23.8"
+  }
+}

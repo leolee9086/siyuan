@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "module": "ESNext",
+    "target": "ESNext",
+    "checkJs": true,
+    "moduleResolution": "node"
+  },
+  "include": [
+    "client/*.js", // 或者直接 "client/**/*.js"
+    "client/*.d.ts" // 或者直接 "client/**/*.d.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
