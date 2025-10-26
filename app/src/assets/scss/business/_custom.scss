@@ -139,3 +139,33 @@
     top: -1.5px;
   }
 }
+
+// AI生成内容的特殊样式
+[data-custom-assistant-name] {
+  // 添加一个淡淡的背景色，不要太显眼
+  background-color: rgba(var(--b3-theme-primary), 0.03);
+  border-radius: var(--b3-border-radius);
+  transition: var(--b3-background-transition);
+  
+  // 添加一个细微的左边框，表示这是AI生成的内容
+  border-left: 2px solid rgba(var(--b3-theme-primary), 0.2);
+  padding-left: 8px;
+  
+  // 鼠标悬停时稍微明显一点
+  &:hover {
+    background-color: rgba(var(--b3-theme-primary), 0.06);
+    border-left-color: rgba(var(--b3-theme-primary), 0.3);
+  }
+  
+  // 如果是代码块，调整样式以保持可读性
+  &.code-block {
+    background-color: rgba(var(--b3-theme-primary), 0.05);
+    border-left-color: rgba(var(--b3-theme-primary), 0.25);
+  }
+  
+  // 如果是表格，调整样式
+  &.table {
+    background-color: rgba(var(--b3-theme-primary), 0.03);
+    border-left-color: rgba(var(--b3-theme-primary), 0.2);
+  }
+}

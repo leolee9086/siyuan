@@ -42,7 +42,7 @@ export interface AIRequestConfig {
     elements: DialogElements;
     animationManager: AnimationManager;
     protyle?: IProtyle; // 新增：protyle实例，用于blockDOM渲染
-    element?: Element; // 新增：块元素，用于获取块内容
+    targetBlockElements?: Element[]; // 新增：选中的块元素数组
 }
 
 // 流式响应处理配置接口

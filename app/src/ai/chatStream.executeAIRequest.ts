@@ -32,19 +32,19 @@ export const executeAIRequest = async (config: AIRequestConfig) => {
     try {
         const aiConfig = getAIConfigFromSiyuan();
         // 获取块内容
-        let blockContent = "";
-        if (config.protyle && config.element) {
-            const blockElement = hasClosestBlock(config.element);
-            if (blockElement) {
-                // 获取块的文本内容
+        let blockContents: string[] = [];
+        
+        // 优先处理多个选中的块
+        if (config.protyle && config.targetBlockElements && config.targetBlockElements.length > 0) {
+            config.targetBlockElements.forEach(blockElement => {
                 const editableElement = getContenteditableElement(blockElement);
                 if (editableElement) {
-                    blockContent = editableElement.textContent || "";
+                    blockContents.push(editableElement.textContent || "");
                 }
-            }
+            });
         }
         
-        const requestBody = buildAIRequest(inputValue, blockContent);
+        const requestBody = buildAIRequest(inputValue, blockContents);
         const headers = buildRequestHeaders();
 
         // 创建流式响应处理器

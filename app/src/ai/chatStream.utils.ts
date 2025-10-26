@@ -18,16 +18,19 @@ export const updateChatState = (state: ChatState, updates: Partial<ChatState>): 
 };
 
 // 构建AI请求参数
-export const buildAIRequest = (inputValue: string, blockContent?: string) => {
+export const buildAIRequest = (inputValue: string, blockContents?: string[]) => {
     const aiConfig = getAIConfigFromSiyuan();
     
     // 构建包含块内容的提示词
     let promptContent = inputValue;
-    if (blockContent) {
+    if (blockContents && blockContents.length > 0) {
+        const blocksText = blockContents.map((content, index) =>
+            ` ${index + 1}：\n${content}`
+        ).join('\n\n');
+        
         promptContent = `请基于以下块内容回答用户的问题：
 
-块内容：
-${blockContent}
+${blocksText}
 
 用户问题：
 ${inputValue}`;

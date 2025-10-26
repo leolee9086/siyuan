@@ -29,6 +29,19 @@ export const AIChat = (protyle: IProtyle, element: Element) => {
     // 创建遮罩元素
     const maskElement = createBlockMask(element, randomColor);
     
+    // 获取选中的块元素（在窗口打开时就确定）
+    const selectedElements = protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select");
+    const selectedElementsArray = selectedElements.length > 0 ? Array.from(selectedElements) : [];
+    
+    // 为所有选中的块元素创建遮罩
+    const maskElements: HTMLElement[] = [];
+    if (selectedElementsArray.length > 0) {
+        selectedElementsArray.forEach(selectedElement => {
+            const mask = createBlockMask(selectedElement, randomColor);
+            maskElements.push(mask);
+        });
+    }
+    
     // 初始化UI元素
     const elements = initializeDialogElements(dialog);
     const state = createChatResponseState();
@@ -42,6 +55,8 @@ export const AIChat = (protyle: IProtyle, element: Element) => {
             observer.disconnect();
             dialog.destroy();
             removeBlockMask(maskElement);
+            // 移除所有选中元素的遮罩
+            maskElements.forEach(mask => removeBlockMask(mask));
             return;
         }
         
@@ -54,6 +69,8 @@ export const AIChat = (protyle: IProtyle, element: Element) => {
                         observer.disconnect();
                         dialog.destroy();
                         removeBlockMask(maskElement);
+                        // 移除所有选中元素的遮罩
+                        maskElements.forEach(mask => removeBlockMask(mask));
                         return;
                     }
                 });
@@ -80,6 +97,8 @@ export const AIChat = (protyle: IProtyle, element: Element) => {
     dialog.destroy = (options?: any) => {
         observer.disconnect();
         removeBlockMask(maskElement);
+        // 移除所有选中元素的遮罩
+        maskElements.forEach(mask => removeBlockMask(mask));
         originalDestroy(options);
     };
     
@@ -103,19 +122,20 @@ export const AIChat = (protyle: IProtyle, element: Element) => {
             return;
         }
         if (state.isDone) {
-            // 用户确认插入内容
-            fillContent(protyle, state.responseContentStr, [element], state.blockDOMContent);
+            // 用户确认插入内容（使用窗口打开时就确定的选中元素组）
+            const targetElements = selectedElementsArray.length > 0 ? selectedElementsArray : [element];
+            fillContent(protyle, state.responseContentStr, targetElements, state.blockDOMContent);
             dialog.destroy();
             return;
         }
-        // 执行AI请求
+        // 执行AI请求（使用窗口打开时就确定的选中元素组）
         const config: AIRequestConfig = {
             inputValue: getInputValue(),
             state,
             elements,
             animationManager,
             protyle, // 传递protyle实例用于blockDOM渲染
-            element // 传递块元素用于获取块内容
+            targetBlockElements: selectedElementsArray.length > 0 ? selectedElementsArray : undefined // 传递窗口打开时就确定的选中的块元素数组
         };
         executeAIRequest(config);
     });
@@ -124,6 +144,8 @@ export const AIChat = (protyle: IProtyle, element: Element) => {
     elements.cancelButtonElement.addEventListener("click", () => {
         // 移除遮罩元素
         removeBlockMask(maskElement);
+        // 移除所有选中元素的遮罩
+        maskElements.forEach(mask => removeBlockMask(mask));
         dialog.destroy();
     });
     
@@ -131,6 +153,8 @@ export const AIChat = (protyle: IProtyle, element: Element) => {
     const dialogDestroy = dialog.destroy.bind(dialog);
     dialog.destroy = (options?: any) => {
         removeBlockMask(maskElement);
+        // 移除所有选中元素的遮罩
+        maskElements.forEach(mask => removeBlockMask(mask));
         dialogDestroy(options);
     };
 };
