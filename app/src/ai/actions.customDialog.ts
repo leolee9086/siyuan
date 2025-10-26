@@ -32,11 +32,9 @@ const handleUseClick = (
     }).then(
         data => {
             dialog.destroy();
-
             fillContent(protyle, data.data, elements);
         }
     )
-   
 };
 
 /**

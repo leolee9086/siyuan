@@ -239,6 +239,15 @@ export class SystemApi {
   }
 
   /**
+ * rebuildDataIndex
+ * (Requires authentication, Requires admin role, Unavailable in read-only mode)
+ * @returns {Promise<object>}
+ */
+  rebuildDataIndex() {
+    return this.fetcher('POST', '/api/system/rebuildDataIndex', {}, true);
+  }
+
+  /**
  * @typedef {import('./index.d.ts').SystemReloadUIResponse} SystemReloadUIResponse
  * 命令客户端重新加载思源笔记的用户界面。
  * (Requires authentication, Requires admin role, Unavailable in read-only mode)
@@ -414,6 +423,15 @@ export class SystemApi {
  */
   addUIProcess(params) {
     return this.fetcher('POST', '/api/system/uiproc', params, false);
+  }
+
+  /**
+ * vacuumDataIndex
+ * (Requires authentication, Requires admin role, Unavailable in read-only mode)
+ * @returns {Promise<object>}
+ */
+  vacuumDataIndex() {
+    return this.fetcher('POST', '/api/system/vacuumDataIndex', {}, true);
   }
 
   /**

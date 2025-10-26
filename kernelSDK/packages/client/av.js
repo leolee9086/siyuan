@@ -41,6 +41,42 @@ export class AvApi {
   }
 
   /**
+ * @typedef {import('./index.d.ts').AvBatchReplaceAttributeViewBlocksParams} AvBatchReplaceAttributeViewBlocksParams
+ * @typedef {import('./index.d.ts').AvBatchReplaceAttributeViewBlocksResponse} AvBatchReplaceAttributeViewBlocksResponse
+ * 批量替换属性视图中的现有块ID。
+ * (Requires authentication)
+ * @param {AvBatchReplaceAttributeViewBlocksParams} params - Request parameters.
+ * @returns {Promise<AvBatchReplaceAttributeViewBlocksResponse>}
+ */
+  batchReplaceAttributeViewBlocks(params) {
+    return this.fetcher('POST', '/api/av/batchReplaceAttributeViewBlocks', params, true);
+  }
+
+  /**
+ * @typedef {import('./index.d.ts').AvBatchSetAttributeViewBlockAttrsParams} AvBatchSetAttributeViewBlockAttrsParams
+ * @typedef {import('./index.d.ts').AvBatchSetAttributeViewBlockAttrsResponse} AvBatchSetAttributeViewBlockAttrsResponse
+ * 批量更新属性视图中多个单元格（行和列）的值。
+ * (Requires authentication, Requires admin role, Unavailable in read-only mode)
+ * @param {AvBatchSetAttributeViewBlockAttrsParams} params - Request parameters.
+ * @returns {Promise<AvBatchSetAttributeViewBlockAttrsResponse>}
+ */
+  batchSetAttributeViewBlockAttrs(params) {
+    return this.fetcher('POST', '/api/av/batchSetAttributeViewBlockAttrs', params, true);
+  }
+
+  /**
+ * @typedef {import('./index.d.ts').AvChangeAttrViewLayoutParams} AvChangeAttrViewLayoutParams
+ * @typedef {import('./index.d.ts').AvChangeAttrViewLayoutResponse} AvChangeAttrViewLayoutResponse
+ * 改变指定属性视图的显示布局类型（如表格、看板、日历等）。
+ * (Requires authentication)
+ * @param {AvChangeAttrViewLayoutParams} params - Request parameters.
+ * @returns {Promise<AvChangeAttrViewLayoutResponse>}
+ */
+  changeAttrViewLayout(params) {
+    return this.fetcher('POST', '/api/av/changeAttrViewLayout', params, true);
+  }
+
+  /**
  * @typedef {import('./index.d.ts').AvDuplicateAttributeViewBlockParams} AvDuplicateAttributeViewBlockParams
  * @typedef {import('./index.d.ts').AvDuplicateAttributeViewBlockResponse} AvDuplicateAttributeViewBlockResponse
  * 复制一个属性视图块（数据库块）。
@@ -65,6 +101,24 @@ export class AvApi {
   }
 
   /**
+ * getAttributeViewAddingBlockDefaultValues
+ * (Requires authentication)
+ * @returns {Promise<object>}
+ */
+  getAttributeViewAddingBlockDefaultValues() {
+    return this.fetcher('POST', '/api/av/getAttributeViewAddingBlockDefaultValues', {}, true);
+  }
+
+  /**
+ * getAttributeViewBoundBlockIDsByItemIDs
+ * (Requires authentication)
+ * @returns {Promise<object>}
+ */
+  getAttributeViewBoundBlockIDsByItemIDs() {
+    return this.fetcher('POST', '/api/av/getAttributeViewBoundBlockIDsByItemIDs', {}, true);
+  }
+
+  /**
  * @typedef {import('./index.d.ts').AvGetAttributeViewFilterSortParams} AvGetAttributeViewFilterSortParams
  * @typedef {import('./index.d.ts').AvGetAttributeViewFilterSortResponse} AvGetAttributeViewFilterSortResponse
  * 获取指定属性视图（或其关联块）的筛选条件和排序规则。
@@ -74,6 +128,15 @@ export class AvApi {
  */
   getAttributeViewFilterSort(params) {
     return this.fetcher('POST', '/api/av/getAttributeViewFilterSort', params, true);
+  }
+
+  /**
+ * getAttributeViewItemIDsByBoundIDs
+ * (Requires authentication)
+ * @returns {Promise<object>}
+ */
+  getAttributeViewItemIDsByBoundIDs() {
+    return this.fetcher('POST', '/api/av/getAttributeViewItemIDsByBoundIDs', {}, true);
   }
 
   /**
@@ -101,6 +164,15 @@ export class AvApi {
   }
 
   /**
+ * getAttributeViewKeysByID
+ * (Requires authentication)
+ * @returns {Promise<object>}
+ */
+  getAttributeViewKeysByID() {
+    return this.fetcher('POST', '/api/av/getAttributeViewKeysByID', {}, true);
+  }
+
+  /**
  * @typedef {import('./index.d.ts').AvGetAttributeViewPrimaryKeyValuesParams} AvGetAttributeViewPrimaryKeyValuesParams
  * @typedef {import('./index.d.ts').AvGetAttributeViewPrimaryKeyValuesResponse} AvGetAttributeViewPrimaryKeyValuesResponse
  * 获取指定属性视图的主键列的值，支持分页和关键词搜索。
@@ -110,6 +182,18 @@ export class AvApi {
  */
   getAttributeViewPrimaryKeyValues(params) {
     return this.fetcher('POST', '/api/av/getAttributeViewPrimaryKeyValues', params, true);
+  }
+
+  /**
+ * @typedef {import('./index.d.ts').AvGetCurrentAttrViewImagesParams} AvGetCurrentAttrViewImagesParams
+ * @typedef {import('./index.d.ts').AvGetCurrentAttrViewImagesResponse} AvGetCurrentAttrViewImagesResponse
+ * 获取当前属性视图中包含的所有图片资源。
+ * (Requires authentication)
+ * @param {AvGetCurrentAttrViewImagesParams} params - Request parameters.
+ * @returns {Promise<AvGetCurrentAttrViewImagesResponse>}
+ */
+  getCurrentAttrViewImages(params) {
+    return this.fetcher('POST', '/api/av/getCurrentAttrViewImages', params, true);
   }
 
   /**
@@ -221,6 +305,27 @@ export class AvApi {
   }
 
   /**
+ * searchAttributeViewRollupDestKeys
+ * (Requires authentication, Requires admin role, Unavailable in read-only mode)
+ * @returns {Promise<object>}
+ */
+  searchAttributeViewRollupDestKeys() {
+    return this.fetcher('POST', '/api/av/searchAttributeViewRollupDestKeys', {}, true);
+  }
+
+  /**
+ * @typedef {import('./index.d.ts').AvSetAttrViewGroupParams} AvSetAttrViewGroupParams
+ * @typedef {import('./index.d.ts').AvSetAttrViewGroupResponse} AvSetAttrViewGroupResponse
+ * 设置属性视图的块分组规则。
+ * (Requires authentication)
+ * @param {AvSetAttrViewGroupParams} params - Request parameters.
+ * @returns {Promise<AvSetAttrViewGroupResponse>}
+ */
+  setAttrViewGroup(params) {
+    return this.fetcher('POST', '/api/av/setAttrViewGroup', params, true);
+  }
+
+  /**
  * @typedef {import('./index.d.ts').AvSetAttributeViewBlockAttrParams} AvSetAttributeViewBlockAttrParams
  * @typedef {import('./index.d.ts').AvSetAttributeViewBlockAttrResponse} AvSetAttributeViewBlockAttrResponse
  * 更新属性视图中指定行（块ID）、指定列（KeyID）的单元格的值。
@@ -266,66 +371,6 @@ export class AvApi {
  */
   sortAttributeViewViewKey(params) {
     return this.fetcher('POST', '/api/av/sortAttributeViewViewKey', params, true);
-  }
-
-  /**
- * @typedef {import('./index.d.ts').AvBatchSetAttributeViewBlockAttrsParams} AvBatchSetAttributeViewBlockAttrsParams
- * @typedef {import('./index.d.ts').AvBatchSetAttributeViewBlockAttrsResponse} AvBatchSetAttributeViewBlockAttrsResponse
- * 批量更新属性视图中多个单元格（行和列）的值。
- * (Requires authentication, Requires admin role, Unavailable in read-only mode)
- * @param {AvBatchSetAttributeViewBlockAttrsParams} params - Request parameters.
- * @returns {Promise<AvBatchSetAttributeViewBlockAttrsResponse>}
- */
-  batchSetAttributeViewBlockAttrs(params) {
-    return this.fetcher('POST', '/api/av/batchSetAttributeViewBlockAttrs', params, true);
-  }
-
-  /**
- * @typedef {import('./index.d.ts').AvGetCurrentAttrViewImagesParams} AvGetCurrentAttrViewImagesParams
- * @typedef {import('./index.d.ts').AvGetCurrentAttrViewImagesResponse} AvGetCurrentAttrViewImagesResponse
- * 获取当前属性视图中包含的所有图片资源。
- * (Requires authentication)
- * @param {AvGetCurrentAttrViewImagesParams} params - Request parameters.
- * @returns {Promise<AvGetCurrentAttrViewImagesResponse>}
- */
-  getCurrentAttrViewImages(params) {
-    return this.fetcher('POST', '/api/av/getCurrentAttrViewImages', params, true);
-  }
-
-  /**
- * @typedef {import('./index.d.ts').AvChangeAttrViewLayoutParams} AvChangeAttrViewLayoutParams
- * @typedef {import('./index.d.ts').AvChangeAttrViewLayoutResponse} AvChangeAttrViewLayoutResponse
- * 改变指定属性视图的显示布局类型（如表格、看板、日历等）。
- * (Requires authentication)
- * @param {AvChangeAttrViewLayoutParams} params - Request parameters.
- * @returns {Promise<AvChangeAttrViewLayoutResponse>}
- */
-  changeAttrViewLayout(params) {
-    return this.fetcher('POST', '/api/av/changeAttrViewLayout', params, true);
-  }
-
-  /**
- * @typedef {import('./index.d.ts').AvSetAttrViewGroupParams} AvSetAttrViewGroupParams
- * @typedef {import('./index.d.ts').AvSetAttrViewGroupResponse} AvSetAttrViewGroupResponse
- * 设置属性视图的块分组规则。
- * (Requires authentication)
- * @param {AvSetAttrViewGroupParams} params - Request parameters.
- * @returns {Promise<AvSetAttrViewGroupResponse>}
- */
-  setAttrViewGroup(params) {
-    return this.fetcher('POST', '/api/av/setAttrViewGroup', params, true);
-  }
-
-  /**
- * @typedef {import('./index.d.ts').AvBatchReplaceAttributeViewBlocksParams} AvBatchReplaceAttributeViewBlocksParams
- * @typedef {import('./index.d.ts').AvBatchReplaceAttributeViewBlocksResponse} AvBatchReplaceAttributeViewBlocksResponse
- * 批量替换属性视图中的现有块ID。
- * (Requires authentication)
- * @param {AvBatchReplaceAttributeViewBlocksParams} params - Request parameters.
- * @returns {Promise<AvBatchReplaceAttributeViewBlocksResponse>}
- */
-  batchReplaceAttributeViewBlocks(params) {
-    return this.fetcher('POST', '/api/av/batchReplaceAttributeViewBlocks', params, true);
   }
 
 }

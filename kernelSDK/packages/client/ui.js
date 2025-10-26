@@ -27,6 +27,15 @@ export class UiApi {
   }
 
   /**
+ * reloadIcon
+ * (Requires authentication, Requires admin role, Unavailable in read-only mode)
+ * @returns {Promise<object>}
+ */
+  reloadIcon() {
+    return this.fetcher('POST', '/api/ui/reloadIcon', {}, true);
+  }
+
+  /**
  * @typedef {import('./index.d.ts').UiReloadProtyleParams} UiReloadProtyleParams
  * @typedef {import('./index.d.ts').UiReloadProtyleResponse} UiReloadProtyleResponse
  * 重新加载指定的 Protyle 编辑器实例。通常在编辑器内容或状态在后端被修改后调用，以刷新前端显示。

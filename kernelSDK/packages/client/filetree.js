@@ -272,10 +272,20 @@ export class FiletreeApi {
  * @typedef {import('./index.d.ts').FiletreeRefreshFiletreeResponse} FiletreeRefreshFiletreeResponse
  * 触发一次全局的文档树刷新和全量索引重建。这是一个耗时操作，请谨慎调用。
  * (Requires authentication, Requires admin role, Unavailable in read-only mode)
+ * @deprecated
  * @returns {Promise<FiletreeRefreshFiletreeResponse>}
  */
   refreshFiletree() {
     return this.fetcher('POST', '/api/filetree/refreshFiletree', {}, true);
+  }
+
+  /**
+ * rebuildDataIndex
+ * (Requires authentication, Requires admin role, Unavailable in read-only mode)
+ * @returns {Promise<object>}
+ */
+  rebuildDataIndex() {
+    return this.fetcher('POST', '/api/filetree/refreshFiletree ', {}, true);
   }
 
   /**

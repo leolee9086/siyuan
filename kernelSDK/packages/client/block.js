@@ -29,6 +29,51 @@ export class BlockApi {
   }
 
   /**
+ * appendHeadingChildren
+ * (Requires authentication)
+ * @returns {Promise<object>}
+ */
+  appendHeadingChildren() {
+    return this.fetcher('POST', '/api/block/appendHeadingChildren', {}, true);
+  }
+
+  /**
+ * @typedef {import('./index.d.ts').BlockBatchAppendBlockParams} BlockBatchAppendBlockParams
+ * @typedef {import('./index.d.ts').BlockBatchAppendBlockResponse} BlockBatchAppendBlockResponse
+ * 在指定父块的末尾批量插入新的子块。
+ * (Requires authentication, Requires admin role, Unavailable in read-only mode)
+ * @param {BlockBatchAppendBlockParams} params - Request parameters.
+ * @returns {Promise<BlockBatchAppendBlockResponse>}
+ */
+  batchAppendBlock(params) {
+    return this.fetcher('POST', '/api/block/batchAppendBlock', params, true);
+  }
+
+  /**
+ * @typedef {import('./index.d.ts').BlockBatchInsertBlockParams} BlockBatchInsertBlockParams
+ * @typedef {import('./index.d.ts').BlockBatchInsertBlockResponse} BlockBatchInsertBlockResponse
+ * 在指定的锚点块（anchorID）之前或之后批量插入新的内容块。每个新块可以指定其插入位置。
+ * (Requires authentication, Requires admin role, Unavailable in read-only mode)
+ * @param {BlockBatchInsertBlockParams} params - Request parameters.
+ * @returns {Promise<BlockBatchInsertBlockResponse>}
+ */
+  batchInsertBlock(params) {
+    return this.fetcher('POST', '/api/block/batchInsertBlock', params, true);
+  }
+
+  /**
+ * @typedef {import('./index.d.ts').BlockBatchPrependBlockParams} BlockBatchPrependBlockParams
+ * @typedef {import('./index.d.ts').BlockBatchPrependBlockResponse} BlockBatchPrependBlockResponse
+ * 在指定父块的开头批量插入新的子块。
+ * (Requires authentication, Requires admin role, Unavailable in read-only mode)
+ * @param {BlockBatchPrependBlockParams} params - Request parameters.
+ * @returns {Promise<BlockBatchPrependBlockResponse>}
+ */
+  batchPrependBlock(params) {
+    return this.fetcher('POST', '/api/block/batchPrependBlock', params, true);
+  }
+
+  /**
  * @typedef {import('./index.d.ts').BlockBatchUpdateBlockParams} BlockBatchUpdateBlockParams
  * @typedef {import('./index.d.ts').BlockBatchUpdateBlockResponse} BlockBatchUpdateBlockResponse
  * 批量更新多个块的内容。
@@ -125,6 +170,18 @@ export class BlockApi {
   }
 
   /**
+ * @typedef {import('./index.d.ts').BlockGetBlockDOMsParams} BlockGetBlockDOMsParams
+ * @typedef {import('./index.d.ts').BlockGetBlockDOMsResponse} BlockGetBlockDOMsResponse
+ * 批量获取指定块ID列表的DOM表示（HTML字符串）。
+ * (Requires authentication)
+ * @param {BlockGetBlockDOMsParams} params - Request parameters.
+ * @returns {Promise<BlockGetBlockDOMsResponse>}
+ */
+  getBlockDOMs(params) {
+    return this.fetcher('POST', '/api/block/getBlockDOMs', params, true);
+  }
+
+  /**
  * @typedef {import('./index.d.ts').BlockGetBlockDefIDsByRefTextParams} BlockGetBlockDefIDsByRefTextParams
  * @typedef {import('./index.d.ts').BlockGetBlockDefIDsByRefTextResponse} BlockGetBlockDefIDsByRefTextResponse
  * 根据引用文本（锚文本）搜索并返回其可能指向的块定义ID列表。
@@ -170,6 +227,15 @@ export class BlockApi {
  */
   getBlockKramdown(params) {
     return this.fetcher('POST', '/api/block/getBlockKramdown', params, true);
+  }
+
+  /**
+ * getBlockRelevantIDs
+ * (Requires authentication)
+ * @returns {Promise<object>}
+ */
+  getBlockRelevantIDs() {
+    return this.fetcher('POST', '/api/block/getBlockRelevantIDs', {}, true);
   }
 
   /**
@@ -317,6 +383,15 @@ export class BlockApi {
   }
 
   /**
+ * getHeadingInsertTransaction
+ * (Requires authentication)
+ * @returns {Promise<object>}
+ */
+  getHeadingInsertTransaction() {
+    return this.fetcher('POST', '/api/block/getHeadingInsertTransaction', {}, true);
+  }
+
+  /**
  * @typedef {import('./index.d.ts').BlockGetHeadingLevelTransactionParams} BlockGetHeadingLevelTransactionParams
  * @typedef {import('./index.d.ts').BlockGetHeadingLevelTransactionResponse} BlockGetHeadingLevelTransactionResponse
  * 获取调整指定标题块级别所需的事务操作列表。此接口仅返回事务，不实际执行调整。
@@ -423,6 +498,30 @@ export class BlockApi {
   }
 
   /**
+ * @typedef {import('./index.d.ts').BlockMoveBlockParams} BlockMoveBlockParams
+ * @typedef {import('./index.d.ts').BlockMoveBlockResponse} BlockMoveBlockResponse
+ * 将指定的块移动到新的父块下或同级块的特定位置。移动后会触发相关文档编辑器的重载。
+ * (Requires authentication, Requires admin role, Unavailable in read-only mode)
+ * @param {BlockMoveBlockParams} params - Request parameters.
+ * @returns {Promise<BlockMoveBlockResponse>}
+ */
+  moveBlock(params) {
+    return this.fetcher('POST', '/api/block/moveBlock', params, true);
+  }
+
+  /**
+ * @typedef {import('./index.d.ts').BlockMoveOutlineHeadingParams} BlockMoveOutlineHeadingParams
+ * @typedef {import('./index.d.ts').BlockMoveOutlineHeadingResponse} BlockMoveOutlineHeadingResponse
+ * 移动大纲中的标题块到新的父级或同级位置。
+ * (Requires authentication, Requires admin role, Unavailable in read-only mode)
+ * @param {BlockMoveOutlineHeadingParams} params - Request parameters.
+ * @returns {Promise<BlockMoveOutlineHeadingResponse>}
+ */
+  moveOutlineHeading(params) {
+    return this.fetcher('POST', '/api/block/moveOutlineHeading', params, true);
+  }
+
+  /**
  * @typedef {import('./index.d.ts').BlockPrependBlockParams} BlockPrependBlockParams
  * @typedef {import('./index.d.ts').BlockPrependBlockResponse} BlockPrependBlockResponse
  * 在指定父块的开头插入新的子块。
@@ -432,6 +531,18 @@ export class BlockApi {
  */
   prependBlock(params) {
     return this.fetcher('POST', '/api/block/prependBlock', params, true);
+  }
+
+  /**
+ * @typedef {import('./index.d.ts').BlockPrependDailyNoteBlockParams} BlockPrependDailyNoteBlockParams
+ * @typedef {import('./index.d.ts').BlockPrependDailyNoteBlockResponse} BlockPrependDailyNoteBlockResponse
+ * 在指定笔记本的当日日记文档开头追加新的内容块。
+ * (Requires authentication, Requires admin role, Unavailable in read-only mode)
+ * @param {BlockPrependDailyNoteBlockParams} params - Request parameters.
+ * @returns {Promise<BlockPrependDailyNoteBlockResponse>}
+ */
+  prependDailyNoteBlock(params) {
+    return this.fetcher('POST', '/api/block/prependDailyNoteBlock', params, true);
   }
 
   /**
@@ -492,90 +603,6 @@ export class BlockApi {
  */
   updateBlock(params) {
     return this.fetcher('POST', '/api/block/updateBlock', params, true);
-  }
-
-  /**
- * @typedef {import('./index.d.ts').BlockPrependDailyNoteBlockParams} BlockPrependDailyNoteBlockParams
- * @typedef {import('./index.d.ts').BlockPrependDailyNoteBlockResponse} BlockPrependDailyNoteBlockResponse
- * 在指定笔记本的当日日记文档开头追加新的内容块。
- * (Requires authentication, Requires admin role, Unavailable in read-only mode)
- * @param {BlockPrependDailyNoteBlockParams} params - Request parameters.
- * @returns {Promise<BlockPrependDailyNoteBlockResponse>}
- */
-  prependDailyNoteBlock(params) {
-    return this.fetcher('POST', '/api/block/prependDailyNoteBlock', params, true);
-  }
-
-  /**
- * @typedef {import('./index.d.ts').BlockMoveBlockParams} BlockMoveBlockParams
- * @typedef {import('./index.d.ts').BlockMoveBlockResponse} BlockMoveBlockResponse
- * 将指定的块移动到新的父块下或同级块的特定位置。移动后会触发相关文档编辑器的重载。
- * (Requires authentication, Requires admin role, Unavailable in read-only mode)
- * @param {BlockMoveBlockParams} params - Request parameters.
- * @returns {Promise<BlockMoveBlockResponse>}
- */
-  moveBlock(params) {
-    return this.fetcher('POST', '/api/block/moveBlock', params, true);
-  }
-
-  /**
- * @typedef {import('./index.d.ts').BlockMoveOutlineHeadingParams} BlockMoveOutlineHeadingParams
- * @typedef {import('./index.d.ts').BlockMoveOutlineHeadingResponse} BlockMoveOutlineHeadingResponse
- * 移动大纲中的标题块到新的父级或同级位置。
- * (Requires authentication, Requires admin role, Unavailable in read-only mode)
- * @param {BlockMoveOutlineHeadingParams} params - Request parameters.
- * @returns {Promise<BlockMoveOutlineHeadingResponse>}
- */
-  moveOutlineHeading(params) {
-    return this.fetcher('POST', '/api/block/moveOutlineHeading', params, true);
-  }
-
-  /**
- * @typedef {import('./index.d.ts').BlockGetBlockDOMsParams} BlockGetBlockDOMsParams
- * @typedef {import('./index.d.ts').BlockGetBlockDOMsResponse} BlockGetBlockDOMsResponse
- * 批量获取指定块ID列表的DOM表示（HTML字符串）。
- * (Requires authentication)
- * @param {BlockGetBlockDOMsParams} params - Request parameters.
- * @returns {Promise<BlockGetBlockDOMsResponse>}
- */
-  getBlockDOMs(params) {
-    return this.fetcher('POST', '/api/block/getBlockDOMs', params, true);
-  }
-
-  /**
- * @typedef {import('./index.d.ts').BlockBatchInsertBlockParams} BlockBatchInsertBlockParams
- * @typedef {import('./index.d.ts').BlockBatchInsertBlockResponse} BlockBatchInsertBlockResponse
- * 在指定的锚点块（anchorID）之前或之后批量插入新的内容块。每个新块可以指定其插入位置。
- * (Requires authentication, Requires admin role, Unavailable in read-only mode)
- * @param {BlockBatchInsertBlockParams} params - Request parameters.
- * @returns {Promise<BlockBatchInsertBlockResponse>}
- */
-  batchInsertBlock(params) {
-    return this.fetcher('POST', '/api/block/batchInsertBlock', params, true);
-  }
-
-  /**
- * @typedef {import('./index.d.ts').BlockBatchPrependBlockParams} BlockBatchPrependBlockParams
- * @typedef {import('./index.d.ts').BlockBatchPrependBlockResponse} BlockBatchPrependBlockResponse
- * 在指定父块的开头批量插入新的子块。
- * (Requires authentication, Requires admin role, Unavailable in read-only mode)
- * @param {BlockBatchPrependBlockParams} params - Request parameters.
- * @returns {Promise<BlockBatchPrependBlockResponse>}
- */
-  batchPrependBlock(params) {
-    return this.fetcher('POST', '/api/block/batchPrependBlock', params, true);
-  }
-
-  /**
- * @typedef {import('./index.d.ts').BlockBatchAppendBlockParams} BlockBatchAppendBlockParams
- * @typedef {import('./index.d.ts').BlockBatchAppendBlockResponse} BlockBatchAppendBlockResponse
- * 在指定父块的末尾批量插入新的子块。
- * (Requires authentication, Requires admin role, Unavailable in read-only mode)
- * @param {BlockBatchAppendBlockParams} params - Request parameters.
- * @returns {Promise<BlockBatchAppendBlockResponse>}
- */
-  batchAppendBlock(params) {
-    return this.fetcher('POST', '/api/block/batchAppendBlock', params, true);
   }
 
 }
