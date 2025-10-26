@@ -1,4 +1,3 @@
-import { StreamRequestConfigWithAI, AIConfig, ChatRequestParams, ChatResponseData } from "../ai/types";
 
 // 定义流式请求配置的类型（保持向后兼容）
 interface StreamRequestConfig {
@@ -79,8 +78,6 @@ export const universalStreamRequest = async (
 
         const decoder = new TextDecoder("utf-8");
         let buffer = "";
-        let isFirstChunk = true;
-
         try {
             while (true) {
                 const { done, value } = await reader.read();
@@ -101,7 +98,7 @@ export const universalStreamRequest = async (
                             onDone(); // 调用结束回调
                             return; // 流结束
                         }
-                        
+                        console.log(dataStr)
                         // 直接传递原始数据给调用方处理
                         onMessage(dataStr);
                         resetTimeout(); // 每次收到内容都重置超时

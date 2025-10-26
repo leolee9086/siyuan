@@ -29,7 +29,7 @@ import { getContenteditableElement } from "../protyle/wysiwyg/getBlock";
  * fillContent(editorInstance, aiGeneratedContent, currentElements);
  * ```
  */
-export const fillContent = (protyle: IProtyle, rawContent: string, blockElements: Element[]) => {
+export const fillContent = (protyle: IProtyle, rawContent: string, blockElements: Element[], blockDOMContent?: string) => {
     // 检查数据是否为空，如果为空则直接返回
     if (!rawContent) {
         return;
@@ -53,7 +53,8 @@ export const fillContent = (protyle: IProtyle, rawContent: string, blockElements
     // 折叠选区到范围的末尾，确保新内容插入到正确位置
     protyle.toolbar.range.collapse(true);
     
-    const blockDom = protyle.lute.SpinBlockDOM(rawContent);
+    // 优先使用提供的blockDOM内容，如果没有则使用原始内容生成blockDOM
+    const blockDom = blockDOMContent || protyle.lute.SpinBlockDOM(rawContent);
     // 使用lute引擎将数据转换为块级DOM并插入到编辑器中
     insertHTML(blockDom, protyle, true, true);
     
