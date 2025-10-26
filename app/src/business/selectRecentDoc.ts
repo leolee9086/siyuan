@@ -1,7 +1,6 @@
-import RecentDocs from "../components/recentDocs.vue";
+import RecentDocs from "../components/recentDocsAndDocks.vue";
 import { Constants } from "../constants";
 import { Dialog } from "../dialog";
-import { hideElements } from "../protyle/ui/hideElements";
 import { focusByRange } from "../protyle/util/selection";
 import { fetchPost } from "../util/fetch";
 import { VueComponentMountConfig, createSimpleVueComponentLoader } from "../util/vue/mount";
@@ -12,7 +11,6 @@ import { VueComponentMountConfig, createSimpleVueComponentLoader } from "../util
  * 2.如果用户选择了一个文档,那么返回这个文档的id
  * 3.如果是其它任何情况,返回空值
  */
-
 export const selectRecentDoc = (): Promise<string | null> => {
     return new Promise((resolve) => {
         // 检查是否已经有打开的对话框
@@ -23,10 +21,8 @@ export const selectRecentDoc = (): Promise<string | null> => {
         });
 
         if (openRecentDocsDialog) {
-            // 如果对话框已经打开，关闭它并返回null
-            hideElements(["dialog"]);
-            resolve(null);
-            return;
+            // 如果对话框已经打开，关闭它
+            openRecentDocsDialog.destroy()
         }
 
         // 保存当前选择范围

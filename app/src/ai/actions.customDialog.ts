@@ -6,6 +6,7 @@ import { fillContent } from "./actions.fillContent";
 import { VueComponentMountConfig } from "../util/vue/mount";
 import { createVueDialog } from "../util/dialog/createVueDialog";
 import AiCustomDialog from "../components/aiCustomDialog.vue";
+import { saveCustomAIAction } from "../data/localStorage";
 
 /**
  * 处理使用按钮的点击事件
@@ -46,12 +47,14 @@ const handleSaveClick = (
     name: string,
     customAction: string
 ) => {
-    window.siyuan.storage[Constants.LOCAL_AI].push({
-        name: name,
-        memo: customAction
-    });
-    setStorageVal(Constants.LOCAL_AI, window.siyuan.storage[Constants.LOCAL_AI]);
-    dialog.destroy();
+    saveCustomAIAction(
+        {
+            onAfterSave:dialog.destroy
+        },
+        {
+            name,customAction
+        }
+    )
 };
 
 /**

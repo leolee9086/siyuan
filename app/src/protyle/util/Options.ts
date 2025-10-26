@@ -1,6 +1,7 @@
 import {Constants} from "../../constants";
 import {merge} from "./merge";
-import {hintEmbed, hintRef, hintSlash, hintTag} from "../hint/extend";
+import {hintEmbed, hintSlash, hintTag} from "../hint/extend";
+import { hintRef } from "../hint/extend.hintRef";
 import {toolbarKeyToMenu} from "../toolbar/util";
 
 export class Options {

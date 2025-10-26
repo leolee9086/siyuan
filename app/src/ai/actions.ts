@@ -6,10 +6,11 @@ import { showMessage } from "../dialog/message";
 import { Menu } from "../plugin/Menu";
 import { upDownHint } from "../util/upDownHint";
 import { getElementsBlockId } from "../util/DOM/blockLikeElements";
-import { switchFnNoneByFlag } from "../util/DOM/fnClasses";
 import { fillContent } from "./actions.fillContent";
 import { AIMenuContext, AIMenuRequest, handleAIMenuItemClick } from "./actions.handleAIMenuItemClick";
 import { customDialog } from "./actions.customDialog";
+import { filterAIMenuItems } from "./actions.filterAIMenuItems";
+import { generateBuildingMenuHTML } from "./actions.generateBuildingMenuHTML";
 
 /**
  * 生成自定义AI菜单项的HTML
@@ -27,42 +28,6 @@ const generateCustomMenuItems = (): string => {
         customHTML = `<div class="b3-menu__separator"></div>${customHTML}`;
     }
     return customHTML;
-};
-
-/**
- * 生成AI菜单的完整HTML模板
- * @param customHTML 自定义菜单项的HTML
- * @returns 菜单的完整HTML字符串
- */
-const generateMenuHTML = (customHTML: string): string => {
-    const clearContext = "Clear context";
-    return `<div class="fn__flex-column b3-menu__filter">
-    <input class="b3-text-field fn__flex-shrink" placeholder="${window.siyuan.languages.ai}"/>
-    <div class="fn__hr"></div>
-    <div class="b3-list fn__flex-1 b3-list--background">
-       <div class="b3-list-item b3-list-item--narrow b3-list-item--focus" data-action="Continue writing">
-            ${window.siyuan.languages.aiContinueWrite}
-        </div>
-        <div class="b3-menu__separator"></div>
-        <div class="b3-list-item b3-list-item--narrow" data-action="${window.siyuan.languages.aiExtractSummary}">
-            ${window.siyuan.languages.aiExtractSummary}
-        </div>
-        <div class="b3-list-item b3-list-item--narrow" data-action="${window.siyuan.languages.aiBrainStorm}">
-            ${window.siyuan.languages.aiBrainStorm}
-        </div>
-        <div class="b3-list-item b3-list-item--narrow" data-action="${window.siyuan.languages.aiFixGrammarSpell}">
-            ${window.siyuan.languages.aiFixGrammarSpell}
-        </div>
-        <div class="b3-list-item b3-list-item--narrow" data-action="${clearContext}">
-            ${window.siyuan.languages.clearContext}
-        </div>
-        <div class="b3-menu__separator"></div>
-        <div class="b3-list-item b3-list-item--narrow" data-type="custom">
-            ${window.siyuan.languages.aiCustomAction}
-        </div>
-        ${customHTML}
-    </div>
-</div>`;
 };
 
 /**
@@ -128,7 +93,7 @@ const handleInput = (
     if (event.isComposing) {
         return;
     }
-    filterAI(element, inputElement);
+    filterAIMenuItems(element, inputElement);
 };
 
 /**
@@ -140,7 +105,7 @@ const handleCompositionEnd = (
     element: HTMLElement,
     inputElement: HTMLInputElement
 ) => {
-    filterAI(element, inputElement);
+    filterAIMenuItems(element, inputElement);
 };
 
 /**
@@ -243,18 +208,7 @@ const bindMenuEvents = (
     });
 };
 
-const filterAI = (element: HTMLElement, inputElement: HTMLInputElement) => {
-    element.querySelectorAll(".b3-list-item").forEach(item => {
-        const hasText = item.textContent.indexOf(inputElement.value) > -1;
-        switchFnNoneByFlag(item, !hasText);
-    });
-    element.querySelectorAll(".b3-menu__separator").forEach(item => {
-        switchFnNoneByFlag(item, !!inputElement.value);
-    });
-    element.querySelector(".b3-list-item--focus").classList.remove("b3-list-item--focus");
-    element.querySelector(".b3-list-item:not(.fn__none)").classList.add("b3-list-item--focus");
-};
-export const AIActions = (elements: Element[], protyle: IProtyle) => {
+export const openAIActionsMenu = (elements: Element[], protyle: IProtyle) => {
     window.siyuan.menus.menu.remove();
     const ids = getElementsBlockId(elements)
     const menu = new Menu("ai", () => {
@@ -266,7 +220,7 @@ export const AIActions = (elements: Element[], protyle: IProtyle) => {
     const clearContext = "Clear context";
     
     // 使用独立函数生成菜单HTML模板
-    const menuHTML = generateMenuHTML(customHTML);
+    const menuHTML = generateBuildingMenuHTML(customHTML);
     
     // 将Element[]转换为HTMLElement[]
     const htmlElements = elements as HTMLElement[];
