@@ -37,7 +37,8 @@ export class Dialog {
         containerClassName?: string,
         disableScrimClose?: boolean, // 是否禁用点击遮罩关闭
         disableEscapeClose?: boolean,  // 是否禁用 Escape 键关闭
-        scrimPointerEvents?: boolean // 是否允许遮罩层鼠标事件穿透
+        scrimPointerEvents?: boolean, // 是否允许遮罩层鼠标事件穿透
+        closeButtonPosition?: "outside" | "inside" | "inside-body" // 关闭按钮位置：外部(默认)、内部标题栏、内部内容区域
     }) {
         this.disableClose = options.disableClose;
         this.disableScrimClose = options.disableScrimClose || false; // 默认允许点击遮罩关闭
@@ -47,6 +48,9 @@ export class Dialog {
         window.siyuan.dialogs.push(this);
         this.destroyCallback = options.destroyCallback;
         this.element = document.createElement("div") as HTMLElement;
+        
+        // 处理关闭按钮位置配置
+        const closeButtonPosition = options.closeButtonPosition || "outside";
         let left;
         let top;
         if (!isMobile() && options.positionId) {
@@ -64,13 +68,28 @@ export class Dialog {
         // 判断是否有标题（字符串或Vue组件）
         const hasTitle = !!(options.title || options.titleVueConfig);
         
+        // 根据关闭按钮位置生成不同的HTML结构
+        let closeButtonHtml = "";
+        if (!(this.disableClose || options.hideCloseIcon)) {
+            if (closeButtonPosition === "outside") {
+                // 外部关闭按钮（默认行为）
+                closeButtonHtml = `<svg ${(isMobile() && hasTitle) ? 'style="top:0;right:0;"' : ""} class="b3-dialog__close"><use xlink:href="#iconCloseRound"></use></svg>`;
+            } else if (closeButtonPosition === "inside" && hasTitle) {
+                // 内部标题栏关闭按钮
+                closeButtonHtml = `<svg class="b3-dialog__close b3-dialog__close--inside" style="position: absolute; top: 50%; right: 0px; transform: translateY(-50%);"><use xlink:href="#iconCloseRound"></use></svg>`;
+            } else if (closeButtonPosition === "inside-body") {
+                // 内部内容区域关闭按钮
+                closeButtonHtml = `<svg class="b3-dialog__close b3-dialog__close--inside-body" style="position: absolute; top: 10px; right: 10px; z-index: 1;"><use xlink:href="#iconCloseRound"></use></svg>`;
+            }
+        }
+        
         this.element.innerHTML = `<div class="b3-dialog" style="z-index: ${++window.siyuan.zIndex};${typeof left === "string" ? "display:block" : ""};${this.scrimPointerEvents ? ' pointer-events:none' : ""}">
 <div class="b3-dialog__scrim"${options.transparent ? 'style="background-color:transparent"' : ""}></div>
 <div class="b3-dialog__container ${options.containerClassName || ""}" style="width:${options.width || "auto"};height:${options.height || "auto"};
 left:${left || "auto"};top:${top || "auto"};${this.scrimPointerEvents ? ' pointer-events:auto' : ""}">
-  <svg ${(isMobile() && hasTitle) ? 'style="top:0;right:0;"' : ""} class="b3-dialog__close${(this.disableClose || options.hideCloseIcon) ? " fn__none" : ""}"><use xlink:href="#iconCloseRound"></use></svg>
-  <div class="resize__move b3-dialog__header${hasTitle ? "" : " fn__none"}" onselectstart="return false;">${options.title || ""}</div>
-  <div class="b3-dialog__body">${options.content}</div>
+  ${closeButtonPosition === "outside" ? closeButtonHtml : ""}
+  <div class="resize__move b3-dialog__header${hasTitle ? "" : " fn__none"}" onselectstart="return false;" style="${hasTitle && closeButtonPosition === "inside" ? "position: relative; padding-right: 40px;" : ""}">${options.title || ""}${closeButtonPosition === "inside" ? closeButtonHtml : ""}</div>
+  <div class="b3-dialog__body" style="${closeButtonPosition === "inside-body" ? "position: relative;" : ""}">${options.content}${closeButtonPosition === "inside-body" ? closeButtonHtml : ""}</div>
   <div class="resize__rd"></div><div class="resize__ld"></div><div class="resize__lt"></div><div class="resize__rt"></div><div class="resize__r"></div><div class="resize__d"></div><div class="resize__t"></div><div class="resize__l"></div>
 </div></div>`;
 
@@ -82,10 +101,14 @@ left:${left || "auto"};top:${top || "auto"};${this.scrimPointerEvents ? ' pointe
             event.stopPropagation();
         });
         if (!this.disableClose) {
-            this.element.querySelector(".b3-dialog__close").addEventListener("click", (event) => {
-                this.destroy();
-                event.preventDefault();
-                event.stopPropagation();
+            // 为所有关闭按钮添加点击事件监听器
+            const closeButtons = this.element.querySelectorAll(".b3-dialog__close");
+            closeButtons.forEach(button => {
+                button.addEventListener("click", (event) => {
+                    this.destroy();
+                    event.preventDefault();
+                    event.stopPropagation();
+                });
             });
         }
         document.body.append(this.element);
