@@ -1,5 +1,5 @@
 import {ToolbarItem} from "./ToolbarItem";
-import {hintRef} from "../hint/extend";
+import { hintRef } from "../hint/extend.hintRef";
 import {fixTableRange} from "../util/selection";
 
 export class BlockRef extends ToolbarItem {

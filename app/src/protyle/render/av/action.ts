@@ -19,7 +19,7 @@ import {addCol, getColIconByType, showColMenu} from "./col";
 import {deleteRow, insertRows, selectRow, setPageSize, updateHeader} from "./row";
 import {emitOpenMenu} from "../../../plugin/EventBus";
 import {openMenuPanel} from "./openMenuPanel";
-import {hintRef} from "../../hint/extend";
+import { hintRef } from "../../hint/extend.hintRef";
 import {focusBlock, focusByRange} from "../../util/selection";
 import {showMessage} from "../../../dialog/message";
 import {previewAttrViewImages} from "../../preview/image";

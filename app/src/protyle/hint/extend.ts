@@ -9,7 +9,6 @@ import {highlightRender} from "../render/highlightRender";
 import {focusBlock, focusByRange, getEditorRange} from "../util/selection";
 import {hasClosestBlock, hasClosestByClassName} from "../util/hasClosest";
 import {getContenteditableElement, getTopAloneElement} from "../wysiwyg/getBlock";
-import {replaceFileName} from "../../editor/rename";
 import {transaction} from "../wysiwyg/transaction";
 import {getAssetName, getDisplayName, pathPosix} from "../../util/pathName";
 import {genEmptyElement} from "../../block/util";
@@ -425,59 +424,6 @@ export const genHintItemHTML = (item: IBlock) => {
     <span class="b3-list-item__text">${item.content}</span>${countHTML}
 </div>
 <div class="b3-list-item__meta b3-list-item__showall">${item.hPath}</div>`;
-};
-
-export const hintRef = (key: string, protyle: IProtyle, source: THintSource): IHintData[] => {
-    const nodeElement = hasClosestBlock(getEditorRange(protyle.wysiwyg.element).startContainer);
-    protyle.hint.genLoading(protyle);
-    fetchPost("/api/search/searchRefBlock", {
-        k: key,
-        id: nodeElement ? nodeElement.getAttribute("data-node-id") : protyle.block.parentID,
-        beforeLen: Math.floor((Math.max(protyle.element.clientWidth / 2, 320) - 58) / 28.8),
-        rootID: source === "av" ? "" : protyle.block.rootID,
-        isDatabase: source === "av",
-        isSquareBrackets: ["[[", "【【"].includes(protyle.hint.splitChar)
-    }, (response) => {
-        const dataList: IHintData[] = [];
-        if (response.data.newDoc) {
-            const newFileName = Lute.UnEscapeHTMLStr(replaceFileName(response.data.k));
-            dataList.push({
-                value: `((newFile "${newFileName}"${Constants.ZWSP}'${newFileName}${Lute.Caret}'))`,
-                html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconFile"></use></svg>
-<span class="b3-list-item__text">${window.siyuan.languages.newFile} <mark>${response.data.k}</mark></span></div>`,
-            });
-        }
-        response.data.blocks.forEach((item: IBlock) => {
-            let value = `<span data-type="block-ref" data-id="${item.id}" data-subtype="d">${item.name || item.refText.replace(new RegExp(Constants.ZWSP, "g"), "")}</span>`;
-            if (source === "search") {
-                value = `<span data-type="block-ref" data-id="${item.id}" data-subtype="s">${key}${Constants.ZWSP}${item.name || item.refText.replace(new RegExp(Constants.ZWSP, "g"), "")}</span>`;
-            } else if (source === "av") {
-                let refText = item.name || item.refText.replace(new RegExp(Constants.ZWSP, "g"), "");
-                if (nodeElement) {
-                    refText = item.ial["custom-sy-av-s-text-" + nodeElement.getAttribute("data-av-id")] || refText;
-                }
-                value = `<span data-type="block-ref" data-id="${item.id}" data-subtype="s">${refText}</span>`;
-            }
-            dataList.push({
-                value,
-                html: genHintItemHTML(item),
-            });
-        });
-        if (source === "search") {
-            protyle.hint.splitChar = "((";
-            protyle.hint.lastIndex = -1;
-        }
-        if (dataList.length === 0) {
-            dataList.push({
-                value: "",
-                html: window.siyuan.languages.emptyContent,
-            });
-        } else if (response.data.newDoc && dataList.length > 1) {
-            dataList[1].focus = true;
-        }
-        protyle.hint.genHTML(dataList, protyle, true, source);
-    });
-    return [];
 };
 
 export const hintEmbed = (key: string, protyle: IProtyle): IHintData[] => {

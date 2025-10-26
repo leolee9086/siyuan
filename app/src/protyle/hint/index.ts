@@ -8,7 +8,8 @@ import {
     getSelectionOffset,
     getSelectionPosition,
 } from "../util/selection";
-import {genHintItemHTML, hintEmbed, hintRef, hintSlash} from "./extend";
+import {genHintItemHTML, hintEmbed, hintSlash} from "./extend";
+import { hintRef } from "./extend.hintRef";
 import {getSavePath, newFile} from "../../util/newFile";
 import {isAbnormalItem, upDownHint} from "../../util/upDownHint";
 import {setPosition} from "../../util/setPosition";

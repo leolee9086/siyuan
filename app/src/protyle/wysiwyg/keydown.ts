@@ -70,7 +70,7 @@ import {getSavePath, newFileBySelect} from "../../util/newFile";
 import {removeSearchMark} from "../toolbar/util";
 import {avKeydown} from "../render/av/keydown";
 import {checkFold} from "../../util/noRelyPCFunction";
-import {AIActions} from "../../ai/actions";
+import {openAIActionsMenu} from "../../ai/actions";
 import {openLink} from "../../editor/openLink";
 import {onlyProtyleCommand} from "../../boot/globalEvent/command/protyle";
 import {AIChat} from "../../ai/chat";
@@ -1796,7 +1796,7 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
             if (selectsElement.length === 0) {
                 selectsElement = [nodeElement];
             }
-            AIActions(selectsElement, protyle);
+            openAIActionsMenu(selectsElement, protyle);
             return;
         }
 

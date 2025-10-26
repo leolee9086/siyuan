@@ -46,7 +46,7 @@ import {hintMoveBlock} from "../hint/extend";
 import {makeCard, quickMakeCard} from "../../card/makeCard";
 import {transferBlockRef} from "../../menus/block";
 import {isMobile} from "../../util/functions";
-import {AIActions} from "../../ai/actions";
+import {openAIActionsMenu} from "../../ai/actions";
 import {activeBlur, renderTextMenu, showKeyboardToolbarUtil} from "../../mobile/util/keyboardToolbar";
 import {hideTooltip} from "../../dialog/tooltip";
 import {appearanceMenu} from "../toolbar/Font";
@@ -744,7 +744,7 @@ export class Gutter {
                 label: window.siyuan.languages.ai,
                 accelerator: window.siyuan.config.keymap.editor.general.ai.custom,
                 click() {
-                    AIActions(selectsElement, protyle);
+                    openAIActionsMenu(selectsElement, protyle);
                 }
             }).element);
         }
@@ -1264,7 +1264,7 @@ export class Gutter {
                 label: window.siyuan.languages.ai,
                 accelerator: window.siyuan.config.keymap.editor.general.ai.custom,
                 click() {
-                    AIActions([nodeElement], protyle);
+                    openAIActionsMenu([nodeElement], protyle);
                 }
             }).element);
         }

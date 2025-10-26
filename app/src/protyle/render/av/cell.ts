@@ -11,7 +11,7 @@ import {unicode2Emoji} from "../../../emoji";
 import {getColIconByType, getColId} from "./col";
 import {genAVValueHTML} from "./blockAttr";
 import {Constants} from "../../../constants";
-import {hintRef} from "../../hint/extend";
+import { hintRef } from "../../hint/extend.hintRef";
 import {getAssetName, pathPosix} from "../../../util/pathName";
 import {mergeAddOption} from "./select";
 import {escapeAttr, escapeHtml} from "../../../util/escape";
