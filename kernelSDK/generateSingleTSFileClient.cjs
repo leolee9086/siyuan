@@ -257,6 +257,72 @@ function generateMethodTsDoc(apiDef, hasDataParam) {
     return tsDocLines.join('\n') + '\n'; 
 }
 
+function zodToTsType(zodType) {
+    if (!zodType || !zodType._def) return 'any';
+    const typeName = zodType._def.typeName;
+
+    switch (typeName) {
+        case 'ZodString': return 'string';
+        case 'ZodNumber': return 'number';
+        case 'ZodBoolean': return 'boolean';
+        case 'ZodDate': return 'Date';
+        case 'ZodNull': return 'null';
+        case 'ZodVoid': return 'void';
+        case 'ZodAny': return 'any';
+        case 'ZodUnknown': return 'unknown';
+        case 'ZodNever': return 'never';
+        case 'ZodBigInt': return 'bigint';
+        case 'ZodSymbol': return 'symbol';
+        case 'ZodUndefined': return 'undefined';
+        
+        case 'ZodObject':
+            const shape = zodType._def.shape();
+            const properties = Object.keys(shape).map(key => {
+                const propTypeInstance = shape[key];
+                let isOptional = false;
+                let innerType = propTypeInstance;
+
+                if (propTypeInstance._def.typeName === 'ZodOptional') {
+                    isOptional = true;
+                    innerType = propTypeInstance._def.innerType;
+                }
+                
+                const propTypeString = zodToTsType(innerType);
+                return `${key}${isOptional ? '?' : ''}: ${propTypeString}`;
+            });
+            if (properties.length === 0) return '{}';
+            return `{ ${properties.join('; ')} }`;
+
+        case 'ZodArray':
+            return `${zodToTsType(zodType._def.type)}[]`;
+
+        case 'ZodOptional':
+            return `${zodToTsType(zodType._def.innerType)} | undefined`;
+        case 'ZodNullable':
+            return `${zodToTsType(zodType._def.innerType)} | null`;
+
+        case 'ZodUnion':
+            return zodType._def.options.map(opt => zodToTsType(opt)).join(' | ');
+
+        case 'ZodRecord':
+            const keyType = zodType._def.keyType ? zodToTsType(zodType._def.keyType) : 'string';
+            const valueType = zodToTsType(zodType._def.valueType);
+            return `Record<${keyType}, ${valueType}>`;
+
+        case 'ZodLiteral':
+            const literalValue = zodType._def.value;
+            return typeof literalValue === 'string' ? `"${literalValue.replace(/"/g, '\\"')}"` : String(literalValue);
+
+        case 'ZodEnum':
+            return zodType._def.values.map(v => typeof v === 'string' ? `"${v.replace(/"/g, '\\"')}"` : String(v)).join(' | ');
+        
+        case 'ZodLazy':
+            return 'any';
+
+        default: return 'any';
+    }
+}
+
 async function generateKernelApiClient() {
     const apiDefs = await getAllApiDefs();
     let classBody = '';
@@ -383,10 +449,41 @@ class KernelApiClient {
 
         // 根据HTTP方法或是否定义了请求模式来确定方法是否需要数据参数
         const needsDataParam = (apiDef.method !== 'GET' && apiDef.method !== 'HEAD') || apiDef.zodRequestSchema;
-        const params = needsDataParam ? 'data?: any' : '';
+        
+        let paramType = 'any';
+        if (needsDataParam && apiDef.zodRequestSchema) {
+            try {
+                let schema = apiDef.zodRequestSchema(z);
+                if (isZodRawShape(schema)) {
+                    schema = z.object(schema);
+                }
+                if (schema && schema._def) {
+                    paramType = zodToTsType(schema);
+                }
+            } catch (e) {
+                console.error(`Error parsing request schema for ${apiDef.en}:`, e);
+            }
+        }
+        const params = needsDataParam ? `data: ${paramType}` : '';
+
+        let returnType = 'any';
+        if (apiDef.zodResponseSchema) {
+            try {
+                let schema = apiDef.zodResponseSchema(z);
+                if (isZodRawShape(schema)) {
+                    schema = z.object(schema);
+                }
+                if (schema && schema._def) {
+                    returnType = zodToTsType(schema);
+                }
+            } catch (e) {
+                console.error(`Error parsing response schema for ${apiDef.en}:`, e);
+            }
+        }
+        const finalReturnType = returnType === 'void' ? 'Promise<void>' : `Promise<${returnType}>`;
 
         classBody += `\n${generateMethodTsDoc(apiDef, !!needsDataParam)}`;
-        classBody += `  async ${methodName}(${params}): Promise<any> {\n`;
+        classBody += `  async ${methodName}(${params}): ${finalReturnType} {\n`;
         classBody += `    return this._fetchWrapper('${apiDef.endpoint}', '${apiDef.method}', ${needsDataParam ? 'data' : 'undefined'}, ${!!apiDef.needAuth});\n  }\n`;
         methodCount++; // 增加计数器
     });
