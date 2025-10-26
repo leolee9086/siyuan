@@ -12,9 +12,9 @@ export const inboxApiDefs = [
       id: z.string().describe("要获取的速记的唯一标识符 (通常为时间戳字符串)"),
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
         id: z.string().optional().describe("速记的唯一标识符 (通常为时间戳字符串)"), // oId 在 getShorthands 中，这里直接是 id
         shorthandContent: z.string().describe("速记内容 (经过 Lute 引擎处理后的 HTML 格式)"),
         shorthandMd: z.string().describe("速记内容的原始 Markdown 格式"),
@@ -37,9 +37,9 @@ export const inboxApiDefs = [
       page: z.number().int().min(1).describe("要获取的速记列表的页码，从 1 开始"),
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
         shorthands: z.array(z.object({
           oId: z.string().describe("速记的原始唯一标识符 (通常为时间戳字符串)"),
           shorthandContent: z.string().describe("速记内容 (经过 Lute 引擎处理后的 HTML 格式)"),
@@ -65,9 +65,9 @@ export const inboxApiDefs = [
       ids: z.array(z.string()).describe("要移除的速记的唯一标识符数组"),
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.null().optional().describe("成功时通常为 null"),
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.null().optional().describe("成功时通常为 null"),
     })
   }
 ];

@@ -16,9 +16,9 @@ export const avApiDefs = [
       srcs: z.array(z.record(z.any())).describe("要添加的源数据块信息数组，具体结构取决于源类型")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.any().nullable().describe("此接口通常不返回具体数据，null 表示成功")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.any().nullable().describe("此接口通常不返回具体数据，null 表示成功")
     })
   },
   {
@@ -39,9 +39,9 @@ export const avApiDefs = [
       previousKeyID: z.string().describe("新列将插入到此列 ID 之前")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.any().nullable().describe("此接口通常不返回具体数据，null 表示成功")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.any().nullable().describe("此接口通常不返回具体数据，null 表示成功")
     })
   },
   {
@@ -58,9 +58,9 @@ export const avApiDefs = [
       blocksValues: z.array(z.array(z.any())).describe("二维数组，外层数组代表多个新块，内层数组代表每个块对应各列的初始值")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.any().nullable().describe("返回新创建的块的 ID 列表或其他相关信息，具体结构依赖后端实现")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.any().nullable().describe("返回新创建的块的 ID 列表或其他相关信息，具体结构依赖后端实现")
     })
   },
   {
@@ -80,9 +80,9 @@ export const avApiDefs = [
       ).describe("包含旧块 ID 和新块 ID 映射关系的数组，例如：[{'oldID1': 'newID1'}, {'oldID2': 'newID2'}]"),
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.null().optional().describe("成功时通常为 null"),
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.null().optional().describe("成功时通常为 null"),
     })
   },
   {
@@ -105,9 +105,9 @@ export const avApiDefs = [
       ).describe("包含多个要更新单元格信息的数组，每个对象包含 blockID, keyID 和 value"),
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.null().optional().describe("成功时通常为 null"),
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.null().optional().describe("成功时通常为 null"),
     })
   },
   {
@@ -125,9 +125,9 @@ export const avApiDefs = [
       layoutType: z.enum(["table", "board", "calendar", "list", "gallery"]).describe("新的布局类型：table, board, calendar, list, gallery"),
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         name: z.string().describe("属性视图的名称"),
         id: z.string().describe("属性视图的 ID"),
         viewType: z.any().describe("当前视图的类型 (具体类型需查阅 kernel.AVViewType)"),
@@ -151,9 +151,9 @@ export const avApiDefs = [
       avID: z.string().describe("要复制的属性视图块的 ID")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         avID: z.string().describe("新复制的属性视图的 ID"),
         blockID: z.string().describe("新复制的属性视图块的 ID")
       }).nullable().describe("成功时返回新属性视图和块的ID")
@@ -172,9 +172,9 @@ export const avApiDefs = [
       id: z.string().describe("属性视图的 ID")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         av: z.any().describe("属性视图对象的详细信息，具体结构复杂，参考前端实际使用或Go源码 `kernel.AttributeView`")
       }).nullable().describe("包含属性视图详细信息的对象")
     })
@@ -215,9 +215,9 @@ export const avApiDefs = [
       blockID: z.string().describe("属性视图关联的块 ID (通常与属性视图ID相同)")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         filters: z.array(z.any()).describe("筛选条件对象数组，具体结构参考 `kernel.AVFilter`"),
         sorts: z.array(z.any()).describe("排序规则对象数组，具体结构参考 `kernel.AVSort`")
       }).nullable().describe("包含筛选和排序规则的对象")
@@ -247,9 +247,9 @@ export const avApiDefs = [
       id: z.string().describe("属性视图的 ID")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.array(z.any()).nullable().describe("属性视图的列定义对象数组，具体结构参考 `kernel.AVKey`")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.array(z.any()).nullable().describe("属性视图的列定义对象数组，具体结构参考 `kernel.AVKey`")
     })
   },
   {
@@ -265,9 +265,9 @@ export const avApiDefs = [
       avID: z.string().describe("属性视图的 ID")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.array(z.any()).nullable().describe("属性视图的列定义对象数组，具体结构参考 `kernel.AVKey`")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.array(z.any()).nullable().describe("属性视图的列定义对象数组，具体结构参考 `kernel.AVKey`")
     })
   },
   {
@@ -297,9 +297,9 @@ export const avApiDefs = [
       pageSize: z.number().optional().describe("可选，每页数量")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         name: z.string().describe("主键列的名称"),
         blockIDs: z.array(z.string()).describe("匹配的主键值对应的块 ID 列表"),
         rows: z.array(z.any()).describe("匹配的行数据数组，具体结构可能包含主键值和其他相关信息")
@@ -321,9 +321,9 @@ export const avApiDefs = [
       query: z.string().optional().describe("可选，查询关键词"),
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.array(z.string()).describe("当前属性视图中图片 URL 数组"), // Go 源码中 `images` 变量直接赋值给 `ret.Data`，类型推测为 `[]string` 或 `[]interface{}`。暂定为 string 数组。
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.array(z.string()).describe("当前属性视图中图片 URL 数组"), // Go 源码中 `images` 变量直接赋值给 `ret.Data`，类型推测为 `[]string` 或 `[]interface{}`。暂定为 string 数组。
     })
   },
   {
@@ -339,9 +339,9 @@ export const avApiDefs = [
       avID: z.string().describe("属性视图的 ID")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         refDefs: z.array(z.object({
           RefID: z.string().describe("引用的块ID (通常是属性视图本身)"),
           DefIDs: z.array(z.string()).describe("被引用的定义块ID列表 (镜像块)")
@@ -363,9 +363,9 @@ export const avApiDefs = [
       srcIDs: z.array(z.string()).describe("要移除的源数据块的 ID 数组")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.any().nullable().describe("此接口通常不返回具体数据，null 表示成功")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.any().nullable().describe("此接口通常不返回具体数据，null 表示成功")
     })
   },
   {
@@ -383,9 +383,9 @@ export const avApiDefs = [
       removeRelationDest: z.boolean().optional().describe("可选，如果是关联列，是否同时移除关联目标，默认为 false")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.any().nullable().describe("此接口通常不返回具体数据，null 表示成功")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.any().nullable().describe("此接口通常不返回具体数据，null 表示成功")
     })
   },
   {
@@ -405,9 +405,9 @@ export const avApiDefs = [
       pageSize: z.number().optional().describe("可选，每页数量")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         name: z.string().describe("属性视图的名称"),
         id: z.string().describe("属性视图的 ID"),
         viewType: z.any().describe("当前视图的类型 (具体类型需查阅 kernel.AVViewType)"),
@@ -432,9 +432,9 @@ export const avApiDefs = [
       created: z.string().describe("历史版本创建的时间戳字符串 (毫秒级)")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         name: z.string().describe("属性视图的名称"),
         id: z.string().describe("属性视图的 ID"),
         viewType: z.any().describe("视图的类型"),
@@ -459,9 +459,9 @@ export const avApiDefs = [
       id: z.string().describe("属性视图的 ID")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         name: z.string().describe("属性视图的名称"),
         id: z.string().describe("属性视图的 ID"),
         viewType: z.any().describe("视图的类型"),
@@ -486,9 +486,9 @@ export const avApiDefs = [
       excludes: z.array(z.string()).optional().describe("可选，要排除的属性视图 ID 数组")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         results: z.array(z.any()).describe("搜索结果对象数组，每个对象包含属性视图的基本信息 (如 id, name)")
       }).nullable().describe("包含搜索结果的对象")
     })
@@ -507,9 +507,9 @@ export const avApiDefs = [
       keyword: z.string().describe("搜索关键词")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         keys: z.array(z.any()).describe("匹配的非关联列定义对象数组，结构参考 `kernel.AVKey`")
       }).nullable().describe("包含搜索到的非关联列的对象")
     })
@@ -528,9 +528,9 @@ export const avApiDefs = [
       keyword: z.string().describe("搜索关键词")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         keys: z.array(z.any()).describe("匹配的关联列定义对象数组，结构参考 `kernel.AVKey`")
       }).nullable().describe("包含搜索到的关联列的对象")
     })
@@ -561,9 +561,9 @@ export const avApiDefs = [
       group: z.any().describe("分组配置对象，具体结构请参考 Go 源码 `av.ViewGroup`"),
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.null().optional().describe("成功时通常为 null"),
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.null().optional().describe("成功时通常为 null"),
     })
   },
   {
@@ -582,9 +582,9 @@ export const avApiDefs = [
       value: z.any().describe("要设置的新值，具体类型取决于列的类型")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         value: z.any().describe("成功设置后的值，可能经过转换或处理")
       }).nullable().describe("包含更新后值的对象")
     })
@@ -603,9 +603,9 @@ export const avApiDefs = [
       viewID: z.string().describe("要设置为默认视图的视图 ID")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.any().nullable().describe("此接口通常不返回具体数据，null 表示成功")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.any().nullable().describe("此接口通常不返回具体数据，null 表示成功")
     })
   },
   {
@@ -623,9 +623,9 @@ export const avApiDefs = [
       previousKeyID: z.string().describe("目标位置：将列移动到此列 ID 之前")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.any().nullable().describe("此接口通常不返回具体数据，null 表示成功")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.any().nullable().describe("此接口通常不返回具体数据，null 表示成功")
     })
   },
   {
@@ -644,9 +644,9 @@ export const avApiDefs = [
       previousKeyID: z.string().describe("目标位置：将列移动到此列 ID 之前")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.any().nullable().describe("此接口通常不返回具体数据，null 表示成功")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.any().nullable().describe("此接口通常不返回具体数据，null 表示成功")
     })
   }
 ];

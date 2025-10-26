@@ -21,9 +21,9 @@ export const searchApiDefs = [
       replaceTypes: z.record(z.boolean()).optional().describe("可选。指定替换时要处理的文本类型，例如 {'text': true, 'imgText': true}。可用键包括：'text', 'imgText', 'imgTitle', 'imgSrc', 'aText', 'aTitle', 'aHref', 'code', 'em', 'strong', 'inlineMath', 'inlineMemo', 'blockRef', 'fileAnnotationRef', 'kbd', 'mark', 's', 'sub', 'sup', 'tag', 'u', 'docTitle', 'codeBlock', 'mathBlock', 'htmlBlock'。具体参考 Go 源码 model.FindReplace。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
         closeTimeout: z.number().optional().describe("可选。如果替换过程中出现需要用户确认的对话框（例如替换了文档标题），此字段表示对话框的关闭延迟时间（毫秒）。")
       }).nullable().describe("成功时 Data 可能为 null 或包含 closeTimeout。")
     })
@@ -46,9 +46,9 @@ export const searchApiDefs = [
       orderBy: z.number().int().min(0).max(3).optional().describe("可选。排序方式：0：按相关度降序（默认），1：按相关度升序，2：按更新时间升序，3：按更新时间降序。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功。如果未付费，Code 为 1。"),
-      Msg: z.string().describe("错误信息，成功时为空字符串。"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功。如果未付费，Code 为 1。"),
+      msg: z.string().describe("错误信息，成功时为空字符串。"),
+      data: z.object({
         assetContents: z.array(z.object({
           id: z.string().describe("资源文件块 ID。"),
           box: z.string().describe("笔记本 ID。"),
@@ -86,9 +86,9 @@ export const searchApiDefs = [
       groupBy: z.number().int().min(0).max(1).optional().describe("可选。分组方式：0：不分组（默认），1：按文档分组。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
         blocks: z.array(z.any()).describe("当前页的搜索结果块列表。每个块的结构根据其类型而定，通常包含 id, type, content, path, box, docID 等字段。"),
         matchedBlockCount: z.number().int().describe("匹配到的块总数。"),
         matchedRootCount: z.number().int().describe("匹配到的根块（文档）总数。"),
@@ -112,9 +112,9 @@ export const searchApiDefs = [
       queryMethod: z.number().int().min(0).max(3).describe("必需。查询方法：0：关键字，1：查询语法，2：SQL，3：正则表达式。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
         assetContent: z.string().describe("匹配到的资源文件内容片段。")
       }).nullable().describe("成功时返回内容片段。")
     })
@@ -135,9 +135,9 @@ export const searchApiDefs = [
       breadcrumb: z.boolean().optional().describe("可选。是否显示面包屑路径，默认为 false。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
         blocks: z.array(z.any()).describe("渲染后的嵌入块内容数组。每个元素的具体结构取决于块类型。")
       }).nullable().describe("成功时返回渲染后的块内容。")
     })
@@ -156,9 +156,9 @@ export const searchApiDefs = [
       pageSize: z.number().int().min(1).optional().describe("可选。每页数量，默认为 32。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
         blocks: z.array(z.object({
           id: z.string().describe("包含无效引用的块的 ID。"),
           box: z.string().describe("笔记本 ID。"),
@@ -186,9 +186,9 @@ export const searchApiDefs = [
       path: z.string().describe("必需。要移除的模板文件的相对路径（相对于模板文件夹）。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功，-1 表示失败"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.null().describe("成功或失败时 Data 均为 null。")
+      code: z.number().describe("返回码，0 表示成功，-1 表示失败"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.null().describe("成功或失败时 Data 均为 null。")
     })
   },
   {
@@ -205,9 +205,9 @@ export const searchApiDefs = [
       exts: z.array(z.string()).optional().describe("可选。文件扩展名数组，用于过滤结果，例如 ['.png', '.jpg']。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.array(z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.array(z.object({
         id: z.string().describe("资源文件块 ID。"),
         box: z.string().describe("笔记本 ID。"),
         docID: z.string().describe("所属文档 ID。"),
@@ -236,9 +236,9 @@ export const searchApiDefs = [
       breadcrumb: z.boolean().optional().describe("可选。是否显示面包屑路径，默认为 false。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
         blocks: z.array(z.any()).describe("满足 SQL 查询条件的块内容数组。每个元素的具体结构取决于块类型和查询语句。")
       }).nullable().describe("成功时返回搜索到的块内容。")
     })
@@ -262,9 +262,9 @@ export const searchApiDefs = [
       reqId: z.any().optional().describe("可选。请求 ID，会透传到响应中，用于前端跟踪异步请求。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
         blocks: z.array(z.object({
           id: z.string().describe("建议引用的块 ID。"),
           type: z.string().describe("块类型。"),
@@ -290,9 +290,9 @@ export const searchApiDefs = [
       k: z.string().describe("必需。搜索关键词。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
         tags: z.array(z.string()).describe("匹配到的标签列表。如果无结果则为空数组。"),
         k: z.string().describe("原始搜索关键词。")
       }).nullable().describe("成功时返回标签列表和关键词。")
@@ -311,9 +311,9 @@ export const searchApiDefs = [
       k: z.string().describe("必需。搜索关键词。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
         blocks: z.array(z.object({
           content: z.string().describe("模板内容片段或文件名。"),
           path: z.string().describe("模板文件的相对路径。"),
@@ -337,9 +337,9 @@ export const searchApiDefs = [
       k: z.string().describe("必需。搜索关键词。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
         blocks: z.array(z.object({
           id: z.string().describe("挂件块 ID。"),
           markdown: z.string().describe("挂件块的 Markdown 内容。"),
@@ -364,9 +364,9 @@ export const searchApiDefs = [
       content: z.string().describe("必需。查询嵌入块新的原始 Markdown 内容，通常是 SQL 查询语句或 JavaScript 脚本。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功，-1 表示失败"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.null().describe("成功或失败时 Data 均为 null。")
+      code: z.number().describe("返回码，0 表示成功，-1 表示失败"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.null().describe("成功或失败时 Data 均为 null。")
     })
   }
 ];

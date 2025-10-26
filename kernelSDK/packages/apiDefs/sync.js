@@ -12,9 +12,9 @@ export const syncApiDefs = [
       name: z.string().describe("要创建的云端同步目录的名称。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
-      Data: z.null().describe("接口成功执行时，Data 固定为 null。如果创建失败，Data 可能包含 { closeTimeout: 5000 }。")
+      code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
+      data: z.null().describe("接口成功执行时，Data 固定为 null。如果创建失败，Data 可能包含 { closeTimeout: 5000 }。")
     })
   },
   {
@@ -28,9 +28,9 @@ export const syncApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
-      Data: z.object({
+      code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
+      data: z.object({
         name: z.string().describe("导出的文件名 (不含 .zip 后缀)。"),
         zip: z.string().describe("导出的 .zip 文件在服务端的临时路径，前端可据此下载。")
       }).nullable().describe("成功时返回导出文件的名称和路径，失败时为 null。")
@@ -47,9 +47,9 @@ export const syncApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
-      Data: z.object({
+      code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
+      data: z.object({
         name: z.string().describe("导出的文件名 (不含 .zip 后缀)。"),
         zip: z.string().describe("导出的 .zip 文件在服务端的临时路径，前端可据此下载。")
       }).nullable().describe("成功时返回导出文件的名称和路径，失败时为 null。")
@@ -66,9 +66,9 @@ export const syncApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("错误码。0 表示未满足特定条件（非管理员、同步未启用、启动时同步未成功），1 表示启动时同步成功。其他值表示失败。注意这里的 Code 含义比较特殊。 "),
-      Msg: z.string().describe("接口返回的消息。Code 为 1 时，Msg 为提示信息（如 '启动时同步数据完毕'）。Code 为 0 时通常为空。 "),
-      Data: z.null().describe("此接口不通过 Data 返回数据。")
+      code: z.number().describe("错误码。0 表示未满足特定条件（非管理员、同步未启用、启动时同步未成功），1 表示启动时同步成功。其他值表示失败。注意这里的 Code 含义比较特殊。 "),
+      msg: z.string().describe("接口返回的消息。Code 为 1 时，Msg 为提示信息（如 '启动时同步数据完毕'）。Code 为 0 时通常为空。 "),
+      data: z.null().describe("此接口不通过 Data 返回数据。")
     })
   },
   {
@@ -82,9 +82,9 @@ export const syncApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
-      Data: z.object({
+      code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
+      data: z.object({
         synced: z.string().describe("最后成功同步的时间戳 (格式如 'YYYY-MM-DD HH:mm:ss')，如果从未同步则为空字符串。"),
         stat: z.string().describe("当前的同步状态文本描述。如果同步未启用，则为 '同步未启用' 或类似提示。"),
         kernels: z.array(z.string()).describe("当前在线的其他内核实例的 ID 列表。"),
@@ -103,9 +103,9 @@ export const syncApiDefs = [
     unavailableIfReadonly: true,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
-      Data: z.object({
+      code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
+      data: z.object({
         s3: z.object({
           endpoint: z.string().describe("S3 服务的 Endpoint。如：s3.amazonaws.com"),
           accessKeyID: z.string().describe("S3 Access Key ID。敏感信息，通常前端不直接展示。"),
@@ -128,9 +128,9 @@ export const syncApiDefs = [
     unavailableIfReadonly: true,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
-      Data: z.object({
+      code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
+      data: z.object({
         webdav: z.object({
           endpoint: z.string().describe("WebDAV 服务的 URL。如：https://dav.example.com/dav"),
           username: z.string().describe("WebDAV 用户名。敏感信息，通常前端不直接展示。"),
@@ -150,9 +150,9 @@ export const syncApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("错误码，0 表示成功，1 表示获取失败（如网络错误、配置错误）。"),
-      Msg: z.string().describe("接口返回的消息，成功时通常为空字符串，失败时包含错误信息。"),
-      Data: z.object({
+      code: z.number().describe("错误码，0 表示成功，1 表示获取失败（如网络错误、配置错误）。"),
+      msg: z.string().describe("接口返回的消息，成功时通常为空字符串，失败时包含错误信息。"),
+      data: z.object({
         syncDirs: z.array(z.object({
           name: z.string().describe("同步目录的名称。"),
           hSize: z.string().describe("目录大小的人类可读格式 (例如 '1.2 MB')。"),
@@ -174,9 +174,9 @@ export const syncApiDefs = [
     unavailableIfReadonly: true,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("错误码。model.BootSyncSucc (通常为0或1，表示启动同步的结果) 会被赋给 Code。具体含义需参考内核实现。"),
-      Msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
-      Data: z.null().describe("此接口不通过 Data 返回具体数据。")
+      code: z.number().describe("错误码。model.BootSyncSucc (通常为0或1，表示启动同步的结果) 会被赋给 Code。具体含义需参考内核实现。"),
+      msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
+      data: z.null().describe("此接口不通过 Data 返回具体数据。")
     })
   },
   {
@@ -193,9 +193,9 @@ export const syncApiDefs = [
       upload: z.boolean().optional().describe("仅在同步模式为3 (云端同步-完全手动) 时有效。true 表示上传，false 表示下载。如果同步模式为3但此参数未提供，则不执行操作。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("错误码，0 表示成功接收请求并开始处理（同步是异步过程），其他表示接收参数错误等。"),
-      Msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
-      Data: z.null().describe("此接口不通过 Data 返回具体数据。")
+      code: z.number().describe("错误码，0 表示成功接收请求并开始处理（同步是异步过程），其他表示接收参数错误等。"),
+      msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
+      data: z.null().describe("此接口不通过 Data 返回具体数据。")
     })
   },
   {
@@ -211,9 +211,9 @@ export const syncApiDefs = [
       name: z.string().describe("要移除的云端同步目录的名称。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
-      Data: z.null().describe("接口成功执行时，Data 固定为 null。如果移除失败，Data 可能包含 { closeTimeout: 5000 }。")
+      code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
+      data: z.null().describe("接口成功执行时，Data 固定为 null。如果移除失败，Data 可能包含 { closeTimeout: 5000 }。")
     })
   },
   {
@@ -229,9 +229,9 @@ export const syncApiDefs = [
       name: z.string().describe("要设置为当前同步目录的云端目录名称。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
-      Data: z.null().describe("接口成功执行时，Data 固定为 null。如果设置失败，Data 可能包含 { closeTimeout: 5000 }。")
+      code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
+      data: z.null().describe("接口成功执行时，Data 固定为 null。如果设置失败，Data 可能包含 { closeTimeout: 5000 }。")
     })
   },
   {
@@ -247,9 +247,9 @@ export const syncApiDefs = [
       enabled: z.boolean().describe("是否启用同步。true 为启用，false 为禁用。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
-      Data: z.null().describe("接口成功执行时，Data 固定为 null。")
+      code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
+      data: z.null().describe("接口成功执行时，Data 固定为 null。")
     })
   },
   {
@@ -265,9 +265,9 @@ export const syncApiDefs = [
       generateConflictDoc: z.boolean().describe("是否生成冲突文档。true 为生成，false 为不生成。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
-      Data: z.null().describe("接口成功执行时，Data 固定为 null。")
+      code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
+      data: z.null().describe("接口成功执行时，Data 固定为 null。")
     })
   },
   {
@@ -283,9 +283,9 @@ export const syncApiDefs = [
       syncInterval: z.number().int().min(1).describe("自动同步的时间间隔，单位为分钟。例如，输入 5 表示每5分钟同步一次。最小值为1分钟。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
-      Data: z.null().describe("接口成功执行时，Data 固定为 null。")
+      code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
+      data: z.null().describe("接口成功执行时，Data 固定为 null。")
     })
   },
   {
@@ -301,9 +301,9 @@ export const syncApiDefs = [
       syncMode: z.number().int().min(0).describe("同步模式。例如：0-自动, 1-手动, 3-云端完全手动。具体可用值请参考内核实现或相关文档。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
-      Data: z.null().describe("接口成功执行时，Data 固定为 null。")
+      code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
+      data: z.null().describe("接口成功执行时，Data 固定为 null。")
     })
   },
   {
@@ -319,9 +319,9 @@ export const syncApiDefs = [
       syncPerception: z.boolean().describe("是否启用同步感知。true 为启用，false 为禁用。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
-      Data: z.null().describe("接口成功执行时，Data 固定为 null。")
+      code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
+      data: z.null().describe("接口成功执行时，Data 固定为 null。")
     })
   },
   {
@@ -337,9 +337,9 @@ export const syncApiDefs = [
       syncProvider: z.string().describe("同步服务提供商的标识符。例如：'S3', 'WebDAV', 'LocalFolder'。具体可用值请参考内核实现。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
-      Data: z.null().describe("接口成功执行时，Data 固定为 null。")
+      code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
+      data: z.null().describe("接口成功执行时，Data 固定为 null。")
     })
   },
   {
@@ -355,9 +355,9 @@ export const syncApiDefs = [
       syncProviderLocalPath: z.string().describe("本地同步文件夹的绝对路径。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
-      Data: z.null().describe("接口成功执行时，Data 固定为 null。")
+      code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
+      data: z.null().describe("接口成功执行时，Data 固定为 null。")
     })
   },
   {
@@ -378,9 +378,9 @@ export const syncApiDefs = [
       s3CDN: z.string().optional().describe("S3 关联的 CDN 地址，可选。如果为空字符串，表示不使用 CDN。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
-      Data: z.null().describe("接口成功执行时，Data 固定为 null。")
+      code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
+      data: z.null().describe("接口成功执行时，Data 固定为 null。")
     })
   },
   {
@@ -398,9 +398,9 @@ export const syncApiDefs = [
       webdavPassword: z.string().describe("WebDAV 密码。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
-      Data: z.null().describe("接口成功执行时，Data 固定为 null。")
+      code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
+      data: z.null().describe("接口成功执行时，Data 固定为 null。")
     })
   }
 ];

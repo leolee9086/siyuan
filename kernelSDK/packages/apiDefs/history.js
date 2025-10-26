@@ -10,9 +10,9 @@ export const historyApiDefs = [
     unavailableIfReadonly: true,
     zodRequestSchema: (z)=>({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.null().describe("成功时固定为 null"),
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.null().describe("成功时固定为 null"),
     })
   },
   {
@@ -30,9 +30,9 @@ export const historyApiDefs = [
       highlight: z.boolean().optional().default(true).describe("是否对关键词进行高亮显示，默认为 true"),
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.object({
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.object({
         id: z.string().describe("文档的 ID"),
         rootID: z.string().describe("文档的根块 ID"),
         content: z.string().describe("文档历史版本的内容 (HTML 格式)"),
@@ -57,9 +57,9 @@ export const historyApiDefs = [
       op: z.string().optional().default("all").describe("搜索操作类型，具体含义需参考 model.FullTextSearchHistoryItems 实现，默认为 'all'"),
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.object({
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.object({
         items: z.array(z.object({
           id: z.string().describe("历史记录条目的唯一ID (通常为历史文件名或路径相关ID)"),
           title: z.string().describe("历史记录条目的标题或名称"),
@@ -92,9 +92,9 @@ export const historyApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z)=>({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.object({
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.object({
         histories: z.array(z.object({
           id: z.string().describe("历史记录的唯一ID (通常为历史文件名或路径相关ID)"),
           title: z.string().describe("历史记录的标题 (通常是笔记本名称)"),
@@ -122,9 +122,9 @@ export const historyApiDefs = [
     unavailableIfReadonly: true,
     zodRequestSchema: (z)=>({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.null().describe("成功时固定为 null"),
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.null().describe("成功时固定为 null"),
     })
   },
   {
@@ -140,9 +140,9 @@ export const historyApiDefs = [
       historyPath: z.string().describe("资源文件历史版本的路径，通常从其他历史记录接口获取"),
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.null().describe("成功时固定为 null"),
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.null().describe("成功时固定为 null"),
     })
   },
   {
@@ -159,9 +159,9 @@ export const historyApiDefs = [
       historyPath: z.string().describe("文档历史版本的路径，通常从其他历史记录接口获取"),
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.object({
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.object({
         box: z.string().describe("文档所属的笔记本 ID"),
       }).nullable().describe("成功时返回包含笔记本ID的对象，失败时为 null"),
     })
@@ -179,9 +179,9 @@ export const historyApiDefs = [
       historyPath: z.string().describe("笔记本历史版本的路径，通常从 getNotebookHistory 接口获取"),
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.null().describe("成功时固定为 null"),
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.null().describe("成功时固定为 null"),
     })
   },
   {
@@ -201,9 +201,9 @@ export const historyApiDefs = [
       op: z.string().optional().default("all").describe("搜索操作类型，具体含义需参考 model.FullTextSearchHistory 实现，默认为 'all'"),
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.object({
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.object({
         histories: z.array(z.object({
           created: z.string().describe("历史记录分组的创建日期 (格式：YYYYMMDD)"),
           count: z.number().int().describe("该日期分组下的历史条目数量"),

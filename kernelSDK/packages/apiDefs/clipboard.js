@@ -10,9 +10,9 @@ export const clipboardApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.array(z.string()).describe("从剪贴板中读取到的文件绝对路径列表。如果剪贴板中不是文件路径，或在 Linux 等受限情况下，可能返回空数组。")
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.array(z.string()).describe("从剪贴板中读取到的文件绝对路径列表。如果剪贴板中不是文件路径，或在 Linux 等受限情况下，可能返回空数组。")
     })
   }
 ];

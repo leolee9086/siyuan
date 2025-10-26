@@ -5,15 +5,15 @@ interface AccountCheckActivationcodeParams {
 }
 
 interface AccountCheckActivationcodeResponse {
-  Code: number; // 返回码，0 表示成功，其他表示失败
-  Msg: string; // 返回消息
-  Data: any | null;
+  code: number; // 返回码，0 表示成功，其他表示失败
+  msg: string; // 返回消息
+  data: any | null;
 }
 
 interface AccountDeactivateUserResponse {
-  Code: number; // 返回码，0 表示成功，其他表示失败
-  Msg: string; // 返回消息
-  Data: any | null;
+  code: number; // 返回码，0 表示成功，其他表示失败
+  msg: string; // 返回消息
+  data: any | null;
 }
 
 interface AccountLoginParams {
@@ -24,15 +24,15 @@ interface AccountLoginParams {
 }
 
 interface AccountLoginResponse {
-  Code: number; // 返回码，0 表示成功，其他表示失败
-  Msg: string; // 返回消息
-  Data: any | null;
+  code: number; // 返回码，0 表示成功，其他表示失败
+  msg: string; // 返回消息
+  data: any | null;
 }
 
 interface AccountStartFreeTrialResponse {
-  Code: number; // 返回码，0 表示成功，其他表示失败
-  Msg: string; // 返回消息
-  Data: any | null;
+  code: number; // 返回码，0 表示成功，其他表示失败
+  msg: string; // 返回消息
+  data: any | null;
 }
 
 interface AccountUseActivationcodeParams {
@@ -40,9 +40,9 @@ interface AccountUseActivationcodeParams {
 }
 
 interface AccountUseActivationcodeResponse {
-  Code: number; // 返回码，0 表示成功，其他表示失败
-  Msg: string; // 返回消息
-  Data: any | null;
+  code: number; // 返回码，0 表示成功，其他表示失败
+  msg: string; // 返回消息
+  data: any | null;
 }
 
 interface AiChatGPTParams {
@@ -50,9 +50,9 @@ interface AiChatGPTParams {
 }
 
 interface AiChatGPTResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: any; // ChatGPT 的回复内容
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: any; // ChatGPT 的回复内容
 }
 
 interface AiChatGPTWithActionParams {
@@ -61,9 +61,9 @@ interface AiChatGPTWithActionParams {
 }
 
 interface AiChatGPTWithActionResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: any; // ChatGPT 执行动作后的返回结果
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: any; // ChatGPT 执行动作后的返回结果
 }
 
 interface ArchiveUnzipParams {
@@ -72,9 +72,9 @@ interface ArchiveUnzipParams {
 }
 
 interface ArchiveUnzipResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: any | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: any | null;
 }
 
 interface ArchiveZipParams {
@@ -83,15 +83,15 @@ interface ArchiveZipParams {
 }
 
 interface ArchiveZipResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: any | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: any | null;
 }
 
 interface AssetFullReindexAssetContentResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: any | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: any | null;
 }
 
 interface AssetGetDocAssetsParams {
@@ -99,9 +99,9 @@ interface AssetGetDocAssetsParams {
 }
 
 interface AssetGetDocAssetsResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: any; // 资源文件对象数组，具体结构未定义
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: any; // 资源文件对象数组，具体结构未定义
 }
 
 interface AssetGetDocImageAssetsParams {
@@ -109,9 +109,9 @@ interface AssetGetDocImageAssetsParams {
 }
 
 interface AssetGetDocImageAssetsResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: any; // 图片资源文件对象数组，具体结构未定义
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: any; // 图片资源文件对象数组，具体结构未定义
 }
 
 interface AssetGetFileAnnotationParams {
@@ -124,9 +124,9 @@ interface AssetGetFileAnnotationResponseData {
 }
 
 interface AssetGetFileAnnotationResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: AssetGetFileAnnotationResponseData;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: AssetGetFileAnnotationResponseData;
 }
 
 interface AssetGetImageOCRTextParams {
@@ -139,9 +139,9 @@ interface AssetGetImageOCRTextResponseData {
 }
 
 interface AssetGetImageOCRTextResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: AssetGetImageOCRTextResponseData;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: AssetGetImageOCRTextResponseData;
 }
 
 interface AssetGetMissingAssetsResponseData {
@@ -149,9 +149,9 @@ interface AssetGetMissingAssetsResponseData {
 }
 
 interface AssetGetMissingAssetsResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: AssetGetMissingAssetsResponseData;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: AssetGetMissingAssetsResponseData;
 }
 
 interface AssetGetUnusedAssetsResponseData {
@@ -159,9 +159,9 @@ interface AssetGetUnusedAssetsResponseData {
 }
 
 interface AssetGetUnusedAssetsResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: AssetGetUnusedAssetsResponseData;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: AssetGetUnusedAssetsResponseData;
 }
 
 interface AssetInsertLocalAssetsParams {
@@ -175,9 +175,9 @@ interface AssetInsertLocalAssetsResponseData {
 }
 
 interface AssetInsertLocalAssetsResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: AssetInsertLocalAssetsResponseData;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: AssetInsertLocalAssetsResponseData;
 }
 
 interface AssetOcrParams {
@@ -190,9 +190,9 @@ interface AssetOcrResponseData {
 }
 
 interface AssetOcrResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: AssetOcrResponseData;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: AssetOcrResponseData;
 }
 
 interface AssetRemoveUnusedAssetParams {
@@ -204,9 +204,9 @@ interface AssetRemoveUnusedAssetResponseData {
 }
 
 interface AssetRemoveUnusedAssetResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: AssetRemoveUnusedAssetResponseData;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: AssetRemoveUnusedAssetResponseData;
 }
 
 interface AssetRemoveUnusedAssetsResponseData {
@@ -214,9 +214,9 @@ interface AssetRemoveUnusedAssetsResponseData {
 }
 
 interface AssetRemoveUnusedAssetsResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: AssetRemoveUnusedAssetsResponseData;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: AssetRemoveUnusedAssetsResponseData;
 }
 
 interface AssetRenameAssetParams {
@@ -229,9 +229,9 @@ interface AssetRenameAssetResponseData {
 }
 
 interface AssetRenameAssetResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: AssetRenameAssetResponseData;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: AssetRenameAssetResponseData;
 }
 
 interface AssetResolveAssetPathParams {
@@ -239,9 +239,9 @@ interface AssetResolveAssetPathParams {
 }
 
 interface AssetResolveAssetPathResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: string; // 资源文件在文件系统中的绝对路径
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: string; // 资源文件在文件系统中的绝对路径
 }
 
 interface AssetSetFileAnnotationParams {
@@ -250,9 +250,9 @@ interface AssetSetFileAnnotationParams {
 }
 
 interface AssetSetFileAnnotationResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: any | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: any | null;
 }
 
 interface AssetSetImageOCRTextParams {
@@ -261,9 +261,9 @@ interface AssetSetImageOCRTextParams {
 }
 
 interface AssetSetImageOCRTextResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: any | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: any | null;
 }
 
 interface AssetStatAssetParams {
@@ -280,9 +280,9 @@ interface AssetStatAssetResponseData {
 }
 
 interface AssetStatAssetResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: AssetStatAssetResponseData;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: AssetStatAssetResponseData;
 }
 
 interface AssetUploadParams {
@@ -297,9 +297,9 @@ interface AssetUploadResponseData {
 }
 
 interface AssetUploadResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: AssetUploadResponseData;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: AssetUploadResponseData;
 }
 
 interface AssetUploadCloudParams {
@@ -307,9 +307,9 @@ interface AssetUploadCloudParams {
 }
 
 interface AssetUploadCloudResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: any | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: any | null;
 }
 
 interface AttrBatchGetBlockAttrsParams {
@@ -317,9 +317,9 @@ interface AttrBatchGetBlockAttrsParams {
 }
 
 interface AttrBatchGetBlockAttrsResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: Record<string, Record<string, string>>; // 一个对象，键为块 ID，值为该块的属性对象 (属性名: 属性值)
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: Record<string, Record<string, string>>; // 一个对象，键为块 ID，值为该块的属性对象 (属性名: 属性值)
 }
 
 interface AttrBatchSetBlockAttrsParamsBlockAttrsItem {
@@ -332,9 +332,9 @@ interface AttrBatchSetBlockAttrsParams {
 }
 
 interface AttrBatchSetBlockAttrsResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: any | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: any | null;
 }
 
 interface AttrGetBlockAttrsParams {
@@ -342,15 +342,15 @@ interface AttrGetBlockAttrsParams {
 }
 
 interface AttrGetBlockAttrsResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: Record<string, string>; // 该块的属性对象 (属性名: 属性值)
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: Record<string, string>; // 该块的属性对象 (属性名: 属性值)
 }
 
 interface AttrGetBookmarkLabelsResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: Array<string>; // 书签标签字符串数组
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: Array<string>; // 书签标签字符串数组
 }
 
 interface AttrResetBlockAttrsParams {
@@ -359,9 +359,9 @@ interface AttrResetBlockAttrsParams {
 }
 
 interface AttrResetBlockAttrsResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: any | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: any | null;
 }
 
 interface AttrSetBlockAttrsParams {
@@ -370,9 +370,9 @@ interface AttrSetBlockAttrsParams {
 }
 
 interface AttrSetBlockAttrsResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: any | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: any | null;
 }
 
 interface AvAddAttributeViewBlocksParams {
@@ -384,9 +384,9 @@ interface AvAddAttributeViewBlocksParams {
 }
 
 interface AvAddAttributeViewBlocksResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: any | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: any | null;
 }
 
 interface AvAddAttributeViewKeyParams {
@@ -399,9 +399,9 @@ interface AvAddAttributeViewKeyParams {
 }
 
 interface AvAddAttributeViewKeyResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: any | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: any | null;
 }
 
 interface AvAppendAttributeViewDetachedBlocksWithValuesParams {
@@ -410,9 +410,9 @@ interface AvAppendAttributeViewDetachedBlocksWithValuesParams {
 }
 
 interface AvAppendAttributeViewDetachedBlocksWithValuesResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: any | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: any | null;
 }
 
 interface AvDuplicateAttributeViewBlockParams {
@@ -425,9 +425,9 @@ interface AvDuplicateAttributeViewBlockResponseData {
 }
 
 interface AvDuplicateAttributeViewBlockResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: AvDuplicateAttributeViewBlockResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: AvDuplicateAttributeViewBlockResponseData | null;
 }
 
 interface AvGetAttributeViewParams {
@@ -439,9 +439,9 @@ interface AvGetAttributeViewResponseData {
 }
 
 interface AvGetAttributeViewResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: AvGetAttributeViewResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: AvGetAttributeViewResponseData | null;
 }
 
 interface AvGetAttributeViewFilterSortParams {
@@ -455,9 +455,9 @@ interface AvGetAttributeViewFilterSortResponseData {
 }
 
 interface AvGetAttributeViewFilterSortResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: AvGetAttributeViewFilterSortResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: AvGetAttributeViewFilterSortResponseData | null;
 }
 
 interface AvGetAttributeViewKeysParams {
@@ -465,9 +465,9 @@ interface AvGetAttributeViewKeysParams {
 }
 
 interface AvGetAttributeViewKeysResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: Array<any> | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: Array<any> | null;
 }
 
 interface AvGetAttributeViewKeysByAvIDParams {
@@ -475,9 +475,9 @@ interface AvGetAttributeViewKeysByAvIDParams {
 }
 
 interface AvGetAttributeViewKeysByAvIDResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: Array<any> | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: Array<any> | null;
 }
 
 interface AvGetAttributeViewPrimaryKeyValuesParams {
@@ -494,9 +494,9 @@ interface AvGetAttributeViewPrimaryKeyValuesResponseData {
 }
 
 interface AvGetAttributeViewPrimaryKeyValuesResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: AvGetAttributeViewPrimaryKeyValuesResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: AvGetAttributeViewPrimaryKeyValuesResponseData | null;
 }
 
 interface AvGetMirrorDatabaseBlocksParams {
@@ -513,9 +513,9 @@ interface AvGetMirrorDatabaseBlocksResponseData {
 }
 
 interface AvGetMirrorDatabaseBlocksResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: AvGetMirrorDatabaseBlocksResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: AvGetMirrorDatabaseBlocksResponseData | null;
 }
 
 interface AvRemoveAttributeViewBlocksParams {
@@ -524,9 +524,9 @@ interface AvRemoveAttributeViewBlocksParams {
 }
 
 interface AvRemoveAttributeViewBlocksResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: any | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: any | null;
 }
 
 interface AvRemoveAttributeViewKeyParams {
@@ -536,9 +536,9 @@ interface AvRemoveAttributeViewKeyParams {
 }
 
 interface AvRemoveAttributeViewKeyResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: any | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: any | null;
 }
 
 interface AvRenderAttributeViewParams {
@@ -560,9 +560,9 @@ interface AvRenderAttributeViewResponseData {
 }
 
 interface AvRenderAttributeViewResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: AvRenderAttributeViewResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: AvRenderAttributeViewResponseData | null;
 }
 
 interface AvRenderHistoryAttributeViewParams {
@@ -581,9 +581,9 @@ interface AvRenderHistoryAttributeViewResponseData {
 }
 
 interface AvRenderHistoryAttributeViewResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: AvRenderHistoryAttributeViewResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: AvRenderHistoryAttributeViewResponseData | null;
 }
 
 interface AvRenderSnapshotAttributeViewParams {
@@ -602,9 +602,9 @@ interface AvRenderSnapshotAttributeViewResponseData {
 }
 
 interface AvRenderSnapshotAttributeViewResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: AvRenderSnapshotAttributeViewResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: AvRenderSnapshotAttributeViewResponseData | null;
 }
 
 interface AvSearchAttributeViewParams {
@@ -617,9 +617,9 @@ interface AvSearchAttributeViewResponseData {
 }
 
 interface AvSearchAttributeViewResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: AvSearchAttributeViewResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: AvSearchAttributeViewResponseData | null;
 }
 
 interface AvSearchAttributeViewNonRelationKeyParams {
@@ -632,9 +632,9 @@ interface AvSearchAttributeViewNonRelationKeyResponseData {
 }
 
 interface AvSearchAttributeViewNonRelationKeyResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: AvSearchAttributeViewNonRelationKeyResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: AvSearchAttributeViewNonRelationKeyResponseData | null;
 }
 
 interface AvSearchAttributeViewRelationKeyParams {
@@ -647,9 +647,9 @@ interface AvSearchAttributeViewRelationKeyResponseData {
 }
 
 interface AvSearchAttributeViewRelationKeyResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: AvSearchAttributeViewRelationKeyResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: AvSearchAttributeViewRelationKeyResponseData | null;
 }
 
 interface AvSetAttributeViewBlockAttrParams {
@@ -664,9 +664,9 @@ interface AvSetAttributeViewBlockAttrResponseData {
 }
 
 interface AvSetAttributeViewBlockAttrResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: AvSetAttributeViewBlockAttrResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: AvSetAttributeViewBlockAttrResponseData | null;
 }
 
 interface AvSetDatabaseBlockViewParams {
@@ -675,9 +675,9 @@ interface AvSetDatabaseBlockViewParams {
 }
 
 interface AvSetDatabaseBlockViewResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: any | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: any | null;
 }
 
 interface AvSortAttributeViewKeyParams {
@@ -687,9 +687,9 @@ interface AvSortAttributeViewKeyParams {
 }
 
 interface AvSortAttributeViewKeyResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: any | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: any | null;
 }
 
 interface AvSortAttributeViewViewKeyParams {
@@ -700,9 +700,9 @@ interface AvSortAttributeViewViewKeyParams {
 }
 
 interface AvSortAttributeViewViewKeyResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: any | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: any | null;
 }
 
 interface BazaarBatchUpdatePackageParams {
@@ -710,9 +710,9 @@ interface BazaarBatchUpdatePackageParams {
 }
 
 interface BazaarBatchUpdatePackageResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: any | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: any | null;
 }
 
 interface BazaarGetBazaarIconParams {
@@ -724,9 +724,9 @@ interface BazaarGetBazaarIconResponseData {
 }
 
 interface BazaarGetBazaarIconResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: BazaarGetBazaarIconResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: BazaarGetBazaarIconResponseData | null;
 }
 
 interface BazaarGetBazaarPackageREAMEParams {
@@ -740,9 +740,9 @@ interface BazaarGetBazaarPackageREAMEResponseData {
 }
 
 interface BazaarGetBazaarPackageREAMEResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: BazaarGetBazaarPackageREAMEResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: BazaarGetBazaarPackageREAMEResponseData | null;
 }
 
 interface BazaarGetBazaarPluginParams {
@@ -755,9 +755,9 @@ interface BazaarGetBazaarPluginResponseData {
 }
 
 interface BazaarGetBazaarPluginResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: BazaarGetBazaarPluginResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: BazaarGetBazaarPluginResponseData | null;
 }
 
 interface BazaarGetBazaarTemplateParams {
@@ -769,9 +769,9 @@ interface BazaarGetBazaarTemplateResponseData {
 }
 
 interface BazaarGetBazaarTemplateResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: BazaarGetBazaarTemplateResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: BazaarGetBazaarTemplateResponseData | null;
 }
 
 interface BazaarGetBazaarThemeParams {
@@ -783,9 +783,9 @@ interface BazaarGetBazaarThemeResponseData {
 }
 
 interface BazaarGetBazaarThemeResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: BazaarGetBazaarThemeResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: BazaarGetBazaarThemeResponseData | null;
 }
 
 interface BazaarGetBazaarWidgetParams {
@@ -797,9 +797,9 @@ interface BazaarGetBazaarWidgetResponseData {
 }
 
 interface BazaarGetBazaarWidgetResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: BazaarGetBazaarWidgetResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: BazaarGetBazaarWidgetResponseData | null;
 }
 
 interface BazaarGetInstalledIconParams {
@@ -811,9 +811,9 @@ interface BazaarGetInstalledIconResponseData {
 }
 
 interface BazaarGetInstalledIconResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: BazaarGetInstalledIconResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: BazaarGetInstalledIconResponseData | null;
 }
 
 interface BazaarGetInstalledPluginParams {
@@ -826,9 +826,9 @@ interface BazaarGetInstalledPluginResponseData {
 }
 
 interface BazaarGetInstalledPluginResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: BazaarGetInstalledPluginResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: BazaarGetInstalledPluginResponseData | null;
 }
 
 interface BazaarGetInstalledTemplateParams {
@@ -840,9 +840,9 @@ interface BazaarGetInstalledTemplateResponseData {
 }
 
 interface BazaarGetInstalledTemplateResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: BazaarGetInstalledTemplateResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: BazaarGetInstalledTemplateResponseData | null;
 }
 
 interface BazaarGetInstalledThemeParams {
@@ -854,9 +854,9 @@ interface BazaarGetInstalledThemeResponseData {
 }
 
 interface BazaarGetInstalledThemeResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: BazaarGetInstalledThemeResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: BazaarGetInstalledThemeResponseData | null;
 }
 
 interface BazaarGetInstalledWidgetParams {
@@ -868,9 +868,9 @@ interface BazaarGetInstalledWidgetResponseData {
 }
 
 interface BazaarGetInstalledWidgetResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: BazaarGetInstalledWidgetResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: BazaarGetInstalledWidgetResponseData | null;
 }
 
 interface BazaarGetUpdatedPackageParams {
@@ -886,9 +886,9 @@ interface BazaarGetUpdatedPackageResponseData {
 }
 
 interface BazaarGetUpdatedPackageResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: BazaarGetUpdatedPackageResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: BazaarGetUpdatedPackageResponseData | null;
 }
 
 interface BazaarInstallBazaarIconParams {
@@ -904,9 +904,9 @@ interface BazaarInstallBazaarIconResponseData {
 }
 
 interface BazaarInstallBazaarIconResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: BazaarInstallBazaarIconResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: BazaarInstallBazaarIconResponseData | null;
 }
 
 interface BazaarInstallBazaarPluginParams {
@@ -922,9 +922,9 @@ interface BazaarInstallBazaarPluginResponseData {
 }
 
 interface BazaarInstallBazaarPluginResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: BazaarInstallBazaarPluginResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: BazaarInstallBazaarPluginResponseData | null;
 }
 
 interface BazaarInstallBazaarTemplateParams {
@@ -939,9 +939,9 @@ interface BazaarInstallBazaarTemplateResponseData {
 }
 
 interface BazaarInstallBazaarTemplateResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: BazaarInstallBazaarTemplateResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: BazaarInstallBazaarTemplateResponseData | null;
 }
 
 interface BazaarInstallBazaarThemeParams {
@@ -959,9 +959,9 @@ interface BazaarInstallBazaarThemeResponseData {
 }
 
 interface BazaarInstallBazaarThemeResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: BazaarInstallBazaarThemeResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: BazaarInstallBazaarThemeResponseData | null;
 }
 
 interface BazaarInstallBazaarWidgetParams {
@@ -976,9 +976,9 @@ interface BazaarInstallBazaarWidgetResponseData {
 }
 
 interface BazaarInstallBazaarWidgetResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: BazaarInstallBazaarWidgetResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: BazaarInstallBazaarWidgetResponseData | null;
 }
 
 interface BazaarUninstallBazaarIconParams {
@@ -992,9 +992,9 @@ interface BazaarUninstallBazaarIconResponseData {
 }
 
 interface BazaarUninstallBazaarIconResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: BazaarUninstallBazaarIconResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: BazaarUninstallBazaarIconResponseData | null;
 }
 
 interface BazaarUninstallBazaarPluginParams {
@@ -1008,9 +1008,9 @@ interface BazaarUninstallBazaarPluginResponseData {
 }
 
 interface BazaarUninstallBazaarPluginResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: BazaarUninstallBazaarPluginResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: BazaarUninstallBazaarPluginResponseData | null;
 }
 
 interface BazaarUninstallBazaarTemplateParams {
@@ -1023,9 +1023,9 @@ interface BazaarUninstallBazaarTemplateResponseData {
 }
 
 interface BazaarUninstallBazaarTemplateResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: BazaarUninstallBazaarTemplateResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: BazaarUninstallBazaarTemplateResponseData | null;
 }
 
 interface BazaarUninstallBazaarThemeParams {
@@ -1040,9 +1040,9 @@ interface BazaarUninstallBazaarThemeResponseData {
 }
 
 interface BazaarUninstallBazaarThemeResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: BazaarUninstallBazaarThemeResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: BazaarUninstallBazaarThemeResponseData | null;
 }
 
 interface BazaarUninstallBazaarWidgetParams {
@@ -1055,9 +1055,9 @@ interface BazaarUninstallBazaarWidgetResponseData {
 }
 
 interface BazaarUninstallBazaarWidgetResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 返回消息
-  Data: BazaarUninstallBazaarWidgetResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 返回消息
+  data: BazaarUninstallBazaarWidgetResponseData | null;
 }
 
 interface BlockAppendBlockParams {
@@ -1071,9 +1071,9 @@ interface BlockAppendBlockResponseDataItem {
 }
 
 interface BlockAppendBlockResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: Array<BlockAppendBlockResponseDataItem> | null;
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: Array<BlockAppendBlockResponseDataItem> | null;
 }
 
 interface BlockAppendDailyNoteBlockParams {
@@ -1087,9 +1087,9 @@ interface BlockAppendDailyNoteBlockResponseDataItem {
 }
 
 interface BlockAppendDailyNoteBlockResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: Array<BlockAppendDailyNoteBlockResponseDataItem> | null;
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: Array<BlockAppendDailyNoteBlockResponseDataItem> | null;
 }
 
 interface BlockBatchUpdateBlockParamsBlocksItem {
@@ -1107,9 +1107,9 @@ interface BlockBatchUpdateBlockResponseDataItem {
 }
 
 interface BlockBatchUpdateBlockResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: Array<BlockBatchUpdateBlockResponseDataItem> | null;
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: Array<BlockBatchUpdateBlockResponseDataItem> | null;
 }
 
 interface BlockCheckBlockExistParams {
@@ -1117,9 +1117,9 @@ interface BlockCheckBlockExistParams {
 }
 
 interface BlockCheckBlockExistResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: boolean; // 块是否存在
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: boolean; // 块是否存在
 }
 
 interface BlockCheckBlockFoldParams {
@@ -1132,9 +1132,9 @@ interface BlockCheckBlockFoldResponseData {
 }
 
 interface BlockCheckBlockFoldResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: BlockCheckBlockFoldResponseData; // 包含折叠状态和是否为根块的信息
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: BlockCheckBlockFoldResponseData; // 包含折叠状态和是否为根块的信息
 }
 
 interface BlockCheckBlockRefParams {
@@ -1147,9 +1147,9 @@ interface BlockCheckBlockRefResponseDataValue {
 }
 
 interface BlockCheckBlockRefResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: Record<string, BlockCheckBlockRefResponseDataValue>; // 一个记录对象，键为块 ID，值为该块的引用统计信息
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: Record<string, BlockCheckBlockRefResponseDataValue>; // 一个记录对象，键为块 ID，值为该块的引用统计信息
 }
 
 interface BlockDeleteBlockParams {
@@ -1157,9 +1157,9 @@ interface BlockDeleteBlockParams {
 }
 
 interface BlockDeleteBlockResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: Array<any> | null;
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: Array<any> | null;
 }
 
 interface BlockFoldBlockParams {
@@ -1167,9 +1167,9 @@ interface BlockFoldBlockParams {
 }
 
 interface BlockFoldBlockResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: Array<any> | null;
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: Array<any> | null;
 }
 
 interface BlockGetBlockBreadcrumbParams {
@@ -1185,9 +1185,9 @@ interface BlockGetBlockBreadcrumbResponseDataItem {
 }
 
 interface BlockGetBlockBreadcrumbResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: Array<BlockGetBlockBreadcrumbResponseDataItem>; // 面包屑路径数组，从根到目标块的父块
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: Array<BlockGetBlockBreadcrumbResponseDataItem>; // 面包屑路径数组，从根到目标块的父块
 }
 
 interface BlockGetBlockDOMParams {
@@ -1201,9 +1201,9 @@ interface BlockGetBlockDOMResponseData {
 }
 
 interface BlockGetBlockDOMResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: BlockGetBlockDOMResponseData; // 包含块 ID 和其 DOM 内容的对象
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: BlockGetBlockDOMResponseData; // 包含块 ID 和其 DOM 内容的对象
 }
 
 interface BlockGetBlockDefIDsByRefTextParams {
@@ -1221,9 +1221,9 @@ interface BlockGetBlockDefIDsByRefTextResponseData {
 }
 
 interface BlockGetBlockDefIDsByRefTextResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: BlockGetBlockDefIDsByRefTextResponseData; // 包含引用定义对列表的对象
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: BlockGetBlockDefIDsByRefTextResponseData; // 包含引用定义对列表的对象
 }
 
 interface BlockGetBlockIndexParams {
@@ -1231,9 +1231,9 @@ interface BlockGetBlockIndexParams {
 }
 
 interface BlockGetBlockIndexResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: number; // 块在其父块子节点中的索引位置，-1 表示未找到或出错
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: number; // 块在其父块子节点中的索引位置，-1 表示未找到或出错
 }
 
 interface BlockGetBlockInfoParams {
@@ -1250,9 +1250,9 @@ interface BlockGetBlockInfoResponseData {
 }
 
 interface BlockGetBlockInfoResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: BlockGetBlockInfoResponseData; // 包含块的详细路径和上下文信息的对象
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: BlockGetBlockInfoResponseData; // 包含块的详细路径和上下文信息的对象
 }
 
 interface BlockGetBlockKramdownParams {
@@ -1266,9 +1266,9 @@ interface BlockGetBlockKramdownResponseData {
 }
 
 interface BlockGetBlockKramdownResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: BlockGetBlockKramdownResponseData; // 包含块 ID 和其 Kramdown 源码的对象
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: BlockGetBlockKramdownResponseData; // 包含块 ID 和其 Kramdown 源码的对象
 }
 
 interface BlockGetBlockSiblingIDParams {
@@ -1282,9 +1282,9 @@ interface BlockGetBlockSiblingIDResponseData {
 }
 
 interface BlockGetBlockSiblingIDResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: BlockGetBlockSiblingIDResponseData; // 包含父块、上一个和下一个同级块 ID 的对象
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: BlockGetBlockSiblingIDResponseData; // 包含父块、上一个和下一个同级块 ID 的对象
 }
 
 interface BlockGetBlockTreeInfosParams {
@@ -1359,9 +1359,9 @@ interface BlockGetBlockTreeInfosResponseDataItem {
 }
 
 interface BlockGetBlockTreeInfosResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: Array<BlockGetBlockTreeInfosResponseDataItem>; // 一个包含多个块树信息的数组，每个对象代表一个块及其详细信息和可能的子节点
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: Array<BlockGetBlockTreeInfosResponseDataItem>; // 一个包含多个块树信息的数组，每个对象代表一个块及其详细信息和可能的子节点
 }
 
 interface BlockGetBlocksIndexesParams {
@@ -1369,9 +1369,9 @@ interface BlockGetBlocksIndexesParams {
 }
 
 interface BlockGetBlocksIndexesResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: Record<string, number>; // 一个记录对象，键为块 ID，值为该块在其父块中的索引
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: Record<string, number>; // 一个记录对象，键为块 ID，值为该块在其父块中的索引
 }
 
 interface BlockGetBlocksWordCountParams {
@@ -1391,9 +1391,9 @@ interface BlockGetBlocksWordCountResponseData {
 }
 
 interface BlockGetBlocksWordCountResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: BlockGetBlocksWordCountResponseData; // 包含字数统计结果和可选请求 ID 的对象
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: BlockGetBlocksWordCountResponseData; // 包含字数统计结果和可选请求 ID 的对象
 }
 
 interface BlockGetChildBlocksParams {
@@ -1406,9 +1406,9 @@ interface BlockGetChildBlocksResponseDataItem {
 }
 
 interface BlockGetChildBlocksResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: Array<BlockGetChildBlocksResponseDataItem>; // 直接子块的基本信息数组
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: Array<BlockGetChildBlocksResponseDataItem>; // 直接子块的基本信息数组
 }
 
 interface BlockGetContentWordCountParams {
@@ -1428,9 +1428,9 @@ interface BlockGetContentWordCountResponseData {
 }
 
 interface BlockGetContentWordCountResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: BlockGetContentWordCountResponseData; // 包含字数统计结果和可选请求 ID 的对象
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: BlockGetContentWordCountResponseData; // 包含字数统计结果和可选请求 ID 的对象
 }
 
 interface BlockGetDOMTextParams {
@@ -1438,9 +1438,9 @@ interface BlockGetDOMTextParams {
 }
 
 interface BlockGetDOMTextResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: string; // 从 DOM 中提取的纯文本内容
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: string; // 从 DOM 中提取的纯文本内容
 }
 
 interface BlockGetDocInfoParams {
@@ -1461,9 +1461,9 @@ interface BlockGetDocInfoResponseData {
 }
 
 interface BlockGetDocInfoResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: BlockGetDocInfoResponseData; // 包含文档详细信息的对象
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: BlockGetDocInfoResponseData; // 包含文档详细信息的对象
 }
 
 interface BlockGetDocsInfoParams {
@@ -1482,9 +1482,9 @@ interface BlockGetDocsInfoResponseDataItem {
 }
 
 interface BlockGetDocsInfoResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: Array<BlockGetDocsInfoResponseDataItem>; // 包含多个文档详细信息的数组
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: Array<BlockGetDocsInfoResponseDataItem>; // 包含多个文档详细信息的数组
 }
 
 interface BlockGetHeadingChildrenDOMParams {
@@ -1492,9 +1492,9 @@ interface BlockGetHeadingChildrenDOMParams {
 }
 
 interface BlockGetHeadingChildrenDOMResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: string; // 标题块下所有子孙块合并的 DOM (HTML 字符串)
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: string; // 标题块下所有子孙块合并的 DOM (HTML 字符串)
 }
 
 interface BlockGetHeadingChildrenIDsParams {
@@ -1502,9 +1502,9 @@ interface BlockGetHeadingChildrenIDsParams {
 }
 
 interface BlockGetHeadingChildrenIDsResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: Array<string>; // 标题块下所有子孙块的 ID 数组
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: Array<string>; // 标题块下所有子孙块的 ID 数组
 }
 
 interface BlockGetHeadingDeleteTransactionParams {
@@ -1525,9 +1525,9 @@ interface BlockGetHeadingDeleteTransactionResponseData {
 }
 
 interface BlockGetHeadingDeleteTransactionResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: BlockGetHeadingDeleteTransactionResponseData; // 包含删除操作的事务对象
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: BlockGetHeadingDeleteTransactionResponseData; // 包含删除操作的事务对象
 }
 
 interface BlockGetHeadingLevelTransactionParams {
@@ -1546,9 +1546,9 @@ interface BlockGetHeadingLevelTransactionResponseData {
 }
 
 interface BlockGetHeadingLevelTransactionResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: BlockGetHeadingLevelTransactionResponseData; // 包含调整级别操作的事务对象
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: BlockGetHeadingLevelTransactionResponseData; // 包含调整级别操作的事务对象
 }
 
 interface BlockGetRecentUpdatedBlocksResponseDataItem {
@@ -1565,9 +1565,9 @@ interface BlockGetRecentUpdatedBlocksResponseDataItem {
 }
 
 interface BlockGetRecentUpdatedBlocksResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: Array<BlockGetRecentUpdatedBlocksResponseDataItem>; // 最近更新的块信息数组
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: Array<BlockGetRecentUpdatedBlocksResponseDataItem>; // 最近更新的块信息数组
 }
 
 interface BlockGetRefIDsParams {
@@ -1575,9 +1575,9 @@ interface BlockGetRefIDsParams {
 }
 
 interface BlockGetRefIDsResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: Array<string>; // 该块引用的所有定义块的 ID 数组
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: Array<string>; // 该块引用的所有定义块的 ID 数组
 }
 
 interface BlockGetRefIDsByFileAnnotationIDParams {
@@ -1590,9 +1590,9 @@ interface BlockGetRefIDsByFileAnnotationIDResponseData {
 }
 
 interface BlockGetRefIDsByFileAnnotationIDResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: BlockGetRefIDsByFileAnnotationIDResponseData; // 包含相关引用ID和定义ID的对象
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: BlockGetRefIDsByFileAnnotationIDResponseData; // 包含相关引用ID和定义ID的对象
 }
 
 interface BlockGetRefTextParams {
@@ -1600,9 +1600,9 @@ interface BlockGetRefTextParams {
 }
 
 interface BlockGetRefTextResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: string; // 引用块的锚文本
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: string; // 引用块的锚文本
 }
 
 interface BlockGetTailChildBlocksParams {
@@ -1616,9 +1616,9 @@ interface BlockGetTailChildBlocksResponseDataItem {
 }
 
 interface BlockGetTailChildBlocksResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: Array<BlockGetTailChildBlocksResponseDataItem>; // 尾部子块的基本信息数组
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: Array<BlockGetTailChildBlocksResponseDataItem>; // 尾部子块的基本信息数组
 }
 
 interface BlockGetTreeStatParams {
@@ -1653,9 +1653,9 @@ interface BlockGetTreeStatResponseData {
 }
 
 interface BlockGetTreeStatResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: BlockGetTreeStatResponseData; // 块树的统计信息对象
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: BlockGetTreeStatResponseData; // 块树的统计信息对象
 }
 
 interface BlockGetUnfoldedParentIDParams {
@@ -1663,9 +1663,9 @@ interface BlockGetUnfoldedParentIDParams {
 }
 
 interface BlockGetUnfoldedParentIDResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: string; // 最近的已展开父块的 ID，如果无此类父块或出错则为空字符串
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: string; // 最近的已展开父块的 ID，如果无此类父块或出错则为空字符串
 }
 
 interface BlockInsertBlockParams {
@@ -1680,9 +1680,9 @@ interface BlockInsertBlockResponseDataItem {
 }
 
 interface BlockInsertBlockResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: Array<BlockInsertBlockResponseDataItem> | null;
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: Array<BlockInsertBlockResponseDataItem> | null;
 }
 
 interface BlockPrependBlockParams {
@@ -1696,9 +1696,9 @@ interface BlockPrependBlockResponseDataItem {
 }
 
 interface BlockPrependBlockResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: Array<BlockPrependBlockResponseDataItem> | null;
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: Array<BlockPrependBlockResponseDataItem> | null;
 }
 
 interface BlockSetBlockReminderParams {
@@ -1707,9 +1707,9 @@ interface BlockSetBlockReminderParams {
 }
 
 interface BlockSetBlockReminderResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: null; // 成功时为 null
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: null; // 成功时为 null
 }
 
 interface BlockSwapBlockRefParams {
@@ -1719,9 +1719,9 @@ interface BlockSwapBlockRefParams {
 }
 
 interface BlockSwapBlockRefResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: null; // 成功时为 null
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: null; // 成功时为 null
 }
 
 interface BlockTransferBlockRefParams {
@@ -1732,9 +1732,9 @@ interface BlockTransferBlockRefParams {
 }
 
 interface BlockTransferBlockRefResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: null; // 成功时为 null
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: null; // 成功时为 null
 }
 
 interface BlockUnfoldBlockParams {
@@ -1742,9 +1742,9 @@ interface BlockUnfoldBlockParams {
 }
 
 interface BlockUnfoldBlockResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: Array<any> | null;
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: Array<any> | null;
 }
 
 interface BlockUpdateBlockParams {
@@ -1758,9 +1758,9 @@ interface BlockUpdateBlockResponseDataItem {
 }
 
 interface BlockUpdateBlockResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: Array<BlockUpdateBlockResponseDataItem> | null;
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: Array<BlockUpdateBlockResponseDataItem> | null;
 }
 
 interface BlockPrependDailyNoteBlockParams {
@@ -1770,9 +1770,9 @@ interface BlockPrependDailyNoteBlockParams {
 }
 
 interface BlockPrependDailyNoteBlockResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: Array<any> | null;
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: Array<any> | null;
 }
 
 interface BlockMoveBlockParams {
@@ -1782,9 +1782,9 @@ interface BlockMoveBlockParams {
 }
 
 interface BlockMoveBlockResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: null; // 此接口成功时不返回具体数据，UI 通常通过 WebSocket 消息更新。
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: null; // 此接口成功时不返回具体数据，UI 通常通过 WebSocket 消息更新。
 }
 
 interface BlockMoveOutlineHeadingParams {
@@ -1794,9 +1794,9 @@ interface BlockMoveOutlineHeadingParams {
 }
 
 interface BlockMoveOutlineHeadingResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: Array<any> | null;
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: Array<any> | null;
 }
 
 interface BookmarkGetBookmarkResponseDataItemBlocksItem {
@@ -1823,9 +1823,9 @@ interface BookmarkGetBookmarkResponseDataItem {
 }
 
 interface BookmarkGetBookmarkResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: Array<BookmarkGetBookmarkResponseDataItem>; // 书签数据数组，每个元素是一个书签分组及其包含的书签块列表
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: Array<BookmarkGetBookmarkResponseDataItem>; // 书签数据数组，每个元素是一个书签分组及其包含的书签块列表
 }
 
 interface BookmarkRemoveBookmarkParams {
@@ -1837,8 +1837,8 @@ interface BookmarkRemoveBookmarkResponseData {
 }
 
 interface BookmarkRemoveBookmarkResponse {
-  Code: number; // API 调用返回码，0 表示成功，其他表示失败
-  Msg: string; // API 调用返回消息
+  code: number; // API 调用返回码，0 表示成功，其他表示失败
+  msg: string; // API 调用返回消息
   Data?: BookmarkRemoveBookmarkResponseData | null;
 }
 
@@ -1852,8 +1852,8 @@ interface BookmarkRenameBookmarkResponseData {
 }
 
 interface BookmarkRenameBookmarkResponse {
-  Code: number; // API 调用返回码，0 表示成功，其他表示失败
-  Msg: string; // API 调用返回消息
+  code: number; // API 调用返回码，0 表示成功，其他表示失败
+  msg: string; // API 调用返回消息
   Data?: BookmarkRenameBookmarkResponseData | null;
 }
 
@@ -1867,9 +1867,9 @@ interface BroadcastGetChannelInfoResponseData {
 }
 
 interface BroadcastGetChannelInfoResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: BroadcastGetChannelInfoResponseData; // 频道信息对象
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: BroadcastGetChannelInfoResponseData; // 频道信息对象
 }
 
 interface BroadcastGetChannelsResponseDataItem {
@@ -1878,9 +1878,9 @@ interface BroadcastGetChannelsResponseDataItem {
 }
 
 interface BroadcastGetChannelsResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: Array<BroadcastGetChannelsResponseDataItem>; // 活跃频道信息对象数组
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: Array<BroadcastGetChannelsResponseDataItem>; // 活跃频道信息对象数组
 }
 
 interface BroadcastPostMessageParams {
@@ -1890,9 +1890,9 @@ interface BroadcastPostMessageParams {
 }
 
 interface BroadcastPostMessageResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: any | null;
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: any | null;
 }
 
 interface BroadcastBroadcastPublishParams {
@@ -1921,15 +1921,15 @@ interface BroadcastBroadcastPublishResponseData {
 }
 
 interface BroadcastBroadcastPublishResponse {
-  Code: number; // API 调用返回码 (外层)
-  Msg: string; // API 调用返回消息 (外层)
-  Data: BroadcastBroadcastPublishResponseData; // 发布操作的结果详情
+  code: number; // API 调用返回码 (外层)
+  msg: string; // API 调用返回消息 (外层)
+  data: BroadcastBroadcastPublishResponseData; // 发布操作的结果详情
 }
 
 interface ClipboardReadFilePathsResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: Array<string>; // 从剪贴板中读取到的文件绝对路径列表。如果剪贴板中不是文件路径，或在 Linux 等受限情况下，可能返回空数组。
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: Array<string>; // 从剪贴板中读取到的文件绝对路径列表。如果剪贴板中不是文件路径，或在 Linux 等受限情况下，可能返回空数组。
 }
 
 interface CloudGetCloudSpaceResponseDataSync {
@@ -1961,9 +1961,9 @@ interface CloudGetCloudSpaceResponseData {
 }
 
 interface CloudGetCloudSpaceResponse {
-  Code: number; // API 调用返回码，0 表示成功，1 表示获取信息时发生错误
-  Msg: string; // API 调用返回消息，错误时包含错误信息
-  Data: CloudGetCloudSpaceResponseData; // 云端空间和流量的详细信息
+  code: number; // API 调用返回码，0 表示成功，1 表示获取信息时发生错误
+  msg: string; // API 调用返回消息，错误时包含错误信息
+  data: CloudGetCloudSpaceResponseData; // 云端空间和流量的详细信息
 }
 
 interface ConvertPandocParams {
@@ -1976,9 +1976,9 @@ interface ConvertPandocResponseData {
 }
 
 interface ConvertPandocResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: ConvertPandocResponseData; // 成功时返回的数据
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: ConvertPandocResponseData; // 成功时返回的数据
 }
 
 interface ExportExport2LiandiParams {
@@ -1986,8 +1986,8 @@ interface ExportExport2LiandiParams {
 }
 
 interface ExportExport2LiandiResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
   Data?: null;
 }
 
@@ -2001,9 +2001,9 @@ interface ExportExportAsFileResponseData {
 }
 
 interface ExportExportAsFileResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: ExportExportAsFileResponseData; // 成功时返回的数据
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: ExportExportAsFileResponseData; // 成功时返回的数据
 }
 
 interface ExportExportAsciiDocParams {
@@ -2016,9 +2016,9 @@ interface ExportExportAsciiDocResponseData {
 }
 
 interface ExportExportAsciiDocResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: ExportExportAsciiDocResponseData; // 成功时返回的数据
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: ExportExportAsciiDocResponseData; // 成功时返回的数据
 }
 
 interface ExportExportAttributeViewParams {
@@ -2031,9 +2031,9 @@ interface ExportExportAttributeViewResponseData {
 }
 
 interface ExportExportAttributeViewResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: ExportExportAttributeViewResponseData; // 成功时返回的数据
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: ExportExportAttributeViewResponseData; // 成功时返回的数据
 }
 
 interface ExportExportDataResponseData {
@@ -2041,9 +2041,9 @@ interface ExportExportDataResponseData {
 }
 
 interface ExportExportDataResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: ExportExportDataResponseData; // 成功时返回的数据
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: ExportExportDataResponseData; // 成功时返回的数据
 }
 
 interface ExportExportDataInFolderParams {
@@ -2055,9 +2055,9 @@ interface ExportExportDataInFolderResponseData {
 }
 
 interface ExportExportDataInFolderResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: ExportExportDataInFolderResponseData; // 成功时返回的数据
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: ExportExportDataInFolderResponseData; // 成功时返回的数据
 }
 
 interface ExportExportDocxParams {
@@ -2072,9 +2072,9 @@ interface ExportExportDocxResponseData {
 }
 
 interface ExportExportDocxResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: ExportExportDocxResponseData; // 成功时返回的数据
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: ExportExportDocxResponseData; // 成功时返回的数据
 }
 
 interface ExportExportEPUBParams {
@@ -2087,9 +2087,9 @@ interface ExportExportEPUBResponseData {
 }
 
 interface ExportExportEPUBResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: ExportExportEPUBResponseData; // 成功时返回的数据
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: ExportExportEPUBResponseData; // 成功时返回的数据
 }
 
 interface ExportExportHTMLParams {
@@ -2107,9 +2107,9 @@ interface ExportExportHTMLResponseData {
 }
 
 interface ExportExportHTMLResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: ExportExportHTMLResponseData; // 成功时返回的数据
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: ExportExportHTMLResponseData; // 成功时返回的数据
 }
 
 interface ExportExportMdParams {
@@ -2122,9 +2122,9 @@ interface ExportExportMdResponseData {
 }
 
 interface ExportExportMdResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: ExportExportMdResponseData; // 成功时返回的数据
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: ExportExportMdResponseData; // 成功时返回的数据
 }
 
 interface ExportExportMdContentParams {
@@ -2140,9 +2140,9 @@ interface ExportExportMdContentResponseData {
 }
 
 interface ExportExportMdContentResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: ExportExportMdContentResponseData; // 成功时返回的数据
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: ExportExportMdContentResponseData; // 成功时返回的数据
 }
 
 interface ExportExportMdHTMLParams {
@@ -2157,9 +2157,9 @@ interface ExportExportMdHTMLResponseData {
 }
 
 interface ExportExportMdHTMLResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: ExportExportMdHTMLResponseData; // 成功时返回的数据
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: ExportExportMdHTMLResponseData; // 成功时返回的数据
 }
 
 interface ExportExportMdsParams {
@@ -2172,9 +2172,9 @@ interface ExportExportMdsResponseData {
 }
 
 interface ExportExportMdsResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: ExportExportMdsResponseData; // 成功时返回的数据
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: ExportExportMdsResponseData; // 成功时返回的数据
 }
 
 interface ExportExportMediaWikiParams {
@@ -2187,9 +2187,9 @@ interface ExportExportMediaWikiResponseData {
 }
 
 interface ExportExportMediaWikiResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: ExportExportMediaWikiResponseData; // 成功时返回的数据
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: ExportExportMediaWikiResponseData; // 成功时返回的数据
 }
 
 interface ExportExportNotebookMdParams {
@@ -2202,9 +2202,9 @@ interface ExportExportNotebookMdResponseData {
 }
 
 interface ExportExportNotebookMdResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: ExportExportNotebookMdResponseData; // 成功时返回的数据
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: ExportExportNotebookMdResponseData; // 成功时返回的数据
 }
 
 interface ExportExportNotebookSYParams {
@@ -2216,9 +2216,9 @@ interface ExportExportNotebookSYResponseData {
 }
 
 interface ExportExportNotebookSYResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: ExportExportNotebookSYResponseData; // 成功时返回的数据
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: ExportExportNotebookSYResponseData; // 成功时返回的数据
 }
 
 interface ExportExportODTParams {
@@ -2231,9 +2231,9 @@ interface ExportExportODTResponseData {
 }
 
 interface ExportExportODTResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: ExportExportODTResponseData; // 成功时返回的数据
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: ExportExportODTResponseData; // 成功时返回的数据
 }
 
 interface ExportExportOPMLParams {
@@ -2246,9 +2246,9 @@ interface ExportExportOPMLResponseData {
 }
 
 interface ExportExportOPMLResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: ExportExportOPMLResponseData; // 成功时返回的数据
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: ExportExportOPMLResponseData; // 成功时返回的数据
 }
 
 interface ExportExportOrgModeParams {
@@ -2261,9 +2261,9 @@ interface ExportExportOrgModeResponseData {
 }
 
 interface ExportExportOrgModeResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: ExportExportOrgModeResponseData; // 成功时返回的数据
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: ExportExportOrgModeResponseData; // 成功时返回的数据
 }
 
 interface ExportExportPreviewHTMLParams {
@@ -2282,9 +2282,9 @@ interface ExportExportPreviewHTMLResponseData {
 }
 
 interface ExportExportPreviewHTMLResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: ExportExportPreviewHTMLResponseData; // 成功时返回的数据
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: ExportExportPreviewHTMLResponseData; // 成功时返回的数据
 }
 
 interface ExportExportRTFParams {
@@ -2297,9 +2297,9 @@ interface ExportExportRTFResponseData {
 }
 
 interface ExportExportRTFResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: ExportExportRTFResponseData; // 成功时返回的数据
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: ExportExportRTFResponseData; // 成功时返回的数据
 }
 
 interface ExportExportReStructuredTextParams {
@@ -2312,9 +2312,9 @@ interface ExportExportReStructuredTextResponseData {
 }
 
 interface ExportExportReStructuredTextResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: ExportExportReStructuredTextResponseData; // 成功时返回的数据
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: ExportExportReStructuredTextResponseData; // 成功时返回的数据
 }
 
 interface ExportExportResourcesParams {
@@ -2327,9 +2327,9 @@ interface ExportExportResourcesResponseData {
 }
 
 interface ExportExportResourcesResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: ExportExportResourcesResponseData; // 成功时返回的数据
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: ExportExportResourcesResponseData; // 成功时返回的数据
 }
 
 interface ExportExportSYParams {
@@ -2342,9 +2342,9 @@ interface ExportExportSYResponseData {
 }
 
 interface ExportExportSYResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: ExportExportSYResponseData; // 成功时返回的数据
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: ExportExportSYResponseData; // 成功时返回的数据
 }
 
 interface ExportExportTempContentParams {
@@ -2362,9 +2362,9 @@ interface ExportExportTempContentResponseData {
 }
 
 interface ExportExportTempContentResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: ExportExportTempContentResponseData; // 成功时返回的数据
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: ExportExportTempContentResponseData; // 成功时返回的数据
 }
 
 interface ExportExportTextileParams {
@@ -2377,9 +2377,9 @@ interface ExportExportTextileResponseData {
 }
 
 interface ExportExportTextileResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: ExportExportTextileResponseData; // 成功时返回的数据
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: ExportExportTextileResponseData; // 成功时返回的数据
 }
 
 interface ExportExportPreviewParams {
@@ -2391,9 +2391,9 @@ interface ExportExportPreviewResponseData {
 }
 
 interface ExportExportPreviewResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: ExportExportPreviewResponseData; // 成功时返回的数据
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: ExportExportPreviewResponseData; // 成功时返回的数据
 }
 
 interface ExportProcessPDFParams {
@@ -2405,8 +2405,8 @@ interface ExportProcessPDFParams {
 }
 
 interface ExportProcessPDFResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
   Data?: null;
 }
 
@@ -2422,9 +2422,9 @@ interface ExtensionExtensionCopyResponseData {
 }
 
 interface ExtensionExtensionCopyResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息，失败时错误信息显示在这里
-  Data: ExtensionExtensionCopyResponseData | null;
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息，失败时错误信息显示在这里
+  data: ExtensionExtensionCopyResponseData | null;
 }
 
 interface FileCopyFileParams {
@@ -2437,9 +2437,9 @@ interface FileCopyFileResponseData {
 }
 
 interface FileCopyFileResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: FileCopyFileResponseData | null;
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: FileCopyFileResponseData | null;
 }
 
 interface FileGetFileParams {
@@ -2447,8 +2447,8 @@ interface FileGetFileParams {
 }
 
 interface FileGetFileResponse {
-  Code: number; // 错误状态码 (例如 403, 404, 500)
-  Msg: string; // 错误消息
+  code: number; // 错误状态码 (例如 403, 404, 500)
+  msg: string; // 错误消息
 }
 
 interface FileGetUniqueFilenameParams {
@@ -2460,9 +2460,9 @@ interface FileGetUniqueFilenameResponseData {
 }
 
 interface FileGetUniqueFilenameResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: FileGetUniqueFilenameResponseData;
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: FileGetUniqueFilenameResponseData;
 }
 
 interface FileGlobalCopyFilesParams {
@@ -2471,8 +2471,8 @@ interface FileGlobalCopyFilesParams {
 }
 
 interface FileGlobalCopyFilesResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
   Data?: null;
 }
 
@@ -2483,8 +2483,8 @@ interface FilePutFileParams {
 }
 
 interface FilePutFileResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
   Data?: null;
 }
 
@@ -2500,9 +2500,9 @@ interface FileReadDirResponseDataItem {
 }
 
 interface FileReadDirResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: Array<FileReadDirResponseDataItem>; // 目录中的条目列表
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: Array<FileReadDirResponseDataItem>; // 目录中的条目列表
 }
 
 interface FileRemoveFileParams {
@@ -2510,8 +2510,8 @@ interface FileRemoveFileParams {
 }
 
 interface FileRemoveFileResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
   Data?: null;
 }
 
@@ -2521,8 +2521,8 @@ interface FileRenameFileParams {
 }
 
 interface FileRenameFileResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
   Data?: null;
 }
 
@@ -2532,8 +2532,8 @@ interface FiletreeChangeSortParams {
 }
 
 interface FiletreeChangeSortResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
   Data?: null;
 }
 
@@ -2548,8 +2548,8 @@ interface FiletreeCreateDailyNoteResponseData {
 }
 
 interface FiletreeCreateDailyNoteResponse {
-  Code: number; // 响应状态码。0 表示成功创建或获取；1 表示笔记本未找到；-1 表示其他错误。
-  Msg: string; // 响应消息。
+  code: number; // 响应状态码。0 表示成功创建或获取；1 表示笔记本未找到；-1 表示其他错误。
+  msg: string; // 响应消息。
   Data?: FiletreeCreateDailyNoteResponseData;
 }
 
@@ -2569,9 +2569,9 @@ interface FiletreeCreateDocResponseData {
 }
 
 interface FiletreeCreateDocResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: FiletreeCreateDocResponseData; // 成功时返回新文档的ID；失败时可能包含 closeTimeout。
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: FiletreeCreateDocResponseData; // 成功时返回新文档的ID；失败时可能包含 closeTimeout。
 }
 
 interface FiletreeCreateDocWithMdParams {
@@ -2588,8 +2588,8 @@ interface FiletreeCreateDocWithMdParams {
 }
 
 interface FiletreeCreateDocWithMdResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
   Data?: string;
 }
 
@@ -2606,9 +2606,9 @@ interface FiletreeDoc2HeadingResponseData {
 }
 
 interface FiletreeDoc2HeadingResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: FiletreeDoc2HeadingResponseData; // 成功时返回源文档的笔记本和路径信息；失败时可能包含 closeTimeout。
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: FiletreeDoc2HeadingResponseData; // 成功时返回源文档的笔记本和路径信息；失败时可能包含 closeTimeout。
 }
 
 interface FiletreeDuplicateDocParams {
@@ -2626,9 +2626,9 @@ interface FiletreeDuplicateDocResponseData {
 }
 
 interface FiletreeDuplicateDocResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: FiletreeDuplicateDocResponseData; // 成功时返回新文档的相关信息；失败时可能包含 closeTimeout。
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: FiletreeDuplicateDocResponseData; // 成功时返回新文档的相关信息；失败时可能包含 closeTimeout。
 }
 
 interface FiletreeGetDocParams {
@@ -2667,8 +2667,8 @@ interface FiletreeGetDocResponseData {
 }
 
 interface FiletreeGetDocResponse {
-  Code: number; // 响应状态码。0: 成功；1: 通用错误；3: 块未找到。
-  Msg: string; // 响应消息。
+  code: number; // 响应状态码。0: 成功；1: 通用错误；3: 块未找到。
+  msg: string; // 响应消息。
   Data?: FiletreeGetDocResponseData;
 }
 
@@ -2682,8 +2682,8 @@ interface FiletreeGetDocCreateSavePathResponseData {
 }
 
 interface FiletreeGetDocCreateSavePathResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
   Data?: FiletreeGetDocCreateSavePathResponseData;
 }
 
@@ -2692,8 +2692,8 @@ interface FiletreeGetFullHPathByIDParams {
 }
 
 interface FiletreeGetFullHPathByIDResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
   Data?: string;
 }
 
@@ -2702,8 +2702,8 @@ interface FiletreeGetHPathByIDParams {
 }
 
 interface FiletreeGetHPathByIDResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
   Data?: string;
 }
 
@@ -2713,8 +2713,8 @@ interface FiletreeGetHPathByPathParams {
 }
 
 interface FiletreeGetHPathByPathResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
   Data?: string;
 }
 
@@ -2728,8 +2728,8 @@ interface FiletreeGetHPathsByPathsParams {
 }
 
 interface FiletreeGetHPathsByPathsResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
   Data?: Array<string>;
 }
 
@@ -2739,8 +2739,8 @@ interface FiletreeGetIDsByHPathParams {
 }
 
 interface FiletreeGetIDsByHPathResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
   Data?: Array<string>;
 }
 
@@ -2754,8 +2754,8 @@ interface FiletreeGetPathByIDResponseData {
 }
 
 interface FiletreeGetPathByIDResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
   Data?: FiletreeGetPathByIDResponseData;
 }
 
@@ -2769,8 +2769,8 @@ interface FiletreeGetRefCreateSavePathResponseData {
 }
 
 interface FiletreeGetRefCreateSavePathResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
   Data?: FiletreeGetRefCreateSavePathResponseData;
 }
 
@@ -2789,9 +2789,9 @@ interface FiletreeHeading2DocResponseData {
 }
 
 interface FiletreeHeading2DocResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: FiletreeHeading2DocResponseData; // 成功时返回新文档的ID和路径；失败时可能包含 closeTimeout。
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: FiletreeHeading2DocResponseData; // 成功时返回新文档的ID和路径；失败时可能包含 closeTimeout。
 }
 
 interface FiletreeLi2DocParams {
@@ -2809,9 +2809,9 @@ interface FiletreeLi2DocResponseData {
 }
 
 interface FiletreeLi2DocResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: FiletreeLi2DocResponseData; // 成功时返回新文档的ID和路径；失败时可能包含 closeTimeout。
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: FiletreeLi2DocResponseData; // 成功时返回新文档的ID和路径；失败时可能包含 closeTimeout。
 }
 
 interface FiletreeListDocTreeParams {
@@ -2829,8 +2829,8 @@ interface FiletreeListDocTreeResponseData {
 }
 
 interface FiletreeListDocTreeResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
   Data?: FiletreeListDocTreeResponseData;
 }
 
@@ -2872,8 +2872,8 @@ interface FiletreeListDocsByPathResponseData {
 }
 
 interface FiletreeListDocsByPathResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
   Data?: FiletreeListDocsByPathResponseData;
 }
 
@@ -2889,9 +2889,9 @@ interface FiletreeMoveDocsResponseData {
 }
 
 interface FiletreeMoveDocsResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: FiletreeMoveDocsResponseData | null;
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: FiletreeMoveDocsResponseData | null;
 }
 
 interface FiletreeMoveDocsByIDParams {
@@ -2905,9 +2905,9 @@ interface FiletreeMoveDocsByIDResponseData {
 }
 
 interface FiletreeMoveDocsByIDResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: FiletreeMoveDocsByIDResponseData | null;
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: FiletreeMoveDocsByIDResponseData | null;
 }
 
 interface FiletreeMoveLocalShorthandsParams {
@@ -2917,14 +2917,14 @@ interface FiletreeMoveLocalShorthandsParams {
 }
 
 interface FiletreeMoveLocalShorthandsResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
   Data?: null;
 }
 
 interface FiletreeRefreshFiletreeResponse {
-  Code: number; // 响应状态码，0 表示成功（操作已异步启动）
-  Msg: string; // 响应消息
+  code: number; // 响应状态码，0 表示成功（操作已异步启动）
+  msg: string; // 响应消息
   Data?: null;
 }
 
@@ -2934,8 +2934,8 @@ interface FiletreeRemoveDocParams {
 }
 
 interface FiletreeRemoveDocResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
   Data?: null;
 }
 
@@ -2948,9 +2948,9 @@ interface FiletreeRemoveDocByIDResponseData {
 }
 
 interface FiletreeRemoveDocByIDResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: FiletreeRemoveDocByIDResponseData | null;
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: FiletreeRemoveDocByIDResponseData | null;
 }
 
 interface FiletreeRemoveDocsParams {
@@ -2958,8 +2958,8 @@ interface FiletreeRemoveDocsParams {
 }
 
 interface FiletreeRemoveDocsResponse {
-  Code: number; // 响应状态码，0 表示成功（即使部分路径无效也可能返回0，具体需看Msg）
-  Msg: string; // 响应消息。如果部分文档移除失败，Msg中可能会有提示。
+  code: number; // 响应状态码，0 表示成功（即使部分路径无效也可能返回0，具体需看Msg）
+  msg: string; // 响应消息。如果部分文档移除失败，Msg中可能会有提示。
   Data?: null;
 }
 
@@ -2968,8 +2968,8 @@ interface FiletreeRemoveIndexesParams {
 }
 
 interface FiletreeRemoveIndexesResponse {
-  Code: number; // 响应状态码，0 表示成功（操作已接受）
-  Msg: string; // 响应消息
+  code: number; // 响应状态码，0 表示成功（操作已接受）
+  msg: string; // 响应消息
   Data?: null;
 }
 
@@ -2980,8 +2980,8 @@ interface FiletreeRenameDocParams {
 }
 
 interface FiletreeRenameDocResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
   Data?: null;
 }
 
@@ -2995,9 +2995,9 @@ interface FiletreeRenameDocByIDResponseData {
 }
 
 interface FiletreeRenameDocByIDResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: FiletreeRenameDocByIDResponseData | null;
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: FiletreeRenameDocByIDResponseData | null;
 }
 
 interface FiletreeSearchDocsParams {
@@ -3018,8 +3018,8 @@ interface FiletreeSearchDocsResponseDataItem {
 }
 
 interface FiletreeSearchDocsResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
   Data?: Array<FiletreeSearchDocsResponseDataItem>;
 }
 
@@ -3028,8 +3028,8 @@ interface FiletreeUpsertIndexesParams {
 }
 
 interface FiletreeUpsertIndexesResponse {
-  Code: number; // 响应状态码，0 表示成功（操作已接受）
-  Msg: string; // 响应消息
+  code: number; // 响应状态码，0 表示成功（操作已接受）
+  msg: string; // 响应消息
   Data?: null;
 }
 
@@ -3038,9 +3038,9 @@ interface FormatAutoSpaceParams {
 }
 
 interface FormatAutoSpaceResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: null; // 操作成功时为 null
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: null; // 操作成功时为 null
 }
 
 interface FormatNetAssets2LocalAssetsParams {
@@ -3048,9 +3048,9 @@ interface FormatNetAssets2LocalAssetsParams {
 }
 
 interface FormatNetAssets2LocalAssetsResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: null; // 操作成功时为 null
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: null; // 操作成功时为 null
 }
 
 interface FormatNetImg2LocalAssetsParams {
@@ -3059,9 +3059,9 @@ interface FormatNetImg2LocalAssetsParams {
 }
 
 interface FormatNetImg2LocalAssetsResponse {
-  Code: number; // API 调用返回码，0 表示成功
-  Msg: string; // API 调用返回消息
-  Data: null; // 操作成功时为 null
+  code: number; // API 调用返回码，0 表示成功
+  msg: string; // API 调用返回消息
+  data: null; // 操作成功时为 null
 }
 
 interface GraphGetGraphParamsConfType {
@@ -3340,9 +3340,9 @@ interface GraphResetLocalGraphResponse {
 }
 
 interface HistoryClearWorkspaceHistoryResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: null; // 成功时固定为 null
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: null; // 成功时固定为 null
 }
 
 interface HistoryGetDocHistoryContentParams {
@@ -3359,9 +3359,9 @@ interface HistoryGetDocHistoryContentResponseData {
 }
 
 interface HistoryGetDocHistoryContentResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: HistoryGetDocHistoryContentResponseData | null;
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: HistoryGetDocHistoryContentResponseData | null;
 }
 
 interface HistoryGetHistoryItemsParams {
@@ -3396,9 +3396,9 @@ interface HistoryGetHistoryItemsResponseData {
 }
 
 interface HistoryGetHistoryItemsResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: HistoryGetHistoryItemsResponseData | null;
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: HistoryGetHistoryItemsResponseData | null;
 }
 
 interface HistoryGetNotebookHistoryResponseDataHistoriesItem {
@@ -3420,15 +3420,15 @@ interface HistoryGetNotebookHistoryResponseData {
 }
 
 interface HistoryGetNotebookHistoryResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: HistoryGetNotebookHistoryResponseData | null;
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: HistoryGetNotebookHistoryResponseData | null;
 }
 
 interface HistoryReindexHistoryResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: null; // 成功时固定为 null
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: null; // 成功时固定为 null
 }
 
 interface HistoryRollbackAssetsHistoryParams {
@@ -3436,9 +3436,9 @@ interface HistoryRollbackAssetsHistoryParams {
 }
 
 interface HistoryRollbackAssetsHistoryResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: null; // 成功时固定为 null
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: null; // 成功时固定为 null
 }
 
 interface HistoryRollbackDocHistoryParams {
@@ -3451,9 +3451,9 @@ interface HistoryRollbackDocHistoryResponseData {
 }
 
 interface HistoryRollbackDocHistoryResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: HistoryRollbackDocHistoryResponseData | null;
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: HistoryRollbackDocHistoryResponseData | null;
 }
 
 interface HistoryRollbackNotebookHistoryParams {
@@ -3461,9 +3461,9 @@ interface HistoryRollbackNotebookHistoryParams {
 }
 
 interface HistoryRollbackNotebookHistoryResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: null; // 成功时固定为 null
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: null; // 成功时固定为 null
 }
 
 interface HistorySearchHistoryParams {
@@ -3506,9 +3506,9 @@ interface HistorySearchHistoryResponseData {
 }
 
 interface HistorySearchHistoryResponse {
-  Code: number; // 响应状态码，0 表示成功
-  Msg: string; // 响应消息
-  Data: HistorySearchHistoryResponseData | null;
+  code: number; // 响应状态码，0 表示成功
+  msg: string; // 响应消息
+  data: HistorySearchHistoryResponseData | null;
 }
 
 interface IconGetDynamicIconParams {
@@ -3522,14 +3522,14 @@ interface IconGetDynamicIconParams {
 }
 
 interface ImportImportDataResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
   Data?: null;
 }
 
 interface ImportImportSYResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
   Data?: null;
 }
 
@@ -3540,8 +3540,8 @@ interface ImportImportStdMdParams {
 }
 
 interface ImportImportStdMdResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
   Data?: null;
 }
 
@@ -3558,9 +3558,9 @@ interface InboxGetShorthandResponseData {
 }
 
 interface InboxGetShorthandResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: InboxGetShorthandResponseData; // 包含速记详细信息的对象
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: InboxGetShorthandResponseData; // 包含速记详细信息的对象
 }
 
 interface InboxGetShorthandsParams {
@@ -3582,9 +3582,9 @@ interface InboxGetShorthandsResponseData {
 }
 
 interface InboxGetShorthandsResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: InboxGetShorthandsResponseData; // 包含速记列表及可能的分页信息的对象
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: InboxGetShorthandsResponseData; // 包含速记列表及可能的分页信息的对象
 }
 
 interface InboxRemoveShorthandsParams {
@@ -3592,8 +3592,8 @@ interface InboxRemoveShorthandsParams {
 }
 
 interface InboxRemoveShorthandsResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
   Data?: null;
 }
 
@@ -3602,9 +3602,9 @@ interface LuteCopyStdMarkdownParams {
 }
 
 interface LuteCopyStdMarkdownResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: string; // 导出的标准 Markdown 内容
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: string; // 导出的标准 Markdown 内容
 }
 
 interface LuteHtml2BlockDOMParams {
@@ -3612,9 +3612,9 @@ interface LuteHtml2BlockDOMParams {
 }
 
 interface LuteHtml2BlockDOMResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: string; // 转换后的块级 DOM (HTML 格式的字符串)
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: string; // 转换后的块级 DOM (HTML 格式的字符串)
 }
 
 interface LuteSpinBlockDOMParams {
@@ -3626,9 +3626,9 @@ interface LuteSpinBlockDOMResponseData {
 }
 
 interface LuteSpinBlockDOMResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: LuteSpinBlockDOMResponseData;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: LuteSpinBlockDOMResponseData;
 }
 
 interface MiscBroadcastSubscribeParams {
@@ -3678,9 +3678,9 @@ interface NetworkForwardProxyResponseData {
 }
 
 interface NetworkForwardProxyResponse {
-  Code: number; // 返回码。0 表示代理请求成功（无论目标服务器返回何种状态码），非 0 表示代理请求本身失败。
-  Msg: string; // 错误信息。代理请求成功时为空字符串。
-  Data: NetworkForwardProxyResponseData | null;
+  code: number; // 返回码。0 表示代理请求成功（无论目标服务器返回何种状态码），非 0 表示代理请求本身失败。
+  msg: string; // 错误信息。代理请求成功时为空字符串。
+  data: NetworkForwardProxyResponseData | null;
 }
 
 interface NotebookChangeSortNotebookParams {
@@ -3688,8 +3688,8 @@ interface NotebookChangeSortNotebookParams {
 }
 
 interface NotebookChangeSortNotebookResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
   Data?: null;
 }
 
@@ -3699,8 +3699,8 @@ interface NotebookCloseNotebookParams {
 }
 
 interface NotebookCloseNotebookResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
   Data?: null;
 }
 
@@ -3722,9 +3722,9 @@ interface NotebookCreateNotebookResponseData {
 }
 
 interface NotebookCreateNotebookResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: NotebookCreateNotebookResponseData; // 包含新创建笔记本信息的对象。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: NotebookCreateNotebookResponseData; // 包含新创建笔记本信息的对象。
 }
 
 interface NotebookGetNotebookConfParams {
@@ -3768,9 +3768,9 @@ interface NotebookGetNotebookConfResponseData {
 }
 
 interface NotebookGetNotebookConfResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: NotebookGetNotebookConfResponseData; // 包含笔记本配置的对象。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: NotebookGetNotebookConfResponseData; // 包含笔记本配置的对象。
 }
 
 interface NotebookGetNotebookInfoParams {
@@ -3815,9 +3815,9 @@ interface NotebookGetNotebookInfoResponseData {
 }
 
 interface NotebookGetNotebookInfoResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: NotebookGetNotebookInfoResponseData; // 包含笔记本详细信息的对象。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: NotebookGetNotebookInfoResponseData; // 包含笔记本详细信息的对象。
 }
 
 interface NotebookLsNotebooksResponseDataNotebooksItem {
@@ -3834,9 +3834,9 @@ interface NotebookLsNotebooksResponseData {
 }
 
 interface NotebookLsNotebooksResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: NotebookLsNotebooksResponseData; // 包含笔记本列表的对象。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: NotebookLsNotebooksResponseData; // 包含笔记本列表的对象。
 }
 
 interface NotebookOpenNotebookParams {
@@ -3844,9 +3844,9 @@ interface NotebookOpenNotebookParams {
 }
 
 interface NotebookOpenNotebookResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: Record<string, never> | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: Record<string, never> | null;
 }
 
 interface NotebookRemoveNotebookParams {
@@ -3855,8 +3855,8 @@ interface NotebookRemoveNotebookParams {
 }
 
 interface NotebookRemoveNotebookResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
   Data?: null;
 }
 
@@ -3871,9 +3871,9 @@ interface NotebookRenameNotebookResponseData {
 }
 
 interface NotebookRenameNotebookResponse {
-  Code: number; // 返回码，0 表示成功, -1 表示失败 (例如名称冲突)。
-  Msg: string; // 错误信息，成功时为空字符串。
-  Data: NotebookRenameNotebookResponseData | null;
+  code: number; // 返回码，0 表示成功, -1 表示失败 (例如名称冲突)。
+  msg: string; // 错误信息，成功时为空字符串。
+  data: NotebookRenameNotebookResponseData | null;
 }
 
 interface NotebookSetNotebookConfParamsConf {
@@ -3892,8 +3892,8 @@ interface NotebookSetNotebookConfParams {
 }
 
 interface NotebookSetNotebookConfResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
   Data?: null;
 }
 
@@ -3903,8 +3903,8 @@ interface NotebookSetNotebookIconParams {
 }
 
 interface NotebookSetNotebookIconResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
   Data?: null;
 }
 
@@ -3918,9 +3918,9 @@ interface NotificationPushErrMsgResponseData {
 }
 
 interface NotificationPushErrMsgResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: NotificationPushErrMsgResponseData; // 包含消息ID的对象。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: NotificationPushErrMsgResponseData; // 包含消息ID的对象。
 }
 
 interface NotificationPushMsgParams {
@@ -3933,9 +3933,9 @@ interface NotificationPushMsgResponseData {
 }
 
 interface NotificationPushMsgResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串。如果 msg 为空，则 Code 为 -1，Msg 为 'msg can't be empty'。
-  Data: NotificationPushMsgResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串。如果 msg 为空，则 Code 为 -1，Msg 为 'msg can't be empty'。
+  data: NotificationPushMsgResponseData | null;
 }
 
 interface OutlineGetDocOutlineParams {
@@ -3946,9 +3946,9 @@ interface OutlineGetDocOutlineParams {
 // Recursive type OutlineGetDocOutlineResponseDataItem (processing)
 
 interface OutlineGetDocOutlineResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: Array<OutlineGetDocOutlineResponseDataItem> | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: Array<OutlineGetDocOutlineResponseDataItem> | null;
 }
 
 interface PetalLoadPetalsParams {
@@ -3966,9 +3966,9 @@ interface PetalLoadPetalsResponseDataItem {
 }
 
 interface PetalLoadPetalsResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: Array<PetalLoadPetalsResponseDataItem> | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: Array<PetalLoadPetalsResponseDataItem> | null;
 }
 
 interface PetalSetPetalEnabledParams {
@@ -3985,9 +3985,9 @@ interface PetalSetPetalEnabledResponseData {
 }
 
 interface PetalSetPetalEnabledResponse {
-  Code: number; // 返回码，0 表示成功，-1 表示插件不兼容或其他错误
-  Msg: string; // 错误信息，成功时为空字符串，失败时包含具体错误，如不兼容提示。
-  Data: PetalSetPetalEnabledResponseData | null;
+  code: number; // 返回码，0 表示成功，-1 表示插件不兼容或其他错误
+  msg: string; // 错误信息，成功时为空字符串，失败时包含具体错误，如不兼容提示。
+  data: PetalSetPetalEnabledResponseData | null;
 }
 
 interface QuerySQLParams {
@@ -3995,9 +3995,9 @@ interface QuerySQLParams {
 }
 
 interface QuerySQLResponse {
-  Code: number; // 返回码，0 表示成功，其他值表示失败。
-  Msg: string; // 错误信息，成功时通常为空字符串。
-  Data: Array<Record<string, any>> | null;
+  code: number; // 返回码，0 表示成功，其他值表示失败。
+  msg: string; // 错误信息，成功时通常为空字符串。
+  data: Array<Record<string, any>> | null;
 }
 
 interface RefGetBacklinkParams {
@@ -4019,9 +4019,9 @@ interface RefGetBacklinkResponseData {
 }
 
 interface RefGetBacklinkResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: RefGetBacklinkResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: RefGetBacklinkResponseData | null;
 }
 
 interface RefGetBacklink2Params {
@@ -4044,9 +4044,9 @@ interface RefGetBacklink2ResponseData {
 }
 
 interface RefGetBacklink2Response {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: RefGetBacklink2ResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: RefGetBacklink2ResponseData | null;
 }
 
 interface RefGetBacklinkDocParams {
@@ -4063,9 +4063,9 @@ interface RefGetBacklinkDocResponseData {
 }
 
 interface RefGetBacklinkDocResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: RefGetBacklinkDocResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: RefGetBacklinkDocResponseData | null;
 }
 
 interface RefGetBackmentionDocParams {
@@ -4082,9 +4082,9 @@ interface RefGetBackmentionDocResponseData {
 }
 
 interface RefGetBackmentionDocResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: RefGetBackmentionDocResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: RefGetBackmentionDocResponseData | null;
 }
 
 interface RefRefreshBacklinkParams {
@@ -4092,9 +4092,9 @@ interface RefRefreshBacklinkParams {
 }
 
 interface RefRefreshBacklinkResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: null; // 成功时 Data 固定为 null。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: null; // 成功时 Data 固定为 null。
 }
 
 interface RepoCheckoutRepoParams {
@@ -4102,9 +4102,9 @@ interface RepoCheckoutRepoParams {
 }
 
 interface RepoCheckoutRepoResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: null; // 成功时 Data 固定为 null。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: null; // 成功时 Data 固定为 null。
 }
 
 interface RepoCreateSnapshotParams {
@@ -4117,9 +4117,9 @@ interface RepoCreateSnapshotResponseData {
 }
 
 interface RepoCreateSnapshotResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: RepoCreateSnapshotResponseData; // 包含新快照ID的对象。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: RepoCreateSnapshotResponseData; // 包含新快照ID的对象。
 }
 
 interface RepoDiffRepoSnapshotsParams {
@@ -4169,9 +4169,9 @@ interface RepoDiffRepoSnapshotsResponseData {
 }
 
 interface RepoDiffRepoSnapshotsResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: RepoDiffRepoSnapshotsResponseData; // 包含两个快照差异详情的对象。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: RepoDiffRepoSnapshotsResponseData; // 包含两个快照差异详情的对象。
 }
 
 interface RepoDownloadCloudSnapshotParams {
@@ -4180,9 +4180,9 @@ interface RepoDownloadCloudSnapshotParams {
 }
 
 interface RepoDownloadCloudSnapshotResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: null; // 成功时 Data 固定为 null。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: null; // 成功时 Data 固定为 null。
 }
 
 interface RepoGetCloudRepoSnapshotsParams {
@@ -4205,9 +4205,9 @@ interface RepoGetCloudRepoSnapshotsResponseData {
 }
 
 interface RepoGetCloudRepoSnapshotsResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: RepoGetCloudRepoSnapshotsResponseData; // 包含云端快照列表、总页数和总数量的对象。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: RepoGetCloudRepoSnapshotsResponseData; // 包含云端快照列表、总页数和总数量的对象。
 }
 
 interface RepoGetCloudRepoTagSnapshotsParams {
@@ -4231,9 +4231,9 @@ interface RepoGetCloudRepoTagSnapshotsResponseData {
 }
 
 interface RepoGetCloudRepoTagSnapshotsResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: RepoGetCloudRepoTagSnapshotsResponseData; // 包含云端标签快照列表、总页数和总数量的对象。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: RepoGetCloudRepoTagSnapshotsResponseData; // 包含云端标签快照列表、总页数和总数量的对象。
 }
 
 interface RepoGetRepoFileParams {
@@ -4261,9 +4261,9 @@ interface RepoGetRepoSnapshotsResponseData {
 }
 
 interface RepoGetRepoSnapshotsResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: RepoGetRepoSnapshotsResponseData; // 包含本地快照列表、总页数和总数量的对象。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: RepoGetRepoSnapshotsResponseData; // 包含本地快照列表、总页数和总数量的对象。
 }
 
 interface RepoGetRepoTagSnapshotsParams {
@@ -4287,21 +4287,21 @@ interface RepoGetRepoTagSnapshotsResponseData {
 }
 
 interface RepoGetRepoTagSnapshotsResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: RepoGetRepoTagSnapshotsResponseData; // 包含本地标签快照列表、总页数和总数量的对象。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: RepoGetRepoTagSnapshotsResponseData; // 包含本地标签快照列表、总页数和总数量的对象。
 }
 
 interface RepoImportRepoKeyResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: null; // 成功时 Data 固定为 null。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: null; // 成功时 Data 固定为 null。
 }
 
 interface RepoInitRepoKeyResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: null; // 成功时 Data 固定为 null。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: null; // 成功时 Data 固定为 null。
 }
 
 interface RepoInitRepoKeyFromPassphraseParams {
@@ -4309,9 +4309,9 @@ interface RepoInitRepoKeyFromPassphraseParams {
 }
 
 interface RepoInitRepoKeyFromPassphraseResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: null; // 成功时 Data 固定为 null。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: null; // 成功时 Data 固定为 null。
 }
 
 interface RepoOpenRepoSnapshotDocParams {
@@ -4326,21 +4326,21 @@ interface RepoOpenRepoSnapshotDocResponseData {
 }
 
 interface RepoOpenRepoSnapshotDocResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: RepoOpenRepoSnapshotDocResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: RepoOpenRepoSnapshotDocResponseData | null;
 }
 
 interface RepoPurgeCloudRepoResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: null; // 成功时 Data 固定为 null。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: null; // 成功时 Data 固定为 null。
 }
 
 interface RepoPurgeRepoResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: null; // 成功时 Data 固定为 null。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: null; // 成功时 Data 固定为 null。
 }
 
 interface RepoRemoveCloudRepoTagSnapshotParams {
@@ -4349,9 +4349,9 @@ interface RepoRemoveCloudRepoTagSnapshotParams {
 }
 
 interface RepoRemoveCloudRepoTagSnapshotResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: null; // 成功时 Data 固定为 null。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: null; // 成功时 Data 固定为 null。
 }
 
 interface RepoRemoveRepoTagSnapshotParams {
@@ -4360,15 +4360,15 @@ interface RepoRemoveRepoTagSnapshotParams {
 }
 
 interface RepoRemoveRepoTagSnapshotResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: null; // 成功时 Data 固定为 null。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: null; // 成功时 Data 固定为 null。
 }
 
 interface RepoResetRepoResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: null; // 成功时 Data 固定为 null。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: null; // 成功时 Data 固定为 null。
 }
 
 interface RepoSetRepoIndexRetentionDaysParams {
@@ -4376,9 +4376,9 @@ interface RepoSetRepoIndexRetentionDaysParams {
 }
 
 interface RepoSetRepoIndexRetentionDaysResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: null; // 成功时 Data 固定为 null。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: null; // 成功时 Data 固定为 null。
 }
 
 interface RepoSetRetentionIndexesDailyParams {
@@ -4386,9 +4386,9 @@ interface RepoSetRetentionIndexesDailyParams {
 }
 
 interface RepoSetRetentionIndexesDailyResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: null; // 成功时 Data 固定为 null。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: null; // 成功时 Data 固定为 null。
 }
 
 interface RepoTagSnapshotParams {
@@ -4398,9 +4398,9 @@ interface RepoTagSnapshotParams {
 }
 
 interface RepoTagSnapshotResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: null; // 成功时 Data 固定为 null。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: null; // 成功时 Data 固定为 null。
 }
 
 interface RepoUploadCloudSnapshotParams {
@@ -4409,9 +4409,9 @@ interface RepoUploadCloudSnapshotParams {
 }
 
 interface RepoUploadCloudSnapshotResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: null; // 成功时 Data 固定为 null。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: null; // 成功时 Data 固定为 null。
 }
 
 interface RiffAddRiffCardsParams {
@@ -4428,9 +4428,9 @@ interface RiffAddRiffCardsResponseData {
 }
 
 interface RiffAddRiffCardsResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: RiffAddRiffCardsResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: RiffAddRiffCardsResponseData | null;
 }
 
 interface RiffBatchSetRiffCardsDueTimeParamsCardDuesItem {
@@ -4443,9 +4443,9 @@ interface RiffBatchSetRiffCardsDueTimeParams {
 }
 
 interface RiffBatchSetRiffCardsDueTimeResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: null; // 成功时 Data 固定为 null。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: null; // 成功时 Data 固定为 null。
 }
 
 interface RiffCreateRiffDeckParams {
@@ -4461,9 +4461,9 @@ interface RiffCreateRiffDeckResponseData {
 }
 
 interface RiffCreateRiffDeckResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: RiffCreateRiffDeckResponseData; // 成功时返回新创建的闪卡包信息。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: RiffCreateRiffDeckResponseData; // 成功时返回新创建的闪卡包信息。
 }
 
 interface RiffGetNotebookRiffCardsParams {
@@ -4479,9 +4479,9 @@ interface RiffGetNotebookRiffCardsResponseData {
 }
 
 interface RiffGetNotebookRiffCardsResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: RiffGetNotebookRiffCardsResponseData; // 成功时返回分页的闪卡块 ID 及分页信息。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: RiffGetNotebookRiffCardsResponseData; // 成功时返回分页的闪卡块 ID 及分页信息。
 }
 
 interface RiffGetNotebookRiffDueCardsParamsReviewedCardsItem {
@@ -4512,9 +4512,9 @@ interface RiffGetNotebookRiffDueCardsResponseData {
 }
 
 interface RiffGetNotebookRiffDueCardsResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: RiffGetNotebookRiffDueCardsResponseData; // 成功时返回到期闪卡列表及统计信息。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: RiffGetNotebookRiffDueCardsResponseData; // 成功时返回到期闪卡列表及统计信息。
 }
 
 interface RiffGetRiffCardsParams {
@@ -4541,9 +4541,9 @@ interface RiffGetRiffCardsResponseData {
 }
 
 interface RiffGetRiffCardsResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: RiffGetRiffCardsResponseData; // 成功时返回分页的闪卡对象及分页信息。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: RiffGetRiffCardsResponseData; // 成功时返回分页的闪卡对象及分页信息。
 }
 
 interface RiffGetRiffCardsByBlockIDsParams {
@@ -4566,9 +4566,9 @@ interface RiffGetRiffCardsByBlockIDsResponseData {
 }
 
 interface RiffGetRiffCardsByBlockIDsResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: RiffGetRiffCardsByBlockIDsResponseData; // 成功时返回闪卡信息。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: RiffGetRiffCardsByBlockIDsResponseData; // 成功时返回闪卡信息。
 }
 
 interface RiffGetRiffDecksResponseDataItem {
@@ -4580,9 +4580,9 @@ interface RiffGetRiffDecksResponseDataItem {
 }
 
 interface RiffGetRiffDecksResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: Array<RiffGetRiffDecksResponseDataItem>; // 成功时返回所有闪卡包的信息数组。如果没有闪卡包，则返回空数组。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: Array<RiffGetRiffDecksResponseDataItem>; // 成功时返回所有闪卡包的信息数组。如果没有闪卡包，则返回空数组。
 }
 
 interface RiffGetRiffDueCardsParamsReviewedCardsItem {
@@ -4613,9 +4613,9 @@ interface RiffGetRiffDueCardsResponseData {
 }
 
 interface RiffGetRiffDueCardsResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: RiffGetRiffDueCardsResponseData; // 成功时返回到期闪卡列表及统计信息。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: RiffGetRiffDueCardsResponseData; // 成功时返回到期闪卡列表及统计信息。
 }
 
 interface RiffGetTreeRiffCardsParams {
@@ -4631,9 +4631,9 @@ interface RiffGetTreeRiffCardsResponseData {
 }
 
 interface RiffGetTreeRiffCardsResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: RiffGetTreeRiffCardsResponseData; // 成功时返回分页的闪卡块 ID 及分页信息。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: RiffGetTreeRiffCardsResponseData; // 成功时返回分页的闪卡块 ID 及分页信息。
 }
 
 interface RiffGetTreeRiffDueCardsParamsReviewedCardsItem {
@@ -4664,9 +4664,9 @@ interface RiffGetTreeRiffDueCardsResponseData {
 }
 
 interface RiffGetTreeRiffDueCardsResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: RiffGetTreeRiffDueCardsResponseData; // 成功时返回到期闪卡列表及统计信息。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: RiffGetTreeRiffDueCardsResponseData; // 成功时返回到期闪卡列表及统计信息。
 }
 
 interface RiffRemoveRiffCardsParams {
@@ -4683,9 +4683,9 @@ interface RiffRemoveRiffCardsResponseData {
 }
 
 interface RiffRemoveRiffCardsResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: RiffRemoveRiffCardsResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: RiffRemoveRiffCardsResponseData | null;
 }
 
 interface RiffRemoveRiffDeckParams {
@@ -4693,9 +4693,9 @@ interface RiffRemoveRiffDeckParams {
 }
 
 interface RiffRemoveRiffDeckResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: null; // 成功时 Data 固定为 null。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: null; // 成功时 Data 固定为 null。
 }
 
 interface RiffRenameRiffDeckParams {
@@ -4704,9 +4704,9 @@ interface RiffRenameRiffDeckParams {
 }
 
 interface RiffRenameRiffDeckResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: null; // 成功时 Data 固定为 null。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: null; // 成功时 Data 固定为 null。
 }
 
 interface RiffResetRiffCardsParams {
@@ -4717,9 +4717,9 @@ interface RiffResetRiffCardsParams {
 }
 
 interface RiffResetRiffCardsResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: null; // 成功时 Data 固定为 null。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: null; // 成功时 Data 固定为 null。
 }
 
 interface RiffReviewRiffCardParamsReviewedCardsItem {
@@ -4734,9 +4734,9 @@ interface RiffReviewRiffCardParams {
 }
 
 interface RiffReviewRiffCardResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: null; // 成功时 Data 固定为 null。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: null; // 成功时 Data 固定为 null。
 }
 
 interface RiffSkipReviewRiffCardParams {
@@ -4745,9 +4745,9 @@ interface RiffSkipReviewRiffCardParams {
 }
 
 interface RiffSkipReviewRiffCardResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: null; // 成功时 Data 固定为 null。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: null; // 成功时 Data 固定为 null。
 }
 
 interface SearchFindReplaceParams {
@@ -4768,9 +4768,9 @@ interface SearchFindReplaceResponseData {
 }
 
 interface SearchFindReplaceResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: SearchFindReplaceResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: SearchFindReplaceResponseData | null;
 }
 
 interface SearchFullTextSearchAssetContentParams {
@@ -4801,9 +4801,9 @@ interface SearchFullTextSearchAssetContentResponseData {
 }
 
 interface SearchFullTextSearchAssetContentResponse {
-  Code: number; // 返回码，0 表示成功。如果未付费，Code 为 1。
-  Msg: string; // 错误信息，成功时为空字符串。
-  Data: SearchFullTextSearchAssetContentResponseData | null;
+  code: number; // 返回码，0 表示成功。如果未付费，Code 为 1。
+  msg: string; // 错误信息，成功时为空字符串。
+  data: SearchFullTextSearchAssetContentResponseData | null;
 }
 
 interface SearchFullTextSearchBlockParams {
@@ -4827,9 +4827,9 @@ interface SearchFullTextSearchBlockResponseData {
 }
 
 interface SearchFullTextSearchBlockResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: SearchFullTextSearchBlockResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: SearchFullTextSearchBlockResponseData | null;
 }
 
 interface SearchGetAssetContentParams {
@@ -4843,9 +4843,9 @@ interface SearchGetAssetContentResponseData {
 }
 
 interface SearchGetAssetContentResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: SearchGetAssetContentResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: SearchGetAssetContentResponseData | null;
 }
 
 interface SearchGetEmbedBlockParams {
@@ -4860,9 +4860,9 @@ interface SearchGetEmbedBlockResponseData {
 }
 
 interface SearchGetEmbedBlockResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: SearchGetEmbedBlockResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: SearchGetEmbedBlockResponseData | null;
 }
 
 interface SearchListInvalidBlockRefsParams {
@@ -4887,9 +4887,9 @@ interface SearchListInvalidBlockRefsResponseData {
 }
 
 interface SearchListInvalidBlockRefsResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: SearchListInvalidBlockRefsResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: SearchListInvalidBlockRefsResponseData | null;
 }
 
 interface SearchRemoveTemplateParams {
@@ -4897,9 +4897,9 @@ interface SearchRemoveTemplateParams {
 }
 
 interface SearchRemoveTemplateResponse {
-  Code: number; // 返回码，0 表示成功，-1 表示失败
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: null; // 成功或失败时 Data 均为 null。
+  code: number; // 返回码，0 表示成功，-1 表示失败
+  msg: string; // 错误信息，成功时为空字符串
+  data: null; // 成功或失败时 Data 均为 null。
 }
 
 interface SearchSearchAssetParams {
@@ -4919,9 +4919,9 @@ interface SearchSearchAssetResponseDataItem {
 }
 
 interface SearchSearchAssetResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: Array<SearchSearchAssetResponseDataItem>; // 匹配到的资源文件列表。如果没有结果，则为空数组。
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: Array<SearchSearchAssetResponseDataItem>; // 匹配到的资源文件列表。如果没有结果，则为空数组。
 }
 
 interface SearchSearchEmbedBlockParams {
@@ -4937,9 +4937,9 @@ interface SearchSearchEmbedBlockResponseData {
 }
 
 interface SearchSearchEmbedBlockResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: SearchSearchEmbedBlockResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: SearchSearchEmbedBlockResponseData | null;
 }
 
 interface SearchSearchRefBlockParams {
@@ -4967,9 +4967,9 @@ interface SearchSearchRefBlockResponseData {
 }
 
 interface SearchSearchRefBlockResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: SearchSearchRefBlockResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: SearchSearchRefBlockResponseData | null;
 }
 
 interface SearchSearchTagParams {
@@ -4982,9 +4982,9 @@ interface SearchSearchTagResponseData {
 }
 
 interface SearchSearchTagResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: SearchSearchTagResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: SearchSearchTagResponseData | null;
 }
 
 interface SearchSearchTemplateParams {
@@ -5004,9 +5004,9 @@ interface SearchSearchTemplateResponseData {
 }
 
 interface SearchSearchTemplateResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: SearchSearchTemplateResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: SearchSearchTemplateResponseData | null;
 }
 
 interface SearchSearchWidgetParams {
@@ -5026,9 +5026,9 @@ interface SearchSearchWidgetResponseData {
 }
 
 interface SearchSearchWidgetResponse {
-  Code: number; // 返回码，0 表示成功
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: SearchSearchWidgetResponseData | null;
+  code: number; // 返回码，0 表示成功
+  msg: string; // 错误信息，成功时为空字符串
+  data: SearchSearchWidgetResponseData | null;
 }
 
 interface SearchUpdateEmbedBlockParams {
@@ -5037,9 +5037,9 @@ interface SearchUpdateEmbedBlockParams {
 }
 
 interface SearchUpdateEmbedBlockResponse {
-  Code: number; // 返回码，0 表示成功，-1 表示失败
-  Msg: string; // 错误信息，成功时为空字符串
-  Data: null; // 成功或失败时 Data 均为 null。
+  code: number; // 返回码，0 表示成功，-1 表示失败
+  msg: string; // 错误信息，成功时为空字符串
+  data: null; // 成功或失败时 Data 均为 null。
 }
 
 interface SettingAddVirtualBlockRefExcludeParams {
@@ -5047,9 +5047,9 @@ interface SettingAddVirtualBlockRefExcludeParams {
 }
 
 interface SettingAddVirtualBlockRefExcludeResponse {
-  Code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
-  Msg: string; // API 执行结果的描述信息。
-  Data: null; // 此接口成功时不返回具体数据。
+  code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
+  msg: string; // API 执行结果的描述信息。
+  data: null; // 此接口成功时不返回具体数据。
 }
 
 interface SettingAddVirtualBlockRefIncludeParams {
@@ -5057,9 +5057,9 @@ interface SettingAddVirtualBlockRefIncludeParams {
 }
 
 interface SettingAddVirtualBlockRefIncludeResponse {
-  Code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
-  Msg: string; // API 执行结果的描述信息。
-  Data: null; // 此接口成功时不返回具体数据。
+  code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
+  msg: string; // API 执行结果的描述信息。
+  data: null; // 此接口成功时不返回具体数据。
 }
 
 interface SettingGetCloudUserParams {
@@ -5100,9 +5100,9 @@ interface SettingGetCloudUserResponseData {
 }
 
 interface SettingGetCloudUserResponse {
-  Code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
-  Msg: string; // API 执行结果的描述信息。
-  Data: SettingGetCloudUserResponseData | null;
+  code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
+  msg: string; // API 执行结果的描述信息。
+  data: SettingGetCloudUserResponseData | null;
 }
 
 interface SettingGetPublishResponseDataPublishAuthAccountsItem {
@@ -5128,9 +5128,9 @@ interface SettingGetPublishResponseData {
 }
 
 interface SettingGetPublishResponse {
-  Code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
-  Msg: string; // API 执行结果的描述信息。
-  Data: SettingGetPublishResponseData | null;
+  code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
+  msg: string; // API 执行结果的描述信息。
+  data: SettingGetPublishResponseData | null;
 }
 
 interface SettingLogin2faCloudUserParams {
@@ -5139,21 +5139,21 @@ interface SettingLogin2faCloudUserParams {
 }
 
 interface SettingLogin2faCloudUserResponse {
-  Code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
-  Msg: string; // API 执行结果的描述信息。
-  Data: Record<string, any> | null;
+  code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
+  msg: string; // API 执行结果的描述信息。
+  data: Record<string, any> | null;
 }
 
 interface SettingLogoutCloudUserResponse {
-  Code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
-  Msg: string; // API 执行结果的描述信息。
-  Data: null; // 此接口成功时不返回具体数据。
+  code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
+  msg: string; // API 执行结果的描述信息。
+  data: null; // 此接口成功时不返回具体数据。
 }
 
 interface SettingRefreshVirtualBlockRefResponse {
-  Code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
-  Msg: string; // API 执行结果的描述信息。
-  Data: null; // 此接口成功时不返回具体数据。
+  code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
+  msg: string; // API 执行结果的描述信息。
+  data: null; // 此接口成功时不返回具体数据。
 }
 
 interface SettingSetAIParamsOpenAI {
@@ -5193,9 +5193,9 @@ interface SettingSetAIResponseData {
 }
 
 interface SettingSetAIResponse {
-  Code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
-  Msg: string; // API 执行结果的描述信息。
-  Data: SettingSetAIResponseData | null;
+  code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
+  msg: string; // API 执行结果的描述信息。
+  data: SettingSetAIResponseData | null;
 }
 
 interface SettingSetAccountParams {
@@ -5209,9 +5209,9 @@ interface SettingSetAccountResponseData {
 }
 
 interface SettingSetAccountResponse {
-  Code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
-  Msg: string; // API 执行结果的描述信息。
-  Data: SettingSetAccountResponseData | null;
+  code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
+  msg: string; // API 执行结果的描述信息。
+  data: SettingSetAccountResponseData | null;
 }
 
 interface SettingSetAppearanceParams {
@@ -5245,9 +5245,9 @@ interface SettingSetAppearanceResponseData {
 }
 
 interface SettingSetAppearanceResponse {
-  Code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
-  Msg: string; // API 执行结果的描述信息。
-  Data: SettingSetAppearanceResponseData | null;
+  code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
+  msg: string; // API 执行结果的描述信息。
+  data: SettingSetAppearanceResponseData | null;
 }
 
 interface SettingSetBazaarParams {
@@ -5261,9 +5261,9 @@ interface SettingSetBazaarResponseData {
 }
 
 interface SettingSetBazaarResponse {
-  Code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
-  Msg: string; // API 执行结果的描述信息。
-  Data: SettingSetBazaarResponseData | null;
+  code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
+  msg: string; // API 执行结果的描述信息。
+  data: SettingSetBazaarResponseData | null;
 }
 
 interface SettingSetEditorParams {
@@ -5304,9 +5304,9 @@ interface SettingSetEditorParams {
 }
 
 interface SettingSetEditorResponse {
-  Code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
-  Msg: string; // API 执行结果的描述信息。
-  Data: any | null;
+  code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
+  msg: string; // API 执行结果的描述信息。
+  data: any | null;
 }
 
 interface SettingSetEditorReadOnlyParams {
@@ -5314,9 +5314,9 @@ interface SettingSetEditorReadOnlyParams {
 }
 
 interface SettingSetEditorReadOnlyResponse {
-  Code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
-  Msg: string; // API 执行结果的描述信息。
-  Data: null; // 此接口成功时不返回具体数据。
+  code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
+  msg: string; // API 执行结果的描述信息。
+  data: null; // 此接口成功时不返回具体数据。
 }
 
 interface SettingSetEmojiParams {
@@ -5324,9 +5324,9 @@ interface SettingSetEmojiParams {
 }
 
 interface SettingSetEmojiResponse {
-  Code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
-  Msg: string; // API 执行结果的描述信息。
-  Data: null; // 此接口成功时不返回具体数据，直接修改配置。
+  code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
+  msg: string; // API 执行结果的描述信息。
+  data: null; // 此接口成功时不返回具体数据，直接修改配置。
 }
 
 interface SettingSetExportParams {
@@ -5351,9 +5351,9 @@ interface SettingSetExportParams {
 }
 
 interface SettingSetExportResponse {
-  Code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
-  Msg: string; // API 执行结果的描述信息。
-  Data: any | null;
+  code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
+  msg: string; // API 执行结果的描述信息。
+  data: any | null;
 }
 
 interface SettingSetFiletreeParams {
@@ -5373,9 +5373,9 @@ interface SettingSetFiletreeParams {
 }
 
 interface SettingSetFiletreeResponse {
-  Code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
-  Msg: string; // API 执行结果的描述信息。
-  Data: any | null;
+  code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
+  msg: string; // API 执行结果的描述信息。
+  data: any | null;
 }
 
 interface SettingSetFlashcardParams {
@@ -5401,9 +5401,9 @@ interface SettingSetFlashcardResponseData {
 }
 
 interface SettingSetFlashcardResponse {
-  Code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
-  Msg: string; // API 执行结果的描述信息。
-  Data: SettingSetFlashcardResponseData | null;
+  code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
+  msg: string; // API 执行结果的描述信息。
+  data: SettingSetFlashcardResponseData | null;
 }
 
 interface SettingSetKeymapParamsData {
@@ -5421,9 +5421,9 @@ interface SettingSetKeymapParams {
 }
 
 interface SettingSetKeymapResponse {
-  Code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
-  Msg: string; // API 执行结果的描述信息。
-  Data: null; // 此接口成功时不返回具体数据，直接修改配置。
+  code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
+  msg: string; // API 执行结果的描述信息。
+  data: null; // 此接口成功时不返回具体数据，直接修改配置。
 }
 
 interface SettingSetPublishParamsAuthAccountsItem {
@@ -5466,9 +5466,9 @@ interface SettingSetPublishResponseData {
 }
 
 interface SettingSetPublishResponse {
-  Code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
-  Msg: string; // API 执行结果的描述信息。
-  Data: SettingSetPublishResponseData | null;
+  code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
+  msg: string; // API 执行结果的描述信息。
+  data: SettingSetPublishResponseData | null;
 }
 
 interface SettingSetSearchParams {
@@ -5508,9 +5508,9 @@ interface SettingSetSearchParams {
 }
 
 interface SettingSetSearchResponse {
-  Code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
-  Msg: string; // API 执行结果的描述信息。
-  Data: any | null;
+  code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
+  msg: string; // API 执行结果的描述信息。
+  data: any | null;
 }
 
 interface SettingSetConfSnippetParams {
@@ -5524,9 +5524,9 @@ interface SettingSetConfSnippetResponseData {
 }
 
 interface SettingSetConfSnippetResponse {
-  Code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
-  Msg: string; // API 执行结果的描述信息。
-  Data: SettingSetConfSnippetResponseData | null;
+  code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
+  msg: string; // API 执行结果的描述信息。
+  data: SettingSetConfSnippetResponseData | null;
 }
 
 interface SnippetGetSnippetParams {
@@ -5548,9 +5548,9 @@ interface SnippetGetSnippetResponseData {
 }
 
 interface SnippetGetSnippetResponse {
-  Code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
-  Msg: string; // API 执行结果的描述信息。
-  Data: SnippetGetSnippetResponseData | null;
+  code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
+  msg: string; // API 执行结果的描述信息。
+  data: SnippetGetSnippetResponseData | null;
 }
 
 interface SnippetSetSnippetParamsSnippetsItem {
@@ -5566,9 +5566,9 @@ interface SnippetSetSnippetParams {
 }
 
 interface SnippetSetSnippetResponse {
-  Code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
-  Msg: string; // API 执行结果的描述信息。
-  Data: null; // 此接口成功时不返回具体数据，直接修改配置。
+  code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
+  msg: string; // API 执行结果的描述信息。
+  data: null; // 此接口成功时不返回具体数据，直接修改配置。
 }
 
 interface SnippetRemoveSnippetParams {
@@ -5584,15 +5584,15 @@ interface SnippetRemoveSnippetResponseData {
 }
 
 interface SnippetRemoveSnippetResponse {
-  Code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
-  Msg: string; // API 执行结果的描述信息。
-  Data: SnippetRemoveSnippetResponseData | null;
+  code: number; // API 执行结果的状态码，0 表示成功，其他表示失败。
+  msg: string; // API 执行结果的描述信息。
+  data: SnippetRemoveSnippetResponseData | null;
 }
 
 interface SqliteFlushTransactionResponse {
-  Code: number; // 错误码，0 表示成功，其他表示失败。
-  Msg: string; // 接口返回的消息，成功时通常为空字符串。
-  Data: null; // 接口成功执行时，Data 固定为 null。
+  code: number; // 错误码，0 表示成功，其他表示失败。
+  msg: string; // 接口返回的消息，成功时通常为空字符串。
+  data: null; // 接口成功执行时，Data 固定为 null。
 }
 
 interface StorageGetCriteriaResponseDataItem {
@@ -5617,15 +5617,15 @@ interface StorageGetCriteriaResponseDataItem {
 }
 
 interface StorageGetCriteriaResponse {
-  Code: number; // 错误码，0 表示成功，其他表示失败。
-  Msg: string; // 接口返回的消息，成功时通常为空字符串。
-  Data: Array<StorageGetCriteriaResponseDataItem>; // 已保存的搜索标准列表。每个元素代表一个搜索标准，具体字段请参考思源笔记内核 model.Criterion 结构。
+  code: number; // 错误码，0 表示成功，其他表示失败。
+  msg: string; // 接口返回的消息，成功时通常为空字符串。
+  data: Array<StorageGetCriteriaResponseDataItem>; // 已保存的搜索标准列表。每个元素代表一个搜索标准，具体字段请参考思源笔记内核 model.Criterion 结构。
 }
 
 interface StorageGetLocalStorageResponse {
-  Code: number; // 错误码，0 表示成功，其他表示失败。
-  Msg: string; // 接口返回的消息，成功时通常为空字符串。
-  Data: Record<string, any>; // 包含 LocalStorage 所有键值对的对象。值的类型可能多样，取决于存储时的数据。
+  code: number; // 错误码，0 表示成功，其他表示失败。
+  msg: string; // 接口返回的消息，成功时通常为空字符串。
+  data: Record<string, any>; // 包含 LocalStorage 所有键值对的对象。值的类型可能多样，取决于存储时的数据。
 }
 
 interface StorageGetRecentDocsResponseDataItem {
@@ -5642,9 +5642,9 @@ interface StorageGetRecentDocsResponseDataItem {
 }
 
 interface StorageGetRecentDocsResponse {
-  Code: number; // 错误码，0 表示成功，其他表示失败。
-  Msg: string; // 接口返回的消息，成功时通常为空字符串。
-  Data: Array<StorageGetRecentDocsResponseDataItem>; // 最近打开的文档列表。
+  code: number; // 错误码，0 表示成功，其他表示失败。
+  msg: string; // 接口返回的消息，成功时通常为空字符串。
+  data: Array<StorageGetRecentDocsResponseDataItem>; // 最近打开的文档列表。
 }
 
 interface StorageRemoveCriterionParams {
@@ -5652,9 +5652,9 @@ interface StorageRemoveCriterionParams {
 }
 
 interface StorageRemoveCriterionResponse {
-  Code: number; // 错误码，0 表示成功，其他表示失败。
-  Msg: string; // 接口返回的消息，成功时通常为空字符串。
-  Data: null; // 接口成功执行时，Data 固定为 null。
+  code: number; // 错误码，0 表示成功，其他表示失败。
+  msg: string; // 接口返回的消息，成功时通常为空字符串。
+  data: null; // 接口成功执行时，Data 固定为 null。
 }
 
 interface StorageRemoveLocalStorageValsParams {
@@ -5663,9 +5663,9 @@ interface StorageRemoveLocalStorageValsParams {
 }
 
 interface StorageRemoveLocalStorageValsResponse {
-  Code: number; // 错误码，0 表示成功，其他表示失败。
-  Msg: string; // 接口返回的消息，成功时通常为空字符串。
-  Data: null; // 接口成功执行时，Data 固定为 null。
+  code: number; // 错误码，0 表示成功，其他表示失败。
+  msg: string; // 接口返回的消息，成功时通常为空字符串。
+  data: null; // 接口成功执行时，Data 固定为 null。
 }
 
 interface StorageSetCriterionParamsCriterion {
@@ -5694,9 +5694,9 @@ interface StorageSetCriterionParams {
 }
 
 interface StorageSetCriterionResponse {
-  Code: number; // 错误码，0 表示成功，其他表示失败。
-  Msg: string; // 接口返回的消息，成功时通常为空字符串。
-  Data: null; // 接口成功执行时，Data 固定为 null。
+  code: number; // 错误码，0 表示成功，其他表示失败。
+  msg: string; // 接口返回的消息，成功时通常为空字符串。
+  data: null; // 接口成功执行时，Data 固定为 null。
 }
 
 interface StorageSetLocalStorageParams {
@@ -5705,9 +5705,9 @@ interface StorageSetLocalStorageParams {
 }
 
 interface StorageSetLocalStorageResponse {
-  Code: number; // 错误码，0 表示成功，其他表示失败。
-  Msg: string; // 接口返回的消息，成功时通常为空字符串。
-  Data: null; // 接口成功执行时，Data 固定为 null。
+  code: number; // 错误码，0 表示成功，其他表示失败。
+  msg: string; // 接口返回的消息，成功时通常为空字符串。
+  data: null; // 接口成功执行时，Data 固定为 null。
 }
 
 interface StorageSetLocalStorageValParams {
@@ -5717,9 +5717,9 @@ interface StorageSetLocalStorageValParams {
 }
 
 interface StorageSetLocalStorageValResponse {
-  Code: number; // 错误码，0 表示成功，其他表示失败。
-  Msg: string; // 接口返回的消息，成功时通常为空字符串。
-  Data: null; // 接口成功执行时，Data 固定为 null。
+  code: number; // 错误码，0 表示成功，其他表示失败。
+  msg: string; // 接口返回的消息，成功时通常为空字符串。
+  data: null; // 接口成功执行时，Data 固定为 null。
 }
 
 interface SyncCreateCloudSyncDirParams {
@@ -5727,9 +5727,9 @@ interface SyncCreateCloudSyncDirParams {
 }
 
 interface SyncCreateCloudSyncDirResponse {
-  Code: number; // 错误码，0 表示成功，其他表示失败。
-  Msg: string; // 接口返回的消息，成功时通常为空字符串。
-  Data: null; // 接口成功执行时，Data 固定为 null。如果创建失败，Data 可能包含 { closeTimeout: 5000 }。
+  code: number; // 错误码，0 表示成功，其他表示失败。
+  msg: string; // 接口返回的消息，成功时通常为空字符串。
+  data: null; // 接口成功执行时，Data 固定为 null。如果创建失败，Data 可能包含 { closeTimeout: 5000 }。
 }
 
 interface SyncExportSyncProviderS3ResponseData {
@@ -5738,9 +5738,9 @@ interface SyncExportSyncProviderS3ResponseData {
 }
 
 interface SyncExportSyncProviderS3Response {
-  Code: number; // 错误码，0 表示成功，其他表示失败。
-  Msg: string; // 接口返回的消息，成功时通常为空字符串。
-  Data: SyncExportSyncProviderS3ResponseData | null;
+  code: number; // 错误码，0 表示成功，其他表示失败。
+  msg: string; // 接口返回的消息，成功时通常为空字符串。
+  data: SyncExportSyncProviderS3ResponseData | null;
 }
 
 interface SyncExportSyncProviderWebDAVResponseData {
@@ -5749,15 +5749,15 @@ interface SyncExportSyncProviderWebDAVResponseData {
 }
 
 interface SyncExportSyncProviderWebDAVResponse {
-  Code: number; // 错误码，0 表示成功，其他表示失败。
-  Msg: string; // 接口返回的消息，成功时通常为空字符串。
-  Data: SyncExportSyncProviderWebDAVResponseData | null;
+  code: number; // 错误码，0 表示成功，其他表示失败。
+  msg: string; // 接口返回的消息，成功时通常为空字符串。
+  data: SyncExportSyncProviderWebDAVResponseData | null;
 }
 
 interface SyncGetBootSyncResponse {
-  Code: number; // 错误码。0 表示未满足特定条件（非管理员、同步未启用、启动时同步未成功），1 表示启动时同步成功。其他值表示失败。注意这里的 Code 含义比较特殊。 
-  Msg: string; // 接口返回的消息。Code 为 1 时，Msg 为提示信息（如 '启动时同步数据完毕'）。Code 为 0 时通常为空。 
-  Data: null; // 此接口不通过 Data 返回数据。
+  code: number; // 错误码。0 表示未满足特定条件（非管理员、同步未启用、启动时同步未成功），1 表示启动时同步成功。其他值表示失败。注意这里的 Code 含义比较特殊。 
+  msg: string; // 接口返回的消息。Code 为 1 时，Msg 为提示信息（如 '启动时同步数据完毕'）。Code 为 0 时通常为空。 
+  data: null; // 此接口不通过 Data 返回数据。
 }
 
 interface SyncGetSyncInfoResponseData {
@@ -5768,9 +5768,9 @@ interface SyncGetSyncInfoResponseData {
 }
 
 interface SyncGetSyncInfoResponse {
-  Code: number; // 错误码，0 表示成功，其他表示失败。
-  Msg: string; // 接口返回的消息，成功时通常为空字符串。
-  Data: SyncGetSyncInfoResponseData | null;
+  code: number; // 错误码，0 表示成功，其他表示失败。
+  msg: string; // 接口返回的消息，成功时通常为空字符串。
+  data: SyncGetSyncInfoResponseData | null;
 }
 
 interface SyncImportSyncProviderS3ResponseDataS3 {
@@ -5787,9 +5787,9 @@ interface SyncImportSyncProviderS3ResponseData {
 }
 
 interface SyncImportSyncProviderS3Response {
-  Code: number; // 错误码，0 表示成功，其他表示失败。
-  Msg: string; // 接口返回的消息，成功时通常为空字符串。
-  Data: SyncImportSyncProviderS3ResponseData | null;
+  code: number; // 错误码，0 表示成功，其他表示失败。
+  msg: string; // 接口返回的消息，成功时通常为空字符串。
+  data: SyncImportSyncProviderS3ResponseData | null;
 }
 
 interface SyncImportSyncProviderWebDAVResponseDataWebdav {
@@ -5803,9 +5803,9 @@ interface SyncImportSyncProviderWebDAVResponseData {
 }
 
 interface SyncImportSyncProviderWebDAVResponse {
-  Code: number; // 错误码，0 表示成功，其他表示失败。
-  Msg: string; // 接口返回的消息，成功时通常为空字符串。
-  Data: SyncImportSyncProviderWebDAVResponseData | null;
+  code: number; // 错误码，0 表示成功，其他表示失败。
+  msg: string; // 接口返回的消息，成功时通常为空字符串。
+  data: SyncImportSyncProviderWebDAVResponseData | null;
 }
 
 interface SyncListCloudSyncDirResponseDataSyncDirsItem {
@@ -5821,15 +5821,15 @@ interface SyncListCloudSyncDirResponseData {
 }
 
 interface SyncListCloudSyncDirResponse {
-  Code: number; // 错误码，0 表示成功，1 表示获取失败（如网络错误、配置错误）。
-  Msg: string; // 接口返回的消息，成功时通常为空字符串，失败时包含错误信息。
-  Data: SyncListCloudSyncDirResponseData | null;
+  code: number; // 错误码，0 表示成功，1 表示获取失败（如网络错误、配置错误）。
+  msg: string; // 接口返回的消息，成功时通常为空字符串，失败时包含错误信息。
+  data: SyncListCloudSyncDirResponseData | null;
 }
 
 interface SyncPerformBootSyncResponse {
-  Code: number; // 错误码。model.BootSyncSucc (通常为0或1，表示启动同步的结果) 会被赋给 Code。具体含义需参考内核实现。
-  Msg: string; // 接口返回的消息，成功时通常为空字符串。
-  Data: null; // 此接口不通过 Data 返回具体数据。
+  code: number; // 错误码。model.BootSyncSucc (通常为0或1，表示启动同步的结果) 会被赋给 Code。具体含义需参考内核实现。
+  msg: string; // 接口返回的消息，成功时通常为空字符串。
+  data: null; // 此接口不通过 Data 返回具体数据。
 }
 
 interface SyncPerformSyncParams {
@@ -5838,9 +5838,9 @@ interface SyncPerformSyncParams {
 }
 
 interface SyncPerformSyncResponse {
-  Code: number; // 错误码，0 表示成功接收请求并开始处理（同步是异步过程），其他表示接收参数错误等。
-  Msg: string; // 接口返回的消息，成功时通常为空字符串。
-  Data: null; // 此接口不通过 Data 返回具体数据。
+  code: number; // 错误码，0 表示成功接收请求并开始处理（同步是异步过程），其他表示接收参数错误等。
+  msg: string; // 接口返回的消息，成功时通常为空字符串。
+  data: null; // 此接口不通过 Data 返回具体数据。
 }
 
 interface SyncRemoveCloudSyncDirParams {
@@ -5848,9 +5848,9 @@ interface SyncRemoveCloudSyncDirParams {
 }
 
 interface SyncRemoveCloudSyncDirResponse {
-  Code: number; // 错误码，0 表示成功，其他表示失败。
-  Msg: string; // 接口返回的消息，成功时通常为空字符串。
-  Data: null; // 接口成功执行时，Data 固定为 null。如果移除失败，Data 可能包含 { closeTimeout: 5000 }。
+  code: number; // 错误码，0 表示成功，其他表示失败。
+  msg: string; // 接口返回的消息，成功时通常为空字符串。
+  data: null; // 接口成功执行时，Data 固定为 null。如果移除失败，Data 可能包含 { closeTimeout: 5000 }。
 }
 
 interface SyncSetCloudSyncDirParams {
@@ -5858,9 +5858,9 @@ interface SyncSetCloudSyncDirParams {
 }
 
 interface SyncSetCloudSyncDirResponse {
-  Code: number; // 错误码，0 表示成功，其他表示失败。
-  Msg: string; // 接口返回的消息，成功时通常为空字符串。
-  Data: null; // 接口成功执行时，Data 固定为 null。如果设置失败，Data 可能包含 { closeTimeout: 5000 }。
+  code: number; // 错误码，0 表示成功，其他表示失败。
+  msg: string; // 接口返回的消息，成功时通常为空字符串。
+  data: null; // 接口成功执行时，Data 固定为 null。如果设置失败，Data 可能包含 { closeTimeout: 5000 }。
 }
 
 interface SyncSetSyncEnableParams {
@@ -5868,9 +5868,9 @@ interface SyncSetSyncEnableParams {
 }
 
 interface SyncSetSyncEnableResponse {
-  Code: number; // 错误码，0 表示成功，其他表示失败。
-  Msg: string; // 接口返回的消息，成功时通常为空字符串。
-  Data: null; // 接口成功执行时，Data 固定为 null。
+  code: number; // 错误码，0 表示成功，其他表示失败。
+  msg: string; // 接口返回的消息，成功时通常为空字符串。
+  data: null; // 接口成功执行时，Data 固定为 null。
 }
 
 interface SyncSetSyncGenerateConflictDocParams {
@@ -5878,9 +5878,9 @@ interface SyncSetSyncGenerateConflictDocParams {
 }
 
 interface SyncSetSyncGenerateConflictDocResponse {
-  Code: number; // 错误码，0 表示成功，其他表示失败。
-  Msg: string; // 接口返回的消息，成功时通常为空字符串。
-  Data: null; // 接口成功执行时，Data 固定为 null。
+  code: number; // 错误码，0 表示成功，其他表示失败。
+  msg: string; // 接口返回的消息，成功时通常为空字符串。
+  data: null; // 接口成功执行时，Data 固定为 null。
 }
 
 interface SyncSetSyncIntervalParams {
@@ -5888,9 +5888,9 @@ interface SyncSetSyncIntervalParams {
 }
 
 interface SyncSetSyncIntervalResponse {
-  Code: number; // 错误码，0 表示成功，其他表示失败。
-  Msg: string; // 接口返回的消息，成功时通常为空字符串。
-  Data: null; // 接口成功执行时，Data 固定为 null。
+  code: number; // 错误码，0 表示成功，其他表示失败。
+  msg: string; // 接口返回的消息，成功时通常为空字符串。
+  data: null; // 接口成功执行时，Data 固定为 null。
 }
 
 interface SyncSetSyncModeParams {
@@ -5898,9 +5898,9 @@ interface SyncSetSyncModeParams {
 }
 
 interface SyncSetSyncModeResponse {
-  Code: number; // 错误码，0 表示成功，其他表示失败。
-  Msg: string; // 接口返回的消息，成功时通常为空字符串。
-  Data: null; // 接口成功执行时，Data 固定为 null。
+  code: number; // 错误码，0 表示成功，其他表示失败。
+  msg: string; // 接口返回的消息，成功时通常为空字符串。
+  data: null; // 接口成功执行时，Data 固定为 null。
 }
 
 interface SyncSetSyncPerceptionParams {
@@ -5908,9 +5908,9 @@ interface SyncSetSyncPerceptionParams {
 }
 
 interface SyncSetSyncPerceptionResponse {
-  Code: number; // 错误码，0 表示成功，其他表示失败。
-  Msg: string; // 接口返回的消息，成功时通常为空字符串。
-  Data: null; // 接口成功执行时，Data 固定为 null。
+  code: number; // 错误码，0 表示成功，其他表示失败。
+  msg: string; // 接口返回的消息，成功时通常为空字符串。
+  data: null; // 接口成功执行时，Data 固定为 null。
 }
 
 interface SyncSetSyncProviderParams {
@@ -5918,9 +5918,9 @@ interface SyncSetSyncProviderParams {
 }
 
 interface SyncSetSyncProviderResponse {
-  Code: number; // 错误码，0 表示成功，其他表示失败。
-  Msg: string; // 接口返回的消息，成功时通常为空字符串。
-  Data: null; // 接口成功执行时，Data 固定为 null。
+  code: number; // 错误码，0 表示成功，其他表示失败。
+  msg: string; // 接口返回的消息，成功时通常为空字符串。
+  data: null; // 接口成功执行时，Data 固定为 null。
 }
 
 interface SyncSetSyncProviderLocalParams {
@@ -5928,9 +5928,9 @@ interface SyncSetSyncProviderLocalParams {
 }
 
 interface SyncSetSyncProviderLocalResponse {
-  Code: number; // 错误码，0 表示成功，其他表示失败。
-  Msg: string; // 接口返回的消息，成功时通常为空字符串。
-  Data: null; // 接口成功执行时，Data 固定为 null。
+  code: number; // 错误码，0 表示成功，其他表示失败。
+  msg: string; // 接口返回的消息，成功时通常为空字符串。
+  data: null; // 接口成功执行时，Data 固定为 null。
 }
 
 interface SyncSetSyncProviderS3Params {
@@ -5943,9 +5943,9 @@ interface SyncSetSyncProviderS3Params {
 }
 
 interface SyncSetSyncProviderS3Response {
-  Code: number; // 错误码，0 表示成功，其他表示失败。
-  Msg: string; // 接口返回的消息，成功时通常为空字符串。
-  Data: null; // 接口成功执行时，Data 固定为 null。
+  code: number; // 错误码，0 表示成功，其他表示失败。
+  msg: string; // 接口返回的消息，成功时通常为空字符串。
+  data: null; // 接口成功执行时，Data 固定为 null。
 }
 
 interface SyncSetSyncProviderWebDAVParams {
@@ -5955,9 +5955,9 @@ interface SyncSetSyncProviderWebDAVParams {
 }
 
 interface SyncSetSyncProviderWebDAVResponse {
-  Code: number; // 错误码，0 表示成功，其他表示失败。
-  Msg: string; // 接口返回的消息，成功时通常为空字符串。
-  Data: null; // 接口成功执行时，Data 固定为 null。
+  code: number; // 错误码，0 表示成功，其他表示失败。
+  msg: string; // 接口返回的消息，成功时通常为空字符串。
+  data: null; // 接口成功执行时，Data 固定为 null。
 }
 
 interface SystemAddMicrosoftDefenderExclusionResponse {

@@ -10,9 +10,9 @@ export const cloudApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功，1 表示获取信息时发生错误"),
-      Msg: z.string().describe("API 调用返回消息，错误时包含错误信息"),
-      Data: z.object({
+      code: z.number().describe("API 调用返回码，0 表示成功，1 表示获取信息时发生错误"),
+      msg: z.string().describe("API 调用返回消息，错误时包含错误信息"),
+      data: z.object({
         sync: z.object({
           size: z.number().int().describe("云端同步数据的大小 (字节)"),
           hSize: z.string().describe("人类可读的云端同步数据大小 (例如 '1.2 GB')，仅当服务商为思源官方时有效，其他为'-'"),

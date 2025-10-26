@@ -13,9 +13,9 @@ export const fileApiDefs = [
       dest: z.string().describe("目标文件绝对路径。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.object({ closeTimeout: z.number().optional().describe("在操作失败时，可能返回此字段，建议客户端在此毫秒数后关闭相关提示。") }).nullable().describe("成功时 Data 为 null；失败时可能包含 closeTimeout。")
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.object({ closeTimeout: z.number().optional().describe("在操作失败时，可能返回此字段，建议客户端在此毫秒数后关闭相关提示。") }).nullable().describe("成功时 Data 为 null；失败时可能包含 closeTimeout。")
     })
   },
   {
@@ -30,8 +30,8 @@ export const fileApiDefs = [
     zodRequestSchema: (z) => ({ path: z.string().describe("要获取内容的文件路径 (相对于工作空间根目录)。") }),
     zodResponseSchema: (z) => ({
       // 成功时直接返回文件流，HTTP状态码为200。以下 schema 仅用于描述请求失败时的JSON响应。
-      Code: z.number().describe("错误状态码 (例如 403, 404, 500)"),
-      Msg: z.string().describe("错误消息")
+      code: z.number().describe("错误状态码 (例如 403, 404, 500)"),
+      msg: z.string().describe("错误消息")
     })
   },
   {
@@ -45,9 +45,9 @@ export const fileApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ path: z.string().describe("原始文件路径 (通常包含期望的文件名和扩展名)。") }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.object({ path: z.string().describe("处理后的唯一文件路径。") })
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.object({ path: z.string().describe("处理后的唯一文件路径。") })
     })
   },
   {
@@ -64,9 +64,9 @@ export const fileApiDefs = [
       destDir: z.string().describe("目标目录路径 (相对于工作空间根目录)。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.null().optional().describe("此接口成功时不返回具体数据")
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.null().optional().describe("此接口成功时不返回具体数据")
     })
   },
   {
@@ -86,9 +86,9 @@ export const fileApiDefs = [
       // 如果 isDir 为 false，还需要一个名为 'file' 的 FormData 文件字段。
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.null().optional().describe("此接口成功时不返回具体数据")
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.null().optional().describe("此接口成功时不返回具体数据")
     })
   },
   {
@@ -102,9 +102,9 @@ export const fileApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ path: z.string().describe("要读取的目录路径 (相对于工作空间根目录)。") }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.array(z.object({
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.array(z.object({
         name: z.string().describe("文件名或目录名"),
         isDir: z.boolean().describe("是否为目录"),
         isSymlink: z.boolean().describe("是否为符号链接"),
@@ -123,9 +123,9 @@ export const fileApiDefs = [
     unavailableIfReadonly: true,
     zodRequestSchema: (z) => ({ path: z.string().describe("要移除的文件或目录路径 (相对于工作空间根目录)。") }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.null().optional().describe("此接口成功时不返回具体数据")
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.null().optional().describe("此接口成功时不返回具体数据")
     })
   },
   {
@@ -142,9 +142,9 @@ export const fileApiDefs = [
       newPath: z.string().describe("新的文件或目录路径 (相对于工作空间根目录)。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.null().optional().describe("此接口成功时不返回具体数据")
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.null().optional().describe("此接口成功时不返回具体数据")
     })
   }
 ];

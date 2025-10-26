@@ -12,9 +12,9 @@ export const aiApiDefs = [
       msg: z.string().describe("发送给 ChatGPT 的消息内容")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.any().describe("ChatGPT 的回复内容")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.any().describe("ChatGPT 的回复内容")
     })
   },
   {
@@ -31,9 +31,9 @@ export const aiApiDefs = [
       action: z.string().describe("要执行的动作指令")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.any().describe("ChatGPT 执行动作后的返回结果")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.any().describe("ChatGPT 执行动作后的返回结果")
     })
   }
 ];

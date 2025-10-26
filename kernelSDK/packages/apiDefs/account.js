@@ -10,9 +10,9 @@ export const accountApiDefs = [
     description: "检查用户输入的激活码是否有效。",
     zodRequestSchema: (z) => ({ data: z.string().describe("要检查的激活码") }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功，其他表示失败"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.any().nullable().describe("返回数据，此接口通常为 null")
+      code: z.number().describe("返回码，0 表示成功，其他表示失败"),
+      msg: z.string().describe("返回消息"),
+      data: z.any().nullable().describe("返回数据，此接口通常为 null")
     })
   },
   {
@@ -26,9 +26,9 @@ export const accountApiDefs = [
     description: "注销当前用户账号。",
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功，其他表示失败"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.any().nullable().describe("返回数据，此接口通常为 null")
+      code: z.number().describe("返回码，0 表示成功，其他表示失败"),
+      msg: z.string().describe("返回消息"),
+      data: z.any().nullable().describe("返回数据，此接口通常为 null")
     })
   },
   {
@@ -47,9 +47,9 @@ export const accountApiDefs = [
       cloudRegion: z.number().describe("云端区域代码，例如 0 表示中国区")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功，其他表示失败"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.any().nullable().describe("登录成功时可能包含用户信息，失败时为 null")
+      code: z.number().describe("返回码，0 表示成功，其他表示失败"),
+      msg: z.string().describe("返回消息"),
+      data: z.any().nullable().describe("登录成功时可能包含用户信息，失败时为 null")
     })
   },
   {
@@ -63,9 +63,9 @@ export const accountApiDefs = [
     description: "为当前用户开启免费试用。",
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功，其他表示失败"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.any().nullable().describe("返回数据，此接口通常为 null")
+      code: z.number().describe("返回码，0 表示成功，其他表示失败"),
+      msg: z.string().describe("返回消息"),
+      data: z.any().nullable().describe("返回数据，此接口通常为 null")
     })
   },
   {
@@ -79,9 +79,9 @@ export const accountApiDefs = [
     description: "使用激活码激活账户。",
     zodRequestSchema: (z) => ({ data: z.string().describe("要使用的激活码") }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功，其他表示失败"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.any().nullable().describe("返回数据，此接口通常为 null")
+      code: z.number().describe("返回码，0 表示成功，其他表示失败"),
+      msg: z.string().describe("返回消息"),
+      data: z.any().nullable().describe("返回数据，此接口通常为 null")
     })
   }
 ];

@@ -10,9 +10,9 @@ export const assetApiDefs = [
     unavailableIfReadonly: true,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.any().nullable().describe("此接口通常不返回数据")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.any().nullable().describe("此接口通常不返回数据")
     })
   },
   {
@@ -26,9 +26,9 @@ export const assetApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ id: z.string().describe("文档块的 ID") }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.any().describe("资源文件对象数组，具体结构未定义")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.any().describe("资源文件对象数组，具体结构未定义")
     })
   },
   {
@@ -42,9 +42,9 @@ export const assetApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ id: z.string().describe("文档块的 ID") }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.any().describe("图片资源文件对象数组，具体结构未定义")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.any().describe("图片资源文件对象数组，具体结构未定义")
     })
   },
   {
@@ -58,9 +58,9 @@ export const assetApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ path: z.string().describe("资源文件的路径 (例如 assets/xxx.pdf)") }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         path: z.string().describe("资源文件的路径"),
         data: z.string().describe("标注数据 (通常为 XFDF 格式的字符串)")
       })
@@ -77,9 +77,9 @@ export const assetApiDefs = [
     unavailableIfReadonly: true,
     zodRequestSchema: (z) => ({ path: z.string().describe("图片资源文件的路径 (例如 assets/xxx.png)") }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         text: z.string().describe("OCR 识别出的文本内容"),
         ocrJSON: z.any().describe("原始 OCR 结果，通常为 JSON 对象，具体结构取决于 OCR 引擎")
       })
@@ -96,9 +96,9 @@ export const assetApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         missingAssets: z.array(z.any()).describe("丢失的资源路径列表，具体元素结构未定义")
       })
     })
@@ -114,9 +114,9 @@ export const assetApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         unusedAssets: z.array(z.any()).describe("未使用的资源文件对象列表，具体元素结构未定义")
       })
     })
@@ -136,9 +136,9 @@ export const assetApiDefs = [
       isUpload: z.boolean().optional().describe("是否为上传操作，默认为 false")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         succMap: z.record(z.string()).describe("成功插入的资源映射，键为原始文件名，值为在思源中的新资源路径")
       })
     })
@@ -154,9 +154,9 @@ export const assetApiDefs = [
     unavailableIfReadonly: true,
     zodRequestSchema: (z) => ({ path: z.string() }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         text: z.string().describe("OCR 识别出的文本内容"),
         ocrJSON: z.any().describe("原始 OCR 结果，通常为 JSON 对象，具体结构取决于 OCR 引擎")
       })
@@ -173,9 +173,9 @@ export const assetApiDefs = [
     unavailableIfReadonly: true,
     zodRequestSchema: (z) => ({ path: z.string() }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         path: z.string().describe("被成功移除的资源文件的路径")
       })
     })
@@ -191,9 +191,9 @@ export const assetApiDefs = [
     unavailableIfReadonly: true,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         paths: z.array(z.string()).describe("被成功移除的所有未使用资源文件的路径列表")
       })
     })
@@ -212,9 +212,9 @@ export const assetApiDefs = [
       newName: z.string().describe("资源文件的新名称 (不含路径，例如 new_name.png)")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         newPath: z.string().describe("资源文件重命名后的新路径 (例如 assets/new_name.png)")
       })
     })
@@ -232,9 +232,9 @@ export const assetApiDefs = [
       path: z.string().describe("思源笔记中的资源相对路径 (例如 assets/image.png)")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.string().describe("资源文件在文件系统中的绝对路径")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.string().describe("资源文件在文件系统中的绝对路径")
     })
   },
   {
@@ -251,9 +251,9 @@ export const assetApiDefs = [
       data: z.string().describe("要设置的标注数据 (通常为 XFDF 格式的字符串)")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.any().nullable().describe("此接口通常不返回具体数据，null 表示成功")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.any().nullable().describe("此接口通常不返回具体数据，null 表示成功")
     })
   },
   {
@@ -270,9 +270,9 @@ export const assetApiDefs = [
       text: z.string().describe("要设置的 OCR 文本内容")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.any().nullable().describe("此接口通常不返回具体数据，null 表示成功")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.any().nullable().describe("此接口通常不返回具体数据，null 表示成功")
     })
   },
   {
@@ -288,9 +288,9 @@ export const assetApiDefs = [
       path: z.string().describe("资源文件的 assets/ 路径或本地文件的 file:/// 绝对路径")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         size: z.number().describe("文件大小（字节）"),
         hSize: z.string().describe("人类可读的文件大小 (例如 1.2MB)"),
         created: z.number().describe("文件创建时间戳 (毫秒)"),
@@ -315,9 +315,9 @@ export const assetApiDefs = [
       files: z.any().describe("通过 FormData 上传的文件对象或文件对象列表，此字段仅用于类型提示，实际通过 FormData 传递")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         errFiles: z.array(z.string()).describe("上传失败的文件名列表"),
         succMap: z.record(z.string()).describe("上传成功的文件映射，键为原始文件名，值为在思源中的新资源路径 (例如 assets/image.png)")
       })
@@ -336,9 +336,9 @@ export const assetApiDefs = [
       id: z.string().describe("文档块的 ID，将上传此文档及其子文档中引用的所有本地资源")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.any().nullable().describe("此接口通常不返回具体数据，null 表示成功")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.any().nullable().describe("此接口通常不返回具体数据，null 表示成功")
     })
   }
 ];

@@ -14,9 +14,9 @@ export const blockApiDefs = [
       parentID: z.string().describe("父块的 ID")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.array(z.object({ id: z.string().describe("新创建块的 ID") })).nullable().describe("成功时返回包含新块 ID 的数组，失败时为 null")
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.array(z.object({ id: z.string().describe("新创建块的 ID") })).nullable().describe("成功时返回包含新块 ID 的数组，失败时为 null")
     })
   },
   {
@@ -34,9 +34,9 @@ export const blockApiDefs = [
       notebook: z.string().describe("目标笔记本的 ID")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.array(z.object({ id: z.string().describe("新创建块的 ID") })).nullable().describe("成功时返回包含新块 ID 的数组，失败时为 null")
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.array(z.object({ id: z.string().describe("新创建块的 ID") })).nullable().describe("成功时返回包含新块 ID 的数组，失败时为 null")
     })
   },
   {
@@ -69,9 +69,9 @@ export const blockApiDefs = [
       ).describe("包含多个待插入块信息的数组")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.array(z.object({ id: z.string().describe("新创建块的 ID") })).nullable().describe("成功时返回包含新块 ID 的数组，失败时为 null")
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.array(z.object({ id: z.string().describe("新创建块的 ID") })).nullable().describe("成功时返回包含新块 ID 的数组，失败时为 null")
     })
   },
   {
@@ -95,9 +95,9 @@ export const blockApiDefs = [
       ).describe("包含多个待插入块信息的数组")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.array(z.object({ id: z.string().describe("新创建块的 ID") })).nullable().describe("成功时返回包含新块 ID 的数组，失败时为 null")
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.array(z.object({ id: z.string().describe("新创建块的 ID") })).nullable().describe("成功时返回包含新块 ID 的数组，失败时为 null")
     })
   },
   {
@@ -119,9 +119,9 @@ export const blockApiDefs = [
       ).describe("包含多个待插入块信息的数组")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.array(z.object({ id: z.string().describe("新创建块的 ID") })).nullable().describe("成功时返回包含新块 ID 的数组，失败时为 null")
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.array(z.object({ id: z.string().describe("新创建块的 ID") })).nullable().describe("成功时返回包含新块 ID 的数组，失败时为 null")
     })
   },
   {
@@ -143,9 +143,9 @@ export const blockApiDefs = [
       ).describe("包含多个待更新块信息的数组")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.array(z.object({ id: z.string().describe("已更新块的 ID") })).nullable().describe("成功时返回包含已更新块 ID 的数组，失败时为 null")
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.array(z.object({ id: z.string().describe("已更新块的 ID") })).nullable().describe("成功时返回包含已更新块 ID 的数组，失败时为 null")
     })
   },
   {
@@ -159,9 +159,9 @@ export const blockApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ id: z.string().describe("要检查的块 ID") }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.boolean().describe("块是否存在")
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.boolean().describe("块是否存在")
     })
   },
   {
@@ -175,9 +175,9 @@ export const blockApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ id: z.string().describe("要检查的块 ID") }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.object({
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.object({
         isFolded: z.boolean().describe("块是否已折叠"),
         isRoot: z.boolean().describe("块是否为根块（通常指文档块）")
       }).describe("包含折叠状态和是否为根块的信息")
@@ -194,9 +194,9 @@ export const blockApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ ids: z.array(z.string()).describe("要检查的块 ID 数组") }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.record(z.string().describe("块 ID"), z.object({
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.record(z.string().describe("块 ID"), z.object({
         defCount: z.number().describe("该块作为定义块被引用的次数"),
         refCount: z.number().describe("该块作为引用块引用其他块的次数")
       })).describe("一个记录对象，键为块 ID，值为该块的引用统计信息")
@@ -213,9 +213,9 @@ export const blockApiDefs = [
     unavailableIfReadonly: true,
     zodRequestSchema: (z) => ({ id: z.string().describe("要删除的块 ID") }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.array(z.any()).nullable().describe("通常为 null，具体结构未在 Go 源码中明确，保持 any 以兼容") // Go: model.DeleteBlock 返回 (transaction *model.Transaction, err error)
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.array(z.any()).nullable().describe("通常为 null，具体结构未在 Go 源码中明确，保持 any 以兼容") // Go: model.DeleteBlock 返回 (transaction *model.Transaction, err error)
     })
   },
   {
@@ -229,9 +229,9 @@ export const blockApiDefs = [
     unavailableIfReadonly: true,
     zodRequestSchema: (z) => ({ id: z.string().describe("要折叠的块 ID") }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.array(z.any()).nullable().describe("通常为 null，具体结构未在 Go 源码中明确，保持 any 以兼容") // Go: model.FoldBlock / model.FoldHeading 返回 (transaction *model.Transaction, err error)
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.array(z.any()).nullable().describe("通常为 null，具体结构未在 Go 源码中明确，保持 any 以兼容") // Go: model.FoldBlock / model.FoldHeading 返回 (transaction *model.Transaction, err error)
     })
   },
   {
@@ -248,9 +248,9 @@ export const blockApiDefs = [
       excludeTypes: z.array(z.string()).optional().describe("可选，需要从面包屑中排除的块类型数组")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.array(
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.array(
         z.object({
           id: z.string().describe("面包屑项的块 ID"),
           name: z.string().describe("面包屑项的名称（通常是块内容或标题）"),
@@ -271,9 +271,9 @@ export const blockApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ id: z.string().describe("要获取 DOM 的块 ID") }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.object({
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.object({
         id: z.string().describe("块 ID"),
         dom: z.string().describe("块的 DOM 内容 (HTML 字符串)"),
         isFullWidth: z.boolean().optional().describe("是否为页宽块") // kernel.GetBlockDOM 返回的结构
@@ -293,9 +293,9 @@ export const blockApiDefs = [
       ids: z.array(z.string()).describe("要获取 DOM 的块 ID 数组")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.record(z.string().describe("块 ID"), z.string().describe("块的 DOM 内容 (HTML 字符串)"))
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.record(z.string().describe("块 ID"), z.string().describe("块的 DOM 内容 (HTML 字符串)"))
         .describe("一个记录对象，键为块 ID，值为该块的 DOM 内容")
     })
   },
@@ -313,9 +313,9 @@ export const blockApiDefs = [
       excludeIDs: z.array(z.string()).optional().describe("可选，需要排除的块 ID 数组")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.object({ // kernel.GetBlockDefIDsByRefText 返回 []*model.RefDef
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.object({ // kernel.GetBlockDefIDsByRefText 返回 []*model.RefDef
         refDefs: z.array(
           z.object({
             RefID: z.string().describe("引用块的ID (发起引用的块)"), // model.RefDef 结构
@@ -336,9 +336,9 @@ export const blockApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ id: z.string().describe("要获取索引的块 ID") }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.number().describe("块在其父块子节点中的索引位置，-1 表示未找到或出错")
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.number().describe("块在其父块子节点中的索引位置，-1 表示未找到或出错")
     })
   },
   {
@@ -352,9 +352,9 @@ export const blockApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ id: z.string().describe("要获取信息的块 ID") }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.object({ // kernel.GetBlockInfo 返回的结构
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.object({ // kernel.GetBlockInfo 返回的结构
         box: z.string().describe("块所在的笔记本 ID"),
         path: z.string().describe("块在笔记本中的绝对路径"),
         rootID: z.string().describe("块所属的根文档块 ID"),
@@ -378,9 +378,9 @@ export const blockApiDefs = [
       mode: z.enum(["md", "textmark"]).optional().describe("获取模式：'md' (Markdown 标记符) 或 'textmark' (文本标记)。默认为 'md'")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.object({ // kernel.GetBlockKramdown 返回的结构
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.object({ // kernel.GetBlockKramdown 返回的结构
         id: z.string().describe("块 ID"),
         kramdown: z.string().describe("块的 Kramdown 源码")
       }).describe("包含块 ID 和其 Kramdown 源码的对象")
@@ -408,9 +408,9 @@ export const blockApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ id: z.string().describe("目标块的 ID") }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.object({ // api.getBlockSiblingID 返回的结构
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.object({ // api.getBlockSiblingID 返回的结构
         parent: z.string().describe("父块 ID，如果目标块是根块则为空字符串"),
         previous: z.string().describe("上一个同级块 ID，如果没有则为空字符串"),
         next: z.string().describe("下一个同级块 ID，如果没有则为空字符串")
@@ -428,9 +428,9 @@ export const blockApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ ids: z.array(z.string()).describe("要获取块树信息的块 ID 数组") }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.array(z.object({ // model.GetBlockTreeInfos 返回 []*BlockTreeInfo
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.array(z.object({ // model.GetBlockTreeInfos 返回 []*BlockTreeInfo
         id: z.string().describe("块 ID"),
         box: z.string().describe("笔记本 ID"),
         path: z.string().describe("块的路径"),
@@ -509,9 +509,9 @@ export const blockApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ ids: z.array(z.string()).describe("要获取索引的块 ID 数组") }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.record(z.string().describe("块 ID"), z.number().describe("块在其父块子节点中的索引位置，-1 表示未找到或出错"))
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.record(z.string().describe("块 ID"), z.number().describe("块在其父块子节点中的索引位置，-1 表示未找到或出错"))
         .describe("一个记录对象，键为块 ID，值为该块在其父块中的索引")
     })
   },
@@ -529,9 +529,9 @@ export const blockApiDefs = [
       reqId: z.string().optional().describe("可选的请求 ID，用于异步跟踪")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.object({
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.object({
         reqId: z.string().optional().describe("如果请求中提供了 reqId，则在此返回"),
         stat: z.object({ // kernel.CountBlocks 返回的结构
           wordCount: z.number().describe("总字数"),
@@ -552,9 +552,9 @@ export const blockApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ id: z.string().describe("父块的 ID") }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.array(
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.array(
         z.object({ // kernel.GetChildBlocks 返回 []*Block
           id: z.string().describe("子块的 ID"),
           type: z.string().describe("子块的类型")
@@ -577,9 +577,9 @@ export const blockApiDefs = [
       reqId: z.string().optional().describe("可选的请求 ID，用于异步跟踪")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.object({
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.object({
         reqId: z.string().optional().describe("如果请求中提供了 reqId，则在此返回"),
         stat: z.object({ // kernel.CountContent 返回的结构
           wordCount: z.number().describe("总字数"),
@@ -600,9 +600,9 @@ export const blockApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ dom: z.string().describe("包含 HTML 标签的 DOM 字符串") }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.string().describe("从 DOM 中提取的纯文本内容")
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.string().describe("从 DOM 中提取的纯文本内容")
     })
   },
   {
@@ -616,9 +616,9 @@ export const blockApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ id: z.string().describe("目标文档块的 ID") }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.object({ // kernel.GetDocInfo 返回的结构
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.object({ // kernel.GetDocInfo 返回的结构
         id: z.string().describe("文档块 ID"),
         box: z.string().describe("笔记本 ID"),
         path: z.string().describe("文档的存储路径"),
@@ -643,9 +643,9 @@ export const blockApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ ids: z.array(z.string()).describe("包含多个文档块 ID 的数组") }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.array(z.object({ // kernel.GetDocsInfo 返回 []*DocInfo
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.array(z.object({ // kernel.GetDocsInfo 返回 []*DocInfo
         id: z.string().describe("文档块 ID"),
         box: z.string().describe("笔记本 ID"),
         path: z.string().describe("文档的存储路径"),
@@ -668,9 +668,9 @@ export const blockApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ id: z.string().describe("目标标题块的 ID") }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.string().describe("标题块下所有子孙块合并的 DOM (HTML 字符串)")
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.string().describe("标题块下所有子孙块合并的 DOM (HTML 字符串)")
     })
   },
   {
@@ -684,9 +684,9 @@ export const blockApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ id: z.string().describe("目标标题块的 ID") }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.array(z.string()).describe("标题块下所有子孙块的 ID 数组")
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.array(z.string()).describe("标题块下所有子孙块的 ID 数组")
     })
   },
   {
@@ -700,9 +700,9 @@ export const blockApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ id: z.string().describe("要获取删除事务的标题块 ID") }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.object({ // model.Transaction 结构
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.object({ // model.Transaction 结构
         doOperations: z.array(z.object({ // model.Operation 结构
           action: z.string().describe("操作类型 (例如: delete, update, insert等)"),
           id: z.string().optional().describe("操作的块 ID"),
@@ -740,9 +740,9 @@ export const blockApiDefs = [
       level: z.number().int().min(1).max(6).describe("新的标题级别 (1-6)")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.object({ // model.Transaction 结构
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.object({ // model.Transaction 结构
         doOperations: z.array(z.object({ // model.Operation 结构
           action: z.string().describe("操作类型 (例如: updateial)"),
           id: z.string().describe("操作的块 ID"),
@@ -762,9 +762,9 @@ export const blockApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.array(z.object({ // 对应 model.Block.Upgrade() 返回的结构子集
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.array(z.object({ // 对应 model.Block.Upgrade() 返回的结构子集
         id: z.string().describe("块 ID"),
         box: z.string().describe("笔记本 ID"),
         path: z.string().describe("块所在文档的路径"),
@@ -789,9 +789,9 @@ export const blockApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ id: z.string().describe("发起引用的块 ID") }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.array(z.string()).describe("该块引用的所有定义块的 ID 数组")
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.array(z.string()).describe("该块引用的所有定义块的 ID 数组")
     })
   },
   {
@@ -805,9 +805,9 @@ export const blockApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ id: z.string().describe("文件注解块的 ID") }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.object({
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.object({
         refID: z.string().describe("相关的引用块 ID"),
         defID: z.string().describe("相关的定义块 ID")
       }).describe("包含相关引用ID和定义ID的对象")
@@ -824,9 +824,9 @@ export const blockApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ id: z.string().describe("引用块的 ID") }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.string().describe("引用块的锚文本")
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.string().describe("引用块的锚文本")
     })
   },
   {
@@ -843,9 +843,9 @@ export const blockApiDefs = [
       size: z.number().int().positive().describe("要获取的尾部子块数量")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.array(z.object({ // 与 getChildBlocks 结构类似
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.array(z.object({ // 与 getChildBlocks 结构类似
         id: z.string().describe("子块的 ID"),
         type: z.string().describe("子块的类型")
       })).describe("尾部子块的基本信息数组")
@@ -862,9 +862,9 @@ export const blockApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ id: z.string().describe("目标块的 ID，通常为文档块") }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.object({ // kernel.GetTreeStat 返回的结构
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.object({ // kernel.GetTreeStat 返回的结构
         id: z.string().describe("块 ID"),
         box: z.string().describe("笔记本 ID"),
         path: z.string().describe("块路径"),
@@ -903,9 +903,9 @@ export const blockApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ id: z.string().describe("起始块的 ID") }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.string().describe("最近的已展开父块的 ID，如果无此类父块或出错则为空字符串")
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.string().describe("最近的已展开父块的 ID，如果无此类父块或出错则为空字符串")
     })
   },
   {
@@ -924,9 +924,9 @@ export const blockApiDefs = [
       isBefore: z.boolean().describe("是否在锚点块之前插入 (true: 之前, false: 之后)")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.array(z.object({ id: z.string().describe("新创建块的 ID") })).nullable().describe("成功时返回包含新块 ID 的数组，失败时为 null")
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.array(z.object({ id: z.string().describe("新创建块的 ID") })).nullable().describe("成功时返回包含新块 ID 的数组，失败时为 null")
     })
   },
   {
@@ -944,9 +944,9 @@ export const blockApiDefs = [
       previousID: z.string().optional().describe("新的前一个同级块的 ID。如果提供此字段，块将被移动到该同级块之后。如果未提供，将尝试基于 parentID 移动到父块的末尾（若 parentID 有效）。不能是文档块ID。 ")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.null().describe("此接口成功时不返回具体数据，UI 通常通过 WebSocket 消息更新。")
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.null().describe("此接口成功时不返回具体数据，UI 通常通过 WebSocket 消息更新。")
       // Go 源码中 moveBlock 函数没有显式设置 ret.Data，但调用了 model.PerformTransactions 和 model.ReloadProtyle
     })
   },
@@ -965,9 +965,9 @@ export const blockApiDefs = [
       previousID: z.string().optional().describe("新的前一个同级标题块的 ID。如果提供此字段，标题块将被移动到该同级块之后。 ")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.array(z.any()).nullable().describe("操作成功时返回事务列表，失败时可能为 null。具体结构请参考 Transaction 对象。")
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.array(z.any()).nullable().describe("操作成功时返回事务列表，失败时可能为 null。具体结构请参考 Transaction 对象。")
     })
   },
   {
@@ -985,9 +985,9 @@ export const blockApiDefs = [
       parentID: z.string().describe("父块的 ID")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.array(z.object({ id: z.string().describe("新创建块的 ID") })).nullable().describe("成功时返回包含新块 ID 的数组，失败时为 null")
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.array(z.object({ id: z.string().describe("新创建块的 ID") })).nullable().describe("成功时返回包含新块 ID 的数组，失败时为 null")
     })
   },
   {
@@ -1005,9 +1005,9 @@ export const blockApiDefs = [
       notebook: z.string().describe("目标笔记本的 ID。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.array(z.any()).nullable().describe("操作成功时返回事务列表，失败时可能为 null。具体结构请参考 Transaction 对象。")
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.array(z.any()).nullable().describe("操作成功时返回事务列表，失败时可能为 null。具体结构请参考 Transaction 对象。")
     })
   },
   {
@@ -1024,9 +1024,9 @@ export const blockApiDefs = [
       timed: z.string().regex(/^\d{14}$/).describe("提醒时间，格式为 yyyyMMddHHmmss (例如: 20230815103000)")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.null().describe("成功时为 null")
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.null().describe("成功时为 null")
     })
   },
   {
@@ -1044,9 +1044,9 @@ export const blockApiDefs = [
       includeChildren: z.boolean().describe("是否包含子块进行交换 (通常用于嵌入块)")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.null().describe("成功时为 null")
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.null().describe("成功时为 null")
     })
   },
   {
@@ -1065,9 +1065,9 @@ export const blockApiDefs = [
       reloadUI: z.boolean().optional().default(true).describe("操作完成后是否重新加载UI，默认为 true")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.null().describe("成功时为 null")
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.null().describe("成功时为 null")
     })
   },
   {
@@ -1081,9 +1081,9 @@ export const blockApiDefs = [
     unavailableIfReadonly: true,
     zodRequestSchema: (z) => ({ id: z.string().describe("要展开的块 ID") }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.array(z.any()).nullable().describe("通常为 null，具体结构未在 Go 源码中明确，保持 any 以兼容") // Go: model.UnfoldBlock / model.UnfoldHeading 返回 (transaction *model.Transaction, err error)
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.array(z.any()).nullable().describe("通常为 null，具体结构未在 Go 源码中明确，保持 any 以兼容") // Go: model.UnfoldBlock / model.UnfoldHeading 返回 (transaction *model.Transaction, err error)
     })
   },
   {
@@ -1101,9 +1101,9 @@ export const blockApiDefs = [
       dataType: z.enum(["markdown", "dom"]).describe("指定 data 参数的类型")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.array(z.object({ id: z.string().describe("已更新块的 ID") })).nullable().describe("成功时返回包含已更新块 ID 的数组，失败时为 null")
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.array(z.object({ id: z.string().describe("已更新块的 ID") })).nullable().describe("成功时返回包含已更新块 ID 的数组，失败时为 null")
     })
   }
 ];

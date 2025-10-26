@@ -15,9 +15,9 @@ export const extensionApiDefs = [
       // 其他动态的文件字段 (key: 原始文件名/URL, value: File对象) 会被处理并保存为资源文件。
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息，失败时错误信息显示在这里"),
-      Data: z.object({
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息，失败时错误信息显示在这里"),
+      data: z.object({
         md: z.string().describe("转换后或直接获取的 Markdown 内容"),
         withMath: z.boolean().describe("指示转换后的 Markdown 内容中是否包含数学公式 (KaTeX)")
         // `uploaded` 字段在 Go 源码中存在，但并未包含在最终返回给客户端的 Data 中，因此此处不定义。

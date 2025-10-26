@@ -9,7 +9,7 @@ export const exportApiDefs = [
     needAdminRole: true,
     unavailableIfReadonly: true,
     zodRequestSchema: (z) => ({ id: z.string().describe("要导出到链滴的文档ID") }),
-    zodResponseSchema: (z) => ({ Code: z.number().describe("响应状态码，0 表示成功"), Msg: z.string().describe("响应消息"), Data: z.null().optional().describe("此接口成功时不返回具体数据") })
+    zodResponseSchema: (z) => ({ code: z.number().describe("响应状态码，0 表示成功"), msg: z.string().describe("响应消息"), data: z.null().optional().describe("此接口成功时不返回具体数据") })
   },
   {
     method: "POST",
@@ -21,7 +21,7 @@ export const exportApiDefs = [
     needAdminRole: true,
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ type: z.string().describe("上传文件的MIME类型") /* FormData, file field is implicit */ }),
-    zodResponseSchema: (z) => ({ Code: z.number().describe("响应状态码，0 表示成功"), Msg: z.string().describe("响应消息"), Data: z.object({ name: z.string().describe("处理后的文件名"), file: z.string().describe("文件在服务器上的可访问路径 (相对于/export/)") }).describe("成功时返回的数据") })
+    zodResponseSchema: (z) => ({ code: z.number().describe("响应状态码，0 表示成功"), msg: z.string().describe("响应消息"), data: z.object({ name: z.string().describe("处理后的文件名"), file: z.string().describe("文件在服务器上的可访问路径 (相对于/export/)") }).describe("成功时返回的数据") })
   },
   {
     method: "POST",
@@ -33,7 +33,7 @@ export const exportApiDefs = [
     needAdminRole: true,
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ id: z.string().describe("要导出的文档ID") }),
-    zodResponseSchema: (z) => ({ Code: z.number().describe("响应状态码，0 表示成功"), Msg: z.string().describe("响应消息"), Data: z.object({ name: z.string().describe("导出的 .zip 文件名"), zip: z.string().describe("导出的 .zip 文件在服务器上的绝对路径") }).describe("成功时返回的数据") })
+    zodResponseSchema: (z) => ({ code: z.number().describe("响应状态码，0 表示成功"), msg: z.string().describe("响应消息"), data: z.object({ name: z.string().describe("导出的 .zip 文件名"), zip: z.string().describe("导出的 .zip 文件在服务器上的绝对路径") }).describe("成功时返回的数据") })
   },
   {
     method: "POST",
@@ -45,7 +45,7 @@ export const exportApiDefs = [
     needAdminRole: true,
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ id: z.string().describe("属性视图的ID (avID)"), blockID: z.string().describe("包含该属性视图的块ID") }),
-    zodResponseSchema: (z) => ({ Code: z.number().describe("响应状态码，0 表示成功"), Msg: z.string().describe("响应消息"), Data: z.object({ zip: z.string().describe("导出的CSV压缩文件在服务器上的绝对路径") }).describe("成功时返回的数据") })
+    zodResponseSchema: (z) => ({ code: z.number().describe("响应状态码，0 表示成功"), msg: z.string().describe("响应消息"), data: z.object({ zip: z.string().describe("导出的CSV压缩文件在服务器上的绝对路径") }).describe("成功时返回的数据") })
   },
   {
     method: "POST",
@@ -57,7 +57,7 @@ export const exportApiDefs = [
     needAdminRole: true,
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({}),
-    zodResponseSchema: (z) => ({ Code: z.number().describe("响应状态码，0 表示成功"), Msg: z.string().describe("响应消息"), Data: z.object({ zip: z.string().describe("导出的 .zip 文件在服务器上的绝对路径") }).describe("成功时返回的数据") })
+    zodResponseSchema: (z) => ({ code: z.number().describe("响应状态码，0 表示成功"), msg: z.string().describe("响应消息"), data: z.object({ zip: z.string().describe("导出的 .zip 文件在服务器上的绝对路径") }).describe("成功时返回的数据") })
   },
   {
     method: "POST",
@@ -69,7 +69,7 @@ export const exportApiDefs = [
     needAdminRole: true,
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ folder: z.string().describe("要导出数据的文件夹路径 (相对于工作空间data目录)") }),
-    zodResponseSchema: (z) => ({ Code: z.number().describe("响应状态码，0 表示成功"), Msg: z.string().describe("响应消息"), Data: z.object({ name: z.string().describe("导出的压缩包文件名 (不含路径)") }).describe("成功时返回的数据") })
+    zodResponseSchema: (z) => ({ code: z.number().describe("响应状态码，0 表示成功"), msg: z.string().describe("响应消息"), data: z.object({ name: z.string().describe("导出的压缩包文件名 (不含路径)") }).describe("成功时返回的数据") })
   },
   {
     method: "POST",
@@ -81,7 +81,7 @@ export const exportApiDefs = [
     needAdminRole: true,
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ id: z.string().describe("要导出的文档ID"), savePath: z.string().describe("服务器上保存 .docx 文件的绝对路径"), removeAssets: z.boolean().describe("是否移除导出的 Word 文件中包含的资源文件（如图片）的原始文件"), merge: z.boolean().optional().describe("是否将子文档内容合并到主文档中导出 (默认为 false)") }),
-    zodResponseSchema: (z) => ({ Code: z.number().describe("响应状态码，0 表示成功"), Msg: z.string().describe("响应消息"), Data: z.object({ path: z.string().describe("最终生成的 .docx 文件在服务器上的绝对路径") }).describe("成功时返回的数据") })
+    zodResponseSchema: (z) => ({ code: z.number().describe("响应状态码，0 表示成功"), msg: z.string().describe("响应消息"), data: z.object({ path: z.string().describe("最终生成的 .docx 文件在服务器上的绝对路径") }).describe("成功时返回的数据") })
   },
   {
     method: "POST",
@@ -93,7 +93,7 @@ export const exportApiDefs = [
     needAdminRole: true,
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ id: z.string().describe("要导出的文档ID") }),
-    zodResponseSchema: (z) => ({ Code: z.number().describe("响应状态码，0 表示成功"), Msg: z.string().describe("响应消息"), Data: z.object({ name: z.string().describe("导出的 .zip 文件名"), zip: z.string().describe("导出的 .zip 文件在服务器上的绝对路径") }).describe("成功时返回的数据") })
+    zodResponseSchema: (z) => ({ code: z.number().describe("响应状态码，0 表示成功"), msg: z.string().describe("响应消息"), data: z.object({ name: z.string().describe("导出的 .zip 文件名"), zip: z.string().describe("导出的 .zip 文件在服务器上的绝对路径") }).describe("成功时返回的数据") })
   },
   {
     method: "POST",
@@ -111,7 +111,7 @@ export const exportApiDefs = [
       keepFold: z.boolean().optional().describe("是否在导出时保持块的折叠状态 (默认为 false，展开所有)"),
       merge: z.boolean().optional().describe("是否将子文档内容合并到主文档中导出 (默认为 false)")
     }),
-    zodResponseSchema: (z) => ({ Code: z.number().describe("响应状态码，0 表示成功"), Msg: z.string().describe("响应消息"), Data: z.object({ id: z.string().describe("导出的文档ID"), name: z.string().describe("文档的原始名称"), content: z.string().describe("生成的 HTML 内容") }).describe("成功时返回的数据") })
+    zodResponseSchema: (z) => ({ code: z.number().describe("响应状态码，0 表示成功"), msg: z.string().describe("响应消息"), data: z.object({ id: z.string().describe("导出的文档ID"), name: z.string().describe("文档的原始名称"), content: z.string().describe("生成的 HTML 内容") }).describe("成功时返回的数据") })
   },
   {
     method: "POST",
@@ -123,7 +123,7 @@ export const exportApiDefs = [
     needAdminRole: true,
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ id: z.string().describe("要导出的文档ID") }),
-    zodResponseSchema: (z) => ({ Code: z.number().describe("响应状态码，0 表示成功"), Msg: z.string().describe("响应消息"), Data: z.object({ name: z.string().describe("导出的 .zip 文件名"), zip: z.string().describe("导出的 .zip 文件在服务器上的绝对路径") }).describe("成功时返回的数据") })
+    zodResponseSchema: (z) => ({ code: z.number().describe("响应状态码，0 表示成功"), msg: z.string().describe("响应消息"), data: z.object({ name: z.string().describe("导出的 .zip 文件名"), zip: z.string().describe("导出的 .zip 文件在服务器上的绝对路径") }).describe("成功时返回的数据") })
   },
   {
     method: "POST",
@@ -140,7 +140,7 @@ export const exportApiDefs = [
       embedMode: z.number().optional().describe("嵌入块处理模式 (0: 忽略, 1: 展开, 默认遵从全局配置)"),
       yfm: z.boolean().optional().describe("是否包含 YAML Front Matter (默认为 true)")
     }),
-    zodResponseSchema: (z) => ({ Code: z.number().describe("响应状态码，0 表示成功"), Msg: z.string().describe("响应消息"), Data: z.object({ hPath: z.string().describe("文档的人类可读路径 (面包屑路径)"), content: z.string().describe("导出的 Markdown 文本内容") }).describe("成功时返回的数据") })
+    zodResponseSchema: (z) => ({ code: z.number().describe("响应状态码，0 表示成功"), msg: z.string().describe("响应消息"), data: z.object({ hPath: z.string().describe("文档的人类可读路径 (面包屑路径)"), content: z.string().describe("导出的 Markdown 文本内容") }).describe("成功时返回的数据") })
   },
   {
     method: "POST",
@@ -152,7 +152,7 @@ export const exportApiDefs = [
     needAdminRole: true,
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ id: z.string().describe("要导出 HTML 内容的文档ID"), savePath: z.string().describe("服务器上保存 HTML 文件的绝对路径 (此参数在后端代码中存在但似乎未实际用于此接口，可能为遗留或通用逻辑)") }),
-    zodResponseSchema: (z) => ({ Code: z.number().describe("响应状态码，0 表示成功"), Msg: z.string().describe("响应消息"), Data: z.object({ id: z.string().describe("导出的文档ID"), name: z.string().describe("文档的原始名称"), content: z.string().describe("生成的纯 HTML 内容") }).describe("成功时返回的数据") })
+    zodResponseSchema: (z) => ({ code: z.number().describe("响应状态码，0 表示成功"), msg: z.string().describe("响应消息"), data: z.object({ id: z.string().describe("导出的文档ID"), name: z.string().describe("文档的原始名称"), content: z.string().describe("生成的纯 HTML 内容") }).describe("成功时返回的数据") })
   },
   {
     method: "POST",
@@ -164,7 +164,7 @@ export const exportApiDefs = [
     needAdminRole: true,
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ ids: z.array(z.string()).describe("要导出的文档ID数组") }),
-    zodResponseSchema: (z) => ({ Code: z.number().describe("响应状态码，0 表示成功"), Msg: z.string().describe("响应消息"), Data: z.object({ name: z.string().describe("导出的 .zip 文件名"), zip: z.string().describe("导出的 .zip 文件在服务器上的绝对路径") }).describe("成功时返回的数据") })
+    zodResponseSchema: (z) => ({ code: z.number().describe("响应状态码，0 表示成功"), msg: z.string().describe("响应消息"), data: z.object({ name: z.string().describe("导出的 .zip 文件名"), zip: z.string().describe("导出的 .zip 文件在服务器上的绝对路径") }).describe("成功时返回的数据") })
   },
   {
     method: "POST",
@@ -176,7 +176,7 @@ export const exportApiDefs = [
     needAdminRole: true,
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ id: z.string().describe("要导出的文档ID") }),
-    zodResponseSchema: (z) => ({ Code: z.number().describe("响应状态码，0 表示成功"), Msg: z.string().describe("响应消息"), Data: z.object({ name: z.string().describe("导出的 .zip 文件名"), zip: z.string().describe("导出的 .zip 文件在服务器上的绝对路径") }).describe("成功时返回的数据") })
+    zodResponseSchema: (z) => ({ code: z.number().describe("响应状态码，0 表示成功"), msg: z.string().describe("响应消息"), data: z.object({ name: z.string().describe("导出的 .zip 文件名"), zip: z.string().describe("导出的 .zip 文件在服务器上的绝对路径") }).describe("成功时返回的数据") })
   },
   {
     method: "POST",
@@ -188,7 +188,7 @@ export const exportApiDefs = [
     needAdminRole: true,
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ notebook: z.string().describe("要导出的笔记本ID") }),
-    zodResponseSchema: (z) => ({ Code: z.number().describe("响应状态码，0 表示成功"), Msg: z.string().describe("响应消息"), Data: z.object({ name: z.string().describe("导出的 .zip 文件名 (通常为笔记本名称)"), zip: z.string().describe("导出的 .zip 文件在服务器上的绝对路径") }).describe("成功时返回的数据") })
+    zodResponseSchema: (z) => ({ code: z.number().describe("响应状态码，0 表示成功"), msg: z.string().describe("响应消息"), data: z.object({ name: z.string().describe("导出的 .zip 文件名 (通常为笔记本名称)"), zip: z.string().describe("导出的 .zip 文件在服务器上的绝对路径") }).describe("成功时返回的数据") })
   },
   {
     method: "POST",
@@ -200,7 +200,7 @@ export const exportApiDefs = [
     needAdminRole: true,
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ id: z.string().describe("要导出的笔记本ID") }),
-    zodResponseSchema: (z) => ({ Code: z.number().describe("响应状态码，0 表示成功"), Msg: z.string().describe("响应消息"), Data: z.object({ zip: z.string().describe("导出的 .sy 文件在服务器上的绝对路径") }).describe("成功时返回的数据") })
+    zodResponseSchema: (z) => ({ code: z.number().describe("响应状态码，0 表示成功"), msg: z.string().describe("响应消息"), data: z.object({ zip: z.string().describe("导出的 .sy 文件在服务器上的绝对路径") }).describe("成功时返回的数据") })
   },
   {
     method: "POST",
@@ -212,7 +212,7 @@ export const exportApiDefs = [
     needAdminRole: true,
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ id: z.string().describe("要导出的文档ID") }),
-    zodResponseSchema: (z) => ({ Code: z.number().describe("响应状态码，0 表示成功"), Msg: z.string().describe("响应消息"), Data: z.object({ name: z.string().describe("导出的 .zip 文件名"), zip: z.string().describe("导出的 .zip 文件在服务器上的绝对路径") }).describe("成功时返回的数据") })
+    zodResponseSchema: (z) => ({ code: z.number().describe("响应状态码，0 表示成功"), msg: z.string().describe("响应消息"), data: z.object({ name: z.string().describe("导出的 .zip 文件名"), zip: z.string().describe("导出的 .zip 文件在服务器上的绝对路径") }).describe("成功时返回的数据") })
   },
   {
     method: "POST",
@@ -224,7 +224,7 @@ export const exportApiDefs = [
     needAdminRole: true,
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ id: z.string().describe("要导出的文档ID") }),
-    zodResponseSchema: (z) => ({ Code: z.number().describe("响应状态码，0 表示成功"), Msg: z.string().describe("响应消息"), Data: z.object({ name: z.string().describe("导出的 .zip 文件名"), zip: z.string().describe("导出的 .zip 文件在服务器上的绝对路径") }).describe("成功时返回的数据") })
+    zodResponseSchema: (z) => ({ code: z.number().describe("响应状态码，0 表示成功"), msg: z.string().describe("响应消息"), data: z.object({ name: z.string().describe("导出的 .zip 文件名"), zip: z.string().describe("导出的 .zip 文件在服务器上的绝对路径") }).describe("成功时返回的数据") })
   },
   {
     method: "POST",
@@ -236,7 +236,7 @@ export const exportApiDefs = [
     needAdminRole: true,
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ id: z.string().describe("要导出的文档ID") }),
-    zodResponseSchema: (z) => ({ Code: z.number().describe("响应状态码，0 表示成功"), Msg: z.string().describe("响应消息"), Data: z.object({ name: z.string().describe("导出的 .zip 文件名"), zip: z.string().describe("导出的 .zip 文件在服务器上的绝对路径") }).describe("成功时返回的数据") })
+    zodResponseSchema: (z) => ({ code: z.number().describe("响应状态码，0 表示成功"), msg: z.string().describe("响应消息"), data: z.object({ name: z.string().describe("导出的 .zip 文件名"), zip: z.string().describe("导出的 .zip 文件在服务器上的绝对路径") }).describe("成功时返回的数据") })
   },
   {
     method: "POST",
@@ -253,7 +253,7 @@ export const exportApiDefs = [
       merge: z.boolean().optional().describe("是否将子文档内容合并到主文档中导出 (默认为 false)"),
       image: z.boolean().optional().describe("是否为图片导出优化，例如，将图片转换为 Base64 嵌入 (默认为 false)")
     }),
-    zodResponseSchema: (z) => ({ Code: z.number().describe("响应状态码，0 表示成功"), Msg: z.string().describe("响应消息"), Data: z.object({ id: z.string().describe("导出的文档ID"), name: z.string().describe("文档的原始名称"), content: z.string().describe("生成的预览 HTML 内容"), attrs: z.record(z.string()).describe("文档块的属性 (IAL)"), type: z.string().describe("文档块的类型 (如 'd' 表示文档块)") }).describe("成功时返回的数据") })
+    zodResponseSchema: (z) => ({ code: z.number().describe("响应状态码，0 表示成功"), msg: z.string().describe("响应消息"), data: z.object({ id: z.string().describe("导出的文档ID"), name: z.string().describe("文档的原始名称"), content: z.string().describe("生成的预览 HTML 内容"), attrs: z.record(z.string()).describe("文档块的属性 (IAL)"), type: z.string().describe("文档块的类型 (如 'd' 表示文档块)") }).describe("成功时返回的数据") })
   },
   {
     method: "POST",
@@ -265,7 +265,7 @@ export const exportApiDefs = [
     needAdminRole: true,
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ id: z.string().describe("要导出的文档ID") }),
-    zodResponseSchema: (z) => ({ Code: z.number().describe("响应状态码，0 表示成功"), Msg: z.string().describe("响应消息"), Data: z.object({ name: z.string().describe("导出的 .zip 文件名"), zip: z.string().describe("导出的 .zip 文件在服务器上的绝对路径") }).describe("成功时返回的数据") })
+    zodResponseSchema: (z) => ({ code: z.number().describe("响应状态码，0 表示成功"), msg: z.string().describe("响应消息"), data: z.object({ name: z.string().describe("导出的 .zip 文件名"), zip: z.string().describe("导出的 .zip 文件在服务器上的绝对路径") }).describe("成功时返回的数据") })
   },
   {
     method: "POST",
@@ -277,7 +277,7 @@ export const exportApiDefs = [
     needAdminRole: true,
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ id: z.string().describe("要导出的文档ID") }),
-    zodResponseSchema: (z) => ({ Code: z.number().describe("响应状态码，0 表示成功"), Msg: z.string().describe("响应消息"), Data: z.object({ name: z.string().describe("导出的 .zip 文件名"), zip: z.string().describe("导出的 .zip 文件在服务器上的绝对路径") }).describe("成功时返回的数据") })
+    zodResponseSchema: (z) => ({ code: z.number().describe("响应状态码，0 表示成功"), msg: z.string().describe("响应消息"), data: z.object({ name: z.string().describe("导出的 .zip 文件名"), zip: z.string().describe("导出的 .zip 文件在服务器上的绝对路径") }).describe("成功时返回的数据") })
   },
   {
     method: "POST",
@@ -292,7 +292,7 @@ export const exportApiDefs = [
       name: z.string().optional().describe("导出的 .zip 文件的主文件名 (不含扩展名)。如果为空，则默认为 'export-YYYY-MM-DD_HH-mm-ss' 格式"),
       paths: z.array(z.string()).describe("要导出的文件或文件夹在工作空间中的相对路径数组 (相对于data目录)")
     }),
-    zodResponseSchema: (z) => ({ Code: z.number().describe("响应状态码，0 表示成功"), Msg: z.string().describe("响应消息"), Data: z.object({ path: z.string().describe("导出的 .zip 文件在服务器上的绝对路径") }).describe("成功时返回的数据") })
+    zodResponseSchema: (z) => ({ code: z.number().describe("响应状态码，0 表示成功"), msg: z.string().describe("响应消息"), data: z.object({ path: z.string().describe("导出的 .zip 文件在服务器上的绝对路径") }).describe("成功时返回的数据") })
   },
   {
     method: "POST",
@@ -304,7 +304,7 @@ export const exportApiDefs = [
     needAdminRole: true,
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ id: z.string().describe("要导出的文档ID") }),
-    zodResponseSchema: (z) => ({ Code: z.number().describe("响应状态码，0 表示成功"), Msg: z.string().describe("响应消息"), Data: z.object({ name: z.string().describe("导出的 .sy 文件名"), zip: z.string().describe("导出的 .sy 文件在服务器上的绝对路径") }).describe("成功时返回的数据") })
+    zodResponseSchema: (z) => ({ code: z.number().describe("响应状态码，0 表示成功"), msg: z.string().describe("响应消息"), data: z.object({ name: z.string().describe("导出的 .sy 文件名"), zip: z.string().describe("导出的 .sy 文件在服务器上的绝对路径") }).describe("成功时返回的数据") })
   },
   {
     method: "POST",
@@ -324,7 +324,7 @@ export const exportApiDefs = [
       css: z.string().optional().describe("自定义 CSS 内容 (未在后端实现中明确使用)"),
       js: z.string().optional().describe("自定义 JavaScript 内容 (未在后端实现中明确使用)")
     }),
-    zodResponseSchema: (z) => ({ Code: z.number().describe("响应状态码，0 表示成功"), Msg: z.string().describe("响应消息"), Data: z.object({ url: z.string().describe("生成的临时内容预览 URL (形如 http://localhost:6806/export/temp/xxxxxxx)") }).describe("成功时返回的数据") })
+    zodResponseSchema: (z) => ({ code: z.number().describe("响应状态码，0 表示成功"), msg: z.string().describe("响应消息"), data: z.object({ url: z.string().describe("生成的临时内容预览 URL (形如 http://localhost:6806/export/temp/xxxxxxx)") }).describe("成功时返回的数据") })
   },
   {
     method: "POST",
@@ -336,7 +336,7 @@ export const exportApiDefs = [
     needAdminRole: true,
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ id: z.string().describe("要导出的文档ID") }),
-    zodResponseSchema: (z) => ({ Code: z.number().describe("响应状态码，0 表示成功"), Msg: z.string().describe("响应消息"), Data: z.object({ name: z.string().describe("导出的 .zip 文件名"), zip: z.string().describe("导出的 .zip 文件在服务器上的绝对路径") }).describe("成功时返回的数据") })
+    zodResponseSchema: (z) => ({ code: z.number().describe("响应状态码，0 表示成功"), msg: z.string().describe("响应消息"), data: z.object({ name: z.string().describe("导出的 .zip 文件名"), zip: z.string().describe("导出的 .zip 文件在服务器上的绝对路径") }).describe("成功时返回的数据") })
   },
   {
     method: "POST",
@@ -348,7 +348,7 @@ export const exportApiDefs = [
     needAdminRole: false,
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ id: z.string().describe("要获取 HTML 预览的文档ID") }),
-    zodResponseSchema: (z) => ({ Code: z.number().describe("响应状态码，0 表示成功"), Msg: z.string().describe("响应消息"), Data: z.object({ html: z.string().describe("生成的文档 HTML 预览内容") }).describe("成功时返回的数据") })
+    zodResponseSchema: (z) => ({ code: z.number().describe("响应状态码，0 表示成功"), msg: z.string().describe("响应消息"), data: z.object({ html: z.string().describe("生成的文档 HTML 预览内容") }).describe("成功时返回的数据") })
   },
   {
     method: "POST",
@@ -366,6 +366,6 @@ export const exportApiDefs = [
       removeAssets: z.boolean().describe("处理完成后是否移除相关资源文件"),
       watermark: z.boolean().describe("是否添加水印")
     }),
-    zodResponseSchema: (z) => ({ Code: z.number().describe("响应状态码，0 表示成功"), Msg: z.string().describe("响应消息"), Data: z.null().optional().describe("此接口成功时不返回具体数据") })
+    zodResponseSchema: (z) => ({ code: z.number().describe("响应状态码，0 表示成功"), msg: z.string().describe("响应消息"), data: z.null().optional().describe("此接口成功时不返回具体数据") })
   }
 ];

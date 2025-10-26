@@ -12,9 +12,9 @@ export const repoApiDefs = [
       id: z.string().describe("必需。要检出的快照的唯一标识符 (ID)。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.null().describe("成功时 Data 固定为 null。")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.null().describe("成功时 Data 固定为 null。")
     })
   },
   {
@@ -31,9 +31,9 @@ export const repoApiDefs = [
       tag: z.string().optional().describe("可选。为快照打上的标签名。如果提供，则此快照同时会成为一个标签快照。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
         id: z.string().describe("新创建的快照的唯一标识符 (ID)。")
       }).describe("包含新快照ID的对象。")
     })
@@ -52,9 +52,9 @@ export const repoApiDefs = [
       right: z.string().describe("必需。右侧快照的 ID，作为比较目标的新版本。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
         addsLeft: z.array(z.object({ id: z.string().describe("文档ID"), hPath: z.string().describe("文档HPath") })).describe("右侧快照相对于左侧快照新增的文档列表。"),
         updatesLeft: z.array(z.object({ id: z.string().describe("文档ID"), hPath: z.string().describe("文档HPath") })).describe("在左侧快照中存在，并在右侧快照中被修改的文档列表。"),
         updatesRight: z.array(z.object({ id: z.string().describe("文档ID"), hPath: z.string().describe("文档HPath") })).describe("在右侧快照中存在，并在左侧快照中被修改的文档列表 (通常为空或与updatesLeft对称，具体含义需结合上下文)。"),
@@ -78,9 +78,9 @@ export const repoApiDefs = [
       tag: z.string().optional().describe("可选。如果下载的是标签快照，则此为标签名。如果下载的是普通快照，此字段应为空字符串或省略。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.null().describe("成功时 Data 固定为 null。")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.null().describe("成功时 Data 固定为 null。")
     })
   },
   {
@@ -96,9 +96,9 @@ export const repoApiDefs = [
       page: z.number().int().positive().describe("必需。页码，从 1 开始。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
         snapshots: z.array(z.object({
           id: z.string().describe("快照的唯一标识符 (ID)"),
           created: z.string().describe("快照创建时间 (Unix 时间戳字符串，秒级)"),
@@ -125,9 +125,9 @@ export const repoApiDefs = [
       page: z.number().int().positive().describe("必需。页码，从 1 开始。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
         snapshots: z.array(z.object({
           id: z.string().describe("快照的唯一标识符 (ID)"),
           tag: z.string().describe("快照标签名。"),
@@ -170,9 +170,9 @@ export const repoApiDefs = [
       page: z.number().int().positive().describe("必需。页码，从 1 开始。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
         snapshots: z.array(z.object({
           id: z.string().describe("快照的唯一标识符 (ID)"),
           created: z.string().describe("快照创建时间 (Unix 时间戳字符串，秒级)"),
@@ -199,9 +199,9 @@ export const repoApiDefs = [
       page: z.number().int().positive().describe("必需。页码，从 1 开始。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
         snapshots: z.array(z.object({
           id: z.string().describe("快照的唯一标识符 (ID)"),
           tag: z.string().describe("快照标签名。"),
@@ -227,9 +227,9 @@ export const repoApiDefs = [
     unavailableIfReadonly: true,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.null().describe("成功时 Data 固定为 null。")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.null().describe("成功时 Data 固定为 null。")
     })
   },
   {
@@ -243,9 +243,9 @@ export const repoApiDefs = [
     unavailableIfReadonly: true,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.null().describe("成功时 Data 固定为 null。")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.null().describe("成功时 Data 固定为 null。")
     })
   },
   {
@@ -261,9 +261,9 @@ export const repoApiDefs = [
       passphrase: z.string().min(1, "口令不能为空").describe("必需。用于生成密钥的用户口令。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.null().describe("成功时 Data 固定为 null。")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.null().describe("成功时 Data 固定为 null。")
     })
   },
   {
@@ -279,9 +279,9 @@ export const repoApiDefs = [
       id: z.string().describe("必需。快照中文档的唯一标识符 (通常是 `快照ID/文档ID.sy`)。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
         title: z.string().describe("文档的标题。"),
         content: z.string().describe("文档的内容 (HTML格式)。"),
         displayInText: z.boolean().describe("是否应在纯文本模式下显示 (通常为 false)。"),
@@ -300,9 +300,9 @@ export const repoApiDefs = [
     unavailableIfReadonly: true,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.null().describe("成功时 Data 固定为 null。")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.null().describe("成功时 Data 固定为 null。")
     })
   },
   {
@@ -316,9 +316,9 @@ export const repoApiDefs = [
     unavailableIfReadonly: true,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.null().describe("成功时 Data 固定为 null。")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.null().describe("成功时 Data 固定为 null。")
     })
   },
   {
@@ -335,9 +335,9 @@ export const repoApiDefs = [
       tag: z.string().describe("必需。要移除的云端标签快照的标签名。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.null().describe("成功时 Data 固定为 null。")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.null().describe("成功时 Data 固定为 null。")
     })
   },
   {
@@ -354,9 +354,9 @@ export const repoApiDefs = [
       tag: z.string().describe("必需。要移除的本地标签快照的标签名。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.null().describe("成功时 Data 固定为 null。")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.null().describe("成功时 Data 固定为 null。")
     })
   },
   {
@@ -370,9 +370,9 @@ export const repoApiDefs = [
     unavailableIfReadonly: true,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.null().describe("成功时 Data 固定为 null。")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.null().describe("成功时 Data 固定为 null。")
     })
   },
   {
@@ -388,9 +388,9 @@ export const repoApiDefs = [
       days: z.number().int().min(1, "保留天数至少为1天").describe("必需。快照索引保留的天数，必须为正整数。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.null().describe("成功时 Data 固定为 null。")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.null().describe("成功时 Data 固定为 null。")
     })
   },
   {
@@ -406,9 +406,9 @@ export const repoApiDefs = [
       indexes: z.number().int().min(1, "保留数量至少为1").describe("必需。每日快照的保留数量，必须为正整数。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.null().describe("成功时 Data 固定为 null。")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.null().describe("成功时 Data 固定为 null。")
     })
   },
   {
@@ -426,9 +426,9 @@ export const repoApiDefs = [
       memo: z.string().optional().describe("可选。快照的备注信息，如果提供，会覆盖快照原有的备注。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.null().describe("成功时 Data 固定为 null。")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.null().describe("成功时 Data 固定为 null。")
     })
   },
   {
@@ -445,9 +445,9 @@ export const repoApiDefs = [
       tag: z.string().optional().describe("可选。如果上传的是标签快照，则此为标签名。如果上传的是普通快照，此字段应为空字符串或省略。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.null().describe("成功时 Data 固定为 null。")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.null().describe("成功时 Data 固定为 null。")
     })
   }
 ];

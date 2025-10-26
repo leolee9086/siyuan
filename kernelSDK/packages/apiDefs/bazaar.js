@@ -12,9 +12,9 @@ export const bazaarApiDefs = [
       frontend: z.string().describe("客户端类型，通常为 \'frontend\' 或 \'app\'")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.any().nullable().describe("此接口通常不返回具体数据，null 表示成功")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.any().nullable().describe("此接口通常不返回具体数据，null 表示成功")
     })
   },
   {
@@ -30,9 +30,9 @@ export const bazaarApiDefs = [
       keyword: z.string().optional().describe("可选，搜索关键词")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         packages: z.array(z.any()).describe("集市图标包对象数组，具体结构参考 `kernel.BazaarPackage`")
       }).nullable().describe("包含图标包列表的对象")
     })
@@ -52,9 +52,9 @@ export const bazaarApiDefs = [
       packageType: z.string().describe("包类型 (例如 \'icons\', \'plugins\', \'themes\', \'templates\', \'widgets\')")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         html: z.string().describe("README 文件的 HTML 内容")
       }).nullable().describe("包含 README HTML 的对象")
     })
@@ -73,9 +73,9 @@ export const bazaarApiDefs = [
       keyword: z.string().optional().describe("可选，搜索关键词")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         packages: z.array(z.any()).describe("集市插件包对象数组，具体结构参考 `kernel.BazaarPackage`")
       }).nullable().describe("包含插件列表的对象")
     })
@@ -93,9 +93,9 @@ export const bazaarApiDefs = [
       keyword: z.string().optional().describe("可选，搜索关键词")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         packages: z.array(z.any()).describe("集市模板包对象数组，具体结构参考 `kernel.BazaarPackage`")
       }).nullable().describe("包含模板列表的对象")
     })
@@ -113,9 +113,9 @@ export const bazaarApiDefs = [
       keyword: z.string().optional().describe("可选，搜索关键词")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         packages: z.array(z.any()).describe("集市主题包对象数组，具体结构参考 `kernel.BazaarPackage`")
       }).nullable().describe("包含主题列表的对象")
     })
@@ -133,9 +133,9 @@ export const bazaarApiDefs = [
       keyword: z.string().optional().describe("可选，搜索关键词")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         packages: z.array(z.any()).describe("集市挂件包对象数组，具体结构参考 `kernel.BazaarPackage`")
       }).nullable().describe("包含挂件列表的对象")
     })
@@ -153,9 +153,9 @@ export const bazaarApiDefs = [
       keyword: z.string().optional().describe("可选，搜索关键词")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         packages: z.array(z.any()).describe("已安装图标包对象数组，具体结构参考 `kernel.BazaarPackage`")
       }).nullable().describe("包含已安装图标包列表的对象")
     })
@@ -174,9 +174,9 @@ export const bazaarApiDefs = [
       keyword: z.string().optional().describe("可选，搜索关键词")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         packages: z.array(z.any()).describe("已安装插件对象数组，具体结构参考 `kernel.BazaarPackage`")
       }).nullable().describe("包含已安装插件列表的对象")
     })
@@ -194,9 +194,9 @@ export const bazaarApiDefs = [
       keyword: z.string().optional().describe("可选，搜索关键词")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         packages: z.array(z.any()).describe("已安装模板对象数组，具体结构参考 `kernel.BazaarPackage`")
       }).nullable().describe("包含已安装模板列表的对象")
     })
@@ -214,9 +214,9 @@ export const bazaarApiDefs = [
       keyword: z.string().optional().describe("可选，搜索关键词")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         packages: z.array(z.any()).describe("已安装主题对象数组，具体结构参考 `kernel.BazaarPackage`")
       }).nullable().describe("包含已安装主题列表的对象")
     })
@@ -234,9 +234,9 @@ export const bazaarApiDefs = [
       keyword: z.string().optional().describe("可选，搜索关键词")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         packages: z.array(z.any()).describe("已安装挂件对象数组，具体结构参考 `kernel.BazaarPackage`")
       }).nullable().describe("包含已安装挂件列表的对象")
     })
@@ -254,9 +254,9 @@ export const bazaarApiDefs = [
       frontend: z.string().describe("客户端类型，通常为 \'frontend\' 或 \'app\'")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         plugins: z.array(z.any()).describe("可更新的插件列表，元素结构参考 `kernel.BazaarPackage`"),
         widgets: z.array(z.any()).describe("可更新的挂件列表，元素结构参考 `kernel.BazaarPackage`"),
         icons: z.array(z.any()).describe("可更新的图标包列表，元素结构参考 `kernel.BazaarPackage`"),
@@ -281,9 +281,9 @@ export const bazaarApiDefs = [
       keyword: z.string().optional().describe("可选，用于刷新列表的关键词，通常在安装后传递以更新UI")
     }),
     zodResponseSchema: (z) => ({ // 响应结构可能包含安装后的包列表及外观设置
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         packages: z.array(z.any()).describe("更新后的已安装图标包列表，元素结构参考 `kernel.BazaarPackage`"),
         appearance: z.any().describe("更新后的外观设置对象，具体结构参考 `conf.Appearance`")
       }).nullable().describe("包含更新后包列表和外观设置的对象")
@@ -306,9 +306,9 @@ export const bazaarApiDefs = [
       keyword: z.string().optional().describe("可选，用于刷新列表的关键词")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         packages: z.array(z.any()).describe("更新后的已安装插件列表，元素结构参考 `kernel.BazaarPackage`")
       }).nullable().describe("包含更新后插件列表的对象")
     })
@@ -329,9 +329,9 @@ export const bazaarApiDefs = [
       keyword: z.string().optional().describe("可选，用于刷新列表的关键词")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         packages: z.array(z.any()).describe("更新后的已安装模板列表，元素结构参考 `kernel.BazaarPackage`")
       }).nullable().describe("包含更新后模板列表的对象")
     })
@@ -354,9 +354,9 @@ export const bazaarApiDefs = [
       keyword: z.string().optional().describe("可选，用于刷新列表的关键词")
     }),
     zodResponseSchema: (z) => ({ // 响应结构可能包含安装后的包列表及外观设置
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         packages: z.array(z.any()).describe("更新后的已安装主题列表，元素结构参考 `kernel.BazaarPackage`"),
         appearance: z.any().describe("更新后的外观设置对象，具体结构参考 `conf.Appearance`")
       }).nullable().describe("包含更新后包列表和外观设置的对象")
@@ -378,9 +378,9 @@ export const bazaarApiDefs = [
       keyword: z.string().optional().describe("可选，用于刷新列表的关键词")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         packages: z.array(z.any()).describe("更新后的已安装挂件列表，元素结构参考 `kernel.BazaarPackage`")
       }).nullable().describe("包含更新后挂件列表的对象")
     })
@@ -399,9 +399,9 @@ export const bazaarApiDefs = [
       keyword: z.string().optional().describe("可选，用于刷新列表的关键词")
     }),
     zodResponseSchema: (z) => ({ // 响应结构可能包含卸载后的包列表及外观设置
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         packages: z.array(z.any()).describe("更新后的已安装图标包列表，元素结构参考 `kernel.BazaarPackage`"),
         appearance: z.any().describe("更新后的外观设置对象，具体结构参考 `conf.Appearance`")
       }).nullable().describe("包含更新后包列表和外观设置的对象")
@@ -422,9 +422,9 @@ export const bazaarApiDefs = [
       keyword: z.string().optional().describe("可选，用于刷新列表的关键词")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         packages: z.array(z.any()).describe("更新后的已安装插件列表，元素结构参考 `kernel.BazaarPackage`")
       }).nullable().describe("包含更新后插件列表的对象")
     })
@@ -443,9 +443,9 @@ export const bazaarApiDefs = [
       keyword: z.string().optional().describe("可选，用于刷新列表的关键词")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         packages: z.array(z.any()).describe("更新后的已安装模板列表，元素结构参考 `kernel.BazaarPackage`")
       }).nullable().describe("包含更新后模板列表的对象")
     })
@@ -465,9 +465,9 @@ export const bazaarApiDefs = [
       keyword: z.string().optional().describe("可选，用于刷新列表的关键词")
     }),
     zodResponseSchema: (z) => ({ // 响应结构可能包含卸载后的包列表及外观设置
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         packages: z.array(z.any()).describe("更新后的已安装主题列表，元素结构参考 `kernel.BazaarPackage`"),
         appearance: z.any().describe("更新后的外观设置对象，具体结构参考 `conf.Appearance`")
       }).nullable().describe("包含更新后包列表和外观设置的对象")
@@ -487,9 +487,9 @@ export const bazaarApiDefs = [
       keyword: z.string().optional().describe("可选，用于刷新列表的关键词")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.object({
         packages: z.array(z.any()).describe("更新后的已安装挂件列表，元素结构参考 `kernel.BazaarPackage`")
       }).nullable().describe("包含更新后挂件列表的对象")
     })

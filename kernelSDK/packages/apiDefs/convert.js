@@ -9,6 +9,6 @@ export const convertApiDefs = [
     needAdminRole: true,
     unavailableIfReadonly: true,
     zodRequestSchema: (z) => ({ dir: z.string().optional().describe("Pandoc 命令执行的工作目录路径，如果为空则在临时目录中执行"), args: z.array(z.string()).describe("Pandoc 命令行参数数组") }),
-    zodResponseSchema: (z) => ({ Code: z.number().describe("响应状态码，0 表示成功"), Msg: z.string().describe("响应消息"), Data: z.object({ path: z.string().describe("转换后输出文件的路径") }).describe("成功时返回的数据") })
+    zodResponseSchema: (z) => ({ code: z.number().describe("响应状态码，0 表示成功"), msg: z.string().describe("响应消息"), data: z.object({ path: z.string().describe("转换后输出文件的路径") }).describe("成功时返回的数据") })
   }
 ];

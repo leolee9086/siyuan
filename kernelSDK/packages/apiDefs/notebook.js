@@ -12,9 +12,9 @@ export const notebookApiDefs = [
       notebooks: z.array(z.string()).describe("按新的期望顺序排列的笔记本 ID 数组。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.null().optional().describe("成功时通常为 null。"),
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.null().optional().describe("成功时通常为 null。"),
     })
   },
   {
@@ -31,9 +31,9 @@ export const notebookApiDefs = [
       callback: z.string().optional().describe("可选的回调命令ID，用于操作完成后的事件通知。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.null().optional().describe("成功时通常为 null。"),
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.null().optional().describe("成功时通常为 null。"),
     })
   },
   {
@@ -49,9 +49,9 @@ export const notebookApiDefs = [
       name: z.string().min(1).describe("新笔记本的名称，不能为空。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
         notebook: z.object({
           id: z.string().describe("新创建的笔记本ID"),
           name: z.string().describe("新创建的笔记本名称"),
@@ -76,9 +76,9 @@ export const notebookApiDefs = [
       notebook: z.string().describe("要获取配置的笔记本的唯一标识符 (ID)。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
         conf: z.object({
           name: z.string().describe("笔记本名称"),
           sort: z.number().int().describe("笔记本的排序值"),
@@ -124,9 +124,9 @@ export const notebookApiDefs = [
       notebook: z.string().describe("要获取信息的笔记本的唯一标识符 (ID)。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
         boxInfo: z.object({
           id: z.string().describe("笔记本ID"),
           name: z.string().describe("笔记本名称"),
@@ -171,9 +171,9 @@ export const notebookApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
         notebooks: z.array(z.object({
           id: z.string().describe("笔记本的唯一标识符 (ID)"),
           name: z.string().describe("笔记本的名称"),
@@ -198,9 +198,9 @@ export const notebookApiDefs = [
       notebook: z.string().describe("要打开的笔记本的唯一标识符 (ID)。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
       }).catchall(z.any()).nullable().describe("成功时可能返回空对象或 null，主要通过推送事件传递笔记本信息。"),
     })
   },
@@ -218,9 +218,9 @@ export const notebookApiDefs = [
       callback: z.string().optional().describe("可选的回调命令ID，用于操作完成后的事件通知。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.null().optional().describe("成功时通常为 null。"),
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.null().optional().describe("成功时通常为 null。"),
     })
   },
   {
@@ -237,9 +237,9 @@ export const notebookApiDefs = [
       name: z.string().min(1).describe("笔记本的新名称，不能为空。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功, -1 表示失败 (例如名称冲突)。"),
-      Msg: z.string().describe("错误信息，成功时为空字符串。"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功, -1 表示失败 (例如名称冲突)。"),
+      msg: z.string().describe("错误信息，成功时为空字符串。"),
+      data: z.object({
         closeTimeout: z.number().int().optional().describe("如果重命名失败，可能有关闭提示框的超时时间。")
       }).catchall(z.any()).nullable().describe("成功时为 null 或空对象，失败时可能包含 closeTimeout。"),
     })
@@ -266,9 +266,9 @@ export const notebookApiDefs = [
       }).describe("要更新的配置项对象。只提供需要修改的字段。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.null().optional().describe("成功时通常为 null。"),
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.null().optional().describe("成功时通常为 null。"),
     })
   },
   {
@@ -285,9 +285,9 @@ export const notebookApiDefs = [
       icon: z.string().describe("笔记本的新图标，可以是 Emoji 字符或图片的 Base64 编码字符串。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.null().optional().describe("成功时通常为 null。"),
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.null().optional().describe("成功时通常为 null。"),
     })
   }
 ];

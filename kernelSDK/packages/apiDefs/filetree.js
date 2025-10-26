@@ -13,9 +13,9 @@ export const filetreeApiDefs = [
       paths: z.array(z.string()).describe("需要调整排序的文档路径列表。这些路径通常是文档在其笔记本内的相对路径。后端会根据这些路径的顺序来更新文档树的排序。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.null().optional().describe("此接口成功时不返回具体数据")
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.null().optional().describe("此接口成功时不返回具体数据")
     })
   },
   {
@@ -33,9 +33,9 @@ export const filetreeApiDefs = [
       callback: z.string().optional().describe("回调标识，可选参数，用于事件推送。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码。0 表示成功创建或获取；1 表示笔记本未找到；-1 表示其他错误。"),
-      Msg: z.string().describe("响应消息。"),
-      Data: z.object({
+      code: z.number().describe("响应状态码。0 表示成功创建或获取；1 表示笔记本未找到；-1 表示其他错误。"),
+      msg: z.string().describe("响应消息。"),
+      data: z.object({
         id: z.string().describe("创建或获取到的日记文档的根块ID。")
       }).optional().describe("成功时返回日记文档的ID；笔记本未找到时此字段不存在。")
     })
@@ -59,9 +59,9 @@ export const filetreeApiDefs = [
       callback: z.string().optional().describe("回调标识，可选参数，用于事件推送。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.object({
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.object({
         id: z.string().describe("新创建文档的根块ID。"),
         closeTimeout: z.number().optional().describe("操作失败时，可能返回此字段，建议客户端在此毫秒数后关闭相关提示。")
       }).describe("成功时返回新文档的ID；失败时可能包含 closeTimeout。")
@@ -89,9 +89,9 @@ export const filetreeApiDefs = [
       callback: z.string().optional().describe("回调标识，可选参数，用于事件推送。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.string().optional().describe("成功时返回新创建文档的ID。")
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.string().optional().describe("成功时返回新创建文档的ID。")
     })
   },
   {
@@ -109,9 +109,9 @@ export const filetreeApiDefs = [
       after: z.boolean().describe("是否将源文档内容插入到 targetID 块之后 (true) 或之前 (false)。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.object({
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.object({
         srcTreeBox: z.string().describe("源文档所在的笔记本ID。"),
         srcTreePath: z.string().describe("源文档的路径。"),
         closeTimeout: z.number().optional().describe("操作失败时，可能返回此字段，建议客户端在此毫秒数后关闭相关提示。")
@@ -133,9 +133,9 @@ export const filetreeApiDefs = [
       callback: z.string().optional().describe("回调标识，可选参数，用于事件推送。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.object({
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.object({
         id: z.string().describe("新复制出来的文档的根块ID。"),
         notebook: z.string().describe("新文档所在的笔记本ID。"),
         path: z.string().describe("新文档的存储路径。"),
@@ -169,9 +169,9 @@ export const filetreeApiDefs = [
       reqId: z.string().optional().describe("请求ID，会透传到响应中，用于跟踪请求。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码。0: 成功；1: 通用错误；3: 块未找到。"),
-      Msg: z.string().describe("响应消息。"),
-      Data: z.object({
+      code: z.number().describe("响应状态码。0: 成功；1: 通用错误；3: 块未找到。"),
+      msg: z.string().describe("响应消息。"),
+      data: z.object({
         id: z.string().describe("请求的原始块ID。"),
         mode: z.number().describe("请求的加载模式。"),
         parentID: z.string().describe("父块ID。"),
@@ -204,9 +204,9 @@ export const filetreeApiDefs = [
       notebook: z.string().describe("当前操作的笔记本ID。计算默认保存位置时会参考此笔记本的配置及全局配置。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.object({
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.object({
         box: z.string().describe("计算得出的用于保存新文档的笔记本ID。"),
         path: z.string().describe("计算得出的用于保存新文档的人类可读路径 (HPath)。")
       }).optional().describe("成功时返回 box 和 path；失败时此字段可能不存在。")
@@ -225,9 +225,9 @@ export const filetreeApiDefs = [
       id: z.string().describe("要查询的文档或块的ID。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.string().optional().describe("成功时返回完整的层级路径字符串；如果ID无效或未找到，则此字段可能不存在或为空。")
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.string().optional().describe("成功时返回完整的层级路径字符串；如果ID无效或未找到，则此字段可能不存在或为空。")
     })
   },
   {
@@ -243,9 +243,9 @@ export const filetreeApiDefs = [
       id: z.string().describe("要查询的文档或块的ID。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.string().optional().describe("成功时返回人类可读路径 (HPath)；如果ID无效或未找到，则此字段可能不存在或为空。")
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.string().optional().describe("成功时返回人类可读路径 (HPath)；如果ID无效或未找到，则此字段可能不存在或为空。")
     })
   },
   {
@@ -262,9 +262,9 @@ export const filetreeApiDefs = [
       path: z.string().describe("文档的实际存储路径 (相对于笔记本根目录，例如 '/folderName/documentName.sy')。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.string().optional().describe("成功时返回人类可读路径 (HPath)；如果路径无效或未找到文档，则此字段可能不存在或为空。")
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.string().optional().describe("成功时返回人类可读路径 (HPath)；如果路径无效或未找到文档，则此字段可能不存在或为空。")
     })
   },
   {
@@ -283,9 +283,9 @@ export const filetreeApiDefs = [
       })).describe("包含笔记本ID和文档路径的对象数组。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.array(z.string()).optional().describe("成功时返回与输入顺序对应的人类可读路径 (HPath) 数组；如果某个输入无效，对应位置可能为空字符串或数组长度可能不匹配。")
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.array(z.string()).optional().describe("成功时返回与输入顺序对应的人类可读路径 (HPath) 数组；如果某个输入无效，对应位置可能为空字符串或数组长度可能不匹配。")
       // 注意：Go 源码中 model.GetHPathsByPaths 的实现是直接返回 []string 和 error，对于错误情况，外层 API 会设置 Code 和 Msg，Data 可能为 nil。
       // 但这里的 zod 描述Data为可选数组，是为了兼容更广泛的情况和前端处理的便利性。
     })
@@ -304,9 +304,9 @@ export const filetreeApiDefs = [
       path: z.string().describe("要查询的文档的人类可读路径 (HPath)，例如 '/My Notes/Topic'。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.array(z.string()).optional().describe("成功时返回匹配的文档ID数组；如果未找到或路径无效，则数组可能为空或此字段不存在。")
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.array(z.string()).optional().describe("成功时返回匹配的文档ID数组；如果未找到或路径无效，则数组可能为空或此字段不存在。")
     })
   },
   {
@@ -322,9 +322,9 @@ export const filetreeApiDefs = [
       id: z.string().describe("要查询的文档或块的ID。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.object({
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.object({
         path: z.string().describe("文档的实际存储路径 (相对于笔记本根目录，例如 '/folderName/documentName.sy')。"),
         notebook: z.string().describe("文档所在的笔记本ID。")
       }).optional().describe("成功时返回 path 和 notebook；如果ID无效或未找到，则此字段可能不存在。")
@@ -343,9 +343,9 @@ export const filetreeApiDefs = [
       notebook: z.string().describe("当前操作的笔记本ID。计算默认保存位置时会参考此笔记本的配置及全局配置。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.object({
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.object({
         box: z.string().describe("计算得出的用于保存新块引文档的笔记本ID。"),
         path: z.string().describe("计算得出的用于保存新块引文档的人类可读路径 (HPath)。")
       }).optional().describe("成功时返回 box 和 path；失败时此字段可能不存在。")
@@ -368,9 +368,9 @@ export const filetreeApiDefs = [
       callback: z.string().optional().describe("回调标识，可选参数，用于事件推送。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.object({
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.object({
         srcRootBlockID: z.string().describe("转换后新文档的根块ID。"),
         path: z.string().describe("新文档在目标笔记本中的实际存储路径。"),
         closeTimeout: z.number().optional().describe("操作失败时，可能返回此字段，建议客户端在此毫秒数后关闭相关提示。")
@@ -394,9 +394,9 @@ export const filetreeApiDefs = [
       callback: z.string().optional().describe("回调标识，可选参数，用于事件推送。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.object({
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.object({
         srcRootBlockID: z.string().describe("转换后新文档的根块ID。"),
         path: z.string().describe("新文档在目标笔记本中的实际存储路径。"),
         closeTimeout: z.number().optional().describe("操作失败时，可能返回此字段，建议客户端在此毫秒数后关闭相关提示。")
@@ -417,9 +417,9 @@ export const filetreeApiDefs = [
       path: z.string().describe("要列出文档树的起始路径 (相对于笔记本根目录，例如 '/folderName')。通常用于列出某个文件夹下的文档结构。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.object({
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.object({
         tree: z.array(z.object({
           id: z.string().describe("文档或目录的ID。"),
           children: z.array(z.any()).optional().describe("子文档或子目录的数组，结构与父级相同。如果当前项是文档文件或者没有子目录，则此字段不存在或为空。注意：为了简化类型定义，children内部元素类型设为z.any()，实际应为与父级相同的 DocFile 结构。") // DocFile: {id: string, children?: DocFile[]}
@@ -446,9 +446,9 @@ export const filetreeApiDefs = [
       ignoreMaxListHint: z.boolean().optional().describe("当实际数量超过 maxListCount 时，是否忽略弹出的提示消息。默认为 false (即会提示)。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.object({
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.object({
         box: z.string().describe("请求的笔记本ID。"),
         path: z.string().describe("请求的路径。"),
         files: z.array(z.object({
@@ -491,9 +491,9 @@ export const filetreeApiDefs = [
       callback: z.string().optional().describe("回调标识，可选参数，用于事件推送。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.object({
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.object({
         closeTimeout: z.number().optional().describe("操作失败时，可能返回此字段，建议客户端在此毫秒数后关闭相关提示。")
       }).nullable().describe("成功时 Data 为 null；失败时可能包含 closeTimeout。")
     })
@@ -513,9 +513,9 @@ export const filetreeApiDefs = [
       callback: z.string().optional().describe("回调标识，可选参数，用于事件推送。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.object({
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.object({
         closeTimeout: z.number().optional().describe("操作失败时，可能返回此字段，建议客户端在此毫秒数后关闭相关提示。")
       }).nullable().describe("成功时 Data 为 null；失败时可能包含 closeTimeout。")
     })
@@ -536,9 +536,9 @@ export const filetreeApiDefs = [
       // 注意：后端 `model.MoveLocalShorthands` 的参数是 (notebook, hPath, parentID)。此处的 `path` 对应 `hPath`。
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.null().optional().describe("此接口成功时不返回具体数据，即使实际移动了文件。失败时 Data 可能不存在。") // Go 源码中 `model.MoveLocalShorthands` 返回 `ids []string, err error`，但API层面未将ids透出。
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.null().optional().describe("此接口成功时不返回具体数据，即使实际移动了文件。失败时 Data 可能不存在。") // Go 源码中 `model.MoveLocalShorthands` 返回 `ids []string, err error`，但API层面未将ids透出。
     })
   },
   {
@@ -552,9 +552,9 @@ export const filetreeApiDefs = [
     unavailableIfReadonly: true,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功（操作已异步启动）"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.null().optional().describe("此接口不返回具体数据")
+      code: z.number().describe("响应状态码，0 表示成功（操作已异步启动）"),
+      msg: z.string().describe("响应消息"),
+      data: z.null().optional().describe("此接口不返回具体数据")
     }),
     deprecated: true
   },
@@ -583,9 +583,9 @@ export const filetreeApiDefs = [
       path: z.string().describe("要移除的文档的相对路径 (相对于笔记本根目录，例如 '/notes/docToRemove.sy')。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.null().optional().describe("此接口成功时不返回具体数据")
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.null().optional().describe("此接口成功时不返回具体数据")
     })
   },
   {
@@ -601,9 +601,9 @@ export const filetreeApiDefs = [
       id: z.string().describe("要移除的文档的ID。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.object({
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.object({
         closeTimeout: z.number().optional().describe("操作失败时（例如ID未找到），可能返回此字段，建议客户端在此毫秒数后关闭相关提示。")
       }).nullable().describe("成功时 Data 为 null；ID未找到等错误时可能包含 closeTimeout。")
     })
@@ -621,9 +621,9 @@ export const filetreeApiDefs = [
       paths: z.array(z.string()).describe("要移除的文档的复合路径数组。每个路径字符串应为 '笔记本ID/文档相对路径.sy' 或 '笔记本ID/文档相对路径' 的形式。例如：['box123/notes/docA.sy', 'box456/folder/docB']")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功（即使部分路径无效也可能返回0，具体需看Msg）"),
-      Msg: z.string().describe("响应消息。如果部分文档移除失败，Msg中可能会有提示。"),
-      Data: z.null().optional().describe("此接口通常不返回具体数据，或在特定错误情况下可能为null。")
+      code: z.number().describe("响应状态码，0 表示成功（即使部分路径无效也可能返回0，具体需看Msg）"),
+      msg: z.string().describe("响应消息。如果部分文档移除失败，Msg中可能会有提示。"),
+      data: z.null().optional().describe("此接口通常不返回具体数据，或在特定错误情况下可能为null。")
     })
   },
   {
@@ -639,9 +639,9 @@ export const filetreeApiDefs = [
       paths: z.array(z.string()).describe("需要移除索引的文档绝对路径列表。这些路径通常指向 data 目录下的 .sy 文件，例如 '/data/notebookId/path/to/doc.sy'。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功（操作已接受）"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.null().optional().describe("此接口不返回具体数据")
+      code: z.number().describe("响应状态码，0 表示成功（操作已接受）"),
+      msg: z.string().describe("响应消息"),
+      data: z.null().optional().describe("此接口不返回具体数据")
     })
   },
   {
@@ -659,9 +659,9 @@ export const filetreeApiDefs = [
       title: z.string().describe("文档的新标题 (不需要带 .sy 后缀)。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.null().optional().describe("此接口成功时不返回具体数据") // Go 源码 model.RenameDoc 返回 error，API层面成功时不设Data
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.null().optional().describe("此接口成功时不返回具体数据") // Go 源码 model.RenameDoc 返回 error，API层面成功时不设Data
     })
   },
   {
@@ -678,9 +678,9 @@ export const filetreeApiDefs = [
       title: z.string().describe("文档的新标题 (不需要带 .sy 后缀)。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.object({
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.object({
         closeTimeout: z.number().optional().describe("操作失败时（例如ID未找到），可能返回此字段，建议客户端在此毫秒数后关闭相关提示。")
       }).nullable().describe("成功时 Data 通常为 null (Go源码中 model.RenameDoc 成功时返回的 error 为 nil，API层面不设Data)；ID未找到等错误时可能包含 closeTimeout。")
     })
@@ -699,9 +699,9 @@ export const filetreeApiDefs = [
       flashcard: z.boolean().optional().describe("是否仅在包含闪卡的文档中搜索，默认为 false (搜索所有文档)。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.array(z.object({
+      code: z.number().describe("响应状态码，0 表示成功"),
+      msg: z.string().describe("响应消息"),
+      data: z.array(z.object({
         box: z.string().describe("文档所属的笔记本ID。"),
         path: z.string().describe("文档的实际存储路径。"),
         hPath: z.string().describe("文档的人类可读路径。"),
@@ -728,9 +728,9 @@ export const filetreeApiDefs = [
       paths: z.array(z.string()).describe("需要更新/插入索引的文档绝对路径列表。这些路径通常指向 data 目录下的 .sy 文件，例如 '/data/notebookId/path/to/doc.sy'。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("响应状态码，0 表示成功（操作已接受）"),
-      Msg: z.string().describe("响应消息"),
-      Data: z.null().optional().describe("此接口不返回具体数据")
+      code: z.number().describe("响应状态码，0 表示成功（操作已接受）"),
+      msg: z.string().describe("响应消息"),
+      data: z.null().optional().describe("此接口不返回具体数据")
     })
   }
 ];

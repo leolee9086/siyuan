@@ -353,7 +353,7 @@ class KernelApiClient {
   constructor(options: KernelApiClientOptions = {}) {
     this.baseUrl = options.baseUrl || 'http://127.0.0.1:6806';
     this.apiToken = options.apiToken || '';
-    this.customFetch = options.customFetch || (typeof fetch !== 'undefined' ? fetch : undefined as any);
+    this.customFetch = options.customFetch || (typeof fetch !== 'undefined' ? (...args)=> fetch(...args) : undefined as any);
 
     if (!this.customFetch) {
       throw new Error('Fetch API is not available. Please provide a customFetch implementation if running in an environment without fetch.');

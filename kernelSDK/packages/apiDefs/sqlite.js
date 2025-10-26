@@ -10,9 +10,9 @@ export const sqliteApiDefs = [
     unavailableIfReadonly: true,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
-      Data: z.null().describe("接口成功执行时，Data 固定为 null。")
+      code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
+      data: z.null().describe("接口成功执行时，Data 固定为 null。")
     })
   }
 ];

@@ -13,9 +13,9 @@ export const notificationApiDefs = [
       timeout: z.number().int().positive().optional().default(7000).describe("可选。消息通知在前端显示的持续时间，单位毫秒。默认为 7000ms。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
         id: z.string().describe("推送的消息的唯一标识符。")
       }).describe("包含消息ID的对象。")
     })
@@ -34,9 +34,9 @@ export const notificationApiDefs = [
       timeout: z.number().int().positive().optional().default(7000).describe("可选。消息通知在前端显示的持续时间，单位毫秒。默认为 7000ms。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串。如果 msg 为空，则 Code 为 -1，Msg 为 'msg can\'t be empty'。"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串。如果 msg 为空，则 Code 为 -1，Msg 为 'msg can\'t be empty'。"),
+      data: z.object({
         id: z.string().describe("推送的消息的唯一标识符。")
       }).nullable().describe("成功时包含消息ID的对象，如果请求的 msg 为空则为 null。")
     })

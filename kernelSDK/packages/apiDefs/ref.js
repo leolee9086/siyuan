@@ -16,9 +16,9 @@ export const refApiDefs = [
       containChildren: z.boolean().optional().describe("可选。是否包含子块内容进行搜索。默认为内核配置 `conf.editor.backlinkContainChildren`。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
         backlinks: z.array(z.any()).describe("反向链接块的详细信息数组，具体结构复杂，参考 model.Backlink。"),
         linkRefsCount: z.number().int().describe("反向链接的总数量。"),
         backmentions: z.array(z.any()).describe("反向提及块的详细信息数组，具体结构复杂，参考 model.Backmention。"),
@@ -47,9 +47,9 @@ export const refApiDefs = [
       containChildren: z.boolean().optional().describe("可选。是否包含子块内容进行搜索。默认为内核配置 `conf.editor.backlinkContainChildren`。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
         backlinks: z.array(z.any()).describe("反向链接块的详细信息数组，具体结构复杂，参考 model.Backlink。"),
         linkRefsCount: z.number().int().describe("反向链接的总数量。"),
         backmentions: z.array(z.any()).describe("反向提及块的详细信息数组，具体结构复杂，参考 model.Backmention。"),
@@ -77,9 +77,9 @@ export const refApiDefs = [
       highlight: z.boolean().optional().default(true).describe("可选。是否高亮关键词，默认为 true。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
         backlinks: z.array(z.any()).describe("反向链接块的详细信息数组，具体结构复杂，参考 model.Backlink。"),
         keywords: z.array(z.string()).describe("实际用于高亮的关键词列表。")
       }).nullable().describe("包含反向链接列表和高亮关键词的对象。")
@@ -102,9 +102,9 @@ export const refApiDefs = [
       highlight: z.boolean().optional().default(true).describe("可选。是否高亮关键词，默认为 true。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
         backmentions: z.array(z.any()).describe("反向提及块的详细信息数组，具体结构复杂，参考 model.Backmention。"),
         keywords: z.array(z.string()).describe("实际用于高亮的关键词列表。")
       }).nullable().describe("包含反向提及列表和高亮关键词的对象。")
@@ -123,9 +123,9 @@ export const refApiDefs = [
       id: z.string().describe("必需。要刷新反向链接和提及信息的目标块的 ID。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.null().describe("成功时 Data 固定为 null。")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.null().describe("成功时 Data 固定为 null。")
     })
   }
 ];

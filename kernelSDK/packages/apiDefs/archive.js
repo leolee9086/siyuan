@@ -13,9 +13,9 @@ export const archiveApiDefs = [
       path: z.string().describe("解压到目标目录的绝对路径或相对于工作空间的路径")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.any().nullable().describe("此接口通常不返回数据")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.any().nullable().describe("此接口通常不返回数据")
     })
   },
   {
@@ -32,9 +32,9 @@ export const archiveApiDefs = [
       zipPath: z.string().describe("生成的 .zip 文件保存的绝对路径或相对于工作空间的路径")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.any().nullable().describe("此接口通常不返回数据")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.any().nullable().describe("此接口通常不返回数据")
     })
   }
 ];

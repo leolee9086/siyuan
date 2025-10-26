@@ -12,9 +12,9 @@ export const broadcastApiDefs = [
       name: z.string().describe("要查询的广播频道名称")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.object({
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.object({
         name: z.string().describe("频道名称"),
         count: z.number().int().describe("频道的总订阅者数量 (WebSocket + SSE)")
       }).describe("频道信息对象")
@@ -31,9 +31,9 @@ export const broadcastApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.array(
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.array(
         z.object({
           name: z.string().describe("频道名称"),
           count: z.number().int().describe("频道的总订阅者数量 (WebSocket + SSE)")
@@ -56,9 +56,9 @@ export const broadcastApiDefs = [
       data: z.string().describe("要发送的消息内容或命令参数 (JSON 字符串)")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.any().nullable().describe("通常不返回具体数据，具体依赖于发送的 cmd")
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.any().nullable().describe("通常不返回具体数据，具体依赖于发送的 cmd")
     })
   },
   {
@@ -77,9 +77,9 @@ export const broadcastApiDefs = [
       file: z.any().optional().describe("当 type 为 'binary' 时，此字段为上传的文件 (应通过 FormData 传递)")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码 (外层)"),
-      Msg: z.string().describe("API 调用返回消息 (外层)"),
-      Data: z.object({
+      code: z.number().describe("API 调用返回码 (外层)"),
+      msg: z.string().describe("API 调用返回消息 (外层)"),
+      data: z.object({
         code: z.number().describe("操作结果返回码，0 表示成功"),
         msg: z.string().describe("操作结果消息"),
         channel: z.object({

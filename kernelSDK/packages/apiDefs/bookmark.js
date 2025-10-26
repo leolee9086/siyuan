@@ -10,9 +10,9 @@ export const bookmarkApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.array(
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.array(
         z.object({
           name: z.string().describe("书签的名称 (用户在 IAL 中为块设置的 bookmark 属性值)"),
           blocks: z.array(
@@ -51,9 +51,9 @@ export const bookmarkApiDefs = [
       bookmark: z.string().describe("要移除的书签的名称 (块 IAL 中 bookmark 属性的值)")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功，其他表示失败"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.object({
+      code: z.number().describe("API 调用返回码，0 表示成功，其他表示失败"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.object({
         closeTimeout: z.number().describe("一个建议的关闭超时时间 (毫秒)，通常在错误时提供以便UI提示")
       }).optional().nullable().describe("仅在操作失败时可能返回此对象，包含UI相关的附加信息；操作成功时为 null。")
     })
@@ -72,9 +72,9 @@ export const bookmarkApiDefs = [
       newBookmark: z.string().describe("新的书签名称 (将写入块 IAL 中 bookmark 属性的新值)")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功，其他表示失败"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.object({
+      code: z.number().describe("API 调用返回码，0 表示成功，其他表示失败"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.object({
         closeTimeout: z.number().describe("一个建议的关闭超时时间 (毫秒)，通常在错误时提供以便UI提示")
       }).optional().nullable().describe("仅在操作失败时可能返回此对象，包含UI相关的附加信息；操作成功时为 null。")
     })

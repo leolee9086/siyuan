@@ -12,9 +12,9 @@ export const formatApiDefs = [
       id: z.string().describe("要处理的块 ID。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.null().describe("操作成功时为 null") 
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.null().describe("操作成功时为 null") 
     })
   },
   {
@@ -30,9 +30,9 @@ export const formatApiDefs = [
       id: z.string().describe("要处理的块 ID，该块内的网络资源将被转存。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.null().describe("操作成功时为 null") 
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.null().describe("操作成功时为 null") 
     })
   },
   {
@@ -49,9 +49,9 @@ export const formatApiDefs = [
       url: z.string().url().optional().describe("可选。如果提供，则只转存此 URL 对应的网络图片。如果未提供或为空，则转存块内所有网络图片。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.null().describe("操作成功时为 null") 
+      code: z.number().describe("API 调用返回码，0 表示成功"),
+      msg: z.string().describe("API 调用返回消息"),
+      data: z.null().describe("操作成功时为 null") 
     })
   }
 ];

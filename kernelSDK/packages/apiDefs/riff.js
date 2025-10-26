@@ -13,9 +13,9 @@ export const riffApiDefs = [
       blockIDs: z.array(z.string()).describe("必需。要添加为闪卡的块 ID 数组。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
         id: z.string().describe("闪卡包 ID"),
         name: z.string().describe("闪卡包名称"),
         size: z.number().describe("闪卡包中的卡片数量"),
@@ -40,9 +40,9 @@ export const riffApiDefs = [
       })).describe("必需。包含闪卡 ID 和对应新到期时间的数组。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.null().describe("成功时 Data 固定为 null。")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.null().describe("成功时 Data 固定为 null。")
     })
   },
   {
@@ -58,9 +58,9 @@ export const riffApiDefs = [
       name: z.string().describe("必需。新闪卡包的名称。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
         id: z.string().describe("新创建的闪卡包 ID"),
         name: z.string().describe("新创建的闪卡包名称"),
         size: z.number().describe("新创建的闪卡包中的卡片数量 (初始为0)"),
@@ -84,9 +84,9 @@ export const riffApiDefs = [
       pageSize: z.number().int().min(1).optional().describe("可选。每页数量，默认为 20。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
         blocks: z.array(z.string()).describe("当前页的闪卡块 ID 数组。"),
         total: z.number().int().describe("该笔记本下闪卡总数。"),
         pageCount: z.number().int().describe("总页数。")
@@ -109,9 +109,9 @@ export const riffApiDefs = [
       })).optional().describe("可选。当前学习会话中已经复习过的卡片列表，用于在获取下一张卡片时排除它们。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
         cards: z.array(z.object({
           id: z.string().describe("闪卡块 ID"),
           deckID: z.string().describe("所属闪卡包 ID"),
@@ -143,9 +143,9 @@ export const riffApiDefs = [
       pageSize: z.number().int().min(1).optional().describe("可选。每页数量，默认为 20。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
         blocks: z.array(z.object({
           id: z.string().describe("闪卡块 ID"),
           deckID: z.string().describe("所属闪卡包 ID"),
@@ -174,9 +174,9 @@ export const riffApiDefs = [
       blockIDs: z.array(z.string()).describe("必需。块 ID 数组。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
         blocks: z.array(z.object({
           id: z.string().describe("闪卡块 ID"),
           deckID: z.string().describe("所属闪卡包 ID"),
@@ -201,9 +201,9 @@ export const riffApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.array(z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.array(z.object({
         id: z.string().describe("闪卡包 ID"),
         name: z.string().describe("闪卡包名称"),
         size: z.number().int().describe("闪卡包中的卡片数量"),
@@ -228,9 +228,9 @@ export const riffApiDefs = [
       })).optional().describe("可选。当前学习会话中已经复习过的卡片列表，用于在获取下一张卡片时排除它们。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
         cards: z.array(z.object({
           id: z.string().describe("闪卡块 ID"),
           deckID: z.string().describe("所属闪卡包 ID"),
@@ -262,9 +262,9 @@ export const riffApiDefs = [
       pageSize: z.number().int().min(1).optional().describe("可选。每页数量，默认为 20。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
         blocks: z.array(z.string()).describe("当前页的闪卡块 ID 数组。"),
         total: z.number().int().describe("该文档树下闪卡总数。"),
         pageCount: z.number().int().describe("总页数。")
@@ -287,9 +287,9 @@ export const riffApiDefs = [
       })).optional().describe("可选。当前学习会话中已经复习过的卡片列表，用于在获取下一张卡片时排除它们。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
         cards: z.array(z.object({
           id: z.string().describe("闪卡块 ID"),
           deckID: z.string().describe("所属闪卡包 ID"),
@@ -320,9 +320,9 @@ export const riffApiDefs = [
       blockIDs: z.array(z.string()).describe("必需。要移除的闪卡块 ID 数组。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.object({
         id: z.string().describe("闪卡包 ID"),
         name: z.string().describe("闪卡包名称"),
         size: z.number().describe("闪卡包中的卡片数量"),
@@ -344,9 +344,9 @@ export const riffApiDefs = [
       deckID: z.string().describe("必需。要移除的闪卡包 ID。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.null().describe("成功时 Data 固定为 null。")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.null().describe("成功时 Data 固定为 null。")
     })
   },
   {
@@ -363,9 +363,9 @@ export const riffApiDefs = [
       name: z.string().describe("必需。新的闪卡包名称。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.null().describe("成功时 Data 固定为 null。")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.null().describe("成功时 Data 固定为 null。")
     })
   },
   {
@@ -384,9 +384,9 @@ export const riffApiDefs = [
       blockIDs: z.array(z.string()).optional().describe("可选。要重置的具体闪卡块 ID 数组。如果未提供或为空数组，则重置 type 和 id 指定范围内的所有卡片。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.null().describe("成功时 Data 固定为 null。")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.null().describe("成功时 Data 固定为 null。")
     })
   },
   {
@@ -407,9 +407,9 @@ export const riffApiDefs = [
       })).optional().describe("可选。当前学习会话中已经复习过的卡片列表，用于在获取下一张卡片时排除它们（后端逻辑 model.ReviewFlashcard 中使用了 reviewedCardIDs）。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.null().describe("成功时 Data 固定为 null。")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.null().describe("成功时 Data 固定为 null。")
     })
   },
   {
@@ -426,9 +426,9 @@ export const riffApiDefs = [
       cardID: z.string().describe("必需。要跳过复习的闪卡块 ID。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.null().describe("成功时 Data 固定为 null。")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.null().describe("成功时 Data 固定为 null。")
     })
   }
 ];

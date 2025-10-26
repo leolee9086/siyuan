@@ -25,9 +25,9 @@ export const outlineApiDefs = [
       }));
 
       return ({
-        Code: z.number().describe("返回码，0 表示成功"),
-        Msg: z.string().describe("错误信息，成功时为空字符串"),
-        Data: z.array(headingSchema).nullable().describe("文档的大纲结构数组。如果文档不存在或无标题，可能为 null 或空数组。")
+        code: z.number().describe("返回码，0 表示成功"),
+        msg: z.string().describe("错误信息，成功时为空字符串"),
+        data: z.array(headingSchema).nullable().describe("文档的大纲结构数组。如果文档不存在或无标题，可能为 null 或空数组。")
       })
     }
   }

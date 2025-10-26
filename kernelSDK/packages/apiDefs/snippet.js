@@ -14,9 +14,9 @@ export const snippetApiDefs = [
       keyword: z.string().optional().describe("可选的搜索关键字，用于在代码片段的名称和内容中查找（不区分大小写）。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("API 执行结果的描述信息。"),
-      Data: z.object({
+      code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("API 执行结果的描述信息。"),
+      data: z.object({
         snippets: z.array(z.object({
           id: z.string().describe("代码片段的唯一ID。"),
           name: z.string().describe("代码片段的名称。"),
@@ -40,9 +40,9 @@ export const snippetApiDefs = [
       id: z.string().describe("要移除的代码片段的唯一ID。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("API 执行结果的描述信息。"),
-      Data: z.object({
+      code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("API 执行结果的描述信息。"),
+      data: z.object({
         id: z.string().describe("被移除代码片段的唯一ID。"),
         name: z.string().describe("被移除代码片段的名称。"),
         type: z.enum(["js", "css"]).describe("被移除代码片段的类型。"),
@@ -70,9 +70,9 @@ export const snippetApiDefs = [
       })).describe("包含一个或多个代码片段对象的数组。此数组将成为操作完成后系统中全新的、完整的代码片段列表。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("API 执行结果的描述信息。"),
-      Data: z.null().describe("此接口成功时不返回具体数据，直接修改配置。")
+      code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("API 执行结果的描述信息。"),
+      data: z.null().describe("此接口成功时不返回具体数据，直接修改配置。")
     })
   }
 ];

@@ -7,6 +7,7 @@ import { VueComponentMountConfig } from "../util/vue/mount";
 import { createVueDialog } from "../util/dialog/createVueDialog";
 import AiCustomDialog from "../components/aiCustomDialog.vue";
 import { saveCustomAIAction } from "../data/localStorage";
+import KernelApiClient from "../data/kernelAPI/kernelApiClient";
 
 /**
  * 处理使用按钮的点击事件
@@ -25,13 +26,23 @@ const handleUseClick = (
     elements: Element[],
     customAction: string
 ) => {
-    fetchPost("/api/ai/chatGPTWithAction", {
+    new KernelApiClient().chatGPTWithAction({
+        ids,
+        action: customAction,
+    }).then(
+        data => {
+            dialog.destroy();
+
+            fillContent(protyle, data.data, elements);
+        }
+    )
+    /*fetchPost("/api/ai/chatGPTWithAction", {
         ids,
         action: customAction,
     }, (response) => {
         dialog.destroy();
         fillContent(protyle, response.data, elements);
-    });
+    });*/
 };
 
 /**
@@ -49,10 +60,10 @@ const handleSaveClick = (
 ) => {
     saveCustomAIAction(
         {
-            onAfterSave:dialog.destroy
+            onAfterSave: dialog.destroy
         },
         {
-            name,customAction
+            name, customAction
         }
     )
 };

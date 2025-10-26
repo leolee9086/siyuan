@@ -12,9 +12,9 @@ export const petalApiDefs = [
       frontend: z.string().describe("必需。指定要加载插件的前端界面，例如 'desktop', 'mobile', 'browser-extension'。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.array(z.object({
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.array(z.object({
         name: z.string().describe("插件的包名 (唯一标识符)"),
         displayName: z.string().describe("插件的显示名称 (来自 plugin.json)"),
         enabled: z.boolean().describe("插件是否已在配置中启用"),
@@ -40,9 +40,9 @@ export const petalApiDefs = [
       frontend: z.string().describe("必需。指定要设置插件状态的前端界面，例如 'desktop', 'mobile'。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功，-1 表示插件不兼容或其他错误"),
-      Msg: z.string().describe("错误信息，成功时为空字符串，失败时包含具体错误，如不兼容提示。"),
-      Data: z.object({
+      code: z.number().describe("返回码，0 表示成功，-1 表示插件不兼容或其他错误"),
+      msg: z.string().describe("错误信息，成功时为空字符串，失败时包含具体错误，如不兼容提示。"),
+      data: z.object({
         name: z.string().describe("插件的包名"),
         displayName: z.string().describe("插件的显示名称"),
         enabled: z.boolean().describe("插件更新后的启用状态"),

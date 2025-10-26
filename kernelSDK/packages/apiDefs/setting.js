@@ -12,9 +12,9 @@ export const settingApiDefs = [
       keywords: z.array(z.string()).describe("要添加到排除列表的关键字数组。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("API 执行结果的描述信息。"),
-      Data: z.null().describe("此接口成功时不返回具体数据。")
+      code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("API 执行结果的描述信息。"),
+      data: z.null().describe("此接口成功时不返回具体数据。")
     })
   },
   {
@@ -30,9 +30,9 @@ export const settingApiDefs = [
       keywords: z.array(z.string()).describe("要添加到包含列表的关键字数组。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("API 执行结果的描述信息。"),
-      Data: z.null().describe("此接口成功时不返回具体数据。")
+      code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("API 执行结果的描述信息。"),
+      data: z.null().describe("此接口成功时不返回具体数据。")
     })
   },
   {
@@ -48,9 +48,9 @@ export const settingApiDefs = [
       token: z.string().optional().describe("可选的访问令牌，用于刷新用户信息。如果未提供，则尝试使用现有会话。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("API 执行结果的描述信息。"),
-      Data: z.object({
+      code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("API 执行结果的描述信息。"),
+      data: z.object({
         userId: z.string().describe("用户ID。"),
         userName: z.string().describe("用户名。"),
         userAvatarURL: z.string().describe("用户头像URL。"),
@@ -93,9 +93,9 @@ export const settingApiDefs = [
     unavailableIfReadonly: true,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("API 执行结果的描述信息。"),
-      Data: z.object({
+      code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("API 执行结果的描述信息。"),
+      data: z.object({
         port: z.number().describe("发布服务当前监听的端口号。"),
         publish: z.object({
           enable: z.boolean().describe("是否启用发布服务。"),
@@ -126,9 +126,9 @@ export const settingApiDefs = [
       code: z.string().min(6).max(6).describe("6位数字的两步验证码。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("API 执行结果的描述信息。"),
-      Data: z.record(z.string(), z.any()).nullable().describe("登录成功后返回的数据，通常包含新的用户信息或会话信息。具体结构依赖于云端服务的响应。")
+      code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("API 执行结果的描述信息。"),
+      data: z.record(z.string(), z.any()).nullable().describe("登录成功后返回的数据，通常包含新的用户信息或会话信息。具体结构依赖于云端服务的响应。")
     })
   },
   {
@@ -142,9 +142,9 @@ export const settingApiDefs = [
     unavailableIfReadonly: true,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("API 执行结果的描述信息。"),
-      Data: z.null().describe("此接口成功时不返回具体数据。")
+      code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("API 执行结果的描述信息。"),
+      data: z.null().describe("此接口成功时不返回具体数据。")
     })
   },
   {
@@ -158,9 +158,9 @@ export const settingApiDefs = [
     unavailableIfReadonly: true,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("API 执行结果的描述信息。"),
-      Data: z.null().describe("此接口成功时不返回具体数据。")
+      code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("API 执行结果的描述信息。"),
+      data: z.null().describe("此接口成功时不返回具体数据。")
     })
   },
   {
@@ -188,9 +188,9 @@ export const settingApiDefs = [
       }).describe("OpenAI 相关配置。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("API 执行结果的描述信息。"),
-      Data: z.object({
+      code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("API 执行结果的描述信息。"),
+      data: z.object({
         openAI: z.object({
           apiKey: z.string().optional().describe("OpenAI API 密钥。"),
           apiTimeout: z.number().int().min(5).max(600).optional().describe("OpenAI API 请求超时时间 (秒)。"),
@@ -221,9 +221,9 @@ export const settingApiDefs = [
       displayVIP: z.boolean().optional().describe("是否在用户头像旁显示Pro标识。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("API 执行结果的描述信息。"),
-      Data: z.object({
+      code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("API 执行结果的描述信息。"),
+      data: z.object({
         displayTitle: z.boolean().describe("是否在用户头像旁显示称号。"),
         displayVIP: z.boolean().describe("是否在用户头像旁显示Pro标识。")
       }).nullable().describe("更新后的账户配置对象。")
@@ -253,9 +253,9 @@ export const settingApiDefs = [
       customCSS: z.string().optional().describe("自定义全局 CSS。"),
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("API 执行结果的描述信息。"),
-      Data: z.object({
+      code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("API 执行结果的描述信息。"),
+      data: z.object({
         mode: z.number().int().optional().describe("外观模式。"),
         themeDark: z.string().optional().describe("暗色模式主题。"),
         themeLight: z.string().optional().describe("亮色模式主题。"),
@@ -285,9 +285,9 @@ export const settingApiDefs = [
       petalDisabled: z.boolean().optional().describe("是否禁用所有插件（花瓣）。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("API 执行结果的描述信息。"),
-      Data: z.object({
+      code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("API 执行结果的描述信息。"),
+      data: z.object({
         trust: z.boolean().optional().describe("是否信任所有社区包。"),
         petalDisabled: z.boolean().optional().describe("是否禁用所有插件。")
       }).nullable().describe("更新后的集市配置对象。")
@@ -339,9 +339,9 @@ export const settingApiDefs = [
       markdown: z.any().optional().describe("Markdown 解析和渲染相关的详细配置对象。具体结构请参考 util.Markdown。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("API 执行结果的描述信息。"),
-      Data: z.any().nullable().describe("更新后的编辑器配置对象。结构与请求体类似。")
+      code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("API 执行结果的描述信息。"),
+      data: z.any().nullable().describe("更新后的编辑器配置对象。结构与请求体类似。")
     })
   },
   {
@@ -357,9 +357,9 @@ export const settingApiDefs = [
       readonly: z.boolean().describe("是否将编辑器设置为只读模式。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("API 执行结果的描述信息。"),
-      Data: z.null().describe("此接口成功时不返回具体数据。")
+      code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("API 执行结果的描述信息。"),
+      data: z.null().describe("此接口成功时不返回具体数据。")
     })
   },
   {
@@ -375,9 +375,9 @@ export const settingApiDefs = [
       emoji: z.array(z.string()).describe("新的常用表情符号列表。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("API 执行结果的描述信息。"),
-      Data: z.null().describe("此接口成功时不返回具体数据，直接修改配置。")
+      code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("API 执行结果的描述信息。"),
+      data: z.null().describe("此接口成功时不返回具体数据，直接修改配置。")
     })
   },
   {
@@ -410,9 +410,9 @@ export const settingApiDefs = [
       imageWatermarkDesc: z.string().optional().describe("图片导出时的水印位置、大小和样式等描述。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("API 执行结果的描述信息。"),
-      Data: z.any().nullable().describe("更新后的导出配置对象。结构与请求体类似。")
+      code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("API 执行结果的描述信息。"),
+      data: z.any().nullable().describe("更新后的导出配置对象。结构与请求体类似。")
     })
   },
   {
@@ -440,9 +440,9 @@ export const settingApiDefs = [
       sort: z.number().int().optional().describe("文件树默认排序方式的数字代码。具体含义需参考 util.SortMode* 常量。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("API 执行结果的描述信息。"),
-      Data: z.any().nullable().describe("更新后的文件树配置对象。结构与请求体类似。")
+      code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("API 执行结果的描述信息。"),
+      data: z.any().nullable().describe("更新后的文件树配置对象。结构与请求体类似。")
     })
   },
   {
@@ -465,9 +465,9 @@ export const settingApiDefs = [
       againInterval: z.number().min(0.01).optional().describe("重来间隔系数 (FSRS)。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("API 执行结果的描述信息。"),
-      Data: z.object({
+      code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("API 执行结果的描述信息。"),
+      data: z.object({
         newCardLimit: z.number().int().describe("每日新建卡片上限。"),
         reviewCardLimit: z.number().int().describe("每日复习卡片上限。"),
         requestRetention: z.number().describe("期望记忆留存率。"),
@@ -500,9 +500,9 @@ export const settingApiDefs = [
       }).describe("包含各类快捷键映射的对象。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("API 执行结果的描述信息。"),
-      Data: z.null().describe("此接口成功时不返回具体数据，直接修改配置。")
+      code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("API 执行结果的描述信息。"),
+      data: z.null().describe("此接口成功时不返回具体数据，直接修改配置。")
     })
   },
   {
@@ -527,9 +527,9 @@ export const settingApiDefs = [
       }).describe("Basic 认证配置。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("API 执行结果的描述信息。"),
-      Data: z.object({
+      code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("API 执行结果的描述信息。"),
+      data: z.object({
         port: z.number().describe("发布服务实际监听的端口号 (如果成功初始化)。"),
         publish: z.object({
           enable: z.boolean().describe("是否启用发布服务。"),
@@ -596,9 +596,9 @@ export const settingApiDefs = [
       virtualRefDoc: z.boolean().optional().describe("虚拟引用是否作用于文档标题。更改此项会刷新虚拟引用缓存。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("API 执行结果的描述信息。"),
-      Data: z.any().nullable().describe("更新后的搜索配置对象。结构与请求体类似。")
+      code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("API 执行结果的描述信息。"),
+      data: z.any().nullable().describe("更新后的搜索配置对象。结构与请求体类似。")
     })
   },
   {
@@ -615,9 +615,9 @@ export const settingApiDefs = [
       enabledJS: z.boolean().optional().describe("是否启用所有自定义JS代码片段。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("API 执行结果的描述信息。"),
-      Data: z.object({
+      code: z.number().describe("API 执行结果的状态码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("API 执行结果的描述信息。"),
+      data: z.object({
         enabledCSS: z.boolean().describe("是否启用所有自定义CSS代码片段。"),
         enabledJS: z.boolean().describe("是否启用所有自定义JS代码片段。")
       }).nullable().describe("更新后的代码片段全局配置。")

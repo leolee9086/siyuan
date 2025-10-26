@@ -19,9 +19,9 @@ export const networkApiDefs = [
         .describe("可选。payload 字段的编码方式。'json' 和 'text' 表示直接使用 payload 值 (json 会被序列化)；其他选项表示 payload 是对应编码的字符串，代理服务器会先解码再发送。默认为 'json' (如果 contentType 是 application/json 则 payload 会被序列化，否则视为 text)。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码。0 表示代理请求成功（无论目标服务器返回何种状态码），非 0 表示代理请求本身失败。"),
-      Msg: z.string().describe("错误信息。代理请求成功时为空字符串。"),
-      Data: z.object({
+      code: z.number().describe("返回码。0 表示代理请求成功（无论目标服务器返回何种状态码），非 0 表示代理请求本身失败。"),
+      msg: z.string().describe("错误信息。代理请求成功时为空字符串。"),
+      data: z.object({
         status: z.string().describe("目标服务器返回的 HTTP 状态文本，例如 '200 OK'。"),
         statusCode: z.number().int().describe("目标服务器返回的 HTTP 状态码，例如 200。"),
         proto: z.string().describe("目标服务器响应的 HTTP 协议版本，例如 'HTTP/1.1'。"),

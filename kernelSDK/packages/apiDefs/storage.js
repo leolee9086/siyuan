@@ -10,9 +10,9 @@ export const storageApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
-      Data: z.array(z.object({
+      code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
+      data: z.array(z.object({
         name: z.string().describe("搜索标准的唯一名称。"),
         id: z.string().optional().describe("搜索标准的ID。"),
         box: z.string().optional().describe("笔记本 ID。"),
@@ -45,9 +45,9 @@ export const storageApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
-      Data: z.record(z.any()).describe("包含 LocalStorage 所有键值对的对象。值的类型可能多样，取决于存储时的数据。")
+      code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
+      data: z.record(z.any()).describe("包含 LocalStorage 所有键值对的对象。值的类型可能多样，取决于存储时的数据。")
     })
   },
   {
@@ -61,9 +61,9 @@ export const storageApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
-      Data: z.array(z.object({
+      code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
+      data: z.array(z.object({
         id: z.string().describe("文档的 ID。"),
         notebookID: z.string().describe("文档所属笔记本的 ID。"),
         name: z.string().describe("文档的名称。"),
@@ -90,9 +90,9 @@ export const storageApiDefs = [
       name: z.string().describe("要移除的搜索标准的名称。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
-      Data: z.null().describe("接口成功执行时，Data 固定为 null。")
+      code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
+      data: z.null().describe("接口成功执行时，Data 固定为 null。")
     })
   },
   {
@@ -109,9 +109,9 @@ export const storageApiDefs = [
       app: z.string().describe("发起操作的 App ID，用于事件广播。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
-      Data: z.null().describe("接口成功执行时，Data 固定为 null。")
+      code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
+      data: z.null().describe("接口成功执行时，Data 固定为 null。")
     })
   },
   {
@@ -146,9 +146,9 @@ export const storageApiDefs = [
       }).describe("要保存或更新的搜索标准对象。具体字段请参考思源笔记内核 model.Criterion 结构。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
-      Data: z.null().describe("接口成功执行时，Data 固定为 null。")
+      code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
+      data: z.null().describe("接口成功执行时，Data 固定为 null。")
     })
   },
   {
@@ -165,9 +165,9 @@ export const storageApiDefs = [
       app: z.string().describe("发起操作的 App ID，用于事件广播。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
-      Data: z.null().describe("接口成功执行时，Data 固定为 null。")
+      code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
+      data: z.null().describe("接口成功执行时，Data 固定为 null。")
     })
   },
   {
@@ -185,9 +185,9 @@ export const storageApiDefs = [
       app: z.string().describe("发起操作的 App ID，用于事件广播。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
-      Msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
-      Data: z.null().describe("接口成功执行时，Data 固定为 null。")
+      code: z.number().describe("错误码，0 表示成功，其他表示失败。"),
+      msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
+      data: z.null().describe("接口成功执行时，Data 固定为 null。")
     })
   }
 ];

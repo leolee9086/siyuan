@@ -11,9 +11,9 @@ export const importApiDefs = [
     formDataRequest: true,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.null().optional().describe("成功时通常为 null"),
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.null().optional().describe("成功时通常为 null"),
     })
   },
   {
@@ -30,9 +30,9 @@ export const importApiDefs = [
       // FormData fields: file (required), notebook (string, required), toPath (string, required)
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.null().optional().describe("成功时通常为 null"),
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.null().optional().describe("成功时通常为 null"),
     })
   },
   {
@@ -50,9 +50,9 @@ export const importApiDefs = [
       toPath: z.string().describe("导入到笔记本内的目标父路径，例如 '/' 表示笔记本根目录"),
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.null().optional().describe("成功时通常为 null"),
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.null().optional().describe("成功时通常为 null"),
     })
   },
   {
@@ -69,9 +69,9 @@ export const importApiDefs = [
       // FormData fields: file (required), notebook (string, required), toPath (string, required)
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("错误信息，成功时为空字符串"),
-      Data: z.null().optional().describe("成功时通常为 null"),
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("错误信息，成功时为空字符串"),
+      data: z.null().optional().describe("成功时通常为 null"),
     })
   }
 ];

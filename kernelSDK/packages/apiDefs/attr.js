@@ -12,9 +12,9 @@ export const attrApiDefs = [
       ids: z.array(z.string()).describe("要获取属性的块 ID 数组")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.record(z.record(z.string())).describe("一个对象，键为块 ID，值为该块的属性对象 (属性名: 属性值)")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.record(z.record(z.string())).describe("一个对象，键为块 ID，值为该块的属性对象 (属性名: 属性值)")
     })
   },
   {
@@ -33,9 +33,9 @@ export const attrApiDefs = [
       })).describe("包含多个块属性设置的对象数组")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.any().nullable().describe("此接口通常不返回具体数据，null 表示成功")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.any().nullable().describe("此接口通常不返回具体数据，null 表示成功")
     })
   },
   {
@@ -51,9 +51,9 @@ export const attrApiDefs = [
       id: z.string().describe("要获取属性的块 ID")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.record(z.string()).describe("该块的属性对象 (属性名: 属性值)")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.record(z.string()).describe("该块的属性对象 (属性名: 属性值)")
     })
   },
   {
@@ -67,9 +67,9 @@ export const attrApiDefs = [
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.array(z.string()).describe("书签标签字符串数组")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.array(z.string()).describe("书签标签字符串数组")
     })
   },
   {
@@ -86,9 +86,9 @@ export const attrApiDefs = [
       attrs: z.record(z.string()).describe("要重置的属性对象 (属性名: 期望的当前属性值)。只有当块的属性值与此处提供的值匹配时，该属性才会被移除。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.any().nullable().describe("此接口通常不返回具体数据，null 表示成功")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.any().nullable().describe("此接口通常不返回具体数据，null 表示成功")
     })
   },
   {
@@ -105,9 +105,9 @@ export const attrApiDefs = [
       attrs: z.record(z.string().nullable()).describe("要设置的属性对象 (属性名: 属性值)。如果属性值为 null，则删除该属性。")
     }),
     zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.any().nullable().describe("此接口通常不返回具体数据，null 表示成功")
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.any().nullable().describe("此接口通常不返回具体数据，null 表示成功")
     })
   }
 ];
