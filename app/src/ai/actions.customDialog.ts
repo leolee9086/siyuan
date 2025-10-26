@@ -36,13 +36,7 @@ const handleUseClick = (
             fillContent(protyle, data.data, elements);
         }
     )
-    /*fetchPost("/api/ai/chatGPTWithAction", {
-        ids,
-        action: customAction,
-    }, (response) => {
-        dialog.destroy();
-        fillContent(protyle, response.data, elements);
-    });*/
+   
 };
 
 /**
