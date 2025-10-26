@@ -63,7 +63,7 @@ export const systemApiDefs = [
     description: "检查思源笔记是否有新版本。",
     needAuth: true,
     needAdminRole: true,
-    unavailableIfReadonly: false, // 理论上检查更新不应受只读模式影响，但源码中未标记 CheckReadonly，故保持 false
+    unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({
       showMsg: z.boolean().describe("是否在检查后显示提示消息给用户")
     }),
@@ -118,7 +118,7 @@ export const systemApiDefs = [
     en: "currentTime",
     zh_cn: "获取当前服务器时间",
     description: "获取思源笔记服务器当前的 Unix 时间戳 (毫秒)。",
-    needAuth: false, // router.go 中未标记 model.CheckAuth
+    needAuth: false,
     needAdminRole: false,
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({}),
@@ -136,7 +136,7 @@ export const systemApiDefs = [
     description: "关闭并退出思源笔记程序。",
     needAuth: true,
     needAdminRole: true,
-    unavailableIfReadonly: false, // 退出操作不应受只读限制
+    unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
       code: z.number().describe("错误码，0 表示成功"),
@@ -152,7 +152,7 @@ export const systemApiDefs = [
     description: "导出一份包含当前用户所有配置的 JSON 文件。",
     needAuth: true,
     needAdminRole: true,
-    unavailableIfReadonly: false, // 导出配置不应受只读限制
+    unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
       code: z.number().describe("错误码，0 表示成功"),
@@ -171,7 +171,7 @@ export const systemApiDefs = [
     description: "导出包含系统运行日志的压缩文件。",
     needAuth: true,
     needAdminRole: true,
-    unavailableIfReadonly: false, // 导出日志不应受只读限制
+    unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
       code: z.number().describe("错误码，0 表示成功"),
@@ -191,8 +191,6 @@ export const systemApiDefs = [
     needAdminRole: false,
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({}),
-    // 响应体是图片流，而非 JSON 对象。此处 schema 描述其元数据。
-    // 实际调用时，浏览器会直接显示图片或下载。
     zodResponseSchema: (z) => ({
       code: z.number().int().optional().describe("通常不适用，因为响应是图片流"),
       msg: z.string().optional().describe("通常不适用"),
@@ -206,7 +204,7 @@ export const systemApiDefs = [
     zh_cn: "获取更新日志",
     description: "获取当前版本的更新日志内容 (Markdown 格式转换为 HTML)。",
     needAuth: true,
-    needAdminRole: false, // 根据 router.go
+    needAdminRole: false,
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
@@ -225,7 +223,7 @@ export const systemApiDefs = [
     zh_cn: "获取所有配置",
     description: "获取思源笔记的全部配置信息。配置项繁多，具体结构请参考 `siyuan/kernel/conf/conf.go` 中的 `Conf` 结构体。",
     needAuth: true,
-    needAdminRole: false, // 根据 router.go
+    needAdminRole: false,
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
@@ -243,7 +241,7 @@ export const systemApiDefs = [
     zh_cn: "获取 Emoji 配置",
     description: "获取内置及自定义 Emoji 的配置信息，用于 Emoji 选择器等功能。",
     needAuth: true,
-    needAdminRole: false, // 根据 router.go
+    needAdminRole: false,
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
@@ -272,7 +270,7 @@ export const systemApiDefs = [
     description: "获取用于移动端同步的工作空间列表。",
     needAuth: true,
     needAdminRole: true,
-    unavailableIfReadonly: false, // 源码中未标记 CheckReadonly
+    unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
       code: z.number().describe("错误码，0 表示成功"),
@@ -294,7 +292,7 @@ export const systemApiDefs = [
     description: "获取当前的网络代理等配置信息。",
     needAuth: true,
     needAdminRole: true,
-    unavailableIfReadonly: false, // 源码中未标记 CheckReadonly
+    unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
       code: z.number().describe("错误码，0 表示成功"),
@@ -311,8 +309,8 @@ export const systemApiDefs = [
     zh_cn: "获取系统字体列表",
     description: "获取当前操作系统上安装的可用字体列表。",
     needAuth: true,
-    needAdminRole: true, // 根据 router.go
-    unavailableIfReadonly: false, // 获取字体列表不应受只读限制
+    needAdminRole: true,
+    unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
       code: z.number().describe("错误码，0 表示成功"),
@@ -331,7 +329,7 @@ export const systemApiDefs = [
     description: "获取当前打开的工作空间目录路径和思源版本号。",
     needAuth: true,
     needAdminRole: true,
-    unavailableIfReadonly: true, // 源码中明确有 CheckReadonly
+    unavailableIfReadonly: true,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
       code: z.number().describe("错误码，0 表示成功"),
@@ -349,7 +347,7 @@ export const systemApiDefs = [
     zh_cn: "获取所有工作空间列表",
     description: "获取所有已配置或曾经打开过的工作空间列表。",
     needAuth: true,
-    needAdminRole: false, // 根据 router.go
+    needAdminRole: false,
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
@@ -404,7 +402,7 @@ export const systemApiDefs = [
     en: "LoginAuth",
     zh_cn: "登录授权",
     description: "使用访问授权码或用户名密码进行登录验证。",
-    needAuth: false, // 登录操作本身不需要预先授权
+    needAuth: false,
     needAdminRole: false,
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({
@@ -426,7 +424,7 @@ export const systemApiDefs = [
     en: "LogoutAuth",
     zh_cn: "退出登录",
     description: "清除当前的登录授权状态。",
-    needAuth: false, // 退出登录操作，可能在已登录或未登录状态下执行，但操作本身不依赖于当前是否已登录
+    needAuth: false,
     needAdminRole: false,
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({}),
@@ -435,6 +433,17 @@ export const systemApiDefs = [
       msg: z.string().describe("错误信息"),
       data: z.null().describe("成功时总是为 null"),
     })
+  },
+  {
+    method: "POST",
+    endpoint: "/api/system/rebuildDataIndex",
+    en: "rebuildDataIndex",
+    zh_cn: undefined,
+    needAuth: true,
+    needAdminRole: true,
+    unavailableIfReadonly: true,
+    zodRequestSchema: (z) => ({}),
+    zodResponseSchema: (z) => ({})
   },
   {
     method: "POST",
@@ -532,7 +541,7 @@ export const systemApiDefs = [
     zh_cn: "设置外观模式",
     description: "设置思源笔记的外观模式 (亮色/暗色)。",
     needAuth: true,
-    needAdminRole: true, // 源码中是 CheckAdminRole
+    needAdminRole: true,
     unavailableIfReadonly: true,
     zodRequestSchema: (z) => ({
       mode: z.number().int().min(0).max(1).describe("外观模式：0 表示亮色 (Light)，1 表示暗色 (Dark)")
@@ -698,7 +707,7 @@ export const systemApiDefs = [
     en: "addUIProcess",
     zh_cn: "添加 UI 进程信息",
     description: "（内部接口）用于桌面端添加 UI 进程的相关信息，如 PID。通常不由普通用户或第三方应用直接调用。",
-    needAuth: false, // 内部接口，通常在启动时由 UI 调用，不进行鉴权
+    needAuth: false,
     needAdminRole: false,
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({
@@ -710,6 +719,17 @@ export const systemApiDefs = [
       msg: z.string().describe("错误信息"),
       data: z.null().describe("成功时总是为 null"),
     })
+  },
+  {
+    method: "POST",
+    endpoint: "/api/system/vacuumDataIndex",
+    en: "vacuumDataIndex",
+    zh_cn: undefined,
+    needAuth: true,
+    needAdminRole: true,
+    unavailableIfReadonly: true,
+    zodRequestSchema: (z) => ({}),
+    zodResponseSchema: (z) => ({})
   },
   {
     method: "GET",

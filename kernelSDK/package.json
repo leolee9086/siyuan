@@ -5,7 +5,6 @@
   "main": "kernelApi.js",
   "type": "module",
   "scripts": {
-    "generate-api": "node genKernelApi.js",
     "update-api-list": "node updateApiListFromGo.js",
     "generate-single-client": "node generateSingleFileClient.cjs",
     "generate-api-clients": "node generateApiClients.cjs",

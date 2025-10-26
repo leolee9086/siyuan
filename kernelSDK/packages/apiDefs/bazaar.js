@@ -4,7 +4,7 @@ export const bazaarApiDefs = [
     endpoint: "/api/bazaar/batchUpdatePackage",
     en: "batchUpdatePackage",
     zh_cn: "批量更新集市包",
-    description: "根据指定的客户端类型（如 \'frontend\'）批量更新思源笔记本地缓存的集市包信息。",
+    description: "根据指定的客户端类型（如 'frontend'）批量更新思源笔记本地缓存的集市包信息。",
     needAuth: true,
     needAdminRole: true,
     unavailableIfReadonly: true,

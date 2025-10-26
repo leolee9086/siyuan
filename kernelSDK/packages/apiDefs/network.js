@@ -5,9 +5,9 @@ export const networkApiDefs = [
     en: "forwardProxy",
     zh_cn: "转发HTTP代理请求",
     description: "作为代理，将客户端构造的HTTP(S)请求转发到指定的目标URL，并返回目标服务器的响应。支持多种请求体编码方式。",
-    needAuth: true,       // from router.go: model.CheckAuth
-    needAdminRole: true,  // from router.go: model.CheckAdminRole
-    unavailableIfReadonly: false, // from router.go: model.CheckReadonly
+    needAuth: true,
+    needAdminRole: true,
+    unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({
       url: z.string().url().describe("必需。要请求的目标 URL，必须是合法的 HTTP 或 HTTPS 地址。"),
       method: z.string().optional().default("POST").describe("可选。HTTP 请求方法，如 GET, POST, PUT, DELETE 等。默认为 POST。"),

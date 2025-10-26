@@ -41,6 +41,91 @@ export const blockApiDefs = [
   },
   {
     method: "POST",
+    endpoint: "/api/block/appendHeadingChildren",
+    en: "appendHeadingChildren",
+    zh_cn: undefined,
+    needAuth: true,
+    needAdminRole: false,
+    unavailableIfReadonly: false,
+    zodRequestSchema: (z) => ({}),
+    zodResponseSchema: (z) => ({})
+  },
+  {
+    method: "POST",
+    endpoint: "/api/block/batchAppendBlock",
+    en: "batchAppendBlock",
+    zh_cn: "批量后置插入块",
+    description: "在指定父块的末尾批量插入新的子块。",
+    needAuth: true,
+    needAdminRole: true,
+    unavailableIfReadonly: true,
+    zodRequestSchema: (z) => ({
+      blocks: z.array(
+        z.object({
+          data: z.string().describe("要插入的内容，可以是 Markdown 或 DOM 字符串"),
+          dataType: z.enum(["markdown", "dom"]).describe("指定 data 参数的类型"),
+          parentID: z.string().describe("父块的 ID")
+        })
+      ).describe("包含多个待插入块信息的数组")
+    }),
+    zodResponseSchema: (z) => ({
+      Code: z.number().describe("API 调用返回码，0 表示成功"),
+      Msg: z.string().describe("API 调用返回消息"),
+      Data: z.array(z.object({ id: z.string().describe("新创建块的 ID") })).nullable().describe("成功时返回包含新块 ID 的数组，失败时为 null")
+    })
+  },
+  {
+    method: "POST",
+    endpoint: "/api/block/batchInsertBlock",
+    en: "batchInsertBlock",
+    zh_cn: "批量插入块",
+    description: "在指定的锚点块（anchorID）之前或之后批量插入新的内容块。每个新块可以指定其插入位置。",
+    needAuth: true,
+    needAdminRole: true,
+    unavailableIfReadonly: true,
+    zodRequestSchema: (z) => ({
+      blocks: z.array(
+        z.object({
+          data: z.string().describe("要插入的内容，可以是 Markdown 或 DOM 字符串"),
+          dataType: z.enum(["markdown", "dom"]).describe("指定 data 参数的类型"),
+          parentID: z.string().optional().describe("父块的 ID (可选，如果提供 previousID 或 nextID 则父块 ID 优先)"),
+          previousID: z.string().optional().describe("前一个同级块的 ID (可选，如果提供，则新块将插入在此块之后)"),
+          nextID: z.string().optional().describe("后一个同级块的 ID (可选，如果提供，则新块将插入在此块之前)")
+        })
+      ).describe("包含多个待插入块信息的数组")
+    }),
+    zodResponseSchema: (z) => ({
+      Code: z.number().describe("API 调用返回码，0 表示成功"),
+      Msg: z.string().describe("API 调用返回消息"),
+      Data: z.array(z.object({ id: z.string().describe("新创建块的 ID") })).nullable().describe("成功时返回包含新块 ID 的数组，失败时为 null")
+    })
+  },
+  {
+    method: "POST",
+    endpoint: "/api/block/batchPrependBlock",
+    en: "batchPrependBlock",
+    zh_cn: "批量前置插入块",
+    description: "在指定父块的开头批量插入新的子块。",
+    needAuth: true,
+    needAdminRole: true,
+    unavailableIfReadonly: true,
+    zodRequestSchema: (z) => ({
+      blocks: z.array(
+        z.object({
+          data: z.string().describe("要插入的内容，可以是 Markdown 或 DOM 字符串"),
+          dataType: z.enum(["markdown", "dom"]).describe("指定 data 参数的类型"),
+          parentID: z.string().describe("父块的 ID")
+        })
+      ).describe("包含多个待插入块信息的数组")
+    }),
+    zodResponseSchema: (z) => ({
+      Code: z.number().describe("API 调用返回码，0 表示成功"),
+      Msg: z.string().describe("API 调用返回消息"),
+      Data: z.array(z.object({ id: z.string().describe("新创建块的 ID") })).nullable().describe("成功时返回包含新块 ID 的数组，失败时为 null")
+    })
+  },
+  {
+    method: "POST",
     endpoint: "/api/block/batchUpdateBlock",
     en: "batchUpdateBlock",
     zh_cn: "批量更新块内容",
@@ -197,6 +282,25 @@ export const blockApiDefs = [
   },
   {
     method: "POST",
+    endpoint: "/api/block/getBlockDOMs",
+    en: "getBlockDOMs",
+    zh_cn: "批量获取块DOM",
+    description: "批量获取指定块ID列表的DOM表示（HTML字符串）。",
+    needAuth: true,
+    needAdminRole: false,
+    unavailableIfReadonly: false,
+    zodRequestSchema: (z) => ({
+      ids: z.array(z.string()).describe("要获取 DOM 的块 ID 数组")
+    }),
+    zodResponseSchema: (z) => ({
+      Code: z.number().describe("API 调用返回码，0 表示成功"),
+      Msg: z.string().describe("API 调用返回消息"),
+      Data: z.record(z.string().describe("块 ID"), z.string().describe("块的 DOM 内容 (HTML 字符串)"))
+        .describe("一个记录对象，键为块 ID，值为该块的 DOM 内容")
+    })
+  },
+  {
+    method: "POST",
     endpoint: "/api/block/getBlockDefIDsByRefText",
     en: "getBlockDefIDsByRefText",
     zh_cn: "根据引用文本获取块定义ID",
@@ -281,6 +385,17 @@ export const blockApiDefs = [
         kramdown: z.string().describe("块的 Kramdown 源码")
       }).describe("包含块 ID 和其 Kramdown 源码的对象")
     })
+  },
+  {
+    method: "POST",
+    endpoint: "/api/block/getBlockRelevantIDs",
+    en: "getBlockRelevantIDs",
+    zh_cn: undefined,
+    needAuth: true,
+    needAdminRole: false,
+    unavailableIfReadonly: false,
+    zodRequestSchema: (z) => ({}),
+    zodResponseSchema: (z) => ({})
   },
   {
     method: "POST",
@@ -454,7 +569,7 @@ export const blockApiDefs = [
     en: "getContentWordCount",
     zh_cn: "获取内容字数统计",
     description: "获取给定内容字符串的字数、字符数和链接数统计信息。",
-    needAuth: true, // 虽然这个 API 看起来不需要认证，但 go 源码中没有跳过 CheckAuth
+    needAuth: true,
     needAdminRole: false,
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({
@@ -602,6 +717,17 @@ export const blockApiDefs = [
   },
   {
     method: "POST",
+    endpoint: "/api/block/getHeadingInsertTransaction",
+    en: "getHeadingInsertTransaction",
+    zh_cn: undefined,
+    needAuth: true,
+    needAdminRole: false,
+    unavailableIfReadonly: false,
+    zodRequestSchema: (z) => ({}),
+    zodResponseSchema: (z) => ({})
+  },
+  {
+    method: "POST",
     endpoint: "/api/block/getHeadingLevelTransaction",
     en: "getHeadingLevelTransaction",
     zh_cn: "获取调整标题级别的事务",
@@ -634,7 +760,7 @@ export const blockApiDefs = [
     needAuth: true,
     needAdminRole: false,
     unavailableIfReadonly: false,
-    zodRequestSchema: (z) => ({}), // 无请求参数
+    zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
       Code: z.number().describe("API 调用返回码，0 表示成功"),
       Msg: z.string().describe("API 调用返回消息"),
@@ -805,6 +931,47 @@ export const blockApiDefs = [
   },
   {
     method: "POST",
+    endpoint: "/api/block/moveBlock",
+    en: "moveBlock",
+    zh_cn: "移动块",
+    description: "将指定的块移动到新的父块下或同级块的特定位置。移动后会触发相关文档编辑器的重载。",
+    needAuth: true,
+    needAdminRole: true,
+    unavailableIfReadonly: true,
+    zodRequestSchema: (z) => ({
+      id: z.string().describe("要移动的块的 ID。"),
+      parentID: z.string().optional().describe("新的父块 ID。如果提供了 previousID，则此字段可选。如果两者都未提供或均为空，则行为未定义或可能出错。不能是文档块ID。 "),
+      previousID: z.string().optional().describe("新的前一个同级块的 ID。如果提供此字段，块将被移动到该同级块之后。如果未提供，将尝试基于 parentID 移动到父块的末尾（若 parentID 有效）。不能是文档块ID。 ")
+    }),
+    zodResponseSchema: (z) => ({
+      Code: z.number().describe("API 调用返回码，0 表示成功"),
+      Msg: z.string().describe("API 调用返回消息"),
+      Data: z.null().describe("此接口成功时不返回具体数据，UI 通常通过 WebSocket 消息更新。")
+      // Go 源码中 moveBlock 函数没有显式设置 ret.Data，但调用了 model.PerformTransactions 和 model.ReloadProtyle
+    })
+  },
+  {
+    method: "POST",
+    endpoint: "/api/block/moveOutlineHeading",
+    en: "moveOutlineHeading",
+    zh_cn: "移动大纲标题块",
+    description: "移动大纲中的标题块到新的父级或同级位置。",
+    needAuth: true,
+    needAdminRole: true,
+    unavailableIfReadonly: true,
+    zodRequestSchema: (z) => ({
+      id: z.string().describe("要移动的大纲标题块的 ID。"),
+      parentID: z.string().optional().describe("新的父块 ID (可以是文档块或其他标题块)。如果提供了 previousID，则此字段可选。 "),
+      previousID: z.string().optional().describe("新的前一个同级标题块的 ID。如果提供此字段，标题块将被移动到该同级块之后。 ")
+    }),
+    zodResponseSchema: (z) => ({
+      Code: z.number().describe("API 调用返回码，0 表示成功"),
+      Msg: z.string().describe("API 调用返回消息"),
+      Data: z.array(z.any()).nullable().describe("操作成功时返回事务列表，失败时可能为 null。具体结构请参考 Transaction 对象。")
+    })
+  },
+  {
+    method: "POST",
     endpoint: "/api/block/prependBlock",
     en: "prependBlock",
     zh_cn: "插入前置子块",
@@ -825,12 +992,32 @@ export const blockApiDefs = [
   },
   {
     method: "POST",
+    endpoint: "/api/block/prependDailyNoteBlock",
+    en: "prependDailyNoteBlock",
+    zh_cn: "前置追加日记块",
+    description: "在指定笔记本的当日日记文档开头追加新的内容块。",
+    needAuth: true,
+    needAdminRole: true,
+    unavailableIfReadonly: true,
+    zodRequestSchema: (z) => ({
+      data: z.string().describe("要追加的内容，可以是 Markdown 或 DOM 字符串。如果 dataType 为 'markdown'，内容会先转换为 DOM。注意：后端实现中此接口行为类似 appendDailyNoteBlock，均在末尾追加，但定义保留 prepend 以匹配接口名和潜在的未来行为调整。建议使用 appendDailyNoteBlock 以获得明确的末尾追加行为。后端 action 为 prependInsert。 "),
+      dataType: z.enum(["markdown", "dom"]).describe("指定 data 参数的类型 ('markdown' 或 'dom')。 "),
+      notebook: z.string().describe("目标笔记本的 ID。")
+    }),
+    zodResponseSchema: (z) => ({
+      Code: z.number().describe("API 调用返回码，0 表示成功"),
+      Msg: z.string().describe("API 调用返回消息"),
+      Data: z.array(z.any()).nullable().describe("操作成功时返回事务列表，失败时可能为 null。具体结构请参考 Transaction 对象。")
+    })
+  },
+  {
+    method: "POST",
     endpoint: "/api/block/setBlockReminder",
     en: "setBlockReminder",
     zh_cn: "设置块提醒时间",
     description: "为指定的块ID设置一个提醒时间。",
     needAuth: true,
-    needAdminRole: true, // 涉及修改数据，权限较高
+    needAdminRole: true,
     unavailableIfReadonly: true,
     zodRequestSchema: (z) => ({
       id: z.string().describe("要设置提醒的块 ID"),
@@ -917,160 +1104,6 @@ export const blockApiDefs = [
       Code: z.number().describe("API 调用返回码，0 表示成功"),
       Msg: z.string().describe("API 调用返回消息"),
       Data: z.array(z.object({ id: z.string().describe("已更新块的 ID") })).nullable().describe("成功时返回包含已更新块 ID 的数组，失败时为 null")
-    })
-  },
-  {
-    method: "POST",
-    endpoint: "/api/block/prependDailyNoteBlock",
-    en: "prependDailyNoteBlock",
-    zh_cn: "前置追加日记块",
-    description: "在指定笔记本的当日日记文档开头追加新的内容块。",
-    needAuth: true,
-    needAdminRole: true,
-    unavailableIfReadonly: true,
-    zodRequestSchema: (z) => ({
-      data: z.string().describe("要追加的内容，可以是 Markdown 或 DOM 字符串。如果 dataType 为 'markdown'，内容会先转换为 DOM。注意：后端实现中此接口行为类似 appendDailyNoteBlock，均在末尾追加，但定义保留 prepend 以匹配接口名和潜在的未来行为调整。建议使用 appendDailyNoteBlock 以获得明确的末尾追加行为。后端 action 为 prependInsert。 "),
-      dataType: z.enum(["markdown", "dom"]).describe("指定 data 参数的类型 ('markdown' 或 'dom')。 "),
-      notebook: z.string().describe("目标笔记本的 ID。")
-    }),
-    zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.array(z.any()).nullable().describe("操作成功时返回事务列表，失败时可能为 null。具体结构请参考 Transaction 对象。")
-    })
-  },
-  {
-    method: "POST",
-    endpoint: "/api/block/moveBlock",
-    en: "moveBlock",
-    zh_cn: "移动块",
-    description: "将指定的块移动到新的父块下或同级块的特定位置。移动后会触发相关文档编辑器的重载。",
-    needAuth: true,
-    needAdminRole: true,
-    unavailableIfReadonly: true,
-    zodRequestSchema: (z) => ({
-      id: z.string().describe("要移动的块的 ID。"),
-      parentID: z.string().optional().describe("新的父块 ID。如果提供了 previousID，则此字段可选。如果两者都未提供或均为空，则行为未定义或可能出错。不能是文档块ID。 "),
-      previousID: z.string().optional().describe("新的前一个同级块的 ID。如果提供此字段，块将被移动到该同级块之后。如果未提供，将尝试基于 parentID 移动到父块的末尾（若 parentID 有效）。不能是文档块ID。 ")
-    }),
-    zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.null().describe("此接口成功时不返回具体数据，UI 通常通过 WebSocket 消息更新。")
-      // Go 源码中 moveBlock 函数没有显式设置 ret.Data，但调用了 model.PerformTransactions 和 model.ReloadProtyle
-    })
-  },
-  {
-    method: "POST",
-    endpoint: "/api/block/moveOutlineHeading",
-    en: "moveOutlineHeading",
-    zh_cn: "移动大纲标题块",
-    description: "移动大纲中的标题块到新的父级或同级位置。",
-    needAuth: true,
-    needAdminRole: true,
-    unavailableIfReadonly: true,
-    zodRequestSchema: (z) => ({
-      id: z.string().describe("要移动的大纲标题块的 ID。"),
-      parentID: z.string().optional().describe("新的父块 ID (可以是文档块或其他标题块)。如果提供了 previousID，则此字段可选。 "),
-      previousID: z.string().optional().describe("新的前一个同级标题块的 ID。如果提供此字段，标题块将被移动到该同级块之后。 ")
-    }),
-    zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.array(z.any()).nullable().describe("操作成功时返回事务列表，失败时可能为 null。具体结构请参考 Transaction 对象。")
-    })
-  },
-  {
-    method: "POST",
-    endpoint: "/api/block/getBlockDOMs",
-    en: "getBlockDOMs",
-    zh_cn: "批量获取块DOM",
-    description: "批量获取指定块ID列表的DOM表示（HTML字符串）。",
-    needAuth: true,
-    needAdminRole: false,
-    unavailableIfReadonly: false,
-    zodRequestSchema: (z) => ({
-      ids: z.array(z.string()).describe("要获取 DOM 的块 ID 数组")
-    }),
-    zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.record(z.string().describe("块 ID"), z.string().describe("块的 DOM 内容 (HTML 字符串)"))
-        .describe("一个记录对象，键为块 ID，值为该块的 DOM 内容")
-    })
-  },
-  {
-    method: "POST",
-    endpoint: "/api/block/batchInsertBlock",
-    en: "batchInsertBlock",
-    zh_cn: "批量插入块",
-    description: "在指定的锚点块（anchorID）之前或之后批量插入新的内容块。每个新块可以指定其插入位置。",
-    needAuth: true,
-    needAdminRole: true,
-    unavailableIfReadonly: true,
-    zodRequestSchema: (z) => ({
-      blocks: z.array(
-        z.object({
-          data: z.string().describe("要插入的内容，可以是 Markdown 或 DOM 字符串"),
-          dataType: z.enum(["markdown", "dom"]).describe("指定 data 参数的类型"),
-          parentID: z.string().optional().describe("父块的 ID (可选，如果提供 previousID 或 nextID 则父块 ID 优先)"),
-          previousID: z.string().optional().describe("前一个同级块的 ID (可选，如果提供，则新块将插入在此块之后)"),
-          nextID: z.string().optional().describe("后一个同级块的 ID (可选，如果提供，则新块将插入在此块之前)")
-        })
-      ).describe("包含多个待插入块信息的数组")
-    }),
-    zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.array(z.object({ id: z.string().describe("新创建块的 ID") })).nullable().describe("成功时返回包含新块 ID 的数组，失败时为 null")
-    })
-  },
-  {
-    method: "POST",
-    endpoint: "/api/block/batchPrependBlock",
-    en: "batchPrependBlock",
-    zh_cn: "批量前置插入块",
-    description: "在指定父块的开头批量插入新的子块。",
-    needAuth: true,
-    needAdminRole: true,
-    unavailableIfReadonly: true,
-    zodRequestSchema: (z) => ({
-      blocks: z.array(
-        z.object({
-          data: z.string().describe("要插入的内容，可以是 Markdown 或 DOM 字符串"),
-          dataType: z.enum(["markdown", "dom"]).describe("指定 data 参数的类型"),
-          parentID: z.string().describe("父块的 ID")
-        })
-      ).describe("包含多个待插入块信息的数组")
-    }),
-    zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.array(z.object({ id: z.string().describe("新创建块的 ID") })).nullable().describe("成功时返回包含新块 ID 的数组，失败时为 null")
-    })
-  },
-  {
-    method: "POST",
-    endpoint: "/api/block/batchAppendBlock",
-    en: "batchAppendBlock",
-    zh_cn: "批量后置插入块",
-    description: "在指定父块的末尾批量插入新的子块。",
-    needAuth: true,
-    needAdminRole: true,
-    unavailableIfReadonly: true,
-    zodRequestSchema: (z) => ({
-      blocks: z.array(
-        z.object({
-          data: z.string().describe("要插入的内容，可以是 Markdown 或 DOM 字符串"),
-          dataType: z.enum(["markdown", "dom"]).describe("指定 data 参数的类型"),
-          parentID: z.string().describe("父块的 ID")
-        })
-      ).describe("包含多个待插入块信息的数组")
-    }),
-    zodResponseSchema: (z) => ({
-      Code: z.number().describe("API 调用返回码，0 表示成功"),
-      Msg: z.string().describe("API 调用返回消息"),
-      Data: z.array(z.object({ id: z.string().describe("新创建块的 ID") })).nullable().describe("成功时返回包含新块 ID 的数组，失败时为 null")
     })
   }
 ];

@@ -549,13 +549,25 @@ export const filetreeApiDefs = [
     description: "触发一次全局的文档树刷新和全量索引重建。这是一个耗时操作，请谨慎调用。",
     needAuth: true,
     needAdminRole: true,
-    unavailableIfReadonly: true, // 尽管 Go 源码 model.FullReindex() 本身不检查只读，但 router.go 中此API路由配置了 model.CheckReadonly
+    unavailableIfReadonly: true,
     zodRequestSchema: (z) => ({}),
     zodResponseSchema: (z) => ({
       Code: z.number().describe("响应状态码，0 表示成功（操作已异步启动）"),
       Msg: z.string().describe("响应消息"),
       Data: z.null().optional().describe("此接口不返回具体数据")
-    })
+    }),
+    deprecated: true
+  },
+  {
+    method: "POST",
+    endpoint: "/api/filetree/refreshFiletree ",
+    en: "rebuildDataIndex",
+    zh_cn: undefined,
+    needAuth: true,
+    needAdminRole: true,
+    unavailableIfReadonly: true,
+    zodRequestSchema: (z) => ({}),
+    zodResponseSchema: (z) => ({})
   },
   {
     method: "POST",

@@ -22,7 +22,7 @@ export const inboxApiDefs = [
         // 根据 model/cloud_service.go GetCloudShorthand 函数，其他字段直接来自云端 map[string]interface{}
         // box, hPath, created, updated 等字段可能存在但非固定，故用 catchall
       }).catchall(z.any()).describe("包含速记详细信息的对象"),
-    }),
+    })
   },
   {
     method: "POST",
@@ -50,7 +50,7 @@ export const inboxApiDefs = [
         }).catchall(z.any())).describe("速记对象列表"),
         // 分页信息等其他字段可能存在于 Data 对象顶层
       }).catchall(z.any()).describe("包含速记列表及可能的分页信息的对象"),
-    }),
+    })
   },
   {
     method: "POST",
@@ -68,6 +68,6 @@ export const inboxApiDefs = [
       Code: z.number().describe("返回码，0 表示成功"),
       Msg: z.string().describe("错误信息，成功时为空字符串"),
       Data: z.null().optional().describe("成功时通常为 null"),
-    }),
-  },
+    })
+  }
 ];

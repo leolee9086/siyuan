@@ -5,9 +5,9 @@ export const outlineApiDefs = [
     en: "getDocOutline",
     zh_cn: "获取文档大纲",
     description: "获取指定文档块（通常是文档的根块ID）的层级大纲结构。",
-    needAuth: true, // from router.go: model.CheckAuth
-    needAdminRole: false, // from router.go
-    unavailableIfReadonly: false, // from router.go
+    needAuth: true,
+    needAdminRole: false,
+    unavailableIfReadonly: false,
     zodRequestSchema: (z) =>({
       id: z.string().describe("必需。要获取大纲的文档块的 ID。通常是文档的根块 ID。"),
       preview: z.boolean().optional().default(false).describe("可选。是否为预览模式获取大纲，默认为 false。预览模式可能包含未保存的更改。")

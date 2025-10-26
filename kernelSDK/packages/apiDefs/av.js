@@ -65,6 +65,81 @@ export const avApiDefs = [
   },
   {
     method: "POST",
+    endpoint: "/api/av/batchReplaceAttributeViewBlocks",
+    en: "batchReplaceAttributeViewBlocks",
+    zh_cn: "批量替换属性视图块",
+    description: "批量替换属性视图中的现有块ID。",
+    needAuth: true,
+    needAdminRole: false,
+    unavailableIfReadonly: false,
+    zodRequestSchema: (z) => ({
+      avID: z.string().describe("属性视图的 ID"),
+      isDetached: z.boolean().describe("是否处理独立的（未附加的）属性视图块"),
+      oldNew: z.array(
+        z.record(z.string(), z.string()).describe("一个键值对对象，键为旧块 ID，值为新块 ID")
+      ).describe("包含旧块 ID 和新块 ID 映射关系的数组，例如：[{'oldID1': 'newID1'}, {'oldID2': 'newID2'}]"),
+    }),
+    zodResponseSchema: (z) => ({
+      Code: z.number().describe("返回码，0 表示成功"),
+      Msg: z.string().describe("返回消息"),
+      Data: z.null().optional().describe("成功时通常为 null"),
+    })
+  },
+  {
+    method: "POST",
+    endpoint: "/api/av/batchSetAttributeViewBlockAttrs",
+    en: "batchSetAttributeViewBlockAttrs",
+    zh_cn: "批量设置属性视图块单元格值",
+    description: "批量更新属性视图中多个单元格（行和列）的值。",
+    needAuth: true,
+    needAdminRole: true,
+    unavailableIfReadonly: true,
+    zodRequestSchema: (z) => ({
+      avID: z.string().describe("属性视图的 ID"),
+      values: z.array(
+        z.object({
+          blockID: z.string().describe("数据块的 ID"),
+          keyID: z.string().describe("列的 ID (Key ID)"),
+          value: z.any().describe("要设置的新值，具体类型取决于列的类型"),
+        })
+      ).describe("包含多个要更新单元格信息的数组，每个对象包含 blockID, keyID 和 value"),
+    }),
+    zodResponseSchema: (z) => ({
+      Code: z.number().describe("返回码，0 表示成功"),
+      Msg: z.string().describe("返回消息"),
+      Data: z.null().optional().describe("成功时通常为 null"),
+    })
+  },
+  {
+    method: "POST",
+    endpoint: "/api/av/changeAttrViewLayout",
+    en: "changeAttrViewLayout",
+    zh_cn: "改变属性视图布局",
+    description: "改变指定属性视图的显示布局类型（如表格、看板、日历等）。",
+    needAuth: true,
+    needAdminRole: false,
+    unavailableIfReadonly: false,
+    zodRequestSchema: (z) => ({
+      blockID: z.string().describe("属性视图块的 ID"),
+      avID: z.string().describe("属性视图的 ID"),
+      layoutType: z.enum(["table", "board", "calendar", "list", "gallery"]).describe("新的布局类型：table, board, calendar, list, gallery"),
+    }),
+    zodResponseSchema: (z) => ({
+      Code: z.number().describe("返回码，0 表示成功"),
+      Msg: z.string().describe("返回消息"),
+      Data: z.object({
+        name: z.string().describe("属性视图的名称"),
+        id: z.string().describe("属性视图的 ID"),
+        viewType: z.any().describe("当前视图的类型 (具体类型需查阅 kernel.AVViewType)"),
+        viewID: z.any().describe("当前视图的 ID (具体类型需查阅 kernel.AVViewID)"),
+        views: z.array(z.any()).describe("属性视图包含的所有视图定义数组，元素结构参考 `kernel.AVView`"),
+        view: z.any().describe("当前渲染的视图的详细数据，结构复杂，取决于视图类型"),
+        isMirror: z.boolean().describe("是否为镜像属性视图")
+      }).nullable().describe("包含渲染结果的对象")
+    })
+  },
+  {
+    method: "POST",
     endpoint: "/api/av/duplicateAttributeViewBlock",
     en: "duplicateAttributeViewBlock",
     zh_cn: "复制属性视图块",
@@ -106,6 +181,28 @@ export const avApiDefs = [
   },
   {
     method: "POST",
+    endpoint: "/api/av/getAttributeViewAddingBlockDefaultValues",
+    en: "getAttributeViewAddingBlockDefaultValues",
+    zh_cn: undefined,
+    needAuth: true,
+    needAdminRole: false,
+    unavailableIfReadonly: false,
+    zodRequestSchema: (z) => ({}),
+    zodResponseSchema: (z) => ({})
+  },
+  {
+    method: "POST",
+    endpoint: "/api/av/getAttributeViewBoundBlockIDsByItemIDs",
+    en: "getAttributeViewBoundBlockIDsByItemIDs",
+    zh_cn: undefined,
+    needAuth: true,
+    needAdminRole: false,
+    unavailableIfReadonly: false,
+    zodRequestSchema: (z) => ({}),
+    zodResponseSchema: (z) => ({})
+  },
+  {
+    method: "POST",
     endpoint: "/api/av/getAttributeViewFilterSort",
     en: "getAttributeViewFilterSort",
     zh_cn: "获取属性视图的筛选和排序规则",
@@ -125,6 +222,17 @@ export const avApiDefs = [
         sorts: z.array(z.any()).describe("排序规则对象数组，具体结构参考 `kernel.AVSort`")
       }).nullable().describe("包含筛选和排序规则的对象")
     })
+  },
+  {
+    method: "POST",
+    endpoint: "/api/av/getAttributeViewItemIDsByBoundIDs",
+    en: "getAttributeViewItemIDsByBoundIDs",
+    zh_cn: undefined,
+    needAuth: true,
+    needAdminRole: false,
+    unavailableIfReadonly: false,
+    zodRequestSchema: (z) => ({}),
+    zodResponseSchema: (z) => ({})
   },
   {
     method: "POST",
@@ -164,6 +272,17 @@ export const avApiDefs = [
   },
   {
     method: "POST",
+    endpoint: "/api/av/getAttributeViewKeysByID",
+    en: "getAttributeViewKeysByID",
+    zh_cn: undefined,
+    needAuth: true,
+    needAdminRole: false,
+    unavailableIfReadonly: false,
+    zodRequestSchema: (z) => ({}),
+    zodResponseSchema: (z) => ({})
+  },
+  {
+    method: "POST",
     endpoint: "/api/av/getAttributeViewPrimaryKeyValues",
     en: "getAttributeViewPrimaryKeyValues",
     zh_cn: "获取属性视图主键列的值",
@@ -185,6 +304,26 @@ export const avApiDefs = [
         blockIDs: z.array(z.string()).describe("匹配的主键值对应的块 ID 列表"),
         rows: z.array(z.any()).describe("匹配的行数据数组，具体结构可能包含主键值和其他相关信息")
       }).nullable().describe("包含主键列值和相关信息的对象")
+    })
+  },
+  {
+    method: "POST",
+    endpoint: "/api/av/getCurrentAttrViewImages",
+    en: "getCurrentAttrViewImages",
+    zh_cn: "获取当前属性视图的图片",
+    description: "获取当前属性视图中包含的所有图片资源。",
+    needAuth: true,
+    needAdminRole: false,
+    unavailableIfReadonly: false,
+    zodRequestSchema: (z) => ({
+      id: z.string().describe("属性视图的 ID"),
+      viewID: z.string().optional().describe("可选，当前视图的 ID"),
+      query: z.string().optional().describe("可选，查询关键词"),
+    }),
+    zodResponseSchema: (z) => ({
+      Code: z.number().describe("返回码，0 表示成功"),
+      Msg: z.string().describe("返回消息"),
+      Data: z.array(z.string()).describe("当前属性视图中图片 URL 数组"), // Go 源码中 `images` 变量直接赋值给 `ret.Data`，类型推测为 `[]string` 或 `[]interface{}`。暂定为 string 数组。
     })
   },
   {
@@ -398,6 +537,37 @@ export const avApiDefs = [
   },
   {
     method: "POST",
+    endpoint: "/api/av/searchAttributeViewRollupDestKeys",
+    en: "searchAttributeViewRollupDestKeys",
+    zh_cn: undefined,
+    needAuth: true,
+    needAdminRole: true,
+    unavailableIfReadonly: true,
+    zodRequestSchema: (z) => ({}),
+    zodResponseSchema: (z) => ({})
+  },
+  {
+    method: "POST",
+    endpoint: "/api/av/setAttrViewGroup",
+    en: "setAttrViewGroup",
+    zh_cn: "设置属性视图分组",
+    description: "设置属性视图的块分组规则。",
+    needAuth: true,
+    needAdminRole: false,
+    unavailableIfReadonly: false,
+    zodRequestSchema: (z) => ({
+      avID: z.string().describe("属性视图的 ID"),
+      blockID: z.string().describe("属性视图关联的块 ID"),
+      group: z.any().describe("分组配置对象，具体结构请参考 Go 源码 `av.ViewGroup`"),
+    }),
+    zodResponseSchema: (z) => ({
+      Code: z.number().describe("返回码，0 表示成功"),
+      Msg: z.string().describe("返回消息"),
+      Data: z.null().optional().describe("成功时通常为 null"),
+    })
+  },
+  {
+    method: "POST",
     endpoint: "/api/av/setAttributeViewBlockAttr",
     en: "setAttributeViewBlockAttr",
     zh_cn: "设置属性视图块的单元格属性值",
@@ -478,120 +648,5 @@ export const avApiDefs = [
       Msg: z.string().describe("返回消息"),
       Data: z.any().nullable().describe("此接口通常不返回具体数据，null 表示成功")
     })
-  },
-  {
-    method: "POST",
-    endpoint: "/api/av/batchSetAttributeViewBlockAttrs",
-    en: "batchSetAttributeViewBlockAttrs",
-    zh_cn: "批量设置属性视图块单元格值",
-    description: "批量更新属性视图中多个单元格（行和列）的值。",
-    needAuth: true,
-    needAdminRole: true,
-    unavailableIfReadonly: true,
-    zodRequestSchema: (z) => ({
-      avID: z.string().describe("属性视图的 ID"),
-      values: z.array(
-        z.object({
-          blockID: z.string().describe("数据块的 ID"),
-          keyID: z.string().describe("列的 ID (Key ID)"),
-          value: z.any().describe("要设置的新值，具体类型取决于列的类型"),
-        })
-      ).describe("包含多个要更新单元格信息的数组，每个对象包含 blockID, keyID 和 value"),
-    }),
-    zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.null().optional().describe("成功时通常为 null"),
-    }),
-  },
-  {
-    method: "POST",
-    endpoint: "/api/av/getCurrentAttrViewImages",
-    en: "getCurrentAttrViewImages",
-    zh_cn: "获取当前属性视图的图片",
-    description: "获取当前属性视图中包含的所有图片资源。",
-    needAuth: true,
-    needAdminRole: false,
-    unavailableIfReadonly: false,
-    zodRequestSchema: (z) => ({
-      id: z.string().describe("属性视图的 ID"),
-      viewID: z.string().optional().describe("可选，当前视图的 ID"),
-      query: z.string().optional().describe("可选，查询关键词"),
-    }),
-    zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.array(z.string()).describe("当前属性视图中图片 URL 数组"), // Go 源码中 `images` 变量直接赋值给 `ret.Data`，类型推测为 `[]string` 或 `[]interface{}`。暂定为 string 数组。
-    }),
-  },
-  {
-    method: "POST",
-    endpoint: "/api/av/changeAttrViewLayout",
-    en: "changeAttrViewLayout",
-    zh_cn: "改变属性视图布局",
-    description: "改变指定属性视图的显示布局类型（如表格、看板、日历等）。",
-    needAuth: true,
-    needAdminRole: false,
-    unavailableIfReadonly: false,
-    zodRequestSchema: (z) => ({
-      blockID: z.string().describe("属性视图块的 ID"),
-      avID: z.string().describe("属性视图的 ID"),
-      layoutType: z.enum(["table", "board", "calendar", "list", "gallery"]).describe("新的布局类型：table, board, calendar, list, gallery"),
-    }),
-    zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.object({
-        name: z.string().describe("属性视图的名称"),
-        id: z.string().describe("属性视图的 ID"),
-        viewType: z.any().describe("当前视图的类型 (具体类型需查阅 kernel.AVViewType)"),
-        viewID: z.any().describe("当前视图的 ID (具体类型需查阅 kernel.AVViewID)"),
-        views: z.array(z.any()).describe("属性视图包含的所有视图定义数组，元素结构参考 `kernel.AVView`"),
-        view: z.any().describe("当前渲染的视图的详细数据，结构复杂，取决于视图类型"),
-        isMirror: z.boolean().describe("是否为镜像属性视图")
-      }).nullable().describe("包含渲染结果的对象")
-    }),
-  },
-  {
-    method: "POST",
-    endpoint: "/api/av/setAttrViewGroup",
-    en: "setAttrViewGroup",
-    zh_cn: "设置属性视图分组",
-    description: "设置属性视图的块分组规则。",
-    needAuth: true,
-    needAdminRole: false,
-    unavailableIfReadonly: false,
-    zodRequestSchema: (z) => ({
-      avID: z.string().describe("属性视图的 ID"),
-      blockID: z.string().describe("属性视图关联的块 ID"),
-      group: z.any().describe("分组配置对象，具体结构请参考 Go 源码 `av.ViewGroup`"),
-    }),
-    zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.null().optional().describe("成功时通常为 null"),
-    }),
-  },
-  {
-    method: "POST",
-    endpoint: "/api/av/batchReplaceAttributeViewBlocks",
-    en: "batchReplaceAttributeViewBlocks",
-    zh_cn: "批量替换属性视图块",
-    description: "批量替换属性视图中的现有块ID。",
-    needAuth: true,
-    needAdminRole: false,
-    unavailableIfReadonly: false,
-    zodRequestSchema: (z) => ({
-      avID: z.string().describe("属性视图的 ID"),
-      isDetached: z.boolean().describe("是否处理独立的（未附加的）属性视图块"),
-      oldNew: z.array(
-        z.record(z.string(), z.string()).describe("一个键值对对象，键为旧块 ID，值为新块 ID")
-      ).describe("包含旧块 ID 和新块 ID 映射关系的数组，例如：[{'oldID1': 'newID1'}, {'oldID2': 'newID2'}]"),
-    }),
-    zodResponseSchema: (z) => ({
-      Code: z.number().describe("返回码，0 表示成功"),
-      Msg: z.string().describe("返回消息"),
-      Data: z.null().optional().describe("成功时通常为 null"),
-    }),
   }
 ];

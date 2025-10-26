@@ -25,7 +25,7 @@ export const fileApiDefs = [
     zh_cn: "获取文件内容",
     description: "获取指定路径的文件内容。注意：此接口不通过JSON返回文件内容，而是直接在HTTP响应体中返回文件数据流，Content-Type 根据文件类型确定。因此，zodResponseSchema 仅用于描述可能的错误情况下的JSON响应。成功获取文件时，HTTP状态码为200，响应体为文件内容。",
     needAuth: true,
-    needAdminRole: false, // 根据 router.go，普通用户即可访问，但 getFile 函数内部对 conf.json 有额外管理员权限校验
+    needAdminRole: false,
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({ path: z.string().describe("要获取内容的文件路径 (相对于工作空间根目录)。") }),
     zodResponseSchema: (z) => ({
@@ -78,7 +78,7 @@ export const fileApiDefs = [
     needAuth: true,
     needAdminRole: true,
     unavailableIfReadonly: true,
-    formDataRequest:true,
+    formDataRequest: true,
     zodRequestSchema: (z) => ({
       path: z.string().describe("目标文件或目录在工作空间内的相对路径。文件名需要符合规范，否则请求失败。") /* FormData */,
       isDir: z.boolean().describe("是否创建目录。如果为 true，则创建目录；如果为 false 或未提供，则上传文件。") /* FormData */,

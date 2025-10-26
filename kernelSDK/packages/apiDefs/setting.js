@@ -623,4 +623,4 @@ export const settingApiDefs = [
       }).nullable().describe("更新后的代码片段全局配置。")
     })
   }
-];  
+];

@@ -35,7 +35,7 @@ export const searchApiDefs = [
     zh_cn: "全文搜索资源文件内容",
     description: "对资源文件内容进行全文搜索（此功能需要付费订阅）。",
     needAuth: true,
-    needAdminRole: false, // Go 源码中是 model.IsPaidUser() 检查，非 AdminRole
+    needAdminRole: false,
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({
       query: z.string().describe("必需。搜索查询语句。"),
@@ -149,7 +149,7 @@ export const searchApiDefs = [
     zh_cn: "列出无效的块引用",
     description: "分页列出在当前工作空间中所有无效的块引用（例如，引用的块已被删除）。",
     needAuth: true,
-    needAdminRole: false, // 源码中无 AdminRole 校验
+    needAdminRole: false,
     unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({
       page: z.number().int().min(1).optional().describe("可选。页码，从 1 开始，默认为 1。"),
@@ -357,8 +357,8 @@ export const searchApiDefs = [
     zh_cn: "更新查询嵌入块内容",
     description: "更新指定**查询嵌入块（`query_embed` 类型）**的原始查询语句或脚本内容。此接口专门用于处理查询嵌入块，不适用于普通块的自定义属性更新。",
     needAuth: true,
-    needAdminRole: false, // 源码中无 AdminRole 校验
-    unavailableIfReadonly: false, // 源码中无 Readonly 校验
+    needAdminRole: false,
+    unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({
       id: z.string().describe("必需。要更新的查询嵌入块的 ID。"),
       content: z.string().describe("必需。查询嵌入块新的原始 Markdown 内容，通常是 SQL 查询语句或 JavaScript 脚本。")

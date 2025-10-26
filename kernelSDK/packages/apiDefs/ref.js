@@ -118,7 +118,7 @@ export const refApiDefs = [
     description: "手动触发指定块的反向链接和提及关系的刷新计算。通常在数据发生变更后，系统会自动更新，但此接口可用于强制刷新。",
     needAuth: true,
     needAdminRole: false,
-    unavailableIfReadonly: false, // 虽然可能修改数据，但router中未限制readonly
+    unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({
       id: z.string().describe("必需。要刷新反向链接和提及信息的目标块的 ID。")
     }),
