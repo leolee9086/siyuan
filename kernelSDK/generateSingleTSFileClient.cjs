@@ -342,8 +342,8 @@ interface KernelApiClientOptions {
 
     classBody += `
 class KernelApiClient {
-  private baseUrl: string;
-  private apiToken: string;
+   baseUrl: string;
+   apiToken: string;
   private customFetch: (input: RequestInfo, init?: RequestInit) => Promise<Response>;
 
   /**

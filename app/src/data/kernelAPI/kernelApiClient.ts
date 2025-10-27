@@ -11,8 +11,8 @@ interface KernelApiClientOptions {
 
 
 class KernelApiClient {
-  private baseUrl: string;
-  private apiToken: string;
+   baseUrl: string;
+   apiToken: string;
   private customFetch: (input: RequestInfo, init?: RequestInit) => Promise<Response>;
 
   /**
@@ -3383,7 +3383,7 @@ class KernelApiClient {
    *   data: null | undefined;
    * @throws If the request fails or the server returns an error.
    */
-  async putFile(data: { path: string; isDir: boolean; modTime?: string }): Promise<{ code: number; msg: string; Data?: null }> {
+  async putFile(data: FormData): Promise<{ code: number; msg: string; data?: null }> {
     return this._fetchWrapper('/api/file/putFile', 'POST', data, true);
   }
 
@@ -3393,13 +3393,13 @@ class KernelApiClient {
    * Requires authentication.
    * data: object
    *   path: string;
-   * : Promise<object>
+   * : Promise<object>d
    *   code: number;
    *   msg: string;
    *   data: object[];
    * @throws If the request fails or the server returns an error.
    */
-  async readDir(data: { path: string }): Promise<{ code: number; msg: string; data: { name: string; isDir: boolean; isSymlink: boolean; updated: number }[] }> {
+  async readDir(data: { path: string }): Promise<{ code: number; msg: string; data: { name: string; isDir: boolean; isSymlink: boolean; updated: number;size:number }[] }> {
     return this._fetchWrapper('/api/file/readDir', 'POST', data, true);
   }
 

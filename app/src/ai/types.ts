@@ -68,6 +68,25 @@ export interface ChatResponseData {
 }
 
 /**
+ * 聊天响应数据的Zod验证模式
+ */
+export const chatResponseDataSchema = z.object({
+    choices: z.array(z.object({
+        delta: z.object({
+            content: z.string().optional(),
+        }).optional(),
+        message: z.object({
+            content: z.string().optional(),
+        }).optional(),
+    })).optional(),
+    error: z.object({
+        message: z.string(),
+        type: z.string().optional(),
+        code: z.string().optional(),
+    }).optional(),
+});
+
+/**
  * 流式请求配置接口（扩展原有接口）
  */
 export interface StreamRequestConfigWithAI {

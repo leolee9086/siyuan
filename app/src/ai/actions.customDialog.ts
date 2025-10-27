@@ -1,14 +1,12 @@
 import { Constants } from "../constants";
 import { Dialog } from "../dialog";
-import { setStorageVal } from "../protyle/util/compatibility";
-import { fetchPost } from "../util/fetch";
 import { fillContent } from "./actions.fillContent";
 import { VueComponentMountConfig } from "../util/vue/mount";
 import { createVueDialog } from "../util/dialog/createVueDialog";
 import AiCustomDialog from "../components/aiCustomDialog.vue";
 import { saveCustomAIAction } from "../data/localStorage";
 import KernelApiClient from "../data/kernelAPI/kernelApiClient";
-
+import { localKernel } from "../data/kernelAPI/defaultClient";
 /**
  * 处理使用按钮的点击事件
  * 调用AI API并填充内容
@@ -19,22 +17,19 @@ import KernelApiClient from "../data/kernelAPI/kernelApiClient";
  * @param elements - 元素列表
  * @param customAction - 自定义动作内容
  */
-const handleUseClick = (
+const handleUseClick = async (
     dialog: Dialog,
     protyle: IProtyle,
     ids: string[],
     elements: Element[],
     customAction: string
 ) => {
-    new KernelApiClient().chatGPTWithAction({
+    const res = await localKernel.chatGPTWithAction({
         ids,
         action: customAction,
-    }).then(
-        data => {
-            dialog.destroy();
-            fillContent(protyle, data.data, elements);
-        }
-    )
+    })
+    dialog.destroy();
+    fillContent(protyle, res.data, elements);
 };
 
 /**

@@ -1,4 +1,6 @@
+///#if !MOBILE
 import { selectRecentDoc } from "../business/selectRecentDoc";
+///#endif
 import { Constants } from "../constants";
 import { showMessage } from "../dialog/message";
 import { Menu } from "../plugin/Menu";
@@ -68,12 +70,14 @@ const handleListItemClick = (
     if (targetElement.dataset.type === "recentDocs"){
         //使用最近的文档当成actions
         menu.close();
+        ///#if !MOBILE
         selectRecentDoc().then(
             async(docId)=>{
                 console.log(docId)
                 
             }
         )
+        ///#endif
     }
     
     else if(targetElement.dataset.type === "custom") {

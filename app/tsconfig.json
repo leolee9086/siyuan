@@ -3,7 +3,7 @@
     "outDir": "./src/types/dist",
     "noImplicitAny": true,
     "module": "commonjs",
-    "target": "es6",
+    "target": "ES2022",
     "typeRoots": [
       "./node_modules/@types"
     ],
