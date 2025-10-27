@@ -3,7 +3,7 @@ import { isMobile } from "../util/functions";
 import { genUUID } from "../util/genID";
 import { genMaskColor, createBlockMask, setDialogColor, removeBlockMask } from "./chatStream.mask";
 import { createVueDialog } from "../util/dialog/createVueDialog";
-import AIChatDialog from "./StreamChat.vue";
+import AIChatDialog from "./StreamChat.panel.vue";
 import { VueComponentMountConfig } from "../util/vue/mount";
 
 const createAIChatDialogVueConfig = (

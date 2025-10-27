@@ -6,6 +6,7 @@ interface StreamRequestConfig {
     headers?: Record<string, string>;
     body?: any;
     timeout?: number; // 默认10秒
+    signal: AbortSignal; // 必须传入的 AbortSignal
 }
 
 // 定义回调函数类型
@@ -16,17 +17,131 @@ interface StreamCallbacks {
     onAbort?: () => void;
 }
 
+// 处理流数据的独立函数
+const processStreamData = async (
+    reader: ReadableStreamDefaultReader<Uint8Array>,
+    decoder: TextDecoder,
+    onMessage: (content: string) => void,
+    onDone: () => void,
+    resetTimeout: () => void
+): Promise<void> => {
+    let buffer = "";
+    
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+            break;
+        }
+
+        buffer += decoder.decode(value, { stream: true });
+        const events = buffer.split("\n\n");
+        buffer = events.pop() || ""; // 保留不完整的事件
+
+        for (const event of events) {
+            if (event.startsWith("data: ")) {
+                const dataStr = event.substring(6);
+                
+                // 处理特殊事件
+                if (dataStr === "[DONE]") {
+                    onDone(); // 调用结束回调
+                    return; // 流结束
+                }
+                console.log(dataStr)
+                // 直接传递原始数据给调用方处理
+                onMessage(dataStr);
+                resetTimeout(); // 每次收到内容都重置超时
+            }
+        }
+    }
+};
+
+// 准备请求参数的独立函数
+const prepareRequestParams = (
+    url: string,
+    method: string,
+    headers: Record<string, string>,
+    body: any,
+    signal: AbortSignal
+): { headers: Record<string, string>; body: string | undefined } => {
+    // 准备请求头
+    const requestHeaders: Record<string, string> = {
+        "Content-Type": "application/json",
+        ...headers
+    };
+    
+    // 准备请求体
+    let requestBody: string | undefined;
+    if (body !== undefined) {
+        requestBody = typeof body === 'string' ? body : JSON.stringify(body);
+    }
+    
+    return { headers: requestHeaders, body: requestBody };
+};
+
+// 处理响应的独立函数
+const processResponse = async (
+    response: Response,
+    onMessage: (content: string) => void,
+    onDone: () => void,
+    resetTimeout: () => void
+): Promise<void> => {
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) {
+        throw new Error("Response body is null");
+    }
+
+    const decoder = new TextDecoder("utf-8");
+    try {
+        await processStreamData(reader, decoder, onMessage, onDone, resetTimeout);
+    } finally {
+        reader.releaseLock();
+    }
+};
+
+// 处理错误的独立函数
+const handleError = (
+    error: unknown,
+    onError: (error: Error) => void,
+    lastEventTime: number,
+    timeout: number
+): void => {
+    if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+            // 检查是否是因为超时
+            const timeSinceLastEvent = Date.now() - lastEventTime;
+            if (timeSinceLastEvent >= timeout) {
+                onError(new Error("响应超时，但已保留已有内容"));
+            } else {
+                onError(new Error("请求已终止"));
+            }
+        } else {
+            onError(error);
+        }
+    } else {
+        onError(new Error("未知错误"));
+    }
+};
+
 // 新的通用流式请求函数
 export const universalStreamRequest = async (
     request: StreamRequestConfig,
     callbacks: StreamCallbacks
 ) => {
-    const { url, method = "POST", headers = {}, body, timeout = 10000 } = request;
+    const { url, method = "POST", headers = {}, body, timeout = 10000, signal } = request;
     const { onMessage, onDone, onError, onAbort } = callbacks;
     
-    let controller: AbortController | null = null;
     let timeoutId: NodeJS.Timeout | null = null;
     let lastEventTime = Date.now();
+    
+    // 检查信号是否已经被中止
+    if (signal.aborted) {
+        onError(new Error("请求已终止"));
+        return null;
+    }
     
     const resetTimeout = () => {
         if (timeoutId) {
@@ -35,108 +150,37 @@ export const universalStreamRequest = async (
         lastEventTime = Date.now();
         // 每个事件后重置超时计时器
         timeoutId = setTimeout(() => {
-            if (controller) {
-                controller.abort();
-            }
+            // 超时时通过错误回调处理，不直接控制 signal
+            onError(new Error("响应超时，但已保留已有内容"));
         }, timeout);
     };
     
     try {
-        // 创建可取消的请求
-        controller = new AbortController();
-        
         // 初始超时设置
         resetTimeout();
         
-        // 准备请求头
-        const requestHeaders: Record<string, string> = {
-            "Content-Type": "application/json",
-            ...headers
-        };
-        
-        // 准备请求体
-        let requestBody: string | undefined;
-        if (body !== undefined) {
-            requestBody = typeof body === 'string' ? body : JSON.stringify(body);
-        }
+        // 准备请求参数
+        const { headers: requestHeaders, body: requestBody } = prepareRequestParams(url, method, headers, body, signal);
         
         const response = await fetch(url, {
             method,
             headers: requestHeaders,
             body: requestBody,
-            signal: controller.signal,
+            signal,
         });
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const reader = response.body?.getReader();
-        if (!reader) {
-            throw new Error("Response body is null");
-        }
-
-        const decoder = new TextDecoder("utf-8");
-        let buffer = "";
-        try {
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) {
-                    break;
-                }
-
-                buffer += decoder.decode(value, { stream: true });
-                const events = buffer.split("\n\n");
-                buffer = events.pop() || ""; // 保留不完整的事件
-
-                for (const event of events) {
-                    if (event.startsWith("data: ")) {
-                        const dataStr = event.substring(6);
-                        
-                        // 处理特殊事件
-                        if (dataStr === "[DONE]") {
-                            onDone(); // 调用结束回调
-                            return; // 流结束
-                        }
-                        console.log(dataStr)
-                        // 直接传递原始数据给调用方处理
-                        onMessage(dataStr);
-                        resetTimeout(); // 每次收到内容都重置超时
-                    }
-                }
-            }
-        } finally {
-            reader.releaseLock();
-        }
-        
+        await processResponse(response, onMessage, onDone, resetTimeout);
         onDone();
     } catch (error) {
-        if (error instanceof Error) {
-            if (error.name === 'AbortError') {
-                // 检查是否是因为超时
-                const timeSinceLastEvent = Date.now() - lastEventTime;
-                if (timeSinceLastEvent >= timeout) {
-                    onError(new Error("响应超时，但已保留已有内容"));
-                } else {
-                    onError(new Error("请求已终止"));
-                }
-            } else {
-                onError(error);
-            }
-        } else {
-            onError(new Error("未知错误"));
-        }
+        handleError(error, onError, lastEventTime, timeout);
     } finally {
         if (timeoutId) {
             clearTimeout(timeoutId);
         }
     }
     
-    // 返回终止函数，供外部调用
+    // 返回空函数，因为取消操作完全由外部 AbortSignal 控制
     return () => {
-        if (controller) {
-            controller.abort();
-        }
         if (onAbort) {
             onAbort();
         }

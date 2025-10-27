@@ -1,10 +1,12 @@
 ///#if !MOBILE
-import { selectRecentDoc } from "../business/selectRecentDoc";
+import { selectRecentDoc } from "./imports";
 ///#endif
-import { Constants } from "../constants";
-import { showMessage } from "../dialog/message";
-import { Menu } from "../plugin/Menu";
-import { fetchPost } from "../util/fetch";
+import {
+    Constants,
+    showMessage,
+    Menu,
+    fetchPost
+} from "./imports";
 import { customDialog } from "./actions.customDialog";
 import { editDialog } from "./actions.editDialog";
 import { fillContent } from "./actions.fillContent";

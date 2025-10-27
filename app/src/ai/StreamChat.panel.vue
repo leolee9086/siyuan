@@ -32,13 +32,8 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue';
 import type { PropType } from 'vue';
-import { ChatState } from './chatStream.types';
-import { buildAIRequest, buildRequestHeaders, handleOpenAILikeStreamResponse, updateChatState } from './chatStream.utils';
-import { universalStreamRequest } from '../util/fetchStream';
-import { getAIConfigFromSiyuan } from './types';
-import { fillContent } from './actions.fillContent';
-import { getContenteditableElement } from '../protyle/wysiwyg/getBlock';
-import { useStreamChatUI } from './useStreamChatUI';
+import { ChatState, useStreamChatUI, handleAIRequest, handleFillContent, getI18nText } from './streamChat.componentLogic';
+
 const props = defineProps({
     protyle: {
         type: Object as PropType<IProtyle>,
@@ -85,14 +80,10 @@ const {
     focusTextarea
 } = useStreamChatUI();
 
-// 获取思源语言文本的辅助函数
-const getI18n = (key: string) => {
-  return window.siyuan.languages?.[key];
-};
-
-const aiWritingText = getI18n('aiWriting');
-const cancelText = getI18n('cancel');
-const confirmText = getI18n('confirm');
+// 获取国际化文本
+const aiWritingText = getI18nText('aiWriting');
+const cancelText = getI18nText('cancel');
+const confirmText = getI18nText('confirm');
 
 const confirmButtonText = computed(() => {
     if (state.isStreaming) return '响应中...点击终止';
@@ -120,65 +111,25 @@ const handleConfirmClick = async () => {
     }
 
     if (state.isDone) {
-        const targetElements = props.selectedElements.length > 0 ? props.selectedElements : [props.targetElement];
-        fillContent(props.protyle, state.responseContentStr, targetElements, state.blockDOMContent);
+        handleFillContent(props.protyle, state, props.selectedElements, props.targetElement);
         props.dialog.destroy();
         return;
     }
 
-    await executeAIRequest();
-};
-
-const executeAIRequest = async () => {
-    if (!inputValue.value) return;
-    showResponse();
-    updateChatState(state, {
-        responseContentStr: '',
-        isStreaming: true,
-        isDone: false,
-    });
-    try {
-        const aiConfig = getAIConfigFromSiyuan();
-        let blockContents: string[] = [];
-        if (props.selectedElements.length > 0) {
-            props.selectedElements.forEach(blockElement => {
-                const editableElement = getContenteditableElement(blockElement);
-                if (editableElement) {
-                    blockContents.push(editableElement.textContent || '');
-                }
-            });
-        }
-        const requestBody = buildAIRequest(inputValue.value, blockContents);
-        const headers = buildRequestHeaders();
-        const abortFn = await universalStreamRequest(
-            {
-                url: `${aiConfig.apiBaseURL}/chat/completions`,
-                method: 'POST',
-                headers: headers,
-                body: requestBody,
-                timeout: aiConfig.apiTimeout,
-            },
-            {
-                onMessage: (dataStr) => handleOpenAILikeStreamResponse(dataStr, state, null, props.protyle),
-                onDone: () => {
-                    updateChatState(state, { isStreaming: false, isDone: true, abortFunction: null });
-                    setCompleteStatus();
-                },
-                onError: (error) => {
-                    updateChatState(state, { isStreaming: false, abortFunction: null });
-                    setErrorStatus(error);
-                },
-                onAbort: () => {
-                    updateChatState(state, { isStreaming: false, abortFunction: null });
-                    setAbortStatus();
-                },
-            }
-        );
-        updateChatState(state, { abortFunction: abortFn });
-    } catch (error) {
-        const errorMessage = error instanceof Error ? error : new Error('请求失败');
-        updateChatState(state, { isStreaming: false });
-        setErrorStatus(errorMessage);
+    const abortFn = await handleAIRequest(
+        inputValue.value,
+        state,
+        props.protyle,
+        props.selectedElements,
+        props.targetElement,
+        showResponse,
+        setCompleteStatus,
+        setErrorStatus,
+        setAbortStatus
+    );
+    
+    if (abortFn) {
+        state.abortFunction = abortFn;
     }
 };
 

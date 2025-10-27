@@ -1,4 +1,4 @@
-import { switchFnNoneByFlag } from "../util/DOM/fnClasses";
+import { switchFnNoneByFlag } from "./imports";
 
 export const filterAIMenuItems = (element: HTMLElement, inputElement: HTMLInputElement) => {
     element.querySelectorAll(".b3-list-item").forEach(item => {

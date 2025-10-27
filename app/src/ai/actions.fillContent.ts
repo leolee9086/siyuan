@@ -1,9 +1,11 @@
-import { blockRender } from "../protyle/render/blockRender";
-import { highlightRender } from "../protyle/render/highlightRender";
-import { insertHTML } from "../protyle/util/insertHTML";
-import { processRender } from "../protyle/util/processCode";
-import { setLastNodeRange } from "../protyle/util/selection";
-import { getContenteditableElement } from "../protyle/wysiwyg/getBlock";
+import {
+    blockRender,
+    highlightRender,
+    insertHTML,
+    processRender,
+    setLastNodeRange,
+    getContenteditableElement
+} from "./imports";
 
 
 /**

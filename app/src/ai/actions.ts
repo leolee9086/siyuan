@@ -1,11 +1,15 @@
-import { fetchPost } from "../util/fetch";
-import { focusByRange } from "../protyle/util/selection";
-import { Constants } from "../constants";
-import { escapeAriaLabel, escapeAttr, escapeHtml } from "../util/escape";
-import { showMessage } from "../dialog/message";
-import { Menu } from "../plugin/Menu";
-import { upDownHint } from "../util/upDownHint";
-import { getElementsBlockId } from "../util/DOM/blockLikeElements";
+import {
+    fetchPost,
+    focusByRange,
+    Constants,
+    escapeAriaLabel,
+    escapeAttr,
+    escapeHtml,
+    showMessage,
+    Menu,
+    upDownHint,
+    getElementsBlockId
+} from "./imports";
 import { fillContent } from "./actions.fillContent";
 import { AIChat } from "./chatStream";
 import { AIMenuContext, AIMenuRequest, handleAIMenuItemClick } from "./actions.handleAIMenuItemClick";
