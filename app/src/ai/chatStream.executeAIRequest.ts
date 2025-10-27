@@ -3,7 +3,6 @@ import { AIRequestConfig, StreamResponseHandlers } from "./chatStream.types";
 import { updateChatState, buildAIRequest, buildRequestHeaders, handleOpenAILikeStreamResponse } from "./chatStream.utils";
 import { showResponseContainer, hideResponseContainer, handleRequestComplete, handleRequestError, handleRequestAbort } from "./chatStream.ui";
 import { getAIConfigFromSiyuan } from "./types";
-import { hasClosestBlock } from "../protyle/util/hasClosest";
 import { getContenteditableElement } from "../protyle/wysiwyg/getBlock";
 
 // 执行AI请求

@@ -8,6 +8,27 @@ import {Protyle} from "../protyle";
 import {Constants} from "../constants";
 import {createVueComponentLoader, VueComponentMountConfig, VueComponentLoaderContext} from "../util/vue/mount";
 import {App} from "vue";
+export interface IDialogOptions {
+    positionId?: string,
+    title?: string,
+    titleVueConfig?: VueComponentMountConfig, // 新增：标题Vue组件配置
+    titleVueContext?: VueComponentLoaderContext, // 新增：标题Vue组件上下文
+    transparent?: boolean,
+    content: string,
+    width?: string,
+    height?: string,
+    destroyCallback?: (options?: IObject) => void,
+    disableClose?: boolean,
+    hideCloseIcon?: boolean,
+    disableAnimation?: boolean,
+    resizeCallback?: (type: string) => void,
+    containerClassName?: string,
+    disableScrimClose?: boolean, // 是否禁用点击遮罩关闭
+    disableEscapeClose?: boolean,  // 是否禁用 Escape 键关闭
+    scrimPointerEvents?: boolean, // 是否允许遮罩层鼠标事件穿透
+    closeButtonPosition?: "outside" | "inside" | "inside-body" // 关闭按钮位置：外部(默认)、内部标题栏、内部内容区域
+}
+
 export class Dialog {
     private destroyCallback: (options?: IObject) => void;
     public element: HTMLElement;
@@ -20,26 +41,7 @@ export class Dialog {
     public data: any;
     private titleVueApp: App | null; // 存储标题Vue应用实例
 
-    constructor(options: {
-        positionId?: string,
-        title?: string,
-        titleVueConfig?: VueComponentMountConfig, // 新增：标题Vue组件配置
-        titleVueContext?: VueComponentLoaderContext, // 新增：标题Vue组件上下文
-        transparent?: boolean,
-        content: string,
-        width?: string,
-        height?: string,
-        destroyCallback?: (options?: IObject) => void,
-        disableClose?: boolean,
-        hideCloseIcon?: boolean,
-        disableAnimation?: boolean,
-        resizeCallback?: (type: string) => void,
-        containerClassName?: string,
-        disableScrimClose?: boolean, // 是否禁用点击遮罩关闭
-        disableEscapeClose?: boolean,  // 是否禁用 Escape 键关闭
-        scrimPointerEvents?: boolean, // 是否允许遮罩层鼠标事件穿透
-        closeButtonPosition?: "outside" | "inside" | "inside-body" // 关闭按钮位置：外部(默认)、内部标题栏、内部内容区域
-    }) {
+    constructor(options: IDialogOptions) {
         this.disableClose = options.disableClose;
         this.disableScrimClose = options.disableScrimClose || false; // 默认允许点击遮罩关闭
         this.disableEscapeClose = options.disableEscapeClose || false; // 默认允许 Escape 键关闭

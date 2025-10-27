@@ -62,19 +62,23 @@ export const createVueComponentLoader = (
     });
 
     // 挂载到容器
-    const mountedInstance = app.mount(container);
+    try {
+        const mountedInstance = app.mount(container);
+        // 如果指定了初始化方法，调用它
+        if (config.initMethodName && (mountedInstance as any).$refs) {
+            const componentName = Object.keys(config.components)[0];
+            const componentRefName = `${componentName}Component`;
+            const componentInstance = (mountedInstance as any).$refs[componentRefName];
 
-    // 如果指定了初始化方法，调用它
-    if (config.initMethodName && (mountedInstance as any).$refs) {
-        const componentName = Object.keys(config.components)[0];
-        const componentRefName = `${componentName}Component`;
-        const componentInstance = (mountedInstance as any).$refs[componentRefName];
-        
-        if (componentInstance && componentInstance[config.initMethodName]) {
-            componentInstance[config.initMethodName](...(config.initMethodParams || []));
+            if (componentInstance && componentInstance[config.initMethodName]) {
+                componentInstance[config.initMethodName](...(config.initMethodParams || []));
+            }
         }
-    }
 
+
+    } catch (e) {
+        console.error(e)
+    }
     return app;
 };
 
@@ -93,7 +97,7 @@ export const createVueComponentInDialog = (
     // 创建容器元素
     // 将容器添加到对话框主体
     const dialogBody = dialogInstance.element.querySelector(".b3-dialog__body");
-    
+
     // 确保找到了对话框主体元素
     if (!dialogBody) {
         console.error("无法找到对话框主体元素 .b3-dialog__body");
@@ -125,7 +129,7 @@ export const createSimpleVueComponentLoader = (
     initMethodParams?: any[]
 ): App => {
     const componentName = component.name || 'DynamicComponent';
-    
+
     return createVueComponentLoader(container, {
         components: { [componentName]: component },
         data,

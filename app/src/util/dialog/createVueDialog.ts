@@ -1,17 +1,15 @@
-import { Dialog } from "../../dialog";
+import { Dialog, IDialogOptions } from "../../dialog";
 import { isMobile } from "../../util/functions";
 import { createVueComponentInDialog, VueComponentMountConfig } from "../vue/mount";
 
 /**
  * Vue对话框配置接口
  */
-export interface VueDialogConfig {
+export interface VueDialogConfig extends Omit<IDialogOptions, "content"> {
     /** 对话框标题 */
-    title: string;
-    /** 对话框宽度，默认移动端为"92vw"，桌面端为"520px" */
-    width?: string;
+    title?: string;
     /** 对话框data-key属性值 */
-    dataKey: string;
+    dataKey?: string;
     /** Vue组件挂载配置工厂函数，接收dialog实例作为参数 */
     vueConfigFactory: (dialog: Dialog) => VueComponentMountConfig;
 }
@@ -24,11 +22,11 @@ export interface VueDialogConfig {
  */
 export const createVueDialog = (config: VueDialogConfig): Dialog => {
     const dialog = new Dialog({
-        title: config.title,
+        ...config,
         content: "",
         width: config.width || (isMobile() ? "92vw" : "520px"),
     });
-    
+
     dialog.element.setAttribute("data-key", config.dataKey);
     const vueConfig = config.vueConfigFactory(dialog);
     createVueComponentInDialog(dialog, vueConfig);
