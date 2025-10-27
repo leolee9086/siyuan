@@ -19,11 +19,11 @@ interface StreamCallbacks {
 
 // 流数据处理上下文
 interface StreamProcessContext {
-    reader: ReadableStreamDefaultReader<Uint8Array>;
-    decoder: TextDecoder;
-    onMessage: (content: string) => void;
-    onDone: () => void;
-    resetTimeout: () => void;
+    getReader: () => ReadableStreamDefaultReader<Uint8Array>;
+    getDecoder: () => TextDecoder;
+    getOnMessage: () => (content: string) => void;
+    getOnDone: () => () => void;
+    getResetTimeout: () => () => void;
 }
 
 
@@ -35,12 +35,12 @@ const processStreamData = async (
     let buffer = "";
     
     while (true) {
-        const { done, value } = await ctx.reader.read();
+        const { done, value } = await ctx.getReader().read();
         if (done) {
             break;
         }
 
-        buffer += ctx.decoder.decode(value, { stream: true });
+        buffer += ctx.getDecoder().decode(value, { stream: true });
         const events = buffer.split("\n\n");
         buffer = events.pop() || ""; // 保留不完整的事件
 
@@ -50,13 +50,13 @@ const processStreamData = async (
                 
                 // 处理特殊事件
                 if (dataStr === "[DONE]") {
-                    ctx.onDone(); // 调用结束回调
+                    ctx.getOnDone()(); // 调用结束回调
                     return; // 流结束
                 }
                 console.log(dataStr)
                 // 直接传递原始数据给调用方处理
-                ctx.onMessage(dataStr);
-                ctx.resetTimeout(); // 每次收到内容都重置超时
+                ctx.getOnMessage()(dataStr);
+                ctx.getResetTimeout()(); // 每次收到内容都重置超时
             }
         }
     }
@@ -82,21 +82,38 @@ const prepareRequestParams = (
     return { headers: requestHeaders, body: requestBody };
 };
 
-// 处理响应的独立函数 - 标准形式
+// 处理响应的独立函数
 const processResponse = async (
-    ctx: StreamProcessContext,
-    response:Response
+    response: Response,
+    onMessage: (content: string) => void,
+    onDone: () => void,
+    resetTimeout: () => void
 ): Promise<void> => {
     if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
     }
+
+    const reader = response.body?.getReader();
+    if (!reader) {
+        throw new Error("Response body is null");
+    }
+
+    const decoder = new TextDecoder("utf-8");
     
-  
+    // 创建流处理上下文
+    const streamCtx: StreamProcessContext = {
+        getReader: () => reader,
+        getDecoder: () => decoder,
+        getOnMessage: () => onMessage,
+        getOnDone: () => onDone,
+        getResetTimeout: () => resetTimeout
+    };
+    
 
     try {
-        await processStreamData(ctx);
+        await processStreamData(streamCtx);
     } finally {
-        ctx.reader.releaseLock();
+        reader.releaseLock();
     }
 };
 
@@ -163,16 +180,7 @@ export const universalStreamRequest = async (
             signal,
         });
 
-        // 创建流处理上下文
-        const streamCtx: StreamProcessContext = {
-            reader: response.body?.getReader()!,
-            decoder: new TextDecoder("utf-8"),
-            onMessage,
-            onDone,
-            resetTimeout
-        };
-        
-        await processResponse(streamCtx,  response );
+        await processResponse(response, onMessage, onDone, resetTimeout);
         onDone();
     } catch (error) {
         handleError(error, onError, lastEventTime, timeout);
