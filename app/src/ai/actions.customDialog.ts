@@ -1,12 +1,13 @@
-import { Constants } from "../constants";
-import { Dialog } from "../dialog";
 import { fillContent } from "./actions.fillContent";
-import { VueComponentMountConfig } from "../util/vue/mount";
-import { createVueDialog } from "../util/dialog/createVueDialog";
-import AiCustomDialog from "../components/aiCustomDialog.vue";
-import { saveCustomAIAction } from "../data/localStorage";
-import KernelApiClient from "../data/kernelAPI/kernelApiClient";
-import { localKernel } from "../data/kernelAPI/defaultClient";
+import {
+    Constants,
+    Dialog,
+    VueComponentMountConfig,
+    createVueDialog,
+    AiCustomDialog,
+    saveCustomAIAction,
+    localKernel
+} from "./imports";
 /**
  * 处理使用按钮的点击事件
  * 调用AI API并填充内容

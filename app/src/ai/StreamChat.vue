@@ -30,7 +30,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted, computed } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
 import type { PropType } from 'vue';
 import { ChatState } from './chatStream.types';
 import { buildAIRequest, buildRequestHeaders, handleOpenAILikeStreamResponse, updateChatState } from './chatStream.utils';
@@ -38,6 +38,7 @@ import { universalStreamRequest } from '../util/fetchStream';
 import { getAIConfigFromSiyuan } from './types';
 import { fillContent } from './actions.fillContent';
 import { getContenteditableElement } from '../protyle/wysiwyg/getBlock';
+import { useStreamChatUI } from './useStreamChatUI';
 const props = defineProps({
     protyle: {
         type: Object as PropType<IProtyle>,
@@ -59,11 +60,6 @@ const props = defineProps({
 
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
 const inputValue = ref('');
-const showResponseContainer = ref(false);
-const statusText = ref('正在生成回复...');
-const statusColor = ref('var(--b3-theme-on-surface)');
-const dots = ref('');
-let dotsInterval: NodeJS.Timeout | null = null;
 
 const state = reactive<ChatState>({
     responseContentStr: '',
@@ -75,6 +71,19 @@ const state = reactive<ChatState>({
 
 const isStreaming = computed(() => state.isStreaming);
 
+// 使用UI composable管理界面相关逻辑
+const {
+    showResponseContainer,
+    statusText,
+    statusColor,
+    dots,
+    showResponse,
+    hideResponse,
+    setCompleteStatus,
+    setErrorStatus,
+    setAbortStatus,
+    focusTextarea
+} = useStreamChatUI();
 
 // 获取思源语言文本的辅助函数
 const getI18n = (key: string) => {
@@ -94,22 +103,6 @@ const confirmButtonText = computed(() => {
 const confirmButtonColor = computed(() => {
     return state.isStreaming ? 'var(--b3-theme-error)' : '';
 });
-
-const startAnimation = () => {
-    let dotCount = 0;
-    dotsInterval = setInterval(() => {
-        dotCount = (dotCount + 1) % 4;
-        dots.value = '.'.repeat(dotCount);
-    }, 500);
-};
-
-const stopAnimation = () => {
-    if (dotsInterval) {
-        clearInterval(dotsInterval);
-        dotsInterval = null;
-    }
-    dots.value = '';
-};
 
 const handleCancelClick = () => {
     if (state.abortFunction) {
@@ -138,22 +131,15 @@ const handleConfirmClick = async () => {
 
 const executeAIRequest = async () => {
     if (!inputValue.value) return;
-
-    showResponseContainer.value = true;
-    statusText.value = '正在生成回复...';
-    statusColor.value = 'var(--b3-theme-on-surface)';
-    startAnimation();
-
+    showResponse();
     updateChatState(state, {
         responseContentStr: '',
         isStreaming: true,
         isDone: false,
     });
-
     try {
         const aiConfig = getAIConfigFromSiyuan();
         let blockContents: string[] = [];
-
         if (props.selectedElements.length > 0) {
             props.selectedElements.forEach(blockElement => {
                 const editableElement = getContenteditableElement(blockElement);
@@ -162,10 +148,8 @@ const executeAIRequest = async () => {
                 }
             });
         }
-
         const requestBody = buildAIRequest(inputValue.value, blockContents);
         const headers = buildRequestHeaders();
-
         const abortFn = await universalStreamRequest(
             {
                 url: `${aiConfig.apiBaseURL}/chat/completions`,
@@ -178,49 +162,27 @@ const executeAIRequest = async () => {
                 onMessage: (dataStr) => handleOpenAILikeStreamResponse(dataStr, state, null, props.protyle),
                 onDone: () => {
                     updateChatState(state, { isStreaming: false, isDone: true, abortFunction: null });
-                    stopAnimation();
-                    statusText.value = '生成完成';
+                    setCompleteStatus();
                 },
                 onError: (error) => {
                     updateChatState(state, { isStreaming: false, abortFunction: null });
-                    stopAnimation();
-                    statusText.value = `生成失败: ${error.message}`;
-                    statusColor.value = 'var(--b3-theme-error)';
-                    console.error('Stream error:', error);
-                    if (error.message.includes('超时') && state.responseContentStr) {
-                        statusText.value = '响应超时，但已保留已有内容';
-                        statusColor.value = 'var(--b3-theme-on-surface)';
-                    } else {
-                        setTimeout(() => {
-                            showResponseContainer.value = false;
-                        }, 3000);
-                    }
+                    setErrorStatus(error);
                 },
                 onAbort: () => {
                     updateChatState(state, { isStreaming: false, abortFunction: null });
-                    stopAnimation();
-                    statusText.value = '已终止响应';
+                    setAbortStatus();
                 },
             }
         );
         updateChatState(state, { abortFunction: abortFn });
     } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : '请求失败';
+        const errorMessage = error instanceof Error ? error : new Error('请求失败');
         updateChatState(state, { isStreaming: false });
-        stopAnimation();
-        statusText.value = errorMessage;
-        statusColor.value = 'var(--b3-theme-error)';
-        setTimeout(() => {
-            showResponseContainer.value = false;
-        }, 3000);
+        setErrorStatus(errorMessage);
     }
 };
 
 onMounted(() => {
-    textareaRef.value?.focus();
-});
-
-onUnmounted(() => {
-    stopAnimation();
+    focusTextarea(textareaRef);
 });
 </script>
