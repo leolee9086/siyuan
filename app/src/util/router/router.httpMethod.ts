@@ -16,7 +16,7 @@ import { z } from 'zod'
 > = (
     nameOrPath: string | RegExp | string[] | null,
     pathOrMiddleware: string | RegExp | string[] | MiddlewareFunction<TRequestBodySchema, TResponseBodySchema> | MiddlewareFunction<TRequestBodySchema, TResponseBodySchema>[],
-    ...rest: MiddlewareFunction<TRequestBodySchema, TResponseBodySchema>[]
+    ...rest: (MiddlewareFunction<TRequestBodySchema, TResponseBodySchema> | RouteOptions)[]
 ) => Router<TRequestBodySchema, TResponseBodySchema>;
  
  /**
@@ -30,10 +30,11 @@ import { z } from 'zod'
     TRequestBodySchema extends z.ZodTypeAny,
     TResponseBodySchema extends z.ZodTypeAny
 >(router: Router<TRequestBodySchema, TResponseBodySchema>, method: T): HttpMethodHandler<T, TRequestBodySchema, TResponseBodySchema> {
-    return (nameOrPath: string | RegExp | string[] | null, pathOrMiddleware: string | RegExp | string[] | MiddlewareFunction<TRequestBodySchema, TResponseBodySchema> | MiddlewareFunction<TRequestBodySchema, TResponseBodySchema>[], ...rest: MiddlewareFunction<TRequestBodySchema, TResponseBodySchema>[]): Router<TRequestBodySchema, TResponseBodySchema> => {
+    return (nameOrPath: string | RegExp | string[] | null, pathOrMiddleware: string | RegExp | string[] | MiddlewareFunction<TRequestBodySchema, TResponseBodySchema> | MiddlewareFunction<TRequestBodySchema, TResponseBodySchema>[], ...rest: (MiddlewareFunction<TRequestBodySchema, TResponseBodySchema> | RouteOptions)[]): Router<TRequestBodySchema, TResponseBodySchema> => {
         let actualPath: string | RegExp | string[];
         let actualName: string | null = null;
         let middleware: MiddlewareFunction<TRequestBodySchema, TResponseBodySchema>[];
+        let opts: RouteOptions = {};
 
         // 检查是否是路径类型
         const isPath = (value: any): value is string | RegExp | string[] => {
@@ -54,18 +55,20 @@ import { z } from 'zod'
         if (isPath(pathOrMiddleware)) {
             actualName = typeof nameOrPath === 'string' ? nameOrPath : null;
             actualPath = pathOrMiddleware;
-            middleware = rest;
+            middleware = rest.filter(isMiddleware) as MiddlewareFunction<TRequestBodySchema, TResponseBodySchema>[];
+            opts = rest.find(arg => typeof arg === 'object' && arg !== null && !isMiddleware(arg)) as RouteOptions || {};
         }
         // 处理普通路由的情况: router.get('/path', middleware)
         else if (isPath(nameOrPath)) {
             actualName = null;
             actualPath = nameOrPath;
 
-            // 处理中间件
-            if (isMiddleware(pathOrMiddleware)) {
-                middleware = [pathOrMiddleware, ...rest];
-            } else if (isMiddlewareArray(pathOrMiddleware)) {
-                middleware = [...pathOrMiddleware, ...rest];
+            const middlewares = [pathOrMiddleware, ...rest].filter(isMiddleware) as MiddlewareFunction<TRequestBodySchema, TResponseBodySchema>[];
+            const options = [pathOrMiddleware, ...rest].find(arg => typeof arg === 'object' && arg !== null && !isMiddleware(arg)) as RouteOptions | undefined;
+
+            if (middlewares.length > 0) {
+                middleware = middlewares;
+                opts = options || {};
             } else {
                 throw new Error(`You have to provide a valid middleware when adding a ${method} handler`);
             }
@@ -81,7 +84,7 @@ import { z } from 'zod'
             throw new Error(`You have to provide a path when adding a ${method} handler`);
         }
 
-        router.register(actualPath, [method], middleware, { name: actualName });
+        router.register(actualPath, [method], middleware, { ...opts, name: actualName });
         return router;
     };
 }

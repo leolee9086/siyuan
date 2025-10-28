@@ -17,6 +17,10 @@ interface LayerOptions {
   delimiter?: string;
   ignoreCaptures?: boolean;
   prefix?: string;
+  schema?: {
+    request?: any;
+    response?: any;
+  };
 }
 
 
@@ -44,9 +48,11 @@ export default class Layer {
   public stack: (MiddlewareFunction & { param?: string })[];
   public path: string | RegExp;
   public regexp: RegExp;
+  public schema: { request?: any; response?: any; } | undefined;
 
   constructor(path: string | RegExp, methods: string[], middleware: MiddlewareFunction | MiddlewareFunction[], opts: LayerOptions = {}) {
     this.opts = opts;
+    this.schema = opts.schema;
     this.name = this.opts.name || null;
     this.methods = [];
     this.paramNames = [];
@@ -58,7 +64,7 @@ export default class Layer {
         this.methods.push(upperMethod);
       }
     }
-    
+
     // 确保HEAD方法在GET方法之后
     if (this.methods.includes('GET') && !this.methods.includes('HEAD')) {
       this.methods.push('HEAD');
@@ -141,7 +147,7 @@ export default class Layer {
     }
     const match = path.match(this.regexp);
     if (!match) return [];
-    
+
     return match.slice(1);
   }
 

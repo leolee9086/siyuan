@@ -26,21 +26,10 @@ export function chain<
         previousStep: undefined,
 
       }
-      let previousResult: any = extendedContext.response.body
 
-      // 校验初始ctx
-      let parsedResult = responseBodySchema.safeParse(previousResult)
       //执行路由
       const dispatch = router.routes()
-      const dispatchPromise = dispatch(extendedContext, async () => { });
-      await dispatchPromise;
-      previousResult = extendedContext.response.body;
-      parsedResult = responseBodySchema.safeParse(previousResult);
-      if (parsedResult.success) {
-        extendedContext.response.body = parsedResult.data
-      } else {
-        extendedContext.response.body = previousResult
-      }
+      await dispatch(extendedContext, async () => { });
       return extendedContext
     },
     router

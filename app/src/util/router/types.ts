@@ -269,6 +269,10 @@ export const routeOptionsSchema = z.object({
   strict: z.boolean().optional(),
   prefix: z.string().optional(),
   ignoreCaptures: z.boolean().optional(),
+  schema: z.object({
+    request: z.any().optional(),
+    response: z.any().optional(),
+  }).optional(),
 })
 
 export const routerOptionsSchema = z.object({

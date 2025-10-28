@@ -26,7 +26,8 @@ export function register<T extends Router>(router: T, path: string | RegExp | st
         sensitive: opts.sensitive || router.opts.sensitive || false,
         strict: opts.strict || router.opts.strict || false,
         prefix: opts.prefix || router.opts.prefix || '',
-        ignoreCaptures: opts.ignoreCaptures
+        ignoreCaptures: opts.ignoreCaptures,
+        schema: opts.schema
     });
 
     if (router.opts.prefix) {

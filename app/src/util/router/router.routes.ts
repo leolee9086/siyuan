@@ -17,7 +17,6 @@ export function routes(router: Router): MiddlewareFunction {
         debug('%s %s', ctx.method, ctx.path);
 
         const hostMatched = router.matchHost(ctx.host);
-
         if (!hostMatched) {
             return next();
         }
@@ -46,7 +45,17 @@ export function routes(router: Router): MiddlewareFunction {
         layerChain = (
             router.exclusive ? [mostSpecificLayer] : matchedLayers
         ).reduce(function (memo: MiddlewareFunction[], layer: Layer) {
-            memo.push(function (ctx: Context, next: () => Promise<void> | void) {
+            memo.push(async function (ctx: Context, next: () => Promise<void> | void) {
+                if (layer.schema?.request) {
+                    const parsed = layer.schema.request.safeParse(ctx.request.body);
+                    if (parsed.success) {
+                        ctx.request.body = parsed.data;
+                    } else {
+                        ctx.error = new Error(`Request validation failed: ${parsed.error.message}`);
+                        return;
+                    }
+                }
+
                 ctx.captures = layer.captures(path);
                 ctx.params = ctx.request.params = layer.params(
                     path,
@@ -60,7 +69,17 @@ export function routes(router: Router): MiddlewareFunction {
                     ctx._matchedRouteName = layer.name;
                 }
 
-                return next();
+                await next();
+
+                if (layer.schema?.response) {
+                    const parsed = layer.schema.response.safeParse(ctx.response.body);
+                    if (parsed.success) {
+                        ctx.response.body = parsed.data;
+                    } else {
+                        ctx.error = new Error(`Response validation failed: ${parsed.error.message}`);
+                        return;
+                    }
+                }
             });
             return memo.concat(layer.stack);
         }, []);
