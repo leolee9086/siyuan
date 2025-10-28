@@ -77,6 +77,8 @@ class Router {
     public host?: string | RegExp
 
     constructor(opts: RouterOptions = {}) {
+        if (!(this instanceof Router)) return new Router(opts);
+
         // 将传入的选项赋值给this.opts
         this.opts = opts;
 
@@ -145,7 +147,7 @@ class Router {
             }
 
             ctx.router = router;
-
+            console.log(router)
             if (!matched.route) return next();
 
             const matchedLayers = matched.pathAndMethod;
@@ -191,7 +193,7 @@ class Router {
             return Promise.resolve(next()).then(function () {
                 if (!ctx.status || ctx.status === 404) {
                     const allowedArr = getAllowedMethods(ctx);
-                    
+
                     if (!~implemented.indexOf(ctx.method)) {
                         handleNotImplementedMethod(ctx, implemented, options, HttpError);
                     } else if (allowedArr.length > 0) {
@@ -237,7 +239,7 @@ class Router {
         else if (isPath(nameOrPath)) {
             actualName = null;
             actualPath = nameOrPath;
-            
+
             // 处理中间件
             if (isMiddleware(pathOrMiddleware)) {
                 middleware = [pathOrMiddleware, ...rest];
@@ -439,7 +441,7 @@ class Router {
             else if (isPath(nameOrPath)) {
                 actualName = null;
                 actualPath = nameOrPath;
-                
+
                 // 处理中间件
                 if (isMiddleware(pathOrMiddleware)) {
                     middleware = [pathOrMiddleware, ...rest];

@@ -44,7 +44,7 @@ describe('Router路径相关use方法测试', () => {
     router.use('/api', pathMiddleware)
     router.get('/api/users/:id', routeMiddleware)
     
-    mockContext.path = '/api/users'
+    mockContext.path = '/api/users/123'
     
     const dispatch = router.routes()
     
@@ -69,7 +69,7 @@ describe('Router路径相关use方法测试', () => {
     router.use(['/api', '/v1'], pathMiddleware)
     router.get('/api/users/:id', routeMiddleware)
     
-    mockContext.path = '/api/users'
+    mockContext.path = '/api/users/123'
     
     const dispatch = router.routes()
     

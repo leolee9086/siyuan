@@ -1,6 +1,7 @@
 import { pathToRegexp, compile, parse, ParseOptions, Key, TokensToRegexpOptions } from 'path-to-regexp'
 import { parse as parseUrl, format as formatUrl, UrlObject } from "url"
-import { MiddlewareFunction, Context } from './types.js';
+import { MiddlewareFunction, Context } from './types';
+import Router from './router';
 
 // 类型守卫函数
 function hasName(token: Key | string): token is Key {
@@ -63,13 +64,13 @@ export default class Layer {
       this.methods.push('HEAD');
     }
 
-    // ensure middleware is a function
+    // ensure middleware is a function or router
     for (const fn of this.stack) {
       const type = typeof fn;
       if (type !== 'function') {
         throw new Error(
           `${methods.toString()} \`${this.opts.name || path
-          }\`: \`middleware\` must be a function, not \`${type}\``
+          }\`: \`middleware\` must be a function or router, not \`${type}\``
         );
       }
     }

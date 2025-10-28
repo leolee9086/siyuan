@@ -46,12 +46,12 @@ describe('Router嵌套路由测试', () => {
     
     router.use('/api', parentMiddleware)
     nestedRouter.get('/users/:id', childMiddleware)
-    router.use(nestedRouter)
+    router.use('/api', nestedRouter.routes())
     
-    mockContext.path = '/api/users'
+    mockContext.path = '/api/users/123'
     
     const dispatch = router.routes()
-    
+    console.log(dispatch)
     await dispatch(mockContext, jest.fn())
     
     expect(parentMiddleware).toHaveBeenCalled()
