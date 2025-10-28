@@ -22,7 +22,7 @@ describe('RouterUtils测试', () => {
       path: '/test',
       host: 'example.com',
       request: {
-        method: 'GET',
+        method: 'GET' as const,
         url: '/test',
         params: {},
         query: {},
@@ -64,7 +64,7 @@ describe('RouterUtils测试', () => {
       path: '/test',
       host: 'example.com',
       request: {
-        method: 'GET',
+        method: 'GET' as const,
         url: '/test',
         params: {},
         query: {},
@@ -102,7 +102,7 @@ describe('RouterUtils测试', () => {
       path: '/test',
       host: 'example.com',
       request: {
-        method: 'GET',
+        method: 'GET' as const,
         url: '/test',
         params: {},
         query: {},
@@ -150,7 +150,7 @@ describe('RouterUtils测试', () => {
       path: '/test',
       host: 'example.com',
       request: {
-        method: 'GET',
+        method: 'GET' as const,
         url: '/test',
         params: {},
         query: {},
@@ -204,7 +204,7 @@ describe('RouterUtils测试', () => {
       path: '/test',
       host: 'example.com',
       request: {
-        method: 'GET',
+        method: 'GET' as const,
         url: '/test',
         params: {},
         query: {},
@@ -264,7 +264,7 @@ describe('RouterUtils测试', () => {
       path: '/test',
       host: 'example.com',
       request: {
-        method: 'GET',
+        method: 'GET' as const,
         url: '/test',
         params: {},
         query: {},
@@ -314,7 +314,7 @@ describe('RouterUtils测试', () => {
       path: '/test',
       host: 'example.com',
       request: {
-        method: 'GET',
+        method: 'GET' as const,
         url: '/test',
         params: {},
         query: {},

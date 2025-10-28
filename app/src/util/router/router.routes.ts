@@ -34,7 +34,6 @@ export function routes(router: Router): MiddlewareFunction {
         }
 
         ctx.router = router;
-        console.log(router)
         if (!matched.route) return next();
 
         const matchedLayers = matched.pathAndMethod;
@@ -47,7 +46,7 @@ export function routes(router: Router): MiddlewareFunction {
         layerChain = (
             router.exclusive ? [mostSpecificLayer] : matchedLayers
         ).reduce(function (memo: MiddlewareFunction[], layer: Layer) {
-            memo.push(function (ctx: Context, next: () => Promise<void> | void) {
+            const layerMiddleware = function (ctx: Context, next: () => Promise<void> | void) {
                 ctx.captures = layer.captures(path);
                 ctx.params = ctx.request.params = layer.params(
                     path,
@@ -60,10 +59,10 @@ export function routes(router: Router): MiddlewareFunction {
                 if (layer.name) {
                     ctx._matchedRouteName = layer.name;
                 }
-
                 return next();
-            });
-            return memo.concat(layer.stack);
+            };
+        
+            return memo.concat(layerMiddleware, layer.stack);
         }, []);
 
         return compose(layerChain)(ctx, next);

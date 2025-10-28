@@ -2,6 +2,7 @@ import Router from './router'
 import Layer from './layer'
 import {pathToRegexp, Key} from 'path-to-regexp'
 import type { MiddlewareFunction, MiddlewareWithRouter, CloneRouterType } from './types'
+import { z } from 'zod'
 
 /**
  * 克隆路由器的层并设置前缀
@@ -22,7 +23,10 @@ import type { MiddlewareFunction, MiddlewareWithRouter, CloneRouterType } from '
  * // 现在 targetRouter 包含了 sourceRouter 的所有层，并且每个层都有 '/api' 前缀
  * ```
  */
-function cloneRouterLayers(cloneRouter: CloneRouterType, router: Router, path?: string): void {
+function cloneRouterLayers<
+    TRequestBodySchema extends z.ZodTypeAny,
+    TResponseBodySchema extends z.ZodTypeAny
+>(cloneRouter: CloneRouterType, router: Router<TRequestBodySchema, TResponseBodySchema>, path?: string): void {
     for (let j = 0; j < cloneRouter.stack.length; j++) {
         const nestedLayer = cloneRouter.stack[j];
         const cloneLayer = Object.assign(
@@ -56,7 +60,10 @@ function cloneRouterLayers(cloneRouter: CloneRouterType, router: Router, path?: 
  * // 现在 targetRouter 也有了相同的 'id' 参数处理
  * ```
  */
-function setRouterParams(cloneRouter: CloneRouterType, router: Router): void {
+function setRouterParams<
+    TRequestBodySchema extends z.ZodTypeAny,
+    TResponseBodySchema extends z.ZodTypeAny
+>(cloneRouter: CloneRouterType, router: Router<TRequestBodySchema, TResponseBodySchema>): void {
     if (router.params) {
         const paramKeys = Object.keys(router.params);
         for (const key of paramKeys) {
@@ -86,7 +93,10 @@ function setRouterParams(cloneRouter: CloneRouterType, router: Router): void {
  * // 现在 mainRouter 处理 '/api/users' 路径
  * ```
  */
-function handleMiddlewareRouter(m: MiddlewareWithRouter, router: Router, path?: string): void {
+function handleMiddlewareRouter<
+    TRequestBodySchema extends z.ZodTypeAny,
+    TResponseBodySchema extends z.ZodTypeAny
+>(m: MiddlewareWithRouter, router: Router<TRequestBodySchema, TResponseBodySchema>, path?: string): void {
     const cloneRouter = Object.assign(
         Object.create(Router.prototype),
         m.router,
@@ -122,11 +132,14 @@ function handleMiddlewareRouter(m: MiddlewareWithRouter, router: Router, path?: 
  * // logger 中间件现在处理 '/admin' 路径的请求
  * ```
  */
-function handleRegularMiddleware(m: MiddlewareFunction, router: Router, path?: string, hasPath?: boolean): void {
+function handleRegularMiddleware<
+    TRequestBodySchema extends z.ZodTypeAny,
+    TResponseBodySchema extends z.ZodTypeAny
+>(m: MiddlewareFunction<TRequestBodySchema, TResponseBodySchema>, router: Router<TRequestBodySchema, TResponseBodySchema>, path?: string, hasPath?: boolean): void {
     const keys: Key[] = [];
     pathToRegexp(router.opts.prefix || '', keys);
     const routerPrefixHasParam = router.opts.prefix && keys.length;
-    router.register(path || '([^/]*)', [], m, {
+    router.register(path || '([^/]*)', [], m , {
         end: false,
         ignoreCaptures: !hasPath && !routerPrefixHasParam
     });
@@ -165,7 +178,10 @@ function handleRegularMiddleware(m: MiddlewareFunction, router: Router, path?: s
  * router.use('/users', { router: userRouter });
  * ```
  */
-export function use(router: Router, ...args: (MiddlewareFunction | MiddlewareWithRouter | string[]|string)[]): Router {
+export function use<
+    TRequestBodySchema extends z.ZodTypeAny,
+    TResponseBodySchema extends z.ZodTypeAny
+>(router: Router<TRequestBodySchema, TResponseBodySchema>, ...args: (MiddlewareFunction<TRequestBodySchema, TResponseBodySchema> | MiddlewareWithRouter | string[]|string)[]): Router<TRequestBodySchema, TResponseBodySchema> {
     const middleware = Array.prototype.slice.call(args);
     let path;
     if (Array.isArray(middleware[0]) && typeof middleware[0][0] === 'string') {
@@ -179,10 +195,10 @@ export function use(router: Router, ...args: (MiddlewareFunction | MiddlewareWit
     if (hasPath) path = middleware.shift();
     
     for (const m of middleware) {
-        if (m.router) {
-            handleMiddlewareRouter(m, router, path);
+        if ((m ).router) {
+            handleMiddlewareRouter(m , router, path);
         } else {
-            handleRegularMiddleware(m, router, path, hasPath);
+            handleRegularMiddleware(m , router, path, hasPath);
         }
     }
 

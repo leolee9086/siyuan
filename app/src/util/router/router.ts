@@ -6,6 +6,7 @@ import { createHttpMethodHandler, HttpMethodHandler } from './router.httpMethod'
 import { register } from './router.register'
 import { match } from './router.match'
 import { all } from './router.all'
+import { z } from 'zod'
 import type {
     Context,
     MiddlewareFunction,
@@ -44,7 +45,10 @@ import Layer from './layer'
  * @param {Array} [opts.stack=[]] - An array to hold middleware and routes.
  * @param {string} [opts.host] - The host that the router should respond to.
  */
-class Router {
+class Router<
+    TRequestBodySchema extends z.ZodTypeAny = z.ZodTypeAny,
+    TResponseBodySchema extends z.ZodTypeAny = z.ZodTypeAny
+> {
     public opts: RouterOptions
     public methods: string[]
     public exclusive: boolean
@@ -53,32 +57,32 @@ class Router {
     public host?: string | RegExp
     
     // 泛型HTTP方法定义
-    public get: HttpMethodHandler<'get'>
-    public post: HttpMethodHandler<'post'>
-    public put: HttpMethodHandler<'put'>
-    public head: HttpMethodHandler<'head'>
-    public delete: HttpMethodHandler<'delete'>
-    public options: HttpMethodHandler<'options'>
-    public trace: HttpMethodHandler<'trace'>
-    public copy: HttpMethodHandler<'copy'>
-    public lock: HttpMethodHandler<'lock'>
-    public mkcol: HttpMethodHandler<'mkcol'>
-    public move: HttpMethodHandler<'move'>
-    public purge: HttpMethodHandler<'purge'>
-    public propfind: HttpMethodHandler<'propfind'>
-    public proppatch: HttpMethodHandler<'proppatch'>
-    public unlock: HttpMethodHandler<'unlock'>
-    public report: HttpMethodHandler<'report'>
-    public mkactivity: HttpMethodHandler<'mkactivity'>
-    public checkout: HttpMethodHandler<'checkout'>
-    public merge: HttpMethodHandler<'merge'>
-    public 'm-search': HttpMethodHandler<'m-search'>
-    public notify: HttpMethodHandler<'notify'>
-    public subscribe: HttpMethodHandler<'subscribe'>
-    public unsubscribe: HttpMethodHandler<'unsubscribe'>
-    public patch: HttpMethodHandler<'patch'>
-    public search: HttpMethodHandler<'search'>
-    public connect: HttpMethodHandler<'connect'>
+    public get: HttpMethodHandler<'get', TRequestBodySchema, TResponseBodySchema>
+    public post: HttpMethodHandler<'post', TRequestBodySchema, TResponseBodySchema>
+    public put: HttpMethodHandler<'put', TRequestBodySchema, TResponseBodySchema>
+    public head: HttpMethodHandler<'head', TRequestBodySchema, TResponseBodySchema>
+    public delete: HttpMethodHandler<'delete', TRequestBodySchema, TResponseBodySchema>
+    public options: HttpMethodHandler<'options', TRequestBodySchema, TResponseBodySchema>
+    public trace: HttpMethodHandler<'trace', TRequestBodySchema, TResponseBodySchema>
+    public copy: HttpMethodHandler<'copy', TRequestBodySchema, TResponseBodySchema>
+    public lock: HttpMethodHandler<'lock', TRequestBodySchema, TResponseBodySchema>
+    public mkcol: HttpMethodHandler<'mkcol', TRequestBodySchema, TResponseBodySchema>
+    public move: HttpMethodHandler<'move', TRequestBodySchema, TResponseBodySchema>
+    public purge: HttpMethodHandler<'purge', TRequestBodySchema, TResponseBodySchema>
+    public propfind: HttpMethodHandler<'propfind', TRequestBodySchema, TResponseBodySchema>
+    public proppatch: HttpMethodHandler<'proppatch', TRequestBodySchema, TResponseBodySchema>
+    public unlock: HttpMethodHandler<'unlock', TRequestBodySchema, TResponseBodySchema>
+    public report: HttpMethodHandler<'report', TRequestBodySchema, TResponseBodySchema>
+    public mkactivity: HttpMethodHandler<'mkactivity', TRequestBodySchema, TResponseBodySchema>
+    public checkout: HttpMethodHandler<'checkout', TRequestBodySchema, TResponseBodySchema>
+    public merge: HttpMethodHandler<'merge', TRequestBodySchema, TResponseBodySchema>
+    public 'm-search': HttpMethodHandler<'m-search', TRequestBodySchema, TResponseBodySchema>
+    public notify: HttpMethodHandler<'notify', TRequestBodySchema, TResponseBodySchema>
+    public subscribe: HttpMethodHandler<'subscribe', TRequestBodySchema, TResponseBodySchema>
+    public unsubscribe: HttpMethodHandler<'unsubscribe', TRequestBodySchema, TResponseBodySchema>
+    public patch: HttpMethodHandler<'patch', TRequestBodySchema, TResponseBodySchema>
+    public search: HttpMethodHandler<'search', TRequestBodySchema, TResponseBodySchema>
+    public connect: HttpMethodHandler<'connect', TRequestBodySchema, TResponseBodySchema>
 
     constructor(opts: RouterOptions = {}) {
         if (!(this instanceof Router)) return new Router(opts);
@@ -152,8 +156,9 @@ class Router {
     }
 
     // use方法
-    use(...args: (MiddlewareFunction | MiddlewareWithRouter | string[]|string)[]): Router {
-        return use(this, ...args);
+    use(...args: (MiddlewareFunction<TRequestBodySchema, TResponseBodySchema> | MiddlewareWithRouter | string[]|string)[]): this {
+        use(this, ...args);
+        return this;
     }
 
     // prefix方法
@@ -199,8 +204,9 @@ class Router {
     }
 
     // all方法
-    all(...args: (RouteParamType)[]): this {
-        return all(this, ...args);
+    all(...args: (RouteParamType<TRequestBodySchema, TResponseBodySchema>)[]): this {
+        all(this, ...args);
+        return this;
     }
 
     // redirect方法
@@ -291,10 +297,6 @@ class Router {
         const args = Array.prototype.slice.call(restArgs);
         return Layer.prototype.url.apply({ path }, args);
     }
-
-
-
-
 }
 
 export default Router;

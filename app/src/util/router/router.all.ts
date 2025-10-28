@@ -1,6 +1,6 @@
 import Router from './router'
 import type { MiddlewareFunction, PathType, RouteParamType } from './types'
-
+import { z } from 'zod'
 // HTTP方法列表
 const methods = [
     'get',
@@ -88,13 +88,16 @@ const isMiddlewareArray = (value: any): value is MiddlewareFunction[] => {
  * router.all('/api/data', auth, validation, handler);
  * ```
  */
-export function all<T extends Router>(
-    router: T,
-    ...args: (RouteParamType)[]
-): T {
+export function all<
+    TRequestBodySchema extends z.ZodTypeAny,
+    TResponseBodySchema extends z.ZodTypeAny
+>(
+    router: Router<TRequestBodySchema, TResponseBodySchema>,
+    ...args: (RouteParamType<TRequestBodySchema, TResponseBodySchema>)[]
+): Router<TRequestBodySchema, TResponseBodySchema> {
     let actualPath: PathType;
     let actualName: string | null = null;
-    let middleware: MiddlewareFunction[];
+    let middleware: MiddlewareFunction<TRequestBodySchema, TResponseBodySchema>[];
 
     // 处理命名路由的情况: router.all('name', '/path', middleware)
     if (args.length >= 2 && isPath(args[1])) {

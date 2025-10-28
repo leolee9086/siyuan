@@ -51,7 +51,6 @@ describe('Router嵌套路由测试', () => {
     mockContext.path = '/api/users/123'
     
     const dispatch = router.routes()
-    console.log(dispatch)
     await dispatch(mockContext, jest.fn())
     
     expect(parentMiddleware).toHaveBeenCalled()

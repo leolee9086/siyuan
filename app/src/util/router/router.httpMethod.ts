@@ -4,27 +4,36 @@ import type {
     HttpMethod,
 } from './types'
 import Router from './router'
-
-/**
- * HTTP方法处理函数类型
- */
-export type HttpMethodHandler<T extends HttpMethod = HttpMethod> = (
+import { z } from 'zod'
+ 
+ /**
+  * HTTP方法处理函数类型
+  */
+ export type HttpMethodHandler<
+    T extends HttpMethod = HttpMethod,
+    TRequestBodySchema extends z.ZodTypeAny = z.ZodTypeAny,
+    TResponseBodySchema extends z.ZodTypeAny = z.ZodTypeAny
+> = (
     nameOrPath: string | RegExp | string[] | null,
-    pathOrMiddleware: string | RegExp | string[] | MiddlewareFunction | MiddlewareFunction[],
-    ...rest: MiddlewareFunction[]
-) => Router;
-
-/**
- * 创建HTTP方法处理函数
- * @param router Router实例
- * @param method HTTP方法名
- * @returns HTTP方法处理函数
- */
-export function createHttpMethodHandler<T extends HttpMethod>(router: Router, method: T): HttpMethodHandler<T> {
-    return (nameOrPath: string | RegExp | string[] | null, pathOrMiddleware: string | RegExp | string[] | MiddlewareFunction | MiddlewareFunction[], ...rest: MiddlewareFunction[]): Router => {
+    pathOrMiddleware: string | RegExp | string[] | MiddlewareFunction<TRequestBodySchema, TResponseBodySchema> | MiddlewareFunction<TRequestBodySchema, TResponseBodySchema>[],
+    ...rest: MiddlewareFunction<TRequestBodySchema, TResponseBodySchema>[]
+) => Router<TRequestBodySchema, TResponseBodySchema>;
+ 
+ /**
+  * 创建HTTP方法处理函数
+  * @param router Router实例
+  * @param method HTTP方法名
+  * @returns HTTP方法处理函数
+  */
+ export function createHttpMethodHandler<
+    T extends HttpMethod,
+    TRequestBodySchema extends z.ZodTypeAny,
+    TResponseBodySchema extends z.ZodTypeAny
+>(router: Router<TRequestBodySchema, TResponseBodySchema>, method: T): HttpMethodHandler<T, TRequestBodySchema, TResponseBodySchema> {
+    return (nameOrPath: string | RegExp | string[] | null, pathOrMiddleware: string | RegExp | string[] | MiddlewareFunction<TRequestBodySchema, TResponseBodySchema> | MiddlewareFunction<TRequestBodySchema, TResponseBodySchema>[], ...rest: MiddlewareFunction<TRequestBodySchema, TResponseBodySchema>[]): Router<TRequestBodySchema, TResponseBodySchema> => {
         let actualPath: string | RegExp | string[];
         let actualName: string | null = null;
-        let middleware: MiddlewareFunction[];
+        let middleware: MiddlewareFunction<TRequestBodySchema, TResponseBodySchema>[];
 
         // 检查是否是路径类型
         const isPath = (value: any): value is string | RegExp | string[] => {
