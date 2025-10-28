@@ -1,5 +1,5 @@
 import Router from '../../src/util/router/router'
-import type { Context } from '../../src/util/router/types'
+import type { Context, MiddlewareFunction } from '../../src/util/router/types'
 
 describe('Router嵌套路由测试', () => {
   let mockContext: Context
@@ -46,7 +46,7 @@ describe('Router嵌套路由测试', () => {
     
     router.use('/api', parentMiddleware)
     nestedRouter.get('/users/:id', childMiddleware)
-    router.use('/api', nestedRouter.routes())
+    router.use('/api', nestedRouter.routes() )
     
     mockContext.path = '/api/users/123'
     

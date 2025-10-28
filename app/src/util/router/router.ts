@@ -1,6 +1,9 @@
 import { compose } from './routerUtils'
 import { use } from './router.use'
+import { routes } from './router.routes'
 import { getAllowedMethods, handleNotImplementedMethod, handleOptionsRequest, handleMethodNotAllowed } from './router.allowedMethods'
+import { createHttpMethodHandler } from './router.httpMethod'
+import { register } from './router.register'
 import type {
     Context,
     MiddlewareFunction,
@@ -104,7 +107,7 @@ class Router {
     }
 
     // use方法
-    use(...args:string[]|MiddlewareFunction[]): Router {
+    use(...args:any[]|any[]): Router {
         return use(this, ...args);
     }
 
@@ -124,65 +127,7 @@ class Router {
 
     // routes/middleware方法
     routes(): MiddlewareFunction {
-        const router = this;
-
-        const dispatch = function dispatch(ctx: Context, next: () => Promise<void> | void): Promise<void> | void {
-            debug('%s %s', ctx.method, ctx.path);
-
-            const hostMatched = router.matchHost(ctx.host);
-
-            if (!hostMatched) {
-                return next();
-            }
-
-            const path =
-                router.opts.routerPath || ctx.newRouterPath || ctx.path || ctx.routerPath;
-            const matched = router.match(path, ctx.method);
-            let layerChain;
-
-            if (ctx.matched) {
-                ctx.matched.push.apply(ctx.matched, matched.path);
-            } else {
-                ctx.matched = matched.path;
-            }
-
-            ctx.router = router;
-            console.log(router)
-            if (!matched.route) return next();
-
-            const matchedLayers = matched.pathAndMethod;
-            const mostSpecificLayer = matchedLayers[matchedLayers.length - 1];
-            ctx._matchedRoute = typeof mostSpecificLayer.path === 'string' ? mostSpecificLayer.path : mostSpecificLayer.path.toString();
-            if (mostSpecificLayer.name) {
-                ctx._matchedRouteName = mostSpecificLayer.name;
-            }
-
-            layerChain = (
-                router.exclusive ? [mostSpecificLayer] : matchedLayers
-            ).reduce(function (memo, layer) {
-                memo.push(function (ctx: Context, next: () => Promise<void> | void) {
-                    ctx.captures = layer.captures(path);
-                    ctx.params = ctx.request.params = layer.params(
-                        path,
-                        ctx.captures,
-                        ctx.params
-                    );
-                    ctx.routerPath = typeof layer.path === 'string' ? layer.path : layer.path.toString();
-                    ctx.routerName = layer.name;
-                    ctx._matchedRoute = typeof layer.path === 'string' ? layer.path : layer.path.toString();
-                    if (layer.name) {
-                        ctx._matchedRouteName = layer.name;
-                    }
-
-                    return next();
-                });
-                return memo.concat(layer.stack);
-            }, []);
-
-            return compose(layerChain)(ctx, next);
-        };
-        dispatch.router = this;
-        return dispatch;
+        return routes(this);
     }
 
 
@@ -288,41 +233,7 @@ class Router {
 
     // register方法
     register(path: string | RegExp | string[], methods: string[], middleware: MiddlewareFunction | MiddlewareFunction[], opts: RouteOptions = {}): Layer | this {
-        const router = this;
-        const { stack } = this;
-        // support array of paths
-        if (Array.isArray(path)) {
-            for (const curPath of path) {
-                router.register.call(router, curPath, methods, middleware, opts);
-            }
-
-            return router;
-        }
-        // create route
-        const route = new Layer(path, methods, middleware, {
-            end: opts.end === false ? opts.end : true,
-            name: opts.name,
-            sensitive: opts.sensitive || this.opts.sensitive || false,
-            strict: opts.strict || this.opts.strict || false,
-            prefix: opts.prefix || this.opts.prefix || '',
-            ignoreCaptures: opts.ignoreCaptures
-        });
-
-        if (this.opts.prefix) {
-            route.setPrefix(this.opts.prefix);
-        }
-
-        // add parameter middleware
-        for (let i = 0; i < Object.keys(this.params).length; i++) {
-            const param = Object.keys(this.params)[i];
-            route.param(param, this.params[param]);
-        }
-
-        stack.push(route);
-
-        debug('defined route %s %s', route.methods, route.path);
-
-        return route;
+        return register(this, path, methods, middleware, opts);
     }
 
     // route方法
@@ -409,93 +320,36 @@ class Router {
         return Layer.prototype.url.apply({ path }, args);
     }
 
-    // 通用HTTP方法处理函数
-    private createHttpMethodHandler(method: string) {
-        return (nameOrPath: string | RegExp | string[] | null, pathOrMiddleware: string | RegExp | string[] | MiddlewareFunction | MiddlewareFunction[], ...rest: MiddlewareFunction[]): this => {
-            let actualPath: string | RegExp | string[];
-            let actualName: string | null = null;
-            let middleware: MiddlewareFunction[];
-
-            // 检查是否是路径类型
-            const isPath = (value: any): value is string | RegExp | string[] => {
-                return typeof value === 'string' || value instanceof RegExp || (Array.isArray(value) && value.length > 0 && typeof value[0] === 'string');
-            };
-
-            // 检查是否是中间件函数
-            const isMiddleware = (value: any): value is MiddlewareFunction => {
-                return typeof value === 'function';
-            };
-
-            // 检查是否是中间件数组
-            const isMiddlewareArray = (value: any): value is MiddlewareFunction[] => {
-                return Array.isArray(value) && value.length > 0 && typeof value[0] === 'function';
-            };
-
-            // 处理命名路由的情况: router.get('name', '/path', middleware)
-            if (isPath(pathOrMiddleware)) {
-                actualName = typeof nameOrPath === 'string' ? nameOrPath : null;
-                actualPath = pathOrMiddleware;
-                middleware = rest;
-            }
-            // 处理普通路由的情况: router.get('/path', middleware)
-            else if (isPath(nameOrPath)) {
-                actualName = null;
-                actualPath = nameOrPath;
-
-                // 处理中间件
-                if (isMiddleware(pathOrMiddleware)) {
-                    middleware = [pathOrMiddleware, ...rest];
-                } else if (isMiddlewareArray(pathOrMiddleware)) {
-                    middleware = [...pathOrMiddleware, ...rest];
-                } else {
-                    throw new Error(`You have to provide a valid middleware when adding a ${method} handler`);
-                }
-            } else {
-                throw new Error(`You have to provide a path when adding a ${method} handler`);
-            }
-
-            if (
-                typeof actualPath !== 'string' &&
-                !(actualPath instanceof RegExp) &&
-                (!Array.isArray(actualPath) || actualPath.length === 0)
-            ) {
-                throw new Error(`You have to provide a path when adding a ${method} handler`);
-            }
-
-            this.register(actualPath, [method], middleware, { name: actualName });
-            return this;
-        };
-    }
 
 
 
     // HTTP方法定义
-    get = this.createHttpMethodHandler('get');
-    post = this.createHttpMethodHandler('post');
-    put = this.createHttpMethodHandler('put');
-    head = this.createHttpMethodHandler('head');
-    delete = this.createHttpMethodHandler('delete');
-    options = this.createHttpMethodHandler('options');
-    trace = this.createHttpMethodHandler('trace');
-    copy = this.createHttpMethodHandler('copy');
-    lock = this.createHttpMethodHandler('lock');
-    mkcol = this.createHttpMethodHandler('mkcol');
-    move = this.createHttpMethodHandler('move');
-    purge = this.createHttpMethodHandler('purge');
-    propfind = this.createHttpMethodHandler('propfind');
-    proppatch = this.createHttpMethodHandler('proppatch');
-    unlock = this.createHttpMethodHandler('unlock');
-    report = this.createHttpMethodHandler('report');
-    mkactivity = this.createHttpMethodHandler('mkactivity');
-    checkout = this.createHttpMethodHandler('checkout');
-    merge = this.createHttpMethodHandler('merge');
-    ['m-search'] = this.createHttpMethodHandler('m-search');
-    notify = this.createHttpMethodHandler('notify');
-    subscribe = this.createHttpMethodHandler('subscribe');
-    unsubscribe = this.createHttpMethodHandler('unsubscribe');
-    patch = this.createHttpMethodHandler('patch');
-    search = this.createHttpMethodHandler('search');
-    connect = this.createHttpMethodHandler('connect');
+    get = createHttpMethodHandler(this, 'get');
+    post = createHttpMethodHandler(this, 'post');
+    put = createHttpMethodHandler(this, 'put');
+    head = createHttpMethodHandler(this, 'head');
+    delete = createHttpMethodHandler(this, 'delete');
+    options = createHttpMethodHandler(this, 'options');
+    trace = createHttpMethodHandler(this, 'trace');
+    copy = createHttpMethodHandler(this, 'copy');
+    lock = createHttpMethodHandler(this, 'lock');
+    mkcol = createHttpMethodHandler(this, 'mkcol');
+    move = createHttpMethodHandler(this, 'move');
+    purge = createHttpMethodHandler(this, 'purge');
+    propfind = createHttpMethodHandler(this, 'propfind');
+    proppatch = createHttpMethodHandler(this, 'proppatch');
+    unlock = createHttpMethodHandler(this, 'unlock');
+    report = createHttpMethodHandler(this, 'report');
+    mkactivity = createHttpMethodHandler(this, 'mkactivity');
+    checkout = createHttpMethodHandler(this, 'checkout');
+    merge = createHttpMethodHandler(this, 'merge');
+    ['m-search'] = createHttpMethodHandler(this, 'm-search');
+    notify = createHttpMethodHandler(this, 'notify');
+    subscribe = createHttpMethodHandler(this, 'subscribe');
+    unsubscribe = createHttpMethodHandler(this, 'unsubscribe');
+    patch = createHttpMethodHandler(this, 'patch');
+    search = createHttpMethodHandler(this, 'search');
+    connect = createHttpMethodHandler(this, 'connect');
 
 }
 

@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import Layer from './layer'
+import Router from './router'
 
 
 
@@ -106,4 +107,16 @@ export interface AllowedMethodsOptions {
 // 静态方法接口
 export interface IRouterStatic {
   url(path: string, ...args: any[]): string
+}
+
+// 包含路由器的中间件接口
+export interface MiddlewareWithRouter {
+  /** 路由器实例 */
+  router: Router;
+}
+
+// 可克隆的路由器类型，扩展了Router接口
+export interface CloneRouterType extends Router {
+  /** 路由器栈，包含所有层 */
+  stack: Layer[];
 }
