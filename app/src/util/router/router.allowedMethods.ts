@@ -1,4 +1,4 @@
-import type { Context, AllowedMethodsOptions, HttpErrors } from './types.js'
+import type { Context, AllowedMethodsOptions, HttpErrors } from './types'
 
 /**
  * 从匹配的路由中获取允许的HTTP方法列表

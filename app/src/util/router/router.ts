@@ -1,7 +1,6 @@
-import { pathToRegexp } from 'path-to-regexp'
 import { compose } from './routerUtils'
 import { use } from './router.use'
-import { getAllowedMethods, handleNotImplementedMethod, handleOptionsRequest, handleMethodNotAllowed } from './router.allowedMethods.js'
+import { getAllowedMethods, handleNotImplementedMethod, handleOptionsRequest, handleMethodNotAllowed } from './router.allowedMethods'
 import type {
     Context,
     MiddlewareFunction,
@@ -11,7 +10,7 @@ import type {
     MatchResult,
     AllowedMethodsOptions,
     HttpErrors,
-} from './types.js'
+} from './types'
 
 const Errors: HttpErrors = {
     NotImplemented: () => {

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import Layer from './layer.js'
+import Layer from './layer'
 
 
 

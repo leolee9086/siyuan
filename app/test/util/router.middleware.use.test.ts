@@ -1,0 +1,55 @@
+import Router from '../../src/util/router/router'
+import type { Context } from '../../src/util/router/types'
+
+describe('Router use方法测试', () => {
+  let mockContext: Context
+
+  beforeEach(() => {
+    mockContext = {
+      method: 'GET',
+      path: '/users/123',
+      host: 'example.com',
+      request: {
+        method: 'GET',
+        url: '/users/123',
+        params: {},
+        query: {},
+        headers: {}
+      },
+      response: {
+        status: 200,
+        headers: {},
+        set: jest.fn(),
+        redirect: jest.fn()
+      },
+      status: 200,
+      params: {},
+      captures: [],
+      set: jest.fn(),
+      redirect: jest.fn()
+    }
+  })
+
+  test('应该正确处理use方法添加中间件', async () => {
+    const router = new Router()
+    const globalMiddleware = jest.fn((ctx, next) => {
+      ctx.body = 'Global'
+      return next()
+    })
+    const routeMiddleware = jest.fn((ctx, next) => {
+      ctx.body += ' -> Route'
+      return next()
+    })
+    
+    router.use(globalMiddleware)
+    router.get('/users/:id', routeMiddleware)
+    
+    const dispatch = router.routes()
+    
+    await dispatch(mockContext, jest.fn())
+    
+    expect(globalMiddleware).toHaveBeenCalled()
+    expect(routeMiddleware).toHaveBeenCalled()
+    expect(mockContext.body).toBe('Global -> Route')
+  })
+})
