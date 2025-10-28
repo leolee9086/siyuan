@@ -1,11 +1,13 @@
 import { Dialog } from "../dialog";
 import { isMobile } from "../util/functions";
 import { genUUID } from "../util/genID";
-import { genMaskColor, createBlockMask, setDialogColor, removeBlockMask } from "./chatStream.mask";
+import { genMaskColor, setDialogColor, removeBlockMask } from "./chatStream.mask";
+
 import { createVueDialog } from "../util/dialog/createVueDialog";
 import AIChatDialog from "../components/StreamChat.panel.vue";
 import { VueComponentMountConfig } from "../util/vue/mount";
 import { handleAIRequest, handleFillContent, ChatState } from "../components/streamChat.componentLogic";
+import { createBlockMask } from "../util/DOM/blockDecorations";
 
 const createAIChatDialogVueConfig = (
     protyle: IProtyle,
