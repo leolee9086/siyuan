@@ -104,7 +104,7 @@ class Router {
     }
 
     // use方法
-    use(...args: any[]): Router {
+    use(...args:string[]|MiddlewareFunction[]): Router {
         return use(this, ...args);
     }
 
