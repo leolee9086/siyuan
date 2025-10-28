@@ -8,7 +8,7 @@ export function chain<
   TRequestBodySchema extends z.ZodObject<any>,
   TResponseBodySchema extends z.ZodObject<any>,
 >(requestBodySchema: TRequestBodySchema, responseBodySchema: TResponseBodySchema): {
-  execute: (initialContext: Context<TRequestBodySchema, TResponseBodySchema>) => Promise<TResponseBodySchema>,
+  execute: (initialContext: Context<TRequestBodySchema, TResponseBodySchema>) => Promise<Context<TRequestBodySchema, TResponseBodySchema>>,
   router: Router<TRequestBodySchema, TResponseBodySchema>
 } {
   const extendedContextSchema = createContextSchema<TRequestBodySchema, TResponseBodySchema>(requestBodySchema, responseBodySchema)
@@ -32,10 +32,16 @@ export function chain<
       let parsedResult = responseBodySchema.safeParse(previousResult)
       //执行路由
       const dispatch = router.routes()
-      await dispatch(extendedContext, async () => { })
-      previousResult = extendedContext.response.body
-      parsedResult = responseBodySchema.safeParse(previousResult)
-      return previousResult
+      const dispatchPromise = dispatch(extendedContext, async () => { });
+      await dispatchPromise;
+      previousResult = extendedContext.response.body;
+      parsedResult = responseBodySchema.safeParse(previousResult);
+      if (parsedResult.success) {
+        extendedContext.response.body = parsedResult.data
+      } else {
+        extendedContext.response.body = previousResult
+      }
+      return extendedContext
     },
     router
   }

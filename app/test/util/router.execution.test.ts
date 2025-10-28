@@ -72,8 +72,8 @@ describe('router execution', () => {
     const { router,execute } = chain(requestSchema, responseSchema)
 
     // 第一个处理器匹配 /module 路径
-    router.post('/module', async (ctx, next) => {
-      const { start } = ctx.request.body 
+    router.use('/module', async (ctx, next) => {
+      const { start } = ctx.request.body
       ctx.response.body = {
         message: 'Step 1 received: ' + start,
       }
@@ -82,7 +82,7 @@ describe('router execution', () => {
     })
 
     // 第二个处理器匹配 /module/a/start 路径，更精确的匹配
-    router.all('/module/a/start', async (ctx, next) => {
+    router.post('/module/a/start', async (ctx, next) => {
       const { message } = ctx.request.body
       const prevMessage = ctx.response.body.message
       ctx.response.body = {
@@ -122,15 +122,15 @@ describe('router execution', () => {
       redirect: jest.fn(),
     }
 
-    const finalResult = await execute(initialContext)
+    const finalContext = await execute(initialContext)
 
     // 验证历史记录
-    expect(finalResult).toEqual({
+    expect(finalContext.response.body).toEqual({
       message: 'Step 2 received: Step 1 received: Initial call',
     })
     
     // 验证历史记录长度
-    const history = (finalResult as any).history || []
+    const history = finalContext.history || []
     expect(history.length).toBe(2)
     expect(history[0]).toEqual({
       step: 'step1',
