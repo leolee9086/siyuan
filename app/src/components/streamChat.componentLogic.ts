@@ -1,5 +1,5 @@
 import { ref, onUnmounted } from '../ai/deps';
-import { buildAIRequest, buildRequestHeaders, handleOpenAILikeStreamResponse, updateChatState } from '../ai/chatStream.utils';
+import { buildAIRequest, buildRequestHeaders, handleOpenAILikeStreamResponse, updateChatState, processBlockDOMContent } from '../ai/chatStream.utils';
 import { universalStreamRequest } from '../util/fetchStream';
 import { getAIConfigFromSiyuan } from '../ai/types';
 import { fillContent } from '../ai/actions.fillContent';
@@ -16,16 +16,68 @@ interface StreamChatUIContext {
     dotsInterval: { value: NodeJS.Timeout | null };
 }
 
+// 渲染blockDOM内容到界面
+const renderBlockDOMToUI = (
+    state: ChatState,
+    responseContent: HTMLElement,
+    protyle: IProtyle
+): void => {
+    try {
+        const processedBlockDom = processBlockDOMContent(state, protyle);
+        // 实时更新显示的内容
+        if (responseContent) {
+            responseContent.innerHTML = processedBlockDom;
+            // 自动滚动到底部
+            responseContent.scrollTop = responseContent.scrollHeight;
+        }
+    } catch (e) {
+        console.warn("Failed to render blockDOM:", e);
+        // 如果blockDOM渲染失败，回退到纯文本显示
+        fallbackToTextDisplay(state, responseContent);
+    }
+};
+
+// 回退到纯文本显示
+const fallbackToTextDisplay = (
+    state: ChatState,
+    responseContent: HTMLElement
+): void => {
+    if (responseContent) {
+        responseContent.textContent = state.responseContentStr;
+        responseContent.scrollTop = responseContent.scrollHeight;
+    }
+};
+
+// 处理流式响应内容
+const processStreamContent = (
+    state: ChatState,
+    responseContent: HTMLElement,
+    protyle?: IProtyle
+): void => {
+    if (protyle) {
+        renderBlockDOMToUI(state, responseContent, protyle);
+    } else {
+        // 如果没有protyle实例，回退到纯文本显示
+        fallbackToTextDisplay(state, responseContent);
+    }
+};
+
 // 创建流式响应处理函数，避免闭包
 const createStreamHandlers = (
     chatState: ChatState,
+    responseContent: HTMLElement,
     onCompleteStatus: () => void,
     onErrorStatus: (error: Error) => void,
     onAbortStatus: () => void,
     protyleInstance: IProtyle
 ) => {
     return {
-        onMessage: (dataStr: string) => handleOpenAILikeStreamResponse(dataStr, chatState, null, protyleInstance),
+        onMessage: (dataStr: string) => {
+            const content = handleOpenAILikeStreamResponse(dataStr, chatState, protyleInstance);
+            if (content) {
+                processStreamContent(chatState, responseContent, protyleInstance);
+            }
+        },
         onDone: () => {
             updateChatState(chatState, { isStreaming: false, isDone: true });
             onCompleteStatus();
@@ -136,12 +188,13 @@ const prepareAIRequestWithBlocksElements = (inputValue: string, selectedBlockEle
 const initiateStreamRequest = async (
     requestParams: any,
     state: ChatState,
+    responseContent: HTMLElement,
     setCompleteStatus: () => void,
     setErrorStatus: (error: Error) => void,
     setAbortStatus: () => void,
     protyle: IProtyle
 ): Promise<null> => {
-    const handlers = createStreamHandlers(state, setCompleteStatus, setErrorStatus, setAbortStatus, protyle);
+    const handlers = createStreamHandlers(state, responseContent, setCompleteStatus, setErrorStatus, setAbortStatus, protyle);
     
     await universalStreamRequest(requestParams, handlers);
     // 不再需要返回 abortFunction，因为取消操作完全由外部 AbortSignal 控制
@@ -154,6 +207,7 @@ export const handleAIRequest = async (
     protyle: IProtyle,
     selectedElements: Element[],
     targetElement: Element,
+    responseContent: HTMLElement,
     showResponse: () => void,
     setCompleteStatus: () => void,
     setErrorStatus: (error: Error) => void,
@@ -176,6 +230,7 @@ export const handleAIRequest = async (
         await initiateStreamRequest(
             requestParams,
             state,
+            responseContent,
             setCompleteStatus,
             setErrorStatus,
             setAbortStatus,

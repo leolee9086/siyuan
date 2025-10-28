@@ -97,33 +97,11 @@ const parseAndValidateStreamData = (dataStr: string) => {
     return data;
 };
 
-// 渲染blockDOM内容（纯数据处理，不包含DOM操作）
-export const processBlockDOMContent = (
-    state: ChatState,
-    protyle: IProtyle
-): string => {
-    // 使用lute引擎将内容转换为块级DOM
-    const blockDom = protyle.lute.SpinBlockDOM(state.responseContentStr);
-    state.blockDOMContent = blockDom;
-    // 从生成的blockDOM中处理data-node-id属性并设置custom-assistant-name
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = blockDom;
-    // 查找所有带有data-node-id属性的元素
-    const elementsWithNodeId = tempDiv.querySelectorAll('[data-node-id]');
-    elementsWithNodeId.forEach(element => {
-        // 设置custom-assistant-name属性为default
-        element.setAttribute('custom-assistant-name', 'default');
-    });
-    // 更新处理后的blockDOM
-    const processedBlockDom = tempDiv.innerHTML;
-    state.blockDOMContent = processedBlockDom;
-    return processedBlockDom;
-};
-
 // 处理流式响应
 export const handleOpenAILikeStreamResponse = (
     dataStr: string,
     state: ChatState,
+    responseContent: HTMLElement,
     protyle?: IProtyle
 ) => {
     if (state.isStreaming) {
@@ -140,15 +118,57 @@ export const handleOpenAILikeStreamResponse = (
                 
                 if (content) {
                     state.responseContentStr += content;
-                    // 返回处理后的内容，由组件逻辑负责DOM更新
-                    return content;
+                    
+                    // 使用blockDOM渲染内容
+                    if (protyle) {
+                        try {
+                            // 使用lute引擎将内容转换为块级DOM
+                            // 从此处开始拆分
+                            const blockDom = protyle.lute.SpinBlockDOM(state.responseContentStr);
+                            state.blockDOMContent = blockDom;
+                            
+                            // 从生成的blockDOM中处理data-node-id属性并设置custom-assistant-name
+                            const tempDiv = document.createElement('div');
+                            tempDiv.innerHTML = blockDom;
+                            
+                            // 查找所有带有data-node-id属性的元素
+                            const elementsWithNodeId = tempDiv.querySelectorAll('[data-node-id]');
+                            elementsWithNodeId.forEach(element => {
+                                // 设置custom-assistant-name属性为default
+                                element.setAttribute('custom-assistant-name', 'default');
+                            });
+                            
+                            // 更新处理后的blockDOM
+                            const processedBlockDom = tempDiv.innerHTML;
+                            state.blockDOMContent = processedBlockDom;
+                            
+                            // 实时更新显示的内容
+                            if (responseContent) {
+                                responseContent.innerHTML = processedBlockDom;
+                                // 自动滚动到底部
+                                responseContent.scrollTop = responseContent.scrollHeight;
+                            }
+                        } catch (e) {
+                            console.warn("Failed to render blockDOM:", e);
+                            // 如果blockDOM渲染失败，回退到纯文本显示
+                            if (responseContent) {
+                                responseContent.textContent = state.responseContentStr;
+                                responseContent.scrollTop = responseContent.scrollHeight;
+                            }
+                        }
+                    } else {
+                        // 如果没有protyle实例，回退到纯文本显示
+                        if (responseContent) {
+                            responseContent.textContent = state.responseContentStr;
+                            responseContent.scrollTop = responseContent.scrollHeight;
+                        }
+                    }
                 }
             }
         } catch (e) {
             console.warn("Failed to parse SSE data:", dataStr);
         }
     }
-    return null;
 };
 
 // 对话框销毁绑定

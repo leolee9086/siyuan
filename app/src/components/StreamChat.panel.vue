@@ -6,10 +6,11 @@
             :placeholder="aiWritingText"
             v-model="inputValue"
             :disabled="isStreaming"
-            @enter="handleConfirmClick"
+            @enter="() => onConfirmClick(inputValue)"
         ></TextField>
         <div
             v-if="showResponseContainer"
+            ref="internalResponseContentRef"
             class="ai-response-container protyle-wysiwyg protyle-wysiwyg--attr"
             style="margin-top: 8px; padding: 8px; background: var(--b3-theme-background); border: 1px solid var(--b3-border-color); border-radius: 4px; max-width: 60vw; max-height: 60vh; overflow: auto;"
         >
@@ -21,51 +22,40 @@
         </div>
     </div>
     <div class="b3-dialog__action">
-        <button class="b3-button b3-button--cancel" @click="handleCancelClick">{{ cancelText }}</button>
+        <button class="b3-button b3-button--cancel" @click="onCancelClick">{{ cancelText }}</button>
         <div class="fn__space"></div>
-        <button class="b3-button b3-button--text" :style="{ color: confirmButtonColor }" @click="handleConfirmClick">
+        <button class="b3-button b3-button--text" :style="{ color: confirmButtonColor }" @click="() => onConfirmClick(inputValue)">
             {{ confirmButtonText }}
         </button>
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import type { PropType } from 'vue';
-import { ChatState, useStreamChatUI, handleAIRequest, handleFillContent, getI18nText } from './streamChat.componentLogic';
+import { useStreamChatUI, getI18nText } from './streamChat.componentLogic';
 import TextField from './common/TextField.vue';
 
 const props = defineProps({
-    protyle: {
-        type: Object as PropType<IProtyle>,
+    onCancelClick: {
+        type: Function as PropType<() => void>,
         required: true,
     },
-    targetElement: {
-        type: Object as PropType<Element>,
+    onConfirmClick: {
+        type: Function as PropType<(inputValue: string) => Promise<void>>,
         required: true,
     },
-    selectedElements: {
-        type: Array as PropType<Element[]>,
-        required: true,
-    },
-    dialog: {
-        type: Object as PropType<{ destroy: () => void }>,
+    state: {
+        type: Object as PropType<any>,
         required: true,
     }
 });
 
 const textFieldRef = ref<InstanceType<typeof TextField> | null>(null);
+const internalResponseContentRef = ref<HTMLElement | null>(null);
 const inputValue = ref('');
 
-const state = reactive<ChatState>({
-    responseContentStr: '',
-    isStreaming: false,
-    isDone: false,
-    abortFunction: null,
-    blockDOMContent: '',
-});
-
-const isStreaming = computed(() => state.isStreaming);
+const isStreaming = computed(() => props.state.isStreaming);
 
 // 使用UI composable管理界面相关逻辑
 const {
@@ -87,56 +77,29 @@ const cancelText = getI18nText('cancel');
 const confirmText = getI18nText('confirm');
 
 const confirmButtonText = computed(() => {
-    if (state.isStreaming) return '响应中...点击终止';
-    if (state.isDone) return confirmText;
+    if (props.state.isStreaming) return '响应中...点击终止';
+    if (props.state.isDone) return confirmText;
     return confirmText;
 });
 
 const confirmButtonColor = computed(() => {
-    return state.isStreaming ? 'var(--b3-theme-error)' : '';
+    return props.state.isStreaming ? 'var(--b3-theme-error)' : '';
 });
 
-const handleCancelClick = () => {
-    if (state.abortFunction) {
-        state.abortFunction();
-    }
-    props.dialog.destroy();
-};
-
-const handleConfirmClick = async () => {
-    if (state.isStreaming) {
-        if (state.abortFunction) {
-            state.abortFunction();
-        }
-        return;
-    }
-
-    if (state.isDone) {
-        handleFillContent(props.protyle, state, props.selectedElements, props.targetElement);
-        props.dialog.destroy();
-        return;
-    }
-
-    const abortFn = await handleAIRequest(
-        inputValue.value,
-        state,
-        props.protyle,
-        props.selectedElements,
-        props.targetElement,
-        showResponse,
-        setCompleteStatus,
-        setErrorStatus,
-        setAbortStatus
-    );
-    
-    if (abortFn) {
-        state.abortFunction = abortFn;
-    }
-};
-
+// 当UI函数准备好时，通知父组件
+const emit = defineEmits(['ui-functions-ready']);
 onMounted(() => {
     if (textFieldRef.value) {
         textFieldRef.value.focus();
     }
+    
+    // 通知父组件UI函数已准备好
+    emit('ui-functions-ready', {
+        showResponse,
+        setCompleteStatus,
+        setErrorStatus,
+        setAbortStatus,
+        getResponseContentRef: () => internalResponseContentRef.value
+    });
 });
 </script>
