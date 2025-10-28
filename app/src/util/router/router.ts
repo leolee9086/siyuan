@@ -4,6 +4,8 @@ import { routes } from './router.routes'
 import { getAllowedMethods, handleNotImplementedMethod, handleOptionsRequest, handleMethodNotAllowed } from './router.allowedMethods'
 import { createHttpMethodHandler } from './router.httpMethod'
 import { register } from './router.register'
+import { match } from './router.match'
+import { all } from './router.all'
 import type {
     Context,
     MiddlewareFunction,
@@ -26,40 +28,8 @@ const Errors: HttpErrors = {
 
 const HttpError = Errors
 
-const methods = [
-    'get',
-    'post',
-    'put',
-    'head',
-    'delete',
-    'options',
-    'trace',
-    'copy',
-    'lock',
-    'mkcol',
-    'move',
-    'purge',
-    'propfind',
-    'proppatch',
-    'unlock',
-    'report',
-    'mkactivity',
-    'checkout',
-    'merge',
-    'm-search',
-    'notify',
-    'subscribe',
-    'unsubscribe',
-    'patch',
-    'search',
-    'connect'
-];
 
 import Layer from './layer'
-
-const debug = (...args: any[]) => {
-    //    console.log(...args)
-}
 
 /**
  * Router class for handling HTTP routing.
@@ -155,57 +125,7 @@ class Router {
 
     // all方法
     all(nameOrPath: string | RegExp | string[] | null, pathOrMiddleware: string | RegExp | string[] | MiddlewareFunction | MiddlewareFunction[], ...rest: MiddlewareFunction[]): this {
-        let actualPath: string | RegExp | string[];
-        let actualName: string | null = null;
-        let middleware: MiddlewareFunction[];
-
-        // 检查是否是路径类型
-        const isPath = (value: any): value is string | RegExp | string[] => {
-            return typeof value === 'string' || value instanceof RegExp || (Array.isArray(value) && value.length > 0 && typeof value[0] === 'string');
-        };
-
-        // 检查是否是中间件函数
-        const isMiddleware = (value: any): value is MiddlewareFunction => {
-            return typeof value === 'function';
-        };
-
-        // 检查是否是中间件数组
-        const isMiddlewareArray = (value: any): value is MiddlewareFunction[] => {
-            return Array.isArray(value) && value.length > 0 && typeof value[0] === 'function';
-        };
-
-        // 处理命名路由的情况: router.all('name', '/path', middleware)
-        if (isPath(pathOrMiddleware)) {
-            actualName = typeof nameOrPath === 'string' ? nameOrPath : null;
-            actualPath = pathOrMiddleware;
-            middleware = rest;
-        }
-        // 处理普通路由的情况: router.all('/path', middleware)
-        else if (isPath(nameOrPath)) {
-            actualName = null;
-            actualPath = nameOrPath;
-
-            // 处理中间件
-            if (isMiddleware(pathOrMiddleware)) {
-                middleware = [pathOrMiddleware, ...rest];
-            } else if (isMiddlewareArray(pathOrMiddleware)) {
-                middleware = [...pathOrMiddleware, ...rest];
-            } else {
-                throw new Error('You have to provide a valid middleware when adding an all handler');
-            }
-        } else {
-            throw new Error('You have to provide a path when adding an all handler');
-        }
-
-        // Sanity check to ensure we have a viable path candidate (eg: string|regex|non-empty array)
-        if (
-            typeof actualPath !== 'string' &&
-            !(actualPath instanceof RegExp) &&
-            (!Array.isArray(actualPath) || actualPath.length === 0)
-        )
-            throw new Error('You have to provide a path when adding an all handler');
-        this.register(actualPath, methods, middleware, { name: actualName });
-        return this;
+        return all(this, nameOrPath, pathOrMiddleware, ...rest);
     }
 
     // redirect方法
@@ -257,30 +177,7 @@ class Router {
 
     // match方法
     match(path: string, method: string): MatchResult {
-        const layers = this.stack;
-        let layer;
-        const matched: MatchResult = {
-            path: [],
-            pathAndMethod: [],
-            route: false
-        };
-
-        for (let len = layers.length, i = 0; i < len; i++) {
-            layer = layers[i];
-
-            debug('test %s %s', layer.path, layer.regexp);
-            // eslint-disable-next-line unicorn/prefer-regexp-test
-            if (layer.match(path)) {
-                matched.path.push(layer);
-
-                if (layer.methods.length === 0 || ~layer.methods.indexOf(method)) {
-                    matched.pathAndMethod.push(layer);
-                    if (layer.methods.length > 0) matched.route = true;
-                }
-            }
-        }
-
-        return matched;
+        return match(this.stack, path, method);
     }
 
     // matchHost方法
