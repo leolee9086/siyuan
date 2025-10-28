@@ -5,3 +5,6 @@
 
 // Vue相关依赖
 export { ref, onUnmounted } from "vue";
+
+// Zod相关依赖
+export { z } from "zod";

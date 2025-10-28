@@ -1,13 +1,14 @@
 import { Dialog } from "../dialog";
 import { isMobile } from "../util/functions";
 import { genUUID } from "../util/genID";
-import { genMaskColor, setDialogColor, removeBlockMask } from "./chatStream.mask";
+import { setDialogContainerColor, removeBlockMask } from "./chatStream.mask";
+import { genRandomColor } from "../util/color";
 
 import { createVueDialog } from "../util/dialog/createVueDialog";
 import AIChatDialog from "../components/StreamChat.panel.vue";
 import { VueComponentMountConfig } from "../util/vue/mount";
 import { handleAIRequest, handleFillContent, ChatState } from "../components/streamChat.componentLogic";
-import { createBlockMask } from "../util/DOM/blockDecorations";
+import { createBlockMasks } from "../util/DOM/blockDecorations";
 
 const createAIChatDialogVueConfig = (
     protyle: IProtyle,
@@ -140,24 +141,14 @@ const createConfirmHandler = (
 };
 
 export const AIChat = (protyle: IProtyle, element: Element) => {
-    const randomColor = genMaskColor();
+    const randomColor = genRandomColor();
 
     // 获取选中的块元素
     const selectedElementsNodeList = protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select");
     const selectedElements = selectedElementsNodeList.length > 0 ? Array.from(selectedElementsNodeList) : [];
 
-    // 为目标元素和所有选中的块元素创建遮罩
-    const maskElements: HTMLElement[] = [];
-    const mainMask = createBlockMask(element, randomColor);
-    maskElements.push(mainMask);
-    if (selectedElements.length > 0) {
-        selectedElements.forEach(selectedElement => {
-            if (selectedElement !== element) { // 避免重复创建
-                const mask = createBlockMask(selectedElement, randomColor);
-                maskElements.push(mask);
-            }
-        });
-    }
+    // 使用批量创建函数为目标元素和所有选中的块元素创建遮罩
+    const maskElements = createBlockMasks(element, selectedElements, randomColor);
 
     const dialog = createVueDialog({
         title: "✨ " + window.siyuan.languages.aiWriting,
@@ -174,7 +165,7 @@ export const AIChat = (protyle: IProtyle, element: Element) => {
         }
     });
 
-    setDialogColor(dialog, randomColor);
+    setDialogContainerColor(dialog, randomColor);
 
     // 监听块元素删除
     const observer = new MutationObserver(() => {
