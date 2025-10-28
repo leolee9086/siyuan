@@ -1,8 +1,18 @@
 import type {
     MiddlewareFunction,
     RouteOptions,
+    HttpMethod,
 } from './types'
 import Router from './router'
+
+/**
+ * HTTP方法处理函数类型
+ */
+export type HttpMethodHandler<T extends HttpMethod = HttpMethod> = (
+    nameOrPath: string | RegExp | string[] | null,
+    pathOrMiddleware: string | RegExp | string[] | MiddlewareFunction | MiddlewareFunction[],
+    ...rest: MiddlewareFunction[]
+) => Router;
 
 /**
  * 创建HTTP方法处理函数
@@ -10,7 +20,7 @@ import Router from './router'
  * @param method HTTP方法名
  * @returns HTTP方法处理函数
  */
-export function createHttpMethodHandler(router: Router, method: string) {
+export function createHttpMethodHandler<T extends HttpMethod>(router: Router, method: T): HttpMethodHandler<T> {
     return (nameOrPath: string | RegExp | string[] | null, pathOrMiddleware: string | RegExp | string[] | MiddlewareFunction | MiddlewareFunction[], ...rest: MiddlewareFunction[]): Router => {
         let actualPath: string | RegExp | string[];
         let actualName: string | null = null;

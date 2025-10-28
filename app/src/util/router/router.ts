@@ -2,7 +2,7 @@ import { compose } from './routerUtils'
 import { use } from './router.use'
 import { routes } from './router.routes'
 import { getAllowedMethods, handleNotImplementedMethod, handleOptionsRequest, handleMethodNotAllowed } from './router.allowedMethods'
-import { createHttpMethodHandler } from './router.httpMethod'
+import { createHttpMethodHandler, HttpMethodHandler } from './router.httpMethod'
 import { register } from './router.register'
 import { match } from './router.match'
 import { all } from './router.all'
@@ -17,6 +17,7 @@ import type {
     HttpErrors,
     RouteParamType,
     MiddlewareWithRouter,
+    HttpMethod,
 } from './types'
 
 const Errors: HttpErrors = {
@@ -50,6 +51,34 @@ class Router {
     public params: Record<string, ParamMiddlewareFunction>
     public stack: any[]
     public host?: string | RegExp
+    
+    // 泛型HTTP方法定义
+    public get: HttpMethodHandler<'get'>
+    public post: HttpMethodHandler<'post'>
+    public put: HttpMethodHandler<'put'>
+    public head: HttpMethodHandler<'head'>
+    public delete: HttpMethodHandler<'delete'>
+    public options: HttpMethodHandler<'options'>
+    public trace: HttpMethodHandler<'trace'>
+    public copy: HttpMethodHandler<'copy'>
+    public lock: HttpMethodHandler<'lock'>
+    public mkcol: HttpMethodHandler<'mkcol'>
+    public move: HttpMethodHandler<'move'>
+    public purge: HttpMethodHandler<'purge'>
+    public propfind: HttpMethodHandler<'propfind'>
+    public proppatch: HttpMethodHandler<'proppatch'>
+    public unlock: HttpMethodHandler<'unlock'>
+    public report: HttpMethodHandler<'report'>
+    public mkactivity: HttpMethodHandler<'mkactivity'>
+    public checkout: HttpMethodHandler<'checkout'>
+    public merge: HttpMethodHandler<'merge'>
+    public 'm-search': HttpMethodHandler<'m-search'>
+    public notify: HttpMethodHandler<'notify'>
+    public subscribe: HttpMethodHandler<'subscribe'>
+    public unsubscribe: HttpMethodHandler<'unsubscribe'>
+    public patch: HttpMethodHandler<'patch'>
+    public search: HttpMethodHandler<'search'>
+    public connect: HttpMethodHandler<'connect'>
 
     constructor(opts: RouterOptions = {}) {
         if (!(this instanceof Router)) return new Router(opts);
@@ -76,6 +105,50 @@ class Router {
         this.stack = [];
         // 如果传入的选项中包含host，则将其赋值给this.host
         this.host = this.opts.host;
+        
+        // 初始化泛型HTTP方法
+        this.initializeHttpMethods();
+    }
+    
+    /**
+     * 初始化HTTP方法处理器
+     */
+    private initializeHttpMethods(): void {
+        this.get = createHttpMethodHandler(this, 'get');
+        this.post = createHttpMethodHandler(this, 'post');
+        this.put = createHttpMethodHandler(this, 'put');
+        this.head = createHttpMethodHandler(this, 'head');
+        this.delete = createHttpMethodHandler(this, 'delete');
+        this.options = createHttpMethodHandler(this, 'options');
+        this.trace = createHttpMethodHandler(this, 'trace');
+        this.copy = createHttpMethodHandler(this, 'copy');
+        this.lock = createHttpMethodHandler(this, 'lock');
+        this.mkcol = createHttpMethodHandler(this, 'mkcol');
+        this.move = createHttpMethodHandler(this, 'move');
+        this.purge = createHttpMethodHandler(this, 'purge');
+        this.propfind = createHttpMethodHandler(this, 'propfind');
+        this.proppatch = createHttpMethodHandler(this, 'proppatch');
+        this.unlock = createHttpMethodHandler(this, 'unlock');
+        this.report = createHttpMethodHandler(this, 'report');
+        this.mkactivity = createHttpMethodHandler(this, 'mkactivity');
+        this.checkout = createHttpMethodHandler(this, 'checkout');
+        this.merge = createHttpMethodHandler(this, 'merge');
+        this['m-search'] = createHttpMethodHandler(this, 'm-search');
+        this.notify = createHttpMethodHandler(this, 'notify');
+        this.subscribe = createHttpMethodHandler(this, 'subscribe');
+        this.unsubscribe = createHttpMethodHandler(this, 'unsubscribe');
+        this.patch = createHttpMethodHandler(this, 'patch');
+        this.search = createHttpMethodHandler(this, 'search');
+        this.connect = createHttpMethodHandler(this, 'connect');
+    }
+    
+    /**
+     * 动态创建HTTP方法处理器
+     * @param method HTTP方法名
+     * @returns HTTP方法处理器
+     */
+    public createHttpMethod<T extends HttpMethod>(method: T): HttpMethodHandler<T> {
+        return createHttpMethodHandler(this, method);
     }
 
     // use方法
@@ -221,34 +294,6 @@ class Router {
 
 
 
-
-    // HTTP方法定义
-    get = createHttpMethodHandler(this, 'get');
-    post = createHttpMethodHandler(this, 'post');
-    put = createHttpMethodHandler(this, 'put');
-    head = createHttpMethodHandler(this, 'head');
-    delete = createHttpMethodHandler(this, 'delete');
-    options = createHttpMethodHandler(this, 'options');
-    trace = createHttpMethodHandler(this, 'trace');
-    copy = createHttpMethodHandler(this, 'copy');
-    lock = createHttpMethodHandler(this, 'lock');
-    mkcol = createHttpMethodHandler(this, 'mkcol');
-    move = createHttpMethodHandler(this, 'move');
-    purge = createHttpMethodHandler(this, 'purge');
-    propfind = createHttpMethodHandler(this, 'propfind');
-    proppatch = createHttpMethodHandler(this, 'proppatch');
-    unlock = createHttpMethodHandler(this, 'unlock');
-    report = createHttpMethodHandler(this, 'report');
-    mkactivity = createHttpMethodHandler(this, 'mkactivity');
-    checkout = createHttpMethodHandler(this, 'checkout');
-    merge = createHttpMethodHandler(this, 'merge');
-    ['m-search'] = createHttpMethodHandler(this, 'm-search');
-    notify = createHttpMethodHandler(this, 'notify');
-    subscribe = createHttpMethodHandler(this, 'subscribe');
-    unsubscribe = createHttpMethodHandler(this, 'unsubscribe');
-    patch = createHttpMethodHandler(this, 'patch');
-    search = createHttpMethodHandler(this, 'search');
-    connect = createHttpMethodHandler(this, 'connect');
 
 }
 
