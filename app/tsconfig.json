@@ -9,13 +9,15 @@
     ],
     "types": [
       "./src/types",
-      "node"
+      "node",
+      "jest"
     ],
     "declaration": true,
     "emitDeclarationOnly": true,
   },
   "include": [
-    "src"
+    "src",
+    "test"
   ],
   "exclude": [
     "node_modules"
