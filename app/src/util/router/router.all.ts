@@ -1,5 +1,5 @@
 import Router from './router'
-import type { MiddlewareFunction } from './types'
+import type { MiddlewareFunction, PathType, RouteParamType } from './types'
 
 // HTTP方法列表
 const methods = [
@@ -36,9 +36,9 @@ const methods = [
  * @param value 待检查的值
  * @returns 是否是路径类型
  */
-const isPath = (value: any): value is string | RegExp | string[] => {
-    return typeof value === 'string' || 
-    value instanceof RegExp || 
+const isPath = (value: any): value is PathType => {
+    return typeof value === 'string' ||
+    value instanceof RegExp ||
     (Array.isArray(value) && value.length > 0 && typeof value[0] === 'string');
 };
 
@@ -59,6 +59,8 @@ const isMiddleware = (value: any): value is MiddlewareFunction => {
 const isMiddlewareArray = (value: any): value is MiddlewareFunction[] => {
     return Array.isArray(value) && value.length > 0 && typeof value[0] === 'function';
 };
+
+
 
 /**
  * 路由器 all 方法实现
@@ -88,30 +90,37 @@ const isMiddlewareArray = (value: any): value is MiddlewareFunction[] => {
  */
 export function all<T extends Router>(
     router: T,
-    nameOrPath: string | RegExp | string[] | null,
-    pathOrMiddleware: string | RegExp | string[] | MiddlewareFunction | MiddlewareFunction[],
-    ...rest: MiddlewareFunction[]
+    ...args: (RouteParamType)[]
 ): T {
-    let actualPath: string | RegExp | string[];
+    let actualPath: PathType;
     let actualName: string | null = null;
     let middleware: MiddlewareFunction[];
 
     // 处理命名路由的情况: router.all('name', '/path', middleware)
-    if (isPath(pathOrMiddleware)) {
+    if (args.length >= 2 && isPath(args[1])) {
+        const nameOrPath = args[0];
+        const pathOrMiddleware = args[1];
+        const rest = args.slice(2);
+        
         actualName = typeof nameOrPath === 'string' ? nameOrPath : null;
         actualPath = pathOrMiddleware;
-        middleware = rest;
+        middleware = rest.filter(isMiddleware);
     }
     // 处理普通路由的情况: router.all('/path', middleware)
-    else if (isPath(nameOrPath)) {
+    else if (args.length >= 1 && isPath(args[0])) {
+        const nameOrPath = args[0];
+        const rest = args.slice(1);
+        
         actualName = null;
         actualPath = nameOrPath;
 
         // 处理中间件
-        if (isMiddleware(pathOrMiddleware)) {
-            middleware = [pathOrMiddleware, ...rest];
-        } else if (isMiddlewareArray(pathOrMiddleware)) {
-            middleware = [...pathOrMiddleware, ...rest];
+        if (rest.length > 0 && isMiddleware(rest[0])) {
+            middleware = rest.filter(isMiddleware);
+        } else if (rest.length > 0 && isMiddlewareArray(rest[0])) {
+            const firstMiddlewareArray = rest[0] ;
+            const remainingMiddleware = rest.slice(1).filter(isMiddleware);
+            middleware = [...firstMiddlewareArray, ...remainingMiddleware];
         } else {
             throw new Error('You have to provide a valid middleware when adding an all handler');
         }

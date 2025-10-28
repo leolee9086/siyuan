@@ -165,7 +165,7 @@ function handleRegularMiddleware(m: MiddlewareFunction, router: Router, path?: s
  * router.use('/users', { router: userRouter });
  * ```
  */
-export function use(router: Router, ...args: (MiddlewareFunction | MiddlewareWithRouter | string[])[]): Router {
+export function use(router: Router, ...args: (MiddlewareFunction | MiddlewareWithRouter | string[]|string)[]): Router {
     const middleware = Array.prototype.slice.call(args);
     let path;
     if (Array.isArray(middleware[0]) && typeof middleware[0][0] === 'string') {

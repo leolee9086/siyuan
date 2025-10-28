@@ -15,6 +15,8 @@ import type {
     MatchResult,
     AllowedMethodsOptions,
     HttpErrors,
+    RouteParamType,
+    MiddlewareWithRouter,
 } from './types'
 
 const Errors: HttpErrors = {
@@ -77,7 +79,7 @@ class Router {
     }
 
     // use方法
-    use(...args:any[]|any[]): Router {
+    use(...args: (MiddlewareFunction | MiddlewareWithRouter | string[]|string)[]): Router {
         return use(this, ...args);
     }
 
@@ -124,8 +126,8 @@ class Router {
     }
 
     // all方法
-    all(nameOrPath: string | RegExp | string[] | null, pathOrMiddleware: string | RegExp | string[] | MiddlewareFunction | MiddlewareFunction[], ...rest: MiddlewareFunction[]): this {
-        return all(this, nameOrPath, pathOrMiddleware, ...rest);
+    all(...args: (RouteParamType)[]): this {
+        return all(this, ...args);
     }
 
     // redirect方法

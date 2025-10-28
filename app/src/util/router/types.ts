@@ -120,3 +120,12 @@ export interface CloneRouterType extends Router {
   /** 路由器栈，包含所有层 */
   stack: Layer[];
 }
+
+// 路径类型定义
+export type PathType = string | RegExp | string[];
+
+// 中间件类型定义
+export type MiddlewareType = MiddlewareFunction | MiddlewareFunction[];
+
+// 路由参数类型定义
+export type RouteParamType = PathType | MiddlewareType;
