@@ -266,7 +266,7 @@ class Router<
         const { host } = this;
         if (!host) {
             // 如果没有设置host，则匹配任何host（包括undefined）
-            return input !== undefined;
+            return true;
         }
 
         if (!input) {

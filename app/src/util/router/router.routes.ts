@@ -15,7 +15,7 @@ const debug = (...args: any[]) => {
 export function routes(router: Router): MiddlewareFunction {
     const dispatch = function dispatch(ctx: Context, next: () => Promise<void> | void): Promise<void> | void {
         debug('%s %s', ctx.method, ctx.path);
-
+        
         const hostMatched = router.matchHost(ctx.host);
         if (!hostMatched) {
             return next();

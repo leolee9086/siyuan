@@ -64,7 +64,8 @@ describe('Router基础功能测试', () => {
     expect(router2.matchHost('test.com')).toBe(false)
     
     expect(router3.matchHost('anyhost.com')).toBe(true)
-    expect(router3.matchHost()).toBe(false)
+    //没有配置host应该匹配任何host
+    expect(router3.matchHost()).toBe(true)
   })
 
   test('应该正确设置参数中间件', () => {
