@@ -3,7 +3,7 @@ import { hintRef } from "../hint/extend.hintRef";
 import {fixTableRange} from "../util/selection";
 
 export class BlockRef extends ToolbarItem {
-    public element: HTMLElement;
+    public declare element: HTMLElement;
 
     constructor(protyle: IProtyle, menuItem: IMenuItem) {
         super(protyle, menuItem);

@@ -8,7 +8,7 @@ import {updateBatchTransaction} from "../wysiwyg/transaction";
 import {lineNumberRender} from "../render/highlightRender";
 
 export class Font extends ToolbarItem {
-    public element: HTMLElement;
+    public declare element: HTMLElement;
 
     constructor(protyle: IProtyle, menuItem: IMenuItem) {
         super(protyle, menuItem);

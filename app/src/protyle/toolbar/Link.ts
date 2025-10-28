@@ -5,7 +5,7 @@ import {readClipboard} from "../util/compatibility";
 import {Constants} from "../../constants";
 
 export class Link extends ToolbarItem {
-    public element: HTMLElement;
+    public declare element: HTMLElement;
 
     constructor(protyle: IProtyle, menuItem: IMenuItem) {
         super(protyle, menuItem);

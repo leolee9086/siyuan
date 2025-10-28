@@ -3,7 +3,7 @@ import {hasClosestBlock, hasClosestByAttribute} from "../util/hasClosest";
 import {hasNextSibling, hasPreviousSibling} from "../wysiwyg/getBlock";
 
 export class InlineMath extends ToolbarItem {
-    public element: HTMLElement;
+    public declare element: HTMLElement;
 
     constructor(protyle: IProtyle, menuItem: IMenuItem) {
         super(protyle, menuItem);
