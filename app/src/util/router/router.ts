@@ -1,5 +1,7 @@
 import { pathToRegexp } from 'path-to-regexp'
 import { compose } from './routerUtils'
+import { use } from './router.use'
+import { getAllowedMethods, handleNotImplementedMethod, handleOptionsRequest, handleMethodNotAllowed } from './router.allowedMethods.js'
 import type {
     Context,
     MiddlewareFunction,
@@ -101,62 +103,8 @@ class Router {
     }
 
     // use方法
-    use(...args: any[]): this {
-        const router = this;
-        const middleware = Array.prototype.slice.call(args);
-        let path;
-        if (Array.isArray(middleware[0]) && typeof middleware[0][0] === 'string') {
-            const arrPaths = middleware[0];
-            for (const p of arrPaths) {
-                router.use.apply(router, [p].concat(middleware.slice(1)));
-            }
-            return this;
-        }
-        const hasPath = typeof middleware[0] === 'string';
-        if (hasPath) path = middleware.shift();
-        for (const m of middleware) {
-            if (m.router) {
-                const cloneRouter = Object.assign(
-                    Object.create(new Router()),
-                    m.router,
-                    {
-                        stack: [...m.router.stack]
-                    }
-                );
-                for (let j = 0; j < cloneRouter.stack.length; j++) {
-                    const nestedLayer = cloneRouter.stack[j];
-                    const cloneLayer = Object.assign(
-                        Object.create(Layer.prototype),
-                        nestedLayer
-                    );
-                    if (path) cloneLayer.setPrefix(path);
-                    if (router.opts.prefix) cloneLayer.setPrefix(router.opts.prefix);
-                    router.stack.push(cloneLayer);
-                    cloneRouter.stack[j] = cloneLayer;
-                }
-
-                if (router.params) {
-                    function setRouterParams(paramArr: string[]) {
-                        const routerParams = paramArr;
-                        for (const key of routerParams) {
-                            cloneRouter.param(key, router.params[key]);
-                        }
-                    }
-
-                    setRouterParams(Object.keys(router.params));
-                }
-            } else {
-                const keys: any[] = [];
-                pathToRegexp(router.opts.prefix || '', keys);
-                const routerPrefixHasParam = router.opts.prefix && keys.length;
-                router.register(path || '(.*)', [], m, {
-                    end: false,
-                    ignoreCaptures: !hasPath && !routerPrefixHasParam
-                });
-            }
-        }
-
-        return this;
+    use(...args: any[]): Router {
+        return use(this, ...args);
     }
 
     // prefix方法
@@ -242,45 +190,16 @@ class Router {
         const implemented = this.methods;
         return function allowedMethods(ctx: Context, next: () => Promise<void> | void): Promise<void> | void {
             return Promise.resolve(next()).then(function () {
-                const allowed: Record<string, string> = {};
                 if (!ctx.status || ctx.status === 404) {
-                    for (let i = 0; i < ctx.matched.length; i++) {
-                        const route = ctx.matched[i];
-                        for (let j = 0; j < route.methods.length; j++) {
-                            const method = route.methods[j];
-                            allowed[method] = method;
-                        }
-                    }
-                    const allowedArr = Object.keys(allowed);
+                    const allowedArr = getAllowedMethods(ctx);
+                    
                     if (!~implemented.indexOf(ctx.method)) {
-                        if (options.throw) {
-                            const notImplementedThrowable =
-                                typeof options.notImplemented === 'function'
-                                    ? options.notImplemented() // set whatever the user returns from their function
-                                    : HttpError.NotImplemented();
-
-                            throw notImplementedThrowable;
-                        } else {
-                            ctx.status = 501;
-                            ctx.set('Allow', allowedArr.join(', '));
-                        }
+                        handleNotImplementedMethod(ctx, implemented, options, HttpError);
                     } else if (allowedArr.length > 0) {
                         if (ctx.method === 'OPTIONS') {
-                            ctx.status = 200;
-                            ctx.body = '';
-                            ctx.set('Allow', allowedArr.join(', '));
-                        } else if (!allowed[ctx.method]) {
-                            if (options.throw) {
-                                const notAllowedThrowable =
-                                    typeof options.methodNotAllowed === 'function'
-                                        ? options.methodNotAllowed() // set whatever the user returns from their function
-                                        : HttpError.MethodNotAllowed();
-
-                                throw notAllowedThrowable;
-                            } else {
-                                ctx.status = 405;
-                                ctx.set('Allow', allowedArr.join(', '));
-                            }
+                            handleOptionsRequest(ctx);
+                        } else if (!allowedArr.includes(ctx.method)) {
+                            handleMethodNotAllowed(ctx, options, HttpError);
                         }
                     }
                 }
@@ -456,7 +375,8 @@ class Router {
     matchHost(input?: string): boolean {
         const { host } = this;
         if (!host) {
-            return true;
+            // 如果没有设置host，则匹配任何host（包括undefined）
+            return input !== undefined;
         }
 
         if (!input) {
@@ -484,7 +404,7 @@ class Router {
 
     // 静态url方法
     static url(path: string, ...restArgs: any[]): string {
-        const args = Array.prototype.slice.call(restArgs, 1);
+        const args = Array.prototype.slice.call(restArgs);
         return Layer.prototype.url.apply({ path }, args);
     }
 

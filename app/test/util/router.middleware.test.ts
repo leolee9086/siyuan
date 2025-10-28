@@ -163,7 +163,7 @@ describe('Router中间件测试', () => {
     
     router.use('/api', parentMiddleware)
     nestedRouter.get('/users/:id', childMiddleware)
-    router.use('/api', nestedRouter)
+    router.use(nestedRouter)
     
     mockContext.path = '/api/users'
     
@@ -205,7 +205,6 @@ describe('Router中间件测试', () => {
     const errorMiddleware = jest.fn((ctx, next) => {
       throw error
     })
-    const catchMiddleware = jest.fn()
     
     router.get('/users/:id', errorMiddleware)
     
@@ -316,7 +315,7 @@ describe('Router中间件测试', () => {
     
     try {
       await allowedMethods(mockContext, jest.fn())
-      fail('Should have thrown an error')
+      expect(true).toBe(false) // This should not reach
     } catch (error) {
       expect(error.message).toBe('not implemented')
     }

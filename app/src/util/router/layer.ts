@@ -55,10 +55,12 @@ export default class Layer {
       const upperMethod = method.toUpperCase();
       if (!this.methods.includes(upperMethod)) {
         this.methods.push(upperMethod);
-        if (upperMethod === 'GET' && !this.methods.includes('HEAD')) {
-          this.methods.unshift('HEAD');
-        }
       }
+    }
+    
+    // 确保HEAD方法在GET方法之后
+    if (this.methods.includes('GET') && !this.methods.includes('HEAD')) {
+      this.methods.push('HEAD');
     }
 
     // ensure middleware is a function
@@ -115,11 +117,7 @@ export default class Layer {
         const c = captures[i];
         const paramName = this.paramNames[i];
         if (hasName(paramName)) {
-          const c = captures[i];
-          if (paramName.name === 'splat' && c) {
-            params.splat = params.splat || [];
-            params.splat.push(c);
-          } else if (c && c.length > 0) {
+          if (c && c.length > 0) {
             params[paramName.name] = c ? safeDecodeURIComponent(c) : c;
           }
         }
@@ -141,7 +139,9 @@ export default class Layer {
       return [];
     }
     const match = path.match(this.regexp);
-    return match ? match.slice(1) : [];
+    if (!match) return [];
+    
+    return match.slice(1);
   }
 
   /**

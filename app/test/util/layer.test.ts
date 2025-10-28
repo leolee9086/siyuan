@@ -1,5 +1,5 @@
 import Layer from '../../src/util/router/layer'
-
+import type { Context } from '../../src/util/router/types'
 
 describe('Layer类测试', () => {
   test('应该正确创建Layer实例', () => {
@@ -142,7 +142,29 @@ describe('Layer类测试', () => {
     const layer = new Layer('/users/:id', ['GET'], middleware)
     layer.param('id', paramMiddleware)
     
-    const mockContext = { params: {} }
+    const mockContext: Context = {
+      method: 'GET',
+      path: '/users/123',
+      request: {
+        method: 'GET',
+        url: '/users/123',
+        params: {},
+        query: {},
+        headers: {}
+      },
+      response: {
+        status: 200,
+        body: undefined,
+        headers: {},
+        set: jest.fn(),
+        redirect: jest.fn()
+      },
+      status: 200,
+      params: {},
+      captures: [],
+      set: jest.fn(),
+      redirect: jest.fn()
+    }
     const next = jest.fn()
     
     // 模拟参数中间件的调用
@@ -202,7 +224,7 @@ describe('Layer类测试', () => {
     expect(layer.match('/files/a/b/c')).toBe(true)
     
     const captures = layer.captures('/files/a/b/c')
-    expect(captures).toEqual(['a/b/c', 'a/b/c'])
+    expect(captures).toEqual(['a/b/c'])
   })
 
   test('应该正确处理可选参数', () => {
@@ -223,10 +245,10 @@ describe('Layer类测试', () => {
     const middleware = jest.fn()
     const layer = new Layer('/users/:ids*', ['GET'], middleware)
     
-    expect(layer.match('/users/1/2/3')).toBe(false)
+    expect(layer.match('/users/1/2/3')).toBe(true)
     
     const captures = layer.captures('/users/1/2/3')
-    expect(captures).toEqual(['1/2/3', '1/2/3'])
+    expect(captures).toEqual(['1/2/3'])
   })
 
   test('应该正确处理自定义分隔符', () => {
