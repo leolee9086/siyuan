@@ -1,30 +1,33 @@
 <template>
-  <div class="b3-dialog__content">
-    <input 
-      ref="nameInput"
-      class="b3-text-field fn__block" 
-      :placeholder="languages.memo"
-      v-model="localName"
-    />
-    <div class="fn__hr"></div>
-    <textarea 
-      ref="customTextarea"
-      class="b3-text-field fn__block" 
-      :placeholder="languages.aiCustomAction"
-      v-model="localMemo"
-    ></textarea>
-  </div>
-  <div class="b3-dialog__action">
-    <button class="b3-button b3-button--remove" @click="handleDelete">{{ languages.delete }}</button>
-    <div class="fn__space"></div>
-    <button class="b3-button b3-button--cancel" @click="handleCancel">{{ languages.cancel }}</button>
-    <div class="fn__space"></div>
-    <button class="b3-button b3-button--text" @click="handleConfirm">{{ languages.confirm }}</button>
-  </div>
+  <DialogContent>
+    <template #content>
+      <input
+        ref="nameInput"
+        class="b3-text-field fn__block"
+        :placeholder="languages.memo"
+        v-model="localName"
+      />
+      <div class="fn__hr"></div>
+      <textarea
+        ref="customTextarea"
+        class="b3-text-field fn__block"
+        :placeholder="languages.aiCustomAction"
+        v-model="localMemo"
+      ></textarea>
+    </template>
+    <template #actions>
+      <button class="b3-button b3-button--remove" @click="handleDelete">{{ languages.delete }}</button>
+      <div class="fn__space"></div>
+      <button class="b3-button b3-button--cancel" @click="handleCancel">{{ languages.cancel }}</button>
+      <div class="fn__space"></div>
+      <button class="b3-button b3-button--text" @click="handleConfirm">{{ languages.confirm }}</button>
+    </template>
+  </DialogContent>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from 'vue';
+import DialogContent from './common/DialogContent.vue';
 
 // 定义组件属性
 interface Props {

@@ -1,13 +1,13 @@
 <template>
     <div class="b3-dialog__content">
-        <textarea
-            ref="textareaRef"
-            class="b3-text-field fn__block"
+        <TextField
+            ref="textFieldRef"
+            type="textarea"
             :placeholder="aiWritingText"
             v-model="inputValue"
             :disabled="isStreaming"
-            @keydown.enter.prevent="handleConfirmClick"
-        ></textarea>
+            @enter="handleConfirmClick"
+        ></TextField>
         <div
             v-if="showResponseContainer"
             class="ai-response-container protyle-wysiwyg protyle-wysiwyg--attr"
@@ -33,6 +33,7 @@
 import { ref, reactive, onMounted, computed } from 'vue';
 import type { PropType } from 'vue';
 import { ChatState, useStreamChatUI, handleAIRequest, handleFillContent, getI18nText } from './streamChat.componentLogic';
+import TextField from './common/TextField.vue';
 
 const props = defineProps({
     protyle: {
@@ -53,7 +54,7 @@ const props = defineProps({
     }
 });
 
-const textareaRef = ref<HTMLTextAreaElement | null>(null);
+const textFieldRef = ref<InstanceType<typeof TextField> | null>(null);
 const inputValue = ref('');
 
 const state = reactive<ChatState>({
@@ -134,6 +135,8 @@ const handleConfirmClick = async () => {
 };
 
 onMounted(() => {
-    focusTextarea(textareaRef);
+    if (textFieldRef.value) {
+        textFieldRef.value.focus();
+    }
 });
 </script>

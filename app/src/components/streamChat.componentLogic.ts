@@ -1,10 +1,10 @@
-import { ref, onUnmounted } from './deps';
-import { buildAIRequest, buildRequestHeaders, handleOpenAILikeStreamResponse, updateChatState } from './chatStream.utils';
+import { ref, onUnmounted } from '../ai/deps';
+import { buildAIRequest, buildRequestHeaders, handleOpenAILikeStreamResponse, updateChatState } from '../ai/chatStream.utils';
 import { universalStreamRequest } from '../util/fetchStream';
-import { getAIConfigFromSiyuan } from './types';
-import { fillContent } from './actions.fillContent';
+import { getAIConfigFromSiyuan } from '../ai/types';
+import { fillContent } from '../ai/actions.fillContent';
 import { getContenteditableElement } from '../protyle/wysiwyg/getBlock';
-import { ChatState } from './chatStream.types';
+import { ChatState } from '../ai/chatStream.types';
 export {ChatState}
 
 // UI状态上下文接口
