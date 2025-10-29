@@ -130,3 +130,33 @@ export const getAIConfigFromSiyuan = (): AIConfig => {
     
     return validateAIConfig(configWithConvertedTimeout);
 };
+
+/**
+ * 选择器操作配置的Zod验证模式
+ */
+const HTMLElementSchema = z.custom<HTMLElement>((val) => {
+  return val instanceof HTMLElement;
+})
+export const selectorOperationConfigSchema = z.object({
+    /** 选择器字符串，用于选择元素 */
+    selector: z.string().min(1, "选择器不能为空"),
+    /** 过滤函数，返回true保留元素，false过滤掉 */
+    filterFn: z.function()
+        .input([z.instanceof(Element), z.number(),z.array(z.instanceof(Element))])
+        .output(z.boolean())
+        .optional(),
+    /** 对每个元素执行的操作函数 */
+    eachFn: z.function()
+        .input([z.instanceof(Element), z.number(), z.array(z.instanceof(Element))])
+        .output(z.void()),
+    /** 所有操作完成后的回调函数 */
+    completeFn: z.function()
+        .input()
+        .output(z.void())
+        .optional(),
+});
+
+/**
+ * 选择器操作配置接口（从zod schema推断）
+ */
+export type SelectorOperationConfig = z.infer<typeof selectorOperationConfigSchema>;
