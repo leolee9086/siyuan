@@ -1,7 +1,6 @@
-import { pathToRegexp, compile, parse, ParseOptions, Key, TokensToRegexpOptions } from 'path-to-regexp'
+import { pathToRegexp, compile, ParseOptions, Key, TokensToRegexpOptions } from 'path-to-regexp'
 import { parse as parseUrl, format as formatUrl, UrlObject } from "url"
 import { MiddlewareFunction, Context } from './types';
-import Router from './router';
 
 // 类型守卫函数
 function hasName(token: Key | string): token is Key {

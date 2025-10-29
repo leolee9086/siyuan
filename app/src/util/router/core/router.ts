@@ -1,4 +1,3 @@
-import { compose } from './routerUtils'
 import { use } from './router.use'
 import { routes } from './router.routes'
 import { getAllowedMethods, handleNotImplementedMethod, handleOptionsRequest, handleMethodNotAllowed } from './router.allowedMethods'
@@ -109,7 +108,6 @@ class Router<
         this.stack = [];
         // 如果传入的选项中包含host，则将其赋值给this.host
         this.host = this.opts.host;
-        
         // 初始化泛型HTTP方法
         this.initializeHttpMethods();
     }
@@ -164,14 +162,11 @@ class Router<
     // prefix方法
     prefix(prefix: string): this {
         prefix = prefix.replace(/\/$/, '');
-
         this.opts.prefix = prefix;
-
         for (let i = 0; i < this.stack.length; i++) {
             const route = this.stack[i];
             route.setPrefix(prefix);
         }
-
         return this;
     }
 
@@ -179,8 +174,6 @@ class Router<
     routes(): MiddlewareFunction {
         return routes(this);
     }
-
-
     // allowedMethods方法
     allowedMethods(options: AllowedMethodsOptions = {}): MiddlewareFunction {
         const implemented = this.methods;
@@ -202,13 +195,11 @@ class Router<
             });
         };
     }
-
     // all方法
     all(...args: (RouteParamType<TRequestBodySchema, TResponseBodySchema>)[]): this {
         all(this, ...args);
         return this;
     }
-
     // redirect方法
     redirect(source: string | RegExp, destination: string | symbol, code?: number): this {
         // lookup source route by name
@@ -252,7 +243,6 @@ class Router<
     url(name: string | RegExp | symbol, ...args: any): string | Error {
         const route = this.route(name);
         if (route) return route.url.apply(route, args);
-
         return new Error(`No route found for name: ${String(name)}`);
     }
 
