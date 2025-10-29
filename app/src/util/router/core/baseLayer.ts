@@ -1,5 +1,4 @@
 import { pathToRegexp, compile, ParseOptions, Key, TokensToRegexpOptions } from 'path-to-regexp'
-import { parse as parseUrl, format as formatUrl, UrlObject } from "url"
 import { MiddlewareFunction, Context } from './types';
 import { LayerLike } from './layerLike.types';
 
@@ -8,8 +7,8 @@ function hasName(token: Key | string): token is Key {
   return typeof token === 'object' && token !== null && 'name' in token;
 }
 
-// 类型定义
-interface LayerOptions {
+// 基础层配置接口
+interface BaseLayerOptions {
   name?: string;
   strict?: boolean;
   end?: boolean;
@@ -23,60 +22,53 @@ interface LayerOptions {
   };
 }
 
-
-/**
- * Safe decodeURIComponent, won't throw any error.
- * If `decodeURIComponent` error happen, just return the original value.
- *
- * @param {String} text
- * @returns {String} URL decode original string.
- * @private
- */
-function safeDecodeURIComponent(text: string): string {
-  try {
-    return decodeURIComponent(text);
-  } catch (e) {
-    return text;
-  }
+// 网络请求特定配置接口
+interface NetworkConfig {
+  methods?: string[];
+  urlDecoder?: (text: string) => string;
+  urlQueryHandler?: (path: string, query?: string | Record<string, any>) => string;
 }
 
-export default class Layer implements LayerLike {
-  public opts: LayerOptions;
+// 参数处理器接口
+interface ParameterProcessor {
+  decode: (text: string) => string;
+}
+
+// 默认参数处理器
+const defaultParameterProcessor: ParameterProcessor = {
+  decode: (text: string): string => {
+    try {
+      return decodeURIComponent(text);
+    } catch (e) {
+      return text;
+    }
+  }
+};
+
+export default class BaseLayer implements LayerLike {
+  public opts: BaseLayerOptions;
   public name: string | null;
-  public methods: string[];
   public paramNames: Key[];
   public stack: (MiddlewareFunction & { param?: string })[];
   public path: string | RegExp;
   public regexp: RegExp;
   public schema: { request?: any; response?: any; } | undefined;
+  public parameterProcessor: ParameterProcessor;
 
-  constructor(path: string | RegExp, methods: string[], middleware: MiddlewareFunction | MiddlewareFunction[], opts: LayerOptions = {}) {
+  constructor(path: string | RegExp, middleware: MiddlewareFunction | MiddlewareFunction[], opts: BaseLayerOptions = {}) {
     this.opts = opts;
     this.schema = opts.schema;
     this.name = this.opts.name || null;
-    this.methods = [];
     this.paramNames = [];
     this.stack = Array.isArray(middleware) ? middleware : [middleware];
-
-    for (const method of methods) {
-      const upperMethod = method.toUpperCase();
-      if (!this.methods.includes(upperMethod)) {
-        this.methods.push(upperMethod);
-      }
-    }
-
-    // 确保HEAD方法在GET方法之后
-    if (this.methods.includes('GET') && !this.methods.includes('HEAD')) {
-      this.methods.push('HEAD');
-    }
+    this.parameterProcessor = defaultParameterProcessor;
 
     // ensure middleware is a function or router
     for (const fn of this.stack) {
       const type = typeof fn;
       if (type !== 'function') {
         throw new Error(
-          `${methods.toString()} \`${this.opts.name || path
-          }\`: \`middleware\` must be a function or router, not \`${type}\``
+          `${this.opts.name || path}: \`middleware\` must be a function or router, not \`${type}\``
         );
       }
     }
@@ -125,7 +117,7 @@ export default class Layer implements LayerLike {
         const paramName = this.paramNames[i];
         if (hasName(paramName)) {
           if (c && c.length > 0) {
-            params[paramName.name] = c ? safeDecodeURIComponent(c) : c;
+            params[paramName.name] = c ? this.parameterProcessor.decode(c) : c;
           }
         }
       }
@@ -157,7 +149,7 @@ export default class Layer implements LayerLike {
    * @example
    *
    * ```javascript
-   * const route = new Layer('/users/:id', ['GET'], fn);
+   * const route = new BaseLayer('/users/:id', fn);
    *
    * route.url({ id: 123 }); // => "/users/123"
    * ```
@@ -166,25 +158,13 @@ export default class Layer implements LayerLike {
    * @returns {String}
    * @private
    */
-  public url(params: Record<string, any> | any[], options?: { query?: string | Record<string, any> }): string {
+  public url(params: Record<string, any> | any[], options?: { encode?: (text: string) => string }): string {
     const pathStr = typeof this.path === 'string' ? this.path : '';
     const url = pathStr.replace(/\(\.\*\)/g, '');
-    const toPath = compile(url, { encode: encodeURIComponent });
+    const encoder = options?.encode || encodeURIComponent;
+    const toPath = compile(url, { encode: encoder });
 
-    let replaced = toPath(params);
-
-    if (options && options.query) {
-      const urlObject: UrlObject = parseUrl(replaced);
-      if (typeof options.query === 'string') {
-        urlObject.search = options.query;
-      } else {
-        urlObject.search = undefined;
-        urlObject.query = options.query;
-      }
-      return formatUrl(urlObject);
-    }
-
-    return replaced;
+    return toPath(params);
   }
 
   /**
@@ -206,7 +186,7 @@ export default class Layer implements LayerLike {
    *
    * @param {String} param
    * @param {Function} middleware
-   * @returns {Layer}
+   * @returns {BaseLayer}
    * @private
    */
   public param(param: string, fn: (param: string, ctx: Context, next: () => void) => void): LayerLike {
@@ -236,7 +216,7 @@ export default class Layer implements LayerLike {
    * Prefix route path.
    *
    * @param {String} prefix
-   * @returns {Layer}
+   * @returns {BaseLayer}
    * @private
    */
   public setPrefix(prefix: string): LayerLike {
@@ -252,6 +232,17 @@ export default class Layer implements LayerLike {
       this.paramNames = tokens;
     }
 
+    return this;
+  }
+
+  /**
+   * 配置参数处理器
+   *
+   * @param {ParameterProcessor} processor
+   * @returns {BaseLayer}
+   */
+  public setParameterProcessor(processor: ParameterProcessor): LayerLike {
+    this.parameterProcessor = processor;
     return this;
   }
 }

@@ -2,8 +2,6 @@ import { compose } from './routerUtils'
 import type {
     Context,
     MiddlewareFunction,
-    MatchResult,
-    RouterOptions,
 } from './types'
 import Layer from './layer'
 import Router from './router'
