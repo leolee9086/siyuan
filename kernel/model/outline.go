@@ -239,14 +239,31 @@ func Outline(rootID string, preview bool) (ret []*Path, err error) {
 	ret = outline(tree)
 
 	storage, _ := GetOutlineStorage(rootID)
-	if nil == storage {
-		// 默认展开顶层
+	if nil == storage || 0 == len(storage) {
+		// 默认全部展开
 		for _, p := range ret {
 			p.Folded = false
+			for _, b := range p.Blocks {
+				b.Folded = false
+				for _, c := range b.Children {
+					walkChildren(c, []string{"expandAll"})
+				}
+			}
 		}
 	}
 
 	if nil != storage["expandIds"] {
+		// 先全部折叠，后面再根据展开 ID 列表展开对应标题
+		for _, p := range ret {
+			p.Folded = true
+			for _, b := range p.Blocks {
+				b.Folded = true
+				for _, c := range b.Children {
+					walkChildren(c, []string{"expandNone"})
+				}
+			}
+		}
+
 		expandIDsArg := storage["expandIds"].([]interface{})
 		var expandIDs []string
 		for _, id := range expandIDsArg {
@@ -254,8 +271,7 @@ func Outline(rootID string, preview bool) (ret []*Path, err error) {
 		}
 
 		for _, p := range ret {
-			p.Folded = false // 顶层默认展开
-
+			p.Folded = !gulu.Str.Contains(p.ID, expandIDs)
 			for _, b := range p.Blocks {
 				b.Folded = !gulu.Str.Contains(b.ID, expandIDs)
 				for _, c := range b.Children {
@@ -268,7 +284,18 @@ func Outline(rootID string, preview bool) (ret []*Path, err error) {
 }
 
 func walkChildren(b *Block, expandIDs []string) {
-	b.Folded = !gulu.Str.Contains(b.ID, expandIDs)
+	if 1 == len(expandIDs) {
+		if "expandAll" == expandIDs[0] {
+			b.Folded = false
+		} else if "expandNone" == expandIDs[0] {
+			b.Folded = true
+		} else {
+			b.Folded = !gulu.Str.Contains(b.ID, expandIDs)
+		}
+	} else {
+		b.Folded = !gulu.Str.Contains(b.ID, expandIDs)
+	}
+
 	for _, c := range b.Children {
 		walkChildren(c, expandIDs)
 	}
