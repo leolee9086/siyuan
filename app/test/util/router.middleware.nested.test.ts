@@ -1,5 +1,5 @@
-import Router from '../../src/util/router/router'
-import type { Context, MiddlewareFunction } from '../../src/util/router/types'
+import Router from '../../src/util/router/core/router'
+import type { Context, MiddlewareFunction } from '../../src/util/router/core/types'
 
 describe('Router嵌套路由测试', () => {
   let mockContext: Context

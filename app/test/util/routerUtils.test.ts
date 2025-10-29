@@ -1,4 +1,4 @@
-import { compose } from '../../src/util/router/routerUtils'
+import { compose } from '../../src/util/router/core/routerUtils'
 
 describe('RouterUtils测试', () => {
   test('应该正确组合中间件', async () => {

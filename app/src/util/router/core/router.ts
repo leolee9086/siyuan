@@ -268,15 +268,12 @@ class Router<
             // 如果没有设置host，则匹配任何host（包括undefined）
             return true;
         }
-
         if (!input) {
             return false;
         }
-
         if (typeof host === 'string') {
             return input === host;
         }
-
         if (typeof host === 'object' && host instanceof RegExp) {
             return host.test(input);
         }

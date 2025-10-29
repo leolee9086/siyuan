@@ -1,6 +1,6 @@
-import { chain } from '../../src/util/router/router.execution'
+import { chain } from '../../src/util/router/core/router.execution'
 import { z } from 'zod'
-import { Context } from '../../src/util/router/types'
+import { Context } from '../../src/util/router/core/types'
 
 describe('Router Schema Validation Error Handling', () => {
   it('should handle request schema validation error', async () => {

@@ -1,5 +1,5 @@
-import Layer from '../../src/util/router/layer'
-import type { Context } from '../../src/util/router/types'
+import Layer from '../../src/util/router/core/layer'
+import type { Context } from '../../src/util/router/core/types'
 
 describe('Layer类测试', () => {
   test('应该正确创建Layer实例', () => {

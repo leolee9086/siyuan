@@ -1,7 +1,7 @@
 import { z } from 'zod'
-import Router from '../../src/util/router/router'
-import { chain } from '../../src/util/router/router.execution'
-import { Context } from '../../src/util/router/types'
+import Router from '../../src/util/router/core/router'
+import { chain } from '../../src/util/router/core/router.execution'
+import { Context } from '../../src/util/router/core/types'
 
 describe('router execution', () => {
     let mockContext: Context
