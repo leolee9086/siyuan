@@ -54,6 +54,7 @@ export default class BaseLayer implements LayerLike {
   public regexp: RegExp;
   public schema: { request?: any; response?: any; } | undefined;
   public parameterProcessor: ParameterProcessor;
+  public methods: string[];
 
   constructor(path: string | RegExp, middleware: MiddlewareFunction | MiddlewareFunction[], opts: BaseLayerOptions = {}) {
     this.opts = opts;
@@ -62,6 +63,7 @@ export default class BaseLayer implements LayerLike {
     this.paramNames = [];
     this.stack = Array.isArray(middleware) ? middleware : [middleware];
     this.parameterProcessor = defaultParameterProcessor;
+    this.methods = [];
 
     // ensure middleware is a function or router
     for (const fn of this.stack) {

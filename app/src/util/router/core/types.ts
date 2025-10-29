@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import Layer from './layer'
 import Router from './router'
+import { LayerLike } from './layerLike.types'
 
 
 
@@ -330,8 +331,8 @@ export type ParamMiddlewareFunction = (param: any, ctx: Context, next: () => Pro
 
 // 路由匹配结果类型
 export interface MatchResult {
-  path: Layer[]
-  pathAndMethod: Layer[]
+  path: LayerLike[]
+  pathAndMethod: LayerLike[]
   route: boolean
 }
 
@@ -362,7 +363,7 @@ export interface MiddlewareWithRouter {
 // 可克隆的路由器类型，扩展了Router接口
 export interface CloneRouterType extends Router {
   /** 路由器栈，包含所有层 */
-  stack: Layer[];
+  stack: LayerLike[];
 }
 
 // 路径类型定义

@@ -3,6 +3,7 @@ import Layer from './layer'
 import {pathToRegexp, Key} from 'path-to-regexp'
 import type { MiddlewareFunction, MiddlewareWithRouter, CloneRouterType } from './types'
 import { z } from 'zod'
+import { LayerLike } from './layerLike.types'
 
 /**
  * 克隆路由器的层并设置前缀
@@ -25,7 +26,7 @@ import { z } from 'zod'
  */
 function cloneRouterLayers<
     TRequestBodySchema extends z.ZodTypeAny,
-    TResponseBodySchema extends z.ZodTypeAny
+    TResponseBodySchema extends z.ZodTypeAny,
 >(cloneRouter: CloneRouterType, router: Router<TRequestBodySchema, TResponseBodySchema>, path?: string): void {
     for (let j = 0; j < cloneRouter.stack.length; j++) {
         const nestedLayer = cloneRouter.stack[j];

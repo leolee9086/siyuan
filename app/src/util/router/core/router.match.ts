@@ -1,5 +1,5 @@
 import type { MatchResult } from './types'
-import Layer from './layer'
+import { LayerLike } from './layerLike.types';
 
 const debug = (...args: any[]) => {
     //    console.log(...args)
@@ -11,7 +11,7 @@ const debug = (...args: any[]) => {
  * 根据给定的路径和HTTP方法，在路由器的层栈中查找匹配的路由层。
  * 返回包含路径匹配和方法匹配的层信息。
  *
- * @param {Layer[]} stack - 路由器的层栈，包含所有注册的路由层
+ * @param {LayerLike[]} stack - 路由器的层栈，包含所有注册的路由层
  * @param {string} path - 要匹配的请求路径
  * @param {string} method - 要匹配的HTTP方法
  * @returns {MatchResult} 匹配结果，包含路径匹配和方法匹配的层信息
@@ -26,7 +26,7 @@ const debug = (...args: any[]) => {
  * // result.route 为 true 表示找到了方法匹配的路由
  * ```
  */
-export function match(stack: Layer[], path: string, method: string): MatchResult {
+export function match(stack: LayerLike[], path: string, method: string): MatchResult {
     let layer;
     const matched: MatchResult = {
         path: [],

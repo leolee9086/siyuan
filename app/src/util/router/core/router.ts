@@ -33,6 +33,7 @@ const HttpError = Errors
 
 
 import Layer from './layer'
+import { LayerLike } from './layerLike.types'
 
 /**
  * Router class for handling HTTP routing.
@@ -224,12 +225,12 @@ class Router<
     }
 
     // register方法
-    register(path: string | RegExp | string[], methods: string[], middleware: MiddlewareFunction | MiddlewareFunction[], opts: RouteOptions = {}): Layer | this {
+    register(path: string | RegExp | string[], methods: string[], middleware: MiddlewareFunction | MiddlewareFunction[], opts: RouteOptions = {}): LayerLike | this {
         return register(this, path, methods, middleware, opts);
     }
 
     // route方法
-    route(name: string | RegExp | symbol): Layer | false {
+    route(name: string | RegExp | symbol): LayerLike | false {
         const routes = this.stack;
 
         for (let len = routes.length, i = 0; i < len; i++) {

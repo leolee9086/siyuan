@@ -3,8 +3,8 @@ import type {
     Context,
     MiddlewareFunction,
 } from './types'
-import Layer from './layer'
 import Router from './router'
+import { LayerLike } from './layerLike.types'
 
 const debug = (...args: any[]) => {
     //    console.log(...args)
@@ -42,7 +42,7 @@ export function routes(router: Router): MiddlewareFunction {
 
         layerChain = (
             router.exclusive ? [mostSpecificLayer] : matchedLayers
-        ).reduce(function (memo: MiddlewareFunction[], layer: Layer) {
+        ).reduce(function (memo: MiddlewareFunction[], layer: LayerLike) {
             memo.push(async function (ctx: Context, next: () => Promise<void> | void) {
                 if (layer.schema?.request) {
                     const parsed = layer.schema.request.safeParse(ctx.request.body);

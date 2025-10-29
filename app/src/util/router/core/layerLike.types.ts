@@ -32,7 +32,7 @@ export interface LayerLike {
   path: string | RegExp;
   regexp: RegExp;
   schema: { request?: any; response?: any; } | undefined;
-
+  methods:string[]
   // 共同方法
   match(path: string): boolean;
   params(path: string, captures: string[], params?: Record<string, any>): Record<string, any>;

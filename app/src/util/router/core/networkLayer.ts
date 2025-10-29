@@ -34,7 +34,7 @@ const defaultUrlQueryHandler = (path: string, query?: string | Record<string, an
 };
 
 export default class NetworkLayer extends BaseLayer implements LayerLike {
-  public methods: string[];
+  public methods: string[] = [];
   private urlDecoder: (text: string) => string;
   private urlQueryHandler: (path: string, query?: string | Record<string, any>) => string;
 
