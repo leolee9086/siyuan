@@ -37,7 +37,7 @@ class Stack {
     private modeHandlers: Map<any, Function[]> = new Map();
 
     // 添加处理函数到指定模式
-    add(mode: string, handler: Function): void {
+    add(mode: any, handler: Function): void {
         if (!this.modeHandlers.has(mode)) {
             this.modeHandlers.set(mode, []);
         }
@@ -45,12 +45,12 @@ class Stack {
     }
 
     // 获取指定模式的处理函数列表
-    get(mode: string): Function[] {
+    get(mode: any): Function[] {
         return this.modeHandlers.get(mode) || [];
     }
 
     // 检查模式是否存在
-    has(mode: string): boolean {
+    has(mode: any): boolean {
         return this.modeHandlers.has(mode);
     }
 }
