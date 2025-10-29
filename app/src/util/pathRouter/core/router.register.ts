@@ -1,16 +1,17 @@
-import Router from './router'
+import Router from './router.htttpRouter'
 import Layer from './layer'
 import type {
     MiddlewareFunction,
     RouteOptions,
 } from './types'
 import { LayerLike } from './layerLike.types';
+import baseRouter from './router.base';
 
 const debug = (...args: any[]) => {
     //    console.log(...args)
 }
 
-export function register<T extends Router>(router: T, path: string | RegExp | string[], methods: string[], middleware: MiddlewareFunction | MiddlewareFunction[], opts: RouteOptions = {}): LayerLike | T {
+export function register<T extends baseRouter>(router: T, path: string | RegExp | string[], methods: string[], middleware: MiddlewareFunction | MiddlewareFunction[], opts: RouteOptions = {}): LayerLike | T {
     const { stack } = router;
     // support array of paths
     if (Array.isArray(path)) {

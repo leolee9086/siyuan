@@ -3,7 +3,7 @@ import type {
     RouteOptions,
     HttpMethod,
 } from './types'
-import Router from './router'
+import Router from './router.htttpRouter'
 import { z } from 'zod'
  
  /**
@@ -46,10 +46,7 @@ import { z } from 'zod'
             return typeof value === 'function';
         };
 
-        // 检查是否是中间件数组
-        const isMiddlewareArray = (value: any): value is MiddlewareFunction[] => {
-            return Array.isArray(value) && value.length > 0 && typeof value[0] === 'function';
-        };
+      
 
         // 处理命名路由的情况: router.get('name', '/path', middleware)
         if (isPath(pathOrMiddleware)) {

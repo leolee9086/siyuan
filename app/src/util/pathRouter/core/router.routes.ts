@@ -3,14 +3,14 @@ import type {
     Context,
     MiddlewareFunction,
 } from './types'
-import Router from './router'
 import { LayerLike } from './layerLike.types'
+import baseRouter from './router.base'
 
 const debug = (...args: any[]) => {
     //    console.log(...args)
 }
 
-export function routes(router: Router): MiddlewareFunction {
+export function routes(router: baseRouter): MiddlewareFunction {
     const dispatch = function dispatch(ctx: Context, next: () => Promise<void> | void): Promise<void> | void {
         debug('%s %s', ctx.method, ctx.path);
         

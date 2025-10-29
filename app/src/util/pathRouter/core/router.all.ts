@@ -1,4 +1,5 @@
-import Router from './router'
+import Router from './router.htttpRouter'
+import baseRouter from './router.base';
 import type { MiddlewareFunction, PathType, RouteParamType } from './types'
 import { z } from 'zod'
 // HTTP方法列表
@@ -92,9 +93,9 @@ export function all<
     TRequestBodySchema extends z.ZodTypeAny,
     TResponseBodySchema extends z.ZodTypeAny
 >(
-    router: Router<TRequestBodySchema, TResponseBodySchema>,
+    router: baseRouter<TRequestBodySchema, TResponseBodySchema>,
     ...args: (RouteParamType<TRequestBodySchema, TResponseBodySchema>)[]
-): Router<TRequestBodySchema, TResponseBodySchema> {
+): baseRouter<TRequestBodySchema, TResponseBodySchema> {
     let actualPath: PathType;
     let actualName: string | null = null;
     let middleware: MiddlewareFunction<TRequestBodySchema, TResponseBodySchema>[];

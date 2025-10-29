@@ -1,4 +1,4 @@
-import Router from './router'
+import Router from './router.htttpRouter'
 import { Context, createContextSchema } from './types'
 
 import { z } from 'zod'

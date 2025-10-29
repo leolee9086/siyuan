@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import Router from '../../../src/util/pathRouter/core/router'
+import Router from '../../../src/util/pathRouter/core/router.htttpRouter'
 import { chain } from '../../../src/util/pathRouter/core/router.execution'
 import { Context } from '../../../src/util/pathRouter/core/types'
 

@@ -1,4 +1,4 @@
-import Router from '../../../src/util/pathRouter/core/router'
+import Router from '../../../src/util/pathRouter/core/router.htttpRouter'
 import type { RouterOptions } from '../../../src/util/pathRouter/core/types'
 describe('Router基础功能测试', () => {
   test('应该使用默认选项创建Router实例', () => {

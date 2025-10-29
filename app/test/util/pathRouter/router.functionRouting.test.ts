@@ -1,4 +1,4 @@
-import Router from '../../../src/util/pathRouter/core/router'
+import Router from '../../../src/util/pathRouter/core/router.htttpRouter'
 import { InferContext, RequestBodyTypes } from '../../../src/util/pathRouter/core/types'
 import { z } from 'zod'
 

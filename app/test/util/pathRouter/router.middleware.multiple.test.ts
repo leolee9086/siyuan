@@ -1,4 +1,4 @@
-import Router from '../../../src/util/pathRouter/core/router'
+import Router from '../../../src/util/pathRouter/core/router.htttpRouter'
 import type { Context } from '../../../src/util/pathRouter/core/types'
 
 describe('Router多个中间件测试', () => {

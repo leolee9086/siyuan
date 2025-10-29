@@ -1,9 +1,10 @@
-import Router from './router'
+import Router from './router.htttpRouter'
 import Layer from './layer'
 import {pathToRegexp, Key} from 'path-to-regexp'
 import type { MiddlewareFunction, MiddlewareWithRouter, CloneRouterType } from './types'
 import { z } from 'zod'
 import { LayerLike } from './layerLike.types'
+import baseRouter from './router.base'
 
 /**
  * 克隆路由器的层并设置前缀
@@ -27,7 +28,7 @@ import { LayerLike } from './layerLike.types'
 function cloneRouterLayers<
     TRequestBodySchema extends z.ZodTypeAny,
     TResponseBodySchema extends z.ZodTypeAny,
->(cloneRouter: CloneRouterType, router: Router<TRequestBodySchema, TResponseBodySchema>, path?: string): void {
+>(cloneRouter: CloneRouterType, router: baseRouter<TRequestBodySchema, TResponseBodySchema>, path?: string): void {
     for (let j = 0; j < cloneRouter.stack.length; j++) {
         const nestedLayer = cloneRouter.stack[j];
         const cloneLayer = Object.assign(
@@ -64,7 +65,7 @@ function cloneRouterLayers<
 function setRouterParams<
     TRequestBodySchema extends z.ZodTypeAny,
     TResponseBodySchema extends z.ZodTypeAny
->(cloneRouter: CloneRouterType, router: Router<TRequestBodySchema, TResponseBodySchema>): void {
+>(cloneRouter: CloneRouterType, router: baseRouter<TRequestBodySchema, TResponseBodySchema>): void {
     if (router.params) {
         const paramKeys = Object.keys(router.params);
         for (const key of paramKeys) {
@@ -97,7 +98,7 @@ function setRouterParams<
 function handleMiddlewareRouter<
     TRequestBodySchema extends z.ZodTypeAny,
     TResponseBodySchema extends z.ZodTypeAny
->(m: MiddlewareWithRouter, router: Router<TRequestBodySchema, TResponseBodySchema>, path?: string): void {
+>(m: MiddlewareWithRouter, router: baseRouter<TRequestBodySchema, TResponseBodySchema>, path?: string): void {
     const cloneRouter = Object.assign(
         Object.create(Router.prototype),
         m.router,
@@ -136,7 +137,7 @@ function handleMiddlewareRouter<
 function handleRegularMiddleware<
     TRequestBodySchema extends z.ZodTypeAny,
     TResponseBodySchema extends z.ZodTypeAny
->(m: MiddlewareFunction<TRequestBodySchema, TResponseBodySchema>, router: Router<TRequestBodySchema, TResponseBodySchema>, path?: string, hasPath?: boolean): void {
+>(m: MiddlewareFunction<TRequestBodySchema, TResponseBodySchema>, router: baseRouter<TRequestBodySchema, TResponseBodySchema>, path?: string, hasPath?: boolean): void {
     const keys: Key[] = [];
     pathToRegexp(router.opts.prefix || '', keys);
     const routerPrefixHasParam = router.opts.prefix && keys.length;
@@ -182,7 +183,7 @@ function handleRegularMiddleware<
 export function use<
     TRequestBodySchema extends z.ZodTypeAny,
     TResponseBodySchema extends z.ZodTypeAny
->(router: Router<TRequestBodySchema, TResponseBodySchema>, ...args: (MiddlewareFunction<TRequestBodySchema, TResponseBodySchema> | MiddlewareWithRouter | string[]|string)[]): Router<TRequestBodySchema, TResponseBodySchema> {
+>(router: baseRouter<TRequestBodySchema, TResponseBodySchema>, ...args: (MiddlewareFunction<TRequestBodySchema, TResponseBodySchema> | MiddlewareWithRouter | string[]|string)[]): baseRouter<TRequestBodySchema, TResponseBodySchema> {
     const middleware = Array.prototype.slice.call(args);
     let path;
     if (Array.isArray(middleware[0]) && typeof middleware[0][0] === 'string') {
@@ -196,7 +197,7 @@ export function use<
     if (hasPath) path = middleware.shift();
     
     for (const m of middleware) {
-        if ((m ).router) {
+        if (m.router) {
             handleMiddlewareRouter(m , router, path);
         } else {
             handleRegularMiddleware(m , router, path, hasPath);

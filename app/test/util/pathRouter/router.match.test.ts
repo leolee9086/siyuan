@@ -1,4 +1,4 @@
-import Router from '../../../src/util/pathRouter/core/router'
+import Router from '../../../src/util/pathRouter/core/router.htttpRouter'
 import type { Context } from '../../../src/util/pathRouter/core/types'
 describe('Router路由匹配测试', () => {
   let mockContext: Context
