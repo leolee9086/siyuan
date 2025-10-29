@@ -1,7 +1,7 @@
-import Router from '../../src/util/router/core/router'
-import type { Context } from '../../src/util/router/core/types'
+import Router from '../../../src/util/pathRouter/core/router'
+import type { Context } from '../../../src/util/pathRouter/core/types'
 
-describe('Router中间件next调用测试', () => {
+describe('Router多个中间件测试', () => {
   let mockContext: Context
 
   beforeEach(() => {
@@ -30,15 +30,15 @@ describe('Router中间件next调用测试', () => {
     }
   })
 
-  test('应该正确处理中间件链中的next调用', async () => {
+  test('应该正确执行多个中间件', async () => {
     const router = new Router()
     const middleware1 = jest.fn((ctx, next) => {
       ctx.body = 'Step 1'
       return next()
     })
     const middleware2 = jest.fn((ctx, next) => {
-      // 不调用next，中断中间件链
-      ctx.body += ' -> Step 2 (end)'
+      ctx.body += ' -> Step 2'
+      return next()
     })
     const middleware3 = jest.fn((ctx, next) => {
       ctx.body += ' -> Step 3'
@@ -53,7 +53,7 @@ describe('Router中间件next调用测试', () => {
     
     expect(middleware1).toHaveBeenCalled()
     expect(middleware2).toHaveBeenCalled()
-    expect(middleware3).not.toHaveBeenCalled()
-    expect(mockContext.body).toBe('Step 1 -> Step 2 (end)')
+    expect(middleware3).toHaveBeenCalled()
+    expect(mockContext.body).toBe('Step 1 -> Step 2 -> Step 3')
   })
 })

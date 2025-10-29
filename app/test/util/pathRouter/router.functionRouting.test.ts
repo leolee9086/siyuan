@@ -1,5 +1,5 @@
-import Router from '../../src/util/router/core/router'
-import { InferContext, RequestBodyTypes } from '../../src/util/router/core/types'
+import Router from '../../../src/util/pathRouter/core/router'
+import { InferContext, RequestBodyTypes } from '../../../src/util/pathRouter/core/types'
 import { z } from 'zod'
 
 // 为测试定义一个具体的body schema

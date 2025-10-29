@@ -1,7 +1,7 @@
-import Router from '../../src/util/router/core/router'
-import type { Context } from '../../src/util/router/core/types'
+import Router from '../../../src/util/pathRouter/core/router'
+import type { Context } from '../../../src/util/pathRouter/core/types'
 
-describe('Router中间件错误处理测试', () => {
+describe('Router单个中间件测试', () => {
   let mockContext: Context
 
   beforeEach(() => {
@@ -30,23 +30,20 @@ describe('Router中间件错误处理测试', () => {
     }
   })
 
-  test('应该正确处理中间件中的错误', async () => {
+  test('应该正确执行单个中间件', async () => {
     const router = new Router()
-    const error = new Error('Test error')
-    const errorMiddleware = jest.fn((ctx, next) => {
-      throw error
+    const middleware = jest.fn((ctx, next) => {
+      ctx.body = 'Hello World'
+      return next()
     })
     
-    router.get('/users/:id', errorMiddleware)
+    router.get('/users/:id', middleware)
     
     const dispatch = router.routes()
     
-    try {
-      await dispatch(mockContext, jest.fn())
-    } catch (e) {
-      expect(e).toBe(error)
-    }
+    await dispatch(mockContext, jest.fn())
     
-    expect(errorMiddleware).toHaveBeenCalled()
+    expect(middleware).toHaveBeenCalled()
+    expect(mockContext.body).toBe('Hello World')
   })
 })

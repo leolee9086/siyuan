@@ -1,5 +1,5 @@
-import Router from '../../src/util/router/core/router'
-import type { Context } from '../../src/util/router/core/types'
+import Router from '../../../src/util/pathRouter/core/router'
+import type { Context } from '../../../src/util/pathRouter/core/types'
 
 // 导入Jest类型定义
 

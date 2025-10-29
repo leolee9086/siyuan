@@ -1,7 +1,7 @@
-import Router from '../../src/util/router/core/router'
-import type { Context } from '../../src/util/router/core/types'
+import Router from '../../../src/util/pathRouter/core/router'
+import type { Context } from '../../../src/util/pathRouter/core/types'
 
-describe('Router单个中间件测试', () => {
+describe('Router中间件异步操作测试', () => {
   let mockContext: Context
 
   beforeEach(() => {
@@ -30,20 +30,21 @@ describe('Router单个中间件测试', () => {
     }
   })
 
-  test('应该正确执行单个中间件', async () => {
+  test('应该正确处理中间件中的异步操作', async () => {
     const router = new Router()
-    const middleware = jest.fn((ctx, next) => {
-      ctx.body = 'Hello World'
+    const asyncMiddleware = jest.fn(async (ctx, next) => {
+      await new Promise(resolve => setTimeout(resolve, 10))
+      ctx.body = 'Async'
       return next()
     })
     
-    router.get('/users/:id', middleware)
+    router.get('/users/:id', asyncMiddleware)
     
     const dispatch = router.routes()
     
     await dispatch(mockContext, jest.fn())
     
-    expect(middleware).toHaveBeenCalled()
-    expect(mockContext.body).toBe('Hello World')
+    expect(asyncMiddleware).toHaveBeenCalled()
+    expect(mockContext.body).toBe('Async')
   })
 })

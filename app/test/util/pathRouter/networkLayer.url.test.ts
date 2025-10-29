@@ -1,4 +1,4 @@
-import NetworkLayer from '../src/util/router/core/networkLayer';
+import NetworkLayer from '../../../src/util/pathRouter/core/networkLayer';
 
 describe('NetworkLayer - URL生成测试', () => {
   test('应该生成基本URL', () => {

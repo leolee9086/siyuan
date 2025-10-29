@@ -1,4 +1,4 @@
-import NetworkLayer from '../src/util/router/core/networkLayer';
+import NetworkLayer from '../../../src/util/pathRouter/core/networkLayer';
 
 describe('NetworkLayer - HTTP方法测试', () => {
   test('应该正确处理HTTP方法', () => {

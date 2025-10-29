@@ -1,7 +1,7 @@
-import Router from '../../src/util/router/core/router'
-import type { Context } from '../../src/util/router/core/types'
+import Router from '../../../src/util/pathRouter/core/router'
+import type { Context } from '../../../src/util/pathRouter/core/types'
 
-describe('Router use方法测试', () => {
+describe('Router参数中间件测试', () => {
   let mockContext: Context
 
   beforeEach(() => {
@@ -30,26 +30,26 @@ describe('Router use方法测试', () => {
     }
   })
 
-  test('应该正确处理use方法添加中间件', async () => {
+  test('应该正确处理参数中间件', async () => {
     const router = new Router()
-    const globalMiddleware = jest.fn((ctx, next) => {
-      ctx.body = 'Global'
+    const paramMiddleware = jest.fn((param, ctx, next) => {
+      ctx.user = { id: param }
       return next()
     })
     const routeMiddleware = jest.fn((ctx, next) => {
-      ctx.body += ' -> Route'
+      ctx.body = `User ID: ${ctx.user.id}`
       return next()
     })
     
-    router.use(globalMiddleware)
+    router.param('id', paramMiddleware)
     router.get('/users/:id', routeMiddleware)
     
     const dispatch = router.routes()
     
     await dispatch(mockContext, jest.fn())
     
-    expect(globalMiddleware).toHaveBeenCalled()
+    expect(paramMiddleware).toHaveBeenCalledWith('123', mockContext, expect.any(Function))
     expect(routeMiddleware).toHaveBeenCalled()
-    expect(mockContext.body).toBe('Global -> Route')
+    expect(mockContext.body).toBe('User ID: 123')
   })
 })

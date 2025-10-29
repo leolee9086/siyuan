@@ -1,4 +1,4 @@
-import BaseLayer from '../src/util/router/core/baseLayer';
+import BaseLayer from '../../../src/util/pathRouter/core/baseLayer';
 
 describe('BaseLayer - 参数提取测试', () => {
   test('应该正确提取路径参数', () => {

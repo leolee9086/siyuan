@@ -1,4 +1,4 @@
-import BaseLayer from '../src/util/router/core/baseLayer';
+import BaseLayer from '../../../src/util/pathRouter/core/baseLayer';
 
 describe('BaseLayer - 路径匹配测试', () => {
   test('应该匹配简单路径', () => {

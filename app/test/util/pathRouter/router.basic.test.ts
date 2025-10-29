@@ -1,5 +1,5 @@
-import Router from '../../src/util/router/core/router'
-import type { RouterOptions } from '../../src/util/router/core/types'
+import Router from '../../../src/util/pathRouter/core/router'
+import type { RouterOptions } from '../../../src/util/pathRouter/core/types'
 describe('Router基础功能测试', () => {
   test('应该使用默认选项创建Router实例', () => {
     const router = new Router()
