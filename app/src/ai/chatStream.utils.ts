@@ -1,8 +1,9 @@
-import { Dialog } from "../dialog";
-import { ChatSessionState } from "../ai/session/session.types";
-import { getAIConfigFromSiyuan, chatResponseDataSchema } from "../ai/types";
-import { buildBlockContentPrompt } from "../ai/prompts/blockContent.builder";
-import { detectToolCalls, detectAsyncToolCalls } from "../ai/parser/toolCallDetector";
+import { Dialog } from "./imports";
+import type { ChatSessionState } from "./session/session.types";
+import { chatResponseDataSchema } from "./types";
+import { getAIConfigFromSiyuan } from "./utils.config";
+import { buildBlockContentPrompt } from "./prompts/blockContent.builder";
+import { detectToolCalls, detectAsyncToolCalls } from "./parser/toolCallDetector";
 
 
 // 更新聊天状态

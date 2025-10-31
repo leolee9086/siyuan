@@ -12,6 +12,9 @@
 
 类型定义只能位于types文件夹或者名字包含.types.ts的文件中
 
+类型导入只能使用import type ,不得直接使用import
+
 types文件夹用于使用极其广泛,整个项目共享的类型定义
 
 .types.ts文件夹用于局部的类型定义
+

@@ -6,9 +6,10 @@ import {
     createVueDialog,
     AIChatDialog,
     VueComponentMountConfig,
-    handleAIRequest,
     createBlockMasks,
-    getContenteditableElement
+    getContenteditableElement,
+    createStreamChatBusinessLogic,
+    handleAIRequest
 } from "./imports";
 import { setDialogContainerColor, removeBlockMask } from "./utils.mask";
 import { reactive } from "vue";
@@ -218,7 +219,9 @@ const createResumeHandler = (
             });
 
             // 重新发送请求
+            const businessLogic = createStreamChatBusinessLogic();
             const abortFn = await handleAIRequest(
+                businessLogic,
                 state,
                 protyle,
                 uiFunctions.showResponse,
@@ -272,7 +275,9 @@ const createConfirmHandler = (
         // 清空之前的内容
         state.responseContentStr = '';
 
+        const businessLogic = createStreamChatBusinessLogic();
         const abortFn = await handleAIRequest(
+            businessLogic,
             state,
             protyle,
             uiFunctions.showResponse,

@@ -28,3 +28,5 @@ vue组件可以直接导入vue本身,不需要经过deps转发
 ### 只能够导入逻辑支持文件
 
 任何组件只能导入包含命名中包含componentLogic的文件
+
+任何componentLogic文件只能够导入类型或者其它componentLogic文件不能够导入其它代码中的具体实现

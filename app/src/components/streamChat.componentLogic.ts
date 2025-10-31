@@ -1,9 +1,15 @@
-import { ref, onUnmounted } from '../ai/deps';
-import { buildRequestHeaders, handleOpenAILikeStreamResponse, updateChatState, processBlockDOMContent } from './chatStream.utils';
-import { universalStreamRequest } from '../util/fetchStream';
-import { getAIConfigFromSiyuan } from '../ai/types';
-import { ChatSessionState } from '../ai/session/session.types';
-export { ChatSessionState as ChatState }
+import { ref, onUnmounted } from 'vue';
+import type { ChatSessionState } from '../ai/session/session.types';
+
+// 业务逻辑依赖接口
+export interface StreamChatBusinessLogic {
+    buildRequestHeaders: () => Record<string, string>;
+    handleOpenAILikeStreamResponse: (dataStr: string, state: ChatSessionState) => string | null;
+    updateChatState: (state: ChatSessionState, updates: Partial<ChatSessionState>) => void;
+    processBlockDOMContent: (state: ChatSessionState, protyle: IProtyle) => string;
+    universalStreamRequest: (request: any, callbacks: any) => Promise<(() => void) | null>;
+    getAIConfigFromSiyuan: () => any;
+}
 
 // UI状态上下文接口
 interface StreamChatUIContext {
@@ -17,6 +23,7 @@ interface StreamChatUIContext {
 
 // 创建流式响应处理函数，避免闭包
 const createStreamHandlers = (
+    businessLogic: StreamChatBusinessLogic,
     chatState: ChatSessionState,
     onCompleteStatus: () => void,
     onErrorStatus: (error: Error) => void,
@@ -26,22 +33,22 @@ const createStreamHandlers = (
     return {
         onMessage: (dataStr: string) => {
             chatState.isStreaming = true
-            const content = handleOpenAILikeStreamResponse(dataStr, chatState);
+            const content = businessLogic.handleOpenAILikeStreamResponse(dataStr, chatState);
             if (content) {
-                processBlockDOMContent(chatState, protyleInstance);
+                businessLogic.processBlockDOMContent(chatState, protyleInstance);
             }
             console.log(chatState)
         },
         onDone: () => {
-            updateChatState(chatState, { isStreaming: false, isDone: true });
+            businessLogic.updateChatState(chatState, { isStreaming: false, isDone: true });
             onCompleteStatus();
         },
         onError: (error: Error) => {
-            updateChatState(chatState, { isStreaming: false });
+            businessLogic.updateChatState(chatState, { isStreaming: false });
             onErrorStatus(error);
         },
         onAbort: () => {
-            updateChatState(chatState, { isStreaming: false });
+            businessLogic.updateChatState(chatState, { isStreaming: false });
             onAbortStatus();
         },
     };
@@ -111,10 +118,11 @@ const setAbortStatus = (ctx: StreamChatUIContext) => {
 
 // 准备AI请求参数
 const prepareAIRequest = (
+    businessLogic: StreamChatBusinessLogic,
     signal: AbortSignal,
     messageHistory?: Array<{ role: 'user' | 'assistant'; content: string; timestamp: number }>
 ) => {
-    const aiConfig = getAIConfigFromSiyuan();
+    const aiConfig = businessLogic.getAIConfigFromSiyuan();
 
     // 如果有消息历史，构建包含历史的请求
     let messages: any[] = [];
@@ -132,7 +140,7 @@ const prepareAIRequest = (
         stream: true
     };
 
-    const headers = buildRequestHeaders();
+    const headers = businessLogic.buildRequestHeaders();
 
     return {
         url: `${aiConfig.apiBaseURL}/chat/completions`,
@@ -146,6 +154,7 @@ const prepareAIRequest = (
 
 // 发起流请求
 const initiateStreamRequest = async (
+    businessLogic: StreamChatBusinessLogic,
     requestParams: any,
     state: ChatSessionState,
     setCompleteStatus: () => void,
@@ -154,14 +163,15 @@ const initiateStreamRequest = async (
     protyle: IProtyle
 ): Promise<null> => {
     state.isStreaming = true
-    const handlers = createStreamHandlers(state, setCompleteStatus, setErrorStatus, setAbortStatus, protyle);
+    const handlers = createStreamHandlers(businessLogic, state, setCompleteStatus, setErrorStatus, setAbortStatus, protyle);
 
-    await universalStreamRequest(requestParams, handlers);
+    await businessLogic.universalStreamRequest(requestParams, handlers);
     // 不再需要返回 abortFunction，因为取消操作完全由外部 AbortSignal 控制
     return null;
 };
 
 export const handleAIRequest = async (
+    businessLogic: StreamChatBusinessLogic,
     state: ChatSessionState,
     protyle: IProtyle,
     showResponse: () => void,
@@ -172,7 +182,7 @@ export const handleAIRequest = async (
 ): Promise<(() => void) | null> => {
 
     showResponse();
-    updateChatState(state, {
+    businessLogic.updateChatState(state, {
         isStreaming: true,
         isDone: false,
     });
@@ -181,8 +191,9 @@ export const handleAIRequest = async (
     const controller = new AbortController();
 
     try {
-        const requestParams = prepareAIRequest(controller.signal, messageHistory);
+        const requestParams = prepareAIRequest(businessLogic, controller.signal, messageHistory);
         await initiateStreamRequest(
+            businessLogic,
             requestParams,
             state,
             setCompleteStatus,
@@ -197,7 +208,7 @@ export const handleAIRequest = async (
         };
     } catch (error) {
         const errorMessage = error instanceof Error ? error : new Error('请求失败');
-        updateChatState(state, { isStreaming: false });
+        businessLogic.updateChatState(state, { isStreaming: false });
         setErrorStatus(errorMessage);
         return null;
     }
