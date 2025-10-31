@@ -8,53 +8,8 @@ import {
     saveCustomAIAction,
     localKernel
 } from "./imports";
-/**
- * 处理使用按钮的点击事件
- * 调用AI API并填充内容
- *
- * @param dialog - 对话框实例
- * @param protyle - Protyle实例
- * @param ids - 文档ID列表
- * @param elements - 元素列表
- * @param customAction - 自定义动作内容
- */
-const handleUseClick = async (
-    dialog: Dialog,
-    protyle: IProtyle,
-    ids: string[],
-    elements: Element[],
-    customAction: string
-) => {
-    const res = await localKernel.chatGPTWithAction({
-        ids,
-        action: customAction,
-    })
-    dialog.destroy();
-    fillContent(protyle, res.data, elements);
-};
 
-/**
- * 处理保存按钮的点击事件
- * 将自定义动作保存到本地存储
- *
- * @param dialog - 对话框实例
- * @param name - 动作名称
- * @param customAction - 自定义动作内容
- */
-const handleSaveClick = (
-    dialog: Dialog,
-    name: string,
-    customAction: string
-) => {
-    saveCustomAIAction(
-        {
-            onAfterSave: dialog.destroy
-        },
-        {
-            name, customAction
-        }
-    )
-};
+
 
 /**
  * 创建自定义对话框的Vue应用配置
@@ -79,8 +34,24 @@ const createCustomDialogVueConfig = (
         data: {},
         eventHandlers: {
             handleCancel: () => dialog.destroy(),
-            handleUse: (customAction: string) => handleUseClick(dialog, protyle, ids, elements, customAction),
-            handleSave: (name: string, customAction: string) => handleSaveClick(dialog, name, customAction)
+            handleUse: async (customAction: string) => {
+                const res = await localKernel.chatGPTWithAction({
+                    ids,
+                    action: customAction,
+                })
+                dialog.destroy();
+                fillContent(protyle, res.data, elements);
+
+            },
+            handleSave: (name: string, customAction: string) => saveCustomAIAction(
+                {
+                    onAfterSave: dialog.destroy
+                },
+                {
+                    name, customAction
+                }
+            )
+
         },
         template: `<AiCustomDialog @cancel="handleCancel" @use="handleUse" @save="handleSave" ref="aiCustomDialogComponent" />`,
         initMethodName: "focusNameInput"

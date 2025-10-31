@@ -2,7 +2,6 @@ import { ref, onUnmounted } from '../ai/deps';
 import { buildRequestHeaders, handleOpenAILikeStreamResponse, updateChatState, processBlockDOMContent } from './chatStream.utils';
 import { universalStreamRequest } from '../util/fetchStream';
 import { getAIConfigFromSiyuan } from '../ai/types';
-import { fillContent } from '../ai/actions.fillContent';
 import { ChatSessionState } from '../ai/chatStream.types';
 export { ChatSessionState as ChatState }
 
@@ -96,10 +95,6 @@ const setAbortStatus = (ctx: StreamChatUIContext) => {
     ctx.statusText.value = '已终止响应';
 };
 
-// 聚焦文本框函数
-const focusTextarea = (textareaRef: { value: HTMLTextAreaElement | null }) => {
-    textareaRef.value?.focus();
-};
 /**
  * 处理AI请求的业务逻辑
  * @param inputValue 输入值
@@ -208,22 +203,6 @@ export const handleAIRequest = async (
     }
 };
 
-/**
- * 处理填充内容的业务逻辑
- * @param protyle protyle实例
- * @param state 聊天状态
- * @param selectedElements 选中的元素
- * @param targetElement 目标元素
- */
-export const handleFillContent = (
-    protyle: IProtyle,
-    state: ChatSessionState,
-    selectedElements: Element[],
-    targetElement: Element
-): void => {
-    const targetElements = selectedElements.length > 0 ? selectedElements : [targetElement];
-    fillContent(protyle, state.responseContentStr, targetElements, state.blockDOMContent);
-};
 
 /**
  * 获取国际化文本的辅助函数

@@ -7,7 +7,8 @@ import { reactive } from "vue";
 import { createVueDialog } from "../util/dialog/createVueDialog";
 import AIChatDialog from "../components/StreamChat.panel.vue";
 import { VueComponentMountConfig } from "../util/vue/mount";
-import { handleAIRequest, handleFillContent } from "../components/streamChat.componentLogic";
+import { handleAIRequest } from "../components/streamChat.componentLogic";
+import { fillContent } from "./actions.fillContent";
 import { ChatSessionState, UIFunctions } from './chatStream.types';
 import { createBlockMasks } from "../util/DOM/blockDecorations";
 import { createTemporaryModule } from "./parser/toolCallDetector";
@@ -246,7 +247,8 @@ const createConfirmHandler = (
         }
 
         if (state.isDone) {
-            handleFillContent(protyle, state, selectedBlockElements, targetElement);
+            const targetElements = selectedBlockElements.length > 0 ? selectedBlockElements : [targetElement];
+            fillContent(protyle, state.responseContentStr, targetElements, state.blockDOMContent);
             dialog.destroy();
             return;
         }

@@ -29,13 +29,13 @@ const generateCustomMenuItems = (): string => {
     <span data-type="edit" class="b3-list-item__action"><svg><use xlink:href="#iconEdit"></use></svg></span>
 </div>`;
     });
-    
+
     // 添加AI聊天菜单项
     const aiChatHTML = `<div data-action="aiChat" class="b3-list-item b3-list-item--narrow ariaLabel" aria-label="AI聊天">
     <span class="b3-list-item__text">AI聊天</span>
     <span class="b3-list-item__action"><svg><use xlink:href="#iconChat"></use></svg></span>
 </div>`;
-    
+
     if (customHTML || aiChatHTML) {
         customHTML = `<div class="b3-menu__separator"></div>${customHTML}${aiChatHTML}`;
     }
@@ -94,34 +94,7 @@ const handleKeyDown = (
     }
 };
 
-/**
- * 处理输入事件
- * @param event 输入事件
- * @param element 菜单元素
- * @param inputElement 输入元素
- */
-const handleInput = (
-    event: KeyboardEvent,
-    element: HTMLElement,
-    inputElement: HTMLInputElement
-) => {
-    if (event.isComposing) {
-        return;
-    }
-    filterAIMenuItems(element, inputElement);
-};
 
-/**
- * 处理组合输入结束事件
- * @param element 菜单元素
- * @param inputElement 输入元素
- */
-const handleCompositionEnd = (
-    element: HTMLElement,
-    inputElement: HTMLInputElement
-) => {
-    filterAIMenuItems(element, inputElement);
-};
 
 /**
  * 处理点击事件
@@ -152,7 +125,7 @@ const handleClick = (
             menu.close();
             return;
         }
-        
+
         const context: AIMenuContext = {
             protyle,
             ids,
@@ -161,7 +134,7 @@ const handleClick = (
             clearContext
         };
         const request: AIMenuRequest = {
-            target: target , // 类型转换，因为 handleAIMenuItemClick 期望 HTMLElement
+            target: target, // 类型转换，因为 handleAIMenuItemClick 期望 HTMLElement
             element: menuElement,
             event
         };
@@ -202,28 +175,31 @@ const bindMenuEvents = (
 ) => {
     // 设置移动端样式
     setupMobileStyles(element);
-    
+
     // 获取元素引用
     const listElement = element.querySelector(".b3-list");
-    const inputElement = element.querySelector("input") ;
-    
+    const inputElement = element.querySelector("input");
+
     // 绑定键盘事件
     inputElement.addEventListener("keydown", (event: KeyboardEvent) => {
-        if(listElement instanceof HTMLElement){
-        handleKeyDown(event, listElement, protyle, ids, elements, menu, clearContext);
+        if (listElement instanceof HTMLElement) {
+            handleKeyDown(event, listElement, protyle, ids, elements, menu, clearContext);
         }
     });
-    
+
     // 绑定组合输入结束事件
     inputElement.addEventListener("compositionend", () => {
-        handleCompositionEnd(element, inputElement);
+        filterAIMenuItems(element, inputElement);
     });
-    
+
     // 绑定输入事件
     inputElement.addEventListener("input", (event: KeyboardEvent) => {
-        handleInput(event, element, inputElement);
+        if (event.isComposing) {
+            return;
+        }
+        filterAIMenuItems(element, inputElement);
     });
-    
+
     // 绑定点击事件
     element.addEventListener("click", (event) => {
         handleClick(event, protyle, ids, elements, menu, clearContext, element);
@@ -236,17 +212,17 @@ export const openAIActionsMenu = (elements: Element[], protyle: IProtyle) => {
     const menu = new Menu("ai", () => {
         focusByRange(protyle.toolbar.range);
     });
-    
+
     // 使用独立函数生成自定义菜单项HTML
     const customHTML = generateCustomMenuItems();
     const clearContext = "Clear context";
-    
+
     // 使用独立函数生成菜单HTML模板
     const menuHTML = generateBuildingMenuHTML(customHTML);
-    
+
     // 将Element[]转换为HTMLElement[]
     const htmlElements = elements as HTMLElement[];
-    
+
     menu.addItem({
         iconHTML: "",
         type: "empty",
@@ -256,7 +232,7 @@ export const openAIActionsMenu = (elements: Element[], protyle: IProtyle) => {
             bindMenuEvents(element, protyle, ids, htmlElements, menu, clearContext);
         }
     });
-    
+
     menu.element.querySelector(".b3-menu__items").setAttribute("style", "overflow: initial");
     /// #if MOBILE
     menu.fullscreen();
