@@ -25,13 +25,25 @@ export interface AssistantResponseState {
 }
 
 // 完整的对话会话状态
-export interface ChatSessionState extends Omit<AssistantResponseState, 'savedMessages'> {
+export interface ChatSessionState {
+    responseContentStr: string;
+    isStreaming: boolean;
+    isDone: boolean;
+    abortFunction: (() => void) | null;
+    // 渲染后的blockDOM内容
+    blockDOMContent: string;
+    // 工具调用执行回调
+    onWaitToolCallDetected: ToolCallExecutionCallback;
+    onAsyncToolCallDetected: ToolCallExecutionCallback;
+    // 暂停状态
+    isPaused: boolean;
+    // 保存的消息内容
     savedMessages: Array<{
         role: 'user' | 'assistant';
         content: string;
         timestamp: number;
     }>;
-    // 新增：异步工具调用结果堆栈
+    // 异步工具调用结果堆栈
     asyncToolResults: Array<any>;
 }
 
@@ -64,7 +76,7 @@ export interface StreamResponseHandlers {
 // AI请求配置接口
 export interface AIRequestConfig {
     inputValue: string;
-    state: AssistantResponseState;
+    state: ChatSessionState;
     elements: DialogElements;
     animationManager: AnimationManager;
     protyle?: IProtyle; // 新增：protyle实例，用于blockDOM渲染
@@ -74,13 +86,13 @@ export interface AIRequestConfig {
 // 流式响应处理配置接口
 export interface StreamResponseConfig {
     dataStr: string;
-    state: AssistantResponseState;
+    state: ChatSessionState;
     responseContent: HTMLElement;
 }
 
 // 请求完成处理配置接口
 export interface RequestCompleteConfig {
-    state: AssistantResponseState;
+    state: ChatSessionState;
     elements: DialogElements;
     animationManager: AnimationManager;
 }
@@ -88,14 +100,14 @@ export interface RequestCompleteConfig {
 // 请求错误处理配置接口
 export interface RequestErrorConfig {
     error: Error;
-    state: AssistantResponseState;
+    state: ChatSessionState;
     elements: DialogElements;
     animationManager: AnimationManager;
 }
 
 // 请求终止处理配置接口
 export interface RequestAbortConfig {
-    state: AssistantResponseState;
+    state: ChatSessionState;
     elements: DialogElements;
     animationManager: AnimationManager;
 }

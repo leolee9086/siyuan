@@ -1,8 +1,9 @@
 import { Dialog } from "../dialog";
 import { isMobile } from "../util/functions";
-import { processAIChatRequestWithProtyle } from "./chat.confirm";
 import { createVueComponentInDialog, VueComponentMountConfig } from "../util/vue/mount";
 import AiChatDialog from "../components/panels/aiChatDialog.vue";
+import { localKernel } from "./imports";
+import { fillContent } from "./actions.fillContent";
 // 创建聊天对话框Vue应用配置
 const createChatDialogVueConfig = (protyle: IProtyle, element: Element, dialog: Dialog): VueComponentMountConfig => {
     return {
@@ -11,10 +12,20 @@ const createChatDialogVueConfig = (protyle: IProtyle, element: Element, dialog: 
         },
         eventHandlers: {
             handleCancel: dialog.destroy,
-            handleConfirm: (message: string) => processAIChatRequestWithProtyle(
-                { dialog, element, protyle },
-                { msg: message }
-            )
+            handleConfirm: async (message: string) => {
+                const res = await localKernel.chatGPT({ msg: message })
+                let msg = message
+                dialog.destroy();
+                let content = res.data
+                if (content) {
+                    content = "\n\n" + content
+                }
+                if (msg === "Clear context") {
+                    msg = "";
+                }
+                fillContent(protyle, `${msg}${content}`, [element]);
+            }
+
         },
         template: `<AiChatDialog @cancel="handleCancel" @confirm="handleConfirm" ref="aiChatDialogComponent" />`,
         initMethodName: "focusChatInput"
@@ -27,9 +38,7 @@ export const AIChat = (protyle: IProtyle, element: Element) => {
         content: "",
         width: isMobile() ? "92vw" : "520px",
     });
-
     createVueComponentInDialog(dialog, createChatDialogVueConfig(protyle, element, dialog));
-
     return dialog;
 };
 
