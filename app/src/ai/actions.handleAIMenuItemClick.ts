@@ -7,7 +7,7 @@ import {
     Menu,
     fetchPost
 } from "./imports";
-import { customDialog } from "./actions.customDialog";
+import { customDialog } from "./customDialog";
 import { editDialog } from "./actions.editDialog";
 import { fillContent } from "./actions.fillContent";
 

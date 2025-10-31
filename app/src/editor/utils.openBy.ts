@@ -2,10 +2,11 @@ import { fetchPost } from "../util/fetch";
 import { useShell } from "../util/pathName";
 
 
+
 export const openBy = (url: string, type: "folder" | "app") => {
     /// #if !BROWSER
     if (url.startsWith("assets/")) {
-        fetchPost("/api/asset/resolveAssetPath", { path: url.replace(/\.pdf\?page=\d{1,}$/, ".pdf") }, (response) => {
+        fetchPost("/api/asset/resolveAssetPath", {path: url.replace(/\.pdf\?page=\d{1,}$/, ".pdf")}, (response) => {
             if (type === "app") {
                 useShell("openPath", response.data);
             } else if (type === "folder") {

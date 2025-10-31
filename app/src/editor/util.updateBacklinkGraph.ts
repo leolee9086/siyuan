@@ -7,8 +7,9 @@ export const updateBacklinkGraph = (models: IModels, protyle: IProtyle) => {
     // https://ld246.com/article/1637636106054/comment/1641485541929#comments
     if (protyle && protyle.element.classList.contains("fn__none") ||
         (protyle && !hasClosestByClassName(protyle.element, "layout__wnd--active") &&
-            document.querySelector(".layout__wnd--active") // https://github.com/siyuan-note/siyuan/issues/4414
-        )) {
+            document.querySelector(".layout__wnd--active")  // https://github.com/siyuan-note/siyuan/issues/4414
+        )
+    ) {
         return;
     }
     models.graph.forEach(item => {

@@ -13,7 +13,7 @@ import {
 import { fillContent } from "./actions.fillContent";
 import { AIChat } from "./chatStream";
 import { AIMenuContext, AIMenuRequest, handleAIMenuItemClick } from "./actions.handleAIMenuItemClick";
-import { customDialog } from "./actions.customDialog";
+import { customDialog } from "./customDialog";
 import { filterAIMenuItems } from "./actions.filterAIMenuItems";
 import { generateBuildingMenuHTML } from "./actions.generateBuildingMenuHTML";
 

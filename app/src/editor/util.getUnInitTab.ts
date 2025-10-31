@@ -1,7 +1,6 @@
 import { Constants } from "../constants";
 import { getAllTabs } from "../layout/getAll";
 import { objEquals } from "../util/functions";
-
 // 没有初始化的页签无法检测到
 export const getUnInitTab = (options: IOpenFileOptions) => {
     return getAllTabs().find(item => {
@@ -27,3 +26,5 @@ export const getUnInitTab = (options: IOpenFileOptions) => {
         }
     });
 };
+
+

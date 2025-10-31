@@ -11,18 +11,19 @@ import { updateOutline } from "./util.updateOutline";
 
 
 export const updatePanelByEditor = (options: {
-    protyle?: IProtyle;
-    focus: boolean;
-    pushBackStack: boolean;
-    reload: boolean;
-    resize: boolean;
+    protyle?: IProtyle,
+    focus: boolean,
+    pushBackStack: boolean,
+    reload: boolean,
+    resize: boolean
 }) => {
     if (options.protyle && options.protyle.path) {
         // https://ld246.com/article/1637636106054/comment/1641485541929#comments
         if (options.protyle.element.classList.contains("fn__none") ||
             (!hasClosestByClassName(options.protyle.element, "layout__wnd--active") &&
-                document.querySelector(".layout__wnd--active") // https://github.com/siyuan-note/siyuan/issues/4414
-            )) {
+                document.querySelector(".layout__wnd--active")  // https://github.com/siyuan-note/siyuan/issues/4414
+            )
+        ) {
             return;
         }
         if (options.resize) {
@@ -53,7 +54,7 @@ export const updatePanelByEditor = (options: {
             }
         }
         options.protyle.app.plugins.forEach(item => {
-            item.eventBus.emit("switch-protyle", { protyle: options.protyle });
+            item.eventBus.emit("switch-protyle", {protyle: options.protyle});
         });
     }
     // 切换页签或关闭所有页签时，需更新对应的面板
@@ -61,3 +62,4 @@ export const updatePanelByEditor = (options: {
     updateOutline(models, options.protyle, options.reload);
     updateBacklinkGraph(models, options.protyle);
 };
+

@@ -9,7 +9,8 @@ export const updateOutline = (models: IModels, protyle: IProtyle, reload = false
             (item.type === "pin" &&
                 (!protyle || item.blockId !== protyle.block?.rootID ||
                     item.isPreview === protyle.preview.element.classList.contains("fn__none"))
-            )) {
+            )
+        ) {
             let blockId = "";
             if (protyle && protyle.block) {
                 blockId = protyle.block.rootID;
@@ -46,3 +47,4 @@ export const updateOutline = (models: IModels, protyle: IProtyle, reload = false
         }
     });
 };
+
