@@ -8,7 +8,6 @@ import {
     VueComponentMountConfig,
     createBlockMasks,
     getContenteditableElement,
-    createStreamChatBusinessLogic,
     handleAIRequest
 } from "./imports";
 import { setDialogContainerColor, removeBlockMask } from "./utils.mask";
@@ -17,6 +16,7 @@ import { fillContent } from "./actions.fillContent";
 import { ChatSessionState, UIFunctions } from './session/session.types';
 import { createTemporaryModule } from "./parser/toolCallDetector";
 import { buildBlockContentPrompt } from "./prompts/blockContent.builder";
+import { createSiyuanStreamChatBusinessLogic } from "./streamChat.businessLogicFactory";
 
 const createAIStreamChatDialogVueConfig = (
     protyle: IProtyle,
@@ -219,7 +219,7 @@ const createResumeHandler = (
             });
 
             // 重新发送请求
-            const businessLogic = createStreamChatBusinessLogic();
+            const businessLogic = createSiyuanStreamChatBusinessLogic();
             const abortFn = await handleAIRequest(
                 businessLogic,
                 state,
@@ -275,7 +275,7 @@ const createConfirmHandler = (
         // 清空之前的内容
         state.responseContentStr = '';
 
-        const businessLogic = createStreamChatBusinessLogic();
+        const businessLogic = createSiyuanStreamChatBusinessLogic();
         const abortFn = await handleAIRequest(
             businessLogic,
             state,

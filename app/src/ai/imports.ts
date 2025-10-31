@@ -44,7 +44,6 @@ export { genRandomColor } from "../util/color";
 // 组件相关导入
 export { default as AIChatDialog } from "../components/StreamChat.panel.vue";
 export { handleAIRequest } from "../components/streamChat.componentLogic";
-export { createStreamChatBusinessLogic } from "./streamChat.businessLogicFactory";
 
 // 业务逻辑相关导入
 ///#if !MOBILE

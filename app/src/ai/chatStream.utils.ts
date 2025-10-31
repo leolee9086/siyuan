@@ -1,8 +1,6 @@
 import { Dialog } from "./imports";
 import type { ChatSessionState } from "./session/session.types";
-import { chatResponseDataSchema } from "./types";
-import { getAIConfigFromSiyuan } from "./utils.config";
-import { buildBlockContentPrompt } from "./prompts/blockContent.builder";
+import { AIConfig, chatResponseDataSchema } from "./types";
 import { detectToolCalls, detectAsyncToolCalls } from "./parser/toolCallDetector";
 
 
@@ -11,31 +9,9 @@ export const updateChatState = (state: ChatSessionState, updates: Partial<ChatSe
     Object.assign(state, updates);
 };
 
-// 构建AI请求参数
-export const buildAIRequest = (inputValue: string, blockContents?: string[]) => {
-    const aiConfig = getAIConfigFromSiyuan();
-
-    // 使用新的提示词构建函数
-    const promptContent = buildBlockContentPrompt(inputValue, blockContents);
-
-    return {
-        model: aiConfig.apiModel,
-        messages: [
-            {
-                role: "user",
-                content: promptContent
-            }
-        ],
-        temperature: aiConfig.apiTemperature,
-        max_tokens: aiConfig.apiMaxTokens,
-        stream: true
-    };
-};
 
 // 构建请求头
-export const buildRequestHeaders = () => {
-    const aiConfig = getAIConfigFromSiyuan();
-
+export const buildRequestHeaders = (aiConfig:AIConfig) => {
     const headers: Record<string, string> = {
         "Content-Type": "application/json",
         "User-Agent": aiConfig.apiUserAgent,
