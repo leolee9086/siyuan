@@ -1,7 +1,7 @@
 import { Dialog } from "../dialog";
 import { isMobile } from "../util/functions";
 import { genUUID } from "../util/genID";
-import { setDialogContainerColor, removeBlockMask } from "./chatStream.mask";
+import { setDialogContainerColor, removeBlockMask } from "./utils.mask";
 import { genRandomColor } from "../util/color";
 import { reactive } from "vue";
 import { createVueDialog } from "../util/dialog/createVueDialog";
@@ -9,13 +9,13 @@ import AIChatDialog from "../components/StreamChat.panel.vue";
 import { VueComponentMountConfig } from "../util/vue/mount";
 import { handleAIRequest } from "../components/streamChat.componentLogic";
 import { fillContent } from "./actions.fillContent";
-import { ChatSessionState, UIFunctions } from './chatStream.types';
+import { ChatSessionState, UIFunctions } from './session/session.types';
 import { createBlockMasks } from "../util/DOM/blockDecorations";
 import { createTemporaryModule } from "./parser/toolCallDetector";
 import { getContenteditableElement } from "./imports";
 import { buildBlockContentPrompt } from "./prompts/blockContent.builder";
 
-const createAIChatDialogVueConfig = (
+const createAIStreamChatDialogVueConfig = (
     protyle: IProtyle,
     element: Element,
     selectedElements: Element[],
@@ -32,7 +32,7 @@ const createAIChatDialogVueConfig = (
         onAsyncToolCallDetected: async () => { },
         isPaused: false,
         savedMessages: [],
-        asyncToolResults: []
+        asyncToolResults: [],
     });
 
     // 创建UI函数引用容器
@@ -48,17 +48,41 @@ const createAIChatDialogVueConfig = (
     const cancelHandler = createCancelHandler(state, dialog);
     const pauseHandler = createPauseHandler(state);
     const resumeHandler = createResumeHandler(state, protyle, uiFunctions);
-    const confirmHandler = createConfirmHandler(
-        state,
-        protyle,
-        selectedElements,
-        element,
-        uiFunctions,
-        dialog
-    );
+    const confirmHandler = createConfirmHandler(state,protyle,selectedElements,element,uiFunctions,dialog);
+    // 创建工具调用处理函数
+    state.onWaitToolCallDetected = createWaitToolCallHandler(state, resumeHandler);
+    state.onAsyncToolCallDetected = createAsyncToolCallHandler(state);
+    return {
+        components: {
+            AIChatDialog
+        },
+        data: {
+            onCancelClick: cancelHandler,
+            onPauseClick: pauseHandler,
+            onResumeClick: resumeHandler,
+            onConfirmClick: confirmHandler,
+            state,
+            onUIFunctionsReady: (newUiFunctions: UIFunctions) => {
+                Object.assign(uiFunctions, newUiFunctions);
+            }
+        },
+        template: `<AIChatDialog
+            :onCancelClick="onCancelClick"
+            :onPauseClick="onPauseClick"
+            :onResumeClick="onResumeClick"
+            :onConfirmClick="onConfirmClick"
+            :state="state"
+            @ui-functions-ready="onUIFunctionsReady"
+        />`,
+    };
+};
 
-    // 定义工具调用处理函数
-    state.onWaitToolCallDetected = async (toolCode: string) => {
+// 创建等待工具调用处理函数
+const createWaitToolCallHandler = (
+    state: ChatSessionState,
+    resumeHandler: () => Promise<void>
+) => {
+    return async (toolCode: string) => {
         // 暂停当前的流式响应
         if (state.isStreaming && !state.isPaused) {
             state.isPaused = true;
@@ -95,9 +119,13 @@ const createAIChatDialogVueConfig = (
             await resumeHandler();
         }
     };
+};
 
-    // 定义异步工具调用处理函数
-    state.onAsyncToolCallDetected = async (toolCode: string) => {
+// 创建异步工具调用处理函数
+const createAsyncToolCallHandler = (
+    state: ChatSessionState
+) => {
+    return async (toolCode: string) => {
         let toolPromise: Promise<any> | null = null;
         try {
             // 创建异步工具调用Promise并添加到结果堆栈
@@ -123,30 +151,6 @@ const createAIChatDialogVueConfig = (
                 }
             }
         }
-    };
-
-    return {
-        components: {
-            AIChatDialog
-        },
-        data: {
-            onCancelClick: cancelHandler,
-            onPauseClick: pauseHandler,
-            onResumeClick: resumeHandler,
-            onConfirmClick: confirmHandler,
-            state,
-            onUIFunctionsReady: (newUiFunctions: UIFunctions) => {
-                Object.assign(uiFunctions, newUiFunctions);
-            }
-        },
-        template: `<AIChatDialog
-            :onCancelClick="onCancelClick"
-            :onPauseClick="onPauseClick"
-            :onResumeClick="onResumeClick"
-            :onConfirmClick="onConfirmClick"
-            :state="state"
-            @ui-functions-ready="onUIFunctionsReady"
-        />`,
     };
 };
 
@@ -293,17 +297,19 @@ export const AIChat = (protyle: IProtyle, element: Element) => {
     const maskElements = createBlockMasks(element, selectedElements, randomColor);
 
     const dialog = createVueDialog({
-        title: "✨ " + window.siyuan.languages.aiWriting,
         dataKey: `ai-chat-dialog-${genUUID()}`,
-        width: isMobile() ? "92vw" : "520px",
-        transparent: true,
-        disableScrimClose: true,
-        disableEscapeClose: true,
-        scrimPointerEvents: true,
-        closeButtonPosition: "inside",
-        vueConfigFactory: (dialogInstance: Dialog) => createAIChatDialogVueConfig(protyle, element, selectedElements, dialogInstance),
-        destroyCallback: () => {
-            maskElements.forEach(mask => removeBlockMask(mask));
+        vueConfigFactory: (dialogInstance: Dialog) => createAIStreamChatDialogVueConfig(protyle, element, selectedElements, dialogInstance),
+        dialogOptions: {
+            title: "✨ " + window.siyuan.languages.aiWriting,
+            width: isMobile() ? "92vw" : "520px",
+            transparent: true,
+            disableScrimClose: true,
+            disableEscapeClose: true,
+            scrimPointerEvents: true,
+            closeButtonPosition: "inside",
+            destroyCallback: () => {
+                maskElements.forEach(mask => removeBlockMask(mask));
+            }
         }
     });
 

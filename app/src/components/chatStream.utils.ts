@@ -1,5 +1,5 @@
 import { Dialog } from "../dialog";
-import { ChatSessionState } from "../ai/chatStream.types";
+import { ChatSessionState } from "../ai/session/session.types";
 import { getAIConfigFromSiyuan, chatResponseDataSchema } from "../ai/types";
 import { buildBlockContentPrompt } from "../ai/prompts/blockContent.builder";
 import { detectToolCalls, detectAsyncToolCalls } from "../ai/parser/toolCallDetector";

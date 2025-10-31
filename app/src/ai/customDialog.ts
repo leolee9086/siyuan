@@ -69,8 +69,10 @@ const createCustomDialogVueConfig = (
  */
 export const customDialog = (protyle: IProtyle, ids: string[], elements: Element[]) => {
     return createVueDialog({
-        title: window.siyuan.languages.aiCustomAction,
         dataKey: Constants.DIALOG_AICUSTOMACTION,
-        vueConfigFactory: (dialog: Dialog) => createCustomDialogVueConfig(protyle, ids, elements, dialog)
+        vueConfigFactory: (dialog: Dialog) => createCustomDialogVueConfig(protyle, ids, elements, dialog),
+        dialogOptions: {
+            title: window.siyuan.languages.aiCustomAction
+        }
     });
 };

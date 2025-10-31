@@ -5,13 +5,13 @@ import { createVueComponentInDialog, VueComponentMountConfig } from "../vue/moun
 /**
  * Vue对话框配置接口
  */
-export interface VueDialogConfig extends Omit<IDialogOptions, "content"> {
-    /** 对话框标题 */
-    title?: string;
+export interface VueDialogConfig {
     /** 对话框data-key属性值 */
     dataKey?: string;
     /** Vue组件挂载配置工厂函数，接收dialog实例作为参数 */
     vueConfigFactory: (dialog: Dialog) => VueComponentMountConfig;
+    /** 对话框配置选项 */
+    dialogOptions: Omit<IDialogOptions, "content">;
 }
 
 /**
@@ -22,9 +22,9 @@ export interface VueDialogConfig extends Omit<IDialogOptions, "content"> {
  */
 export const createVueDialog = (config: VueDialogConfig): Dialog => {
     const dialog = new Dialog({
-        ...config,
+        ...config.dialogOptions,
         content: "",
-        width: config.width || (isMobile() ? "92vw" : "520px"),
+        width: config.dialogOptions.width || (isMobile() ? "92vw" : "520px"),
     });
 
     dialog.element.setAttribute("data-key", config.dataKey);

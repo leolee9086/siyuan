@@ -211,9 +211,11 @@ const editDialog = (customName: string, customMemo: string): Dialog => {
     }
     
     return createVueDialog({
-        title: window.siyuan.languages.update,
         dataKey: Constants.DIALOG_AIUPDATECUSTOMACTION,
-        vueConfigFactory: (dialog: Dialog) => createEditDialogVueConfig(customName, customMemo, dialog)
+        vueConfigFactory: (dialog: Dialog) => createEditDialogVueConfig(customName, customMemo, dialog),
+        dialogOptions: {
+            title: window.siyuan.languages.update
+        }
     });
 };
 

@@ -2,7 +2,7 @@ import { ref, onUnmounted } from '../ai/deps';
 import { buildRequestHeaders, handleOpenAILikeStreamResponse, updateChatState, processBlockDOMContent } from './chatStream.utils';
 import { universalStreamRequest } from '../util/fetchStream';
 import { getAIConfigFromSiyuan } from '../ai/types';
-import { ChatSessionState } from '../ai/chatStream.types';
+import { ChatSessionState } from '../ai/session/session.types';
 export { ChatSessionState as ChatState }
 
 // UI状态上下文接口
