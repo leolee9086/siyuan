@@ -23,3 +23,5 @@ export const ALL_CSS_CLASSES = {
     ...SELECTORS,
     ...CSS_CLASSES
 } as const;
+export const JAVASCRIPT_TOOLS_WAIT_CLASS = "javascript-tools-wait"
+export const JAVASCRIPT_TOOLS_CLASS = "javascript-tools"

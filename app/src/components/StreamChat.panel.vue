@@ -1,30 +1,24 @@
 <template>
     <div class="b3-dialog__content">
-        <TextField
-            ref="textFieldRef"
-            type="textarea"
-            :placeholder="aiWritingText"
-            v-model="inputValue"
-            :disabled="isStreaming"
-            @enter="() => onConfirmClick(inputValue)"
-        ></TextField>
-        <div
-            v-if="showResponseContainer"
-            ref="internalResponseContentRef"
+        <div v-if="showResponseContainer" ref="internalResponseContentRef"
             class="ai-response-container protyle-wysiwyg protyle-wysiwyg--attr"
-            style="margin-top: 8px; padding: 8px; background: var(--b3-theme-background); border: 1px solid var(--b3-border-color); border-radius: 4px; max-width: 60vw; max-height: 60vh; overflow: auto;"
-        >
+            style="margin-top: 8px; padding: 8px; background: var(--b3-theme-background); border: 1px solid var(--b3-border-color); border-radius: 4px; max-width: 60vw; max-height: 60vh; overflow: auto;">
             <div class="ai-response-content" v-html="state.blockDOMContent || state.responseContentStr"></div>
-            <div class="ai-response-status" style="margin-top: 4px; font-size: 12px; color: var(--b3-theme-on-surface);">
+            <div class="ai-response-status"
+                style="margin-top: 4px; font-size: 12px; color: var(--b3-theme-on-surface);">
                 <span class="ai-status-text" :style="{ color: statusColor }">{{ statusText }}</span>
                 <span class="ai-status-dots">{{ dots }}</span>
             </div>
         </div>
+
+        <TextField ref="textFieldRef" type="textarea" :placeholder="aiWritingText" v-model="inputValue"
+            :disabled="isStreaming" @enter="() => onConfirmClick(inputValue)"></TextField>
     </div>
     <div class="b3-dialog__action">
         <button class="b3-button b3-button--cancel" @click="onCancelClick">{{ cancelText }}</button>
         <div class="fn__space"></div>
-        <button class="b3-button b3-button--text" :style="{ color: confirmButtonColor }" @click="() => onConfirmClick(inputValue)">
+        <button class="b3-button b3-button--text" :style="{ color: confirmButtonColor }"
+            @click="() => onConfirmClick(inputValue)">
             {{ confirmButtonText }}
         </button>
     </div>
@@ -40,6 +34,14 @@ const props = defineProps({
     onCancelClick: {
         type: Function as PropType<() => void>,
         required: true,
+    },
+    onPauseClick: {
+        type: Function as PropType<() => void>,
+        required: false,
+    },
+    onResumeClick: {
+        type: Function as PropType<() => void>,
+        required: false,
     },
     onConfirmClick: {
         type: Function as PropType<(inputValue: string) => Promise<void>>,
@@ -64,11 +66,9 @@ const {
     statusColor,
     dots,
     showResponse,
-    hideResponse,
     setCompleteStatus,
     setErrorStatus,
     setAbortStatus,
-    focusTextarea
 } = useStreamChatUI();
 
 // 获取国际化文本
@@ -87,12 +87,12 @@ const confirmButtonColor = computed(() => {
 });
 
 // 当UI函数准备好时，通知父组件
-const emit = defineEmits(['ui-functions-ready']);
+const emit = defineEmits(['ui-functions-ready', 'pauseClick', 'resumeClick']);
 onMounted(() => {
     if (textFieldRef.value) {
         textFieldRef.value.focus();
     }
-    
+
     // 通知父组件UI函数已准备好
     emit('ui-functions-ready', {
         showResponse,

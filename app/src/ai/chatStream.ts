@@ -3,12 +3,16 @@ import { isMobile } from "../util/functions";
 import { genUUID } from "../util/genID";
 import { setDialogContainerColor, removeBlockMask } from "./chatStream.mask";
 import { genRandomColor } from "../util/color";
-
+import { reactive } from "vue";
 import { createVueDialog } from "../util/dialog/createVueDialog";
 import AIChatDialog from "../components/StreamChat.panel.vue";
 import { VueComponentMountConfig } from "../util/vue/mount";
-import { handleAIRequest, handleFillContent, ChatState } from "../components/streamChat.componentLogic";
+import { handleAIRequest, handleFillContent } from "../components/streamChat.componentLogic";
+import { ChatSessionState, UIFunctions } from './chatStream.types';
 import { createBlockMasks } from "../util/DOM/blockDecorations";
+import { createTemporaryModule } from "./parser/toolCallDetector";
+import { getContenteditableElement } from "./imports";
+import { buildBlockContentPrompt } from "./prompts/blockContent.builder";
 
 const createAIChatDialogVueConfig = (
     protyle: IProtyle,
@@ -17,63 +21,127 @@ const createAIChatDialogVueConfig = (
     dialog: Dialog
 ): VueComponentMountConfig => {
     // 创建聊天状态
-    const state: ChatState = {
+    const state: ChatSessionState = reactive({
         responseContentStr: '',
         isStreaming: false,
         isDone: false,
         abortFunction: null,
         blockDOMContent: '',
+        onWaitToolCallDetected: async () => { },
+        onAsyncToolCallDetected: async () => { },
+        isPaused: false,
+        savedMessages: [],
+        asyncToolResults: []
+    });
+
+    // 创建UI函数引用容器
+    const uiFunctions: UIFunctions = {
+        showResponse: () => { },
+        setCompleteStatus: () => { },
+        setErrorStatus: () => { },
+        setAbortStatus: () => { },
+        getResponseContentRef: (): HTMLElement | null => null,
     };
-    
-    // 创建响应内容引用
-    const responseContentRef = { value: null as HTMLElement | null };
-    
-    // 创建UI函数引用
-    let showResponse: () => void;
-    let setCompleteStatus: () => void;
-    let setErrorStatus: (error: Error) => void;
-    let setAbortStatus: () => void;
-    
+
     // 创建事件处理函数
     const cancelHandler = createCancelHandler(state, dialog);
+    const pauseHandler = createPauseHandler(state);
+    const resumeHandler = createResumeHandler(state, protyle, uiFunctions);
     const confirmHandler = createConfirmHandler(
         state,
         protyle,
         selectedElements,
         element,
-        responseContentRef,
-        () => showResponse?.(),
-        () => setCompleteStatus?.(),
-        (error: Error) => setErrorStatus?.(error),
-        () => setAbortStatus?.(),
+        uiFunctions,
         dialog
     );
-    
+
+    // 定义工具调用处理函数
+    state.onWaitToolCallDetected = async (toolCode: string) => {
+        // 暂停当前的流式响应
+        if (state.isStreaming && !state.isPaused) {
+            state.isPaused = true;
+            if (state.abortFunction) {
+                state.abortFunction();
+            }
+            state.savedMessages.push({
+                role: 'assistant',
+                content: state.responseContentStr,
+                timestamp: Date.now()
+            });
+        }
+
+        try {
+            // 执行工具调用
+            const result = await createTemporaryModule(toolCode);
+            console.log('工具调用执行结果:', result);
+            // 将工具执行结果添加到消息历史中
+            state.savedMessages.push({
+                role: 'user',
+                content: `Tool execution result: ${JSON.stringify(result)}`,
+                timestamp: Date.now()
+            });
+        } catch (error) {
+            console.error('工具调用执行失败:', error);
+            // 将错误信息添加到消息历史中
+            state.savedMessages.push({
+                role: 'user',
+                content: `Tool execution failed: ${error.message}`,
+                timestamp: Date.now()
+            });
+        } finally {
+            // 恢复对话
+            await resumeHandler();
+        }
+    };
+
+    // 定义异步工具调用处理函数
+    state.onAsyncToolCallDetected = async (toolCode: string) => {
+        let toolPromise: Promise<any> | null = null;
+        try {
+            // 创建异步工具调用Promise并添加到结果堆栈
+            toolPromise = createTemporaryModule(toolCode);
+            state.asyncToolResults.push(toolPromise);
+            
+            // 等待工具调用完成
+            const result = await toolPromise;
+            console.log('异步工具调用执行结果:', result);
+            
+            // 将结果替换到asyncToolResults中，而不是添加到消息历史
+            const index = state.asyncToolResults.indexOf(toolPromise);
+            if (index !== -1) {
+                state.asyncToolResults[index] = result;
+            }
+        } catch (error) {
+            console.error('异步工具调用执行失败:', error);
+            // 将错误信息替换到asyncToolResults中
+            if (toolPromise) {
+                const index = state.asyncToolResults.indexOf(toolPromise);
+                if (index !== -1) {
+                    state.asyncToolResults[index] = { error: error.message };
+                }
+            }
+        }
+    };
+
     return {
         components: {
             AIChatDialog
         },
         data: {
             onCancelClick: cancelHandler,
+            onPauseClick: pauseHandler,
+            onResumeClick: resumeHandler,
             onConfirmClick: confirmHandler,
             state,
-            onUIFunctionsReady: (uiFunctions: any) => {
-                showResponse = uiFunctions.showResponse;
-                setCompleteStatus = uiFunctions.setCompleteStatus;
-                setErrorStatus = uiFunctions.setErrorStatus;
-                setAbortStatus = uiFunctions.setAbortStatus;
-                
-                // 获取responseContentRef
-                if (uiFunctions.getResponseContentRef) {
-                    const responseContentEl = uiFunctions.getResponseContentRef();
-                    if (responseContentEl) {
-                        responseContentRef.value = responseContentEl;
-                    }
-                }
+            onUIFunctionsReady: (newUiFunctions: UIFunctions) => {
+                Object.assign(uiFunctions, newUiFunctions);
             }
         },
         template: `<AIChatDialog
             :onCancelClick="onCancelClick"
+            :onPauseClick="onPauseClick"
+            :onResumeClick="onResumeClick"
             :onConfirmClick="onConfirmClick"
             :state="state"
             @ui-functions-ready="onUIFunctionsReady"
@@ -83,7 +151,7 @@ const createAIChatDialogVueConfig = (
 
 // 创建取消处理函数
 const createCancelHandler = (
-    state: ChatState,
+    state: ChatSessionState,
     dialog: Dialog
 ) => {
     return () => {
@@ -94,17 +162,79 @@ const createCancelHandler = (
     };
 };
 
+// 创建暂停处理函数
+const createPauseHandler = (
+    state: ChatSessionState
+) => {
+    return () => {
+        if (state.isStreaming && !state.isPaused) {
+            // 暂停请求
+            state.isPaused = true;
+            if (state.abortFunction) {
+                state.abortFunction();
+            }
+            // 保存当前消息内容
+            state.savedMessages.push({
+                role: 'assistant',
+                content: state.responseContentStr,
+                timestamp: Date.now()
+            });
+        }
+    };
+};
+
+// 创建恢复处理函数
+const createResumeHandler = (
+    state: ChatSessionState,
+    protyle: IProtyle,
+    uiFunctions: UIFunctions
+) => {
+    return async () => {
+        if (state.isPaused) {
+            // 重置状态
+            state.isPaused = false;
+            state.isStreaming = true;
+            state.isDone = false;
+
+            // 重新构建消息历史，但不包含系统继续消息
+            const messages: Array<{ role: 'user' | 'assistant'; content: string; timestamp: number }> = state.savedMessages.map(msg => ({
+                role: msg.role,
+                content: msg.content,
+                timestamp: msg.timestamp
+            }));
+
+            // 临时添加系统继续消息到请求中，但不保存到历史
+            messages.push({
+                role: 'user',
+                content: 'system:continue',
+                timestamp: Date.now()
+            });
+
+            // 重新发送请求
+            const abortFn = await handleAIRequest(
+                state,
+                protyle,
+                uiFunctions.showResponse,
+                uiFunctions.setCompleteStatus,
+                uiFunctions.setErrorStatus,
+                uiFunctions.setAbortStatus,
+                messages // 传入包含临时系统继续消息的消息历史
+            );
+
+            if (abortFn) {
+                state.abortFunction = abortFn;
+            }
+        }
+    };
+};
+
 // 创建确认处理函数
 const createConfirmHandler = (
-    state: ChatState,
+    state: ChatSessionState,
     protyle: IProtyle,
-    selectedElements: Element[],
+    selectedBlockElements: Element[],
     targetElement: Element,
-    responseContentRef: { value: HTMLElement | null },
-    showResponse: () => void,
-    setCompleteStatus: () => void,
-    setErrorStatus: (error: Error) => void,
-    setAbortStatus: () => void,
+    uiFunctions: UIFunctions,
     dialog: Dialog
 ) => {
     return async (inputValue: string) => {
@@ -116,24 +246,34 @@ const createConfirmHandler = (
         }
 
         if (state.isDone) {
-            handleFillContent(protyle, state, selectedElements, targetElement);
+            handleFillContent(protyle, state, selectedBlockElements, targetElement);
             dialog.destroy();
             return;
         }
-        
+        let blockContents: string[] = [];
+        if (selectedBlockElements.length > 0) {
+            selectedBlockElements.forEach(blockElement => {
+                const editableElement = getContenteditableElement(blockElement);
+                if (editableElement) {
+                    blockContents.push(editableElement.textContent || '');
+                }
+            });
+        }
+        const promptContent = buildBlockContentPrompt(inputValue, blockContents);
+
+        // 清空之前的内容
+        state.responseContentStr = '';
+
         const abortFn = await handleAIRequest(
-            inputValue,
             state,
             protyle,
-            selectedElements,
-            targetElement,
-            responseContentRef.value!,
-            showResponse,
-            setCompleteStatus,
-            setErrorStatus,
-            setAbortStatus
+            uiFunctions.showResponse,
+            uiFunctions.setCompleteStatus,
+            uiFunctions.setErrorStatus,
+            uiFunctions.setAbortStatus,
+            [{ role: 'user', content: promptContent, timestamp: Date.now() }]
         );
-        
+
         if (abortFn) {
             state.abortFunction = abortFn;
         }

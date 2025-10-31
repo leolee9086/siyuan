@@ -1,11 +1,10 @@
 import { ref, onUnmounted } from '../ai/deps';
-import { buildAIRequest, buildRequestHeaders, handleOpenAILikeStreamResponse, updateChatState, processBlockDOMContent } from '../ai/chatStream.utils';
+import { buildRequestHeaders, handleOpenAILikeStreamResponse, updateChatState, processBlockDOMContent } from './chatStream.utils';
 import { universalStreamRequest } from '../util/fetchStream';
 import { getAIConfigFromSiyuan } from '../ai/types';
 import { fillContent } from '../ai/actions.fillContent';
-import { getContenteditableElement } from '../protyle/wysiwyg/getBlock';
-import { ChatState } from '../ai/chatStream.types';
-export {ChatState}
+import { ChatSessionState } from '../ai/chatStream.types';
+export { ChatSessionState as ChatState }
 
 // UI状态上下文接口
 interface StreamChatUIContext {
@@ -16,56 +15,10 @@ interface StreamChatUIContext {
     dotsInterval: { value: NodeJS.Timeout | null };
 }
 
-// 渲染blockDOM内容到界面
-const renderBlockDOMToUI = (
-    state: ChatState,
-    responseContent: HTMLElement,
-    protyle: IProtyle
-): void => {
-    try {
-        const processedBlockDom = processBlockDOMContent(state, protyle);
-        // 实时更新显示的内容
-        if (responseContent) {
-            responseContent.innerHTML = processedBlockDom;
-            // 自动滚动到底部
-            responseContent.scrollTop = responseContent.scrollHeight;
-        }
-    } catch (e) {
-        console.warn("Failed to render blockDOM:", e);
-        // 如果blockDOM渲染失败，回退到纯文本显示
-        fallbackToTextDisplay(state, responseContent);
-    }
-};
-
-// 回退到纯文本显示
-const fallbackToTextDisplay = (
-    state: ChatState,
-    responseContent: HTMLElement
-): void => {
-    if (responseContent) {
-        responseContent.textContent = state.responseContentStr;
-        responseContent.scrollTop = responseContent.scrollHeight;
-    }
-};
-
-// 处理流式响应内容
-const processStreamContent = (
-    state: ChatState,
-    responseContent: HTMLElement,
-    protyle?: IProtyle
-): void => {
-    if (protyle) {
-        renderBlockDOMToUI(state, responseContent, protyle);
-    } else {
-        // 如果没有protyle实例，回退到纯文本显示
-        fallbackToTextDisplay(state, responseContent);
-    }
-};
 
 // 创建流式响应处理函数，避免闭包
 const createStreamHandlers = (
-    chatState: ChatState,
-    responseContent: HTMLElement,
+    chatState: ChatSessionState,
     onCompleteStatus: () => void,
     onErrorStatus: (error: Error) => void,
     onAbortStatus: () => void,
@@ -73,10 +26,12 @@ const createStreamHandlers = (
 ) => {
     return {
         onMessage: (dataStr: string) => {
-            const content = handleOpenAILikeStreamResponse(dataStr, chatState, protyleInstance);
+            chatState.isStreaming = true
+            const content = handleOpenAILikeStreamResponse(dataStr, chatState);
             if (content) {
-                processStreamContent(chatState, responseContent, protyleInstance);
+                processBlockDOMContent(chatState, protyleInstance);
             }
+            console.log(chatState)
         },
         onDone: () => {
             updateChatState(chatState, { isStreaming: false, isDone: true });
@@ -125,7 +80,7 @@ const setErrorStatus = (ctx: StreamChatUIContext, error: Error) => {
     ctx.statusText.value = `生成失败: ${error.message}`;
     ctx.statusColor.value = 'var(--b3-theme-error)';
     console.error('Stream error:', error);
-    
+
     if (error.message.includes('超时')) {
         ctx.statusText.value = '响应超时，但已保留已有内容';
         ctx.statusColor.value = 'var(--b3-theme-on-surface)';
@@ -160,25 +115,35 @@ const focusTextarea = (textareaRef: { value: HTMLTextAreaElement | null }) => {
  */
 
 // 准备AI请求参数
-const prepareAIRequestWithBlocksElements = (inputValue: string, selectedBlockElements: Element[], signal: AbortSignal) => {
+const prepareAIRequest = (
+    signal: AbortSignal,
+    messageHistory?: Array<{ role: 'user' | 'assistant'; content: string; timestamp: number }>
+) => {
     const aiConfig = getAIConfigFromSiyuan();
-    let blockContents: string[] = [];
-    if (selectedBlockElements.length > 0) {
-        selectedBlockElements.forEach(blockElement => {
-            const editableElement = getContenteditableElement(blockElement);
-            if (editableElement) {
-                blockContents.push(editableElement.textContent || '');
-            }
-        });
-    }
-    const requestBody = buildAIRequest(inputValue, blockContents);
+
+    // 如果有消息历史，构建包含历史的请求
+    let messages: any[] = [];
+    messages = messageHistory.map(msg => ({
+        role: msg.role,
+        content: msg.content
+    }));
+
+    // 构建包含消息历史的请求体
+    const requestBodyWithHistory = {
+        model: aiConfig.apiModel,
+        messages: messages,
+        temperature: aiConfig.apiTemperature,
+        max_tokens: aiConfig.apiMaxTokens,
+        stream: true
+    };
+
     const headers = buildRequestHeaders();
-    
+
     return {
         url: `${aiConfig.apiBaseURL}/chat/completions`,
         method: 'POST',
         headers: headers,
-        body: requestBody,
+        body: JSON.stringify(requestBodyWithHistory),
         timeout: aiConfig.apiTimeout,
         signal,
     };
@@ -187,56 +152,50 @@ const prepareAIRequestWithBlocksElements = (inputValue: string, selectedBlockEle
 // 发起流请求
 const initiateStreamRequest = async (
     requestParams: any,
-    state: ChatState,
-    responseContent: HTMLElement,
+    state: ChatSessionState,
     setCompleteStatus: () => void,
     setErrorStatus: (error: Error) => void,
     setAbortStatus: () => void,
     protyle: IProtyle
 ): Promise<null> => {
-    const handlers = createStreamHandlers(state, responseContent, setCompleteStatus, setErrorStatus, setAbortStatus, protyle);
-    
+    state.isStreaming = true
+    const handlers = createStreamHandlers(state, setCompleteStatus, setErrorStatus, setAbortStatus, protyle);
+
     await universalStreamRequest(requestParams, handlers);
     // 不再需要返回 abortFunction，因为取消操作完全由外部 AbortSignal 控制
     return null;
 };
 
 export const handleAIRequest = async (
-    inputValue: string,
-    state: ChatState,
+    state: ChatSessionState,
     protyle: IProtyle,
-    selectedElements: Element[],
-    targetElement: Element,
-    responseContent: HTMLElement,
     showResponse: () => void,
     setCompleteStatus: () => void,
     setErrorStatus: (error: Error) => void,
-    setAbortStatus: () => void
+    setAbortStatus: () => void,
+    messageHistory: Array<{ role: 'user' | 'assistant'; content: string; timestamp: number }>
 ): Promise<(() => void) | null> => {
-    if (!inputValue) return null;
-    
+
     showResponse();
     updateChatState(state, {
-        responseContentStr: '',
         isStreaming: true,
         isDone: false,
     });
-    
+
     // 创建 AbortController 来控制取消操作
     const controller = new AbortController();
-    
+
     try {
-        const requestParams = prepareAIRequestWithBlocksElements(inputValue, selectedElements, controller.signal);
+        const requestParams = prepareAIRequest(controller.signal, messageHistory);
         await initiateStreamRequest(
             requestParams,
             state,
-            responseContent,
             setCompleteStatus,
             setErrorStatus,
             setAbortStatus,
             protyle
         );
-        
+
         // 返回取消函数，调用它会中止请求
         return () => {
             controller.abort();
@@ -258,7 +217,7 @@ export const handleAIRequest = async (
  */
 export const handleFillContent = (
     protyle: IProtyle,
-    state: ChatState,
+    state: ChatSessionState,
     selectedElements: Element[],
     targetElement: Element
 ): void => {
@@ -285,7 +244,6 @@ export function useStreamChatUI() {
     const statusColor = ref('var(--b3-theme-on-surface)');
     const dots = ref('');
     let dotsInterval: NodeJS.Timeout | null = null;
-
     // 创建UI上下文对象
     const uiContext: StreamChatUIContext = {
         showResponseContainer,
@@ -294,7 +252,6 @@ export function useStreamChatUI() {
         dots,
         dotsInterval: { value: dotsInterval }
     };
-
     onUnmounted(() => {
         stopAnimation(uiContext);
     });
@@ -305,11 +262,9 @@ export function useStreamChatUI() {
         statusColor,
         dots,
         showResponse: () => showResponse(uiContext),
-        hideResponse: () => { uiContext.showResponseContainer.value = false; },
         setCompleteStatus: () => { uiContext.statusText.value = '生成完成'; },
         setErrorStatus: (error: Error) => setErrorStatus(uiContext, error),
         setAbortStatus: () => setAbortStatus(uiContext),
-        focusTextarea,
         stopAnimation: () => stopAnimation(uiContext)
     };
 }

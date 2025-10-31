@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import Layer from './layer'
+
 import Router from './router.htttpRouter'
 import { LayerLike } from './layerLike.types'
 
