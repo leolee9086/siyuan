@@ -282,6 +282,17 @@ export const blockApiDefs = [
   },
   {
     method: "POST",
+    endpoint: "/api/block/getBlockDOMWithEmbed",
+    en: "getBlockDOMWithEmbed",
+    zh_cn: undefined,
+    needAuth: true,
+    needAdminRole: false,
+    unavailableIfReadonly: false,
+    zodRequestSchema: (z) => ({}),
+    zodResponseSchema: (z) => ({})
+  },
+  {
+    method: "POST",
     endpoint: "/api/block/getBlockDOMs",
     en: "getBlockDOMs",
     zh_cn: "批量获取块DOM",
@@ -298,6 +309,17 @@ export const blockApiDefs = [
       data: z.record(z.string().describe("块 ID"), z.string().describe("块的 DOM 内容 (HTML 字符串)"))
         .describe("一个记录对象，键为块 ID，值为该块的 DOM 内容")
     })
+  },
+  {
+    method: "POST",
+    endpoint: "/api/block/getBlockDOMsWithEmbed",
+    en: "getBlockDOMsWithEmbed",
+    zh_cn: undefined,
+    needAuth: true,
+    needAdminRole: false,
+    unavailableIfReadonly: false,
+    zodRequestSchema: (z) => ({}),
+    zodResponseSchema: (z) => ({})
   },
   {
     method: "POST",

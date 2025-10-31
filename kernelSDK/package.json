@@ -8,6 +8,8 @@
     "update-api-list": "node updateApiListFromGo.js",
     "generate-single-client": "node generateSingleFileClient.cjs",
     "generate-api-clients": "node generateApiClients.cjs",
+        "generate-ts-client": "node generateSingleTSFileClient.cjs",
+
     "merge-api-defs": "node mergeRawApiWithDefs.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

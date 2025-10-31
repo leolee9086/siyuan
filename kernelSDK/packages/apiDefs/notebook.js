@@ -119,7 +119,7 @@ export const notebookApiDefs = [
     description: "获取指定笔记本的详细信息，包括其配置和统计数据。",
     needAuth: true,
     needAdminRole: false,
-    unavailableIfReadonly: true,
+    unavailableIfReadonly: false,
     zodRequestSchema: (z) => ({
       notebook: z.string().describe("要获取信息的笔记本的唯一标识符 (ID)。")
     }),

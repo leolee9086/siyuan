@@ -49,6 +49,17 @@ export const exportApiDefs = [
   },
   {
     method: "POST",
+    endpoint: "/api/export/exportBrowserHTML",
+    en: "exportBrowserHTML",
+    zh_cn: undefined,
+    needAuth: true,
+    needAdminRole: true,
+    unavailableIfReadonly: false,
+    zodRequestSchema: (z) => ({}),
+    zodResponseSchema: (z) => ({})
+  },
+  {
+    method: "POST",
     endpoint: "/api/export/exportData",
     en: "exportData",
     zh_cn: "导出全部数据",

@@ -52,6 +52,17 @@ export const storageApiDefs = [
   },
   {
     method: "POST",
+    endpoint: "/api/storage/getOutlineStorage",
+    en: "getOutlineStorage",
+    zh_cn: undefined,
+    needAuth: true,
+    needAdminRole: false,
+    unavailableIfReadonly: false,
+    zodRequestSchema: (z) => ({}),
+    zodResponseSchema: (z) => ({})
+  },
+  {
+    method: "POST",
     endpoint: "/api/storage/getRecentDocs",
     en: "getRecentDocs",
     zh_cn: "获取最近打开的文档列表",
@@ -113,6 +124,17 @@ export const storageApiDefs = [
       msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
       data: z.null().describe("接口成功执行时，Data 固定为 null。")
     })
+  },
+  {
+    method: "POST",
+    endpoint: "/api/storage/removeOutlineStorage",
+    en: "removeOutlineStorage",
+    zh_cn: undefined,
+    needAuth: true,
+    needAdminRole: true,
+    unavailableIfReadonly: true,
+    zodRequestSchema: (z) => ({}),
+    zodResponseSchema: (z) => ({})
   },
   {
     method: "POST",
@@ -189,5 +211,49 @@ export const storageApiDefs = [
       msg: z.string().describe("接口返回的消息，成功时通常为空字符串。"),
       data: z.null().describe("接口成功执行时，Data 固定为 null。")
     })
+  },
+  {
+    method: "POST",
+    endpoint: "/api/storage/setOutlineStorage",
+    en: "setOutlineStorage",
+    zh_cn: undefined,
+    needAuth: true,
+    needAdminRole: true,
+    unavailableIfReadonly: true,
+    zodRequestSchema: (z) => ({}),
+    zodResponseSchema: (z) => ({})
+  },
+  {
+    method: "POST",
+    endpoint: "/api/storage/updateRecentDocCloseTime",
+    en: "updateRecentDocCloseTime",
+    zh_cn: undefined,
+    needAuth: true,
+    needAdminRole: false,
+    unavailableIfReadonly: false,
+    zodRequestSchema: (z) => ({}),
+    zodResponseSchema: (z) => ({})
+  },
+  {
+    method: "POST",
+    endpoint: "/api/storage/updateRecentDocOpenTime",
+    en: "updateRecentDocOpenTime",
+    zh_cn: undefined,
+    needAuth: true,
+    needAdminRole: false,
+    unavailableIfReadonly: false,
+    zodRequestSchema: (z) => ({}),
+    zodResponseSchema: (z) => ({})
+  },
+  {
+    method: "POST",
+    endpoint: "/api/storage/updateRecentDocViewTime",
+    en: "updateRecentDocViewTime",
+    zh_cn: undefined,
+    needAuth: true,
+    needAdminRole: false,
+    unavailableIfReadonly: false,
+    zodRequestSchema: (z) => ({}),
+    zodResponseSchema: (z) => ({})
   }
 ];
