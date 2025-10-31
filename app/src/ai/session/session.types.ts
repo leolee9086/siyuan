@@ -1,5 +1,5 @@
 import { AssistantResponseController } from "./assistantResponse.controller";
-import { UserRequestController } from "./userRequest.controller";
+import { UserMessageController } from "./userRequest.controller";
 
 // 工具调用执行回调函数类型
 export type ToolCallExecutionCallback = (toolCode: string) => Promise<void>;
@@ -202,7 +202,7 @@ export interface ChatSessionState {
     }>;
     // 异步工具调用结果堆栈
     asyncToolResults: Array<any>;
-    messageControllers?: Array<AssistantResponseController | UserRequestController>;
+    messageControllers?: Array<AssistantResponseController | UserMessageController>;
     chatStateController?: IChatStateController;
 }
 

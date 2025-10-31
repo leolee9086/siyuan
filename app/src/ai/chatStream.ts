@@ -1,18 +1,20 @@
-import { Dialog } from "../dialog";
-import { isMobile } from "../util/functions";
-import { genUUID } from "../util/genID";
+import {
+    Dialog,
+    isMobile,
+    genUUID,
+    genRandomColor,
+    createVueDialog,
+    AIChatDialog,
+    VueComponentMountConfig,
+    handleAIRequest,
+    createBlockMasks,
+    getContenteditableElement
+} from "./imports";
 import { setDialogContainerColor, removeBlockMask } from "./utils.mask";
-import { genRandomColor } from "../util/color";
 import { reactive } from "vue";
-import { createVueDialog } from "../util/dialog/createVueDialog";
-import AIChatDialog from "../components/StreamChat.panel.vue";
-import { VueComponentMountConfig } from "../util/vue/mount";
-import { handleAIRequest } from "../components/streamChat.componentLogic";
 import { fillContent } from "./actions.fillContent";
 import { ChatSessionState, UIFunctions } from './session/session.types';
-import { createBlockMasks } from "../util/DOM/blockDecorations";
 import { createTemporaryModule } from "./parser/toolCallDetector";
-import { getContenteditableElement } from "./imports";
 import { buildBlockContentPrompt } from "./prompts/blockContent.builder";
 
 const createAIStreamChatDialogVueConfig = (

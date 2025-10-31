@@ -34,6 +34,16 @@ export { getContenteditableElement } from "../protyle/wysiwyg/getBlock";
 
 // DOM工具相关导入
 export { switchFnNoneByFlag } from "../util/DOM/fnClasses";
+export { createBlockMasks } from "../util/DOM/blockDecorations";
+
+// 工具函数相关导入
+export { isMobile } from "../util/functions";
+export { genUUID } from "../util/genID";
+export { genRandomColor } from "../util/color";
+
+// 组件相关导入
+export { default as AIChatDialog } from "../components/StreamChat.panel.vue";
+export { handleAIRequest } from "../components/streamChat.componentLogic";
 
 // 业务逻辑相关导入
 ///#if !MOBILE

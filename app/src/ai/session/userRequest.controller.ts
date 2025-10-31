@@ -8,7 +8,7 @@ import { EventEmitter } from '../eventEmitter';
  * 用户请求控制器实现类
  * 基于事件发射器模式，管理用户请求的状态和操作
  */
-export class UserRequestController extends EventEmitter  {
+export class UserMessageController extends EventEmitter  {
     private state: UserRequestState;
     private abortFunction: (() => void) | null = null;
 
