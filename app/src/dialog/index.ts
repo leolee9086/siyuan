@@ -87,12 +87,37 @@ export class Dialog {
             }
         }
         
+        // 生成全屏按钮HTML
+        let fullscreenButtonHtml = "";
+        if (hasTitle) {
+            // 计算全屏按钮的位置，根据关闭按钮位置调整
+            let fullscreenButtonStyle = "";
+            if (closeButtonPosition === "inside" && hasTitle) {
+                // 如果关闭按钮在内部，全屏按钮放在关闭按钮左侧
+                fullscreenButtonStyle = "position: absolute; top: 50%; right: 30px; transform: translateY(-50%);";
+            } else {
+                // 默认情况下，全屏按钮放在标题栏右侧
+                fullscreenButtonStyle = "position: absolute; top: 50%; right: 10px; transform: translateY(-50%);";
+            }
+            fullscreenButtonHtml = `<svg class="b3-dialog__fullscreen" style="${fullscreenButtonStyle}" title="全屏"><use xlink:href="#iconFullscreen"></use></svg>`;
+        }
+        
+        // 计算标题栏的右侧内边距，为按钮预留空间
+        let headerPaddingRight = "";
+        if (hasTitle) {
+            if (closeButtonPosition === "inside") {
+                headerPaddingRight = "position: relative; padding-right: 60px;"; // 关闭按钮 + 全屏按钮
+            } else {
+                headerPaddingRight = "position: relative; padding-right: 30px;"; // 仅全屏按钮
+            }
+        }
+
         this.element.innerHTML = `<div class="b3-dialog" style="z-index: ${++window.siyuan.zIndex};${typeof left === "string" ? "display:block" : ""};${this.scrimPointerEvents ? ' pointer-events:none' : ""}">
 <div class="b3-dialog__scrim"${options.transparent ? 'style="background-color:transparent"' : ""}></div>
 <div class="b3-dialog__container ${options.containerClassName || ""}" style="width:${options.width || "auto"};height:${options.height || "auto"};
 left:${left || "auto"};top:${top || "auto"};${this.scrimPointerEvents ? ' pointer-events:auto' : ""}">
   ${closeButtonPosition === "outside" ? closeButtonHtml : ""}
-  <div class="resize__move b3-dialog__header${hasTitle ? "" : " fn__none"}" onselectstart="return false;" style="${hasTitle && closeButtonPosition === "inside" ? "position: relative; padding-right: 40px;" : ""}">${options.title || ""}${closeButtonPosition === "inside" ? closeButtonHtml : ""}</div>
+  <div class="resize__move b3-dialog__header${hasTitle ? "" : " fn__none"}" onselectstart="return false;" style="${headerPaddingRight}">${options.title || ""}${closeButtonPosition === "inside" ? closeButtonHtml : ""}${fullscreenButtonHtml}</div>
   <div class="b3-dialog__body" style="${closeButtonPosition === "inside-body" ? "position: relative;" : ""}">${options.content}${closeButtonPosition === "inside-body" ? closeButtonHtml : ""}</div>
   <div class="resize__rd"></div><div class="resize__ld"></div><div class="resize__lt"></div><div class="resize__rt"></div><div class="resize__r"></div><div class="resize__d"></div><div class="resize__t"></div><div class="resize__l"></div>
 </div></div>`;
@@ -109,10 +134,26 @@ left:${left || "auto"};top:${top || "auto"};${this.scrimPointerEvents ? ' pointe
             const closeButtons = this.element.querySelectorAll(".b3-dialog__close");
             closeButtons.forEach(button => {
                 button.addEventListener("click", (event) => {
-                    this.destroy();
+                    if (this.isFullscreen) {
+                        // 全屏状态下，点击关闭按钮先退出全屏
+                        this.fullscreen();
+                    } else {
+                        // 非全屏状态下，点击关闭按钮关闭对话框
+                        this.destroy();
+                    }
                     event.preventDefault();
                     event.stopPropagation();
                 });
+            });
+        }
+        
+        // 为全屏按钮添加点击事件监听器
+        const fullscreenButton = this.element.querySelector(".b3-dialog__fullscreen");
+        if (fullscreenButton) {
+            fullscreenButton.addEventListener("click", (event) => {
+                this.fullscreen();
+                event.preventDefault();
+                event.stopPropagation();
             });
         }
         document.body.append(this.element);
@@ -175,7 +216,8 @@ left:${left || "auto"};top:${top || "auto"};${this.scrimPointerEvents ? ' pointe
 
     public fullscreen(): void {
         const container = this.element.querySelector(".b3-dialog__container") as HTMLElement;
-        if (!container) return;
+        const fullscreenButton = this.element.querySelector(".b3-dialog__fullscreen use") as SVGUseElement;
+        if (!container || !fullscreenButton) return;
 
         if (!this.isFullscreen) {
             // 进入全屏模式
@@ -205,6 +247,15 @@ left:${left || "auto"};top:${top || "auto"};${this.scrimPointerEvents ? ' pointe
                 (handle as HTMLElement).style.display = "none";
             });
             
+            // 更新全屏按钮图标为退出全屏图标
+            fullscreenButton.setAttribute("xlink:href", "#iconFullscreenExit");
+            
+            // 更新按钮标题
+            const fullscreenButtonSvg = this.element.querySelector(".b3-dialog__fullscreen") as SVGElement;
+            if (fullscreenButtonSvg) {
+                fullscreenButtonSvg.setAttribute("title", "退出全屏");
+            }
+            
             this.isFullscreen = true;
         } else {
             // 退出全屏模式
@@ -228,6 +279,15 @@ left:${left || "auto"};top:${top || "auto"};${this.scrimPointerEvents ? ' pointe
             resizeHandles.forEach(handle => {
                 (handle as HTMLElement).style.display = "";
             });
+            
+            // 恢复全屏按钮图标
+            fullscreenButton.setAttribute("xlink:href", "#iconFullscreen");
+            
+            // 恢复按钮标题
+            const fullscreenButtonSvg = this.element.querySelector(".b3-dialog__fullscreen") as SVGElement;
+            if (fullscreenButtonSvg) {
+                fullscreenButtonSvg.setAttribute("title", "全屏");
+            }
             
             this.isFullscreen = false;
             this.originalSize = null;
