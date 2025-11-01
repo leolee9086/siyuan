@@ -160,6 +160,8 @@ export class Preview {
                         }
                     });
                 }
+                /// #else
+                window.siyuan.mobile.docks.outline?.setCurrentByPreview(nodeElement);
                 /// #endif
             }
         });
