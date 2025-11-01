@@ -27,7 +27,8 @@
     "make:installer": "node ../build.js",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "find-longest-file": "node ./scripts/checker/findLongestFile.js"
   },
   "keywords": [
     "markdown",

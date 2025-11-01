@@ -17,7 +17,8 @@ import {getContenteditableElement, hasNextSibling, hasPreviousSibling} from "../
 import {transaction, updateTransaction} from "../wysiwyg/transaction";
 import {insertHTML} from "../util/insertHTML";
 import {highlightRender} from "../render/highlightRender";
-import {assetMenu, imgMenu, setFold} from "../../menus/protyle";
+import {imgMenu, setFold} from "../../menus/protyle";
+import { assetMenu } from "../../menus/protyle.asset";
 import {hideElements} from "../ui/hideElements";
 import {fetchPost} from "../../util/fetch";
 import {getDisplayName, pathPosix} from "../../util/pathName";

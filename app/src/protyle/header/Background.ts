@@ -13,7 +13,7 @@ import {popSearch} from "../../mobile/menu/search";
 import {getEventName} from "../util/compatibility";
 import {Dialog} from "../../dialog";
 import {Constants} from "../../constants";
-import {assetMenu} from "../../menus/protyle";
+import { assetMenu } from "../../menus/protyle.asset";
 import {previewImages} from "../preview/image";
 import {Menu} from "../../plugin/Menu";
 import {escapeHtml} from "../../util/escape";

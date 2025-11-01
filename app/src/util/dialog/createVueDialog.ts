@@ -26,10 +26,8 @@ export const createVueDialog = (config: VueDialogConfig): Dialog => {
         content: "",
         width: config.dialogOptions.width || (isMobile() ? "92vw" : "520px"),
     });
-
     dialog.element.setAttribute("data-key", config.dataKey);
     const vueConfig = config.vueConfigFactory(dialog);
     createVueComponentInDialog(dialog, vueConfig);
-    
     return dialog;
 };

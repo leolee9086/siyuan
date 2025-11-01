@@ -28,7 +28,7 @@ import {getSearch, isMobile} from "../../../util/functions";
 import { openAsset } from "../../../editor/util.openAsset";
 /// #endif
 import {previewAttrViewImages} from "../../preview/image";
-import {assetMenu} from "../../../menus/protyle";
+import { assetMenu } from "../../../menus/protyle.asset";
 import {
     addView,
     bindSwitcherEvent,
