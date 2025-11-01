@@ -1,9 +1,20 @@
 import {Menu as SiyuanMenu} from "../menus/Menu";
 
+interface PendingMenuItem {
+    option: IMenu | Promise<IMenu>;
+    resolve: (value: HTMLElement | undefined) => void;
+    reject: (reason?: any) => void;
+    index: number;
+    timeoutId?:number| NodeJS.Timeout;
+}
+
 export class Menu {
     private menu: SiyuanMenu;
     public isOpen: boolean;
     public element: HTMLElement;
+    private pendingItems: PendingMenuItem[] = [];
+    private processingQueue = false;
+    private nextIndex = 0;
 
     constructor(id?: string, closeCB?: () => void) {
         this.menu = window.siyuan.menus.menu;
@@ -34,6 +45,74 @@ export class Menu {
             return;
         }
         return this.menu.addItem(option);
+    }
+
+    addAsyncItem(option: IMenu | Promise<IMenu>, timeout: number = 5000): Promise<HTMLElement | undefined> {
+        return new Promise((resolve, reject) => {
+            const pendingItem: PendingMenuItem = {
+                option,
+                resolve,
+                reject,
+                index: this.nextIndex++
+            };
+            
+            // 设置超时
+            const timeoutId = setTimeout(() => {
+                const index = this.pendingItems.indexOf(pendingItem);
+                if (index !== -1) {
+                    this.pendingItems.splice(index, 1);
+                    reject(new Error('异步菜单项超时'));
+                }
+            }, timeout);
+            
+            // 保存 timeoutId 以便清理
+            pendingItem.timeoutId = timeoutId;
+            
+            this.pendingItems.push(pendingItem);
+            this.processQueue();
+        });
+    }
+
+    private async processQueue() {
+        if (this.processingQueue) return;
+        this.processingQueue = true;
+        
+        // 创建队列的快照，避免处理过程中添加新项目
+        const queueSnapshot = [...this.pendingItems];
+        this.pendingItems = [];
+        
+        while (queueSnapshot.length > 0) {
+            const item = queueSnapshot.shift();
+            if (!item) continue;
+            
+            try {
+                const resolvedOption = await this.resolveOption(item);
+                
+                // 即使菜单已关闭，也继续处理
+                if (!this.isOpen) {
+                    const element = this.menu.addItem(resolvedOption);
+                    item.resolve(element);
+                } else {
+                    // 菜单已打开，存储选项等待下次打开
+                    item.resolve(undefined);
+                }
+            } catch (error) {
+                console.error('处理异步菜单项时出错:', error);
+                item.reject(error);
+            } finally {
+                // 清理超时定时器
+                if (item.timeoutId) {
+                    clearTimeout(item.timeoutId);
+                }
+            }
+        }
+        
+        this.processingQueue = false;
+        
+        // 如果在处理过程中有新项目添加，再次处理
+        if (this.pendingItems.length > 0) {
+            this.processQueue();
+        }
     }
 
     addSeparator(options?: number | {
@@ -75,5 +154,39 @@ export class Menu {
 
     close() {
         this.menu.remove();
+    }
+
+    /**
+     * 取消指定索引的异步菜单项
+     * @param index 菜单项索引
+     * @returns 是否成功取消
+     */
+    cancelAsyncItem(index: number): boolean {
+        const itemIndex = this.pendingItems.findIndex(item => item.index === index);
+        if (itemIndex !== -1) {
+            const item = this.pendingItems[itemIndex];
+            this.pendingItems.splice(itemIndex, 1);
+            item.reject(new Error('异步菜单项已取消'));
+            if (item.timeoutId) {
+                clearTimeout(item.timeoutId);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 解析菜单选项，增强类型安全
+     * @param option 菜单选项
+     * @returns 解析后的菜单选项
+     */
+    private async resolveOption(item: PendingMenuItem): Promise<IMenu> {
+        if (item.option instanceof Promise) {
+            return await item.option;
+        } else if (typeof item.option === 'object' && item.option !== null) {
+            return item.option;
+        } else {
+            throw new Error('无效的菜单选项类型');
+        }
     }
 }
