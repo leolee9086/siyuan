@@ -9,7 +9,6 @@ import { CSS_CLASSES, createSelector } from "./constants";
  */
 export const filterAIMenuItems = (element: HTMLElement, inputElement: HTMLInputElement) => {
     const filterValue = inputElement.value;
-    
     // 1. 过滤列表项：根据输入值显示或隐藏
     selectAllThenEach(element, {
         selector: createSelector(CSS_CLASSES.LIST_ITEM),
@@ -19,7 +18,6 @@ export const filterAIMenuItems = (element: HTMLElement, inputElement: HTMLInputE
             switchFnNoneByFlag(item, !hasText);
         }
     });
-    
     // 2. 处理分隔符：有输入值时隐藏所有分隔符
     selectAllThenEach(element, {
         selector: createSelector(CSS_CLASSES.MENU_SEPARATOR),
@@ -28,7 +26,6 @@ export const filterAIMenuItems = (element: HTMLElement, inputElement: HTMLInputE
             switchFnNoneByFlag(item, !!filterValue);
         }
     });
-    
     // 3. 管理焦点：移除当前焦点并设置到第一个可见项
     const focusedItem = element.querySelector(createSelector(CSS_CLASSES.LIST_ITEM_FOCUS));
     focusedItem?.classList.remove(CSS_CLASSES.LIST_ITEM_FOCUS);

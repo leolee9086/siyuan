@@ -1,4 +1,3 @@
-import { Dialog } from "./imports";
 import type { ChatSessionState } from "./session/session.types";
 import { AIConfig, chatResponseDataSchema } from "./types";
 import { detectToolCalls, detectAsyncToolCalls } from "./parser/toolCallDetector";
@@ -129,9 +128,3 @@ export const handleOpenAILikeStreamResponse = (
     return null;
 };
 
-// 对话框销毁绑定
-export const bindDialogDestroy = (dialog: Dialog, element: Element, eventName: string) => {
-    element.addEventListener(eventName, () => {
-        dialog.destroy();
-    });
-};

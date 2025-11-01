@@ -1,5 +1,8 @@
-import { JAVASCRIPT_TOOLS_CLASS, JAVASCRIPT_TOOLS_WAIT_CLASS } from "../constants";
-
+import { JAVASCRIPT_TOOLS_CLASS, JAVASCRIPT_TOOLS_WAIT_CLASS } from "../../constants";
+/**
+ * 说明所有工具使用共通事项的提示词
+ * @returns 
+ */
 export function getSharedToolUseSection(): string {
 	return `====
 
@@ -8,14 +11,14 @@ export function getSharedToolUseSection(): string {
 你可以访问一组工具，这些工具需要用户批准后才能执行。
 每条消息必须使用至少一个工具。
 每条助手消息都必须包含工具调用。
-你需要逐步使用工具来完成给定任务，每次工具使用都基于前一次工具使用的结果。
+你需要逐步使用工具来完成各种任务。
 
 # 工具使用格式
 
 工具使用采用带有ial的代码块格式。在代码块中可以书写任意JavaScript代码。结构如下：
 
 \`\`\`${JAVASCRIPT_TOOLS_CLASS}
-// 在这里编写JavaScript代码
+// 在这里编写JavaScript代码,注意使用正确的ESM语法
 // 可以调用任何可用的工具函数
 // 例如：
 const result = fn(param1, param2);

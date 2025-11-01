@@ -114,4 +114,25 @@
     padding: 10px;
     border-radius: var(--b3-border-radius-b);
   }
+
+  &__fullscreen {
+    position: absolute;
+    cursor: pointer;
+    height: 18px;
+    width: 18px;
+    opacity: .68;
+    color: var(--b3-theme-on-surface);
+    padding: 8px;
+    z-index: 1;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+
+  &--fullscreen {
+    .b3-dialog__container {
+      transition: all 0.2s ease-in-out;
+    }
+  }
 }

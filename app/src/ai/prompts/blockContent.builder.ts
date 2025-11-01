@@ -1,7 +1,9 @@
 /**
  * 构建块内容提示词的工具函数
  */
-import { getDifferentOfToolsSection, getSharedToolUseSection } from "./tool-use";
+import { getPersonnaPrompt } from "./common/persona";
+import { getSiyuanEnvironmentPrompt } from "./common/siyuan";
+import { getDifferentOfToolsSection, getSharedToolUseSection } from "./toolList/tool-use";
 
 /**
  * 构建包含块内容的提示词
@@ -14,17 +16,21 @@ export const buildBlockContentPrompt = (inputValue: string, blockContents?: stri
     if (!blockContents || blockContents.length === 0) {
         return inputValue;
     }
-    
+
     // 构建块内容文本
     const blocksText = blockContents.map((content, index) =>
         ` ${index + 1}：\n${content}`
     ).join('\n\n');
-    
+
     // 构建完整的提示词
-    return `${getSharedToolUseSection()}
+    
+    return `${getPersonnaPrompt()}
+${getSiyuanEnvironmentPrompt()}
+${getSharedToolUseSection()}
 ${getDifferentOfToolsSection()}
     
-请基于以下块内容回答用户的问题,你可以调用工具获取更多参考：
+在交流中,可以参考以下块内容,这是你的容器所在的思源笔记内的笔记数据。
+你也可以调用工具获取更多参考：
 
 ${blocksText}
 
