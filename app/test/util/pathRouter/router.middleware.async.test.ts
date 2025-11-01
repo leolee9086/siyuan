@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach,test, vi } from 'vitest';
 import Router from '../../../src/util/pathRouter/core/router.htttpRouter'
 import type { Context } from '../../../src/util/pathRouter/core/types'
 
@@ -19,20 +20,20 @@ describe('Router中间件异步操作测试', () => {
       response: {
         status: 200,
         headers: {},
-        set: jest.fn(),
-        redirect: jest.fn()
+        set: vi.fn(),
+        redirect: vi.fn()
       },
       status: 200,
       params: {},
       captures: [],
-      set: jest.fn(),
-      redirect: jest.fn()
+      set: vi.fn(),
+      redirect: vi.fn()
     }
   })
 
   test('应该正确处理中间件中的异步操作', async () => {
     const router = new Router()
-    const asyncMiddleware = jest.fn(async (ctx, next) => {
+    const asyncMiddleware = vi.fn(async (ctx, next) => {
       await new Promise(resolve => setTimeout(resolve, 10))
       ctx.body = 'Async'
       return next()
@@ -42,7 +43,7 @@ describe('Router中间件异步操作测试', () => {
     
     const dispatch = router.routes()
     
-    await dispatch(mockContext, jest.fn())
+    await dispatch(mockContext, vi.fn())
     
     expect(asyncMiddleware).toHaveBeenCalled()
     expect(mockContext.body).toBe('Async')

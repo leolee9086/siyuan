@@ -1,3 +1,5 @@
+import { describe, it, expect, beforeEach,test, vi } from 'vitest';
+
 import Router from '../../../src/util/pathRouter/core/router.htttpRouter'
 import type { Context } from '../../../src/util/pathRouter/core/types'
 
@@ -19,20 +21,20 @@ describe('Router allowedMethods测试', () => {
       response: {
         status: 200,
         headers: {},
-        set: jest.fn(),
-        redirect: jest.fn()
+        set: vi.fn(),
+        redirect: vi.fn()
       },
       status: 200,
       params: {},
       captures: [],
-      set: jest.fn(),
-      redirect: jest.fn()
+      set: vi.fn(),
+      redirect: vi.fn()
     }
   })
 
   test('应该正确处理allowedMethods中间件', async () => {
     const router = new Router()
-    const middleware = jest.fn()
+    const middleware = vi.fn()
     
     router.get('/users/:id', middleware)
     router.post('/users/:id', middleware)
@@ -45,7 +47,7 @@ describe('Router allowedMethods测试', () => {
     // 修复：设置status为404或未设置，以便allowedMethods中间件执行
     mockContext.status = 404
     
-    await allowedMethods(mockContext, jest.fn())
+    await allowedMethods(mockContext, vi.fn())
     
     expect(mockContext.status).toBe(200)
     expect(mockContext.set).toHaveBeenCalledWith('Allow', 'GET, HEAD, POST')

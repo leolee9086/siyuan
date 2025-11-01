@@ -1,3 +1,5 @@
+import { describe, it, expect, beforeEach,test, vi } from 'vitest';
+
 import Router from '../../../src/util/pathRouter/core/router.htttpRouter'
 import type { Context } from '../../../src/util/pathRouter/core/types'
 
@@ -21,20 +23,20 @@ describe('Router HTTP方法测试', () => {
       response: {
         status: 200,
         headers: {},
-        set: jest.fn(),
-        redirect: jest.fn()
+        set: vi.fn(),
+        redirect: vi.fn()
       },
       status: 200,
       params: {},
       captures: [],
-      set: jest.fn(),
-      redirect: jest.fn()
+      set: vi.fn(),
+      redirect: vi.fn()
     }
   })
 
   test('应该正确注册GET路由', async () => {
     const router = new Router()
-    const middleware = jest.fn((ctx: any, next: any) => next())
+    const middleware = vi.fn((ctx: any, next: any) => next())
     
     router.get('/users', middleware)
     
@@ -47,7 +49,7 @@ describe('Router HTTP方法测试', () => {
 
   test('应该正确注册POST路由', async () => {
     const router = new Router()
-    const middleware = jest.fn((ctx: any, next: any) => next())
+    const middleware = vi.fn((ctx: any, next: any) => next())
     
     router.post('/users', middleware)
     
@@ -60,7 +62,7 @@ describe('Router HTTP方法测试', () => {
 
   test('应该正确注册PUT路由', async () => {
     const router = new Router()
-    const middleware = jest.fn((ctx: any, next: any) => next())
+    const middleware = vi.fn((ctx: any, next: any) => next())
     
     router.put('/users/:id', middleware)
     
@@ -73,7 +75,7 @@ describe('Router HTTP方法测试', () => {
 
   test('应该正确注册DELETE路由', async () => {
     const router = new Router()
-    const middleware = jest.fn((ctx: any, next: any) => next())
+    const middleware = vi.fn((ctx: any, next: any) => next())
     
     router.delete('/users/:id', middleware)
     
@@ -86,7 +88,7 @@ describe('Router HTTP方法测试', () => {
 
   test('应该正确注册PATCH路由', async () => {
     const router = new Router()
-    const middleware = jest.fn((ctx: any, next: any) => next())
+    const middleware = vi.fn((ctx: any, next: any) => next())
     
     router.patch('/users/:id', middleware)
     
@@ -99,7 +101,7 @@ describe('Router HTTP方法测试', () => {
 
   test('应该正确注册HEAD路由', async () => {
     const router = new Router()
-    const middleware = jest.fn((ctx: any, next: any) => next())
+    const middleware = vi.fn((ctx: any, next: any) => next())
     
     router.head('/users', middleware)
     
@@ -112,7 +114,7 @@ describe('Router HTTP方法测试', () => {
 
   test('应该正确注册OPTIONS路由', async () => {
     const router = new Router()
-    const middleware = jest.fn((ctx: any, next: any) => next())
+    const middleware = vi.fn((ctx: any, next: any) => next())
     
     router.options('/users', middleware)
     
@@ -125,7 +127,7 @@ describe('Router HTTP方法测试', () => {
 
   test('应该正确注册TRACE路由', async () => {
     const router = new Router()
-    const middleware = jest.fn((ctx: any, next: any) => next())
+    const middleware = vi.fn((ctx: any, next: any) => next())
     
     router.trace('/users', middleware)
     
@@ -138,7 +140,7 @@ describe('Router HTTP方法测试', () => {
 
   test('应该正确注册COPY路由', async () => {
     const router = new Router()
-    const middleware = jest.fn((ctx: any, next: any) => next())
+    const middleware = vi.fn((ctx: any, next: any) => next())
     
     router.copy('/users', middleware)
     
@@ -151,7 +153,7 @@ describe('Router HTTP方法测试', () => {
 
   test('应该正确注册LOCK路由', async () => {
     const router = new Router()
-    const middleware = jest.fn((ctx: any, next: any) => next())
+    const middleware = vi.fn((ctx: any, next: any) => next())
     
     router.lock('/users', middleware)
     
@@ -164,7 +166,7 @@ describe('Router HTTP方法测试', () => {
 
   test('应该正确注册MKCOL路由', async () => {
     const router = new Router()
-    const middleware = jest.fn((ctx: any, next: any) => next())
+    const middleware = vi.fn((ctx: any, next: any) => next())
     
     router.mkcol('/users', middleware)
     
@@ -177,7 +179,7 @@ describe('Router HTTP方法测试', () => {
 
   test('应该正确注册MOVE路由', async () => {
     const router = new Router()
-    const middleware = jest.fn((ctx: any, next: any) => next())
+    const middleware = vi.fn((ctx: any, next: any) => next())
     
     router.move('/users', middleware)
     
@@ -190,7 +192,7 @@ describe('Router HTTP方法测试', () => {
 
   test('应该正确注册PURGE路由', async () => {
     const router = new Router()
-    const middleware = jest.fn((ctx: any, next: any) => next())
+    const middleware = vi.fn((ctx: any, next: any) => next())
     
     router.purge('/users', middleware)
     
@@ -203,7 +205,7 @@ describe('Router HTTP方法测试', () => {
 
   test('应该正确注册PROPFIND路由', async () => {
     const router = new Router()
-    const middleware = jest.fn((ctx: any, next: any) => next())
+    const middleware = vi.fn((ctx: any, next: any) => next())
     
     router.propfind('/users', middleware)
     
@@ -216,7 +218,7 @@ describe('Router HTTP方法测试', () => {
 
   test('应该正确注册PROPPATCH路由', async () => {
     const router = new Router()
-    const middleware = jest.fn((ctx: any, next: any) => next())
+    const middleware = vi.fn((ctx: any, next: any) => next())
     
     router.proppatch('/users', middleware)
     
@@ -229,7 +231,7 @@ describe('Router HTTP方法测试', () => {
 
   test('应该正确注册UNLOCK路由', async () => {
     const router = new Router()
-    const middleware = jest.fn((ctx: any, next: any) => next())
+    const middleware = vi.fn((ctx: any, next: any) => next())
     
     router.unlock('/users', middleware)
     
@@ -242,7 +244,7 @@ describe('Router HTTP方法测试', () => {
 
   test('应该正确注册REPORT路由', async () => {
     const router = new Router()
-    const middleware = jest.fn((ctx: any, next: any) => next())
+    const middleware = vi.fn((ctx: any, next: any) => next())
     
     router.report('/users', middleware)
     
@@ -255,7 +257,7 @@ describe('Router HTTP方法测试', () => {
 
   test('应该正确注册MKACTIVITY路由', async () => {
     const router = new Router()
-    const middleware = jest.fn((ctx: any, next: any) => next())
+    const middleware = vi.fn((ctx: any, next: any) => next())
     
     router.mkactivity('/users', middleware)
     
@@ -268,7 +270,7 @@ describe('Router HTTP方法测试', () => {
 
   test('应该正确注册CHECKOUT路由', async () => {
     const router = new Router()
-    const middleware = jest.fn((ctx: any, next: any) => next())
+    const middleware = vi.fn((ctx: any, next: any) => next())
     
     router.checkout('/users', middleware)
     
@@ -281,7 +283,7 @@ describe('Router HTTP方法测试', () => {
 
   test('应该正确注册MERGE路由', async () => {
     const router = new Router()
-    const middleware = jest.fn((ctx: any, next: any) => next())
+    const middleware = vi.fn((ctx: any, next: any) => next())
     
     router.merge('/users', middleware)
     
@@ -294,7 +296,7 @@ describe('Router HTTP方法测试', () => {
 
   test('应该正确注册M-SEARCH路由', async () => {
     const router = new Router()
-    const middleware = jest.fn((ctx: any, next: any) => next())
+    const middleware = vi.fn((ctx: any, next: any) => next())
     
     router['m-search']('/users', middleware)
     
@@ -307,7 +309,7 @@ describe('Router HTTP方法测试', () => {
 
   test('应该正确注册NOTIFY路由', async () => {
     const router = new Router()
-    const middleware = jest.fn((ctx: any, next: any) => next())
+    const middleware = vi.fn((ctx: any, next: any) => next())
     
     router.notify('/users', middleware)
     
@@ -320,7 +322,7 @@ describe('Router HTTP方法测试', () => {
 
   test('应该正确注册SUBSCRIBE路由', async () => {
     const router = new Router()
-    const middleware = jest.fn((ctx: any, next: any) => next())
+    const middleware = vi.fn((ctx: any, next: any) => next())
     
     router.subscribe('/users', middleware)
     
@@ -333,7 +335,7 @@ describe('Router HTTP方法测试', () => {
 
   test('应该正确注册UNSUBSCRIBE路由', async () => {
     const router = new Router()
-    const middleware = jest.fn((ctx: any, next: any) => next())
+    const middleware = vi.fn((ctx: any, next: any) => next())
     
     router.unsubscribe('/users', middleware)
     
@@ -346,7 +348,7 @@ describe('Router HTTP方法测试', () => {
 
   test('应该正确注册SEARCH路由', async () => {
     const router = new Router()
-    const middleware = jest.fn((ctx: any, next: any) => next())
+    const middleware = vi.fn((ctx: any, next: any) => next())
     
     router.search('/users', middleware)
     
@@ -359,7 +361,7 @@ describe('Router HTTP方法测试', () => {
 
   test('应该正确注册CONNECT路由', async () => {
     const router = new Router()
-    const middleware = jest.fn((ctx: any, next: any) => next())
+    const middleware = vi.fn((ctx: any, next: any) => next())
     
     router.connect('/users', middleware)
     
@@ -372,7 +374,7 @@ describe('Router HTTP方法测试', () => {
 
   test('应该正确注册ALL路由', async () => {
     const router = new Router()
-    const middleware = jest.fn((ctx: any, next: any) => next())
+    const middleware = vi.fn((ctx: any, next: any) => next())
     
     router.all('/users', middleware)
     
@@ -389,7 +391,7 @@ describe('Router HTTP方法测试', () => {
 
   test('应该正确处理命名路由', async () => {
     const router = new Router()
-    const middleware = jest.fn()
+    const middleware = vi.fn()
     
     router.get('userList', '/users', middleware)
     
@@ -403,7 +405,7 @@ describe('Router HTTP方法测试', () => {
 
   test('应该正确处理数组路径', async () => {
     const router = new Router()
-    const middleware = jest.fn()
+    const middleware = vi.fn()
     
     router.get(['/users', '/people'], middleware)
     
@@ -426,7 +428,7 @@ describe('Router HTTP方法测试', () => {
 
   test('应该正确处理正则表达式路径', async () => {
     const router = new Router()
-    const middleware = jest.fn()
+    const middleware = vi.fn()
     
     router.get(/\/users\/\d+/, middleware)
     
@@ -457,8 +459,8 @@ describe('Router HTTP方法测试', () => {
   test('应该正确处理命名路由的redirect', async () => {
     const router = new Router()
     
-    router.get('oldRoute', '/old-path', jest.fn())
-    router.get('newRoute', '/new-path', jest.fn())
+    router.get('oldRoute', '/old-path', vi.fn(() => {}))
+    router.get('newRoute', '/new-path', vi.fn(() => {}))
     router.redirect('oldRoute', 'newRoute')
     
     const matched = router.match('/old-path', 'GET')

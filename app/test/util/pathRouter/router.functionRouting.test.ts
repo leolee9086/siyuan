@@ -1,3 +1,5 @@
+import { describe, it, expect, beforeEach,test, vi } from 'vitest';
+
 import Router from '../../../src/util/pathRouter/core/router.htttpRouter'
 import { InferContext, RequestBodyTypes } from '../../../src/util/pathRouter/core/types'
 import { z } from 'zod'
@@ -168,14 +170,14 @@ describe('函数路由测试 - 前端微应用模块间异步交互', () => {
       response: {
         status: 200,
         headers: {},
-        set: jest.fn(),
-        redirect: jest.fn()
+        set: vi.fn(),
+        redirect: vi.fn()
       },
       status: 200,
       params: {},
       captures: [],
-      set: jest.fn(),
-      redirect: jest.fn()
+      set: vi.fn(),
+      redirect: vi.fn()
     }
 
     // 执行模块A的计算
@@ -206,14 +208,14 @@ describe('函数路由测试 - 前端微应用模块间异步交互', () => {
       response: {
         status: 200,
         headers: {},
-        set: jest.fn(),
-        redirect: jest.fn()
+        set: vi.fn(),
+        redirect: vi.fn()
       },
       status: 200,
       params: {},
       captures: [],
-      set: jest.fn(),
-      redirect: jest.fn()
+      set: vi.fn(),
+      redirect: vi.fn()
     }
 
     // 执行模块B的转换
@@ -272,14 +274,14 @@ describe('函数路由测试 - 前端微应用模块间异步交互', () => {
       response: {
         status: 200,
         headers: {},
-        set: jest.fn(),
-        redirect: jest.fn()
+        set: vi.fn(),
+        redirect: vi.fn()
       },
       status: 200,
       params: { userId: '123' },
       captures: ['123'],
-      set: jest.fn(),
-      redirect: jest.fn()
+      set: vi.fn(),
+      redirect: vi.fn()
     }
 
     // 执行路由
@@ -381,14 +383,14 @@ describe('函数路由测试 - 前端微应用模块间异步交互', () => {
       response: {
         status: 200,
         headers: {},
-        set: jest.fn(),
-        redirect: jest.fn()
+        set: vi.fn(),
+        redirect: vi.fn()
       },
       status: 200,
       params: {},
       captures: [],
-      set: jest.fn(),
-      redirect: jest.fn()
+      set: vi.fn(),
+      redirect: vi.fn()
     }
 
     // 执行失败的操作
@@ -424,14 +426,14 @@ describe('函数路由测试 - 前端微应用模块间异步交互', () => {
       response: {
         status: 200,
         headers: {},
-        set: jest.fn(),
-        redirect: jest.fn()
+        set: vi.fn(),
+        redirect: vi.fn()
       },
       status: 200,
       params: {},
       captures: [],
-      set: jest.fn(),
-      redirect: jest.fn()
+      set: vi.fn(),
+      redirect: vi.fn()
     }
 
     // 执行错误处理
@@ -545,12 +547,12 @@ describe('函数路由测试 - 前端微应用模块间异步交互', () => {
             headers: { 'content-type': 'application/json' },
             body: nextBody,
           },
-          response: { status: 200, headers: {}, set: jest.fn(), redirect: jest.fn() },
+          response: { status: 200, headers: {}, set: vi.fn(), redirect: vi.fn() },
           status: 200,
           params: {},
           captures: [],
-          set: jest.fn(),
-          redirect: jest.fn()
+          set: vi.fn(),
+          redirect: vi.fn()
         }
 
         await dispatch(nextContext, async () => {})
@@ -575,12 +577,12 @@ describe('函数路由测试 - 前端微应用模块间异步交互', () => {
         headers: { 'content-type': 'application/json' },
         body: { data: initialData }
       },
-      response: { status: 200, headers: {}, set: jest.fn(), redirect: jest.fn() },
+      response: { status: 200, headers: {}, set: vi.fn(), redirect: vi.fn() },
       status: 200,
       params: {},
       captures: [],
-      set: jest.fn(),
-      redirect: jest.fn()
+      set: vi.fn(),
+      redirect: vi.fn()
     }
 
     const finalResult = await executeChain(initialContext)

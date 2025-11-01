@@ -24,7 +24,7 @@ export const aiConfigSchema = z.object({
     apiBaseURL: z.string().url("API基础URL格式不正确"),
     apiKey: z.string().min(1, "API密钥不能为空"),
     apiMaxContexts: z.number().min(1, "最大上下文数必须大于0"),
-    apiMaxTokens: z.number().min(1, "最大令牌数必须大于0"),
+    apiMaxTokens: z.number().min(0, "最大令牌数不能为负数"),
     apiModel: z.string().min(1, "模型名称不能为空"),
     apiProvider: z.string().min(1, "API提供商不能为空"),
     apiProxy: z.string().optional(),
@@ -110,7 +110,11 @@ export type AIProvider = "OpenAI" | "ZhipuAI" | "BaiduWenxin" | "AliTongyi" | st
  * 验证AI配置
  */
 export const validateAIConfig = (config: unknown): AIConfig => {
-    return aiConfigSchema.parse(config);
+    const parsedConfig= aiConfigSchema.parse(config);
+    if(parsedConfig.apiMaxTokens===0){
+        parsedConfig.apiMaxTokens=163840
+    }
+    return parsedConfig
 };
 
 export const selectorOperationConfigSchema = z.object({

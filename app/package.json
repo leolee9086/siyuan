@@ -25,9 +25,9 @@
     "dist-linux": "ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ electron-builder --linux --config electron-builder-linux.yml --publish=never",
     "dist-linux-arm64": "ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ electron-builder --arm64 --linux --config electron-builder-linux-arm64.yml --publish=never",
     "make:installer": "node ../build.js",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
+    "test": "vitest --browser=chrome",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest --coverage",
     "find-longest-file": "node ./scripts/checker/findLongestFile.js"
   },
   "keywords": [
@@ -75,7 +75,6 @@
     "html-webpack-plugin": "^5.5.0",
     "iconv-lite": "^0.6.3",
     "ifdef-loader": "^2.3.2",
-    "jest": "^30.2.0",
     "mini-css-extract-plugin": "2.9.2",
     "path-browserify": "^1.0.1",
     "pinyin-pro": "^3.27.0",
@@ -93,8 +92,11 @@
   "dependencies": {
     "@electron/remote": "^2.1.3",
     "@modelcontextprotocol/sdk": "^1.20.2",
+    "es-module-lexer": "^1.7.0",
+    "magic-string": "^0.30.21",
     "path-to-regexp": "^6.3.0",
     "url": "^0.11.4",
+    "vitest": "^4.0.6",
     "zod": "^4.1.12"
   }
 }

@@ -3,7 +3,7 @@
         <AIResponseDisplay
             ref="aiResponseDisplayRef"
             :show-container="showResponseContainer"
-            :content="state.blockDOMContent || state.responseContentStr"
+            :sate="state"
             :status-text="statusText"
             :status-color="statusColor"
             :dots="dots"
@@ -23,7 +23,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import type { PropType } from 'vue';
 import { useStreamChatUI, getI18nText } from './streamChat.componentLogic';
 import TextField from './common/TextField.vue';
@@ -72,7 +72,7 @@ const {
 // 获取国际化文本
 const aiWritingText = getI18nText('aiWriting');
 const cancelText = getI18nText('cancel');
-const confirmText = getI18nText('confirm');
+const confirmText = getI18nText('追加到笔记');
 
 const confirmButtonText = computed(() => {
     if (props.state.isStreaming) return '响应中...点击终止';

@@ -1,3 +1,5 @@
+import { describe, it, expect, beforeEach,test, vi } from 'vitest';
+
 import Router from '../../../src/util/pathRouter/core/router.htttpRouter'
 import type { Context } from '../../../src/util/pathRouter/core/types'
 
@@ -19,21 +21,21 @@ describe('Router中间件错误处理测试', () => {
       response: {
         status: 200,
         headers: {},
-        set: jest.fn(),
-        redirect: jest.fn()
+        set: vi.fn(),
+        redirect: vi.fn()
       },
       status: 200,
       params: {},
       captures: [],
-      set: jest.fn(),
-      redirect: jest.fn()
+      set: vi.fn(),
+      redirect: vi.fn()
     }
   })
 
   test('应该正确处理中间件中的错误', async () => {
     const router = new Router()
     const error = new Error('Test error')
-    const errorMiddleware = jest.fn((ctx, next) => {
+    const errorMiddleware = vi.fn((ctx, next) => {
       throw error
     })
     
@@ -42,7 +44,7 @@ describe('Router中间件错误处理测试', () => {
     const dispatch = router.routes()
     
     try {
-      await dispatch(mockContext, jest.fn())
+      await dispatch(mockContext, vi.fn())
     } catch (e) {
       expect(e).toBe(error)
     }

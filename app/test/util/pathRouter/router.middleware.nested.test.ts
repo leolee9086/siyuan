@@ -1,3 +1,5 @@
+import { describe, it, expect, beforeEach,test, vi } from 'vitest';
+
 import Router from '../../../src/util/pathRouter/core/router.htttpRouter'
 import type { Context, MiddlewareFunction } from '../../../src/util/pathRouter/core/types'
 
@@ -19,14 +21,14 @@ describe('Router嵌套路由测试', () => {
       response: {
         status: 200,
         headers: {},
-        set: jest.fn(),
-        redirect: jest.fn()
+        set: vi.fn(),
+        redirect: vi.fn()
       },
       status: 200,
       params: {},
       captures: [],
-      set: jest.fn(),
-      redirect: jest.fn()
+      set: vi.fn(),
+      redirect: vi.fn()
     }
   })
 
@@ -34,12 +36,12 @@ describe('Router嵌套路由测试', () => {
     const router = new Router()
     const nestedRouter = new Router()
     
-    const parentMiddleware = jest.fn((ctx, next) => {
+    const parentMiddleware = vi.fn((ctx, next) => {
       ctx.body = 'Parent'
       return next()
     })
     
-    const childMiddleware = jest.fn((ctx, next) => {
+    const childMiddleware = vi.fn((ctx, next) => {
       ctx.body += ' -> Child'
       return next()
     })
@@ -51,7 +53,7 @@ describe('Router嵌套路由测试', () => {
     mockContext.path = '/api/users/123'
     
     const dispatch = router.routes()
-    await dispatch(mockContext, jest.fn())
+    await dispatch(mockContext, vi.fn())
     
     expect(parentMiddleware).toHaveBeenCalled()
     expect(childMiddleware).toHaveBeenCalled()

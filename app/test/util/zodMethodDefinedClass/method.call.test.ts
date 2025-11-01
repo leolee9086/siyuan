@@ -1,3 +1,5 @@
+import { describe, it, expect, beforeEach,test, vi } from 'vitest';
+
 import { createRouterClass } from '../../../src/util/zodMethodDefinedClass/modeRouter';
 import z from 'zod';
 
@@ -36,7 +38,7 @@ describe('createRouterClass 方法调用类型测试', () => {
                 'user123', // mode (对应 userId 字段)
                 async (ctx, next) => { // handler
                     // 处理逻辑
-                    await next();
+                    await next(ctx);
                 }
             );
             
@@ -44,7 +46,7 @@ describe('createRouterClass 方法调用类型测试', () => {
                 'user123', // mode
                 async (ctx, next) => { // handler
                     // 处理逻辑
-                    await next();
+                    await next(ctx);
                 }
             );
         };
@@ -111,7 +113,7 @@ describe('createRouterClass 方法调用类型测试', () => {
                 },
                 async (ctx, next) => { // handler
                     // 处理逻辑
-                    await next();
+                    await next(ctx);
                 }
             );
         };

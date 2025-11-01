@@ -1,4 +1,6 @@
 import { z } from 'zod'
+import { describe, it, expect, beforeEach,test, vi } from 'vitest';
+
 import Router from '../../../src/util/pathRouter/core/router.htttpRouter'
 import { chain } from '../../../src/util/pathRouter/core/router.execution'
 import { Context } from '../../../src/util/pathRouter/core/types'
@@ -21,26 +23,26 @@ describe('router execution', () => {
       response: {
         status: 200,
         headers: {},
-        set: jest.fn(),
-        redirect: jest.fn()
+        set: vi.fn(),
+        redirect: vi.fn()
       },
       status: 200,
       params: {},
       captures: [],
-      set: jest.fn(),
-      redirect: jest.fn()
+      set: vi.fn(),
+      redirect: vi.fn()
     }
   })
   test('应该正确处理嵌套路由', async () => {
     const router = new Router()
     const nestedRouter = new Router()
     
-    const parentMiddleware = jest.fn((ctx, next) => {
+    const parentMiddleware = vi.fn((ctx, next) => {
       ctx.body = 'Parent'
       return next()
     })
     
-    const childMiddleware = jest.fn((ctx, next) => {
+    const childMiddleware = vi.fn((ctx, next) => {
       ctx.body += ' -> Child'
       return next()
     })
@@ -52,7 +54,7 @@ describe('router execution', () => {
     mockContext.path = '/api/users/123'
     
     const dispatch = router.routes()
-    await dispatch(mockContext, jest.fn())
+    await dispatch(mockContext, vi.fn())
     
     expect(parentMiddleware).toHaveBeenCalled()
     expect(childMiddleware).toHaveBeenCalled()
@@ -109,8 +111,8 @@ describe('router execution', () => {
       response: {
         status: 200,
         headers: {},
-        set: jest.fn(),
-        redirect: jest.fn(),
+        set: vi.fn(),
+        redirect: vi.fn(),
         body: {
           message: '',
         },
@@ -118,8 +120,8 @@ describe('router execution', () => {
       status: 200,
       params: {},
       captures: [],
-      set: jest.fn(),
-      redirect: jest.fn(),
+      set: vi.fn(),
+      redirect: vi.fn(),
     }
 
     const finalContext = await execute(initialContext)

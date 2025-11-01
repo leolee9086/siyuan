@@ -1,3 +1,5 @@
+import { describe, it, expect, beforeEach,test, vi } from 'vitest';
+
 import Router from '../../../src/util/pathRouter/core/router.htttpRouter'
 import type { Context } from '../../../src/util/pathRouter/core/types'
 describe('Router路由匹配测试', () => {
@@ -18,20 +20,20 @@ describe('Router路由匹配测试', () => {
       response: {
         status: 200,
         headers: {},
-        set: jest.fn(),
-        redirect: jest.fn()
+        set: vi.fn(),
+        redirect: vi.fn()
       },
       status: 200,
       params: {},
       captures: [],
-      set: jest.fn(),
-      redirect: jest.fn()
+      set: vi.fn(),
+      redirect: vi.fn()
     }
   })
 
   test('应该正确匹配简单路径', () => {
     const router = new Router()
-    const middleware = jest.fn()
+    const middleware = vi.fn()
     
     router.get('/users', middleware)
     
@@ -44,7 +46,7 @@ describe('Router路由匹配测试', () => {
 
   test('应该正确匹配带参数的路径', () => {
     const router = new Router()
-    const middleware = jest.fn()
+    const middleware = vi.fn()
     
     router.get('/users/:id', middleware)
     
@@ -57,8 +59,8 @@ describe('Router路由匹配测试', () => {
 
   test('应该正确匹配多个路由', () => {
     const router = new Router()
-    const middleware1 = jest.fn()
-    const middleware2 = jest.fn()
+    const middleware1 = vi.fn()
+    const middleware2 = vi.fn()
     
     router.get('/users', middleware1)
     router.get('/users/:id', middleware2)
@@ -77,7 +79,7 @@ describe('Router路由匹配测试', () => {
 
   test('应该正确处理不匹配的路径', () => {
     const router = new Router()
-    const middleware = jest.fn()
+    const middleware = vi.fn()
     
     router.get('/users', middleware)
     
@@ -90,7 +92,7 @@ describe('Router路由匹配测试', () => {
 
   test('应该正确处理不匹配的HTTP方法', () => {
     const router = new Router()
-    const middleware = jest.fn()
+    const middleware = vi.fn()
     
     router.get('/users', middleware)
     
@@ -103,7 +105,7 @@ describe('Router路由匹配测试', () => {
 
   test('应该正确处理正则表达式路径', () => {
     const router = new Router()
-    const middleware = jest.fn()
+    const middleware = vi.fn()
     
     router.get(/\/users\/\d+/, middleware)
     
@@ -121,7 +123,7 @@ describe('Router路由匹配测试', () => {
 
   test('应该正确处理数组路径', () => {
     const router = new Router()
-    const middleware = jest.fn()
+    const middleware = vi.fn()
     
     router.get(['/users', '/people'], middleware)
     
@@ -144,7 +146,7 @@ describe('Router路由匹配测试', () => {
 
   test('应该正确处理路由参数解析', async () => {
     const router = new Router()
-    const middleware = jest.fn((ctx, next) => {
+    const middleware = vi.fn((ctx, next) => {
       expect(ctx.params.id).toBe('123')
       return next()
     })
@@ -153,7 +155,7 @@ describe('Router路由匹配测试', () => {
     
     const dispatch = router.routes()
     
-    await dispatch(mockContext, jest.fn())
+    await dispatch(mockContext, vi.fn())
     
     expect(middleware).toHaveBeenCalled()
     expect(mockContext.params.id).toBe('123')
@@ -161,7 +163,7 @@ describe('Router路由匹配测试', () => {
 
   test('应该正确处理多个路由参数', async () => {
     const router = new Router()
-    const middleware = jest.fn((ctx, next) => {
+    const middleware = vi.fn((ctx, next) => {
       expect(ctx.params.userId).toBe('123')
       expect(ctx.params.postId).toBe('456')
       return next()
@@ -173,7 +175,7 @@ describe('Router路由匹配测试', () => {
     
     const dispatch = router.routes()
     
-    await dispatch(mockContext, jest.fn())
+    await dispatch(mockContext, vi.fn())
     
     expect(middleware).toHaveBeenCalled()
     expect(mockContext.params.userId).toBe('123')
@@ -182,7 +184,7 @@ describe('Router路由匹配测试', () => {
 
   test('应该正确处理可选参数', async () => {
     const router = new Router()
-    const middleware = jest.fn((ctx, next) => {
+    const middleware = vi.fn((ctx, next) => {
       expect(ctx.params.id).toBe('123')
       return next()
     })
@@ -192,7 +194,7 @@ describe('Router路由匹配测试', () => {
     // 测试有参数的情况
     mockContext.path = '/users/123'
     let dispatch = router.routes()
-    await dispatch(mockContext, jest.fn())
+    await dispatch(mockContext, vi.fn())
     
     expect(middleware).toHaveBeenCalled()
     expect(mockContext.params.id).toBe('123')
@@ -201,14 +203,14 @@ describe('Router路由匹配测试', () => {
     middleware.mockClear()
     mockContext.path = '/users'
     dispatch = router.routes()
-    await dispatch(mockContext, jest.fn())
+    await dispatch(mockContext, vi.fn())
     
     expect(middleware).toHaveBeenCalled()
   })
 
   test('应该正确处理通配符参数', async () => {
     const router = new Router()
-    const middleware = jest.fn((ctx, next) => {
+    const middleware = vi.fn((ctx, next) => {
       expect(ctx.params.path).toBe('a/b/c')
       return next()
     })
@@ -219,7 +221,7 @@ describe('Router路由匹配测试', () => {
     
     const dispatch = router.routes()
     
-    await dispatch(mockContext, jest.fn())
+    await dispatch(mockContext, vi.fn())
     
     expect(middleware).toHaveBeenCalled()
     expect(mockContext.params.path).toBe('a/b/c')
@@ -227,13 +229,13 @@ describe('Router路由匹配测试', () => {
 
   test('应该正确设置路由信息', async () => {
     const router = new Router()
-    const middleware = jest.fn()
+    const middleware = vi.fn()
     
     router.get('userRoute', '/users/:id', middleware)
     
     const dispatch = router.routes()
     
-    await dispatch(mockContext, jest.fn())
+    await dispatch(mockContext, vi.fn())
     
     expect(mockContext._matchedRoute).toBe('/users/:id')
     expect(mockContext._matchedRouteName).toBe('userRoute')
@@ -243,8 +245,8 @@ describe('Router路由匹配测试', () => {
 
   test('应该正确处理exclusive模式', async () => {
     const router = new Router({ exclusive: true })
-    const middleware1 = jest.fn()
-    const middleware2 = jest.fn()
+    const middleware1 = vi.fn()
+    const middleware2 = vi.fn()
     
     router.get('/users/:path(.*)', middleware1)
     router.get('/users/:id', middleware2)
@@ -253,7 +255,7 @@ describe('Router路由匹配测试', () => {
     
     const dispatch = router.routes()
     
-    await dispatch(mockContext, jest.fn())
+    await dispatch(mockContext, vi.fn())
     
     // 在exclusive模式下，只应该执行最具体的路由
     expect(middleware1).not.toHaveBeenCalled()

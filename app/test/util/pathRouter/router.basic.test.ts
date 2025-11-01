@@ -1,3 +1,5 @@
+import { describe, it, expect, beforeEach,test, vi } from 'vitest';
+
 import Router from '../../../src/util/pathRouter/core/router.htttpRouter'
 import type { RouterOptions } from '../../../src/util/pathRouter/core/types'
 describe('Router基础功能测试', () => {
@@ -70,7 +72,7 @@ describe('Router基础功能测试', () => {
 
   test('应该正确设置参数中间件', () => {
     const router = new Router()
-    const paramMiddleware = jest.fn()
+    const paramMiddleware = vi.fn()
     
     router.param('id', paramMiddleware)
     
@@ -79,7 +81,7 @@ describe('Router基础功能测试', () => {
 
   test('应该正确查找命名路由', () => {
     const router = new Router()
-    const middleware = jest.fn()
+    const middleware = vi.fn()
     
     router.get('userRoute', '/users/:id', middleware)
     
@@ -95,7 +97,7 @@ describe('Router基础功能测试', () => {
 
   test('应该正确生成URL', () => {
     const router = new Router()
-    const middleware = jest.fn()
+    const middleware = vi.fn()
     
     router.get('userRoute', '/users/:id', middleware)
     

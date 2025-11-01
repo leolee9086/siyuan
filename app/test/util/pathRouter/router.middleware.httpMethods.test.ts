@@ -1,3 +1,5 @@
+import { describe, it, expect, beforeEach,test, vi } from 'vitest';
+
 import Router from '../../../src/util/pathRouter/core/router.htttpRouter'
 import type { Context } from '../../../src/util/pathRouter/core/types'
 
@@ -19,20 +21,20 @@ describe('Router HTTP方法处理测试', () => {
       response: {
         status: 200,
         headers: {},
-        set: jest.fn(),
-        redirect: jest.fn()
+        set: vi.fn(),
+        redirect: vi.fn()
       },
       status: 200,
       params: {},
       captures: [],
-      set: jest.fn(),
-      redirect: jest.fn()
+      set: vi.fn(),
+      redirect: vi.fn()
     }
   })
 
   test('应该正确处理不支持的HTTP方法', async () => {
     const router = new Router()
-    const middleware = jest.fn()
+    const middleware = vi.fn()
     
     router.get('/users/:id', middleware)
     
@@ -44,7 +46,7 @@ describe('Router HTTP方法处理测试', () => {
     // 修复：设置status为404以触发方法检查
     mockContext.status = 404
     
-    await allowedMethods(mockContext, jest.fn())
+    await allowedMethods(mockContext, vi.fn())
     
     expect(mockContext.status).toBe(405)
     expect(mockContext.set).toHaveBeenCalledWith('Allow', 'GET, HEAD')
@@ -52,7 +54,7 @@ describe('Router HTTP方法处理测试', () => {
 
   test('应该正确处理未实现的HTTP方法', async () => {
     const router = new Router()
-    const middleware = jest.fn()
+    const middleware = vi.fn()
     
     router.get('/users/:id', middleware)
     
@@ -66,7 +68,7 @@ describe('Router HTTP方法处理测试', () => {
     
     let errorThrown = false
     try {
-      await allowedMethods(mockContext, jest.fn())
+      await allowedMethods(mockContext, vi.fn())
     } catch (error) {
       errorThrown = true
       // 修复：使用字符串匹配而不是精确匹配，避免ANSI转义序列问题

@@ -1,18 +1,20 @@
+import { describe, it, expect, beforeEach,test, vi } from 'vitest';
+
 import { compose } from '../../../src/util/pathRouter/core/routerUtils'
 
 describe('RouterUtils测试', () => {
   test('应该正确组合中间件', async () => {
-    const middleware1 = jest.fn((ctx, next) => {
+    const middleware1 = vi.fn((ctx, next) => {
       ctx.step1 = 'completed'
       return next()
     })
     
-    const middleware2 = jest.fn((ctx, next) => {
+    const middleware2 = vi.fn((ctx, next) => {
       ctx.step2 = 'completed'
       return next()
     })
     
-    const middleware3 = jest.fn((ctx, next) => {
+    const middleware3 = vi.fn((ctx, next) => {
       ctx.step3 = 'completed'
       return next()
     })
@@ -31,19 +33,19 @@ describe('RouterUtils测试', () => {
       response: {
         status: 200,
         headers: {},
-        set: jest.fn(),
-        redirect: jest.fn()
+        set: vi.fn(),
+        redirect: vi.fn()
       },
       status: 200,
       params: {},
       captures: [] as string[],
-      set: jest.fn(),
-      redirect: jest.fn(),
+      set: vi.fn(),
+      redirect: vi.fn(),
       step1: '',
       step2: '',
       step3: ''
     }
-    const finalNext = jest.fn()
+    const finalNext = vi.fn()
     
     const composed = compose([middleware1, middleware2, middleware3])
     
@@ -73,16 +75,16 @@ describe('RouterUtils测试', () => {
       response: {
         status: 200,
         headers: {},
-        set: jest.fn(),
-        redirect: jest.fn()
+        set: vi.fn(),
+        redirect: vi.fn()
       },
       status: 200,
       params: {},
       captures: [] as string[],
-      set: jest.fn(),
-      redirect: jest.fn()
+      set: vi.fn(),
+      redirect: vi.fn()
     }
-    const finalNext = jest.fn()
+    const finalNext = vi.fn()
     
     const composed = compose([])
     
@@ -92,7 +94,7 @@ describe('RouterUtils测试', () => {
   })
 
   test('应该正确处理单个中间件', async () => {
-    const middleware = jest.fn((ctx, next) => {
+    const middleware = vi.fn((ctx, next) => {
       ctx.completed = true
       return next()
     })
@@ -111,17 +113,17 @@ describe('RouterUtils测试', () => {
       response: {
         status: 200,
         headers: {},
-        set: jest.fn(),
-        redirect: jest.fn()
+        set: vi.fn(),
+        redirect: vi.fn()
       },
       status: 200,
       params: {},
       captures: [] as string[],
-      set: jest.fn(),
-      redirect: jest.fn(),
+      set: vi.fn(),
+      redirect: vi.fn(),
       completed: false
     }
-    const finalNext = jest.fn()
+    const finalNext = vi.fn()
     
     const composed = compose([middleware])
     
@@ -133,13 +135,13 @@ describe('RouterUtils测试', () => {
   })
 
   test('应该正确处理异步中间件', async () => {
-    const middleware1 = jest.fn(async (ctx, next) => {
+    const middleware1 = vi.fn(async (ctx, next) => {
       await new Promise(resolve => setTimeout(resolve, 10))
       ctx.step1 = 'completed'
       return next()
     })
     
-    const middleware2 = jest.fn(async (ctx, next) => {
+    const middleware2 = vi.fn(async (ctx, next) => {
       await new Promise(resolve => setTimeout(resolve, 10))
       ctx.step2 = 'completed'
       return next()
@@ -159,18 +161,18 @@ describe('RouterUtils测试', () => {
       response: {
         status: 200,
         headers: {},
-        set: jest.fn(),
-        redirect: jest.fn()
+        set: vi.fn(),
+        redirect: vi.fn()
       },
       status: 200,
       params: {},
       captures: [] as string[],
-      set: jest.fn(),
-      redirect: jest.fn(),
+      set: vi.fn(),
+      redirect: vi.fn(),
       step1: '',
       step2: ''
     }
-    const finalNext = jest.fn()
+    const finalNext = vi.fn()
     
     const composed = compose([middleware1, middleware2])
     
@@ -185,16 +187,16 @@ describe('RouterUtils测试', () => {
 
   test('应该正确处理中间件中的错误', async () => {
     const error = new Error('Test error')
-    const middleware1 = jest.fn((ctx, next) => {
+    const middleware1 = vi.fn((ctx, next) => {
       ctx.step1 = 'completed'
       return next()
     })
     
-    const middleware2 = jest.fn((ctx, next) => {
+    const middleware2 = vi.fn((ctx, next) => {
       throw error
     })
     
-    const middleware3 = jest.fn((ctx, next) => {
+    const middleware3 = vi.fn((ctx, next) => {
       ctx.step3 = 'should not be called'
       return next()
     })
@@ -213,19 +215,19 @@ describe('RouterUtils测试', () => {
       response: {
         status: 200,
         headers: {},
-        set: jest.fn(),
-        redirect: jest.fn()
+        set: vi.fn(),
+        redirect: vi.fn()
       },
       status: 200,
       params: {},
       captures: [] as string[],
-      set: jest.fn(),
-      redirect: jest.fn(),
+      set: vi.fn(),
+      redirect: vi.fn(),
       step1: '',
       step2: '',
       step3: ''
     }
-    const finalNext = jest.fn()
+    const finalNext = vi.fn()
     
     const composed = compose([middleware1, middleware2, middleware3])
     
@@ -245,16 +247,16 @@ describe('RouterUtils测试', () => {
 
   test('应该正确处理中间件中的Promise拒绝', async () => {
     const error = new Error('Test error')
-    const middleware1 = jest.fn((ctx, next) => {
+    const middleware1 = vi.fn((ctx, next) => {
       ctx.step1 = 'completed'
       return next()
     })
     
-    const middleware2 = jest.fn((ctx, next) => {
+    const middleware2 = vi.fn((ctx, next) => {
       return Promise.reject(error)
     })
     
-    const middleware3 = jest.fn((ctx, next) => {
+    const middleware3 = vi.fn((ctx, next) => {
       ctx.step3 = 'should not be called'
       return next()
     })
@@ -273,19 +275,19 @@ describe('RouterUtils测试', () => {
       response: {
         status: 200,
         headers: {},
-        set: jest.fn(),
-        redirect: jest.fn()
+        set: vi.fn(),
+        redirect: vi.fn()
       },
       status: 200,
       params: {},
       captures: [] as string[],
-      set: jest.fn(),
-      redirect: jest.fn(),
+      set: vi.fn(),
+      redirect: vi.fn(),
       step1: '',
       step2: '',
       step3: ''
     }
-    const finalNext = jest.fn()
+    const finalNext = vi.fn()
     
     const composed = compose([middleware1, middleware2, middleware3])
     
@@ -304,7 +306,7 @@ describe('RouterUtils测试', () => {
   })
 
   test('应该正确处理next函数的多次调用', async () => {
-    const middleware = jest.fn((ctx, next) => {
+    const middleware = vi.fn((ctx, next) => {
       ctx.count = (ctx.count || 0) + 1
       return next()
     })
@@ -323,22 +325,22 @@ describe('RouterUtils测试', () => {
       response: {
         status: 200,
         headers: {},
-        set: jest.fn(),
-        redirect: jest.fn()
+        set: vi.fn(),
+        redirect: vi.fn()
       },
       status: 200,
       params: {},
       captures: [] as string[],
-      set: jest.fn(),
-      redirect: jest.fn(),
+      set: vi.fn(),
+      redirect: vi.fn(),
       count: 0
     }
-    const finalNext = jest.fn()
+    const finalNext = vi.fn()
     
     const composed = compose([middleware])
     
     // 模拟在中间件中多次调用next
-    const customNext = jest.fn()
+    const customNext = vi.fn()
     customNext.mockImplementation(() => {
       if (mockContext.count < 3) {
         return middleware(mockContext, customNext)
@@ -354,9 +356,9 @@ describe('RouterUtils测试', () => {
   })
 
   test('应该正确处理非函数中间件', () => {
-    const middleware1 = jest.fn()
+    const middleware1 = vi.fn()
     const middleware2 = 'not a function' 
-    const middleware3 = jest.fn()
+    const middleware3 = vi.fn()
     
     expect(() => {
       //@ts-expect-error
@@ -365,7 +367,7 @@ describe('RouterUtils测试', () => {
   })
 
   test('应该正确处理非数组中间件', () => {
-    const middleware = jest.fn()
+    const middleware = vi.fn()
     
     expect(() => {
       //@ts-expect-error

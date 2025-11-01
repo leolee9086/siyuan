@@ -1,3 +1,5 @@
+import { describe, it, expect, beforeEach,test, vi } from 'vitest';
+
 import Router from '../../../src/util/pathRouter/core/router.htttpRouter'
 import type { Context } from '../../../src/util/pathRouter/core/types'
 
@@ -19,24 +21,24 @@ describe('Router use方法测试', () => {
       response: {
         status: 200,
         headers: {},
-        set: jest.fn(),
-        redirect: jest.fn()
+        set: vi.fn(),
+        redirect: vi.fn()
       },
       status: 200,
       params: {},
       captures: [],
-      set: jest.fn(),
-      redirect: jest.fn()
+      set: vi.fn(),
+      redirect: vi.fn()
     }
   })
 
   test('应该正确处理use方法添加中间件', async () => {
     const router = new Router()
-    const globalMiddleware = jest.fn((ctx, next) => {
+    const globalMiddleware = vi.fn((ctx, next) => {
       ctx.body = 'Global'
       return next()
     })
-    const routeMiddleware = jest.fn((ctx, next) => {
+    const routeMiddleware = vi.fn((ctx, next) => {
       ctx.body += ' -> Route'
       return next()
     })
@@ -46,7 +48,7 @@ describe('Router use方法测试', () => {
     
     const dispatch = router.routes()
     
-    await dispatch(mockContext, jest.fn())
+    await dispatch(mockContext, vi.fn())
     
     expect(globalMiddleware).toHaveBeenCalled()
     expect(routeMiddleware).toHaveBeenCalled()
