@@ -1,15 +1,13 @@
 <template>
     <div class="b3-dialog__content">
-        <div v-if="showResponseContainer" ref="internalResponseContentRef"
-            class="ai-response-container protyle-wysiwyg protyle-wysiwyg--attr"
-            style="margin-top: 8px; padding: 8px; background: var(--b3-theme-background); border: 1px solid var(--b3-border-color); border-radius: 4px; max-width: 60vw; max-height: 60vh; overflow: auto;">
-            <div class="ai-response-content" v-html="state.blockDOMContent || state.responseContentStr"></div>
-            <div class="ai-response-status"
-                style="margin-top: 4px; font-size: 12px; color: var(--b3-theme-on-surface);">
-                <span class="ai-status-text" :style="{ color: statusColor }">{{ statusText }}</span>
-                <span class="ai-status-dots">{{ dots }}</span>
-            </div>
-        </div>
+        <AIResponseDisplay
+            ref="aiResponseDisplayRef"
+            :show-container="showResponseContainer"
+            :content="state.blockDOMContent || state.responseContentStr"
+            :status-text="statusText"
+            :status-color="statusColor"
+            :dots="dots"
+        />
 
         <TextField ref="textFieldRef" type="textarea" :placeholder="aiWritingText" v-model="inputValue"
             :disabled="isStreaming" @enter="() => onConfirmClick(inputValue)"></TextField>
@@ -29,7 +27,8 @@ import { ref, onMounted, computed, watch } from 'vue';
 import type { PropType } from 'vue';
 import { useStreamChatUI, getI18nText } from './streamChat.componentLogic';
 import TextField from './common/TextField.vue';
-
+import AIResponseDisplay from './AIResponseDisplay.vue';
+import { ChatSessionState } from '../ai/session/session.types';
 const props = defineProps({
     onCancelClick: {
         type: Function as PropType<() => void>,
@@ -48,13 +47,12 @@ const props = defineProps({
         required: true,
     },
     state: {
-        type: Object as PropType<any>,
+        type: Object as PropType<ChatSessionState>,
         required: true,
     }
 });
-
 const textFieldRef = ref<InstanceType<typeof TextField> | null>(null);
-const internalResponseContentRef = ref<HTMLElement | null>(null);
+const aiResponseDisplayRef = ref<InstanceType<typeof AIResponseDisplay> | null>(null);
 const inputValue = ref('');
 
 const isStreaming = computed(() => props.state.isStreaming);
@@ -99,7 +97,7 @@ onMounted(() => {
         setCompleteStatus,
         setErrorStatus,
         setAbortStatus,
-        getResponseContentRef: () => internalResponseContentRef.value
+        getResponseContentRef: () => aiResponseDisplayRef.value?.responseContentRef
     });
 });
 </script>
