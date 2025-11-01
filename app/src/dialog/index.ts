@@ -40,6 +40,8 @@ export class Dialog {
     public editors: { [key: string]: Protyle };
     public data: any;
     private titleVueApp: App | null; // 存储标题Vue应用实例
+    private isFullscreen: boolean = false; // 是否处于全屏状态
+    private originalSize: { width: string; height: string; left: string; top: string } | null = null; // 原始尺寸和位置
 
     constructor(options: IDialogOptions) {
         this.disableClose = options.disableClose;
@@ -171,6 +173,67 @@ left:${left || "auto"};top:${top || "auto"};${this.scrimPointerEvents ? ' pointe
         }, Constants.TIMEOUT_DBLCLICK);
     }
 
+    public fullscreen(): void {
+        const container = this.element.querySelector(".b3-dialog__container") as HTMLElement;
+        if (!container) return;
+
+        if (!this.isFullscreen) {
+            // 进入全屏模式
+            // 保存当前尺寸和位置
+            this.originalSize = {
+                width: container.style.width,
+                height: container.style.height,
+                left: container.style.left,
+                top: container.style.top
+            };
+
+            // 设置全屏样式
+            container.style.width = "100vw";
+            container.style.height = "100vh";
+            container.style.left = "0";
+            container.style.top = "0";
+            container.style.maxWidth = "100vw";
+            container.style.maxHeight = "100vh";
+            container.style.borderRadius = "0";
+            
+            // 添加全屏类
+            this.element.classList.add("b3-dialog--fullscreen");
+            
+            // 隐藏调整大小的手柄
+            const resizeHandles = container.querySelectorAll("[class^='resize__']");
+            resizeHandles.forEach(handle => {
+                (handle as HTMLElement).style.display = "none";
+            });
+            
+            this.isFullscreen = true;
+        } else {
+            // 退出全屏模式
+            if (this.originalSize) {
+                container.style.width = this.originalSize.width;
+                container.style.height = this.originalSize.height;
+                container.style.left = this.originalSize.left;
+                container.style.top = this.originalSize.top;
+            }
+            
+            // 移除全屏样式
+            container.style.maxWidth = "";
+            container.style.maxHeight = "";
+            container.style.borderRadius = "";
+            
+            // 移除全屏类
+            this.element.classList.remove("b3-dialog--fullscreen");
+            
+            // 显示调整大小的手柄
+            const resizeHandles = container.querySelectorAll("[class^='resize__']");
+            resizeHandles.forEach(handle => {
+                (handle as HTMLElement).style.display = "";
+            });
+            
+            this.isFullscreen = false;
+            this.originalSize = null;
+        }
+    }
+
     public bindInput(inputElement: HTMLInputElement | HTMLTextAreaElement, enterEvent?: () => void, bindEnter = true) {
         inputElement.focus();
         let timeStamp: number;
@@ -179,8 +242,14 @@ left:${left || "auto"};top:${top || "auto"};${this.scrimPointerEvents ? ' pointe
                 event.preventDefault();
                 return;
             }
-            if (event.key === "Escape" && !this.disableEscapeClose) {
-                this.destroy();
+            if (event.key === "Escape") {
+                if (this.isFullscreen) {
+                    // 全屏模式下，ESC 键退出全屏
+                    this.fullscreen();
+                } else if (!this.disableEscapeClose) {
+                    // 非全屏模式下，ESC 键关闭对话框
+                    this.destroy();
+                }
                 event.preventDefault();
                 event.stopPropagation();
                 return;
