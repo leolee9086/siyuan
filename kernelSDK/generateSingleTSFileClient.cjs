@@ -235,22 +235,6 @@ function generateMethodTsDoc(apiDef, hasDataParam) {
     if (apiDef.needAuth) {
         tsDocLines.push(`${tsDocLinePrefix}Requires authentication.`);
     }
-
-    if (hasDataParam && apiDef.zodRequestSchema) {
-        const requestLines = generateTsLinesFromSchema(apiDef.zodRequestSchema, z, tsDocLinePrefix, false);
-        tsDocLines.push(...requestLines);
-    } else if (hasDataParam) { 
-        tsDocLines.push(`${tsDocLinePrefix}@param data Request payload`);
-    }
-
-    if (apiDef.zodResponseSchema) {
-        const responseLines = generateTsLinesFromSchema(apiDef.zodResponseSchema, z, tsDocLinePrefix, true);
-        tsDocLines.push(...responseLines);
-    } else {
-        tsDocLines.push(`${tsDocLinePrefix}@returns The response data from the server.`);
-    }
-
-    tsDocLines.push(`${tsDocLinePrefix}@throws If the request fails or the server returns an error.`);
     tsDocLines.push(`${baseIndentStr} */`);
     // 在连接最终字符串的行时，使用 \n，它是模板字符串或常规字符串中的字面换行符。
     // 如果此字符串随后写入文件，\n 将正确成为换行符。
@@ -423,7 +407,7 @@ class KernelApiClient {
       
       // Assuming Siyuan API often wraps data in a top-level 'data' field
       // This might need to be more flexible based on actual API responses
-      return responseData.data !== undefined ? responseData.data : responseData;
+      return responseData ;
 
     } catch (error) {
       // If it's an error we threw deliberately from !response.ok, rethrow it

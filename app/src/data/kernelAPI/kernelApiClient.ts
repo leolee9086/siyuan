@@ -92,7 +92,7 @@ class KernelApiClient {
       
       // Assuming Siyuan API often wraps data in a top-level 'data' field
       // This might need to be more flexible based on actual API responses
-      return responseData.data !== undefined ? responseData.data : responseData;
+      return responseData !== undefined ? responseData : responseData;
 
     } catch (error) {
       // If it's an error we threw deliberately from !response.ok, rethrow it

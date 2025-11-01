@@ -85,9 +85,7 @@ class KernelApiClient {
           responseData = await response.text(); // Or handle other content types as needed
       }
       
-      // Assuming Siyuan API often wraps data in a top-level 'data' field
-      // This might need to be more flexible based on actual API responses
-      return responseData.data !== undefined ? responseData.data : responseData;
+      return responseData 
 
     } catch (error) {
       // If it's an error we threw deliberately from !response.ok, rethrow it
