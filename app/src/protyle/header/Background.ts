@@ -17,7 +17,7 @@ import {assetMenu} from "../../menus/protyle";
 import {previewImages} from "../preview/image";
 import {Menu} from "../../plugin/Menu";
 import {escapeHtml} from "../../util/escape";
-import { bgs } from "./bgs";
+import { bgs } from "../../util/css/bgs";
 
 export class Background {
     public element: HTMLElement;
