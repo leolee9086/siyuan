@@ -155,7 +155,9 @@ export class SecureModuleCreator {
       return parts.length >= 2 ? `${parts[0]}/${parts[1]}` : cleanSource;
     }
     
-    return cleanSource.split('/')[0];
+    // 对于普通包名，返回完整的导入路径（包括子路径）
+    // 这样可以正确处理如 'echarts/lib/util/graphic' 这样的导入
+    return cleanSource;
   }
 
   /**
@@ -240,9 +242,10 @@ export class SecureModuleCreator {
     try {
       const moduleExport = await import(/* webpackIgnore: true */ moduleUrl);
       // 返回模块信息和清理函数
+      console.log(moduleExport)
       return {
         moduleUrl,
-        moduleExport: moduleExport.default,
+        moduleExport: moduleExport,
         cleanup: () => {
           URL.revokeObjectURL(moduleUrl);
         },
@@ -302,12 +305,13 @@ export class SecureModuleCreator {
       // 返回模块信息和清理函数
       return {
         moduleUrl,
-        moduleExport: moduleExport.default || moduleExport,
+        moduleExport: moduleExport,
         cleanup: () => {
           // 不删除文件，让测试可以读取
         },
         hasError: false
       };
+      
     } catch (error) {
       // 如果失败，清理文件并返回包含错误信息的结果
     
@@ -392,6 +396,12 @@ export async function createSecureTemporaryModule(
     autoAllowScoped?: boolean;
     onUnauthorizedImport?: 'throw' | 'mock' | 'remove';
     customMocks?: Record<string, any>;
+    moduleRedirectConfig?: {
+      defaultServer?: string;
+      packageRedirects?: Record<string, string>;
+      enabled?: boolean;
+      bareModulesOnly?: boolean;
+    };
   } = {}
 ): Promise<TemporaryModule> {
   const creator = new SecureModuleCreator({
@@ -403,10 +413,10 @@ export async function createSecureTemporaryModule(
       customMocks: options.customMocks || {}
     },
     moduleRedirectConfig: {
-      defaultServer: 'https://esm.sh',
-      packageRedirects: {},
-      enabled: false,
-      bareModulesOnly: true
+      defaultServer: options.moduleRedirectConfig?.defaultServer || 'https://esm.sh',
+      packageRedirects: options.moduleRedirectConfig?.packageRedirects || {},
+      enabled: options.moduleRedirectConfig?.enabled ?? false,
+      bareModulesOnly: options.moduleRedirectConfig?.bareModulesOnly ?? true
     }
   });
   

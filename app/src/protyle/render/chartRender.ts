@@ -1,7 +1,7 @@
 import {addScript} from "../util/addScript";
 import {Constants} from "../../constants";
 import {hasClosestByClassName} from "../util/hasClosest";
-import {looseJsonParse} from "../../util/functions";
+import { looseJsonParse } from "../../util/code/looseJsonParse";
 import {genIconHTML} from "./util";
 
 export const chartRender = (element: Element, cdn = Constants.PROTYLE_CDN) => {

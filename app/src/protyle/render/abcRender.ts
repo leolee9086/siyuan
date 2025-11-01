@@ -2,7 +2,7 @@ import {addScript} from "../util/addScript";
 import {Constants} from "../../constants";
 import {genIconHTML} from "./util";
 import {hasClosestByClassName} from "../util/hasClosest";
-import {looseJsonParse} from "../../util/functions";
+import { looseJsonParse } from "../../util/code/looseJsonParse";
 
 const ABCJS_PARAMS_KEY = "%%params";
 

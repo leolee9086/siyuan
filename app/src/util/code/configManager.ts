@@ -216,7 +216,7 @@ export class ConfigManager {
       return null;
     }
 
-    // 使用默认服务器生成URL
+    // 使用默认服务器生成URL，保留完整的包路径（包括子路径）
     return `${this.moduleRedirectConfig.defaultServer}/${packageName}`;
   }
 

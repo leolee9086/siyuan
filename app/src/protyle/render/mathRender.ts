@@ -3,7 +3,7 @@ import {addStyle} from "../util/addStyle";
 import {Constants} from "../../constants";
 import {hasNextSibling, hasPreviousSibling} from "../wysiwyg/getBlock";
 import {hasClosestBlock} from "../util/hasClosest";
-import {looseJsonParse} from "../../util/functions";
+import { looseJsonParse } from "../../util/code/looseJsonParse";
 import {genRenderFrame} from "./util";
 
 export const mathRender = (element: Element, cdn = Constants.PROTYLE_CDN, maxWidth = false) => {

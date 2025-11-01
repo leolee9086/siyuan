@@ -87,11 +87,6 @@ export const isValidAttrName = (name: string) => {
     return /^[_a-zA-Z][_.\-0-9a-zA-Z]*$/.test(name);
 };
 
-// REF https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/eval
-export const looseJsonParse = (text: string) => {
-    return Function(`"use strict";return (${text})`)();
-};
-
 export const objEquals = (a: any, b: any): boolean => {
     if (a === b) return true;
     if (typeof a === "number" && isNaN(a) && typeof b === "number" && isNaN(b)) return true;
