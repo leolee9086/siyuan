@@ -6,7 +6,7 @@ import { hintRenderAssets } from "../protyle/hint/extend";
 import { hasClosestByClassName, hasClosestByAttribute } from "../protyle/util/hasClosest";
 import { isMobile } from "../util/functions";
 import { upDownHint } from "../util/upDownHint";
-import { renderAssetList } from "./protyle";
+import { renderAssetList } from "./protyle.renderAssetList";
 
 
 export const assetMenu = (protyle: IProtyle, position: IPosition, callback?: (url: string, name: string) => void, exts?: string[]) => {
