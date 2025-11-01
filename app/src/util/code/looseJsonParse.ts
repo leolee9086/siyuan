@@ -5,36 +5,75 @@ import { confirmDialog } from '../../dialog/confirmDialog';
 import { parse } from 'es-module-lexer';
 
 /**
- * 包名许可结果缓存
- * 存储用户对特定包名的许可决定，避免重复请求用户确认
- * 键为包名，值为用户是否允许的布尔值
+ * 包名许可管理器
+ * 负责管理用户对特定包名的许可决定，避免重复请求用户确认
  */
-const packagePermissionCache = new Map<string, boolean>();
+class PackagePermissionManager {
+    private cache = new Map<string, boolean>();
 
-/**
- * 检查包名是否已在缓存中有许可结果
- * @param packageName 包名
- * @returns 是否已缓存及许可结果，未缓存返回null
- */
-const getCachedPackagePermission = (packageName: string): boolean | null => {
-    return packagePermissionCache.has(packageName) ? packagePermissionCache.get(packageName)! : null;
-};
+    /**
+     * 检查包名是否已在缓存中有许可结果
+     * @param packageName 包名
+     * @returns 是否已缓存及许可结果，未缓存返回null
+     */
+    getCachedPermission(packageName: string): boolean | null {
+        return this.cache.has(packageName) ? this.cache.get(packageName)! : null;
+    }
 
-/**
- * 缓存用户对包名的许可结果
- * @param packageName 包名
- * @param allowed 用户是否允许
- */
-const cachePackagePermission = (packageName: string, allowed: boolean): void => {
-    packagePermissionCache.set(packageName, allowed);
-};
+    /**
+     * 缓存用户对包名的许可结果
+     * @param packageName 包名
+     * @param allowed 用户是否允许
+     */
+    cachePermission(packageName: string, allowed: boolean): void {
+        this.cache.set(packageName, allowed);
+    }
 
-/**
- * 清空缓存
- */
-const clearCache = (): void => {
-    packagePermissionCache.clear();
-};
+    /**
+     * 清空缓存
+     */
+    clearCache(): void {
+        this.cache.clear();
+    }
+
+    /**
+     * 分离已缓存和未缓存的包
+     * @param packages 包名列表
+     * @returns 分离后的已缓存和未缓存包
+     */
+    separateCachedPackages(packages: string[]): { cached: string[], uncached: string[] } {
+        const cached: string[] = [];
+        const uncached: string[] = [];
+        
+        packages.forEach(pkg => {
+            const permission = this.getCachedPermission(pkg);
+            if (permission === true) {
+                cached.push(pkg);
+            } else if (permission === false) {
+                // 如果用户之前拒绝过这个包，直接抛出错误
+                throw new Error(`用户之前已拒绝导入包: ${pkg}`);
+            } else {
+                uncached.push(pkg);
+            }
+        });
+
+        return { cached, uncached };
+    }
+
+    /**
+     * 批量缓存包许可
+     * @param packages 包名列表
+     * @param allowed 用户是否允许
+     */
+    batchCachePermissions(packages: string[], allowed: boolean): void {
+        packages.forEach(pkg => {
+            this.cachePermission(pkg, allowed);
+        });
+    }
+}
+
+// 创建全局实例
+const packagePermissionManager = new PackagePermissionManager();
 
 /**
  * 从代码中提取外部包名
@@ -89,20 +128,7 @@ export const looseJsonParse = async (text: string): Promise<any> => {
         const externalPackages = await extractExternalPackages(text);
         
         // 分离已缓存和未缓存的包
-        const cachedPackages: string[] = [];
-        const uncachedPackages: string[] = [];
-        
-        externalPackages.forEach(pkg => {
-            const permission = getCachedPackagePermission(pkg);
-            if (permission === true) {
-                cachedPackages.push(pkg);
-            } else if (permission === false) {
-                // 如果用户之前拒绝过这个包，直接抛出错误
-                throw new Error(`用户之前已拒绝导入包: ${pkg}`);
-            } else {
-                uncachedPackages.push(pkg);
-            }
-        });
+        const { cached: cachedPackages, uncached: uncachedPackages } = packagePermissionManager.separateCachedPackages(externalPackages);
 
         // 如果所有包都已缓存且被允许，直接执行
         if (uncachedPackages.length === 0) {
@@ -156,9 +182,7 @@ export const looseJsonParse = async (text: string): Promise<any> => {
                         console.log(text);
 
                         // 将用户确认的包添加到缓存
-                        uncachedPackages.forEach(pkg => {
-                            cachePackagePermission(pkg, true);
-                        });
+                        packagePermissionManager.batchCachePermissions(uncachedPackages, true);
 
                         const tempModule = await createSecureTemporaryModule(text, {
                             // 允许所有检测到的外部包
@@ -185,9 +209,7 @@ export const looseJsonParse = async (text: string): Promise<any> => {
                 },
                 () => {
                     // 用户取消，将拒绝的包也缓存起来
-                    uncachedPackages.forEach(pkg => {
-                        cachePackagePermission(pkg, false);
-                    });
+                    packagePermissionManager.batchCachePermissions(uncachedPackages, false);
                     
                     // 用户取消，抛出错误
                     reject(new Error('用户取消了包含外部依赖的代码执行'));
@@ -204,7 +226,7 @@ export const looseJsonParse = async (text: string): Promise<any> => {
  * 导出缓存管理函数，供外部使用
  */
 export const packageCacheManager = {
-    getCachedPackagePermission,
-    cachePackagePermission,
-    clearCache
+    getCachedPackagePermission: (packageName: string) => packagePermissionManager.getCachedPermission(packageName),
+    cachePackagePermission: (packageName: string, allowed: boolean) => packagePermissionManager.cachePermission(packageName, allowed),
+    clearCache: () => packagePermissionManager.clearCache()
 };
