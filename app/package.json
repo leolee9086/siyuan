@@ -28,7 +28,7 @@
     "test": "vitest --browser=chrome",
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage",
-    "find-longest-file": "node ./scripts/checker/findLongestFile.js"
+    "longest": "node ./scripts/checker/findLongestFile.js"
   },
   "keywords": [
     "markdown",
