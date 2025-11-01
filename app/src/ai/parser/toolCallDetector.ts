@@ -1,6 +1,5 @@
 import { JAVASCRIPT_TOOLS_CLASS, JAVASCRIPT_TOOLS_WAIT_CLASS } from "../constants";
 import { z } from "../deps";
-import { createTemporaryModule } from "../../util/code/scripts.executor";
 
 /**
  * 工具调用检测器类型定义
@@ -152,19 +151,5 @@ export function detectAsyncToolCalls(domElement: Element): string | null {
     }
 
     return null;
-}
-/**
- * 执行工具调用代码
- * @param toolCode 工具调用代码
- * @returns Promise<void>
- */
-export async function executeToolCall(toolCode: string): Promise<void> {
-    try {
-        const result = await createTemporaryModule(toolCode);
-        console.log('工具调用执行结果:', result);
-    } catch (error) {
-        console.error('工具调用执行失败:', error);
-        throw error;
-    }
 }
 
