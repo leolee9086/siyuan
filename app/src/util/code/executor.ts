@@ -224,7 +224,9 @@ export class SecureModuleCreator {
     
     if (isNodeJS) {
       // Node.js 环境下的特殊处理
+      ///#if !BROWSER
       return this.createNodeJSTemporaryModule(code);
+      ///#endif
     } else {
       // 浏览器环境下的处理
       return this.createBrowserTemporaryModule(code);
@@ -270,6 +272,7 @@ export class SecureModuleCreator {
   /**
    * 在 Node.js 环境中创建临时模块
    */
+  ///#if !BROWSER
   private async createNodeJSTemporaryModule(code: string): Promise<TemporaryModule> {
     const { writeFileSync, mkdirSync } = await import('fs');
     const { join } = await import('path');
@@ -327,7 +330,7 @@ export class SecureModuleCreator {
       };
     }
   }
-
+  ///#endif
   /**
    * 从代码中提取包名
    */

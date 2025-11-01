@@ -8,7 +8,7 @@ import {
     writeText
 } from "../../protyle/util/compatibility";
 import {Constants} from "../../constants";
-import {MenuItem} from "../../menus/Menu";
+import {MenuItem} from "../../menus/Menu.Item";
 import {getPreviousBlock} from "../../protyle/wysiwyg/getBlock";
 import {App} from "../../index";
 import {checkFold} from "../../util/noRelyPCFunction";
