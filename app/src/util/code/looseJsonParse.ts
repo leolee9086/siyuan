@@ -54,12 +54,15 @@ const extractExternalPackages = async (code: string): Promise<string[]> => {
  */
 export const looseJsonParse = async (text: string): Promise<any> => {
     // 检查是否包含import或require语句
-    const hasImportOrRequire = /\b(import|require)\b/.test(text);
+    try {
+        //兼容原本的情况
+        const result = new Function(`"use strict";return (${text})`)();
+        return result
+    } catch (e) {
+        //允许使用外部库
 
-    if (hasImportOrRequire) {
-        // 提取外部包名
         const externalPackages = await extractExternalPackages(text);
-        
+
         // 分离已缓存和未缓存的包
         const { cached: cachedPackages, uncached: uncachedPackages } = packagePermissionManager.separateCachedPackages(externalPackages);
 
@@ -78,7 +81,7 @@ export const looseJsonParse = async (text: string): Promise<any> => {
                         bareModulesOnly: true
                     }
                 });
-                
+
                 try {
                     return tempModule.moduleExport.default;
                 } finally {
@@ -92,17 +95,17 @@ export const looseJsonParse = async (text: string): Promise<any> => {
 
         // 构建确认消息
         let confirmMessage = '检测到代码中包含 import 或 require 语句';
-        
+
         if (cachedPackages.length > 0) {
             confirmMessage += `\n\n已允许的包（无需再次确认）：\n${cachedPackages.map(pkg => `• ${pkg}`).join('\n')}`;
         }
-        
+
         if (uncachedPackages.length > 0) {
             confirmMessage += `\n\n新检测到的包（需要确认）：\n${uncachedPackages.map(pkg => `• ${pkg}`).join('\n')}`;
         } else {
             confirmMessage += '，但未检测到明确的外部包名';
         }
-        
+
         confirmMessage += '\n\n是否继续执行？';
 
         // 弹出确认对话框，提示用户代码包含外部依赖
@@ -143,15 +146,12 @@ export const looseJsonParse = async (text: string): Promise<any> => {
                 () => {
                     // 用户取消，将拒绝的包也缓存起来
                     packagePermissionManager.batchCachePermissions(uncachedPackages, false);
-                    
+
                     // 用户取消，抛出错误
                     reject(new Error('用户取消了包含外部依赖的代码执行'));
                 }
             );
         });
-    } else {
-        // 对于简单的JSON或JavaScript表达式，继续使用原来的方法
-        return Function(`"use strict";return (${text})`)();
     }
 };
 

@@ -1,0 +1,1 @@
+kernelSDK\packages\apiDefs 中有绝大部分思源核心api的定义,如果你需要调用核心api,可以阅读其中的文件

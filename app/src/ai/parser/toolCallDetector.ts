@@ -1,25 +1,6 @@
 import { JAVASCRIPT_TOOLS_CLASS, JAVASCRIPT_TOOLS_WAIT_CLASS } from "../constants";
 import { z } from "../deps";
 
-/**
- * 工具调用检测器类型定义
- */
-export interface ToolCallDetector {
-    /**
-     * 检测内容中是否包含完整的同步工具调用
-     * @param content 待检测的内容
-     * @returns 检测结果
-     */
-    detectCompleteToolCall(content: string): ToolCallDetectionResult;
-
-    /**
-     * 提取工具调用代码
-     * @param content 包含工具调用的内容
-     * @returns 提取的工具调用代码
-     */
-    extractToolCallCode(content: string): string | null;
-
-}
 
 /**
  * 工具调用检测结果

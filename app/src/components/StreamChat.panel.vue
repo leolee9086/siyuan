@@ -3,7 +3,7 @@
         <AIResponseDisplay
             ref="aiResponseDisplayRef"
             :show-container="showResponseContainer"
-            :sate="state"
+            :state="state"
             :status-text="statusText"
             :status-color="statusColor"
             :dots="dots"

@@ -4,6 +4,13 @@
 import { getPersonnaPrompt } from "./common/persona";
 import { getSiyuanEnvironmentPrompt } from "./common/siyuan";
 import { getDifferentOfToolsSection, getSharedToolUseSection } from "./toolList/tool-use";
+import { getEchartsSection } from "./toolList/getEchartsSection";
+import { getAbcjsSection } from "./toolList/abcjs.prompt";
+import { getFlowchartSection } from "./toolList/flowchart.prompt";
+import { getGraphvizSection } from "./toolList/graphviz.prompt";
+import { getMermaidSection } from "./toolList/mermaid.prompt";
+import { getMathSection } from "./toolList/math.prompt";
+import { getHtmlSection } from "./toolList/html.prompt";
 
 /**
  * 构建包含块内容的提示词
@@ -12,10 +19,7 @@ import { getDifferentOfToolsSection, getSharedToolUseSection } from "./toolList/
  * @returns 构建好的提示词
  */
 export const buildBlockContentPrompt = (inputValue: string, blockContents?: string[]): string => {
-    // 如果没有块内容，直接返回用户输入
-    if (!blockContents || blockContents.length === 0) {
-        return inputValue;
-    }
+  
 
     // 构建块内容文本
     const blocksText = blockContents.map((content, index) =>
@@ -28,6 +32,13 @@ export const buildBlockContentPrompt = (inputValue: string, blockContents?: stri
 ${getSiyuanEnvironmentPrompt()}
 ${getSharedToolUseSection()}
 ${getDifferentOfToolsSection()}
+${getEchartsSection()}
+${getAbcjsSection()}
+${getFlowchartSection()}
+${getGraphvizSection()}
+${getMermaidSection()}
+${getMathSection()}
+${getHtmlSection()}
     
 在交流中,可以参考以下块内容,这是你的容器所在的思源笔记内的笔记数据。
 你也可以调用工具获取更多参考：
@@ -37,3 +48,4 @@ ${blocksText}
 用户问题：
 ${inputValue}`;
 };
+

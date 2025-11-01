@@ -248,6 +248,15 @@ const createConfirmHandler = (
     dialog: Dialog
 ) => {
     return async (inputValue: string) => {
+        console.log(
+                state,
+    protyle,
+    selectedBlockElements,
+    targetElement,
+    uiFunctions,
+    dialog
+
+        )
         if (state.isStreaming) {
             if (state.abortFunction) {
                 state.abortFunction();
@@ -264,9 +273,10 @@ const createConfirmHandler = (
         let blockContents: string[] = [];
         if (selectedBlockElements.length > 0) {
             selectedBlockElements.forEach(blockElement => {
-                const editableElement = getContenteditableElement(blockElement);
-                if (editableElement) {
-                    blockContents.push(editableElement.textContent || '');
+                // 使用 BlockDOM2StdMd 方法获取标准 Markdown 格式内容
+                const markdownContent = protyle.lute.BlockDOM2StdMd(blockElement.outerHTML);
+                if (markdownContent) {
+                    blockContents.push(markdownContent.trim());
                 }
             });
         }
@@ -276,6 +286,7 @@ const createConfirmHandler = (
         state.responseContentStr = '';
 
         const businessLogic = createSiyuanStreamChatBusinessLogic();
+        console.log(promptContent)
         const abortFn = await handleAIRequest(
             businessLogic,
             state,

@@ -14,6 +14,7 @@ const createChatDialogVueConfig = (protyle: IProtyle, element: Element, dialog: 
             handleCancel: dialog.destroy,
             handleConfirm: async (message: string) => {
                 const res = await localKernel.chatGPT({ msg: message })
+                console.log(res,protyle,element)
                 let msg = message
                 dialog.destroy();
                 let content = res.data
