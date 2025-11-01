@@ -1,6 +1,6 @@
 import { JAVASCRIPT_TOOLS_CLASS, JAVASCRIPT_TOOLS_WAIT_CLASS } from "../constants";
 import { z } from "../deps";
-import { createTemporaryModule } from "../../util/code/scripts.excutor";
+import { createTemporaryModule } from "../../util/code/scripts.executor";
 
 /**
  * 工具调用检测器类型定义

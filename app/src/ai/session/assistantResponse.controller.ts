@@ -1,5 +1,5 @@
 import { AssistantResponseState,  ToolCallExecutionCallback } from './session.types';
-import { createTemporaryModule } from "../../util/code/scripts.excutor";
+import { createTemporaryModule } from "../../util/code/scripts.executor";
 
 /**
  * AI响应控制器实现类

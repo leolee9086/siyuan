@@ -9,14 +9,17 @@ const ABCJS_PARAMS_KEY = "%%params";
 // Read the abcjsParams from the content if it exists.
 // The params *must* be the first line of the content in the form:
 // %%params JSON
-const getAbcParams = (abcString: string): any => {
+const getAbcParams =async (abcString: string): Promise<any> => {
     let params = {
         responsive: "resize",
     };
     const firstLine = abcString.substring(0, abcString.indexOf("\n"));
     if (firstLine.startsWith(ABCJS_PARAMS_KEY)) {
         try {
-            params = looseJsonParse(firstLine.substring(ABCJS_PARAMS_KEY.length));
+            let result =await looseJsonParse(firstLine.substring(ABCJS_PARAMS_KEY.length));
+            if(result.responsive){
+                params =result
+            }
         } catch (e) {
             console.error(`Failed to parse ABCJS params: ${e}`);
         }
@@ -36,9 +39,9 @@ export const abcRender = (element: Element, cdn = Constants.PROTYLE_CDN) => {
         return;
     }
     if (abcElements.length > 0) {
-        addScript(`${cdn}/js/abcjs/abcjs-basic-min.js?v=6.5.0`, "protyleAbcjsScript").then(() => {
+        addScript(`${cdn}/js/abcjs/abcjs-basic-min.js?v=6.5.0`, "protyleAbcjsScript").then(async() => {
             const wysiwygElement = hasClosestByClassName(element, "protyle-wysiwyg", true);
-            abcElements.forEach((e: HTMLDivElement) => {
+            abcElements.forEach(async (e: HTMLDivElement) => {
                 if (e.getAttribute("data-render") === "true") {
                     return;
                 }
@@ -48,7 +51,7 @@ export const abcRender = (element: Element, cdn = Constants.PROTYLE_CDN) => {
                 const renderElement = e.firstElementChild.nextElementSibling as HTMLElement;
                 renderElement.innerHTML = `<span style="position: absolute;left:0;top:0;width: 1px;">${Constants.ZWSP}</span><div contenteditable="false"></div>`;
                 const abcString = Lute.UnEscapeHTMLStr(e.getAttribute("data-content"));
-                window.ABCJS.renderAbc(renderElement.lastElementChild, abcString, getAbcParams(abcString));
+                window.ABCJS.renderAbc(renderElement.lastElementChild, abcString, await getAbcParams(abcString));
                 e.setAttribute("data-render", "true");
             });
         });
