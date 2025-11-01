@@ -1,5 +1,6 @@
 import { JAVASCRIPT_TOOLS_CLASS, JAVASCRIPT_TOOLS_WAIT_CLASS } from "../constants";
 import { z } from "../deps";
+import { createTemporaryModule } from "../../util/code/scripts.excutor";
 
 /**
  * 工具调用检测器类型定义
@@ -35,17 +36,7 @@ export interface ToolCallDetectionResult {
     isSynchronous: boolean;
 }
 
-/**
- * 临时ESM模块信息
- */
-export interface TemporaryModule {
-    /** 模块URL */
-    moduleUrl: string;
-    /** 模块导出 */
-    moduleExport: any;
-    /** 清理函数 */
-    cleanup: () => void;
-}
+
 
 /**
  * 工具调用检测器的Zod验证模式
@@ -111,34 +102,6 @@ function detectCompleteToolCallFromPlainText(content: string): ToolCallDetection
 
 
 
-
-/**
- * 创建临时ESM模块
- */
-export async function createTemporaryModule(code: string): Promise<TemporaryModule> {
-
-    // 动态导入模块
-    // 创建Blob URL
-    const blob = new Blob([code], { type: 'application/javascript' });
-    const moduleUrl = URL.createObjectURL(blob);
-
-    try {
-        const moduleExport = await import(/* webpackIgnore: true */moduleUrl);
-
-        // 返回模块信息和清理函数
-        return {
-            moduleUrl,
-            moduleExport: moduleExport.default,
-            cleanup: () => {
-                URL.revokeObjectURL(moduleUrl);
-            }
-        };
-    } catch (error) {
-        // 如果导入失败，清理URL并重新抛出错误
-        URL.revokeObjectURL(moduleUrl);
-        throw new Error(`创建临时模块失败: ${error instanceof Error ? error.message : String(error)}`);
-    }
-}
 
 /**
  * 从DOM元素中检测工具调用

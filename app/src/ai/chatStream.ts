@@ -14,7 +14,7 @@ import { setDialogContainerColor, removeBlockMask } from "./utils.mask";
 import { reactive } from "vue";
 import { fillContent } from "./actions.fillContent";
 import { ChatSessionState, UIFunctions } from './session/session.types';
-import { createTemporaryModule } from "./parser/toolCallDetector";
+import { createTemporaryModule } from "../util/code/scripts.excutor";
 import { buildBlockContentPrompt } from "./prompts/blockContent.builder";
 import { createSiyuanStreamChatBusinessLogic } from "./streamChat.businessLogicFactory";
 
