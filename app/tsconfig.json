@@ -18,7 +18,8 @@
   "include": [
     "src",
     "test",
-    "src/**/*.vue"
+    "src/**/*.vue",
+    "script"
   ],
   "exclude": [
     "node_modules"
