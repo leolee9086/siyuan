@@ -35,7 +35,7 @@ export const newDailyNote = (app: App) => {
     }
     const openCount = getOpenNotebookCount();
     if (openCount === 0) {
-        showMessage(window.siyuan.languages.newFileTip);
+        showMessage(window.siyuan.languages?.newFileTip);
         return;
     }
     if (openCount === 1) {

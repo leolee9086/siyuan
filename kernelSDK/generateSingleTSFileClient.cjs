@@ -41,6 +41,7 @@ function getZodPrimitiveTypeName(zodType) {
         case 'ZodBigInt': return 'bigint';
         case 'ZodSymbol': return 'symbol';
         case 'ZodUndefined': return 'undefined';
+        case 'ZodFormData' : return 'FormData'
         default: return 'any';
     }
 }

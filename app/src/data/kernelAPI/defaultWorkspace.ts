@@ -1,6 +1,7 @@
 import mimes from "./mimeDb";
 import * as path from "path";
 import KernelApiClient from "./kernelApiClient";
+import { localKernel } from "./defaultClient";
 
 export interface LsFile {
   name: string;
@@ -227,3 +228,4 @@ export class Workspace {
     }
   }
 }
+export const localWorkerSpace =new Workspace(localKernel)
