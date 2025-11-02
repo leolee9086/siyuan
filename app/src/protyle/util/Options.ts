@@ -1,12 +1,12 @@
-import {Constants} from "../../constants";
-import {merge} from "./merge";
-import {hintEmbed, hintSlash, hintTag} from "../hint/extend";
+import { Constants } from "../../constants";
+import { merge } from "./merge";
+import { hintEmbed, hintSlash, hintTag } from "../hint/extend";
 import { hintRef } from "../hint/extend.hintRef";
-import {toolbarKeyToMenu} from "../toolbar/util";
+import { toolbarKeyToMenu } from "../toolbar/util";
 
 export class Options {
     public options: IProtyleOptions;
-    private defaultOptions: IProtyleOptions = {
+    private  defaultOptions: IProtyleOptions = {
         mode: "wysiwyg",
         blockId: "",
         render: {
@@ -80,12 +80,12 @@ export class Options {
                 key: ":" // 必须在最后一个，否则块引用后的 : 不能被解析
             }],
         },
-        lang: window.siyuan.config.appearance.lang,
+        lang: window.siyuan.config?.appearance.lang,
         preview: {
             actions: ["desktop", "tablet", "mobile", "mp-wechat", "zhihu", "yuque"],
             delay: 0,
             markdown: {
-                paragraphBeginningSpace: window.siyuan.config.export.paragraphBeginningSpace,
+                paragraphBeginningSpace: window.siyuan.config?.export.paragraphBeginningSpace,
                 listStyle: false,
                 sanitize: true,
             },
@@ -115,7 +115,7 @@ export class Options {
             } else {
                 this.options.toolbar = this.mergeToolbar(this.defaultOptions.toolbar);
             }
-            if (this.options.hint?.emoji) {
+            if (this.options.hint?.emoji&&this.defaultOptions.hint) {
                 this.defaultOptions.hint.emoji = this.options.hint.emoji;
             }
         }
@@ -123,7 +123,11 @@ export class Options {
         return merge(this.defaultOptions, this.options);
     }
 
-    private mergeToolbar(toolbar: Array<string | IMenuItem>) {
-        return toolbarKeyToMenu(toolbar);
+    private mergeToolbar(toolbar: Array<string | IMenuItem> | undefined) {
+        if (toolbar) {
+            return toolbarKeyToMenu(toolbar);
+        }else{
+            throw ("必须传入正确的工具条定义")
+        }
     }
 }
