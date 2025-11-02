@@ -191,6 +191,30 @@ const createPauseHandler = (
     };
 };
 
+// 创建AI请求处理函数
+const createAIRequestHandler = async (
+    state: ChatSessionState,
+    protyle: IProtyle,
+    uiFunctions: UIFunctions,
+    messages: Array<{ role: 'user' | 'assistant'; content: string; timestamp: number }>
+) => {
+    const businessLogic = createSiyuanStreamChatBusinessLogic();
+    const abortFn = await handleAIRequest(
+        businessLogic,
+        state,
+        protyle,
+        uiFunctions.showResponse,
+        uiFunctions.setCompleteStatus,
+        uiFunctions.setErrorStatus,
+        uiFunctions.setAbortStatus,
+        messages
+    );
+
+    if (abortFn) {
+        state.abortFunction = abortFn;
+    }
+};
+
 // 创建恢复处理函数
 const createResumeHandler = (
     state: ChatSessionState,
@@ -218,22 +242,8 @@ const createResumeHandler = (
                 timestamp: Date.now()
             });
 
-            // 重新发送请求
-            const businessLogic = createSiyuanStreamChatBusinessLogic();
-            const abortFn = await handleAIRequest(
-                businessLogic,
-                state,
-                protyle,
-                uiFunctions.showResponse,
-                uiFunctions.setCompleteStatus,
-                uiFunctions.setErrorStatus,
-                uiFunctions.setAbortStatus,
-                messages // 传入包含临时系统继续消息的消息历史
-            );
-
-            if (abortFn) {
-                state.abortFunction = abortFn;
-            }
+            // 使用共享函数发送请求
+            await createAIRequestHandler(state, protyle, uiFunctions, messages);
         }
     };
 };
@@ -285,22 +295,15 @@ const createConfirmHandler = (
         // 清空之前的内容
         state.responseContentStr = '';
 
-        const businessLogic = createSiyuanStreamChatBusinessLogic();
         console.log(promptContent)
-        const abortFn = await handleAIRequest(
-            businessLogic,
+        
+        // 使用共享函数发送请求
+        await createAIRequestHandler(
             state,
             protyle,
-            uiFunctions.showResponse,
-            uiFunctions.setCompleteStatus,
-            uiFunctions.setErrorStatus,
-            uiFunctions.setAbortStatus,
+            uiFunctions,
             [{ role: 'user', content: promptContent, timestamp: Date.now() }]
         );
-
-        if (abortFn) {
-            state.abortFunction = abortFn;
-        }
     };
 };
 
