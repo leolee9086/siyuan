@@ -130,19 +130,7 @@ type TRecentDocsSort = "viewedAt" | "closedAt" | "openAt" | "updated"
 
 declare module "blueimp-md5"
 
-declare class Highlight {
-    constructor(...range: Range[]);
 
-    add(range: Range): void
-
-    clear(): void
-
-    forEach(callbackfn: (value: Range, key: number) => void): void;
-}
-
-declare namespace CSS {
-    const highlights: Map<string, Highlight>;
-}
 
 interface CSSStyleDeclarationElectron extends CSSStyleDeclaration {
     WebkitAppRegion: string;
