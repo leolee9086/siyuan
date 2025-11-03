@@ -17,6 +17,7 @@ import { ChatSessionState, UIFunctions } from './session/session.types';
 import { createTemporaryModule } from "../util/code/scripts.executor";
 import { buildBlockContentPrompt } from "./prompts/blockContent.builder";
 import { createSiyuanStreamChatBusinessLogic } from "./streamChat.businessLogicFactory";
+import { siyuanI18n } from "../util/i18n.getI18n";
 
 const createAIStreamChatDialogVueConfig = (
     protyle: IProtyle,
@@ -112,6 +113,7 @@ const createWaitToolCallHandler = (
         } catch (error) {
             console.error('工具调用执行失败:', error);
             // 将错误信息添加到消息历史中
+            if(error instanceof Error)
             state.savedMessages.push({
                 role: 'user',
                 content: `Tool execution failed: ${error.message}`,
@@ -145,7 +147,8 @@ const createAsyncToolCallHandler = (
                 state.asyncToolResults[index] = result;
             }
         } catch (error) {
-            console.error('异步工具调用执行失败:', error);
+            if(error instanceof Error)
+
             // 将错误信息替换到asyncToolResults中
             if (toolPromise) {
                 const index = state.asyncToolResults.indexOf(toolPromise);
@@ -284,7 +287,7 @@ const createConfirmHandler = (
         if (selectedBlockElements.length > 0) {
             selectedBlockElements.forEach(blockElement => {
                 // 使用 BlockDOM2StdMd 方法获取标准 Markdown 格式内容
-                const markdownContent = protyle.lute.BlockDOM2StdMd(blockElement.outerHTML);
+                const markdownContent = protyle.lute?.BlockDOM2StdMd(blockElement.outerHTML);
                 if (markdownContent) {
                     blockContents.push(markdownContent.trim());
                 }
@@ -311,7 +314,7 @@ export const AIChat = (protyle: IProtyle, element: Element) => {
     const randomColor = genRandomColor();
 
     // 获取选中的块元素
-    const selectedElementsNodeList = protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select");
+    const selectedElementsNodeList = protyle.wysiwyg?.element.querySelectorAll(".protyle-wysiwyg--select")||[];
     const selectedElements = selectedElementsNodeList.length > 0 ? Array.from(selectedElementsNodeList) : [];
 
     // 使用批量创建函数为目标元素和所有选中的块元素创建遮罩
@@ -321,7 +324,7 @@ export const AIChat = (protyle: IProtyle, element: Element) => {
         dataKey: `ai-chat-dialog-${genUUID()}`,
         vueConfigFactory: (dialogInstance: Dialog) => createAIStreamChatDialogVueConfig(protyle, element, selectedElements, dialogInstance),
         dialogOptions: {
-            title: "✨ " + window.siyuan.languages.aiWriting,
+            title: "✨ " + siyuanI18n.aiWriting,
             width: isMobile() ? "92vw" : "520px",
             transparent: true,
             disableScrimClose: true,
