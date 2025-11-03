@@ -16,14 +16,19 @@ import { AIMenuContext, AIMenuRequest, handleAIMenuItemClick } from "./actions.h
 import { customDialog } from "./customDialog";
 import { filterAIMenuItems } from "./actions.filterAIMenuItems";
 import { generateBuildingMenuHTML } from "./actions.generateBuildingMenuHTML";
+import { siyuanI18n } from "../util/i18n.getI18n";
 
 /**
  * 生成自定义AI菜单项的HTML
  * @returns 自定义菜单项的HTML字符串
  */
-const generateCustomMenuItems = (): string => {
+const generateCustomMenuItems = (storage:Record<string,unknown>): string => {
+    let localAIItems = storage[Constants.LOCAL_AI]
+    if(!Array.isArray(localAIItems)){
+        throw ('传入的AI定义表不是有效的数组')
+    }
     let customHTML = "";
-    window.siyuan.storage[Constants.LOCAL_AI].forEach((item: { name: string, memo: string }, index: number) => {
+    localAIItems.forEach((item: { name: string, memo: string }, index: number) => {
         customHTML += `<div data-action="${escapeAttr(item.memo || item.name)}" data-index="${index}" class="b3-list-item b3-list-item--narrow ariaLabel" aria-label="${escapeAriaLabel(item.memo)}">
     <span class="b3-list-item__text">${escapeHtml(item.name)}</span>
     <span data-type="edit" class="b3-list-item__action"><svg><use xlink:href="#iconEdit"></use></svg></span>
@@ -86,7 +91,7 @@ const handleKeyDown = (
                 fillContent(protyle, response.data, elements);
             });
             if (currentElement.dataset.action === clearContext) {
-                showMessage(window.siyuan.languages.clearContextSucc);
+                showMessage(siyuanI18n.clearContextSucc);
             } else {
                 menu.close();
             }
@@ -179,7 +184,9 @@ const bindMenuEvents = (
     // 获取元素引用
     const listElement = element.querySelector(".b3-list");
     const inputElement = element.querySelector("input");
-
+    if (!inputElement) {
+        throw ("未能找到输入框元素")
+    }
     // 绑定键盘事件
     inputElement.addEventListener("keydown", (event: KeyboardEvent) => {
         if (listElement instanceof HTMLElement) {
@@ -193,10 +200,11 @@ const bindMenuEvents = (
     });
 
     // 绑定输入事件
-    inputElement.addEventListener("input", (event: KeyboardEvent) => {
-        if (event.isComposing) {
+    inputElement.addEventListener("input", (event: Event) => {
+        if (event instanceof InputEvent && event.isComposing) {
             return;
         }
+
         filterAIMenuItems(element, inputElement);
     });
 
@@ -206,15 +214,29 @@ const bindMenuEvents = (
     });
 };
 
+const getSiyuanStorage = ()=>{
+    if(!window.siyuan.storage){
+        console.error(window.siyuan)
+        throw ('siyuan 对象结构错误')
+    }
+    if(!Array.isArray (window.siyuan.storage[Constants.LOCAL_AI]) ){
+        console.error(window.siyuan.storage[Constants.LOCAL_AI])
+        throw  (`siyuan 对象结构错误 ${Constants.LOCAL_AI}应该是一个数组`)
+    
+    }
+    return window.siyuan.storage
+}
+
 export const openAIActionsMenu = (elements: Element[], protyle: IProtyle) => {
-    window.siyuan.menus.menu.remove();
+   
+    window.siyuan.menus?.menu.remove();
     const ids = getElementsBlockId(elements)
     const menu = new Menu("ai", () => {
-        focusByRange(protyle.toolbar.range);
+        protyle.toolbar?.range&&focusByRange(protyle.toolbar.range);
     });
 
     // 使用独立函数生成自定义菜单项HTML
-    const customHTML = generateCustomMenuItems();
+    const customHTML = generateCustomMenuItems(getSiyuanStorage());
     const clearContext = "Clear context";
 
     // 使用独立函数生成菜单HTML模板
@@ -233,7 +255,7 @@ export const openAIActionsMenu = (elements: Element[], protyle: IProtyle) => {
         }
     });
 
-    menu.element.querySelector(".b3-menu__items").setAttribute("style", "overflow: initial");
+    menu.element.querySelector(".b3-menu__items")?.setAttribute("style", "overflow: initial");
     /// #if MOBILE
     menu.fullscreen();
     /// #else
@@ -243,6 +265,6 @@ export const openAIActionsMenu = (elements: Element[], protyle: IProtyle) => {
         y: rect.bottom,
         h: rect.height,
     });
-    menu.element.querySelector("input").focus();
+    menu.element.querySelector("input")?.focus();
     /// #endif
 };
