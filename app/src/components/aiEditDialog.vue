@@ -4,23 +4,23 @@
       <input
         ref="nameInput"
         class="b3-text-field fn__block"
-        :placeholder="languages.memo"
+        :placeholder="siyuanI18n.memo"
         v-model="localName"
       />
       <div class="fn__hr"></div>
       <textarea
         ref="customTextarea"
         class="b3-text-field fn__block"
-        :placeholder="languages.aiCustomAction"
+        :placeholder="siyuanI18n.aiCustomAction"
         v-model="localMemo"
       ></textarea>
     </template>
     <template #actions>
-      <button class="b3-button b3-button--remove" @click="handleDelete">{{ languages.delete }}</button>
+      <button class="b3-button b3-button--remove" @click="handleDelete">{{ siyuanI18n.delete }}</button>
       <div class="fn__space"></div>
-      <button class="b3-button b3-button--cancel" @click="handleCancel">{{ languages.cancel }}</button>
+      <button class="b3-button b3-button--cancel" @click="handleCancel">{{ siyuanI18n.cancel }}</button>
       <div class="fn__space"></div>
-      <button class="b3-button b3-button--text" @click="handleConfirm">{{ languages.confirm }}</button>
+      <button class="b3-button b3-button--text" @click="handleConfirm">{{ siyuanI18n.confirm }}</button>
     </template>
   </DialogContent>
 </template>
@@ -28,6 +28,7 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from 'vue';
 import DialogContent from './common/DialogContent.vue';
+import { siyuanI18n } from '../util/i18n.getI18n';
 
 // 定义组件属性
 interface Props {
@@ -54,7 +55,6 @@ const nameInput = ref<HTMLInputElement>();
 const customTextarea = ref<HTMLTextAreaElement>();
 
 // 获取语言包
-const languages = window.siyuan.languages;
 
 // 事件处理函数
 const handleCancel = () => {
