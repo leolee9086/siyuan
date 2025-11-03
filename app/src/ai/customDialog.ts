@@ -1,3 +1,4 @@
+import { siyuanI18n } from "../util/i18n.getI18n";
 import { fillContent } from "./actions.fillContent";
 import {
     Constants,
@@ -72,7 +73,7 @@ export const customDialog = (protyle: IProtyle, ids: string[], elements: Element
         dataKey: Constants.DIALOG_AICUSTOMACTION,
         vueConfigFactory: (dialog: Dialog) => createCustomDialogVueConfig(protyle, ids, elements, dialog),
         dialogOptions: {
-            title: window.siyuan.languages.aiCustomAction
+            title: siyuanI18n.aiCustomAction
         }
     });
 };
