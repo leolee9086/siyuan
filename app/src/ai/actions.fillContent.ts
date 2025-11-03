@@ -36,36 +36,46 @@ export const fillContent = (protyle: IProtyle, rawContent: string, blockElements
     if (!rawContent) {
         return;
     }
-    
+
     // 检查blockElements是否为空数组，如果为空则直接返回
     if (!blockElements || blockElements.length === 0) {
         return;
     }
-    
+    if(!protyle.wysiwyg){
+        console.error(protyle)
+        throw( "结构错误")
+    }
     // 确保最后一个块元素在protyle的编辑器中
     const lastBlockElement = blockElements[blockElements.length - 1];
     if (!protyle.wysiwyg.element.contains(lastBlockElement)) {
         console.warn("最后一个块元素不在protyle编辑器中，无法插入内容");
         return;
     }
-    
+
     // 设置最后一个节点的范围，确保插入位置正确
-    setLastNodeRange(getContenteditableElement(lastBlockElement), protyle.toolbar.range);
-    
+    if (lastBlockElement) {
+        const editableElement = getContenteditableElement(lastBlockElement)
+        if (editableElement && protyle.toolbar?.range) {
+            setLastNodeRange(editableElement, protyle.toolbar?.range);
+        }
+    }
     // 折叠选区到范围的末尾，确保新内容插入到正确位置
-    protyle.toolbar.range.collapse(true);
-    
+    protyle.toolbar?.range.collapse(true);
+
     // 优先使用提供的blockDOM内容，如果没有则使用原始内容生成blockDOM
-    const blockDom = blockDOMContent || protyle.lute.SpinBlockDOM(rawContent);
-    // 使用lute引擎将数据转换为块级DOM并插入到编辑器中
-    insertHTML(blockDom, protyle, true, true);
-    
-    // 渲染块级元素，确保新插入的内容正确显示
-    blockRender(protyle, protyle.wysiwyg.element);
-    
-    // 处理代码块等特殊元素的渲染
-    processRender(protyle.wysiwyg.element);
-    
-    // 渲染代码高亮
-    highlightRender(protyle.wysiwyg.element);
+    const blockDom = blockDOMContent || protyle.lute?.SpinBlockDOM(rawContent);
+    if (blockDom) {
+        // 使用lute引擎将数据转换为块级DOM并插入到编辑器中
+        insertHTML(blockDom, protyle, true, true);
+
+        // 渲染块级元素，确保新插入的内容正确显示
+        blockRender(protyle, protyle.wysiwyg.element);
+
+        // 处理代码块等特殊元素的渲染
+        processRender(protyle.wysiwyg.element);
+
+        // 渲染代码高亮
+        highlightRender(protyle.wysiwyg.element);
+
+    }
 };
