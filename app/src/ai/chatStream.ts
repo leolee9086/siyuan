@@ -261,15 +261,6 @@ const createConfirmHandler = (
     dialog: Dialog
 ) => {
     return async (inputValue: string) => {
-        console.log(
-            state,
-            protyle,
-            selectedBlockElements,
-            targetElement,
-            uiFunctions,
-            dialog
-
-        )
         if (state.isStreaming) {
             if (state.abortFunction) {
                 state.abortFunction();
