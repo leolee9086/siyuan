@@ -1,8 +1,9 @@
+import { getGlobalMenus } from "../util/siyuanEnvironments/getMenu";
 import { generateMenuItemHTML, createSubmenuElement } from "./Menu.uills";
 
 
 export class MenuItem {
-    public element: HTMLElement;
+    public element: HTMLElement | null = null;
 
     constructor(options: IMenu) {
         if (options.ignore) {
@@ -10,7 +11,7 @@ export class MenuItem {
         }
         if (options.type === "empty") {
             this.element = document.createElement("div");
-            this.element.innerHTML = options.label;
+            this.element.innerHTML = options.label||"";
             if (options.bind) {
                 options.bind(this.element);
             }
@@ -35,10 +36,14 @@ export class MenuItem {
         if (options.click) {
             // 需使用 click，否则移动端无法滚动
             this.element.addEventListener("click", (event) => {
+                if(!this.element){
+                    return
+                }
                 if (this.element.getAttribute("disabled")) {
                     return;
                 }
-                let keepOpen = options.click(this.element, event);
+                //不能假定options不会被修改
+                let keepOpen = options.click&&options.click(this.element, event);
                 if (keepOpen instanceof Promise) {
                     keepOpen = false;
                 }
@@ -46,7 +51,7 @@ export class MenuItem {
                 event.stopImmediatePropagation();
                 event.stopPropagation();
                 if (this.element.parentElement && !keepOpen) {
-                    window.siyuan.menus.menu.remove();
+                    getGlobalMenus().menu.remove();
                 }
             });
         }
@@ -74,5 +79,6 @@ export class MenuItem {
             this.element.insertAdjacentHTML("beforeend", '<svg class="b3-menu__icon b3-menu__icon--small"><use xlink:href="#iconRight"></use></svg>');
             this.element.append(submenuElement);
         }
+        
     }
 }
