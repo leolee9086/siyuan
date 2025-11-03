@@ -301,6 +301,5 @@ export function createRouterClass<
 const EventRouter = createRouterClass(['ctrl', 'click'], { test: z.string(), detail: z.object({c:z.string()}) }, 'detail', z.object())
 let router= new EventRouter({
 
-}).click('',(ctx,next)=>{
-    next()
 })
+router
