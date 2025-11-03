@@ -4,6 +4,7 @@ import { createVueComponentInDialog, VueComponentMountConfig } from "../util/vue
 import AiChatDialog from "../components/panels/aiChatDialog.vue";
 import { localKernel } from "./imports";
 import { fillContent } from "./actions.fillContent";
+import { siyuanI18n } from "../util/i18n.getI18n";
 // 创建聊天对话框Vue应用配置
 const createChatDialogVueConfig = (protyle: IProtyle, element: Element, dialog: Dialog): VueComponentMountConfig => {
     return {
@@ -35,7 +36,7 @@ const createChatDialogVueConfig = (protyle: IProtyle, element: Element, dialog: 
 
 export const AIChat = (protyle: IProtyle, element: Element) => {
     const dialog = new Dialog({
-        title: "✨ " + window.siyuan.languages.aiWriting,
+        title: "✨ " + siyuanI18n.aiWriting,
         content: "",
         width: isMobile() ? "92vw" : "520px",
     });

@@ -52,7 +52,7 @@ const createAIStreamChatDialogVueConfig = (
     const cancelHandler = createCancelHandler(state, dialog);
     const pauseHandler = createPauseHandler(state);
     const resumeHandler = createResumeHandler(state, protyle, uiFunctions);
-    const confirmHandler = createConfirmHandler(state,protyle,selectedElements,element,uiFunctions,dialog);
+    const confirmHandler = createConfirmHandler(state, protyle, selectedElements, element, uiFunctions, dialog);
     // 创建工具调用处理函数
     state.onWaitToolCallDetected = createWaitToolCallHandler(state, resumeHandler);
     state.onAsyncToolCallDetected = createAsyncToolCallHandler(state);
@@ -113,12 +113,12 @@ const createWaitToolCallHandler = (
         } catch (error) {
             console.error('工具调用执行失败:', error);
             // 将错误信息添加到消息历史中
-            if(error instanceof Error)
-            state.savedMessages.push({
-                role: 'user',
-                content: `Tool execution failed: ${error.message}`,
-                timestamp: Date.now()
-            });
+            if (error instanceof Error)
+                state.savedMessages.push({
+                    role: 'user',
+                    content: `Tool execution failed: ${error.message}`,
+                    timestamp: Date.now()
+                });
         } finally {
             // 恢复对话
             await resumeHandler();
@@ -136,26 +136,26 @@ const createAsyncToolCallHandler = (
             // 创建异步工具调用Promise并添加到结果堆栈
             toolPromise = createTemporaryModule(toolCode);
             state.asyncToolResults.push(toolPromise);
-            
+
             // 等待工具调用完成
             const result = await toolPromise;
             console.log('异步工具调用执行结果:', result);
-            
+
             // 将结果替换到asyncToolResults中，而不是添加到消息历史
             const index = state.asyncToolResults.indexOf(toolPromise);
             if (index !== -1) {
                 state.asyncToolResults[index] = result;
             }
         } catch (error) {
-            if(error instanceof Error)
+            if (error instanceof Error)
 
-            // 将错误信息替换到asyncToolResults中
-            if (toolPromise) {
-                const index = state.asyncToolResults.indexOf(toolPromise);
-                if (index !== -1) {
-                    state.asyncToolResults[index] = { error: error.message };
+                // 将错误信息替换到asyncToolResults中
+                if (toolPromise) {
+                    const index = state.asyncToolResults.indexOf(toolPromise);
+                    if (index !== -1) {
+                        state.asyncToolResults[index] = { error: error.message };
+                    }
                 }
-            }
         }
     };
 };
@@ -262,12 +262,12 @@ const createConfirmHandler = (
 ) => {
     return async (inputValue: string) => {
         console.log(
-                state,
-    protyle,
-    selectedBlockElements,
-    targetElement,
-    uiFunctions,
-    dialog
+            state,
+            protyle,
+            selectedBlockElements,
+            targetElement,
+            uiFunctions,
+            dialog
 
         )
         if (state.isStreaming) {
@@ -299,7 +299,7 @@ const createConfirmHandler = (
         state.responseContentStr = '';
 
         console.log(promptContent)
-        
+
         // 使用共享函数发送请求
         await createAIRequestHandler(
             state,
@@ -314,7 +314,7 @@ export const AIChat = (protyle: IProtyle, element: Element) => {
     const randomColor = genRandomColor();
 
     // 获取选中的块元素
-    const selectedElementsNodeList = protyle.wysiwyg?.element.querySelectorAll(".protyle-wysiwyg--select")||[];
+    const selectedElementsNodeList = protyle.wysiwyg?.element.querySelectorAll(".protyle-wysiwyg--select") || [];
     const selectedElements = selectedElementsNodeList.length > 0 ? Array.from(selectedElementsNodeList) : [];
 
     // 使用批量创建函数为目标元素和所有选中的块元素创建遮罩

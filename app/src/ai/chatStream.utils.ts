@@ -10,7 +10,7 @@ export const updateChatState = (state: ChatSessionState, updates: Partial<ChatSe
 
 
 // 构建请求头
-export const buildRequestHeaders = (aiConfig:AIConfig) => {
+export const buildRequestHeaders = (aiConfig: AIConfig) => {
     const headers: Record<string, string> = {
         "Content-Type": "application/json",
         "User-Agent": aiConfig.apiUserAgent,
@@ -58,6 +58,10 @@ export const processBlockDOMContent = (
     state: ChatSessionState,
     protyle: IProtyle
 ): string => {
+    if (!protyle.lute) {
+        console.error(protyle)
+        throw ('protyle结构不正确')
+    }
     // 使用lute引擎将内容转换为块级DOM
     const blockDom = protyle.lute.SpinBlockDOM(state.responseContentStr);
     state.blockDOMContent = blockDom;
