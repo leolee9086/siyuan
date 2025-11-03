@@ -1,16 +1,16 @@
 /// #if !MOBILE
-import {getAllEditor, getAllModels, getAllWnds} from "../../layout/getAll";
+import { getAllEditor, getAllModels, getAllWnds } from "../../layout/getAll";
 /// #endif
-import {addLoading} from "../ui/initUI";
-import {fetchPost} from "../../util/fetch";
-import {Constants} from "../../constants";
-import {hideAllElements, hideElements} from "../ui/hideElements";
-import {hasClosestByClassName} from "../util/hasClosest";
-import {reloadProtyle} from "../util/reload";
-import {resize} from "../util/resize";
-import {disabledProtyle, enableProtyle} from "../util/onGet";
-import {isWindow} from "../../util/functions";
-import {Wnd} from "../../layout/Wnd";
+import { addLoading } from "../ui/initUI";
+import { fetchPost } from "../../util/fetch";
+import { Constants } from "../../constants";
+import { hideAllElements, hideElements } from "../ui/hideElements";
+import { hasClosestByClassName } from "../util/hasClosest";
+import { reloadProtyle } from "../util/reload";
+import { resize } from "../util/resize";
+import { disabledProtyle, enableProtyle } from "../util/onGet";
+import { isWindow } from "../../util/functions";
+import { Wnd } from "../../layout/Wnd";
 
 export const net2LocalAssets = (protyle: IProtyle, type: "Assets" | "Img") => {
     if (protyle.element.querySelector(".wysiwygLoading")) {
@@ -50,10 +50,12 @@ export const fullscreen = (element: Element, btnElement?: Element) => {
         // 编辑器全屏
         /// #if !MOBILE
         const wndsTemp: Wnd[] = [];
-        getAllWnds(window.siyuan.layout.layout, wndsTemp);
+        if (window.siyuan.layout?.layout) {
+            getAllWnds(window.siyuan.layout.layout, wndsTemp);
+        }
         wndsTemp.find(async item => {
             const headerElement = item.headersElement.parentElement;
-            if (headerElement.getBoundingClientRect().top <= 0) {
+            if (headerElement && headerElement.getBoundingClientRect().top <= 0) {
                 // @ts-ignore
                 (headerElement.querySelector(".item--readonly .fn__flex-1") as HTMLElement).style.WebkitAppRegion = isFullscreen ? "drag" : "";
                 return true;
@@ -62,21 +64,21 @@ export const fullscreen = (element: Element, btnElement?: Element) => {
         /// #endif
     }
     /// #if !MOBILE
-    if ("darwin" !== window.siyuan.config.system.os && !isWindow()) {
+    if ("darwin" !== window.siyuan.config?.system.os && !isWindow()) {
         const windowControlsElement = document.getElementById("windowControls");
         if (isFullscreen) {
-            windowControlsElement.style.zIndex = "";
+            windowControlsElement ? windowControlsElement.style.zIndex = "" : null;
         } else {
             window.siyuan.zIndex++;
-            windowControlsElement.style.zIndex = window.siyuan.zIndex.toString();
+            windowControlsElement ? windowControlsElement.style.zIndex = window.siyuan.zIndex.toString() : null;
         }
     }
     /// #endif
     if (btnElement) {
         if (isFullscreen) {
-            btnElement.querySelector("use").setAttribute("xlink:href", "#iconFullscreen");
+            btnElement.querySelector("use")?.setAttribute("xlink:href", "#iconFullscreen");
         } else {
-            btnElement.querySelector("use").setAttribute("xlink:href", "#iconFullscreenExit");
+            btnElement.querySelector("use")?.setAttribute("xlink:href", "#iconFullscreenExit");
         }
         const dockLayoutElement = hasClosestByClassName(element, "layout--float");
         if (dockLayoutElement) {
@@ -84,8 +86,10 @@ export const fullscreen = (element: Element, btnElement?: Element) => {
                 dockLayoutElement.setAttribute("data-temp", dockLayoutElement.style.transform);
                 dockLayoutElement.style.transform = "none";
             } else {
-                dockLayoutElement.style.transform = dockLayoutElement.getAttribute("data-temp");
-                dockLayoutElement.removeAttribute("data-temp");
+                if (dockLayoutElement) {
+                    dockLayoutElement.style.transform = dockLayoutElement.getAttribute("data-temp") || "";
+                    dockLayoutElement.removeAttribute("data-temp");
+                }
             }
         }
         return;
@@ -111,9 +115,9 @@ export const fullscreen = (element: Element, btnElement?: Element) => {
 };
 
 export const updateReadonly = (target: Element, protyle: IProtyle) => {
-    if (!window.siyuan.config.readonly) {
-        const isReadonly = target.querySelector("use").getAttribute("xlink:href") !== "#iconUnlock";
-        if (window.siyuan.config.editor.readOnly) {
+    if (!window.siyuan.config?.readonly) {
+        const isReadonly = target.querySelector("use")?.getAttribute("xlink:href") !== "#iconUnlock";
+        if (window.siyuan.config?.editor.readOnly) {
             if (isReadonly) {
                 enableProtyle(protyle);
             } else {
