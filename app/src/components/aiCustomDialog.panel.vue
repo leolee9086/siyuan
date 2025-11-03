@@ -1,10 +1,10 @@
 <template>
   <DialogContent>
     <template #content>
-      <ai-custom-dialog-field ref="nameFieldRef" type="input" :placeholder="languages.memo" :model-value="localName"
+      <ai-custom-dialog-field ref="nameFieldRef" type="input" :placeholder="siyuanI18n.memo" :model-value="localName"
         @update:model-value="updateName" />
       <div class="fn__hr"></div>
-      <ai-custom-dialog-field ref="textareaFieldRef" type="textarea" :placeholder="languages.aiCustomAction"
+      <ai-custom-dialog-field ref="textareaFieldRef" type="textarea" :placeholder="siyuanI18n.aiCustomAction"
         :model-value="localCustomAction" @update:model-value="updateCustomAction" @ctrl-enter="handleUse" />
     </template>
     <template #actions>
@@ -19,6 +19,7 @@ import { useAiCustomDialog, type AiCustomDialogEvents } from './aiCustomDialog.c
 import AiCustomDialogField from './common/TextField.vue';
 import AiCustomDialogButtons from './common/DialogActions.vue';
 import DialogContent from './common/DialogContent.vue';
+import { siyuanI18n } from '../util/i18n.getI18n';
 
 // 定义组件事件
 interface Emits {
@@ -30,7 +31,7 @@ interface Emits {
 const emit = defineEmits<Emits>();
 
 // 获取语言包
-const languages = window.siyuan.languages;
+const languages = siyuanI18n;
 
 // 创建组件逻辑
 const events: AiCustomDialogEvents = {
