@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * 从 zh_CN.json 生成 TypeScript 类型定义的脚本
+ * 从指定语言的 JSON 文件生成 TypeScript 类型定义的脚本
  * 用于为思源笔记的国际化提供类型安全
  */
 
@@ -13,7 +13,8 @@ const DEFAULT_CONFIG = {
   inputFile: path.resolve(__dirname, '../appearance/langs/zh_CN.json'),
   outputFile: path.resolve(__dirname, '../src/types/i18n.types.ts'),
   typeName: 'I18nKeys',
-  rootInterfaceName: 'SiYuanI18n'
+  rootInterfaceName: 'SiYuanI18n',
+  language: 'zh_CN'
 };
 
 /**
@@ -34,6 +35,10 @@ function parseCliArgs() {
       case '-o':
       case '--output':
         options.output = args[++i];
+        break;
+      case '-l':
+      case '--language':
+        options.language = args[++i];
         break;
       case '-h':
       case '--help':
@@ -58,13 +63,15 @@ function showHelp() {
 用法: node i18n.generateTypes.js [选项]
 
 选项:
-  -i, --input <path>   输入的 JSON 文件路径 (默认: ${DEFAULT_CONFIG.inputFile})
-  -o, --output <path>  输出的 TypeScript 文件路径 (默认: ${DEFAULT_CONFIG.outputFile})
-  -h, --help           显示帮助信息
+  -i, --input <path>     输入的 JSON 文件路径 (默认: ${DEFAULT_CONFIG.inputFile})
+  -o, --output <path>    输出的 TypeScript 文件路径 (默认: ${DEFAULT_CONFIG.outputFile})
+  -l, --language <lang>  指定语言代码 (默认: ${DEFAULT_CONFIG.language})
+  -h, --help            显示帮助信息
 
 示例:
   node i18n.generateTypes.js
-  node i18n.generateTypes.js -i ./zh_CN.json -o ./i18n.types.ts
+  node i18n.generateTypes.js -l en_US
+  node i18n.generateTypes.js -i ./en_US.json -o ./i18n.en.types.ts -l en_US
 `);
 }
 
@@ -95,7 +102,7 @@ function generateNestedType(obj, indent = 0) {
       entries.push(`${spaces}${validKey}: ${nestedType};`);
     } else {
       // 基本类型值
-      entries.push(`${spaces}${validKey}: string;`);
+      entries.push(`${spaces}${validKey}: \`${value.replace(/\$\{/g,'\\\$\\\{').replace(/\}/g,'\\\}')}\``);
     }
   }
 
@@ -109,11 +116,12 @@ function generateNestedType(obj, indent = 0) {
 /**
  * 生成完整的 TypeScript 类型定义
  */
-function generateTypeDefinition(jsonData) {
+function generateTypeDefinition(jsonData, language = DEFAULT_CONFIG.language) {
   const header = `/**
  * 自动生成的思源笔记国际化类型定义
  * 请勿手动修改此文件，重新生成会覆盖更改
  * 生成时间: ${new Date().toISOString()}
+ * 语言: ${language}
  */
 
 `;
@@ -158,7 +166,8 @@ async function main() {
       process.exit(0);
     }
 
-    // 确定输入输出路径
+    // 确定输入输出路径和语言
+    const language = options.language || DEFAULT_CONFIG.language;
     const inputFile = options.input ? path.resolve(options.input) : DEFAULT_CONFIG.inputFile;
     const outputFile = options.output ? path.resolve(options.output) : DEFAULT_CONFIG.outputFile;
 
@@ -179,7 +188,7 @@ async function main() {
     
     // 生成类型定义
     console.log('正在生成类型定义...');
-    const typeDefinition = generateTypeDefinition(jsonData);
+    const typeDefinition = generateTypeDefinition(jsonData, language);
 
     // 确保输出目录存在
     const outputDir = path.dirname(outputFile);
