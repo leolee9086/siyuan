@@ -1,3 +1,5 @@
+import { siyuanI18n } from "../util/i18n.getI18n";
+
 /**
  * 生成AI菜单的完整HTML模板
  * @param customHTML 自定义菜单项的HTML
@@ -6,32 +8,32 @@
 export const generateBuildingMenuHTML = (customHTML: string): string => {
     const clearContext = "Clear context";
     return `<div class="fn__flex-column b3-menu__filter">
-    <input class="b3-text-field fn__flex-shrink" placeholder="${window.siyuan.languages.ai}"/>
+    <input class="b3-text-field fn__flex-shrink" placeholder="${siyuanI18n.ai}"/>
     <div class="fn__hr"></div>
     <div class="b3-list fn__flex-1 b3-list--background">
        <div class="b3-list-item b3-list-item--narrow b3-list-item--focus" data-action="Continue writing">
-            ${window.siyuan.languages.aiContinueWrite}
+            ${siyuanI18n.aiContinueWrite}
         </div>
         <div class="b3-menu__separator"></div>
-        <div class="b3-list-item b3-list-item--narrow" data-action="${window.siyuan.languages.aiExtractSummary}">
-            ${window.siyuan.languages.aiExtractSummary}
+        <div class="b3-list-item b3-list-item--narrow" data-action="${siyuanI18n.aiExtractSummary}">
+            ${siyuanI18n.aiExtractSummary}
         </div>
-        <div class="b3-list-item b3-list-item--narrow" data-action="${window.siyuan.languages.aiBrainStorm}">
-            ${window.siyuan.languages.aiBrainStorm}
+        <div class="b3-list-item b3-list-item--narrow" data-action="${siyuanI18n.aiBrainStorm}">
+            ${siyuanI18n.aiBrainStorm}
         </div>
-        <div class="b3-list-item b3-list-item--narrow" data-action="${window.siyuan.languages.aiFixGrammarSpell}">
-            ${window.siyuan.languages.aiFixGrammarSpell}
+        <div class="b3-list-item b3-list-item--narrow" data-action="${siyuanI18n.aiFixGrammarSpell}">
+            ${siyuanI18n.aiFixGrammarSpell}
         </div>
         <div class="b3-list-item b3-list-item--narrow" data-action="${clearContext}">
-            ${window.siyuan.languages.clearContext}
+            ${siyuanI18n.clearContext}
         </div>
         <div class="b3-menu__separator"></div>
         <div class="b3-list-item b3-list-item--narrow" data-type="recentDocs">
-            ${window.siyuan.languages.recentDocs}
+            ${siyuanI18n.recentDocs}
         </div>
         <div class="b3-menu__separator"></div>
         <div class="b3-list-item b3-list-item--narrow" data-type="custom">
-            ${window.siyuan.languages.aiCustomAction}
+            ${siyuanI18n.aiCustomAction}
         </div>
         ${customHTML}
     </div>
