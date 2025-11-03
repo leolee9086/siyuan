@@ -1,17 +1,19 @@
 import { AssistantResponseState,  ToolCallExecutionCallback } from './session.types';
 import { createTemporaryModule } from "../../util/code/scripts.executor";
+import { EventEmitter } from '../eventEmitter';
 
 /**
  * AI响应控制器实现类
  * 负责管理AI响应状态和操作
  */
-export class AssistantResponseController  {
+export class AssistantResponseController extends EventEmitter {
     private state: AssistantResponseState;
     private waitToolCallCallback: ToolCallExecutionCallback = async () => {};
     private asyncToolCallCallback: ToolCallExecutionCallback = async () => {};
     private abortFunction: (() => void) | null = null;
 
     constructor(initialState?: Partial<AssistantResponseState>) {
+        super()
         this.state = {
             responseContentStr: '',
             isStreaming: false,

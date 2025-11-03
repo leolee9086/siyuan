@@ -12,6 +12,7 @@ import {htmlRender} from "../render/htmlRender";
 export const processPasteCode = (html: string, text: string, protyle: IProtyle) => {
     const tempElement = document.createElement("div");
     tempElement.innerHTML = html;
+    //如果结构不对说明传入值有问题,应该直接报错
     if(!(tempElement.lastElementChild instanceof HTMLElement)){
         throw ('传入的字符串格式错误')
     }
