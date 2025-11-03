@@ -3,12 +3,13 @@ import { generateMenuItemHTML, createSubmenuElement } from "./Menu.uills";
 
 
 export class MenuItem {
-    public element: HTMLElement | null = null;
+    public element: HTMLElement ;
 
     constructor(options: IMenu) {
-        if (options.ignore) {
-            return;
-        }
+        //先去除,因为这个地方应该调用方处理是否ignore
+        //if (options.ignore) {e
+          //  return ;
+        //}
         if (options.type === "empty") {
             this.element = document.createElement("div");
             this.element.innerHTML = options.label||"";
@@ -36,9 +37,7 @@ export class MenuItem {
         if (options.click) {
             // 需使用 click，否则移动端无法滚动
             this.element.addEventListener("click", (event) => {
-                if(!this.element){
-                    return
-                }
+            
                 if (this.element.getAttribute("disabled")) {
                     return;
                 }

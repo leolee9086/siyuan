@@ -24,7 +24,6 @@ import {previewDocImage} from "../preview/image";
 import {
     contentMenu,
     enterBack,
-    fileAnnotationRefMenu,
     imgMenu,
     inlineMathMenu,
     linkMenu,
@@ -33,6 +32,7 @@ import {
     tagMenu,
     zoomOut
 } from "../../menus/protyle";
+import { fileAnnotationRefMenu } from "../../menus/protyle.fileAnnotationRefMenu";
 import * as dayjs from "dayjs";
 import {dropEvent} from "../util/editorCommonEvent";
 import {input} from "./input";

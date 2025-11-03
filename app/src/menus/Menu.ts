@@ -1,9 +1,9 @@
-import {setPosition} from "../util/setPosition";
-import {isMobile} from "../util/functions";
+import { setPosition } from "../util/setPosition";
+import { isMobile } from "../util/functions";
 import {
-    resetMenuState, 
-    positionSubMenu, 
-    handleMenuEvent, 
+    resetMenuState,
+    positionSubMenu,
+    handleMenuEvent,
     preventMenuDefault
 } from "./Menu.uills";
 import { MenuItem } from "./Menu.Item";
@@ -15,8 +15,9 @@ export class Menu {
     private wheelEvent: string;
 
     constructor() {
+        //默认什么都不做
+        this.removeCB = () => { }
         this.wheelEvent = "onwheel" in document.createElement("div") ? "wheel" : "mousewheel";
-
         this.element = document.getElementById("commonMenu");
         this.element.querySelector(".b3-menu__title .b3-menu__label").innerHTML = window.siyuan.languages.back;
         this.element.addEventListener(isMobile() ? "click" : "mouseover", (event) => {
@@ -68,6 +69,9 @@ export class Menu {
         if (!element) {
             return;
         }
+        if (!this.element.lastElementChild) {
+            throw ('菜单容器被意外移除')
+        }
         if (typeof index === "number") {
             const insertElement = this.element.querySelectorAll(".b3-menu__items > .b3-menu__separator")[index];
             if (insertElement) {
@@ -75,14 +79,18 @@ export class Menu {
                 return;
             }
         }
+
         this.element.lastElementChild.append(element);
     }
 
     public popup(options: IPosition) {
+        if (!this.element.lastElementChild) {
+            throw ('菜单容器被意外移除')
+        }
         if (this.element.lastElementChild.innerHTML === "") {
             return;
         }
-        window.addEventListener(isMobile() ? "touchmove" : this.wheelEvent, this.preventDefault, {passive: false});
+        window.addEventListener(isMobile() ? "touchmove" : this.wheelEvent, this.preventDefault, { passive: false });
         this.element.style.zIndex = (++window.siyuan.zIndex).toString();
         this.element.classList.remove("fn__none");
         setPosition(this.element, options.x - (options.isLeft ? this.element.clientWidth : 0), options.y, options.h, options.w);
@@ -96,7 +104,7 @@ export class Menu {
         this.element.style.zIndex = (++window.siyuan.zIndex).toString();
         this.element.firstElementChild.classList.remove("fn__none");
         this.element.classList.remove("fn__none");
-        window.addEventListener("touchmove", this.preventDefault, {passive: false});
+        window.addEventListener("touchmove", this.preventDefault, { passive: false });
 
         setTimeout(() => {
             if (position === "bottom") {
