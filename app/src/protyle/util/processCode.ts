@@ -12,9 +12,12 @@ import {htmlRender} from "../render/htmlRender";
 export const processPasteCode = (html: string, text: string, protyle: IProtyle) => {
     const tempElement = document.createElement("div");
     tempElement.innerHTML = html;
+    if(!(tempElement.lastElementChild instanceof HTMLElement)){
+        throw ('传入的字符串格式错误')
+    }
     let isCode = false;
-    if (tempElement.childElementCount === 1 &&
-        (tempElement.lastElementChild as HTMLElement).style.fontFamily.indexOf("monospace") > -1) {
+    if (tempElement.childElementCount === 1  &&
+        tempElement.lastElementChild.style.fontFamily.indexOf("monospace") > -1) {
         // VS Code
         isCode = true;
     } else if (tempElement.childElementCount === 1 && tempElement.querySelectorAll("pre").length === 1) {
@@ -23,7 +26,7 @@ export const processPasteCode = (html: string, text: string, protyle: IProtyle) 
     } else if (html.indexOf('\n<p class="p1">') === 0) {
         // Xcode
         isCode = true;
-    } else if (tempElement.childElementCount === 1 && tempElement.firstElementChild.tagName === "TABLE" &&
+    } else if (tempElement.childElementCount === 1 && tempElement.firstElementChild?.tagName === "TABLE" &&
         tempElement.querySelector(".line-number") && tempElement.querySelector(".line-content")) {
         // 网页源码
         isCode = true;
@@ -32,7 +35,7 @@ export const processPasteCode = (html: string, text: string, protyle: IProtyle) 
     if (isCode) {
         let code = text || html;
         if (/\n/.test(code)) {
-            return protyle.lute.Md2BlockDOM(code);
+            return protyle.lute?.Md2BlockDOM(code);
         } else {
             // Paste code from IDE no longer escape `<` and `>` https://github.com/siyuan-note/siyuan/issues/8340
             code = code.replace("<", "&lt;").replace(">", "&gt;");
@@ -43,7 +46,7 @@ export const processPasteCode = (html: string, text: string, protyle: IProtyle) 
 };
 
 export const processRender = (previewPanel: Element) => {
-    const language = previewPanel.getAttribute("data-subtype");
+    const language = previewPanel.getAttribute("data-subtype")||"";
     if (!Constants.SIYUAN_RENDER_CODE_LANGUAGES.includes(language) || previewPanel.getAttribute("data-type") !== "NodeHTMLBlock") {
         abcRender(previewPanel);
         htmlRender(previewPanel);
