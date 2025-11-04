@@ -8,7 +8,7 @@ import { MenuItem } from "./Menu.Item"
  * 获取全局菜单的 DOM 元素
  * @returns {HTMLElement} 菜单的 DOM 元素
  */
-export const getMenuElement = ()=>{
+export const getMenuElement = () => {
     return window.siyuan.menus.menu.element
 }
 
@@ -16,7 +16,7 @@ export const getMenuElement = ()=>{
  * 检查菜单元素是否处于隐藏状态
  * @returns {boolean} 如果菜单被隐藏返回 true，否则返回 false
  */
-export const isMenuElementHidden = ()=>{
+export const isMenuElementHidden = () => {
     return getMenuElement().classList.contains("fn__none")
 }
 
@@ -93,9 +93,11 @@ export const getCurrentSubMenuItem = (): Element | null => {
  * @param {HTMLElement} menuElement - Menu element to reset
  */
 export const resetMenuState = (menuElement: HTMLElement): void => {
-    menuElement.firstElementChild.classList.add("fn__none");
-    menuElement.lastElementChild.innerHTML = "";
-    menuElement.lastElementChild.removeAttribute("style");  // Remove style for input box focus boxShadow display issue
+    menuElement.firstElementChild?.classList.add("fn__none");
+    if (menuElement.lastElementChild) {
+        menuElement.lastElementChild.innerHTML = "";
+        menuElement.lastElementChild.removeAttribute("style");  // Remove style for input box focus boxShadow display issue
+    }
     menuElement.classList.add("fn__none");
     menuElement.classList.remove("b3-menu--list", "b3-menu--fullscreen");
     menuElement.removeAttribute("style");  // zIndex
@@ -171,7 +173,7 @@ export const createSubmenuElement = (submenuItems: IMenu[]): HTMLElement => {
  * @param {PointerEvent|MouseEvent} event - Event object
  * @param {() => void} removeCallback - Callback to remove menu
  */
-export const handleMenuEvent = (menuElement: HTMLElement, event: PointerEvent|MouseEvent, removeCallback: () => void): void => {
+export const handleMenuEvent = (menuElement: HTMLElement, event: PointerEvent | MouseEvent, removeCallback: () => void): void => {
     const target = event.target as Element;
     if (isMobile()) {
         const titleElement = hasClosestByClassName(target, "b3-menu__title");

@@ -15,9 +15,10 @@ import { siyuanI18n } from "../util/i18n.getI18n";
 import { isComposing } from "../util/events/eventGurds";
 import { requireRange } from "../protyle/util/protyleCheckers";
 import { asLuteNodeID, LuteNodeID } from "../util/noteDatas/id";
+import { Menu } from "./Menu";
 
 
-export const fileAnnotationRefMenu = (protyle: IProtyle, refElement: HTMLElement) => {
+export const fileAnnotationRefMenu = (protyle: IProtyle, refElement: HTMLElement,menu:Menu) => {
     const nodeElement = hasClosestBlock(refElement);
     if (!nodeElement) {
         return;
@@ -28,10 +29,10 @@ export const fileAnnotationRefMenu = (protyle: IProtyle, refElement: HTMLElement
         throw ("元素id不是合法ID")
     }
     let oldHTML = nodeElement.outerHTML;
-    getGlobalMenus().menu.remove();
-    getGlobalMenus().menu.element.setAttribute("data-name", Constants.MENU_INLINE_FILE_ANNOTATION_REF);
+    menu.remove();
+    menu.element.setAttribute("data-name", Constants.MENU_INLINE_FILE_ANNOTATION_REF);
     let anchorElement: HTMLInputElement;
-    getGlobalMenus().menu.append(new MenuItem({
+    menu.append(new MenuItem({
         id: "idAndAnchor",
         iconHTML: "",
         type: "readonly",
@@ -66,7 +67,7 @@ export const fileAnnotationRefMenu = (protyle: IProtyle, refElement: HTMLElement
                     return;
                 }
                 if (event.key === "Enter" && !event.isComposing) {
-                    getGlobalMenus().menu.remove();
+                    menu.remove();
                 } else if (electronUndo(event)) {
                     return;
                 }
@@ -74,8 +75,8 @@ export const fileAnnotationRefMenu = (protyle: IProtyle, refElement: HTMLElement
             anchorElement.select();
         }
     }).element);
-    getGlobalMenus().menu.append(new MenuItem({ type: "separator" }).element);
-    getGlobalMenus().menu.append(new MenuItem({
+    menu.append(new MenuItem({ type: "separator" }).element);
+    menu.append(new MenuItem({
         id: "turnInto",
         label: siyuanI18n.turnInto,
         icon: "iconRefresh",
@@ -102,7 +103,7 @@ export const fileAnnotationRefMenu = (protyle: IProtyle, refElement: HTMLElement
             }
         }]
     }).element);
-    getGlobalMenus().menu.append(new MenuItem({
+    menu.append(new MenuItem({
         id: "remove",
         icon: "iconTrashcan",
         label: siyuanI18n.remove,
@@ -128,7 +129,7 @@ export const fileAnnotationRefMenu = (protyle: IProtyle, refElement: HTMLElement
         });
     }
     /// #if MOBILE
-    getGlobalMenus().menu.fullscreen();
+    menu.fullscreen();
     /// #else
     const rect = refElement.getBoundingClientRect();
     getGlobalMenus().menu.popup({
@@ -138,8 +139,8 @@ export const fileAnnotationRefMenu = (protyle: IProtyle, refElement: HTMLElement
     });
     /// #endif
     const popoverElement = hasTopClosestByClassName(protyle.element, "block__popover", true);
-    getGlobalMenus().menu.element.setAttribute("data-from", popoverElement ? popoverElement.dataset.level + "popover" : "app");
-    getGlobalMenus().menu.removeCB =()=> handleMenuRemoveCleanup(protyle,id,nodeElement,oldHTML,refElement)
+    menu.element.setAttribute("data-from", popoverElement ? popoverElement.dataset.level + "popover" : "app");
+    menu.removeCB =()=> handleMenuRemoveCleanup(protyle,id,nodeElement,oldHTML,refElement)
 };
 const handleMenuRemoveCleanup = ( 
     protyle:IProtyle, 

@@ -17,6 +17,7 @@ import {Tab} from "../../layout/Tab";
 /// #endif
 import {Editor} from "../../editor";
 import {hideTooltip} from "../../dialog/tooltip";
+import { getGlobalMenus } from "../../util/siyuanEnvironments/getMenu";
 
 export const globalTouchStart = (event: TouchEvent) => {
     // 文档背景位置调整
@@ -125,7 +126,7 @@ export const globalTouchEnd = (event: TouchEvent, yDiff: number, time: number, a
                 return true;
             }
             if (types.includes("file-annotation-ref")) {
-                fileAnnotationRefMenu(editor.protyle, target);
+                fileAnnotationRefMenu(editor.protyle, target,getGlobalMenus().menu);
                 return true;
             }
             if (types.includes("tag")) {
