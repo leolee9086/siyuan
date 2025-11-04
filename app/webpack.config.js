@@ -3,9 +3,9 @@ const webpack = require("webpack");
 const pkg = require("./package.json");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
-const {CleanWebpackPlugin} = require("clean-webpack-plugin");
-const {EsbuildPlugin} = require("esbuild-loader");
-const {VueLoaderPlugin} = require("vue-loader");
+const { CleanWebpackPlugin } = require("clean-webpack-plugin");
+const { EsbuildPlugin } = require("esbuild-loader");
+const { VueLoaderPlugin } = require("vue-loader");
 
 module.exports = (env, argv) => {
     return {
@@ -111,10 +111,14 @@ module.exports = (env, argv) => {
                 {
                     test: /\.scss$/,
                     include: [
-                        path.resolve(__dirname, "src/assets/scss"),
+                        path.resolve(__dirname, "src"),
                     ],
                     use: [
-                        MiniCssExtractPlugin.loader,
+                        process.env.NODE_ENV !== 'production'
+                            ? 'vue-style-loader'
+                            : MiniCssExtractPlugin.loader,
+
+
                         {
                             loader: "css-loader", // translates CSS into CommonJS
                             options: {

@@ -29,11 +29,11 @@
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage",
     "longest": "node ./scripts/checker/findLongestFile.js",
-    "genI18nTypes":"node ./scripts/i18n.generateTypes.js",
-    "genI18nTypes:en":"node ./scripts/i18n.generateTypes.js -l en_US -i ./appearance/langs/en_US.json -o ./src/types/i18n.types.ts",
-    "genI18nTypes:zh_CN":"node ./scripts/i18n.generateTypes.js -l zh_CN -i ./appearance/langs/zh_CN.json -o ./src/types/i18n.types.ts",
-    "genI18nTypes:zh_TW":"node ./scripts/i18n.generateTypes.js -l zh_TW -i ./appearance/langs/zh_CHT.json -o ./src/types/i18n.types.ts",
-    "genI18nTypes:ja":"node ./scripts/i18n.generateTypes.js -l ja_JP -i ./appearance/langs/ja_JP.json -o ./src/types/i18n.types.ts"
+    "genI18nTypes": "node ./scripts/i18n.generateTypes.js",
+    "genI18nTypes:en": "node ./scripts/i18n.generateTypes.js -l en_US -i ./appearance/langs/en_US.json -o ./src/types/i18n.types.ts",
+    "genI18nTypes:zh_CN": "node ./scripts/i18n.generateTypes.js -l zh_CN -i ./appearance/langs/zh_CN.json -o ./src/types/i18n.types.ts",
+    "genI18nTypes:zh_TW": "node ./scripts/i18n.generateTypes.js -l zh_TW -i ./appearance/langs/zh_CHT.json -o ./src/types/i18n.types.ts",
+    "genI18nTypes:ja": "node ./scripts/i18n.generateTypes.js -l ja_JP -i ./appearance/langs/ja_JP.json -o ./src/types/i18n.types.ts"
   },
   "keywords": [
     "markdown",
@@ -90,12 +90,14 @@
     "typescript": "^5.9.3",
     "vue": "^3.5.22",
     "vue-loader": "^17.4.2",
+    "vue-style-loader": "^4.1.3",
     "webpack": "^5.94.0",
     "webpack-bundle-analyzer": "^4.5.0",
     "webpack-cli": "^4.10.0"
   },
   "dependencies": {
     "@electron/remote": "^2.1.3",
+    "@leolee9086/image-dehazing": "link:C:/Users/al765/AppData/Local/pnpm/global/5/node_modules/@leolee9086/image-dehazing",
     "@modelcontextprotocol/sdk": "^1.20.2",
     "es-module-lexer": "^1.7.0",
     "magic-string": "^0.30.21",

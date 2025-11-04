@@ -1,0 +1,30 @@
+{
+  "name": "@leolee9086/image-dehazing",
+  "version": "1.0.0",
+  "description": "高性能图像去雾算法",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "bench": "vitest run --reporter=verbose"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.0",
+    "vite": "^5.0.0",
+    "vitest": "^1.0.0"
+  },
+  "keywords": [
+    "image",
+    "dehazing",
+    "computer-vision",
+    "browser"
+  ],
+  "author": "织",
+  "license": "MIT",
+  "dependencies": {
+    "vue": "^3.5.17"
+  }
+}

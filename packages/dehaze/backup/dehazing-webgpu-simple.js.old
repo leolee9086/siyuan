@@ -1,0 +1,134 @@
+/**
+ * 简化版WebGPU图像去雾算法实现
+ * 基于暗通道先验(Dark Channel Prior)的高性能去雾算法
+ * 使用WebGPU进行GPU加速计算
+ * @author 织
+ */
+
+// 导入所有模块
+import { getWebGPUAdapter, initializeWebGPUDevice } from './webgpu-device.js';
+import { imageDataToTexture, bufferToImageData } from './image-utils.js';
+import { 
+  computeDarkChannelGPU, 
+  estimateAtmosphericLight, 
+  estimateTransmissionGPU, 
+  recoverImageGPU 
+} from './dehazing-core.js';
+
+/**
+ * 简化版WebGPU主去雾函数
+ * @param {ImageData} imageData - 输入图像数据
+ * @param {Object} options - 算法参数
+ * @param {number} options.windowSize - 暗通道窗口大小，默认为15
+ * @param {number} options.topRatio - 大气光估计比例，默认为0.1
+ * @param {number} options.omega - 去雾强度，默认为0.95
+ * @param {number} options.t0 - 最小透射率阈值，默认为0.1
+ * @returns {Promise<ImageData>} 去雾后的图像数据
+ */
+export const dehazeImageWebGPUSimple = async (imageData, options = {}) => {
+  const {
+    windowSize = 15,
+    topRatio = 0.1,
+    omega = 0.95,
+    t0 = 0.1
+  } = options;
+  
+  // 验证输入数据
+  if (!imageData || !imageData.data || imageData.data.length === 0) {
+    throw new Error('输入图像数据无效');
+  }
+  
+  const { width, height } = imageData;
+  console.log(`处理图像: ${width}x${height}, 数据长度: ${imageData.data.length}`);
+  
+  // 获取WebGPU设备
+  const adapter = await getWebGPUAdapter();
+  const device = await initializeWebGPUDevice(adapter);
+  
+  try {
+    // 步骤1: 将ImageData转换为纹理
+    const inputTexture = await imageDataToTexture(device, imageData);
+    console.log('输入纹理创建成功');
+    
+    // 步骤2: 计算暗通道
+    const darkChannelBuffer = await computeDarkChannelGPU(device, inputTexture, width, height, windowSize);
+    console.log('暗通道计算完成');
+    
+    // 验证暗通道计算结果
+    const testDarkBuffer = device.createBuffer({
+      size: 32, // 读取前8个f32值
+      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
+    });
+    
+    const testDarkCommandEncoder = device.createCommandEncoder();
+    testDarkCommandEncoder.copyBufferToBuffer(darkChannelBuffer, 0, testDarkBuffer, 0, 32);
+    device.queue.submit([testDarkCommandEncoder.finish()]);
+    
+    await testDarkBuffer.mapAsync(GPUMapMode.READ);
+    const testDarkRawData = testDarkBuffer.getMappedRange();
+    const testDarkData = new Float32Array(testDarkRawData.slice(0));
+    testDarkBuffer.unmap();
+    
+    console.log('暗通道缓冲区前8个f32值:', testDarkData);
+    
+    // 步骤3: 估计大气光 (使用CPU版本简化)
+    const readBuffer = device.createBuffer({
+      size: width * height * 4, // f32数据，每个像素4字节
+      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
+    });
+    
+    const commandEncoder = device.createCommandEncoder();
+    commandEncoder.copyBufferToBuffer(darkChannelBuffer, 0, readBuffer, 0, width * height * 4);
+    device.queue.submit([commandEncoder.finish()]);
+    
+    await readBuffer.mapAsync(GPUMapMode.READ);
+    const rawDarkData = readBuffer.getMappedRange();
+    const darkChannelArray = new Float32Array(rawDarkData.slice(0)); // 创建副本避免detached
+    readBuffer.unmap();
+    
+    // 转换为Uint8ClampedArray用于CPU处理
+    const darkChannelUint8 = new Uint8ClampedArray(width * height);
+    for (let i = 0; i < width * height; i++) {
+      darkChannelUint8[i] = Math.round(darkChannelArray[i] * 255);
+    }
+    
+    console.log('暗通道转换后的前8个u8值:', darkChannelUint8.slice(0, 8));
+    
+    const atmosphericLight = estimateAtmosphericLight(imageData, darkChannelUint8, topRatio);
+    console.log(`大气光估计完成: ${atmosphericLight}`);
+    
+    // 步骤4: 估计透射率图
+    const transmissionBuffer = await estimateTransmissionGPU(device, darkChannelBuffer, atmosphericLight, width, height, omega);
+    console.log('透射率估计完成');
+    
+    // 步骤5: 恢复无雾图像
+    console.log('开始图像恢复...');
+    const outputBuffer = await recoverImageGPU(device, inputTexture, transmissionBuffer, atmosphericLight, width, height, t0);
+    console.log('图像恢复完成，输出缓冲区大小:', outputBuffer.size, '预期大小:', width * height * 4 * 4);
+    
+    // 步骤6: 将缓冲区转换为ImageData
+    console.log('开始转换缓冲区到ImageData...');
+    const result = await bufferToImageData(device, outputBuffer, width, height);
+    console.log('缓冲区转换完成，结果数据长度:', result.data.length);
+    
+    return result;
+  } catch (error) {
+    console.error('WebGPU处理过程中出错:', error);
+    throw error;
+  }
+};
+
+/**
+ * 批量处理多张图像 (简化版WebGPU版本)
+ * @param {ImageData[]} imageDataArray - 图像数据数组
+ * @param {Object} options - 算法参数
+ * @returns {Promise<ImageData[]>} 去雾后的图像数据数组
+ */
+export const batchDehazeWebGPUSimple = async (imageDataArray, options = {}) => {
+  const results = [];
+  for (const imageData of imageDataArray) {
+    const result = await dehazeImageWebGPUSimple(imageData, options);
+    results.push(result);
+  }
+  return results;
+}; 

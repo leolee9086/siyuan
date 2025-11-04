@@ -16,6 +16,7 @@ import {setStorageVal, updateHotkeyTip} from "../protyle/util/compatibility";
 import {App} from "../index";
 import {clearOBG} from "../layout/dock/util";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
+import { initImagePanel } from "./image";
 
 export class Asset extends Model {
     public path: string;
@@ -89,7 +90,7 @@ export class Asset extends Model {
     private render() {
         const type = this.path.substr(this.path.lastIndexOf(".")).toLowerCase().split("?")[0];
         if (Constants.SIYUAN_ASSETS_IMAGE.includes(type)) {
-            this.element.innerHTML = `<div class="asset"><img src="${this.path.startsWith("file") ? this.path : document.getElementById("baseURL").getAttribute("href") + "/" + this.path}"></div>`;
+            initImagePanel(this.element,this.path);
         } else if (Constants.SIYUAN_ASSETS_AUDIO.includes(type)) {
             this.element.innerHTML = `<div class="asset"><audio controls="controls" src="${this.path.startsWith("file") ? this.path : document.getElementById("baseURL").getAttribute("href") + "/" + this.path}"></audio></div>`;
         } else if (Constants.SIYUAN_ASSETS_VIDEO.includes(type)) {

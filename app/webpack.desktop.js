@@ -108,10 +108,15 @@ module.exports = (env, argv) => {
                 {
                     test: /\.scss$/,
                     include: [
-                        path.resolve(__dirname, "src/assets/scss"),
+                        path.resolve(__dirname, "src"),
                     ],
                     use: [
-                        MiniCssExtractPlugin.loader,
+                          {
+                            loader: "vue-style-loader", // translates CSS into CommonJS
+                            options: {
+                                sourceMap: argv.mode !== "production",
+                            },
+                        },
                         {
                             loader: "css-loader", // translates CSS into CommonJS
                             options: {
