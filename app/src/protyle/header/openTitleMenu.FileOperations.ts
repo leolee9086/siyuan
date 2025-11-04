@@ -1,8 +1,9 @@
 import { movePathToMenu } from "../../menus/commonMenuItem";
+import { getGlobalMenus } from "../../util/siyuanEnvironments/getMenu";
 import { createAddToDatabaseMenuItem, createDeleteMenuItem } from "./openTitleMenu.items";
 
 export const appendFileOperationsMenuItemGroup = (protyle: IProtyle) => {
-    window.siyuan.menus.menu.append(movePathToMenu([protyle.path]));
-    window.siyuan.menus.menu.append(createAddToDatabaseMenuItem(protyle).element);
-    window.siyuan.menus.menu.append(createDeleteMenuItem(protyle).element);
+    protyle.path&&getGlobalMenus().menu.append(movePathToMenu([protyle.path]));
+    getGlobalMenus().menu.append(createAddToDatabaseMenuItem(protyle).element);
+    getGlobalMenus().menu.append(createDeleteMenuItem(protyle).element);
 };
