@@ -5,10 +5,10 @@ import {
     hasPreviousSibling,
     isNotEditBlock
 } from "../wysiwyg/getBlock";
-import {hasClosestBlock, hasClosestByAttribute, hasClosestByTag} from "./hasClosest";
-import {countBlockWord, countSelectWord} from "../../layout/status";
-import {hideElements} from "../ui/hideElements";
-import {genRenderFrame} from "../render/util";
+import { hasClosestBlock, hasClosestByAttribute, hasClosestByTag } from "./hasClosest";
+import { countBlockWord, countSelectWord } from "../../layout/status";
+import { hideElements } from "../ui/hideElements";
+import { genRenderFrame } from "../render/util";
 
 const selectIsEditor = (editor: Element, range?: Range) => {
     if (!range) {
@@ -113,7 +113,7 @@ export const selectAll = (protyle: IProtyle, nodeElement: Element, range: Range)
         return true;
     }
     hideElements(["select"], protyle);
-    const ids: string [] = [];
+    const ids: string[] = [];
     Array.from(protyle.wysiwyg.element.children).forEach(item => {
         const nodeId = item.getAttribute("data-node-id");
         if (nodeId) {
@@ -172,7 +172,7 @@ export const getEditorRange = (element: Element): Range => {
     }
 
     // 代码块过长，在代码块的下一个块前删除，代码块会滚动到顶部，因粗需要 preventScroll
-    (element as HTMLElement).focus({preventScroll: true});
+    (element as HTMLElement).focus({ preventScroll: true });
     if (!range) {
         range = document.createRange();
     }
@@ -588,8 +588,10 @@ export const focusByRange = (range: Range) => {
         return;
     }
     const selection = window.getSelection();
-    selection.removeAllRanges();
-    selection.addRange(range);
+    if (selection) {
+        selection.removeAllRanges();
+        selection.addRange(range);
+    }
 };
 
 export const focusBlock = (element: Element, parentElement?: HTMLElement, toStart = true): false | Range => {
