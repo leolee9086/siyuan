@@ -1,5 +1,7 @@
 import { MenuItem } from "../menus/Menu.Item";
 import { subMenu } from "../menus/Menu.subMenu";
+import { getGlobalMenus } from "../util/siyuanEnvironments/getMenu";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
 
 export class EventBus<DetailType = any> {
     private eventTarget: EventTarget;
@@ -9,15 +11,15 @@ export class EventBus<DetailType = any> {
     }
 
     on(type: TEventBus, listener: (event: CustomEvent<DetailType>) => void) {
-        this.eventTarget.addEventListener(type, listener);
+        this.eventTarget.addEventListener(type, listener );
     }
 
     once(type: TEventBus, listener: (event: CustomEvent<DetailType>) => void) {
-        this.eventTarget.addEventListener(type, listener, {once: true});
+        this.eventTarget.addEventListener(type, listener , {once: true});
     }
 
     off(type: TEventBus, listener: (event: CustomEvent<DetailType>) => void) {
-        this.eventTarget.removeEventListener(type, listener);
+        this.eventTarget.removeEventListener(type, listener );
     }
 
     emit(type: TEventBus, detail?: DetailType) {
@@ -38,17 +40,17 @@ export const emitOpenMenu = (options: {
     });
     if (pluginSubMenu.menus.length > 0) {
         if (options.separatorPosition === "top") {
-            window.siyuan.menus.menu.append(new MenuItem({id: "separator_pluginTop", type: "separator"}).element);
+            getGlobalMenus().menu.append(new MenuItem({id: "separator_pluginTop", type: "separator"}).element);
         }
-        window.siyuan.menus.menu.append(new MenuItem({
+        getGlobalMenus().menu.append(new MenuItem({
             id: "plugin",
-            label: window.siyuan.languages.plugin,
+            label: siyuanI18n.plugin,
             icon: "iconPlugin",
             type: "submenu",
             submenu: pluginSubMenu.menus,
         }).element);
         if (options.separatorPosition === "bottom") {
-            window.siyuan.menus.menu.append(new MenuItem({id: "separator_pluginBottom", type: "separator"}).element);
+            getGlobalMenus().menu.append(new MenuItem({id: "separator_pluginBottom", type: "separator"}).element);
         }
     }
 };
