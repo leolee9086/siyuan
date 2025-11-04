@@ -1,5 +1,5 @@
 // 定义品牌类型
-type LuteNodeID = string & { readonly _brand: unique symbol };
+export type LuteNodeID = string & { readonly _brand: unique symbol };
 
 // 类型守卫函数
 export function asLuteNodeID(id: string):  id is LuteNodeID {

@@ -14,7 +14,7 @@ import { getGlobalMenus } from "../util/siyuanEnvironments/getMenu";
 import { siyuanI18n } from "../util/i18n.getI18n";
 import { isComposing } from "../util/events/eventGurds";
 import { requireRange } from "../protyle/util/protyleCheckers";
-import { asLuteNodeID } from "../util/noteDatas/id";
+import { asLuteNodeID, LuteNodeID } from "../util/noteDatas/id";
 
 
 export const fileAnnotationRefMenu = (protyle: IProtyle, refElement: HTMLElement) => {
@@ -27,7 +27,6 @@ export const fileAnnotationRefMenu = (protyle: IProtyle, refElement: HTMLElement
     if (!asLuteNodeID(id)) {
         throw ("元素id不是合法ID")
     }
-    typeof id
     let oldHTML = nodeElement.outerHTML;
     getGlobalMenus().menu.remove();
     getGlobalMenus().menu.element.setAttribute("data-name", Constants.MENU_INLINE_FILE_ANNOTATION_REF);
@@ -116,7 +115,7 @@ export const fileAnnotationRefMenu = (protyle: IProtyle, refElement: HTMLElement
             oldHTML = nodeElement.outerHTML;
         }
     }).element);
-
+    //打开插件菜单
     if (protyle?.app?.plugins) {
         emitOpenMenu({
             plugins: protyle.app.plugins,
@@ -140,17 +139,24 @@ export const fileAnnotationRefMenu = (protyle: IProtyle, refElement: HTMLElement
     /// #endif
     const popoverElement = hasTopClosestByClassName(protyle.element, "block__popover", true);
     getGlobalMenus().menu.element.setAttribute("data-from", popoverElement ? popoverElement.dataset.level + "popover" : "app");
-    getGlobalMenus().menu.removeCB = () => {
-        if (nodeElement.outerHTML !== oldHTML) {
-            nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-            updateTransaction(protyle, id, nodeElement.outerHTML, oldHTML);
-        }
-        const currentSelection = getSelection()
-        const currentRange = currentSelection && (currentSelection.rangeCount === 0 ? undefined : currentSelection.getRangeAt(0));
-        if (currentRange && !protyle.element.contains(currentRange.startContainer)) {
-            requireRange(protyle).selectNodeContents(refElement);
-            requireRange(protyle).collapse(false);
-            focusByRange(requireRange(protyle));
-        }
-    };
+    getGlobalMenus().menu.removeCB =()=> handleMenuRemoveCleanup(protyle,id,nodeElement,oldHTML,refElement)
+};
+const handleMenuRemoveCleanup = ( 
+    protyle:IProtyle, 
+    id:LuteNodeID, 
+    nodeElement:HTMLElement, 
+    oldHTML:string,
+    refElement:HTMLElement
+) => {
+    if (nodeElement.outerHTML !== oldHTML) {
+        nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
+        updateTransaction(protyle, id, nodeElement.outerHTML, oldHTML);
+    }
+    const currentSelection = getSelection()
+    const currentRange = currentSelection && (currentSelection.rangeCount === 0 ? undefined : currentSelection.getRangeAt(0));
+    if (currentRange && !protyle.element.contains(currentRange.startContainer)) {
+        requireRange(protyle).selectNodeContents(refElement);
+        requireRange(protyle).collapse(false);
+        focusByRange(requireRange(protyle));
+    }
 };
