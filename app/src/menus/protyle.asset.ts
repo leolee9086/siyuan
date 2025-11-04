@@ -73,87 +73,89 @@ export const assetMenu = (protyle: IProtyle, position: IPosition, callback?: (ur
             const listElement = element.querySelector(".b3-list");
             const previewElement = element.querySelector("#preview");
             const inputElement = element.querySelector("input");
-            listElement.addEventListener("mouseover", (event) => {
-                const target = event.target as HTMLElement;
-                const hoverItemElement = hasClosestByClassName(target, "b3-list-item");
-                if (!hoverItemElement) {
-                    return;
-                }
-                previewElement.innerHTML = renderAssetsPreview(hoverItemElement.getAttribute("data-value"));
-            });
-            inputElement.addEventListener("keydown", (event: KeyboardEvent) => {
-                if (event.isComposing) {
-                    return;
-                }
-                const isEmpty = element.querySelector(".b3-list--empty");
-                if (!isEmpty) {
-                    const currentElement = upDownHint(listElement, event);
-                    if (currentElement) {
-                        previewElement.innerHTML = renderAssetsPreview(currentElement.getAttribute("data-value"));
-                        event.stopPropagation();
+            if (listElement && previewElement && inputElement) {
+                listElement.addEventListener("mouseover", (event) => {
+                    const target = event.target as HTMLElement;
+                    const hoverItemElement = hasClosestByClassName(target, "b3-list-item");
+                    if (!hoverItemElement) {
+                        return;
                     }
-                }
-
-                if (event.key === "Enter") {
+                    previewElement.innerHTML = renderAssetsPreview(hoverItemElement.getAttribute("data-value"));
+                });
+                inputElement.addEventListener("keydown", (event: KeyboardEvent) => {
+                    if (event.isComposing) {
+                        return;
+                    }
+                    const isEmpty = element.querySelector(".b3-list--empty");
                     if (!isEmpty) {
-                        const currentElement = element.querySelector(".b3-list-item--focus");
-                        if (callback) {
-                            callback(currentElement.getAttribute("data-value"), currentElement.textContent);
-                        } else {
-                            hintRenderAssets(currentElement.getAttribute("data-value"), protyle);
-                            window.siyuan.menus.menu.remove();
+                        const currentElement = upDownHint(listElement, event);
+                        if (currentElement) {
+                            previewElement.innerHTML = renderAssetsPreview(currentElement.getAttribute("data-value"));
+                            event.stopPropagation();
                         }
-                    } else if (!callback) {
-                        window.siyuan.menus.menu.remove();
-                        focusByRange(protyle.toolbar.range);
                     }
-                    // 空行处插入 mp3 会多一个空的 mp3 块
-                    event.preventDefault();
-                    event.stopPropagation();
-                } else if (event.key === "Escape") {
-                    if (!callback) {
-                        focusByRange(protyle.toolbar.range);
+
+                    if (event.key === "Enter") {
+                        if (!isEmpty) {
+                            const currentElement = element.querySelector(".b3-list-item--focus");
+                            if (callback) {
+                                callback(currentElement.getAttribute("data-value"), currentElement.textContent);
+                            } else {
+                                hintRenderAssets(currentElement.getAttribute("data-value"), protyle);
+                                window.siyuan.menus.menu.remove();
+                            }
+                        } else if (!callback) {
+                            window.siyuan.menus.menu.remove();
+                            focusByRange(protyle.toolbar.range);
+                        }
+                        // 空行处插入 mp3 会多一个空的 mp3 块
+                        event.preventDefault();
+                        event.stopPropagation();
+                    } else if (event.key === "Escape") {
+                        if (!callback) {
+                            focusByRange(protyle.toolbar.range);
+                        }
                     }
-                }
-            });
-            inputElement.addEventListener("input", (event: InputEvent) => {
-                if (event.isComposing) {
-                    return;
-                }
-                event.stopPropagation();
-                renderAssetList(element, inputElement.value, position, exts);
-            });
-            inputElement.addEventListener("compositionend", (event: InputEvent) => {
-                event.stopPropagation();
-                renderAssetList(element, inputElement.value, position, exts);
-            });
-            element.lastElementChild.addEventListener("click", (event) => {
-                const target = event.target as HTMLElement;
-                const previousElement = hasClosestByAttribute(target, "data-type", "previous");
-                if (previousElement) {
-                    inputElement.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp" }));
-                    event.stopPropagation();
-                    return;
-                }
-                const nextElement = hasClosestByAttribute(target, "data-type", "next");
-                if (nextElement) {
-                    inputElement.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown" }));
-                    event.stopPropagation();
-                    return;
-                }
-                const listItemElement = hasClosestByClassName(target, "b3-list-item");
-                if (listItemElement) {
-                    event.stopPropagation();
-                    const currentURL = listItemElement.getAttribute("data-value");
-                    if (callback) {
-                        callback(currentURL, listItemElement.textContent);
-                    } else {
-                        hintRenderAssets(currentURL, protyle);
-                        window.siyuan.menus.menu.remove();
+                });
+                inputElement.addEventListener("input", (event: InputEvent) => {
+                    if (event.isComposing) {
+                        return;
                     }
-                }
-            });
-            renderAssetList(element, "", position, exts);
+                    event.stopPropagation();
+                    renderAssetList(element, inputElement.value, position, exts);
+                });
+                inputElement.addEventListener("compositionend", (event: InputEvent) => {
+                    event.stopPropagation();
+                    renderAssetList(element, inputElement.value, position, exts);
+                });
+                element.lastElementChild.addEventListener("click", (event) => {
+                    const target = event.target as HTMLElement;
+                    const previousElement = hasClosestByAttribute(target, "data-type", "previous");
+                    if (previousElement) {
+                        inputElement.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp" }));
+                        event.stopPropagation();
+                        return;
+                    }
+                    const nextElement = hasClosestByAttribute(target, "data-type", "next");
+                    if (nextElement) {
+                        inputElement.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown" }));
+                        event.stopPropagation();
+                        return;
+                    }
+                    const listItemElement = hasClosestByClassName(target, "b3-list-item");
+                    if (listItemElement) {
+                        event.stopPropagation();
+                        const currentURL = listItemElement.getAttribute("data-value");
+                        if (callback) {
+                            callback(currentURL, listItemElement.textContent);
+                        } else {
+                            hintRenderAssets(currentURL, protyle);
+                            getGlobalMenus().menu.remove();
+                        }
+                    }
+                });
+                renderAssetList(element, "", position, exts);
+            }
         }
     });
 };
