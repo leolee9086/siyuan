@@ -16,7 +16,7 @@ import { AIMenuContext, AIMenuRequest, handleAIMenuItemClick } from "./actions.h
 import { customDialog } from "./customDialog";
 import { filterAIMenuItems } from "./actions.filterAIMenuItems";
 import { generateBuildingMenuHTML } from "./actions.generateBuildingMenuHTML";
-import { siyuanI18n } from "../util/i18n.getI18n";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
 
 /**
  * 生成自定义AI菜单项的HTML

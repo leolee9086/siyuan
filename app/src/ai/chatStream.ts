@@ -17,7 +17,7 @@ import { ChatSessionState, UIFunctions } from './session/session.types';
 import { createTemporaryModule } from "../util/code/scripts.executor";
 import { buildBlockContentPrompt } from "./prompts/blockContent.builder";
 import { createSiyuanStreamChatBusinessLogic } from "./streamChat.businessLogicFactory";
-import { siyuanI18n } from "../util/i18n.getI18n";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
 
 const createAIStreamChatDialogVueConfig = (
     protyle: IProtyle,

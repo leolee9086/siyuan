@@ -19,7 +19,7 @@ import { useAiCustomDialog, type AiCustomDialogEvents } from './aiCustomDialog.c
 import AiCustomDialogField from './common/TextField.vue';
 import AiCustomDialogButtons from './common/DialogActions.vue';
 import DialogContent from './common/DialogContent.vue';
-import { siyuanI18n } from '../util/i18n.getI18n';
+import { siyuanI18n } from '../util/siyuanEnvironments/i18n.getI18n';
 
 // 定义组件事件
 interface Emits {

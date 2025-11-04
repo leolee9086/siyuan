@@ -15,7 +15,7 @@ import {fetchPost} from "../util/fetch";
 import {setStorageVal, updateHotkeyTip} from "../protyle/util/compatibility";
 import {App} from "../index";
 import {clearOBG} from "../layout/dock/util";
-import { siyuanI18n } from "../util/i18n.getI18n";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
 
 export class Asset extends Model {
     public path: string;

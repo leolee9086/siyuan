@@ -6,8 +6,46 @@ import { hintRenderAssets } from "../protyle/hint/extend";
 import { hasClosestByClassName, hasClosestByAttribute } from "../protyle/util/hasClosest";
 import { isMobile } from "../util/functions";
 import { upDownHint } from "../util/upDownHint";
-import { renderAssetList } from "./protyle.renderAssetList";
+import { fetchPost } from "../ai/imports";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
+import { getGlobalMenus } from "../util/siyuanEnvironments/getMenu";
 
+const updateAssetUI = (listElement: Element, data: { path: string; hName: string; }[]) => {
+    let searchHTML = "";
+    data.forEach((item, index: number) => {
+        searchHTML += `<div data-value="${item.path}" class="b3-list-item${index === 0 ? " b3-list-item--focus" : ""}"><div class="b3-list-item__text">${item.hName}</div></div>`;
+    });
+    listElement.innerHTML = searchHTML || `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
+};
+
+
+
+export const renderAssetList = (element: Element, k: string, position: IPosition, exts: string[] = []) => {
+    fetchPost("/api/search/searchAsset", {
+        k,
+        exts
+    }, (response) => {
+        const inputElement = element.querySelector("input");
+        const previewElement = element.querySelector("#preview");
+        const listElement = element.querySelector(".b3-list");
+        listElement && updateAssetUI(listElement, response.data);
+        if (previewElement) {
+            if (response.data.length > 0) {
+                previewElement.innerHTML = renderAssetsPreview(response.data[0].path);
+            } else {
+                previewElement.innerHTML = siyuanI18n.emptyContent;
+            }
+        }
+        /// #if MOBILE
+        getGlobalMenus().menu.fullscreen();
+        /// #else
+        getGlobalMenus().menu.popup(position);
+        /// #endif
+        if (!k) {
+            inputElement && inputElement.select();
+        }
+    });
+};
 
 export const assetMenu = (protyle: IProtyle, position: IPosition, callback?: (url: string, name: string) => void, exts?: string[]) => {
     const menu = new Menu(Constants.MENU_BACKGROUND_ASSET);
@@ -34,6 +72,7 @@ export const assetMenu = (protyle: IProtyle, position: IPosition, callback?: (ur
             element.style.maxWidth = "none";
             const listElement = element.querySelector(".b3-list");
             const previewElement = element.querySelector("#preview");
+            const inputElement = element.querySelector("input");
             listElement.addEventListener("mouseover", (event) => {
                 const target = event.target as HTMLElement;
                 const hoverItemElement = hasClosestByClassName(target, "b3-list-item");
@@ -42,7 +81,6 @@ export const assetMenu = (protyle: IProtyle, position: IPosition, callback?: (ur
                 }
                 previewElement.innerHTML = renderAssetsPreview(hoverItemElement.getAttribute("data-value"));
             });
-            const inputElement = element.querySelector("input");
             inputElement.addEventListener("keydown", (event: KeyboardEvent) => {
                 if (event.isComposing) {
                     return;

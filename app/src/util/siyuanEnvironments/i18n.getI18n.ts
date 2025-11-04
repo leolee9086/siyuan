@@ -1,4 +1,4 @@
-import type { SiYuanI18n, I18nKeys } from '../types/i18n.types';
+import type { SiYuanI18n, I18nKeys } from '../../types/i18n.types';
 
 /**
  * 获取国际化文本的工具函数

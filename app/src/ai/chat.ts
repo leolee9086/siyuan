@@ -4,7 +4,7 @@ import { createVueComponentInDialog, VueComponentMountConfig } from "../util/vue
 import AiChatDialog from "../components/panels/aiChatDialog.vue";
 import { localKernel } from "./imports";
 import { fillContent } from "./actions.fillContent";
-import { siyuanI18n } from "../util/i18n.getI18n";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
 // 创建聊天对话框Vue应用配置
 const createChatDialogVueConfig = (protyle: IProtyle, element: Element, dialog: Dialog): VueComponentMountConfig => {
     return {

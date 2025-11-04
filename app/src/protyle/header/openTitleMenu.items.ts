@@ -3,6 +3,7 @@ import { copySubMenu } from "../../menus/commonMenuItem.copy";
 import { addEditorToDatabase } from "../render/av/addToDatabase";
 import { deleteFile } from "../../editor/deleteFile";
 import { openDocHistory } from "../../history/doc";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n";
 
 export const createProtyleCopyMenu = (protyle: IProtyle) => {
     return new MenuItem({
@@ -18,7 +19,7 @@ export const createAddToDatabaseMenuItem = (protyle: IProtyle) => {
     const range = getSelection().rangeCount > 0 ? getSelection().getRangeAt(0) : undefined;
     return new MenuItem({
         id: "addToDatabase",
-        label: window.siyuan.languages.addToDatabase,
+        label: siyuanI18n.addToDatabase,
         accelerator: window.siyuan.config.keymap.general.addToDatabase.custom,
         icon: "iconDatabase",
         click: () => {
@@ -31,7 +32,7 @@ export const createDeleteMenuItem = (protyle: IProtyle) => {
     return new MenuItem({
         id: "delete",
         icon: "iconTrashcan",
-        label: window.siyuan.languages.delete,
+        label: siyuanI18n.delete,
         click: () => {
             deleteFile(protyle.notebookId, protyle.path);
         }
@@ -43,7 +44,7 @@ export const createDeleteMenuItem = (protyle: IProtyle) => {
 export const createFileHistoryMenuItem = (protyle: IProtyle, response: any) => {
     return new MenuItem({
         id: "fileHistory",
-        label: window.siyuan.languages.fileHistory,
+        label: siyuanI18n.fileHistory,
         icon: "iconHistory",
         click() {
             openDocHistory({

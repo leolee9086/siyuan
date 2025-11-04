@@ -28,7 +28,7 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from 'vue';
 import DialogContent from './common/DialogContent.vue';
-import { siyuanI18n } from '../util/i18n.getI18n';
+import { siyuanI18n } from '../util/siyuanEnvironments/i18n.getI18n';
 
 // 定义组件属性
 interface Props {
