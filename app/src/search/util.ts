@@ -15,7 +15,7 @@ import {onGet} from "../protyle/util/onGet";
 import {addLoading} from "../protyle/ui/initUI";
 import {getIconByType} from "../editor/getIcon";
 import {unicode2Emoji} from "../emoji";
-import {hasClosestByClassName, hasClosestByTag} from "../protyle/util/hasClosest";
+import {hasClosestByClassName} from "../protyle/util/hasClosest";
 import {isIPad, isNotCtrl, setStorageVal, updateHotkeyTip} from "../protyle/util/compatibility";
 import {newFileByName} from "../util/newFile";
 import {
@@ -45,6 +45,7 @@ import {getDefaultType} from "./getDefault";
 import {isSupportCSSHL, searchMarkRender} from "../protyle/render/searchMarkRender";
 import {saveKeyList, toggleAssetHistory, toggleReplaceHistory, toggleSearchHistory} from "./toggleHistory";
 import {highlightById} from "../util/highlightById";
+import { scrollToCurrent } from "./utils.scrollToCurrent";
 
 export const openGlobalSearch = (app: App, text: string, replace: boolean, searchData?: Config.IUILayoutTabSearchConfig) => {
     text = text.trim();
@@ -1010,21 +1011,6 @@ export const updateConfig = (element: Element, item: Config.IUILayoutTabSearchCo
     window.siyuan.menus.menu.remove();
 };
 
-const scrollToCurrent = (contentElement: HTMLElement, currentRange: Range, contentRect: DOMRect) => {
-    contentElement.scrollTop = contentElement.scrollTop + currentRange.getBoundingClientRect().top - contentRect.top - contentRect.height / 2;
-    const tableElement = hasClosestByClassName(currentRange.startContainer, "table");
-    if (tableElement) {
-        const cellElement = hasClosestByTag(currentRange.startContainer, "TD") || hasClosestByTag(currentRange.startContainer, "TH");
-        if (cellElement) {
-            tableElement.firstElementChild.scrollLeft = cellElement.offsetLeft;
-            if (tableElement.getAttribute("custom-pinthead") === "true") {
-                contentElement.scrollTop = contentElement.scrollTop + tableElement.getBoundingClientRect().top - contentRect.top;
-                tableElement.querySelector("table").scrollTop = cellElement.offsetTop;
-            }
-        }
-    }
-};
-
 const renderNextSearchMark = (options: {
     id: string,
     edit: Protyle,
@@ -1131,12 +1117,12 @@ export const getArticle = (options: {
                             const currentRange = options.edit.protyle.highlight.ranges[options.edit.protyle.highlight.rangeIndex];
                             if (options.edit.protyle.highlight.ranges.length > 0 && currentRange) {
                                 if (!currentRange.toString()) {
-                                    highlightById(options.edit.protyle, options.id);
+                                    highlightById(options.edit.protyle, options.id, false,"auto",true);
                                 } else {
                                     scrollToCurrent(options.edit.protyle.contentElement, currentRange, contentRect);
                                 }
                             } else {
-                                highlightById(options.edit.protyle, options.id);
+                                highlightById(options.edit.protyle, options.id,false,"auto",true);
                             }
                         };
                         if (observer) {

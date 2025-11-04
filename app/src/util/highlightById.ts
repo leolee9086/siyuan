@@ -1,5 +1,5 @@
-import {hasClosestBlock, isInEmbedBlock} from "../protyle/util/hasClosest";
-import {focusByRange, getEditorRange} from "../protyle/util/selection";
+import { hasClosestBlock, isInEmbedBlock } from "../protyle/util/hasClosest";
+import { focusByRange, getEditorRange } from "../protyle/util/selection";
 
 export const bgFade = (element: Element) => {
     element.classList.add("protyle-wysiwyg--hl");
@@ -8,7 +8,7 @@ export const bgFade = (element: Element) => {
     }, 1024);
 };
 
-export const highlightById = (protyle: IProtyle, id: string, top = false) => {
+export const highlightById = (protyle: IProtyle, id: string, top = false,behavior: ScrollBehavior = "auto", alignCenter = false) => {
     let nodeElement: HTMLElement;
     const protyleElement = protyle.wysiwyg.element;
     if (!protyle.preview.element.classList.contains("fn__none")) {
@@ -28,7 +28,7 @@ export const highlightById = (protyle: IProtyle, id: string, top = false) => {
         }
     });
     if (nodeElement) {
-        scrollCenter(protyle, nodeElement, top);
+        scrollCenter(protyle, nodeElement, top, behavior , alignCenter );
         bgFade(nodeElement);
         return nodeElement;// 仅配合前进后退使用
     }
@@ -38,7 +38,7 @@ export const highlightById = (protyle: IProtyle, id: string, top = false) => {
     }
 };
 
-export const scrollCenter = (protyle: IProtyle, nodeElement?: Element, top = false, behavior: ScrollBehavior = "auto") => {
+export const scrollCenter = (protyle: IProtyle, nodeElement?: Element, top = false, behavior: ScrollBehavior = "auto", alignCenter = false) => {
     if (!protyle.disabled && !top && getSelection().rangeCount > 0) {
         const range = getSelection().getRangeAt(0);
         const blockElement = hasClosestBlock(range.startContainer);
@@ -47,7 +47,7 @@ export const scrollCenter = (protyle: IProtyle, nodeElement?: Element, top = fal
             if (blockElement.classList.contains("code-block")) {
                 const brElement = document.createElement("br");
                 range.insertNode(brElement);
-                brElement.scrollIntoView({block: "nearest", behavior});
+                brElement.scrollIntoView({ block: "nearest", behavior });
                 brElement.remove();
                 return;
             }
@@ -60,9 +60,9 @@ export const scrollCenter = (protyle: IProtyle, nodeElement?: Element, top = fal
                 }
                 const activeElement = blockElement.querySelector(".av__cell--select, .av__row--select, .av__gallery-item--select");
                 if (activeElement) {
-                    activeElement.scrollIntoView({block: "nearest", behavior});
+                    activeElement.scrollIntoView({ block: "nearest", behavior });
                 } else {
-                    blockElement.scrollIntoView({block: "nearest", behavior});
+                    blockElement.scrollIntoView({ block: "nearest", behavior });
                 }
                 return;
             }
@@ -79,7 +79,7 @@ export const scrollCenter = (protyle: IProtyle, nodeElement?: Element, top = fal
                 scrollTop = editorElement.scrollTop + (cursorTop + 74 - editorElement.clientHeight);
             }
             if (scrollTop !== 0) {
-                editorElement.scroll({top: scrollTop, behavior});
+                editorElement.scroll({ top: scrollTop, behavior });
             }
             br2Element.remove();
             focusByRange(cloneRange);
@@ -109,15 +109,25 @@ export const scrollCenter = (protyle: IProtyle, nodeElement?: Element, top = fal
         topElement = topElement.nextElementSibling;
     }
     if (top) {
-        protyle.contentElement.scroll({top: offsetTop - contentTop, behavior});
+        protyle.contentElement.scroll({ top: offsetTop - contentTop, behavior });
         return;
     }
-    if (protyle.contentElement.scrollTop > offsetTop - 32) {
-        protyle.contentElement.scroll({top: offsetTop - contentTop, behavior});
-    } else if (protyle.contentElement.scrollTop + protyle.contentElement.clientHeight < offsetTop + nodeElement.clientHeight - contentTop) {
-        protyle.contentElement.scroll({
-            top: offsetTop + nodeElement.clientHeight - contentTop - protyle.contentElement.clientHeight,
-            behavior
-        });
+    // 修复SQL搜索结果滚动到页面底部的问题，使其与关键词搜索一致，滚动到中间位置
+    //https://github.com/siyuan-note/siyuan/issues/16279
+    // 将元素的中线对齐到容器的中线，而不是元素仅仅滚动到视图范围内
+    if (alignCenter) {
+        const contentRect = protyle.contentElement.getBoundingClientRect();
+        const nodeRect = nodeElement.getBoundingClientRect();
+        const centerScrollTop = protyle.contentElement.scrollTop + nodeRect.top + nodeRect.height / 2 - contentRect.top - contentRect.height / 2;
+        protyle.contentElement.scroll({ top: centerScrollTop, behavior });
+    } else {
+        if (protyle.contentElement.scrollTop > offsetTop - 32) {
+            protyle.contentElement.scroll({ top: offsetTop - contentTop, behavior });
+        } else if (protyle.contentElement.scrollTop + protyle.contentElement.clientHeight < offsetTop + nodeElement.clientHeight - contentTop) {
+            protyle.contentElement.scroll({
+                top: offsetTop + nodeElement.clientHeight - contentTop - protyle.contentElement.clientHeight,
+                behavior
+            });
+        }
     }
 };
