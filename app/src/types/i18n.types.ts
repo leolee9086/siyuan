@@ -1,11 +1,12 @@
 /**
  * 自动生成的思源笔记国际化类型定义
  * 请勿手动修改此文件，重新生成会覆盖更改
- * 生成时间: 2025-11-03T00:45:35.383Z
+ * 生成时间: 2025-11-04T14:50:18.384Z
  * 语言: zh_CN
  */
 
 export interface SiYuanI18n {
+useBackground: `填充列背景颜色`
 print: `打印`
 clickArrow: `点击箭头`
 foldAll: `全部折叠`
