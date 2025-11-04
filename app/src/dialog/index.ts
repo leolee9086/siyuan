@@ -8,6 +8,7 @@ import {Protyle} from "../protyle";
 import {Constants} from "../constants";
 import {createVueComponentLoader, VueComponentMountConfig, VueComponentLoaderContext} from "../util/vue/mount";
 import {App} from "vue";
+import { getGlobalMenus } from "../util/siyuanEnvironments/getMenu";
 export interface IDialogOptions {
     positionId?: string,
     title?: string,
@@ -180,7 +181,8 @@ left:${left || "auto"};top:${top || "auto"};${this.scrimPointerEvents ? ' pointe
         }
 
         /// #if !MOBILE
-        moveResize(this.element.querySelector(".b3-dialog__container"), options.resizeCallback);
+        const containerElement =this.element.querySelector(".b3-dialog__container")
+        containerElement&&moveResize(containerElement, options.resizeCallback);
         /// #endif
     }
 
@@ -188,9 +190,9 @@ left:${left || "auto"};top:${top || "auto"};${this.scrimPointerEvents ? ' pointe
         this.element.classList.remove("b3-dialog--open");
         setTimeout(() => {
             // av 修改列头emoji后点击关闭emoji图标
-            if ((this.element.querySelector(".b3-dialog") as HTMLElement).style.zIndex < window.siyuan.menus.menu.element.style.zIndex) {
+            if ((this.element.querySelector(".b3-dialog") as HTMLElement).style.zIndex < getGlobalMenus().menu.element.style.zIndex) {
                 // https://github.com/siyuan-note/siyuan/issues/6783
-                window.siyuan.menus.menu.remove();
+                getGlobalMenus().menu.remove();
             }
            
             // 销毁标题Vue应用实例
@@ -297,7 +299,10 @@ left:${left || "auto"};top:${top || "auto"};${this.scrimPointerEvents ? ' pointe
     public bindInput(inputElement: HTMLInputElement | HTMLTextAreaElement, enterEvent?: () => void, bindEnter = true) {
         inputElement.focus();
         let timeStamp: number;
-        inputElement.addEventListener("keydown", (event: KeyboardEvent) => {
+        inputElement.addEventListener("keydown", (event: Event) => {
+            if(!(event instanceof KeyboardEvent)){
+                return
+            }
             if (event.isComposing || event.repeat) {
                 event.preventDefault();
                 return;
