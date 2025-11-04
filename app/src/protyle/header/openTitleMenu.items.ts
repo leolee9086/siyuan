@@ -8,7 +8,7 @@ import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n";
 export const createProtyleCopyMenu = (protyle: IProtyle) => {
     return new MenuItem({
         id: "copy",
-        label: window.siyuan.languages.copy,
+        label: siyuanI18n.copy,
         icon: "iconCopy",
         type: "submenu",
         submenu: copySubMenu([protyle.block.rootID], true, undefined, protyle.block.showAll ? protyle.block.id : protyle.block.rootID)
