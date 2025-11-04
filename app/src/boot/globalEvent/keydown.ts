@@ -177,9 +177,10 @@ const dialogArrow = (app: App, element: HTMLElement, event: KeyboardEvent) => {
 
 const editKeydown = (app: App, event: KeyboardEvent) => {
     let protyle: IProtyle;
-    let range: Range;
-    if (getSelection().rangeCount > 0) {
-        range = getSelection().getRangeAt(0);
+    let range: Range|null=null;
+    const selection =getSelection()
+    if (selection&&selection.rangeCount > 0) {
+        range = selection.getRangeAt(0);
     }
     const activePanelElement = document.querySelector(".layout__tab--active");
     let isFileFocus = false;
