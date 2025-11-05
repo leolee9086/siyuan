@@ -27,6 +27,7 @@ import { ref, computed } from 'vue'
 import { isWindow } from "../../util/functions"
 import { updateHotkeyTip } from "../../protyle/util/compatibility"
 import { getAllDocks } from "../../layout/getAll"
+import { siyuanI18n } from '../../util/siyuanEnvironments/i18n.getI18n';
 
 // 定义 props
 const props = defineProps<{
@@ -58,7 +59,7 @@ const filteredDocks = computed(() => {
 const selectItem = (type: string, index: number) => {
   selectedDockIndex.value = index
   if (type === 'riffCard') {
-    emit('pathUpdated', siyuanLanguages.riffCard)
+    emit('pathUpdated', siyuanI18n.riffCard)
   }
   emit('itemSelected', type, index)
 }

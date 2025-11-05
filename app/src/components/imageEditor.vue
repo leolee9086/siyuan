@@ -1,11 +1,7 @@
 <template>
   <div class="asset__viewer" @wheel="handleWheel" @mousedown="handleMouseDown" @mousemove="handleMouseMove"
     @mouseup="handleMouseUp" @mouseleave="handleMouseUp">
-    <ImageToolbar
-      :scale="scale"
-      :items="toolbarItems"
-      @action="handleToolbarAction"
-    />
+    <ImageToolbar :scale="scale" :items="toolbarItems" @action="handleToolbarAction" />
     <!-- 去雾参数控制面板 -->
     <div v-if="showDehazePanel" class="asset__dehaze-panel" @mousedown.stop @mousemove.stop>
       <div class="asset__panel-header">
@@ -18,34 +14,15 @@
       </div>
       <div class="asset__panel-content">
         <!-- 基础参数 -->
-        <ParameterControl
-          label="去雾强度 (omega)"
-          v-model="params.omega"
-          :min="0.5"
-          :max="1.0"
-          :step="0.05"
-          :hint="`控制去雾强度，值越大去雾效果越明显`"
-        />
-        
-        <ParameterControl
-          label="最小透射率 (t0)"
-          v-model="params.t0"
-          :min="0.01"
-          :max="1.0"
-          :step="0.01"
-          :hint="`控制最小透射率，影响图像亮度`"
-        />
-        
-        <ParameterControl
-          label="窗口大小"
-          v-model="params.windowSize"
-          :min="1"
-          :max="31"
-          :step="2"
-          :hint="`暗通道计算的窗口大小，影响去雾范围`"
-          :formatValue="(value: number) => `${value}x${value}`"
-        />
-        
+        <ParameterControl label="去雾强度 (omega)" v-model="params.omega" :min="0.5" :max="1.0" :step="0.05"
+          :hint="`控制去雾强度，值越大去雾效果越明显`" />
+
+        <ParameterControl label="最小透射率 (t0)" v-model="params.t0" :min="0.01" :max="1.0" :step="0.01"
+          :hint="`控制最小透射率，影响图像亮度`" />
+
+        <ParameterControl label="窗口大小" v-model="params.windowSize" :min="1" :max="31" :step="2"
+          :hint="`暗通道计算的窗口大小，影响去雾范围`" :formatValue="(value: number) => `${value}x${value}`" />
+<div class="fn__hr"></div>
         <!-- 自适应模式 -->
         <div class="asset__form-item">
           <label>
@@ -53,17 +30,11 @@
             自适应模式
           </label>
         </div>
-        
+
         <div v-if="params.adaptiveMode" class="asset__sub-form">
-          <ParameterControl
-            label="自适应强度"
-            v-model="params.adaptiveStrength"
-            :min="0.5"
-            :max="2.0"
-            :step="0.1"
-            :hint="getAdaptiveStrengthDescription()"
-          />
-          
+          <ParameterControl label="自适应强度" v-model="params.adaptiveStrength" :min="0.5" :max="2.0" :step="0.1"
+            :hint="getAdaptiveStrengthDescription()" />
+
           <div class="asset__form-item">
             <label>
               <input type="checkbox" v-model="params.spatialAdaptiveMode" />
@@ -71,7 +42,7 @@
             </label>
           </div>
         </div>
-        
+
         <!-- 图像增强 -->
         <div class="asset__form-item">
           <label>
@@ -79,34 +50,16 @@
             启用增强
           </label>
         </div>
-        
+
         <div v-if="params.enhancementOptions.enableEnhancement" class="asset__sub-form">
-          <ParameterControl
-            label="饱和度增强"
-            v-model="params.enhancementOptions.saturationEnhancement"
-            :min="0.5"
-            :max="2.0"
-            :step="0.1"
-            :hint="getSaturationDescription()"
-          />
-          
-          <ParameterControl
-            label="对比度增强"
-            v-model="params.enhancementOptions.contrastEnhancement"
-            :min="0.5"
-            :max="2.0"
-            :step="0.1"
-            :hint="getContrastDescription()"
-          />
-          
-          <ParameterControl
-            label="明度增强"
-            v-model="params.enhancementOptions.brightnessEnhancement"
-            :min="0.5"
-            :max="2.0"
-            :step="0.1"
-            :hint="getBrightnessDescription()"
-          />
+          <ParameterControl label="饱和度增强" v-model="params.enhancementOptions.saturationEnhancement" :min="0.5"
+            :max="2.0" :step="0.1" :hint="getSaturationDescription()" />
+
+          <ParameterControl label="对比度增强" v-model="params.enhancementOptions.contrastEnhancement" :min="0.5" :max="2.0"
+            :step="0.1" :hint="getContrastDescription()" />
+
+          <ParameterControl label="明度增强" v-model="params.enhancementOptions.brightnessEnhancement" :min="0.5" :max="2.0"
+            :step="0.1" :hint="getBrightnessDescription()" />
         </div>
       </div>
     </div>
@@ -120,7 +73,8 @@
     </div>
 
     <div class="asset__image-wrapper"
-      :style="{ transform: `translate(${translateX}px, ${translateY}px) scale(${scale})` }" ref="imageWrapper">
+      :style="{ transform: `translate(${translateX}px, ${translateY}px) scale(${scale})`, 'z-index': 0 }"
+      ref="imageWrapper">
       <img :src="currentImageSrc" @load="onImageLoad" ref="imageElement" draggable="false" />
     </div>
   </div>

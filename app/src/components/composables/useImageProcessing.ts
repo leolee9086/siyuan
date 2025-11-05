@@ -47,11 +47,6 @@ interface ProcessingResult {
   adaptiveInfo?: any
 }
 
-interface AtmosphericLight {
-  r: number
-  g: number
-  b: number
-}
 
 /**
  * 图像处理状态管理
