@@ -211,7 +211,7 @@ const toolbarItems = computed<ToolbarItem[]>(() => [
   {
     id: 'zoom-out',
     type: 'button',
-    icon: 'iconMinus',
+    icon: 'iconMin',
     action: 'zoom-out'
   },
   {
@@ -241,7 +241,7 @@ const toolbarItems = computed<ToolbarItem[]>(() => [
   {
     id: 'toggle-dehaze-panel',
     type: 'button',
-    icon: 'iconSun',
+    icon: 'iconEdit',
     title: '去雾处理',
     action: 'toggle-dehaze-panel',
     activeCondition: () => showDehazePanel.value
@@ -467,12 +467,6 @@ const autoProcessFunction = async () => {
 
 // 创建防抖的自动处理器
 const autoProcessor = createAutoProcessor(autoProcessFunction);
-
-// 重置为原图
-const resetToOriginal = () => {
-  resetImage();
-  showOriginalImage.value = false;
-};
 
 // 监听参数变化，自动触发处理
 watch(params, () => {

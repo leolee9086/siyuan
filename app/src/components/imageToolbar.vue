@@ -1,26 +1,23 @@
 <template>
-  <div class="asset__toolbar">
+  <div class="fn__flex status  fn__flex" style="color:">
     <template v-for="(item, index) in items" :key="item.id">
-      <!-- 缩放级别显示 -->
-      <span v-if="item.type === 'zoom-level'" class="asset__zoom-level">
+      <span v-if="item.type === 'zoom-level'" class="toolbar__item ariaLabel ft__smaller ft__center fn__flex-center">
         {{ Math.round(scale * 100) }}%
       </span>
       
-      <!-- 分隔符 -->
       <div v-else-if="item.type === 'spacer'" class="fn__space"></div>
       
-      <!-- 按钮 -->
-      <button
+      <span
         v-else-if="item.type === 'button' && shouldShowButton(item)"
-        class="b3-button b3-button--outline"
+        class="toolbar__item ariaLabel fn__flex-center fn__pointer"
         @click="handleButtonClick(item)"
-        :class="{ 'is-active': isButtonActive(item) }"
+        :class="{ 'ft__primary': isButtonActive(item) }"
         :title="item.title"
       >
         <svg>
           <use :xlink:href="`#${item.icon}`"></use>
         </svg>
-      </button>
+      </span>
     </template>
   </div>
 </template>
@@ -79,29 +76,3 @@ const handleButtonClick = (item: ToolbarButton) => {
 };
 </script>
 
-<style lang="scss" scoped>
-.asset__toolbar {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  display: flex;
-  align-items: center;
-  background-color: var(--b3-theme-background);
-  border-radius: 4px;
-  padding: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  z-index: 10;
-
-  .is-active {
-    background-color: var(--b3-theme-primary);
-    color: var(--b3-theme-on-primary);
-  }
-}
-
-.asset__zoom-level {
-  font-size: 12px;
-  color: var(--b3-theme-on-background);
-  min-width: 40px;
-  text-align: center;
-}
-</style>
