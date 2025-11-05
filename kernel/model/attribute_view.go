@@ -705,7 +705,7 @@ func (tx *Transaction) doChangeAttrViewLayout(operation *Operation) (ret *TxErr)
 	return
 }
 
-func ChangeAttrViewLayout(blockID, avID string, layout av.LayoutType) (err error) {
+func ChangeAttrViewLayout(blockID, avID string, newLayout av.LayoutType) (err error) {
 	attrView, err := av.ParseAttributeView(avID)
 	if err != nil {
 		return
@@ -716,7 +716,6 @@ func ChangeAttrViewLayout(blockID, avID string, layout av.LayoutType) (err error
 		return
 	}
 
-	newLayout := layout
 	if newLayout == view.LayoutType {
 		return
 	}
@@ -2789,6 +2788,7 @@ func (tx *Transaction) doDuplicateAttrViewView(operation *Operation) (ret *TxErr
 		view.Kanban.CardSize = masterView.Kanban.CardSize
 		view.Kanban.FitImage = masterView.Kanban.FitImage
 		view.Kanban.DisplayFieldName = masterView.Kanban.DisplayFieldName
+		view.Kanban.FillColBackgroundColor = masterView.Kanban.FillColBackgroundColor
 		view.Kanban.ShowIcon = masterView.Kanban.ShowIcon
 		view.Kanban.WrapField = masterView.Kanban.WrapField
 	}

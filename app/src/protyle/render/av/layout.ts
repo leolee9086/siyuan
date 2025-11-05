@@ -6,7 +6,7 @@ import {getFieldsByData} from "./view";
 
 export const getLayoutHTML = (data: IAV) => {
     let html = "";
-    const view = data.view as IAVGallery;
+    const view = data.view as IAVKanban;
     if (data.viewType === "gallery" || data.viewType === "kanban") {
         let coverFromTitle = "";
         if (view.coverFrom === 0) {
@@ -100,7 +100,7 @@ export const getLayoutHTML = (data: IAV) => {
         html += `<label class="b3-menu__item">
     <span class="fn__flex-center">${window.siyuan.languages.useBackground}</span>
     <span class="fn__space fn__flex-1"></span>
-    <input data-type="toggle-kanban-bg" type="checkbox" class="b3-switch b3-switch--menu" ${view.displayFieldName ? "checked" : ""}>
+    <input data-type="toggle-kanban-bg" type="checkbox" class="b3-switch b3-switch--menu" ${view.fillColBackgroundColor ? "checked" : ""}>
 </label>`;
     }
     return html + `<button class="b3-menu__item" data-type="set-page-size" data-size="${view.pageSize}">
@@ -175,9 +175,27 @@ export const bindLayoutEvent = (options: {
         });
         options.data.view.wrapField = checked;
     });
-    if (options.data.viewType !== "gallery") {
+    if (options.data.viewType === "table") {
         return;
     }
+    const toggleBgElement = options.menuElement.querySelector('.b3-switch[data-type="toggle-kanban-bg"]') as HTMLInputElement;
+    toggleBgElement.addEventListener("change", () => {
+        const avID = options.blockElement.getAttribute("data-av-id");
+        const blockID = options.blockElement.getAttribute("data-node-id");
+        const checked = toggleBgElement.checked;
+        transaction(options.protyle, [{
+            action: "setAttrViewFillColBackgroundColor",
+            avID,
+            blockID,
+            data: checked
+        }], [{
+            action: "setAttrViewFillColBackgroundColor",
+            avID,
+            blockID,
+            data: !checked
+        }]);
+        (options.data.view as IAVKanban).fillColBackgroundColor = checked;
+    })
     const toggleFitElement = options.menuElement.querySelector('.b3-switch[data-type="toggle-gallery-fit"]') as HTMLInputElement;
     toggleFitElement.addEventListener("change", () => {
         const avID = options.blockElement.getAttribute("data-av-id");
