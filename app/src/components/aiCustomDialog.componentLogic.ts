@@ -1,4 +1,5 @@
 import { ref, onMounted, nextTick } from 'vue';
+import { siyuanI18n } from '../util/siyuanEnvironments/i18n.getI18n';
 
 // 定义组件事件类型
 export interface AiCustomDialogEvents {
@@ -17,7 +18,7 @@ export function useAiCustomDialog(events: AiCustomDialogEvents) {
   const nameInput = ref<HTMLInputElement>();
 
   // 获取语言包
-  const languages = window.siyuan.languages;
+  const languages = siyuanI18n;
 
   // 事件处理函数
   const handleCancel = () => {
