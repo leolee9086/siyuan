@@ -15,6 +15,7 @@ import {App} from "../index";
 import {Constants} from "../constants";
 import {textMenu} from "./text";
 import {hideTooltip} from "../dialog/tooltip";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
 
 export class Menus {
     public menu: Menu;
@@ -36,14 +37,14 @@ export class Menus {
             if (target.classList.contains("b3-text-field") || (target.tagName === "INPUT" && (target as HTMLInputElement).type === "text")) {
                 /// #if !BROWSER
                 ipcRenderer.send(Constants.SIYUAN_CONTEXT_MENU, {
-                    undo: window.siyuan.languages.undo,
-                    redo: window.siyuan.languages.redo,
-                    copy: window.siyuan.languages.copy,
-                    cut: window.siyuan.languages.cut,
-                    delete: window.siyuan.languages.delete,
-                    paste: window.siyuan.languages.paste,
-                    pasteAsPlainText: window.siyuan.languages.pasteAsPlainText,
-                    selectAll: window.siyuan.languages.selectAll,
+                    undo: siyuanI18n.undo,
+                    redo: siyuanI18n.redo,
+                    copy: siyuanI18n.copy,
+                    cut: siyuanI18n.cut,
+                    delete: siyuanI18n.delete,
+                    paste: siyuanI18n.paste,
+                    pasteAsPlainText: siyuanI18n.pasteAsPlainText,
+                    selectAll: siyuanI18n.selectAll,
                 });
                 /// #endif
                 event.stopPropagation();
