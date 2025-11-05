@@ -8,28 +8,30 @@ import {Bookmark} from "../layout/dock/Bookmark";
 import {isMobile} from "../util/functions";
 import {MobileBookmarks} from "../mobile/dock/MobileBookmarks";
 import {Constants} from "../constants";
+import { getGlobalMenus } from "../util/siyuanEnvironments/getMenu";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
 
 export const openBookmarkMenu = (element: HTMLElement, event: MouseEvent, bookmarkObj: Bookmark | MobileBookmarks) => {
-    if (!window.siyuan.menus.menu.element.classList.contains("fn__none") &&
-        window.siyuan.menus.menu.element.getAttribute("data-name") === Constants.MENU_BOOKMARK) {
-        window.siyuan.menus.menu.remove();
+    if (!getGlobalMenus().menu.element.classList.contains("fn__none") &&
+        getGlobalMenus().menu.element.getAttribute("data-name") === Constants.MENU_BOOKMARK) {
+        getGlobalMenus().menu.remove();
         return;
     }
-    window.siyuan.menus.menu.remove();
+    getGlobalMenus().menu.remove();
     const id = element.getAttribute("data-node-id");
-    if (!id && !window.siyuan.config.readonly) {
-        window.siyuan.menus.menu.append(new MenuItem({
+    if (!id && !getSiyuanConfig().readonly) {
+        getGlobalMenus().menu.append(new MenuItem({
             id: "rename",
             icon: "iconEdit",
-            label: window.siyuan.languages.rename,
+            label: siyuanI18n.rename,
             click: () => {
                 const oldBookmark = element.querySelector(".b3-list-item__text").textContent;
                 const dialog = new Dialog({
-                    title: window.siyuan.languages.rename,
+                    title: siyuanI18n.rename,
                     content: `<div class="b3-dialog__content"><input class="b3-text-field fn__block"></div>
 <div class="b3-dialog__action">
-    <button class="b3-button b3-button--cancel">${window.siyuan.languages.cancel}</button><div class="fn__space"></div>
-    <button class="b3-button b3-button--text">${window.siyuan.languages.confirm}</button>
+    <button class="b3-button b3-button--cancel">${siyuanI18n.cancel}</button><div class="fn__space"></div>
+    <button class="b3-button b3-button--text">${siyuanI18n.confirm}</button>
 </div>`,
                     width: isMobile() ? "92vw" : "520px",
                 });
@@ -57,23 +59,23 @@ export const openBookmarkMenu = (element: HTMLElement, event: MouseEvent, bookma
         }).element);
     }
     if (id) {
-        window.siyuan.menus.menu.append(new MenuItem({
+        getGlobalMenus().menu.append(new MenuItem({
             id: "copy",
-            label: window.siyuan.languages.copy,
+            label: siyuanI18n.copy,
             type: "submenu",
             icon: "iconCopy",
             submenu: copySubMenu([element.getAttribute("data-node-id")], false)
         }).element);
     }
 
-    if (!window.siyuan.config.readonly) {
-        window.siyuan.menus.menu.append(new MenuItem({
+    if (!getSiyuanConfig().readonly) {
+        getGlobalMenus().menu.append(new MenuItem({
             id: "remove",
             icon: "iconTrashcan",
-            label: window.siyuan.languages.remove,
+            label: siyuanI18n.remove,
             click: () => {
-                const bookmarkText = element.querySelector(".b3-list-item__text").textContent;
-                confirmDialog(window.siyuan.languages.deleteOpConfirm, window.siyuan.languages.removeBookmark.replace("${x}", `<b>${escapeHtml(bookmarkText)}</b>`), () => {
+                const bookmarkText = element.querySelector(".b3-list-item__text")?.textContent;
+                confirmDialog(siyuanI18n.deleteOpConfirm, siyuanI18n.removeBookmark.replace("${x}", `<b>${escapeHtml(bookmarkText)}</b>`), () => {
                     if (id) {
                         fetchPost("/api/attr/setBlockAttrs", {id, attrs: {bookmark: ""}}, () => {
                             bookmarkObj.update();
@@ -92,6 +94,6 @@ export const openBookmarkMenu = (element: HTMLElement, event: MouseEvent, bookma
             }
         }).element);
     }
-    window.siyuan.menus.menu.element.setAttribute("data-name", Constants.MENU_BOOKMARK);
-    window.siyuan.menus.menu.popup({x: event.clientX - 11, y: event.clientY + 11, h: 22, w: 12});
+    getGlobalMenus().menu.element.setAttribute("data-name", Constants.MENU_BOOKMARK);
+    getGlobalMenus().menu.popup({x: event.clientX - 11, y: event.clientY + 11, h: 22, w: 12});
 };
