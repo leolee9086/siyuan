@@ -72,10 +72,7 @@ export const refMenu = (protyle: IProtyle, refElement: HTMLElement) => {
     getGlobalMenus().menu.element.setAttribute("data-name", Constants.MENU_INLINE_REF);
     if (!protyle.disabled) {
         getGlobalMenus().menu.append(createAnchorEditorItem(refElement).element);
-        getGlobalMenus().menu.append(new MenuItem({
-            id: "separator_1",
-            type: "separator"
-        }).element);
+        getGlobalMenus().menu.append(new MenuItem({id: "separator_1",type: "separator"}).element);
     }
     /// #if !MOBILE
     getGlobalMenus().menu.append(new MenuItem({
