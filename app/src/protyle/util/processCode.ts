@@ -1,38 +1,35 @@
-import {abcRender} from "../render/abcRender";
-import {chartRender} from "../render/chartRender";
-import {graphvizRender} from "../render/graphvizRender";
-import {mathRender} from "../render/mathRender";
-import {mermaidRender} from "../render/mermaidRender";
-import {mindmapRender} from "../render/mindmapRender";
-import {flowchartRender} from "../render/flowchartRender";
-import {plantumlRender} from "../render/plantumlRender";
-import {Constants} from "../../constants";
-import {htmlRender} from "../render/htmlRender";
+import { abcRender } from "../render/abcRender";
+import { chartRender } from "../render/chartRender";
+import { graphvizRender } from "../render/graphvizRender";
+import { mathRender } from "../render/mathRender";
+import { mermaidRender } from "../render/mermaidRender";
+import { mindmapRender } from "../render/mindmapRender";
+import { flowchartRender } from "../render/flowchartRender";
+import { plantumlRender } from "../render/plantumlRender";
+import { Constants } from "../../constants";
+import { htmlRender } from "../render/htmlRender";
 
 export const processPasteCode = (html: string, text: string, protyle: IProtyle) => {
     const tempElement = document.createElement("div");
     tempElement.innerHTML = html;
-    //如果结构不对说明传入值有问题,应该直接报错
-    if(!(tempElement.lastElementChild instanceof HTMLElement)){
-        throw ('传入的字符串格式错误')
-    }
     let isCode = false;
-    if (tempElement.childElementCount === 1  &&
-        tempElement.lastElementChild.style.fontFamily.indexOf("monospace") > -1) {
-        // VS Code
-        isCode = true;
-    } else if (tempElement.childElementCount === 1 && tempElement.querySelectorAll("pre").length === 1) {
-        // IDE
-        isCode = true;
-    } else if (html.indexOf('\n<p class="p1">') === 0) {
-        // Xcode
-        isCode = true;
-    } else if (tempElement.childElementCount === 1 && tempElement.firstElementChild?.tagName === "TABLE" &&
-        tempElement.querySelector(".line-number") && tempElement.querySelector(".line-content")) {
-        // 网页源码
-        isCode = true;
+    if (tempElement.lastElementChild instanceof HTMLElement){
+        if (tempElement.childElementCount === 1 &&
+            tempElement.lastElementChild.style.fontFamily.indexOf("monospace") > -1) {
+            // VS Code
+            isCode = true;
+        } else if (tempElement.childElementCount === 1 && tempElement.querySelectorAll("pre").length === 1) {
+            // IDE
+            isCode = true;
+        } else if (html.indexOf('\n<p class="p1">') === 0) {
+            // Xcode
+            isCode = true;
+        } else if (tempElement.childElementCount === 1 && tempElement.firstElementChild?.tagName === "TABLE" &&
+            tempElement.querySelector(".line-number") && tempElement.querySelector(".line-content")) {
+            // 网页源码
+            isCode = true;
+        }
     }
-
     if (isCode) {
         let code = text || html;
         if (/\n/.test(code)) {
@@ -47,7 +44,7 @@ export const processPasteCode = (html: string, text: string, protyle: IProtyle) 
 };
 
 export const processRender = (previewPanel: Element) => {
-    const language = previewPanel.getAttribute("data-subtype")||"";
+    const language = previewPanel.getAttribute("data-subtype") || "";
     if (!Constants.SIYUAN_RENDER_CODE_LANGUAGES.includes(language) || previewPanel.getAttribute("data-type") !== "NodeHTMLBlock") {
         abcRender(previewPanel);
         htmlRender(previewPanel);
