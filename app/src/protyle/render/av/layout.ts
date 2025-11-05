@@ -7,7 +7,7 @@ import {getFieldsByData} from "./view";
 export const getLayoutHTML = (data: IAV) => {
     let html = "";
     const view = data.view as IAVKanban;
-    if (data.viewType === "gallery" || data.viewType === "kanban") {
+    if (["gallery", "kanban"].includes(data.viewType)) {
         let coverFromTitle = "";
         if (view.coverFrom === 0) {
             coverFromTitle = window.siyuan.languages.calcOperatorNone;
@@ -178,24 +178,6 @@ export const bindLayoutEvent = (options: {
     if (options.data.viewType === "table") {
         return;
     }
-    const toggleBgElement = options.menuElement.querySelector('.b3-switch[data-type="toggle-kanban-bg"]') as HTMLInputElement;
-    toggleBgElement.addEventListener("change", () => {
-        const avID = options.blockElement.getAttribute("data-av-id");
-        const blockID = options.blockElement.getAttribute("data-node-id");
-        const checked = toggleBgElement.checked;
-        transaction(options.protyle, [{
-            action: "setAttrViewFillColBackgroundColor",
-            avID,
-            blockID,
-            data: checked
-        }], [{
-            action: "setAttrViewFillColBackgroundColor",
-            avID,
-            blockID,
-            data: !checked
-        }]);
-        (options.data.view as IAVKanban).fillColBackgroundColor = checked;
-    })
     const toggleFitElement = options.menuElement.querySelector('.b3-switch[data-type="toggle-gallery-fit"]') as HTMLInputElement;
     toggleFitElement.addEventListener("change", () => {
         const avID = options.blockElement.getAttribute("data-av-id");
@@ -231,6 +213,27 @@ export const bindLayoutEvent = (options: {
             data: !checked
         }]);
         (options.data.view as IAVGallery).displayFieldName = checked;
+    });
+    if (options.data.viewType === "gallery") {
+        return;
+    }
+    const toggleBgElement = options.menuElement.querySelector('.b3-switch[data-type="toggle-kanban-bg"]') as HTMLInputElement;
+    toggleBgElement.addEventListener("change", () => {
+        const avID = options.blockElement.getAttribute("data-av-id");
+        const blockID = options.blockElement.getAttribute("data-node-id");
+        const checked = toggleBgElement.checked;
+        transaction(options.protyle, [{
+            action: "setAttrViewFillColBackgroundColor",
+            avID,
+            blockID,
+            data: checked
+        }], [{
+            action: "setAttrViewFillColBackgroundColor",
+            avID,
+            blockID,
+            data: !checked
+        }]);
+        (options.data.view as IAVKanban).fillColBackgroundColor = checked;
     });
 };
 
