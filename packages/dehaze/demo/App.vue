@@ -551,7 +551,8 @@ onUnmounted(() => {
 
 </script>
 
-<style scoped>
+<style >
+@import url('./style.css');
 /* Checkbox控制样式 - 紧凑版本 */
 .checkbox-control {
   margin-bottom: 0.75rem;

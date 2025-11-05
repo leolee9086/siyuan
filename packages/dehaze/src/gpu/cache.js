@@ -36,7 +36,7 @@ const generateCacheKey = (params) => {
  * @param {ImageData} imageData - 图像数据
  * @returns {string} 哈希值
  */
-const generateImageHash = (imageData) => {
+export const generateImageHash = (imageData) => {
   const { width, height, data } = imageData;
   let hash = `${width}x${height}`;
   
