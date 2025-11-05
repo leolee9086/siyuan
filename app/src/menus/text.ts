@@ -1,4 +1,5 @@
-import {Menu} from "../plugin/Menu";
+import { Menu } from "../plugin/Menu";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
 
 export const textMenu = (target: Element) => {
     const menu = new Menu();
@@ -7,28 +8,30 @@ export const textMenu = (target: Element) => {
     }
     menu.addItem({
         id: "copy",
-        label: window.siyuan.languages.copy,
+        label: siyuanI18n.copy,
         icon: "iconCopy",
         click() {
-            if (getSelection().rangeCount === 0) {
+            const selection = getSelection()
+            if ((!selection) || selection.rangeCount === 0) {
                 return;
             }
-            const range = getSelection().getRangeAt(0);
+            const range = selection.getRangeAt(0);
             if (!range.toString()) {
-                getSelection().getRangeAt(0).selectNode(target);
+                selection.getRangeAt(0).selectNode(target);
             }
             document.execCommand("copy");
         }
     });
     menu.addItem({
         id: "selectAll",
-        label: window.siyuan.languages.selectAll,
+        label: siyuanI18n.selectAll,
         icon: "iconSelect",
         click() {
-            if (getSelection().rangeCount === 0) {
+            const selection = getSelection()
+            if ((!selection) || selection.rangeCount === 0) {
                 return;
             }
-            getSelection().getRangeAt(0).selectNode(target);
+            selection.getRangeAt(0).selectNode(target);
         }
     });
     return menu;
