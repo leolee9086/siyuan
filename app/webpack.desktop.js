@@ -111,12 +111,11 @@ module.exports = (env, argv) => {
                         path.resolve(__dirname, "src"),
                     ],
                     use: [
-                          {
-                            loader: "vue-style-loader", // translates CSS into CommonJS
-                            options: {
-                                sourceMap: argv.mode !== "production",
-                            },
-                        },
+                                                 process.env.NODE_ENV !== 'production'
+                            ? 'vue-style-loader'
+                            : MiniCssExtractPlugin.loader,
+
+
                         {
                             loader: "css-loader", // translates CSS into CommonJS
                             options: {
