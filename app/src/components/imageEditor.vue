@@ -1,38 +1,11 @@
 <template>
   <div class="asset__viewer" @wheel="handleWheel" @mousedown="handleMouseDown" @mousemove="handleMouseMove"
     @mouseup="handleMouseUp" @mouseleave="handleMouseUp">
-    <div class="asset__toolbar">
-      <button class="b3-button b3-button--outline" @click="zoomOut">
-        <svg>
-          <use xlink:href="#iconMinus"></use>
-        </svg>
-      </button>
-      <span class="asset__zoom-level">{{ Math.round(scale * 100) }}%</span>
-      <button class="b3-button b3-button--outline" @click="zoomIn">
-        <svg>
-          <use xlink:href="#iconAdd"></use>
-        </svg>
-      </button>
-      <div class="fn__space"></div>
-      <button class="b3-button b3-button--outline" @click="resetZoom">
-        <svg>
-          <use xlink:href="#iconRefresh"></use>
-        </svg>
-      </button>
-      <div class="fn__space"></div>
-      <button class="b3-button b3-button--outline" @click="toggleDehazePanel" :class="{ 'is-active': showDehazePanel }"
-        title="去雾处理">
-        <svg>
-          <use xlink:href="#iconSun"></use>
-        </svg>
-      </button>
-      <button v-if="hasDehazedImage" class="b3-button b3-button--outline" @click="toggleOriginalImage"
-        :class="{ 'is-active': !showOriginalImage }" title="切换原图/去雾图">
-        <svg>
-          <use xlink:href="#iconCompare"></use>
-        </svg>
-      </button>
-    </div>
+    <ImageToolbar
+      :scale="scale"
+      :items="toolbarItems"
+      @action="handleToolbarAction"
+    />
     <!-- 去雾参数控制面板 -->
     <div v-if="showDehazePanel" class="asset__dehaze-panel" @mousedown.stop @mousemove.stop>
       <div class="asset__panel-header">
@@ -164,6 +137,8 @@ import { useProcessingParams } from './composables/useProcessingParams'
 import { useImageProcessing } from './composables/useImageProcessing'
 // 导入参数控制组件
 import ParameterControl from './ParameterControl.vue'
+// 导入工具栏组件
+import ImageToolbar, { type ToolbarItem } from './imageToolbar.vue'
 
 // 定义组件属性
 interface Props {
@@ -230,6 +205,57 @@ const isProcessing = computed(() => autoProcessing.value || imageProcessing.valu
 
 // 计算是否有已处理的图像
 const hasDehazedImage = computed(() => processedImage.value !== null);
+
+// 工具栏配置
+const toolbarItems = computed<ToolbarItem[]>(() => [
+  {
+    id: 'zoom-out',
+    type: 'button',
+    icon: 'iconMinus',
+    action: 'zoom-out'
+  },
+  {
+    id: 'zoom-level',
+    type: 'zoom-level'
+  },
+  {
+    id: 'zoom-in',
+    type: 'button',
+    icon: 'iconAdd',
+    action: 'zoom-in'
+  },
+  {
+    id: 'spacer-1',
+    type: 'spacer'
+  },
+  {
+    id: 'reset-zoom',
+    type: 'button',
+    icon: 'iconRefresh',
+    action: 'reset-zoom'
+  },
+  {
+    id: 'spacer-2',
+    type: 'spacer'
+  },
+  {
+    id: 'toggle-dehaze-panel',
+    type: 'button',
+    icon: 'iconSun',
+    title: '去雾处理',
+    action: 'toggle-dehaze-panel',
+    activeCondition: () => showDehazePanel.value
+  },
+  {
+    id: 'toggle-original-image',
+    type: 'button',
+    icon: 'iconCompare',
+    title: '切换原图/去雾图',
+    action: 'toggle-original-image',
+    condition: () => hasDehazedImage.value,
+    activeCondition: () => !showOriginalImage.value
+  }
+]);
 
 // 计算当前显示的图片源
 const currentImageSrc = computed(() => {
@@ -409,6 +435,27 @@ const toggleOriginalImage = () => {
   }
 };
 
+// 处理工具栏操作
+const handleToolbarAction = (action: string) => {
+  switch (action) {
+    case 'zoom-in':
+      zoomIn();
+      break;
+    case 'zoom-out':
+      zoomOut();
+      break;
+    case 'reset-zoom':
+      resetZoom();
+      break;
+    case 'toggle-dehaze-panel':
+      toggleDehazePanel();
+      break;
+    case 'toggle-original-image':
+      toggleOriginalImage();
+      break;
+  }
+};
+
 // 创建自动处理函数
 const autoProcessFunction = async () => {
   if (!originImageElement.value) return;
@@ -452,31 +499,6 @@ onUnmounted(() => {
   height: 100%;
   overflow: hidden;
   user-select: none;
-}
-
-.asset__toolbar {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  display: flex;
-  align-items: center;
-  background-color: var(--b3-theme-background);
-  border-radius: 4px;
-  padding: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  z-index: 10;
-
-  .is-active {
-    background-color: var(--b3-theme-primary);
-    color: var(--b3-theme-on-primary);
-  }
-}
-
-.asset__zoom-level {
-  font-size: 12px;
-  color: var(--b3-theme-on-background);
-  min-width: 40px;
-  text-align: center;
 }
 
 .asset__dehaze-panel {

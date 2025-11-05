@@ -5,4 +5,4 @@ export { createApp } from "vue";
 export { createSimpleVueComponentLoader } from "../util/vue/mount";
 
 // 组件依赖
-export { default as ImageViewer } from "../components/imageViewer.vue";
+export { default as ImageViewer } from "../components/imageEditor.vue";

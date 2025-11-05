@@ -1,5 +1,5 @@
 import { createVueComponentLoader } from "../../util/vue/mount";
-import { default as ImageViewer } from "../../components/imageViewer.vue";
+import { default as ImageViewer } from "../../components/imageEditor.vue";
 
 export const initImagePanel = (element: HTMLElement, urlOrPath: string) => {
     // 清空容器
