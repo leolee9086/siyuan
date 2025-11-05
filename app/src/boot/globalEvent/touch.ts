@@ -6,7 +6,8 @@ import {
     isInEmbedBlock
 } from "../../protyle/util/hasClosest";
 import {initFileMenu, initNavigationMenu} from "../../menus/navigation";
-import {inlineMathMenu, linkMenu, refMenu, tagMenu} from "../../menus/protyle";
+import {inlineMathMenu, linkMenu, tagMenu} from "../../menus/protyle";
+import { refMenu } from "../../menus/protyle.refMenu";
 import { fileAnnotationRefMenu } from "../../menus/protyle.fileAnnotationRefMenu";
 import {App} from "../../index";
 import {Protyle} from "../../protyle";

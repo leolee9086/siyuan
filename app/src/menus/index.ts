@@ -29,7 +29,7 @@ export class Menus {
             }
             let target = event.target as HTMLElement;
             if (hasClosestByClassName(target, "av__panel") && !hasClosestByClassName(target, "b3-menu")) {
-                document.querySelector(".av__panel").dispatchEvent(new CustomEvent("click", {detail: "close"}));
+                document.querySelector(".av__panel")?.dispatchEvent(new CustomEvent("click", {detail: "close"}));
                 event.stopPropagation();
                 event.preventDefault();
                 return;
@@ -96,7 +96,7 @@ export class Menus {
                     break;
                 } else if (dataType === "textMenu") {
                     /// #if !BROWSER
-                    textMenu(target).open({x: event.clientX, y: event.clientY});
+                    target&&textMenu(target)?.open({x: event.clientX, y: event.clientY});
                     event.stopPropagation();
                     event.preventDefault();
                     break;
@@ -117,8 +117,9 @@ export class Menus {
     }
 
     private unselect() {
-        if (getSelection().rangeCount > 0) {
-            getSelection().getRangeAt(0).collapse(true);
+        const selection = getSelection()
+        if (selection&&selection.rangeCount > 0) {
+            selection.getRangeAt(0).collapse(true);
         }
     }
 }

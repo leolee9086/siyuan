@@ -27,11 +27,11 @@ import {
     imgMenu,
     inlineMathMenu,
     linkMenu,
-    refMenu,
     setFold,
     tagMenu,
     zoomOut
 } from "../../menus/protyle";
+import { refMenu } from "../../menus/protyle.refMenu";
 import { fileAnnotationRefMenu } from "../../menus/protyle.fileAnnotationRefMenu";
 import * as dayjs from "dayjs";
 import {dropEvent} from "../util/editorCommonEvent";

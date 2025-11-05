@@ -54,7 +54,8 @@ import {openFileById} from "../../editor/util";
 import { openBy } from "../../editor/utils.openBy";
 /// #endif
 import {alignImgCenter, alignImgLeft, commonHotkey, downSelect, getStartEndElement, upSelect} from "./commonHotkey";
-import {inlineMathMenu, linkMenu, refMenu, setFold, tagMenu} from "../../menus/protyle";
+import {inlineMathMenu, linkMenu, setFold, tagMenu} from "../../menus/protyle";
+import { refMenu } from "../../menus/protyle.refMenu";
 import { fileAnnotationRefMenu } from "../../menus/protyle.fileAnnotationRefMenu";
 import {openAttr} from "../../menus/commonMenuItem";
 import {Constants} from "../../constants";
