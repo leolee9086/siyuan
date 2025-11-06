@@ -10,11 +10,11 @@ export interface AIConfig {
     apiMaxTokens: number;
     apiModel: string;
     apiProvider: string;
-    apiProxy?: string;
+    apiProxy: string;
     apiTemperature: number;
     apiTimeout: number;
     apiUserAgent: string;
-    apiVersion?: string;
+    apiVersion?: string|undefined;
 }
 
 /**
@@ -27,7 +27,7 @@ export const aiConfigSchema = z.object({
     apiMaxTokens: z.number().min(0, "最大令牌数不能为负数"),
     apiModel: z.string().min(1, "模型名称不能为空"),
     apiProvider: z.string().min(1, "API提供商不能为空"),
-    apiProxy: z.string().optional(),
+    apiProxy: z.string(),
     apiTemperature: z.number().min(0).max(2, "温度值必须在0-2之间"),
     apiTimeout: z.number().min(1, "超时时间必须大于1秒"),
     apiUserAgent: z.string().min(1, "用户代理不能为空"),
@@ -113,6 +113,9 @@ export const validateAIConfig = (config: unknown): AIConfig => {
     const parsedConfig= aiConfigSchema.parse(config);
     if(parsedConfig.apiMaxTokens===0){
         parsedConfig.apiMaxTokens=163840
+    }
+    if(parsedConfig.apiProxy===undefined){
+        parsedConfig.apiProxy=''
     }
     return parsedConfig
 };
