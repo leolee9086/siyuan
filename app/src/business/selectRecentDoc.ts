@@ -2,7 +2,9 @@ import RecentDocs from "../components/recentDocsAndDocks.vue";
 import { Constants } from "../constants";
 import { Dialog } from "../dialog";
 import { focusByRange } from "../protyle/util/selection";
+import { getFirstSelectedRange } from "../util/DOM/range";
 import { fetchPost } from "../util/fetch";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
 import { VueComponentMountConfig, createVueComponentInDialog } from "../util/vue/mount";
 
 /**
@@ -26,10 +28,7 @@ export const selectRecentDoc = (): Promise<string | null> => {
         }
 
         // 保存当前选择范围
-        let range: Range;
-        if (getSelection().rangeCount > 0) {
-            range = getSelection().getRangeAt(0);
-        }
+        let range=getFirstSelectedRange()
 
         // 处理文档选择事件
         const handleDocSelectedForSelect = (doc: { rootID: string; icon: string; title: string; }) => {
@@ -75,7 +74,7 @@ export const selectRecentDoc = (): Promise<string | null> => {
                 handleDocSelected: handleDocSelectedForSelect
             },
             template: `<div class="fn__flex">
-<div class="fn__flex-center">${window.siyuan.languages.recentDocs}</div>
+<div class="fn__flex-center">${siyuanI18n.recentDocs}</div>
 <div class="fn__flex-1"></div>
 </div>`,
         };

@@ -11,7 +11,7 @@ export const isCurrentEditor = (blockId: string) => {
     const tabDataID = activeElement.getAttribute("data-id")
     if(!tabDataID){
         console.error(blockId,activeElement)
-        throw ("ui结构错误,缺少data-id")
+        throw new Error ("ui结构错误,缺少data-id")
     }
     if (activeElement) {
         const tab = getInstanceById(tabDataID);

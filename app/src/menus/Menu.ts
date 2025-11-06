@@ -70,7 +70,7 @@ export class Menu {
             return;
         }
         if (!this.element.lastElementChild) {
-            throw ('菜单容器被意外移除')
+            throw new Error('菜单容器被意外移除')
         }
         if (typeof index === "number") {
             const insertElement = this.element.querySelectorAll(".b3-menu__items > .b3-menu__separator")[index];
@@ -85,7 +85,7 @@ export class Menu {
 
     public popup(options: IPosition) {
         if (!this.element.lastElementChild) {
-            throw ('菜单容器被意外移除')
+            throw new Error('菜单容器被意外移除')
         }
         if (this.element.lastElementChild.innerHTML === "") {
             return;

@@ -13,7 +13,7 @@ const handleOutlineUpdateResponse = (
 ) => {
     if (!protyle.preview) {
         console.error('protyle 结构错误');
-        throw ('protyle 结构错误');
+        throw new Error('protyle 结构错误');
     }
     
     if (!reload && (!isCurrentEditor(blockId) || item.blockId === blockId) &&
@@ -47,7 +47,7 @@ export const updateOutline = (models: IModels, protyle: IProtyle, reload = false
     models.outline.find(item => {
         if (!protyle.preview||!protyle.block.rootID) {
             console.error(models, protyle, reload)
-            throw ('protyle 结构错误')
+            throw new Error('protyle 结构错误')
         }
         if (reload ||
             (item.type === "pin" &&

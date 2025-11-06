@@ -28,7 +28,7 @@ export const updateBacklinkGraph = (models: IModels, protyle: IProtyle) => {
                     blockId = protyle.block.showAll ? protyle.block.id : protyle.block.parentID;
                 } else {
                     console.error(protyle)
-                    throw ("protyle 结构错误")
+                    throw new Error("protyle 结构错误")
                 }
             }
             if (blockId === item.blockId) {
@@ -47,7 +47,7 @@ export const updateBacklinkGraph = (models: IModels, protyle: IProtyle) => {
                 blockId = protyle.block.showAll ? protyle.block.id : protyle.block.parentID;
             } else {
                 console.error(protyle)
-                throw ("protyle 结构错误")
+                throw new Error("protyle 结构错误")
             }
         }
         if (blockId === item.blockId) {

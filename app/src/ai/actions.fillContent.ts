@@ -43,7 +43,7 @@ export const fillContent = (protyle: IProtyle, rawContent: string, blockElements
     }
     if (!protyle.wysiwyg) {
         console.error(protyle)
-        throw ("结构错误")
+        throw new Error ("结构错误")
     }
     // 确保最后一个块元素在protyle的编辑器中
     const lastBlockElement = blockElements[blockElements.length - 1];

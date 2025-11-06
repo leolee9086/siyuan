@@ -127,7 +127,7 @@ export class Options {
         if (toolbar) {
             return toolbarKeyToMenu(toolbar);
         }else{
-            throw ("必须传入正确的工具条定义")
+            throw new Error("必须传入正确的工具条定义")
         }
     }
 }

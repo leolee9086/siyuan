@@ -19,7 +19,8 @@ export const processWithSiyuanCDN = (copyElement: HTMLElement) => {
     });
 }
 
-export const link2online = (copyElement: HTMLElement,adapterName:string)=>{
+//暂时默认仅仅使用思源的会员CDN
+export const link2online = (copyElement: HTMLElement,adapterName:string='siyuan')=>{
     if(adapterName==='siyuan'){
         processWithSiyuanCDN(copyElement)
     }

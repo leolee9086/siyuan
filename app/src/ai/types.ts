@@ -52,14 +52,31 @@ export interface ChatRequestParams {
  * 聊天响应数据接口
  */
 export interface ChatResponseData {
+    id?: string;
+    created?: number;
+    model?: string;
     choices?: Array<{
+        index?: number;
         delta?: {
             content?: string;
+            reasoning_content?: string;
+            role?: string;
         };
         message?: {
             content?: string;
+            reasoning_content?: string;
+            role?: string;
         };
+        finish_reason?: string;
     }>;
+    usage?: {
+        prompt_tokens?: number;
+        completion_tokens?: number;
+        total_tokens?: number;
+        prompt_tokens_details?: {
+            cached_tokens?: number;
+        };
+    };
     error?: {
         message: string;
         type?: string;
@@ -71,14 +88,31 @@ export interface ChatResponseData {
  * 聊天响应数据的Zod验证模式
  */
 export const chatResponseDataSchema = z.object({
+    id: z.string().optional(),
+    created: z.number().optional(),
+    model: z.string().optional(),
     choices: z.array(z.object({
+        index: z.number().optional(),
         delta: z.object({
             content: z.string().optional(),
+            reasoning_content: z.string().optional(),
+            role: z.string().optional(),
         }).optional(),
         message: z.object({
             content: z.string().optional(),
+            reasoning_content: z.string().optional(),
+            role: z.string().optional(),
         }).optional(),
+        finish_reason: z.string().optional(),
     })).optional(),
+    usage: z.object({
+        prompt_tokens: z.number().optional(),
+        completion_tokens: z.number().optional(),
+        total_tokens: z.number().optional(),
+        prompt_tokens_details: z.object({
+            cached_tokens: z.number().optional(),
+        }).optional(),
+    }).optional(),
     error: z.object({
         message: z.string(),
         type: z.string().optional(),

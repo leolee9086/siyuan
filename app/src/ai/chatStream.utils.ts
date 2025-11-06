@@ -31,26 +31,45 @@ export const buildRequestHeaders = (aiConfig: AIConfig) => {
 
 // 解析和验证流式响应数据
 const parseAndValidateStreamData = (dataStr: string) => {
-    // 解析OpenAI SSE响应格式
-    const rawData = JSON.parse(dataStr);
+    try {
+        // 处理SSE数据格式，移除可能的前缀
+        let cleanDataStr = dataStr.trim();
+        
+        // 移除 "data: " 前缀（如果存在）
+        if (cleanDataStr.startsWith('data: ')) {
+            cleanDataStr = cleanDataStr.substring(6);
+        }
+        
+        // 跳过空行和 "[DONE]" 标记
+        if (!cleanDataStr || cleanDataStr === '[DONE]') {
+            return null;
+        }
 
-    // 使用zod验证数据格式
-    const parseResult = chatResponseDataSchema.safeParse(rawData);
-    if (!parseResult.success) {
-        console.error("数据格式验证失败:", parseResult.error);
-        console.warn("原始数据:", rawData);
+        // 解析JSON数据
+        const rawData = JSON.parse(cleanDataStr);
+
+        // 使用zod验证数据格式
+        const parseResult = chatResponseDataSchema.safeParse(rawData);
+        if (!parseResult.success) {
+            console.error("数据格式验证失败:", parseResult.error);
+            console.warn("原始数据:", rawData);
+            return null;
+        }
+
+        const data = parseResult.data;
+
+        // 处理错误
+        if (data.error) {
+            console.error("API Error:", data.error);
+            return null;
+        }
+
+        return data;
+    } catch (error) {
+        console.error("解析SSE数据时发生错误:", error);
+        console.warn("原始数据字符串:", dataStr);
         return null;
     }
-
-    const data = parseResult.data;
-
-    // 处理错误
-    if (data.error) {
-        console.error("API Error:", data.error);
-        return null;
-    }
-
-    return data;
 };
 
 // 渲染blockDOM内容（纯数据处理，不包含DOM操作）
@@ -60,7 +79,7 @@ export const processBlockDOMContent = (
 ): string => {
     if (!protyle.lute) {
         console.error(protyle)
-        throw ('protyle结构不正确')
+        throw new Error('protyle结构不正确')
     }
     // 使用lute引擎将内容转换为块级DOM
     const blockDom = protyle.lute.SpinBlockDOM(state.responseContentStr);
@@ -104,35 +123,80 @@ export const processBlockDOMContent = (
 export const handleOpenAILikeStreamResponse = (
     dataStr: string,
     state: ChatSessionState,
-) => {
+): string | null => {
+    console.log(JSON.stringify(state))
     if (state.isStreaming) {
         try {
             const data = parseAndValidateStreamData(dataStr);
             if (!data) {
-                return;
+
+                throw new Error('接到了空的data,检查响应结构')
             }
 
             // 处理OpenAI流式响应格式
             if (data.choices && data.choices.length > 0) {
                 const choice = data.choices[0];
                 if (choice) {
+                    // 检查是否是结束标记
+                    if (choice.finish_reason === 'stop') {
+                        // 流式结束，不需要处理内容，直接返回
+                        return null;
+                    }
+                    // 优先处理 content 字段，如果没有则处理 reasoning_content 字段
                     const content = choice.delta?.content || choice.message?.content;
-
-                    if (content) {
+                    const reasoningContent = choice.delta?.reasoning_content || choice.message?.reasoning_content;
+                    // 处理普通内容
+                    if (typeof content === 'string' && content.length > 0) {
                         updateChatState(state, {
                             responseContentStr: state.responseContentStr + content
                         });
                         // 返回处理后的内容，由组件逻辑负责DOM更新
                         return content;
                     }
-                }else{
-                    throw '检查响应结构'
+                    // 处理推理内容
+                    if (typeof reasoningContent === 'string' && reasoningContent.length > 0) {
+                        updateChatState(state, {
+                            responseContentStr: state.responseContentStr + reasoningContent
+                        });
+                        // 返回处理后的内容，由组件逻辑负责DOM更新
+                        return reasoningContent;
+                    }
+                    // 处理非字符串内容的情况，可能是数字、对象等
+                    if (content !== undefined && content !== null && content !== '') {
+                        console.warn('接收到非字符串内容:', content);
+                        const stringContent = String(content);
+                        updateChatState(state, {
+                            responseContentStr: state.responseContentStr + stringContent
+                        });
+                        return stringContent;
+                    }
+                    // 处理非字符串推理内容的情况
+                    if (reasoningContent !== undefined && reasoningContent !== null && reasoningContent !== '') {
+                        console.warn('接收到非字符串推理内容:', reasoningContent);
+                        const stringContent = String(reasoningContent);
+                        updateChatState(state, {
+                            responseContentStr: state.responseContentStr + stringContent
+                        });
+                        return stringContent;
+                    }
+                    
+                    // 如果是空内容且不是结束标记，可能是流式数据的中间状态，直接返回
+                    return null;
+                } else {
+                    throw new Error('检查响应结构')
                 }
+            } else {
+                throw new Error('检查响应结构')
             }
         } catch (e) {
-            console.warn("Failed to parse SSE data:", dataStr);
+            console.error("Failed to parse SSE data:", dataStr);
+            throw new Error('检查响应结构')
+
         }
+    } else {
+        throw new Error('state 不在streaming状态')
     }
-    throw 'state 不在streaming状态'
+    throw new Error('分支检查覆盖不全')
+
 }
 

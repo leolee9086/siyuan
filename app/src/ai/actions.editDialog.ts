@@ -50,7 +50,7 @@ const createAiActionStorageContext = (): AiActionStorageContext => {
     return {
         getAiActions: (): AiActionConfig[] => {
             if (!window.siyuan.storage) {
-                throw ('siyuan对象结构不正确')
+                throw new Error('siyuan对象结构不正确')
             }
 
             return window.siyuan.storage[Constants.LOCAL_AI] || [];
@@ -58,7 +58,7 @@ const createAiActionStorageContext = (): AiActionStorageContext => {
 
         setAiActions: (actions: AiActionConfig[]): void => {
             if (!window.siyuan.storage) {
-                throw ('siyuan对象结构不正确')
+                throw new Error ('siyuan对象结构不正确')
             }
 
             window.siyuan.storage[Constants.LOCAL_AI] = actions;
@@ -66,7 +66,7 @@ const createAiActionStorageContext = (): AiActionStorageContext => {
 
         saveAiActions: (): void => {
             if (!window.siyuan.storage) {
-                throw ('siyuan对象结构不正确')
+                throw new Error ('siyuan对象结构不正确')
             }
 
             setStorageVal(Constants.LOCAL_AI, window.siyuan.storage[Constants.LOCAL_AI]);
