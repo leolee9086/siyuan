@@ -41,19 +41,20 @@ export const fillContent = (protyle: IProtyle, rawContent: string, blockElements
     if (!blockElements || blockElements.length === 0) {
         return;
     }
-    if(!protyle.wysiwyg){
+    if (!protyle.wysiwyg) {
         console.error(protyle)
-        throw( "结构错误")
+        throw ("结构错误")
     }
     // 确保最后一个块元素在protyle的编辑器中
     const lastBlockElement = blockElements[blockElements.length - 1];
-    if (!protyle.wysiwyg.element.contains(lastBlockElement)) {
-        console.warn("最后一个块元素不在protyle编辑器中，无法插入内容");
-        return;
-    }
+
 
     // 设置最后一个节点的范围，确保插入位置正确
     if (lastBlockElement) {
+        if (!protyle.wysiwyg.element.contains(lastBlockElement)) {
+            console.warn("最后一个块元素不在protyle编辑器中，无法插入内容");
+            return;
+        }
         const editableElement = getContenteditableElement(lastBlockElement)
         if (editableElement && protyle.toolbar?.range) {
             setLastNodeRange(editableElement, protyle.toolbar?.range);
