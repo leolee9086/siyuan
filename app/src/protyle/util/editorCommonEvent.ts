@@ -229,7 +229,7 @@ const moveTo = async (protyle: IProtyle, sourceElements: Element[], targetElemen
             }
         }
 
-        if (newListId && (index === 0||
+        if (newListId && (index === 0 ||
             sourceElements[index - 1].getAttribute("data-type") !== "NodeListItem" ||
             sourceElements[index - 1].getAttribute("data-subtype") !== item.getAttribute("data-subtype"))
         ) {
@@ -816,9 +816,9 @@ export const dropEvent = (protyle: IProtyle, editorElement: HTMLElement) => {
                     const blockElement = hasClosestBlock(targetElement);
                     if (blockElement) {
                         let previousID = "";
-                        if (targetClass.includes("dragover__right")) {
+                        if (targetClass.includes("dragover__right") || targetClass.includes("dragover__bottom")) {
                             previousID = targetElement.getAttribute("data-id") || "";
-                        } else {
+                        } else if (targetClass.includes("dragover__top") || targetClass.includes("dragover__left")) {
                             previousID = targetElement.previousElementSibling?.getAttribute("data-id") || "";
                         }
                         const avID = blockElement.getAttribute("data-av-id");
@@ -957,14 +957,10 @@ export const dropEvent = (protyle: IProtyle, editorElement: HTMLElement) => {
                     const blockElement = hasClosestBlock(targetElement);
                     if (blockElement) {
                         let previousID = "";
-                        if (targetElement.classList.contains("dragover__bottom")) {
+                        if (targetElement.classList.contains("dragover__bottom") || targetElement.classList.contains("dragover__right")) {
                             previousID = targetElement.getAttribute("data-id") || "";
-                        } else if (targetElement.classList.contains("dragover__top")) {
+                        } else if (targetElement.classList.contains("dragover__top") || targetElement.classList.contains("dragover__left")) {
                             previousID = targetElement.previousElementSibling?.getAttribute("data-id") || "";
-                        } else if (targetElement.classList.contains("dragover__left")) {
-                            previousID = targetElement.previousElementSibling?.getAttribute("data-id") || "";
-                        } else if (targetElement.classList.contains("dragover__right")) {
-                            previousID = targetElement.getAttribute("data-id") || "";
                         }
                         const avID = blockElement.getAttribute("data-av-id");
                         const newUpdated = dayjs().format("YYYYMMDDHHmmss");
@@ -1171,7 +1167,7 @@ export const dropEvent = (protyle: IProtyle, editorElement: HTMLElement) => {
         targetElement = hasClosestByClassName(event.target, "av__gallery-item") || hasClosestByClassName(event.target, "av__gallery-add") ||
             hasClosestByClassName(event.target, "av__row") || hasClosestByClassName(event.target, "av__row--util") ||
             hasClosestBlock(event.target);
-        if (targetElement && targetElement.getAttribute("data-av-type") === "gallery" && event.target.classList.contains("av__gallery")) {
+        if (targetElement && ["gallery", "kanban"].includes(targetElement.getAttribute("data-av-type")) && event.target.classList.contains("av__gallery")) {
             // 拖拽到属性视图 gallery 内，但没选中 item
             return;
         }
@@ -1355,18 +1351,31 @@ export const dropEvent = (protyle: IProtyle, editorElement: HTMLElement) => {
                 }
                 return;
             }
-            // gallery
+            // gallery & kanban
             if (targetElement.classList.contains("av__gallery-item")) {
-                const midLeft = nodeRect.left + nodeRect.width / 2;
-                if (event.clientX < midLeft && event.clientX > nodeRect.left - 13) {
-                    targetElement.classList.add("dragover__left");
-                } else if (event.clientX > midLeft && event.clientX <= nodeRect.right + 13) {
-                    targetElement.classList.add("dragover__right");
+                if (hasClosestByClassName(targetElement, "av__kanban-group")) {
+                    const midTop = nodeRect.top + nodeRect.height / 2;
+                    if (event.clientY < midTop && event.clientY > nodeRect.top - 13) {
+                        targetElement.classList.add("dragover__top");
+                    } else if (event.clientY > midTop && event.clientY <= nodeRect.bottom + 13) {
+                        targetElement.classList.add("dragover__bottom");
+                    }
+                } else {
+                    const midLeft = nodeRect.left + nodeRect.width / 2;
+                    if (event.clientX < midLeft && event.clientX > nodeRect.left - 13) {
+                        targetElement.classList.add("dragover__left");
+                    } else if (event.clientX > midLeft && event.clientX <= nodeRect.right + 13) {
+                        targetElement.classList.add("dragover__right");
+                    }
                 }
                 return;
             }
             if (targetElement.classList.contains("av__gallery-add")) {
-                targetElement.classList.add("dragover__left");
+                if (hasClosestByClassName(targetElement, "av__kanban-group")) {
+                    targetElement.classList.add("dragover__top");
+                } else {
+                    targetElement.classList.add("dragover__left");
+                }
                 return;
             }
 
