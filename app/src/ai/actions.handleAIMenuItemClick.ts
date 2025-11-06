@@ -10,6 +10,8 @@ import {
 import { customDialog } from "./customDialog";
 import { editDialog } from "./actions.editDialog";
 import { fillContent } from "./actions.fillContent";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
+import { getSiyuanStorage } from "../util/siyuanEnvironments/getSiyuanConfig";
 
 
 export interface AIMenuContext {
@@ -39,7 +41,9 @@ const handleListItemActionClick = (
     if (!parentElement || !('dataset' in parentElement)) {
         return;
     }
-    const subItem = window.siyuan.storage[Constants.LOCAL_AI][parentElement.dataset.index];
+    const targetIndex = parentElement.dataset.index
+    const localAI = getSiyuanStorage()[Constants.LOCAL_AI]
+    const subItem = localAI[targetIndex];
     editDialog(subItem.name, subItem.memo);
     menu.close();
     event.stopPropagation();
@@ -90,7 +94,7 @@ const handleListItemClick = (
             fillContent(protyle, response.data, elements);
         });
         if (targetElement.dataset.action === clearContext) {
-            showMessage(window.siyuan.languages.clearContextSucc);
+            showMessage(siyuanI18n.clearContextSucc);
         } else {
             menu.close();
         }
