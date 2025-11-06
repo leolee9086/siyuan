@@ -9,7 +9,7 @@ import {genUUID} from "./util/genID";
 import {fetchGet, fetchPost} from "./util/fetch";
 import {addBaseURL, getIdFromSYProtocol, isSYProtocol, setNoteBook} from "./util/pathName";
 import {registerServiceWorker} from "./util/serviceWorker";
-import {openFileById} from "./editor/util";
+import { openFileById } from "./editor/utils.openFileById";
 import {
     bootSync,
     downloadProgress,

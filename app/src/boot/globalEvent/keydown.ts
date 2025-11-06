@@ -29,7 +29,7 @@ import {fetchPost} from "../../util/fetch";
 import {goBack, goForward} from "../../util/backForward";
 import {onGet} from "../../protyle/util/onGet";
 import {getDisplayName, getNotebookName} from "../../util/pathName";
-import {openFileById} from "../../editor/util";
+import { openFileById } from "../../editor/utils.openFileById";
 import {getAllDocks, getAllModels, getAllTabs} from "../../layout/getAll";
 import {focusBlock, focusByOffset, focusByRange, getSelectionOffset} from "../../protyle/util/selection";
 import {initFileMenu, initNavigationMenu} from "../../menus/navigation";

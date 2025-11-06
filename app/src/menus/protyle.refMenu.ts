@@ -1,7 +1,7 @@
 import * as dayjs from "dayjs";
 import { fetchPost, focusByRange, blockRender } from "../ai/imports";
 import { Constants } from "../constants";
-import { openFileById } from "../editor/util";
+import { openFileById } from "../editor/utils.openFileById";
 import { openBacklink, openGraph } from "../layout/dock/util";
 import { emitOpenMenu } from "../plugin/EventBus";
 import { removeInlineType } from "../protyle/toolbar/util";

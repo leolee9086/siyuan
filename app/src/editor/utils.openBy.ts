@@ -38,3 +38,4 @@ export const openBy = (url: string, type: "folder" | "app") => {
     }
     /// #endif
 };
+

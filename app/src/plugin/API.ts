@@ -5,7 +5,8 @@ import {Dialog} from "../dialog";
 import {fetchGet, fetchPost, fetchSyncPost} from "../util/fetch";
 import {getBackend, getFrontend} from "../util/functions";
 /// #if !MOBILE
-import {openFile, openFileById} from "../editor/util";
+import {openFile} from "../editor/util";
+import { openFileById } from "../editor/utils.openFileById";
 import {openNewWindow, openNewWindowById} from "../window/openNewWindow";
 import {Tab} from "../layout/Tab";
 /// #endif

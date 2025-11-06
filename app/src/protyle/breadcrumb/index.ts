@@ -14,7 +14,7 @@ import {isMobile} from "../../util/functions";
 import {zoomOut} from "../../menus/protyle";
 import {getEditorRange} from "../util/selection";
 /// #if !MOBILE
-import {openFileById} from "../../editor/util";
+import { openFileById } from "../../editor/utils.openFileById";
 import {saveLayout} from "../../layout/util";
 /// #endif
 /// #if !BROWSER

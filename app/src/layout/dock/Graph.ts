@@ -7,7 +7,7 @@ import {addScript} from "../../protyle/util/addScript";
 import {BlockPanel} from "../../block/Panel";
 import {fullscreen} from "../../protyle/breadcrumb/action";
 import {fetchPost} from "../../util/fetch";
-import {openFileById} from "../../editor/util";
+import { openFileById } from "../../editor/utils.openFileById";
 import {updateHotkeyAfterTip} from "../../protyle/util/compatibility";
 import {openGlobalSearch} from "../../search/util";
 import {App} from "../../index";

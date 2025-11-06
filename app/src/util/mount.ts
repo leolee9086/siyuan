@@ -6,7 +6,7 @@ import {Dialog} from "../dialog";
 import {getOpenNotebookCount} from "./pathName";
 import {validateName} from "../editor/rename";
 import {setStorageVal} from "../protyle/util/compatibility";
-import {openFileById} from "../editor/util";
+import { openFileById } from "../editor/utils.openFileById";
 import {openMobileFileById} from "../mobile/editor";
 import {App} from "../index";
 

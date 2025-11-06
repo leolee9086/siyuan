@@ -13,7 +13,7 @@ import {
     updateHotkeyAfterTip,
     writeText
 } from "../../protyle/util/compatibility";
-import {openFileById} from "../../editor/util";
+import { openFileById } from "../../editor/utils.openFileById";
 import {Constants} from "../../constants";
 import {MenuItem} from "../../menus/Menu.Item";
 import {escapeAttr, escapeHtml} from "../../util/escape";

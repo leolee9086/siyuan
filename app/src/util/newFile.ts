@@ -4,7 +4,7 @@ import {hasClosestByClassName, hasTopClosestByTag} from "../protyle/util/hasClos
 import {getDockByType} from "../layout/tabUtil";
 /// #if !MOBILE
 import {Files} from "../layout/dock/Files";
-import {openFileById} from "../editor/util";
+import { openFileById } from "../editor/utils.openFileById";
 /// #endif
 import {fetchPost} from "./fetch";
 import {getDisplayName, getOpenNotebookCount, pathPosix} from "./pathName";

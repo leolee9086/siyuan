@@ -5,7 +5,7 @@ import {setPanelFocus} from "../util";
 import {getDockByType} from "../tabUtil";
 import {fetchPost} from "../../util/fetch";
 import {updateHotkeyAfterTip} from "../../protyle/util/compatibility";
-import {openFileById} from "../../editor/util";
+import { openFileById } from "../../editor/utils.openFileById";
 import {hasClosestByClassName} from "../../protyle/util/hasClosest";
 import {openBookmarkMenu} from "../../menus/bookmark";
 import {App} from "../../index";

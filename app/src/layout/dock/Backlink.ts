@@ -6,7 +6,7 @@ import {getDockByType} from "../tabUtil";
 import {fetchPost} from "../../util/fetch";
 import {Constants} from "../../constants";
 import {updateHotkeyAfterTip} from "../../protyle/util/compatibility";
-import {openFileById} from "../../editor/util";
+import { openFileById } from "../../editor/utils.openFileById";
 import {Protyle} from "../../protyle";
 import { MenuItem } from "../../menus/Menu.Item";
 import {App} from "../../index";

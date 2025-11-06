@@ -50,7 +50,7 @@ import {newFileContentBySelect, rename, replaceFileName} from "../../editor/rena
 import {cancelSB, insertEmptyBlock, jumpToParent} from "../../block/util";
 import {isLocalPath} from "../../util/pathName";
 /// #if !MOBILE
-import {openFileById} from "../../editor/util";
+import { openFileById } from "../../editor/utils.openFileById";
 import { openBy } from "../../editor/utils.openBy";
 /// #endif
 import {alignImgCenter, alignImgLeft, commonHotkey, downSelect, getStartEndElement, upSelect} from "./commonHotkey";

@@ -19,7 +19,7 @@ import {hasClosestBlock, hasClosestByClassName} from "../protyle/util/hasClosest
 import {Constants} from "../constants";
 import {saveScroll} from "../protyle/scroll/saveScroll";
 import {Backlink} from "./dock/Backlink";
-import {openFileById} from "../editor/util";
+import { openFileById } from "../editor/utils.openFileById";
 import {isWindow} from "../util/functions";
 /// #if !BROWSER
 import {setTabPosition} from "../window/setHeader";

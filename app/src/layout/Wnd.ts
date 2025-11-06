@@ -28,7 +28,7 @@ import {setModelsHash, setTabPosition} from "../window/setHeader";
 /// #endif
 import {Search} from "../search";
 import {showMessage} from "../dialog/message";
-import {openFileById} from "../editor/util";
+import { openFileById } from "../editor/utils.openFileById";
 import { updatePanelByEditor } from "../editor/util.updatePanelByEditor";
 import {scrollCenter} from "../util/highlightById";
 import {fetchPost} from "../util/fetch";

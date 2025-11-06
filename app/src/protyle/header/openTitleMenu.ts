@@ -19,7 +19,7 @@ import { hideTooltip } from "../../dialog/tooltip";
 import { popSearch } from "../../mobile/menu/search";
 import { openSearch } from "../../search/spread";
 import { openNewWindowById } from "../../window/openNewWindow";
-import { openFileById } from "../../editor/util";
+import { openFileById } from "../../editor/utils.openFileById";
 import { createProtyleCopyMenu, createFileHistoryMenuItem } from "./openTitleMenu.items";
 import { closeTitleMenuIfOpened } from "./openTitleMenu.util";
 import { transferBlockRef } from "../../menus/block";

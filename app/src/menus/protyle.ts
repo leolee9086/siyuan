@@ -29,7 +29,7 @@ import {preventScroll} from "../protyle/scroll/preventScroll";
 import {onGet} from "../protyle/util/onGet";
 import {getAllModels} from "../layout/getAll";
 /// #if !MOBILE
-import {openFileById} from "../editor/util";
+import { openFileById } from "../editor/utils.openFileById";
 import { updateBacklinkGraph } from "../editor/util.updateBacklinkGraph";
 import {openGlobalSearch} from "../search/util";
 /// #endif

@@ -4,7 +4,7 @@ import * as path from "path";
 /// #endif
 import {fetchPost} from "../util/fetch";
 import {getAssetName, pathPosix, useShell} from "../util/pathName";
-import {openFileById} from "../editor/util";
+import { openFileById } from "../editor/utils.openFileById";
 import {Constants} from "../constants";
 import {openNewWindowById} from "../window/openNewWindow";
 import { MenuItem } from "./Menu.Item";

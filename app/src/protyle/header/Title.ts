@@ -15,7 +15,7 @@ import {matchHotKey} from "../util/hotKey";
 import {isMac, readText} from "../util/compatibility";
 import * as dayjs from "dayjs";
 /// #if !MOBILE
-import {openFileById} from "../../editor/util";
+import { openFileById } from "../../editor/utils.openFileById";
 /// #endif
 import {setTitle} from "../../dialog/processSystem";
 import {getContenteditableElement, getNoContainerElement} from "../wysiwyg/getBlock";

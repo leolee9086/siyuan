@@ -34,7 +34,7 @@ import {
 import {blockRender} from "../render/blockRender";
 import {uploadFiles} from "../upload";
 /// #if !MOBILE
-import {openFileById} from "../../editor/util";
+import { openFileById } from "../../editor/utils.openFileById";
 /// #endif
 import {openMobileFileById} from "../../mobile/editor";
 import {processRender} from "../util/processCode";

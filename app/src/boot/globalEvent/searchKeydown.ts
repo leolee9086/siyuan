@@ -3,7 +3,7 @@ import * as path from "path";
 /// #endif
 import {matchHotKey} from "../../protyle/util/hotKey";
 import {fetchPost} from "../../util/fetch";
-import {openFileById} from "../../editor/util";
+import { openFileById } from "../../editor/utils.openFileById";
 import {Constants} from "../../constants";
 import {newFileByName} from "../../util/newFile";
 import {App} from "../../index";

@@ -9,7 +9,7 @@ import {openNewWindowById} from "../window/openNewWindow";
 /// #endif
 /// #if !MOBILE
 import {moveResize} from "../dialog/moveResize";
-import {openFileById} from "../editor/util";
+import { openFileById } from "../editor/utils.openFileById";
 /// #endif
 import {fetchPost} from "../util/fetch";
 import {showMessage} from "../dialog/message";

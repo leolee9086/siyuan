@@ -8,7 +8,7 @@ import {Constants} from "../constants";
 import {hideElements} from "../protyle/ui/hideElements";
 import {blockRender} from "../protyle/render/blockRender";
 import {fetchPost, fetchSyncPost} from "../util/fetch";
-import {openFileById} from "../editor/util";
+import { openFileById } from "../editor/utils.openFileById";
 import {openMobileFileById} from "../mobile/editor";
 import {mathRender} from "../protyle/render/mathRender";
 

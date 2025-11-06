@@ -58,7 +58,7 @@ import {getPlainText} from "../util/paste";
 import {addEditorToDatabase} from "../render/av/addToDatabase";
 import {processClonePHElement} from "../render/util";
 /// #if !MOBILE
-import {openFileById} from "../../editor/util";
+import { openFileById } from "../../editor/utils.openFileById";
 import * as path from "path";
 /// #endif
 import {checkFold} from "../../util/noRelyPCFunction";

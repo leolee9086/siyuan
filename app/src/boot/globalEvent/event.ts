@@ -17,7 +17,7 @@ import {initTabMenu} from "../../menus/tab";
 import {getInstanceById} from "../../layout/util";
 import {Tab} from "../../layout/Tab";
 import {hideTooltip} from "../../dialog/tooltip";
-import {openFileById} from "../../editor/util";
+import { openFileById } from "../../editor/utils.openFileById";
 import {checkFold} from "../../util/noRelyPCFunction";
 import {hideAllElements} from "../../protyle/ui/hideElements";
 
