@@ -40,6 +40,11 @@ const getI18n = (key: I18nKeys): string => {
  const createI18nProxy = (): SiYuanI18n => {
     return new Proxy({} as SiYuanI18n, {
         get(target, prop: string) {
+            // 过滤掉Vue的内部属性，避免不必要的i18n查找
+            if (prop.startsWith('__v_') || prop === '_isVue' || prop === '_self') {
+                return undefined;
+            }
+            
             // 首先尝试直接获取值
             const directValue = getI18n(prop as I18nKeys);
             
@@ -54,6 +59,10 @@ const getI18n = (key: I18nKeys): string => {
                 // 返回一个嵌套代理，用于访问对象的属性
                 return new Proxy(objValue, {
                     get(_, nestedProp: string) {
+                        // 同样过滤掉Vue的内部属性
+                        if (nestedProp.startsWith('__v_') || nestedProp === '_isVue' || nestedProp === '_self') {
+                            return undefined;
+                        }
                         const fullPath = `${prop}.${nestedProp}`;
                         return getI18n(fullPath as I18nKeys);
                     }

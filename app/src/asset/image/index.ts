@@ -4,10 +4,6 @@ import { default as ImageViewer } from "../../components/imageEditor.vue";
 export const initImagePanel = (element: HTMLElement, urlOrPath: string) => {
     // 清空容器
     element.innerHTML = '';
-    
-    // 计算图片源地址
-    
-    // 使用Vue组件加载器创建图片查看器
     createVueComponentLoader(
         element,
         {
