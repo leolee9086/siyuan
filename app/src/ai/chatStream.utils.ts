@@ -115,20 +115,24 @@ export const handleOpenAILikeStreamResponse = (
             // 处理OpenAI流式响应格式
             if (data.choices && data.choices.length > 0) {
                 const choice = data.choices[0];
-                const content = choice.delta?.content || choice.message?.content;
+                if (choice) {
+                    const content = choice.delta?.content || choice.message?.content;
 
-                if (content) {
-                    updateChatState(state, {
-                        responseContentStr: state.responseContentStr + content
-                    });
-                    // 返回处理后的内容，由组件逻辑负责DOM更新
-                    return content;
+                    if (content) {
+                        updateChatState(state, {
+                            responseContentStr: state.responseContentStr + content
+                        });
+                        // 返回处理后的内容，由组件逻辑负责DOM更新
+                        return content;
+                    }
+                }else{
+                    throw '检查响应结构'
                 }
             }
         } catch (e) {
             console.warn("Failed to parse SSE data:", dataStr);
         }
     }
-    return null;
-};
+    throw 'state 不在streaming状态'
+}
 
