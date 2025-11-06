@@ -16,7 +16,7 @@ import { openNewWindowById } from "../window/openNewWindow";
 import { MenuItem } from "./Menu.Item";
 import { getGlobalMenus } from "../util/siyuanEnvironments/getMenu";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
-
+import { getSiyuanConfig } from "../util/siyuanEnvironments/config.getConfig";
 const createAnchorEditorItem = (refElement: HTMLSpanElement) => {
     return new MenuItem({
         id: "anchor",

@@ -10,7 +10,7 @@ import {MobileBookmarks} from "../mobile/dock/MobileBookmarks";
 import {Constants} from "../constants";
 import { getGlobalMenus } from "../util/siyuanEnvironments/getMenu";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
-
+import { getSiyuanConfig } from "../util/siyuanEnvironments/config.getConfig";
 export const openBookmarkMenu = (element: HTMLElement, event: MouseEvent, bookmarkObj: Bookmark | MobileBookmarks) => {
     if (!getGlobalMenus().menu.element.classList.contains("fn__none") &&
         getGlobalMenus().menu.element.getAttribute("data-name") === Constants.MENU_BOOKMARK) {

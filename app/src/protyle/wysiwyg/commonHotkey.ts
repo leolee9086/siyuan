@@ -15,7 +15,7 @@ import {processClonePHElement} from "../render/util";
 import {copyTextByType} from "../toolbar/util";
 import {hasClosestByTag, hasTopClosestByClassName} from "../util/hasClosest";
 import {removeEmbed} from "./removeEmbed";
-
+import { getSiyuanConfig } from "../../util/siyuanEnvironments/config.getConfig";
 export const commonHotkey = (protyle: IProtyle, event: KeyboardEvent, nodeElement?: HTMLElement) => {
     if (matchHotKey(getSiyuanConfig().keymap.editor.general.netImg2LocalAsset.custom, event)) {
         net2LocalAssets(protyle, "Img");

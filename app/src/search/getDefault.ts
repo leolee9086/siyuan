@@ -1,9 +1,9 @@
-
+import { getSiyuanConfig } from "../util/siyuanEnvironments/config.getConfig";
 export const getDefaultType = () => {
     return {
         audioBlock: getSiyuanConfig().search.audioBlock,
         videoBlock: getSiyuanConfig().search.videoBlock,
-        iframeBlock: getSiyuanConfig().search.iframeBlock,
+        iframeBlock: getSiyuanConfig() .search.iframeBlock,
         widgetBlock: getSiyuanConfig().search.widgetBlock,
         document: getSiyuanConfig().search.document,
         heading: getSiyuanConfig().search.heading,

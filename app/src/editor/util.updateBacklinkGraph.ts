@@ -1,8 +1,13 @@
 import { hasClosestByClassName } from "../protyle/util/hasClosest";
 import { fetchPost } from "../util/fetch";
 import { isCurrentEditor } from "./util.isCurrentEditor";
-
-
+import { getSiyuanConfig } from "../util/siyuanEnvironments/config.getConfig";
+/**
+ * 更新相关的反链和关系图
+ * @param models 
+ * @param protyle 
+ * @returns 
+ */
 export const updateBacklinkGraph = (models: IModels, protyle: IProtyle) => {
     // https://ld246.com/article/1637636106054/comment/1641485541929#comments
     if (protyle && protyle.element.classList.contains("fn__none") ||
