@@ -17,21 +17,21 @@ import {hasClosestByTag, hasTopClosestByClassName} from "../util/hasClosest";
 import {removeEmbed} from "./removeEmbed";
 
 export const commonHotkey = (protyle: IProtyle, event: KeyboardEvent, nodeElement?: HTMLElement) => {
-    if (matchHotKey(window.siyuan.config.keymap.editor.general.netImg2LocalAsset.custom, event)) {
+    if (matchHotKey(getSiyuanConfig().keymap.editor.general.netImg2LocalAsset.custom, event)) {
         net2LocalAssets(protyle, "Img");
         event.preventDefault();
         event.stopPropagation();
         return true;
     }
 
-    if (matchHotKey(window.siyuan.config.keymap.editor.general.netAssets2LocalAssets.custom, event)) {
+    if (matchHotKey(getSiyuanConfig().keymap.editor.general.netAssets2LocalAssets.custom, event)) {
         net2LocalAssets(protyle, "Assets");
         event.preventDefault();
         event.stopPropagation();
         return true;
     }
 
-    if (matchHotKey(window.siyuan.config.keymap.editor.general.optimizeTypography.custom, event)) {
+    if (matchHotKey(getSiyuanConfig().keymap.editor.general.optimizeTypography.custom, event)) {
         fetchPost("/api/format/autoSpace", {
             id: protyle.block.rootID
         });
@@ -39,7 +39,7 @@ export const commonHotkey = (protyle: IProtyle, event: KeyboardEvent, nodeElemen
         event.stopPropagation();
         return true;
     }
-    if (matchHotKey(window.siyuan.config.keymap.editor.general.copyHPath.custom, event)) {
+    if (matchHotKey(getSiyuanConfig().keymap.editor.general.copyHPath.custom, event)) {
         fetchPost("/api/filetree/getHPathByID", {
             id: protyle.block.rootID
         }, (response) => {
@@ -50,7 +50,7 @@ export const commonHotkey = (protyle: IProtyle, event: KeyboardEvent, nodeElemen
         return true;
     }
 
-    if (matchHotKey(window.siyuan.config.keymap.editor.general.copyProtocolInMd.custom, event)) {
+    if (matchHotKey(getSiyuanConfig().keymap.editor.general.copyProtocolInMd.custom, event)) {
         if (nodeElement) {
             const selectElements = Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select"));
             if (selectElements.length === 0) {
@@ -65,7 +65,7 @@ export const commonHotkey = (protyle: IProtyle, event: KeyboardEvent, nodeElemen
         return true;
     }
 
-    if (matchHotKey(window.siyuan.config.keymap.editor.general.copyID.custom, event)) {
+    if (matchHotKey(getSiyuanConfig().keymap.editor.general.copyID.custom, event)) {
         if (nodeElement) {
             const selectElements = Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select"));
             if (selectElements.length === 0) {
@@ -79,7 +79,7 @@ export const commonHotkey = (protyle: IProtyle, event: KeyboardEvent, nodeElemen
         event.stopPropagation();
         return true;
     }
-    if (matchHotKey(window.siyuan.config.keymap.editor.general.copyProtocol.custom, event)) {
+    if (matchHotKey(getSiyuanConfig().keymap.editor.general.copyProtocol.custom, event)) {
         if (nodeElement) {
             const selectElements = Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select"));
             if (selectElements.length === 0) {
@@ -94,7 +94,7 @@ export const commonHotkey = (protyle: IProtyle, event: KeyboardEvent, nodeElemen
         return true;
     }
 
-    if (matchHotKey(window.siyuan.config.keymap.editor.general.copyBlockEmbed.custom, event)) {
+    if (matchHotKey(getSiyuanConfig().keymap.editor.general.copyBlockEmbed.custom, event)) {
         if (nodeElement) {
             const selectElements = Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select"));
             if (selectElements.length === 0) {
@@ -145,7 +145,7 @@ export const upSelect = (options: {
         const nodeEditableElement = (tdElement || getContenteditableElement(options.nodeElement) || options.nodeElement) as HTMLElement;
         const startIndex = getSelectionOffset(nodeEditableElement, options.editorElement, options.range).start;
         const innerText = nodeEditableElement.innerText;
-        const isExpandUp = matchHotKey(window.siyuan.config.keymap.editor.general.expandUp.custom, options.event);
+        const isExpandUp = matchHotKey(getSiyuanConfig().keymap.editor.general.expandUp.custom, options.event);
         if (!isMac() && isExpandUp) {
             // Windows 中 ⌥⇧↑ 默认无选中功能会导致 https://ld246.com/article/1716635371149
         } else if (startIndex > 0) {
@@ -192,7 +192,7 @@ export const downSelect = (options: {
         const nodeEditableElement = (tdElement || getContenteditableElement(options.nodeElement) || options.nodeElement) as HTMLElement;
         const endIndex = getSelectionOffset(nodeEditableElement, options.editorElement, options.range).end;
         const innerText = nodeEditableElement.innerText;
-        const isExpandDown = matchHotKey(window.siyuan.config.keymap.editor.general.expandDown.custom, options.event);
+        const isExpandDown = matchHotKey(getSiyuanConfig().keymap.editor.general.expandDown.custom, options.event);
         if (!isMac() && isExpandDown) {
             // Windows 中 ⌥⇧↓ 默认无选中功能会导致 https://ld246.com/article/1716635371149
         } else if (endIndex < innerText.length) {
@@ -421,7 +421,7 @@ export const goHome = (protyle: IProtyle) => {
         fetchPost("/api/filetree/getDoc", {
             id: protyle.block.rootID,
             mode: 0,
-            size: window.siyuan.config.editor.dynamicLoadBlocks,
+            size: getSiyuanConfig().editor.dynamicLoadBlocks,
         }, getResponse => {
             onGet({data: getResponse, protyle, action: [Constants.CB_GET_FOCUS]});
         });
@@ -434,7 +434,7 @@ export const goEnd = (protyle: IProtyle) => {
         fetchPost("/api/filetree/getDoc", {
             id: protyle.block.rootID,
             mode: 4,
-            size: window.siyuan.config.editor.dynamicLoadBlocks,
+            size: getSiyuanConfig().editor.dynamicLoadBlocks,
         }, getResponse => {
             onGet({
                 data: getResponse,

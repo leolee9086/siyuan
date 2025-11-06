@@ -33,10 +33,10 @@ import {
     assetInputEvent,
     assetMethodMenu,
     assetMoreMenu,
-    openSearchAsset,
     renderNextAssetMark,
     renderPreview,
 } from "./assets";
+import { openSearchAsset } from "./assets.openSearchAsset";
 import {resize} from "../protyle/util/resize";
 import {addClearButton} from "../util/addClearButton";
 import {checkFold} from "../util/noRelyPCFunction";
