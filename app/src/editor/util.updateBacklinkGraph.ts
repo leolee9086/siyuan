@@ -49,13 +49,15 @@ export const updateBacklinkGraph = (models: IModels, protyle: IProtyle) => {
             return;
         }
         item.element.querySelector('.block__icon[data-type="refresh"] svg')?.classList.add("fn__rotate");
-        fetchPost("/api/ref/getBacklink2", {
-            sort: item.status[blockId] ? item.status[blockId]?.sort.toString() : getSiyuanConfig().editor.backlinkSort.toString(),
+        const getBacklink2Payload = {
+                        sort: item.status[blockId] ? item.status[blockId]?.sort.toString() : getSiyuanConfig().editor.backlinkSort.toString(),
             mSort: item.status[blockId] ? item.status[blockId]?.mSort.toString() : getSiyuanConfig()?.editor.backmentionSort.toString(),
             id: blockId || "",
             k: item.inputsElement[0]?.value,
             mk: item.inputsElement[1]?.value,
-        }, response => {
+
+        }
+        fetchPost("/api/ref/getBacklink2", getBacklink2Payload, response => {
             if (!isCurrentEditor(blockId) || item.blockId === blockId) {
                 item.element.querySelector('.block__icon[data-type="refresh"] svg')?.classList.remove("fn__rotate");
                 return;
