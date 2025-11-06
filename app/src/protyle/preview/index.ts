@@ -1,32 +1,35 @@
-import {isOnlyMeta, openByMobile, writeText} from "../util/compatibility";
-import {focusByRange} from "../util/selection";
-import {showMessage} from "../../dialog/message";
-import {isLocalPath, pathPosix} from "../../util/pathName";
-import {previewDocImage} from "./image";
-import {needSubscribe} from "../../util/needSubscribe";
-import {Constants} from "../../constants";
-import {getSearch, isMobile} from "../../util/functions";
+import { isOnlyMeta, openByMobile, writeText } from "../util/compatibility";
+import { focusByRange } from "../util/selection";
+import { showMessage } from "../../dialog/message";
+import { isLocalPath, pathPosix } from "../../util/pathName";
+import { previewDocImage } from "./image";
+import { needSubscribe } from "../../util/needSubscribe";
+import { Constants } from "../../constants";
+import { getSearch, isMobile } from "../../util/functions";
 /// #if !BROWSER
-import {shell} from "electron";
+import { shell } from "electron";
 /// #endif
 /// #if !MOBILE
 import { openBy } from "../../editor/utils.openBy";
 import { openAsset } from "../../editor/util.openAsset";
-import {getAllModels} from "../../layout/getAll";
+import { getAllModels } from "../../layout/getAll";
 /// #endif
-import {fetchPost} from "../../util/fetch";
-import {processRender} from "../util/processCode";
-import {highlightRender} from "../render/highlightRender";
-import {speechRender} from "../render/speechRender";
-import {avRender} from "../render/av/render";
-import {getPadding} from "../ui/initUI";
-import {hasClosestByAttribute} from "../util/hasClosest";
-import {addScriptSync} from "../util/addScript";
-
+import { fetchPost } from "../../util/fetch";
+import { processRender } from "../util/processCode";
+import { highlightRender } from "../render/highlightRender";
+import { speechRender } from "../render/speechRender";
+import { avRender } from "../render/av/render";
+import { getPadding } from "../ui/initUI";
+import { hasClosestByAttribute } from "../util/hasClosest";
+import { addScriptSync } from "../util/addScript";
+import { addActionButtons } from "./actionButtons";
+import { processPreviewElementsZhihuTable, processPreviewElementZhihuBlockquote } from "./zhihuAdapter";
+import { link2online } from "./link2online";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n";
 export class Preview {
     public element: HTMLElement;
     public previewElement: HTMLElement;
-    private mdTimeoutId: number;
+    private mdTimeoutId: number | undefined;
 
     constructor(protyle: IProtyle) {
         this.element = document.createElement("div");
@@ -34,44 +37,17 @@ export class Preview {
 
         const previewElement = document.createElement("div");
         previewElement.className = "b3-typography";
-        if (protyle.options.classes.preview) {
+        if (protyle.options.classes?.preview) {
             previewElement.classList.add(protyle.options.classes.preview);
         }
-        const actions = protyle.options.preview.actions;
+        const actions = protyle.options.preview?.actions || [];
         const actionElement = document.createElement("div");
         actionElement.className = "protyle-preview__action";
         const actionHtml: string[] = [];
-        for (let i = 0; i < actions.length; i++) {
-            const action = actions[i];
-            if (typeof action === "object") {
-                actionHtml.push(`<button type="button" data-type="${action.key}" class="${action.className}">${action.text}</button>`);
-                continue;
-            }
-            switch (action) {
-                case "desktop":
-                    actionHtml.push(`<button type="button" class="protyle-preview__action--current" data-type="desktop">${window.siyuan.languages.desktop}</button>`);
-                    break;
-                case "tablet":
-                    actionHtml.push(`<button type="button" data-type="tablet">${window.siyuan.languages.tablet}</button>`);
-                    break;
-                case "mobile":
-                    actionHtml.push(`<button type="button" data-type="mobile">${window.siyuan.languages.mobile}</button>`);
-                    break;
-                case "mp-wechat":
-                    actionHtml.push(`<button type="button" data-type="mp-wechat" class="b3-tooltips b3-tooltips__w" aria-label="${window.siyuan.languages.copyToWechatMP}"><svg><use xlink:href="#iconMp"></use></svg></button>`);
-                    break;
-                case "zhihu":
-                    actionHtml.push(`<button type="button" data-type="zhihu" class="b3-tooltips b3-tooltips__w" aria-label="${window.siyuan.languages.copyToZhihu}"><svg><use xlink:href="#iconZhihu"></use></svg></button>`);
-                    break;
-                case "yuque":
-                    actionHtml.push(`<button type="button" data-type="yuque" class="b3-tooltips b3-tooltips__w" aria-label="${window.siyuan.languages.copyToYuque}"><svg><use xlink:href="#iconYuque"></use></svg></button>`);
-                    break;
-            }
-        }
+        addActionButtons(actions, actionHtml)
         actionElement.innerHTML = actionHtml.join("");
         this.element.appendChild(actionElement);
         this.element.appendChild(previewElement);
-
         this.element.addEventListener("click", (event) => {
             let target = event.target as HTMLElement;
             while (target && !target.isEqualNode(this.element)) {
@@ -161,7 +137,7 @@ export class Preview {
                     });
                 }
                 /// #else
-                window.siyuan.mobile.docks.outline?.setCurrentByPreview(nodeElement);
+                window.siyuan.mobile?.docks?.outline?.setCurrentByPreview(nodeElement);
                 /// #endif
             }
         });
@@ -202,20 +178,7 @@ export class Preview {
     }
 
     private link2online(copyElement: HTMLElement) {
-        if (needSubscribe("")) {
-            return;
-        }
-        copyElement.querySelectorAll("[href],[src]").forEach(item => {
-            const oldLink = item.getAttribute("href") || item.getAttribute("src");
-            if (oldLink && oldLink.startsWith("assets/")) {
-                const newLink = Constants.ASSETS_ADDRESS + window.siyuan.user.userId + "/" + oldLink;
-                if (item.getAttribute("href")) {
-                    item.setAttribute("href", newLink);
-                } else {
-                    item.setAttribute("src", newLink);
-                }
-            }
-        });
+        link2online(copyElement,'siyuan')
     }
 
     private async copyToX(copyElement: HTMLElement, protyle: IProtyle, type?: string) {
@@ -238,9 +201,12 @@ export class Preview {
                 });
             });
             // 处理任务列表（微信公众号不能显示input[type="checkbox"]）
-            copyElement.querySelectorAll("li.protyle-task").forEach((taskItem: HTMLElement) => {
-                const checkbox = taskItem.querySelector('input[type="checkbox"]') as HTMLInputElement;
-                if (checkbox) {
+            copyElement.querySelectorAll("li.protyle-task").forEach((taskItem) => {
+                if(!(taskItem instanceof HTMLElement)){
+                    return
+                }
+                const checkbox = taskItem.querySelector('input[type="checkbox"]') ;
+                if (checkbox&&checkbox instanceof HTMLInputElement) {
                     checkbox.style.opacity = "0";
                     if (checkbox.checked) {
                         taskItem.style.setProperty("list-style-type", "'✅'", "important");
@@ -257,27 +223,27 @@ export class Preview {
                 };
             }
             await addScriptSync(`${Constants.PROTYLE_CDN}/js/mathjax/tex-svg-full.js`, "protyleMathJaxScript");
-            await window.MathJax.startup.promise;
+            await window.MathJax.startup?.promise;
             copyElement.querySelectorAll('[data-subtype="math"]').forEach(mathElement => {
-                const node = window.MathJax.tex2svg(Lute.UnEscapeHTMLStr(mathElement.getAttribute("data-content")).trim(), {display: mathElement.tagName === "DIV"});
-                node.querySelector("mjx-assistive-mml").remove();
-                mathElement.innerHTML = node.outerHTML;
+                const node = window.MathJax.tex2svg&&window.MathJax.tex2svg(Lute.UnEscapeHTMLStr(mathElement.getAttribute("data-content")||"").trim(), { display: mathElement.tagName === "DIV" });
+                node?.querySelector("mjx-assistive-mml")?.remove();
+                mathElement.innerHTML = node?.outerHTML||"";
             });
         } else if (type === "zhihu") {
             this.link2online(copyElement);
-            copyElement.querySelectorAll('[data-subtype="math"]').forEach((item: HTMLElement) => {
+            copyElement.querySelectorAll('[data-subtype="math"]').forEach((item) => {
                 // https://github.com/siyuan-note/siyuan/issues/10015
                 item.outerHTML = `<img class="Formula-image" data-eeimg="true" src="//www.zhihu.com/equation?tex=" alt="${item.getAttribute("data-content")}" style="${item.tagName === "DIV" ? "display: block; max-width: 100%;" : ""}margin: 0 auto;">`;
             });
             copyElement.querySelectorAll("blockquote").forEach((item) => {
                 const elements: HTMLElement[] = [];
-                this.processZHBlockquote(item, elements);
+                this.processZhihuBlockquote(item, elements);
                 elements.reverse().forEach(newItem => {
                     item.insertAdjacentElement("afterend", newItem);
                 });
                 item.remove();
             });
-            this.processZHTable(copyElement);
+            this.processZhihuTable(copyElement);
         } else if (type === "yuque") {
             fetchPost("/api/lute/copyStdMarkdown", {
                 id: protyle.block.id || protyle.options.blockId || protyle.block.parentID,
@@ -286,7 +252,7 @@ export class Preview {
                 adjustHeadingLevel: true,
             }, (response) => {
                 writeText(response.data);
-                showMessage(`${window.siyuan.languages.pasteToYuque}`);
+                showMessage(`${siyuanI18n.pasteToYuque}`);
             });
             return;
         }
@@ -301,49 +267,26 @@ export class Preview {
         // 最后一个块是公式块时无法复制下来
         copyElement.insertAdjacentHTML("beforeend", "<p>&zwj;</p>");
         let cloneRange;
-        if (getSelection().rangeCount > 0) {
-            cloneRange = getSelection().getRangeAt(0).cloneRange();
+        let selection = getSelection()
+        if (selection&&selection.rangeCount > 0) {
+            cloneRange = selection.getRangeAt(0).cloneRange();
         }
         const range = copyElement.ownerDocument.createRange();
         range.selectNodeContents(copyElement);
         focusByRange(range);
         document.execCommand("copy");
-        this.element.lastElementChild.remove();
-        focusByRange(cloneRange);
+        this.element.lastElementChild&&this.element.lastElementChild.remove();
+        cloneRange&&focusByRange(cloneRange);
         if (type) {
-            showMessage(`${type === "zhihu" ? window.siyuan.languages.pasteToZhihu : window.siyuan.languages.pasteToWechatMP}`);
+            showMessage(`${type === "zhihu" ? siyuanI18n.pasteToZhihu : siyuanI18n.pasteToWechatMP}`);
         }
     }
 
-    private processZHBlockquote(element: HTMLElement, elements: HTMLElement[]) {
-        Array.from(element.children).forEach((item: HTMLElement) => {
-            if (item.tagName === "BLOCKQUOTE") {
-                this.processZHBlockquote(item, elements);
-            } else if (item.tagName !== "P" || item.querySelector("img")) {
-                elements.push(item);
-            } else {
-                const lastElement = elements[elements.length - 1];
-                if (!lastElement || (lastElement && lastElement.tagName !== "BLOCKQUOTE")) {
-                    elements.push(document.createElement("blockquote"));
-                }
-                elements[elements.length - 1].append(item);
-            }
-        });
+    private processZhihuBlockquote(element: HTMLElement, elements: HTMLElement[]) {
+        processPreviewElementZhihuBlockquote(element, elements)
     }
 
-    private processZHTable(element: HTMLElement) {
-        element.querySelectorAll("table").forEach(item => {
-            const headElement = item.querySelector("thead");
-            if (!headElement) {
-                return;
-            }
-            const tbodyElement = item.querySelector("tbody");
-            if (tbodyElement) {
-                tbodyElement.insertAdjacentElement("afterbegin", headElement.firstElementChild);
-            } else {
-                item.innerHTML = `<tbody>${headElement.innerHTML}</tbody>`;
-            }
-            headElement.remove();
-        });
+    private processZhihuTable(element: HTMLElement) {
+        processPreviewElementsZhihuTable(element)
     }
 }
