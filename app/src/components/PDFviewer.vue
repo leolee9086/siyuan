@@ -1,5 +1,6 @@
 <template>
     <div :class="{ 'pdf__outer': true, 'pdf__outer--dark': pdfTheme === 'dark' }" id="outerContainer">
+        <!--注意,任何一个有ID的元素都有可能影响pdfjs浏览器控制器的工作,所以需要特别小心 -->
         <div id="sidebarContainer">
             <div id="toolbarSidebar">
                 <div id="toolbarSidebarLeft">
@@ -64,22 +65,22 @@
                 </button>
                 <label class="b3-button b3-button--outline b3-button--small">
                     <input type="checkbox" id="findHighlightAll" class="toolbarField">
-                    {{siyuanI18n.findHighlight}}
+                    {{ siyuanI18n.findHighlight }}
                 </label>
                 <div class="fn__space"></div>
                 <label class="b3-button b3-button--outline b3-button--small">
                     <input type="checkbox" id="findMatchCase" class="toolbarField">
-                    {{siyuanI18n.searchCaseSensitive}}
+                    {{ siyuanI18n.searchCaseSensitive }}
                 </label>
                 <div class="fn__space"></div>
                 <label class="b3-button b3-button--outline b3-button--small">
                     <input type="checkbox" id="findMatchDiacritics" class="toolbarField">
-                    {{siyuanI18n.matchDiacritics}}
+                    {{ siyuanI18n.matchDiacritics }}
                 </label>
                 <div class="fn__space"></div>
                 <label class="b3-button b3-button--outline b3-button--small">
                     <input type="checkbox" id="findEntireWord" class="toolbarField">
-                    {{siyuanI18n.findEntireWord}}
+                    {{ siyuanI18n.findEntireWord }}
                 </label>
                 <div class="fn__space"></div>
                 <span id="findResultsCount" class="b3-button b3-button--small b3-button--cancel"></span>
@@ -91,43 +92,43 @@
                         <svg class="b3-menu__icon">
                             <use xlink:href="#iconLight"></use>
                         </svg>
-                        <span class="b3-menu__label">{{siyuanI18n.themeLight}}</span>
+                        <span class="b3-menu__label">{{ siyuanI18n.themeLight }}</span>
                     </button>
                     <button id="pdfDark" class="secondaryToolbarButton b3-menu__item">
                         <svg class="b3-menu__icon">
                             <use xlink:href="#iconDark"></use>
                         </svg>
-                        <span class="b3-menu__label">{{siyuanI18n.themeDark}}</span>
+                        <span class="b3-menu__label">{{ siyuanI18n.themeDark }}</span>
                     </button>
                     <div class="horizontalToolbarSeparator b3-menu__separator"></div>
                     <button id="previous" class="secondaryToolbarButton b3-menu__item pageUp">
                         <svg class="b3-menu__icon">
                             <use xlink:href="#iconUp"></use>
                         </svg>
-                        <span class="b3-menu__label">{{siyuanI18n.previousLabel}}</span>
-                        <span
-                            class="b3-menu__accelerator b3-menu__accelerator--hotkey">{{updateHotkeyTip("P")}}/{{updateHotkeyTip("K")}}</span>
+                        <span class="b3-menu__label">{{ siyuanI18n.previousLabel }}</span>
+                        <span class="b3-menu__accelerator b3-menu__accelerator--hotkey">{{ updateHotkeyTip("P") }}/{{
+                            updateHotkeyTip("K") }}</span>
                     </button>
                     <button id="next" class="secondaryToolbarButton b3-menu__item pageDown">
                         <svg class="b3-menu__icon">
                             <use xlink:href="#iconDown"></use>
                         </svg>
-                        <span class="b3-menu__label">{{siyuanI18n.nextLabel}}</span>
-                        <span
-                            class="b3-menu__accelerator b3-menu__accelerator--hotkey">{{updateHotkeyTip("J")}}/{{updateHotkeyTip("N")}}</span>
+                        <span class="b3-menu__label">{{ siyuanI18n.nextLabel }}</span>
+                        <span class="b3-menu__accelerator b3-menu__accelerator--hotkey">{{ updateHotkeyTip("J") }}/{{
+                            updateHotkeyTip("N") }}</span>
                     </button>
                     <button id="firstPage" class="secondaryToolbarButton b3-menu__item firstPage">
                         <svg class="b3-menu__icon">
                             <use xlink:href="#iconBack"></use>
                         </svg>
-                        <span class="b3-menu__label">{{siyuanI18n.firstPage}}</span>
+                        <span class="b3-menu__label">{{ siyuanI18n.firstPage }}</span>
                         <span class="b3-menu__accelerator b3-menu__accelerator--hotkey">Home</span>
                     </button>
                     <button id="lastPage" class="secondaryToolbarButton b3-menu__item lastPage">
                         <svg class="b3-menu__icon">
                             <use xlink:href="#iconForward"></use>
                         </svg>
-                        <span class="b3-menu__label">{{siyuanI18n.lastPage}}</span>
+                        <span class="b3-menu__label">{{ siyuanI18n.lastPage }}</span>
                         <span class="b3-menu__accelerator b3-menu__accelerator--hotkey">End</span>
                     </button>
                     <div class="horizontalToolbarSeparator b3-menu__separator"></div>
@@ -135,29 +136,32 @@
                         <svg class="b3-menu__icon">
                             <use xlink:href="#iconLine"></use>
                         </svg>
-                        <span class="b3-menu__label">{{siyuanI18n.zoomOut}}</span>
-                        <span class="b3-menu__accelerator b3-menu__accelerator--hotkey">{{updateHotkeyTip("⌘-")}}</span>
+                        <span class="b3-menu__label">{{ siyuanI18n.zoomOut }}</span>
+                        <span class="b3-menu__accelerator b3-menu__accelerator--hotkey">{{ updateHotkeyTip("⌘-")
+                            }}</span>
                     </button>
                     <button id="zoomInButton" class="secondaryToolbarButton b3-menu__item zoomIn">
                         <svg class="b3-menu__icon">
                             <use xlink:href="#iconAdd"></use>
                         </svg>
-                        <span class="b3-menu__label">{{siyuanI18n.zoomIn}}</span>
-                        <span class="b3-menu__accelerator b3-menu__accelerator--hotkey">{{updateHotkeyTip("⌘=")}}</span>
+                        <span class="b3-menu__label">{{ siyuanI18n.zoomIn }}</span>
+                        <span class="b3-menu__accelerator b3-menu__accelerator--hotkey">{{ updateHotkeyTip("⌘=")
+                            }}</span>
                     </button>
                     <button id="pageRotateCw" class="secondaryToolbarButton b3-menu__item rotateCw">
                         <svg class="b3-menu__icon">
                             <use xlink:href="#iconRedo"></use>
                         </svg>
-                        <span class="b3-menu__label">{{siyuanI18n.rotateCw}}</span>
+                        <span class="b3-menu__label">{{ siyuanI18n.rotateCw }}</span>
                         <span class="b3-menu__accelerator b3-menu__accelerator--hotkey">R</span>
                     </button>
                     <button id="pageRotateCcw" class="secondaryToolbarButton b3-menu__item rotateCcw">
                         <svg class="b3-menu__icon">
                             <use xlink:href="#iconUndo"></use>
                         </svg>
-                        <span class="b3-menu__label">{{siyuanI18n.rotateCcw}}</span>
-                        <span class="b3-menu__accelerator b3-menu__accelerator--hotkey">{{updateHotkeyTip("⇧R")}}</span>
+                        <span class="b3-menu__label">{{ siyuanI18n.rotateCcw }}</span>
+                        <span class="b3-menu__accelerator b3-menu__accelerator--hotkey">{{ updateHotkeyTip("⇧R")
+                            }}</span>
                     </button>
 
                     <div class="horizontalToolbarSeparator b3-menu__separator"></div>
@@ -166,14 +170,14 @@
                         <svg class="b3-menu__icon">
                             <use xlink:href="#iconSelectText"></use>
                         </svg>
-                        <span class="b3-menu__label">{{siyuanI18n.cursorText}}</span>
+                        <span class="b3-menu__label">{{ siyuanI18n.cursorText }}</span>
                         <span class="b3-menu__accelerator b3-menu__accelerator--hotkey">S</span>
                     </button>
                     <button id="cursorHandTool" class="secondaryToolbarButton b3-menu__item handTool">
                         <svg class="b3-menu__icon">
                             <use xlink:href="#iconHand"></use>
                         </svg>
-                        <span class="b3-menu__label">{{siyuanI18n.cursorHand}}</span>
+                        <span class="b3-menu__label">{{ siyuanI18n.cursorHand }}</span>
                         <span class="b3-menu__accelerator b3-menu__accelerator--hotkey">H</span>
                     </button>
                     <div class="horizontalToolbarSeparator b3-menu__separator"></div>
@@ -182,21 +186,21 @@
                         <svg class="b3-menu__icon">
                             <use xlink:href="#iconScrollVert"></use>
                         </svg>
-                        <span class="b3-menu__label">{{siyuanI18n.scrollVertical}}</span>
+                        <span class="b3-menu__label">{{ siyuanI18n.scrollVertical }}</span>
                     </button>
                     <button id="scrollHorizontal"
                         class="secondaryToolbarButton b3-menu__item scrollModeButtons scrollHorizontal">
                         <svg class="b3-menu__icon">
                             <use xlink:href="#iconScrollHoriz"></use>
                         </svg>
-                        <span class="b3-menu__label">{{siyuanI18n.scrollHorizontal}}</span>
+                        <span class="b3-menu__label">{{ siyuanI18n.scrollHorizontal }}</span>
                     </button>
                     <button id="scrollWrapped"
                         class="secondaryToolbarButton b3-menu__item scrollModeButtons scrollWrapped">
                         <svg class="b3-menu__icon">
                             <use xlink:href="#iconScrollWrapped"></use>
                         </svg>
-                        <span class="b3-menu__label">{{siyuanI18n.scrollWrapped}}</span>
+                        <span class="b3-menu__label">{{ siyuanI18n.scrollWrapped }}</span>
                     </button>
 
                     <div class="horizontalToolbarSeparator b3-menu__separator scrollModeButtons"></div>
@@ -206,25 +210,25 @@
                         <svg class="b3-menu__icon">
                             <use xlink:href="#iconFile"></use>
                         </svg>
-                        <span class="b3-menu__label">{{siyuanI18n.spreadNone}}</span>
+                        <span class="b3-menu__label">{{ siyuanI18n.spreadNone }}</span>
                     </button>
                     <button id="spreadOdd" class="secondaryToolbarButton b3-menu__item spreadModeButtons spreadOdd">
                         <svg class="b3-menu__icon">
                             <use xlink:href="#iconSpreadOdd"></use>
                         </svg>
-                        <span class="b3-menu__label">{{siyuanI18n.spreadOdd}}</span>
+                        <span class="b3-menu__label">{{ siyuanI18n.spreadOdd }}</span>
                     </button>
                     <button id="spreadEven" class="secondaryToolbarButton b3-menu__item spreadModeButtons spreadEven">
                         <svg class="b3-menu__icon">
                             <use xlink:href="#iconSpreadEven"></use>
                         </svg>
-                        <span class="b3-menu__label">{{siyuanI18n.spreadEven}}</span>
+                        <span class="b3-menu__label">{{ siyuanI18n.spreadEven }}</span>
                     </button>
                     <button id="presentationMode" class="secondaryToolbarButton b3-menu__item presentationMode">
                         <svg class="b3-menu__icon">
                             <use xlink:href="#iconPlay"></use>
                         </svg>
-                        <span class="b3-menu__label">{{siyuanI18n.presentationMode}}</span>
+                        <span class="b3-menu__label">{{ siyuanI18n.presentationMode }}</span>
                         <span class="b3-menu__accelerator b3-menu__accelerator--hotkey">${updateHotkeyTip("⌥⌘P")}</span>
                     </button>
                     <div class="horizontalToolbarSeparator b3-menu__separator spreadModeButtons"></div>
@@ -232,7 +236,7 @@
                         <svg class="b3-menu__icon">
                             <use xlink:href="#iconInfo"></use>
                         </svg>
-                        <span class="b3-menu__label">{{siyuanI18n.attr}}</span>
+                        <span class="b3-menu__label">{{ siyuanI18n.attr }}</span>
                     </button>
                 </div>
             </div> <!-- secondaryToolbar -->
@@ -267,11 +271,12 @@
                         <div class="fn__flex-1"></div>
                         <span id="scaleSelectContainer" class="dropdownToolbarButton">
                             <select id="scaleSelect" class="b3-select">
-                                <option id="pageAutoOption" value="auto" selected="true">{{siyuanI18n.pageScaleAuto}}
+                                <option id="pageAutoOption" value="auto" selected="true">{{ siyuanI18n.pageScaleAuto }}
                                 </option>
-                                <option id="pageActualOption" value="page-actual">{{siyuanI18n.pageScaleActual}}</option>
-                                <option id="pageFitOption" value="page-fit">{{siyuanI18n.pageScaleFit}}</option>
-                                <option id="pageWidthOption" value="page-width">{{siyuanI18n.pageScaleWidth}}</option>
+                                <option id="pageActualOption" value="page-actual">{{ siyuanI18n.pageScaleActual }}
+                                </option>
+                                <option id="pageFitOption" value="page-fit">{{ siyuanI18n.pageScaleFit }}</option>
+                                <option id="pageWidthOption" value="page-width">{{ siyuanI18n.pageScaleWidth }}</option>
                                 <option id="customScaleOption" value="custom" disabled="true" hidden="true">
                                 </option>
                                 <option value="0.5">50%</option>
@@ -345,66 +350,66 @@
             </div>
             <div class="dialog" id="documentPropertiesDialog">
                 <div class="row">
-                    <span>{{siyuanI18n.fileName}}</span>
+                    <span>{{ siyuanI18n.fileName }}</span>
                     <p id="fileNameField">-</p>
                 </div>
                 <div class="row">
-                    <span>{{siyuanI18n.fileSize}}</span>
+                    <span>{{ siyuanI18n.fileSize }}</span>
                     <p id="fileSizeField">-</p>
                 </div>
                 <div class="separator"></div>
                 <div class="row">
-                    <span>{{siyuanI18n.title1}}</span>
+                    <span>{{ siyuanI18n.title1 }}</span>
                     <p id="titleField">-</p>
                 </div>
                 <div class="row">
-                    <span>{{siyuanI18n.author}}</span>
+                    <span>{{ siyuanI18n.author }}</span>
                     <p id="authorField">-</p>
                 </div>
                 <div class="row">
-                    <span>{{siyuanI18n.subject}}</span>
+                    <span>{{ siyuanI18n.subject }}</span>
                     <p id="subjectField">-</p>
                 </div>
                 <div class="row">
-                    <span>{{siyuanI18n.keywords}}</span>
+                    <span>{{ siyuanI18n.keywords }}</span>
                     <p id="keywordsField">-</p>
                 </div>
                 <div class="row">
-                    <span>{{siyuanI18n.creationDate}}</span>
+                    <span>{{ siyuanI18n.creationDate }}</span>
                     <p id="creationDateField">-</p>
                 </div>
                 <div class="row">
-                    <span>{{siyuanI18n.modificationDate}}</span>
+                    <span>{{ siyuanI18n.modificationDate }}</span>
                     <p id="modificationDateField">-</p>
                 </div>
                 <div class="row">
-                    <span>{{siyuanI18n.creator}}</span>
+                    <span>{{ siyuanI18n.creator }}</span>
                     <p id="creatorField">-</p>
                 </div>
                 <div class="separator"></div>
                 <div class="row">
-                    <span>PDF {{siyuanI18n.producer}}</span>
+                    <span>PDF {{ siyuanI18n.producer }}</span>
                     <p id="producerField">-</p>
                 </div>
                 <div class="row">
-                    <span>PDF {{siyuanI18n.version}}</span>
+                    <span>PDF {{ siyuanI18n.version }}</span>
                     <p id="versionField">-</p>
                 </div>
                 <div class="row">
-                    <span>{{siyuanI18n.pageCount}}</span>
+                    <span>{{ siyuanI18n.pageCount }}</span>
                     <p id="pageCountField">-</p>
                 </div>
                 <div class="row">
-                    <span>{{siyuanI18n.pageSize}}</span>
+                    <span>{{ siyuanI18n.pageSize }}</span>
                     <p id="pageSizeField">-</p>
                 </div>
                 <div class="separator"></div>
                 <div class="row">
-                    <span>{{siyuanI18n.linearized}}</span>
+                    <span>{{ siyuanI18n.linearized }}</span>
                     <p id="linearizedField">-</p>
                 </div>
                 <div class="buttonRow">
-                    <button id="documentPropertiesClose" class="b3-button"><span>{{siyuanI18n.close}}</span></button>
+                    <button id="documentPropertiesClose" class="b3-button"><span>{{ siyuanI18n.close }}</span></button>
                 </div>
             </div>
             <div class="dialog" id="printServiceOverlay">
@@ -437,25 +442,25 @@
                 <svg class="b3-menu__icon">
                     <use xlink:href="#iconFilesRoot"></use>
                 </svg>
-                <span class="b3-menu__label">{{siyuanI18n.showHideBg}}</span>
+                <span class="b3-menu__label">{{ siyuanI18n.showHideBg }}</span>
             </button>
             <button class="b3-menu__item pdf__util__hide" data-type="copy">
                 <svg class="b3-menu__icon">
                     <use xlink:href="#iconRef"></use>
                 </svg>
-                <span class="b3-menu__label">{{siyuanI18n.copyAnnotation}}</span>
+                <span class="b3-menu__label">{{ siyuanI18n.copyAnnotation }}</span>
             </button>
             <button class="b3-menu__item pdf__util__hide" data-type="relate">
                 <svg class="b3-menu__icon">
                     <use xlink:href="#iconParagraph"></use>
                 </svg>
-                <span class="b3-menu__label">{{siyuanI18n.relation}}</span>
+                <span class="b3-menu__label">{{ siyuanI18n.relation }}</span>
             </button>
             <button class="b3-menu__item pdf__util__hide" data-type="remove">
                 <svg class="b3-menu__icon">
                     <use xlink:href="#iconTrashcan"></use>
                 </svg>
-                <span class="b3-menu__label">{{siyuanI18n.remove}}</span>
+                <span class="b3-menu__label">{{ siyuanI18n.remove }}</span>
             </button>
         </div>
         <div class="fn__none">
@@ -541,26 +546,27 @@ onMounted(
             setStorageVal(Constants.LOCAL_PDFTHEME, getSiyuanStorage()[Constants.LOCAL_PDFTHEME]);
         });
         // 初始化完成后需等待页签是否显示设置完成，才可以判断 pdf 是否能进行渲染
-        setTimeout(() => {
-            if (controller.element.clientWidth === 0) {
-                const observer = new MutationObserver(() => {
-                    controller.pdfObject = webViewerLoad(controller.path.startsWith("file") ? controller.path : document.getElementById("baseURL").getAttribute("href") + "/" + controller.path,
-                        controller.element, controller.pdfPage, controller.pdfId);
-                    controller.element.setAttribute("data-loading", "true");
-                    observer.disconnect();
-                });
-                observer.observe(controller.element, { attributeFilter: ["class"] });
-            } else {
-                controller.pdfObject = webViewerLoad(controller.path.startsWith("file") ? controller.path : document.getElementById("baseURL").getAttribute("href") + "/" + controller.path,
-                controller.element, controller.pdfPage, controller.pdfId);
+          setTimeout(() => {
+        if (controller.element.clientWidth === 0) {
+            const observer = new MutationObserver(() => {
+                controller.pdfObject = webViewerLoad(
+                    controller.path.startsWith("file") ? controller.path : document.getElementById("baseURL").getAttribute("href") + "/" + controller.path,
+                    controller.element, controller.pdfPage, controller.pdfId);
                 controller.element.setAttribute("data-loading", "true");
-            }
-                /// #if !BROWSER
-                setModelsHash();
-                /// #endif
+                observer.disconnect();
+            });
+            observer.observe(controller.element, { attributeFilter: ["class"] });
+        } else {
+            controller.pdfObject = webViewerLoad(controller.path.startsWith("file") ? controller.path : document.getElementById("baseURL").getAttribute("href") + "/" + controller.path,
+                controller.element, controller.pdfPage, controller.pdfId);
+            controller.element.setAttribute("data-loading", "true");
+        }
+        /// #if !BROWSER
+        setModelsHash();
+        /// #endif
 
-            
-        }, Constants.TIMEOUT_LOAD);
+
+         }, Constants.TIMEOUT_LOAD);
 
     }
 )

@@ -1,7 +1,7 @@
 import { createVueComponentLoader } from "../../util/vue/mount";
 import { default as ImageViewer } from "../../components/imageEditor.vue";
 
-export const initImagePanel = (element: HTMLElement, urlOrPath: string) => {
+export const render = (element: HTMLElement, urlOrPath: string) => {
     // 清空容器
     element.innerHTML = '';
     createVueComponentLoader(
@@ -13,3 +13,7 @@ export const initImagePanel = (element: HTMLElement, urlOrPath: string) => {
         }
     );
 };
+
+export  default {
+    render
+}

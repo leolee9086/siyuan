@@ -8,7 +8,7 @@ import {onPageNumberChanged} from "./pdf/app";
 import {fetchPost} from "../util/fetch";
 import {App} from "../index";
 import {clearOBG} from "../layout/dock/util";
-import { initImagePanel } from "./image";
+import { render } from "./image";
 import { createVueComponentLoader } from "../util/vue/mount";
 import PDFviewer from "../components/PDFviewer.vue";
 export class Asset extends Model {
@@ -83,7 +83,7 @@ export class Asset extends Model {
     private render() {
         const type = this.path.substr(this.path.lastIndexOf(".")).toLowerCase().split("?")[0];
         if (Constants.SIYUAN_ASSETS_IMAGE.includes(type)) {
-            initImagePanel(this.element,this.path);
+            render(this.element,this.path);
         } else if (Constants.SIYUAN_ASSETS_AUDIO.includes(type)) {
             this.element.innerHTML = `<div class="asset"><audio controls="controls" src="${this.path.startsWith("file") ? this.path : document.getElementById("baseURL").getAttribute("href") + "/" + this.path}"></audio></div>`;
         } else if (Constants.SIYUAN_ASSETS_VIDEO.includes(type)) {
