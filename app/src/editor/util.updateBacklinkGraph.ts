@@ -19,7 +19,12 @@ export const updateBacklinkGraph = (models: IModels, protyle: IProtyle) => {
             }
             let blockId = "";
             if (protyle && protyle.block) {
-                blockId = protyle.block.showAll ? protyle.block.id : protyle.block.parentID;
+                if (protyle.block.id && protyle.block.parentID) {
+                    blockId = protyle.block.showAll ? protyle.block.id : protyle.block.parentID;
+                } else {
+                    console.error(protyle)
+                    throw ("protyle 结构错误")
+                }
             }
             if (blockId === item.blockId) {
                 return;
@@ -33,21 +38,26 @@ export const updateBacklinkGraph = (models: IModels, protyle: IProtyle) => {
         }
         let blockId = "";
         if (protyle && protyle.block) {
-            blockId = protyle.block.showAll ? protyle.block.id : protyle.block.parentID;
+            if (protyle.block.id && protyle.block.parentID) {
+                blockId = protyle.block.showAll ? protyle.block.id : protyle.block.parentID;
+            } else {
+                console.error(protyle)
+                throw ("protyle 结构错误")
+            }
         }
         if (blockId === item.blockId) {
             return;
         }
-        item.element.querySelector('.block__icon[data-type="refresh"] svg').classList.add("fn__rotate");
+        item.element.querySelector('.block__icon[data-type="refresh"] svg')?.classList.add("fn__rotate");
         fetchPost("/api/ref/getBacklink2", {
-            sort: item.status[blockId] ? item.status[blockId].sort : "3",
-            mSort: item.status[blockId] ? item.status[blockId].mSort : "3",
+            sort: item.status[blockId] ? item.status[blockId]?.sort.toString() : getSiyuanConfig().editor.backlinkSort.toString(),
+            mSort: item.status[blockId] ? item.status[blockId]?.mSort.toString() : getSiyuanConfig()?.editor.backmentionSort.toString(),
             id: blockId || "",
-            k: item.inputsElement[0].value,
-            mk: item.inputsElement[1].value,
+            k: item.inputsElement[0]?.value,
+            mk: item.inputsElement[1]?.value,
         }, response => {
             if (!isCurrentEditor(blockId) || item.blockId === blockId) {
-                item.element.querySelector('.block__icon[data-type="refresh"] svg').classList.remove("fn__rotate");
+                item.element.querySelector('.block__icon[data-type="refresh"] svg')?.classList.remove("fn__rotate");
                 return;
             }
             item.saveStatus();
