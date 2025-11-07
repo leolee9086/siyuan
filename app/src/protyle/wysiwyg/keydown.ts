@@ -1,5 +1,5 @@
-import {hideElements} from "../ui/hideElements";
-import {isMac, isNotCtrl, isOnlyMeta, writeText} from "../util/compatibility";
+import { hideElements } from "../ui/hideElements";
+import { isMac, isNotCtrl, isOnlyMeta, writeText } from "../util/compatibility";
 import {
     focusBlock,
     focusByRange,
@@ -20,7 +20,7 @@ import {
     hasTopClosestByAttribute,
     isInEmbedBlock
 } from "../util/hasClosest";
-import {removeBlock, removeImage} from "./remove";
+import { removeBlock, removeImage } from "./remove";
 import {
     getContenteditableElement,
     getFirstBlock,
@@ -33,9 +33,9 @@ import {
     isEndOfBlock,
     isNotEditBlock,
 } from "./getBlock";
-import {isIncludesHotKey, matchHotKey} from "../util/hotKey";
-import {enter, softEnter} from "./enter";
-import {clearTableCell, fixTable} from "../util/table";
+import { isIncludesHotKey, matchHotKey } from "../util/hotKey";
+import { enter, softEnter } from "./enter";
+import { clearTableCell, fixTable } from "../util/table";
 import {
     transaction,
     turnsIntoOneTransaction,
@@ -44,39 +44,40 @@ import {
     updateBatchTransaction,
     updateTransaction
 } from "./transaction";
-import {fontEvent} from "../toolbar/Font";
-import {addSubList, listIndent, listOutdent} from "./list";
-import {newFileContentBySelect, rename, replaceFileName} from "../../editor/rename";
-import {cancelSB, insertEmptyBlock, jumpToParent} from "../../block/util";
-import {isLocalPath} from "../../util/pathName";
+import { fontEvent } from "../toolbar/Font";
+import { addSubList, listIndent, listOutdent } from "./list";
+import { newFileContentBySelect, rename, replaceFileName } from "../../editor/rename";
+import { cancelSB, insertEmptyBlock, jumpToParent } from "../../block/util";
+import { isLocalPath } from "../../util/pathName";
 /// #if !MOBILE
 import { openFileById } from "../../editor/utils.openFileById";
 import { openBy } from "../../editor/utils.openBy";
 /// #endif
-import {alignImgCenter, alignImgLeft, commonHotkey, downSelect, getStartEndElement, upSelect} from "./commonHotkey";
-import {inlineMathMenu, linkMenu, setFold, tagMenu} from "../../menus/protyle";
+import { alignImgCenter, alignImgLeft, commonHotkey, downSelect, getStartEndElement, upSelect } from "./commonHotkey";
+import { inlineMathMenu, linkMenu, setFold, tagMenu } from "../../menus/protyle";
 import { refMenu } from "../../menus/protyle.refMenu";
 import { fileAnnotationRefMenu } from "../../menus/protyle.fileAnnotationRefMenu";
-import {openAttr} from "../../menus/commonMenuItem";
-import {Constants} from "../../constants";
-import {fetchPost} from "../../util/fetch";
-import {scrollCenter} from "../../util/highlightById";
-import {BlockPanel} from "../../block/Panel";
+import { openAttr } from "../../menus/commonMenuItem";
+import { Constants } from "../../constants";
+import { fetchPost } from "../../util/fetch";
+import { scrollCenter } from "../../util/highlightById";
+import { BlockPanel } from "../../block/Panel";
 import * as dayjs from "dayjs";
-import {highlightRender} from "../render/highlightRender";
-import {countBlockWord} from "../../layout/status";
-import {moveToDown, moveToUp} from "./move";
-import {pasteAsPlainText} from "../util/paste";
-import {preventScroll} from "../scroll/preventScroll";
-import {getSavePath, newFileBySelect} from "../../util/newFile";
-import {removeSearchMark} from "../toolbar/util";
-import {avKeydown} from "../render/av/keydown";
-import {checkFold} from "../../util/noRelyPCFunction";
-import {openAIActionsMenu} from "../../ai/actions";
-import {openLink} from "../../editor/openLink";
-import {onlyProtyleCommand} from "../../boot/globalEvent/command/protyle";
-import {AIChat} from "../../ai/chat";
+import { highlightRender } from "../render/highlightRender";
+import { countBlockWord } from "../../layout/status";
+import { moveToDown, moveToUp } from "./move";
+import { pasteAsPlainText } from "../util/paste";
+import { preventScroll } from "../scroll/preventScroll";
+import { getSavePath, newFileBySelect } from "../../util/newFile";
+import { removeSearchMark } from "../toolbar/util";
+import { avKeydown } from "../render/av/keydown";
+import { checkFold } from "../../util/noRelyPCFunction";
+import { openAIActionsMenu } from "../../ai/actions";
+import { openLink } from "../../editor/openLink";
+import { onlyProtyleCommand } from "../../boot/globalEvent/command/protyle";
+import { AIChat } from "../../ai/chat";
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu";
+import { htmlBlockGuard, inputElementGuard, protyleDisabledGuard, protyleHaveSelectedGuard } from "./keydown.guards";
 
 export const getContentByInlineHTML = (range: Range, cb: (content: string) => void) => {
     let html = "";
@@ -87,22 +88,26 @@ export const getContentByInlineHTML = (range: Range, cb: (content: string) => vo
             html += item.outerHTML;
         }
     });
-    fetchPost("/api/block/getDOMText", {dom: html}, (response) => {
+    fetchPost("/api/block/getDOMText", { dom: html }, (response) => {
         cb(response.data);
     });
 };
 
 export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
     editorElement.addEventListener("keydown", async (event: KeyboardEvent & { target: HTMLElement }) => {
-        if (event.target.localName === "protyle-html" || event.target.localName === "input") {
-            event.stopPropagation();
-            return;
-        }
-        if (protyle.disabled || !protyle.selectElement.classList.contains("fn__none")) {
-            event.stopPropagation();
-            event.preventDefault();
-            return;
-        }
+        const controller = new AbortController()
+        const signal = controller.signal
+        signal.addEventListener('abort', (event) => {
+            console.log(event)
+        })
+        await htmlBlockGuard(event, controller)
+        if (signal.aborted) { return }
+        await inputElementGuard(event, controller)
+        if (signal.aborted) { return }
+        await protyleDisabledGuard(event, protyle, controller)
+        if (signal.aborted) { return }
+        await protyleHaveSelectedGuard(event, protyle, controller)
+        if (signal.aborted) { return }
         protyle.wysiwyg.preventKeyup = false;
         hideElements(["util"], protyle);
         if (event.shiftKey && event.key.indexOf("Arrow") > -1) {
@@ -114,8 +119,9 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         const range = getEditorRange(protyle.wysiwyg.element);
         const nodeElement = hasClosestBlock(range.startContainer);
         if (!nodeElement) {
-            return;
+            controller.abort();
         }
+        if (signal.aborted) { return }
 
         // https://ld246.com/article/1694506408293
         const endElement = hasClosestBlock(range.endContainer);
@@ -576,7 +582,7 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
                         protyle.toolbar.showRender(protyle, inlineElement);
                         return;
                     } else if (types.includes("file-annotation-ref")) {
-                        fileAnnotationRefMenu(protyle, inlineElement,getSiyuanGlobalMenus().menu);
+                        fileAnnotationRefMenu(protyle, inlineElement, getSiyuanGlobalMenus().menu);
                         return;
                     } else if (types.includes("a")) {
                         linkMenu(protyle, inlineElement);
@@ -614,7 +620,7 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
                 protyle.gutter.renderMultipleMenu(protyle, selectElements);
             }
             const rect = nodeElement.getBoundingClientRect();
-            window.siyuan.menus.menu.popup({x: rect.left, y: rect.top, isLeft: true});
+            window.siyuan.menus.menu.popup({ x: rect.left, y: rect.top, isLeft: true });
             return;
         }
 
@@ -650,9 +656,9 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
             } else if (event.key === "ArrowUp") {
                 const firstEditElement = getContenteditableElement(protyle.wysiwyg.element.firstElementChild);
                 if ((
-                        !getPreviousBlock(nodeElement) &&  // 列表第一个块为嵌入块，第二个块为段落块，上键应选中第一个块 https://ld246.com/article/1652667912155
-                        nodeElement.contains(firstEditElement)
-                    ) ||
+                    !getPreviousBlock(nodeElement) &&  // 列表第一个块为嵌入块，第二个块为段落块，上键应选中第一个块 https://ld246.com/article/1652667912155
+                    nodeElement.contains(firstEditElement)
+                ) ||
                     (!firstEditElement && nodeElement === protyle.wysiwyg.element.firstElementChild)) {
                     // 不能用\n判断，否则文字过长折行将错误 https://github.com/siyuan-note/siyuan/issues/6156
                     if (getSelectionPosition(nodeEditableElement, range).top - nodeEditableElement.getBoundingClientRect().top < 20 || nodeElement.classList.contains("av")) {
@@ -1041,7 +1047,7 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
                     const rangePreviousElement = hasPreviousSibling(range.startContainer) as HTMLElement;
                     const rangeNextElement = hasNextSibling(range.endContainer) as HTMLElement;
                     if ((rangePreviousElement && rangePreviousElement.nodeType === 1 && rangePreviousElement.classList.contains("img") &&
-                            rangeNextElement && rangeNextElement.nodeType === 1 && rangeNextElement.classList.contains("img")) ||
+                        rangeNextElement && rangeNextElement.nodeType === 1 && rangeNextElement.classList.contains("img")) ||
                         (position.start === 0 &&
                             range.startContainer.textContent !== Constants.ZWSP &&  // 如果为 zwsp 需前移光标
                             !rangePreviousElement &&
@@ -2005,7 +2011,7 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
                     app: protyle.app,
                     isBacklink: false,
                     targetElement: refElement,
-                    refDefs: [{refID: id}]
+                    refDefs: [{ refID: id }]
                 }));
                 event.preventDefault();
                 event.stopPropagation();
