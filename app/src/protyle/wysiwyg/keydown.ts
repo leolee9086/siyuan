@@ -78,6 +78,7 @@ import { onlyProtyleCommand } from "../../boot/globalEvent/command/protyle";
 import { AIChat } from "../../ai/chat";
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu";
 import { htmlBlockGuard, inputElementGuard, protyleDisabledGuard, protyleHaveSelectedGuard } from "./keydown.guards";
+import { hideProtyleUtilMiddleware, setProtyleWysiwygPreventKeyupMiddleware } from "./keydown.middlewares";
 
 export const getContentByInlineHTML = (range: Range, cb: (content: string) => void) => {
     let html = "";
@@ -100,16 +101,18 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         signal.addEventListener('abort', (event) => {
             console.log(event)
         })
-        await htmlBlockGuard(event, controller)
+        //守卫函数传入控制器但是不要修改状态
+        await htmlBlockGuard(event, protyle, controller)
         if (signal.aborted) { return }
-        await inputElementGuard(event, controller)
+        await inputElementGuard(event, protyle, controller)
         if (signal.aborted) { return }
         await protyleDisabledGuard(event, protyle, controller)
         if (signal.aborted) { return }
         await protyleHaveSelectedGuard(event, protyle, controller)
         if (signal.aborted) { return }
-        protyle.wysiwyg.preventKeyup = false;
-        hideElements(["util"], protyle);
+        //中间件函数不传入控制器
+        await setProtyleWysiwygPreventKeyupMiddleware(event, protyle)
+        await hideProtyleUtilMiddleware(event,protyle)
         if (event.shiftKey && event.key.indexOf("Arrow") > -1) {
             // 防止连续选中的时候抖动 https://github.com/siyuan-note/insider/issues/657#issuecomment-851391217
         } else if (!event.repeat &&
@@ -118,9 +121,7 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         }
         const range = getEditorRange(protyle.wysiwyg.element);
         const nodeElement = hasClosestBlock(range.startContainer);
-        if (!nodeElement) {
-            controller.abort();
-        }
+        if (!nodeElement) {controller.abort()}
         if (signal.aborted) { return }
 
         // https://ld246.com/article/1694506408293
@@ -191,13 +192,13 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
             protyle.wysiwyg.preventKeyup = true;
         }
 
-        if (!window.siyuan.menus.menu.element.classList.contains("fn__none") &&
+        if (!getSiyuanGlobalMenus().menu.element.classList.contains("fn__none") &&
             (["←", "↑", "→", "↓"].includes(Constants.KEYCODELIST[event.keyCode]) || Constants.KEYCODELIST[event.keyCode] === "↩") &&
             !event.altKey && !event.shiftKey && isNotCtrl(event)) {
             event.preventDefault();
             return;
         } else if (event.key !== "Escape") {
-            window.siyuan.menus.menu.remove();
+            getSiyuanGlobalMenus().menu.remove();
         }
 
         if (!["Alt", "Meta", "Shift", "Control", "CapsLock", "Escape"].includes(event.key) && protyle.options.render.breadcrumb) {

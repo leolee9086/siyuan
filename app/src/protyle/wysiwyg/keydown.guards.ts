@@ -1,5 +1,6 @@
 export const htmlBlockGuard = async (
     event: KeyboardEvent & { target: HTMLElement },
+    protyle: IProtyle,
     controller: AbortController
 ) => {
     if (event.target.localName === "protyle-html") {
@@ -10,6 +11,7 @@ export const htmlBlockGuard = async (
 
 export const inputElementGuard = async (
     event: KeyboardEvent & { target: HTMLElement },
+    protyle: IProtyle,
     controller: AbortController
 ) => {
     if (event.target.localName === "input") {
