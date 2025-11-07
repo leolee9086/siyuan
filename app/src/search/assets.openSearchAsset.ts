@@ -2,7 +2,7 @@ import { setStorageVal } from "../ai/imports";
 import { Constants } from "../constants";
 import { updateHotkeyTip } from "../protyle/util/compatibility";
 import { addClearButton } from "../util/addClearButton";
-import { getGlobalMenus } from "../util/siyuanEnvironments/getMenu";
+import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
 import { assetInputEvent } from "./assets";
 import { saveAssetKeyList } from "./toggleHistory";
@@ -11,7 +11,7 @@ import { genQueryHTML } from "./util";
 
 export const openSearchAsset = (element: HTMLElement, isStick: boolean) => {
     /// #if !MOBILE
-    getGlobalMenus().menu.remove();
+    getSiyuanGlobalMenus().menu.remove();
     element.previousElementSibling.classList.add("fn__none");
     element.classList.remove("fn__none");
     if (element.innerHTML) {

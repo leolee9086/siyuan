@@ -101,7 +101,7 @@ import {hideTooltip} from "../../dialog/tooltip";
 import {openGalleryItemMenu} from "../render/av/gallery/util";
 import {clearSelect} from "../util/clearSelect";
 import {chartRender} from "../render/chartRender";
-import { getGlobalMenus } from "../../util/siyuanEnvironments/getMenu";
+import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu";
 
 export class WYSIWYG {
     public lastHTMLs: { [key: string]: string } = {};
@@ -2205,7 +2205,7 @@ export class WYSIWYG {
                     }, 620);
                     return false;
                 } else if (types.includes("file-annotation-ref") && !protyle.disabled) {
-                    fileAnnotationRefMenu(protyle, target,getGlobalMenus().menu);
+                    fileAnnotationRefMenu(protyle, target,getSiyuanGlobalMenus().menu);
                     return false;
                 } else if (types.includes("tag") && !protyle.disabled) {
                     tagMenu(protyle, target);

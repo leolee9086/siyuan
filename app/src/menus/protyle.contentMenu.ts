@@ -9,19 +9,20 @@ import { getEditorRange, focusByWbr, selectAll } from "../protyle/util/selection
 import { updateTransaction } from "../protyle/wysiwyg/transaction";
 import { MenuItem } from "./Menu.Item";
 import { tableMenu } from "./protyle";
+import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu";
 
 
 export const contentMenu = (protyle: IProtyle, nodeElement: Element) => {
     const range = getEditorRange(nodeElement);
-    window.siyuan.menus.menu.remove();
-    window.siyuan.menus.menu.element.setAttribute("data-name", Constants.MENU_INLINE_CONTEXT);
+    getSiyuanGlobalMenus().menu.remove();
+    getSiyuanGlobalMenus().menu.element.setAttribute("data-name", Constants.MENU_INLINE_CONTEXT);
     /// #if MOBILE
     protyle.toolbar.showContent(protyle, range, nodeElement);
     /// #else
     const oldHTML = nodeElement.outerHTML;
     const id = nodeElement.getAttribute("data-node-id");
     if (range.toString() !== "" || (range.cloneContents().childNodes[0] as HTMLElement)?.classList?.contains("emoji")) {
-        window.siyuan.menus.menu.append(new MenuItem({
+        getSiyuanGlobalMenus().menu.append(new MenuItem({
             id: "copy",
             icon: "iconCopy",
             accelerator: "⌘C",
@@ -32,7 +33,7 @@ export const contentMenu = (protyle: IProtyle, nodeElement: Element) => {
                 document.execCommand("copy");
             }
         }).element);
-        window.siyuan.menus.menu.append(new MenuItem({
+        getSiyuanGlobalMenus().menu.append(new MenuItem({
             id: "copyPlainText",
             label: window.siyuan.languages.copyPlainText,
             accelerator: window.siyuan.config.keymap.editor.general.copyPlainText.custom,
@@ -44,7 +45,7 @@ export const contentMenu = (protyle: IProtyle, nodeElement: Element) => {
         if (protyle.disabled) {
             return;
         }
-        window.siyuan.menus.menu.append(new MenuItem({
+        getSiyuanGlobalMenus().menu.append(new MenuItem({
             id: "cut",
             icon: "iconCut",
             accelerator: "⌘X",
@@ -54,7 +55,7 @@ export const contentMenu = (protyle: IProtyle, nodeElement: Element) => {
                 document.execCommand("cut");
             }
         }).element);
-        window.siyuan.menus.menu.append(new MenuItem({
+        getSiyuanGlobalMenus().menu.append(new MenuItem({
             id: "delete",
             icon: "iconTrashcan",
             accelerator: "⌫",
@@ -74,7 +75,7 @@ export const contentMenu = (protyle: IProtyle, nodeElement: Element) => {
         if (inlineElement) {
             const inlineTypes = protyle.toolbar.getCurrentType(range);
             if (inlineTypes.includes("code") || inlineTypes.includes("kbd")) {
-                window.siyuan.menus.menu.append(new MenuItem({
+                getSiyuanGlobalMenus().menu.append(new MenuItem({
                     id: "copy",
                     label: window.siyuan.languages.copy,
                     icon: "iconCopy",
@@ -82,7 +83,7 @@ export const contentMenu = (protyle: IProtyle, nodeElement: Element) => {
                         writeText(protyle.lute.BlockDOM2StdMd(inlineElement.outerHTML));
                     }
                 }).element);
-                window.siyuan.menus.menu.append(new MenuItem({
+                getSiyuanGlobalMenus().menu.append(new MenuItem({
                     id: "copyPlainText",
                     label: window.siyuan.languages.copyPlainText,
                     click() {
@@ -91,7 +92,7 @@ export const contentMenu = (protyle: IProtyle, nodeElement: Element) => {
                 }).element);
                 if (!protyle.disabled) {
                     const id = nodeElement.getAttribute("data-node-id");
-                    window.siyuan.menus.menu.append(new MenuItem({
+                    getSiyuanGlobalMenus().menu.append(new MenuItem({
                         id: "cut",
                         icon: "iconCut",
                         label: window.siyuan.languages.cut,
@@ -105,7 +106,7 @@ export const contentMenu = (protyle: IProtyle, nodeElement: Element) => {
                             focusByWbr(nodeElement, protyle.toolbar.range);
                         }
                     }).element);
-                    window.siyuan.menus.menu.append(new MenuItem({
+                    getSiyuanGlobalMenus().menu.append(new MenuItem({
                         id: "remove",
                         icon: "iconTrashcan",
                         label: window.siyuan.languages.remove,
@@ -118,14 +119,14 @@ export const contentMenu = (protyle: IProtyle, nodeElement: Element) => {
                         }
                     }).element);
                 }
-                window.siyuan.menus.menu.append(new MenuItem({
+                getSiyuanGlobalMenus().menu.append(new MenuItem({
                     type: "separator",
                 }).element);
             }
         }
     }
     if (!protyle.disabled) {
-        window.siyuan.menus.menu.append(new MenuItem({
+        getSiyuanGlobalMenus().menu.append(new MenuItem({
             id: "paste",
             label: window.siyuan.languages.paste,
             icon: "iconPaste",
@@ -144,7 +145,7 @@ export const contentMenu = (protyle: IProtyle, nodeElement: Element) => {
                 }
             }
         }).element);
-        window.siyuan.menus.menu.append(new MenuItem({
+        getSiyuanGlobalMenus().menu.append(new MenuItem({
             id: "pasteAsPlainText",
             label: window.siyuan.languages.pasteAsPlainText,
             accelerator: "⇧⌘V",
@@ -153,7 +154,7 @@ export const contentMenu = (protyle: IProtyle, nodeElement: Element) => {
                 pasteAsPlainText(protyle);
             }
         }).element);
-        window.siyuan.menus.menu.append(new MenuItem({
+        getSiyuanGlobalMenus().menu.append(new MenuItem({
             id: "pasteEscaped",
             label: window.siyuan.languages.pasteEscaped,
             click() {
@@ -162,7 +163,7 @@ export const contentMenu = (protyle: IProtyle, nodeElement: Element) => {
             }
         }).element);
     }
-    window.siyuan.menus.menu.append(new MenuItem({
+    getSiyuanGlobalMenus().menu.append(new MenuItem({
         id: "selectAll",
         label: window.siyuan.languages.selectAll,
         icon: "iconSelect",
@@ -176,28 +177,28 @@ export const contentMenu = (protyle: IProtyle, nodeElement: Element) => {
         if (cellElement) {
             const tableMenus = tableMenu(protyle, nodeElement, cellElement as HTMLTableCellElement, range);
             if (tableMenus.insertMenus.length > 0) {
-                window.siyuan.menus.menu.append(new MenuItem({
+                getSiyuanGlobalMenus().menu.append(new MenuItem({
                     id: "separator_1",
                     type: "separator",
                 }).element);
                 tableMenus.insertMenus.forEach((menuItem) => {
-                    window.siyuan.menus.menu.append(new MenuItem(menuItem).element);
+                    getSiyuanGlobalMenus().menu.append(new MenuItem(menuItem).element);
                 });
             }
             if (tableMenus.removeMenus.length > 0) {
-                window.siyuan.menus.menu.append(new MenuItem({
+                getSiyuanGlobalMenus().menu.append(new MenuItem({
                     id: "separator_2",
                     type: "separator",
                 }).element);
                 tableMenus.removeMenus.forEach((menuItem) => {
-                    window.siyuan.menus.menu.append(new MenuItem(menuItem).element);
+                    getSiyuanGlobalMenus().menu.append(new MenuItem(menuItem).element);
                 });
             }
-            window.siyuan.menus.menu.append(new MenuItem({
+            getSiyuanGlobalMenus().menu.append(new MenuItem({
                 id: "separator_3",
                 type: "separator",
             }).element);
-            window.siyuan.menus.menu.append(new MenuItem({
+            getSiyuanGlobalMenus().menu.append(new MenuItem({
                 id: "more",
                 type: "submenu",
                 icon: "iconMore",

@@ -8,7 +8,7 @@ import {Protyle} from "../protyle";
 import {Constants} from "../constants";
 import {createVueComponentLoader, VueComponentMountConfig, VueComponentLoaderContext} from "../util/vue/mount";
 import {App} from "vue";
-import { getGlobalMenus } from "../util/siyuanEnvironments/getMenu";
+import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu";
 export interface IDialogOptions {
     positionId?: string,
     title?: string,
@@ -190,9 +190,9 @@ left:${left || "auto"};top:${top || "auto"};${this.scrimPointerEvents ? ' pointe
         this.element.classList.remove("b3-dialog--open");
         setTimeout(() => {
             // av 修改列头emoji后点击关闭emoji图标
-            if ((this.element.querySelector(".b3-dialog") as HTMLElement).style.zIndex < getGlobalMenus().menu.element.style.zIndex) {
+            if ((this.element.querySelector(".b3-dialog") as HTMLElement).style.zIndex < getSiyuanGlobalMenus().menu.element.style.zIndex) {
                 // https://github.com/siyuan-note/siyuan/issues/6783
-                getGlobalMenus().menu.remove();
+                getSiyuanGlobalMenus().menu.remove();
             }
            
             // 销毁标题Vue应用实例

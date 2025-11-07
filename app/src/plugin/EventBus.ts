@@ -1,6 +1,6 @@
 import { MenuItem } from "../menus/Menu.Item";
 import { subMenu } from "../menus/Menu.subMenu";
-import { getGlobalMenus } from "../util/siyuanEnvironments/getMenu";
+import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
 
 export class EventBus<DetailType = any> {
@@ -40,9 +40,9 @@ export const emitOpenMenu = (options: {
     });
     if (pluginSubMenu.menus.length > 0) {
         if (options.separatorPosition === "top") {
-            getGlobalMenus().menu.append(new MenuItem({id: "separator_pluginTop", type: "separator"}).element);
+            getSiyuanGlobalMenus().menu.append(new MenuItem({id: "separator_pluginTop", type: "separator"}).element);
         }
-        getGlobalMenus().menu.append(new MenuItem({
+        getSiyuanGlobalMenus().menu.append(new MenuItem({
             id: "plugin",
             label: siyuanI18n.plugin,
             icon: "iconPlugin",
@@ -50,7 +50,7 @@ export const emitOpenMenu = (options: {
             submenu: pluginSubMenu.menus,
         }).element);
         if (options.separatorPosition === "bottom") {
-            getGlobalMenus().menu.append(new MenuItem({id: "separator_pluginBottom", type: "separator"}).element);
+            getSiyuanGlobalMenus().menu.append(new MenuItem({id: "separator_pluginBottom", type: "separator"}).element);
         }
     }
 };

@@ -1,4 +1,4 @@
-import { getGlobalMenus } from "../util/siyuanEnvironments/getMenu";
+import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu";
 import { generateMenuItemHTML, createSubmenuElement } from "./Menu.uills";
 
 
@@ -50,7 +50,7 @@ export class MenuItem {
                 event.stopImmediatePropagation();
                 event.stopPropagation();
                 if (this.element.parentElement && !keepOpen) {
-                    getGlobalMenus().menu.remove();
+                    getSiyuanGlobalMenus().menu.remove();
                 }
             });
         }

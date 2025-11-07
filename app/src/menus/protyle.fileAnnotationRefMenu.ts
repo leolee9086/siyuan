@@ -10,7 +10,7 @@ import { focusByWbr } from "../protyle/util/selection";
 import { updateTransaction } from "../protyle/wysiwyg/transaction";
 import { isMobile } from "../util/functions";
 import { MenuItem } from "./Menu.Item";
-import { getGlobalMenus } from "../util/siyuanEnvironments/getMenu";
+import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
 import { isComposing } from "../util/events/eventGurds";
 import { requireRange } from "../protyle/util/protyleCheckers";
@@ -132,7 +132,7 @@ export const fileAnnotationRefMenu = (protyle: IProtyle, refElement: HTMLElement
     menu.fullscreen();
     /// #else
     const rect = refElement.getBoundingClientRect();
-    getGlobalMenus().menu.popup({
+    getSiyuanGlobalMenus().menu.popup({
         x: rect.left,
         y: rect.top + 26,
         h: 26

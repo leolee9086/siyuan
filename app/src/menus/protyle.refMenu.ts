@@ -14,7 +14,7 @@ import { updateTransaction } from "../protyle/wysiwyg/transaction";
 import { checkFold } from "../util/noRelyPCFunction";
 import { openNewWindowById } from "../window/openNewWindow";
 import { MenuItem } from "./Menu.Item";
-import { getGlobalMenus } from "../util/siyuanEnvironments/getMenu";
+import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
 import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig";
 const createAnchorEditorItem = (refElement: HTMLSpanElement) => {
@@ -47,7 +47,7 @@ const createAnchorEditorItem = (refElement: HTMLSpanElement) => {
                         return;
                     }
                     if (event.key === "Enter" && !event.isComposing) {
-                        getGlobalMenus().menu.remove();
+                        getSiyuanGlobalMenus().menu.remove();
                     } else if (electronUndo(event)) {
                         return;
                     }
@@ -68,14 +68,14 @@ export const refMenu = (protyle: IProtyle, refElement: HTMLElement) => {
         throw new Error('引用目标id缺失')
     }
     let oldHTML = nodeElement.outerHTML;
-    getGlobalMenus().menu.remove();
-    getGlobalMenus().menu.element.setAttribute("data-name", Constants.MENU_INLINE_REF);
+    getSiyuanGlobalMenus().menu.remove();
+    getSiyuanGlobalMenus().menu.element.setAttribute("data-name", Constants.MENU_INLINE_REF);
     if (!protyle.disabled) {
-        getGlobalMenus().menu.append(createAnchorEditorItem(refElement).element);
-        getGlobalMenus().menu.append(new MenuItem({id: "separator_1",type: "separator"}).element);
+        getSiyuanGlobalMenus().menu.append(createAnchorEditorItem(refElement).element);
+        getSiyuanGlobalMenus().menu.append(new MenuItem({id: "separator_1",type: "separator"}).element);
     }
     /// #if !MOBILE
-    getGlobalMenus().menu.append(new MenuItem({
+    getSiyuanGlobalMenus().menu.append(new MenuItem({
         id: "openBy",
         label: siyuanI18n.openBy,
         icon: "iconOpen",
@@ -94,7 +94,7 @@ export const refMenu = (protyle: IProtyle, refElement: HTMLElement) => {
             });
         }
     }).element);
-    getGlobalMenus().menu.append(new MenuItem({
+    getSiyuanGlobalMenus().menu.append(new MenuItem({
         id: "refTab",
         label: siyuanI18n.refTab,
         icon: "iconEyeoff",
@@ -111,7 +111,7 @@ export const refMenu = (protyle: IProtyle, refElement: HTMLElement) => {
             });
         }
     }).element);
-    getGlobalMenus().menu.append(new MenuItem({
+    getSiyuanGlobalMenus().menu.append(new MenuItem({
         id: "insertRight",
         label: siyuanI18n.insertRight,
         icon: "iconLayoutRight",
@@ -131,7 +131,7 @@ export const refMenu = (protyle: IProtyle, refElement: HTMLElement) => {
             });
         }
     }).element);
-    getGlobalMenus().menu.append(new MenuItem({
+    getSiyuanGlobalMenus().menu.append(new MenuItem({
         id: "insertBottom",
         label: siyuanI18n.insertBottom,
         icon: "iconLayoutBottom",
@@ -152,7 +152,7 @@ export const refMenu = (protyle: IProtyle, refElement: HTMLElement) => {
         }
     }).element);
     /// #if !BROWSER
-    getGlobalMenus().menu.append(new MenuItem({
+    getSiyuanGlobalMenus().menu.append(new MenuItem({
         id: "openByNewWindow",
         label: siyuanI18n.openByNewWindow,
         icon: "iconOpenWindow",
@@ -161,8 +161,8 @@ export const refMenu = (protyle: IProtyle, refElement: HTMLElement) => {
         }
     }).element);
     /// #endif
-    getGlobalMenus().menu.append(new MenuItem({ id: "separator_2", type: "separator" }).element);
-    getGlobalMenus().menu.append(new MenuItem({
+    getSiyuanGlobalMenus().menu.append(new MenuItem({ id: "separator_2", type: "separator" }).element);
+    getSiyuanGlobalMenus().menu.append(new MenuItem({
         id: "backlinks",
         icon: "iconLink",
         label: siyuanI18n.backlinks,
@@ -174,7 +174,7 @@ export const refMenu = (protyle: IProtyle, refElement: HTMLElement) => {
             });
         }
     }).element);
-    getGlobalMenus().menu.append(new MenuItem({
+    getSiyuanGlobalMenus().menu.append(new MenuItem({
         id: "graphView",
         icon: "iconGraph",
         label: siyuanI18n.graphView,
@@ -186,7 +186,7 @@ export const refMenu = (protyle: IProtyle, refElement: HTMLElement) => {
             });
         }
     }).element);
-    getGlobalMenus().menu.append(new MenuItem({ id: "separator_3", type: "separator" }).element);
+    getSiyuanGlobalMenus().menu.append(new MenuItem({ id: "separator_3", type: "separator" }).element);
     /// #endif
     if (!protyle.disabled) {
         let submenu: IMenu[] = [];
@@ -305,14 +305,14 @@ export const refMenu = (protyle: IProtyle, refElement: HTMLElement) => {
                 });
             }
         });
-        getGlobalMenus().menu.append(new MenuItem({
+        getSiyuanGlobalMenus().menu.append(new MenuItem({
             id: "turnInto",
             label: siyuanI18n.turnInto,
             icon: "iconRefresh",
             submenu
         }).element);
     }
-    getGlobalMenus().menu.append(new MenuItem({
+    getSiyuanGlobalMenus().menu.append(new MenuItem({
         id: "copy",
         label: siyuanI18n.copy,
         icon: "iconCopy",
@@ -321,7 +321,7 @@ export const refMenu = (protyle: IProtyle, refElement: HTMLElement) => {
         }
     }).element);
     if (!protyle.disabled) {
-        getGlobalMenus().menu.append(new MenuItem({
+        getSiyuanGlobalMenus().menu.append(new MenuItem({
             id: "cut",
             label: siyuanI18n.cut,
             icon: "iconCut",
@@ -336,7 +336,7 @@ export const refMenu = (protyle: IProtyle, refElement: HTMLElement) => {
                 oldHTML = nodeElement.outerHTML;
             }
         }).element);
-        getGlobalMenus().menu.append(new MenuItem({
+        getSiyuanGlobalMenus().menu.append(new MenuItem({
             id: "remove",
             label: siyuanI18n.remove,
             icon: "iconTrashcan",
@@ -363,21 +363,21 @@ export const refMenu = (protyle: IProtyle, refElement: HTMLElement) => {
     }
 
     /// #if MOBILE
-    getGlobalMenus().menu.fullscreen();
+    getSiyuanGlobalMenus().menu.fullscreen();
     /// #else
     const rect = refElement.getBoundingClientRect();
-    getGlobalMenus().menu.popup({
+    getSiyuanGlobalMenus().menu.popup({
         x: rect.left,
         y: rect.top + 26,
         h: 26
     });
     /// #endif
     const popoverElement = hasTopClosestByClassName(protyle.element, "block__popover", true);
-    getGlobalMenus().menu.data = refElement;
-    getGlobalMenus().menu.element.setAttribute("data-from", popoverElement ? popoverElement.dataset.level + "popover" : "app");
+    getSiyuanGlobalMenus().menu.data = refElement;
+    getSiyuanGlobalMenus().menu.element.setAttribute("data-from", popoverElement ? popoverElement.dataset.level + "popover" : "app");
     if (!protyle.disabled) {
-        getGlobalMenus().menu.element.querySelector("input")?.select();
-        getGlobalMenus().menu.removeCB = () => {
+        getSiyuanGlobalMenus().menu.element.querySelector("input")?.select();
+        getSiyuanGlobalMenus().menu.removeCB = () => {
             if (nodeElement.outerHTML !== oldHTML) {
                 nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
                 updateTransaction(protyle, id, nodeElement.outerHTML, oldHTML);

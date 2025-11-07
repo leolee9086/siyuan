@@ -8,7 +8,7 @@ import { isMobile } from "../util/functions";
 import { upDownHint } from "../util/upDownHint";
 import { fetchPost } from "../ai/imports";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
-import { getGlobalMenus } from "../util/siyuanEnvironments/getMenu";
+import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu";
 
 const updateAssetUI = (listElement: Element, data: { path: string; hName: string; }[]) => {
     let searchHTML = "";
@@ -37,9 +37,9 @@ export const renderAssetList = (element: Element, k: string, position: IPosition
             }
         }
         /// #if MOBILE
-        getGlobalMenus().menu.fullscreen();
+        getSiyuanGlobalMenus().menu.fullscreen();
         /// #else
-        getGlobalMenus().menu.popup(position);
+        getSiyuanGlobalMenus().menu.popup(position);
         /// #endif
         if (!k) {
             inputElement && inputElement.select();
@@ -150,7 +150,7 @@ export const assetMenu = (protyle: IProtyle, position: IPosition, callback?: (ur
                             callback(currentURL, listItemElement.textContent);
                         } else {
                             hintRenderAssets(currentURL, protyle);
-                            getGlobalMenus().menu.remove();
+                            getSiyuanGlobalMenus().menu.remove();
                         }
                     }
                 });

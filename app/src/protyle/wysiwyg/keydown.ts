@@ -76,7 +76,7 @@ import {openAIActionsMenu} from "../../ai/actions";
 import {openLink} from "../../editor/openLink";
 import {onlyProtyleCommand} from "../../boot/globalEvent/command/protyle";
 import {AIChat} from "../../ai/chat";
-import { getGlobalMenus } from "../../util/siyuanEnvironments/getMenu";
+import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu";
 
 export const getContentByInlineHTML = (range: Range, cb: (content: string) => void) => {
     let html = "";
@@ -576,7 +576,7 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
                         protyle.toolbar.showRender(protyle, inlineElement);
                         return;
                     } else if (types.includes("file-annotation-ref")) {
-                        fileAnnotationRefMenu(protyle, inlineElement,getGlobalMenus().menu);
+                        fileAnnotationRefMenu(protyle, inlineElement,getSiyuanGlobalMenus().menu);
                         return;
                     } else if (types.includes("a")) {
                         linkMenu(protyle, inlineElement);

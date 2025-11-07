@@ -8,19 +8,19 @@ import {Bookmark} from "../layout/dock/Bookmark";
 import {isMobile} from "../util/functions";
 import {MobileBookmarks} from "../mobile/dock/MobileBookmarks";
 import {Constants} from "../constants";
-import { getGlobalMenus } from "../util/siyuanEnvironments/getMenu";
+import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
 import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig";
 export const openBookmarkMenu = (element: HTMLElement, event: MouseEvent, bookmarkObj: Bookmark | MobileBookmarks) => {
-    if (!getGlobalMenus().menu.element.classList.contains("fn__none") &&
-        getGlobalMenus().menu.element.getAttribute("data-name") === Constants.MENU_BOOKMARK) {
-        getGlobalMenus().menu.remove();
+    if (!getSiyuanGlobalMenus().menu.element.classList.contains("fn__none") &&
+        getSiyuanGlobalMenus().menu.element.getAttribute("data-name") === Constants.MENU_BOOKMARK) {
+        getSiyuanGlobalMenus().menu.remove();
         return;
     }
-    getGlobalMenus().menu.remove();
+    getSiyuanGlobalMenus().menu.remove();
     const id = element.getAttribute("data-node-id");
     if (!id && !getSiyuanConfig().readonly) {
-        getGlobalMenus().menu.append(new MenuItem({
+        getSiyuanGlobalMenus().menu.append(new MenuItem({
             id: "rename",
             icon: "iconEdit",
             label: siyuanI18n.rename,
@@ -59,7 +59,7 @@ export const openBookmarkMenu = (element: HTMLElement, event: MouseEvent, bookma
         }).element);
     }
     if (id) {
-        getGlobalMenus().menu.append(new MenuItem({
+        getSiyuanGlobalMenus().menu.append(new MenuItem({
             id: "copy",
             label: siyuanI18n.copy,
             type: "submenu",
@@ -69,7 +69,7 @@ export const openBookmarkMenu = (element: HTMLElement, event: MouseEvent, bookma
     }
 
     if (!getSiyuanConfig().readonly) {
-        getGlobalMenus().menu.append(new MenuItem({
+        getSiyuanGlobalMenus().menu.append(new MenuItem({
             id: "remove",
             icon: "iconTrashcan",
             label: siyuanI18n.remove,
@@ -94,6 +94,6 @@ export const openBookmarkMenu = (element: HTMLElement, event: MouseEvent, bookma
             }
         }).element);
     }
-    getGlobalMenus().menu.element.setAttribute("data-name", Constants.MENU_BOOKMARK);
-    getGlobalMenus().menu.popup({x: event.clientX - 11, y: event.clientY + 11, h: 22, w: 12});
+    getSiyuanGlobalMenus().menu.element.setAttribute("data-name", Constants.MENU_BOOKMARK);
+    getSiyuanGlobalMenus().menu.popup({x: event.clientX - 11, y: event.clientY + 11, h: 22, w: 12});
 };
