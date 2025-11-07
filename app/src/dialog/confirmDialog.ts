@@ -1,6 +1,7 @@
 import { isMobile } from "../util/functions";
 import { Dialog } from "./index";
 import { Constants } from "../constants";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
 
 export const confirmDialog = (title: string, text: string,
     confirm?: (dialog?: Dialog) => void,
@@ -16,8 +17,8 @@ export const confirmDialog = (title: string, text: string,
     <div class="ft__breakword">${text}</div>
 </div>
 <div class="b3-dialog__action">
-    <button class="b3-button b3-button--cancel" id="cancelDialogConfirmBtn">${window.siyuan.languages?.cancel}</button><div class="fn__space"></div>
-    <button class="b3-button ${isDelete ? "b3-button--remove" : "b3-button--text"}" id="confirmDialogConfirmBtn">${window.siyuan.languages[isDelete ? "delete" : "confirm"]}</button>
+    <button class="b3-button b3-button--cancel" id="cancelDialogConfirmBtn">${siyuanI18n.cancel}</button><div class="fn__space"></div>
+    <button class="b3-button ${isDelete ? "b3-button--remove" : "b3-button--text"}" id="confirmDialogConfirmBtn">${siyuanI18n[isDelete ? "delete" : "confirm"]}</button>
 </div>`,
         width: isMobile() ? "92vw" : "520px",
     });
@@ -39,7 +40,7 @@ export const confirmDialog = (title: string, text: string,
                 dialog.destroy();
                 break;
             }
-            target = target.parentElement;
+            target.parentElement?target = target.parentElement:null;
         }
     });
     dialog.element.setAttribute("data-key", Constants.DIALOG_CONFIRM);
