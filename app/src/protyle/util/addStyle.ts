@@ -9,7 +9,7 @@ export const addStyle = (url: string, id: string) => {
         if (pluginsStyle) {
             pluginsStyle.before(styleElement);
         } else {
-            document.getElementsByTagName("head")[0].appendChild(styleElement);
+            document.getElementsByTagName("head")[0]?.appendChild(styleElement);
         }
     }
 };
