@@ -25,8 +25,8 @@ export const contentMenu = (protyle: IProtyle, nodeElement: Element) => {
     /// #else
     const oldHTML = nodeElement.outerHTML;
     const id = nodeElement.getAttribute("data-node-id");
-    if(!id){
-        throw new Error('块元素缺少id') 
+    if (!id) {
+        throw new Error('块元素缺少id')
     }
     if (range.toString() !== "" || (range.cloneContents().childNodes[0] as HTMLElement)?.classList?.contains("emoji")) {
         getSiyuanGlobalMenus().menu.append(new MenuItem({
@@ -99,7 +99,7 @@ export const contentMenu = (protyle: IProtyle, nodeElement: Element) => {
                 }).element);
                 if (!protyle.disabled) {
                     const id = nodeElement.getAttribute("data-node-id");
-                    if(!id){
+                    if (!id) {
                         throw new Error('块元素缺少id')
                     }
                     getSiyuanGlobalMenus().menu.append(new MenuItem({
@@ -183,39 +183,7 @@ export const contentMenu = (protyle: IProtyle, nodeElement: Element) => {
         }
     }).element);
     if (nodeElement.classList.contains("table") && !protyle.disabled) {
-        const cellElement = hasClosestByTag(range.startContainer, "TD") || hasClosestByTag(range.startContainer, "TH");
-        if (cellElement) {
-            const tableMenus = tableMenu(protyle, nodeElement, cellElement as HTMLTableCellElement, range);
-            if (tableMenus.insertMenus.length > 0) {
-                getSiyuanGlobalMenus().menu.append(new MenuItem({
-                    id: "separator_1",
-                    type: "separator",
-                }).element);
-                tableMenus.insertMenus.forEach((menuItem) => {
-                    getSiyuanGlobalMenus().menu.append(new MenuItem(menuItem).element);
-                });
-            }
-            if (tableMenus.removeMenus.length > 0) {
-                getSiyuanGlobalMenus().menu.append(new MenuItem({
-                    id: "separator_2",
-                    type: "separator",
-                }).element);
-                tableMenus.removeMenus.forEach((menuItem) => {
-                    getSiyuanGlobalMenus().menu.append(new MenuItem(menuItem).element);
-                });
-            }
-            getSiyuanGlobalMenus().menu.append(new MenuItem({
-                id: "separator_3",
-                type: "separator",
-            }).element);
-            getSiyuanGlobalMenus().menu.append(new MenuItem({
-                id: "more",
-                type: "submenu",
-                icon: "iconMore",
-                label: siyuanI18n.more,
-                submenu: tableMenus.otherMenus.concat(tableMenus.other2Menus)
-            }).element);
-        }
+        addTableMenus({ protyle, range,element: nodeElement})
     }
     /// #endif
     if (protyle?.app?.plugins) {
@@ -231,3 +199,45 @@ export const contentMenu = (protyle: IProtyle, nodeElement: Element) => {
         });
     }
 };
+
+
+const addTableMenus = (detail: {
+    protyle: IProtyle,
+    range: Range,
+    element: Element
+}) => {
+    const { protyle, range, element: nodeElement } = detail
+    const cellElement = hasClosestByTag(range.startContainer, "TD") || hasClosestByTag(range.startContainer, "TH");
+    if (cellElement) {
+        const tableMenus = tableMenu(protyle, nodeElement, cellElement as HTMLTableCellElement, range);
+        if (tableMenus.insertMenus.length > 0) {
+            getSiyuanGlobalMenus().menu.append(new MenuItem({
+                id: "separator_1",
+                type: "separator",
+            }).element);
+            tableMenus.insertMenus.forEach((menuItem) => {
+                getSiyuanGlobalMenus().menu.append(new MenuItem(menuItem).element);
+            });
+        }
+        if (tableMenus.removeMenus.length > 0) {
+            getSiyuanGlobalMenus().menu.append(new MenuItem({
+                id: "separator_2",
+                type: "separator",
+            }).element);
+            tableMenus.removeMenus.forEach((menuItem) => {
+                getSiyuanGlobalMenus().menu.append(new MenuItem(menuItem).element);
+            });
+        }
+        getSiyuanGlobalMenus().menu.append(new MenuItem({
+            id: "separator_3",
+            type: "separator",
+        }).element);
+        getSiyuanGlobalMenus().menu.append(new MenuItem({
+            id: "more",
+            type: "submenu",
+            icon: "iconMore",
+            label: siyuanI18n.more,
+            submenu: tableMenus.otherMenus.concat(tableMenus.other2Menus)
+        }).element);
+    }
+}
