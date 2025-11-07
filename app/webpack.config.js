@@ -6,6 +6,7 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 const { CleanWebpackPlugin } = require("clean-webpack-plugin");
 const { EsbuildPlugin } = require("esbuild-loader");
 const { VueLoaderPlugin } = require("vue-loader");
+const PatchResolverPlugin = require("./webpack.patchResolver");
 
 module.exports = (env, argv) => {
     return {
@@ -148,6 +149,8 @@ module.exports = (env, argv) => {
             ],
         },
         plugins: [
+                        new PatchResolverPlugin(),
+
             new CleanWebpackPlugin({
                 cleanStaleWebpackAssets: false,
                 cleanOnceBeforeBuildPatterns: [

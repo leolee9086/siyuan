@@ -6,6 +6,7 @@ const {CleanWebpackPlugin} = require("clean-webpack-plugin");
 // const BundleAnalyzerPlugin = require("webpack-bundle-analyzer").BundleAnalyzerPlugin;
 const {EsbuildPlugin} = require("esbuild-loader");
 const {VueLoaderPlugin} = require("vue-loader");
+const PatchResolverPlugin = require("./webpack.patchResolver");
 
 module.exports = (env, argv) => {
     return {
@@ -138,6 +139,7 @@ module.exports = (env, argv) => {
             new MiniCssExtractPlugin({
                 filename: "base.css",
             }),
+            new PatchResolverPlugin(),
         ],
     };
 };
