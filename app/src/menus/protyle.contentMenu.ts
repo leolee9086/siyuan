@@ -10,6 +10,10 @@ import { updateTransaction } from "../protyle/wysiwyg/transaction";
 import { MenuItem } from "./Menu.Item";
 import { tableMenu } from "./protyle";
 import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
+import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig";
+import { get } from "http";
+import { getSelection } from "../util/DOM/range";
 
 
 export const contentMenu = (protyle: IProtyle, nodeElement: Element) => {
@@ -17,16 +21,19 @@ export const contentMenu = (protyle: IProtyle, nodeElement: Element) => {
     getSiyuanGlobalMenus().menu.remove();
     getSiyuanGlobalMenus().menu.element.setAttribute("data-name", Constants.MENU_INLINE_CONTEXT);
     /// #if MOBILE
-    protyle.toolbar.showContent(protyle, range, nodeElement);
+    getProtyleToolbar(protyle).showContent(protyle, range, nodeElement);
     /// #else
     const oldHTML = nodeElement.outerHTML;
     const id = nodeElement.getAttribute("data-node-id");
+    if(!id){
+        throw new Error('块元素缺少id') 
+    }
     if (range.toString() !== "" || (range.cloneContents().childNodes[0] as HTMLElement)?.classList?.contains("emoji")) {
         getSiyuanGlobalMenus().menu.append(new MenuItem({
             id: "copy",
             icon: "iconCopy",
             accelerator: "⌘C",
-            label: window.siyuan.languages.copy,
+            label: siyuanI18n.copy,
             click() {
                 // range 需要重新计算 https://ld246.com/article/1644979219025
                 focusByRange(getEditorRange(nodeElement));
@@ -35,8 +42,8 @@ export const contentMenu = (protyle: IProtyle, nodeElement: Element) => {
         }).element);
         getSiyuanGlobalMenus().menu.append(new MenuItem({
             id: "copyPlainText",
-            label: window.siyuan.languages.copyPlainText,
-            accelerator: window.siyuan.config.keymap.editor.general.copyPlainText.custom,
+            label: siyuanI18n.copyPlainText,
+            accelerator: getSiyuanConfig().keymap.editor.general.copyPlainText.custom,
             click() {
                 focusByRange(getEditorRange(nodeElement));
                 copyPlainText(getSelection().getRangeAt(0).toString());
@@ -49,7 +56,7 @@ export const contentMenu = (protyle: IProtyle, nodeElement: Element) => {
             id: "cut",
             icon: "iconCut",
             accelerator: "⌘X",
-            label: window.siyuan.languages.cut,
+            label: siyuanI18n.cut,
             click() {
                 focusByRange(getEditorRange(nodeElement));
                 document.execCommand("cut");
@@ -59,7 +66,7 @@ export const contentMenu = (protyle: IProtyle, nodeElement: Element) => {
             id: "delete",
             icon: "iconTrashcan",
             accelerator: "⌫",
-            label: window.siyuan.languages.delete,
+            label: siyuanI18n.delete,
             click() {
                 const currentRange = getEditorRange(nodeElement);
                 currentRange.insertNode(document.createElement("wbr"));
@@ -73,49 +80,52 @@ export const contentMenu = (protyle: IProtyle, nodeElement: Element) => {
         // https://github.com/siyuan-note/siyuan/issues/9630
         const inlineElement = hasClosestByTag(range.startContainer, "SPAN");
         if (inlineElement) {
-            const inlineTypes = protyle.toolbar.getCurrentType(range);
+            const inlineTypes = getProtyleToolbar(protyle).getCurrentType(range);
             if (inlineTypes.includes("code") || inlineTypes.includes("kbd")) {
                 getSiyuanGlobalMenus().menu.append(new MenuItem({
                     id: "copy",
-                    label: window.siyuan.languages.copy,
+                    label: siyuanI18n.copy,
                     icon: "iconCopy",
                     click() {
-                        writeText(protyle.lute.BlockDOM2StdMd(inlineElement.outerHTML));
+                        writeText(getProtyleLute(protyle).BlockDOM2StdMd(inlineElement.outerHTML));
                     }
                 }).element);
                 getSiyuanGlobalMenus().menu.append(new MenuItem({
                     id: "copyPlainText",
-                    label: window.siyuan.languages.copyPlainText,
+                    label: siyuanI18n.copyPlainText,
                     click() {
                         copyPlainText(inlineElement.textContent);
                     }
                 }).element);
                 if (!protyle.disabled) {
                     const id = nodeElement.getAttribute("data-node-id");
+                    if(!id){
+                        throw new Error('块元素缺少id')
+                    }
                     getSiyuanGlobalMenus().menu.append(new MenuItem({
                         id: "cut",
                         icon: "iconCut",
-                        label: window.siyuan.languages.cut,
+                        label: siyuanI18n.cut,
                         click() {
-                            writeText(protyle.lute.BlockDOM2StdMd(inlineElement.outerHTML));
+                            writeText(getProtyleLute(protyle).BlockDOM2StdMd(inlineElement.outerHTML));
 
                             inlineElement.insertAdjacentHTML("afterend", "<wbr>");
                             inlineElement.remove();
                             nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
                             updateTransaction(protyle, id, nodeElement.outerHTML, oldHTML);
-                            focusByWbr(nodeElement, protyle.toolbar.range);
+                            focusByWbr(nodeElement, getProtyleToolbar(protyle).range);
                         }
                     }).element);
                     getSiyuanGlobalMenus().menu.append(new MenuItem({
                         id: "remove",
                         icon: "iconTrashcan",
-                        label: window.siyuan.languages.remove,
+                        label: siyuanI18n.remove,
                         click() {
                             inlineElement.insertAdjacentHTML("afterend", "<wbr>");
                             inlineElement.remove();
                             nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
                             updateTransaction(protyle, id, nodeElement.outerHTML, oldHTML);
-                            focusByWbr(nodeElement, protyle.toolbar.range);
+                            focusByWbr(nodeElement, getProtyleToolbar(protyle).range);
                         }
                     }).element);
                 }
@@ -128,7 +138,7 @@ export const contentMenu = (protyle: IProtyle, nodeElement: Element) => {
     if (!protyle.disabled) {
         getSiyuanGlobalMenus().menu.append(new MenuItem({
             id: "paste",
-            label: window.siyuan.languages.paste,
+            label: siyuanI18n.paste,
             icon: "iconPaste",
             accelerator: "⌘V",
             async click() {
@@ -147,7 +157,7 @@ export const contentMenu = (protyle: IProtyle, nodeElement: Element) => {
         }).element);
         getSiyuanGlobalMenus().menu.append(new MenuItem({
             id: "pasteAsPlainText",
-            label: window.siyuan.languages.pasteAsPlainText,
+            label: siyuanI18n.pasteAsPlainText,
             accelerator: "⇧⌘V",
             click() {
                 focusByRange(getEditorRange(nodeElement));
@@ -156,7 +166,7 @@ export const contentMenu = (protyle: IProtyle, nodeElement: Element) => {
         }).element);
         getSiyuanGlobalMenus().menu.append(new MenuItem({
             id: "pasteEscaped",
-            label: window.siyuan.languages.pasteEscaped,
+            label: siyuanI18n.pasteEscaped,
             click() {
                 focusByRange(getEditorRange(nodeElement));
                 pasteEscaped(protyle, nodeElement);
@@ -165,7 +175,7 @@ export const contentMenu = (protyle: IProtyle, nodeElement: Element) => {
     }
     getSiyuanGlobalMenus().menu.append(new MenuItem({
         id: "selectAll",
-        label: window.siyuan.languages.selectAll,
+        label: siyuanI18n.selectAll,
         icon: "iconSelect",
         accelerator: "⌘A",
         click() {
@@ -202,7 +212,7 @@ export const contentMenu = (protyle: IProtyle, nodeElement: Element) => {
                 id: "more",
                 type: "submenu",
                 icon: "iconMore",
-                label: window.siyuan.languages.more,
+                label: siyuanI18n.more,
                 submenu: tableMenus.otherMenus.concat(tableMenus.other2Menus)
             }).element);
         }
