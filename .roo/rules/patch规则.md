@@ -1,0 +1,2 @@
+如果同一个文件夹下存在以patch.ts或者patch.js结尾的文件,那么模块解析时,对同名文件的解析将会被指向这个文件
+例如同一个文件夹下如果同时存在pdfjs.js和pdfjs.patch.js,那么对这个pdfjs.js的解析将会被指向pdf.patch.js
