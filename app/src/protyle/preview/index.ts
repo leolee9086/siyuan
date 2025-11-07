@@ -1,9 +1,7 @@
-import { isOnlyMeta, openByMobile, writeText } from "../util/compatibility";
-import { focusByRange } from "../util/selection";
+import { isOnlyMeta, openByMobile } from "../util/compatibility";
 import { showMessage } from "../../dialog/message";
 import { isLocalPath, pathPosix } from "../../util/pathName";
 import { previewDocImage } from "./image";
-import { needSubscribe } from "../../util/needSubscribe";
 import { Constants } from "../../constants";
 import { getSearch, isMobile } from "../../util/functions";
 /// #if !BROWSER
@@ -21,11 +19,8 @@ import { speechRender } from "../render/speechRender";
 import { avRender } from "../render/av/render";
 import { getPadding } from "../ui/initUI";
 import { hasClosestByAttribute } from "../util/hasClosest";
-import { addScriptSync } from "../util/addScript";
 import { addActionButtons } from "./actionButtons";
-import { processPreviewElementsZhihuTable, processPreviewElementZhihuBlockquote } from "./zhihuAdapter";
-import { link2online } from "./link2online";
-import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n";
+import { copyPreviewHTMLToX } from "./copyToX";
 export class Preview {
     public element: HTMLElement;
     public previewElement: HTMLElement;
@@ -176,117 +171,10 @@ export class Preview {
             });
         }, protyle.options.preview.delay);
     }
-
-    private link2online(copyElement: HTMLElement) {
-        link2online(copyElement,'siyuan')
-    }
-
     private async copyToX(copyElement: HTMLElement, protyle: IProtyle, type?: string) {
-        // fix math render
-        if (type === "mp-wechat") {
-            this.link2online(copyElement);
-            copyElement.querySelectorAll(".katex-html .base").forEach((item: HTMLElement) => {
-                item.style.display = "initial";
-            });
-            copyElement.querySelectorAll("mjx-container > svg").forEach((item) => {
-                item.setAttribute("width", (parseInt(item.getAttribute("width")) * 8) + "px");
-            });
-            // 列表嵌套 https://github.com/siyuan-note/siyuan/issues/11276
-            copyElement.querySelectorAll("ul, ol").forEach(listItem => {
-                Array.from(listItem.children).forEach(liItem => {
-                    const nestedList = liItem.querySelector("ul, ol");
-                    if (nestedList) {
-                        liItem.parentNode.insertBefore(nestedList, liItem.nextSibling);
-                    }
-                });
-            });
-            // 处理任务列表（微信公众号不能显示input[type="checkbox"]）
-            copyElement.querySelectorAll("li.protyle-task").forEach((taskItem) => {
-                if(!(taskItem instanceof HTMLElement)){
-                    return
-                }
-                const checkbox = taskItem.querySelector('input[type="checkbox"]') ;
-                if (checkbox&&checkbox instanceof HTMLInputElement) {
-                    checkbox.style.opacity = "0";
-                    if (checkbox.checked) {
-                        taskItem.style.setProperty("list-style-type", "'✅'", "important");
-                    } else {
-                        taskItem.style.setProperty("list-style-type", "'▢'", "important");
-                    }
-                }
-            });
-            if (typeof window.MathJax === "undefined") {
-                window.MathJax = {
-                    svg: {
-                        fontCache: "none"
-                    },
-                };
-            }
-            await addScriptSync(`${Constants.PROTYLE_CDN}/js/mathjax/tex-svg-full.js`, "protyleMathJaxScript");
-            await window.MathJax.startup?.promise;
-            copyElement.querySelectorAll('[data-subtype="math"]').forEach(mathElement => {
-                const node = window.MathJax.tex2svg&&window.MathJax.tex2svg(Lute.UnEscapeHTMLStr(mathElement.getAttribute("data-content")||"").trim(), { display: mathElement.tagName === "DIV" });
-                node?.querySelector("mjx-assistive-mml")?.remove();
-                mathElement.innerHTML = node?.outerHTML||"";
-            });
-        } else if (type === "zhihu") {
-            this.link2online(copyElement);
-            copyElement.querySelectorAll('[data-subtype="math"]').forEach((item) => {
-                // https://github.com/siyuan-note/siyuan/issues/10015
-                item.outerHTML = `<img class="Formula-image" data-eeimg="true" src="//www.zhihu.com/equation?tex=" alt="${item.getAttribute("data-content")}" style="${item.tagName === "DIV" ? "display: block; max-width: 100%;" : ""}margin: 0 auto;">`;
-            });
-            copyElement.querySelectorAll("blockquote").forEach((item) => {
-                const elements: HTMLElement[] = [];
-                this.processZhihuBlockquote(item, elements);
-                elements.reverse().forEach(newItem => {
-                    item.insertAdjacentElement("afterend", newItem);
-                });
-                item.remove();
-            });
-            this.processZhihuTable(copyElement);
-        } else if (type === "yuque") {
-            fetchPost("/api/lute/copyStdMarkdown", {
-                id: protyle.block.id || protyle.options.blockId || protyle.block.parentID,
-                assetsDestSpace2Underscore: true,
-                fillCSSVar: true,
-                adjustHeadingLevel: true,
-            }, (response) => {
-                writeText(response.data);
-                showMessage(`${siyuanI18n.pasteToYuque}`);
-            });
-            return;
+        let id =protyle.block.id || protyle.options.blockId || protyle.block.parentID
+        if (id) {
+            await copyPreviewHTMLToX(this.element, copyElement,id, type)
         }
-
-        // 防止背景色被粘贴到公众号中
-        copyElement.style.backgroundColor = "#fff";
-        // 代码背景
-        copyElement.querySelectorAll("code").forEach((item) => {
-            item.style.backgroundImage = "none";
-        });
-        this.element.append(copyElement);
-        // 最后一个块是公式块时无法复制下来
-        copyElement.insertAdjacentHTML("beforeend", "<p>&zwj;</p>");
-        let cloneRange;
-        let selection = getSelection()
-        if (selection&&selection.rangeCount > 0) {
-            cloneRange = selection.getRangeAt(0).cloneRange();
-        }
-        const range = copyElement.ownerDocument.createRange();
-        range.selectNodeContents(copyElement);
-        focusByRange(range);
-        document.execCommand("copy");
-        this.element.lastElementChild&&this.element.lastElementChild.remove();
-        cloneRange&&focusByRange(cloneRange);
-        if (type) {
-            showMessage(`${type === "zhihu" ? siyuanI18n.pasteToZhihu : siyuanI18n.pasteToWechatMP}`);
-        }
-    }
-
-    private processZhihuBlockquote(element: HTMLElement, elements: HTMLElement[]) {
-        processPreviewElementZhihuBlockquote(element, elements)
-    }
-
-    private processZhihuTable(element: HTMLElement) {
-        processPreviewElementsZhihuTable(element)
     }
 }
