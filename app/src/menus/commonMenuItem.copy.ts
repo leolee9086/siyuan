@@ -11,6 +11,8 @@ import { writeText } from "../protyle/util/compatibility";
 import { fetchSyncPost } from "../util/fetch";
 import { focusBlock } from "../protyle/util/selection";
 import { copyTextByType } from "../protyle/toolbar/util";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
+import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig";
 
 /**
  * 复制菜单上下文数据接口
@@ -37,8 +39,8 @@ const copyBlockRefItem = (ctx: copyMenuCtxData) => {
     return {
         id: "copyBlockRef",
         iconHTML: "",
-        accelerator: ctx.showAccelerator ? window.siyuan.config.keymap.editor.general.copyBlockRef.custom : undefined,
-        label: window.siyuan.languages.copyBlockRef,
+        accelerator: ctx.showAccelerator ? getSiyuanConfig().keymap.editor.general.copyBlockRef.custom : undefined,
+        label: siyuanI18n.copyBlockRef,
         click: () => {
             copyTextByType(ctx.ids, "ref");
             if (ctx.focusElement) {
@@ -58,8 +60,8 @@ const copyBlockEmbedItem = (ctx: copyMenuCtxData) => {
     return {
         id: "copyBlockEmbed",
         iconHTML: "",
-        label: window.siyuan.languages.copyBlockEmbed,
-        accelerator: ctx.showAccelerator ? window.siyuan.config.keymap.editor.general.copyBlockEmbed.custom : undefined,
+        label: siyuanI18n.copyBlockEmbed,
+        accelerator: ctx.showAccelerator ? getSiyuanConfig().keymap.editor.general.copyBlockEmbed.custom : undefined,
         click: () => {
             copyTextByType(ctx.ids, "blockEmbed");
             if (ctx.focusElement) {
@@ -78,8 +80,8 @@ const copyProtocolItem = (ctx: copyMenuCtxData) => {
     return {
         id: "copyProtocol",
         iconHTML: "",
-        label: window.siyuan.languages.copyProtocol,
-        accelerator: ctx.showAccelerator ? window.siyuan.config.keymap.editor.general.copyProtocol.custom : undefined,
+        label: siyuanI18n.copyProtocol,
+        accelerator: ctx.showAccelerator ? getSiyuanConfig().keymap.editor.general.copyProtocol.custom : undefined,
         click: () => {
             copyTextByType(ctx.ids, "protocol");
             if (ctx.focusElement) {
@@ -98,8 +100,8 @@ const copyProtocolInMdItem = (ctx: copyMenuCtxData) => {
     return {
         id: "copyProtocolInMd",
         iconHTML: "",
-        label: window.siyuan.languages.copyProtocolInMd,
-        accelerator: ctx.showAccelerator ? window.siyuan.config.keymap.editor.general.copyProtocolInMd.custom : undefined,
+        label: siyuanI18n.copyProtocolInMd,
+        accelerator: ctx.showAccelerator ? getSiyuanConfig().keymap.editor.general.copyProtocolInMd.custom : undefined,
         click: () => {
             copyTextByType(ctx.ids, "protocolMd");
             if (ctx.focusElement) {
@@ -118,8 +120,8 @@ const copyHPathItem = (ctx: copyMenuCtxData) => {
     return {
         id: "copyHPath",
         iconHTML: "",
-        label: window.siyuan.languages.copyHPath,
-        accelerator: ctx.showAccelerator ? window.siyuan.config.keymap.editor.general.copyHPath.custom : undefined,
+        label: siyuanI18n.copyHPath,
+        accelerator: ctx.showAccelerator ? getSiyuanConfig().keymap.editor.general.copyHPath.custom : undefined,
         click: () => {
             copyTextByType(ctx.ids, "hPath");
             if (ctx.focusElement) {
@@ -138,8 +140,8 @@ const copyIDItem = (ctx: copyMenuCtxData) => {
     return {
         id: "copyID",
         iconHTML: "",
-        label: window.siyuan.languages.copyID,
-        accelerator: ctx.showAccelerator ? window.siyuan.config.keymap.editor.general.copyID.custom : undefined,
+        label: siyuanI18n.copyID,
+        accelerator: ctx.showAccelerator ? getSiyuanConfig().keymap.editor.general.copyID.custom : undefined,
         click: () => {
             copyTextByType(ctx.ids, "id");
             if (ctx.focusElement) {
@@ -158,7 +160,7 @@ const copyMarkdownItem = (ctx: copyMenuCtxData) => {
     return {
         id: "copyMarkdown",
         iconHTML: "",
-        label: window.siyuan.languages.copyMarkdown,
+        label: siyuanI18n.copyMarkdown,
         accelerator: "" ,
         click: async () => {
             if (!ctx.stdMarkdownId) return;
