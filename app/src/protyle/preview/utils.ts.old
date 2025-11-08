@@ -1,0 +1,61 @@
+const isFootnoteLink=(target:HTMLElement)=>{
+    
+}
+
+
+/**
+ * 匹配一个DOM元素,严格匹配模式中指定的字段是否匹配
+ * 不匹配模式中未指定的字段
+ * @param element 
+ * @param mode 
+ * @param strict 
+ * @returns 
+ */
+const matchAttributesStrict = (element: HTMLElement, mode: Record<string, string|number|boolean> = {}, strict: boolean = false): boolean => {
+  // 如果模式为空，直接返回true
+  if (Object.keys(mode).length === 0) {
+    return true;
+  }
+
+  // 遍历模式中的所有属性
+  for (const [key, expectedValue] of Object.entries(mode)) {
+    const actualValue = element.getAttribute(key);
+    
+    // 在严格模式下，必须完全匹配所有属性
+    if (strict) {
+      // 如果元素没有该属性，或者属性值不匹配
+      if (actualValue === null || actualValue !== String(expectedValue)) {
+        return false;
+      }
+    } 
+    // 在非严格模式下
+    else {
+      // 如果期望值是布尔值true，只需要属性存在
+      if (expectedValue === true) {
+        if (actualValue === null) {
+          return false;
+        }
+      } 
+      // 如果期望值是布尔值false，要求属性不存在
+      else if (expectedValue === false) {
+        if (actualValue !== null) {
+          return false;
+        }
+      }
+      // 如果期望值是正则表达式，进行正则匹配
+      else if (expectedValue instanceof RegExp) {
+        if (actualValue === null || !expectedValue.test(actualValue)) {
+          return false;
+        }
+      }
+      // 其他情况，进行值匹配
+      else {
+        if (actualValue !== String(expectedValue)) {
+          return false;
+        }
+      }
+    }
+  }
+
+  return true;
+};
