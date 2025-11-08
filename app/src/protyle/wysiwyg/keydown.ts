@@ -79,6 +79,9 @@ import { AIChat } from "../../ai/chat";
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu";
 import { htmlBlockGuard, inputElementGuard, protyleDisabledGuard, protyleHaveSelectedGuard } from "./keydown.guards";
 import { hideProtyleToolbarMiddleware, hideProtyleUtilMiddleware, setProtyleWysiwygPreventKeyupMiddleware } from "./keydown.middlewares";
+import { removeSelectIndicatorElementMiddleware } from "./keydown.select";
+import { decorationMatchMiddleware } from "./keydown.decorations";
+import { arrowLeftRightMiddleWare } from "./keydown.navigations";
 
 export const getContentByInlineHTML = (range: Range, cb: (content: string) => void) => {
     let html = "";
@@ -96,13 +99,13 @@ export const getContentByInlineHTML = (range: Range, cb: (content: string) => vo
 
 export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
     editorElement.addEventListener("keydown", async (event: KeyboardEvent & { target: HTMLElement }) => {
-        const controller:AbortController = new AbortController()
+        const controller: AbortController = new AbortController()
         const rawAbort = controller.abort
-        controller.abort =(reason:string)=>{
-            if(!reason){
+        controller.abort = (reason: string) => {
+            if (!reason) {
                 console.error("键盘事件取消未给出原因,检查代码实现")
             }
-            
+
             rawAbort.bind(controller)(reason)
         }
         const signal = controller.signal
@@ -116,16 +119,16 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         await protyleHaveSelectedGuard(event, protyle, controller)
         if (signal.aborted) { return }
         //中间件函数不传入控制器
-        if(!protyle.wysiwyg){
+        if (!protyle.wysiwyg) {
             console.error(protyle)
-            throw(new Error('protyle结构错误'))
+            throw (new Error('protyle结构错误'))
         }
         await setProtyleWysiwygPreventKeyupMiddleware(event, protyle)
         await hideProtyleUtilMiddleware(event, protyle)
         await hideProtyleToolbarMiddleware(event, protyle)
         const range = getEditorRange(protyle.wysiwyg.element);
         const nodeElement = hasClosestBlock(range.startContainer);
-        if (!nodeElement) { throw(new Error('未能找到块元素')) }
+        if (!nodeElement) { throw (new Error('未能找到块元素')) }
         if (signal.aborted) { return }
         // https://ld246.com/article/1694506408293
         const endElement = hasClosestBlock(range.endContainer);
@@ -2068,41 +2071,13 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
             }
             return;
         }
-
         // 和自定义 alt+shift+左/右 冲突，降低优先级  https://github.com/siyuan-note/siyuan/issues/14638
-        if (event.shiftKey && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
-            const selectElements = protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select");
-            if (selectElements.length > 0) {
-                event.stopPropagation();
-                event.preventDefault();
-                return;
-            }
-
-            if (!range.toString()) {
-                if (event.key === "ArrowRight" && isEndOfBlock(range) && !isIncludesHotKey("⌥⇧→")) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    return;
-                }
-                const nodeEditableElement = getContenteditableElement(nodeElement);
-                const position = getSelectionOffset(nodeEditableElement, protyle.wysiwyg.element, range);
-                if (position.start === 0 && event.key === "ArrowLeft" && !isIncludesHotKey("⌥⇧←")) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    return;
-                }
-            }
-        }
-
+        arrowLeftRightMiddleWare(event,protyle,nodeElement,range,controller)
         // 置于最后，太多快捷键会使用到选中元素
-        if (isNotCtrl(event) && event.key !== "Backspace" && event.key !== "Escape" && event.key !== "Delete" && !event.shiftKey && !event.altKey && event.key !== "Enter") {
-            hideElements(["select"], protyle);
-        }
-
-        if (matchHotKey("⌘B", event) || matchHotKey("⌘I", event) || matchHotKey("⌘U", event)) {
-            event.preventDefault();
-            event.stopPropagation();
-            return;
-        }
+        removeSelectIndicatorElementMiddleware(event, protyle, controller)
+        //工具条中的各种装饰元素快捷键不应该唤出工具条
+        decorationMatchMiddleware(event, protyle, controller)
+        //最后一步不再需要检查控制器是否已经取消
+        return
     });
 };
