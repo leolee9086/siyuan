@@ -91,7 +91,7 @@ export const handleSelectedBlockInsertKeyMiddleware = (
                 insertEmptyBlock(protyle, "afterend");
             }, 100);
             // 中断后续处理器执行
-            controller.abort()
+            controller.abort("已处理选中块后插入操作")
             return false;
         // 'b'键：在选中块之前插入新块（Before）
         } else if (event.key.toLowerCase() === "b") {
@@ -105,7 +105,7 @@ export const handleSelectedBlockInsertKeyMiddleware = (
                 insertEmptyBlock(protyle, "beforebegin");
             }, 100);
             // 中断后续处理器执行
-            controller.abort()
+            controller.abort("已处理选中块前插入操作")
 
             return false;
         }

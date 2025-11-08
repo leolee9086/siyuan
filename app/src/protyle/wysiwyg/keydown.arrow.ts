@@ -1,6 +1,10 @@
+import { countBlockWord } from "../../layout/status";
+import { hideElements } from "../ui/hideElements";
+import { isNotCtrl } from "../util/compatibility";
+import { hasTopClosestByAttribute } from "../util/hasClosest";
 import { isIncludesHotKey } from "../util/hotKey";
-import { getSelectionOffset } from "../util/selection";
-import { getContenteditableElement, isEndOfBlock } from "./getBlock";
+import { focusBlock, focusByRange, getSelectionOffset, setLastNodeRange } from "../util/selection";
+import { getContenteditableElement, getFirstBlock, getLastBlock, getNextBlock, getPreviousBlock, isEndOfBlock } from "./getBlock";
 
 
 /**
@@ -37,7 +41,7 @@ export const arrowLeftRightMiddleWare = (
             // 这是为了防止在选择状态下进行扩展选择时出现意外的行为
             event.stopPropagation();
             event.preventDefault();
-            controller.abort();
+            controller.abort("阻止选择状态下的扩展选择");
             return
         }
 
@@ -48,26 +52,153 @@ export const arrowLeftRightMiddleWare = (
                 // 阻止浏览器默认的选择扩展行为，防止光标跳出当前块
                 event.preventDefault();
                 event.stopPropagation();
-                controller.abort();
+                controller.abort("阻止块末尾的右箭头扩展");
                 return
             }
-            
+
             // 获取当前节点的可编辑元素
             const nodeEditableElement = getContenteditableElement(nodeElement);
             if (nodeEditableElement) {
                 // 获取光标在可编辑元素中的位置信息
                 const position = getSelectionOffset(nodeEditableElement, protyle.wysiwyg?.element, range);
-                
+
                 // 处理左箭头键：当光标在块开头时，阻止默认行为（除非按下了 Option+Shift+左箭头）
                 if (position.start === 0 && event.key === "ArrowLeft" && !isIncludesHotKey("⌥⇧←")) {
                     // 阻止浏览器默认的选择扩展行为，防止光标跳出当前块
                     event.preventDefault();
                     event.stopPropagation();
                     // 中止后续的键盘事件处理流程
-                    controller.abort();
+                    controller.abort("阻止块开头的左箭头扩展");
                     return
                 }
             }
+        }
+    }
+}
+
+
+
+export const arrowUpDownMiddleware = (
+    event: KeyboardEvent,
+    protyle: IProtyle,
+    nodeElement: HTMLElement,
+    range: Range,
+    controller: AbortController
+) => {
+    if (!event.altKey && !event.shiftKey && isNotCtrl(event) && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
+        if (
+            !protyle.wysiwyg
+        ) {
+            throw new Error("protyle结构错误")
+        }
+        const selectElements = protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select");
+        const firstSelectedElement = selectElements[0]
+        if (!firstSelectedElement) {
+            throw new Error("找不到选中元素")
+        }
+        const contentElement = protyle.contentElement
+        if (!contentElement) {
+            throw ("protyle结构错误,缺少contentElement")
+        }
+        const scrollRecord = protyle.scroll
+        if (!scrollRecord) {
+            throw new Error("protyle结构错误,缺少scroll")
+        }
+
+        if (selectElements.length > 0) {
+            event.preventDefault();
+            event.stopPropagation();
+            hideElements(["select"], protyle);
+            if (event.key === "ArrowDown") {
+                const currentSelectElement = selectElements[selectElements.length - 1] as HTMLElement;
+                let nextElement = getNextBlock(currentSelectElement) as HTMLElement;
+                if (nextElement) {
+                    if (nextElement.getBoundingClientRect().width === 0) {
+                        // https://github.com/siyuan-note/siyuan/issues/4294
+                        const foldElement = hasTopClosestByAttribute(nextElement, "fold", "1");
+                        if (foldElement) {
+                            nextElement = getNextBlock(foldElement) as HTMLElement;
+                            if (nextElement) {
+                                nextElement = getFirstBlock(nextElement) as HTMLElement;
+                            } else {
+                                nextElement = currentSelectElement;
+                            }
+                        } else {
+                            nextElement = currentSelectElement;
+                        }
+                    } else if (nextElement.getAttribute("fold") === "1"
+                        && (nextElement.classList.contains("sb") || nextElement.classList.contains("bq"))) {
+                        // https://github.com/siyuan-note/siyuan/issues/3913
+                    } else {
+                        nextElement = getFirstBlock(nextElement) as HTMLElement;
+                    }
+                } else {
+                    nextElement = currentSelectElement;
+                }
+
+                nextElement.classList.add("protyle-wysiwyg--select");
+                const nexDataNodeId = nextElement.getAttribute("data-node-id")
+                if (!nexDataNodeId) {
+                    throw new Error("块元素缺少data-node-id属性")
+                }
+                countBlockWord([nexDataNodeId]);
+
+                const bottom = nextElement.getBoundingClientRect().bottom - contentElement.getBoundingClientRect().bottom;
+                if (bottom > 0) {
+                    contentElement.scrollTop = contentElement.scrollTop + bottom;
+                    scrollRecord.lastScrollTop = contentElement.scrollTop - 1;
+                }
+                focusBlock(nextElement);
+            } else if (event.key === "ArrowUp") {
+
+                let previousElement: HTMLElement = getPreviousBlock(firstSelectedElement) as HTMLElement;
+                if (previousElement) {
+                    previousElement = getLastBlock(previousElement) as HTMLElement;
+                    if (previousElement.getBoundingClientRect().width === 0) {
+                        // https://github.com/siyuan-note/siyuan/issues/4294
+                        const foldElement = hasTopClosestByAttribute(previousElement, "fold", "1");
+                        if (foldElement) {
+                            previousElement = getFirstBlock(foldElement) as HTMLElement;
+                        } else {
+                            previousElement = selectElements[0] as HTMLElement;
+                        }
+                    } else if (previousElement) {
+                        // https://github.com/siyuan-note/siyuan/issues/3913
+                        const foldElement = hasTopClosestByAttribute(previousElement, "fold", "1");
+                        if (foldElement && (foldElement.classList.contains("sb") || foldElement.classList.contains("bq"))) {
+                            previousElement = foldElement;
+                        }
+                    }
+                } else if (protyle.title && protyle.title.editElement &&
+                    (protyle.wysiwyg.element.firstElementChild?.getAttribute("data-eof") === "1" || contentElement.scrollTop === 0)) {
+                    const titleRange = setLastNodeRange(protyle.title.editElement, range, false);
+                    titleRange.collapse(false);
+                    focusByRange(titleRange);
+                    event.stopPropagation();
+                    event.preventDefault();
+                } else if (contentElement.scrollTop !== 0) {
+                    contentElement.scrollTop = 0;
+                    scrollRecord.lastScrollTop = 8;
+                } else {
+                    previousElement = selectElements[0] as HTMLElement;
+                }
+                if (previousElement) {
+                    previousElement.classList.add("protyle-wysiwyg--select");
+                    const previousDataNodeId = previousElement.getAttribute("data-node-id")
+                    if (!previousDataNodeId) {
+                        throw new Error("DOM结构错误,缺少data-node-id")
+                    }
+                    countBlockWord([previousDataNodeId]);
+                    const top = previousElement.getBoundingClientRect().top - contentElement.getBoundingClientRect().top;
+                    if (top < 0) {
+                        contentElement.scrollTop = contentElement.scrollTop + top;
+                        scrollRecord.lastScrollTop = contentElement.scrollTop + 1;
+                    }
+                    focusBlock(previousElement);
+                }
+            }
+            controller.abort()
+            return;
         }
     }
 }

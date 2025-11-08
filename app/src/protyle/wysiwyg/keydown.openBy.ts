@@ -22,23 +22,29 @@ export const openByMiddleWare = (
 
         const aElement = hasClosestByAttribute(range.startContainer, "data-type", "a");
         if (aElement) {
-            openLink(protyle, aElement.getAttribute("data-href"), undefined, false);
-            event.preventDefault();
-            event.stopPropagation();
-            controller.abort()
-            return;
+            const href = aElement.getAttribute("data-href");
+            if (href) {
+                openLink(protyle, href, undefined, false);
+                event.preventDefault();
+                event.stopPropagation();
+                controller.abort("已打开链接")
+                return;
+            }
         }
         const fileElement = hasClosestByAttribute(range.startContainer, "data-type", "file-annotation-ref");
         if (fileElement) {
-            const fileIds = fileElement.getAttribute("data-id").split("/");
-            const linkAddress = `assets/${fileIds[1]}`;
-            openLink(protyle, linkAddress, undefined, false);
-            event.preventDefault();
-            event.stopPropagation();
-            controller.abort()
-            return;
+            const fileId = fileElement.getAttribute("data-id");
+            if (fileId) {
+                const fileIds = fileId.split("/");
+                const linkAddress = `assets/${fileIds[1]}`;
+                openLink(protyle, linkAddress, undefined, false);
+                event.preventDefault();
+                event.stopPropagation();
+                controller.abort("已打开文件引用")
+                return;
+            }
         }
-        controller.abort()
+        controller.abort("未找到可打开的链接或文件")
 
         return;
     }

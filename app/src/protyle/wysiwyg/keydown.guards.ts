@@ -28,7 +28,7 @@ export const protyleDisabledGuard = async (
     if (protyle.disabled) {
         event.stopPropagation();
         event.preventDefault();
-        controller.abort();
+        controller.abort("编辑器已禁用");
     }
 }
 export const protyleHaveSelectedGuard = async (
@@ -39,7 +39,7 @@ export const protyleHaveSelectedGuard = async (
     if (!protyle.selectElement?.classList.contains("fn__none")) {
         event.stopPropagation();
         event.preventDefault();
-        controller.abort();
+        controller.abort("编辑器已有选中内容");
     }
 }
 
@@ -49,6 +49,6 @@ export const avPanelGuard = (
     controller: AbortController
 ) => {
     if (document.querySelector(".av__panel")) {
-        controller.abort()
+        controller.abort("属性视图面板已打开")
     }
 }

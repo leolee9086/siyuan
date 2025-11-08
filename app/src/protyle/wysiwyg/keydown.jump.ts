@@ -27,7 +27,7 @@ export const jumpToMiddleWare = (
         jumpToParent(protyle, nodeElement, "next");
         event.preventDefault();
         event.stopPropagation();
-        controller.abort()
+        controller.abort("跳转到下一个同级块")
         return;
     }
     
@@ -36,7 +36,7 @@ export const jumpToMiddleWare = (
         jumpToParent(protyle, nodeElement, "parent");
         event.preventDefault();
         event.stopPropagation();
-        controller.abort()
+        controller.abort("跳转到父级块")
         return;
     }
     
@@ -45,7 +45,7 @@ export const jumpToMiddleWare = (
         jumpToParent(protyle, nodeElement, "previous");
         event.preventDefault();
         event.stopPropagation();
-        controller.abort()
+        controller.abort("跳转到上一个同级块")
         return;
     }
 }

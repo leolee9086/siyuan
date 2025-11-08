@@ -81,7 +81,7 @@ import { htmlBlockGuard, inputElementGuard, protyleDisabledGuard, protyleHaveSel
 import { hideProtyleToolbarMiddleware, hideProtyleUtilMiddleware, setProtyleWysiwygPreventKeyupMiddleware } from "./keydown.middlewares";
 import { handleSelectedBlockInsertKeyMiddleware, removeSelectIndicatorElementMiddleware } from "./keydown.select";
 import { decorationMatchMiddleware } from "./keydown.decorations";
-import { arrowLeftRightMiddleWare } from "./keydown.arrow";
+import { arrowLeftRightMiddleWare, arrowUpDownMiddleware } from "./keydown.arrow";
 import { openByMiddleWare } from "./keydown.openBy";
 import { jumpToMiddleWare } from "./keydown.jump";
 import { deleteKeyMiddleware } from "./keydown.delete";
@@ -109,7 +109,6 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
             if (!reason) {
                 console.error("键盘事件取消未给出原因,检查代码实现")
             }
-
             rawAbort.bind(controller)(reason)
         }
         const signal = controller.signal
@@ -199,93 +198,8 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
             protyle.breadcrumb.hide();
         }
 
-        if (!event.altKey && !event.shiftKey && isNotCtrl(event) && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
-            const selectElements = protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select");
-            if (selectElements.length > 0) {
-                event.preventDefault();
-                event.stopPropagation();
-                hideElements(["select"], protyle);
-                if (event.key === "ArrowDown") {
-                    const currentSelectElement = selectElements[selectElements.length - 1] as HTMLElement;
-                    let nextElement = getNextBlock(currentSelectElement) as HTMLElement;
-                    if (nextElement) {
-                        if (nextElement.getBoundingClientRect().width === 0) {
-                            // https://github.com/siyuan-note/siyuan/issues/4294
-                            const foldElement = hasTopClosestByAttribute(nextElement, "fold", "1");
-                            if (foldElement) {
-                                nextElement = getNextBlock(foldElement) as HTMLElement;
-                                if (nextElement) {
-                                    nextElement = getFirstBlock(nextElement) as HTMLElement;
-                                } else {
-                                    nextElement = currentSelectElement;
-                                }
-                            } else {
-                                nextElement = currentSelectElement;
-                            }
-                        } else if (nextElement.getAttribute("fold") === "1"
-                            && (nextElement.classList.contains("sb") || nextElement.classList.contains("bq"))) {
-                            // https://github.com/siyuan-note/siyuan/issues/3913
-                        } else {
-                            nextElement = getFirstBlock(nextElement) as HTMLElement;
-                        }
-                    } else {
-                        nextElement = currentSelectElement;
-                    }
-
-                    nextElement.classList.add("protyle-wysiwyg--select");
-                    countBlockWord([nextElement.getAttribute("data-node-id")]);
-                    const bottom = nextElement.getBoundingClientRect().bottom - protyle.contentElement.getBoundingClientRect().bottom;
-                    if (bottom > 0) {
-                        protyle.contentElement.scrollTop = protyle.contentElement.scrollTop + bottom;
-                        protyle.scroll.lastScrollTop = protyle.contentElement.scrollTop - 1;
-                    }
-                    focusBlock(nextElement);
-                } else if (event.key === "ArrowUp") {
-                    let previousElement: HTMLElement = getPreviousBlock(selectElements[0]) as HTMLElement;
-                    if (previousElement) {
-                        previousElement = getLastBlock(previousElement) as HTMLElement;
-                        if (previousElement.getBoundingClientRect().width === 0) {
-                            // https://github.com/siyuan-note/siyuan/issues/4294
-                            const foldElement = hasTopClosestByAttribute(previousElement, "fold", "1");
-                            if (foldElement) {
-                                previousElement = getFirstBlock(foldElement) as HTMLElement;
-                            } else {
-                                previousElement = selectElements[0] as HTMLElement;
-                            }
-                        } else if (previousElement) {
-                            // https://github.com/siyuan-note/siyuan/issues/3913
-                            const foldElement = hasTopClosestByAttribute(previousElement, "fold", "1");
-                            if (foldElement && (foldElement.classList.contains("sb") || foldElement.classList.contains("bq"))) {
-                                previousElement = foldElement;
-                            }
-                        }
-                    } else if (protyle.title && protyle.title.editElement &&
-                        (protyle.wysiwyg.element.firstElementChild.getAttribute("data-eof") === "1" || protyle.contentElement.scrollTop === 0)) {
-                        const titleRange = setLastNodeRange(protyle.title.editElement, range, false);
-                        titleRange.collapse(false);
-                        focusByRange(titleRange);
-                        event.stopPropagation();
-                        event.preventDefault();
-                    } else if (protyle.contentElement.scrollTop !== 0) {
-                        protyle.contentElement.scrollTop = 0;
-                        protyle.scroll.lastScrollTop = 8;
-                    } else {
-                        previousElement = selectElements[0] as HTMLElement;
-                    }
-                    if (previousElement) {
-                        previousElement.classList.add("protyle-wysiwyg--select");
-                        countBlockWord([previousElement.getAttribute("data-node-id")]);
-                        const top = previousElement.getBoundingClientRect().top - protyle.contentElement.getBoundingClientRect().top;
-                        if (top < 0) {
-                            protyle.contentElement.scrollTop = protyle.contentElement.scrollTop + top;
-                            protyle.scroll.lastScrollTop = protyle.contentElement.scrollTop + 1;
-                        }
-                        focusBlock(previousElement);
-                    }
-                }
-                return;
-            }
-        }
+        await arrowUpDownMiddleware(event,protyle,nodeElement,range,controller)
+        if (signal.aborted) { return }
 
         // 仅处理以下快捷键操作
         if (event.key !== "PageUp" && event.key !== "PageDown" && event.key !== "Home" && event.key !== "End" && event.key.indexOf("Arrow") === -1 &&

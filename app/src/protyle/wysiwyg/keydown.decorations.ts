@@ -9,6 +9,6 @@ export const decorationMatchMiddleware = (
     if (matchHotKey("⌘B", event) || matchHotKey("⌘I", event) || matchHotKey("⌘U", event)) {
         event.preventDefault();
         event.stopPropagation();
-        controller.abort();
+        controller.abort("文本装饰快捷键已处理");
     }
 }
