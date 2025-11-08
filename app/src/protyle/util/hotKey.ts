@@ -52,7 +52,7 @@ const replaceDirect = (hotKey: string, keyCode: string) => {
     return hotKeys;
 };
 
-export const matchHotKey = (hotKey: string, event: KeyboardEvent) => {
+export const matchHotKey = (hotKey: string|undefined, event: KeyboardEvent) => {
     if (!hotKey) {
         return false;
     }

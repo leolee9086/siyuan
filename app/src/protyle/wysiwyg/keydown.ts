@@ -79,10 +79,11 @@ import { AIChat } from "../../ai/chat";
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu";
 import { htmlBlockGuard, inputElementGuard, protyleDisabledGuard, protyleHaveSelectedGuard } from "./keydown.guards";
 import { hideProtyleToolbarMiddleware, hideProtyleUtilMiddleware, setProtyleWysiwygPreventKeyupMiddleware } from "./keydown.middlewares";
-import { removeSelectIndicatorElementMiddleware } from "./keydown.select";
+import { handleSelectedBlockInsertKeyMiddleware, removeSelectIndicatorElementMiddleware } from "./keydown.select";
 import { decorationMatchMiddleware } from "./keydown.decorations";
 import { arrowLeftRightMiddleWare } from "./keydown.arrow";
 import { openByMiddleWare } from "./keydown.openBy";
+import { jumpToMiddleWare } from "./keydown.jump";
 
 export const getContentByInlineHTML = (range: Range, cb: (content: string) => void) => {
     let html = "";
@@ -147,26 +148,8 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
             controller.abort("属性视图键盘事件处理");
         }
         if (signal.aborted) { return }
-        if (nodeElement.classList.contains("protyle-wysiwyg--select") && isNotCtrl(event) && !event.shiftKey && !event.altKey) {
-            if (event.key.toLowerCase() === "a") {
-                event.stopPropagation();
-                event.preventDefault();
-                protyle.wysiwyg.element.blur();
-                // 阻止中文输入的残留
-                setTimeout(() => {
-                    insertEmptyBlock(protyle, "afterend");
-                }, 100);
-                return false;
-            } else if (event.key.toLowerCase() === "b") {
-                event.stopPropagation();
-                event.preventDefault();
-                protyle.wysiwyg.element.blur();
-                setTimeout(() => {
-                    insertEmptyBlock(protyle, "beforebegin");
-                }, 100);
-                return false;
-            }
-        }
+        await handleSelectedBlockInsertKeyMiddleware(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
         if (event.isComposing) {
             event.stopPropagation();
             return;
@@ -1717,25 +1700,8 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
             event.stopPropagation();
             return true;
         }
-        if (matchHotKey(window.siyuan.config.keymap.editor.general.jumpToParentNext.custom, event)) {
-            jumpToParent(protyle, nodeElement, "next");
-            event.preventDefault();
-            event.stopPropagation();
-            return true;
-        }
-        if (matchHotKey(window.siyuan.config.keymap.editor.general.jumpToParent.custom, event)) {
-            jumpToParent(protyle, nodeElement, "parent");
-            event.preventDefault();
-            event.stopPropagation();
-            return true;
-        }
-        if (matchHotKey(window.siyuan.config.keymap.editor.general.jumpToParentPrev.custom, event)) {
-            jumpToParent(protyle, nodeElement, "previous");
-            event.preventDefault();
-            event.stopPropagation();
-            return true;
-        }
-
+        await jumpToMiddleWare(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
         if (matchHotKey(window.siyuan.config.keymap.editor.general.moveToUp.custom, event)) {
             event.preventDefault();
             event.stopPropagation();

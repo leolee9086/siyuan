@@ -1,3 +1,4 @@
+import { insertEmptyBlock } from "../../block/util";
 import { hideElements } from "../ui/hideElements";
 import { isNotCtrl } from "../util/compatibility";
 
@@ -31,17 +32,82 @@ export const removeSelectIndicatorElementMiddleware = (
         // 删除操作时需要保持选择指示器       
         event.key !== "Backspace" &&
         // Escape键用于取消操作，需要保持选择指示器          
-        event.key !== "Escape" &&   
+        event.key !== "Escape" &&
         // 删除操作时需要保持选择指示器
-        event.key !== "Delete" &&     
+        event.key !== "Delete" &&
         // Shift用于扩展选择，需要保持选择指示器         
-        !event.shiftKey &&       
+        !event.shiftKey &&
         // Alt用于特殊功能，需要保持选择指示器              
-        !event.altKey &&   
+        !event.altKey &&
         // Enter键用于换行或确认，需要保持选择指示器                    
-        event.key !== "Enter"                  
+        event.key !== "Enter"
     ) {
         hideElements(["select"], protyle);
     }
     //不取消控制器,因为后面还有响应字符格式的处理器
+}
+
+/**
+ * 处理选中块状态下的插入键快捷操作
+ * 当用户选中块时，可以通过特定快捷键在选中块前后插入新块
+ *
+ * @param event 键盘事件对象
+ * @param protyle Protyle实例，提供编辑器核心功能
+ * @param nodeElement 当前操作的DOM元素
+ * @param range 当前选区范围
+ * @param controller 用于控制事件处理流程的中断控制器
+ * @returns 返回false表示事件已被处理，应停止后续处理
+ *
+ * 功能说明：
+ * - 当元素处于选中状态（包含"protyle-wysiwyg--select"类）时激活
+ * - 仅在没有修饰键（Ctrl、Shift、Alt）的情况下响应
+ * - 按下'a'键：在选中块之后插入新块
+ * - 按下'b'键：在选中块之前插入新块
+ *
+ * 注意事项：
+ * - 使用setTimeout延迟插入操作，避免与中文输入法冲突
+ * - 插入前先让编辑器失去焦点，确保操作正确执行
+ * - 处理完成后中断控制器，阻止后续处理器执行
+ */
+export const handleSelectedBlockInsertKeyMiddleware = (
+    event: KeyboardEvent,
+    protyle: IProtyle,
+    nodeElement: HTMLElement,
+    range: Range,
+    controller: AbortController
+
+) => {
+    // 检查当前元素是否处于选中状态，且没有按下修饰键
+    if (nodeElement.classList.contains("protyle-wysiwyg--select") && isNotCtrl(event) && !event.shiftKey && !event.altKey) {
+        // 'a'键：在选中块之后插入新块（After）
+        if (event.key.toLowerCase() === "a") {
+            // 阻止事件冒泡和默认行为
+            event.stopPropagation();
+            event.preventDefault();
+            // 让编辑器失去焦点，确保后续操作正确
+            protyle.wysiwyg?.element.blur();
+            // 延迟执行插入操作，避免与中文输入法冲突
+            setTimeout(() => {
+                insertEmptyBlock(protyle, "afterend");
+            }, 100);
+            // 中断后续处理器执行
+            controller.abort()
+            return false;
+        // 'b'键：在选中块之前插入新块（Before）
+        } else if (event.key.toLowerCase() === "b") {
+            // 阻止事件冒泡和默认行为
+            event.stopPropagation();
+            event.preventDefault();
+            // 让编辑器失去焦点，确保后续操作正确
+            protyle.wysiwyg?.element.blur();
+            // 延迟执行插入操作，避免与中文输入法冲突
+            setTimeout(() => {
+                insertEmptyBlock(protyle, "beforebegin");
+            }, 100);
+            // 中断后续处理器执行
+            controller.abort()
+
+            return false;
+        }
+    }
 }

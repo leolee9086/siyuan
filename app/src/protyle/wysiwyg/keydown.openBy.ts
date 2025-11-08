@@ -1,4 +1,5 @@
 import { openLink } from "../../editor/openLink";
+import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig";
 import { hasClosestByAttribute } from "../util/hasClosest";
 import { matchHotKey } from "../util/hotKey";
 /**
@@ -17,7 +18,7 @@ export const openByMiddleWare = (
     range: Range,
     controller: AbortController
 ) => {
-    if (matchHotKey(window.siyuan.config.keymap.editor.general.openBy.custom, event)) {
+    if (matchHotKey(getSiyuanConfig().keymap.editor.general.openBy.custom, event)) {
 
         const aElement = hasClosestByAttribute(range.startContainer, "data-type", "a");
         if (aElement) {
