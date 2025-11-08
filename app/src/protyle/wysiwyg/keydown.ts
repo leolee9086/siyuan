@@ -99,7 +99,7 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         const controller = new AbortController()
         const signal = controller.signal
         signal.addEventListener('abort', (event) => {
-            console.log(signal.reason)
+            console.log(`键盘事件处理被中止: ${signal.reason}`)
         })
         //守卫函数传入控制器但是不要修改状态
         await htmlBlockGuard(event, protyle, controller)
@@ -112,7 +112,7 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         if (signal.aborted) { return }
         //中间件函数不传入控制器
         await setProtyleWysiwygPreventKeyupMiddleware(event, protyle)
-        await hideProtyleUtilMiddleware(event,protyle)
+        await hideProtyleUtilMiddleware(event, protyle)
         if (event.shiftKey && event.key.indexOf("Arrow") > -1) {
             // 防止连续选中的时候抖动 https://github.com/siyuan-note/insider/issues/657#issuecomment-851391217
         } else if (!event.repeat &&
@@ -121,22 +121,26 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         }
         const range = getEditorRange(protyle.wysiwyg.element);
         const nodeElement = hasClosestBlock(range.startContainer);
-        if (!nodeElement) {controller.abort()}
+        if (!nodeElement) { controller.abort("未找到块元素") }
         if (signal.aborted) { return }
-
         // https://ld246.com/article/1694506408293
         const endElement = hasClosestBlock(range.endContainer);
         if (!matchHotKey("⌘C", event) && endElement && nodeElement !== endElement) {
             event.stopPropagation();
             event.preventDefault();
-            return;
+            controller.abort("跨块选择被阻止");
         }
+        if (signal.aborted) { return }
+
         if (document.querySelector(".av__panel")) {
-            return;
+            controller.abort("属性视图面板已打开");
         }
+        if (signal.aborted) { return }
+
         if (avKeydown(event, nodeElement, protyle)) {
-            return;
+            controller.abort("属性视图键盘事件处理");
         }
+        if (signal.aborted) { return }
 
         if (nodeElement.classList.contains("protyle-wysiwyg--select") && isNotCtrl(event) && !event.shiftKey && !event.altKey) {
             if (event.key.toLowerCase() === "a") {
