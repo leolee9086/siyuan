@@ -93,9 +93,7 @@ export const arrowUpDownMiddleware = (
         }
         const selectElements = protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select");
         const firstSelectedElement = selectElements[0]
-        if (!firstSelectedElement) {
-            throw new Error("找不到选中元素")
-        }
+
         const contentElement = protyle.contentElement
         if (!contentElement) {
             throw ("protyle结构错误,缺少contentElement")
@@ -150,7 +148,9 @@ export const arrowUpDownMiddleware = (
                 }
                 focusBlock(nextElement);
             } else if (event.key === "ArrowUp") {
-
+                if (!firstSelectedElement) {
+                    throw new Error("找不到选中元素")
+                }
                 let previousElement: HTMLElement = getPreviousBlock(firstSelectedElement) as HTMLElement;
                 if (previousElement) {
                     previousElement = getLastBlock(previousElement) as HTMLElement;
