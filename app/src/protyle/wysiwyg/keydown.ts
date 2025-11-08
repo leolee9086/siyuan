@@ -85,6 +85,7 @@ import { arrowLeftRightMiddleWare, arrowUpDownMiddleware } from "./keydown.arrow
 import { openByMiddleWare } from "./keydown.openBy";
 import { jumpToMiddleWare } from "./keydown.jump";
 import { deleteKeyMiddleware } from "./keydown.delete";
+import { codeBlockMiddleware } from "./keydown.codeBlock";
 
 export const getContentByInlineHTML = (range: Range, cb: (content: string) => void) => {
     let html = "";
@@ -703,29 +704,8 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         }
 
         // 代码块语言选择 https://github.com/siyuan-note/siyuan/issues/14126
-        if (matchHotKey("⌥↩", event) && selectText === "") {
-            const selectElements = Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select"));
-            if (selectElements.length === 0) {
-                selectElements.push(nodeElement);
-            }
-            if (selectElements.length > 0 && !isIncludesHotKey("⌥↩")) {
-                const otherElement = selectElements.find(item => {
-                    return !item.classList.contains("code-block");
-                });
-                if (!otherElement) {
-                    const languageElements: HTMLElement[] = [];
-                    selectElements.forEach(item => {
-                        languageElements.push(item.querySelector(".protyle-action__language"));
-                    });
-                    protyle.toolbar.showCodeLanguage(protyle, languageElements);
-                } else {
-                    addSubList(protyle, nodeElement, range);
-                }
-                event.stopPropagation();
-                event.preventDefault();
-                return;
-            }
-        }
+        await codeBlockMiddleware(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
 
         // 回车
         if (matchHotKey("↩", event)) {

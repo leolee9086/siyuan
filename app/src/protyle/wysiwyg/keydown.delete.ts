@@ -9,6 +9,7 @@ import { clearTableCell } from "../util/table";
 import { getNextBlock } from "./getBlock";
 import { focusBlock, focusByWbr, setFirstNodeRange } from "../util/selection";
 import { Constants } from "../../constants";
+import { isOnlyMeta } from "../util/compatibility";
 
 export const deleteKeyMiddleware = async (
     event: KeyboardEvent,
