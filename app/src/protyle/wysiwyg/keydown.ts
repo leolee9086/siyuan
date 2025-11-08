@@ -101,6 +101,7 @@ export const getContentByInlineHTML = (range: Range, cb: (content: string) => vo
 };
 
 export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
+    //@ts-ignore
     editorElement.addEventListener("keydown", async (event: KeyboardEvent & { target: HTMLElement }) => {
         const controller: AbortController = new AbortController()
         const rawAbort = controller.abort
