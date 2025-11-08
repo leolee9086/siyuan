@@ -112,6 +112,11 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
             rawAbort.bind(controller)(reason)
         }
         const signal = controller.signal
+        //中间件函数不传入控制器
+        if (!protyle.wysiwyg) {
+            console.error(protyle)
+            throw (new Error('protyle结构错误'))
+        }
         //守卫函数传入控制器但是不要修改状态
         await htmlBlockGuard(event, protyle, controller)
         if (signal.aborted) { return }
@@ -121,14 +126,12 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         if (signal.aborted) { return }
         await protyleHaveSelectedGuard(event, protyle, controller)
         if (signal.aborted) { return }
-        //中间件函数不传入控制器
-        if (!protyle.wysiwyg) {
-            console.error(protyle)
-            throw (new Error('protyle结构错误'))
-        }
         await setProtyleWysiwygPreventKeyupMiddleware(event, protyle)
+        if (signal.aborted) { return }
         await hideProtyleUtilMiddleware(event, protyle)
+        if (signal.aborted) { return }
         await hideProtyleToolbarMiddleware(event, protyle)
+        if (signal.aborted) { return }
         const range = getEditorRange(protyle.wysiwyg.element);
         const nodeElement = hasClosestBlock(range.startContainer);
         if (!nodeElement) { throw (new Error('未能找到块元素')) }
@@ -198,7 +201,7 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
             protyle.breadcrumb.hide();
         }
 
-        await arrowUpDownMiddleware(event,protyle,nodeElement,range,controller)
+        await arrowUpDownMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
 
         // 仅处理以下快捷键操作

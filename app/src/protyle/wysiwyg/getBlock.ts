@@ -1,5 +1,5 @@
-import {hasClosestBlock, hasClosestByAttribute, isInEmbedBlock} from "../util/hasClosest";
-import {Constants} from "../../constants";
+import { hasClosestBlock, hasClosestByAttribute, isInEmbedBlock } from "../util/hasClosest";
+import { Constants } from "../../constants";
 
 export const getPreviousBlock = (element: Element) => {
     let parentElement = element;
