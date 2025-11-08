@@ -45,7 +45,8 @@ import {
     updateTransaction
 } from "./transaction";
 import { fontEvent } from "../toolbar/Font";
-import { addSubList, listIndent, listOutdent } from "./list";
+import { listIndent, listOutdent } from "./list";
+import { addSubList } from "./list.addSubList";
 import { newFileContentBySelect, rename, replaceFileName } from "../../editor/rename";
 import { cancelSB, insertEmptyBlock, jumpToParent } from "../../block/util";
 import { isLocalPath } from "../../util/pathName";

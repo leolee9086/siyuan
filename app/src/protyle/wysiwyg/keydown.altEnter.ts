@@ -1,5 +1,5 @@
 import { matchHotKey } from "../util/hotKey";
-import { addSubList } from "./list";
+import { addSubList } from "./list.addSubList";
 import { isIncludesHotKey } from "../util/hotKey";
 
 /**
