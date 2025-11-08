@@ -99,7 +99,7 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         const controller = new AbortController()
         const signal = controller.signal
         signal.addEventListener('abort', (event) => {
-            console.log(event)
+            console.log(signal.reason)
         })
         //守卫函数传入控制器但是不要修改状态
         await htmlBlockGuard(event, protyle, controller)

@@ -20,7 +20,6 @@ export const inputElementGuard = async (
     }
 }
 
-
 export const protyleDisabledGuard = async (
     event: KeyboardEvent & { target: HTMLElement },
     protyle: IProtyle,
