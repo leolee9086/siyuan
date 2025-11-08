@@ -85,7 +85,7 @@ import { arrowLeftRightMiddleWare, arrowUpDownMiddleware } from "./keydown.arrow
 import { openByMiddleWare } from "./keydown.openBy";
 import { jumpToMiddleWare } from "./keydown.jump";
 import { deleteKeyMiddleware } from "./keydown.delete";
-import { codeBlockMiddleware } from "./keydown.codeBlock";
+import { altEnterMiddleware } from "./keydown.altEnter";
 
 export const getContentByInlineHTML = (range: Range, cb: (content: string) => void) => {
     let html = "";
@@ -704,7 +704,7 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         }
 
         // 代码块语言选择 https://github.com/siyuan-note/siyuan/issues/14126
-        await codeBlockMiddleware(event, protyle, nodeElement, range, controller)
+        await altEnterMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
 
         // 回车

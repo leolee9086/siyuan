@@ -11,7 +11,7 @@ import { isIncludesHotKey } from "../util/hotKey";
  * @param selectText 选中的文本
  * @returns 如果处理了事件返回 true，否则返回 false
  */
-export const codeBlockMiddleware = async (
+export const altEnterMiddleware = async (
     event: KeyboardEvent,
     protyle: IProtyle,
     nodeElement: HTMLElement,
@@ -41,9 +41,7 @@ export const codeBlockMiddleware = async (
                 protyle.toolbar?.showCodeLanguage(protyle, languageElements);
             } else {
                 // 不全是代码块，添加子列表
-                if (protyle.toolbar?.range) {
-                    addSubList(protyle, nodeElement, protyle.toolbar.range);
-                }
+                addSubList(protyle, nodeElement, range);
             }
             event.stopPropagation();
             event.preventDefault();
