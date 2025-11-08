@@ -1,5 +1,5 @@
 import { hasClosestByAttribute, hasClosestByTag } from "../util/hasClosest";
-import { getContenteditableElement, getTopAloneElement, hasPreviousSibling } from "./getBlock";
+import { getContenteditableElement, getTopAloneElement, hasNextSibling, hasPreviousSibling } from "./getBlock";
 import { isEndOfBlock } from "./getBlock";
 import { getSelectionOffset } from "../util/selection";
 import { matchHotKey } from "../util/hotKey";
@@ -9,7 +9,6 @@ import { clearTableCell } from "../util/table";
 import { getNextBlock } from "./getBlock";
 import { focusBlock, focusByWbr, setFirstNodeRange } from "../util/selection";
 import { Constants } from "../../constants";
-import { insertEmptyBlock } from "../../block/util";
 
 export const deleteKeyMiddleware = async (
     event: KeyboardEvent,
@@ -42,22 +41,37 @@ export const deleteKeyMiddleware = async (
             controller.abort()
             return;
         }
-        const previousSibling = hasPreviousSibling(range.startContainer) ;
+        const previousSibling = hasPreviousSibling(range.startContainer);
         // https://github.com/siyuan-note/siyuan/issues/5547
         if (range.startOffset === 1 && range.startContainer.textContent === Constants.ZWSP &&
             previousSibling && previousSibling.nodeType !== 3 &&
             event.key === "Backspace" // https://github.com/siyuan-note/siyuan/issues/6786
         ) {
+            if (!(previousSibling instanceof HTMLElement)) {
+                console.error(previousSibling)
+                throw new Error('DOM结构错误')
+            }
+            const nodeDataType = previousSibling.getAttribute("data-type")
+            const nodeDataId = nodeElement.getAttribute("data-node-id")
+            if (!nodeDataType) {
+                console.error(previousSibling)
+                throw new Error('DOM结构错误,缺少data-type')
+            }
+            if (!nodeDataId) {
+                console.error(previousSibling)
+                throw new Error('DOM结构错误,缺少data-node-id')
+
+            }
             if (previousSibling.classList.contains("img")) {
                 previousSibling.classList.add("img--select");
-            } 
-            else if (previousSibling.getAttribute("data-type")?.indexOf("inline-math") > -1) {
+            }
+            else if (nodeDataType.indexOf("inline-math") > -1) {
                 // 数学公式相邻中有 zwsp,无法删除
                 previousSibling.after(document.createElement("wbr"));
                 const oldHTML = nodeElement.outerHTML;
                 range.startContainer.textContent = "";
                 previousSibling.remove();
-                updateTransaction(protyle, nodeElement.getAttribute("data-node-id"), nodeElement.outerHTML, oldHTML);
+                updateTransaction(protyle, nodeDataId, nodeElement.outerHTML, oldHTML);
                 focusByWbr(nodeElement, range);
                 event.stopPropagation();
                 event.preventDefault();
@@ -65,7 +79,10 @@ export const deleteKeyMiddleware = async (
                 return;
             }
         }
-        const editElement = getContenteditableElement(nodeElement) as HTMLElement;
+        const editElement = getContenteditableElement(nodeElement);
+        if (!protyle.wysiwyg) {
+            throw new Error('protyle结构错误')
+        }
         const imgSelectElement = protyle.wysiwyg.element.querySelector(".img--select");
         if (imgSelectElement) {
             imgSelectElement.classList.remove("img--select");
@@ -77,12 +94,16 @@ export const deleteKeyMiddleware = async (
                 return;
             }
         } else if (selectText === "") {
-            if (nodeElement.classList.contains("table") && nodeElement.querySelector(".table__select").clientHeight > 0) {
-                clearTableCell(protyle, nodeElement);
-                event.stopPropagation();
-                event.preventDefault();
-                controller.abort()
-                return;
+
+            if (nodeElement.classList.contains("table")) {
+                const tableSelectElement = nodeElement.querySelector(".table__select")
+                if (tableSelectElement && tableSelectElement.clientHeight > 0) {
+                    clearTableCell(protyle, nodeElement);
+                    event.stopPropagation();
+                    event.preventDefault();
+                    controller.abort()
+                    return;
+                }
             }
             if (!editElement) {
                 nodeElement.classList.add("protyle-wysiwyg--select");
