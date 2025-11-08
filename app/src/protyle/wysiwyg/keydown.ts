@@ -81,7 +81,8 @@ import { htmlBlockGuard, inputElementGuard, protyleDisabledGuard, protyleHaveSel
 import { hideProtyleToolbarMiddleware, hideProtyleUtilMiddleware, setProtyleWysiwygPreventKeyupMiddleware } from "./keydown.middlewares";
 import { removeSelectIndicatorElementMiddleware } from "./keydown.select";
 import { decorationMatchMiddleware } from "./keydown.decorations";
-import { arrowLeftRightMiddleWare } from "./keydown.navigations";
+import { arrowLeftRightMiddleWare } from "./keydown.arrow";
+import { openByMiddleWare } from "./keydown.openBy";
 
 export const getContentByInlineHTML = (range: Range, cb: (content: string) => void) => {
     let html = "";
@@ -2051,32 +2052,18 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
             return;
         }
         /// #endif
-
-        if (matchHotKey(window.siyuan.config.keymap.editor.general.openBy.custom, event)) {
-            const aElement = hasClosestByAttribute(range.startContainer, "data-type", "a");
-            if (aElement) {
-                openLink(protyle, aElement.getAttribute("data-href"), undefined, false);
-                event.preventDefault();
-                event.stopPropagation();
-                return;
-            }
-            const fileElement = hasClosestByAttribute(range.startContainer, "data-type", "file-annotation-ref");
-            if (fileElement) {
-                const fileIds = fileElement.getAttribute("data-id").split("/");
-                const linkAddress = `assets/${fileIds[1]}`;
-                openLink(protyle, linkAddress, undefined, false);
-                event.preventDefault();
-                event.stopPropagation();
-                return;
-            }
-            return;
-        }
+        //打开外部链接或者素材链接
+        await openByMiddleWare(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
         // 和自定义 alt+shift+左/右 冲突，降低优先级  https://github.com/siyuan-note/siyuan/issues/14638
-        arrowLeftRightMiddleWare(event,protyle,nodeElement,range,controller)
+        await arrowLeftRightMiddleWare(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
         // 置于最后，太多快捷键会使用到选中元素
         removeSelectIndicatorElementMiddleware(event, protyle, controller)
+        if (signal.aborted) { return }
         //工具条中的各种装饰元素快捷键不应该唤出工具条
         decorationMatchMiddleware(event, protyle, controller)
+        if (signal.aborted) { return }
         //最后一步不再需要检查控制器是否已经取消
         return
     });
