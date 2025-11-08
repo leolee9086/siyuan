@@ -78,7 +78,7 @@ import { onlyProtyleCommand } from "../../boot/globalEvent/command/protyle";
 import { AIChat } from "../../ai/chat";
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu";
 import { htmlBlockGuard, inputElementGuard, protyleDisabledGuard, protyleHaveSelectedGuard } from "./keydown.guards";
-import { hideProtyleUtilMiddleware, setProtyleWysiwygPreventKeyupMiddleware } from "./keydown.middlewares";
+import { hideProtyleToolbarMiddleware, hideProtyleUtilMiddleware, setProtyleWysiwygPreventKeyupMiddleware } from "./keydown.middlewares";
 
 export const getContentByInlineHTML = (range: Range, cb: (content: string) => void) => {
     let html = "";
@@ -96,11 +96,16 @@ export const getContentByInlineHTML = (range: Range, cb: (content: string) => vo
 
 export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
     editorElement.addEventListener("keydown", async (event: KeyboardEvent & { target: HTMLElement }) => {
-        const controller = new AbortController()
+        const controller:AbortController = new AbortController()
+        const rawAbort = controller.abort
+        controller.abort =(reason:string)=>{
+            if(!reason){
+                console.error("键盘事件取消未给出原因,检查代码实现")
+            }
+            
+            rawAbort.bind(controller)(reason)
+        }
         const signal = controller.signal
-        signal.addEventListener('abort', (event) => {
-            console.log(`键盘事件处理被中止: ${signal.reason}`)
-        })
         //守卫函数传入控制器但是不要修改状态
         await htmlBlockGuard(event, protyle, controller)
         if (signal.aborted) { return }
@@ -111,17 +116,16 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         await protyleHaveSelectedGuard(event, protyle, controller)
         if (signal.aborted) { return }
         //中间件函数不传入控制器
+        if(!protyle.wysiwyg){
+            console.error(protyle)
+            throw(new Error('protyle结构错误'))
+        }
         await setProtyleWysiwygPreventKeyupMiddleware(event, protyle)
         await hideProtyleUtilMiddleware(event, protyle)
-        if (event.shiftKey && event.key.indexOf("Arrow") > -1) {
-            // 防止连续选中的时候抖动 https://github.com/siyuan-note/insider/issues/657#issuecomment-851391217
-        } else if (!event.repeat &&
-            event.code !== "") { // 悬浮工具会触发但 code 为空 https://github.com/siyuan-note/siyuan/issues/6573
-            hideElements(["toolbar"], protyle);
-        }
+        await hideProtyleToolbarMiddleware(event, protyle)
         const range = getEditorRange(protyle.wysiwyg.element);
         const nodeElement = hasClosestBlock(range.startContainer);
-        if (!nodeElement) { controller.abort("未找到块元素") }
+        if (!nodeElement) { throw(new Error('未能找到块元素')) }
         if (signal.aborted) { return }
         // https://ld246.com/article/1694506408293
         const endElement = hasClosestBlock(range.endContainer);
@@ -131,17 +135,14 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
             controller.abort("跨块选择被阻止");
         }
         if (signal.aborted) { return }
-
         if (document.querySelector(".av__panel")) {
             controller.abort("属性视图面板已打开");
         }
         if (signal.aborted) { return }
-
         if (avKeydown(event, nodeElement, protyle)) {
             controller.abort("属性视图键盘事件处理");
         }
         if (signal.aborted) { return }
-
         if (nodeElement.classList.contains("protyle-wysiwyg--select") && isNotCtrl(event) && !event.shiftKey && !event.altKey) {
             if (event.key.toLowerCase() === "a") {
                 event.stopPropagation();

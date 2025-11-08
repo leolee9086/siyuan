@@ -1,14 +1,40 @@
 import { hideElements } from "../ui/hideElements";
-
-export const setProtyleWysiwygPreventKeyupMiddleware = async(
+/**
+ * 普通的各种键盘事件时,将keyup事件设置为放行
+ * @param event 
+ * @param protyle 
+ */
+export const setProtyleWysiwygPreventKeyupMiddleware = async (
     event: KeyboardEvent & { target: HTMLElement },
     protyle: IProtyle,
 ) => {
     protyle.wysiwyg && (protyle.wysiwyg.preventKeyup = false);
 }
-export const hideProtyleUtilMiddleware = async(
+/**
+ * 隐藏protyle的工具容器
+ * @param event 
+ * @param protyle 
+ */
+export const hideProtyleUtilMiddleware = async (
     event: KeyboardEvent & { target: HTMLElement },
     protyle: IProtyle,
 ) => {
     hideElements(["util"], protyle);
+}
+
+/**
+ * 隐藏protyle的工具栏,连续按下箭头选择时
+ * 为了防抖不要隐藏
+ * @param event 
+ * @param protyle 
+ */
+export const hideProtyleToolbarMiddleware = async (
+    event: KeyboardEvent & { target: HTMLElement },
+    protyle: IProtyle,
+) => {
+    if (event.shiftKey && event.key.indexOf("Arrow") > -1) {
+        // 防止连续选中的时候抖动 https://github.com/siyuan-note/insider/issues/657#issuecomment-851391217
+    } else if (!event.repeat && event.code !== "") { // 悬浮工具会触发但 code 为空 https://github.com/siyuan-note/siyuan/issues/6573
+        hideElements(["toolbar"], protyle);
+    }
 }
