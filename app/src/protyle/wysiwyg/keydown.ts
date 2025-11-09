@@ -88,6 +88,7 @@ import { jumpToMiddleWare } from "./keydown.jump";
 import { deleteKeyMiddleware } from "./keydown.delete";
 import { altEnterMiddleware } from "./keydown.altEnter";
 import { tabKeyMiddleware } from "./keydown.tab";
+import { enterKeyMiddleware } from "./keydown.enter";
 
 export const getContentByInlineHTML = (range: Range, cb: (content: string) => void) => {
     let html = "";
@@ -710,12 +711,8 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         if (signal.aborted) { return }
 
         // 回车
-        if (matchHotKey("↩", event)) {
-            enter(nodeElement, range, protyle);
-            event.stopPropagation();
-            event.preventDefault();
-            return;
-        }
+        await enterKeyMiddleware(event, protyle, nodeElement, range, controller);
+        if (signal.aborted) { return }
 
         if (matchHotKey("⌘A", event)) {
             event.preventDefault();
