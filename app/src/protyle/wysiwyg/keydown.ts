@@ -98,6 +98,7 @@ import { pasteAsPlainTextMiddleware } from "./keydown.paste";
 import { aiActionsMiddleware, aiWritingMiddleware } from "./keydown.ai";
 import { listCheckToggleMiddleware, listIndentMiddleware, listOutdentMiddleware, listTransformMiddleware } from "./keydown.list";
 import { expandSelectMiddleware } from "./keydown.expandSelect";
+import { formatMiddleware } from "./keydown.format";
 
 export const getContentByInlineHTML = (range: Range, cb: (content: string) => void) => {
     let html = "";
@@ -483,88 +484,8 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
             event.stopPropagation();
             return;
         }
-        if (matchHotKey(window.siyuan.config.keymap.editor.general.alignLeft.custom, event)) {
-            const imgSelectElements = nodeElement.querySelectorAll(".img--select");
-            if (imgSelectElements.length > 0) {
-                alignImgLeft(protyle, nodeElement, Array.from(imgSelectElements), nodeElement.getAttribute("data-node-id"), nodeElement.outerHTML);
-            } else {
-                let selectElements: HTMLElement[] = Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select"));
-                if (selectElements.length === 0) {
-                    selectElements = [nodeElement];
-                }
-                updateBatchTransaction(selectElements, protyle, (e: HTMLElement) => {
-                    if (e.classList.contains("av")) {
-                        e.style.justifyContent = "";
-                    } else {
-                        e.style.textAlign = "left";
-                    }
-                });
-            }
-            event.stopPropagation();
-            event.preventDefault();
-            return;
-        }
-        if (matchHotKey(window.siyuan.config.keymap.editor.general.alignCenter.custom, event)) {
-            const imgSelectElements = nodeElement.querySelectorAll(".img--select");
-            if (imgSelectElements.length > 0) {
-                alignImgCenter(protyle, nodeElement, Array.from(imgSelectElements), nodeElement.getAttribute("data-node-id"), nodeElement.outerHTML);
-            } else {
-                let selectElements: HTMLElement[] = Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select"));
-                if (selectElements.length === 0) {
-                    selectElements = [nodeElement];
-                }
-                updateBatchTransaction(selectElements, protyle, (e: HTMLElement) => {
-                    if (e.classList.contains("av")) {
-                        e.style.justifyContent = "center";
-                    } else {
-                        e.style.textAlign = "center";
-                    }
-                });
-            }
-            event.stopPropagation();
-            event.preventDefault();
-            return;
-        }
-        if (matchHotKey(window.siyuan.config.keymap.editor.general.alignRight.custom, event)) {
-            let selectElements: HTMLElement[] = Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select"));
-            if (selectElements.length === 0) {
-                selectElements = [nodeElement];
-            }
-            updateBatchTransaction(selectElements, protyle, (e: HTMLElement) => {
-                if (e.classList.contains("av")) {
-                    e.style.justifyContent = "flex-end";
-                } else {
-                    e.style.textAlign = "right";
-                }
-            });
-            event.stopPropagation();
-            event.preventDefault();
-            return;
-        }
-        if (matchHotKey(window.siyuan.config.keymap.editor.general.rtl.custom, event)) {
-            let selectElements: HTMLElement[] = Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select"));
-            if (selectElements.length === 0) {
-                selectElements = [nodeElement];
-            }
-            updateBatchTransaction(selectElements, protyle, (e: HTMLElement) => {
-                e.style.direction = "rtl";
-            });
-            event.stopPropagation();
-            event.preventDefault();
-            return;
-        }
-        if (matchHotKey(window.siyuan.config.keymap.editor.general.ltr.custom, event)) {
-            let selectElements: HTMLElement[] = Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select"));
-            if (selectElements.length === 0) {
-                selectElements = [nodeElement];
-            }
-            updateBatchTransaction(selectElements, protyle, (e: HTMLElement) => {
-                e.style.direction = "ltr";
-            });
-            event.stopPropagation();
-            event.preventDefault();
-            return;
-        }
+        await formatMiddleware(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
 
         // esc
         if (event.key === "Escape") {
