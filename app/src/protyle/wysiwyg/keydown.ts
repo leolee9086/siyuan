@@ -100,6 +100,7 @@ import { listCheckToggleMiddleware, listIndentMiddleware, listOutdentMiddleware,
 import { expandSelectMiddleware } from "./keydown.expandSelect";
 import { formatMiddleware } from "./keydown.format";
 import { escapeKeyMiddleware } from "./keydown.escape";
+import { toolbarHotkeyMiddleware } from "./keydown.toolbarHotkey";
 
 export const getContentByInlineHTML = (range: Range, cb: (content: string) => void) => {
     let html = "";
@@ -526,36 +527,8 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
             return;
         }
 
-        if (!nodeElement.classList.contains("code-block") && !event.repeat && !isInEmbedBlock(nodeElement)) {
-            let findToolbar = false;
-            protyle.options.toolbar.find((menuItem: IMenuItem) => {
-                if (!menuItem.hotkey) {
-                    return false;
-                }
-                if (matchHotKey(menuItem.hotkey, event)) {
-                    // 设置 lastHTMLs 会导致  protyle.toolbar.range 和 range 不一致，需重置一下 https://github.com/siyuan-note/siyuan/issues/10933
-                    protyle.toolbar.range = range;
-                    if (["block-ref"].includes(menuItem.name) && protyle.toolbar.range.toString() === "") {
-                        return true;
-                    }
-                    findToolbar = true;
-                    if (["a", "block-ref", "inline-math", "inline-memo", "text"].includes(menuItem.name)) {
-                        protyle.toolbar.element.querySelector(`[data-type="${menuItem.name}"]`).dispatchEvent(new CustomEvent("click"));
-                    } else if (Constants.INLINE_TYPE.includes(menuItem.name)) {
-                        protyle.toolbar.setInlineMark(protyle, menuItem.name, "range");
-                    } else if (menuItem.click) {
-                        menuItem.click(protyle.getInstance());
-                    }
-                    return true;
-                }
-            });
-            if (findToolbar) {
-                event.preventDefault();
-                event.stopPropagation();
-                protyle.wysiwyg.preventKeyup = true;
-                return true;
-            }
-        }
+        await toolbarHotkeyMiddleware(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
         await listOutdentMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
         await listIndentMiddleware(event, protyle, nodeElement, range, controller)
