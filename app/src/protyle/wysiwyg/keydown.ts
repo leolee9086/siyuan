@@ -92,6 +92,7 @@ import { enterKeyMiddleware } from "./keydown.enter";
 import { arrowNavigationMiddleware } from "./keydown.arrow.navigation";
 import { inlineMenuMiddleware } from "./keydown.menus";
 import { headingTransformMiddleware } from "./keydown.headingTransform";
+import { blockRefMiddleware } from "./keydown.blockRef";
 
 export const getContentByInlineHTML = (range: Range, cb: (content: string) => void) => {
     let html = "";
@@ -1147,83 +1148,8 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         }
 
         /// #if !MOBILE
-        const refElement = hasClosestByAttribute(range.startContainer, "data-type", "block-ref");
-        if (refElement) {
-            const id = refElement.getAttribute("data-id");
-            if (matchHotKey(window.siyuan.config.keymap.editor.general.openBy.custom, event)) {
-                checkFold(id, (zoomIn, action, isRoot) => {
-                    if (!isRoot) {
-                        action.push(Constants.CB_GET_HL);
-                    }
-                    openFileById({
-                        app: protyle.app,
-                        id,
-                        action,
-                        zoomIn
-                    });
-                });
-                event.preventDefault();
-                event.stopPropagation();
-                return true;
-            } else if (matchHotKey(window.siyuan.config.keymap.editor.general.refTab.custom, event)) {
-                // 打开块引和编辑器中引用、反链、书签中点击事件需保持一致，都加载上下文
-                checkFold(id, (zoomIn) => {
-                    openFileById({
-                        app: protyle.app,
-                        id,
-                        action: zoomIn ? [Constants.CB_GET_HL, Constants.CB_GET_ALL] : [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL],
-                        keepCursor: true,
-                        zoomIn
-                    });
-                });
-                event.preventDefault();
-                event.stopPropagation();
-                return true;
-            } else if (matchHotKey(window.siyuan.config.keymap.editor.general.insertRight.custom, event)) {
-                checkFold(id, (zoomIn, action, isRoot) => {
-                    if (!isRoot) {
-                        action.push(Constants.CB_GET_HL);
-                    }
-                    openFileById({
-                        app: protyle.app,
-                        id,
-                        position: "right",
-                        action,
-                        zoomIn
-                    });
-                });
-                event.preventDefault();
-                event.stopPropagation();
-                return true;
-            } else if (matchHotKey(window.siyuan.config.keymap.editor.general.insertBottom.custom, event)) {
-                checkFold(id, (zoomIn, action, isRoot) => {
-                    if (!isRoot) {
-                        action.push(Constants.CB_GET_HL);
-                    }
-                    openFileById({
-                        app: protyle.app,
-                        id,
-                        position: "bottom",
-                        action,
-                        zoomIn
-                    });
-                });
-                event.preventDefault();
-                event.stopPropagation();
-                return true;
-            } else if (matchHotKey(window.siyuan.config.keymap.editor.general.refPopover.custom, event)) {
-                // open popover
-                window.siyuan.blockPanels.push(new BlockPanel({
-                    app: protyle.app,
-                    isBacklink: false,
-                    targetElement: refElement,
-                    refDefs: [{ refID: id }]
-                }));
-                event.preventDefault();
-                event.stopPropagation();
-                return true;
-            }
-        }
+        await blockRefMiddleware(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
         /// #endif
 
         if (matchHotKey("⇧⌘V", event)) {
