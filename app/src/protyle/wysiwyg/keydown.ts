@@ -95,6 +95,7 @@ import { headingTransformMiddleware } from "./keydown.headingTransform";
 import { blockRefMiddleware } from "./keydown.blockRef";
 import { foldHotkeyMiddleware } from "./keydown.hotkey.fold";
 import { pasteAsPlainTextMiddleware } from "./keydown.paste";
+import { aiActionsMiddleware, aiWritingMiddleware } from "./keydown.ai";
 
 export const getContentByInlineHTML = (range: Range, cb: (content: string) => void) => {
     let html = "";
@@ -1050,23 +1051,11 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
             return;
         }
 
-        if (!event.repeat && matchHotKey(window.siyuan.config.keymap.editor.general.ai.custom, event)) {
-            event.preventDefault();
-            event.stopPropagation();
-            let selectsElement: HTMLElement[] = Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select"));
-            if (selectsElement.length === 0) {
-                selectsElement = [nodeElement];
-            }
-            openAIActionsMenu(selectsElement, protyle);
-            return;
-        }
+        await aiActionsMiddleware(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
 
-        if (!event.repeat && matchHotKey(window.siyuan.config.keymap.editor.general.aiWriting.custom, event)) {
-            event.preventDefault();
-            event.stopPropagation();
-            AIChat(protyle, nodeElement);
-            return;
-        }
+        await aiWritingMiddleware(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
 
         if (!event.repeat && matchHotKey(window.siyuan.config.keymap.editor.general.openInNewTab.custom, event)) {
             event.preventDefault();

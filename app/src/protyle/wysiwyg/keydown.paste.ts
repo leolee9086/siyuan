@@ -9,7 +9,6 @@ export const pasteAsPlainTextMiddleware = (
     controller: AbortController
 ) => {
     if (matchHotKey("⇧⌘V", event)) {
-
         event.returnValue = false;
         event.preventDefault();
         event.stopPropagation();
