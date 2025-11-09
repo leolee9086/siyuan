@@ -99,6 +99,7 @@ import { aiActionsMiddleware, aiWritingMiddleware } from "./keydown.ai";
 import { listCheckToggleMiddleware, listIndentMiddleware, listOutdentMiddleware, listTransformMiddleware } from "./keydown.list";
 import { expandSelectMiddleware } from "./keydown.expandSelect";
 import { formatMiddleware } from "./keydown.format";
+import { escapeKeyMiddleware } from "./keydown.escape";
 
 export const getContentByInlineHTML = (range: Range, cb: (content: string) => void) => {
     let html = "";
@@ -487,38 +488,8 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         await formatMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
 
-        // esc
-        if (event.key === "Escape") {
-            if (event.repeat) {
-                // https://github.com/siyuan-note/siyuan/issues/12989
-                const cardElement = hasClosestByClassName(range.startContainer, "card__main", true);
-                if (cardElement && document.activeElement && document.activeElement.classList.contains("protyle-wysiwyg")) {
-                    (cardElement.querySelector(".card__action:not(.fn__none) button:not([disabled])") as HTMLElement).focus();
-                    hideElements(["select"], protyle);
-                }
-            } else {
-                if (!protyle.toolbar.element.classList.contains("fn__none") ||
-                    !protyle.hint.element.classList.contains("fn__none") ||
-                    !protyle.toolbar.subElement.classList.contains("fn__none")) {
-                    hideElements(["toolbar", "hint", "util"], protyle);
-                    protyle.hint.enableExtend = false;
-                } else if (!window.siyuan.menus.menu.element.classList.contains("fn__none")) {
-                    // 防止 ESC 时选中当前块
-                    window.siyuan.menus.menu.remove(true);
-                } else if (nodeElement.classList.contains("protyle-wysiwyg--select")) {
-                    hideElements(["select"], protyle);
-                    countBlockWord([], protyle.block.rootID);
-                } else {
-                    hideElements(["select"], protyle);
-                    range.collapse(false);
-                    nodeElement.classList.add("protyle-wysiwyg--select");
-                    countBlockWord([nodeElement.getAttribute("data-node-id")], protyle.block.rootID);
-                }
-            }
-            event.stopPropagation();
-            event.preventDefault();
-            return;
-        }
+        await escapeKeyMiddleware(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
 
         // h1 - h6 hotkey
         await headingTransformMiddleware(event, protyle, nodeElement, range, controller)
