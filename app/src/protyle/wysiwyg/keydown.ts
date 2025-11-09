@@ -91,6 +91,7 @@ import { tabKeyMiddleware } from "./keydown.tab";
 import { enterKeyMiddleware } from "./keydown.enter";
 import { arrowNavigationMiddleware } from "./keydown.arrow.navigation";
 import { inlineMenuMiddleware } from "./keydown.menus";
+import { headingTransformMiddleware } from "./keydown.headingTransform";
 
 export const getContentByInlineHTML = (range: Range, cb: (content: string) => void) => {
     let html = "";
@@ -483,8 +484,8 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
             return;
         }
         //行内元素菜单和块菜单
-        await inlineMenuMiddleware(event,protyle,nodeElement,range,controller)
-        if(signal.aborted){ return }
+        await inlineMenuMiddleware(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
         if (fixTable(protyle, event, range)) {
             event.preventDefault();
             return;
@@ -492,7 +493,7 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         const selectText = range.toString();
         // 上下左右光标移动
         await arrowNavigationMiddleware(event, protyle, nodeElement, range, controller)
-        if(signal.aborted){ return}
+        if (signal.aborted) { return }
 
         // 删除，不可使用 isNotCtrl(event)，否则软删除回导致 https://github.com/siyuan-note/siyuan/issues/5607
         // 不可使用 !event.shiftKey，否则 https://ld246.com/article/1666434796806
@@ -766,111 +767,8 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         }
 
         // h1 - h6 hotkey
-        if (matchHotKey(window.siyuan.config.keymap.editor.heading.paragraph.custom, event)) {
-            const selectsElement = Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select"));
-            if (selectsElement.length === 0) {
-                selectsElement.push(nodeElement);
-            }
-            if (selectsElement.length > 1) {
-                turnsIntoTransaction({
-                    protyle,
-                    nodeElement: selectsElement[0],
-                    type: "Blocks2Ps",
-                });
-            } else {
-                const type = selectsElement[0].getAttribute("data-type");
-                if (type === "NodeHeading") {
-                    turnsIntoTransaction({
-                        protyle,
-                        nodeElement: selectsElement[0],
-                        type: "Blocks2Ps",
-                    });
-                } else if (type === "NodeList") {
-                    turnsOneInto({
-                        protyle,
-                        nodeElement: selectsElement[0],
-                        id: selectsElement[0].getAttribute("data-node-id"),
-                        type: "CancelList",
-                    });
-                } else if (type === "NodeBlockquote") {
-                    turnsOneInto({
-                        protyle,
-                        nodeElement: selectsElement[0],
-                        id: selectsElement[0].getAttribute("data-node-id"),
-                        type: "CancelBlockquote",
-                    });
-                }
-            }
-            event.preventDefault();
-            event.stopPropagation();
-            return true;
-        }
-        if (matchHotKey(window.siyuan.config.keymap.editor.heading.heading1.custom, event)) {
-            turnsIntoTransaction({
-                protyle,
-                nodeElement,
-                type: "Blocks2Hs",
-                level: 1
-            });
-            event.preventDefault();
-            event.stopPropagation();
-            return true;
-        }
-        if (matchHotKey(window.siyuan.config.keymap.editor.heading.heading2.custom, event)) {
-            turnsIntoTransaction({
-                protyle,
-                nodeElement,
-                type: "Blocks2Hs",
-                level: 2
-            });
-            event.preventDefault();
-            event.stopPropagation();
-            return true;
-        }
-        if (matchHotKey(window.siyuan.config.keymap.editor.heading.heading3.custom, event)) {
-            turnsIntoTransaction({
-                protyle,
-                nodeElement,
-                type: "Blocks2Hs",
-                level: 3
-            });
-            event.preventDefault();
-            event.stopPropagation();
-            return true;
-        }
-        if (matchHotKey(window.siyuan.config.keymap.editor.heading.heading4.custom, event)) {
-            turnsIntoTransaction({
-                protyle,
-                nodeElement,
-                type: "Blocks2Hs",
-                level: 4
-            });
-            event.preventDefault();
-            event.stopPropagation();
-            return true;
-        }
-        if (matchHotKey(window.siyuan.config.keymap.editor.heading.heading5.custom, event)) {
-            turnsIntoTransaction({
-                protyle,
-                nodeElement,
-                type: "Blocks2Hs",
-                level: 5
-            });
-            event.preventDefault();
-            event.stopPropagation();
-            return true;
-        }
-        if (matchHotKey(window.siyuan.config.keymap.editor.heading.heading6.custom, event)) {
-            turnsIntoTransaction({
-                protyle,
-                nodeElement,
-                type: "Blocks2Hs",
-                level: 6
-            });
-            event.preventDefault();
-            event.stopPropagation();
-            return true;
-        }
+        await headingTransformMiddleware(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
         if (matchHotKey(window.siyuan.config.keymap.editor.insert.code.custom, event) &&
             !["NodeCodeBlock", "NodeHeading", "NodeTable"].includes(nodeElement.getAttribute("data-type"))) {
             const editElement = getContenteditableElement(nodeElement);
