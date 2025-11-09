@@ -1,6 +1,7 @@
 import { matchHotKey } from "../util/hotKey";
 import { openAIActionsMenu } from "../../ai/actions";
 import { AIChat } from "../../ai/chat";
+import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig";
 
 /**
  * AI操作菜单快捷键中间件
@@ -14,7 +15,7 @@ export const aiActionsMiddleware = async (
     controller: AbortController
 )=> {
     // AI操作菜单快捷键
-    if (!event.repeat && matchHotKey(window.siyuan.config.keymap.editor.general.ai.custom, event)) {
+    if (!event.repeat && matchHotKey(getSiyuanConfig().keymap.editor.general.ai.custom, event)) {
         event.preventDefault();
         event.stopPropagation();
         let selectsElement: HTMLElement[] = Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select"));
@@ -39,7 +40,7 @@ export const aiWritingMiddleware = async (
     controller: AbortController
 ) => {
     // AI写作快捷键
-    if (!event.repeat && matchHotKey(window.siyuan.config.keymap.editor.general.aiWriting.custom, event)) {
+    if (!event.repeat && matchHotKey(getSiyuanConfig().keymap.editor.general.aiWriting?.custom, event)) {
         event.preventDefault();
         event.stopPropagation();
         AIChat(protyle, nodeElement);
