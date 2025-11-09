@@ -1,4 +1,6 @@
 import { openLink } from "../../editor/openLink";
+import { openBy } from "../../editor/utils.openBy";
+import { isLocalPath } from "../../util/pathName";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig";
 import { hasClosestByAttribute } from "../util/hasClosest";
 import { matchHotKey } from "../util/hotKey";
@@ -48,4 +50,30 @@ export const openByMiddleWare = (
 
         return;
     }
+}
+
+
+
+export const openLocalMiddleWare = (
+    event: KeyboardEvent,
+    protyle: IProtyle,
+    nodeElement: HTMLElement,
+    range: Range,
+    controller: AbortController
+) => {
+    /// #if !BROWSER
+    if (matchHotKey(window.siyuan.config.keymap.editor.general.showInFolder.custom, event)) {
+        const aElement = hasClosestByAttribute(range.startContainer, "data-type", "a");
+        if (aElement) {
+            const linkAddress = aElement.getAttribute("data-href");
+            if (isLocalPath(linkAddress)) {
+                openBy(linkAddress, "folder");
+                event.preventDefault();
+                event.stopPropagation();
+                controller.abort("已打开文件本地文件")
+            }
+        }
+        return;
+    }
+    /// #endif
 }

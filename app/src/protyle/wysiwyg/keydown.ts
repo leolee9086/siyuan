@@ -83,7 +83,7 @@ import { hideProtyleToolbarMiddleware, hideProtyleUtilMiddleware, setProtyleWysi
 import { handleSelectedBlockInsertKeyMiddleware, removeSelectIndicatorElementMiddleware } from "./keydown.select";
 import { decorationMatchMiddleware } from "./keydown.decorations";
 import { arrowLeftRightMiddleWare, arrowUpDownMiddleware } from "./keydown.arrow.select";
-import { openByMiddleWare } from "./keydown.openBy";
+import { openByMiddleWare, openLocalMiddleWare } from "./keydown.openBy";
 import { jumpToMiddleWare } from "./keydown.jump";
 import { deleteKeyMiddleware } from "./keydown.delete";
 import { altEnterMiddleware } from "./keydown.altEnter";
@@ -1121,18 +1121,8 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         }
 
         /// #if !BROWSER
-        if (matchHotKey(window.siyuan.config.keymap.editor.general.showInFolder.custom, event)) {
-            const aElement = hasClosestByAttribute(range.startContainer, "data-type", "a");
-            if (aElement) {
-                const linkAddress = aElement.getAttribute("data-href");
-                if (isLocalPath(linkAddress)) {
-                    openBy(linkAddress, "folder");
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-            }
-            return;
-        }
+        await openLocalMiddleWare(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
         /// #endif
         //打开外部链接或者素材链接
         await openByMiddleWare(event, protyle, nodeElement, range, controller)
