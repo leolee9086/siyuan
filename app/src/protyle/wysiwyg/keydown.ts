@@ -82,7 +82,7 @@ import { htmlBlockGuard, inputElementGuard, protyleDisabledGuard, protyleHaveSel
 import { hideProtyleToolbarMiddleware, hideProtyleUtilMiddleware, setProtyleWysiwygPreventKeyupMiddleware } from "./keydown.middlewares";
 import { handleSelectedBlockInsertKeyMiddleware, removeSelectIndicatorElementMiddleware } from "./keydown.select";
 import { decorationMatchMiddleware } from "./keydown.decorations";
-import { arrowLeftRightMiddleWare, arrowUpDownMiddleware } from "./keydown.arrow";
+import { arrowLeftRightMiddleWare, arrowUpDownMiddleware } from "./keydown.arrow.select";
 import { openByMiddleWare } from "./keydown.openBy";
 import { jumpToMiddleWare } from "./keydown.jump";
 import { deleteKeyMiddleware } from "./keydown.delete";
