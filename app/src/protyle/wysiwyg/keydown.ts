@@ -90,6 +90,7 @@ import { altEnterMiddleware } from "./keydown.altEnter";
 import { tabKeyMiddleware } from "./keydown.tab";
 import { enterKeyMiddleware } from "./keydown.enter";
 import { arrowNavigationMiddleware } from "./keydown.arrow.navigation";
+import { inlineMenuMiddleware } from "./keydown.menus";
 
 export const getContentByInlineHTML = (range: Range, cb: (content: string) => void) => {
     let html = "";
@@ -481,73 +482,14 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
             !protyle.hint.element.classList.contains("fn__none") && protyle.hint.select(event, protyle)) {
             return;
         }
-        if (matchHotKey("⌘/", event)) {
-            event.stopPropagation();
-            event.preventDefault();
-            const selectElements = Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select"));
-            if (selectElements.length === 0) {
-                const inlineElement = hasClosestByAttribute(range.startContainer, "data-type", null);
-                if (inlineElement && inlineElement.tagName === "SPAN") {
-                    const types = inlineElement.getAttribute("data-type").split(" ");
-                    if (types.length > 0) {
-                        protyle.toolbar.range = range;
-                        removeSearchMark(inlineElement);
-                    }
-                    if (types.includes("block-ref")) {
-                        refMenu(protyle, inlineElement);
-                        return;
-                    } else if (types.includes("inline-memo")) {
-                        protyle.toolbar.showRender(protyle, inlineElement);
-                        return;
-                    } else if (types.includes("file-annotation-ref")) {
-                        fileAnnotationRefMenu(protyle, inlineElement, getSiyuanGlobalMenus().menu);
-                        return;
-                    } else if (types.includes("a")) {
-                        linkMenu(protyle, inlineElement);
-                        return;
-                    } else if (types.includes("tag")) {
-                        tagMenu(protyle, inlineElement);
-                        return;
-                    }
-                }
-
-                // https://github.com/siyuan-note/siyuan/issues/5185
-                if (range.startOffset === 0 && range.startContainer.nodeType === 3) {
-                    const previousSibling = hasPreviousSibling(range.startContainer) as HTMLElement;
-                    if (previousSibling &&
-                        previousSibling.nodeType !== 3 &&
-                        previousSibling.getAttribute("data-type")?.indexOf("inline-math") > -1
-                    ) {
-                        inlineMathMenu(protyle, previousSibling);
-                        return;
-                    } else if (!previousSibling &&
-                        range.startContainer.parentElement.previousSibling &&
-                        range.startContainer.parentElement.previousSibling === range.startContainer.parentElement.previousElementSibling &&
-                        range.startContainer.parentElement.previousElementSibling.getAttribute("data-type")?.indexOf("inline-math") > -1
-                    ) {
-                        inlineMathMenu(protyle, range.startContainer.parentElement.previousElementSibling);
-                        return;
-                    }
-                }
-
-                selectElements.push(nodeElement);
-            }
-            if (selectElements.length === 1) {
-                protyle.gutter.renderMenu(protyle, selectElements[0]);
-            } else {
-                protyle.gutter.renderMultipleMenu(protyle, selectElements);
-            }
-            const rect = nodeElement.getBoundingClientRect();
-            window.siyuan.menus.menu.popup({ x: rect.left, y: rect.top, isLeft: true });
-            return;
-        }
-
+        //行内元素菜单和块菜单
+        await inlineMenuMiddleware(event,protyle,nodeElement,range,controller)
+        if(signal.aborted){ return }
         if (fixTable(protyle, event, range)) {
             event.preventDefault();
             return;
         }
         const selectText = range.toString();
-
         // 上下左右光标移动
         await arrowNavigationMiddleware(event, protyle, nodeElement, range, controller)
         if(signal.aborted){ return}
