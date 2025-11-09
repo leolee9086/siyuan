@@ -103,6 +103,7 @@ export const arrowNavigationMiddleware = async (
                                     focusBlock(previousElement, undefined, false);
                                     event.preventDefault();
                                     event.stopPropagation();
+                                    controller.abort()
                                     return;
                                 }
                             }
