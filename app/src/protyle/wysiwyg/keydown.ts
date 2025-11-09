@@ -94,6 +94,7 @@ import { inlineMenuMiddleware } from "./keydown.menus";
 import { headingTransformMiddleware } from "./keydown.headingTransform";
 import { blockRefMiddleware } from "./keydown.blockRef";
 import { foldHotkeyMiddleware } from "./keydown.hotkey.fold";
+import { pasteAsPlainTextMiddleware } from "./keydown.paste";
 
 export const getContentByInlineHTML = (range: Range, cb: (content: string) => void) => {
     let html = "";
@@ -1106,20 +1107,12 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
             event.stopPropagation();
             return;
         }
-
         /// #if !MOBILE
         await blockRefMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
         /// #endif
-
-        if (matchHotKey("⇧⌘V", event)) {
-            event.returnValue = false;
-            event.preventDefault();
-            event.stopPropagation();
-            pasteAsPlainText(protyle);
-            return;
-        }
-
+        await pasteAsPlainTextMiddleware(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
         /// #if !BROWSER
         await openLocalMiddleWare(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
