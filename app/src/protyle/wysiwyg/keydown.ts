@@ -1642,10 +1642,10 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         await arrowLeftRightMiddleWare(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
         // 置于最后，太多快捷键会使用到选中元素
-        removeSelectIndicatorElementMiddleware(event, protyle, controller)
+        removeSelectIndicatorElementMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
         //工具条中的各种装饰元素快捷键不应该唤出工具条
-        decorationMatchMiddleware(event, protyle, controller)
+        decorationMatchMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
         //最后一步不再需要检查控制器是否已经取消
         return

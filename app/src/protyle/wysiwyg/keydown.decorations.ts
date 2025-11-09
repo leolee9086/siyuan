@@ -18,6 +18,8 @@ import { matchHotKey } from "../util/hotKey";
 export const decorationMatchMiddleware = (
     event: KeyboardEvent,
     protyle: IProtyle,
+    nodeElement: HTMLElement,
+    range: Range,
     controller: AbortController
 ) => {
     // 检查是否匹配文本装饰快捷键

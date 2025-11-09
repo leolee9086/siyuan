@@ -17,6 +17,8 @@ import { isNotCtrl } from "../util/compatibility";
 export const removeSelectIndicatorElementMiddleware = (
     event: KeyboardEvent,
     protyle: IProtyle,
+    nodeElement: HTMLElement,
+    range: Range,
     controller: AbortController
 ) => {
     // 判断是否应该隐藏选择指示器
