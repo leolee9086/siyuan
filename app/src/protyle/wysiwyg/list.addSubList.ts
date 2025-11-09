@@ -18,7 +18,7 @@ export const addSubList = (protyle: IProtyle, nodeElement: Element, range: Range
     if (!lastSubItem) {
         //在没有子列表的之后,创建一个子列表
         const subtype = parentItemElement.getAttribute("data-subtype") as "u" | "o" | "t" || "u";
-        const newListElement = genListElement(subtype, parentItemElement); 
+        const newListElement = genListElement(subtype); 
         const attrElements = parentItemElement.querySelectorAll('.protyle-attr')
         const lastAttrElement =attrElements[attrElements.length-1]
         lastAttrElement&&parentItemElement.insertBefore(newListElement,lastAttrElement);
@@ -86,7 +86,7 @@ export const addSubList = (protyle: IProtyle, nodeElement: Element, range: Range
  * @param referenceItem 参考的列表项，用于确定列表类型和标记
  * @returns 返回创建的列表元素
  */
-const genListElement = (subtype: "u" | "o" | "t" = "u", referenceItem?: Element): HTMLElement => {
+const genListElement = (subtype: "u" | "o" | "t" = "u"): HTMLElement => {
     // 生成新的ID
     const listId = Lute.NewNodeID();
     const updatedTime = dayjs().format("YYYYMMDDHHmmss");
