@@ -6,17 +6,15 @@ export const htmlBlockGuard = async (
     range: Range,
     driver: any
 ) => {
-    if (event.target.localName === "protyle-html") {
-        driver.stop('html块由渲染函数处理');
-        driver.abort('html块由渲染函数处理');
-    }
+    driver.stop('html块由渲染函数处理');
+    driver.abort('html块由渲染函数处理');
 }
-export const  htmlBlockGuardRgistyItem ={
-    conditions:{
-        blockType:"HTML"
+export const htmlBlockGuardRgistyItem = {
+    conditions: {
+        blockType: "NodeHTMLBlock"
     },
-    handle:htmlBlockGuard,
-    describe:'用户在html块中输入时'
+    handle: htmlBlockGuard,
+    describe: '用户在html块中输入时'
 }
 
 

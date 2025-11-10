@@ -110,6 +110,7 @@ import { insertAfterMiddleWare, insertBeforeMiddleWare } from "./keydown.insert"
 import { attrMiddleware, renameMiddleware } from "./keydown.attr";
 import { copyTextMiddleware } from "./keydown.copy";
 import { insertWbrMiddleware } from "./keydown.wbr";
+import { crossBlockCopyMiddleware } from "./keydown.crossBlock";
 
 export const getContentByInlineHTML = (range: Range, cb: (content: string) => void) => {
     let html = "";
@@ -147,11 +148,15 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         const range = getEditorRange(protyle.wysiwyg.element);
         const nodeElement = hasClosestBlock(range.startContainer);
         if (!nodeElement) { throw (new Error('未能找到块元素')) }
-        let eventState = {
+        let eventState:Record<string,string> = {
             blockType: ""
         }
         if (event.target.localName === "protyle-html") {
-            eventState.blockType = "HTML"
+            eventState.blockType = "NodeHTMLBlock"
+            eventState.elementTarget="protyle-html"
+        }
+        if(event.target.localName==='input'){
+            eventState.blockType=nodeElement.getAttribute("data-type") 
         }
         const history: string[] = []
         let currentItem = { handle: async () => { }, describe: "" }
@@ -200,15 +205,7 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         if (signal.aborted) { return }
         await hideProtyleToolbarMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
-        if (!matchHotKey("⌘C", event)) {
-            // https://ld246.com/article/1694506408293
-            const endElement = hasClosestBlock(range.endContainer);
-            if (endElement && nodeElement !== endElement) {
-                event.stopPropagation();
-                event.preventDefault();
-                controller.abort("跨块选择被阻止");
-            }
-        }
+        await crossBlockCopyMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
         if (document.querySelector(".av__panel")) {
             controller.abort("属性视图面板已打开");
