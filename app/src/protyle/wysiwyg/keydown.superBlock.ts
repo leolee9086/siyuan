@@ -13,9 +13,9 @@ export const handleVLayoutMiddleware = async (
     nodeElement: HTMLElement,
     range: Range,
     controller: AbortController
-): Promise<boolean> => {
+)=> {
     if (!matchHotKey(getSiyuanConfig().keymap.editor.general.vLayout.custom, event)) {
-        return false;
+        return ;
     }
     if (!protyle.wysiwyg) {
         throw new Error("protyle结构错误")
@@ -43,13 +43,13 @@ export const handleVLayoutMiddleware = async (
             focusByWbr(protyle.wysiwyg.element, range);
         }
         controller.abort()
-        return true;
+        return ;
     }
 
     // 处理多个块合并为超级块
     if (selectsElement.length < 2 || selectsElement[0]?.classList.contains("li")) {
         controller.abort()
-        return true;
+        return ;
     }
 
     turnsIntoOneTransaction({
@@ -59,7 +59,7 @@ export const handleVLayoutMiddleware = async (
         level: "row"
     });
     controller.abort()
-    return true;
+    return ;
 };
 
 /**
@@ -67,7 +67,6 @@ export const handleVLayoutMiddleware = async (
  * @param event 键盘事件
  * @param protyle 编辑器实例
  * @param range 当前选择范围
- * @returns 是否处理了该事件
  */
 export const handleHLayoutMiddleware = async (
     event: KeyboardEvent,
