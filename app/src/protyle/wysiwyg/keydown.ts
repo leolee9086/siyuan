@@ -104,6 +104,7 @@ import { toolbarHotkeyMiddleware } from "./keydown.toolbarHotkey";
 import { moveToDownMiddleware, moveToUpMiddleware } from "./keydown.move";
 import { handleHLayoutMiddleware, handleVLayoutMiddleware } from "./keydown.superBlock";
 import { handleCodeBlockCreation } from "./keydown.codeBlock";
+import { handleTableBlockCreation } from "./keydow.table";
 
 export const getContentByInlineHTML = (range: Range, cb: (content: string) => void) => {
     let html = "";
@@ -521,14 +522,8 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         if (signal.aborted) { return }
         await listTransformMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
-        if (matchHotKey(window.siyuan.config.keymap.editor.insert.table.custom, event)) {
-            protyle.hint.splitChar = "/";
-            protyle.hint.lastIndex = -1;
-            protyle.hint.fill(`| ${Lute.Caret} |  |  |\n| --- | --- | --- |\n|  |  |  |\n|  |  |  |`, protyle);
-            event.preventDefault();
-            event.stopPropagation();
-            return;
-        }
+        await handleTableBlockCreation(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
         await listCheckToggleMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
         if (matchHotKey(window.siyuan.config.keymap.editor.general.insertBefore.custom, event)) {
