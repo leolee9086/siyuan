@@ -103,6 +103,7 @@ import { escapeKeyMiddleware } from "./keydown.escape";
 import { toolbarHotkeyMiddleware } from "./keydown.toolbarHotkey";
 import { moveToDownMiddleware, moveToUpMiddleware } from "./keydown.move";
 import { handleHLayoutMiddleware, handleVLayoutMiddleware } from "./keydown.superBlock";
+import { handleCodeBlockCreation } from "./keydown.codeBlock";
 
 export const getContentByInlineHTML = (range: Range, cb: (content: string) => void) => {
     let html = "";
@@ -497,25 +498,8 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         // h1 - h6 hotkey
         await headingTransformMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
-        if (matchHotKey(window.siyuan.config.keymap.editor.insert.code.custom, event) &&
-            !["NodeCodeBlock", "NodeHeading", "NodeTable"].includes(nodeElement.getAttribute("data-type"))) {
-            const editElement = getContenteditableElement(nodeElement);
-            if (editElement) {
-                const id = nodeElement.getAttribute("data-node-id");
-                const html = nodeElement.outerHTML;
-                // 需要 EscapeHTMLStr https://github.com/siyuan-note/siyuan/issues/11451
-                editElement.innerHTML = "```" + window.siyuan.storage[Constants.LOCAL_CODELANG] + "\n" + Lute.EscapeHTMLStr(editElement.textContent) + "<wbr>\n```";
-                const newHTML = protyle.lute.SpinBlockDOM(nodeElement.outerHTML);
-                nodeElement.outerHTML = newHTML;
-                const newNodeElement = protyle.wysiwyg.element.querySelector(`[data-node-id="${id}"]`);
-                updateTransaction(protyle, id, newHTML, html);
-                highlightRender(newNodeElement);
-                event.preventDefault();
-                event.stopPropagation();
-                return true;
-            }
-        }
-
+        await handleCodeBlockCreation(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
         // toolbar action
         if (matchHotKey(window.siyuan.config.keymap.editor.insert.lastUsed.custom, event)) {
             protyle.toolbar.range = range;
