@@ -111,6 +111,7 @@ import { attrMiddleware, renameMiddleware } from "./keydown.attr";
 import { copyTextMiddleware } from "./keydown.copy";
 import { insertWbrMiddleware } from "./keydown.wbr";
 import { crossBlockCopyMiddleware } from "./keydown.crossBlock";
+import { pageNavigationMiddleware } from "./keydown.pageNavigation";
 
 export const getContentByInlineHTML = (range: Range, cb: (content: string) => void) => {
     let html = "";
@@ -334,28 +335,8 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         if ((event.key === "Home" || event.key === "End") && !event.shiftKey && !event.altKey && isNotCtrl(event)) {
             hideElements(["hint"], protyle);
         }
-        // 向上/下滚动一屏
-        if (!event.altKey && !event.shiftKey && isNotCtrl(event) && (event.key === "PageUp" || event.key === "PageDown")) {
-            if (event.key === "PageUp") {
-                protyle.contentElement.scrollTop = protyle.contentElement.scrollTop - protyle.contentElement.clientHeight + 60;
-                protyle.scroll.lastScrollTop = protyle.contentElement.scrollTop + 1;
-            } else {
-                protyle.contentElement.scrollTop = protyle.contentElement.scrollTop + protyle.contentElement.clientHeight - 60;
-                protyle.scroll.lastScrollTop = protyle.contentElement.scrollTop - 1;
-            }
-            const contentRect = protyle.contentElement.getBoundingClientRect();
-            let centerElement = document.elementFromPoint(contentRect.x + contentRect.width / 2, contentRect.y + contentRect.height / 2);
-            if (centerElement.classList.contains("protyle-wysiwyg")) {
-                centerElement = document.elementFromPoint(contentRect.x + contentRect.width / 2, contentRect.y + contentRect.height / 2 + Constants.SIZE_TOOLBAR_HEIGHT);
-            }
-            const centerBlockElement = hasClosestBlock(centerElement);
-            if (centerBlockElement && centerBlockElement !== nodeElement) {
-                focusBlock(centerBlockElement, undefined, false);
-            }
-            event.stopPropagation();
-            event.preventDefault();
-            return;
-        }
+        await pageNavigationMiddleware(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
         // hint: 上下、回车选择
         if (!event.altKey && !event.shiftKey &&
             ((event.key.indexOf("Arrow") > -1 && isNotCtrl(event)) || event.key === "Enter") &&
