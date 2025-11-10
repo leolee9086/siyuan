@@ -101,6 +101,8 @@ import { expandSelectMiddleware } from "./keydown.expandSelect";
 import { formatMiddleware } from "./keydown.format";
 import { escapeKeyMiddleware } from "./keydown.escape";
 import { toolbarHotkeyMiddleware } from "./keydown.toolbarHotkey";
+import { moveToDownMiddleware, moveToUpMiddleware } from "./keydown.move";
+import { handleHLayoutMiddleware, handleVLayoutMiddleware } from "./keydown.superBlock";
 
 export const getContentByInlineHTML = (range: Range, cb: (content: string) => void) => {
     let html = "";
@@ -561,84 +563,18 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         }
         await jumpToMiddleWare(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
-        if (matchHotKey(window.siyuan.config.keymap.editor.general.moveToUp.custom, event)) {
-            event.preventDefault();
-            event.stopPropagation();
-            moveToUp(protyle, nodeElement, range);
-            return;
-        }
-
-        if (matchHotKey(window.siyuan.config.keymap.editor.general.moveToDown.custom, event)) {
-            event.preventDefault();
-            event.stopPropagation();
-            moveToDown(protyle, nodeElement, range);
-            return;
-        }
-
-        if (matchHotKey(window.siyuan.config.keymap.editor.general.vLayout.custom, event)) {
-            event.preventDefault();
-            event.stopPropagation();
-            const selectsElement: HTMLElement[] = Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select"));
-            if (selectsElement.length === 1 && selectsElement[0].getAttribute("data-type") === "NodeSuperBlock") {
-                if (selectsElement[0].getAttribute("data-sb-layout") === "col") {
-                    const oldHTML = selectsElement[0].outerHTML;
-                    selectsElement[0].setAttribute("data-sb-layout", "row");
-                    selectsElement[0].setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-                    updateTransaction(protyle, selectsElement[0].getAttribute("data-node-id"), selectsElement[0].outerHTML, oldHTML);
-                } else {
-                    range.insertNode(document.createElement("wbr"));
-                    const sbData = await cancelSB(protyle, selectsElement[0]);
-                    transaction(protyle, sbData.doOperations, sbData.undoOperations);
-                    focusByWbr(protyle.wysiwyg.element, range);
-                }
-                return;
-            }
-            if (selectsElement.length < 2 || selectsElement[0]?.classList.contains("li")) {
-                return;
-            }
-            turnsIntoOneTransaction({
-                protyle, selectsElement,
-                type: "BlocksMergeSuperBlock",
-                level: "row"
-            });
-            return;
-        }
-
-        if (matchHotKey(window.siyuan.config.keymap.editor.general.hLayout.custom, event)) {
-            event.preventDefault();
-            event.stopPropagation();
-            const selectsElement: HTMLElement[] = Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select"));
-            if (selectsElement.length === 1 && selectsElement[0].getAttribute("data-type") === "NodeSuperBlock") {
-                if (selectsElement[0].getAttribute("data-sb-layout") === "row") {
-                    const oldHTML = selectsElement[0].outerHTML;
-                    selectsElement[0].setAttribute("data-sb-layout", "col");
-                    selectsElement[0].setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-                    updateTransaction(protyle, selectsElement[0].getAttribute("data-node-id"), selectsElement[0].outerHTML, oldHTML);
-                } else {
-                    range.insertNode(document.createElement("wbr"));
-                    const sbData = await cancelSB(protyle, selectsElement[0]);
-                    transaction(protyle, sbData.doOperations, sbData.undoOperations);
-                    focusByWbr(protyle.wysiwyg.element, range);
-                }
-                return;
-            }
-            if (selectsElement.length < 2 || selectsElement[0]?.classList.contains("li")) {
-                return;
-            }
-            turnsIntoOneTransaction({
-                protyle, selectsElement,
-                type: "BlocksMergeSuperBlock",
-                level: "col"
-            });
-            return;
-        }
-
+        await moveToUpMiddleware(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
+        await moveToDownMiddleware(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
+        await handleVLayoutMiddleware(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
+        await handleHLayoutMiddleware(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
         await aiActionsMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
-
         await aiWritingMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
-
         if (!event.repeat && matchHotKey(window.siyuan.config.keymap.editor.general.openInNewTab.custom, event)) {
             event.preventDefault();
             event.stopPropagation();
