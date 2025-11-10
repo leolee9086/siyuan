@@ -575,8 +575,7 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
             });
             return;
         }
-
-        // tab 需等待 list 和 table 处理完成
+        // tab 需等待 list 和 table 处理完成,避免在这些块中造成异常行为
         await tabKeyMiddleware(event, protyle, nodeElement, range, controller);
         if (signal.aborted) { return }
 
