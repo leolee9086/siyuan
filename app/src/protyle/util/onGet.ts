@@ -317,8 +317,16 @@ const setHTML = (options: {
                 showMessage(window.siyuan.languages.scrollGetMore);
             }
         });
-
     }
+    //临时修复表格光标跳转问题
+    protyle.wysiwyg.element.querySelectorAll(
+        '.table'
+    ).forEach(
+        tableBlock=>{
+            tableBlock.firstElementChild?.setAttribute('contenteditable','true')
+        tableBlock.querySelector('.protyle-action__table')?.setAttribute('contenteditable','false')
+        }
+    )
     protyle.app.plugins.forEach(item => {
         item.eventBus.emit("loaded-protyle-static", {protyle});
     });
