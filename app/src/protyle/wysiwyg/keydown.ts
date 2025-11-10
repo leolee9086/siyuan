@@ -105,6 +105,7 @@ import { moveToDownMiddleware, moveToUpMiddleware } from "./keydown.move";
 import { handleHLayoutMiddleware, handleVLayoutMiddleware } from "./keydown.superBlock";
 import { handleCodeBlockCreation } from "./keydown.codeBlock";
 import { handleTableBlockCreation } from "./keydow.table";
+import { createNamedNewFileMiddleware, createNewFileByContentMiddleware } from "./keydown.createNewFile";
 
 export const getContentByInlineHTML = (range: Range, cb: (content: string) => void) => {
     let html = "";
@@ -175,7 +176,7 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         if (signal.aborted) { return }
         await handleSelectedBlockInsertKeyMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
-   
+
         if (event.isComposing) {
             event.stopPropagation();
             return;
@@ -456,47 +457,14 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
             event.stopPropagation();
             return;
         }
-
-        const isNewNameFile = matchHotKey(window.siyuan.config.keymap.editor.general.newNameFile.custom, event);
-        if (isNewNameFile || matchHotKey(window.siyuan.config.keymap.editor.general.newNameSettingFile.custom, event)) {
-            if (!selectText.trim() && (nodeElement.querySelector("tr") || nodeElement.querySelector("span"))) {
-                // 没选中时，都是纯文本就创建子文档 https://ld246.com/article/1663073488381/comment/1664804353295#comments
-            } else {
-                if (!selectText.trim() &&
-                    getContenteditableElement(nodeElement).textContent  // https://github.com/siyuan-note/siyuan/issues/8099
-                ) {
-                    selectAll(protyle, nodeElement, range);
-                }
-                if (isNewNameFile) {
-                    fetchPost("/api/filetree/getHPathByPath", {
-                        notebook: protyle.notebookId,
-                        path: protyle.path,
-                    }, (response) => {
-                        newFileBySelect(protyle, selectText, nodeElement, response.data, protyle.notebookId);
-                    });
-                } else {
-                    getSavePath(protyle.path, protyle.notebookId, (pathString, targetNotebookId) => {
-                        newFileBySelect(protyle, selectText, nodeElement, pathString, targetNotebookId);
-                    });
-                }
-            }
-            event.preventDefault();
-            event.stopPropagation();
-            return;
-        }
-
-        if (matchHotKey(window.siyuan.config.keymap.editor.general.newContentFile.custom, event)) {
-            newFileContentBySelect(protyle);
-            event.preventDefault();
-            event.stopPropagation();
-            return;
-        }
+        await createNamedNewFileMiddleware(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
+        await createNewFileByContentMiddleware(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
         await formatMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
-
         await escapeKeyMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
-
         // h1 - h6 hotkey
         await headingTransformMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
