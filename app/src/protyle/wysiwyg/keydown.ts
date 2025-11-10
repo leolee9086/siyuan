@@ -175,6 +175,7 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         if (signal.aborted) { return }
         await handleSelectedBlockInsertKeyMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
+   
         if (event.isComposing) {
             event.stopPropagation();
             return;
