@@ -78,19 +78,19 @@ import { openLink } from "../../editor/openLink";
 import { onlyProtyleCommand } from "../../boot/globalEvent/command/protyle";
 import { AIChat } from "../../ai/chat";
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu";
-import { htmlBlockGuard, inputElementGuard, protyleDisabledGuard, protyleHaveSelectedGuard } from "./keydown.guards";
+import { htmlBlockGuard, htmlBlockGuardRgistyItem, inputElementGuard, protyleDisabledGuard, protyleHaveSelectedGuard } from "./keydown.guards";
 import { hideProtyleToolbarMiddleware, hideProtyleUtilMiddleware, setProtyleWysiwygPreventKeyupMiddleware } from "./keydown.middlewares";
 import { handleSelectedBlockInsertKeyMiddleware, removeSelectIndicatorElementMiddleware } from "./keydown.select";
 import { decorationMatchMiddleware } from "./keydown.decorations";
 import { arrowLeftRightMiddleWare, arrowUpDownMiddleware } from "./keydown.arrow.select";
-import { openByMiddleWare, openLocalMiddleWare } from "./keydown.openBy";
+import { openByMiddleWare, openInNewTabMiddleware, openLocalMiddleWare } from "./keydown.openBy";
 import { jumpToMiddleWare } from "./keydown.jump";
 import { deleteKeyMiddleware } from "./keydown.delete";
 import { altEnterMiddleware } from "./keydown.altEnter";
 import { tabKeyMiddleware } from "./keydown.tab";
 import { enterKeyMiddleware } from "./keydown.enter";
 import { arrowNavigationMiddleware } from "./keydown.arrow.navigation";
-import { inlineMenuMiddleware } from "./keydown.menus";
+import { contextMenuMiddleware, inlineMenuMiddleware } from "./keydown.menus";
 import { headingTransformMiddleware } from "./keydown.headingTransform";
 import { blockRefMiddleware } from "./keydown.blockRef";
 import { foldHotkeyMiddleware } from "./keydown.hotkey.fold";
@@ -100,12 +100,16 @@ import { listCheckToggleMiddleware, listIndentMiddleware, listOutdentMiddleware,
 import { expandSelectMiddleware } from "./keydown.expandSelect";
 import { formatMiddleware } from "./keydown.format";
 import { escapeKeyMiddleware } from "./keydown.escape";
-import { toolbarHotkeyMiddleware } from "./keydown.toolbarHotkey";
+import { toolbarHotkeyMiddleware, toolbarLastUsedMiddleware } from "./keydown.toolbarHotkey";
 import { moveToDownMiddleware, moveToUpMiddleware } from "./keydown.move";
 import { handleHLayoutMiddleware, handleVLayoutMiddleware } from "./keydown.superBlock";
 import { handleCodeBlockCreation } from "./keydown.codeBlock";
 import { handleTableBlockCreation } from "./keydow.table";
 import { createNamedNewFileMiddleware, createNewFileByContentMiddleware } from "./keydown.createNewFile";
+import { insertAfterMiddleWare, insertBeforeMiddleWare } from "./keydown.insert";
+import { attrMiddleware, renameMiddleware } from "./keydown.attr";
+import { copyTextMiddleware } from "./keydown.copy";
+import { insertWbrMiddleware } from "./keydown.wbr";
 
 export const getContentByInlineHTML = (range: Range, cb: (content: string) => void) => {
     let html = "";
@@ -139,31 +143,71 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
             console.error(protyle)
             throw (new Error('protyle结构错误'))
         }
-        //守卫函数传入控制器但是不要修改状态
-        await htmlBlockGuard(event, protyle, controller)
-        if (signal.aborted) { return }
-        await inputElementGuard(event, protyle, controller)
-        if (signal.aborted) { return }
-        await protyleDisabledGuard(event, protyle, controller)
-        if (signal.aborted) { return }
-        await protyleHaveSelectedGuard(event, protyle, controller)
-        if (signal.aborted) { return }
-        await setProtyleWysiwygPreventKeyupMiddleware(event, protyle)
-        if (signal.aborted) { return }
-        await hideProtyleUtilMiddleware(event, protyle)
-        if (signal.aborted) { return }
-        await hideProtyleToolbarMiddleware(event, protyle)
-        if (signal.aborted) { return }
+
         const range = getEditorRange(protyle.wysiwyg.element);
         const nodeElement = hasClosestBlock(range.startContainer);
         if (!nodeElement) { throw (new Error('未能找到块元素')) }
+        let eventState = {
+            blockType: ""
+        }
+        if (event.target.localName === "protyle-html") {
+            eventState.blockType = "HTML"
+        }
+        const history: string[] = []
+        let currentItem = { handle: async () => { }, describe: "" }
+        const eventDriver = {
+            abort: (reason: string) => controller.abort(`中止处理${currentItem.describe}:${reason}\n\n${history.join('')}\n\n${new Error().stack?.replace('Error', '')}`),
+            stop: (reason: string) => { event.stopPropagation(); console.log(`停止冒泡:${currentItem.describe}:${reason}\n\n${new Error().stack?.replace('Error', '')}`) },
+            prevent: (reason: string) => { event.preventDefault(); console.log(`阻止原生事件:${currentItem.describe}:${reason}\n\n${new Error().stack?.replace('Error', '')}`) },
+        }
+        const createHandleWithRecord = (item: any) => {
+            return async (
+                event: KeyboardEvent,
+                protyle: IProtyle,
+                nodeElement: HTMLElement,
+                range: Range,
+            ) => {
+                history.push(item.describe)
+                await item.handle(event, protyle, nodeElement, range, eventDriver)
+            }
+        }
+        const executeItem =async (item: any) => {
+            currentItem = item
+            let flag = true
+            for await(const [key, flagValue] of Object.entries(eventState)) {
+                const conditionValue = item.conditions[key];
+                if (!(conditionValue === undefined || conditionValue === flagValue)){
+                    flag = false
+                }
+            }
+            flag&&await createHandleWithRecord(currentItem)(event, protyle, nodeElement, range)
+        }
+        //守卫函数传入控制器但是不要修改状态
+        //currentItem = htmlBlockGuardRgistyItem
+        //eventState.blockType === htmlBlockGuardRgistyItem.condition.blockType && await createHandleWithRecord(htmlBlockGuardRgistyItem)(event, protyle, nodeElement, range)
+        await executeItem(htmlBlockGuardRgistyItem)
         if (signal.aborted) { return }
-        // https://ld246.com/article/1694506408293
-        const endElement = hasClosestBlock(range.endContainer);
-        if (!matchHotKey("⌘C", event) && endElement && nodeElement !== endElement) {
-            event.stopPropagation();
-            event.preventDefault();
-            controller.abort("跨块选择被阻止");
+        //当在input元素中输入时
+        await inputElementGuard(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
+        await protyleDisabledGuard(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
+        await protyleHaveSelectedGuard(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
+        await setProtyleWysiwygPreventKeyupMiddleware(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
+        await hideProtyleUtilMiddleware(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
+        await hideProtyleToolbarMiddleware(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
+        if (!matchHotKey("⌘C", event)) {
+            // https://ld246.com/article/1694506408293
+            const endElement = hasClosestBlock(range.endContainer);
+            if (endElement && nodeElement !== endElement) {
+                event.stopPropagation();
+                event.preventDefault();
+                controller.abort("跨块选择被阻止");
+            }
         }
         if (signal.aborted) { return }
         if (document.querySelector(".av__panel")) {
@@ -174,13 +218,15 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
             controller.abort("属性视图键盘事件处理");
         }
         if (signal.aborted) { return }
+        //选中块状态下插入新的块
         await handleSelectedBlockInsertKeyMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
-
         if (event.isComposing) {
             event.stopPropagation();
-            return;
+            controller.abort("输入法处理中");
         }
+        if (signal.aborted) { return }
+
         // https://github.com/siyuan-note/siyuan/issues/2261
         if (!["⌘", "⇧", "⌥", "⌃"].includes(Constants.KEYCODELIST[event.keyCode])) {
             if (Constants.KEYCODELIST[event.keyCode] === "/" ||
@@ -202,14 +248,8 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
             }
         }
         // 有可能输入 shift+. ，因此需要使用 event.key 来进行判断
-        if (event.key !== "PageUp" && event.key !== "PageDown" && event.key !== "Home" && event.key !== "End" && event.key.indexOf("Arrow") === -1 &&
-            event.key !== "Escape" && event.key !== "Shift" && event.key !== "Meta" && event.key !== "Alt" && event.key !== "Control" && event.key !== "CapsLock" &&
-            !isNotEditBlock(nodeElement) && !/^F\d{1,2}$/.test(event.key) &&
-            // 微软双拼使用 compositionstart，否则 focusByRange 导致无法输入文字
-            event.key !== "Process") {
-            setInsertWbrHTML(nodeElement, range, protyle);
-            protyle.wysiwyg.preventKeyup = true;
-        }
+        await insertWbrMiddleware(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
 
         if (!getSiyuanGlobalMenus().menu.element.classList.contains("fn__none") &&
             (["←", "↑", "→", "↓"].includes(Constants.KEYCODELIST[event.keyCode]) || Constants.KEYCODELIST[event.keyCode] === "↩") &&
@@ -383,80 +423,12 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
             return true;
         }
         /// #endif
-
-        if (matchHotKey(window.siyuan.config.keymap.editor.general.copyText.custom, event)) {
-            // 用于标识复制文本 *
-            if (selectText !== "") {
-                // 和复制块引用保持一致 https://github.com/siyuan-note/siyuan/issues/9093
-                getContentByInlineHTML(range, (content) => {
-                    writeText(`${content.trim()} ((${nodeElement.getAttribute("data-node-id")} "*"))`);
-                });
-            } else {
-                const selectElements = protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select");
-                if (selectElements.length > 0) {
-                    selectElements[0].setAttribute("data-reftext", "true");
-                    focusByRange(getEditorRange(nodeElement));
-                    document.execCommand("copy");
-                } else {
-                    writeText(`((${nodeElement.getAttribute("data-node-id")} "*"))`);
-                }
-            }
-            event.preventDefault();
-            event.stopPropagation();
-            return true;
-        }
-        if (matchHotKey(window.siyuan.config.keymap.editor.general.attr.custom, event)) {
-            const topElement = getTopAloneElement(nodeElement);
-            if (selectText === "") {
-                const selectElements = protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select");
-                let actionElement;
-                if (selectElements.length === 1) {
-                    actionElement = selectElements[0];
-                } else {
-                    actionElement = topElement;
-                }
-                openAttr(actionElement, "bookmark", protyle);
-            } else {
-                getContentByInlineHTML(range, (content) => {
-                    const oldHTML = topElement.outerHTML;
-                    const nameElement = topElement.lastElementChild.querySelector(".protyle-attr--name");
-                    if (nameElement) {
-                        nameElement.innerHTML = `<svg><use xlink:href="#iconN"></use></svg>${content.trim()}`;
-                    } else {
-                        topElement.lastElementChild.insertAdjacentHTML("afterbegin", `<div class="protyle-attr--name"><svg><use xlink:href="#iconN"></use></svg>${content.trim()}</div>`);
-                    }
-                    topElement.setAttribute("name", content.trim());
-                    updateTransaction(protyle, topElement.getAttribute("data-node-id"), topElement.outerHTML, oldHTML);
-                });
-            }
-            event.preventDefault();
-            event.stopPropagation();
-            return true;
-        }
-        if (matchHotKey(window.siyuan.config.keymap.editor.general.rename.custom, event) && !protyle.disabled) {
-            if (selectText === "") {
-                fetchPost("/api/block/getDocInfo", {
-                    id: protyle.block.rootID
-                }, (response) => {
-                    rename({
-                        notebookId: protyle.notebookId,
-                        path: protyle.path,
-                        name: response.data.ial.title,
-                        range,
-                        type: "file",
-                    });
-                });
-            } else {
-                fetchPost("/api/filetree/renameDoc", {
-                    notebook: protyle.notebookId,
-                    path: protyle.path,
-                    title: replaceFileName(selectText),
-                });
-            }
-            event.preventDefault();
-            event.stopPropagation();
-            return;
-        }
+        await copyTextMiddleware(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
+        await attrMiddleware(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
+        await renameMiddleware(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
         await createNamedNewFileMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
         await createNewFileByContentMiddleware(event, protyle, nodeElement, range, controller)
@@ -471,18 +443,8 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         await handleCodeBlockCreation(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
         // toolbar action
-        if (matchHotKey(window.siyuan.config.keymap.editor.insert.lastUsed.custom, event)) {
-            protyle.toolbar.range = range;
-            const selectElements: Element[] = Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select"));
-            if (selectText === "" && selectElements.length === 0) {
-                selectElements.push(nodeElement);
-            }
-            fontEvent(protyle, selectElements);
-            event.stopPropagation();
-            event.preventDefault();
-            return;
-        }
-
+        await toolbarLastUsedMiddleware(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
         await toolbarHotkeyMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
         await listOutdentMiddleware(event, protyle, nodeElement, range, controller)
@@ -495,20 +457,10 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         if (signal.aborted) { return }
         await listCheckToggleMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
-        if (matchHotKey(window.siyuan.config.keymap.editor.general.insertBefore.custom, event)) {
-            // https://github.com/siyuan-note/siyuan/issues/14290#issuecomment-2846594701
-            nodeElement.querySelector(".img--select")?.classList.remove("img--select");
-            insertEmptyBlock(protyle, "beforebegin");
-            event.preventDefault();
-            return true;
-        }
-        if (matchHotKey(window.siyuan.config.keymap.editor.general.insertAfter.custom, event)) {
-            nodeElement.querySelector(".img--select")?.classList.remove("img--select");
-            insertEmptyBlock(protyle, "afterend");
-            event.preventDefault();
-            event.stopPropagation();
-            return true;
-        }
+        await insertBeforeMiddleWare(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
+        await insertAfterMiddleWare(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
         await jumpToMiddleWare(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
         await moveToUpMiddleware(event, protyle, nodeElement, range, controller)
@@ -523,44 +475,13 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         if (signal.aborted) { return }
         await aiWritingMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
-        if (!event.repeat && matchHotKey(window.siyuan.config.keymap.editor.general.openInNewTab.custom, event)) {
-            event.preventDefault();
-            event.stopPropagation();
-            const blockPanel = window.siyuan.blockPanels.find(item => {
-                if (item.element.contains(nodeElement)) {
-                    return true;
-                }
-            });
-            const id = nodeElement.getAttribute("data-node-id");
-            checkFold(id, (zoomIn, action) => {
-                openFileById({
-                    app: protyle.app,
-                    id,
-                    action,
-                    zoomIn,
-                    openNewTab: true
-                });
-                blockPanel.destroy();
-            });
-            return;
-        }
+        await openInNewTabMiddleware(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
         // tab 需等待 list 和 table 处理完成,避免在这些块中造成异常行为
         await tabKeyMiddleware(event, protyle, nodeElement, range, controller);
         if (signal.aborted) { return }
-
-        if (event.key === "ContextMenu") {
-            const rangePosition = getSelectionPosition(nodeElement, range);
-            protyle.wysiwyg.element.dispatchEvent(new CustomEvent("contextmenu", {
-                detail: {
-                    target: nodeElement,
-                    y: rangePosition.top + 8,
-                    x: rangePosition.left
-                }
-            }));
-            event.preventDefault();
-            event.stopPropagation();
-            return;
-        }
+        await contextMenuMiddleware(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
         /// #if !MOBILE
         await blockRefMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }

@@ -2,6 +2,7 @@ import { matchHotKey } from "../util/hotKey";
 import { Constants } from "../../constants";
 import { isInEmbedBlock } from "../util/hasClosest";
 import { fontEvent } from "../toolbar/Font";
+import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig";
 
 /**
  * 工具栏快捷键中间件
@@ -71,21 +72,24 @@ export const toolbarLastUsedMiddleware = (
     range: Range,
     controller: AbortController
 ) => {
-    if (!protyle.toolbar) {
-        throw new Error("protyle缺少toolbar属性")
-    }
-    if (!protyle.wysiwyg) {
-        throw new Error("protyle缺少wysiwyg属性")
-    }
-    const selectText = range.toString()
-    protyle.toolbar.range = range;
-    const selectElements: Element[] = Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select"));
-    if (selectText === "" && selectElements.length === 0) {
-        selectElements.push(nodeElement);
-    }
-    fontEvent(protyle, selectElements);
-    event.stopPropagation();
-    event.preventDefault();
-    return;
+    if (matchHotKey(getSiyuanConfig().keymap.editor.insert.lastUsed.custom, event)) {
 
+        if (!protyle.toolbar) {
+            throw new Error("protyle缺少toolbar属性")
+        }
+        if (!protyle.wysiwyg) {
+            throw new Error("protyle缺少wysiwyg属性")
+        }
+        const selectText = range.toString()
+        protyle.toolbar.range = range;
+        const selectElements: Element[] = Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select"));
+        if (selectText === "" && selectElements.length === 0) {
+            selectElements.push(nodeElement);
+        }
+        fontEvent(protyle, selectElements);
+        event.stopPropagation();
+        event.preventDefault();
+        controller.abort()
+        return;
+    }
 }

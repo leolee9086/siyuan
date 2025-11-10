@@ -18,14 +18,14 @@ export const addSubList = (protyle: IProtyle, nodeElement: Element, range: Range
     if (!lastSubItem) {
         //在没有子列表的之后,创建一个子列表
         const subtype = parentItemElement.getAttribute("data-subtype") as "u" | "o" | "t" || "u";
-        const newListElement = genListElement(subtype); 
+        const newListElement = genListElement(subtype);
         const attrElements = parentItemElement.querySelectorAll('.protyle-attr')
-        const lastAttrElement =attrElements[attrElements.length-1]
-        lastAttrElement&&parentItemElement.insertBefore(newListElement,lastAttrElement);
+        const lastAttrElement = attrElements[attrElements.length - 1]
+        lastAttrElement && parentItemElement.insertBefore(newListElement, lastAttrElement);
         if (parentItemElement.getAttribute("fold") === "1") {
             setFold(protyle, parentItemElement, true);
         }
-        
+
         // 获取前一个元素的ID，使用hasClosestBlock确保正确获取
         let previousId: string | undefined;
         const previousElement = newListElement.previousElementSibling;
@@ -35,23 +35,23 @@ export const addSubList = (protyle: IProtyle, nodeElement: Element, range: Range
                 previousId = previousBlock.getAttribute("data-node-id") || undefined;
             }
         }
-        
+
         const insertOperation: IOperation = {
             action: "insert",
             id: newListElement.getAttribute("data-node-id")!,
             data: newListElement.outerHTML,
         };
-        
+
         // 只有当 previousId 存在时才添加 previousID 属性
         if (previousId !== undefined) {
             insertOperation.previousID = previousId;
         }
-        
+
         transaction(protyle, [insertOperation], [{
             action: "delete",
             id: newListElement.getAttribute("data-node-id")!,
         }]);
-        
+
         // 聚焦到新创建的列表项
         const newListItem = newListElement.querySelector(".li") as HTMLElement;
         if (newListItem) {
@@ -90,7 +90,7 @@ const genListElement = (subtype: "u" | "o" | "t" = "u"): HTMLElement => {
     // 生成新的ID
     const listId = Lute.NewNodeID();
     const updatedTime = dayjs().format("YYYYMMDDHHmmss");
-    
+
     // 确定标记符号
     let marker = "*";
     if (subtype === "o") {
@@ -98,15 +98,15 @@ const genListElement = (subtype: "u" | "o" | "t" = "u"): HTMLElement => {
     } else if (subtype === "t") {
         marker = "*";
     }
-    
+
     // 确定图标
     let icon = "Dot";
     if (subtype === "t") {
         icon = "Uncheck";
     }
-    
+
     const element = document.createElement("div");
-    element.innerHTML=`
+    element.innerHTML = `
 
     <div data-node-id="${listId}" data-type="NodeList" class="list" data-subtype="${subtype}">
         <div data-marker="${marker}" data-subtype="${subtype}" data-node-id="${Lute.NewNodeID()}" data-type="NodeListItem" class="li"

@@ -1,5 +1,7 @@
 import { openLink } from "../../editor/openLink";
 import { openBy } from "../../editor/utils.openBy";
+import { openFileById } from "../../editor/utils.openFileById";
+import { checkFold } from "../../util/noRelyPCFunction";
 import { isLocalPath } from "../../util/pathName";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig";
 import { hasClosestByAttribute } from "../util/hasClosest";
@@ -76,4 +78,35 @@ export const openLocalMiddleWare = (
         return;
     }
     /// #endif
+}
+
+
+export const openInNewTabMiddleware = (
+    event: KeyboardEvent,
+    protyle: IProtyle,
+    nodeElement: HTMLElement,
+    range: Range,
+    controller: AbortController
+) => {
+    if (!event.repeat && matchHotKey(window.siyuan.config.keymap.editor.general.openInNewTab.custom, event)) {
+        event.preventDefault();
+        event.stopPropagation();
+        const blockPanel = window.siyuan.blockPanels.find(item => {
+            if (item.element.contains(nodeElement)) {
+                return true;
+            }
+        });
+        const id = nodeElement.getAttribute("data-node-id");
+        checkFold(id, (zoomIn, action) => {
+            openFileById({
+                app: protyle.app,
+                id,
+                action,
+                zoomIn,
+                openNewTab: true
+            });
+            blockPanel.destroy();
+        });
+        return;
+    }
 }

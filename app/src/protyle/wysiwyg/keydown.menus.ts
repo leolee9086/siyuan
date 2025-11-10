@@ -8,6 +8,7 @@ import { inlineMathMenu } from "../../menus/protyle";
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu";
 import { hasPreviousSibling } from "./getBlock";
 import { matchHotKey } from "../util/hotKey";
+import { getSelectionPosition } from "../util/selection";
 
 /**
  * 处理内联元素菜单快捷键中间件
@@ -28,7 +29,7 @@ export const inlineMenuMiddleware = async (
     event.preventDefault();
 
     const selectElements = Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select"));
-    
+
     // 如果没有选中元素，检查光标位置的内联元素
     if (selectElements.length === 0) {
         const inlineElement = hasClosestByAttribute(range.startContainer, "data-type", null);
@@ -38,7 +39,7 @@ export const inlineMenuMiddleware = async (
                 protyle.toolbar.range = range;
                 removeSearchMark(inlineElement);
             }
-            
+
             // 根据内联元素类型显示相应菜单
             if (types.includes("block-ref")) {
                 refMenu(protyle, inlineElement);
@@ -95,8 +96,31 @@ export const inlineMenuMiddleware = async (
     } else {
         protyle.gutter.renderMultipleMenu(protyle, selectElements);
     }
-    
+
     const rect = nodeElement.getBoundingClientRect();
     window.siyuan.menus.menu.popup({ x: rect.left, y: rect.top, isLeft: true });
     controller.abort("内联菜单已显示");
 };
+
+export const contextMenuMiddleware = (
+    event: KeyboardEvent,
+    protyle: IProtyle,
+    nodeElement: HTMLElement,
+    range: Range,
+    controller: AbortController
+) => {
+    if (event.key === "ContextMenu") {
+        const rangePosition = getSelectionPosition(nodeElement, range);
+        protyle.wysiwyg.element.dispatchEvent(new CustomEvent("contextmenu", {
+            detail: {
+                target: nodeElement,
+                y: rangePosition.top + 8,
+                x: rangePosition.left
+            }
+        }));
+        event.preventDefault();
+        event.stopPropagation();
+        controller.abort()
+        return;
+    }
+}

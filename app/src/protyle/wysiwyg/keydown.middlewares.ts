@@ -5,8 +5,11 @@ import { hideElements } from "../ui/hideElements";
  * @param protyle 
  */
 export const setProtyleWysiwygPreventKeyupMiddleware = async (
-    event: KeyboardEvent & { target: HTMLElement },
+    event: KeyboardEvent,
     protyle: IProtyle,
+    nodeElement: HTMLElement,
+    range: Range,
+    controller: AbortController
 ) => {
     protyle.wysiwyg && (protyle.wysiwyg.preventKeyup = false);
 }
@@ -16,8 +19,11 @@ export const setProtyleWysiwygPreventKeyupMiddleware = async (
  * @param protyle 
  */
 export const hideProtyleUtilMiddleware = async (
-    event: KeyboardEvent & { target: HTMLElement },
+    event: KeyboardEvent,
     protyle: IProtyle,
+    nodeElement: HTMLElement,
+    range: Range,
+    controller: AbortController
 ) => {
     hideElements(["util"], protyle);
 }
@@ -29,8 +35,11 @@ export const hideProtyleUtilMiddleware = async (
  * @param protyle 
  */
 export const hideProtyleToolbarMiddleware = async (
-    event: KeyboardEvent & { target: HTMLElement },
+    event: KeyboardEvent,
     protyle: IProtyle,
+    nodeElement: HTMLElement,
+    range: Range,
+    controller: AbortController
 ) => {
     if (event.shiftKey && event.key.indexOf("Arrow") > -1) {
         // 防止连续选中的时候抖动 https://github.com/siyuan-note/insider/issues/657#issuecomment-851391217

@@ -1,17 +1,32 @@
+
 export const htmlBlockGuard = async (
-    event: KeyboardEvent & { target: HTMLElement },
+    event: KeyboardEvent,
     protyle: IProtyle,
-    controller: AbortController
+    nodeElement: HTMLElement,
+    range: Range,
+    driver: any
 ) => {
     if (event.target.localName === "protyle-html") {
-        event.stopPropagation();
-        controller.abort('html块由渲染函数处理,中止冒泡');
+        driver.stop('html块由渲染函数处理');
+        driver.abort('html块由渲染函数处理');
     }
 }
+export const  htmlBlockGuardRgistyItem ={
+    conditions:{
+        blockType:"HTML"
+    },
+    handle:htmlBlockGuard,
+    describe:'用户在html块中输入时'
+}
+
+
+
 
 export const inputElementGuard = async (
-    event: KeyboardEvent & { target: HTMLElement },
+    event: KeyboardEvent,
     protyle: IProtyle,
+    nodeElement: HTMLElement,
+    range: Range,
     controller: AbortController
 ) => {
     if (event.target.localName === "input") {
@@ -21,8 +36,10 @@ export const inputElementGuard = async (
 }
 
 export const protyleDisabledGuard = async (
-    event: KeyboardEvent & { target: HTMLElement },
+    event: KeyboardEvent,
     protyle: IProtyle,
+    nodeElement: HTMLElement,
+    range: Range,
     controller: AbortController
 ) => {
     if (protyle.disabled) {
@@ -32,8 +49,10 @@ export const protyleDisabledGuard = async (
     }
 }
 export const protyleHaveSelectedGuard = async (
-    event: KeyboardEvent & { target: HTMLElement },
+    event: KeyboardEvent,
     protyle: IProtyle,
+    nodeElement: HTMLElement,
+    range: Range,
     controller: AbortController
 ) => {
     if (!protyle.selectElement?.classList.contains("fn__none")) {
@@ -44,8 +63,10 @@ export const protyleHaveSelectedGuard = async (
 }
 
 export const avPanelGuard = (
-    event: KeyboardEvent & { target: HTMLElement },
+    event: KeyboardEvent,
     protyle: IProtyle,
+    nodeElement: HTMLElement,
+    range: Range,
     controller: AbortController
 ) => {
     if (document.querySelector(".av__panel")) {
