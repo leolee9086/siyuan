@@ -41,14 +41,8 @@ const handleOutlineUpdateResponse = (
     }
 };
 
-
 export const updateOutline = (models: IModels, protyle: IProtyle, reload = false) => {
-
     models.outline.find(item => {
-        if (!protyle.preview||!protyle.block.rootID) {
-            console.error(models, protyle, reload)
-            throw new Error('protyle 结构错误')
-        }
         if (reload ||
             (item.type === "pin" &&
                 (!protyle || item.blockId !== protyle.block?.rootID ||
@@ -67,9 +61,27 @@ export const updateOutline = (models: IModels, protyle: IProtyle, reload = false
                 id: blockId,
                 preview: !protyle.preview.element.classList.contains("fn__none")
             }, response => {
-                handleOutlineUpdateResponse(response, item, protyle, blockId, reload);
+                if (!reload && (!isCurrentEditor(blockId) || item.blockId === blockId) &&
+                    item.isPreview !== protyle.preview.element.classList.contains("fn__none")) {
+                    return;
+                }
+                item.isPreview = !protyle.preview.element.classList.contains("fn__none");
+                item.update(response, blockId);
+                if (protyle) {
+                    item.updateDocTitle(protyle.background.ial);
+                    if (getSelection().rangeCount > 0) {
+                        const startContainer = getSelection().getRangeAt(0).startContainer;
+                        if (protyle.wysiwyg.element.contains(startContainer)) {
+                            const currentElement = hasClosestByAttribute(startContainer, "data-node-id", null);
+                            if (currentElement) {
+                                item.setCurrent(currentElement);
+                            }
+                        }
+                    }
+                } else {
+                    item.updateDocTitle();
+                }
             });
         }
     });
 };
-

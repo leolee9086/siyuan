@@ -62,4 +62,3 @@ export const updatePanelByEditor = (options: {
     updateOutline(models, options.protyle, options.reload);
     updateBacklinkGraph(models, options.protyle);
 };
-
