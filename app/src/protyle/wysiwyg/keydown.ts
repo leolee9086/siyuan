@@ -115,6 +115,7 @@ import { pageNavigationMiddleware } from "./keydown.pageNavigation";
 import { hintSlashMiddleware } from "./keydown.slashHint";
 import { redoMiddleware, undoMiddleware } from "./keydown.editorStack";
 import { commonHotkeyMiddleware } from "./keydown.commonHotkey";
+import { fixTableMiddleware } from "./keydown.table";
 
 export const getContentByInlineHTML = (range: Range, cb: (content: string) => void) => {
     let html = "";
@@ -333,10 +334,8 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         //行内元素菜单和块菜单
         await inlineMenuMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
-        if (fixTable(protyle, event, range)) {
-            event.preventDefault();
-            return;
-        }
+        await fixTableMiddleware(editorContext)
+        if (signal.aborted) { return }
         // 上下左右光标移动
         await arrowNavigationMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
