@@ -1,6 +1,9 @@
 import { insertEmptyBlock } from "../../block/util";
 import { hideElements } from "../ui/hideElements";
 import { isNotCtrl } from "../util/compatibility";
+import { matchHotKey } from "../util/hotKey";
+import { selectAll } from "../util/selection";
+import { editorContext } from "./types";
 
 /**
  * 键盘按下时处理选区相关
@@ -95,7 +98,7 @@ export const handleSelectedBlockInsertKeyMiddleware = (
             // 中断后续处理器执行
             controller.abort("已处理选中块后插入操作")
             return false;
-        // 'b'键：在选中块之前插入新块（Before）
+            // 'b'键：在选中块之前插入新块（Before）
         } else if (event.key.toLowerCase() === "b") {
             // 阻止事件冒泡和默认行为
             event.stopPropagation();
@@ -111,5 +114,14 @@ export const handleSelectedBlockInsertKeyMiddleware = (
 
             return false;
         }
+    }
+}
+
+export const selectAllMiddleware = (ctx: editorContext) => {
+    const {event,protyle,nodeElement,range,controller}=ctx
+    if (matchHotKey("⌘A", event)) {
+        event.preventDefault();
+        selectAll(protyle, nodeElement, range);
+        controller.abort('全选触发')
     }
 }

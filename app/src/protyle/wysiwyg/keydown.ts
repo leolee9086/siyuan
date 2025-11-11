@@ -80,7 +80,7 @@ import { AIChat } from "../../ai/chat";
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu";
 import { htmlBlockGuard, htmlBlockGuardRgistyItem, inputElementGuard, protyleDisabledGuard, protyleHaveSelectedGuard } from "./keydown.guards";
 import { hideProtyleToolbarMiddleware, hideProtyleUtilMiddleware, setProtyleWysiwygPreventKeyupMiddleware } from "./keydown.middlewares";
-import { handleSelectedBlockInsertKeyMiddleware, removeSelectIndicatorElementMiddleware } from "./keydown.select";
+import { handleSelectedBlockInsertKeyMiddleware, removeSelectIndicatorElementMiddleware, selectAllMiddleware } from "./keydown.select";
 import { decorationMatchMiddleware } from "./keydown.decorations";
 import { arrowLeftRightMiddleWare, arrowUpDownMiddleware } from "./keydown.arrow.select";
 import { openByMiddleWare, openInNewTabMiddleware, openLocalMiddleWare } from "./keydown.openBy";
@@ -340,7 +340,6 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         // 上下左右光标移动
         await arrowNavigationMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
-
         // 删除，不可使用 isNotCtrl(event)，否则软删除回导致 https://github.com/siyuan-note/siyuan/issues/5607
         // 不可使用 !event.shiftKey，否则 https://ld246.com/article/1666434796806
         await deleteKeyMiddleware(event, protyle, nodeElement, range, controller)
@@ -354,11 +353,8 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         // 回车
         await enterKeyMiddleware(event, protyle, nodeElement, range, controller);
         if (signal.aborted) { return }
-        if (matchHotKey("⌘A", event)) {
-            event.preventDefault();
-            selectAll(protyle, nodeElement, range);
-            return true;
-        }
+        await selectAllMiddleware(editorContext)
+        if (signal.aborted) { return }
         await undoMiddleware(editorContext)
         if (signal.aborted) { return }
         await redoMiddleware(editorContext)
