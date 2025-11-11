@@ -3,6 +3,8 @@ import { Constants } from "../../constants";
 import { genIconHTML } from "./util";
 import { hasClosestByClassName } from "../util/hasClosest";
 import { looseJsonParse } from "../../util/code/looseJsonParse";
+import { genUUID } from "../../util/genID";
+import { addStyle } from "../util/addStyle";
 
 const ABCJS_PARAMS_KEY = "%%params";
 
@@ -28,12 +30,12 @@ const getAbcParams = async (abcString: string): Promise<any> => {
 };
 
 // 渲染单个ABC元素
-const renderSingleAbcElement = async (element: Element, wysiwygElement: HTMLElement ) => {
+const renderSingleAbcElement = async (element: Element, wysiwygElement: HTMLElement) => {
     if (element.getAttribute("data-render") === "true") {
         return;
     }
     if (!element.firstElementChild?.classList.contains("protyle-icons")) {
-        element.insertAdjacentHTML("afterbegin", genIconHTML(wysiwygElement ));
+        element.insertAdjacentHTML("afterbegin", genIconHTML(wysiwygElement));
     }
     const renderElement = element.firstElementChild?.nextElementSibling;
     if (renderElement) {
@@ -43,7 +45,38 @@ const renderSingleAbcElement = async (element: Element, wysiwygElement: HTMLElem
             const abcString = Lute.UnEscapeHTMLStr(dataContent);
             const lastElement = renderElement.lastElementChild;
             if (lastElement) {
-                window.ABCJS.renderAbc(lastElement, abcString, await getAbcParams(abcString));
+                const visualObj = window.ABCJS.renderAbc(lastElement, abcString, await getAbcParams(abcString));
+                const supportsAudio = window.ABCJS.synth.supportsAudio()
+                if (!supportsAudio) {
+                    return
+                }
+                var controlOptions = {
+                    displayRestart: true,
+                    displayPlay: true,
+                    displayProgress: true,
+                    displayClock: true
+                };
+                const controller = document.createElement('div')
+                const buttonID = genUUID().replaceAll('-', '')
+                controller.setAttribute('data-abc-id', buttonID)
+                controller.setAttribute('contenteditable', 'false')
+
+                renderElement.insertAdjacentElement("beforeend", controller)
+                var synthControl = new window.ABCJS.synth.SynthController();
+                synthControl.load(`[data-abc-id="${buttonID}"]`, null, controlOptions);
+                synthControl.disable(true);
+                var midiBuffer = new window.ABCJS.synth.CreateSynth();
+                midiBuffer.init({
+                    visualObj: visualObj[0],
+                    options: {
+
+                    }
+
+                }).then(function () {
+                    synthControl.setTune(visualObj[0], true).then(function (response) {
+                        controller.querySelector(".abcjs-inline-audio").classList.remove("disabled");
+                    })
+                });
             }
         }
     }
@@ -63,9 +96,11 @@ export const abcRender = async (element: Element, cdn = Constants.PROTYLE_CDN) =
     }
     if (abcElements.length > 0) {
         await addScript(`${cdn}/js/abcjs/abcjs-basic-min.js?v=6.5.0`, "protyleAbcjsScript");
+        await addStyle(`${cdn}/js/abcjs/abcjs-audio.css`, "protyleAbcjsStyle");
+
         const wysiwygElement = hasClosestByClassName(element, "protyle-wysiwyg", true);
         for await (const e of abcElements) {
-          wysiwygElement&&  await renderSingleAbcElement(e, wysiwygElement );
+            wysiwygElement && await renderSingleAbcElement(e, wysiwygElement);
         }
     }
 };
