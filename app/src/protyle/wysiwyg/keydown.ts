@@ -88,7 +88,7 @@ import { jumpToMiddleWare } from "./keydown.jump";
 import { deleteKeyMiddleware } from "./keydown.delete";
 import { altEnterMiddleware } from "./keydown.altEnter";
 import { tabKeyMiddleware } from "./keydown.tab";
-import { enterKeyMiddleware } from "./keydown.enter";
+import { enterKeyMiddleware, softEnterMiddleware } from "./keydown.enter";
 import { arrowNavigationMiddleware } from "./keydown.arrow.navigation";
 import { contextMenuMiddleware, inlineMenuMiddleware } from "./keydown.menus";
 import { headingTransformMiddleware } from "./keydown.headingTransform";
@@ -114,6 +114,7 @@ import { crossBlockCopyMiddleware } from "./keydown.crossBlock";
 import { pageNavigationMiddleware } from "./keydown.pageNavigation";
 import { hintSlashMiddleware } from "./keydown.slashHint";
 import { redoMiddleware, undoMiddleware } from "./keydown.editorStack";
+import { commonHotkeyMiddleware } from "./keydown.commonHotkey";
 
 export const getContentByInlineHTML = (range: Range, cb: (content: string) => void) => {
     let html = "";
@@ -336,7 +337,6 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
             event.preventDefault();
             return;
         }
-        const selectText = range.toString();
         // 上下左右光标移动
         await arrowNavigationMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
@@ -345,37 +345,27 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         // 不可使用 !event.shiftKey，否则 https://ld246.com/article/1666434796806
         await deleteKeyMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
-
-
         // 软换行
-        if (matchHotKey("⇧↩", event) && selectText === "" && softEnter(range, nodeElement, protyle)) {
-            event.stopPropagation();
-            event.preventDefault();
-            return;
-        }
-
+        await softEnterMiddleware(editorContext)
+        if (signal.aborted) { return }
         // 代码块语言选择 https://github.com/siyuan-note/siyuan/issues/14126
         await altEnterMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
-
         // 回车
         await enterKeyMiddleware(event, protyle, nodeElement, range, controller);
         if (signal.aborted) { return }
-
         if (matchHotKey("⌘A", event)) {
             event.preventDefault();
             selectAll(protyle, nodeElement, range);
             return true;
         }
-
         await undoMiddleware(editorContext)
         if (signal.aborted) { return }
         await redoMiddleware(editorContext)
         if (signal.aborted) { return }
         /// #if !MOBILE
-        if (commonHotkey(protyle, event, nodeElement)) {
-            return true;
-        }
+        await commonHotkeyMiddleware(editorContext)
+        if (signal.aborted) { return }
         /// #endif
         await copyTextMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
