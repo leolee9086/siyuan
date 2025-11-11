@@ -112,7 +112,7 @@ import { copyTextMiddleware } from "./keydown.copy";
 import { insertWbrMiddleware } from "./keydown.wbr";
 import { crossBlockCopyMiddleware } from "./keydown.crossBlock";
 import { pageNavigationMiddleware } from "./keydown.pageNavigation";
-import { hintSlashMiddleware } from "./keydown.slashHint";
+import { hintNavigationMiddleware, hintSlashMiddleware } from "./keydown.slashHint";
 import { redoMiddleware, undoMiddleware } from "./keydown.editorStack";
 import { commonHotkeyMiddleware } from "./keydown.commonHotkey";
 import { fixTableMiddleware } from "./keydown.table";
@@ -326,11 +326,8 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         await pageNavigationMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
         // hint: 上下、回车选择
-        if (!event.altKey && !event.shiftKey &&
-            ((event.key.indexOf("Arrow") > -1 && isNotCtrl(event)) || event.key === "Enter") &&
-            !protyle.hint.element.classList.contains("fn__none") && protyle.hint.select(event, protyle)) {
-            return;
-        }
+        await hintNavigationMiddleware(editorContext)
+        if (signal.aborted) { return }
         //行内元素菜单和块菜单
         await inlineMenuMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }

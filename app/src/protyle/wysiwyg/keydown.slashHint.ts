@@ -1,5 +1,6 @@
 import { Constants } from "../../constants";
 import { hideElements } from "../ui/hideElements";
+import { isNotCtrl } from "../util/compatibility";
 import { editorContext } from "./types";
 
 export const hintSlashMiddleware = (
@@ -26,5 +27,19 @@ export const hintSlashMiddleware = (
             hideElements(["hint"], protyle);
             // 此处不能返回，否则无法撤销 https://github.com/siyuan-note/siyuan/issues/2795
         }
+    }
+}
+
+export const hintNavigationMiddleware = (ctx: editorContext) => {
+    const { event, protyle, controller } = ctx
+    if (
+        !event.altKey &&
+        !event.shiftKey &&
+        (
+            (event.key.indexOf("Arrow") > -1 && isNotCtrl(event)) ||
+            event.key === "Enter") &&
+        !protyle.hint.element.classList.contains("fn__none") &&
+        protyle.hint.select(event, protyle)) {
+        controller.abort('斜杠菜单导航')
     }
 }
