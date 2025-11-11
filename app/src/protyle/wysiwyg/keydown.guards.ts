@@ -1,3 +1,4 @@
+import { editorContext } from "./types";
 
 export const htmlBlockGuard = async (
     event: KeyboardEvent,
@@ -21,13 +22,10 @@ export const htmlBlockGuardRgistyItem = {
 
 
 export const inputElementGuard = async (
-    event: KeyboardEvent,
-    protyle: IProtyle,
-    nodeElement: HTMLElement,
-    range: Range,
-    controller: AbortController
+    context: editorContext
 ) => {
-    if (event.target.localName === "input") {
+    const { event, controller } = context
+    if (event.target?.localName === "input") {
         event.stopPropagation();
         controller.abort('输入框键盘按下,中止冒泡');
     }

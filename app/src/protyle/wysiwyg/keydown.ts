@@ -112,6 +112,8 @@ import { copyTextMiddleware } from "./keydown.copy";
 import { insertWbrMiddleware } from "./keydown.wbr";
 import { crossBlockCopyMiddleware } from "./keydown.crossBlock";
 import { pageNavigationMiddleware } from "./keydown.pageNavigation";
+import { hintSlashMiddleware } from "./keydown.slashHint";
+import { redoMiddleware, undoMiddleware } from "./keydown.editorStack";
 
 export const getContentByInlineHTML = (range: Range, cb: (content: string) => void) => {
     let html = "";
@@ -149,15 +151,15 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         const range = getEditorRange(protyle.wysiwyg.element);
         const nodeElement = hasClosestBlock(range.startContainer);
         if (!nodeElement) { throw (new Error('未能找到块元素')) }
-        let eventState:Record<string,string> = {
+        let eventState: Record<string, string> = {
             blockType: ""
         }
         if (event.target.localName === "protyle-html") {
             eventState.blockType = "NodeHTMLBlock"
-            eventState.elementTarget="protyle-html"
+            eventState.elementTarget = "protyle-html"
         }
-        if(event.target.localName==='input'){
-            eventState.blockType=nodeElement.getAttribute("data-type") 
+        if (event.target.localName === 'input') {
+            eventState.blockType = nodeElement.getAttribute("data-type")
         }
         const history: string[] = []
         let currentItem = { handle: async () => { }, describe: "" }
@@ -177,24 +179,25 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
                 await item.handle(event, protyle, nodeElement, range, eventDriver)
             }
         }
-        const executeItem =async (item: any) => {
+        const executeItem = async (item: any) => {
             currentItem = item
             let flag = true
-            for await(const [key, flagValue] of Object.entries(eventState)) {
+            for await (const [key, flagValue] of Object.entries(eventState)) {
                 const conditionValue = item.conditions[key];
-                if (!(conditionValue === undefined || conditionValue === flagValue)){
+                if (!(conditionValue === undefined || conditionValue === flagValue)) {
                     flag = false
                 }
             }
-            flag&&await createHandleWithRecord(currentItem)(event, protyle, nodeElement, range)
+            flag && await createHandleWithRecord(currentItem)(event, protyle, nodeElement, range)
         }
+        const editorContext = { event, protyle, nodeElement, range, controller }
         //守卫函数传入控制器但是不要修改状态
         //currentItem = htmlBlockGuardRgistyItem
         //eventState.blockType === htmlBlockGuardRgistyItem.condition.blockType && await createHandleWithRecord(htmlBlockGuardRgistyItem)(event, protyle, nodeElement, range)
         await executeItem(htmlBlockGuardRgistyItem)
         if (signal.aborted) { return }
         //当在input元素中输入时
-        await inputElementGuard(event, protyle, nodeElement, range, controller)
+        await inputElementGuard(editorContext)
         if (signal.aborted) { return }
         await protyleDisabledGuard(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
@@ -226,25 +229,8 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         if (signal.aborted) { return }
 
         // https://github.com/siyuan-note/siyuan/issues/2261
-        if (!["⌘", "⇧", "⌥", "⌃"].includes(Constants.KEYCODELIST[event.keyCode])) {
-            if (Constants.KEYCODELIST[event.keyCode] === "/" ||
-                // 德语
-                event.key === "/" ||
-                // windows 中文
-                (event.code === "Slash" && event.key === "Process" && event.keyCode === 229)) {
-                protyle.hint.enableSlash = true;
-            } else if (Constants.KEYCODELIST[event.keyCode] === "\\" ||
-                // 德语
-                event.key === "\\" ||
-                // Mac 日文-罗马字 https://github.com/siyuan-note/siyuan/issues/13725
-                (event.key === "," && event.keyCode === 229) ||
-                // windows 中文
-                (event.code === "Backslash" && event.key === "Process" && event.keyCode === 229)) {
-                protyle.hint.enableSlash = false;
-                hideElements(["hint"], protyle);
-                // 此处不能返回，否则无法撤销 https://github.com/siyuan-note/siyuan/issues/2795
-            }
-        }
+        await hintSlashMiddleware(editorContext)
+        if (signal.aborted) { return }
         // 有可能输入 shift+. ，因此需要使用 event.key 来进行判断
         await insertWbrMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
@@ -382,20 +368,10 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
             return true;
         }
 
-        if (matchHotKey(window.siyuan.config.keymap.editor.general.undo.custom, event)) {
-            protyle.undo.undo(protyle);
-            event.preventDefault();
-            event.stopPropagation();
-            return;
-        }
-
-        if (matchHotKey(window.siyuan.config.keymap.editor.general.redo.custom, event)) {
-            protyle.undo.redo(protyle);
-            event.preventDefault();
-            event.stopPropagation();
-            return;
-        }
-
+        await undoMiddleware(editorContext)
+        if (signal.aborted) { return }
+        await redoMiddleware(editorContext)
+        if (signal.aborted) { return }
         /// #if !MOBILE
         if (commonHotkey(protyle, event, nodeElement)) {
             return true;
