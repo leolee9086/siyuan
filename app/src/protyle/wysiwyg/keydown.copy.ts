@@ -1,8 +1,8 @@
+import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig";
 import { writeText } from "../util/compatibility";
 import { matchHotKey } from "../util/hotKey";
 import { focusByRange, getEditorRange } from "../util/selection";
 import { getContentByInlineHTML } from "./keydown";
-
 export const copyTextMiddleware = (
     event: KeyboardEvent,
     protyle: IProtyle,
@@ -11,7 +11,7 @@ export const copyTextMiddleware = (
     controller: AbortController
 ) => {
     const selectText = range.toString()
-    if (matchHotKey(window.siyuan.config.keymap.editor.general.copyText.custom, event)) {
+    if (matchHotKey(getSiyuanConfig().keymap.editor.general.copyText.custom, event)) {
         // 用于标识复制文本 *
         if (selectText !== "") {
             // 和复制块引用保持一致 https://github.com/siyuan-note/siyuan/issues/9093
