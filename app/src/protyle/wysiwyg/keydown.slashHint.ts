@@ -43,3 +43,12 @@ export const hintNavigationMiddleware = (ctx: editorContext) => {
         controller.abort('斜杠菜单导航')
     }
 }
+
+
+export const hideHintMiddleware = (ctx: editorContext) => {
+    const { event, protyle } = ctx
+    // https://github.com/siyuan-note/siyuan/issues/11726
+    if ((event.key === "Home" || event.key === "End") && !event.shiftKey && !event.altKey && isNotCtrl(event)) {
+        hideElements(["hint"], protyle);
+    }
+}

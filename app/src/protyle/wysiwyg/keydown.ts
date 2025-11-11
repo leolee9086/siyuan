@@ -78,7 +78,7 @@ import { openLink } from "../../editor/openLink";
 import { onlyProtyleCommand } from "../../boot/globalEvent/command/protyle";
 import { AIChat } from "../../ai/chat";
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu";
-import { htmlBlockGuard, htmlBlockGuardRgistyItem, inputElementGuard, protyleDisabledGuard, protyleHaveSelectedGuard } from "./keydown.guards";
+import { avPanelGuard, htmlBlockGuard, htmlBlockGuardRgistyItem, inputElementGuard, protyleDisabledGuard, protyleHaveSelectedGuard } from "./keydown.guards";
 import { hideProtyleToolbarMiddleware, hideProtyleUtilMiddleware, setProtyleWysiwygPreventKeyupMiddleware } from "./keydown.middlewares";
 import { handleSelectedBlockInsertKeyMiddleware, removeSelectIndicatorElementMiddleware, selectAllMiddleware } from "./keydown.select";
 import { decorationMatchMiddleware } from "./keydown.decorations";
@@ -112,7 +112,7 @@ import { copyTextMiddleware } from "./keydown.copy";
 import { insertWbrMiddleware } from "./keydown.wbr";
 import { crossBlockCopyMiddleware } from "./keydown.crossBlock";
 import { pageNavigationMiddleware } from "./keydown.pageNavigation";
-import { hintNavigationMiddleware, hintSlashMiddleware } from "./keydown.slashHint";
+import { hideHintMiddleware, hintNavigationMiddleware, hintSlashMiddleware } from "./keydown.slashHint";
 import { redoMiddleware, undoMiddleware } from "./keydown.editorStack";
 import { commonHotkeyMiddleware } from "./keydown.commonHotkey";
 import { fixTableMiddleware } from "./keydown.table";
@@ -217,9 +217,7 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
             controller.abort("属性视图面板已打开");
         }
         if (signal.aborted) { return }
-        if (avKeydown(event, nodeElement, protyle)) {
-            controller.abort("属性视图键盘事件处理");
-        }
+        await avPanelGuard(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
         //选中块状态下插入新的块
         await handleSelectedBlockInsertKeyMiddleware(event, protyle, nodeElement, range, controller)
@@ -320,9 +318,8 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
             return;
         }
         // https://github.com/siyuan-note/siyuan/issues/11726
-        if ((event.key === "Home" || event.key === "End") && !event.shiftKey && !event.altKey && isNotCtrl(event)) {
-            hideElements(["hint"], protyle);
-        }
+        await hideHintMiddleware(editorContext)
+        if (signal.aborted) { return }
         await pageNavigationMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
         // hint: 上下、回车选择
