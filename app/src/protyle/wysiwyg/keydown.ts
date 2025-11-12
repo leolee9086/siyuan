@@ -116,6 +116,8 @@ import { hideHintMiddleware, hintNavigationMiddleware, hintSlashMiddleware } fro
 import { redoMiddleware, undoMiddleware } from "./keydown.editorStack";
 import { commonHotkeyMiddleware } from "./keydown.commonHotkey";
 import { fixTableMiddleware } from "./keydown.table";
+import { superBlockSelectMiddleware } from "./keydown.superBlockSelect";
+import { 反聚焦处理, 处理块进入聚焦, 处理块退出聚焦, 聚焦处理 } from "./keydown.focus";
 
 export const getContentByInlineHTML = (range: Range, cb: (content: string) => void) => {
     let html = "";
@@ -250,7 +252,6 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
 
         await arrowUpDownMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
-
         // 仅处理以下快捷键操作
         if (event.key !== "PageUp" && event.key !== "PageDown" && event.key !== "Home" && event.key !== "End" && event.key.indexOf("Arrow") === -1 &&
             isNotCtrl(event) && event.key !== "Escape" && !event.shiftKey && !event.altKey && !/^F\d{1,2}$/.test(event.key) &&
@@ -264,59 +265,16 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
             }
             return false;
         }
-
         await foldHotkeyMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
-
         await expandSelectMiddleware(event, protyle, nodeElement, editorElement, range, controller)
         if (signal.aborted) { return }
-
-        if (matchHotKey(window.siyuan.config.keymap.general.enter.custom, event)) {
-            onlyProtyleCommand({
-                protyle,
-                command: "enter",
-                previousRange: range,
-            });
-            event.preventDefault();
-            event.stopPropagation();
-            return;
-        }
-
-        if (matchHotKey(window.siyuan.config.keymap.general.enterBack.custom, event)) {
-            onlyProtyleCommand({
-                protyle,
-                command: "enterBack",
-                previousRange: range,
-            });
-            event.preventDefault();
-            event.stopPropagation();
-            return;
-        }
-
-        if ((event.shiftKey && !event.altKey && isNotCtrl(event) && (event.key === "Home" || event.key === "End") && isMac()) ||
-            (event.shiftKey && !event.altKey && isOnlyMeta(event) && (event.key === "Home" || event.key === "End") && !isMac())) {
-            const topElement = hasTopClosestByAttribute(nodeElement, "data-node-id", null);
-            if (topElement) {
-                // 超级块内已选中某个块
-                topElement.querySelectorAll(".protyle-wysiwyg--select").forEach(item => {
-                    item.classList.remove("protyle-wysiwyg--select");
-                });
-                topElement.classList.add("protyle-wysiwyg--select");
-                let nextElement = event.key === "Home" ? topElement.previousElementSibling : topElement.nextElementSibling;
-                while (nextElement) {
-                    nextElement.classList.add("protyle-wysiwyg--select");
-                    nextElement = event.key === "Home" ? nextElement.previousElementSibling : nextElement.nextElementSibling;
-                }
-                if (event.key === "Home") {
-                    protyle.wysiwyg.element.firstElementChild.scrollIntoView();
-                } else {
-                    protyle.wysiwyg.element.lastElementChild.scrollIntoView(false);
-                }
-            }
-            event.stopPropagation();
-            event.preventDefault();
-            return;
-        }
+        await 处理块进入聚焦(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
+        await 处理块退出聚焦(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
+        await superBlockSelectMiddleware(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
         // https://github.com/siyuan-note/siyuan/issues/11726
         await hideHintMiddleware(editorContext)
         if (signal.aborted) { return }
