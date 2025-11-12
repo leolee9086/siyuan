@@ -22,6 +22,71 @@ import {useShell} from "../util/pathName";
 
 export const bazaar = {
     element: undefined as Element,
+    // 提取并统计关键词
+    _extractKeywords(items: IBazaarItem[]): string[] {
+        const keywordCount: { [key: string]: number } = {};
+        
+        items.forEach(item => {
+            if (item.keywords) {
+                item.keywords.forEach(keyword => {
+                    if (keywordCount[keyword]) {
+                        keywordCount[keyword]++;
+                    } else {
+                        keywordCount[keyword] = 1;
+                    }
+                });
+            }
+        });
+                console.log(bazaar,keywordCount)
+
+        // 按出现频率排序，返回前10个关键词
+        const data= Object.entries(keywordCount)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10)
+            .map(entry => entry[0]);
+            console.log(data)
+            return data
+    },
+    // 生成关键词标签HTML
+    _genKeywordsHTML(bazaarType: TBazaarType): string {
+        const keywords = bazaar._data.keywords[bazaarType];
+        console.log(bazaar,bazaarType,keywords)
+        const selectedKeywords = bazaar._data.selectedKeywords[bazaarType];
+        
+        let html = '<div class="config-bazaar__keywords">';
+        html += '<div class="config-bazaar__keywords-list">';
+        
+        keywords.forEach(keyword => {
+            const isSelected = selectedKeywords.includes(keyword);
+            html += `<span class="b3-chip ${isSelected ? 'b3-chip--primary' : ''}" data-keyword="${keyword}" data-type="${bazaarType}">${keyword}</span>`;
+        });
+        
+        html += '</div></div>';
+        console.log(html)
+        return html;
+    },
+    // 根据选中的关键词过滤包
+    _filterPackagesByKeywords(bazaarType: TBazaarType) {
+        const selectedKeywords = bazaar._data.selectedKeywords[bazaarType];
+        const allPackages = bazaar._data[bazaarType];
+        
+        // 如果没有选中任何关键词，显示所有包
+        if (selectedKeywords.length === 0) {
+            return allPackages;
+        }
+        
+        // 过滤包含所有选中关键词的包
+        return allPackages.filter(item => {
+            if (!item.keywords || item.keywords.length === 0) {
+                return false;
+            }
+            
+            // 检查是否包含所有选中的关键词
+            return selectedKeywords.every(selectedKeyword =>
+                item.keywords!.includes(selectedKeyword)
+            );
+        });
+    },
     genHTML() {
         if (!window.siyuan.config.bazaar.trust) {
             return `<div class="fn__flex-column">
@@ -100,6 +165,8 @@ export const bazaar = {
                 <input class="b3-text-field b3-form__icon-input fn__block" placeholder="${window.siyuan.languages.enterKey} ${window.siyuan.languages.search}">
             </div>
             <div class="fn__space"></div>
+            ${this._genKeywordsHTML("themes")}
+            <div class="fn__space"></div>
             <div class="fn__flex-1"></div>
             <input ${window.siyuan.config.bazaar.petalDisabled ? "" : " checked"} data-type="plugins-enable" type="checkbox" class="b3-switch fn__flex-center" style="margin-right: 8px">
             <div class="counter counter--bg fn__none fn__flex-center b3-tooltips b3-tooltips__w" aria-label="${window.siyuan.languages.total}"></div>
@@ -130,6 +197,10 @@ export const bazaar = {
                 <input class="b3-text-field b3-form__icon-input fn__block" placeholder="${window.siyuan.languages.enterKey} ${window.siyuan.languages.search}">
             </div>
             <div class="fn__space"></div>
+            ${this._genKeywordsHTML("plugins")}
+            <div class="fn__space"></div>
+            ${this._genKeywordsHTML("templates")}
+            <div class="fn__space"></div>
             <div class="fn__flex-1"></div>
             <div class="counter counter--bg fn__flex-center b3-tooltips b3-tooltips__w" aria-label="${window.siyuan.languages.total}"></div>
         </div>
@@ -153,6 +224,8 @@ export const bazaar = {
                 <input class="b3-text-field b3-form__icon-input fn__block" placeholder="${window.siyuan.languages.enterKey} ${window.siyuan.languages.search}">
             </div>
             <div class="fn__space"></div>
+            ${this._genKeywordsHTML("icons")}
+            <div class="fn__space"></div>
             <div class="fn__flex-1"></div>
             <div class="counter counter--bg fn__flex-center b3-tooltips b3-tooltips__w" aria-label="${window.siyuan.languages.total}"></div>
         </div>
@@ -175,6 +248,8 @@ export const bazaar = {
                 <svg class="b3-form__icon-icon"><use xlink:href="#iconSearch"></use></svg>
                 <input class="b3-text-field b3-form__icon-input fn__block" placeholder="${window.siyuan.languages.enterKey} ${window.siyuan.languages.search}">
             </div>
+            <div class="fn__space"></div>
+            ${this._genKeywordsHTML("widgets")}
             <div class="fn__space"></div>
             <div class="fn__flex-1"></div>
             <div class="counter counter--bg fn__flex-center b3-tooltips b3-tooltips__w" aria-label="${window.siyuan.languages.total}"></div>
@@ -468,6 +543,20 @@ export const bazaar = {
             icons: [] as IBazaarItem[],
             widgets: [] as IBazaarItem[],
             plugins: [] as IBazaarItem[],
+        },
+        keywords: {
+            themes: [] as string[],
+            templates: [] as string[],
+            icons: [] as string[],
+            widgets: [] as string[],
+            plugins: [] as string[],
+        },
+        selectedKeywords: {
+            themes: [] as string[],
+            templates: [] as string[],
+            icons: [] as string[],
+            widgets: [] as string[],
+            plugins: [] as string[],
         }
     },
     _renderReadme(bazaarType: TBazaarType, data: IBazaarItem, downloaded: boolean) {
@@ -1144,6 +1233,87 @@ export const bazaar = {
                 }
             });
         });
+
+        // 使用事件委托处理关键词点击事件
+        bazaar.element.addEventListener("click", (event) => {
+            const target = event.target as HTMLElement;
+            if (target.classList.contains("b3-chip") && target.hasAttribute("data-keyword")) {
+                const keyword = target.getAttribute("data-keyword");
+                const bazaarType = target.getAttribute("data-type") as TBazaarType;
+                
+                // 切换关键词选中状态
+                const selectedKeywords = bazaar._data.selectedKeywords[bazaarType];
+                const index = selectedKeywords.indexOf(keyword);
+                
+                if (index === -1) {
+                    // 添加关键词
+                    selectedKeywords.push(keyword);
+                    target.classList.add("b3-chip--primary");
+                } else {
+                    // 移除关键词
+                    selectedKeywords.splice(index, 1);
+                    target.classList.remove("b3-chip--primary");
+                }
+                
+                // 应用过滤
+                bazaar._renderFilteredPackages(bazaarType);
+            }
+        });
+    },
+    // 渲染过滤后的包
+    _renderFilteredPackages(bazaarType: TBazaarType) {
+        const filteredPackages = bazaar._filterPackagesByKeywords(bazaarType);
+        let html = "";
+        
+        filteredPackages.forEach((item: IBazaarItem) => {
+            html += bazaar._genCardHTML(item, bazaarType);
+        });
+        
+        let id = "#configBazaarTemplate";
+        if (bazaarType === "themes") {
+            id = "#configBazaarTheme";
+        } else if (bazaarType === "icons") {
+            id = "#configBazaarIcon";
+        } else if (bazaarType === "widgets") {
+            id = "#configBazaarWidget";
+        } else if (bazaarType === "plugins") {
+            id = "#configBazaarPlugin";
+        }
+        
+        const element = bazaar.element.querySelector(id);
+        element.innerHTML = `<div class="b3-cards">${html}</div>`;
+        element.parentElement.querySelector(".counter").textContent = filteredPackages.length.toString();
+        
+        // 应用当前排序
+        const localSort = window.siyuan.storage[Constants.LOCAL_BAZAAR];
+        if (localSort[bazaarType.replace("s", "")] === "1") {
+            html = "";
+            Array.from(element.querySelectorAll(".b3-card")).sort((a, b) => {
+                return JSON.parse(b.getAttribute("data-obj")).updated < JSON.parse(a.getAttribute("data-obj")).updated ? 1 : -1;
+            }).forEach((item) => {
+                html += item.outerHTML;
+            });
+        } else if (localSort[bazaarType.replace("s", "")] === "2") { // 下载次数降序
+            html = "";
+            Array.from(element.querySelectorAll(".b3-card")).sort((a, b) => {
+                return JSON.parse(b.getAttribute("data-obj")).downloads < JSON.parse(a.getAttribute("data-obj")).downloads ? -1 : 1;
+            }).forEach((item) => {
+                html += item.outerHTML;
+            });
+        } else if (localSort[bazaarType.replace("s", "")] === "3") { // 下载次数升序
+            html = "";
+            Array.from(element.querySelectorAll(".b3-card")).sort((a, b) => {
+                return JSON.parse(b.getAttribute("data-obj")).downloads < JSON.parse(a.getAttribute("data-obj")).downloads ? 1 : -1;
+            }).forEach((item) => {
+                html += item.outerHTML;
+            });
+        }
+        
+        if (filteredPackages.length > 1) {
+            html += '<div class="fn__flex-1" style="margin-left: 15px;min-width: 342px;"></div><div class="fn__flex-1" style="margin-left: 15px;min-width: 342px;"></div>';
+        }
+        
+        element.innerHTML = `<div class="b3-cards">${html}</div>`;
     },
     _onBazaar(response: IWebSocketData, bazaarType: TBazaarType, reload: boolean) {
         if (bazaar.element.querySelector("#configBazaarReadme").classList.contains("config-bazaar__readme--show")) {
@@ -1174,8 +1344,16 @@ export const bazaar = {
             html += this._genCardHTML(item, bazaarType);
         });
         bazaar._data[bazaarType] = response.data.packages;
+        // 提取并存储关键词
+        console.log(bazaar,bazaarType)
+        bazaar._data.keywords[bazaarType] = bazaar._extractKeywords(response.data.packages);
         element.innerHTML = `<div class="b3-cards">${html}</div>`;
         element.parentElement.querySelector(".counter").textContent = element.querySelectorAll(".b3-card:not(.fn__none)").length.toString();
+        // 更新关键词标签
+        const keywordsElement = element.parentElement.querySelector(".config-bazaar__keywords");
+        if (keywordsElement) {
+            keywordsElement.outerHTML = bazaar._genKeywordsHTML(bazaarType);
+        }
         const localSort = window.siyuan.storage[Constants.LOCAL_BAZAAR];
         if (localSort[bazaarType.replace("s", "")] === "1") {
             html = "";
@@ -1208,3 +1386,4 @@ export const bazaar = {
         }
     }
 };
+

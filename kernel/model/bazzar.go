@@ -545,3 +545,118 @@ func getSearchKeywords(query string) (ret []string) {
 	}
 	return
 }
+
+// GetBazaarPluginKeywords 获取集市插件的所有关键词
+func GetBazaarPluginKeywords(frontend, keyword string) []string {
+	plugins := bazaar.Plugins(frontend)
+	keywordsMap := map[string]bool{}
+
+	for _, plugin := range plugins {
+		// 收集所有关键词
+		for _, kw := range plugin.Keywords {
+			if keyword == "" || strings.Contains(strings.ToLower(kw), strings.ToLower(keyword)) {
+				keywordsMap[strings.ToLower(kw)] = true
+			}
+		}
+	}
+
+	// 转换为数组并返回
+	var result []string
+	for kw := range keywordsMap {
+		result = append(result, kw)
+	}
+
+	return result
+}
+
+// GetBazaarThemeKeywords 获取集市主题的所有关键词
+func GetBazaarThemeKeywords(keyword string) []string {
+	themes := bazaar.Themes()
+	keywordsMap := map[string]bool{}
+
+	for _, theme := range themes {
+		// 收集所有关键词
+		for _, kw := range theme.Keywords {
+			if keyword == "" || strings.Contains(strings.ToLower(kw), strings.ToLower(keyword)) {
+				keywordsMap[strings.ToLower(kw)] = true
+			}
+		}
+	}
+
+	// 转换为数组并返回
+	var result []string
+	for kw := range keywordsMap {
+		result = append(result, kw)
+	}
+
+	return result
+}
+
+// GetBazaarIconKeywords 获取集市图标的的所有关键词
+func GetBazaarIconKeywords(keyword string) []string {
+	icons := bazaar.Icons()
+	keywordsMap := map[string]bool{}
+
+	for _, icon := range icons {
+		// 收集所有关键词
+		for _, kw := range icon.Keywords {
+			if keyword == "" || strings.Contains(strings.ToLower(kw), strings.ToLower(keyword)) {
+				keywordsMap[strings.ToLower(kw)] = true
+			}
+		}
+	}
+
+	// 转换为数组并返回
+	var result []string
+	for kw := range keywordsMap {
+		result = append(result, kw)
+	}
+
+	return result
+}
+
+// GetBazaarTemplateKeywords 获取集市模板的所有关键词
+func GetBazaarTemplateKeywords(keyword string) []string {
+	templates := bazaar.Templates()
+	keywordsMap := map[string]bool{}
+
+	for _, template := range templates {
+		// 收集所有关键词
+		for _, kw := range template.Keywords {
+			if keyword == "" || strings.Contains(strings.ToLower(kw), strings.ToLower(keyword)) {
+				keywordsMap[strings.ToLower(kw)] = true
+			}
+		}
+	}
+
+	// 转换为数组并返回
+	var result []string
+	for kw := range keywordsMap {
+		result = append(result, kw)
+	}
+
+	return result
+}
+
+// GetBazaarWidgetKeywords 获取集市小组件的所有关键词
+func GetBazaarWidgetKeywords(keyword string) []string {
+	widgets := bazaar.Widgets()
+	keywordsMap := map[string]bool{}
+
+	for _, widget := range widgets {
+		// 收集所有关键词
+		for _, kw := range widget.Keywords {
+			if keyword == "" || strings.Contains(strings.ToLower(kw), strings.ToLower(keyword)) {
+				keywordsMap[strings.ToLower(kw)] = true
+			}
+		}
+	}
+
+	// 转换为数组并返回
+	var result []string
+	for kw := range keywordsMap {
+		result = append(result, kw)
+	}
+
+	return result
+}

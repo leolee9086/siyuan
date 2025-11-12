@@ -568,3 +568,50 @@ func uninstallBazaarTheme(c *gin.Context) {
 		"appearance": model.Conf.Appearance,
 	}
 }
+
+// getBazaarKeywords 获取集市中所有可用的关键词
+func getBazaarKeywords(c *gin.Context) {
+	ret := gulu.Ret.NewResult()
+	defer c.JSON(http.StatusOK, ret)
+
+	arg, ok := util.JsonArg(c, ret)
+	if !ok {
+		return
+	}
+
+	bazaarType := arg["type"].(string)
+
+	// 安全获取 frontend 参数，可能不存在
+	var frontend string
+	if frontendArg := arg["frontend"]; nil != frontendArg {
+		frontend = frontendArg.(string)
+	} else {
+		frontend = "default" // 设置默认值
+	}
+
+	var keyword string
+	if keywordArg := arg["keyword"]; nil != keywordArg {
+		keyword = keywordArg.(string)
+	}
+
+	// 根据不同的集市类型获取关键词
+	var keywords []string
+	switch bazaarType {
+	case "plugins":
+		keywords = model.GetBazaarPluginKeywords(frontend, keyword)
+	case "themes":
+		keywords = model.GetBazaarThemeKeywords(keyword)
+	case "icons":
+		keywords = model.GetBazaarIconKeywords(keyword)
+	case "templates":
+		keywords = model.GetBazaarTemplateKeywords(keyword)
+	case "widgets":
+		keywords = model.GetBazaarWidgetKeywords(keyword)
+	default:
+		keywords = []string{}
+	}
+
+	ret.Data = map[string]interface{}{
+		"keywords": keywords,
+	}
+}

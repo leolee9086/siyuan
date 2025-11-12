@@ -849,6 +849,7 @@ interface IBazaarItem {
     hInstallDate: string;
     hUpdated: string;
     preferredFunding: string;
+    keywords?:string[]
 }
 
 interface IAV {
