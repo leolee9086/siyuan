@@ -1,82 +1,12 @@
-import { hideElements } from "../ui/hideElements";
-import { isMac, isNotCtrl, isOnlyMeta, writeText } from "../util/compatibility";
+import {  isNotCtrl } from "../util/compatibility";
 import {
-    focusBlock,
-    focusByRange,
-    focusByWbr,
     getEditorRange,
-    getSelectionOffset,
-    getSelectionPosition,
-    selectAll,
-    setFirstNodeRange,
-    setInsertWbrHTML,
-    setLastNodeRange,
 } from "../util/selection";
 import {
     hasClosestBlock,
-    hasClosestByAttribute,
-    hasClosestByClassName,
-    hasClosestByTag,
-    hasTopClosestByAttribute,
-    isInEmbedBlock
 } from "../util/hasClosest";
-import { removeBlock, removeImage } from "./remove";
-import {
-    getContenteditableElement,
-    getFirstBlock,
-    getLastBlock,
-    getNextBlock,
-    getPreviousBlock,
-    getTopAloneElement,
-    hasNextSibling,
-    hasPreviousSibling,
-    isEndOfBlock,
-    isNotEditBlock,
-} from "./getBlock";
-import { isIncludesHotKey, matchHotKey } from "../util/hotKey";
-import { enter, softEnter } from "./enter";
-import { clearTableCell, fixTable } from "../util/table";
-import {
-    transaction,
-    turnsIntoOneTransaction,
-    turnsIntoTransaction,
-    turnsOneInto,
-    updateBatchTransaction,
-    updateTransaction
-} from "./transaction";
-import { fontEvent } from "../toolbar/Font";
-import { listIndent, listOutdent } from "./list";
-import { addSubList } from "./list.addSubList";
-import { newFileContentBySelect, rename, replaceFileName } from "../../editor/rename";
-import { cancelSB, insertEmptyBlock, jumpToParent } from "../../block/util";
-import { isLocalPath } from "../../util/pathName";
-/// #if !MOBILE
-import { openFileById } from "../../editor/utils.openFileById";
-import { openBy } from "../../editor/utils.openBy";
-/// #endif
-import { alignImgCenter, alignImgLeft, commonHotkey, downSelect, getStartEndElement, upSelect } from "./commonHotkey";
-import { inlineMathMenu, linkMenu, setFold, tagMenu } from "../../menus/protyle";
-import { refMenu } from "../../menus/protyle.refMenu";
-import { fileAnnotationRefMenu } from "../../menus/protyle.fileAnnotationRefMenu";
-import { openAttr } from "../../menus/commonMenuItem";
 import { Constants } from "../../constants";
 import { fetchPost } from "../../util/fetch";
-import { scrollCenter } from "../../util/highlightById";
-import { BlockPanel } from "../../block/Panel";
-import * as dayjs from "dayjs";
-import { highlightRender } from "../render/highlightRender";
-import { countBlockWord } from "../../layout/status";
-import { moveToDown, moveToUp } from "./move";
-import { pasteAsPlainText } from "../util/paste";
-import { preventScroll } from "../scroll/preventScroll";
-import { getSavePath, newFileBySelect } from "../../util/newFile";
-import { removeSearchMark } from "../toolbar/util";
-import { avKeydown } from "../render/av/keydown";
-import { checkFold } from "../../util/noRelyPCFunction";
-import { openAIActionsMenu } from "../../ai/actions";
-import { openLink } from "../../editor/openLink";
-import { onlyProtyleCommand } from "../../boot/globalEvent/command/protyle";
-import { AIChat } from "../../ai/chat";
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu";
 import { avPanelGuard, htmlBlockGuard, htmlBlockGuardRgistyItem, inputElementGuard, protyleDisabledGuard, protyleHaveSelectedGuard } from "./keydown.guards";
 import { hideProtyleToolbarMiddleware, hideProtyleUtilMiddleware, setProtyleWysiwygPreventKeyupMiddleware } from "./keydown.middlewares";
@@ -117,7 +47,8 @@ import { redoMiddleware, undoMiddleware } from "./keydown.editorStack";
 import { commonHotkeyMiddleware } from "./keydown.commonHotkey";
 import { fixTableMiddleware } from "./keydown.table";
 import { superBlockSelectMiddleware } from "./keydown.superBlockSelect";
-import { 反聚焦处理, 处理块进入聚焦, 处理块退出聚焦, 聚焦处理 } from "./keydown.focus";
+import {  处理块进入聚焦, 处理块退出聚焦 } from "./keydown.focus";
+import { commonInputMiddleware } from "./keydown.commonInput";
 
 export const getContentByInlineHTML = (range: Range, cb: (content: string) => void) => {
     let html = "";
@@ -247,24 +178,13 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         }
 
         if (!["Alt", "Meta", "Shift", "Control", "CapsLock", "Escape"].includes(event.key) && protyle.options.render.breadcrumb) {
-            protyle.breadcrumb.hide();
+            protyle.breadcrumb?.hide();
         }
-
         await arrowUpDownMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
         // 仅处理以下快捷键操作
-        if (event.key !== "PageUp" && event.key !== "PageDown" && event.key !== "Home" && event.key !== "End" && event.key.indexOf("Arrow") === -1 &&
-            isNotCtrl(event) && event.key !== "Escape" && !event.shiftKey && !event.altKey && !/^F\d{1,2}$/.test(event.key) &&
-            event.key !== "Enter" && event.key !== "Tab" && event.key !== "Backspace" && event.key !== "Delete" && event.key !== "ContextMenu") {
-            event.stopPropagation();
-            hideElements(["select"], protyle);
-            // https://github.com/siyuan-note/siyuan/issues/14743
-            if (nodeElement && getContenteditableElement(nodeElement) &&
-                range.endContainer.nodeType === 1 && (range.endContainer as HTMLElement).classList.contains("protyle-attr")) {
-                range.collapse(true);
-            }
-            return false;
-        }
+        await commonInputMiddleware(event, protyle, nodeElement, range, controller)
+        if (signal.aborted) { return }
         await foldHotkeyMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
         await expandSelectMiddleware(event, protyle, nodeElement, editorElement, range, controller)
