@@ -64,11 +64,11 @@ export const openLocalMiddleWare = (
     controller: AbortController
 ) => {
     /// #if !BROWSER
-    if (matchHotKey(window.siyuan.config.keymap.editor.general.showInFolder.custom, event)) {
+    if (matchHotKey(getSiyuanConfig().keymap.editor.general.showInFolder.custom, event)) {
         const aElement = hasClosestByAttribute(range.startContainer, "data-type", "a");
         if (aElement) {
             const linkAddress = aElement.getAttribute("data-href");
-            if (isLocalPath(linkAddress)) {
+            if (linkAddress&&isLocalPath(linkAddress)) {
                 openBy(linkAddress, "folder");
                 event.preventDefault();
                 event.stopPropagation();
@@ -88,7 +88,7 @@ export const openInNewTabMiddleware = (
     range: Range,
     controller: AbortController
 ) => {
-    if (!event.repeat && matchHotKey(window.siyuan.config.keymap.editor.general.openInNewTab.custom, event)) {
+    if (!event.repeat && matchHotKey(getSiyuanConfig().keymap.editor.general.openInNewTab?.custom, event)) {
         event.preventDefault();
         event.stopPropagation();
         const blockPanel = window.siyuan.blockPanels.find(item => {
@@ -97,7 +97,7 @@ export const openInNewTabMiddleware = (
             }
         });
         const id = nodeElement.getAttribute("data-node-id");
-        checkFold(id, (zoomIn, action) => {
+        id&&checkFold(id, (zoomIn, action) => {
             openFileById({
                 app: protyle.app,
                 id,
@@ -105,7 +105,7 @@ export const openInNewTabMiddleware = (
                 zoomIn,
                 openNewTab: true
             });
-            blockPanel.destroy();
+            blockPanel?.destroy();
         });
         return;
     }
