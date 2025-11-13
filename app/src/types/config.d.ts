@@ -260,6 +260,13 @@ declare namespace Config {
          * The version number of the theme currently in use
          */
         themeVer: string;
+        statusBar: IAppearanceStatusBar;
+    }
+
+    export interface IAppearanceStatusBar {
+        msgTaskDatabaseIndexCommitDisabled: boolean;
+        msgTaskHistoryDatabaseIndexCommitDisabled: boolean;
+        msgTaskAssetDatabaseIndexCommitDisabled: boolean;
     }
 
     /**
