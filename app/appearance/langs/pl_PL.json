@@ -1,5 +1,6 @@
 {
-  "useBackground": "Wypełnij tło kolumny kolorem",
+  "statusBarMsgPushTip": "Dzięki powiadomieniom na pasku stanu można na bieżąco poznać działanie systemu, a jeśli przeszkadzają, można je wyłączyć",
+  "useBackground": "Wypełnij tło kolumny kolorem opcji",
   "print": "Drukuj",
   "clickArrow": "Kliknij strzałkę",
   "foldAll": "Zwiń wszystko",

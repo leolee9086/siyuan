@@ -22,14 +22,14 @@ const getKanbanTitleHTML = (group: IAVView, counter: number) => {
             nameHTML += `<span class="b3-chip" style="background-color:var(--b3-font-background${item.color});color:var(--b3-font-color${item.color})">${escapeHtml(item.content)}</span>`;
         });
     } else if (group.groupValue.type === "checkbox") {
-        nameHTML = `<svg style="width:calc(1.625em - 12px);height:calc(1.625em - 12px)"><use xlink:href="#icon${group.groupValue.checkbox.checked ? "Check" : "Uncheck"}"></use></svg>`;
+        nameHTML = `<svg style="width:calc(1.625em - 12px);height:calc(1.625em - 12px);margin: 4px 0;float: left;"><use xlink:href="#icon${group.groupValue.checkbox.checked ? "Check" : "Uncheck"}"></use></svg>`;
     } else {
         nameHTML = group.name;
     }
     // av__group-name 为第三方需求，本应用内没有使用，但不能移除 https://github.com/siyuan-note/siyuan/issues/15736
     return `<div class="av__group-title">
     <span class="av__group-name fn__ellipsis" style="white-space: nowrap;">${nameHTML}</span>
-    ${counter === 0 ? '<span class="fn__space"></span>' : `<span aria-label="${window.siyuan.languages.total}" data-position="north" class="av__group-counter ariaLabel">${counter}</span>`}
+    ${counter === 0 ? '<span class="fn__space"></span>' : `<span aria-label="${window.siyuan.languages.entryNum}" data-position="north" class="av__group-counter ariaLabel">${counter}</span>`}
     <span class="fn__flex-1"></span>
     <span class="av__group-icon ariaLabel" data-type="av-add-top" data-position="north" aria-label="${window.siyuan.languages.newRow}"><svg><use xlink:href="#iconAdd"></use></svg></span>
 </div>`;
@@ -155,6 +155,7 @@ export const renderKanban = async (options: {
         editIds,
         selectItemIds,
         pageSizes,
+        left: options.blockElement.querySelector(".av__kanban")?.scrollLeft,
     };
     if (options.blockElement.firstElementChild.innerHTML === "") {
         options.blockElement.style.alignSelf = "";
@@ -188,7 +189,13 @@ export const renderKanban = async (options: {
     }
     if (data.viewType === "gallery") {
         options.blockElement.setAttribute("data-av-type", data.viewType);
-        renderGallery({blockElement: options.blockElement, protyle:options.protyle, cb:options.cb, renderAll:options.renderAll, data});
+        renderGallery({
+            blockElement: options.blockElement,
+            protyle: options.protyle,
+            cb: options.cb,
+            renderAll: options.renderAll,
+            data
+        });
         return;
     }
     const view: IAVGallery = data.view as IAVKanban;
@@ -211,8 +218,8 @@ export const renderKanban = async (options: {
                 }
             }
             bodyHTML += `<div class="av__kanban-group${group.cardSize === 0 ? " av__kanban-group--small" : (group.cardSize === 2 ? " av__kanban-group--big" : "")}"${selectBg}>
-    ${getKanbanTitleHTML(group, group.cards.length)}
-    <div data-group-id="${group.id}" data-page-size="${group.pageSize}" data-dtype="${group.groupKey.type}" data-content="${Lute.EscapeHTMLStr(group.groupValue.text?.content)}" class="av__body">${getKanbanHTML(group)}</div>
+    ${getKanbanTitleHTML(group, group.cardCount)}
+    <div data-group-id="${group.id}" data-page-size="${group.pageSize}" data-dtype="${group.groupKey.type}" data-content="${Lute.EscapeHTMLStr(group.groupValue.text?.content || "")}" class="av__body">${getKanbanHTML(group)}</div>
 </div>`;
         }
     });
