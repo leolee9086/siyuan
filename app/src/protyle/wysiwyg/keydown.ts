@@ -160,14 +160,12 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
             controller.abort("输入法处理中");
         }
         if (signal.aborted) { return }
-
         // https://github.com/siyuan-note/siyuan/issues/2261
         await hintSlashMiddleware(editorContext)
         if (signal.aborted) { return }
         // 有可能输入 shift+. ，因此需要使用 event.key 来进行判断
         await insertWbrMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
-
         if (!getSiyuanGlobalMenus().menu.element.classList.contains("fn__none") &&
             (["←", "↑", "→", "↓"].includes(Constants.KEYCODELIST[event.keyCode]) || Constants.KEYCODELIST[event.keyCode] === "↩") &&
             !event.altKey && !event.shiftKey && isNotCtrl(event)) {
@@ -176,7 +174,6 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         } else if (event.key !== "Escape") {
             getSiyuanGlobalMenus().menu.remove();
         }
-
         if (!["Alt", "Meta", "Shift", "Control", "CapsLock", "Escape"].includes(event.key) && protyle.options.render.breadcrumb) {
             protyle.breadcrumb?.hide();
         }
