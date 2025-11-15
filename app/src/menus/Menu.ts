@@ -116,6 +116,15 @@ export class Menu {
         });
         this.element.lastElementChild.scrollTop = 0;
     }
+    public appendMenuItemLike(item: { element?: HTMLElement, index?: number }) {
+        if (!item.element) {
+            throw new Error("插入项目至少需要一个HTML元素")
+        }
+        this.append(
+            item.element,
+            item.index
+        )
+    }
 }
 
 

@@ -28,7 +28,7 @@ import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig";
  * }
  * ```
  */
-const createRenameBookmarkMenuItem = (element: HTMLElement): HTMLElement | null => {
+const createRenameBookmarkMenuItem = (element: HTMLElement): MenuItem | null => {
     // 获取元素的data-node-id属性，用于判断是否为块引用书签
     // 没有data-node-id说明是纯书签项目而不是块项目
     const id = element.getAttribute("data-node-id");
@@ -88,7 +88,7 @@ const createRenameBookmarkMenuItem = (element: HTMLElement): HTMLElement | null 
                 });
             }
         }
-    }).element;
+    });
 };
 
 /**
@@ -108,7 +108,7 @@ const createRenameBookmarkMenuItem = (element: HTMLElement): HTMLElement | null 
  * }
  * ```
  */
-const createCopyBookmarkMenuItem = (element: HTMLElement): HTMLElement | null => {
+const createCopyBookmarkMenuItem = (element: HTMLElement): MenuItem | null => {
     // 获取元素的data-node-id属性，用于判断是否为块引用书签
     const id = element.getAttribute("data-node-id");
     
@@ -123,7 +123,7 @@ const createCopyBookmarkMenuItem = (element: HTMLElement): HTMLElement | null =>
         type: "submenu",
         icon: "iconCopy",
         submenu: copySubMenu([id], false) as IMenu[]
-    }).element;
+    });
 };
 
 /**
@@ -144,7 +144,7 @@ const createCopyBookmarkMenuItem = (element: HTMLElement): HTMLElement | null =>
  * }
  * ```
  */
-const createRemoveBookmarkMenuItem = (element: HTMLElement, bookmarkObj: Bookmark | MobileBookmarks): HTMLElement | null => {
+const createRemoveBookmarkMenuItem = (element: HTMLElement, bookmarkObj: Bookmark | MobileBookmarks): MenuItem | null => {
     // 检查系统是否处于只读模式，只读模式下不允许删除操作
     if (getSiyuanConfig().readonly) {
         return null;
@@ -185,7 +185,7 @@ const createRemoveBookmarkMenuItem = (element: HTMLElement, bookmarkObj: Bookmar
                 }
             }, undefined, true);
         }
-    }).element;
+    });
 };
 
 /**
@@ -252,19 +252,19 @@ export const openBookmarkMenu = (element: HTMLElement, event: MouseEvent, bookma
     // 根据书签类型动态创建重命名菜单项（仅纯书签显示）
     const renameMenuItem = createRenameBookmarkMenuItem(element);
     if (renameMenuItem) {
-        getSiyuanGlobalMenus().menu.append(renameMenuItem);
+        getSiyuanGlobalMenus().menu.appendMenuItemLike(renameMenuItem);
     }
     
     // 根据书签类型动态创建复制菜单项（仅块引用书签显示）
     const copyMenuItem = createCopyBookmarkMenuItem(element);
     if (copyMenuItem) {
-        getSiyuanGlobalMenus().menu.append(copyMenuItem);
+        getSiyuanGlobalMenus().menu.appendMenuItemLike(copyMenuItem);
     }
     
     // 创建删除菜单项（非只读模式下显示）
     const removeMenuItem = createRemoveBookmarkMenuItem(element, bookmarkObj);
     if (removeMenuItem) {
-        getSiyuanGlobalMenus().menu.append(removeMenuItem);
+        getSiyuanGlobalMenus().menu.appendMenuItemLike(removeMenuItem);
     }
     
     // 在鼠标点击位置显示菜单
