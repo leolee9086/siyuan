@@ -7,24 +7,38 @@ import {
     preventMenuDefault
 } from "./Menu.uills";
 import { MenuItem } from "./Menu.Item";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
+import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu";
 
 export class Menu {
     public element: HTMLElement;
     public data: any;   // 用于记录当前菜单的数据
-    public removeCB: () => void;
+    public removeCB: undefined|(() => void);
     private wheelEvent: string;
 
     constructor() {
         //默认什么都不做
         this.removeCB = () => { }
         this.wheelEvent = "onwheel" in document.createElement("div") ? "wheel" : "mousewheel";
-        this.element = document.getElementById("commonMenu");
-        this.element.querySelector(".b3-menu__title .b3-menu__label").innerHTML = window.siyuan.languages.back;
+        this.element = this.getContainer()
+        this.element.querySelector(".b3-menu__title .b3-menu__label").innerHTML = siyuanI18n.back;
         this.element.addEventListener(isMobile() ? "click" : "mouseover", (event) => {
             handleMenuEvent(this.element, event, () => this.remove());
         });
     }
-
+    private getContainer() {
+        const element = document.getElementById("commonMenu");
+        let result: HTMLElement = document.createElement('div')
+        //如果有元素直接使用
+        if (element) {
+            result = element
+        }
+        //如果没有就创建
+        if (!element) {
+            result.setAttribute('id', 'commonMenu')
+        }
+        return result
+    }
     public showSubMenu(subMenuElement: HTMLElement) {
         positionSubMenu(subMenuElement);
     }
@@ -47,7 +61,7 @@ export class Menu {
 
     public remove(isKeyEvent = false) {
         if (isKeyEvent) {
-            const subElements = window.siyuan.menus.menu.element.querySelectorAll(".b3-menu__item--show");
+            const subElements = getSiyuanGlobalMenus().menu.element.querySelectorAll(".b3-menu__item--show");
             if (subElements.length > 0) {
                 const subElement = subElements[subElements.length - 1];
                 subElement.classList.remove("b3-menu__item--show");
@@ -56,9 +70,10 @@ export class Menu {
                 return;
             }
         }
-        if (window.siyuan.menus.menu.removeCB) {
-            window.siyuan.menus.menu.removeCB();
-            window.siyuan.menus.menu.removeCB = undefined;
+        const removeCB = getSiyuanGlobalMenus().menu.removeCB;
+        if (removeCB && typeof removeCB === 'function') {
+            removeCB();
+            getSiyuanGlobalMenus().menu.removeCB = undefined;
         }
         this.removeScrollEvent();
         resetMenuState(this.element);
