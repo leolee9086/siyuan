@@ -14,6 +14,8 @@ import { isInAndroid, openByMobile, isInHarmony } from "../protyle/util/compatib
 import { getSearch } from "../util/functions";
 import { isLocalPath, pathPosix } from "../util/pathName";
 import { MenuItem } from "./Menu.Item";
+import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
 
 
 // 移动端菜单项生成函数
@@ -200,7 +202,9 @@ export const openMenu = (app: App, src: string, onlyMenu: boolean, showAccelerat
         } else {
             submenu = generateLocalFileMenuItems(src, showAccelerator);
         }
-    } else if (src) {
+        
+    } 
+    if ( !isLocalPath(src)&&src) {
         submenu = generateExternalLinkMenuItems(src, showAccelerator);
     }
     /// #endif
@@ -208,9 +212,9 @@ export const openMenu = (app: App, src: string, onlyMenu: boolean, showAccelerat
     if (onlyMenu) {
         return submenu;
     }
-    window.siyuan.menus.menu.append(new MenuItem({
+    getSiyuanGlobalMenus().menu.append(new MenuItem({
         id: "openBy",
-        label: window.siyuan.languages.openBy,
+        label: siyuanI18n.openBy,
         icon: "iconOpen",
         submenu
     }).element);
