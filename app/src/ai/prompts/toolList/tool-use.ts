@@ -1,6 +1,8 @@
 import { JAVASCRIPT_TOOLS_CLASS, JAVASCRIPT_TOOLS_WAIT_CLASS } from "../../constants";
 /**
  * 说明所有工具使用共通事项的提示词
+ * 鉴于AI编写代码的能力实际上比按照固定格式调用工具的能力更强
+ * 这里我们设法为它提供代码执行能力而不是直接解析工具调用
  * @returns 
  */
 export function getSharedToolUseSection(): string {
