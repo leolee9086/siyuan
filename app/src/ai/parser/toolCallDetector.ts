@@ -37,100 +37,48 @@ export const temporaryModuleSchema = z.object({
     cleanup: z.function(),
 });
 
-/**
- * 检测内容中是否包含完整的同步工具调用
- */
-function detectCompleteToolCallFromPlainText(content: string): ToolCallDetectionResult {
-    // 检测javascript-tools代码块
-    const syncToolCallRegex = new RegExp("```" + JAVASCRIPT_TOOLS_CLASS + "\\s*\\n([\\s\\S]*?)\\n```", "g");
-    const asyncToolCallRegex = new RegExp("```" + JAVASCRIPT_TOOLS_WAIT_CLASS + "\\s*\\n([\\s\\S]*?)\\n```", "g");
-
-    // 检查是否有完整的同步工具调用
-    const syncMatches = [...content.matchAll(syncToolCallRegex)];
-    const asyncMatches = [...content.matchAll(asyncToolCallRegex)];
-
-    // 优先检查同步工具调用
-    if (syncMatches.length > 0) {
-        const lastMatch = syncMatches[syncMatches.length - 1];
-        return {
-            hasCompleteToolCall: true,
-            toolCallType: JAVASCRIPT_TOOLS_CLASS,
-            codeBlock: lastMatch[1] || null,
-            isSynchronous: true
-        };
-    }
-
-    // 检查异步工具调用
-    if (asyncMatches.length > 0) {
-        const lastMatch = asyncMatches[asyncMatches.length - 1];
-        return {
-            hasCompleteToolCall: true,
-            toolCallType: JAVASCRIPT_TOOLS_WAIT_CLASS,
-            codeBlock: lastMatch[1] || null,
-            isSynchronous: false
-        };
-    }
-    return {
-        hasCompleteToolCall: false,
-        toolCallType: null,
-        codeBlock: null,
-        isSynchronous: false
-    };
-}
-
 
 
 
 
 
 /**
- * 从DOM元素中检测工具调用
+ * 通用工具调用代码块检测函数
  * @param domElement 包含可能工具调用的DOM元素
+ * @param language 要检测的语言名
  * @returns 检测到的工具调用代码，如果没有检测到则返回null
  */
-export function detectToolCalls(domElement: Element): string | null {
+function 从块DOM检测特定语言(domElement: Element, language: string): string | null {
     // 找到代表工具调用的代码块
-    const spans = domElement.querySelectorAll('.protyle-action__language');
-    const awaitToolSection = Array.from(spans).find(
-        (element) => element.textContent === JAVASCRIPT_TOOLS_WAIT_CLASS
-    );
-
-    if (awaitToolSection) {
-        // 只有输出完成的代码块才会有这个选项
-        const isFullToolCall = awaitToolSection.parentElement?.parentElement?.getAttribute('custom-aitoolcall-fired') === 'false';
+    const span = domElement.querySelector('.protyle-action__language');
+    if(span?.textContent===language){
+            // 只有输出完成的代码块才会有这个选项
+        const isFullToolCall = span.parentElement?.parentElement?.getAttribute('custom-aitoolcall-fired') === 'false';
         if (isFullToolCall) {
-            const data = awaitToolSection.parentElement?.nextElementSibling?.textContent;
+            const data = span.parentElement?.nextElementSibling?.textContent;
             if (data) {
                 return data;
             }
         }
     }
-
     return null;
 }
+
 /**
- * 从DOM元素中检测工具调用
+ * 从DOM元素中检测同步工具调用
  * @param domElement 包含可能工具调用的DOM元素
  * @returns 检测到的工具调用代码，如果没有检测到则返回null
  */
-export function detectAsyncToolCalls(domElement: Element): string | null {
-    // 找到代表工具调用的代码块
-    const spans = domElement.querySelectorAll('.protyle-action__language');
-    const awaitToolSection = Array.from(spans).find(
-        (element) => element.textContent === JAVASCRIPT_TOOLS_CLASS
-    );
+export function 检测同步工具调用代码块(domElement: Element): string | null {
+    return 从块DOM检测特定语言(domElement, JAVASCRIPT_TOOLS_WAIT_CLASS);
+}
 
-    if (awaitToolSection) {
-        // 只有输出完成的代码块才会有这个选项
-        const isFullToolCall = awaitToolSection.parentElement?.parentElement?.getAttribute('custom-aitoolcall-fired') === 'false';
-        if (isFullToolCall) {
-            const data = awaitToolSection.parentElement?.nextElementSibling?.textContent;
-            if (data) {
-                return data;
-            }
-        }
-    }
-
-    return null;
+/**
+ * 从DOM元素中检测异步工具调用
+ * @param domElement 包含可能工具调用的DOM元素
+ * @returns 检测到的工具调用代码，如果没有检测到则返回null
+ */
+export function 检测异步工具调用代码块(domElement: Element): string | null {
+    return 从块DOM检测特定语言(domElement, JAVASCRIPT_TOOLS_CLASS);
 }
 

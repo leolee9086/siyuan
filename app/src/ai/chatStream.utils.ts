@@ -1,6 +1,6 @@
 import type { ChatSessionState } from "./session/session.types";
 import { AIConfig, chatResponseDataSchema } from "./types";
-import { detectToolCalls, detectAsyncToolCalls } from "./parser/toolCallDetector";
+import { 检测同步工具调用代码块, 检测异步工具调用代码块 } from "./parser/toolCallDetector";
 
 
 // 更新聊天状态
@@ -94,7 +94,7 @@ export const processBlockDOMContent = (
         element.setAttribute('custom-assistant-name', 'default');
     });
     // 检测并处理DOM中的工具调用
-    const toolCode = detectToolCalls(tempDiv);
+    const toolCode = 检测同步工具调用代码块(tempDiv);
     if (toolCode && state.onWaitToolCallDetected) {
         // 使用回调函数执行工具调用
         state.responseContentStr = state.responseContentStr.replace(`custom-aitoolcall-fired='false'`, `custom-aitoolcall-fired='true'`)
@@ -104,7 +104,7 @@ export const processBlockDOMContent = (
     }
 
     // 检测并处理DOM中的异步工具调用
-    const asyncToolCode = detectAsyncToolCalls(tempDiv);
+    const asyncToolCode = 检测异步工具调用代码块(tempDiv);
     if (asyncToolCode && state.onAsyncToolCallDetected) {
         // 使用回调函数执行异步工具调用
         state.responseContentStr = state.responseContentStr.replace(`custom-aitoolcall-fired='false'`, `custom-aitoolcall-fired='true'`)
