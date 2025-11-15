@@ -1,12 +1,13 @@
 /**
  * 自动生成的思源笔记国际化类型定义
  * 请勿手动修改此文件，重新生成会覆盖更改
- * 生成时间: 2025-11-04T14:50:18.384Z
+ * 生成时间: 2025-11-14T08:05:14.283Z
  * 语言: zh_CN
  */
 
 export interface SiYuanI18n {
-useBackground: `填充列背景颜色`
+statusBarMsgPushTip: `通过状态栏消息可以即时地了解系统的运行情况，如果感到打扰可以将其关闭`
+useBackground: `按选项颜色填充列背景`
 print: `打印`
 clickArrow: `点击箭头`
 foldAll: `全部折叠`
@@ -942,7 +943,7 @@ customSort: `自定义排序`
 collapse: `折叠`
 blockEmbed: `嵌入块`
 rowTip: `点击 <span class='ft__on-surface'>打开菜单</span><br>拖拽 <span class='ft__on-surface'>排序</span><br>⇧点击 <span class='ft__on-surface'>修改属性</span>`
-gutterTip: `点击/⌘/ <span class='ft__on-surface'>打开菜单</span><br>⌘点击/⌥→ <span class='ft__on-surface'>聚焦</span><br>⌥点击/⌘↑ <span class='ft__on-surface'>折叠/展开</span><br>⇧点击/⌥⌘A <span class='ft__on-surface'>修改属性</span><br>拖拽 <span class='ft__on-surface'>移动位置</span><br>⌃拖拽 <span class='ft__on-surface'>重复</span><br>⌥拖拽 <span class='ft__on-surface'>生成块引用</span><br>⇧拖拽 <span class='ft__on-surface'>生成嵌入块</span>`
+gutterTip: `点击/⌘/ <span class='ft__on-surface'>打开菜单</span><br>⌘点击⌥→ <span class='ft__on-surface'>聚焦</span><br>⌥点击⌘↑ <span class='ft__on-surface'>折叠/展开</span><br>⇧点击⌥⌘A <span class='ft__on-surface'>修改属性</span><br>拖拽 <span class='ft__on-surface'>移动位置</span><br>⌃拖拽 <span class='ft__on-surface'>重复</span><br>⌥拖拽 <span class='ft__on-surface'>生成块引用</span><br>⇧拖拽 <span class='ft__on-surface'>生成嵌入块</span>`
 gutterTip2: `点击 <span class='ft__on-surface'>打开菜单</span><br>⇧点击 <span class='ft__on-surface'>修改属性</span>`
 linkDistance: `链接距离`
 collideStrength: `斥力强度`
@@ -1129,8 +1130,9 @@ appearance2: `明亮模式下代码块语法高亮主题`
 appearance1: `代码块主题`
 appearance10: `关闭按钮设置`
 appearance11: `点击关闭按钮后缩小到托盘中`
-appearance16: `隐藏底部状态栏`
-appearance17: `启用后将隐藏桌面端底部状态栏`
+appearance16: `底部状态栏`
+appearance17: `启用后将隐藏状态栏`
+appearance18: `配置状态栏消息开关`
 min: `最小化`
 restore: `向下还原`
 max: `最大化`
@@ -1179,6 +1181,8 @@ fileTree20: `使用单行保存`
 fileTree21: `启用后保存 .sy 文档和数据库 .json 时将使用单行 JSON 格式，大约能减少 30% 文件大小并提升 50% 读写效率`
 fileTree22: `超大文件提醒`
 fileTree23: `.sy 文档和数据库 .json 超过该大小时弹出通知提醒`
+fileTree24: `新建子文档放置在顶部`
+fileTree25: `启用后新建的子文档将放置在子文档列表的顶部（仅在自定义排序启用时生效）`
 export10: `例如 <code class='fn__code'>&lt;span style="color: #fff;background-color: black;padding: 4px;border-radius: 5px;float:right;"&gt;SiYuan&lt;/span&gt;</code> ，为空时使用水印文本或水印文件路径。`
 export11: `导出时关于块引用内容的处理方式`
 export12: `导出时关于嵌入块内容的处理方式`
@@ -1555,7 +1559,7 @@ _kernel: {
   '119': `正在下载网络文件 [%s]`
   '120': `下载完毕，一共 [%d] 个文件`
   '121': `该文档中不存在网络文件`
-  '122': `插件带有的侧栏功能需要在桌面端配置，配置完成后请重启思源（移动端首次使用插件需要先伺服到桌面端信任集市）`
+  '122': `插件带有的侧栏功能需要在桌面端配置（可以使用手机浏览器访问 http://127.0.0.1:6806/stage/build/desktop ，配置完成后请重启思源 APP）`
   '123': `添加/选择云端同步目录后才能启用同步功能`
   '124': `请在 [设置 - 云端 - 启用云端同步] 中开启云端同步`
   '125': `自动同步失败次数过多，请尝试手动触发同步，如果还有问题请<a href="https://ld246.com/article/1649901726096" target="_blank">反馈</a>`
@@ -1896,7 +1900,7 @@ export interface Kernel {
 '119': `正在下载网络文件 [%s]`
 '120': `下载完毕，一共 [%d] 个文件`
 '121': `该文档中不存在网络文件`
-'122': `插件带有的侧栏功能需要在桌面端配置，配置完成后请重启思源（移动端首次使用插件需要先伺服到桌面端信任集市）`
+'122': `插件带有的侧栏功能需要在桌面端配置（可以使用手机浏览器访问 http://127.0.0.1:6806/stage/build/desktop ，配置完成后请重启思源 APP）`
 '123': `添加/选择云端同步目录后才能启用同步功能`
 '124': `请在 [设置 - 云端 - 启用云端同步] 中开启云端同步`
 '125': `自动同步失败次数过多，请尝试手动触发同步，如果还有问题请<a href="https://ld246.com/article/1649901726096" target="_blank">反馈</a>`

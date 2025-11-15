@@ -16,9 +16,12 @@ export const superBlockSelectMiddleware = async (
     range: Range,
     controller: AbortController
 ) => {
+    /**
+     * 超级块和其它容器块都有可能在其它块的DOM内部
+     */
+    const topElement = hasTopClosestByAttribute(nodeElement, "data-node-id", null);
     if ((event.shiftKey && !event.altKey && isNotCtrl(event) && (event.key === "Home" || event.key === "End") && isMac()) ||
         (event.shiftKey && !event.altKey && isOnlyMeta(event) && (event.key === "Home" || event.key === "End") && !isMac())) {
-        const topElement = hasTopClosestByAttribute(nodeElement, "data-node-id", null);
         if (topElement) {
             // 超级块内已选中某个块
             topElement.querySelectorAll(".protyle-wysiwyg--select").forEach(item => {
