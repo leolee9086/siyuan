@@ -10,6 +10,7 @@ import {Constants} from "../constants";
 import {uninstall} from "./uninstall";
 import {setStorageVal} from "../protyle/util/compatibility";
 import {getAllEditor} from "../layout/getAll";
+import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig";
 
 const requireFunc = (key: string) => {
     const modules = {
@@ -163,13 +164,13 @@ export const afterLoadPlugin = (plugin: Plugin) => {
     }
 
     /// #if !MOBILE
-    window.siyuan.config.uiLayout.left.data.forEach((dockItem: Config.IUILayoutDockTab[], index: number) => {
+    getSiyuanConfig().uiLayout.left.data.forEach((dockItem: Config.IUILayoutDockTab[], index: number) => {
         updateDock(dockItem, index, plugin, "Left");
     });
-    window.siyuan.config.uiLayout.right.data.forEach((dockItem: Config.IUILayoutDockTab[], index: number) => {
+    getSiyuanConfig().uiLayout.right.data.forEach((dockItem: Config.IUILayoutDockTab[], index: number) => {
         updateDock(dockItem, index, plugin, "Right");
     });
-    window.siyuan.config.uiLayout.bottom.data.forEach((dockItem: Config.IUILayoutDockTab[], index: number) => {
+    getSiyuanConfig().uiLayout.bottom.data.forEach((dockItem: Config.IUILayoutDockTab[], index: number) => {
         updateDock(dockItem, index, plugin, "Bottom");
     });
     Object.keys(plugin.docks).forEach(key => {
@@ -177,7 +178,7 @@ export const afterLoadPlugin = (plugin: Plugin) => {
             plugin.docks[key].config = window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS][plugin.name][key];
         }
         const dock = plugin.docks[key];
-        const hotkey = window.siyuan.config.keymap.plugin[plugin.name] ? window.siyuan.config.keymap.plugin[plugin.name][key]?.custom : undefined;
+        const hotkey = getSiyuanConfig().keymap.plugin[plugin.name] ? getSiyuanConfig().keymap.plugin[plugin.name][key]?.custom : undefined;
         if (dock.config.position.startsWith("Left")) {
             window.siyuan.layout.leftDock.genButton([{
                 type: key,
