@@ -1,14 +1,16 @@
+import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
 import { MenuItem } from "./Menu.Item";
 import {copySubMenu} from "./commonMenuItem";
 
 export const initSearchMenu = (id: string) => {
-    window.siyuan.menus.menu.remove();
-    window.siyuan.menus.menu.append(new MenuItem({
+    getSiyuanGlobalMenus().menu.remove();
+    getSiyuanGlobalMenus().menu.append(new MenuItem({
         id: "copy",
         icon: "iconCopy",
-        label: window.siyuan.languages.copy,
+        label: siyuanI18n.copy,
         type: "submenu",
         submenu: copySubMenu([id])
     }).element);
-    return window.siyuan.menus.menu;
+    return getSiyuanGlobalMenus().menu;
 };

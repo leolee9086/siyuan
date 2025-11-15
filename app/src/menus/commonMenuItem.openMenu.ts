@@ -23,8 +23,8 @@ import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
 const generateMobileMenuItems = (src: string, showAccelerator: boolean) => {
     return [{
         id: isInAndroid() ? "useDefault" : "useBrowserView",
-        label: isInAndroid() ? window.siyuan.languages.useDefault : window.siyuan.languages.useBrowserView,
-        accelerator: showAccelerator ? window.siyuan.languages.click : "",
+        label: isInAndroid() ? siyuanI18n.useDefault : siyuanI18n.useBrowserView,
+        accelerator: showAccelerator ? siyuanI18n.click : "",
         click: () => {
             openByMobile(src);
         }
@@ -34,9 +34,9 @@ const generateMobileMenuItems = (src: string, showAccelerator: boolean) => {
 const generateLocalFileMobileMenuItems = (src: string, showAccelerator: boolean) => {
     return [{
         id: isInAndroid() || isInHarmony() ? "useDefault" : "useBrowserView",
-        label: isInAndroid() || isInHarmony() ? window.siyuan.languages.useDefault : window.siyuan.languages.useBrowserView,
+        label: isInAndroid() || isInHarmony() ? siyuanI18n.useDefault : siyuanI18n.useBrowserView,
         icon: "",
-        accelerator: showAccelerator ? window.siyuan.languages.click : "",
+        accelerator: showAccelerator ? siyuanI18n.click : "",
         click: () => {
             openByMobile(src);
         }
@@ -46,9 +46,9 @@ const generateLocalFileMobileMenuItems = (src: string, showAccelerator: boolean)
 const generateExternalLinkMobileMenuItems = (processedSrc: string, showAccelerator: boolean) => {
     return [{
         id: isInAndroid() || isInHarmony() ? "useDefault" : "useBrowserView",
-        label: isInAndroid() || isInHarmony() ? window.siyuan.languages.useDefault : window.siyuan.languages.useBrowserView,
+        label: isInAndroid() || isInHarmony() ? siyuanI18n.useDefault : siyuanI18n.useBrowserView,
         icon: "",
-        accelerator: showAccelerator ? window.siyuan.languages.click : "",
+        accelerator: showAccelerator ? siyuanI18n.click : "",
         click: () => {
             openByMobile(processedSrc);
         }
@@ -61,7 +61,7 @@ const generateAssetBaseMenuItems = (app: App, src: string, showAccelerator: bool
         {
             id: "insertRight",
             icon: "iconLayoutRight",
-            label: window.siyuan.languages.insertRight,
+            label: siyuanI18n.insertRight,
             accelerator: showAccelerator ? window.siyuan.languages.click : "",
             click() {
                 openAsset(app, src.trim(), parseInt(getSearch("page", src)), "right");
