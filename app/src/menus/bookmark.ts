@@ -11,9 +11,30 @@ import {Constants} from "../constants";
 import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
 import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig";
-
+/**
+ * 创建书签重命名菜单项
+ *
+ * 此函数用于在书签dock的右键菜单中创建"重命名"选项。只有当元素是纯书签项（非块引用书签）
+ * 且系统处于非只读模式时，才会显示此菜单项。
+ *
+ * @param element - 书签列表项的DOM元素，预期包含书签文本内容
+ * @returns 返回创建的菜单项DOM元素，如果不满足条件则返回null
+ *
+ * @example
+ * ```typescript
+ * const menuItem = createRenameBookmarkMenuItem(bookmarkElement);
+ * if (menuItem) {
+ *   menu.append(menuItem);
+ * }
+ * ```
+ */
 const createRenameBookmarkMenuItem = (element: HTMLElement): HTMLElement | null => {
+    // 获取元素的data-node-id属性，用于判断是否为块引用书签
+    // 没有data-node-id说明是纯书签项目而不是块项目
     const id = element.getAttribute("data-node-id");
+    
+    // 检查是否为块引用书签(id存在)或系统处于只读模式
+    // 在这两种情况下，不允许重命名操作
     if (id || getSiyuanConfig().readonly) {
         return null;
     }
@@ -70,11 +91,32 @@ const createRenameBookmarkMenuItem = (element: HTMLElement): HTMLElement | null 
     }).element;
 };
 
+/**
+ * 创建书签复制菜单项
+ *
+ * 此函数用于在书签dock的右键菜单中创建"复制"选项。只有当元素是块引用书签
+ * （即存在data-node-id属性）时，才会显示此菜单项，提供各种复制操作。
+ *
+ * @param element - 书签列表项的DOM元素，预期包含data-node-id属性
+ * @returns 返回创建的菜单项DOM元素，如果不满足条件则返回null
+ *
+ * @example
+ * ```typescript
+ * const menuItem = createCopyBookmarkMenuItem(bookmarkElement);
+ * if (menuItem) {
+ *   menu.append(menuItem);
+ * }
+ * ```
+ */
 const createCopyBookmarkMenuItem = (element: HTMLElement): HTMLElement | null => {
+    // 获取元素的data-node-id属性，用于判断是否为块引用书签
     const id = element.getAttribute("data-node-id");
+    
+    // 只有块引用书签（有data-node-id）才能复制
     if (!id) {
         return null;
     }
+    
     return new MenuItem({
         id: "copy",
         label: siyuanI18n.copy,
@@ -84,7 +126,26 @@ const createCopyBookmarkMenuItem = (element: HTMLElement): HTMLElement | null =>
     }).element;
 };
 
+/**
+ * 创建书签删除菜单项
+ *
+ * 此函数用于在书签dock的右键菜单中创建"删除"选项。系统处于只读模式时不会显示此菜单项。
+ * 支持删除两种类型的书签：块引用书签和纯书签。
+ *
+ * @param element - 书签列表项的DOM元素，包含书签文本和可能的data-node-id属性
+ * @param bookmarkObj - 书签管理对象实例，用于在删除后更新书签列表
+ * @returns 返回创建的菜单项DOM元素，如果系统处于只读模式则返回null
+ *
+ * @example
+ * ```typescript
+ * const menuItem = createRemoveBookmarkMenuItem(bookmarkElement, bookmarkInstance);
+ * if (menuItem) {
+ *   menu.append(menuItem);
+ * }
+ * ```
+ */
 const createRemoveBookmarkMenuItem = (element: HTMLElement, bookmarkObj: Bookmark | MobileBookmarks): HTMLElement | null => {
+    // 检查系统是否处于只读模式，只读模式下不允许删除操作
     if (getSiyuanConfig().readonly) {
         return null;
     }
@@ -94,15 +155,22 @@ const createRemoveBookmarkMenuItem = (element: HTMLElement, bookmarkObj: Bookmar
         icon: "iconTrashcan",
         label: siyuanI18n.remove,
         click: () => {
+            // 获取书签文本内容，用于确认对话框显示
             const textElement = element.querySelector(".b3-list-item__text");
             const bookmarkText = textElement?.textContent || "";
+            
+            // 获取data-node-id，用于区分书签类型
             const id = element.getAttribute("data-node-id");
             
+            // 显示删除确认对话框
             confirmDialog(siyuanI18n.deleteOpConfirm, siyuanI18n.removeBookmark.replace("${x}", `<b>${escapeHtml(bookmarkText || "")}</b>`), () => {
                 if (id) {
+                    // 处理块引用书签：清空块的bookmark属性
                     fetchPost("/api/attr/setBlockAttrs", {id, attrs: {bookmark: ""}}, () => {
                         bookmarkObj.update();
                     });
+                    
+                    // 同时更新页面中所有对应的块元素，移除书签显示
                     document.querySelectorAll(`.protyle-wysiwyg [data-node-id="${id}"]`).forEach((item) => {
                         item.setAttribute("bookmark", "");
                         const bookmarkElement = item.querySelector(".protyle-attr--bookmark");
@@ -110,7 +178,9 @@ const createRemoveBookmarkMenuItem = (element: HTMLElement, bookmarkObj: Bookmar
                             bookmarkElement.remove();
                         }
                     });
-                } else {
+                } 
+                if(!id) {
+                    // 处理纯书签：直接从书签列表中移除
                     fetchPost("/api/bookmark/removeBookmark", {bookmark: bookmarkText});
                 }
             }, undefined, true);
@@ -118,29 +188,93 @@ const createRemoveBookmarkMenuItem = (element: HTMLElement, bookmarkObj: Bookmar
     }).element;
 };
 
-const initializeAndShowMenu = (event: MouseEvent) => {
-    getSiyuanGlobalMenus().menu.element.setAttribute("data-name", Constants.MENU_BOOKMARK);
-    getSiyuanGlobalMenus().menu.popup({x: event.clientX - 11, y: event.clientY + 11, h: 22, w: 12});
+/**
+ * 初始化并显示上下文菜单
+ *
+ * 此函数负责设置菜单的标识属性并在指定位置显示菜单。通过调整坐标偏移量
+ * 确保菜单显示在合适的位置，避免遮挡鼠标指针。
+ *
+ * @param options - 菜单显示配置选项
+ * @param options.rect - 菜单显示的位置和尺寸信息
+ * @param options.rect.x - 鼠标点击的X坐标
+ * @param options.rect.y - 鼠标点击的Y坐标
+ * @param options.rect.w - 菜单宽度（通常为固定值）
+ * @param options.rect.h - 菜单高度（通常为固定值）
+ * @param options.dataname - 菜单的数据标识名称，用于菜单管理
+ *
+ * @example
+ * ```typescript
+ * initializeAndShowMenu({
+ *   rect: { x: 100, y: 200, w: 12, h: 22 },
+ *   dataname: "bookmark-menu"
+ * });
+ * ```
+ */
+const initializeAndShowMenu = (options: { rect: { x: number, y: number, w: number, h: number }, dataname: string }) => {
+    // 设置菜单的数据名称属性，用于菜单管理和识别
+    getSiyuanGlobalMenus().menu.element.setAttribute("data-name", options.dataname);
+    
+    // 在指定位置显示菜单，通过偏移量调整确保菜单不会遮挡鼠标指针
+    // x-11: 向左偏移11像素，y+11: 向下偏移11像素
+    getSiyuanGlobalMenus().menu.popup({x: options.rect.x - 11, y: options.rect.y + 11, h: options.rect.h, w: options.rect.w});
 };
 
+/**
+ * 打开书签上下文菜单
+ *
+ * 此函数是书签dock右键菜单的主要入口函数，负责根据当前书签的类型和系统状态
+ * 动态创建相应的菜单项，并在鼠标点击位置显示菜单。如果书签菜单已经显示，
+ * 则会关闭菜单实现切换效果。
+ *
+ * @param element - 触发右键菜单的书签列表项DOM元素
+ * @param event - 鼠标事件对象，包含点击位置信息
+ * @param bookmarkObj - 书签管理对象实例，用于菜单操作后的状态更新
+ *
+ * @example
+ * ```typescript
+ * bookmarkElement.addEventListener('contextmenu', (e) => {
+ *   e.preventDefault();
+ *   openBookmarkMenu(bookmarkElement, e, bookmarkInstance);
+ * });
+ * ```
+ */
 export const openBookmarkMenu = (element: HTMLElement, event: MouseEvent, bookmarkObj: Bookmark | MobileBookmarks) => {
+    // 检查书签菜单是否已经显示，如果是则关闭菜单实现切换效果
     if (!getSiyuanGlobalMenus().menu.element.classList.contains("fn__none") &&
         getSiyuanGlobalMenus().menu.element.getAttribute("data-name") === Constants.MENU_BOOKMARK) {
         getSiyuanGlobalMenus().menu.remove();
         return;
     }
+    
+    // 清空现有菜单内容
     getSiyuanGlobalMenus().menu.remove();
+    
+    // 根据书签类型动态创建重命名菜单项（仅纯书签显示）
     const renameMenuItem = createRenameBookmarkMenuItem(element);
     if (renameMenuItem) {
         getSiyuanGlobalMenus().menu.append(renameMenuItem);
     }
+    
+    // 根据书签类型动态创建复制菜单项（仅块引用书签显示）
     const copyMenuItem = createCopyBookmarkMenuItem(element);
     if (copyMenuItem) {
         getSiyuanGlobalMenus().menu.append(copyMenuItem);
     }
+    
+    // 创建删除菜单项（非只读模式下显示）
     const removeMenuItem = createRemoveBookmarkMenuItem(element, bookmarkObj);
     if (removeMenuItem) {
         getSiyuanGlobalMenus().menu.append(removeMenuItem);
     }
-    initializeAndShowMenu(event);
+    
+    // 在鼠标点击位置显示菜单
+    initializeAndShowMenu({
+        rect: {
+            x: event.clientX,
+            y: event.clientY,
+            w: 12,  // 菜单宽度固定值
+            h: 22   // 菜单高度固定值
+        },
+        dataname: Constants.MENU_BOOKMARK
+    });
 };
