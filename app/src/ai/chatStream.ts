@@ -303,14 +303,11 @@ const createConfirmHandler = (
 
 export const AIChat = (protyle: IProtyle, element: Element) => {
     const randomColor = genRandomColor();
-
     // 获取选中的块元素
     const selectedElementsNodeList = protyle.wysiwyg?.element.querySelectorAll(".protyle-wysiwyg--select") || [];
     const selectedElements = selectedElementsNodeList.length > 0 ? Array.from(selectedElementsNodeList) : [];
-
     // 使用批量创建函数为目标元素和所有选中的块元素创建遮罩
     const maskElements = createBlockMasks(element, selectedElements, randomColor);
-
     const dialog = createVueDialog({
         dataKey: `ai-chat-dialog-${genUUID()}`,
         vueConfigFactory: (dialogInstance: Dialog) => createAIStreamChatDialogVueConfig(protyle, element, selectedElements, dialogInstance),
@@ -327,9 +324,7 @@ export const AIChat = (protyle: IProtyle, element: Element) => {
             }
         }
     });
-
     setDialogContainerColor(dialog, randomColor);
-
     // 监听块元素删除
     const observer = new MutationObserver(() => {
         if (!document.body.contains(element)) {

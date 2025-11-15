@@ -30,7 +30,7 @@ export const buildRequestHeaders = (aiConfig: AIConfig) => {
 };
 
 // 解析和验证流式响应数据
-const parseAndValidateStreamData = (dataStr: string) => {
+export const parseAndValidateStreamData = (dataStr: string) => {
     try {
         // 处理SSE数据格式，移除可能的前缀
         let cleanDataStr = dataStr.trim();
@@ -118,85 +118,4 @@ export const processBlockDOMContent = (
     state.blockDOMContent = processedBlockDom;
     return processedBlockDom;
 };
-
-// 处理流式响应
-export const handleOpenAILikeStreamResponse = (
-    dataStr: string,
-    state: ChatSessionState,
-): string | null => {
-    console.log(JSON.stringify(state))
-    if (state.isStreaming) {
-        try {
-            const data = parseAndValidateStreamData(dataStr);
-            if (!data) {
-
-                throw new Error('接到了空的data,检查响应结构')
-            }
-
-            // 处理OpenAI流式响应格式
-            if (data.choices && data.choices.length > 0) {
-                const choice = data.choices[0];
-                if (choice) {
-                    // 检查是否是结束标记
-                    if (choice.finish_reason === 'stop') {
-                        // 流式结束，不需要处理内容，直接返回
-                        return null;
-                    }
-                    // 优先处理 content 字段，如果没有则处理 reasoning_content 字段
-                    const content = choice.delta?.content || choice.message?.content;
-                    const reasoningContent = choice.delta?.reasoning_content || choice.message?.reasoning_content;
-                    // 处理普通内容
-                    if (typeof content === 'string' && content.length > 0) {
-                        updateChatState(state, {
-                            responseContentStr: state.responseContentStr + content
-                        });
-                        // 返回处理后的内容，由组件逻辑负责DOM更新
-                        return content;
-                    }
-                    // 处理推理内容
-                    if (typeof reasoningContent === 'string' && reasoningContent.length > 0) {
-                        updateChatState(state, {
-                            responseContentStr: state.responseContentStr + reasoningContent
-                        });
-                        // 返回处理后的内容，由组件逻辑负责DOM更新
-                        return reasoningContent;
-                    }
-                    // 处理非字符串内容的情况，可能是数字、对象等
-                    if (content !== undefined && content !== null && content !== '') {
-                        console.warn('接收到非字符串内容:', content);
-                        const stringContent = String(content);
-                        updateChatState(state, {
-                            responseContentStr: state.responseContentStr + stringContent
-                        });
-                        return stringContent;
-                    }
-                    // 处理非字符串推理内容的情况
-                    if (reasoningContent !== undefined && reasoningContent !== null && reasoningContent !== '') {
-                        console.warn('接收到非字符串推理内容:', reasoningContent);
-                        const stringContent = String(reasoningContent);
-                        updateChatState(state, {
-                            responseContentStr: state.responseContentStr + stringContent
-                        });
-                        return stringContent;
-                    }
-                    
-                    // 如果是空内容且不是结束标记，可能是流式数据的中间状态，直接返回
-                    return null;
-                } else {
-                    throw new Error('检查响应结构')
-                }
-            } else {
-                throw new Error('检查响应结构')
-            }
-        } catch (e) {
-            console.error("Failed to parse SSE data:", dataStr);
-            throw new Error('检查响应结构')
-
-        }
-    } else {
-        throw new Error('state 不在streaming状态')
-    }
-    throw new Error('分支检查覆盖不全')
-
-}
 

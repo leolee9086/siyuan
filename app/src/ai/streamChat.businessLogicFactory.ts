@@ -1,9 +1,9 @@
 import { 
     buildRequestHeaders, 
-    handleOpenAILikeStreamResponse, 
     updateChatState, 
     processBlockDOMContent 
 } from './chatStream.utils';
+import { handleOpenAILikeStreamResponse } from "./handleOpenAILikeStreamResponse";
 import { universalStreamRequest } from '../util/fetchStream';
 import { getAIConfigFromSiyuan } from "./utils.config";
 import type { StreamChatBusinessLogic } from '../components/streamChat.componentLogic';
