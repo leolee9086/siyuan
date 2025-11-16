@@ -31,7 +31,6 @@ const createStreamHandlers = (
             if (content) {
                 businessLogic.processBlockDOMContent(chatState, protyleInstance);
             }
-            console.log(chatState);
         },
         onDone: () => {
             businessLogic.updateChatState(chatState, { isStreaming: false, isDone: true });

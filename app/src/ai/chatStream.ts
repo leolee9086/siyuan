@@ -7,7 +7,6 @@ import {
     AIChatDialog,
     VueComponentMountConfig,
     createBlockMasks,
-    getContenteditableElement,
     handleAIRequest
 } from "./imports";
 import { setDialogContainerColor, removeBlockMask } from "./utils.mask";
@@ -16,8 +15,11 @@ import { fillContent } from "./actions.fillContent";
 import { ChatSessionState, UIFunctions } from './session/session.types';
 import { createTemporaryModule } from "../util/code/scripts.executor";
 import { buildBlockContentPrompt } from "./prompts/blockContent.builder";
-import { createSiyuanStreamChatBusinessLogic } from "./streamChat.businessLogicFactory";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
+import { getAIConfigFromSiyuan } from "./utils.config";
+import { handleOpenAILikeStreamResponse } from "./handleOpenAILikeStreamResponse";
+import { buildRequestHeaders, processBlockDOMContent, updateChatState } from "./chatStream.utils";
+import { universalStreamRequest } from "../util/fetchStream";
 
 const createAIStreamChatDialogVueConfig = (
     protyle: IProtyle,
@@ -37,6 +39,7 @@ const createAIStreamChatDialogVueConfig = (
         isPaused: false,
         savedMessages: [],
         asyncToolResults: [],
+        errorCount: 0
     });
 
     // 创建UI函数引用容器
@@ -104,24 +107,28 @@ const createWaitToolCallHandler = (
             // 执行工具调用
             const result = await createTemporaryModule(toolCode);
             console.log('工具调用执行结果:', result);
+            if (!result.moduleExport.default) {
+                throw new Error('必须使用default导出你需要查看的结果')
+            }
             // 将工具执行结果添加到消息历史中
             state.savedMessages.push({
                 role: 'user',
-                content: `Tool execution result: ${JSON.stringify(result)}`,
+                content: `Tool execution result: ${JSON.stringify(await result.moduleExport.default)}`,
                 timestamp: Date.now()
             });
         } catch (error) {
             console.error('工具调用执行失败:', error);
             // 将错误信息添加到消息历史中
+            state.errorCount += 1
             if (error instanceof Error)
                 state.savedMessages.push({
                     role: 'user',
-                    content: `Tool execution failed: ${error.message}`,
+                    content: `工具调用执行失败: ${error.message},\n你必须使用标准esm语法并且以default导出你需要的结果`,
                     timestamp: Date.now()
                 });
         } finally {
             // 恢复对话
-            await resumeHandler();
+            state.errorCount <= 3 && await resumeHandler();
         }
     };
 };
@@ -201,7 +208,16 @@ const createAIRequestHandler = async (
     uiFunctions: UIFunctions,
     messages: Array<{ role: 'user' | 'assistant'; content: string; timestamp: number }>
 ) => {
-    const businessLogic = createSiyuanStreamChatBusinessLogic();
+    const aiConfig = getAIConfigFromSiyuan();
+
+    const businessLogic = {
+        buildRequestHeaders: () => buildRequestHeaders(aiConfig),
+        handleOpenAILikeStreamResponse,
+        updateChatState,
+        processBlockDOMContent,
+        universalStreamRequest,
+        getAIConfigFromSiyuan
+    };;
     const abortFn = await handleAIRequest(
         businessLogic,
         state,

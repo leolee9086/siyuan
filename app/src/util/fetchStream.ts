@@ -53,7 +53,6 @@ const processStreamData = async (
                     ctx.onDone(); // 调用结束回调
                     return; // 流结束
                 }
-                console.log(dataStr)
                 // 直接传递原始数据给调用方处理
                 ctx.onMessage(dataStr);
                 ctx.resetTimeout(); // 每次收到内容都重置超时

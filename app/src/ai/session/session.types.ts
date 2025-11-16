@@ -79,6 +79,7 @@ export interface ChatSessionState {
     asyncToolResults: Array<any>;
     messageControllers?: Array<any>;
     chatStateController?: IChatStateController;
+    errorCount:number
 }
 
 // UI元素接口

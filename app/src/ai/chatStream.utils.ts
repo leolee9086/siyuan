@@ -1,6 +1,7 @@
 import type { ChatSessionState } from "./session/session.types";
 import { AIConfig, chatResponseDataSchema } from "./types";
-import { 检测同步工具调用代码块, 检测异步工具调用代码块 } from "./parser/toolCallDetector";
+import {  从块DOM提取首个符合条件的特定语言代码块内容 } from "./parser/toolCallDetector";
+import { JAVASCRIPT_TOOLS_CLASS, JAVASCRIPT_TOOLS_WAIT_CLASS } from "./constants";
 
 
 // 更新聊天状态
@@ -72,6 +73,37 @@ export const parseAndValidateStreamData = (dataStr: string) => {
     }
 };
 
+const cache = new Map()
+// 处理工具调用的通用函数
+const 处理工具调用 = (
+    tempDiv: HTMLElement,
+    toolClass: string,
+    回调函数: ((code: string) => Promise<void>) | undefined,
+    错误信息前缀: string,
+    state: ChatSessionState
+): void => {
+    const 代码块处理条件 = (blockElement: Element, content: string) => {
+        console.log(blockElement.nextElementSibling)
+            console.log(state.responseContentStr.split('\`\`\`').pop()?.trim())
+
+        let flag = false
+        let lastUsed=cache.get(content)
+        if(!state.responseContentStr.split('\`\`\`').pop()?.trim()){
+            flag = true
+            cache.set(content,flag)
+        }
+        console.log(flag,lastUsed)
+        return flag && !lastUsed
+        return blockElement.getAttribute('custom-aitoolcall-fired') === 'false'
+    }
+    const toolCode = 从块DOM提取首个符合条件的特定语言代码块内容(tempDiv, toolClass, 代码块处理条件);
+    if (toolCode && 回调函数) {
+        回调函数(toolCode).catch(error => {
+            console.error(`${错误信息前缀}执行失败:`, error);
+        });
+    }
+};
+
 // 渲染blockDOM内容（纯数据处理，不包含DOM操作）
 export const processBlockDOMContent = (
     state: ChatSessionState,
@@ -93,25 +125,12 @@ export const processBlockDOMContent = (
         // 设置custom-assistant-name属性为default
         element.setAttribute('custom-assistant-name', 'default');
     });
+    
     // 检测并处理DOM中的工具调用
-    const toolCode = 检测同步工具调用代码块(tempDiv);
-    if (toolCode && state.onWaitToolCallDetected) {
-        // 使用回调函数执行工具调用
-        state.responseContentStr = state.responseContentStr.replace(`custom-aitoolcall-fired='false'`, `custom-aitoolcall-fired='true'`)
-        state.onWaitToolCallDetected(toolCode).catch(error => {
-            console.error('工具调用执行失败:', error);
-        });
-    }
-
+    处理工具调用(tempDiv, JAVASCRIPT_TOOLS_WAIT_CLASS, state.onWaitToolCallDetected, '工具调用', state);
+    
     // 检测并处理DOM中的异步工具调用
-    const asyncToolCode = 检测异步工具调用代码块(tempDiv);
-    if (asyncToolCode && state.onAsyncToolCallDetected) {
-        // 使用回调函数执行异步工具调用
-        state.responseContentStr = state.responseContentStr.replace(`custom-aitoolcall-fired='false'`, `custom-aitoolcall-fired='true'`)
-        state.onAsyncToolCallDetected(asyncToolCode).catch(error => {
-            console.error('异步工具调用执行失败:', error);
-        });
-    }
+    处理工具调用(tempDiv, JAVASCRIPT_TOOLS_CLASS, state.onAsyncToolCallDetected, '异步工具调用', state);
 
     // 更新处理后的blockDOM
     const processedBlockDom = tempDiv.innerHTML;

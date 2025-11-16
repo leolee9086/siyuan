@@ -24,7 +24,6 @@ export function getSharedToolUseSection(): string {
 const result = fn(param1, param2);
 export default result;
 \`\`\`
-{: custom-aitoolcall-fired='false'}
 
 在javascript代码块中，你可以：
 - 编写任意JavaScript代码
@@ -33,7 +32,6 @@ export default result;
 - 返回结果
 使用"export default" 导出的内容将会在工具代码执行完成之后返回给你
 当调用工具时,始终寄使用${JAVASCRIPT_TOOLS_CLASS}或者${JAVASCRIPT_TOOLS_WAIT_CLASS}作为代码块语言标识，以确保正确解析和执行。
-注意***必须附加内容为{: custom-aitoolcall-fired='false'}的ial,否则代码块不会执行****
 
 `
 }

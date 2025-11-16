@@ -22,7 +22,7 @@ export async function createTemporaryModule(code: string): Promise<TemporaryModu
         // 返回模块信息和清理函数
         return {
             moduleUrl,
-            moduleExport: moduleExport.default,
+            moduleExport: moduleExport,
             cleanup: () => {
                 URL.revokeObjectURL(moduleUrl);
             }
