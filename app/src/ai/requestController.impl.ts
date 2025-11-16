@@ -45,13 +45,17 @@ export class AIRequestController {
             throw new Error('控制器已销毁，无法发起请求');
         }
 
-        // 取消之前的请求
+        // 创建新的AbortController，确保每次请求都是全新的
+        const newAbortController = new AbortController();
+        
+        // 取消之前的请求（使用旧的controller）
         if (this.abortController) {
             this.abortController.abort();
         }
-
-        // 创建新的AbortController，确保每次请求都是全新的
-        this.abortController = new AbortController();
+        
+        // 更新为新的controller
+        this.abortController = newAbortController;
+        
         // 增加请求ID，用于跟踪当前请求
         this.currentRequestId += 1;
         const currentRequestId = this.currentRequestId;

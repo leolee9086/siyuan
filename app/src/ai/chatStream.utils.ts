@@ -1,11 +1,11 @@
-import type { ChatSessionState } from "./session/session.types";
+import type { AssistantResponseState } from "./session/session.types";
 import { AIConfig, chatResponseDataSchema } from "./types";
 import {  从块DOM提取首个符合条件的特定语言代码块内容 } from "./parser/toolCallDetector";
 import { JAVASCRIPT_TOOLS_CLASS, JAVASCRIPT_TOOLS_WAIT_CLASS } from "./constants";
 
 
 // 更新聊天状态
-export const updateChatState = (state: ChatSessionState, updates: Partial<ChatSessionState>): void => {
+export const updateChatState = (state: AssistantResponseState, updates: Partial<AssistantResponseState>): void => {
     Object.assign(state, updates);
 };
 
@@ -80,11 +80,9 @@ const 处理工具调用 = (
     toolClass: string,
     回调函数: ((code: string) => Promise<void>) | undefined,
     错误信息前缀: string,
-    state: ChatSessionState
+    state: AssistantResponseState
 ): void => {
     const 代码块处理条件 = (blockElement: Element, content: string) => {
-        console.log(blockElement.nextElementSibling)
-            console.log(state.responseContentStr.split('\`\`\`').pop()?.trim())
 
         let flag = false
         let lastUsed=cache.get(content)
@@ -94,7 +92,6 @@ const 处理工具调用 = (
         }
         console.log(flag,lastUsed)
         return flag && !lastUsed
-        return blockElement.getAttribute('custom-aitoolcall-fired') === 'false'
     }
     const toolCode = 从块DOM提取首个符合条件的特定语言代码块内容(tempDiv, toolClass, 代码块处理条件);
     if (toolCode && 回调函数) {
@@ -106,7 +103,7 @@ const 处理工具调用 = (
 
 // 渲染blockDOM内容（纯数据处理，不包含DOM操作）
 export const processBlockDOMContent = (
-    state: ChatSessionState,
+    state: AssistantResponseState,
     protyle: IProtyle
 ): string => {
     if (!protyle.lute) {

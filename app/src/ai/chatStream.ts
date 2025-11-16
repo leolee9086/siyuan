@@ -11,7 +11,7 @@ import {
 import { setDialogContainerColor, removeBlockMask } from "./utils.mask";
 import { reactive } from "vue";
 import { fillContent } from "./actions.fillContent";
-import { ChatSessionState, UIFunctions } from './session/session.types';
+import { AssistantResponseState, UIFunctions } from './session/session.types';
 import { createTemporaryModule } from "../util/code/scripts.executor";
 import { buildBlockContentPrompt } from "./prompts/blockContent.builder";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
@@ -27,7 +27,7 @@ const createAIStreamChatDialogVueConfig = (
     dialog: Dialog
 ): VueComponentMountConfig => {
     // 创建聊天状态
-    const state: ChatSessionState = reactive({
+    const state: AssistantResponseState = reactive({
         responseContentStr: '',
         isStreaming: false,
         isDone: false,
@@ -38,7 +38,9 @@ const createAIStreamChatDialogVueConfig = (
         isPaused: false,
         savedMessages: [],
         asyncToolResults: [],
-        errorCount: 0
+        errorCount: 0,
+        syncToolCallCount: 0,
+        asyncToolCallCount: 0
     });
 
     // 创建UI函数引用容器
@@ -98,16 +100,32 @@ const createAIStreamChatDialogVueConfig = (
 
 // 创建等待工具调用处理函数
 const createWaitToolCallHandler = (
-    state: ChatSessionState,
+    state: AssistantResponseState,
     resumeHandler: () => Promise<void>
 ) => {
     return async (toolCode: string) => {
-        // 暂停当前的流式响应
+        // 检查同步工具调用次数限制
+        if (state.syncToolCallCount >= 10) {
+            console.error('同步工具调用次数已达上限(10次)');
+            state.savedMessages.push({
+                role: 'user',
+                content: 'system:同步工具调用次数已达上限(10次)，无法继续执行工具调用',
+                timestamp: Date.now()
+            });
+            // 不执行工具调用，直接恢复对话
+            await resumeHandler();
+            return;
+        }
+
+        // 确保在正确的状态下执行工具调用
+        // 如果正在流式响应中，需要先暂停
+        console.log(state.isStreaming, state.isPaused)
         if (state.isStreaming && !state.isPaused) {
             state.isPaused = true;
             if (state.abortFunction) {
                 state.abortFunction();
             }
+            // 保存当前消息内容
             state.savedMessages.push({
                 role: 'assistant',
                 content: state.responseContentStr,
@@ -115,7 +133,14 @@ const createWaitToolCallHandler = (
             });
         }
 
+        // 确保状态已正确设置
+        state.isStreaming = false;
+
         try {
+            // 增加同步工具调用计数
+            state.syncToolCallCount += 1;
+            console.log(`同步工具调用次数: ${state.syncToolCallCount}/10`);
+
             // 执行工具调用
             const result = await createTemporaryModule(toolCode);
             console.log('工具调用执行结果:', result);
@@ -148,11 +173,23 @@ const createWaitToolCallHandler = (
 
 // 创建异步工具调用处理函数
 const createAsyncToolCallHandler = (
-    state: ChatSessionState
+    state: AssistantResponseState
 ) => {
     return async (toolCode: string) => {
+        // 检查异步工具调用次数限制
+        if (state.asyncToolCallCount >= 10) {
+            console.error('异步工具调用次数已达上限(10次)');
+            // 不执行工具调用，直接返回错误结果
+            state.asyncToolResults.push({ error: '异步工具调用次数已达上限(10次)，无法继续执行工具调用' });
+            return;
+        }
+
         let toolPromise: Promise<any> | null = null;
         try {
+            // 增加异步工具调用计数
+            state.asyncToolCallCount += 1;
+            console.log(`异步工具调用次数: ${state.asyncToolCallCount}/10`);
+
             // 创建异步工具调用Promise并添加到结果堆栈
             toolPromise = createTemporaryModule(toolCode);
             state.asyncToolResults.push(toolPromise);
@@ -182,7 +219,7 @@ const createAsyncToolCallHandler = (
 
 // 创建取消处理函数
 const createCancelHandler = (
-    state: ChatSessionState,
+    state: AssistantResponseState,
     dialog: Dialog
 ) => {
     return () => {
@@ -195,7 +232,7 @@ const createCancelHandler = (
 
 // 创建暂停处理函数
 const createPauseHandler = (
-    state: ChatSessionState
+    state: AssistantResponseState
 ) => {
     return () => {
         if (state.isStreaming && !state.isPaused) {
@@ -216,7 +253,7 @@ const createPauseHandler = (
 
 // 创建AI请求处理函数
 const createAIRequestHandler = async (
-    state: ChatSessionState,
+    state: AssistantResponseState,
     protyle: IProtyle,
     uiFunctions: UIFunctions,
     messages: Array<{ role: 'user' | 'assistant'; content: string; timestamp: number }>
@@ -275,51 +312,57 @@ const createAIRequestHandler = async (
         getAIConfigFromSiyuan
     );
 
+    // 立即保存取消函数到state，确保在请求开始前就能使用
+    state.abortFunction = () => controller.cancelRequest();
+
     // 发起请求
     await controller.startRequest(messages);
-
-    // 保存取消函数到state
-    state.abortFunction = () => controller.cancelRequest();
 
     return controller;
 };
 
 // 创建恢复处理函数
 const createResumeHandler = (
-    state: ChatSessionState,
+    state: AssistantResponseState,
     protyle: IProtyle,
     uiFunctions: UIFunctions
 ) => {
     return async () => {
-        if (state.isPaused) {
-            // 重置状态
-            state.isPaused = false;
-            state.isStreaming = true;
-            state.isDone = false;
-
-            // 重新构建消息历史，但不包含系统继续消息
-            const messages: Array<{ role: 'user' | 'assistant'; content: string; timestamp: number }> = state.savedMessages.map(msg => ({
-                role: msg.role,
-                content: msg.content,
-                timestamp: msg.timestamp
-            }));
-
-            // 临时添加系统继续消息到请求中，但不保存到历史
-            messages.push({
-                role: 'user',
-                content: 'system:continue',
-                timestamp: Date.now()
-            });
-
-            // 使用新的请求控制器发送请求
-            await createAIRequestHandler(state, protyle, uiFunctions, messages);
+        if (!state.isPaused) {
+            throw new Error("状态管理错误,在非暂停状态下调用恢复回调")
         }
+        // 重置状态
+        state.isPaused = false;
+        state.isStreaming = true;
+        state.isDone = false;
+
+        // 重新构建消息历史，但不包含系统继续消息
+        const messages: Array<{ role: 'user' | 'assistant'; content: string; timestamp: number }> = state.savedMessages.map(msg => ({
+            role: msg.role,
+            content: msg.content,
+            timestamp: msg.timestamp
+        }));
+
+        // 临时添加系统继续消息到请求中，但不保存到历史
+        messages.push({
+            role: 'user',
+            content: 'system:continue',
+            timestamp: Date.now()
+        });
+
+        // 使用新的请求控制器发送请求
+        try {
+            await createAIRequestHandler(state, protyle, uiFunctions, messages);
+        } catch (e) {
+            console.error(e)
+        }
+
     };
 };
 
 // 创建确认处理函数
 const createConfirmHandler = (
-    state: ChatSessionState,
+    state: AssistantResponseState,
     protyle: IProtyle,
     selectedBlockElements: Element[],
     targetElement: Element,

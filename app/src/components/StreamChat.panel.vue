@@ -2,7 +2,6 @@
     <div class="b3-dialog__content">
         <AIResponseDisplay
             ref="aiResponseDisplayRef"
-            :show-container="showResponseContainer"
             :state="state"
             :status-text="statusText"
             :status-color="statusColor"
@@ -28,7 +27,7 @@ import type { PropType } from 'vue';
 import { useStreamChatUI, getI18nText } from './streamChat.ui';
 import TextField from './common/TextField.vue';
 import AIResponseDisplay from './AIResponseDisplay.vue';
-import { ChatSessionState } from '../ai/session/session.types';
+import { AssistantResponseState } from '../ai/session/session.types';
 const props = defineProps({
     onCancelClick: {
         type: Function as PropType<() => void>,
@@ -47,7 +46,7 @@ const props = defineProps({
         required: true,
     },
     state: {
-        type: Object as PropType<ChatSessionState>,
+        type: Object as PropType<AssistantResponseState>,
         required: true,
     }
 });
@@ -59,7 +58,6 @@ const isStreaming = computed(() => props.state.isStreaming);
 
 // 使用UI composable管理界面相关逻辑
 const {
-    showResponseContainer,
     statusText,
     statusColor,
     dots,

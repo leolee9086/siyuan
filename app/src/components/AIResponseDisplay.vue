@@ -1,5 +1,5 @@
 <template>
-    <div v-if="showContainer" ref="responseContentRef"
+    <div  ref="responseContentRef"
         class="ai-response-container protyle-wysiwyg protyle-wysiwyg--attr"
         style="margin-top: 8px; padding: 8px; background: var(--b3-theme-background); border: 1px solid var(--b3-border-color); border-radius: 4px; max-width: 60vw; max-height: 60vh; overflow: auto;">
         <div class="ai-response-content" v-html="state.blockDOMContent || state.responseContentStr"></div>
@@ -18,10 +18,7 @@ import { processRender } from '../protyle/util/processCode';
 
 // 定义组件属性
 const props = defineProps({
-    showContainer: {
-        type: Boolean,
-        default: false
-    },
+
     state: {
         type: Object as PropType<AssistantResponseState>,
         default: ''

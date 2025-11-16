@@ -5,57 +5,57 @@ import z from 'zod';
 
 // 定义AI响应控制器的事件类型
 const assistantResponseEventDefines = {
-  // 响应内容变更事件
-  contentChanged: {
-    oldContent: z.string(),
-    newContent: z.string(),
-    timestamp: z.number()
-  },
-  // 流式传输状态变更事件
-  streamingStateChanged: {
-    isStreaming: z.boolean(),
-    timestamp: z.number()
-  },
-  // 响应完成事件
-  responseCompleted: {
-    finalContent: z.string(),
-    duration: z.number(),
-    timestamp: z.number()
-  },
-  // 响应中止事件
-  responseAborted: {
-    content: z.string(),
-    reason: z.string().optional(),
-    timestamp: z.number()
-  },
-  // 暂停状态变更事件
-  pauseStateChanged: {
-    isPaused: z.boolean(),
-    timestamp: z.number()
-  },
-  // 消息保存事件
-  messageSaved: {
-    message: z.object({
-      role: z.literal('assistant'),
-      content: z.string(),
-      timestamp: z.number()
-    }),
-    totalMessages: z.number(),
-    timestamp: z.number()
-  },
-  // 工具调用事件
-  toolCallExecuted: {
-    toolCode: z.string(),
-    result: z.any(),
-    isAsync: z.boolean(),
-    timestamp: z.number()
-  },
-  // DOM内容变更事件
-  domContentChanged: {
-    oldContent: z.string(),
-    newContent: z.string(),
-    timestamp: z.number()
-  }
+    // 响应内容变更事件
+    contentChanged: {
+        oldContent: z.string(),
+        newContent: z.string(),
+        timestamp: z.number()
+    },
+    // 流式传输状态变更事件
+    streamingStateChanged: {
+        isStreaming: z.boolean(),
+        timestamp: z.number()
+    },
+    // 响应完成事件
+    responseCompleted: {
+        finalContent: z.string(),
+        duration: z.number(),
+        timestamp: z.number()
+    },
+    // 响应中止事件
+    responseAborted: {
+        content: z.string(),
+        reason: z.string().optional(),
+        timestamp: z.number()
+    },
+    // 暂停状态变更事件
+    pauseStateChanged: {
+        isPaused: z.boolean(),
+        timestamp: z.number()
+    },
+    // 消息保存事件
+    messageSaved: {
+        message: z.object({
+            role: z.literal('assistant'),
+            content: z.string(),
+            timestamp: z.number()
+        }),
+        totalMessages: z.number(),
+        timestamp: z.number()
+    },
+    // 工具调用事件
+    toolCallExecuted: {
+        toolCode: z.string(),
+        result: z.any(),
+        isAsync: z.boolean(),
+        timestamp: z.number()
+    },
+    // DOM内容变更事件
+    domContentChanged: {
+        oldContent: z.string(),
+        newContent: z.string(),
+        timestamp: z.number()
+    }
 } as const;
 
 /**
@@ -64,8 +64,8 @@ const assistantResponseEventDefines = {
  */
 export class AssistantMessageController extends SafeEventEmitter<typeof assistantResponseEventDefines> {
     private state: AssistantResponseState;
-    private waitToolCallCallback: ToolCallExecutionCallback = async () => {};
-    private asyncToolCallCallback: ToolCallExecutionCallback = async () => {};
+    private waitToolCallCallback: ToolCallExecutionCallback = async () => { };
+    private asyncToolCallCallback: ToolCallExecutionCallback = async () => { };
     private abortFunction: (() => void) | null = null;
     private startTime: number = 0;
 
@@ -75,11 +75,20 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
             responseContentStr: '',
             isStreaming: false,
             isDone: false,
+            abortFunction: null,
             blockDOMContent: '',
+            onWaitToolCallDetected: async () => { },
+            onAsyncToolCallDetected: async () => { },
             isPaused: false,
-            savedMessageChunks: [],
+            savedMessages: [],
+            asyncToolResults: [],
+            messageControllers: [],
+            errorCount: 0,
+            syncToolCallCount: 0,
+            asyncToolCallCount: 0,
             ...initialState
         };
+        this.state.chatStateController = this;
     }
 
     // 获取状态
@@ -91,7 +100,7 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
     updateResponseContent(content: string): void {
         const oldContent = this.state.responseContentStr;
         this.state.responseContentStr = content;
-        
+
         // 触发内容变更事件
         this.emit('contentChanged', {
             oldContent,
@@ -103,7 +112,7 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
     appendResponseContent(content: string): void {
         const oldContent = this.state.responseContentStr;
         this.state.responseContentStr += content;
-        
+
         // 触发内容变更事件
         this.emit('contentChanged', {
             oldContent,
@@ -117,7 +126,7 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
         this.state.isStreaming = true;
         this.state.isDone = false;
         this.startTime = Date.now();
-        
+
         // 触发流式传输状态变更事件
         this.emit('streamingStateChanged', {
             isStreaming: true,
@@ -127,7 +136,7 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
 
     stopStreaming(): void {
         this.state.isStreaming = false;
-        
+
         // 触发流式传输状态变更事件
         this.emit('streamingStateChanged', {
             isStreaming: false,
@@ -137,16 +146,16 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
 
     setDone(): void {
         const duration = this.startTime ? Date.now() - this.startTime : 0;
-        
+
         this.state.isStreaming = false;
         this.state.isDone = true;
-        
+
         // 触发流式传输状态变更事件
         this.emit('streamingStateChanged', {
             isStreaming: false,
             timestamp: Date.now()
         });
-        
+
         // 触发响应完成事件
         this.emit('responseCompleted', {
             finalContent: this.state.responseContentStr,
@@ -164,9 +173,9 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
         if (this.abortFunction) {
             this.abortFunction();
         }
-        
+
         this.stopStreaming();
-        
+
         // 触发响应中止事件
         this.emit('responseAborted', {
             content: this.state.responseContentStr,
@@ -183,7 +192,7 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
             if (this.abortFunction) {
                 this.abortFunction();
             }
-            
+
             // 触发暂停状态变更事件
             this.emit('pauseStateChanged', {
                 isPaused: true,
@@ -198,13 +207,13 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
             this.state.isStreaming = true;
             this.state.isDone = false;
             this.startTime = Date.now();
-            
+
             // 触发暂停状态变更事件
             this.emit('pauseStateChanged', {
                 isPaused: false,
                 timestamp: Date.now()
             });
-            
+
             // 触发流式传输状态变更事件
             this.emit('streamingStateChanged', {
                 isStreaming: true,
@@ -221,24 +230,20 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
                 content: this.state.responseContentStr,
                 timestamp: Date.now()
             };
-            
-            this.state.savedMessageChunks.push(message);
-            
+
+            this.state.savedMessages.push(message);
+
             // 触发消息保存事件
             this.emit('messageSaved', {
                 message,
-                totalMessages: this.state.savedMessageChunks.length,
+                totalMessages: this.state.savedMessages.length,
                 timestamp: Date.now()
             });
         }
     }
 
-    getSavedMessages(): Array<{
-        role: 'assistant';
-        content: string;
-        timestamp: number;
-    }> {
-        return [...this.state.savedMessageChunks];
+    getSavedMessages() {
+        return [...this.state.savedMessages];
     }
 
     // 工具调用处理
@@ -260,7 +265,7 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
             // 执行工具调用
             const result = await createTemporaryModule(toolCode);
             console.log('工具调用执行结果:', result);
-            
+
             // 触发工具调用事件
             this.emit('toolCallExecuted', {
                 toolCode,
@@ -270,7 +275,7 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
             });
         } catch (error) {
             console.error('工具调用执行失败:', error);
-            
+
             // 触发工具调用事件（失败情况）
             this.emit('toolCallExecuted', {
                 toolCode,
@@ -286,7 +291,7 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
             // 执行异步工具调用
             const result = await createTemporaryModule(toolCode);
             console.log('异步工具调用执行结果:', result);
-            
+
             // 触发工具调用事件
             this.emit('toolCallExecuted', {
                 toolCode,
@@ -296,7 +301,7 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
             });
         } catch (error) {
             console.error('异步工具调用执行失败:', error);
-            
+
             // 触发工具调用事件（失败情况）
             this.emit('toolCallExecuted', {
                 toolCode,

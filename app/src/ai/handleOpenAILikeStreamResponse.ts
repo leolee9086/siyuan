@@ -1,5 +1,4 @@
 import { parseAndValidateStreamData } from "./chatStream.utils";
-import type { ChatSessionState } from "./session/session.types";
 
 // 定义流式响应结果类型
 export interface StreamResponseResult {

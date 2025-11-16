@@ -1,4 +1,4 @@
-import type { ChatSessionState } from '../ai/session/session.types';
+import type { AssistantResponseState } from '../ai/session/session.types';
 import type { StreamResponseResult } from '../ai/handleOpenAILikeStreamResponse';
 
 /**
@@ -8,8 +8,8 @@ import type { StreamResponseResult } from '../ai/handleOpenAILikeStreamResponse'
 export interface StreamChatBusinessLogic {
     buildRequestHeaders: () => Record<string, string>;
     handleOpenAILikeStreamResponse: (dataStr: string, currentContent: string) => StreamResponseResult;
-    updateChatState: (state: ChatSessionState, updates: Partial<ChatSessionState>) => void;
-    processBlockDOMContent: (state: ChatSessionState, protyle: IProtyle) => string;
+    updateChatState: (state: AssistantResponseState, updates: Partial<AssistantResponseState>) => void;
+    processBlockDOMContent: (state: AssistantResponseState, protyle: IProtyle) => string;
     universalStreamRequest: (request: any, callbacks: any) => Promise<(() => void) | null>;
     getAIConfigFromSiyuan: () => any;
 }
