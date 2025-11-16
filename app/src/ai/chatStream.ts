@@ -230,7 +230,7 @@ const createPauseHandler = (
 const createAIRequestHandler = async (
     state: AssistantResponseState,
     protyle: IProtyle,
-    messages: Array<{ role: 'user' | 'assistant'; content: string; timestamp: number }>
+    messages: Array<{ role: 'user' | 'assistant'|'system'; content: string; timestamp: number }>
 ): Promise<AIRequestController> => {
     // 创建请求控制器，完全断开与state的直接联系
     const controller = createAIRequestController(
@@ -342,7 +342,6 @@ const createConfirmHandler = (
             }
             return;
         }
-
         if (state.isDone) {
             const targetElements = selectedBlockElements.length > 0 ? selectedBlockElements : [targetElement];
             fillContent(protyle, state.responseContentStr, targetElements, state.blockDOMContent);
@@ -359,18 +358,18 @@ const createConfirmHandler = (
                 }
             });
         }
-        const promptContent = buildBlockContentPrompt(inputValue, blockContents);
-
+        const promptContent = buildBlockContentPrompt(blockContents);
         // 清空之前的内容
         state.responseContentStr = '';
-
-        console.log(promptContent)
-
         // 使用新的请求控制器发送请求
         await createAIRequestHandler(
             state,
             protyle,
-            [{ role: 'user', content: promptContent, timestamp: Date.now() }]
+            [{
+                role:"system",content:promptContent,timestamp:Date.now()
+            },
+                { role: 'user', content:inputValue,   timestamp: Date.now() }
+            ]
         );
     };
 };

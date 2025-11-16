@@ -30,7 +30,7 @@ ${getHtmlSection()}`
  * @param blockContents 块内容数组
  * @returns 构建好的提示词
  */
-export const buildBlockContentPrompt = (inputValue: string, blockContents?: string[]): string => {
+export const buildBlockContentPrompt = (blockContents?: string[]): string => {
 
 
     // 构建块内容文本
@@ -46,7 +46,6 @@ export const buildBlockContentPrompt = (inputValue: string, blockContents?: stri
 
 ${blocksText || ''}
 
-用户问题：
-${inputValue}`;
+`;
 };
 

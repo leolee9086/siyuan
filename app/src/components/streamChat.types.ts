@@ -41,7 +41,7 @@ export interface StreamHandlers {
  * 消息历史记录类型
  */
 export type MessageHistory = Array<{ 
-    role: 'user' | 'assistant'; 
+    role: 'user' | 'assistant'|'system'; 
     content: string; 
     timestamp: number 
 }>;
