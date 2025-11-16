@@ -11,7 +11,7 @@ import {
 import { setDialogContainerColor, removeBlockMask } from "./utils.mask";
 import { reactive } from "vue";
 import { fillContent } from "./actions.fillContent";
-import { AssistantResponseState } from './session/session.types';
+import { AssistantResponseState, UIFunctions } from './session/session.types';
 import { createTemporaryModule } from "../util/code/scripts.executor";
 import { buildBlockContentPrompt } from "./prompts/blockContent.builder";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
@@ -43,11 +43,33 @@ const createAIStreamChatDialogVueConfig = (
         asyncToolCallCount: 0
     });
 
+    // 创建UI函数引用容器
+    const uiFunctions: UIFunctions = {
+        showResponse: () => { },
+        setCompleteStatus: () => { },
+        setErrorStatus: () => { },
+        setAbortStatus: () => { },
+        getResponseContentRef: (): HTMLElement | null => null,
+        // 新增状态更新方法，用于控制器回调
+        setStreamingStatus: (isStreaming: boolean) => {
+            state.isStreaming = isStreaming;
+        },
+        setDoneStatus: (isDone: boolean) => {
+            state.isDone = isDone;
+        },
+        setPausedStatus: (isPaused: boolean) => {
+            state.isPaused = isPaused;
+        },
+        appendResponseContent: (content: string) => {
+            state.responseContentStr += content;
+        }
+    };
+
     // 创建事件处理函数
     const cancelHandler = createCancelHandler(state, dialog);
     const pauseHandler = createPauseHandler(state);
-    const resumeHandler = createResumeHandler(state, protyle);
-    const confirmHandler = createConfirmHandler(state, protyle, selectedElements, element, dialog);
+    const resumeHandler = createResumeHandler(state, protyle, uiFunctions);
+    const confirmHandler = createConfirmHandler(state, protyle, selectedElements, element, uiFunctions, dialog);
     // 创建工具调用处理函数
     state.onWaitToolCallDetected = createWaitToolCallHandler(state, resumeHandler);
     state.onAsyncToolCallDetected = createAsyncToolCallHandler(state);
@@ -61,6 +83,9 @@ const createAIStreamChatDialogVueConfig = (
             onResumeClick: resumeHandler,
             onConfirmClick: confirmHandler,
             state,
+            onUIFunctionsReady: (newUiFunctions: UIFunctions) => {
+                Object.assign(uiFunctions, newUiFunctions);
+            }
         },
         template: `<AIChatDialog
             :onCancelClick="onCancelClick"
@@ -230,51 +255,58 @@ const createPauseHandler = (
 const createAIRequestHandler = async (
     state: AssistantResponseState,
     protyle: IProtyle,
+    uiFunctions: UIFunctions,
     messages: Array<{ role: 'user' | 'assistant'; content: string; timestamp: number }>
 ): Promise<AIRequestController> => {
     // 创建请求控制器，完全断开与state的直接联系
     const controller = createAIRequestController(
         {
             onStart: () => {
+                uiFunctions.showResponse();
                 // 通过事件通知外部更新状态，而不是直接操作state
-                state.isStreaming = true;
-                state.isDone = false;
+                uiFunctions.setStreamingStatus(true);
+                uiFunctions.setDoneStatus(false);
             },
             onMessage: (dataStr: string) => {
                 // 使用新的文本流读取机制，传递当前内容而不是整个状态
                 const result = handleOpenAILikeStreamResponse(dataStr, state.responseContentStr);
 
                 if (result.error) {
+                    uiFunctions.setErrorStatus(result.error);
                     return;
                 }
 
                 if (result.content) {
-                    state.responseContentStr += result.content;
+                    // 通过事件通知外部更新内容，而不是直接操作state
+                    uiFunctions.appendResponseContent(result.content);
                     // 处理DOM内容
                     processBlockDOMContent(state, protyle);
                 }
 
                 if (result.isFinished) {
-                    state.isStreaming=false;
-                    state.isDone=true;
+                    uiFunctions.setStreamingStatus(false);
+                    uiFunctions.setDoneStatus(true);
+                    uiFunctions.setCompleteStatus();
                 }
             },
             onComplete: () => {
-                state.isStreaming =false;
-                state.isDone=true;
+                uiFunctions.setStreamingStatus(false);
+                uiFunctions.setDoneStatus(true);
+                uiFunctions.setCompleteStatus();
             },
             onError: (error: Error) => {
-                state.isStreaming =false;
-                console.error(error)
+                uiFunctions.setStreamingStatus(false);
+                uiFunctions.setErrorStatus(error);
             },
             onAbort: () => {
-                state.isStreaming =false;
+                uiFunctions.setStreamingStatus(false);
+                uiFunctions.setAbortStatus();
             },
             onPause: () => {
-                state.isPaused=true;
+                uiFunctions.setPausedStatus(true);
             },
             onResume: () => {
-                state.isPaused=false;
+                uiFunctions.setPausedStatus(false);
             }
         },
         getAIConfigFromSiyuan
@@ -293,6 +325,7 @@ const createAIRequestHandler = async (
 const createResumeHandler = (
     state: AssistantResponseState,
     protyle: IProtyle,
+    uiFunctions: UIFunctions
 ) => {
     return async () => {
         if (!state.isPaused) {
@@ -319,7 +352,7 @@ const createResumeHandler = (
 
         // 使用新的请求控制器发送请求
         try {
-            await createAIRequestHandler(state, protyle, messages);
+            await createAIRequestHandler(state, protyle, uiFunctions, messages);
         } catch (e) {
             console.error(e)
         }
@@ -333,6 +366,7 @@ const createConfirmHandler = (
     protyle: IProtyle,
     selectedBlockElements: Element[],
     targetElement: Element,
+    uiFunctions: UIFunctions,
     dialog: Dialog
 ) => {
     return async (inputValue: string) => {
@@ -370,6 +404,7 @@ const createConfirmHandler = (
         await createAIRequestHandler(
             state,
             protyle,
+            uiFunctions,
             [{ role: 'user', content: promptContent, timestamp: Date.now() }]
         );
     };

@@ -4,10 +4,7 @@ import {  从块DOM提取首个符合条件的特定语言代码块内容 } from
 import { JAVASCRIPT_TOOLS_CLASS, JAVASCRIPT_TOOLS_WAIT_CLASS } from "./constants";
 
 
-// 更新聊天状态
-export const updateChatState = (state: AssistantResponseState, updates: Partial<AssistantResponseState>): void => {
-    Object.assign(state, updates);
-};
+
 
 
 // 构建请求头

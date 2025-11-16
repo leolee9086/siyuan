@@ -135,16 +135,3 @@ export interface RequestAbortConfig {
     elements: DialogElements;
     animationManager: AnimationManager;
 }
-// UI函数接口
-export interface UIFunctions {
-    showResponse: () => void;
-    setCompleteStatus: () => void;
-    setErrorStatus: (error: Error) => void;
-    setAbortStatus: () => void;
-    getResponseContentRef: () => HTMLElement | null;
-    // 新增状态更新方法，用于控制器回调
-    setStreamingStatus: (isStreaming: boolean) => void;
-    setDoneStatus: (isDone: boolean) => void;
-    setPausedStatus: (isPaused: boolean) => void;
-    appendResponseContent: (content: string) => void;
-}
