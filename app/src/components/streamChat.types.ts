@@ -1,4 +1,5 @@
 import type { ChatSessionState } from '../ai/session/session.types';
+import type { StreamResponseResult } from '../ai/handleOpenAILikeStreamResponse';
 
 /**
  * 业务逻辑依赖接口
@@ -6,7 +7,7 @@ import type { ChatSessionState } from '../ai/session/session.types';
  */
 export interface StreamChatBusinessLogic {
     buildRequestHeaders: () => Record<string, string>;
-    handleOpenAILikeStreamResponse: (dataStr: string, state: ChatSessionState) => string | null;
+    handleOpenAILikeStreamResponse: (dataStr: string, currentContent: string) => StreamResponseResult;
     updateChatState: (state: ChatSessionState, updates: Partial<ChatSessionState>) => void;
     processBlockDOMContent: (state: ChatSessionState, protyle: IProtyle) => string;
     universalStreamRequest: (request: any, callbacks: any) => Promise<(() => void) | null>;

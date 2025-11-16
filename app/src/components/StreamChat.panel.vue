@@ -25,7 +25,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import type { PropType } from 'vue';
-import { useStreamChatUI, getI18nText } from './streamChat.componentLogic';
+import { useStreamChatUI, getI18nText } from './streamChat.ui';
 import TextField from './common/TextField.vue';
 import AIResponseDisplay from './AIResponseDisplay.vue';
 import { ChatSessionState } from '../ai/session/session.types';

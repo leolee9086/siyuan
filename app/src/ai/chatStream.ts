@@ -7,7 +7,6 @@ import {
     AIChatDialog,
     VueComponentMountConfig,
     createBlockMasks,
-    handleAIRequest
 } from "./imports";
 import { setDialogContainerColor, removeBlockMask } from "./utils.mask";
 import { reactive } from "vue";
@@ -18,8 +17,8 @@ import { buildBlockContentPrompt } from "./prompts/blockContent.builder";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
 import { getAIConfigFromSiyuan } from "./utils.config";
 import { handleOpenAILikeStreamResponse } from "./handleOpenAILikeStreamResponse";
-import { buildRequestHeaders, processBlockDOMContent, updateChatState } from "./chatStream.utils";
-import { universalStreamRequest } from "../util/fetchStream";
+import { processBlockDOMContent, updateChatState } from "./chatStream.utils";
+import { createAIRequestController, AIRequestController } from "./requestController.impl";
 
 const createAIStreamChatDialogVueConfig = (
     protyle: IProtyle,
@@ -49,6 +48,19 @@ const createAIStreamChatDialogVueConfig = (
         setErrorStatus: () => { },
         setAbortStatus: () => { },
         getResponseContentRef: (): HTMLElement | null => null,
+        // 新增状态更新方法，用于控制器回调
+        setStreamingStatus: (isStreaming: boolean) => {
+            state.isStreaming = isStreaming;
+        },
+        setDoneStatus: (isDone: boolean) => {
+            state.isDone = isDone;
+        },
+        setPausedStatus: (isPaused: boolean) => {
+            state.isPaused = isPaused;
+        },
+        appendResponseContent: (content: string) => {
+            state.responseContentStr += content;
+        }
     };
 
     // 创建事件处理函数
@@ -123,11 +135,12 @@ const createWaitToolCallHandler = (
             if (error instanceof Error)
                 state.savedMessages.push({
                     role: 'user',
-                    content: `工具调用执行失败: ${error.message},\n你必须使用标准esm语法并且以default导出你需要的结果`,
+                    content: `system:工具调用执行失败: ${error.message},\n你必须使用标准esm语法并且以default导出你需要的结果`,
                     timestamp: Date.now()
                 });
         } finally {
             // 恢复对话
+            console.log(state.errorCount)
             state.errorCount <= 3 && await resumeHandler();
         }
     };
@@ -207,31 +220,68 @@ const createAIRequestHandler = async (
     protyle: IProtyle,
     uiFunctions: UIFunctions,
     messages: Array<{ role: 'user' | 'assistant'; content: string; timestamp: number }>
-) => {
-    const aiConfig = getAIConfigFromSiyuan();
+): Promise<AIRequestController> => {
+    // 创建请求控制器，完全断开与state的直接联系
+    const controller = createAIRequestController(
+        {
+            onStart: () => {
+                uiFunctions.showResponse();
+                // 通过事件通知外部更新状态，而不是直接操作state
+                uiFunctions.setStreamingStatus(true);
+                uiFunctions.setDoneStatus(false);
+            },
+            onMessage: (dataStr: string) => {
+                // 使用新的文本流读取机制，传递当前内容而不是整个状态
+                const result = handleOpenAILikeStreamResponse(dataStr, state.responseContentStr);
 
-    const businessLogic = {
-        buildRequestHeaders: () => buildRequestHeaders(aiConfig),
-        handleOpenAILikeStreamResponse,
-        updateChatState,
-        processBlockDOMContent,
-        universalStreamRequest,
+                if (result.error) {
+                    uiFunctions.setErrorStatus(result.error);
+                    return;
+                }
+
+                if (result.content) {
+                    // 通过事件通知外部更新内容，而不是直接操作state
+                    uiFunctions.appendResponseContent(result.content);
+                    // 处理DOM内容
+                    processBlockDOMContent(state, protyle);
+                }
+
+                if (result.isFinished) {
+                    uiFunctions.setStreamingStatus(false);
+                    uiFunctions.setDoneStatus(true);
+                    uiFunctions.setCompleteStatus();
+                }
+            },
+            onComplete: () => {
+                uiFunctions.setStreamingStatus(false);
+                uiFunctions.setDoneStatus(true);
+                uiFunctions.setCompleteStatus();
+            },
+            onError: (error: Error) => {
+                uiFunctions.setStreamingStatus(false);
+                uiFunctions.setErrorStatus(error);
+            },
+            onAbort: () => {
+                uiFunctions.setStreamingStatus(false);
+                uiFunctions.setAbortStatus();
+            },
+            onPause: () => {
+                uiFunctions.setPausedStatus(true);
+            },
+            onResume: () => {
+                uiFunctions.setPausedStatus(false);
+            }
+        },
         getAIConfigFromSiyuan
-    };;
-    const abortFn = await handleAIRequest(
-        businessLogic,
-        state,
-        protyle,
-        uiFunctions.showResponse,
-        uiFunctions.setCompleteStatus,
-        uiFunctions.setErrorStatus,
-        uiFunctions.setAbortStatus,
-        messages
     );
 
-    if (abortFn) {
-        state.abortFunction = abortFn;
-    }
+    // 发起请求
+    await controller.startRequest(messages);
+
+    // 保存取消函数到state
+    state.abortFunction = () => controller.cancelRequest();
+
+    return controller;
 };
 
 // 创建恢复处理函数
@@ -261,7 +311,7 @@ const createResumeHandler = (
                 timestamp: Date.now()
             });
 
-            // 使用共享函数发送请求
+            // 使用新的请求控制器发送请求
             await createAIRequestHandler(state, protyle, uiFunctions, messages);
         }
     };
@@ -307,7 +357,7 @@ const createConfirmHandler = (
 
         console.log(promptContent)
 
-        // 使用共享函数发送请求
+        // 使用新的请求控制器发送请求
         await createAIRequestHandler(
             state,
             protyle,
