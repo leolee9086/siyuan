@@ -37,6 +37,7 @@ logs
 # NPM Package
 package-lock.json
 yarn.lock
+pnpm-lock.yaml
 
 # Workflows
 **/__pycache__
