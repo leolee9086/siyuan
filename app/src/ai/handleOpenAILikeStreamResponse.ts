@@ -10,7 +10,6 @@ export interface StreamResponseResult {
 // 处理流式响应 - 纯函数，不直接修改状态
 export const handleOpenAILikeStreamResponse = (
     dataStr: string,
-    currentContent: string
 ): StreamResponseResult => {
     const data = parseAndValidateStreamData(dataStr);
     if (!data) {
@@ -41,7 +40,7 @@ export const handleOpenAILikeStreamResponse = (
             isFinished: false
         };
     }
-    
+
     // 检查是否是结束标记
     if (choice.finish_reason === 'stop') {
         return {
@@ -49,12 +48,12 @@ export const handleOpenAILikeStreamResponse = (
             isFinished: true
         };
     }
-    
+
     try {
         // 优先处理 content 字段，如果没有则处理 reasoning_content 字段
         const content = choice.delta?.content || choice.message?.content;
         const reasoningContent = choice.delta?.reasoning_content || choice.message?.reasoning_content;
-        
+
         // 处理普通内容
         if (typeof content === 'string' && content.length > 0) {
             return {
@@ -62,7 +61,7 @@ export const handleOpenAILikeStreamResponse = (
                 isFinished: false
             };
         }
-        
+
         // 处理推理内容
         if (typeof reasoningContent === 'string' && reasoningContent.length > 0) {
             return {
@@ -70,7 +69,7 @@ export const handleOpenAILikeStreamResponse = (
                 isFinished: false
             };
         }
-        
+
         // 处理非字符串内容的情况，可能是数字、对象等
         if (content !== undefined && content !== null && content !== '') {
             console.warn('接收到非字符串内容:', content);
@@ -80,7 +79,7 @@ export const handleOpenAILikeStreamResponse = (
                 isFinished: false
             };
         }
-        
+
         // 处理非字符串推理内容的情况
         if (reasoningContent !== undefined && reasoningContent !== null && reasoningContent !== '') {
             console.warn('接收到非字符串推理内容:', reasoningContent);

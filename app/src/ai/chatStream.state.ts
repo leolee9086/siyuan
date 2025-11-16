@@ -1,31 +1,19 @@
 import {
     Dialog,
-    isMobile,
-    genUUID,
-    genRandomColor,
-    createVueDialog,
-    AIChatDialog,
-    VueComponentMountConfig,
-    createBlockMasks,
 } from "./imports";
-import { setDialogContainerColor, removeBlockMask } from "./utils.mask";
 import { reactive } from "vue";
 import { fillContent } from "./actions.fillContent";
-import { AssistantResponseState, UIFunctions } from './session/session.types';
+import { AssistantResponseState } from './session/session.types';
 import { createTemporaryModule } from "../util/code/scripts.executor";
 import { buildBlockContentPrompt } from "./prompts/blockContent.builder";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
-import { getAIConfigFromSiyuan } from "./utils.config";
-import { handleOpenAILikeStreamResponse } from "./handleOpenAILikeStreamResponse";
-import { processBlockDOMContent } from "./chatStream.utils";
-import { createAIRequestController, AIRequestController } from "./requestController.impl";
+import { createAIRequestHandlerWithState } from "./createAIRequestHandler";
 
-const createAIStreamChatDialogVueConfig = (
+export const createState = (
     protyle: IProtyle,
     element: Element,
     selectedElements: Element[],
     dialog: Dialog
-): VueComponentMountConfig => {
+) => {
     // 创建聊天状态
     const state: AssistantResponseState = reactive({
         responseContentStr: '',
@@ -43,60 +31,17 @@ const createAIStreamChatDialogVueConfig = (
         asyncToolCallCount: 0
     });
 
-    // 创建UI函数引用容器
-    const uiFunctions: UIFunctions = {
-        showResponse: () => { },
-        setCompleteStatus: () => { },
-        setErrorStatus: () => { },
-        setAbortStatus: () => { },
-        getResponseContentRef: (): HTMLElement | null => null,
-        // 新增状态更新方法，用于控制器回调
-        setStreamingStatus: (isStreaming: boolean) => {
-            state.isStreaming = isStreaming;
-        },
-        setDoneStatus: (isDone: boolean) => {
-            state.isDone = isDone;
-        },
-        setPausedStatus: (isPaused: boolean) => {
-            state.isPaused = isPaused;
-        },
-        appendResponseContent: (content: string) => {
-            state.responseContentStr += content;
-        }
-    };
-
     // 创建事件处理函数
     const cancelHandler = createCancelHandler(state, dialog);
     const pauseHandler = createPauseHandler(state);
-    const resumeHandler = createResumeHandler(state, protyle, uiFunctions);
-    const confirmHandler = createConfirmHandler(state, protyle, selectedElements, element, uiFunctions, dialog);
+    const resumeHandler = createResumeHandler(state, protyle);
+    const confirmHandler = createConfirmHandler(state, protyle, selectedElements, element, dialog);
     // 创建工具调用处理函数
     state.onWaitToolCallDetected = createWaitToolCallHandler(state, resumeHandler);
     state.onAsyncToolCallDetected = createAsyncToolCallHandler(state);
-    return {
-        components: {
-            AIChatDialog
-        },
-        data: {
-            onCancelClick: cancelHandler,
-            onPauseClick: pauseHandler,
-            onResumeClick: resumeHandler,
-            onConfirmClick: confirmHandler,
-            state,
-            onUIFunctionsReady: (newUiFunctions: UIFunctions) => {
-                Object.assign(uiFunctions, newUiFunctions);
-            }
-        },
-        template: `<AIChatDialog
-            :onCancelClick="onCancelClick"
-            :onPauseClick="onPauseClick"
-            :onResumeClick="onResumeClick"
-            :onConfirmClick="onConfirmClick"
-            :state="state"
-            @ui-functions-ready="onUIFunctionsReady"
-        />`,
-    };
-};
+    return { state, cancelHandler, pauseHandler, confirmHandler, resumeHandler }
+}
+
 
 // 创建等待工具调用处理函数
 const createWaitToolCallHandler = (
@@ -251,81 +196,10 @@ const createPauseHandler = (
     };
 };
 
-// 创建AI请求处理函数
-const createAIRequestHandler = async (
-    state: AssistantResponseState,
-    protyle: IProtyle,
-    uiFunctions: UIFunctions,
-    messages: Array<{ role: 'user' | 'assistant'; content: string; timestamp: number }>
-): Promise<AIRequestController> => {
-    // 创建请求控制器，完全断开与state的直接联系
-    const controller = createAIRequestController(
-        {
-            onStart: () => {
-                uiFunctions.showResponse();
-                // 通过事件通知外部更新状态，而不是直接操作state
-                uiFunctions.setStreamingStatus(true);
-                uiFunctions.setDoneStatus(false);
-            },
-            onMessage: (dataStr: string) => {
-                // 使用新的文本流读取机制，传递当前内容而不是整个状态
-                const result = handleOpenAILikeStreamResponse(dataStr, state.responseContentStr);
-
-                if (result.error) {
-                    uiFunctions.setErrorStatus(result.error);
-                    return;
-                }
-
-                if (result.content) {
-                    // 通过事件通知外部更新内容，而不是直接操作state
-                    uiFunctions.appendResponseContent(result.content);
-                    // 处理DOM内容
-                    processBlockDOMContent(state, protyle);
-                }
-
-                if (result.isFinished) {
-                    uiFunctions.setStreamingStatus(false);
-                    uiFunctions.setDoneStatus(true);
-                    uiFunctions.setCompleteStatus();
-                }
-            },
-            onComplete: () => {
-                uiFunctions.setStreamingStatus(false);
-                uiFunctions.setDoneStatus(true);
-                uiFunctions.setCompleteStatus();
-            },
-            onError: (error: Error) => {
-                uiFunctions.setStreamingStatus(false);
-                uiFunctions.setErrorStatus(error);
-            },
-            onAbort: () => {
-                uiFunctions.setStreamingStatus(false);
-                uiFunctions.setAbortStatus();
-            },
-            onPause: () => {
-                uiFunctions.setPausedStatus(true);
-            },
-            onResume: () => {
-                uiFunctions.setPausedStatus(false);
-            }
-        },
-        getAIConfigFromSiyuan
-    );
-
-    // 立即保存取消函数到state，确保在请求开始前就能使用
-    state.abortFunction = () => controller.cancelRequest();
-
-    // 发起请求
-    await controller.startRequest(messages);
-
-    return controller;
-};
-
 // 创建恢复处理函数
 const createResumeHandler = (
     state: AssistantResponseState,
     protyle: IProtyle,
-    uiFunctions: UIFunctions
 ) => {
     return async () => {
         if (!state.isPaused) {
@@ -352,7 +226,7 @@ const createResumeHandler = (
 
         // 使用新的请求控制器发送请求
         try {
-            await createAIRequestHandler(state, protyle, uiFunctions, messages);
+            await createAIRequestHandlerWithState(state, protyle, messages);
         } catch (e) {
             console.error(e)
         }
@@ -366,7 +240,6 @@ const createConfirmHandler = (
     protyle: IProtyle,
     selectedBlockElements: Element[],
     targetElement: Element,
-    uiFunctions: UIFunctions,
     dialog: Dialog
 ) => {
     return async (inputValue: string) => {
@@ -376,7 +249,6 @@ const createConfirmHandler = (
             }
             return;
         }
-
         if (state.isDone) {
             const targetElements = selectedBlockElements.length > 0 ? selectedBlockElements : [targetElement];
             fillContent(protyle, state.responseContentStr, targetElements, state.blockDOMContent);
@@ -393,53 +265,21 @@ const createConfirmHandler = (
                 }
             });
         }
-        const promptContent = buildBlockContentPrompt(inputValue, blockContents);
-
+        const promptContent = buildBlockContentPrompt(blockContents);
         // 清空之前的内容
         state.responseContentStr = '';
-
-        console.log(promptContent)
-
         // 使用新的请求控制器发送请求
-        await createAIRequestHandler(
+        await createAIRequestHandlerWithState(
             state,
             protyle,
-            uiFunctions,
-            [{ role: 'user', content: promptContent, timestamp: Date.now() }]
+            [
+                {
+                    role: "system", content: promptContent, timestamp: Date.now()
+                },
+                {
+                    role: 'user', content: inputValue, timestamp: Date.now()
+                }
+            ]
         );
     };
-};
-
-export const AIChat = (protyle: IProtyle, element: Element) => {
-    const randomColor = genRandomColor();
-    // 获取选中的块元素
-    const selectedElementsNodeList = protyle.wysiwyg?.element.querySelectorAll(".protyle-wysiwyg--select") || [];
-    const selectedElements = selectedElementsNodeList.length > 0 ? Array.from(selectedElementsNodeList) : [];
-    // 使用批量创建函数为目标元素和所有选中的块元素创建遮罩
-    const maskElements = createBlockMasks(element, selectedElements, randomColor);
-    const dialog = createVueDialog({
-        dataKey: `ai-chat-dialog-${genUUID()}`,
-        vueConfigFactory: (dialogInstance: Dialog) => createAIStreamChatDialogVueConfig(protyle, element, selectedElements, dialogInstance),
-        dialogOptions: {
-            title: "✨ " + siyuanI18n.aiWriting,
-            width: isMobile() ? "92vw" : "520px",
-            transparent: true,
-            disableScrimClose: true,
-            disableEscapeClose: true,
-            scrimPointerEvents: true,
-            closeButtonPosition: "inside",
-            destroyCallback: () => {
-                maskElements.forEach(mask => removeBlockMask(mask));
-            }
-        }
-    });
-    setDialogContainerColor(dialog, randomColor);
-    // 监听块元素删除
-    const observer = new MutationObserver(() => {
-        if (!document.body.contains(element)) {
-            observer.disconnect();
-            dialog.destroy();
-        }
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
 };

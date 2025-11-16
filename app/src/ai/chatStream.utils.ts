@@ -1,11 +1,7 @@
 import type { AssistantResponseState } from "./session/session.types";
 import { AIConfig, chatResponseDataSchema } from "./types";
-import {  从块DOM提取首个符合条件的特定语言代码块内容 } from "./parser/toolCallDetector";
+import { 从块DOM提取首个符合条件的特定语言代码块内容 } from "./parser/toolCallDetector";
 import { JAVASCRIPT_TOOLS_CLASS, JAVASCRIPT_TOOLS_WAIT_CLASS } from "./constants";
-
-
-
-
 
 // 构建请求头
 export const buildRequestHeaders = (aiConfig: AIConfig) => {
@@ -32,12 +28,12 @@ export const parseAndValidateStreamData = (dataStr: string) => {
     try {
         // 处理SSE数据格式，移除可能的前缀
         let cleanDataStr = dataStr.trim();
-        
+
         // 移除 "data: " 前缀（如果存在）
         if (cleanDataStr.startsWith('data: ')) {
             cleanDataStr = cleanDataStr.substring(6);
         }
-        
+
         // 跳过空行和 "[DONE]" 标记
         if (!cleanDataStr || cleanDataStr === '[DONE]') {
             return null;
@@ -82,12 +78,12 @@ const 处理工具调用 = (
     const 代码块处理条件 = (blockElement: Element, content: string) => {
 
         let flag = false
-        let lastUsed=cache.get(content)
-        if(!state.responseContentStr.split('\`\`\`').pop()?.trim()){
+        let lastUsed = cache.get(content)
+        if (!state.responseContentStr.split('\`\`\`').pop()?.trim()) {
             flag = true
-            cache.set(content,flag)
+            cache.set(content, flag)
         }
-        console.log(flag,lastUsed)
+        console.log(flag, lastUsed)
         return flag && !lastUsed
     }
     const toolCode = 从块DOM提取首个符合条件的特定语言代码块内容(tempDiv, toolClass, 代码块处理条件);
@@ -101,14 +97,13 @@ const 处理工具调用 = (
 // 渲染blockDOM内容（纯数据处理，不包含DOM操作）
 export const processBlockDOMContent = (
     state: AssistantResponseState,
-    protyle: IProtyle
+    lute: Lute
 ): string => {
-    if (!protyle.lute) {
-        console.error(protyle)
-        throw new Error('protyle结构不正确')
+    if (!lute) {
+        throw new Error('缺少lute实例,无法处理工具调用')
     }
     // 使用lute引擎将内容转换为块级DOM
-    const blockDom = protyle.lute.SpinBlockDOM(state.responseContentStr);
+    const blockDom = lute.SpinBlockDOM(state.responseContentStr);
     state.blockDOMContent = blockDom;
     // 从生成的blockDOM中处理data-node-id属性并设置custom-assistant-name
     const tempDiv = document.createElement('div');
@@ -119,10 +114,10 @@ export const processBlockDOMContent = (
         // 设置custom-assistant-name属性为default
         element.setAttribute('custom-assistant-name', 'default');
     });
-    
+
     // 检测并处理DOM中的工具调用
     处理工具调用(tempDiv, JAVASCRIPT_TOOLS_WAIT_CLASS, state.onWaitToolCallDetected, '工具调用', state);
-    
+
     // 检测并处理DOM中的异步工具调用
     处理工具调用(tempDiv, JAVASCRIPT_TOOLS_CLASS, state.onAsyncToolCallDetected, '异步工具调用', state);
 

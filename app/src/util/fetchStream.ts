@@ -113,7 +113,7 @@ const handleError = (
             if (timeSinceLastEvent >= timeout) {
                 onError(new Error("响应超时，但已保留已有内容"));
             } else {
-                onError(new Error("请求已终止"));
+                onError(error);
             }
         } else {
             onError(error);
