@@ -1,11 +1,13 @@
+import { getSiyuanConfig } from "./siyuanEnvironments/getSiyuanConfig";
+
 const CONTAINER_BACKEND_SET = new Set(["docker", "ios", "android", "harmony"]);
 const MOBILE_BACKEND_SET = new Set(["ios", "android", "harmony"]);
 export const isKernelInContainer = (): boolean => {
-    return CONTAINER_BACKEND_SET.has(window.siyuan.config.system.container);
+    return CONTAINER_BACKEND_SET.has(getSiyuanConfig().system.container);
 };
 
 export const isKernelInMobile = (): boolean => {
-    return MOBILE_BACKEND_SET.has(window.siyuan.config.system.container);
+    return MOBILE_BACKEND_SET.has(getSiyuanConfig().system.container);
 };
 
 export const isMobile = () => {
@@ -15,9 +17,9 @@ export const isMobile = () => {
 // "windows" | "linux" | "darwin" | "docker" | "android" | "ios" | "harmony"
 export const getBackend = () => {
     if (isKernelInContainer()) {
-        return window.siyuan.config.system.container;
+        return getSiyuanConfig().system.container;
     } else {
-        return window.siyuan.config.system.os;
+        return getSiyuanConfig().system.os;
     }
 };
 
