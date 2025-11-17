@@ -100,7 +100,6 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-
 // 使用composable
 const { isProcessing: autoProcessing, createAutoProcessor, cleanup } = useAutoProcessing()
 const {

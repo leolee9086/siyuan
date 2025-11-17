@@ -17,7 +17,6 @@ export function withProps<TProps>(
     });
   };
 }
-
 /**
  * 创建专门用于emit拦截的高阶组件工厂
  * @param emitInterceptor emit拦截函数
