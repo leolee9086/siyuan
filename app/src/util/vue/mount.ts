@@ -1,4 +1,5 @@
-import { createApp, App, Component } from "vue";
+import { createApp, App, Component, defineComponent, h } from "vue";
+import { createComponentWrapper, type VueComponent, type ComponentWrapperConfig, type ComponentWrapper } from "./wrapper";
 
 /**
  * Vue组件挂载配置接口
@@ -7,15 +8,19 @@ export interface VueComponentMountConfig {
     /** 要注册的组件 */
     components: Record<string, Component>;
     /** 组件props数据 */
-    data?: Record<string, any>;
+    data?: Record<string, any> | undefined;
     /** 事件处理器 */
-    eventHandlers?: Record<string, Function>;
+    eventHandlers?: Record<string, Function> | undefined;
     /** 组件模板 */
-    template?: string;
+    template?: string | undefined;
     /** 挂载后要调用的方法名 */
-    initMethodName?: string;
+    initMethodName?: string | undefined;
     /** 初始化方法参数 */
-    initMethodParams?: any[];
+    initMethodParams?: any[] | undefined;
+    /** 组件包装器配置 */
+    wrapperConfig?: ComponentWrapperConfig | undefined;
+    /** 组件包装器函数 */
+    wrapper?: ComponentWrapper | undefined;
 }
 
 /**
@@ -29,6 +34,30 @@ export interface VueComponentLoaderContext {
 }
 
 /**
+ * 应用包装器到组件
+ * @param component 原始组件
+ * @param config 挂载配置
+ * @returns 包装后的组件
+ */
+const applyWrapperToComponent = (
+    component: VueComponent,
+    config: VueComponentMountConfig
+): VueComponent => {
+    // 如果有包装器函数，优先使用包装器函数
+    if (config.wrapper) {
+        return config.wrapper(component);
+    }
+    
+    // 如果有包装器配置，使用配置创建包装器
+    if (config.wrapperConfig) {
+        return createComponentWrapper(component, config.wrapperConfig);
+    }
+    
+    // 否则返回原始组件
+    return component;
+};
+
+/**
  * 创建Vue应用实例并挂载到指定容器
  * @param container DOM容器元素
  * @param config Vue组件挂载配置
@@ -40,14 +69,23 @@ export const createVueComponentLoader = (
     config: VueComponentMountConfig,
     context?: VueComponentLoaderContext
 ): App => {
+    // 应用包装器到所有组件
+    const wrappedComponents: Record<string, VueComponent> = {};
+    Object.entries(config.components).forEach(([name, component]) => {
+        wrappedComponents[name] = applyWrapperToComponent(component , config);
+    });
+
+    // 获取第一个组件名作为默认模板
+    const firstComponentName = Object.keys(wrappedComponents)[0];
+
     // 创建Vue应用实例
     const app = createApp({
-        components: config.components,
+        components: wrappedComponents,
         setup() {
             // 合并数据和事件处理器
             const returnData: Record<string, any> = {
-                ...config.data,
-                ...config.eventHandlers
+                ...(config.data || {}),
+                ...(config.eventHandlers || {})
             };
 
             // 如果提供了上下文，添加上下文方法
@@ -58,7 +96,7 @@ export const createVueComponentLoader = (
 
             return returnData;
         },
-        template: config.template || Object.keys(config.components)[0]
+        template: config.template || `<${firstComponentName} />`
     });
 
     // 挂载到容器
@@ -66,18 +104,15 @@ export const createVueComponentLoader = (
         const mountedInstance = app.mount(container);
         // 如果指定了初始化方法，调用它
         if (config.initMethodName && (mountedInstance as any).$refs) {
-            const componentName = Object.keys(config.components)[0];
-            const componentRefName = `${componentName}Component`;
+            const componentRefName = `${firstComponentName}Component`;
             const componentInstance = (mountedInstance as any).$refs[componentRefName];
 
             if (componentInstance && componentInstance[config.initMethodName]) {
                 componentInstance[config.initMethodName](...(config.initMethodParams || []));
             }
         }
-
-
     } catch (e) {
-        console.error(e)
+        console.error('Vue组件挂载失败:', e);
     }
     return app;
 };
@@ -108,10 +143,12 @@ export const createVueComponentInDialog = (
     return createVueComponentLoader(dialogBody, config, context);
 };
 
+
 /**
- * 创建简单的Vue组件加载器，适用于大多数场景
+ * 创建带有包装器的Vue组件加载器
  * @param container DOM容器元素
  * @param component Vue组件
+ * @param wrapperConfig 包装器配置
  * @param data 组件数据
  * @param eventHandlers 事件处理器
  * @param template 可选的模板字符串
@@ -119,9 +156,10 @@ export const createVueComponentInDialog = (
  * @param initMethodParams 可选的初始化方法参数
  * @returns Vue应用实例
  */
-export const createSimpleVueComponentLoader = (
+export const createWrappedVueComponentLoader = (
     container: HTMLElement,
     component: Component,
+    wrapperConfig: ComponentWrapperConfig,
     data?: Record<string, any>,
     eventHandlers?: Record<string, Function>,
     template?: string,
@@ -136,6 +174,42 @@ export const createSimpleVueComponentLoader = (
         eventHandlers,
         template: template || `<${componentName} />`,
         initMethodName,
-        initMethodParams
+        initMethodParams,
+        wrapperConfig
+    });
+};
+
+/**
+ * 创建带有自定义包装器的Vue组件加载器
+ * @param container DOM容器元素
+ * @param component Vue组件
+ * @param wrapper 包装器函数
+ * @param data 组件数据
+ * @param eventHandlers 事件处理器
+ * @param template 可选的模板字符串
+ * @param initMethodName 可选的挂载后要调用的方法名
+ * @param initMethodParams 可选的初始化方法参数
+ * @returns Vue应用实例
+ */
+export const createCustomWrappedVueComponentLoader = (
+    container: HTMLElement,
+    component: Component,
+    wrapper: ComponentWrapper,
+    data?: Record<string, any>,
+    eventHandlers?: Record<string, Function>,
+    template?: string,
+    initMethodName?: string,
+    initMethodParams?: any[]
+): App => {
+    const componentName = component.name || 'DynamicComponent';
+
+    return createVueComponentLoader(container, {
+        components: { [componentName]: component },
+        data,
+        eventHandlers,
+        template: template || `<${componentName} />`,
+        initMethodName,
+        initMethodParams,
+        wrapper
     });
 };
