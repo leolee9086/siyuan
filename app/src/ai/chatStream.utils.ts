@@ -1,27 +1,9 @@
 import type { AssistantResponseState } from "./session/session.types";
-import { AIConfig, chatResponseDataSchema } from "./types";
+import { chatResponseDataSchema } from "./types";
 import { 从块DOM提取首个符合条件的特定语言代码块内容 } from "./parser/toolCallDetector";
 import { JAVASCRIPT_TOOLS_CLASS, JAVASCRIPT_TOOLS_WAIT_CLASS } from "./constants";
 
-// 构建请求头
-export const buildRequestHeaders = (aiConfig: AIConfig) => {
-    const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-        "User-Agent": aiConfig.apiUserAgent,
-    };
 
-    // 根据API提供商添加认证头
-    if (aiConfig.apiProvider === "OpenAI" || aiConfig.apiProvider === "ZhipuAI") {
-        headers["Authorization"] = `Bearer ${aiConfig.apiKey}`;
-    }
-
-    // 如果有API版本，添加版本头
-    if (aiConfig.apiVersion) {
-        headers["API-Version"] = aiConfig.apiVersion;
-    }
-
-    return headers;
-};
 
 // 解析和验证流式响应数据
 export const parseAndValidateStreamData = (dataStr: string) => {
