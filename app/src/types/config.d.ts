@@ -1715,11 +1715,11 @@ declare namespace Config {
         /**
          * Dock tab hotkey
          */
-        hotkey?: string;
+        hotkey: string;
         /**
          * Hotkey description ID
          */
-        hotkeyLangId?: string;
+        hotkeyLangId: string;
         /**
          * Tab icon ID
          */
@@ -1732,7 +1732,7 @@ declare namespace Config {
         /**
          * Tab title
          */
-        title?: string;
+        title: string;
         /**
          * Tab type
          */
