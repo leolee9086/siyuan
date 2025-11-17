@@ -13,6 +13,7 @@ import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
 import { createState } from "./chatStream.state";
 import { AssistantResponseState } from "./session/session.types";
 import { reactive } from "vue";
+import { withProps } from "../util/vue/wrapper";
 
 const createAIStreamChatDialogVueConfig = (
     protyle: IProtyle,
@@ -26,7 +27,7 @@ const createAIStreamChatDialogVueConfig = (
     // 创建初始状态
 
     // 创建新的任务状态处理函数
-    const data = {
+    const data = reactive({
         onCancelClick: () => { },
         onPauseClick: () => { },
         onResumeClick: () => { },
@@ -38,7 +39,7 @@ const createAIStreamChatDialogVueConfig = (
             content: string;
             timestamp: number;
         }>
-    }
+    })
     data.onCtrlEnterClick = async (inputValue: string) => {
         const lastState = taskStates[taskStates.length - 1]
         lastState && data.inputHistory.push({
@@ -67,20 +68,17 @@ const createAIStreamChatDialogVueConfig = (
     };
 
 
+    // 使用 withProps 包装 AIChatDialog 组件，预先绑定所有需要的 props
+    const AIChatDialogBinded = withProps(() => {
+        return {
+            controller:data
+        };
+    })(AIChatDialog);
+
     return {
         components: {
-            AIChatDialog
-        },
-        data,
-        template: `<AIChatDialog
-            :onCancelClick="onCancelClick"
-            :onPauseClick="onPauseClick"
-            :onResumeClick="onResumeClick"
-            :onConfirmClick="onConfirmClick"
-            :onCtrlEnterClick="onCtrlEnterClick"
-            :taskStates="taskStates"
-        />`,
-
+            AIChatDialogBinded
+        }
     };
 };
 
