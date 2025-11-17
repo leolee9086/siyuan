@@ -26,17 +26,20 @@ export function createComponentWrapper<TProps = any, TEmit = any>(
   const componentProps = (component as any)?.props || {};
   const componentEmits = (component as any)?.emits || {};
   console.log(componentName,componentProps,componentEmits)
+  
+  // 处理props定义，移除required约束并收集原始required信息
+  const { wrapperProps, originalRequiredProps } = processComponentProps(componentProps);
+  
   // 创建包装后的组件
   const WrappedComponent = defineComponent({
     name: `Wrapped${componentName}`,
-    props: componentProps,
+    props: wrapperProps,
     emits: componentEmits,
     setup(props, { emit, attrs, slots }) {
       // 创建响应式的转换后props，带缓存
       const transformedProps = computed(() => {
         // 生成缓存键
         const cacheKey = JSON.stringify(props);
-        
         // 检查缓存
         if (transformCache.has(props)) {
           const cached = transformCache.get(props);
@@ -53,7 +56,17 @@ export function createComponentWrapper<TProps = any, TEmit = any>(
             result = { ...propsInterceptor.defaults, ...result };
           }
           
-          // 应用转换器
+          
+          
+          // 应用拦截器
+          if (propsInterceptor?.intercept) {
+            result = { ...result, ...propsInterceptor.intercept(result as TProps) };
+             Object.entries(result).forEach(([key, value])=>{
+              console.log(`组件属性${key}已经注入为${value}`)
+             })         
+              console.log(`由于vue的校验机制,此处如果prop设置为required依旧会警告,但是不影响运行时行为`)
+          }
+          // 应用转换器,转换在拦截之后进行
           if (propsInterceptor?.transform) {
             Object.entries(propsInterceptor.transform).forEach(([key, transformer]) => {
               if (key in result && typeof transformer === 'function') {
@@ -61,12 +74,6 @@ export function createComponentWrapper<TProps = any, TEmit = any>(
               }
             });
           }
-          
-          // 应用拦截器
-          if (propsInterceptor?.intercept) {
-            result = { ...result, ...propsInterceptor.intercept(result as TProps) };
-          }
-          
           // 验证props（如果配置了验证）
           if (propsInterceptor?.validate) {
             const validationResult = propsInterceptor.validate(result as TProps);
@@ -84,6 +91,9 @@ export function createComponentWrapper<TProps = any, TEmit = any>(
           if (debug?.enableLogging) {
             console.log('[ComponentWrapper] Props transformed:', { original: props, transformed: result });
           }
+          
+          // 验证原始required属性在转换后是否仍然缺失
+          validateTransformedRequiredProps(result, originalRequiredProps, componentName);
           
           return result;
         } catch (error) {
@@ -192,7 +202,7 @@ export function createComponentWrapper<TProps = any, TEmit = any>(
 
           // 手动添加 v-model 的事件处理器,确保它总是被捕获
           eventHandlers['onUpdate:modelValue'] = (...args: any[]) => proxyEmit('update:modelValue', ...args);
-
+          console.log(transformedProps.value)
           const result = h(component, {
             ...transformedProps.value,
             ...attrs,
@@ -215,4 +225,58 @@ export function createComponentWrapper<TProps = any, TEmit = any>(
 
   // 标记为原始对象，避免响应式包装
   return markRaw(WrappedComponent);
-} 
+}
+
+/**
+ * 处理组件props定义，移除required约束并收集原始required信息
+ * @param componentProps 原始组件props定义
+ * @returns 处理后的props定义和原始required属性集合
+ */
+function processComponentProps(componentProps: Record<string, any>) {
+  const wrapperProps: Record<string, any> = {};
+  const originalRequiredProps: Set<string> = new Set();
+  
+  Object.entries(componentProps).forEach(([key, propDef]) => {
+    // 收集原始required信息
+    if (propDef && typeof propDef === 'object' && propDef.required) {
+      originalRequiredProps.add(key);
+    }
+    
+    // 创建新的prop定义，移除required约束
+    if (propDef && typeof propDef === 'object') {
+      wrapperProps[key] = { ...propDef };
+      delete wrapperProps[key].required; // 移除required约束
+    } else {
+      wrapperProps[key] = propDef;
+    }
+  });
+  
+  return { wrapperProps, originalRequiredProps };
+}
+
+
+/**
+ * 验证转换后的props是否仍然缺少原始required属性
+ * @param transformedProps 转换后的props
+ * @param originalRequiredProps 原始required属性集合
+ * @param componentName 组件名称
+ */
+function validateTransformedRequiredProps(
+  transformedProps: Record<string, any>,
+  originalRequiredProps: Set<string>,
+  componentName: string
+) {
+  const missingProps: string[] = [];
+  
+  originalRequiredProps.forEach(propName => {
+    if (!(propName in transformedProps) || transformedProps[propName] === undefined) {
+      missingProps.push(propName);
+    }
+  });
+  
+  if (missingProps.length > 0) {
+    console.warn(
+      `[ComponentWrapper] 经过绑定转换之后，组件 ${componentName} 仍然缺少属性: ${missingProps.join(', ')}`
+    );
+  }
+}
