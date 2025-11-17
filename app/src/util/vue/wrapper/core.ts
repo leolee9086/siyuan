@@ -93,7 +93,7 @@ export function createComponentWrapper<TProps = any, TEmit = any>(
           }
           
           // 验证原始required属性在转换后是否仍然缺失
-          validateTransformedRequiredProps(result, originalRequiredProps, componentName);
+          validateTransformedRequiredProps(result, originalRequiredProps, componentProps, componentName);
           
           return result;
         } catch (error) {
@@ -256,27 +256,114 @@ function processComponentProps(componentProps: Record<string, any>) {
 
 
 /**
+ * 获取类型字符串，模拟Vue内部的getType函数
+ * @param type 类型
+ * @returns 类型字符串
+ */
+function getType(type: any): string {
+  if (type === null) return 'null';
+  if (Array.isArray(type)) return 'array';
+  if (typeof type === 'object' && type.constructor === Object) return 'object';
+  if (typeof type === 'function') {
+    return type.name || 'function';
+  }
+  return typeof type;
+}
+
+/**
+ * 断言类型，模拟Vue内部的assertType函数
+ * @param value 值
+ * @param type 期望类型
+ * @returns 验证结果
+ */
+function assertType(value: any, type: any): { valid: boolean; expectedType: string } {
+  let valid: boolean;
+  const expectedType = getType(type);
+  
+  if (expectedType === 'null') {
+    valid = value === null;
+  } else if (expectedType === 'string' || expectedType === 'number' || expectedType === 'boolean') {
+    const t = typeof value;
+    valid = t === expectedType;
+    if (!valid && t === 'object') {
+      valid = value instanceof type;
+    }
+  } else if (expectedType === 'object') {
+    valid = typeof value === 'object' && value !== null && !Array.isArray(value);
+  } else if (expectedType === 'array') {
+    valid = Array.isArray(value);
+  } else {
+    valid = value instanceof type;
+  }
+  
+  return {
+    valid,
+    expectedType
+  };
+}
+
+/**
  * 验证转换后的props是否仍然缺少原始required属性
+ * 参考Vue内部的validateProp函数实现，提供更完善的警告信息
  * @param transformedProps 转换后的props
  * @param originalRequiredProps 原始required属性集合
+ * @param componentProps 原始组件props定义
  * @param componentName 组件名称
  */
 function validateTransformedRequiredProps(
   transformedProps: Record<string, any>,
   originalRequiredProps: Set<string>,
+  componentProps: Record<string, any>,
   componentName: string
 ) {
-  const missingProps: string[] = [];
-  
   originalRequiredProps.forEach(propName => {
-    if (!(propName in transformedProps) || transformedProps[propName] === undefined) {
-      missingProps.push(propName);
+    const value = transformedProps[propName];
+    const isAbsent = !(propName in transformedProps) || value === undefined;
+    const prop = componentProps[propName];
+    
+    if (isAbsent) {
+      // 模拟Vue内部的警告格式
+      const warnMessage = `Missing required prop: "${propName}"`;
+      const componentInfo = componentName ? ` (found in component "${componentName}")` : '';
+      
+      console.warn(`[ComponentWrapper]${componentInfo} ${warnMessage}`);
+      
+      // 提供更详细的上下文信息
+      console.warn(
+        `[ComponentWrapper] 经过绑定转换之后，组件 ${componentName} 仍然缺少必需属性 "${propName}"。` +
+        '请检查propsInterceptor配置是否正确提供了该属性的值。'
+      );
+    } else if (value != null && prop && prop.type && !prop.skipCheck) {
+      // 进行类型验证
+      const types = Array.isArray(prop.type) ? prop.type : [prop.type];
+      const expectedTypes: string[] = [];
+      let isValid = false;
+      
+      for (let i = 0; i < types.length && !isValid; i++) {
+        const { valid, expectedType } = assertType(value, types[i]);
+        expectedTypes.push(expectedType || "");
+        isValid = valid;
+      }
+      
+      if (!isValid) {
+        const componentInfo = componentName ? ` (found in component "${componentName}")` : '';
+        const expectedTypesStr = expectedTypes.length > 1 ?
+          `one of expected types: [${expectedTypes.join(', ')}]` :
+          `expected type: ${expectedTypes[0]}`;
+        
+        console.warn(
+          `[ComponentWrapper]${componentInfo} Invalid prop: type check failed for prop "${propName}". ` +
+          `Expected ${expectedTypesStr}, got ${getType(value)}.`
+        );
+      }
+      
+      // 自定义验证器检查
+      if (prop.validator && !prop.validator(value, transformedProps)) {
+        const componentInfo = componentName ? ` (found in component "${componentName}")` : '';
+        console.warn(
+          `[ComponentWrapper]${componentInfo} Invalid prop: custom validator check failed for prop "${propName}".`
+        );
+      }
     }
   });
-  
-  if (missingProps.length > 0) {
-    console.warn(
-      `[ComponentWrapper] 经过绑定转换之后，组件 ${componentName} 仍然缺少属性: ${missingProps.join(', ')}`
-    );
-  }
 }
