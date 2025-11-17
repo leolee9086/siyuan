@@ -1,5 +1,6 @@
 import { defineComponent, computed, h, markRaw, onMounted, onBeforeUnmount, onBeforeUpdate, onUpdated } from 'vue';
 import type { VueComponent, ComponentWrapperConfig } from './types';
+import { assertType, getType } from './assertType';
 
 // 缓存Map，用于存储转换结果
 const transformCache = new WeakMap();
@@ -255,52 +256,6 @@ function processComponentProps(componentProps: Record<string, any>) {
 }
 
 
-/**
- * 获取类型字符串，模拟Vue内部的getType函数
- * @param type 类型
- * @returns 类型字符串
- */
-function getType(type: any): string {
-  if (type === null) return 'null';
-  if (Array.isArray(type)) return 'array';
-  if (typeof type === 'object' && type.constructor === Object) return 'object';
-  if (typeof type === 'function') {
-    return type.name || 'function';
-  }
-  return typeof type;
-}
-
-/**
- * 断言类型，模拟Vue内部的assertType函数
- * @param value 值
- * @param type 期望类型
- * @returns 验证结果
- */
-function assertType(value: any, type: any): { valid: boolean; expectedType: string } {
-  let valid: boolean;
-  const expectedType = getType(type);
-  
-  if (expectedType === 'null') {
-    valid = value === null;
-  } else if (expectedType === 'string' || expectedType === 'number' || expectedType === 'boolean') {
-    const t = typeof value;
-    valid = t === expectedType;
-    if (!valid && t === 'object') {
-      valid = value instanceof type;
-    }
-  } else if (expectedType === 'object') {
-    valid = typeof value === 'object' && value !== null && !Array.isArray(value);
-  } else if (expectedType === 'array') {
-    valid = Array.isArray(value);
-  } else {
-    valid = value instanceof type;
-  }
-  
-  return {
-    valid,
-    expectedType
-  };
-}
 
 /**
  * 验证转换后的props是否仍然缺少原始required属性
