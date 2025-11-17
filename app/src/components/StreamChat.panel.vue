@@ -1,15 +1,19 @@
 <template>
     <div class="b3-dialog__content">
-        <AIResponseDisplay
-            ref="aiResponseDisplayRef"
-            :state="state"
-            :status-text="statusText"
-            :status-color="statusColor"
-            :dots="dots"
-        />
+        <div  style="max-width: 60vw; max-height: 60vh; overflow: auto;">
+            <template v-for="(taskState, index) in taskStates" :key="index">
+            <AIResponseDisplay
+                :ref="el => setResponseDisplayRef(el, index)"
+                :state="taskState"
+                :status-text="statusText.value"
+                :status-color="statusColor.value"
+                :dots="dots.value"
+            />
+            </template>
+        </div>
 
         <TextField ref="textFieldRef" type="textarea" :placeholder="aiWritingText" v-model="inputValue"
-            :disabled="isStreaming" @enter="() => onConfirmClick(inputValue)"></TextField>
+            :disabled="isStreaming" @enter="() => onConfirmClick(inputValue)" @ctrlEnter="() => onCtrlEnterClick?.(inputValue)"></TextField>
     </div>
     <div class="b3-dialog__action">
         <button class="b3-button b3-button--cancel" @click="onCancelClick">{{ cancelText }}</button>
@@ -45,16 +49,26 @@ const props = defineProps({
         type: Function as PropType<(inputValue: string) => Promise<void>>,
         required: true,
     },
-    state: {
-        type: Object as PropType<AssistantResponseState>,
+    onCtrlEnterClick: {
+        type: Function as PropType<(inputValue: string) => Promise<void>>,
+        required: false,
+    },
+    taskStates: {
+        type: Array as PropType<AssistantResponseState[]>,
         required: true,
     }
 });
 const textFieldRef = ref<InstanceType<typeof TextField> | null>(null);
-const aiResponseDisplayRef = ref<InstanceType<typeof AIResponseDisplay> | null>(null);
+const aiResponseDisplayRefs = ref<(InstanceType<typeof AIResponseDisplay> | null)[]>([]);
 const inputValue = ref('');
 
-const isStreaming = computed(() => props.state.isStreaming);
+const setResponseDisplayRef = (el: any, index: number) => {
+    if (el && el.$el) {
+        aiResponseDisplayRefs.value[index] = el;
+    }
+};
+
+const isStreaming = computed(() => props.taskStates.some(state => state.isStreaming));
 
 // 使用UI composable管理界面相关逻辑
 const {
@@ -73,13 +87,13 @@ const cancelText = getI18nText('cancel');
 const confirmText = getI18nText('追加到笔记');
 
 const confirmButtonText = computed(() => {
-    if (props.state.isStreaming) return '响应中...点击终止';
-    if (props.state.isDone) return confirmText;
+    if (isStreaming.value) return '响应中...点击终止';
+    if (props.taskStates.every(state => state.isDone)) return confirmText;
     return confirmText;
 });
 
 const confirmButtonColor = computed(() => {
-    return props.state.isStreaming ? 'var(--b3-theme-error)' : '';
+    return isStreaming.value ? 'var(--b3-theme-error)' : '';
 });
 
 // 当UI函数准备好时，通知父组件
@@ -95,7 +109,7 @@ onMounted(() => {
         setCompleteStatus,
         setErrorStatus,
         setAbortStatus,
-        getResponseContentRef: () => aiResponseDisplayRef.value?.responseContentRef
+        getResponseContentRef: () => aiResponseDisplayRefs.value[0]?.responseContentRef
     });
 });
 </script>

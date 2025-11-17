@@ -8,7 +8,8 @@ import { createTemporaryModule } from "../util/code/scripts.executor";
 import { buildBlockContentPrompt } from "./prompts/blockContent.builder";
 import { createAIRequestHandlerWithState } from "./createAIRequestHandler";
 
-export const createState = (
+
+ export const createState = (
     protyle: IProtyle,
     element: Element,
     selectedElements: Element[],
@@ -242,7 +243,11 @@ const createConfirmHandler = (
     targetElement: Element,
     dialog: Dialog
 ) => {
-    return async (inputValue: string) => {
+    return async (inputValue: Array<{
+            role: 'user' | 'assistant';
+            content: string;
+            timestamp: number;
+        }>) => {
         if (state.isStreaming) {
             if (state.abortFunction) {
                 state.abortFunction();
@@ -276,9 +281,7 @@ const createConfirmHandler = (
                 {
                     role: "system", content: promptContent, timestamp: Date.now()
                 },
-                {
-                    role: 'user', content: inputValue, timestamp: Date.now()
-                }
+               ...inputValue
             ]
         );
     };

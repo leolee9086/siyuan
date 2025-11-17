@@ -178,7 +178,7 @@ export class AIRequestController {
         // 构建消息历史
         const requestMessages = messages.map(msg => ({
             role: msg.role,
-            content: msg.content
+            content: msg.content+`\n${msg.timestamp.toLocaleString()}`
         }));
 
         // 构建请求体

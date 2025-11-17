@@ -83,7 +83,7 @@ const 处理工具调用 = (
             flag = true
             cache.set(content, flag)
         }
-        console.log(flag, lastUsed)
+        //console.log(flag, lastUsed)
         return flag && !lastUsed
     }
     const toolCode = 从块DOM提取首个符合条件的特定语言代码块内容(tempDiv, toolClass, 代码块处理条件);

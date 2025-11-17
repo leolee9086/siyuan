@@ -11,6 +11,8 @@ import {
 import { setDialogContainerColor, removeBlockMask } from "./utils.mask";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
 import { createState } from "./chatStream.state";
+import { AssistantResponseState } from "./session/session.types";
+import { reactive } from "vue";
 
 const createAIStreamChatDialogVueConfig = (
     protyle: IProtyle,
@@ -18,30 +20,67 @@ const createAIStreamChatDialogVueConfig = (
     selectedElements: Element[],
     dialog: Dialog
 ): VueComponentMountConfig => {
-    // 创建聊天状态
-    const { state, cancelHandler, pauseHandler, confirmHandler, resumeHandler } = createState(
-        protyle, element, selectedElements, dialog
-    )
+    // 创建聊天状态数组
+    const taskStates: AssistantResponseState[] = reactive([]);
+
+    // 创建初始状态
+
+    // 创建新的任务状态处理函数
+    const data = {
+        onCancelClick: () => { },
+        onPauseClick: () => { },
+        onResumeClick: () => { },
+        onConfirmClick: () => { },
+        onCtrlEnterClick: async (inputValue: string) => { },
+        taskStates: taskStates,
+        inputHistory: [] as Array<{
+            role: 'user' | 'assistant';
+            content: string;
+            timestamp: number;
+        }>
+    }
+    data.onCtrlEnterClick = async (inputValue: string) => {
+        const lastState = taskStates[taskStates.length - 1]
+        lastState && data.inputHistory.push({
+            role: "assistant",
+            content: lastState?.responseContentStr,
+            timestamp: Date.now()
+        })
+
+        // 创建新的状态
+        data.inputHistory.push({
+            role: "user",
+            content: inputValue,
+            timestamp: Date.now()
+        })
+        const { state: newState, cancelHandler: newCancelHandler, pauseHandler: newPauseHandler, confirmHandler: newConfirmHandler, resumeHandler: newResumeHandler } = createState(
+            protyle, element, selectedElements, dialog
+        );
+        data.onCancelClick = newCancelHandler
+        data.onPauseClick = newPauseHandler
+        data.onResumeClick = newResumeHandler
+        taskStates.push(newState);
+        console.log(taskStates)
+
+        // 执行新任务
+        await newConfirmHandler(data.inputHistory);
+    };
+
 
     return {
         components: {
             AIChatDialog
         },
-        data: {
-            onCancelClick: cancelHandler,
-            onPauseClick: pauseHandler,
-            onResumeClick: resumeHandler,
-            onConfirmClick: confirmHandler,
-            state,
-        },
+        data,
         template: `<AIChatDialog
             :onCancelClick="onCancelClick"
             :onPauseClick="onPauseClick"
             :onResumeClick="onResumeClick"
             :onConfirmClick="onConfirmClick"
-            :state="state"
-            @ui-functions-ready="onUIFunctionsReady"
+            :onCtrlEnterClick="onCtrlEnterClick"
+            :taskStates="taskStates"
         />`,
+
     };
 };
 
