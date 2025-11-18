@@ -27,8 +27,7 @@ export const genItemPanel = (type: string, containerElement: Element, app: App) 
     switch (type) {
         case "filetree":
             containerElement.innerHTML = fileTree.genHTML();
-            //fileTree.element = containerElement;
-            fileTree.bindEvent(containerElement);
+            fileTree.bindEvent(containerElement as HTMLElement);
             break;
         case "AI":
             containerElement.innerHTML = ai.genHTML();

@@ -3,13 +3,10 @@ import { genNotebookOption } from "../menus/onGetnotebookconf";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
 import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig";
 import { openFile } from "../editor/util";
-import { genUUID } from "../util/genID";
-import { Custom, Custom as CustomModel } from "../layout/dock/Custom";
-import { Tab } from "../layout/Tab";
+import { Custom } from "../layout/dock/Custom";
 import { Plugin } from "../plugin";
 
 export const fileTree = {
-    element: undefined as Element,
     genHTML: () => {
         return `
 <label class="fn__flex b3-label">
@@ -127,7 +124,7 @@ export const fileTree = {
     </div>
 </div>`;
     },
-    _send(element) {
+    _send(element: HTMLElement) {
         // 限制页签最大打开数量为 `32` https://github.com/siyuan-note/siyuan/issues/6303
         let inputMaxOpenTabCount = parseInt((element.querySelector("#maxOpenTabCount") as HTMLInputElement).value);
         if (32 < inputMaxOpenTabCount) {
@@ -159,7 +156,7 @@ export const fileTree = {
             getSiyuanConfig().fileTree = response.data;
         });
     },
-    bindEvent: (element) => {
+    bindEvent: (element: HTMLElement) => {
         (element.querySelector("#docCreateSavePath") as HTMLInputElement).value = getSiyuanConfig().fileTree.docCreateSavePath;
         (element.querySelector("#refCreateSavePath") as HTMLInputElement).value = getSiyuanConfig().fileTree.refCreateSavePath;
         element.querySelectorAll("input, select").forEach((item) => {
@@ -169,26 +166,22 @@ export const fileTree = {
         });
         element.querySelectorAll("button").forEach((item) => {
             item.addEventListener("click", async () => {
-                const tab = await openFile({
+                await openFile({
                     app: window.siyuan.ws.app,
                     custom: {
                         title: siyuanI18n.fileTree,
                         icon: "#iconFiles",
-                        id: 'internal-plugin-filetree'+"internal-filetree"
+                        id: 'internal-plugin-filetree' + "internal-filetree"
                     }
                 })
-                if (tab) {
-                    tab.panelElement.innerHTML = fileTree.genHTML()
-                    fileTree.bindEvent(tab.panelElement)
-                }
             });
         });
     }
 };
-let plugin :Plugin
+let plugin: Plugin
 document.addEventListener(
     'app-ready', () => {
-         plugin = new Plugin(
+        plugin = new Plugin(
             {
                 app: window.siyuan.ws.app,
                 displayName: "文档树内部插件",
@@ -196,7 +189,7 @@ document.addEventListener(
                 i18n: {}
             }
         )
-         plugin.addTab(
+        plugin.addTab(
             {
                 type: "internal-filetree",
                 init: (model: Custom) => {
@@ -206,7 +199,6 @@ document.addEventListener(
                         fileTree.bindEvent(tab.panelElement)
                     }
                 }
-
             }
         )
         window.siyuan.ws.app.plugins.push(plugin)

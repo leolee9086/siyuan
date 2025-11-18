@@ -314,7 +314,7 @@ export class Plugin {
         beforeDestroy?: () => void,
         resize?: () => void,
         update?: () => void,
-        init: () => void
+        init: (model: Custom) => void
     }) {
         /// #if !MOBILE
         const type2 = this.name + options.type;
