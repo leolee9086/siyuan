@@ -1632,6 +1632,7 @@ export const setFold = (protyle: IProtyle, nodeElement: Element, isOpen?: boolea
             }
         }
         clearSelect(["img", "av"], nodeElement);
+        scrollCenter(protyle, nodeElement);
     }
     const id = nodeElement.getAttribute("data-node-id");
     const doOperations: IOperation[] = [];

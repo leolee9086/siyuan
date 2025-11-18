@@ -10,7 +10,7 @@ import { updateBacklinkGraph } from "./util.updateBacklinkGraph";
 import { updateOutline } from "./util.updateOutline";
 
 
-export const updatePanelByEditor = (options: {
+export  const updatePanelByEditor = (options: {
     protyle?: IProtyle,
     focus: boolean,
     pushBackStack: boolean,

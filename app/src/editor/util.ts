@@ -250,6 +250,9 @@ export const openFile = async (options: IOpenFileOptions) => {
         return createdTab;
     }
 };
+//之后的内容已经拆分
+// 没有初始化的页签无法检测到
+
 
 
 

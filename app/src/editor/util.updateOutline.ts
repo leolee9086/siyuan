@@ -4,42 +4,6 @@ import { fetchPost } from "../util/fetch";
 import { isCurrentEditor } from "./util.isCurrentEditor";
 
 
-const handleOutlineUpdateResponse = (
-    response: any,
-    item: Outline,
-    protyle: IProtyle,
-    blockId: string,
-    reload: boolean
-) => {
-    if (!protyle.preview) {
-        console.error('protyle 结构错误');
-        throw new Error('protyle 结构错误');
-    }
-    
-    if (!reload && (!isCurrentEditor(blockId) || item.blockId === blockId) &&
-        item.isPreview !== protyle.preview.element.classList.contains("fn__none")) {
-        return;
-    }
-    
-    item.isPreview = !protyle.preview.element.classList.contains("fn__none");
-    item.update(response, blockId);
-    
-    if (protyle) {
-        item.updateDocTitle(protyle.background?.ial);
-        const currentSelection = getSelection();
-        if (currentSelection && currentSelection.rangeCount > 0) {
-            const startContainer = currentSelection.getRangeAt(0).startContainer;
-            if (protyle.wysiwyg?.element.contains(startContainer)) {
-                const currentElement = hasClosestByAttribute(startContainer, "data-node-id", null);
-                if (currentElement) {
-                    item.setCurrent(currentElement);
-                }
-            }
-        }
-    } else {
-        item.updateDocTitle();
-    }
-};
 
 export const updateOutline = (models: IModels, protyle: IProtyle, reload = false) => {
     models.outline.find(item => {
@@ -68,7 +32,7 @@ export const updateOutline = (models: IModels, protyle: IProtyle, reload = false
                 item.isPreview = !protyle.preview.element.classList.contains("fn__none");
                 item.update(response, blockId);
                 if (protyle) {
-                    item.updateDocTitle(protyle.background.ial);
+                    item.updateDocTitle(protyle.background.ial, response.data?.length || 0);
                     if (getSelection().rangeCount > 0) {
                         const startContainer = getSelection().getRangeAt(0).startContainer;
                         if (protyle.wysiwyg.element.contains(startContainer)) {
