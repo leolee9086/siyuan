@@ -1,12 +1,28 @@
-import {fetchPost} from "../util/fetch";
-import {genNotebookOption} from "../menus/onGetnotebookconf";
+import { fetchPost } from "../util/fetch";
+import { genNotebookOption } from "../menus/onGetnotebookconf";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
 import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig";
+import { openFile } from "../editor/util";
+import { genUUID } from "../util/genID";
+import { Custom, Custom as CustomModel } from "../layout/dock/Custom";
+import { Tab } from "../layout/Tab";
+import { Plugin } from "../plugin";
 
 export const fileTree = {
     element: undefined as Element,
     genHTML: () => {
-        return `<label class="fn__flex b3-label">
+        return `
+<label class="fn__flex b3-label">
+    <div class="fn__flex-1">
+        ${siyuanI18n.在新页签中打开设置}
+        <div class="b3-label__text">${siyuanI18n.在页签中打开文档树设置页面}</div>
+    </div>
+    <span class="fn__space"></span>
+<button id="editButton" class="b3-button b3-button--outline fn__flex-center fn__size200" style="position: relative">
+        <svg><use xlink:href="#iconEdit"></use></svg>${siyuanI18n.edit}
+    </button>
+    </label>
+<label class="fn__flex b3-label">
     <div class="fn__flex-1">
         ${siyuanI18n.selectOpen}
         <div class="b3-label__text">${siyuanI18n.fileTree2}</div>
@@ -111,45 +127,88 @@ export const fileTree = {
     </div>
 </div>`;
     },
-    _send() {
+    _send(element) {
         // 限制页签最大打开数量为 `32` https://github.com/siyuan-note/siyuan/issues/6303
-        let inputMaxOpenTabCount = parseInt((fileTree.element.querySelector("#maxOpenTabCount") as HTMLInputElement).value);
+        let inputMaxOpenTabCount = parseInt((element.querySelector("#maxOpenTabCount") as HTMLInputElement).value);
         if (32 < inputMaxOpenTabCount) {
             inputMaxOpenTabCount = 32;
-            (fileTree.element.querySelector("#maxOpenTabCount") as HTMLInputElement).value = "32";
+            (element.querySelector("#maxOpenTabCount") as HTMLInputElement).value = "32";
         }
         if (1 > inputMaxOpenTabCount) {
             inputMaxOpenTabCount = 1;
-            (fileTree.element.querySelector("#maxOpenTabCount") as HTMLInputElement).value = "1";
+            (element.querySelector("#maxOpenTabCount") as HTMLInputElement).value = "1";
         }
 
         fetchPost("/api/setting/setFiletree", {
             sort: getSiyuanConfig().fileTree.sort,
-            alwaysSelectOpenedFile: (fileTree.element.querySelector("#alwaysSelectOpenedFile") as HTMLInputElement).checked,
-            refCreateSavePath: (fileTree.element.querySelector("#refCreateSavePath") as HTMLInputElement).value,
-            refCreateSaveBox: (fileTree.element.querySelector("#refCreateSaveBox") as HTMLInputElement).value,
-            docCreateSavePath: (fileTree.element.querySelector("#docCreateSavePath") as HTMLInputElement).value,
-            docCreateSaveBox: (fileTree.element.querySelector("#docCreateSaveBox") as HTMLInputElement).value,
-            openFilesUseCurrentTab: (fileTree.element.querySelector("#openFilesUseCurrentTab") as HTMLInputElement).checked,
-            closeTabsOnStart: (fileTree.element.querySelector("#closeTabsOnStart") as HTMLInputElement).checked,
-            allowCreateDeeper: (fileTree.element.querySelector("#allowCreateDeeper") as HTMLInputElement).checked,
-            removeDocWithoutConfirm: (fileTree.element.querySelector("#removeDocWithoutConfirm") as HTMLInputElement).checked,
-            useSingleLineSave: (fileTree.element.querySelector("#useSingleLineSave") as HTMLInputElement).checked,
-            createDocAtTop: (fileTree.element.querySelector("#createDocAtTop") as HTMLInputElement).checked,
-            largeFileWarningSize: parseInt((fileTree.element.querySelector("#largeFileWarningSize") as HTMLInputElement).value),
-            maxListCount: parseInt((fileTree.element.querySelector("#maxListCount") as HTMLInputElement).value),
+            alwaysSelectOpenedFile: (element.querySelector("#alwaysSelectOpenedFile") as HTMLInputElement).checked,
+            refCreateSavePath: (element.querySelector("#refCreateSavePath") as HTMLInputElement).value,
+            refCreateSaveBox: (element.querySelector("#refCreateSaveBox") as HTMLInputElement).value,
+            docCreateSavePath: (element.querySelector("#docCreateSavePath") as HTMLInputElement).value,
+            docCreateSaveBox: (element.querySelector("#docCreateSaveBox") as HTMLInputElement).value,
+            openFilesUseCurrentTab: (element.querySelector("#openFilesUseCurrentTab") as HTMLInputElement).checked,
+            closeTabsOnStart: (element.querySelector("#closeTabsOnStart") as HTMLInputElement).checked,
+            allowCreateDeeper: (element.querySelector("#allowCreateDeeper") as HTMLInputElement).checked,
+            removeDocWithoutConfirm: (element.querySelector("#removeDocWithoutConfirm") as HTMLInputElement).checked,
+            useSingleLineSave: (element.querySelector("#useSingleLineSave") as HTMLInputElement).checked,
+            createDocAtTop: (element.querySelector("#createDocAtTop") as HTMLInputElement).checked,
+            largeFileWarningSize: parseInt((element.querySelector("#largeFileWarningSize") as HTMLInputElement).value),
+            maxListCount: parseInt((element.querySelector("#maxListCount") as HTMLInputElement).value),
             maxOpenTabCount: inputMaxOpenTabCount,
         }, response => {
             getSiyuanConfig().fileTree = response.data;
         });
     },
-    bindEvent: () => {
-        (fileTree.element.querySelector("#docCreateSavePath") as HTMLInputElement).value = getSiyuanConfig().fileTree.docCreateSavePath;
-        (fileTree.element.querySelector("#refCreateSavePath") as HTMLInputElement).value = getSiyuanConfig().fileTree.refCreateSavePath;
-        fileTree.element.querySelectorAll("input, select").forEach((item) => {
+    bindEvent: (element) => {
+        (element.querySelector("#docCreateSavePath") as HTMLInputElement).value = getSiyuanConfig().fileTree.docCreateSavePath;
+        (element.querySelector("#refCreateSavePath") as HTMLInputElement).value = getSiyuanConfig().fileTree.refCreateSavePath;
+        element.querySelectorAll("input, select").forEach((item) => {
             item.addEventListener("change", () => {
-                fileTree._send();
+                fileTree._send(element);
+            });
+        });
+        element.querySelectorAll("button").forEach((item) => {
+            item.addEventListener("click", async () => {
+                const tab = await openFile({
+                    app: window.siyuan.ws.app,
+                    custom: {
+                        title: siyuanI18n.fileTree,
+                        icon: "#iconFiles",
+                        id: 'internal-plugin-filetree'+"internal-filetree"
+                    }
+                })
+                if (tab) {
+                    tab.panelElement.innerHTML = fileTree.genHTML()
+                    fileTree.bindEvent(tab.panelElement)
+                }
             });
         });
     }
 };
+let plugin :Plugin
+document.addEventListener(
+    'app-ready', () => {
+         plugin = new Plugin(
+            {
+                app: window.siyuan.ws.app,
+                displayName: "文档树内部插件",
+                name: 'internal-plugin-filetree',
+                i18n: {}
+            }
+        )
+         plugin.addTab(
+            {
+                type: "internal-filetree",
+                init: (model: Custom) => {
+                    const tab = model.tab
+                    if (tab) {
+                        tab.panelElement.innerHTML = fileTree.genHTML()
+                        fileTree.bindEvent(tab.panelElement)
+                    }
+                }
+
+            }
+        )
+        window.siyuan.ws.app.plugins.push(plugin)
+    }
+)

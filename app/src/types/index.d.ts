@@ -90,7 +90,7 @@ type TEventBus = "ws-main" | "sync-start" | "sync-end" | "sync-fail" |
     "destroy-protyle" |
     "lock-screen" |
     "mobile-keyboard-show" | "mobile-keyboard-hide" |
-    "code-language-update" | "code-language-change"
+    "code-language-update" | "code-language-change" | "app-ready"
 type TAVView = "table" | "gallery" | "kanban"
 type TAVCol =
     "text"

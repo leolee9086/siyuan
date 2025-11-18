@@ -6,7 +6,11 @@ import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
 export class EventBus<DetailType = any> {
     private eventTarget: EventTarget;
 
-    constructor(name = "") {
+    constructor(name:string|Document = "") {
+        if(name===document){
+            this.eventTarget=document
+            return
+        }
         this.eventTarget = document.appendChild(document.createComment(name));
     }
 

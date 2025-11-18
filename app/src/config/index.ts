@@ -27,8 +27,8 @@ export const genItemPanel = (type: string, containerElement: Element, app: App) 
     switch (type) {
         case "filetree":
             containerElement.innerHTML = fileTree.genHTML();
-            fileTree.element = containerElement;
-            fileTree.bindEvent();
+            //fileTree.element = containerElement;
+            fileTree.bindEvent(containerElement);
             break;
         case "AI":
             containerElement.innerHTML = ai.genHTML();
@@ -162,6 +162,8 @@ export const openSetting = (app: App) => {
                 focusByRange(range);
             }
         },
+        transparent:true,
+        disableScrimClose:true
     });
     dialog.element.setAttribute("data-key", Constants.DIALOG_SETTING);
 
