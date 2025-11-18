@@ -266,58 +266,88 @@ const bindAssetTabEvent = (element: Element, type: string) => {
                             }
                         });
                         /// #endif
-                        assetsListElement.innerHTML = `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
-                        element.querySelector(".config-assets__preview").innerHTML = "";
+                        const assetsListElement = element.querySelector(".config-assets__list");
+                        if (assetsListElement) {
+                            assetsListElement.innerHTML = `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
+                        }
+                        const previewElement = element.querySelector(".config-assets__preview")
+                        if (previewElement) {
+                            previewElement.innerHTML = "";
+                        }
                     });
                 }, undefined, true);
             } else if (target.getAttribute("data-type") === "copy") {
-                writeText(target.parentElement.querySelector(".b3-list-item__text").textContent.trim().replace("assets/", ""));
+                const parentElement = target.parentElement
+                if (parentElement) {
+                    const textElement = parentElement.querySelector(".b3-list-item__text")
+                    if (textElement) {
+                        writeText(textElement.textContent.trim().replace("assets/", ""));
+                    }
+                }
             } else if (target.getAttribute("data-type") === "open") {
                 /// #if !BROWSER
-                openBy(target.parentElement.getAttribute("data-path"), "folder");
+                const parentElement = target.parentElement
+                if (parentElement) {
+                    const dataPath = parentElement.getAttribute("data-path")
+                    dataPath && openBy(dataPath, "folder");
+                }
                 /// #endif
             } else if (target.getAttribute("data-type") === "clear") {
-                const pathString = target.parentElement.getAttribute("data-path");
-                const apiEndpoint = type === "remove" ? "/api/asset/removeUnusedAsset" : "/api/asset/removeMissingAsset";
-                confirmDialog(siyuanI18n.deleteOpConfirm, `${siyuanI18n.delete} <b>${pathPosix().basename(pathString)}</b>`, () => {
-                    fetchPost(apiEndpoint, {
-                        path: pathString,
-                    }, response => {
-                        /// #if !MOBILE
-                        getAllModels().asset.forEach(item => {
-                            if (response.data.path === item.path) {
-                                item.parent.parent.removeTab(item.parent.id);
-                            }
-                        });
-                        /// #endif
-                        const liElement = target.parentElement;
-                        if (liElement) {
-                            const liParent = liElement.parentElement
-                            if (liParent) {
-                                if (liParent.querySelectorAll("li").length === 1) {
-                                    liParent.innerHTML = `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
-                                } else {
-                                    liElement.remove();
+                const parentElement = target.parentElement
+                if (parentElement) {
+                    const pathString = parentElement.getAttribute("data-path");
+                    const apiEndpoint = type === "remove" ? "/api/asset/removeUnusedAsset" : "/api/asset/removeMissingAsset";
+                    if (pathString) {
+                        confirmDialog(siyuanI18n.deleteOpConfirm, `${siyuanI18n.delete} <b>${pathPosix().basename(pathString)}</b>`, () => {
+                            fetchPost(apiEndpoint, {
+                                path: pathString,
+                            }, response => {
+                                /// #if !MOBILE
+                                getAllModels().asset.forEach(item => {
+                                    if (response.data.path === item.path) {
+                                        item.parent.parent.removeTab(item.parent.id);
+                                    }
+                                });
+                                /// #endif
+                                const liElement = target.parentElement;
+                                if (liElement) {
+                                    const liParent = liElement.parentElement
+                                    if (liParent) {
+                                        if (liParent.querySelectorAll("li").length === 1) {
+                                            liParent.innerHTML = `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
+                                        } else {
+                                            liElement.remove();
+                                        }
+                                    }
                                 }
-                            }
-                        }
-                        element.querySelector(".config-assets__preview").innerHTML = "";
-                    });
-                }, undefined, true);
-                event.preventDefault();
-                event.stopPropagation();
-                break;
+                                const previewElement = element.querySelector(".config-assets__preview")
+                                if (previewElement) {
+                                    previewElement.innerHTML = "";
+
+                                }
+                            });
+                        }, undefined, true);
+                    }
+                    event.preventDefault();
+                    event.stopPropagation();
+                    break;
+                }
             }
-            target = target.parentElement;
+            target.parentElement && (target = target.parentElement);
         }
     });
     if (assetsListElement) {
         assetsListElement.addEventListener("mouseover", (event) => {
             const liElement = hasClosestByClassName(event.target as Element, "b3-list-item");
-            if (liElement && liElement.getAttribute("data-path") !== assetsListElement.nextElementSibling.getAttribute("data-path")) {
-                const item = liElement.getAttribute("data-path");
-                assetsListElement.nextElementSibling.setAttribute("data-path", item);
-                assetsListElement.nextElementSibling.innerHTML = renderAssetsPreview(item);
+            const liNextElementSibling = assetsListElement.nextElementSibling
+            if (liNextElementSibling) {
+                if (liElement && liElement.getAttribute("data-path") !== liNextElementSibling.getAttribute("data-path")) {
+                    const item = liElement.getAttribute("data-path");
+                    if (item) {
+                        assetsListElement.nextElementSibling.setAttribute("data-path", item);
+                        assetsListElement.nextElementSibling.innerHTML = renderAssetsPreview(item);
+                    }
+                }
             }
         });
 
