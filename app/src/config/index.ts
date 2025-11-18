@@ -41,8 +41,7 @@ export const genItemPanel = (type: string, containerElement: Element, app: App) 
             break;
         case "image":
             containerElement.innerHTML = image.genHTML();
-            image.element = containerElement;
-            image.bindEvent();
+            image.bindEvent(containerElement);
             break;
         case "export":
             containerElement.innerHTML = exportConfig.genHTML();
@@ -162,7 +161,8 @@ export const openSetting = (app: App) => {
             }
         },
         transparent:true,
-        disableScrimClose:true
+        disableScrimClose:true,
+        scrimPointerEvents:true,
     });
     dialog.element.setAttribute("data-key", Constants.DIALOG_SETTING);
 

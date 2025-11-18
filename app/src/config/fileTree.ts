@@ -11,7 +11,7 @@ export const fileTree = {
         return `
 <label class="fn__flex b3-label">
     <div class="fn__flex-1">
-        ${siyuanI18n.在新页签中打开设置}
+        ${siyuanI18n.openInNewTab}
         <div class="b3-label__text">${siyuanI18n.在页签中打开文档树设置页面}</div>
     </div>
     <span class="fn__space"></span>
