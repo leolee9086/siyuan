@@ -1,6 +1,9 @@
 import { openLink } from "../../editor/openLink";
+/// #if !BROWSER
 import { openBy } from "../../editor/utils.openBy";
 import { openFileById } from "../../editor/utils.openFileById";
+///#endif
+
 import { checkFold } from "../../util/noRelyPCFunction";
 import { isLocalPath } from "../../util/pathName";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig";
