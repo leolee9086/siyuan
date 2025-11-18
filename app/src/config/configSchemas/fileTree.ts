@@ -164,8 +164,8 @@ export const schema = z.object({
     ),
     largeFileWarningSize: z.number().min(2).max(10240).describe(
         uiDescriptionRegistry.registerItem({
-            description: siyuanI18n.fileTree25,
-            label: siyuanI18n.fileTree24,
+            description: siyuanI18n.fileTree23,
+            label: siyuanI18n.fileTree22,
             model: computed({
                 get: () => getSiyuanConfig().fileTree.largeFileWarningSize,
                 set: (val: number) => {
@@ -176,8 +176,8 @@ export const schema = z.object({
     ),
     createDocAtTop: z.boolean().describe(
         uiDescriptionRegistry.registerItem({
-            description: siyuanI18n.fileTree23,
-            label: siyuanI18n.fileTree22,
+            description: siyuanI18n.fileTree25,
+            label: siyuanI18n.fileTree24,
             model: computed({
                 get: () => getSiyuanConfig().fileTree.createDocAtTop,
                 set: (val: boolean) => {

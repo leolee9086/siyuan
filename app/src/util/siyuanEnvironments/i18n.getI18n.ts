@@ -6,7 +6,7 @@ import type { SiYuanI18n, I18nKeys } from '../../types/i18n.types';
  * @returns 如果键存在则返回对应的值，否则警告并返回键本身
  */
 const getI18n = (key: I18nKeys): string => {
-    const currentLang = window.siyuan.config?.lang
+    const currentLang = window.siyuan?.config?.lang
     if (!window.siyuan?.languages) {
         console.warn(`[getI18n] window.siyuan.languages 不存在，返回键: ${key}`);
         return key as string;

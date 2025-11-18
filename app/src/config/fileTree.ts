@@ -178,6 +178,8 @@ export const fileTree = {
         });
     }
 };
+import fileTreeConfigPanel from "../components/panels/fileTreeConfig.panel.vue";
+import { createApp } from "vue";
 let plugin: Plugin
 document.addEventListener(
     'app-ready', () => {
@@ -194,9 +196,11 @@ document.addEventListener(
                 type: "internal-filetree",
                 init: (model: Custom) => {
                     const tab = model.tab
+                    const app = createApp(fileTreeConfigPanel)
                     if (tab) {
-                        tab.panelElement.innerHTML = fileTree.genHTML()
-                        fileTree.bindEvent(tab.panelElement)
+                        app.mount(tab.panelElement)
+                       // tab.panelElement.innerHTML = fileTree.genHTML()
+                       // fileTree.bindEvent(tab.panelElement)
                     }
                 }
             }

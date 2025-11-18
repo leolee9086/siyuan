@@ -74,3 +74,6 @@ class UIDescriptionRegistry {
 }
 (globalThis as any)[Symbol.for('UIDescriptionRegistry')] = (globalThis as any)[Symbol.for('UIDescriptionRegistry')] || UIDescriptionRegistry.getInstance();
 export const uiDescriptionRegistry = (globalThis as any)[Symbol.for('UIDescriptionRegistry')] as UIDescriptionRegistry
+
+// 导出类型
+export type { UIDescription, UIFormDescription }
