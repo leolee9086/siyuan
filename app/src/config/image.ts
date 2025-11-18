@@ -16,7 +16,6 @@ import { Plugin } from "../plugin";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
 
 export const image = {
-    element: undefined as Element,
     genHTML: () => {
         const isM = isMobile();
         return `<div class="fn__flex-column" style="height: 100%">
@@ -24,12 +23,12 @@ export const image = {
     <div class="layout-tab-bar fn__flex">
         <div class="item item--full item--focus" data-type="remove">
             <span class="fn__flex-1"></span>
-            <span class="item__text">${window.siyuan.languages.unreferencedAssets}</span>
+            <span class="item__text">${siyuanI18n.unreferencedAssets}</span>
             <span class="fn__flex-1"></span>
         </div>
         <div class="item item--full" data-type="missing">
             <span class="fn__flex-1"></span>
-            <span class="item__text">${window.siyuan.languages.missingAssets}</span>
+            <span class="item__text">${siyuanI18n.missingAssets}</span>
             <span class="fn__flex-1"></span>
         </div>
     </div>
@@ -40,10 +39,10 @@ export const image = {
                 <div class="fn__space"></div>
                 <button id="removeAll" class="b3-button b3-button--outline fn__flex-center fn__size200">
                     <svg class="svg"><use xlink:href="#iconTrashcan"></use></svg>
-                    ${window.siyuan.languages.delete}
+                    ${siyuanI18n.delete}
                 </button>
                 <button class="open-in-new-tab b3-button b3-button--outline fn__flex-center fn__size200" data-type="remove">
-                    <svg><use xlink:href="#iconEdit"></use></svg>${window.siyuan.languages.openInNewTab}
+                    <svg><use xlink:href="#iconEdit"></use></svg>${siyuanI18n.openInNewTab}
                 </button>
             </div>
             <div class="fn__hr"></div>
@@ -57,7 +56,7 @@ export const image = {
             <div class="fn__flex">
                 <div class="fn__space"></div>
                 <button class="open-in-new-tab b3-button b3-button--outline fn__flex-center fn__size200" data-type="missing">
-                    <svg><use xlink:href="#iconEdit"></use></svg>${window.siyuan.languages.openInNewTab}
+                    <svg><use xlink:href="#iconEdit"></use></svg>${siyuanI18n.openInNewTab}
                 </button>
             </div>
             <div class="fn__hr"></div>
@@ -103,19 +102,28 @@ export const image = {
                                 }
                             });
                             /// #endif
-                            assetsListElement.innerHTML = `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
-                            element.querySelector(".config-assets__preview").innerHTML = "";
+                            if (assetsListElement) {
+                                assetsListElement.innerHTML = `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
+                            }
+                            let previewElement = element.querySelector(".config-assets__preview")
+                            if (previewElement) {
+                                previewElement.innerHTML = "";
+                            }
                         });
                     }, undefined, true);
                 } else if (target.classList.contains("item") && !target.classList.contains("item--focus")) {
-                    element.querySelector(".layout-tab-bar .item--focus").classList.remove("item--focus");
+                    let barFocused = element.querySelector(".layout-tab-bar .item--focus")
+                    barFocused && barFocused.classList.remove("item--focus");
                     target.classList.add("item--focus");
                     element.querySelectorAll(".config-assets").forEach(item => {
                         if (type === item.getAttribute("data-type")) {
                             item.classList.remove("fn__none");
                             if (!item.getAttribute("data-init")) {
                                 fetchPost("/api/asset/getMissingAssets", {}, response => {
-                                    image._renderList(response.data.missingAssets, item.querySelector(".config-assets__list"), false);
+                                    const listElement = item.querySelector(".config-assets__list")
+                                    if (listElement) {
+                                        image._renderList(response.data.missingAssets, listElement, false);
+                                    }
                                 });
                                 item.setAttribute("data-init", "true");
                             }
@@ -127,52 +135,87 @@ export const image = {
                     event.stopPropagation();
                     break;
                 } else if (type === "copy") {
-                    writeText(target.parentElement.querySelector(".b3-list-item__text").textContent.trim().replace("assets/", ""));
+                    const parentElement = target.parentElement
+                    if (!parentElement) {
+                        return
+                    }
+                    const textElement = parentElement.querySelector(".b3-list-item__text")
+                    if (textElement) {
+                        writeText(textElement.textContent.trim().replace("assets/", ""));
+                    }
                 } else if (type === "open") {
                     /// #if !BROWSER
-                    openBy(target.parentElement.getAttribute("data-path"), "folder");
+                    const parentElement = target.parentElement
+                    if (!parentElement) {
+                        return
+                    }
+                    const dataPath = parentElement.getAttribute("data-path")
+                    dataPath && openBy(dataPath, "folder");
                     /// #endif
                 } else if (type === "clear") {
-                    const pathString = target.parentElement.getAttribute("data-path");
-                    confirmDialog(siyuanI18n.deleteOpConfirm, `${siyuanI18n.delete} <b>${pathPosix().basename(pathString)}</b>`, () => {
-                        fetchPost("/api/asset/removeUnusedAsset", {
-                            path: pathString,
-                        }, response => {
-                            /// #if !MOBILE
-                            getAllModels().asset.forEach(item => {
-                                if (response.data.path === item.path) {
-                                    item.parent.parent.removeTab(item.parent.id);
+                    const parentElement = target.parentElement
+                    if (!parentElement) {
+                        return
+                    }
+                    const pathString = parentElement.getAttribute("data-path");
+                    if (pathString) {
+                        confirmDialog(siyuanI18n.deleteOpConfirm, `${siyuanI18n.delete} <b>${pathPosix().basename(pathString)}</b>`, () => {
+                            fetchPost("/api/asset/removeUnusedAsset", {
+                                path: pathString,
+                            }, response => {
+                                /// #if !MOBILE
+                                getAllModels().asset.forEach(item => {
+                                    if (response.data.path === item.path) {
+                                        item.parent.parent.removeTab(item.parent.id);
+                                    }
+                                });
+                                /// #endif
+                                const liElement = target.parentElement;
+                                if (liElement) {
+                                    const liParent = liElement.parentElement
+                                    if (liParent) {
+                                        if (liElement.parentElement.querySelectorAll("li").length === 1) {
+                                            liElement.parentElement.innerHTML = `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
+                                        } else {
+                                            liElement.remove();
+                                        }
+                                    }
                                 }
+                                const previewElement = element.querySelector(".config-assets__preview")
+                                previewElement && (previewElement.innerHTML = "");
                             });
-                            /// #endif
-                            const liElement = target.parentElement;
-                            if (liElement.parentElement.querySelectorAll("li").length === 1) {
-                                liElement.parentElement.innerHTML = `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
-                            } else {
-                                liElement.remove();
-                            }
-                            element.querySelector(".config-assets__preview").innerHTML = "";
-                        });
-                    }, undefined, true);
-                    event.preventDefault();
-                    event.stopPropagation();
-                    break;
+                        }, undefined, true);
+                        event.preventDefault();
+                        event.stopPropagation();
+                        break;
+                    }
                 }
-                target = target.parentElement;
+                const parentElement = target.parentElement
+                if (!parentElement) {
+                    return
+                }
+                target = parentElement;
             }
         });
+        if (assetsListElement) {
+            assetsListElement.addEventListener("mouseover", (event) => {
+                const liElement = hasClosestByClassName(event.target as Element, "b3-list-item");
+                const nextElementSibling = assetsListElement.nextElementSibling
+                if (nextElementSibling) {
+                    if (liElement && liElement.getAttribute("data-path") !== nextElementSibling.getAttribute("data-path")) {
+                        const item = liElement.getAttribute("data-path");
+                        if (item) {
+                            nextElementSibling.setAttribute("data-path", item);
+                            nextElementSibling.innerHTML = renderAssetsPreview(item);
+                        }
+                    }
+                }
+            });
 
-        assetsListElement.addEventListener("mouseover", (event) => {
-            const liElement = hasClosestByClassName(event.target as Element, "b3-list-item");
-            if (liElement && liElement.getAttribute("data-path") !== assetsListElement.nextElementSibling.getAttribute("data-path")) {
-                const item = liElement.getAttribute("data-path");
-                assetsListElement.nextElementSibling.setAttribute("data-path", item);
-                assetsListElement.nextElementSibling.innerHTML = renderAssetsPreview(item);
-            }
-        });
-        fetchPost("/api/asset/getUnusedAssets", {}, response => {
-            image._renderList(response.data.unusedAssets, assetsListElement);
-        });
+            fetchPost("/api/asset/getUnusedAssets", {}, response => {
+                image._renderList(response.data.unusedAssets, assetsListElement);
+            });
+        }
     },
     _renderList: (data: string[], element: Element, action = true) => {
         let html = "";
@@ -203,83 +246,72 @@ export const image = {
         });
         element.innerHTML = html || `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
     },
-    genAssetTabHTML: (type: string) => {
-        const isM = isMobile();
-        const title = type === "remove" ? siyuanI18n.unreferencedAssets : siyuanI18n.missingAssets;
-        return `<div class="fn__flex-column" style="height: 100%">
-            <div class="fn__hr--b"></div>
-            <div class="fn__flex">
-                <div class="fn__space"></div>
-                <button id="${type}All" class="b3-button b3-button--outline fn__flex-center fn__size200">
-                    <svg class="svg"><use xlink:href="#iconTrashcan"></use></svg>
-                    ${window.siyuan.languages.delete}
-                </button>
-            </div>
-            <div class="fn__hr"></div>
-            <ul class="b3-list b3-list--background config-assets__list">
-                <li class="fn__loading"><img src="/stage/loading-pure.svg"></li>
-            </ul>
-            <div class="config-assets__preview"></div>
-        </div>`;
-    },
-    bindAssetTabEvent: (element: Element, type: string) => {
-        const assetsListElement = element.querySelector(".config-assets__list");
+};
 
-        element.addEventListener("click", (event) => {
-            let target = event.target as HTMLElement;
-            while (target && !target.isEqualNode(element)) {
-                if (target.id === `${type}All`) {
-                    const apiEndpoint = type === "remove" ? "/api/asset/removeUnusedAssets" : "/api/asset/removeMissingAssets";
-                    confirmDialog(siyuanI18n.deleteOpConfirm, `${siyuanI18n.clearAll}`, () => {
-                        fetchPost(apiEndpoint, {}, response => {
-                            /// #if !MOBILE
-                            getAllModels().asset.forEach(item => {
-                                if (response.data.paths.includes(item.path)) {
-                                    item.parent.close();
-                                }
-                            });
-                            /// #endif
-                            assetsListElement.innerHTML = `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
-                            element.querySelector(".config-assets__preview").innerHTML = "";
-                        });
-                    }, undefined, true);
-                } else if (target.getAttribute("data-type") === "copy") {
-                    writeText(target.parentElement.querySelector(".b3-list-item__text").textContent.trim().replace("assets/", ""));
-                } else if (target.getAttribute("data-type") === "open") {
-                    /// #if !BROWSER
-                    openBy(target.parentElement.getAttribute("data-path"), "folder");
-                    /// #endif
-                } else if (target.getAttribute("data-type") === "clear") {
-                    const pathString = target.parentElement.getAttribute("data-path");
-                    const apiEndpoint = type === "remove" ? "/api/asset/removeUnusedAsset" : "/api/asset/removeMissingAsset";
-                    confirmDialog(siyuanI18n.deleteOpConfirm, `${siyuanI18n.delete} <b>${pathPosix().basename(pathString)}</b>`, () => {
-                        fetchPost(apiEndpoint, {
-                            path: pathString,
-                        }, response => {
-                            /// #if !MOBILE
-                            getAllModels().asset.forEach(item => {
-                                if (response.data.path === item.path) {
-                                    item.parent.parent.removeTab(item.parent.id);
-                                }
-                            });
-                            /// #endif
-                            const liElement = target.parentElement;
-                            if (liElement.parentElement.querySelectorAll("li").length === 1) {
-                                liElement.parentElement.innerHTML = `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
-                            } else {
-                                liElement.remove();
+
+const bindAssetTabEvent = (element: Element, type: string) => {
+    const assetsListElement = element.querySelector(".config-assets__list");
+
+    element.addEventListener("click", (event) => {
+        let target = event.target as HTMLElement;
+        while (target && !target.isEqualNode(element)) {
+            if (target.id === `${type}All`) {
+                const apiEndpoint = type === "remove" ? "/api/asset/removeUnusedAssets" : "/api/asset/removeMissingAssets";
+                confirmDialog(siyuanI18n.deleteOpConfirm, `${siyuanI18n.clearAll}`, () => {
+                    fetchPost(apiEndpoint, {}, response => {
+                        /// #if !MOBILE
+                        getAllModels().asset.forEach(item => {
+                            if (response.data.paths.includes(item.path)) {
+                                item.parent.close();
                             }
-                            element.querySelector(".config-assets__preview").innerHTML = "";
                         });
-                    }, undefined, true);
-                    event.preventDefault();
-                    event.stopPropagation();
-                    break;
-                }
-                target = target.parentElement;
+                        /// #endif
+                        assetsListElement.innerHTML = `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
+                        element.querySelector(".config-assets__preview").innerHTML = "";
+                    });
+                }, undefined, true);
+            } else if (target.getAttribute("data-type") === "copy") {
+                writeText(target.parentElement.querySelector(".b3-list-item__text").textContent.trim().replace("assets/", ""));
+            } else if (target.getAttribute("data-type") === "open") {
+                /// #if !BROWSER
+                openBy(target.parentElement.getAttribute("data-path"), "folder");
+                /// #endif
+            } else if (target.getAttribute("data-type") === "clear") {
+                const pathString = target.parentElement.getAttribute("data-path");
+                const apiEndpoint = type === "remove" ? "/api/asset/removeUnusedAsset" : "/api/asset/removeMissingAsset";
+                confirmDialog(siyuanI18n.deleteOpConfirm, `${siyuanI18n.delete} <b>${pathPosix().basename(pathString)}</b>`, () => {
+                    fetchPost(apiEndpoint, {
+                        path: pathString,
+                    }, response => {
+                        /// #if !MOBILE
+                        getAllModels().asset.forEach(item => {
+                            if (response.data.path === item.path) {
+                                item.parent.parent.removeTab(item.parent.id);
+                            }
+                        });
+                        /// #endif
+                        const liElement = target.parentElement;
+                        if (liElement) {
+                            const liParent = liElement.parentElement
+                            if (liParent) {
+                                if (liParent.querySelectorAll("li").length === 1) {
+                                    liParent.innerHTML = `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
+                                } else {
+                                    liElement.remove();
+                                }
+                            }
+                        }
+                        element.querySelector(".config-assets__preview").innerHTML = "";
+                    });
+                }, undefined, true);
+                event.preventDefault();
+                event.stopPropagation();
+                break;
             }
-        });
-
+            target = target.parentElement;
+        }
+    });
+    if (assetsListElement) {
         assetsListElement.addEventListener("mouseover", (event) => {
             const liElement = hasClosestByClassName(event.target as Element, "b3-list-item");
             if (liElement && liElement.getAttribute("data-path") !== assetsListElement.nextElementSibling.getAttribute("data-path")) {
@@ -295,7 +327,27 @@ export const image = {
             image._renderList(data, assetsListElement, type === "remove");
         });
     }
-};
+}
+
+
+
+const genAssetTabHTML = (type: string) => {
+    return `<div class="fn__flex-column" style="height: 100%">
+            <div class="fn__hr--b"></div>
+            <div class="fn__flex">
+                <div class="fn__space"></div>
+                <button id="${type}All" class="b3-button b3-button--outline fn__flex-center fn__size200">
+                    <svg class="svg"><use xlink:href="#iconTrashcan"></use></svg>
+                    ${siyuanI18n.delete}
+                </button>
+            </div>
+            <div class="fn__hr"></div>
+            <ul class="b3-list b3-list--background config-assets__list">
+                <li class="fn__loading"><img src="/stage/loading-pure.svg"></li>
+            </ul>
+            <div class="config-assets__preview"></div>
+        </div>`;
+}
 
 let plugin: Plugin
 document.addEventListener(
@@ -328,8 +380,8 @@ document.addEventListener(
                     const tab = model.tab
                     if (tab) {
                         // 生成未引用资源页签的HTML
-                        tab.panelElement.innerHTML = image.genAssetTabHTML("remove")
-                        image.bindAssetTabEvent(tab.panelElement, "remove")
+                        tab.panelElement.innerHTML = genAssetTabHTML("remove")
+                        bindAssetTabEvent(tab.panelElement, "remove")
                     }
                 }
             }
@@ -342,8 +394,8 @@ document.addEventListener(
                     const tab = model.tab
                     if (tab) {
                         // 生成缺失资源页签的HTML
-                        tab.panelElement.innerHTML = image.genAssetTabHTML("missing")
-                        image.bindAssetTabEvent(tab.panelElement, "missing")
+                        tab.panelElement.innerHTML = genAssetTabHTML("missing")
+                        bindAssetTabEvent(tab.panelElement, "missing")
                     }
                 }
             }

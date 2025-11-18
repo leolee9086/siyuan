@@ -13,6 +13,7 @@ import {confirmDialog} from "../dialog/confirmDialog";
 import {useShell} from "../util/pathName";
 import {Dialog} from "../dialog";
 import {reloadOtherWindow} from "../dialog/processSystem";
+import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig";
 
 export const appearance = {
     element: undefined as Element,
@@ -202,10 +203,10 @@ export const appearance = {
             closeButtonBehavior: (appearance.element.querySelector("#closeButtonBehavior") as HTMLInputElement).checked ? 1 : 0,
             hideStatusBar: (appearance.element.querySelector("#hideStatusBar") as HTMLInputElement).checked,
             statusBar: {
-                msgTaskDatabaseIndexCommitDisabled: statusBar ? statusBar.msgTaskDatabaseIndexCommitDisabled : window.siyuan.config.appearance.statusBar.msgTaskDatabaseIndexCommitDisabled,
-                msgTaskHistoryDatabaseIndexCommitDisabled: statusBar ? statusBar.msgTaskHistoryDatabaseIndexCommitDisabled : window.siyuan.config.appearance.statusBar.msgTaskHistoryDatabaseIndexCommitDisabled,
-                msgTaskAssetDatabaseIndexCommitDisabled: statusBar ? statusBar.msgTaskAssetDatabaseIndexCommitDisabled : window.siyuan.config.appearance.statusBar.msgTaskAssetDatabaseIndexCommitDisabled,
-                msgTaskHistoryGenerateFileDisabled: statusBar ? statusBar.msgTaskHistoryGenerateFileDisabled : window.siyuan.config.appearance.statusBar.msgTaskHistoryGenerateFileDisabled,
+                msgTaskDatabaseIndexCommitDisabled: statusBar ? statusBar.msgTaskDatabaseIndexCommitDisabled : getSiyuanConfig().appearance.statusBar?.msgTaskDatabaseIndexCommitDisabled,
+                msgTaskHistoryDatabaseIndexCommitDisabled: statusBar ? statusBar.msgTaskHistoryDatabaseIndexCommitDisabled : getSiyuanConfig().appearance.statusBar?.msgTaskHistoryDatabaseIndexCommitDisabled,
+                msgTaskAssetDatabaseIndexCommitDisabled: statusBar ? statusBar.msgTaskAssetDatabaseIndexCommitDisabled : getSiyuanConfig().appearance.statusBar?.msgTaskAssetDatabaseIndexCommitDisabled,
+                msgTaskHistoryGenerateFileDisabled: statusBar ? statusBar.msgTaskHistoryGenerateFileDisabled : getSiyuanConfig().appearance.statusBar?.msgTaskHistoryGenerateFileDisabled,
             }
         }, async response => {
             if (response.data.mode !== window.siyuan.config.appearance.mode ||
@@ -266,28 +267,28 @@ export const appearance = {
                ${window.siyuan.languages["_taskAction"]["task.database.index.commit"]}
             </div>
             <span class="fn__space"></span>
-            <input class="b3-switch fn__flex-center" id="msgTaskDatabaseIndexCommitDisabled" type="checkbox"${window.siyuan.config.appearance.statusBar.msgTaskDatabaseIndexCommitDisabled ? "" : " checked"}>
+            <input class="b3-switch fn__flex-center" id="msgTaskDatabaseIndexCommitDisabled" type="checkbox"${getSiyuanConfig().appearance.statusBar?.msgTaskDatabaseIndexCommitDisabled ? "" : " checked"}>
         </label>    
         <label class="b3-list-item">
             <div class="fn__flex-1 ft__on-surface">
                ${window.siyuan.languages["_taskAction"]["task.asset.database.index.commit"]}
             </div>
             <span class="fn__space"></span>
-            <input class="b3-switch fn__flex-center" id="msgTaskAssetDatabaseIndexCommitDisabled" type="checkbox"${window.siyuan.config.appearance.statusBar.msgTaskAssetDatabaseIndexCommitDisabled ? "" : " checked"}>
+            <input class="b3-switch fn__flex-center" id="msgTaskAssetDatabaseIndexCommitDisabled" type="checkbox"${getSiyuanConfig().appearance.statusBar?.msgTaskAssetDatabaseIndexCommitDisabled ? "" : " checked"}>
         </label>
         <label class="b3-list-item">
             <div class="fn__flex-1 ft__on-surface">
                ${window.siyuan.languages["_taskAction"]["task.history.database.index.commit"]}
             </div>
             <span class="fn__space"></span>
-            <input class="b3-switch fn__flex-center" id="msgTaskHistoryDatabaseIndexCommitDisabled" type="checkbox"${window.siyuan.config.appearance.statusBar.msgTaskHistoryDatabaseIndexCommitDisabled ? "" : " checked"}>
+            <input class="b3-switch fn__flex-center" id="msgTaskHistoryDatabaseIndexCommitDisabled" type="checkbox"${getSiyuanConfig().appearance.statusBar?.msgTaskHistoryDatabaseIndexCommitDisabled ? "" : " checked"}>
         </label>
         <label class="b3-list-item">
             <div class="fn__flex-1 ft__on-surface">
                ${window.siyuan.languages["_taskAction"]["task.history.generateFile"]}
             </div>
             <span class="fn__space"></span>
-            <input class="b3-switch fn__flex-center" id="msgTaskHistoryGenerateFileDisabled" type="checkbox"${window.siyuan.config.appearance.statusBar.msgTaskHistoryGenerateFileDisabled ? "" : " checked"}>
+            <input class="b3-switch fn__flex-center" id="msgTaskHistoryGenerateFileDisabled" type="checkbox"${getSiyuanConfig().appearance.statusBar?.msgTaskHistoryGenerateFileDisabled ? "" : " checked"}>
         </label>
     </div>
 </div>`
