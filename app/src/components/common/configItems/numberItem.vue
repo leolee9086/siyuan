@@ -42,7 +42,7 @@ interface Props {
     max: number
     suffix?: string
     modelValue: number
-    customHandler?: () => void
+    customHandler?: (() => void)|undefined
 }
 
 interface Emits {

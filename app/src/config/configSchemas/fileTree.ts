@@ -5,6 +5,8 @@ import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n";
 import { computed } from "vue";
 
 export const schema = z.object({
+    // "允许创建深度大于 7 层的子文档"
+    // 某些系统路径深度太深会出现问题
     allowCreateDeeper: z.boolean().meta({
         description: siyuanI18n.fileTree19,
         label: siyuanI18n.fileTree18,
@@ -15,6 +17,7 @@ export const schema = z.object({
             }
         })
     }),
+    // "始终定位打开的文档"
     alwaysSelectOpenedFile: z.boolean().meta({
         description: siyuanI18n.fileTree2,
         label: siyuanI18n.selectOpen,
@@ -25,6 +28,7 @@ export const schema = z.object({
             }
         })
     }),
+    // "启动时关闭所有页签"
     closeTabsOnStart: z.boolean().meta({
         description: siyuanI18n.fileTree10,
         label: siyuanI18n.fileTree9,
@@ -35,6 +39,7 @@ export const schema = z.object({
             }
         })
     }),
+    // "新建文档存放位置"
     docCreateSavePath: z.string().meta({
         description: siyuanI18n.fileTree13,
         label: siyuanI18n.fileTree12,
@@ -45,6 +50,7 @@ export const schema = z.object({
             }
         })
     }),
+    // "最大列出数量"
     maxListCount: z.number().min(1).max(10240).meta({
         description: siyuanI18n.fileTree17,
         label: siyuanI18n.fileTree16,
@@ -55,6 +61,7 @@ export const schema = z.object({
             }
         })
     }),
+    // "页签打开最大数量"
     maxOpenTabCount: z.number().min(1).max(32).meta({
         description: siyuanI18n.tabLimit1,
         label: siyuanI18n.tabLimit,
@@ -65,6 +72,7 @@ export const schema = z.object({
             }
         })
     }),
+    // "在当前页签中打开"
     openFilesUseCurrentTab: z.boolean().meta({
         description: siyuanI18n.fileTree8,
         label: siyuanI18n.fileTree7,
@@ -75,6 +83,7 @@ export const schema = z.object({
             }
         })
     }),
+    // "块引新建文档存放位置"
     refCreateSavePath: z.string().meta({
         description: siyuanI18n.fileTree6,
         label: siyuanI18n.fileTree5,
@@ -85,6 +94,7 @@ export const schema = z.object({
             }
         })
     }),
+    // "块引新建文档存放笔记本"
     refCreateSaveBox: z.string().meta({
         description: siyuanI18n.fileTree6,
         label: siyuanI18n.fileTree5,
@@ -95,6 +105,7 @@ export const schema = z.object({
             }
         })
     }),
+    // "新建文档存放笔记本"
     docCreateSaveBox: z.string().meta({
         description: siyuanI18n.fileTree13,
         label: siyuanI18n.fileTree12,
@@ -105,6 +116,7 @@ export const schema = z.object({
             }
         })
     }),
+    // "删除文档时不需要确认"
     removeDocWithoutConfirm: z.boolean().meta({
         description: siyuanI18n.fileTree4,
         label: siyuanI18n.fileTree3,
@@ -115,13 +127,25 @@ export const schema = z.object({
             }
         })
     }),
-    sort: z.number().min(0).max(256).meta({
-        description: "文档排序方式",
-        label: "排序",
+    // "超大文件提醒"
+    largeFileWarningSize: z.number().min(2).max(10240).meta({
+        description: siyuanI18n.fileTree23,
+        label: siyuanI18n.fileTree22,
         model: computed({
-            get: () => getSiyuanConfig().fileTree.sort,
+            get: () => getSiyuanConfig().fileTree.largeFileWarningSize,
             set: (val: number) => {
-                window.siyuan.config && (window.siyuan.config.fileTree.sort = val)
+                window.siyuan.config && (window.siyuan.config.fileTree.largeFileWarningSize = val)
+            }
+        })
+    }),
+    // "新建子文档放置在顶部"
+    createDocAtTop: z.boolean().meta({
+        description: siyuanI18n.fileTree25,
+        label: siyuanI18n.fileTree24,
+        model: computed({
+            get: () => getSiyuanConfig().fileTree.createDocAtTop,
+            set: (val: boolean) => {
+                window.siyuan.config && (window.siyuan.config.fileTree.createDocAtTop = val)
             }
         })
     }),
@@ -135,23 +159,31 @@ export const schema = z.object({
             }
         })
     }),
-    largeFileWarningSize: z.number().min(2).max(10240).meta({
-        description: siyuanI18n.fileTree23,
-        label: siyuanI18n.fileTree22,
+    // "排序"
+    sort: z.number().meta({
+        description: siyuanI18n.sort,
+        label: siyuanI18n.sort,
+        options: [
+            { value: 0, label: siyuanI18n.fileNameASC },
+            { value: 1, label: siyuanI18n.fileNameDESC },
+            { value: 4, label: siyuanI18n.fileNameNatASC },
+            { value: 5, label: siyuanI18n.fileNameNatDESC },
+            { value: 9, label: siyuanI18n.createdASC },
+            { value: 10, label: siyuanI18n.createdDESC },
+            { value: 2, label: siyuanI18n.modifiedASC },
+            { value: 3, label: siyuanI18n.modifiedDESC },
+            { value: 7, label: siyuanI18n.refCountASC },
+            { value: 8, label: siyuanI18n.refCountDESC },
+            { value: 11, label: siyuanI18n.docSizeASC },
+            { value: 12, label: siyuanI18n.docSizeDESC },
+            { value: 13, label: siyuanI18n.subDocCountASC },
+            { value: 14, label: siyuanI18n.subDocCountDESC },
+            { value: 6, label: siyuanI18n.customSort },
+        ],
         model: computed({
-            get: () => getSiyuanConfig().fileTree.largeFileWarningSize,
+            get: () => getSiyuanConfig().fileTree.sort,
             set: (val: number) => {
-                window.siyuan.config && (window.siyuan.config.fileTree.largeFileWarningSize = val)
-            }
-        })
-    }),
-    createDocAtTop: z.boolean().meta({
-        description: siyuanI18n.fileTree25,
-        label: siyuanI18n.fileTree24,
-        model: computed({
-            get: () => getSiyuanConfig().fileTree.createDocAtTop,
-            set: (val: boolean) => {
-                window.siyuan.config && (window.siyuan.config.fileTree.createDocAtTop = val)
+                window.siyuan.config && (window.siyuan.config.fileTree.sort = val)
             }
         })
     })
