@@ -1,0 +1,22 @@
+{
+  "name": "@leolee9086/everything-client-http",
+  "version": "0.1.0",
+  "description": "A simple client for interacting with the Everything search engine's HTTP service.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc -w"
+  },
+  "keywords": [
+    "everything",
+    "http-client",
+    "search"
+  ],
+  "author": "Zhi",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.14.9",
+    "typescript": "^5.5.3"
+  }
+} 

@@ -1,0 +1,314 @@
+HTTP 服务器
+Everything HTTP 服务器时 Web 服务器允许您通过网络浏览器搜索和访问您的文件。
+
+
+启动 HTTP 服务器
+启动 HTTP 服务器:
+
+在 "Everything" 中，打开工具菜单，点击选项。
+
+点击 HTTP 服务器页面。
+
+选择启用 HTTP 服务器.
+
+点击确定。
+
+
+访问 HTTP 服务器
+启动 HTTP 服务器并在浏览器中打开 http://ComputerName。此处 ComputerName 是运行 HTTP 服务器的计算机名。
+
+
+
+设置用户名和密码
+更改用户名和密码将即时生效。
+
+
+更改 HTTP 服务器用户名和密码：
+
+在 "Everything" 中，打开工具菜单，点击选项。
+
+点击 HTTP 服务器页面。
+
+输入新的用户名和密码。
+
+点击确定。
+
+
+禁用文件下载
+您可以禁用文件下载而允许客户端仅列举结果。
+
+
+禁用 HTTP 文件下载：
+
+在 "Everything" 中，打开工具菜单，点击选项。
+
+点击 HTTP 服务器页面。
+
+取消选择允许文件下载。
+
+点击确定。
+
+
+URL 查询字符串
+
+语法：
+
+http://localhost/?s=&o=0&c=32&j=0&i=0&w=0&p=0&r=0&m=0&path_column=0&size_column=0&date_modified_column=0&date_created_column=0&attributes_column=0&sort=name&ascending=1
+key=数值对不需要时可以忽略。
+
+
+关键词：
+
+s
+
+q
+
+search
+
+搜索文本
+
+o
+
+offset
+
+显示第 nth 个结果
+
+c
+
+count
+
+返回不超过设定值的结果数
+
+j
+
+json
+
+数值非零时返回结果为 json 对象
+
+i
+
+case
+
+数值非零时匹配大小写
+
+w
+
+wholeword
+
+数值非零时匹配全字
+
+p
+
+path
+
+数值非零时搜索完整路径
+
+r
+
+regex
+
+数值非零时执行正则搜索
+
+m
+
+diacritics
+
+数值非零时匹配变音标记
+
+path_column
+
+数值非零时列举结果路径为 json 对象
+
+size_column
+
+数值非零时列举结果大小为 json 对象
+
+date_modified_column
+
+数值非零时列举结果修改日期为 json 对象
+
+date_created_column
+
+数值非零时列举结果创建日期为 json 对象
+
+attributes_column
+
+数值非零时列举结果属性为 json 对象
+
+sort
+
+排序值可以为以下任一项：
+
+排序方式	说明
+name	按名称排序。
+path	按路径排序。
+date_modified	按修改日期排序。
+size	按大小排序。
+
+ascending
+
+数值非零时升序排列
+
+
+默认 html 查询字符串值：
+
+关键词	数值
+search	
+offset	0
+count	32
+json	0
+case	0
+wholeword	0
+path	0
+regex	0
+diacritics	0
+sort	name
+ascending	1
+
+默认 json 对象查询字符串值：
+
+关键词	数值
+search	
+offset	0
+count	4294967295
+json	1
+case	0
+wholeword	0
+path	0
+regex	0
+diacritics	0
+path_column	0
+size_column	0
+date_modified_column	0
+date_created_column	0
+attributes_column	0
+sort	name
+ascending	1
+
+例如，搜索 ABC AND 123，起始偏移为 0 ，显示开头 100 个结果，按大小降序排列：
+
+http://localhost/?search=ABC+123&offset=0&count=100&sort=size&ascending=0
+
+更改 HTTP 默认文件
+您可以自定义 HTTP 服务器布局、图标、文件夹图标、文件图标、任何图标、升序图标、降序图标和上层目录图标。
+
+
+创建文件夹
+
+HTTP Server
+在：
+
+%APPDATA%\Everything
+如果禁用保存设置和数据到 %APPDATA%\Everything 选项，HTTP 服务器文件夹必须创建在 Everything.exe 相同目录。
+
+在 "Everything" 中，打开工具菜单，点击启动 HTTP 服务器。
+
+下载以下文件到 HTTP 服务器文件夹：
+
+Everything-HTTP.Server.Files.zip
+
+编辑 "Everything" 安装目录下 HTTP 服务器文件夹中这些文件。
+
+Everything 将会载入这些文件而不是内置的 HTTP 服务器文件。
+
+按住 Shift 并按重载按钮以强制浏览器刷新。
+
+
+更改 HTTP 服务器默认页面
+更改 HTTP 服务器默认页面：
+
+在 "Everything" 中，打开工具菜单，点击选项。
+
+点击 HTTP 服务器页面。
+
+设置默认页面到自定义页面。
+
+
+自定义字符串
+自定义内置 HTTP 服务器字符串：
+
+下载 HTTP 服务器字符串模板：http_server_strings.zip
+
+解压 http_server_strings.ini 文件到：%APPDATA%\Everything\HTTP server
+
+更改 http_server_strings.ini
+
+在 Everything 中，输入以下搜索并按 ENTER：
+
+/http_server_strings=C:\Users\<user>\AppData\Roaming\Everything\HTTP Server\http_server_strings.ini
+此处 <user> 是您的用户名。
+
+重启 HTTP 服务器:
+
+在 "Everything" 中，打开工具菜单，点击选项。
+
+点击 HTTP 服务器页面。
+
+取消选择启用 HTTP 服务器。
+
+点击应用。
+
+点击启用 HTTP 服务器。
+
+点击确定。
+
+
+安全性
+Everything 索引的每个文件和文件夹都可以通过 Web 服务器搜索和下载。
+
+
+禁用文件下载：
+
+在 "Everything" 中，打开工具菜单，点击选项。
+
+点击 HTTP 服务器页面。
+
+取消选择允许文件下载。
+
+
+查阅禁用 HTTP 服务器以移除 HTTP 服务器选项和阻止 HTTP 服务器启动。
+
+
+禁用 HTTP 服务器
+禁用 HTTP 服务器
+
+退出 Everything (右键点击 Everything 托盘图标并选择退出)
+
+打开 Everything.exe 同目录下 Everything.ini 文件。
+
+更改以下行：
+
+allow_http_server=1
+为：
+
+allow_http_server=0
+保存更改并重启 Everything。
+
+
+疑难解答
+如何修复无法启动 HTTP 服务器：绑定 10048 错误？
+
+
+存在其他服务器占用端口 80。
+
+请尝试更改 Everything HTTP 服务器端口号。
+
+
+更改 HTTP 服务器端口：
+
+在 "Everything" 中，打开工具菜单，点击选项。
+
+点击 HTTP 服务器页面。
+
+更改监听端口到新端口，例如 8080。
+
+点击确定。
+
+
+请确认在通过网络浏览器连接 Web 服务器时已指定端口，例如：
+
+http://localhost:8080
+
+请求范围
+Everything 支持流媒体范围请求。
+
