@@ -36,7 +36,7 @@ export function 从块DOM提取首个符合条件的特定语言代码块内容(
                 }
                 // 获取代码块元素进行条件判断
                 const codeElement = span.parentElement?.nextElementSibling;
-                if (codeElement &&blockElement&& conditionCallback(blockElement, codeContent)) {
+                if (codeElement && blockElement && conditionCallback(blockElement, codeContent)) {
                     return codeContent;
                 }
             }

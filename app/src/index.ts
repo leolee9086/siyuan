@@ -39,6 +39,7 @@ import {getDockByType} from "./layout/tabUtil";
 import {Tag} from "./layout/dock/Tag";
 import {updateControlAlt} from "./protyle/util/hotKey";
 import { EventBus } from "./plugin/EventBus";
+import { siyuanI18n } from "./util/siyuanEnvironments/i18n.getI18n";
 
 export class App {
     public plugins: import("./plugin").Plugin[] = [];
@@ -75,7 +76,7 @@ export class App {
                                 break;
                             case "reloadTag":
                                 if (getDockByType("tag")?.data.tag instanceof Tag) {
-                                    (getDockByType("tag").data.tag as Tag).update();
+                                    (getDockByType("tag")?.data.tag as Tag).update();
                                 }
                                 break;
                             /// #if BROWSER
@@ -191,7 +192,7 @@ export class App {
             window.siyuan.isPublish = response.data.isPublish;
             await loadPlugins(this);
             getLocalStorage(() => {
-                fetchGet(`/appearance/langs/${window.siyuan.config.appearance.lang}.json?v=${Constants.SIYUAN_VERSION}`, (lauguages: IObject) => {
+                fetchGet(`/appearance/langs/${window.siyuan.config?.appearance.lang}.json?v=${Constants.SIYUAN_VERSION}`, (lauguages: IObject) => {
                     window.siyuan.languages = lauguages;
                     window.siyuan.menus = new Menus(this);
                     bootSync();
@@ -199,7 +200,7 @@ export class App {
                         window.siyuan.user = userResponse.data;
                         onGetConfig(response.data.start, this);
                         account.onSetaccount();
-                        setTitle(window.siyuan.languages.siyuanNote);
+                        setTitle(siyuanI18n.siyuanNote);
                         initMessage();
                     });
                 });
