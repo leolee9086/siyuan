@@ -821,7 +821,7 @@ export const genSearch = (app: App, config: Config.IUILayoutTabSearchConfig, ele
                                         openFileById({
                                             app,
                                             id,
-                                            action,
+                                            action: [...action, Constants.CB_GET_HL],
                                             zoomIn,
                                             position: "right"
                                         });
@@ -861,7 +861,7 @@ export const genSearch = (app: App, config: Config.IUILayoutTabSearchConfig, ele
                                 openFileById({
                                     app,
                                     id,
-                                    action,
+                                    action: [...action, Constants.CB_GET_HL],
                                     zoomIn
                                 });
                                 if (closeCB) {
