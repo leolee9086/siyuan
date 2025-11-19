@@ -1,9 +1,9 @@
-import {Constants} from "../constants";
+import { Constants } from "../constants";
 /// #if !BROWSER
-import {ipcRenderer} from "electron";
+import { ipcRenderer } from "electron";
 /// #endif
-import {processMessage} from "./processMessage";
-import {kernelError} from "../dialog/processSystem";
+import { processMessage } from "./processMessage";
+import { kernelError } from "../dialog/processSystem";
 
 export const fetchPost = (url: string, data?: any, cb?: (response: IWebSocketData) => void, headers?: IObject) => {
     const init: RequestInit = {
@@ -49,7 +49,8 @@ export const fetchPost = (url: string, data?: any, cb?: (response: IWebSocketDat
                     }, 3000);
                 }
 
-                if (response.headers.get("content-type")?.indexOf("application/json") > -1) {
+                const contentType = response.headers.get("content-type");
+                if (contentType && contentType.indexOf("application/json") > -1) {
                     return response.json();
                 } else {
                     return response.text();
@@ -110,11 +111,13 @@ export const fetchSyncPost = async (url: string, data?: any) => {
 
 export const fetchGet = (url: string, cb: (response: IWebSocketData | IObject | string) => void) => {
     fetch(url).then((response) => {
-        if (response.headers.get("content-type")?.indexOf("application/json") > -1) {
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.indexOf("application/json") > -1) {
             return response.json();
         } else {
             return response.text();
         }
+
     }).then((response) => {
         cb(response);
     });
