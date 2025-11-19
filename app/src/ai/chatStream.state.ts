@@ -9,7 +9,7 @@ import { buildBlockContentPrompt } from "./prompts/blockContent.builder";
 import { createAIRequestHandlerWithState } from "./createAIRequestHandler";
 
 
- export const createState = (
+export const createState = (
     protyle: IProtyle,
     element: Element,
     selectedElements: Element[],
@@ -244,10 +244,10 @@ const createConfirmHandler = (
     dialog: Dialog
 ) => {
     return async (inputValue: Array<{
-            role: 'user' | 'assistant';
-            content: string;
-            timestamp: number;
-        }>) => {
+        role: 'user' | 'assistant';
+        content: string;
+        timestamp: number;
+    }>) => {
         if (state.isStreaming) {
             if (state.abortFunction) {
                 state.abortFunction();
@@ -270,7 +270,10 @@ const createConfirmHandler = (
                 }
             });
         }
+        console.log(blockContents)
         const promptContent = buildBlockContentPrompt(blockContents);
+        console.log(promptContent)
+
         // 清空之前的内容
         state.responseContentStr = '';
         // 使用新的请求控制器发送请求
@@ -281,7 +284,7 @@ const createConfirmHandler = (
                 {
                     role: "system", content: promptContent, timestamp: Date.now()
                 },
-               ...inputValue
+                ...inputValue
             ]
         );
     };

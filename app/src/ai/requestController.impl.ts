@@ -1,3 +1,4 @@
+import dayjs = require('dayjs');
 import type { MessageHistory } from '../components/streamChat.types';
 import { universalStreamRequest } from '../util/fetchStream';
 
@@ -178,7 +179,7 @@ export class AIRequestController {
         // 构建消息历史
         const requestMessages = messages.map(msg => ({
             role: msg.role,
-            content: msg.content+`\n${msg.timestamp.toLocaleString()}`
+            content: msg.content+`\n发送时间:${dayjs(msg.timestamp).toDate()}`
         }));
 
         // 构建请求体
