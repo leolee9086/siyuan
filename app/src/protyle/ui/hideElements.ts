@@ -1,4 +1,5 @@
-import {getAllEditor} from "../../layout/getAll";
+import { getAllEditor } from "../../layout/getAll";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n";
 
 // "gutter", "toolbar", "select", "hint", "util", "dialog", "gutterOnly"
 export const hideElements = (panels: string[], protyle?: IProtyle, focusHide = false) => {
@@ -6,20 +7,20 @@ export const hideElements = (panels: string[], protyle?: IProtyle, focusHide = f
         if (panels.includes("dialog")) {
             const dialogLength = window.siyuan.dialogs.length;
             for (let i = 0; i < dialogLength; i++) {
-                window.siyuan.dialogs[i].destroy();
+                window.siyuan.dialogs[i]?.destroy();
             }
         }
         return;
     }
     if (panels.includes("hint")) {
-        clearTimeout(protyle.hint.timeId);
-        protyle.hint.element.classList.add("fn__none");
+        clearTimeout(protyle.hint?.timeId);
+        protyle.hint?.element.classList.add("fn__none");
     }
     if (protyle.gutter && panels.includes("gutter")) {
         protyle.gutter.element.classList.add("fn__none");
         protyle.gutter.element.innerHTML = "";
         // https://ld246.com/article/1651935412480
-        protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--hl").forEach((item) => {
+        protyle.wysiwyg?.element.querySelectorAll(".protyle-wysiwyg--hl").forEach((item) => {
             item.classList.remove("protyle-wysiwyg--hl");
         });
     }
@@ -34,7 +35,7 @@ export const hideElements = (panels: string[], protyle?: IProtyle, focusHide = f
     }
     if (protyle.toolbar && panels.includes("util")) {
         const pinElement = protyle.toolbar.subElement.querySelector('[data-type="pin"]');
-        if (focusHide || !pinElement || (pinElement && pinElement.getAttribute("aria-label") === window.siyuan.languages.pin)) {
+        if (focusHide || !pinElement || (pinElement && pinElement.getAttribute("aria-label") === siyuanI18n.pin)) {
             protyle.toolbar.subElement.classList.add("fn__none");
             if (protyle.toolbar.subElementCloseCB) {
                 protyle.toolbar.subElementCloseCB();
@@ -43,7 +44,7 @@ export const hideElements = (panels: string[], protyle?: IProtyle, focusHide = f
         }
     }
     if (panels.includes("select")) {
-        protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select").forEach(item => {
+        protyle.wysiwyg?.element.querySelectorAll(".protyle-wysiwyg--select").forEach(item => {
             item.classList.remove("protyle-wysiwyg--select");
             item.removeAttribute("select-start");
             item.removeAttribute("select-end");
@@ -54,16 +55,18 @@ export const hideElements = (panels: string[], protyle?: IProtyle, focusHide = f
 // "toolbar", "pdfutil", "gutter", "util"
 export const hideAllElements = (types: string[]) => {
     if (types.includes("toolbar")) {
-        document.querySelectorAll(".protyle-toolbar").forEach((item: HTMLElement) => {
-            item.classList.add("fn__none");
-            item.style.display = "";
+        document.querySelectorAll(".protyle-toolbar").forEach((item) => {
+            if (item instanceof HTMLElement) {
+                item.classList.add("fn__none");
+                item.style.display = "";
+            }
         });
     }
     if (types.includes("util")) {
         getAllEditor().forEach(item => {
             if (item.protyle.toolbar) {
                 const pinElement = item.protyle.toolbar.subElement.querySelector('[data-type="pin"]');
-                if (!pinElement || (pinElement && pinElement.getAttribute("aria-label") === window.siyuan.languages.pin)) {
+                if (!pinElement || (pinElement && pinElement.getAttribute("aria-label") === siyuanI18n.pin)) {
                     item.protyle.toolbar.subElement.classList.add("fn__none");
                     if (item.protyle.toolbar.subElementCloseCB) {
                         item.protyle.toolbar.subElementCloseCB();
