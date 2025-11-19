@@ -14,7 +14,7 @@
     "search"
   ],
   "author": "Zhi",
-  "license": "MIT",
+  "license": "AGPL-3.0-or-later",
   "devDependencies": {
     "@types/node": "^20.14.9",
     "typescript": "^5.5.3"
