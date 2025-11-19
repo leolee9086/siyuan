@@ -1,4 +1,4 @@
-import { AIConfig, validateAIConfig } from "./types";
+import { type AIConfig, validateAIConfig } from "./types";
 
 /**
  * 从思源配置中获取AI配置

@@ -388,7 +388,7 @@ interface IInbox {
 interface IPdfAnno {
     pages?: {
         index: number
-        positions: number []
+        positions: number[]
     }[]
     index?: number,
     color: string,
@@ -546,8 +546,8 @@ interface IOperation {
     keyID?: string // updateAttrViewCell 专享
     rowID?: string // updateAttrViewCell 专享
     data?: any, // updateAttr 时为  { old: IObject, new: IObject }, updateAttrViewCell 时为 {TAVCol: {content: string}}
-    parentID?: string
-    previousID?: string
+    parentID?: string | undefined
+    previousID?: string | undefined
     retData?: any
     nextID?: string // insert 专享
     isDetached?: boolean // insertAttrViewBlock 专享
@@ -787,7 +787,7 @@ interface IRiffCard {
 }
 
 interface IModels {
-    editor: import("../editor").Editor [],
+    editor: import("../editor").Editor[],
     graph: import("../layout/dock/Graph").Graph[],
     outline: import("../layout/dock/Outline").Outline[]
     backlink: import("../layout/dock/Backlink").Backlink[]
@@ -849,7 +849,7 @@ interface IBazaarItem {
     hInstallDate: string;
     hUpdated: string;
     preferredFunding: string;
-    keywords?:string[]
+    keywords?: string[]
 }
 
 interface IAV {

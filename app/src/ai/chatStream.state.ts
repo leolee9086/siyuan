@@ -270,9 +270,7 @@ const createConfirmHandler = (
                 }
             });
         }
-        console.log(blockContents)
         const promptContent = buildBlockContentPrompt(blockContents);
-        console.log(promptContent)
 
         // 清空之前的内容
         state.responseContentStr = '';
