@@ -1,4 +1,4 @@
-import {  isNotCtrl } from "../util/compatibility";
+import { isNotCtrl } from "../util/compatibility";
 import {
     getEditorRange,
 } from "../util/selection";
@@ -47,16 +47,20 @@ import { redoMiddleware, undoMiddleware } from "./keydown.editorStack";
 import { commonHotkeyMiddleware } from "./keydown.commonHotkey";
 import { fixTableMiddleware } from "./keydown.table";
 import { superBlockSelectMiddleware } from "./keydown.superBlockSelect";
-import {  处理块进入聚焦, 处理块退出聚焦 } from "./keydown.focus";
+import { 处理块进入聚焦, 处理块退出聚焦 } from "./keydown.focus";
 import { commonInputMiddleware } from "./keydown.commonInput";
 
 export const getContentByInlineHTML = (range: Range, cb: (content: string) => void) => {
     let html = "";
-    Array.from(range.cloneContents().childNodes).forEach((item: HTMLElement) => {
+    Array.from(range.cloneContents().childNodes).forEach((item) => {
+        //文本节点
         if (item.nodeType === 3) {
             html += item.textContent;
         } else {
-            html += item.outerHTML;
+        //元素节点    
+            if (item instanceof HTMLElement) {
+                html += item.outerHTML;
+            }
         }
     });
     fetchPost("/api/block/getDOMText", { dom: html }, (response) => {
@@ -94,7 +98,7 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
             eventState.elementTarget = "protyle-html"
         }
         if (event.target.localName === 'input') {
-            eventState.blockType = nodeElement.getAttribute("data-type")
+            eventState.blockType = nodeElement.getAttribute("data-type") || ""
         }
         const history: string[] = []
         let currentItem = { handle: async () => { }, describe: "" }
@@ -132,11 +136,11 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         await executeItem(htmlBlockGuardRgistyItem)
         if (signal.aborted) { return }
         //当在input元素中输入时
-        await inputElementGuard(editorContext)
+        (event.target?.localName === "input") ? await inputElementGuard(editorContext) : null
         if (signal.aborted) { return }
-        await protyleDisabledGuard(event, protyle, nodeElement, range, controller)
+        protyle.disabled ? await protyleDisabledGuard(event, protyle, nodeElement, range, controller) : null
         if (signal.aborted) { return }
-        await protyleHaveSelectedGuard(event, protyle, nodeElement, range, controller)
+        (!protyle.selectElement?.classList.contains("fn__none")) ? await protyleHaveSelectedGuard(event, protyle, nodeElement, range, controller) : null
         if (signal.aborted) { return }
         await setProtyleWysiwygPreventKeyupMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }

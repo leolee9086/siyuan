@@ -25,10 +25,8 @@ export const inputElementGuard = async (
     context: editorContext
 ) => {
     const { event, controller } = context
-    if (event.target?.localName === "input") {
-        event.stopPropagation();
-        controller.abort('输入框键盘按下,中止冒泡');
-    }
+    event.stopPropagation();
+    controller.abort('输入框键盘按下,中止冒泡');
 }
 
 export const protyleDisabledGuard = async (
@@ -38,11 +36,9 @@ export const protyleDisabledGuard = async (
     range: Range,
     controller: AbortController
 ) => {
-    if (protyle.disabled) {
-        event.stopPropagation();
-        event.preventDefault();
-        controller.abort("编辑器已禁用");
-    }
+    event.stopPropagation();
+    event.preventDefault();
+    controller.abort("编辑器已禁用");
 }
 export const protyleHaveSelectedGuard = async (
     event: KeyboardEvent,
@@ -51,11 +47,9 @@ export const protyleHaveSelectedGuard = async (
     range: Range,
     controller: AbortController
 ) => {
-    if (!protyle.selectElement?.classList.contains("fn__none")) {
-        event.stopPropagation();
-        event.preventDefault();
-        controller.abort("编辑器已有选中内容");
-    }
+    event.stopPropagation();
+    event.preventDefault();
+    controller.abort("编辑器已有选中内容");
 }
 
 export const avPanelGuard = (

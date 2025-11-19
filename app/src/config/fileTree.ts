@@ -12,7 +12,7 @@ export const fileTree = {
 <label class="fn__flex b3-label">
     <div class="fn__flex-1">
         ${siyuanI18n.openInNewTab}
-        <div class="b3-label__text">${siyuanI18n.在页签中打开文档树设置页面}</div>
+        <div class="b3-label__text">${siyuanI18n.openInNewTab}</div>
     </div>
     <span class="fn__space"></span>
 <button id="editButton" class="b3-button b3-button--outline fn__flex-center fn__size200" style="position: relative">
