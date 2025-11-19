@@ -1,5 +1,5 @@
-import {Constants} from "../../constants";
-import {hasClosestBlock, hasClosestByAttribute, hasClosestByClassName, hasClosestByTag} from "../util/hasClosest";
+import { Constants } from "../../constants";
+import { hasClosestBlock, hasClosestByAttribute, hasClosestByClassName, hasClosestByTag } from "../util/hasClosest";
 import {
     focusBlock,
     focusByRange,
@@ -8,20 +8,20 @@ import {
     getSelectionOffset,
     getSelectionPosition,
 } from "../util/selection";
-import {genHintItemHTML, hintEmbed, hintSlash} from "./extend";
+import { genHintItemHTML, hintEmbed, hintSlash } from "./extend";
 import { hintRef } from "./extend.hintRef";
-import {getSavePath, newFile} from "../../util/newFile";
-import {isAbnormalItem, upDownHint} from "../../util/upDownHint";
-import {setPosition} from "../../util/setPosition";
-import {getContenteditableElement, hasNextSibling, hasPreviousSibling} from "../wysiwyg/getBlock";
-import {transaction, updateTransaction} from "../wysiwyg/transaction";
-import {insertHTML} from "../util/insertHTML";
-import {highlightRender} from "../render/highlightRender";
-import {imgMenu, setFold} from "../../menus/protyle";
+import { getSavePath, newFile } from "../../util/newFile";
+import { isAbnormalItem, upDownHint } from "../../util/upDownHint";
+import { setPosition } from "../../util/setPosition";
+import { getContenteditableElement, hasNextSibling, hasPreviousSibling } from "../wysiwyg/getBlock";
+import { transaction, updateTransaction } from "../wysiwyg/transaction";
+import { insertHTML } from "../util/insertHTML";
+import { highlightRender } from "../render/highlightRender";
+import { imgMenu, setFold } from "../../menus/protyle";
 import { assetMenu } from "../../menus/protyle.asset";
-import {hideElements} from "../ui/hideElements";
-import {fetchPost} from "../../util/fetch";
-import {getDisplayName, pathPosix} from "../../util/pathName";
+import { hideElements } from "../ui/hideElements";
+import { fetchPost } from "../../util/fetch";
+import { getDisplayName, pathPosix } from "../../util/pathName";
 import {
     addEmoji,
     filterEmoji,
@@ -31,19 +31,19 @@ import {
     lazyLoadEmojiImg,
     unicode2Emoji
 } from "../../emoji";
-import {blockRender} from "../render/blockRender";
-import {uploadFiles} from "../upload";
+import { blockRender } from "../render/blockRender";
+import { uploadFiles } from "../upload";
 /// #if !MOBILE
 import { openFileById } from "../../editor/utils.openFileById";
 /// #endif
-import {openMobileFileById} from "../../mobile/editor";
-import {processRender} from "../util/processCode";
-import {AIChat} from "../../ai/chat";
-import {isMobile} from "../../util/functions";
-import {isNotCtrl, isOnlyMeta} from "../util/compatibility";
-import {avRender} from "../render/av/render";
-import {genIconHTML} from "../render/util";
-import {updateAttrViewCellAnimation} from "../render/av/action";
+import { openMobileFileById } from "../../mobile/editor";
+import { processRender } from "../util/processCode";
+import { AIChat } from "../../ai/chat";
+import { isMobile } from "../../util/functions";
+import { isNotCtrl, isOnlyMeta } from "../util/compatibility";
+import { avRender } from "../render/av/render";
+import { genIconHTML } from "../render/util";
+import { updateAttrViewCellAnimation } from "../render/av/action";
 
 export class Hint {
     public timeId: number;
@@ -395,19 +395,19 @@ ${genHintItemHTML(item)}
 <div class="emojis__panel">${filterEmoji(value, 256)}</div>
 <div class="fn__flex${value ? " fn__none" : ""}">
     ${[
-                ["2b50", window.siyuan.languages.recentEmoji],
-                ["1f527", getEmojiTitle(0)],
-                ["1f60d", getEmojiTitle(1)],
-                ["1f433", getEmojiTitle(2)],
-                ["1f96a", getEmojiTitle(3)],
-                ["1f3a8", getEmojiTitle(4)],
-                ["1f3dd-fe0f", getEmojiTitle(5)],
-                ["1f52e", getEmojiTitle(6)],
-                ["267e-fe0f", getEmojiTitle(7)],
-                ["1f6a9", getEmojiTitle(8)],
-            ].map(([unicode, title], index) =>
-                `<button data-type="${index}" class="emojis__type ariaLabel" aria-label="${title}">${unicode2Emoji(unicode)}</button>`
-            ).join("")}
+                    ["2b50", window.siyuan.languages.recentEmoji],
+                    ["1f527", getEmojiTitle(0)],
+                    ["1f60d", getEmojiTitle(1)],
+                    ["1f433", getEmojiTitle(2)],
+                    ["1f96a", getEmojiTitle(3)],
+                    ["1f3a8", getEmojiTitle(4)],
+                    ["1f3dd-fe0f", getEmojiTitle(5)],
+                    ["1f52e", getEmojiTitle(6)],
+                    ["267e-fe0f", getEmojiTitle(7)],
+                    ["1f6a9", getEmojiTitle(8)],
+                ].map(([unicode, title], index) =>
+                    `<button data-type="${index}" class="emojis__type ariaLabel" aria-label="${title}">${unicode2Emoji(unicode)}</button>`
+                ).join("")}
 </div>
 </div>`;
             lazyLoadEmoji(this.element);
@@ -483,7 +483,7 @@ ${genHintItemHTML(item)}
                 updateAttrViewCellAnimation(cellElement, {
                     type: "block",
                     isDetached: false,
-                    block: {content: realFileName, id: newID}
+                    block: { content: realFileName, id: newID }
                 });
             } else {
                 const sourceId = tempElement.getAttribute("data-id");
@@ -666,7 +666,7 @@ ${genHintItemHTML(item)}
                 this.fixImageCursor(range);
                 protyle.toolbar.range = range;
                 const rangePosition = getSelectionPosition(nodeElement, range);
-                assetMenu(protyle, {x: rangePosition.left, y: rangePosition.top + 26, w: 0, h: 26});
+                assetMenu(protyle, { x: rangePosition.left, y: rangePosition.top + 26, w: 0, h: 26 });
                 updateTransaction(protyle, id, nodeElement.outerHTML, html);
                 return;
             } else if (value === Constants.ZWSP + 3) {
