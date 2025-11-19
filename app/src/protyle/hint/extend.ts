@@ -21,7 +21,6 @@ import { unicode2Emoji } from "../../emoji";
 import { avRender } from "../render/av/render";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig";
-import { th } from "zod/v4/locales";
 
 const getHotkeyOrMarker = (hotkey: string, marker: string) => {
     if (hotkey) {
@@ -37,12 +36,15 @@ export const hintSlash = (key: string, protyle: IProtyle) => {
         filter: [siyuanI18n.template, "template", "模板", "moban", "muban", "mb"],
         id: "template",
         value: Constants.ZWSP,
-        html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconMarkdown"></use></svg><span class="b3-list-item__text">${siyuanI18n.template}</span></div>`,
+        html: /*html*/`
+<div class="b3-list-item__first">
+    <svg class="b3-list-item__graphic"><use xlink:href="#iconMarkdown"></use></svg>
+    <span class="b3-list-item__text">${siyuanI18n.template}</span></div>`,
     }, {
         filter: [siyuanI18n.widget, "widget", "挂件", "guajian", "gj"],
         id: "widget",
         value: Constants.ZWSP + 1,
-        html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconBoth"></use></svg><span class="b3-list-item__text">${siyuanI18n.widget}</span></div>`,
+        html: /*html*/`<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconBoth"></use></svg><span class="b3-list-item__text">${siyuanI18n.widget}</span></div>`,
     }, {
         filter: [siyuanI18n.assets, "assets", "资源", "ziyuan", "zy"],
         id: "assets",
