@@ -52,7 +52,7 @@ import { mergeNodes } from "../../util/DOM/rangeOperations";
 export class Toolbar {
     public element: HTMLElement;
     public subElement: HTMLElement;
-    public subElementCloseCB: () => void;
+    public subElementCloseCB: (() => void) | undefined;
     public range: Range;
     public toolbarHeight: number;
 
