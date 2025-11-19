@@ -1,58 +1,26 @@
 <template>
     <div>
         <!-- 布尔类型配置项 -->
-        <CheckBoxItem
-            v-for="(uiDesc, key) in booleanItems"
-            :key="key"
-            :id="key"
-            :label="uiDesc.label"
-            :description="uiDesc.description"
-            v-model="configData[key]"
-            @change="handleConfigChange"
-        />
-        
+        <CheckBoxItem v-for="(uiDesc, key) in booleanItems" :key="key" :id="key" :label="uiDesc.label"
+            :description="uiDesc.description" v-model="configData[key]" @change="handleConfigChange" />
+
         <!-- 数字类型配置项 -->
-        <NumberItem
-            v-for="(uiDesc, key) in numberItems"
-            :key="key"
-            :id="key"
-            :label="uiDesc.label"
-            :description="uiDesc.description"
-            :min="getNumberConstraints(key).min"
-            :max="getNumberConstraints(key).max"
-            :suffix="getNumberSuffix(key)||''"
-            :custom-handler="getCustomHandler(key)"
-            v-model="configData[key]"
-            @change="handleConfigChange"
-        />
-        
+        <NumberItem v-for="(uiDesc, key) in numberItems" :key="key" :id="key" :label="uiDesc.label"
+            :description="uiDesc.description" :min="getNumberConstraints(key).min" :max="getNumberConstraints(key).max"
+            :suffix="getNumberSuffix(key) || ''" :custom-handler="getCustomHandler(key)" v-model="configData[key]"
+            @change="handleConfigChange" />
+
         <!-- 字符串类型配置项 -->
-        <TextItem
-            v-for="(uiDesc, key) in stringItems"
-            :key="key"
-            :id="key"
-            :label="uiDesc.label"
-            :description="uiDesc.description"
-            v-model="configData[key]"
-            @change="handleConfigChange"
-        />
-        
+        <TextItem v-for="(uiDesc, key) in stringItems" :key="key" :id="key" :label="uiDesc.label"
+            :description="uiDesc.description" v-model="configData[key]" @change="handleConfigChange" />
+
         <!-- 复合选择器类型配置项 -->
-        <CompositeItem
-            v-for="(uiDesc, key) in compositeItems"
-            :key="key"
-            :select-id="uiDesc.selectKey"
-            :input-id="uiDesc.inputKey"
-            :label="uiDesc.label"
-            :description="uiDesc.description"
-            :select-value="configData[uiDesc.selectKey]"
-            :input-value="configData[uiDesc.inputKey]"
-            :options="uiDesc.options"
-            :placeholder-text="uiDesc.placeholderText"
+        <CompositeItem v-for="(uiDesc, key) in compositeItems" :key="key" :select-id="uiDesc.selectKey"
+            :input-id="uiDesc.inputKey" :label="uiDesc.label" :description="uiDesc.description"
+            :select-value="configData[uiDesc.selectKey]" :input-value="configData[uiDesc.inputKey]"
+            :options="uiDesc.options" :placeholder-text="uiDesc.placeholderText"
             @update:select-value="updateCompositeValue(uiDesc.selectKey, $event)"
-            @update:input-value="updateCompositeValue(uiDesc.inputKey, $event)"
-            @change="handleConfigChange"
-        />
+            @update:input-value="updateCompositeValue(uiDesc.inputKey, $event)" @change="handleConfigChange" />
     </div>
 </template>
 
@@ -63,13 +31,12 @@ import CheckBoxItem from './checkBoxItem.vue'
 import NumberItem from './numberItem.vue'
 import TextItem from './textItem.vue'
 import CompositeItem from './compositeItem.vue'
-import { uiDescriptionRegistry, type UIDescription, type UIFormDescription } from '../../../config/configSchemas/utils'
+import { type UIDescription, type UIFormDescription } from '../../../config/configSchemas/utils'
 import { siyuanI18n } from '../../../util/siyuanEnvironments/i18n.getI18n'
 import { Constants } from '../../../constants'
 
 interface Props {
     schema: ZodObject<any>
-    formDescriptionId?: string
 }
 
 const props = defineProps<Props>()
@@ -90,7 +57,7 @@ const getNotebookOptions = () => {
                 helpIds.push(helpId)
             }
         })
-        
+
         return window.siyuan.notebooks.filter(item => {
             return !helpIds.includes(item.id)
         }).map(item => ({
@@ -106,8 +73,7 @@ const booleanItems = computed(() => {
     const items: Record<string, UIDescription> = {}
     Object.entries(props.schema.shape).forEach(([key, zodType]) => {
         if (zodType instanceof ZodBoolean) {
-            const description = zodType.description
-            const uiDesc = uiDescriptionRegistry.get(description)
+            const uiDesc = zodType.meta()
             if (uiDesc) {
                 items[key] = uiDesc
             }
@@ -120,8 +86,8 @@ const numberItems = computed(() => {
     const items: Record<string, UIDescription> = {}
     Object.entries(props.schema.shape).forEach(([key, zodType]) => {
         if (zodType instanceof ZodNumber) {
-            const description = zodType.description
-            const uiDesc = uiDescriptionRegistry.get(description)
+            const uiDesc = zodType.meta()
+            console.log(uiDesc)
             if (uiDesc) {
                 items[key] = uiDesc
             }
@@ -134,8 +100,7 @@ const stringItems = computed(() => {
     const items: Record<string, UIDescription> = {}
     Object.entries(props.schema.shape).forEach(([key, zodType]) => {
         if (zodType instanceof ZodString) {
-            const description = zodType.description
-            const uiDesc = uiDescriptionRegistry.get(description)
+            const uiDesc = zodType.meta()
             if (uiDesc) {
                 items[key] = uiDesc
             }
@@ -147,14 +112,12 @@ const stringItems = computed(() => {
 // 复合选择器配置项（特殊处理）
 const compositeItems = computed(() => {
     const items: Record<string, any> = {}
-    const schemaShape = props.schema.shape 
-    
+    const schemaShape = props.schema.shape
+
     // 处理 docCreateSave 相关字段
     if (schemaShape.docCreateSaveBox && schemaShape.docCreateSavePath) {
-        const boxDescription = schemaShape.docCreateSaveBox.description
-        const pathDescription = schemaShape.docCreateSavePath.description
-        const boxUiDesc = uiDescriptionRegistry.get(boxDescription)
-        const pathUiDesc = uiDescriptionRegistry.get(pathDescription)
+        const boxUiDesc = schemaShape.docCreateSaveBox.meta
+        const pathUiDesc = schemaShape.docCreateSavePath.meta
         if (boxUiDesc && pathUiDesc) {
             items['docCreateSave'] = {
                 label: pathUiDesc.label,
@@ -166,13 +129,11 @@ const compositeItems = computed(() => {
             }
         }
     }
-    
+
     // 处理 refCreateSave 相关字段
     if (schemaShape.refCreateSaveBox && schemaShape.refCreateSavePath) {
-        const boxDescription = schemaShape.refCreateSaveBox.description
-        const pathDescription = schemaShape.refCreateSavePath.description
-        const boxUiDesc = uiDescriptionRegistry.get(boxDescription)
-        const pathUiDesc = uiDescriptionRegistry.get(pathDescription)
+        const boxUiDesc = schemaShape.refCreateSaveBox.meta
+        const pathUiDesc = schemaShape.refCreateSavePath.meta
         if (boxUiDesc && pathUiDesc) {
             items['refCreateSave'] = {
                 label: pathUiDesc.label,
@@ -184,7 +145,7 @@ const compositeItems = computed(() => {
             }
         }
     }
-    
+
     return items
 })
 
@@ -194,7 +155,7 @@ const getNumberConstraints = (key: string) => {
     if (zodType instanceof ZodNumber) {
         const checks = zodType._def.checks || []
         const constraints: { min: number; max: number } = { min: 0, max: 100 }
-        
+
         checks.forEach((check: any) => {
             if (check.kind === 'min') {
                 constraints.min = check.value
@@ -202,7 +163,7 @@ const getNumberConstraints = (key: string) => {
                 constraints.max = check.value
             }
         })
-        
+
         return constraints
     }
     return { min: 0, max: 100 }
@@ -250,20 +211,12 @@ const handleConfigChange = () => {
 
 // 初始化配置数据
 const initializeConfig = async () => {
-    console.log(props.formDescriptionId)
-    if (props.formDescriptionId) {
-        // 从全局注册表中获取表单描述
-        const registry = uiDescriptionRegistry.formRegistry
-        if (registry && registry.has(props.formDescriptionId)) {
-            formDescription.value = registry.get(props.formDescriptionId)
-            console.log(formDescription.value)
-            if (formDescription.value?.initData) {
-                const data = await formDescription.value.initData()
-                            console.log(data)
-
-                configData.value = { ...data }
-                
-            }
+    const meta = props.schema.meta()
+    if (meta) {
+        formDescription.value = meta
+        if (formDescription.value?.initData) {
+            const data = await formDescription.value.initData()
+            configData.value = { ...data }
         }
     }
 }
@@ -276,25 +229,23 @@ watch(configData, (newData) => {
             uiDesc.model.value = newData[key]
         }
     })
-    
+
     Object.entries(numberItems.value).forEach(([key, uiDesc]) => {
         if (uiDesc.model) {
             uiDesc.model.value = newData[key]
         }
     })
-    
+
     Object.entries(stringItems.value).forEach(([key, uiDesc]) => {
         if (uiDesc.model) {
             uiDesc.model.value = newData[key]
         }
     })
-    
+
     Object.entries(compositeItems.value).forEach(([_, uiDesc]) => {
         const schemaShape = props.schema.shape
-        const boxDescription = schemaShape[uiDesc.selectKey].description
-        const pathDescription = schemaShape[uiDesc.inputKey].description
-        const boxUiDesc = uiDescriptionRegistry.get(boxDescription)
-        const pathUiDesc = uiDescriptionRegistry.get(pathDescription)
+        const boxUiDesc = (schemaShape[uiDesc.selectKey] as any)._def.meta
+        const pathUiDesc = (schemaShape[uiDesc.inputKey] as any)._def.meta
         if (boxUiDesc?.model) {
             boxUiDesc.model.value = newData[uiDesc.selectKey]
         }

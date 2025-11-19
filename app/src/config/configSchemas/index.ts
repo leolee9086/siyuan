@@ -2,7 +2,10 @@ import { z } from 'zod'
 import { schema as editorConfigSchema } from './editor';
 import { editorKeyMapSchema } from './keymap.editor';
 import { generalKeymapSchema } from './keyMap.general';
+import {schema as systemConfigSchema} from './system'
 import { uiLayoutSchema } from './uiLayout';
+import { schema as syncConfigSchema} from './sync';
+import { schema as searchConfigSchema } from './search';
 const configSchema = z.object({
     accessAuthCode: z.enum(["", "*******"]).optional().default(""),
     account: z.object({
@@ -195,41 +198,7 @@ const configSchema = z.object({
         indexRetentionDays: z.number(),
         retentionIndexesDaily: z.number()
     }),
-    search: z.object({
-        alias: z.boolean(),
-        audioBlock: z.boolean(),
-        backlinkMentionAlias: z.boolean(),
-        backlinkMentionAnchor: z.boolean(),
-        backlinkMentionDoc: z.boolean(),
-        backlinkMentionKeywordsLimit: z.number(),
-        backlinkMentionName: z.boolean(),
-        blockquote: z.boolean(),
-        caseSensitive: z.boolean(),
-        codeBlock: z.boolean(),
-        databaseBlock: z.boolean(),
-        document: z.boolean(),
-        embedBlock: z.boolean(),
-        heading: z.boolean(),
-        htmlBlock: z.boolean(),
-        iframeBlock: z.boolean(),
-        ial: z.boolean(),
-        indexAssetPath: z.boolean(),
-        limit: z.number(),
-        list: z.boolean(),
-        listItem: z.boolean(),
-        mathBlock: z.boolean(),
-        memo: z.boolean(),
-        name: z.boolean(),
-        paragraph: z.boolean(),
-        superBlock: z.boolean(),
-        table: z.boolean(),
-        videoBlock: z.boolean(),
-        virtualRefAlias: z.boolean(),
-        virtualRefAnchor: z.boolean(),
-        virtualRefDoc: z.boolean(),
-        virtualRefName: z.boolean(),
-        widgetBlock: z.boolean()
-    }),
+    search: searchConfigSchema,
     showChangelog: z.boolean(),
     snippet: z.object({
         enabledCSS: z.boolean(),
@@ -245,66 +214,8 @@ const configSchema = z.object({
         dataSize: z.number(),
         treeCount: z.number()
     }),
-    sync: z.object({
-        cloudName: z.string(),
-        enabled: z.boolean(),
-        generateConflictDoc: z.boolean(),
-        mode: z.number(),
-        interval: z.number(),
-        perception: z.boolean(),
-        provider: z.number(),
-        s3: z.object({
-            accessKey: z.string(),
-            bucket: z.string(),
-            endpoint: z.string(),
-            pathStyle: z.boolean(),
-            region: z.string(),
-            secretKey: z.string(),
-            skipTlsVerify: z.boolean(),
-            timeout: z.number(),
-            concurrentReqs: z.number()
-        }),
-        stat: z.string(),
-        synced: z.number(),
-        webdav: z.object({
-            endpoint: z.string(),
-            password: z.string(),
-            skipTlsVerify: z.boolean(),
-            timeout: z.number(),
-            concurrentReqs: z.number(),
-            username: z.string()
-        }),
-        local: z.object({
-            endpoint: z.string(),
-            timeout: z.number(),
-            concurrentReqs: z.number()
-        })
-    }),
-    system: z.object({
-        appDir: z.string(),
-        autoLaunch2: z.number(),
-        confDir: z.string(),
-        container: z.enum(["docker", "android", "ios", "harmony", "std"]),
-        dataDir: z.string(),
-        downloadInstallPkg: z.boolean(),
-        homeDir: z.string(),
-        id: z.string(),
-        isInsider: z.boolean(),
-        isMicrosoftStore: z.boolean(),
-        kernelVersion: z.string(),
-        lockScreenMode: z.number(),
-        name: z.string(),
-        networkProxy: z.object({
-            host: z.string(),
-            port: z.string(),
-            scheme: z.enum(["", "http", "https", "socks5"])
-        }),
-        networkServe: z.boolean(),
-        os: z.enum(["android", "darwin", "ios", "linux", "windows"]),
-        osPlatform: z.string(),
-        workspaceDir: z.string(),
-        disabledFeatures: z.array(z.string())
-    }),
+    sync: syncConfigSchema,
+    system: systemConfigSchema,
     tag: z.object({
         sort: z.number()
     }),

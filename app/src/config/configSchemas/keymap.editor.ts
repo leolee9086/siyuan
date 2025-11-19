@@ -397,7 +397,7 @@ const schema = z.object({
     })
 })
 export {schema as editorKeyMapSchema}
-const parseAsConfig = (rawConf: {}): Config.IConf['keymap']['editor'] => {
+export const parseAsConfig = (rawConf: {}): Config.IConf['keymap']['editor'] => {
     const result = schema.safeParse(rawConf);
 
     if (!result.success) {

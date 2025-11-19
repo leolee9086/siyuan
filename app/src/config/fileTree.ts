@@ -199,8 +199,8 @@ document.addEventListener(
                     const app = createApp(fileTreeConfigPanel)
                     if (tab) {
                         app.mount(tab.panelElement)
-                       // tab.panelElement.innerHTML = fileTree.genHTML()
-                       // fileTree.bindEvent(tab.panelElement)
+                        // tab.panelElement.innerHTML = fileTree.genHTML()
+                        // fileTree.bindEvent(tab.panelElement)
                     }
                 }
             }
