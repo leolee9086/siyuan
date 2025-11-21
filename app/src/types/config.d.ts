@@ -171,7 +171,7 @@ declare namespace Config {
     /**
      * The model name called by the API
      */
-    export type TOpenAIAPIModel = "gpt-4" | "gpt-4-32k" | "gpt-3.5-turbo" | "gpt-3.5-turbo-16k";
+    export type TOpenAIAPIModel = "gpt-4" | "gpt-4-32k" | "gpt-3.5-turbo" | "gpt-3.5-turbo-16k" | string;
 
     /**
      * API Provider
