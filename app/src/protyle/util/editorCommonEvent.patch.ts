@@ -1,5 +1,5 @@
-throw new Error("代码逻辑已经迁移到editorCommonEvent.patch.ts文件");
 import { focusBlock, focusByRange, getRangeByPoint } from "./selection";
+
 import {
     hasClosestBlock,
     hasClosestByAttribute,
@@ -55,7 +55,7 @@ const moveTo = async (protyle: IProtyle, sourceElements: Element[], targetElemen
             return true;
         }
     });
-    let newListElement: Element;
+    let newListElement: Element | undefined;
     let newListId: string = '';
     const orderListElements: { [key: string]: Element } = {};
     for (let index = sourceElements.length - 1; index >= 0; index--) {
@@ -144,6 +144,9 @@ const moveTo = async (protyle: IProtyle, sourceElements: Element[], targetElemen
                 e.setAttribute("updated", updated);
             });
             if (newListId) {
+                if (!newListElement) {
+                    throw ('新列表元素不存在');
+                }
                 newListElement.insertAdjacentElement("afterbegin", copyElement);
                 doOperations.push({
                     action: "insert",
@@ -153,12 +156,20 @@ const moveTo = async (protyle: IProtyle, sourceElements: Element[], targetElemen
                 });
             } else {
                 tempTargetElement.insertAdjacentElement(position, copyElement);
+                // 不能使用常量，移动后会被修改
+                let previousID:string|undefined
+                if(position === "afterbegin"){
+                    previousID = undefined;
+                }else{
+                    previousID = (position === "afterend" ? targetId : copyElement.previousElementSibling?.getAttribute("data-node-id"))|| undefined;
+                }
+                
                 doOperations.push({
                     action: "insert",
                     id: copyNewId,
                     data: copyElement.outerHTML,
-                    previousID: position === "afterbegin" ? null : (position === "afterend" ? targetId : copyElement.previousElementSibling?.getAttribute("data-node-id")), // 不能使用常量，移动后会被修改
-                    parentID: position === "afterbegin" ? targetId : (copyElement.parentElement?.getAttribute("data-node-id") || protyle.block.parentID || protyle.block.rootID),
+                    previousID,
+                    parentID: position === "afterbegin" ? targetId||undefined : (copyElement.parentElement?.getAttribute("data-node-id") || protyle.block.parentID || protyle.block.rootID),
                 });
                 newSourceElements.push(copyElement);
             }

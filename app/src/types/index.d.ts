@@ -498,7 +498,7 @@ interface ISiyuan {
             desc: string
         }[]
     },
-    dragElement?: HTMLElement,
+    dragElement?: HTMLElement|undefined,
     currentDragOverTabHeadersElement?: HTMLElement
     layout?: {
         layout?: import("../layout").Layout,
