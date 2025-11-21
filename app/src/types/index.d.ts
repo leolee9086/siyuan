@@ -216,6 +216,7 @@ interface Window {
             changeStatusBar: { postMessage: (url: string) => void }
             setClipboard: { postMessage: (url: string) => void }
             purchase: { postMessage: (url: string) => void }
+            print: { postMessage: (html: string) => void }
         }
     };
     htmlToImage: {
@@ -236,7 +237,7 @@ interface Window {
         readHTMLClipboard(): string
         getBlockURL(): string
         hideKeyboard(): void
-        print(html: string): void
+        print(title: string, html: string): void
         getScreenWidthPx(): number
     };
     JSHarmony: {
@@ -248,7 +249,7 @@ interface Window {
         readClipboard(): string
         readHTMLClipboard(): string
         returnDesktop(): void
-        print(html: string): void
+        print(title: string, html: string): void
         getScreenWidthPx(): number
     };
 

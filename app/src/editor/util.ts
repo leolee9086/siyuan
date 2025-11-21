@@ -252,10 +252,405 @@ export const openFile = async (options: IOpenFileOptions) => {
 };
 //之后的内容已经拆分
 // 没有初始化的页签无法检测到
+const getUnInitTab = (options: IOpenFileOptions) => {
+    return getAllTabs().find(item => {
+        const initData = item.headElement?.getAttribute("data-initdata");
+        if (initData) {
+            const initObj = JSON.parse(initData);
+            if (initObj.instance === "Editor" &&
+                (initObj.rootId === options.rootID || initObj.blockId === options.rootID)) {
+                initObj.blockId = options.id;
+                initObj.mode = options.mode;
+                if (options.zoomIn) {
+                    initObj.action = [Constants.CB_GET_ALL, Constants.CB_GET_FOCUS];
+                } else {
+                    initObj.action = options.action;
+                }
+                item.headElement.setAttribute("data-initdata", JSON.stringify(initObj));
+                item.parent.switchTab(item.headElement);
+                return true;
+            } else if (initObj.instance === "Custom" && options.custom && objEquals(initObj.customModelData, options.custom.data)) {
+                item.parent.switchTab(item.headElement);
+                return true;
+            }
+        }
+    });
+};
 
+const switchEditor = (editor: Editor, options: IOpenFileOptions, allModels: IModels) => {
+    if (options.keepCursor) {
+        editor.parent.headElement.setAttribute("keep-cursor", options.id);
+        return true;
+    }
+    editor.parent.parent.switchTab(editor.parent.headElement);
+    editor.parent.parent.showHeading();
+    if (options.mode !== "preview" && !editor.editor.protyle.preview.element.classList.contains("fn__none")) {
+        // TODO https://github.com/siyuan-note/siyuan/issues/3059
+        return true;
+    }
+    if (options.zoomIn) {
+        zoomOut({protyle: editor.editor.protyle, id: options.id});
+        return true;
+    }
+    let nodeElement: Element;
+    Array.from(editor.editor.protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${options.id}"]`)).find(item => {
+        if (!isInEmbedBlock(item)) {
+            nodeElement = item;
+            return true;
+        }
+    });
+    if ((!nodeElement || nodeElement?.clientHeight === 0) && options.id !== options.rootID) {
+        fetchPost("/api/filetree/getDoc", {
+            id: options.id,
+            mode: (options.action && options.action.includes(Constants.CB_GET_CONTEXT)) ? 3 : 0,
+            size: window.siyuan.config.editor.dynamicLoadBlocks,
+        }, getResponse => {
+            onGet({data: getResponse, protyle: editor.editor.protyle, action: options.action});
+            // 大纲点击折叠标题下的内容时，需更新反链面板
+            updateBacklinkGraph(allModels, editor.editor.protyle);
+        });
+    } else {
+        // 点击大纲产生滚动时会动态加载内容，最终导致定位不准确
+        preventScroll(editor.editor.protyle);
+        editor.editor.protyle.observerLoad?.disconnect();
+        if (options.action?.includes(Constants.CB_GET_HL)) {
+            highlightById(editor.editor.protyle, options.id, "start");
+        } else if (options.action?.includes(Constants.CB_GET_FOCUS)) {
+            if (nodeElement) {
+                const isFromOutline = options.action?.includes(Constants.CB_GET_OUTLINE);
+                const newRange = focusBlock(nodeElement, undefined, !isFromOutline);
+                if (newRange) {
+                    editor.editor.protyle.toolbar.range = newRange;
+                }
+                scrollCenter(editor.editor.protyle, (editor.editor.protyle.disabled || isFromOutline) ? nodeElement : null, isFromOutline ? "start" : "nearest");
+                editor.editor.protyle.observerLoad = new ResizeObserver(() => {
+                    if (document.contains(nodeElement)) {
+                        scrollCenter(editor.editor.protyle);
+                    }
+                });
+                setTimeout(() => {
+                    editor.editor.protyle.observerLoad.disconnect();
+                }, 1000 * 3);
+                editor.editor.protyle.observerLoad.observe(editor.editor.protyle.wysiwyg.element);
+            } else if (editor.editor.protyle.block.rootID === options.id) {
+                // 由于 https://github.com/siyuan-note/siyuan/issues/5420，移除定位
+            } else if (editor.editor.protyle.toolbar.range) {
+                nodeElement = hasClosestBlock(editor.editor.protyle.toolbar.range.startContainer) as Element;
+                focusByRange(editor.editor.protyle.toolbar.range);
+                scrollCenter(editor.editor.protyle);
+            }
+        }
+        pushBack(editor.editor.protyle, editor.editor.protyle.toolbar.range);
+    }
+    if (options.mode) {
+        setEditMode(editor.editor.protyle, options.mode);
+    }
+};
 
+const newTab = (options: IOpenFileOptions) => {
+    let tab: Tab;
+    if (options.assetPath) {
+        const suffix = pathPosix().extname(options.assetPath).split("?")[0];
+        if (Constants.SIYUAN_ASSETS_EXTS.includes(suffix)) {
+            let icon = "iconPDF";
+            if (Constants.SIYUAN_ASSETS_IMAGE.includes(suffix)) {
+                icon = "iconImage";
+            } else if (Constants.SIYUAN_ASSETS_AUDIO.includes(suffix)) {
+                icon = "iconRecord";
+            } else if (Constants.SIYUAN_ASSETS_VIDEO.includes(suffix)) {
+                icon = "iconVideo";
+            }
+            tab = new Tab({
+                icon,
+                title: getDisplayName(options.assetPath),
+                callback(tab) {
+                    tab.addModel(new Asset({
+                        app: options.app,
+                        tab,
+                        path: options.assetPath,
+                        page: options.page,
+                    }));
+                    setPanelFocus(tab.panelElement.parentElement.parentElement);
+                }
+            });
+        }
+    } else if (options.custom) {
+        tab = new Tab({
+            icon: options.custom.icon,
+            title: options.custom.title,
+            callback(tab) {
+                if (options.custom.id) {
+                    if (options.custom.id === "siyuan-card") {
+                        tab.addModel(newCardModel({
+                            app: options.app,
+                            tab,
+                            data: options.custom.data
+                        }));
+                    } else {
+                        options.app.plugins.find(p => {
+                            if (p.models[options.custom.id]) {
+                                tab.addModel(p.models[options.custom.id]({
+                                    tab,
+                                    data: options.custom.data
+                                }));
+                                return true;
+                            }
+                        });
+                    }
+                } else {
+                    // plugin 0.8.3 历史兼容
+                    console.warn("0.8.3 将移除 custom.fn 参数，请参照 https://github.com/siyuan-note/plugin-sample/blob/91a716358941791b4269241f21db25fd22ae5ff5/src/index.ts 将其修改为 custom.id");
+                    tab.addModel(options.custom.fn({
+                        tab,
+                        data: options.custom.data
+                    }));
+                }
+                setPanelFocus(tab.panelElement.parentElement.parentElement);
+            }
+        });
+    } else if (options.searchData) {
+        tab = new Tab({
+            icon: "iconSearch",
+            title: window.siyuan.languages.search,
+            callback(tab) {
+                tab.addModel(new Search({
+                    app: options.app,
+                    tab,
+                    config: options.searchData
+                }));
+                setPanelFocus(tab.panelElement.parentElement.parentElement);
+            }
+        });
+    } else {
+        tab = new Tab({
+            title: getDisplayName(options.fileName, true, true),
+            docIcon: options.rootIcon,
+            callback(tab) {
+                let editor;
+                if (options.zoomIn) {
+                    editor = new Editor({
+                        app: options.app,
+                        tab,
+                        blockId: options.id,
+                        rootId: options.rootID,
+                        action: [Constants.CB_GET_ALL, Constants.CB_GET_FOCUS],
+                    });
+                } else {
+                    editor = new Editor({
+                        app: options.app,
+                        tab,
+                        blockId: options.id,
+                        rootId: options.rootID,
+                        mode: options.mode,
+                        action: options.action,
+                    });
+                }
+                tab.addModel(editor);
+            }
+        });
+    }
+    return tab;
+};
 
+export const updatePanelByEditor = (options: {
+    protyle?: IProtyle,
+    focus: boolean,
+    pushBackStack: boolean,
+    reload: boolean,
+    resize: boolean
+}) => {
+    if (options.protyle && options.protyle.path) {
+        // https://ld246.com/article/1637636106054/comment/1641485541929#comments
+        if (options.protyle.element.classList.contains("fn__none") ||
+            (!hasClosestByClassName(options.protyle.element, "layout__wnd--active") &&
+                document.querySelector(".layout__wnd--active")  // https://github.com/siyuan-note/siyuan/issues/4414
+            )
+        ) {
+            return;
+        }
+        if (options.resize) {
+            resize(options.protyle);
+        }
+        if (options.focus) {
+            if (options.protyle.toolbar.range) {
+                focusByRange(options.protyle.toolbar.range);
+                countSelectWord(options.protyle.toolbar.range, options.protyle.block.rootID);
+                if (options.pushBackStack && options.protyle.preview.element.classList.contains("fn__none")) {
+                    pushBack(options.protyle, options.protyle.toolbar.range);
+                }
+            } else {
+                focusBlock(options.protyle.wysiwyg.element.firstElementChild);
+                if (options.pushBackStack && options.protyle.preview.element.classList.contains("fn__none")) {
+                    pushBack(options.protyle, undefined, options.protyle.wysiwyg.element.firstElementChild);
+                }
+                countBlockWord([], options.protyle.block.rootID);
+            }
+        }
+        if (window.siyuan.config.fileTree.alwaysSelectOpenedFile && options.protyle) {
+            const fileModel = getDockByType("file")?.data.file;
+            if (fileModel instanceof Files) {
+                const target = fileModel.element.querySelector(`li[data-path="${options.protyle.path}"]`);
+                if (!target || (target && !target.classList.contains("b3-list-item--focus"))) {
+                    fileModel.selectItem(options.protyle.notebookId, options.protyle.path);
+                }
+            }
+        }
+        options.protyle.app.plugins.forEach(item => {
+            item.eventBus.emit("switch-protyle", {protyle: options.protyle});
+        });
+    }
+    // 切换页签或关闭所有页签时，需更新对应的面板
+    const models = getAllModels();
+    updateOutline(models, options.protyle, options.reload);
+    updateBacklinkGraph(models, options.protyle);
+};
 
+export const isCurrentEditor = (blockId: string) => {
+    const activeElement = document.querySelector(".layout__wnd--active > .fn__flex > .layout-tab-bar > .item--focus");
+    if (activeElement) {
+        const tab = getInstanceById(activeElement.getAttribute("data-id"));
+        if (tab instanceof Tab && tab.model instanceof Editor) {
+            if (tab.model.editor.protyle.block.rootID === blockId ||
+                tab.model.editor.protyle.block.parentID === blockId ||  // updateBacklinkGraph 时会传入 parentID
+                tab.model.editor.protyle.block.id === blockId) {
+                return true;
+            }
+        }
+    }
+    return false;
+};
 
+export const updateOutline = (models: IModels, protyle: IProtyle, reload = false) => {
+    models.outline.find(item => {
+        if (reload ||
+            (item.type === "pin" &&
+                (!protyle || item.blockId !== protyle.block?.rootID ||
+                    item.isPreview === protyle.preview.element.classList.contains("fn__none"))
+            )
+        ) {
+            let blockId = "";
+            if (protyle && protyle.block) {
+                blockId = protyle.block.rootID;
+            }
+            if (blockId === item.blockId && !reload && item.isPreview !== protyle.preview.element.classList.contains("fn__none")) {
+                return;
+            }
 
+            fetchPost("/api/outline/getDocOutline", {
+                id: blockId,
+                preview: !protyle.preview.element.classList.contains("fn__none")
+            }, response => {
+                if (!reload && (!isCurrentEditor(blockId) || item.blockId === blockId) &&
+                    item.isPreview !== protyle.preview.element.classList.contains("fn__none")) {
+                    return;
+                }
+                item.isPreview = !protyle.preview.element.classList.contains("fn__none");
+                item.update(response, blockId);
+                if (protyle) {
+                    item.updateDocTitle(protyle.background.ial, response.data?.length || 0);
+                    if (getSelection().rangeCount > 0) {
+                        const startContainer = getSelection().getRangeAt(0).startContainer;
+                        if (protyle.wysiwyg.element.contains(startContainer)) {
+                            const currentElement = hasClosestByAttribute(startContainer, "data-node-id", null);
+                            if (currentElement) {
+                                item.setCurrent(currentElement);
+                            }
+                        }
+                    }
+                } else {
+                    item.updateDocTitle();
+                }
+            });
+        }
+    });
+};
 
+export const updateBacklinkGraph = (models: IModels, protyle: IProtyle) => {
+    // https://ld246.com/article/1637636106054/comment/1641485541929#comments
+    if (protyle && protyle.element.classList.contains("fn__none") ||
+        (protyle && !hasClosestByClassName(protyle.element, "layout__wnd--active") &&
+            document.querySelector(".layout__wnd--active")  // https://github.com/siyuan-note/siyuan/issues/4414
+        )
+    ) {
+        return;
+    }
+    models.graph.forEach(item => {
+        if (item.type !== "global" && (!protyle || item.blockId !== protyle.block?.id)) {
+            if (item.type === "local" && item.rootId !== protyle?.block?.rootID) {
+                return;
+            }
+            let blockId = "";
+            if (protyle && protyle.block) {
+                blockId = protyle.block.showAll ? protyle.block.id : protyle.block.parentID;
+            }
+            if (blockId === item.blockId) {
+                return;
+            }
+            item.searchGraph(true, blockId);
+        }
+    });
+    models.backlink.forEach(item => {
+        if (item.type === "local" && item.rootId !== protyle?.block?.rootID) {
+            return;
+        }
+        let blockId = "";
+        if (protyle && protyle.block) {
+            blockId = protyle.block.showAll ? protyle.block.id : protyle.block.parentID;
+        }
+        if (blockId === item.blockId) {
+            return;
+        }
+        item.element.querySelector('.block__icon[data-type="refresh"] svg').classList.add("fn__rotate");
+        fetchPost("/api/ref/getBacklink2", {
+            sort: item.status[blockId] ? item.status[blockId].sort.toString() : window.siyuan.config.editor.backlinkSort.toString(),
+            mSort: item.status[blockId] ? item.status[blockId].mSort.toString() : window.siyuan.config.editor.backmentionSort.toString(),
+            id: blockId || "",
+            k: item.inputsElement[0].value,
+            mk: item.inputsElement[1].value,
+        }, response => {
+            if (!isCurrentEditor(blockId) || item.blockId === blockId) {
+                item.element.querySelector('.block__icon[data-type="refresh"] svg').classList.remove("fn__rotate");
+                return;
+            }
+            item.saveStatus();
+            item.blockId = blockId;
+            item.render(response.data);
+        });
+    });
+};
+
+export const openBy = (url: string, type: "folder" | "app") => {
+    /// #if !BROWSER
+    if (url.startsWith("assets/")) {
+        fetchPost("/api/asset/resolveAssetPath", {path: url.replace(/\.pdf\?page=\d{1,}$/, ".pdf")}, (response) => {
+            if (type === "app") {
+                useShell("openPath", response.data);
+            } else if (type === "folder") {
+                useShell("showItemInFolder", response.data);
+            }
+        });
+        return;
+    }
+    let address = "";
+    if ("windows" === window.siyuan.config.system.os) {
+        // `file://` 协议兼容 Window 平台使用 `/` 作为目录分割线 https://github.com/siyuan-note/siyuan/issues/5681
+        address = url.replace("file:///", "").replace("file://\\", "").replace("file://", "").replace(/\//g, "\\");
+    } else {
+        address = url.replace("file://", "");
+    }
+
+    // 拖入文件名包含 `)` 、`(` 的文件以 `file://` 插入后链接解析错误 https://github.com/siyuan-note/siyuan/issues/5786
+    address = address.replace(/\\\)/g, ")").replace(/\\\(/g, "(");
+    if (type === "app") {
+        useShell("openPath", address);
+    } else if (type === "folder") {
+        if ("windows" === window.siyuan.config.system.os) {
+            if (!address.startsWith("\\\\")) { // \\ 开头的路径是 Windows 网络共享路径 https://github.com/siyuan-note/siyuan/issues/5980
+                // Windows 端打开本地文件所在位置失效 https://github.com/siyuan-note/siyuan/issues/5808
+                address = address.replace(/\\\\/g, "\\");
+            }
+        }
+        useShell("showItemInFolder", address);
+    }
+    /// #endif
+};

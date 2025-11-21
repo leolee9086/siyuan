@@ -5,7 +5,7 @@ import {isMobile, isValidAttrName} from "../util/functions";
 import {movePathTo, moveToPath} from "../util/pathName";
 import { MenuItem } from "./Menu.Item";
 import {onExport, saveExport} from "../protyle/export";
-import {isInAndroid, isInHarmony, openByMobile} from "../protyle/util/compatibility";
+import {isInAndroid, isInHarmony, isInIOS, openByMobile} from "../protyle/util/compatibility";
 import {fetchPost, fetchSyncPost} from "../util/fetch";
 import {hideMessage, showMessage} from "../dialog/message";
 import {Dialog} from "../dialog";
@@ -658,7 +658,7 @@ export const exportMd = (id: string) => {
                 id: "exportPDF",
                 label: window.siyuan.languages.print,
                 icon: "iconPDF",
-                ignore: !isInAndroid() && !isInHarmony(),
+                ignore: !isInAndroid() && !isInHarmony() && !isInIOS(),
                 click: () => {
                     const msgId = showMessage(window.siyuan.languages.exporting);
                     const localData = window.siyuan.storage[Constants.LOCAL_EXPORTPDF];
@@ -670,9 +670,11 @@ export const exportMd = (id: string) => {
                         const servePath = window.location.protocol + "//" + window.location.host + "/";
                         const html = await onExport(response, undefined, servePath, {type: "pdf", id});
                         if (isInAndroid()) {
-                            window.JSAndroid.print(html);
+                            window.JSAndroid.print(response.data.name, html);
                         } else if (isInHarmony()) {
-                            window.JSHarmony.print(html);
+                            window.JSHarmony.print(response.data.name, html);
+                        } else if (isInIOS()) {
+                            window.webkit.messageHandlers.print.postMessage(response.data.name + Constants.ZWSP + html);
                         }
 
                         setTimeout(() => {
