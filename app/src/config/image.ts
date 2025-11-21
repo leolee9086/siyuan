@@ -10,9 +10,13 @@ import { getAllModels } from "../layout/getAll";
 import { openBy } from "../editor/utils.openBy";
 import { renderAssetsPreview } from "../asset/renderAssets";
 import { writeText } from "../protyle/util/compatibility";
+/// #if !MOBILE
 import { openFile } from "../editor/util";
+/// #endif
+
 import { Custom } from "../layout/dock/Custom";
 import { Plugin } from "../plugin";
+
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
 
 export const image = {
