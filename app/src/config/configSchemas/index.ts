@@ -6,6 +6,9 @@ import {schema as systemConfigSchema} from './system'
 import { uiLayoutSchema } from './uiLayout';
 import { schema as syncConfigSchema} from './sync';
 import { schema as searchConfigSchema } from './search';
+import {schema as graphConfigSchema} from './graph'
+import {schema as appearanceConfigSchema} from './appearance'
+import {schema as flashcardConfigSchema} from './flashcard'
 const configSchema = z.object({
     accessAuthCode: z.enum(["", "*******"]).optional().default(""),
     account: z.object({
@@ -30,30 +33,7 @@ const configSchema = z.object({
     api: z.object({
         token: z.string()
     }),
-    appearance: z.object({
-        closeButtonBehavior: z.number(),
-        codeBlockThemeDark: z.string(),
-        codeBlockThemeLight: z.string(),
-        darkThemes: z.array(z.string()),
-        hideStatusBar: z.boolean(),
-        icon: z.string(),
-        icons: z.array(z.string()),
-        iconVer: z.string(),
-        lang: z.enum(["en_US", "ar_SA", "de_DE", "es_ES", "fr_FR", "he_IL", "it_IT", "ja_JP", "pl_PL", "pt_BR", "ru_RU", "zh_CN", "zh_CHT"]),
-        lightThemes: z.array(z.string()),
-        mode: z.number(),
-        modeOS: z.boolean(),
-        themeDark: z.string(),
-        themeJS: z.boolean(),
-        themeLight: z.string(),
-        themeVer: z.string(),
-        statusBar: z.object({
-            msgTaskDatabaseIndexCommitDisabled: z.boolean(),
-            msgTaskHistoryDatabaseIndexCommitDisabled: z.boolean(),
-            msgTaskAssetDatabaseIndexCommitDisabled: z.boolean(),
-            msgTaskHistoryGenerateFileDisabled: z.boolean()
-        })
-    }),
+    appearance: appearanceConfigSchema,
     bazaar: z.object({
         petalDisabled: z.boolean(),
         trust: z.boolean()
@@ -97,73 +77,8 @@ const configSchema = z.object({
         largeFileWarningSize: z.number(),
         createDocAtTop: z.boolean()
     }),
-    flashcard: z.object({
-        deck: z.boolean(),
-        heading: z.boolean(),
-        list: z.boolean(),
-        mark: z.boolean(),
-        maximumInterval: z.number(),
-        newCardLimit: z.number(),
-        requestRetention: z.number(),
-        reviewCardLimit: z.number(),
-        reviewMode: z.number(),
-        superBlock: z.boolean(),
-        weights: z.string()
-    }),
-    graph: z.object({
-        global: z.object({
-            d3: z.object({
-                arrow: z.boolean(),
-                centerStrength: z.number(),
-                collideRadius: z.number(),
-                collideStrength: z.number(),
-                lineOpacity: z.number(),
-                linkDistance: z.number(),
-                linkWidth: z.number(),
-                nodeSize: z.number()
-            }),
-            dailyNote: z.boolean(),
-            minRefs: z.number(),
-            type: z.object({
-                blockquote: z.boolean(),
-                code: z.boolean(),
-                heading: z.boolean(),
-                list: z.boolean(),
-                listItem: z.boolean(),
-                math: z.boolean(),
-                paragraph: z.boolean(),
-                super: z.boolean(),
-                table: z.boolean(),
-                tag: z.boolean()
-            })
-        }),
-        local: z.object({
-            d3: z.object({
-                arrow: z.boolean(),
-                centerStrength: z.number(),
-                collideRadius: z.number(),
-                collideStrength: z.number(),
-                lineOpacity: z.number(),
-                linkDistance: z.number(),
-                linkWidth: z.number(),
-                nodeSize: z.number()
-            }),
-            dailyNote: z.boolean(),
-            type: z.object({
-                blockquote: z.boolean(),
-                code: z.boolean(),
-                heading: z.boolean(),
-                list: z.boolean(),
-                listItem: z.boolean(),
-                math: z.boolean(),
-                paragraph: z.boolean(),
-                super: z.boolean(),
-                table: z.boolean(),
-                tag: z.boolean()
-            })
-        }),
-        maxBlocks: z.number()
-    }),
+    flashcard:flashcardConfigSchema,
+    graph: graphConfigSchema,
     keymap: z.object({
         editor: editorKeyMapSchema,
         general: generalKeymapSchema,

@@ -170,9 +170,6 @@ const layoutTabTagSchema = z.object({
     instance: z.literal("Tag")
 });
 
-
-
-
 const layoutTabSchema = z.object({
     active: z.boolean(),
     children: z.array(z.union([
@@ -234,7 +231,7 @@ type IsCompatible = InferredUILayout extends Config.IConf['uiLayout']
     ? true
     : false
     : false;
-
+type check = IsCompatible extends true ? true : never;
 
 // 这个函数会在编译时验证类型兼容性
 function validateTypeCompatibility(): InferredUILayout {
