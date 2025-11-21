@@ -4,12 +4,7 @@ import { z } from 'zod'
 const apiProviderSchema = z.enum(["OpenAI", "Azure"]);
 
 // API 模型类型
-const apiModelSchema = z.enum([
-    "gpt-4",
-    "gpt-4-32k",
-    "gpt-3.5-turbo",
-    "gpt-3.5-turbo-16k"
-]);
+const apiModelSchema = z.string()
 
 // URL 验证函数
 const isValidUrl = (url: string) => {
@@ -54,7 +49,7 @@ const openAIConfigSchema = z.object({
     apiUserAgent: z.string()
         .min(1, "用户代理不能为空")
         .max(200, "用户代理长度不能超过200个字符")
-        .default("Siyuan-AI"),
+        .default("SiYuan/3.4.0 std/windows"),
     apiVersion: z.string()
         .min(1, "API版本不能为空")
         .max(50, "API版本长度不能超过50个字符")
