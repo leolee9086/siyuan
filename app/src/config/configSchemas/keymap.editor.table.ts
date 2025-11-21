@@ -1,58 +1,20 @@
 import z from "zod";
+import { buildKeymapEntrySchema } from "./keymap.utils";
 //键盘映射中的editor部分中的表格设置
 export const schema = z.object({
-    "delete-column": z.object({
-        custom: z.string(),
-        default: z.string()
-    }),
-    "delete-row": z.object({
-        custom: z.string(),
-        default: z.string()
-    }),
-    insertColumnLeft: z.object({
-        custom: z.string(),
-        default: z.string()
-    }),
-    insertColumnRight: z.object({
-        custom: z.string(),
-        default: z.string()
-    }),
-    insertRowAbove: z.object({
-        custom: z.string(),
-        default: z.string()
-    }),
-    insertRowBelow: z.object({
-        custom: z.string(),
-        default: z.string()
-    }),
-    "move-column-left": z.object({
-        custom: z.string(),
-        default: z.string()
-    }),
-    "move-column-right": z.object({
-        custom: z.string(),
-        default: z.string()
-    }),
-    "move-row-down": z.object({
-        custom: z.string(),
-        default: z.string()
-    }),
-    "move-row-up": z.object({
-        custom: z.string(),
-        default: z.string()
-    }),
-    moveToDown: z.object({
-        custom: z.string(),
-        default: z.string()
-    }),
-    moveToLeft: z.object({
-        custom: z.string(),
-        default: z.string()
-    }),
-    moveToRight: z.object({
-        custom: z.string(),
-        default: z.string()
-    }),
+    "delete-column": buildKeymapEntrySchema(),
+    "delete-row": buildKeymapEntrySchema(),
+    insertColumnLeft: buildKeymapEntrySchema(),
+    insertColumnRight: buildKeymapEntrySchema(),
+    insertRowAbove: buildKeymapEntrySchema(),
+    insertRowBelow: buildKeymapEntrySchema(),
+    "move-column-left": buildKeymapEntrySchema(),
+    "move-column-right": buildKeymapEntrySchema(),
+    "move-row-down": buildKeymapEntrySchema(),
+    "move-row-up": buildKeymapEntrySchema(),
+    moveToDown: buildKeymapEntrySchema(),
+    moveToLeft: buildKeymapEntrySchema(),
+    moveToRight: buildKeymapEntrySchema(),
     moveToUp: z.object({
         custom: z.string(),
         default: z.string()

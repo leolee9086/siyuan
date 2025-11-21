@@ -1,214 +1,59 @@
 import z from "zod";
+import { buildKeymapEntrySchema } from "./keymap.utils";
 //键盘映射中的editor部分中的一般设置
 export const schema =z.object({
-        ai: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        alignCenter: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        alignLeft: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        alignRight: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        attr: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        backlinks: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        collapse: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        copyBlockEmbed: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        copyBlockRef: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        copyHPath: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        copyID: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        copyPlainText: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        copyProtocol: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        copyProtocolInMd: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        copyText: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        duplicate: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        exitFocus: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        expand: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        expandDown: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        expandUp: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        fullscreen: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        graphView: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        hLayout: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        insertAfter: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        insertBefore: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        insertBottom: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        insertRight: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        jumpToParentNext: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        moveToDown: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        moveToUp: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        netAssets2LocalAssets: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        netImg2LocalAsset: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        newContentFile: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        newNameFile: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        newNameSettingFile: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        openBy: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        optimizeTypography: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        outline: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        preview: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        quickMakeCard: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        redo: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        refPopover: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        refresh: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        refTab: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        rename: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        showInFolder: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        spaceRepetition: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        switchReadonly: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        switchAdjust: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        undo: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        vLayout: z.object({
-            custom: z.string(),
-            default: z.string()
-        }),
-        wysiwyg: z.object({
-            custom: z.string(),
-            default: z.string()
-        })
+        ai: buildKeymapEntrySchema(),
+        alignCenter: buildKeymapEntrySchema(),
+        alignLeft: buildKeymapEntrySchema(),
+        alignRight: buildKeymapEntrySchema(),
+        attr: buildKeymapEntrySchema(),
+        backlinks: buildKeymapEntrySchema(),
+        collapse: buildKeymapEntrySchema(),
+        copyBlockEmbed: buildKeymapEntrySchema(),
+        copyBlockRef:buildKeymapEntrySchema(),
+        copyHPath:buildKeymapEntrySchema(),
+        copyID: buildKeymapEntrySchema(),
+        copyPlainText: buildKeymapEntrySchema(),
+        copyProtocol: buildKeymapEntrySchema(),
+        copyProtocolInMd: buildKeymapEntrySchema(),
+        copyText:buildKeymapEntrySchema(),
+        duplicate:buildKeymapEntrySchema(),
+        exitFocus: buildKeymapEntrySchema(),
+        expand: buildKeymapEntrySchema(),
+        expandDown: buildKeymapEntrySchema(),
+        expandUp: buildKeymapEntrySchema(),
+        fullscreen: buildKeymapEntrySchema(),
+        graphView: buildKeymapEntrySchema(),
+        hLayout: buildKeymapEntrySchema(),
+        insertAfter: buildKeymapEntrySchema(),
+        insertBefore: buildKeymapEntrySchema(),
+        insertBottom: buildKeymapEntrySchema(),
+        insertRight: buildKeymapEntrySchema(),
+        jumpToParentNext: buildKeymapEntrySchema(),
+        moveToDown: buildKeymapEntrySchema(),
+        moveToUp: buildKeymapEntrySchema(),
+        netAssets2LocalAssets: buildKeymapEntrySchema(),
+        netImg2LocalAsset: buildKeymapEntrySchema(),
+        newContentFile: buildKeymapEntrySchema(),
+        newNameFile: buildKeymapEntrySchema(),
+        newNameSettingFile: buildKeymapEntrySchema(),
+        openBy: buildKeymapEntrySchema(),
+        optimizeTypography: buildKeymapEntrySchema(),
+        outline: buildKeymapEntrySchema(),
+        preview: buildKeymapEntrySchema(),
+        quickMakeCard: buildKeymapEntrySchema(),
+        redo: buildKeymapEntrySchema(),
+        refPopover: buildKeymapEntrySchema(),
+        refresh: buildKeymapEntrySchema(),
+        refTab: buildKeymapEntrySchema(),
+        rename: buildKeymapEntrySchema(),
+        showInFolder: buildKeymapEntrySchema(),
+        spaceRepetition: buildKeymapEntrySchema(),
+        switchReadonly: buildKeymapEntrySchema(),
+        switchAdjust: buildKeymapEntrySchema(),
+        undo: buildKeymapEntrySchema(),
+        vLayout: buildKeymapEntrySchema(),
+        wysiwyg: buildKeymapEntrySchema()
     })
 export {schema as editorKeyMapGeneralSchema}
 export const parseAsConfig = (rawConf: {}): Config.IConf['keymap']['editor']['general'] => {

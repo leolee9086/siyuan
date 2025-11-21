@@ -1,34 +1,15 @@
 import z from "zod";
+import { buildKeymapEntrySchema } from "./keymap.utils";
+
 //键盘映射中的editor部分中的标题设置
 export const schema = z.object({
-    heading1: z.object({
-        custom: z.string(),
-        default: z.string()
-    }),
-    heading2: z.object({
-        custom: z.string(),
-        default: z.string()
-    }),
-    heading3: z.object({
-        custom: z.string(),
-        default: z.string()
-    }),
-    heading4: z.object({
-        custom: z.string(),
-        default: z.string()
-    }),
-    heading5: z.object({
-        custom: z.string(),
-        default: z.string()
-    }),
-    heading6: z.object({
-        custom: z.string(),
-        default: z.string()
-    }),
-    paragraph: z.object({
-        custom: z.string(),
-        default: z.string()
-    })
+    heading1: buildKeymapEntrySchema(),
+    heading2: buildKeymapEntrySchema(),
+    heading3: buildKeymapEntrySchema(),
+    heading4: buildKeymapEntrySchema(),
+    heading5: buildKeymapEntrySchema(),
+    heading6: buildKeymapEntrySchema(),
+    paragraph: buildKeymapEntrySchema()
 })
 export {schema as editorKeyMapHeadingSchema}
 export const parseAsConfig = (rawConf: {}): Config.IConf['keymap']['editor']['heading'] => {
