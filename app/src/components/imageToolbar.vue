@@ -29,7 +29,7 @@ interface ToolbarButton {
   type: 'button';
   icon: string;
   title?: string;
-  action: string;
+  action: () => void;
   condition?: () => boolean;
   activeCondition?: () => boolean;
 }
@@ -54,7 +54,7 @@ interface Props {
 
 // 定义组件事件
 interface Emits {
-  (e: 'action', action: string): void;
+  (e: 'action', detail: any): void;
 }
 
 const props = defineProps<Props>();
@@ -72,7 +72,9 @@ const isButtonActive = (item: ToolbarButton): boolean => {
 
 // 处理按钮点击
 const handleButtonClick = (item: ToolbarButton) => {
-  emit('action', item.action);
+  item.action && item.action()
+  emit('action', item);
+ 
 };
 </script>
 

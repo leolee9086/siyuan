@@ -1,7 +1,7 @@
 <template>
   <div class="asset__viewer" @wheel="handleWheel" @mousedown="handleMouseDown" @mousemove="handleMouseMove"
     @mouseup="handleMouseUp" @mouseleave="handleMouseUp">
-    <ImageToolbar :scale="scale" :items="toolbarItems" @action="handleToolbarAction" />
+    <ImageToolbar :scale="scale" :items="toolbarItems" />
     <!-- 去雾参数控制面板 -->
     <div v-if="showDehazePanel" class="asset__dehaze-panel" @mousedown.stop @mousemove.stop>
       <div class="asset__panel-header">
@@ -22,7 +22,7 @@
 
         <ParameterControl label="窗口大小" v-model="params.windowSize" :min="1" :max="31" :step="2"
           :hint="`暗通道计算的窗口大小，影响去雾范围`" :formatValue="(value: number) => `${value}x${value}`" />
-<div class="fn__hr"></div>
+        <div class="fn__hr"></div>
         <!-- 自适应模式 -->
         <div class="asset__form-item">
           <label>
@@ -68,7 +68,8 @@
     <div class="asset__image-wrapper"
       :style="{ transform: `translate(${translateX}px, ${translateY}px) scale(${scale})`, 'z-index': 0 }"
       ref="imageWrapper">
-      <img :src="currentImageSrc" @load="$onImageLoad" ref="imageElement" draggable="false" />
+      <img :src="currentImageSrc" @load="onImageLoadWithCtx(imageLoadedCtx, centerImage)" ref="imageElement"
+        draggable="false" />
     </div>
   </div>
 </template>
@@ -86,6 +87,8 @@ import { useImageProcessing } from '../composables/useImageProcessing'
 import ParameterControl from '../ParameterControl.vue'
 // 导入工具栏组件
 import ImageToolbar, { type ToolbarItem } from '../imageToolbar.vue'
+import { onImageLoadWithCtx } from './imageEditor.onImageLoad';
+import { centerImageWithCtx, resetZoomWithCtx, setScaleWithCtx, zoomInWithCtx, zoomOutWithCtx } from './imageEditor.zoom';
 
 // 定义组件属性
 interface Props {
@@ -158,7 +161,29 @@ const toolbarItems = computed<ToolbarItem[]>(() => [
     id: 'zoom-out',
     type: 'button',
     icon: 'iconMin',
-    action: 'zoom-out'
+    action: () => {
+      zoomOutWithCtx({
+        scale,
+        imageWrapper,
+        translateX,
+        translateY,
+        options: {
+          zoomStep: ZOOM_STEP,
+          minScale: MIN_SCALE,
+          maxScale: MAX_SCALE
+        },
+        setScale: (newScale: number) => {
+          setScaleWithCtx({
+            scale,
+            translateX,
+            translateY,
+            imageWrapper,
+          }, newScale);
+
+        }
+
+      });
+    }
   },
   {
     id: 'zoom-level',
@@ -168,7 +193,28 @@ const toolbarItems = computed<ToolbarItem[]>(() => [
     id: 'zoom-in',
     type: 'button',
     icon: 'iconAdd',
-    action: 'zoom-in'
+    action: () => {
+      zoomInWithCtx({
+        scale,
+        imageWrapper,
+        translateX,
+        translateY,
+        options: {
+          zoomStep: ZOOM_STEP,
+          minScale: MIN_SCALE,
+          maxScale: MAX_SCALE
+        },
+        setScale: (newScale: number) => {
+          setScaleWithCtx({
+            scale,
+            translateX,
+            translateY,
+            imageWrapper,
+          }, newScale);
+
+        }
+      });
+    }
   },
   {
     id: 'spacer-1',
@@ -178,7 +224,24 @@ const toolbarItems = computed<ToolbarItem[]>(() => [
     id: 'reset-zoom',
     type: 'button',
     icon: 'iconRefresh',
-    action: 'reset-zoom'
+    action: () => {
+      resetZoomWithCtx({
+        scale,
+        options: {
+          zoomStep: ZOOM_STEP,
+          minScale: MIN_SCALE
+        },
+        setScale: (newScale: number) => {
+          setScaleWithCtx({
+            scale,
+            translateX,
+            translateY,
+            imageWrapper,
+          }, newScale);
+
+        }
+      });
+    }
   },
   {
     id: 'spacer-2',
@@ -189,7 +252,9 @@ const toolbarItems = computed<ToolbarItem[]>(() => [
     type: 'button',
     icon: 'iconEdit',
     title: '去雾处理',
-    action: 'toggle-dehaze-panel',
+    action: () => {
+      toggleDehazePanel();
+    },
     activeCondition: () => showDehazePanel.value
   },
   {
@@ -197,7 +262,9 @@ const toolbarItems = computed<ToolbarItem[]>(() => [
     type: 'button',
     icon: 'iconCompare',
     title: '切换原图/去雾图',
-    action: 'toggle-original-image',
+    action: () => {
+      toggleOriginalImage();
+    },
     condition: () => hasDehazedImage.value,
     activeCondition: () => !showOriginalImage.value
   }
@@ -220,97 +287,77 @@ const currentImageSrc = computed(() => {
 const ZOOM_STEP = 0.1;
 const MIN_SCALE = 0.1;
 const MAX_SCALE = 5;
-
-// 图片加载完成
-const $onImageLoad = () => {
-  if (imageElement.value) {
-    imageWidth.value = imageElement.value.naturalWidth;
-    imageHeight.value = imageElement.value.naturalHeight;
-
-    // 保存原始图像元素的副本，确保不会被修改
-    if (!originImageElement.value) {
-      originImageElement.value = new Image();
-      originImageElement.value.src = imageElement.value.src;
-      originImageElement.value.onload = () => {
-        // 设置原始图像到图像处理composable
-        setOriginalImage(originImageElement.value!);
-      };
-    } else {
-      // 如果已存在，确保src正确
-      if (originImageElement.value.src !== imageElement.value.src) {
-        originImageElement.value.onload = () => {
-          // 设置原始图像到图像处理composable
-          setOriginalImage(originImageElement.value!);
-        };
-      } else {
-        // 设置原始图像到图像处理composable
-        setOriginalImage(originImageElement.value);
-      }
-    }
-    centerImage();
+const imageLoadedCtx = {
+  imageElement,
+  imageWidth,
+  imageHeight,
+  originImageElement,
+  setOriginalImageFn: () => {
+    setOriginalImage(originImageElement.value!);
   }
-};
+}
 
 // 居中图片
 const centerImage = () => {
-  if (imageWrapper.value && imageWrapper.value.parentElement) {
-    const containerWidth = imageWrapper.value.parentElement.clientWidth;
-    const containerHeight = imageWrapper.value.parentElement.clientHeight;
-
-    // 计算居中位置
-    translateX.value = (containerWidth - imageWidth.value * scale.value) / 2;
-    translateY.value = (containerHeight - imageHeight.value * scale.value) / 2;
+  const ctx = {
+    imageWrapper,
+    scale,
+    translateX,
+    translateY,
+    imageWidth,
+    imageHeight
   }
+  centerImageWithCtx(ctx)
 };
 
-// 放大
-const zoomIn = () => {
-  const newScale = Math.min(scale.value + ZOOM_STEP, MAX_SCALE);
-  setScale(newScale);
-};
-
-// 缩小
-const zoomOut = () => {
-  const newScale = Math.max(scale.value - ZOOM_STEP, MIN_SCALE);
-  setScale(newScale);
-};
-
-// 重置缩放
-const resetZoom = () => {
-  setScale(1);
-};
-
-// 设置缩放并保持中心点
-const setScale = (newScale: number) => {
-  if (imageWrapper.value && imageWrapper.value.parentElement) {
-    const containerWidth = imageWrapper.value.parentElement.clientWidth;
-    const containerHeight = imageWrapper.value.parentElement.clientHeight;
-
-    // 计算当前中心点
-    const centerX = containerWidth / 2;
-    const centerY = containerHeight / 2;
-
-    // 计算缩放前中心点在图片坐标系中的位置
-    const imageCenterX = (centerX - translateX.value) / scale.value;
-    const imageCenterY = (centerY - translateY.value) / scale.value;
-
-    // 更新缩放
-    scale.value = newScale;
-
-    // 计算新的平移量，保持中心点不变
-    translateX.value = centerX - imageCenterX * newScale;
-    translateY.value = centerY - imageCenterY * newScale;
-  }
-};
 
 // 鼠标滚轮缩放
 const handleWheel = (event: WheelEvent) => {
   event.preventDefault();
 
   if (event.deltaY < 0) {
-    zoomIn();
+    zoomInWithCtx({
+      scale,
+      imageWrapper,
+      translateX,
+      translateY,
+      options: {
+        zoomStep: ZOOM_STEP,
+        minScale: MIN_SCALE,
+        maxScale: MAX_SCALE
+      }, setScale: (newScale: number) => {
+        setScaleWithCtx({
+          scale,
+          translateX,
+          translateY,
+          imageWrapper,
+        }, newScale);
+
+      }
+
+    });
   } else {
-    zoomOut();
+    zoomOutWithCtx({
+      scale,
+      imageWrapper,
+      translateX,
+      translateY,
+      options: {
+        zoomStep: ZOOM_STEP,
+        minScale: MIN_SCALE,
+        maxScale: MAX_SCALE
+      },
+      setScale: (newScale: number) => {
+        setScaleWithCtx({
+          scale,
+          translateX,
+          translateY,
+          imageWrapper,
+        }, newScale);
+
+      }
+
+    });
   }
 };
 
@@ -380,26 +427,7 @@ const toggleOriginalImage = () => {
   }
 };
 
-// 处理工具栏操作
-const handleToolbarAction = (action: string) => {
-  switch (action) {
-    case 'zoom-in':
-      zoomIn();
-      break;
-    case 'zoom-out':
-      zoomOut();
-      break;
-    case 'reset-zoom':
-      resetZoom();
-      break;
-    case 'toggle-dehaze-panel':
-      toggleDehazePanel();
-      break;
-    case 'toggle-original-image':
-      toggleOriginalImage();
-      break;
-  }
-};
+
 
 // 创建自动处理函数
 const autoProcessFunction = async () => {
@@ -432,5 +460,5 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss" scoped>
-@import "./imageEditor.scss";
+@use "./imageEditor.scss";
 </style>
