@@ -3,20 +3,21 @@
     <textarea 
       ref="chatTextarea"
       class="b3-text-field fn__block" 
-      :placeholder="languages.aiWriting"
+      :placeholder="siyuanI18n.aiWriting"
       v-model="chatMessage"
       @keydown.enter.exact.prevent="handleConfirm"
     ></textarea>
   </div>
   <div class="b3-dialog__action">
-    <button class="b3-button b3-button--cancel" @click="handleCancel">{{ languages.cancel }}</button>
+    <button class="b3-button b3-button--cancel" @click="handleCancel">{{ siyuanI18n.cancel }}</button>
     <div class="fn__space"></div>
-    <button class="b3-button b3-button--text" @click="handleConfirm">{{ languages.confirm }}</button>
+    <button class="b3-button b3-button--text" @click="handleConfirm">{{ siyuanI18n.confirm }}</button>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from 'vue';
+import { siyuanI18n } from '../../util/siyuanEnvironments/i18n.getI18n';
 
 // 定义组件事件
 interface Emits {
@@ -31,9 +32,6 @@ const chatMessage = ref('');
 
 // 引用DOM元素
 const chatTextarea = ref<HTMLTextAreaElement>();
-
-// 获取语言包
-const languages = window.siyuan.languages;
 
 // 事件处理函数
 const handleCancel = () => {
