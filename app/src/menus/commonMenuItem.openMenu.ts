@@ -1,7 +1,6 @@
 /// #if !BROWSER
 import { shell } from "electron";
 import { openAssetNewWindow } from "../window/openNewWindow";
-
 /// #endif
 import { App } from "..";
 import { Constants } from "../constants";
@@ -56,27 +55,30 @@ const generateExternalLinkMobileMenuItems = (processedSrc: string, showAccelerat
 };
 
 // 本地资源文件基础菜单项生成函数
-const generateAssetBaseMenuItems = (app: App, src: string, showAccelerator: boolean) => {
+const generateAssetBaseMenuItems = (app: App, src: string, showAccelerator: boolean):IMenu[] => {
     return [
         {
             id: "insertRight",
             icon: "iconLayoutRight",
             label: siyuanI18n.insertRight,
-            accelerator: showAccelerator ? window.siyuan.languages.click : "",
+            accelerator: showAccelerator ? siyuanI18n.click : "",
             click() {
-                openAsset(app, src.trim(), parseInt(getSearch("page", src)), "right");
+                const pageIndexString = getSearch("page", src) || "0";
+
+                openAsset(app, src.trim(), parseInt(pageIndexString), "right");
             }
         },
         {
             id: "openBy",
-            label: window.siyuan.languages.openBy,
+            label: siyuanI18n.openBy,
             icon: "iconOpen",
-            accelerator: showAccelerator ? "⌥" + window.siyuan.languages.click : "",
+            accelerator: showAccelerator ? "⌥" + siyuanI18n.click : "",
             click() {
-                openAsset(app, src.trim(), parseInt(getSearch("page", src)));
+                const pageIndexString = getSearch("page", src) || "0";
+                openAsset(app, src.trim(), parseInt(pageIndexString));
             }
         }
-    ];
+    ] ;
 };
 
 // 本地资源文件桌面端额外菜单项生成函数
@@ -84,7 +86,7 @@ const generateAssetDesktopMenuItems = (src: string, showAccelerator: boolean) =>
     return [
         {
             id: "openByNewWindow",
-            label: window.siyuan.languages.openByNewWindow,
+            label: siyuanI18n.openByNewWindow,
             icon: "iconOpenWindow",
             accelerator: "",
             click() {
@@ -94,17 +96,17 @@ const generateAssetDesktopMenuItems = (src: string, showAccelerator: boolean) =>
         {
             id: "showInFolder",
             icon: "iconFolder",
-            label: window.siyuan.languages.showInFolder,
-            accelerator: showAccelerator ? "⌘" + window.siyuan.languages.click : "",
+            label: siyuanI18n.showInFolder,
+            accelerator: showAccelerator ? "⌘" + siyuanI18n.click : "",
             click: () => {
                 openBy(src, "folder");
             }
         },
         {
             id: "useDefault",
-            label: window.siyuan.languages.useDefault,
+            label: siyuanI18n.useDefault,
             icon: "",
-            accelerator: showAccelerator ? "⇧" + window.siyuan.languages.click : "",
+            accelerator: showAccelerator ? "⇧" + siyuanI18n.click : "",
             click() {
                 openBy(src, "app");
             }
@@ -116,7 +118,8 @@ const generateAssetDesktopMenuItems = (src: string, showAccelerator: boolean) =>
 const generateAssetMenuItems = (app: App, src: string, showAccelerator: boolean) => {
     const submenu = generateAssetBaseMenuItems(app, src, showAccelerator);
     /// #if !BROWSER
-    submenu.push(...generateAssetDesktopMenuItems(src, showAccelerator));
+    const desktopSubmenu = generateAssetDesktopMenuItems(src, showAccelerator);
+    submenu.push(...desktopSubmenu);
     /// #endif
     return submenu;
 };
@@ -126,9 +129,9 @@ const generateLocalFileDesktopMenuItems = (src: string, showAccelerator: boolean
     return [
         {
             id: "useDefault",
-            label: window.siyuan.languages.useDefault,
+            label: siyuanI18n.useDefault,
             icon: "",
-            accelerator: showAccelerator ? window.siyuan.languages.click : "",
+            accelerator: showAccelerator ? siyuanI18n.click : "",
             click() {
                 openBy(src, "app");
             }
@@ -136,8 +139,8 @@ const generateLocalFileDesktopMenuItems = (src: string, showAccelerator: boolean
         {
             id: "showInFolder",
             icon: "iconFolder",
-            label: window.siyuan.languages.showInFolder,
-            accelerator: showAccelerator ? "⌘" + window.siyuan.languages.click : "",
+            label: siyuanI18n.showInFolder,
+            accelerator: showAccelerator ? "⌘" + siyuanI18n.click : "",
             click: () => {
                 openBy(src, "folder");
             }
@@ -149,20 +152,21 @@ const generateLocalFileDesktopMenuItems = (src: string, showAccelerator: boolean
 
 // 非资源本地文件菜单项生成函数
 const generateLocalFileMenuItems = (src: string, showAccelerator: boolean) => {
-    /// #if !BROWSER
-    return generateLocalFileDesktopMenuItems(src, showAccelerator);
-    /// #else
-    return generateLocalFileMobileMenuItems(src, showAccelerator);
-    /// #endif
+    //尽可能不使用条件编译,避免维护困难
+    if (window.require && window.require('electron')) {
+        return generateLocalFileDesktopMenuItems(src, showAccelerator);
+    } else {
+        return generateLocalFileMobileMenuItems(src, showAccelerator);
+    }
 };
 
 // 外部链接桌面端菜单项生成函数
 const generateExternalLinkDesktopMenuItems = (processedSrc: string, showAccelerator: boolean) => {
     return [{
         id: "useDefault",
-        label: window.siyuan.languages.useDefault,
+        label: siyuanI18n.useDefault,
         icon: "",
-        accelerator: showAccelerator ? window.siyuan.languages.click : "",
+        accelerator: showAccelerator ? siyuanI18n.click : "",
         click: () => {
             shell.openExternal(processedSrc).catch((e) => {
                 showMessage(e);
@@ -180,35 +184,36 @@ const generateExternalLinkMenuItems = (src: string, showAccelerator: boolean) =>
         // Support click to open hyperlinks like `www.foo.com` https://github.com/siyuan-note/siyuan/issues/9986
         processedSrc = `https://${src}`;
     }
-    
-    /// #if !BROWSER
-    return generateExternalLinkDesktopMenuItems(processedSrc, showAccelerator);
-    /// #else
-    return generateExternalLinkMobileMenuItems(processedSrc, showAccelerator);
-    /// #endif
+    ///尽可能不使用条件编译,避免维护困难
+    if (window.require && window.require('electron')) {
+        return generateExternalLinkDesktopMenuItems(processedSrc, showAccelerator);
+    } else {
+        return generateExternalLinkMobileMenuItems(processedSrc, showAccelerator);
+    }
 };
 
 export const openMenu = (app: App, src: string, onlyMenu: boolean, showAccelerator: boolean) => {
     let submenu = [];
-    
+
     /// #if MOBILE
     submenu = generateMobileMenuItems(src, showAccelerator);
     /// #else
     if (isLocalPath(src)) {
-        if (Constants.SIYUAN_ASSETS_EXTS.includes(pathPosix().extname(src).split("?")[0]) &&
+        const ext = pathPosix().extname(src).split("?")[0];
+        if (Constants.SIYUAN_ASSETS_EXTS.includes(ext||'') &&
             (!src.endsWith(".pdf") ||
                 (src.endsWith(".pdf") && !src.startsWith("file://")))) {
             submenu = generateAssetMenuItems(app, src, showAccelerator);
         } else {
             submenu = generateLocalFileMenuItems(src, showAccelerator);
         }
-        
-    } 
-    if ( !isLocalPath(src)&&src) {
+
+    }
+    if (!isLocalPath(src) && src) {
         submenu = generateExternalLinkMenuItems(src, showAccelerator);
     }
     /// #endif
-    
+
     if (onlyMenu) {
         return submenu;
     }
