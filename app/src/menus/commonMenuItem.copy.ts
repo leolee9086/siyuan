@@ -200,9 +200,7 @@ const copyMarkdownItem = (ctx: copyMenuCtxData) => {
  * ```
  */
 export const copySubMenu = (ids: string[], showAccelerator = true, focusElement: Element, stdMarkdownId: string) => {
-    if(!focusElement){
-        throw new Error("focusElement is required");
-    }
+
     const ctx = {
         ids, showAccelerator, focusElement, stdMarkdownId
     }
