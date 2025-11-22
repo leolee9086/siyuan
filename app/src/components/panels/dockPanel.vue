@@ -1,14 +1,14 @@
 <template>
   <div v-if="!isWindow()" class="dock-panel b3-list b3-list--background"
     style="min-width: 200px; max-width: 280px; flex-shrink: 0;">
-    <li v-if="!searchKey || siyuanLanguages.riffCard.toLowerCase().includes(searchKey.toLowerCase())"
-      data-type="riffCard" data-index="0" class="b3-list-item" :class="{ 'b3-list-item--focus': !switchPath && selectedDockIndex === 0 }"
+    <li v-if="!searchKey || siyuanI18n.riffCard.toLowerCase().includes(searchKey.toLowerCase())" data-type="riffCard"
+      data-index="0" class="b3-list-item" :class="{ 'b3-list-item--focus': !switchPath && selectedDockIndex === 0 }"
       @click="selectItem('riffCard', 0)">
       <svg class="b3-list-item__graphic">
         <use xlink:href="#iconRiffCard"></use>
       </svg>
-      <span class="b3-list-item__text">{{ siyuanLanguages.riffCard }}</span>
-      <span class="b3-list-item__meta">{{ updateHotkeyTip(siyuanConfig.keymap.general.riffCard.custom) }}</span>
+      <span class="b3-list-item__text">{{ siyuanI18n.riffCard }}</span>
+      <span class="b3-list-item__meta">{{ updateHotkeyTip(getSiyuanConfig().keymap.general.riffCard.custom) }}</span>
     </li>
     <li v-for="(dock, index) in filteredDocks" :key="dock.type" :data-type="dock.type" :data-index="index + 1"
       class="b3-list-item" :class="{ 'b3-list-item--focus': !switchPath && selectedDockIndex === index + 1 }"
@@ -28,7 +28,7 @@ import { isWindow } from "../../util/functions"
 import { updateHotkeyTip } from "../../protyle/util/compatibility"
 import { getAllDocks } from "../../layout/getAll"
 import { siyuanI18n } from '../../util/siyuanEnvironments/i18n.getI18n';
-
+import { getSiyuanConfig } from '../../util/siyuanEnvironments/getSiyuanConfig';
 // 定义 props
 const props = defineProps<{
   searchKey: string
@@ -45,9 +45,6 @@ const emit = defineEmits<{
 const selectedDockIndex = ref(0)
 const docks = ref<{ type: string, title: string, icon: string, hotkey: string }[]>([])
 
-// 获取全局变量
-const siyuanLanguages = window.siyuan?.languages
-const siyuanConfig = window.siyuan?.config
 
 // 计算属性
 const filteredDocks = computed(() => {
