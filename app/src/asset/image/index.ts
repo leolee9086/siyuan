@@ -1,5 +1,5 @@
 import { createVueComponentLoader } from "../../util/vue/mount";
-import { default as ImageViewer } from "../../components/imageEditor.vue";
+import { default as ImageViewer } from "../../components/panels/imageEditor.vue";
 import { withProps } from "../../util/vue/wrapper";
 
 

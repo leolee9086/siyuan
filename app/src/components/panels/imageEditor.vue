@@ -64,18 +64,11 @@
       </div>
     </div>
 
-    <!-- 处理进度提示 -->
-    <div v-if="isProcessing" class="asset__processing-overlay">
-      <div class="asset__processing-content">
-        <div class="asset__spinner"></div>
-        <span>正在处理图像，请稍候...</span>
-      </div>
-    </div>
 
     <div class="asset__image-wrapper"
       :style="{ transform: `translate(${translateX}px, ${translateY}px) scale(${scale})`, 'z-index': 0 }"
       ref="imageWrapper">
-      <img :src="currentImageSrc" @load="onImageLoad" ref="imageElement" draggable="false" />
+      <img :src="currentImageSrc" @load="$onImageLoad" ref="imageElement" draggable="false" />
     </div>
   </div>
 </template>
@@ -86,13 +79,13 @@ import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 //@ts-ignore
 import { dehazeImageWebGPUSimple } from '@leolee9086/image-dehazing'
 // 导入composable
-import { useAutoProcessing } from './composables/useAutoProcessing'
-import { useProcessingParams } from './composables/useProcessingParams'
-import { useImageProcessing } from './composables/useImageProcessing'
+import { useAutoProcessing } from '../composables/useAutoProcessing'
+import { useProcessingParams } from '../composables/useProcessingParams'
+import { useImageProcessing } from '../composables/useImageProcessing'
 // 导入参数控制组件
-import ParameterControl from './ParameterControl.vue'
+import ParameterControl from '../ParameterControl.vue'
 // 导入工具栏组件
-import ImageToolbar, { type ToolbarItem } from './imageToolbar.vue'
+import ImageToolbar, { type ToolbarItem } from '../imageToolbar.vue'
 
 // 定义组件属性
 interface Props {
@@ -229,7 +222,7 @@ const MIN_SCALE = 0.1;
 const MAX_SCALE = 5;
 
 // 图片加载完成
-const onImageLoad = () => {
+const $onImageLoad = () => {
   if (imageElement.value) {
     imageWidth.value = imageElement.value.naturalWidth;
     imageHeight.value = imageElement.value.naturalHeight;
@@ -254,7 +247,6 @@ const onImageLoad = () => {
         setOriginalImage(originImageElement.value);
       }
     }
-
     centerImage();
   }
 };
@@ -440,141 +432,5 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss" scoped>
-.asset__viewer {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  user-select: none;
-}
-
-.asset__dehaze-panel {
-  position: absolute;
-  top: 60px;
-  right: 10px;
-  width: 300px;
-  max-height: 70vh;
-  background-color: var(--b3-theme-background);
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  z-index: 10;
-  overflow-y: auto;
-}
-
-.asset__panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--b3-theme-surface-light);
-  font-weight: bold;
-}
-
-.asset__panel-content {
-  padding: 12px;
-}
-
-.asset__form-item {
-  display: flex;
-  align-items: center;
-  margin-bottom: 12px;
-
-  label {
-    flex: 1;
-    margin-right: 8px;
-    font-size: 12px;
-  }
-
-  input[type="range"] {
-    flex: 2;
-    margin-right: 8px;
-  }
-
-  input[type="checkbox"] {
-    margin-right: 8px;
-  }
-
-  select {
-    flex: 2;
-    padding: 2px 4px;
-  }
-
-  span {
-    min-width: 40px;
-    text-align: right;
-    font-size: 12px;
-  }
-}
-
-.asset__sub-form {
-  margin-left: 20px;
-  padding-left: 8px;
-  border-left: 2px solid var(--b3-theme-surface-light);
-}
-
-.asset__panel-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 16px;
-  justify-content: flex-end;
-}
-
-.asset__processing-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 20;
-}
-
-.asset__processing-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background-color: var(--b3-theme-background);
-  padding: 20px;
-  border-radius: 8px;
-  color: var(--b3-theme-on-background);
-}
-
-.asset__spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid var(--b3-theme-surface-light);
-  border-top: 3px solid var(--b3-theme-primary);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 12px;
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-.asset__image-wrapper {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  transform-origin: 0 0;
-  transition: transform 0.1s ease-out;
-}
-
-.asset__image-wrapper img {
-  max-width: none;
-  max-height: none;
-  display: block;
-}
+@import "./imageEditor.scss";
 </style>
