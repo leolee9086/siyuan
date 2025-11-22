@@ -25,9 +25,9 @@ interface copyMenuCtxData {
     /** 是否显示快捷键 */
     showAccelerator: boolean
     /** 聚焦元素，复制完成后会重新聚焦到此元素 */
-    focusElement?: Element,
+    focusElement?: Element|undefined,
     /** 标准Markdown ID，用于导出Markdown内容 */
-    stdMarkdownId?: string
+    stdMarkdownId?: string|undefined
 }
 
 /**
@@ -199,10 +199,10 @@ const copyMarkdownItem = (ctx: copyMenuCtxData) => {
  * );
  * ```
  */
-export const copySubMenu = (ids: string[], showAccelerator = true, focusElement: Element, stdMarkdownId: string) => {
+export const copySubMenu = (ids: string[], showAccelerator = true, focusElement?: Element, stdMarkdownId?: string) => {
 
     const ctx = {
-        ids, showAccelerator, focusElement, stdMarkdownId
+        ids, showAccelerator, focusElement: focusElement , stdMarkdownId
     }
     const menuItems = [
         copyBlockRefItem(ctx),
