@@ -90,7 +90,8 @@ import {Toolbar} from "./toolbar";
 import {ViewHistory} from "./view_history.js";
 import {hasClosestByClassName} from "../../protyle/util/hasClosest";
 import {Constants} from "../../constants";
-import {getPdfInstance, hlPDFRect} from "../anno";
+import {getPdfInstance} from "../anno.getPdfInstance";
+import { hlPDFRect} from "../anno.hlPDFRect";
 
 const FORCE_PAGES_LOADED_TIMEOUT = 10000; // ms
 

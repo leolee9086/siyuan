@@ -22,7 +22,7 @@
 
 import { normalizeUnicode, TextLayer } from "./pdfjs";
 import { removeNullCharacters } from "./ui_utils.js";
-import {getHighlight} from "../anno";
+import {getHighlight} from "../anno.getHighlight";
 
 /**
  * @typedef {Object} TextLayerBuilderOptions
