@@ -7,6 +7,7 @@ import { focusByRange } from "../protyle/util/selection";
 import { Constants } from "../constants";
 import { Dialog } from "../dialog";
 import { showMessage } from "../dialog/message";
+import type { IPdfAnno, IPdfInstance, IAnnoCoords, IRectBounds, IPagePosition, RectElementType } from "./anno.types";
 
 export const initAnno = (element: HTMLElement, pdf: any) => {
     getConfig(pdf);
@@ -372,7 +373,7 @@ const hideToolbar = (element: HTMLElement) => {
     element.querySelector(".pdf__util").classList.add("fn__none");
 };
 
-let rectElement: HTMLElement;
+let rectElement: RectElementType;
 const showToolbar = (element: HTMLElement, range: Range, target?: HTMLElement) => {
     if (target) {
         // 阻止 popover
@@ -664,7 +665,7 @@ export const getHighlight = (element: HTMLElement) => {
     });
 };
 
-const showHighlight = (selected: IPdfAnno, pdf: any, hl?: boolean) => {
+const showHighlight = (selected: IAnnoCoords, pdf: IPdfInstance, hl?: boolean) => {
     const pageIndex = selected.index;
     const page = pdf.pdfViewer.getPageView(pageIndex);
     const textLayerElement = page.textLayer.div;
@@ -792,7 +793,7 @@ async function getRectImgData(pdfObj: any) {
     return tempCanvas.toDataURL();
 }
 
-const setConfig = (pdf: any, id: string, data: IPdfAnno) => {
+const setConfig = (pdf: IPdfInstance, id: string, data: IPdfAnno) => {
     const config = getConfig(pdf);
     config[id] = data;
     fetchPost("/api/asset/setFileAnnotation", {
@@ -801,7 +802,7 @@ const setConfig = (pdf: any, id: string, data: IPdfAnno) => {
     });
 };
 
-const getConfig = (pdf: any) => {
+const getConfig = (pdf: IPdfInstance) => {
     if (pdf.appConfig.config) {
         return pdf.appConfig.config;
     }
