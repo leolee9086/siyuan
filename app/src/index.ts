@@ -40,6 +40,8 @@ import {Tag} from "./layout/dock/Tag";
 import {updateControlAlt} from "./protyle/util/hotKey";
 import { EventBus } from "./plugin/EventBus";
 import { siyuanI18n } from "./util/siyuanEnvironments/i18n.getI18n";
+import {updateAppearance} from "./config/util/updateAppearance";
+import {renderSnippet} from "./config/util/snippets";
 
 export class App {
     public plugins: import("./plugin").Plugin[] = [];
@@ -71,6 +73,13 @@ export class App {
                     });
                     if (data) {
                         switch (data.cmd) {
+                            case "setAppearance":
+                                updateAppearance(data.data);
+                                break;
+                            case "setSnippet":
+                                window.siyuan.config.snippet = data.data;
+                                renderSnippet();
+                                break;
                             case "setDefRefCount":
                                 setDefRefCount(data.data);
                                 break;

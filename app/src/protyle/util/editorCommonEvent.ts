@@ -32,11 +32,11 @@ import { setFold, zoomOut } from "../../menus/protyle";
 /// #if !BROWSER
 import { webUtils } from "electron";
 /// #endif
-import { addDragFill, getTypeByCellElement } from "../render/av/cell";
-import { processClonePHElement } from "../render/util";
-import { insertGalleryItemAnimation } from "../render/av/gallery/item";
-import { clearSelect } from "./clearSelect";
-import { dragoverTab } from "../render/av/view";
+import {addDragFill, getTypeByCellElement} from "../render/av/cell";
+import {processClonePHElement} from "../render/util";
+import {insertGalleryItemAnimation} from "../render/av/gallery/item";
+import {clearSelect} from "./clear";
+import {dragoverTab} from "../render/av/view";
 
 // position: afterbegin 为拖拽成超级块; "afterend", "beforebegin" 一般拖拽
 const moveTo = async (protyle: IProtyle, sourceElements: Element[], targetElement: Element,

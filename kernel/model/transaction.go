@@ -1073,6 +1073,7 @@ func (tx *Transaction) syncDelete2Block(node *ast.Node, nodeTree *parse.Tree) (c
 			oldAttrs := parse.IAL2Map(toChangNode.KramdownIAL)
 			toChangNode.SetIALAttr(av.NodeAttrViewNames, avNames)
 			pushBroadcastAttrTransactions(oldAttrs, toChangNode)
+			toChangNode.RemoveIALAttr(av.NodeAttrViewNames)
 		}
 
 		for _, tree := range trees {
@@ -1206,19 +1207,9 @@ func (tx *Transaction) doLargeInsert(previousID string) (ret *TxErr) {
 
 		upsertAvBlockRel(insertedNode)
 
-		// 复制为副本时将该副本块插入到数据库中 https://github.com/siyuan-note/siyuan/issues/11959
-		avs := insertedNode.IALAttr(av.NodeAttrNameAvs)
-		for _, avID := range strings.Split(avs, ",") {
-			if !ast.IsNodeIDPattern(avID) {
-				continue
-			}
-
-			AddAttributeViewBlock(tx, []map[string]interface{}{{
-				"id":         insertedNode.ID,
-				"isDetached": false,
-			}}, avID, "", "", "", previousID, false, map[string]interface{}{})
-			ReloadAttrView(avID)
-		}
+		// 复制为副本时移除数据库绑定状态 https://github.com/siyuan-note/siyuan/issues/12294
+		insertedNode.RemoveIALAttr(av.NodeAttrNameAvs)
+		insertedNode.RemoveIALAttrsByPrefix(av.NodeAttrViewStaticText)
 
 		if ast.NodeAttributeView == insertedNode.Type {
 			// 插入数据库块时需要重新绑定其中已经存在的块
@@ -1394,19 +1385,9 @@ func (tx *Transaction) doInsert(operation *Operation) (ret *TxErr) {
 
 	upsertAvBlockRel(insertedNode)
 
-	// 复制为副本时将该副本块插入到数据库中 https://github.com/siyuan-note/siyuan/issues/11959
-	avs := insertedNode.IALAttr(av.NodeAttrNameAvs)
-	for _, avID := range strings.Split(avs, ",") {
-		if !ast.IsNodeIDPattern(avID) {
-			continue
-		}
-
-		AddAttributeViewBlock(tx, []map[string]interface{}{{
-			"id":         insertedNode.ID,
-			"isDetached": false,
-		}}, avID, "", "", "", previousID, false, map[string]interface{}{})
-		ReloadAttrView(avID)
-	}
+	// 复制为副本时移除数据库绑定状态 https://github.com/siyuan-note/siyuan/issues/12294
+	insertedNode.RemoveIALAttr(av.NodeAttrNameAvs)
+	insertedNode.RemoveIALAttrsByPrefix(av.NodeAttrViewStaticText)
 
 	if ast.NodeAttributeView == insertedNode.Type {
 		// 插入数据库块时需要重新绑定其中已经存在的块
@@ -1762,7 +1743,6 @@ func upsertAvBlockRel(node *ast.Node) {
 
 	go func() {
 		time.Sleep(100 * time.Millisecond)
-		sql.FlushQueue()
 
 		affectedAvIDs = gulu.Str.RemoveDuplicatedElem(affectedAvIDs)
 		var relatedAvIDs []string
@@ -2109,7 +2089,7 @@ func updateRefTextRenameDoc(renamedTree *parse.Tree) {
 }
 
 func FlushUpdateRefTextRenameDocJob() {
-	sql.FlushQueue()
+	sql.WaitFlushTx()
 	flushUpdateRefTextRenameDoc()
 }
 

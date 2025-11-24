@@ -817,13 +817,15 @@ export const genSearch = (app: App, config: Config.IUILayoutTabSearchConfig, ele
                             } else {
                                 if (event.altKey) {
                                     const id = target.getAttribute("data-node-id");
-                                    checkFold(id, (zoomIn, action) => {
+                                    checkFold(id, (zoomIn) => {
                                         openFileById({
                                             app,
                                             id,
-                                            action: [...action, Constants.CB_GET_HL],
+                                            action: zoomIn ? [Constants.CB_GET_FOCUS, Constants.CB_GET_ALL, Constants.CB_GET_HL] :
+                                                [Constants.CB_GET_FOCUS, Constants.CB_GET_CONTEXT, Constants.CB_GET_HL],
                                             zoomIn,
-                                            position: "right"
+                                            position: "right",
+                                            scrollPosition: "center"
                                         });
                                         if (closeCB) {
                                             closeCB();
@@ -857,12 +859,14 @@ export const genSearch = (app: App, config: Config.IUILayoutTabSearchConfig, ele
                             /// #endif
                         } else {
                             const id = target.getAttribute("data-node-id");
-                            checkFold(id, (zoomIn, action) => {
+                            checkFold(id, (zoomIn) => {
                                 openFileById({
                                     app,
                                     id,
-                                    action: [...action, Constants.CB_GET_HL],
-                                    zoomIn
+                                    action: zoomIn ? [Constants.CB_GET_FOCUS, Constants.CB_GET_ALL, Constants.CB_GET_HL] :
+                                        [Constants.CB_GET_FOCUS, Constants.CB_GET_CONTEXT, Constants.CB_GET_HL],
+                                    zoomIn,
+                                    scrollPosition: "center"
                                 });
                                 if (closeCB) {
                                     closeCB();

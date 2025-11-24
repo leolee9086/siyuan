@@ -13,9 +13,61 @@ import {
 } from "../protyle/util/hasClosest";
 import {objEquals} from "../util/functions";
 import {clearOBG} from "../layout/dock/util";
-import { getUnInitTab } from "./util.getUnInitTab";
-import { switchEditor } from "./util.switchEditor";
-import { newTab } from "./util.newTab";
+import {Model} from "../layout/Model";
+
+export const openFileById = async (options: {
+    app: App,
+    id: string,
+    position?: string,
+    mode?: TEditorMode,
+    action?: TProtyleAction[]
+    keepCursor?: boolean
+    zoomIn?: boolean
+    removeCurrentTab?: boolean
+    openNewTab?: boolean
+    afterOpen?: (model: Model) => void,
+    scrollPosition?: ScrollLogicalPosition
+}) => {
+    const response = await fetchSyncPost("/api/block/getBlockInfo", {id: options.id});
+    if (response.code === -1) {
+        return;
+    }
+    if (response.code === 3) {
+        showMessage(response.msg);
+        return;
+    }
+
+    return openFile({
+        app: options.app,
+        fileName: response.data.rootTitle,
+        rootIcon: response.data.rootIcon,
+        rootID: response.data.rootID,
+        id: options.id,
+        position: options.position,
+        mode: options.mode,
+        action: options.action,
+        zoomIn: options.zoomIn,
+        keepCursor: options.keepCursor,
+        removeCurrentTab: options.removeCurrentTab,
+        afterOpen: options.afterOpen,
+        openNewTab: options.openNewTab,
+        scrollPosition: options.scrollPosition,
+    });
+};
+
+export const openAsset = (app: App, assetPath: string, page: number | string, position?: string) => {
+    const suffix = pathPosix().extname(assetPath).split("?")[0];
+    if (!Constants.SIYUAN_ASSETS_EXTS.includes(suffix)) {
+        return;
+    }
+    openFile({
+        app,
+        assetPath,
+        page,
+        position,
+        removeCurrentTab: true
+    });
+};
 
 export const openFile = async (options: IOpenFileOptions) => {
     if (typeof options.removeCurrentTab === "undefined") {
@@ -266,6 +318,7 @@ const getUnInitTab = (options: IOpenFileOptions) => {
                 } else {
                     initObj.action = options.action;
                 }
+                initObj.scrollPosition = options.scrollPosition;
                 item.headElement.setAttribute("data-initdata", JSON.stringify(initObj));
                 item.parent.switchTab(item.headElement);
                 return true;
@@ -305,7 +358,12 @@ const switchEditor = (editor: Editor, options: IOpenFileOptions, allModels: IMod
             mode: (options.action && options.action.includes(Constants.CB_GET_CONTEXT)) ? 3 : 0,
             size: window.siyuan.config.editor.dynamicLoadBlocks,
         }, getResponse => {
-            onGet({data: getResponse, protyle: editor.editor.protyle, action: options.action});
+            onGet({
+                data: getResponse,
+                protyle: editor.editor.protyle,
+                action: options.action,
+                scrollPosition: options.scrollPosition
+            });
             // 大纲点击折叠标题下的内容时，需更新反链面板
             updateBacklinkGraph(allModels, editor.editor.protyle);
         });
@@ -315,13 +373,14 @@ const switchEditor = (editor: Editor, options: IOpenFileOptions, allModels: IMod
         editor.editor.protyle.observerLoad?.disconnect();
         if (options.action?.includes(Constants.CB_GET_HL)) {
             highlightById(editor.editor.protyle, options.id, "start");
-        } else if (options.action?.includes(Constants.CB_GET_FOCUS)) {
+        }
+        if (options.action?.includes(Constants.CB_GET_FOCUS)) {
             if (nodeElement) {
                 const newRange = focusBlock(nodeElement, undefined, !options.action?.includes(Constants.CB_GET_OUTLINE));
                 if (newRange) {
                     editor.editor.protyle.toolbar.range = newRange;
                 }
-                scrollCenter(editor.editor.protyle);
+                scrollCenter(editor.editor.protyle, (editor.editor.protyle.disabled || options.scrollPosition) ? nodeElement : null, options.scrollPosition);
                 editor.editor.protyle.observerLoad = new ResizeObserver(() => {
                     if (document.contains(nodeElement)) {
                         scrollCenter(editor.editor.protyle);
@@ -433,6 +492,7 @@ const newTab = (options: IOpenFileOptions) => {
                         blockId: options.id,
                         rootId: options.rootID,
                         action: [Constants.CB_GET_ALL, Constants.CB_GET_FOCUS],
+                        scrollPosition: options.scrollPosition,
                     });
                 } else {
                     editor = new Editor({
@@ -442,6 +502,7 @@ const newTab = (options: IOpenFileOptions) => {
                         rootId: options.rootID,
                         mode: options.mode,
                         action: options.action,
+                        scrollPosition: options.scrollPosition,
                     });
                 }
                 tab.addModel(editor);

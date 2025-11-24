@@ -36,7 +36,7 @@ import {fetchPost, fetchSyncPost} from "../../../util/fetch";
 import {scrollCenter} from "../../../util/highlightById";
 import {escapeHtml} from "../../../util/escape";
 import {editGalleryItem, openGalleryItemMenu} from "./gallery/util";
-import {clearSelect} from "../../util/clearSelect";
+import {clearSelect} from "../../util/clear";
 import {removeCompressURL} from "../../../util/image";
 
 let foldTimeout: number;
@@ -229,6 +229,7 @@ export const avClick = (protyle: IProtyle, event: MouseEvent & { target: HTMLEle
             event.stopPropagation();
             return true;
         } else if (type === "av-group-fold") {
+            target.setAttribute("data-processed", "true");
             const isOpen = target.firstElementChild.classList.contains("av__group-arrow--open");
             if (isOpen) {
                 target.firstElementChild.classList.remove("av__group-arrow--open");
@@ -252,7 +253,7 @@ export const avClick = (protyle: IProtyle, event: MouseEvent & { target: HTMLEle
                     id: target.dataset.id,
                     data: !isOpen
                 }]);
-            }, Constants.TIMEOUT_TRANSITION);
+            }, Constants.TIMEOUT_COUNT);
             event.preventDefault();
             event.stopPropagation();
             return true;
