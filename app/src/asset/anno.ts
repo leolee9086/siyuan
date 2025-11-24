@@ -2,21 +2,20 @@ import { fetchPost } from "../util/fetch";
 import { setPosition } from "../util/setPosition";
 import { hasClosestByClassName } from "../protyle/util/hasClosest";
 import { setStorageVal } from "../protyle/util/compatibility";
-import { getAllModels } from "../layout/getAll";
-import { focusByRange } from "../protyle/util/selection";
 import { Constants } from "../constants";
 import { Dialog } from "../dialog";
 import { showMessage } from "../dialog/message";
-import type { IPdfAnno, IPdfInstance, IAnnoCoords, IRectBounds, IPagePosition, RectElementType } from "./anno.types";
-import { getConfig, setConfig } from "./anno.config";
-import { generateRectContent, createAnnoCoords } from "./anno.content";
-import { getPageViewInfo } from "./anno.page";
+import type { IPdfAnno, IRectBounds, IPagePosition, RectElementType } from "./anno.types";
+import { getConfig } from "./anno.config";
 import { get } from "http";
 import { getSiyuanStorage } from "../util/siyuanEnvironments/getSiyuanConfig";
 import { copyAnno } from "./anno.copy";
-import { initRectAnnoTool } from "./initRectAnnoTool";
+import { initRectAnnoTool } from "./anno.initRectAnnoTool";
 import { hideToolbar } from "./anno.hideToolbar";
-import { hlPDFRect } from "./anno.hlPDFRect";
+import { showHighlight } from "./anno.showHighlight";
+import { getHightlightCoordsByRect } from "./anno.getHightlightCoordsByRect";
+import { getHightlightCoordsByRange } from "./anno.getHightlightCoordsByRange";
+import { getPdfInstance } from "./anno.getPdfInstance";
 export let rectElement: RectElementType;
 
 export const initAnno = (element: HTMLElement, pdf: any) => {
@@ -394,7 +393,7 @@ const showToolbar = (element: HTMLElement, range: Range, target?: HTMLElement) =
     setPosition(utilElement, targetRect.left, targetRect.top + targetRect.height + 4);
 };
 
-const getTextNode = (element: HTMLElement, isFirst: boolean) => {
+export const getTextNode = (element: HTMLElement, isFirst: boolean) => {
     const spans = element.querySelectorAll('span[role="presentation"]');
     let index = isFirst ? 0 : spans.length - 1;
     while (spans[index]) {
@@ -409,203 +408,6 @@ const getTextNode = (element: HTMLElement, isFirst: boolean) => {
         }
     }
     return spans[index];
-};
-
-const getHightlightCoordsByRange = (pdf: any, color: string) => {
-    const range = window.getSelection().getRangeAt(0);
-    const startPageElement = hasClosestByClassName(range.startContainer, "page");
-    if (!startPageElement) {
-        return;
-    }
-    const startIndex = parseInt(
-        startPageElement.getAttribute("data-page-number")) - 1;
-
-    const endPageElement = hasClosestByClassName(range.endContainer, "page");
-    if (!endPageElement) {
-        return;
-    }
-    const endIndex = parseInt(endPageElement.getAttribute("data-page-number")) - 1;
-    // https://github.com/siyuan-note/siyuan/issues/5213
-    const rangeContents = range.cloneContents();
-    Array.from(rangeContents.children).forEach(item => {
-        if (item.tagName === "BR" && item.previousElementSibling && item.nextElementSibling) {
-            const previousText = item.previousElementSibling.textContent;
-            const nextText = item.nextElementSibling.textContent;
-            if (/^[A-Za-z]$/.test(previousText.substring(previousText.length - 2, previousText.length - 1)) &&
-                /^[A-Za-z]$/.test(nextText.substring(0, 1))) {
-                if (previousText.endsWith("-")) {
-                    item.previousElementSibling.textContent = previousText.substring(0, previousText.length - 1);
-                } else {
-                    // 中文情况不能添加 https://github.com/siyuan-note/siyuan/issues/8152
-                    item.insertAdjacentText("afterend", " ");
-                }
-            }
-        }
-    });
-    // eslint-disable-next-line no-control-regex
-    const content = Lute.EscapeHTMLStr(rangeContents.textContent.replace(/[\x00]|\n/g, ""));
-    const startPage = pdf.pdfViewer.getPageView(startIndex);
-    const startPageRect = startPage.canvas.getClientRects()[0];
-    const startViewport = startPage.viewport;
-
-    const cloneRange = range.cloneRange();
-    if (startIndex !== endIndex) {
-        range.setEndAfter(getTextNode(startPage.textLayer.div, false));
-    }
-
-    const startSelected: number[] = [];
-    mergeRects(range).forEach(function (r) {
-        startSelected.push(
-            startViewport.convertToPdfPoint(r.left - startPageRect.x,
-                r.top - startPageRect.y).concat(startViewport.convertToPdfPoint(r.right - startPageRect.x,
-                    r.bottom - startPageRect.y)),
-        );
-    });
-
-    const endSelected: number[] = [];
-    if (startIndex !== endIndex) {
-        focusByRange(cloneRange);
-        const endPage = pdf.pdfViewer.getPageView(endIndex);
-        const endPageRect = endPage.canvas.getClientRects()[0];
-        const endViewport = endPage.viewport;
-        cloneRange.setStart(getTextNode(endPage.textLayer.div, true), 0);
-        mergeRects(cloneRange).forEach(function (r) {
-            endSelected.push(
-                endViewport.convertToPdfPoint(r.left - endPageRect.x,
-                    r.top - endPageRect.y).concat(endViewport.convertToPdfPoint(r.right - endPageRect.x,
-                        r.bottom - endPageRect.y)),
-            );
-        });
-    }
-
-    const id = Lute.NewNodeID();
-    const pages: {
-        index: number
-        positions: number[]
-    }[] = [];
-    const results = [];
-    if (startSelected.length > 0) {
-        pages.push({
-            index: startIndex,
-            positions: startSelected,
-        });
-        const pageInfo = getPageViewInfo(pdf, startIndex);
-        results.push(createAnnoCoords(pageInfo, startSelected, id, color, content, "text", "text"));
-    }
-    if (endSelected.length > 0) {
-        pages.push({
-            index: endIndex,
-            positions: endSelected,
-        });
-        const pageInfo = getPageViewInfo(pdf, endIndex);
-        results.push(createAnnoCoords(pageInfo, endSelected, id, color, content, "text", "text"));
-    }
-    if (pages.length === 0) {
-        return;
-    }
-    setConfig(pdf, id, {
-        pages,
-        content,
-        color,
-        type: "text",
-        mode: "text",
-    });
-    return results;
-};
-
-const getHightlightCoordsByRect = (pdf: any, color: string, rectResizeElement: HTMLElement, type: string) => {
-    const rect = rectResizeElement.getBoundingClientRect();
-
-    const startPageElement = hasClosestByClassName(document.elementFromPoint(rect.left, rect.top - 1), "page");
-    if (!startPageElement) {
-        return;
-    }
-    const startIndex = parseInt(
-        startPageElement.getAttribute("data-page-number")) - 1;
-
-    const startPage = pdf.pdfViewer.getPageView(startIndex);
-    const startPageRect = startPage.canvas.getClientRects()[0];
-    const startViewport = startPage.viewport;
-
-    const startSelected = startViewport.convertToPdfPoint(
-        rect.left - startPageRect.x,
-        rect.top - startPageRect.y).concat(startViewport.convertToPdfPoint(rect.right - startPageRect.x,
-            rect.bottom - startPageRect.y));
-
-    const pages: {
-        index: number
-        positions: number[]
-    }[] = [
-            {
-                index: startPage.id - 1,
-                positions: [startSelected],
-            }];
-
-    const id = Lute.NewNodeID();
-    const pageInfo = getPageViewInfo(pdf, startIndex);
-    const content = generateRectContent(pdf, pageInfo, id);
-    const result = [createAnnoCoords(pageInfo, [startSelected], id, color, content, type, "rect")];
-
-    let endPageElement = document.elementFromPoint(rect.right, rect.bottom + 1);
-    endPageElement = hasClosestByClassName(endPageElement, "page") as HTMLElement;
-    if (endPageElement) {
-        const endIndex = parseInt(
-            endPageElement.getAttribute("data-page-number")) - 1;
-        if (endIndex !== startIndex) {
-            const endPage = pdf.pdfViewer.getPageView(endIndex);
-            const endPageRect = endPage.canvas.getClientRects()[0];
-            const endViewport = endPage.viewport;
-
-            const endSelected = endViewport.convertToPdfPoint(
-                rect.left - endPageRect.x,
-                rect.top - endPageRect.y).concat(endViewport.convertToPdfPoint(rect.right - endPageRect.x,
-                    rect.bottom - endPageRect.y));
-            pages.push({
-                index: endPage.id - 1,
-                positions: [endSelected],
-            });
-            const endPageInfo = getPageViewInfo(pdf, endIndex);
-            result.push(createAnnoCoords(endPageInfo, [endSelected], id, color, content, type, "rect"));
-        }
-    }
-
-    setConfig(pdf, id, {
-        pages,
-        content,
-        color,
-        type,
-        mode: "rect",
-    });
-    return result;
-};
-
-const mergeRects = (range: Range) => {
-    const rects = range.getClientRects();
-    const mergedRects: { left: number, top: number, right: number, bottom: number }[] = [];
-    let lastTop: number = undefined;
-    Array.from(rects).forEach(item => {
-        if (item.height === 0 || item.width === 0) {
-            return;
-        }
-        if (typeof lastTop === "undefined" || Math.abs(lastTop - item.top) > 4) {
-            mergedRects.push({ left: item.left, top: item.top, right: item.right, bottom: item.bottom });
-            lastTop = item.top;
-        } else {
-            mergedRects[mergedRects.length - 1].right = item.right;
-        }
-    });
-    return mergedRects;
-};
-
-export const getPdfInstance = (element: HTMLElement) => {
-    let pdfInstance;
-    getAllModels().asset.find(item => {
-        if (item.pdfObject && element && item.element && typeof item.element.contains !== "undefined" && item.element.contains(element)) {
-            pdfInstance = item.pdfObject;
-            return true;
-        }
-    });
-    return pdfInstance;
 };
 
 export const getHighlight = (element: HTMLElement) => {
@@ -637,45 +439,6 @@ export const getHighlight = (element: HTMLElement) => {
             }, pdfInstance, pdfInstance.annoId === key);
         }
     });
-};
-
-const showHighlight = (selected: IAnnoCoords, pdf: IPdfInstance, hl?: boolean) => {
-    const pageIndex = selected.index;
-    const page = pdf.pdfViewer.getPageView(pageIndex);
-    const textLayerElement = page.textLayer.div;
-    if (!textLayerElement.lastElementChild) {
-        return;
-    }
-
-    const viewport = page.viewport.clone({ rotation: 0 }); // rotation https://github.com/siyuan-note/siyuan/issues/9831
-    let rectsElement = textLayerElement.querySelector(".pdf__rects");
-    if (!rectsElement) {
-        textLayerElement.insertAdjacentHTML("beforeend", "<div class='pdf__rects'></div>");
-        rectsElement = textLayerElement.querySelector(".pdf__rects");
-    }
-    let html = `<div class="pdf__rect popover__block" data-node-id="${selected.id}" data-relations="${selected.ids || ""}" data-mode="${selected.mode}">`;
-    selected.coords.forEach((rect) => {
-        const bounds = viewport.convertToViewportRectangle(rect);
-        const width = Math.abs(bounds[0] - bounds[2]);
-        if (width <= 0) {
-            return;
-        }
-        let style = `border: 2px solid ${selected.color};background-color: ${selected.color};`;
-        if (selected.type === "border") {
-            style = `border: 2px solid ${selected.color};`;
-        }
-        html += `<div style="${style}
-left:${Math.min(bounds[0], bounds[2])}px;
-top:${Math.min(bounds[1], bounds[3])}px;
-width:${width}px;
-height: ${Math.abs(bounds[1] - bounds[3])}px"></div>`;
-    });
-    rectsElement.insertAdjacentHTML("beforeend", html + "</div>");
-    rectsElement.lastElementChild.setAttribute("data-content", selected.content);
-    if (hl) {
-        hlPDFRect(rectsElement, selected.id);
-    }
-    return rectsElement.lastElementChild;
 };
 
 
