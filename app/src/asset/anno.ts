@@ -2,7 +2,7 @@ import { fetchPost } from "../util/fetch";
 import { hasClosestByClassName } from "../protyle/util/hasClosest";
 import { setStorageVal } from "../protyle/util/compatibility";
 import { Constants } from "../constants";
-import type {  RectElementType } from "./anno.types";
+import type { RectElementType } from "./anno.types";
 import { getConfig } from "./anno.config";
 import { getSiyuanStorage } from "../util/siyuanEnvironments/getSiyuanConfig";
 import { copyAnno } from "./anno.copy";
@@ -116,7 +116,7 @@ export const initAnno = (element: HTMLElement, pdf: any) => {
                 coords.forEach((item, index) => {
                     const newElement = showHighlight(item, pdf);
                     if (index === 0) {
-                        rectElement = newElement;
+                        rectElement = newElement ; 
                         copyAnno(`${pdf.appConfig.file.replace(location.origin, "").substr(1)}/${rectElement.getAttribute("data-node-id")}`,
                             pdf.appConfig.file.replace(location.origin, "").substr(8).replace(/-\d{14}-\w{7}.pdf$/, ""), pdf);
                     }
@@ -129,7 +129,7 @@ export const initAnno = (element: HTMLElement, pdf: any) => {
 
     element.addEventListener("click", (event) => {
         let processed = false;
-        let target = event.target as HTMLElement;
+        let target = event.target as HTMLElement | null;
         if (typeof event.detail === "string") {
             getSiyuanStorage()[Constants.LOCAL_PDFTHEME].annoColor = event.detail === "0" ?
                 (getSiyuanStorage()[Constants.LOCAL_PDFTHEME].annoColor || "var(--b3-pdf-background1)")
@@ -231,18 +231,21 @@ export const initAnno = (element: HTMLElement, pdf: any) => {
                 break;
             } else if (type === "toggle") {
                 const config = getConfig(pdf);
-                const annoItem = config[rectElement.getAttribute("data-node-id")];
+                const refId = rectElement.getAttribute("data-node-id");
+                const annoItem = config[refId];
                 if (annoItem.type === "border") {
                     annoItem.type = "text";
                 } else {
                     annoItem.type = "border";
                 }
                 element.querySelectorAll(`.pdf__rect[data-node-id="${rectElement.getAttribute("data-node-id")}"]`).forEach(rectItem => {
-                    Array.from(rectItem.children).forEach((item: HTMLElement) => {
-                        if (annoItem.type === "text") {
-                            item.style.backgroundColor = item.style.border.replace("2px solid ", "");
-                        } else {
-                            item.style.backgroundColor = "";
+                    Array.from(rectItem.children).forEach((item) => {
+                        if (item instanceof HTMLElement) {
+                            if (annoItem.type === "text") {
+                                item.style.backgroundColor = item.style.border.replace("2px solid ", "");
+                            } else {
+                                item.style.backgroundColor = "";
+                            }
                         }
                     });
                 });
@@ -256,6 +259,7 @@ export const initAnno = (element: HTMLElement, pdf: any) => {
                 hideToolbar(element);
                 break;
             }
+
             target = target.parentElement;
         }
 
@@ -266,7 +270,7 @@ export const initAnno = (element: HTMLElement, pdf: any) => {
         setTimeout(() => {
             let isShow = false;
             const selection = window.getSelection();
-            if (selection.rangeCount > 0) {
+            if (selection && selection.rangeCount > 0) {
                 const range = selection.getRangeAt(0);
                 if (range.toString() !== "" &&
                     hasClosestByClassName(range.commonAncestorContainer, "pdfViewer")) {
@@ -286,7 +290,7 @@ export const getTextNode = (element: HTMLElement, isFirst: boolean) => {
     const spans = element.querySelectorAll('span[role="presentation"]');
     let index = isFirst ? 0 : spans.length - 1;
     while (spans[index]) {
-        if (spans[index].textContent) {
+        if (spans[index]?.textContent) {
             break;
         } else {
             if (isFirst) {

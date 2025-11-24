@@ -49,26 +49,28 @@ const generateHighlightHtml = (selected: IAnnoCoords, viewport: any): string => 
     return html + "</div>";
 };
 
-const insertHighlightElement = (rectsElement: HTMLElement, selected: IAnnoCoords, html: string): Element | null => {
+const insertHighlightElement = (rectsElement: HTMLElement, selected: IAnnoCoords, html: string): HTMLElement => {
     rectsElement.insertAdjacentHTML("beforeend", html);
     const lastChild = rectsElement.lastElementChild;
-    if (lastChild) {
+    if (lastChild && lastChild instanceof HTMLElement) {
         lastChild.setAttribute("data-content", selected.content);
+        return lastChild;
+    }else {
+        throw new Error("Failed to insert highlight element");
     }
-    return lastChild;
 };
 
 export const showHighlight = (selected: IAnnoCoords, pdf: IPdfInstance, hl?: boolean) => {
     const pageIndex = selected.index;
     const { page, textLayerElement } = getPageElements(pdf, pageIndex);
     if (!textLayerElement.lastElementChild) {
-        return;
+        throw new Error("Text layer not rendered yet");
     }
 
     const viewport = page.viewport.clone({ rotation: 0 }); // rotation https://github.com/siyuan-note/siyuan/issues/9831
     const rectsElement = getOrCreateRectsElement(textLayerElement);
     if (!rectsElement) {
-        return;
+        throw new Error("Failed to get or create rects element");
     }
     const html = generateHighlightHtml(selected, viewport);
     const lastChild = insertHighlightElement(rectsElement, selected, html);
