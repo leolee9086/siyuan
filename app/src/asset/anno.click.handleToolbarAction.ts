@@ -86,16 +86,14 @@ export const createToolbarActionContext = (pdf: IPdfInstance, element: HTMLEleme
  * @param pdf - PDF实例对象
  */
 const handleRemoveAction = (ctx: ToolbarActionContext) => {
-    const { urlPath, config, id, pdf } = ctx;
+    const { urlPath, config, id, pdf, element } = ctx;
 
     if (id) {
         delete config[id];
-        const element = document.querySelector(`[${AnnoConstants.ATTR.DATA_NODE_ID}="${id}"]`)?.parentElement as HTMLElement;
-        if (element) {
-            element.querySelectorAll(`[${AnnoConstants.ATTR.DATA_NODE_ID}="${id}"]`).forEach(item => {
-                item.remove();
-            });
-        }
+        element.querySelectorAll(`[${AnnoConstants.ATTR.DATA_NODE_ID}="${id}"]`).forEach(item => {
+            item.remove();
+        });
+
         fetchPost("/api/asset/setFileAnnotation", {
             path: urlPath + ".sya",
             data: JSON.stringify(config),
@@ -164,7 +162,6 @@ const handleToggleAction = (ctx: ToolbarActionContext) => {
         } else {
             annoItem.type = "border";
         }
-        const element = document.querySelector(`[${AnnoConstants.ATTR.DATA_NODE_ID}="${id}"]`)?.parentElement as HTMLElement;
         if (element) {
             element.querySelectorAll(`.${AnnoConstants.CSS.PDF_RECT}[${AnnoConstants.ATTR.DATA_NODE_ID}="${id}"]`).forEach(rectItem => {
                 Array.from(rectItem.children).forEach((item) => {
@@ -206,26 +203,3 @@ export const toolbarActionRegistry: ToolbarActionRegistry = {
     [AnnoConstants.ACTION.TOGGLE]: handleToggleAction,
 };
 
-/**
- * 处理工具栏操作
- *
- * 使用注册表模式处理工具栏操作，替代原有的switch语句：
- * 1. 根据操作类型从注册表中查找对应的处理函数
- * 2. 如果找到处理函数则执行，否则忽略
- *
- * 这种实现方式的优势：
- * - 更好的可扩展性：添加新操作无需修改此函数
- * - 更好的可维护性：每种操作的逻辑独立在各自的函数中
- * - 更好的可测试性：可以单独测试每个处理函数
- *
- * @param type - 操作类型字符串，如 'remove', 'copy', 'relate', 'toggle'
- * @param element - 工具栏容器元素
- * @param pdf - PDF实例对象
- */
-export const handleToolbarAction = (type: string, pdf: IPdfInstance,element: HTMLElement) => {
-    const handler = toolbarActionRegistry[type];
-    if (handler) {
-        const context = createToolbarActionContext(pdf,element);
-        handler(context);
-    }
-};

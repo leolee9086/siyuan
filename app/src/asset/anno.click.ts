@@ -12,7 +12,7 @@ import { hasClosestByClassName } from "../protyle/util/hasClosest";
 import { rectElement, setRectElement } from "./anno";
 import { AnnoConstants } from "./anno.constants";
 import type { IAnnoCoords, IPdfInstance } from "./anno.types";
-import { handleToolbarAction } from "./anno.click.handleToolbarAction";
+import { createToolbarActionContext,  toolbarActionRegistry } from "./anno.click.handleToolbarAction";
 import { externalEventClickHandler } from "./anno.click.handleExternalEvent";
 
 const updateExistingAnnotation = (color: string, element: HTMLElement, pdf: IPdfInstance) => {
@@ -89,7 +89,7 @@ const handleSelection = (element: HTMLElement) => {
 };
 
 export const initClickHandler = (element: HTMLElement, pdf: IPdfInstance) => {
-    element.addEventListener("click", async(event: MouseEvent | CustomEvent) => {
+    element.addEventListener("click", async (event: MouseEvent | CustomEvent) => {
         // 处理自定义事件（例如来自快捷键或其他组件的事件）
         const controller = new AbortController();
         const signal = controller.signal;
@@ -134,7 +134,12 @@ export const initClickHandler = (element: HTMLElement, pdf: IPdfInstance) => {
             // 我们还应该检查它不是pdf__outer本身，但closest处理了这一点。
             const type = actionBtn.getAttribute(AnnoConstants.ATTR.DATA_TYPE);
             if (type) {
-                handleToolbarAction(type, pdf, element);
+                const handler = toolbarActionRegistry[type];
+                if (handler) {
+                    const context = createToolbarActionContext(pdf, element);
+                    handler(context);
+                }
+
                 event.preventDefault();
                 event.stopPropagation();
                 return;

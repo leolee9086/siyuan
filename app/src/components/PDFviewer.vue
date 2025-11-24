@@ -138,7 +138,7 @@
                         </svg>
                         <span class="b3-menu__label">{{ siyuanI18n.zoomOut }}</span>
                         <span class="b3-menu__accelerator b3-menu__accelerator--hotkey">{{ updateHotkeyTip("⌘-")
-                            }}</span>
+                        }}</span>
                     </button>
                     <button id="zoomInButton" class="secondaryToolbarButton b3-menu__item zoomIn">
                         <svg class="b3-menu__icon">
@@ -146,7 +146,7 @@
                         </svg>
                         <span class="b3-menu__label">{{ siyuanI18n.zoomIn }}</span>
                         <span class="b3-menu__accelerator b3-menu__accelerator--hotkey">{{ updateHotkeyTip("⌘=")
-                            }}</span>
+                        }}</span>
                     </button>
                     <button id="pageRotateCw" class="secondaryToolbarButton b3-menu__item rotateCw">
                         <svg class="b3-menu__icon">
@@ -161,7 +161,7 @@
                         </svg>
                         <span class="b3-menu__label">{{ siyuanI18n.rotateCcw }}</span>
                         <span class="b3-menu__accelerator b3-menu__accelerator--hotkey">{{ updateHotkeyTip("⇧R")
-                            }}</span>
+                        }}</span>
                     </button>
 
                     <div class="horizontalToolbarSeparator b3-menu__separator"></div>
@@ -428,14 +428,21 @@
             </div>
         </div>
         <div class="pdf__util b3-menu fn__none pdf__util--hide">
-            <div class="fn__flex" style="padding: 0 4px">
-                <button class="color__square" style="background-color:var(--b3-pdf-background1)"></button>
-                <button class="color__square" style="background-color:var(--b3-pdf-background2)"></button>
-                <button class="color__square" style="background-color:var(--b3-pdf-background3)"></button>
-                <button class="color__square" style="background-color:var(--b3-pdf-background4)"></button>
-                <button class="color__square" style="background-color:var(--b3-pdf-background5)"></button>
-                <button class="color__square" style="background-color:var(--b3-pdf-background6)"></button>
-                <button class="color__square" style="background-color:var(--b3-pdf-background7)"></button>
+            <div 
+                class="fn__flex" 
+                style="padding: 0 4px;max-width: 300px;overflow-x: scroll;" 
+                                v-on:wheel="(event) => horizontalScroll(event)"
+
+                >
+                <template v-for="(colorValue, colorName) in genThemedColorList()">
+                    <button
+                    @scroll.prevent
+                    class="color__square ariaLabel" 
+                    :aria-label="colorName"
+                    :style="{minWidth: '26px', minHeight: '26px', backgroundColor: 'var(' + colorValue + ')' }">
+                    </button>
+                </template>
+         
             </div>
             <div class="b3-menu__separator pdf__util__hide" style="margin-top: 8px"></div>
             <button class="b3-menu__item pdf__util__hide" data-type="toggle">
@@ -501,6 +508,8 @@ import { setModelsHash } from '../window/setHeader';
 import { updateHotkeyTip } from '../protyle/util/compatibility';
 import { onMounted, ref } from 'vue';
 import { nextTick } from 'vue';
+import { genThemedColorList, themedColorList } from '../appearance/colorList';
+import { horizontalScroll, horizontalScrollFirst, verticalScroll } from '../util/DOM/scroll';
 
 const props = defineProps([
     'controller'
@@ -546,27 +555,27 @@ onMounted(
             setStorageVal(Constants.LOCAL_PDFTHEME, getSiyuanStorage()[Constants.LOCAL_PDFTHEME]);
         });
         // 初始化完成后需等待页签是否显示设置完成，才可以判断 pdf 是否能进行渲染
-          setTimeout(() => {
-        if (controller.element.clientWidth === 0) {
-            const observer = new MutationObserver(() => {
-                controller.pdfObject = webViewerLoad(
-                    controller.path.startsWith("file") ? controller.path : document.getElementById("baseURL").getAttribute("href") + "/" + controller.path,
+        setTimeout(() => {
+            if (controller.element.clientWidth === 0) {
+                const observer = new MutationObserver(() => {
+                    controller.pdfObject = webViewerLoad(
+                        controller.path.startsWith("file") ? controller.path : document.getElementById("baseURL").getAttribute("href") + "/" + controller.path,
+                        controller.element, controller.pdfPage, controller.pdfId);
+                    controller.element.setAttribute("data-loading", "true");
+                    observer.disconnect();
+                });
+                observer.observe(controller.element, { attributeFilter: ["class"] });
+            } else {
+                controller.pdfObject = webViewerLoad(controller.path.startsWith("file") ? controller.path : document.getElementById("baseURL").getAttribute("href") + "/" + controller.path,
                     controller.element, controller.pdfPage, controller.pdfId);
                 controller.element.setAttribute("data-loading", "true");
-                observer.disconnect();
-            });
-            observer.observe(controller.element, { attributeFilter: ["class"] });
-        } else {
-            controller.pdfObject = webViewerLoad(controller.path.startsWith("file") ? controller.path : document.getElementById("baseURL").getAttribute("href") + "/" + controller.path,
-                controller.element, controller.pdfPage, controller.pdfId);
-            controller.element.setAttribute("data-loading", "true");
-        }
-        /// #if !BROWSER
-        setModelsHash();
-        /// #endif
+            }
+            /// #if !BROWSER
+            setModelsHash();
+            /// #endif
 
 
-         }, Constants.TIMEOUT_LOAD);
+        }, Constants.TIMEOUT_LOAD);
 
     }
 )
