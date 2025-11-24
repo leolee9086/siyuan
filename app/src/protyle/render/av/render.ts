@@ -17,7 +17,7 @@ import {renderGallery} from "./gallery/render";
 import {getFieldsByData, getViewIcon} from "./view";
 import {openMenuPanel} from "./openMenuPanel";
 import {getPageSize} from "./groups";
-import {clearSelect} from "../../util/clear";
+import {clearSelect} from "../../util/clearSelect";
 import {showMessage} from "../../../dialog/message";
 import {renderKanban} from "./kanban/render";
 

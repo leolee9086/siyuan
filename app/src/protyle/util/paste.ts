@@ -14,7 +14,7 @@ import {hideElements} from "../ui/hideElements";
 import {avRender} from "../render/av/render";
 import {cellScrollIntoView, getCellText} from "../render/av/cell";
 import {getContenteditableElement} from "../wysiwyg/getBlock";
-import {clearBlockElement} from "./clear";
+import {clearBlockElement} from "./clearSelect";
 
 export const getTextStar = (blockElement: HTMLElement) => {
     const dataType = blockElement.dataset.type;

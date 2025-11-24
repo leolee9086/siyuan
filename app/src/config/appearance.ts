@@ -12,7 +12,6 @@ import {resetFloatDockSize} from "../layout/dock/util";
 import {confirmDialog} from "../dialog/confirmDialog";
 import {useShell} from "../util/pathName";
 import {Dialog} from "../dialog";
-import {reloadOtherWindow} from "../dialog/processSystem";
 import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig";
 
 export const appearance = {

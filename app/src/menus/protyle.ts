@@ -52,7 +52,7 @@ import {popSearch} from "../mobile/menu/search";
 import {showMessage} from "../dialog/message";
 import {img3115} from "../boot/compatibleVersion";
 import {hideTooltip} from "../dialog/tooltip";
-import {clearSelect} from "../protyle/util/clear";
+import {clearSelect} from "../protyle/util/clearSelect";
 import {scrollCenter} from "../util/highlightById";
 
 export const enterBack = (protyle: IProtyle, id: string) => {
