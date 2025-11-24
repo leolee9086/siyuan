@@ -134,7 +134,7 @@ export const initClickHandler = (element: HTMLElement, pdf: IPdfInstance) => {
             // 我们还应该检查它不是pdf__outer本身，但closest处理了这一点。
             const type = actionBtn.getAttribute(AnnoConstants.ATTR.DATA_TYPE);
             if (type) {
-                handleToolbarAction(type, pdf);
+                handleToolbarAction(type, pdf, element);
                 event.preventDefault();
                 event.stopPropagation();
                 return;

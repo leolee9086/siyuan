@@ -47,6 +47,8 @@ export interface ToolbarActionContext {
     id: string | undefined;
     /** PDF实例对象 */
     pdf: IPdfInstance;
+    /** 容器元素 */
+    element: HTMLElement;
 }
 /**
  * 创建工具栏操作上下文
@@ -56,7 +58,7 @@ export interface ToolbarActionContext {
  * @param pdf - PDF实例对象
  * @returns 工具栏操作上下文
  */
-export const createToolbarActionContext = (pdf: IPdfInstance): ToolbarActionContext => {
+export const createToolbarActionContext = (pdf: IPdfInstance, element: HTMLElement): ToolbarActionContext => {
     const urlPath = pdf.appConfig.file.replace(location.origin, "").substr(1);
     const config = getConfig(pdf);
     const id = rectElement?.getAttribute(AnnoConstants.ATTR.DATA_NODE_ID) || undefined;
@@ -66,6 +68,7 @@ export const createToolbarActionContext = (pdf: IPdfInstance): ToolbarActionCont
         config,
         id,
         pdf,
+        element
     };
 };
 
@@ -98,7 +101,7 @@ const handleRemoveAction = (ctx: ToolbarActionContext) => {
             data: JSON.stringify(config),
         });
     }
-    hideToolbar(document.querySelector('.toolbar') as HTMLElement);
+    hideToolbar(ctx.element);
 };
 
 /**
@@ -113,9 +116,9 @@ const handleRemoveAction = (ctx: ToolbarActionContext) => {
  * @param pdf - PDF实例对象
  */
 const handleCopyAction = (ctx: ToolbarActionContext) => {
-    const { id, pdf } = ctx;
+    const { id, pdf, element } = ctx;
 
-    hideToolbar(document.querySelector('.toolbar') as HTMLElement);
+    hideToolbar(element);
     if (id) {
         copyAnno(`${pdf.appConfig.file.replace(location.origin, "").substr(1)}/${id}`,
             pdf.appConfig.file.replace(location.origin, "").substr(8).replace(/-\d{14}-\w{7}.pdf$/, ""), pdf);
@@ -134,8 +137,9 @@ const handleCopyAction = (ctx: ToolbarActionContext) => {
  */
 const handleRelateAction = (ctx: ToolbarActionContext) => {
     const { pdf } = ctx;
+    console.log(pdf)
     setRelation(pdf);
-    hideToolbar(document.querySelector('.toolbar') as HTMLElement);
+    hideToolbar(ctx.element);
 };
 
 /**
@@ -151,7 +155,7 @@ const handleRelateAction = (ctx: ToolbarActionContext) => {
  * @param pdf - PDF实例对象
  */
 const handleToggleAction = (ctx: ToolbarActionContext) => {
-    const { urlPath, config, id } = ctx;
+    const { urlPath, config, id, element } = ctx;
 
     if (id) {
         const annoItem = config[id];
@@ -179,7 +183,7 @@ const handleToggleAction = (ctx: ToolbarActionContext) => {
             data: JSON.stringify(config),
         });
     }
-    hideToolbar(document.querySelector('.toolbar') as HTMLElement);
+    hideToolbar(ctx.element);
 };
 
 
@@ -218,10 +222,10 @@ export const toolbarActionRegistry: ToolbarActionRegistry = {
  * @param element - 工具栏容器元素
  * @param pdf - PDF实例对象
  */
-export const handleToolbarAction = (type: string, pdf: IPdfInstance) => {
+export const handleToolbarAction = (type: string, pdf: IPdfInstance,element: HTMLElement) => {
     const handler = toolbarActionRegistry[type];
     if (handler) {
-        const context = createToolbarActionContext(pdf);
+        const context = createToolbarActionContext(pdf,element);
         handler(context);
     }
 };
