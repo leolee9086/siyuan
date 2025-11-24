@@ -15,16 +15,15 @@ import { hideToolbar } from "./anno.hideToolbar";
 import { showHighlight } from "./anno.showHighlight";
 import { getHightlightCoordsByRect } from "./anno.getHightlightCoordsByRect";
 import { getHightlightCoordsByRange } from "./anno.getHightlightCoordsByRange";
-import { getPdfInstance } from "./anno.getPdfInstance";
 export let rectElement: RectElementType;
 
 export const initAnno = (element: HTMLElement, pdf: any) => {
     getConfig(pdf);
     const pdfConfig = pdf.appConfig;
     const rectAnnoElement = pdfConfig.toolbar.rectAnno;
-    
+
     initRectAnnoTool(element, pdf);
-    
+
     const rectResizeElement = pdfConfig.mainContainer.lastElementChild;
     pdfConfig.mainContainer.addEventListener("mousedown", (event: MouseEvent) => {
         if (event.button === 2 || !rectAnnoElement.classList.contains("toggled")) {
@@ -408,37 +407,6 @@ export const getTextNode = (element: HTMLElement, isFirst: boolean) => {
         }
     }
     return spans[index];
-};
-
-export const getHighlight = (element: HTMLElement) => {
-    const pdfInstance: any = getPdfInstance(element);
-    if (!pdfInstance) {
-        return;
-    }
-    const pageIndex = parseInt(
-        element.parentElement.getAttribute("data-page-number")) - 1;
-    const config = getConfig(pdfInstance);
-    Object.keys(config).find(key => {
-        const item = config[key];
-        const page = item.pages.find((page: { index: number }) => {
-            if (page.index === pageIndex) {
-                return true;
-            }
-        });
-
-        if (page) {
-            showHighlight({
-                index: pageIndex,
-                coords: page.positions,
-                id: key,
-                color: item.color,
-                content: item.content,
-                type: item.type,
-                mode: item.mode || "",
-                ids: item.ids
-            }, pdfInstance, pdfInstance.annoId === key);
-        }
-    });
 };
 
 
