@@ -1,7 +1,7 @@
 import { fetchPost } from "../util/fetch";
 import { setPosition } from "../util/setPosition";
-import { hasClosestByAttribute, hasClosestByClassName } from "../protyle/util/hasClosest";
-import { setStorageVal, writeText } from "../protyle/util/compatibility";
+import { hasClosestByClassName } from "../protyle/util/hasClosest";
+import { setStorageVal } from "../protyle/util/compatibility";
 import { getAllModels } from "../layout/getAll";
 import { focusByRange } from "../protyle/util/selection";
 import { Constants } from "../constants";
@@ -11,25 +11,13 @@ import type { IPdfAnno, IPdfInstance, IAnnoCoords, IRectBounds, IPagePosition, R
 import { getConfig, setConfig } from "./anno.config";
 import { generateRectContent, createAnnoCoords } from "./anno.content";
 import { getPageViewInfo } from "./anno.page";
-
-const initRectAnnoTool = (element: HTMLElement, pdf: any) => {
-    const pdfConfig = pdf.appConfig;
-    const rectAnnoElement = pdfConfig.toolbar.rectAnno;
-    rectAnnoElement.addEventListener("click", () => {
-        if (rectAnnoElement.classList.contains("toggled")) {
-            rectAnnoElement.classList.remove("toggled");
-            pdfConfig.mainContainer.classList.remove("rect-to-annotation");
-        } else {
-            pdf.pdfCursorTools.switchTool(0);
-            rectAnnoElement.classList.add("toggled");
-            pdfConfig.mainContainer.classList.add("rect-to-annotation");
-            if (getSelection().rangeCount > 0) {
-                getSelection().getRangeAt(0).collapse(true);
-            }
-            hideToolbar(element);
-        }
-    });
-};
+import { get } from "http";
+import { getSiyuanStorage } from "../util/siyuanEnvironments/getSiyuanConfig";
+import { copyAnno } from "./anno.copy";
+import { initRectAnnoTool } from "./initRectAnnoTool";
+import { hideToolbar } from "./anno.hideToolbar";
+import { hlPDFRect } from "./anno.hlPDFRect";
+export let rectElement: RectElementType;
 
 export const initAnno = (element: HTMLElement, pdf: any) => {
     getConfig(pdf);
@@ -142,11 +130,11 @@ export const initAnno = (element: HTMLElement, pdf: any) => {
         let processed = false;
         let target = event.target as HTMLElement;
         if (typeof event.detail === "string") {
-            window.siyuan.storage[Constants.LOCAL_PDFTHEME].annoColor = event.detail === "0" ?
-                (window.siyuan.storage[Constants.LOCAL_PDFTHEME].annoColor || "var(--b3-pdf-background1)")
+            getSiyuanStorage()[Constants.LOCAL_PDFTHEME].annoColor = event.detail === "0" ?
+                (getSiyuanStorage()[Constants.LOCAL_PDFTHEME].annoColor || "var(--b3-pdf-background1)")
                 : `var(--b3-pdf-background${event.detail})`;
-            setStorageVal(Constants.LOCAL_PDFTHEME, window.siyuan.storage[Constants.LOCAL_PDFTHEME]);
-            const coords = getHightlightCoordsByRange(pdf, window.siyuan.storage[Constants.LOCAL_PDFTHEME].annoColor);
+            setStorageVal(Constants.LOCAL_PDFTHEME, getSiyuanStorage()[Constants.LOCAL_PDFTHEME]);
+            const coords = getHightlightCoordsByRange(pdf, getSiyuanStorage()[Constants.LOCAL_PDFTHEME].annoColor);
             if (coords) {
                 coords.forEach((item, index) => {
                     const newElement = showHighlight(item, pdf);
@@ -164,8 +152,8 @@ export const initAnno = (element: HTMLElement, pdf: any) => {
             const type = target.getAttribute("data-type");
             if (target.classList.contains("color__square")) {
                 const color = target.style.backgroundColor;
-                window.siyuan.storage[Constants.LOCAL_PDFTHEME].annoColor = color;
-                setStorageVal(Constants.LOCAL_PDFTHEME, window.siyuan.storage[Constants.LOCAL_PDFTHEME]);
+                getSiyuanStorage()[Constants.LOCAL_PDFTHEME].annoColor = color;
+                setStorageVal(Constants.LOCAL_PDFTHEME, getSiyuanStorage()[Constants.LOCAL_PDFTHEME]);
                 if (rectElement) {
                     const config = getConfig(pdf);
                     const annoItem = config[rectElement.getAttribute("data-node-id")];
@@ -380,11 +368,6 @@ const setRelation = (pdf: any) => {
     });
 };
 
-const hideToolbar = (element: HTMLElement) => {
-    element.querySelector(".pdf__util").classList.add("fn__none");
-};
-
-let rectElement: RectElementType;
 const showToolbar = (element: HTMLElement, range: Range, target?: HTMLElement) => {
     if (target) {
         // 阻止 popover
@@ -695,92 +678,4 @@ height: ${Math.abs(bounds[1] - bounds[3])}px"></div>`;
     return rectsElement.lastElementChild;
 };
 
-export const hlPDFRect = (element: HTMLElement, id: string) => {
-    element.querySelectorAll(`.pdf__rect[data-node-id="${id}"]`).forEach(item => {
-        if (item && item.firstElementChild) {
-            const scrollElement = hasClosestByAttribute(item, "id", "viewerContainer");
-            if (scrollElement) {
-                const currentRect = item.firstElementChild.getBoundingClientRect();
-                const scrollRect = scrollElement.getBoundingClientRect();
-                if (currentRect.top < scrollRect.top) {
-                    scrollElement.scrollTop = scrollElement.scrollTop - (scrollRect.top - currentRect.top) -
-                        (scrollRect.height - currentRect.height) / 2;
-                } else if (currentRect.bottom > scrollRect.bottom) {
-                    scrollElement.scrollTop = scrollElement.scrollTop + (currentRect.bottom - scrollRect.bottom) +
-                        (scrollRect.height - currentRect.height) / 2;
-                }
-            }
-            item.classList.add("pdf__rect--hl");
-            setTimeout(() => {
-                item.classList.remove("pdf__rect--hl");
-            }, 1500);
-        }
-    });
-};
-
-const copyAnno = (idPath: string, fileName: string, pdf: any) => {
-    const mode = rectElement.getAttribute("data-mode");
-    const content = rectElement.getAttribute("data-content");
-    setTimeout(() => {
-        if (mode === "rect" ||
-            (mode === "" && rectElement.childElementCount === 1 && content.startsWith(fileName)) // 兼容历史，以前没有 mode
-        ) {
-            getRectImgData(pdf).then((imageDataURL: string) => {
-                fetch(imageDataURL).then((response) => {
-                    return response.blob();
-                }).then((blob) => {
-                    const formData = new FormData();
-                    const imageName = content + ".png";
-                    formData.append("file[]", blob, imageName);
-                    formData.append("skipIfDuplicated", "true");
-                    fetchPost(Constants.UPLOAD_ADDRESS, formData, (response) => {
-                        writeText(`<<${idPath} "${content}">>
-![](${response.data.succMap[imageName]})`);
-                    });
-                });
-            });
-        } else {
-            writeText(`<<${idPath} "${content}">>`);
-        }
-    }, Constants.TIMEOUT_DBLCLICK);
-};
-
-const getCaptureCanvas = async (pdfObj: any, pageNumber: number) => {
-    const pdfPage = await pdfObj.pdfDocument.getPage(pageNumber);
-    const viewport = pdfPage.getViewport({ scale: 1.5 * pdfObj.pdfViewer.currentScale * window.pdfjsLib.PixelsPerInch.PDF_TO_CSS_UNITS });
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.floor(viewport.width);
-    canvas.height = Math.floor(viewport.height);
-
-    await pdfPage.render({
-        canvasContext: canvas.getContext("2d"),
-        viewport: viewport
-    }).promise;
-
-    return canvas;
-};
-
-async function getRectImgData(pdfObj: any) {
-    const pageElement = hasClosestByClassName(rectElement, "page");
-    if (!pageElement) {
-        return;
-    }
-
-    const captureCanvas = await getCaptureCanvas(pdfObj, parseInt(pageElement.getAttribute("data-page-number")));
-
-    const rectStyle = (rectElement.firstElementChild as HTMLElement).style;
-    const scale = 1.5;
-    const captureImageData = captureCanvas.getContext("2d").getImageData(
-        scale * parseFloat(rectStyle.left),
-        scale * parseFloat(rectStyle.top),
-        scale * parseFloat(rectStyle.width),
-        scale * parseFloat(rectStyle.height));
-
-    const tempCanvas = document.createElement("canvas");
-    tempCanvas.width = captureImageData.width;
-    tempCanvas.height = captureImageData.height;
-    const ctx = tempCanvas.getContext("2d");
-    ctx && ctx.putImageData(captureImageData, 0, 0);
-    return tempCanvas.toDataURL();
-}
 
