@@ -1,11 +1,9 @@
 import { fetchPost } from "../util/fetch";
-import { setPosition } from "../util/setPosition";
 import { hasClosestByClassName } from "../protyle/util/hasClosest";
 import { setStorageVal } from "../protyle/util/compatibility";
 import { Constants } from "../constants";
-import type { IPdfAnno, IRectBounds, IPagePosition, RectElementType } from "./anno.types";
+import type {  RectElementType } from "./anno.types";
 import { getConfig } from "./anno.config";
-import { get } from "http";
 import { getSiyuanStorage } from "../util/siyuanEnvironments/getSiyuanConfig";
 import { copyAnno } from "./anno.copy";
 import { initRectAnnoTool } from "./anno.initRectAnnoTool";
@@ -14,8 +12,14 @@ import { showHighlight } from "./anno.showHighlight";
 import { getHightlightCoordsByRect } from "./anno.getHightlightCoordsByRect";
 import { getHightlightCoordsByRange } from "./anno.getHightlightCoordsByRange";
 import { setRelation } from "./anno.setRelation";
+import { showToolbar } from "./anno.showToolbar";
 export let rectElement: RectElementType;
-
+export const clearRectElement = () => {
+    rectElement = null;
+}
+export const setRectElement = (element: RectElementType) => {
+    rectElement = element;
+}
 export const initAnno = (element: HTMLElement, pdf: any) => {
     getConfig(pdf);
     const pdfConfig = pdf.appConfig;
@@ -276,32 +280,6 @@ export const initAnno = (element: HTMLElement, pdf: any) => {
         });
     });
     return pdf;
-};
-
-const showToolbar = (element: HTMLElement, range: Range, target?: HTMLElement) => {
-    if (target) {
-        // 阻止 popover
-        target.setAttribute("prevent-popover", "true");
-        setTimeout(() => {
-            target.removeAttribute("prevent-popover");
-        }, 620);
-    }
-
-    const utilElement = element.querySelector(".pdf__util") as HTMLElement;
-    utilElement.classList.remove("fn__none");
-
-    if (range) {
-        utilElement.classList.add("pdf__util--hide");
-        const rects = range.getClientRects();
-        const rect = rects[rects.length - 1];
-        setPosition(utilElement, rect.left, rect.bottom);
-        rectElement = null;
-        return;
-    }
-    rectElement = target;
-    utilElement.classList.remove("pdf__util--hide");
-    const targetRect = target.firstElementChild.getBoundingClientRect();
-    setPosition(utilElement, targetRect.left, targetRect.top + targetRect.height + 4);
 };
 
 export const getTextNode = (element: HTMLElement, isFirst: boolean) => {
