@@ -8,30 +8,12 @@ import { hideToolbar } from "./anno.hideToolbar";
 import { getConfig } from "./anno.config";
 import { fetchPost } from "../util/fetch";
 import { showToolbar } from "./anno.showToolbar";
-import { setRelation } from "./anno.setRelation";
 import { hasClosestByClassName } from "../protyle/util/hasClosest";
 import { rectElement, setRectElement } from "./anno";
 import { AnnoConstants } from "./anno.constants";
 import type { IAnnoCoords, IPdfInstance } from "./anno.types";
-
-const handleExternalEvent = (event: CustomEvent, element: HTMLElement, pdf: IPdfInstance) => {
-    getSiyuanStorage()[Constants.LOCAL_PDFTHEME].annoColor = event.detail === "0" ?
-        (getSiyuanStorage()[Constants.LOCAL_PDFTHEME].annoColor || "var(--b3-pdf-background1)")
-        : `var(--b3-pdf-background${event.detail})`;
-    setStorageVal(Constants.LOCAL_PDFTHEME, getSiyuanStorage()[Constants.LOCAL_PDFTHEME]);
-    const coords = getHightlightCoordsByRange(pdf, getSiyuanStorage()[Constants.LOCAL_PDFTHEME].annoColor);
-    if (coords) {
-        coords.forEach((item: IAnnoCoords, index: number) => {
-            const newElement = showHighlight(item, pdf);
-            if (index === 0) {
-                setRectElement(newElement);
-                copyAnno(`${pdf.appConfig.file.replace(location.origin, "").substr(1)}/${newElement.getAttribute(AnnoConstants.ATTR.DATA_NODE_ID)}`,
-                    pdf.appConfig.file.replace(location.origin, "").substr(8).replace(/-\d{14}-\w{7}.pdf$/, ""), pdf);
-            }
-        });
-    }
-    hideToolbar(element);
-};
+import { handleToolbarAction } from "./anno.click.handleToolbarAction";
+import { externalEventClickHandler } from "./anno.click.handleExternalEvent";
 
 const updateExistingAnnotation = (color: string, element: HTMLElement, pdf: IPdfInstance) => {
     const config = getConfig(pdf);
@@ -85,67 +67,8 @@ const handleColorClick = (target: HTMLElement, element: HTMLElement, pdf: IPdfIn
     hideToolbar(element);
 };
 
-const handleToolbarAction = (type: string, element: HTMLElement, pdf: IPdfInstance) => {
-    const urlPath = pdf.appConfig.file.replace(location.origin, "").substr(1);
-    const config = getConfig(pdf);
-    const id = rectElement?.getAttribute(AnnoConstants.ATTR.DATA_NODE_ID);
 
-    switch (type) {
-        case AnnoConstants.ACTION.REMOVE:
-            if (id) {
-                delete config[id];
-                element.querySelectorAll(`[${AnnoConstants.ATTR.DATA_NODE_ID}="${id}"]`).forEach(item => {
-                    item.remove();
-                });
-                fetchPost("/api/asset/setFileAnnotation", {
-                    path: urlPath + ".sya",
-                    data: JSON.stringify(config),
-                });
-            }
-            hideToolbar(element);
-            break;
 
-        case AnnoConstants.ACTION.COPY:
-            hideToolbar(element);
-            if (id) {
-                copyAnno(`${pdf.appConfig.file.replace(location.origin, "").substr(1)}/${id}`,
-                    pdf.appConfig.file.replace(location.origin, "").substr(8).replace(/-\d{14}-\w{7}.pdf$/, ""), pdf);
-            }
-            break;
-
-        case AnnoConstants.ACTION.RELATE:
-            setRelation(pdf);
-            hideToolbar(element);
-            break;
-
-        case AnnoConstants.ACTION.TOGGLE:
-            if (id) {
-                const annoItem = config[id];
-                if (annoItem.type === "border") {
-                    annoItem.type = "text";
-                } else {
-                    annoItem.type = "border";
-                }
-                element.querySelectorAll(`.${AnnoConstants.CSS.PDF_RECT}[${AnnoConstants.ATTR.DATA_NODE_ID}="${id}"]`).forEach(rectItem => {
-                    Array.from(rectItem.children).forEach((item) => {
-                        if (item instanceof HTMLElement) {
-                            if (annoItem.type === "text") {
-                                item.style.backgroundColor = item.style.border.replace("2px solid ", "");
-                            } else {
-                                item.style.backgroundColor = "";
-                            }
-                        }
-                    });
-                });
-                fetchPost("/api/asset/setFileAnnotation", {
-                    path: pdf.appConfig.file.replace(location.origin, "").substr(1) + ".sya",
-                    data: JSON.stringify(config),
-                });
-            }
-            hideToolbar(element);
-            break;
-    }
-};
 
 const handleSelection = (element: HTMLElement) => {
     setTimeout(() => {
@@ -166,12 +89,21 @@ const handleSelection = (element: HTMLElement) => {
 };
 
 export const initClickHandler = (element: HTMLElement, pdf: IPdfInstance) => {
-    element.addEventListener("click", (event: MouseEvent | CustomEvent) => {
+    element.addEventListener("click", async(event: MouseEvent | CustomEvent) => {
         // 处理自定义事件（例如来自快捷键或其他组件的事件）
-        if (typeof (event as CustomEvent).detail === "string") {
-            handleExternalEvent(event as CustomEvent, element, pdf);
-            return;
+        const controller = new AbortController();
+        const signal = controller.signal;
+        signal.addEventListener("abort", (reason) => {
+            console.log("Abort signal received:", reason);
+        })
+        //处理自定义事件
+        const ctx = { event, element, pdf };
+
+
+        if (externalEventClickHandler.guard(ctx)) {
+            await externalEventClickHandler.handler(ctx, controller);
         }
+        if (signal.aborted) return;
 
         const target = event.target as HTMLElement;
         if (!target) return;
@@ -202,7 +134,7 @@ export const initClickHandler = (element: HTMLElement, pdf: IPdfInstance) => {
             // 我们还应该检查它不是pdf__outer本身，但closest处理了这一点。
             const type = actionBtn.getAttribute(AnnoConstants.ATTR.DATA_TYPE);
             if (type) {
-                handleToolbarAction(type, element, pdf);
+                handleToolbarAction(type, pdf);
                 event.preventDefault();
                 event.stopPropagation();
                 return;
