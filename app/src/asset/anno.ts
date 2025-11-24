@@ -8,9 +8,11 @@ import { Constants } from "../constants";
 import { Dialog } from "../dialog";
 import { showMessage } from "../dialog/message";
 import type { IPdfAnno, IPdfInstance, IAnnoCoords, IRectBounds, IPagePosition, RectElementType } from "./anno.types";
+import { getConfig, setConfig } from "./anno.config";
+import { generateRectContent, createAnnoCoords } from "./anno.content";
+import { getPageViewInfo } from "./anno.page";
 
-export const initAnno = (element: HTMLElement, pdf: any) => {
-    getConfig(pdf);
+const initRectAnnoTool = (element: HTMLElement, pdf: any) => {
     const pdfConfig = pdf.appConfig;
     const rectAnnoElement = pdfConfig.toolbar.rectAnno;
     rectAnnoElement.addEventListener("click", () => {
@@ -27,6 +29,15 @@ export const initAnno = (element: HTMLElement, pdf: any) => {
             hideToolbar(element);
         }
     });
+};
+
+export const initAnno = (element: HTMLElement, pdf: any) => {
+    getConfig(pdf);
+    const pdfConfig = pdf.appConfig;
+    const rectAnnoElement = pdfConfig.toolbar.rectAnno;
+    
+    initRectAnnoTool(element, pdf);
+    
     const rectResizeElement = pdfConfig.mainContainer.lastElementChild;
     pdfConfig.mainContainer.addEventListener("mousedown", (event: MouseEvent) => {
         if (event.button === 2 || !rectAnnoElement.classList.contains("toggled")) {
@@ -495,22 +506,16 @@ const getHightlightCoordsByRange = (pdf: any, color: string) => {
             index: startIndex,
             positions: startSelected,
         });
-        results.push({
-            index: startIndex,
-            coords: startSelected,
-            id,
-            color,
-            content,
-            type: "text",
-            mode: "text",
-        });
+        const pageInfo = getPageViewInfo(pdf, startIndex);
+        results.push(createAnnoCoords(pageInfo, startSelected, id, color, content, "text", "text"));
     }
     if (endSelected.length > 0) {
         pages.push({
             index: endIndex,
             positions: endSelected,
         });
-        results.push({ index: endIndex, coords: endSelected, id, color, content, type: "text", mode: "text" });
+        const pageInfo = getPageViewInfo(pdf, endIndex);
+        results.push(createAnnoCoords(pageInfo, endSelected, id, color, content, "text", "text"));
     }
     if (pages.length === 0) {
         return;
@@ -554,16 +559,9 @@ const getHightlightCoordsByRect = (pdf: any, color: string, rectResizeElement: H
             }];
 
     const id = Lute.NewNodeID();
-    const content = `${pdf.appConfig.file.replace(location.origin, "").substr(8).replace(/-\d{14}-\w{7}.pdf$/, "")}-P${startPage.id}-${id}`;
-    const result = [{
-        index: startPage.id - 1,
-        coords: [startSelected],
-        id,
-        color,
-        content,
-        type,
-        mode: "rect",
-    }];
+    const pageInfo = getPageViewInfo(pdf, startIndex);
+    const content = generateRectContent(pdf, pageInfo, id);
+    const result = [createAnnoCoords(pageInfo, [startSelected], id, color, content, type, "rect")];
 
     let endPageElement = document.elementFromPoint(rect.right, rect.bottom + 1);
     endPageElement = hasClosestByClassName(endPageElement, "page") as HTMLElement;
@@ -583,15 +581,8 @@ const getHightlightCoordsByRect = (pdf: any, color: string, rectResizeElement: H
                 index: endPage.id - 1,
                 positions: [endSelected],
             });
-            result.push({
-                index: endPage.id - 1,
-                coords: [endSelected],
-                id,
-                color,
-                content,
-                type,
-                mode: "rect",
-            });
+            const endPageInfo = getPageViewInfo(pdf, endIndex);
+            result.push(createAnnoCoords(endPageInfo, [endSelected], id, color, content, type, "rect"));
         }
     }
 
@@ -793,27 +784,3 @@ async function getRectImgData(pdfObj: any) {
     return tempCanvas.toDataURL();
 }
 
-const setConfig = (pdf: IPdfInstance, id: string, data: IPdfAnno) => {
-    const config = getConfig(pdf);
-    config[id] = data;
-    fetchPost("/api/asset/setFileAnnotation", {
-        path: pdf.appConfig.file.replace(location.origin, "").substr(1) + ".sya",
-        data: JSON.stringify(config),
-    });
-};
-
-const getConfig = (pdf: IPdfInstance) => {
-    if (pdf.appConfig.config) {
-        return pdf.appConfig.config;
-    }
-    const urlPath = pdf.appConfig.file.replace(location.origin, "").substr(1) + ".sya";
-    fetchPost("/api/asset/getFileAnnotation", {
-        path: urlPath,
-    }, (response) => {
-        let config = {};
-        if (response.code !== 1) {
-            config = JSON.parse(response.data.data);
-        }
-        pdf.appConfig.config = config;
-    });
-};
