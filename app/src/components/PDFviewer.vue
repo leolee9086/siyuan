@@ -508,8 +508,8 @@ import { setModelsHash } from '../window/setHeader';
 import { updateHotkeyTip } from '../protyle/util/compatibility';
 import { onMounted, ref } from 'vue';
 import { nextTick } from 'vue';
-import { genThemedColorList, themedColorList } from '../appearance/colorList';
-import { horizontalScroll, horizontalScrollFirst, verticalScroll } from '../util/DOM/scroll';
+import { genThemedColorList } from '../appearance/colorList';
+import { horizontalScroll } from '../util/DOM/scroll';
 
 const props = defineProps([
     'controller'

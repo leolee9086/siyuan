@@ -13,7 +13,7 @@ export const confirmDialog = (title: string, text: string,
     }
     const dialog = new Dialog({
         title,
-        content: `<div class="b3-dialog__content">
+        content: /*html */`<div class="b3-dialog__content">
     <div class="ft__breakword">${text}</div>
 </div>
 <div class="b3-dialog__action">

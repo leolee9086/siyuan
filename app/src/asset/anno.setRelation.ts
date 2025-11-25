@@ -69,7 +69,7 @@ const handleClickEvent = (event: Event, configItem: any, pdf: any, config: any, 
 const createRelationDialog = (configItem: any) => {
     return new Dialog({
         title: siyuanI18n.relation,
-        content: `<div class="b3-dialog__content">
+        content: /*html */`<div class="b3-dialog__content">
     <div class="fn__flex">
         <input class="b3-text-field fn__flex-1" placeholder="${siyuanI18n.fileAnnoRefPlaceholder}">
         <div class="fn__space"></div>
