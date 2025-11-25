@@ -438,7 +438,7 @@
                     <button
                     @scroll.prevent
                     class="color__square ariaLabel" 
-                    :aria-label="colorName"
+                    :aria-label="colorName.toString()||''"
                     :style="{minWidth: '26px', minHeight: '26px', backgroundColor: 'var(' + colorValue + ')' }">
                     </button>
                 </template>
@@ -556,17 +556,22 @@ onMounted(
         });
         // 初始化完成后需等待页签是否显示设置完成，才可以判断 pdf 是否能进行渲染
         setTimeout(() => {
+            const baseURLElement = document.getElementById("baseURL") 
+            if(!baseURLElement){
+                console.error("DOM中缺少baseURL元素，无法加载PDF文件");
+                return;
+            }
             if (controller.element.clientWidth === 0) {
                 const observer = new MutationObserver(() => {
                     controller.pdfObject = webViewerLoad(
-                        controller.path.startsWith("file") ? controller.path : document.getElementById("baseURL").getAttribute("href") + "/" + controller.path,
+                        controller.path.startsWith("file") ? controller.path : baseURLElement.getAttribute("href") + "/" + controller.path,
                         controller.element, controller.pdfPage, controller.pdfId);
                     controller.element.setAttribute("data-loading", "true");
                     observer.disconnect();
                 });
                 observer.observe(controller.element, { attributeFilter: ["class"] });
             } else {
-                controller.pdfObject = webViewerLoad(controller.path.startsWith("file") ? controller.path : document.getElementById("baseURL").getAttribute("href") + "/" + controller.path,
+                controller.pdfObject = webViewerLoad(controller.path.startsWith("file") ? controller.path : baseURLElement.getAttribute("href") + "/" + controller.path,
                     controller.element, controller.pdfPage, controller.pdfId);
                 controller.element.setAttribute("data-loading", "true");
             }
