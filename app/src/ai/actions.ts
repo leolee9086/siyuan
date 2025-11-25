@@ -81,6 +81,10 @@ const handleKeyDown = (
             customDialog(protyle, ids, elements);
             menu.close();
         } else if (currentElement.dataset.action === "aiChat") {
+            
+            if(!elements[0]){
+                throw new Error ('目标元素不是有效的HTMLElement')
+            }
             AIChat(protyle, elements[0]);
             menu.close();
         } else {
@@ -126,6 +130,9 @@ const handleClick = (
     if (target instanceof HTMLElement || target instanceof SVGElement) {
         const currentElement = target.closest(".b3-list-item") as HTMLElement;
         if (currentElement && currentElement.dataset.action === "aiChat") {
+            if(!elements[0]){
+                throw new Error ('目标元素不是有效的HTMLElement')
+            }
             AIChat(protyle, elements[0]);
             menu.close();
             return;
@@ -259,7 +266,11 @@ export const openAIActionsMenu = (elements: Element[], protyle: IProtyle) => {
     /// #if MOBILE
     menu.fullscreen();
     /// #else
-    const rect = elements[elements.length - 1].getBoundingClientRect();
+    let traget =elements[elements.length - 1];
+    if(!traget){
+        throw new Error ('目标元素不是有效的HTMLElement')
+    }  
+    const rect = traget.getBoundingClientRect();
     menu.open({
         x: rect.left,
         y: rect.bottom,
