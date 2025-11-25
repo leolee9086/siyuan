@@ -6,8 +6,8 @@ import { localKernel } from "./defaultClient";
 export interface LsFile {
   name: string;
   isDir: boolean;
-  updated: number;
-  size: number;
+  updated: number|null;
+  size?: number | null;
 }
 
 function isText(mime: string | null): boolean {
@@ -30,7 +30,10 @@ export class Workspace {
     this.kernel = kernel;
     Object.getOwnPropertyNames(mimes).forEach((type) => {
       const item = mimes[type]
-      let extensions =mimes[type]["extensions"];
+      if(!item){
+        throw new Error("mimeDb数据错误")
+      }
+      let extensions =item["extensions"];
       if (extensions) {
         extensions.forEach((extension: string) => {
           this.mimetype[extension] = type;

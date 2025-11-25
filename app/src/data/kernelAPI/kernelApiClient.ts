@@ -1774,7 +1774,7 @@ class KernelApiClient {
    * Endpoint: `POST /api/file/putFile`
    * Requires authentication.
    */
-  async putFile(data: { path: string; isDir: boolean; modTime?: string }): Promise<{ code: number; msg: string; data?: null }> {
+  async putFile(data: FormData): Promise<{ code: number; msg: string; data?: null }> {
     return this._fetchWrapper('/api/file/putFile', 'POST', data, true);
   }
 
