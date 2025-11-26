@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "node",
+    "types": ["@webgpu/types","@types/three"]
+  },
+  "include": ["./src/**/*.ts", "./src/**/*.d.ts", "./src/**/*.vue"]
+}
