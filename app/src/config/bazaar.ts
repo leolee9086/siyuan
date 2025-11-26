@@ -833,8 +833,6 @@ export const bazaar = {
                                         if (item.name === dataObj.name) {
                                             reloadPlugin(app, {
                                                 upsertCodePlugins: [dataObj.name],
-                                                upsertDataPlugins: [],
-                                                removePlugins: []
                                             });
                                             return true;
                                         }
