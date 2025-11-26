@@ -28,10 +28,10 @@ interface ToolbarButton {
   id: string;
   type: 'button';
   icon: string;
-  title?: string;
+  title?: string|undefined;
   action: () => void;
-  condition?: () => boolean;
-  activeCondition?: () => boolean;
+  condition?: (() => boolean)|undefined;
+  activeCondition?: (() => boolean)|undefined;
 }
 
 interface ToolbarSpacer {
