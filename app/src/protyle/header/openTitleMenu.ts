@@ -1,6 +1,7 @@
 import { fetchPost, fetchSyncPost } from "../../util/fetch";
 import { MenuItem } from "../../menus/Menu.Item";
-import { exportMd, openFileWechatNotify, } from "../../menus/commonMenuItem";
+import { exportMd, } from "../../menus/commonMenuItem";
+import { openFileWechatNotify } from "../../menus/commonMenuItem.openFileWechatNotify";
 import { openFileAttr } from "../../menus/commonMenuItem.openFileAttr";
 import { updateHotkeyTip } from "../util/compatibility";
 /// #if !MOBILE
