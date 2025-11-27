@@ -28,7 +28,7 @@ module.exports = (env, argv) => {
             minimize: true,
             minimizer: [
                 new EsbuildPlugin({
-                    target: "es6",
+                    target: "es2020",
                     sourcemap: argv.mode !== "production",
                 }),
             ],
@@ -63,7 +63,7 @@ module.exports = (env, argv) => {
                         {
                             loader: "esbuild-loader",
                             options: {
-                                target: "es6",
+                                target: "es2020",
                                 sourcemap: argv.mode !== "production",
                                 loader: "ts",
                             }
@@ -86,7 +86,7 @@ module.exports = (env, argv) => {
                         {
                             loader: "esbuild-loader",
                             options: {
-                                target: "es6",
+                                target: "es2020",
                                 sourcemap: argv.mode !== "production",
                             },
                         },

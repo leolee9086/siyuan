@@ -27,13 +27,15 @@ module.exports = (env, argv) => {
             extensions: [".vue", ".ts", ".js", ".tpl", ".scss", ".png", ".svg"],
             alias: {
                 '@': path.resolve(__dirname, 'src'),
+                "sharp$": false,
+                "onnxruntime-node$": false,
             },
         },
         optimization: {
             minimize: argv.mode === "production",
             minimizer: [
                 new EsbuildPlugin({
-                    target: "es2021",
+                    target: "es2020",
                     sourcemap: argv.mode !== "production",
                 }),
             ],
@@ -68,7 +70,7 @@ module.exports = (env, argv) => {
                         {
                             loader: "esbuild-loader",
                             options: {
-                                target: "es2021",
+                                target: "es2020",
                                 sourcemap: argv.mode !== "production",
                                 loader: "ts",
                             },
@@ -89,7 +91,7 @@ module.exports = (env, argv) => {
                         {
                             loader: "esbuild-loader",
                             options: {
-                                target: "es2021",
+                                target: "es2020",
                                 sourcemap: argv.mode !== "production",
                             },
                         },
@@ -103,7 +105,7 @@ module.exports = (env, argv) => {
                         {
                             loader: "esbuild-loader",
                             options: {
-                                target: "es2021",
+                                target: "es2020",
                                 sourcemap: argv.mode !== "production",
                             },
                         },
@@ -149,7 +151,7 @@ module.exports = (env, argv) => {
             ],
         },
         plugins: [
-                        new PatchResolverPlugin(),
+            new PatchResolverPlugin(),
 
             new CleanWebpackPlugin({
                 cleanStaleWebpackAssets: false,

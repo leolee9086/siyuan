@@ -1,5 +1,0 @@
-onlyBuiltDependencies:
-  - electron
-
-overrides:
-  '@leolee9086/image-dehazing': link:C:/Users/al765/AppData/Local/pnpm/global/5/node_modules/@leolee9086/image-dehazing
