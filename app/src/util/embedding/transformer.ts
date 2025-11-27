@@ -3,6 +3,8 @@
  * 这样才能够在electron的渲染进程中跑起来
  * 如果你愿意创建一个单独的进程并且不给它node环境的话,也可以不用下面这些操作
  * 如果你使用webworker,也不用下面这些操作
+ * 注意如果使用webpack,不要将打包目标设置为高于es2022,否则会出问题
+ * 有时间我再说一下怎么在思源里面直接实现类似ollama的模型加载功能,如果做补全可能有用
  * 相关文件见app\stage\protyle\js\transformers.js
  * @param content 
  */
