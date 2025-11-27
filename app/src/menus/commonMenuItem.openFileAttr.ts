@@ -15,12 +15,8 @@ import { bindAttrInput } from "./commonMenuItem.patch";
 import { MenuItem } from "./Menu.Item";
 
 
-export const openFileAttr = (attrs: IObject, focusName = "bookmark", protyle?: IProtyle) => {
-    let customHTML = "";
-    let notifyHTML = "";
-    let hasAV = false;
-    const range = getSelection().rangeCount > 0 ? getSelection().getRangeAt(0) : null;
-    let ghostProtyle: Protyle;
+const initializeProtyle = (attrs: IObject, protyle?: IProtyle): { protyle: IProtyle | undefined, ghostProtyle: Protyle | undefined } => {
+    let ghostProtyle: Protyle | undefined;
     if (!protyle) {
         getAllEditor().find(item => {
             if (attrs.id === item.protyle.block.rootID) {
@@ -28,12 +24,20 @@ export const openFileAttr = (attrs: IObject, focusName = "bookmark", protyle?: I
                 return true;
             }
         });
-        if (!protyle) {
+        if (!protyle && attrs.id) {
             ghostProtyle = new Protyle(window.siyuan.ws.app, document.createElement("div"), {
                 blockId: attrs.id,
             });
         }
     }
+    return { protyle, ghostProtyle };
+};
+
+const processAttributes = (attrs: IObject): { customHTML: string, notifyHTML: string, hasAV: boolean } => {
+    let customHTML = "";
+    let notifyHTML = "";
+    let hasAV = false;
+    
     Object.keys(attrs).forEach(item => {
         if (Constants.CUSTOM_RIFF_DECKS === item || item.startsWith("custom-sy-")) {
             return;
@@ -57,6 +61,16 @@ export const openFileAttr = (attrs: IObject, focusName = "bookmark", protyle?: I
 </label>`;
         }
     });
+    
+    return { customHTML, notifyHTML, hasAV };
+};
+
+export const openFileAttr = (attrs: IObject, focusName = "bookmark", protyle?: IProtyle) => {
+    const selection = getSelection();
+    const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : undefined;
+    const { protyle: initializedProtyle, ghostProtyle } = initializeProtyle(attrs, protyle);
+    protyle = initializedProtyle;
+    const { customHTML, notifyHTML, hasAV } = processAttributes(attrs);
     const dialog = new Dialog({
         width: isMobile() ? "92vw" : "50vw",
         containerClassName: "b3-dialog__container--theme",
@@ -118,11 +132,15 @@ export const openFileAttr = (attrs: IObject, focusName = "bookmark", protyle?: I
     </div>
 </div>`,
         destroyCallback() {
-            focusByRange(range);
+            if (range) {
+                focusByRange(range);
+            }
             if (protyle) {
                 hideElements(["select"], protyle);
             } else {
-                ghostProtyle.destroy();
+                if (ghostProtyle) {
+                    ghostProtyle.destroy();
+                }
             }
         }
     });
@@ -133,37 +151,41 @@ export const openFileAttr = (attrs: IObject, focusName = "bookmark", protyle?: I
     dialog.element.addEventListener("click", (event) => {
         let target = event.target as HTMLElement;
         if (typeof event.detail === "string") {
-            target = dialog.element.querySelector(`.item--full[data-type="${event.detail}"]`);
+            target = dialog.element.querySelector(`.item--full[data-type="${event.detail}"]`) as HTMLElement;
         }
         while (target !== dialog.element) {
             const type = target.dataset.action;
             if (target.classList.contains("item--full")) {
-                target.parentElement.querySelector(".item--focus").classList.remove("item--focus");
+                target.parentElement?.querySelector(".item--focus")?.classList.remove("item--focus");
                 target.classList.add("item--focus");
-                dialog.element.querySelectorAll(".custom-attr").forEach((item: HTMLElement) => {
-                    if (item.dataset.type === target.dataset.type) {
-                        if (item.dataset.type === "NodeAttributeView" && item.innerHTML === "") {
-                            renderAVAttribute(item, attrs.id, protyle || ghostProtyle.protyle);
+                dialog.element.querySelectorAll(".custom-attr").forEach((item) => {
+                    const htmlItem = item as HTMLElement;
+                    if (htmlItem.dataset.type === target.dataset.type) {
+                        if (htmlItem.dataset.type === "NodeAttributeView" && htmlItem.innerHTML === "" && attrs.id) {
+                            const currentProtyle = protyle || ghostProtyle?.protyle;
+                            if (currentProtyle) {
+                                renderAVAttribute(htmlItem, attrs.id, currentProtyle);
+                            }
                         }
-                        item.classList.remove("fn__none");
+                        htmlItem.classList.remove("fn__none");
                     } else {
-                        item.classList.add("fn__none");
+                        htmlItem.classList.add("fn__none");
                     }
                 });
             } else if (type === "remove") {
                 fetchPost("/api/attr/setBlockAttrs", {
                     id: attrs.id,
-                    attrs: { ["custom-" + target.previousElementSibling.textContent]: "" }
+                    attrs: { ["custom-" + target.previousElementSibling?.textContent]: "" }
                 });
-                target.parentElement.parentElement.remove();
+                target.parentElement?.parentElement?.remove();
                 event.stopPropagation();
                 event.preventDefault();
                 break;
             } else if (type === "bookmark") {
                 fetchPost("/api/attr/getBookmarkLabels", {}, (response) => {
-                    window.siyuan.menus.menu.remove();
+                    window.siyuan.menus?.menu?.remove();
                     if (response.data.length === 0) {
-                        window.siyuan.menus.menu.append(new MenuItem({
+                        window.siyuan.menus?.menu?.append(new MenuItem({
                             id: "emptyContent",
                             iconHTML: "",
                             label: siyuanI18n.emptyContent,
@@ -171,18 +193,18 @@ export const openFileAttr = (attrs: IObject, focusName = "bookmark", protyle?: I
                         }).element);
                     } else {
                         response.data.forEach((item: string) => {
-                            window.siyuan.menus.menu.append(new MenuItem({
+                            window.siyuan.menus?.menu?.append(new MenuItem({
                                 label: item,
                                 click() {
-                                    const bookmarkInputElement = target.parentElement.parentElement.querySelector("input");
+                                    const bookmarkInputElement = target.parentElement?.parentElement?.querySelector("input") as HTMLInputElement;
                                     bookmarkInputElement.value = item;
                                     bookmarkInputElement.dispatchEvent(new CustomEvent("change"));
                                 }
                             }).element);
                         });
                     }
-                    window.siyuan.menus.menu.element.classList.add("b3-menu--list");
-                    window.siyuan.menus.menu.popup({ x: event.clientX, y: event.clientY + 16, w: 16 });
+                    window.siyuan.menus?.menu?.element?.classList.add("b3-menu--list");
+                    window.siyuan.menus?.menu?.popup({ x: event.clientX, y: event.clientY + 16, w: 16 });
                 });
                 event.stopPropagation();
                 event.preventDefault();
@@ -205,25 +227,29 @@ export const openFileAttr = (attrs: IObject, focusName = "bookmark", protyle?: I
                 });
                 inputElement.focus();
                 inputElement.select();
-                btnsElement[0].addEventListener("click", () => {
-                    addDialog.destroy();
-                });
-                btnsElement[1].addEventListener("click", () => {
-                    if (!isValidAttrName(inputElement.value)) {
-                        showMessage(siyuanI18n.attrName + " <b>" + escapeHtml(inputElement.value) + "</b> " + siyuanI18n.invalid);
-                        return false;
-                    }
-                    let existElement: HTMLElement | false;
-                    Array.from(dialog.element.querySelectorAll('.custom-attr[data-type="custom"] .b3-label .fn__flex-1')).find((labelItem: HTMLElement) => {
-                        if (labelItem.textContent === value) {
-                            existElement = hasClosestByClassName(labelItem, "b3-label");
-                            return true;
-                        }
+                if (btnsElement[0]) {
+                    btnsElement[0].addEventListener("click", () => {
+                        addDialog.destroy();
                     });
-                    if (existElement) {
-                        showMessage(window.siyuan.languages.hasAttrName.replace('${x}', value));
-                    } else {
-                        target.parentElement.insertAdjacentHTML("beforebegin", `<div class="b3-label b3-label--noborder">
+                }
+                if (btnsElement[1]) {
+                    btnsElement[1].addEventListener("click", () => {
+                        if (!isValidAttrName(inputElement.value)) {
+                            showMessage(siyuanI18n.attrName + " <b>" + escapeHtml(inputElement.value) + "</b> " + siyuanI18n.invalid);
+                            return false;
+                        }
+                        let existElement: HTMLElement | false = false;
+                        const value = inputElement.value;
+                        Array.from(dialog.element.querySelectorAll('.custom-attr[data-type="custom"] .b3-label .fn__flex-1')).find((labelItem) => {
+                            if ((labelItem as HTMLElement).textContent === value) {
+                                existElement = (labelItem as HTMLElement).closest(".b3-label") as HTMLElement;
+                                return true;
+                            }
+                        });
+                        if (existElement) {
+                            showMessage(window.siyuan.languages?.hasAttrName.replace('${x}', value));
+                        } else {
+                            target.parentElement?.insertAdjacentHTML("beforebegin", `<div class="b3-label b3-label--noborder">
     <div class="fn__flex">
         <span class="fn__flex-1">${value}</span>
         <span data-action="remove" class="block__icon block__icon--show"><svg><use xlink:href="#iconMin"></use></svg></span>
@@ -231,24 +257,29 @@ export const openFileAttr = (attrs: IObject, focusName = "bookmark", protyle?: I
     <div class="fn__hr"></div>
     <textarea style="resize: vertical" spellcheck="false" data-name="custom-${inputElement.value}" class="b3-text-field fn__block" rows="1" placeholder="${siyuanI18n.attrValue1}"></textarea>
 </div>`);
-                        const newInputElement = target.parentElement.previousElementSibling.querySelector(".b3-text-field") as HTMLInputElement;
-                        newInputElement.focus();
-                        bindAttrInput(newInputElement, attrs.id);
-                        addDialog.destroy();
-                    }
-                });
+                            const newInputElement = target.parentElement?.previousElementSibling?.querySelector(".b3-text-field") as HTMLInputElement;
+                            newInputElement.focus();
+                            if (newInputElement && attrs.id) {
+                                bindAttrInput(newInputElement, attrs.id);
+                            }
+                            addDialog.destroy();
+                        }
+                    });
+                }
                 event.stopPropagation();
                 event.preventDefault();
                 break;
             }
-            target = target.parentElement;
+            target = target.parentElement as HTMLElement;
         }
     });
-    dialog.element.querySelectorAll(".b3-text-field").forEach((item: HTMLInputElement) => {
+    dialog.element.querySelectorAll(".b3-text-field").forEach((item) => {
         if (focusName !== "av" && focusName !== "custom" && focusName === item.getAttribute("data-name")) {
-            item.focus();
+            (item as HTMLElement).focus();
         }
-        bindAttrInput(item, attrs.id);
+        if (attrs.id) {
+            bindAttrInput(item as HTMLInputElement, attrs.id);
+        }
     });
     if (focusName === "av") {
         dialog.element.dispatchEvent(new CustomEvent("click", { detail: "NodeAttributeView" }));
