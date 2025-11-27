@@ -352,18 +352,29 @@ export const openFileAttr = (attrs: IObject, focusName = "bookmark", protyle?: I
                         showMessage(siyuanI18n.attrName + " <b>" + escapeHtml(inputElement.value) + "</b> " + siyuanI18n.invalid);
                         return false;
                     }
-                    target.parentElement.insertAdjacentHTML("beforebegin", `<div class="b3-label b3-label--noborder">
+                    let existElement: HTMLElement | false;
+                    Array.from(dialog.element.querySelectorAll('.custom-attr[data-type="custom"] .b3-label .fn__flex-1')).find((labelItem: HTMLElement) => {
+                        if (labelItem.textContent === value) {
+                            existElement = hasClosestByClassName(labelItem, "b3-label");
+                            return true;
+                        }
+                    });
+                    if (existElement) {
+                        showMessage(window.siyuan.languages.hasAttrName.replace('${x}', value));
+                    } else {
+                        target.parentElement.insertAdjacentHTML("beforebegin", `<div class="b3-label b3-label--noborder">
     <div class="fn__flex">
-        <span class="fn__flex-1">${inputElement.value}</span>
+        <span class="fn__flex-1">${value}</span>
         <span data-action="remove" class="block__icon block__icon--show"><svg><use xlink:href="#iconMin"></use></svg></span>
     </div>
     <div class="fn__hr"></div>
     <textarea style="resize: vertical" spellcheck="false" data-name="custom-${inputElement.value}" class="b3-text-field fn__block" rows="1" placeholder="${siyuanI18n.attrValue1}"></textarea>
 </div>`);
-                    const valueElement = target.parentElement.previousElementSibling.querySelector(".b3-text-field") as HTMLInputElement;
-                    valueElement.focus();
-                    bindAttrInput(valueElement, attrs.id);
-                    addDialog.destroy();
+                        const newInputElement = target.parentElement.previousElementSibling.querySelector(".b3-text-field") as HTMLInputElement;
+                        newInputElement.focus();
+                        bindAttrInput(newInputElement, attrs.id);
+                        addDialog.destroy();
+                    }
                 });
                 event.stopPropagation();
                 event.preventDefault();
