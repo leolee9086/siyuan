@@ -26,7 +26,8 @@ import {getAllModels} from "../layout/getAll";
 /// #endif
 import {getAllEditor} from "../layout/getAll";
 import {openSetting} from "../config";
-import {openAttr, openFileAttr} from "../menus/commonMenuItem";
+import {openAttr} from "../menus/commonMenuItem";
+import { openFileAttr } from "../menus/commonMenuItem.openFileAttr";
 import {globalCommand} from "../boot/globalEvent/command/global";
 import {exportLayout} from "../layout/util";
 import {saveScroll} from "../protyle/scroll/saveScroll";

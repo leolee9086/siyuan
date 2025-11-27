@@ -3,7 +3,7 @@ import {fetchPost} from "../../util/fetch";
 import {Constants} from "../../constants";
 import { MenuItem } from "../../menus/Menu.Item";
 import {fullscreen, net2LocalAssets, updateReadonly} from "./action";
-import {openFileAttr} from "../../menus/commonMenuItem";
+import {openFileAttr} from "../../menus/commonMenuItem.openFileAttr";
 import {setEditMode} from "../util/setEditMode";
 import {RecordMedia} from "../util/RecordMedia";
 import {hideMessage, showMessage} from "../../dialog/message";

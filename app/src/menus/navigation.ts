@@ -1,4 +1,6 @@
-import {copySubMenu, exportMd, movePathToMenu, openFileAttr, renameMenu,} from "./commonMenuItem";
+import {exportMd, movePathToMenu, renameMenu,} from "./commonMenuItem";
+import { copySubMenu } from "./commonMenuItem.copy";
+import { openFileAttr } from "./commonMenuItem.openFileAttr";
 /// #if !BROWSER
 import {FileFilter, ipcRenderer} from "electron";
 import * as path from "path";

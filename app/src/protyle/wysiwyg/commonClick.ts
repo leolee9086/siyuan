@@ -1,5 +1,6 @@
 import {hasClosestByClassName} from "../util/hasClosest";
-import {openAttr, openFileAttr} from "../../menus/commonMenuItem";
+import { openFileAttr} from "../../menus/commonMenuItem.openFileAttr";
+import { openAttr } from "../../menus/commonMenuItem";
 /// #if !MOBILE
 import {openGlobalSearch} from "../../search/util";
 /// #endif
