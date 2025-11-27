@@ -42,6 +42,7 @@ import { EventBus } from "./plugin/EventBus";
 import { siyuanI18n } from "./util/siyuanEnvironments/i18n.getI18n";
 import {updateAppearance} from "./config/util/updateAppearance";
 import {renderSnippet} from "./config/util/snippets";
+import { embeddingText } from "./util/embedding/transformer";
 
 export class App {
     public plugins: import("./plugin").Plugin[] = [];
@@ -243,3 +244,4 @@ window.showKeyboardToolbar = () => {
 };
 window.processIOSPurchaseResponse = processIOSPurchaseResponse;
 /// #endif
+console.log(embeddingText("测试"))
