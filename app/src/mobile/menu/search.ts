@@ -147,11 +147,12 @@ const updateConfig = (element: Element, newConfig: Config.IUILayoutTabSearchConf
     }
     (document.querySelector("#toolbarSearch") as HTMLInputElement).value = newConfig.k;
     (element.querySelector("#toolbarReplace") as HTMLInputElement).value = newConfig.r;
-    Object.assign(config, newConfig);
+    config = JSON.parse(JSON.stringify(newConfig));
     window.siyuan.storage[Constants.LOCAL_SEARCHDATA] = Object.assign({}, config);
     setStorageVal(Constants.LOCAL_SEARCHDATA, window.siyuan.storage[Constants.LOCAL_SEARCHDATA]);
     updateSearchResult(config, element);
     window.siyuan.menus.menu.remove();
+    return config;
 };
 
 const onRecentBlocks = (data: IBlock[], config: Config.IUILayoutTabSearchConfig,
@@ -386,7 +387,7 @@ const initSearchEvent = (app: App, element: Element, config: Config.IUILayoutTab
                 target.classList.add("b3-chip--current");
                 criteriaData.find(item => {
                     if (item.name === target.innerText.trim()) {
-                        updateConfig(element, item, config);
+                        item = updateConfig(element, item, config);
                         return true;
                     }
                 });
@@ -403,7 +404,7 @@ const initSearchEvent = (app: App, element: Element, config: Config.IUILayoutTab
                     }
                 });
                 if (target.parentElement.classList.contains("b3-chip--current")) {
-                    updateConfig(element, {
+                    config = updateConfig(element, {
                         removed: true,
                         sort: 0,
                         group: 0,
@@ -545,7 +546,7 @@ const initSearchEvent = (app: App, element: Element, config: Config.IUILayoutTab
                     config.page = 1;
                     updateSearchResult(config, element, true);
                 }, () => {
-                    updateConfig(element, {
+                    config = updateConfig(element, {
                         removed: true,
                         sort: 0,
                         group: 0,
@@ -559,6 +560,7 @@ const initSearchEvent = (app: App, element: Element, config: Config.IUILayoutTab
                         types: getDefaultType(),
                         replaceTypes: Object.assign({}, Constants.SIYUAN_DEFAULT_REPLACETYPES),
                     }, config);
+                    element.querySelector("#criteria .b3-chip--current")?.classList.remove("b3-chip--current");
                 });
                 window.siyuan.menus.menu.fullscreen();
                 event.stopPropagation();
@@ -687,15 +689,19 @@ const initSearchEvent = (app: App, element: Element, config: Config.IUILayoutTab
     }, false);
 };
 
-export const popSearch = (app: App, searchConfig?: any) => {
+export const popSearch = (app: App, searchConfig?: Config.IUILayoutTabSearchConfig) => {
     const config: Config.IUILayoutTabSearchConfig = JSON.parse(JSON.stringify(window.siyuan.storage[Constants.LOCAL_SEARCHDATA]));
     const rangeText = (getCurrentEditor()?.protyle.toolbar.range || (getSelection().rangeCount > 0 ? getSelection().getRangeAt(0) : document.createRange())).toString();
     if (rangeText) {
         config.k = rangeText;
     }
     if (searchConfig) {
-        Object.keys(searchConfig).forEach((key: "r") => {
-            config[key] = searchConfig[key];
+        Object.keys(searchConfig).forEach((key: keyof Config.IUILayoutTabSearchConfig) => {
+            if (key === "idPath") {
+                config[key] = [...searchConfig[key]];
+            } else {
+                config[key as "r"] = searchConfig[key as "r"];
+            }
         });
     }
 

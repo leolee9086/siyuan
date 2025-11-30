@@ -4,6 +4,11 @@ import {Wnd} from "../layout/Wnd";
 import {getInstanceById, getWndByLayout, pdfIsLoading} from "../layout/util";
 import {getAllModels} from "../layout/getAll";
 import {Constants} from "../constants";
+import {setEditMode} from "../protyle/util/setEditMode";
+import {Files} from "../layout/dock/Files";
+import {fetchPost, fetchSyncPost} from "../util/fetch";
+import {focusBlock, focusByOffset, focusByRange} from "../protyle/util/selection";
+import {onGet} from "../protyle/util/onGet";
 /// #if !BROWSER
 import {ipcRenderer} from "electron";
 /// #endif
@@ -14,6 +19,7 @@ import {
 import {objEquals} from "../util/functions";
 import {clearOBG} from "../layout/dock/util";
 import {Model} from "../layout/Model";
+import {hideElements} from "../protyle/ui/hideElements";
 
 export const openFileById = async (options: {
     app: App,
@@ -376,14 +382,19 @@ const switchEditor = (editor: Editor, options: IOpenFileOptions, allModels: IMod
         }
         if (options.action?.includes(Constants.CB_GET_FOCUS)) {
             if (nodeElement) {
-                const newRange = focusBlock(nodeElement, undefined, !options.action?.includes(Constants.CB_GET_OUTLINE));
-                if (newRange) {
-                    editor.editor.protyle.toolbar.range = newRange;
+                if (options.action.includes(Constants.CB_GET_SEARCH)) {
+                    const scrollAttr = window.siyuan.storage[Constants.LOCAL_FILEPOSITION][editor.editor.protyle.block.rootID];
+                    focusByOffset(nodeElement, scrollAttr.focusStart, scrollAttr.focusEnd);
+                } else {
+                    const newRange = focusBlock(nodeElement, undefined, !options.action?.includes(Constants.CB_GET_OUTLINE));
+                    if (newRange) {
+                        editor.editor.protyle.toolbar.range = newRange;
+                    }
                 }
                 scrollCenter(editor.editor.protyle, (editor.editor.protyle.disabled || options.scrollPosition) ? nodeElement : null, options.scrollPosition);
                 editor.editor.protyle.observerLoad = new ResizeObserver(() => {
                     if (document.contains(nodeElement)) {
-                        scrollCenter(editor.editor.protyle);
+                        scrollCenter(editor.editor.protyle, (editor.editor.protyle.disabled || options.scrollPosition) ? nodeElement : null, options.scrollPosition);
                     }
                 });
                 setTimeout(() => {
@@ -395,10 +406,14 @@ const switchEditor = (editor: Editor, options: IOpenFileOptions, allModels: IMod
             } else if (editor.editor.protyle.toolbar.range) {
                 nodeElement = hasClosestBlock(editor.editor.protyle.toolbar.range.startContainer) as Element;
                 focusByRange(editor.editor.protyle.toolbar.range);
-                scrollCenter(editor.editor.protyle);
+                scrollCenter(editor.editor.protyle, undefined, options.scrollPosition);
             }
         }
         pushBack(editor.editor.protyle, editor.editor.protyle.toolbar.range);
+    }
+    // https://github.com/siyuan-note/siyuan/issues/16445
+    if (options.action.includes(Constants.CB_GET_OUTLINE)) {
+        hideElements(["select"], editor.editor.protyle);
     }
     if (options.mode) {
         setEditMode(editor.editor.protyle, options.mode);
