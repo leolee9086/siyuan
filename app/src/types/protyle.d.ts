@@ -12,7 +12,7 @@ interface ILuteNode {
 
 type THintSource = "search" | "av" | "hint";
 
-type TTurnIntoOne = "BlocksMergeSuperBlock" | "Blocks2ULs" | "Blocks2OLs" | "Blocks2TLs" | "Blocks2Blockquote"
+type TTurnIntoOne = "BlocksMergeSuperBlock" | "Blocks2ULs" | "Blocks2OLs" | "Blocks2TLs" | "Blocks2Blockquote" | "Blocks2Callout"
 
 type TTurnIntoOneSub = "row" | "col"
 
@@ -224,6 +224,8 @@ declare class Lute {
     public BlockDOM2StdMd(html: string): string;
 
     public SetSuperBlock(enable: boolean): void;
+
+    public SetCallout(enable: boolean): void;
 
     public SetTag(enable: boolean): void;
 

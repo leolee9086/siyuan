@@ -250,10 +250,130 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         await escapeKeyMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
         // h1 - h6 hotkey
-        await headingTransformMiddleware(event, protyle, nodeElement, range, controller)
-        if (signal.aborted) { return }
-        await handleCodeBlockCreation(event, protyle, nodeElement, range, controller)
-        if (signal.aborted) { return }
+        if (matchHotKey(window.siyuan.config.keymap.editor.heading.paragraph.custom, event)) {
+            const selectsElement = Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select"));
+            if (selectsElement.length === 0) {
+                selectsElement.push(nodeElement);
+            }
+            if (selectsElement.length > 1) {
+                turnsIntoTransaction({
+                    protyle,
+                    nodeElement: selectsElement[0],
+                    type: "Blocks2Ps",
+                });
+            } else {
+                const type = selectsElement[0].getAttribute("data-type");
+                if (type === "NodeHeading") {
+                    turnsIntoTransaction({
+                        protyle,
+                        nodeElement: selectsElement[0],
+                        type: "Blocks2Ps",
+                    });
+                } else if (type === "NodeList") {
+                    turnsOneInto({
+                        protyle,
+                        nodeElement: selectsElement[0],
+                        id: selectsElement[0].getAttribute("data-node-id"),
+                        type: "CancelList",
+                    });
+                } else if (type === "NodeBlockquote") {
+                    turnsOneInto({
+                        protyle,
+                        nodeElement: selectsElement[0],
+                        id: selectsElement[0].getAttribute("data-node-id"),
+                        type: "CancelBlockquote",
+                    });
+                }
+            }
+            event.preventDefault();
+            event.stopPropagation();
+            return true;
+        }
+        if (matchHotKey(window.siyuan.config.keymap.editor.heading.heading1.custom, event)) {
+            turnsIntoTransaction({
+                protyle,
+                nodeElement,
+                type: "Blocks2Hs",
+                level: 1
+            });
+            event.preventDefault();
+            event.stopPropagation();
+            return true;
+        }
+        if (matchHotKey(window.siyuan.config.keymap.editor.heading.heading2.custom, event)) {
+            turnsIntoTransaction({
+                protyle,
+                nodeElement,
+                type: "Blocks2Hs",
+                level: 2
+            });
+            event.preventDefault();
+            event.stopPropagation();
+            return true;
+        }
+        if (matchHotKey(window.siyuan.config.keymap.editor.heading.heading3.custom, event)) {
+            turnsIntoTransaction({
+                protyle,
+                nodeElement,
+                type: "Blocks2Hs",
+                level: 3
+            });
+            event.preventDefault();
+            event.stopPropagation();
+            return true;
+        }
+        if (matchHotKey(window.siyuan.config.keymap.editor.heading.heading4.custom, event)) {
+            turnsIntoTransaction({
+                protyle,
+                nodeElement,
+                type: "Blocks2Hs",
+                level: 4
+            });
+            event.preventDefault();
+            event.stopPropagation();
+            return true;
+        }
+        if (matchHotKey(window.siyuan.config.keymap.editor.heading.heading5.custom, event)) {
+            turnsIntoTransaction({
+                protyle,
+                nodeElement,
+                type: "Blocks2Hs",
+                level: 5
+            });
+            event.preventDefault();
+            event.stopPropagation();
+            return true;
+        }
+        if (matchHotKey(window.siyuan.config.keymap.editor.heading.heading6.custom, event)) {
+            turnsIntoTransaction({
+                protyle,
+                nodeElement,
+                type: "Blocks2Hs",
+                level: 6
+            });
+            event.preventDefault();
+            event.stopPropagation();
+            return true;
+        }
+        if (matchHotKey(window.siyuan.config.keymap.editor.insert.code.custom, event) &&
+            !["NodeCodeBlock", "NodeHeading", "NodeTable"].includes(nodeElement.getAttribute("data-type"))) {
+            const editElement = getContenteditableElement(nodeElement);
+            if (editElement) {
+                const id = nodeElement.getAttribute("data-node-id");
+                const html = nodeElement.outerHTML;
+                // 需要 EscapeHTMLStr https://github.com/siyuan-note/siyuan/issues/11451
+                editElement.innerHTML = "```" + window.siyuan.storage[Constants.LOCAL_CODELANG] + "\n" + Lute.EscapeHTMLStr(editElement.textContent) + "<wbr>\n```";
+                const newHTML = protyle.lute.SpinBlockDOM(nodeElement.outerHTML);
+                nodeElement.outerHTML = newHTML;
+                const newNodeElement = protyle.wysiwyg.element.querySelector(`[data-node-id="${id}"]`);
+                updateTransaction(protyle, id, newHTML, html);
+                highlightRender(newNodeElement);
+                event.preventDefault();
+                event.stopPropagation();
+                return true;
+            }
+        }
+
         // toolbar action
         await toolbarLastUsedMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }

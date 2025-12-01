@@ -66,7 +66,6 @@ import * as path from "path";
 import {checkFold} from "../../util/noRelyPCFunction";
 import {clearSelect} from "../util/clearSelect";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n";
-import {stopScrollAnimation} from "../../boot/globalEvent/dragover";
 
 export class Gutter {
     public element: HTMLElement;
@@ -187,7 +186,6 @@ export class Gutter {
                 item.style.opacity = "";
             });
             window.siyuan.dragElement = undefined;
-            stopScrollAnimation();
         });
         this.element.addEventListener("click", (event: MouseEvent & { target: HTMLInputElement }) => {
             const buttonElement = hasClosestByTag(event.target, "BUTTON");
@@ -631,6 +629,14 @@ export class Gutter {
                     selectsElement,
                     type: "Blocks2Blockquote"
                 }));
+                // turnIntoSubmenu.push(this.turnsIntoOne({
+                //     menuId: "callout",
+                //     icon: "iconCallout",
+                //     label: window.siyuan.languages.callout,
+                //     protyle,
+                //     selectsElement,
+                //     type: "Blocks2Callout"
+                // }));
             }
             turnIntoSubmenu.push(this.turnsInto({
                 menuId: "paragraph",
@@ -821,8 +827,12 @@ export class Gutter {
                 accelerator: window.siyuan.config.keymap.general.move.custom,
                 icon: "iconMove",
                 click: () => {
-                    movePathTo((toPath) => {
-                        hintMoveBlock(toPath[0], selectsElement, protyle);
+                    movePathTo({
+                        cb: (toPath) => {
+                            hintMoveBlock(toPath[0], selectsElement, protyle);
+                        },
+                        rootIDs: [protyle.block.rootID],
+                        flashcard: false
                     });
                 }
             }).element);
@@ -1008,6 +1018,14 @@ export class Gutter {
                 selectsElement: [nodeElement],
                 type: "Blocks2Blockquote"
             }));
+            // turnIntoSubmenu.push(this.turnsIntoOne({
+            //     menuId: "callout",
+            //     icon: "iconCallout",
+            //     label: window.siyuan.languages.callout,
+            //     protyle,
+            //     selectsElement: [nodeElement],
+            //     type: "Blocks2Callout"
+            // }));
             turnIntoSubmenu.push(this.turnsInto({
                 menuId: "heading1",
                 icon: "iconH1",
@@ -1087,6 +1105,14 @@ export class Gutter {
                 selectsElement: [nodeElement],
                 type: "Blocks2Blockquote"
             }));
+            // turnIntoSubmenu.push(this.turnsIntoOne({
+            //     menuId: "callout",
+            //     icon: "iconCallout",
+            //     label: window.siyuan.languages.callout,
+            //     protyle,
+            //     selectsElement: [nodeElement],
+            //     type: "Blocks2Callout"
+            // }));
             if (subType !== "h1") {
                 turnIntoSubmenu.push(this.turnsInto({
                     menuId: "heading1",
@@ -1179,6 +1205,14 @@ export class Gutter {
                 selectsElement: [nodeElement],
                 type: "Blocks2Blockquote"
             }));
+            // turnIntoSubmenu.push(this.turnsIntoOne({
+            //     menuId: "callout",
+            //     icon: "iconCallout",
+            //     label: window.siyuan.languages.callout,
+            //     protyle,
+            //     selectsElement: [nodeElement],
+            //     type: "Blocks2Callout"
+            // }));
             if (nodeElement.getAttribute("data-subtype") === "o") {
                 turnIntoSubmenu.push(this.turnsOneInto({
                     menuId: "list",
@@ -1253,6 +1287,17 @@ export class Gutter {
                 protyle,
                 nodeElement,
                 type: "CancelBlockquote"
+            }));
+        } else if (type === "NodeCallout" && !protyle.disabled) {
+            turnIntoSubmenu.push(this.turnsOneInto({
+                menuId: "paragraph",
+                id,
+                icon: "iconParagraph",
+                label: window.siyuan.languages.paragraph,
+                accelerator: window.siyuan.config.keymap.editor.heading.paragraph.custom,
+                protyle,
+                nodeElement,
+                type: "CancelCallout"
             }));
         }
         if (turnIntoSubmenu.length > 0 && !protyle.disabled) {
@@ -1366,8 +1411,12 @@ export class Gutter {
                 label: siyuanI18n.move,
                 accelerator: window.siyuan.config.keymap.general.move.custom,
                 click: () => {
-                    movePathTo((toPath) => {
-                        hintMoveBlock(toPath[0], [nodeElement], protyle);
+                    movePathTo({
+                        cb: (toPath) => {
+                            hintMoveBlock(toPath[0], [nodeElement], protyle);
+                        },
+                        flashcard: false,
+                        rootIDs: [protyle.block.rootID],
                     });
                 }
             }).element);
@@ -2449,7 +2498,7 @@ export class Gutter {
                 }
                 if (index === 0) {
                     // 不单独显示，要不然在块的间隔中，gutter 会跳来跳去的
-                    if (["NodeBlockquote", "NodeList", "NodeSuperBlock"].includes(type)) {
+                    if (["NodeBlockquote", "NodeCallout", "NodeList", "NodeSuperBlock"].includes(type)) {
                         return;
                     }
                     const topElement = getTopAloneElement(nodeElement);
@@ -2503,7 +2552,7 @@ data-type="fold" style="cursor:inherit;"><svg style="width: 10px${fold && fold =
                 if (type === "NodeHeading") {
                     html = html + foldHTML;
                 }
-                if (type === "NodeBlockquote") {
+                if (["NodeBlockquote", "NodeCallout"].includes(type)) {
                     space += 8;
                 }
                 if (nodeElement.previousElementSibling && nodeElement.previousElementSibling.getAttribute("data-node-id")) {
@@ -2514,7 +2563,7 @@ data-type="fold" style="cursor:inherit;"><svg style="width: 10px${fold && fold =
                         return;
                     }
                     // 列表项中的引述块中的第二个段落块块标和引述块左侧样式重叠
-                    if (parentElement && parentElement.getAttribute("data-type") === "NodeBlockquote") {
+                    if (parentElement && ["NodeBlockquote", "NodeCallout"].includes(parentElement.getAttribute("data-type"))) {
                         space += 8;
                     }
                 }

@@ -37,7 +37,6 @@ import {processClonePHElement} from "../render/util";
 import {insertGalleryItemAnimation} from "../render/av/gallery/item";
 import {clearSelect} from "./clearSelect";
 import {dragoverTab} from "../render/av/view";
-import {dragOverScroll, stopScrollAnimation} from "../../boot/globalEvent/dragover";
 
 // position: afterbegin 为拖拽成超级块; "afterend", "beforebegin" 一般拖拽
 const moveTo = async (protyle: IProtyle, sourceElements: Element[], targetElement: Element,
@@ -1201,7 +1200,6 @@ export const dropEvent = (protyle: IProtyle, editorElement: HTMLElement) => {
             window.siyuan.dragElement.style.opacity = "";
             window.siyuan.dragElement = undefined;
         }
-        stopScrollAnimation();
     });
     let dragoverElement: Element;
     let disabledPosition: string;
@@ -1222,10 +1220,6 @@ export const dropEvent = (protyle: IProtyle, editorElement: HTMLElement) => {
             dragoverTab(event);
             event.preventDefault();
             return;
-        }
-        const contentRect = protyle.contentElement.getBoundingClientRect();
-        if (!hasClosestByClassName(event.target, "av__cell")) {
-            dragOverScroll(event, contentRect, protyle.contentElement);
         }
         let targetElement: HTMLElement | false;
         // 设置了的话 drop 就无法监听 shift/control event.dataTransfer.dropEffect = "move";
@@ -1306,7 +1300,8 @@ export const dropEvent = (protyle: IProtyle, editorElement: HTMLElement) => {
                 // 命中顶部
                 targetElement = editorElement.firstElementChild as HTMLElement;
                 point.className = "dragover__top";
-            } else if (contentRect) {
+            } else {
+                const contentRect = protyle.contentElement.getBoundingClientRect();
                 const editorPosition = {
                     left: contentRect.left + parseInt(editorElement.style.paddingLeft),
                     right: contentRect.left + protyle.contentElement.clientWidth - parseInt(editorElement.style.paddingRight)
@@ -1621,7 +1616,6 @@ export const dropEvent = (protyle: IProtyle, editorElement: HTMLElement) => {
             window.siyuan.dragElement = undefined;
             document.onmousemove = null;
         }
-        stopScrollAnimation();
     });
 };
 
