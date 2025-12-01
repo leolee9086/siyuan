@@ -1,5 +1,116 @@
+import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig";
 import { matchHotKey } from "../util/hotKey";
-import { turnsIntoTransaction, turnsIntoOneTransaction, turnsOneInto } from "./transaction";
+import { turnsIntoTransaction, turnsOneInto } from "./transaction";
+
+/**
+ * 处理标题转换的通用函数
+ * @param event - 键盘事件对象
+ * @param protyle - 思源笔记编辑器实例
+ * @param nodeElement - 当前操作的节点元素
+ * @param controller - 中止控制器
+ * @param level - 标题级别 (1-6)
+ * @param hotKeyConfig - 热键配置
+ * @returns 是否处理了该事件
+ */
+const handleHeadingTransform = (
+    event: KeyboardEvent,
+    protyle: IProtyle,
+    nodeElement: HTMLElement,
+    controller: AbortController,
+    level: number,
+    hotKeyConfig: string
+): boolean => {
+    if (matchHotKey(hotKeyConfig, event)) {
+        turnsIntoTransaction({
+            protyle,
+            nodeElement,
+            type: "Blocks2Hs",
+            level
+        });
+        event.preventDefault();
+        event.stopPropagation();
+        controller.abort(`转换为H${level}标题`);
+        return true;
+    }
+    return false;
+};
+
+/**
+ * 处理段落转换的函数
+ * @param event - 键盘事件对象
+ * @param protyle - 思源笔记编辑器实例
+ * @param nodeElement - 当前操作的节点元素
+ * @param controller - 中止控制器
+ * @returns 是否处理了该事件
+ */
+const handleParagraphTransform = (
+    event: KeyboardEvent,
+    protyle: IProtyle,
+    nodeElement: HTMLElement,
+    controller: AbortController
+): boolean => {
+    const siyuanConfig = getSiyuanConfig();
+    if (!siyuanConfig?.keymap?.editor?.heading?.paragraph?.custom ||
+        !matchHotKey(siyuanConfig.keymap.editor.heading.paragraph.custom, event)) {
+        return false;
+    }
+
+    if (!protyle?.wysiwyg?.element) {
+        return false;
+    }
+
+    const selectsElement = Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select"));
+    if (selectsElement.length === 0) {
+        selectsElement.push(nodeElement);
+    }
+    
+    if (selectsElement.length > 1) {
+        // 多个块转换为段落
+        turnsIntoTransaction({
+            protyle,
+            selectsElement,
+            type: "Blocks2Ps",
+        });
+    } else {
+        // 单个块转换为段落
+        const selectedElement = selectsElement[0];
+        if (!selectedElement) return true;
+        
+        const type = selectedElement.getAttribute("data-type");
+        if (type === "NodeHeading") {
+            turnsIntoTransaction({
+                protyle,
+                selectsElement,
+                type: "Blocks2Ps",
+            });
+        } else if (type === "NodeList") {
+            const nodeId = selectedElement.getAttribute("data-node-id");
+            if (nodeId) {
+                turnsOneInto({
+                    protyle,
+                    nodeElement: selectedElement,
+                    id: nodeId,
+                    type: "CancelList",
+                });
+            }
+        } else if (type === "NodeBlockquote") {
+            const nodeId = selectedElement.getAttribute("data-node-id");
+            if (nodeId) {
+                turnsOneInto({
+                    protyle,
+                    nodeElement: selectedElement,
+                    id: nodeId,
+                    type: "CancelBlockquote",
+                });
+            }
+        }
+    }
+    
+    event.preventDefault();
+    event.stopPropagation();
+    controller.abort("标题转换为段落");
+    return true;
+};
 
 /**
  * 标题转换中间件
@@ -19,143 +130,33 @@ export const headingTransformMiddleware = async (
     event: KeyboardEvent,
     protyle: IProtyle,
     nodeElement: HTMLElement,
-    range:Range,
+    range: Range,
     controller: AbortController
 ): Promise<void> => {
     // 检查必要的对象是否存在
-    if (!protyle?.wysiwyg?.element || !window.siyuan?.config?.keymap?.editor?.heading) {
+    const siyuanConfig = getSiyuanConfig();
+    if (!protyle?.wysiwyg?.element || !siyuanConfig?.keymap?.editor?.heading) {
         return;
     }
 
-    if (matchHotKey(window.siyuan.config.keymap.editor.heading.paragraph.custom, event)) {
-        const selectsElement = Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select"));
-        if (selectsElement.length === 0) {
-            selectsElement.push(nodeElement);
+    // 处理段落转换
+    if (handleParagraphTransform(event, protyle, nodeElement, controller)) {
+        return;
+    }
+
+    // 处理标题转换 (H1-H6)
+    const headingConfigs = [
+        { level: 1, config: siyuanConfig.keymap.editor.heading.heading1.custom },
+        { level: 2, config: siyuanConfig.keymap.editor.heading.heading2.custom },
+        { level: 3, config: siyuanConfig.keymap.editor.heading.heading3.custom },
+        { level: 4, config: siyuanConfig.keymap.editor.heading.heading4.custom },
+        { level: 5, config: siyuanConfig.keymap.editor.heading.heading5.custom },
+        { level: 6, config: siyuanConfig.keymap.editor.heading.heading6.custom }
+    ];
+
+    for (const { level, config } of headingConfigs) {
+        if (handleHeadingTransform(event, protyle, nodeElement, controller, level, config)) {
+            return;
         }
-        
-        if (selectsElement.length > 1) {
-            // 多个块转换为段落
-            turnsIntoTransaction({
-                protyle,
-                selectsElement,
-                type: "Blocks2Ps",
-            });
-        } else {
-            // 单个块转换为段落
-            const selectedElement = selectsElement[0];
-            if (!selectedElement) return;
-            
-            const type = selectedElement.getAttribute("data-type");
-            if (type === "NodeHeading") {
-                turnsIntoTransaction({
-                    protyle,
-                    selectsElement,
-                    type: "Blocks2Ps",
-                });
-            } else if (type === "NodeList") {
-                const nodeId = selectedElement.getAttribute("data-node-id");
-                if (nodeId) {
-                    turnsOneInto({
-                        protyle,
-                        nodeElement: selectedElement,
-                        id: nodeId,
-                        type: "CancelList",
-                    });
-                }
-            } else if (type === "NodeBlockquote") {
-                const nodeId = selectedElement.getAttribute("data-node-id");
-                if (nodeId) {
-                    turnsOneInto({
-                        protyle,
-                        nodeElement: selectedElement,
-                        id: nodeId,
-                        type: "CancelBlockquote",
-                    });
-                }
-            }
-        }
-        
-        event.preventDefault();
-        event.stopPropagation();
-        controller.abort("标题转换为段落");
-        return;
-    }
-
-    if (matchHotKey(window.siyuan.config.keymap.editor.heading.heading1.custom, event)) {
-        turnsIntoTransaction({
-            protyle,
-            nodeElement,
-            type: "Blocks2Hs",
-            level: 1
-        });
-        event.preventDefault();
-        event.stopPropagation();
-        controller.abort("转换为H1标题");
-        return;
-    }
-
-    if (matchHotKey(window.siyuan.config.keymap.editor.heading.heading2.custom, event)) {
-        turnsIntoTransaction({
-            protyle,
-            nodeElement,
-            type: "Blocks2Hs",
-            level: 2
-        });
-        event.preventDefault();
-        event.stopPropagation();
-        controller.abort("转换为H2标题");
-        return;
-    }
-
-    if (matchHotKey(window.siyuan.config.keymap.editor.heading.heading3.custom, event)) {
-        turnsIntoTransaction({
-            protyle,
-            nodeElement,
-            type: "Blocks2Hs",
-            level: 3
-        });
-        event.preventDefault();
-        event.stopPropagation();
-        controller.abort("转换为H3标题");
-        return;
-    }
-
-    if (matchHotKey(window.siyuan.config.keymap.editor.heading.heading4.custom, event)) {
-        turnsIntoTransaction({
-            protyle,
-            nodeElement,
-            type: "Blocks2Hs",
-            level: 4
-        });
-        event.preventDefault();
-        event.stopPropagation();
-        controller.abort("转换为H4标题");
-        return;
-    }
-
-    if (matchHotKey(window.siyuan.config.keymap.editor.heading.heading5.custom, event)) {
-        turnsIntoTransaction({
-            protyle,
-            nodeElement,
-            type: "Blocks2Hs",
-            level: 5
-        });
-        event.preventDefault();
-        event.stopPropagation();
-        controller.abort("转换为H5标题");
-        return;
-    }
-
-    if (matchHotKey(window.siyuan.config.keymap.editor.heading.heading6.custom, event)) {
-        turnsIntoTransaction({
-            protyle,
-            nodeElement,
-            type: "Blocks2Hs",
-            level: 6
-        });
-        event.preventDefault();
-        event.stopPropagation();
-        controller.abort("转换为H6标题");
-        return;
     }
 };
