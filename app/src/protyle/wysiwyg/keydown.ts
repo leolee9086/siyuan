@@ -52,7 +52,7 @@ import { 处理块进入聚焦, 处理块退出聚焦 } from "./keydown.focus";
 import { commonInputMiddleware } from "./keydown.commonInput";
 import { matchHotKey } from "../util/hotKey";
 import { checkFold } from "../../util/noRelyPCFunction";
-import { openFileById } from "../../editor/util";
+import { openFileById } from "../../editor/utils.openFileById";
 import { BlockPanel } from "../../block/Panel";
 import { turnsIntoTransaction, turnsOneInto, updateTransaction } from "./transaction";
 import { getSiyuanConfig, getSiyuanStorage } from "../../util/siyuanEnvironments/getSiyuanConfig";

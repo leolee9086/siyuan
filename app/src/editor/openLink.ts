@@ -5,7 +5,10 @@ import {shell, ipcRenderer} from "electron";
 import {getSearch} from "../util/functions";
 import {Constants} from "../constants";
 /// #if !MOBILE
-import {openAsset, openBy, openFile, openFileById} from "./util";
+import { openFile} from "./util";
+import { openFileById } from "./utils.openFileById";
+import { openBy } from "./utils.openBy";
+import {openAsset} from './util.openAsset'
 /// #endif
 import {showMessage} from "../dialog/message";
 import {openByMobile} from "../protyle/util/compatibility";
