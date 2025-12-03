@@ -2679,7 +2679,7 @@ export class WYSIWYG {
                         /// #if MOBILE
                         mobileBlur = true;
                         activeBlur();
-                        openMobileFileById(protyle.app, refBlockId, zoomIn ? [Constants.CB_GET_ALL] : [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL]);
+                        openMobileFileById(protyle.app, refBlockId, zoomIn ? [Constants.CB_GET_ALL] : [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL], "start");
                         /// #else
                         if (event.shiftKey) {
                             openFileById({
@@ -2687,7 +2687,8 @@ export class WYSIWYG {
                                 id: refBlockId,
                                 position: "bottom",
                                 action,
-                                zoomIn
+                                zoomIn,
+                                scrollPosition: "start"
                             });
                             window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
                         } else if (event.altKey) {
@@ -2696,7 +2697,8 @@ export class WYSIWYG {
                                 id: refBlockId,
                                 position: "right",
                                 action,
-                                zoomIn
+                                zoomIn,
+                                scrollPosition: "start"
                             });
                         } else if (ctrlIsPressed) {
                             openFileById({
@@ -2704,14 +2706,16 @@ export class WYSIWYG {
                                 id: refBlockId,
                                 keepCursor: true,
                                 action: zoomIn ? [Constants.CB_GET_HL, Constants.CB_GET_ALL] : [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL],
-                                zoomIn
+                                zoomIn,
+                                scrollPosition: "start"
                             });
                         } else {
                             openFileById({
                                 app: protyle.app,
                                 id: refBlockId,
                                 action,
-                                zoomIn
+                                zoomIn,
+                                scrollPosition: "start"
                             });
                         }
                         /// #endif

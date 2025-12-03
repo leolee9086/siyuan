@@ -415,8 +415,87 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         await contextMenuMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
         /// #if !MOBILE
-        await blockRefMiddleware(event, protyle, nodeElement, range, controller)
-        if (signal.aborted) { return }
+        const refElement = hasClosestByAttribute(range.startContainer, "data-type", "block-ref");
+        if (refElement) {
+            const id = refElement.getAttribute("data-id");
+            if (matchHotKey(window.siyuan.config.keymap.editor.general.openBy.custom, event)) {
+                checkFold(id, (zoomIn, action, isRoot) => {
+                    if (!isRoot) {
+                        action.push(Constants.CB_GET_HL);
+                    }
+                    openFileById({
+                        app: protyle.app,
+                        id,
+                        action,
+                        zoomIn,
+                        scrollPosition: "start"
+                    });
+                });
+                event.preventDefault();
+                event.stopPropagation();
+                return true;
+            } else if (matchHotKey(window.siyuan.config.keymap.editor.general.refTab.custom, event)) {
+                // 打开块引和编辑器中引用、反链、书签中点击事件需保持一致，都加载上下文
+                checkFold(id, (zoomIn) => {
+                    openFileById({
+                        app: protyle.app,
+                        id,
+                        action: zoomIn ? [Constants.CB_GET_HL, Constants.CB_GET_ALL] : [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL],
+                        keepCursor: true,
+                        zoomIn,
+                        scrollPosition: "start"
+                    });
+                });
+                event.preventDefault();
+                event.stopPropagation();
+                return true;
+            } else if (matchHotKey(window.siyuan.config.keymap.editor.general.insertRight.custom, event)) {
+                checkFold(id, (zoomIn, action, isRoot) => {
+                    if (!isRoot) {
+                        action.push(Constants.CB_GET_HL);
+                    }
+                    openFileById({
+                        app: protyle.app,
+                        id,
+                        position: "right",
+                        action,
+                        zoomIn,
+                        scrollPosition: "start"
+                    });
+                });
+                event.preventDefault();
+                event.stopPropagation();
+                return true;
+            } else if (matchHotKey(window.siyuan.config.keymap.editor.general.insertBottom.custom, event)) {
+                checkFold(id, (zoomIn, action, isRoot) => {
+                    if (!isRoot) {
+                        action.push(Constants.CB_GET_HL);
+                    }
+                    openFileById({
+                        app: protyle.app,
+                        id,
+                        position: "bottom",
+                        action,
+                        zoomIn,
+                        scrollPosition: "start"
+                    });
+                });
+                event.preventDefault();
+                event.stopPropagation();
+                return true;
+            } else if (matchHotKey(window.siyuan.config.keymap.editor.general.refPopover.custom, event)) {
+                // open popover
+                window.siyuan.blockPanels.push(new BlockPanel({
+                    app: protyle.app,
+                    isBacklink: false,
+                    targetElement: refElement,
+                    refDefs: [{refID: id}]
+                }));
+                event.preventDefault();
+                event.stopPropagation();
+                return true;
+            }
+        }
         /// #endif
         await pasteAsPlainTextMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }

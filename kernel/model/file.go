@@ -187,8 +187,8 @@ func SearchDocsByKeyword(keyword string, flashcard bool, excludeIDs []string) (r
 			}
 		}
 
-		if 0 < len(excludeIDs) {
-			condition += fmt.Sprintf(" AND root_id NOT IN ('%s')", strings.Join(excludeIDs, "', '"))
+		for _, excludeID := range excludeIDs {
+			condition += fmt.Sprintf(" AND path NOT LIKE '%%%s%%' ", excludeID)
 		}
 
 		rootBlocks = sql.QueryRootBlockByCondition(condition, Conf.Search.Limit)
@@ -1748,7 +1748,7 @@ func createDoc(boxID, p, title, dom string) (tree *parse.Tree, err error) {
 	tree.HPath = hPath
 	tree.ID = id
 	tree.Root.ID = id
-	tree.Root.Spec = "1"
+	tree.Root.Spec = treenode.CurrentSpec
 	updated := util.TimeFromID(id)
 	tree.Root.KramdownIAL = [][]string{{"id", id}, {"title", html.EscapeAttrVal(title)}, {"updated", updated}}
 	if nil == tree.Root.FirstChild {
