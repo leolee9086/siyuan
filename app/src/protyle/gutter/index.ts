@@ -629,14 +629,14 @@ export class Gutter {
                     selectsElement,
                     type: "Blocks2Blockquote"
                 }));
-                // turnIntoSubmenu.push(this.turnsIntoOne({
-                //     menuId: "callout",
-                //     icon: "iconCallout",
-                //     label: window.siyuan.languages.callout,
-                //     protyle,
-                //     selectsElement,
-                //     type: "Blocks2Callout"
-                // }));
+                turnIntoSubmenu.push(this.turnsIntoOne({
+                    menuId: "callout",
+                    icon: "iconCallout",
+                    label: window.siyuan.languages.callout,
+                    protyle,
+                    selectsElement,
+                    type: "Blocks2Callout"
+                }));
             }
             turnIntoSubmenu.push(this.turnsInto({
                 menuId: "paragraph",
@@ -1018,14 +1018,14 @@ export class Gutter {
                 selectsElement: [nodeElement],
                 type: "Blocks2Blockquote"
             }));
-            // turnIntoSubmenu.push(this.turnsIntoOne({
-            //     menuId: "callout",
-            //     icon: "iconCallout",
-            //     label: window.siyuan.languages.callout,
-            //     protyle,
-            //     selectsElement: [nodeElement],
-            //     type: "Blocks2Callout"
-            // }));
+            turnIntoSubmenu.push(this.turnsIntoOne({
+                menuId: "callout",
+                icon: "iconCallout",
+                label: window.siyuan.languages.callout,
+                protyle,
+                selectsElement: [nodeElement],
+                type: "Blocks2Callout"
+            }));
             turnIntoSubmenu.push(this.turnsInto({
                 menuId: "heading1",
                 icon: "iconH1",
@@ -1105,14 +1105,14 @@ export class Gutter {
                 selectsElement: [nodeElement],
                 type: "Blocks2Blockquote"
             }));
-            // turnIntoSubmenu.push(this.turnsIntoOne({
-            //     menuId: "callout",
-            //     icon: "iconCallout",
-            //     label: window.siyuan.languages.callout,
-            //     protyle,
-            //     selectsElement: [nodeElement],
-            //     type: "Blocks2Callout"
-            // }));
+            turnIntoSubmenu.push(this.turnsIntoOne({
+                menuId: "callout",
+                icon: "iconCallout",
+                label: window.siyuan.languages.callout,
+                protyle,
+                selectsElement: [nodeElement],
+                type: "Blocks2Callout"
+            }));
             if (subType !== "h1") {
                 turnIntoSubmenu.push(this.turnsInto({
                     menuId: "heading1",
@@ -1205,14 +1205,14 @@ export class Gutter {
                 selectsElement: [nodeElement],
                 type: "Blocks2Blockquote"
             }));
-            // turnIntoSubmenu.push(this.turnsIntoOne({
-            //     menuId: "callout",
-            //     icon: "iconCallout",
-            //     label: window.siyuan.languages.callout,
-            //     protyle,
-            //     selectsElement: [nodeElement],
-            //     type: "Blocks2Callout"
-            // }));
+            turnIntoSubmenu.push(this.turnsIntoOne({
+                menuId: "callout",
+                icon: "iconCallout",
+                label: window.siyuan.languages.callout,
+                protyle,
+                selectsElement: [nodeElement],
+                type: "Blocks2Callout"
+            }));
             if (nodeElement.getAttribute("data-subtype") === "o") {
                 turnIntoSubmenu.push(this.turnsOneInto({
                     menuId: "list",
