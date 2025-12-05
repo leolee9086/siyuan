@@ -68,7 +68,7 @@ const handleParagraphTransform = (
         // 多个块转换为段落
         turnsIntoTransaction({
             protyle,
-            selectsElement,
+            nodeElement: selectsElement[0]!,
             type: "Blocks2Ps",
         });
     } else {
@@ -80,7 +80,7 @@ const handleParagraphTransform = (
         if (type === "NodeHeading") {
             turnsIntoTransaction({
                 protyle,
-                selectsElement,
+                nodeElement: selectedElement,
                 type: "Blocks2Ps",
             });
         } else if (type === "NodeList") {
