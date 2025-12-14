@@ -59,6 +59,7 @@ import { getSiyuanConfig, getSiyuanStorage } from "../../util/siyuanEnvironments
 import { getContenteditableElement } from "./getBlock";
 import { highlightRender } from "../render/highlightRender";
 
+
 export const getContentByInlineHTML = (range: Range, cb: (content: string) => void) => {
     let html = "";
     Array.from(range.cloneContents().childNodes).forEach((item) => {
@@ -66,7 +67,7 @@ export const getContentByInlineHTML = (range: Range, cb: (content: string) => vo
         if (item.nodeType === 3) {
             html += item.textContent;
         } else {
-        //元素节点    
+            //元素节点    
             if (item instanceof HTMLElement) {
                 html += item.outerHTML;
             }
@@ -180,7 +181,7 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         await insertWbrMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
         if (!getSiyuanGlobalMenus().menu.element.classList.contains("fn__none") &&
-            (["←", "↑", "→", "↓"].includes(Constants.KEYCODELIST[event.keyCode]||"") || Constants.KEYCODELIST[event.keyCode] === "↩") &&
+            (["←", "↑", "→", "↓"].includes(Constants.KEYCODELIST[event.keyCode] || "") || Constants.KEYCODELIST[event.keyCode] === "↩") &&
             !event.altKey && !event.shiftKey && isNotCtrl(event)) {
             event.preventDefault();
             return;
@@ -205,6 +206,7 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         if (signal.aborted) { return }
         await superBlockSelectMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
+
         // https://github.com/siyuan-note/siyuan/issues/11726
         await hideHintMiddleware(editorContext)
         if (signal.aborted) { return }
@@ -221,6 +223,8 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         // 上下左右光标移动
         await arrowNavigationMiddleware(event, protyle, nodeElement, range, controller)
         if (signal.aborted) { return }
+
+
         // 删除，不可使用 isNotCtrl(event)，否则软删除回导致 https://github.com/siyuan-note/siyuan/issues/5607
         // 不可使用 !event.shiftKey，否则 https://ld246.com/article/1666434796806
         await deleteKeyMiddleware(event, protyle, nodeElement, range, controller)
@@ -324,7 +328,7 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         const refElement = hasClosestByAttribute(range.startContainer, "data-type", "block-ref");
         if (refElement) {
             const id = refElement.getAttribute("data-id");
-            if (matchHotKey(getSiyuanConfig().keymap.editor.general.openBy.custom, event)&&id) {
+            if (matchHotKey(getSiyuanConfig().keymap.editor.general.openBy.custom, event) && id) {
                 checkFold(id, (zoomIn, action, isRoot) => {
                     if (!isRoot) {
                         action.push(Constants.CB_GET_HL);
@@ -340,7 +344,7 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
                 event.preventDefault();
                 event.stopPropagation();
                 return true;
-            } else if (matchHotKey(getSiyuanConfig().keymap.editor.general.refTab.custom, event)&&id) {
+            } else if (matchHotKey(getSiyuanConfig().keymap.editor.general.refTab.custom, event) && id) {
                 // 打开块引和编辑器中引用、反链、书签中点击事件需保持一致，都加载上下文
                 checkFold(id, (zoomIn) => {
                     openFileById({
@@ -355,7 +359,7 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
                 event.preventDefault();
                 event.stopPropagation();
                 return true;
-            } else if (matchHotKey(getSiyuanConfig().keymap.editor.general.insertRight.custom, event)&&id) {
+            } else if (matchHotKey(getSiyuanConfig().keymap.editor.general.insertRight.custom, event) && id) {
                 checkFold(id, (zoomIn, action, isRoot) => {
                     if (!isRoot) {
                         action.push(Constants.CB_GET_HL);
@@ -372,7 +376,7 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
                 event.preventDefault();
                 event.stopPropagation();
                 return true;
-            } else if (matchHotKey(getSiyuanConfig().keymap.editor.general.insertBottom.custom, event)&&id) {
+            } else if (matchHotKey(getSiyuanConfig().keymap.editor.general.insertBottom.custom, event) && id) {
                 checkFold(id, (zoomIn, action, isRoot) => {
                     if (!isRoot) {
                         action.push(Constants.CB_GET_HL);
@@ -389,13 +393,13 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
                 event.preventDefault();
                 event.stopPropagation();
                 return true;
-            } else if (matchHotKey(getSiyuanConfig().keymap.editor.general.refPopover.custom, event)&&id) {
+            } else if (matchHotKey(getSiyuanConfig().keymap.editor.general.refPopover.custom, event) && id) {
                 // open popover
                 window.siyuan.blockPanels.push(new BlockPanel({
                     app: protyle.app,
                     isBacklink: false,
                     targetElement: refElement,
-                    refDefs: [{refID: id}]
+                    refDefs: [{ refID: id }]
                 }));
                 event.preventDefault();
                 event.stopPropagation();

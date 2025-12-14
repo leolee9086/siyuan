@@ -205,6 +205,11 @@ func GetBlockSiblingID(id string) (parent, previous, next string) {
 	if nil == current || !current.IsBlock() {
 		return
 	}
+
+	if nil != current.Parent && ast.NodeListItem == current.Parent.Type {
+		current = current.Parent
+	}
+
 	parentBlock := treenode.ParentBlock(current)
 	if nil == parentBlock {
 		return
@@ -230,35 +235,37 @@ func GetBlockSiblingID(id string) (parent, previous, next string) {
 		return
 	}
 
-	if ast.NodeListItem != parentBlock.Type {
-		if parentBlock = treenode.ParentBlock(parentBlock); nil != parentBlock {
-			parent = parentBlock.ID
-			if ast.NodeDocument == parentBlock.Type {
-				parent = treenode.FirstLeafBlock(parentBlock).ID
-			}
-		}
-	}
-
-	parentBlock = treenode.ParentBlock(current)
+	parentCount := 0
 	for ; nil != parentBlock; parentBlock = treenode.ParentBlock(parentBlock) {
-		if nil != parentBlock.Previous && parentBlock.Previous.IsBlock() {
-			previous = parentBlock.Previous.ID
-			if flb := treenode.FirstChildBlock(parentBlock.Previous); nil != flb {
-				previous = flb.ID
-			}
+		if ast.NodeDocument == parentBlock.Type {
 			break
 		}
+
+		if ast.NodeList == parentBlock.Type || ast.NodeBlockquote == parentBlock.Type || ast.NodeSuperBlock == parentBlock.Type || ast.NodeCallout == parentBlock.Type {
+			parentCount++
+			continue
+		}
+
+		if ast.NodeListItem == parentBlock.Type {
+			if 1 > parentCount {
+				parentBlock = treenode.ParentBlock(parentBlock)
+			}
+			parentBlock = treenode.ParentBlock(parentBlock)
+		}
+		break
+	}
+	if ast.NodeDocument == parentBlock.Type {
+		parentBlock = treenode.FirstLeafBlock(parentBlock)
+		parent = parentBlock.ID
+	} else {
+		parent = parentBlock.ID
 	}
 
-	parentBlock = treenode.ParentBlock(current)
-	for ; nil != parentBlock; parentBlock = treenode.ParentBlock(parentBlock) {
-		if nil != parentBlock.Next && parentBlock.Next.IsBlock() {
-			next = parentBlock.Next.ID
-			if flb := treenode.FirstChildBlock(parentBlock.Next); nil != flb {
-				next = flb.ID
-			}
-			break
-		}
+	if nil != parentBlock.Previous {
+		previous = parentBlock.Previous.ID
+	}
+	if nil != parentBlock.Next {
+		next = parentBlock.Next.ID
 	}
 	return
 }

@@ -3,7 +3,7 @@ export const getDefaultType = () => {
     return {
         audioBlock: getSiyuanConfig().search.audioBlock,
         videoBlock: getSiyuanConfig().search.videoBlock,
-        iframeBlock: getSiyuanConfig() .search.iframeBlock,
+        iframeBlock: getSiyuanConfig().search.iframeBlock,
         widgetBlock: getSiyuanConfig().search.widgetBlock,
         document: getSiyuanConfig().search.document,
         heading: getSiyuanConfig().search.heading,
@@ -14,9 +14,11 @@ export const getDefaultType = () => {
         mathBlock: getSiyuanConfig().search.mathBlock,
         table: getSiyuanConfig().search.table,
         blockquote: getSiyuanConfig().search.blockquote,
+        callout: getSiyuanConfig().search.callout,
         superBlock: getSiyuanConfig().search.superBlock,
         paragraph: getSiyuanConfig().search.paragraph,
         embedBlock: getSiyuanConfig().search.embedBlock,
         databaseBlock: getSiyuanConfig().search.databaseBlock,
+
     };
 };

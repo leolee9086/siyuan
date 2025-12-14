@@ -275,6 +275,7 @@ export abstract class Constants {
     public static readonly MENU_SEARCH_REPLACE_HISTORY = "search-replace-history"; // 替换历史菜单
     public static readonly MENU_SEARCH_ASSET_HISTORY = "search-asset-history"; // 资源文件搜索历史菜单
     public static readonly MENU_MOVE_PATH_HISTORY = "move-path-history"; // 移动文档窗口搜索历史菜单
+    public static readonly MENU_CALLOUT_SELECT = "callout-select"; // 提示选择菜单
 
     public static readonly MENU_BACKGROUND_ASSET = "background-asset"; // 资源文件选择器菜单
     public static readonly MENU_AI = "ai"; // 块 AI 菜单
@@ -307,9 +308,11 @@ export abstract class Constants {
         he_IL: "20210808180117-6v0mkxr",
         it_IT: "20210808180117-6v0mkxr",
         ja_JP: "20240530133126-axarxgx",
+        ko_KR: "20210808180117-6v0mkxr",
         pl_PL: "20210808180117-6v0mkxr",
         pt_BR: "20210808180117-6v0mkxr",
         ru_RU: "20210808180117-6v0mkxr",
+        tr_TR: "20210808180117-6v0mkxr",
         zh_CHT: "20211226090932-5lcq56f",
         zh_CN: "20210808180117-czj9bvb",
     };

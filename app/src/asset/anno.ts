@@ -66,4 +66,3 @@ export const getTextNode = (element: HTMLElement, isFirst: boolean) => {
     return spans[index];
 };
 
-

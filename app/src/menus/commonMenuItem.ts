@@ -28,6 +28,8 @@ export const bindAttrInput = (inputElement: HTMLInputElement, id: string) => {
     });
 };
 
+
+
 export const openAttr = (nodeElement: Element, focusName = "bookmark", protyle: IProtyle) => {
     if (nodeElement.getAttribute("data-type") === "NodeThematicBreak") {
         return;

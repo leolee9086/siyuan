@@ -1,6 +1,13 @@
 import { hasClosestBlock, hasClosestByAttribute, isInEmbedBlock } from "../util/hasClosest";
 import { Constants } from "../../constants";
 
+export const getParentBlock = (element: Element) => {
+    if (element.parentElement.classList.contains("callout-content")) {
+        return element.parentElement.parentElement;
+    }
+    return element.parentElement;
+};
+
 export const getCalloutInfo = (element: Element) => {
     const icon = element.querySelector(".callout-icon").textContent;
     return (icon ? icon + " " : "") + element.querySelector(".callout-title").textContent;
@@ -100,7 +107,7 @@ export const isNotEditBlock = (element: Element) => {
 export const getTopEmptyElement = (element: Element) => {
     let topElement = element;
     while (topElement.parentElement && !topElement.parentElement.classList.contains("protyle-wysiwyg")) {
-        if (!topElement.parentElement.getAttribute("data-node-id")) {
+        if (!topElement.parentElement.getAttribute("data-node-id") && !topElement.parentElement.classList.contains("callout-content")) {
             topElement = topElement.parentElement;
         } else {
             let hasText = false;

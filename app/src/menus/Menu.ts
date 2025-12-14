@@ -13,7 +13,7 @@ import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu";
 export class Menu {
     public element: HTMLElement;
     public data: any;   // 用于记录当前菜单的数据
-    public removeCB: undefined|(() => void);
+    public removeCB: undefined | (() => void);
     private wheelEvent: string;
 
     constructor() {

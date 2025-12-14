@@ -216,6 +216,7 @@ interface Window {
             setClipboard: { postMessage: (url: string) => void }
             purchase: { postMessage: (url: string) => void }
             print: { postMessage: (html: string) => void }
+            exit: { postMessage: (text: string) => void }
         }
     };
     htmlToImage: {
@@ -238,6 +239,7 @@ interface Window {
         hideKeyboard(): void
         print(title: string, html: string): void
         getScreenWidthPx(): number
+        exit(): void
     };
     JSHarmony: {
         openExternal(url: string): void
@@ -250,6 +252,7 @@ interface Window {
         returnDesktop(): void
         print(title: string, html: string): void
         getScreenWidthPx(): number
+        exit(): void
     };
 
     Protyle: import("../protyle/method").default;
@@ -705,6 +708,7 @@ interface IGraphCommon {
     };
     type: {
         blockquote: boolean
+        callout: boolean
         code: boolean
         heading: boolean
         list: boolean

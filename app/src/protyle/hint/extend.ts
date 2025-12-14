@@ -21,7 +21,7 @@ import { unicode2Emoji } from "../../emoji";
 import { avRender } from "../render/av/render";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig";
-import {templateItem} from "./extend.template";
+import { templateItem } from "./extend.template";
 import { widgetItem } from "./extend.widget";
 const getHotkeyOrMarker = (hotkey: string, marker: string) => {
     if (hotkey) {
@@ -125,207 +125,227 @@ export const hintSlash = (key: string, protyle: IProtyle) => {
             value: "> " + Lute.Caret,
             html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconQuote"></use></svg><span class="b3-list-item__text">${siyuanI18n.quote}</span>${getHotkeyOrMarker(getSiyuanConfig().keymap.editor.insert.quote?.custom || "", ">")}</div>`,
         }, {
-        filter: [window.siyuan.languages.callout, "callout", "ts", "提示", "tishi"],
-        id: "callout",
-        value: `> [!NOTE]\n> ${Lute.Caret}`,
-        html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconCallout"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.callout}</span></div>`,
-    },{
-        filter: [window.siyuan.languages.code, "code block", "代码块", "daimakuai", "dmk"],
-        id: "code",
-        value: "```",
-        html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconCode"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.code}</span>${getHotkeyOrMarker(window.siyuan.config.keymap.editor.insert.code.custom, "```" + window.siyuan.languages.enterKey)}</div>`,
-    }, {
-        filter: [window.siyuan.languages.table, "table", "表格", "biaoge", "bg"],
-        id: "table",
-        value: `| ${Lute.Caret} |  |  |\n| --- | --- | --- |\n|  |  |  |\n|  |  |  |`,
-        html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconTable"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.table}</span><span class="b3-menu__accelerator b3-menu__accelerator--hotkey">${updateHotkeyTip((window.siyuan.config.keymap.editor.insert.table.custom))}</span></div>`,
-    }, {
-        filter: [window.siyuan.languages.line, "thematic break", "divider", "分隔线", "分割线", "fengexian", "fgx"],
-        id: "line",
-        value: "---",
-        html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconLine"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.line}</span><span class="b3-list-item__meta">---</span></div>`,
-    }, {
-        filter: [window.siyuan.languages.math, "formulas block", "math block", "数学公式块", "shuxuegongshikuai", "sxgsk"],
-        id: "math",
-        value: "$$",
-        html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconMath"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.math}</span><span class="b3-list-item__meta">$$</span></div>`,
-    }, {
-        filter: ["html"],
-        id: "html",
-        value: "<div>",
-        html: '<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconHTML5"></use></svg><span class="b3-list-item__text">HTML</span></div>',
-    }, {
-        value: "",
-        id: "separator_2",
-        html: "separator",
-    }, {
-        filter: [window.siyuan.languages.emoji, "emoji", "表情", "biaoqing", "bq"],
-        id: "emoji",
-        value: "emoji",
-        html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconEmoji"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.emoji}</span><span class="b3-list-item__meta">:</span></div>`,
-    }, {
-        filter: [window.siyuan.languages.link, "link", "a", "链接", "lianjie", "lj"],
-        id: "link",
-        value: "a",
-        html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconLink"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.link}</span><span class="b3-menu__accelerator b3-menu__accelerator--hotkey">${updateHotkeyTip((window.siyuan.config.keymap.editor.insert.link.custom))}</span></div>`,
-    }, {
-        filter: [window.siyuan.languages.bold, "bold", "strong", "粗体", "cuti", "ct", "加粗", "jiacu", "jc"],
-        id: "bold",
-        value: "strong",
-        html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconBold"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.bold}</span><span class="b3-menu__accelerator b3-menu__accelerator--hotkey">${updateHotkeyTip((window.siyuan.config.keymap.editor.insert.bold.custom))}</span></div>`,
-    }, {
-        filter: [window.siyuan.languages.italic, "italic", "em", "斜体", "xieti", "xt"],
-        id: "italic",
-        value: "em",
-        html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconItalic"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.italic}</span><span class="b3-menu__accelerator b3-menu__accelerator--hotkey">${updateHotkeyTip((window.siyuan.config.keymap.editor.insert.italic.custom))}</span></div>`,
-    }, {
-        filter: [window.siyuan.languages.underline, "underline", "下划线", "xiahuaxian", "xhx"],
-        id: "underline",
-        value: "u",
-        html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconUnderline"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.underline}</span><span class="b3-menu__accelerator b3-menu__accelerator--hotkey">${updateHotkeyTip((window.siyuan.config.keymap.editor.insert.underline.custom))}</span></div>`,
-    }, {
-        filter: [window.siyuan.languages.strike, "strike", "delete", "删除线", "shanchuxian", "scx"],
-        id: "strike",
-        value: "s",
-        html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconStrike"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.strike}</span><span class="b3-menu__accelerator b3-menu__accelerator--hotkey">${updateHotkeyTip((window.siyuan.config.keymap.editor.insert.strike.custom))}</span></div>`,
-    }, {
-        filter: [window.siyuan.languages.mark, "mark", "标记", "biaoji", "bj", "高亮", "gaoliang", "gl"],
-        id: "mark",
-        value: "mark",
-        html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconMark"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.mark}</span><span class="b3-menu__accelerator b3-menu__accelerator--hotkey">${updateHotkeyTip((window.siyuan.config.keymap.editor.insert.mark.custom))}</span></div>`,
-    }, {
-        filter: [window.siyuan.languages.sup, "superscript", "上标", "shangbiao", "sb"],
-        id: "sup",
-        value: "sup",
-        html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconSup"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.sup}</span><span class="b3-menu__accelerator b3-menu__accelerator--hotkey">${updateHotkeyTip((window.siyuan.config.keymap.editor.insert.sup.custom))}</span></div>`,
-    }, {
-        filter: [window.siyuan.languages.sub, "subscript", "下标", "xiaobiao", "xb"],
-        id: "sub",
-        value: "sub",
-        html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconSub"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.sub}</span><span class="b3-menu__accelerator b3-menu__accelerator--hotkey">${updateHotkeyTip((window.siyuan.config.keymap.editor.insert.sub.custom))}</span></div>`,
-    }, {
-        filter: [window.siyuan.languages["inline-code"], "inline code", "行级代码", "hangjidaima", "hjdm"],
-        id: "inlineCode",
-        value: "code",
-        html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconInlineCode"></use></svg><span class="b3-list-item__text">${window.siyuan.languages["inline-code"]}</span><span class="b3-menu__accelerator b3-menu__accelerator--hotkey">${updateHotkeyTip((window.siyuan.config.keymap.editor.insert["inline-code"].custom))}</span></div>`,
-    }, {
-        filter: [window.siyuan.languages.kbd, "kbd", "键盘", "jianpan", "jp"],
-        id: "kbd",
-        value: "kbd",
-        html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconKeymap"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.kbd}</span><span class="b3-menu__accelerator b3-menu__accelerator--hotkey">${updateHotkeyTip((window.siyuan.config.keymap.editor.insert.kbd.custom))}</span></div>`,
-    }, {
-        filter: [window.siyuan.languages.tag, "tags", "标签", "biaoqian", "bq"],
-        id: "tag",
-        value: "tag",
-        html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconTags"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.tag}</span><span class="b3-menu__accelerator b3-menu__accelerator--hotkey">${updateHotkeyTip((window.siyuan.config.keymap.editor.insert.tag.custom))}</span></div>`,
-    }, {
-        filter: [window.siyuan.languages["inline-math"], "inline formulas", "inline math", "行级公式", "hangjigongshi", "hjgs", "行级数学公式", "hangjishuxvegongshi", "hangjishuxuegongshi", "hjsxgs"],
-        id: "inlineMath",
-        value: "inline-math",
-        html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconMath"></use></svg><span class="b3-list-item__text">${window.siyuan.languages["inline-math"]}</span><span class="b3-menu__accelerator b3-menu__accelerator--hotkey">${updateHotkeyTip((window.siyuan.config.keymap.editor.insert["inline-math"].custom))}</span></div>`,
-    }, {
-        value: "",
-        id: "separator_3",
-        html: "separator",
-    }, {
-        filter: [window.siyuan.languages.insertAsset, "insert image or file", "upload", "插入图片或文件", "charutupianhuowenjian", "crtphwj", "上传", "sc"],
-        id: "insertAsset",
-        value: Constants.ZWSP + 3,
-        html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconDownload"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.insertAsset}</span>
+            filter: [window.siyuan.languages.callout, "callout", "ts", "提示", "tishi", "note"],
+            id: "calloutNote",
+            value: `> [!NOTE]\n> ${Lute.Caret}`,
+            html: `<div class="b3-list-item__first"><span class="b3-list-item__graphic">✏️</span><span class="b3-list-item__text">${window.siyuan.languages.callout} - <span style="color: var(--b3-callout-note)">Note</span></span></div>`,
+        }, {
+            filter: [window.siyuan.languages.callout, "callout", "ts", "提示", "tishi", "tip"],
+            id: "calloutTip",
+            value: `> [!TIP]\n> ${Lute.Caret}`,
+            html: `<div class="b3-list-item__first"><span class="b3-list-item__graphic">💡</span><span class="b3-list-item__text">${window.siyuan.languages.callout} - <span style="color: var(--b3-callout-tip)">Tip</span></span></div>`,
+        }, {
+            filter: [window.siyuan.languages.callout, "callout", "ts", "提示", "tishi", "important"],
+            id: "calloutImportant",
+            value: `> [!IMPORTANT]\n> ${Lute.Caret}`,
+            html: `<div class="b3-list-item__first"><span class="b3-list-item__graphic">❗</span><span class="b3-list-item__text">${window.siyuan.languages.callout} - <span style="color: var(--b3-callout-important)">Important</span></span></div>`,
+        }, {
+            filter: [window.siyuan.languages.callout, "callout", "ts", "提示", "tishi", "warning"],
+            id: "calloutWarning",
+            value: `> [!WARNING]\n> ${Lute.Caret}`,
+            html: `<div class="b3-list-item__first"><span class="b3-list-item__graphic">⚠️</span><span class="b3-list-item__text">${window.siyuan.languages.callout} - <span style="color: var(--b3-callout-warning)">Warning</span></span></div>`,
+        }, {
+            filter: [window.siyuan.languages.callout, "callout", "ts", "提示", "tishi", "caution"],
+            id: "calloutCaution",
+            value: `> [!CAUTION]\n> ${Lute.Caret}`,
+            html: `<div class="b3-list-item__first"><span class="b3-list-item__graphic">🚨</span><span class="b3-list-item__text">${window.siyuan.languages.callout} - <span style="color: var(--b3-callout-caution)">Caution</span></span></div>`,
+        }, {
+            filter: [window.siyuan.languages.code, "code block", "代码块", "daimakuai", "dmk"],
+            id: "code",
+            value: "```",
+            html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconCode"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.code}</span>${getHotkeyOrMarker(window.siyuan.config.keymap.editor.insert.code.custom, "```" + window.siyuan.languages.enterKey)}</div>`,
+        }, {
+            filter: [window.siyuan.languages.table, "table", "表格", "biaoge", "bg"],
+            id: "table",
+            value: `| ${Lute.Caret} |  |  |\n| --- | --- | --- |\n|  |  |  |\n|  |  |  |`,
+            html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconTable"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.table}</span><span class="b3-menu__accelerator b3-menu__accelerator--hotkey">${updateHotkeyTip((window.siyuan.config.keymap.editor.insert.table.custom))}</span></div>`,
+        }, {
+            filter: [window.siyuan.languages.line, "thematic break", "divider", "分隔线", "分割线", "fengexian", "fgx"],
+            id: "line",
+            value: "---",
+            html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconLine"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.line}</span><span class="b3-list-item__meta">---</span></div>`,
+        }, {
+            filter: [window.siyuan.languages.math, "formulas block", "math block", "数学公式块", "shuxuegongshikuai", "sxgsk"],
+            id: "math",
+            value: "$$",
+            html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconMath"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.math}</span><span class="b3-list-item__meta">$$</span></div>`,
+        }, {
+            filter: ["html"],
+            id: "html",
+            value: "<div>",
+            html: '<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconHTML5"></use></svg><span class="b3-list-item__text">HTML</span></div>',
+        }, {
+            value: "",
+            id: "separator_2",
+            html: "separator",
+        }, {
+            filter: [window.siyuan.languages.emoji, "emoji", "表情", "biaoqing", "bq"],
+            id: "emoji",
+            value: "emoji",
+            html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconEmoji"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.emoji}</span><span class="b3-list-item__meta">:</span></div>`,
+        }, {
+            filter: [window.siyuan.languages.link, "link", "a", "链接", "lianjie", "lj"],
+            id: "link",
+            value: "a",
+            html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconLink"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.link}</span><span class="b3-menu__accelerator b3-menu__accelerator--hotkey">${updateHotkeyTip((window.siyuan.config.keymap.editor.insert.link.custom))}</span></div>`,
+        }, {
+            filter: [window.siyuan.languages.bold, "bold", "strong", "粗体", "cuti", "ct", "加粗", "jiacu", "jc"],
+            id: "bold",
+            value: "strong",
+            html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconBold"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.bold}</span><span class="b3-menu__accelerator b3-menu__accelerator--hotkey">${updateHotkeyTip((window.siyuan.config.keymap.editor.insert.bold.custom))}</span></div>`,
+        }, {
+            filter: [window.siyuan.languages.italic, "italic", "em", "斜体", "xieti", "xt"],
+            id: "italic",
+            value: "em",
+            html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconItalic"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.italic}</span><span class="b3-menu__accelerator b3-menu__accelerator--hotkey">${updateHotkeyTip((window.siyuan.config.keymap.editor.insert.italic.custom))}</span></div>`,
+        }, {
+            filter: [window.siyuan.languages.underline, "underline", "下划线", "xiahuaxian", "xhx"],
+            id: "underline",
+            value: "u",
+            html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconUnderline"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.underline}</span><span class="b3-menu__accelerator b3-menu__accelerator--hotkey">${updateHotkeyTip((window.siyuan.config.keymap.editor.insert.underline.custom))}</span></div>`,
+        }, {
+            filter: [window.siyuan.languages.strike, "strike", "delete", "删除线", "shanchuxian", "scx"],
+            id: "strike",
+            value: "s",
+            html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconStrike"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.strike}</span><span class="b3-menu__accelerator b3-menu__accelerator--hotkey">${updateHotkeyTip((window.siyuan.config.keymap.editor.insert.strike.custom))}</span></div>`,
+        }, {
+            filter: [window.siyuan.languages.mark, "mark", "标记", "biaoji", "bj", "高亮", "gaoliang", "gl"],
+            id: "mark",
+            value: "mark",
+            html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconMark"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.mark}</span><span class="b3-menu__accelerator b3-menu__accelerator--hotkey">${updateHotkeyTip((window.siyuan.config.keymap.editor.insert.mark.custom))}</span></div>`,
+        }, {
+            filter: [window.siyuan.languages.sup, "superscript", "上标", "shangbiao", "sb"],
+            id: "sup",
+            value: "sup",
+            html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconSup"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.sup}</span><span class="b3-menu__accelerator b3-menu__accelerator--hotkey">${updateHotkeyTip((window.siyuan.config.keymap.editor.insert.sup.custom))}</span></div>`,
+        }, {
+            filter: [window.siyuan.languages.sub, "subscript", "下标", "xiaobiao", "xb"],
+            id: "sub",
+            value: "sub",
+            html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconSub"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.sub}</span><span class="b3-menu__accelerator b3-menu__accelerator--hotkey">${updateHotkeyTip((window.siyuan.config.keymap.editor.insert.sub.custom))}</span></div>`,
+        }, {
+            filter: [window.siyuan.languages["inline-code"], "inline code", "行级代码", "hangjidaima", "hjdm"],
+            id: "inlineCode",
+            value: "code",
+            html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconInlineCode"></use></svg><span class="b3-list-item__text">${window.siyuan.languages["inline-code"]}</span><span class="b3-menu__accelerator b3-menu__accelerator--hotkey">${updateHotkeyTip((window.siyuan.config.keymap.editor.insert["inline-code"].custom))}</span></div>`,
+        }, {
+            filter: [window.siyuan.languages.kbd, "kbd", "键盘", "jianpan", "jp"],
+            id: "kbd",
+            value: "kbd",
+            html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconKeymap"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.kbd}</span><span class="b3-menu__accelerator b3-menu__accelerator--hotkey">${updateHotkeyTip((window.siyuan.config.keymap.editor.insert.kbd.custom))}</span></div>`,
+        }, {
+            filter: [window.siyuan.languages.tag, "tags", "标签", "biaoqian", "bq"],
+            id: "tag",
+            value: "tag",
+            html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconTags"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.tag}</span><span class="b3-menu__accelerator b3-menu__accelerator--hotkey">${updateHotkeyTip((window.siyuan.config.keymap.editor.insert.tag.custom))}</span></div>`,
+        }, {
+            filter: [window.siyuan.languages["inline-math"], "inline formulas", "inline math", "行级公式", "hangjigongshi", "hjgs", "行级数学公式", "hangjishuxvegongshi", "hangjishuxuegongshi", "hjsxgs"],
+            id: "inlineMath",
+            value: "inline-math",
+            html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconMath"></use></svg><span class="b3-list-item__text">${window.siyuan.languages["inline-math"]}</span><span class="b3-menu__accelerator b3-menu__accelerator--hotkey">${updateHotkeyTip((window.siyuan.config.keymap.editor.insert["inline-math"].custom))}</span></div>`,
+        }, {
+            value: "",
+            id: "separator_3",
+            html: "separator",
+        }, {
+            filter: [window.siyuan.languages.insertAsset, "insert image or file", "upload", "插入图片或文件", "charutupianhuowenjian", "crtphwj", "上传", "sc"],
+            id: "insertAsset",
+            value: Constants.ZWSP + 3,
+            html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconDownload"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.insertAsset}</span>
 <input class="b3-form__upload" type="file" ${protyle.options.upload.accept ? 'multiple="' + protyle.options.upload.accept + '"' : ""}></div>`,
-    }, {
-        filter: [window.siyuan.languages.insertIframeURL, "insert iframe link", "插入 iframe 链接", "charuiframelianjie", "criframelj"],
-        id: "insertIframeURL",
-        value: '<iframe sandbox="allow-forms allow-presentation allow-same-origin allow-scripts allow-modals allow-popups" src="" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe>',
-        html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconLanguage"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.insertIframeURL}</span></div>`,
-    }, {
-        filter: [window.siyuan.languages.insertImgURL, "insert image link", "image", "img", "插入图片链接", "charutupianlianjie", "crtplj"],
-        id: "insertImgURL",
-        value: "![]()",
-        html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconImage"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.insertImgURL}</span></div>`,
-    }, {
-        filter: [window.siyuan.languages.insertVideoURL, "insert video link", "插入视频链接", "charushipinlianjie", "crsplj"],
-        id: "insertVideoURL",
-        value: '<video controls="controls" src=""></video>',
-        html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconVideo"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.insertVideoURL}</span></div>`,
-    }, {
-        filter: [window.siyuan.languages.insertAudioURL, "insert audio link", "插入音频链接", "charuyinpinlianjie", "cryplj"],
-        id: "insertAudioURL",
-        value: '<audio controls="controls" src=""></audio>',
-        html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconRecord"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.insertAudioURL}</span></div>`,
-    }, {
-        value: "",
-        id: "separator_4",
-        html: "separator",
-    }, {
-        filter: [window.siyuan.languages.staff, "staff", "五线谱", "wuxianpu", "wxp"],
-        id: "staff",
-        value: "```abc\n```",
-        html: `<div class="b3-list-item__first"><span class="b3-list-item__text">ABC</span><span class="b3-list-item__meta">${window.siyuan.languages.staff}</span></div>`,
-    }, {
-        filter: [window.siyuan.languages.chart, "chart", "图表", "tubiao", "tb"],
-        id: "chart",
-        value: "```echarts\n```",
-        html: `<div class="b3-list-item__first"><span class="b3-list-item__text">Chart</span><span class="b3-list-item__meta">${window.siyuan.languages.chart}</span></div>`,
-    }, {
-        filter: ["flowchart", "flow chart", "流程图", "liuchengtu", "lct"],
-        id: "flowChart",
-        value: "```flowchart\n```",
-        html: '<div class="b3-list-item__first"><span class="b3-list-item__text">FlowChart</span><span class="b3-list-item__meta">Flow Chart</span></div>',
-    }, {
-        filter: ["graphviz", "状态图", "zhuangtaitu", "ztt"],
-        id: "graph",
-        value: "```graphviz\n```",
-        html: '<div class="b3-list-item__first"><span class="b3-list-item__text">Graphviz</span><span class="b3-list-item__meta">Graph</span></div>',
-    }, {
-        filter: ["mermaid", "diagram", "图表", "tubiao", "tb"],
-        id: "mermaid",
-        value: "```mermaid\n```",
-        html: '<div class="b3-list-item__first"><span class="b3-list-item__text">Mermaid</span><span class="b3-list-item__meta">Mermaid</span></div>',
-    }, {
-        filter: [window.siyuan.languages.mindmap, "mindmap", "脑图", "naotu", "nt"],
-        id: "mindmap",
-        value: "```mindmap\n```",
-        html: `<div class="b3-list-item__first"><span class="b3-list-item__text">Mind map</span><span class="b3-list-item__meta">${window.siyuan.languages.mindmap}</span></div>`,
-    }, {
-        filter: ["plantuml", "建模语言", "jianmoyuyan", "jmyy"],
-        id: "UML",
-        value: "```plantuml\n```",
-        html: '<div class="b3-list-item__first"><span class="b3-list-item__text">PlantUML</span><span class="b3-list-item__meta">UML</span></div>',
-    }, {
-        value: "",
-        id: "separator_5",
-        html: "separator",
-    }, {
-        filter: [window.siyuan.languages.infoStyle, "info style", "信息样式", "xinxiyangshi", "xxys"],
-        id: "infoStyle",
-        value: `style${Constants.ZWSP}color: var(--b3-card-info-color);background-color: var(--b3-card-info-background);`,
-        html: `<div class="b3-list-item__first"><div style="color: var(--b3-card-info-color);background-color: var(--b3-card-info-background);" class="color__square color__square--list">A</div><span class="b3-list-item__text">${window.siyuan.languages.infoStyle}</span></div>`,
-    }, {
-        filter: [window.siyuan.languages.successStyle, "success style", "成功样式", "chenggongyangshi", "cgys"],
-        id: "successStyle",
-        value: `style${Constants.ZWSP}color: var(--b3-card-success-color);background-color: var(--b3-card-success-background);`,
-        html: `<div class="b3-list-item__first"><div style="color: var(--b3-card-success-color);background-color: var(--b3-card-success-background);" class="color__square color__square--list">A</div><span class="b3-list-item__text">${window.siyuan.languages.successStyle}</span></div>`,
-    }, {
-        filter: [window.siyuan.languages.warningStyle, "warning style", "警告样式", "jinggaoyangshi", "jgys"],
-        id: "warningStyle",
-        value: `style${Constants.ZWSP}color: var(--b3-card-warning-color);background-color: var(--b3-card-warning-background);`,
-        html: `<div class="b3-list-item__first"><div style="color: var(--b3-card-warning-color);background-color: var(--b3-card-warning-background);" class="color__square color__square--list">A</div><span class="b3-list-item__text">${window.siyuan.languages.warningStyle}</span></div>`,
-    }, {
-        filter: [window.siyuan.languages.errorStyle, "error style", "错误样式", "cuowuyangshi", "cwys"],
-        id: "errorStyle",
-        value: `style${Constants.ZWSP}color: var(--b3-card-error-color);background-color: var(--b3-card-error-background);`,
-        html: `<div class="b3-list-item__first"><div style="color: var(--b3-card-error-color);background-color: var(--b3-card-error-background);" class="color__square color__square--list">A</div><span class="b3-list-item__text">${window.siyuan.languages.errorStyle}</span></div>`,
-    }, {
-        filter: [window.siyuan.languages.clearFontStyle, "clear style", "清除样式", "qingchuyangshi", "qcys"],
-        id: "clearFontStyle",
-        value: `style${Constants.ZWSP}`,
-        html: `<div class="b3-list-item__first"><div class="color__square color__square--list">A</div><span class="b3-list-item__text">${window.siyuan.languages.clearFontStyle}</span></div>`,
-    }, {
-        value: "",
-        id: "separator_6",
-        html: "separator",
-    }];
+        }, {
+            filter: [window.siyuan.languages.insertIframeURL, "insert iframe link", "插入 iframe 链接", "charuiframelianjie", "criframelj"],
+            id: "insertIframeURL",
+            value: '<iframe sandbox="allow-forms allow-presentation allow-same-origin allow-scripts allow-modals allow-popups" src="" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe>',
+            html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconLanguage"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.insertIframeURL}</span></div>`,
+        }, {
+            filter: [window.siyuan.languages.insertImgURL, "insert image link", "image", "img", "插入图片链接", "charutupianlianjie", "crtplj"],
+            id: "insertImgURL",
+            value: "![]()",
+            html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconImage"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.insertImgURL}</span></div>`,
+        }, {
+            filter: [window.siyuan.languages.insertVideoURL, "insert video link", "插入视频链接", "charushipinlianjie", "crsplj"],
+            id: "insertVideoURL",
+            value: '<video controls="controls" src=""></video>',
+            html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconVideo"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.insertVideoURL}</span></div>`,
+        }, {
+            filter: [window.siyuan.languages.insertAudioURL, "insert audio link", "插入音频链接", "charuyinpinlianjie", "cryplj"],
+            id: "insertAudioURL",
+            value: '<audio controls="controls" src=""></audio>',
+            html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconRecord"></use></svg><span class="b3-list-item__text">${window.siyuan.languages.insertAudioURL}</span></div>`,
+        }, {
+            value: "",
+            id: "separator_4",
+            html: "separator",
+        }, {
+            filter: [window.siyuan.languages.staff, "staff", "五线谱", "wuxianpu", "wxp"],
+            id: "staff",
+            value: "```abc\n```",
+            html: `<div class="b3-list-item__first"><span class="b3-list-item__text">ABC</span><span class="b3-list-item__meta">${window.siyuan.languages.staff}</span></div>`,
+        }, {
+            filter: [window.siyuan.languages.chart, "chart", "图表", "tubiao", "tb"],
+            id: "chart",
+            value: "```echarts\n```",
+            html: `<div class="b3-list-item__first"><span class="b3-list-item__text">Chart</span><span class="b3-list-item__meta">${window.siyuan.languages.chart}</span></div>`,
+        }, {
+            filter: ["flowchart", "flow chart", "流程图", "liuchengtu", "lct"],
+            id: "flowChart",
+            value: "```flowchart\n```",
+            html: '<div class="b3-list-item__first"><span class="b3-list-item__text">FlowChart</span><span class="b3-list-item__meta">Flow Chart</span></div>',
+        }, {
+            filter: ["graphviz", "状态图", "zhuangtaitu", "ztt"],
+            id: "graph",
+            value: "```graphviz\n```",
+            html: '<div class="b3-list-item__first"><span class="b3-list-item__text">Graphviz</span><span class="b3-list-item__meta">Graph</span></div>',
+        }, {
+            filter: ["mermaid", "diagram", "图表", "tubiao", "tb"],
+            id: "mermaid",
+            value: "```mermaid\n```",
+            html: '<div class="b3-list-item__first"><span class="b3-list-item__text">Mermaid</span><span class="b3-list-item__meta">Mermaid</span></div>',
+        }, {
+            filter: [window.siyuan.languages.mindmap, "mindmap", "脑图", "naotu", "nt"],
+            id: "mindmap",
+            value: "```mindmap\n```",
+            html: `<div class="b3-list-item__first"><span class="b3-list-item__text">Mind map</span><span class="b3-list-item__meta">${window.siyuan.languages.mindmap}</span></div>`,
+        }, {
+            filter: ["plantuml", "建模语言", "jianmoyuyan", "jmyy"],
+            id: "UML",
+            value: "```plantuml\n```",
+            html: '<div class="b3-list-item__first"><span class="b3-list-item__text">PlantUML</span><span class="b3-list-item__meta">UML</span></div>',
+        }, {
+            value: "",
+            id: "separator_5",
+            html: "separator",
+        }, {
+            filter: [window.siyuan.languages.infoStyle, "info style", "信息样式", "xinxiyangshi", "xxys"],
+            id: "infoStyle",
+            value: `style${Constants.ZWSP}color: var(--b3-card-info-color);background-color: var(--b3-card-info-background);`,
+            html: `<div class="b3-list-item__first"><div style="color: var(--b3-card-info-color);background-color: var(--b3-card-info-background);" class="color__square color__square--list">A</div><span class="b3-list-item__text">${window.siyuan.languages.infoStyle}</span></div>`,
+        }, {
+            filter: [window.siyuan.languages.successStyle, "success style", "成功样式", "chenggongyangshi", "cgys"],
+            id: "successStyle",
+            value: `style${Constants.ZWSP}color: var(--b3-card-success-color);background-color: var(--b3-card-success-background);`,
+            html: `<div class="b3-list-item__first"><div style="color: var(--b3-card-success-color);background-color: var(--b3-card-success-background);" class="color__square color__square--list">A</div><span class="b3-list-item__text">${window.siyuan.languages.successStyle}</span></div>`,
+        }, {
+            filter: [window.siyuan.languages.warningStyle, "warning style", "警告样式", "jinggaoyangshi", "jgys"],
+            id: "warningStyle",
+            value: `style${Constants.ZWSP}color: var(--b3-card-warning-color);background-color: var(--b3-card-warning-background);`,
+            html: `<div class="b3-list-item__first"><div style="color: var(--b3-card-warning-color);background-color: var(--b3-card-warning-background);" class="color__square color__square--list">A</div><span class="b3-list-item__text">${window.siyuan.languages.warningStyle}</span></div>`,
+        }, {
+            filter: [window.siyuan.languages.errorStyle, "error style", "错误样式", "cuowuyangshi", "cwys"],
+            id: "errorStyle",
+            value: `style${Constants.ZWSP}color: var(--b3-card-error-color);background-color: var(--b3-card-error-background);`,
+            html: `<div class="b3-list-item__first"><div style="color: var(--b3-card-error-color);background-color: var(--b3-card-error-background);" class="color__square color__square--list">A</div><span class="b3-list-item__text">${window.siyuan.languages.errorStyle}</span></div>`,
+        }, {
+            filter: [window.siyuan.languages.clearFontStyle, "clear style", "清除样式", "qingchuyangshi", "qcys"],
+            id: "clearFontStyle",
+            value: `style${Constants.ZWSP}`,
+            html: `<div class="b3-list-item__first"><div class="color__square color__square--list">A</div><span class="b3-list-item__text">${window.siyuan.languages.clearFontStyle}</span></div>`,
+        }, {
+            value: "",
+            id: "separator_6",
+            html: "separator",
+        }];
     let hasPlugin = false;
     protyle.app.plugins.forEach((plugin) => {
         plugin.protyleSlash.forEach(slash => {
