@@ -1,0 +1,139 @@
+﻿b0f674d84 :art: https://github.com/siyuan-note/siyuan/issues/16429
+9156aee24 :art: https://github.com/siyuan-note/siyuan/issues/14796
+84df89546 :art: https://github.com/siyuan-note/siyuan/issues/16491
+99fe06931 :art: https://github.com/siyuan-note/siyuan/issues/16051
+d5c253727 :art: https://github.com/siyuan-note/siyuan/issues/16495
+07046cae5 Merge remote-tracking branch 'origin/dev' into dev
+cbaab93db :art: https://github.com/siyuan-note/siyuan/issues/16556
+05a73e2a3 :memo: Update changelogs
+ea925aff3 :art: Fix https://github.com/siyuan-note/siyuan/issues/16576
+1acbb7d06 :art: Improve the behavior of `Jump to parent block` in lists https://github.com/siyuan-note/siyuan/issues/16516#issuecomment-3649752632
+3b730ded8 :art: Improve text
+b2573bd64 :art: Improve text
+94dc95be4 :globe_with_meridians: Add Turkish support (#16575)
+e1e9a0a73 :bug: Fix i18n key names and add checking script (#16578)
+9dfc77a7e :art: Supports converting relative path hyperlinks into document block references after importing Markdown https://github.com/siyuan-note/siyuan/issues/13817
+96e399687 :art: https://github.com/siyuan-note/siyuan/issues/16532
+425ec1d3c :art: https://github.com/siyuan-note/siyuan/issues/16524
+472a3b09a Merge remote-tracking branch 'origin/dev' into dev
+84498da84 :art: https://github.com/siyuan-note/siyuan/issues/16524
+13844e58d :art: Supports setting the spell check language on desktop https://github.com/siyuan-note/siyuan/issues/16524
+ec881a76a Fix executing the uninstall method when closing the plugin (#16522)
+ab62a13cb :art: https://github.com/siyuan-note/siyuan/issues/16524
+2ebef4b4a :art: Supports setting the spell check language on desktop https://github.com/siyuan-note/siyuan/issues/16524
+9a77e1e8b Merge remote-tracking branch 'origin/dev' into dev
+87a016822 :art: https://github.com/siyuan-note/siyuan/issues/16524
+6da4e4b5a :art: Fix https://github.com/siyuan-note/siyuan/issues/16558
+9e77b2e67 :art: Fix https://github.com/siyuan-note/siyuan/issues/16558
+2054ea601 :arrow_up: Upgrade lute
+677417550 :art: Fix https://github.com/siyuan-note/siyuan/issues/16565
+c7dd10911 :arrow_up: Upgrade lute
+168e492c8 :lipstick: Improve placeholder text color (#16566)
+6202fd39e :arrow_up: Upgrade lute
+14fe40eaa :bug: Fix https://github.com/siyuan-note/siyuan/issues/16561
+693f1d598 Merge remote-tracking branch 'origin/dev' into dev
+218503dde :art: https://github.com/siyuan-note/siyuan/issues/16051
+3c0ab04a3 :arrow_up: Upgrade lute
+f27684b26 :art: Clean code
+1413457ab Merge remote-tracking branch 'origin/dev' into dev
+ad1bce5fe :art: https://github.com/siyuan-note/siyuan/issues/16051 11
+68e83a359 :zap: Improve data indexing performance https://github.com/siyuan-note/siyuan/issues/16557
+ccf522a45 :arrow_up: Upgrade lute
+d81aac945 :art: https://github.com/siyuan-note/siyuan/issues/15564#issuecomment-3637546514
+579599270 :art: https://github.com/siyuan-note/siyuan/issues/16051
+6ecf6fd96 :art: https://github.com/siyuan-note/siyuan/issues/16051
+34186a4b8 Merge remote-tracking branch 'origin/dev' into dev
+c3b30088b :art: https://github.com/siyuan-note/siyuan/issues/16051
+25ca3be12 :art: Improve the behavior of `Jump to parent block` in lists https://github.com/siyuan-note/siyuan/issues/16516
+20b8566ed :sparkles: Callout block https://github.com/siyuan-note/siyuan/issues/16051
+a053b51a4 :art: https://github.com/siyuan-note/siyuan/issues/16554
+186cc1465 Merge remote-tracking branch 'origin/dev' into dev
+63a6c3da7 :art: https://github.com/siyuan-note/siyuan/issues/16051
+6726ea51d :art: Fix https://github.com/siyuan-note/siyuan/issues/16549
+0cb814d61 :art: Clean code
+eedb712ac Merge remote-tracking branch 'origin/dev' into dev
+599c90e0a :art: https://github.com/siyuan-note/siyuan/issues/16051
+976807861 :arrow_up: Upgrade lute
+f29cb9159 :arrow_up: Upgrade lute
+0d389f3a2 :art: https://github.com/siyuan-note/siyuan/issues/16051
+8d9d0a0dc Merge remote-tracking branch 'origin/dev' into dev
+42d6381ed :art: https://github.com/siyuan-note/siyuan/issues/16051
+5f6c74c59 :arrow_up: Upgrade lute
+01c247653 :art: https://github.com/siyuan-note/siyuan/issues/16051
+77aff4b1d Merge remote-tracking branch 'origin/dev' into dev
+4fe40c9fd :art: https://github.com/siyuan-note/siyuan/issues/14796
+058ade01c :art: Improve the fallback logic for fetching README in the marketplace (#16551)
+d11ed21f0 :art: https://github.com/siyuan-note/siyuan/issues/16518
+83fdc0f31 :art: https://github.com/siyuan-note/siyuan/issues/16051
+e63bfee6a :memo: Update the contributing guide
+4cc998f29 :bug: Can't switch workspaces on mobile https://github.com/siyuan-note/siyuan/issues/16544 https://github.com/siyuan-note/siyuan/issues/16552
+23cea2c6d :art: https://github.com/siyuan-note/siyuan/issues/16051
+6ab9befdc :art: https://github.com/siyuan-note/siyuan/issues/16051
+efd2adb4f :art: https://github.com/siyuan-note/siyuan/issues/16051
+fbc166e7b :art: https://github.com/siyuan-note/siyuan/issues/16051
+345111c46 :memo: Update changelogs
+ceca66114 :memo: Update the user guide for Callout block https://github.com/siyuan-note/siyuan/issues/16051
+50cf3f734 :bug: https://github.com/siyuan-note/siyuan/issues/16544
+e1132eb22 :art: Improve boot
+d34cd984d :art: Improve boot
+4ee7497af :art: Improve boot
+e1aa372f8 :art: Improve exit
+c4326bd9d :art: Improve exit
+d31398698 Merge remote-tracking branch 'origin/dev' into dev
+246ec1e2c :art: https://github.com/siyuan-note/siyuan/issues/16544
+e256101bd :art: Improve boot
+a110f902d :bug: Embed blocks are exported incorrectly https://github.com/siyuan-note/siyuan/issues/16547
+ad48451d5 :art: Improve exit
+a4fb57a36 Merge remote-tracking branch 'origin/dev' into dev
+3ac342dcf :art: https://github.com/siyuan-note/siyuan/issues/16544
+7d36fbc2f :art: Improve exit
+ddae80a5f :art: Improve exit
+00d00b54e :bug: Can't switch workspaces on mobile https://github.com/siyuan-note/siyuan/issues/16544
+444b38aa2 :art: Improve exit
+d1e6b203e :art: Improve exit on Android
+4df9a3b92 :art: https://github.com/siyuan-note/siyuan/issues/16546
+258e56272 :art: https://github.com/siyuan-note/siyuan/issues/16546
+d24874154 Merge remote-tracking branch 'origin/dev' into dev
+bdee14250 :art: https://github.com/siyuan-note/siyuan/issues/14796
+106a679db :art: Improve http server
+21dff696c :art: Improve exit on Android
+2bf5bb50c :art: Improve auth code check exit code
+bff6f0699 :art: https://github.com/siyuan-note/siyuan/issues/16534
+70140ade9 :art: Improve text https://github.com/siyuan-note/siyuan/issues/16533
+dc48b090e :art: The workspace will be reset on iOS https://github.com/siyuan-note/siyuan/issues/16544
+128f6dfec :art: The workspace will be reset on iOS https://github.com/siyuan-note/siyuan/issues/16544
+7a079ae55 :art: https://github.com/siyuan-note/siyuan/issues/16525
+af823bd8f :art: The workspace will be reset on iOS https://github.com/siyuan-note/siyuan/issues/16544
+5bef3bf81 :art: Supports setting the spell check language on desktop https://github.com/siyuan-note/siyuan/issues/16524
+2e40a5380 :art: Supports setting the spell check language on desktop https://github.com/siyuan-note/siyuan/issues/16524
+b8a937b3f Merge remote-tracking branch 'origin/dev' into dev
+a26b7874c :art: https://github.com/siyuan-note/siyuan/issues/16051
+617273990 :art: Improve text https://github.com/siyuan-note/siyuan/issues/16533
+172615b0e :art: Improve the behavior of `Jump to parent block` in lists https://github.com/siyuan-note/siyuan/issues/16516
+269b4072d :lipstick: Use default cursor on scrollbars https://github.com/siyuan-note/siyuan/issues/16527 (#16528)
+3f6fb0e48 :lipstick: Improve the left padding of the top bar in the browser environment (#16392)
+efa08cacf Merge remote-tracking branch 'origin/dev' into dev
+b1585ed4f :art: https://github.com/siyuan-note/siyuan/issues/16051
+4262c40cd :lock: Fix Command Injection via PandocBin https://github.com/siyuan-note/siyuan/security/advisories/GHSA-4r66-7rcv-x46x
+44a25da08 :lock: Fix Zip decompression security vulnerability https://github.com/siyuan-note/siyuan/issues/16541
+cb58c643f :art: Do not validate file names when updating existing files https://github.com/siyuan-note/siyuan/issues/16536 (#16539)
+be53f83c5 :art: https://github.com/siyuan-note/siyuan/issues/16051
+8038877f8 :art: https://github.com/siyuan-note/siyuan/issues/16051
+1b7ad746a :art: https://github.com/siyuan-note/siyuan/issues/16051
+156888081 :arrow_up: Upgrade kernel deps
+d3be3fa6e :sparkles: Callout block https://github.com/siyuan-note/siyuan/issues/16051
+4abc69296 :globe_with_meridians: Add Korean support https://github.com/siyuan-note/siyuan/pull/16526
+350f574d7 :globe_with_meridians: Add Korean support (#16526)
+6339bdb5d :art: https://github.com/siyuan-note/siyuan/issues/16051
+4b93c00e9 :art: https://github.com/siyuan-note/siyuan/issues/16051
+ad87cecaf Merge remote-tracking branch 'origin/dev' into dev
+13a4083f8 :art: https://github.com/siyuan-note/siyuan/issues/16051
+e8e36185d :sparkles: Callout block https://github.com/siyuan-note/siyuan/issues/16051
+f6c905aa9 :sparkles: Callout block https://github.com/siyuan-note/siyuan/issues/16051
+151262861 Merge remote-tracking branch 'origin/dev' into dev
+b98e40fb0 :art: https://github.com/siyuan-note/siyuan/issues/16051
+980f6dd0b :sparkles: Callout block https://github.com/siyuan-note/siyuan/issues/16051
+362f6ffa0 :sparkles: Callout block https://github.com/siyuan-note/siyuan/issues/16051
+c1cdb9846 :art: https://github.com/siyuan-note/siyuan/issues/16051
+e48c57c8b :art: https://github.com/siyuan-note/siyuan/issues/16051
+f4aaa6c0c :art: https://github.com/siyuan-note/siyuan/issues/16051

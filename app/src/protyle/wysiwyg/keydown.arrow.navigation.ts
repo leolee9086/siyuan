@@ -30,13 +30,20 @@ export const arrowNavigationMiddleware = async (
         if (event.key === "ArrowDown" && nodeEditableElement?.innerText.trimRight().substr(position.start).indexOf("\n") === -1 && (
             (tdElement && tdElement.parentElement && !tdElement.parentElement.nextElementSibling && nodeElement.getAttribute("data-type") === "NodeTable" && !getNextBlock(nodeElement)) ||
             (nodeElement.getAttribute("data-type") === "NodeCodeBlock" && !getNextBlock(nodeElement)) ||
-            (nodeElement.parentElement && nodeElement.parentElement.getAttribute("data-type") === "NodeBlockquote" && nodeElement.nextElementSibling && nodeElement.nextElementSibling.classList.contains("protyle-attr") && !getNextBlock(nodeElement.parentElement))
+            (nodeElement.parentElement && nodeElement.parentElement.getAttribute("data-type") === "NodeBlockquote" && nodeElement.nextElementSibling && nodeElement.nextElementSibling.classList.contains("protyle-attr") && !getNextBlock(nodeElement.parentElement)) ||
+            (nodeElement.parentElement && nodeElement.parentElement.classList.contains("callout-content") && !nodeElement.nextElementSibling && nodeElement.parentElement.parentElement && !getNextBlock(nodeElement.parentElement.parentElement))
         )) {
             // 跳出代码块和bq
             if (nodeElement.parentElement && nodeElement.parentElement.getAttribute("data-type") === "NodeBlockquote") {
                 const parentId = nodeElement.parentElement.getAttribute("data-node-id");
                 if (parentId) {
                     insertEmptyBlock(protyle, "afterend", parentId);
+                }
+            } else if (nodeElement.parentElement && nodeElement.parentElement.classList.contains("callout-content") && nodeElement.parentElement.parentElement) {
+                // 跳出 callout 块
+                const calloutId = nodeElement.parentElement.parentElement.getAttribute("data-node-id");
+                if (calloutId) {
+                    insertEmptyBlock(protyle, "afterend", calloutId);
                 }
             } else {
                 const nodeId = nodeElement.getAttribute("data-node-id");
@@ -47,7 +54,7 @@ export const arrowNavigationMiddleware = async (
         } else if (event.key === "ArrowUp") {
             const firstChild = wysiwygElement?.firstElementChild;
             const firstEditElement = firstChild ? getContenteditableElement(firstChild) : null;
-            
+
             if (
                 (!getPreviousBlock(nodeElement) &&  // 列表第一个块为嵌入块，第二个块为段落块，上键应选中第一个块 https://ld246.com/article/1652667912155
                     firstEditElement && nodeElement.contains(firstEditElement))
@@ -114,10 +121,10 @@ export const arrowNavigationMiddleware = async (
         } else if (selectText === "" && (event.key === "ArrowDown" || event.key === "ArrowRight")) {
             const lastChild = wysiwygElement?.lastElementChild;
             const lastBlock = lastChild ? getLastBlock(lastChild) : null;
-            
+
             if (lastBlock && nodeElement === lastBlock &&
-            // 表格无法右移动 https://ld246.com/article/1631434502215
-            !hasClosestByTag(range.startContainer, "TD") && !hasClosestByTag(range.startContainer, "TH")) {
+                // 表格无法右移动 https://ld246.com/article/1631434502215
+                !hasClosestByTag(range.startContainer, "TD") && !hasClosestByTag(range.startContainer, "TH")) {
                 // 页面按向下/右箭头丢失焦点 https://ld246.com/article/1629954026096
                 const lastEditElement = getContenteditableElement(nodeElement);
                 // 代码块需替换最后一个 /n  https://github.com/siyuan-note/siyuan/issues/3221
@@ -130,7 +137,7 @@ export const arrowNavigationMiddleware = async (
         } else if (selectText === "" && event.key === "ArrowLeft") {
             const firstChild = wysiwygElement?.firstElementChild;
             const firstBlock = firstChild ? getFirstBlock(firstChild) : null;
-            
+
             if (firstBlock && nodeElement === firstBlock) {
                 // 页面向左箭头丢失焦点 https://github.com/siyuan-note/siyuan/issues/2768
                 const firstEditElement = getContenteditableElement(nodeElement);
