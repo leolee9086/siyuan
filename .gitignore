@@ -43,6 +43,6 @@ node_modules
 **/__pycache__
 
 # toread
-/toread
+#/toread
 # Plan files
 **.plan.md
