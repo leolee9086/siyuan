@@ -1,6 +1,6 @@
 import { Constants } from "../../constants";
 import { needSubscribe } from "../../util/needSubscribe";
-import { getSiyuanUser } from "../../util/siyuanEnvironments/getSiyuanConfig";
+import { getSiyuanUser } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 export const processWithSiyuanCDN = (copyElement: HTMLElement) => {
     if (needSubscribe("")) {
@@ -20,8 +20,8 @@ export const processWithSiyuanCDN = (copyElement: HTMLElement) => {
 };
 
 //暂时默认仅仅使用思源的会员CDN
-export const link2online = (copyElement: HTMLElement,adapterName:string="siyuan")=>{
-    if(adapterName==="siyuan"){
+export const link2online = (copyElement: HTMLElement, adapterName: string = "siyuan") => {
+    if (adapterName === "siyuan") {
         processWithSiyuanCDN(copyElement);
     }
 };

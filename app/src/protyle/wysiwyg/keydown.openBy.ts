@@ -6,7 +6,7 @@ import { openFileById } from "../../editor/utils.openFileById";
 
 import { checkFold } from "../../util/noRelyPCFunction";
 import { isLocalPath } from "../../util/pathName";
-import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig";
+import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { hasClosestByAttribute } from "../util/hasClosest";
 import { matchHotKey } from "../util/hotKey";
 /**
@@ -71,7 +71,7 @@ export const openLocalMiddleWare = (
         const aElement = hasClosestByAttribute(range.startContainer, "data-type", "a");
         if (aElement) {
             const linkAddress = aElement.getAttribute("data-href");
-            if (linkAddress&&isLocalPath(linkAddress)) {
+            if (linkAddress && isLocalPath(linkAddress)) {
                 openBy(linkAddress, "folder");
                 event.preventDefault();
                 event.stopPropagation();
@@ -100,7 +100,7 @@ export const openInNewTabMiddleware = (
             }
         });
         const id = nodeElement.getAttribute("data-node-id");
-        id&&checkFold(id, (zoomIn, action) => {
+        id && checkFold(id, (zoomIn, action) => {
             openFileById({
                 app: protyle.app,
                 id,

@@ -1,4 +1,4 @@
-import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig";
+import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { writeText } from "../util/compatibility";
 import { matchHotKey } from "../util/hotKey";
 import { focusByRange, getEditorRange } from "../util/selection";

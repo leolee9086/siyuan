@@ -1,7 +1,7 @@
 import { matchHotKey } from "../util/hotKey";
 import { openAIActionsMenu } from "../../ai/actions";
 import { AIChat } from "../../ai/chat";
-import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig";
+import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 /**
  * AI操作菜单快捷键中间件
@@ -13,7 +13,7 @@ export const aiActionsMiddleware = async (
     nodeElement: HTMLElement,
     range: Range,
     controller: AbortController
-)=> {
+) => {
     // AI操作菜单快捷键
     if (!event.repeat && matchHotKey(getSiyuanConfig().keymap.editor.general.ai.custom, event)) {
         event.preventDefault();

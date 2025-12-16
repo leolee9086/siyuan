@@ -1,16 +1,16 @@
-import {fetchSyncPost} from "../util/fetch";
-import {App} from "../index";
-import {Plugin} from "./index";
+import { fetchSyncPost } from "../util/fetch";
+import { App } from "../index";
+import { Plugin } from "./index";
 /// #if !MOBILE
-import {resizeTopBar, saveLayout} from "../layout/util";
+import { resizeTopBar, saveLayout } from "../layout/util";
 /// #endif
-import {API} from "./API";
-import {getFrontend, isMobile, isWindow} from "../util/functions";
-import {Constants} from "../constants";
-import {uninstall} from "./uninstall";
-import {setStorageVal} from "../protyle/util/compatibility";
-import {getAllEditor} from "../layout/getAll";
-import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig";
+import { API } from "./API";
+import { getFrontend, isMobile, isWindow } from "../util/functions";
+import { Constants } from "../constants";
+import { uninstall } from "./uninstall";
+import { setStorageVal } from "../protyle/util/compatibility";
+import { getAllEditor } from "../layout/getAll";
+import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 const requireFunc = (key: string) => {
     const modules = {
@@ -29,7 +29,7 @@ const runCode = (code: string, sourceURL: string) => {
 };
 
 export const loadPlugins = async (app: App, names?: string[], init = true) => {
-    const response = await fetchSyncPost("/api/petal/loadPetals", {frontend: getFrontend()});
+    const response = await fetchSyncPost("/api/petal/loadPetals", { frontend: getFrontend() });
     const pluginsStyle = getPluginsStyle();
     for (let i = 0; i < response.data.length; i++) {
         const item = response.data[i] as IPluginData;
@@ -47,7 +47,7 @@ export const loadPlugins = async (app: App, names?: string[], init = true) => {
 
 const loadPluginJS = async (app: App, item: IPluginData) => {
     const exportsObj: { [key: string]: any } = {};
-    const moduleObj = {exports: exportsObj};
+    const moduleObj = { exports: exportsObj };
     try {
         runCode(item.js, "plugin:" + encodeURIComponent(item.name))(requireFunc, moduleObj, exportsObj);
     } catch (e) {
@@ -229,7 +229,7 @@ export const reloadPlugin = async (app: App, data: {
     unloadPlugins?: string[],
     uninstallPlugins?: string[],
 } = {}) => {
-    const {upsertCodePlugins = [], upsertDataPlugins = [], unloadPlugins = [], uninstallPlugins = []} = data;
+    const { upsertCodePlugins = [], upsertDataPlugins = [], unloadPlugins = [], uninstallPlugins = [] } = data;
     // 禁用
     unloadPlugins.forEach((item) => {
         uninstall(app, item, true);

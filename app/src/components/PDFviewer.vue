@@ -495,7 +495,7 @@
 <script setup lang="ts">
 import { Constants } from '../constants';
 import { siyuanI18n } from '../util/siyuanEnvironments/i18n.getI18n';
-import { getSiyuanConfig, getSiyuanStorage } from '../util/siyuanEnvironments/getSiyuanConfig';
+import { getSiyuanConfig, getSiyuanStorage } from '../util/siyuanEnvironments/getSiyuanConfig.environment';
 import { setStorageVal } from '../protyle/util/compatibility';
 /// #if !MOBILE
 //@ts-ignore

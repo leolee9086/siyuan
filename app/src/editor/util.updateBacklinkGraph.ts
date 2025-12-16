@@ -1,7 +1,7 @@
 import { hasClosestByClassName } from "../protyle/util/hasClosest";
 import { fetchPost } from "../util/fetch";
 import { isCurrentEditor } from "./util.isCurrentEditor";
-import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig";
+import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 /**
  * 更新相关的反链和关系图
  * @param models 

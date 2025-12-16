@@ -2,7 +2,7 @@ import { hasNextSibling, hasPreviousSibling } from "./getBlock";
 import { setLastNodeRange, focusByRange } from "../util/selection";
 import { updateTransaction } from "./transaction";
 import { isNotCtrl } from "../util/compatibility";
-import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig";
+import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 export const tabKeyMiddleware = async (
     event: KeyboardEvent,
@@ -86,11 +86,11 @@ export const tabKeyMiddleware = async (
             if (currentTypes) {
                 // https://github.com/siyuan-note/siyuan/issues/14703
                 if (
-                    currentTypes.length > 0 && 
-                    range.toString() === "" && 
+                    currentTypes.length > 0 &&
+                    range.toString() === "" &&
                     range.startOffset === 0 &&
-                    inlineElement?.tagName === "SPAN" && 
-                    !hasPreviousSibling(range.startContainer) && 
+                    inlineElement?.tagName === "SPAN" &&
+                    !hasPreviousSibling(range.startContainer) &&
                     !hasPreviousSibling(inlineElement)
                 ) {
                     range.setStartBefore(inlineElement);
@@ -108,8 +108,8 @@ export const tabKeyMiddleware = async (
                     range.setEndAfter(inlineElement);
                     range.collapse(false);
                 }
-                const dataNodeId =nodeElement.getAttribute("data-node-id");
-                if(!dataNodeId){
+                const dataNodeId = nodeElement.getAttribute("data-node-id");
+                if (!dataNodeId) {
                     console.log(nodeElement);
                     throw new Error("块元素结构错误");
                 }

@@ -6,7 +6,7 @@
  */
 export const getSiyuanConfig = () => {
     if (!window.siyuan?.config) {
-        throw("[getConfig] window.siyuan.config 不存在");
+        throw ("[getConfig] window.siyuan.config 不存在");
     }
     return window.siyuan.config;
 };
@@ -17,7 +17,7 @@ export const getSiyuanConfig = () => {
  */
 export const getSiyuanUser = () => {
     if (!window.siyuan?.user) {
-        throw("[getConfig] window.siyuan.config 不存在");
+        throw ("[getConfig] window.siyuan.config 不存在");
     }
     return window.siyuan.user;
 };
@@ -28,7 +28,7 @@ export const getSiyuanUser = () => {
  */
 export const getSiyuanStorage = () => {
     if (!window.siyuan?.storage) {
-        throw("[getConfig] window.siyuan.storage 不存在");
+        throw ("[getConfig] window.siyuan.storage 不存在");
     }
     return window.siyuan.storage;
 };

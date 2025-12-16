@@ -1,22 +1,22 @@
-import {matchHotKey} from "../util/hotKey";
-import {fetchPost, fetchSyncPost} from "../../util/fetch";
-import {isMac, writeText} from "../util/compatibility";
-import {focusBlock, getSelectionOffset, setFirstNodeRange, setLastNodeRange,} from "../util/selection";
-import {getContenteditableElement, getNextBlock} from "./getBlock";
-import {hideElements} from "../ui/hideElements";
-import {countBlockWord} from "../../layout/status";
-import {scrollCenter} from "../../util/highlightById";
-import {transaction, updateTransaction} from "./transaction";
-import {onGet} from "../util/onGet";
-import {Constants} from "../../constants";
+import { matchHotKey } from "../util/hotKey";
+import { fetchPost, fetchSyncPost } from "../../util/fetch";
+import { isMac, writeText } from "../util/compatibility";
+import { focusBlock, getSelectionOffset, setFirstNodeRange, setLastNodeRange, } from "../util/selection";
+import { getContenteditableElement, getNextBlock } from "./getBlock";
+import { hideElements } from "../ui/hideElements";
+import { countBlockWord } from "../../layout/status";
+import { scrollCenter } from "../../util/highlightById";
+import { transaction, updateTransaction } from "./transaction";
+import { onGet } from "../util/onGet";
+import { Constants } from "../../constants";
 import * as dayjs from "dayjs";
-import {net2LocalAssets} from "../breadcrumb/action";
-import {processClonePHElement} from "../render/util";
-import {copyTextByType} from "../toolbar/util";
-import {hasClosestByTag, hasTopClosestByClassName} from "../util/hasClosest";
-import {removeEmbed} from "./removeEmbed";
-import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig";
-import {clearBlockElement} from "../util/clearSelect";
+import { net2LocalAssets } from "../breadcrumb/action";
+import { processClonePHElement } from "../render/util";
+import { copyTextByType } from "../toolbar/util";
+import { hasClosestByTag, hasTopClosestByClassName } from "../util/hasClosest";
+import { removeEmbed } from "./removeEmbed";
+import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { clearBlockElement } from "../util/clearSelect";
 
 export const commonHotkey = (protyle: IProtyle, event: KeyboardEvent, nodeElement?: HTMLElement) => {
     if (matchHotKey(getSiyuanConfig().keymap.editor.general.netImg2LocalAsset.custom, event)) {
@@ -341,8 +341,8 @@ export const duplicateBlock = async (nodeElements: Element[], protyle: IProtyle)
             id: newId,
         });
         if (item.getAttribute("data-type") === "NodeHeading" && item.getAttribute("fold") === "1") {
-            foldHeadingIds.push({oldId: item.getAttribute("data-node-id"), newId});
-            const responseHTML = await fetchSyncPost("/api/block/getHeadingChildrenDOM", {id: item.getAttribute("data-node-id")});
+            foldHeadingIds.push({ oldId: item.getAttribute("data-node-id"), newId });
+            const responseHTML = await fetchSyncPost("/api/block/getHeadingChildrenDOM", { id: item.getAttribute("data-node-id") });
             const foldElement = document.createElement("template");
             foldElement.innerHTML = responseHTML.data;
             Array.from(foldElement.content.children).reverse().forEach((childItem: HTMLElement, childIndex) => {
@@ -418,7 +418,7 @@ export const goHome = (protyle: IProtyle) => {
             mode: 0,
             size: getSiyuanConfig().editor.dynamicLoadBlocks,
         }, getResponse => {
-            onGet({data: getResponse, protyle, action: [Constants.CB_GET_FOCUS]});
+            onGet({ data: getResponse, protyle, action: [Constants.CB_GET_FOCUS] });
         });
     }
 };

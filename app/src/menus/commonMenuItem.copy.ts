@@ -12,7 +12,7 @@ import { fetchSyncPost } from "../util/fetch";
 import { focusBlock } from "../protyle/util/selection";
 import { copyTextByType } from "../protyle/toolbar/util";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
-import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig";
+import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 /**
  * 复制菜单上下文数据接口
@@ -25,9 +25,9 @@ interface copyMenuCtxData {
     /** 是否显示快捷键 */
     showAccelerator: boolean
     /** 聚焦元素，复制完成后会重新聚焦到此元素 */
-    focusElement?: Element|undefined,
+    focusElement?: Element | undefined,
     /** 标准Markdown ID，用于导出Markdown内容 */
-    stdMarkdownId?: string|undefined
+    stdMarkdownId?: string | undefined
 }
 
 /**
@@ -161,7 +161,7 @@ const copyMarkdownItem = (ctx: copyMenuCtxData) => {
         id: "copyMarkdown",
         iconHTML: "",
         label: siyuanI18n.copyMarkdown,
-        accelerator: "" ,
+        accelerator: "",
         click: async () => {
             if (!ctx.stdMarkdownId) return;
             const response = await fetchSyncPost("/api/export/exportMdContent", {
@@ -202,7 +202,7 @@ const copyMarkdownItem = (ctx: copyMenuCtxData) => {
 export const copySubMenu = (ids: string[], showAccelerator = true, focusElement?: Element, stdMarkdownId?: string) => {
 
     const ctx = {
-        ids, showAccelerator, focusElement: focusElement , stdMarkdownId
+        ids, showAccelerator, focusElement: focusElement, stdMarkdownId
     };
     const menuItems = [
         copyBlockRefItem(ctx),

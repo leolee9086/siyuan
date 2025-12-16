@@ -1,6 +1,6 @@
 import z from "zod";
 import { fetchPost } from "../../ai/imports";
-import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig";
+import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n";
 import { computed } from "vue";
 // 通用的计算属性构建器

@@ -1,4 +1,4 @@
-import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig";
+import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 export const getDefaultType = () => {
     return {
         audioBlock: getSiyuanConfig().search.audioBlock,

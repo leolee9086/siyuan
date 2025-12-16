@@ -4,7 +4,7 @@ import { Constants } from "../../constants";
 import { checkFold } from "../../util/noRelyPCFunction";
 import { openFileById } from "../../editor/utils.openFileById";
 import { BlockPanel } from "../../block/Panel";
-import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig";
+import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 /**
  * 块引用处理中间件
@@ -21,11 +21,11 @@ export const blockRefMiddleware = async (
     const refElement = hasClosestByAttribute(range.startContainer, "data-type", "block-ref");
     if (refElement) {
         const id = refElement.getAttribute("data-id");
-        
+
         if (!id) {
             return false;
         }
-        
+
         if (matchHotKey(getSiyuanConfig().keymap.editor.general.openBy.custom, event)) {
             checkFold(id, (zoomIn, action, isRoot) => {
                 if (!isRoot) {

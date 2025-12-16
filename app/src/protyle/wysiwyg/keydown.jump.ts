@@ -1,6 +1,6 @@
 import { jumpToParent } from "../../block/util";
 import { matchHotKey } from "../util/hotKey";
-import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig";
+import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 /**
  * 块级跳转中间件 - 处理编辑器中的块级导航快捷键
@@ -30,7 +30,7 @@ export const jumpToMiddleWare = (
         controller.abort("跳转到下一个同级块");
         return;
     }
-    
+
     // 检查是否按下跳转到父级块的快捷键
     if (matchHotKey(getSiyuanConfig().keymap.editor.general.jumpToParent?.custom, event)) {
         jumpToParent(protyle, nodeElement, "parent");
@@ -39,7 +39,7 @@ export const jumpToMiddleWare = (
         controller.abort("跳转到父级块");
         return;
     }
-    
+
     // 检查是否按下跳转到上一个同级块的快捷键
     if (matchHotKey(getSiyuanConfig().keymap.editor.general.jumpToParentPrev?.custom, event)) {
         jumpToParent(protyle, nodeElement, "previous");

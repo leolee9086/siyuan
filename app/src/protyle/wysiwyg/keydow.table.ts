@@ -3,7 +3,7 @@ import { getContenteditableElement } from "./getBlock";
 import { updateTransaction } from "./transaction";
 import { focusByWbr } from "../util/selection";
 import { Constants } from "../../constants";
-import { getSiyuanConfig, getSiyuanStorage } from "../../util/siyuanEnvironments/getSiyuanConfig";
+import { getSiyuanConfig, getSiyuanStorage } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 /**
  * 处理表格创建
@@ -19,8 +19,8 @@ export const handleTableBlockCreation = (
     if (!matchHotKey(getSiyuanConfig().keymap.editor.insert.table.custom, event)) {
         return;
     }
-    if(!protyle.hint){
-        throw  new Error("protyle缺少hint属性");
+    if (!protyle.hint) {
+        throw new Error("protyle缺少hint属性");
     }
     protyle.hint.splitChar = "/";
     protyle.hint.lastIndex = -1;

@@ -3,7 +3,7 @@ import { getContenteditableElement } from "./getBlock";
 import { updateTransaction } from "./transaction";
 import { focusByWbr } from "../util/selection";
 import { Constants } from "../../constants";
-import { getSiyuanConfig, getSiyuanStorage } from "../../util/siyuanEnvironments/getSiyuanConfig";
+import { getSiyuanConfig, getSiyuanStorage } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 /**
  * 处理代码块创建的快捷键
@@ -18,18 +18,18 @@ export const handleCodeBlockCreation = (
 ) => {
     // 检查是否匹配代码块插入快捷键，并且当前块不是代码块、标题或表格
     const blockType = nodeElement.getAttribute("data-type");
-                const id = nodeElement.getAttribute("data-node-id");
+    const id = nodeElement.getAttribute("data-node-id");
 
-    if(!blockType){
+    if (!blockType) {
         throw ("块元素缺少类型属性");
     }
-     if(!id){
+    if (!id) {
         throw ("块元素缺少id属性");
     }
-    if(!protyle.lute){
+    if (!protyle.lute) {
         throw ("protyle缺少lute属性");
     }
-     if(!protyle.wysiwyg){
+    if (!protyle.wysiwyg) {
         throw ("protyle缺少wysiwyg属性");
     }
     if (
@@ -52,16 +52,16 @@ export const handleCodeBlockCreation = (
                     if (codeElement) {
                         const language = element.querySelector(".protyle-action__language")?.textContent || "plaintext";
                         if (window.hljs.getLanguage(language)) {
-                            codeElement.innerHTML = window.hljs.highlight(codeElement.textContent, { language,ignoreIllegals:false }).value;
+                            codeElement.innerHTML = window.hljs.highlight(codeElement.textContent, { language, ignoreIllegals: false }).value;
                         }
                     }
                 };
-                newNodeElement instanceof HTMLElement&&highlightRender(newNodeElement);
+                newNodeElement instanceof HTMLElement && highlightRender(newNodeElement);
             }
             event.stopPropagation();
             event.preventDefault();
             controller.abort("代码块创建完成");
-            return ;
+            return;
         }
     }
 };

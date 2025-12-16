@@ -8,7 +8,7 @@ import {
 } from "./transaction";
 import * as dayjs from "dayjs";
 import { hasClosestByAttribute } from "../util/hasClosest";
-import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig";
+import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 /**
  * 列表缩出快捷键中间件
@@ -105,7 +105,7 @@ export const listTransformMiddleware = async (
     const isMatchCheck = matchHotKey(window.siyuan.config.keymap.editor.insert.check.custom, event);
     const isMatchOList = matchHotKey(window.siyuan.config.keymap.editor.insert["ordered-list"].custom, event);
     const isMatchQuote = matchHotKey(window.siyuan.config.keymap.editor.insert.quote.custom, event);
-    
+
     if (isMatchList || isMatchOList || isMatchCheck || isMatchQuote) {
         const selectsElement: HTMLElement[] = Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select"));
         if (selectsElement.length === 0) {

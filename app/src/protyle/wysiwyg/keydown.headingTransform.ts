@@ -1,4 +1,4 @@
-import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig";
+import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { matchHotKey } from "../util/hotKey";
 import { turnsIntoTransaction, turnsOneInto } from "./transaction";
 
@@ -63,7 +63,7 @@ const handleParagraphTransform = (
     if (selectsElement.length === 0) {
         selectsElement.push(nodeElement);
     }
-    
+
     if (selectsElement.length > 1) {
         // 多个块转换为段落
         turnsIntoTransaction({
@@ -75,7 +75,7 @@ const handleParagraphTransform = (
         // 单个块转换为段落
         const selectedElement = selectsElement[0];
         if (!selectedElement) return true;
-        
+
         const type = selectedElement.getAttribute("data-type");
         if (type === "NodeHeading") {
             turnsIntoTransaction({
@@ -105,7 +105,7 @@ const handleParagraphTransform = (
             }
         }
     }
-    
+
     event.preventDefault();
     event.stopPropagation();
     controller.abort("标题转换为段落");

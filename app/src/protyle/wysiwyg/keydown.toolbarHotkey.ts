@@ -2,7 +2,7 @@ import { matchHotKey } from "../util/hotKey";
 import { Constants } from "../../constants";
 import { isInEmbedBlock } from "../util/hasClosest";
 import { fontEvent } from "../toolbar/Font";
-import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig";
+import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 /**
  * 工具栏快捷键中间件

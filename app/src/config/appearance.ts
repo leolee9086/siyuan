@@ -1,18 +1,18 @@
 /// #if !BROWSER
 import * as path from "path";
 /// #endif
-import {Constants} from "../constants";
-import {exportLayout, resetLayout} from "../layout/util";
-import {isBrowser} from "../util/functions";
-import {fetchPost} from "../util/fetch";
-import {genLangOptions, genOptions} from "../util/genOptions";
-import {openSnippets} from "./util/snippets";
-import {loadAssets} from "../util/assets";
-import {resetFloatDockSize} from "../layout/dock/util";
-import {confirmDialog} from "../dialog/confirmDialog";
-import {useShell} from "../util/pathName";
-import {Dialog} from "../dialog";
-import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig";
+import { Constants } from "../constants";
+import { exportLayout, resetLayout } from "../layout/util";
+import { isBrowser } from "../util/functions";
+import { fetchPost } from "../util/fetch";
+import { genLangOptions, genOptions } from "../util/genOptions";
+import { openSnippets } from "./util/snippets";
+import { loadAssets } from "../util/assets";
+import { resetFloatDockSize } from "../layout/dock/util";
+import { confirmDialog } from "../dialog/confirmDialog";
+import { useShell } from "../util/pathName";
+import { Dialog } from "../dialog";
+import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 export const appearance = {
     element: undefined as Element,

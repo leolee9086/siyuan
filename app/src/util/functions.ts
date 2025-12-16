@@ -1,4 +1,4 @@
-import { getSiyuanConfig } from "./siyuanEnvironments/getSiyuanConfig";
+import { getSiyuanConfig } from "./siyuanEnvironments/getSiyuanConfig.environment";
 
 const CONTAINER_BACKEND_SET = new Set(["docker", "ios", "android", "harmony"]);
 const MOBILE_BACKEND_SET = new Set(["ios", "android", "harmony"]);
@@ -99,7 +99,7 @@ export const objEquals = (a: any, b: any): boolean => {
     return keys.every(k => objEquals(a[k], b[k]));
 };
 
-export const duplicateNameAddOne = (name:string) => {
+export const duplicateNameAddOne = (name: string) => {
     if (!name) {
         return "";
     }

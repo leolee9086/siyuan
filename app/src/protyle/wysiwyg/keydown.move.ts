@@ -1,4 +1,4 @@
-import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig";
+import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { matchHotKey } from "../util/hotKey";
 import { moveToDown, moveToUp } from "./move";
 

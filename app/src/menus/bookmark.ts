@@ -1,16 +1,16 @@
 import { MenuItem } from "./Menu.Item";
-import {Dialog} from "../dialog";
-import {fetchPost} from "../util/fetch";
-import {confirmDialog} from "../dialog/confirmDialog";
-import {escapeHtml} from "../util/escape";
-import {copySubMenu} from "./commonMenuItem";
-import {Bookmark} from "../layout/dock/Bookmark";
-import {isMobile} from "../util/functions";
-import {MobileBookmarks} from "../mobile/dock/MobileBookmarks";
-import {Constants} from "../constants";
+import { Dialog } from "../dialog";
+import { fetchPost } from "../util/fetch";
+import { confirmDialog } from "../dialog/confirmDialog";
+import { escapeHtml } from "../util/escape";
+import { copySubMenu } from "./commonMenuItem";
+import { Bookmark } from "../layout/dock/Bookmark";
+import { isMobile } from "../util/functions";
+import { MobileBookmarks } from "../mobile/dock/MobileBookmarks";
+import { Constants } from "../constants";
 import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
-import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig";
+import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 /**
  * 创建书签重命名菜单项
  *
@@ -32,13 +32,13 @@ const createRenameBookmarkMenuItem = (element: HTMLElement): MenuItem | null => 
     // 获取元素的data-node-id属性，用于判断是否为块引用书签
     // 没有data-node-id说明是纯书签项目而不是块项目
     const id = element.getAttribute("data-node-id");
-    
+
     // 检查是否为块引用书签(id存在)或系统处于只读模式
     // 在这两种情况下，不允许重命名操作
     if (id || getSiyuanConfig().readonly) {
         return null;
     }
-    
+
     return new MenuItem({
         id: "rename",
         icon: "iconEdit",
@@ -46,7 +46,7 @@ const createRenameBookmarkMenuItem = (element: HTMLElement): MenuItem | null => 
         click: () => {
             const textElement = element.querySelector(".b3-list-item__text");
             if (!textElement) return;
-            
+
             const oldBookmark = textElement.textContent || "";
             const dialog = new Dialog({
                 title: siyuanI18n.rename,
@@ -111,12 +111,12 @@ const createRenameBookmarkMenuItem = (element: HTMLElement): MenuItem | null => 
 const createCopyBookmarkMenuItem = (element: HTMLElement): MenuItem | null => {
     // 获取元素的data-node-id属性，用于判断是否为块引用书签
     const id = element.getAttribute("data-node-id");
-    
+
     // 只有块引用书签（有data-node-id）才能复制
     if (!id) {
         return null;
     }
-    
+
     return new MenuItem({
         id: "copy",
         label: siyuanI18n.copy,
@@ -149,7 +149,7 @@ const createRemoveBookmarkMenuItem = (element: HTMLElement, bookmarkObj: Bookmar
     if (getSiyuanConfig().readonly) {
         return null;
     }
-    
+
     return new MenuItem({
         id: "remove",
         icon: "iconTrashcan",
@@ -158,18 +158,18 @@ const createRemoveBookmarkMenuItem = (element: HTMLElement, bookmarkObj: Bookmar
             // 获取书签文本内容，用于确认对话框显示
             const textElement = element.querySelector(".b3-list-item__text");
             const bookmarkText = textElement?.textContent || "";
-            
+
             // 获取data-node-id，用于区分书签类型
             const id = element.getAttribute("data-node-id");
-            
+
             // 显示删除确认对话框
             confirmDialog(siyuanI18n.deleteOpConfirm, siyuanI18n.removeBookmark.replace("${x}", `<b>${escapeHtml(bookmarkText || "")}</b>`), () => {
                 if (id) {
                     // 处理块引用书签：清空块的bookmark属性
-                    fetchPost("/api/attr/setBlockAttrs", {id, attrs: {bookmark: ""}}, () => {
+                    fetchPost("/api/attr/setBlockAttrs", { id, attrs: { bookmark: "" } }, () => {
                         bookmarkObj.update();
                     });
-                    
+
                     // 同时更新页面中所有对应的块元素，移除书签显示
                     document.querySelectorAll(`.protyle-wysiwyg [data-node-id="${id}"]`).forEach((item) => {
                         item.setAttribute("bookmark", "");
@@ -178,10 +178,10 @@ const createRemoveBookmarkMenuItem = (element: HTMLElement, bookmarkObj: Bookmar
                             bookmarkElement.remove();
                         }
                     });
-                } 
-                if(!id) {
+                }
+                if (!id) {
                     // 处理纯书签：直接从书签列表中移除
-                    fetchPost("/api/bookmark/removeBookmark", {bookmark: bookmarkText});
+                    fetchPost("/api/bookmark/removeBookmark", { bookmark: bookmarkText });
                 }
             }, undefined, true);
         }
@@ -213,10 +213,10 @@ const createRemoveBookmarkMenuItem = (element: HTMLElement, bookmarkObj: Bookmar
 const initializeAndShowMenu = (options: { rect: { x: number, y: number, w: number, h: number }, dataname: string }) => {
     // 设置菜单的数据名称属性，用于菜单管理和识别
     getSiyuanGlobalMenus().menu.element.setAttribute("data-name", options.dataname);
-    
+
     // 在指定位置显示菜单，通过偏移量调整确保菜单不会遮挡鼠标指针
     // x-11: 向左偏移11像素，y+11: 向下偏移11像素
-    getSiyuanGlobalMenus().menu.popup({x: options.rect.x - 11, y: options.rect.y + 11, h: options.rect.h, w: options.rect.w});
+    getSiyuanGlobalMenus().menu.popup({ x: options.rect.x - 11, y: options.rect.y + 11, h: options.rect.h, w: options.rect.w });
 };
 
 /**
@@ -245,28 +245,28 @@ export const openBookmarkMenu = (element: HTMLElement, event: MouseEvent, bookma
         getSiyuanGlobalMenus().menu.remove();
         return;
     }
-    
+
     // 清空现有菜单内容
     getSiyuanGlobalMenus().menu.remove();
-    
+
     // 根据书签类型动态创建重命名菜单项（仅纯书签显示）
     const renameMenuItem = createRenameBookmarkMenuItem(element);
     if (renameMenuItem) {
         getSiyuanGlobalMenus().menu.appendMenuItemLike(renameMenuItem);
     }
-    
+
     // 根据书签类型动态创建复制菜单项（仅块引用书签显示）
     const copyMenuItem = createCopyBookmarkMenuItem(element);
     if (copyMenuItem) {
         getSiyuanGlobalMenus().menu.appendMenuItemLike(copyMenuItem);
     }
-    
+
     // 创建删除菜单项（非只读模式下显示）
     const removeMenuItem = createRemoveBookmarkMenuItem(element, bookmarkObj);
     if (removeMenuItem) {
         getSiyuanGlobalMenus().menu.appendMenuItemLike(removeMenuItem);
     }
-    
+
     // 在鼠标点击位置显示菜单
     initializeAndShowMenu({
         rect: {

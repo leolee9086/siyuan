@@ -1,5 +1,5 @@
 import { onlyProtyleCommand } from "../../boot/globalEvent/command/protyle";
-import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig";
+import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { matchHotKey } from "../util/hotKey";
 export const 处理块进入聚焦 = async (
     event: KeyboardEvent,

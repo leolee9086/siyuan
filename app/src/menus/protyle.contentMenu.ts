@@ -11,7 +11,7 @@ import { MenuItem } from "./Menu.Item";
 import { tableMenu } from "./protyle";
 import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
-import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig";
+import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { get } from "http";
 import { getSelection } from "../util/DOM/range";
 
@@ -183,7 +183,7 @@ export const contentMenu = (protyle: IProtyle, nodeElement: Element) => {
         }
     }).element);
     if (nodeElement.classList.contains("table") && !protyle.disabled) {
-        addTableMenus({ protyle, range,element: nodeElement});
+        addTableMenus({ protyle, range, element: nodeElement });
     }
     /// #endif
     if (protyle?.app?.plugins) {

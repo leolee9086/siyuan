@@ -1,5 +1,5 @@
 import { insertEmptyBlock } from "../../block/util";
-import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig";
+import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { matchHotKey } from "../util/hotKey";
 
 export const insertBeforeMiddleWare = (

@@ -4,7 +4,7 @@ import { cancelSB } from "../../block/util";
 import { transaction, turnsIntoOneTransaction, updateTransaction } from "./transaction";
 import { focusByWbr } from "../util/selection";
 import * as dayjs from "dayjs";
-import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig";
+import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 
 export const handleVLayoutMiddleware = async (
@@ -13,9 +13,9 @@ export const handleVLayoutMiddleware = async (
     nodeElement: HTMLElement,
     range: Range,
     controller: AbortController
-)=> {
+) => {
     if (!matchHotKey(getSiyuanConfig().keymap.editor.general.vLayout.custom, event)) {
-        return ;
+        return;
     }
     if (!protyle.wysiwyg) {
         throw new Error("protyle结构错误");
@@ -43,13 +43,13 @@ export const handleVLayoutMiddleware = async (
             focusByWbr(protyle.wysiwyg.element, range);
         }
         controller.abort();
-        return ;
+        return;
     }
 
     // 处理多个块合并为超级块
     if (selectsElement.length < 2 || selectsElement[0]?.classList.contains("li")) {
         controller.abort();
-        return ;
+        return;
     }
 
     turnsIntoOneTransaction({
@@ -59,7 +59,7 @@ export const handleVLayoutMiddleware = async (
         level: "row"
     });
     controller.abort();
-    return ;
+    return;
 };
 
 /**

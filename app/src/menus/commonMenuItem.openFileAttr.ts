@@ -9,7 +9,7 @@ import { renderAVAttribute } from "../protyle/render/av/blockAttr";
 import { hideElements } from "../protyle/ui/hideElements";
 import { escapeHtml } from "../util/escape";
 import { isMobile, isValidAttrName } from "../util/functions";
-import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig";
+import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
 import { bindAttrInput } from "./commonMenuItem";
 import { MenuItem } from "./Menu.Item";
@@ -300,7 +300,7 @@ export const openFileAttr = (attrs: IObject, focusName = "bookmark", protyle?: I
     const { protyle: initializedProtyle, ghostProtyle } = initializeProtyle(attrs, protyle);
     protyle = initializedProtyle;
     const { customHTML, notifyHTML, hasAV } = processAttributes(attrs);
-    
+
     const dialog = createAttrDialog({
         attrs,
         customHTML,

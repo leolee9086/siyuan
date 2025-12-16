@@ -28,7 +28,7 @@ import { isWindow } from "../../util/functions"
 import { updateHotkeyTip } from "../../protyle/util/compatibility"
 import { getAllDocks } from "../../layout/getAll"
 import { siyuanI18n } from '../../util/siyuanEnvironments/i18n.getI18n';
-import { getSiyuanConfig } from '../../util/siyuanEnvironments/getSiyuanConfig';
+import { getSiyuanConfig } from '../../util/siyuanEnvironments/getSiyuanConfig.environment';
 // 定义 props
 const props = defineProps<{
   searchKey: string

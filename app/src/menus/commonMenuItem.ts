@@ -17,7 +17,7 @@ import { Constants } from "../constants";
 import { exportImage } from "../protyle/export/util";
 import { copyTextByType } from "../protyle/toolbar/util";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
-import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig";
+import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { openFileAttr } from "./commonMenuItem.openFileAttr";
 export const bindAttrInput = (inputElement: HTMLInputElement, id: string) => {
     inputElement.addEventListener("change", () => {

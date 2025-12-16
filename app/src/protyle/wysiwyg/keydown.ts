@@ -55,7 +55,7 @@ import { checkFold } from "../../util/noRelyPCFunction";
 import { openFileById } from "../../editor/utils.openFileById";
 import { BlockPanel } from "../../block/Panel";
 import { turnsIntoTransaction, turnsOneInto, updateTransaction } from "./transaction";
-import { getSiyuanConfig, getSiyuanStorage } from "../../util/siyuanEnvironments/getSiyuanConfig";
+import { getSiyuanConfig, getSiyuanStorage } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getContenteditableElement } from "./getBlock";
 import { highlightRender } from "../render/highlightRender";
 

@@ -1,5 +1,5 @@
-import {fetchPost} from "../util/fetch";
-import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig";
+import { fetchPost } from "../util/fetch";
+import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
 
 // 生成移动端HTML的独立函数
@@ -87,7 +87,7 @@ function genMobileHTML() {
 
 // 生成桌面端HTML的独立函数
 function genDesktopHTML() {
-        return /*html*/`<div class="fn__flex b3-label config__item">
+    return /*html*/`<div class="fn__flex b3-label config__item">
     <div class="fn__flex-1">
         ${siyuanI18n.apiProvider}
         <div class="b3-label__text">${siyuanI18n.apiProviderTip}</div>

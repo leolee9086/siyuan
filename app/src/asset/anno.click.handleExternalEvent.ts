@@ -1,5 +1,5 @@
 import { Constants, setStorageVal } from "../ai/imports";
-import { getSiyuanStorage } from "../util/siyuanEnvironments/getSiyuanConfig";
+import { getSiyuanStorage } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { setRectElement } from "./anno";
 import { AnnoConstants } from "./anno.constants";
 import { copyAnno } from "./anno.copy";
@@ -31,7 +31,7 @@ const isExternalEventGuard = (
 ) => {
     return typeof (ctx.event as CustomEvent).detail === "string";
 };
-const externalEventProcessor =async (ctx: { event: Event, element: HTMLElement, pdf: IPdfInstance }, controller: AbortController) => {
+const externalEventProcessor = async (ctx: { event: Event, element: HTMLElement, pdf: IPdfInstance }, controller: AbortController) => {
     handleExternalEvent(ctx.event, ctx.element, ctx.pdf);
     controller.abort("Handled external event");
 };

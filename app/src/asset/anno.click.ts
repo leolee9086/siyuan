@@ -1,5 +1,5 @@
 import { Constants } from "../constants";
-import { getSiyuanStorage } from "../util/siyuanEnvironments/getSiyuanConfig";
+import { getSiyuanStorage } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { setStorageVal } from "../protyle/util/compatibility";
 import { getHightlightCoordsByRange } from "./anno.getHightlightCoordsByRange";
 import { showHighlight } from "./anno.showHighlight";

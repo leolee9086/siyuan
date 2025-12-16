@@ -7,7 +7,7 @@ import { BlockPanel } from "../Panel";
 import { hasClosestByAttribute, hasClosestByClassName, hasClosestBlock } from "../../protyle/util/hasClosest";
 import { Constants } from "../../constants";
 import { isTouchDevice } from "../../util/functions";
-import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig";
+import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 模块状态

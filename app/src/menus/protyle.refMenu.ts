@@ -16,7 +16,7 @@ import { openNewWindowById } from "../window/openNewWindow";
 import { MenuItem } from "./Menu.Item";
 import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
-import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig";
+import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 const createAnchorEditorItem = (refElement: HTMLSpanElement) => {
     return new MenuItem({
         id: "anchor",
@@ -72,7 +72,7 @@ export const refMenu = (protyle: IProtyle, refElement: HTMLElement) => {
     getSiyuanGlobalMenus().menu.element.setAttribute("data-name", Constants.MENU_INLINE_REF);
     if (!protyle.disabled) {
         getSiyuanGlobalMenus().menu.append(createAnchorEditorItem(refElement).element);
-        getSiyuanGlobalMenus().menu.append(new MenuItem({id: "separator_1",type: "separator"}).element);
+        getSiyuanGlobalMenus().menu.append(new MenuItem({ id: "separator_1", type: "separator" }).element);
     }
     /// #if !MOBILE
     getSiyuanGlobalMenus().menu.append(new MenuItem({

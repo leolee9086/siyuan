@@ -20,7 +20,7 @@ import { genAssetHTML } from "../../asset/renderAssets";
 import { unicode2Emoji } from "../../emoji";
 import { avRender } from "../render/av/render";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n";
-import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig";
+import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { templateItem } from "./extend.template";
 import { widgetItem } from "./extend.widget";
 const getHotkeyOrMarker = (hotkey: string, marker: string) => {
