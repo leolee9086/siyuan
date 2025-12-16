@@ -1,6 +1,6 @@
-import { JAVASCRIPT_TOOLS_CLASS, JAVASCRIPT_TOOLS_WAIT_CLASS } from '../../constants.js';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { JAVASCRIPT_TOOLS_CLASS, JAVASCRIPT_TOOLS_WAIT_CLASS } from "../../constants.js";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { Tool } from "@modelcontextprotocol/sdk/types.js";
 /**
  * 构建可用工具函数列表提示词 - 使用官方MCP SDK类型
  * @param client MCP客户端实例
@@ -10,22 +10,22 @@ export async function buildToolListPromptFromClient(toolsetName: string, client:
   try {
     // 使用MCP客户端获取工具列表
     const toolsResult = await client.listTools();
-    const tools = toolsResult.tools as Tool[]
-    return buildToolListPromptFromDefines(toolsetName,tools)
+    const tools = toolsResult.tools as Tool[];
+    return buildToolListPromptFromDefines(toolsetName,tools);
   } catch (error) {
-    console.error('获取工具列表失败:', error);
-    return ``;
+    console.error("获取工具列表失败:", error);
+    return "";
   }
 }
 
 export function buildToolListPromptFromDefines( toolsetName: string,tools: Tool[]) {
-  let prompt = `# 工具集${toolsetName}的详细工具列表`
-  prompt += `\n## 详细工具说明\n\n`;
+  let prompt = `# 工具集${toolsetName}的详细工具列表`;
+  prompt += "\n## 详细工具说明\n\n";
   // 添加每个工具的详细说明
   (tools).forEach((tool: Tool, index: number) => {
     prompt += `### ${index + 1}. ${tool.name}\n\n`;
     prompt += JSON.stringify(tool);
-    prompt += `\n`;
+    prompt += "\n";
 
   });
 

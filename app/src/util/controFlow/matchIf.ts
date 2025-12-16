@@ -20,7 +20,7 @@ export const matchAllTrue = async (
 ) => {
   const results = await Promise.all(
     conditions.map(condition => 
-      typeof condition === 'function' ? condition() : condition
+      typeof condition === "function" ? condition() : condition
     )
   );
   

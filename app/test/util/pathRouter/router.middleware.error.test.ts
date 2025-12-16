@@ -1,19 +1,19 @@
-import { describe, it, expect, beforeEach,test, vi } from 'vitest';
+import { describe, it, expect, beforeEach,test, vi } from "vitest";
 
-import Router from '../../../src/util/pathRouter/core/router.htttpRouter'
-import type { Context } from '../../../src/util/pathRouter/core/types'
+import Router from "../../../src/util/pathRouter/core/router.htttpRouter";
+import type { Context } from "../../../src/util/pathRouter/core/types";
 
-describe('Router中间件错误处理测试', () => {
-  let mockContext: Context
+describe("Router中间件错误处理测试", () => {
+  let mockContext: Context;
 
   beforeEach(() => {
     mockContext = {
-      method: 'GET',
-      path: '/users/123',
-      host: 'example.com',
+      method: "GET",
+      path: "/users/123",
+      host: "example.com",
       request: {
-        method: 'GET',
-        url: '/users/123',
+        method: "GET",
+        url: "/users/123",
         params: {},
         query: {},
         headers: {}
@@ -29,26 +29,26 @@ describe('Router中间件错误处理测试', () => {
       captures: [],
       set: vi.fn(),
       redirect: vi.fn()
-    }
-  })
+    };
+  });
 
-  test('应该正确处理中间件中的错误', async () => {
-    const router = new Router()
-    const error = new Error('Test error')
+  test("应该正确处理中间件中的错误", async () => {
+    const router = new Router();
+    const error = new Error("Test error");
     const errorMiddleware = vi.fn((ctx, next) => {
-      throw error
-    })
+      throw error;
+    });
     
-    router.get('/users/:id', errorMiddleware)
+    router.get("/users/:id", errorMiddleware);
     
-    const dispatch = router.routes()
+    const dispatch = router.routes();
     
     try {
-      await dispatch(mockContext, vi.fn())
+      await dispatch(mockContext, vi.fn());
     } catch (e) {
-      expect(e).toBe(error)
+      expect(e).toBe(error);
     }
     
-    expect(errorMiddleware).toHaveBeenCalled()
-  })
-})
+    expect(errorMiddleware).toHaveBeenCalled();
+  });
+});

@@ -11,7 +11,7 @@ export const useDragable = () => {
         dragStartTranslateX: 0,
         dragStartTranslateY: 0
     });
-}   
+};   
 
 const startDrag = (event: MouseEvent, dragState: any) => {
     dragState.isDragging = true;
@@ -19,4 +19,4 @@ const startDrag = (event: MouseEvent, dragState: any) => {
     dragState.dragStartY = event.clientY;
     dragState.dragStartTranslateX = dragState.translateX;
     dragState.dragStartTranslateY = dragState.translateY;
-}   
+};   

@@ -8523,5 +8523,5 @@ const mimetype:MimeTypes= {
   "x-shader/x-vertex": {
     "compressible": true
   }
-}
-export default mimetype
+};
+export default mimetype;

@@ -1,6 +1,6 @@
-import type { VueComponent, ComponentWrapperConfig } from './wrapper/types';
-import { createComponentWrapper } from './wrapper';
-import { computed } from 'vue';
+import type { VueComponent, ComponentWrapperConfig } from "./wrapper/types";
+import { createComponentWrapper } from "./wrapper";
+import { computed } from "vue";
 
 /**
  * 绑定组件的v-model到一个有getter函数和setter函数的值对象
@@ -18,18 +18,18 @@ export const 绑定组件vmodel到带有getter函数和setter函数的值对象 
     [key: string]: (() => TValue) | ((value: TValue) => void);
   },
   配置: ComponentWrapperConfig<any, any> = {},
-  getter函数名: string = 'getValue',
-  setter函数名: string = 'setValue'
+  getter函数名: string = "getValue",
+  setter函数名: string = "setValue"
 ): VueComponent => {
   // 验证必需的函数是否存在
   const getter函数 = 值对象[getter函数名] as (() => TValue);
   const setter函数 = 值对象[setter函数名] as ((value: TValue) => void);
   
-  if (typeof getter函数 !== 'function') {
+  if (typeof getter函数 !== "function") {
     throw new Error(`值对象中缺少必需的getter函数: ${getter函数名}`);
   }
   
-  if (typeof setter函数 !== 'function') {
+  if (typeof setter函数 !== "function") {
     throw new Error(`值对象中缺少必需的setter函数: ${setter函数名}`);
   }
 
@@ -39,15 +39,15 @@ export const 绑定组件vmodel到带有getter函数和setter函数的值对象 
       ...配置.propsInterceptor,
       intercept: (props) => {
         // 如果组件有modelValue属性，将其绑定到值对象
-        if ('modelValue' in props) {
+        if ("modelValue" in props) {
           return {
             ...props,
             modelValue: computed({
               get() {
-                return getter函数()
+                return getter函数();
               },
               set(val) {
-                setter函数(val)
+                setter函数(val);
               }
             })
           };
@@ -59,7 +59,7 @@ export const 绑定组件vmodel到带有getter函数和setter函数的值对象 
       ...配置.emitInterceptor,
       intercept: (eventName, ...args) => {
         // 拦截update:modelValue事件，调用值对象的setter函数
-        if (eventName === 'update:modelValue') {
+        if (eventName === "update:modelValue") {
           setter函数(args[0]);
           return true; // 允许事件继续传播
         }
@@ -76,7 +76,7 @@ export const 绑定组件vmodel到带有getter函数和setter函数的值对象 
       }
     }
   });
-  return wrapped
+  return wrapped;
 };
 
 /**
@@ -89,8 +89,8 @@ export const 创建vmodel绑定器 = <TValue = any>(
   值对象: {
     [key: string]: (() => TValue) | ((value: TValue) => void);
   },
-  getter函数名: string = 'getValue',
-  setter函数名: string = 'setValue'
+  getter函数名: string = "getValue",
+  setter函数名: string = "setValue"
 ) => {
   return (组件: VueComponent, 配置?: ComponentWrapperConfig<any, any>) => {
     return 绑定组件vmodel到带有getter函数和setter函数的值对象(组件, 值对象, 配置, getter函数名, setter函数名);
@@ -111,8 +111,8 @@ export const 批量绑定组件vmodel = <TValue = any>(
     [key: string]: (() => TValue) | ((value: TValue) => void);
   },
   配置: ComponentWrapperConfig<any, any> = {},
-  getter函数名: string = 'getValue',
-  setter函数名: string = 'setValue'
+  getter函数名: string = "getValue",
+  setter函数名: string = "setValue"
 ): VueComponent[] => {
   return 组件数组.map(组件 =>
     绑定组件vmodel到带有getter函数和setter函数的值对象(组件, 值对象, 配置, getter函数名, setter函数名)
@@ -128,8 +128,8 @@ export const 批量绑定组件vmodel = <TValue = any>(
  */
 export const 创建响应式vmodel绑定器 = <TValue = any>(
   初始值: TValue,
-  getter函数名: string = 'getValue',
-  setter函数名: string = 'setValue'
+  getter函数名: string = "getValue",
+  setter函数名: string = "setValue"
 ) => {
   let 当前值 = 初始值;
 

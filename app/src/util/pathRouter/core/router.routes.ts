@@ -1,14 +1,14 @@
-import { compose } from './routerUtils'
+import { compose } from "./routerUtils";
 import type {
     Context,
     MiddlewareFunction,
-} from './types'
-import { LayerLike } from './layerLike.types'
-import baseRouter from './router.base'
+} from "./types";
+import { LayerLike } from "./layerLike.types";
+import baseRouter from "./router.base";
 
 const debug = (...args: any[]) => {
     //    console.log(...args)
-}
+};
 
 // 处理请求验证
 function validateRequest(ctx: Context, layer: LayerLike): boolean {
@@ -46,9 +46,9 @@ function setupContextParams(ctx: Context, layer: LayerLike, path: string): void 
         ctx.captures,
         ctx.params
     );
-    ctx.routerPath = typeof layer.path === 'string' ? layer.path : layer.path.toString();
+    ctx.routerPath = typeof layer.path === "string" ? layer.path : layer.path.toString();
     ctx.routerName = layer.name;
-    ctx._matchedRoute = typeof layer.path === 'string' ? layer.path : layer.path.toString();
+    ctx._matchedRoute = typeof layer.path === "string" ? layer.path : layer.path.toString();
     if (layer.name) {
         ctx._matchedRouteName = layer.name;
     }
@@ -77,7 +77,7 @@ function createLayerChain(layers: LayerLike[], path: string): MiddlewareFunction
 
 export function routes(router: baseRouter): MiddlewareFunction {
     const dispatch = function dispatch(ctx: Context, next: () => Promise<void> | void): Promise<void> | void {
-        debug('%s %s', ctx.method, ctx.path);
+        debug("%s %s", ctx.method, ctx.path);
         
         const hostMatched = router.matchHost(ctx.host);
         if (!hostMatched) {
@@ -100,7 +100,7 @@ export function routes(router: baseRouter): MiddlewareFunction {
 
         const matchedLayers = matched.pathAndMethod;
         const mostSpecificLayer = matchedLayers[matchedLayers.length - 1];
-        ctx._matchedRoute = typeof mostSpecificLayer.path === 'string' ? mostSpecificLayer.path : mostSpecificLayer.path.toString();
+        ctx._matchedRoute = typeof mostSpecificLayer.path === "string" ? mostSpecificLayer.path : mostSpecificLayer.path.toString();
         if (mostSpecificLayer.name) {
             ctx._matchedRouteName = mostSpecificLayer.name;
         }

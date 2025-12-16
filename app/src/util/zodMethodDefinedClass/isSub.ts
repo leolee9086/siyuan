@@ -12,7 +12,7 @@ function checkKeysSubset<Source extends z.ZodRawShape, Target extends z.ZodRawSh
 
     return allKeysPresent as HasAllKeys<Source, Target>;
 }
-checkKeysSubset({path:z.string()},{test:z.object()})
+checkKeysSubset({path:z.string()},{test:z.object()});
 
 
 function sortZodRawShapes(shapes: z.ZodRawShape[]): z.ZodRawShape[] {

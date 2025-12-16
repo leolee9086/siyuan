@@ -13,10 +13,10 @@ export const moveToUpMiddleware = (
         event.preventDefault();
         event.stopPropagation();
         moveToUp(protyle, nodeElement, range);
-        controller.abort('向上移动')
+        controller.abort("向上移动");
         return;
     }
-}
+};
 
 
 export const moveToDownMiddleware = (
@@ -30,7 +30,7 @@ export const moveToDownMiddleware = (
         event.preventDefault();
         event.stopPropagation();
         moveToDown(protyle, nodeElement, range);
-        controller.abort('向下移动')
+        controller.abort("向下移动");
         return;
     }
-}
+};

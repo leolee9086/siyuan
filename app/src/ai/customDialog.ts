@@ -39,7 +39,7 @@ const createCustomDialogVueConfig = (
                 const res = await localKernel.chatGPTWithAction({
                     ids,
                     action: customAction,
-                })
+                });
                 dialog.destroy();
                 fillContent(protyle, res.data, elements);
 
@@ -54,7 +54,7 @@ const createCustomDialogVueConfig = (
             )
 
         },
-        template: `<AiCustomDialog @cancel="handleCancel" @use="handleUse" @save="handleSave" ref="aiCustomDialogComponent" />`,
+        template: "<AiCustomDialog @cancel=\"handleCancel\" @use=\"handleUse\" @save=\"handleSave\" ref=\"aiCustomDialogComponent\" />",
         initMethodName: "focusNameInput"
     };
 };

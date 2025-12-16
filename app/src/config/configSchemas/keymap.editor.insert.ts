@@ -22,13 +22,13 @@ export const schema = z.object({
     memo: buildKeymapEntrySchema(),
     ref: buildKeymapEntrySchema(),
     table: buildKeymapEntrySchema()
-})
-export {schema as editorKeyMapInsertSchema}
-export const parseAsConfig = (rawConf: {}): Config.IConf['keymap']['editor']['insert'] => {
+});
+export {schema as editorKeyMapInsertSchema};
+export const parseAsConfig = (rawConf: {}): Config.IConf["keymap"]["editor"]["insert"] => {
     const result = schema.safeParse(rawConf);
 
     if (!result.success) {
         throw new Error(`配置解析失败: ${result.error.message}`);
     }
     return result.data;
-}
+};

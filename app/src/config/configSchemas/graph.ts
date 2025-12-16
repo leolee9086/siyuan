@@ -1,4 +1,4 @@
-import z from "zod"
+import z from "zod";
 
 const graphNodeSchema = z.object({
     blockquote: z.boolean(),
@@ -11,7 +11,7 @@ const graphNodeSchema = z.object({
     super: z.boolean(),
     table: z.boolean(),
     tag: z.boolean()
-})
+});
 
 const graphD3Schema = z.object({
     arrow: z.boolean(),
@@ -22,7 +22,7 @@ const graphD3Schema = z.object({
     linkDistance: z.number(),
     linkWidth: z.number(),
     nodeSize: z.number()
-})
+});
 
 export const schema = z.object({
     global: z.object({
@@ -37,7 +37,7 @@ export const schema = z.object({
         type: graphNodeSchema
     }),
     maxBlocks: z.number()
-})
+});
 
 const parseAsConfig = (rawConf: {}): Config.IConf["graph"] => {
     const result = schema.safeParse(rawConf);
@@ -47,4 +47,4 @@ const parseAsConfig = (rawConf: {}): Config.IConf["graph"] => {
     }
 
     return result.data;
-}
+};

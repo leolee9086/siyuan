@@ -95,7 +95,7 @@ export class Asset extends Model {
                   {
                       components: { PDFviewer },
                       data: { controller: this },
-                      template: `<PDFviewer :controller="controller" />`
+                      template: "<PDFviewer :controller=\"controller\" />"
                   }
               );
           /// #endif

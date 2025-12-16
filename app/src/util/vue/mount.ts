@@ -112,7 +112,7 @@ export const createVueComponentLoader = (
             }
         }
     } catch (e) {
-        console.error('Vue组件挂载失败:', e);
+        console.error("Vue组件挂载失败:", e);
     }
     return app;
 };
@@ -166,7 +166,7 @@ export const createWrappedVueComponentLoader = (
     initMethodName?: string,
     initMethodParams?: any[]
 ): App => {
-    const componentName = component.name || 'DynamicComponent';
+    const componentName = component.name || "DynamicComponent";
 
     return createVueComponentLoader(container, {
         components: { [componentName]: component },
@@ -201,7 +201,7 @@ export const createCustomWrappedVueComponentLoader = (
     initMethodName?: string,
     initMethodParams?: any[]
 ): App => {
-    const componentName = component.name || 'DynamicComponent';
+    const componentName = component.name || "DynamicComponent";
 
     return createVueComponentLoader(container, {
         components: { [componentName]: component },

@@ -25,7 +25,7 @@ const createRecentDocsVueConfig = (recentDocs: any): VueComponentMountConfig => 
         eventHandlers: {
             handleDocSelected
         },
-        template: `<RecentDocs :recent-docs="recentDocs" @doc-selected="handleDocSelected" ref="recentDocsComponent" />`,
+        template: "<RecentDocs :recent-docs=\"recentDocs\" @doc-selected=\"handleDocSelected\" ref=\"recentDocsComponent\" />",
         initMethodName: "focusSearchInput"
     };
 };

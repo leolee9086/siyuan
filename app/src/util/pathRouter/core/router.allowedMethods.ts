@@ -1,4 +1,4 @@
-import type { Context, AllowedMethodsOptions, HttpErrors } from './types'
+import type { Context, AllowedMethodsOptions, HttpErrors } from "./types";
 
 /**
  * 从匹配的路由中获取允许的HTTP方法列表
@@ -21,8 +21,8 @@ export function getAllowedMethods(ctx: Context): string[] {
     }
     
     // 确保HEAD方法总是被包含在允许的方法中，如果GET被允许
-    if (allowed['GET'] && !allowed['HEAD']) {
-        allowed['HEAD'] = 'HEAD';
+    if (allowed["GET"] && !allowed["HEAD"]) {
+        allowed["HEAD"] = "HEAD";
     }
     
     return Object.keys(allowed);
@@ -43,7 +43,7 @@ export function handleNotImplementedMethod(
 ): void {
     if (options.throw) {
         const notImplementedThrowable =
-            typeof options.notImplemented === 'function'
+            typeof options.notImplemented === "function"
                 ? options.notImplemented() // set whatever the user returns from their function
                 : HttpError.NotImplemented();
 
@@ -52,7 +52,7 @@ export function handleNotImplementedMethod(
         ctx.status = 501;
         if (ctx.set) {
             const allowedArr = getAllowedMethods(ctx);
-            ctx.set('Allow', allowedArr.join(', '));
+            ctx.set("Allow", allowedArr.join(", "));
         }
     }
 }
@@ -63,10 +63,10 @@ export function handleNotImplementedMethod(
  */
 export function handleOptionsRequest(ctx: Context): void {
     ctx.status = 200;
-    ctx.body = '';
+    ctx.body = "";
     if (ctx.set) {
         const allowedArr = getAllowedMethods(ctx);
-        ctx.set('Allow', allowedArr.join(', '));
+        ctx.set("Allow", allowedArr.join(", "));
     }
 }
 
@@ -83,7 +83,7 @@ export function handleMethodNotAllowed(
 ): void {
     if (options.throw) {
         const notAllowedThrowable =
-            typeof options.methodNotAllowed === 'function'
+            typeof options.methodNotAllowed === "function"
                 ? options.methodNotAllowed() // set whatever the user returns from their function
                 : HttpError.MethodNotAllowed();
 
@@ -92,7 +92,7 @@ export function handleMethodNotAllowed(
         ctx.status = 405;
         if (ctx.set) {
             const allowedArr = getAllowedMethods(ctx);
-            ctx.set('Allow', allowedArr.join(', '));
+            ctx.set("Allow", allowedArr.join(", "));
         }
     }
 }

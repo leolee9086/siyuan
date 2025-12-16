@@ -10,13 +10,13 @@ export const schema = z.object({
     heading5: buildKeymapEntrySchema(),
     heading6: buildKeymapEntrySchema(),
     paragraph: buildKeymapEntrySchema()
-})
-export {schema as editorKeyMapHeadingSchema}
-export const parseAsConfig = (rawConf: {}): Config.IConf['keymap']['editor']['heading'] => {
+});
+export {schema as editorKeyMapHeadingSchema};
+export const parseAsConfig = (rawConf: {}): Config.IConf["keymap"]["editor"]["heading"] => {
     const result = schema.safeParse(rawConf);
 
     if (!result.success) {
         throw new Error(`配置解析失败: ${result.error.message}`);
     }
     return result.data;
-}
+};

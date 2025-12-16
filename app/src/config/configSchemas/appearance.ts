@@ -1,4 +1,4 @@
-import z from "zod"
+import z from "zod";
 
 export const schema = z.object({
     closeButtonBehavior: z.number(),
@@ -23,7 +23,7 @@ export const schema = z.object({
         msgTaskAssetDatabaseIndexCommitDisabled: z.boolean(),
         msgTaskHistoryGenerateFileDisabled: z.boolean()
     })
-})
+});
 
 const parseAsConfig = (rawConf: {}): Config.IConf["appearance"] => {
     const result = schema.safeParse(rawConf);
@@ -33,4 +33,4 @@ const parseAsConfig = (rawConf: {}): Config.IConf["appearance"] => {
     }
 
     return result.data;
-}
+};

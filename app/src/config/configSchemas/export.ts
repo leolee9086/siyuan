@@ -1,4 +1,4 @@
-import z from "zod"
+import z from "zod";
 
 export const schema = z.object({
     addTitle: z.boolean(),
@@ -19,7 +19,7 @@ export const schema = z.object({
     pdfWatermarkStr: z.string(),
     tagCloseMarker: z.string(),
     tagOpenMarker: z.string()
-})
+});
 
 const parseAsConfig = (rawConf: {}): Config.IConf["export"] => {
     const result = schema.safeParse(rawConf);
@@ -29,4 +29,4 @@ const parseAsConfig = (rawConf: {}): Config.IConf["export"] => {
     }
 
     return result.data;
-}
+};

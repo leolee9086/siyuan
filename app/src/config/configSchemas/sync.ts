@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from "zod";
 
 const s3Schema = z.object({
     accessKey: z.string(),
@@ -10,7 +10,7 @@ const s3Schema = z.object({
     skipTlsVerify: z.boolean(),
     timeout: z.number(),
     concurrentReqs: z.number()
-})
+});
 
 const webdavSchema = z.object({
     endpoint: z.string(),
@@ -19,13 +19,13 @@ const webdavSchema = z.object({
     timeout: z.number(),
     concurrentReqs: z.number(),
     username: z.string()
-})
+});
 
 const localSchema = z.object({
     endpoint: z.string(),
     timeout: z.number(),
     concurrentReqs: z.number()
-})
+});
 
 export const schema = z.object({
     cloudName: z.string(),
@@ -40,10 +40,10 @@ export const schema = z.object({
     synced: z.number(),
     webdav: webdavSchema,
     local: localSchema
-})
+});
 
 
-export const parseAsSyncConfig = (rawConf: {}): Config.IConf['sync'] => {
+export const parseAsSyncConfig = (rawConf: {}): Config.IConf["sync"] => {
     const result = schema.safeParse(rawConf);
 
     if (!result.success) {
@@ -51,4 +51,4 @@ export const parseAsSyncConfig = (rawConf: {}): Config.IConf['sync'] => {
     }
 
     return result.data;
-}
+};

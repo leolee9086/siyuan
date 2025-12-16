@@ -6,12 +6,12 @@ import { getInstanceById } from "../layout/util";
 export const isCurrentEditor = (blockId: string) => {
     const activeElement = document.querySelector(".layout__wnd--active > .fn__flex > .layout-tab-bar > .item--focus");
     if(!activeElement){
-        return false 
+        return false; 
     }
-    const tabDataID = activeElement.getAttribute("data-id")
+    const tabDataID = activeElement.getAttribute("data-id");
     if(!tabDataID){
-        console.error(blockId,activeElement)
-        throw new Error ("ui结构错误,缺少data-id")
+        console.error(blockId,activeElement);
+        throw new Error ("ui结构错误,缺少data-id");
     }
     if (activeElement) {
         const tab = getInstanceById(tabDataID);

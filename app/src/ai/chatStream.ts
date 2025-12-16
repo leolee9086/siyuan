@@ -35,33 +35,33 @@ const createAIStreamChatDialogVueConfig = (
         onCtrlEnterClick: async (inputValue: string) => { },
         taskStates: taskStates,
         inputHistory: [] as Array<{
-            role: 'user' | 'assistant';
+            role: "user" | "assistant";
             content: string;
             timestamp: number;
         }>
-    })
+    });
     data.onCtrlEnterClick = async (inputValue: string) => {
-        const lastState = taskStates[taskStates.length - 1]
+        const lastState = taskStates[taskStates.length - 1];
         lastState && data.inputHistory.push({
             role: "assistant",
             content: lastState?.responseContentStr,
             timestamp: Date.now()
-        })
+        });
 
         // 创建新的状态
         data.inputHistory.push({
             role: "user",
             content: inputValue,
             timestamp: Date.now()
-        })
+        });
         const { state: newState, cancelHandler: newCancelHandler, pauseHandler: newPauseHandler, confirmHandler: newConfirmHandler, resumeHandler: newResumeHandler } = createState(
             protyle, element, selectedElements, dialog
         );
-        data.onCancelClick = newCancelHandler
-        data.onPauseClick = newPauseHandler
-        data.onResumeClick = newResumeHandler
+        data.onCancelClick = newCancelHandler;
+        data.onPauseClick = newPauseHandler;
+        data.onResumeClick = newResumeHandler;
         taskStates.push(newState);
-        console.log(taskStates)
+        console.log(taskStates);
 
         // 执行新任务
         await newConfirmHandler(data.inputHistory);

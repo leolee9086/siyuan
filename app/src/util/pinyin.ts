@@ -1,4 +1,4 @@
-import { pinyin } from 'pinyin-pro'
+import { pinyin } from "pinyin-pro";
 
 /**
  * 将中文字符串转换为拼音字符串
@@ -6,17 +6,17 @@ import { pinyin } from 'pinyin-pro'
  * @returns 拼音字符串（不带声调）
  */
 export const convertToPinyin = (text: string): string => {
-    if (!text) return ''
+    if (!text) return "";
 
     try {
         // 使用 pinyin-pro 库转换，去除声调，保留空格分隔
-        const result = pinyin(text, { toneType: 'none', type: 'array' })
-        return result.join(' ')
+        const result = pinyin(text, { toneType: "none", type: "array" });
+        return result.join(" ");
     } catch (error) {
-        console.error('拼音转换错误:', error)
-        return text
+        console.error("拼音转换错误:", error);
+        return text;
     }
-}
+};
 
 /**
  * 检查文本是否匹配搜索关键词（支持中文原文和拼音搜索）
@@ -25,22 +25,22 @@ export const convertToPinyin = (text: string): string => {
  * @returns 是否匹配
  */
 export const matchPinyinSearch = (text: string, keyword: string): boolean => {
-    if (!keyword) return true
-    if (!text) return false
+    if (!keyword) return true;
+    if (!text) return false;
 
-    const lowerText = text.toLowerCase()
-    const lowerKeyword = keyword.toLowerCase()
+    const lowerText = text.toLowerCase();
+    const lowerKeyword = keyword.toLowerCase();
 
     // 原文匹配
     if (lowerText.includes(lowerKeyword)) {
-        return true
+        return true;
     }
 
     // 拼音匹配
-    const textPinyin = convertToPinyin(text).toLowerCase()
+    const textPinyin = convertToPinyin(text).toLowerCase();
     if (textPinyin.includes(lowerKeyword)) {
-        return true
+        return true;
     }
 
-    return false
-}
+    return false;
+};

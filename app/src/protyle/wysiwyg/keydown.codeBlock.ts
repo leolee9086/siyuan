@@ -17,20 +17,20 @@ export const handleCodeBlockCreation = (
     controller: AbortController
 ) => {
     // 检查是否匹配代码块插入快捷键，并且当前块不是代码块、标题或表格
-    const blockType = nodeElement.getAttribute("data-type")
+    const blockType = nodeElement.getAttribute("data-type");
                 const id = nodeElement.getAttribute("data-node-id");
 
     if(!blockType){
-        throw ('块元素缺少类型属性')
+        throw ("块元素缺少类型属性");
     }
      if(!id){
-        throw ('块元素缺少id属性')
+        throw ("块元素缺少id属性");
     }
     if(!protyle.lute){
-        throw ("protyle缺少lute属性")
+        throw ("protyle缺少lute属性");
     }
      if(!protyle.wysiwyg){
-        throw ("protyle缺少wysiwyg属性")
+        throw ("protyle缺少wysiwyg属性");
     }
     if (
         matchHotKey(getSiyuanConfig().keymap.editor.insert.code.custom, event) &&

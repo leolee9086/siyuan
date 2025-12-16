@@ -75,12 +75,12 @@ export const toolbarLastUsedMiddleware = (
     if (matchHotKey(getSiyuanConfig().keymap.editor.insert.lastUsed.custom, event)) {
 
         if (!protyle.toolbar) {
-            throw new Error("protyle缺少toolbar属性")
+            throw new Error("protyle缺少toolbar属性");
         }
         if (!protyle.wysiwyg) {
-            throw new Error("protyle缺少wysiwyg属性")
+            throw new Error("protyle缺少wysiwyg属性");
         }
-        const selectText = range.toString()
+        const selectText = range.toString();
         protyle.toolbar.range = range;
         const selectElements: Element[] = Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select"));
         if (selectText === "" && selectElements.length === 0) {
@@ -89,7 +89,7 @@ export const toolbarLastUsedMiddleware = (
         fontEvent(protyle, selectElements);
         event.stopPropagation();
         event.preventDefault();
-        controller.abort()
+        controller.abort();
         return;
     }
-}
+};

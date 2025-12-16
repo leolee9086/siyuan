@@ -1,16 +1,16 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 /**
  * 未授权导入处理策略
  */
-export const UnauthorizedImportStrategySchema = z.enum(['throw', 'mock', 'remove']);
+export const UnauthorizedImportStrategySchema = z.enum(["throw", "mock", "remove"]);
 
 /**
  * 导入处理选项
  */
 export const ImportHandlingOptionsSchema = z.object({
   /** 未授权导入的处理策略 */
-  onUnauthorizedImport: UnauthorizedImportStrategySchema.default('throw'),
+  onUnauthorizedImport: UnauthorizedImportStrategySchema.default("throw"),
   /** 自定义模拟对象 */
   customMocks: z.record(z.string(), z.any()).default({}),
 });
@@ -20,7 +20,7 @@ export const ImportHandlingOptionsSchema = z.object({
  */
 export const ModuleRedirectConfigSchema = z.object({
   /** 默认模块服务器 */
-  defaultServer: z.string().default('https://esm.sh'),
+  defaultServer: z.string().default("https://esm.sh"),
   /** 包特定的重定向规则 */
   packageRedirects: z.record(z.string(), z.string()).default({}),
   /** 是否启用模块重定向 */
@@ -53,12 +53,12 @@ export const SecureModuleCreatorConfigSchema = z.object({
   autoAllowScoped: z.boolean().optional().default(false),
   /** 默认导入处理选项 */
   defaultOptions: ImportHandlingOptionsSchema.optional().default({
-    onUnauthorizedImport: 'throw',
+    onUnauthorizedImport: "throw",
     customMocks: {}
   }),
   /** 模块重定向配置 */
   moduleRedirectConfig: ModuleRedirectConfigSchema.optional().default({
-    defaultServer: 'https://esm.sh',
+    defaultServer: "https://esm.sh",
     packageRedirects: {},
     enabled: false,
     bareModulesOnly: true

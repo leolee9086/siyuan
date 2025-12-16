@@ -2,9 +2,9 @@ import type {
     MiddlewareFunction,
     RouteOptions,
     HttpMethod,
-} from './types'
-import Router from './router.htttpRouter'
-import { z } from 'zod'
+} from "./types";
+import Router from "./router.htttpRouter";
+import { z } from "zod";
  
  /**
   * HTTP方法处理函数类型
@@ -38,22 +38,22 @@ import { z } from 'zod'
 
         // 检查是否是路径类型
         const isPath = (value: any): value is string | RegExp | string[] => {
-            return typeof value === 'string' || value instanceof RegExp || (Array.isArray(value) && value.length > 0 && typeof value[0] === 'string');
+            return typeof value === "string" || value instanceof RegExp || (Array.isArray(value) && value.length > 0 && typeof value[0] === "string");
         };
 
         // 检查是否是中间件函数
         const isMiddleware = (value: any): value is MiddlewareFunction => {
-            return typeof value === 'function';
+            return typeof value === "function";
         };
 
       
 
         // 处理命名路由的情况: router.get('name', '/path', middleware)
         if (isPath(pathOrMiddleware)) {
-            actualName = typeof nameOrPath === 'string' ? nameOrPath : null;
+            actualName = typeof nameOrPath === "string" ? nameOrPath : null;
             actualPath = pathOrMiddleware;
             middleware = rest.filter(isMiddleware) as MiddlewareFunction<TRequestBodySchema, TResponseBodySchema>[];
-            opts = rest.find(arg => typeof arg === 'object' && arg !== null && !isMiddleware(arg)) as RouteOptions || {};
+            opts = rest.find(arg => typeof arg === "object" && arg !== null && !isMiddleware(arg)) as RouteOptions || {};
         }
         // 处理普通路由的情况: router.get('/path', middleware)
         else if (isPath(nameOrPath)) {
@@ -61,7 +61,7 @@ import { z } from 'zod'
             actualPath = nameOrPath;
 
             const middlewares = [pathOrMiddleware, ...rest].filter(isMiddleware) as MiddlewareFunction<TRequestBodySchema, TResponseBodySchema>[];
-            const options = [pathOrMiddleware, ...rest].find(arg => typeof arg === 'object' && arg !== null && !isMiddleware(arg)) as RouteOptions | undefined;
+            const options = [pathOrMiddleware, ...rest].find(arg => typeof arg === "object" && arg !== null && !isMiddleware(arg)) as RouteOptions | undefined;
 
             if (middlewares.length > 0) {
                 middleware = middlewares;
@@ -74,7 +74,7 @@ import { z } from 'zod'
         }
 
         if (
-            typeof actualPath !== 'string' &&
+            typeof actualPath !== "string" &&
             !(actualPath instanceof RegExp) &&
             (!Array.isArray(actualPath) || actualPath.length === 0)
         ) {

@@ -1,15 +1,15 @@
-import Router from './router.htttpRouter'
-import Layer from './layer'
+import Router from "./router.htttpRouter";
+import Layer from "./layer";
 import type {
     MiddlewareFunction,
     RouteOptions,
-} from './types'
-import { LayerLike } from './layerLike.types';
-import baseRouter from './router.base';
+} from "./types";
+import { LayerLike } from "./layerLike.types";
+import baseRouter from "./router.base";
 
 const debug = (...args: any[]) => {
     //    console.log(...args)
-}
+};
 
 export function register<T extends baseRouter>(router: T, path: string | RegExp | string[], methods: string[], middleware: MiddlewareFunction | MiddlewareFunction[], opts: RouteOptions = {}): LayerLike | T {
     const { stack } = router;
@@ -27,7 +27,7 @@ export function register<T extends baseRouter>(router: T, path: string | RegExp 
         name: opts.name,
         sensitive: opts.sensitive || router.opts.sensitive || false,
         strict: opts.strict || router.opts.strict || false,
-        prefix: opts.prefix || router.opts.prefix || '',
+        prefix: opts.prefix || router.opts.prefix || "",
         ignoreCaptures: opts.ignoreCaptures,
         schema: opts.schema
     });
@@ -44,7 +44,7 @@ export function register<T extends baseRouter>(router: T, path: string | RegExp 
 
     stack.push(route);
 
-    debug('defined route %s %s', route.methods, route.path);
+    debug("defined route %s %s", route.methods, route.path);
 
     return route;
 }

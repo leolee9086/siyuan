@@ -39,7 +39,7 @@ export class Preview {
         const actionElement = document.createElement("div");
         actionElement.className = "protyle-preview__action";
         const actionHtml: string[] = [];
-        addActionButtons(actions, actionHtml)
+        addActionButtons(actions, actionHtml);
         actionElement.innerHTML = actionHtml.join("");
         this.element.appendChild(actionElement);
         this.element.appendChild(previewElement);
@@ -172,9 +172,9 @@ export class Preview {
         }, protyle.options.preview.delay);
     }
     private async copyToX(copyElement: HTMLElement, protyle: IProtyle, type?: string) {
-        let id =protyle.block.id || protyle.options.blockId || protyle.block.parentID
+        const id =protyle.block.id || protyle.options.blockId || protyle.block.parentID;
         if (id) {
-            await copyPreviewHTMLToX(this.element, copyElement,id, type)
+            await copyPreviewHTMLToX(this.element, copyElement,id, type);
         }
     }
 }

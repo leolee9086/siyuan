@@ -6,7 +6,7 @@ export function deepEqual(a: unknown, b: unknown): boolean {
 
     if (typeof a !== typeof b) return false;
 
-    if (typeof a !== 'object') return false;
+    if (typeof a !== "object") return false;
 
     if (Array.isArray(a) !== Array.isArray(b)) return false;
 

@@ -28,7 +28,7 @@ export const deleteKeyMiddleware = async (
             removeBlock(protyle, nodeElement, range, event.key === "Backspace" ? "Backspace" : "Delete");
             event.stopPropagation();
             event.preventDefault();
-            controller.abort("删除选中的块")
+            controller.abort("删除选中的块");
             return;
         }
         // https://github.com/siyuan-note/siyuan/issues/6796
@@ -39,7 +39,7 @@ export const deleteKeyMiddleware = async (
             range.collapse(true);
             event.stopPropagation();
             event.preventDefault();
-            controller.abort("删除行尾的换行符")
+            controller.abort("删除行尾的换行符");
             return;
         }
         const previousSibling = hasPreviousSibling(range.startContainer);
@@ -49,18 +49,18 @@ export const deleteKeyMiddleware = async (
             event.key === "Backspace" // https://github.com/siyuan-note/siyuan/issues/6786
         ) {
             if (!(previousSibling instanceof HTMLElement)) {
-                console.error(previousSibling)
-                throw new Error('DOM结构错误')
+                console.error(previousSibling);
+                throw new Error("DOM结构错误");
             }
-            const nodeDataType = previousSibling.getAttribute("data-type")
-            const nodeDataId = nodeElement.getAttribute("data-node-id")
+            const nodeDataType = previousSibling.getAttribute("data-type");
+            const nodeDataId = nodeElement.getAttribute("data-node-id");
             if (!nodeDataType) {
-                console.error(previousSibling)
-                throw new Error('DOM结构错误,缺少data-type')
+                console.error(previousSibling);
+                throw new Error("DOM结构错误,缺少data-type");
             }
             if (!nodeDataId) {
-                console.error(previousSibling)
-                throw new Error('DOM结构错误,缺少data-node-id')
+                console.error(previousSibling);
+                throw new Error("DOM结构错误,缺少data-node-id");
 
             }
             if (previousSibling.classList.contains("img")) {
@@ -76,13 +76,13 @@ export const deleteKeyMiddleware = async (
                 focusByWbr(nodeElement, range);
                 event.stopPropagation();
                 event.preventDefault();
-                controller.abort("删除相邻的数学公式")
+                controller.abort("删除相邻的数学公式");
                 return;
             }
         }
         const editElement = getContenteditableElement(nodeElement);
         if (!protyle.wysiwyg) {
-            throw new Error('protyle结构错误')
+            throw new Error("protyle结构错误");
         }
         const imgSelectElement = protyle.wysiwyg.element.querySelector(".img--select");
         if (imgSelectElement) {
@@ -91,18 +91,18 @@ export const deleteKeyMiddleware = async (
                 removeImage(imgSelectElement, nodeElement, range, protyle);
                 event.stopPropagation();
                 event.preventDefault();
-                controller.abort("删除选中的图片")
+                controller.abort("删除选中的图片");
                 return;
             }
         } else if (selectText === "") {
 
             if (nodeElement.classList.contains("table")) {
-                const tableSelectElement = nodeElement.querySelector(".table__select")
+                const tableSelectElement = nodeElement.querySelector(".table__select");
                 if (tableSelectElement && tableSelectElement.clientHeight > 0) {
                     clearTableCell(protyle, nodeElement);
                     event.stopPropagation();
                     event.preventDefault();
-                    controller.abort("清除表格单元格内容")
+                    controller.abort("清除表格单元格内容");
                     return;
                 }
             }
@@ -111,7 +111,7 @@ export const deleteKeyMiddleware = async (
                 removeBlock(protyle, nodeElement, range, event.key === "Backspace" ? "Backspace" : "Delete");
                 event.stopPropagation();
                 event.preventDefault();
-                controller.abort("删除不可编辑的块")
+                controller.abort("删除不可编辑的块");
                 return;
             }
             const position = getSelectionOffset(editElement, protyle.wysiwyg.element, range);
@@ -129,7 +129,7 @@ export const deleteKeyMiddleware = async (
                         updateTransaction(protyle, nodeElement.getAttribute("data-node-id"), nodeElement.outerHTML, oldHTML);
                         focusByWbr(nodeElement, range);
                         event.preventDefault();
-                        controller.abort("删除图片后的空格")
+                        controller.abort("删除图片后的空格");
                         return;
                     }
                     // 图片前有一个字符，在字符后删除 https://github.com/siyuan-note/siyuan/issues/15911
@@ -144,7 +144,7 @@ export const deleteKeyMiddleware = async (
                         updateTransaction(protyle, nodeElement.getAttribute("data-node-id"), nodeElement.outerHTML, oldHTML);
                         focusByWbr(nodeElement, range);
                         event.preventDefault();
-                        controller.abort("删除图片前的字符")
+                        controller.abort("删除图片前的字符");
                         return;
                     }
                 }
@@ -169,13 +169,13 @@ export const deleteKeyMiddleware = async (
                         }
                         event.stopPropagation();
                         event.preventDefault();
-                        controller.abort("删除并合并下一个块")
+                        controller.abort("删除并合并下一个块");
                         return;
                     }
                 } else if (position.end === editElement.innerText.length - 1 && nodeElement.getAttribute("data-type") === "NodeCodeBlock") {
                     event.stopPropagation();
                     event.preventDefault();
-                    controller.abort("代码块末尾删除操作")
+                    controller.abort("代码块末尾删除操作");
                     return;
                 } else {
                     // 图片前 Delete 无效 https://github.com/siyuan-note/siyuan/issues/11209
@@ -190,7 +190,7 @@ export const deleteKeyMiddleware = async (
                                 }
                                 event.stopPropagation();
                                 event.preventDefault();
-                                controller.abort("删除下一个块")
+                                controller.abort("删除下一个块");
                                 return;
                             }
                             nextSibling = nextSibling.nextSibling as Element;
@@ -203,7 +203,7 @@ export const deleteKeyMiddleware = async (
                                 removeImage(nextSibling as Element, nodeElement, range, protyle);
                                 event.stopPropagation();
                                 event.preventDefault();
-                                controller.abort("删除光标后的图片")
+                                controller.abort("删除光标后的图片");
                                 return;
                             }
                         }
@@ -225,7 +225,7 @@ export const deleteKeyMiddleware = async (
                     }
                     event.stopPropagation();
                     event.preventDefault();
-                    controller.abort("删除当前块")
+                    controller.abort("删除当前块");
                     return;
                 }
                 if (range.startContainer.nodeType !== 3 &&
@@ -235,7 +235,7 @@ export const deleteKeyMiddleware = async (
                     removeBlock(protyle, nodeElement, range, "Backspace");
                     event.stopPropagation();
                     event.preventDefault();
-                    controller.abort("删除表格块")
+                    controller.abort("删除表格块");
                     return;
                 }
                 // 图片后为 br，在 br 后删除 https://github.com/siyuan-note/siyuan/issues/4963
@@ -243,7 +243,7 @@ export const deleteKeyMiddleware = async (
                     removeImage(currentNode, nodeElement, range, protyle);
                     event.stopPropagation();
                     event.preventDefault();
-                    controller.abort("删除光标位置的图片")
+                    controller.abort("删除光标位置的图片");
                     return;
                 }
                 const rangeNextElement = hasNextSibling(range.startContainer) as HTMLElement;
@@ -267,7 +267,7 @@ export const deleteKeyMiddleware = async (
                         updateTransaction(protyle, nodeElement.getAttribute("data-node-id"), nodeElement.outerHTML, oldHTML);
                         focusByWbr(nodeElement, range);
                         event.preventDefault();
-                        controller.abort("删除图片后的空格")
+                        controller.abort("删除图片后的空格");
                         return;
                     }
                     // 图片前有一个字符，在字符后删除
@@ -282,7 +282,7 @@ export const deleteKeyMiddleware = async (
                         updateTransaction(protyle, nodeElement.getAttribute("data-node-id"), nodeElement.outerHTML, oldHTML);
                         focusByWbr(nodeElement, range);
                         event.preventDefault();
-                        controller.abort("删除图片前的字符")
+                        controller.abort("删除图片前的字符");
                         return;
                     }
                 }
@@ -291,7 +291,7 @@ export const deleteKeyMiddleware = async (
                     range.startContainer.nodeType === 3 && range.startContainer.textContent.substring(range.startOffset - 1, range.startOffset) === "\n") {
                     event.stopPropagation();
                     event.preventDefault();
-                    controller.abort("代码块中的换行删除")
+                    controller.abort("代码块中的换行删除");
                     return;
                 }
                 // https://github.com/siyuan-note/siyuan/issues/9690
@@ -306,7 +306,7 @@ export const deleteKeyMiddleware = async (
                     focusBlock(nodeElement);
                     event.stopPropagation();
                     event.preventDefault();
-                    controller.abort("处理行内元素前的零宽空格")
+                    controller.abort("处理行内元素前的零宽空格");
                     return;
                 }
                 if (position.start === 1 && !inlineElement && editElement.innerText.startsWith(Constants.ZWSP) &&
@@ -316,7 +316,7 @@ export const deleteKeyMiddleware = async (
                     removeBlock(protyle, nodeElement, range, "Backspace");
                     event.stopPropagation();
                     event.preventDefault();
-                    controller.abort("删除仅包含零宽空格的块")
+                    controller.abort("删除仅包含零宽空格的块");
                     return;
                 }
             }
@@ -325,7 +325,7 @@ export const deleteKeyMiddleware = async (
             range.collapse(true);
             event.stopPropagation();
             event.preventDefault();
-            controller.abort("空代码块删除操作")
+            controller.abort("空代码块删除操作");
             return;
         } else if (selectText !== "") {
             const position = getSelectionOffset(editElement, protyle.wysiwyg.element, range);
@@ -348,7 +348,7 @@ export const deleteKeyMiddleware = async (
                     updateTransaction(protyle, nodeElement.getAttribute("data-node-id"), nodeElement.outerHTML, oldHTML);
                     focusByWbr(nodeElement, range);
                     event.preventDefault();
-                    controller.abort("删除选中的文本内容")
+                    controller.abort("删除选中的文本内容");
                     return;
                 }
             }

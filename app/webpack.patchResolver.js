@@ -1,5 +1,5 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
 /**
  * Patch文件解析器插件
@@ -9,14 +9,14 @@ const path = require('path');
 class PatchResolverPlugin {
     constructor(options = {}) {
         this.options = {
-            patchSuffix: '.patch',
-            extensions: ['.js', '.ts', '.jsx', '.tsx', '.vue'],
+            patchSuffix: ".patch",
+            extensions: [".js", ".ts", ".jsx", ".tsx", ".vue"],
             ...options
         };
     }
 
     apply(compiler) {
-        const pluginName = 'PatchResolverPlugin';
+        const pluginName = "PatchResolverPlugin";
         
         // 使用 compilation 钩子来获取 normalModuleFactory
         compiler.hooks.compilation.tap(pluginName, (compilation, { normalModuleFactory }) => {

@@ -17,14 +17,14 @@ export interface ApiDef {
 
 // 从 API 定义中提取请求和响应类型
 type ExtractRequestType<T extends ApiDef> = 
-  ReturnType<T['zodRequestSchema']> extends z.ZodType<infer U> ? U : never;
+  ReturnType<T["zodRequestSchema"]> extends z.ZodType<infer U> ? U : never;
 
 type ExtractResponseType<T extends ApiDef> = 
-  ReturnType<T['zodResponseSchema']> extends z.ZodType<infer U> ? U : never;
+  ReturnType<T["zodResponseSchema"]> extends z.ZodType<infer U> ? U : never;
 
 // 将 API 定义数组转换为方法映射类型
 type ApiMethods<T extends readonly ApiDef[]> = {
-  [K in T[number] as K['en'] | K['zh_cn']]: 
+  [K in T[number] as K["en"] | K["zh_cn"]]: 
     ExtractRequestType<K> extends Record<string, never> 
       ? () => Promise<ExtractResponseType<K>>
       : (request: ExtractRequestType<K>) => Promise<ExtractResponseType<K>>;
@@ -45,7 +45,7 @@ class ApiFetcherImpl {
 
   constructor(config: ApiFetcherConfig) {
     this.config = {
-      basePath: '',
+      basePath: "",
       timeout: 10000,
       headers: {},
       ...config
@@ -88,13 +88,13 @@ class ApiFetcherImpl {
       const options: RequestInit = {
         method: apiDef.method,
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           ...this.config.headers,
         },
       };
 
       // 添加请求体（如果不是 GET 请求且有数据）
-      if (apiDef.method !== 'GET' && validatedData !== undefined) {
+      if (apiDef.method !== "GET" && validatedData !== undefined) {
         options.body = JSON.stringify(validatedData);
       }
 
@@ -106,7 +106,7 @@ class ApiFetcherImpl {
 
       // 使用 Promise.race 实现超时控制
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('请求超时')), this.config.timeout);
+        setTimeout(() => reject(new Error("请求超时")), this.config.timeout);
       });
 
       const fetchPromise = fetch(url, options)
@@ -127,9 +127,9 @@ class ApiFetcherImpl {
 
   public buildUrl(endpoint: string): string {
     const { host, port, basePath } = this.config;
-    const protocol = host.startsWith('localhost') ? 'http' : 'https';
-    const portPart = port ? `:${port}` : '';
-    const basePathPart = basePath ? `/${basePath.replace(/^\/|\/$/g, '')}` : '';
+    const protocol = host.startsWith("localhost") ? "http" : "https";
+    const portPart = port ? `:${port}` : "";
+    const basePathPart = basePath ? `/${basePath.replace(/^\/|\/$/g, "")}` : "";
     
     return `${protocol}://${host}${portPart}${basePathPart}${endpoint}`;
   }
@@ -147,12 +147,12 @@ export function createApiFetcher(config: ApiFetcherConfig) {
 
 // 创建 API Fetcher 实例
 const fetcher = createApiFetcher({
-  host: 'localhost',
+  host: "localhost",
   port: 3000,
-  basePath: '/api',
+  basePath: "/api",
   timeout: 5000,
   headers: {
-    'X-Custom-Header': 'value'
+    "X-Custom-Header": "value"
   }
 });
 

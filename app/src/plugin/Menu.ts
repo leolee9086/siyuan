@@ -61,7 +61,7 @@ export class Menu {
                 const index = this.pendingItems.indexOf(pendingItem);
                 if (index !== -1) {
                     this.pendingItems.splice(index, 1);
-                    reject(new Error('异步菜单项超时'));
+                    reject(new Error("异步菜单项超时"));
                 }
             }, timeout);
             
@@ -97,7 +97,7 @@ export class Menu {
                     item.resolve(undefined);
                 }
             } catch (error) {
-                console.error('处理异步菜单项时出错:', error);
+                console.error("处理异步菜单项时出错:", error);
                 item.reject(error);
             } finally {
                 // 清理超时定时器
@@ -166,7 +166,7 @@ export class Menu {
         if (itemIndex !== -1) {
             const item = this.pendingItems[itemIndex];
             this.pendingItems.splice(itemIndex, 1);
-            item.reject(new Error('异步菜单项已取消'));
+            item.reject(new Error("异步菜单项已取消"));
             if (item.timeoutId) {
                 clearTimeout(item.timeoutId);
             }
@@ -183,10 +183,10 @@ export class Menu {
     private async resolveOption(item: PendingMenuItem): Promise<IMenu> {
         if (item.option instanceof Promise) {
             return await item.option;
-        } else if (typeof item.option === 'object' && item.option !== null) {
+        } else if (typeof item.option === "object" && item.option !== null) {
             return item.option;
         } else {
-            throw new Error('无效的菜单选项类型');
+            throw new Error("无效的菜单选项类型");
         }
     }
 }

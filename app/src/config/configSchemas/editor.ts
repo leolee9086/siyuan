@@ -1,4 +1,4 @@
-import z from "zod"
+import z from "zod";
 export const schema = z.object({
     allowHTMLBLockScript: z.boolean(),
     markdown: z.object({
@@ -46,7 +46,7 @@ export const schema = z.object({
     virtualBlockRef: z.boolean(),
     virtualBlockRefExclude: z.string(),
     virtualBlockRefInclude: z.string()
-})
+});
 
 const parseAsConfig = (rawConf: {}): Config.IConf["editor"] => {
     const result = schema.safeParse(rawConf);
@@ -56,4 +56,4 @@ const parseAsConfig = (rawConf: {}): Config.IConf["editor"] => {
     }
 
     return result.data;
-}
+};

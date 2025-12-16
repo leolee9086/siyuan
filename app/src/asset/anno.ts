@@ -16,7 +16,7 @@ export let rectElement: RectElementType;
  */
 export const clearRectElement = () => {
     rectElement = null;
-}
+};
 
 /**
  * 设置当前选中的矩形注释元素
@@ -25,7 +25,7 @@ export const clearRectElement = () => {
  */
 export const setRectElement = (element: RectElementType) => {
     rectElement = element;
-}
+};
 
 /**
  * 初始化PDF注释功能

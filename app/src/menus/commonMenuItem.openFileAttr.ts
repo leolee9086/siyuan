@@ -220,7 +220,7 @@ const handleAddCustomAction = (target: HTMLElement, dialog: Dialog, attrs: IObje
                 }
             });
             if (existElement) {
-                showMessage(window.siyuan.languages?.hasAttrName.replace('${x}', value));
+                showMessage(window.siyuan.languages?.hasAttrName.replace("${x}", value));
             } else {
                 target.parentElement?.insertAdjacentHTML("beforebegin", `<div class="b3-label b3-label--noborder">
     <div class="fn__flex">

@@ -29,13 +29,13 @@ const handleExternalEvent = (event: Event, element: HTMLElement, pdf: IPdfInstan
 const isExternalEventGuard = (
     ctx: { event: Event, element: HTMLElement, pdf: IPdfInstance }
 ) => {
-    return typeof (ctx.event as CustomEvent).detail === "string"
-}
+    return typeof (ctx.event as CustomEvent).detail === "string";
+};
 const externalEventProcessor =async (ctx: { event: Event, element: HTMLElement, pdf: IPdfInstance }, controller: AbortController) => {
     handleExternalEvent(ctx.event, ctx.element, ctx.pdf);
     controller.abort("Handled external event");
-}
+};
 export const externalEventClickHandler = {
     guard: isExternalEventGuard,
     handler: externalEventProcessor,
-}
+};

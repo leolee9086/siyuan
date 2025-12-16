@@ -25,7 +25,7 @@ export const processPreviewElementsZhihuTable = (element: HTMLElement) => {
         const tbodyElement = item.querySelector("tbody");
         if (tbodyElement) {
             if (!headElement.firstElementChild) {
-                return
+                return;
             }
             tbodyElement.insertAdjacentElement("afterbegin", headElement.firstElementChild);
         } else {
@@ -33,7 +33,7 @@ export const processPreviewElementsZhihuTable = (element: HTMLElement) => {
         }
         headElement.remove();
     });
-}
+};
 
 /**
  * 递归处理知乎预览中的引用块元素，将连续的段落合并为引用块
@@ -76,4 +76,4 @@ export const processPreviewElementZhihuBlockquote = (element: HTMLElement, eleme
             }
         }
     });
-}
+};

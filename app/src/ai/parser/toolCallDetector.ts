@@ -1,5 +1,26 @@
 
 /**
+ * 从语言标识元素中提取代码块信息
+ * @param span 语言标识元素
+ * @returns 包含代码块元素、内容和块元素的对象，如果无法提取则返回null
+ */
+function 提取代码块信息(span: Element): {
+    codeElement: Element | null;
+    codeContent: string;
+    blockElement: Element | null;
+} | null {
+    const blockElement = span.parentElement?.parentElement || null;
+    const codeElement = span.parentElement?.nextElementSibling || null;
+    const codeContent = codeElement?.textContent;
+    
+    if (!codeContent) {
+        return null;
+    }
+    
+    return { codeElement, codeContent, blockElement };
+}
+
+/**
  * 另一个检测函数,
  * 不止检测第一个块,
  * 提取特定语言代码块中
@@ -15,7 +36,7 @@ export function 从块DOM提取首个符合条件的特定语言代码块内容(
     conditionCallback?: (codeElement: Element, codeContent: string) => boolean
 ): string | null {
     // 获取所有语言标识元素
-    const languageSpans = domElement.querySelectorAll('.protyle-action__language');
+    const languageSpans = domElement.querySelectorAll(".protyle-action__language");
 
     // 遍历所有语言标识元素
     for (let i = 0; i < languageSpans.length; i++) {
@@ -24,22 +45,23 @@ export function 从块DOM提取首个符合条件的特定语言代码块内容(
         // 确保span存在
         if (!span) continue;
 
-        // 检查语言是否匹配
-        if (span.textContent === language) {
-            // 检查是否是完整的工具调用
-            const blockElement = span.parentElement?.parentElement
-            const codeContent = span.parentElement?.nextElementSibling?.textContent;
-            if (codeContent) {
-                // 如果没有提供条件回调函数，默认返回第一个匹配的代码块
-                if (!conditionCallback) {
-                    return codeContent;
-                }
-                // 获取代码块元素进行条件判断
-                const codeElement = span.parentElement?.nextElementSibling;
-                if (codeElement && blockElement && conditionCallback(blockElement, codeContent)) {
-                    return codeContent;
-                }
-            }
+        // 检查语言是否匹配，不匹配则继续下一个
+        if (span.textContent !== language) continue;
+
+        // 提取代码块信息
+        const codeBlockInfo = 提取代码块信息(span);
+        if (!codeBlockInfo) continue;
+
+        const { codeElement, codeContent, blockElement } = codeBlockInfo;
+
+        // 如果没有提供条件回调函数，默认返回第一个匹配的代码块
+        if (!conditionCallback) {
+            return codeContent;
+        }
+
+        // 检查条件是否满足
+        if (codeElement && blockElement && conditionCallback(blockElement, codeContent)) {
+            return codeContent;
         }
     }
 

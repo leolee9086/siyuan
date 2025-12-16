@@ -1,19 +1,19 @@
-import { describe, it, expect, beforeEach,test, vi } from 'vitest';
+import { describe, it, expect, beforeEach,test, vi } from "vitest";
 
-import Router from '../../../src/util/pathRouter/core/router.htttpRouter'
-import type { Context } from '../../../src/util/pathRouter/core/types'
+import Router from "../../../src/util/pathRouter/core/router.htttpRouter";
+import type { Context } from "../../../src/util/pathRouter/core/types";
 
-describe('Router路径相关use方法测试', () => {
-  let mockContext: Context
+describe("Router路径相关use方法测试", () => {
+  let mockContext: Context;
 
   beforeEach(() => {
     mockContext = {
-      method: 'GET',
-      path: '/users/123',
-      host: 'example.com',
+      method: "GET",
+      path: "/users/123",
+      host: "example.com",
       request: {
-        method: 'GET',
-        url: '/users/123',
+        method: "GET",
+        url: "/users/123",
         params: {},
         query: {},
         headers: {}
@@ -29,56 +29,56 @@ describe('Router路径相关use方法测试', () => {
       captures: [],
       set: vi.fn(),
       redirect: vi.fn()
-    }
-  })
+    };
+  });
 
-  test('应该正确处理带路径的use方法', async () => {
-    const router = new Router()
+  test("应该正确处理带路径的use方法", async () => {
+    const router = new Router();
     const pathMiddleware = vi.fn((ctx, next) => {
-      ctx.body = 'Path'
-      return next()
-    })
+      ctx.body = "Path";
+      return next();
+    });
     const routeMiddleware = vi.fn((ctx, next) => {
-      ctx.body += ' -> Route'
-      return next()
-    })
+      ctx.body += " -> Route";
+      return next();
+    });
     
-    router.use('/api', pathMiddleware)
-    router.get('/api/users/:id', routeMiddleware)
+    router.use("/api", pathMiddleware);
+    router.get("/api/users/:id", routeMiddleware);
     
-    mockContext.path = '/api/users/123'
+    mockContext.path = "/api/users/123";
     
-    const dispatch = router.routes()
+    const dispatch = router.routes();
     
-    await dispatch(mockContext, vi.fn())
+    await dispatch(mockContext, vi.fn());
     
-    expect(pathMiddleware).toHaveBeenCalled()
-    expect(routeMiddleware).toHaveBeenCalled()
-    expect(mockContext.body).toBe('Path -> Route')
-  })
+    expect(pathMiddleware).toHaveBeenCalled();
+    expect(routeMiddleware).toHaveBeenCalled();
+    expect(mockContext.body).toBe("Path -> Route");
+  });
 
-  test('应该正确处理数组路径的use方法', async () => {
-    const router = new Router()
+  test("应该正确处理数组路径的use方法", async () => {
+    const router = new Router();
     const pathMiddleware = vi.fn((ctx, next) => {
-      ctx.body = 'Path'
-      return next()
-    })
+      ctx.body = "Path";
+      return next();
+    });
     const routeMiddleware = vi.fn((ctx, next) => {
-      ctx.body += ' -> Route'
-      return next()
-    })
+      ctx.body += " -> Route";
+      return next();
+    });
     
-    router.use(['/api', '/v1'], pathMiddleware)
-    router.get('/api/users/:id', routeMiddleware)
+    router.use(["/api", "/v1"], pathMiddleware);
+    router.get("/api/users/:id", routeMiddleware);
     
-    mockContext.path = '/api/users/123'
+    mockContext.path = "/api/users/123";
     
-    const dispatch = router.routes()
+    const dispatch = router.routes();
     
-    await dispatch(mockContext, vi.fn())
+    await dispatch(mockContext, vi.fn());
     
-    expect(pathMiddleware).toHaveBeenCalled()
-    expect(routeMiddleware).toHaveBeenCalled()
-    expect(mockContext.body).toBe('Path -> Route')
-  })
-})
+    expect(pathMiddleware).toHaveBeenCalled();
+    expect(routeMiddleware).toHaveBeenCalled();
+    expect(mockContext.body).toBe("Path -> Route");
+  });
+});

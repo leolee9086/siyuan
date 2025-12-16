@@ -5,16 +5,16 @@
  * 用于为思源笔记的国际化提供类型安全
  */
 
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
 // 默认配置
 const DEFAULT_CONFIG = {
-  inputFile: path.resolve(__dirname, '../appearance/langs/zh_CN.json'),
-  outputFile: path.resolve(__dirname, '../src/types/i18n.types.ts'),
-  typeName: 'I18nKeys',
-  rootInterfaceName: 'SiYuanI18n',
-  language: 'zh_CN'
+  inputFile: path.resolve(__dirname, "../appearance/langs/zh_CN.json"),
+  outputFile: path.resolve(__dirname, "../src/types/i18n.types.ts"),
+  typeName: "I18nKeys",
+  rootInterfaceName: "SiYuanI18n",
+  language: "zh_CN"
 };
 
 /**
@@ -28,24 +28,24 @@ function parseCliArgs() {
     const arg = args[i];
     
     switch (arg) {
-      case '-i':
-      case '--input':
+      case "-i":
+      case "--input":
         options.input = args[++i];
         break;
-      case '-o':
-      case '--output':
+      case "-o":
+      case "--output":
         options.output = args[++i];
         break;
-      case '-l':
-      case '--language':
+      case "-l":
+      case "--language":
         options.language = args[++i];
         break;
-      case '-h':
-      case '--help':
+      case "-h":
+      case "--help":
         options.help = true;
         break;
       default:
-        if (arg.startsWith('-')) {
+        if (arg.startsWith("-")) {
           console.error(`未知参数: ${arg}`);
           options.help = true;
         }
@@ -90,19 +90,19 @@ function toValidPropertyName(key) {
  * 生成嵌套对象的类型定义
  */
 function generateNestedType(obj, indent = 0) {
-  const spaces = '  '.repeat(indent);
+  const spaces = "  ".repeat(indent);
   const entries = [];
 
   for (const [key, value] of Object.entries(obj)) {
     const validKey = toValidPropertyName(key);
     
-    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    if (typeof value === "object" && value !== null && !Array.isArray(value)) {
       // 嵌套对象
       const nestedType = generateNestedType(value, indent + 1);
       entries.push(`${spaces}${validKey}: ${nestedType};`);
     } else {
       // 基本类型值
-      entries.push(`${spaces}${validKey}: \`${value.replace(/\$\{/g,'\\\$\\\{').replace(/\}/g,'\\\}')}\``);
+      entries.push(`${spaces}${validKey}: \`${value.replace(/\$\{/g,"\\\$\\\{").replace(/\}/g,"\\\}")}\``);
     }
   }
 
@@ -110,7 +110,7 @@ function generateNestedType(obj, indent = 0) {
     return `${spaces}{}`;
   }
 
-  return `{\n${entries.join('\n')}\n${spaces}}`;
+  return `{\n${entries.join("\n")}\n${spaces}}`;
 }
 
 /**
@@ -133,23 +133,23 @@ function generateTypeDefinition(jsonData, language = DEFAULT_CONFIG.language) {
   const typeAlias = `export type ${DEFAULT_CONFIG.typeName} = ${DEFAULT_CONFIG.rootInterfaceName}[keyof ${DEFAULT_CONFIG.rootInterfaceName}]`;
 
   // 生成特殊键的类型
-  const specialKeys = Object.keys(jsonData).filter(key => key.startsWith('_'));
-  let specialKeysTypes = '';
+  const specialKeys = Object.keys(jsonData).filter(key => key.startsWith("_"));
+  let specialKeysTypes = "";
 
   if (specialKeys.length > 0) {
-    specialKeysTypes = '\n\n// 特殊键的类型定义\n';
+    specialKeysTypes = "\n\n// 特殊键的类型定义\n";
     for (const key of specialKeys) {
       const value = jsonData[key];
       const validKey = toValidPropertyName(key);
-      const typeName = key.replace(/^_/, '').replace(/^[a-z]/, c => c.toUpperCase());
+      const typeName = key.replace(/^_/, "").replace(/^[a-z]/, c => c.toUpperCase());
       
-      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      if (typeof value === "object" && value !== null && !Array.isArray(value)) {
         specialKeysTypes += `export interface ${typeName} ${generateNestedType(value)}\n\n`;
       }
     }
   }
 
-  return header + mainInterface + '\n\n' + typeAlias + specialKeysTypes;
+  return header + mainInterface + "\n\n" + typeAlias + specialKeysTypes;
 }
 
 /**
@@ -180,14 +180,14 @@ async function main() {
     }
     
     // 读取 JSON 文件
-    const jsonContent = fs.readFileSync(inputFile, 'utf-8');
+    const jsonContent = fs.readFileSync(inputFile, "utf-8");
     const jsonData = JSON.parse(jsonContent);
 
     console.log(`已解析 ${Object.keys(jsonData).length} 个顶级键`);
     console.log(`输出文件: ${outputFile}`);
     
     // 生成类型定义
-    console.log('正在生成类型定义...');
+    console.log("正在生成类型定义...");
     const typeDefinition = generateTypeDefinition(jsonData, language);
 
     // 确保输出目录存在
@@ -197,12 +197,12 @@ async function main() {
     }
 
     // 写入类型定义文件
-    fs.writeFileSync(outputFile, typeDefinition, 'utf-8');
+    fs.writeFileSync(outputFile, typeDefinition, "utf-8");
     console.log(`类型定义已生成到: ${outputFile}`);
     
-    console.log('完成！');
+    console.log("完成！");
   } catch (error) {
-    console.error('错误:', error instanceof Error ? error.message : String(error));
+    console.error("错误:", error instanceof Error ? error.message : String(error));
     process.exit(1);
   }
 }

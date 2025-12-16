@@ -47,8 +47,8 @@ const copyBlockRefItem = (ctx: copyMenuCtxData) => {
                 focusBlock(ctx.focusElement);
             }
         }
-    }
-}
+    };
+};
 
 
 /**
@@ -68,8 +68,8 @@ const copyBlockEmbedItem = (ctx: copyMenuCtxData) => {
                 focusBlock(ctx.focusElement);
             }
         }
-    }
-}
+    };
+};
 
 /**
  * 创建复制协议链接菜单项
@@ -88,8 +88,8 @@ const copyProtocolItem = (ctx: copyMenuCtxData) => {
                 focusBlock(ctx.focusElement);
             }
         }
-    }
-}
+    };
+};
 
 /**
  * 创建复制Markdown格式协议链接菜单项
@@ -108,8 +108,8 @@ const copyProtocolInMdItem = (ctx: copyMenuCtxData) => {
                 focusBlock(ctx.focusElement);
             }
         }
-    }
-}
+    };
+};
 
 /**
  * 创建复制文档层级路径菜单项
@@ -128,8 +128,8 @@ const copyHPathItem = (ctx: copyMenuCtxData) => {
                 focusBlock(ctx.focusElement);
             }
         }
-    }
-}
+    };
+};
 
 /**
  * 创建复制块ID菜单项
@@ -148,8 +148,8 @@ const copyIDItem = (ctx: copyMenuCtxData) => {
                 focusBlock(ctx.focusElement);
             }
         }
-    }
-}
+    };
+};
 
 /**
  * 创建复制Markdown内容菜单项
@@ -178,8 +178,8 @@ const copyMarkdownItem = (ctx: copyMenuCtxData) => {
                 focusBlock(ctx.focusElement);
             }
         }
-    }
-}
+    };
+};
 
 /**
  * 生成复制子菜单项列表
@@ -203,7 +203,7 @@ export const copySubMenu = (ids: string[], showAccelerator = true, focusElement?
 
     const ctx = {
         ids, showAccelerator, focusElement: focusElement , stdMarkdownId
-    }
+    };
     const menuItems = [
         copyBlockRefItem(ctx),
         copyBlockEmbedItem(ctx),
@@ -211,7 +211,7 @@ export const copySubMenu = (ids: string[], showAccelerator = true, focusElement?
         copyProtocolInMdItem(ctx),
         copyHPathItem(ctx),
         copyIDItem(ctx)
-    ] as IMenu[]
+    ] as IMenu[];
     if (ctx.stdMarkdownId) {
         menuItems.push(copyMarkdownItem(ctx));
     }

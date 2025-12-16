@@ -2,7 +2,7 @@
 // 定义流式请求配置的类型（保持向后兼容）
 interface StreamRequestConfig {
     url: string;
-    method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+    method?: "GET" | "POST" | "PUT" | "DELETE";
     headers?: Record<string, string>;
     body?: any;
     timeout?: number; // 默认10秒
@@ -75,7 +75,7 @@ const prepareRequestParams = (
     // 准备请求体
     let requestBody: string | undefined;
     if (body !== undefined) {
-        requestBody = typeof body === 'string' ? body : JSON.stringify(body);
+        requestBody = typeof body === "string" ? body : JSON.stringify(body);
     }
     
     return { headers: requestHeaders, body: requestBody };
@@ -107,7 +107,7 @@ const handleError = (
     timeout: number
 ): void => {
     if (error instanceof Error) {
-        if (error.name === 'AbortError') {
+        if (error.name === "AbortError") {
             // 检查是否是因为超时
             const timeSinceLastEvent = Date.now() - lastEventTime;
             if (timeSinceLastEvent >= timeout) {

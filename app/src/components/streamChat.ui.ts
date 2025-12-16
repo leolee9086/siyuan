@@ -1,5 +1,5 @@
-import { ref, onUnmounted } from 'vue';
-import type { StreamChatUIContext, StreamChatUIReturn } from './streamChat.types';
+import { ref, onUnmounted } from "vue";
+import type { StreamChatUIContext, StreamChatUIReturn } from "./streamChat.types";
 
 /**
  * 开始动画函数
@@ -9,7 +9,7 @@ const startAnimation = (ctx: StreamChatUIContext) => {
     let dotCount = 0;
     ctx.dotsInterval.value = setInterval(() => {
         dotCount = (dotCount + 1) % 4;
-        ctx.dots.value = '.'.repeat(dotCount);
+        ctx.dots.value = ".".repeat(dotCount);
     }, 500);
 };
 
@@ -22,7 +22,7 @@ const stopAnimation = (ctx: StreamChatUIContext) => {
         clearInterval(ctx.dotsInterval.value);
         ctx.dotsInterval.value = null;
     }
-    ctx.dots.value = '';
+    ctx.dots.value = "";
 };
 
 /**
@@ -31,8 +31,8 @@ const stopAnimation = (ctx: StreamChatUIContext) => {
  */
 const showResponse = (ctx: StreamChatUIContext) => {
     ctx.showResponseContainer.value = true;
-    ctx.statusText.value = '正在生成回复...';
-    ctx.statusColor.value = 'var(--b3-theme-on-surface)';
+    ctx.statusText.value = "正在生成回复...";
+    ctx.statusColor.value = "var(--b3-theme-on-surface)";
     startAnimation(ctx);
 };
 
@@ -43,12 +43,12 @@ const showResponse = (ctx: StreamChatUIContext) => {
  */
 const setErrorStatus = (ctx: StreamChatUIContext, error: Error) => {
     ctx.statusText.value = `生成失败: ${error.message}`;
-    ctx.statusColor.value = 'var(--b3-theme-error)';
-    console.error('Stream error:', error);
+    ctx.statusColor.value = "var(--b3-theme-error)";
+    console.error("Stream error:", error);
 
-    if (error.message.includes('超时')) {
-        ctx.statusText.value = '响应超时，但已保留已有内容';
-        ctx.statusColor.value = 'var(--b3-theme-on-surface)';
+    if (error.message.includes("超时")) {
+        ctx.statusText.value = "响应超时，但已保留已有内容";
+        ctx.statusColor.value = "var(--b3-theme-on-surface)";
     } else {
         setTimeout(() => {
             ctx.showResponseContainer.value = false;
@@ -61,7 +61,7 @@ const setErrorStatus = (ctx: StreamChatUIContext, error: Error) => {
  * @param ctx UI上下文
  */
 const setAbortStatus = (ctx: StreamChatUIContext) => {
-    ctx.statusText.value = '已终止响应';
+    ctx.statusText.value = "已终止响应";
 };
 
 /**
@@ -80,10 +80,10 @@ export const getI18nText = (key: string): string => {
  */
 export function useStreamChatUI(): StreamChatUIReturn {
     const showResponseContainer = ref(false);
-    const statusText = ref('正在生成回复...');
-    const statusColor = ref('var(--b3-theme-on-surface)');
-    const dots = ref('');
-    let dotsInterval: NodeJS.Timeout | null = null;
+    const statusText = ref("正在生成回复...");
+    const statusColor = ref("var(--b3-theme-on-surface)");
+    const dots = ref("");
+    const dotsInterval: NodeJS.Timeout | null = null;
     
     // 创建UI上下文对象
     const uiContext: StreamChatUIContext = {
@@ -104,7 +104,7 @@ export function useStreamChatUI(): StreamChatUIReturn {
         statusColor,
         dots,
         showResponse: () => showResponse(uiContext),
-        setCompleteStatus: () => { uiContext.statusText.value = '生成完成'; },
+        setCompleteStatus: () => { uiContext.statusText.value = "生成完成"; },
         setErrorStatus: (error: Error) => setErrorStatus(uiContext, error),
         setAbortStatus: () => setAbortStatus(uiContext),
         stopAnimation: () => stopAnimation(uiContext)

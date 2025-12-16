@@ -1,9 +1,9 @@
-import type { MatchResult } from './types'
-import { LayerLike } from './layerLike.types';
+import type { MatchResult } from "./types";
+import { LayerLike } from "./layerLike.types";
 
 const debug = (...args: any[]) => {
     //    console.log(...args)
-}
+};
 
 /**
  * 路由匹配函数
@@ -37,7 +37,7 @@ export function match(stack: LayerLike[], path: string, method: string): MatchRe
     for (let len = stack.length, i = 0; i < len; i++) {
         layer = stack[i];
 
-        debug('test %s %s', layer.path, layer.regexp);
+        debug("test %s %s", layer.path, layer.regexp);
         // eslint-disable-next-line unicorn/prefer-regexp-test
         if (layer.match(path)) {
             matched.path.push(layer);

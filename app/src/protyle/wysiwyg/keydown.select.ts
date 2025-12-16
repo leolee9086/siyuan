@@ -50,7 +50,7 @@ export const removeSelectIndicatorElementMiddleware = (
         hideElements(["select"], protyle);
     }
     //不取消控制器,因为后面还有响应字符格式的处理器
-}
+};
 
 /**
  * 处理选中块状态下的插入键快捷操作
@@ -96,7 +96,7 @@ export const handleSelectedBlockInsertKeyMiddleware = (
                 insertEmptyBlock(protyle, "afterend");
             }, 100);
             // 中断后续处理器执行
-            controller.abort("已处理选中块后插入操作")
+            controller.abort("已处理选中块后插入操作");
             return false;
             // 'b'键：在选中块之前插入新块（Before）
         } else if (event.key.toLowerCase() === "b") {
@@ -110,18 +110,18 @@ export const handleSelectedBlockInsertKeyMiddleware = (
                 insertEmptyBlock(protyle, "beforebegin");
             }, 100);
             // 中断后续处理器执行
-            controller.abort("已处理选中块前插入操作")
+            controller.abort("已处理选中块前插入操作");
 
             return false;
         }
     }
-}
+};
 
 export const selectAllMiddleware = (ctx: editorContext) => {
-    const {event,protyle,nodeElement,range,controller}=ctx
+    const {event,protyle,nodeElement,range,controller}=ctx;
     if (matchHotKey("⌘A", event)) {
         event.preventDefault();
         selectAll(protyle, nodeElement, range);
-        controller.abort('全选触发')
+        controller.abort("全选触发");
     }
-}
+};

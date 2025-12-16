@@ -25,5 +25,5 @@ export const createSelector = (className: string): string => {
 };
 
 
-export const JAVASCRIPT_TOOLS_WAIT_CLASS = "javascript-tools-wait"
-export const JAVASCRIPT_TOOLS_CLASS = "javascript-tools"
+export const JAVASCRIPT_TOOLS_WAIT_CLASS = "javascript-tools-wait";
+export const JAVASCRIPT_TOOLS_CLASS = "javascript-tools";

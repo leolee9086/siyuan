@@ -171,40 +171,40 @@ export const fileTree = {
                     custom: {
                         title: siyuanI18n.fileTree,
                         icon: "#iconFiles",
-                        id: 'internal-plugin-filetree' + "internal-filetree"
+                        id: "internal-plugin-filetree" + "internal-filetree"
                     }
-                })
+                });
             });
         });
     }
 };
 import fileTreeConfigPanel from "../components/panels/fileTreeConfig.panel.vue";
 import { createApp } from "vue";
-let plugin: Plugin
+let plugin: Plugin;
 document.addEventListener(
-    'app-ready', () => {
+    "app-ready", () => {
         plugin = new Plugin(
             {
                 app: window.siyuan.ws.app,
                 displayName: "文档树内部插件",
-                name: 'internal-plugin-filetree',
+                name: "internal-plugin-filetree",
                 i18n: {}
             }
-        )
+        );
         plugin.addTab(
             {
                 type: "internal-filetree",
                 init: (model: Custom) => {
-                    const tab = model.tab
-                    const app = createApp(fileTreeConfigPanel)
+                    const tab = model.tab;
+                    const app = createApp(fileTreeConfigPanel);
                     if (tab) {
-                        app.mount(tab.panelElement)
+                        app.mount(tab.panelElement);
                         // tab.panelElement.innerHTML = fileTree.genHTML()
                         // fileTree.bindEvent(tab.panelElement)
                     }
                 }
             }
-        )
-        window.siyuan.ws.app.plugins.push(plugin)
+        );
+        window.siyuan.ws.app.plugins.push(plugin);
     }
-)
+);

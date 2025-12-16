@@ -14,13 +14,13 @@ const createChatDialogVueConfig = (protyle: IProtyle, element: Element, dialog: 
         eventHandlers: {
             handleCancel: dialog.destroy,
             handleConfirm: async (message: string) => {
-                const res = await localKernel.chatGPT({ msg: message })
-                console.log(res,protyle,element)
-                let msg = message
+                const res = await localKernel.chatGPT({ msg: message });
+                console.log(res,protyle,element);
+                let msg = message;
                 dialog.destroy();
-                let content = res.data
+                let content = res.data;
                 if (content) {
-                    content = "\n\n" + content
+                    content = "\n\n" + content;
                 }
                 if (msg === "Clear context") {
                     msg = "";
@@ -29,7 +29,7 @@ const createChatDialogVueConfig = (protyle: IProtyle, element: Element, dialog: 
             }
 
         },
-        template: `<AiChatDialog @cancel="handleCancel" @confirm="handleConfirm" ref="aiChatDialogComponent" />`,
+        template: "<AiChatDialog @cancel=\"handleCancel\" @confirm=\"handleConfirm\" ref=\"aiChatDialogComponent\" />",
         initMethodName: "focusChatInput"
     };
 };

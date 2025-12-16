@@ -95,7 +95,7 @@ export const initClickHandler = (element: HTMLElement, pdf: IPdfInstance) => {
         const signal = controller.signal;
         signal.addEventListener("abort", (reason) => {
             console.log("Abort signal received:", reason);
-        })
+        });
         //处理自定义事件
         const ctx = { event, element, pdf };
 

@@ -1,4 +1,4 @@
-import z, { keyof } from "zod"
+import z, { keyof } from "zod";
 import { deepEqual } from "./deepEqual";
 import {
     MODE_MIDDLEWARE_FUNCTION,
@@ -185,7 +185,7 @@ export function createRouterClass<
                 this.validatedOptions = options;
             }
             this.modeKey = modeKey;
-            this.initRegisterMethods()
+            this.initRegisterMethods();
         }
         /**
          * 此方法用于注册,不应该调用route
@@ -284,8 +284,8 @@ export function createRouterClass<
                 executeChain(0);
             };
 
-            dispatch.router = this
-            return dispatch
+            dispatch.router = this;
+            return dispatch;
         }
 
         async route(methodName: string): Promise<void> {
@@ -298,8 +298,8 @@ export function createRouterClass<
     return Router as RouterClass<MethodNames, CtxSchemaShape, OptionsSchema>&RouterMethods<MethodNames, CtxSchemaShape, keyof z.infer<z.ZodObject<CtxSchemaShape>>> ;
 }
 
-const EventRouter = createRouterClass(['ctrl', 'click'], { test: z.string(), detail: z.object({c:z.string()}) }, 'detail', z.object())
-let router= new EventRouter({
+const EventRouter = createRouterClass(["ctrl", "click"], { test: z.string(), detail: z.object({c:z.string()}) }, "detail", z.object());
+const router= new EventRouter({
 
-})
-router
+});
+router;

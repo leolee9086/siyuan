@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeEach,test, vi } from 'vitest';
+import { describe, it, expect, beforeEach,test, vi } from "vitest";
 
-import { z } from 'zod';
-import { createZodSchemaFromDeepRaw, ZodDeepRaw } from '../../../src/util/zodMethodDefinedClass/deepRaw';
+import { z } from "zod";
+import { createZodSchemaFromDeepRaw, ZodDeepRaw } from "../../../src/util/zodMethodDefinedClass/deepRaw";
 
-describe('createZodSchemaFromDeepRaw - 复杂场景测试', () => {
-  it('应该能够处理深度嵌套的对象结构', () => {
+describe("createZodSchemaFromDeepRaw - 复杂场景测试", () => {
+  it("应该能够处理深度嵌套的对象结构", () => {
     const deepNested: ZodDeepRaw = {
       level1: {
         level2: {
@@ -43,7 +43,7 @@ describe('createZodSchemaFromDeepRaw - 复杂场景测试', () => {
                     level8: {
                       level9: {
                         level10: {
-                          finalValue: 'test',
+                          finalValue: "test",
                           anotherValue: 42
                         }
                       }
@@ -61,7 +61,7 @@ describe('createZodSchemaFromDeepRaw - 复杂场景测试', () => {
     expect(result.success).toBe(true);
   });
 
-  it('应该能够处理复杂的混合结构', () => {
+  it("应该能够处理复杂的混合结构", () => {
     const mixedComplex: ZodDeepRaw = {
       user: {
         profile: {
@@ -75,7 +75,7 @@ describe('createZodSchemaFromDeepRaw - 复杂场景测试', () => {
           },
           professional: {
             company: z.string().optional(),
-            position: z.enum(['developer', 'manager', 'director']),
+            position: z.enum(["developer", "manager", "director"]),
             salary: z.number().positive().optional(),
             skills: z.array(z.object({
               name: z.string(),
@@ -98,7 +98,7 @@ describe('createZodSchemaFromDeepRaw - 复杂场景测试', () => {
             email: z.boolean(),
             push: z.boolean(),
             sms: z.boolean(),
-            frequency: z.enum(['instant', 'daily', 'weekly'])
+            frequency: z.enum(["instant", "daily", "weekly"])
           }
         }
       }
@@ -110,18 +110,18 @@ describe('createZodSchemaFromDeepRaw - 复杂场景测试', () => {
       user: {
         profile: {
           personal: {
-            name: 'John Doe',
+            name: "John Doe",
             age: 30,
             birthDate: new Date(),
             isActive: true,
-            tags: ['tag1', 'tag2'],
-            metadata: { key1: 'value1', key2: 123 }
+            tags: ["tag1", "tag2"],
+            metadata: { key1: "value1", key2: 123 }
           },
           professional: {
-            position: 'developer' as const,
+            position: "developer" as const,
             skills: [
-              { name: 'JavaScript', level: 8, certified: true },
-              { name: 'TypeScript', level: 7, certified: false }
+              { name: "JavaScript", level: 8, certified: true },
+              { name: "TypeScript", level: 7, certified: false }
             ]
           }
         },
@@ -139,7 +139,7 @@ describe('createZodSchemaFromDeepRaw - 复杂场景测试', () => {
             email: true,
             push: false,
             sms: true,
-            frequency: 'daily' as const
+            frequency: "daily" as const
           }
         }
       }
@@ -149,7 +149,7 @@ describe('createZodSchemaFromDeepRaw - 复杂场景测试', () => {
     expect(result.success).toBe(true);
   });
 
-  it('应该能够处理数组和记录的复杂组合', () => {
+  it("应该能够处理数组和记录的复杂组合", () => {
     const arrayAndRecordComplex: ZodDeepRaw = {
       organizations: z.array(
         z.object({
@@ -195,33 +195,33 @@ describe('createZodSchemaFromDeepRaw - 复杂场景测试', () => {
     const validData = {
       organizations: [
         {
-          id: 'org1',
-          name: 'Tech Corp',
+          id: "org1",
+          name: "Tech Corp",
           departments: {
             engineering: {
               manager: {
-                employeeId: 'mgr1',
-                name: 'Jane Smith',
+                employeeId: "mgr1",
+                name: "Jane Smith",
                 contact: {
-                  email: 'jane@example.com',
-                  phone: '123-456-7890'
+                  email: "jane@example.com",
+                  phone: "123-456-7890"
                 }
               },
               employees: [
                 {
-                  id: 'emp1',
+                  id: "emp1",
                   personal: {
-                    name: 'John Doe',
+                    name: "John Doe",
                     address: {
-                      street: '123 Main St',
-                      city: 'San Francisco',
-                      country: 'USA'
+                      street: "123 Main St",
+                      city: "San Francisco",
+                      country: "USA"
                     }
                   },
                   employment: {
-                    position: 'Developer',
+                    position: "Developer",
                     salary: 80000,
-                    benefits: ['health', '401k']
+                    benefits: ["health", "401k"]
                   }
                 }
               ]
@@ -235,10 +235,10 @@ describe('createZodSchemaFromDeepRaw - 复杂场景测试', () => {
     expect(result.success).toBe(true);
   });
 
-  it('应该能够处理条件验证结构', () => {
+  it("应该能够处理条件验证结构", () => {
     const conditionalValidation: ZodDeepRaw = {
       account: {
-        type: z.enum(['personal', 'business', 'enterprise']),
+        type: z.enum(["personal", "business", "enterprise"]),
         details: z.object({
           personal: z.object({
             firstName: z.string(),
@@ -265,7 +265,7 @@ describe('createZodSchemaFromDeepRaw - 复杂场景测试', () => {
           },
           paymentMethods: z.array(
             z.object({
-              type: z.enum(['credit', 'debit', 'bank']),
+              type: z.enum(["credit", "debit", "bank"]),
               details: z.object({
                 credit: z.object({
                   number: z.string(),
@@ -287,27 +287,27 @@ describe('createZodSchemaFromDeepRaw - 复杂场景测试', () => {
     
     const validData = {
       account: {
-        type: 'personal' as const,
+        type: "personal" as const,
         details: {
           personal: {
-            firstName: 'John',
-            lastName: 'Doe'
+            firstName: "John",
+            lastName: "Doe"
           }
         },
         billing: {
           address: {
-            line1: '123 Main St',
-            city: 'San Francisco',
-            country: 'USA'
+            line1: "123 Main St",
+            city: "San Francisco",
+            country: "USA"
           },
           paymentMethods: [
             {
-              type: 'credit' as const,
+              type: "credit" as const,
               details: {
                 credit: {
-                  number: '4111111111111111',
-                  expiry: '12/25',
-                  cvv: '123'
+                  number: "4111111111111111",
+                  expiry: "12/25",
+                  cvv: "123"
                 }
               }
             }
@@ -320,7 +320,7 @@ describe('createZodSchemaFromDeepRaw - 复杂场景测试', () => {
     expect(result.success).toBe(true);
   });
 
-  it('应该能够处理极其复杂的系统配置', () => {
+  it("应该能够处理极其复杂的系统配置", () => {
     const ultimateComplex: ZodDeepRaw = {
       system: {
         version: z.string(),
@@ -350,7 +350,7 @@ describe('createZodSchemaFromDeepRaw - 复杂场景测试', () => {
           authentication: {
             methods: z.array(
               z.object({
-                type: z.enum(['oauth', 'jwt', 'basic']),
+                type: z.enum(["oauth", "jwt", "basic"]),
                 config: z.object({
                   oauth: z.object({
                     clientId: z.string(),
@@ -375,14 +375,14 @@ describe('createZodSchemaFromDeepRaw - 复杂场景测试', () => {
                 rules: z.array(
                   z.object({
                     condition: z.string(),
-                    action: z.enum(['allow', 'deny', 'require_2fa'])
+                    action: z.enum(["allow", "deny", "require_2fa"])
                   })
                 )
               })
             )
           },
           logging: {
-            level: z.enum(['debug', 'info', 'warn', 'error']),
+            level: z.enum(["debug", "info", "warn", "error"]),
             transports: z.array(
               z.object({
                 type: z.string(),
@@ -402,7 +402,7 @@ describe('createZodSchemaFromDeepRaw - 复杂场景测试', () => {
     
     const validData = {
       system: {
-        version: '1.0.0',
+        version: "1.0.0",
         modules: {
           auth: {
             enabled: true,
@@ -412,16 +412,16 @@ describe('createZodSchemaFromDeepRaw - 复杂场景测试', () => {
                 retries: 3
               },
               specific: {
-                customSetting: 'value'
+                customSetting: "value"
               }
             },
-            dependencies: ['database', 'cache'],
+            dependencies: ["database", "cache"],
             metadata: {
-              author: 'John Doe',
-              license: 'MIT',
+              author: "John Doe",
+              license: "MIT",
               repository: {
-                url: 'https://github.com/example/auth',
-                branch: 'main'
+                url: "https://github.com/example/auth",
+                branch: "main"
               }
             }
           }
@@ -430,33 +430,33 @@ describe('createZodSchemaFromDeepRaw - 复杂场景测试', () => {
           authentication: {
             methods: [
               {
-                type: 'jwt' as const,
+                type: "jwt" as const,
                 config: {
                   jwt: {
-                    secret: 'secret-key',
-                    expiresIn: '1h',
-                    issuer: 'example.com'
+                    secret: "secret-key",
+                    expiresIn: "1h",
+                    issuer: "example.com"
                   }
                 }
               }
             ],
             policies: [
               {
-                name: 'admin-policy',
+                name: "admin-policy",
                 rules: [
                   {
                     condition: 'user.role === "admin"',
-                    action: 'allow' as const
+                    action: "allow" as const
                   }
                 ]
               }
             ]
           },
           logging: {
-            level: 'info' as const,
+            level: "info" as const,
             transports: [
               {
-                type: 'console',
+                type: "console",
                 config: {
                   colorize: true
                 }

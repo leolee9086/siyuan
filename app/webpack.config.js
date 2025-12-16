@@ -26,7 +26,7 @@ module.exports = (env, argv) => {
         resolve: {
             extensions: [".vue", ".ts", ".js", ".tpl", ".scss", ".png", ".svg"],
             alias: {
-                '@': path.resolve(__dirname, 'src'),
+                "@": path.resolve(__dirname, "src"),
                 "sharp$": false,
                 "onnxruntime-node$": false,
             },
@@ -117,8 +117,8 @@ module.exports = (env, argv) => {
                         path.resolve(__dirname, "src"),
                     ],
                     use: [
-                        process.env.NODE_ENV !== 'production'
-                            ? 'vue-style-loader'
+                        process.env.NODE_ENV !== "production"
+                            ? "vue-style-loader"
                             : MiniCssExtractPlugin.loader,
 
 

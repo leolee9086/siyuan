@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 /**
  * 将Zod schema转换为JSON Schema字符串
@@ -6,5 +6,5 @@ import { z } from 'zod';
  * @returns JSON Schema字符串
  */
 export function formatSchema(schema: z.ZodTypeAny): string {
-    return JSON.stringify(z.toJSONSchema(schema))
+    return JSON.stringify(z.toJSONSchema(schema));
 }

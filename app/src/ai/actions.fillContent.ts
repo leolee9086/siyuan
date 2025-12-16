@@ -42,8 +42,8 @@ export const fillContent = (protyle: IProtyle, rawContent: string, blockElements
         return;
     }
     if (!protyle.wysiwyg) {
-        console.error(protyle)
-        throw new Error ("结构错误")
+        console.error(protyle);
+        throw new Error ("结构错误");
     }
     // 确保最后一个块元素在protyle的编辑器中
     const lastBlockElement = blockElements[blockElements.length - 1];
@@ -55,7 +55,7 @@ export const fillContent = (protyle: IProtyle, rawContent: string, blockElements
             console.warn("最后一个块元素不在protyle编辑器中，无法插入内容");
             return;
         }
-        const editableElement = getContenteditableElement(lastBlockElement)
+        const editableElement = getContenteditableElement(lastBlockElement);
         if (editableElement && protyle.toolbar?.range) {
             setLastNodeRange(editableElement, protyle.toolbar?.range);
         }

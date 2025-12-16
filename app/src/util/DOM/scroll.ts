@@ -14,7 +14,7 @@ export function horizontalScrollFirst(event: WheelEvent) {
     } else {
 
         event.preventDefault();
-        event.stopPropagation()
+        event.stopPropagation();
         container.scrollLeft = newScrollLeft;
     }
 }
@@ -48,10 +48,10 @@ export function verticalScroll(event: WheelEvent) {
     if ((newScrollTop <= 0 && event.deltaY < 0) || (newScrollTop >= maxScrollTop && event.deltaY > 0)) {
         // 如果在顶部向上滚或在底部向下滚，不阻止默认行为
         if (newScrollTop <= 0 && event.deltaY < 0) {
-            container.scrollTop = 0
+            container.scrollTop = 0;
         }
         if (newScrollTop >= maxScrollTop && event.deltaY > 0) {
-            container.scrollTop = maxScrollTop
+            container.scrollTop = maxScrollTop;
         }
     } else {
         // 在其他情况下，阻止默认滚动行为

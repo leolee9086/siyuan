@@ -34,7 +34,7 @@ export const openByMiddleWare = (
                 openLink(protyle, href, undefined, false);
                 event.preventDefault();
                 event.stopPropagation();
-                controller.abort("已打开链接")
+                controller.abort("已打开链接");
                 return;
             }
         }
@@ -47,15 +47,15 @@ export const openByMiddleWare = (
                 openLink(protyle, linkAddress, undefined, false);
                 event.preventDefault();
                 event.stopPropagation();
-                controller.abort("已打开文件引用")
+                controller.abort("已打开文件引用");
                 return;
             }
         }
-        controller.abort("未找到可打开的链接或文件")
+        controller.abort("未找到可打开的链接或文件");
 
         return;
     }
-}
+};
 
 
 
@@ -75,13 +75,13 @@ export const openLocalMiddleWare = (
                 openBy(linkAddress, "folder");
                 event.preventDefault();
                 event.stopPropagation();
-                controller.abort("已打开文件本地文件")
+                controller.abort("已打开文件本地文件");
             }
         }
         return;
     }
     /// #endif
-}
+};
 
 
 export const openInNewTabMiddleware = (
@@ -112,4 +112,4 @@ export const openInNewTabMiddleware = (
         });
         return;
     }
-}
+};

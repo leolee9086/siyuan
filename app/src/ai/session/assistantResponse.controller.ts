@@ -1,10 +1,10 @@
-import { AssistantResponseState, ToolCallExecutionCallback } from './session.types';
+import { AssistantResponseState, ToolCallExecutionCallback } from "./session.types";
 import { createTemporaryModule } from "../../util/code/scripts.executor";
-import { SafeEventEmitter } from '../../util/events/eventEmitter';
-import { createAIRequestController, AIRequestController } from '../requestController.impl';
-import { getAIConfigFromSiyuan } from '../utils.config';
-import { handleOpenAILikeStreamResponse } from '../handleOpenAILikeStreamResponse';
-import z from 'zod';
+import { SafeEventEmitter } from "../../util/events/eventEmitter";
+import { createAIRequestController, AIRequestController } from "../requestController.impl";
+import { getAIConfigFromSiyuan } from "../utils.config";
+import { handleOpenAILikeStreamResponse } from "../handleOpenAILikeStreamResponse";
+import z from "zod";
 
 // 定义AI响应控制器的事件类型
 const assistantResponseEventDefines = {
@@ -39,7 +39,7 @@ const assistantResponseEventDefines = {
     // 消息保存事件
     messageSaved: {
         message: z.object({
-            role: z.literal('assistant'),
+            role: z.literal("assistant"),
             content: z.string(),
             timestamp: z.number()
         }),
@@ -82,11 +82,11 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
     constructor(initialState?: Partial<AssistantResponseState>) {
         super(assistantResponseEventDefines);
         this.state = {
-            responseContentStr: '',
+            responseContentStr: "",
             isStreaming: false,
             isDone: false,
             abortFunction: null,
-            blockDOMContent: '',
+            blockDOMContent: "",
             onWaitToolCallDetected: async () => { },
             onAsyncToolCallDetected: async () => { },
             isPaused: false,
@@ -112,7 +112,7 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
         this.state.responseContentStr = content;
 
         // 触发内容变更事件
-        this.emit('contentChanged', {
+        this.emit("contentChanged", {
             oldContent,
             newContent: content,
             timestamp: Date.now()
@@ -124,7 +124,7 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
         this.state.responseContentStr += content;
 
         // 触发内容变更事件
-        this.emit('contentChanged', {
+        this.emit("contentChanged", {
             oldContent,
             newContent: this.state.responseContentStr,
             timestamp: Date.now()
@@ -138,7 +138,7 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
         this.startTime = Date.now();
 
         // 触发流式传输状态变更事件
-        this.emit('streamingStateChanged', {
+        this.emit("streamingStateChanged", {
             isStreaming: true,
             timestamp: Date.now()
         });
@@ -148,7 +148,7 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
         this.state.isStreaming = false;
 
         // 触发流式传输状态变更事件
-        this.emit('streamingStateChanged', {
+        this.emit("streamingStateChanged", {
             isStreaming: false,
             timestamp: Date.now()
         });
@@ -161,13 +161,13 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
         this.state.isDone = true;
 
         // 触发流式传输状态变更事件
-        this.emit('streamingStateChanged', {
+        this.emit("streamingStateChanged", {
             isStreaming: false,
             timestamp: Date.now()
         });
 
         // 触发响应完成事件
-        this.emit('responseCompleted', {
+        this.emit("responseCompleted", {
             finalContent: this.state.responseContentStr,
             duration,
             timestamp: Date.now()
@@ -187,9 +187,9 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
         this.stopStreaming();
 
         // 触发响应中止事件
-        this.emit('responseAborted', {
+        this.emit("responseAborted", {
             content: this.state.responseContentStr,
-            reason: '用户中止',
+            reason: "用户中止",
             timestamp: Date.now()
         });
     }
@@ -204,7 +204,7 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
             }
 
             // 触发暂停状态变更事件
-            this.emit('pauseStateChanged', {
+            this.emit("pauseStateChanged", {
                 isPaused: true,
                 timestamp: Date.now()
             });
@@ -219,13 +219,13 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
             this.startTime = Date.now();
 
             // 触发暂停状态变更事件
-            this.emit('pauseStateChanged', {
+            this.emit("pauseStateChanged", {
                 isPaused: false,
                 timestamp: Date.now()
             });
 
             // 触发流式传输状态变更事件
-            this.emit('streamingStateChanged', {
+            this.emit("streamingStateChanged", {
                 isStreaming: true,
                 timestamp: Date.now()
             });
@@ -241,10 +241,10 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
             try {
                 await this.resumeAIRequest();
             } catch (error) {
-                console.error('自动恢复失败:', error);
+                console.error("自动恢复失败:", error);
             }
         } else {
-            console.log('错误次数过多，不自动恢复');
+            console.log("错误次数过多，不自动恢复");
         }
     }
 
@@ -252,7 +252,7 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
     saveCurrentMessage(): void {
         if (this.state.responseContentStr.trim()) {
             const message = {
-                role: 'assistant' as const,
+                role: "assistant" as const,
                 content: this.state.responseContentStr,
                 timestamp: Date.now()
             };
@@ -260,7 +260,7 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
             this.state.savedMessages.push(message);
 
             // 触发消息保存事件
-            this.emit('messageSaved', {
+            this.emit("messageSaved", {
                 message,
                 totalMessages: this.state.savedMessages.length,
                 timestamp: Date.now()
@@ -284,17 +284,17 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
     async executeWaitToolCall(toolCode: string): Promise<void> {
         // 检查同步工具调用次数限制
         if (this.state.syncToolCallCount >= 10) {
-            console.error('同步工具调用次数已达上限(10次)');
+            console.error("同步工具调用次数已达上限(10次)");
             this.state.savedMessages.push({
-                role: 'user',
-                content: 'system:同步工具调用次数已达上限(10次)，无法继续执行工具调用',
+                role: "user",
+                content: "system:同步工具调用次数已达上限(10次)，无法继续执行工具调用",
                 timestamp: Date.now()
             });
             
             // 触发工具调用事件（限制情况）
-            this.emit('toolCallExecuted', {
+            this.emit("toolCallExecuted", {
                 toolCode,
-                result: new Error('同步工具调用次数已达上限(10次)，无法继续执行工具调用'),
+                result: new Error("同步工具调用次数已达上限(10次)，无法继续执行工具调用"),
                 isAsync: false,
                 timestamp: Date.now()
             });
@@ -306,13 +306,13 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
                     await this.startAIRequest([
                         ...this.state.savedMessages,
                         {
-                            role: 'user',
-                            content: 'system:同步工具调用次数已达上限(10次)，无法继续执行工具调用',
+                            role: "user",
+                            content: "system:同步工具调用次数已达上限(10次)，无法继续执行工具调用",
                             timestamp: Date.now()
                         }
                     ]);
                 } catch (error) {
-                    console.error('发送工具调用上限通知失败:', error);
+                    console.error("发送工具调用上限通知失败:", error);
                 }
             }
             return;
@@ -333,29 +333,29 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
 
             // 执行工具调用
             const result = await createTemporaryModule(toolCode);
-            console.log('工具调用执行结果:', result);
+            console.log("工具调用执行结果:", result);
             
             // 检查是否有default导出
             if (!result.moduleExport.default) {
-                throw new Error('必须使用default导出你需要查看的结果');
+                throw new Error("必须使用default导出你需要查看的结果");
             }
 
             // 将工具执行结果添加到消息历史中
             this.state.savedMessages.push({
-                role: 'user',
+                role: "user",
                 content: `Tool execution result: ${JSON.stringify(await result.moduleExport.default)}`,
                 timestamp: Date.now()
             });
 
             // 触发工具调用事件
-            this.emit('toolCallExecuted', {
+            this.emit("toolCallExecuted", {
                 toolCode,
                 result,
                 isAsync: false,
                 timestamp: Date.now()
             });
         } catch (error) {
-            console.error('工具调用执行失败:', error);
+            console.error("工具调用执行失败:", error);
             
             // 增加错误计数
             this.state.errorCount += 1;
@@ -363,14 +363,14 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
             // 将错误信息添加到消息历史中
             if (error instanceof Error) {
                 this.state.savedMessages.push({
-                    role: 'user',
+                    role: "user",
                     content: `system:工具调用执行失败: ${error.message},\n你必须使用标准esm语法并且以default导出你需要的结果`,
                     timestamp: Date.now()
                 });
             }
 
             // 触发工具调用事件（失败情况）
-            this.emit('toolCallExecuted', {
+            this.emit("toolCallExecuted", {
                 toolCode,
                 result: error,
                 isAsync: false,
@@ -385,14 +385,14 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
     async executeAsyncToolCall(toolCode: string): Promise<void> {
         // 检查异步工具调用次数限制
         if (this.state.asyncToolCallCount >= 10) {
-            console.error('异步工具调用次数已达上限(10次)');
+            console.error("异步工具调用次数已达上限(10次)");
             // 不执行工具调用，直接返回错误结果
-            this.state.asyncToolResults.push({ error: '异步工具调用次数已达上限(10次)，无法继续执行工具调用' });
+            this.state.asyncToolResults.push({ error: "异步工具调用次数已达上限(10次)，无法继续执行工具调用" });
             
             // 触发工具调用事件（限制情况）
-            this.emit('toolCallExecuted', {
+            this.emit("toolCallExecuted", {
                 toolCode,
-                result: new Error('异步工具调用次数已达上限(10次)，无法继续执行工具调用'),
+                result: new Error("异步工具调用次数已达上限(10次)，无法继续执行工具调用"),
                 isAsync: true,
                 timestamp: Date.now()
             });
@@ -404,13 +404,13 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
                     await this.startAIRequest([
                         ...this.state.savedMessages,
                         {
-                            role: 'user',
-                            content: 'system:异步工具调用次数已达上限(10次)，无法继续执行工具调用',
+                            role: "user",
+                            content: "system:异步工具调用次数已达上限(10次)，无法继续执行工具调用",
                             timestamp: Date.now()
                         }
                     ]);
                 } catch (error) {
-                    console.error('发送工具调用上限通知失败:', error);
+                    console.error("发送工具调用上限通知失败:", error);
                 }
             }
             return;
@@ -428,7 +428,7 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
 
             // 等待工具调用完成
             const result = await toolPromise;
-            console.log('异步工具调用执行结果:', result);
+            console.log("异步工具调用执行结果:", result);
 
             // 将结果替换到asyncToolResults中，而不是添加到消息历史
             const index = this.state.asyncToolResults.indexOf(toolPromise);
@@ -437,14 +437,14 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
             }
 
             // 触发工具调用事件
-            this.emit('toolCallExecuted', {
+            this.emit("toolCallExecuted", {
                 toolCode,
                 result,
                 isAsync: true,
                 timestamp: Date.now()
             });
         } catch (error) {
-            console.error('异步工具调用执行失败:', error);
+            console.error("异步工具调用执行失败:", error);
 
             // 将错误信息替换到asyncToolResults中
             if (toolPromise) {
@@ -459,7 +459,7 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
             }
 
             // 触发工具调用事件（失败情况）
-            this.emit('toolCallExecuted', {
+            this.emit("toolCallExecuted", {
                 toolCode,
                 result: error,
                 isAsync: true,
@@ -473,7 +473,7 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
         const oldContent = this.state.blockDOMContent;
         this.state.blockDOMContent = content;
         // 触发DOM内容变更事件
-        this.emit('domContentChanged', {
+        this.emit("domContentChanged", {
             oldContent,
             newContent: content,
             timestamp: Date.now()
@@ -504,7 +504,7 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
                     const result = handleOpenAILikeStreamResponse(dataStr, this.state.responseContentStr);
                     
                     if (result.error) {
-                        this.emit('responseAborted', {
+                        this.emit("responseAborted", {
                             content: this.state.responseContentStr,
                             reason: result.error.message || String(result.error),
                             timestamp: Date.now()
@@ -524,7 +524,7 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
                     this.setDone();
                 },
                 onError: (error: Error) => {
-                    this.emit('responseAborted', {
+                    this.emit("responseAborted", {
                         content: this.state.responseContentStr,
                         reason: error.message,
                         timestamp: Date.now()
@@ -532,9 +532,9 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
                 },
                 onAbort: () => {
                     this.stopStreaming();
-                    this.emit('responseAborted', {
+                    this.emit("responseAborted", {
                         content: this.state.responseContentStr,
-                        reason: '请求被中止',
+                        reason: "请求被中止",
                         timestamp: Date.now()
                     });
                 },
@@ -552,7 +552,7 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
     /**
      * 发起AI请求
      */
-    async startAIRequest(messages: Array<{ role: 'user' | 'assistant'; content: string; timestamp: number }>): Promise<void> {
+    async startAIRequest(messages: Array<{ role: "user" | "assistant"; content: string; timestamp: number }>): Promise<void> {
         if (!this.requestController) {
             this.initializeRequestController();
         }
@@ -609,7 +609,7 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
                 isPaused: false,
                 isDone: false,
                 hasError: false,
-                errorMessage: ''
+                errorMessage: ""
             };
         }
 
@@ -619,7 +619,7 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
             isPaused: this.state.isPaused,
             isDone: this.state.isDone,
             hasError: this.state.errorCount > 0,
-            errorMessage: this.state.errorCount > 0 ? '请求过程中发生错误' : ''
+            errorMessage: this.state.errorCount > 0 ? "请求过程中发生错误" : ""
         };
     }
 

@@ -1,13 +1,13 @@
-import dayjs = require('dayjs');
-import type { MessageHistory } from '../components/streamChat.types';
-import { universalStreamRequest } from '../util/fetchStream';
+import dayjs = require("dayjs");
+import type { MessageHistory } from "../components/streamChat.types";
+import { universalStreamRequest } from "../util/fetchStream";
 
 /**
  * 流式请求配置接口
  */
 interface StreamRequestConfig {
     url: string;
-    method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+    method: "GET" | "POST" | "PUT" | "DELETE";
     headers: Record<string, string>;
     body: string;
     timeout: number;
@@ -43,7 +43,7 @@ export class AIRequestController {
      */
     async startRequest(messages: MessageHistory): Promise<void> {
         if (this.isDestroyed) {
-            throw new Error('控制器已销毁，无法发起请求');
+            throw new Error("控制器已销毁，无法发起请求");
         }
 
         // 创建新的AbortController，确保每次请求都是全新的
@@ -78,7 +78,7 @@ export class AIRequestController {
                         // 通过UI函数获取当前内容，避免控制器持有状态
                         const responseContentRef = this.events.onMessage &&
                             (this.events.onMessage as any).getResponseContentRef?.();
-                        return responseContentRef?.textContent || '';
+                        return responseContentRef?.textContent || "";
                     });
                 },
                 onDone: () => {
@@ -102,7 +102,7 @@ export class AIRequestController {
             await universalStreamRequest(this.currentRequestConfig, streamHandlers);
 
         } catch (error) {
-            if (error instanceof Error && error.name !== 'AbortError') {
+            if (error instanceof Error && error.name !== "AbortError") {
                 this.events.onError?.(error);
             }
         }
@@ -144,7 +144,7 @@ export class AIRequestController {
             isPaused: false, // 这个状态由外部管理
             isDone: false,  // 这个状态由外部管理
             hasError: false, // 这个状态由外部管理
-            errorMessage: '' // 这个状态由外部管理
+            errorMessage: "" // 这个状态由外部管理
         };
     }
 
@@ -206,7 +206,7 @@ export class AIRequestController {
 
         return {
             url: `${aiConfig.apiBaseURL}/chat/completions`,
-            method: 'POST',
+            method: "POST",
             headers,
             body: JSON.stringify(requestBody),
             timeout: aiConfig.apiTimeout,

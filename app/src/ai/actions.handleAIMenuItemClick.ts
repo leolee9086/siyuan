@@ -38,11 +38,11 @@ const handleListItemActionClick = (
 ): void => {
     // 对于SVG元素，需要找到包含dataset的父元素
     const parentElement = currentTarget.parentElement;
-    if (!parentElement || !('dataset' in parentElement)) {
+    if (!parentElement || !("dataset" in parentElement)) {
         return;
     }
-    const targetIndex = parentElement.dataset.index
-    const localAI = getSiyuanStorage()[Constants.LOCAL_AI]
+    const targetIndex = parentElement.dataset.index;
+    const localAI = getSiyuanStorage()[Constants.LOCAL_AI];
     const subItem = localAI[targetIndex];
     editDialog(subItem.name, subItem.memo);
     menu.close();
@@ -65,11 +65,11 @@ const handleListItemClick = (
     
     // 对于SVG元素，需要找到包含dataset的元素
     let targetElement: HTMLElement | SVGElement | ParentNode = currentTarget;
-    while (targetElement && !('dataset' in targetElement)) {
+    while (targetElement && !("dataset" in targetElement)) {
         targetElement = targetElement.parentElement;
     }
     
-    if (!targetElement || !('dataset' in targetElement)) {
+    if (!targetElement || !("dataset" in targetElement)) {
         return;
     }
     
@@ -79,10 +79,10 @@ const handleListItemClick = (
         ///#if !MOBILE
         selectRecentDoc().then(
             async(docId)=>{
-                console.log(docId)
+                console.log(docId);
                 
             }
-        )
+        );
         ///#endif
     }
     

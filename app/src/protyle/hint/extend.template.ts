@@ -1,5 +1,5 @@
-import { Constants } from "../../constants"
-import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n"
+import { Constants } from "../../constants";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n";
 
 export const templateItem = (ctx: { key: string, protyle: IProtyle }) => {
     return {
@@ -13,5 +13,5 @@ export const templateItem = (ctx: { key: string, protyle: IProtyle }) => {
             </svg>
             <span class="b3-list-item__text">${siyuanI18n.template}</span>
         </div>`,
-    }
-}
+    };
+};

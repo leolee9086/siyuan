@@ -85,4 +85,4 @@ export const accountApiDefs = [
       data: z.any().nullable().describe("返回数据，此接口通常为 null")
     })
   }
-] as const
+] as const;

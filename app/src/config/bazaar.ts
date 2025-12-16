@@ -34,20 +34,20 @@ export const bazaar = {
                 });
             }
         });
-                console.log(bazaar,keywordCount)
+                console.log(bazaar,keywordCount);
 
         // 按出现频率排序，返回前10个关键词
         const data= Object.entries(keywordCount)
             .sort((a, b) => b[1] - a[1])
             .slice(0, 10)
             .map(entry => entry[0]);
-            console.log(data)
-            return data
+            console.log(data);
+            return data;
     },
     // 生成关键词标签HTML
     _genKeywordsHTML(bazaarType: TBazaarType): string {
         const keywords = bazaar._data.keywords[bazaarType];
-        console.log(bazaar,bazaarType,keywords)
+        console.log(bazaar,bazaarType,keywords);
         const selectedKeywords = bazaar._data.selectedKeywords[bazaarType];
         
         let html = '<div class="config-bazaar__keywords">';
@@ -55,11 +55,11 @@ export const bazaar = {
         
         keywords.forEach(keyword => {
             const isSelected = selectedKeywords.includes(keyword);
-            html += `<span class="b3-chip ${isSelected ? 'b3-chip--primary' : ''}" data-keyword="${keyword}" data-type="${bazaarType}">${keyword}</span>`;
+            html += `<span class="b3-chip ${isSelected ? "b3-chip--primary" : ""}" data-keyword="${keyword}" data-type="${bazaarType}">${keyword}</span>`;
         });
         
-        html += '</div></div>';
-        console.log(html)
+        html += "</div></div>";
+        console.log(html);
         return html;
     },
     // 根据选中的关键词过滤包
@@ -1265,7 +1265,7 @@ export const bazaar = {
         });
         bazaar._data[bazaarType] = response.data.packages;
         // 提取并存储关键词
-        console.log(bazaar,bazaarType)
+        console.log(bazaar,bazaarType);
         bazaar._data.keywords[bazaarType] = bazaar._extractKeywords(response.data.packages);
         element.innerHTML = `<div class="b3-cards">${html}</div>`;
         element.parentElement.querySelector(".counter").textContent = element.querySelectorAll(".b3-card:not(.fn__none)").length.toString();

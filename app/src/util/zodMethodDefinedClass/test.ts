@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 // 定义严格的 HTTP 方法约束
 // 更灵活的方法名约束
@@ -6,7 +6,7 @@ const methodNamesSchema = z.array(
     z.string()
      .min(1)
      .max(15)
-     .regex(/^[a-zA-Z_$][a-zA-Z0-9_$]*$/, 'Method name must be valid identifier')
+     .regex(/^[a-zA-Z_$][a-zA-Z0-9_$]*$/, "Method name must be valid identifier")
 ).min(1).max(50);
 
 /**
@@ -130,7 +130,7 @@ export function createAdvancedRouterClass<
         }
         
          handleError(method: string, error: any, args: any[]) {
-            console.error(`Error in ${method}:`, error, 'Args:', args);
+            console.error(`Error in ${method}:`, error, "Args:", args);
         }
         
         // 公共方法

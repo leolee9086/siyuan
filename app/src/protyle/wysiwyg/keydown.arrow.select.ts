@@ -42,7 +42,7 @@ export const arrowLeftRightMiddleWare = (
             event.stopPropagation();
             event.preventDefault();
             controller.abort("阻止选择状态下的扩展选择");
-            return
+            return;
         }
 
         // 检查当前是否有选中的文本内容
@@ -53,7 +53,7 @@ export const arrowLeftRightMiddleWare = (
                 event.preventDefault();
                 event.stopPropagation();
                 controller.abort("阻止块末尾的右箭头扩展");
-                return
+                return;
             }
 
             // 获取当前节点的可编辑元素
@@ -69,12 +69,12 @@ export const arrowLeftRightMiddleWare = (
                     event.stopPropagation();
                     // 中止后续的键盘事件处理流程
                     controller.abort("阻止块开头的左箭头扩展");
-                    return
+                    return;
                 }
             }
         }
     }
-}
+};
 
 
 
@@ -89,18 +89,18 @@ export const arrowUpDownMiddleware = (
         if (
             !protyle.wysiwyg
         ) {
-            throw new Error("protyle结构错误")
+            throw new Error("protyle结构错误");
         }
         const selectElements = protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select");
-        const firstSelectedElement = selectElements[0]
+        const firstSelectedElement = selectElements[0];
 
-        const contentElement = protyle.contentElement
+        const contentElement = protyle.contentElement;
         if (!contentElement) {
-            throw ("protyle结构错误,缺少contentElement")
+            throw ("protyle结构错误,缺少contentElement");
         }
-        const scrollRecord = protyle.scroll
+        const scrollRecord = protyle.scroll;
         if (!scrollRecord) {
-            throw new Error("protyle结构错误,缺少scroll")
+            throw new Error("protyle结构错误,缺少scroll");
         }
 
         if (selectElements.length > 0) {
@@ -135,9 +135,9 @@ export const arrowUpDownMiddleware = (
                 }
 
                 nextElement.classList.add("protyle-wysiwyg--select");
-                const nexDataNodeId = nextElement.getAttribute("data-node-id")
+                const nexDataNodeId = nextElement.getAttribute("data-node-id");
                 if (!nexDataNodeId) {
-                    throw new Error("块元素缺少data-node-id属性")
+                    throw new Error("块元素缺少data-node-id属性");
                 }
                 countBlockWord([nexDataNodeId]);
 
@@ -149,7 +149,7 @@ export const arrowUpDownMiddleware = (
                 focusBlock(nextElement);
             } else if (event.key === "ArrowUp") {
                 if (!firstSelectedElement) {
-                    throw new Error("找不到选中元素")
+                    throw new Error("找不到选中元素");
                 }
                 let previousElement: HTMLElement = getPreviousBlock(firstSelectedElement) as HTMLElement;
                 if (previousElement) {
@@ -184,9 +184,9 @@ export const arrowUpDownMiddleware = (
                 }
                 if (previousElement) {
                     previousElement.classList.add("protyle-wysiwyg--select");
-                    const previousDataNodeId = previousElement.getAttribute("data-node-id")
+                    const previousDataNodeId = previousElement.getAttribute("data-node-id");
                     if (!previousDataNodeId) {
-                        throw new Error("DOM结构错误,缺少data-node-id")
+                        throw new Error("DOM结构错误,缺少data-node-id");
                     }
                     countBlockWord([previousDataNodeId]);
                     const top = previousElement.getBoundingClientRect().top - contentElement.getBoundingClientRect().top;
@@ -197,8 +197,8 @@ export const arrowUpDownMiddleware = (
                     focusBlock(previousElement);
                 }
             }
-            controller.abort()
+            controller.abort();
             return;
         }
     }
-}
+};

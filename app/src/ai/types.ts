@@ -125,7 +125,7 @@ export const chatResponseDataSchema = z.object({
  */
 export interface StreamRequestConfigWithAI {
     url: string;
-    method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+    method?: "GET" | "POST" | "PUT" | "DELETE";
     headers?: Record<string, string>;
     body?: any;
     timeout?: number;
@@ -146,12 +146,12 @@ export type AIProvider = "OpenAI" | "ZhipuAI" | "BaiduWenxin" | "AliTongyi" | st
 export const validateAIConfig = (config: unknown): AIConfig => {
     const parsedConfig= aiConfigSchema.parse(config);
     if(parsedConfig.apiMaxTokens===0){
-        parsedConfig.apiMaxTokens=163840
+        parsedConfig.apiMaxTokens=163840;
     }
     if(parsedConfig.apiProxy===undefined){
-        parsedConfig.apiProxy=''
+        parsedConfig.apiProxy="";
     }
-    return parsedConfig
+    return parsedConfig;
 };
 
 export const selectorOperationConfigSchema = z.object({

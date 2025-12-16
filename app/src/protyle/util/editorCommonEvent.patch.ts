@@ -56,20 +56,20 @@ const moveTo = async (protyle: IProtyle, sourceElements: Element[], targetElemen
         }
     });
     let newListElement: Element | undefined;
-    let newListId: string = '';
+    let newListId: string = "";
     const orderListElements: { [key: string]: Element } = {};
     for (let index = sourceElements.length - 1; index >= 0; index--) {
         const item = sourceElements[index];
         if (!item) {
-            throw ('拖拽的块元素不存在');
+            throw ("拖拽的块元素不存在");
         }
         const id = item.getAttribute("data-node-id");
         if (!id) {
-            throw ('块元素缺少data-node-id属性');
+            throw ("块元素缺少data-node-id属性");
         }
         const parentElement = item.parentElement;
         if (!parentElement) {
-            throw ('拖拽的块元素缺少父元素');
+            throw ("拖拽的块元素缺少父元素");
         }
         const parentID = parentElement.getAttribute("data-node-id") || protyle.block.parentID || protyle.block.rootID;
         if (item.getAttribute("data-type") === "NodeListItem" && !newListId && !isSameLi) {
@@ -81,8 +81,8 @@ const moveTo = async (protyle: IProtyle, sourceElements: Element[], targetElemen
             }
             let previousID = position === "afterbegin" ? null : (position === "afterend" ? targetId : tempTargetElement.previousElementSibling?.getAttribute("data-node-id"));
             let parentID = position === "afterbegin" ? targetId : (tempTargetElement.parentElement?.getAttribute("data-node-id") || protyle.block.parentID || protyle.block.rootID);
-            previousID = previousID || undefined
-            parentID = parentID || undefined
+            previousID = previousID || undefined;
+            parentID = parentID || undefined;
             doOperations.push({
                 action: "insert",
                 data: newListElement.outerHTML,
@@ -114,8 +114,8 @@ const moveTo = async (protyle: IProtyle, sourceElements: Element[], targetElemen
         } else {
             let previousID = item.previousElementSibling?.getAttribute("data-node-id");
             let parentID = tempTargetElement.parentElement?.getAttribute("data-node-id") || protyle.block.parentID || protyle.block.rootID;
-            previousID = previousID || undefined
-            parentID = parentID || undefined
+            previousID = previousID || undefined;
+            parentID = parentID || undefined;
             undoOperations.push({
                 action: "move",
                 id,
@@ -145,7 +145,7 @@ const moveTo = async (protyle: IProtyle, sourceElements: Element[], targetElemen
             });
             if (newListId) {
                 if (!newListElement) {
-                    throw ('新列表元素不存在');
+                    throw ("新列表元素不存在");
                 }
                 newListElement.insertAdjacentElement("afterbegin", copyElement);
                 doOperations.push({
@@ -157,7 +157,7 @@ const moveTo = async (protyle: IProtyle, sourceElements: Element[], targetElemen
             } else {
                 tempTargetElement.insertAdjacentElement(position, copyElement);
                 // 不能使用常量，移动后会被修改
-                let previousID:string|undefined
+                let previousID:string|undefined;
                 if(position === "afterbegin"){
                     previousID = undefined;
                 }else{

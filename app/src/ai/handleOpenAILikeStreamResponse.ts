@@ -16,21 +16,21 @@ export const handleOpenAILikeStreamResponse = (
         return {
             content: null,
             isFinished: false,
-            error: new Error('接到了空的data,检查响应结构')
+            error: new Error("接到了空的data,检查响应结构")
         };
     }
     if (!data.choices) {
         return {
             content: null,
             isFinished: false,
-            error: new Error('响应结构不正确,检查响应结构')
+            error: new Error("响应结构不正确,检查响应结构")
         };
     }
     if (!(data.choices.length > 0)) {
         return {
             content: null,
             isFinished: false,
-            error: new Error('choice长度错误,检查响应结构')
+            error: new Error("choice长度错误,检查响应结构")
         };
     }
     const choice = data.choices[0];
@@ -42,7 +42,7 @@ export const handleOpenAILikeStreamResponse = (
     }
 
     // 检查是否是结束标记
-    if (choice.finish_reason === 'stop') {
+    if (choice.finish_reason === "stop") {
         return {
             content: null,
             isFinished: true
@@ -55,7 +55,7 @@ export const handleOpenAILikeStreamResponse = (
         const reasoningContent = choice.delta?.reasoning_content || choice.message?.reasoning_content;
 
         // 处理普通内容
-        if (typeof content === 'string' && content.length > 0) {
+        if (typeof content === "string" && content.length > 0) {
             return {
                 content: content,
                 isFinished: false
@@ -63,7 +63,7 @@ export const handleOpenAILikeStreamResponse = (
         }
 
         // 处理推理内容
-        if (typeof reasoningContent === 'string' && reasoningContent.length > 0) {
+        if (typeof reasoningContent === "string" && reasoningContent.length > 0) {
             return {
                 content: reasoningContent,
                 isFinished: false
@@ -71,8 +71,8 @@ export const handleOpenAILikeStreamResponse = (
         }
 
         // 处理非字符串内容的情况，可能是数字、对象等
-        if (content !== undefined && content !== null && content !== '') {
-            console.warn('接收到非字符串内容:', content);
+        if (content !== undefined && content !== null && content !== "") {
+            console.warn("接收到非字符串内容:", content);
             const stringContent = String(content);
             return {
                 content: stringContent,
@@ -81,8 +81,8 @@ export const handleOpenAILikeStreamResponse = (
         }
 
         // 处理非字符串推理内容的情况
-        if (reasoningContent !== undefined && reasoningContent !== null && reasoningContent !== '') {
-            console.warn('接收到非字符串推理内容:', reasoningContent);
+        if (reasoningContent !== undefined && reasoningContent !== null && reasoningContent !== "") {
+            console.warn("接收到非字符串推理内容:", reasoningContent);
             const stringContent = String(reasoningContent);
             return {
                 content: stringContent,
@@ -101,7 +101,7 @@ export const handleOpenAILikeStreamResponse = (
         return {
             content: null,
             isFinished: false,
-            error: new Error('检查响应结构')
+            error: new Error("检查响应结构")
         };
     }
 };

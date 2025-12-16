@@ -56,7 +56,7 @@ export interface AssistantResponseState {
     isPaused: boolean;
     // 保存的消息内容
     savedMessages: Array<{
-        role: 'user' | 'assistant';
+        role: "user" | "assistant";
         content: string;
         timestamp: number;
     }>;

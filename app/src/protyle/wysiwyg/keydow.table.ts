@@ -17,16 +17,16 @@ export const handleTableBlockCreation = (
     controller: AbortController
 ) => {
     if (!matchHotKey(getSiyuanConfig().keymap.editor.insert.table.custom, event)) {
-        return
+        return;
     }
     if(!protyle.hint){
-        throw  new Error("protyle缺少hint属性")
+        throw  new Error("protyle缺少hint属性");
     }
     protyle.hint.splitChar = "/";
     protyle.hint.lastIndex = -1;
     protyle.hint.fill(`| ${Lute.Caret} |  |  |\n| --- | --- | --- |\n|  |  |  |\n|  |  |  |`, protyle);
     event.preventDefault();
     event.stopPropagation();
-    controller.abort('创建新的表格')
+    controller.abort("创建新的表格");
     return;
 };

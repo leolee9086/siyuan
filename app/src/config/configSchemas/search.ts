@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from "zod";
 
 export const schema = z.object({
     alias: z.boolean(),
@@ -34,10 +34,10 @@ export const schema = z.object({
     virtualRefDoc: z.boolean(),
     virtualRefName: z.boolean(),
     widgetBlock: z.boolean()
-})
+});
 
 
-export const parseAsSearchConfig = (rawConf: {}): Config.IConf['search'] => {
+export const parseAsSearchConfig = (rawConf: {}): Config.IConf["search"] => {
     const result = schema.safeParse(rawConf);
 
     if (!result.success) {
@@ -45,4 +45,4 @@ export const parseAsSearchConfig = (rawConf: {}): Config.IConf['search'] => {
     }
 
     return result.data;
-}
+};

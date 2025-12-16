@@ -29,11 +29,11 @@ export class Workspace {
   constructor(kernel: KernelApiClient) {
     this.kernel = kernel;
     Object.getOwnPropertyNames(mimes).forEach((type) => {
-      const item = mimes[type]
+      const item = mimes[type];
       if(!item){
-        throw new Error("mimeDb数据错误")
+        throw new Error("mimeDb数据错误");
       }
-      let extensions =item["extensions"];
+      const extensions =item["extensions"];
       if (extensions) {
         extensions.forEach((extension: string) => {
           this.mimetype[extension] = type;
@@ -54,10 +54,10 @@ export class Workspace {
       "Content-Type": "application/json",
     };
     if (apiToken) {
-      headers['Authorization'] = `Token ${apiToken}`;
+      headers["Authorization"] = `Token ${apiToken}`;
     }
 
-    let res = await fetch(`${baseUrl}/api/file/getFile`, {
+    const res = await fetch(`${baseUrl}/api/file/getFile`, {
       method: "POST",
       headers,
       body: JSON.stringify({
@@ -71,7 +71,7 @@ export class Workspace {
       console.error(`${file}不存在,内容为undefined`);
       return;
     }
-    let mime = await res.headers.get("Content-Type");
+    const mime = await res.headers.get("Content-Type");
     if (isText(mime) && !bin) {
       return await res.text();
     } else {
@@ -79,7 +79,7 @@ export class Workspace {
         return;
       }
       const reader = res.body.getReader();
-      let chunks: Uint8Array[] = [];
+      const chunks: Uint8Array[] = [];
       while (true) {
         const { done, value } = await reader.read();
         if (done) {
@@ -87,10 +87,10 @@ export class Workspace {
         }
         chunks.push(value);
       }
-      let totalLength = chunks.reduce((total, chunk) => total + chunk.length, 0);
-      let result = new Uint8Array(totalLength);
+      const totalLength = chunks.reduce((total, chunk) => total + chunk.length, 0);
+      const result = new Uint8Array(totalLength);
       let offset = 0;
-      for (let chunk of chunks) {
+      for (const chunk of chunks) {
         result.set(chunk, offset);
         offset += chunk.length;
       }
@@ -102,7 +102,7 @@ export class Workspace {
     const baseUrl = this.kernel.baseUrl;
     const apiToken = this.kernel.apiToken;
 
-    let xhr = new XMLHttpRequest();
+    const xhr = new XMLHttpRequest();
     xhr.open("POST", `${baseUrl}/api/file/getFile`, false);
     xhr.setRequestHeader("Content-Type", "application/json");
     if (apiToken) {
@@ -118,7 +118,7 @@ export class Workspace {
       return;
     }
 
-    let mime = xhr.getResponseHeader("Content-Type");
+    const mime = xhr.getResponseHeader("Content-Type");
     if (isText(mime)) {
       return xhr.responseText;
     } else {
@@ -128,7 +128,7 @@ export class Workspace {
 
   async writeFile(path: string, content: string | Blob | File | Uint8Array, flag?: boolean) {
     if (!flag) {
-      let extension = path.split(".").pop() || "";
+      const extension = path.split(".").pop() || "";
       let blob: Blob;
       
       if (content instanceof Uint8Array) {
@@ -146,24 +146,24 @@ export class Workspace {
         });
       }
       
-      let file = new File([blob], path.split("/").pop() || "", {
+      const file = new File([blob], path.split("/").pop() || "", {
         lastModified: Date.now(),
       });
       return await this.writeFileDirectly(path, file);
     } else {
       if(content instanceof String){
-          return await this.writeFileDirectly(path, content+'');
+          return await this.writeFileDirectly(path, content+"");
       }
     }
   }
 
   async writeFileDirectly(path: string, file: File | string){
-    let data = new FormData();
+    const data = new FormData();
     data.append("path", path);
     data.append("file", file);
     data.append("isDir", "false");
     data.append("modTime", Date.now().toString());
-    let res = await this.kernel.putFile(data)
+    const res = await this.kernel.putFile(data);
     return  res;
   }
 
@@ -174,16 +174,16 @@ export class Workspace {
 
   async exists(name: string): Promise<LsFile | undefined> {
     try {
-      let parentDir = path.dirname(name);
-      if (parentDir !== '' && parentDir !== '.') {
-        let files = await this.readDir(parentDir);
-        let result = files.find((file) => {
-          return path.join(parentDir, file.name) == name || path.join(parentDir, file.name) + '/' == name;
+      const parentDir = path.dirname(name);
+      if (parentDir !== "" && parentDir !== ".") {
+        const files = await this.readDir(parentDir);
+        const result = files.find((file) => {
+          return path.join(parentDir, file.name) == name || path.join(parentDir, file.name) + "/" == name;
         });
         return result || undefined;
-      } else if (parentDir === '.') {
-        let files = await this.readDir('/');
-        let result = files.find((file) => {
+      } else if (parentDir === ".") {
+        const files = await this.readDir("/");
+        const result = files.find((file) => {
           return file.name === name;
         });
         return result || undefined;
@@ -200,14 +200,14 @@ export class Workspace {
 
   async mkdir(path: string) {
 
-    let data = new FormData();
+    const data = new FormData();
     data.append("path", path);
     data.append("file", "");
     data.append("isDir", "true");
     data.append("modTime", Date.now().toString());
 
-    let res = await this.kernel.putFile(data)
-    return await res.data
+    const res = await this.kernel.putFile(data);
+    return await res.data;
   }
 
   async removeFile(path: string): Promise<void> {
@@ -215,7 +215,7 @@ export class Workspace {
   }
 
   async copyFile(path1: string, path2: string): Promise<void> {
-    let content = await this.readFile(path1);
+    const content = await this.readFile(path1);
     if (content) {
       await this.writeFile(path2, content);
     }
@@ -231,4 +231,4 @@ export class Workspace {
     }
   }
 }
-export const localWorkerSpace =new Workspace(localKernel)
+export const localWorkerSpace =new Workspace(localKernel);

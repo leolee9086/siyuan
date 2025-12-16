@@ -10,7 +10,7 @@ export const copyTextMiddleware = (
     range: Range,
     controller: AbortController
 ) => {
-    const selectText = range.toString()
+    const selectText = range.toString();
     if (matchHotKey(getSiyuanConfig().keymap.editor.general.copyText.custom, event)) {
         // 用于标识复制文本 *
         if (selectText !== "") {
@@ -30,7 +30,7 @@ export const copyTextMiddleware = (
         }
         event.preventDefault();
         event.stopPropagation();
-        controller.abort()
+        controller.abort();
         return true;
     }
-}
+};

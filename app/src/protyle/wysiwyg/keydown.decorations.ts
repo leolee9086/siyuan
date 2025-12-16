@@ -31,4 +31,4 @@ export const decorationMatchMiddleware = (
         // 中止后续中间件执行，并说明原因
         controller.abort("文本装饰快捷键已处理");
     }
-}
+};

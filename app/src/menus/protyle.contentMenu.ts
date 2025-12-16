@@ -26,7 +26,7 @@ export const contentMenu = (protyle: IProtyle, nodeElement: Element) => {
     const oldHTML = nodeElement.outerHTML;
     const id = nodeElement.getAttribute("data-node-id");
     if (!id) {
-        throw new Error('块元素缺少id')
+        throw new Error("块元素缺少id");
     }
     if (range.toString() !== "" || (range.cloneContents().childNodes[0] as HTMLElement)?.classList?.contains("emoji")) {
         getSiyuanGlobalMenus().menu.append(new MenuItem({
@@ -100,7 +100,7 @@ export const contentMenu = (protyle: IProtyle, nodeElement: Element) => {
                 if (!protyle.disabled) {
                     const id = nodeElement.getAttribute("data-node-id");
                     if (!id) {
-                        throw new Error('块元素缺少id')
+                        throw new Error("块元素缺少id");
                     }
                     getSiyuanGlobalMenus().menu.append(new MenuItem({
                         id: "cut",
@@ -183,7 +183,7 @@ export const contentMenu = (protyle: IProtyle, nodeElement: Element) => {
         }
     }).element);
     if (nodeElement.classList.contains("table") && !protyle.disabled) {
-        addTableMenus({ protyle, range,element: nodeElement})
+        addTableMenus({ protyle, range,element: nodeElement});
     }
     /// #endif
     if (protyle?.app?.plugins) {
@@ -206,7 +206,7 @@ const addTableMenus = (detail: {
     range: Range,
     element: Element
 }) => {
-    const { protyle, range, element: nodeElement } = detail
+    const { protyle, range, element: nodeElement } = detail;
     const cellElement = hasClosestByTag(range.startContainer, "TD") || hasClosestByTag(range.startContainer, "TH");
     if (cellElement) {
         const tableMenus = tableMenu(protyle, nodeElement, cellElement as HTMLTableCellElement, range);
@@ -240,4 +240,4 @@ const addTableMenus = (detail: {
             submenu: tableMenus.otherMenus.concat(tableMenus.other2Menus)
         }).element);
     }
-}
+};

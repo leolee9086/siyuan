@@ -18,18 +18,18 @@ export const handleVLayoutMiddleware = async (
         return ;
     }
     if (!protyle.wysiwyg) {
-        throw new Error("protyle结构错误")
+        throw new Error("protyle结构错误");
     }
     event.preventDefault();
     event.stopPropagation();
     const selectsElement: HTMLElement[] = Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select"));
     // 处理单个超级块的布局切换
-    const firstSelectedBlockElement = selectsElement[0]
+    const firstSelectedBlockElement = selectsElement[0];
 
     if (selectsElement.length === 1 && firstSelectedBlockElement && firstSelectedBlockElement.getAttribute("data-type") === "NodeSuperBlock") {
-        const firstSelectedBlockId = firstSelectedBlockElement.getAttribute("data-node-id")
+        const firstSelectedBlockId = firstSelectedBlockElement.getAttribute("data-node-id");
         if (!firstSelectedBlockId) {
-            throw new Error('块元素缺少id')
+            throw new Error("块元素缺少id");
         }
         if (firstSelectedBlockElement.getAttribute("data-sb-layout") === "col") {
             const oldHTML = firstSelectedBlockElement.outerHTML;
@@ -42,13 +42,13 @@ export const handleVLayoutMiddleware = async (
             transaction(protyle, sbData.doOperations, sbData.undoOperations);
             focusByWbr(protyle.wysiwyg.element, range);
         }
-        controller.abort()
+        controller.abort();
         return ;
     }
 
     // 处理多个块合并为超级块
     if (selectsElement.length < 2 || selectsElement[0]?.classList.contains("li")) {
-        controller.abort()
+        controller.abort();
         return ;
     }
 
@@ -58,7 +58,7 @@ export const handleVLayoutMiddleware = async (
         type: "BlocksMergeSuperBlock",
         level: "row"
     });
-    controller.abort()
+    controller.abort();
     return ;
 };
 
@@ -79,21 +79,21 @@ export const handleHLayoutMiddleware = async (
         return false;
     }
     if (!protyle.wysiwyg) {
-        throw new Error("protyle结构错误")
+        throw new Error("protyle结构错误");
     }
     event.preventDefault();
     event.stopPropagation();
 
     const selectsElement: HTMLElement[] = Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select"));
     // 处理单个超级块的布局切换
-    const firstSelectedBlockElement = selectsElement[0]
+    const firstSelectedBlockElement = selectsElement[0];
 
 
     // 处理单个超级块的布局切换
     if (selectsElement.length === 1 && firstSelectedBlockElement && firstSelectedBlockElement.getAttribute("data-type") === "NodeSuperBlock") {
-        const firstSelectedBlockId = firstSelectedBlockElement.getAttribute("data-node-id")
+        const firstSelectedBlockId = firstSelectedBlockElement.getAttribute("data-node-id");
         if (!firstSelectedBlockId) {
-            throw new Error('块元素缺少id')
+            throw new Error("块元素缺少id");
         }
         if (firstSelectedBlockElement.getAttribute("data-sb-layout") === "row") {
             const oldHTML = firstSelectedBlockElement.outerHTML;
@@ -106,13 +106,13 @@ export const handleHLayoutMiddleware = async (
             transaction(protyle, sbData.doOperations, sbData.undoOperations);
             focusByWbr(protyle.wysiwyg.element, range);
         }
-        controller.abort()
+        controller.abort();
         return true;
     }
 
     // 处理多个块合并为超级块
     if (selectsElement.length < 2 || selectsElement[0]?.classList.contains("li")) {
-        controller.abort()
+        controller.abort();
         return true;
     }
 
@@ -122,7 +122,7 @@ export const handleHLayoutMiddleware = async (
         type: "BlocksMergeSuperBlock",
         level: "col"
     });
-    controller.abort()
+    controller.abort();
 
     return true;
 };

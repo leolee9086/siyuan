@@ -1,9 +1,9 @@
-import { MiddlewareFunction, Context } from './types';
-import { LayerLike } from './layerLike.types';
+import { MiddlewareFunction, Context } from "./types";
+import { LayerLike } from "./layerLike.types";
 
 // 类型守卫函数
 function hasName(token: Key | string): token is Key {
-  return typeof token === 'object' && token !== null && 'name' in token;
+  return typeof token === "object" && token !== null && "name" in token;
 }
 
 // 基础层配置接口
@@ -67,7 +67,7 @@ export default class BaseLayer implements LayerLike {
     // ensure middleware is a function or router
     for (const fn of this.stack) {
       const type = typeof fn;
-      if (type !== 'function') {
+      if (type !== "function") {
         throw new Error(
           `${this.opts.name || path}: \`middleware\` must be a function or router, not \`${type}\``
         );
@@ -160,8 +160,8 @@ export default class BaseLayer implements LayerLike {
    * @private
    */
   public url(params: Record<string, any> | any[], options?: { encode?: (text: string) => string }): string {
-    const pathStr = typeof this.path === 'string' ? this.path : '';
-    const url = pathStr.replace(/\(\.\*\)/g, '');
+    const pathStr = typeof this.path === "string" ? this.path : "";
+    const url = pathStr.replace(/\(\.\*\)/g, "");
     const encoder = options?.encode || encodeURIComponent;
     const toPath = compile(url, { encode: encoder });
 
@@ -221,8 +221,8 @@ export default class BaseLayer implements LayerLike {
    * @private
    */
   public setPrefix(prefix: string): LayerLike {
-    if (typeof this.path === 'string') {
-      this.path = this.path === '/' && this.opts.strict !== true ? prefix : `${prefix}${this.path}`;
+    if (typeof this.path === "string") {
+      this.path = this.path === "/" && this.opts.strict !== true ? prefix : `${prefix}${this.path}`;
       const options: TokensToRegexpOptions & ParseOptions = {
         end: this.opts.end !== false,
         sensitive: this.opts.sensitive,

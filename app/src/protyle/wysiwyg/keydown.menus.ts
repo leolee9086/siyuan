@@ -120,7 +120,7 @@ export const contextMenuMiddleware = (
         }));
         event.preventDefault();
         event.stopPropagation();
-        controller.abort()
+        controller.abort();
         return;
     }
-}
+};

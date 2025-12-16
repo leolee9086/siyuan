@@ -61,13 +61,13 @@ export const tabKeyMiddleware = async (
                 language,
                 ignoreIllegals: true
             }).value + "<br>");
-            const nextSiblingOfWbr = wbrElement.nextSibling
+            const nextSiblingOfWbr = wbrElement.nextSibling;
             nextSiblingOfWbr && range.setStart(nextSiblingOfWbr, 0);
-            const parentElement = wbrElement.parentElement
+            const parentElement = wbrElement.parentElement;
             if (parentElement) {
                 const brElement = parentElement.querySelector("br");
                 if (brElement) {
-                    const DataNodeId = nodeElement.getAttribute("data-node-id")
+                    const DataNodeId = nodeElement.getAttribute("data-node-id");
                     if (DataNodeId) {
                         setLastNodeRange(brElement.previousSibling as Element, range, false);
                         brElement.remove();
@@ -108,10 +108,10 @@ export const tabKeyMiddleware = async (
                     range.setEndAfter(inlineElement);
                     range.collapse(false);
                 }
-                const dataNodeId =nodeElement.getAttribute("data-node-id")
+                const dataNodeId =nodeElement.getAttribute("data-node-id");
                 if(!dataNodeId){
-                    console.log(nodeElement)
-                    throw new Error("块元素结构错误")
+                    console.log(nodeElement);
+                    throw new Error("块元素结构错误");
                 }
                 const wbrElement = document.createElement("wbr");
                 range.insertNode(wbrElement);

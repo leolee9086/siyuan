@@ -14,7 +14,7 @@ export const createNamedNewFileMiddleware = (
     controller: AbortController
 ) => {
 
-    const selectText = range.toString()
+    const selectText = range.toString();
     const isNewNameFile = matchHotKey(getSiyuanConfig().keymap.editor.general.newNameFile.custom, event);
     if (isNewNameFile || matchHotKey(getSiyuanConfig().keymap.editor.general.newNameSettingFile.custom, event)) {
         if (!selectText.trim() && (nodeElement.querySelector("tr") || nodeElement.querySelector("span"))) {
@@ -31,16 +31,16 @@ export const createNamedNewFileMiddleware = (
                     path: protyle.path,
                 }, (response) => {
                     if (!protyle.notebookId) {
-                        throw new Error("protyle缺少ID")
+                        throw new Error("protyle缺少ID");
                     }
                     newFileBySelect(protyle, selectText, nodeElement, response.data, protyle.notebookId);
                 });
             } else {
                 if (!protyle.path) {
-                    throw new Error("protyle缺少path")
+                    throw new Error("protyle缺少path");
                 }
                 if (!protyle.notebookId) {
-                    throw new Error("protyle缺少ID")
+                    throw new Error("protyle缺少ID");
                 }
                 getSavePath(protyle.path, protyle.notebookId, (pathString, targetNotebookId) => {
                     newFileBySelect(protyle, selectText, nodeElement, pathString, targetNotebookId);
@@ -49,10 +49,10 @@ export const createNamedNewFileMiddleware = (
         }
         event.preventDefault();
         event.stopPropagation();
-        controller.abort()
+        controller.abort();
         return;
     }
-}
+};
 export const createNewFileByContentMiddleware = (
     event: KeyboardEvent,
     protyle: IProtyle,
@@ -65,8 +65,8 @@ export const createNewFileByContentMiddleware = (
         newFileContentBySelect(protyle);
         event.preventDefault();
         event.stopPropagation();
-        controller.abort()
+        controller.abort();
 
         return;
     }
-}
+};

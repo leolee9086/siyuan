@@ -35,11 +35,11 @@ export const saveCustomAIAction = (
         customAction: string
     },
 ) => {
-    ctx.onBeforeSave && ctx.onBeforeSave()
+    ctx.onBeforeSave && ctx.onBeforeSave();
     window.siyuan.storage[Constants.LOCAL_AI].push(req);
     setStorageVal(
         Constants.LOCAL_AI,
         window.siyuan.storage[Constants.LOCAL_AI],
-        () => { ctx.onAfterSave() }
+        () => { ctx.onAfterSave(); }
     );
-}
+};

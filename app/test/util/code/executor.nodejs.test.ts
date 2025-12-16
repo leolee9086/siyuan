@@ -1,22 +1,22 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from "vitest";
 
-import { SecureModuleCreator } from '../../../src/util/code/executor';
+import { SecureModuleCreator } from "../../../src/util/code/executor";
 
 // 模拟 Node.js 环境
 
-describe('SecureModuleCreator Node.js 环境测试', () => {
+describe("SecureModuleCreator Node.js 环境测试", () => {
 
-  it('应该能够在 Node.js 环境下创建临时模块', async () => {
+  it("应该能够在 Node.js 环境下创建临时模块", async () => {
     const secureModuleCreator = new SecureModuleCreator({
       allowedPackages: [],
       packagePatterns: [],
       autoAllowScoped: false,
       defaultOptions: {
-        onUnauthorizedImport: 'throw',
+        onUnauthorizedImport: "throw",
         customMocks: {}
       },
       moduleRedirectConfig: {
-        defaultServer: 'https://esm.sh',
+        defaultServer: "https://esm.sh",
         packageRedirects: {},
         enabled: true,
         bareModulesOnly: true
@@ -38,25 +38,25 @@ describe('SecureModuleCreator Node.js 环境测试', () => {
     expect(result.moduleExport).toBeDefined();
     
     // 验证模块导出
-    if (result.moduleExport && typeof result.moduleExport === 'object') {
+    if (result.moduleExport && typeof result.moduleExport === "object") {
       expect(result.moduleExport.value).toBe(123);
-      expect(typeof result.moduleExport.getValue).toBe('function');
+      expect(typeof result.moduleExport.getValue).toBe("function");
     }
     
     result.cleanup();
   });
 
-  it('应该能够处理没有导入的代码', async () => {
+  it("应该能够处理没有导入的代码", async () => {
     const secureModuleCreator = new SecureModuleCreator({
       allowedPackages: [],
       packagePatterns: [],
       autoAllowScoped: false,
       defaultOptions: {
-        onUnauthorizedImport: 'throw',
+        onUnauthorizedImport: "throw",
         customMocks: {}
       },
       moduleRedirectConfig: {
-        defaultServer: 'https://esm.sh',
+        defaultServer: "https://esm.sh",
         packageRedirects: {},
         enabled: true,
         bareModulesOnly: true

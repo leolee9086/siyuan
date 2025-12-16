@@ -16,7 +16,7 @@ export const getElementBlockId = (element: Element) => {
 export const getElementsBlockId = (elements: Element[]) => {
     const ids: string[] = [];
     elements.forEach(item => {
-        const id = getElementBlockId(item)
+        const id = getElementBlockId(item);
         id && ids.push(id);
     });
     return ids;

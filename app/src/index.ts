@@ -47,7 +47,7 @@ import { embeddingText } from "./util/embedding/transformer";
 export class App {
     public plugins: import("./plugin").Plugin[] = [];
     public appId: string;
-    public eventBus:EventBus
+    public eventBus:EventBus;
     constructor() {
         registerServiceWorker(`${Constants.SERVICE_WORKER_PATH}?v=${Constants.SIYUAN_VERSION}`);
         addBaseURL();
@@ -192,8 +192,8 @@ export class App {
                 }
             }),
         };
-        this.eventBus=(window as any).globalEventBus
-        this.eventBus.emit('app-ready')
+        this.eventBus=(window as any).globalEventBus;
+        this.eventBus.emit("app-ready");
         fetchPost("/api/system/getConf", {}, async (response) => {
             addScriptSync(`${Constants.PROTYLE_CDN}/js/lute/lute.min.js?v=${Constants.SIYUAN_VERSION}`, "protyleLuteScript");
             addScript(`${Constants.PROTYLE_CDN}/js/protyle-html.js?v=${Constants.SIYUAN_VERSION}`, "protyleWcHtmlScript");
@@ -220,7 +220,7 @@ export class App {
         initBlockPopover(this);
     }
 }
-(window as any).globalEventBus=new EventBus(document)
+(window as any).globalEventBus=new EventBus(document);
 
 const siyuanApp = new App();
 
@@ -244,4 +244,4 @@ window.showKeyboardToolbar = () => {
 };
 window.processIOSPurchaseResponse = processIOSPurchaseResponse;
 /// #endif
-console.log(embeddingText("测试"))
+console.log(embeddingText("测试"));

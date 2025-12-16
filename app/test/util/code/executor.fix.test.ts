@@ -1,19 +1,19 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from "vitest";
 
-import { SecureModuleCreator } from '../../../src/util/code/executor';
+import { SecureModuleCreator } from "../../../src/util/code/executor";
 
-describe('SecureModuleCreator 修复测试', () => {
-  it('应该能够处理没有导入的代码', async () => {
+describe("SecureModuleCreator 修复测试", () => {
+  it("应该能够处理没有导入的代码", async () => {
     const secureModuleCreator = new SecureModuleCreator({
       allowedPackages: [],
       packagePatterns: [],
       autoAllowScoped: false,
       defaultOptions: {
-        onUnauthorizedImport: 'throw',
+        onUnauthorizedImport: "throw",
         customMocks: {}
       },
       moduleRedirectConfig: {
-        defaultServer: 'https://esm.sh',
+        defaultServer: "https://esm.sh",
         packageRedirects: {},
         enabled: true,
         bareModulesOnly: true
@@ -38,17 +38,17 @@ describe('SecureModuleCreator 修复测试', () => {
     result.cleanup();
   });
 
-  it('应该能够处理空代码', async () => {
+  it("应该能够处理空代码", async () => {
     const secureModuleCreator = new SecureModuleCreator({
       allowedPackages: [],
       packagePatterns: [],
       autoAllowScoped: false,
       defaultOptions: {
-        onUnauthorizedImport: 'throw',
+        onUnauthorizedImport: "throw",
         customMocks: {}
       },
       moduleRedirectConfig: {
-        defaultServer: 'https://esm.sh',
+        defaultServer: "https://esm.sh",
         packageRedirects: {},
         enabled: true,
         bareModulesOnly: true
@@ -56,7 +56,7 @@ describe('SecureModuleCreator 修复测试', () => {
     });
 
     // 测试空代码
-    const emptyCode = '';
+    const emptyCode = "";
     
     // 这应该不会抛出 "imports is not iterable" 错误
     const result = await secureModuleCreator.createSecureModule(emptyCode);
@@ -65,17 +65,17 @@ describe('SecureModuleCreator 修复测试', () => {
     result.cleanup();
   });
 
-  it('应该能够在 Node.js 环境下创建临时模块', async () => {
+  it("应该能够在 Node.js 环境下创建临时模块", async () => {
     const secureModuleCreator = new SecureModuleCreator({
       allowedPackages: [],
       packagePatterns: [],
       autoAllowScoped: false,
       defaultOptions: {
-        onUnauthorizedImport: 'throw',
+        onUnauthorizedImport: "throw",
         customMocks: {}
       },
       moduleRedirectConfig: {
-        defaultServer: 'https://esm.sh',
+        defaultServer: "https://esm.sh",
         packageRedirects: {},
         enabled: true,
         bareModulesOnly: true
@@ -97,9 +97,9 @@ describe('SecureModuleCreator 修复测试', () => {
     expect(result.moduleExport).toBeDefined();
     
     // 验证模块导出
-    if (result.moduleExport && typeof result.moduleExport === 'object') {
+    if (result.moduleExport && typeof result.moduleExport === "object") {
       expect(result.moduleExport.value).toBe(123);
-      expect(typeof result.moduleExport.getValue).toBe('function');
+      expect(typeof result.moduleExport.getValue).toBe("function");
     }
     
     result.cleanup();

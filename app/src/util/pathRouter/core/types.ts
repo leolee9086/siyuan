@@ -1,23 +1,23 @@
-import { z } from 'zod'
+import { z } from "zod";
 
-import Router from './router.htttpRouter'
-import { LayerLike } from './layerLike.types'
+import Router from "./router.htttpRouter";
+import { LayerLike } from "./layerLike.types";
 
 
 
 // HTTP方法类型
 export type HttpMethod =
-  | 'get' | 'post' | 'put' | 'head' | 'delete' | 'options'
-  | 'trace' | 'copy' | 'lock' | 'mkcol' | 'move' | 'purge'
-  | 'propfind' | 'proppatch' | 'unlock' | 'report' | 'mkactivity'
-  | 'checkout' | 'merge' | 'm-search' | 'notify' | 'subscribe'
-  | 'unsubscribe' | 'patch' | 'search' | 'connect'
+  | "get" | "post" | "put" | "head" | "delete" | "options"
+  | "trace" | "copy" | "lock" | "mkcol" | "move" | "purge"
+  | "propfind" | "proppatch" | "unlock" | "report" | "mkactivity"
+  | "checkout" | "merge" | "m-search" | "notify" | "subscribe"
+  | "unsubscribe" | "patch" | "search" | "connect"
 
 // 基础值类型定义
-const primitiveValue = z.union([z.string(), z.number(), z.boolean(), z.null()])
-const arrayValue = z.array(primitiveValue)
-const value = z.union([primitiveValue, arrayValue])
-const headerValue = z.union([z.string(), z.array(z.string())])
+const primitiveValue = z.union([z.string(), z.number(), z.boolean(), z.null()]);
+const arrayValue = z.array(primitiveValue);
+const value = z.union([primitiveValue, arrayValue]);
+const headerValue = z.union([z.string(), z.array(z.string())]);
 
 // 递归的类JSON类型
 const jsonLike: z.ZodType<any> = z.lazy(() =>
@@ -26,7 +26,7 @@ const jsonLike: z.ZodType<any> = z.lazy(() =>
     z.array(jsonLike),
     z.record(z.string(), jsonLike)
   ])
-)
+);
 
 // 基础请求体类型
 const baseRequestBodyTypes = z.union([
@@ -37,26 +37,26 @@ const baseRequestBodyTypes = z.union([
   z.instanceof(URLSearchParams),
   z.null(),
   z.undefined()
-])
+]);
 
 // 默认请求体类型
 const defaultRequestBodyTypes = z.union([
   baseRequestBodyTypes,
   jsonLike,
-])
+]);
 
 // 浏览器特定请求属性
 const browserRequestSpecific = z.object({
-  cache: z.enum(['default', 'no-store', 'reload', 'no-cache', 'force-cache', 'only-if-cached']).optional(),
-  credentials: z.enum(['include', 'same-origin', 'omit']).optional(),
+  cache: z.enum(["default", "no-store", "reload", "no-cache", "force-cache", "only-if-cached"]).optional(),
+  credentials: z.enum(["include", "same-origin", "omit"]).optional(),
   integrity: z.string().optional(),
   keepalive: z.boolean().optional(),
-  mode: z.enum(['cors', 'no-cors', 'same-origin', 'navigate']).optional(),
-  redirect: z.enum(['manual', 'follow', 'error']).optional(),
+  mode: z.enum(["cors", "no-cors", "same-origin", "navigate"]).optional(),
+  redirect: z.enum(["manual", "follow", "error"]).optional(),
   referrer: z.string().optional(),
   referrerPolicy: z.string().optional(),
   signal: z.instanceof(AbortSignal).optional(),
-})
+});
 
 // Node.js特定请求属性
 const nodeRequestSpecific = z.object({
@@ -69,14 +69,14 @@ const nodeRequestSpecific = z.object({
   rawHeaders: z.array(z.string()).optional(),
   rawTrailers: z.array(z.string()).optional(),
   trailers: z.record(z.string(), z.string()).optional(),
-})
+});
 
 // 请求型对象schema工厂函数 - 支持泛型
 export const createRequestLikeSchema = <TBodySchema extends z.ZodTypeAny = z.ZodTypeAny>(
   bodySchema?: TBodySchema
 ) => z.object({
   // 基础HTTP属性
-  method: z.enum(['GET', 'POST', 'PUT', 'HEAD', 'DELETE', 'OPTIONS', 'TRACE', 'COPY', 'LOCK', 'MKCOL', 'MOVE', 'PURGE', 'PROPFIND', 'PROPPATCH', 'UNLOCK', 'REPORT', 'MKACTIVITY', 'CHECKOUT', 'MERGE', 'M-SEARCH', 'NOTIFY', 'SUBSCRIBE', 'UNSUBSCRIBE', 'PATCH', 'SEARCH', 'CONNECT']),
+  method: z.enum(["GET", "POST", "PUT", "HEAD", "DELETE", "OPTIONS", "TRACE", "COPY", "LOCK", "MKCOL", "MOVE", "PURGE", "PROPFIND", "PROPPATCH", "UNLOCK", "REPORT", "MKACTIVITY", "CHECKOUT", "MERGE", "M-SEARCH", "NOTIFY", "SUBSCRIBE", "UNSUBSCRIBE", "PATCH", "SEARCH", "CONNECT"]),
   url: z.string(),
   headers: z.record(z.string(), headerValue),
 
@@ -104,10 +104,10 @@ export const createRequestLikeSchema = <TBodySchema extends z.ZodTypeAny = z.Zod
 
   // Node.js特定属性（可选）
   ...nodeRequestSpecific.partial().shape,
-})
+});
 
 // 默认请求型对象schema
-export const requestLikeSchema = createRequestLikeSchema(defaultRequestBodyTypes)
+export const requestLikeSchema = createRequestLikeSchema(defaultRequestBodyTypes);
 
 // 基础响应体类型
 const baseResponseBodyTypes = z.union([
@@ -118,24 +118,24 @@ const baseResponseBodyTypes = z.union([
   z.instanceof(ReadableStream),
   z.null(),
   z.undefined()
-])
+]);
 
 // 默认响应体类型
-const defaultResponseBodyTypes = baseResponseBodyTypes
+const defaultResponseBodyTypes = baseResponseBodyTypes;
 
 // 响应函数类型定义
-const responseFunction = z.function().input(z.any()).output(z.any())
+const responseFunction = z.function().input(z.any()).output(z.any());
 
 // 浏览器特定响应属性
 const browserResponseSpecific = z.object({
   bodyUsed: z.boolean().optional(),
   ok: z.boolean().optional(),
   redirected: z.boolean().optional(),
-  type: z.enum(['basic', 'cors', 'default', 'error', 'opaque', 'opaqueredirect']).optional(),
+  type: z.enum(["basic", "cors", "default", "error", "opaque", "opaqueredirect"]).optional(),
   url: z.string().optional(),
   statusText: z.string().optional(),
   trailer: z.promise(z.record(z.string(), z.string())).optional(),
-})
+});
 
 // Node.js特定响应属性
 const nodeResponseSpecific = z.object({
@@ -153,7 +153,7 @@ const nodeResponseSpecific = z.object({
   destroyed: z.boolean().optional(),
   writableEnded: z.boolean().optional(),
   writableFinished: z.boolean().optional(),
-})
+});
 
 // 响应型对象schema工厂函数 - 支持泛型
 export const createResponseLikeSchema = <TBodySchema extends z.ZodTypeAny = z.ZodTypeAny>(
@@ -187,13 +187,13 @@ export const createResponseLikeSchema = <TBodySchema extends z.ZodTypeAny = z.Zo
 
   // Node.js特定属性（可选）
   ...nodeResponseSpecific.partial().shape,
-})
+});
 
 // 默认响应型对象schema
-export const responseLikeSchema = createResponseLikeSchema()
+export const responseLikeSchema = createResponseLikeSchema();
 
 // 上下文函数类型定义
-const contextFunction = z.function().input(z.any()).output(z.any())
+const contextFunction = z.function().input(z.any()).output(z.any());
 
 // 上下文型对象schema工厂函数 - 支持泛型
 export const createContextSchema = <
@@ -258,10 +258,10 @@ export const createContextSchema = <
   currentStep: z.string().optional(),
   previousStep: z.string().optional(),
 
-})
+});
 
 // 默认上下文型对象schema
-export const contextSchema = createContextSchema()
+export const contextSchema = createContextSchema();
 
 export const routeOptionsSchema = z.object({
   name: z.string().optional(),
@@ -274,7 +274,7 @@ export const routeOptionsSchema = z.object({
     request: z.any().optional(),
     response: z.any().optional(),
   }).optional(),
-})
+});
 
 export const routerOptionsSchema = z.object({
   methods: z.array(z.string()).optional(),
@@ -286,7 +286,7 @@ export const routerOptionsSchema = z.object({
   sensitive: z.boolean().optional(),
   strict: z.boolean().optional(),
   routerPath: z.string().optional(),
-})
+});
 
 // 使用 z.infer 推导类型
 export type RequestLike = z.infer<typeof requestLikeSchema>

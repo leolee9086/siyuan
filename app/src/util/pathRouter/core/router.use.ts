@@ -1,10 +1,10 @@
-import Router from './router.htttpRouter'
-import Layer from './layer'
-import {pathToRegexp, Key} from 'path-to-regexp'
-import type { MiddlewareFunction, MiddlewareWithRouter, CloneRouterType } from './types'
-import { z } from 'zod'
-import { LayerLike } from './layerLike.types'
-import baseRouter from './router.base'
+import Router from "./router.htttpRouter";
+import Layer from "./layer";
+import {pathToRegexp, Key} from "path-to-regexp";
+import type { MiddlewareFunction, MiddlewareWithRouter, CloneRouterType } from "./types";
+import { z } from "zod";
+import { LayerLike } from "./layerLike.types";
+import baseRouter from "./router.base";
 
 /**
  * 克隆路由器的层并设置前缀
@@ -139,9 +139,9 @@ function handleRegularMiddleware<
     TResponseBodySchema extends z.ZodTypeAny
 >(m: MiddlewareFunction<TRequestBodySchema, TResponseBodySchema>, router: baseRouter<TRequestBodySchema, TResponseBodySchema>, path?: string, hasPath?: boolean): void {
     const keys: Key[] = [];
-    pathToRegexp(router.opts.prefix || '', keys);
+    pathToRegexp(router.opts.prefix || "", keys);
     const routerPrefixHasParam = router.opts.prefix && keys.length;
-    router.register(path || '([^/]*)', [], m , {
+    router.register(path || "([^/]*)", [], m , {
         end: false,
         ignoreCaptures: !hasPath && !routerPrefixHasParam
     });
@@ -186,14 +186,14 @@ export function use<
 >(router: baseRouter<TRequestBodySchema, TResponseBodySchema>, ...args: (MiddlewareFunction<TRequestBodySchema, TResponseBodySchema> | MiddlewareWithRouter | string[]|string)[]): baseRouter<TRequestBodySchema, TResponseBodySchema> {
     const middleware = Array.prototype.slice.call(args);
     let path;
-    if (Array.isArray(middleware[0]) && typeof middleware[0][0] === 'string') {
+    if (Array.isArray(middleware[0]) && typeof middleware[0][0] === "string") {
         const arrPaths = middleware[0];
         for (const p of arrPaths) {
             router.use.apply(router, [p].concat(middleware.slice(1)));
         }
         return router;
     }
-    const hasPath = typeof middleware[0] === 'string';
+    const hasPath = typeof middleware[0] === "string";
     if (hasPath) path = middleware.shift();
     
     for (const m of middleware) {

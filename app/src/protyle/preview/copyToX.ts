@@ -113,10 +113,10 @@ export const copyPreviewHTMLToX = async (
     // fix math render
     if (targetPlatform === "mp-wechat") {
         await processWeChatHTML(copyElement);
-        await executeCopyOperation(element, copyElement, targetPlatform)
+        await executeCopyOperation(element, copyElement, targetPlatform);
     } else if (targetPlatform === "zhihu") {
         await processZhihuHTML(copyElement);
-        await executeCopyOperation(element, copyElement, targetPlatform)
+        await executeCopyOperation(element, copyElement, targetPlatform);
     } else if (targetPlatform === "yuque") {
         fetchPost("/api/lute/copyStdMarkdown", {
             id,
@@ -129,7 +129,7 @@ export const copyPreviewHTMLToX = async (
         });
         return;
     }
-}
+};
 /**
  * 执行HTML复制操作
  * @param element 原始元素容器
@@ -151,7 +151,7 @@ const executeCopyOperation = (
     // 最后一个块是公式块时无法复制下来
     copyElement.insertAdjacentHTML("beforeend", "<p>&zwj;</p>");
     let cloneRange;
-    let selection = getSelection()
+    const selection = getSelection();
     if (selection && selection.rangeCount > 0) {
         cloneRange = selection.getRangeAt(0).cloneRange();
     }

@@ -76,13 +76,13 @@ const appendDesktopOnlyMenuItemGroup = (protyle: IProtyle) => {
         }
     }).element);
     /// #endif
-}
+};
 
 
 export const openTitleMenu = (protyle: IProtyle, position: IPosition) => {
     hideTooltip();
     if (closeTitleMenuIfOpened()) {
-        return
+        return;
     }
     fetchPost("/api/block/getDocInfo", {
         id: protyle.block.rootID
@@ -91,10 +91,10 @@ export const openTitleMenu = (protyle: IProtyle, position: IPosition) => {
         window.siyuan.menus.menu.element.setAttribute("data-name", "titleMenu");
         window.siyuan.menus.menu.append(createProtyleCopyMenu(protyle).element);
         if (!protyle.disabled) {
-            appendFileOperationsMenuItemGroup(protyle)
+            appendFileOperationsMenuItemGroup(protyle);
         }
         /// #if !MOBILE
-        appendDesktopOnlyMenuItemGroup(protyle)
+        appendDesktopOnlyMenuItemGroup(protyle);
         /// #endif
         window.siyuan.menus.menu.append(new MenuItem({ id: "separator_2", type: "separator" }).element);
         window.siyuan.menus.menu.append(new MenuItem({

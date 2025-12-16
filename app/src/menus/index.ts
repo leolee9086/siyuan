@@ -117,7 +117,7 @@ export class Menus {
     }
 
     private unselect() {
-        const selection = getSelection()
+        const selection = getSelection();
         if (selection&&selection.rangeCount > 0) {
             selection.getRangeAt(0).collapse(true);
         }

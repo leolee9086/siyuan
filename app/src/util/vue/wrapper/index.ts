@@ -1,8 +1,8 @@
 // 核心功能
-export { createComponentWrapper } from './core';
+export { createComponentWrapper } from "./core";
 
 // 高阶组件工厂
-export { withProps, withEmit, composeWrappers } from './factories';
+export { withProps, withEmit, composeWrappers } from "./factories";
 
 // 工具函数
 export { 
@@ -10,7 +10,7 @@ export {
   createEmitTransformer, 
   validateWrapper, 
   optimizeWrapper 
-} from './utils';
+} from "./utils";
 
 // 类型定义
 export type {
@@ -27,4 +27,4 @@ export type {
   TransformedEmit,
   ValidationResult,
   PerformanceResult
-} from './types'; 
+} from "./types"; 

@@ -13,12 +13,12 @@ import { localKernel } from "./defaultClient";
  * ```
  */
 export async function findTagsByNoteID(id: string): Promise<string[]> {
-    let sql = `select tag from blocks where id = "${id}" `;
-    let result = await localKernel.SQL({ stmt: sql });
-    let tags = result.data[0].tag.split(' ');
-    let cleanedTags = [];
+    const sql = `select tag from blocks where id = "${id}" `;
+    const result = await localKernel.SQL({ stmt: sql });
+    const tags = result.data[0].tag.split(" ");
+    const cleanedTags = [];
     for (let i = 0; i < tags.length; i++) {
-        let tagLabel = tags[i].replace(/^#|#$/g, '');
+        const tagLabel = tags[i].replace(/^#|#$/g, "");
         tagLabel && cleanedTags.push(tagLabel);
     }
     return cleanedTags;

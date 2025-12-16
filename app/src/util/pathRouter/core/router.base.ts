@@ -1,11 +1,11 @@
-import { use } from './router.use'
-import { routes } from './router.routes'
-import { getAllowedMethods, handleNotImplementedMethod, handleOptionsRequest, handleMethodNotAllowed } from './router.allowedMethods'
-import { createHttpMethodHandler, HttpMethodHandler } from './router.httpMethod'
-import { register } from './router.register'
-import { match } from './router.match'
-import { all } from './router.all'
-import { z } from 'zod'
+import { use } from "./router.use";
+import { routes } from "./router.routes";
+import { getAllowedMethods, handleNotImplementedMethod, handleOptionsRequest, handleMethodNotAllowed } from "./router.allowedMethods";
+import { createHttpMethodHandler, HttpMethodHandler } from "./router.httpMethod";
+import { register } from "./router.register";
+import { match } from "./router.match";
+import { all } from "./router.all";
+import { z } from "zod";
 import type {
     Context,
     MiddlewareFunction,
@@ -18,22 +18,22 @@ import type {
     RouteParamType,
     MiddlewareWithRouter,
     HttpMethod,
-} from './types'
+} from "./types";
 
 const Errors: HttpErrors = {
     NotImplemented: () => {
-        return new Error('not implemented')
+        return new Error("not implemented");
     },
     MethodNotAllowed: () => {
-        return new Error('method not allowed')
+        return new Error("method not allowed");
     }
-}
+};
 
-const HttpError = Errors
+const HttpError = Errors;
 
 
-import Layer from './layer'
-import { LayerLike } from './layerLike.types'
+import Layer from "./layer";
+import { LayerLike } from "./layerLike.types";
 
 /**
  * Router class for handling HTTP routing.
@@ -49,12 +49,12 @@ class baseRouter<
     TRequestBodySchema extends z.ZodTypeAny = z.ZodTypeAny,
     TResponseBodySchema extends z.ZodTypeAny = z.ZodTypeAny
 > {
-    public opts: RouterOptions
-    public methods: string[]
-    public exclusive: boolean
-    public params: Record<string, ParamMiddlewareFunction>
-    public stack: any[]
-    public host?: string | RegExp
+    public opts: RouterOptions;
+    public methods: string[];
+    public exclusive: boolean;
+    public params: Record<string, ParamMiddlewareFunction>;
+    public stack: any[];
+    public host?: string | RegExp;
     
     constructor(opts: RouterOptions = {}) {
         if (!(this instanceof baseRouter)) return new baseRouter(opts);
@@ -64,13 +64,13 @@ class baseRouter<
 
         // 如果传入的选项中包含methods，则使用传入的methods，否则使用默认的HTTP方法
         this.methods = this.opts.methods || [
-            'HEAD',
-            'OPTIONS',
-            'GET',
-            'PUT',
-            'PATCH',
-            'POST',
-            'DELETE'
+            "HEAD",
+            "OPTIONS",
+            "GET",
+            "PUT",
+            "PATCH",
+            "POST",
+            "DELETE"
         ];
 
         // 如果传入的选项中包含exclusive，则将其转换为布尔值并赋值给this.exclusive
@@ -92,7 +92,7 @@ class baseRouter<
 
     // prefix方法
     prefix(prefix: string): this {
-        prefix = prefix.replace(/\/$/, '');
+        prefix = prefix.replace(/\/$/, "");
         this.opts.prefix = prefix;
         for (let i = 0; i < this.stack.length; i++) {
             const route = this.stack[i];
@@ -116,7 +116,7 @@ class baseRouter<
                     if (!~implemented.indexOf(ctx.method)) {
                         handleNotImplementedMethod(ctx, implemented, options, HttpError);
                     } else if (allowedArr.length > 0) {
-                        if (ctx.method === 'OPTIONS') {
+                        if (ctx.method === "OPTIONS") {
                             handleOptionsRequest(ctx);
                         } else if (!allowedArr.includes(ctx.method)) {
                             handleMethodNotAllowed(ctx, options, HttpError);
@@ -134,15 +134,15 @@ class baseRouter<
     // redirect方法
     redirect(source: string | RegExp, destination: string | symbol, code?: number): this {
         // lookup source route by name
-        if (typeof source === 'symbol' || (typeof source === 'string' && source[0] !== '/')) {
+        if (typeof source === "symbol" || (typeof source === "string" && source[0] !== "/")) {
             const sourceResult = this.url(source);
             if (sourceResult instanceof Error) throw sourceResult;
             source = sourceResult;
         }
         // lookup destination route by name
         if (
-            typeof destination === 'symbol' ||
-            (typeof destination === 'string' && destination[0] !== '/' && !destination.includes('://'))
+            typeof destination === "symbol" ||
+            (typeof destination === "string" && destination[0] !== "/" && !destination.includes("://"))
         ) {
             const destResult = this.url(destination);
             if (destResult instanceof Error) throw destResult;
@@ -192,10 +192,10 @@ class baseRouter<
         if (!input) {
             return false;
         }
-        if (typeof host === 'string') {
+        if (typeof host === "string") {
             return input === host;
         }
-        if (typeof host === 'object' && host instanceof RegExp) {
+        if (typeof host === "object" && host instanceof RegExp) {
             return host.test(input);
         }
     }

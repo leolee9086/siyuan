@@ -10,21 +10,21 @@
  */
 export const embeddingText = async (content: string) => {
     //@ts-ignore
-    const transformers = await import(/* webpackIgnore: true */ '/stage/protyle/js/transformers.js')
+    const transformers = await import(/* webpackIgnore: true */ "/stage/protyle/js/transformers.js");
     //wasm位置,注意路径最后的斜杠
-    transformers.env.backends.onnx.wasm.wasmPaths = '/stage/protyle/js/@huggingface/transformers@3.8.0/';
+    transformers.env.backends.onnx.wasm.wasmPaths = "/stage/protyle/js/@huggingface/transformers@3.8.0/";
     //允许使用远程模型
     transformers.env.allowRemoteModels = true;
     //当使用本地模型时会通过这个路径去读取
-    transformers.env.localModelPath = '/public/onnxModels/';
+    transformers.env.localModelPath = "/public/onnxModels/";
 
 
-    let node_version
+    let node_version;
     if (window.process) {
-        node_version = window.process.versions.node
+        node_version = window.process.versions.node;
         //由于onnx_runtime会通过这个属性判断是否是node环境而且在electron下会有一些问题,所以需要临时将它hack
         
-        Object.defineProperty(window.process.versions, 'node', {
+        Object.defineProperty(window.process.versions, "node", {
             value: undefined,
             writable: true,
             configurable: true,
@@ -35,7 +35,7 @@ export const embeddingText = async (content: string) => {
     //const { pipeline } =await import(/* webpackIgnore: true */'https://esm.sh/@huggingface/transformers');
     //这里使用动态导入处理会比较简单
     //@ts-ignore
-    const { pipeline } = await import(/* webpackIgnore: true */ '/stage/protyle/js/transformers.js')
+    const { pipeline } = await import(/* webpackIgnore: true */ "/stage/protyle/js/transformers.js");
 
     const extractor = await pipeline(
         "feature-extraction",
@@ -50,7 +50,7 @@ export const embeddingText = async (content: string) => {
     );
     if (window.process) {
         //恢复之前hack的内容
-        Object.defineProperty(window.process.versions, 'node', {
+        Object.defineProperty(window.process.versions, "node", {
             value: node_version,
             writable: false,
             configurable: false,
@@ -60,5 +60,5 @@ export const embeddingText = async (content: string) => {
 
     const embeddings = await extractor(content, { pooling: "mean", normalize: true });
     //一个Float32Array
-    console.log(embeddings.data)
-}
+    console.log(embeddings.data);
+};

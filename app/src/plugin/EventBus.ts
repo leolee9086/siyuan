@@ -8,8 +8,8 @@ export class EventBus<DetailType = any> {
 
     constructor(name:string|Document = "") {
         if(name===document){
-            this.eventTarget=document
-            return
+            this.eventTarget=document;
+            return;
         }
         this.eventTarget = document.appendChild(document.createComment(name));
     }

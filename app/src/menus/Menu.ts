@@ -18,9 +18,9 @@ export class Menu {
 
     constructor() {
         //默认什么都不做
-        this.removeCB = () => { }
+        this.removeCB = () => { };
         this.wheelEvent = "onwheel" in document.createElement("div") ? "wheel" : "mousewheel";
-        this.element = this.getContainer()
+        this.element = this.getContainer();
         this.element.querySelector(".b3-menu__title .b3-menu__label").innerHTML = siyuanI18n.back;
         this.element.addEventListener(isMobile() ? "click" : "mouseover", (event) => {
             handleMenuEvent(this.element, event, () => this.remove());
@@ -28,16 +28,16 @@ export class Menu {
     }
     private getContainer() {
         const element = document.getElementById("commonMenu");
-        let result: HTMLElement = document.createElement('div')
+        let result: HTMLElement = document.createElement("div");
         //如果有元素直接使用
         if (element) {
-            result = element
+            result = element;
         }
         //如果没有就创建
         if (!element) {
-            result.setAttribute('id', 'commonMenu')
+            result.setAttribute("id", "commonMenu");
         }
-        return result
+        return result;
     }
     public showSubMenu(subMenuElement: HTMLElement) {
         positionSubMenu(subMenuElement);
@@ -71,7 +71,7 @@ export class Menu {
             }
         }
         const removeCB = getSiyuanGlobalMenus().menu.removeCB;
-        if (removeCB && typeof removeCB === 'function') {
+        if (removeCB && typeof removeCB === "function") {
             removeCB();
             getSiyuanGlobalMenus().menu.removeCB = undefined;
         }
@@ -85,7 +85,7 @@ export class Menu {
             return;
         }
         if (!this.element.lastElementChild) {
-            throw new Error('菜单容器被意外移除')
+            throw new Error("菜单容器被意外移除");
         }
         if (typeof index === "number") {
             const insertElement = this.element.querySelectorAll(".b3-menu__items > .b3-menu__separator")[index];
@@ -100,7 +100,7 @@ export class Menu {
 
     public popup(options: IPosition) {
         if (!this.element.lastElementChild) {
-            throw new Error('菜单容器被意外移除')
+            throw new Error("菜单容器被意外移除");
         }
         if (this.element.lastElementChild.innerHTML === "") {
             return;
@@ -133,12 +133,12 @@ export class Menu {
     }
     public appendMenuItemLike(item: { element?: HTMLElement, index?: number }) {
         if (!item.element) {
-            throw new Error("插入项目至少需要一个HTML元素")
+            throw new Error("插入项目至少需要一个HTML元素");
         }
         this.append(
             item.element,
             item.index
-        )
+        );
     }
 }
 

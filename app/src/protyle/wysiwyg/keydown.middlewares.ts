@@ -12,7 +12,7 @@ export const setProtyleWysiwygPreventKeyupMiddleware = async (
     controller: AbortController
 ) => {
     protyle.wysiwyg && (protyle.wysiwyg.preventKeyup = false);
-}
+};
 /**
  * 隐藏protyle的工具容器
  * @param event 
@@ -26,7 +26,7 @@ export const hideProtyleUtilMiddleware = async (
     controller: AbortController
 ) => {
     hideElements(["util"], protyle);
-}
+};
 
 /**
  * 隐藏protyle的工具栏,连续按下箭头选择时
@@ -46,4 +46,4 @@ export const hideProtyleToolbarMiddleware = async (
     } else if (!event.repeat && event.code !== "") { // 悬浮工具会触发但 code 为空 https://github.com/siyuan-note/siyuan/issues/6573
         hideElements(["toolbar"], protyle);
     }
-}
+};

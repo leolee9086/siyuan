@@ -81,10 +81,10 @@ export class Dialog {
                 closeButtonHtml = `<svg ${(isMobile() && hasTitle) ? 'style="top:0;right:0;"' : ""} class="b3-dialog__close"><use xlink:href="#iconCloseRound"></use></svg>`;
             } else if (closeButtonPosition === "inside" && hasTitle) {
                 // 内部标题栏关闭按钮
-                closeButtonHtml = `<svg class="b3-dialog__close b3-dialog__close--inside" style="position: absolute; top: 50%; right: 0px; transform: translateY(-50%);"><use xlink:href="#iconCloseRound"></use></svg>`;
+                closeButtonHtml = "<svg class=\"b3-dialog__close b3-dialog__close--inside\" style=\"position: absolute; top: 50%; right: 0px; transform: translateY(-50%);\"><use xlink:href=\"#iconCloseRound\"></use></svg>";
             } else if (closeButtonPosition === "inside-body") {
                 // 内部内容区域关闭按钮
-                closeButtonHtml = `<svg class="b3-dialog__close b3-dialog__close--inside-body" style="position: absolute; top: 10px; right: 10px; z-index: 1;"><use xlink:href="#iconCloseRound"></use></svg>`;
+                closeButtonHtml = "<svg class=\"b3-dialog__close b3-dialog__close--inside-body\" style=\"position: absolute; top: 10px; right: 10px; z-index: 1;\"><use xlink:href=\"#iconCloseRound\"></use></svg>";
             }
         }
         
@@ -113,10 +113,10 @@ export class Dialog {
             }
         }
 
-        this.element.innerHTML = `<div class="b3-dialog" style="z-index: ${++window.siyuan.zIndex};${typeof left === "string" ? "display:block" : ""};${this.scrimPointerEvents ? ' pointer-events:none' : ""}">
+        this.element.innerHTML = `<div class="b3-dialog" style="z-index: ${++window.siyuan.zIndex};${typeof left === "string" ? "display:block" : ""};${this.scrimPointerEvents ? " pointer-events:none" : ""}">
 <div class="b3-dialog__scrim"${options.transparent ? 'style="background-color:transparent"' : ""}></div>
 <div class="b3-dialog__container ${options.containerClassName || ""}" style="width:${options.width || "auto"};height:${options.height || "auto"};
-left:${left || "auto"};top:${top || "auto"};${this.scrimPointerEvents ? ' pointer-events:auto' : ""}">
+left:${left || "auto"};top:${top || "auto"};${this.scrimPointerEvents ? " pointer-events:auto" : ""}">
   ${closeButtonPosition === "outside" ? closeButtonHtml : ""}
   <div class="resize__move b3-dialog__header${hasTitle ? "" : " fn__none"}" onselectstart="return false;" style="${headerPaddingRight}">${options.title || ""}${closeButtonPosition === "inside" ? closeButtonHtml : ""}${fullscreenButtonHtml}</div>
   <div class="b3-dialog__body" style="${closeButtonPosition === "inside-body" ? "position: relative;" : ""}">${options.content}${closeButtonPosition === "inside-body" ? closeButtonHtml : ""}</div>
@@ -181,7 +181,7 @@ left:${left || "auto"};top:${top || "auto"};${this.scrimPointerEvents ? ' pointe
         }
 
         /// #if !MOBILE
-        const containerElement =this.element.querySelector(".b3-dialog__container")
+        const containerElement =this.element.querySelector(".b3-dialog__container");
         containerElement&&moveResize(containerElement, options.resizeCallback);
         /// #endif
     }
@@ -301,7 +301,7 @@ left:${left || "auto"};top:${top || "auto"};${this.scrimPointerEvents ? ' pointe
         let timeStamp: number;
         inputElement.addEventListener("keydown", (event: Event) => {
             if(!(event instanceof KeyboardEvent)){
-                return
+                return;
             }
             if (event.isComposing || event.repeat) {
                 event.preventDefault();

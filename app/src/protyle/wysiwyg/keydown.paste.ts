@@ -13,7 +13,7 @@ export const pasteAsPlainTextMiddleware = (
         event.preventDefault();
         event.stopPropagation();
         pasteAsPlainText(protyle);
-        controller.abort('已黏贴纯文本')
+        controller.abort("已黏贴纯文本");
         return;
     }
-}
+};

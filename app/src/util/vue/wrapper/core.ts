@@ -1,6 +1,6 @@
-import { defineComponent, computed, h, markRaw, onMounted, onBeforeUnmount, onBeforeUpdate, onUpdated } from 'vue';
-import type { VueComponent, ComponentWrapperConfig } from './types';
-import { assertType, getType } from './assertType';
+import { defineComponent, computed, h, markRaw, onMounted, onBeforeUnmount, onBeforeUpdate, onUpdated } from "vue";
+import type { VueComponent, ComponentWrapperConfig } from "./types";
+import { assertType, getType } from "./assertType";
 
 // 缓存Map，用于存储转换结果
 const transformCache = new WeakMap();
@@ -23,10 +23,10 @@ export function createComponentWrapper<TProps = any, TEmit = any>(
   } = config;
 
   // 获取组件信息
-  const componentName = (component as any)?.name || 'Component';
+  const componentName = (component as any)?.name || "Component";
   const componentProps = (component as any)?.props || {};
   const componentEmits = (component as any)?.emits || {};
-  console.log(componentName,componentProps,componentEmits)
+  console.log(componentName,componentProps,componentEmits);
   
   // 处理props定义，移除required约束并收集原始required信息
   const { wrapperProps, originalRequiredProps } = processComponentProps(componentProps);
@@ -63,14 +63,14 @@ export function createComponentWrapper<TProps = any, TEmit = any>(
           if (propsInterceptor?.intercept) {
             result = { ...result, ...propsInterceptor.intercept(result as TProps) };
              Object.entries(result).forEach(([key, value])=>{
-              console.log(`组件属性${key}已经注入为${value}`)
-             })         
-              console.log(`由于vue的校验机制,此处如果prop设置为required依旧会警告,但是不影响运行时行为`)
+              console.log(`组件属性${key}已经注入为${value}`);
+             });         
+              console.log("由于vue的校验机制,此处如果prop设置为required依旧会警告,但是不影响运行时行为");
           }
           // 应用转换器,转换在拦截之后进行
           if (propsInterceptor?.transform) {
             Object.entries(propsInterceptor.transform).forEach(([key, transformer]) => {
-              if (key in result && typeof transformer === 'function') {
+              if (key in result && typeof transformer === "function") {
                 result[key] = transformer(result[key]);
               }
             });
@@ -79,9 +79,9 @@ export function createComponentWrapper<TProps = any, TEmit = any>(
           if (propsInterceptor?.validate) {
             const validationResult = propsInterceptor.validate(result as TProps);
             if (validationResult === false) {
-              console.warn('[ComponentWrapper] Props validation failed');
-            } else if (typeof validationResult === 'string') {
-              console.warn('[ComponentWrapper] Props validation failed:', validationResult);
+              console.warn("[ComponentWrapper] Props validation failed");
+            } else if (typeof validationResult === "string") {
+              console.warn("[ComponentWrapper] Props validation failed:", validationResult);
             }
           }
           
@@ -90,7 +90,7 @@ export function createComponentWrapper<TProps = any, TEmit = any>(
           
           // 调试日志
           if (debug?.enableLogging) {
-            console.log('[ComponentWrapper] Props transformed:', { original: props, transformed: result });
+            console.log("[ComponentWrapper] Props transformed:", { original: props, transformed: result });
           }
           
           // 验证原始required属性在转换后是否仍然缺失
@@ -98,7 +98,7 @@ export function createComponentWrapper<TProps = any, TEmit = any>(
           
           return result;
         } catch (error) {
-          console.error('[ComponentWrapper] Props transformation error:', error);
+          console.error("[ComponentWrapper] Props transformation error:", error);
           return props;
         }
       });
@@ -125,7 +125,7 @@ export function createComponentWrapper<TProps = any, TEmit = any>(
             const shouldEmit = emitInterceptor.intercept(eventName, ...args);
             if (!shouldEmit) {
               if (debug?.enableLogging) {
-                console.log('[ComponentWrapper] Event intercepted:', eventName);
+                console.log("[ComponentWrapper] Event intercepted:", eventName);
               }
               return;
             }
@@ -135,25 +135,25 @@ export function createComponentWrapper<TProps = any, TEmit = any>(
           let finalArgs = args;
           if (emitInterceptor?.transform?.[eventName as keyof TEmit]) {
             const transformer = emitInterceptor.transform[eventName as keyof TEmit];
-            if (typeof transformer === 'function') {
+            if (typeof transformer === "function") {
               finalArgs = transformer(...args);
             }
           }
           
           // 调试日志
           if (debug?.enableLogging) {
-            console.log('[ComponentWrapper] Event emitted:', { 
+            console.log("[ComponentWrapper] Event emitted:", { 
               original: eventName, 
               final: finalEventName, 
               args: finalArgs 
             });
           }
-                                                          console.log(eventName)
+                                                          console.log(eventName);
 
           // 触发原始emit
           emit(finalEventName, ...finalArgs);
         } catch (error) {
-          console.error('[ComponentWrapper] Emit error:', error);
+          console.error("[ComponentWrapper] Emit error:", error);
         }
       };
 
@@ -199,11 +199,11 @@ export function createComponentWrapper<TProps = any, TEmit = any>(
             acc[handlerPropName] = (...args: any[]) => proxyEmit(eventName, ...args);
             return acc;
           }, {} as Record<string, (...args: any[]) => void>);
-          console.log(eventHandlers)
+          console.log(eventHandlers);
 
           // 手动添加 v-model 的事件处理器,确保它总是被捕获
-          eventHandlers['onUpdate:modelValue'] = (...args: any[]) => proxyEmit('update:modelValue', ...args);
-          console.log(transformedProps.value)
+          eventHandlers["onUpdate:modelValue"] = (...args: any[]) => proxyEmit("update:modelValue", ...args);
+          console.log(transformedProps.value);
           const result = h(component, {
             ...transformedProps.value,
             ...attrs,
@@ -217,8 +217,8 @@ export function createComponentWrapper<TProps = any, TEmit = any>(
           
           return result;
         } catch (error) {
-          console.error('[ComponentWrapper] Render error:', error);
-          return h('div', { class: 'error' }, 'Component render error');
+          console.error("[ComponentWrapper] Render error:", error);
+          return h("div", { class: "error" }, "Component render error");
         }
       };
     }
@@ -239,12 +239,12 @@ function processComponentProps(componentProps: Record<string, any>) {
   
   Object.entries(componentProps).forEach(([key, propDef]) => {
     // 收集原始required信息
-    if (propDef && typeof propDef === 'object' && propDef.required) {
+    if (propDef && typeof propDef === "object" && propDef.required) {
       originalRequiredProps.add(key);
     }
     
     // 创建新的prop定义，移除required约束
-    if (propDef && typeof propDef === 'object') {
+    if (propDef && typeof propDef === "object") {
       wrapperProps[key] = { ...propDef };
       delete wrapperProps[key].required; // 移除required约束
     } else {
@@ -279,14 +279,14 @@ function validateTransformedRequiredProps(
     if (isAbsent) {
       // 模拟Vue内部的警告格式
       const warnMessage = `Missing required prop: "${propName}"`;
-      const componentInfo = componentName ? ` (found in component "${componentName}")` : '';
+      const componentInfo = componentName ? ` (found in component "${componentName}")` : "";
       
       console.warn(`[ComponentWrapper]${componentInfo} ${warnMessage}`);
       
       // 提供更详细的上下文信息
       console.warn(
         `[ComponentWrapper] 经过绑定转换之后，组件 ${componentName} 仍然缺少必需属性 "${propName}"。` +
-        '请检查propsInterceptor配置是否正确提供了该属性的值。'
+        "请检查propsInterceptor配置是否正确提供了该属性的值。"
       );
     } else if (value != null && prop && prop.type && !prop.skipCheck) {
       // 进行类型验证
@@ -301,9 +301,9 @@ function validateTransformedRequiredProps(
       }
       
       if (!isValid) {
-        const componentInfo = componentName ? ` (found in component "${componentName}")` : '';
+        const componentInfo = componentName ? ` (found in component "${componentName}")` : "";
         const expectedTypesStr = expectedTypes.length > 1 ?
-          `one of expected types: [${expectedTypes.join(', ')}]` :
+          `one of expected types: [${expectedTypes.join(", ")}]` :
           `expected type: ${expectedTypes[0]}`;
         
         console.warn(
@@ -314,7 +314,7 @@ function validateTransformedRequiredProps(
       
       // 自定义验证器检查
       if (prop.validator && !prop.validator(value, transformedProps)) {
-        const componentInfo = componentName ? ` (found in component "${componentName}")` : '';
+        const componentInfo = componentName ? ` (found in component "${componentName}")` : "";
         console.warn(
           `[ComponentWrapper]${componentInfo} Invalid prop: custom validator check failed for prop "${propName}".`
         );

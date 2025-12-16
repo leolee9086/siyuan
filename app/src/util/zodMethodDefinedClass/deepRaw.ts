@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 export type ZodDeepRaw = {
   [key: string]: z.ZodTypeAny | ZodDeepRaw;
@@ -37,7 +37,7 @@ const fullSchema = {
     country: z.string(),
   },
   preferences: {
-    theme: z.enum(['light', 'dark']),
+    theme: z.enum(["light", "dark"]),
     notifications: z.boolean(),
   },
 };
@@ -54,7 +54,7 @@ export function createZodSchemaFromDeepRaw<T extends ZodDeepRaw>(config: T): ToZ
   
   for (const key in config) {
     const value = config[key];
-    if (value && typeof value === 'object' && !(value instanceof z.ZodType)) {
+    if (value && typeof value === "object" && !(value instanceof z.ZodType)) {
       shape[key] = createZodSchemaFromDeepRaw(value );
     } else {
       shape[key] = value;
@@ -84,9 +84,9 @@ export function isSubschemaOf<T extends ZodDeepRaw>(
 
     // 如果子模式的值是 ZodType，父模式的值可以是任意 ZodType 或 ZodDeepRaw
     // 因为我们只检查形状，不检查具体类型
-    if (subschemaValue && typeof subschemaValue === 'object' && !(subschemaValue instanceof z.ZodType)) {
+    if (subschemaValue && typeof subschemaValue === "object" && !(subschemaValue instanceof z.ZodType)) {
       // 如果子模式的值是嵌套对象，递归检查
-      if (superschemaValue && typeof superschemaValue === 'object' && !(superschemaValue instanceof z.ZodType)) {
+      if (superschemaValue && typeof superschemaValue === "object" && !(superschemaValue instanceof z.ZodType)) {
         if (!isSubschemaOf(subschemaValue as ZodDeepRaw, superschemaValue as ZodDeepRaw)) {
           return false;
         }
@@ -115,8 +115,8 @@ export function isStrictSubschemaOf<T extends ZodDeepRaw>(
     const subschemaValue = potentialSubschema[key];
     const superschemaValue = potentialSuperschema[key];
 
-    const isSubschemaObject = subschemaValue && typeof subschemaValue === 'object' && !(subschemaValue instanceof z.ZodType);
-    const isSuperschemaObject = superschemaValue && typeof superschemaValue === 'object' && !(superschemaValue instanceof z.ZodType);
+    const isSubschemaObject = subschemaValue && typeof subschemaValue === "object" && !(subschemaValue instanceof z.ZodType);
+    const isSuperschemaObject = superschemaValue && typeof superschemaValue === "object" && !(superschemaValue instanceof z.ZodType);
 
     if (isSubschemaObject) {
       if (!isSuperschemaObject) {

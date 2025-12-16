@@ -8,7 +8,7 @@ import {Constants} from "../constants";
 import { openFile} from "./util";
 import { openFileById } from "./utils.openFileById";
 import { openBy } from "./utils.openBy";
-import {openAsset} from './util.openAsset'
+import {openAsset} from "./util.openAsset";
 /// #endif
 import {showMessage} from "../dialog/message";
 import {openByMobile} from "../protyle/util/compatibility";

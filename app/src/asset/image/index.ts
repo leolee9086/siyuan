@@ -5,8 +5,8 @@ import { withProps } from "../../util/vue/wrapper";
 
 export const render = (element: HTMLElement, src: string) => {
     // 清空容器
-    element.innerHTML = '';
-    const ImageViewerBinded = withProps(() => { return { src } })(ImageViewer)
+    element.innerHTML = "";
+    const ImageViewerBinded = withProps(() => { return { src }; })(ImageViewer);
     createVueComponentLoader(
         element,
         {
@@ -17,4 +17,4 @@ export const render = (element: HTMLElement, src: string) => {
 
 export default {
     render
-}
+};

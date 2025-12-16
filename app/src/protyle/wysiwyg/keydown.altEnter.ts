@@ -18,7 +18,7 @@ export const altEnterMiddleware = async (
     range: Range,
     controller: AbortController
 )=> {
-    const selectText = range.toString()
+    const selectText = range.toString();
     // 检查是否匹配 Alt+Enter 快捷键且没有选中文本
     if (matchHotKey("⌥↩", event) && selectText === "") {
         const selectElements = Array.from(protyle.wysiwyg?.element?.querySelectorAll(".protyle-wysiwyg--select") || []);
@@ -45,8 +45,8 @@ export const altEnterMiddleware = async (
             }
             event.stopPropagation();
             event.preventDefault();
-            controller.abort()
-            return 
+            controller.abort();
+            return; 
         }
     }
     return ;

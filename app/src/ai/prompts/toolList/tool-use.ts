@@ -37,7 +37,7 @@ export default {result,memo:""};
 返回值中的memo字段是必须的,如果你的代码成功运行且对用户有用,它将被用于查询这些代码
 当调用工具时,始终寄使用${JAVASCRIPT_TOOLS_CLASS}或者${JAVASCRIPT_TOOLS_WAIT_CLASS}作为代码块语言标识，以确保正确解析和执行。
 
-`
+`;
 }
 export function getDifferentOfToolsSection():string{
 	return `# 工具代码块类型选择指南
@@ -68,7 +68,7 @@ export function getDifferentOfToolsSection():string{
 ## 选择原则
 - 如果下一步操作依赖于当前工具的结果,例如查询内容之后根据内容回答 → 使用 \`${JAVASCRIPT_TOOLS_WAIT_CLASS}\`
 - 如果工具调用是独立的或只需要触发操作,例如提醒或者仅仅记录 → 使用 \`${JAVASCRIPT_TOOLS_CLASS}\`
-`
+`;
 }
 
 

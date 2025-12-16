@@ -38,7 +38,7 @@ module.exports = (env, argv) => {
             },
             extensions: [".vue", ".ts", ".js", ".tpl", ".scss", ".png", ".svg"],
             alias: {
-                '@': path.resolve(__dirname, 'src'),
+                "@": path.resolve(__dirname, "src"),
                 "vue": "vue/dist/vue.esm-bundler.js"
             },
         },
@@ -115,8 +115,8 @@ module.exports = (env, argv) => {
                         path.resolve(__dirname, "src/assets/scss"),
                     ],
                     use: [
-                        process.env.NODE_ENV !== 'production'
-                            ? 'vue-style-loader'
+                        process.env.NODE_ENV !== "production"
+                            ? "vue-style-loader"
                             : MiniCssExtractPlugin.loader,
 
                         {

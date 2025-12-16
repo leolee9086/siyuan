@@ -26,7 +26,7 @@ export const fileAnnotationRefMenu = (protyle: IProtyle, refElement: HTMLElement
     hideElements(["util", "toolbar", "hint"], protyle);
     const id = nodeElement.getAttribute("data-node-id") || "";
     if (!asLuteNodeID(id)) {
-        throw ("元素id不是合法ID")
+        throw ("元素id不是合法ID");
     }
     let oldHTML = nodeElement.outerHTML;
     menu.remove();
@@ -140,7 +140,7 @@ export const fileAnnotationRefMenu = (protyle: IProtyle, refElement: HTMLElement
     /// #endif
     const popoverElement = hasTopClosestByClassName(protyle.element, "block__popover", true);
     menu.element.setAttribute("data-from", popoverElement ? popoverElement.dataset.level + "popover" : "app");
-    menu.removeCB =()=> handleMenuRemoveCleanup(protyle,id,nodeElement,oldHTML,refElement)
+    menu.removeCB =()=> handleMenuRemoveCleanup(protyle,id,nodeElement,oldHTML,refElement);
 };
 const handleMenuRemoveCleanup = ( 
     protyle:IProtyle, 
@@ -153,7 +153,7 @@ const handleMenuRemoveCleanup = (
         nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
         updateTransaction(protyle, id, nodeElement.outerHTML, oldHTML);
     }
-    const currentSelection = getSelection()
+    const currentSelection = getSelection();
     const currentRange = currentSelection && (currentSelection.rangeCount === 0 ? undefined : currentSelection.getRangeAt(0));
     if (currentRange && !protyle.element.contains(currentRange.startContainer)) {
         requireRange(protyle).selectNodeContents(refElement);

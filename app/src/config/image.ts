@@ -86,7 +86,7 @@ export const image = {
                     custom: {
                         title: title,
                         icon: "#iconImage",
-                        id: 'internal-plugin-image' + "internal-image-" + type
+                        id: "internal-plugin-image" + "internal-image-" + type
                     }
                 });
             });
@@ -109,14 +109,14 @@ export const image = {
                             if (assetsListElement) {
                                 assetsListElement.innerHTML = `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
                             }
-                            let previewElement = element.querySelector(".config-assets__preview")
+                            const previewElement = element.querySelector(".config-assets__preview");
                             if (previewElement) {
                                 previewElement.innerHTML = "";
                             }
                         });
                     }, undefined, true);
                 } else if (target.classList.contains("item") && !target.classList.contains("item--focus")) {
-                    let barFocused = element.querySelector(".layout-tab-bar .item--focus")
+                    const barFocused = element.querySelector(".layout-tab-bar .item--focus");
                     barFocused && barFocused.classList.remove("item--focus");
                     target.classList.add("item--focus");
                     element.querySelectorAll(".config-assets").forEach(item => {
@@ -124,7 +124,7 @@ export const image = {
                             item.classList.remove("fn__none");
                             if (!item.getAttribute("data-init")) {
                                 fetchPost("/api/asset/getMissingAssets", {}, response => {
-                                    const listElement = item.querySelector(".config-assets__list")
+                                    const listElement = item.querySelector(".config-assets__list");
                                     if (listElement) {
                                         image._renderList(response.data.missingAssets, listElement, false);
                                     }
@@ -139,27 +139,27 @@ export const image = {
                     event.stopPropagation();
                     break;
                 } else if (type === "copy") {
-                    const parentElement = target.parentElement
+                    const parentElement = target.parentElement;
                     if (!parentElement) {
-                        return
+                        return;
                     }
-                    const textElement = parentElement.querySelector(".b3-list-item__text")
+                    const textElement = parentElement.querySelector(".b3-list-item__text");
                     if (textElement) {
                         writeText(textElement.textContent.trim().replace("assets/", ""));
                     }
                 } else if (type === "open") {
                     /// #if !BROWSER
-                    const parentElement = target.parentElement
+                    const parentElement = target.parentElement;
                     if (!parentElement) {
-                        return
+                        return;
                     }
-                    const dataPath = parentElement.getAttribute("data-path")
+                    const dataPath = parentElement.getAttribute("data-path");
                     dataPath && openBy(dataPath, "folder");
                     /// #endif
                 } else if (type === "clear") {
-                    const parentElement = target.parentElement
+                    const parentElement = target.parentElement;
                     if (!parentElement) {
-                        return
+                        return;
                     }
                     const pathString = parentElement.getAttribute("data-path");
                     if (pathString) {
@@ -176,7 +176,7 @@ export const image = {
                                 /// #endif
                                 const liElement = target.parentElement;
                                 if (liElement) {
-                                    const liParent = liElement.parentElement
+                                    const liParent = liElement.parentElement;
                                     if (liParent) {
                                         if (liElement.parentElement.querySelectorAll("li").length === 1) {
                                             liElement.parentElement.innerHTML = `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
@@ -185,7 +185,7 @@ export const image = {
                                         }
                                     }
                                 }
-                                const previewElement = element.querySelector(".config-assets__preview")
+                                const previewElement = element.querySelector(".config-assets__preview");
                                 previewElement && (previewElement.innerHTML = "");
                             });
                         }, undefined, true);
@@ -194,9 +194,9 @@ export const image = {
                         break;
                     }
                 }
-                const parentElement = target.parentElement
+                const parentElement = target.parentElement;
                 if (!parentElement) {
-                    return
+                    return;
                 }
                 target = parentElement;
             }
@@ -204,7 +204,7 @@ export const image = {
         if (assetsListElement) {
             assetsListElement.addEventListener("mouseover", (event) => {
                 const liElement = hasClosestByClassName(event.target as Element, "b3-list-item");
-                const nextElementSibling = assetsListElement.nextElementSibling
+                const nextElementSibling = assetsListElement.nextElementSibling;
                 if (nextElementSibling) {
                     if (liElement && liElement.getAttribute("data-path") !== nextElementSibling.getAttribute("data-path")) {
                         const item = liElement.getAttribute("data-path");
@@ -274,30 +274,30 @@ const bindAssetTabEvent = (element: Element, type: string) => {
                         if (assetsListElement) {
                             assetsListElement.innerHTML = `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
                         }
-                        const previewElement = element.querySelector(".config-assets__preview")
+                        const previewElement = element.querySelector(".config-assets__preview");
                         if (previewElement) {
                             previewElement.innerHTML = "";
                         }
                     });
                 }, undefined, true);
             } else if (target.getAttribute("data-type") === "copy") {
-                const parentElement = target.parentElement
+                const parentElement = target.parentElement;
                 if (parentElement) {
-                    const textElement = parentElement.querySelector(".b3-list-item__text")
+                    const textElement = parentElement.querySelector(".b3-list-item__text");
                     if (textElement) {
                         writeText(textElement.textContent.trim().replace("assets/", ""));
                     }
                 }
             } else if (target.getAttribute("data-type") === "open") {
                 /// #if !BROWSER
-                const parentElement = target.parentElement
+                const parentElement = target.parentElement;
                 if (parentElement) {
-                    const dataPath = parentElement.getAttribute("data-path")
+                    const dataPath = parentElement.getAttribute("data-path");
                     dataPath && openBy(dataPath, "folder");
                 }
                 /// #endif
             } else if (target.getAttribute("data-type") === "clear") {
-                const parentElement = target.parentElement
+                const parentElement = target.parentElement;
                 if (parentElement) {
                     const pathString = parentElement.getAttribute("data-path");
                     const apiEndpoint = type === "remove" ? "/api/asset/removeUnusedAsset" : "/api/asset/removeMissingAsset";
@@ -315,7 +315,7 @@ const bindAssetTabEvent = (element: Element, type: string) => {
                                 /// #endif
                                 const liElement = target.parentElement;
                                 if (liElement) {
-                                    const liParent = liElement.parentElement
+                                    const liParent = liElement.parentElement;
                                     if (liParent) {
                                         if (liParent.querySelectorAll("li").length === 1) {
                                             liParent.innerHTML = `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
@@ -324,7 +324,7 @@ const bindAssetTabEvent = (element: Element, type: string) => {
                                         }
                                     }
                                 }
-                                const previewElement = element.querySelector(".config-assets__preview")
+                                const previewElement = element.querySelector(".config-assets__preview");
                                 if (previewElement) {
                                     previewElement.innerHTML = "";
 
@@ -343,7 +343,7 @@ const bindAssetTabEvent = (element: Element, type: string) => {
     if (assetsListElement) {
         assetsListElement.addEventListener("mouseover", (event) => {
             const liElement = hasClosestByClassName(event.target as Element, "b3-list-item");
-            const liNextElementSibling = assetsListElement.nextElementSibling
+            const liNextElementSibling = assetsListElement.nextElementSibling;
             if (liNextElementSibling) {
                 if (liElement && liElement.getAttribute("data-path") !== liNextElementSibling.getAttribute("data-path")) {
                     const item = liElement.getAttribute("data-path");
@@ -361,7 +361,7 @@ const bindAssetTabEvent = (element: Element, type: string) => {
             image._renderList(data, assetsListElement, type === "remove");
         });
     }
-}
+};
 
 
 
@@ -381,59 +381,59 @@ const genAssetTabHTML = (type: string) => {
             </ul>
             <div class="config-assets__preview"></div>
         </div>`;
-}
+};
 
-let plugin: Plugin
+let plugin: Plugin;
 document.addEventListener(
-    'app-ready', () => {
+    "app-ready", () => {
         plugin = new Plugin(
             {
                 app: window.siyuan.ws.app,
                 displayName: "资源管理内部插件",
-                name: 'internal-plugin-image',
+                name: "internal-plugin-image",
                 i18n: {}
             }
-        )
+        );
         plugin.addTab(
             {
                 type: "internal-image",
                 init: (model: Custom) => {
-                    const tab = model.tab
+                    const tab = model.tab;
                     if (tab) {
-                        tab.panelElement.innerHTML = image.genHTML()
-                        image.bindEvent(tab.panelElement)
+                        tab.panelElement.innerHTML = image.genHTML();
+                        image.bindEvent(tab.panelElement);
                     }
                 }
             }
-        )
+        );
         // 注册未引用资源页签类型
         plugin.addTab(
             {
                 type: "internal-image-remove",
                 init: (model: Custom) => {
-                    const tab = model.tab
+                    const tab = model.tab;
                     if (tab) {
                         // 生成未引用资源页签的HTML
-                        tab.panelElement.innerHTML = genAssetTabHTML("remove")
-                        bindAssetTabEvent(tab.panelElement, "remove")
+                        tab.panelElement.innerHTML = genAssetTabHTML("remove");
+                        bindAssetTabEvent(tab.panelElement, "remove");
                     }
                 }
             }
-        )
+        );
         // 注册缺失资源页签类型
         plugin.addTab(
             {
                 type: "internal-image-missing",
                 init: (model: Custom) => {
-                    const tab = model.tab
+                    const tab = model.tab;
                     if (tab) {
                         // 生成缺失资源页签的HTML
-                        tab.panelElement.innerHTML = genAssetTabHTML("missing")
-                        bindAssetTabEvent(tab.panelElement, "missing")
+                        tab.panelElement.innerHTML = genAssetTabHTML("missing");
+                        bindAssetTabEvent(tab.panelElement, "missing");
                     }
                 }
             }
-        )
-        window.siyuan.ws.app.plugins.push(plugin)
+        );
+        window.siyuan.ws.app.plugins.push(plugin);
     }
-)
+);

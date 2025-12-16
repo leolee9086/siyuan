@@ -1,35 +1,35 @@
-import Router from './router.htttpRouter'
-import baseRouter from './router.base';
-import type { MiddlewareFunction, PathType, RouteParamType } from './types'
-import { z } from 'zod'
+import Router from "./router.htttpRouter";
+import baseRouter from "./router.base";
+import type { MiddlewareFunction, PathType, RouteParamType } from "./types";
+import { z } from "zod";
 // HTTP方法列表
 const methods = [
-    'get',
-    'post',
-    'put',
-    'head',
-    'delete',
-    'options',
-    'trace',
-    'copy',
-    'lock',
-    'mkcol',
-    'move',
-    'purge',
-    'propfind',
-    'proppatch',
-    'unlock',
-    'report',
-    'mkactivity',
-    'checkout',
-    'merge',
-    'm-search',
-    'notify',
-    'subscribe',
-    'unsubscribe',
-    'patch',
-    'search',
-    'connect'
+    "get",
+    "post",
+    "put",
+    "head",
+    "delete",
+    "options",
+    "trace",
+    "copy",
+    "lock",
+    "mkcol",
+    "move",
+    "purge",
+    "propfind",
+    "proppatch",
+    "unlock",
+    "report",
+    "mkactivity",
+    "checkout",
+    "merge",
+    "m-search",
+    "notify",
+    "subscribe",
+    "unsubscribe",
+    "patch",
+    "search",
+    "connect"
 ];
 
 /**
@@ -38,9 +38,9 @@ const methods = [
  * @returns 是否是路径类型
  */
 const isPath = (value: any): value is PathType => {
-    return typeof value === 'string' ||
+    return typeof value === "string" ||
     value instanceof RegExp ||
-    (Array.isArray(value) && value.length > 0 && typeof value[0] === 'string');
+    (Array.isArray(value) && value.length > 0 && typeof value[0] === "string");
 };
 
 /**
@@ -49,7 +49,7 @@ const isPath = (value: any): value is PathType => {
  * @returns 是否是中间件函数
  */
 const isMiddleware = (value: any): value is MiddlewareFunction => {
-    return typeof value === 'function';
+    return typeof value === "function";
 };
 
 /**
@@ -58,7 +58,7 @@ const isMiddleware = (value: any): value is MiddlewareFunction => {
  * @returns 是否是中间件数组
  */
 const isMiddlewareArray = (value: any): value is MiddlewareFunction[] => {
-    return Array.isArray(value) && value.length > 0 && typeof value[0] === 'function';
+    return Array.isArray(value) && value.length > 0 && typeof value[0] === "function";
 };
 
 
@@ -106,7 +106,7 @@ export function all<
         const pathOrMiddleware = args[1];
         const rest = args.slice(2);
         
-        actualName = typeof nameOrPath === 'string' ? nameOrPath : null;
+        actualName = typeof nameOrPath === "string" ? nameOrPath : null;
         actualPath = pathOrMiddleware;
         middleware = rest.filter(isMiddleware);
     }
@@ -126,19 +126,19 @@ export function all<
             const remainingMiddleware = rest.slice(1).filter(isMiddleware);
             middleware = [...firstMiddlewareArray, ...remainingMiddleware];
         } else {
-            throw new Error('You have to provide a valid middleware when adding an all handler');
+            throw new Error("You have to provide a valid middleware when adding an all handler");
         }
     } else {
-        throw new Error('You have to provide a path when adding an all handler');
+        throw new Error("You have to provide a path when adding an all handler");
     }
 
     // Sanity check to ensure we have a viable path candidate (eg: string|regex|non-empty array)
     if (
-        typeof actualPath !== 'string' &&
+        typeof actualPath !== "string" &&
         !(actualPath instanceof RegExp) &&
         (!Array.isArray(actualPath) || actualPath.length === 0)
     )
-        throw new Error('You have to provide a path when adding an all handler');
+        throw new Error("You have to provide a path when adding an all handler");
     
     router.register(actualPath, methods, middleware, { name: actualName });
     return router ;

@@ -1,5 +1,5 @@
-import type { AssistantResponseState } from '../ai/session/session.types';
-import type { StreamResponseResult } from '../ai/handleOpenAILikeStreamResponse';
+import type { AssistantResponseState } from "../ai/session/session.types";
+import type { StreamResponseResult } from "../ai/handleOpenAILikeStreamResponse";
 
 /**
  * 业务逻辑依赖接口
@@ -41,7 +41,7 @@ export interface StreamHandlers {
  * 消息历史记录类型
  */
 export type MessageHistory = Array<{ 
-    role: 'user' | 'assistant'|'system'; 
+    role: "user" | "assistant"|"system"; 
     content: string; 
     timestamp: number 
 }>;

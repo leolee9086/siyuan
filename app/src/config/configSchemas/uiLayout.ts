@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from "zod";
 
 // 布局方向类型
 const layoutDirectionSchema = z.union([z.literal("tb"), z.literal("lr")]);
@@ -191,14 +191,14 @@ const layoutTabSchema = z.object({
     pin: z.boolean(),
     title: z.string(),
     activeTime: z.string()
-})
+});
 const layoutWndSchema = z.object({
     children: z.array(layoutTabSchema),
     height: z.string(),
     instance: z.literal("Wnd"),
     resize: layoutDirectionSchema,
     width: z.string()
-})
+});
 
 
 // 使用 z.lazy() 来处理循环引用，并添加明确的类型注解
@@ -209,7 +209,7 @@ const layoutLayoutSchema: z.ZodType<Config.IUILayoutLayout> = z.object({
     resize: layoutDirectionSchema,
     size: z.string(),
     type: layoutTypeSchema
-})
+});
 
 
 
@@ -219,15 +219,15 @@ const schema = z.object({
     layout: layoutLayoutSchema,
     left: layoutPanelSchema,
     right: layoutPanelSchema
-})
-export { schema as uiLayoutSchema }
+});
+export { schema as uiLayoutSchema };
 // 从 schema 推断类型
 type InferredUILayout = z.infer<typeof schema>;
 
 // 然后手动对比 InferredUILayout 和 Config.IConf['uiLayout']
 // 或者在 IDE 中查看类型差异
-type IsCompatible = InferredUILayout extends Config.IConf['uiLayout']
-    ? Config.IConf['uiLayout'] extends InferredUILayout
+type IsCompatible = InferredUILayout extends Config.IConf["uiLayout"]
+    ? Config.IConf["uiLayout"] extends InferredUILayout
     ? true
     : false
     : false;
@@ -235,12 +235,12 @@ type check = IsCompatible extends true ? true : never;
 
 // 这个函数会在编译时验证类型兼容性
 function validateTypeCompatibility(): InferredUILayout {
-    return {} as Config.IConf['uiLayout']; // 如果类型不匹配，这里会报错
+    return {} as Config.IConf["uiLayout"]; // 如果类型不匹配，这里会报错
 }
-function validateTypeCompatibilityReverse(): Config.IConf['uiLayout'] {
+function validateTypeCompatibilityReverse(): Config.IConf["uiLayout"] {
     return {} as InferredUILayout; // 如果类型不匹配，这里会报错
 }
-export const parseAsUiLayoutConfig = (rawConf: {}): Config.IConf['uiLayout'] => {
+export const parseAsUiLayoutConfig = (rawConf: {}): Config.IConf["uiLayout"] => {
     const result = schema.safeParse(rawConf);
 
     if (!result.success) {
@@ -248,4 +248,4 @@ export const parseAsUiLayoutConfig = (rawConf: {}): Config.IConf['uiLayout'] => 
     }
 
     return result.data;
-}
+};

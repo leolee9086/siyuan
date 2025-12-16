@@ -12,12 +12,12 @@ export const parseAndValidateStreamData = (dataStr: string) => {
         let cleanDataStr = dataStr.trim();
 
         // 移除 "data: " 前缀（如果存在）
-        if (cleanDataStr.startsWith('data: ')) {
+        if (cleanDataStr.startsWith("data: ")) {
             cleanDataStr = cleanDataStr.substring(6);
         }
 
         // 跳过空行和 "[DONE]" 标记
-        if (!cleanDataStr || cleanDataStr === '[DONE]') {
+        if (!cleanDataStr || cleanDataStr === "[DONE]") {
             return null;
         }
 
@@ -48,7 +48,7 @@ export const parseAndValidateStreamData = (dataStr: string) => {
     }
 };
 
-const cache = new Map()
+const cache = new Map();
 // 处理工具调用的通用函数
 const 处理工具调用 = (
     tempDiv: HTMLElement,
@@ -59,15 +59,15 @@ const 处理工具调用 = (
 ): void => {
     const 代码块处理条件 = (blockElement: Element, content: string) => {
 
-        let flag = false
-        let lastUsed = cache.get(content)
-        if (!state.responseContentStr.split('\`\`\`').pop()?.trim()) {
-            flag = true
-            cache.set(content, flag)
+        let flag = false;
+        const lastUsed = cache.get(content);
+        if (!state.responseContentStr.split("\`\`\`").pop()?.trim()) {
+            flag = true;
+            cache.set(content, flag);
         }
         //console.log(flag, lastUsed)
-        return flag && !lastUsed
-    }
+        return flag && !lastUsed;
+    };
     const toolCode = 从块DOM提取首个符合条件的特定语言代码块内容(tempDiv, toolClass, 代码块处理条件);
     if (toolCode && 回调函数) {
         回调函数(toolCode).catch(error => {
@@ -82,26 +82,26 @@ export const processBlockDOMContent = (
     lute: Lute
 ): string => {
     if (!lute) {
-        throw new Error('缺少lute实例,无法处理工具调用')
+        throw new Error("缺少lute实例,无法处理工具调用");
     }
     // 使用lute引擎将内容转换为块级DOM
     const blockDom = lute.SpinBlockDOM(state.responseContentStr);
     state.blockDOMContent = blockDom;
     // 从生成的blockDOM中处理data-node-id属性并设置custom-assistant-name
-    const tempDiv = document.createElement('div');
+    const tempDiv = document.createElement("div");
     tempDiv.innerHTML = blockDom;
     // 查找所有带有data-node-id属性的元素
-    const elementsWithNodeId = tempDiv.querySelectorAll('[data-node-id]');
+    const elementsWithNodeId = tempDiv.querySelectorAll("[data-node-id]");
     elementsWithNodeId.forEach(element => {
         // 设置custom-assistant-name属性为default
-        element.setAttribute('custom-assistant-name', 'default');
+        element.setAttribute("custom-assistant-name", "default");
     });
 
     // 检测并处理DOM中的工具调用
-    处理工具调用(tempDiv, JAVASCRIPT_TOOLS_WAIT_CLASS, state.onWaitToolCallDetected, '工具调用', state);
+    处理工具调用(tempDiv, JAVASCRIPT_TOOLS_WAIT_CLASS, state.onWaitToolCallDetected, "工具调用", state);
 
     // 检测并处理DOM中的异步工具调用
-    处理工具调用(tempDiv, JAVASCRIPT_TOOLS_CLASS, state.onAsyncToolCallDetected, '异步工具调用', state);
+    处理工具调用(tempDiv, JAVASCRIPT_TOOLS_CLASS, state.onAsyncToolCallDetected, "异步工具调用", state);
 
     // 更新处理后的blockDOM
     const processedBlockDom = tempDiv.innerHTML;

@@ -135,7 +135,7 @@ const handleCopyAction = (ctx: ToolbarActionContext) => {
  */
 const handleRelateAction = (ctx: ToolbarActionContext) => {
     const { pdf } = ctx;
-    console.log(pdf)
+    console.log(pdf);
     setRelation(pdf);
     hideToolbar(ctx.element);
 };

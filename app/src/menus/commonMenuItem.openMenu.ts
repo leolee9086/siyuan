@@ -153,7 +153,7 @@ const generateLocalFileDesktopMenuItems = (src: string, showAccelerator: boolean
 // 非资源本地文件菜单项生成函数
 const generateLocalFileMenuItems = (src: string, showAccelerator: boolean) => {
     //尽可能不使用条件编译,避免维护困难
-    if (window.require && window.require('electron')) {
+    if (window.require && window.require("electron")) {
         return generateLocalFileDesktopMenuItems(src, showAccelerator);
     } else {
         return generateLocalFileMobileMenuItems(src, showAccelerator);
@@ -185,7 +185,7 @@ const generateExternalLinkMenuItems = (src: string, showAccelerator: boolean) =>
         processedSrc = `https://${src}`;
     }
     ///尽可能不使用条件编译,避免维护困难
-    if (window.require && window.require('electron')) {
+    if (window.require && window.require("electron")) {
         return generateExternalLinkDesktopMenuItems(processedSrc, showAccelerator);
     } else {
         return generateExternalLinkMobileMenuItems(processedSrc, showAccelerator);
@@ -200,7 +200,7 @@ export const openMenu = (app: App, src: string, onlyMenu: boolean, showAccelerat
     /// #else
     if (isLocalPath(src)) {
         const ext = pathPosix().extname(src).split("?")[0];
-        if (Constants.SIYUAN_ASSETS_EXTS.includes(ext||'') &&
+        if (Constants.SIYUAN_ASSETS_EXTS.includes(ext||"") &&
             (!src.endsWith(".pdf") ||
                 (src.endsWith(".pdf") && !src.startsWith("file://")))) {
             submenu = generateAssetMenuItems(app, src, showAccelerator);

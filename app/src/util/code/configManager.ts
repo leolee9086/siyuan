@@ -1,4 +1,4 @@
-import type { ConfigSummary, ModuleRedirectConfig } from './executor.types';
+import type { ConfigSummary, ModuleRedirectConfig } from "./executor.types";
 
 /**
  * 配置管理器类
@@ -17,7 +17,7 @@ export class ConfigManager {
     packagePatterns: RegExp[] = [],
     autoAllowScoped: boolean = false,
     moduleRedirectConfig: ModuleRedirectConfig = {
-      defaultServer: 'https://esm.sh',
+      defaultServer: "https://esm.sh",
       packageRedirects: {},
       enabled: false,
       bareModulesOnly: true
@@ -188,14 +188,14 @@ export class ConfigManager {
    */
   isBareModule(importSource: string): boolean {
     // 移除查询参数和哈希
-    const cleanSource = importSource.split('?')[0].split('#')[0];
+    const cleanSource = importSource.split("?")[0].split("#")[0];
     
     // 裸模块是指不以 './', '../', '/', 'http://', 'https://' 开头的模块
-    return !cleanSource.startsWith('./') &&
-           !cleanSource.startsWith('../') &&
-           !cleanSource.startsWith('/') &&
-           !cleanSource.startsWith('http://') &&
-           !cleanSource.startsWith('https://');
+    return !cleanSource.startsWith("./") &&
+           !cleanSource.startsWith("../") &&
+           !cleanSource.startsWith("/") &&
+           !cleanSource.startsWith("http://") &&
+           !cleanSource.startsWith("https://");
   }
 
   /**
@@ -249,7 +249,7 @@ export class ConfigManager {
     }
     
     // 自动允许特定作用域的包
-    if (this.autoAllowScoped && packageName.startsWith('@company/')) {
+    if (this.autoAllowScoped && packageName.startsWith("@company/")) {
       return true;
     }
 

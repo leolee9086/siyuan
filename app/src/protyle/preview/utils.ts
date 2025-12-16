@@ -31,7 +31,7 @@ const matchAttributesStrict = (
       if (!expectedValue.test(actualValue)) {
         return false;
       }
-    } else if (typeof expectedValue === 'function') {
+    } else if (typeof expectedValue === "function") {
       // 函数匹配
       try {
         if (!expectedValue(actualValue)) {

@@ -31,7 +31,7 @@ export const createTypedMatcher = <
       if (conditionValue === undefined) return undefined;
       
       if (flagValue instanceof RegExp) {
-        if (typeof conditionValue !== 'string' || !flagValue.test(conditionValue)) {
+        if (typeof conditionValue !== "string" || !flagValue.test(conditionValue)) {
           return undefined;
         }
       } else if (Array.isArray(flagValue)) {
@@ -56,14 +56,14 @@ export const createTypedMatcher = <
 // 使用示例
 // 1. 无payload的匹配器
 const adminMatcher = createTypedMatcher(
-  { role: 'admin', enabled: true },
-  () => ({ permissions: ['read', 'write', 'delete'] })
+  { role: "admin", enabled: true },
+  () => ({ permissions: ["read", "write", "delete"] })
 );
 
 // 2. 带字符串payload的匹配器
 const userMatcher = createTypedMatcher(
-  { role: 'user', plan: /^(pro|enterprise)$/ },
-  (userId: string) => ({ userId, features: ['read', 'write'] })
+  { role: "user", plan: /^(pro|enterprise)$/ },
+  (userId: string) => ({ userId, features: ["read", "write"] })
 );
 
 // 3. 带对象payload的匹配器
@@ -77,25 +77,25 @@ const analyticsMatcher = createTypedMatcher(
 
 // 4. 带可选payload的匹配器
 const guestMatcher = createTypedMatcher(
-  { role: 'guest' },
+  { role: "guest" },
   (sessionId?: string) => ({
-    sessionId: sessionId || 'anonymous',
-    permissions: ['read']
+    sessionId: sessionId || "anonymous",
+    permissions: ["read"]
   })
 );
 
 // 测试使用
-const conditions1 = { role: 'admin', enabled: true };
+const conditions1 = { role: "admin", enabled: true };
 const result1 = adminMatcher(conditions1);
 // result1.payload 类型为 { permissions: string[] }
 
-const conditions2 = { role: 'user', plan: 'pro' };
-const result2 = userMatcher(conditions2, 'user-123');
+const conditions2 = { role: "user", plan: "pro" };
+const result2 = userMatcher(conditions2, "user-123");
 // result2.payload 类型为 { userId: string; features: string[] }
 
 const conditions3 = { analytics: true, version: 2 };
 const result3 = analyticsMatcher(conditions3, { 
-  trackingId: 'UA-123', 
-  events: ['click', 'pageview'] 
+  trackingId: "UA-123", 
+  events: ["click", "pageview"] 
 });
 // result3.payload 类型为 { trackingId: string; events: string[]; enabled: boolean }

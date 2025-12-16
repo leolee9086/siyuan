@@ -1,6 +1,6 @@
-import { z } from 'zod'
-import { MiddlewareFunction, Context } from './types'
-import { Key } from 'path-to-regexp'
+import { z } from "zod";
+import { MiddlewareFunction, Context } from "./types";
+import { Key } from "path-to-regexp";
 
 // 基础层配置接口
 export interface BaseLayerOptions {
@@ -66,7 +66,7 @@ export const layerLikeSchema = z.object({
     request: z.any().optional(),
     response: z.any().optional(),
   }).optional(),
-})
+});
 
 // 推导类型
 export type LayerLikeType = z.infer<typeof layerLikeSchema>

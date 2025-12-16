@@ -1,6 +1,6 @@
-import { parse } from 'es-module-lexer';
-import MagicString from 'magic-string';
-import { ConfigManager } from './configManager';
+import { parse } from "es-module-lexer";
+import MagicString from "magic-string";
+import { ConfigManager } from "./configManager";
 import type {
   UnauthorizedImportStrategy,
   ImportHandlingOptions,
@@ -8,7 +8,7 @@ import type {
   TemporaryModule,
   ImportSpec,
   ModuleRedirectConfig
-} from './executor.types';
+} from "./executor.types";
 
 /**
  * 安全模块创建器类
@@ -26,14 +26,14 @@ export class SecureModuleCreator {
       config.packagePatterns || [],
       config.autoAllowScoped || false,
       config.moduleRedirectConfig || {
-        defaultServer: 'https://esm.sh',
+        defaultServer: "https://esm.sh",
         packageRedirects: {},
         enabled: false,
         bareModulesOnly: true
       }
     );
     this.defaultOptions = config.defaultOptions || {
-      onUnauthorizedImport: 'throw',
+      onUnauthorizedImport: "throw",
       customMocks: {}
     };
   }
@@ -120,12 +120,12 @@ export class SecureModuleCreator {
     }
     
     // 如果有未授权导入且策略是 throw，完全替换代码为错误抛出
-    if (hasUnauthorizedImports && finalOptions.onUnauthorizedImport === 'throw') {
+    if (hasUnauthorizedImports && finalOptions.onUnauthorizedImport === "throw") {
       const uniquePackages = [...new Set(unauthorizedPackages)];
-      const errorMessage = `Package(s) "${uniquePackages.join(', ')}" are not allowed`;
+      const errorMessage = `Package(s) "${uniquePackages.join(", ")}" are not allowed`;
       // 完全替换代码，只保留错误抛出语句，确保没有任何其他代码执行
       const secureCode = `(() => { throw new Error('${errorMessage}') })();`;
-      console.warn('检测到未授权的导入并已完全阻止代码执行');
+      console.warn("检测到未授权的导入并已完全阻止代码执行");
       return this.createTemporaryModule(secureCode);
     }
     
@@ -137,10 +137,10 @@ export class SecureModuleCreator {
    * 判断是否为外部包
    */
   private isExternalPackage(importSource: string): boolean {
-    return !importSource.startsWith('.') &&
-           !importSource.startsWith('/') &&
-           !importSource.startsWith('http:') &&
-           !importSource.startsWith('https:');
+    return !importSource.startsWith(".") &&
+           !importSource.startsWith("/") &&
+           !importSource.startsWith("http:") &&
+           !importSource.startsWith("https:");
   }
 
   /**
@@ -148,10 +148,10 @@ export class SecureModuleCreator {
    */
   private extractPackageName(importSource: string): string {
     // 移除查询参数和哈希
-    const cleanSource = importSource.split('?')[0].split('#')[0];
+    const cleanSource = importSource.split("?")[0].split("#")[0];
     
-    if (cleanSource.startsWith('@')) {
-      const parts = cleanSource.split('/');
+    if (cleanSource.startsWith("@")) {
+      const parts = cleanSource.split("/");
       return parts.length >= 2 ? `${parts[0]}/${parts[1]}` : cleanSource;
     }
     
@@ -180,19 +180,19 @@ export class SecureModuleCreator {
     const { s, e } = importSpec;
     
     switch (strategy) {
-      case 'throw':
+      case "throw":
         // 对于 'throw' 策略，不替换导入语句，保留原导入语句
         // 错误将在代码开头统一添加
         break;
         
-      case 'mock':
+      case "mock":
         const mockCode = customMocks[packageName] || this.createDefaultMock(packageName);
         magicString.overwrite(s, e, mockCode);
         break;
         
-      case 'remove':
+      case "remove":
         // 移除整个导入语句
-        const lineEnd = magicString.original.indexOf('\n', e);
+        const lineEnd = magicString.original.indexOf("\n", e);
         if (lineEnd !== -1) {
           magicString.remove(s, lineEnd + 1);
         } else {
@@ -220,7 +220,7 @@ export class SecureModuleCreator {
    */
   private async createTemporaryModule(code: string): Promise<TemporaryModule> {
     // 检查是否在 Node.js 环境中
-    const isNodeJS = typeof window === 'undefined' && typeof process !== 'undefined';
+    const isNodeJS = typeof window === "undefined" && typeof process !== "undefined";
     
     if (isNodeJS) {
       // Node.js 环境下的特殊处理
@@ -238,13 +238,13 @@ export class SecureModuleCreator {
    */
   private async createBrowserTemporaryModule(code: string): Promise<TemporaryModule> {
     // 创建 Blob URL
-    const blob = new Blob([code], { type: 'application/javascript' });
+    const blob = new Blob([code], { type: "application/javascript" });
     const moduleUrl = URL.createObjectURL(blob);
     
     try {
       const moduleExport = await import(/* webpackIgnore: true */ moduleUrl);
       // 返回模块信息和清理函数
-      console.log(moduleExport)
+      console.log(moduleExport);
       return {
         moduleUrl,
         moduleExport: moduleExport,
@@ -274,13 +274,13 @@ export class SecureModuleCreator {
    */
   ///#if !BROWSER
   private async createNodeJSTemporaryModule(code: string): Promise<TemporaryModule> {
-    const { writeFileSync, mkdirSync } = await import('fs');
-    const { join } = await import('path');
-    const { tmpdir } = await import('os');
-    const { createHash } = await import('crypto');
+    const { writeFileSync, mkdirSync } = await import("fs");
+    const { join } = await import("path");
+    const { tmpdir } = await import("os");
+    const { createHash } = await import("crypto");
     
     // 创建临时目录
-    const tempDir = join(tmpdir(), 'secure-modules');
+    const tempDir = join(tmpdir(), "secure-modules");
     try {
       mkdirSync(tempDir, { recursive: true });
     } catch (error) {
@@ -290,8 +290,8 @@ export class SecureModuleCreator {
     // 从代码中提取包名，用于生成哈希
     const packageNames = this.extractPackageNamesFromCode(code);
     const packageHash = packageNames.length > 0
-      ? createHash('md5').update(packageNames.join(',')).digest('hex').substring(0, 8)
-      : createHash('md5').update(code).digest('hex').substring(0, 8);
+      ? createHash("md5").update(packageNames.join(",")).digest("hex").substring(0, 8)
+      : createHash("md5").update(code).digest("hex").substring(0, 8);
     
     // 创建临时文件，使用包名相关的哈希
     const fileName = `module-${packageHash}-${Date.now()}.js`;
@@ -299,8 +299,8 @@ export class SecureModuleCreator {
     
     try {
       // 写入代码到临时文件
-      writeFileSync(filePath, code, 'utf8');
-      console.log(filePath,code)
+      writeFileSync(filePath, code, "utf8");
+      console.log(filePath,code);
       // 使用动态 import 导入模块
       const moduleUrl = `${filePath}`;
       const moduleExport = await import(/* webpackIgnore: true */moduleUrl);
@@ -358,7 +358,7 @@ export class SecureModuleCreator {
 export class SecurityError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'SecurityError';
+    this.name = "SecurityError";
   }
 }
 
@@ -372,11 +372,11 @@ export async function createTemporaryModule(code: string): Promise<TemporaryModu
     packagePatterns: [],
     autoAllowScoped: false,
     defaultOptions: {
-      onUnauthorizedImport: 'throw',
+      onUnauthorizedImport: "throw",
       customMocks: {}
     },
     moduleRedirectConfig: {
-      defaultServer: 'https://esm.sh',
+      defaultServer: "https://esm.sh",
       packageRedirects: {},
       enabled: false,
       bareModulesOnly: true
@@ -397,7 +397,7 @@ export async function createSecureTemporaryModule(
     allowedPackages?: string[];
     packagePatterns?: RegExp[];
     autoAllowScoped?: boolean;
-    onUnauthorizedImport?: 'throw' | 'mock' | 'remove';
+    onUnauthorizedImport?: "throw" | "mock" | "remove";
     customMocks?: Record<string, any>;
     moduleRedirectConfig?: {
       defaultServer?: string;
@@ -412,11 +412,11 @@ export async function createSecureTemporaryModule(
     packagePatterns: options.packagePatterns || [],
     autoAllowScoped: options.autoAllowScoped || false,
     defaultOptions: {
-      onUnauthorizedImport: options.onUnauthorizedImport || 'throw',
+      onUnauthorizedImport: options.onUnauthorizedImport || "throw",
       customMocks: options.customMocks || {}
     },
     moduleRedirectConfig: {
-      defaultServer: options.moduleRedirectConfig?.defaultServer || 'https://esm.sh',
+      defaultServer: options.moduleRedirectConfig?.defaultServer || "https://esm.sh",
       packageRedirects: options.moduleRedirectConfig?.packageRedirects || {},
       enabled: options.moduleRedirectConfig?.enabled ?? false,
       bareModulesOnly: options.moduleRedirectConfig?.bareModulesOnly ?? true
@@ -438,7 +438,7 @@ export async function createDynamicSecureTemporaryModule(
     allowedPackages?: string[];
     packagePatterns?: RegExp[];
     autoAllowScoped?: boolean;
-    onUnauthorizedImport?: 'throw' | 'mock' | 'remove';
+    onUnauthorizedImport?: "throw" | "mock" | "remove";
     customMocks?: Record<string, any>;
   } = {}
 ): Promise<TemporaryModule> {
@@ -447,11 +447,11 @@ export async function createDynamicSecureTemporaryModule(
     packagePatterns: options.packagePatterns || [],
     autoAllowScoped: options.autoAllowScoped || false,
     defaultOptions: {
-      onUnauthorizedImport: options.onUnauthorizedImport || 'throw',
+      onUnauthorizedImport: options.onUnauthorizedImport || "throw",
       customMocks: options.customMocks || {}
     },
     moduleRedirectConfig: {
-      defaultServer: 'https://esm.sh',
+      defaultServer: "https://esm.sh",
       packageRedirects: {},
       enabled: false,
       bareModulesOnly: true

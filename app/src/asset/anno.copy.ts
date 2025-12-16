@@ -17,7 +17,7 @@ export const copyAnno = (idPath: string, fileName: string, pdf: any) => {
         if (mode === "rect" ||
             (mode === "" && rectElement.childElementCount === 1 && content.startsWith(fileName)) // 兼容历史，以前没有 mode
         ) {
-            const imageDataURL = await getRectImgData(pdf)
+            const imageDataURL = await getRectImgData(pdf);
             if (!imageDataURL) {
                 return;
             }

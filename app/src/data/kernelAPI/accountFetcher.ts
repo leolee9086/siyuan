@@ -12,4 +12,4 @@ const createAccountFetcher = (config: { host: string; port?: number; protocol?: 
   return withAI;
 };
 
-export let fetcher = createAccountFetcher({ host: "localhost", port: 3000, protocol: "http" })
+export const fetcher = createAccountFetcher({ host: "localhost", port: 3000, protocol: "http" });

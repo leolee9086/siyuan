@@ -1,11 +1,11 @@
-import { pathToRegexp, compile, ParseOptions, Key, TokensToRegexpOptions } from 'path-to-regexp'
-import { parse as parseUrl, format as formatUrl, UrlObject } from "url"
-import { MiddlewareFunction, Context } from './types';
-import { LayerLike } from './layerLike.types';
+import { pathToRegexp, compile, ParseOptions, Key, TokensToRegexpOptions } from "path-to-regexp";
+import { parse as parseUrl, format as formatUrl, UrlObject } from "url";
+import { MiddlewareFunction, Context } from "./types";
+import { LayerLike } from "./layerLike.types";
 
 // 类型守卫函数
 function hasName(token: Key | string): token is Key {
-  return typeof token === 'object' && token !== null && 'name' in token;
+  return typeof token === "object" && token !== null && "name" in token;
 }
 
 // 类型定义
@@ -66,14 +66,14 @@ export default class Layer implements LayerLike {
     }
 
     // 确保HEAD方法在GET方法之后
-    if (this.methods.includes('GET') && !this.methods.includes('HEAD')) {
-      this.methods.push('HEAD');
+    if (this.methods.includes("GET") && !this.methods.includes("HEAD")) {
+      this.methods.push("HEAD");
     }
 
     // ensure middleware is a function or router
     for (const fn of this.stack) {
       const type = typeof fn;
-      if (type !== 'function') {
+      if (type !== "function") {
         throw new Error(
           `${methods.toString()} \`${this.opts.name || path
           }\`: \`middleware\` must be a function or router, not \`${type}\``
@@ -167,15 +167,15 @@ export default class Layer implements LayerLike {
    * @private
    */
   public url(params: Record<string, any> | any[], options?: { query?: string | Record<string, any> }): string {
-    const pathStr = typeof this.path === 'string' ? this.path : '';
-    const url = pathStr.replace(/\(\.\*\)/g, '');
+    const pathStr = typeof this.path === "string" ? this.path : "";
+    const url = pathStr.replace(/\(\.\*\)/g, "");
     const toPath = compile(url, { encode: encodeURIComponent });
 
-    let replaced = toPath(params);
+    const replaced = toPath(params);
 
     if (options && options.query) {
       const urlObject: UrlObject = parseUrl(replaced);
-      if (typeof options.query === 'string') {
+      if (typeof options.query === "string") {
         urlObject.search = options.query;
       } else {
         urlObject.search = undefined;
@@ -240,8 +240,8 @@ export default class Layer implements LayerLike {
    * @private
    */
   public setPrefix(prefix: string): LayerLike {
-    if (typeof this.path === 'string') {
-      this.path = this.path === '/' && this.opts.strict !== true ? prefix : `${prefix}${this.path}`;
+    if (typeof this.path === "string") {
+      this.path = this.path === "/" && this.opts.strict !== true ? prefix : `${prefix}${this.path}`;
       const options: TokensToRegexpOptions & ParseOptions = {
         end: this.opts.end !== false,
         sensitive: this.opts.sensitive,

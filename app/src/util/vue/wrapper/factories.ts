@@ -1,5 +1,5 @@
-import type { VueComponent, ComponentWrapper } from './types';
-import { createComponentWrapper } from './core';
+import type { VueComponent, ComponentWrapper } from "./types";
+import { createComponentWrapper } from "./core";
 
 /**
  * 创建专门用于props拦截的高阶组件工厂

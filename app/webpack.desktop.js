@@ -113,8 +113,8 @@ module.exports = (env, argv) => {
                         path.resolve(__dirname, "src"),
                     ],
                     use: [
-                                                 process.env.NODE_ENV !== 'production'
-                            ? 'vue-style-loader'
+                                                 process.env.NODE_ENV !== "production"
+                            ? "vue-style-loader"
                             : MiniCssExtractPlugin.loader,
 
 

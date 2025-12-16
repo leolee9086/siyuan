@@ -1,4 +1,4 @@
-import z from "zod"
+import z from "zod";
 
 /**
  * 路由函数

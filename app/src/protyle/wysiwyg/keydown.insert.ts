@@ -15,10 +15,10 @@ export const insertBeforeMiddleWare = (
         nodeElement.querySelector(".img--select")?.classList.remove("img--select");
         insertEmptyBlock(protyle, "beforebegin");
         event.preventDefault();
-        controller.abort()
+        controller.abort();
         return true;
     }
-}
+};
 
 
 export const insertAfterMiddleWare = (
@@ -34,8 +34,8 @@ export const insertAfterMiddleWare = (
         nodeElement.querySelector(".img--select")?.classList.remove("img--select");
         insertEmptyBlock(protyle, "afterend");
         event.preventDefault();
-        controller.abort()
+        controller.abort();
         return true;
     }
-}
+};
 

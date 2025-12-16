@@ -26,7 +26,7 @@ const createAnchorEditorItem = (refElement: HTMLSpanElement) => {
         bind(menuItemElement) {
             const refBlockId = refElement.getAttribute("data-id");
             if (!refBlockId) {
-                throw new Error('引用目标id缺失')
+                throw new Error("引用目标id缺失");
             }
             const inputElement = menuItemElement.querySelector("input");
             if (inputElement) {
@@ -54,8 +54,8 @@ const createAnchorEditorItem = (refElement: HTMLSpanElement) => {
                 });
             }
         }
-    })
-}
+    });
+};
 export const refMenu = (protyle: IProtyle, refElement: HTMLElement) => {
     const nodeElement = hasClosestBlock(refElement);
     if (!nodeElement) {
@@ -65,7 +65,7 @@ export const refMenu = (protyle: IProtyle, refElement: HTMLElement) => {
     const refBlockId = refElement.getAttribute("data-id");
     const id = nodeElement.getAttribute("data-node-id");
     if (!refBlockId) {
-        throw new Error('引用目标id缺失')
+        throw new Error("引用目标id缺失");
     }
     let oldHTML = nodeElement.outerHTML;
     getSiyuanGlobalMenus().menu.remove();

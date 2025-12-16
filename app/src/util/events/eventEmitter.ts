@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 type IEventDefines = {
   readonly [key: string]: z.ZodRawShape;
@@ -13,7 +13,7 @@ type EventListener<T extends IEventDefines, K extends keyof T> =
 
 interface EventEmitterOptions {
   runtimeCheck?: boolean;
-  validationFailure?: 'throw' | 'warn' | 'silent';
+  validationFailure?: "throw" | "warn" | "silent";
   revalidateAfterEach?: boolean;
   onValidationError?: (event: string, error: z.ZodError, data: unknown) => void;
 }
@@ -38,13 +38,13 @@ export class SafeEventEmitter<T extends IEventDefines> {
     // 先创建默认选项
     const defaultOptions = {
       runtimeCheck: false,
-      validationFailure: 'throw' as const,
+      validationFailure: "throw" as const,
       revalidateAfterEach: false,
       onValidationError: (event: string, error: z.ZodError, data: unknown) => {
         const message = `Event data validation failed for "${event}": ${error.message}`;
-        if (this.options.validationFailure === 'throw') {
+        if (this.options.validationFailure === "throw") {
           throw new Error(message);
-        } else if (this.options.validationFailure === 'warn') {
+        } else if (this.options.validationFailure === "warn") {
           console.warn(message, error.issues);
         }
       }
@@ -60,9 +60,9 @@ export class SafeEventEmitter<T extends IEventDefines> {
     if (options.validationFailure && !options.onValidationError) {
       this.options.onValidationError = (event: string, error: z.ZodError, data: unknown) => {
         const message = `Event data validation failed for "${event}": ${error.message}`;
-        if (this.options.validationFailure === 'throw') {
+        if (this.options.validationFailure === "throw") {
           throw new Error(message);
-        } else if (this.options.validationFailure === 'warn') {
+        } else if (this.options.validationFailure === "warn") {
           console.warn(message, error.issues);
         }
       };
@@ -116,7 +116,7 @@ export class SafeEventEmitter<T extends IEventDefines> {
     const result = schema.safeParse(data);
     if (!result.success) {
       // 在throw模式下，我们需要抛出错误而不是返回null
-      if (this.options.validationFailure === 'throw') {
+      if (this.options.validationFailure === "throw") {
         // 直接抛出错误，不通过onValidationError
         const message = `Event data validation failed for "${String(event)}": ${result.error.message}`;
         return { data: null, shouldThrow: true };
@@ -147,14 +147,14 @@ export class SafeEventEmitter<T extends IEventDefines> {
         // 重新验证数据，如果验证失败会抛出错误
         if (!this.validateEventData(event, dataCopy)) {
           // 如果验证失败且是throw模式，需要重新抛出错误
-          if (this.options.validationFailure === 'throw') {
+          if (this.options.validationFailure === "throw") {
             throw new Error(`Event data validation failed after listener execution for "${String(event)}"`);
           }
         }
       }
     } catch (error) {
       // 重新抛出验证错误，不捕获
-      if (error instanceof Error && error.message.includes('Event data validation failed')) {
+      if (error instanceof Error && error.message.includes("Event data validation failed")) {
         throw error;
       }
       console.error(`Error in event listener for ${String(event)}:`, error);
@@ -175,14 +175,14 @@ export class SafeEventEmitter<T extends IEventDefines> {
         // 重新验证数据，如果验证失败会抛出错误
         if (!this.validateEventData(event, dataCopy)) {
           // 如果验证失败且是throw模式，需要重新抛出错误
-          if (this.options.validationFailure === 'throw') {
+          if (this.options.validationFailure === "throw") {
             throw new Error(`Event data validation failed after listener execution for "${String(event)}"`);
           }
         }
       }
     } catch (error) {
       // 重新抛出验证错误，不捕获
-      if (error instanceof Error && error.message.includes('Event data validation failed')) {
+      if (error instanceof Error && error.message.includes("Event data validation failed")) {
         throw error;
       }
       console.error(`Error in event listener for ${String(event)}:`, error);
@@ -313,20 +313,20 @@ export class SafeEventEmitter<T extends IEventDefines> {
     else if (newOptions.validationFailure && newOptions.validationFailure !== currentValidationFailure) {
       this.options.onValidationError = (event: string, error: z.ZodError, data: unknown) => {
         const message = `Event data validation failed for "${event}": ${error.message}`;
-        if (this.options.validationFailure === 'throw') {
+        if (this.options.validationFailure === "throw") {
           throw new Error(message);
-        } else if (this.options.validationFailure === 'warn') {
+        } else if (this.options.validationFailure === "warn") {
           console.warn(message, error.issues);
         }
       };
     }
     // 如果没有提供新的错误处理函数，但验证失败模式是warn或throw，确保有默认的错误处理函数
-    else if (!newOptions.onValidationError && (this.options.validationFailure === 'warn' || this.options.validationFailure === 'throw')) {
+    else if (!newOptions.onValidationError && (this.options.validationFailure === "warn" || this.options.validationFailure === "throw")) {
       this.options.onValidationError = (event: string, error: z.ZodError, data: unknown) => {
         const message = `Event data validation failed for "${event}": ${error.message}`;
-        if (this.options.validationFailure === 'throw') {
+        if (this.options.validationFailure === "throw") {
           throw new Error(message);
-        } else if (this.options.validationFailure === 'warn') {
+        } else if (this.options.validationFailure === "warn") {
           console.warn(message, error.issues);
         }
       };

@@ -6,5 +6,5 @@ export function asLuteNodeID(id: string):  id is LuteNodeID {
     if (!/^\d{14}-[a-z0-9]{7}$/.test(id)) {
         throw new Error(`Invalid LuteNodeID: ${id}`);
     }
-    return true
+    return true;
 }

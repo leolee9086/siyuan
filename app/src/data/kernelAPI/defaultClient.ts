@@ -1,8 +1,8 @@
 import KernelApiClient from "./kernelApiClient";
 
-const kernel = new KernelApiClient()
+const kernel = new KernelApiClient();
 
 
 
 
-export {kernel as localKernel}
+export {kernel as localKernel};

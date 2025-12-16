@@ -40,7 +40,7 @@ export const openAttr = (nodeElement: Element, focusName = "bookmark", protyle: 
     });
 };
 
-export { copySubMenu } from './commonMenuItem.copy'
+export { copySubMenu } from "./commonMenuItem.copy";
 export const exportMd = (id: string) => {
     if (window.siyuan.isPublish) {
         return;

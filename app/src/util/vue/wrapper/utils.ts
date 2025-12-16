@@ -1,4 +1,4 @@
-import type { VueComponent, ComponentWrapperConfig, ValidationResult } from './types';
+import type { VueComponent, ComponentWrapperConfig, ValidationResult } from "./types";
 
 /**
  * 创建props转换器
@@ -14,7 +14,7 @@ export function createPropsTransformer<TProps>(
     const result = { ...props } as Record<string, any>;
     
     Object.entries(transformers).forEach(([key, transformer]) => {
-      if (key in result && typeof transformer === 'function') {
+      if (key in result && typeof transformer === "function") {
         result[key] = transformer(result[key]);
       }
     });
@@ -35,7 +35,7 @@ export function createEmitTransformer<TEmit>(
 ): (eventName: string, ...args: any[]) => [string, ...any[]] {
   return (eventName: string, ...args: any[]) => {
     const transformer = transformers[eventName as keyof TEmit];
-    if (transformer && typeof transformer === 'function') {
+    if (transformer && typeof transformer === "function") {
       return [eventName, ...transformer(...args)];
     }
     return [eventName, ...args];
@@ -173,20 +173,20 @@ export function validateWrapper<TProps, TEmit>(
   if (config.propsInterceptor) {
     const { intercept, transform, defaults, validate } = config.propsInterceptor;
     
-    if (intercept && typeof intercept !== 'function') {
-      errors.push('propsInterceptor.intercept must be a function');
+    if (intercept && typeof intercept !== "function") {
+      errors.push("propsInterceptor.intercept must be a function");
     }
     
-    if (transform && typeof transform !== 'object') {
-      errors.push('propsInterceptor.transform must be an object');
+    if (transform && typeof transform !== "object") {
+      errors.push("propsInterceptor.transform must be an object");
     }
     
-    if (defaults && typeof defaults !== 'object') {
-      errors.push('propsInterceptor.defaults must be an object');
+    if (defaults && typeof defaults !== "object") {
+      errors.push("propsInterceptor.defaults must be an object");
     }
     
-    if (validate && typeof validate !== 'function') {
-      errors.push('propsInterceptor.validate must be a function');
+    if (validate && typeof validate !== "function") {
+      errors.push("propsInterceptor.validate must be a function");
     }
   }
 
@@ -194,24 +194,24 @@ export function validateWrapper<TProps, TEmit>(
   if (config.emitInterceptor) {
     const { intercept, transform, prefix, suffix, map } = config.emitInterceptor;
     
-    if (intercept && typeof intercept !== 'function') {
-      errors.push('emitInterceptor.intercept must be a function');
+    if (intercept && typeof intercept !== "function") {
+      errors.push("emitInterceptor.intercept must be a function");
     }
     
-    if (transform && typeof transform !== 'object') {
-      errors.push('emitInterceptor.transform must be an object');
+    if (transform && typeof transform !== "object") {
+      errors.push("emitInterceptor.transform must be an object");
     }
     
-    if (prefix && typeof prefix !== 'string') {
-      errors.push('emitInterceptor.prefix must be a string');
+    if (prefix && typeof prefix !== "string") {
+      errors.push("emitInterceptor.prefix must be a string");
     }
     
-    if (suffix && typeof suffix !== 'string') {
-      errors.push('emitInterceptor.suffix must be a string');
+    if (suffix && typeof suffix !== "string") {
+      errors.push("emitInterceptor.suffix must be a string");
     }
     
-    if (map && typeof map !== 'object') {
-      errors.push('emitInterceptor.map must be an object');
+    if (map && typeof map !== "object") {
+      errors.push("emitInterceptor.map must be an object");
     }
   }
 
@@ -219,24 +219,24 @@ export function validateWrapper<TProps, TEmit>(
   if (config.hooks) {
     const { beforeMount, afterMount, beforeUnmount, beforeUpdate, afterUpdate } = config.hooks;
     
-    if (beforeMount && typeof beforeMount !== 'function') {
-      errors.push('hooks.beforeMount must be a function');
+    if (beforeMount && typeof beforeMount !== "function") {
+      errors.push("hooks.beforeMount must be a function");
     }
     
-    if (afterMount && typeof afterMount !== 'function') {
-      errors.push('hooks.afterMount must be a function');
+    if (afterMount && typeof afterMount !== "function") {
+      errors.push("hooks.afterMount must be a function");
     }
     
-    if (beforeUnmount && typeof beforeUnmount !== 'function') {
-      errors.push('hooks.beforeUnmount must be a function');
+    if (beforeUnmount && typeof beforeUnmount !== "function") {
+      errors.push("hooks.beforeUnmount must be a function");
     }
     
-    if (beforeUpdate && typeof beforeUpdate !== 'function') {
-      errors.push('hooks.beforeUpdate must be a function');
+    if (beforeUpdate && typeof beforeUpdate !== "function") {
+      errors.push("hooks.beforeUpdate must be a function");
     }
     
-    if (afterUpdate && typeof afterUpdate !== 'function') {
-      errors.push('hooks.afterUpdate must be a function');
+    if (afterUpdate && typeof afterUpdate !== "function") {
+      errors.push("hooks.afterUpdate must be a function");
     }
   }
 
@@ -244,26 +244,26 @@ export function validateWrapper<TProps, TEmit>(
   if (config.debug) {
     const { enableLogging, enablePerformance, enableTypeChecking } = config.debug;
     
-    if (enableLogging && typeof enableLogging !== 'boolean') {
-      errors.push('debug.enableLogging must be a boolean');
+    if (enableLogging && typeof enableLogging !== "boolean") {
+      errors.push("debug.enableLogging must be a boolean");
     }
     
-    if (enablePerformance && typeof enablePerformance !== 'boolean') {
-      errors.push('debug.enablePerformance must be a boolean');
+    if (enablePerformance && typeof enablePerformance !== "boolean") {
+      errors.push("debug.enablePerformance must be a boolean");
     }
     
-    if (enableTypeChecking && typeof enableTypeChecking !== 'boolean') {
-      errors.push('debug.enableTypeChecking must be a boolean');
+    if (enableTypeChecking && typeof enableTypeChecking !== "boolean") {
+      errors.push("debug.enableTypeChecking must be a boolean");
     }
   }
 
   // 性能警告
   if (config.propsInterceptor?.intercept) {
-    warnings.push('Using propsInterceptor.intercept may impact performance. Consider using transform for specific props instead.');
+    warnings.push("Using propsInterceptor.intercept may impact performance. Consider using transform for specific props instead.");
   }
   
   if (config.emitInterceptor?.intercept) {
-    warnings.push('Using emitInterceptor.intercept may impact performance. Consider using transform for specific events instead.');
+    warnings.push("Using emitInterceptor.intercept may impact performance. Consider using transform for specific events instead.");
   }
 
   return {
@@ -285,20 +285,20 @@ export function optimizeWrapper<TProps, TEmit>(
   
   // 如果同时有intercept和transform，优先使用transform
   if (optimized.propsInterceptor?.intercept && optimized.propsInterceptor?.transform) {
-    console.warn('Both intercept and transform are configured for props. Consider using only transform for better performance.');
+    console.warn("Both intercept and transform are configured for props. Consider using only transform for better performance.");
   }
   
   if (optimized.emitInterceptor?.intercept && optimized.emitInterceptor?.transform) {
-    console.warn('Both intercept and transform are configured for emit. Consider using only transform for better performance.');
+    console.warn("Both intercept and transform are configured for emit. Consider using only transform for better performance.");
   }
   
   // 性能优化建议
   if (optimized.propsInterceptor?.intercept && optimized.propsInterceptor?.transform) {
-    console.warn('Both intercept and transform are configured for props. Consider using only transform for better performance.');
+    console.warn("Both intercept and transform are configured for props. Consider using only transform for better performance.");
   }
   
   if (optimized.emitInterceptor?.intercept && optimized.emitInterceptor?.transform) {
-    console.warn('Both intercept and transform are configured for emit. Consider using only transform for better performance.');
+    console.warn("Both intercept and transform are configured for emit. Consider using only transform for better performance.");
   }
   
   return optimized;

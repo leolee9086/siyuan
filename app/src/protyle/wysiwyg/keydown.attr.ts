@@ -14,7 +14,7 @@ export const attrMiddleware = (
     controller: AbortController
 
 ) => {
-    const selectText = range.toString()
+    const selectText = range.toString();
     if (matchHotKey(window.siyuan.config.keymap.editor.general.attr.custom, event)) {
         const topElement = getTopAloneElement(nodeElement);
         if (selectText === "") {
@@ -41,10 +41,10 @@ export const attrMiddleware = (
         }
         event.preventDefault();
         event.stopPropagation();
-        controller.abort()
+        controller.abort();
         return true;
     }
-}
+};
 
 export const renameMiddleware = (
     event: KeyboardEvent,
@@ -54,7 +54,7 @@ export const renameMiddleware = (
     controller: AbortController
 
 ) => {
-    const selectText =range.toString()
+    const selectText =range.toString();
     if (matchHotKey(window.siyuan.config.keymap.editor.general.rename.custom, event) && !protyle.disabled) {
         if (selectText === "") {
             fetchPost("/api/block/getDocInfo", {
@@ -77,7 +77,7 @@ export const renameMiddleware = (
         }
         event.preventDefault();
         event.stopPropagation();
-        controller.abort()
+        controller.abort();
         return;
     }
-}
+};

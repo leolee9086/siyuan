@@ -2,9 +2,9 @@ import typescriptEslint from "@typescript-eslint/eslint-plugin";
 import globals from "globals";
 import tsParser from "@typescript-eslint/parser";
 import path from "node:path";
-import {fileURLToPath} from "node:url";
+import { fileURLToPath } from "node:url";
 import js from "@eslint/js";
-import {FlatCompat} from "@eslint/eslintrc";
+import { FlatCompat } from "@eslint/eslintrc";
 import pluginVue from "eslint-plugin-vue";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -24,7 +24,7 @@ export default [{
         "stage",
         "appearance",
     ],
-}, ...compat.extends("eslint:recommended", "plugin:vue/vue3-essential", "plugin:@typescript-eslint/recommended"), {
+}, ...compat.extends("eslint:recommended", "plugin:@typescript-eslint/recommended"), ...pluginVue.configs["flat/essential"], {
     plugins: {
         "@typescript-eslint": typescriptEslint,
         "vue": pluginVue,
@@ -47,11 +47,12 @@ export default [{
     },
 
     rules: {
+        "max-lines": ["error", { "max": 300, "skipBlankLines": true, "skipComments": true }],
         semi: [2, "always"],
         quotes: [2, "double", {
             avoidEscape: true,
         }],
-        "@typescript-eslint/no-unused-vars": ["warn", {caughtErrors: "none"}],
+        "@typescript-eslint/no-unused-vars": ["warn", { caughtErrors: "none" }],
         "no-async-promise-executor": "off",
         "no-prototype-builtins": "off",
         "no-useless-escape": "off",

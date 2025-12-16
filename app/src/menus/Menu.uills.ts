@@ -1,24 +1,24 @@
-import { Constants } from "../constants"
-import { updateHotkeyTip } from "../protyle/util/compatibility"
-import { hasClosestByClassName } from "../protyle/util/hasClosest"
-import { isMobile } from "../util/functions"
-import { MenuItem } from "./Menu.Item"
+import { Constants } from "../constants";
+import { updateHotkeyTip } from "../protyle/util/compatibility";
+import { hasClosestByClassName } from "../protyle/util/hasClosest";
+import { isMobile } from "../util/functions";
+import { MenuItem } from "./Menu.Item";
 
 /**
  * 获取全局菜单的 DOM 元素
  * @returns {HTMLElement} 菜单的 DOM 元素
  */
 export const getMenuElement = () => {
-    return window.siyuan.menus.menu.element
-}
+    return window.siyuan.menus.menu.element;
+};
 
 /**
  * 检查菜单元素是否处于隐藏状态
  * @returns {boolean} 如果菜单被隐藏返回 true，否则返回 false
  */
 export const isMenuElementHidden = () => {
-    return getMenuElement().classList.contains("fn__none")
-}
+    return getMenuElement().classList.contains("fn__none");
+};
 
 /**
  * 检查目标元素是否在菜单内部
@@ -26,8 +26,8 @@ export const isMenuElementHidden = () => {
  * @returns {boolean} 如果目标元素在菜单内部返回 true，否则返回 false
  */
 export const isTargetInMenu = (target: Element): boolean => {
-    return getMenuElement().contains(target)
-}
+    return getMenuElement().contains(target);
+};
 
 /**
  * 检查元素是否是可输入的菜单项元素（输入框或文本区域）
@@ -35,8 +35,8 @@ export const isTargetInMenu = (target: Element): boolean => {
  * @returns {boolean} 如果元素是可输入的菜单项返回 true，否则返回 false
  */
 export const isInputAbleMenuItemElement = (element: Element): boolean => {
-    return ["INPUT", "TEXTAREA"].includes(element.tagName)
-}
+    return ["INPUT", "TEXTAREA"].includes(element.tagName);
+};
 
 /**
  * 检查键盘事件是否是上下箭头键
@@ -46,7 +46,7 @@ export const isInputAbleMenuItemElement = (element: Element): boolean => {
 export const isEventUpDown = (event: KeyboardEvent): boolean => {
     const eventCode = Constants.KEYCODELIST[event.keyCode];
     return eventCode === "↓" || eventCode === "↑";
-}
+};
 
 /**
  * 移除元素的当前选中状态
@@ -54,7 +54,7 @@ export const isEventUpDown = (event: KeyboardEvent): boolean => {
  */
 export const setNotCurrent = (element: Element): void => {
     element.classList.remove("b3-menu__item--current");
-}
+};
 
 /**
  * 移除元素的显示状态
@@ -62,7 +62,7 @@ export const setNotCurrent = (element: Element): void => {
  */
 export const setNotShow = (element: Element): void => {
     element.classList.remove("b3-menu__item--show");
-}
+};
 
 /**
  * 获取当前选中的菜单项元素
@@ -70,7 +70,7 @@ export const setNotShow = (element: Element): void => {
  */
 export const getCurrentMenuItem = (): Element | null => {
     return getMenuElement().querySelector(".b3-menu__item--current");
-}
+};
 
 /**
  * 设置元素的当前选中状态
@@ -78,7 +78,7 @@ export const getCurrentMenuItem = (): Element | null => {
  */
 export const setCurrent = (element: Element): void => {
     element.classList.add("b3-menu__item--current");
-}
+};
 
 /**
  * 获取子菜单中的当前选中元素
@@ -86,7 +86,7 @@ export const setCurrent = (element: Element): void => {
  */
 export const getCurrentSubMenuItem = (): Element | null => {
     return getMenuElement().querySelector(".b3-menu__submenu .b3-menu__item--current");
-}
+};
 
 /**
  * Reset menu element state, clear all styles and attributes
@@ -103,7 +103,7 @@ export const resetMenuState = (menuElement: HTMLElement): void => {
     menuElement.removeAttribute("style");  // zIndex
     menuElement.removeAttribute("data-name");    // Flag for not disappearing on click again
     menuElement.removeAttribute("data-from");    // Flag for whether opened in floating window
-}
+};
 
 /**
  * Position submenu to ensure it's visible within viewport
@@ -126,7 +126,7 @@ export const positionSubMenu = (subMenuElement: HTMLElement): void => {
         subMenuElement.style.top = "auto";
         subMenuElement.style.bottom = "8px";
     }
-}
+};
 
 /**
  * Generate HTML for menu item based on options
@@ -150,7 +150,7 @@ export const generateMenuItemHTML = (options: IMenu): string => {
         html += '<svg class="b3-menu__checked"><use xlink:href="#iconSelect"></use></svg></span>';
     }
     return html;
-}
+};
 
 /**
  * Create submenu element with items
@@ -165,7 +165,7 @@ export const createSubmenuElement = (submenuItems: IMenu[]): HTMLElement => {
         submenuElement.firstElementChild.append(new MenuItem(item).element);
     });
     return submenuElement;
-}
+};
 
 /**
  * Handle menu event interactions
@@ -215,7 +215,7 @@ export const handleMenuEvent = (menuElement: HTMLElement, event: PointerEvent | 
     if (!menuElement.classList.contains("b3-menu--fullscreen")) {
         positionSubMenu(subMenuElement);
     }
-}
+};
 
 /**
  * Prevent default behavior for keyboard events outside menu
@@ -228,4 +228,4 @@ export const preventMenuDefault = (event: KeyboardEvent): void => {
         !hasClosestByClassName(event.target as Element, "keyboard__bar")) {
         event.preventDefault();
     }
-}
+};

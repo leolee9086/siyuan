@@ -1,17 +1,17 @@
-import type { Component, DefineComponent } from 'vue';
-import { Extend } from 'zod/v4/core/util.cjs';
+import type { Component, DefineComponent } from "vue";
+import { Extend } from "zod/v4/core/util.cjs";
 
 // 基础类型定义 - 只包含组件定义，不包含实例
 export type VueComponent = DefineComponent<any, any, any> | Component;
 
 // 获取组件名称的类型辅助函数
-export type ComponentName<T> = T extends { name?: string } ? T['name'] : string;
+export type ComponentName<T> = T extends { name?: string } ? T["name"] : string;
 
 // 获取组件props的类型辅助函数
-export type ComponentProps<T> = T extends { props?: any } ? T['props'] : any;
+export type ComponentProps<T> = T extends { props?: any } ? T["props"] : any;
 
 // 获取组件emits的类型辅助函数
-export type ComponentEmits<T> = T extends { emits?: any } ? T['emits'] : any;
+export type ComponentEmits<T> = T extends { emits?: any } ? T["emits"] : any;
 
 // Props类型推导
 export type InferProps<T> = T extends DefineComponent<infer P, any, any> ? P : any;

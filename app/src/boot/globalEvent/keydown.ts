@@ -178,7 +178,7 @@ const dialogArrow = (app: App, element: HTMLElement, event: KeyboardEvent) => {
 const editKeydown = (app: App, event: KeyboardEvent) => {
     let protyle: IProtyle;
     let range: Range|null=null;
-    const selection =getSelection()
+    const selection =getSelection();
     if (selection&&selection.rangeCount > 0) {
         range = selection.getRangeAt(0);
     }

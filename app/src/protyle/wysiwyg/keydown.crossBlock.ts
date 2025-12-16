@@ -17,4 +17,4 @@ export const crossBlockCopyMiddleware = (
             controller.abort("跨块选择被阻止,只允许跨块复制");
         }
     }
-}
+};

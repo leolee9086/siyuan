@@ -10,8 +10,8 @@ import {getIconByType} from "../../editor/getIcon";
 import {enterBack, iframeMenu, setFold, tableMenu, videoMenu, zoomOut} from "../../menus/protyle";
 import { MenuItem } from "../../menus/Menu.Item";
 import {copySubMenu, openAttr} from "../../menus/commonMenuItem";
-import {openFileAttr} from "../../menus/commonMenuItem.openFileAttr"
-import {openWechatNotify } from "../../menus/commonMenuItem.openWechatNotify"
+import {openFileAttr} from "../../menus/commonMenuItem.openFileAttr";
+import {openWechatNotify } from "../../menus/commonMenuItem.openWechatNotify";
 import {
     copyPlainText,
     isInAndroid,

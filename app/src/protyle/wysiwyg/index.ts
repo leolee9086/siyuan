@@ -2435,13 +2435,13 @@ export class WYSIWYG {
             isComposition = false;
             //临时修复表格光标跳转问题
             protyle.wysiwyg.element.querySelectorAll(
-                '.table'
+                ".table"
             ).forEach(
                 tableBlock => {
-                    tableBlock.firstElementChild?.setAttribute('contenteditable', 'true')
-                    tableBlock.querySelector('.protyle-action__table')?.setAttribute('contenteditable', 'false')
+                    tableBlock.firstElementChild?.setAttribute("contenteditable", "true");
+                    tableBlock.querySelector(".protyle-action__table")?.setAttribute("contenteditable", "false");
                 }
-            )
+            );
             const range = getEditorRange(this.element);
             const blockElement = hasClosestBlock(range.startContainer);
             if (!blockElement) {

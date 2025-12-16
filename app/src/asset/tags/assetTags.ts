@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { Workspace } from "../../data/kernelAPI/defaultWorkspace";
 import { localKernel } from "../../ai/imports";
-const localWorkerSpace = new Workspace(localKernel)
+const localWorkerSpace = new Workspace(localKernel);
 /**
  * 标签接口定义
  */
@@ -121,7 +121,7 @@ export async function addFilesToTag(
                 }
                 // 添加文件名到资产列表中
                 tag.assets = Array.from(new Set([...tag.assets, ...fileNames]));
-                return tags
+                return tags;
             }
         }
     } catch (error) {
@@ -130,13 +130,13 @@ export async function addFilesToTag(
 }
 const loadAssetsTags = async ():Promise<TagType[]> => {
     let data:TagType[] = [];
-    if (await localWorkerSpace.exists(`/data/storage/tags/assets.json`)) {
-        let raw = await localWorkerSpace.readFile(`/data/storage/tags/assets.json`)
-        if(typeof raw === 'string'){
-            data =JSON.parse(raw)
+    if (await localWorkerSpace.exists("/data/storage/tags/assets.json")) {
+        const raw = await localWorkerSpace.readFile("/data/storage/tags/assets.json");
+        if(typeof raw === "string"){
+            data =JSON.parse(raw);
         }
     } else {
-        await localWorkerSpace.writeFile(`/data/storage/tags/assets.json`, JSON.stringify([]));
+        await localWorkerSpace.writeFile("/data/storage/tags/assets.json", JSON.stringify([]));
     }
     return data;
-}
+};

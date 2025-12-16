@@ -19,8 +19,8 @@ export const addSubList = (protyle: IProtyle, nodeElement: Element, range: Range
         //在没有子列表的之后,创建一个子列表
         const subtype = parentItemElement.getAttribute("data-subtype") as "u" | "o" | "t" || "u";
         const newListElement = genListElement(subtype);
-        const attrElements = parentItemElement.querySelectorAll('.protyle-attr')
-        const lastAttrElement = attrElements[attrElements.length - 1]
+        const attrElements = parentItemElement.querySelectorAll(".protyle-attr");
+        const lastAttrElement = attrElements[attrElements.length - 1];
         lastAttrElement && parentItemElement.insertBefore(newListElement, lastAttrElement);
         if (parentItemElement.getAttribute("fold") === "1") {
             setFold(protyle, parentItemElement, true);
@@ -119,6 +119,6 @@ const genListElement = (subtype: "u" | "o" | "t" = "u"): HTMLElement => {
         </div>
         <div class="protyle-attr" contenteditable="false">${Constants.ZWSP}</div>
     </div>
-    `
+    `;
     return element.firstElementChild as HTMLElement;
 };

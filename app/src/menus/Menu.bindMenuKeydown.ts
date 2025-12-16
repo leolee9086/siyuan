@@ -24,7 +24,7 @@ import {
  */
 const handleUpDownNavigationWithCurrent = (currentElement: Element, eventCode: string): Element | null => {
     setNotCurrent(currentElement);
-    setNotShow(currentElement)
+    setNotShow(currentElement);
     let actionMenuElement;
     if (eventCode === "↑") {
         actionMenuElement = getActionMenu(currentElement.previousElementSibling, false);
@@ -153,7 +153,7 @@ export const bindMenuKeydown = (event: KeyboardEvent) => {
      * eventTarget是Element类型,因为还有可能是svg之类
      */
     if(!(target instanceof Element)){
-        return false
+        return false;
     }
     if (isTargetInMenu(target) && isInputAbleMenuItemElement(target)) {
         return false;

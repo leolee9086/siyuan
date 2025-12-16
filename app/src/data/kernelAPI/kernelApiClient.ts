@@ -20,14 +20,14 @@ class KernelApiClient {
    * @param options - Configuration options for client
    */
   constructor(options: KernelApiClientOptions = {}) {
-    this.baseUrl = options.baseUrl || 'http://127.0.0.1:6806';
-    this.apiToken = options.apiToken || '';
-    this.customFetch = options.customFetch || (typeof fetch !== 'undefined' ? (...args)=> fetch(...args) : undefined as any);
+    this.baseUrl = options.baseUrl || "http://127.0.0.1:6806";
+    this.apiToken = options.apiToken || "";
+    this.customFetch = options.customFetch || (typeof fetch !== "undefined" ? (...args)=> fetch(...args) : undefined as any);
 
     if (!this.customFetch) {
-      throw new Error('Fetch API is not available. Please provide a customFetch implementation if running in an environment without fetch.');
+      throw new Error("Fetch API is not available. Please provide a customFetch implementation if running in an environment without fetch.");
     }
-    if (this.baseUrl.endsWith('/')) {
+    if (this.baseUrl.endsWith("/")) {
         this.baseUrl = this.baseUrl.slice(0, -1);
     }
   }
@@ -35,16 +35,16 @@ class KernelApiClient {
   private async _fetchWrapper(endpoint: string, method: string, data?: any, needsAuth = false): Promise<any> {
     const url = `${this.baseUrl}${endpoint}`;
     const headers: Record<string, string> = {
-      'User-Agent': 'KernelApiClient/1.0',
+      "User-Agent": "KernelApiClient/1.0",
     };
 
-    if (data && !(data instanceof FormData) && method !== 'GET' && method !== 'HEAD') {
-        headers['Content-Type'] = 'application/json';
+    if (data && !(data instanceof FormData) && method !== "GET" && method !== "HEAD") {
+        headers["Content-Type"] = "application/json";
     }
     
     if (needsAuth && this.apiToken) {
-      headers['Authorization'] = `Token ${this.apiToken}`;
-    } else if (needsAuth && !this.apiToken && !this.baseUrl.startsWith('http://127.0.0.1')) {
+      headers["Authorization"] = `Token ${this.apiToken}`;
+    } else if (needsAuth && !this.apiToken && !this.baseUrl.startsWith("http://127.0.0.1")) {
       console.warn(`API endpoint ${endpoint} requires authentication, but no API token was provided.`);
     }
 
@@ -53,13 +53,13 @@ class KernelApiClient {
       headers,
     };
 
-    if (data !== undefined && method !== 'GET' && method !== 'HEAD') {
+    if (data !== undefined && method !== "GET" && method !== "HEAD") {
       if (data instanceof FormData) {
         fetchOptions.body = data;
       } else {
         fetchOptions.body = JSON.stringify(data);
       }
-    } else if (data !== undefined && (method === 'GET' || method === 'HEAD')) {
+    } else if (data !== undefined && (method === "GET" || method === "HEAD")) {
       console.warn(`Data payload for GET/HEAD request to ${endpoint} will be ignored by fetch. Consider moving data to query parameters if applicable.`);
     }
 
@@ -83,8 +83,8 @@ class KernelApiClient {
       }
       
       let responseData;
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
           responseData = await response.json();
       } else {
           responseData = await response.text(); // Or handle other content types as needed
@@ -110,7 +110,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async checkActivationcode(data: { data: string }): Promise<{ code: number; msg: string; data: any | null }> {
-    return this._fetchWrapper('/api/account/checkActivationcode', 'POST', data, true);
+    return this._fetchWrapper("/api/account/checkActivationcode", "POST", data, true);
   }
 
   /**
@@ -119,7 +119,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async deactivateUser(data: any): Promise<{ code: number; msg: string; data: any | null }> {
-    return this._fetchWrapper('/api/account/deactivate', 'POST', data, true);
+    return this._fetchWrapper("/api/account/deactivate", "POST", data, true);
   }
 
   /**
@@ -128,7 +128,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async login(data: { userName: string; userPassword: string; captcha: string; cloudRegion: number }): Promise<{ code: number; msg: string; data: any | null }> {
-    return this._fetchWrapper('/api/account/login', 'POST', data, true);
+    return this._fetchWrapper("/api/account/login", "POST", data, true);
   }
 
   /**
@@ -137,7 +137,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async startFreeTrial(data: any): Promise<{ code: number; msg: string; data: any | null }> {
-    return this._fetchWrapper('/api/account/startFreeTrial', 'POST', data, true);
+    return this._fetchWrapper("/api/account/startFreeTrial", "POST", data, true);
   }
 
   /**
@@ -146,7 +146,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async useActivationcode(data: { data: string }): Promise<{ code: number; msg: string; data: any | null }> {
-    return this._fetchWrapper('/api/account/useActivationcode', 'POST', data, true);
+    return this._fetchWrapper("/api/account/useActivationcode", "POST", data, true);
   }
 
   /**
@@ -155,7 +155,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async chatGPT(data: { msg: string }): Promise<{ code: number; msg: string; data: string }> {
-    return this._fetchWrapper('/api/ai/chatGPT', 'POST', data, true);
+    return this._fetchWrapper("/api/ai/chatGPT", "POST", data, true);
   }
 
   /**
@@ -164,7 +164,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async chatGPTWithAction(data: { ids: string[]; action: string }): Promise<{ code: number; msg: string; data: string }> {
-    return this._fetchWrapper('/api/ai/chatGPTWithAction', 'POST', data, true);
+    return this._fetchWrapper("/api/ai/chatGPTWithAction", "POST", data, true);
   }
 
   /**
@@ -173,7 +173,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async unzip(data: { zipPath: string; path: string }): Promise<{ code: number; msg: string; data: any | null }> {
-    return this._fetchWrapper('/api/archive/unzip', 'POST', data, true);
+    return this._fetchWrapper("/api/archive/unzip", "POST", data, true);
   }
 
   /**
@@ -182,7 +182,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async zip(data: { path: string; zipPath: string }): Promise<{ code: number; msg: string; data: any | null }> {
-    return this._fetchWrapper('/api/archive/zip', 'POST', data, true);
+    return this._fetchWrapper("/api/archive/zip", "POST", data, true);
   }
 
   /**
@@ -191,7 +191,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async fullReindexAssetContent(data: any): Promise<{ code: number; msg: string; data: any | null }> {
-    return this._fetchWrapper('/api/asset/fullReindexAssetContent', 'POST', data, true);
+    return this._fetchWrapper("/api/asset/fullReindexAssetContent", "POST", data, true);
   }
 
   /**
@@ -200,7 +200,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getDocAssets(data: { id: string }): Promise<{ code: number; msg: string; data: any }> {
-    return this._fetchWrapper('/api/asset/getDocAssets', 'POST', data, true);
+    return this._fetchWrapper("/api/asset/getDocAssets", "POST", data, true);
   }
 
   /**
@@ -209,7 +209,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getDocImageAssets(data: { id: string }): Promise<{ code: number; msg: string; data: any }> {
-    return this._fetchWrapper('/api/asset/getDocImageAssets', 'POST', data, true);
+    return this._fetchWrapper("/api/asset/getDocImageAssets", "POST", data, true);
   }
 
   /**
@@ -218,7 +218,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getFileAnnotation(data: { path: string }): Promise<{ code: number; msg: string; data: { path: string; data: string } }> {
-    return this._fetchWrapper('/api/asset/getFileAnnotation', 'POST', data, true);
+    return this._fetchWrapper("/api/asset/getFileAnnotation", "POST", data, true);
   }
 
   /**
@@ -227,7 +227,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getImageOCRText(data: { path: string }): Promise<{ code: number; msg: string; data: { text: string; ocrJSON: any } }> {
-    return this._fetchWrapper('/api/asset/getImageOCRText', 'POST', data, true);
+    return this._fetchWrapper("/api/asset/getImageOCRText", "POST", data, true);
   }
 
   /**
@@ -236,7 +236,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getMissingAssets(data: any): Promise<{ code: number; msg: string; data: { missingAssets: any[] } }> {
-    return this._fetchWrapper('/api/asset/getMissingAssets', 'POST', data, true);
+    return this._fetchWrapper("/api/asset/getMissingAssets", "POST", data, true);
   }
 
   /**
@@ -245,7 +245,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getUnusedAssets(data: any): Promise<{ code: number; msg: string; data: { unusedAssets: any[] } }> {
-    return this._fetchWrapper('/api/asset/getUnusedAssets', 'POST', data, true);
+    return this._fetchWrapper("/api/asset/getUnusedAssets", "POST", data, true);
   }
 
   /**
@@ -254,7 +254,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async insertLocalAssets(data: { assetPaths: string[]; id: string; isUpload?: boolean }): Promise<{ code: number; msg: string; data: { succMap: Record<string, string> } }> {
-    return this._fetchWrapper('/api/asset/insertLocalAssets', 'POST', data, true);
+    return this._fetchWrapper("/api/asset/insertLocalAssets", "POST", data, true);
   }
 
   /**
@@ -263,7 +263,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async ocr(data: { path: string }): Promise<{ code: number; msg: string; data: { text: string; ocrJSON: any } }> {
-    return this._fetchWrapper('/api/asset/ocr', 'POST', data, true);
+    return this._fetchWrapper("/api/asset/ocr", "POST", data, true);
   }
 
   /**
@@ -272,7 +272,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async removeUnusedAsset(data: { path: string }): Promise<{ code: number; msg: string; data: { path: string } }> {
-    return this._fetchWrapper('/api/asset/removeUnusedAsset', 'POST', data, true);
+    return this._fetchWrapper("/api/asset/removeUnusedAsset", "POST", data, true);
   }
 
   /**
@@ -281,7 +281,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async removeUnusedAssets(data: any): Promise<{ code: number; msg: string; data: { paths: string[] } }> {
-    return this._fetchWrapper('/api/asset/removeUnusedAssets', 'POST', data, true);
+    return this._fetchWrapper("/api/asset/removeUnusedAssets", "POST", data, true);
   }
 
   /**
@@ -290,7 +290,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async renameAsset(data: { oldPath: string; newName: string }): Promise<{ code: number; msg: string; data: { newPath: string } }> {
-    return this._fetchWrapper('/api/asset/renameAsset', 'POST', data, true);
+    return this._fetchWrapper("/api/asset/renameAsset", "POST", data, true);
   }
 
   /**
@@ -299,7 +299,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async resolveAssetPath(data: { path: string }): Promise<{ code: number; msg: string; data: string }> {
-    return this._fetchWrapper('/api/asset/resolveAssetPath', 'POST', data, true);
+    return this._fetchWrapper("/api/asset/resolveAssetPath", "POST", data, true);
   }
 
   /**
@@ -308,7 +308,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setFileAnnotation(data: { path: string; data: string }): Promise<{ code: number; msg: string; data: any | null }> {
-    return this._fetchWrapper('/api/asset/setFileAnnotation', 'POST', data, true);
+    return this._fetchWrapper("/api/asset/setFileAnnotation", "POST", data, true);
   }
 
   /**
@@ -317,7 +317,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setImageOCRText(data: { path: string; text: string }): Promise<{ code: number; msg: string; data: any | null }> {
-    return this._fetchWrapper('/api/asset/setImageOCRText', 'POST', data, true);
+    return this._fetchWrapper("/api/asset/setImageOCRText", "POST", data, true);
   }
 
   /**
@@ -326,7 +326,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async statAsset(data: { path: string }): Promise<{ code: number; msg: string; data: { size: number; hSize: string; created: number; hCreated: string; updated: number; hUpdated: string } }> {
-    return this._fetchWrapper('/api/asset/statAsset', 'POST', data, true);
+    return this._fetchWrapper("/api/asset/statAsset", "POST", data, true);
   }
 
   /**
@@ -335,7 +335,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async Upload(data: { assetPath?: string; id?: string; files: any }): Promise<{ code: number; msg: string; data: { errFiles: string[]; succMap: Record<string, string> } }> {
-    return this._fetchWrapper('/api/asset/upload', 'POST', data, true);
+    return this._fetchWrapper("/api/asset/upload", "POST", data, true);
   }
 
   /**
@@ -344,7 +344,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async uploadCloud(data: { id: string }): Promise<{ code: number; msg: string; data: any | null }> {
-    return this._fetchWrapper('/api/asset/uploadCloud', 'POST', data, true);
+    return this._fetchWrapper("/api/asset/uploadCloud", "POST", data, true);
   }
 
   /**
@@ -353,7 +353,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async batchGetBlockAttrs(data: { ids: string[] }): Promise<{ code: number; msg: string; data: Record<string, Record<string, string>> }> {
-    return this._fetchWrapper('/api/attr/batchGetBlockAttrs', 'POST', data, true);
+    return this._fetchWrapper("/api/attr/batchGetBlockAttrs", "POST", data, true);
   }
 
   /**
@@ -362,7 +362,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async batchSetBlockAttrs(data: { blockAttrs: { id: string; attrs: Record<string, string | null> }[] }): Promise<{ code: number; msg: string; data: any | null }> {
-    return this._fetchWrapper('/api/attr/batchSetBlockAttrs', 'POST', data, true);
+    return this._fetchWrapper("/api/attr/batchSetBlockAttrs", "POST", data, true);
   }
 
   /**
@@ -371,7 +371,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getBlockAttrs(data: { id: string }): Promise<{ code: number; msg: string; data: Record<string, string> }> {
-    return this._fetchWrapper('/api/attr/getBlockAttrs', 'POST', data, true);
+    return this._fetchWrapper("/api/attr/getBlockAttrs", "POST", data, true);
   }
 
   /**
@@ -380,7 +380,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getBookmarkLabels(data: any): Promise<{ code: number; msg: string; data: string[] }> {
-    return this._fetchWrapper('/api/attr/getBookmarkLabels', 'POST', data, true);
+    return this._fetchWrapper("/api/attr/getBookmarkLabels", "POST", data, true);
   }
 
   /**
@@ -389,7 +389,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async resetBlockAttrs(data: { id: string; attrs: Record<string, string> }): Promise<{ code: number; msg: string; data: any | null }> {
-    return this._fetchWrapper('/api/attr/resetBlockAttrs', 'POST', data, true);
+    return this._fetchWrapper("/api/attr/resetBlockAttrs", "POST", data, true);
   }
 
   /**
@@ -398,7 +398,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setBlockAttrs(data: { id: string; attrs: Record<string, string | null> }): Promise<{ code: number; msg: string; data: any | null }> {
-    return this._fetchWrapper('/api/attr/setBlockAttrs', 'POST', data, true);
+    return this._fetchWrapper("/api/attr/setBlockAttrs", "POST", data, true);
   }
 
   /**
@@ -407,7 +407,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async addAttributeViewBlocks(data: { avID: string; blockID?: string; previousID?: string; ignoreFillFilter?: boolean; srcs: Record<string, any>[] }): Promise<{ code: number; msg: string; data: any | null }> {
-    return this._fetchWrapper('/api/av/addAttributeViewBlocks', 'POST', data, true);
+    return this._fetchWrapper("/api/av/addAttributeViewBlocks", "POST", data, true);
   }
 
   /**
@@ -416,7 +416,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async addAttributeViewKey(data: { avID: string; keyID: string; keyName: string; keyType: string; keyIcon: string; previousKeyID: string }): Promise<{ code: number; msg: string; data: any | null }> {
-    return this._fetchWrapper('/api/av/addAttributeViewKey', 'POST', data, true);
+    return this._fetchWrapper("/api/av/addAttributeViewKey", "POST", data, true);
   }
 
   /**
@@ -425,7 +425,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async appendAttributeViewDetachedBlocksWithValues(data: { avID: string; blocksValues: any[][] }): Promise<{ code: number; msg: string; data: any | null }> {
-    return this._fetchWrapper('/api/av/appendAttributeViewDetachedBlocksWithValues', 'POST', data, true);
+    return this._fetchWrapper("/api/av/appendAttributeViewDetachedBlocksWithValues", "POST", data, true);
   }
 
   /**
@@ -434,7 +434,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async batchReplaceAttributeViewBlocks(data: { avID: string; isDetached: boolean; oldNew: Record<string, string>[] }): Promise<{ code: number; msg: string; data?: null }> {
-    return this._fetchWrapper('/api/av/batchReplaceAttributeViewBlocks', 'POST', data, true);
+    return this._fetchWrapper("/api/av/batchReplaceAttributeViewBlocks", "POST", data, true);
   }
 
   /**
@@ -443,7 +443,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async batchSetAttributeViewBlockAttrs(data: { avID: string; values: { blockID: string; keyID: string; value: any }[] }): Promise<{ code: number; msg: string; data?: null }> {
-    return this._fetchWrapper('/api/av/batchSetAttributeViewBlockAttrs', 'POST', data, true);
+    return this._fetchWrapper("/api/av/batchSetAttributeViewBlockAttrs", "POST", data, true);
   }
 
   /**
@@ -452,7 +452,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async changeAttrViewLayout(data: { blockID: string; avID: string; layoutType: "table" | "board" | "calendar" | "list" | "gallery" }): Promise<{ code: number; msg: string; data: { name: string; id: string; viewType: any; viewID: any; views: any[]; view: any; isMirror: boolean } | null }> {
-    return this._fetchWrapper('/api/av/changeAttrViewLayout', 'POST', data, true);
+    return this._fetchWrapper("/api/av/changeAttrViewLayout", "POST", data, true);
   }
 
   /**
@@ -461,7 +461,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async duplicateAttributeViewBlock(data: { avID: string }): Promise<{ code: number; msg: string; data: { avID: string; blockID: string } | null }> {
-    return this._fetchWrapper('/api/av/duplicateAttributeViewBlock', 'POST', data, true);
+    return this._fetchWrapper("/api/av/duplicateAttributeViewBlock", "POST", data, true);
   }
 
   /**
@@ -470,7 +470,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getAttributeView(data: { id: string }): Promise<{ code: number; msg: string; data: { av: any } | null }> {
-    return this._fetchWrapper('/api/av/getAttributeView', 'POST', data, true);
+    return this._fetchWrapper("/api/av/getAttributeView", "POST", data, true);
   }
 
   /**
@@ -479,7 +479,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getAttributeViewAddingBlockDefaultValues(data: any): Promise<any> {
-    return this._fetchWrapper('/api/av/getAttributeViewAddingBlockDefaultValues', 'POST', data, true);
+    return this._fetchWrapper("/api/av/getAttributeViewAddingBlockDefaultValues", "POST", data, true);
   }
 
   /**
@@ -488,7 +488,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getAttributeViewBoundBlockIDsByItemIDs(data: any): Promise<any> {
-    return this._fetchWrapper('/api/av/getAttributeViewBoundBlockIDsByItemIDs', 'POST', data, true);
+    return this._fetchWrapper("/api/av/getAttributeViewBoundBlockIDsByItemIDs", "POST", data, true);
   }
 
   /**
@@ -497,7 +497,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getAttributeViewFilterSort(data: { id: string; blockID: string }): Promise<{ code: number; msg: string; data: { filters: any[]; sorts: any[] } | null }> {
-    return this._fetchWrapper('/api/av/getAttributeViewFilterSort', 'POST', data, true);
+    return this._fetchWrapper("/api/av/getAttributeViewFilterSort", "POST", data, true);
   }
 
   /**
@@ -506,7 +506,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getAttributeViewItemIDsByBoundIDs(data: any): Promise<any> {
-    return this._fetchWrapper('/api/av/getAttributeViewItemIDsByBoundIDs', 'POST', data, true);
+    return this._fetchWrapper("/api/av/getAttributeViewItemIDsByBoundIDs", "POST", data, true);
   }
 
   /**
@@ -515,7 +515,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getAttributeViewKeys(data: { id: string }): Promise<{ code: number; msg: string; data: any[] | null }> {
-    return this._fetchWrapper('/api/av/getAttributeViewKeys', 'POST', data, true);
+    return this._fetchWrapper("/api/av/getAttributeViewKeys", "POST", data, true);
   }
 
   /**
@@ -524,7 +524,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getAttributeViewKeysByAvID(data: { avID: string }): Promise<{ code: number; msg: string; data: any[] | null }> {
-    return this._fetchWrapper('/api/av/getAttributeViewKeysByAvID', 'POST', data, true);
+    return this._fetchWrapper("/api/av/getAttributeViewKeysByAvID", "POST", data, true);
   }
 
   /**
@@ -533,7 +533,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getAttributeViewKeysByID(data: any): Promise<any> {
-    return this._fetchWrapper('/api/av/getAttributeViewKeysByID', 'POST', data, true);
+    return this._fetchWrapper("/api/av/getAttributeViewKeysByID", "POST", data, true);
   }
 
   /**
@@ -542,7 +542,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getAttributeViewPrimaryKeyValues(data: { id: string; keyword?: string; page?: number; pageSize?: number }): Promise<{ code: number; msg: string; data: { name: string; blockIDs: string[]; rows: any[] } | null }> {
-    return this._fetchWrapper('/api/av/getAttributeViewPrimaryKeyValues', 'POST', data, true);
+    return this._fetchWrapper("/api/av/getAttributeViewPrimaryKeyValues", "POST", data, true);
   }
 
   /**
@@ -551,7 +551,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getCurrentAttrViewImages(data: { id: string; viewID?: string; query?: string }): Promise<{ code: number; msg: string; data: string[] }> {
-    return this._fetchWrapper('/api/av/getCurrentAttrViewImages', 'POST', data, true);
+    return this._fetchWrapper("/api/av/getCurrentAttrViewImages", "POST", data, true);
   }
 
   /**
@@ -560,7 +560,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getMirrorDatabaseBlocks(data: { avID: string }): Promise<{ code: number; msg: string; data: { refDefs: { RefID: string; DefIDs: string[] }[] } | null }> {
-    return this._fetchWrapper('/api/av/getMirrorDatabaseBlocks', 'POST', data, true);
+    return this._fetchWrapper("/api/av/getMirrorDatabaseBlocks", "POST", data, true);
   }
 
   /**
@@ -569,7 +569,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async removeAttributeViewBlocks(data: { avID: string; srcIDs: string[] }): Promise<{ code: number; msg: string; data: any | null }> {
-    return this._fetchWrapper('/api/av/removeAttributeViewBlocks', 'POST', data, true);
+    return this._fetchWrapper("/api/av/removeAttributeViewBlocks", "POST", data, true);
   }
 
   /**
@@ -578,7 +578,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async removeAttributeViewKey(data: { avID: string; keyID: string; removeRelationDest?: boolean }): Promise<{ code: number; msg: string; data: any | null }> {
-    return this._fetchWrapper('/api/av/removeAttributeViewKey', 'POST', data, true);
+    return this._fetchWrapper("/api/av/removeAttributeViewKey", "POST", data, true);
   }
 
   /**
@@ -587,7 +587,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async renderAttributeView(data: { id: string; viewID?: string; query?: string; page?: number; pageSize?: number }): Promise<{ code: number; msg: string; data: { name: string; id: string; viewType: any; viewID: any; views: any[]; view: any; isMirror: boolean } | null }> {
-    return this._fetchWrapper('/api/av/renderAttributeView', 'POST', data, true);
+    return this._fetchWrapper("/api/av/renderAttributeView", "POST", data, true);
   }
 
   /**
@@ -596,7 +596,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async renderHistoryAttributeView(data: { id: string; created: string }): Promise<{ code: number; msg: string; data: { name: string; id: string; viewType: any; viewID: any; views: any[]; view: any; isMirror: boolean } | null }> {
-    return this._fetchWrapper('/api/av/renderHistoryAttributeView', 'POST', data, true);
+    return this._fetchWrapper("/api/av/renderHistoryAttributeView", "POST", data, true);
   }
 
   /**
@@ -605,7 +605,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async renderSnapshotAttributeView(data: { snapshot: string; id: string }): Promise<{ code: number; msg: string; data: { name: string; id: string; viewType: any; viewID: any; views: any[]; view: any; isMirror: boolean } | null }> {
-    return this._fetchWrapper('/api/av/renderSnapshotAttributeView', 'POST', data, true);
+    return this._fetchWrapper("/api/av/renderSnapshotAttributeView", "POST", data, true);
   }
 
   /**
@@ -614,7 +614,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async searchAttributeView(data: { keyword: string; excludes?: string[] }): Promise<{ code: number; msg: string; data: { results: any[] } | null }> {
-    return this._fetchWrapper('/api/av/searchAttributeView', 'POST', data, true);
+    return this._fetchWrapper("/api/av/searchAttributeView", "POST", data, true);
   }
 
   /**
@@ -623,7 +623,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async searchAttributeViewNonRelationKey(data: { avID: string; keyword: string }): Promise<{ code: number; msg: string; data: { keys: any[] } | null }> {
-    return this._fetchWrapper('/api/av/searchAttributeViewNonRelationKey', 'POST', data, true);
+    return this._fetchWrapper("/api/av/searchAttributeViewNonRelationKey", "POST", data, true);
   }
 
   /**
@@ -632,7 +632,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async searchAttributeViewRelationKey(data: { avID: string; keyword: string }): Promise<{ code: number; msg: string; data: { keys: any[] } | null }> {
-    return this._fetchWrapper('/api/av/searchAttributeViewRelationKey', 'POST', data, true);
+    return this._fetchWrapper("/api/av/searchAttributeViewRelationKey", "POST", data, true);
   }
 
   /**
@@ -641,7 +641,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async searchAttributeViewRollupDestKeys(data: any): Promise<any> {
-    return this._fetchWrapper('/api/av/searchAttributeViewRollupDestKeys', 'POST', data, true);
+    return this._fetchWrapper("/api/av/searchAttributeViewRollupDestKeys", "POST", data, true);
   }
 
   /**
@@ -650,7 +650,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setAttrViewGroup(data: { avID: string; blockID: string; group: any }): Promise<{ code: number; msg: string; data?: null }> {
-    return this._fetchWrapper('/api/av/setAttrViewGroup', 'POST', data, true);
+    return this._fetchWrapper("/api/av/setAttrViewGroup", "POST", data, true);
   }
 
   /**
@@ -659,7 +659,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setAttributeViewBlockAttr(data: { avID: string; keyID: string; rowID: string; value: any }): Promise<{ code: number; msg: string; data: { value: any } | null }> {
-    return this._fetchWrapper('/api/av/setAttributeViewBlockAttr', 'POST', data, true);
+    return this._fetchWrapper("/api/av/setAttributeViewBlockAttr", "POST", data, true);
   }
 
   /**
@@ -668,7 +668,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setDatabaseBlockView(data: { id: string; viewID: string }): Promise<{ code: number; msg: string; data: any | null }> {
-    return this._fetchWrapper('/api/av/setDatabaseBlockView', 'POST', data, true);
+    return this._fetchWrapper("/api/av/setDatabaseBlockView", "POST", data, true);
   }
 
   /**
@@ -677,7 +677,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async sortAttributeViewKey(data: { avID: string; keyID: string; previousKeyID: string }): Promise<{ code: number; msg: string; data: any | null }> {
-    return this._fetchWrapper('/api/av/sortAttributeViewKey', 'POST', data, true);
+    return this._fetchWrapper("/api/av/sortAttributeViewKey", "POST", data, true);
   }
 
   /**
@@ -686,7 +686,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async sortAttributeViewViewKey(data: { avID: string; viewID: string; keyID: string; previousKeyID: string }): Promise<{ code: number; msg: string; data: any | null }> {
-    return this._fetchWrapper('/api/av/sortAttributeViewViewKey', 'POST', data, true);
+    return this._fetchWrapper("/api/av/sortAttributeViewViewKey", "POST", data, true);
   }
 
   /**
@@ -695,7 +695,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async batchUpdatePackage(data: { frontend: string }): Promise<{ code: number; msg: string; data: any | null }> {
-    return this._fetchWrapper('/api/bazaar/batchUpdatePackage', 'POST', data, true);
+    return this._fetchWrapper("/api/bazaar/batchUpdatePackage", "POST", data, true);
   }
 
   /**
@@ -704,7 +704,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getBazaarIcon(data: { keyword?: string }): Promise<{ code: number; msg: string; data: { packages: any[] } | null }> {
-    return this._fetchWrapper('/api/bazaar/getBazaarIcon', 'POST', data, true);
+    return this._fetchWrapper("/api/bazaar/getBazaarIcon", "POST", data, true);
   }
 
   /**
@@ -713,7 +713,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getBazaarPackageREAME(data: { repoURL: string; repoHash: string; packageType: string }): Promise<{ code: number; msg: string; data: { html: string } | null }> {
-    return this._fetchWrapper('/api/bazaar/getBazaarPackageREAME', 'POST', data, true);
+    return this._fetchWrapper("/api/bazaar/getBazaarPackageREAME", "POST", data, true);
   }
 
   /**
@@ -722,7 +722,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getBazaarPlugin(data: { frontend: string; keyword?: string }): Promise<{ code: number; msg: string; data: { packages: any[] } | null }> {
-    return this._fetchWrapper('/api/bazaar/getBazaarPlugin', 'POST', data, true);
+    return this._fetchWrapper("/api/bazaar/getBazaarPlugin", "POST", data, true);
   }
 
   /**
@@ -731,7 +731,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getBazaarTemplate(data: { keyword?: string }): Promise<{ code: number; msg: string; data: { packages: any[] } | null }> {
-    return this._fetchWrapper('/api/bazaar/getBazaarTemplate', 'POST', data, true);
+    return this._fetchWrapper("/api/bazaar/getBazaarTemplate", "POST", data, true);
   }
 
   /**
@@ -740,7 +740,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getBazaarTheme(data: { keyword?: string }): Promise<{ code: number; msg: string; data: { packages: any[] } | null }> {
-    return this._fetchWrapper('/api/bazaar/getBazaarTheme', 'POST', data, true);
+    return this._fetchWrapper("/api/bazaar/getBazaarTheme", "POST", data, true);
   }
 
   /**
@@ -749,7 +749,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getBazaarWidget(data: { keyword?: string }): Promise<{ code: number; msg: string; data: { packages: any[] } | null }> {
-    return this._fetchWrapper('/api/bazaar/getBazaarWidget', 'POST', data, true);
+    return this._fetchWrapper("/api/bazaar/getBazaarWidget", "POST", data, true);
   }
 
   /**
@@ -758,7 +758,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getInstalledIcon(data: { keyword?: string }): Promise<{ code: number; msg: string; data: { packages: any[] } | null }> {
-    return this._fetchWrapper('/api/bazaar/getInstalledIcon', 'POST', data, true);
+    return this._fetchWrapper("/api/bazaar/getInstalledIcon", "POST", data, true);
   }
 
   /**
@@ -767,7 +767,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getInstalledPlugin(data: { frontend: string; keyword?: string }): Promise<{ code: number; msg: string; data: { packages: any[] } | null }> {
-    return this._fetchWrapper('/api/bazaar/getInstalledPlugin', 'POST', data, true);
+    return this._fetchWrapper("/api/bazaar/getInstalledPlugin", "POST", data, true);
   }
 
   /**
@@ -776,7 +776,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getInstalledTemplate(data: { keyword?: string }): Promise<{ code: number; msg: string; data: { packages: any[] } | null }> {
-    return this._fetchWrapper('/api/bazaar/getInstalledTemplate', 'POST', data, true);
+    return this._fetchWrapper("/api/bazaar/getInstalledTemplate", "POST", data, true);
   }
 
   /**
@@ -785,7 +785,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getInstalledTheme(data: { keyword?: string }): Promise<{ code: number; msg: string; data: { packages: any[] } | null }> {
-    return this._fetchWrapper('/api/bazaar/getInstalledTheme', 'POST', data, true);
+    return this._fetchWrapper("/api/bazaar/getInstalledTheme", "POST", data, true);
   }
 
   /**
@@ -794,7 +794,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getInstalledWidget(data: { keyword?: string }): Promise<{ code: number; msg: string; data: { packages: any[] } | null }> {
-    return this._fetchWrapper('/api/bazaar/getInstalledWidget', 'POST', data, true);
+    return this._fetchWrapper("/api/bazaar/getInstalledWidget", "POST", data, true);
   }
 
   /**
@@ -803,7 +803,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getUpdatedPackage(data: { frontend: string }): Promise<{ code: number; msg: string; data: { plugins: any[]; widgets: any[]; icons: any[]; themes: any[]; templates: any[] } | null }> {
-    return this._fetchWrapper('/api/bazaar/getUpdatedPackage', 'POST', data, true);
+    return this._fetchWrapper("/api/bazaar/getUpdatedPackage", "POST", data, true);
   }
 
   /**
@@ -812,7 +812,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async installBazaarIcon(data: { repoURL: string; repoHash: string; packageName: string; keyword?: string }): Promise<{ code: number; msg: string; data: { packages: any[]; appearance: any } | null }> {
-    return this._fetchWrapper('/api/bazaar/installBazaarIcon', 'POST', data, true);
+    return this._fetchWrapper("/api/bazaar/installBazaarIcon", "POST", data, true);
   }
 
   /**
@@ -821,7 +821,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async installBazaarPlugin(data: { repoURL: string; repoHash: string; packageName: string; frontend: string; keyword?: string }): Promise<{ code: number; msg: string; data: { packages: any[] } | null }> {
-    return this._fetchWrapper('/api/bazaar/installBazaarPlugin', 'POST', data, true);
+    return this._fetchWrapper("/api/bazaar/installBazaarPlugin", "POST", data, true);
   }
 
   /**
@@ -830,7 +830,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async installBazaarTemplate(data: { repoURL: string; repoHash: string; packageName: string; keyword?: string }): Promise<{ code: number; msg: string; data: { packages: any[] } | null }> {
-    return this._fetchWrapper('/api/bazaar/installBazaarTemplate', 'POST', data, true);
+    return this._fetchWrapper("/api/bazaar/installBazaarTemplate", "POST", data, true);
   }
 
   /**
@@ -839,7 +839,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async installBazaarTheme(data: { repoURL: string; repoHash: string; packageName: string; mode: number; update?: boolean; keyword?: string }): Promise<{ code: number; msg: string; data: { packages: any[]; appearance: any } | null }> {
-    return this._fetchWrapper('/api/bazaar/installBazaarTheme', 'POST', data, true);
+    return this._fetchWrapper("/api/bazaar/installBazaarTheme", "POST", data, true);
   }
 
   /**
@@ -848,7 +848,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async installBazaarWidget(data: { repoURL: string; repoHash: string; packageName: string; keyword?: string }): Promise<{ code: number; msg: string; data: { packages: any[] } | null }> {
-    return this._fetchWrapper('/api/bazaar/installBazaarWidget', 'POST', data, true);
+    return this._fetchWrapper("/api/bazaar/installBazaarWidget", "POST", data, true);
   }
 
   /**
@@ -857,7 +857,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async uninstallBazaarIcon(data: { packageName: string; keyword?: string }): Promise<{ code: number; msg: string; data: { packages: any[]; appearance: any } | null }> {
-    return this._fetchWrapper('/api/bazaar/uninstallBazaarIcon', 'POST', data, true);
+    return this._fetchWrapper("/api/bazaar/uninstallBazaarIcon", "POST", data, true);
   }
 
   /**
@@ -866,7 +866,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async uninstallBazaarPlugin(data: { packageName: string; frontend: string; keyword?: string }): Promise<{ code: number; msg: string; data: { packages: any[] } | null }> {
-    return this._fetchWrapper('/api/bazaar/uninstallBazaarPlugin', 'POST', data, true);
+    return this._fetchWrapper("/api/bazaar/uninstallBazaarPlugin", "POST", data, true);
   }
 
   /**
@@ -875,7 +875,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async uninstallBazaarTemplate(data: { packageName: string; keyword?: string }): Promise<{ code: number; msg: string; data: { packages: any[] } | null }> {
-    return this._fetchWrapper('/api/bazaar/uninstallBazaarTemplate', 'POST', data, true);
+    return this._fetchWrapper("/api/bazaar/uninstallBazaarTemplate", "POST", data, true);
   }
 
   /**
@@ -884,7 +884,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async uninstallBazaarTheme(data: { packageName: string; mode: number; keyword?: string }): Promise<{ code: number; msg: string; data: { packages: any[]; appearance: any } | null }> {
-    return this._fetchWrapper('/api/bazaar/uninstallBazaarTheme', 'POST', data, true);
+    return this._fetchWrapper("/api/bazaar/uninstallBazaarTheme", "POST", data, true);
   }
 
   /**
@@ -893,7 +893,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async uninstallBazaarWidget(data: { packageName: string; keyword?: string }): Promise<{ code: number; msg: string; data: { packages: any[] } | null }> {
-    return this._fetchWrapper('/api/bazaar/uninstallBazaarWidget', 'POST', data, true);
+    return this._fetchWrapper("/api/bazaar/uninstallBazaarWidget", "POST", data, true);
   }
 
   /**
@@ -902,7 +902,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async appendBlock(data: { data: string; dataType: "markdown" | "dom"; parentID: string }): Promise<{ code: number; msg: string; data: { id: string }[] | null }> {
-    return this._fetchWrapper('/api/block/appendBlock', 'POST', data, true);
+    return this._fetchWrapper("/api/block/appendBlock", "POST", data, true);
   }
 
   /**
@@ -911,7 +911,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async appendDailyNoteBlock(data: { data: string; dataType: "markdown" | "dom"; notebook: string }): Promise<{ code: number; msg: string; data: { id: string }[] | null }> {
-    return this._fetchWrapper('/api/block/appendDailyNoteBlock', 'POST', data, true);
+    return this._fetchWrapper("/api/block/appendDailyNoteBlock", "POST", data, true);
   }
 
   /**
@@ -920,7 +920,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async appendHeadingChildren(data: any): Promise<any> {
-    return this._fetchWrapper('/api/block/appendHeadingChildren', 'POST', data, true);
+    return this._fetchWrapper("/api/block/appendHeadingChildren", "POST", data, true);
   }
 
   /**
@@ -929,7 +929,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async batchAppendBlock(data: { blocks: { data: string; dataType: "markdown" | "dom"; parentID: string }[] }): Promise<{ code: number; msg: string; data: { id: string }[] | null }> {
-    return this._fetchWrapper('/api/block/batchAppendBlock', 'POST', data, true);
+    return this._fetchWrapper("/api/block/batchAppendBlock", "POST", data, true);
   }
 
   /**
@@ -938,7 +938,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async batchInsertBlock(data: { blocks: { data: string; dataType: "markdown" | "dom"; parentID?: string; previousID?: string; nextID?: string }[] }): Promise<{ code: number; msg: string; data: { id: string }[] | null }> {
-    return this._fetchWrapper('/api/block/batchInsertBlock', 'POST', data, true);
+    return this._fetchWrapper("/api/block/batchInsertBlock", "POST", data, true);
   }
 
   /**
@@ -947,7 +947,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async batchPrependBlock(data: { blocks: { data: string; dataType: "markdown" | "dom"; parentID: string }[] }): Promise<{ code: number; msg: string; data: { id: string }[] | null }> {
-    return this._fetchWrapper('/api/block/batchPrependBlock', 'POST', data, true);
+    return this._fetchWrapper("/api/block/batchPrependBlock", "POST", data, true);
   }
 
   /**
@@ -956,7 +956,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async batchUpdateBlock(data: { blocks: { id: string; data: string; dataType: "markdown" | "dom" }[] }): Promise<{ code: number; msg: string; data: { id: string }[] | null }> {
-    return this._fetchWrapper('/api/block/batchUpdateBlock', 'POST', data, true);
+    return this._fetchWrapper("/api/block/batchUpdateBlock", "POST", data, true);
   }
 
   /**
@@ -965,7 +965,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async checkBlockExist(data: { id: string }): Promise<{ code: number; msg: string; data: boolean }> {
-    return this._fetchWrapper('/api/block/checkBlockExist', 'POST', data, true);
+    return this._fetchWrapper("/api/block/checkBlockExist", "POST", data, true);
   }
 
   /**
@@ -974,7 +974,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async checkBlockFold(data: { id: string }): Promise<{ code: number; msg: string; data: { isFolded: boolean; isRoot: boolean } }> {
-    return this._fetchWrapper('/api/block/checkBlockFold', 'POST', data, true);
+    return this._fetchWrapper("/api/block/checkBlockFold", "POST", data, true);
   }
 
   /**
@@ -983,7 +983,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async checkBlockRef(data: { ids: string[] }): Promise<{ code: number; msg: string; data: Record<string, { defCount: number; refCount: number }> }> {
-    return this._fetchWrapper('/api/block/checkBlockRef', 'POST', data, true);
+    return this._fetchWrapper("/api/block/checkBlockRef", "POST", data, true);
   }
 
   /**
@@ -992,7 +992,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async deleteBlock(data: { id: string }): Promise<{ code: number; msg: string; data: any[] | null }> {
-    return this._fetchWrapper('/api/block/deleteBlock', 'POST', data, true);
+    return this._fetchWrapper("/api/block/deleteBlock", "POST", data, true);
   }
 
   /**
@@ -1001,7 +1001,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async foldBlock(data: { id: string }): Promise<{ code: number; msg: string; data: any[] | null }> {
-    return this._fetchWrapper('/api/block/foldBlock', 'POST', data, true);
+    return this._fetchWrapper("/api/block/foldBlock", "POST", data, true);
   }
 
   /**
@@ -1010,7 +1010,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getBlockBreadcrumb(data: { id: string; excludeTypes?: string[] }): Promise<{ code: number; msg: string; data: { id: string; name: string; type: string; icon?: string }[] }> {
-    return this._fetchWrapper('/api/block/getBlockBreadcrumb', 'POST', data, true);
+    return this._fetchWrapper("/api/block/getBlockBreadcrumb", "POST", data, true);
   }
 
   /**
@@ -1019,7 +1019,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getBlockDOM(data: { id: string }): Promise<{ code: number; msg: string; data: { id: string; dom: string; isFullWidth?: boolean } }> {
-    return this._fetchWrapper('/api/block/getBlockDOM', 'POST', data, true);
+    return this._fetchWrapper("/api/block/getBlockDOM", "POST", data, true);
   }
 
   /**
@@ -1028,7 +1028,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getBlockDOMWithEmbed(data: any): Promise<any> {
-    return this._fetchWrapper('/api/block/getBlockDOMWithEmbed', 'POST', data, true);
+    return this._fetchWrapper("/api/block/getBlockDOMWithEmbed", "POST", data, true);
   }
 
   /**
@@ -1037,7 +1037,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getBlockDOMs(data: { ids: string[] }): Promise<{ code: number; msg: string; data: Record<string, string> }> {
-    return this._fetchWrapper('/api/block/getBlockDOMs', 'POST', data, true);
+    return this._fetchWrapper("/api/block/getBlockDOMs", "POST", data, true);
   }
 
   /**
@@ -1046,7 +1046,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getBlockDOMsWithEmbed(data: any): Promise<any> {
-    return this._fetchWrapper('/api/block/getBlockDOMsWithEmbed', 'POST', data, true);
+    return this._fetchWrapper("/api/block/getBlockDOMsWithEmbed", "POST", data, true);
   }
 
   /**
@@ -1055,7 +1055,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getBlockDefIDsByRefText(data: { anchor: string; excludeIDs?: string[] }): Promise<{ code: number; msg: string; data: { refDefs: { RefID: string; DefIDs: string[] }[] } }> {
-    return this._fetchWrapper('/api/block/getBlockDefIDsByRefText', 'POST', data, true);
+    return this._fetchWrapper("/api/block/getBlockDefIDsByRefText", "POST", data, true);
   }
 
   /**
@@ -1064,7 +1064,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getBlockIndex(data: { id: string }): Promise<{ code: number; msg: string; data: number }> {
-    return this._fetchWrapper('/api/block/getBlockIndex', 'POST', data, true);
+    return this._fetchWrapper("/api/block/getBlockIndex", "POST", data, true);
   }
 
   /**
@@ -1073,7 +1073,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getBlockInfo(data: { id: string }): Promise<{ code: number; msg: string; data: { box: string; path: string; rootID: string; rootTitle: string; rootChildID: string; rootIcon: string } }> {
-    return this._fetchWrapper('/api/block/getBlockInfo', 'POST', data, true);
+    return this._fetchWrapper("/api/block/getBlockInfo", "POST", data, true);
   }
 
   /**
@@ -1082,7 +1082,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getBlockKramdown(data: { id: string; mode?: "md" | "textmark" }): Promise<{ code: number; msg: string; data: { id: string; kramdown: string } }> {
-    return this._fetchWrapper('/api/block/getBlockKramdown', 'POST', data, true);
+    return this._fetchWrapper("/api/block/getBlockKramdown", "POST", data, true);
   }
 
   /**
@@ -1091,7 +1091,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getBlockRelevantIDs(data: any): Promise<any> {
-    return this._fetchWrapper('/api/block/getBlockRelevantIDs', 'POST', data, true);
+    return this._fetchWrapper("/api/block/getBlockRelevantIDs", "POST", data, true);
   }
 
   /**
@@ -1100,7 +1100,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getBlockSiblingID(data: { id: string }): Promise<{ code: number; msg: string; data: { parent: string; previous: string; next: string } }> {
-    return this._fetchWrapper('/api/block/getBlockSiblingID', 'POST', data, true);
+    return this._fetchWrapper("/api/block/getBlockSiblingID", "POST", data, true);
   }
 
   /**
@@ -1109,7 +1109,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getBlockTreeInfos(data: { ids: string[] }): Promise<{ code: number; msg: string; data: { id: string; box: string; path: string; hPath: string; name: string; alias: string; memo: string; tag: string; bookmark: string; type: string; subType: string; depth: number; sort: number; created: string; updated: string; "f Suprema": string; fcontent: string; markdown: string; length: number; refCount: number; defCount: number; refID: string; parentID: string; parent2ID: string; rootID: string; childrenCount: number; codeBlockCount: number; avCount: number; docSize: number; subFileCount: number; headingCount: number; listCount: number; listItemCount: number; mathBlockCount: number; htmlBlockCount: number; tableCount: number; quoteCount: number; superBlockCount: number; paragraphCount: number; todoCount: number; imageCount: number; audioCount: number; videoCount: number; otherAssetCount: number; isBacklink: boolean; isRef: boolean; isDef: boolean; isComment: boolean; hasMemo: boolean; hasTag: boolean; hasBookmark: boolean; hasAlias: boolean; hidden: boolean; folded: boolean; refText: string; refPath: string; refPath2: string; refCreate: string; refUpdate: string; defPath: string; defPath2: string; ial: Record<string, string>; children?: any[]; attrs?: Record<string, string> }[] }> {
-    return this._fetchWrapper('/api/block/getBlockTreeInfos', 'POST', data, true);
+    return this._fetchWrapper("/api/block/getBlockTreeInfos", "POST", data, true);
   }
 
   /**
@@ -1118,7 +1118,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getBlocksIndexes(data: { ids: string[] }): Promise<{ code: number; msg: string; data: Record<string, number> }> {
-    return this._fetchWrapper('/api/block/getBlocksIndexes', 'POST', data, true);
+    return this._fetchWrapper("/api/block/getBlocksIndexes", "POST", data, true);
   }
 
   /**
@@ -1127,7 +1127,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getBlocksWordCount(data: { ids: string[]; reqId?: string }): Promise<{ code: number; msg: string; data: { reqId?: string; stat: { wordCount: number; charCount: number; linkCount: number } } }> {
-    return this._fetchWrapper('/api/block/getBlocksWordCount', 'POST', data, true);
+    return this._fetchWrapper("/api/block/getBlocksWordCount", "POST", data, true);
   }
 
   /**
@@ -1136,7 +1136,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getChildBlocks(data: { id: string }): Promise<{ code: number; msg: string; data: { id: string; type: string }[] }> {
-    return this._fetchWrapper('/api/block/getChildBlocks', 'POST', data, true);
+    return this._fetchWrapper("/api/block/getChildBlocks", "POST", data, true);
   }
 
   /**
@@ -1145,7 +1145,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getContentWordCount(data: { content: string; reqId?: string }): Promise<{ code: number; msg: string; data: { reqId?: string; stat: { wordCount: number; charCount: number; linkCount: number } } }> {
-    return this._fetchWrapper('/api/block/getContentWordCount', 'POST', data, true);
+    return this._fetchWrapper("/api/block/getContentWordCount", "POST", data, true);
   }
 
   /**
@@ -1154,7 +1154,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getDOMText(data: { dom: string }): Promise<{ code: number; msg: string; data: string }> {
-    return this._fetchWrapper('/api/block/getDOMText', 'POST', data, true);
+    return this._fetchWrapper("/api/block/getDOMText", "POST", data, true);
   }
 
   /**
@@ -1163,7 +1163,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getDocInfo(data: { id: string }): Promise<{ code: number; msg: string; data: { id: string; box: string; path: string; dom: string; title: string; icon: string; iconURL: string; breadcrumb: string; isTemplate: boolean; updated: string } }> {
-    return this._fetchWrapper('/api/block/getDocInfo', 'POST', data, true);
+    return this._fetchWrapper("/api/block/getDocInfo", "POST", data, true);
   }
 
   /**
@@ -1172,7 +1172,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getDocsInfo(data: { ids: string[] }): Promise<{ code: number; msg: string; data: { id: string; box: string; path: string; title: string; icon: string; iconURL: string; isTemplate: boolean; updated: string }[] }> {
-    return this._fetchWrapper('/api/block/getDocsInfo', 'POST', data, true);
+    return this._fetchWrapper("/api/block/getDocsInfo", "POST", data, true);
   }
 
   /**
@@ -1181,7 +1181,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getHeadingChildrenDOM(data: { id: string }): Promise<{ code: number; msg: string; data: string }> {
-    return this._fetchWrapper('/api/block/getHeadingChildrenDOM', 'POST', data, true);
+    return this._fetchWrapper("/api/block/getHeadingChildrenDOM", "POST", data, true);
   }
 
   /**
@@ -1190,7 +1190,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getHeadingChildrenIDs(data: { id: string }): Promise<{ code: number; msg: string; data: string[] }> {
-    return this._fetchWrapper('/api/block/getHeadingChildrenIDs', 'POST', data, true);
+    return this._fetchWrapper("/api/block/getHeadingChildrenIDs", "POST", data, true);
   }
 
   /**
@@ -1199,7 +1199,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getHeadingDeleteTransaction(data: { id: string }): Promise<{ code: number; msg: string; data: { doOperations: { action: string; id?: string; data?: string; parentID?: string; previousID?: string; dataType?: string }[] } }> {
-    return this._fetchWrapper('/api/block/getHeadingDeleteTransaction', 'POST', data, true);
+    return this._fetchWrapper("/api/block/getHeadingDeleteTransaction", "POST", data, true);
   }
 
   /**
@@ -1208,7 +1208,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getHeadingInsertTransaction(data: any): Promise<any> {
-    return this._fetchWrapper('/api/block/getHeadingInsertTransaction', 'POST', data, true);
+    return this._fetchWrapper("/api/block/getHeadingInsertTransaction", "POST", data, true);
   }
 
   /**
@@ -1217,7 +1217,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getHeadingLevelTransaction(data: { id: string; level: number }): Promise<{ code: number; msg: string; data: { doOperations: { action: string; id: string; data?: string }[] } }> {
-    return this._fetchWrapper('/api/block/getHeadingLevelTransaction', 'POST', data, true);
+    return this._fetchWrapper("/api/block/getHeadingLevelTransaction", "POST", data, true);
   }
 
   /**
@@ -1226,7 +1226,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getRecentUpdatedBlocks(data: any): Promise<{ code: number; msg: string; data: { id: string; box: string; path: string; hPath: string; name: string; bookmark: string; memo: string; alias: string; type: string; updated: string }[] }> {
-    return this._fetchWrapper('/api/block/getRecentUpdatedBlocks', 'POST', data, true);
+    return this._fetchWrapper("/api/block/getRecentUpdatedBlocks", "POST", data, true);
   }
 
   /**
@@ -1235,7 +1235,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getRefIDs(data: { id: string }): Promise<{ code: number; msg: string; data: string[] }> {
-    return this._fetchWrapper('/api/block/getRefIDs', 'POST', data, true);
+    return this._fetchWrapper("/api/block/getRefIDs", "POST", data, true);
   }
 
   /**
@@ -1244,7 +1244,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getRefIDsByFileAnnotationID(data: { id: string }): Promise<{ code: number; msg: string; data: { refID: string; defID: string } }> {
-    return this._fetchWrapper('/api/block/getRefIDsByFileAnnotationID', 'POST', data, true);
+    return this._fetchWrapper("/api/block/getRefIDsByFileAnnotationID", "POST", data, true);
   }
 
   /**
@@ -1253,7 +1253,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getRefText(data: { id: string }): Promise<{ code: number; msg: string; data: string }> {
-    return this._fetchWrapper('/api/block/getRefText', 'POST', data, true);
+    return this._fetchWrapper("/api/block/getRefText", "POST", data, true);
   }
 
   /**
@@ -1262,7 +1262,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getTailChildBlocks(data: { id: string; size: number }): Promise<{ code: number; msg: string; data: { id: string; type: string }[] }> {
-    return this._fetchWrapper('/api/block/getTailChildBlocks', 'POST', data, true);
+    return this._fetchWrapper("/api/block/getTailChildBlocks", "POST", data, true);
   }
 
   /**
@@ -1271,7 +1271,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getTreeStat(data: { id: string }): Promise<{ code: number; msg: string; data: { id: string; box: string; path: string; refCount: number; defCount: number; childrenCount: number; codeBlockCount: number; avCount: number; docSize: number; subFileCount: number; headingCount: number; listCount: number; listItemCount: number; mathBlockCount: number; htmlBlockCount: number; tableCount: number; quoteCount: number; superBlockCount: number; paragraphCount: number; todoCount: number; imageCount: number; audioCount: number; videoCount: number; otherAssetCount: number } }> {
-    return this._fetchWrapper('/api/block/getTreeStat', 'POST', data, true);
+    return this._fetchWrapper("/api/block/getTreeStat", "POST", data, true);
   }
 
   /**
@@ -1280,7 +1280,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getUnfoldedParentID(data: { id: string }): Promise<{ code: number; msg: string; data: string }> {
-    return this._fetchWrapper('/api/block/getUnfoldedParentID', 'POST', data, true);
+    return this._fetchWrapper("/api/block/getUnfoldedParentID", "POST", data, true);
   }
 
   /**
@@ -1289,7 +1289,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async insertBlock(data: { anchorID: string; data: string; dataType: "markdown" | "dom"; isBefore: boolean }): Promise<{ code: number; msg: string; data: { id: string }[] | null }> {
-    return this._fetchWrapper('/api/block/insertBlock', 'POST', data, true);
+    return this._fetchWrapper("/api/block/insertBlock", "POST", data, true);
   }
 
   /**
@@ -1298,7 +1298,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async moveBlock(data: { id: string; parentID?: string; previousID?: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/block/moveBlock', 'POST', data, true);
+    return this._fetchWrapper("/api/block/moveBlock", "POST", data, true);
   }
 
   /**
@@ -1307,7 +1307,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async moveOutlineHeading(data: { id: string; parentID?: string; previousID?: string }): Promise<{ code: number; msg: string; data: any[] | null }> {
-    return this._fetchWrapper('/api/block/moveOutlineHeading', 'POST', data, true);
+    return this._fetchWrapper("/api/block/moveOutlineHeading", "POST", data, true);
   }
 
   /**
@@ -1316,7 +1316,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async prependBlock(data: { data: string; dataType: "markdown" | "dom"; parentID: string }): Promise<{ code: number; msg: string; data: { id: string }[] | null }> {
-    return this._fetchWrapper('/api/block/prependBlock', 'POST', data, true);
+    return this._fetchWrapper("/api/block/prependBlock", "POST", data, true);
   }
 
   /**
@@ -1325,7 +1325,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async prependDailyNoteBlock(data: { data: string; dataType: "markdown" | "dom"; notebook: string }): Promise<{ code: number; msg: string; data: any[] | null }> {
-    return this._fetchWrapper('/api/block/prependDailyNoteBlock', 'POST', data, true);
+    return this._fetchWrapper("/api/block/prependDailyNoteBlock", "POST", data, true);
   }
 
   /**
@@ -1334,7 +1334,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setBlockReminder(data: { id: string; timed: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/block/setBlockReminder', 'POST', data, true);
+    return this._fetchWrapper("/api/block/setBlockReminder", "POST", data, true);
   }
 
   /**
@@ -1343,7 +1343,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async swapBlockRef(data: { refID: string; defID: string; includeChildren: boolean }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/block/swapBlockRef', 'POST', data, true);
+    return this._fetchWrapper("/api/block/swapBlockRef", "POST", data, true);
   }
 
   /**
@@ -1352,7 +1352,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async transferBlockRef(data: { fromID: string; toID: string; refIDs?: string[]; reloadUI: any }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/block/transferBlockRef', 'POST', data, true);
+    return this._fetchWrapper("/api/block/transferBlockRef", "POST", data, true);
   }
 
   /**
@@ -1361,7 +1361,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async unfoldBlock(data: { id: string }): Promise<{ code: number; msg: string; data: any[] | null }> {
-    return this._fetchWrapper('/api/block/unfoldBlock', 'POST', data, true);
+    return this._fetchWrapper("/api/block/unfoldBlock", "POST", data, true);
   }
 
   /**
@@ -1370,7 +1370,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async updateBlock(data: { id: string; data: string; dataType: "markdown" | "dom" }): Promise<{ code: number; msg: string; data: { id: string }[] | null }> {
-    return this._fetchWrapper('/api/block/updateBlock', 'POST', data, true);
+    return this._fetchWrapper("/api/block/updateBlock", "POST", data, true);
   }
 
   /**
@@ -1379,7 +1379,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getBookmark(data: any): Promise<{ code: number; msg: string; data: { name: string; blocks: { id: string; type: string; content: string; markdown: string; name?: string; alias?: string; memo?: string; icon?: string; hPath: string; path: string; box: string; rootID: string }[]; type: string; depth: number; count: number }[] }> {
-    return this._fetchWrapper('/api/bookmark/getBookmark', 'POST', data, true);
+    return this._fetchWrapper("/api/bookmark/getBookmark", "POST", data, true);
   }
 
   /**
@@ -1388,7 +1388,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async removeBookmark(data: { bookmark: string }): Promise<{ code: number; msg: string; data: { closeTimeout: number } | undefined | null }> {
-    return this._fetchWrapper('/api/bookmark/removeBookmark', 'POST', data, true);
+    return this._fetchWrapper("/api/bookmark/removeBookmark", "POST", data, true);
   }
 
   /**
@@ -1397,7 +1397,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async renameBookmark(data: { oldBookmark: string; newBookmark: string }): Promise<{ code: number; msg: string; data: { closeTimeout: number } | undefined | null }> {
-    return this._fetchWrapper('/api/bookmark/renameBookmark', 'POST', data, true);
+    return this._fetchWrapper("/api/bookmark/renameBookmark", "POST", data, true);
   }
 
   /**
@@ -1406,7 +1406,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getChannelInfo(data: { name: string }): Promise<{ code: number; msg: string; data: { name: string; count: number } }> {
-    return this._fetchWrapper('/api/broadcast/getChannelInfo', 'POST', data, true);
+    return this._fetchWrapper("/api/broadcast/getChannelInfo", "POST", data, true);
   }
 
   /**
@@ -1415,7 +1415,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getChannels(data: any): Promise<{ code: number; msg: string; data: { name: string; count: number }[] }> {
-    return this._fetchWrapper('/api/broadcast/getChannels', 'POST', data, true);
+    return this._fetchWrapper("/api/broadcast/getChannels", "POST", data, true);
   }
 
   /**
@@ -1424,7 +1424,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async postMessage(data: { channel: string; cmd?: string; data: string }): Promise<{ code: number; msg: string; data: any | null }> {
-    return this._fetchWrapper('/api/broadcast/postMessage', 'POST', data, true);
+    return this._fetchWrapper("/api/broadcast/postMessage", "POST", data, true);
   }
 
   /**
@@ -1433,7 +1433,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async broadcastPublish(data: { channel: string; type: "string" | "binary"; data?: string; file?: any }): Promise<{ code: number; msg: string; data: { code: number; msg: string; channel: { name: string; count: number }; message: { type: "string" | "binary"; size: number; filename: string } } }> {
-    return this._fetchWrapper('/api/broadcast/publish', 'POST', data, true);
+    return this._fetchWrapper("/api/broadcast/publish", "POST", data, true);
   }
 
   /**
@@ -1442,7 +1442,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async readFilePaths(data: any): Promise<{ code: number; msg: string; data: string[] }> {
-    return this._fetchWrapper('/api/clipboard/readFilePaths', 'POST', data, true);
+    return this._fetchWrapper("/api/clipboard/readFilePaths", "POST", data, true);
   }
 
   /**
@@ -1451,7 +1451,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getCloudSpace(data: any): Promise<{ code: number; msg: string; data: { sync: { size: number; hSize: string; updated: string; cloudName: string; saveDir: string }; backup: { size: number; hSize: string; updated: string; saveDir: string }; hAssetSize: string; hSize: string; hTotalSize: string; hExchangeSize: string; hTrafficUploadSize: string; hTrafficDownloadSize: string; hTrafficAPIGet: string; hTrafficAPIPut: string } }> {
-    return this._fetchWrapper('/api/cloud/getCloudSpace', 'POST', data, true);
+    return this._fetchWrapper("/api/cloud/getCloudSpace", "POST", data, true);
   }
 
   /**
@@ -1460,7 +1460,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async pandoc(data: { dir?: string; args: string[] }): Promise<{ code: number; msg: string; data: { path: string } }> {
-    return this._fetchWrapper('/api/convert/pandoc', 'POST', data, true);
+    return this._fetchWrapper("/api/convert/pandoc", "POST", data, true);
   }
 
   /**
@@ -1469,7 +1469,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async export2Liandi(data: { id: string }): Promise<{ code: number; msg: string; data?: null }> {
-    return this._fetchWrapper('/api/export/export2Liandi', 'POST', data, true);
+    return this._fetchWrapper("/api/export/export2Liandi", "POST", data, true);
   }
 
   /**
@@ -1478,7 +1478,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async exportAsFile(data: { type: string }): Promise<{ code: number; msg: string; data: { name: string; file: string } }> {
-    return this._fetchWrapper('/api/export/exportAsFile', 'POST', data, true);
+    return this._fetchWrapper("/api/export/exportAsFile", "POST", data, true);
   }
 
   /**
@@ -1487,7 +1487,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async exportAsciiDoc(data: { id: string }): Promise<{ code: number; msg: string; data: { name: string; zip: string } }> {
-    return this._fetchWrapper('/api/export/exportAsciiDoc', 'POST', data, true);
+    return this._fetchWrapper("/api/export/exportAsciiDoc", "POST", data, true);
   }
 
   /**
@@ -1496,7 +1496,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async exportAttributeView(data: { id: string; blockID: string }): Promise<{ code: number; msg: string; data: { zip: string } }> {
-    return this._fetchWrapper('/api/export/exportAttributeView', 'POST', data, true);
+    return this._fetchWrapper("/api/export/exportAttributeView", "POST", data, true);
   }
 
   /**
@@ -1505,7 +1505,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async exportBrowserHTML(data: any): Promise<any> {
-    return this._fetchWrapper('/api/export/exportBrowserHTML', 'POST', data, true);
+    return this._fetchWrapper("/api/export/exportBrowserHTML", "POST", data, true);
   }
 
   /**
@@ -1514,7 +1514,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async exportData(data: any): Promise<{ code: number; msg: string; data: { zip: string } }> {
-    return this._fetchWrapper('/api/export/exportData', 'POST', data, true);
+    return this._fetchWrapper("/api/export/exportData", "POST", data, true);
   }
 
   /**
@@ -1523,7 +1523,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async exportDataInFolder(data: { folder: string }): Promise<{ code: number; msg: string; data: { name: string } }> {
-    return this._fetchWrapper('/api/export/exportDataInFolder', 'POST', data, true);
+    return this._fetchWrapper("/api/export/exportDataInFolder", "POST", data, true);
   }
 
   /**
@@ -1532,7 +1532,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async exportDocx(data: { id: string; savePath: string; removeAssets: boolean; merge?: boolean }): Promise<{ code: number; msg: string; data: { path: string } }> {
-    return this._fetchWrapper('/api/export/exportDocx', 'POST', data, true);
+    return this._fetchWrapper("/api/export/exportDocx", "POST", data, true);
   }
 
   /**
@@ -1541,7 +1541,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async exportEPUB(data: { id: string }): Promise<{ code: number; msg: string; data: { name: string; zip: string } }> {
-    return this._fetchWrapper('/api/export/exportEPUB', 'POST', data, true);
+    return this._fetchWrapper("/api/export/exportEPUB", "POST", data, true);
   }
 
   /**
@@ -1550,7 +1550,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async exportHTML(data: { id: string; pdf: boolean; savePath: string; keepFold?: boolean; merge?: boolean }): Promise<{ code: number; msg: string; data: { id: string; name: string; content: string } }> {
-    return this._fetchWrapper('/api/export/exportHTML', 'POST', data, true);
+    return this._fetchWrapper("/api/export/exportHTML", "POST", data, true);
   }
 
   /**
@@ -1559,7 +1559,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async exportMd(data: { id: string }): Promise<{ code: number; msg: string; data: { name: string; zip: string } }> {
-    return this._fetchWrapper('/api/export/exportMd', 'POST', data, true);
+    return this._fetchWrapper("/api/export/exportMd", "POST", data, true);
   }
 
   /**
@@ -1568,7 +1568,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async exportMdContent(data: { id: string; refMode?: number; embedMode?: number; yfm?: boolean }): Promise<{ code: number; msg: string; data: { hPath: string; content: string } }> {
-    return this._fetchWrapper('/api/export/exportMdContent', 'POST', data, true);
+    return this._fetchWrapper("/api/export/exportMdContent", "POST", data, true);
   }
 
   /**
@@ -1577,7 +1577,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async exportMdHTML(data: { id: string; savePath: string }): Promise<{ code: number; msg: string; data: { id: string; name: string; content: string } }> {
-    return this._fetchWrapper('/api/export/exportMdHTML', 'POST', data, true);
+    return this._fetchWrapper("/api/export/exportMdHTML", "POST", data, true);
   }
 
   /**
@@ -1586,7 +1586,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async exportMds(data: { ids: string[] }): Promise<{ code: number; msg: string; data: { name: string; zip: string } }> {
-    return this._fetchWrapper('/api/export/exportMds', 'POST', data, true);
+    return this._fetchWrapper("/api/export/exportMds", "POST", data, true);
   }
 
   /**
@@ -1595,7 +1595,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async exportMediaWiki(data: { id: string }): Promise<{ code: number; msg: string; data: { name: string; zip: string } }> {
-    return this._fetchWrapper('/api/export/exportMediaWiki', 'POST', data, true);
+    return this._fetchWrapper("/api/export/exportMediaWiki", "POST", data, true);
   }
 
   /**
@@ -1604,7 +1604,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async exportNotebookMd(data: { notebook: string }): Promise<{ code: number; msg: string; data: { name: string; zip: string } }> {
-    return this._fetchWrapper('/api/export/exportNotebookMd', 'POST', data, true);
+    return this._fetchWrapper("/api/export/exportNotebookMd", "POST", data, true);
   }
 
   /**
@@ -1613,7 +1613,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async exportNotebookSY(data: { id: string }): Promise<{ code: number; msg: string; data: { zip: string } }> {
-    return this._fetchWrapper('/api/export/exportNotebookSY', 'POST', data, true);
+    return this._fetchWrapper("/api/export/exportNotebookSY", "POST", data, true);
   }
 
   /**
@@ -1622,7 +1622,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async exportODT(data: { id: string }): Promise<{ code: number; msg: string; data: { name: string; zip: string } }> {
-    return this._fetchWrapper('/api/export/exportODT', 'POST', data, true);
+    return this._fetchWrapper("/api/export/exportODT", "POST", data, true);
   }
 
   /**
@@ -1631,7 +1631,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async exportOPML(data: { id: string }): Promise<{ code: number; msg: string; data: { name: string; zip: string } }> {
-    return this._fetchWrapper('/api/export/exportOPML', 'POST', data, true);
+    return this._fetchWrapper("/api/export/exportOPML", "POST", data, true);
   }
 
   /**
@@ -1640,7 +1640,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async exportOrgMode(data: { id: string }): Promise<{ code: number; msg: string; data: { name: string; zip: string } }> {
-    return this._fetchWrapper('/api/export/exportOrgMode', 'POST', data, true);
+    return this._fetchWrapper("/api/export/exportOrgMode", "POST", data, true);
   }
 
   /**
@@ -1649,7 +1649,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async exportPreviewHTML(data: { id: string; keepFold?: boolean; merge?: boolean; image?: boolean }): Promise<{ code: number; msg: string; data: { id: string; name: string; content: string; attrs: Record<string, string>; type: string } }> {
-    return this._fetchWrapper('/api/export/exportPreviewHTML', 'POST', data, true);
+    return this._fetchWrapper("/api/export/exportPreviewHTML", "POST", data, true);
   }
 
   /**
@@ -1658,7 +1658,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async exportRTF(data: { id: string }): Promise<{ code: number; msg: string; data: { name: string; zip: string } }> {
-    return this._fetchWrapper('/api/export/exportRTF', 'POST', data, true);
+    return this._fetchWrapper("/api/export/exportRTF", "POST", data, true);
   }
 
   /**
@@ -1667,7 +1667,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async exportReStructuredText(data: { id: string }): Promise<{ code: number; msg: string; data: { name: string; zip: string } }> {
-    return this._fetchWrapper('/api/export/exportReStructuredText', 'POST', data, true);
+    return this._fetchWrapper("/api/export/exportReStructuredText", "POST", data, true);
   }
 
   /**
@@ -1676,7 +1676,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async exportResources(data: { name?: string; paths: string[] }): Promise<{ code: number; msg: string; data: { path: string } }> {
-    return this._fetchWrapper('/api/export/exportResources', 'POST', data, true);
+    return this._fetchWrapper("/api/export/exportResources", "POST", data, true);
   }
 
   /**
@@ -1685,7 +1685,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async exportSY(data: { id: string }): Promise<{ code: number; msg: string; data: { name: string; zip: string } }> {
-    return this._fetchWrapper('/api/export/exportSY', 'POST', data, true);
+    return this._fetchWrapper("/api/export/exportSY", "POST", data, true);
   }
 
   /**
@@ -1694,7 +1694,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async exportTempContent(data: { content: string; mode?: number; theme?: string; title?: string; type?: string; css?: string; js?: string }): Promise<{ code: number; msg: string; data: { url: string } }> {
-    return this._fetchWrapper('/api/export/exportTempContent', 'POST', data, true);
+    return this._fetchWrapper("/api/export/exportTempContent", "POST", data, true);
   }
 
   /**
@@ -1703,7 +1703,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async exportTextile(data: { id: string }): Promise<{ code: number; msg: string; data: { name: string; zip: string } }> {
-    return this._fetchWrapper('/api/export/exportTextile', 'POST', data, true);
+    return this._fetchWrapper("/api/export/exportTextile", "POST", data, true);
   }
 
   /**
@@ -1712,7 +1712,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async exportPreview(data: { id: string }): Promise<{ code: number; msg: string; data: { html: string } }> {
-    return this._fetchWrapper('/api/export/preview', 'POST', data, true);
+    return this._fetchWrapper("/api/export/preview", "POST", data, true);
   }
 
   /**
@@ -1721,7 +1721,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async processPDF(data: { id: string; path: string; merge?: boolean; removeAssets: boolean; watermark: boolean }): Promise<{ code: number; msg: string; data?: null }> {
-    return this._fetchWrapper('/api/export/processPDF', 'POST', data, true);
+    return this._fetchWrapper("/api/export/processPDF", "POST", data, true);
   }
 
   /**
@@ -1730,7 +1730,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async extensionCopy(data: { dom: string; notebook?: string; href?: string }): Promise<{ code: number; msg: string; data: { md: string; withMath: boolean } | null }> {
-    return this._fetchWrapper('/api/extension/copy', 'POST', data, true);
+    return this._fetchWrapper("/api/extension/copy", "POST", data, true);
   }
 
   /**
@@ -1739,7 +1739,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async copyFile(data: { src: string; dest: string }): Promise<{ code: number; msg: string; data: { closeTimeout?: number } | null }> {
-    return this._fetchWrapper('/api/file/copyFile', 'POST', data, true);
+    return this._fetchWrapper("/api/file/copyFile", "POST", data, true);
   }
 
   /**
@@ -1748,7 +1748,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getFile(data: { path: string }): Promise<{ code: number; msg: string }> {
-    return this._fetchWrapper('/api/file/getFile', 'POST', data, true);
+    return this._fetchWrapper("/api/file/getFile", "POST", data, true);
   }
 
   /**
@@ -1757,7 +1757,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getUniqueFilename(data: { path: string }): Promise<{ code: number; msg: string; data: { path: string } }> {
-    return this._fetchWrapper('/api/file/getUniqueFilename', 'POST', data, true);
+    return this._fetchWrapper("/api/file/getUniqueFilename", "POST", data, true);
   }
 
   /**
@@ -1766,7 +1766,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async globalCopyFiles(data: { srcs: string[]; destDir: string }): Promise<{ code: number; msg: string; data?: null }> {
-    return this._fetchWrapper('/api/file/globalCopyFiles', 'POST', data, true);
+    return this._fetchWrapper("/api/file/globalCopyFiles", "POST", data, true);
   }
 
   /**
@@ -1775,7 +1775,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async putFile(data: FormData): Promise<{ code: number; msg: string; data?: null }> {
-    return this._fetchWrapper('/api/file/putFile', 'POST', data, true);
+    return this._fetchWrapper("/api/file/putFile", "POST", data, true);
   }
 
   /**
@@ -1784,7 +1784,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async readDir(data: { path: string }): Promise<{ code: number; msg: string; data: { name: string; isDir: boolean; isSymlink: boolean; updated: number }[] }> {
-    return this._fetchWrapper('/api/file/readDir', 'POST', data, true);
+    return this._fetchWrapper("/api/file/readDir", "POST", data, true);
   }
 
   /**
@@ -1793,7 +1793,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async removeFile(data: { path: string }): Promise<{ code: number; msg: string; data?: null }> {
-    return this._fetchWrapper('/api/file/removeFile', 'POST', data, true);
+    return this._fetchWrapper("/api/file/removeFile", "POST", data, true);
   }
 
   /**
@@ -1802,7 +1802,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async renameFile(data: { path: string; newPath: string }): Promise<{ code: number; msg: string; data?: null }> {
-    return this._fetchWrapper('/api/file/renameFile', 'POST', data, true);
+    return this._fetchWrapper("/api/file/renameFile", "POST", data, true);
   }
 
   /**
@@ -1811,7 +1811,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async changeSort(data: { notebook: string; paths: string[] }): Promise<{ code: number; msg: string; data?: null }> {
-    return this._fetchWrapper('/api/filetree/changeSort', 'POST', data, true);
+    return this._fetchWrapper("/api/filetree/changeSort", "POST", data, true);
   }
 
   /**
@@ -1820,7 +1820,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async createDailyNote(data: { notebook: string; app?: string; callback?: string }): Promise<{ code: number; msg: string; data?: { id: string } }> {
-    return this._fetchWrapper('/api/filetree/createDailyNote', 'POST', data, true);
+    return this._fetchWrapper("/api/filetree/createDailyNote", "POST", data, true);
   }
 
   /**
@@ -1829,7 +1829,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async createDoc(data: { notebook: string; path: string; title: string; md: string; sorts?: string[]; listDocTree?: boolean; callback?: string }): Promise<{ code: number; msg: string; data: { id: string; closeTimeout?: number } }> {
-    return this._fetchWrapper('/api/filetree/createDoc', 'POST', data, true);
+    return this._fetchWrapper("/api/filetree/createDoc", "POST", data, true);
   }
 
   /**
@@ -1838,7 +1838,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async createDocWithMd(data: { notebook: string; path: string; markdown: string; parentID?: string; id?: string; tags?: string; withMath?: boolean; clippingHref?: string; listDocTree?: boolean; callback?: string }): Promise<{ code: number; msg: string; data?: string }> {
-    return this._fetchWrapper('/api/filetree/createDocWithMd', 'POST', data, true);
+    return this._fetchWrapper("/api/filetree/createDocWithMd", "POST", data, true);
   }
 
   /**
@@ -1847,7 +1847,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async doc2Heading(data: { srcID: string; targetID: string; after: boolean }): Promise<{ code: number; msg: string; data: { srcTreeBox: string; srcTreePath: string; closeTimeout?: number } }> {
-    return this._fetchWrapper('/api/filetree/doc2Heading', 'POST', data, true);
+    return this._fetchWrapper("/api/filetree/doc2Heading", "POST", data, true);
   }
 
   /**
@@ -1856,7 +1856,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async duplicateDoc(data: { id: string; listDocTree?: boolean; callback?: string }): Promise<{ code: number; msg: string; data: { id: string; notebook: string; path: string; hPath: string; closeTimeout?: number } }> {
-    return this._fetchWrapper('/api/filetree/duplicateDoc', 'POST', data, true);
+    return this._fetchWrapper("/api/filetree/duplicateDoc", "POST", data, true);
   }
 
   /**
@@ -1865,7 +1865,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getDoc(data: { id: string; index?: number; query?: string; queryMethod?: number; queryTypes?: Record<string, boolean>; mode?: number; size?: number; startID?: string; endID?: string; isBacklink?: boolean; originalRefBlockIDs?: Record<string, string>; highlight?: boolean; reqId?: string }): Promise<{ code: number; msg: string; data?: { id: string; mode: number; parentID: string; parent2ID: string; rootID: string; type: number; content: string; blockCount: number; eof: boolean; scroll: boolean; box: string; path: string; isSyncing: boolean; isBacklinkExpand: boolean; keywords?: string[]; reqId?: string } }> {
-    return this._fetchWrapper('/api/filetree/getDoc', 'POST', data, true);
+    return this._fetchWrapper("/api/filetree/getDoc", "POST", data, true);
   }
 
   /**
@@ -1874,7 +1874,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getDocCreateSavePath(data: { notebook: string }): Promise<{ code: number; msg: string; data?: { box: string; path: string } }> {
-    return this._fetchWrapper('/api/filetree/getDocCreateSavePath', 'POST', data, true);
+    return this._fetchWrapper("/api/filetree/getDocCreateSavePath", "POST", data, true);
   }
 
   /**
@@ -1883,7 +1883,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getFullHPathByID(data: { id: string }): Promise<{ code: number; msg: string; data?: string }> {
-    return this._fetchWrapper('/api/filetree/getFullHPathByID', 'POST', data, true);
+    return this._fetchWrapper("/api/filetree/getFullHPathByID", "POST", data, true);
   }
 
   /**
@@ -1892,7 +1892,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getHPathByID(data: { id: string }): Promise<{ code: number; msg: string; data?: string }> {
-    return this._fetchWrapper('/api/filetree/getHPathByID', 'POST', data, true);
+    return this._fetchWrapper("/api/filetree/getHPathByID", "POST", data, true);
   }
 
   /**
@@ -1901,7 +1901,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getHPathByPath(data: { notebook: string; path: string }): Promise<{ code: number; msg: string; data?: string }> {
-    return this._fetchWrapper('/api/filetree/getHPathByPath', 'POST', data, true);
+    return this._fetchWrapper("/api/filetree/getHPathByPath", "POST", data, true);
   }
 
   /**
@@ -1910,7 +1910,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getHPathsByPaths(data: { paths: { notebook: string; path: string }[] }): Promise<{ code: number; msg: string; data?: string[] }> {
-    return this._fetchWrapper('/api/filetree/getHPathsByPaths', 'POST', data, true);
+    return this._fetchWrapper("/api/filetree/getHPathsByPaths", "POST", data, true);
   }
 
   /**
@@ -1919,7 +1919,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getIDsByHPath(data: { notebook: string; path: string }): Promise<{ code: number; msg: string; data?: string[] }> {
-    return this._fetchWrapper('/api/filetree/getIDsByHPath', 'POST', data, true);
+    return this._fetchWrapper("/api/filetree/getIDsByHPath", "POST", data, true);
   }
 
   /**
@@ -1928,7 +1928,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getPathByID(data: { id: string }): Promise<{ code: number; msg: string; data?: { path: string; notebook: string } }> {
-    return this._fetchWrapper('/api/filetree/getPathByID', 'POST', data, true);
+    return this._fetchWrapper("/api/filetree/getPathByID", "POST", data, true);
   }
 
   /**
@@ -1937,7 +1937,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getRefCreateSavePath(data: { notebook: string }): Promise<{ code: number; msg: string; data?: { box: string; path: string } }> {
-    return this._fetchWrapper('/api/filetree/getRefCreateSavePath', 'POST', data, true);
+    return this._fetchWrapper("/api/filetree/getRefCreateSavePath", "POST", data, true);
   }
 
   /**
@@ -1946,7 +1946,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async heading2Doc(data: { srcHeadingID: string; targetNoteBook: string; targetPath?: string; previousPath?: string; callback?: string }): Promise<{ code: number; msg: string; data: { srcRootBlockID: string; path: string; closeTimeout?: number } }> {
-    return this._fetchWrapper('/api/filetree/heading2Doc', 'POST', data, true);
+    return this._fetchWrapper("/api/filetree/heading2Doc", "POST", data, true);
   }
 
   /**
@@ -1955,7 +1955,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async li2Doc(data: { srcListItemID: string; targetNoteBook: string; targetPath?: string; previousPath?: string; callback?: string }): Promise<{ code: number; msg: string; data: { srcRootBlockID: string; path: string; closeTimeout?: number } }> {
-    return this._fetchWrapper('/api/filetree/li2Doc', 'POST', data, true);
+    return this._fetchWrapper("/api/filetree/li2Doc", "POST", data, true);
   }
 
   /**
@@ -1964,7 +1964,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async listDocTree(data: { notebook: string; path: string }): Promise<{ code: number; msg: string; data?: { tree: { id: string; children?: any[] }[] } }> {
-    return this._fetchWrapper('/api/filetree/listDocTree', 'POST', data, true);
+    return this._fetchWrapper("/api/filetree/listDocTree", "POST", data, true);
   }
 
   /**
@@ -1973,7 +1973,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async listDocsByPath(data: { notebook: string; path: string; sort?: number; flashcard?: boolean; maxListCount?: number; showHidden?: boolean; ignoreMaxListHint?: boolean }): Promise<{ code: number; msg: string; data?: { box: string; path: string; files: { type: string; name: string; alias?: string; memo?: string; bookmark?: string; hPath: string; id: string; path: string; nameCount?: number; updated: number; subFileCount: number; icon?: string; sort?: number; refCount?: number; newFlashcardCount?: number; dueFlashcardCount?: number; flashcardCount?: number; hidden?: boolean }[] } }> {
-    return this._fetchWrapper('/api/filetree/listDocsByPath', 'POST', data, true);
+    return this._fetchWrapper("/api/filetree/listDocsByPath", "POST", data, true);
   }
 
   /**
@@ -1982,7 +1982,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async moveDocs(data: { fromPaths: string[]; toNotebook: string; toPath: string; callback?: string }): Promise<{ code: number; msg: string; data: { closeTimeout?: number } | null }> {
-    return this._fetchWrapper('/api/filetree/moveDocs', 'POST', data, true);
+    return this._fetchWrapper("/api/filetree/moveDocs", "POST", data, true);
   }
 
   /**
@@ -1991,7 +1991,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async moveDocsByID(data: { fromIDs: string[]; toID: string; callback?: string }): Promise<{ code: number; msg: string; data: { closeTimeout?: number } | null }> {
-    return this._fetchWrapper('/api/filetree/moveDocsByID', 'POST', data, true);
+    return this._fetchWrapper("/api/filetree/moveDocsByID", "POST", data, true);
   }
 
   /**
@@ -2000,7 +2000,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async moveLocalShorthands(data: { notebook: string; path?: string; parentID?: string }): Promise<{ code: number; msg: string; data?: null }> {
-    return this._fetchWrapper('/api/filetree/moveLocalShorthands', 'POST', data, true);
+    return this._fetchWrapper("/api/filetree/moveLocalShorthands", "POST", data, true);
   }
 
   /**
@@ -2010,7 +2010,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async refreshFiletree(data: any): Promise<{ code: number; msg: string; data?: null }> {
-    return this._fetchWrapper('/api/filetree/refreshFiletree', 'POST', data, true);
+    return this._fetchWrapper("/api/filetree/refreshFiletree", "POST", data, true);
   }
 
   /**
@@ -2019,7 +2019,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async rebuildDataIndex(data: any): Promise<any> {
-    return this._fetchWrapper('/api/filetree/refreshFiletree ', 'POST', data, true);
+    return this._fetchWrapper("/api/filetree/refreshFiletree ", "POST", data, true);
   }
 
   /**
@@ -2028,7 +2028,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async removeDoc(data: { notebook: string; path: string }): Promise<{ code: number; msg: string; data?: null }> {
-    return this._fetchWrapper('/api/filetree/removeDoc', 'POST', data, true);
+    return this._fetchWrapper("/api/filetree/removeDoc", "POST", data, true);
   }
 
   /**
@@ -2037,7 +2037,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async removeDocByID(data: { id: string }): Promise<{ code: number; msg: string; data: { closeTimeout?: number } | null }> {
-    return this._fetchWrapper('/api/filetree/removeDocByID', 'POST', data, true);
+    return this._fetchWrapper("/api/filetree/removeDocByID", "POST", data, true);
   }
 
   /**
@@ -2046,7 +2046,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async removeDocs(data: { paths: string[] }): Promise<{ code: number; msg: string; data?: null }> {
-    return this._fetchWrapper('/api/filetree/removeDocs', 'POST', data, true);
+    return this._fetchWrapper("/api/filetree/removeDocs", "POST", data, true);
   }
 
   /**
@@ -2055,7 +2055,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async removeIndexes(data: { paths: string[] }): Promise<{ code: number; msg: string; data?: null }> {
-    return this._fetchWrapper('/api/filetree/removeIndexes', 'POST', data, true);
+    return this._fetchWrapper("/api/filetree/removeIndexes", "POST", data, true);
   }
 
   /**
@@ -2064,7 +2064,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async renameDoc(data: { notebook: string; path: string; title: string }): Promise<{ code: number; msg: string; data?: null }> {
-    return this._fetchWrapper('/api/filetree/renameDoc', 'POST', data, true);
+    return this._fetchWrapper("/api/filetree/renameDoc", "POST", data, true);
   }
 
   /**
@@ -2073,7 +2073,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async renameDocByID(data: { id: string; title: string }): Promise<{ code: number; msg: string; data: { closeTimeout?: number } | null }> {
-    return this._fetchWrapper('/api/filetree/renameDocByID', 'POST', data, true);
+    return this._fetchWrapper("/api/filetree/renameDocByID", "POST", data, true);
   }
 
   /**
@@ -2082,7 +2082,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async searchDocs(data: { k: string; flashcard?: boolean }): Promise<{ code: number; msg: string; data?: { box: string; path: string; hPath: string; id: string; name: string; nameRaw: string; alias?: string; aliasRaw?: string; memo?: string }[] }> {
-    return this._fetchWrapper('/api/filetree/searchDocs', 'POST', data, true);
+    return this._fetchWrapper("/api/filetree/searchDocs", "POST", data, true);
   }
 
   /**
@@ -2091,7 +2091,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async upsertIndexes(data: { paths: string[] }): Promise<{ code: number; msg: string; data?: null }> {
-    return this._fetchWrapper('/api/filetree/upsertIndexes', 'POST', data, true);
+    return this._fetchWrapper("/api/filetree/upsertIndexes", "POST", data, true);
   }
 
   /**
@@ -2100,7 +2100,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async autoSpace(data: { id: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/format/autoSpace', 'POST', data, true);
+    return this._fetchWrapper("/api/format/autoSpace", "POST", data, true);
   }
 
   /**
@@ -2109,7 +2109,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async netAssets2LocalAssets(data: { id: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/format/netAssets2LocalAssets', 'POST', data, true);
+    return this._fetchWrapper("/api/format/netAssets2LocalAssets", "POST", data, true);
   }
 
   /**
@@ -2118,7 +2118,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async netImg2LocalAssets(data: { id: string; url?: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/format/netImg2LocalAssets', 'POST', data, true);
+    return this._fetchWrapper("/api/format/netImg2LocalAssets", "POST", data, true);
   }
 
   /**
@@ -2127,7 +2127,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getGraph(data: { reqId: any; k: string; conf: { minRefs: number; dailyNote: boolean; type: { tag: boolean; paragraph: boolean; heading: boolean; math: boolean; code: boolean; table: boolean; list: boolean; listItem: boolean; blockquote: boolean; super: boolean }; d3: { nodeSize: number; linkWidth: number; lineOpacity: number; centerStrength: number; collideRadius: number; collideStrength: number; linkDistance: number; arrow: boolean } } }): Promise<{ nodes: { id: string; box: string; path: string; size: number; title?: string; label: string; type: string; refs: number; defs: number }[]; links: { from: string; to: string; ref: boolean; arrows?: { to?: { enabled: boolean } } }[]; conf: { minRefs: number; dailyNote: boolean; type: { tag: boolean; paragraph: boolean; heading: boolean; math: boolean; code: boolean; table: boolean; list: boolean; listItem: boolean; blockquote: boolean; super: boolean }; d3: { nodeSize: number; linkWidth: number; lineOpacity: number; centerStrength: number; collideRadius: number; collideStrength: number; linkDistance: number; arrow: boolean } }; box: string; reqId: any }> {
-    return this._fetchWrapper('/api/graph/getGraph', 'POST', data, true);
+    return this._fetchWrapper("/api/graph/getGraph", "POST", data, true);
   }
 
   /**
@@ -2136,7 +2136,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getLocalGraph(data: { reqId: any; id: string; k: string; conf: { dailyNote: boolean; type: { tag: boolean; paragraph: boolean; heading: boolean; math: boolean; code: boolean; table: boolean; list: boolean; listItem: boolean; blockquote: boolean; super: boolean }; d3: { nodeSize: number; linkWidth: number; lineOpacity: number; centerStrength: number; collideRadius: number; collideStrength: number; linkDistance: number; arrow: boolean } } }): Promise<{ id: string; box: string; nodes: { id: string; box: string; path: string; size: number; title?: string; label: string; type: string; refs: number; defs: number }[]; links: { from: string; to: string; ref: boolean; arrows?: { to?: { enabled: boolean } } }[]; conf: { dailyNote: boolean; type: { tag: boolean; paragraph: boolean; heading: boolean; math: boolean; code: boolean; table: boolean; list: boolean; listItem: boolean; blockquote: boolean; super: boolean }; d3: { nodeSize: number; linkWidth: number; lineOpacity: number; centerStrength: number; collideRadius: number; collideStrength: number; linkDistance: number; arrow: boolean } }; reqId: any }> {
-    return this._fetchWrapper('/api/graph/getLocalGraph', 'POST', data, true);
+    return this._fetchWrapper("/api/graph/getLocalGraph", "POST", data, true);
   }
 
   /**
@@ -2145,7 +2145,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async resetGraph(data: any): Promise<{ conf: { minRefs: number; dailyNote: boolean; type: { tag: boolean; paragraph: boolean; heading: boolean; math: boolean; code: boolean; table: boolean; list: boolean; listItem: boolean; blockquote: boolean; super: boolean }; d3: { nodeSize: number; linkWidth: number; lineOpacity: number; centerStrength: number; collideRadius: number; collideStrength: number; linkDistance: number; arrow: boolean } } }> {
-    return this._fetchWrapper('/api/graph/resetGraph', 'POST', data, true);
+    return this._fetchWrapper("/api/graph/resetGraph", "POST", data, true);
   }
 
   /**
@@ -2154,7 +2154,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async resetLocalGraph(data: any): Promise<{ conf: { dailyNote: boolean; type: { tag: boolean; paragraph: boolean; heading: boolean; math: boolean; code: boolean; table: boolean; list: boolean; listItem: boolean; blockquote: boolean; super: boolean }; d3: { nodeSize: number; linkWidth: number; lineOpacity: number; centerStrength: number; collideRadius: number; collideStrength: number; linkDistance: number; arrow: boolean } } }> {
-    return this._fetchWrapper('/api/graph/resetLocalGraph', 'POST', data, true);
+    return this._fetchWrapper("/api/graph/resetLocalGraph", "POST", data, true);
   }
 
   /**
@@ -2163,7 +2163,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async clearWorkspaceHistory(data: any): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/history/clearWorkspaceHistory', 'POST', data, true);
+    return this._fetchWrapper("/api/history/clearWorkspaceHistory", "POST", data, true);
   }
 
   /**
@@ -2172,7 +2172,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getDocHistoryContent(data: { historyPath: string; k?: string; highlight: any }): Promise<{ code: number; msg: string; data: { id: string; rootID: string; content: string; isLargeDoc: boolean } | null }> {
-    return this._fetchWrapper('/api/history/getDocHistoryContent', 'POST', data, true);
+    return this._fetchWrapper("/api/history/getDocHistoryContent", "POST", data, true);
   }
 
   /**
@@ -2181,7 +2181,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getHistoryItems(data: { created: string; notebook?: string; type: any; query: string; op: any }): Promise<{ code: number; msg: string; data: { items: { id: string; title: string; content: string; notebookID: string; notebookName: string; path: string; type: number; created: string; updated: string; size: number; hSize: string; count: number; repoID?: string; historyName?: string; historyPath?: string; docID?: string }[] } | null }> {
-    return this._fetchWrapper('/api/history/getHistoryItems', 'POST', data, true);
+    return this._fetchWrapper("/api/history/getHistoryItems", "POST", data, true);
   }
 
   /**
@@ -2190,7 +2190,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getNotebookHistory(data: any): Promise<{ code: number; msg: string; data: { histories: { id: string; title: string; type: number; created: string; updated: string; count: number; size: number; hSize: string; repoID: string; historyName: string; historyPath: string }[] } | null }> {
-    return this._fetchWrapper('/api/history/getNotebookHistory', 'POST', data, true);
+    return this._fetchWrapper("/api/history/getNotebookHistory", "POST", data, true);
   }
 
   /**
@@ -2199,7 +2199,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async reindexHistory(data: any): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/history/reindexHistory', 'POST', data, true);
+    return this._fetchWrapper("/api/history/reindexHistory", "POST", data, true);
   }
 
   /**
@@ -2208,7 +2208,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async rollbackAssetsHistory(data: { historyPath: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/history/rollbackAssetsHistory', 'POST', data, true);
+    return this._fetchWrapper("/api/history/rollbackAssetsHistory", "POST", data, true);
   }
 
   /**
@@ -2217,7 +2217,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async rollbackDocHistory(data: { notebook: string; historyPath: string }): Promise<{ code: number; msg: string; data: { box: string } | null }> {
-    return this._fetchWrapper('/api/history/rollbackDocHistory', 'POST', data, true);
+    return this._fetchWrapper("/api/history/rollbackDocHistory", "POST", data, true);
   }
 
   /**
@@ -2226,7 +2226,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async rollbackNotebookHistory(data: { historyPath: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/history/rollbackNotebookHistory', 'POST', data, true);
+    return this._fetchWrapper("/api/history/rollbackNotebookHistory", "POST", data, true);
   }
 
   /**
@@ -2235,7 +2235,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async searchHistory(data: { notebook?: string; type: any; query: string; page: any; op: any }): Promise<{ code: number; msg: string; data: { histories: { created: string; count: number; items?: { id: string; title: string; content: string; notebookID: string; notebookName: string; path: string; type: number; created: string; updated: string; size: number; hSize: string; count: number; repoID?: string; historyName?: string; historyPath?: string; docID?: string }[] }[]; pageCount: number; totalCount: number } | null }> {
-    return this._fetchWrapper('/api/history/searchHistory', 'POST', data, true);
+    return this._fetchWrapper("/api/history/searchHistory", "POST", data, true);
   }
 
   /**
@@ -2243,7 +2243,7 @@ class KernelApiClient {
    * Endpoint: `GET /api/icon/getDynamicIcon`
    */
   async getDynamicIcon(data: { type?: string; color?: string; date?: string; lang?: string; weekdayType?: string; content?: string; id?: string }): Promise<any> {
-    return this._fetchWrapper('/api/icon/getDynamicIcon', 'GET', data, false);
+    return this._fetchWrapper("/api/icon/getDynamicIcon", "GET", data, false);
   }
 
   /**
@@ -2252,7 +2252,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async importData(data: any): Promise<{ code: number; msg: string; data?: null }> {
-    return this._fetchWrapper('/api/import/importData', 'POST', data, true);
+    return this._fetchWrapper("/api/import/importData", "POST", data, true);
   }
 
   /**
@@ -2261,7 +2261,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async importSY(data: any): Promise<{ code: number; msg: string; data?: null }> {
-    return this._fetchWrapper('/api/import/importSY', 'POST', data, true);
+    return this._fetchWrapper("/api/import/importSY", "POST", data, true);
   }
 
   /**
@@ -2270,7 +2270,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async importStdMd(data: { notebook: string; localPath: string; toPath: string }): Promise<{ code: number; msg: string; data?: null }> {
-    return this._fetchWrapper('/api/import/importStdMd', 'POST', data, true);
+    return this._fetchWrapper("/api/import/importStdMd", "POST", data, true);
   }
 
   /**
@@ -2279,7 +2279,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async importZipMd(data: any): Promise<{ code: number; msg: string; data?: null }> {
-    return this._fetchWrapper('/api/import/importZipMd', 'POST', data, true);
+    return this._fetchWrapper("/api/import/importZipMd", "POST", data, true);
   }
 
   /**
@@ -2288,7 +2288,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getShorthand(data: { id: string }): Promise<{ code: number; msg: string; data: { id?: string; shorthandContent: string; shorthandMd: string; hCreated: string } }> {
-    return this._fetchWrapper('/api/inbox/getShorthand', 'POST', data, true);
+    return this._fetchWrapper("/api/inbox/getShorthand", "POST", data, true);
   }
 
   /**
@@ -2297,7 +2297,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getShorthands(data: { page: number }): Promise<{ code: number; msg: string; data: { shorthands: { oId: string; shorthandContent: string; shorthandMd: string; shorthandDesc: string; hCreated: string }[] } }> {
-    return this._fetchWrapper('/api/inbox/getShorthands', 'POST', data, true);
+    return this._fetchWrapper("/api/inbox/getShorthands", "POST", data, true);
   }
 
   /**
@@ -2306,7 +2306,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async removeShorthands(data: { ids: string[] }): Promise<{ code: number; msg: string; data?: null }> {
-    return this._fetchWrapper('/api/inbox/removeShorthands', 'POST', data, true);
+    return this._fetchWrapper("/api/inbox/removeShorthands", "POST", data, true);
   }
 
   /**
@@ -2315,7 +2315,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async copyStdMarkdown(data: { id: string }): Promise<{ code: number; msg: string; data: string }> {
-    return this._fetchWrapper('/api/lute/copyStdMarkdown', 'POST', data, true);
+    return this._fetchWrapper("/api/lute/copyStdMarkdown", "POST", data, true);
   }
 
   /**
@@ -2324,7 +2324,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async html2BlockDOM(data: { dom: string }): Promise<{ code: number; msg: string; data: string }> {
-    return this._fetchWrapper('/api/lute/html2BlockDOM', 'POST', data, true);
+    return this._fetchWrapper("/api/lute/html2BlockDOM", "POST", data, true);
   }
 
   /**
@@ -2333,7 +2333,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async spinBlockDOM(data: { dom: string }): Promise<{ code: number; msg: string; data: { dom: string } }> {
-    return this._fetchWrapper('/api/lute/spinBlockDOM', 'POST', data, true);
+    return this._fetchWrapper("/api/lute/spinBlockDOM", "POST", data, true);
   }
 
   /**
@@ -2342,7 +2342,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async broadcastSubscribe(data: { channel: string; retry?: number }): Promise<any> {
-    return this._fetchWrapper('/es/broadcast/subscribe', 'GET', data, true);
+    return this._fetchWrapper("/es/broadcast/subscribe", "GET", data, true);
   }
 
   /**
@@ -2351,7 +2351,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async broadcast(data: { channel: string }): Promise<any> {
-    return this._fetchWrapper('/ws/broadcast', 'GET', data, true);
+    return this._fetchWrapper("/ws/broadcast", "GET", data, true);
   }
 
   /**
@@ -2360,7 +2360,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async forwardProxy(data: { url: string; method: any; timeout: any; headers?: Record<string, any>[]; contentType: any; payload?: any; payloadEncoding: any }): Promise<{ code: number; msg: string; data: { status: string; statusCode: number; proto: string; headers: Record<string, string[]>; cookies?: { Name: string; Value: string; Path?: string; Domain?: string; Expires?: string; RawExpires?: string; MaxAge?: number; Secure?: boolean; HttpOnly?: boolean; SameSite?: 0 | 1 | 2 | 3 | 4; Raw?: string; Unparsed?: string[] }[]; body: string; url: string; length: number; isText: boolean } | null }> {
-    return this._fetchWrapper('/api/network/forwardProxy', 'POST', data, true);
+    return this._fetchWrapper("/api/network/forwardProxy", "POST", data, true);
   }
 
   /**
@@ -2369,7 +2369,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async changeSortNotebook(data: { notebooks: string[] }): Promise<{ code: number; msg: string; data?: null }> {
-    return this._fetchWrapper('/api/notebook/changeSortNotebook', 'POST', data, true);
+    return this._fetchWrapper("/api/notebook/changeSortNotebook", "POST", data, true);
   }
 
   /**
@@ -2378,7 +2378,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async closeNotebook(data: { notebook: string; callback?: string }): Promise<{ code: number; msg: string; data?: null }> {
-    return this._fetchWrapper('/api/notebook/closeNotebook', 'POST', data, true);
+    return this._fetchWrapper("/api/notebook/closeNotebook", "POST", data, true);
   }
 
   /**
@@ -2387,7 +2387,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async createNotebook(data: { name: string }): Promise<{ code: number; msg: string; data: { notebook: { id: string; name: string; icon: string; sort: number; closed: boolean; sortMode: number } } }> {
-    return this._fetchWrapper('/api/notebook/createNotebook', 'POST', data, true);
+    return this._fetchWrapper("/api/notebook/createNotebook", "POST", data, true);
   }
 
   /**
@@ -2396,7 +2396,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getNotebookConf(data: { notebook: string }): Promise<{ code: number; msg: string; data: { conf: { name: string; sort: number; icon: string; closed: boolean; sortMode: number; refCreateSavePath: string; docCreateSavePath: string; dailyNoteSavePath: string; dailyNoteTemplatePath: string; boxStat?: { docCount: number; assetCount: number; assetSize: number; refCount: number; headingCount: number; listCount: number; listItemCount: number; codeBlockCount: number; htmlBlockCount: number; mathBlockCount: number; tableCount: number; quoteCount: number; superBlockCount: number; paragraphCount: number; fileAnnotationCount: number; updated: number } } } }> {
-    return this._fetchWrapper('/api/notebook/getNotebookConf', 'POST', data, true);
+    return this._fetchWrapper("/api/notebook/getNotebookConf", "POST", data, true);
   }
 
   /**
@@ -2405,7 +2405,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getNotebookInfo(data: { notebook: string }): Promise<{ code: number; msg: string; data: { boxInfo: { id: string; name: string; icon: string; sort: number; closed: boolean; sortMode: number; refCreateSavePath: string; docCreateSavePath: string; dailyNoteSavePath: string; dailyNoteTemplatePath: string; boxStat: { docCount: number; assetCount: number; assetSize: number; refCount: number; headingCount: number; listCount: number; listItemCount: number; codeBlockCount: number; htmlBlockCount: number; mathBlockCount: number; tableCount: number; quoteCount: number; superBlockCount: number; paragraphCount: number; fileAnnotationCount: number; updated: number } } } }> {
-    return this._fetchWrapper('/api/notebook/getNotebookInfo', 'POST', data, true);
+    return this._fetchWrapper("/api/notebook/getNotebookInfo", "POST", data, true);
   }
 
   /**
@@ -2414,7 +2414,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async lsNotebooks(data: any): Promise<{ code: number; msg: string; data: { notebooks: { id: string; name: string; icon: string; sort: number; closed: boolean; sortMode?: number }[] } }> {
-    return this._fetchWrapper('/api/notebook/lsNotebooks', 'POST', data, true);
+    return this._fetchWrapper("/api/notebook/lsNotebooks", "POST", data, true);
   }
 
   /**
@@ -2423,7 +2423,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async openNotebook(data: { notebook: string }): Promise<{ code: number; msg: string; data: {} | null }> {
-    return this._fetchWrapper('/api/notebook/openNotebook', 'POST', data, true);
+    return this._fetchWrapper("/api/notebook/openNotebook", "POST", data, true);
   }
 
   /**
@@ -2432,7 +2432,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async removeNotebook(data: { notebook: string; callback?: string }): Promise<{ code: number; msg: string; data?: null }> {
-    return this._fetchWrapper('/api/notebook/removeNotebook', 'POST', data, true);
+    return this._fetchWrapper("/api/notebook/removeNotebook", "POST", data, true);
   }
 
   /**
@@ -2441,7 +2441,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async renameNotebook(data: { notebook: string; name: string }): Promise<{ code: number; msg: string; data: { closeTimeout?: number } | null }> {
-    return this._fetchWrapper('/api/notebook/renameNotebook', 'POST', data, true);
+    return this._fetchWrapper("/api/notebook/renameNotebook", "POST", data, true);
   }
 
   /**
@@ -2450,7 +2450,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setNotebookConf(data: { notebook: string; conf: { name?: string; icon?: string; sortMode?: number; refCreateSavePath?: string; docCreateSavePath?: string; dailyNoteSavePath?: string; dailyNoteTemplatePath?: string } }): Promise<{ code: number; msg: string; data?: null }> {
-    return this._fetchWrapper('/api/notebook/setNotebookConf', 'POST', data, true);
+    return this._fetchWrapper("/api/notebook/setNotebookConf", "POST", data, true);
   }
 
   /**
@@ -2459,7 +2459,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setNotebookIcon(data: { notebook: string; icon: string }): Promise<{ code: number; msg: string; data?: null }> {
-    return this._fetchWrapper('/api/notebook/setNotebookIcon', 'POST', data, true);
+    return this._fetchWrapper("/api/notebook/setNotebookIcon", "POST", data, true);
   }
 
   /**
@@ -2468,7 +2468,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async pushErrMsg(data: { msg: string; timeout: any }): Promise<{ code: number; msg: string; data: { id: string } }> {
-    return this._fetchWrapper('/api/notification/pushErrMsg', 'POST', data, true);
+    return this._fetchWrapper("/api/notification/pushErrMsg", "POST", data, true);
   }
 
   /**
@@ -2477,7 +2477,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async pushMsg(data: { msg: string; timeout: any }): Promise<{ code: number; msg: string; data: { id: string } | null }> {
-    return this._fetchWrapper('/api/notification/pushMsg', 'POST', data, true);
+    return this._fetchWrapper("/api/notification/pushMsg", "POST", data, true);
   }
 
   /**
@@ -2486,7 +2486,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getDocOutline(data: { id: string; preview: any }): Promise<{ code: number; msg: string; data: any[] | null }> {
-    return this._fetchWrapper('/api/outline/getDocOutline', 'POST', data, true);
+    return this._fetchWrapper("/api/outline/getDocOutline", "POST", data, true);
   }
 
   /**
@@ -2495,7 +2495,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async loadPetals(data: { frontend: string }): Promise<{ code: number; msg: string; data: { name: string; displayName: string; enabled: boolean; incompatible: boolean; js?: string; css?: string; i18n?: Record<string, any> }[] | null }> {
-    return this._fetchWrapper('/api/petal/loadPetals', 'POST', data, true);
+    return this._fetchWrapper("/api/petal/loadPetals", "POST", data, true);
   }
 
   /**
@@ -2504,7 +2504,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setPetalEnabled(data: { packageName: string; enabled: boolean; frontend: string }): Promise<{ code: number; msg: string; data: { name: string; displayName: string; enabled: boolean; incompatible: boolean } | null }> {
-    return this._fetchWrapper('/api/petal/setPetalEnabled', 'POST', data, true);
+    return this._fetchWrapper("/api/petal/setPetalEnabled", "POST", data, true);
   }
 
   /**
@@ -2513,7 +2513,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async SQL(data: { stmt: string }): Promise<{ code: number; msg: string; data: Record<string, any>[] | null }> {
-    return this._fetchWrapper('/api/query/sql', 'POST', data, true);
+    return this._fetchWrapper("/api/query/sql", "POST", data, true);
   }
 
   /**
@@ -2522,7 +2522,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getBacklink(data: { id: string; k: string; mk: string; beforeLen: any; containChildren?: boolean }): Promise<{ code: number; msg: string; data: { backlinks: any[]; linkRefsCount: number; backmentions: any[]; mentionsCount: number; k: string; mk: string; box: string } | null }> {
-    return this._fetchWrapper('/api/ref/getBacklink', 'POST', data, true);
+    return this._fetchWrapper("/api/ref/getBacklink", "POST", data, true);
   }
 
   /**
@@ -2531,7 +2531,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getBacklink2(data: { id: string; k: string; mk: string; sort?: string; mSort?: string; containChildren?: boolean }): Promise<{ code: number; msg: string; data: { backlinks: any[]; linkRefsCount: number; backmentions: any[]; mentionsCount: number; k: string; mk: string; box: string } | null }> {
-    return this._fetchWrapper('/api/ref/getBacklink2', 'POST', data, true);
+    return this._fetchWrapper("/api/ref/getBacklink2", "POST", data, true);
   }
 
   /**
@@ -2540,7 +2540,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getBacklinkDoc(data: { defID: string; refTreeID: string; keyword: string; containChildren?: boolean; highlight: any }): Promise<{ code: number; msg: string; data: { backlinks: any[]; keywords: string[] } | null }> {
-    return this._fetchWrapper('/api/ref/getBacklinkDoc', 'POST', data, true);
+    return this._fetchWrapper("/api/ref/getBacklinkDoc", "POST", data, true);
   }
 
   /**
@@ -2549,7 +2549,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getBackmentionDoc(data: { defID: string; refTreeID: string; keyword: string; containChildren?: boolean; highlight: any }): Promise<{ code: number; msg: string; data: { backmentions: any[]; keywords: string[] } | null }> {
-    return this._fetchWrapper('/api/ref/getBackmentionDoc', 'POST', data, true);
+    return this._fetchWrapper("/api/ref/getBackmentionDoc", "POST", data, true);
   }
 
   /**
@@ -2558,7 +2558,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async refreshBacklink(data: { id: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/ref/refreshBacklink', 'POST', data, true);
+    return this._fetchWrapper("/api/ref/refreshBacklink", "POST", data, true);
   }
 
   /**
@@ -2567,7 +2567,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async checkoutRepo(data: { id: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/repo/checkoutRepo', 'POST', data, true);
+    return this._fetchWrapper("/api/repo/checkoutRepo", "POST", data, true);
   }
 
   /**
@@ -2576,7 +2576,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async createSnapshot(data: { memo?: string; tag?: string }): Promise<{ code: number; msg: string; data: { id: string } }> {
-    return this._fetchWrapper('/api/repo/createSnapshot', 'POST', data, true);
+    return this._fetchWrapper("/api/repo/createSnapshot", "POST", data, true);
   }
 
   /**
@@ -2585,7 +2585,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async diffRepoSnapshots(data: { left: string; right: string }): Promise<{ code: number; msg: string; data: { addsLeft: { id: string; hPath: string }[]; updatesLeft: { id: string; hPath: string }[]; updatesRight: { id: string; hPath: string }[]; removesRight: { id: string; hPath: string }[]; left: { id: string; created: string; memo: string }; right: { id: string; created: string; memo: string } } }> {
-    return this._fetchWrapper('/api/repo/diffRepoSnapshots', 'POST', data, true);
+    return this._fetchWrapper("/api/repo/diffRepoSnapshots", "POST", data, true);
   }
 
   /**
@@ -2594,7 +2594,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async downloadCloudSnapshot(data: { id: string; tag?: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/repo/downloadCloudSnapshot', 'POST', data, true);
+    return this._fetchWrapper("/api/repo/downloadCloudSnapshot", "POST", data, true);
   }
 
   /**
@@ -2603,7 +2603,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getCloudRepoSnapshots(data: { page: number }): Promise<{ code: number; msg: string; data: { snapshots: { id: string; created: string; hCreated: string; size: number; hSize: string; memo: string }[]; pageCount: number; totalCount: number } }> {
-    return this._fetchWrapper('/api/repo/getCloudRepoSnapshots', 'POST', data, true);
+    return this._fetchWrapper("/api/repo/getCloudRepoSnapshots", "POST", data, true);
   }
 
   /**
@@ -2612,7 +2612,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getCloudRepoTagSnapshots(data: { page: number }): Promise<{ code: number; msg: string; data: { snapshots: { id: string; tag: string; created: string; hCreated: string; size: number; hSize: string; memo: string }[]; pageCount: number; totalCount: number } }> {
-    return this._fetchWrapper('/api/repo/getCloudRepoTagSnapshots', 'POST', data, true);
+    return this._fetchWrapper("/api/repo/getCloudRepoTagSnapshots", "POST", data, true);
   }
 
   /**
@@ -2621,7 +2621,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getRepoFile(data: { id: string; path?: string }): Promise<any> {
-    return this._fetchWrapper('/api/repo/getRepoFile', 'POST', data, true);
+    return this._fetchWrapper("/api/repo/getRepoFile", "POST", data, true);
   }
 
   /**
@@ -2630,7 +2630,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getRepoSnapshots(data: { page: number }): Promise<{ code: number; msg: string; data: { snapshots: { id: string; created: string; hCreated: string; size: number; hSize: string; memo: string }[]; pageCount: number; totalCount: number } }> {
-    return this._fetchWrapper('/api/repo/getRepoSnapshots', 'POST', data, true);
+    return this._fetchWrapper("/api/repo/getRepoSnapshots", "POST", data, true);
   }
 
   /**
@@ -2639,7 +2639,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getRepoTagSnapshots(data: { page: number }): Promise<{ code: number; msg: string; data: { snapshots: { id: string; tag: string; created: string; hCreated: string; size: number; hSize: string; memo: string }[]; pageCount: number; totalCount: number } }> {
-    return this._fetchWrapper('/api/repo/getRepoTagSnapshots', 'POST', data, true);
+    return this._fetchWrapper("/api/repo/getRepoTagSnapshots", "POST", data, true);
   }
 
   /**
@@ -2648,7 +2648,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async importRepoKey(data: any): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/repo/importRepoKey', 'POST', data, true);
+    return this._fetchWrapper("/api/repo/importRepoKey", "POST", data, true);
   }
 
   /**
@@ -2657,7 +2657,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async initRepoKey(data: any): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/repo/initRepoKey', 'POST', data, true);
+    return this._fetchWrapper("/api/repo/initRepoKey", "POST", data, true);
   }
 
   /**
@@ -2666,7 +2666,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async initRepoKeyFromPassphrase(data: { passphrase: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/repo/initRepoKeyFromPassphrase', 'POST', data, true);
+    return this._fetchWrapper("/api/repo/initRepoKeyFromPassphrase", "POST", data, true);
   }
 
   /**
@@ -2675,7 +2675,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async openRepoSnapshotDoc(data: { id: string }): Promise<{ code: number; msg: string; data: { title: string; content: string; displayInText: boolean; updated: string } | null }> {
-    return this._fetchWrapper('/api/repo/openRepoSnapshotDoc', 'POST', data, true);
+    return this._fetchWrapper("/api/repo/openRepoSnapshotDoc", "POST", data, true);
   }
 
   /**
@@ -2684,7 +2684,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async purgeCloudRepo(data: any): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/repo/purgeCloudRepo', 'POST', data, true);
+    return this._fetchWrapper("/api/repo/purgeCloudRepo", "POST", data, true);
   }
 
   /**
@@ -2693,7 +2693,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async purgeRepo(data: any): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/repo/purgeRepo', 'POST', data, true);
+    return this._fetchWrapper("/api/repo/purgeRepo", "POST", data, true);
   }
 
   /**
@@ -2702,7 +2702,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async removeCloudRepoTagSnapshot(data: { id: string; tag: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/repo/removeCloudRepoTagSnapshot', 'POST', data, true);
+    return this._fetchWrapper("/api/repo/removeCloudRepoTagSnapshot", "POST", data, true);
   }
 
   /**
@@ -2711,7 +2711,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async removeRepoTagSnapshot(data: { id: string; tag: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/repo/removeRepoTagSnapshot', 'POST', data, true);
+    return this._fetchWrapper("/api/repo/removeRepoTagSnapshot", "POST", data, true);
   }
 
   /**
@@ -2720,7 +2720,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async resetRepo(data: any): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/repo/resetRepo', 'POST', data, true);
+    return this._fetchWrapper("/api/repo/resetRepo", "POST", data, true);
   }
 
   /**
@@ -2729,7 +2729,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setRepoIndexRetentionDays(data: { days: number }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/repo/setRepoIndexRetentionDays', 'POST', data, true);
+    return this._fetchWrapper("/api/repo/setRepoIndexRetentionDays", "POST", data, true);
   }
 
   /**
@@ -2738,7 +2738,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setRetentionIndexesDaily(data: { indexes: number }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/repo/setRetentionIndexesDaily', 'POST', data, true);
+    return this._fetchWrapper("/api/repo/setRetentionIndexesDaily", "POST", data, true);
   }
 
   /**
@@ -2747,7 +2747,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async tagSnapshot(data: { id: string; tag: string; memo?: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/repo/tagSnapshot', 'POST', data, true);
+    return this._fetchWrapper("/api/repo/tagSnapshot", "POST", data, true);
   }
 
   /**
@@ -2756,7 +2756,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async uploadCloudSnapshot(data: { id: string; tag?: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/repo/uploadCloudSnapshot', 'POST', data, true);
+    return this._fetchWrapper("/api/repo/uploadCloudSnapshot", "POST", data, true);
   }
 
   /**
@@ -2765,7 +2765,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async addRiffCards(data: { deckID: string; blockIDs: string[] }): Promise<{ code: number; msg: string; data: { id: string; name: string; size: number; created: string; updated: string } | null }> {
-    return this._fetchWrapper('/api/riff/addRiffCards', 'POST', data, true);
+    return this._fetchWrapper("/api/riff/addRiffCards", "POST", data, true);
   }
 
   /**
@@ -2774,7 +2774,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async batchSetRiffCardsDueTime(data: { cardDues: { id: string; due: string }[] }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/riff/batchSetRiffCardsDueTime', 'POST', data, true);
+    return this._fetchWrapper("/api/riff/batchSetRiffCardsDueTime", "POST", data, true);
   }
 
   /**
@@ -2783,7 +2783,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async createRiffDeck(data: { name: string }): Promise<{ code: number; msg: string; data: { id: string; name: string; size: number; created: string; updated: string } }> {
-    return this._fetchWrapper('/api/riff/createRiffDeck', 'POST', data, true);
+    return this._fetchWrapper("/api/riff/createRiffDeck", "POST", data, true);
   }
 
   /**
@@ -2792,7 +2792,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getNotebookRiffCards(data: { id: string; page: number; pageSize?: number }): Promise<{ code: number; msg: string; data: { blocks: string[]; total: number; pageCount: number } }> {
-    return this._fetchWrapper('/api/riff/getNotebookRiffCards', 'POST', data, true);
+    return this._fetchWrapper("/api/riff/getNotebookRiffCards", "POST", data, true);
   }
 
   /**
@@ -2801,7 +2801,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getNotebookRiffDueCards(data: { notebook: string; reviewedCards?: { cardID: string }[] }): Promise<{ code: number; msg: string; data: { cards: { id: string; deckID: string; blockID: string; created: string; due: string; interval: number; easeFactor: number; reps: number }[]; unreviewedCount: number; unreviewedNewCardCount: number; unreviewedOldCardCount: number } }> {
-    return this._fetchWrapper('/api/riff/getNotebookRiffDueCards', 'POST', data, true);
+    return this._fetchWrapper("/api/riff/getNotebookRiffDueCards", "POST", data, true);
   }
 
   /**
@@ -2810,7 +2810,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getRiffCards(data: { id: string; page: number; pageSize?: number }): Promise<{ code: number; msg: string; data: { blocks: { id: string; deckID: string; blockID: string; created: string; due: string; interval: number; easeFactor: number; reps: number }[]; total: number; pageCount: number } }> {
-    return this._fetchWrapper('/api/riff/getRiffCards', 'POST', data, true);
+    return this._fetchWrapper("/api/riff/getRiffCards", "POST", data, true);
   }
 
   /**
@@ -2819,7 +2819,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getRiffCardsByBlockIDs(data: { blockIDs: string[] }): Promise<{ code: number; msg: string; data: { blocks: { id: string; deckID: string; blockID: string; created: string; due: string; interval: number; easeFactor: number; reps: number }[] } }> {
-    return this._fetchWrapper('/api/riff/getRiffCardsByBlockIDs', 'POST', data, true);
+    return this._fetchWrapper("/api/riff/getRiffCardsByBlockIDs", "POST", data, true);
   }
 
   /**
@@ -2828,7 +2828,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getRiffDecks(data: any): Promise<{ code: number; msg: string; data: { id: string; name: string; size: number; created: string; updated: string }[] }> {
-    return this._fetchWrapper('/api/riff/getRiffDecks', 'POST', data, true);
+    return this._fetchWrapper("/api/riff/getRiffDecks", "POST", data, true);
   }
 
   /**
@@ -2837,7 +2837,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getRiffDueCards(data: { deckID: string; reviewedCards?: { cardID: string }[] }): Promise<{ code: number; msg: string; data: { cards: { id: string; deckID: string; blockID: string; created: string; due: string; interval: number; easeFactor: number; reps: number }[]; unreviewedCount: number; unreviewedNewCardCount: number; unreviewedOldCardCount: number } }> {
-    return this._fetchWrapper('/api/riff/getRiffDueCards', 'POST', data, true);
+    return this._fetchWrapper("/api/riff/getRiffDueCards", "POST", data, true);
   }
 
   /**
@@ -2846,7 +2846,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getTreeRiffCards(data: { id: string; page: number; pageSize?: number }): Promise<{ code: number; msg: string; data: { blocks: string[]; total: number; pageCount: number } }> {
-    return this._fetchWrapper('/api/riff/getTreeRiffCards', 'POST', data, true);
+    return this._fetchWrapper("/api/riff/getTreeRiffCards", "POST", data, true);
   }
 
   /**
@@ -2855,7 +2855,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getTreeRiffDueCards(data: { rootID: string; reviewedCards?: { cardID: string }[] }): Promise<{ code: number; msg: string; data: { cards: { id: string; deckID: string; blockID: string; created: string; due: string; interval: number; easeFactor: number; reps: number }[]; unreviewedCount: number; unreviewedNewCardCount: number; unreviewedOldCardCount: number } }> {
-    return this._fetchWrapper('/api/riff/getTreeRiffDueCards', 'POST', data, true);
+    return this._fetchWrapper("/api/riff/getTreeRiffDueCards", "POST", data, true);
   }
 
   /**
@@ -2864,7 +2864,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async removeRiffCards(data: { deckID: string; blockIDs: string[] }): Promise<{ code: number; msg: string; data: { id: string; name: string; size: number; created: string; updated: string } | null }> {
-    return this._fetchWrapper('/api/riff/removeRiffCards', 'POST', data, true);
+    return this._fetchWrapper("/api/riff/removeRiffCards", "POST", data, true);
   }
 
   /**
@@ -2873,7 +2873,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async removeRiffDeck(data: { deckID: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/riff/removeRiffDeck', 'POST', data, true);
+    return this._fetchWrapper("/api/riff/removeRiffDeck", "POST", data, true);
   }
 
   /**
@@ -2882,7 +2882,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async renameRiffDeck(data: { deckID: string; name: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/riff/renameRiffDeck', 'POST', data, true);
+    return this._fetchWrapper("/api/riff/renameRiffDeck", "POST", data, true);
   }
 
   /**
@@ -2891,7 +2891,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async resetRiffCards(data: { type: "notebook" | "tree" | "deck"; id: string; deckID: string; blockIDs?: string[] }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/riff/resetRiffCards', 'POST', data, true);
+    return this._fetchWrapper("/api/riff/resetRiffCards", "POST", data, true);
   }
 
   /**
@@ -2900,7 +2900,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async reviewRiffCard(data: { deckID: string; cardID: string; rating: number; reviewedCards?: { cardID: string }[] }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/riff/reviewRiffCard', 'POST', data, true);
+    return this._fetchWrapper("/api/riff/reviewRiffCard", "POST", data, true);
   }
 
   /**
@@ -2909,7 +2909,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async skipReviewRiffCard(data: { deckID: string; cardID: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/riff/skipReviewRiffCard', 'POST', data, true);
+    return this._fetchWrapper("/api/riff/skipReviewRiffCard", "POST", data, true);
   }
 
   /**
@@ -2918,7 +2918,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async findReplace(data: { k: string; r: string; ids: string[]; paths?: string[]; boxes?: string[]; types?: Record<string, boolean>; method?: number; orderBy?: number; groupBy?: number; replaceTypes?: Record<string, boolean> }): Promise<{ code: number; msg: string; data: { closeTimeout?: number } | null }> {
-    return this._fetchWrapper('/api/search/findReplace', 'POST', data, true);
+    return this._fetchWrapper("/api/search/findReplace", "POST", data, true);
   }
 
   /**
@@ -2927,7 +2927,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async fullTextSearchAssetContent(data: { query: string; page?: number; pageSize?: number; types?: Record<string, boolean>; method?: number; orderBy?: number }): Promise<{ code: number; msg: string; data: { assetContents: { id: string; box: string; docID: string; path: string; name: string; title: string; updated: string; content: string; count: number }[]; matchedAssetCount: number; pageCount: number } | null }> {
-    return this._fetchWrapper('/api/search/fullTextSearchAssetContent', 'POST', data, true);
+    return this._fetchWrapper("/api/search/fullTextSearchAssetContent", "POST", data, true);
   }
 
   /**
@@ -2936,7 +2936,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async fullTextSearchBlock(data: { query: string; page?: number; pageSize?: number; paths?: string[]; boxes?: string[]; types?: Record<string, boolean>; method?: number; orderBy?: number; groupBy?: number }): Promise<{ code: number; msg: string; data: { blocks: any[]; matchedBlockCount: number; matchedRootCount: number; pageCount: number; docMode: boolean } | null }> {
-    return this._fetchWrapper('/api/search/fullTextSearchBlock', 'POST', data, true);
+    return this._fetchWrapper("/api/search/fullTextSearchBlock", "POST", data, true);
   }
 
   /**
@@ -2945,7 +2945,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getAssetContent(data: { id: string; query: string; queryMethod: number }): Promise<{ code: number; msg: string; data: { assetContent: string } | null }> {
-    return this._fetchWrapper('/api/search/getAssetContent', 'POST', data, true);
+    return this._fetchWrapper("/api/search/getAssetContent", "POST", data, true);
   }
 
   /**
@@ -2954,7 +2954,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getEmbedBlock(data: { embedBlockID: string; includeIDs: string[]; headingMode?: number; breadcrumb?: boolean }): Promise<{ code: number; msg: string; data: { blocks: any[] } | null }> {
-    return this._fetchWrapper('/api/search/getEmbedBlock', 'POST', data, true);
+    return this._fetchWrapper("/api/search/getEmbedBlock", "POST", data, true);
   }
 
   /**
@@ -2963,7 +2963,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async listInvalidBlockRefs(data: { page?: number; pageSize?: number }): Promise<{ code: number; msg: string; data: { blocks: { id: string; box: string; path: string; hPath: string; content: string; updated: string }[]; matchedBlockCount: number; matchedRootCount: number; pageCount: number } | null }> {
-    return this._fetchWrapper('/api/search/listInvalidBlockRefs', 'POST', data, true);
+    return this._fetchWrapper("/api/search/listInvalidBlockRefs", "POST", data, true);
   }
 
   /**
@@ -2972,7 +2972,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async removeTemplate(data: { path: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/search/removeTemplate', 'POST', data, true);
+    return this._fetchWrapper("/api/search/removeTemplate", "POST", data, true);
   }
 
   /**
@@ -2981,7 +2981,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async searchAsset(data: { k: string; exts?: string[] }): Promise<{ code: number; msg: string; data: { id: string; box: string; docID: string; path: string; name: string; title: string; hPath: string; updated: string }[] }> {
-    return this._fetchWrapper('/api/search/searchAsset', 'POST', data, true);
+    return this._fetchWrapper("/api/search/searchAsset", "POST", data, true);
   }
 
   /**
@@ -2990,7 +2990,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async searchEmbedBlock(data: { embedBlockID: string; stmt: string; excludeIDs?: string[]; headingMode?: number; breadcrumb?: boolean }): Promise<{ code: number; msg: string; data: { blocks: any[] } | null }> {
-    return this._fetchWrapper('/api/search/searchEmbedBlock', 'POST', data, true);
+    return this._fetchWrapper("/api/search/searchEmbedBlock", "POST", data, true);
   }
 
   /**
@@ -2999,7 +2999,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async searchRefBlock(data: { id: string; rootID: string; k: string; beforeLen?: number; isSquareBrackets?: boolean; isDatabase?: boolean; reqId?: any }): Promise<{ code: number; msg: string; data: { blocks: { id: string; type: string; content: string }[]; newDoc: boolean; k: string; reqId?: any } | null }> {
-    return this._fetchWrapper('/api/search/searchRefBlock', 'POST', data, true);
+    return this._fetchWrapper("/api/search/searchRefBlock", "POST", data, true);
   }
 
   /**
@@ -3008,7 +3008,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async searchTag(data: { k: string }): Promise<{ code: number; msg: string; data: { tags: string[]; k: string } | null }> {
-    return this._fetchWrapper('/api/search/searchTag', 'POST', data, true);
+    return this._fetchWrapper("/api/search/searchTag", "POST", data, true);
   }
 
   /**
@@ -3017,7 +3017,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async searchTemplate(data: { k: string }): Promise<{ code: number; msg: string; data: { blocks: { content: string; path: string; docpath?: string }[]; k: string } | null }> {
-    return this._fetchWrapper('/api/search/searchTemplate', 'POST', data, true);
+    return this._fetchWrapper("/api/search/searchTemplate", "POST", data, true);
   }
 
   /**
@@ -3026,7 +3026,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async searchWidget(data: { k: string }): Promise<{ code: number; msg: string; data: { blocks: { id: string; markdown: string; name: string }[]; k: string } | null }> {
-    return this._fetchWrapper('/api/search/searchWidget', 'POST', data, true);
+    return this._fetchWrapper("/api/search/searchWidget", "POST", data, true);
   }
 
   /**
@@ -3035,7 +3035,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async updateEmbedBlock(data: { id: string; content: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/search/updateEmbedBlock', 'POST', data, true);
+    return this._fetchWrapper("/api/search/updateEmbedBlock", "POST", data, true);
   }
 
   /**
@@ -3044,7 +3044,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async addVirtualBlockRefExclude(data: { keywords: string[] }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/setting/addVirtualBlockRefExclude', 'POST', data, true);
+    return this._fetchWrapper("/api/setting/addVirtualBlockRefExclude", "POST", data, true);
   }
 
   /**
@@ -3053,7 +3053,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async addVirtualBlockRefInclude(data: { keywords: string[] }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/setting/addVirtualBlockRefInclude', 'POST', data, true);
+    return this._fetchWrapper("/api/setting/addVirtualBlockRefInclude", "POST", data, true);
   }
 
   /**
@@ -3062,7 +3062,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getCloudUser(data: { token?: string }): Promise<{ code: number; msg: string; data: { userId: string; userName: string; userAvatarURL: string; userHomeBImgURL: string; userTitles: { name: string; icon: string; url: string }[]; userIntro: string; userNickname: string; userCreateTime: string; userSiYuanProExpireTime: number; userToken: string; userTokenExpireTime: string; userSiYuanRepoSize: number; userSiYuanPointExchangeRepoSize: number; userSiYuanAssetSize: number; userTrafficUpload: number; userTrafficDownload: number; userSiYuanProExpireDays: number; userSiYuanAIMaxFreeRequestCount: number; userSiYuanAIMaxProRequestCount: number; userSiYuanAIProRequestCount: number; userSiYuanAISubscriptionPlan: number; userSiYuanPro: boolean; userSiYuanLifetimePro: boolean; userSiYuanTeam: boolean } | null }> {
-    return this._fetchWrapper('/api/setting/getCloudUser', 'POST', data, true);
+    return this._fetchWrapper("/api/setting/getCloudUser", "POST", data, true);
   }
 
   /**
@@ -3071,7 +3071,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getPublish(data: any): Promise<{ code: number; msg: string; data: { port: number; publish: { enable: boolean; port: number; auth: { enable: boolean; accounts: { username: string; password: string; memo?: string }[] } } } | null }> {
-    return this._fetchWrapper('/api/setting/getPublish', 'POST', data, true);
+    return this._fetchWrapper("/api/setting/getPublish", "POST", data, true);
   }
 
   /**
@@ -3080,7 +3080,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async login2faCloudUser(data: { token: string; code: string }): Promise<{ code: number; msg: string; data: Record<string, any> | null }> {
-    return this._fetchWrapper('/api/setting/login2faCloudUser', 'POST', data, true);
+    return this._fetchWrapper("/api/setting/login2faCloudUser", "POST", data, true);
   }
 
   /**
@@ -3089,7 +3089,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async logoutCloudUser(data: any): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/setting/logoutCloudUser', 'POST', data, true);
+    return this._fetchWrapper("/api/setting/logoutCloudUser", "POST", data, true);
   }
 
   /**
@@ -3098,7 +3098,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async refreshVirtualBlockRef(data: any): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/setting/refreshVirtualBlockRef', 'POST', data, true);
+    return this._fetchWrapper("/api/setting/refreshVirtualBlockRef", "POST", data, true);
   }
 
   /**
@@ -3107,7 +3107,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setAI(data: { openAI: { apiKey?: string; apiTimeout?: number; apiProxy?: string; apiModel?: string; apiMaxTokens?: number; apiTemperature?: number; apiMaxContexts?: number; apiBaseURL?: string; apiUserAgent?: string; apiProvider?: string; apiVersion?: string } }): Promise<{ code: number; msg: string; data: { openAI: { apiKey?: string; apiTimeout?: number; apiProxy?: string; apiModel?: string; apiMaxTokens?: number; apiTemperature?: number; apiMaxContexts?: number; apiBaseURL?: string; apiUserAgent?: string; apiProvider?: string; apiVersion?: string } } | null }> {
-    return this._fetchWrapper('/api/setting/setAI', 'POST', data, true);
+    return this._fetchWrapper("/api/setting/setAI", "POST", data, true);
   }
 
   /**
@@ -3116,7 +3116,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setAccount(data: { displayTitle?: boolean; displayVIP?: boolean }): Promise<{ code: number; msg: string; data: { displayTitle: boolean; displayVIP: boolean } | null }> {
-    return this._fetchWrapper('/api/setting/setAccount', 'POST', data, true);
+    return this._fetchWrapper("/api/setting/setAccount", "POST", data, true);
   }
 
   /**
@@ -3125,7 +3125,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setAppearance(data: { mode?: number; themeDark?: string; themeLight?: string; darkThemes?: string[]; lightThemes?: string[]; icons?: string[]; lang?: string; codeFontFamily?: string; fontSize?: number; fontFamily?: string; hideStatusBar?: boolean; customCSS?: string }): Promise<{ code: number; msg: string; data: { mode?: number; themeDark?: string; themeLight?: string; darkThemes?: string[]; lightThemes?: string[]; icons?: string[]; lang?: string; fontSize?: number; fontFamily?: string; codeFontFamily?: string; hideStatusBar?: boolean; customCSS?: string } | null }> {
-    return this._fetchWrapper('/api/setting/setAppearance', 'POST', data, true);
+    return this._fetchWrapper("/api/setting/setAppearance", "POST", data, true);
   }
 
   /**
@@ -3134,7 +3134,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setBazaar(data: { trust?: boolean; petalDisabled?: boolean }): Promise<{ code: number; msg: string; data: { trust?: boolean; petalDisabled?: boolean } | null }> {
-    return this._fetchWrapper('/api/setting/setBazaar', 'POST', data, true);
+    return this._fetchWrapper("/api/setting/setBazaar", "POST", data, true);
   }
 
   /**
@@ -3143,7 +3143,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setEditor(data: { allowHTMLBLockScript?: boolean; fontSize?: number; fontSizeScrollZoom?: boolean; fontFamily?: string; codeSyntaxHighlightLineNum?: boolean; codeTabSpaces?: number; codeLineWrap?: boolean; codeLigatures?: boolean; displayBookmarkIcon?: boolean; displayNetImgMark?: boolean; generateHistoryInterval?: number; historyRetentionDays?: number; emoji?: string[]; virtualBlockRef?: boolean; virtualBlockRefExclude?: string; virtualBlockRefInclude?: string; blockRefDynamicAnchorTextMaxLen?: number; plantUMLServePath?: string; fullWidth?: boolean; katexMacros?: string; readOnly?: boolean; embedBlockBreadcrumb?: boolean; listLogicalOutdent?: boolean; listItemDotNumberClickFocus?: boolean; floatWindowMode?: number; dynamicLoadBlocks?: number; justify?: boolean; rtl?: boolean; spellcheck?: boolean; onlySearchForDoc?: boolean; backlinkExpandCount?: number; backmentionExpandCount?: number; backlinkContainChildren?: boolean; markdown?: any }): Promise<{ code: number; msg: string; data: any | null }> {
-    return this._fetchWrapper('/api/setting/setEditor', 'POST', data, true);
+    return this._fetchWrapper("/api/setting/setEditor", "POST", data, true);
   }
 
   /**
@@ -3152,7 +3152,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setEditorReadOnly(data: { readonly: boolean }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/setting/setEditorReadOnly', 'POST', data, true);
+    return this._fetchWrapper("/api/setting/setEditorReadOnly", "POST", data, true);
   }
 
   /**
@@ -3161,7 +3161,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setEmoji(data: { emoji: string[] }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/setting/setEmoji', 'POST', data, true);
+    return this._fetchWrapper("/api/setting/setEmoji", "POST", data, true);
   }
 
   /**
@@ -3170,7 +3170,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setExport(data: { paragraphBeginningSpace?: boolean; addTitle?: boolean; blockRefMode?: number; blockEmbedMode?: number; blockRefTextLeft?: string; blockRefTextRight?: string; tagOpenMarker?: string; tagCloseMarker?: string; fileAnnotationRefMode?: number; pandocBin?: string; markdownYFM?: boolean; inlineMemo?: boolean; pdfFooter?: string; docxTemplate?: string; pdfWatermarkStr?: string; pdfWatermarkDesc?: string; imageWatermarkStr?: string; imageWatermarkDesc?: string }): Promise<{ code: number; msg: string; data: any | null }> {
-    return this._fetchWrapper('/api/setting/setExport', 'POST', data, true);
+    return this._fetchWrapper("/api/setting/setExport", "POST", data, true);
   }
 
   /**
@@ -3179,7 +3179,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setFiletree(data: { alwaysSelectOpenedFile?: boolean; openFilesUseCurrentTab?: boolean; refCreateSaveBox?: string; refCreateSavePath?: string; docCreateSaveBox?: string; docCreateSavePath?: string; maxListCount?: number; maxOpenTabCount?: number; allowCreateDeeper?: boolean; removeDocWithoutConfirm?: boolean; closeTabsOnStart?: boolean; useSingleLineSave?: boolean; sort?: number }): Promise<{ code: number; msg: string; data: any | null }> {
-    return this._fetchWrapper('/api/setting/setFiletree', 'POST', data, true);
+    return this._fetchWrapper("/api/setting/setFiletree", "POST", data, true);
   }
 
   /**
@@ -3188,7 +3188,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setFlashcard(data: { newCardLimit?: number; reviewCardLimit?: number; requestRetention?: number; maximumInterval?: number; easyBonus?: number; hardInterval?: number; lapseInterval?: number; againInterval?: number }): Promise<{ code: number; msg: string; data: { newCardLimit: number; reviewCardLimit: number; requestRetention: number; maximumInterval: number; easyBonus: number; hardInterval: number; lapseInterval: number; againInterval: number } | null }> {
-    return this._fetchWrapper('/api/setting/setFlashcard', 'POST', data, true);
+    return this._fetchWrapper("/api/setting/setFlashcard", "POST", data, true);
   }
 
   /**
@@ -3197,7 +3197,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setKeymap(data: { data: { editor?: Record<string, string>; protyleIR?: Record<string, string>; protyleSV?: Record<string, string>; protyleWYSIWYG?: Record<string, string>; fileTree?: Record<string, string>; notebook?: Record<string, string>; global?: Record<string, string> } }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/setting/setKeymap', 'POST', data, true);
+    return this._fetchWrapper("/api/setting/setKeymap", "POST", data, true);
   }
 
   /**
@@ -3206,7 +3206,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setPublish(data: { enable: boolean; port: number; auth: { enable: boolean; accounts: { username: string; password: string; memo?: string }[] } }): Promise<{ code: number; msg: string; data: { port: number; publish: { enable: boolean; port: number; auth: { enable: boolean; accounts: { username: string; password: string; memo?: string }[] } } } | null }> {
-    return this._fetchWrapper('/api/setting/setPublish', 'POST', data, true);
+    return this._fetchWrapper("/api/setting/setPublish", "POST", data, true);
   }
 
   /**
@@ -3215,7 +3215,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setSearch(data: { document?: boolean; heading?: boolean; list?: boolean; listItem?: boolean; codeBlock?: boolean; mathBlock?: boolean; table?: boolean; blockquote?: boolean; superBlock?: boolean; paragraph?: boolean; htmlBlock?: boolean; embedBlock?: boolean; databaseBlock?: boolean; audioBlock?: boolean; videoBlock?: boolean; iframeBlock?: boolean; widgetBlock?: boolean; limit?: number; caseSensitive?: boolean; name?: boolean; alias?: boolean; memo?: boolean; ial?: boolean; indexAssetPath?: boolean; backlinkMentionName?: boolean; backlinkMentionAlias?: boolean; backlinkMentionAnchor?: boolean; backlinkMentionDoc?: boolean; backlinkMentionKeywordsLimit?: number; virtualRefName?: boolean; virtualRefAlias?: boolean; virtualRefAnchor?: boolean; virtualRefDoc?: boolean }): Promise<{ code: number; msg: string; data: any | null }> {
-    return this._fetchWrapper('/api/setting/setSearch', 'POST', data, true);
+    return this._fetchWrapper("/api/setting/setSearch", "POST", data, true);
   }
 
   /**
@@ -3224,7 +3224,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setConfSnippet(data: { enabledCSS?: boolean; enabledJS?: boolean }): Promise<{ code: number; msg: string; data: { enabledCSS: boolean; enabledJS: boolean } | null }> {
-    return this._fetchWrapper('/api/setting/setSnippet', 'POST', data, true);
+    return this._fetchWrapper("/api/setting/setSnippet", "POST", data, true);
   }
 
   /**
@@ -3233,7 +3233,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getSnippet(data: { type: "js" | "css" | "all"; enabled: number; keyword?: string }): Promise<{ code: number; msg: string; data: { snippets: { id: string; name: string; type: "js" | "css"; enabled: boolean; content: string }[] } | null }> {
-    return this._fetchWrapper('/api/snippet/getSnippet', 'POST', data, true);
+    return this._fetchWrapper("/api/snippet/getSnippet", "POST", data, true);
   }
 
   /**
@@ -3242,7 +3242,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async removeSnippet(data: { id: string }): Promise<{ code: number; msg: string; data: { id: string; name: string; type: "js" | "css"; enabled: boolean; content: string } | null }> {
-    return this._fetchWrapper('/api/snippet/removeSnippet', 'POST', data, true);
+    return this._fetchWrapper("/api/snippet/removeSnippet", "POST", data, true);
   }
 
   /**
@@ -3251,7 +3251,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setSnippet(data: { snippets: { id: string; name: string; type: "js" | "css"; content: string; enabled: boolean }[] }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/snippet/setSnippet', 'POST', data, true);
+    return this._fetchWrapper("/api/snippet/setSnippet", "POST", data, true);
   }
 
   /**
@@ -3260,7 +3260,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async flushTransaction(data: any): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/sqlite/flushTransaction', 'POST', data, true);
+    return this._fetchWrapper("/api/sqlite/flushTransaction", "POST", data, true);
   }
 
   /**
@@ -3269,7 +3269,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getCriteria(data: any): Promise<{ code: number; msg: string; data: { name: string; id?: string; box?: string; type?: string; query?: string; sort?: number; group?: number; types?: any; customSort?: any[]; filter?: number; docIDs?: string[]; blockIDs?: string[]; tagIDs?: string[]; attrIDs?: string[]; refs?: string[]; parentID?: string; rootID?: string; kwd?: string }[] }> {
-    return this._fetchWrapper('/api/storage/getCriteria', 'POST', data, true);
+    return this._fetchWrapper("/api/storage/getCriteria", "POST", data, true);
   }
 
   /**
@@ -3278,7 +3278,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getLocalStorage(data: any): Promise<{ code: number; msg: string; data: Record<string, any> }> {
-    return this._fetchWrapper('/api/storage/getLocalStorage', 'POST', data, true);
+    return this._fetchWrapper("/api/storage/getLocalStorage", "POST", data, true);
   }
 
   /**
@@ -3287,7 +3287,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getOutlineStorage(data: any): Promise<any> {
-    return this._fetchWrapper('/api/storage/getOutlineStorage', 'POST', data, true);
+    return this._fetchWrapper("/api/storage/getOutlineStorage", "POST", data, true);
   }
 
   /**
@@ -3296,7 +3296,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getRecentDocs(data: any): Promise<{ code: number; msg: string; data: { id: string; notebookID: string; name: string; icon: string; hPath: string; path: string; sort: number; type: string; subFileCount: number; updated: string }[] }> {
-    return this._fetchWrapper('/api/storage/getRecentDocs', 'POST', data, true);
+    return this._fetchWrapper("/api/storage/getRecentDocs", "POST", data, true);
   }
 
   /**
@@ -3305,7 +3305,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async removeCriterion(data: { name: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/storage/removeCriterion', 'POST', data, true);
+    return this._fetchWrapper("/api/storage/removeCriterion", "POST", data, true);
   }
 
   /**
@@ -3314,7 +3314,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async removeLocalStorageVals(data: { keys: string[]; app: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/storage/removeLocalStorageVals', 'POST', data, true);
+    return this._fetchWrapper("/api/storage/removeLocalStorageVals", "POST", data, true);
   }
 
   /**
@@ -3323,7 +3323,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async removeOutlineStorage(data: any): Promise<any> {
-    return this._fetchWrapper('/api/storage/removeOutlineStorage', 'POST', data, true);
+    return this._fetchWrapper("/api/storage/removeOutlineStorage", "POST", data, true);
   }
 
   /**
@@ -3332,7 +3332,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setCriterion(data: { criterion: { name: string; id?: string; box?: string; type?: string; query?: string; sort?: number; group?: number; types?: any; customSort?: any[]; filter?: number; docIDs?: string[]; blockIDs?: string[]; tagIDs?: string[]; attrIDs?: string[]; refs?: string[]; parentID?: string; rootID?: string; kwd?: string } }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/storage/setCriterion', 'POST', data, true);
+    return this._fetchWrapper("/api/storage/setCriterion", "POST", data, true);
   }
 
   /**
@@ -3341,7 +3341,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setLocalStorage(data: { val: Record<string, any>; app: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/storage/setLocalStorage', 'POST', data, true);
+    return this._fetchWrapper("/api/storage/setLocalStorage", "POST", data, true);
   }
 
   /**
@@ -3350,7 +3350,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setLocalStorageVal(data: { key: string; val: any; app: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/storage/setLocalStorageVal', 'POST', data, true);
+    return this._fetchWrapper("/api/storage/setLocalStorageVal", "POST", data, true);
   }
 
   /**
@@ -3359,7 +3359,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setOutlineStorage(data: any): Promise<any> {
-    return this._fetchWrapper('/api/storage/setOutlineStorage', 'POST', data, true);
+    return this._fetchWrapper("/api/storage/setOutlineStorage", "POST", data, true);
   }
 
   /**
@@ -3368,7 +3368,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async updateRecentDocCloseTime(data: any): Promise<any> {
-    return this._fetchWrapper('/api/storage/updateRecentDocCloseTime', 'POST', data, true);
+    return this._fetchWrapper("/api/storage/updateRecentDocCloseTime", "POST", data, true);
   }
 
   /**
@@ -3377,7 +3377,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async updateRecentDocOpenTime(data: any): Promise<any> {
-    return this._fetchWrapper('/api/storage/updateRecentDocOpenTime', 'POST', data, true);
+    return this._fetchWrapper("/api/storage/updateRecentDocOpenTime", "POST", data, true);
   }
 
   /**
@@ -3386,7 +3386,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async updateRecentDocViewTime(data: any): Promise<any> {
-    return this._fetchWrapper('/api/storage/updateRecentDocViewTime', 'POST', data, true);
+    return this._fetchWrapper("/api/storage/updateRecentDocViewTime", "POST", data, true);
   }
 
   /**
@@ -3395,7 +3395,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async createCloudSyncDir(data: { name: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/sync/createCloudSyncDir', 'POST', data, true);
+    return this._fetchWrapper("/api/sync/createCloudSyncDir", "POST", data, true);
   }
 
   /**
@@ -3404,7 +3404,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async exportSyncProviderS3(data: any): Promise<{ code: number; msg: string; data: { name: string; zip: string } | null }> {
-    return this._fetchWrapper('/api/sync/exportSyncProviderS3', 'POST', data, true);
+    return this._fetchWrapper("/api/sync/exportSyncProviderS3", "POST", data, true);
   }
 
   /**
@@ -3413,7 +3413,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async exportSyncProviderWebDAV(data: any): Promise<{ code: number; msg: string; data: { name: string; zip: string } | null }> {
-    return this._fetchWrapper('/api/sync/exportSyncProviderWebDAV', 'POST', data, true);
+    return this._fetchWrapper("/api/sync/exportSyncProviderWebDAV", "POST", data, true);
   }
 
   /**
@@ -3422,7 +3422,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getBootSync(data: any): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/sync/getBootSync', 'POST', data, true);
+    return this._fetchWrapper("/api/sync/getBootSync", "POST", data, true);
   }
 
   /**
@@ -3431,7 +3431,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getSyncInfo(data: any): Promise<{ code: number; msg: string; data: { synced: string; stat: string; kernels: string[]; kernel: string } | null }> {
-    return this._fetchWrapper('/api/sync/getSyncInfo', 'POST', data, true);
+    return this._fetchWrapper("/api/sync/getSyncInfo", "POST", data, true);
   }
 
   /**
@@ -3440,7 +3440,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async importSyncProviderS3(data: any): Promise<{ code: number; msg: string; data: { s3: { endpoint: string; accessKeyID: string; secretAccessKey: string; bucket: string; region: string; cdn?: string } } | null }> {
-    return this._fetchWrapper('/api/sync/importSyncProviderS3', 'POST', data, true);
+    return this._fetchWrapper("/api/sync/importSyncProviderS3", "POST", data, true);
   }
 
   /**
@@ -3449,7 +3449,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async importSyncProviderWebDAV(data: any): Promise<{ code: number; msg: string; data: { webdav: { endpoint: string; username: string; password: string } } | null }> {
-    return this._fetchWrapper('/api/sync/importSyncProviderWebDAV', 'POST', data, true);
+    return this._fetchWrapper("/api/sync/importSyncProviderWebDAV", "POST", data, true);
   }
 
   /**
@@ -3458,7 +3458,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async listCloudSyncDir(data: any): Promise<{ code: number; msg: string; data: { syncDirs: { name: string; hSize: string; size: number }[]; hSize: string; checkedSyncDir: string } | null }> {
-    return this._fetchWrapper('/api/sync/listCloudSyncDir', 'POST', data, true);
+    return this._fetchWrapper("/api/sync/listCloudSyncDir", "POST", data, true);
   }
 
   /**
@@ -3467,7 +3467,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async performBootSync(data: any): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/sync/performBootSync', 'POST', data, true);
+    return this._fetchWrapper("/api/sync/performBootSync", "POST", data, true);
   }
 
   /**
@@ -3476,7 +3476,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async performSync(data: { mobileSwitch?: boolean; upload?: boolean }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/sync/performSync', 'POST', data, true);
+    return this._fetchWrapper("/api/sync/performSync", "POST", data, true);
   }
 
   /**
@@ -3485,7 +3485,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async removeCloudSyncDir(data: { name: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/sync/removeCloudSyncDir', 'POST', data, true);
+    return this._fetchWrapper("/api/sync/removeCloudSyncDir", "POST", data, true);
   }
 
   /**
@@ -3494,7 +3494,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setCloudSyncDir(data: { name: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/sync/setCloudSyncDir', 'POST', data, true);
+    return this._fetchWrapper("/api/sync/setCloudSyncDir", "POST", data, true);
   }
 
   /**
@@ -3503,7 +3503,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setSyncEnable(data: { enabled: boolean }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/sync/setSyncEnable', 'POST', data, true);
+    return this._fetchWrapper("/api/sync/setSyncEnable", "POST", data, true);
   }
 
   /**
@@ -3512,7 +3512,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setSyncGenerateConflictDoc(data: { generateConflictDoc: boolean }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/sync/setSyncGenerateConflictDoc', 'POST', data, true);
+    return this._fetchWrapper("/api/sync/setSyncGenerateConflictDoc", "POST", data, true);
   }
 
   /**
@@ -3521,7 +3521,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setSyncInterval(data: { syncInterval: number }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/sync/setSyncInterval', 'POST', data, true);
+    return this._fetchWrapper("/api/sync/setSyncInterval", "POST", data, true);
   }
 
   /**
@@ -3530,7 +3530,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setSyncMode(data: { syncMode: number }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/sync/setSyncMode', 'POST', data, true);
+    return this._fetchWrapper("/api/sync/setSyncMode", "POST", data, true);
   }
 
   /**
@@ -3539,7 +3539,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setSyncPerception(data: { syncPerception: boolean }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/sync/setSyncPerception', 'POST', data, true);
+    return this._fetchWrapper("/api/sync/setSyncPerception", "POST", data, true);
   }
 
   /**
@@ -3548,7 +3548,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setSyncProvider(data: { syncProvider: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/sync/setSyncProvider', 'POST', data, true);
+    return this._fetchWrapper("/api/sync/setSyncProvider", "POST", data, true);
   }
 
   /**
@@ -3557,7 +3557,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setSyncProviderLocal(data: { syncProviderLocalPath: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/sync/setSyncProviderLocal', 'POST', data, true);
+    return this._fetchWrapper("/api/sync/setSyncProviderLocal", "POST", data, true);
   }
 
   /**
@@ -3566,7 +3566,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setSyncProviderS3(data: { s3AccessKeyID: string; s3SecretAccessKey: string; s3Endpoint: string; s3Region: string; s3Bucket: string; s3CDN?: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/sync/setSyncProviderS3', 'POST', data, true);
+    return this._fetchWrapper("/api/sync/setSyncProviderS3", "POST", data, true);
   }
 
   /**
@@ -3575,7 +3575,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setSyncProviderWebDAV(data: { webdavEndpoint: string; webdavUsername: string; webdavPassword: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/sync/setSyncProviderWebDAV', 'POST', data, true);
+    return this._fetchWrapper("/api/sync/setSyncProviderWebDAV", "POST", data, true);
   }
 
   /**
@@ -3584,7 +3584,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async addMicrosoftDefenderExclusion(data: any): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/system/addMicrosoftDefenderExclusion', 'POST', data, true);
+    return this._fetchWrapper("/api/system/addMicrosoftDefenderExclusion", "POST", data, true);
   }
 
   /**
@@ -3592,7 +3592,7 @@ class KernelApiClient {
    * Endpoint: `GET /api/system/bootProgress`
    */
   async bootProgress(data: any): Promise<{ code: number; msg: string; data: { progress: number; state: number; details: string } | null }> {
-    return this._fetchWrapper('/api/system/bootProgress', 'GET', data, false);
+    return this._fetchWrapper("/api/system/bootProgress", "GET", data, false);
   }
 
   /**
@@ -3601,7 +3601,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async checkUpdate(data: { showMsg: boolean }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/system/checkUpdate', 'POST', data, true);
+    return this._fetchWrapper("/api/system/checkUpdate", "POST", data, true);
   }
 
   /**
@@ -3610,7 +3610,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async checkWorkspaceDir(data: { path: string }): Promise<{ code: number; msg: string; data: { isWorkspace: boolean } | null }> {
-    return this._fetchWrapper('/api/system/checkWorkspaceDir', 'POST', data, true);
+    return this._fetchWrapper("/api/system/checkWorkspaceDir", "POST", data, true);
   }
 
   /**
@@ -3619,7 +3619,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async createWorkspaceDir(data: { path: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/system/createWorkspaceDir', 'POST', data, true);
+    return this._fetchWrapper("/api/system/createWorkspaceDir", "POST", data, true);
   }
 
   /**
@@ -3627,7 +3627,7 @@ class KernelApiClient {
    * Endpoint: `POST /api/system/currentTime`
    */
   async currentTime(data: any): Promise<{ code: number; msg: string; data: number }> {
-    return this._fetchWrapper('/api/system/currentTime', 'POST', data, false);
+    return this._fetchWrapper("/api/system/currentTime", "POST", data, false);
   }
 
   /**
@@ -3636,7 +3636,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async exit(data: any): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/system/exit', 'POST', data, true);
+    return this._fetchWrapper("/api/system/exit", "POST", data, true);
   }
 
   /**
@@ -3645,7 +3645,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async exportConf(data: any): Promise<{ code: number; msg: string; data: { path: string; name: string } }> {
-    return this._fetchWrapper('/api/system/exportConf', 'POST', data, true);
+    return this._fetchWrapper("/api/system/exportConf", "POST", data, true);
   }
 
   /**
@@ -3654,7 +3654,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async exportLog(data: any): Promise<{ code: number; msg: string; data: { zip: string } }> {
-    return this._fetchWrapper('/api/system/exportLog', 'POST', data, true);
+    return this._fetchWrapper("/api/system/exportLog", "POST", data, true);
   }
 
   /**
@@ -3662,7 +3662,7 @@ class KernelApiClient {
    * Endpoint: `GET /api/system/getCaptcha`
    */
   async GetCaptcha(data: any): Promise<{ code?: number; msg?: string; data?: string }> {
-    return this._fetchWrapper('/api/system/getCaptcha', 'GET', data, false);
+    return this._fetchWrapper("/api/system/getCaptcha", "GET", data, false);
   }
 
   /**
@@ -3671,7 +3671,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getChangelog(data: any): Promise<{ code: number; msg: string; data: { show: boolean; html: string } }> {
-    return this._fetchWrapper('/api/system/getChangelog', 'POST', data, true);
+    return this._fetchWrapper("/api/system/getChangelog", "POST", data, true);
   }
 
   /**
@@ -3680,7 +3680,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getConf(data: any): Promise<{ code: number; msg: string; data: any }> {
-    return this._fetchWrapper('/api/system/getConf', 'POST', data, true);
+    return this._fetchWrapper("/api/system/getConf", "POST", data, true);
   }
 
   /**
@@ -3689,7 +3689,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getEmojiConf(data: any): Promise<{ code: number; msg: string; data: { id: string; title: string; title_zh_cn?: string; title_ja_jp?: string; items: { unicode: string; description: string; description_zh_cn?: string; description_ja_jp?: string; keywords?: string }[] }[] }> {
-    return this._fetchWrapper('/api/system/getEmojiConf', 'POST', data, true);
+    return this._fetchWrapper("/api/system/getEmojiConf", "POST", data, true);
   }
 
   /**
@@ -3698,7 +3698,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getMobileWorkspaces(data: any): Promise<{ code: number; msg: string; data: { path: string; name: string; title: string; bookmark: string; closed: boolean }[] }> {
-    return this._fetchWrapper('/api/system/getMobileWorkspaces', 'POST', data, true);
+    return this._fetchWrapper("/api/system/getMobileWorkspaces", "POST", data, true);
   }
 
   /**
@@ -3707,7 +3707,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getNetwork(data: any): Promise<{ code: number; msg: string; data: { proxy: string } }> {
-    return this._fetchWrapper('/api/system/getNetwork', 'POST', data, true);
+    return this._fetchWrapper("/api/system/getNetwork", "POST", data, true);
   }
 
   /**
@@ -3716,7 +3716,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getSysFonts(data: any): Promise<{ code: number; msg: string; data: { label: string; value: string }[] }> {
-    return this._fetchWrapper('/api/system/getSysFonts', 'POST', data, true);
+    return this._fetchWrapper("/api/system/getSysFonts", "POST", data, true);
   }
 
   /**
@@ -3725,7 +3725,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getWorkspaceInfo(data: any): Promise<{ code: number; msg: string; data: { workspaceDir: string; siyuanVer: string } }> {
-    return this._fetchWrapper('/api/system/getWorkspaceInfo', 'POST', data, true);
+    return this._fetchWrapper("/api/system/getWorkspaceInfo", "POST", data, true);
   }
 
   /**
@@ -3734,7 +3734,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getWorkspaces(data: any): Promise<{ code: number; msg: string; data: { path: string; name: string; title: string; bookmark: string; closed: boolean }[] }> {
-    return this._fetchWrapper('/api/system/getWorkspaces', 'POST', data, true);
+    return this._fetchWrapper("/api/system/getWorkspaces", "POST", data, true);
   }
 
   /**
@@ -3743,7 +3743,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async ignoreAddMicrosoftDefenderExclusion(data: any): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/system/ignoreAddMicrosoftDefenderExclusion', 'POST', data, true);
+    return this._fetchWrapper("/api/system/ignoreAddMicrosoftDefenderExclusion", "POST", data, true);
   }
 
   /**
@@ -3752,7 +3752,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async importConf(data: { file: any }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/system/importConf', 'POST', data, true);
+    return this._fetchWrapper("/api/system/importConf", "POST", data, true);
   }
 
   /**
@@ -3760,7 +3760,7 @@ class KernelApiClient {
    * Endpoint: `POST /api/system/loginAuth`
    */
   async LoginAuth(data: { authcode?: string; captcha?: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/system/loginAuth', 'POST', data, false);
+    return this._fetchWrapper("/api/system/loginAuth", "POST", data, false);
   }
 
   /**
@@ -3768,7 +3768,7 @@ class KernelApiClient {
    * Endpoint: `POST /api/system/logoutAuth`
    */
   async LogoutAuth(data: any): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/system/logoutAuth', 'POST', data, false);
+    return this._fetchWrapper("/api/system/logoutAuth", "POST", data, false);
   }
 
   /**
@@ -3777,7 +3777,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async reloadUI(data: any): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/system/reloadUI', 'POST', data, true);
+    return this._fetchWrapper("/api/system/reloadUI", "POST", data, true);
   }
 
   /**
@@ -3786,7 +3786,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async removeWorkspaceDir(data: { path: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/system/removeWorkspaceDir', 'POST', data, true);
+    return this._fetchWrapper("/api/system/removeWorkspaceDir", "POST", data, true);
   }
 
   /**
@@ -3795,7 +3795,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async removeWorkspaceDirPhysically(data: { paths: string[] }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/system/removeWorkspaceDirPhysically', 'POST', data, true);
+    return this._fetchWrapper("/api/system/removeWorkspaceDirPhysically", "POST", data, true);
   }
 
   /**
@@ -3804,7 +3804,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setAPIToken(data: { token: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/system/setAPIToken', 'POST', data, true);
+    return this._fetchWrapper("/api/system/setAPIToken", "POST", data, true);
   }
 
   /**
@@ -3813,7 +3813,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setAccessAuthCode(data: { code: string; permanent?: boolean }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/system/setAccessAuthCode', 'POST', data, true);
+    return this._fetchWrapper("/api/system/setAccessAuthCode", "POST", data, true);
   }
 
   /**
@@ -3822,7 +3822,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setAppearanceMode(data: { mode: number }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/system/setAppearanceMode', 'POST', data, true);
+    return this._fetchWrapper("/api/system/setAppearanceMode", "POST", data, true);
   }
 
   /**
@@ -3831,7 +3831,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setAutoLaunch(data: { autoLaunch: boolean }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/system/setAutoLaunch', 'POST', data, true);
+    return this._fetchWrapper("/api/system/setAutoLaunch", "POST", data, true);
   }
 
   /**
@@ -3840,7 +3840,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setDownloadInstallPkg(data: { downloadInstallPkg: boolean }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/system/setDownloadInstallPkg', 'POST', data, true);
+    return this._fetchWrapper("/api/system/setDownloadInstallPkg", "POST", data, true);
   }
 
   /**
@@ -3849,7 +3849,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setFollowSystemLockScreen(data: { follow: boolean }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/system/setFollowSystemLockScreen', 'POST', data, true);
+    return this._fetchWrapper("/api/system/setFollowSystemLockScreen", "POST", data, true);
   }
 
   /**
@@ -3859,7 +3859,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setGoogleAnalytics(data: { enabled: boolean }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/system/setGoogleAnalytics', 'POST', data, true);
+    return this._fetchWrapper("/api/system/setGoogleAnalytics", "POST", data, true);
   }
 
   /**
@@ -3868,7 +3868,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setNetworkProxy(data: { proxy: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/system/setNetworkProxy', 'POST', data, true);
+    return this._fetchWrapper("/api/system/setNetworkProxy", "POST", data, true);
   }
 
   /**
@@ -3877,7 +3877,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setNetworkServe(data: { serve: boolean; port: string; accessPermission: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/system/setNetworkServe', 'POST', data, true);
+    return this._fetchWrapper("/api/system/setNetworkServe", "POST", data, true);
   }
 
   /**
@@ -3886,7 +3886,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setUILayout(data: { layout: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/system/setUILayout', 'POST', data, true);
+    return this._fetchWrapper("/api/system/setUILayout", "POST", data, true);
   }
 
   /**
@@ -3895,7 +3895,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async setWorkspaceDir(data: { path: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/system/setWorkspaceDir', 'POST', data, true);
+    return this._fetchWrapper("/api/system/setWorkspaceDir", "POST", data, true);
   }
 
   /**
@@ -3903,7 +3903,7 @@ class KernelApiClient {
    * Endpoint: `POST /api/system/uiproc`
    */
   async addUIProcess(data: { pid?: number }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/system/uiproc', 'POST', data, false);
+    return this._fetchWrapper("/api/system/uiproc", "POST", data, false);
   }
 
   /**
@@ -3912,7 +3912,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async vacuumDataIndex(data: any): Promise<any> {
-    return this._fetchWrapper('/api/system/vacuumDataIndex', 'POST', data, true);
+    return this._fetchWrapper("/api/system/vacuumDataIndex", "POST", data, true);
   }
 
   /**
@@ -3920,7 +3920,7 @@ class KernelApiClient {
    * Endpoint: `GET /api/system/version`
    */
   async version(data: any): Promise<{ code: number; msg: string; data: string }> {
-    return this._fetchWrapper('/api/system/version', 'GET', data, false);
+    return this._fetchWrapper("/api/system/version", "GET", data, false);
   }
 
   /**
@@ -3929,7 +3929,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async getTag(data: { sort?: number }): Promise<{ code: number; msg: string; data: { label: string; count: number; blockCount: number; hCreated: string; hUpdated: string }[] | null }> {
-    return this._fetchWrapper('/api/tag/getTag', 'POST', data, true);
+    return this._fetchWrapper("/api/tag/getTag", "POST", data, true);
   }
 
   /**
@@ -3938,7 +3938,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async removeTag(data: { label: string }): Promise<{ code: number; msg: string; data: { closeTimeout?: number } | null }> {
-    return this._fetchWrapper('/api/tag/removeTag', 'POST', data, true);
+    return this._fetchWrapper("/api/tag/removeTag", "POST", data, true);
   }
 
   /**
@@ -3947,7 +3947,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async renameTag(data: { oldLabel: string; newLabel: string }): Promise<{ code: number; msg: string; data: { closeTimeout?: number } | null }> {
-    return this._fetchWrapper('/api/tag/renameTag', 'POST', data, true);
+    return this._fetchWrapper("/api/tag/renameTag", "POST", data, true);
   }
 
   /**
@@ -3956,7 +3956,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async docSaveAsTemplate(data: { id: string; name: string; overwrite: boolean }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/template/docSaveAsTemplate', 'POST', data, true);
+    return this._fetchWrapper("/api/template/docSaveAsTemplate", "POST", data, true);
   }
 
   /**
@@ -3965,7 +3965,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async renderTemplate(data: { path: string; id: string; preview?: boolean }): Promise<{ code: number; msg: string; data: { path: string; content: string } | null }> {
-    return this._fetchWrapper('/api/template/render', 'POST', data, true);
+    return this._fetchWrapper("/api/template/render", "POST", data, true);
   }
 
   /**
@@ -3974,7 +3974,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async renderSprig(data: { template: string }): Promise<{ code: number; msg: string; data: string | null }> {
-    return this._fetchWrapper('/api/template/renderSprig', 'POST', data, true);
+    return this._fetchWrapper("/api/template/renderSprig", "POST", data, true);
   }
 
   /**
@@ -3983,7 +3983,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async performTransactions(data: { transactions: { timestamp: number; doOperations: { action: string; id?: string; parentID?: string; previousID?: string; nextID?: string; data?: any; dataType?: string; isDetached?: boolean; box?: string; path?: string; name?: string; keyID?: string; avID?: string; blockIDs?: string[]; deckID?: string; rowID?: string; srcID?: string; targetID?: string; after?: boolean; srcHeadingID?: string; targetNoteBook?: string; targetPath?: string; previousPath?: string; srcListItemID?: string; fromPaths?: string[]; toNotebook?: string; toPath?: string; fromIDs?: string[]; toID?: string; title?: string; markdown?: string; tags?: string; withMath?: boolean; clippingHref?: string; listDocTree?: boolean; callback?: string; typ?: string; format?: string; removeDest?: boolean }[]; undoOperations?: { action: string; id?: string; parentID?: string; previousID?: string; nextID?: string; data?: any; dataType?: string; isDetached?: boolean; box?: string; path?: string; name?: string; keyID?: string; avID?: string; blockIDs?: string[]; deckID?: string; rowID?: string; srcID?: string; targetID?: string; after?: boolean; srcHeadingID?: string; targetNoteBook?: string; targetPath?: string; previousPath?: string; srcListItemID?: string; fromPaths?: string[]; toNotebook?: string; toPath?: string; fromIDs?: string[]; toID?: string; title?: string; markdown?: string; tags?: string; withMath?: boolean; clippingHref?: string; listDocTree?: boolean; callback?: string; typ?: string; format?: string; removeDest?: boolean }[] }[]; reqId: number; app: string; session: string }): Promise<{ code: number; msg: string; data: { timestamp: number; doOperations: { action: string; id?: string; parentID?: string; previousID?: string; nextID?: string; data?: any; dataType?: string; isDetached?: boolean; box?: string; path?: string; name?: string; keyID?: string; avID?: string; blockIDs?: string[]; deckID?: string; rowID?: string; srcID?: string; targetID?: string; after?: boolean; srcHeadingID?: string; targetNoteBook?: string; targetPath?: string; previousPath?: string; srcListItemID?: string; fromPaths?: string[]; toNotebook?: string; toPath?: string; fromIDs?: string[]; toID?: string; title?: string; markdown?: string; tags?: string; withMath?: boolean; clippingHref?: string; listDocTree?: boolean; callback?: string; typ?: string; format?: string; removeDest?: boolean; retData?: any }[]; undoOperations?: { action: string; id?: string; parentID?: string; previousID?: string; nextID?: string; data?: any; dataType?: string; isDetached?: boolean; box?: string; path?: string; name?: string; keyID?: string; avID?: string; blockIDs?: string[]; deckID?: string; rowID?: string; srcID?: string; targetID?: string; after?: boolean; srcHeadingID?: string; targetNoteBook?: string; targetPath?: string; previousPath?: string; srcListItemID?: string; fromPaths?: string[]; toNotebook?: string; toPath?: string; fromIDs?: string[]; toID?: string; title?: string; markdown?: string; tags?: string; withMath?: boolean; clippingHref?: string; listDocTree?: boolean; callback?: string; typ?: string; format?: string; removeDest?: boolean; retData?: any }[] }[] | null }> {
-    return this._fetchWrapper('/api/transactions', 'POST', data, true);
+    return this._fetchWrapper("/api/transactions", "POST", data, true);
   }
 
   /**
@@ -3992,7 +3992,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async reloadAttributeView(data: { id: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/ui/reloadAttributeView', 'POST', data, true);
+    return this._fetchWrapper("/api/ui/reloadAttributeView", "POST", data, true);
   }
 
   /**
@@ -4001,7 +4001,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async reloadFiletree(data: any): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/ui/reloadFiletree', 'POST', data, true);
+    return this._fetchWrapper("/api/ui/reloadFiletree", "POST", data, true);
   }
 
   /**
@@ -4010,7 +4010,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async reloadIcon(data: any): Promise<any> {
-    return this._fetchWrapper('/api/ui/reloadIcon', 'POST', data, true);
+    return this._fetchWrapper("/api/ui/reloadIcon", "POST", data, true);
   }
 
   /**
@@ -4019,7 +4019,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async reloadProtyle(data: { id: string }): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/ui/reloadProtyle', 'POST', data, true);
+    return this._fetchWrapper("/api/ui/reloadProtyle", "POST", data, true);
   }
 
   /**
@@ -4028,7 +4028,7 @@ class KernelApiClient {
    * Requires authentication.
    */
   async reloadTag(data: any): Promise<{ code: number; msg: string; data: null }> {
-    return this._fetchWrapper('/api/ui/reloadTag', 'POST', data, true);
+    return this._fetchWrapper("/api/ui/reloadTag", "POST", data, true);
   }
 
 }

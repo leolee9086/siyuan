@@ -54,13 +54,13 @@ export const schema =z.object({
         undo: buildKeymapEntrySchema(),
         vLayout: buildKeymapEntrySchema(),
         wysiwyg: buildKeymapEntrySchema()
-    })
-export {schema as editorKeyMapGeneralSchema}
-export const parseAsConfig = (rawConf: {}): Config.IConf['keymap']['editor']['general'] => {
+    });
+export {schema as editorKeyMapGeneralSchema};
+export const parseAsConfig = (rawConf: {}): Config.IConf["keymap"]["editor"]["general"] => {
     const result = schema.safeParse(rawConf);
 
     if (!result.success) {
         throw new Error(`配置解析失败: ${result.error.message}`);
     }
     return result.data;
-}
+};

@@ -7,10 +7,10 @@ import { Dialog } from "../dialog";
  */
 export const setDialogContainerColor = (dialog: Dialog, color: string): void => {
     // 获取对话框容器元素
-    const dialogContainer = dialog.element.querySelector('.b3-dialog__container');
+    const dialogContainer = dialog.element.querySelector(".b3-dialog__container");
     if (dialogContainer instanceof HTMLElement) {
         dialogContainer.style.backgroundColor = color;
-        dialogContainer.style.opacity = '0.95'; // 设置轻微透明度，保持可读性
+        dialogContainer.style.opacity = "0.95"; // 设置轻微透明度，保持可读性
     }
 };
 

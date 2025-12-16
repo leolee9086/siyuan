@@ -1,5 +1,5 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
 /**
  * 递归获取目录中的所有文件
@@ -31,8 +31,8 @@ function getAllFiles(dir, fileList = []) {
  */
 function countLines(filePath) {
     try {
-        const content = fs.readFileSync(filePath, 'utf8');
-        return content.split('\n').length;
+        const content = fs.readFileSync(filePath, "utf8");
+        return content.split("\n").length;
     } catch (error) {
         console.error(`读取文件 ${filePath} 时出错:`, error.message);
         return 0;
@@ -48,10 +48,10 @@ function findLongestFile(srcPath) {
     
     // 需要忽略的文件列表 - 统一使用正斜杠
     const ignoreFiles = [
-        'data/kernelAPI/mimeDb.ts',
-        'data/kernelAPI/kernelApiClient.ts',
-        'asset/pdf/app.js',
-        'types/config.d.ts'
+        "data/kernelAPI/mimeDb.ts",
+        "data/kernelAPI/kernelApiClient.ts",
+        "asset/pdf/app.js",
+        "types/config.d.ts"
     ];
     
     // 获取所有文件
@@ -61,7 +61,7 @@ function findLongestFile(srcPath) {
     const filteredFiles = allFiles.filter(filePath => {
         const relativePath = path.relative(srcPath, filePath);
         // 统一转换为正斜杠格式进行比较
-        const normalizedPath = relativePath.replace(/\\/g, '/');
+        const normalizedPath = relativePath.replace(/\\/g, "/");
         return !ignoreFiles.some(ignoreFile => normalizedPath.includes(ignoreFile));
     });
     
@@ -81,7 +81,7 @@ function findLongestFile(srcPath) {
     fileStats.sort((a, b) => b.lines - a.lines);
     
     // 显示前10个最长的文件
-    console.log('\n最长的10个文件:');
+    console.log("\n最长的10个文件:");
     fileStats.slice(0, 10).forEach((file, index) => {
         console.log(`${index + 1}. ${file.relativePath} - ${file.lines} 行`);
     });
@@ -90,7 +90,7 @@ function findLongestFile(srcPath) {
     const totalLines = fileStats.reduce((sum, file) => sum + file.lines, 0);
     const averageLines = Math.round(totalLines / fileStats.length);
     
-    console.log(`\n统计信息:`);
+    console.log("\n统计信息:");
     console.log(`总文件数: ${fileStats.length}`);
     console.log(`总行数: ${totalLines}`);
     console.log(`平均行数: ${averageLines}`);
@@ -100,5 +100,5 @@ function findLongestFile(srcPath) {
 }
 
 // 主程序
-const srcPath = path.join(__dirname, '../../src');
+const srcPath = path.join(__dirname, "../../src");
 findLongestFile(srcPath);

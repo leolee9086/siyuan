@@ -25,7 +25,7 @@ const variableValueCache: VariableCache = {};
  */
 function extractCSSVariables(element: Element): CSSVariableInfo[] {
     if (!element) {
-        throw new Error('元素不能为空');
+        throw new Error("元素不能为空");
     }
 
     const variables: CSSVariableInfo[] = [];
@@ -35,7 +35,7 @@ function extractCSSVariables(element: Element): CSSVariableInfo[] {
     try {
         computedStyle = window.getComputedStyle(element);
     } catch (error) {
-        console.error('无法获取元素的计算样式:', error);
+        console.error("无法获取元素的计算样式:", error);
         return variables;
     }
 
@@ -47,7 +47,7 @@ function extractCSSVariables(element: Element): CSSVariableInfo[] {
         const propertyValue = computedStyle.getPropertyValue(propertyName);
 
         // 检查属性值是否包含CSS变量
-        if (propertyValue.includes('var(')) {
+        if (propertyValue.includes("var(")) {
             // 提取变量名 - 修正正则表达式，确保正确匹配CSS变量名
             const varMatches = propertyValue.match(/var\(--([^)\s]+)(?:,\s*([^)]+))?\)/g);
 
@@ -55,7 +55,7 @@ function extractCSSVariables(element: Element): CSSVariableInfo[] {
                 varMatches.forEach(varMatch => {
                     const varNameMatch = varMatch.match(/var\(--([^)\s]+)/);
                     if (varNameMatch) {
-                        const varFullName = '--' + varNameMatch[1];
+                        const varFullName = "--" + varNameMatch[1];
                         
                         // 避免重复处理同一个变量
                         if (processedVariableNames.has(varFullName)) {
@@ -67,7 +67,7 @@ function extractCSSVariables(element: Element): CSSVariableInfo[] {
 
                         variables.push({
                             name: varFullName,
-                            computedValue: computedValue || '未定义',
+                            computedValue: computedValue || "未定义",
                             property: propertyName,
                             originalValue: propertyValue
                         });
@@ -100,14 +100,14 @@ function getComputedVariableValue(element: Element, variableName: string): strin
         try {
             computedStyle = window.getComputedStyle(currentElement);
         } catch (error) {
-            console.error('无法获取元素的计算样式:', error);
+            console.error("无法获取元素的计算样式:", error);
             currentElement = currentElement.parentElement;
             continue;
         }
         
         const value = computedStyle.getPropertyValue(variableName);
 
-        if (value && value.trim() !== '') {
+        if (value && value.trim() !== "") {
             // 缓存结果并返回
             variableValueCache[variableName] = value;
             return value;
@@ -154,7 +154,7 @@ function getVariableFromStylesheets(variableName: string): string | null {
                         const styleRule = rule as CSSStyleRule;
                         if (styleRule.style) {
                             const value = styleRule.style.getPropertyValue(variableName);
-                            if (value && value.trim() !== '') {
+                            if (value && value.trim() !== "") {
                                 return value;
                             }
                         }
@@ -162,12 +162,12 @@ function getVariableFromStylesheets(variableName: string): string | null {
                 }
             } catch (stylesheetError) {
                 // 可能由于CORS策略无法访问某些样式表
-                console.warn('无法访问样式表:', stylesheetError);
+                console.warn("无法访问样式表:", stylesheetError);
                 continue;
             }
         }
     } catch (error) {
-        console.error('访问样式表时发生错误:', error);
+        console.error("访问样式表时发生错误:", error);
     }
 
     return null;
@@ -184,12 +184,12 @@ function replaceCSSVariables(element: Element, variables: CSSVariableInfo[]): vo
     }
 
     // 获取元素的原始样式（内联样式）
-    const originalStyle = element.getAttribute('style') || '';
+    const originalStyle = element.getAttribute("style") || "";
     let newStyle = originalStyle;
 
     variables.forEach(variable => {
         // 创建正则表达式来匹配变量使用
-        const varRegex = new RegExp(`var\\(${variable.name}(?:,\\s*[^)]+)?\\)`, 'g');
+        const varRegex = new RegExp(`var\\(${variable.name}(?:,\\s*[^)]+)?\\)`, "g");
 
         // 检查原始样式中是否使用了该变量
         if (varRegex.test(originalStyle)) {
@@ -200,7 +200,7 @@ function replaceCSSVariables(element: Element, variables: CSSVariableInfo[]): vo
         } else {
             // 如果内联样式中没有该变量，但我们需要确保属性存在
             // 检查属性是否已存在于内联样式中
-            const propertyRegex = new RegExp(`\\b${variable.property}\\s*:[^;]*;?`, 'g');
+            const propertyRegex = new RegExp(`\\b${variable.property}\\s*:[^;]*;?`, "g");
             const propertyMatch = originalStyle.match(propertyRegex);
 
             if (propertyMatch) {
@@ -209,15 +209,15 @@ function replaceCSSVariables(element: Element, variables: CSSVariableInfo[]): vo
                 return;
             } else {
                 // 属性不存在，添加它（只有当计算值不是'未定义'时）
-                if (variable.computedValue !== '未定义') {
-                    newStyle = `${newStyle}${newStyle.trim() && !newStyle.endsWith(';') ? ';' : ''} ${variable.property}: ${variable.computedValue};`;
+                if (variable.computedValue !== "未定义") {
+                    newStyle = `${newStyle}${newStyle.trim() && !newStyle.endsWith(";") ? ";" : ""} ${variable.property}: ${variable.computedValue};`;
                 }
             }
         }
     });
 
     // 应用新样式
-    element.setAttribute('style', newStyle);
+    element.setAttribute("style", newStyle);
 }
 
 /**

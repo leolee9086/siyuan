@@ -3,8 +3,8 @@
  * 用于提取当前选择范围的HTML，替换其中的CSS变量为计算值，并复制到剪贴板
  */
 
-import { getContenteditableElement } from '../../ai/imports';
-import { extractCSSVariables, replaceCSSVariables } from '../css/extractCSSVariables';
+import { getContenteditableElement } from "../../ai/imports";
+import { extractCSSVariables, replaceCSSVariables } from "../css/extractCSSVariables";
 
 /**
  * 获取当前选择范围的HTML内容
@@ -13,11 +13,11 @@ import { extractCSSVariables, replaceCSSVariables } from '../css/extractCSSVaria
 function getSelectedHTML(): string {
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) {
-        return '';
+        return "";
     }
 
     const range = selection.getRangeAt(0);
-    const container = document.createElement('div');
+    const container = document.createElement("div");
     container.appendChild(range.cloneContents());
     
     return container.innerHTML;
@@ -30,11 +30,11 @@ function getSelectedHTML(): string {
  */
 function processCSSVariablesInHTML(html: string): string {
     // 创建临时容器
-    const tempContainer = document.createElement('div');
+    const tempContainer = document.createElement("div");
     tempContainer.innerHTML = html;
     
     // 获取所有需要处理的元素
-    const elements = tempContainer.querySelectorAll('*');
+    const elements = tempContainer.querySelectorAll("*");
     
     // 处理每个元素的CSS变量
     elements.forEach(element => {
@@ -56,29 +56,29 @@ function processCSSVariablesInHTML(html: string): string {
  */
 function convertSpanToLink(container: HTMLElement): void {
     // 查找所有span标签
-    const spanElements = container.querySelectorAll('span[data-href]');
+    const spanElements = container.querySelectorAll("span[data-href]");
     
     spanElements.forEach(span => {
-        const dataType = span.getAttribute('data-type') || '';
-        const href = span.getAttribute('data-href');
-        const textContent = span.textContent || '';
+        const dataType = span.getAttribute("data-type") || "";
+        const href = span.getAttribute("data-href");
+        const textContent = span.textContent || "";
         
         // 检查data-type是否包含"a"（使用类似classList的解析方法）
         const typeClasses = dataType.split(/\s+/);
-        const hasLinkType = typeClasses.some(type => type.includes('a'));
+        const hasLinkType = typeClasses.some(type => type.includes("a"));
         
         if (!hasLinkType || !href) {
             return; // 跳过不符合条件的span
         }
         
         // 创建新的a标签
-        const linkElement = document.createElement('a');
+        const linkElement = document.createElement("a");
         linkElement.href = href;
-        linkElement.textContent = textContent.replace(/\u200B/g, ''); // 移除零宽空格
+        linkElement.textContent = textContent.replace(/\u200B/g, ""); // 移除零宽空格
         
         // 复制其他属性
         Array.from(span.attributes).forEach(attr => {
-            if (attr.name !== 'data-type' && attr.name !== 'data-href') {
+            if (attr.name !== "data-type" && attr.name !== "data-href") {
                 linkElement.setAttribute(attr.name, attr.value);
             }
         });
@@ -101,21 +101,21 @@ async function copyToClipboard(text: string): Promise<boolean> {
             return true;
         } else {
             // 降级方案：使用document.execCommand
-            const textArea = document.createElement('textarea');
+            const textArea = document.createElement("textarea");
             textArea.value = text;
-            textArea.style.position = 'fixed';
-            textArea.style.left = '-999999px';
-            textArea.style.top = '-999999px';
+            textArea.style.position = "fixed";
+            textArea.style.left = "-999999px";
+            textArea.style.top = "-999999px";
             document.body.appendChild(textArea);
             textArea.focus();
             textArea.select();
             
-            const result = document.execCommand('copy');
+            const result = document.execCommand("copy");
             document.body.removeChild(textArea);
             return result;
         }
     } catch (error) {
-        console.error('复制到剪贴板失败:', error);
+        console.error("复制到剪贴板失败:", error);
         return false;
     }
 }
@@ -129,7 +129,7 @@ async function copySelectedHTMLWithResolvedCSS(container): Promise<boolean> {
         // 获取选择的HTML
         const selectedHTML = getSelectedHTML();
         if (!selectedHTML) {
-            console.warn('没有选择任何内容');
+            console.warn("没有选择任何内容");
             return false;
         }
         
@@ -137,10 +137,10 @@ async function copySelectedHTMLWithResolvedCSS(container): Promise<boolean> {
         const processedHTML = processCSSVariablesInHTML(selectedHTML);
         
         // 创建临时元素并使用execCommand复制
-        const tempElement = document.createElement('span');
+        const tempElement = document.createElement("span");
         tempElement.innerHTML = processedHTML;
         if(getContenteditableElement(container)){
-            container =getContenteditableElement(container)
+            container =getContenteditableElement(container);
             
         }
         document.body.appendChild(tempElement);
@@ -154,7 +154,7 @@ async function copySelectedHTMLWithResolvedCSS(container): Promise<boolean> {
             selection.addRange(range);
             
             // 使用execCommand复制
-            const success = document.execCommand('copy');
+            const success = document.execCommand("copy");
             
             // 清理
             selection.removeAllRanges();
@@ -168,7 +168,7 @@ async function copySelectedHTMLWithResolvedCSS(container): Promise<boolean> {
         }
         
     } catch (error) {
-        console.error('处理选择范围HTML时发生错误:', error);
+        console.error("处理选择范围HTML时发生错误:", error);
         return false;
     }
 }

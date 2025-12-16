@@ -1,19 +1,19 @@
-import { describe, it, expect, beforeEach,test, vi } from 'vitest';
+import { describe, it, expect, beforeEach,test, vi } from "vitest";
 
-import Router from '../../../src/util/pathRouter/core/router.htttpRouter'
-import type { Context } from '../../../src/util/pathRouter/core/types'
+import Router from "../../../src/util/pathRouter/core/router.htttpRouter";
+import type { Context } from "../../../src/util/pathRouter/core/types";
 
-describe('Router单个中间件测试', () => {
-  let mockContext: Context
+describe("Router单个中间件测试", () => {
+  let mockContext: Context;
 
   beforeEach(() => {
     mockContext = {
-      method: 'GET',
-      path: '/users/123',
-      host: 'example.com',
+      method: "GET",
+      path: "/users/123",
+      host: "example.com",
       request: {
-        method: 'GET',
-        url: '/users/123',
+        method: "GET",
+        url: "/users/123",
         params: {},
         query: {},
         headers: {}
@@ -29,23 +29,23 @@ describe('Router单个中间件测试', () => {
       captures: [],
       set: vi.fn(),
       redirect: vi.fn()
-    }
-  })
+    };
+  });
 
-  test('应该正确执行单个中间件', async () => {
-    const router = new Router()
+  test("应该正确执行单个中间件", async () => {
+    const router = new Router();
     const middleware = vi.fn((ctx, next) => {
-      ctx.body = 'Hello World'
-      return next()
-    })
+      ctx.body = "Hello World";
+      return next();
+    });
     
-    router.get('/users/:id', middleware)
+    router.get("/users/:id", middleware);
     
-    const dispatch = router.routes()
+    const dispatch = router.routes();
     
-    await dispatch(mockContext, vi.fn())
+    await dispatch(mockContext, vi.fn());
     
-    expect(middleware).toHaveBeenCalled()
-    expect(mockContext.body).toBe('Hello World')
-  })
-})
+    expect(middleware).toHaveBeenCalled();
+    expect(mockContext.body).toBe("Hello World");
+  });
+});

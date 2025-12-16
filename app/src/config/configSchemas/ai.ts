@@ -1,10 +1,10 @@
-import { z } from 'zod'
+import { z } from "zod";
 
 // API 提供商类型
 const apiProviderSchema = z.enum(["OpenAI", "Azure"]);
 
 // API 模型类型
-const apiModelSchema = z.string()
+const apiModelSchema = z.string();
 
 // URL 验证函数
 const isValidUrl = (url: string) => {
@@ -67,8 +67,8 @@ export { schema as aiConfigSchema };
 type InferredAIConfig = z.infer<typeof schema>;
 
 // 类型兼容性检查
-type IsCompatible = InferredAIConfig extends Config.IConf['ai']
-    ? Config.IConf['ai'] extends InferredAIConfig
+type IsCompatible = InferredAIConfig extends Config.IConf["ai"]
+    ? Config.IConf["ai"] extends InferredAIConfig
     ? true
     : false
     : false;
@@ -76,21 +76,21 @@ type check = IsCompatible extends true ? true : never;
 
 // 编译时类型验证函数
 function validateTypeCompatibility(): InferredAIConfig {
-    return {} as Config.IConf['ai']; // 如果类型不匹配，这里会报错
+    return {} as Config.IConf["ai"]; // 如果类型不匹配，这里会报错
 }
 
-function validateTypeCompatibilityReverse(): Config.IConf['ai'] {
+function validateTypeCompatibilityReverse(): Config.IConf["ai"] {
     return {} as InferredAIConfig; // 如果类型不匹配，这里会报错
 }
 
 // 解析函数
-export const parseAsAiConfig = (rawConf: {}): Config.IConf['ai'] => {
+export const parseAsAiConfig = (rawConf: {}): Config.IConf["ai"] => {
     const result = schema.safeParse(rawConf);
 
     if (!result.success) {
         // 提供更详细的错误信息
         const errorDetails = result.error.issues.map(issue => ({
-            path: issue.path.join('.'),
+            path: issue.path.join("."),
             message: issue.message,
             code: issue.code
         }));

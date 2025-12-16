@@ -11,7 +11,7 @@ export const textMenu = (target: Element) => {
         label: siyuanI18n.copy,
         icon: "iconCopy",
         click() {
-            const selection = getSelection()
+            const selection = getSelection();
             if ((!selection) || selection.rangeCount === 0) {
                 return;
             }
@@ -27,7 +27,7 @@ export const textMenu = (target: Element) => {
         label: siyuanI18n.selectAll,
         icon: "iconSelect",
         click() {
-            const selection = getSelection()
+            const selection = getSelection();
             if ((!selection) || selection.rangeCount === 0) {
                 return;
             }

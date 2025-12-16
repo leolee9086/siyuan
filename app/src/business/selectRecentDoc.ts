@@ -24,11 +24,11 @@ export const selectRecentDoc = (): Promise<string | null> => {
 
         if (openRecentDocsDialog) {
             // 如果对话框已经打开，关闭它
-            openRecentDocsDialog.destroy()
+            openRecentDocsDialog.destroy();
         }
 
         // 保存当前选择范围
-        let range=getFirstSelectedRange()
+        const range=getFirstSelectedRange();
 
         // 处理文档选择事件
         const handleDocSelectedForSelect = (doc: { rootID: string; icon: string; title: string; }) => {
@@ -57,7 +57,7 @@ export const selectRecentDoc = (): Promise<string | null> => {
                 eventHandlers: {
                     handleDocSelected: handleDocSelectedForSelect
                 },
-                template: `<RecentDocs :recent-docs="recentDocs" @doc-selected="handleDocSelected" ref="recentDocsComponent" />`,
+                template: "<RecentDocs :recent-docs=\"recentDocs\" @doc-selected=\"handleDocSelected\" ref=\"recentDocsComponent\" />",
                 initMethodName: "focusSearchInput"
             };
         };

@@ -12,8 +12,8 @@ const genNewFileItem = (k: string) => {
         value: `((newFile "${newFileName}"${Constants.ZWSP}'${newFileName}${Lute.Caret}'))`,
         html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconFile"></use></svg>
 <span class="b3-list-item__text">${siyuanI18n.newFile} <mark>${k}</mark></span></div>`,
-    }
-}
+    };
+};
 
 /**
  * 生成块引用的值
@@ -37,7 +37,7 @@ const genBlockRefValue = (item: IBlock, key: string, source: THintSource, nodeEl
     } else {
         return `<span data-type="block-ref" data-id="${item.id}" data-subtype="d">${refText}</span>`;
     }
-}
+};
 export const hintRef = (key: string, protyle: IProtyle, source: THintSource): IHintData[] => {
     if(!protyle.wysiwyg){
         throw new Error("hintRef 方法调用时, protyle.wysiwyg 未定义");

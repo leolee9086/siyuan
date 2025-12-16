@@ -18,7 +18,7 @@ export const showToolbar = (element: HTMLElement, range: Range, target?: HTMLEle
         const rects = range.getClientRects();
         const rect = rects[rects.length - 1];
         setPosition(utilElement, rect!.left, rect!.bottom);
-        clearRectElement()
+        clearRectElement();
         return;
     }
     if (target) {

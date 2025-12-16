@@ -9,7 +9,7 @@ import { getAIConfigFromSiyuan } from "./utils.config";
 export const createAIRequestHandlerWithState = async (
     state: AssistantResponseState,
     protyle: IProtyle,
-    messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string; timestamp: number; }>
+    messages: Array<{ role: "user" | "assistant" | "system"; content: string; timestamp: number; }>
 ): Promise<AIRequestController> => {
     // 创建请求控制器，完全断开与state的直接联系
     const controller = createAIRequestController(

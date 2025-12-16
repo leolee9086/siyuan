@@ -1,4 +1,4 @@
-import z from "zod"
+import z from "zod";
 
 export const schema = z.object({
     deck: z.boolean(),
@@ -12,7 +12,7 @@ export const schema = z.object({
     reviewMode: z.number(),
     superBlock: z.boolean(),
     weights: z.string()
-})
+});
 
 const parseAsConfig = (rawConf: {}): Config.IConf["flashcard"] => {
     const result = schema.safeParse(rawConf);
@@ -22,4 +22,4 @@ const parseAsConfig = (rawConf: {}): Config.IConf["flashcard"] => {
     }
 
     return result.data;
-}
+};

@@ -11,13 +11,13 @@ const schema = z.object({
     insert: insertSchema,
     list: listSchema,
     table: tableSchema
-})
-export {schema as editorKeyMapSchema}
-export const parseAsConfig = (rawConf: {}): Config.IConf['keymap']['editor'] => {
+});
+export {schema as editorKeyMapSchema};
+export const parseAsConfig = (rawConf: {}): Config.IConf["keymap"]["editor"] => {
     const result = schema.safeParse(rawConf);
 
     if (!result.success) {
         throw new Error(`配置解析失败: ${result.error.message}`);
     }
     return result.data;
-}
+};

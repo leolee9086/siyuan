@@ -36,4 +36,4 @@ export const commonInputMiddleware = (
         }
         controller.abort("普通输入处理");
     }
-}
+};

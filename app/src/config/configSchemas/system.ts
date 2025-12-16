@@ -1,10 +1,10 @@
-import { z } from 'zod'
+import { z } from "zod";
 
 const networkProxySchema = z.object({
     host: z.string(),
     port: z.string(),
     scheme: z.enum(["", "http", "https", "socks5"])
-})
+});
 
 export const schema = z.object({
     appDir: z.string(),
@@ -26,7 +26,7 @@ export const schema = z.object({
     osPlatform: z.string(),
     workspaceDir: z.string(),
     disabledFeatures: z.array(z.string())
-})
+});
 
 
 export const parseAsSystemConfig = (rawConf: {}): Config.IConf["system"] => {
@@ -37,4 +37,4 @@ export const parseAsSystemConfig = (rawConf: {}): Config.IConf["system"] => {
     }
 
     return result.data;
-}
+};

@@ -18,9 +18,9 @@ const getAbcParams = async (abcString: string): Promise<any> => {
     const firstLine = abcString.substring(0, abcString.indexOf("\n"));
     if (firstLine.startsWith(ABCJS_PARAMS_KEY)) {
         try {
-            let result = await looseJsonParse(firstLine.substring(ABCJS_PARAMS_KEY.length));
+            const result = await looseJsonParse(firstLine.substring(ABCJS_PARAMS_KEY.length));
             if (result.responsive) {
-                params = result
+                params = result;
             }
         } catch (e) {
             console.error(`Failed to parse ABCJS params: ${e}`);
@@ -46,26 +46,26 @@ const renderSingleAbcElement = async (element: Element, wysiwygElement: HTMLElem
             const lastElement = renderElement.lastElementChild;
             if (lastElement) {
                 const visualObj = window.ABCJS.renderAbc(lastElement, abcString, await getAbcParams(abcString));
-                const supportsAudio = window.ABCJS.synth.supportsAudio()
+                const supportsAudio = window.ABCJS.synth.supportsAudio();
                 if (!supportsAudio) {
-                    return
+                    return;
                 }
-                var controlOptions = {
+                const controlOptions = {
                     displayRestart: true,
                     displayPlay: true,
                     displayProgress: true,
                     displayClock: true
                 };
-                const controller = document.createElement('div')
-                const buttonID = genUUID().replaceAll('-', '')
-                controller.setAttribute('data-abc-id', buttonID)
-                controller.setAttribute('contenteditable', 'false')
+                const controller = document.createElement("div");
+                const buttonID = genUUID().replaceAll("-", "");
+                controller.setAttribute("data-abc-id", buttonID);
+                controller.setAttribute("contenteditable", "false");
 
-                renderElement.insertAdjacentElement("beforeend", controller)
-                var synthControl = new window.ABCJS.synth.SynthController();
+                renderElement.insertAdjacentElement("beforeend", controller);
+                const synthControl = new window.ABCJS.synth.SynthController();
                 synthControl.load(`[data-abc-id="${buttonID}"]`, null, controlOptions);
                 synthControl.disable(true);
-                var midiBuffer = new window.ABCJS.synth.CreateSynth();
+                const midiBuffer = new window.ABCJS.synth.CreateSynth();
                 midiBuffer.init({
                     visualObj: visualObj[0],
                     options: {
@@ -75,7 +75,7 @@ const renderSingleAbcElement = async (element: Element, wysiwygElement: HTMLElem
                 }).then(function () {
                     synthControl.setTune(visualObj[0], true).then(function (response) {
                         controller.querySelector(".abcjs-inline-audio").classList.remove("disabled");
-                    })
+                    });
                 });
             }
         }

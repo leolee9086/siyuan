@@ -1,4 +1,4 @@
-import z from "zod"
+import z from "zod";
 import { fetchPost } from "../../ai/imports";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n";
@@ -11,8 +11,8 @@ const buildComputed = <K extends keyof Config.IConf["fileTree"]>(key: K) => {
         set: (val: Config.IConf["fileTree"][K]) => {
             getSiyuanConfig().fileTree[key] = val;
         }
-    })
-}
+    });
+};
 export const schema = z.object({
     // "允许创建深度大于 7 层的子文档"
     // 某些系统路径深度太深会出现问题
@@ -127,10 +127,10 @@ export const schema = z.object({
             return getSiyuanConfig().fileTree;
         },
         onchange: async (data: z.infer<typeof schema>) => {
-            fetchPost("/api/setting/setFiletree", data)
+            fetchPost("/api/setting/setFiletree", data);
         }
     }
-)
+);
 
 const parseAsConfig = (rawConf: {}): Config.IConf["fileTree"] => {
     const result = schema.safeParse(rawConf);
@@ -140,4 +140,4 @@ const parseAsConfig = (rawConf: {}): Config.IConf["fileTree"] => {
     }
 
     return result.data;
-}
+};

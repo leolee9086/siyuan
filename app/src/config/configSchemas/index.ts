@@ -1,14 +1,14 @@
-import { z } from 'zod'
-import { schema as editorConfigSchema } from './editor';
-import { editorKeyMapSchema } from './keymap.editor';
-import { generalKeymapSchema } from './keyMap.general';
-import {schema as systemConfigSchema} from './system'
-import { uiLayoutSchema } from './uiLayout';
-import { schema as syncConfigSchema} from './sync';
-import { schema as searchConfigSchema } from './search';
-import {schema as graphConfigSchema} from './graph'
-import {schema as appearanceConfigSchema} from './appearance'
-import {schema as flashcardConfigSchema} from './flashcard'
+import { z } from "zod";
+import { schema as editorConfigSchema } from "./editor";
+import { editorKeyMapSchema } from "./keymap.editor";
+import { generalKeymapSchema } from "./keyMap.general";
+import {schema as systemConfigSchema} from "./system";
+import { uiLayoutSchema } from "./uiLayout";
+import { schema as syncConfigSchema} from "./sync";
+import { schema as searchConfigSchema } from "./search";
+import {schema as graphConfigSchema} from "./graph";
+import {schema as appearanceConfigSchema} from "./appearance";
+import {schema as flashcardConfigSchema} from "./flashcard";
 const configSchema = z.object({
     accessAuthCode: z.enum(["", "*******"]).optional().default(""),
     account: z.object({
@@ -142,7 +142,7 @@ const configSchema = z.object({
      */
     lang: z.enum(["en_US", "ar_SA", "de_DE", "es_ES", "fr_FR", "he_IL", "it_IT", "ja_JP", "pl_PL", "pt_BR", "ru_RU", "zh_CN", "zh_CHT"])
 }
-)
+);
 
 const parseAsConfig = (rawConf: {}): Config.IConf => {
     const result = configSchema.safeParse(rawConf);
@@ -152,4 +152,4 @@ const parseAsConfig = (rawConf: {}): Config.IConf => {
     }
 
     return result.data;
-}
+};

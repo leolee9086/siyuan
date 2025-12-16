@@ -1,7 +1,7 @@
-import Router from './router.htttpRouter'
-import { Context, createContextSchema } from './types'
+import Router from "./router.htttpRouter";
+import { Context, createContextSchema } from "./types";
 
-import { z } from 'zod'
+import { z } from "zod";
 
 
 export function chain<
@@ -11,10 +11,10 @@ export function chain<
   execute: (initialContext: Context<TRequestBodySchema, TResponseBodySchema>) => Promise<Context<TRequestBodySchema, TResponseBodySchema>>,
   router: Router<TRequestBodySchema, TResponseBodySchema>
 } {
-  const extendedContextSchema = createContextSchema<TRequestBodySchema, TResponseBodySchema>(requestBodySchema, responseBodySchema)
+  const extendedContextSchema = createContextSchema<TRequestBodySchema, TResponseBodySchema>(requestBodySchema, responseBodySchema);
   type ExtendedContext = z.infer<typeof extendedContextSchema>
 
-  const router = new Router<TRequestBodySchema, TResponseBodySchema>()
+  const router = new Router<TRequestBodySchema, TResponseBodySchema>();
 
   return {
     execute: async function executeChain(initialContext: Context<TRequestBodySchema, TResponseBodySchema>) {
@@ -25,15 +25,15 @@ export function chain<
         currentStep: undefined,
         previousStep: undefined,
 
-      }
+      };
 
       //执行路由
-      const dispatch = router.routes()
+      const dispatch = router.routes();
       await dispatch(extendedContext, async () => { });
-      return extendedContext
+      return extendedContext;
     },
     router
-  }
+  };
 }
 
 

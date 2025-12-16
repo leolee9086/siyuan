@@ -43,4 +43,4 @@ export const superBlockSelectMiddleware = async (
         event.preventDefault();
         controller.abort("超级块选择处理完成");
     }
-}
+};

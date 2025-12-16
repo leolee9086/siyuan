@@ -16,9 +16,9 @@ export const 处理块进入聚焦 = async (
         });
         event.preventDefault();
         event.stopPropagation();
-        controller.abort()
+        controller.abort();
     }
-}
+};
 
 
 export const 处理块退出聚焦 = async (
@@ -37,6 +37,6 @@ export const 处理块退出聚焦 = async (
         });
         event.preventDefault();
         event.stopPropagation();
-        controller.abort()
+        controller.abort();
     }
-}
+};

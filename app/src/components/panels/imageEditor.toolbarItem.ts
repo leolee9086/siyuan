@@ -34,9 +34,9 @@ export const createToolbarItems = (
         hasDehazedImage } = ctx;
     return [
         {
-            id: 'zoom-out',
-            type: 'button',
-            icon: 'iconMin',
+            id: "zoom-out",
+            type: "button",
+            icon: "iconMin",
             action: () => {
                 zoomOutWithCtx({
                     scale,
@@ -57,13 +57,13 @@ export const createToolbarItems = (
             }
         },
         {
-            id: 'zoom-level',
-            type: 'zoom-level'
+            id: "zoom-level",
+            type: "zoom-level"
         },
         {
-            id: 'zoom-in',
-            type: 'button',
-            icon: 'iconAdd',
+            id: "zoom-in",
+            type: "button",
+            icon: "iconAdd",
             action: () => {
                 zoomInWithCtx({
                     scale,
@@ -83,13 +83,13 @@ export const createToolbarItems = (
             }
         },
         {
-            id: 'spacer-1',
-            type: 'spacer'
+            id: "spacer-1",
+            type: "spacer"
         },
         {
-            id: 'reset-zoom',
-            type: 'button',
-            icon: 'iconRefresh',
+            id: "reset-zoom",
+            type: "button",
+            icon: "iconRefresh",
             action: () => {
                 resetZoomWithCtx({
                     scale,
@@ -105,29 +105,29 @@ export const createToolbarItems = (
             }
         },
         {
-            id: 'spacer-2',
-            type: 'spacer'
+            id: "spacer-2",
+            type: "spacer"
         },
         {
-            id: 'toggle-dehaze-panel',
-            type: 'button',
-            icon: 'iconEdit',
-            title: '去雾处理',
+            id: "toggle-dehaze-panel",
+            type: "button",
+            icon: "iconEdit",
+            title: "去雾处理",
             action: () => {
                 toggleDehazePanel();
             },
             activeCondition: () => showDehazePanel.value
         },
         {
-            id: 'toggle-original-image',
-            type: 'button',
-            icon: 'iconCompare',
-            title: '切换原图/去雾图',
+            id: "toggle-original-image",
+            type: "button",
+            icon: "iconCompare",
+            title: "切换原图/去雾图",
             action: () => {
                 toggleOriginalImage();
             },
             condition: () => hasDehazedImage.value,
             activeCondition: () => !showOriginalImage.value
         }
-    ]
-}
+    ];
+};

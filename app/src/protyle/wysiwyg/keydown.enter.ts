@@ -21,12 +21,12 @@ export const enterKeyMiddleware = async (
 export const softEnterMiddleware = (
     ctx: editorContext
 ) => {
-    const { event, range, controller,nodeElement, protyle } = ctx
-    const selectText = range.toString()
+    const { event, range, controller,nodeElement, protyle } = ctx;
+    const selectText = range.toString();
     if (matchHotKey("⇧↩", event) && selectText === "" && softEnter(range, nodeElement, protyle)) {
         event.stopPropagation();
         event.preventDefault();
-        controller.abort("软换行")
+        controller.abort("软换行");
         return;
     }
-}
+};

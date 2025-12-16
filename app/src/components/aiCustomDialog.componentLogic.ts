@@ -1,5 +1,5 @@
-import { ref, onMounted, nextTick } from 'vue';
-import { siyuanI18n } from '../util/siyuanEnvironments/i18n.getI18n';
+import { ref, onMounted, nextTick } from "vue";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
 
 // 定义组件事件类型
 export interface AiCustomDialogEvents {
@@ -11,8 +11,8 @@ export interface AiCustomDialogEvents {
 // 创建组件逻辑
 export function useAiCustomDialog(events: AiCustomDialogEvents) {
   // 本地数据
-  const localName = ref('');
-  const localCustomAction = ref('');
+  const localName = ref("");
+  const localCustomAction = ref("");
 
   // 引用DOM元素
   const nameInput = ref<HTMLInputElement>();

@@ -1781,7 +1781,7 @@ ${item.name}
 
     // 合并多个 text 为一个 text
     private mergeNode(nodes: NodeListOf<ChildNode>) {
-        mergeNodes(nodes)
+        mergeNodes(nodes);
     }
 
     private updateLanguage(languageElements: HTMLElement[], protyle: IProtyle, selectedLang: string) {
