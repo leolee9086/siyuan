@@ -9,8 +9,8 @@ import { getEditorRange, focusByWbr, selectAll } from "../protyle/util/selection
 import { updateTransaction } from "../protyle/wysiwyg/transaction";
 import { MenuItem } from "./Menu.Item";
 import { tableMenu } from "./protyle";
-import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
+import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu.environment";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { get } from "http";
 import { getSelection } from "../util/DOM/range";

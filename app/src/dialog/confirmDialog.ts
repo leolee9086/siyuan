@@ -1,13 +1,13 @@
 import { isMobile } from "../util/functions";
 import { Dialog } from "./index";
 import { Constants } from "../constants";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const confirmDialog = (title: string, text: string,
     confirm?: (dialog?: Dialog) => void,
     cancel?: (dialog: Dialog) => void,
     isDelete = false) => {
-    if (!text && !title&&confirm) {
+    if (!text && !title && confirm) {
         confirm();
         return;
     }
@@ -40,7 +40,7 @@ export const confirmDialog = (title: string, text: string,
                 dialog.destroy();
                 break;
             }
-            target.parentElement?target = target.parentElement:null;
+            target.parentElement ? target = target.parentElement : null;
         }
     });
     dialog.element.setAttribute("data-key", Constants.DIALOG_CONFIRM);

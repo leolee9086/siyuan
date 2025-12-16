@@ -1,18 +1,18 @@
-import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu";
+import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu.environment";
 import { generateMenuItemHTML, createSubmenuElement } from "./Menu.uills";
 
 
 export class MenuItem {
-    public element: HTMLElement ;
+    public element: HTMLElement;
 
     constructor(options: IMenu) {
         //先去除,因为这个地方应该调用方处理是否ignore
         //if (options.ignore) {e
-          //  return ;
+        //  return ;
         //}
         if (options.type === "empty") {
             this.element = document.createElement("div");
-            this.element.innerHTML = options.label||"";
+            this.element.innerHTML = options.label || "";
             if (options.bind) {
                 options.bind(this.element);
             }
@@ -37,12 +37,12 @@ export class MenuItem {
         if (options.click) {
             // 需使用 click，否则移动端无法滚动
             this.element.addEventListener("click", (event) => {
-            
+
                 if (this.element.getAttribute("disabled")) {
                     return;
                 }
                 //不能假定options不会被修改
-                let keepOpen = options.click&&options.click(this.element, event);
+                let keepOpen = options.click && options.click(this.element, event);
                 if (keepOpen instanceof Promise) {
                     keepOpen = false;
                 }
@@ -78,6 +78,6 @@ export class MenuItem {
             this.element.insertAdjacentHTML("beforeend", '<svg class="b3-menu__icon b3-menu__icon--small"><use xlink:href="#iconRight"></use></svg>');
             this.element.append(submenuElement);
         }
-        
+
     }
 }

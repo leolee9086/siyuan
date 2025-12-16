@@ -1,33 +1,33 @@
 import { MenuItem } from "../menus/Menu.Item";
 import { subMenu } from "../menus/Menu.subMenu";
-import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
+import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu.environment";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export class EventBus<DetailType = any> {
     private eventTarget: EventTarget;
 
-    constructor(name:string|Document = "") {
-        if(name===document){
-            this.eventTarget=document;
+    constructor(name: string | Document = "") {
+        if (name === document) {
+            this.eventTarget = document;
             return;
         }
         this.eventTarget = document.appendChild(document.createComment(name));
     }
 
     on(type: TEventBus, listener: (event: CustomEvent<DetailType>) => void) {
-        this.eventTarget.addEventListener(type, listener );
+        this.eventTarget.addEventListener(type, listener);
     }
 
     once(type: TEventBus, listener: (event: CustomEvent<DetailType>) => void) {
-        this.eventTarget.addEventListener(type, listener , {once: true});
+        this.eventTarget.addEventListener(type, listener, { once: true });
     }
 
     off(type: TEventBus, listener: (event: CustomEvent<DetailType>) => void) {
-        this.eventTarget.removeEventListener(type, listener );
+        this.eventTarget.removeEventListener(type, listener);
     }
 
     emit(type: TEventBus, detail?: DetailType) {
-        return this.eventTarget.dispatchEvent(new CustomEvent(type, {detail, cancelable: true}));
+        return this.eventTarget.dispatchEvent(new CustomEvent(type, { detail, cancelable: true }));
     }
 }
 
@@ -44,7 +44,7 @@ export const emitOpenMenu = (options: {
     });
     if (pluginSubMenu.menus.length > 0) {
         if (options.separatorPosition === "top") {
-            getSiyuanGlobalMenus().menu.append(new MenuItem({id: "separator_pluginTop", type: "separator"}).element);
+            getSiyuanGlobalMenus().menu.append(new MenuItem({ id: "separator_pluginTop", type: "separator" }).element);
         }
         getSiyuanGlobalMenus().menu.append(new MenuItem({
             id: "plugin",
@@ -54,7 +54,7 @@ export const emitOpenMenu = (options: {
             submenu: pluginSubMenu.menus,
         }).element);
         if (options.separatorPosition === "bottom") {
-            getSiyuanGlobalMenus().menu.append(new MenuItem({id: "separator_pluginBottom", type: "separator"}).element);
+            getSiyuanGlobalMenus().menu.append(new MenuItem({ id: "separator_pluginBottom", type: "separator" }).element);
         }
     }
 };

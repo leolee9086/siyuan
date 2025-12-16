@@ -1,4 +1,4 @@
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { fillContent } from "./actions.fillContent";
 import {
     Constants,

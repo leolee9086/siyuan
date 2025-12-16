@@ -101,7 +101,7 @@ import { hideTooltip } from "../../dialog/tooltip";
 import { openGalleryItemMenu } from "../render/av/gallery/util";
 import { clearSelect } from "../util/clearSelect";
 import { chartRender } from "../render/chartRender";
-import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu";
+import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";
 import { updateCalloutType } from "./callout";
 
 

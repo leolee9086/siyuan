@@ -1,21 +1,21 @@
 /// #if !MOBILE
-import {getInstanceById, setPanelFocus} from "../layout/util";
-import {Tab} from "../layout/Tab";
-import {initSearchMenu} from "./search";
-import {initDockMenu} from "./dock";
-import {initFileMenu, initNavigationMenu} from "./navigation";
-import {initTabMenu} from "./tab";
+import { getInstanceById, setPanelFocus } from "../layout/util";
+import { Tab } from "../layout/Tab";
+import { initSearchMenu } from "./search";
+import { initDockMenu } from "./dock";
+import { initFileMenu, initNavigationMenu } from "./navigation";
+import { initTabMenu } from "./tab";
 /// #endif
 /// #if !BROWSER
-import {ipcRenderer} from "electron";
+import { ipcRenderer } from "electron";
 /// #endif
-import {Menu} from "./Menu";
-import {hasClosestByClassName, hasTopClosestByTag} from "../protyle/util/hasClosest";
-import {App} from "../index";
-import {Constants} from "../constants";
-import {textMenu} from "./text";
-import {hideTooltip} from "../dialog/tooltip";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
+import { Menu } from "./Menu";
+import { hasClosestByClassName, hasTopClosestByTag } from "../protyle/util/hasClosest";
+import { App } from "../index";
+import { Constants } from "../constants";
+import { textMenu } from "./text";
+import { hideTooltip } from "../dialog/tooltip";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export class Menus {
     public menu: Menu;
@@ -29,7 +29,7 @@ export class Menus {
             }
             let target = event.target as HTMLElement;
             if (hasClosestByClassName(target, "av__panel") && !hasClosestByClassName(target, "b3-menu")) {
-                document.querySelector(".av__panel")?.dispatchEvent(new CustomEvent("click", {detail: "close"}));
+                document.querySelector(".av__panel")?.dispatchEvent(new CustomEvent("click", { detail: "close" }));
                 event.stopPropagation();
                 event.preventDefault();
                 return;
@@ -52,7 +52,7 @@ export class Menus {
                 event.preventDefault();
             }
             while (target && target.parentElement   // ⌃⇥ 后点击会为空
-            && !target.parentElement.isEqualNode(document.querySelector("body"))) {
+                && !target.parentElement.isEqualNode(document.querySelector("body"))) {
                 const dataType = target.getAttribute("data-type");
                 if (dataType === "tab-header") {
                     this.unselect();
@@ -68,7 +68,7 @@ export class Menus {
                     }
                     this.unselect();
                     // navigation 根上：新建文档/文件夹/取消挂在/打开文件位置
-                    initNavigationMenu(app, target).popup({x: event.clientX, y: event.clientY});
+                    initNavigationMenu(app, target).popup({ x: event.clientX, y: event.clientY });
                     setPanelFocus(hasClosestByClassName(target, "sy__file") as HTMLElement);
                     event.stopPropagation();
                     break;
@@ -85,18 +85,18 @@ export class Menus {
                 } else if (dataType === "search-item") {
                     const nodeId = target.getAttribute("data-node-id");
                     if (nodeId) {
-                        initSearchMenu(nodeId).popup({x: event.clientX, y: event.clientY});
+                        initSearchMenu(nodeId).popup({ x: event.clientX, y: event.clientY });
                     }
                     event.stopPropagation();
                     break;
                 } else if (dataType && target.classList.contains("dock__item")) {
                     hideTooltip();
-                    initDockMenu(target).popup({x: event.clientX, y: event.clientY});
+                    initDockMenu(target).popup({ x: event.clientX, y: event.clientY });
                     event.stopPropagation();
                     break;
                 } else if (dataType === "textMenu") {
                     /// #if !BROWSER
-                    target&&textMenu(target)?.open({x: event.clientX, y: event.clientY});
+                    target && textMenu(target)?.open({ x: event.clientX, y: event.clientY });
                     event.stopPropagation();
                     event.preventDefault();
                     break;
@@ -118,7 +118,7 @@ export class Menus {
 
     private unselect() {
         const selection = getSelection();
-        if (selection&&selection.rangeCount > 0) {
+        if (selection && selection.rangeCount > 0) {
             selection.getRangeAt(0).collapse(true);
         }
     }

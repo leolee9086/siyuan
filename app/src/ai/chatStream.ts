@@ -9,7 +9,7 @@ import {
     createBlockMasks,
 } from "./imports";
 import { setDialogContainerColor, removeBlockMask } from "./utils.mask";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { createState } from "./chatStream.state";
 import { AssistantResponseState } from "./session/session.types";
 import { reactive } from "vue";

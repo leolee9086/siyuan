@@ -1,6 +1,6 @@
 import { fetchPost } from "../util/fetch";
 import { genNotebookOption } from "../menus/onGetnotebookconf";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { openFile } from "../editor/util";
 import { Custom } from "../layout/dock/Custom";

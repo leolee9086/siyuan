@@ -5,7 +5,7 @@ import { fileAnnotationRefMenu } from "../../menus/protyle.fileAnnotationRefMenu
 import { linkMenu } from "../../menus/protyle";
 import { tagMenu } from "../../menus/protyle";
 import { inlineMathMenu } from "../../menus/protyle";
-import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu";
+import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";
 import { hasPreviousSibling } from "./getBlock";
 import { matchHotKey } from "../util/hotKey";
 import { getSelectionPosition } from "../util/selection";

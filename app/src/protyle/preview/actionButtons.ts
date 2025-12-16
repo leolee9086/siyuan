@@ -1,4 +1,4 @@
-import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const addActionButtons = (actions: Array<IPreviewAction | IPreviewActionCustom>, actionHtml: string[]) => {
     for (let i = 0; i < actions.length; i++) {

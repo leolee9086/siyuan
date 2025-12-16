@@ -3,7 +3,7 @@ import { copySubMenu } from "../../menus/commonMenuItem.copy";
 import { addEditorToDatabase } from "../render/av/addToDatabase";
 import { deleteFile } from "../../editor/deleteFile";
 import { openDocHistory } from "../../history/doc";
-import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const createProtyleCopyMenu = (protyle: IProtyle) => {
     return new MenuItem({

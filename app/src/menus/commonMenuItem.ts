@@ -16,7 +16,7 @@ import { rename, replaceFileName } from "../editor/rename";
 import { Constants } from "../constants";
 import { exportImage } from "../protyle/export/util";
 import { copyTextByType } from "../protyle/toolbar/util";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { openFileAttr } from "./commonMenuItem.openFileAttr";
 export const bindAttrInput = (inputElement: HTMLInputElement, id: string) => {

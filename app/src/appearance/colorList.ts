@@ -1,9 +1,9 @@
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 /**
  * 主题文件中必然存在的颜色列表
  */
-export const genThemedColorList =()=> ( {
+export const genThemedColorList = () => ({
     [siyuanI18n.colorFont + "1"]: "--b3-font-color1",
     [siyuanI18n.colorFont + "2"]: "--b3-font-color2",
     [siyuanI18n.colorFont + "3"]: "--b3-font-color3",
@@ -37,4 +37,4 @@ export const genThemedColorList =()=> ( {
     ["PDF" + siyuanI18n.colorPrimary + "5"]: "--b3-pdf-background5",
     ["PDF" + siyuanI18n.colorPrimary + "6"]: "--b3-pdf-background6",
     ["PDF" + siyuanI18n.colorPrimary + "7"]: "--b3-pdf-background7",
-}  );
+});

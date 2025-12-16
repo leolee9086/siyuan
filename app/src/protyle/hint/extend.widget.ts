@@ -1,5 +1,5 @@
 import { Constants } from "../../constants";
-import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const widgetItem = (ctx: { key: string, protyle: IProtyle }) => {
     return {

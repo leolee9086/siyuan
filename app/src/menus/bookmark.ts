@@ -8,8 +8,8 @@ import { Bookmark } from "../layout/dock/Bookmark";
 import { isMobile } from "../util/functions";
 import { MobileBookmarks } from "../mobile/dock/MobileBookmarks";
 import { Constants } from "../constants";
-import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
+import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu.environment";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 /**
  * 创建书签重命名菜单项

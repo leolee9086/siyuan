@@ -7,8 +7,8 @@ import { hasClosestByClassName, hasClosestByAttribute } from "../protyle/util/ha
 import { isMobile } from "../util/functions";
 import { upDownHint } from "../util/upDownHint";
 import { fetchPost } from "../ai/imports";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
-import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
+import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu.environment";
 
 const updateAssetUI = (listElement: Element, data: { path: string; hName: string; }[]) => {
     let searchHTML = "";

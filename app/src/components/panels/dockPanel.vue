@@ -27,7 +27,7 @@ import { ref, computed } from 'vue'
 import { isWindow } from "../../util/functions"
 import { updateHotkeyTip } from "../../protyle/util/compatibility"
 import { getAllDocks } from "../../layout/getAll"
-import { siyuanI18n } from '../../util/siyuanEnvironments/i18n.getI18n';
+import { siyuanI18n } from '../../util/siyuanEnvironments/i18n.getI18n.environment';
 import { getSiyuanConfig } from '../../util/siyuanEnvironments/getSiyuanConfig.environment';
 // 定义 props
 const props = defineProps<{

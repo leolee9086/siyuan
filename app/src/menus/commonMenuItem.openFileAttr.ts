@@ -10,7 +10,7 @@ import { hideElements } from "../protyle/ui/hideElements";
 import { escapeHtml } from "../util/escape";
 import { isMobile, isValidAttrName } from "../util/functions";
 import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { bindAttrInput } from "./commonMenuItem";
 import { MenuItem } from "./Menu.Item";
 

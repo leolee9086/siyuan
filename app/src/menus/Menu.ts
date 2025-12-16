@@ -7,8 +7,8 @@ import {
     preventMenuDefault
 } from "./Menu.uills";
 import { MenuItem } from "./Menu.Item";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
-import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
+import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu.environment";
 
 export class Menu {
     public element: HTMLElement;

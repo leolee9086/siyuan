@@ -5,7 +5,7 @@ import { Dialog } from "../dialog";
 import { showMessage } from "../dialog/message";
 import { getEditorRange } from "../protyle/util/selection";
 import { isMobile } from "../util/functions";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 /**
  * 格式化提醒日期
@@ -78,16 +78,16 @@ const validateDateInput = (dateInput: HTMLInputElement | null): { isValid: boole
     if (!dateInput) {
         return { isValid: false, errorMessage: siyuanI18n.notEmpty };
     }
-    
+
     const date = dateInput.value;
     if (!date) {
         return { isValid: false, errorMessage: siyuanI18n.notEmpty };
     }
-    
+
     if (new Date(date) <= new Date()) {
         return { isValid: false, errorMessage: siyuanI18n.reminderTip };
     }
-    
+
     return { isValid: true };
 };
 
@@ -101,16 +101,16 @@ const validateDateInput = (dateInput: HTMLInputElement | null): { isValid: boole
 const handleConfirmButtonClick = (dialog: Dialog, confirmButton: HTMLButtonElement, id: string | null, nodeElement: Element) => {
     const dateInput = dialog.element.querySelector("input") as HTMLInputElement;
     const validation = validateDateInput(dateInput);
-    
+
     if (!validation.isValid) {
         showMessage(validation.errorMessage || siyuanI18n.notEmpty);
         return;
     }
-    
+
     if (confirmButton.getAttribute("disabled") || !id) {
         return;
     }
-    
+
     confirmButton.setAttribute("disabled", "disabled");
     const timed = dayjs(dateInput.value).format("YYYYMMDDHHmmss");
     fetchPost("/api/block/setBlockReminder", { id, timed }, () => {
@@ -133,15 +133,15 @@ export const openWechatNotify = (nodeElement: Element) => {
     const cancelButton = btnsElement[0] as HTMLButtonElement;
     const removeButton = btnsElement[1] as HTMLButtonElement;
     const confirmButton = btnsElement[2] as HTMLButtonElement;
-    
+
     cancelButton.addEventListener("click", () => {
         dialog.destroy();
     });
-    
+
     removeButton.addEventListener("click", () => {
         handleRemoveButtonClick(dialog, removeButton, id, nodeElement);
     });
-    
+
     confirmButton.addEventListener("click", () => {
         handleConfirmButtonClick(dialog, confirmButton, id, nodeElement);
     });

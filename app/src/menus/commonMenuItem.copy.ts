@@ -11,7 +11,7 @@ import { writeText } from "../protyle/util/compatibility";
 import { fetchSyncPost } from "../util/fetch";
 import { focusBlock } from "../protyle/util/selection";
 import { copyTextByType } from "../protyle/toolbar/util";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 /**

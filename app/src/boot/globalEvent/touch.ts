@@ -1,24 +1,24 @@
-import {isIPad} from "../../protyle/util/compatibility";
+import { isIPad } from "../../protyle/util/compatibility";
 import {
     hasClosestByAttribute,
     hasClosestByClassName,
     hasTopClosestByTag,
     isInEmbedBlock
 } from "../../protyle/util/hasClosest";
-import {initFileMenu, initNavigationMenu} from "../../menus/navigation";
-import {inlineMathMenu, linkMenu, tagMenu} from "../../menus/protyle";
+import { initFileMenu, initNavigationMenu } from "../../menus/navigation";
+import { inlineMathMenu, linkMenu, tagMenu } from "../../menus/protyle";
 import { refMenu } from "../../menus/protyle.refMenu";
 import { fileAnnotationRefMenu } from "../../menus/protyle.fileAnnotationRefMenu";
-import {App} from "../../index";
-import {Protyle} from "../../protyle";
-import {getCurrentEditor} from "../../mobile/editor";
+import { App } from "../../index";
+import { Protyle } from "../../protyle";
+import { getCurrentEditor } from "../../mobile/editor";
 /// #if !MOBILE
-import {getInstanceById} from "../../layout/util";
-import {Tab} from "../../layout/Tab";
+import { getInstanceById } from "../../layout/util";
+import { Tab } from "../../layout/Tab";
 /// #endif
-import {Editor} from "../../editor";
-import {hideTooltip} from "../../dialog/tooltip";
-import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu";
+import { Editor } from "../../editor";
+import { hideTooltip } from "../../dialog/tooltip";
+import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";
 
 export const globalTouchStart = (event: TouchEvent) => {
     // 文档背景位置调整
@@ -74,7 +74,7 @@ export const globalTouchEnd = (event: TouchEvent, yDiff: number, time: number, a
                 const menu = initNavigationMenu(app, fileItemElement);
                 if (isIPadBoolean) {
                     const rect = fileItemElement.getBoundingClientRect();
-                    menu.popup({x: rect.right - 52, y: rect.bottom, h: rect.height});
+                    menu.popup({ x: rect.right - 52, y: rect.bottom, h: rect.height });
                     hideTooltip();
                 } else {
                     window.siyuan.menus.menu.fullscreen("bottom");
@@ -85,7 +85,7 @@ export const globalTouchEnd = (event: TouchEvent, yDiff: number, time: number, a
                     const menu = initFileMenu(app, rootElement.dataset.url, fileItemElement.dataset.path, fileItemElement);
                     if (isIPadBoolean) {
                         const rect = fileItemElement.getBoundingClientRect();
-                        menu.popup({x: rect.right - 52, y: rect.bottom, h: rect.height});
+                        menu.popup({ x: rect.right - 52, y: rect.bottom, h: rect.height });
                         hideTooltip();
                     } else {
                         window.siyuan.menus.menu.fullscreen("bottom");
@@ -127,7 +127,7 @@ export const globalTouchEnd = (event: TouchEvent, yDiff: number, time: number, a
                 return true;
             }
             if (types.includes("file-annotation-ref")) {
-                fileAnnotationRefMenu(editor.protyle, target,getSiyuanGlobalMenus().menu);
+                fileAnnotationRefMenu(editor.protyle, target, getSiyuanGlobalMenus().menu);
                 return true;
             }
             if (types.includes("tag")) {

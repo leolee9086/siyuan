@@ -1,5 +1,5 @@
 import { getAllEditor } from "../../layout/getAll";
-import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 /**
  * 思源编辑器面板类型枚举

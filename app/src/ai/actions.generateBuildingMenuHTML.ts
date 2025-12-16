@@ -1,4 +1,4 @@
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 /**
  * 生成AI菜单的完整HTML模板

@@ -10,7 +10,7 @@ import {
 import { customDialog } from "./customDialog";
 import { editDialog } from "./actions.editDialog";
 import { fillContent } from "./actions.fillContent";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanStorage } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 

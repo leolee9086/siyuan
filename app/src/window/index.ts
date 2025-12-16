@@ -1,12 +1,12 @@
-import {Constants} from "../constants";
-import {Menus} from "../menus";
-import {Model} from "../layout/Model";
+import { Constants } from "../constants";
+import { Menus } from "../menus";
+import { Model } from "../layout/Model";
 import "../assets/scss/base.scss";
-import {initBlockPopover} from "../block/popover";
-import {addScript, addScriptSync} from "../protyle/util/addScript";
-import {genUUID} from "../util/genID";
-import {fetchGet, fetchPost} from "../util/fetch";
-import {addBaseURL, setNoteBook} from "../util/pathName";
+import { initBlockPopover } from "../block/popover";
+import { addScript, addScriptSync } from "../protyle/util/addScript";
+import { genUUID } from "../util/genID";
+import { fetchGet, fetchPost } from "../util/fetch";
+import { addBaseURL, setNoteBook } from "../util/pathName";
 import { openFileById } from "../editor/utils.openFileById";
 import {
     processSync,
@@ -19,16 +19,16 @@ import {
     setTitle,
     transactionError
 } from "../dialog/processSystem";
-import {initMessage} from "../dialog/message";
-import {getAllTabs} from "../layout/getAll";
-import {getLocalStorage} from "../protyle/util/compatibility";
-import {init} from "./init";
-import {loadPlugins, reloadPlugin} from "../plugin/loader";
-import {hideAllElements} from "../protyle/ui/hideElements";
-import {reloadEmoji} from "../emoji";
-import {updateControlAlt} from "../protyle/util/hotKey";
-import {updateAppearance} from "../config/util/updateAppearance";
-import {renderSnippet} from "../config/util/snippets";
+import { initMessage } from "../dialog/message";
+import { getAllTabs } from "../layout/getAll";
+import { getLocalStorage } from "../protyle/util/compatibility";
+import { init } from "./init";
+import { loadPlugins, reloadPlugin } from "../plugin/loader";
+import { hideAllElements } from "../protyle/ui/hideElements";
+import { reloadEmoji } from "../emoji";
+import { updateControlAlt } from "../protyle/util/hotKey";
+import { updateAppearance } from "../config/util/updateAppearance";
+import { renderSnippet } from "../config/util/snippets";
 
 class App {
     public plugins: import("../plugin").Plugin[] = [];
@@ -78,7 +78,7 @@ class App {
                                 reloadEmoji();
                                 break;
                             case "reloaddoc":
-                                reloadSync(this, {upsertRootIDs: [data.data], removeRootIDs: []}, false, false, true);
+                                reloadSync(this, { upsertRootIDs: [data.data], removeRootIDs: [] }, false, false, true);
                                 break;
                             case "syncMergeResult":
                                 reloadSync(this, data.data);
@@ -156,7 +156,7 @@ class App {
                                 }
                                 break;
                             case "openFileById":
-                                openFileById({app: this, id: data.data.id, action: [Constants.CB_GET_FOCUS]});
+                                openFileById({ app: this, id: data.data.id, action: [Constants.CB_GET_FOCUS] });
                                 break;
                         }
                     }

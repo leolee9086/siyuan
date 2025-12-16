@@ -4,7 +4,7 @@ import { Dialog } from "../dialog";
 import { focusByRange } from "../protyle/util/selection";
 import { getFirstSelectedRange } from "../util/DOM/range";
 import { fetchPost } from "../util/fetch";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { VueComponentMountConfig, createVueComponentInDialog } from "../util/vue/mount";
 
 /**
@@ -28,7 +28,7 @@ export const selectRecentDoc = (): Promise<string | null> => {
         }
 
         // 保存当前选择范围
-        const range=getFirstSelectedRange();
+        const range = getFirstSelectedRange();
 
         // 处理文档选择事件
         const handleDocSelectedForSelect = (doc: { rootID: string; icon: string; title: string; }) => {

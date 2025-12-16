@@ -4,7 +4,7 @@ import { Constants } from "../constants";
 import { Dialog } from "../dialog";
 import { showMessage } from "../dialog/message";
 import { isMobile } from "../util/functions";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 
 export const openFileWechatNotify = (protyle: IProtyle) => {

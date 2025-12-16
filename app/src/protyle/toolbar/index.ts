@@ -46,7 +46,7 @@ import { confirmDialog } from "../../dialog/confirmDialog";
 import { paste, pasteAsPlainText, pasteEscaped } from "../util/paste";
 import { escapeHtml } from "../../util/escape";
 import { resizeSide } from "../../history/resizeSide";
-import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { mergeNodes } from "../../util/DOM/rangeOperations";
 
 export class Toolbar {

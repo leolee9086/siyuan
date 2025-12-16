@@ -19,7 +19,7 @@ import { hideElements } from "../ui/hideElements";
 import { genAssetHTML } from "../../asset/renderAssets";
 import { unicode2Emoji } from "../../emoji";
 import { avRender } from "../render/av/render";
-import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { templateItem } from "./extend.template";
 import { widgetItem } from "./extend.widget";

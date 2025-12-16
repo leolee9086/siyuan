@@ -8,7 +8,7 @@ import {
 } from "../util/hasClosest";
 import { Constants } from "../../constants";
 import { fetchPost } from "../../util/fetch";
-import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu";
+import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";
 import { avPanelGuard, htmlBlockGuard, htmlBlockGuardRgistyItem, inputElementGuard, protyleDisabledGuard, protyleHaveSelectedGuard } from "./keydown.guards";
 import { hideProtyleToolbarMiddleware, hideProtyleUtilMiddleware, setProtyleWysiwygPreventKeyupMiddleware } from "./keydown.middlewares";
 import { handleSelectedBlockInsertKeyMiddleware, removeSelectIndicatorElementMiddleware, selectAllMiddleware } from "./keydown.select";

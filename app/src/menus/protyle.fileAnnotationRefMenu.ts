@@ -10,15 +10,15 @@ import { focusByWbr } from "../protyle/util/selection";
 import { updateTransaction } from "../protyle/wysiwyg/transaction";
 import { isMobile } from "../util/functions";
 import { MenuItem } from "./Menu.Item";
-import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
+import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu.environment";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { isComposing } from "../util/events/eventGurds";
 import { requireRange } from "../protyle/util/protyleCheckers";
 import { asLuteNodeID, LuteNodeID } from "../util/noteDatas/id";
 import { Menu } from "./Menu";
 
 
-export const fileAnnotationRefMenu = (protyle: IProtyle, refElement: HTMLElement,menu:Menu) => {
+export const fileAnnotationRefMenu = (protyle: IProtyle, refElement: HTMLElement, menu: Menu) => {
     const nodeElement = hasClosestBlock(refElement);
     if (!nodeElement) {
         return;
@@ -140,14 +140,14 @@ export const fileAnnotationRefMenu = (protyle: IProtyle, refElement: HTMLElement
     /// #endif
     const popoverElement = hasTopClosestByClassName(protyle.element, "block__popover", true);
     menu.element.setAttribute("data-from", popoverElement ? popoverElement.dataset.level + "popover" : "app");
-    menu.removeCB =()=> handleMenuRemoveCleanup(protyle,id,nodeElement,oldHTML,refElement);
+    menu.removeCB = () => handleMenuRemoveCleanup(protyle, id, nodeElement, oldHTML, refElement);
 };
-const handleMenuRemoveCleanup = ( 
-    protyle:IProtyle, 
-    id:LuteNodeID, 
-    nodeElement:HTMLElement, 
-    oldHTML:string,
-    refElement:HTMLElement
+const handleMenuRemoveCleanup = (
+    protyle: IProtyle,
+    id: LuteNodeID,
+    nodeElement: HTMLElement,
+    oldHTML: string,
+    refElement: HTMLElement
 ) => {
     if (nodeElement.outerHTML !== oldHTML) {
         nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));

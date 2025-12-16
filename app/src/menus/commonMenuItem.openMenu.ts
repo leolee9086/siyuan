@@ -13,8 +13,8 @@ import { isInAndroid, openByMobile, isInHarmony } from "../protyle/util/compatib
 import { getSearch } from "../util/functions";
 import { isLocalPath, pathPosix } from "../util/pathName";
 import { MenuItem } from "./Menu.Item";
-import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
+import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu.environment";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 
 // 移动端菜单项生成函数
@@ -55,7 +55,7 @@ const generateExternalLinkMobileMenuItems = (processedSrc: string, showAccelerat
 };
 
 // 本地资源文件基础菜单项生成函数
-const generateAssetBaseMenuItems = (app: App, src: string, showAccelerator: boolean):IMenu[] => {
+const generateAssetBaseMenuItems = (app: App, src: string, showAccelerator: boolean): IMenu[] => {
     return [
         {
             id: "insertRight",
@@ -78,7 +78,7 @@ const generateAssetBaseMenuItems = (app: App, src: string, showAccelerator: bool
                 openAsset(app, src.trim(), parseInt(pageIndexString));
             }
         }
-    ] ;
+    ];
 };
 
 // 本地资源文件桌面端额外菜单项生成函数
@@ -200,7 +200,7 @@ export const openMenu = (app: App, src: string, onlyMenu: boolean, showAccelerat
     /// #else
     if (isLocalPath(src)) {
         const ext = pathPosix().extname(src).split("?")[0];
-        if (Constants.SIYUAN_ASSETS_EXTS.includes(ext||"") &&
+        if (Constants.SIYUAN_ASSETS_EXTS.includes(ext || "") &&
             (!src.endsWith(".pdf") ||
                 (src.endsWith(".pdf") && !src.startsWith("file://")))) {
             submenu = generateAssetMenuItems(app, src, showAccelerator);

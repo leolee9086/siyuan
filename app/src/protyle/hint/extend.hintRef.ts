@@ -1,7 +1,7 @@
 import { Constants } from "../../constants";
 import { replaceFileName } from "../../editor/rename";
 import { fetchPost } from "../../util/fetch";
-import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { hasClosestBlock } from "../util/hasClosest";
 import { getEditorRange } from "../util/selection";
 import { genHintItemHTML } from "./extend";
@@ -24,7 +24,7 @@ const genNewFileItem = (k: string) => {
  * @returns 块引用的HTML字符串
  */
 const genBlockRefValue = (item: IBlock, key: string, source: THintSource, nodeElement?: Element): string => {
-    const refText = item.name ||(item.refText?item.refText.replace(new RegExp(Constants.ZWSP, "g"), ""):"*");
+    const refText = item.name || (item.refText ? item.refText.replace(new RegExp(Constants.ZWSP, "g"), "") : "*");
 
     if (source === "search") {
         return `<span data-type="block-ref" data-id="${item.id}" data-subtype="s">${key}${Constants.ZWSP}${refText}</span>`;
@@ -39,7 +39,7 @@ const genBlockRefValue = (item: IBlock, key: string, source: THintSource, nodeEl
     }
 };
 export const hintRef = (key: string, protyle: IProtyle, source: THintSource): IHintData[] => {
-    if(!protyle.wysiwyg){
+    if (!protyle.wysiwyg) {
         throw new Error("hintRef 方法调用时, protyle.wysiwyg 未定义");
     }
     const nodeElement = hasClosestBlock(getEditorRange(protyle.wysiwyg.element).startContainer);
@@ -79,7 +79,7 @@ export const hintRef = (key: string, protyle: IProtyle, source: THintSource): IH
                 html: siyuanI18n.emptyContent,
             });
         } else if (response.data.newDoc && dataList.length > 1) {
-            dataList[1]&&(dataList[1].focus = true);
+            dataList[1] && (dataList[1].focus = true);
         }
         protyle.hint.genHTML(dataList, protyle, true, source);
     });

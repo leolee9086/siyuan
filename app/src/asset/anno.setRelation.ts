@@ -1,7 +1,7 @@
 import { fetchPost } from "../ai/imports";
 import { Dialog } from "../dialog";
 import { showMessage } from "../dialog/message";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { rectElement } from "./anno";
 import { getConfig } from "./anno.config";
 import { getRelationHTML } from "./anno.getRelationHTML";

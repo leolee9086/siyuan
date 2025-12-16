@@ -1,5 +1,5 @@
 import { Menu } from "../plugin/Menu";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const textMenu = (target: Element) => {
     const menu = new Menu();

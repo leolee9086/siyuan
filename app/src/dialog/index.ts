@@ -1,14 +1,14 @@
-import {genUUID} from "../util/genID";
+import { genUUID } from "../util/genID";
 /// #if !MOBILE
-import {moveResize} from "./moveResize";
+import { moveResize } from "./moveResize";
 /// #endif
-import {isMobile} from "../util/functions";
-import {isNotCtrl} from "../protyle/util/compatibility";
-import {Protyle} from "../protyle";
-import {Constants} from "../constants";
-import {createVueComponentLoader, VueComponentMountConfig, VueComponentLoaderContext} from "../util/vue/mount";
-import {App} from "vue";
-import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu";
+import { isMobile } from "../util/functions";
+import { isNotCtrl } from "../protyle/util/compatibility";
+import { Protyle } from "../protyle";
+import { Constants } from "../constants";
+import { createVueComponentLoader, VueComponentMountConfig, VueComponentLoaderContext } from "../util/vue/mount";
+import { App } from "vue";
+import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu.environment";
 export interface IDialogOptions {
     positionId?: string,
     title?: string,
@@ -53,7 +53,7 @@ export class Dialog {
         window.siyuan.dialogs.push(this);
         this.destroyCallback = options.destroyCallback;
         this.element = document.createElement("div") as HTMLElement;
-        
+
         // 处理关闭按钮位置配置
         const closeButtonPosition = options.closeButtonPosition || "outside";
         let left;
@@ -72,7 +72,7 @@ export class Dialog {
         }
         // 判断是否有标题（字符串或Vue组件）
         const hasTitle = !!(options.title || options.titleVueConfig);
-        
+
         // 根据关闭按钮位置生成不同的HTML结构
         let closeButtonHtml = "";
         if (!(this.disableClose || options.hideCloseIcon)) {
@@ -87,7 +87,7 @@ export class Dialog {
                 closeButtonHtml = "<svg class=\"b3-dialog__close b3-dialog__close--inside-body\" style=\"position: absolute; top: 10px; right: 10px; z-index: 1;\"><use xlink:href=\"#iconCloseRound\"></use></svg>";
             }
         }
-        
+
         // 生成全屏按钮HTML
         let fullscreenButtonHtml = "";
         if (hasTitle) {
@@ -102,7 +102,7 @@ export class Dialog {
             }
             fullscreenButtonHtml = `<svg class="b3-dialog__fullscreen" style="${fullscreenButtonStyle}" title="全屏"><use xlink:href="#iconFullscreen"></use></svg>`;
         }
-        
+
         // 计算标题栏的右侧内边距，为按钮预留空间
         let headerPaddingRight = "";
         if (hasTitle) {
@@ -147,7 +147,7 @@ left:${left || "auto"};top:${top || "auto"};${this.scrimPointerEvents ? " pointe
                 });
             });
         }
-        
+
         // 为全屏按钮添加点击事件监听器
         const fullscreenButton = this.element.querySelector(".b3-dialog__fullscreen");
         if (fullscreenButton) {
@@ -181,8 +181,8 @@ left:${left || "auto"};top:${top || "auto"};${this.scrimPointerEvents ? " pointe
         }
 
         /// #if !MOBILE
-        const containerElement =this.element.querySelector(".b3-dialog__container");
-        containerElement&&moveResize(containerElement, options.resizeCallback);
+        const containerElement = this.element.querySelector(".b3-dialog__container");
+        containerElement && moveResize(containerElement, options.resizeCallback);
         /// #endif
     }
 
@@ -194,13 +194,13 @@ left:${left || "auto"};top:${top || "auto"};${this.scrimPointerEvents ? " pointe
                 // https://github.com/siyuan-note/siyuan/issues/6783
                 getSiyuanGlobalMenus().menu.remove();
             }
-           
+
             // 销毁标题Vue应用实例
             if (this.titleVueApp) {
                 this.titleVueApp.unmount();
                 this.titleVueApp = null;
             }
-           
+
             this.element.remove();
             if (this.destroyCallback) {
                 this.destroyCallback(options);
@@ -239,25 +239,25 @@ left:${left || "auto"};top:${top || "auto"};${this.scrimPointerEvents ? " pointe
             container.style.maxWidth = "100vw";
             container.style.maxHeight = "100vh";
             container.style.borderRadius = "0";
-            
+
             // 添加全屏类
             this.element.classList.add("b3-dialog--fullscreen");
-            
+
             // 隐藏调整大小的手柄
             const resizeHandles = container.querySelectorAll("[class^='resize__']");
             resizeHandles.forEach(handle => {
                 (handle as HTMLElement).style.display = "none";
             });
-            
+
             // 更新全屏按钮图标为退出全屏图标
             fullscreenButton.setAttribute("xlink:href", "#iconFullscreenExit");
-            
+
             // 更新按钮标题
             const fullscreenButtonSvg = this.element.querySelector(".b3-dialog__fullscreen") as SVGElement;
             if (fullscreenButtonSvg) {
                 fullscreenButtonSvg.setAttribute("title", "退出全屏");
             }
-            
+
             this.isFullscreen = true;
         } else {
             // 退出全屏模式
@@ -267,30 +267,30 @@ left:${left || "auto"};top:${top || "auto"};${this.scrimPointerEvents ? " pointe
                 container.style.left = this.originalSize.left;
                 container.style.top = this.originalSize.top;
             }
-            
+
             // 移除全屏样式
             container.style.maxWidth = "";
             container.style.maxHeight = "";
             container.style.borderRadius = "";
-            
+
             // 移除全屏类
             this.element.classList.remove("b3-dialog--fullscreen");
-            
+
             // 显示调整大小的手柄
             const resizeHandles = container.querySelectorAll("[class^='resize__']");
             resizeHandles.forEach(handle => {
                 (handle as HTMLElement).style.display = "";
             });
-            
+
             // 恢复全屏按钮图标
             fullscreenButton.setAttribute("xlink:href", "#iconFullscreen");
-            
+
             // 恢复按钮标题
             const fullscreenButtonSvg = this.element.querySelector(".b3-dialog__fullscreen") as SVGElement;
             if (fullscreenButtonSvg) {
                 fullscreenButtonSvg.setAttribute("title", "全屏");
             }
-            
+
             this.isFullscreen = false;
             this.originalSize = null;
         }
@@ -300,7 +300,7 @@ left:${left || "auto"};top:${top || "auto"};${this.scrimPointerEvents ? " pointe
         inputElement.focus();
         let timeStamp: number;
         inputElement.addEventListener("keydown", (event: Event) => {
-            if(!(event instanceof KeyboardEvent)){
+            if (!(event instanceof KeyboardEvent)) {
                 return;
             }
             if (event.isComposing || event.repeat) {

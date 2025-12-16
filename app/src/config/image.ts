@@ -17,7 +17,7 @@ import { openFile } from "../editor/util";
 import { Custom } from "../layout/dock/Custom";
 import { Plugin } from "../plugin";
 
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const image = {
     genHTML: () => {
