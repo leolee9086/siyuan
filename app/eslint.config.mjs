@@ -47,6 +47,22 @@ export default [{
     },
 
     rules: {
+        // 禁止 else 和嵌套 if 的规则
+        "no-restricted-syntax": [
+            "error",
+            {
+                selector: "IfStatement[alternate]",
+                message: "❌ 禁止使用 else。请使用 \"卫语句 (Guard Clauses)\" 扁平化逻辑。",
+            },
+            {
+                selector: "IfStatement > BlockStatement > IfStatement",
+                message: "❌ 禁止嵌套 If。请合并判断条件 (&&) 或提取函数。",
+            },
+            {
+                selector: "IfStatement > IfStatement",
+                message: "❌ 禁止嵌套 If。请合并逻辑。",
+            },
+        ],
         "max-lines": ["error", { "max": 300, "skipBlankLines": true, "skipComments": true }],
         semi: [2, "always"],
         quotes: [2, "double", {
