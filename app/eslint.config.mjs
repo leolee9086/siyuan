@@ -65,6 +65,19 @@ export default [{
                 selector: "IfStatement > IfStatement",
                 message: "❌ 禁止嵌套 If。请合并逻辑。",
             },
+            // 禁止在函数内部定义命名函数（闭包）
+            {
+                selector: ":function BlockStatement > FunctionDeclaration",
+                message: "❌ 禁止在函数内部定义命名函数。请将函数提取到模块顶层，或使用匿名箭头函数。",
+            },
+            {
+                selector: ":function BlockStatement VariableDeclarator > FunctionExpression",
+                message: "❌ 禁止在函数内部定义命名函数。请将函数提取到模块顶层，或使用匿名箭头函数。",
+            },
+            {
+                selector: ":function BlockStatement VariableDeclarator > ArrowFunctionExpression",
+                message: "❌ 禁止在函数内部定义命名函数。请将函数提取到模块顶层，或使用匿名箭头函数。",
+            },
         ],
         "max-lines": ["error", { "max": 300, "skipBlankLines": true, "skipComments": true }],
         "max-lines-per-function": ["error", { "max": 50, "skipBlankLines": true, "skipComments": true, "IIFEs": true }],
