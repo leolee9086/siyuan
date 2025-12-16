@@ -73,7 +73,8 @@ export const processMessage = (response: IWebSocketData) => {
         return false;
     }
     if ("cprogress" === response.cmd) {
-        document.getElementById("progress")?.remove();
+        const progress = document.getElementById("progress");
+        progress?.remove();
         return false;
     }
     if ("reloadui" === response.cmd) {
