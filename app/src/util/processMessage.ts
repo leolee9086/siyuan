@@ -38,8 +38,10 @@ const createIgnoreDefenderExclusionHandler = (messageId: string) => () => {
 
 /** 绑定 Windows Defender 排除项相关的事件处理器 */
 const bindDefenderExclusionHandlers = (messageId: string) => {
-    document.querySelector("#message #addMicrosoftDefenderExclusion")?.addEventListener("click", createAddDefenderExclusionHandler(messageId), { once: true });
-    document.querySelector("#message #ignoreAddMicrosoftDefenderExclusion")?.addEventListener("click", createIgnoreDefenderExclusionHandler(messageId), { once: true });
+    const addDefenderExclusion = document.querySelector("#message #addMicrosoftDefenderExclusion");
+    addDefenderExclusion?.addEventListener("click", createAddDefenderExclusionHandler(messageId), { once: true });
+    const ignoreAddMicrosoftDefenderExclusion = document.querySelector("#message #ignoreAddMicrosoftDefenderExclusion");
+    ignoreAddMicrosoftDefenderExclusion?.addEventListener("click", createIgnoreDefenderExclusionHandler(messageId), { once: true });
 };
 
 /** 处理 msg 命令 */
