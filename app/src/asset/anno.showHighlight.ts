@@ -52,12 +52,11 @@ const generateHighlightHtml = (selected: IAnnoCoords, viewport: any): string => 
 const insertHighlightElement = (rectsElement: HTMLElement, selected: IAnnoCoords, html: string): HTMLElement => {
     rectsElement.insertAdjacentHTML("beforeend", html);
     const lastChild = rectsElement.lastElementChild;
-    if (lastChild && lastChild instanceof HTMLElement) {
-        lastChild.setAttribute("data-content", selected.content);
-        return lastChild;
-    }else {
+    if (!lastChild || !(lastChild instanceof HTMLElement)) {
         throw new Error("Failed to insert highlight element");
     }
+    lastChild.setAttribute("data-content", selected.content);
+    return lastChild;
 };
 
 export const showHighlight = (selected: IAnnoCoords, pdf: IPdfInstance, hl?: boolean) => {

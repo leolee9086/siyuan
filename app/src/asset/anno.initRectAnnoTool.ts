@@ -22,8 +22,8 @@ export const initRectAnnoTool = (element: HTMLElement, pdf: any) => {
     rectAnnoElement.addEventListener("click", () => {
         if (rectAnnoElement.classList.contains("toggled")) {
             deactivateRectAnnotation(rectAnnoElement, pdfConfig.mainContainer);
-        } else {
-            activateRectAnnotation(pdf, rectAnnoElement, pdfConfig.mainContainer, element);
+            return;
         }
+        activateRectAnnotation(pdf, rectAnnoElement, pdfConfig.mainContainer, element);
     });
 };

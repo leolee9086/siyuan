@@ -7,17 +7,18 @@ import { getConfig } from "./anno.config";
 import { getRelationHTML } from "./anno.getRelationHTML";
 
 const addRelation = (inputElement: HTMLInputElement, configItem: any, pdf: any, config: any, dialog: any, rectElement: any) => {
-    if (/\d{14}-\w{7}/.test(inputElement.value)) {
-        if (!configItem.ids.includes(inputElement.value)) {
-            configItem.ids.push(inputElement.value);
-            updateRelation(pdf, config);
-            rectElement.dataset.relations = configItem.ids;
-            dialog.element.querySelector(".b3-list").innerHTML = getRelationHTML(configItem.ids);
-        }
-        inputElement.value = "";
-    } else {
+    if (!/\d{14}-\w{7}/.test(inputElement.value)) {
         showMessage("ID " + siyuanI18n.invalid);
+        return;
     }
+
+    if (!configItem.ids.includes(inputElement.value)) {
+        configItem.ids.push(inputElement.value);
+        updateRelation(pdf, config);
+        rectElement.dataset.relations = configItem.ids;
+        dialog.element.querySelector(".b3-list").innerHTML = getRelationHTML(configItem.ids);
+    }
+    inputElement.value = "";
 };
 
 const updateRelation = (pdf: any, config: any) => {
@@ -25,6 +26,20 @@ const updateRelation = (pdf: any, config: any) => {
         path: pdf.appConfig.file.replace(location.origin, "").substr(1) + ".sya",
         data: JSON.stringify(config),
     });
+};
+
+const removeRelation = (target: HTMLElement, configItem: any, pdf: any, config: any, dialog: any, rectElement: any) => {
+    const parentElement = target.parentElement;
+    if (!parentElement || !parentElement.textContent) {
+        return;
+    }
+    configItem.ids.splice(configItem.ids.indexOf(parentElement.textContent.trim()), 1);
+    updateRelation(pdf, config);
+    rectElement.dataset.relations = configItem.ids;
+    const listElement = dialog.element.querySelector(".b3-list");
+    if (listElement) {
+        listElement.innerHTML = getRelationHTML(configItem.ids);
+    }
 };
 
 const handleKeydownEvent = (event: KeyboardEvent, inputElement: HTMLInputElement, configItem: any, pdf: any, config: any, dialog: any, rectElement: any) => {
@@ -45,24 +60,16 @@ const handleClickEvent = (event: Event, configItem: any, pdf: any, config: any, 
             event.preventDefault();
             event.stopPropagation();
             break;
-        } else if (type === "clear") {
-            const parentElement = target.parentElement;
-            if (parentElement && parentElement.textContent) {
-                configItem.ids.splice(configItem.ids.indexOf(parentElement.textContent.trim()), 1);
-                updateRelation(pdf, config);
-                rectElement.dataset.relations = configItem.ids;
-                const listElement = dialog.element.querySelector(".b3-list");
-                if (listElement) {
-                    listElement.innerHTML = getRelationHTML(configItem.ids);
-                }
-            }
+        }
+
+        if (type === "clear") {
+            removeRelation(target, configItem, pdf, config, dialog, rectElement);
         }
         const nextParent = target.parentElement;
-        if (nextParent) {
-            target = nextParent;
-        } else {
+        if (!nextParent) {
             break;
         }
+        target = nextParent;
     }
 };
 
@@ -105,9 +112,9 @@ export const setRelation = (pdf: any) => {
     if (!configItem.ids) {
         configItem.ids = [];
     }
-    
+
     const dialog = createRelationDialog(configItem);
     const inputElement = dialog.element.querySelector(".b3-text-field") as HTMLInputElement;
-    
+
     setupDialogEventListeners(inputElement, configItem, pdf, config, dialog, rectElement);
 };

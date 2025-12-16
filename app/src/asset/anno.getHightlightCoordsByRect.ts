@@ -33,26 +33,31 @@ const processEndPage = (pdf: any, rect: DOMRect, startIndex: number, id: string,
         endElement = document.body;
     }
     const endPageElement = hasClosestByClassName(endElement, "page") as HTMLElement;
-    if (endPageElement) {
-        const pageNumber = endPageElement.getAttribute("data-page-number");
-        if (!pageNumber) {
-            return result;
-        }
-        const endIndex = parseInt(pageNumber) - 1;
-        if (endIndex !== startIndex) {
-            const endPage = pdf.pdfViewer.getPageView(endIndex);
-            const endPageRect = endPage.canvas.getClientRects()[0];
-            const endViewport = endPage.viewport;
-
-            const endSelected = calculatePdfCoordinates(rect, endPageRect, endViewport);
-            pages.push({
-                index: endPage.id - 1,
-                positions: [endSelected],
-            });
-            const endPageInfo = getPageViewInfo(pdf, endIndex);
-            result.push(createAnnoCoords(endPageInfo, [endSelected], id, color, content, type, "rect"));
-        }
+    if (!endPageElement) {
+        return result;
     }
+
+    const pageNumber = endPageElement.getAttribute("data-page-number");
+    if (!pageNumber) {
+        return result;
+    }
+
+    const endIndex = parseInt(pageNumber) - 1;
+    if (endIndex === startIndex) {
+        return result;
+    }
+
+    const endPage = pdf.pdfViewer.getPageView(endIndex);
+    const endPageRect = endPage.canvas.getClientRects()[0];
+    const endViewport = endPage.viewport;
+
+    const endSelected = calculatePdfCoordinates(rect, endPageRect, endViewport);
+    pages.push({
+        index: endPage.id - 1,
+        positions: [endSelected],
+    });
+    const endPageInfo = getPageViewInfo(pdf, endIndex);
+    result.push(createAnnoCoords(endPageInfo, [endSelected], id, color, content, type, "rect"));
     return result;
 };
 

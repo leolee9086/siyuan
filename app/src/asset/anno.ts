@@ -55,13 +55,13 @@ export const getTextNode = (element: HTMLElement, isFirst: boolean) => {
     while (spans[index]) {
         if (spans[index]?.textContent) {
             break;
-        } else {
-            if (isFirst) {
-                index++;
-            } else {
-                index--;
-            }
         }
+
+        if (isFirst) {
+            index++;
+            continue;
+        }
+        index--;
     }
     return spans[index];
 };

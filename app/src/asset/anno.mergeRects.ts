@@ -14,27 +14,28 @@ export const mergeRects = (range: Range) => {
     const mergedRects: { left: number; top: number; right: number; bottom: number; }[] = [];
     // 记录上一个矩形的顶部位置，用于判断是否为相邻行
     let lastTop: number | undefined = undefined;
-    
+
     // 遍历所有矩形
     Array.from(rects).forEach(item => {
         // 跳过高度或宽度为0的矩形（通常是空行或不可见元素）
         if (item.height === 0 || item.width === 0) {
             return;
         }
-        
+
         // 如果是第一个矩形，或者当前矩形与上一个矩形不在同一行（垂直距离超过4像素）
         if (typeof lastTop === "undefined" || Math.abs(lastTop - item.top) > 4) {
             // 创建新的合并矩形
             mergedRects.push({ left: item.left, top: item.top, right: item.right, bottom: item.bottom });
             lastTop = item.top;
-        } else {
-            // 与上一个矩形在同一行，扩展上一个矩形的右边界
-            const lastRect = mergedRects[mergedRects.length - 1];
-            if (lastRect) {
-                lastRect.right = item.right;
-            }
+            return;
+        }
+
+        // 与上一个矩形在同一行，扩展上一个矩形的右边界
+        const lastRect = mergedRects[mergedRects.length - 1];
+        if (lastRect) {
+            lastRect.right = item.right;
         }
     });
-    
+
     return mergedRects;
 };

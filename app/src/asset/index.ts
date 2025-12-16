@@ -1,13 +1,13 @@
-import {Model} from "../layout/Model";
-import {Tab} from "../layout/Tab";
-import {Constants} from "../constants";
-import {setPanelFocus} from "../layout/util";
+import { Model } from "../layout/Model";
+import { Tab } from "../layout/Tab";
+import { Constants } from "../constants";
+import { setPanelFocus } from "../layout/util";
 // @ts-ignore
-import {onPageNumberChanged} from "./pdf/app";
+import { onPageNumberChanged } from "./pdf/app";
 /// #endif
-import {fetchPost} from "../util/fetch";
-import {App} from "../index";
-import {clearOBG} from "../layout/dock/util";
+import { fetchPost } from "../util/fetch";
+import { App } from "../index";
+import { clearOBG } from "../layout/dock/util";
 import { render } from "./image";
 import { createVueComponentLoader } from "../util/vue/mount";
 import PDFviewer from "../components/PDFviewer.vue";
@@ -19,7 +19,7 @@ export class Asset extends Model {
     public pdfObject: any;
 
     constructor(options: { app: App, tab: Tab, path: string, page?: number | string }) {
-        super({app: options.app, id: options.tab.id});
+        super({ app: options.app, id: options.tab.id });
         if (window.siyuan.config.fileTree.openFilesUseCurrentTab) {
             options.tab.headElement.classList.add("item--unupdate");
         }
@@ -30,7 +30,7 @@ export class Asset extends Model {
             clearOBG();
             setPanelFocus(this.element.parentElement.parentElement);
             this.app.plugins.forEach(item => {
-                item.eventBus.emit("click-pdf", {event});
+                item.eventBus.emit("click-pdf", { event });
             });
         });
         if (typeof this.pdfId === "string") {
@@ -38,7 +38,8 @@ export class Asset extends Model {
                 this.render();
             });
             return;
-        } else if (typeof this.pdfId === "number") {
+        }
+        if (typeof this.pdfId === "number") {
             this.pdfPage = this.pdfId;
         }
         this.render();
@@ -48,14 +49,17 @@ export class Asset extends Model {
         fetchPost("/api/asset/getFileAnnotation", {
             path: this.path + ".sya",
         }, (response) => {
-            if (response.code !== 1) {
-                const config = JSON.parse(response.data.data);
-                if (config[this.pdfId]) {
-                    this.pdfPage = config[this.pdfId].page ? config[this.pdfId].page + 1 : config[this.pdfId].pages[0].index + 1;
-                } else {
-                    this.pdfPage = undefined;
-                }
+            if (response.code === 1) {
+                cb();
+                return;
             }
+            const config = JSON.parse(response.data.data);
+            if (!config[this.pdfId]) {
+                this.pdfPage = undefined;
+                cb();
+                return;
+            }
+            this.pdfPage = config[this.pdfId].page ? config[this.pdfId].page + 1 : config[this.pdfId].pages[0].index + 1;
             cb();
         });
     }
@@ -69,13 +73,13 @@ export class Asset extends Model {
         if (typeof pdfId === "string") {
             this.getPdfId(() => {
                 if (this.pdfPage) {
-                    onPageNumberChanged({value: this.pdfPage, pdfInstance: this.pdfObject, id: this.pdfId});
+                    onPageNumberChanged({ value: this.pdfPage, pdfInstance: this.pdfObject, id: this.pdfId });
                 }
             });
             return;
         }
         if (typeof pdfId === "number" && !isNaN(pdfId)) {
-            onPageNumberChanged({value: this.pdfId, pdfInstance: this.pdfObject});
+            onPageNumberChanged({ value: this.pdfId, pdfInstance: this.pdfObject });
         }
         /// #endif
     }
@@ -83,22 +87,28 @@ export class Asset extends Model {
     private render() {
         const type = this.path.substr(this.path.lastIndexOf(".")).toLowerCase().split("?")[0];
         if (Constants.SIYUAN_ASSETS_IMAGE.includes(type)) {
-            render(this.element,this.path);
-        } else if (Constants.SIYUAN_ASSETS_AUDIO.includes(type)) {
+            render(this.element, this.path);
+            return;
+        }
+        if (Constants.SIYUAN_ASSETS_AUDIO.includes(type)) {
             this.element.innerHTML = `<div class="asset"><audio controls="controls" src="${this.path.startsWith("file") ? this.path : document.getElementById("baseURL").getAttribute("href") + "/" + this.path}"></audio></div>`;
-        } else if (Constants.SIYUAN_ASSETS_VIDEO.includes(type)) {
+            return;
+        }
+        if (Constants.SIYUAN_ASSETS_VIDEO.includes(type)) {
             this.element.innerHTML = `<div class="asset"><video controls="controls" src="${this.path.startsWith("file") ? this.path : document.getElementById("baseURL").getAttribute("href") + "/" + this.path}"></video></div>`;
-        } else if (type === ".pdf") {
-          /// #if !MOBILE
-           createVueComponentLoader(
-                  this.element,
-                  {
-                      components: { PDFviewer },
-                      data: { controller: this },
-                      template: "<PDFviewer :controller=\"controller\" />"
-                  }
-              );
-          /// #endif
+            return;
+        }
+        if (type === ".pdf") {
+            /// #if !MOBILE
+            createVueComponentLoader(
+                this.element,
+                {
+                    components: { PDFviewer },
+                    data: { controller: this },
+                    template: "<PDFviewer :controller=\"controller\" />"
+                }
+            );
+            /// #endif
         }
     }
 }

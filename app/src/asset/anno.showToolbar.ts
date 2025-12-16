@@ -21,13 +21,14 @@ export const showToolbar = (element: HTMLElement, range: Range, target?: HTMLEle
         clearRectElement();
         return;
     }
-    if (target) {
-        setRectElement(target);
-        utilElement.classList.remove("pdf__util--hide");
-        const firstRectElement = target.firstElementChild;
-        if (firstRectElement) {
-            const targetRect = firstRectElement.getBoundingClientRect();
-            setPosition(utilElement, targetRect.left, targetRect.top + targetRect.height + 4);
-        }
+    if (!target) {
+        return;
+    }
+    setRectElement(target);
+    utilElement.classList.remove("pdf__util--hide");
+    const firstRectElement = target.firstElementChild;
+    if (firstRectElement) {
+        const targetRect = firstRectElement.getBoundingClientRect();
+        setPosition(utilElement, targetRect.left, targetRect.top + targetRect.height + 4);
     }
 };

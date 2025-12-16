@@ -26,7 +26,8 @@ export const initResizeHandler = (pdf: any) => {
         let x = event.clientX;
         if (event.clientX > mostRight) {
             x = mostRight;
-        } else if (event.clientX < mostLeft) {
+        }
+        if (event.clientX < mostLeft) {
             x = mostLeft;
         }
         const mostTop = containerRet.top;
@@ -39,44 +40,20 @@ export const initResizeHandler = (pdf: any) => {
             let newWidth = 0;
             let newHeight = 0;
             if (moveEvent.clientX < x) {
-                if (moveEvent.clientX < mostLeft) {
-                    // 向左越界
-                    newLeft = mostLeft;
-                } else {
-                    // 向左
-                    newLeft = moveEvent.clientX;
-                }
+                newLeft = Math.max(moveEvent.clientX, mostLeft);
                 newWidth = x - newLeft;
-            } else {
-                if (moveEvent.clientX > mostRight) {
-                    // 向右越界
-                    newLeft = x;
-                    newWidth = mostRight - newLeft;
-                } else {
-                    // 向右
-                    newLeft = x;
-                    newWidth = moveEvent.clientX - x;
-                }
+            }
+            if (moveEvent.clientX >= x) {
+                newLeft = x;
+                newWidth = Math.min(moveEvent.clientX, mostRight) - x;
             }
 
             if (moveEvent.clientY > y) {
-                if (moveEvent.clientY > mostBottom) {
-                    // 向下越界
-                    newTop = y;
-                    newHeight = mostBottom - y;
-                } else {
-                    // 向下
-                    newTop = y;
-                    newHeight = moveEvent.clientY - y;
-                }
-            } else {
-                if (moveEvent.clientY < mostTop) {
-                    // 向上越界
-                    newTop = mostTop;
-                } else {
-                    // 向上
-                    newTop = moveEvent.clientY;
-                }
+                newTop = y;
+                newHeight = Math.min(moveEvent.clientY, mostBottom) - y;
+            }
+            if (moveEvent.clientY <= y) {
+                newTop = Math.max(moveEvent.clientY, mostTop);
                 newHeight = y - newTop;
             }
             rectResizeElement.setAttribute("style",
@@ -94,18 +71,18 @@ export const initResizeHandler = (pdf: any) => {
             const coords = getHightlightCoordsByRect(pdf, window.siyuan?.storage?.[Constants.LOCAL_PDFTHEME]?.annoColor || "var(--b3-pdf-background1)", rectResizeElement,
                 rectResizeElement.style.backgroundColor ? "text" : "border");
             rectResizeElement.classList.add("fn__none");
-            if (coords) {
-                coords.forEach((item: IAnnoCoords, index: number) => {
-                    const newElement = showHighlight(item, pdf);
-                    if (index === 0) {
-                        setRectElement(newElement);
-                        copyAnno(`${pdf.appConfig.file.replace(location.origin, "").substr(1)}/${newElement.getAttribute("data-node-id")}`,
-                            pdf.appConfig.file.replace(location.origin, "").substr(8).replace(/-\d{14}-\w{7}.pdf$/, ""), pdf);
-                    }
-                });
-            } else {
+            if (!coords) {
                 setRectElement(null);
+                return;
             }
+            coords.forEach((item: IAnnoCoords, index: number) => {
+                const newElement = showHighlight(item, pdf);
+                if (index === 0) {
+                    setRectElement(newElement);
+                    copyAnno(`${pdf.appConfig.file.replace(location.origin, "").substr(1)}/${newElement.getAttribute("data-node-id")}`,
+                        pdf.appConfig.file.replace(location.origin, "").substr(8).replace(/-\d{14}-\w{7}.pdf$/, ""), pdf);
+                }
+            });
         };
     });
 };
