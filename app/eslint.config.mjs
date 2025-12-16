@@ -86,6 +86,22 @@ export default [{
                 selector: "MemberExpression[object.type='MemberExpression'][object.computed=true]",
                 message: "❌ 禁止隐式上下文切换：禁止在使用列表下标取值操作 ([]) 之后直接访问属性。请务必先声明变量再使用。",
             },
+            {
+                selector: "CallExpression[callee.property.name='forEach']",
+                message: [
+                    "❌ 禁止使用 .forEach()。",
+                    "原因 1: forEach 无法等待异步操作。",
+                    "原因 2: forEach 无法提前中断。",
+                    "替代方案: for...of / .map() / .filter()"
+                ].join("\n"),
+            },
+            {
+                selector: "SwitchStatement",
+                message: [
+                    "❌ 禁止使用 switch 语句。",
+                    "替代方案: Object Literal / Map / Strategy Pattern / Polymorphism"
+                ].join("\n"),
+            },
         ],
         "max-lines": ["error", { "max": 300, "skipBlankLines": true, "skipComments": true }],
         "max-lines-per-function": ["error", { "max": 50, "skipBlankLines": true, "skipComments": true, "IIFEs": true }],
