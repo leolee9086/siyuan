@@ -152,35 +152,40 @@ const handleRelateAction = (ctx: ToolbarActionContext) => {
  * @param ctx - 工具栏操作上下文，包含共享数据
  * @param pdf - PDF实例对象
  */
+/**
+ * 更新注释DOM元素的样式
+ * 
+ * @param element - 容器元素
+ * @param id - 注释ID
+ * @param type - 注释类型
+ */
+const updateAnnotationStyle = (element: HTMLElement, id: string, type: string) => {
+    element.querySelectorAll(`.${AnnoConstants.CSS.PDF_RECT}[${AnnoConstants.ATTR.DATA_NODE_ID}="${id}"]`).forEach(rectItem => {
+        Array.from(rectItem.children).forEach((item) => {
+            if (item instanceof HTMLElement) {
+                item.style.backgroundColor = type === "text" ? item.style.border.replace("2px solid ", "") : "";
+            }
+        });
+    });
+};
+
 const handleToggleAction = (ctx: ToolbarActionContext) => {
     const { urlPath, config, id, element } = ctx;
 
-    if (id) {
-        const annoItem = config[id];
-        if (annoItem.type === "border") {
-            annoItem.type = "text";
-        } else {
-            annoItem.type = "border";
-        }
-        if (element) {
-            element.querySelectorAll(`.${AnnoConstants.CSS.PDF_RECT}[${AnnoConstants.ATTR.DATA_NODE_ID}="${id}"]`).forEach(rectItem => {
-                Array.from(rectItem.children).forEach((item) => {
-                    if (item instanceof HTMLElement) {
-                        if (annoItem.type === "text") {
-                            item.style.backgroundColor = item.style.border.replace("2px solid ", "");
-                        } else {
-                            item.style.backgroundColor = "";
-                        }
-                    }
-                });
-            });
-        }
-        fetchPost("/api/asset/setFileAnnotation", {
-            path: urlPath + ".sya",
-            data: JSON.stringify(config),
-        });
-    }
     hideToolbar(ctx.element);
+    if (!id) {
+        return;
+    }
+
+    const annoItem = config[id];
+    annoItem.type = annoItem.type === "border" ? "text" : "border";
+    if (element) {
+        updateAnnotationStyle(element, id, annoItem.type);
+    }
+    fetchPost("/api/asset/setFileAnnotation", {
+        path: urlPath + ".sya",
+        data: JSON.stringify(config),
+    });
 };
 
 

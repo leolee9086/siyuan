@@ -14,26 +14,27 @@ export const copyAnno = (idPath: string, fileName: string, pdf: any) => {
         if (!rectElement || !content) {
             return;
         }
-        if (mode === "rect" ||
-            (mode === "" && rectElement.childElementCount === 1 && content.startsWith(fileName)) // 兼容历史，以前没有 mode
-        ) {
-            const imageDataURL = await getRectImgData(pdf);
-            if (!imageDataURL) {
-                return;
-            }
-            const response = await fetch(imageDataURL);
-            const blob = await response.blob();
-            const formData = new FormData();
-            const imageName = content + ".png";
-            formData.append("file[]", blob, imageName);
-            formData.append("skipIfDuplicated", "true");
-            fetchPost(Constants.UPLOAD_ADDRESS, formData, (response) => {
-                writeText(`<<${idPath} "${content}">>
-![](${response.data.succMap[imageName]})`);
-            });
+        const isRect = mode === "rect" ||
+            (mode === "" && rectElement.childElementCount === 1 && content.startsWith(fileName)); // 兼容历史，以前没有 mode
 
-        } else {
+        if (!isRect) {
             writeText(`<<${idPath} "${content}">>`);
+            return;
         }
+
+        const imageDataURL = await getRectImgData(pdf);
+        if (!imageDataURL) {
+            return;
+        }
+        const response = await fetch(imageDataURL);
+        const blob = await response.blob();
+        const formData = new FormData();
+        const imageName = content + ".png";
+        formData.append("file[]", blob, imageName);
+        formData.append("skipIfDuplicated", "true");
+        fetchPost(Constants.UPLOAD_ADDRESS, formData, (response) => {
+            writeText(`<<${idPath} "${content}">>
+![](${response.data.succMap[imageName]})`);
+        });
     }, Constants.TIMEOUT_DBLCLICK);
 };
