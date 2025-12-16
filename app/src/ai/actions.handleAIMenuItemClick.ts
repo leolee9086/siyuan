@@ -42,6 +42,9 @@ const handleListItemActionClick = (
         return;
     }
     const targetIndex = parentElement.dataset.index;
+    if (targetIndex === undefined) {
+        return;
+    }
     const localAI = getSiyuanStorage()[Constants.LOCAL_AI];
     const subItem = localAI[targetIndex];
     editDialog(subItem.name, subItem.memo);
@@ -66,7 +69,11 @@ const handleListItemClick = (
     // 对于SVG元素，需要找到包含dataset的元素
     let targetElement: HTMLElement | SVGElement | ParentNode = currentTarget;
     while (targetElement && !("dataset" in targetElement)) {
-        targetElement = targetElement.parentElement;
+        const parent = targetElement.parentElement;
+        if (!parent) {
+            break;
+        }
+        targetElement = parent;
     }
 
     if (!targetElement || !("dataset" in targetElement)) {
@@ -127,7 +134,11 @@ export const handleAIMenuItemClick = (context: AIMenuContext, request: AIMenuReq
             handleListItemClick(currentTarget, context, event);
             break;
         }
-        currentTarget = currentTarget.parentElement;
+        const parent = currentTarget.parentElement;
+        if (!parent) {
+            break;
+        }
+        currentTarget = parent;
     }
 };
 

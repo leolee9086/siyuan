@@ -42,11 +42,13 @@ const createAIStreamChatDialogVueConfig = (
     });
     data.onCtrlEnterClick = async (inputValue: string) => {
         const lastState = taskStates[taskStates.length - 1];
-        lastState && data.inputHistory.push({
-            role: "assistant",
-            content: lastState?.responseContentStr,
-            timestamp: Date.now()
-        });
+        if (lastState) {
+            data.inputHistory.push({
+                role: "assistant",
+                content: lastState.responseContentStr,
+                timestamp: Date.now()
+            });
+        }
 
         // 创建新的状态
         data.inputHistory.push({
@@ -71,7 +73,7 @@ const createAIStreamChatDialogVueConfig = (
     // 使用 withProps 包装 AIChatDialog 组件，预先绑定所有需要的 props
     const AIChatDialogBinded = withProps(() => {
         return {
-            controller:data
+            controller: data
         };
     })(AIChatDialog);
 

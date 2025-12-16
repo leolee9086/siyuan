@@ -68,9 +68,7 @@ const createWaitToolCallHandler = (
         console.log(state.isStreaming, state.isPaused);
         if (state.isStreaming && !state.isPaused) {
             state.isPaused = true;
-            if (state.abortFunction) {
-                state.abortFunction();
-            }
+            state.abortFunction?.();
             // 保存当前消息内容
             state.savedMessages.push({
                 role: "assistant",
@@ -112,7 +110,9 @@ const createWaitToolCallHandler = (
         } finally {
             // 恢复对话
             console.log(state.errorCount);
-            state.errorCount <= 3 && await resumeHandler();
+            if (state.errorCount <= 3) {
+                await resumeHandler();
+            }
         }
     };
 };
@@ -150,15 +150,11 @@ const createAsyncToolCallHandler = (
                 state.asyncToolResults[index] = result;
             }
         } catch (error) {
-            if (error instanceof Error)
-
-                // 将错误信息替换到asyncToolResults中
-                if (toolPromise) {
-                    const index = state.asyncToolResults.indexOf(toolPromise);
-                    if (index !== -1) {
-                        state.asyncToolResults[index] = { error: error.message };
-                    }
-                }
+            // 将错误信息替换到asyncToolResults中
+            const index = toolPromise ? state.asyncToolResults.indexOf(toolPromise) : -1;
+            if (error instanceof Error && index !== -1) {
+                state.asyncToolResults[index] = { error: error.message };
+            }
         }
     };
 };
@@ -169,9 +165,7 @@ const createCancelHandler = (
     dialog: Dialog
 ) => {
     return () => {
-        if (state.abortFunction) {
-            state.abortFunction();
-        }
+        state.abortFunction?.();
         dialog.destroy();
     };
 };
@@ -184,9 +178,7 @@ const createPauseHandler = (
         if (state.isStreaming && !state.isPaused) {
             // 暂停请求
             state.isPaused = true;
-            if (state.abortFunction) {
-                state.abortFunction();
-            }
+            state.abortFunction?.();
             // 保存当前消息内容
             state.savedMessages.push({
                 role: "assistant",
@@ -249,9 +241,7 @@ const createConfirmHandler = (
         timestamp: number;
     }>) => {
         if (state.isStreaming) {
-            if (state.abortFunction) {
-                state.abortFunction();
-            }
+            state.abortFunction?.();
             return;
         }
         if (state.isDone) {

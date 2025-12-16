@@ -271,7 +271,9 @@ export const openAIActionsMenu = (elements: Element[], protyle: IProtyle) => {
     window.siyuan.menus?.menu.remove();
     const ids = getElementsBlockId(elements);
     const menu = new Menu("ai", () => {
-        protyle.toolbar?.range && focusByRange(protyle.toolbar.range);
+        if (protyle.toolbar?.range) {
+            focusByRange(protyle.toolbar.range);
+        }
     });
 
     // 使用独立函数生成自定义菜单项HTML
