@@ -135,8 +135,9 @@ const 处理拖拽mousedown = (
         documentSelf.ondragstart = null;
         documentSelf.onselectstart = null;
         documentSelf.onselect = null;
-        getSiyuanStorage()[Constants.LOCAL_SEARCHASSET][direction === "lr" ? "col" : "row"] = previewElement[direction === "lr" ? "offsetWidth" : "offsetHeight"] + "px";
-        setStorageVal(Constants.LOCAL_SEARCHASSET, getSiyuanStorage()[Constants.LOCAL_SEARCHASSET]);
+        const searchAsset = getSiyuanStorage()[Constants.LOCAL_SEARCHASSET];
+        searchAsset[direction === "lr" ? "col" : "row"] = previewElement[direction === "lr" ? "offsetWidth" : "offsetHeight"] + "px";
+        setStorageVal(Constants.LOCAL_SEARCHASSET, searchAsset);
     };
 };
 
@@ -148,8 +149,9 @@ const 处理拖拽dblclick = (
     previewElement.style[localSearch.layout === 1 ? "width" : "height"] = "";
     previewElement.classList.add("fn__flex-1");
     const direction = localSearch.layout === 1 ? "lr" : "tb";
-    getSiyuanStorage()[Constants.LOCAL_SEARCHASSET][direction === "lr" ? "col" : "row"] = "";
-    setStorageVal(Constants.LOCAL_SEARCHASSET, getSiyuanStorage()[Constants.LOCAL_SEARCHASSET]);
+    const searchAsset = getSiyuanStorage()[Constants.LOCAL_SEARCHASSET];
+    searchAsset[direction === "lr" ? "col" : "row"] = "";
+    setStorageVal(Constants.LOCAL_SEARCHASSET, searchAsset);
 };
 
 /** 初始化拖拽调整大小功能 */
@@ -178,7 +180,9 @@ export const 打开搜索资源面板 = (element: HTMLElement, isStick: boolean)
         return;
     }
     const localSearch = getSiyuanStorage()[Constants.LOCAL_SEARCHASSET] as ISearchAssetOption;
-    element.parentElement?.querySelector(".fn__loading--top")?.classList.remove("fn__none");
+    const parent = element.parentElement;
+    const loadingElement = parent?.querySelector(".fn__loading--top");
+    loadingElement?.classList.remove("fn__none");
     let enterTip = "";
     /// #if !BROWSER
     enterTip = `<kbd>${siyuanI18n.enterKey}/${siyuanI18n.doubleClick}</kbd> ${siyuanI18n.showInFolder}`;
