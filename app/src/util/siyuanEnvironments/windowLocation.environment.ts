@@ -43,3 +43,11 @@ export const getLocationProtocol = () => {
 export const getLocationHost = () => {
     return window.location.host;
 };
+
+/**
+ * 重新加载当前页面
+ * 封装 window.location.reload()
+ */
+export const reloadLocation = () => {
+    window.location.reload();
+};

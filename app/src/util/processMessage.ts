@@ -1,24 +1,69 @@
 /// #if !MOBILE
-import {exportLayout} from "../layout/util";
+import { exportLayout } from "../layout/util";
 /// #endif
-import {hideMessage, showMessage} from "../dialog/message";
-import {setStorageVal} from "../protyle/util/compatibility";
-import {Constants} from "../constants";
-import {fetchPost} from "./fetch";
+import { hideMessage, showMessage } from "../dialog/message";
+import { reloadLocation } from "./siyuanEnvironments/windowLocation.environment";
+import { setStorageVal } from "../protyle/util/compatibility";
+import { Constants } from "../constants";
+import { fetchPost } from "./fetch";
+import { getSiyuanStorage } from "./siyuanEnvironments/getSiyuanConfig.environment";
+
+/** 触发 UI 重载 */
+const triggerReload = () => {
+    /// #if MOBILE
+    reloadLocation();
+    /// #else
+    exportLayout({
+        cb() {
+            reloadLocation();
+        },
+        errorExit: false,
+    });
+    /// #endif
+};
+
+/** 处理添加 Windows Defender 排除项的点击事件 */
+const createAddDefenderExclusionHandler = (messageId: string) => (event: Event) => {
+    (event.target as HTMLElement).innerHTML = '<svg class="fn__rotate" style="margin-right: 0;"><use xlink:href="#iconRefresh"></use></svg>';
+    fetchPost("/api/system/addMicrosoftDefenderExclusion", {}, () => {
+        hideMessage(messageId);
+    });
+};
+
+/** 处理忽略 Windows Defender 排除项的点击事件 */
+const createIgnoreDefenderExclusionHandler = (messageId: string) => () => {
+    hideMessage(messageId);
+    fetchPost("/api/system/ignoreAddMicrosoftDefenderExclusion");
+};
+
+/** 绑定 Windows Defender 排除项相关的事件处理器 */
+const bindDefenderExclusionHandlers = (messageId: string) => {
+    document.querySelector("#message #addMicrosoftDefenderExclusion")?.addEventListener("click", createAddDefenderExclusionHandler(messageId), { once: true });
+    document.querySelector("#message #ignoreAddMicrosoftDefenderExclusion")?.addEventListener("click", createIgnoreDefenderExclusionHandler(messageId), { once: true });
+};
+
+/** 处理 msg 命令 */
+const handleMessageCommand = (response: IWebSocketData) => {
+    const id = showMessage(response.msg, response.data.closeTimeout, response.code === 0 ? "info" : "error", response.data.id);
+    if (!id) {
+        return;
+    }
+    bindDefenderExclusionHandlers(id);
+};
+
+
+const handleReloadUI = (response: IWebSocketData) => {
+    if (response.data?.resetScroll) {
+        getSiyuanStorage()[Constants.LOCAL_FILEPOSITION] = {};
+        setStorageVal(Constants.LOCAL_FILEPOSITION, getSiyuanStorage()[Constants.LOCAL_FILEPOSITION], triggerReload);
+        return;
+    }
+    triggerReload();
+};
 
 export const processMessage = (response: IWebSocketData) => {
     if ("msg" === response.cmd) {
-        const id = showMessage(response.msg, response.data.closeTimeout, response.code === 0 ? "info" : "error", response.data.id);
-        document.querySelector("#message #addMicrosoftDefenderExclusion")?.addEventListener("click", (event) => {
-            (event.target as HTMLElement).innerHTML = '<svg class="fn__rotate" style="margin-right: 0;"><use xlink:href="#iconRefresh"></use></svg>';
-            fetchPost("/api/system/addMicrosoftDefenderExclusion", {}, () => {
-                hideMessage(id);
-            });
-        }, {once: true});
-        document.querySelector("#message #ignoreAddMicrosoftDefenderExclusion")?.addEventListener("click", () => {
-            hideMessage(id);
-            fetchPost("/api/system/ignoreAddMicrosoftDefenderExclusion");
-        }, {once: true});
+        handleMessageCommand(response);
         return false;
     }
     if ("cmsg" === response.cmd) {
@@ -26,39 +71,11 @@ export const processMessage = (response: IWebSocketData) => {
         return false;
     }
     if ("cprogress" === response.cmd) {
-        const progressElement = document.getElementById("progress");
-        if (progressElement) {
-            progressElement.remove();
-        }
+        document.getElementById("progress")?.remove();
         return false;
     }
     if ("reloadui" === response.cmd) {
-        if (response.data?.resetScroll) {
-            window.siyuan.storage[Constants.LOCAL_FILEPOSITION] = {};
-            setStorageVal(Constants.LOCAL_FILEPOSITION, window.siyuan.storage[Constants.LOCAL_FILEPOSITION], () => {
-                /// #if MOBILE
-                window.location.reload();
-                /// #else
-                exportLayout({
-                    cb() {
-                        window.location.reload();
-                    },
-                    errorExit: false,
-                });
-                /// #endif
-            });
-        } else {
-            /// #if MOBILE
-            window.location.reload();
-            /// #else
-            exportLayout({
-                cb() {
-                    window.location.reload();
-                },
-                errorExit: false,
-            });
-            /// #endif
-        }
+        handleReloadUI(response);
         return false;
     }
 
