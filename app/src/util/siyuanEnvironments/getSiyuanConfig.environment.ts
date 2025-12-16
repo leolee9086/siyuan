@@ -44,3 +44,22 @@ export const getSiyuanLayout = () => {
     return window.siyuan.layout;
 };
 
+/**
+ * 设置 window.siyuan.emojis
+ * @param emojis emoji 列表
+ */
+export const setSiyuanEmojis = (emojis: IEmoji[]) => {
+    window.siyuan.emojis = emojis;
+};
+
+/**
+ * 设置 window.siyuan.layout.centerLayout
+ * @param layout layout 对象 (使用 unknown 类型避免循环依赖)
+ */
+export const setSiyuanLayoutCenterLayout = (layout: unknown) => {
+    if (!window.siyuan?.layout) {
+        throw ("[setSiyuanLayoutCenterLayout] window.siyuan.layout 不存在");
+    }
+    window.siyuan.layout.centerLayout = layout as NonNullable<typeof window.siyuan.layout.centerLayout>;
+};
+
