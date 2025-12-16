@@ -6,6 +6,8 @@ import { fileURLToPath } from "node:url";
 import js from "@eslint/js";
 import { FlatCompat } from "@eslint/eslintrc";
 import pluginVue from "eslint-plugin-vue";
+import { 禁止内联回调插件 } from "./0_lints/no-inline-callback.mjs";
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,6 +30,7 @@ export default [{
     plugins: {
         "@typescript-eslint": typescriptEslint,
         "vue": pluginVue,
+        "no-inline-callback": 禁止内联回调插件,
     },
 
     languageOptions: {
@@ -65,6 +68,7 @@ export default [{
         ],
         "max-lines": ["error", { "max": 300, "skipBlankLines": true, "skipComments": true }],
         "max-lines-per-function": ["error", { "max": 50, "skipBlankLines": true, "skipComments": true, "IIFEs": true }],
+        "no-inline-callback/no-inline-callback": "error",
         semi: [2, "always"],
         quotes: [2, "double", {
             avoidEscape: true,
