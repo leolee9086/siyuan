@@ -1,13 +1,14 @@
-import {layoutToJSON} from "../layout/util";
+import { layoutToJSON } from "../layout/util";
 /// #if !BROWSER
-import {ipcRenderer} from "electron";
+import { ipcRenderer } from "electron";
 /// #endif
-import {Constants} from "../constants";
-import {Tab} from "../layout/Tab";
-import {fetchSyncPost} from "../util/fetch";
-import {showMessage} from "../dialog/message";
-import {getDisplayName, pathPosix} from "../util/pathName";
-import {getSearch} from "../util/functions";
+import { Constants } from "../constants";
+import { Tab } from "../layout/Tab";
+import { fetchSyncPost } from "../util/fetch";
+import { showMessage } from "../dialog/message";
+import { getDisplayName, pathPosix } from "../util/pathName";
+import { getSearch } from "../util/functions";
+import { getLocationProtocol, getLocationHost } from "../util/siyuanEnvironments/windowLocation.environment";
 
 interface windowOptions {
     position?: {
@@ -27,7 +28,7 @@ export const openNewWindow = (tab: Tab, options: windowOptions = {}) => {
         width: options.width,
         height: options.height,
         // 需要 encode， 否则 https://github.com/siyuan-note/siyuan/issues/9343
-        url: `${window.location.protocol}//${window.location.host}/stage/build/app/window.html?v=${Constants.SIYUAN_VERSION}&json=${encodeURIComponent(JSON.stringify([json]))}`
+        url: `${getLocationProtocol()}//${getLocationHost()}/stage/build/app/window.html?v=${Constants.SIYUAN_VERSION}&json=${encodeURIComponent(JSON.stringify([json]))}`
     });
     /// #endif
     tab.parent.removeTab(tab.id);
@@ -40,7 +41,7 @@ export const openNewWindowById = async (id: string | string[], options: windowOp
     }
     const json = [];
     for (let i = 0; i < ids.length; i++) {
-        const response = await fetchSyncPost("/api/block/getBlockInfo", {id: ids[i]});
+        const response = await fetchSyncPost("/api/block/getBlockInfo", { id: ids[i] });
         if (response.code === 3) {
             showMessage(response.msg);
             return;
@@ -67,23 +68,29 @@ export const openNewWindowById = async (id: string | string[], options: windowOp
         position: options.position,
         width: options.width,
         height: options.height,
-        url: `${window.location.protocol}//${window.location.host}/stage/build/app/window.html?v=${Constants.SIYUAN_VERSION}&json=${encodeURIComponent(JSON.stringify(json))}`
+        url: `${getLocationProtocol()}//${getLocationHost()}/stage/build/app/window.html?v=${Constants.SIYUAN_VERSION}&json=${encodeURIComponent(JSON.stringify(json))}`
     });
     /// #endif
 };
 
+const getAssetDocIcon = (suffix: string): string => {
+    if (Constants.SIYUAN_ASSETS_IMAGE.includes(suffix)) {
+        return "iconImage";
+    }
+    if (Constants.SIYUAN_ASSETS_AUDIO.includes(suffix)) {
+        return "iconRecord";
+    }
+    if (Constants.SIYUAN_ASSETS_VIDEO.includes(suffix)) {
+        return "iconVideo";
+    }
+    return "iconPDF";
+};
+
 export const openAssetNewWindow = (assetPath: string, options: windowOptions = {}) => {
     /// #if !BROWSER
-    const suffix = pathPosix().extname(assetPath).split("?")[0];
+    const suffix = pathPosix().extname(assetPath).split("?")[0] ?? "";
     if (Constants.SIYUAN_ASSETS_EXTS.includes(suffix)) {
-        let docIcon = "iconPDF";
-        if (Constants.SIYUAN_ASSETS_IMAGE.includes(suffix)) {
-            docIcon = "iconImage";
-        } else if (Constants.SIYUAN_ASSETS_AUDIO.includes(suffix)) {
-            docIcon = "iconRecord";
-        } else if (Constants.SIYUAN_ASSETS_VIDEO.includes(suffix)) {
-            docIcon = "iconVideo";
-        }
+        const docIcon = getAssetDocIcon(suffix);
         const json: any = [{
             title: getDisplayName(assetPath),
             docIcon,
@@ -93,7 +100,7 @@ export const openAssetNewWindow = (assetPath: string, options: windowOptions = {
             action: "Tab",
             children: {
                 path: assetPath,
-                page: parseInt(getSearch("page", assetPath)),
+                page: parseInt(getSearch("page", assetPath) ?? ""),
                 instance: "Asset",
             }
         }];
@@ -101,7 +108,7 @@ export const openAssetNewWindow = (assetPath: string, options: windowOptions = {
             position: options.position,
             width: options.width,
             height: options.height,
-            url: `${window.location.protocol}//${window.location.host}/stage/build/app/window.html?v=${Constants.SIYUAN_VERSION}&json=${encodeURIComponent(JSON.stringify(json))}`
+            url: `${getLocationProtocol()}//${getLocationHost()}/stage/build/app/window.html?v=${Constants.SIYUAN_VERSION}&json=${encodeURIComponent(JSON.stringify(json))}`
         });
     }
     /// #endif

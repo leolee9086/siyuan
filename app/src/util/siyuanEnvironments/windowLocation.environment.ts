@@ -27,3 +27,19 @@ export const getLocationHash = () => {
 export const getWindowInnerWidth = () => {
     return window.innerWidth;
 };
+
+/**
+ * 获取 window.location.protocol
+ * @returns 协议，如 "http:" 或 "https:"
+ */
+export const getLocationProtocol = () => {
+    return window.location.protocol;
+};
+
+/**
+ * 获取 window.location.host
+ * @returns 主机名和端口号，如 "localhost:6806"
+ */
+export const getLocationHost = () => {
+    return window.location.host;
+};

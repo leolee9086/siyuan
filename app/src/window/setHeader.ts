@@ -21,13 +21,16 @@ export const setTabPosition = () => {
 
     wndsTemp.forEach(async item => {
         const headerElement = item.headersElement.parentElement;
+        if (!headerElement) {
+            return;
+        }
         const rect = headerElement.getBoundingClientRect();
         const dragElement = headerElement.querySelector(".item--readonly .fn__flex-1") as HTMLElement;
         // 先设置默认值
         (dragElement.style as CSSStyleDeclarationElectron).WebkitAppRegion = "";
         // 再根据条件覆盖
         if (rect.top <= 0) {
-            dragElement.style.height = dragElement.parentElement.clientHeight + "px";
+            dragElement.style.height = (dragElement.parentElement?.clientHeight ?? 0) + "px";
             (dragElement.style as CSSStyleDeclarationElectron).WebkitAppRegion = "drag";
         }
         const headersLastElement = headerElement.lastElementChild as HTMLElement;
