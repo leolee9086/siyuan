@@ -33,3 +33,14 @@ export const getSiyuanStorage = () => {
     return window.siyuan.storage;
 };
 
+/**
+ * 获取 window.siyuan.layout
+ * @returns layout 对象
+ */
+export const getSiyuanLayout = () => {
+    if (!window.siyuan?.layout) {
+        throw ("[getSiyuanLayout] window.siyuan.layout 不存在");
+    }
+    return window.siyuan.layout;
+};
+
