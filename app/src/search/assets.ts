@@ -9,6 +9,100 @@ import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment"
 import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu.environment";
 import { windowSetTimeout } from "../util/siyuanEnvironments/windowTimer.environment";
 import { filterTypesHTML } from "./filterTypesHTML";
+import { createSortMenuItems, createLayoutSubmenu } from "./assetMenuItems";
+
+/** 处理资源搜索响应的参数 */
+interface HandleAssetSearchResponseParams {
+    element: Element;
+    loadingElement: Element | null | undefined;
+    page: number;
+    response: IWebSocketData;
+    searchInputElement: HTMLInputElement;
+    localSearch: ISearchAssetOption;
+}
+
+/** 处理资源搜索响应 */
+const handleAssetSearchResponse = (params: HandleAssetSearchResponseParams) => {
+    const { element, loadingElement, page, response, searchInputElement, localSearch } = params;
+
+    loadingElement?.classList.add("fn__none");
+    updateNextButton(element, page, response.data.pageCount);
+    const resultHTML = buildAssetResultHTML(response.data.assetContents);
+    updatePreviewVisibility(element, response.data.assetContents, searchInputElement.value, localSearch.method);
+    updateSearchResults(element, page, response.data.pageCount, response.data.matchedAssetCount, resultHTML);
+};
+
+/** 更新"下一页"按钮状态 */
+const updateNextButton = (element: Element, page: number, pageCount: number) => {
+    const nextElement = element.querySelector('[data-type="assetNext"]');
+    if (page < pageCount) {
+        nextElement?.removeAttribute("disabled");
+    }
+    if (page >= pageCount) {
+        nextElement?.setAttribute("disabled", "disabled");
+    }
+};
+
+/** 构建资源结果HTML */
+const buildAssetResultHTML = (assetContents: Array<{
+    content: string; ext: string; id: string; path: string; name: string; hSize: string;
+}>) => {
+    let resultHTML = "";
+    assetContents.forEach((item, index) => {
+        resultHTML += `<div data-type="search-item" class="b3-list-item${index === 0 ? " b3-list-item--focus" : ""}" data-id="${item.id}">
+<span class="ft__on-surface">${item.ext}</span>
+<span class="fn__space"></span>
+<span class="b3-list-item__text">${item.content}</span>
+<span class="b3-list-item__meta">${item.hSize}</span>
+<span class="b3-list-item__meta b3-list-item__meta--ellipsis ariaLabel" aria-label="${escapeAriaLabel(item.path)}">${item.name}</span>
+</div>`;
+    });
+    return resultHTML;
+};
+
+/** 更新预览区域可见性 */
+const updatePreviewVisibility = (
+    element: Element,
+    assetContents: Array<{ id: string }>,
+    query: string,
+    method: number
+) => {
+    const previewElement = element.querySelector("#searchAssetPreview");
+    const dragElement = element.querySelector(".search__drag");
+    const hasAssetContents = assetContents.length > 0;
+
+    if (!hasAssetContents) {
+        previewElement?.classList.add("fn__none");
+        dragElement?.classList.add("fn__none");
+        return;
+    }
+    previewElement?.classList.remove("fn__none");
+    dragElement?.classList.remove("fn__none");
+    if (previewElement && assetContents[0]) {
+        renderPreview(previewElement, assetContents[0].id, query, method);
+    }
+};
+
+/** 更新搜索结果显示 */
+const updateSearchResults = (
+    element: Element,
+    page: number,
+    pageCount: number,
+    matchedAssetCount: number,
+    resultHTML: string
+) => {
+    const searchAssetResult = element.querySelector("#searchAssetResult");
+    if (searchAssetResult) {
+        searchAssetResult.innerHTML = `<span class="fn__flex-center">${page}/${pageCount || 1}</span><span class="fn__space"></span>
+<span class="ft__on-surface">${siyuanI18n.total} ${matchedAssetCount}</span>`;
+    }
+    const searchAssetList = element.querySelector("#searchAssetList");
+    if (searchAssetList) {
+        searchAssetList.innerHTML = resultHTML || `<div class="search__empty">
+    ${siyuanI18n.emptyContent}
+</div>`;
+    }
+};
 
 let inputTimeout: number;
 export const assetInputEvent = (element: Element, localSearch?: ISearchAssetOption, page = 1) => {
@@ -34,59 +128,9 @@ export const assetInputEvent = (element: Element, localSearch?: ISearchAssetOpti
             method: localSearch.method,
             orderBy: localSearch.sort
         }, (response) => {
-            loadingElement?.classList.add("fn__none");
-            const nextElement = element.querySelector('[data-type="assetNext"]');
-            if (page < response.data.pageCount) {
-                nextElement?.removeAttribute("disabled");
-            }
-            if (page >= response.data.pageCount) {
-                nextElement?.setAttribute("disabled", "disabled");
-            }
-            let resultHTML = "";
-            response.data.assetContents.forEach((item: {
-                content: string
-                ext: string
-                id: string
-                path: string
-                name: string
-                hSize: string
-            }, index: number) => {
-                resultHTML += `<div data-type="search-item" class="b3-list-item${index === 0 ? " b3-list-item--focus" : ""}" data-id="${item.id}">
-<span class="ft__on-surface">${item.ext}</span>
-<span class="fn__space"></span>
-<span class="b3-list-item__text">${item.content}</span>
-<span class="b3-list-item__meta">${item.hSize}</span>
-<span class="b3-list-item__meta b3-list-item__meta--ellipsis ariaLabel" aria-label="${escapeAriaLabel(item.path)}">${item.name}</span>
-</div>`;
+            handleAssetSearchResponse({
+                element, loadingElement, page, response, searchInputElement, localSearch: localSearch!
             });
-            const previewElement = element.querySelector("#searchAssetPreview");
-            const dragElement = element.querySelector(".search__drag");
-            const hasAssetContents = response.data.assetContents.length > 0;
-
-            // 卫语句：先处理空列表情况
-            if (!hasAssetContents) {
-                previewElement?.classList.add("fn__none");
-                dragElement?.classList.add("fn__none");
-            }
-            // 非空情况
-            if (hasAssetContents) {
-                previewElement?.classList.remove("fn__none");
-                dragElement?.classList.remove("fn__none");
-            }
-            if (hasAssetContents && previewElement) {
-                renderPreview(previewElement, response.data.assetContents[0].id, searchInputElement.value, localSearch!.method);
-            }
-            const searchAssetResult = element.querySelector("#searchAssetResult");
-            if (searchAssetResult) {
-                searchAssetResult.innerHTML = `<span class="fn__flex-center">${page}/${response.data.pageCount || 1}</span><span class="fn__space"></span>
-<span class="ft__on-surface">${siyuanI18n.total} ${response.data.matchedAssetCount}</span>`;
-            }
-            const searchAssetList = element.querySelector("#searchAssetList");
-            if (searchAssetList) {
-                searchAssetList.innerHTML = resultHTML || `<div class="search__empty">
-    ${siyuanI18n.emptyContent}
-</div>`;
-            }
         });
     }, Constants.TIMEOUT_INPUT);
 };
@@ -208,87 +252,19 @@ export const assetMoreMenu = (target: Element, element: Element, cb: () => void)
     globalMenu.remove();
     globalMenu.element.setAttribute("data-name", Constants.MENU_SEARCH_ASSET_MORE);
     const localData = getSiyuanStorage()[Constants.LOCAL_SEARCHASSET];
-    const sortMenu = [{
-        iconHTML: "",
-        label: siyuanI18n.sortByRankAsc,
-        current: localData.sort === 1,
-        click() {
-            localData.sort = 1;
-            cb();
-        }
-    }, {
-        iconHTML: "",
-        label: siyuanI18n.sortByRankDesc,
-        current: localData.sort === 0,
-        click() {
-            localData.sort = 0;
-            cb();
-        }
-    }, {
-        iconHTML: "",
-        label: siyuanI18n.modifiedASC,
-        current: localData.sort === 3,
-        click() {
-            localData.sort = 3;
-            cb();
-        }
-    }, {
-        iconHTML: "",
-        label: siyuanI18n.modifiedDESC,
-        current: localData.sort === 2,
-        click() {
-            localData.sort = 2;
-            cb();
-        }
-    }];
+
     globalMenu.append(new MenuItem({
         iconHTML: "",
         label: siyuanI18n.sort,
         type: "submenu",
-        submenu: sortMenu,
+        submenu: createSortMenuItems(localData, cb),
     }).element);
     /// #if !MOBILE
     globalMenu.append(new MenuItem({
         iconHTML: "",
         label: siyuanI18n.layout,
         type: "submenu",
-        submenu: [{
-            iconHTML: "",
-            label: siyuanI18n.topBottomLayout,
-            current: localData.layout === 0,
-            click() {
-                element.querySelector(".search__layout")?.classList.remove("search__layout--row");
-                const previewElement = element.querySelector("#searchAssetPreview") as HTMLElement;
-                previewElement.style.width = "";
-                localData.layout = 0;
-                if (!localData.row) {
-                    previewElement.classList.add("fn__flex-1");
-                    setStorageVal(Constants.LOCAL_SEARCHASSET, getSiyuanStorage()[Constants.LOCAL_SEARCHASSET]);
-                    return;
-                }
-                previewElement.style.height = localData.row;
-                previewElement.classList.remove("fn__flex-1");
-                setStorageVal(Constants.LOCAL_SEARCHASSET, getSiyuanStorage()[Constants.LOCAL_SEARCHASSET]);
-            }
-        }, {
-            iconHTML: "",
-            label: siyuanI18n.leftRightLayout,
-            current: localData.layout === 1,
-            click() {
-                const previewElement = element.querySelector("#searchAssetPreview") as HTMLElement;
-                element.querySelector(".search__layout")?.classList.add("search__layout--row");
-                previewElement.style.height = "";
-                localData.layout = 1;
-                if (!localData.col) {
-                    previewElement.classList.add("fn__flex-1");
-                    setStorageVal(Constants.LOCAL_SEARCHASSET, getSiyuanStorage()[Constants.LOCAL_SEARCHASSET]);
-                    return;
-                }
-                previewElement.style.width = localData.col;
-                previewElement.classList.remove("fn__flex-1");
-                setStorageVal(Constants.LOCAL_SEARCHASSET, getSiyuanStorage()[Constants.LOCAL_SEARCHASSET]);
-            }
-        }]
+        submenu: createLayoutSubmenu(element, localData),
     }).element);
     /// #endif
     globalMenu.append(new MenuItem({
