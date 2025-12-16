@@ -9,23 +9,9 @@ import { assetInputEvent } from "./assets";
 import { saveAssetKeyList } from "./toggleHistory";
 import { genQueryHTML } from "./util";
 
-
-export const openSearchAsset = (element: HTMLElement, isStick: boolean) => {
-    /// #if !MOBILE
-    getSiyuanGlobalMenus().menu.remove();
-    element.previousElementSibling?.classList.add("fn__none");
-    element.classList.remove("fn__none");
-    if (element.innerHTML) {
-        (element.querySelector("#searchAssetInput") as HTMLInputElement).select();
-        return;
-    }
-    const localSearch = getSiyuanStorage()[Constants.LOCAL_SEARCHASSET] as ISearchAssetOption;
-    element.parentElement?.querySelector(".fn__loading--top")?.classList.remove("fn__none");
-    let enterTip = "";
-    /// #if !BROWSER
-    enterTip = `<kbd>${siyuanI18n.enterKey}/${siyuanI18n.doubleClick}</kbd> ${siyuanI18n.showInFolder}`;
-    /// #endif
-    element.innerHTML =/*HTML*/`<div class="block__icons">
+/** 生成搜索资源的 HTML 模板 */
+const 生成搜索资源HTML = (localSearch: ISearchAssetOption, isStick: boolean, enterTip: string): string => {
+    return /*HTML*/`<div class="block__icons">
     <span data-type="assetPrevious" class="block__icon block__iconHTML--show ariaLabel" data-position="9south" disabled="disabled" aria-label="${siyuanI18n.previousLabel}"><svg><use xlink:href='#iconLeft'></use></svg></span>
     <span class="fn__space"></span>
     <span data-type="assetNext" class="block__icon block__icon--show ariaLabel" data-position="9south" disabled="disabled" aria-label="${siyuanI18n.nextLabel}"><svg><use xlink:href='#iconRight'></use></svg></span>
@@ -72,11 +58,10 @@ export const openSearchAsset = (element: HTMLElement, isStick: boolean) => {
     <kbd>${siyuanI18n.click}</kbd> ${siyuanI18n.searchTip3}
     <kbd>Esc</kbd> ${siyuanI18n.searchTip5}
 </div>`;
-    const searchAssetListElement = element.querySelector("#searchAssetList");
-    if (searchAssetListElement && searchAssetListElement.innerHTML !== "") {
-        return;
-    }
-    const previewElement = element.querySelector("#searchAssetPreview") as HTMLElement;
+};
+
+/** 设置预览元素的布局样式 */
+const 设置预览元素布局 = (previewElement: HTMLElement, localSearch: ISearchAssetOption): void => {
     if (localSearch.layout === 1 && localSearch.col) {
         previewElement.style.width = localSearch.col;
         previewElement.classList.remove("fn__flex-1");
@@ -85,7 +70,10 @@ export const openSearchAsset = (element: HTMLElement, isStick: boolean) => {
         previewElement.classList.remove("fn__flex-1");
         previewElement.style.height = localSearch.row;
     }
+};
 
+/** 初始化搜索输入框的事件监听 */
+const 初始化搜索输入框 = (element: HTMLElement, localSearch: ISearchAssetOption): void => {
     const searchInputElement = element.querySelector("#searchAssetInput") as HTMLInputElement;
     searchInputElement.select();
     searchInputElement.addEventListener("compositionend", () => {
@@ -109,47 +97,103 @@ export const openSearchAsset = (element: HTMLElement, isStick: boolean) => {
             assetInputEvent(element, localSearch);
         }
     });
+};
 
+/** 处理拖拽的 mousedown 事件 */
+const 处理拖拽mousedown = (
+    event: MouseEvent,
+    element: HTMLElement,
+    previewElement: HTMLElement,
+    dragElement: HTMLElement,
+    localSearch: ISearchAssetOption
+): void => {
+    const documentSelf = document;
+    const previousElement = dragElement.previousElementSibling as HTMLElement;
+    const direction = localSearch.layout === 1 ? "lr" : "tb";
+    const x = event[direction === "lr" ? "clientX" : "clientY"];
+    const previousSize = direction === "lr" ? previousElement.offsetWidth : previousElement.offsetHeight;
+    const nextSize = direction === "lr" ? previewElement.offsetWidth : previewElement.offsetHeight;
+
+    previewElement.classList.remove("fn__flex-1");
+    previewElement.style[direction === "lr" ? "width" : "height"] = nextSize + "px";
+    element.style.userSelect = "none";
+    documentSelf.onmousemove = (moveEvent: MouseEvent) => {
+        moveEvent.preventDefault();
+        moveEvent.stopPropagation();
+        const previousNowSize = (previousSize + (moveEvent[direction === "lr" ? "clientX" : "clientY"] - x));
+        const nextNowSize = (nextSize - (moveEvent[direction === "lr" ? "clientX" : "clientY"] - x));
+        if (previousNowSize < 120 || nextNowSize < 120) {
+            return;
+        }
+        previewElement.style[direction === "lr" ? "width" : "height"] = nextNowSize + "px";
+    };
+
+    documentSelf.onmouseup = () => {
+        element.style.userSelect = "none";
+        documentSelf.onmousemove = null;
+        documentSelf.onmouseup = null;
+        documentSelf.ondragstart = null;
+        documentSelf.onselectstart = null;
+        documentSelf.onselect = null;
+        getSiyuanStorage()[Constants.LOCAL_SEARCHASSET][direction === "lr" ? "col" : "row"] = previewElement[direction === "lr" ? "offsetWidth" : "offsetHeight"] + "px";
+        setStorageVal(Constants.LOCAL_SEARCHASSET, getSiyuanStorage()[Constants.LOCAL_SEARCHASSET]);
+    };
+};
+
+/** 处理拖拽的 dblclick 事件 - 重置预览区域大小 */
+const 处理拖拽dblclick = (
+    previewElement: HTMLElement,
+    localSearch: ISearchAssetOption
+): void => {
+    previewElement.style[localSearch.layout === 1 ? "width" : "height"] = "";
+    previewElement.classList.add("fn__flex-1");
+    const direction = localSearch.layout === 1 ? "lr" : "tb";
+    getSiyuanStorage()[Constants.LOCAL_SEARCHASSET][direction === "lr" ? "col" : "row"] = "";
+    setStorageVal(Constants.LOCAL_SEARCHASSET, getSiyuanStorage()[Constants.LOCAL_SEARCHASSET]);
+};
+
+/** 初始化拖拽调整大小功能 */
+const 初始化拖拽功能 = (
+    element: HTMLElement,
+    previewElement: HTMLElement,
+    localSearch: ISearchAssetOption
+): void => {
     const dragElement = element.querySelector(".search__drag") as HTMLElement;
     dragElement.addEventListener("mousedown", (event: MouseEvent) => {
-        const documentSelf = document;
-        const previousElement = dragElement.previousElementSibling as HTMLElement;
-        const direction = localSearch.layout === 1 ? "lr" : "tb";
-        const x = event[direction === "lr" ? "clientX" : "clientY"];
-        const previousSize = direction === "lr" ? previousElement.offsetWidth : previousElement.offsetHeight;
-        const nextSize = direction === "lr" ? previewElement.offsetWidth : previewElement.offsetHeight;
-
-        previewElement.classList.remove("fn__flex-1");
-        previewElement.style[direction === "lr" ? "width" : "height"] = nextSize + "px";
-        element.style.userSelect = "none";
-        documentSelf.onmousemove = (moveEvent: MouseEvent) => {
-            moveEvent.preventDefault();
-            moveEvent.stopPropagation();
-            const previousNowSize = (previousSize + (moveEvent[direction === "lr" ? "clientX" : "clientY"] - x));
-            const nextNowSize = (nextSize - (moveEvent[direction === "lr" ? "clientX" : "clientY"] - x));
-            if (previousNowSize < 120 || nextNowSize < 120) {
-                return;
-            }
-            previewElement.style[direction === "lr" ? "width" : "height"] = nextNowSize + "px";
-        };
-
-        documentSelf.onmouseup = () => {
-            element.style.userSelect = "none";
-            documentSelf.onmousemove = null;
-            documentSelf.onmouseup = null;
-            documentSelf.ondragstart = null;
-            documentSelf.onselectstart = null;
-            documentSelf.onselect = null;
-            getSiyuanStorage()[Constants.LOCAL_SEARCHASSET][direction === "lr" ? "col" : "row"] = previewElement[direction === "lr" ? "offsetWidth" : "offsetHeight"] + "px";
-            setStorageVal(Constants.LOCAL_SEARCHASSET, getSiyuanStorage()[Constants.LOCAL_SEARCHASSET]);
-        };
+        处理拖拽mousedown(event, element, previewElement, dragElement, localSearch);
     });
     dragElement.addEventListener("dblclick", () => {
-        previewElement.style[localSearch.layout === 1 ? "width" : "height"] = "";
-        previewElement.classList.add("fn__flex-1");
-        const direction = localSearch.layout === 1 ? "lr" : "tb";
-        getSiyuanStorage()[Constants.LOCAL_SEARCHASSET][direction === "lr" ? "col" : "row"] = "";
-        setStorageVal(Constants.LOCAL_SEARCHASSET, getSiyuanStorage()[Constants.LOCAL_SEARCHASSET]);
+        处理拖拽dblclick(previewElement, localSearch);
     });
+};
+
+/** 打开搜索资源面板 */
+export const 打开搜索资源面板 = (element: HTMLElement, isStick: boolean) => {
+    /// #if !MOBILE
+    getSiyuanGlobalMenus().menu.remove();
+    element.previousElementSibling?.classList.add("fn__none");
+    element.classList.remove("fn__none");
+    if (element.innerHTML) {
+        (element.querySelector("#searchAssetInput") as HTMLInputElement).select();
+        return;
+    }
+    const localSearch = getSiyuanStorage()[Constants.LOCAL_SEARCHASSET] as ISearchAssetOption;
+    element.parentElement?.querySelector(".fn__loading--top")?.classList.remove("fn__none");
+    let enterTip = "";
+    /// #if !BROWSER
+    enterTip = `<kbd>${siyuanI18n.enterKey}/${siyuanI18n.doubleClick}</kbd> ${siyuanI18n.showInFolder}`;
+    /// #endif
+    element.innerHTML = 生成搜索资源HTML(localSearch, isStick, enterTip);
+    const searchAssetListElement = element.querySelector("#searchAssetList");
+    if (searchAssetListElement && searchAssetListElement.innerHTML !== "") {
+        return;
+    }
+    const previewElement = element.querySelector("#searchAssetPreview") as HTMLElement;
+    设置预览元素布局(previewElement, localSearch);
+    初始化搜索输入框(element, localSearch);
+    初始化拖拽功能(element, previewElement, localSearch);
     /// #endif
 };
+
+/** 英文别名导出 */
+export const openSearchAsset = 打开搜索资源面板;
