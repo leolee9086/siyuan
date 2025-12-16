@@ -85,4 +85,28 @@ export default [{
         "vue/require-default-prop": "off",
         "vue/require-explicit-emits": "off",
     },
+}, {
+    // 禁止在非环境文件中访问全局对象
+    files: ["**/*.ts", "**/*.tsx", "**/*.vue"],
+    ignores: [
+        "**/*.environment.ts",
+        "**/*.global.ts",
+    ],
+    rules: {
+        "no-restricted-globals": [
+            "error",
+            {
+                name: "window",
+                message: "❌ 禁止直接访问 window。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。",
+            },
+            {
+                name: "global",
+                message: "❌ 禁止直接访问 global。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。",
+            },
+            {
+                name: "globalThis",
+                message: "❌ 禁止直接访问 globalThis。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。",
+            },
+        ],
+    },
 }];
