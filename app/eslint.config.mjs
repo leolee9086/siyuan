@@ -80,7 +80,7 @@ export default [{
             },
             {
                 selector: "MemberExpression[object.type='CallExpression'][object.callee.property.name=/^(querySelector|querySelectorAll|getElementById|getElementsByClassName|getElementsByTagName)$/]",
-                message: "❌ 禁止在 DOM 获取接口 (querySelector, getElementById 等) 之后直接使用属性访问标识符。请声明为变量再使用。",
+                message: "❌ 禁止隐式上下文切换：在 DOM 获取接口 (querySelector, getElementById 等) 返回的对象上直接链式调用会导致操作主体发生隐式切换，这与其隐式类型转换一样危险。请务必先声明变量再使用。",
             },
         ],
         "max-lines": ["error", { "max": 300, "skipBlankLines": true, "skipComments": true }],
