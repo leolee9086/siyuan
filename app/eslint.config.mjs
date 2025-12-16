@@ -64,6 +64,7 @@ export default [{
             },
         ],
         "max-lines": ["error", { "max": 300, "skipBlankLines": true, "skipComments": true }],
+        "max-lines-per-function": ["error", { "max": 50, "skipBlankLines": true, "skipComments": true, "IIFEs": true }],
         semi: [2, "always"],
         quotes: [2, "double", {
             avoidEscape: true,
