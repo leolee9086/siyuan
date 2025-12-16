@@ -29,7 +29,7 @@ const getRangePageInfo = (range: Range) => {
         return;
     }
     const endIndex = parseInt(endPageElement.getAttribute("data-page-number") || "0") - 1;
-    
+
     return { startIndex, endIndex };
 };
 
@@ -37,19 +37,24 @@ const processRangeContents = (range: Range) => {
     // https://github.com/siyuan-note/siyuan/issues/5213
     const rangeContents = range.cloneContents();
     Array.from(rangeContents.children).forEach(item => {
-        if (item.tagName === "BR" && item.previousElementSibling && item.nextElementSibling) {
-            const previousText = item.previousElementSibling.textContent;
-            const nextText = item.nextElementSibling.textContent;
-            if (/^[A-Za-z]$/.test(previousText.substring(previousText.length - 2, previousText.length - 1)) &&
-                /^[A-Za-z]$/.test(nextText.substring(0, 1))) {
-                if (previousText.endsWith("-")) {
-                    item.previousElementSibling.textContent = previousText.substring(0, previousText.length - 1);
-                } else {
-                    // 中文情况不能添加 https://github.com/siyuan-note/siyuan/issues/8152
-                    item.insertAdjacentText("afterend", " ");
-                }
-            }
+        if (item.tagName !== "BR" || !item.previousElementSibling || !item.nextElementSibling) {
+            return;
         }
+
+        const previousText = item.previousElementSibling.textContent;
+        const nextText = item.nextElementSibling.textContent;
+        if (!/^[A-Za-z]$/.test(previousText.substring(previousText.length - 2, previousText.length - 1)) ||
+            !/^[A-Za-z]$/.test(nextText.substring(0, 1))) {
+            return;
+        }
+
+        if (previousText.endsWith("-")) {
+            item.previousElementSibling.textContent = previousText.substring(0, previousText.length - 1);
+            return;
+        }
+
+        // 中文情况不能添加 https://github.com/siyuan-note/siyuan/issues/8152
+        item.insertAdjacentText("afterend", " ");
     });
     // eslint-disable-next-line no-control-regex
     return Lute.EscapeHTMLStr(rangeContents.textContent.replace(/[\x00]|\n/g, ""));
@@ -59,7 +64,7 @@ const processPageSelection = (pdf: any, pageIndex: number, range: Range) => {
     const page = pdf.pdfViewer.getPageView(pageIndex);
     const pageRect = page.canvas.getClientRects()[0];
     const viewport = page.viewport;
-    
+
     const selected: number[] = [];
     mergeRects(range).forEach(function (r) {
         selected.push(
@@ -68,8 +73,19 @@ const processPageSelection = (pdf: any, pageIndex: number, range: Range) => {
                     r.bottom - pageRect.y))
         );
     });
-    
+
     return selected;
+};
+
+const getEndSelected = (pdf: any, endIndex: number, cloneRange: Range) => {
+    focusByRange(cloneRange);
+    const endPage = pdf.pdfViewer.getPageView(endIndex);
+    const endTextNode = getTextNode(endPage.textLayer.div, true);
+    if (endTextNode) {
+        cloneRange.setStart(endTextNode, 0);
+    }
+
+    return processPageSelection(pdf, endIndex, cloneRange);
 };
 
 export const getHightlightCoordsByRange = (pdf: any, color: string) => {
@@ -85,26 +101,18 @@ export const getHightlightCoordsByRange = (pdf: any, color: string) => {
     const { startIndex, endIndex } = pageInfo;
     const content = processRangeContents(range);
     const startPage = pdf.pdfViewer.getPageView(startIndex);
-    
+
     const cloneRange = range.cloneRange();
-    if (startIndex !== endIndex) {
-        const startTextNode = getTextNode(startPage.textLayer.div, false);
-        if (startTextNode) {
-            range.setEndAfter(startTextNode);
-        }
+    const startTextNode = startIndex !== endIndex ? getTextNode(startPage.textLayer.div, false) : undefined;
+    if (startTextNode) {
+        range.setEndAfter(startTextNode);
     }
 
     const startSelected = processPageSelection(pdf, startIndex, range);
 
     let endSelected: number[] = [];
     if (startIndex !== endIndex) {
-        focusByRange(cloneRange);
-        const endPage = pdf.pdfViewer.getPageView(endIndex);
-        const endTextNode = getTextNode(endPage.textLayer.div, true);
-        if (endTextNode) {
-            cloneRange.setStart(endTextNode, 0);
-        }
-        endSelected = processPageSelection(pdf, endIndex, cloneRange);
+        endSelected = getEndSelected(pdf, endIndex, cloneRange);
     }
 
     return createAnnotationResults({ pdf, startIndex, endIndex, startSelected, endSelected, content, color });
@@ -118,7 +126,7 @@ const createAnnotationResults = (params: AnnotationResultParams) => {
         positions: number[];
     }[] = [];
     const results = [];
-    
+
     if (startSelected.length > 0) {
         pages.push({
             index: startIndex,
@@ -135,11 +143,11 @@ const createAnnotationResults = (params: AnnotationResultParams) => {
         const pageInfo = getPageViewInfo(pdf, endIndex);
         results.push(createAnnoCoords(pageInfo, endSelected, id, color, content, "text", "text"));
     }
-    
+
     if (pages.length === 0) {
         return;
     }
-    
+
     setConfig(pdf, id, {
         pages,
         content,
@@ -147,6 +155,6 @@ const createAnnotationResults = (params: AnnotationResultParams) => {
         type: "text",
         mode: "text",
     });
-    
+
     return results;
 };

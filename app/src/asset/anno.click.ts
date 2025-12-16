@@ -12,7 +12,7 @@ import { hasClosestByClassName } from "../protyle/util/hasClosest";
 import { rectElement, setRectElement } from "./anno";
 import { AnnoConstants } from "./anno.constants";
 import type { IAnnoCoords, IPdfInstance } from "./anno.types";
-import { createToolbarActionContext,  toolbarActionRegistry } from "./anno.click.handleToolbarAction";
+import { createToolbarActionContext, toolbarActionRegistry } from "./anno.click.handleToolbarAction";
 import { externalEventClickHandler } from "./anno.click.handleExternalEvent";
 
 const updateExistingAnnotation = (color: string, element: HTMLElement, pdf: IPdfInstance) => {
@@ -25,11 +25,7 @@ const updateExistingAnnotation = (color: string, element: HTMLElement, pdf: IPdf
             Array.from(rectItem.children).forEach((item) => {
                 if (item instanceof HTMLElement) {
                     item.style.border = "2px solid " + color;
-                    if (annoItem.type === "text") {
-                        item.style.backgroundColor = color;
-                    } else {
-                        item.style.backgroundColor = "transparent";
-                    }
+                    item.style.backgroundColor = annoItem.type === "text" ? color : "transparent";
                 }
             });
         });
@@ -61,9 +57,10 @@ const handleColorClick = (target: HTMLElement, element: HTMLElement, pdf: IPdfIn
 
     if (rectElement) {
         updateExistingAnnotation(color, element, pdf);
-    } else {
-        createNewAnnotation(color, pdf);
+        hideToolbar(element);
+        return;
     }
+    createNewAnnotation(color, pdf);
     hideToolbar(element);
 };
 
@@ -72,20 +69,23 @@ const handleColorClick = (target: HTMLElement, element: HTMLElement, pdf: IPdfIn
 
 const handleSelection = (element: HTMLElement) => {
     setTimeout(() => {
-        let isShow = false;
         const selection = window.getSelection();
-        if (selection && selection.rangeCount > 0) {
-            const range = selection.getRangeAt(0);
-            if (range.toString() !== "" &&
-                hasClosestByClassName(range.commonAncestorContainer, AnnoConstants.CSS.PDF_VIEWER)) {
-                showToolbar(element, range);
-                isShow = true;
-            }
+        const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+        if (range && range.toString() !== "" &&
+            hasClosestByClassName(range.commonAncestorContainer, AnnoConstants.CSS.PDF_VIEWER)) {
+            showToolbar(element, range);
+            return;
         }
-        if (!isShow) {
-            hideToolbar(element);
-        }
+        hideToolbar(element);
     });
+};
+
+const executeToolbarAction = (type: string, pdf: IPdfInstance, element: HTMLElement) => {
+    const handler = toolbarActionRegistry[type];
+    if (handler) {
+        const context = createToolbarActionContext(pdf, element);
+        handler(context);
+    }
 };
 
 export const initClickHandler = (element: HTMLElement, pdf: IPdfInstance) => {
@@ -128,22 +128,15 @@ export const initClickHandler = (element: HTMLElement, pdf: IPdfInstance) => {
 
         // 3. 处理工具栏操作
         const actionBtn = target.closest(`[${AnnoConstants.ATTR.DATA_TYPE}]`) as HTMLElement;
-        if (actionBtn) {
+        const type = actionBtn?.getAttribute(AnnoConstants.ATTR.DATA_TYPE);
+        if (type) {
             // 确保我们在工具栏或相关容器内（如果需要），
             // 但原始代码只检查了属性。
             // 我们还应该检查它不是pdf__outer本身，但closest处理了这一点。
-            const type = actionBtn.getAttribute(AnnoConstants.ATTR.DATA_TYPE);
-            if (type) {
-                const handler = toolbarActionRegistry[type];
-                if (handler) {
-                    const context = createToolbarActionContext(pdf, element);
-                    handler(context);
-                }
-
-                event.preventDefault();
-                event.stopPropagation();
-                return;
-            }
+            executeToolbarAction(type, pdf, element);
+            event.preventDefault();
+            event.stopPropagation();
+            return;
         }
 
         // 4. 处理选择（默认行为检查）
