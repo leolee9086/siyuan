@@ -1,10 +1,11 @@
-import {Model} from "../layout/Model";
-import {Tab} from "../layout/Tab";
-import {Protyle} from "../protyle";
-import {genSearch} from "./util";
-import {setPanelFocus} from "../layout/util";
-import {App} from "../index";
-import {clearOBG} from "../layout/dock/util";
+import { Model } from "../layout/Model";
+import { Tab } from "../layout/Tab";
+import { Protyle } from "../protyle";
+import { genSearch } from "./util";
+import { setPanelFocus } from "../layout/util";
+import { App } from "../index";
+import { clearOBG } from "../layout/dock/util";
+import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 export class Search extends Model {
     public element: HTMLElement;
@@ -16,7 +17,7 @@ export class Search extends Model {
             app: options.app,
             id: options.tab.id,
         });
-        if (window.siyuan.config.fileTree.openFilesUseCurrentTab) {
+        if (getSiyuanConfig().fileTree.openFilesUseCurrentTab) {
             options.tab.headElement?.classList.add("item--unupdate");
         }
         this.element = options.tab.panelElement as HTMLElement;
@@ -24,7 +25,10 @@ export class Search extends Model {
         this.editors = genSearch(options.app, this.config, this.element);
         this.element.addEventListener("click", () => {
             clearOBG();
-            setPanelFocus(this.element.parentElement.parentElement);
+            const grandParent = this.element.parentElement?.parentElement;
+            if (grandParent) {
+                setPanelFocus(grandParent);
+            }
         });
     }
 
@@ -38,12 +42,11 @@ export class Search extends Model {
         if (oldText === text) {
             return;
         }
-        if (!replace) {
-            if (oldText.indexOf(text) > -1) {
-                text = oldText.replace(text + " ", "").replace(" " + text, "");
-            } else if (oldText !== "") {
-                text = oldText + " " + text;
-            }
+        if (!replace && oldText.indexOf(text) > -1) {
+            text = oldText.replace(text + " ", "").replace(" " + text, "");
+        }
+        if (!replace && oldText.indexOf(text) === -1 && oldText !== "") {
+            text = oldText + " " + text;
         }
         inputElement.value = text;
         inputElement.select();
