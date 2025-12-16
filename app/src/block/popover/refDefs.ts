@@ -25,24 +25,26 @@ export interface RefDefsResult {
  * 从 data-id 属性获取 refDefs
  */
 const getRefDefsFromDataId = async (dataId: string, showRef: boolean): Promise<RefDefsResult> => {
-    let refDefs: IRefDefs[] = [];
-    let originalRefBlockIDs: IObject = {};
-
+    // 卫语句：showRef 情况直接返回
     if (showRef) {
         const postResponse = await fetchSyncPost("/api/block/getRefIDs", { id: dataId });
-        refDefs = postResponse.data.refDefs;
-        originalRefBlockIDs = postResponse.data.originalRefBlockIDs;
-    } else {
-        if (dataId.startsWith("[")) {
-            JSON.parse(dataId).forEach((item: string) => {
-                refDefs.push({ refID: item });
-            });
-        } else {
-            refDefs = [{ refID: dataId }];
-        }
+        return {
+            refDefs: postResponse.data.refDefs,
+            originalRefBlockIDs: postResponse.data.originalRefBlockIDs
+        };
     }
 
-    return { refDefs, originalRefBlockIDs };
+    // 卫语句：dataId 是数组格式
+    if (dataId.startsWith("[")) {
+        const refDefs: IRefDefs[] = [];
+        JSON.parse(dataId).forEach((item: string) => {
+            refDefs.push({ refID: item });
+        });
+        return { refDefs, originalRefBlockIDs: {} };
+    }
+
+    // 默认：单个 ID
+    return { refDefs: [{ refID: dataId }], originalRefBlockIDs: {} };
 };
 
 /**
@@ -66,37 +68,47 @@ const getRefDefsFromVirtualBlockRef = async (): Promise<RefDefsResult> => {
  */
 const getRefDefsFromRefCountOrPDF = async (): Promise<RefDefsResult> => {
     const popoverTargetElement = getPopoverTargetElement();
-    let refDefs: IRefDefs[] = [];
-    let originalRefBlockIDs: IObject = {};
-    let targetId: string;
-    let url = "/api/block/getRefIDs";
+    const refDefs: IRefDefs[] = [];
+    const originalRefBlockIDs: IObject = {};
 
-    if (popoverTargetElement.classList.contains("protyle-attr--refcount")) {
-        // 编辑器中的引用数
-        targetId = popoverTargetElement.parentElement.parentElement.getAttribute("data-node-id");
-    } else if (popoverTargetElement.classList.contains("pdf__rect")) {
-        const relationIds = popoverTargetElement.getAttribute("data-relations");
-        if (relationIds) {
-            relationIds.split(",").forEach((item: string) => {
-                refDefs.push({ refID: item });
-            });
-            url = "";
-        } else {
-            targetId = popoverTargetElement.getAttribute("data-node-id");
-            url = "/api/block/getRefIDsByFileAnnotationID";
-        }
-    } else if (!targetId) {
-        // 文件树中的引用数
-        targetId = popoverTargetElement.parentElement.getAttribute("data-node-id");
+    // 卫语句1a：编辑器中的引用数 - 无法获取父节点 ID
+    const isRefCount = popoverTargetElement.classList.contains("protyle-attr--refcount");
+    const refCountTargetId = popoverTargetElement.parentElement?.parentElement?.getAttribute("data-node-id");
+    if (isRefCount && !refCountTargetId) {
+        return { refDefs: [], originalRefBlockIDs: {} };
     }
 
-    if (url) {
-        const postResponse = await fetchSyncPost(url, { id: targetId });
-        refDefs = postResponse.data.refDefs;
-        originalRefBlockIDs = postResponse.data.originalRefBlockIDs;
+    // 卫语句1b：编辑器中的引用数 - 正常获取
+    if (isRefCount && refCountTargetId) {
+        const postResponse = await fetchSyncPost("/api/block/getRefIDs", { id: refCountTargetId });
+        return { refDefs: postResponse.data.refDefs, originalRefBlockIDs: postResponse.data.originalRefBlockIDs };
     }
 
-    return { refDefs, originalRefBlockIDs };
+    const isPdfRect = popoverTargetElement.classList.contains("pdf__rect");
+    const relationIds = isPdfRect ? popoverTargetElement.getAttribute("data-relations") : null;
+
+    // 卫语句2：PDF 标注 - 有 relationIds 的情况
+    if (isPdfRect && relationIds) {
+        relationIds.split(",").forEach((item: string) => {
+            refDefs.push({ refID: item });
+        });
+        return { refDefs, originalRefBlockIDs };
+    }
+
+    // 卫语句3：PDF 标注 - 无 relationIds，走 FileAnnotationID 接口
+    if (isPdfRect) {
+        const targetId = popoverTargetElement.getAttribute("data-node-id");
+        const postResponse = await fetchSyncPost("/api/block/getRefIDsByFileAnnotationID", { id: targetId });
+        return { refDefs: postResponse.data.refDefs, originalRefBlockIDs: postResponse.data.originalRefBlockIDs };
+    }
+
+    // 默认：文件树中的引用数
+    const targetId = popoverTargetElement.parentElement?.getAttribute("data-node-id");
+    if (!targetId) {
+        return { refDefs: [], originalRefBlockIDs: {} };
+    }
+    const postResponse = await fetchSyncPost("/api/block/getRefIDs", { id: targetId });
+    return { refDefs: postResponse.data.refDefs, originalRefBlockIDs: postResponse.data.originalRefBlockIDs };
 };
 
 /**
@@ -119,7 +131,7 @@ export const getRefDefs = async (showRef: boolean): Promise<RefDefsResult> => {
     // 思源协议链接
     if (popoverTargetElement.getAttribute("data-type")?.split(" ").includes("a")) {
         return {
-            refDefs: [{ refID: getIdFromSYProtocol(popoverTargetElement.getAttribute("data-href")) }],
+            refDefs: [{ refID: getIdFromSYProtocol(popoverTargetElement.getAttribute("data-href") ?? "") }],
             originalRefBlockIDs: {}
         };
     }

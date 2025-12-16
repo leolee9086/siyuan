@@ -43,22 +43,21 @@ export const fillContent = (protyle: IProtyle, rawContent: string, blockElements
     }
     if (!protyle.wysiwyg) {
         console.error(protyle);
-        throw new Error ("结构错误");
+        throw new Error("结构错误");
     }
     // 确保最后一个块元素在protyle的编辑器中
     const lastBlockElement = blockElements[blockElements.length - 1];
 
 
     // 设置最后一个节点的范围，确保插入位置正确
-    if (lastBlockElement) {
-        if (!protyle.wysiwyg.element.contains(lastBlockElement)) {
-            console.warn("最后一个块元素不在protyle编辑器中，无法插入内容");
-            return;
-        }
-        const editableElement = getContenteditableElement(lastBlockElement);
-        if (editableElement && protyle.toolbar?.range) {
-            setLastNodeRange(editableElement, protyle.toolbar?.range);
-        }
+    // 如果最后一个块元素不在protyle编辑器中，无法插入内容
+    if (lastBlockElement && !protyle.wysiwyg.element.contains(lastBlockElement)) {
+        console.warn("最后一个块元素不在protyle编辑器中，无法插入内容");
+        return;
+    }
+    const editableElement = lastBlockElement ? getContenteditableElement(lastBlockElement) : null;
+    if (editableElement && protyle.toolbar?.range) {
+        setLastNodeRange(editableElement, protyle.toolbar.range);
     }
     // 折叠选区到范围的末尾，确保新内容插入到正确位置
     protyle.toolbar?.range.collapse(true);

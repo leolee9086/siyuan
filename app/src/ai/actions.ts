@@ -22,10 +22,10 @@ import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n";
  * 生成自定义AI菜单项的HTML
  * @returns 自定义菜单项的HTML字符串
  */
-const generateCustomMenuItems = (storage:Record<string,unknown>): string => {
+const generateCustomMenuItems = (storage: Record<string, unknown>): string => {
     const localAIItems = storage[Constants.LOCAL_AI];
-    if(!Array.isArray(localAIItems)){
-        throw new Error ("传入的AI定义表不是有效的数组");
+    if (!Array.isArray(localAIItems)) {
+        throw new Error("传入的AI定义表不是有效的数组");
     }
     let customHTML = "";
     localAIItems.forEach((item: { name: string, memo: string }, index: number) => {
@@ -45,6 +45,49 @@ const generateCustomMenuItems = (storage:Record<string,unknown>): string => {
         customHTML = `<div class="b3-menu__separator"></div>${customHTML}${aiChatHTML}`;
     }
     return customHTML;
+};
+
+/**
+ * 处理Enter键按下时的菜单项选择
+ */
+const 处理Enter键按下 = (
+    currentElement: HTMLElement,
+    protyle: IProtyle,
+    ids: string[],
+    elements: HTMLElement[],
+    menu: Menu,
+    clearContext: string
+) => {
+    if (currentElement.dataset.type === "custom") {
+        customDialog(protyle, ids, elements);
+        menu.close();
+        return;
+    }
+
+    const 是AI聊天 = currentElement.dataset.action === "aiChat";
+    const 第一个元素 = elements[0];
+    if (是AI聊天 && !第一个元素) {
+        throw new Error("目标元素不是有效的HTMLElement");
+    }
+    if (是AI聊天 && 第一个元素) {
+        AIChat(protyle, 第一个元素);
+        menu.close();
+        return;
+    }
+
+    // 默认：调用AI接口
+    fetchPost("/api/ai/chatGPTWithAction", {
+        ids,
+        action: currentElement.dataset.action
+    }, (response) => {
+        fillContent(protyle, response.data, elements);
+    });
+
+    if (currentElement.dataset.action === clearContext) {
+        showMessage(siyuanI18n.clearContextSucc);
+        return;
+    }
+    menu.close();
 };
 
 /**
@@ -69,38 +112,17 @@ const handleKeyDown = (
     if (event.isComposing) {
         return;
     }
-    const currentElement = upDownHint(listElement, event);
-    if (currentElement) {
+    const hintElement = upDownHint(listElement, event);
+    if (hintElement) {
         event.stopPropagation();
     }
-    if (event.key === "Enter") {
-        event.preventDefault();
-        event.stopPropagation();
-        const currentElement = listElement.querySelector(".b3-list-item--focus") as HTMLElement;
-        if (currentElement.dataset.type === "custom") {
-            customDialog(protyle, ids, elements);
-            menu.close();
-        } else if (currentElement.dataset.action === "aiChat") {
-            
-            if(!elements[0]){
-                throw new Error ("目标元素不是有效的HTMLElement");
-            }
-            AIChat(protyle, elements[0]);
-            menu.close();
-        } else {
-            fetchPost("/api/ai/chatGPTWithAction", {
-                ids,
-                action: currentElement.dataset.action
-            }, (response) => {
-                fillContent(protyle, response.data, elements);
-            });
-            if (currentElement.dataset.action === clearContext) {
-                showMessage(siyuanI18n.clearContextSucc);
-            } else {
-                menu.close();
-            }
-        }
-    }
+    if (event.key !== "Enter") { return; }
+
+    event.preventDefault();
+    event.stopPropagation();
+    const focusedElement = listElement.querySelector(".b3-list-item--focus") as HTMLElement;
+
+    处理Enter键按下(focusedElement, protyle, ids, elements, menu, clearContext);
 };
 
 
@@ -124,35 +146,45 @@ const handleClick = (
     menuElement: HTMLElement
 ) => {
     const target = event.target;
+
+    /** 尝试处理 AI 聊天点击，成功返回 true */
+    const 尝试处理AI聊天点击 = (
+        currentElement: HTMLElement | null,
+        elements: HTMLElement[]
+    ): boolean => {
+        const 是AI聊天菜单项 = currentElement?.dataset.action === "aiChat";
+        if (!是AI聊天菜单项) { return false; }
+        const 第一个元素 = elements[0];
+        if (!第一个元素) {
+            throw new Error("目标元素不是有效的HTMLElement");
+        }
+        AIChat(protyle, 第一个元素);
+        menu.close();
+        return true;
+    };
+
     /**
      * 修复：支持 HTMLElement 和 SVGElement，使 SVGSymbol 图标能够响应点击
      */
-    if (target instanceof HTMLElement || target instanceof SVGElement) {
-        const currentElement = target.closest(".b3-list-item") as HTMLElement;
-        if (currentElement && currentElement.dataset.action === "aiChat") {
-            if(!elements[0]){
-                throw new Error ("目标元素不是有效的HTMLElement");
-            }
-            AIChat(protyle, elements[0]);
-            menu.close();
-            return;
-        }
+    if (!(target instanceof HTMLElement || target instanceof SVGElement)) { return; }
 
-        const context: AIMenuContext = {
-            protyle,
-            ids,
-            elements: elements,
-            menu,
-            clearContext
-        };
-        const request: AIMenuRequest = {
-            target: target, // 类型转换，因为 handleAIMenuItemClick 期望 HTMLElement
-            element: menuElement,
-            event
-        };
+    const currentElement = target.closest(".b3-list-item") as HTMLElement;
+    if (尝试处理AI聊天点击(currentElement, elements)) { return; }
 
-        handleAIMenuItemClick(context, request);
-    }
+    const context: AIMenuContext = {
+        protyle,
+        ids,
+        elements: elements,
+        menu,
+        clearContext
+    };
+    const request: AIMenuRequest = {
+        target: target, // 类型转换，因为 handleAIMenuItemClick 期望 HTMLElement
+        element: menuElement,
+        event
+    };
+
+    handleAIMenuItemClick(context, request);
 };
 
 /**
@@ -192,7 +224,7 @@ const bindMenuEvents = (
     const listElement = element.querySelector(".b3-list");
     const inputElement = element.querySelector("input");
     if (!inputElement) {
-        throw new Error ("未能找到输入框元素");
+        throw new Error("未能找到输入框元素");
     }
     // 绑定键盘事件
     inputElement.addEventListener("keydown", (event: KeyboardEvent) => {
@@ -221,25 +253,25 @@ const bindMenuEvents = (
     });
 };
 
-const getSiyuanStorage = ()=>{
-    if(!window.siyuan.storage){
+const getSiyuanStorage = () => {
+    if (!window.siyuan.storage) {
         console.error(window.siyuan);
-        throw new Error ("siyuan 对象结构错误");
+        throw new Error("siyuan 对象结构错误");
     }
-    if(!Array.isArray (window.siyuan.storage[Constants.LOCAL_AI]) ){
+    if (!Array.isArray(window.siyuan.storage[Constants.LOCAL_AI])) {
         console.error(window.siyuan.storage[Constants.LOCAL_AI]);
-        throw new Error  (`siyuan 对象结构错误 ${Constants.LOCAL_AI}应该是一个数组`);
-    
+        throw new Error(`siyuan 对象结构错误 ${Constants.LOCAL_AI}应该是一个数组`);
+
     }
     return window.siyuan.storage;
 };
 
 export const openAIActionsMenu = (elements: Element[], protyle: IProtyle) => {
-   
+
     window.siyuan.menus?.menu.remove();
     const ids = getElementsBlockId(elements);
     const menu = new Menu("ai", () => {
-        protyle.toolbar?.range&&focusByRange(protyle.toolbar.range);
+        protyle.toolbar?.range && focusByRange(protyle.toolbar.range);
     });
 
     // 使用独立函数生成自定义菜单项HTML
@@ -266,10 +298,10 @@ export const openAIActionsMenu = (elements: Element[], protyle: IProtyle) => {
     /// #if MOBILE
     menu.fullscreen();
     /// #else
-    const traget =elements[elements.length - 1];
-    if(!traget){
-        throw new Error ("目标元素不是有效的HTMLElement");
-    }  
+    const traget = elements[elements.length - 1];
+    if (!traget) {
+        throw new Error("目标元素不是有效的HTMLElement");
+    }
     const rect = traget.getBoundingClientRect();
     menu.open({
         x: rect.left,

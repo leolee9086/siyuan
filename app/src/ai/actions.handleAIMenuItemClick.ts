@@ -62,43 +62,53 @@ const handleListItemClick = (
     event: Event
 ): void => {
     const { protyle, ids, elements, menu, clearContext } = context;
-    
+
     // 对于SVG元素，需要找到包含dataset的元素
     let targetElement: HTMLElement | SVGElement | ParentNode = currentTarget;
     while (targetElement && !("dataset" in targetElement)) {
         targetElement = targetElement.parentElement;
     }
-    
+
     if (!targetElement || !("dataset" in targetElement)) {
         return;
     }
-    
-    if (targetElement.dataset.type === "recentDocs"){
-        //使用最近的文档当成actions
+
+    // 卫语句1: 处理 recentDocs 类型
+    if (targetElement.dataset.type === "recentDocs") {
         menu.close();
         ///#if !MOBILE
         selectRecentDoc().then(
-            async(docId)=>{
+            async (docId) => {
                 console.log(docId);
-                
             }
         );
         ///#endif
+        event.stopPropagation();
+        event.preventDefault();
+        return;
     }
-    
-    else if(targetElement.dataset.type === "custom") {
+
+    // 卫语句2: 处理 custom 类型
+    if (targetElement.dataset.type === "custom") {
         customDialog(protyle, ids, elements);
         menu.close();
-    } else {
-        fetchPost("/api/ai/chatGPTWithAction", { ids, action: targetElement.dataset.action }, (response) => {
-            fillContent(protyle, response.data, elements);
-        });
-        if (targetElement.dataset.action === clearContext) {
-            showMessage(siyuanI18n.clearContextSucc);
-        } else {
-            menu.close();
-        }
+        event.stopPropagation();
+        event.preventDefault();
+        return;
     }
+
+    // 默认处理: chatGPTWithAction
+    fetchPost("/api/ai/chatGPTWithAction", { ids, action: targetElement.dataset.action }, (response) => {
+        fillContent(protyle, response.data, elements);
+    });
+
+    if (targetElement.dataset.action === clearContext) {
+        showMessage(siyuanI18n.clearContextSucc);
+    }
+    if (targetElement.dataset.action !== clearContext) {
+        menu.close();
+    }
+
     event.stopPropagation();
     event.preventDefault();
 };
@@ -112,7 +122,8 @@ export const handleAIMenuItemClick = (context: AIMenuContext, request: AIMenuReq
         if (currentTarget.classList.contains("b3-list-item__action")) {
             handleListItemActionClick(currentTarget, menu, event);
             break;
-        } else if (currentTarget.classList.contains("b3-list-item")) {
+        }
+        if (currentTarget.classList.contains("b3-list-item")) {
             handleListItemClick(currentTarget, context, event);
             break;
         }
