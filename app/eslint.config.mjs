@@ -79,8 +79,8 @@ export default [{
                 message: "❌ 禁止在函数内部定义命名函数。请将函数提取到模块顶层，或使用匿名箭头函数。",
             },
             {
-                selector: "MemberExpression[object.type='CallExpression'][object.callee.property.name='querySelector']",
-                message: "❌ 禁止在 querySelector 之后直接使用属性访问标识符。请声明为变量再使用。",
+                selector: "MemberExpression[object.type='CallExpression'][object.callee.property.name=/^(querySelector|querySelectorAll|getElementById|getElementsByClassName|getElementsByTagName)$/]",
+                message: "❌ 禁止在 DOM 获取接口 (querySelector, getElementById 等) 之后直接使用属性访问标识符。请声明为变量再使用。",
             },
         ],
         "max-lines": ["error", { "max": 300, "skipBlankLines": true, "skipComments": true }],
