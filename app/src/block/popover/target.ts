@@ -7,16 +7,17 @@ import { BlockPanel } from "../Panel";
 import { hasClosestByAttribute, hasClosestByClassName, hasClosestBlock } from "../../protyle/util/hasClosest";
 import { Constants } from "../../constants";
 import { isTouchDevice } from "../../util/functions";
+import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig";
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 模块状态
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 /** 当前悬停的 Popover 目标元素 */
-let popoverTargetElement: HTMLElement;
+let popoverTargetElement: HTMLElement | undefined;
 
 /** 获取当前 popover 目标元素 */
-export const getPopoverTargetElement = (): HTMLElement => popoverTargetElement;
+export const getPopoverTargetElement = (): HTMLElement | undefined => popoverTargetElement;
 
 /** 设置当前 popover 目标元素 */
 export const setPopoverTargetElement = (element: HTMLElement) => {
@@ -44,6 +45,34 @@ export const findBlockRefTarget = (target: HTMLElement): HTMLElement | undefined
     }
 
     return element || undefined;
+};
+
+/**
+ * 查找链接目标元素
+ */
+export const findLinkTarget = (target: HTMLElement): HTMLElement | undefined => {
+    const linkElement = hasClosestByAttribute(target, "data-type", "a", true);
+    if (linkElement && linkElement.getAttribute("data-href")?.startsWith("siyuan://blocks")) {
+        return linkElement;
+    }
+    return undefined;
+};
+
+/**
+ * 从传递的 aElement 中查找目标
+ */
+export const findTargetFromPropagatedLink = (aElement: HTMLElement): HTMLElement | undefined => {
+    if (aElement.getAttribute("data-href")?.startsWith("siyuan://blocks") && aElement.getAttribute("prevent-popover") !== "true") {
+        return aElement;
+    }
+    if (!aElement.classList.contains("av__cell")) {
+        return undefined;
+    }
+    const textElement = aElement.querySelector(".av__celltext--url") as HTMLElement;
+    if (textElement?.dataset.type === "url" && textElement.dataset.href?.startsWith("siyuan://blocks")) {
+        return textElement;
+    }
+    return undefined;
 };
 
 /**
@@ -91,6 +120,18 @@ export const hasBlockingMenu = (target: HTMLElement): boolean => {
     return false;
 };
 
+/**
+ * 检查是否选中了文本且选区在目标元素内
+ */
+const hasSelectionInTarget = (target: HTMLElement): boolean => {
+    const selection = getSelection();
+    if (!selection || selection.rangeCount === 0) {
+        return false;
+    }
+    const range = selection.getRangeAt(0);
+    return range.toString() !== "" && target.contains(range.startContainer);
+};
+
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // BlockPanel 清理函数
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -101,16 +142,14 @@ export const hasBlockingMenu = (target: HTMLElement): boolean => {
 const getMaxEditLevels = (): Record<string, number> => {
     const maxEditLevels: Record<string, number> = { oid: 0 };
     window.siyuan.blockPanels.forEach((item) => {
-        if ((item.targetElement || typeof item.x === "number") && item.element.getAttribute("data-pin") === "true") {
-            const level = parseInt(item.element.getAttribute("data-level"));
-            const oid = item.element.getAttribute("data-oid");
-            if (maxEditLevels[oid]) {
-                if (level > maxEditLevels[oid]) {
-                    maxEditLevels[oid] = level;
-                }
-            } else {
-                maxEditLevels[oid] = level; // 不能为1，否则 pin 住第三层，第二层会消失
-            }
+        if (!((item.targetElement || typeof item.x === "number") && item.element.getAttribute("data-pin") === "true")) {
+            return;
+        }
+
+        const level = parseInt(item.element.getAttribute("data-level") || "0");
+        const oid = item.element.getAttribute("data-oid") || "";
+        if (!maxEditLevels[oid] || level > maxEditLevels[oid]) {
+            maxEditLevels[oid] = level; // 不能为1，否则 pin 住第三层，第二层会消失
         }
     });
     return maxEditLevels;
@@ -135,26 +174,27 @@ const cleanupBlockPanelsWithBlock = (
     maxEditLevels: Record<string, number>,
     menuLevel: number
 ): void => {
-    const blockLevel = parseInt(blockElement.getAttribute("data-level"));
+    const blockLevel = parseInt(blockElement.getAttribute("data-level") || "0");
 
     for (let i = window.siyuan.blockPanels.length - 1; i >= 0; i--) {
         const item = window.siyuan.blockPanels[i];
-        const itemLevel = parseInt(item.element.getAttribute("data-level"));
+        const itemLevel = parseInt(item.element.getAttribute("data-level") || "0");
 
-        if ((item.targetElement || typeof item.x === "number") &&
-            itemLevel > (maxEditLevels[item.element.getAttribute("data-oid")] || 0) &&
+        if (!((item.targetElement || typeof item.x === "number") &&
+            itemLevel > (maxEditLevels[item.element.getAttribute("data-oid") || ""] || 0) &&
             item.element.getAttribute("data-pin") === "false" &&
-            itemLevel > blockLevel) {
-
-            if (menuLevel && menuLevel >= itemLevel) {
-                // 有 gutter 菜单时不隐藏
-                break;
-            }
-            if (hasOpenToolbar(item)) {
-                break;
-            }
-            item.destroy();
+            itemLevel > blockLevel)) {
+            continue;
         }
+
+        if (menuLevel && menuLevel >= itemLevel) {
+            // 有 gutter 菜单时不隐藏
+            break;
+        }
+        if (hasOpenToolbar(item)) {
+            break;
+        }
+        item.destroy();
     }
 };
 
@@ -167,24 +207,52 @@ const cleanupAllUnpinnedBlockPanels = (
 ): void => {
     for (let i = window.siyuan.blockPanels.length - 1; i >= 0; i--) {
         const item = window.siyuan.blockPanels[i];
-        const itemLevel = parseInt(item.element.getAttribute("data-level"));
+        const itemLevel = parseInt(item.element.getAttribute("data-level") || "0");
 
-        if ((item.targetElement || typeof item.x === "number") && item.element.getAttribute("data-pin") === "false") {
-            if (menuLevel && menuLevel >= itemLevel) {
-                // 有 gutter 菜单时不隐藏
-                break;
-            }
-            // 点击嵌入块后浮窗消失后再快速点击嵌入块无法弹出浮窗 https://github.com/siyuan-note/siyuan/issues/12511
-            if (item.targetElement?.classList.contains("protyle-wysiwyg__embed") &&
-                item.targetElement.contains(targetElement)) {
-                break;
-            }
-            if (hasOpenToolbar(item)) {
-                break;
-            }
-            item.destroy();
+        if (!((item.targetElement || typeof item.x === "number") && item.element.getAttribute("data-pin") === "false")) {
+            continue;
         }
+
+        if (menuLevel && menuLevel >= itemLevel) {
+            // 有 gutter 菜单时不隐藏
+            break;
+        }
+        // 点击嵌入块后浮窗消失后再快速点击嵌入块无法弹出浮窗 https://github.com/siyuan-note/siyuan/issues/12511
+        if (item.targetElement?.classList.contains("protyle-wysiwyg__embed") &&
+            item.targetElement.contains(targetElement)) {
+            break;
+        }
+        if (hasOpenToolbar(item)) {
+            break;
+        }
+        item.destroy();
     }
+};
+
+/**
+ * 清理 Popover 相关的 BlockPanel
+ */
+const cleanupPopovers = (target: HTMLElement, event: MouseEvent & { path?: HTMLElement[] }): void => {
+    // 移动到弹窗的 loading 元素上，但经过 settimeout 后 loading 已经被移除了
+    // https://ld246.com/article/1673596577519/comment/1673767749885#comments
+    let targetElement = target;
+    if (!targetElement.parentElement && event.path?.[1]) {
+        targetElement = event.path![1];
+    }
+
+    const blockElement = hasClosestByClassName(targetElement, "block__popover", true);
+    const maxEditLevels = getMaxEditLevels();
+
+    if (!window.siyuan.menus?.menu?.element) {
+        return;
+    }
+    const menuLevel = parseInt(window.siyuan.menus.menu.element.dataset.from || "0");
+
+    if (blockElement) {
+        cleanupBlockPanelsWithBlock(blockElement, maxEditLevels, menuLevel);
+        return;
+    }
+    cleanupAllUnpinnedBlockPanels(targetElement, menuLevel);
 };
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -213,32 +281,11 @@ export const hidePopover = (event: MouseEvent & { path?: HTMLElement[] }): boole
     }
 
     // 更新 popoverTargetElement
-    popoverTargetElement = findBlockRefTarget(target);
-    if (!popoverTargetElement) {
-        const linkElement = hasClosestByAttribute(target, "data-type", "a", true);
-        if (linkElement && linkElement.getAttribute("data-href")?.startsWith("siyuan://blocks")) {
-            popoverTargetElement = linkElement;
-        }
-    }
+    popoverTargetElement = findBlockRefTarget(target) || findLinkTarget(target);
 
     // 处理 BlockPanel 清理
     if (!popoverTargetElement || (popoverTargetElement && window.siyuan.menus.menu.data && window.siyuan.menus.menu.data === popoverTargetElement)) {
-        // 移动到弹窗的 loading 元素上，但经过 settimeout 后 loading 已经被移除了
-        // https://ld246.com/article/1673596577519/comment/1673767749885#comments
-        let targetElement = target;
-        if (!targetElement.parentElement && event.path?.[1]) {
-            targetElement = event.path[1];
-        }
-
-        const blockElement = hasClosestByClassName(targetElement, "block__popover", true);
-        const maxEditLevels = getMaxEditLevels();
-        const menuLevel = parseInt(window.siyuan.menus.menu.element.dataset.from);
-
-        if (blockElement) {
-            cleanupBlockPanelsWithBlock(blockElement, maxEditLevels, menuLevel);
-        } else {
-            cleanupAllUnpinnedBlockPanels(targetElement, menuLevel);
-        }
+        cleanupPopovers(target, event);
     }
 
     return true;
@@ -249,38 +296,29 @@ export const hidePopover = (event: MouseEvent & { path?: HTMLElement[] }): boole
  * @returns 是否找到有效目标
  */
 export const getTarget = (event: MouseEvent & { target: HTMLElement }, aElement: false | HTMLElement): boolean => {
-    if (window.siyuan.config.editor.floatWindowMode === 2 || hasClosestByClassName(event.target, "history__repo", true)) {
+    if (getSiyuanConfig().editor.floatWindowMode === 2 || hasClosestByClassName(event.target, "history__repo", true)) {
         return false;
     }
 
     popoverTargetElement = findBlockRefTarget(event.target);
 
     // 处理链接元素
-    if (!popoverTargetElement && aElement) {
-        if (aElement.getAttribute("data-href")?.startsWith("siyuan://blocks") && aElement.getAttribute("prevent-popover") !== "true") {
-            popoverTargetElement = aElement;
-        } else if (aElement.classList.contains("av__cell")) {
-            const textElement = aElement.querySelector(".av__celltext--url") as HTMLElement;
-            if (textElement?.dataset.type === "url" && textElement.dataset.href?.startsWith("siyuan://blocks")) {
-                popoverTargetElement = textElement;
-            }
-        }
+    const linkTarget = (!popoverTargetElement && aElement) ? findTargetFromPropagatedLink(aElement) : undefined;
+    if (linkTarget) {
+        popoverTargetElement = linkTarget;
     }
 
     // 检查是否应该显示 popover
     if (!popoverTargetElement || window.siyuan.altIsPressed ||
-        (window.siyuan.config.editor.floatWindowMode === 0 && window.siyuan.ctrlIsPressed) ||
+        (getSiyuanConfig().editor.floatWindowMode === 0 && window.siyuan.ctrlIsPressed) ||
         popoverTargetElement?.getAttribute("prevent-popover") === "true") {
         return false;
     }
 
     // https://github.com/siyuan-note/siyuan/issues/4314
     // 选中文本时不显示 popover
-    if (popoverTargetElement && getSelection().rangeCount > 0) {
-        const range = getSelection().getRangeAt(0);
-        if (range.toString() !== "" && popoverTargetElement.contains(range.startContainer)) {
-            return false;
-        }
+    if (popoverTargetElement && hasSelectionInTarget(popoverTargetElement)) {
+        return false;
     }
 
     return true;

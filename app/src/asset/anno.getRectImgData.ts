@@ -22,17 +22,17 @@ async function extractRectImageData(pdfObj: any, pageNumber: number, rectElement
     }
     const rectStyle = (rectElement.firstElementChild as HTMLElement).style;
     const scale = 1.5;
-    
+
     // 确保所有参数都是整数，避免 "Value is not of type 'long'" 错误
     const x = Math.round(scale * parseFloat(rectStyle.left || "0"));
     const y = Math.round(scale * parseFloat(rectStyle.top || "0"));
     const width = Math.round(scale * parseFloat(rectStyle.width || "0"));
     const height = Math.round(scale * parseFloat(rectStyle.height || "0"));
-    
+
     // 确保宽度和高度至少为1像素
     const finalWidth = Math.max(1, width);
     const finalHeight = Math.max(1, height);
-    
+
     // 确保坐标在画布范围内
     const canvasWidth = captureCanvas.width;
     const canvasHeight = captureCanvas.height;
@@ -40,7 +40,7 @@ async function extractRectImageData(pdfObj: any, pageNumber: number, rectElement
     const clampedY = Math.max(0, Math.min(y, canvasHeight - 1));
     const clampedWidth = Math.min(finalWidth, canvasWidth - clampedX);
     const clampedHeight = Math.min(finalHeight, canvasHeight - clampedY);
-    
+
     return captureCanvasCtx.getImageData(clampedX, clampedY, clampedWidth, clampedHeight);
 }
 
@@ -49,7 +49,9 @@ function convertImageDataToDataUrl(imageData: ImageData): string {
     tempCanvas.width = imageData.width;
     tempCanvas.height = imageData.height;
     const ctx = tempCanvas.getContext("2d");
-    ctx && ctx.putImageData(imageData, 0, 0);
+    if (ctx) {
+        ctx.putImageData(imageData, 0, 0);
+    }
     return tempCanvas.toDataURL();
 }
 
