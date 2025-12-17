@@ -122,21 +122,44 @@ export const originalPath = () => {
     return path;
 };
 
+/**
+ * 检查给定路径是否为任何已存在路径的子路径
+ * @param path 要检查的路径
+ * @param existingPaths 已存在的路径列表
+ * @returns 如果是子路径则返回true，否则返回false
+ */
+const isChildPath = (path: string, existingPaths: string[]): boolean => {
+    return existingPaths.some(existingPath =>
+        path.startsWith(existingPath.replace(".sy", ""))
+    );
+};
+
 export const getTopPaths = (liElements: Element[]) => {
     const fromPaths: string[] = [];
-    liElements.forEach((item: HTMLElement) => {
-        if (item.getAttribute("data-type") !== "navigation-root") {
-            const dataPath = item.getAttribute("data-path");
-            const isChild = fromPaths.find(item => {
-                if (dataPath.startsWith(item.replace(".sy", ""))) {
-                    return true;
-                }
-            });
-            if (!isChild) {
-                fromPaths.push(dataPath);
-            }
+    
+    for (const element of liElements) {
+        // 确保元素是HTMLElement类型
+        if (!(element instanceof HTMLElement)) {
+            continue;
         }
-    });
+        
+        // 检查是否为非根导航元素
+        if (element.getAttribute("data-type") === "navigation-root") {
+            continue;
+        }
+        
+        // 获取data-path属性并检查是否为null
+        const dataPath = element.getAttribute("data-path");
+        if (!dataPath) {
+            continue;
+        }
+        
+        // 检查是否为子路径，如果不是则添加到结果中
+        if (!isChildPath(dataPath, fromPaths)) {
+            fromPaths.push(dataPath);
+        }
+    }
+    
     return fromPaths;
 };
 
