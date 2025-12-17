@@ -2,7 +2,8 @@
 /// #endif
 import { confirmDialog } from "../dialog/confirmDialog";
 import { isMobile } from "../util/functions";
-import { movePathTo, moveToPath } from "../util/pathName";
+import { moveToPath } from "../util/pathName";
+import { movePathTo } from "../util/pathName/movePathTo";
 import { MenuItem } from "./Menu.Item";
 import { onExport, saveExport } from "../protyle/export";
 import { isInAndroid, isInHarmony, isInIOS, openByMobile } from "../protyle/util/compatibility";

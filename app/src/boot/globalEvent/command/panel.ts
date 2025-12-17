@@ -20,7 +20,8 @@ import {addEditorToDatabase, addFilesToDatabase} from "../../../protyle/render/a
 import {hasClosestBlock, hasClosestByClassName, hasTopClosestByTag} from "../../../protyle/util/hasClosest";
 import {onlyProtyleCommand} from "./protyle";
 import {globalCommand} from "./global";
-import {getDisplayName, getNotebookName, getTopPaths, movePathTo, moveToPath, pathPosix} from "../../../util/pathName";
+import {getDisplayName, getNotebookName, getTopPaths, moveToPath, pathPosix} from "../../../util/pathName";
+import { movePathTo } from "../../../util/pathName/movePathTo";
 import {hintMoveBlock} from "../../../protyle/hint/extend";
 import {fetchSyncPost} from "../../../util/fetch";
 import {focusByRange} from "../../../protyle/util/selection";

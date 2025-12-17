@@ -17,7 +17,8 @@ import {openFile} from "../editor/util";
 import {ipcRenderer} from "electron";
 /// #endif
 import * as dayjs from "dayjs";
-import {getDisplayName, movePathTo} from "../util/pathName";
+import {getDisplayName} from "../util/pathName";
+import { movePathTo } from "../util/pathName/movePathTo";
 import {App} from "../index";
 import {resize} from "../protyle/util/resize";
 import {setStorageVal} from "../protyle/util/compatibility";
