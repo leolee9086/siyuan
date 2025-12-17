@@ -55,7 +55,7 @@ export default [{
             "error",
             {
                 selector: "IfStatement[alternate]",
-                message: "❌ 禁止使用 else。请使用 \"卫语句 (Guard Clauses)\" 扁平化逻辑。",
+                message: "❌ 禁止使用 else。请使用 \"卫语句 (Guard Clauses)\" 或者其它策略扁平化逻辑。",
             },
             {
                 selector: "IfStatement > BlockStatement > IfStatement",
