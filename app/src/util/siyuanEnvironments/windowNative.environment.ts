@@ -1,4 +1,3 @@
-
 /**
  * 封装 window.webkit
  * @returns window.webkit
