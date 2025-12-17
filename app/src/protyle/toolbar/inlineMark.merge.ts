@@ -28,13 +28,13 @@ function 获取前一个有效元素(
 ): HTMLElement | null {
     let previousElement = currentIndex === newNodes.length
         ? newNodes[currentIndex - 1] as HTMLElement
-        : hasPreviousSibling(newNodes[currentIndex]) as HTMLElement;
+        : hasPreviousSibling(newNodes[currentIndex] as Node) as HTMLElement;
 
     if (previousElement?.nodeType === 3 && previousElement.textContent === Constants.ZWSP) {
         previousElement = hasPreviousSibling(previousElement) as HTMLElement;
-        if (previousElement) {
-            previousElement.nextSibling?.remove();
-        }
+    }
+    if (previousElement?.nextSibling) {
+        previousElement.nextSibling.remove();
     }
     return previousElement || null;
 }
@@ -48,12 +48,9 @@ function 获取当前有效节点(
     let currentNode = newNodes[currentIndex] as HTMLElement;
     if (!currentNode) {
         currentNode = hasNextSibling(newNodes[currentIndex - 1] as Node) as HTMLElement;
-        if (currentNode?.nodeType === 3 && currentNode.textContent === Constants.ZWSP) {
-            currentNode = hasNextSibling(currentNode) as HTMLElement;
-        }
-        if (currentNode) {
-            currentNode.previousSibling?.remove();
-        }
+        const 是ZWSP节点 = currentNode?.nodeType === 3 && currentNode.textContent === Constants.ZWSP;
+        currentNode = 是ZWSP节点 ? hasNextSibling(currentNode) as HTMLElement : currentNode;
+        currentNode?.previousSibling?.remove();
     }
     return currentNode || null;
 }
@@ -95,11 +92,11 @@ function 执行合并内容(currentNode: HTMLElement, previousElement: HTMLEleme
 
     const 是相同引用 = currentType.includes("block-ref") &&
         previousElement.getAttribute("data-id") === currentNode.getAttribute("data-id");
+    if (是相同引用 && (previousElement.dataset.subtype !== "d" || currentNode.dataset.subtype !== "d")) {
+        currentNode.setAttribute("data-subtype", "s");
+        currentNode.textContent = (previousElement.textContent || "") + (currentNode.textContent || "");
+    }
     if (是相同引用) {
-        if (previousElement.dataset.subtype !== "d" || previousElement.dataset.subtype !== "d") {
-            currentNode.setAttribute("data-subtype", "s");
-            currentNode.textContent = (previousElement.textContent || "") + (currentNode.textContent || "");
-        }
         return;
     }
 
@@ -137,9 +134,9 @@ function 更新Range位置(
     if (currentIndex === newNodesLength) {
         result.endContainer = currentNode;
         result.endOffset = previousElement.textContent?.length || 0;
-        if (!result.startContainer || result.startContainer === previousElement) {
-            result.startContainer = currentNode;
-        }
+    }
+    if (currentIndex === newNodesLength && (!result.startContainer || result.startContainer === previousElement)) {
+        result.startContainer = currentNode;
     }
 }
 
