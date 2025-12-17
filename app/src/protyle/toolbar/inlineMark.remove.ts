@@ -43,11 +43,12 @@ function 处理空选区移除(
     // 移除不应继承的类型
     let removeIndex = 0;
     while (removeIndex < rangeTypes.length) {
-        if (["inline-memo", "text", "block-ref", "virtual-block-ref", "file-annotation-ref", "a"].includes(rangeTypes[removeIndex])) {
+        const shouldRemove = ["inline-memo", "text", "block-ref", "virtual-block-ref", "file-annotation-ref", "a"].includes(rangeTypes[removeIndex]);
+        if (shouldRemove) {
             rangeTypes.splice(removeIndex, 1);
-        } else {
-            ++removeIndex;
+            continue;
         }
+        ++removeIndex;
     }
 
     const inlineElement = document.createElement("span");
@@ -55,8 +56,9 @@ function 处理空选区移除(
     inlineElement.textContent = Constants.ZWSP;
     newNodes.push(inlineElement);
 
+    const firstNode = newNodes[0];
     return {
-        startContainer: newNodes[0].firstChild,
+        startContainer: firstNode.firstChild,
         startOffset: 1,
         keepZWPS: true
     };

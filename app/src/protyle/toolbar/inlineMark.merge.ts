@@ -32,9 +32,9 @@ function 获取前一个有效元素(
 
     if (previousElement?.nodeType === 3 && previousElement.textContent === Constants.ZWSP) {
         previousElement = hasPreviousSibling(previousElement) as HTMLElement;
-    }
-    if (previousElement?.nextSibling) {
-        previousElement.nextSibling.remove();
+        if (previousElement) {
+            previousElement.nextSibling.remove();
+        }
     }
     return previousElement || null;
 }
@@ -48,9 +48,12 @@ function 获取当前有效节点(
     let currentNode = newNodes[currentIndex] as HTMLElement;
     if (!currentNode) {
         currentNode = hasNextSibling(newNodes[currentIndex - 1] as Node) as HTMLElement;
-        const 是ZWSP节点 = currentNode?.nodeType === 3 && currentNode.textContent === Constants.ZWSP;
-        currentNode = 是ZWSP节点 ? hasNextSibling(currentNode) as HTMLElement : currentNode;
-        currentNode?.previousSibling?.remove();
+        if (currentNode && currentNode.nodeType === 3 && currentNode.textContent === Constants.ZWSP) {
+            currentNode = hasNextSibling(currentNode) as HTMLElement;
+            if (currentNode) {
+                currentNode.previousSibling.remove();
+            }
+        }
     }
     return currentNode || null;
 }
