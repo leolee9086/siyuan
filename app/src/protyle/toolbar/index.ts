@@ -48,7 +48,7 @@ import { escapeHtml } from "../../util/escape";
 import { resizeSide } from "../../history/resizeSide";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { mergeNodes } from "../../util/DOM/rangeOperations";
-import { 显示特殊类型菜单, 整理零宽空格, 合并相邻同类型元素 } from "./inlineMark/setInlineMark.helper";
+import { 显示特殊类型菜单, 整理零宽空格, 合并相邻同类型元素, 移除内联标记 } from "./inlineMark";
 
 export class Toolbar {
     public element: HTMLElement;
@@ -404,93 +404,27 @@ export class Toolbar {
         }
         const toolbarElement = isMobile() ? document.querySelector("#keyboardToolbar .keyboard__dynamic").nextElementSibling : this.element;
         const actionBtn = action === "toolbar" ? toolbarElement.querySelector(`[data-type="${type}"]`) : undefined;
-        const newNodes: Node[] = [];
-        let startContainer: Node;
-        let endContainer: Node;
-        let startOffset: number;
-        let endOffset: number;
+        let newNodes: Node[] = [];
+        let startContainer: Node | undefined;
+        let endContainer: Node | undefined;
+        let startOffset: number | undefined;
+        let endOffset: number | undefined;
         if (type === "clear" || actionBtn?.classList.contains("protyle-toolbar__item--current") || (
             action === "range" && rangeTypes.length > 0 && rangeTypes.includes(type) && !textObj
         )) {
             // 移除
-            if (type === "clear") {
-                toolbarElement.querySelectorAll('[data-type="strong"],[data-type="em"],[data-type="u"],[data-type="s"],[data-type="mark"],[data-type="sup"],[data-type="sub"],[data-type="kbd"],[data-type="mark"],[data-type="code"]').forEach(item => {
-                    item.classList.remove("protyle-toolbar__item--current");
-                });
-            } else if (actionBtn) {
-                actionBtn.classList.remove("protyle-toolbar__item--current");
-            }
-            if (contents.childNodes.length === 0) {
-                rangeTypes.find((itemType, index) => {
-                    if (type === itemType) {
-                        rangeTypes.splice(index, 1);
-                        return true;
-                    }
-                });
-                if (rangeTypes.length === 0 || type === "clear") {
-                    newNodes.push(document.createTextNode(Constants.ZWSP));
-                    startContainer = newNodes[0];
-                } else {
-                    let removeIndex = 0;
-                    while (removeIndex < rangeTypes.length) {
-                        if (["inline-memo", "text", "block-ref", "virtual-block-ref", "file-annotation-ref", "a"].includes(rangeTypes[removeIndex])) {
-                            rangeTypes.splice(removeIndex, 1);
-                        } else {
-                            ++removeIndex;
-                        }
-                    }
-                    const inlineElement = document.createElement("span");
-                    inlineElement.setAttribute("data-type", rangeTypes.join(" "));
-                    inlineElement.textContent = Constants.ZWSP;
-                    newNodes.push(inlineElement);
-                    startContainer = newNodes[0].firstChild;
-                }
-                keepZWPS = true;
-                startOffset = 1;
-            }
-            contents.childNodes.forEach((item: HTMLElement) => {
-                if (item.nodeType !== 3 && item.tagName !== "BR" && item.tagName !== "IMG" && !item.classList.contains("img")) {
-                    const types = (item.getAttribute("data-type") || "").split(" ");
-                    if (type === "clear") {
-                        for (let i = 0; i < types.length; i++) {
-                            if (textObj && textObj.type === "text") {
-                                if ("text" === types[i]) {
-                                    types.splice(i, 1);
-                                    i--;
-                                }
-                            } else {
-                                if (["kbd", "text", "strong", "em", "u", "s", "mark", "sup", "sub", "code"].includes(types[i])) {
-                                    types.splice(i, 1);
-                                    i--;
-                                }
-                            }
-                        }
-                    } else {
-                        types.find((itemType, typeIndex) => {
-                            if (type === itemType) {
-                                types.splice(typeIndex, 1);
-                                return true;
-                            }
-                        });
-                    }
-                    if (types.length === 0) {
-                        newNodes.push(document.createTextNode(item.textContent));
-                    } else {
-                        if (type === "clear") {
-                            item.style.color = "";
-                            item.style.webkitTextFillColor = "";
-                            item.style.webkitTextStroke = "";
-                            item.style.textShadow = "";
-                            item.style.backgroundColor = "";
-                            item.style.fontSize = "";
-                        }
-                        item.setAttribute("data-type", types.join(" "));
-                        newNodes.push(item);
-                    }
-                } else {
-                    newNodes.push(item);
-                }
-            });
+            const result = 移除内联标记(
+                contents as DocumentFragment,
+                type,
+                rangeTypes,
+                toolbarElement,
+                actionBtn,
+                textObj
+            );
+            newNodes = result.newNodes;
+            startContainer = result.startContainer;
+            startOffset = result.startOffset;
+            keepZWPS = result.keepZWPS;
         } else {
             // 添加
             if (!this.element.classList.contains("fn__none") && type !== "text" && actionBtn) {

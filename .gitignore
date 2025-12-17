@@ -45,4 +45,4 @@ node_modules
 # toread
 #/toread
 # Plan files
-**.plan.md
+#**.plan.md

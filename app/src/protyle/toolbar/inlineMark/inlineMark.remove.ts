@@ -10,8 +10,8 @@ import { Constants } from "../../../constants";
  */
 export interface 移除标记结果 {
     newNodes: Node[];
-    startContainer?: Node;
-    startOffset?: number;
+    startContainer?: Node | undefined;
+    startOffset?: number | undefined;
     keepZWPS: boolean;
 }
 
@@ -22,7 +22,7 @@ function 处理空选区移除(
     type: string,
     rangeTypes: string[],
     newNodes: Node[]
-): { startContainer?: Node; startOffset?: number; keepZWPS: boolean } {
+): { startContainer?: Node | undefined; startOffset?: number | undefined; keepZWPS: boolean } {
     // 从 rangeTypes 中移除当前 type
     rangeTypes.find((itemType, index) => {
         if (type === itemType) {
@@ -43,7 +43,8 @@ function 处理空选区移除(
     // 移除不应继承的类型
     let removeIndex = 0;
     while (removeIndex < rangeTypes.length) {
-        const shouldRemove = ["inline-memo", "text", "block-ref", "virtual-block-ref", "file-annotation-ref", "a"].includes(rangeTypes[removeIndex]);
+        const currentType = rangeTypes[removeIndex];
+        const shouldRemove = currentType && ["inline-memo", "text", "block-ref", "virtual-block-ref", "file-annotation-ref", "a"].includes(currentType);
         if (shouldRemove) {
             rangeTypes.splice(removeIndex, 1);
             continue;
@@ -58,7 +59,7 @@ function 处理空选区移除(
 
     const firstNode = newNodes[0];
     return {
-        startContainer: firstNode.firstChild,
+        startContainer: firstNode?.firstChild || undefined,
         startOffset: 1,
         keepZWPS: true
     };
@@ -97,9 +98,13 @@ function 处理元素节点类型移除(
     }
     if (type === "clear") {
         for (let i = 0; i < types.length; i++) {
+            const currentType = types[i];
+            if (!currentType) {
+                continue;
+            }
             const shouldRemove = textObj?.type === "text"
-                ? "text" === types[i]
-                : ["kbd", "text", "strong", "em", "u", "s", "mark", "sup", "sub", "code"].includes(types[i]);
+                ? "text" === currentType
+                : ["kbd", "text", "strong", "em", "u", "s", "mark", "sup", "sub", "code"].includes(currentType);
             if (shouldRemove) {
                 types.splice(i, 1);
                 i--;

@@ -1,6 +1,6 @@
-import {ToolbarItem} from "./ToolbarItem";
+import { ToolbarItem } from "./ToolbarItem";
 import { hintRef } from "../hint/extend.hintRef";
-import {fixTableRange} from "../util/selection";
+import { fixTableRange } from "../util/selection";
 
 export class BlockRef extends ToolbarItem {
     public declare element: HTMLElement;
@@ -8,14 +8,20 @@ export class BlockRef extends ToolbarItem {
     constructor(protyle: IProtyle, menuItem: IMenuItem) {
         super(protyle, menuItem);
         // 不能用 getEventName，否则会导致光标位置变动到点击的文档中
-        this.element.addEventListener("click", (event: MouseEvent & { changedTouches: MouseEvent[] }) => {
-            if (protyle.toolbar.range.toString() === "") {
-                return;
-            }
-            fixTableRange(protyle.toolbar.range);
-            hintRef(protyle.toolbar.range.toString(), protyle, "search");
-            protyle.toolbar.element.classList.add("fn__none");
-            event.stopPropagation();
+        this.element.addEventListener("click", (event: MouseEvent) => {
+            blockRefEvent(protyle, event);
         });
     }
 }
+
+const blockRefEvent = (protyle: IProtyle, event: MouseEvent) => {
+    const range = protyle.toolbar?.range;
+    if (!range || range.toString() === "") {
+        return;
+    }
+    fixTableRange(range);
+    hintRef(range.toString(), protyle, "search");
+    protyle.toolbar?.element.classList.add("fn__none");
+    event.stopPropagation();
+};
+

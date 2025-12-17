@@ -32,11 +32,25 @@ function 获取前一个有效元素(
 
     if (previousElement?.nodeType === 3 && previousElement.textContent === Constants.ZWSP) {
         previousElement = hasPreviousSibling(previousElement) as HTMLElement;
-        if (previousElement) {
-            previousElement.nextSibling.remove();
-        }
+        previousElement?.nextSibling?.remove();
     }
     return previousElement || null;
+}
+
+/** 跳过 ZWSP 节点并移除它 (用于向后查找时) */
+function 跳过ZWSP节点(
+    node: HTMLElement,
+    hasNextSibling: (node: Node) => Node | false
+): HTMLElement | null {
+    if (!node || node.nodeType !== 3 || node.textContent !== Constants.ZWSP) {
+        return node;
+    }
+    const nextNode = hasNextSibling(node as Node) as HTMLElement;
+    if (nextNode) {
+        (nextNode.previousSibling as ChildNode).remove();
+        return nextNode;
+    }
+    return null;
 }
 
 /** 获取当前有效节点（处理边界情况和 ZWSP） */
@@ -48,12 +62,7 @@ function 获取当前有效节点(
     let currentNode = newNodes[currentIndex] as HTMLElement;
     if (!currentNode) {
         currentNode = hasNextSibling(newNodes[currentIndex - 1] as Node) as HTMLElement;
-        if (currentNode && currentNode.nodeType === 3 && currentNode.textContent === Constants.ZWSP) {
-            currentNode = hasNextSibling(currentNode) as HTMLElement;
-            if (currentNode) {
-                currentNode.previousSibling.remove();
-            }
-        }
+        currentNode = 跳过ZWSP节点(currentNode, hasNextSibling) as HTMLElement;
     }
     return currentNode || null;
 }
