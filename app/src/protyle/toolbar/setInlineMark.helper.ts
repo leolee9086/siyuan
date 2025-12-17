@@ -165,3 +165,133 @@ function 处理尾部ZWSP(previousElement: HTMLElement | undefined): void {
     }
     previousElement?.insertAdjacentText("afterend", Constants.ZWSP);
 }
+
+/**
+ * 合并相邻的同类型元素
+ * 当两个相邻元素具有相同的 data-type 和 text style 时，合并它们
+ * 
+ * 原始位置: index.ts L678-754
+ * 
+ * @returns 合并后需要更新的 range 位置信息
+ */
+export interface 合并结果 {
+    startContainer?: Node;
+    endContainer?: Node;
+    startOffset?: number;
+    endOffset?: number;
+}
+
+export function 合并相邻同类型元素(
+    newNodes: Node[],
+    hasPreviousSibling: (node: Node) => Node | false,
+    hasNextSibling: (node: Node) => Node | false,
+    isArrayEqual: (a: string[], b: string[]) => boolean,
+    hasSameTextStyle: (a: HTMLElement, b: HTMLElement) => boolean
+): 合并结果 {
+    let startContainer: Node | undefined;
+    let endContainer: Node | undefined;
+    let startOffset: number | undefined;
+    let endOffset: number | undefined;
+
+    for (let i = 0; i <= newNodes.length; i++) {
+        let previousElement = i === newNodes.length
+            ? newNodes[i - 1] as HTMLElement
+            : hasPreviousSibling(newNodes[i]) as HTMLElement;
+
+        if (previousElement?.nodeType === 3 && previousElement.textContent === Constants.ZWSP) {
+            previousElement = hasPreviousSibling(previousElement) as HTMLElement;
+            if (previousElement) {
+                previousElement.nextSibling?.remove();
+            }
+        }
+
+        let currentNode = newNodes[i] as HTMLElement;
+        if (!currentNode) {
+            currentNode = hasNextSibling(newNodes[i - 1]!) as HTMLElement;
+            if (currentNode?.nodeType === 3 && currentNode.textContent === Constants.ZWSP) {
+                currentNode = hasNextSibling(currentNode) as HTMLElement;
+                if (currentNode) {
+                    currentNode.previousSibling?.remove();
+                }
+            }
+        }
+
+        if (!currentNode || currentNode.nodeType === 3) {
+            continue;
+        }
+
+        const currentType = (currentNode.getAttribute("data-type") || "").split(" ");
+        const 可以合并 = currentNode.tagName !== "BR" &&
+            previousElement &&
+            previousElement.nodeType !== 3 &&
+            currentNode.nodeType !== 3 &&
+            isArrayEqual(currentType, (previousElement.getAttribute("data-type") || "").split(" ")) &&
+            hasSameTextStyle(currentNode, previousElement);
+
+        if (!可以合并) {
+            continue;
+        }
+
+        // 处理 code/tag/kbd 类型的 ZWSP 前缀
+        if (currentType.includes("code") || currentType.includes("tag") || currentType.includes("kbd")) {
+            if (currentNode.textContent?.startsWith(Constants.ZWSP)) {
+                currentNode.textContent = currentNode.textContent.substring(1);
+            }
+        }
+
+        // 合并内容
+        if (currentType.includes("inline-math")) {
+            // 数学公式合并 data-content
+            currentNode.setAttribute(
+                "data-content",
+                (previousElement.getAttribute("data-content") || "") + (currentNode.getAttribute("data-content") || "")
+            );
+        } else if (currentType.includes("block-ref") &&
+            previousElement.getAttribute("data-id") === currentNode.getAttribute("data-id")) {
+            if (previousElement.dataset.subtype !== "d" || previousElement.dataset.subtype !== "d") {
+                currentNode.setAttribute("data-subtype", "s");
+                currentNode.textContent = (previousElement.textContent || "") + (currentNode.textContent || "");
+            }
+        } else {
+            // textContent：防止赋值后 \n 转换为 br；innerText：获取 br 的 \n
+            currentNode.textContent = previousElement.innerText + currentNode.innerText;
+            // 如果为备注时，合并备注内容
+            if (currentType.includes("inline-memo")) {
+                currentNode.setAttribute(
+                    "data-inline-memo-content",
+                    (previousElement.getAttribute("data-inline-memo-content") || "") +
+                    (currentNode.getAttribute("data-inline-memo-content") || "")
+                );
+            }
+        }
+
+        // 更新 range 位置信息（非数学公式类型）
+        if (!currentType.includes("inline-math")) {
+            if (i === 0) {
+                startContainer = currentNode;
+                startOffset = previousElement.textContent?.length || 0;
+            } else if (i === newNodes.length) {
+                endContainer = currentNode;
+                endOffset = previousElement.textContent?.length || 0;
+                if (!startContainer) {
+                    startContainer = currentNode;
+                } else if (startContainer === previousElement) {
+                    startContainer = currentNode;
+                }
+            }
+        }
+
+        previousElement.remove();
+        if (i > 0) {
+            newNodes.splice(i - 1, 1);
+            i--;
+        }
+        if (newNodes.length === 0) {
+            newNodes.push(currentNode);
+            break;
+        }
+    }
+
+    return { startContainer, endContainer, startOffset, endOffset };
+}
+
