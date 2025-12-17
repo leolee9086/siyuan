@@ -3,25 +3,35 @@
  */
 
 export function assertType(value: unknown, type: any) {
-  let valid: boolean;
   const expectedType = getType(type);
   if (expectedType === "null") {
-    valid = value === null;
-  } else if (isSimpleType(expectedType)) {
+    return {
+      valid: value === null,
+      expectedType
+    };
+  }
+  if (isSimpleType(expectedType)) {
     const t = typeof value;
-    valid = t === expectedType.toLowerCase();
-    if (!valid && t === "object") {
-      valid = value instanceof type;
-    }
-  } else if (expectedType === "Object") {
-    valid = isObject(value);
-  } else if (expectedType === "Array") {
-    valid = isArray(value);
-  } else {
-    valid = value instanceof type;
+    const valid = t === expectedType.toLowerCase() || (t === "object" && value instanceof type);
+    return {
+      valid,
+      expectedType
+    };
+  }
+  if (expectedType === "Object") {
+    return {
+      valid: isObject(value),
+      expectedType
+    };
+  }
+  if (expectedType === "Array") {
+    return {
+      valid: isArray(value),
+      expectedType
+    };
   }
   return {
-    valid,
+    valid: value instanceof type,
     expectedType
   };
 }
@@ -32,7 +42,8 @@ export function getType(ctor: any): string {
   }
   if (typeof ctor === "function") {
     return ctor.name || "";
-  } else if (typeof ctor === "object") {
+  }
+  if (typeof ctor === "object") {
     const name = ctor.constructor && ctor.constructor.name;
     return name || "";
   }
@@ -55,7 +66,7 @@ const isMap = (val: unknown) => toTypeString(val) === "[object Map]";
 const isSet = (val: unknown) => toTypeString(val) === "[object Set]";
 const isDate = (val: unknown) => toTypeString(val) === "[object Date]";
 const isRegExp = (val: unknown) => toTypeString(val) === "[object RegExp]";
-const isFunction = (val: unknown): val is Function => typeof val === "function";
+const isFunction = (val: unknown): val is (...args: any[]) => any => typeof val === "function";
 const isString = (val: unknown): val is string => typeof val === "string";
 const isSymbol = (val: unknown): val is symbol => typeof val === "symbol";
 const isObject = (val: unknown): val is Record<any, any> => val !== null && typeof val === "object";

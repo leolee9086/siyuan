@@ -1,4 +1,5 @@
 import { getSiyuanConfig } from "./siyuanEnvironments/getSiyuanConfig.environment";
+import { getLocationSearch, isTouchDevice as isTouchDeviceEnv } from "./siyuanEnvironments/windowStandard.environment";
 
 const CONTAINER_BACKEND_SET = new Set(["docker", "ios", "android", "harmony"]);
 const MOBILE_BACKEND_SET = new Set(["ios", "android", "harmony"]);
@@ -26,12 +27,12 @@ export const getBackend = () => {
 // "desktop" | "desktop-window" | "mobile" | "browser-desktop" | "browser-mobile"
 export const getFrontend = () => {
     /// #if MOBILE
-    if (window.navigator.userAgent.startsWith("SiYuan/")) {
+    if (navigator.userAgent.startsWith("SiYuan/")) {
         return "mobile";
     }
     return "browser-mobile";
     /// #else
-    if (!window.navigator.userAgent.startsWith("SiYuan/")) {
+    if (!navigator.userAgent.startsWith("SiYuan/")) {
         return "browser-desktop";
     }
     return isWindow() ? "desktop-window" : "desktop";
@@ -43,7 +44,7 @@ export const isWindow = () => {
 };
 
 export const isTouchDevice = () => {
-    return ("ontouchstart" in window) && navigator.maxTouchPoints > 1;
+    return isTouchDeviceEnv();
 };
 
 export const isArrayEqual = (arr1: string[], arr2: string[]) => {
@@ -54,7 +55,7 @@ export const getRandom = (min: number, max: number) => {
     return Math.floor(Math.random() * (max - min + 1)) + min; //含最大值，含最小值
 };
 
-export const getSearch = (key: string, link = window.location.search) => {
+export const getSearch = (key: string, link = getLocationSearch()) => {
     const params = link.substring(link.indexOf("?"));
     const hashIndex = params.indexOf("#");
     // REF https://developer.mozilla.org/zh-CN/docs/Web/API/URLSearchParams
