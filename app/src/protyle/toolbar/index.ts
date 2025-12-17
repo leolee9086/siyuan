@@ -48,7 +48,7 @@ import { escapeHtml } from "../../util/escape";
 import { resizeSide } from "../../history/resizeSide";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { mergeNodes } from "../../util/DOM/rangeOperations";
-import { 显示特殊类型菜单 } from "./setInlineMark.helper";
+import { 显示特殊类型菜单, 整理零宽空格 } from "./setInlineMark.helper";
 
 export class Toolbar {
     public element: HTMLElement;
@@ -753,59 +753,7 @@ export class Toolbar {
                 }
             }
             // 整理 zwsp
-            for (let i = 0; i <= newNodes.length; i++) {
-                const previousElement = i === newNodes.length ? newNodes[i - 1] as HTMLElement : hasPreviousSibling(newNodes[i]) as HTMLElement;
-                let currentNode = newNodes[i] as HTMLElement;
-                if (!currentNode) {
-                    currentNode = hasNextSibling(newNodes[i - 1]) as HTMLElement;
-                }
-                if (!currentNode) {
-                    if (previousElement.nodeType !== 3) {
-                        const currentType = (previousElement.getAttribute("data-type") || "").split(" ");
-                        if (currentType.includes("code") || currentType.includes("tag") || currentType.includes("kbd")) {
-                            previousElement.insertAdjacentText("afterend", Constants.ZWSP);
-                        }
-                    }
-                    break;
-                }
-                if (currentNode.nodeType === 3) {
-                    if (previousElement && previousElement.nodeType === 3) {
-                        if (currentNode.textContent.startsWith(Constants.ZWSP)) {
-                            currentNode.textContent = currentNode.textContent.substring(1);
-                        }
-                        if (previousElement.textContent.endsWith(Constants.ZWSP)) {
-                            previousElement.textContent = previousElement.textContent.substring(0, previousElement.textContent.length - 2);
-                        }
-                    } else {
-                        const previousType = previousElement ? (previousElement.getAttribute("data-type") || "").split(" ") : [];
-                        if (previousType.includes("code") || previousType.includes("tag") || previousType.includes("kbd")) {
-                            if (!currentNode.textContent.startsWith(Constants.ZWSP)) {
-                                currentNode.textContent = Constants.ZWSP + currentNode.textContent;
-                            }
-                        } else if (currentNode.textContent.startsWith(Constants.ZWSP)) {
-                            currentNode.textContent = currentNode.textContent.substring(1);
-                        }
-                    }
-                } else {
-                    const currentType = currentNode.nodeType === 3 ? [] : (currentNode.getAttribute("data-type") || "").split(" ");
-                    if (currentType.includes("code") || currentType.includes("tag") || currentType.includes("kbd")) {
-                        if (!currentNode.textContent.startsWith(Constants.ZWSP)) {
-                            currentNode.insertAdjacentText("afterbegin", Constants.ZWSP);
-                        }
-                        if (!previousElement || (previousElement.nodeType === 3 && previousElement.textContent.endsWith("\n"))) {
-                            currentNode.insertAdjacentText("beforebegin", Constants.ZWSP);
-                        }
-                    } else if (currentNode.textContent.startsWith(Constants.ZWSP)) {
-                        currentNode.textContent = currentNode.textContent.substring(1);
-                    }
-                    if (previousElement && previousElement.nodeType !== 3) {
-                        const previousType = (previousElement.getAttribute("data-type") || "").split(" ");
-                        if (previousType.includes("code") || previousType.includes("tag") || previousType.includes("kbd")) {
-                            currentNode.insertAdjacentText("beforebegin", Constants.ZWSP);
-                        }
-                    }
-                }
-            }
+            整理零宽空格(newNodes, hasPreviousSibling, hasNextSibling);
         }
         nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
         updateTransaction(protyle, nodeElement.getAttribute("data-node-id"), nodeElement.outerHTML, html);

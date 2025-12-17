@@ -67,17 +67,16 @@ export function 整理零宽空格(
     hasNextSibling: (node: Node) => Node | false
 ): void {
     for (let i = 0; i <= newNodes.length; i++) {
-        const previousElement = i === newNodes.length ? newNodes[i - 1] as HTMLElement : hasPreviousSibling(newNodes[i]) as HTMLElement;
+        const nodeAtIndex = newNodes[i];
+        const previousElement = i === newNodes.length
+            ? newNodes[i - 1] as HTMLElement
+            : (nodeAtIndex ? hasPreviousSibling(nodeAtIndex) as HTMLElement : undefined);
         let currentNode = newNodes[i] as HTMLElement;
         if (!currentNode) {
-            currentNode = hasNextSibling(newNodes[i - 1]) as HTMLElement;
+            currentNode = hasNextSibling(newNodes[i - 1]!) as HTMLElement;
         }
         if (!currentNode) {
-            const currentType = previousElement?.nodeType !== 3
-                ? (previousElement?.getAttribute("data-type") || "").split(" ")
-                : [];
-            const 需要添加ZWSP = currentType.includes("code") || currentType.includes("tag") || currentType.includes("kbd");
-            需要添加ZWSP && previousElement.insertAdjacentText("afterend", Constants.ZWSP);
+            处理尾部ZWSP(previousElement);
             break;
         }
         if (currentNode.nodeType === 3) {
@@ -91,7 +90,7 @@ export function 整理零宽空格(
 /**
  * 处理文本节点的ZWSP
  */
-function 处理文本节点ZWSP(currentNode: HTMLElement, previousElement: HTMLElement): void {
+function 处理文本节点ZWSP(currentNode: HTMLElement, previousElement: HTMLElement | undefined): void {
     // 卫语句：previousElement 是文本节点的情况
     if (previousElement?.nodeType === 3 && currentNode.textContent?.startsWith(Constants.ZWSP)) {
         currentNode.textContent = currentNode.textContent.substring(1);
@@ -124,7 +123,7 @@ function 处理文本节点ZWSP(currentNode: HTMLElement, previousElement: HTMLE
 /**
  * 处理元素节点的ZWSP
  */
-function 处理元素节点ZWSP(currentNode: HTMLElement, previousElement: HTMLElement): void {
+function 处理元素节点ZWSP(currentNode: HTMLElement, previousElement: HTMLElement | undefined): void {
     const currentType = currentNode.nodeType === 3 ? [] : (currentNode.getAttribute("data-type") || "").split(" ");
 
     const 是特殊类型 = currentType.includes("code") || currentType.includes("tag") || currentType.includes("kbd");
@@ -150,4 +149,19 @@ function 处理元素节点ZWSP(currentNode: HTMLElement, previousElement: HTMLE
     if (previousType.includes("code") || previousType.includes("tag") || previousType.includes("kbd")) {
         currentNode.insertAdjacentText("beforebegin", Constants.ZWSP);
     }
+}
+
+/**
+ * 处理尾部ZWSP
+ * 当循环遍历完成后，检查最后一个元素是否需要添加尾部ZWSP
+ */
+function 处理尾部ZWSP(previousElement: HTMLElement | undefined): void {
+    const currentType = previousElement?.nodeType !== 3
+        ? (previousElement?.getAttribute("data-type") || "").split(" ")
+        : [];
+    const 需要添加ZWSP = currentType.includes("code") || currentType.includes("tag") || currentType.includes("kbd");
+    if (!需要添加ZWSP || !previousElement) {
+        return;
+    }
+    previousElement?.insertAdjacentText("afterend", Constants.ZWSP);
 }
