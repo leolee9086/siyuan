@@ -1,11 +1,11 @@
-import {setStorageVal, updateHotkeyTip} from "../util/compatibility";
-import {ToolbarItem} from "./ToolbarItem";
-import {setPosition} from "../../util/setPosition";
-import {focusByRange, getSelectionPosition} from "../util/selection";
-import {Constants} from "../../constants";
-import {hasClosestBlock, hasClosestByAttribute} from "../util/hasClosest";
-import {updateBatchTransaction} from "../wysiwyg/transaction";
-import {lineNumberRender} from "../render/highlightRender";
+import { setStorageVal, updateHotkeyTip } from "../util/compatibility";
+import { ToolbarItem } from "./ToolbarItem";
+import { setPosition } from "../../util/setPosition";
+import { focusByRange, getSelectionPosition } from "../util/selection";
+import { Constants } from "../../constants";
+import { hasClosestBlock, hasClosestByAttribute } from "../util/hasClosest";
+import { updateBatchTransaction } from "../wysiwyg/transaction";
+import { lineNumberRender } from "../render/highlightRender";
 
 export class Font extends ToolbarItem {
     public declare element: HTMLElement;
@@ -36,15 +36,15 @@ export const appearanceMenu = (protyle: IProtyle, nodeElements?: Element[]) => {
         "var(--b3-font-color5)", "var(--b3-font-color6)", "var(--b3-font-color7)", "var(--b3-font-color8)",
         "var(--b3-font-color9)", "var(--b3-font-color10)", "var(--b3-font-color11)", "var(--b3-font-color12)",
         "var(--b3-font-color13)"].forEach((item) => {
-        colorHTML += `<button ${item ? `class="color__square" style="color:${item}"` : `class="color__square ariaLabel" data-position="3south" aria-label="${window.siyuan.languages.default}"`} data-type="color">A</button>`;
-    });
+            colorHTML += `<button ${item ? `class="color__square" style="color:${item}"` : `class="color__square ariaLabel" data-position="3south" aria-label="${window.siyuan.languages.default}"`} data-type="color">A</button>`;
+        });
     let bgHTML = "";
     ["", "var(--b3-font-background1)", "var(--b3-font-background2)", "var(--b3-font-background3)", "var(--b3-font-background4)",
         "var(--b3-font-background5)", "var(--b3-font-background6)", "var(--b3-font-background7)", "var(--b3-font-background8)",
         "var(--b3-font-background9)", "var(--b3-font-background10)", "var(--b3-font-background11)", "var(--b3-font-background12)",
         "var(--b3-font-background13)"].forEach((item) => {
-        bgHTML += `<button ${item ? `class="color__square" style="background-color:${item}"` : `class="color__square ariaLabel" data-position="3south" aria-label="${window.siyuan.languages.default}"`} data-type="backgroundColor"></button>`;
-    });
+            bgHTML += `<button ${item ? `class="color__square" style="background-color:${item}"` : `class="color__square ariaLabel" data-position="3south" aria-label="${window.siyuan.languages.default}"`} data-type="backgroundColor"></button>`;
+        });
 
     const element = document.createElement("div");
     element.classList.add("protyle-font");
@@ -280,14 +280,14 @@ export const fontEvent = (protyle: IProtyle, nodeElements: Element[], type?: str
         focusByRange(protyle.toolbar.range);
     } else {
         if (type === "clear") {
-            protyle.toolbar.setInlineMark(protyle, "clear", "range", {type: "text"});
+            protyle.toolbar.setInlineMark(protyle, "clear", "range", { type: "text" });
         } else {
-            protyle.toolbar.setInlineMark(protyle, "text", "range", {type, color});
+            protyle.toolbar.setInlineMark(protyle, "text", "range", { type, color });
         }
     }
 };
 
-export const setFontStyle = (textElement: HTMLElement, textOption: ITextOption) => {
+export const setFontStyle = (textElement: HTMLElement, textOption: ITextOption | undefined) => {
     const setBlockRef = (blockRefOption: string) => {
         const blockRefData = blockRefOption.split(Constants.ZWSP);
         // 标签等元素中包含 ZWSP，需移除后拼接 https://github.com/siyuan-note/siyuan/issues/6466

@@ -48,7 +48,7 @@ import { escapeHtml } from "../../util/escape";
 import { resizeSide } from "../../history/resizeSide";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { mergeNodes } from "../../util/DOM/rangeOperations";
-import { 显示特殊类型菜单, 整理零宽空格, 合并相邻同类型元素, 移除内联标记 } from "./inlineMark";
+import { 显示特殊类型菜单, 整理零宽空格, 合并相邻同类型元素, 移除内联标记, 添加内联标记 } from "./inlineMark";
 
 export class Toolbar {
     public element: HTMLElement;
@@ -427,172 +427,19 @@ export class Toolbar {
             keepZWPS = result.keepZWPS;
         } else {
             // 添加
-            if (!this.element.classList.contains("fn__none") && type !== "text" && actionBtn) {
-                actionBtn.classList.add("protyle-toolbar__item--current");
-            }
-            if (selectText === "") {
-                const inlineElement = document.createElement("span");
-                rangeTypes.push(type);
-
-                // 遇到以下类型结尾不应继承 https://github.com/siyuan-note/siyuan/issues/7200
-                if (isEndSpan) {
-                    let removeIndex = 0;
-                    while (removeIndex < rangeTypes.length) {
-                        if (["inline-memo", "text", "block-ref", "virtual-block-ref", "file-annotation-ref", "a"].includes(rangeTypes[removeIndex])) {
-                            rangeTypes.splice(removeIndex, 1);
-                        } else {
-                            ++removeIndex;
-                        }
-                    }
-                    // https://github.com/siyuan-note/siyuan/issues/14421
-                    if (rangeTypes.length === 0) {
-                        rangeTypes.push(type);
-                    }
-                }
-                inlineElement.setAttribute("data-type", [...new Set(rangeTypes)].join(" "));
-                inlineElement.textContent = Constants.ZWSP;
-                setFontStyle(inlineElement, textObj);
-                newNodes.push(inlineElement);
-                keepZWPS = true;
-            } else {
-                // https://github.com/siyuan-note/siyuan/issues/7477
-                // https://github.com/siyuan-note/siyuan/issues/8825
-                if (type === "block-ref") {
-                    while (contents.childNodes.length > 1) {
-                        contents.childNodes[0].remove();
-                    }
-                }
-                contents.childNodes.forEach((item: HTMLElement) => {
-                    let removeText = "";
-                    if (item.nodeType === 3 && item.textContent) {
-                        // https://github.com/siyuan-note/siyuan/issues/14204
-                        while (item.textContent.endsWith("\n")) {
-                            item.textContent = item.textContent.substring(0, item.textContent.length - 1);
-                            removeText += "\n";
-                        }
-                        if (item.textContent) {
-                            const inlineElement = document.createElement("span");
-                            inlineElement.setAttribute("data-type", type);
-                            inlineElement.textContent = item.textContent;
-                            if (type === "a") {
-                                if (!inlineElement.textContent) {
-                                    inlineElement.textContent = "*";
-                                }
-                                textObj.color = textObj.color.split(Constants.ZWSP)[0];
-                            }
-                            setFontStyle(inlineElement, textObj);
-
-                            if (type === "text" && !inlineElement.getAttribute("style")) {
-                                newNodes.push(item);
-                            } else {
-                                newNodes.push(inlineElement);
-                            }
-                        }
-                    } else if (item.nodeType === 1) {
-                        let types = (item.getAttribute("data-type") || "").split(" ");
-                        for (let i = 0; i < types.length; i++) {
-                            // "backslash", "virtual-block-ref", "search-mark" 只能单独存在
-                            if (["backslash", "virtual-block-ref", "search-mark"].includes(types[i])) {
-                                types.splice(i, 1);
-                                i--;
-                            }
-                        }
-                        if (!types.includes("img")) {
-                            types.push(type);
-                        }
-                        // 上标和下标不能同时存在 https://github.com/siyuan-note/insider/issues/1049
-                        if (type === "sub" && types.includes("sup")) {
-                            types.find((item, index) => {
-                                if (item === "sup") {
-                                    types.splice(index, 1);
-                                    toolbarElement.querySelector('[data-type="sup"]').classList.remove("protyle-toolbar__item--current");
-                                    return true;
-                                }
-                            });
-                        } else if (type === "sup" && types.includes("sub")) {
-                            types.find((item, index) => {
-                                if (item === "sub") {
-                                    types.splice(index, 1);
-                                    toolbarElement.querySelector('[data-type="sub"]').classList.remove("protyle-toolbar__item--current");
-                                    return true;
-                                }
-                            });
-                        } else if (type === "block-ref" && (types.includes("a") || types.includes("file-annotation-ref"))) {
-                            // 虚拟引用和链接/标注不能同时存在
-                            types.find((item, index) => {
-                                if (item === "a" || item === "file-annotation-ref") {
-                                    types.splice(index, 1);
-                                    return true;
-                                }
-                            });
-                        } else if (type === "a" && (types.includes("block-ref") || types.includes("file-annotation-ref"))) {
-                            // 链接和引用/标注不能同时存在
-                            types.find((item, index) => {
-                                if (item === "block-ref" || item === "file-annotation-ref") {
-                                    types.splice(index, 1);
-                                    return true;
-                                }
-                            });
-                        } else if (type === "file-annotation-ref" && (types.includes("block-ref") || types.includes("a"))) {
-                            // 引用和链接/标注不能同时存在
-                            types.find((item, index) => {
-                                if (item === "block-ref" || item === "a") {
-                                    types.splice(index, 1);
-                                    return true;
-                                }
-                            });
-                        } else if (type === "inline-memo" && types.includes("inline-math")) {
-                            // 数学公式和备注不能同时存在
-                            types.find((item, index) => {
-                                if (item === "inline-math") {
-                                    types.splice(index, 1);
-                                    return true;
-                                }
-                            });
-                            if (item.querySelector(".katex")) {
-                                // 选中完整的数学公式才进行备注 https://github.com/siyuan-note/siyuan/issues/13667
-                                item.textContent = item.getAttribute("data-content");
-                            }
-                        } else if (type === "inline-math" && types.includes("inline-memo")) {
-                            // 数学公式和备注不能同时存在
-                            types.find((item, index) => {
-                                if (item === "inline-memo") {
-                                    types.splice(index, 1);
-                                    return true;
-                                }
-                            });
-                        }
-                        types = [...new Set(types)];
-                        if (item.tagName !== "BR" && item.tagName !== "IMG" && !types.includes("img")) {
-                            item.setAttribute("data-type", types.join(" "));
-                            if (type === "a") {
-                                if (!item.textContent) {
-                                    item.textContent = "*";
-                                }
-                                textObj.color = textObj.color.split(Constants.ZWSP)[0];
-                            }
-                            setFontStyle(item, textObj);
-                            if (types.includes("text") && !item.getAttribute("style")) {
-                                if (types.length === 1) {
-                                    const tempText = document.createTextNode(item.textContent);
-                                    newNodes.push(tempText);
-                                } else {
-                                    types.splice(types.indexOf("text"), 1);
-                                    item.setAttribute("data-type", types.join(" "));
-                                    newNodes.push(item);
-                                }
-                            } else {
-                                newNodes.push(item);
-                            }
-                        } else {
-                            newNodes.push(item);
-                        }
-                    }
-                    if (removeText) {
-                        newNodes.push(document.createTextNode(removeText));
-                    }
-                });
-            }
+            const addResult = 添加内联标记(
+                contents as DocumentFragment,
+                type,
+                rangeTypes,
+                toolbarElement,
+                actionBtn,
+                textObj,
+                selectText,
+                isEndSpan,
+                !this.element.classList.contains("fn__none")
+            );
+            newNodes = addResult.newNodes;
+            keepZWPS = addResult.keepZWPS;
         }
         // 插入元素
         for (let i = newNodes.length - 1; i > -1; i--) {
