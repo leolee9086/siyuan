@@ -71,3 +71,14 @@ export const getSiyuanBackStack = () => {
     return window.siyuan?.backStack || [];
 };
 
+/**
+ * 获取 window.siyuan.notebooks
+ * @returns notebooks 列表
+ */
+export const getSiyuanNotebooks = () => {
+    if (!window.siyuan?.notebooks) {
+        throw ("[getSiyuanNotebooks] window.siyuan.notebooks 不存在");
+    }
+    return window.siyuan.notebooks;
+};
+

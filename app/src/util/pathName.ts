@@ -10,6 +10,7 @@ import { ipcRenderer } from "electron";
 import { showMessage } from "../dialog/message";
 import { isWindows } from "../protyle/util/compatibility";
 import { getLocationHref, getLocationOrigin, getLocationSearch, setLocationHref } from "./siyuanEnvironments/windowLocation.environment";
+import { getSiyuanNotebooks } from "./siyuanEnvironments/getSiyuanConfig.environment";
 
 export const useShell = (cmd: "showItemInFolder" | "openPath", filePath: string) => {
     /// #if !BROWSER
@@ -250,42 +251,46 @@ export const getLeaf = (liElement: HTMLElement, flashcard: boolean) => {
 
 export const getNotebookName = (id: string) => {
     let rootPath = "";
-    window.siyuan.notebooks.find((item) => {
+    const notebooks = getSiyuanNotebooks();
+    for (const item of notebooks) {
         if (item.id === id) {
             rootPath = item.name;
-            return true;
+            break;
         }
-    });
+    }
     return rootPath;
 };
 
 export const getNotebookIcon = (id: string) => {
     let rootPath = "";
-    window.siyuan.notebooks.find((item) => {
+    const notebooks = getSiyuanNotebooks();
+    for (const item of notebooks) {
         if (item.id === id) {
             rootPath = item.icon;
-            return true;
+            break;
         }
-    });
+    }
     return rootPath;
 };
 
 export const setNotebookName = (id: string, name: string) => {
-    window.siyuan.notebooks.find((item) => {
+    const notebooks = getSiyuanNotebooks();
+    for (const item of notebooks) {
         if (item.id === id) {
             item.name = name;
-            return true;
+            break;
         }
-    });
+    }
 };
 
 export const getOpenNotebookCount = () => {
     let count = 0;
-    window.siyuan.notebooks.forEach(item => {
+    const notebooks = getSiyuanNotebooks();
+    for (const item of notebooks) {
         if (!item.closed) {
             count++;
         }
-    });
+    }
     return count;
 };
 
