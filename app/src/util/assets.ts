@@ -63,25 +63,25 @@ const loadCustomTheme = (data: Config.IAppearance) => {
         return;
     }
     const themeAddress = `/appearance/themes/${data.mode === 1 ? data.themeDark : data.themeLight}/theme.css?v=${data.themeVer}`;
-    if (styleElement) {
-        if (!styleElement.getAttribute("href")?.startsWith(themeAddress)) {
-            styleElement.setAttribute("href", themeAddress);
-        }
-    } else {
+    if (!styleElement) {
         addStyle(themeAddress, "themeStyle");
+        return;
+    }
+    if (!styleElement.getAttribute("href")?.startsWith(themeAddress)) {
+        styleElement.setAttribute("href", themeAddress);
     }
 };
 
 const updateGraphAndPDF = () => {
     /// #if !MOBILE
-    getAllModels().graph.forEach(item => {
+    for (const item of getAllModels().graph) {
         item.searchGraph(false);
-    });
-    const pdfTheme = getSiyuanConfig().appearance.mode === 0 ? getSiyuanStorage()[Constants.LOCAL_PDFTHEME].light :
-        getSiyuanStorage()[Constants.LOCAL_PDFTHEME].dark;
-    document.querySelectorAll(".pdf__outer").forEach(item => {
+    }
+    const pdfThemeSettings = getSiyuanStorage()[Constants.LOCAL_PDFTHEME];
+    const pdfTheme = getSiyuanConfig().appearance.mode === 0 ? pdfThemeSettings.light : pdfThemeSettings.dark;
+    for (const item of document.querySelectorAll(".pdf__outer")) {
         updatePDFAttributes(item as HTMLElement, pdfTheme === "dark");
-    });
+    }
     /// #endif
 };
 
@@ -102,17 +102,29 @@ const updateBrowserMeta = () => {
     /// #endif
 };
 
+const 移除冗余SVG图标 = () => {
+    for (const [index, item] of Array.from(document.body.children).entries()) {
+        if (item.tagName === "svg" &&
+            index !== 0 &&
+            !item.getAttribute("data-name") &&
+            !["iconsMaterial", "iconsAnt"].includes(item.id)) {
+            item.remove();
+        }
+    }
+};
+
 const loadThemeScript = (data: Config.IAppearance) => {
     const themeScriptElement = document.getElementById("themeScript");
     const themeScriptAddress = `/appearance/themes/${data.mode === 1 ? data.themeDark : data.themeLight}/theme.js?v=${data.themeVer}`;
-    if (themeScriptElement) {
-        if (!themeScriptElement.getAttribute("src").startsWith(themeScriptAddress)) {
-            themeScriptElement.remove();
-            addScript(themeScriptAddress, "themeScript");
-        }
-    } else {
+    if (!themeScriptElement) {
         addScript(themeScriptAddress, "themeScript");
+        return;
     }
+    if (themeScriptElement.getAttribute("src")?.startsWith(themeScriptAddress)) {
+        return;
+    }
+    themeScriptElement.remove();
+    addScript(themeScriptAddress, "themeScript");
 };
 
 const loadIcons = (data: Config.IAppearance) => {
@@ -124,46 +136,28 @@ const loadIcons = (data: Config.IAppearance) => {
     const iconDefaultURL = `/appearance/icons/${isBuiltInIcon ? data.icon : "material"}/icon.js?v=${Constants.SIYUAN_VERSION}`;
     const iconThirdURL = `/appearance/icons/${data.icon}/icon.js?v=${data.iconVer}`;
 
-    if ((isBuiltInIcon && iconDefaultScriptElement && iconDefaultScriptElement.getAttribute("src").startsWith(iconDefaultURL)) ||
-        (!isBuiltInIcon && iconScriptElement && iconScriptElement.getAttribute("src").startsWith(iconThirdURL))) {
-        // 第三方图标切换到 material
-        if (isBuiltInIcon) {
-            iconScriptElement?.remove();
-            Array.from(document.body.children).forEach((item) => {
-                if (item.tagName === "svg" &&
-                    !item.getAttribute("data-name") &&
-                    !["iconsMaterial", "iconsAnt"].includes(item.id)) {
-                    item.remove();
-                }
-            });
-        }
+    // 内置图标已加载：清理第三方图标后返回
+    if (isBuiltInIcon && iconDefaultScriptElement && iconDefaultScriptElement.getAttribute("src")?.startsWith(iconDefaultURL)) {
+        iconScriptElement?.remove();
+        移除冗余SVG图标();
         return;
     }
-    if (iconDefaultScriptElement && !iconDefaultScriptElement.getAttribute("src").startsWith(iconDefaultURL)) {
+    // 第三方图标已加载：直接返回
+    if (!isBuiltInIcon && iconScriptElement && iconScriptElement.getAttribute("src")?.startsWith(iconThirdURL)) {
+        return;
+    }
+    if (iconDefaultScriptElement && !iconDefaultScriptElement.getAttribute("src")?.startsWith(iconDefaultURL)) {
         iconDefaultScriptElement.remove();
-        if (data.icon === "ant") {
-            document.querySelectorAll("#iconsMaterial").forEach(item => {
-                item.remove();
-            });
-        } else {
-            document.querySelectorAll("#iconsAnt").forEach(item => {
-                item.remove();
-            });
+        const 待移除图标ID = data.icon === "ant" ? "#iconsMaterial" : "#iconsAnt";
+        for (const item of document.querySelectorAll(待移除图标ID)) {
+            item.remove();
         }
     }
+    // @内联回调
     addScript(iconDefaultURL, "iconDefaultScript").then(() => {
         iconScriptElement?.remove();
         if (!isBuiltInIcon) {
-            addScript(iconThirdURL, "iconScript").then(() => {
-                Array.from(document.body.children).forEach((item, index) => {
-                    if (item.tagName === "svg" &&
-                        index !== 0 &&
-                        !item.getAttribute("data-name") &&
-                        !["iconsMaterial", "iconsAnt"].includes(item.id)) {
-                        item.remove();
-                    }
-                });
-            });
+            addScript(iconThirdURL, "iconScript").then(移除冗余SVG图标);
         }
     });
 };
@@ -179,6 +173,52 @@ export const loadAssets = (data: Config.IAppearance) => {
     loadIcons(data);
 };
 
+const handleAppearanceModeResponse = async (response: IWebSocketData) => {
+    if (!getSiyuanConfig().appearance.themeJS) {
+        getSiyuanConfig().appearance = response.data.appearance;
+        loadAssets(response.data.appearance);
+        return;
+    }
+    if (!getWindowDestroyTheme()) {
+        /// #if !MOBILE
+        exportLayout({
+            cb() {
+                reloadLocation();
+            },
+            errorExit: false,
+        });
+        /// #else
+        reloadLocation();
+        /// #endif
+        return;
+    }
+    try {
+        await getWindowDestroyTheme()();
+        setWindowDestroyTheme(undefined);
+        const themeScriptElement = document.getElementById("themeScript");
+        themeScriptElement?.remove();
+    } catch (e) {
+        console.error("destroyTheme error: " + e);
+    }
+    getSiyuanConfig().appearance = response.data.appearance;
+    loadAssets(response.data.appearance);
+};
+
+const handlePrefersColorSchemeChange = (event: MediaQueryListEvent) => {
+    const OSTheme = event.matches ? "dark" : "light";
+    updateMobileTheme(OSTheme);
+    if (!getSiyuanConfig().appearance.modeOS) {
+        return;
+    }
+    if ((getSiyuanConfig().appearance.mode === 0 && OSTheme === "light") ||
+        (getSiyuanConfig().appearance.mode === 1 && OSTheme === "dark")) {
+        return;
+    }
+    fetchPost("/api/system/setAppearanceMode", {
+        mode: OSTheme === "light" ? 0 : 1
+    }, handleAppearanceModeResponse);
+};
+
 export const initAssets = () => {
     const loadingElement = document.getElementById("loading");
     if (loadingElement) {
@@ -187,46 +227,7 @@ export const initAssets = () => {
         }, 160);
     }
     updateMobileTheme(windowMatchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-    windowMatchMedia("(prefers-color-scheme: dark)").addEventListener("change", event => {
-        const OSTheme = event.matches ? "dark" : "light";
-        updateMobileTheme(OSTheme);
-        if (!getSiyuanConfig().appearance.modeOS) {
-            return;
-        }
-        if ((getSiyuanConfig().appearance.mode === 0 && OSTheme === "light") ||
-            (getSiyuanConfig().appearance.mode === 1 && OSTheme === "dark")) {
-            return;
-        }
-        fetchPost("/api/system/setAppearanceMode", {
-            mode: OSTheme === "light" ? 0 : 1
-        }, async response => {
-            if (getSiyuanConfig().appearance.themeJS) {
-                if (getWindowDestroyTheme()) {
-                    try {
-                        await getWindowDestroyTheme()();
-                        setWindowDestroyTheme(undefined);
-                        document.getElementById("themeScript")?.remove();
-                    } catch (e) {
-                        console.error("destroyTheme error: " + e);
-                    }
-                } else {
-                    /// #if !MOBILE
-                    exportLayout({
-                        cb() {
-                            reloadLocation();
-                        },
-                        errorExit: false,
-                    });
-                    /// #else
-                    reloadLocation();
-                    /// #endif
-                    return;
-                }
-            }
-            getSiyuanConfig().appearance = response.data.appearance;
-            loadAssets(response.data.appearance);
-        });
-    });
+    windowMatchMedia("(prefers-color-scheme: dark)").addEventListener("change", handlePrefersColorSchemeChange);
 };
 
 export const setMode = (modeElementValue: number) => {
@@ -246,7 +247,6 @@ export const getThemeMode = () => {
     const OSTheme = windowMatchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
     if (getSiyuanConfig().appearance.modeOS) {
         return OSTheme;
-    } else {
-        return getSiyuanConfig().appearance.mode === 0 ? "light" : "dark";
     }
+    return getSiyuanConfig().appearance.mode === 0 ? "light" : "dark";
 };
