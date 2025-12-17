@@ -18,9 +18,8 @@ export const isMobile = () => {
 export const getBackend = () => {
     if (isKernelInContainer()) {
         return getSiyuanConfig().system.container;
-    } else {
-        return getSiyuanConfig().system.os;
     }
+    return getSiyuanConfig().system.os;
 };
 
 
@@ -29,18 +28,13 @@ export const getFrontend = () => {
     /// #if MOBILE
     if (window.navigator.userAgent.startsWith("SiYuan/")) {
         return "mobile";
-    } else {
-        return "browser-mobile";
     }
+    return "browser-mobile";
     /// #else
-    if (window.navigator.userAgent.startsWith("SiYuan/")) {
-        if (isWindow()) {
-            return "desktop-window";
-        }
-        return "desktop";
-    } else {
+    if (!window.navigator.userAgent.startsWith("SiYuan/")) {
         return "browser-desktop";
     }
+    return isWindow() ? "desktop-window" : "desktop";
     /// #endif
 };
 
@@ -106,9 +100,7 @@ export const duplicateNameAddOne = (name: string) => {
 
     const nameMatch = name.match(/^(.*) \((\d+)\)$/);
     if (nameMatch) {
-        name = `${nameMatch[1]} (${parseInt(nameMatch[2]) + 1})`;
-    } else {
-        name = `${name} (1)`;
+        return `${nameMatch[1]} (${parseInt(nameMatch[2]!) + 1})`;
     }
-    return name;
+    return `${name} (1)`;
 };

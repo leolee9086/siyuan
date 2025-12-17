@@ -148,8 +148,57 @@ export const moveToPath = (fromPaths: string[], toNotebook: string, toPath: stri
     });
 };
 
+const handleLeafResponse = (response: IWebSocketData, liElement: HTMLElement, notebookId: string, toggleElement: Element | null, flashcard: boolean) => {
+    if (response.data.files.length === 0) {
+        showMessage(window.siyuan.languages.emptyContent);
+        return;
+    }
+    let fileHTML = "";
+    response.data.files.forEach((item: IFile) => {
+        let countHTML = "";
+        if (flashcard) {
+            countHTML = `<span class="counter counter--right b3-tooltips b3-tooltips__w" aria-label="${window.siyuan.languages.flashcardNewCard}">${item.newFlashcardCount}</span>
+<span class="counter counter--right b3-tooltips b3-tooltips__w" aria-label="${window.siyuan.languages.flashcardDueCard}">${item.dueFlashcardCount}</span>
+<span class="counter counter--right b3-tooltips b3-tooltips__w" aria-label="${window.siyuan.languages.flashcardCard}">${item.flashcardCount}</span>`;
+        } else if (item.count && item.count > 0) {
+            countHTML = `<span class="popover__block counter b3-tooltips b3-tooltips__w" aria-label="${window.siyuan.languages.ref}">${item.count}</span>`;
+        }
+        fileHTML += `<li data-box="${notebookId}" class="b3-list-item" data-path="${item.path}">
+    <span style="padding-left: ${item.path.split("/").length * 8}px" class="b3-list-item__toggle b3-list-item__toggle--hl${item.subFileCount === 0 ? " fn__hidden" : ""}">
+        <svg class="b3-list-item__arrow"><use xlink:href="#iconRight"></use></svg>
+    </span>
+    ${unicode2Emoji(item.icon || (item.subFileCount === 0 ? window.siyuan.storage[Constants.LOCAL_IMAGES].file : window.siyuan.storage[Constants.LOCAL_IMAGES].folder), "b3-list-item__graphic", true)}
+    <span class="b3-list-item__text ariaLabel" data-position="parentE" aria-label="${getDisplayName(item.name, true, true)} <small class='ft__on-surface'>${item.hSize}</small>${item.bookmark ? "<br>" + window.siyuan.languages.bookmark + " " + item.bookmark : ""}${item.name1 ? "<br>" + window.siyuan.languages.name + " " + item.name1 : ""}${item.alias ? "<br>" + window.siyuan.languages.alias + " " + item.alias : ""}${item.memo ? "<br>" + window.siyuan.languages.memo + " " + item.memo : ""}${item.subFileCount !== 0 ? window.siyuan.languages.includeSubFile.replace("x", item.subFileCount) : ""}<br>${window.siyuan.languages.modifiedAt} ${item.hMtime}<br>${window.siyuan.languages.createdAt} ${item.hCtime}">${getDisplayName(item.name, true, true)}</span>
+    ${countHTML}
+</li>`;
+    });
+    if (fileHTML === "") {
+        return;
+    }
+    if (!toggleElement) {
+        return;
+    }
+    toggleElement.classList.add("b3-list-item__arrow--open");
+    liElement.insertAdjacentHTML("afterend", `<ul class="file-tree__sliderDown">${fileHTML}</ul>`);
+    const nextElement = liElement.nextElementSibling;
+    if (!nextElement) {
+        return;
+    }
+    // @内联回调
+    setTimeout(() => {
+        nextElement.setAttribute("style", `height:${nextElement.childElementCount * liElement.clientHeight}px;`);
+        setTimeout(() => {
+            nextElement.classList.remove("file-tree__sliderDown");
+            nextElement.removeAttribute("style");
+        }, 120);
+    }, 2);
+};
+
 export const getLeaf = (liElement: HTMLElement, flashcard: boolean) => {
     const toggleElement = liElement.querySelector(".b3-list-item__arrow");
+    if (!toggleElement) {
+        return;
+    }
     if (toggleElement.classList.contains("b3-list-item__arrow--open")) {
         toggleElement.classList.remove("b3-list-item__arrow--open");
         if (liElement.nextElementSibling && liElement.nextElementSibling.tagName === "UL") {
@@ -163,49 +212,14 @@ export const getLeaf = (liElement: HTMLElement, flashcard: boolean) => {
         return;
     }
 
-    const notebookId = liElement.getAttribute("data-box");
+    const notebookId = liElement.getAttribute("data-box") || "";
     fetchPost("/api/filetree/listDocsByPath", {
         notebook: notebookId,
-        path: liElement.getAttribute("data-path"),
+        path: liElement.getAttribute("data-path") || "",
         flashcard,
         app: Constants.SIYUAN_APPID,
     }, response => {
-        if (response.data.files.length === 0) {
-            showMessage(window.siyuan.languages.emptyContent);
-            return;
-        }
-        let fileHTML = "";
-        response.data.files.forEach((item: IFile) => {
-            let countHTML = "";
-            if (flashcard) {
-                countHTML = `<span class="counter counter--right b3-tooltips b3-tooltips__w" aria-label="${window.siyuan.languages.flashcardNewCard}">${item.newFlashcardCount}</span>
-<span class="counter counter--right b3-tooltips b3-tooltips__w" aria-label="${window.siyuan.languages.flashcardDueCard}">${item.dueFlashcardCount}</span>
-<span class="counter counter--right b3-tooltips b3-tooltips__w" aria-label="${window.siyuan.languages.flashcardCard}">${item.flashcardCount}</span>`;
-            } else if (item.count && item.count > 0) {
-                countHTML = `<span class="popover__block counter b3-tooltips b3-tooltips__w" aria-label="${window.siyuan.languages.ref}">${item.count}</span>`;
-            }
-            fileHTML += `<li data-box="${notebookId}" class="b3-list-item" data-path="${item.path}">
-    <span style="padding-left: ${item.path.split("/").length * 8}px" class="b3-list-item__toggle b3-list-item__toggle--hl${item.subFileCount === 0 ? " fn__hidden" : ""}">
-        <svg class="b3-list-item__arrow"><use xlink:href="#iconRight"></use></svg>
-    </span>
-    ${unicode2Emoji(item.icon || (item.subFileCount === 0 ? window.siyuan.storage[Constants.LOCAL_IMAGES].file : window.siyuan.storage[Constants.LOCAL_IMAGES].folder), "b3-list-item__graphic", true)}
-    <span class="b3-list-item__text ariaLabel" data-position="parentE" aria-label="${getDisplayName(item.name, true, true)} <small class='ft__on-surface'>${item.hSize}</small>${item.bookmark ? "<br>" + window.siyuan.languages.bookmark + " " + item.bookmark : ""}${item.name1 ? "<br>" + window.siyuan.languages.name + " " + item.name1 : ""}${item.alias ? "<br>" + window.siyuan.languages.alias + " " + item.alias : ""}${item.memo ? "<br>" + window.siyuan.languages.memo + " " + item.memo : ""}${item.subFileCount !== 0 ? window.siyuan.languages.includeSubFile.replace("x", item.subFileCount) : ""}<br>${window.siyuan.languages.modifiedAt} ${item.hMtime}<br>${window.siyuan.languages.createdAt} ${item.hCtime}">${getDisplayName(item.name, true, true)}</span>
-    ${countHTML}
-</li>`;
-        });
-        if (fileHTML === "") {
-            return;
-        }
-        toggleElement.classList.add("b3-list-item__arrow--open");
-        liElement.insertAdjacentHTML("afterend", `<ul class="file-tree__sliderDown">${fileHTML}</ul>`);
-        const nextElement = liElement.nextElementSibling;
-        setTimeout(() => {
-            nextElement.setAttribute("style", `height:${nextElement.childElementCount * liElement.clientHeight}px;`);
-            setTimeout(() => {
-                nextElement.classList.remove("file-tree__sliderDown");
-                nextElement.removeAttribute("style");
-            }, 120);
-        }, 2);
+        handleLeafResponse(response, liElement, notebookId, toggleElement, flashcard);
     });
 };
 

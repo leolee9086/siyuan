@@ -31,13 +31,21 @@ const getBlockElement = (protyle: IProtyle, id: string) => {
     return blockElement;
 };
 
-const focusRoot = (stack: IBackStack) => {
-    if (!stack.protyle || !stack.protyle.title) return false;
-    if (stack.protyle.title.editElement.getBoundingClientRect().height === 0) {
-        // 切换 tab
+const switchTabIfHidden = (stack: IBackStack) => {
+    if (!stack.protyle || !stack.protyle.title) return;
+    if (stack.protyle.title.editElement.getBoundingClientRect().height !== 0) return;
+
+    if (stack.protyle.model) {
         stack.protyle.model.parent.parent.switchTab(stack.protyle.model.parent.headElement);
+    }
+    if (stack.protyle.toolbar) {
         stack.protyle.toolbar.range = undefined;
     }
+};
+
+const focusRoot = (stack: IBackStack) => {
+    if (!stack.protyle || !stack.protyle.title) return false;
+    switchTabIfHidden(stack);
     if (stack.position) {
         focusByOffset(stack.protyle.title.editElement, stack.position.start, stack.position.end);
     }
@@ -46,7 +54,7 @@ const focusRoot = (stack: IBackStack) => {
 
 const focusExistingBlock = (stack: IBackStack, blockElement: HTMLElement) => {
     if (!stack.protyle) return false;
-    if (blockElement.getBoundingClientRect().height === 0) {
+    if (blockElement.getBoundingClientRect().height === 0 && stack.protyle.model) {
         // 切换 tab
         stack.protyle.model.parent.parent.switchTab(stack.protyle.model.parent.headElement);
     }
@@ -106,9 +114,11 @@ const loadDynamicBlock = (stack: IBackStack) => {
 
 const zoomToBlock = (stack: IBackStack) => {
     if (!stack.protyle) return;
+    const id = stack.zoomId || stack.protyle.block.rootID;
+    if (!id) return;
     zoomOut({
         protyle: stack.protyle,
-        id: stack.zoomId || stack.protyle.block.rootID,
+        id,
         isPushBack: false,
         callback: () => {
             focusAfterLoadOrZoom(stack);
@@ -134,7 +144,7 @@ const checkAndLoad = async (stack: IBackStack, blockElement: HTMLElement | undef
         return handleBlockMissing();
     }
     // 动态加载导致内容移除 https://github.com/siyuan-note/siyuan/issues/10692
-    if (!blockElement && !stack.zoomId && !stack.protyle.scroll.element.classList.contains("fn__none")) {
+    if (!blockElement && !stack.zoomId && !stack.protyle.scroll?.element.classList.contains("fn__none")) {
         loadDynamicBlock(stack);
         return true;
     }
