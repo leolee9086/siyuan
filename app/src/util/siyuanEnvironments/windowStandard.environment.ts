@@ -9,6 +9,14 @@ export const isServiceWorkerAvailable = () => {
 };
 
 /**
+ * 获取 Service Worker 容器
+ * @returns ServiceWorkerContainer
+ */
+export const getServiceWorkerContainer = () => {
+    return navigator.serviceWorker;
+};
+
+/**
  * 封装 window.crypto.getRandomValues
  * @param array typedArray
  * @returns typedArray

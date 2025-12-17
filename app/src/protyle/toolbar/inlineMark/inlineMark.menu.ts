@@ -3,9 +3,9 @@
  * 从 setInlineMark.helper.ts 拆分出来
  */
 
-import { Constants } from "../../constants";
-import { linkMenu } from "../../menus/protyle";
-import { mathRender } from "../render/mathRender";
+import { Constants } from "../../../constants";
+import { linkMenu } from "../../../menus/protyle";
+import { mathRender } from "../../render/mathRender";
 
 /**
  * 显示特殊类型的编辑菜单

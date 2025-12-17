@@ -3,7 +3,7 @@
  * 从 setInlineMark.helper.ts 拆分出来
  */
 
-import { Constants } from "../../constants";
+import { Constants } from "../../../constants";
 
 /**
  * 整理零宽空格(ZWSP)

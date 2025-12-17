@@ -1,4 +1,7 @@
 // https://github.com/siyuan-note/siyuan/pull/8012
+import { isServiceWorkerAvailable, getServiceWorkerContainer } from "./siyuanEnvironments/windowStandard.environment";
+import { getWindowWebkit, getWindowJSAndroid, getWindowJSHarmony } from "./siyuanEnvironments/windowNative.environment";
+
 export const registerServiceWorker = (
     scriptURL: string,
     options: RegistrationOptions = {
@@ -8,22 +11,22 @@ export const registerServiceWorker = (
     },
 ) => {
     /// #if BROWSER
-    if (window.webkit?.messageHandlers || window.JSAndroid || window.JSHarmony ||
-        !("serviceWorker" in window.navigator)
-        || !("caches" in window)
-        || !("fetch" in window)
-        || navigator.serviceWorker == null
+    if (getWindowWebkit()?.messageHandlers || getWindowJSAndroid() || getWindowJSHarmony() ||
+        !isServiceWorkerAvailable()
     ) {
         return;
     }
 
     // REF https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerRegistration
-    window.navigator.serviceWorker
-        .register(scriptURL, options)
-        .then(registration => {
-            registration.update();
-        }).catch(e => {
-        console.debug(`Registration failed with ${e}`);
-    });
+    const serviceWorkerContainer = getServiceWorkerContainer();
+    if (serviceWorkerContainer) {
+        serviceWorkerContainer
+            .register(scriptURL, options)
+            .then(registration => {
+                registration.update();
+            }).catch(e => {
+            console.debug(`Registration failed with ${e}`);
+        });
+    }
     /// #endif
 };

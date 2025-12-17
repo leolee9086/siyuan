@@ -48,7 +48,7 @@ import { escapeHtml } from "../../util/escape";
 import { resizeSide } from "../../history/resizeSide";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { mergeNodes } from "../../util/DOM/rangeOperations";
-import { 显示特殊类型菜单, 整理零宽空格, 合并相邻同类型元素 } from "./setInlineMark.helper";
+import { 显示特殊类型菜单, 整理零宽空格, 合并相邻同类型元素 } from "./inlineMark/setInlineMark.helper";
 
 export class Toolbar {
     public element: HTMLElement;

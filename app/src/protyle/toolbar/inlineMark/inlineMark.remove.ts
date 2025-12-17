@@ -3,7 +3,7 @@
  * 从 index.ts 拆分出来
  */
 
-import { Constants } from "../../constants";
+import { Constants } from "../../../constants";
 
 /**
  * 移除标记处理结果

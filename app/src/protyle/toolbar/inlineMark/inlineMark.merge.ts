@@ -3,7 +3,7 @@
  * 从 setInlineMark.helper.ts 拆分出来
  */
 
-import { Constants } from "../../constants";
+import { Constants } from "../../../constants";
 
 /**
  * 合并相邻的同类型元素
