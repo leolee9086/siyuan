@@ -13,6 +13,7 @@ import { getLocationHref, getLocationOrigin, getLocationSearch, setLocationHref 
 import { getSiyuanNotebooks, setSiyuanNotebooks, getSiyuanStorage } from "./siyuanEnvironments/getSiyuanConfig.environment";
 import { siyuanI18n } from "./siyuanEnvironments/i18n.getI18n.environment";
 import { getWindowJSAndroid } from "./siyuanEnvironments/windowNative.environment";
+import { generateCountHTML, generateFileItemHTML, generateFlashcardFileItemHTML } from "./pathName/fileHtmlGenerator";
 
 export const useShell = (cmd: "showItemInFolder" | "openPath", filePath: string) => {
     /// #if !BROWSER
@@ -28,7 +29,7 @@ export const getIdZoomInByPath = () => {
     const PWAURL = searchParams.get("url");
 
     // PWA 捕获 web+siyuan://blocks/20221031001313-rk7sd0e?focus=1
-    if (/^web\+siyuan:\/\/blocks\/\d{14}-\w{7}/.test(PWAURL)) {
+    if (PWAURL && /^web\+siyuan:\/\/blocks\/\d{14}-\w{7}/.test(PWAURL)) {
         return {
             id: PWAURL.substring(20, 20 + 22),
             isZoomIn: getSearch("focus", PWAURL) === "1"
@@ -76,8 +77,9 @@ export const addBaseURL = () => {
     }
     baseURLElement.setAttribute("href", location.origin);
     const headElements = document.getElementsByTagName("head");
-    if (headElements.length > 0) {
-        headElements[0].appendChild(baseURLElement);
+    const firstHeadElement = headElements[0];
+    if (firstHeadElement) {
+        firstHeadElement.appendChild(baseURLElement);
     }
 };
 
@@ -178,94 +180,18 @@ export const moveToPath = (fromPaths: string[], toNotebook: string, toPath: stri
     });
 };
 
-/**
- * 生成文件项的计数HTML
- * @param item 文件项
- * @param flashcard 是否为闪卡模式
- * @returns 计数HTML字符串
- */
-const generateCountHTML = (item: IFile, flashcard: boolean): string => {
-    if (flashcard) {
-        return `<span class="counter counter--right b3-tooltips b3-tooltips__w" aria-label="${siyuanI18n.flashcardNewCard}">${item.newFlashcardCount}</span>
-<span class="counter counter--right b3-tooltips b3-tooltips__w" aria-label="${siyuanI18n.flashcardDueCard}">${item.dueFlashcardCount}</span>
-<span class="counter counter--right b3-tooltips b3-tooltips__w" aria-label="${siyuanI18n.flashcardCard}">${item.flashcardCount}</span>`;
-    }
-    
-    if (item.count && item.count > 0) {
-        return `<span class="popover__block counter b3-tooltips b3-tooltips__w" aria-label="${siyuanI18n.ref}">${item.count}</span>`;
-    }
-    
-    return "";
-};
 
 /**
- * 生成文件项的HTML
- * @param item 文件项
- * @param notebookId 笔记本ID
- * @returns 文件项HTML字符串
+ * 设置元素高度并移除样式
+ * @param element 目标元素
+ * @param height 高度值
  */
-const generateFileItemHTML = (item: IFile, notebookId: string): string => {
-    const storage = getSiyuanStorage();
-    const localImages = storage[Constants.LOCAL_IMAGES];
-    const iconPath = item.icon || (item.subFileCount === 0 ? localImages.file : localImages.folder);
-    
-    const displayName = getDisplayName(item.name, true, true);
-    const ariaLabelParts = [
-        `${displayName} <small class='ft__on-surface'>${item.hSize}</small>`,
-        item.bookmark ? `<br>${siyuanI18n.bookmark} ${item.bookmark}` : "",
-        item.name1 ? `<br>${siyuanI18n.name} ${item.name1}` : "",
-        item.alias ? `<br>${siyuanI18n.alias} ${item.alias}` : "",
-        item.memo ? `<br>${siyuanI18n.memo} ${item.memo}` : "",
-        item.subFileCount !== 0 ? siyuanI18n.includeSubFile.replace("x", item.subFileCount.toString()) : "",
-        `<br>${siyuanI18n.modifiedAt} ${item.hMtime}`,
-        `<br>${siyuanI18n.createdAt} ${item.hCtime}`
-    ];
-    
-    const countHTML = generateCountHTML(item, false);
-    
-    return `<li data-box="${notebookId}" class="b3-list-item" data-path="${item.path}">
-    <span style="padding-left: ${item.path.split("/").length * 8}px" class="b3-list-item__toggle b3-list-item__toggle--hl${item.subFileCount === 0 ? " fn__hidden" : ""}">
-        <svg class="b3-list-item__arrow"><use xlink:href="#iconRight"></use></svg>
-    </span>
-    ${unicode2Emoji(iconPath, "b3-list-item__graphic", true)}
-    <span class="b3-list-item__text ariaLabel" data-position="parentE" aria-label="${ariaLabelParts.join("")}">${displayName}</span>
-    ${countHTML}
-</li>`;
-};
-
-/**
- * 生成闪卡文件项的HTML
- * @param item 文件项
- * @param notebookId 笔记本ID
- * @returns 闪卡文件项HTML字符串
- */
-const generateFlashcardFileItemHTML = (item: IFile, notebookId: string): string => {
-    const storage = getSiyuanStorage();
-    const localImages = storage[Constants.LOCAL_IMAGES];
-    const iconPath = item.icon || (item.subFileCount === 0 ? localImages.file : localImages.folder);
-    
-    const displayName = getDisplayName(item.name, true, true);
-    const ariaLabelParts = [
-        `${displayName} <small class='ft__on-surface'>${item.hSize}</small>`,
-        item.bookmark ? `<br>${siyuanI18n.bookmark} ${item.bookmark}` : "",
-        item.name1 ? `<br>${siyuanI18n.name} ${item.name1}` : "",
-        item.alias ? `<br>${siyuanI18n.alias} ${item.alias}` : "",
-        item.memo ? `<br>${siyuanI18n.memo} ${item.memo}` : "",
-        item.subFileCount !== 0 ? siyuanI18n.includeSubFile.replace("x", item.subFileCount.toString()) : "",
-        `<br>${siyuanI18n.modifiedAt} ${item.hMtime}`,
-        `<br>${siyuanI18n.createdAt} ${item.hCtime}`
-    ];
-    
-    const countHTML = generateCountHTML(item, true);
-    
-    return `<li data-box="${notebookId}" class="b3-list-item" data-path="${item.path}">
-    <span style="padding-left: ${item.path.split("/").length * 8}px" class="b3-list-item__toggle b3-list-item__toggle--hl${item.subFileCount === 0 ? " fn__hidden" : ""}">
-        <svg class="b3-list-item__arrow"><use xlink:href="#iconRight"></use></svg>
-    </span>
-    ${unicode2Emoji(iconPath, "b3-list-item__graphic", true)}
-    <span class="b3-list-item__text ariaLabel" data-position="parentE" aria-label="${ariaLabelParts.join("")}">${displayName}</span>
-    ${countHTML}
-</li>`;
+const setElementHeightAndRemoveStyle = (element: Element, height: number): void => {
+    element.setAttribute("style", `height:${height}px;`);
+    setTimeout(() => {
+        element.classList.remove("file-tree__sliderDown");
+        element.removeAttribute("style");
+    }, 120);
 };
 
 const handleLeafResponse = (response: IWebSocketData, liElement: HTMLElement, notebookId: string, toggleElement: Element | null, flashcard: boolean) => {
@@ -294,14 +220,33 @@ const handleLeafResponse = (response: IWebSocketData, liElement: HTMLElement, no
     if (!nextElement) {
         return;
     }
-    // @内联回调
+    
     setTimeout(() => {
-        nextElement.setAttribute("style", `height:${nextElement.childElementCount * liElement.clientHeight}px;`);
-        setTimeout(() => {
-            nextElement.classList.remove("file-tree__sliderDown");
-            nextElement.removeAttribute("style");
-        }, 120);
+        setElementHeightAndRemoveStyle(nextElement, nextElement.childElementCount * liElement.clientHeight);
     }, 2);
+};
+
+/**
+ * 处理已打开的文件项
+ * @param liElement 列表元素
+ * @param toggleElement 切换元素
+ */
+const handleOpenedLeaf = (liElement: HTMLElement, toggleElement: Element): void => {
+    toggleElement.classList.remove("b3-list-item__arrow--open");
+    const nextElement = liElement.nextElementSibling;
+    if (nextElement?.tagName === "UL") {
+        nextElement.classList.add("fn__none");
+    }
+};
+
+/**
+ * 处理已关闭但存在的文件项
+ * @param toggleElement 切换元素
+ * @param nextElement 下一个元素
+ */
+const handleClosedExistingLeaf = (toggleElement: Element, nextElement: Element): void => {
+    toggleElement.classList.add("b3-list-item__arrow--open");
+    nextElement.classList.remove("fn__none");
 };
 
 export const getLeaf = (liElement: HTMLElement, flashcard: boolean) => {
@@ -309,18 +254,15 @@ export const getLeaf = (liElement: HTMLElement, flashcard: boolean) => {
     if (!toggleElement) {
         return;
     }
+    
     if (toggleElement.classList.contains("b3-list-item__arrow--open")) {
-        toggleElement.classList.remove("b3-list-item__arrow--open");
-        const nextElement = liElement.nextElementSibling;
-        if (nextElement && nextElement.tagName === "UL") {
-            nextElement.classList.add("fn__none");
-        }
+        handleOpenedLeaf(liElement, toggleElement);
         return;
     }
+    
     const nextElement = liElement.nextElementSibling;
     if (nextElement?.tagName === "UL") {
-        toggleElement.classList.add("b3-list-item__arrow--open");
-        nextElement.classList.remove("fn__none");
+        handleClosedExistingLeaf(toggleElement, nextElement);
         return;
     }
 
@@ -335,49 +277,36 @@ export const getLeaf = (liElement: HTMLElement, flashcard: boolean) => {
     });
 };
 
-export const getNotebookName = (id: string) => {
-    let rootPath = "";
+/**
+ * 根据ID查找笔记本
+ * @param id 笔记本ID
+ * @returns 找到的笔记本项，未找到则返回undefined
+ */
+const findNotebookById = (id: string): INotebook | undefined => {
     const notebooks = getSiyuanNotebooks();
-    for (const item of notebooks) {
-        if (item.id === id) {
-            rootPath = item.name;
-            break;
-        }
-    }
-    return rootPath;
+    return notebooks.find(item => item.id === id);
 };
 
-export const getNotebookIcon = (id: string) => {
-    let rootPath = "";
-    const notebooks = getSiyuanNotebooks();
-    for (const item of notebooks) {
-        if (item.id === id) {
-            rootPath = item.icon;
-            break;
-        }
-    }
-    return rootPath;
+export const getNotebookName = (id: string): string => {
+    const notebook = findNotebookById(id);
+    return notebook ? notebook.name : "";
 };
 
-export const setNotebookName = (id: string, name: string) => {
-    const notebooks = getSiyuanNotebooks();
-    for (const item of notebooks) {
-        if (item.id === id) {
-            item.name = name;
-            break;
-        }
+export const getNotebookIcon = (id: string): string => {
+    const notebook = findNotebookById(id);
+    return notebook ? notebook.icon : "";
+};
+
+export const setNotebookName = (id: string, name: string): void => {
+    const notebook = findNotebookById(id);
+    if (notebook) {
+        notebook.name = name;
     }
 };
 
-export const getOpenNotebookCount = () => {
-    let count = 0;
+export const getOpenNotebookCount = (): number => {
     const notebooks = getSiyuanNotebooks();
-    for (const item of notebooks) {
-        if (!item.closed) {
-            count++;
-        }
-    }
-    return count;
+    return notebooks.filter(item => !item.closed).length;
 };
 
 const handleNotebookResponse = (response: IWebSocketData, cb?: (notebook: INotebook[]) => void, flashcard = false) => {
