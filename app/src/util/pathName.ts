@@ -1,20 +1,21 @@
 import * as path from "path";
 
-import {fetchPost} from "./fetch";
-import {Dialog} from "../dialog";
-import {escapeHtml} from "./escape";
-import {getSearch, isMobile} from "./functions";
-import {focusByRange} from "../protyle/util/selection";
-import {unicode2Emoji} from "../emoji";
-import {Constants} from "../constants";
+import { fetchPost } from "./fetch";
+import { Dialog } from "../dialog";
+import { escapeHtml } from "./escape";
+import { getSearch, isMobile } from "./functions";
+import { focusByRange } from "../protyle/util/selection";
+import { unicode2Emoji } from "../emoji";
+import { Constants } from "../constants";
 /// #if !BROWSER
-import {ipcRenderer} from "electron";
+import { ipcRenderer } from "electron";
 /// #endif
-import {showMessage} from "../dialog/message";
-import {isOnlyMeta, isWindows, setStorageVal, updateHotkeyTip} from "../protyle/util/compatibility";
-import {matchHotKey} from "../protyle/util/hotKey";
-import {Menu} from "../plugin/Menu";
-import {hasClosestByClassName} from "../protyle/util/hasClosest";
+import { showMessage } from "../dialog/message";
+import { isOnlyMeta, isWindows, setStorageVal, updateHotkeyTip } from "../protyle/util/compatibility";
+import { matchHotKey } from "../protyle/util/hotKey";
+import { Menu } from "../plugin/Menu";
+import { hasClosestByClassName } from "../protyle/util/hasClosest";
+import { getLocationHref, getLocationOrigin, getLocationSearch, setLocationHref } from "./siyuanEnvironments/windowLocation.environment";
 
 export const useShell = (cmd: "showItemInFolder" | "openPath", filePath: string) => {
     /// #if !BROWSER
@@ -26,26 +27,30 @@ export const useShell = (cmd: "showItemInFolder" | "openPath", filePath: string)
 };
 
 export const getIdZoomInByPath = () => {
-    const searchParams = new URLSearchParams(window.location.search);
+    const searchParams = new URLSearchParams(getLocationSearch());
     const PWAURL = searchParams.get("url");
-    let id = "";
-    let isZoomIn = false;
+
+    // PWA 捕获 web+siyuan://blocks/20221031001313-rk7sd0e?focus=1
     if (/^web\+siyuan:\/\/blocks\/\d{14}-\w{7}/.test(PWAURL)) {
-        // PWA 捕获 web+siyuan://blocks/20221031001313-rk7sd0e?focus=1
-        id = PWAURL.substring(20, 20 + 22);
-        isZoomIn = getSearch("focus", PWAURL) === "1";
-    } else if (window.JSAndroid) {
-        // PAD 通过思源协议打开
-        const SYURL = window.JSAndroid.getBlockURL();
-        id = getIdFromSYProtocol(SYURL);
-        isZoomIn = getSearch("focus", SYURL) === "1";
-    } else {
-        // 支持通过 URL 查询字符串参数 `id` 和 `focus` 跳转到 Web 端指定块 https://github.com/siyuan-note/siyuan/pull/7086
-        id = searchParams.get("id");
-        isZoomIn = searchParams.get("focus") === "1";
+        return {
+            id: PWAURL.substring(20, 20 + 22),
+            isZoomIn: getSearch("focus", PWAURL) === "1"
+        };
     }
+
+    // PAD 通过思源协议打开
+    if (window.JSAndroid) {
+        const SYURL = window.JSAndroid.getBlockURL();
+        return {
+            id: getIdFromSYProtocol(SYURL),
+            isZoomIn: getSearch("focus", SYURL) === "1"
+        };
+    }
+
+    // 支持通过 URL 查询字符串参数 `id` 和 `focus` 跳转到 Web 端指定块 https://github.com/siyuan-note/siyuan/pull/7086
     return {
-        id, isZoomIn
+        id: searchParams.get("id"),
+        isZoomIn: searchParams.get("focus") === "1"
     };
 };
 
@@ -58,11 +63,11 @@ export const getIdFromSYProtocol = (url: string) => {
 };
 
 /* redirect to auth page */
-export const redirectToCheckAuth = (to: string = window.location.href) => {
-    const url = new URL(window.location.origin);
+export const redirectToCheckAuth = (to: string = getLocationHref()) => {
+    const url = new URL(getLocationOrigin());
     url.pathname = "/check-auth";
     url.searchParams.set("to", to);
-    window.location.href = url.href;
+    setLocationHref(url.href);
 };
 
 export const addBaseURL = () => {
@@ -196,7 +201,7 @@ export const movePathTo = (options: {
     dialog.element.querySelector(".b3-dialog__header").setAttribute("style", "padding:0");
     dialog.element.setAttribute("data-key", Constants.DIALOG_MOVEPATHTO);
     if (options.paths && options.paths.length > 0) {
-        fetchPost("/api/filetree/getHPathsByPaths", {paths: options.paths}, (response) => {
+        fetchPost("/api/filetree/getHPathsByPaths", { paths: options.paths }, (response) => {
             dialog.element.querySelector(".b3-dialog__header .ft__smaller").innerHTML = escapeHtml(response.data.join(" "));
         });
     }

@@ -51,3 +51,35 @@ export const getLocationHost = () => {
 export const reloadLocation = () => {
     window.location.reload();
 };
+
+/**
+ * 获取 window.location.href
+ * @returns 当前完整 URL
+ */
+export const getLocationHref = () => {
+    return window.location.href;
+};
+
+/**
+ * 设置 window.location.href（导航到新页面）
+ * @param href 目标 URL
+ */
+export const setLocationHref = (href: string) => {
+    window.location.href = href;
+};
+
+/**
+ * 获取 window.location.search
+ * @returns URL 查询字符串，如 "?id=123&focus=1"
+ */
+export const getLocationSearch = () => {
+    return window.location.search;
+};
+
+/**
+ * 获取 window.location.origin
+ * @returns 源，如 "https://example.com:8080"
+ */
+export const getLocationOrigin = () => {
+    return window.location.origin;
+};
