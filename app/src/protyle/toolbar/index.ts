@@ -48,7 +48,7 @@ import { escapeHtml } from "../../util/escape";
 import { resizeSide } from "../../history/resizeSide";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { mergeNodes } from "../../util/DOM/rangeOperations";
-import { 显示特殊类型菜单, 整理零宽空格 } from "./setInlineMark.helper";
+import { 显示特殊类型菜单, 整理零宽空格, 合并相邻同类型元素 } from "./setInlineMark.helper";
 
 export class Toolbar {
     public element: HTMLElement;
@@ -677,80 +677,24 @@ export class Toolbar {
         }
         if (!keepZWPS) {
             // 合并元素
-            for (let i = 0; i <= newNodes.length; i++) {
-                let previousElement = i === newNodes.length ? newNodes[i - 1] as HTMLElement : hasPreviousSibling(newNodes[i]) as HTMLElement;
-                if (previousElement.nodeType === 3 && previousElement.textContent === Constants.ZWSP) {
-                    previousElement = hasPreviousSibling(previousElement) as HTMLElement;
-                    if (previousElement) {
-                        previousElement.nextSibling.remove();
-                    }
-                }
-                let currentNode = newNodes[i] as HTMLElement;
-                if (!currentNode) {
-                    currentNode = hasNextSibling(newNodes[i - 1]) as HTMLElement;
-                    if (currentNode && currentNode.nodeType === 3 && currentNode.textContent === Constants.ZWSP) {
-                        currentNode = hasNextSibling(currentNode) as HTMLElement;
-                        if (currentNode) {
-                            currentNode.previousSibling.remove();
-                        }
-                    }
-                }
-                if (currentNode && currentNode.nodeType !== 3) {
-                    const currentType = (currentNode.getAttribute("data-type") || "").split(" ");
-                    if (currentNode.tagName !== "BR" &&
-                        previousElement && previousElement.nodeType !== 3 &&
-                        currentNode.nodeType !== 3 &&
-                        isArrayEqual(currentType, (previousElement.getAttribute("data-type") || "").split(" ")) &&
-                        hasSameTextStyle(currentNode, previousElement)) {
-                        if (currentType.includes("code") || currentType.includes("tag") || currentType.includes("kbd")) {
-                            if (currentNode.textContent.startsWith(Constants.ZWSP)) {
-                                currentNode.textContent = currentNode.textContent.substring(1);
-                            }
-                        }
-                        if (currentType.includes("inline-math")) {
-                            // 数学公式合并 data-content https://github.com/siyuan-note/siyuan/issues/6028
-                            currentNode.setAttribute("data-content", previousElement.getAttribute("data-content") + currentNode.getAttribute("data-content"));
-                        } else if (currentType.includes("block-ref") && previousElement.getAttribute("data-id") === currentNode.getAttribute("data-id")) {
-                            if (previousElement.dataset.subtype !== "d" || previousElement.dataset.subtype !== "d") {
-                                currentNode.setAttribute("data-subtype", "s");
-                                currentNode.textContent = previousElement.textContent + currentNode.textContent;
-                            }
-                        } else {
-                            // 测试不存在 https://ld246.com/article/1664454663564 情况，故移除引用合并限制
-                            // 搜索结果引用被高亮隔断需进行合并 https://github.com/siyuan-note/siyuan/issues/7588
-                            // textContent：防止赋值后 \n 转换为 br 导致后续 this.range.setStart 报错；innerText：获取 br 的 \n， https://github.com/siyuan-note/siyuan/issues/15968
-                            currentNode.textContent = previousElement.innerText + currentNode.innerText;
-                            // 如果为备注时，合并备注内容
-                            if (currentType.includes("inline-memo")) {
-                                currentNode.setAttribute("data-inline-memo-content", (previousElement.getAttribute("data-inline-memo-content") || "") +
-                                    (currentNode.getAttribute("data-inline-memo-content") || ""));
-                            }
-                        }
-                        if (!currentType.includes("inline-math")) {
-                            if (i === 0) {
-                                startContainer = currentNode;
-                                startOffset = previousElement.textContent.length;
-                            } else if (i === newNodes.length) {
-                                endContainer = currentNode;
-                                endOffset = previousElement.textContent.length;
-                                if (!startContainer) {
-                                    startContainer = currentNode;
-                                } else if (startContainer === previousElement) {
-                                    startContainer = currentNode;
-                                }
-                            }
-                        }
-                        previousElement.remove();
-                        if (i > 0) {
-                            newNodes.splice(i - 1, 1);
-                            i--;
-                        }
-                        if (newNodes.length === 0) {
-                            newNodes.push(currentNode);
-                            break;
-                        }
-                    }
-                }
+            const mergeResult = 合并相邻同类型元素(
+                newNodes,
+                hasPreviousSibling,
+                hasNextSibling,
+                isArrayEqual,
+                hasSameTextStyle
+            );
+            if (mergeResult.startContainer) {
+                startContainer = mergeResult.startContainer;
+            }
+            if (mergeResult.endContainer) {
+                endContainer = mergeResult.endContainer;
+            }
+            if (mergeResult.startOffset !== undefined) {
+                startOffset = mergeResult.startOffset;
+            }
+            if (mergeResult.endOffset !== undefined) {
+                endOffset = mergeResult.endOffset;
             }
             // 整理 zwsp
             整理零宽空格(newNodes, hasPreviousSibling, hasNextSibling);
