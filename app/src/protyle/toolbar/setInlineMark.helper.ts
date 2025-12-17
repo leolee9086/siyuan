@@ -82,7 +82,7 @@ export function 整理零宽空格(
         }
         if (currentNode.nodeType === 3) {
             处理文本节点ZWSP(currentNode, previousElement);
-            continue;
+            continue;p
         }
         处理元素节点ZWSP(currentNode, previousElement);
     }

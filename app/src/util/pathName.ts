@@ -201,14 +201,16 @@ export const getLeaf = (liElement: HTMLElement, flashcard: boolean) => {
     }
     if (toggleElement.classList.contains("b3-list-item__arrow--open")) {
         toggleElement.classList.remove("b3-list-item__arrow--open");
-        if (liElement.nextElementSibling && liElement.nextElementSibling.tagName === "UL") {
-            liElement.nextElementSibling.classList.add("fn__none");
+        const nextElement = liElement.nextElementSibling;
+        if (nextElement && nextElement.tagName === "UL") {
+            nextElement.classList.add("fn__none");
         }
         return;
     }
-    if (liElement.nextElementSibling && liElement.nextElementSibling.tagName === "UL") {
+    const nextElement = liElement.nextElementSibling;
+    if (nextElement && nextElement.tagName === "UL") {
         toggleElement.classList.add("b3-list-item__arrow--open");
-        liElement.nextElementSibling.classList.remove("fn__none");
+        nextElement.classList.remove("fn__none");
         return;
     }
 
