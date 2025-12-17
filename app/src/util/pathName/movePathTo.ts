@@ -8,6 +8,8 @@ import { setNoteBook } from "../pathName";
 import { 创建对话框标题HTML, 创建对话框内容HTML } from "./movePathTo.template";
 import { 渲染笔记本列表HTML } from "./movePathTo.notebook";
 import { 绑定事件监听器, MovePathToOptions } from "./movePathTo.bindEvents";
+import { getSiyuanDialogs } from "../siyuanEnvironments/getDialog.environment";
+import { getSiyuanStorage } from "../siyuanEnvironments/getSiyuanConfig.environment";
 
 
 /**
@@ -15,7 +17,7 @@ import { 绑定事件监听器, MovePathToOptions } from "./movePathTo.bindEvent
  * @returns true 如果存在对话框（已关闭），false 如果不存在
  */
 const 检查并关闭现有对话框 = (): boolean => {
-    const existingDialog = window.siyuan.dialogs.find((item) => {
+    const existingDialog = getSiyuanDialogs().find((item) => {
         if (item.element.querySelector("#foldList")) {
             item.destroy();
             return true;
@@ -59,7 +61,8 @@ export const movePathTo = (options: MovePathToOptions) => {
     }, options.flashcard);
 
     const inputElement = dialog.element.querySelector(".b3-text-field") as HTMLInputElement;
-    inputElement.value = window.siyuan.storage[Constants.LOCAL_MOVE_PATH].k;
+    const localMovePath = getSiyuanStorage()[Constants.LOCAL_MOVE_PATH];
+    inputElement.value = localMovePath?.k || "";
     /// #if !MOBILE
     inputElement.select();
     /// #endif

@@ -142,7 +142,8 @@ function 处理列表项点击(
     }
     // 单选模式
     if (!isSpecifyPath || !isMeta) {
-        currentItemElements[0]?.classList.remove("b3-list-item--focus");
+        const firstItem = currentItemElements[0];
+        firstItem?.classList.remove("b3-list-item--focus");
         target.classList.add("b3-list-item--focus");
     }
 

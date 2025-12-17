@@ -9,9 +9,9 @@ interface NotebookItem {
     name: string;
     icon: string;
     closed: boolean;
-    newFlashcardCount?: number;
-    dueFlashcardCount?: number;
-    flashcardCount?: number;
+    newFlashcardCount?: string;
+    dueFlashcardCount?: string;
+    flashcardCount?: string;
 }
 
 /**

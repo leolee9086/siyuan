@@ -22,12 +22,7 @@ interface BaseLayerOptions {
   };
 }
 
-// 网络请求特定配置接口
-interface NetworkConfig {
-  methods?: string[];
-  urlDecoder?: (text: string) => string;
-  urlQueryHandler?: (path: string, query?: string | Record<string, any>) => string;
-}
+
 
 // 参数处理器接口
 interface ParameterProcessor {
@@ -44,6 +39,17 @@ const defaultParameterProcessor: ParameterProcessor = {
     }
   }
 };
+
+
+function createParamMiddleware(param: string, fn: (param: string, ctx: Context, next: () => void) => void, layer: BaseLayer): MiddlewareFunction & { param?: string } {
+  return Object.assign(
+    (ctx: Context, next: any) => {
+      const p = ctx.params[param] as string;
+      return fn.call(layer, p, ctx, next);
+    },
+    { param }
+  ) as MiddlewareFunction & { param?: string };
+}
 
 export default class BaseLayer implements LayerLike {
   public opts: BaseLayerOptions;
@@ -78,8 +84,8 @@ export default class BaseLayer implements LayerLike {
     this.path = path;
     const options: TokensToRegexpOptions & ParseOptions = {
       end: this.opts.end !== false,
-      sensitive: this.opts.sensitive,
-      delimiter: this.opts.delimiter
+      ...(this.opts.sensitive !== undefined && { sensitive: this.opts.sensitive }),
+      ...(this.opts.delimiter !== undefined && { delimiter: this.opts.delimiter })
     };
 
     if (path instanceof RegExp) {
@@ -114,14 +120,10 @@ export default class BaseLayer implements LayerLike {
    */
   public params(path: string, captures: string[], params: Record<string, any> = {}): Record<string, any> {
     for (let len = captures.length, i = 0; i < len; i++) {
-      if (this.paramNames[i]) {
-        const c = captures[i];
-        const paramName = this.paramNames[i];
-        if (hasName(paramName)) {
-          if (c && c.length > 0) {
-            params[paramName.name] = c ? this.parameterProcessor.decode(c) : c;
-          }
-        }
+      const paramName = this.paramNames[i];
+      const c = captures[i];
+      if (paramName && hasName(paramName) && c && c.length > 0) {
+        params[paramName.name] = this.parameterProcessor.decode(c);
       }
     }
 
@@ -193,23 +195,14 @@ export default class BaseLayer implements LayerLike {
    */
   public param(param: string, fn: (param: string, ctx: Context, next: () => void) => void): LayerLike {
     const { stack, paramNames } = this;
-    const middleware: MiddlewareFunction & { param?: string } = (ctx, next) => {
-      const p = ctx.params[param];
-      return fn.call(this, p, ctx, next);
-    };
-    middleware.param = param;
+    const middleware = createParamMiddleware(param, fn, this);
 
     const names = paramNames.map(p => p.name);
     const x = names.indexOf(param);
 
-    if (x > -1) {
-      stack.some((fn, i) => {
-        if (!fn.param || (fn.param && names.indexOf(fn.param) > x)) {
-          stack.splice(i, 0, middleware);
-          return true;
-        }
-        return false;
-      });
+    const i = x > -1 ? stack.findIndex((fn) => !fn.param || (fn.param && names.indexOf(fn.param) > x)) : -1;
+    if (i > -1) {
+      stack.splice(i, 0, middleware);
     }
     return this;
   }
@@ -226,8 +219,8 @@ export default class BaseLayer implements LayerLike {
       this.path = this.path === "/" && this.opts.strict !== true ? prefix : `${prefix}${this.path}`;
       const options: TokensToRegexpOptions & ParseOptions = {
         end: this.opts.end !== false,
-        sensitive: this.opts.sensitive,
-        delimiter: this.opts.delimiter
+        ...(this.opts.sensitive !== undefined && { sensitive: this.opts.sensitive }),
+        ...(this.opts.delimiter !== undefined && { delimiter: this.opts.delimiter })
       };
       const tokens: Key[] = [];
       this.regexp = pathToRegexp(this.path, tokens, options);
