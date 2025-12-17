@@ -77,12 +77,12 @@ export function 整理零宽空格(
                 ? (previousElement?.getAttribute("data-type") || "").split(" ")
                 : [];
             const 需要添加ZWSP = currentType.includes("code") || currentType.includes("tag") || currentType.includes("kbd");
-            if (需要添加ZWSP) previousElement.insertAdjacentText("afterend", Constants.ZWSP);
+            需要添加ZWSP && previousElement.insertAdjacentText("afterend", Constants.ZWSP);
             break;
         }
         if (currentNode.nodeType === 3) {
             处理文本节点ZWSP(currentNode, previousElement);
-            continue;p
+            continue;
         }
         处理元素节点ZWSP(currentNode, previousElement);
     }
