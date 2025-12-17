@@ -48,6 +48,7 @@ import { escapeHtml } from "../../util/escape";
 import { resizeSide } from "../../history/resizeSide";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { mergeNodes } from "../../util/DOM/rangeOperations";
+import { 显示特殊类型菜单 } from "./setInlineMark.helper";
 
 export class Toolbar {
     public element: HTMLElement;
@@ -68,43 +69,43 @@ export class Toolbar {
         this.subElement.className = "protyle-util fn__none";
         /// #endif
         this.toolbarHeight = 29;
-        protyle.app.plugins.forEach(item => {
+        for (const item of protyle.app.plugins) {
             const pluginToolbar = item.updateProtyleToolbar(options.toolbar);
-            pluginToolbar.forEach(toolbarItem => {
+            for (const toolbarItem of pluginToolbar) {
                 if (typeof toolbarItem === "string" || Constants.INLINE_TYPE.concat("|").includes(toolbarItem.name) || !toolbarItem.hotkey) {
-                    return;
+                    continue;
                 }
                 if (window.siyuan.config.keymap.plugin && window.siyuan.config.keymap.plugin[item.name] && window.siyuan.config.keymap.plugin[item.name][toolbarItem.name]) {
                     toolbarItem.hotkey = window.siyuan.config.keymap.plugin[item.name][toolbarItem.name].custom;
                 }
-            });
+            }
             options.toolbar = toolbarKeyToMenu(pluginToolbar);
-        });
-        options.toolbar.forEach((menuItem: IMenuItem) => {
-            const itemElement = this.genItem(protyle, menuItem);
+        }
+        for (const menuItem of options.toolbar) {
+            const itemElement = this.genItem(protyle, menuItem as IMenuItem);
             this.element.appendChild(itemElement);
-        });
+        }
     }
 
     public update(protyle: IProtyle) {
         this.element.innerHTML = "";
         protyle.options.toolbar = toolbarKeyToMenu(Constants.PROTYLE_TOOLBAR);
-        protyle.app.plugins.forEach(item => {
+        for (const item of protyle.app.plugins) {
             const pluginToolbar = item.updateProtyleToolbar(protyle.options.toolbar);
-            pluginToolbar.forEach(toolbarItem => {
+            for (const toolbarItem of pluginToolbar) {
                 if (typeof toolbarItem === "string" || Constants.INLINE_TYPE.concat("|").includes(toolbarItem.name) || !toolbarItem.hotkey) {
-                    return;
+                    continue;
                 }
                 if (window.siyuan.config.keymap.plugin && window.siyuan.config.keymap.plugin[item.name] && window.siyuan.config.keymap.plugin[item.name][toolbarItem.name]) {
                     toolbarItem.hotkey = window.siyuan.config.keymap.plugin[item.name][toolbarItem.name].custom;
                 }
-            });
+            }
             protyle.options.toolbar = toolbarKeyToMenu(pluginToolbar);
-        });
-        protyle.options.toolbar.forEach((menuItem: IMenuItem) => {
-            const itemElement = this.genItem(protyle, menuItem);
+        }
+        for (const menuItem of protyle.options.toolbar) {
+            const itemElement = this.genItem(protyle, menuItem as IMenuItem);
             this.element.appendChild(itemElement);
-        });
+        }
     }
 
     public render(protyle: IProtyle, range: Range, event?: KeyboardEvent) {
@@ -828,26 +829,7 @@ export class Toolbar {
         }
         focusByRange(this.range);
 
-        const showMenuElement = newNodes[0] as HTMLElement;
-        if (showMenuElement.nodeType !== 3) {
-            const showMenuTypes = (showMenuElement.getAttribute("data-type") || "").split(" ");
-            if (type === "inline-math") {
-                mathRender(nodeElement);
-                if (selectText === "" && showMenuTypes.includes("inline-math")) {
-                    protyle.toolbar.showRender(protyle, showMenuElement, undefined, html);
-                }
-            } else if (type === "inline-memo") {
-                if (!showMenuElement.getAttribute("data-inline-memo-content") &&
-                    showMenuTypes.includes("inline-memo")) {
-                    protyle.toolbar.showRender(protyle, showMenuElement, newNodes as Element[], html);
-                }
-            } else if (type === "a") {
-                if (showMenuTypes.includes("a") &&
-                    (showMenuElement.textContent.replace(Constants.ZWSP, "") === "" || !showMenuElement.getAttribute("data-href"))) {
-                    linkMenu(protyle, showMenuElement, showMenuElement.getAttribute("data-href") ? true : false);
-                }
-            }
-        }
+        显示特殊类型菜单(protyle, newNodes[0] as HTMLElement, type, selectText, newNodes, nodeElement, html);
         return newNodes;
     }
 
