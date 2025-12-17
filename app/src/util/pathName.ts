@@ -10,7 +10,7 @@ import { ipcRenderer } from "electron";
 import { showMessage } from "../dialog/message";
 import { isWindows } from "../protyle/util/compatibility";
 import { getLocationHref, getLocationOrigin, getLocationSearch, setLocationHref } from "./siyuanEnvironments/windowLocation.environment";
-import { getSiyuanNotebooks } from "./siyuanEnvironments/getSiyuanConfig.environment";
+import { getSiyuanNotebooks, setSiyuanNotebooks } from "./siyuanEnvironments/getSiyuanConfig.environment";
 
 export const useShell = (cmd: "showItemInFolder" | "openPath", filePath: string) => {
     /// #if !BROWSER
@@ -294,15 +294,19 @@ export const getOpenNotebookCount = () => {
     return count;
 };
 
+const handleNotebookResponse = (response: IWebSocketData, cb?: (notebook: INotebook[]) => void, flashcard = false) => {
+    if (!flashcard) {
+        setSiyuanNotebooks(response.data.notebooks);
+    }
+    if (cb) {
+        cb(response.data.notebooks);
+    }
+};
+
 export const setNoteBook = (cb?: (notebook: INotebook[]) => void, flashcard = false) => {
     fetchPost("/api/notebook/lsNotebooks", {
         flashcard
     }, (response) => {
-        if (!flashcard) {
-            window.siyuan.notebooks = response.data.notebooks;
-        }
-        if (cb) {
-            cb(response.data.notebooks);
-        }
+        handleNotebookResponse(response, cb, flashcard);
     });
 };

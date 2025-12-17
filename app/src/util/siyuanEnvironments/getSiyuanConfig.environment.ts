@@ -82,3 +82,14 @@ export const getSiyuanNotebooks = () => {
     return window.siyuan.notebooks;
 };
 
+/**
+ * 设置 window.siyuan.notebooks
+ * @param notebooks notebooks 列表
+ */
+export const setSiyuanNotebooks = (notebooks: INotebook[]) => {
+    if (!window.siyuan) {
+        throw ("[setSiyuanNotebooks] window.siyuan 不存在");
+    }
+    window.siyuan.notebooks = notebooks;
+};
+
