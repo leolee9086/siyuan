@@ -63,3 +63,11 @@ export const setSiyuanLayoutCenterLayout = (layout: unknown) => {
     window.siyuan.layout.centerLayout = layout as NonNullable<typeof window.siyuan.layout.centerLayout>;
 };
 
+/**
+ * 获取 window.siyuan.backStack
+ * @returns backStack 列表
+ */
+export const getSiyuanBackStack = () => {
+    return window.siyuan?.backStack || [];
+};
+
