@@ -2,6 +2,7 @@ import { Constants } from "../../constants";
 import { matchHotKey } from "../../protyle/util/hotKey";
 import { Dialog } from "../../dialog";
 import { getLeaf } from "../pathName";
+import { getSiyuanGlobalMenus } from "../siyuanEnvironments/getMenu.environment";
 
 /**
  * 创建键盘事件处理器
@@ -26,15 +27,7 @@ export function 创建键盘事件处理器(context: {
     } = context;
 
     return (event: KeyboardEvent) => {
-        if (event.isComposing) {
-            return;
-        }
-        if (matchHotKey("⌥↓", event)) {
-            event.stopPropagation();
-            toggleMovePathHistory();
-            return;
-        }
-        if (window.siyuan.menus?.menu.element.getAttribute("data-name") === Constants.MENU_MOVE_PATH_HISTORY) {
+        if (处理通用快捷键(event, toggleMovePathHistory)) {
             return;
         }
         const currentPanelElement = searchListElement.classList.contains("fn__none") ? searchTreeElement : searchListElement;
@@ -42,10 +35,11 @@ export function 创建键盘事件处理器(context: {
         if (currentItemElements.length === 0) {
             return;
         }
-        let currentItemElement: HTMLElement = currentItemElements[0] as HTMLElement;
+        const currentItemElement: HTMLElement = currentItemElements[0] as HTMLElement;
         if (event.key.startsWith("Arrow")) {
             for (let index = 1; index < currentItemElements.length; index++) {
-                currentItemElements[index].classList.remove("b3-list-item--focus");
+                const item = currentItemElements[index];
+                item?.classList.remove("b3-list-item--focus");
             }
         }
         if (searchListElement.classList.contains("fn__none")) {
@@ -82,40 +76,33 @@ function 处理树视图方向键(
     }
 
     if (event.key === "ArrowLeft") {
-        const parentElement = currentItemElement.parentElement?.previousElementSibling as HTMLElement | null;
-        if (parentElement) {
-            const targetElement = parentElement.tagName !== "LI"
-                ? currentPanelElement.querySelector(".b3-list-item") as HTMLElement
-                : parentElement;
-            if (targetElement) {
-                currentItemElement.classList.remove("b3-list-item--focus");
-                targetElement.classList.add("b3-list-item--focus");
-                滚动到可见区域(targetElement, currentPanelElement as HTMLElement);
-            }
-        }
+        处理左方向键导航(currentItemElement, currentPanelElement);
         event.preventDefault();
         return;
     }
 
     if (event.key === "ArrowDown" || event.key === "ArrowRight") {
-        const nextElement = 查找下一个元素(currentItemElement);
-        if (nextElement?.classList.contains("b3-list-item")) {
-            currentItemElement.classList.remove("b3-list-item--focus");
-            nextElement.classList.add("b3-list-item--focus");
-            滚动到可见区域(nextElement, searchTreeElement);
-        }
+        尝试切换树节点焦点(currentItemElement, searchTreeElement, 查找下一个元素);
         event.preventDefault();
         return;
     }
 
     if (event.key === "ArrowUp") {
-        const previousElement = 查找上一个元素(currentItemElement);
-        if (previousElement?.classList.contains("b3-list-item")) {
-            currentItemElement.classList.remove("b3-list-item--focus");
-            previousElement.classList.add("b3-list-item--focus");
-            滚动到可见区域(previousElement, searchTreeElement);
-        }
+        尝试切换树节点焦点(currentItemElement, searchTreeElement, 查找上一个元素);
         event.preventDefault();
+    }
+}
+
+function 尝试切换树节点焦点(
+    currentItemElement: HTMLElement,
+    searchTreeElement: HTMLElement,
+    finder: (element: HTMLElement) => HTMLElement | null
+) {
+    const targetElement = finder(currentItemElement);
+    if (targetElement?.classList.contains("b3-list-item")) {
+        currentItemElement.classList.remove("b3-list-item--focus");
+        targetElement.classList.add("b3-list-item--focus");
+        滚动到可见区域(targetElement, searchTreeElement);
     }
 }
 
@@ -131,35 +118,31 @@ function 处理列表视图方向键(
     const panel = currentPanelElement as HTMLElement;
 
     if (event.key === "ArrowDown") {
-        currentItemElement.classList.remove("b3-list-item--focus");
-        const nextSibling = currentItemElement.nextElementSibling;
-        if (!nextSibling) {
-            panel.children[0].classList.add("b3-list-item--focus");
-        } else {
-            nextSibling.classList.add("b3-list-item--focus");
-        }
-        const focusedItem = panel.querySelector(".b3-list-item--focus") as HTMLElement;
-        if (focusedItem) {
-            调整滚动位置(panel, focusedItem, lineHeight, "down");
-        }
+        切换列表焦点(panel, currentItemElement, lineHeight, "down");
         event.preventDefault();
         return;
     }
 
     if (event.key === "ArrowUp") {
-        currentItemElement.classList.remove("b3-list-item--focus");
-        const prevSibling = currentItemElement.previousElementSibling;
-        if (!prevSibling) {
-            const lastChild = panel.children[panel.children.length - 1];
-            lastChild.classList.add("b3-list-item--focus");
-        } else {
-            prevSibling.classList.add("b3-list-item--focus");
-        }
-        const focusedItem = panel.querySelector(".b3-list-item--focus") as HTMLElement;
-        if (focusedItem) {
-            调整滚动位置(panel, focusedItem, lineHeight, "up");
-        }
+        切换列表焦点(panel, currentItemElement, lineHeight, "up");
         event.preventDefault();
+    }
+}
+
+function 切换列表焦点(
+    panel: HTMLElement,
+    currentItemElement: HTMLElement,
+    lineHeight: number,
+    direction: "up" | "down"
+) {
+    currentItemElement.classList.remove("b3-list-item--focus");
+    const targetElement = direction === "down"
+        ? (currentItemElement.nextElementSibling ?? panel.children[0])
+        : (currentItemElement.previousElementSibling ?? panel.children[panel.children.length - 1]);
+
+    if (targetElement) {
+        targetElement.classList.add("b3-list-item--focus");
+        调整滚动位置(panel, targetElement as HTMLElement, lineHeight, direction);
     }
 }
 
@@ -196,14 +179,14 @@ function 查找下一个元素(currentElement: HTMLElement): HTMLElement | null 
     let nextElement = currentElement;
     while (nextElement) {
         const sibling = nextElement.nextElementSibling;
+        if (sibling && sibling.classList.contains("fn__none")) {
+            nextElement = sibling as HTMLElement;
+            continue;
+        }
+        if (sibling && sibling.tagName === "UL") {
+            return sibling.firstElementChild as HTMLElement;
+        }
         if (sibling) {
-            if (sibling.classList.contains("fn__none")) {
-                nextElement = sibling as HTMLElement;
-                continue;
-            }
-            if (sibling.tagName === "UL") {
-                return sibling.firstElementChild as HTMLElement;
-            }
             return sibling as HTMLElement;
         }
         if (nextElement.parentElement?.id === "foldTree") {
@@ -221,14 +204,14 @@ function 查找上一个元素(currentElement: HTMLElement): HTMLElement | null 
     let previousElement = currentElement;
     while (previousElement) {
         const sibling = previousElement.previousElementSibling;
+        if (sibling && sibling.classList.contains("fn__none")) {
+            previousElement = sibling as HTMLElement;
+            continue;
+        }
+        if (sibling?.tagName === "LI") {
+            return sibling as HTMLElement;
+        }
         if (sibling) {
-            if (sibling.classList.contains("fn__none")) {
-                previousElement = sibling as HTMLElement;
-                continue;
-            }
-            if (sibling.tagName === "LI") {
-                return sibling as HTMLElement;
-            }
             const liElements = sibling.querySelectorAll(".b3-list-item");
             return liElements[liElements.length - 1] as HTMLElement;
         }
@@ -238,6 +221,24 @@ function 查找上一个元素(currentElement: HTMLElement): HTMLElement | null 
         previousElement = previousElement.parentElement as HTMLElement;
     }
     return previousElement;
+}
+
+/**
+ * 处理左方向键导航（跳转到父元素）
+ */
+function 处理左方向键导航(currentItemElement: HTMLElement, currentPanelElement: Element) {
+    const parentElement = currentItemElement.parentElement?.previousElementSibling as HTMLElement | null;
+    if (!parentElement) {
+        return;
+    }
+    const targetElement = parentElement.tagName !== "LI"
+        ? currentPanelElement.querySelector(".b3-list-item") as HTMLElement
+        : parentElement;
+    if (targetElement) {
+        currentItemElement.classList.remove("b3-list-item--focus");
+        targetElement.classList.add("b3-list-item--focus");
+        滚动到可见区域(targetElement, currentPanelElement as HTMLElement);
+    }
 }
 
 /**
@@ -260,15 +261,36 @@ function 调整滚动位置(
     lineHeight: number,
     direction: "up" | "down"
 ) {
-    if (direction === "down") {
-        if (panel.scrollTop < item.offsetTop - panel.clientHeight + lineHeight ||
-            panel.scrollTop > item.offsetTop) {
-            panel.scrollTop = item.offsetTop - panel.clientHeight + lineHeight;
-        }
-    } else {
-        if (panel.scrollTop < item.offsetTop - panel.clientHeight + lineHeight ||
-            panel.scrollTop > item.offsetTop - lineHeight * 2) {
-            panel.scrollTop = item.offsetTop - lineHeight * 2;
-        }
+    const 需要调整向下滚动 = direction === "down" && (
+        panel.scrollTop < item.offsetTop - panel.clientHeight + lineHeight ||
+        panel.scrollTop > item.offsetTop
+    );
+    if (需要调整向下滚动) {
+        panel.scrollTop = item.offsetTop - panel.clientHeight + lineHeight;
+        return;
     }
+    if (direction === "down") {
+        return;
+    }
+    // direction === "up"
+    const 需要调整向上滚动 = panel.scrollTop < item.offsetTop - panel.clientHeight + lineHeight ||
+        panel.scrollTop > item.offsetTop - lineHeight * 2;
+    if (需要调整向上滚动) {
+        panel.scrollTop = item.offsetTop - lineHeight * 2;
+    }
+}
+
+function 处理通用快捷键(event: KeyboardEvent, toggleMovePathHistory: () => void) {
+    if (event.isComposing) {
+        return true;
+    }
+    if (matchHotKey("⌥↓", event)) {
+        event.stopPropagation();
+        toggleMovePathHistory();
+        return true;
+    }
+    if (getSiyuanGlobalMenus()?.menu.element.getAttribute("data-name") === Constants.MENU_MOVE_PATH_HISTORY) {
+        return true;
+    }
+    return false;
 }
