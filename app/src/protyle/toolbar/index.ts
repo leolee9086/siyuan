@@ -53,7 +53,7 @@ export class Toolbar {
     public element: HTMLElement;
     public subElement: HTMLElement;
     public subElementCloseCB: (() => void) | undefined;
-    public range: Range;
+    public range: Range | undefined;
     public toolbarHeight: number;
 
     constructor(protyle: IProtyle) {

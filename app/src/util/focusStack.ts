@@ -161,7 +161,7 @@ const createTabForStack = (app: App, stack: IBackStack, info: any) => {
         callback(tab) {
             if (!stack.protyle) return;
             const scrollAttr = saveScroll(stack.protyle, true) as IScrollAttr;
-            scrollAttr.rootId = stack.protyle.block.rootID;
+            scrollAttr.rootId = stack.protyle.block.rootID || "";
             scrollAttr.focusId = stack.id;
             if (stack.position) {
                 scrollAttr.focusStart = stack.position.start;
@@ -180,8 +180,8 @@ const createTabForStack = (app: App, stack: IBackStack, info: any) => {
             const editor = new Editor({
                 app: app,
                 tab,
-                blockId: stack.zoomId || stack.id || stack.protyle.block.rootID,
-                rootId: stack.protyle.block.rootID,
+                blockId: stack.zoomId || stack.id || stack.protyle.block.rootID || "",
+                rootId: stack.protyle.block.rootID || "",
                 action: stack.zoomId ? [Constants.CB_GET_FOCUS, Constants.CB_GET_SCROLL, Constants.CB_GET_ALL, Constants.CB_GET_UNUNDO] :
                     [Constants.CB_GET_FOCUS, Constants.CB_GET_SCROLL, Constants.CB_GET_UNUNDO]
             });
