@@ -123,6 +123,17 @@ export const getSiyuanDragElement = (): HTMLElement | undefined => {
 };
 
 /**
+ * 设置 window.siyuan.dragElement
+ * @param element 拖拽元素
+ */
+export const setSiyuanDragElement = (element: HTMLElement) => {
+    if (!window.siyuan) {
+        throw ("[setSiyuanDragElement] window.siyuan 不存在");
+    }
+    window.siyuan.dragElement = element;
+};
+
+/**
  * 检查 window.siyuan.config 是否存在
  */
 export const hasSiyuanConfig = (): boolean => {

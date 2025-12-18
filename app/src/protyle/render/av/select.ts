@@ -1,17 +1,18 @@
-import {Menu} from "../../../plugin/Menu";
-import {transaction} from "../../wysiwyg/transaction";
-import {hasClosestBlock, hasClosestByClassName} from "../../util/hasClosest";
-import {confirmDialog} from "../../../dialog/confirmDialog";
-import {upDownHint} from "../../../util/upDownHint";
-import {bindEditEvent, getColId, getEditHTML} from "./col";
-import {updateAttrViewCellAnimation} from "./action";
-import {genAVValueHTML, isCustomAttr} from "./blockAttr";
-import {escapeAriaLabel, escapeAttr, escapeHtml} from "../../../util/escape";
-import {genCellValueByElement, getTypeByCellElement} from "./cell";
+import { Menu } from "../../../plugin/Menu";
+import { transaction } from "../../wysiwyg/transaction";
+import { hasClosestBlock, hasClosestByClassName } from "../../util/hasClosest";
+import { confirmDialog } from "../../../dialog/confirmDialog";
+import { upDownHint } from "../../../util/upDownHint";
+import { bindEditEvent, getColId, getEditHTML } from "./col";
+import { updateAttrViewCellAnimation } from "./action";
+import { genAVValueHTML, isCustomAttr } from "./blockAttr";
+import { escapeAriaLabel, escapeAttr, escapeHtml } from "../../../util/escape";
+import { genCellValueByElement, getTypeByCellElement } from "./cell";
 import * as dayjs from "dayjs";
-import {getFieldsByData} from "./view";
-import {getFieldIdByCellElement} from "./row";
-import {Constants} from "../../../constants";
+import { getFieldsByData } from "./view";
+import { getFieldIdByCellElement } from "./row";
+import { Constants } from "../../../constants";
+import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 let cellValues: IAVCellValue[];
 
@@ -60,7 +61,7 @@ const filterSelectHTML = (key: string, options: {
         <span class="fn__ellipsis">${escapeHtml(key)}</span>
     </span>
 </div>
-<span class="b3-menu__accelerator b3-menu__accelerator--hotkey">${window.siyuan.languages.enterKey}</span>
+<span class="b3-menu__accelerator b3-menu__accelerator--hotkey">${siyuanI18n.enterKey}</span>
 </button>${html}`;
     } else if (html.indexOf("b3-menu__item--current") === -1) {
         html = html.replace('class="b3-menu__item"', 'class="b3-menu__item b3-menu__item--current"');
@@ -207,8 +208,8 @@ export const setColOption = (protyle: IProtyle, data: IAV, target: HTMLElement, 
         const selectedElement = menuElement.querySelector(".b3-chips");
         const oldChipsHeight = selectedElement ? selectedElement.clientHeight : 0;
         if (!cellElements) {
-            menuElement.innerHTML = getEditHTML({protyle, data, colId, isCustomAttr});
-            bindEditEvent({protyle, data, menuElement, isCustomAttr, blockID});
+            menuElement.innerHTML = getEditHTML({ protyle, data, colId, isCustomAttr });
+            bindEditEvent({ protyle, data, menuElement, isCustomAttr, blockID });
         } else {
             cellElements.forEach((cellElement: HTMLElement, index) => {
                 const rowID = getFieldIdByCellElement(cellElement, viewType);
@@ -247,11 +248,11 @@ export const setColOption = (protyle: IProtyle, data: IAV, target: HTMLElement, 
         label: `<div class="fn__hr"></div>
 <div class="b3-form__icona fn__block">
     <input class="b3-text-field b3-form__icona-input" type="text" size="16">
-    <svg data-position="north" class="b3-form__icona-icon ariaLabel" aria-label="${desc ? escapeAriaLabel(desc) : window.siyuan.languages.addDesc}"><use xlink:href="#iconInfo"></use></svg>
+    <svg data-position="north" class="b3-form__icona-icon ariaLabel" aria-label="${desc ? escapeAriaLabel(desc) : siyuanI18n.addDesc}"><use xlink:href="#iconInfo"></use></svg>
 </div>
 <div class="fn__none">
     <div class="fn__hr"></div>
-    <textarea rows="1" placeholder="${window.siyuan.languages.addDesc}" class="b3-text-field fn__block" type="text" data-value="${escapeAttr(desc)}">${desc}</textarea>
+    <textarea rows="1" placeholder="${siyuanI18n.addDesc}" class="b3-text-field fn__block" type="text" data-value="${escapeAttr(desc)}">${desc}</textarea>
 </div>
 <div class="fn__hr--small"></div>`,
         bind(element) {
@@ -282,16 +283,16 @@ export const setColOption = (protyle: IProtyle, data: IAV, target: HTMLElement, 
                 }
             });
             descElement.addEventListener("input", () => {
-                inputElement.nextElementSibling.setAttribute("aria-label", descElement.value ? escapeHtml(descElement.value) : window.siyuan.languages.addDesc);
+                inputElement.nextElementSibling.setAttribute("aria-label", descElement.value ? escapeHtml(descElement.value) : siyuanI18n.addDesc);
             });
         }
     });
     menu.addItem({
         id: "delete",
-        label: window.siyuan.languages.delete,
+        label: siyuanI18n.delete,
         icon: "iconTrashcan",
         click() {
-            confirmDialog(window.siyuan.languages.deleteOpConfirm, window.siyuan.languages.confirmDelete, () => {
+            confirmDialog(siyuanI18n.deleteOpConfirm, siyuanI18n.confirmDelete, () => {
                 let colOptions: { name: string, color: string }[] = [];
                 fields.find(column => {
                     if (column.id === colId) {
@@ -325,8 +326,8 @@ export const setColOption = (protyle: IProtyle, data: IAV, target: HTMLElement, 
                 const selectedElement = menuElement.querySelector(".b3-chips");
                 const oldChipsHeight = selectedElement ? selectedElement.clientHeight : 0;
                 if (!cellElements) {
-                    menuElement.innerHTML = getEditHTML({protyle, data, colId, isCustomAttr});
-                    bindEditEvent({protyle, data, menuElement, isCustomAttr, blockID});
+                    menuElement.innerHTML = getEditHTML({ protyle, data, colId, isCustomAttr });
+                    bindEditEvent({ protyle, data, menuElement, isCustomAttr, blockID });
                 } else {
                     cellElements.forEach((cellElement: HTMLElement, index) => {
                         const rowID = getFieldIdByCellElement(cellElement, viewType);
@@ -415,8 +416,8 @@ export const setColOption = (protyle: IProtyle, data: IAV, target: HTMLElement, 
                     });
                     const oldScroll = menuElement.querySelector(".b3-menu__items").scrollTop;
                     if (!cellElements) {
-                        menuElement.innerHTML = getEditHTML({protyle, data, colId, isCustomAttr});
-                        bindEditEvent({protyle, data, menuElement, isCustomAttr, blockID});
+                        menuElement.innerHTML = getEditHTML({ protyle, data, colId, isCustomAttr });
+                        bindEditEvent({ protyle, data, menuElement, isCustomAttr, blockID });
                     } else {
                         cellElements.forEach((cellElement: HTMLElement, cellIndex) => {
                             const rowID = getFieldIdByCellElement(cellElement, viewType);
@@ -633,7 +634,7 @@ export const addColOptionOrCell = (protyle: IProtyle, data: IAV, cellElements: H
     }
     if (colData.type === "select") {
         blockElement.setAttribute("data-rendering", "true");
-        menuElement.parentElement.dispatchEvent(new CustomEvent("click", {detail: "close"}));
+        menuElement.parentElement.dispatchEvent(new CustomEvent("click", { detail: "close" }));
     } else {
         const oldScroll = menuElement.querySelector(".b3-menu__items").scrollTop;
         const oldChipsHeight = menuElement.querySelector(".b3-chips").clientHeight;

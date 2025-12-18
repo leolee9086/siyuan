@@ -2,6 +2,7 @@ import {addScript} from "../util/addScript";
 import {Constants} from "../../constants";
 import {focusByOffset} from "../util/selection";
 import {setCodeTheme} from "../../util/assets";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const highlightRender = (element: Element, cdn = Constants.PROTYLE_CDN, zoom = 1) => {
     let codeElements: NodeListOf<Element>;
@@ -35,8 +36,8 @@ export const highlightRender = (element: Element, cdn = Constants.PROTYLE_CDN, z
             codeElements.forEach((block: HTMLElement) => {
                 const iconElements = block.parentElement.querySelectorAll(".protyle-icon");
                 if (iconElements.length === 2) {
-                    iconElements[0].setAttribute("aria-label", window.siyuan.languages.copy);
-                    iconElements[1].setAttribute("aria-label", window.siyuan.languages.more);
+                    iconElements[0].setAttribute("aria-label", siyuanI18n.copy);
+                    iconElements[1].setAttribute("aria-label", siyuanI18n.more);
                 }
                 if (block.getAttribute("data-render") === "true") {
                     return;
