@@ -75,11 +75,11 @@ export class Gutter {
 
     constructor(protyle: IProtyle) {
         if (isMac()) {
-            this.gutterTip = window.siyuan.languages.gutterTip.replace("⌥→", updateHotkeyAfterTip(window.siyuan.config.keymap.general.enter.custom, "/"))
+            this.gutterTip = siyuanI18n.gutterTip.replace("⌥→", updateHotkeyAfterTip(window.siyuan.config.keymap.general.enter.custom, "/"))
                 .replace("⌘↑", updateHotkeyAfterTip(window.siyuan.config.keymap.editor.general.collapse.custom, "/"))
                 .replace("⌥⌘A", updateHotkeyAfterTip(window.siyuan.config.keymap.editor.general.attr.custom, "/"));
         } else {
-            this.gutterTip = window.siyuan.languages.gutterTip.replace("⌥→", updateHotkeyAfterTip(window.siyuan.config.keymap.general.enter.custom, "/"))
+            this.gutterTip = siyuanI18n.gutterTip.replace("⌥→", updateHotkeyAfterTip(window.siyuan.config.keymap.general.enter.custom, "/"))
                 .replace("⌘↑", updateHotkeyAfterTip(window.siyuan.config.keymap.editor.general.collapse.custom, "/"))
                 .replace("⌥⌘A", updateHotkeyAfterTip(window.siyuan.config.keymap.editor.general.attr.custom, "/"))
                 .replace(/⌘/g, "Ctrl+").replace(/⌥/g, "Alt+").replace(/⇧/g, "Shift+").replace(/⌃/g, "Ctrl+");
@@ -635,7 +635,7 @@ export class Gutter {
                 turnIntoSubmenu.push(this.turnsIntoOne({
                     menuId: "callout",
                     icon: "iconCallout",
-                    label: window.siyuan.languages.callout,
+                    label: siyuanI18n.callout,
                     protyle,
                     selectsElement,
                     type: "Blocks2Callout"
@@ -1023,7 +1023,7 @@ export class Gutter {
             turnIntoSubmenu.push(this.turnsIntoOne({
                 menuId: "callout",
                 icon: "iconCallout",
-                label: window.siyuan.languages.callout,
+                label: siyuanI18n.callout,
                 protyle,
                 selectsElement: [nodeElement],
                 type: "Blocks2Callout"
@@ -1110,7 +1110,7 @@ export class Gutter {
             turnIntoSubmenu.push(this.turnsIntoOne({
                 menuId: "callout",
                 icon: "iconCallout",
-                label: window.siyuan.languages.callout,
+                label: siyuanI18n.callout,
                 protyle,
                 selectsElement: [nodeElement],
                 type: "Blocks2Callout"
@@ -1210,7 +1210,7 @@ export class Gutter {
             turnIntoSubmenu.push(this.turnsIntoOne({
                 menuId: "callout",
                 icon: "iconCallout",
-                label: window.siyuan.languages.callout,
+                label: siyuanI18n.callout,
                 protyle,
                 selectsElement: [nodeElement],
                 type: "Blocks2Callout"
@@ -1293,7 +1293,7 @@ export class Gutter {
             turnIntoSubmenu.push(this.turnsOneInto({
                 id,
                 icon: "iconCallout",
-                label: window.siyuan.languages.callout,
+                label: siyuanI18n.callout,
                 protyle,
                 nodeElement,
                 type: "Blockquote2Callout"
@@ -1303,7 +1303,7 @@ export class Gutter {
                 menuId: "paragraph",
                 id,
                 icon: "iconParagraph",
-                label: window.siyuan.languages.paragraph,
+                label: siyuanI18n.paragraph,
                 accelerator: window.siyuan.config.keymap.editor.heading.paragraph.custom,
                 protyle,
                 nodeElement,
@@ -1312,7 +1312,7 @@ export class Gutter {
             turnIntoSubmenu.push(this.turnsOneInto({
                 id,
                 icon: "iconQuote",
-                label: window.siyuan.languages.quote,
+                label: siyuanI18n.quote,
                 protyle,
                 nodeElement,
                 type: "Callout2Blockquote"
@@ -1912,8 +1912,8 @@ export class Gutter {
         if (!protyle.options.backlinkData) {
             window.siyuan.menus.menu.append(new MenuItem({
                 id: "enter",
-                accelerator: `${window.siyuan.config.keymap.general.enter.custom ? updateHotkeyTip(window.siyuan.config.keymap.general.enter.custom) + "/" : ""}${updateHotkeyAfterTip("⌘" + window.siyuan.languages.click)}`,
-                label: window.siyuan.languages.enter,
+                accelerator: `${window.siyuan.config.keymap.general.enter.custom ? updateHotkeyTip(window.siyuan.config.keymap.general.enter.custom) + "/" : ""}${updateHotkeyAfterTip("⌘" + siyuanI18n.click)}`,
+                label: siyuanI18n.enter,
                 click: () => {
                     zoomOut({ protyle, id });
                 }

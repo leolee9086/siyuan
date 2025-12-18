@@ -28,6 +28,7 @@ import {commonClick} from "../wysiwyg/commonClick";
 import {openTitleMenu} from "./openTitleMenu";
 import {electronUndo} from "../undo";
 import {enableLuteMarkdownSyntax, restoreLuteMarkdownSyntax} from "../util/paste";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export class Title {
     public element: HTMLElement;
@@ -44,8 +45,8 @@ export class Title {
             this.element.innerHTML = '<div class="protyle-attr"></div>';
         } else {
             // 标题内需要一个空格，避免首次加载出现`请输入文档名`干扰
-            this.element.innerHTML = `<span aria-label="${isMac() ? window.siyuan.languages.gutterTip2 : window.siyuan.languages.gutterTip2.replace("⇧", "Shift+")}" data-position="west" class="protyle-title__icon ariaLabel"><svg><use xlink:href="#iconFile"></use></svg></span>
-<div contenteditable="true" spellcheck="${window.siyuan.config.editor.spellcheck}" class="protyle-title__input" data-tip="${window.siyuan.languages._kernel[16]}"> </div><div class="protyle-attr"></div>`;
+            this.element.innerHTML = `<span aria-label="${isMac() ? siyuanI18n.gutterTip2 : siyuanI18n.gutterTip2.replace("⇧", "Shift+")}" data-position="west" class="protyle-title__icon ariaLabel"><svg><use xlink:href="#iconFile"></use></svg></span>
+<div contenteditable="true" spellcheck="${window.siyuan.config.editor.spellcheck}" class="protyle-title__input" data-tip="${siyuanI18n._kernel[16]}"> </div><div class="protyle-attr"></div>`;
             this.editElement = this.element.querySelector(".protyle-title__input");
             this.editElement.addEventListener("paste", (event: ClipboardEvent) => {
                 event.stopPropagation();
@@ -213,7 +214,7 @@ export class Title {
                         id: "copy",
                         icon: "iconCopy",
                         accelerator: "⌘C",
-                        label: window.siyuan.languages.copy,
+                        label: siyuanI18n.copy,
                         click: () => {
                             focusByRange(getEditorRange(this.editElement));
                             document.execCommand("copy");
@@ -223,7 +224,7 @@ export class Title {
                         id: "cut",
                         icon: "iconCut",
                         accelerator: "⌘X",
-                        label: window.siyuan.languages.cut,
+                        label: siyuanI18n.cut,
                         click: () => {
                             focusByRange(getEditorRange(this.editElement));
                             document.execCommand("cut");
@@ -236,7 +237,7 @@ export class Title {
                         id: "delete",
                         icon: "iconTrashcan",
                         accelerator: "⌫",
-                        label: window.siyuan.languages.delete,
+                        label: siyuanI18n.delete,
                         click: () => {
                             const range = getEditorRange(this.editElement);
                             range.extractContents();
@@ -249,7 +250,7 @@ export class Title {
                 }
                 window.siyuan.menus.menu.append(new MenuItem({
                     id: "paste",
-                    label: window.siyuan.languages.paste,
+                    label: siyuanI18n.paste,
                     icon: "iconPaste",
                     accelerator: "⌘V",
                     click: async () => {
@@ -269,7 +270,7 @@ export class Title {
                 }).element);
                 window.siyuan.menus.menu.append(new MenuItem({
                     id: "pasteAsPlainText",
-                    label: window.siyuan.languages.pasteAsPlainText,
+                    label: siyuanI18n.pasteAsPlainText,
                     accelerator: "⇧⌘V",
                     click: async () => {
                         let textPlain = await readText() || "";
@@ -285,7 +286,7 @@ export class Title {
                 }).element);
                 window.siyuan.menus.menu.append(new MenuItem({
                     id: "selectAll",
-                    label: window.siyuan.languages.selectAll,
+                    label: siyuanI18n.selectAll,
                     icon: "iconSelect",
                     accelerator: "⌘A",
                     click: () => {
@@ -337,17 +338,17 @@ export class Title {
         /// #if MOBILE
         if (this.editElement) {
             if (code160to32(title) !== code160to32(this.editElement.textContent)) {
-                this.editElement.textContent = title === window.siyuan.languages.untitled ? "" : title;
+                this.editElement.textContent = title === siyuanI18n.untitled ? "" : title;
             }
         } else {
             const inputElement = document.getElementById("toolbarName") as HTMLInputElement;
             if (code160to32(title) !== code160to32(inputElement.value)) {
-                inputElement.value = title === window.siyuan.languages.untitled ? "" : title;
+                inputElement.value = title === siyuanI18n.untitled ? "" : title;
             }
         }
         /// #else
         if (code160to32(title) !== code160to32(this.editElement.textContent)) {
-            this.editElement.textContent = title === window.siyuan.languages.untitled ? "" : title;
+            this.editElement.textContent = title === siyuanI18n.untitled ? "" : title;
         }
         /// #endif
     }

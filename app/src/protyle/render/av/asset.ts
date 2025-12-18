@@ -22,6 +22,7 @@ import * as dayjs from "dayjs";
 import {getColId} from "./col";
 import {getFieldIdByCellElement} from "./row";
 import {getCompressURL, removeCompressURL} from "../../../util/image";
+import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const bindAssetEvent = (options: {
     protyle: IProtyle,
@@ -81,16 +82,16 @@ ${contentHTML}
     ${html}
     <button data-type="addAssetExist" class="b3-menu__item b3-menu__item--current">
         <svg class="b3-menu__icon"><use xlink:href="#iconImage"></use></svg>
-        <span class="b3-menu__label">${window.siyuan.languages.assets}</span>
+        <span class="b3-menu__label">${siyuanI18n.assets}</span>
     </button>
     <button class="b3-menu__item">
         <svg class="b3-menu__icon"><use xlink:href="#iconDownload"></use></svg>
-        <span class="b3-menu__label">${window.siyuan.languages.insertAsset}</span> 
+        <span class="b3-menu__label">${siyuanI18n.insertAsset}</span> 
         <input multiple class="b3-form__upload" type="file">
     </button>
     <button data-type="addAssetLink" class="b3-menu__item">
         <svg class="b3-menu__icon"><use xlink:href="#iconLink"></use></svg>
-        <span class="b3-menu__label">${window.siyuan.languages.link}</span>
+        <span class="b3-menu__label">${siyuanI18n.link}</span>
     </button>
 </div>`;
 };
@@ -227,18 +228,18 @@ export const editAssetItem = (options: {
             iconHTML: "",
             type: "readonly",
             label: `<div class="fn__flex">
-    <span class="fn__flex-center">${window.siyuan.languages.link}</span>
+    <span class="fn__flex-center">${siyuanI18n.link}</span>
     <span class="fn__space"></span>
-    <span data-action="copy" class="block__icon block__icon--show b3-tooltips b3-tooltips__e fn__flex-center" aria-label="${window.siyuan.languages.copy}">
+    <span data-action="copy" class="block__icon block__icon--show b3-tooltips b3-tooltips__e fn__flex-center" aria-label="${siyuanI18n.copy}">
         <svg><use xlink:href="#iconCopy"></use></svg>
     </span>   
 </div>
 <textarea rows="1" style="margin:4px 0;width: ${isMobile() ? "200" : "360"}px;resize: vertical;" class="b3-text-field"></textarea>
 <div class="fn__hr"></div>
 <div class="fn__flex">
-    <span class="fn__flex-center">${window.siyuan.languages.title}</span>
+    <span class="fn__flex-center">${siyuanI18n.title}</span>
     <span class="fn__space"></span>
-    <span data-action="copy" class="block__icon block__icon--show b3-tooltips b3-tooltips__e fn__flex-center" aria-label="${window.siyuan.languages.copy}">
+    <span data-action="copy" class="block__icon block__icon--show b3-tooltips b3-tooltips__e fn__flex-center" aria-label="${siyuanI18n.copy}">
         <svg><use xlink:href="#iconCopy"></use></svg>
     </span>   
 </div>
@@ -249,7 +250,7 @@ export const editAssetItem = (options: {
                     while (target) {
                         if (target.dataset.action === "copy") {
                             writeText((target.parentElement.nextElementSibling as HTMLTextAreaElement).value);
-                            showMessage(window.siyuan.languages.copied);
+                            showMessage(siyuanI18n.copied);
                             break;
                         }
                         target = target.parentElement;
@@ -260,7 +261,7 @@ export const editAssetItem = (options: {
         menu.addSeparator({id: "separator_1"});
         menu.addItem({
             id: "copy",
-            label: window.siyuan.languages.copy,
+            label: siyuanI18n.copy,
             icon: "iconCopy",
             click() {
                 writeText(`[${textElements[1].value || textElements[0].value}](${textElements[0].value})`);
@@ -272,9 +273,9 @@ export const editAssetItem = (options: {
             iconHTML: "",
             type: "readonly",
             label: `<div class="fn__flex">
-    <span class="fn__flex-center">${window.siyuan.languages.link}</span>
+    <span class="fn__flex-center">${siyuanI18n.link}</span>
     <span class="fn__space"></span>
-    <span data-action="copy" class="block__icon block__icon--show b3-tooltips b3-tooltips__e fn__flex-center" aria-label="${window.siyuan.languages.copy}">
+    <span data-action="copy" class="block__icon block__icon--show b3-tooltips b3-tooltips__e fn__flex-center" aria-label="${siyuanI18n.copy}">
         <svg><use xlink:href="#iconCopy"></use></svg>
     </span>   
 </div>
@@ -285,7 +286,7 @@ export const editAssetItem = (options: {
                     while (target) {
                         if (target.dataset.action === "copy") {
                             writeText((target.parentElement.nextElementSibling as HTMLTextAreaElement).value);
-                            showMessage(window.siyuan.languages.copied);
+                            showMessage(siyuanI18n.copied);
                             break;
                         }
                         target = target.parentElement;
@@ -296,7 +297,7 @@ export const editAssetItem = (options: {
         menu.addSeparator({id: "separator_1"});
         menu.addItem({
             id: "copy",
-            label: window.siyuan.languages.copy,
+            label: siyuanI18n.copy,
             icon: "iconCopy",
             click() {
                 writeText(`![](${linkAddress.replace(/%20/g, " ")})`);
@@ -304,7 +305,7 @@ export const editAssetItem = (options: {
         });
         menu.addItem({
             id: "copyAsPNG",
-            label: window.siyuan.languages.copyAsPNG,
+            label: siyuanI18n.copyAsPNG,
             icon: "iconImage",
             click() {
                 copyPNGByLink(linkAddress);
@@ -314,7 +315,7 @@ export const editAssetItem = (options: {
     menu.addItem({
         id: "delete",
         icon: "iconTrashcan",
-        label: window.siyuan.languages.delete,
+        label: siyuanI18n.delete,
         click() {
             updateAssetCell({
                 protyle: options.protyle,
@@ -327,7 +328,7 @@ export const editAssetItem = (options: {
     if (linkAddress?.startsWith("assets/")) {
         menu.addItem({
             id: "rename",
-            label: window.siyuan.languages.rename,
+            label: siyuanI18n.rename,
             icon: "iconEdit",
             click() {
                 renameAsset(linkAddress);
@@ -343,7 +344,7 @@ export const editAssetItem = (options: {
         menu.addItem({
             id: "cardPreview",
             icon: "iconPreview",
-            label: window.siyuan.languages.cardPreview,
+            label: siyuanI18n.cardPreview,
             click() {
                 previewAttrViewImages(
                     linkAddress,
@@ -357,7 +358,7 @@ export const editAssetItem = (options: {
     if (openSubMenu.length > 0) {
         window.siyuan.menus.menu.append(new MenuItem({
             id: "openBy",
-            label: window.siyuan.languages.openBy,
+            label: siyuanI18n.openBy,
             icon: "iconOpen",
             submenu: openSubMenu
         }).element);
@@ -404,10 +405,10 @@ export const addAssetLink = (protyle: IProtyle, cellElements: HTMLElement[], tar
     menu.addItem({
         iconHTML: "",
         type: "readonly",
-        label: `${window.siyuan.languages.link}
+        label: `${siyuanI18n.link}
 <textarea rows="1" style="margin:4px 0;width: ${isMobile() ? "200" : "360"}px;resize: vertical;" class="b3-text-field"></textarea>
 <div class="fn__hr"></div>
-${window.siyuan.languages.title}
+${siyuanI18n.title}
 <textarea style="width: ${isMobile() ? "200" : "360"}px;margin: 4px 0;resize: vertical;" rows="1" class="b3-text-field"></textarea>`,
     });
     const rect = target.getBoundingClientRect();
@@ -421,7 +422,7 @@ ${window.siyuan.languages.title}
 };
 
 export const dragUpload = (files: string[], protyle: IProtyle, cellElement: HTMLElement) => {
-    const msgId = showMessage(window.siyuan.languages.uploading, 0);
+    const msgId = showMessage(siyuanI18n.uploading, 0);
     fetchPost("/api/asset/insertLocalAssets", {
         assetPaths: files,
         isUpload: true,

@@ -26,20 +26,22 @@ import { createProtyleCopyMenu, createFileHistoryMenuItem } from "./openTitleMen
 import { closeTitleMenuIfOpened } from "./openTitleMenu.util";
 import { transferBlockRef } from "../../menus/block";
 import { appendFileOperationsMenuItemGroup } from "./openTitleMenu.FileOperations";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 const appendDesktopOnlyMenuItemGroup = (protyle: IProtyle) => {
     /// #if !MOBILE
     window.siyuan.menus.menu.append(new MenuItem({ id: "separator_1", type: "separator" }).element);
     window.siyuan.menus.menu.append(new MenuItem({
         id: "outline",
         icon: "iconAlignCenter",
-        label: window.siyuan.languages.outline,
-        accelerator: window.siyuan.config.keymap.editor.general.outline.custom,
+        label: siyuanI18n.outline,
+        accelerator: getSiyuanConfig().keymap.editor.general.outline.custom,
         click: () => {
             openOutline(
                 {
                     app: protyle.app,
                     rootId: protyle.block.rootID,
-                    title: protyle.options.render.title ? (protyle.title.editElement.textContent || window.siyuan.languages.untitled) : "",
+                    title: protyle.options.render.title ? (protyle.title.editElement.textContent || siyuanI18n.untitled) : "",
                     isPreview: !protyle.preview.element.classList.contains("fn__none")
                 }
             );
@@ -48,7 +50,7 @@ const appendDesktopOnlyMenuItemGroup = (protyle: IProtyle) => {
     window.siyuan.menus.menu.append(new MenuItem({
         id: "backlinks",
         icon: "iconLink",
-        label: window.siyuan.languages.backlinks,
+        label: siyuanI18n.backlinks,
         accelerator: window.siyuan.config.keymap.editor.general.backlinks.custom,
         click: () => {
             openBacklink({
@@ -56,14 +58,14 @@ const appendDesktopOnlyMenuItemGroup = (protyle: IProtyle) => {
                 blockId: protyle.block.id,
                 rootId: protyle.block.rootID,
                 useBlockId: protyle.block.showAll,
-                title: protyle.title ? (protyle.title.editElement.textContent || window.siyuan.languages.untitled) : null
+                title: protyle.title ? (protyle.title.editElement.textContent || siyuanI18n.untitled) : null
             });
         }
     }).element);
     window.siyuan.menus.menu.append(new MenuItem({
         id: "graphView",
         icon: "iconGraph",
-        label: window.siyuan.languages.graphView,
+        label: siyuanI18n.graphView,
         accelerator: window.siyuan.config.keymap.editor.general.graphView.custom,
         click: () => {
             openGraph({
@@ -71,7 +73,7 @@ const appendDesktopOnlyMenuItemGroup = (protyle: IProtyle) => {
                 blockId: protyle.block.id,
                 rootId: protyle.block.rootID,
                 useBlockId: protyle.block.showAll,
-                title: protyle.title ? (protyle.title.editElement.textContent || window.siyuan.languages.untitled) : null
+                title: protyle.title ? (protyle.title.editElement.textContent || siyuanI18n.untitled) : null
             });
         }
     }).element);
@@ -99,9 +101,9 @@ export const openTitleMenu = (protyle: IProtyle, position: IPosition) => {
         window.siyuan.menus.menu.append(new MenuItem({ id: "separator_2", type: "separator" }).element);
         window.siyuan.menus.menu.append(new MenuItem({
             id: "attr",
-            label: window.siyuan.languages.attr,
+            label: siyuanI18n.attr,
             icon: "iconAttr",
-            accelerator: window.siyuan.config.keymap.editor.general.attr.custom + "/" + updateHotkeyTip("⇧" + window.siyuan.languages.click),
+            accelerator: window.siyuan.config.keymap.editor.general.attr.custom + "/" + updateHotkeyTip("⇧" + siyuanI18n.click),
             click() {
                 openFileAttr(response.data.ial, "bookmark", protyle);
             }
@@ -110,7 +112,7 @@ export const openTitleMenu = (protyle: IProtyle, position: IPosition) => {
             if (window.siyuan.config.cloudRegion === 0) {
                 window.siyuan.menus.menu.append(new MenuItem({
                     id: "wechatReminder",
-                    label: window.siyuan.languages.wechatReminder,
+                    label: siyuanI18n.wechatReminder,
                     icon: "iconMp",
                     click() {
                         openFileWechatNotify(protyle);
@@ -121,7 +123,7 @@ export const openTitleMenu = (protyle: IProtyle, position: IPosition) => {
             const riffCardMenu: IMenu[] = [{
                 id: "spaceRepetition",
                 iconHTML: "",
-                label: window.siyuan.languages.spaceRepetition,
+                label: siyuanI18n.spaceRepetition,
                 accelerator: window.siyuan.config.keymap.editor.general.spaceRepetition.custom,
                 click: () => {
                     fetchPost("/api/riff/getTreeRiffDueCards", { rootID: protyle.block.rootID }, (response) => {
@@ -131,7 +133,7 @@ export const openTitleMenu = (protyle: IProtyle, position: IPosition) => {
             }, {
                 id: "manage",
                 iconHTML: "",
-                label: window.siyuan.languages.manage,
+                label: siyuanI18n.manage,
                 click: () => {
                     fetchPost("/api/filetree/getHPathByID", {
                         id: protyle.block.rootID
@@ -142,7 +144,7 @@ export const openTitleMenu = (protyle: IProtyle, position: IPosition) => {
             }, {
                 id: isCardMade ? "removeCard" : "quickMakeCard",
                 iconHTML: "",
-                label: isCardMade ? window.siyuan.languages.removeCard : window.siyuan.languages.quickMakeCard,
+                label: isCardMade ? siyuanI18n.removeCard : siyuanI18n.quickMakeCard,
                 accelerator: window.siyuan.config.keymap.editor.general.quickMakeCard.custom,
                 click: () => {
                     let titleElement = protyle.title?.element;
@@ -158,7 +160,7 @@ export const openTitleMenu = (protyle: IProtyle, position: IPosition) => {
                 riffCardMenu.push({
                     id: "addToDeck",
                     iconHTML: "",
-                    label: window.siyuan.languages.addToDeck,
+                    label: siyuanI18n.addToDeck,
                     click: () => {
                         makeCard(protyle.app, [protyle.block.rootID]);
                     }
@@ -166,7 +168,7 @@ export const openTitleMenu = (protyle: IProtyle, position: IPosition) => {
             }
             window.siyuan.menus.menu.append(new MenuItem({
                 id: "riffCard",
-                label: window.siyuan.languages.riffCard,
+                label: siyuanI18n.riffCard,
                 type: "submenu",
                 icon: "iconRiffCard",
                 submenu: riffCardMenu,
@@ -174,7 +176,7 @@ export const openTitleMenu = (protyle: IProtyle, position: IPosition) => {
         }
         window.siyuan.menus.menu.append(new MenuItem({
             id: "search",
-            label: window.siyuan.languages.search,
+            label: siyuanI18n.search,
             icon: "iconSearch",
             accelerator: window.siyuan.config.keymap.general.search.custom,
             async click() {
@@ -207,7 +209,7 @@ export const openTitleMenu = (protyle: IProtyle, position: IPosition) => {
         if (!protyle.model) {
             window.siyuan.menus.menu.append(new MenuItem({
                 id: "openBy",
-                label: window.siyuan.languages.openBy,
+                label: siyuanI18n.openBy,
                 icon: "iconOpen",
                 click() {
                     /// #if !MOBILE
@@ -225,7 +227,7 @@ export const openTitleMenu = (protyle: IProtyle, position: IPosition) => {
         /// #if !BROWSER
         window.siyuan.menus.menu.append(new MenuItem({
             id: "openByNewWindow",
-            label: window.siyuan.languages.openByNewWindow,
+            label: siyuanI18n.openByNewWindow,
             icon: "iconOpenWindow",
             click() {
                 openNewWindowById(protyle.block.rootID);
@@ -234,7 +236,7 @@ export const openTitleMenu = (protyle: IProtyle, position: IPosition) => {
         window.siyuan.menus.menu.append(new MenuItem({
             id: "showInFolder",
             icon: "iconFolder",
-            label: window.siyuan.languages.showInFolder,
+            label: siyuanI18n.showInFolder,
             click: () => {
                 useShell("showItemInFolder", path.join(window.siyuan.config.system.dataDir, protyle.notebookId, protyle.path));
             }
@@ -262,7 +264,7 @@ export const openTitleMenu = (protyle: IProtyle, position: IPosition) => {
             iconHTML: "",
             type: "readonly",
             // 不能换行，否则移动端间距过大
-            label: `${window.siyuan.languages.modifiedAt} ${dayjs(response.data.ial.updated).format("YYYY-MM-DD HH:mm:ss")}<br>${window.siyuan.languages.createdAt} ${dayjs(response.data.ial.id.substr(0, 14)).format("YYYY-MM-DD HH:mm:ss")}`
+            label: `${siyuanI18n.modifiedAt} ${dayjs(response.data.ial.updated).format("YYYY-MM-DD HH:mm:ss")}<br>${siyuanI18n.createdAt} ${dayjs(response.data.ial.id.substr(0, 14)).format("YYYY-MM-DD HH:mm:ss")}`
         }).element);
         /// #if MOBILE
         window.siyuan.menus.menu.fullscreen();

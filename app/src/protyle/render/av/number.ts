@@ -1,6 +1,7 @@
 import {Menu} from "../../../plugin/Menu";
 import {transaction} from "../../wysiwyg/transaction";
 import {Constants} from "../../../constants";
+import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 const addFormatItem = (options: {
     menu: Menu,
@@ -234,12 +235,12 @@ export const formatNumber = (options: {
 
 export const getLabelByNumberFormat = (format: string) => {
     if ("" === format) {
-        return window.siyuan.languages.numberFormatNone;
+        return siyuanI18n.numberFormatNone;
     } else if ("commas" === format) {
-        return window.siyuan.languages.numberFormatCommas;
+        return siyuanI18n.numberFormatCommas;
     } else if ("percent" === format) {
-        return window.siyuan.languages.numberFormatPercent;
+        return siyuanI18n.numberFormatPercent;
     }
 
-    return window.siyuan.languages["numberFormat" + format];
+    return siyuanI18n["numberFormat" + format];
 };

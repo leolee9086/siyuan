@@ -33,6 +33,7 @@ import {resize} from "../util/resize";
 import {listIndent, listOutdent} from "../wysiwyg/list";
 import {improveBreadcrumbAppearance} from "../wysiwyg/renderBacklink";
 import {getCloudURL} from "../../config/util/about";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export class Breadcrumb {
     public element: HTMLElement;
@@ -46,22 +47,22 @@ export class Breadcrumb {
         let padHTML = "";
         /// #if BROWSER && !MOBILE
         if (isIPad() || isInAndroid() || isInHarmony()) {
-            padHTML = `<button class="block__icon fn__flex-center ariaLabel" disabled aria-label="${window.siyuan.languages.undo}" data-type="undo"><svg><use xlink:href="#iconUndo"></use></svg></button>
-<button class="block__icon fn__flex-center ariaLabel" disabled aria-label="${window.siyuan.languages.redo}" data-type="redo"><svg><use xlink:href="#iconRedo"></use></svg></button>
-<button class="block__icon fn__flex-center ariaLabel" disabled aria-label="${window.siyuan.languages.outdent}" data-type="outdent"><svg><use xlink:href="#iconOutdent"></use></svg></button>
-<button class="block__icon fn__flex-center ariaLabel" disabled aria-label="${window.siyuan.languages.indent}" data-type="indent"><svg><use xlink:href="#iconIndent"></use></svg></button>`;
+            padHTML = `<button class="block__icon fn__flex-center ariaLabel" disabled aria-label="${siyuanI18n.undo}" data-type="undo"><svg><use xlink:href="#iconUndo"></use></svg></button>
+<button class="block__icon fn__flex-center ariaLabel" disabled aria-label="${siyuanI18n.redo}" data-type="redo"><svg><use xlink:href="#iconRedo"></use></svg></button>
+<button class="block__icon fn__flex-center ariaLabel" disabled aria-label="${siyuanI18n.outdent}" data-type="outdent"><svg><use xlink:href="#iconOutdent"></use></svg></button>
+<button class="block__icon fn__flex-center ariaLabel" disabled aria-label="${siyuanI18n.indent}" data-type="indent"><svg><use xlink:href="#iconIndent"></use></svg></button>`;
         }
         /// #endif
         element.innerHTML = `${isMobile() ?
-            `<button class="protyle-breadcrumb__icon" data-type="mobile-menu">${window.siyuan.languages.breadcrumb}</button>` :
+            `<button class="protyle-breadcrumb__icon" data-type="mobile-menu">${siyuanI18n.breadcrumb}</button>` :
             '<div class="protyle-breadcrumb__bar"></div>'}
 <span class="protyle-breadcrumb__space"></span>
-<button class="protyle-breadcrumb__icon fn__none ariaLabel" aria-label="${updateHotkeyTip(window.siyuan.config.keymap.editor.general.exitFocus.custom)}" data-type="exit-focus">${window.siyuan.languages.exitFocus}</button>
+<button class="protyle-breadcrumb__icon fn__none ariaLabel" aria-label="${updateHotkeyTip(window.siyuan.config.keymap.editor.general.exitFocus.custom)}" data-type="exit-focus">${siyuanI18n.exitFocus}</button>
 ${padHTML}
-<button class="block__icon fn__flex-center ariaLabel${window.siyuan.config.readonly ? " fn__none" : ""}" aria-label="${window.siyuan.languages.lockEdit}" data-type="readonly" data-subtype="unlock"><svg><use xlink:href="#iconUnlock"></use></svg></button>
-<button class="block__icon fn__flex-center ariaLabel" data-type="doc" aria-label="${isMac() ? window.siyuan.languages.gutterTip2 : window.siyuan.languages.gutterTip2.replace("⇧", "Shift+")}"><svg><use xlink:href="#iconFile"></use></svg></button>
-<button class="block__icon fn__flex-center ariaLabel" data-type="more" aria-label="${window.siyuan.languages.more}"><svg><use xlink:href="#iconMore"></use></svg></button>
-<button class="block__icon fn__flex-center fn__none ariaLabel" data-type="context" aria-label="${window.siyuan.languages.context}"><svg><use xlink:href="#iconAlignCenter"></use></svg></button>`;
+<button class="block__icon fn__flex-center ariaLabel${window.siyuan.config.readonly ? " fn__none" : ""}" aria-label="${siyuanI18n.lockEdit}" data-type="readonly" data-subtype="unlock"><svg><use xlink:href="#iconUnlock"></use></svg></button>
+<button class="block__icon fn__flex-center ariaLabel" data-type="doc" aria-label="${isMac() ? siyuanI18n.gutterTip2 : siyuanI18n.gutterTip2.replace("⇧", "Shift+")}"><svg><use xlink:href="#iconFile"></use></svg></button>
+<button class="block__icon fn__flex-center ariaLabel" data-type="more" aria-label="${siyuanI18n.more}"><svg><use xlink:href="#iconMore"></use></svg></button>
+<button class="block__icon fn__flex-center fn__none ariaLabel" data-type="context" aria-label="${siyuanI18n.context}"><svg><use xlink:href="#iconAlignCenter"></use></svg></button>`;
         this.element = element.firstElementChild as HTMLElement;
         element.addEventListener("click", (event) => {
             let target = event.target as HTMLElement;
@@ -187,8 +188,8 @@ ${padHTML}
 
     private startRecord(protyle: IProtyle) {
         this.messageId = showMessage(`<div class="fn__flex fn__flex-wrap">
-<span class="fn__flex-center">${window.siyuan.languages.recording}</span><span class="fn__space"></span>
-<button class="b3-button b3-button--white">${window.siyuan.languages.endRecord}</button></div>`, -1);
+<span class="fn__flex-center">${siyuanI18n.recording}</span><span class="fn__space"></span>
+<button class="b3-button b3-button--white">${siyuanI18n.endRecord}</button></div>`, -1);
         document.querySelector(`#message [data-id="${this.messageId}"] button`).addEventListener("click", () => {
             this.mediaRecorder.stopRecording();
             hideMessage(this.messageId);
@@ -269,7 +270,7 @@ ${padHTML}
                 const uploadMenu = new MenuItem({
                     id: "insertAsset",
                     icon: "iconDownload",
-                    label: `${window.siyuan.languages.insertAsset}${uploadHTML}`,
+                    label: `${siyuanI18n.insertAsset}${uploadHTML}`,
                 }).element;
                 uploadMenu.querySelector("input").addEventListener("change", (event: InputEvent & {
                     target: HTMLInputElement
@@ -286,18 +287,18 @@ ${padHTML}
                         id: this.mediaRecorder?.isRecording ? "endRecord" : "startRecord",
                         current: this.mediaRecorder && this.mediaRecorder.isRecording,
                         icon: "iconRecord",
-                        label: this.mediaRecorder?.isRecording ? window.siyuan.languages.endRecord : window.siyuan.languages.startRecord,
+                        label: this.mediaRecorder?.isRecording ? siyuanI18n.endRecord : siyuanI18n.startRecord,
                         click: async () => {
                             /// #if !BROWSER
                             if (window.siyuan.config.system.os === "darwin") {
                                 const status = await ipcRenderer.invoke(Constants.SIYUAN_GET, {cmd: "getMicrophone"});
                                 if (["denied", "restricted", "unknown"].includes(status)) {
-                                    showMessage(window.siyuan.languages.microphoneDenied);
+                                    showMessage(siyuanI18n.microphoneDenied);
                                     return;
                                 } else if (status === "not-determined") {
                                     const isAccess = await ipcRenderer.invoke(Constants.SIYUAN_GET, {cmd: "askMicrophone"});
                                     if (!isAccess) {
-                                        showMessage(window.siyuan.languages.microphoneNotAccess);
+                                        showMessage(siyuanI18n.microphoneNotAccess);
                                         return;
                                     }
                                 }
@@ -319,7 +320,7 @@ ${padHTML}
                                     };
                                     this.startRecord(protyle);
                                 }).catch(() => {
-                                    showMessage(window.siyuan.languages["record-tip"]);
+                                    showMessage(siyuanI18n["record-tip"]);
                                 });
                                 return;
                             }
@@ -341,7 +342,7 @@ ${padHTML}
             if (!protyle.disabled) {
                 window.siyuan.menus.menu.append(new MenuItem({
                     id: "netImg2LocalAsset",
-                    label: window.siyuan.languages.netImg2LocalAsset,
+                    label: siyuanI18n.netImg2LocalAsset,
                     icon: "iconImgDown",
                     accelerator: window.siyuan.config.keymap.editor.general.netImg2LocalAsset.custom,
                     click() {
@@ -350,7 +351,7 @@ ${padHTML}
                 }).element);
                 window.siyuan.menus.menu.append(new MenuItem({
                     id: "netAssets2LocalAssets",
-                    label: window.siyuan.languages.netAssets2LocalAssets,
+                    label: siyuanI18n.netAssets2LocalAssets,
                     icon: "iconTransform",
                     accelerator: window.siyuan.config.keymap.editor.general.netAssets2LocalAssets.custom,
                     click() {
@@ -359,11 +360,11 @@ ${padHTML}
                 }).element);
                 window.siyuan.menus.menu.append(new MenuItem({
                     id: "uploadAssets2CDN",
-                    label: window.siyuan.languages.uploadAssets2CDN,
+                    label: siyuanI18n.uploadAssets2CDN,
                     icon: "iconCloudSucc",
                     click() {
                         if (!needSubscribe()) {
-                            confirmDialog("📦 " + window.siyuan.languages.uploadAssets2CDN, window.siyuan.languages.uploadAssets2CDNConfirmTip, () => {
+                            confirmDialog("📦 " + siyuanI18n.uploadAssets2CDN, siyuanI18n.uploadAssets2CDNConfirmTip, () => {
                                 fetchPost("/api/asset/uploadCloud", {id: protyle.block.id});
                             });
                         }
@@ -372,11 +373,11 @@ ${padHTML}
                 if (window.siyuan.user) { // 登录链滴账号后即可使用 `分享到链滴` https://github.com/siyuan-note/siyuan/issues/7392
                     window.siyuan.menus.menu.append(new MenuItem({
                         id: "share2Liandi",
-                        label: window.siyuan.languages.share2Liandi,
+                        label: siyuanI18n.share2Liandi,
                         icon: "iconLiandi",
                         click() {
-                            confirmDialog("🤩 " + window.siyuan.languages.share2Liandi,
-                                window.siyuan.languages.share2LiandiConfirmTip.replace("${accountServer}", getCloudURL("")), () => {
+                            confirmDialog("🤩 " + siyuanI18n.share2Liandi,
+                                siyuanI18n.share2LiandiConfirmTip.replace("${accountServer}", getCloudURL("")), () => {
                                     fetchPost("/api/export/export2Liandi", {id: protyle.block.parentID});
                                 });
                         }
@@ -387,7 +388,7 @@ ${padHTML}
                 window.siyuan.menus.menu.append(new MenuItem({
                     id: "keepLazyLoad",
                     current: protyle.scroll.keepLazyLoad,
-                    label: window.siyuan.languages.keepLazyLoad,
+                    label: siyuanI18n.keepLazyLoad,
                     click: () => {
                         protyle.scroll.keepLazyLoad = !protyle.scroll.keepLazyLoad;
                     }
@@ -400,7 +401,7 @@ ${padHTML}
                 id: "refresh",
                 icon: "iconRefresh",
                 accelerator: window.siyuan.config.keymap.editor.general.refresh.custom,
-                label: window.siyuan.languages.refresh,
+                label: siyuanI18n.refresh,
                 click: () => {
                     reloadProtyle(protyle, !isMobile());
                 }
@@ -408,7 +409,7 @@ ${padHTML}
             if (!protyle.disabled) {
                 window.siyuan.menus.menu.append(new MenuItem({
                     id: "optimizeTypography",
-                    label: window.siyuan.languages.optimizeTypography,
+                    label: siyuanI18n.optimizeTypography,
                     accelerator: window.siyuan.config.keymap.editor.general.optimizeTypography.custom,
                     icon: "iconFormat",
                     click: () => {
@@ -424,7 +425,7 @@ ${padHTML}
                 id: "fullscreen",
                 icon: protyle.element.className.includes("fullscreen") ? "iconFullscreenExit" : "iconFullscreen",
                 accelerator: window.siyuan.config.keymap.editor.general.fullscreen.custom,
-                label: window.siyuan.languages.fullscreen,
+                label: siyuanI18n.fullscreen,
                 click: () => {
                     fullscreen(protyle.element);
                     resize(protyle);
@@ -434,12 +435,12 @@ ${padHTML}
             window.siyuan.menus.menu.append(new MenuItem({
                 id: "editMode",
                 icon: "iconEdit",
-                label: window.siyuan.languages["edit-mode"],
+                label: siyuanI18n["edit-mode"],
                 type: "submenu",
                 submenu: [{
                     id: "wysiwyg",
                     current: !protyle.contentElement.classList.contains("fn__none"),
-                    label: window.siyuan.languages.wysiwyg,
+                    label: siyuanI18n.wysiwyg,
                     accelerator: window.siyuan.config.keymap.editor.general.wysiwyg.custom,
                     click: () => {
                         setEditMode(protyle, "wysiwyg");
@@ -462,7 +463,7 @@ ${padHTML}
                     id: "preview",
                     current: !protyle.preview.element.classList.contains("fn__none"),
                     icon: "iconPreview",
-                    label: window.siyuan.languages.preview,
+                    label: siyuanI18n.preview,
                     accelerator: window.siyuan.config.keymap.editor.general.preview.custom,
                     click: () => {
                         setEditMode(protyle, "preview");
@@ -477,14 +478,14 @@ ${padHTML}
                 const isCustomReadonly = protyle.wysiwyg.element.getAttribute(Constants.CUSTOM_SY_READONLY);
                 window.siyuan.menus.menu.append(new MenuItem({
                     id: "editReadonly",
-                    label: window.siyuan.languages.editReadonly,
+                    label: siyuanI18n.editReadonly,
                     icon: "iconLock",
                     type: "submenu",
                     submenu: [{
                         id: "enable",
                         iconHTML: "",
                         current: isCustomReadonly === "true",
-                        label: window.siyuan.languages.enable,
+                        label: siyuanI18n.enable,
                         click() {
                             fetchPost("/api/attr/setBlockAttrs", {
                                 id: protyle.block.rootID,
@@ -495,7 +496,7 @@ ${padHTML}
                         id: "disable",
                         iconHTML: "",
                         current: !isCustomReadonly || isCustomReadonly === "false",
-                        label: window.siyuan.languages.disable,
+                        label: siyuanI18n.disable,
                         click() {
                             fetchPost("/api/attr/setBlockAttrs", {
                                 id: protyle.block.rootID,
@@ -510,14 +511,14 @@ ${padHTML}
                 const isCustomFullWidth = protyle.wysiwyg.element.getAttribute(Constants.CUSTOM_SY_FULLWIDTH);
                 window.siyuan.menus.menu.append(new MenuItem({
                     id: "fullWidth",
-                    label: window.siyuan.languages.fullWidth,
+                    label: siyuanI18n.fullWidth,
                     icon: "iconDock",
                     type: "submenu",
                     submenu: [{
                         id: "enable",
                         iconHTML: "",
                         current: isCustomFullWidth === "true",
-                        label: window.siyuan.languages.enable,
+                        label: siyuanI18n.enable,
                         click() {
                             fetchPost("/api/attr/setBlockAttrs", {
                                 id: protyle.block.rootID,
@@ -528,7 +529,7 @@ ${padHTML}
                         id: "disable",
                         iconHTML: "",
                         current: isCustomFullWidth === "false",
-                        label: window.siyuan.languages.disable,
+                        label: siyuanI18n.disable,
                         click() {
                             fetchPost("/api/attr/setBlockAttrs", {
                                 id: protyle.block.rootID,
@@ -539,7 +540,7 @@ ${padHTML}
                         id: "default",
                         iconHTML: "",
                         current: !isCustomFullWidth,
-                        label: window.siyuan.languages.default,
+                        label: siyuanI18n.default,
                         click() {
                             fetchPost("/api/attr/setBlockAttrs", {
                                 id: protyle.block.rootID,
@@ -567,7 +568,7 @@ ${padHTML}
                 iconHTML: "",
                 type: "readonly",
                 // 不能换行，否则移动端间距过大
-                label: `<div class="fn__flex">${window.siyuan.languages.runeCount}<span class="fn__space fn__flex-1"></span>${response.data.stat.runeCount}</div><div class="fn__flex">${window.siyuan.languages.wordCount}<span class="fn__space fn__flex-1"></span>${response.data.stat.wordCount}</div><div class="fn__flex">${window.siyuan.languages.linkCount}<span class="fn__space fn__flex-1"></span>${response.data.stat.linkCount}</div><div class="fn__flex">${window.siyuan.languages.imgCount}<span class="fn__space fn__flex-1"></span>${response.data.stat.imageCount}</div><div class="fn__flex">${window.siyuan.languages.refCount}<span class="fn__space fn__flex-1"></span>${response.data.stat.refCount}</div><div class="fn__flex">${window.siyuan.languages.blockCount}<span class="fn__space fn__flex-1"></span>${response.data.stat.blockCount}</div>`,
+                label: `<div class="fn__flex">${siyuanI18n.runeCount}<span class="fn__space fn__flex-1"></span>${response.data.stat.runeCount}</div><div class="fn__flex">${siyuanI18n.wordCount}<span class="fn__space fn__flex-1"></span>${response.data.stat.wordCount}</div><div class="fn__flex">${siyuanI18n.linkCount}<span class="fn__space fn__flex-1"></span>${response.data.stat.linkCount}</div><div class="fn__flex">${siyuanI18n.imgCount}<span class="fn__space fn__flex-1"></span>${response.data.stat.imageCount}</div><div class="fn__flex">${siyuanI18n.refCount}<span class="fn__space fn__flex-1"></span>${response.data.stat.refCount}</div><div class="fn__flex">${siyuanI18n.blockCount}<span class="fn__space fn__flex-1"></span>${response.data.stat.blockCount}</div>`,
             }).element);
             /// #if MOBILE
             window.siyuan.menus.menu.fullscreen();

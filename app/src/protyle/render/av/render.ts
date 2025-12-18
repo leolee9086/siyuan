@@ -20,6 +20,7 @@ import {getPageSize} from "./groups";
 import {clearSelect} from "../../util/clearSelect";
 import {showMessage} from "../../../dialog/message";
 import {renderKanban} from "./kanban/render";
+import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 interface IIds {
     groupId: string,
@@ -77,44 +78,44 @@ export const genTabHeaderHTML = (data: IAV, showSearch: boolean, editable: boole
                 ${tabHTML}
             </div>
             <div class="fn__space"></div>
-            <span data-type="av-add" class="block__icon ariaLabel" data-position="8south" aria-label="${window.siyuan.languages.newView}">
+            <span data-type="av-add" class="block__icon ariaLabel" data-position="8south" aria-label="${siyuanI18n.newView}">
                 <svg><use xlink:href="#iconAdd"></use></svg>
             </span>
             <div class="fn__flex-1"></div>
             <div class="fn__space"></div>
-            <span data-type="av-switcher" aria-label="${window.siyuan.languages.allViews}" data-position="8south" class="ariaLabel block__icon${data.views.length > 0 ? "" : " fn__none"}">
+            <span data-type="av-switcher" aria-label="${siyuanI18n.allViews}" data-position="8south" class="ariaLabel block__icon${data.views.length > 0 ? "" : " fn__none"}">
                 <svg><use xlink:href="#iconDown"></use></svg>
                 <span class="fn__space"></span>
                 <small>${data.views.length}</small>
             </span>
             <div class="fn__space"></div>
-            <span data-type="av-filter" aria-label="${window.siyuan.languages.filter}" data-position="8south" class="ariaLabel block__icon${hasFilter ? " block__icon--active" : ""}">
+            <span data-type="av-filter" aria-label="${siyuanI18n.filter}" data-position="8south" class="ariaLabel block__icon${hasFilter ? " block__icon--active" : ""}">
                 <svg><use xlink:href="#iconFilter"></use></svg>
             </span>
             <div class="fn__space"></div>
-            <span data-type="av-sort" aria-label="${window.siyuan.languages.sort}" data-position="8south" class="ariaLabel block__icon${data.view.sorts.length > 0 ? " block__icon--active" : ""}">
+            <span data-type="av-sort" aria-label="${siyuanI18n.sort}" data-position="8south" class="ariaLabel block__icon${data.view.sorts.length > 0 ? " block__icon--active" : ""}">
                 <svg><use xlink:href="#iconSort"></use></svg>
             </span>
             <div class="fn__space"></div>
-            <button data-type="av-search-icon" aria-label="${window.siyuan.languages.search}" data-position="8south" class="ariaLabel block__icon">
+            <button data-type="av-search-icon" aria-label="${siyuanI18n.search}" data-position="8south" class="ariaLabel block__icon">
                 <svg><use xlink:href="#iconSearch"></use></svg>
             </button>
             <div style="position: relative" class="fn__flex">
-                <input style="${showSearch ? "width:128px" : "width:0;padding-left: 0;padding-right: 0;"}" data-type="av-search" class="b3-text-field b3-text-field--text" placeholder="${window.siyuan.languages.search}">
+                <input style="${showSearch ? "width:128px" : "width:0;padding-left: 0;padding-right: 0;"}" data-type="av-search" class="b3-text-field b3-text-field--text" placeholder="${siyuanI18n.search}">
             </div>
             <div class="fn__space"></div>
-            <span data-type="av-more" aria-label="${window.siyuan.languages.config}" data-position="8south" class="ariaLabel block__icon">
+            <span data-type="av-more" aria-label="${siyuanI18n.config}" data-position="8south" class="ariaLabel block__icon">
                 <svg><use xlink:href="#iconSettings"></use></svg>
             </span>
             <div class="fn__space"></div>
-            <span data-type="av-add-more" class="block__icon ariaLabel" data-position="8south" aria-label="${window.siyuan.languages.newRow}">
+            <span data-type="av-add-more" class="block__icon ariaLabel" data-position="8south" aria-label="${siyuanI18n.newRow}">
                 <svg><use xlink:href="#iconAdd"></use></svg>
             </span>
             <div class="fn__space"></div>
-            ${data.isMirror ? ` <span data-av-id="${data.id}" data-popover-url="/api/av/getMirrorDatabaseBlocks" class="popover__block block__icon block__icon--show ariaLabel" data-position="8south" aria-label="${window.siyuan.languages.mirrorTip}">
+            ${data.isMirror ? ` <span data-av-id="${data.id}" data-popover-url="/api/av/getMirrorDatabaseBlocks" class="popover__block block__icon block__icon--show ariaLabel" data-position="8south" aria-label="${siyuanI18n.mirrorTip}">
     <svg><use xlink:href="#iconSplitLR"></use></svg></span><div class="fn__space"></div>` : ""}
         </div>
-        <div contenteditable="${editable}" spellcheck="${window.siyuan.config.editor.spellcheck.toString()}" class="av__title${viewData.hideAttrViewName ? " fn__none" : ""}" data-title="${data.name || ""}" data-tip="${window.siyuan.languages._kernel[267]}">${data.name || ""}</div>
+        <div contenteditable="${editable}" spellcheck="${window.siyuan.config.editor.spellcheck.toString()}" class="av__title${viewData.hideAttrViewName ? " fn__none" : ""}" data-title="${data.name || ""}" data-tip="${siyuanI18n._kernel[267]}">${data.name || ""}</div>
         <div class="av__counter fn__none"></div>
     </div>`;
 };
@@ -167,7 +168,7 @@ style="width: ${column.width || "200px"};">
             calcHTML += `<div data-col-id="${column.id}" data-dtype="${column.type}" class="av__calc" style="width: ${column.width || "200px"}">&nbsp;</div>`;
         } else {
             calcHTML += `<div class="av__calc${column.calc && column.calc.operator !== "" ? " av__calc--ashow" : ""}" data-col-id="${column.id}" data-dtype="${column.type}" data-operator="${column.calc?.operator || ""}" 
-style="width: ${column.width || "200px"}">${getCalcValue(column) || `<svg><use xlink:href="#iconDown"></use></svg><small>${window.siyuan.languages.calc}</small>`}</div>`;
+style="width: ${column.width || "200px"}">${getCalcValue(column) || `<svg><use xlink:href="#iconDown"></use></svg><small>${siyuanI18n.calc}</small>`}</div>`;
         }
         if (column.calc && column.calc.operator !== "") {
             hasCalc = true;
@@ -180,7 +181,7 @@ style="width: ${column.width || "200px"}">${getCalcValue(column) || `<svg><use x
     contentHTML += `<div class="block__icons" style="min-height: auto">
     <div class="block__icon block__icon--show" data-type="av-header-more"><svg><use xlink:href="#iconMore"></use></svg></div>
     <div class="fn__space"></div>
-    <div class="block__icon block__icon--show ariaLabel" aria-label="${window.siyuan.languages.newCol}" data-type="av-header-add" data-position="4south"><svg><use xlink:href="#iconAdd"></use></svg></div>
+    <div class="block__icon block__icon--show ariaLabel" aria-label="${siyuanI18n.newCol}" data-type="av-header-add" data-position="4south"><svg><use xlink:href="#iconAdd"></use></svg></div>
 </div>
 </div>`;
     // body
@@ -220,12 +221,12 @@ ${cell.color ? `color:${cell.color};` : ""}">${renderCell(cell.value, rowIndex, 
     <div class="av__colsticky">
         <button class="b3-button av__button" data-type="av-add-bottom">
             <svg><use xlink:href="#iconAdd"></use></svg>
-            <span>${window.siyuan.languages.newRow}</span>
+            <span>${siyuanI18n.newRow}</span>
         </button>
         <span class="fn__space"></span>
         <button class="b3-button av__button${data.rowCount > data.rows.length ? "" : " fn__none"}" data-type="av-load-more">
             <svg><use xlink:href="#iconArrowDown"></use></svg>
-            <span>${window.siyuan.languages.loadMore}</span>
+            <span>${siyuanI18n.loadMore}</span>
             <svg data-type="set-page-size" data-size="${data.pageSize}"><use xlink:href="#iconMore"></use></svg>
         </button>
     </div>
@@ -251,8 +252,8 @@ export const getGroupTitleHTML = (group: IAVView, counter: number) => {
     </div>
     <span class="fn__space"></span>
     <span class="av__group-name">${nameHTML}</span>
-    ${(!counter || counter === 0) ? '<span class="fn__space"></span>' : `<span aria-label="${window.siyuan.languages.entryNum}" data-position="north" class="av__group-counter ariaLabel">${counter}</span>`}
-    <span class="av__group-icon av__group-icon--hover ariaLabel" data-type="av-add-top" data-position="north" aria-label="${window.siyuan.languages.newRow}"><svg><use xlink:href="#iconAdd"></use></svg></span>
+    ${(!counter || counter === 0) ? '<span class="fn__space"></span>' : `<span aria-label="${siyuanI18n.entryNum}" data-position="north" class="av__group-counter ariaLabel">${counter}</span>`}
+    <span class="av__group-icon av__group-icon--hover ariaLabel" data-type="av-add-top" data-position="north" aria-label="${siyuanI18n.newRow}"><svg><use xlink:href="#iconAdd"></use></svg></span>
 </div>`;
 };
 
@@ -876,7 +877,7 @@ export const refreshAV = (protyle: IProtyle, operation: IOperation) => {
                         operation.srcs.find((srcItem) => {
                             if (!item.querySelector(`.av__body [data-id="${srcItem.itemID}"]`) &&
                                 !item.querySelector(`.av__body [data-dtype="block"] .av__celltext--ref[data-id="${srcItem.id}"]`)) {
-                                showMessage(window.siyuan.languages.insertRowTip);
+                                showMessage(siyuanI18n.insertRowTip);
                                 return true;
                             }
                         });
