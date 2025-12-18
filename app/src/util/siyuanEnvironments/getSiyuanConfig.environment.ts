@@ -126,7 +126,7 @@ export const getSiyuanDragElement = (): HTMLElement | undefined => {
  * 设置 window.siyuan.dragElement
  * @param element 拖拽元素
  */
-export const setSiyuanDragElement = (element: HTMLElement) => {
+export const setSiyuanDragElement = (element: HTMLElement | undefined) => {
     if (!window.siyuan) {
         throw ("[setSiyuanDragElement] window.siyuan 不存在");
     }

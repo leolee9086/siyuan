@@ -2,7 +2,7 @@ import { Files } from "../Files";
 import { Constants } from "../../../constants";
 import { hasTopClosestByTag } from "../../../protyle/util/hasClosest";
 import { fetchPost, fetchSyncPost } from "../../../util/fetch";
-import { getSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { getSiyuanConfig, setSiyuanDragElement } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { pathPosix } from "../../../util/pathName";
 import { showMessage } from "../../../dialog/message";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
@@ -16,12 +16,20 @@ export const onDrop = async (files: Files, event: DragEvent & { target: HTMLElem
     if (!newUlElement) {
         return;
     }
+    const toURL = newUlElement.getAttribute("data-url");
+    const toPath = newElement.getAttribute("data-path");
+    if (!toURL || !toPath) {
+        return;
+    }
     const params = {
         oldScrollTop: files.element.scrollTop,
-        toURL: newUlElement.getAttribute("data-url"),
-        toPath: newElement.getAttribute("data-path"),
+        toURL,
+        toPath,
     };
     let gutterType = "";
+    if (!event.dataTransfer) {
+        return;
+    }
     for (const item of event.dataTransfer.items) {
         if (item.type.startsWith(Constants.SIYUAN_DROP_GUTTER)) {
             gutterType = item.type;
@@ -36,44 +44,64 @@ export const onDrop = async (files: Files, event: DragEvent & { target: HTMLElem
 
 const handleGutterDrop = (newElement: Element, gutterType: string, params: { toURL: string, toPath: string }) => {
     const gutterTypes = gutterType.replace(Constants.SIYUAN_DROP_GUTTER, "").split(Constants.ZWSP);
-    if (["nodelistitem", "nodeheading"].includes(gutterTypes[0])) {
-        const toDocOptions: {
-            targetNoteBook: string;
-            pushMode: number;
-            srcHeadingID?: string;
-            srcListItemID?: string;
-            targetPath?: string;
-            previousPath?: string;
-        } = {
-            targetNoteBook: params.toURL,
-            pushMode: 0,
-        };
-        if (newElement.classList.contains("dragover")) {
-            toDocOptions.targetPath = params.toPath;
-        } else if (newElement.classList.contains("dragover__bottom")) {
-            toDocOptions.previousPath = params.toPath;
-        } else if (newElement.classList.contains("dragover__top")) {
-            if (newElement.previousElementSibling) {
-                toDocOptions.previousPath = newElement.previousElementSibling.getAttribute("data-path");
-            } else {
-                toDocOptions.targetPath = newElement.parentElement.previousElementSibling.getAttribute("data-path");
-            }
-        }
-        if (gutterTypes[0] === "nodeheading") {
-            toDocOptions.srcHeadingID = gutterTypes[2].split(",")[0];
-            fetchPost("/api/filetree/heading2Doc", toDocOptions);
-        } else {
-            toDocOptions.srcListItemID = gutterTypes[2].split(",")[0];
-            fetchPost("/api/filetree/li2Doc", toDocOptions);
-        }
+    const type = gutterTypes[0];
+    if (type && ["nodelistitem", "nodeheading"].includes(type)) {
+        handleGutterDropNode(newElement, gutterTypes, params);
     }
     newElement.classList.remove("dragover", "dragover__bottom", "dragover__top");
-    window.siyuan.dragElement = undefined;
+    setSiyuanDragElement(undefined);
+};
+
+const handleGutterDropNode = (newElement: Element, gutterTypes: string[], params: { toURL: string, toPath: string }) => {
+    const toDocOptions: {
+        targetNoteBook: string;
+        pushMode: number;
+        srcHeadingID?: string;
+        srcListItemID?: string;
+        targetPath?: string;
+        previousPath?: string;
+    } = {
+        targetNoteBook: params.toURL,
+        pushMode: 0,
+    };
+    if (newElement.classList.contains("dragover")) {
+        toDocOptions.targetPath = params.toPath;
+    }
+    if (newElement.classList.contains("dragover__bottom")) {
+        toDocOptions.previousPath = params.toPath;
+    }
+
+    const isTop = newElement.classList.contains("dragover__top");
+    const topPreviousPath = (isTop && newElement.previousElementSibling) ? newElement.previousElementSibling.getAttribute("data-path") : null;
+    if (topPreviousPath) {
+        toDocOptions.previousPath = topPreviousPath;
+    }
+
+    const topTargetPath = (isTop && !newElement.previousElementSibling && newElement.parentElement && newElement.parentElement.previousElementSibling) ? newElement.parentElement.previousElementSibling.getAttribute("data-path") : null;
+    if (topTargetPath) {
+        toDocOptions.targetPath = topTargetPath;
+    }
+
+    const gutterType2 = gutterTypes[2];
+    const sourceID = gutterType2 ? gutterType2.split(",")[0] : "";
+
+    if (sourceID && gutterTypes[0] === "nodeheading") {
+        toDocOptions.srcHeadingID = sourceID;
+    }
+    if (sourceID && gutterTypes[0] !== "nodeheading") {
+        toDocOptions.srcListItemID = sourceID;
+    }
+
+    if (gutterTypes[0] === "nodeheading") {
+        fetchPost("/api/filetree/heading2Doc", toDocOptions);
+        return;
+    }
+    fetchPost("/api/filetree/li2Doc", toDocOptions);
 };
 
 const handleFileDrop = async (files: Files, event: DragEvent, newElement: Element, newUlElement: Element, params: { toURL: string, toPath: string, oldScrollTop: number }) => {
-    window.siyuan.dragElement = undefined;
-    if (!event.dataTransfer.getData(Constants.SIYUAN_DROP_FILE)) {
+    setSiyuanDragElement(undefined);
+    if (!event.dataTransfer?.getData(Constants.SIYUAN_DROP_FILE)) {
         newElement.classList.remove("dragover", "dragover__bottom", "dragover__top");
         return;
     }
@@ -86,14 +114,7 @@ const handleFileDrop = async (files: Files, event: DragEvent, newElement: Elemen
     }
 
     if (newElement.classList.contains("dragover")) {
-        if (fromPaths.length > 0) {
-            fetchPost("/api/filetree/moveDocs", {
-                toNotebook: params.toURL,
-                fromPaths,
-                toPath: params.toPath,
-            });
-        }
-        newElement.classList.remove("dragover", "dragover__bottom", "dragover__top");
+        handleMoveDrop(newElement, params, fromPaths);
         return;
     }
     if (newElement.classList.contains("dragover__bottom") || newElement.classList.contains("dragover__top")) {
@@ -102,30 +123,45 @@ const handleFileDrop = async (files: Files, event: DragEvent, newElement: Elemen
     newElement.classList.remove("dragover", "dragover__bottom", "dragover__top");
 };
 
+const handleMoveDrop = (newElement: Element, params: { toURL: string, toPath: string }, fromPaths: string[]) => {
+    if (fromPaths.length > 0) {
+        fetchPost("/api/filetree/moveDocs", {
+            toNotebook: params.toURL,
+            fromPaths,
+            toPath: params.toPath,
+        });
+    }
+    newElement.classList.remove("dragover", "dragover__bottom", "dragover__top");
+};
+
 const getSelectedFiles = (files: Files, newElement: Element) => {
     const selectRootElements: HTMLElement[] = [];
     const selectFileElements: HTMLElement[] = [];
     const fromPaths: string[] = [];
-    files.element.querySelectorAll(".b3-list-item--focus").forEach((item: HTMLElement) => {
+    const newElementPath = newElement.getAttribute("data-path");
+    if (!newElementPath) {
+        return { selectRootElements, selectFileElements, fromPaths };
+    }
+    for (const item of Array.from(files.element.querySelectorAll(".b3-list-item--focus")) as HTMLElement[]) {
         if (item.getAttribute("data-type") === "navigation-root") {
             selectRootElements.push(item);
-        } else {
-            const dataPath = item.getAttribute("data-path");
-            const isChild = fromPaths.find(itemPath => {
-                if (dataPath.startsWith(itemPath.replace(".sy", ""))) {
-                    return true;
-                }
-            });
-            if (!isChild) {
-                // 禁止父节点移动到子节点
-                if (newElement.getAttribute("data-path").startsWith(item.dataset.path.replace(".sy", ""))) {
-                    return;
-                }
-                selectFileElements.push(item);
-                fromPaths.push(dataPath);
-            }
+            continue;
         }
-    });
+        const dataPath = item.getAttribute("data-path");
+        if (!dataPath) {
+            continue;
+        }
+        const isChild = fromPaths.find(itemPath => dataPath.startsWith(itemPath.replace(".sy", "")));
+        if (isChild) {
+            continue;
+        }
+        // 禁止父节点移动到子节点
+        if (newElementPath.startsWith(dataPath.replace(".sy", ""))) {
+            continue;
+        }
+        selectFileElements.push(item);
+        fromPaths.push(dataPath);
+    }
     return { selectRootElements, selectFileElements, fromPaths };
 };
 
@@ -134,25 +170,36 @@ const handleSort = async (files: Files, newElement: Element, newUlElement: Eleme
     if (getSiyuanConfig().fileTree.sort === 6 && selectRootElements.length > 0 &&
         newElement.getAttribute("data-path") === "/") {
         handleRootSort(files, newElement, selectRootElements);
-    } else if ((ulSort === "6" || (getSiyuanConfig().fileTree.sort === 6 && ulSort === "15")) && selectFileElements.length > 0) {
+        return;
+    }
+
+    if ((ulSort === "6" || (getSiyuanConfig().fileTree.sort === 6 && ulSort === "15")) && selectFileElements.length > 0) {
         await handleFileSort(files, newElement, selectFileElements, fromPaths, params);
     }
 };
 
 const handleRootSort = (files: Files, newElement: Element, selectRootElements: HTMLElement[]) => {
-    if (newElement.classList.contains("dragover__top")) {
-        selectRootElements.forEach(item => {
-            newElement.parentElement.before(item.parentElement);
-        });
-    } else {
-        selectRootElements.reverse().forEach(item => {
-            newElement.parentElement.after(item.parentElement);
-        });
+    if (!newElement.parentElement) {
+        return;
     }
-    const notebooks: string[] = [];
-    Array.from(files.element.children).forEach(item => {
-        notebooks.push(item.getAttribute("data-url"));
-    });
+    const isTop = newElement.classList.contains("dragover__top");
+    if (isTop) {
+        for (const item of selectRootElements) {
+            if (item.parentElement) {
+                newElement.parentElement.before(item.parentElement);
+            }
+        }
+    }
+
+    if (!isTop) {
+        for (const item of selectRootElements.reverse()) {
+            if (item.parentElement) {
+                newElement.parentElement.after(item.parentElement);
+            }
+        }
+    }
+
+    const notebooks = Array.from(files.element.children).map(item => item.getAttribute("data-url"));
     fetchPost("/api/notebook/changeSortNotebook", {
         notebooks,
     });
@@ -214,10 +261,14 @@ const updateDOMPosition = (newElement: Element, selectFileElements: HTMLElement[
 };
 
 const finalizeSort = (files: Files, newElement: Element, params: { toURL: string, oldScrollTop: number }, toDir: string, hasMove: boolean) => {
+    if (!newElement.parentElement) {
+        return;
+    }
     const paths: string[] = [];
     for (const item of Array.from(newElement.parentElement.children)) {
-        if (item.tagName === "LI") {
-            paths.push(item.getAttribute("data-path"));
+        const path = item.getAttribute("data-path");
+        if (item.tagName === "LI" && path) {
+            paths.push(path);
         }
     }
     fetchPost("/api/filetree/changeSort", {
