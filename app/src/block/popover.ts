@@ -25,6 +25,12 @@ export type { TooltipInfo };
 /** Popover 显示延迟时间（毫秒） */
 const POPOVER_SHOW_DELAY_MS = 620;
 
+/** 检查面板是否已固定且内容相同 */
+const 是已固定的相同面板 = (refDefs: IRefDefs[]) => (item: BlockPanel) =>
+    (item.targetElement || typeof item.x === "number")
+    && item.element.getAttribute("data-pin") === "true"
+    && JSON.stringify(refDefs) === JSON.stringify(item.refDefs);
+
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 主入口函数
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -140,14 +146,7 @@ export const showPopover = async (app: App, showRef = false) => {
     }
 
     // 检查是否已有相同内容的 pin 住的面板
-    let hasPin = false;
-    window.siyuan.blockPanels.find((item) => {
-        if ((item.targetElement || typeof item.x === "number") && item.element.getAttribute("data-pin") === "true"
-            && JSON.stringify(refDefs) === JSON.stringify(item.refDefs)) {
-            hasPin = true;
-            return true;
-        }
-    });
+    const hasPin = window.siyuan.blockPanels.some(是已固定的相同面板(refDefs));
 
     // 创建新面板
     if (!hasPin && popoverTargetElement.parentElement &&
