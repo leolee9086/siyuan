@@ -45,18 +45,21 @@ const processStreamData = async (
         buffer = events.pop() || ""; // 保留不完整的事件
 
         for (const event of events) {
-            if (event.startsWith("data: ")) {
-                const dataStr = event.substring(6);
-                
-                // 处理特殊事件
-                if (dataStr === "[DONE]") {
-                    ctx.onDone(); // 调用结束回调
-                    return; // 流结束
-                }
-                // 直接传递原始数据给调用方处理
-                ctx.onMessage(dataStr);
-                ctx.resetTimeout(); // 每次收到内容都重置超时
+            if (!event.startsWith("data: ")) {
+                continue;
             }
+            
+            const dataStr = event.substring(6);
+            
+            // 处理特殊事件
+            if (dataStr === "[DONE]") {
+                ctx.onDone(); // 调用结束回调
+                return; // 流结束
+            }
+            
+            // 直接传递原始数据给调用方处理
+            ctx.onMessage(dataStr);
+            ctx.resetTimeout(); // 每次收到内容都重置超时
         }
     }
 };
