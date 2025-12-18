@@ -13,7 +13,7 @@ import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu.environ
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { get } from "http";
-import { getSelection } from "../util/DOM/range";
+import { getSelection } from "../util/DOM/range.global";
 
 
 export const contentMenu = (protyle: IProtyle, nodeElement: Element) => {

@@ -2,7 +2,7 @@ import { Constants } from "../../../constants";
 import { hideTooltip } from "../../../dialog/tooltip";
 import { hasClosestByTag } from "../../../protyle/util/hasClosest";
 import { isTouchDevice } from "../../../util/functions";
-import { getSelection } from "../../../util/DOM/range";
+import { getSelection } from "../../../util/DOM/range.global";
 import { setSiyuanDragElement } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { Files } from "../Files";
 

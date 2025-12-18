@@ -2,7 +2,7 @@ import RecentDocs from "../components/recentDocsAndDocks.vue";
 import { Constants } from "../constants";
 import { Dialog } from "../dialog";
 import { focusByRange } from "../protyle/util/selection";
-import { getFirstSelectedRange } from "../util/DOM/range";
+import { getFirstSelectedRange } from "../util/DOM/range.global";
 import { fetchPost } from "../util/fetch";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { VueComponentMountConfig, createVueComponentInDialog } from "../util/vue/mount";
