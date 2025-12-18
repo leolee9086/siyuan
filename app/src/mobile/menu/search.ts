@@ -34,10 +34,11 @@ import {
     toggleReplaceHistory,
     toggleSearchHistory
 } from "../../search/toggleHistory";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 const replace = (element: Element, config: Config.IUILayoutTabSearchConfig, isAll: boolean) => {
     if (config.method === 2) {
-        showMessage(window.siyuan.languages._kernel[132]);
+        showMessage(siyuanI18n._kernel[132]);
         return;
     }
     const searchListElement = element.querySelector("#searchList");
@@ -218,15 +219,15 @@ ${childItem.tag ? `<span class="b3-list-item__meta b3-list-item__meta--ellipsis"
         `<div class="b3-list-item b3-list-item--focus" data-type="search-new">
     <svg class="b3-list-item__graphic"><use xlink:href="#iconFile"></use></svg>
     <span class="b3-list-item__text">
-        ${window.siyuan.languages.newFile} <mark>${(document.querySelector("#toolbarSearch") as HTMLInputElement).value}</mark>
+        ${siyuanI18n.newFile} <mark>${(document.querySelector("#toolbarSearch") as HTMLInputElement).value}</mark>
     </span>
 </div>`;
     listElement.scrollTop = 0;
     let countHTML = "";
     if (response) {
-        let text = window.siyuan.languages.findInDoc.replace("${x}", response.data.matchedRootCount).replace("${y}", response.data.matchedBlockCount);
+        let text = siyuanI18n.findInDoc.replace("${x}", response.data.matchedRootCount).replace("${y}", response.data.matchedBlockCount);
         if (response.data.docMode) {
-            text = window.siyuan.languages.matchDoc.replace("${x}", response.data.matchedRootCount);
+            text = siyuanI18n.matchDoc.replace("${x}", response.data.matchedRootCount);
         }
         countHTML = `<span class="fn__flex-center">${text}</span>
 <span class="fn__flex-1"></span>
@@ -514,7 +515,7 @@ const initSearchEvent = (app: App, element: Element, config: Config.IUILayoutTab
                         });
                     },
                     flashcard: false,
-                    title: window.siyuan.languages.specifyPath
+                    title: siyuanI18n.specifyPath
                 });
                 event.stopPropagation();
                 event.preventDefault();
@@ -728,7 +729,7 @@ export const popSearch = (app: App, searchConfig?: Config.IUILayoutTabSearchConf
         <svg class="svg--mid"><use xlink:href="#iconSearch"></use></svg>
         <svg class="svg--smaller"><use xlink:href="#iconDown"></use></svg>
     </span>
-    <input id="toolbarSearch" placeholder="${window.siyuan.languages.showRecentUpdatedBlocks}" class="toolbar__title fn__block" autocomplete="off" autocorrect="off" spellcheck="false">
+    <input id="toolbarSearch" placeholder="${siyuanI18n.showRecentUpdatedBlocks}" class="toolbar__title fn__block" autocomplete="off" autocorrect="off" spellcheck="false">
     <svg id="toolbarSearchNew" class="toolbar__icon"><use xlink:href="#iconFile"></use></svg>
 </div>`,
         html: `<div class="fn__flex-column" style="height: 100%">
@@ -740,9 +741,9 @@ export const popSearch = (app: App, searchConfig?: Config.IUILayoutTabSearchConf
         <input id="toolbarReplace" class="toolbar__title">
         <svg class="fn__rotate fn__none toolbar__icon"><use xlink:href="#iconRefresh"></use></svg>
         <div class="fn__space"></div>
-        <button data-type="replace-all" class="b3-button b3-button--outline fn__flex-center">${window.siyuan.languages.replaceAll}</button>
+        <button data-type="replace-all" class="b3-button b3-button--outline fn__flex-center">${siyuanI18n.replaceAll}</button>
         <div class="fn__space"></div>
-        <button data-type="replace" class="b3-button b3-button--outline fn__flex-center">${window.siyuan.languages.replace}</button>
+        <button data-type="replace" class="b3-button b3-button--outline fn__flex-center">${siyuanI18n.replace}</button>
         <div class="fn__space"></div>
     </div>
     <div id="criteria" style="background-color: var(--b3-theme-background);"></div>
@@ -778,7 +779,7 @@ export const popSearch = (app: App, searchConfig?: Config.IUILayoutTabSearchConf
                 <svg class="svg--mid"><use xlink:href="#iconSearch"></use></svg>
                 <svg class="svg--smaller"><use xlink:href="#iconDown"></use></svg>
             </span>
-            <input id="searchAssetInput" placeholder="${window.siyuan.languages.keyword}" class="toolbar__title fn__block">
+            <input id="searchAssetInput" placeholder="${siyuanI18n.keyword}" class="toolbar__title fn__block">
         </div>
         <div class="toolbar">
             <span class="fn__space"></span>
@@ -905,11 +906,11 @@ const getUnRefListMobile = (element: Element, page = 1) => {
 <span class="b3-list-item__text b3-list-item__meta">${escapeGreat(title)}</span>
 </div>`;
         });
-        element.querySelector("#searchUnRefResult").innerHTML = `<span class="fn__flex-center">${window.siyuan.languages.findInDoc.replace("${x}", response.data.matchedRootCount).replace("${y}", response.data.matchedBlockCount)}</span>
+        element.querySelector("#searchUnRefResult").innerHTML = `<span class="fn__flex-center">${siyuanI18n.findInDoc.replace("${x}", response.data.matchedRootCount).replace("${y}", response.data.matchedBlockCount)}</span>
 <span class="fn__flex-1"></span>
 <span class="fn__flex-center">${page}/${response.data.pageCount || 1}</span>`;
         element.querySelector("#searchUnRefList").innerHTML = resultHTML || `<div class="search__empty">
-    ${window.siyuan.languages.emptyContent}
+    ${siyuanI18n.emptyContent}
 </div>`;
     });
 };
