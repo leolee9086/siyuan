@@ -1,3 +1,4 @@
+import { getSiyuanStorage } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { z } from "./deps";
 import {
@@ -49,27 +50,27 @@ interface AiActionStorageContext {
 const createAiActionStorageContext = (): AiActionStorageContext => {
     return {
         getAiActions: (): AiActionConfig[] => {
-            if (!window.siyuan.storage) {
+            if (!getSiyuanStorage()) {
                 throw new Error("siyuan对象结构不正确");
             }
 
-            return window.siyuan.storage[Constants.LOCAL_AI] || [];
+            return getSiyuanStorage()[Constants.LOCAL_AI] || [];
         },
 
         setAiActions: (actions: AiActionConfig[]): void => {
-            if (!window.siyuan.storage) {
+            if (!getSiyuanStorage()) {
                 throw new Error("siyuan对象结构不正确");
             }
 
-            window.siyuan.storage[Constants.LOCAL_AI] = actions;
+            getSiyuanStorage()[Constants.LOCAL_AI] = actions;
         },
 
         saveAiActions: (): void => {
-            if (!window.siyuan.storage) {
+            if (!getSiyuanStorage()) {
                 throw new Error("siyuan对象结构不正确");
             }
 
-            setStorageVal(Constants.LOCAL_AI, window.siyuan.storage[Constants.LOCAL_AI]);
+            setStorageVal(Constants.LOCAL_AI, getSiyuanStorage()[Constants.LOCAL_AI]);
         }
     };
 };

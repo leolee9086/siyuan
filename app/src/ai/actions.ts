@@ -263,7 +263,7 @@ const getSiyuanStorage = () => {
         throw new Error(`siyuan 对象结构错误 ${Constants.LOCAL_AI}应该是一个数组`);
 
     }
-    return window.siyuan.storage;
+    return getSiyuanStorage();
 };
 
 export const openAIActionsMenu = (elements: Element[], protyle: IProtyle) => {
