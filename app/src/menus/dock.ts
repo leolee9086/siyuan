@@ -1,3 +1,4 @@
+import { getSiyuanGlobalMenusMenu } from "../util/siyuanEnvironments/getMenu.environment";
 import { MenuItem } from "./Menu.Item";
 
 const moveMenuItem = (label: string, target: Element) => {
@@ -7,9 +8,13 @@ const moveMenuItem = (label: string, target: Element) => {
         click: () => {
             if (label.indexOf("moveToLeft") > -1) {
                 window.siyuan.layout.leftDock.add(label.endsWith("Top") ? 0 : 1, target);
-            } else if (label.indexOf("moveToRight") > -1) {
+                return;
+            }
+            if (label.indexOf("moveToRight") > -1) {
                 window.siyuan.layout.rightDock.add(label.endsWith("Top") ? 0 : 1, target);
-            } else if (label.indexOf("moveToBottom") > -1) {
+                return;
+            }
+            if (label.indexOf("moveToBottom") > -1) {
                 window.siyuan.layout.bottomDock.add(label.endsWith("Left") ? 0 : 1, target);
             }
         }
@@ -17,12 +22,12 @@ const moveMenuItem = (label: string, target: Element) => {
 };
 
 export const initDockMenu = (target: Element) => {
-    window.siyuan.menus.menu.remove();
-    window.siyuan.menus.menu.append(moveMenuItem("moveToLeftTop", target).element);
-    window.siyuan.menus.menu.append(moveMenuItem("moveToLeftBottom", target).element);
-    window.siyuan.menus.menu.append(moveMenuItem("moveToRightTop", target).element);
-    window.siyuan.menus.menu.append(moveMenuItem("moveToRightBottom", target).element);
-    window.siyuan.menus.menu.append(moveMenuItem("moveToBottomLeft", target).element);
-    window.siyuan.menus.menu.append(moveMenuItem("moveToBottomRight", target).element);
-    return window.siyuan.menus.menu;
+    getSiyuanGlobalMenusMenu().remove();
+    getSiyuanGlobalMenusMenu().append(moveMenuItem("moveToLeftTop", target).element);
+    getSiyuanGlobalMenusMenu().append(moveMenuItem("moveToLeftBottom", target).element);
+    getSiyuanGlobalMenusMenu().append(moveMenuItem("moveToRightTop", target).element);
+    getSiyuanGlobalMenusMenu().append(moveMenuItem("moveToRightBottom", target).element);
+    getSiyuanGlobalMenusMenu().append(moveMenuItem("moveToBottomLeft", target).element);
+    getSiyuanGlobalMenusMenu().append(moveMenuItem("moveToBottomRight", target).element);
+    return getSiyuanGlobalMenusMenu();
 };
