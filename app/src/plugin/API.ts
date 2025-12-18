@@ -1,38 +1,38 @@
-import {confirmDialog} from "../dialog/confirmDialog";
-import {Plugin} from "./index";
-import {hideMessage, showMessage} from "../dialog/message";
-import {Dialog} from "../dialog";
-import {fetchGet, fetchPost, fetchSyncPost} from "../util/fetch";
-import {getBackend, getFrontend} from "../util/functions";
+import { confirmDialog } from "../dialog/confirmDialog";
+import { Plugin } from "./index";
+import { hideMessage, showMessage } from "../dialog/message";
+import { Dialog } from "../dialog";
+import { fetchGet, fetchPost, fetchSyncPost } from "../util/fetch";
+import { getBackend, getFrontend } from "../util/functions";
 /// #if !MOBILE
-import {openFile} from "../editor/util";
+import { openFile } from "../editor/util";
 import { openFileById } from "../editor/utils.openFileById";
-import {openNewWindow, openNewWindowById} from "../window/openNewWindow";
-import {Tab} from "../layout/Tab";
+import { openNewWindow, openNewWindowById } from "../window/openNewWindow";
+import { Tab } from "../layout/Tab";
 /// #endif
-import {updateHotkeyTip} from "../protyle/util/compatibility";
+import { updateHotkeyTip } from "../protyle/util/compatibility";
 import * as platformUtils from "../protyle/util/compatibility";
-import {App} from "../index";
-import {Constants} from "../constants";
-import {Setting} from "./Setting";
-import {Menu} from "./Menu";
-import {Protyle} from "../protyle";
-import {openMobileFileById} from "../mobile/editor";
-import {lockScreen, exitSiYuan} from "../dialog/processSystem";
-import {Model} from "../layout/Model";
-import {getActiveTab, getDockByType} from "../layout/tabUtil";
+import { App } from "../index";
+import { Constants } from "../constants";
+import { Setting } from "./Setting";
+import { Menu } from "./Menu";
+import { Protyle } from "../protyle";
+import { openMobileFileById } from "../mobile/editor";
+import { lockScreen, exitSiYuan } from "../dialog/processSystem";
+import { Model } from "../layout/Model";
+import { getActiveTab, getDockByType } from "../layout/tabUtil";
 /// #if !MOBILE
-import {getAllModels} from "../layout/getAll";
+import { getAllModels } from "../layout/getAll";
 /// #endif
-import {getAllEditor} from "../layout/getAll";
-import {openSetting} from "../config";
-import {openAttr} from "../menus/commonMenuItem";
+import { getAllEditor } from "../layout/getAll";
+import { openSetting } from "../config";
+import { openAttr } from "../menus/commonMenuItem";
 import { openFileAttr } from "../menus/commonMenuItem.openFileAttr";
-import {globalCommand} from "../boot/globalEvent/command/global";
-import {exportLayout} from "../layout/util";
-import {saveScroll} from "../protyle/scroll/saveScroll";
-import {hasClosestByClassName} from "../protyle/util/hasClosest";
-import {Files} from "../layout/dock/Files";
+import { globalCommand } from "../boot/globalEvent/command/global";
+import { exportLayout } from "../layout/util";
+import { saveScroll } from "../protyle/scroll/saveScroll";
+import { hasClosestByClassName } from "../protyle/util/hasClosest";
+import { Files } from "../layout/dock/Files";
 
 let openTab;
 let openWindow;
@@ -54,11 +54,11 @@ openWindow = (options: {
     },
 }) => {
     if (options.doc && options.doc.id) {
-        openNewWindowById(options.doc.id, {position: options.position, width: options.width, height: options.height});
+        openNewWindowById(options.doc.id, { position: options.position, width: options.width, height: options.height });
         return;
     }
     if (options.tab) {
-        openNewWindow(options.tab, {position: options.position, width: options.width, height: options.height});
+        openNewWindow(options.tab, { position: options.position, width: options.width, height: options.height });
         return;
     }
 };
@@ -67,7 +67,7 @@ openTab = (options: {
     app: App,
     doc?: {
         id: string,     // 块 id
-        action?: TProtyleAction [] // cb-get-all：获取所有内容；cb-get-focus：打开后光标定位在 id 所在的块；cb-get-hl: 打开后 id 块高亮
+        action?: TProtyleAction[] // cb-get-all：获取所有内容；cb-get-focus：打开后光标定位在 id 所在的块；cb-get-hl: 打开后 id 块高亮
         zoomIn?: boolean // 是否缩放
     },
     pdf?: {
@@ -212,7 +212,7 @@ const saveLayout = (cb: () => void) => {
         }
     }
     /// #else
-    exportLayout({cb, errorExit: false});
+    exportLayout({ cb, errorExit: false });
     /// #endif
 };
 
@@ -237,23 +237,21 @@ const getActiveEditor = (wndActive = true) => {
     }
     if (!editor && !wndActive) {
         let activeTime = 0;
-        allEditor.forEach(item => {
+        for (const item of allEditor) {
             let headerElement = item.protyle.model?.parent.headElement;
             if (!headerElement && item.protyle.element.getBoundingClientRect().height > 0) {
                 const tabBodyElement = item.protyle.element.closest(".fn__flex-1[data-id]");
-                if (tabBodyElement) {
-                    headerElement = document.querySelector(`.layout-tab-bar .item[data-id="${tabBodyElement.getAttribute("data-id")}"]`);
-                }
+                headerElement = (tabBodyElement ? document.querySelector(`.layout-tab-bar .item[data-id="${tabBodyElement.getAttribute("data-id")}"]`) : undefined) as HTMLElement | undefined;
             }
-            if (headerElement) {
-                if (headerElement.classList.contains("item--focus") && parseInt(headerElement.dataset.activetime) > activeTime) {
-                    activeTime = parseInt(headerElement.dataset.activetime);
-                    editor = item;
-                }
-            } else if (item.protyle.element.getBoundingClientRect().height > 0) {
+            if (!headerElement) {
+                editor = item.protyle.element.getBoundingClientRect().height > 0 ? item : editor;
+                continue;
+            }
+            if (headerElement.classList.contains("item--focus") && parseInt(headerElement.dataset.activetime) > activeTime) {
+                activeTime = parseInt(headerElement.dataset.activetime);
                 editor = item;
             }
-        });
+        }
     }
     /// #else
     editor = window.siyuan.mobile.popEditor || window.siyuan.mobile.editor;
@@ -284,7 +282,7 @@ export const expandDocTree = async (options: {
     if (isNotebook) {
         liElement = file.element.querySelector(`.b3-list[data-url="${options.id}"]`)?.firstElementChild as HTMLElement;
     } else {
-        const response = await fetchSyncPost("api/block/getBlockInfo", {id: options.id});
+        const response = await fetchSyncPost("api/block/getBlockInfo", { id: options.id });
         if (response.code === -1) {
             return;
         }
