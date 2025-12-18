@@ -1,37 +1,35 @@
 import { hasClosestByClassName } from "../protyle/util/hasClosest";
 import { Protyle } from "../protyle";
 import { genUUID } from "../util/genID";
-import { setPosition } from "../util/setPosition";
 import { hideElements } from "../protyle/ui/hideElements";
-import { Constants } from "../constants";
-/// #if !BROWSER
-import { openNewWindowById } from "../window/openNewWindow";
-/// #endif
+
 /// #if !MOBILE
 import { moveResize } from "../dialog/moveResize";
-import { openFileById } from "../editor/utils.openFileById";
 /// #endif
-import { fetchPost } from "../util/fetch";
-import { showMessage } from "../dialog/message";
 import { App } from "../index";
-import { resize } from "../protyle/util/resize";
-import { checkFold } from "../util/noRelyPCFunction";
-import { updateHotkeyAfterTip } from "../protyle/util/compatibility";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
+import {
+    getSiyuanBlockPanels,
+    getSiyuanMenus,
+    incrementSiyuanZIndex
+} from "../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { 构建面板HTML, 设置面板位置 } from "./Panel.render";
+import { 切换固定状态, 执行图标操作 } from "./Panel.actions";
+import { 设置观察器, 绑定滚动事件 } from "./Panel.observer";
+import { 初始化Protyle编辑器, EditorInitContext } from "./Panel.editor";
 
 export class BlockPanel {
-    public element: HTMLElement;
-    public targetElement: HTMLElement;
+    public element: HTMLElement | undefined;
+    public targetElement: HTMLElement | undefined;
     public refDefs: IRefDefs[];
     public id: string;
     private app: App;
-    public x: number;
-    public y: number;
+    public x: number | undefined;
+    public y: number | undefined;
     private isBacklink: boolean;
     public editors: Protyle[] = [];
-    private observerResize: ResizeObserver;
-    private observerLoad: IntersectionObserver;
-    private originalRefBlockIDs: IObject;
+    private observerResize: ResizeObserver | undefined;
+    private observerLoad: IntersectionObserver | undefined;
+    private originalRefBlockIDs: IObject | undefined;
 
     // x,y 和 targetElement 二选一必传
     constructor(options: {
@@ -54,25 +52,7 @@ export class BlockPanel {
 
         this.element = document.createElement("div");
         this.element.classList.add("block__popover");
-
-        const parentElement = hasClosestByClassName(this.targetElement, "block__popover", true);
-        let level = 1;
-        if (parentElement) {
-            this.element.setAttribute("data-oid", parentElement.getAttribute("data-oid"));
-            level = parseInt(parentElement.getAttribute("data-level")) + 1;
-        } else {
-            this.element.setAttribute("data-oid", this.refDefs[0].refID);
-        }
-        // 移除同层级其他更高级的 block popover
-        this.element.setAttribute("data-level", level.toString());
-        for (let i = 0; i < window.siyuan.blockPanels.length; i++) {
-            const item = window.siyuan.blockPanels[i];
-            if (item.element.getAttribute("data-pin") === "false" &&
-                item.targetElement && parseInt(item.element.getAttribute("data-level")) >= level) {
-                item.destroy();
-                i--;
-            }
-        }
+        this.初始化层级();
         document.body.insertAdjacentElement("beforeend", this.element);
 
         if (this.targetElement) {
@@ -80,273 +60,196 @@ export class BlockPanel {
         }
 
         this.element.setAttribute("data-pin", "false");
-        this.element.addEventListener("dblclick", (event) => {
-            const target = event.target as HTMLElement;
-            const iconsElement = hasClosestByClassName(target, "block__icons");
-            if (iconsElement) {
-                const pingElement = iconsElement.querySelector('[data-type="pin"]');
-                if (this.element.getAttribute("data-pin") === "true") {
-                    pingElement.setAttribute("aria-label", siyuanI18n.pin);
-                    pingElement.querySelector("use").setAttribute("xlink:href", "#iconPin");
-                    this.element.setAttribute("data-pin", "false");
-                } else {
-                    pingElement.setAttribute("aria-label", siyuanI18n.unpin);
-                    pingElement.querySelector("use").setAttribute("xlink:href", "#iconUnpin");
-                    this.element.setAttribute("data-pin", "true");
-                }
-                event.preventDefault();
-                event.stopPropagation();
-            }
-        });
+        // 双击切换固定状态
+        this.element.addEventListener("dblclick", (event) => this.处理双击事件(event));
+        // 点击时更新层级并处理图标操作
         this.element.addEventListener("click", (event) => {
-            if (this.element && window.siyuan.blockPanels.length > 1) {
-                this.element.style.zIndex = (++window.siyuan.zIndex).toString();
+            if (this.element && getSiyuanBlockPanels().length > 1) {
+                this.element.style.zIndex = incrementSiyuanZIndex().toString();
             }
-
-            let target = event.target as HTMLElement;
-            while (target && !target.isEqualNode(this.element)) {
-                if (target.classList.contains("block__icon") || target.classList.contains("block__logo")) {
-                    const type = target.getAttribute("data-type");
-                    if (type === "close") {
-                        this.destroy();
-                    } else if (type === "pin") {
-                        if (this.element.getAttribute("data-pin") === "true") {
-                            target.setAttribute("aria-label", siyuanI18n.pin);
-                            target.querySelector("use").setAttribute("xlink:href", "#iconPin");
-                            this.element.setAttribute("data-pin", "false");
-                        } else {
-                            target.setAttribute("aria-label", siyuanI18n.unpin);
-                            target.querySelector("use").setAttribute("xlink:href", "#iconUnpin");
-                            this.element.setAttribute("data-pin", "true");
-                        }
-                    } else if (type === "open") {
-                        /// #if !BROWSER
-                        openNewWindowById(this.refDefs[0].refID);
-                        /// #endif
-                    } else if (type === "stickTab") {
-                        checkFold(this.refDefs[0].refID, (zoomIn, action) => {
-                            openFileById({
-                                app: options.app,
-                                id: this.refDefs[0].refID,
-                                action,
-                                zoomIn,
-                                openNewTab: true
-                            });
-                        });
-                        this.destroy();
-                    }
-                    event.preventDefault();
-                    event.stopPropagation();
-                    break;
-                }
-                target = target.parentElement;
-            }
+            this.处理图标点击(event, options);
         });
         /// #if !MOBILE
-        moveResize(this.element, () => {
-            const pinElement = this.element.firstElementChild.querySelector('[data-type="pin"]');
-            pinElement.setAttribute("aria-label", siyuanI18n.unpin);
-            pinElement.querySelector("use").setAttribute("xlink:href", "#iconUnpin");
-            this.element.setAttribute("data-pin", "true");
-        });
+        if (this.element) {
+            moveResize(this.element, () => {
+                if (this.element) {
+                    切换固定状态({ element: this.element, 固定: true });
+                }
+            });
+        }
         /// #endif
         this.render();
     }
 
-    private initProtyle(editorElement: HTMLElement, afterCB?: () => void) {
-        const index = parseInt(editorElement.getAttribute("data-index"));
-        fetchPost("/api/block/getBlockInfo", { id: this.refDefs[index].refID }, (response) => {
-            if (response.code === 3) {
-                showMessage(response.msg);
-                return;
-            }
-            if (!this.targetElement && typeof this.x === "undefined" && typeof this.y === "undefined") {
-                return;
-            }
-            const action: TProtyleAction[] = [];
-            if (response.data.rootID !== this.refDefs[index].refID) {
-                action.push(Constants.CB_GET_ALL);
-            } else {
-                action.push(Constants.CB_GET_CONTEXT);
-                // 不需要高亮 https://github.com/siyuan-note/siyuan/issues/11160#issuecomment-2084652764
-            }
+    private 初始化层级(): void {
+        if (!this.element) {
+            return;
+        }
+        const parentElement = this.targetElement ? hasClosestByClassName(this.targetElement, "block__popover", true) : false;
+        let level = 1;
+        const firstRefDef = this.refDefs[0];
+        if (!parentElement && firstRefDef) {
+            this.element.setAttribute("data-oid", firstRefDef.refID);
+        }
+        const oid = parentElement ? parentElement.getAttribute("data-oid") : null;
+        if (parentElement && oid) {
+            this.element.setAttribute("data-oid", oid);
+        }
+        if (parentElement) {
+            level = parseInt(parentElement.getAttribute("data-level") ?? "0") + 1;
+        }
+        // 移除同层级其他更高级的 block popover
+        this.element.setAttribute("data-level", level.toString());
+        this.清理同级浮窗(level);
+    }
 
-            if (this.isBacklink) {
-                action.push(Constants.CB_GET_BACKLINK);
+    private 清理同级浮窗(level: number): void {
+        const blockPanels = getSiyuanBlockPanels();
+        for (let i = 0; i < blockPanels.length; i++) {
+            const item = blockPanels[i];
+            if (!item || !item.element) {
+                continue;
             }
-            const editor = new Protyle(this.app, editorElement, {
-                blockId: this.refDefs[index].refID,
-                defIds: this.refDefs[index].defIDs || [],
-                originalRefBlockIDs: this.isBacklink ? this.originalRefBlockIDs : undefined,
-                action,
-                render: {
-                    scroll: true,
-                    gutter: true,
-                    breadcrumbDocName: true,
-                    title: response.data.rootID === this.refDefs[index].refID, // 如果块是文档，显示文档标题
-                },
-                typewriterMode: false,
-                after: (editor) => {
-                    if (response.data.rootID !== this.refDefs[index].refID) {
-                        editor.protyle.breadcrumb.element.parentElement.lastElementChild.classList.remove("fn__none");
-                    }
-                    if (afterCB) {
-                        afterCB();
-                    }
-                    // https://ld246.com/article/1653639418266
-                    if (editor.protyle.element.nextElementSibling || editor.protyle.element.previousElementSibling) {
-                        editor.protyle.element.style.minHeight = Math.min(30 + editor.protyle.wysiwyg.element.clientHeight, window.innerHeight / 3) + "px";
-                    }
-                    // 由于 afterCB 中高度的设定，需在之后再进行设定
-                    // 49 = 16（上图标）+16（下图标）+8（padding）+9（底部距离）
-                    editor.protyle.scroll.element.parentElement.setAttribute("style", `--b3-dynamicscroll-width:${Math.min(editor.protyle.contentElement.clientHeight - 49, 200)}px;`);
-                }
+            const itemLevel = parseInt(item.element.getAttribute("data-level") ?? "0");
+            if (item.element.getAttribute("data-pin") === "false" &&
+                item.targetElement && itemLevel >= level) {
+                item.destroy();
+                i--;
+            }
+        }
+    }
+
+    private 处理双击事件(event: MouseEvent): void {
+        if (!this.element) {
+            return;
+        }
+        const target = event.target as HTMLElement;
+        const iconsElement = hasClosestByClassName(target, "block__icons");
+        if (!iconsElement) {
+            return;
+        }
+        const 当前固定 = this.element.getAttribute("data-pin") === "true";
+        切换固定状态({ element: this.element, 固定: !当前固定 });
+        event.preventDefault();
+        event.stopPropagation();
+    }
+
+    private 处理图标点击(event: MouseEvent, options: { app: App }): void {
+        if (!this.element) {
+            return;
+        }
+        let target = event.target as HTMLElement;
+        const panelElement = this.element;
+        while (target && !target.isEqualNode(panelElement)) {
+            const isIconOrLogo = target.classList.contains("block__icon") || target.classList.contains("block__logo");
+            const parentElement = target.parentElement;
+            if (!isIconOrLogo && parentElement) {
+                target = parentElement;
+                continue;
+            }
+            if (!isIconOrLogo) {
+                break;
+            }
+            const type = target.getAttribute("data-type");
+            执行图标操作({
+                type,
+                target,
+                element: panelElement,
+                refDefs: this.refDefs,
+                app: options.app,
+                onDestroy: () => this.destroy()
             });
-            this.editors.push(editor);
-        });
+            event.preventDefault();
+            event.stopPropagation();
+            break;
+        }
+    }
+
+    private 获取编辑器上下文(): EditorInitContext {
+        return {
+            app: this.app,
+            refDefs: this.refDefs,
+            isBacklink: this.isBacklink,
+            originalRefBlockIDs: this.originalRefBlockIDs,
+            targetElement: this.targetElement,
+            x: this.x,
+            y: this.y,
+            editors: this.editors,
+        };
     }
 
     public destroy() {
         this.observerResize?.disconnect();
         this.observerLoad?.disconnect();
-        window.siyuan.blockPanels.find((item, index) => {
-            if (item.id === this.id) {
-                window.siyuan.blockPanels.splice(index, 1);
-                return true;
-            }
-        });
-        if (this.editors.length > 0) {
-            this.editors.forEach(item => {
-                // https://github.com/siyuan-note/siyuan/issues/8199
-                hideElements(["util"], item.protyle);
-                item.destroy();
-            });
-            this.editors = [];
+        const blockPanels = getSiyuanBlockPanels();
+        const foundIndex = blockPanels.findIndex((item) => item.id === this.id);
+        if (foundIndex !== -1) {
+            blockPanels.splice(foundIndex, 1);
         }
-        const level = parseInt(this.element.dataset.level);
-        this.element.remove();
+        for (const item of this.editors) {
+            hideElements(["util"], item.protyle);
+            item.destroy();
+        }
+        this.editors = [];
+        const level = parseInt(this.element?.dataset.level ?? "0");
+        this.element?.remove();
         this.element = undefined;
         this.targetElement = undefined;
         // 移除弹出上使用右键菜单
-        const menuLevel = parseInt(window.siyuan.menus.menu.element.dataset.from);
-        if (menuLevel && menuLevel >= level && window.siyuan.menus.menu.element.dataset.from?.includes("popover")) {
-            // https://github.com/siyuan-note/siyuan/issues/9854 右键菜单不是从浮窗中弹出的则不进行移除
-            window.siyuan.menus.menu.remove();
+        const menus = getSiyuanMenus();
+        const menuLevel = parseInt(menus?.menu.element.dataset.from ?? "");
+        if (menuLevel && menuLevel >= level && menus?.menu.element.dataset.from?.includes("popover")) {
+            menus.menu.remove();
         }
     }
 
     private render() {
-        if (!document.body.contains(this.element)) {
+        if (!this.element || !document.body.contains(this.element)) {
             this.destroy();
             return;
         }
-        let openHTML = "";
-        if (this.refDefs.length === 1) {
-            openHTML = `<span data-type="stickTab" class="block__icon block__icon--show b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.openInNewTab}${updateHotkeyAfterTip(window.siyuan.config.keymap.editor.general.openInNewTab.custom)}"><svg><use xlink:href="#iconOpen"></use></svg></span>
-<span class="fn__space"></span>`;
-            /// #if !BROWSER
-            openHTML += `<span data-type="open" class="block__icon block__icon--show b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.openByNewWindow}"><svg><use xlink:href="#iconOpenWindow"></use></svg></span>
-<span class="fn__space"></span>`;
-            /// #endif
-        }
-        let html = `<div class="block__icons block__icons--menu">
-    <span class="fn__space fn__flex-1 resize__move"></span>${openHTML}
-    <span data-type="pin" class="block__icon block__icon--show b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.pin}"><svg><use xlink:href="#iconPin"></use></svg></span>
-    <span class="fn__space"></span>
-    <span data-type="close" class="block__icon block__icon--show b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.close}${updateHotkeyAfterTip(window.siyuan.config.keymap.general.closeTab.custom)}"><svg style="width: 12px;margin: 0 1px;"><use xlink:href="#iconClose"></use></svg></span>
-</div>
-<div class="block__content">`;
-        if (this.refDefs.length === 0) {
-            html += `<div class="ft__smaller ft__smaller ft__secondary b3-form__space--small" contenteditable="false">${siyuanI18n.refExpired}</div>`;
-        } else {
-            this.refDefs.forEach((item, index) => {
-                html += `<div class="block__edit fn__flex-1 protyle" data-index="${index}"></div>`;
-            });
-        }
-        if (html) {
-            html += '</div><div class="resize__rd"></div><div class="resize__ld"></div><div class="resize__lt"></div><div class="resize__rt"></div><div class="resize__r"></div><div class="resize__d"></div><div class="resize__t"></div><div class="resize__l"></div>';
-        }
-        this.element.innerHTML = html;
-        let resizeTimeout: number;
-        this.observerResize = new ResizeObserver(() => {
-            clearTimeout(resizeTimeout);
-            resizeTimeout = window.setTimeout(() => {
-                this.editors.forEach(item => {
-                    resize(item.protyle);
-                });
-            }, Constants.TIMEOUT_TRANSITION);
+        const panelElement = this.element;
+        panelElement.innerHTML = 构建面板HTML(this.refDefs);
+
+        // 设置观察器
+        const 上下文 = this.获取编辑器上下文();
+        const observers = 设置观察器({
+            element: panelElement,
+            editors: this.editors,
+            initProtyle: (el, cb) => 初始化Protyle编辑器(el, 上下文, cb),
         });
-        this.observerResize.observe(this.element);
-        this.observerLoad = new IntersectionObserver((e) => {
-            e.forEach(item => {
-                if (item.isIntersecting && item.target.innerHTML === "") {
-                    this.initProtyle(item.target as HTMLElement);
-                }
-            });
-        }, {
-            threshold: 0,
-        });
-        this.element.querySelectorAll(".block__edit").forEach((item: HTMLElement, index) => {
-            if (index < 5) {
-                this.initProtyle(item, index === 0 ? () => {
-                    if (!document.contains(this.element)) {
-                        return;
-                    }
-                    let targetRect;
-                    if (this.targetElement && this.targetElement.classList.contains("protyle-wysiwyg__embed")) {
-                        targetRect = this.targetElement.getBoundingClientRect();
-                        // 嵌入块过长时，单击弹出的悬浮窗位置居下 https://ld246.com/article/1634292738717
-                        let top = targetRect.top;
-                        const contentElement = hasClosestByClassName(this.targetElement, "protyle-content", true);
-                        if (contentElement) {
-                            const contentRectTop = contentElement.getBoundingClientRect().top;
-                            if (targetRect.top < contentRectTop) {
-                                top = contentRectTop;
-                            }
-                        }
-                        // 单击嵌入块悬浮窗的位置最好是覆盖嵌入块
-                        // 防止图片撑高后悬浮窗显示不下，只能设置高度
-                        this.element.style.height = Math.min(window.innerHeight - Constants.SIZE_TOOLBAR_HEIGHT, targetRect.height + 42) + "px";
-                        setPosition(this.element, targetRect.left, Math.max(top - 42, Constants.SIZE_TOOLBAR_HEIGHT), -42, 0);
-                    } else if (this.targetElement) {
-                        if (this.targetElement.classList.contains("pdf__rect")) {
-                            targetRect = this.targetElement.firstElementChild.getBoundingClientRect();
-                        } else {
-                            targetRect = this.targetElement.getBoundingClientRect();
-                        }
-                        // 下部位置大的话就置于下部 https://ld246.com/article/1690333302147
-                        if (window.innerHeight - targetRect.bottom - 4 > targetRect.top + 12) {
-                            this.element.style.maxHeight = Math.floor(window.innerHeight - targetRect.bottom - 12) + "px";
-                        }
-                        // 靠边不宜拖拽 https://github.com/siyuan-note/siyuan/issues/2937
-                        setPosition(this.element, targetRect.left, targetRect.bottom + 4, targetRect.height + 12, 8);
-                    } else if (typeof this.x === "number" && typeof this.y === "number") {
-                        setPosition(this.element, this.x, this.y);
-                        this.element.style.maxHeight = Math.floor(window.innerHeight - Math.max(this.y, Constants.SIZE_TOOLBAR_HEIGHT) - 12) + "px";
-                    }
-                    const elementRect = this.element.getBoundingClientRect();
-                    if (this.targetElement && !this.targetElement.classList.contains("protyle-wysiwyg__embed")) {
-                        if (elementRect.top < targetRect.top) {
-                            this.element.style.maxHeight = Math.floor(targetRect.top - elementRect.top - 8) + "px";
-                        } else {
-                            this.element.style.maxHeight = Math.floor(window.innerHeight - elementRect.top - 8) + "px";
-                        }
-                    }
-                    this.element.classList.add("block__popover--open");
-                    this.element.style.zIndex = (++window.siyuan.zIndex).toString();
-                } : undefined);
-            } else {
+        this.observerResize = observers.observerResize;
+        this.observerLoad = observers.observerLoad;
+
+        // 初始化编辑器
+        const editElements = panelElement.querySelectorAll(".block__edit");
+        let index = 0;
+        for (const item of editElements) {
+            if (index >= 5) {
                 this.observerLoad.observe(item);
+                index++;
+                continue;
             }
-        });
+            const 首个编辑器回调 = index === 0 ? () => {
+                设置面板位置({
+                    element: panelElement,
+                    targetElement: this.targetElement,
+                    x: this.x,
+                    y: this.y,
+                });
+            } : undefined;
+            初始化Protyle编辑器(item as HTMLElement, 上下文, 首个编辑器回调);
+            index++;
+        }
+
         if (this.targetElement) {
             this.targetElement.style.cursor = "";
         }
 
-        this.element.querySelector(".block__content").addEventListener("scroll", () => {
-            this.editors.forEach(item => {
-                hideElements(["gutter"], item.protyle);
-            });
+        // 绑定滚动事件
+        绑定滚动事件({
+            element: panelElement,
+            editors: this.editors,
         });
     }
 }

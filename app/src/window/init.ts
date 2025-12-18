@@ -14,7 +14,7 @@ import { afterLoadPlugin } from "../plugin/loader";
 import { Tab } from "../layout/Tab";
 import { initWindowEvent } from "../boot/globalEvent/event";
 import { getSiyuanConfig, getSiyuanLayout, getSiyuanStorage, setSiyuanEmojis, setSiyuanLayoutCenterLayout } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { windowAddEventListener, windowClearTimeout, windowSetTimeout } from "../util/siyuanEnvironments/windowTimer.environment";
+import { windowAddEventListener,  clearTimeout,  setTimeout } from "../util/siyuanEnvironments/windowTimer.environment";
 
 export const init = (app: App) => {
     const storage = getSiyuanStorage();
@@ -60,8 +60,8 @@ export const init = (app: App) => {
     renderSnippet();
     let resizeTimeout = 0;
     windowAddEventListener("resize", () => {
-        windowClearTimeout(resizeTimeout);
-        resizeTimeout = windowSetTimeout(() => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
             adjustLayout(getSiyuanLayout().centerLayout);
             resizeTabs();
         }, 200);

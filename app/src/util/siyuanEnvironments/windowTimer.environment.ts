@@ -1,14 +1,14 @@
 /**
  * 封装 window.setTimeout
  */
-export const windowSetTimeout = (callback: () => void, ms?: number): number => {
+export const setTimeout = (callback: () => void, ms?: number): number => {
     return window.setTimeout(callback, ms);
 };
 
 /**
  * 封装 window.clearTimeout
  */
-export const windowClearTimeout = (timeoutId?: number): void => {
+export const clearTimeout = (timeoutId?: number): void => {
     window.clearTimeout(timeoutId);
 };
 

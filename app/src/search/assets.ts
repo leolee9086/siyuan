@@ -7,7 +7,7 @@ import { Dialog } from "../dialog";
 import { getSiyuanStorage } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu.environment";
-import { windowSetTimeout } from "../util/siyuanEnvironments/windowTimer.environment";
+import {  setTimeout } from "../util/siyuanEnvironments/windowTimer.environment";
 import { filterTypesHTML } from "./filterTypesHTML";
 import { createSortMenuItems, createLayoutSubmenu } from "./assetMenuItems";
 
@@ -144,7 +144,7 @@ export const assetInputEvent = (element: Element, localSearch?: ISearchAssetOpti
     const loadingElement = element.parentElement?.querySelector(".fn__loading--top");
     loadingElement?.classList.remove("fn__none");
     clearTimeout(inputTimeout);
-    inputTimeout = windowSetTimeout(() => {
+    inputTimeout = setTimeout(() => {
         executeAssetSearch(element, loadingElement, page, localSearch);
     }, Constants.TIMEOUT_INPUT);
 };

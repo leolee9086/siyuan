@@ -17,7 +17,7 @@ import {
     getSiyuanMenus,
     getSiyuanConfig,
 } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { windowSetTimeout } from "../util/siyuanEnvironments/windowTimer.environment";
+import {  setTimeout } from "../util/siyuanEnvironments/windowTimer.environment";
 
 // 子模块导入
 import { TooltipInfo, getTooltipInfo, handleTooltipDisplay } from "./popover/tooltip";
@@ -87,7 +87,7 @@ const 处理按键触发模式 = (
     clearTimeoutHide: () => void
 ): boolean => {
     clearTimeoutHide();
-    windowSetTimeout(创建隐藏Popover回调(event), Constants.TIMEOUT_INPUT);
+    setTimeout(创建隐藏Popover回调(event), Constants.TIMEOUT_INPUT);
 
     if (!getTarget(event as MouseEvent & { target: HTMLElement }, aElement)) {
         return true;
@@ -155,12 +155,12 @@ const 处理延迟触发模式 = (
     // 使用对象包装以避免闭包中的相互引用问题
     const timeoutRefs = { timeout: 0, timeoutHide: 0 };
 
-    timeoutRefs.timeoutHide = windowSetTimeout(
+    timeoutRefs.timeoutHide = setTimeout(
         创建延迟隐藏回调(event, aElement, () => timeoutRefs.timeout),
         Constants.TIMEOUT_INPUT
     );
 
-    timeoutRefs.timeout = windowSetTimeout(
+    timeoutRefs.timeout = setTimeout(
         创建延迟显示回调(app, event, aElement, () => timeoutRefs.timeoutHide),
         POPOVER_SHOW_DELAY_MS
     );

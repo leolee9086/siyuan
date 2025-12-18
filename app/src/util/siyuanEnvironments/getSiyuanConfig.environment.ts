@@ -135,3 +135,22 @@ export const hasSiyuanConfig = (): boolean => {
 export const getSiyuanMenus = () => {
     return window.siyuan?.menus;
 };
+
+/**
+ * 获取 window.siyuan.zIndex
+ * @returns 当前的 zIndex 值
+ */
+export const getSiyuanZIndex = (): number => {
+    return window.siyuan?.zIndex ?? 0;
+};
+
+/**
+ * 递增并返回新的 zIndex 值
+ * @returns 递增后的 zIndex 值
+ */
+export const incrementSiyuanZIndex = (): number => {
+    if (!window.siyuan) {
+        throw ("[incrementSiyuanZIndex] window.siyuan 不存在");
+    }
+    return ++window.siyuan.zIndex;
+};
