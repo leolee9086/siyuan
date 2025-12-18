@@ -11,117 +11,118 @@ import {Constants} from "../constants";
 import {openByMobile} from "../protyle/util/compatibility";
 import {exportLayout} from "../layout/util";
 import {exitSiYuan} from "../dialog/processSystem";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const exportConfig = {
     element: undefined as Element,
     genHTML: () => {
         return `<label class="fn__flex b3-label">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.paragraphBeginningSpace}
-        <div class="b3-label__text">${window.siyuan.languages.md4}</div>
+        ${siyuanI18n.paragraphBeginningSpace}
+        <div class="b3-label__text">${siyuanI18n.md4}</div>
     </div>
     <span class="fn__space"></span>
     <input class="b3-switch fn__flex-center" id="paragraphBeginningSpace" type="checkbox"${window.siyuan.config.export.paragraphBeginningSpace ? " checked" : ""}/>
 </label>
 <label class="fn__flex b3-label">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.export17}
-        <div class="b3-label__text">${window.siyuan.languages.export18}</div>
+        ${siyuanI18n.export17}
+        <div class="b3-label__text">${siyuanI18n.export18}</div>
     </div>
     <span class="fn__space"></span>
     <input class="b3-switch fn__flex-center" id="addTitle" type="checkbox"${window.siyuan.config.export.addTitle ? " checked" : ""}/>
 </label>
 <label class="fn__flex b3-label">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.export23}
-        <div class="b3-label__text">${window.siyuan.languages.export24}</div>
+        ${siyuanI18n.export23}
+        <div class="b3-label__text">${siyuanI18n.export24}</div>
     </div>
     <span class="fn__space"></span>
     <input class="b3-switch fn__flex-center" id="markdownYFM" type="checkbox"${window.siyuan.config.export.markdownYFM ? " checked" : ""}/>
 </label>
 <label class="fn__flex b3-label">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.export31}
-        <div class="b3-label__text">${window.siyuan.languages.export32}</div>
+        ${siyuanI18n.export31}
+        <div class="b3-label__text">${siyuanI18n.export32}</div>
     </div>
     <span class="fn__space"></span>
     <input class="b3-switch fn__flex-center" id="inlineMemo" type="checkbox"${window.siyuan.config.export.inlineMemo ? " checked" : ""}/>
 </label>
 <div class="fn__flex b3-label config__item">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.ref}
-        <div class="b3-label__text">${window.siyuan.languages.export11}</div>
+        ${siyuanI18n.ref}
+        <div class="b3-label__text">${siyuanI18n.export11}</div>
     </div>
     <span class="fn__space"></span>
     <select id="blockRefMode" class="b3-select fn__flex-center fn__size200">
-        <option value="2" ${window.siyuan.config.export.blockRefMode === 2 ? "selected" : ""}>${window.siyuan.languages.export2}</option>
-        <option value="3" ${window.siyuan.config.export.blockRefMode === 3 ? "selected" : ""}>${window.siyuan.languages.export3}</option>
-        <option value="4" ${window.siyuan.config.export.blockRefMode === 4 ? "selected" : ""}>${window.siyuan.languages.export4}</option>
+        <option value="2" ${window.siyuan.config.export.blockRefMode === 2 ? "selected" : ""}>${siyuanI18n.export2}</option>
+        <option value="3" ${window.siyuan.config.export.blockRefMode === 3 ? "selected" : ""}>${siyuanI18n.export3}</option>
+        <option value="4" ${window.siyuan.config.export.blockRefMode === 4 ? "selected" : ""}>${siyuanI18n.export4}</option>
     </select>
 </div>
 <div class="fn__flex b3-label config__item">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.blockEmbed}
-        <div class="b3-label__text">${window.siyuan.languages.export12}</div>
+        ${siyuanI18n.blockEmbed}
+        <div class="b3-label__text">${siyuanI18n.export12}</div>
     </div>
     <span class="fn__space"></span>
     <select id="blockEmbedMode" class="b3-select fn__flex-center fn__size200">
-        <option value="0" ${window.siyuan.config.export.blockEmbedMode === 0 ? "selected" : ""}>${window.siyuan.languages.export0}</option>
-        <option value="1" ${window.siyuan.config.export.blockEmbedMode === 1 ? "selected" : ""}>${window.siyuan.languages.export1}</option>
+        <option value="0" ${window.siyuan.config.export.blockEmbedMode === 0 ? "selected" : ""}>${siyuanI18n.export0}</option>
+        <option value="1" ${window.siyuan.config.export.blockEmbedMode === 1 ? "selected" : ""}>${siyuanI18n.export1}</option>
     </select>
 </div>
 <div class="fn__flex b3-label config__item">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.export5}
-        <div class="b3-label__text">${window.siyuan.languages.export6}</div>
+        ${siyuanI18n.export5}
+        <div class="b3-label__text">${siyuanI18n.export6}</div>
     </div>
     <span class="fn__space"></span>
     <select id="fileAnnotationRefMode" class="b3-select fn__flex-center fn__size200">
-        <option value="0" ${window.siyuan.config.export.fileAnnotationRefMode === 0 ? "selected" : ""}>${window.siyuan.languages.export7}</option>
-        <option value="1" ${window.siyuan.config.export.fileAnnotationRefMode === 1 ? "selected" : ""}>${window.siyuan.languages.export8}</option>
+        <option value="0" ${window.siyuan.config.export.fileAnnotationRefMode === 0 ? "selected" : ""}>${siyuanI18n.export7}</option>
+        <option value="1" ${window.siyuan.config.export.fileAnnotationRefMode === 1 ? "selected" : ""}>${siyuanI18n.export8}</option>
     </select>
 </div>
 <div class="fn__flex b3-label config__item">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.export21}
-        <div class="b3-label__text">${window.siyuan.languages.export22}</div>
+        ${siyuanI18n.export21}
+        <div class="b3-label__text">${siyuanI18n.export22}</div>
     </div>
     <input class="b3-text-field fn__flex-center fn__size200" id="pdfFooter">
 </div>
 <div class="b3-label config__item">
-    ${window.siyuan.languages.export27}
-    <div class="b3-label__text">${window.siyuan.languages.export28}</div>
+    ${siyuanI18n.export27}
+    <div class="b3-label__text">${siyuanI18n.export28}</div>
     <div class="fn__hr"></div>
     <input class="b3-text-field fn__block" id="pdfWatermarkStr">
     <div class="fn__hr"></div>
-    <div class="b3-label__text"><a href="https://pdfcpu.io/core/watermark#description" target="_blank">${window.siyuan.languages.export29}</a></div>
+    <div class="b3-label__text"><a href="https://pdfcpu.io/core/watermark#description" target="_blank">${siyuanI18n.export29}</a></div>
     <div class="fn__hr"></div>
     <textarea class="b3-text-field fn__block" id="pdfWatermarkDesc"></textarea>
 </div>
 <div class="b3-label config__item">
-    ${window.siyuan.languages.export30}
-    <div class="b3-label__text">${window.siyuan.languages.export28}</div>
+    ${siyuanI18n.export30}
+    <div class="b3-label__text">${siyuanI18n.export28}</div>
     <div class="fn__hr"></div>
     <input class="b3-text-field fn__block" id="imageWatermarkStr">
     <div class="fn__hr"></div>
     <div class="b3-label__text">    
-        ${window.siyuan.languages.export29}<br>
-        ${window.siyuan.languages.export10}
+        ${siyuanI18n.export29}<br>
+        ${siyuanI18n.export10}
     </div>
     <div class="fn__hr"></div>
     <textarea class="b3-text-field fn__block" id="imageWatermarkDesc"></textarea>
 </div>
 <div class="fn__flex b3-label config__item">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.export25}
-        <div class="b3-label__text">${window.siyuan.languages.export26}</div>
+        ${siyuanI18n.export25}
+        <div class="b3-label__text">${siyuanI18n.export26}</div>
     </div>
     <input class="b3-text-field fn__flex-center fn__size200" id="docxTemplate" placeholder="F:\\template.docx">
 </div>
 <div class="fn__flex b3-label config__item">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.export13}
-        <div class="b3-label__text">${window.siyuan.languages.export14}</div>
+        ${siyuanI18n.export13}
+        <div class="b3-label__text">${siyuanI18n.export14}</div>
     </div>
     <span class="fn__space"></span>
     <input class="b3-text-field fn__flex-center fn__size96" id="blockRefTextLeft">
@@ -130,8 +131,8 @@ export const exportConfig = {
 </div>
 <div class="fn__flex b3-label config__item">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.export15}
-        <div class="b3-label__text">${window.siyuan.languages.export16}</div>
+        ${siyuanI18n.export15}
+        <div class="b3-label__text">${siyuanI18n.export16}</div>
     </div>
     <span class="fn__space"></span>
     <input class="b3-text-field fn__flex-center fn__size96" id="tagOpenMarker">
@@ -140,54 +141,54 @@ export const exportConfig = {
 </div>
 <div class="fn__flex b3-label config__item${isBrowser() ? " fn__none" : ""}">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.export19}
+        ${siyuanI18n.export19}
         <span class="fn__space"></span>
         <a href="javascript:void(0)" id="pandocBinPath" style="word-break: break-all">${window.siyuan.config.export.pandocBin}</a>
-        <div class="b3-label__text">${window.siyuan.languages.export20}</div>
+        <div class="b3-label__text">${siyuanI18n.export20}</div>
     </div>
     <span class="fn__space"></span>
-    <button class="b3-button b3-button--outline fn__flex-center fn__size200" id="pandocBin"><svg><use xlink:href="#iconSettings"></use></svg>${window.siyuan.languages.config}</button>
+    <button class="b3-button b3-button--outline fn__flex-center fn__size200" id="pandocBin"><svg><use xlink:href="#iconSettings"></use></svg>${siyuanI18n.config}</button>
 </div>
 <div class="fn__flex b3-label config__item">
     <div class="fn__flex-1 fn__flex-center">
-        ${window.siyuan.languages.export} Data
-        <div class="b3-label__text">${window.siyuan.languages.exportDataTip}</div>
+        ${siyuanI18n.export} Data
+        <div class="b3-label__text">${siyuanI18n.exportDataTip}</div>
     </div>
     <span class="fn__space"></span>
     <button class="b3-button b3-button--outline fn__flex-center fn__size200" id="exportData">
-        <svg><use xlink:href="#iconUpload"></use></svg>${window.siyuan.languages.export}
+        <svg><use xlink:href="#iconUpload"></use></svg>${siyuanI18n.export}
     </button>
 </div>
 <div class="fn__flex b3-label config__item">
     <div class="fn__flex-1 fn__flex-center">
-        ${window.siyuan.languages.import} Data
-        <div class="b3-label__text">${window.siyuan.languages.importDataTip}</div>
+        ${siyuanI18n.import} Data
+        <div class="b3-label__text">${siyuanI18n.importDataTip}</div>
     </div>
     <span class="fn__space"></span>
     <button class="b3-button b3-button--outline fn__flex-center fn__size200" style="position: relative">
         <input id="importData" class="b3-form__upload" type="file">
-        <svg><use xlink:href="#iconDownload"></use></svg>${window.siyuan.languages.import}
+        <svg><use xlink:href="#iconDownload"></use></svg>${siyuanI18n.import}
     </button>
 </div>
 <div class="fn__flex b3-label config__item">
     <div class="fn__flex-1 fn__flex-center">
-        ${window.siyuan.languages.exportConf}
-        <div class="b3-label__text">${window.siyuan.languages.exportConfTip}</div>
+        ${siyuanI18n.exportConf}
+        <div class="b3-label__text">${siyuanI18n.exportConfTip}</div>
     </div>
     <span class="fn__space"></span>
     <button class="b3-button b3-button--outline fn__flex-center fn__size200" id="exportConf">
-        <svg><use xlink:href="#iconUpload"></use></svg>${window.siyuan.languages.export}
+        <svg><use xlink:href="#iconUpload"></use></svg>${siyuanI18n.export}
     </button>
 </div>
 <div class="fn__flex b3-label config__item">
     <div class="fn__flex-1 fn__flex-center">
-        ${window.siyuan.languages.importConf}
-        <div class="b3-label__text">${window.siyuan.languages.importConfTip}</div>
+        ${siyuanI18n.importConf}
+        <div class="b3-label__text">${siyuanI18n.importConfTip}</div>
     </div>
     <span class="fn__space"></span>
     <button class="b3-button b3-button--outline fn__flex-center fn__size200" style="position: relative">
         <input id="importConf" class="b3-form__upload" type="file">
-        <svg><use xlink:href="#iconDownload"></use></svg>${window.siyuan.languages.import}
+        <svg><use xlink:href="#iconDownload"></use></svg>${siyuanI18n.import}
     </button>
 </div>`;
     },
@@ -250,7 +251,7 @@ export const exportConfig = {
                             return;
                         }
 
-                        showMessage(window.siyuan.languages.imported);
+                        showMessage(siyuanI18n.imported);
                         exportLayout({
                             errorExit: true,
                             cb: exitSiYuan
@@ -271,13 +272,13 @@ export const exportConfig = {
             /// #else
             const result = await ipcRenderer.invoke(Constants.SIYUAN_GET, {
                 cmd: "showOpenDialog",
-                title: window.siyuan.languages.export + " " + "Data",
+                title: siyuanI18n.export + " " + "Data",
                 properties: ["createDirectory", "openDirectory"],
             });
             if (result.canceled || result.filePaths.length === 0) {
                 return;
             }
-            const msgId = showMessage(window.siyuan.languages.exporting, -1);
+            const msgId = showMessage(siyuanI18n.exporting, -1);
             fetchPost("/api/export/exportDataInFolder", {
                 folder: result.filePaths[0],
             }, response => {

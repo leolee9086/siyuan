@@ -11,6 +11,7 @@ import {Protyle} from "../../protyle";
 import { MenuItem } from "../../menus/Menu.Item";
 import {App} from "../../index";
 import {isSupportCSSHL, searchMarkRender} from "../../protyle/render/searchMarkRender";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export class Backlink extends Model {
     public element: HTMLElement;
@@ -84,50 +85,50 @@ export class Backlink extends Model {
         const backmentionSort = window.siyuan.config.editor.backmentionSort;
         this.element.innerHTML = `<div class="block__icons">
     <div class="block__logo">
-        <svg class="block__logoicon"><use xlink:href="#iconLink"></use></svg>${window.siyuan.languages.backlinks}
+        <svg class="block__logoicon"><use xlink:href="#iconLink"></use></svg>${siyuanI18n.backlinks}
     </div>
     <span class="counter listCount" style="margin-left: 0"></span>
     <span class="fn__flex-1"></span>
     <span class="fn__space"></span>
-    <input class="b3-text-field search__label fn__none fn__size200" placeholder="${window.siyuan.languages.filterKeywordEnter}" />
-    <span data-type="search" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${window.siyuan.languages.filter}"><svg><use xlink:href='#iconFilter'></use></svg></span>
+    <input class="b3-text-field search__label fn__none fn__size200" placeholder="${siyuanI18n.filterKeywordEnter}" />
+    <span data-type="search" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.filter}"><svg><use xlink:href='#iconFilter'></use></svg></span>
     <span class="fn__space"></span>
-    <span data-type="refresh" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${window.siyuan.languages.refresh}"><svg><use xlink:href='#iconRefresh'></use></svg></span>
+    <span data-type="refresh" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.refresh}"><svg><use xlink:href='#iconRefresh'></use></svg></span>
     <span class="fn__space"></span>
-    <span data-type="sort" data-sort="${backlinkSort}" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${window.siyuan.languages.sort}"><svg><use xlink:href='#iconSort'></use></svg></span>
+    <span data-type="sort" data-sort="${backlinkSort}" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.sort}"><svg><use xlink:href='#iconSort'></use></svg></span>
     <span class="fn__space"></span>
-    <span data-type="expand" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${window.siyuan.languages.expand}${updateHotkeyAfterTip(window.siyuan.config.keymap.editor.general.expand.custom)}">
+    <span data-type="expand" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.expand}${updateHotkeyAfterTip(window.siyuan.config.keymap.editor.general.expand.custom)}">
         <svg><use xlink:href="#iconExpand"></use></svg>
     </span>
     <span class="fn__space"></span>
-    <span data-type="collapse" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${window.siyuan.languages.collapse}${updateHotkeyAfterTip(window.siyuan.config.keymap.editor.general.collapse.custom)}">
+    <span data-type="collapse" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.collapse}${updateHotkeyAfterTip(window.siyuan.config.keymap.editor.general.collapse.custom)}">
         <svg><use xlink:href="#iconContract"></use></svg>
     </span>
     <span class="${this.type === "local" ? "fn__none " : ""}fn__space"></span>
-    <span data-type="min" class="${this.type === "local" ? "fn__none " : ""}block__icon b3-tooltips b3-tooltips__sw" aria-label="${window.siyuan.languages.min}${updateHotkeyAfterTip(window.siyuan.config.keymap.general.closeTab.custom)}"><svg><use xlink:href='#iconMin'></use></svg></span>
+    <span data-type="min" class="${this.type === "local" ? "fn__none " : ""}block__icon b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.min}${updateHotkeyAfterTip(window.siyuan.config.keymap.general.closeTab.custom)}"><svg><use xlink:href='#iconMin'></use></svg></span>
 </div>
 <div class="backlinkList fn__flex-1"></div>
 <div class="block__icons">
     <div class="block__logo">
-        <svg class="block__logoicon"><use xlink:href="#iconLink"></use></svg>${window.siyuan.languages.mentions}
+        <svg class="block__logoicon"><use xlink:href="#iconLink"></use></svg>${siyuanI18n.mentions}
     </div>
     <span class="counter listMCount" style="margin-left: 0;"></span>
     <span class="fn__flex-1"></span>
     <span class="fn__space"></span>
-    <input class="b3-text-field search__label fn__none fn__size200" placeholder="${window.siyuan.languages.filterKeywordEnter}" />
-    <span data-type="search" class="block__icon b3-tooltips b3-tooltips__nw" aria-label="${window.siyuan.languages.filter}"><svg><use xlink:href='#iconFilter'></use></svg></span>
+    <input class="b3-text-field search__label fn__none fn__size200" placeholder="${siyuanI18n.filterKeywordEnter}" />
+    <span data-type="search" class="block__icon b3-tooltips b3-tooltips__nw" aria-label="${siyuanI18n.filter}"><svg><use xlink:href='#iconFilter'></use></svg></span>
     <span class="fn__space"></span>
-    <span data-type="mSort" data-sort="${backmentionSort}" class="block__icon b3-tooltips b3-tooltips__nw" aria-label="${window.siyuan.languages.sort}"><svg><use xlink:href='#iconSort'></use></svg></span>
+    <span data-type="mSort" data-sort="${backmentionSort}" class="block__icon b3-tooltips b3-tooltips__nw" aria-label="${siyuanI18n.sort}"><svg><use xlink:href='#iconSort'></use></svg></span>
     <span class="fn__space"></span>
-    <span data-type="mExpand" class="block__icon b3-tooltips b3-tooltips__nw" aria-label="${window.siyuan.languages.expand}">
+    <span data-type="mExpand" class="block__icon b3-tooltips b3-tooltips__nw" aria-label="${siyuanI18n.expand}">
         <svg><use xlink:href="#iconExpand"></use></svg>
     </span>
     <span class="fn__space"></span>
-    <span data-type="mCollapse" class="block__icon b3-tooltips b3-tooltips__nw" aria-label="${window.siyuan.languages.collapse}">
+    <span data-type="mCollapse" class="block__icon b3-tooltips b3-tooltips__nw" aria-label="${siyuanI18n.collapse}">
         <svg><use xlink:href="#iconContract"></use></svg>
     </span>
     <span class="fn__space"></span>
-    <span data-type="layout" class="block__icon b3-tooltips b3-tooltips__nw" aria-label="${window.siyuan.languages.down}">
+    <span data-type="layout" class="block__icon b3-tooltips b3-tooltips__nw" aria-label="${siyuanI18n.down}">
         <svg><use xlink:href="#iconDown"></use></svg>
     </span>
 </div>
@@ -141,10 +142,10 @@ export class Backlink extends Model {
                 const filterIconElement = inputElement.nextElementSibling;
                 if (inputElement.value) {
                     filterIconElement.classList.add("block__icon--active");
-                    filterIconElement.setAttribute("aria-label", window.siyuan.languages.filter + " " + inputElement.value);
+                    filterIconElement.setAttribute("aria-label", siyuanI18n.filter + " " + inputElement.value);
                 } else {
                     filterIconElement.classList.remove("block__icon--active");
-                    filterIconElement.setAttribute("aria-label", window.siyuan.languages.filter);
+                    filterIconElement.setAttribute("aria-label", siyuanI18n.filter);
                 }
             });
             item.addEventListener("keydown", (event: KeyboardEvent) => {
@@ -232,7 +233,7 @@ export class Backlink extends Model {
                 this.setFocus();
                 this.tree.element.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
             },
-            blockExtHTML: `<span class="b3-list-item__action b3-tooltips b3-tooltips__nw" aria-label="${window.siyuan.languages.more}"><svg><use xlink:href="#iconMore"></use></svg></span>`
+            blockExtHTML: `<span class="b3-list-item__action b3-tooltips b3-tooltips__nw" aria-label="${siyuanI18n.more}"><svg><use xlink:href="#iconMore"></use></svg></span>`
         });
         this.tree.element.addEventListener("scroll", () => {
             this.tree.element.querySelectorAll(".protyle-gutters").forEach(item => {
@@ -311,24 +312,24 @@ export class Backlink extends Model {
                                 if (this.mTree.element.style.height === "0px") {
                                     this.tree.element.classList.remove("fn__none");
                                     this.mTree.element.removeAttribute("style");
-                                    target.setAttribute("aria-label", window.siyuan.languages.up);
+                                    target.setAttribute("aria-label", siyuanI18n.up);
                                     target.querySelector("use").setAttribute("xlink:href", "#iconUp");
                                 } else {
                                     this.tree.element.classList.remove("fn__none");
                                     this.mTree.element.removeAttribute("style");
-                                    target.setAttribute("aria-label", window.siyuan.languages.down);
+                                    target.setAttribute("aria-label", siyuanI18n.down);
                                     target.querySelector("use").setAttribute("xlink:href", "#iconDown");
                                 }
                             } else {
-                                if (target.getAttribute("aria-label") === window.siyuan.languages.down) {
+                                if (target.getAttribute("aria-label") === siyuanI18n.down) {
                                     this.tree.element.classList.remove("fn__none");
                                     this.mTree.element.setAttribute("style", "flex:none;height:0px");
-                                    target.setAttribute("aria-label", window.siyuan.languages.up);
+                                    target.setAttribute("aria-label", siyuanI18n.up);
                                     target.querySelector("use").setAttribute("xlink:href", "#iconUp");
                                 } else {
                                     this.tree.element.classList.add("fn__none");
                                     this.mTree.element.setAttribute("style", `flex:none;height:${this.element.clientHeight - this.tree.element.previousElementSibling.clientHeight * 2}px`);
-                                    target.setAttribute("aria-label", window.siyuan.languages.down);
+                                    target.setAttribute("aria-label", siyuanI18n.down);
                                     target.querySelector("use").setAttribute("xlink:href", "#iconDown");
                                 }
                             }
@@ -368,28 +369,28 @@ export class Backlink extends Model {
         window.siyuan.menus.menu.remove();
         window.siyuan.menus.menu.append(new MenuItem({
             icon: sort === "0" ? "iconSelect" : undefined,
-            label: window.siyuan.languages.fileNameASC,
+            label: siyuanI18n.fileNameASC,
             click: () => {
                 clickEvent("0");
             }
         }).element);
         window.siyuan.menus.menu.append(new MenuItem({
             icon: sort === "1" ? "iconSelect" : undefined,
-            label: window.siyuan.languages.fileNameDESC,
+            label: siyuanI18n.fileNameDESC,
             click: () => {
                 clickEvent("1");
             }
         }).element);
         window.siyuan.menus.menu.append(new MenuItem({
             icon: sort === "4" ? "iconSelect" : undefined,
-            label: window.siyuan.languages.fileNameNatASC,
+            label: siyuanI18n.fileNameNatASC,
             click: () => {
                 clickEvent("4");
             }
         }).element);
         window.siyuan.menus.menu.append(new MenuItem({
             icon: sort === "5" ? "iconSelect" : undefined,
-            label: window.siyuan.languages.fileNameNatDESC,
+            label: siyuanI18n.fileNameNatDESC,
             click: () => {
                 clickEvent("5");
             }
@@ -397,28 +398,28 @@ export class Backlink extends Model {
         window.siyuan.menus.menu.append(new MenuItem({type: "separator"}).element);
         window.siyuan.menus.menu.append(new MenuItem({
             icon: sort === "9" ? "iconSelect" : undefined,
-            label: window.siyuan.languages.createdASC,
+            label: siyuanI18n.createdASC,
             click: () => {
                 clickEvent("9");
             }
         }).element);
         window.siyuan.menus.menu.append(new MenuItem({
             icon: sort === "10" ? "iconSelect" : undefined,
-            label: window.siyuan.languages.createdDESC,
+            label: siyuanI18n.createdDESC,
             click: () => {
                 clickEvent("10");
             }
         }).element);
         window.siyuan.menus.menu.append(new MenuItem({
             icon: sort === "2" ? "iconSelect" : undefined,
-            label: window.siyuan.languages.modifiedASC,
+            label: siyuanI18n.modifiedASC,
             click: () => {
                 clickEvent("2");
             }
         }).element);
         window.siyuan.menus.menu.append(new MenuItem({
             icon: sort === "3" ? "iconSelect" : undefined,
-            label: window.siyuan.languages.modifiedDESC,
+            label: siyuanI18n.modifiedDESC,
             click: () => {
                 clickEvent("3");
             }
@@ -535,7 +536,7 @@ export class Backlink extends Model {
                 this.status[this.blockId].backlinkMStatus = 0;
             }
         } else {
-            if (this.mTree.element.previousElementSibling.querySelector('[data-type="layout"]').getAttribute("aria-label") === window.siyuan.languages.down) {
+            if (this.mTree.element.previousElementSibling.querySelector('[data-type="layout"]').getAttribute("aria-label") === siyuanI18n.down) {
                 this.status[this.blockId].backlinkMStatus = 1;
             } else {
                 this.status[this.blockId].backlinkMStatus = 2;
@@ -646,21 +647,21 @@ export class Backlink extends Model {
             this.tree.element.classList.remove("fn__none");
             this.mTree.element.removeAttribute("style");
             if (this.status[this.blockId].backlinkMStatus === 1) {
-                layoutElement.setAttribute("aria-label", window.siyuan.languages.down);
+                layoutElement.setAttribute("aria-label", siyuanI18n.down);
                 layoutElement.querySelector("use").setAttribute("xlink:href", "#iconDown");
             } else {
-                layoutElement.setAttribute("aria-label", window.siyuan.languages.up);
+                layoutElement.setAttribute("aria-label", siyuanI18n.up);
                 layoutElement.querySelector("use").setAttribute("xlink:href", "#iconUp");
             }
         } else if (this.status[this.blockId].backlinkMStatus === 3) {
             this.tree.element.classList.remove("fn__none");
             this.mTree.element.setAttribute("style", "flex:none;height:0px");
-            layoutElement.setAttribute("aria-label", window.siyuan.languages.up);
+            layoutElement.setAttribute("aria-label", siyuanI18n.up);
             layoutElement.querySelector("use").setAttribute("xlink:href", "#iconUp");
         } else {
             this.tree.element.classList.add("fn__none");
             this.mTree.element.setAttribute("style", `flex:none;height:${this.element.clientHeight - this.tree.element.previousElementSibling.clientHeight * 2}px`);
-            layoutElement.setAttribute("aria-label", window.siyuan.languages.down);
+            layoutElement.setAttribute("aria-label", siyuanI18n.down);
             layoutElement.querySelector("use").setAttribute("xlink:href", "#iconDown");
         }
         this.tree.element.previousElementSibling.querySelector('[data-type="sort"]').setAttribute("data-sort", this.status[this.blockId].sort.toString());

@@ -1755,7 +1755,9 @@ export const sendGlobalShortcut = (app: App) => {
         });
     });
     ipcRenderer.send(Constants.SIYUAN_HOTKEY, {
-        languages: siyuanI18n["_trayMenu"],
+        //不能够使用siyuanI18n，因为它是一个代理对象，无法被序列化传递
+        //凡是涉及到ipc通信的地方都不能使用代理对象
+        languages: window.siyuan.languages["_trayMenu"],
         hotkeys
     });
     /// #endif

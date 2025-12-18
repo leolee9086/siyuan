@@ -11,10 +11,11 @@ import {App} from "../index";
 import {pathPosix} from "../util/pathName";
 import {renderAssetsPreview} from "../asset/renderAssets";
 import {resizeSide} from "./resizeSide";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 const genItem = (data: [], data2?: { title: string, fileID: string }[]) => {
     if (!data || data.length === 0) {
-        return `<li style="padding-left: 40px;" class="b3-list--empty">${window.siyuan.languages.emptyContent}</li>`;
+        return `<li style="padding-left: 40px;" class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
     }
     let html = "";
     data.forEach((item: { title: string, fileID: string, path: string, hSize: string }, index) => {
@@ -156,7 +157,7 @@ export const showDiff = (app: App, data: { id: string, time: string }[]) => {
     }
 
     const dialog = new Dialog({
-        title: window.siyuan.languages.compare,
+        title: siyuanI18n.compare,
         content: "",
         width: isMobile() ? "92vw" : "90vw",
         height: "80vh",
@@ -222,7 +223,7 @@ const genHTML = (left: string, right: string, dialog: Dialog, direct: string) =>
     ${isPhone ? "" : '<span class="fn__space"></span>'}
     ${dayjs(response.data.left.created).format("YYYY-MM-DD HH:mm")}
     <span class="fn__space"></span>
-    <span class="block__icon block__icon--show b3-tooltips b3-tooltips__s" aria-label="${window.siyuan.languages.switchDirect}" data-direct="${direct}"><svg><use xlink:href="#iconScrollHoriz"></use></svg></span>
+    <span class="block__icon block__icon--show b3-tooltips b3-tooltips__s" aria-label="${siyuanI18n.switchDirect}" data-direct="${direct}"><svg><use xlink:href="#iconScrollHoriz"></use></svg></span>
     <span class="fn__space"></span>
     <code class="fn__code${isPhone ? " fn__none" : ""}" data-snapshot="${right}">${right.substring(0, 7)}</code>
     ${isPhone ? "" : '<span class="fn__space"></span>'}
@@ -236,7 +237,7 @@ const genHTML = (left: string, right: string, dialog: Dialog, direct: string) =>
                 <span class="b3-list-item__toggle b3-list-item__toggle--hl">
                     <svg class="b3-list-item__arrow"><use xlink:href="#iconRight"></use></svg>
                 </span>
-                <span style="padding-left: 4px" class="b3-list-item__text">${window.siyuan.languages.update}</span>
+                <span style="padding-left: 4px" class="b3-list-item__text">${siyuanI18n.update}</span>
                 <span class="counter${response.data.updatesLeft.length === 0 ? " fn__none" : ""}">${response.data.updatesLeft.length}</span>
             </li>
             <ul class="fn__none">${genItem(response.data.updatesLeft, response.data.updatesRight)}</ul>
@@ -246,7 +247,7 @@ const genHTML = (left: string, right: string, dialog: Dialog, direct: string) =>
                 <span class="b3-list-item__toggle b3-list-item__toggle--hl">
                     <svg class="b3-list-item__arrow"><use xlink:href="#iconRight"></use></svg>
                 </span>
-                <span style="padding-left: 4px" class="b3-list-item__text">${window.siyuan.languages.addAttr}</span>
+                <span style="padding-left: 4px" class="b3-list-item__text">${siyuanI18n.addAttr}</span>
                 <span class="counter${response.data.addsLeft.length === 0 ? " fn__none" : ""}">${response.data.addsLeft.length}</span>
             </li>
             <ul class="fn__none">${genItem(response.data.addsLeft)}</ul>
@@ -256,7 +257,7 @@ const genHTML = (left: string, right: string, dialog: Dialog, direct: string) =>
                 <span class="b3-list-item__toggle b3-list-item__toggle--hl">
                     <svg class="b3-list-item__arrow"><use xlink:href="#iconRight"></use></svg>
                 </span>
-                <span style="padding-left: 4px" class="b3-list-item__text">${window.siyuan.languages.remove}</span>
+                <span style="padding-left: 4px" class="b3-list-item__text">${siyuanI18n.remove}</span>
                 <span class="counter${response.data.removesRight.length === 0 ? " fn__none" : ""}">${response.data.removesRight.length}</span>
             </li>
             <ul class="fn__none">${genItem(response.data.removesRight)}</ul>

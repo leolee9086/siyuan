@@ -11,6 +11,7 @@ import {Dialog} from "../dialog";
 import {setPosition} from "../util/setPosition";
 import {setStorageVal} from "../protyle/util/compatibility";
 import * as dayjs from "dayjs";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const getRandomEmoji = () => {
     const emojis = window.siyuan.emojis[getRandom(0, window.siyuan.emojis.length - 1)];
@@ -89,7 +90,7 @@ export const filterEmoji = (key = "", max?: number) => {
     let html = "";
     const recentEmojis: IEmojiItem[] = [];
     if (key) {
-        html = `<div class="emojis__title">${window.siyuan.languages.emoji}</div><div class="emojis__content">`;
+        html = `<div class="emojis__title">${siyuanI18n.emoji}</div><div class="emojis__content">`;
     }
     let maxCount = 0;
     let keyHTML = "";
@@ -99,7 +100,7 @@ export const filterEmoji = (key = "", max?: number) => {
             html += `<div class="emojis__title" data-type="${index + 1}">${getEmojiTitle(index)}</div><div style="min-height:${index === 0 ? "30px" : "300px"}" class="emojis__content"${index > 1 ? ' data-index="' + index + '"' : ""}>`;
         }
         if (category.items.length === 0 && index === 0 && !key) {
-            html += `<div style="margin-left: 4px">${window.siyuan.languages.setEmojiTip}</div>`;
+            html += `<div style="margin-left: 4px">${siyuanI18n.setEmojiTip}</div>`;
         }
 
         category.items.forEach(emoji => {
@@ -166,7 +167,7 @@ ${unicode2Emoji(item.unicode, undefined, false, true)}</button>`;
     }
     let recentHTML = "";
     if (recentEmojis.length > 0) {
-        recentHTML = `<div class="emojis__title" data-type="0">${window.siyuan.languages.recentEmoji}</div><div class="emojis__content">`;
+        recentHTML = `<div class="emojis__title" data-type="0">${siyuanI18n.recentEmoji}</div><div class="emojis__content">`;
         window.siyuan.config.editor.emoji.forEach(emojiUnicode => {
             const emoji = recentEmojis.filter((item) => item.unicode === emojiUnicode);
             if (emoji[0]) {
@@ -179,7 +180,7 @@ ${unicode2Emoji(emoji[0].unicode, undefined, false, true)}
     }
 
     if (recentHTML + html === "") {
-        return `<div class="emojis__title">${window.siyuan.languages.emptyContent}</div>`;
+        return `<div class="emojis__title">${siyuanI18n.emptyContent}</div>`;
     }
     return recentHTML + html;
 };
@@ -271,11 +272,11 @@ export const openEmojiPanel = (
         height: "50vh",
         content: `<div class="emojis">
     <div class="emojis__tabheader">
-        <div data-type="tab-emoji" class="ariaLabel block__icon block__icon--show" aria-label="${window.siyuan.languages.emoji}"><svg><use xlink:href="#iconEmoji"></use></svg></div>
+        <div data-type="tab-emoji" class="ariaLabel block__icon block__icon--show" aria-label="${siyuanI18n.emoji}"><svg><use xlink:href="#iconEmoji"></use></svg></div>
         <div class="fn__space"></div>
-        <div data-type="tab-dynamic" class="ariaLabel block__icon block__icon--show" aria-label="${window.siyuan.languages.dynamicIcon}"><svg><use xlink:href="#iconCalendar"></use></svg></div>
+        <div data-type="tab-dynamic" class="ariaLabel block__icon block__icon--show" aria-label="${siyuanI18n.dynamicIcon}"><svg><use xlink:href="#iconCalendar"></use></svg></div>
         <div class="fn__flex-1"></div>
-        <span class="block__icon block__icon--show fn__flex-center ariaLabel" data-action="remove" aria-label="${window.siyuan.languages.remove}"><svg><use xlink:href="#iconTrashcan"></use></svg></span>
+        <span class="block__icon block__icon--show fn__flex-center ariaLabel" data-action="remove" aria-label="${siyuanI18n.remove}"><svg><use xlink:href="#iconTrashcan"></use></svg></span>
     </div>
     <div class="emojis__tabbody">
         <div class="fn__none" data-type="tab-emoji">
@@ -284,16 +285,16 @@ export const openEmojiPanel = (
                 <span class="fn__space"></span>
                 <label class="b3-form__icon fn__flex-1" style="overflow:initial;">
                     <svg class="b3-form__icon-icon"><use xlink:href="#iconSearch"></use></svg>
-                    <input class="b3-form__icon-input b3-text-field fn__block" placeholder="${window.siyuan.languages.search}">
+                    <input class="b3-form__icon-input b3-text-field fn__block" placeholder="${siyuanI18n.search}">
                 </label>
                 <span class="fn__space"></span>
-                <span class="block__icon block__icon--show fn__flex-center ariaLabel" data-action="random" aria-label="${window.siyuan.languages.random}"><svg><use xlink:href="#iconRefresh"></use></svg></span>
+                <span class="block__icon block__icon--show fn__flex-center ariaLabel" data-action="random" aria-label="${siyuanI18n.random}"><svg><use xlink:href="#iconRefresh"></use></svg></span>
                 <span class="fn__space"></span>
             </div>
             <div class="emojis__panel">${filterEmoji()}</div>
             <div class="fn__flex">
                 ${[
-            ["2b50", window.siyuan.languages.recentEmoji],
+            ["2b50", siyuanI18n.recentEmoji],
             ["1f527", getEmojiTitle(0)],
             ["1f60d", getEmojiTitle(1)],
             ["1f433", getEmojiTitle(2)],
@@ -323,10 +324,10 @@ export const openEmojiPanel = (
             </div>
             <div class="fn__flex">
                 <span class="fn__space"></span>
-                <span class="fn__flex-center ft__on-surface" style="width: 89px">${window.siyuan.languages.language}</span>
+                <span class="fn__flex-center ft__on-surface" style="width: 89px">${siyuanI18n.language}</span>
                 <span class="fn__space--small"></span>
                 <select class="b3-select fn__flex-1">
-                    <option value="" ${dynamicCurrentObj.lang === "" ? " selected" : ""}>${window.siyuan.languages.themeOS}</option>
+                    <option value="" ${dynamicCurrentObj.lang === "" ? " selected" : ""}>${siyuanI18n.themeOS}</option>
                     <option value="en_US" ${dynamicCurrentObj.lang === "en_US" ? " selected" : ""}>English (en_US)</option>
                     <option value="zh_CHT" ${dynamicCurrentObj.lang === "zh_CHT" ? " selected" : ""}>繁體中文 (zh_CHT)</option>
                     <option value="zh_CN" ${dynamicCurrentObj.lang === "zh_CN" ? " selected" : ""}>简体中文 (zh_CN)</option>
@@ -336,17 +337,17 @@ export const openEmojiPanel = (
             <div class="fn__hr"></div>
             <div class="fn__flex">
                 <span class="fn__space"></span>
-                <span class="fn__flex-center ft__on-surface" style="width: 89px">${window.siyuan.languages.date}</span>
+                <span class="fn__flex-center ft__on-surface" style="width: 89px">${siyuanI18n.date}</span>
                 <span class="fn__space--small"></span>
                 <input type="date" max="9999-12-31" class="b3-text-field fn__flex-1" value="${dynamicCurrentObj.date}"/>
                 <span class="fn__space--small"></span>
-                <span data-action="clearDate" class="ariaLabel block__icon block__icon--show" aria-label="${window.siyuan.languages.dynamicIconDateEmptyInfo}"><svg><use xlink:href="#iconTrashcan"></use></svg></span>
+                <span data-action="clearDate" class="ariaLabel block__icon block__icon--show" aria-label="${siyuanI18n.dynamicIconDateEmptyInfo}"><svg><use xlink:href="#iconTrashcan"></use></svg></span>
                 <span class="fn__space"></span>
             </div>
             <div class="fn__hr"></div>
             <div class="fn__flex">
                 <span class="fn__space"></span>
-                <span class="fn__flex-center ft__on-surface" style="width: 89px">${window.siyuan.languages.format}</span>
+                <span class="fn__flex-center ft__on-surface" style="width: 89px">${siyuanI18n.format}</span>
                 <span class="fn__space--small"></span>
                 <select class="b3-select fn__flex-1">
                     ${genWeekdayOptions(dynamicCurrentObj.lang, dynamicCurrentObj.weekdayType)}
@@ -365,7 +366,7 @@ export const openEmojiPanel = (
             <div class="fn__hr"></div>
             <div class="fn__flex">
                 <span class="fn__space"></span>
-                <span class="fn__flex-center ft__on-surface" style="width: 89px">${window.siyuan.languages.custom}</span>
+                <span class="fn__flex-center ft__on-surface" style="width: 89px">${siyuanI18n.custom}</span>
                 <span class="fn__space--small"></span>
                 <input type="text" class="b3-text-field fn__flex-1" value="">
                 <span class="fn__space"></span>

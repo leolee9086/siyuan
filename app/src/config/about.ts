@@ -13,53 +13,54 @@ import {Dialog} from "../dialog";
 import {confirmDialog} from "../dialog/confirmDialog";
 import {setKey} from "../sync/syncGuide";
 import {useShell} from "../util/pathName";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const about = {
     element: undefined as Element,
     genHTML: () => {
         const checkUpdateHTML = window.siyuan.config.system.isMicrosoftStore ? `<div class="fn__flex b3-label config__item">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.currentVer} v${Constants.SIYUAN_VERSION}
+        ${siyuanI18n.currentVer} v${Constants.SIYUAN_VERSION}
         <span id="isInsider"></span>
-        <div class="b3-label__text">${window.siyuan.languages.isMsStoreVerTip}</div>
+        <div class="b3-label__text">${siyuanI18n.isMsStoreVerTip}</div>
     </div>
 </div>` : `<div class="fn__flex b3-label config__item">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.currentVer} v${Constants.SIYUAN_VERSION}
+        ${siyuanI18n.currentVer} v${Constants.SIYUAN_VERSION}
         <span id="isInsider"></span>
-        <div class="b3-label__text">${window.siyuan.languages.downloadLatestVer}</div>
+        <div class="b3-label__text">${siyuanI18n.downloadLatestVer}</div>
     </div>
     <div class="fn__space"></div>
     <div class="fn__flex-center fn__size200 config__item-line">
         <button id="checkUpdateBtn" class="b3-button b3-button--outline fn__block">
-            <svg><use xlink:href="#iconRefresh"></use></svg>${window.siyuan.languages.checkUpdate}
+            <svg><use xlink:href="#iconRefresh"></use></svg>${siyuanI18n.checkUpdate}
         </button>
     </div>
 </div>`;
         return `<div class="fn__flex b3-label config__item${isBrowser() || window.siyuan.config.system.isMicrosoftStore || "std" !== window.siyuan.config.system.container || "linux" === window.siyuan.config.system.os ? " fn__none" : ""}">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.autoLaunch}
-        <div class="b3-label__text">${window.siyuan.languages.autoLaunchTip}</div>
+        ${siyuanI18n.autoLaunch}
+        <div class="b3-label__text">${siyuanI18n.autoLaunchTip}</div>
     </div>
     <span class="fn__space"></span>
     <select class="b3-select fn__flex-center fn__size200" id="autoLaunch">
-      <option value="0" ${window.siyuan.config.system.autoLaunch2 === 0 ? "selected" : ""}>${window.siyuan.languages.autoLaunchMode0}</option>
-      <option value="1" ${window.siyuan.config.system.autoLaunch2 === 1 ? "selected" : ""}>${window.siyuan.languages.autoLaunchMode1}</option>
-      ${isMac() ? "" : `<option value="2" ${window.siyuan.config.system.autoLaunch2 === 2 ? "selected" : ""}>${window.siyuan.languages.autoLaunchMode2}</option>`}
+      <option value="0" ${window.siyuan.config.system.autoLaunch2 === 0 ? "selected" : ""}>${siyuanI18n.autoLaunchMode0}</option>
+      <option value="1" ${window.siyuan.config.system.autoLaunch2 === 1 ? "selected" : ""}>${siyuanI18n.autoLaunchMode1}</option>
+      ${isMac() ? "" : `<option value="2" ${window.siyuan.config.system.autoLaunch2 === 2 ? "selected" : ""}>${siyuanI18n.autoLaunchMode2}</option>`}
     </select>    
 </div>
 <label class="fn__flex b3-label${isBrowser() || window.siyuan.config.system.isMicrosoftStore || window.siyuan.config.system.container !== "std" || "linux" === window.siyuan.config.system.os ? " fn__none" : ""}">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.autoDownloadUpdatePkg}
-        <div class="b3-label__text">${window.siyuan.languages.autoDownloadUpdatePkgTip}</div>
+        ${siyuanI18n.autoDownloadUpdatePkg}
+        <div class="b3-label__text">${siyuanI18n.autoDownloadUpdatePkgTip}</div>
     </div>
     <div class="fn__space"></div>
     <input class="b3-switch fn__flex-center" id="downloadInstallPkg" type="checkbox"${window.siyuan.config.system.downloadInstallPkg ? " checked" : ""}>
 </label>
 <label class="b3-label fn__flex">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.about11}
-        <div class="b3-label__text">${window.siyuan.languages.about12}</div>
+        ${siyuanI18n.about11}
+        <div class="b3-label__text">${siyuanI18n.about12}</div>
     </div>
     <div class="fn__space"></div>
     <input class="b3-switch fn__flex-center" id="networkServe" type="checkbox"${window.siyuan.config.system.networkServe ? " checked" : ""}>
@@ -67,18 +68,18 @@ export const about = {
 <div class="b3-label${(window.siyuan.config.readonly || (isBrowser() && !isInIOS() && !isInAndroid() && !isIPad() && !isInHarmony())) ? " fn__none" : ""}">
     <div class="fn__flex">
         <div class="fn__flex-1">
-            ${window.siyuan.languages.about5}
-            <div class="b3-label__text">${window.siyuan.languages.about6}</div>
+            ${siyuanI18n.about5}
+            <div class="b3-label__text">${siyuanI18n.about6}</div>
         </div>
         <div class="fn__space"></div>
         <button class="fn__flex-center b3-button b3-button--outline fn__size200" id="authCode">
-            <svg><use xlink:href="#iconLock"></use></svg>${window.siyuan.languages.config}
+            <svg><use xlink:href="#iconLock"></use></svg>${siyuanI18n.config}
         </button>
     </div>
     <label class="b3-label fn__flex${!window.siyuan.config.accessAuthCode || isBrowser() ? " fn__none" : ""}">
         <div class="fn__flex-1">
-            ${window.siyuan.languages.about7}
-            <div class="b3-label__text">${window.siyuan.languages.about8}</div>
+            ${siyuanI18n.about7}
+            <div class="b3-label__text">${siyuanI18n.about8}</div>
         </div>
         <div class="fn__space"></div>
         <input class="b3-switch fn__flex-center" id="lockScreenMode" type="checkbox"${window.siyuan.config.system.lockScreenMode === 1 ? " checked" : ""}>
@@ -86,8 +87,8 @@ export const about = {
 </div>
 <div class="b3-label config__item${(isBrowser() && !isInAndroid() && !isInIOS() && !isInHarmony()) ? " fn__none" : " fn__flex"}">
     <div class="fn__flex-1">
-       ${window.siyuan.languages.about2}
-        <div class="b3-label__text">${window.siyuan.languages.about3.replace("${port}", location.port)}</div>
+       ${siyuanI18n.about2}
+        <div class="b3-label__text">${siyuanI18n.about3.replace("${port}", location.port)}</div>
         ${(() => {
             const ipv4Codes: string[] = [];
             const ipv6Codes: string[] = [];
@@ -104,115 +105,115 @@ export const about = {
             return `<div class="b3-label__text${ipv4Codes.length ? "" : " fn__none"}">${ipv4Codes.join(" ")}</div>
                     <div class="b3-label__text${ipv6Codes.length ? "" : " fn__none"}">${ipv6Codes.join(" ")}</div>`;
         })()}
-        <div class="b3-label__text">${window.siyuan.languages.about18}</div>
+        <div class="b3-label__text">${siyuanI18n.about18}</div>
     </div>
     <div class="fn__space"></div>
     <button data-type="open" data-url="http://${window.siyuan.config.system.networkServe ? window.siyuan.config.localIPs[0] : "127.0.0.1"}:${location.port}" class="b3-button b3-button--outline fn__size200 fn__flex-center">
-        <svg><use xlink:href="#iconLink"></use></svg>${window.siyuan.languages.about4}
+        <svg><use xlink:href="#iconLink"></use></svg>${siyuanI18n.about4}
     </button>
 </div>
 <div class="b3-label fn__flex config__item">
     <div class="fn__flex-1 fn__flex-center">
-        ${window.siyuan.languages.dataRepoKey}
-        <div class="b3-label__text">${window.siyuan.languages.dataRepoKeyTip1}</div>
-        <div class="b3-label__text"><span class="ft__error">${window.siyuan.languages.dataRepoKeyTip2}</span></div>
+        ${siyuanI18n.dataRepoKey}
+        <div class="b3-label__text">${siyuanI18n.dataRepoKeyTip1}</div>
+        <div class="b3-label__text"><span class="ft__error">${siyuanI18n.dataRepoKeyTip2}</span></div>
     </div>
     <div class="fn__space"></div>
     <div class="fn__size200 config__item-line fn__flex-center${window.siyuan.config.repo.key ? " fn__none" : ""}">
         <button class="b3-button b3-button--outline fn__block" id="importKey">
-            <svg><use xlink:href="#iconDownload"></use></svg>${window.siyuan.languages.importKey}
+            <svg><use xlink:href="#iconDownload"></use></svg>${siyuanI18n.importKey}
         </button>
         <div class="fn__hr"></div>
         <button class="b3-button b3-button--outline fn__block" id="initKey">
-            <svg><use xlink:href="#iconLock"></use></svg>${window.siyuan.languages.genKey}
+            <svg><use xlink:href="#iconLock"></use></svg>${siyuanI18n.genKey}
         </button>
         <div class="fn__hr"></div>
         <button class="b3-button b3-button--outline fn__block" id="initKeyByPW">
-            <svg><use xlink:href="#iconHand"></use></svg>${window.siyuan.languages.genKeyByPW}
+            <svg><use xlink:href="#iconHand"></use></svg>${siyuanI18n.genKeyByPW}
         </button>
     </div>
     <div class="fn__size200 config__item-line fn__flex-center${window.siyuan.config.repo.key ? "" : " fn__none"}">
         <button class="b3-button b3-button--outline fn__block" id="copyKey">
-            <svg><use xlink:href="#iconCopy"></use></svg>${window.siyuan.languages.copyKey}
+            <svg><use xlink:href="#iconCopy"></use></svg>${siyuanI18n.copyKey}
         </button>
         <div class="fn__hr"></div>
         <button class="b3-button b3-button--outline fn__block" id="resetRepo">
-            <svg><use xlink:href="#iconUndo"></use></svg>${window.siyuan.languages.resetRepo}
+            <svg><use xlink:href="#iconUndo"></use></svg>${siyuanI18n.resetRepo}
         </button>
     </div>
 </div>
 <div class="b3-label">
     <div>
-        ${window.siyuan.languages.dataRepoPurge}
+        ${siyuanI18n.dataRepoPurge}
     </div>
     <div class="fn__hr"></div>
     <div class="fn__flex config__item">
-        <div class="fn__flex-center fn__flex-1 ft__on-surface">${window.siyuan.languages.dataRepoPurgeTip}</div>
+        <div class="fn__flex-center fn__flex-1 ft__on-surface">${siyuanI18n.dataRepoPurgeTip}</div>
         <span class="fn__space"></span>
         <button id="purgeRepo" class="b3-button b3-button--outline fn__size200 fn__flex-center">
-            <svg><use xlink:href="#iconTrashcan"></use></svg>${window.siyuan.languages.purge}
+            <svg><use xlink:href="#iconTrashcan"></use></svg>${siyuanI18n.purge}
         </button>
     </div>
     <div class="fn__hr"></div>
     <div class="fn__flex config__item">
-        <div class="fn__flex-center fn__flex-1 ft__on-surface">${window.siyuan.languages.dataRepoAutoPurgeIndexRetentionDays}</div>
+        <div class="fn__flex-center fn__flex-1 ft__on-surface">${siyuanI18n.dataRepoAutoPurgeIndexRetentionDays}</div>
         <span class="fn__space"></span>
         <input class="b3-text-field fn__flex-center fn__size200" min="1" type="number" id="indexRetentionDays" value="${window.siyuan.config.repo.indexRetentionDays}">
     </div>
     <div class="fn__hr"></div>
     <div class="fn__flex config__item">
-        <div class="fn__flex-center fn__flex-1 ft__on-surface">${window.siyuan.languages.dataRepoAutoPurgeRetentionIndexesDaily}</div>
+        <div class="fn__flex-center fn__flex-1 ft__on-surface">${siyuanI18n.dataRepoAutoPurgeRetentionIndexesDaily}</div>
         <span class="fn__space"></span>
         <input class="b3-text-field fn__flex-center fn__size200" min="1" type="number" id="retentionIndexesDaily" value="${window.siyuan.config.repo.retentionIndexesDaily}">
     </div>
 </div>
 <div class="fn__flex b3-label config__item">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.vacuumDataIndex}
-        <div class="b3-label__text">${window.siyuan.languages.vacuumDataIndexTip}</div>
+        ${siyuanI18n.vacuumDataIndex}
+        <div class="b3-label__text">${siyuanI18n.vacuumDataIndexTip}</div>
     </div>
     <div class="fn__space"></div>
     <button id="vacuumDataIndex" class="b3-button b3-button--outline fn__size200 fn__flex-center">
-        <svg><use xlink:href="#iconRefresh"></use></svg>${window.siyuan.languages.vacuumDataIndex}
+        <svg><use xlink:href="#iconRefresh"></use></svg>${siyuanI18n.vacuumDataIndex}
     </button>
 </div>
 <div class="fn__flex b3-label config__item">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.rebuildDataIndex}
-        <div class="b3-label__text">${window.siyuan.languages.rebuildDataIndexTip}</div>
+        ${siyuanI18n.rebuildDataIndex}
+        <div class="b3-label__text">${siyuanI18n.rebuildDataIndexTip}</div>
     </div>
     <div class="fn__space"></div>
     <button id="rebuildDataIndex" class="b3-button b3-button--outline fn__size200 fn__flex-center">
-        <svg><use xlink:href="#iconRefresh"></use></svg>${window.siyuan.languages.rebuildDataIndex}
+        <svg><use xlink:href="#iconRefresh"></use></svg>${siyuanI18n.rebuildDataIndex}
     </button>
 </div>
 <div class="fn__flex b3-label config__item">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.systemLog}
-        <div class="b3-label__text">${window.siyuan.languages.systemLogTip}</div>
+        ${siyuanI18n.systemLog}
+        <div class="b3-label__text">${siyuanI18n.systemLogTip}</div>
     </div>
     <div class="fn__space"></div>
     <button id="exportLog" class="b3-button b3-button--outline fn__size200 fn__flex-center">
-        <svg><use xlink:href="#iconUpload"></use></svg>${window.siyuan.languages.export}
+        <svg><use xlink:href="#iconUpload"></use></svg>${siyuanI18n.export}
     </button>
 </div>
 ${checkUpdateHTML}
 <div class="fn__flex config__item  b3-label">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.about13}
-         <div class="b3-label__text" id="tokenTip">${window.siyuan.languages.about14.replace("${token}", window.siyuan.config.api.token)}</div>
+        ${siyuanI18n.about13}
+         <div class="b3-label__text" id="tokenTip">${siyuanI18n.about14.replace("${token}", window.siyuan.config.api.token)}</div>
     </div>
     <span class="fn__space"></span>
     <input class="b3-text-field fn__flex-center fn__size200" id="token" value="${window.siyuan.config.api.token}">
 </div>
 <div class="b3-label">
-    ${window.siyuan.languages.networkProxy}
+    ${siyuanI18n.networkProxy}
     <div class="b3-label__text">
-        ${window.siyuan.languages.about17}
+        ${siyuanI18n.about17}
     </div>
     <div class="b3-label__text fn__flex config__item">
         <select id="aboutScheme" class="b3-select">
-            <option value="" ${window.siyuan.config.system.networkProxy.scheme === "" ? "selected" : ""}>${window.siyuan.languages.directConnection}</option>
+            <option value="" ${window.siyuan.config.system.networkProxy.scheme === "" ? "selected" : ""}>${siyuanI18n.directConnection}</option>
             <option value="socks5" ${window.siyuan.config.system.networkProxy.scheme === "socks5" ? "selected" : ""}>SOCKS5</option>
             <option value="https" ${window.siyuan.config.system.networkProxy.scheme === "https" ? "selected" : ""}>HTTPS</option>
             <option value="http" ${window.siyuan.config.system.networkProxy.scheme === "http" ? "selected" : ""}>HTTP</option>
@@ -222,20 +223,20 @@ ${checkUpdateHTML}
         <span class="fn__space"></span>
         <input id="aboutPort" placeholder="Port" class="b3-text-field fn__block" value="${window.siyuan.config.system.networkProxy.port}" type="number"/>
         <span class="fn__space"></span>
-        <button id="aboutConfirm" class="b3-button fn__size200 b3-button--outline">${window.siyuan.languages.confirm}</button>
+        <button id="aboutConfirm" class="b3-button fn__size200 b3-button--outline">${siyuanI18n.confirm}</button>
     </div>
 </div>
 <div class="b3-label">
     <div class="config-about__logo">
         <img src="/stage/icon.png">
-        <span>${window.siyuan.languages.siyuanNote}</span>
+        <span>${siyuanI18n.siyuanNote}</span>
         <span class="fn__space"></span>
-        <span class="ft__on-surface">${window.siyuan.languages.slogan}</span>
+        <span class="ft__on-surface">${siyuanI18n.slogan}</span>
         <span class="fn__space"></span>
         <span style="color:var(--b3-theme-background);font-family: cursive;">会泽百家&nbsp;至公天下</span>
     </div>
     <div class='fn__hr'></div>
-    ${window.siyuan.languages.about1} ${"harmony" === window.siyuan.config.system.container ? " • " + window.siyuan.languages.feedback + " 845765@qq.com" : ""} 
+    ${siyuanI18n.about1} ${"harmony" === window.siyuan.config.system.container ? " • " + siyuanI18n.feedback + " 845765@qq.com" : ""} 
 </div>`;
     },
     bindEvent: () => {
@@ -261,7 +262,7 @@ ${checkUpdateHTML}
         tokenElement.addEventListener("change", () => {
             fetchPost("/api/system/setAPIToken", {token: tokenElement.value}, () => {
                 window.siyuan.config.api.token = tokenElement.value;
-                about.element.querySelector("#tokenTip").innerHTML = window.siyuan.languages.about14.replace("${token}", window.siyuan.config.api.token);
+                about.element.querySelector("#tokenTip").innerHTML = siyuanI18n.about14.replace("${token}", window.siyuan.config.api.token);
             });
         });
         about.element.querySelector("#vacuumDataIndex").addEventListener("click", () => {
@@ -280,9 +281,9 @@ ${checkUpdateHTML}
             if (updateElement.firstElementChild.classList.contains("fn__rotate")) {
                 return;
             }
-            updateElement.innerHTML = `<svg class="fn__rotate"><use xlink:href="#iconRefresh"></use></svg>${window.siyuan.languages.checkUpdate}`;
+            updateElement.innerHTML = `<svg class="fn__rotate"><use xlink:href="#iconRefresh"></use></svg>${siyuanI18n.checkUpdate}`;
             fetchPost("/api/system/checkUpdate", {showMsg: true}, () => {
-                updateElement.innerHTML = `<svg><use xlink:href="#iconRefresh"></use></svg>${window.siyuan.languages.checkUpdate}`;
+                updateElement.innerHTML = `<svg><use xlink:href="#iconRefresh"></use></svg>${siyuanI18n.checkUpdate}`;
             });
         });
         about.element.querySelectorAll('[data-type="open"]').forEach(item => {
@@ -306,13 +307,13 @@ ${checkUpdateHTML}
         const importKeyElement = about.element.querySelector("#importKey");
         importKeyElement.addEventListener("click", () => {
             const passwordDialog = new Dialog({
-                title: "🔑 " + window.siyuan.languages.key,
+                title: "🔑 " + siyuanI18n.key,
                 content: `<div class="b3-dialog__content">
-    <textarea spellcheck="false" style="resize: vertical;" class="b3-text-field fn__block" placeholder="${window.siyuan.languages.keyPlaceholder}"></textarea>
+    <textarea spellcheck="false" style="resize: vertical;" class="b3-text-field fn__block" placeholder="${siyuanI18n.keyPlaceholder}"></textarea>
 </div>
 <div class="b3-dialog__action">
-    <button class="b3-button b3-button--cancel">${window.siyuan.languages.cancel}</button><div class="fn__space"></div>
-    <button class="b3-button b3-button--text">${window.siyuan.languages.confirm}</button>
+    <button class="b3-button b3-button--cancel">${siyuanI18n.cancel}</button><div class="fn__space"></div>
+    <button class="b3-button b3-button--text">${siyuanI18n.confirm}</button>
 </div>`,
                 width: "520px",
             });
@@ -333,7 +334,7 @@ ${checkUpdateHTML}
             });
         });
         about.element.querySelector("#initKey").addEventListener("click", () => {
-            confirmDialog("🔑 " + window.siyuan.languages.genKey, window.siyuan.languages.initRepoKeyTip, () => {
+            confirmDialog("🔑 " + siyuanI18n.genKey, siyuanI18n.initRepoKeyTip, () => {
                 fetchPost("/api/repo/initRepoKey", {}, (response) => {
                     window.siyuan.config.repo.key = response.data.key;
                     importKeyElement.parentElement.classList.add("fn__none");
@@ -348,11 +349,11 @@ ${checkUpdateHTML}
             });
         });
         about.element.querySelector("#copyKey").addEventListener("click", () => {
-            showMessage(window.siyuan.languages.copied);
+            showMessage(siyuanI18n.copied);
             writeText(window.siyuan.config.repo.key);
         });
         about.element.querySelector("#resetRepo").addEventListener("click", () => {
-            confirmDialog("⚠️ " + window.siyuan.languages.resetRepo, window.siyuan.languages.resetRepoTip, () => {
+            confirmDialog("⚠️ " + siyuanI18n.resetRepo, siyuanI18n.resetRepoTip, () => {
                 fetchPost("/api/repo/resetRepo", {}, () => {
                     window.siyuan.config.repo.key = "";
                     window.siyuan.config.sync.enabled = false;
@@ -363,7 +364,7 @@ ${checkUpdateHTML}
             });
         });
         about.element.querySelector("#purgeRepo").addEventListener("click", () => {
-            confirmDialog("♻️ " + window.siyuan.languages.dataRepoPurge, window.siyuan.languages.dataRepoPurgeConfirm, () => {
+            confirmDialog("♻️ " + siyuanI18n.dataRepoPurge, siyuanI18n.dataRepoPurgeConfirm, () => {
                 fetchPost("/api/repo/purgeRepo");
             });
         });
