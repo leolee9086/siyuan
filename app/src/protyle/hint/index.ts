@@ -10,7 +10,8 @@ import {
 } from "../util/selection";
 import { genHintItemHTML, hintEmbed, hintSlash } from "./extend";
 import { hintRef } from "./extend.hintRef";
-import { getSavePath, newFile } from "../../util/newFile";
+import { newFile } from "../../util/newFile";
+import { getSavePath } from "../../util/getSavePath";
 import { isAbnormalItem, upDownHint } from "../../util/upDownHint";
 import { setPosition } from "../../util/setPosition";
 import { getContenteditableElement, hasNextSibling, hasPreviousSibling } from "../wysiwyg/getBlock";

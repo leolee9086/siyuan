@@ -1,18 +1,18 @@
-import {showMessage} from "../dialog/message";
-import {getAllModels} from "../layout/getAll";
-import {hasClosestByClassName, hasTopClosestByTag} from "../protyle/util/hasClosest";
-import {getDockByType} from "../layout/tabUtil";
+import { showMessage } from "../dialog/message";
+import { getAllModels } from "../layout/getAll";
+import { hasClosestByClassName, hasTopClosestByTag } from "../protyle/util/hasClosest";
+import { getDockByType } from "../layout/tabUtil";
 /// #if !MOBILE
-import {Files} from "../layout/dock/Files";
+import { Files } from "../layout/dock/Files";
 import { openFileById } from "../editor/utils.openFileById";
 /// #endif
-import {fetchPost} from "./fetch";
-import {getDisplayName, getOpenNotebookCount, pathPosix} from "./pathName";
-import {Constants} from "../constants";
-import {replaceFileName, validateName} from "../editor/rename";
-import {hideElements} from "../protyle/ui/hideElements";
-import {openMobileFileById} from "../mobile/editor";
-import {App} from "../index";
+import { fetchPost } from "./fetch";
+import { getDisplayName, getOpenNotebookCount, pathPosix } from "./pathName";
+import { Constants } from "../constants";
+import { replaceFileName, validateName } from "../editor/rename";
+import { hideElements } from "../protyle/ui/hideElements";
+import { openMobileFileById } from "../mobile/editor";
+import { App } from "../index";
 import { siyuanI18n } from "./siyuanEnvironments/i18n.getI18n.environment";
 
 export const getNewFilePath = (useSavePath: boolean) => {
@@ -70,7 +70,7 @@ export const getNewFilePath = (useSavePath: boolean) => {
             }
         });
     }
-    return {notebookId, currentPath};
+    return { notebookId, currentPath };
 };
 
 export const newFile = (optios: {
@@ -92,7 +92,7 @@ export const newFile = (optios: {
         optios.notebookId = resultData.notebookId;
         optios.currentPath = resultData.currentPath;
     }
-    fetchPost("/api/filetree/getDocCreateSavePath", {notebook: optios.notebookId}, (data) => {
+    fetchPost("/api/filetree/getDocCreateSavePath", { notebook: optios.notebookId }, (data) => {
         if (!optios.useSavePath) {
             data.data.box = optios.notebookId;
         }
@@ -193,40 +193,10 @@ export const newFile = (optios: {
                     optios.afterCB(id, title);
                 }
                 /// #if !MOBILE
-                openFileById({app: optios.app, id, action: [Constants.CB_GET_CONTEXT, Constants.CB_GET_OPENNEW]});
+                openFileById({ app: optios.app, id, action: [Constants.CB_GET_CONTEXT, Constants.CB_GET_OPENNEW] });
                 /// #else
                 openMobileFileById(optios.app, id, [Constants.CB_GET_CONTEXT, Constants.CB_GET_OPENNEW]);
                 /// #endif
-            });
-        }
-    });
-};
-
-export const getSavePath = (pathString: string, notebookId: string, cb: (p: string, notebookId: string) => void) => {
-    fetchPost("/api/filetree/getRefCreateSavePath", {
-        notebook: notebookId
-    }, (data) => {
-        let targetPath = pathString;
-        if (notebookId !== data.data.box) {
-            targetPath = data.data.path || "/";
-        }
-        if (data.data.path) {
-            if (data.data.path.startsWith("/")) {
-                cb(getDisplayName(data.data.path, false, true), data.data.box);
-            } else {
-                fetchPost("/api/filetree/getHPathByPath", {
-                    notebook: data.data.box,
-                    path: targetPath
-                }, (response) => {
-                    cb(getDisplayName(pathPosix().join(response.data, data.data.path), false, true), data.data.box);
-                });
-            }
-        } else {
-            fetchPost("/api/filetree/getHPathByPath", {
-                notebook: data.data.box,
-                path: targetPath
-            }, (response) => {
-                cb(getDisplayName(response.data, false, true), data.data.box);
             });
         }
     });
