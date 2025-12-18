@@ -12,12 +12,13 @@ import {highlightRender} from "../render/highlightRender";
 import {processRender} from "../util/processCode";
 import {isIPhone, isSafari, openByMobile, setStorageVal} from "../util/compatibility";
 import {useShell} from "../../util/pathName";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const afterExport = (exportPath: string, msgId: string) => {
     /// #if !BROWSER
-    showMessage(`${window.siyuan.languages.exported} ${escapeHtml(exportPath)}
+    showMessage(`${siyuanI18n.exported} ${escapeHtml(exportPath)}
 <div class="fn__space"></div>
-<button class="b3-button b3-button--white">${window.siyuan.languages.showInFolder}</button>`, 6000, "info", msgId);
+<button class="b3-button b3-button--white">${siyuanI18n.showInFolder}</button>`, 6000, "info", msgId);
     document.querySelector(`#message [data-id="${msgId}"] button`).addEventListener("click", () => {
         useShell("showItemInFolder", path.join(exportPath));
         hideMessage(msgId);
@@ -27,7 +28,7 @@ export const afterExport = (exportPath: string, msgId: string) => {
 
 export const exportImage = (id: string) => {
     const exportDialog = new Dialog({
-        title: window.siyuan.languages.exportAsImage,
+        title: siyuanI18n.exportAsImage,
         content: `<div class="b3-dialog__content" style="${isMobile() ? "padding:8px;" : ""};background-color: var(--b3-theme-background)">
     <div style="${isMobile() ? "margin: 8px 0" : "padding: 48px;margin: 8px 0"}" class="export-img">
         <div ${isMobile() ? 'style="padding:8px"' : ""} class="protyle-wysiwyg${window.siyuan.config.editor.displayBookmarkIcon ? " protyle-wysiwyg--attr" : ""}"></div>
@@ -36,18 +37,18 @@ export const exportImage = (id: string) => {
 </div>
 <div class="b3-dialog__action">
     <label class="fn__flex">
-        ${window.siyuan.languages.exportPDF5}
+        ${siyuanI18n.exportPDF5}
         <span class="fn__space"></span>
         <input id="keepFold" class="b3-switch fn__flex-center" type="checkbox" ${window.siyuan.storage[Constants.LOCAL_EXPORTIMG].keepFold ? "checked" : ""}>
     </label>
     <label class="fn__flex" style="margin-left: 24px">
-        ${window.siyuan.languages.export30}
+        ${siyuanI18n.export30}
         <span class="fn__space"></span>
         <input id="watermark" class="b3-switch fn__flex-center" type="checkbox" ${window.siyuan.storage[Constants.LOCAL_EXPORTIMG].watermark ? "checked" : ""}>
     </label>
     <span class="fn__flex-1 export-img__space"></span>
-    <button disabled class="b3-button b3-button--cancel">${window.siyuan.languages.cancel}</button><div class="fn__space"></div>
-    <button disabled class="b3-button b3-button--text">${window.siyuan.languages.confirm}</button>
+    <button disabled class="b3-button b3-button--cancel">${siyuanI18n.cancel}</button><div class="fn__space"></div>
+    <button disabled class="b3-button b3-button--text">${siyuanI18n.confirm}</button>
 </div>
  <div class="fn__loading"><img height="128px" width="128px" src="stage/loading-pure.svg"></div>`,
         width: isMobile() ? "92vw" : "990px",
@@ -59,7 +60,7 @@ export const exportImage = (id: string) => {
         exportDialog.destroy();
     });
     btnsElement[1].addEventListener("click", async () => {
-        const msgId = showMessage(window.siyuan.languages.exporting, 0);
+        const msgId = showMessage(siyuanI18n.exporting, 0);
         const containerElement = exportDialog.element.querySelector(".b3-dialog__container") as HTMLElement;
         containerElement.style.height = "";
         /// #if MOBILE

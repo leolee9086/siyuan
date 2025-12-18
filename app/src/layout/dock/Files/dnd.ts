@@ -3,9 +3,7 @@ import { Files } from "../Files";
 import { Constants } from "../../../constants";
 import { showTooltip } from "../../../dialog/tooltip";
 import {
-    hasClosestByAttribute,
     hasClosestByClassName,
-    hasClosestByTag,
     hasTopClosestByTag
 } from "../../../protyle/util/hasClosest";
 /// #if !BROWSER
@@ -17,6 +15,7 @@ import { pathPosix } from "../../../util/pathName";
 import { showMessage } from "../../../dialog/message";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { onDragStart } from "./dnd.onDragStart";
+import { onDragOver } from "./dnd.onDragOver";
 
 export const initFilesDrag = (files: Files) => {
     files.element.addEventListener("dragstart", (event: DragEvent & { target: HTMLElement }) => {
@@ -44,80 +43,7 @@ export const initFilesDrag = (files: Files) => {
         /// #endif
     });
     files.element.addEventListener("dragover", (event: DragEvent & { target: HTMLElement }) => {
-        if (getSiyuanConfig().readonly || event.dataTransfer.types.includes(Constants.SIYUAN_DROP_TAB)) {
-            return;
-        }
-        let liElement = hasClosestByTag(event.target, "LI");
-        if (!liElement) {
-            liElement = hasClosestByTag(document.elementFromPoint(event.clientX, event.clientY - 1), "LI");
-        }
-        if (!liElement || !window.siyuan.dragElement) {
-            event.preventDefault();
-            return;
-        }
-        files.element.querySelectorAll(".dragover, .dragover__bottom, .dragover__top").forEach((item: HTMLElement) => {
-            item.classList.remove("dragover", "dragover__bottom", "dragover__top");
-        });
-        let gutterType = "";
-        for (const item of event.dataTransfer.items) {
-            if (item.type.startsWith(Constants.SIYUAN_DROP_GUTTER)) {
-                gutterType = item.type;
-            }
-        }
-        if (gutterType) {
-            // 块标拖拽
-            const gutterTypes = gutterType.replace(Constants.SIYUAN_DROP_GUTTER, "").split(Constants.ZWSP);
-            if (!["nodelistitem", "nodeheading"].includes(gutterTypes[0])) {
-                event.preventDefault();
-                return;
-            }
-        } else if (liElement.classList.contains("b3-list-item--focus")) {
-            // 选中的文档不能拖拽到自己上，但允许标题拖拽到文档树的选中文档上 https://github.com/siyuan-note/siyuan/issues/6552
-            return;
-        }
-        let sourceOnlyRoot = gutterType ? false : true;
-        Array.from(files.element.querySelectorAll(".b3-list-item--focus")).find((item: HTMLElement) => {
-            if (item.getAttribute("data-type") === "navigation-file") {
-                sourceOnlyRoot = false;
-                return true;
-            }
-        });
-        const targetType = liElement.getAttribute("data-type");
-        if (sourceOnlyRoot && targetType !== "navigation-root") {
-            event.preventDefault();
-            return;
-        }
-        const notebookElement = hasClosestByAttribute(liElement, "data-sortmode", null);
-        if (!notebookElement) {
-            return;
-        }
-        const notebookSort = notebookElement.getAttribute("data-sortmode");
-        if ((sourceOnlyRoot && targetType === "navigation-root" && getSiyuanConfig().fileTree.sort === 6) ||
-            (!sourceOnlyRoot && targetType !== "navigation-root" &&
-                (notebookSort === "6" || (getSiyuanConfig().fileTree.sort === 6 && notebookSort === "15")))
-        ) {
-            const nodeRect = liElement.getBoundingClientRect();
-            const dragHeight = nodeRect.height * .2;
-            if (targetType === "navigation-root" && sourceOnlyRoot) {
-                if (event.clientY > nodeRect.top + nodeRect.height / 2) {
-                    (liElement as HTMLElement).classList.add("dragover__bottom");
-                } else {
-                    (liElement as HTMLElement).classList.add("dragover__top");
-                }
-            } else if (event.clientY > nodeRect.bottom - dragHeight) {
-                (liElement as HTMLElement).classList.add("dragover__bottom");
-            } else if (event.clientY < nodeRect.top + dragHeight) {
-                (liElement as HTMLElement).classList.add("dragover__top");
-            }
-            event.preventDefault();
-        }
-        if (liElement.classList.contains("dragover__top") || liElement.classList.contains("dragover__bottom") ||
-            (targetType === "navigation-root" && sourceOnlyRoot)) {
-            event.preventDefault();
-            return;
-        }
-        liElement.classList.add("dragover");
-        event.preventDefault();
+        onDragOver(files, event);
     });
     let counter = 0;
     files.element.addEventListener("dragleave", () => {
