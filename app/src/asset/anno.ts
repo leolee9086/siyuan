@@ -2,7 +2,7 @@ import type { RectElementType } from "./anno.types";
 import { getConfig } from "./anno.config";
 import { initRectAnnoTool } from "./anno.initRectAnnoTool";
 import { initResizeHandler } from "./anno.resize";
-import { initClickHandler } from "./anno.click";
+import { handlePdfClick } from "./anno.click";
 
 /**
  * 全局变量，存储当前选中的矩形注释元素
@@ -38,7 +38,9 @@ export const initAnno = (element: HTMLElement, pdf: any) => {
     getConfig(pdf);
     initRectAnnoTool(element, pdf);
     initResizeHandler(pdf);
-    initClickHandler(element, pdf);
+    element.addEventListener("click", (event) => {
+        handlePdfClick(event as MouseEvent | CustomEvent, element, pdf);
+    });
     return pdf;
 };
 
