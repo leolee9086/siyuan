@@ -2,332 +2,224 @@ import { genUUID } from "../util/genID";
 /// #if !MOBILE
 import { moveResize } from "./moveResize";
 /// #endif
-import { isMobile } from "../util/functions";
-import { isNotCtrl } from "../protyle/util/compatibility";
 import { Protyle } from "../protyle";
 import { Constants } from "../constants";
-import { createVueComponentLoader, VueComponentMountConfig, VueComponentLoaderContext } from "../util/vue/mount";
 import { App } from "vue";
 import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu.environment";
-export interface IDialogOptions {
-    positionId?: string,
-    title?: string,
-    titleVueConfig?: VueComponentMountConfig, // 新增：标题Vue组件配置
-    titleVueContext?: VueComponentLoaderContext, // 新增：标题Vue组件上下文
-    transparent?: boolean,
-    content: string,
-    width?: string,
-    height?: string,
-    destroyCallback?: (options?: IObject) => void,
-    disableClose?: boolean,
-    hideCloseIcon?: boolean,
-    disableAnimation?: boolean,
-    resizeCallback?: (type: string) => void,
-    containerClassName?: string,
-    disableScrimClose?: boolean, // 是否禁用点击遮罩关闭
-    disableEscapeClose?: boolean,  // 是否禁用 Escape 键关闭
-    scrimPointerEvents?: boolean, // 是否允许遮罩层鼠标事件穿透
-    closeButtonPosition?: "outside" | "inside" | "inside-body" // 关闭按钮位置：外部(默认)、内部标题栏、内部内容区域
-}
+import { getSiyuanDialogs } from "../util/siyuanEnvironments/getDialog.environment";
+import { incrementSiyuanZIndex, pushSiyuanDialog } from "../util/siyuanEnvironments/siyuanDialogs.environment";
+import {
+    IDialogOptions,
+    计算对话框位置,
+    生成关闭按钮HTML,
+    生成全屏按钮HTML,
+    计算标题栏样式,
+    生成对话框HTML,
+    绑定对话框事件,
+    挂载标题Vue组件,
+    设置ResizeHandles显示状态,
+    更新全屏按钮状态,
+    创建输入框键盘事件处理器
+} from "./dialogHelpers";
+
+// 重新导出接口，保持向后兼容
+export type { IDialogOptions } from "./dialogHelpers";
 
 export class Dialog {
     private destroyCallback: (options?: IObject) => void;
     public element: HTMLElement;
     private id: string;
     private disableClose: boolean;
-    private disableScrimClose: boolean; // 是否禁用点击遮罩关闭
-    private disableEscapeClose: boolean; // 是否禁用 Escape 键关闭
-    private scrimPointerEvents: boolean; // 是否允许遮罩层鼠标事件穿透
-    public editors: { [key: string]: Protyle };
+    private disableScrimClose: boolean;
+    private disableEscapeClose: boolean;
+    private scrimPointerEvents: boolean;
+    public editors: { [key: string]: Protyle } = {};
     public data: any;
-    private titleVueApp: App | null; // 存储标题Vue应用实例
-    private isFullscreen: boolean = false; // 是否处于全屏状态
-    private originalSize: { width: string; height: string; left: string; top: string } | null = null; // 原始尺寸和位置
+    private titleVueApp: App | null = null;
+    private isFullscreen: boolean = false;
+    private originalSize: { width: string; height: string; left: string; top: string } | null = null;
 
     constructor(options: IDialogOptions) {
-        this.disableClose = options.disableClose;
-        this.disableScrimClose = options.disableScrimClose || false; // 默认允许点击遮罩关闭
-        this.disableEscapeClose = options.disableEscapeClose || false; // 默认允许 Escape 键关闭
-        this.scrimPointerEvents = options.scrimPointerEvents || false; // 默认不穿透鼠标事件
+        this.disableClose = options.disableClose ?? false;
+        this.disableScrimClose = options.disableScrimClose ?? false;
+        this.disableEscapeClose = options.disableEscapeClose ?? false;
+        this.scrimPointerEvents = options.scrimPointerEvents ?? false;
         this.id = genUUID();
-        window.siyuan.dialogs.push(this);
-        this.destroyCallback = options.destroyCallback;
+        pushSiyuanDialog(this);
+        this.destroyCallback = options.destroyCallback ?? (() => { });
         this.element = document.createElement("div") as HTMLElement;
 
-        // 处理关闭按钮位置配置
-        const closeButtonPosition = options.closeButtonPosition || "outside";
-        let left;
-        let top;
-        if (!isMobile() && options.positionId) {
-            const dialogPosition = window.siyuan.storage[Constants.LOCAL_DIALOGPOSITION][options.positionId];
-            if (dialogPosition) {
-                if (dialogPosition.left + dialogPosition.width + 34 <= window.innerWidth &&
-                    dialogPosition.top + dialogPosition.height <= window.innerHeight) {
-                    left = dialogPosition.left + "px";
-                    top = dialogPosition.top + "px";
-                    options.width = dialogPosition.width + "px";
-                    options.height = dialogPosition.height + "px";
-                }
-            }
-        }
-        // 判断是否有标题（字符串或Vue组件）
-        const hasTitle = !!(options.title || options.titleVueConfig);
-
-        // 根据关闭按钮位置生成不同的HTML结构
-        let closeButtonHtml = "";
-        if (!(this.disableClose || options.hideCloseIcon)) {
-            if (closeButtonPosition === "outside") {
-                // 外部关闭按钮（默认行为）
-                closeButtonHtml = `<svg ${(isMobile() && hasTitle) ? 'style="top:0;right:0;"' : ""} class="b3-dialog__close"><use xlink:href="#iconCloseRound"></use></svg>`;
-            } else if (closeButtonPosition === "inside" && hasTitle) {
-                // 内部标题栏关闭按钮
-                closeButtonHtml = "<svg class=\"b3-dialog__close b3-dialog__close--inside\" style=\"position: absolute; top: 50%; right: 0px; transform: translateY(-50%);\"><use xlink:href=\"#iconCloseRound\"></use></svg>";
-            } else if (closeButtonPosition === "inside-body") {
-                // 内部内容区域关闭按钮
-                closeButtonHtml = "<svg class=\"b3-dialog__close b3-dialog__close--inside-body\" style=\"position: absolute; top: 10px; right: 10px; z-index: 1;\"><use xlink:href=\"#iconCloseRound\"></use></svg>";
-            }
-        }
-
-        // 生成全屏按钮HTML
-        let fullscreenButtonHtml = "";
-        if (hasTitle) {
-            // 计算全屏按钮的位置，根据关闭按钮位置调整
-            let fullscreenButtonStyle = "";
-            if (closeButtonPosition === "inside" && hasTitle) {
-                // 如果关闭按钮在内部，全屏按钮放在关闭按钮左侧
-                fullscreenButtonStyle = "position: absolute; top: 50%; right: 30px; transform: translateY(-50%);";
-            } else {
-                // 默认情况下，全屏按钮放在标题栏右侧
-                fullscreenButtonStyle = "position: absolute; top: 50%; right: 10px; transform: translateY(-50%);";
-            }
-            fullscreenButtonHtml = `<svg class="b3-dialog__fullscreen" style="${fullscreenButtonStyle}" title="全屏"><use xlink:href="#iconFullscreen"></use></svg>`;
-        }
-
-        // 计算标题栏的右侧内边距，为按钮预留空间
-        let headerPaddingRight = "";
-        if (hasTitle) {
-            if (closeButtonPosition === "inside") {
-                headerPaddingRight = "position: relative; padding-right: 60px;"; // 关闭按钮 + 全屏按钮
-            } else {
-                headerPaddingRight = "position: relative; padding-right: 30px;"; // 仅全屏按钮
-            }
-        }
-
-        this.element.innerHTML = `<div class="b3-dialog" style="z-index: ${++window.siyuan.zIndex};${typeof left === "string" ? "display:block" : ""};${this.scrimPointerEvents ? " pointer-events:none" : ""}">
-<div class="b3-dialog__scrim"${options.transparent ? 'style="background-color:transparent"' : ""}></div>
-<div class="b3-dialog__container ${options.containerClassName || ""}" style="width:${options.width || "auto"};height:${options.height || "auto"};
-left:${left || "auto"};top:${top || "auto"};${this.scrimPointerEvents ? " pointer-events:auto" : ""}">
-  ${closeButtonPosition === "outside" ? closeButtonHtml : ""}
-  <div class="resize__move b3-dialog__header${hasTitle ? "" : " fn__none"}" onselectstart="return false;" style="${headerPaddingRight}">${options.title || ""}${closeButtonPosition === "inside" ? closeButtonHtml : ""}${fullscreenButtonHtml}</div>
-  <div class="b3-dialog__body" style="${closeButtonPosition === "inside-body" ? "position: relative;" : ""}">${options.content}${closeButtonPosition === "inside-body" ? closeButtonHtml : ""}</div>
-  <div class="resize__rd"></div><div class="resize__ld"></div><div class="resize__lt"></div><div class="resize__rt"></div><div class="resize__r"></div><div class="resize__d"></div><div class="resize__t"></div><div class="resize__l"></div>
-</div></div>`;
-
-        this.element.querySelector(".b3-dialog__scrim").addEventListener("click", (event) => {
-            if (!this.disableClose && !this.disableScrimClose) {
-                this.destroy();
-            }
-            event.preventDefault();
-            event.stopPropagation();
-        });
-        if (!this.disableClose) {
-            // 为所有关闭按钮添加点击事件监听器
-            const closeButtons = this.element.querySelectorAll(".b3-dialog__close");
-            closeButtons.forEach(button => {
-                button.addEventListener("click", (event) => {
-                    if (this.isFullscreen) {
-                        // 全屏状态下，点击关闭按钮先退出全屏
-                        this.fullscreen();
-                    } else {
-                        // 非全屏状态下，点击关闭按钮关闭对话框
-                        this.destroy();
-                    }
-                    event.preventDefault();
-                    event.stopPropagation();
-                });
-            });
-        }
-
-        // 为全屏按钮添加点击事件监听器
-        const fullscreenButton = this.element.querySelector(".b3-dialog__fullscreen");
-        if (fullscreenButton) {
-            fullscreenButton.addEventListener("click", (event) => {
-                this.fullscreen();
-                event.preventDefault();
-                event.stopPropagation();
-            });
-        }
-        document.body.append(this.element);
-        if (options.disableAnimation) {
-            this.element.classList.add("b3-dialog--open");
-        } else {
-            setTimeout(() => {
-                this.element.classList.add("b3-dialog--open");
-            }, Constants.TIMEOUT_OPENDIALOG);
-        }
-        // 如果提供了标题Vue组件配置，则挂载Vue组件到标题区域
-        if (options.titleVueConfig) {
-            const titleElement = this.element.querySelector(".b3-dialog__header");
-            if (titleElement) {
-                // 清空标题内容，为Vue组件腾出空间
-                titleElement.innerHTML = "";
-                // 挂载Vue组件
-                this.titleVueApp = createVueComponentLoader(
-                    titleElement as HTMLElement,
-                    options.titleVueConfig,
-                    options.titleVueContext
-                );
-            }
-        }
+        this.初始化对话框内容(options);
+        this.绑定事件处理();
+        this.添加到DOM(options.disableAnimation);
+        this.titleVueApp = 挂载标题Vue组件(this.element, options);
 
         /// #if !MOBILE
-        const containerElement = this.element.querySelector(".b3-dialog__container");
-        containerElement && moveResize(containerElement, options.resizeCallback);
+        const containerElement = this.element.querySelector(".b3-dialog__container") as HTMLElement;
+        if (containerElement) {
+            moveResize(containerElement, options.resizeCallback);
+        }
         /// #endif
+    }
+
+    /** 初始化对话框内容 */
+    private 初始化对话框内容(options: IDialogOptions): void {
+        const closeButtonPosition = options.closeButtonPosition || "outside";
+        const hasTitle = !!(options.title || options.titleVueConfig);
+
+        const 位置信息 = 计算对话框位置(options);
+        if (位置信息.width) options.width = 位置信息.width;
+        if (位置信息.height) options.height = 位置信息.height;
+
+        const closeButtonHtml = 生成关闭按钮HTML({
+            disableClose: this.disableClose,
+            hideCloseIcon: options.hideCloseIcon ?? false,
+            closeButtonPosition,
+            hasTitle
+        });
+        const fullscreenButtonHtml = 生成全屏按钮HTML(hasTitle, closeButtonPosition);
+        const headerPaddingRight = 计算标题栏样式(hasTitle, closeButtonPosition);
+
+        this.element.innerHTML = 生成对话框HTML({
+            zIndex: incrementSiyuanZIndex(),
+            left: 位置信息.left,
+            top: 位置信息.top,
+            scrimPointerEvents: this.scrimPointerEvents,
+            transparent: options.transparent,
+            containerClassName: options.containerClassName,
+            width: options.width,
+            height: options.height,
+            closeButtonPosition,
+            closeButtonHtml,
+            fullscreenButtonHtml,
+            headerPaddingRight,
+            hasTitle,
+            title: options.title,
+            content: options.content
+        });
+    }
+
+    /** 绑定对话框事件处理 */
+    private 绑定事件处理(): void {
+        绑定对话框事件(this, this.element, this.disableClose, this.disableScrimClose, () => this.isFullscreen);
+    }
+
+    /** 将对话框添加到DOM并处理动画 */
+    private 添加到DOM(disableAnimation?: boolean): void {
+        document.body.append(this.element);
+        if (disableAnimation) {
+            this.element.classList.add("b3-dialog--open");
+            return;
+        }
+        setTimeout(() => this.element.classList.add("b3-dialog--open"), Constants.TIMEOUT_OPENDIALOG);
+    }
+
+    /** 执行销毁后的清理工作 */
+    private 执行销毁清理(options?: IObject): void {
+        const dialogElement = this.element.querySelector(".b3-dialog") as HTMLElement;
+        const menuElement = getSiyuanGlobalMenus().menu.element;
+        if (dialogElement.style.zIndex < menuElement.style.zIndex) {
+            getSiyuanGlobalMenus().menu.remove();
+        }
+
+        if (this.titleVueApp) {
+            this.titleVueApp.unmount();
+            this.titleVueApp = null;
+        }
+
+        this.element.remove();
+        if (this.destroyCallback) {
+            this.destroyCallback(options);
+        }
+        const dialogs = getSiyuanDialogs();
+        const index = dialogs.findIndex((item) => item.id === this.id);
+        if (index !== -1) {
+            dialogs.splice(index, 1);
+        }
+        const dragElement = document.getElementById("drag");
+        dragElement?.classList.remove("fn__hidden");
     }
 
     public destroy(options?: IObject) {
         this.element.classList.remove("b3-dialog--open");
-        setTimeout(() => {
-            // av 修改列头emoji后点击关闭emoji图标
-            if ((this.element.querySelector(".b3-dialog") as HTMLElement).style.zIndex < getSiyuanGlobalMenus().menu.element.style.zIndex) {
-                // https://github.com/siyuan-note/siyuan/issues/6783
-                getSiyuanGlobalMenus().menu.remove();
-            }
-
-            // 销毁标题Vue应用实例
-            if (this.titleVueApp) {
-                this.titleVueApp.unmount();
-                this.titleVueApp = null;
-            }
-
-            this.element.remove();
-            if (this.destroyCallback) {
-                this.destroyCallback(options);
-            }
-            window.siyuan.dialogs.find((item, index) => {
-                if (item.id === this.id) {
-                    window.siyuan.dialogs.splice(index, 1);
-                    return true;
-                }
-            });
-            // https://github.com/siyuan-note/siyuan/issues/10475
-            document.getElementById("drag")?.classList.remove("fn__hidden");
-        }, Constants.TIMEOUT_DBLCLICK);
+        setTimeout(() => this.执行销毁清理(options), Constants.TIMEOUT_DBLCLICK);
     }
 
     public fullscreen(): void {
         const container = this.element.querySelector(".b3-dialog__container") as HTMLElement;
-        const fullscreenButton = this.element.querySelector(".b3-dialog__fullscreen use") as SVGUseElement;
-        if (!container || !fullscreenButton) return;
+        if (!container) return;
 
-        if (!this.isFullscreen) {
-            // 进入全屏模式
-            // 保存当前尺寸和位置
-            this.originalSize = {
-                width: container.style.width,
-                height: container.style.height,
-                left: container.style.left,
-                top: container.style.top
-            };
-
-            // 设置全屏样式
-            container.style.width = "100vw";
-            container.style.height = "100vh";
-            container.style.left = "0";
-            container.style.top = "0";
-            container.style.maxWidth = "100vw";
-            container.style.maxHeight = "100vh";
-            container.style.borderRadius = "0";
-
-            // 添加全屏类
-            this.element.classList.add("b3-dialog--fullscreen");
-
-            // 隐藏调整大小的手柄
-            const resizeHandles = container.querySelectorAll("[class^='resize__']");
-            resizeHandles.forEach(handle => {
-                (handle as HTMLElement).style.display = "none";
-            });
-
-            // 更新全屏按钮图标为退出全屏图标
-            fullscreenButton.setAttribute("xlink:href", "#iconFullscreenExit");
-
-            // 更新按钮标题
-            const fullscreenButtonSvg = this.element.querySelector(".b3-dialog__fullscreen") as SVGElement;
-            if (fullscreenButtonSvg) {
-                fullscreenButtonSvg.setAttribute("title", "退出全屏");
-            }
-
-            this.isFullscreen = true;
-        } else {
-            // 退出全屏模式
-            if (this.originalSize) {
-                container.style.width = this.originalSize.width;
-                container.style.height = this.originalSize.height;
-                container.style.left = this.originalSize.left;
-                container.style.top = this.originalSize.top;
-            }
-
-            // 移除全屏样式
-            container.style.maxWidth = "";
-            container.style.maxHeight = "";
-            container.style.borderRadius = "";
-
-            // 移除全屏类
-            this.element.classList.remove("b3-dialog--fullscreen");
-
-            // 显示调整大小的手柄
-            const resizeHandles = container.querySelectorAll("[class^='resize__']");
-            resizeHandles.forEach(handle => {
-                (handle as HTMLElement).style.display = "";
-            });
-
-            // 恢复全屏按钮图标
-            fullscreenButton.setAttribute("xlink:href", "#iconFullscreen");
-
-            // 恢复按钮标题
-            const fullscreenButtonSvg = this.element.querySelector(".b3-dialog__fullscreen") as SVGElement;
-            if (fullscreenButtonSvg) {
-                fullscreenButtonSvg.setAttribute("title", "全屏");
-            }
-
-            this.isFullscreen = false;
-            this.originalSize = null;
+        // 退出全屏模式
+        if (this.isFullscreen) {
+            this.退出全屏模式(container);
+            return;
         }
+
+        // 进入全屏模式
+        this.进入全屏模式(container);
+    }
+
+    /** 退出全屏模式 */
+    private 退出全屏模式(container: HTMLElement): void {
+        if (this.originalSize) {
+            Object.assign(container.style, {
+                width: this.originalSize.width,
+                height: this.originalSize.height,
+                left: this.originalSize.left,
+                top: this.originalSize.top
+            });
+        }
+
+        container.style.maxWidth = "";
+        container.style.maxHeight = "";
+        container.style.borderRadius = "";
+
+        this.element.classList.remove("b3-dialog--fullscreen");
+        设置ResizeHandles显示状态(container, true);
+        更新全屏按钮状态(this.element, false);
+        this.isFullscreen = false;
+        this.originalSize = null;
+    }
+
+    /** 进入全屏模式 */
+    private 进入全屏模式(container: HTMLElement): void {
+        this.originalSize = {
+            width: container.style.width,
+            height: container.style.height,
+            left: container.style.left,
+            top: container.style.top
+        };
+
+        Object.assign(container.style, {
+            width: "100vw",
+            height: "100vh",
+            left: "0",
+            top: "0",
+            maxWidth: "100vw",
+            maxHeight: "100vh",
+            borderRadius: "0"
+        });
+
+        this.element.classList.add("b3-dialog--fullscreen");
+        设置ResizeHandles显示状态(container, false);
+        更新全屏按钮状态(this.element, true);
+        this.isFullscreen = true;
     }
 
     public bindInput(inputElement: HTMLInputElement | HTMLTextAreaElement, enterEvent?: () => void, bindEnter = true) {
         inputElement.focus();
         let timeStamp: number;
-        inputElement.addEventListener("keydown", (event: Event) => {
-            if (!(event instanceof KeyboardEvent)) {
-                return;
-            }
-            if (event.isComposing || event.repeat) {
-                event.preventDefault();
-                return;
-            }
-            if (event.key === "Escape") {
-                if (this.isFullscreen) {
-                    // 全屏模式下，ESC 键退出全屏
-                    this.fullscreen();
-                } else if (!this.disableEscapeClose) {
-                    // 非全屏模式下，ESC 键关闭对话框
-                    this.destroy();
-                }
-                event.preventDefault();
-                event.stopPropagation();
-                return;
-            }
-            if (!event.shiftKey && isNotCtrl(event) && event.key === "Enter" && enterEvent && bindEnter) {
-                if (timeStamp && event.timeStamp - timeStamp < 124) {
-                    return;
-                }
-                timeStamp = event.timeStamp;
-                enterEvent();
-                event.preventDefault();
-                event.stopPropagation();
-            }
+
+        const 处理器 = 创建输入框键盘事件处理器({
+            dialog: this,
+            enterEvent,
+            bindEnter,
+            getTimeStamp: () => timeStamp,
+            setTimeStamp: (value: number) => { timeStamp = value; },
+            isFullscreen: () => this.isFullscreen,
+            disableEscapeClose: () => this.disableEscapeClose
         });
+
+        inputElement.addEventListener("keydown", 处理器);
     }
 }
