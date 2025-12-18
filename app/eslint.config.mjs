@@ -29,6 +29,8 @@ export default [{
         "**/*.d.ts",
     ],
 }, ...compat.extends("eslint:recommended", "plugin:@typescript-eslint/recommended"), ...pluginVue.configs["flat/essential"], {
+    files: ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "src/**/*.mjs"],
+
     plugins: {
         "@typescript-eslint": typescriptEslint,
         "vue": pluginVue,
