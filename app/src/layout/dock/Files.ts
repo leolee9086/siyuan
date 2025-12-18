@@ -28,7 +28,7 @@ import { ipcRenderer } from "electron";
 /// #endif
 import { hideTooltip, showTooltip } from "../../dialog/tooltip";
 import { selectOpenTab } from "./util";
-import { initFilesDrag } from "./Files.dnd";
+import { initFilesDrag } from "./Files/dnd";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getSiyuanGlobalMenusMenu } from "../../util/siyuanEnvironments/getMenu.environment";
