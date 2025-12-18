@@ -73,7 +73,7 @@ export class BlockPanel {
         if (this.element) {
             moveResize(this.element, () => {
                 if (this.element) {
-                    切换固定状态({ element: this.element, 固定: true });
+                    切换固定状态(this.element, true);
                 }
             });
         }
@@ -129,7 +129,7 @@ export class BlockPanel {
             return;
         }
         const 当前固定 = this.element.getAttribute("data-pin") === "true";
-        切换固定状态({ element: this.element, 固定: !当前固定 });
+        切换固定状态(this.element, !当前固定);
         event.preventDefault();
         event.stopPropagation();
     }

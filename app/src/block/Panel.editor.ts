@@ -61,7 +61,7 @@ function 处理块信息响应(
     const editor = new Protyle(ctx.app, editorElement, {
         blockId: refDef.refID,
         defIds: refDef.defIDs || [],
-        originalRefBlockIDs: ctx.isBacklink ? ctx.originalRefBlockIDs : undefined,
+        ...(ctx.isBacklink && ctx.originalRefBlockIDs ? { originalRefBlockIDs: ctx.originalRefBlockIDs } : {}),
         action,
         render: {
             scroll: true,
@@ -78,12 +78,8 @@ function 处理块信息响应(
 }
 
 function 构建编辑器操作(rootID: string, refDef: IRefDefs, ctx: EditorInitContext): TProtyleAction[] {
-    const action: TProtyleAction[] = [];
-    if (rootID !== refDef.refID) {
-        action.push(Constants.CB_GET_ALL);
-    } else {
-        action.push(Constants.CB_GET_CONTEXT);
-    }
+    const baseAction = rootID !== refDef.refID ? Constants.CB_GET_ALL : Constants.CB_GET_CONTEXT;
+    const action: TProtyleAction[] = [baseAction];
     if (ctx.isBacklink) {
         action.push(Constants.CB_GET_BACKLINK);
     }
@@ -98,7 +94,7 @@ function 处理编辑器加载完成(
     afterCB?: () => void
 ): void {
     if (rootID !== refDef.refID) {
-        const lastChild = editor.protyle.breadcrumb.element.parentElement?.lastElementChild;
+        const lastChild = editor.protyle.breadcrumb?.element.parentElement?.lastElementChild;
         lastChild?.classList.remove("fn__none");
     }
     if (afterCB) {
@@ -107,11 +103,11 @@ function 处理编辑器加载完成(
     // https://ld246.com/article/1653639418266
     if (editor.protyle.element.nextElementSibling || editor.protyle.element.previousElementSibling) {
         const innerHeight = getWindowInnerHeight();
-        editor.protyle.element.style.minHeight = Math.min(30 + editor.protyle.wysiwyg.element.clientHeight, innerHeight / 3) + "px";
+        editor.protyle.element.style.minHeight = Math.min(30 + (editor.protyle.wysiwyg?.element.clientHeight ?? 0), innerHeight / 3) + "px";
     }
     // 49 = 16（上图标）+16（下图标）+8（padding）+9（底部距离）
-    const scrollParent = editor.protyle.scroll.element.parentElement;
+    const scrollParent = editor.protyle.scroll?.element.parentElement;
     if (scrollParent) {
-        scrollParent.setAttribute("style", `--b3-dynamicscroll-width:${Math.min(editor.protyle.contentElement.clientHeight - 49, 200)}px;`);
+        scrollParent.setAttribute("style", `--b3-dynamicscroll-width:${Math.min((editor.protyle.contentElement?.clientHeight ?? 0) - 49, 200)}px;`);
     }
 }

@@ -14,18 +14,9 @@ import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment"
 import { App } from "../index";
 
 /**
- * 切换面板固定状态的参数
- */
-export interface 切换固定状态参数 {
-    element: HTMLElement;
-    固定: boolean;
-}
-
-/**
  * 切换面板的固定状态
  */
-export function 切换固定状态(参数: 切换固定状态参数): void {
-    const { element, 固定 } = 参数;
+export function 切换固定状态(element: HTMLElement, 固定: boolean): void {
     const pinSelector = '[data-type="pin"]';
     const pinElement = element.querySelector(pinSelector) ??
         element.firstElementChild?.querySelector(pinSelector);
@@ -36,21 +27,33 @@ export function 切换固定状态(参数: 切换固定状态参数): void {
     if (!useElement) {
         return;
     }
+    应用固定状态(pinElement, useElement, element, 固定);
+}
+
+/**
+ * 应用固定状态到元素上（核心逻辑）
+ */
+function 应用固定状态(
+    pinElement: Element,
+    useElement: SVGUseElement,
+    element: HTMLElement,
+    固定: boolean
+): void {
     if (固定) {
         pinElement.setAttribute("aria-label", siyuanI18n.unpin);
         useElement.setAttribute("xlink:href", "#iconUnpin");
         element.setAttribute("data-pin", "true");
-    } else {
-        pinElement.setAttribute("aria-label", siyuanI18n.pin);
-        useElement.setAttribute("xlink:href", "#iconPin");
-        element.setAttribute("data-pin", "false");
+        return;
     }
+    pinElement.setAttribute("aria-label", siyuanI18n.pin);
+    useElement.setAttribute("xlink:href", "#iconPin");
+    element.setAttribute("data-pin", "false");
 }
 
 /**
  * 执行图标操作的参数
  */
-export interface 执行图标操作参数 {
+export interface headIconCtx {
     type: string | null;
     target: HTMLElement;
     element: HTMLElement;
@@ -62,8 +65,9 @@ export interface 执行图标操作参数 {
 /**
  * 执行图标点击后的操作
  */
-export function 执行图标操作(参数: 执行图标操作参数): void {
-    const { type, target, element, refDefs, app, onDestroy } = 参数;
+export function 执行图标操作(ctx: headIconCtx): void {
+    const { type, target, element, refDefs, app, onDestroy } = ctx;
+    const firstRef = refDefs[0];
 
     if (type === "close") {
         onDestroy();
@@ -73,10 +77,13 @@ export function 执行图标操作(参数: 执行图标操作参数): void {
         执行固定操作(target, element);
         return;
     }
-    if (type === "open") {
+    if (type === "open" && firstRef) {
         /// #if !BROWSER
-        openNewWindowById(refDefs[0].refID);
+        openNewWindowById(firstRef.refID);
         /// #endif
+        return;
+    }
+    if (type === "open") {
         return;
     }
     if (type === "stickTab") {
@@ -90,22 +97,20 @@ function 执行固定操作(target: HTMLElement, element: HTMLElement): void {
     if (!useElement) {
         return;
     }
-    if (当前固定) {
-        target.setAttribute("aria-label", siyuanI18n.pin);
-        useElement.setAttribute("xlink:href", "#iconPin");
-        element.setAttribute("data-pin", "false");
-    } else {
-        target.setAttribute("aria-label", siyuanI18n.unpin);
-        useElement.setAttribute("xlink:href", "#iconUnpin");
-        element.setAttribute("data-pin", "true");
-    }
+    // 切换状态：当前固定则取消固定，当前未固定则固定
+    应用固定状态(target, useElement, element, !当前固定);
 }
 
 function 执行粘贴标签页操作(refDefs: IRefDefs[], app: App, onDestroy: () => void): void {
-    checkFold(refDefs[0].refID, (zoomIn, action) => {
+    const firstRef = refDefs[0];
+    if (!firstRef) {
+        return;
+    }
+    // @内联回调
+    checkFold(firstRef.refID, (zoomIn, action) => {
         openFileById({
             app: app,
-            id: refDefs[0].refID,
+            id: firstRef.refID,
             action,
             zoomIn,
             openNewTab: true
