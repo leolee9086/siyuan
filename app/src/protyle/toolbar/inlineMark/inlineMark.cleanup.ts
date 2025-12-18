@@ -1,6 +1,22 @@
 import { Constants } from "../../../constants";
 import { mergeNodes } from "../../../util/DOM/rangeOperations";
 
+const removeEmptyNode = (range: Range) => {
+    let emptyNode: Element = range.startContainer.childNodes[range.startOffset] as HTMLElement;
+    if (!emptyNode) {
+        emptyNode = range.startContainer.childNodes[range.startOffset - 1] as HTMLElement;
+    }
+    if (emptyNode && emptyNode.nodeType === 3) {
+        emptyNode = (range.startContainer as HTMLElement).tagName === "DIV" ?
+            emptyNode.previousSibling as HTMLElement :
+            range.startContainer as HTMLElement;
+    }
+    if (emptyNode && emptyNode.nodeType !== 3 && emptyNode.textContent?.replace(Constants.ZWSP, "") === "" &&
+        !["TD", "TH", "BR"].includes(emptyNode.tagName)) {
+        emptyNode.remove();
+    }
+};
+
 export const 清理内联标记内容 = (
     contents: DocumentFragment,
     range: Range,
@@ -18,22 +34,9 @@ export const 清理内联标记内容 = (
     }
 
     if (selectText && range.startContainer.nodeType !== 3) {
-        let emptyNode: Element = range.startContainer.childNodes[range.startOffset] as HTMLElement;
-        if (!emptyNode) {
-            emptyNode = range.startContainer.childNodes[range.startOffset - 1] as HTMLElement;
-        }
-        if (emptyNode && emptyNode.nodeType === 3 && (range.startContainer as HTMLElement).tagName === "DIV") {
-            emptyNode = emptyNode.previousSibling as HTMLElement;
-        } else if (emptyNode && emptyNode.nodeType === 3) {
-            emptyNode = range.startContainer as HTMLElement;
-        }
-        if (emptyNode && emptyNode.nodeType !== 3 && emptyNode.textContent?.replace(Constants.ZWSP, "") === "" &&
-            !["TD", "TH", "BR"].includes(emptyNode.tagName)) {
-            emptyNode.remove();
-        }
+        removeEmptyNode(range);
     }
 
-    // 选择 span 中的部分需进行包裹
     // 选择 span 中的部分需进行包裹
     if (needWrapTarget) {
         const attributes = needWrapTarget.attributes;
@@ -41,7 +44,10 @@ export const 清理内联标记内容 = (
             if (item.nodeType === 3) {
                 const spanElement = document.createElement("span");
                 for (let i = 0; i < attributes.length; i++) {
-                    spanElement.setAttribute(attributes[i].name, attributes[i].value);
+                    const attribute = attributes[i];
+                    if (attribute) {
+                        spanElement.setAttribute(attribute.name, attribute.value);
+                    }
                 }
                 spanElement.innerHTML = item.textContent || "";
                 item.replaceWith(spanElement);
