@@ -55,7 +55,8 @@ export const getTextNode = (element: HTMLElement, isFirst: boolean) => {
     const spans = element.querySelectorAll('span[role="presentation"]');
     let index = isFirst ? 0 : spans.length - 1;
     while (spans[index]) {
-        if (spans[index]?.textContent) {
+        const target = spans[index];
+        if (target?.textContent) {
             break;
         }
 
