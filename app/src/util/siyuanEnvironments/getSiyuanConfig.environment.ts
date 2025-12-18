@@ -93,3 +93,45 @@ export const setSiyuanNotebooks = (notebooks: INotebook[]) => {
     window.siyuan.notebooks = notebooks;
 };
 
+/**
+ * 获取 window.siyuan.blockPanels
+ * @returns blockPanels 列表
+ */
+export const getSiyuanBlockPanels = () => {
+    if (!window.siyuan?.blockPanels) {
+        throw ("[getSiyuanBlockPanels] window.siyuan.blockPanels 不存在");
+    }
+    return window.siyuan.blockPanels;
+};
+
+/**
+ * 获取 window.siyuan 的键盘修饰键状态
+ */
+export const getSiyuanKeyboardState = () => {
+    return {
+        ctrlIsPressed: window.siyuan?.ctrlIsPressed ?? false,
+        shiftIsPressed: window.siyuan?.shiftIsPressed ?? false,
+        altIsPressed: window.siyuan?.altIsPressed ?? false,
+    };
+};
+
+/**
+ * 获取 window.siyuan.dragElement（当前拖拽元素）
+ */
+export const getSiyuanDragElement = (): HTMLElement | undefined => {
+    return window.siyuan?.dragElement;
+};
+
+/**
+ * 检查 window.siyuan.config 是否存在
+ */
+export const hasSiyuanConfig = (): boolean => {
+    return !!window.siyuan?.config;
+};
+
+/**
+ * 获取 window.siyuan.menus（可能为 undefined）
+ */
+export const getSiyuanMenus = () => {
+    return window.siyuan?.menus;
+};
