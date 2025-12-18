@@ -9,6 +9,7 @@ import {setStorageVal} from "../protyle/util/compatibility";
 import { openFileById } from "../editor/utils.openFileById";
 import {openMobileFileById} from "../mobile/editor";
 import {App} from "../index";
+import { siyuanI18n } from "./siyuanEnvironments/i18n.getI18n.environment";
 
 export const fetchNewDailyNote = (app: App, notebook: string) => {
     fetchPost("/api/filetree/createDailyNote", {
@@ -35,7 +36,7 @@ export const newDailyNote = (app: App) => {
     }
     const openCount = getOpenNotebookCount();
     if (openCount === 0) {
-        showMessage(window.siyuan.languages?.newFileTip);
+        showMessage(siyuanI18n?.newFileTip);
         return;
     }
     if (openCount === 1) {
@@ -65,13 +66,13 @@ export const newDailyNote = (app: App) => {
         });
         const dialog = new Dialog({
             positionId: Constants.DIALOG_DIALYNOTE,
-            title: window.siyuan.languages.plsChoose,
+            title: siyuanI18n.plsChoose,
             content: `<div class="b3-dialog__content">
     <select class="b3-select fn__block">${optionsHTML}</select>
 </div>
 <div class="b3-dialog__action">
-    <button class="b3-button b3-button--cancel">${window.siyuan.languages.cancel}</button><div class="fn__space"></div>
-    <button class="b3-button b3-button--text">${window.siyuan.languages.confirm}</button>
+    <button class="b3-button b3-button--cancel">${siyuanI18n.cancel}</button><div class="fn__space"></div>
+    <button class="b3-button b3-button--text">${siyuanI18n.confirm}</button>
 </div>`,
             width: isMobile() ? "92vw" : "520px",
         });
@@ -104,13 +105,13 @@ export const mountHelp = () => {
 
 export const newNotebook = () => {
     const dialog = new Dialog({
-        title: window.siyuan.languages.newNotebook,
+        title: siyuanI18n.newNotebook,
         content: `<div class="b3-dialog__content">
-    <input placeholder="${window.siyuan.languages.notebookName}" class="b3-text-field fn__block">
+    <input placeholder="${siyuanI18n.notebookName}" class="b3-text-field fn__block">
 </div>
 <div class="b3-dialog__action">
-    <button class="b3-button b3-button--cancel">${window.siyuan.languages.cancel}</button><div class="fn__space"></div>
-    <button class="b3-button b3-button--text">${window.siyuan.languages.confirm}</button>
+    <button class="b3-button b3-button--cancel">${siyuanI18n.cancel}</button><div class="fn__space"></div>
+    <button class="b3-button b3-button--text">${siyuanI18n.confirm}</button>
 </div>`,
         width: isMobile() ? "92vw" : "520px"
     });

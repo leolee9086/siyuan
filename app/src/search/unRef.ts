@@ -9,6 +9,7 @@ import {getDisplayName, getNotebookName} from "../util/pathName";
 import {Protyle} from "../protyle";
 import {resize} from "../protyle/util/resize";
 import {Menu} from "../plugin/Menu";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const openSearchUnRef = (element: HTMLElement, editor: Protyle) => {
     window.siyuan.menus.menu.remove();
@@ -125,9 +126,9 @@ ${getAttr(item)}
             element.querySelector(".search__drag")?.classList.add("fn__none");
         }
         element.querySelector("#searchUnRefResult").innerHTML = `${page}/${response.data.pageCount || 1}<span class="fn__space"></span>
-<span class="ft__on-surface">${window.siyuan.languages.findInDoc.replace("${x}", response.data.matchedRootCount).replace("${y}", response.data.matchedBlockCount)}</span>`;
+<span class="ft__on-surface">${siyuanI18n.findInDoc.replace("${x}", response.data.matchedRootCount).replace("${y}", response.data.matchedBlockCount)}</span>`;
         element.querySelector("#searchUnRefList").innerHTML = resultHTML || `<div class="search__empty">
-    ${window.siyuan.languages.emptyContent}
+    ${siyuanI18n.emptyContent}
 </div>`;
     });
 };
@@ -141,11 +142,11 @@ export const unRefMoreMenu = (target: Element, element: Element, edit: Protyle) 
     /// #if !MOBILE
     menu.addItem({
         icon: "iconLayout",
-        label: window.siyuan.languages.layout,
+        label: siyuanI18n.layout,
         type: "submenu",
         submenu: [{
             iconHTML: "",
-            label: window.siyuan.languages.topBottomLayout,
+            label: siyuanI18n.topBottomLayout,
             current: localData.layout === 0,
             click() {
                 element.querySelector(".search__layout").classList.remove("search__layout--row");
@@ -162,7 +163,7 @@ export const unRefMoreMenu = (target: Element, element: Element, edit: Protyle) 
             }
         }, {
             iconHTML: "",
-            label: window.siyuan.languages.leftRightLayout,
+            label: siyuanI18n.leftRightLayout,
             current: localData.layout === 1,
             click() {
                 element.querySelector(".search__layout").classList.add("search__layout--row");
@@ -182,7 +183,7 @@ export const unRefMoreMenu = (target: Element, element: Element, edit: Protyle) 
     /// #endif
     menu.addItem({
         icon: "iconRefresh",
-        label: window.siyuan.languages.refresh,
+        label: siyuanI18n.refresh,
         click() {
             element.parentElement.querySelector(".fn__loading--top").classList.remove("fn__none");
             getUnRefList(element, edit);

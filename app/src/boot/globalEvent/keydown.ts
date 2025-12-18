@@ -76,7 +76,7 @@ import {copyTextByType} from "../../protyle/toolbar/util";
 import {onlyProtyleCommand} from "./command/protyle";
 import {cancelDrag} from "./dragover";
 import {bindAVPanelKeydown} from "../../protyle/render/av/keydown";
-
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 const switchDialogEvent = (app: App, event: MouseEvent) => {
     event.preventDefault();
     let target = event.target as HTMLElement;
@@ -323,7 +323,7 @@ const editKeydown = (app: App, event: KeyboardEvent) => {
     }
     if (!isFileFocus && matchHotKey(window.siyuan.config.keymap.editor.general.spaceRepetition.custom, event) && !window.siyuan.config.readonly) {
         fetchPost("/api/riff/getTreeRiffDueCards", {rootID: protyle.block.rootID}, (response) => {
-            openCardByData(app, response.data, "doc", protyle.block.rootID, protyle.title?.editElement.textContent || window.siyuan.languages.untitled);
+            openCardByData(app, response.data, "doc", protyle.block.rootID, protyle.title?.editElement.textContent || siyuanI18n.untitled);
         });
         event.preventDefault();
         return true;
@@ -415,7 +415,7 @@ const editKeydown = (app: App, event: KeyboardEvent) => {
             blockId: protyle.block.id,
             rootId: protyle.block.rootID,
             useBlockId: protyle.block.showAll,
-            title: protyle.title ? (protyle.title.editElement.textContent || window.siyuan.languages.untitled) : null,
+            title: protyle.title ? (protyle.title.editElement.textContent || siyuanI18n.untitled) : null,
         });
         return true;
     }
@@ -436,7 +436,7 @@ const editKeydown = (app: App, event: KeyboardEvent) => {
             blockId: protyle.block.id,
             rootId: protyle.block.rootID,
             useBlockId: protyle.block.showAll,
-            title: protyle.title ? (protyle.title.editElement.textContent || window.siyuan.languages.untitled) : null,
+            title: protyle.title ? (protyle.title.editElement.textContent || siyuanI18n.untitled) : null,
         });
         return true;
     }
@@ -446,7 +446,7 @@ const editKeydown = (app: App, event: KeyboardEvent) => {
         openOutline({
             app,
             rootId: protyle.block.rootID,
-            title: protyle.options.render.title ? (protyle.title.editElement.textContent || window.siyuan.languages.untitled) : "",
+            title: protyle.options.render.title ? (protyle.title.editElement.textContent || siyuanI18n.untitled) : "",
             isPreview: !protyle.preview.element.classList.contains("fn__none")
         });
         // switchWnd 后，range会被清空，需要重新设置
@@ -1230,7 +1230,7 @@ export const windowKeyDown = (app: App, event: KeyboardEvent) => {
             dockHtml = `<ul class="b3-list b3-list--background" style="overflow: auto;width: 200px;">
 <li data-type="riffCard" data-index="0" class="b3-list-item${!tabHtml ? " b3-list-item--focus" : ""}">
     <svg class="b3-list-item__graphic"><use xlink:href="#iconRiffCard"></use></svg>
-    <span class="b3-list-item__text">${window.siyuan.languages.riffCard}</span>
+    <span class="b3-list-item__text">${siyuanI18n.riffCard}</span>
     <span class="b3-list-item__meta">${updateHotkeyTip(window.siyuan.config.keymap.general.riffCard.custom)}</span>
 </li>`;
             getAllDocks().forEach((item, index) => {
@@ -1245,7 +1245,7 @@ export const windowKeyDown = (app: App, event: KeyboardEvent) => {
         hideElements(["dialog"]);
         switchDialog = new Dialog({
             positionId: Constants.DIALOG_SWITCHTAB,
-            title: window.siyuan.languages.switchTab,
+            title: siyuanI18n.switchTab,
             content: `<div class="fn__flex-column switch-doc">
     <input style="opacity: 0;height: 0.1px;box-sizing: border-box;margin: 0;padding: 0;border: 0;">
     <div class="fn__flex" style="overflow:auto;">${dockHtml}
@@ -1755,7 +1755,7 @@ export const sendGlobalShortcut = (app: App) => {
         });
     });
     ipcRenderer.send(Constants.SIYUAN_HOTKEY, {
-        languages: window.siyuan.languages["_trayMenu"],
+        languages: siyuanI18n["_trayMenu"],
         hotkeys
     });
     /// #endif

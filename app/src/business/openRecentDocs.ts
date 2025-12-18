@@ -5,6 +5,7 @@ import {focusByRange} from "../protyle/util/selection";
 import {hideElements} from "../protyle/ui/hideElements";
 import { createVueComponentInDialog, VueComponentMountConfig } from "../util/vue/mount";
 import RecentDocs from "../components/recentDocsAndDocks.vue";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 // 处理文档选择事件
 const handleDocSelected = (doc: { rootID: string, icon: string, title: string }) => {
     fetchPost("/api/filetree/openDoc", {
@@ -49,7 +50,7 @@ const createRecentDocsDialog = (recentDocs: any) => {
             handleDocSelected
         },
         template: `<div class="fn__flex">
-<div class="fn__flex-center">${window.siyuan.languages.recentDocs}</div>
+<div class="fn__flex-center">${siyuanI18n.recentDocs}</div>
 <div class="fn__flex-1"></div>
 </div>`,
     };

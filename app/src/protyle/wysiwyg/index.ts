@@ -103,6 +103,7 @@ import { clearSelect } from "../util/clearSelect";
 import { chartRender } from "../render/chartRender";
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";
 import { updateCalloutType } from "./callout";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 
 export class WYSIWYG {
@@ -635,7 +636,7 @@ export class WYSIWYG {
                         const ids: string[] = [];
                         if (!hasSelectClassElement && protyle.scroll && !protyle.scroll.element.classList.contains("fn__none") && !protyle.scroll.keepLazyLoad &&
                             (startElement.getBoundingClientRect().top < -protyle.contentElement.clientHeight * 2 || endElement.getBoundingClientRect().bottom > protyle.contentElement.clientHeight * 2)) {
-                            showMessage(window.siyuan.languages.crossKeepLazyLoad);
+                            showMessage(siyuanI18n.crossKeepLazyLoad);
                         }
                         selectElements.forEach(item => {
                             if (!hasClosestByClassName(currentElement, "protyle-wysiwyg--select")) {
@@ -1394,7 +1395,7 @@ export class WYSIWYG {
                         if (!protyle.disabled) {
                             window.siyuan.menus.menu.append(new MenuItem({
                                 id: "mergeCell",
-                                label: window.siyuan.languages.mergeCell,
+                                label: siyuanI18n.mergeCell,
                                 click: () => {
                                     if (tableBlockElement) {
                                         const selectCellElements: HTMLTableCellElement[] = [];
@@ -1522,7 +1523,7 @@ export class WYSIWYG {
                                 id: "alignLeft",
                                 icon: "iconAlignLeft",
                                 accelerator: window.siyuan.config.keymap.editor.general.alignLeft.custom,
-                                label: window.siyuan.languages.alignLeft,
+                                label: siyuanI18n.alignLeft,
                                 click: () => {
                                     if (tableBlockElement) {
                                         const selectCellElements: HTMLTableCellElement[] = [];
@@ -1548,7 +1549,7 @@ export class WYSIWYG {
                                 id: "alignCenter",
                                 icon: "iconAlignCenter",
                                 accelerator: window.siyuan.config.keymap.editor.general.alignCenter.custom,
-                                label: window.siyuan.languages.alignCenter,
+                                label: siyuanI18n.alignCenter,
                                 click: () => {
                                     if (tableBlockElement) {
                                         const selectCellElements: HTMLTableCellElement[] = [];
@@ -1574,7 +1575,7 @@ export class WYSIWYG {
                                 id: "alignRight",
                                 icon: "iconAlignRight",
                                 accelerator: window.siyuan.config.keymap.editor.general.alignRight.custom,
-                                label: window.siyuan.languages.alignRight,
+                                label: siyuanI18n.alignRight,
                                 click: () => {
                                     if (tableBlockElement) {
                                         const selectCellElements: HTMLTableCellElement[] = [];
@@ -1598,7 +1599,7 @@ export class WYSIWYG {
                             window.siyuan.menus.menu.append(new MenuItem({
                                 id: "useDefaultAlign",
                                 icon: "",
-                                label: window.siyuan.languages.useDefaultAlign,
+                                label: siyuanI18n.useDefaultAlign,
                                 click: () => {
                                     if (tableBlockElement) {
                                         const selectCellElements: HTMLTableCellElement[] = [];
@@ -1627,7 +1628,7 @@ export class WYSIWYG {
                         }
                         window.siyuan.menus.menu.append(new MenuItem({
                             id: "copyPlainText",
-                            label: window.siyuan.languages.copyPlainText,
+                            label: siyuanI18n.copyPlainText,
                             click() {
                                 if (tableBlockElement) {
                                     const selectCellElements: HTMLTableCellElement[] = [];
@@ -1661,7 +1662,7 @@ export class WYSIWYG {
                             id: "copy",
                             icon: "iconCopy",
                             accelerator: "⌘C",
-                            label: window.siyuan.languages.copy,
+                            label: siyuanI18n.copy,
                             click() {
                                 if (tableBlockElement) {
                                     focusByRange(getEditorRange(tableBlockElement));
@@ -1674,7 +1675,7 @@ export class WYSIWYG {
                                 id: "cut",
                                 icon: "iconCut",
                                 accelerator: "⌘X",
-                                label: window.siyuan.languages.cut,
+                                label: siyuanI18n.cut,
                                 click() {
                                     if (tableBlockElement) {
                                         focusByRange(getEditorRange(tableBlockElement));
@@ -1684,7 +1685,7 @@ export class WYSIWYG {
                             }).element);
                             window.siyuan.menus.menu.append(new MenuItem({
                                 id: "clear",
-                                label: window.siyuan.languages.clear,
+                                label: siyuanI18n.clear,
                                 icon: "iconTrashcan",
                                 accelerator: "⌦",
                                 click() {
@@ -1693,7 +1694,7 @@ export class WYSIWYG {
                             }).element);
                             window.siyuan.menus.menu.append(new MenuItem({
                                 id: "paste",
-                                label: window.siyuan.languages.paste,
+                                label: siyuanI18n.paste,
                                 icon: "iconPaste",
                                 accelerator: "⌘V",
                                 async click() {

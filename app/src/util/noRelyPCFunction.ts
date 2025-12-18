@@ -12,11 +12,12 @@ import {upDownHint} from "./upDownHint";
 import {escapeHtml} from "./escape";
 import {hasClosestByClassName} from "../protyle/util/hasClosest";
 import {isNotCtrl} from "../protyle/util/compatibility";
+import { siyuanI18n } from "./siyuanEnvironments/i18n.getI18n.environment";
 
 // 需独立出来，否则移动端引用的时候会引入 pc 端大量无用代码
 export const renameTag = (labelName: string) => {
     const dialog = new Dialog({
-        title: window.siyuan.languages.rename,
+        title: siyuanI18n.rename,
         content: `<div class="b3-dialog__content">
     <input class="b3-text-field fn__block">
     <div class="b3-list fn__flex-1 b3-list--background fn__none protyle-hint" style="    position: absolute;
@@ -25,8 +26,8 @@ export const renameTag = (labelName: string) => {
     </div>
 </div>
 <div class="b3-dialog__action">
-    <button class="b3-button b3-button--cancel">${window.siyuan.languages.cancel}</button><div class="fn__space"></div>
-    <button class="b3-button b3-button--text">${window.siyuan.languages.confirm}</button>
+    <button class="b3-button b3-button--cancel">${siyuanI18n.cancel}</button><div class="fn__space"></div>
+    <button class="b3-button b3-button--text">${siyuanI18n.confirm}</button>
 </div>`,
         width: isMobile() ? "92vw" : "520px",
     });
@@ -92,7 +93,7 @@ export const renameTag = (labelName: string) => {
                 }
             });
             if (!hasKey && response.data.k) {
-                searchHTML = `<div data-type="new" class="b3-list-item${searchHTML ? "" : " b3-list-item--focus"}"><div class="fn__flex-1">${window.siyuan.languages.new} <mark>${escapeHtml(response.data.k)}</mark></div></div>` + searchHTML;
+                searchHTML = `<div data-type="new" class="b3-list-item${searchHTML ? "" : " b3-list-item--focus"}"><div class="fn__flex-1">${siyuanI18n.new} <mark>${escapeHtml(response.data.k)}</mark></div></div>` + searchHTML;
             }
             listElement.innerHTML = searchHTML;
         });

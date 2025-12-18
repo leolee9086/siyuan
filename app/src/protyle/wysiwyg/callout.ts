@@ -6,6 +6,7 @@ import {escapeHtml} from "../../util/escape";
 import {Menu} from "../../plugin/Menu";
 import {isMobile} from "../../util/functions";
 import {Constants} from "../../constants";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const updateCalloutType = (titleElement: HTMLElement, protyle: IProtyle) => {
     const blockElement = hasClosestBlock(titleElement);
@@ -13,11 +14,11 @@ export const updateCalloutType = (titleElement: HTMLElement, protyle: IProtyle) 
         return;
     }
     const dialog = new Dialog({
-        title: window.siyuan.languages.callout,
+        title: siyuanI18n.callout,
         content: `<div class="b3-dialog__content">
     <label class="fn__flex">
         <div class="fn__flex-center">
-            ${window.siyuan.languages.type}
+            ${siyuanI18n.type}
         </div>
         <span class="fn__space"></span>
         <div class="b3-form__icona fn__flex-1">
@@ -28,15 +29,15 @@ export const updateCalloutType = (titleElement: HTMLElement, protyle: IProtyle) 
     <div class="fn__hr"></div>
     <label class="fn__flex">
         <div class="fn__flex-center">
-            ${window.siyuan.languages.title}
+            ${siyuanI18n.title}
         </div>
         <span class="fn__space"></span>
         <input class="b3-text-field fn__flex-1" value="${titleElement.textContent}" type="text">
     </label>
 </div>
 <div class="b3-dialog__action">
-    <button class="b3-button b3-button--cancel">${window.siyuan.languages.cancel}</button><div class="fn__space"></div>
-    <button class="b3-button b3-button--text">${window.siyuan.languages.confirm}</button>
+    <button class="b3-button b3-button--cancel">${siyuanI18n.cancel}</button><div class="fn__space"></div>
+    <button class="b3-button b3-button--text">${siyuanI18n.confirm}</button>
 </div>`,
         width: isMobile() ? "92vw" : "520px",
     });

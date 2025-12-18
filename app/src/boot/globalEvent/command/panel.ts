@@ -25,13 +25,13 @@ import { movePathTo } from "../../../util/pathName/movePathTo";
 import {hintMoveBlock} from "../../../protyle/hint/extend";
 import {fetchSyncPost} from "../../../util/fetch";
 import {focusByRange} from "../../../protyle/util/selection";
-
+import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 export const commandPanel = (app: App) => {
     const range = getSelection().rangeCount > 0 ? getSelection().getRangeAt(0) : undefined;
     const dialog = new Dialog({
         width: isMobile() ? "92vw" : "80vw",
         height: isMobile() ? "80vh" : "70vh",
-        title: window.siyuan.languages.commandPanel,
+        title: siyuanI18n.commandPanel,
         content: `<div class="fn__flex-column">
     <div class="b3-form__icon search__header" style="border-top: 0;border-bottom: 1px solid var(--b3-theme-surface-lighter);">
         <svg class="b3-form__icon-icon"><use xlink:href="#iconSearch"></use></svg>
@@ -39,9 +39,9 @@ export const commandPanel = (app: App) => {
     </div>
     <ul class="b3-list b3-list--background search__list" id="commands"></ul>
     <div class="search__tip">
-        <kbd>↑/↓</kbd> ${window.siyuan.languages.searchTip1}
-        <kbd>${window.siyuan.languages.enterKey}/${window.siyuan.languages.click}</kbd> ${window.siyuan.languages.confirm}
-        <kbd>Esc</kbd> ${window.siyuan.languages.close}
+        <kbd>↑/↓</kbd> ${siyuanI18n.searchTip1}
+        <kbd>${siyuanI18n.enterKey}/${siyuanI18n.click}</kbd> ${siyuanI18n.confirm}
+        <kbd>Esc</kbd> ${siyuanI18n.close}
     </div>
 </div>`,
         destroyCallback() {
@@ -74,7 +74,7 @@ export const commandPanel = (app: App) => {
         /// #endif
         if (keys.includes(key)) {
             html += `<li class="b3-list-item" data-command="${key}">
-    <span class="b3-list-item__text">${window.siyuan.languages[key]}</span>
+    <span class="b3-list-item__text">${siyuanI18n[key]}</span>
     <span class="b3-list-item__meta${isMobile() ? " fn__none" : ""}">${updateHotkeyTip(window.siyuan.config.keymap.general[key].custom)}</span>
 </li>`;
         }
@@ -82,7 +82,7 @@ export const commandPanel = (app: App) => {
     Object.keys(window.siyuan.config.keymap.editor.general).forEach((key) => {
         if (["switchReadonly", "switchAdjust"].includes(key)) {
             html += `<li class="b3-list-item" data-command="${key}">
-    <span class="b3-list-item__text">${window.siyuan.languages[key]}</span>
+    <span class="b3-list-item__text">${siyuanI18n[key]}</span>
     <span class="b3-list-item__meta${isMobile() ? " fn__none" : ""}">${updateHotkeyTip(window.siyuan.config.keymap.editor.general[key].custom)}</span>
 </li>`;
         }
@@ -111,7 +111,7 @@ export const commandPanel = (app: App) => {
     if (listElement.childElementCount === 0) {
         const liElement = document.createElement("li");
         liElement.classList.add("b3-list-item", "b3-list-item--focus");
-        liElement.innerHTML = `<span class="b3-list-item__text" style="-webkit-line-clamp: inherit;">${window.siyuan.languages._kernel[122]}</span>`;
+        liElement.innerHTML = `<span class="b3-list-item__text" style="-webkit-line-clamp: inherit;">${siyuanI18n._kernel[122]}</span>`;
         liElement.addEventListener("click", () => {
             dialog.destroy();
         });

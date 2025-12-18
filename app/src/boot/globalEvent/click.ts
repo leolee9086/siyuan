@@ -7,7 +7,7 @@ import {isWindow} from "../../util/functions";
 import {writeText} from "../../protyle/util/compatibility";
 import {showMessage} from "../../dialog/message";
 import {cancelDrag} from "./dragover";
-
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 export const globalClickHideMenu = (element: HTMLElement) => {
     if (!window.siyuan.menus.menu.element.contains(element) && !hasClosestByAttribute(element, "data-menu", "true")) {
         if (getSelection().rangeCount > 0 && window.siyuan.menus.menu.element.contains(getSelection().getRangeAt(0).startContainer) &&
@@ -44,7 +44,7 @@ export const globalClick = (event: MouseEvent & { target: HTMLElement }) => {
         let text = copyElement.parentElement.nextElementSibling.textContent.replace(/\n$/, "");
         text = text.replace(/\u00A0/g, " "); // Replace non-breaking spaces with normal spaces when copying https://github.com/siyuan-note/siyuan/issues/9382
         writeText(text);
-        showMessage(window.siyuan.languages.copied, 2000);
+        showMessage(siyuanI18n.copied, 2000);
         event.preventDefault();
         return;
     }

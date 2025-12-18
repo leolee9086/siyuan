@@ -12,6 +12,7 @@ import {Constants} from "../constants";
 import {onGet} from "../protyle/util/onGet";
 import {App} from "../index";
 import {confirmDialog} from "../dialog/confirmDialog";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const viewCards = (app: App, deckID: string, title: string, deckType: "Tree" | "" | "Notebook", cb?: (response: IWebSocketData) => void) => {
     let pageIndex = 1;
@@ -26,11 +27,11 @@ export const viewCards = (app: App, deckID: string, title: string, deckType: "Tr
     <div class="block__icons">
         <span class="fn__flex-1 fn__flex-center resize__move">${escapeHtml(title)}</span>
         <span class="fn__space"></span>
-        <span data-type="resetAll" class="block__icon block__icon--show b3-tooltips b3-tooltips__w${(deckType === "" && deckID === "") ? " fn__none" : ""}" aria-label="${window.siyuan.languages.reset}"><svg><use xlink:href='#iconUndo'></use></svg></span>
+        <span data-type="resetAll" class="block__icon block__icon--show b3-tooltips b3-tooltips__w${(deckType === "" && deckID === "") ? " fn__none" : ""}" aria-label="${siyuanI18n.reset}"><svg><use xlink:href='#iconUndo'></use></svg></span>
         <span class="fn__space"></span>
-        <span data-type="previous" class="block__icon block__icon--show b3-tooltips b3-tooltips__w" disabled="disabled" aria-label="${window.siyuan.languages.previousLabel}"><svg><use xlink:href='#iconLeft'></use></svg></span>
+        <span data-type="previous" class="block__icon block__icon--show b3-tooltips b3-tooltips__w" disabled="disabled" aria-label="${siyuanI18n.previousLabel}"><svg><use xlink:href='#iconLeft'></use></svg></span>
         <span class="fn__space"></span>
-        <span data-type="next" class="block__icon block__icon--show b3-tooltips b3-tooltips__w" disabled="disabled" aria-label="${window.siyuan.languages.nextLabel}"><svg><use xlink:href='#iconRight'></use></svg></span>
+        <span data-type="next" class="block__icon block__icon--show b3-tooltips b3-tooltips__w" disabled="disabled" aria-label="${siyuanI18n.nextLabel}"><svg><use xlink:href='#iconRight'></use></svg></span>
         <span class="fn__space"></span>
         <span class="fn__flex-center ft__on-surface">${pageIndex}/${response.data.pageCount || 1}</span>
         <span class="fn__space"></span>
@@ -45,7 +46,7 @@ export const viewCards = (app: App, deckID: string, title: string, deckType: "Tr
             ${renderViewItem(response.data.blocks, title, deckType)}
         </ul>
         <div id="cardPreview" style="border-bottom-right-radius:var(--b3-border-radius-b);" class="fn__flex-1 fn__none"></div>
-        <div class="fn__flex-1 card__empty">${window.siyuan.languages.emptyContent}</div>
+        <div class="fn__flex-1 card__empty">${siyuanI18n.emptyContent}</div>
     </div>
 </div>`,
             width: isMobile() ? "100vw" : "80vw",
@@ -181,8 +182,8 @@ export const viewCards = (app: App, deckID: string, title: string, deckType: "Tr
                     event.preventDefault();
                     break;
                 } else if (type === "resetAll") {
-                    confirmDialog(window.siyuan.languages.reset,
-                        window.siyuan.languages.resetCardTip.replace("${x}", dialog.element.querySelector(".counter").textContent), () => {
+                    confirmDialog(siyuanI18n.reset,
+                        siyuanI18n.resetCardTip.replace("${x}", dialog.element.querySelector(".counter").textContent), () => {
                             fetchPost("/api/riff/resetRiffCards", {
                                 type: deckType === "" ? "deck" : deckType.toLowerCase(),
                                 deckID: deckType === "" ? deckID : Constants.QUICK_DECK_ID,
@@ -218,7 +219,7 @@ export const viewCards = (app: App, deckID: string, title: string, deckType: "Tr
 
                         if (!nextElment) {
                             getArticle(edit, "");
-                            listElement.innerHTML = `<div class="b3-list--empty">${window.siyuan.languages.emptyContent}</div>`;
+                            listElement.innerHTML = `<div class="b3-list--empty">${siyuanI18n.emptyContent}</div>`;
                         } else {
                             getArticle(edit, nextElment.getAttribute("data-id"));
                             listElement.querySelector(".b3-list-item--focus")?.classList.remove("b3-list-item--focus");
@@ -263,12 +264,12 @@ const renderViewItem = (blocks: IBlock[], title: string, deckType: string) => {
 ${unicode2Emoji(item.ial.icon, "b3-list-item__graphic", true)}
 <span class="b3-list-item__text">${item.content || Constants.ZWSP}</span>
 <span class="${(isMobile() || !hPath) ? "fn__none " : ""}b3-list-item__meta b3-list-item__meta--ellipsis" title="${escapeAttr(hPath)}">${escapeHtml(hPath)}</span>
-<span data-position="parentE" aria-label="${window.siyuan.languages.revisionCount}" class="ariaLabel counter${item.riffCard?.reps === 0 ? " fn__none" : ""}">${item.riffCard?.reps}</span>
-<span data-position="parentE" aria-label="${window.siyuan.languages.nextDue}" class="ariaLabel b3-list-item__meta${!item.riffCard?.due ? " fn__none" : ""}">${dayjs(item.riffCard?.due).format("YYYY-MM-DD")}</span>
-<span data-position="parentE" data-type="reset" data-id="${item.id}" class="b3-list-item__action ariaLabel" aria-label="${window.siyuan.languages.reset}">
+<span data-position="parentE" aria-label="${siyuanI18n.revisionCount}" class="ariaLabel counter${item.riffCard?.reps === 0 ? " fn__none" : ""}">${item.riffCard?.reps}</span>
+<span data-position="parentE" aria-label="${siyuanI18n.nextDue}" class="ariaLabel b3-list-item__meta${!item.riffCard?.due ? " fn__none" : ""}">${dayjs(item.riffCard?.due).format("YYYY-MM-DD")}</span>
+<span data-position="parentE" data-type="reset" data-id="${item.id}" class="b3-list-item__action ariaLabel" aria-label="${siyuanI18n.reset}">
     <svg><use xlink:href="#iconUndo"></use></svg>
 </span>
-<span data-position="parentE" data-type="remove" data-id="${item.id}" class="b3-list-item__action b3-list-item__action--warning ariaLabel" aria-label="${window.siyuan.languages.removeDeck}">
+<span data-position="parentE" data-type="remove" data-id="${item.id}" class="b3-list-item__action b3-list-item__action--warning ariaLabel" aria-label="${siyuanI18n.removeDeck}">
     <svg><use xlink:href="#iconTrashcan"></use></svg>
 </span>
 </div>`;
@@ -277,14 +278,14 @@ ${unicode2Emoji(item.ial.icon, "b3-list-item__graphic", true)}
             // 块被删除的情况
             listHTML += `<div data-type="card-item" class="b3-list-item${isMobile() ? "" : " b3-list-item--hide-action"}">
 <span class="b3-list-item__text">${item.content}</span>
-<span data-position="parentE" data-type="remove" data-id="${item.id}" class="b3-list-item__action b3-list-item__action--warning ariaLabel" aria-label="${window.siyuan.languages.removeDeck}">
+<span data-position="parentE" data-type="remove" data-id="${item.id}" class="b3-list-item__action b3-list-item__action--warning ariaLabel" aria-label="${siyuanI18n.removeDeck}">
     <svg><use xlink:href="#iconTrashcan"></use></svg>
 </span>
 </div>`;
         }
     });
     if (blocks.length === 0) {
-        listHTML = `<div class="b3-list--empty">${window.siyuan.languages.emptyContent}</div>`;
+        listHTML = `<div class="b3-list--empty">${siyuanI18n.emptyContent}</div>`;
     }
     return listHTML;
 };

@@ -13,6 +13,7 @@ import {replaceFileName, validateName} from "../editor/rename";
 import {hideElements} from "../protyle/ui/hideElements";
 import {openMobileFileById} from "../mobile/editor";
 import {App} from "../index";
+import { siyuanI18n } from "./siyuanEnvironments/i18n.getI18n.environment";
 
 export const getNewFilePath = (useSavePath: boolean) => {
     let notebookId = "";
@@ -83,7 +84,7 @@ export const newFile = (optios: {
     listDocTree?: boolean
 }) => {
     if (getOpenNotebookCount() === 0) {
-        showMessage(window.siyuan.languages.newFileTip);
+        showMessage(siyuanI18n.newFileTip);
         return;
     }
     if (!optios.notebookId) {
@@ -97,7 +98,7 @@ export const newFile = (optios: {
         }
         if ((data.data.path.indexOf("/") > -1 && optios.useSavePath) || optios.name) {
             if (data.data.path.startsWith("/") || optios.currentPath === "/") {
-                const createPath = pathPosix().join(data.data.path, optios.name || (data.data.path.endsWith("/") ? window.siyuan.languages.untitled : ""));
+                const createPath = pathPosix().join(data.data.path, optios.name || (data.data.path.endsWith("/") ? siyuanI18n.untitled : ""));
                 fetchPost("/api/filetree/createDocWithMd", {
                     notebook: data.data.box,
                     path: createPath,
@@ -123,7 +124,7 @@ export const newFile = (optios: {
                     notebook: data.data.box,
                     path: optios.notebookId === data.data.box ? (optios.currentPath.endsWith(".sy") ? optios.currentPath : optios.currentPath + ".sy") : (data.data.path || "/")
                 }, (responseHPath) => {
-                    const createPath = pathPosix().join(responseHPath.data, data.data.path, optios.name || (data.data.path.endsWith("/") ? window.siyuan.languages.untitled : ""));
+                    const createPath = pathPosix().join(responseHPath.data, data.data.path, optios.name || (data.data.path.endsWith("/") ? siyuanI18n.untitled : ""));
                     fetchPost("/api/filetree/createDocWithMd", {
                         notebook: data.data.box,
                         path: createPath,
@@ -147,12 +148,12 @@ export const newFile = (optios: {
                 });
             }
         } else {
-            const title = pathPosix().basename(data.data.path || window.siyuan.languages.untitled);
+            const title = pathPosix().basename(data.data.path || siyuanI18n.untitled);
             if (!validateName(title)) {
                 return;
             }
             if (optios.notebookId !== data.data.box) {
-                const createPath = pathPosix().join(data.data.path || "/", optios.name || (data.data.path.endsWith("/") ? window.siyuan.languages.untitled : ""));
+                const createPath = pathPosix().join(data.data.path || "/", optios.name || (data.data.path.endsWith("/") ? siyuanI18n.untitled : ""));
                 fetchPost("/api/filetree/createDocWithMd", {
                     notebook: data.data.box,
                     path: createPath,
@@ -236,12 +237,12 @@ export const newFileByName = (app: App, value: string) => {
     newFile({
         app,
         useSavePath: true,
-        name: replaceFileName(value.trim()) || window.siyuan.languages.untitled
+        name: replaceFileName(value.trim()) || siyuanI18n.untitled
     });
 };
 
 export const newFileBySelect = (protyle: IProtyle, selectText: string, nodeElement: HTMLElement, pathDir: string, targetNotebookId: string) => {
-    const newFileName = replaceFileName(selectText.trim() ? selectText.trim() : protyle.lute.BlockDOM2Content(nodeElement.outerHTML).replace(/\n/g, "").trim()) || window.siyuan.languages.untitled;
+    const newFileName = replaceFileName(selectText.trim() ? selectText.trim() : protyle.lute.BlockDOM2Content(nodeElement.outerHTML).replace(/\n/g, "").trim()) || siyuanI18n.untitled;
     const hPath = pathPosix().join(pathDir, newFileName);
     fetchPost("/api/filetree/getIDsByHPath", {
         path: hPath,

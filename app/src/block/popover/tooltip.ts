@@ -10,6 +10,7 @@ import { isLocalPath } from "../../util/pathName";
 import { Constants } from "../../constants";
 import { getCellText } from "../../protyle/render/av/cell";
 import { escapeAriaLabel, escapeHtml } from "../../util/escape";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 常量定义
@@ -177,7 +178,7 @@ const handleLocalPathTooltip = (aElement: HTMLElement, tip: string, tooltipClass
                 assetTip += '<div class="fn__hr"></div><span>' + title + "</span>";
             }
         } else {
-            assetTip += ` ${response.data.hSize}${title ? '<div class="fn__hr"></div><span>' + title + "</span>" : ""}<br>${window.siyuan.languages?.modifiedAt} ${response.data.hUpdated}<br>${window.siyuan.languages?.createdAt} ${response.data.hCreated}`;
+            assetTip += ` ${response.data.hSize}${title ? '<div class="fn__hr"></div><span>' + title + "</span>" : ""}<br>${siyuanI18n?.modifiedAt} ${response.data.hUpdated}<br>${siyuanI18n?.createdAt} ${response.data.hCreated}`;
         }
         showTooltip(assetTip, aElement, tooltipClass);
     });
@@ -191,7 +192,7 @@ const handleNotebookTooltip = (event: MouseEvent) => {
     if (notebookItemElement && notebookItemElement.parentElement.getAttribute("data-type") === "navigation-root") {
         fetchPost("/api/notebook/getNotebookInfo", { notebook: notebookItemElement.parentElement.parentElement.getAttribute("data-url") }, (response) => {
             const boxData = response.data.boxInfo;
-            const tip = `${boxData.name} <small class='ft__on-surface'>${boxData.hSize}</small>${boxData.docCount !== 0 ? window.siyuan.languages.includeSubFile.replace("x", boxData.docCount) : ""}<br>${window.siyuan.languages.modifiedAt} ${boxData.hMtime}<br>${window.siyuan.languages.createdAt} ${boxData.hCtime}`;
+            const tip = `${boxData.name} <small class='ft__on-surface'>${boxData.hSize}</small>${boxData.docCount !== 0 ? siyuanI18n.includeSubFile.replace("x", boxData.docCount) : ""}<br>${siyuanI18n.modifiedAt} ${boxData.hMtime}<br>${siyuanI18n.createdAt} ${boxData.hCtime}`;
             const scopeNotebookItemElement = hasClosestByClassName(event.target as HTMLElement, "b3-list-item__text");
             if (notebookItemElement && scopeNotebookItemElement && (notebookItemElement === scopeNotebookItemElement)) {
                 showTooltip(tip, notebookItemElement);

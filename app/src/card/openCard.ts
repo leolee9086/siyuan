@@ -27,6 +27,7 @@ import {updateCardHV} from "./util";
 import {showMessage} from "../dialog/message";
 import {Menu} from "../plugin/Menu";
 import {transaction} from "../protyle/wysiwyg/transaction";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 const genCardCount = (cardsData: ICardData, allIndex = 0) => {
     let newIndex = 0;
@@ -41,12 +42,12 @@ const genCardCount = (cardsData: ICardData, allIndex = 0) => {
             oldIndex++;
         }
     });
-    return `<span class="ariaLabel" aria-label="${window.siyuan.languages.flashcardNewCard}">
+    return `<span class="ariaLabel" aria-label="${siyuanI18n.flashcardNewCard}">
     <span class="ft__error">${newIndex}</span> /
-    <span class="ariaLabel ft__primary" aria-label="${window.siyuan.languages.flashcardNewCard}">${cardsData.unreviewedNewCardCount}</span>
+    <span class="ariaLabel ft__primary" aria-label="${siyuanI18n.flashcardNewCard}">${cardsData.unreviewedNewCardCount}</span>
 </span>
 <span class="fn__space"></span>+<span class="fn__space"></span>
-<span class="ariaLabel" aria-label="${window.siyuan.languages.flashcardReviewCard}">
+<span class="ariaLabel" aria-label="${siyuanI18n.flashcardReviewCard}">
     <span class="ft__error">${oldIndex}</span> /
     <span class="ft__success">${cardsData.unreviewedOldCardCount}</span>
 </span>`;
@@ -62,7 +63,7 @@ export const genCardHTML = (options: {
     /// #if MOBILE
     iconsHTML = `<div class="toolbar toolbar--border">
     <svg class="toolbar__icon"><use xlink:href="#iconRiffCard"></use></svg>
-    <span class="fn__flex-1 fn__flex-center toolbar__text">${window.siyuan.languages.riffCard}</span>
+    <span class="fn__flex-1 fn__flex-center toolbar__text">${siyuanI18n.riffCard}</span>
     <div data-type="count" class="${options.cardsData.cards.length === 0 ? "fn__none" : "fn__flex"}">${genCardCount(options.cardsData)}</span></div>
     <svg class="toolbar__icon" data-id="${options.id || ""}" data-cardtype="${options.cardType}" data-type="filter"><use xlink:href="#iconFilter"></use></svg>
     <svg class="toolbar__icon" data-type="more"><use xlink:href="#iconMore"></use></svg>
@@ -71,7 +72,7 @@ export const genCardHTML = (options: {
     /// #else
     iconsHTML = `<div class="block__icons">
         ${options.isTab ? '<div class="fn__flex-1"></div>' : `<div class="block__logo">
-            <svg class="block__logoicon"><use xlink:href="#iconRiffCard"></use></svg>${window.siyuan.languages.riffCard}
+            <svg class="block__logoicon"><use xlink:href="#iconRiffCard"></use></svg>${siyuanI18n.riffCard}
         </div>`}
         <span class="fn__flex-1 resize__move" style="min-height: 100%"></span>
         <div data-type="count" class="ft__on-surface ft__smaller fn__flex-center${options.cardsData.cards.length === 0 ? " fn__none" : " fn__flex"}">${genCardCount(options.cardsData)}</span></div>
@@ -80,15 +81,15 @@ export const genCardHTML = (options: {
             <svg><use xlink:href="#iconFilter"></use></svg>
         </button>
         <div class="fn__space"></div>
-        <div data-type="fullscreen" class="b3-tooltips b3-tooltips__sw block__icon block__icon--show" aria-label="${window.siyuan.languages.fullscreen}">
+        <div data-type="fullscreen" class="b3-tooltips b3-tooltips__sw block__icon block__icon--show" aria-label="${siyuanI18n.fullscreen}">
             <svg><use xlink:href="#iconFullscreen"></use></svg>
         </div>
         <div class="fn__space${options.cardsData.cards.length === 0 ? " fn__none" : ""}"></div>
-        <div data-type="more" class="${options.cardsData.cards.length === 0 ? "fn__none " : ""}b3-tooltips b3-tooltips__sw block__icon block__icon--show" aria-label="${window.siyuan.languages.more}">
+        <div data-type="more" class="${options.cardsData.cards.length === 0 ? "fn__none " : ""}b3-tooltips b3-tooltips__sw block__icon block__icon--show" aria-label="${siyuanI18n.more}">
             <svg><use xlink:href="#iconMore"></use></svg>
         </div>
         <div class="fn__space${options.isTab ? " fn__none" : ""}"></div>
-        <div data-type="sticktab" class="b3-tooltips b3-tooltips__sw block__icon block__icon--show${options.isTab ? " fn__none" : ""}" aria-label="${window.siyuan.languages.openBy}">
+        <div data-type="sticktab" class="b3-tooltips b3-tooltips__sw block__icon block__icon--show${options.isTab ? " fn__none" : ""}" aria-label="${siyuanI18n.openBy}">
             <svg><use xlink:href="#iconOpen"></use></svg>
         </div>
     </div>`;
@@ -98,7 +99,7 @@ export const genCardHTML = (options: {
     <div class="card__block fn__flex-1 ${options.cardsData.cards.length === 0 ? "fn__none" : ""}" data-type="render"></div>
     <div class="card__empty card__empty--space${options.cardsData.cards.length === 0 ? "" : " fn__none"}" data-type="empty">
         <div>🔮</div>
-        ${window.siyuan.languages.noDueCard}
+        ${siyuanI18n.noDueCard}
     </div>
     <div class="fn__flex card__action fn__none">
         <button class="b3-button b3-button--cancel" disabled="disabled" data-type="-2" style="width: 25%;min-width: 86px;display: flex">
@@ -106,42 +107,42 @@ export const genCardHTML = (options: {
             ${!isMobile() ? "(p / q)" : ""}
         </button>
         <span class="fn__space"></span>
-        <button data-type="-1" class="b3-button fn__flex-1">${window.siyuan.languages.cardShowAnswer}${!isMobile() ? " (" + window.siyuan.languages.space + " / " + window.siyuan.languages.enterKey + ")" : ""}</button>
+        <button data-type="-1" class="b3-button fn__flex-1">${siyuanI18n.cardShowAnswer}${!isMobile() ? " (" + siyuanI18n.space + " / " + siyuanI18n.enterKey + ")" : ""}</button>
     </div>
     <div class="fn__flex card__action fn__none">
         <div>
             <button class="b3-button b3-button--cancel" disabled="disabled" style="display: flex;margin-bottom: 8px;height: 28px;padding: 0;" data-type="-2"><svg><use xlink:href="#iconLeft"></use></svg>${!isMobile() ? "(p / q)" : ""}</button>
             <button data-type="-3" aria-label="0 / x" class="b3-button b3-button--cancel b3-tooltips__n b3-tooltips">
                 <div class="card__icon">💤</div>
-                ${window.siyuan.languages.skip}${!isMobile() ? " (0)" : ""}
+                ${siyuanI18n.skip}${!isMobile() ? " (0)" : ""}
             </button>
         </div>
         <div>
             <span></span>
             <button data-type="1" aria-label="1 / j / a" class="b3-button b3-button--error b3-tooltips__n b3-tooltips">
                 <div class="card__icon">🙈</div>
-                ${window.siyuan.languages.cardRatingAgain}${!isMobile() ? " (1)" : ""}
+                ${siyuanI18n.cardRatingAgain}${!isMobile() ? " (1)" : ""}
             </button>
         </div>
         <div>
             <span></span>
             <button data-type="2" aria-label="2 / k / s" class="b3-button b3-button--warning b3-tooltips__n b3-tooltips">
                 <div class="card__icon">😬</div>
-                ${window.siyuan.languages.cardRatingHard}${!isMobile() ? " (2)" : ""}
+                ${siyuanI18n.cardRatingHard}${!isMobile() ? " (2)" : ""}
             </button>
         </div>
         <div>
             <span></span>
-            <button data-type="3" aria-label="3 / l / d / ${window.siyuan.languages.space} / ${window.siyuan.languages.enterKey}" class="b3-button b3-button--info b3-tooltips__n b3-tooltips">
+            <button data-type="3" aria-label="3 / l / d / ${siyuanI18n.space} / ${siyuanI18n.enterKey}" class="b3-button b3-button--info b3-tooltips__n b3-tooltips">
                 <div class="card__icon">😊</div>
-                ${window.siyuan.languages.cardRatingGood}${!isMobile() ? " (3)" : ""}
+                ${siyuanI18n.cardRatingGood}${!isMobile() ? " (3)" : ""}
             </button>
         </div>
         <div>
             <span></span>
             <button data-type="4" aria-label="4 / ; / f" class="b3-button b3-button--success b3-tooltips__n b3-tooltips">
                 <div class="card__icon">🌈</div>
-                ${window.siyuan.languages.cardRatingEasy}${!isMobile() ? " (4)" : ""}
+                ${siyuanI18n.cardRatingEasy}${!isMobile() ? " (4)" : ""}
             </button>
         </div>
     </div>
@@ -343,25 +344,25 @@ export const bindCardEvent = async (options: {
                 event.stopPropagation();
                 event.preventDefault();
                 if (filterElement.getAttribute("data-cardtype") === "all" && filterElement.getAttribute("data-id")) {
-                    showMessage(window.siyuan.languages.noSupportTip);
+                    showMessage(siyuanI18n.noSupportTip);
                     return;
                 }
                 const menu = new Menu();
                 menu.addItem({
                     id: "setDueTime",
                     icon: "iconClock",
-                    label: window.siyuan.languages.setDueTime,
+                    label: siyuanI18n.setDueTime,
                     click() {
                         const timedialog = new Dialog({
-                            title: window.siyuan.languages.setDueTime,
+                            title: siyuanI18n.setDueTime,
                             content: `<div class="b3-dialog__content">
-    <div class="b3-label__text">${window.siyuan.languages.showCardDay}</div>
+    <div class="b3-label__text">${siyuanI18n.showCardDay}</div>
     <div class="fn__hr"></div>
     <input class="b3-text-field fn__block" value="1" type="number" step="1" min="1">
 </div>
 <div class="b3-dialog__action">
-    <button class="b3-button b3-button--cancel">${window.siyuan.languages.cancel}</button><div class="fn__space"></div>
-    <button class="b3-button b3-button--text">${window.siyuan.languages.confirm}</button>
+    <button class="b3-button b3-button--cancel">${siyuanI18n.cancel}</button><div class="fn__space"></div>
+    <button class="b3-button b3-button--text">${siyuanI18n.confirm}</button>
 </div>`,
                             width: isMobile() ? "92vw" : "520px",
                         });
@@ -401,7 +402,7 @@ export const bindCardEvent = async (options: {
                     menu.addItem({
                         id: "reset",
                         icon: "iconRefresh",
-                        label: window.siyuan.languages.reset,
+                        label: siyuanI18n.reset,
                         click() {
                             fetchPost("/api/riff/resetRiffCards", {
                                 type: filterElement.getAttribute("data-cardtype"),
@@ -409,7 +410,7 @@ export const bindCardEvent = async (options: {
                                 deckID: Constants.QUICK_DECK_ID,
                                 blockIDs: [currentCard.blockID],
                             }, () => {
-                                const minLang = window.siyuan.languages._time["1m"].replace("%s", "");
+                                const minLang = siyuanI18n._time["1m"].replace("%s", "");
                                 currentCard.lapses = 0;
                                 currentCard.lastReview = -62135596800000;
                                 currentCard.reps = 0;
@@ -418,7 +419,7 @@ export const bindCardEvent = async (options: {
                                     1: minLang,
                                     2: minLang.replace("1", "5"),
                                     3: minLang.replace("1", "10"),
-                                    4: window.siyuan.languages._time["1d"].replace("%s", "").replace("1", "6")
+                                    4: siyuanI18n._time["1d"].replace("%s", "").replace("1", "6")
                                 };
                                 actionElements[1].querySelectorAll("button.b3-button").forEach((element, btnIndex) => {
                                     if (btnIndex < 2) {
@@ -436,7 +437,7 @@ export const bindCardEvent = async (options: {
                 menu.addItem({
                     id: "removeRiffCard",
                     icon: "iconTrashcan",
-                    label: `${window.siyuan.languages.remove} <b>${window.siyuan.languages.riffCard}</b>`,
+                    label: `${siyuanI18n.remove} <b>${siyuanI18n.riffCard}</b>`,
                     click() {
                         actionElements[0].classList.add("fn__none");
                         actionElements[1].classList.remove("fn__none");
@@ -461,19 +462,19 @@ export const bindCardEvent = async (options: {
                     iconHTML: "",
                     type: "readonly",
                     label: `<div class="fn__flex">
-    <div class="fn__flex-1 ft__breakword">${window.siyuan.languages.forgetCount}</div>
+    <div class="fn__flex-1 ft__breakword">${siyuanI18n.forgetCount}</div>
     <div class="fn__space"></div>
     <div>${currentCard.lapses}</div>
 </div><div class="fn__flex">
-    <div class="fn__flex-1 ft__breakword">${window.siyuan.languages.revisionCount}</div>
+    <div class="fn__flex-1 ft__breakword">${siyuanI18n.revisionCount}</div>
     <div class="fn__space"></div>
     <div>${currentCard.reps}</div>
 </div><div class="fn__flex">
-    <div class="fn__flex-1 ft__breakword">${window.siyuan.languages.cardStatus}</div>
+    <div class="fn__flex-1 ft__breakword">${siyuanI18n.cardStatus}</div>
     <div class="fn__space"></div>
-    <div class="${currentCard.state === 0 ? "ft__primary" : "ft__success"}">${currentCard.state === 0 ? window.siyuan.languages.flashcardNewCard : window.siyuan.languages.flashcardReviewCard}</div>
+    <div class="${currentCard.state === 0 ? "ft__primary" : "ft__success"}">${currentCard.state === 0 ? siyuanI18n.flashcardNewCard : siyuanI18n.flashcardReviewCard}</div>
 </div><div class="fn__flex${currentCard.lastReview > 0 ? "" : " fn__none"}">
-    <div class="fn__flex-1 ft__breakword" style="width: 170px;">${window.siyuan.languages.lastReviewTime}</div>
+    <div class="fn__flex-1 ft__breakword" style="width: 170px;">${siyuanI18n.lastReviewTime}</div>
     <div class="fn__space"></div>
     <div>${dayjs(currentCard.lastReview).format("YYYY-MM-DD")}</div>
 </div>`,
@@ -496,13 +497,13 @@ export const bindCardEvent = async (options: {
                 stickMenu.addItem({
                     id: "openInNewTab",
                     icon: "iconOpen",
-                    label: window.siyuan.languages.openInNewTab,
+                    label: siyuanI18n.openInNewTab,
                     click() {
                         openFile({
                             app: options.app,
                             custom: {
                                 icon: "iconRiffCard",
-                                title: window.siyuan.languages.spaceRepetition,
+                                title: siyuanI18n.spaceRepetition,
                                 data: {
                                     cardsData: options.cardsData,
                                     index,
@@ -519,14 +520,14 @@ export const bindCardEvent = async (options: {
                 stickMenu.addItem({
                     id: "insertRight",
                     icon: "iconLayoutRight",
-                    label: window.siyuan.languages.insertRight,
+                    label: siyuanI18n.insertRight,
                     click() {
                         openFile({
                             app: options.app,
                             position: "right",
                             custom: {
                                 icon: "iconRiffCard",
-                                title: window.siyuan.languages.spaceRepetition,
+                                title: siyuanI18n.spaceRepetition,
                                 data: {
                                     cardsData: options.cardsData,
                                     index,
@@ -544,10 +545,10 @@ export const bindCardEvent = async (options: {
                 stickMenu.addItem({
                     id: "openByNewWindow",
                     icon: "iconOpenWindow",
-                    label: window.siyuan.languages.openByNewWindow,
+                    label: siyuanI18n.openByNewWindow,
                     click() {
                         const json = [{
-                            "title": window.siyuan.languages.spaceRepetition,
+                            "title": siyuanI18n.spaceRepetition,
                             "icon": "iconRiffCard",
                             "instance": "Tab",
                             "children": {
@@ -596,7 +597,7 @@ export const bindCardEvent = async (options: {
                     window.siyuan.menus.menu.append(new MenuItem({
                         id: "all",
                         iconHTML: "",
-                        label: window.siyuan.languages.all,
+                        label: siyuanI18n.all,
                         click() {
                             filterElement.setAttribute("data-id", "");
                             filterElement.setAttribute("data-cardtype", "all");
@@ -606,7 +607,7 @@ export const bindCardEvent = async (options: {
                     window.siyuan.menus.menu.append(new MenuItem({
                         id: "fileTree",
                         iconHTML: "",
-                        label: window.siyuan.languages.fileTree,
+                        label: siyuanI18n.fileTree,
                         click() {
                             movePathTo({
                                 cb: (toPath, toNotebook) => {
@@ -614,7 +615,7 @@ export const bindCardEvent = async (options: {
                                     filterElement.setAttribute("data-cardtype", toPath[0] === "/" ? "notebook" : "doc");
                                     fetchNewRound();
                                 },
-                                title: window.siyuan.languages.specifyPath,
+                                title: siyuanI18n.specifyPath,
                                 flashcard: true
                             });
                         }
@@ -878,7 +879,7 @@ const allDone = (countElement: Element, editor: Protyle, actionElements: NodeLis
     countElement.classList.add("fn__none");
     editor.protyle.element.classList.add("fn__none");
     const emptyElement = editor.protyle.element.nextElementSibling;
-    emptyElement.innerHTML = `<div>🔮</div>${window.siyuan.languages.noDueCard}`;
+    emptyElement.innerHTML = `<div>🔮</div>${siyuanI18n.noDueCard}`;
     emptyElement.classList.remove("fn__none");
     actionElements[0].classList.add("fn__none");
     actionElements[1].classList.add("fn__none");
@@ -892,9 +893,9 @@ const newRound = (countElement: Element, editor: Protyle, actionElements: NodeLi
     editor.protyle.element.classList.add("fn__none");
     const emptyElement = editor.protyle.element.nextElementSibling;
     emptyElement.innerHTML = `<div>♻️ </div>
-<span>${window.siyuan.languages.continueReview2.replace("${count}", unreviewedCount)}</span>
+<span>${siyuanI18n.continueReview2.replace("${count}", unreviewedCount)}</span>
 <div class="fn__hr"></div>
-<button data-type="newround" class="b3-button fn__size200">${window.siyuan.languages.continueReview1}</button>`;
+<button data-type="newround" class="b3-button fn__size200">${siyuanI18n.continueReview1}</button>`;
     emptyElement.classList.remove("fn__none");
     actionElements[0].classList.add("fn__none");
     actionElements[1].classList.add("fn__none");
