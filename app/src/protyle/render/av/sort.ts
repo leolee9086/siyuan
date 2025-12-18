@@ -5,6 +5,7 @@ import {setPosition} from "../../../util/setPosition";
 import {unicode2Emoji} from "../../../emoji";
 import {getFieldsByData} from "./view";
 import {Constants} from "../../../constants";
+import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const addSort = (options: {
     data: IAV,
@@ -115,8 +116,8 @@ export const getSortsHTML = (columns: IAVColumn[], sorts: IAVSort[]) => {
     </select>
     <span class="fn__space"></span>
     <select class="b3-select" style="margin: 4px 0">
-        <option value="ASC" ${item.order === "ASC" ? "selected" : ""}>${window.siyuan.languages.asc}</option>
-        <option value="DESC" ${item.order === "DESC" ? "selected" : ""}>${window.siyuan.languages.desc}</option>
+        <option value="ASC" ${item.order === "ASC" ? "selected" : ""}>${siyuanI18n.asc}</option>
+        <option value="DESC" ${item.order === "DESC" ? "selected" : ""}>${siyuanI18n.desc}</option>
     </select>
     <svg class="b3-menu__action" data-type="removeSort"><use xlink:href="#iconTrashcan"></use></svg>
 </button>`;
@@ -126,17 +127,17 @@ export const getSortsHTML = (columns: IAVColumn[], sorts: IAVSort[]) => {
     <span class="block__icon" style="padding: 8px;margin-left: -4px;" data-type="go-config">
         <svg><use xlink:href="#iconLeft"></use></svg>
     </span>
-    <span class="b3-menu__label ft__center">${window.siyuan.languages.sort}</span>
+    <span class="b3-menu__label ft__center">${siyuanI18n.sort}</span>
 </button>
 <button class="b3-menu__separator"></button>
 ${html}
 <button class="b3-menu__item${sorts.length === columns.length ? " fn__none" : ""}" data-type="addSort">
     <svg class="b3-menu__icon"><use xlink:href="#iconAdd"></use></svg>
-    <span class="b3-menu__label">${window.siyuan.languages.addSort}</span>
+    <span class="b3-menu__label">${siyuanI18n.addSort}</span>
 </button>
 <button class="b3-menu__item b3-menu__item--warning${html ? "" : " fn__none"}" data-type="removeSorts">
     <svg class="b3-menu__icon"><use xlink:href="#iconTrashcan"></use></svg>
-    <span class="b3-menu__label">${window.siyuan.languages.removeSorts}</span>
+    <span class="b3-menu__label">${siyuanI18n.removeSorts}</span>
 </button>
 </div>`;
 };
