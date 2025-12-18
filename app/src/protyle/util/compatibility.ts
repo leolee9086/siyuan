@@ -6,6 +6,7 @@ import {clipboard, ipcRenderer} from "electron";
 /// #endif
 /// #if MOBILE
 import {processSYLink} from "../../editor/openLink";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 /// #endif
 
 export const isPhablet = () => {
@@ -111,11 +112,11 @@ export const readText = () => {
         return window.JSHarmony.readClipboard();
     }
     if (typeof navigator.clipboard === "undefined") {
-        alert(window.siyuan.languages.clipboardPermissionDenied);
+        alert(siyuanI18n.clipboardPermissionDenied);
         return "";
     }
     return navigator.clipboard.readText().catch(() => {
-        alert(window.siyuan.languages.clipboardPermissionDenied);
+        alert(siyuanI18n.clipboardPermissionDenied);
     }) || "";
 };
 
@@ -159,12 +160,12 @@ export const readClipboard = async () => {
         return text;
     }
     if (typeof navigator.clipboard === "undefined") {
-        alert(window.siyuan.languages.clipboardPermissionDenied);
+        alert(siyuanI18n.clipboardPermissionDenied);
         return text;
     }
     try {
         const clipboardContents = await navigator.clipboard.read().catch(() => {
-            alert(window.siyuan.languages.clipboardPermissionDenied);
+            alert(siyuanI18n.clipboardPermissionDenied);
         });
         if (!clipboardContents) {
             return text;
