@@ -13,6 +13,7 @@ import {getColIconByType, getColNameByType} from "../col";
 import {getCompressURL} from "../../../../util/image";
 import {getPageSize} from "../groups";
 import {renderKanban} from "../kanban/render";
+import { siyuanI18n } from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 interface IIds {
     groupId: string,
@@ -96,7 +97,7 @@ ${cell.color ? `color:${cell.color};` : ""}">${renderCell(cell.value, rowIndex, 
             } else {
                 galleryHTML += `<div class="av__gallery-field" data-empty="${isEmpty}">
     <div class="av__gallery-tip">
-        ${data.fields[fieldsIndex].icon ? unicode2Emoji(data.fields[fieldsIndex].icon, undefined, true) : `<svg><use xlink:href="#${getColIconByType(data.fields[fieldsIndex].type)}"></use></svg>`}${window.siyuan.languages.edit} ${Lute.EscapeHTMLStr(data.fields[fieldsIndex].name)}
+        ${data.fields[fieldsIndex].icon ? unicode2Emoji(data.fields[fieldsIndex].icon, undefined, true) : `<svg><use xlink:href="#${getColIconByType(data.fields[fieldsIndex].type)}"></use></svg>`}${siyuanI18n.edit} ${Lute.EscapeHTMLStr(data.fields[fieldsIndex].name)}
     </div>
     ${cellHTML}
 </div>`;
@@ -104,19 +105,19 @@ ${cell.color ? `color:${cell.color};` : ""}">${renderCell(cell.value, rowIndex, 
         });
         galleryHTML += `</div>
     <div class="av__gallery-actions">
-        <span class="protyle-icon protyle-icon--first ariaLabel" data-position="4north" aria-label="${window.siyuan.languages.displayEmptyFields}" data-type="av-gallery-edit"><svg><use xlink:href="#iconEdit"></use></svg></span>
-        <span class="protyle-icon protyle-icon--last ariaLabel" data-position="4north" aria-label="${window.siyuan.languages.more}" data-type="av-gallery-more"><svg><use xlink:href="#iconMore"></use></svg></span>
+        <span class="protyle-icon protyle-icon--first ariaLabel" data-position="4north" aria-label="${siyuanI18n.displayEmptyFields}" data-type="av-gallery-edit"><svg><use xlink:href="#iconEdit"></use></svg></span>
+        <span class="protyle-icon protyle-icon--last ariaLabel" data-position="4north" aria-label="${siyuanI18n.more}" data-type="av-gallery-more"><svg><use xlink:href="#iconMore"></use></svg></span>
     </div>
 </div>`;
     });
-    galleryHTML += `<div class="av__gallery-add" data-type="av-add-bottom"><svg class="svg"><use xlink:href="#iconAdd"></use></svg><span class="fn__space"></span>${window.siyuan.languages.newRow}</div>`;
+    galleryHTML += `<div class="av__gallery-add" data-type="av-add-bottom"><svg class="svg"><use xlink:href="#iconAdd"></use></svg><span class="fn__space"></span>${siyuanI18n.newRow}</div>`;
     return `<div class="av__gallery${data.cardSize === 0 ? " av__gallery--small" : (data.cardSize === 2 ? " av__gallery--big" : "")}">
     ${galleryHTML}
 </div>
 <div class="av__gallery-load${data.cardCount > data.cards.length ? "" : " fn__none"}">
     <button class="b3-button av__button" data-type="av-load-more">
         <svg><use xlink:href="#iconArrowDown"></use></svg>
-        <span>${window.siyuan.languages.loadMore}</span>
+        <span>${siyuanI18n.loadMore}</span>
         <svg data-type="set-page-size" data-size="${data.pageSize}"><use xlink:href="#iconMore"></use></svg>
     </button>
 </div>`;
@@ -183,7 +184,7 @@ export const afterRenderGallery = (options: ITableOptions) => {
         }
         if (itemElement) {
             itemElement.querySelector(".av__gallery-fields").classList.add("av__gallery-fields--edit");
-            itemElement.querySelector('.protyle-icon[data-type="av-gallery-edit"]').setAttribute("aria-label", window.siyuan.languages.hideEmptyFields);
+            itemElement.querySelector('.protyle-icon[data-type="av-gallery-edit"]').setAttribute("aria-label", siyuanI18n.hideEmptyFields);
         }
     });
     Object.keys(options.resetData.pageSizes).forEach((groupId) => {
