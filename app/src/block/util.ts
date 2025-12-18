@@ -11,7 +11,7 @@ import {fetchPost, fetchSyncPost} from "../util/fetch";
 import { openFileById } from "../editor/utils.openFileById";
 import {openMobileFileById} from "../mobile/editor";
 import {mathRender} from "../protyle/render/mathRender";
-
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 export const cancelSB = async (protyle: IProtyle, nodeElement: Element, range?: Range) => {
     const doOperations: IOperation[] = [];
     const undoOperations: IOperation[] = [];
@@ -239,22 +239,22 @@ export const getLangByType = (type: string) => {
             lang = "IFrame";
             break;
         case "NodeAttributeView":
-            lang = window.siyuan.languages.database;
+            lang = siyuanI18n.database;
             break;
         case "NodeThematicBreak":
-            lang = window.siyuan.languages.line;
+            lang = siyuanI18n.line;
             break;
         case "NodeWidget":
-            lang = window.siyuan.languages.widget;
+            lang = siyuanI18n.widget;
             break;
         case "NodeVideo":
-            lang = window.siyuan.languages.video;
+            lang = siyuanI18n.video;
             break;
         case "NodeAudio":
-            lang = window.siyuan.languages.audio;
+            lang = siyuanI18n.audio;
             break;
         case "NodeBlockQueryEmbed":
-            lang = window.siyuan.languages.blockEmbed;
+            lang = siyuanI18n.blockEmbed;
             break;
     }
     return lang;

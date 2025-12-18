@@ -501,7 +501,7 @@ interface ISiyuan {
             desc: string
         }[]
     },
-    dragElement?: HTMLElement|undefined,
+    dragElement?: HTMLElement | undefined,
     currentDragOverTabHeadersElement?: HTMLElement
     layout?: {
         layout?: import("../layout").Layout,
@@ -641,7 +641,7 @@ interface IExportOptions {
 
 interface IOpenFileOptions {
     app: import("../index").App,
-    searchData?: Config.IUILayoutTabSearchConfig, // 搜索必填
+    searchData?: Config.IUILayoutTabSearchConfig | undefined, // 搜索必填
     // card 和自定义页签 必填
     custom?: {
         title: string,
@@ -652,22 +652,22 @@ interface IOpenFileOptions {
             tab: import("../layout/Tab").Tab,
             data: any,
         }) => import("../layout/Model").Model,   // plugin 0.8.3 历史兼容
-    }
-    scrollPosition?: ScrollLogicalPosition,
-    assetPath?: string, // asset 必填
-    fileName?: string, // file 必填
-    rootIcon?: string, // 文档图标
-    id?: string,  // file 必填
-    rootID?: string, // file 必填
-    position?: string, // file 或者 asset，打开位置
-    page?: number | string, // asset
-    mode?: TEditorMode // file
-    action?: TProtyleAction[]
-    keepCursor?: boolean // file，是否跳转到新 tab 上
-    zoomIn?: boolean // 是否缩放
-    removeCurrentTab?: boolean // 在当前页签打开时需移除原有页签
-    openNewTab?: boolean // 使用新页签打开
-    afterOpen?: (model?: import("../layout/Model").Model) => void // 打开后回调
+    } | undefined
+    scrollPosition?: ScrollLogicalPosition | undefined,
+    assetPath?: string | undefined, // asset 必填
+    fileName?: string | undefined, // file 必填
+    rootIcon?: string | undefined, // 文档图标
+    id?: string | undefined,  // file 必填
+    rootID?: string | undefined, // file 必填
+    position?: string | undefined, // file 或者 asset，打开位置
+    page?: number | string | undefined, // asset
+    mode?: TEditorMode | undefined // file
+    action?: TProtyleAction[] | undefined
+    keepCursor?: boolean | undefined // file，是否跳转到新 tab 上
+    zoomIn?: boolean | undefined // 是否缩放
+    removeCurrentTab?: boolean | undefined // 在当前页签打开时需移除原有页签
+    openNewTab?: boolean | undefined // 使用新页签打开
+    afterOpen?: ((model?: import("../layout/Model").Model) => void) | undefined // 打开后回调
 }
 
 interface ILayoutOptions {

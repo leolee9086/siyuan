@@ -1,6 +1,7 @@
 import { App } from "../../index";
 import { Constants } from "../../constants";
 import { Model } from "../../layout/Model";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 /// #if !MOBILE
 import { openFile } from "../../editor/util";
 import { openFileById } from "../../editor/utils.openFileById";
@@ -49,11 +50,7 @@ export interface IOpenTabOptions {
     afterOpen?: (model?: Model) => void;
 }
 
-/// #if MOBILE
-export const openTab = () => {
-    // TODO: Mobile
-};
-/// #else
+
 
 /** 处理文档打开 */
 const 处理文档打开 = (options: IOpenTabOptions) => {
@@ -132,7 +129,7 @@ const 处理闪卡打开 = (options: IOpenTabOptions) => {
         afterOpen: options.afterOpen,
         custom: {
             icon: "iconRiffCard",
-            title: window.siyuan.languages.spaceRepetition,
+            title: siyuanI18n.spaceRepetition,
             data: {
                 cardType: card.type,
                 id: card.id || "",
@@ -145,6 +142,11 @@ const 处理闪卡打开 = (options: IOpenTabOptions) => {
 
 /** 打开Tab页签的主函数 */
 export const openTab = (options: IOpenTabOptions) => {
+    /// #if MOBILE
+    return;
+    // TODO: Mobile
+
+    /// #else
     if (options.doc) {
         return 处理文档打开(options);
     }

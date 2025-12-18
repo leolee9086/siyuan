@@ -8,14 +8,14 @@ import { openFile } from "./util";
 export const openFileById = async (options: {
     app: App;
     id: string;
-    position?: string;
-    mode?: TEditorMode;
-    action?: TProtyleAction[];
-    keepCursor?: boolean;
-    zoomIn?: boolean;
-    removeCurrentTab?: boolean;
-    openNewTab?: boolean;
-    afterOpen?: (model: Model) => void;
+    position?: string | undefined;
+    mode?: TEditorMode | undefined;
+    action?: TProtyleAction[] | undefined;
+    keepCursor?: boolean | undefined;
+    zoomIn?: boolean | undefined;
+    removeCurrentTab?: boolean | undefined;
+    openNewTab?: boolean | undefined;
+    afterOpen?: ((model?: Model) => void) | undefined;
 }) => {
     const response = await fetchSyncPost("/api/block/getBlockInfo", { id: options.id });
     if (response.code === -1) {

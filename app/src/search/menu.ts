@@ -8,16 +8,16 @@ import {escapeHtml} from "../util/escape";
 import {setStorageVal} from "../protyle/util/compatibility";
 import {confirmDialog} from "../dialog/confirmDialog";
 import {goUnRef, updateSearchResult} from "../mobile/menu/search";
-
+import {siyuanI18n} from "../util/siyuanEnvironments/i18n.getI18n.environment";
 export const filterMenu = (config: Config.IUILayoutTabSearchConfig, cb: () => void) => {
     const filterDialog = new Dialog({
-        title: window.siyuan.languages.searchType,
+        title: siyuanI18n.searchType,
         content: `<div class="b3-dialog__content">
     <label class="fn__flex b3-label">
         <svg class="ft__on-surface svg fn__flex-center"><use xlink:href="#iconMath"></use></svg>
         <span class="fn__space"></span>
         <div class="fn__flex-1 fn__flex-center">
-            ${window.siyuan.languages.math}
+            ${siyuanI18n.math}
         </div>
         <span class="fn__space"></span>
         <input class="b3-switch fn__flex-center" data-type="mathBlock" type="checkbox"${config.types.mathBlock ? " checked" : ""}>
@@ -26,7 +26,7 @@ export const filterMenu = (config: Config.IUILayoutTabSearchConfig, cb: () => vo
         <svg class="ft__on-surface svg fn__flex-center"><use xlink:href="#iconTable"></use></svg>
         <span class="fn__space"></span>
         <div class="fn__flex-1 fn__flex-center">
-            ${window.siyuan.languages.table}
+            ${siyuanI18n.table}
         </div>
         <span class="fn__space"></span>
         <input class="b3-switch fn__flex-center" data-type="table" type="checkbox"${config.types.table ? " checked" : ""}>
@@ -35,7 +35,7 @@ export const filterMenu = (config: Config.IUILayoutTabSearchConfig, cb: () => vo
         <svg class="ft__on-surface svg fn__flex-center"><use xlink:href="#iconParagraph"></use></svg>
         <span class="fn__space"></span>
         <div class="fn__flex-1 fn__flex-center">
-            ${window.siyuan.languages.paragraph}
+            ${siyuanI18n.paragraph}
         </div>
         <span class="fn__space"></span>
         <input class="b3-switch fn__flex-center" data-type="paragraph" type="checkbox"${config.types.paragraph ? " checked" : ""}>
@@ -44,7 +44,7 @@ export const filterMenu = (config: Config.IUILayoutTabSearchConfig, cb: () => vo
         <svg class="ft__on-surface svg fn__flex-center"><use xlink:href="#iconHeadings"></use></svg>
         <span class="fn__space"></span>
         <div class="fn__flex-1 fn__flex-center">
-            ${window.siyuan.languages.headings}
+            ${siyuanI18n.headings}
         </div>
         <span class="fn__space"></span>
         <input class="b3-switch fn__flex-center" data-type="heading" type="checkbox"${config.types.heading ? " checked" : ""}>
@@ -53,7 +53,7 @@ export const filterMenu = (config: Config.IUILayoutTabSearchConfig, cb: () => vo
         <svg class="ft__on-surface svg fn__flex-center"><use xlink:href="#iconCode"></use></svg>
         <span class="fn__space"></span>
         <div class="fn__flex-1 fn__flex-center">
-            ${window.siyuan.languages.code}
+            ${siyuanI18n.code}
         </div>
         <span class="fn__space"></span>
         <input class="b3-switch fn__flex-center" data-type="codeBlock" type="checkbox"${config.types.codeBlock ? " checked" : ""}>
@@ -71,7 +71,7 @@ export const filterMenu = (config: Config.IUILayoutTabSearchConfig, cb: () => vo
         <svg class="ft__on-surface svg fn__flex-center"><use xlink:href="#iconDatabase"></use></svg>
         <span class="fn__space"></span>
         <div class="fn__flex-1 fn__flex-center">
-            ${window.siyuan.languages.database}
+            ${siyuanI18n.database}
         </div>
         <span class="fn__space"></span>
         <input class="b3-switch fn__flex-center" data-type="databaseBlock" type="checkbox"${config.types.databaseBlock ? " checked" : ""}>
@@ -80,7 +80,7 @@ export const filterMenu = (config: Config.IUILayoutTabSearchConfig, cb: () => vo
         <svg class="ft__on-surface svg fn__flex-center"><use xlink:href="#iconSQL"></use></svg>
         <span class="fn__space"></span>
         <div class="fn__flex-1 fn__flex-center">
-            ${window.siyuan.languages.embedBlock}
+            ${siyuanI18n.embedBlock}
         </div>
         <span class="fn__space"></span>
         <input class="b3-switch fn__flex-center" data-type="embedBlock" type="checkbox"${config.types.embedBlock ? " checked" : ""}>
@@ -89,7 +89,7 @@ export const filterMenu = (config: Config.IUILayoutTabSearchConfig, cb: () => vo
         <svg class="ft__on-surface svg fn__flex-center"><use xlink:href="#iconVideo"></use></svg>
         <span class="fn__space"></span>
         <div class="fn__flex-1 fn__flex-center">
-            ${window.siyuan.languages.video}
+            ${siyuanI18n.video}
         </div>
         <span class="fn__space"></span>
         <input class="b3-switch fn__flex-center" data-type="videoBlock" type="checkbox"${config.types.videoBlock ? " checked" : ""}>
@@ -98,7 +98,7 @@ export const filterMenu = (config: Config.IUILayoutTabSearchConfig, cb: () => vo
         <svg class="ft__on-surface svg fn__flex-center"><use xlink:href="#iconRecord"></use></svg>
         <span class="fn__space"></span>
         <div class="fn__flex-1 fn__flex-center">
-            ${window.siyuan.languages.audio}
+            ${siyuanI18n.audio}
         </div>
         <span class="fn__space"></span>
         <input class="b3-switch fn__flex-center" data-type="audioBlock" type="checkbox"${config.types.audioBlock ? " checked" : ""}>
@@ -116,7 +116,7 @@ export const filterMenu = (config: Config.IUILayoutTabSearchConfig, cb: () => vo
         <svg class="ft__on-surface svg fn__flex-center"><use xlink:href="#iconBoth"></use></svg>
         <span class="fn__space"></span>
         <div class="fn__flex-1 fn__flex-center">
-            ${window.siyuan.languages.widget}
+            ${siyuanI18n.widget}
         </div>
         <span class="fn__space"></span>
         <input class="b3-switch fn__flex-center" data-type="widgetBlock" type="checkbox"${config.types.widgetBlock ? " checked" : ""}>
@@ -125,7 +125,7 @@ export const filterMenu = (config: Config.IUILayoutTabSearchConfig, cb: () => vo
         <svg class="ft__on-surface svg fn__flex-center"><use xlink:href="#iconQuote"></use></svg>
         <span class="fn__space"></span>
         <div class="fn__flex-1 fn__flex-center">
-            ${window.siyuan.languages.quote} <sup>[1]</sup>
+            ${siyuanI18n.quote} <sup>[1]</sup>
         </div>
         <span class="fn__space"></span>
         <input class="b3-switch fn__flex-center" data-type="blockquote" type="checkbox"${config.types.blockquote ? " checked" : ""}>
@@ -134,7 +134,7 @@ export const filterMenu = (config: Config.IUILayoutTabSearchConfig, cb: () => vo
         <svg class="ft__on-surface svg fn__flex-center"><use xlink:href="#iconCallout"></use></svg>
         <span class="fn__space"></span>
         <div class="fn__flex-1 fn__flex-center">
-            ${window.siyuan.languages.callout} <sup>[1]</sup>
+            ${siyuanI18n.callout} <sup>[1]</sup>
         </div>
         <span class="fn__space"></span>
         <input class="b3-switch fn__flex-center" data-type="callout" type="checkbox"${config.types.callout ? " checked" : ""}>
@@ -143,7 +143,7 @@ export const filterMenu = (config: Config.IUILayoutTabSearchConfig, cb: () => vo
         <svg class="ft__on-surface svg fn__flex-center"><use xlink:href="#iconSuper"></use></svg>
         <span class="fn__space"></span>
         <div class="fn__flex-1 fn__flex-center">
-            ${window.siyuan.languages.superBlock} <sup>[1]</sup>
+            ${siyuanI18n.superBlock} <sup>[1]</sup>
         </div>
         <span class="fn__space"></span>
         <input class="b3-switch fn__flex-center" data-type="superBlock" type="checkbox"${config.types.superBlock ? " checked" : ""}>
@@ -152,7 +152,7 @@ export const filterMenu = (config: Config.IUILayoutTabSearchConfig, cb: () => vo
         <svg class="ft__on-surface svg fn__flex-center"><use xlink:href="#iconList"></use></svg>
         <span class="fn__space"></span>
         <div class="fn__flex-1 fn__flex-center">
-            ${window.siyuan.languages.list1} <sup>[1]</sup>
+            ${siyuanI18n.list1} <sup>[1]</sup>
         </div>
         <span class="fn__space"></span>
         <input class="b3-switch fn__flex-center" data-type="list" type="checkbox"${config.types.list ? " checked" : ""}>
@@ -161,7 +161,7 @@ export const filterMenu = (config: Config.IUILayoutTabSearchConfig, cb: () => vo
         <svg class="ft__on-surface svg fn__flex-center"><use xlink:href="#iconListItem"></use></svg>
         <span class="fn__space"></span>
         <div class="fn__flex-1 fn__flex-center">
-            ${window.siyuan.languages.listItem} <sup>[1]</sup>
+            ${siyuanI18n.listItem} <sup>[1]</sup>
         </div>
         <span class="fn__space"></span>
         <input class="b3-switch fn__flex-center" data-type="listItem" type="checkbox"${config.types.listItem ? " checked" : ""}>
@@ -170,19 +170,19 @@ export const filterMenu = (config: Config.IUILayoutTabSearchConfig, cb: () => vo
         <svg class="ft__on-surface svg fn__flex-center"><use xlink:href="#iconFile"></use></svg>
         <span class="fn__space"></span>
         <div class="fn__flex-1 fn__flex-center">
-            ${window.siyuan.languages.doc}
+            ${siyuanI18n.doc}
         </div>
         <span class="fn__space"></span>
         <input class="b3-switch fn__flex-center" data-type="document" type="checkbox"${config.types.document ? " checked" : ""}>
     </label>
     <span class="fn__space"></span>
     <div class="fn__flex-1">
-        <div class="b3-label__text">[1] ${window.siyuan.languages.containerBlockTip1}</div>
+        <div class="b3-label__text">[1] ${siyuanI18n.containerBlockTip1}</div>
     </div>    
 </div>
 <div class="b3-dialog__action">
-    <button class="b3-button b3-button--cancel">${window.siyuan.languages.cancel}</button><div class="fn__space"></div>
-    <button class="b3-button b3-button--text">${window.siyuan.languages.confirm}</button>
+    <button class="b3-button b3-button--cancel">${siyuanI18n.cancel}</button><div class="fn__space"></div>
+    <button class="b3-button b3-button--text">${siyuanI18n.confirm}</button>
 </div>`,
         width: isMobile() ? "92vw" : "520px",
         height: "70vh",
@@ -209,18 +209,18 @@ export const replaceFilterMenu = (config: Config.IUILayoutTabSearchConfig) => {
         html += `<label class="fn__flex b3-label">
     <span class="fn__space"></span>
     <div class="fn__flex-1 fn__flex-center">
-        ${window.siyuan.languages.replaceTypes[key]}
+        ${siyuanI18n.replaceTypes[key]}
     </div>
     <span class="fn__space"></span>
     <input class="b3-switch fn__flex-center" data-type="${key}" type="checkbox"${config.replaceTypes[key] ? " checked" : ""}>
 </label>`;
     });
     const filterDialog = new Dialog({
-        title: window.siyuan.languages.replaceType,
+        title: siyuanI18n.replaceType,
         content: `<div class="b3-dialog__content">${html}</div>
 <div class="b3-dialog__action">
-    <button class="b3-button b3-button--cancel">${window.siyuan.languages.cancel}</button><div class="fn__space"></div>
-    <button class="b3-button b3-button--text">${window.siyuan.languages.confirm}</button>
+    <button class="b3-button b3-button--cancel">${siyuanI18n.cancel}</button><div class="fn__space"></div>
+    <button class="b3-button b3-button--text">${siyuanI18n.confirm}</button>
 </div>`,
         width: isMobile() ? "92vw" : "520px",
         height: "70vh",
@@ -250,7 +250,7 @@ export const queryMenu = (config: Config.IUILayoutTabSearchConfig, cb: () => voi
     window.siyuan.menus.menu.element.setAttribute("data-name", Constants.MENU_SEARCH_METHOD);
     window.siyuan.menus.menu.append(new MenuItem({
         icon: "iconExact",
-        label: window.siyuan.languages.keyword,
+        label: siyuanI18n.keyword,
         current: config.method === 0,
         click() {
             config.method = 0;
@@ -259,7 +259,7 @@ export const queryMenu = (config: Config.IUILayoutTabSearchConfig, cb: () => voi
     }).element);
     window.siyuan.menus.menu.append(new MenuItem({
         icon: "iconQuote",
-        label: window.siyuan.languages.querySyntax,
+        label: siyuanI18n.querySyntax,
         current: config.method === 1,
         click() {
             config.method = 1;
@@ -277,7 +277,7 @@ export const queryMenu = (config: Config.IUILayoutTabSearchConfig, cb: () => voi
     }).element);
     window.siyuan.menus.menu.append(new MenuItem({
         icon: "iconRegex",
-        label: window.siyuan.languages.regex,
+        label: siyuanI18n.regex,
         current: config.method === 3,
         click() {
             config.method = 3;
@@ -310,13 +310,13 @@ export const saveCriterion = (config: Config.IUILayoutTabSearchConfig,
                               criteriaData: Config.IUILayoutTabSearchConfig[],
                               element: Element) => {
     const saveDialog = new Dialog({
-        title: window.siyuan.languages.saveCriterion,
+        title: siyuanI18n.saveCriterion,
         content: `<div class="b3-dialog__content">
-        <input class="b3-text-field fn__block" placeholder="${window.siyuan.languages.memo}">
+        <input class="b3-text-field fn__block" placeholder="${siyuanI18n.memo}">
 </div>
 <div class="b3-dialog__action">
-    <button class="b3-button b3-button--cancel">${window.siyuan.languages.cancel}</button><div class="fn__space"></div>
-    <button class="b3-button b3-button--text">${window.siyuan.languages.confirm}</button>
+    <button class="b3-button b3-button--cancel">${siyuanI18n.cancel}</button><div class="fn__space"></div>
+    <button class="b3-button b3-button--text">${siyuanI18n.confirm}</button>
 </div>`,
         width: isMobile() ? "92vw" : "520px",
     });
@@ -332,7 +332,7 @@ export const saveCriterion = (config: Config.IUILayoutTabSearchConfig,
         const inputElement = saveDialog.element.querySelector("input");
         const value = inputElement.value.trim();
         if (!value) {
-            showMessage(window.siyuan.languages["_kernel"]["142"]);
+            showMessage(siyuanI18n["_kernel"]["142"]);
             return;
         }
         if (isMobile()) {
@@ -355,7 +355,7 @@ export const saveCriterion = (config: Config.IUILayoutTabSearchConfig,
         });
         inputElement.blur();
         if (hasSameName && !hasSameConfig) {
-            confirmDialog(window.siyuan.languages.confirm, window.siyuan.languages.searchOverwrite, () => {
+            confirmDialog(siyuanI18n.confirm, siyuanI18n.searchOverwrite, () => {
                 Array.from(criteriaElement.children).forEach(item => {
                     if (item.textContent === value) {
                         item.remove();
@@ -374,7 +374,7 @@ export const saveCriterion = (config: Config.IUILayoutTabSearchConfig,
                 saveDialog.destroy();
             } else {
                 const removeName = hasSameName === value ? hasSameConfig : hasSameName;
-                confirmDialog(window.siyuan.languages.confirm, window.siyuan.languages.searchRemoveName.replace("${x}", removeName).replace("${y}", value), () => {
+                confirmDialog(siyuanI18n.confirm, siyuanI18n.searchRemoveName.replace("${x}", removeName).replace("${y}", value), () => {
                     Array.from(criteriaElement.children).forEach(item => {
                         if (item.textContent === hasSameConfig || item.textContent === hasSameName) {
                             item.remove();
@@ -391,7 +391,7 @@ export const saveCriterion = (config: Config.IUILayoutTabSearchConfig,
                 });
             }
         } else if (!hasSameName && hasSameConfig) {
-            confirmDialog(window.siyuan.languages.confirm, window.siyuan.languages.searchUpdateName.replace("${x}", hasSameConfig).replace("${y}", value), () => {
+            confirmDialog(siyuanI18n.confirm, siyuanI18n.searchUpdateName.replace("${x}", hasSameConfig).replace("${y}", value), () => {
                 Array.from(criteriaElement.children).forEach(item => {
                     if (item.textContent === hasSameConfig) {
                         item.remove();
@@ -428,7 +428,7 @@ export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
     /// #if MOBILE
     window.siyuan.menus.menu.append(new MenuItem({
         iconHTML: "",
-        label: window.siyuan.languages.listInvalidRefBlocks,
+        label: siyuanI18n.listInvalidRefBlocks,
         click() {
             goUnRef();
         }
@@ -436,7 +436,7 @@ export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
     window.siyuan.menus.menu.append(new MenuItem({type: "separator"}).element);
     window.siyuan.menus.menu.append(new MenuItem({
         iconHTML: "",
-        label: window.siyuan.languages.searchType,
+        label: siyuanI18n.searchType,
         click() {
             filterMenu(config, () => {
                 updateSearchResult(config, element, true);
@@ -445,18 +445,18 @@ export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
     }).element);
     window.siyuan.menus.menu.append(new MenuItem({
         iconHTML: "",
-        label: window.siyuan.languages.replaceType,
+        label: siyuanI18n.replaceType,
         click() {
             replaceFilterMenu(config);
         }
     }).element);
     window.siyuan.menus.menu.append(new MenuItem({
         iconHTML: "",
-        label: window.siyuan.languages.searchMethod,
+        label: siyuanI18n.searchMethod,
         type: "submenu",
         submenu: [{
             icon: "iconExact",
-            label: window.siyuan.languages.keyword,
+            label: siyuanI18n.keyword,
             current: config.method === 0,
             click() {
                 config.method = 0;
@@ -465,7 +465,7 @@ export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
             }
         }, {
             icon: "iconQuote",
-            label: window.siyuan.languages.querySyntax,
+            label: siyuanI18n.querySyntax,
             current: config.method === 1,
             click() {
                 config.method = 1;
@@ -483,7 +483,7 @@ export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
             }
         }, {
             icon: "iconRegex",
-            label: window.siyuan.languages.regex,
+            label: siyuanI18n.regex,
             current: config.method === 3,
             click() {
                 config.method = 3;
@@ -495,7 +495,7 @@ export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
     /// #endif
     const sortMenu = [{
         iconHTML: "",
-        label: window.siyuan.languages.type,
+        label: siyuanI18n.type,
         current: config.sort === 0,
         click() {
             config.sort = 0;
@@ -503,7 +503,7 @@ export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
         }
     }, {
         iconHTML: "",
-        label: window.siyuan.languages.createdASC,
+        label: siyuanI18n.createdASC,
         current: config.sort === 1,
         click() {
             config.sort = 1;
@@ -511,7 +511,7 @@ export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
         }
     }, {
         iconHTML: "",
-        label: window.siyuan.languages.createdDESC,
+        label: siyuanI18n.createdDESC,
         current: config.sort === 2,
         click() {
             config.sort = 2;
@@ -519,7 +519,7 @@ export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
         }
     }, {
         iconHTML: "",
-        label: window.siyuan.languages.modifiedASC,
+        label: siyuanI18n.modifiedASC,
         current: config.sort === 3,
         click() {
             config.sort = 3;
@@ -527,7 +527,7 @@ export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
         }
     }, {
         iconHTML: "",
-        label: window.siyuan.languages.modifiedDESC,
+        label: siyuanI18n.modifiedDESC,
         current: config.sort === 4,
         click() {
             config.sort = 4;
@@ -535,7 +535,7 @@ export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
         }
     }, {
         iconHTML: "",
-        label: window.siyuan.languages.sortByRankAsc,
+        label: siyuanI18n.sortByRankAsc,
         current: config.sort === 6,
         click() {
             config.sort = 6;
@@ -543,7 +543,7 @@ export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
         }
     }, {
         iconHTML: "",
-        label: window.siyuan.languages.sortByRankDesc,
+        label: siyuanI18n.sortByRankDesc,
         current: config.sort === 7,
         click() {
             config.sort = 7;
@@ -553,7 +553,7 @@ export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
     if (config.group === 1) {
         sortMenu.push({
             iconHTML: "",
-            label: window.siyuan.languages.sortByContent,
+            label: siyuanI18n.sortByContent,
             current: config.sort === 5,
             click() {
                 config.sort = 5;
@@ -563,17 +563,17 @@ export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
     }
     window.siyuan.menus.menu.append(new MenuItem({
         iconHTML: "",
-        label: window.siyuan.languages.sort,
+        label: siyuanI18n.sort,
         type: "submenu",
         submenu: sortMenu,
     }).element);
     window.siyuan.menus.menu.append(new MenuItem({
         iconHTML: "",
-        label: window.siyuan.languages.group,
+        label: siyuanI18n.group,
         type: "submenu",
         submenu: [{
             iconHTML: "",
-            label: window.siyuan.languages.noGroupBy,
+            label: siyuanI18n.noGroupBy,
             current: config.group === 0,
             click() {
                 if (isMobile()) {
@@ -590,7 +590,7 @@ export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
             }
         }, {
             iconHTML: "",
-            label: window.siyuan.languages.groupByDoc,
+            label: siyuanI18n.groupByDoc,
             current: config.group === 1,
             click() {
                 if (isMobile()) {
@@ -609,7 +609,7 @@ export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
     }
     window.siyuan.menus.menu.append(new MenuItem({type: "separator"}).element);
     window.siyuan.menus.menu.append(new MenuItem({
-        label: window.siyuan.languages.saveCriterion,
+        label: siyuanI18n.saveCriterion,
         iconHTML: "",
         click() {
             saveCriterion(config, criteriaData, element);
@@ -617,7 +617,7 @@ export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
     }).element);
     window.siyuan.menus.menu.append(new MenuItem({
         iconHTML: "",
-        label: window.siyuan.languages.removeCriterion,
+        label: siyuanI18n.removeCriterion,
         click() {
             removeCriterion();
         }
@@ -654,9 +654,9 @@ export const initCriteriaMenu = (element: HTMLElement, data: Config.IUILayoutTab
     ${html}
 </div>
 <span class="fn__flex-1"></span>
-<button data-type="saveCriterion" class="b3-button b3-button--small b3-button--outline fn__flex-center">${window.siyuan.languages.saveCriterion}</button>
+<button data-type="saveCriterion" class="b3-button b3-button--small b3-button--outline fn__flex-center">${siyuanI18n.saveCriterion}</button>
 <span class="fn__space"></span>
-<button data-type="removeCriterion" aria-label="${window.siyuan.languages.useCriterion}" class="ariaLabel b3-button b3-button--small b3-button--outline fn__flex-center fn__flex-shrink" data-position="9south">${window.siyuan.languages.removeCriterion}</button>
+<button data-type="removeCriterion" aria-label="${siyuanI18n.useCriterion}" class="ariaLabel b3-button b3-button--small b3-button--outline fn__flex-center fn__flex-shrink" data-position="9south">${siyuanI18n.removeCriterion}</button>
 <span class="fn__space"></span>`;
         /// #endif
     });

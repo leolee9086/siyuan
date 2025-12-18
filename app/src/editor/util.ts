@@ -1,40 +1,40 @@
-import {Tab} from "../layout/Tab";
-import {Editor} from "./index";
-import {Wnd} from "../layout/Wnd";
-import {getInstanceById, getWndByLayout, pdfIsLoading} from "../layout/util";
-import {getAllModels} from "../layout/getAll";
-import {Constants} from "../constants";
-import {setEditMode} from "../protyle/util/setEditMode";
-import {Files} from "../layout/dock/Files";
-import {fetchPost, fetchSyncPost} from "../util/fetch";
-import {focusBlock, focusByOffset, focusByRange} from "../protyle/util/selection";
-import {onGet} from "../protyle/util/onGet";
+import { Tab } from "../layout/Tab";
+import { Editor } from "./index";
+import { Wnd } from "../layout/Wnd";
+import { getInstanceById, getWndByLayout, pdfIsLoading } from "../layout/util";
+import { getAllModels } from "../layout/getAll";
+import { Constants } from "../constants";
+import { setEditMode } from "../protyle/util/setEditMode";
+import { Files } from "../layout/dock/Files";
+import { fetchPost, fetchSyncPost } from "../util/fetch";
+import { focusBlock, focusByOffset, focusByRange } from "../protyle/util/selection";
+import { onGet } from "../protyle/util/onGet";
 /// #if !BROWSER
-import {ipcRenderer} from "electron";
+import { ipcRenderer } from "electron";
 /// #endif
-import {Layout} from "../layout";
+import { Layout } from "../layout";
 import {
     hasClosestByClassName,
 } from "../protyle/util/hasClosest";
-import {objEquals} from "../util/functions";
-import {clearOBG} from "../layout/dock/util";
-import {Model} from "../layout/Model";
-import {hideElements} from "../protyle/ui/hideElements";
+import { objEquals } from "../util/functions";
+import { clearOBG } from "../layout/dock/util";
+import { Model } from "../layout/Model";
+import { hideElements } from "../protyle/ui/hideElements";
 
 export const openFileById = async (options: {
     app: App,
     id: string,
-    position?: string,
-    mode?: TEditorMode,
-    action?: TProtyleAction[]
-    keepCursor?: boolean
-    zoomIn?: boolean
-    removeCurrentTab?: boolean
-    openNewTab?: boolean
-    afterOpen?: (model: Model) => void,
-    scrollPosition?: ScrollLogicalPosition
+    position?: string | undefined,
+    mode?: TEditorMode | undefined,
+    action?: TProtyleAction[] | undefined
+    keepCursor?: boolean | undefined
+    zoomIn?: boolean | undefined
+    removeCurrentTab?: boolean | undefined
+    openNewTab?: boolean | undefined
+    afterOpen?: ((model?: Model) => void) | undefined,
+    scrollPosition?: ScrollLogicalPosition | undefined
 }) => {
-    const response = await fetchSyncPost("/api/block/getBlockInfo", {id: options.id});
+    const response = await fetchSyncPost("/api/block/getBlockInfo", { id: options.id });
     if (response.code === -1) {
         return;
     }
@@ -348,7 +348,7 @@ const switchEditor = (editor: Editor, options: IOpenFileOptions, allModels: IMod
         return true;
     }
     if (options.zoomIn) {
-        zoomOut({protyle: editor.editor.protyle, id: options.id});
+        zoomOut({ protyle: editor.editor.protyle, id: options.id });
         return true;
     }
     let nodeElement: Element;
@@ -571,7 +571,7 @@ export const updatePanelByEditor = (options: {
             }
         }
         options.protyle.app.plugins.forEach(item => {
-            item.eventBus.emit("switch-protyle", {protyle: options.protyle});
+            item.eventBus.emit("switch-protyle", { protyle: options.protyle });
         });
     }
     // 切换页签或关闭所有页签时，需更新对应的面板
@@ -697,7 +697,7 @@ export const updateBacklinkGraph = (models: IModels, protyle: IProtyle) => {
 export const openBy = (url: string, type: "folder" | "app") => {
     /// #if !BROWSER
     if (url.startsWith("assets/")) {
-        fetchPost("/api/asset/resolveAssetPath", {path: url.replace(/\.pdf\?page=\d{1,}$/, ".pdf")}, (response) => {
+        fetchPost("/api/asset/resolveAssetPath", { path: url.replace(/\.pdf\?page=\d{1,}$/, ".pdf") }, (response) => {
             if (type === "app") {
                 useShell("openPath", response.data);
             } else if (type === "folder") {
