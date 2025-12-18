@@ -1,19 +1,19 @@
-import {Constants} from "../constants";
-import {Hint} from "./hint";
-import {setLute} from "./render/setLute";
-import {Preview} from "./preview";
-import {addLoading, initUI, removeLoading} from "./ui/initUI";
-import {Undo} from "./undo";
-import {Upload} from "./upload";
-import {Options} from "./util/Options";
-import {destroy} from "./util/destroy";
-import {Scroll} from "./scroll";
-import {Model} from "../layout/Model";
-import {genUUID} from "../util/genID";
-import {WYSIWYG} from "./wysiwyg";
-import {Toolbar} from "./toolbar";
-import {Gutter} from "./gutter";
-import {Breadcrumb} from "./breadcrumb";
+import { Constants } from "../constants";
+import { Hint } from "./hint";
+import { setLute } from "./render/setLute";
+import { Preview } from "./preview";
+import { addLoading, initUI, removeLoading } from "./ui/initUI";
+import { Undo } from "./undo";
+import { Upload } from "./upload";
+import { Options } from "./util/Options";
+import { destroy } from "./util/destroy";
+import { Scroll } from "./scroll";
+import { Model } from "../layout/Model";
+import { genUUID } from "../util/genID";
+import { WYSIWYG } from "./wysiwyg";
+import { Toolbar } from "./toolbar";
+import { Gutter } from "./gutter";
+import { Breadcrumb } from "./breadcrumb";
 import {
     onTransaction,
     transaction,
@@ -22,32 +22,32 @@ import {
     updateBatchTransaction,
     updateTransaction
 } from "./wysiwyg/transaction";
-import {fetchPost} from "../util/fetch";
+import { fetchPost } from "../util/fetch";
 /// #if !MOBILE
 import { updatePanelByEditor } from "../editor/util.updatePanelByEditor";
-import {setPanelFocus} from "../layout/util";
+import { setPanelFocus } from "../layout/utils/setPanelFocus";
 /// #endif
-import {Title} from "./header/Title";
-import {Background} from "./header/Background";
-import {disabledProtyle, enableProtyle, onGet, setReadonlyByConfig} from "./util/onGet";
-import {reloadProtyle} from "./util/reload";
-import {renderBacklink} from "./wysiwyg/renderBacklink";
-import {setEmpty} from "../mobile/util/setEmpty";
-import {resize} from "./util/resize";
-import {getDocByScroll} from "./scroll/saveScroll";
-import {App} from "../index";
-import {insertHTML} from "./util/insertHTML";
-import {avRender} from "./render/av/render";
-import {focusBlock, getEditorRange} from "./util/selection";
-import {hasClosestBlock} from "./util/hasClosest";
-import {setStorageVal} from "./util/compatibility";
-import {merge} from "./util/merge";
+import { Title } from "./header/Title";
+import { Background } from "./header/Background";
+import { disabledProtyle, enableProtyle, onGet, setReadonlyByConfig } from "./util/onGet";
+import { reloadProtyle } from "./util/reload";
+import { renderBacklink } from "./wysiwyg/renderBacklink";
+import { setEmpty } from "../mobile/util/setEmpty";
+import { resize } from "./util/resize";
+import { getDocByScroll } from "./scroll/saveScroll";
+import { App } from "../index";
+import { insertHTML } from "./util/insertHTML";
+import { avRender } from "./render/av/render";
+import { focusBlock, getEditorRange } from "./util/selection";
+import { hasClosestBlock } from "./util/hasClosest";
+import { setStorageVal } from "./util/compatibility";
+import { merge } from "./util/merge";
 /// #if !MOBILE
-import {getAllModels} from "../layout/getAll";
+import { getAllModels } from "../layout/getAll";
 /// #endif
-import {isSupportCSSHL} from "./render/searchMarkRender";
-import {renderAVAttribute} from "./render/av/blockAttr";
-import {setFoldById, zoomOut} from "../menus/protyle";
+import { isSupportCSSHL } from "./render/searchMarkRender";
+import { renderAVAttribute } from "./render/av/blockAttr";
+import { setFoldById, zoomOut } from "../menus/protyle";
 
 export class Protyle {
 
@@ -175,7 +175,7 @@ export class Protyle {
                                         id: this.protyle.block.rootID,
                                         size: window.siyuan.config.editor.dynamicLoadBlocks,
                                     }, getResponse => {
-                                        onGet({data: getResponse, protyle: this.protyle});
+                                        onGet({ data: getResponse, protyle: this.protyle });
                                     });
                                 } else {
                                     reloadProtyle(this.protyle, false);
@@ -518,17 +518,17 @@ export class Protyle {
     public renderAVAttribute(element: HTMLElement, id: string, cb?: (element: HTMLElement) => void) {
         renderAVAttribute(element, id, this.protyle, cb);
     }
-    
-    
+
+
     /**
      * 定制添加的方法
      */
-    public getSelectedBlockElements(){
+    public getSelectedBlockElements() {
         return this.protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select");
     }
-    public getSelectedBlockIds(){
+    public getSelectedBlockIds() {
         return this.protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select")?.forEach(
-            (element)=>{
+            (element) => {
                 return element.getAttribute("data-node-id");
             }
         );

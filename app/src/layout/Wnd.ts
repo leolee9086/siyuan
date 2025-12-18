@@ -1,5 +1,5 @@
-import {Layout} from "./index";
-import {genUUID} from "../util/genID";
+import { Layout } from "./index";
+import { genUUID } from "../util/genID";
 import {
     fixWndFlex1,
     getInstanceById,
@@ -8,51 +8,51 @@ import {
     newModelByInitData,
     pdfIsLoading,
     saveLayout,
-    setPanelFocus,
     switchWnd
 } from "./util";
-import {Tab} from "./Tab";
-import {Model} from "./Model";
-import {Editor} from "../editor";
-import {Graph} from "./dock/Graph";
+import { setPanelFocus } from "./utils/setPanelFocus";
+import { Tab } from "./Tab";
+import { Model } from "./Model";
+import { Editor } from "../editor";
+import { Graph } from "./dock/Graph";
 import {
     hasClosestBlock,
     hasClosestByAttribute,
     hasClosestByClassName,
     isInEmbedBlock
 } from "../protyle/util/hasClosest";
-import {Constants} from "../constants";
+import { Constants } from "../constants";
 /// #if !BROWSER
-import {ipcRenderer, webFrame} from "electron";
-import {setModelsHash, setTabPosition} from "../window/setHeader";
+import { ipcRenderer, webFrame } from "electron";
+import { setModelsHash, setTabPosition } from "../window/setHeader";
 /// #endif
-import {Search} from "../search";
-import {showMessage} from "../dialog/message";
+import { Search } from "../search";
+import { showMessage } from "../dialog/message";
 import { openFileById } from "../editor/utils.openFileById";
 import { updatePanelByEditor } from "../editor/util.updatePanelByEditor";
-import {scrollCenter} from "../util/highlightById";
-import {fetchPost} from "../util/fetch";
-import {getAllModels} from "./getAll";
-import {clearCounter} from "./status";
-import {saveScroll} from "../protyle/scroll/saveScroll";
-import {Asset} from "../asset";
-import {newFile} from "../util/newFile";
+import { scrollCenter } from "../util/highlightById";
+import { fetchPost } from "../util/fetch";
+import { getAllModels } from "./getAll";
+import { clearCounter } from "./status";
+import { saveScroll } from "../protyle/scroll/saveScroll";
+import { Asset } from "../asset";
+import { newFile } from "../util/newFile";
 import { MenuItem } from "../menus/Menu.Item";
-import {escapeHtml} from "../util/escape";
-import {getFrontend, isWindow} from "../util/functions";
-import {hideAllElements} from "../protyle/ui/hideElements";
-import {focusByOffset, getSelectionOffset} from "../protyle/util/selection";
-import {Custom} from "./dock/Custom";
-import {App} from "../index";
-import {unicode2Emoji} from "../emoji";
-import {closeWindow} from "../window/closeWin";
-import {setTitle} from "../dialog/processSystem";
-import {newCenterEmptyTab, resizeTabs} from "./tabUtil";
-import {fullscreen} from "../protyle/breadcrumb/action";
-import {setPadding} from "../protyle/ui/initUI";
-import {setPosition} from "../util/setPosition";
-import {clearOBG} from "./dock/util";
-import {recordBeforeResizeTop} from "../protyle/util/resize";
+import { escapeHtml } from "../util/escape";
+import { getFrontend, isWindow } from "../util/functions";
+import { hideAllElements } from "../protyle/ui/hideElements";
+import { focusByOffset, getSelectionOffset } from "../protyle/util/selection";
+import { Custom } from "./dock/Custom";
+import { App } from "../index";
+import { unicode2Emoji } from "../emoji";
+import { closeWindow } from "../window/closeWin";
+import { setTitle } from "../dialog/processSystem";
+import { newCenterEmptyTab, resizeTabs } from "./tabUtil";
+import { fullscreen } from "../protyle/breadcrumb/action";
+import { setPadding } from "../protyle/ui/initUI";
+import { setPosition } from "../util/setPosition";
+import { clearOBG } from "./dock/util";
+import { recordBeforeResizeTop } from "../protyle/util/resize";
 
 export class Wnd {
     private app: App;
@@ -129,7 +129,7 @@ export class Wnd {
         });
         this.headersElement.addEventListener("mousewheel", (event: WheelEvent) => {
             this.headersElement.scrollLeft = this.headersElement.scrollLeft + event.deltaY;
-        }, {passive: true});
+        }, { passive: true });
 
         this.headersElement.parentElement.addEventListener("click", (event) => {
             let target = event.target as HTMLElement;
@@ -263,7 +263,7 @@ export class Wnd {
                 if (wnd instanceof Wnd) {
                     JSONToCenter(app, tabData, wnd);
                     oldTab = wnd.children[wnd.children.length - 1];
-                    ipcRenderer.send(Constants.SIYUAN_SEND_WINDOWS, {cmd: "closetab", data: tabData.id});
+                    ipcRenderer.send(Constants.SIYUAN_SEND_WINDOWS, { cmd: "closetab", data: tabData.id });
                     it.querySelector("li[data-clone='true']").remove();
                     wnd.switchTab(oldTab.headElement);
                     ipcRenderer.send(Constants.SIYUAN_CMD, "focus");
@@ -369,7 +369,7 @@ export class Wnd {
                         return true;
                     }
                 });
-                ipcRenderer.send(Constants.SIYUAN_SEND_WINDOWS, {cmd: "closetab", data: tabData.id});
+                ipcRenderer.send(Constants.SIYUAN_SEND_WINDOWS, { cmd: "closetab", data: tabData.id });
                 ipcRenderer.send(Constants.SIYUAN_CMD, "focus");
             }
             /// #endif
@@ -492,7 +492,7 @@ export class Wnd {
                             item.headElement.setAttribute("data-activetime", (new Date()).getTime().toString());
                             // 更新文档浏览时间
                             if (item.model instanceof Editor) {
-                                fetchPost("/api/storage/updateRecentDocViewTime", {rootID: item.model.editor.protyle.block.rootID});
+                                fetchPost("/api/storage/updateRecentDocViewTime", { rootID: item.model.editor.protyle.block.rootID });
                             }
                         }
                     }
@@ -797,7 +797,7 @@ export class Wnd {
                 if (item.model instanceof Editor) {
                     saveScroll(item.model.editor.protyle);
                     // 更新文档关闭时间
-                    fetchPost("/api/storage/updateRecentDocCloseTime", {rootID: item.model.editor.protyle.block.rootID});
+                    fetchPost("/api/storage/updateRecentDocCloseTime", { rootID: item.model.editor.protyle.block.rootID });
                 }
                 if (this.children.length === 1) {
                     this.destroyModel(this.children[0].model);

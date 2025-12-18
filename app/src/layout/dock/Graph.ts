@@ -1,18 +1,19 @@
-import {Tab} from "../Tab";
-import {getInstanceById, setPanelFocus} from "../util";
-import {getDockByType} from "../tabUtil";
-import {Model} from "../Model";
-import {Constants} from "../../constants";
-import {addScript} from "../../protyle/util/addScript";
-import {BlockPanel} from "../../block/Panel";
-import {fullscreen} from "../../protyle/breadcrumb/action";
-import {fetchPost} from "../../util/fetch";
+import { Tab } from "../Tab";
+import { getInstanceById } from "../util";
+import { setPanelFocus } from "../utils/setPanelFocus";
+import { getDockByType } from "../tabUtil";
+import { Model } from "../Model";
+import { Constants } from "../../constants";
+import { addScript } from "../../protyle/util/addScript";
+import { BlockPanel } from "../../block/Panel";
+import { fullscreen } from "../../protyle/breadcrumb/action";
+import { fetchPost } from "../../util/fetch";
 import { openFileById } from "../../editor/utils.openFileById";
-import {updateHotkeyAfterTip} from "../../protyle/util/compatibility";
-import {openGlobalSearch} from "../../search/util";
-import {App} from "../../index";
-import {checkFold} from "../../util/noRelyPCFunction";
-import {Editor} from "../../editor";
+import { updateHotkeyAfterTip } from "../../protyle/util/compatibility";
+import { openGlobalSearch } from "../../search/util";
+import { App } from "../../index";
+import { checkFold } from "../../util/noRelyPCFunction";
+import { Editor } from "../../editor";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 declare const vis: any;
@@ -44,7 +45,7 @@ export class Graph extends Model {
             id: options.tab.id,
             callback() {
                 if (this.type === "local") {
-                    fetchPost("/api/block/checkBlockExist", {id: this.blockId}, existResponse => {
+                    fetchPost("/api/block/checkBlockExist", { id: this.blockId }, existResponse => {
                         if (!existResponse.data) {
                             this.parent.parent.removeTab(this.parent.id);
                         }
@@ -528,52 +529,52 @@ export class Graph extends Model {
         this.graphData.nodes.forEach(item => {
             switch (item.type) {
                 case "NodeDocument":
-                    item.color = {background: rootStyle.getPropertyValue("--b3-graph-doc-point").trim()};
+                    item.color = { background: rootStyle.getPropertyValue("--b3-graph-doc-point").trim() };
                     break;
                 case "NodeParagraph":
-                    item.color = {background: rootStyle.getPropertyValue("--b3-graph-p-point").trim()};
+                    item.color = { background: rootStyle.getPropertyValue("--b3-graph-p-point").trim() };
                     break;
                 case "NodeHeading":
-                    item.color = {background: rootStyle.getPropertyValue("--b3-graph-heading-point").trim()};
+                    item.color = { background: rootStyle.getPropertyValue("--b3-graph-heading-point").trim() };
                     break;
                 case "NodeMathBlock":
-                    item.color = {background: rootStyle.getPropertyValue("--b3-graph-math-point").trim()};
+                    item.color = { background: rootStyle.getPropertyValue("--b3-graph-math-point").trim() };
                     break;
                 case "NodeCodeBlock":
-                    item.color = {background: rootStyle.getPropertyValue("--b3-graph-code-point").trim()};
+                    item.color = { background: rootStyle.getPropertyValue("--b3-graph-code-point").trim() };
                     break;
                 case "NodeTable":
-                    item.color = {background: rootStyle.getPropertyValue("--b3-graph-table-point").trim()};
+                    item.color = { background: rootStyle.getPropertyValue("--b3-graph-table-point").trim() };
                     break;
                 case "NodeList":
-                    item.color = {background: rootStyle.getPropertyValue("--b3-graph-list-point").trim()};
+                    item.color = { background: rootStyle.getPropertyValue("--b3-graph-list-point").trim() };
                     break;
                 case "NodeListItem":
-                    item.color = {background: rootStyle.getPropertyValue("--b3-graph-listitem-point").trim()};
+                    item.color = { background: rootStyle.getPropertyValue("--b3-graph-listitem-point").trim() };
                     break;
                 case "NodeBlockquote":
-                    item.color = {background: rootStyle.getPropertyValue("--b3-graph-bq-point").trim()};
+                    item.color = { background: rootStyle.getPropertyValue("--b3-graph-bq-point").trim() };
                     break;
                 case "NodeCallout":
-                    item.color = {background: rootStyle.getPropertyValue("--b3-graph-callout-point").trim()};
+                    item.color = { background: rootStyle.getPropertyValue("--b3-graph-callout-point").trim() };
                     break;
                 case "NodeSuperBlock":
-                    item.color = {background: rootStyle.getPropertyValue("--b3-graph-super-point").trim()};
+                    item.color = { background: rootStyle.getPropertyValue("--b3-graph-super-point").trim() };
                     break;
                 case "tag":
                 case "textmark tag":
-                    item.color = {background: rootStyle.getPropertyValue("--b3-graph-tag-point").trim()};
+                    item.color = { background: rootStyle.getPropertyValue("--b3-graph-tag-point").trim() };
                     break;
                 default:
-                    item.color = {background: rootStyle.getPropertyValue("--b3-graph-p-point").trim()};
+                    item.color = { background: rootStyle.getPropertyValue("--b3-graph-p-point").trim() };
                     break;
             }
         });
         this.graphData.links.forEach(item => {
             if (item.ref) {
-                item.color = {color: rootStyle.getPropertyValue("--b3-graph-ref-line").trim()};
+                item.color = { color: rootStyle.getPropertyValue("--b3-graph-ref-line").trim() };
             } else {
-                item.color = {color: rootStyle.getPropertyValue("--b3-graph-line").trim()};
+                item.color = { color: rootStyle.getPropertyValue("--b3-graph-line").trim() };
             }
         });
         addScript(`${Constants.PROTYLE_CDN}/js/vis/vis-network.min.js?v=9.1.13`, "protyleVisScript").then(() => {
@@ -659,18 +660,18 @@ export class Graph extends Model {
                     },
                     timestep: timestep,
                     adaptiveTimestep: true,
-                    wind: {x: 0, y: 0}
+                    wind: { x: 0, y: 0 }
                 },
             };
             let i = Math.max(Math.ceil(this.graphData.nodes.length * 0.1), 128);
             let j = Math.max(Math.ceil(this.graphData.links.length * 0.1), 128);
             const nodes = new vis.DataSet(this.graphData.nodes.slice(0, i));
             const edges = new vis.DataSet(this.graphData.links.slice(0, j));
-            const network = new vis.Network(this.graphElement, {nodes, edges}, options);
+            const network = new vis.Network(this.graphElement, { nodes, edges }, options);
             const initialScale = Math.max(0.03, 1 - 0.3 * Math.floor(this.graphData.nodes.length / 128));
             if (1 !== initialScale) {
                 network.moveTo({
-                    position: {x: 0, y: 0},
+                    position: { x: 0, y: 0 },
                     scale: initialScale,
                     animation: false
                 });
@@ -734,7 +735,7 @@ export class Graph extends Model {
                     return;
                 }
                 if (-1 < node.type.indexOf("tag")) {
-                    openGlobalSearch(this.app, `#${node.id}#`, !window.siyuan.ctrlIsPressed, {method: 0});
+                    openGlobalSearch(this.app, `#${node.id}#`, !window.siyuan.ctrlIsPressed, { method: 0 });
                     return;
                 }
                 if (window.siyuan.shiftIsPressed) {
@@ -763,7 +764,7 @@ export class Graph extends Model {
                         isBacklink: false,
                         x: params.event.center.x,
                         y: params.event.center.y,
-                        refDefs: [{refID: node.id}]
+                        refDefs: [{ refID: node.id }]
                     }));
                 } else {
                     checkFold(node.id, (zoomIn, action: TProtyleAction[]) => {

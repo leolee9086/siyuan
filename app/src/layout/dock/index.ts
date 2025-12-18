@@ -1,26 +1,27 @@
-import {updateHotkeyTip} from "../../protyle/util/compatibility";
-import {Layout} from "../index";
-import {Wnd} from "../Wnd";
-import {Tab} from "../Tab";
-import {Files} from "./Files";
-import {Outline} from "./Outline";
-import {getAllModels, getAllTabs} from "../getAll";
-import {Bookmark} from "./Bookmark";
-import {Tag} from "./Tag";
-import {Graph} from "./Graph";
-import {Model} from "../Model";
-import {adjustLayout, saveLayout, setPanelFocus} from "../util";
-import {getDockByType, resizeTabs} from "../tabUtil";
-import {Inbox} from "./Inbox";
-import {Protyle} from "../../protyle";
-import {Backlink} from "./Backlink";
-import {resetFloatDockSize} from "./util";
-import {hasClosestByClassName} from "../../protyle/util/hasClosest";
-import {App} from "../../index";
-import {Plugin} from "../../plugin";
-import {Custom} from "./Custom";
-import {clearBeforeResizeTop, recordBeforeResizeTop} from "../../protyle/util/resize";
-import {Constants} from "../../constants";
+import { updateHotkeyTip } from "../../protyle/util/compatibility";
+import { Layout } from "../index";
+import { Wnd } from "../Wnd";
+import { Tab } from "../Tab";
+import { Files } from "./Files";
+import { Outline } from "./Outline";
+import { getAllModels, getAllTabs } from "../getAll";
+import { Bookmark } from "./Bookmark";
+import { Tag } from "./Tag";
+import { Graph } from "./Graph";
+import { Model } from "../Model";
+import { adjustLayout, saveLayout } from "../util";
+import { setPanelFocus } from "../utils/setPanelFocus";
+import { getDockByType, resizeTabs } from "../tabUtil";
+import { Inbox } from "./Inbox";
+import { Protyle } from "../../protyle";
+import { Backlink } from "./Backlink";
+import { resetFloatDockSize } from "./util";
+import { hasClosestByClassName } from "../../protyle/util/hasClosest";
+import { App } from "../../index";
+import { Plugin } from "../../plugin";
+import { Custom } from "./Custom";
+import { clearBeforeResizeTop, recordBeforeResizeTop } from "../../protyle/util/resize";
+import { Constants } from "../../constants";
 
 const TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGraph", "backlink"];
 
@@ -439,10 +440,10 @@ export class Dock {
             document.querySelector(".block__popover") ||
             document.querySelector("#commonMenu:not(.fn__none)")
         ) && (
-            window.siyuan.layout.leftDock?.layout.element.style.opacity === "1" ||
-            window.siyuan.layout.rightDock?.layout.element.style.opacity === "1" ||
-            window.siyuan.layout.bottomDock?.layout.element.style.opacity === "1"
-        )) {
+                window.siyuan.layout.leftDock?.layout.element.style.opacity === "1" ||
+                window.siyuan.layout.rightDock?.layout.element.style.opacity === "1" ||
+                window.siyuan.layout.bottomDock?.layout.element.style.opacity === "1"
+            )) {
             return;
         }
 
@@ -585,7 +586,7 @@ export class Dock {
                     case "file":
                         tab = new Tab({
                             callback: (tab: Tab) => {
-                                tab.addModel(new Files({tab, app: this.app}));
+                                tab.addModel(new Files({ tab, app: this.app }));
                             }
                         });
                         break;
@@ -668,7 +669,7 @@ export class Dock {
                                 let customModel;
                                 this.app.plugins.find((item: Plugin) => {
                                     if (item.docks[type]) {
-                                        customModel = item.docks[type].model({tab});
+                                        customModel = item.docks[type].model({ tab });
                                         return true;
                                     }
                                 });

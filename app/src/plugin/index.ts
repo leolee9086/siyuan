@@ -1,23 +1,24 @@
-import {App} from "../index";
-import {EventBus} from "./EventBus";
-import {fetchPost} from "../util/fetch";
-import {isMobile, isWindow} from "../util/functions";
+import { App } from "../index";
+import { EventBus } from "./EventBus";
+import { fetchPost } from "../util/fetch";
+import { isMobile, isWindow } from "../util/functions";
 /// #if !MOBILE
-import {Custom} from "../layout/dock/Custom";
-import {getAllEditor, getAllModels} from "../layout/getAll";
-import {Tab} from "../layout/Tab";
-import {resizeTopBar, setPanelFocus} from "../layout/util";
-import {getDockByType} from "../layout/tabUtil";
+import { Custom } from "../layout/dock/Custom";
+import { getAllEditor, getAllModels } from "../layout/getAll";
+import { Tab } from "../layout/Tab";
+import { resizeTopBar } from "../layout/util";
+import { setPanelFocus } from "../layout/utils/setPanelFocus";
+import { getDockByType } from "../layout/tabUtil";
 ///#else
-import {MobileCustom} from "../mobile/dock/MobileCustom";
+import { MobileCustom } from "../mobile/dock/MobileCustom";
 /// #endif
-import {hasClosestByAttribute} from "../protyle/util/hasClosest";
-import {BlockPanel} from "../block/Panel";
-import {Setting} from "./Setting";
-import {clearOBG} from "../layout/dock/util";
-import {Constants} from "../constants";
-import {uninstall} from "./uninstall";
-import {afterLoadPlugin, loadPlugins} from "./loader";
+import { hasClosestByAttribute } from "../protyle/util/hasClosest";
+import { BlockPanel } from "../block/Panel";
+import { Setting } from "./Setting";
+import { clearOBG } from "../layout/dock/util";
+import { Constants } from "../constants";
+import { uninstall } from "./uninstall";
+import { afterLoadPlugin, loadPlugins } from "./loader";
 
 export class Plugin {
     private app: App;
@@ -255,7 +256,7 @@ export class Plugin {
             this.data[storageName] = "";
         }
         return new Promise((resolve) => {
-            fetchPost("/api/file/getFile", {path: `/data/storage/petal/${this.name}/${storageName}`}, (response) => {
+            fetchPost("/api/file/getFile", { path: `/data/storage/petal/${this.name}/${storageName}` }, (response) => {
                 if (response.code !== 404) {
                     this.data[storageName] = response;
                 }
@@ -299,7 +300,7 @@ export class Plugin {
             if (!this.data) {
                 this.data = {};
             }
-            fetchPost("/api/file/removeFile", {path: `/data/storage/petal/${this.name}/${storageName}`}, (response) => {
+            fetchPost("/api/file/removeFile", { path: `/data/storage/petal/${this.name}/${storageName}` }, (response) => {
                 delete this.data[storageName];
                 resolve(response);
             });

@@ -1,7 +1,7 @@
 import { Model } from "../layout/Model";
 import { Tab } from "../layout/Tab";
 import { Constants } from "../constants";
-import { setPanelFocus } from "../layout/util";
+import { setPanelFocus } from "../layout/utils/setPanelFocus";
 // @ts-ignore
 import { onPageNumberChanged } from "./pdf/app";
 /// #endif

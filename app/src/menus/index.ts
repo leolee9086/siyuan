@@ -1,5 +1,6 @@
 /// #if !MOBILE
-import { getInstanceById, setPanelFocus } from "../layout/util";
+import { getInstanceById } from "../layout/util";
+import { setPanelFocus } from "../layout/utils/setPanelFocus";
 import { Tab } from "../layout/Tab";
 import { initSearchMenu } from "./search";
 import { initDockMenu } from "./dock";

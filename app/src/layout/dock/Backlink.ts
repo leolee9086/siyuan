@@ -1,16 +1,16 @@
-import {Tab} from "../Tab";
-import {Model} from "../Model";
-import {Tree} from "../../util/Tree";
-import {setPanelFocus} from "../util";
-import {getDockByType} from "../tabUtil";
-import {fetchPost} from "../../util/fetch";
-import {Constants} from "../../constants";
-import {updateHotkeyAfterTip} from "../../protyle/util/compatibility";
+import { Tab } from "../Tab";
+import { Model } from "../Model";
+import { Tree } from "../../util/Tree";
+import { setPanelFocus } from "../utils/setPanelFocus";
+import { getDockByType } from "../tabUtil";
+import { fetchPost } from "../../util/fetch";
+import { Constants } from "../../constants";
+import { updateHotkeyAfterTip } from "../../protyle/util/compatibility";
 import { openFileById } from "../../editor/utils.openFileById";
-import {Protyle} from "../../protyle";
+import { Protyle } from "../../protyle";
 import { MenuItem } from "../../menus/Menu.Item";
-import {App} from "../../index";
-import {isSupportCSSHL, searchMarkRender} from "../../protyle/render/searchMarkRender";
+import { App } from "../../index";
+import { isSupportCSSHL, searchMarkRender } from "../../protyle/render/searchMarkRender";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export class Backlink extends Model {
@@ -47,7 +47,7 @@ export class Backlink extends Model {
             id: options.tab.id,
             callback() {
                 if (this.type === "local") {
-                    fetchPost("/api/block/checkBlockExist", {id: this.blockId}, existResponse => {
+                    fetchPost("/api/block/checkBlockExist", { id: this.blockId }, existResponse => {
                         if (!existResponse.data) {
                             this.parent.parent.removeTab(this.parent.id);
                         }
@@ -304,7 +304,7 @@ export class Backlink extends Model {
                         case "sort":
                         case "mSort":
                             this.showSortMenu(type, target.getAttribute("data-sort"));
-                            window.siyuan.menus.menu.popup({x: event.clientX, y: event.clientY});
+                            window.siyuan.menus.menu.popup({ x: event.clientX, y: event.clientY });
                             event.stopPropagation();
                             break;
                         case "layout":
@@ -395,7 +395,7 @@ export class Backlink extends Model {
                 clickEvent("5");
             }
         }).element);
-        window.siyuan.menus.menu.append(new MenuItem({type: "separator"}).element);
+        window.siyuan.menus.menu.append(new MenuItem({ type: "separator" }).element);
         window.siyuan.menus.menu.append(new MenuItem({
             icon: sort === "9" ? "iconSelect" : undefined,
             label: siyuanI18n.createdASC,
@@ -604,7 +604,7 @@ export class Backlink extends Model {
             if (data.mentionsCount === 0 || window.siyuan.config.editor.backmentionExpandCount === -1) {
                 this.status[this.blockId].backlinkMStatus = 3;
             } else {
-                Array.from({length: window.siyuan.config.editor.backmentionExpandCount}).forEach((item, index) => {
+                Array.from({ length: window.siyuan.config.editor.backmentionExpandCount }).forEach((item, index) => {
                     if (data.backmentions[index]) {
                         this.status[this.blockId].backlinkMOpenIds.push(data.backmentions[index].id);
                     }
@@ -620,7 +620,7 @@ export class Backlink extends Model {
                 }
             }
             if (data.linkRefsCount > 0) {
-                Array.from({length: window.siyuan.config.editor.backlinkExpandCount}).forEach((item, index) => {
+                Array.from({ length: window.siyuan.config.editor.backlinkExpandCount }).forEach((item, index) => {
                     if (data.backlinks[index]) {
                         this.status[this.blockId].backlinkOpenIds.push(data.backlinks[index].id);
                     }

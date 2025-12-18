@@ -1,7 +1,7 @@
 import { escapeAriaLabel, escapeGreat, escapeHtml } from "../../util/escape";
 import { Tab } from "../Tab";
 import { Model } from "../Model";
-import { setPanelFocus } from "../util";
+import { setPanelFocus } from "../utils/setPanelFocus";
 import { getDockByType } from "../tabUtil";
 import { Constants } from "../../constants";
 import { getDisplayName, pathPosix, setNoteBook } from "../../util/pathName";

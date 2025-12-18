@@ -1,22 +1,22 @@
 /// #if !MOBILE
-import {Tab} from "../Tab";
-import {setPanelFocus} from "../util";
-import {getDockByType} from "../tabUtil";
+import { Tab } from "../Tab";
+import { setPanelFocus } from "../utils/setPanelFocus";
+import { getDockByType } from "../tabUtil";
 /// #endif
-import {fetchPost, fetchSyncPost} from "../../util/fetch";
-import {updateHotkeyAfterTip} from "../../protyle/util/compatibility";
-import {Model} from "../Model";
-import {needSubscribe} from "../../util/needSubscribe";
+import { fetchPost, fetchSyncPost } from "../../util/fetch";
+import { updateHotkeyAfterTip } from "../../protyle/util/compatibility";
+import { Model } from "../Model";
+import { needSubscribe } from "../../util/needSubscribe";
 import { MenuItem } from "../../menus/Menu.Item";
-import {confirmDialog} from "../../dialog/confirmDialog";
-import {replaceFileName} from "../../editor/rename";
-import {getDisplayName, pathPosix} from "../../util/pathName";
+import { confirmDialog } from "../../dialog/confirmDialog";
+import { replaceFileName } from "../../editor/rename";
+import { getDisplayName, pathPosix } from "../../util/pathName";
 import { movePathTo } from "../../util/pathName/movePathTo";
-import {App} from "../../index";
-import {getCloudURL} from "../../config/util/about";
-import {hasClosestByClassName} from "../../protyle/util/hasClosest";
-import {escapeHtml} from "../../util/escape";
-import {emitOpenMenu} from "../../plugin/EventBus";
+import { App } from "../../index";
+import { getCloudURL } from "../../config/util/about";
+import { hasClosestByClassName } from "../../protyle/util/hasClosest";
+import { escapeHtml } from "../../util/escape";
+import { emitOpenMenu } from "../../plugin/EventBus";
 
 export class Inbox extends Model {
     private element: Element;
@@ -26,7 +26,7 @@ export class Inbox extends Model {
     private data: { [key: string]: IInbox } = {};
 
     constructor(app: App, tab: Tab | Element) {
-        super({app, id: tab.id});
+        super({ app, id: tab.id });
         if (tab instanceof Element) {
             this.element = tab;
         } else {
@@ -306,14 +306,14 @@ ${data.shorthandContent}
                 separatorPosition: "top",
             });
         }
-        window.siyuan.menus.menu.popup({x: event.clientX, y: event.clientY + 16});
+        window.siyuan.menus.menu.popup({ x: event.clientX, y: event.clientY + 16 });
     }
 
     private remove(removeIds?: string[]) {
         if (!removeIds) {
             removeIds = this.selectIds;
         }
-        fetchPost("/api/inbox/removeShorthands", {ids: removeIds}, () => {
+        fetchPost("/api/inbox/removeShorthands", { ids: removeIds }, () => {
             if (removeIds) {
                 this.back();
                 for (let i = this.selectIds.length - 1; i >= 0; i--) {
@@ -374,7 +374,7 @@ ${data.shorthandContent}
             return;
         }
         loadingElement.classList.remove("fn__none");
-        fetchPost("/api/inbox/getShorthands", {page: this.currentPage}, (response) => {
+        fetchPost("/api/inbox/getShorthands", { page: this.currentPage }, (response) => {
             loadingElement.classList.add("fn__none");
             let html = "";
             if (response.data.data.shorthands.length === 0) {

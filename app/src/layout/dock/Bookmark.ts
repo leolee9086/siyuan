@@ -1,16 +1,16 @@
-import {Tab} from "../Tab";
-import {Model} from "../Model";
-import {Tree} from "../../util/Tree";
-import {setPanelFocus} from "../util";
-import {getDockByType} from "../tabUtil";
-import {fetchPost} from "../../util/fetch";
-import {updateHotkeyAfterTip} from "../../protyle/util/compatibility";
+import { Tab } from "../Tab";
+import { Model } from "../Model";
+import { Tree } from "../../util/Tree";
+import { setPanelFocus } from "../utils/setPanelFocus";
+import { getDockByType } from "../tabUtil";
+import { fetchPost } from "../../util/fetch";
+import { updateHotkeyAfterTip } from "../../protyle/util/compatibility";
 import { openFileById } from "../../editor/utils.openFileById";
-import {hasClosestByClassName} from "../../protyle/util/hasClosest";
-import {openBookmarkMenu} from "../../menus/bookmark";
-import {App} from "../../index";
-import {Constants} from "../../constants";
-import {checkFold} from "../../util/noRelyPCFunction";
+import { hasClosestByClassName } from "../../protyle/util/hasClosest";
+import { openBookmarkMenu } from "../../menus/bookmark";
+import { App } from "../../index";
+import { Constants } from "../../constants";
+import { checkFold } from "../../util/noRelyPCFunction";
 
 export class Bookmark extends Model {
     private openNodes: string[];

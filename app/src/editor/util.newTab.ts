@@ -3,7 +3,7 @@ import { Asset } from "../asset";
 import { newCardModel } from "../card/newCardTab";
 import { Constants } from "../constants";
 import { Tab } from "../layout/Tab";
-import { setPanelFocus } from "../layout/util";
+import { setPanelFocus } from "../layout/utils/setPanelFocus";
 import { Search } from "../search";
 import { pathPosix, getDisplayName } from "../util/pathName";
 export const newTab = (options: IOpenFileOptions) => {

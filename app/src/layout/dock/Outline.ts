@@ -1,11 +1,12 @@
-import {Tab} from "../Tab";
-import {Model} from "../Model";
-import {Tree} from "../../util/Tree";
-import {getInstanceById, setPanelFocus} from "../util";
-import {getDockByType} from "../tabUtil";
-import {fetchPost} from "../../util/fetch";
-import {getAllModels} from "../getAll";
-import {hasClosestBlock, hasClosestByClassName, hasTopClosestByClassName} from "../../protyle/util/hasClosest";
+import { Tab } from "../Tab";
+import { Model } from "../Model";
+import { Tree } from "../../util/Tree";
+import { getInstanceById } from "../util";
+import { setPanelFocus } from "../utils/setPanelFocus";
+import { getDockByType } from "../tabUtil";
+import { fetchPost } from "../../util/fetch";
+import { getAllModels } from "../getAll";
+import { hasClosestBlock, hasClosestByClassName, hasTopClosestByClassName } from "../../protyle/util/hasClosest";
 import {
     isInAndroid,
     isInHarmony,
@@ -14,20 +15,20 @@ import {
     writeText
 } from "../../protyle/util/compatibility";
 import { openFileById } from "../../editor/utils.openFileById";
-import {Constants} from "../../constants";
-import {MenuItem} from "../../menus/Menu.Item";
-import {escapeAttr, escapeHtml} from "../../util/escape";
-import {unicode2Emoji} from "../../emoji";
-import {getPreviousBlock} from "../../protyle/wysiwyg/getBlock";
-import {App} from "../../index";
-import {checkFold} from "../../util/noRelyPCFunction";
-import {transaction, turnsIntoTransaction} from "../../protyle/wysiwyg/transaction";
-import {goHome} from "../../protyle/wysiwyg/commonHotkey";
-import {Editor} from "../../editor";
-import {mathRender} from "../../protyle/render/mathRender";
-import {genEmptyElement} from "../../block/util";
-import {focusBlock, focusByWbr} from "../../protyle/util/selection";
-import {dragOverScroll, stopScrollAnimation} from "../../boot/globalEvent/dragover";
+import { Constants } from "../../constants";
+import { MenuItem } from "../../menus/Menu.Item";
+import { escapeAttr, escapeHtml } from "../../util/escape";
+import { unicode2Emoji } from "../../emoji";
+import { getPreviousBlock } from "../../protyle/wysiwyg/getBlock";
+import { App } from "../../index";
+import { checkFold } from "../../util/noRelyPCFunction";
+import { transaction, turnsIntoTransaction } from "../../protyle/wysiwyg/transaction";
+import { goHome } from "../../protyle/wysiwyg/commonHotkey";
+import { Editor } from "../../editor";
+import { mathRender } from "../../protyle/render/mathRender";
+import { genEmptyElement } from "../../block/util";
+import { focusBlock, focusByWbr } from "../../protyle/util/selection";
+import { dragOverScroll, stopScrollAnimation } from "../../boot/globalEvent/dragover";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export class Outline extends Model {
@@ -51,7 +52,7 @@ export class Outline extends Model {
             id: options.tab.id,
             callback() {
                 if (this.type === "local") {
-                    fetchPost("/api/block/checkBlockExist", {id: this.blockId}, existResponse => {
+                    fetchPost("/api/block/checkBlockExist", { id: this.blockId }, existResponse => {
                         if (!existResponse.data) {
                             this.parent.parent.removeTab(this.parent.id);
                         }
@@ -76,7 +77,7 @@ export class Outline extends Model {
                             break;
                         case "unmount":
                             if (this.type === "local") {
-                                fetchPost("/api/block/checkBlockExist", {id: this.blockId}, existResponse => {
+                                fetchPost("/api/block/checkBlockExist", { id: this.blockId }, existResponse => {
                                     if (!existResponse.data) {
                                         this.parent.parent.removeTab(this.parent.id);
                                     }
@@ -710,7 +711,7 @@ export class Outline extends Model {
                 children.forEach((liItem: HTMLElement) => {
                     const nextUlElement = (liItem.nextElementSibling && liItem.nextElementSibling.tagName === "UL") ? liItem.nextElementSibling as HTMLElement : undefined;
 
-                    let childResult = {hasMatch: false, hasChildMatch: false};
+                    let childResult = { hasMatch: false, hasChildMatch: false };
                     if (nextUlElement) {
                         childResult = processUL(nextUlElement);
                     }
@@ -751,7 +752,7 @@ export class Outline extends Model {
                         }
                     }
                 });
-                return {hasMatch, hasChildMatch};
+                return { hasMatch, hasChildMatch };
             };
 
             processUL(this.element.firstElementChild);
@@ -969,7 +970,7 @@ export class Outline extends Model {
                 }).element);
             }
 
-            window.siyuan.menus.menu.append(new MenuItem({id: "separator_1", type: "separator"}).element);
+            window.siyuan.menus.menu.append(new MenuItem({ id: "separator_1", type: "separator" }).element);
 
             // 在前面插入同级标题
             window.siyuan.menus.menu.append(new MenuItem({
@@ -1072,7 +1073,7 @@ export class Outline extends Model {
                 }).element);
             }
 
-            window.siyuan.menus.menu.append(new MenuItem({id: "separator_2", type: "separator"}).element);
+            window.siyuan.menus.menu.append(new MenuItem({ id: "separator_2", type: "separator" }).element);
         }
 
         // 复制带子标题
@@ -1182,7 +1183,7 @@ export class Outline extends Model {
                 }
             }).element);
         }
-        window.siyuan.menus.menu.append(new MenuItem({id: "separator_3", type: "separator"}).element);
+        window.siyuan.menus.menu.append(new MenuItem({ id: "separator_3", type: "separator" }).element);
 
         // 展开子标题
         window.siyuan.menus.menu.append(new MenuItem({
@@ -1305,7 +1306,7 @@ export class Outline extends Model {
                         if (index === 0) {
                             const focusElement = protyle.wysiwyg.element.querySelector(`[data-node-id="${operation.id}"]`);
                             if (focusElement) {
-                                focusElement.scrollIntoView({behavior: "smooth", block: "center"});
+                                focusElement.scrollIntoView({ behavior: "smooth", block: "center" });
                             }
                         }
                     });

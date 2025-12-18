@@ -1,71 +1,38 @@
-import {Layout} from "./index";
-import {Wnd} from "./Wnd";
-import {Tab} from "./Tab";
-import {Model} from "./Model";
-import {Graph} from "./dock/Graph";
-import {Editor} from "../editor";
-import {Files} from "./dock/Files";
-import {Outline} from "./dock/Outline";
-import {Bookmark} from "./dock/Bookmark";
-import {Tag} from "./dock/Tag";
-import {getAllModels, getAllTabs, getAllWnds} from "./getAll";
-import {Asset} from "../asset";
-import {Search} from "../search";
-import {Dock} from "./dock";
-import {focusByOffset, focusByRange, getSelectionOffset} from "../protyle/util/selection";
-import {hideElements} from "../protyle/ui/hideElements";
-import {fetchPost} from "../util/fetch";
-import {hasClosestBlock, hasClosestByClassName} from "../protyle/util/hasClosest";
-import {Constants} from "../constants";
-import {saveScroll} from "../protyle/scroll/saveScroll";
-import {Backlink} from "./dock/Backlink";
+import { Layout } from "./index";
+import { Wnd } from "./Wnd";
+import { Tab } from "./Tab";
+import { Model } from "./Model";
+import { Graph } from "./dock/Graph";
+import { Editor } from "../editor";
+import { Files } from "./dock/Files";
+import { Outline } from "./dock/Outline";
+import { Bookmark } from "./dock/Bookmark";
+import { Tag } from "./dock/Tag";
+import { getAllModels, getAllTabs, getAllWnds } from "./getAll";
+import { Asset } from "../asset";
+import { Search } from "../search";
+import { Dock } from "./dock";
+import { focusByOffset, focusByRange, getSelectionOffset } from "../protyle/util/selection";
+import { hideElements } from "../protyle/ui/hideElements";
+import { fetchPost } from "../util/fetch";
+import { hasClosestBlock, hasClosestByClassName } from "../protyle/util/hasClosest";
+import { Constants } from "../constants";
+import { saveScroll } from "../protyle/scroll/saveScroll";
+import { Backlink } from "./dock/Backlink";
 import { openFileById } from "../editor/utils.openFileById";
-import {isWindow} from "../util/functions";
+import { isWindow } from "../util/functions";
 /// #if !BROWSER
-import {setTabPosition} from "../window/setHeader";
+import { setTabPosition } from "../window/setHeader";
 /// #endif
-import {showMessage} from "../dialog/message";
-import {getIdZoomInByPath} from "../util/pathName";
-import {Custom} from "./dock/Custom";
-import {newCardModel} from "../card/newCardTab";
-import {App} from "../index";
-import {afterLoadPlugin} from "../plugin/loader";
-import {setTitle} from "../dialog/processSystem";
-import {newCenterEmptyTab, resizeTabs} from "./tabUtil";
-import {setStorageVal} from "../protyle/util/compatibility";
-
-export const setPanelFocus = (element: Element, isSaveLayout = true) => {
-    if (element.getAttribute("data-type") === "wnd") {
-        setTitle(element.querySelector('.layout-tab-bar .item--focus[data-type="tab-header"] .item__text')?.textContent || window.siyuan.languages.siyuanNote);
-    }
-    if (element.classList.contains("layout__tab--active") || element.classList.contains("layout__wnd--active")) {
-        return;
-    }
-    document.querySelectorAll(".layout__tab--active").forEach(item => {
-        item.classList.remove("layout__tab--active");
-    });
-    document.querySelectorAll(".dock__item--activefocus").forEach(item => {
-        item.classList.remove("dock__item--activefocus");
-    });
-    document.querySelectorAll(".layout__wnd--active").forEach(item => {
-        item.classList.remove("layout__wnd--active");
-    });
-    if (element.getAttribute("data-type") === "wnd") {
-        element.classList.add("layout__wnd--active");
-        element.querySelector(".layout-tab-bar .item--focus")?.setAttribute("data-activetime", (new Date()).getTime().toString());
-        if (isSaveLayout) {
-            saveLayout();
-        }
-    } else {
-        element.classList.add("layout__tab--active");
-        Array.from(element.classList).find(item => {
-            if (item.startsWith("sy__")) {
-                document.querySelector(`.dock__item[data-type="${item.substring(4)}"]`).classList.add("dock__item--activefocus");
-                return true;
-            }
-        });
-    }
-};
+import { showMessage } from "../dialog/message";
+import { getIdZoomInByPath } from "../util/pathName";
+import { Custom } from "./dock/Custom";
+import { newCardModel } from "../card/newCardTab";
+import { App } from "../index";
+import { afterLoadPlugin } from "../plugin/loader";
+import { newCenterEmptyTab, resizeTabs } from "./tabUtil";
+import { setStorageVal } from "../protyle/util/compatibility";
+import { setPanelFocus } from "./utils/setPanelFocus";
 
 export const switchWnd = (newWnd: Wnd, targetWnd: Wnd) => {
     // DOM 移动后 range 会变化
@@ -167,7 +134,7 @@ export const resetLayout = () => {
     if (window.siyuan.config.readonly) {
         window.location.reload();
     } else {
-        fetchPost("/api/system/setUILayout", {layout: {}}, () => {
+        fetchPost("/api/system/setUILayout", { layout: {} }, () => {
             window.siyuan.storage[Constants.LOCAL_FILEPOSITION] = {};
             setStorageVal(Constants.LOCAL_FILEPOSITION, window.siyuan.storage[Constants.LOCAL_FILEPOSITION]);
             window.siyuan.storage[Constants.LOCAL_DIALOGPOSITION] = {};
@@ -293,9 +260,9 @@ const JSONToDock = (json: any, app: App) => {
         initInternalDock(existItem);
     });
     window.siyuan.layout.centerLayout = window.siyuan.layout.layout.children[0].children[1] as Layout;
-    window.siyuan.layout.leftDock = new Dock({position: "Left", data: json.left, app});
-    window.siyuan.layout.rightDock = new Dock({position: "Right", data: json.right, app});
-    window.siyuan.layout.bottomDock = new Dock({position: "Bottom", data: json.bottom, app});
+    window.siyuan.layout.leftDock = new Dock({ position: "Left", data: json.left, app });
+    window.siyuan.layout.rightDock = new Dock({ position: "Right", data: json.right, app });
+    window.siyuan.layout.bottomDock = new Dock({ position: "Bottom", data: json.bottom, app });
 };
 
 const removedTabs: Tab[] = [];
@@ -309,7 +276,7 @@ export const JSONToCenter = (
     if (json.instance === "Layout") {
         // TabA 向右分屏后向下分屏，依次关闭右侧、上侧分屏无法移除 layout 嵌套，故在此解决 https://github.com/siyuan-note/siyuan/issues/12196
         while (json.children.length === 1 && json.children[0].instance === "Layout" &&
-        json.children[0].type === "normal" && json.children[0].children.length === 1) {
+            json.children[0].type === "normal" && json.children[0].children.length === 1) {
             json.children = json.children[0].children;
         }
         if (!layout) {
@@ -980,7 +947,7 @@ export const adjustLayout = (layout: Layout = window.siyuan.layout.centerLayout.
             item.element.style.minWidth = "";
         }
     });
-    if (layout.direction === "lr" && layout.element.scrollWidth > layout.element.clientWidth + 2 ) {
+    if (layout.direction === "lr" && layout.element.scrollWidth > layout.element.clientWidth + 2) {
         let index = Math.ceil(screen.width / 8);
         while (index > 0) {
             let width = 0;
@@ -1036,5 +1003,11 @@ export const fixWndFlex1 = (layout: Layout) => {
             flex1Element.style.height = "";
             flex1Element.classList.add("fn__flex-1");
         }
+    }
+};
+
+export const removeAllClass = (className: string, doc: Document = document) => {
+    for (const item of doc.querySelectorAll(`.${className}`)) {
+        item.classList.remove(className);
     }
 };

@@ -2,7 +2,7 @@ import { Model } from "../layout/Model";
 import { Tab } from "../layout/Tab";
 import { Protyle } from "../protyle";
 import { genSearch } from "./util";
-import { setPanelFocus } from "../layout/util";
+import { setPanelFocus } from "../layout/utils/setPanelFocus";
 import { App } from "../index";
 import { clearOBG } from "../layout/dock/util";
 import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";

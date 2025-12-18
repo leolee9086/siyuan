@@ -7,21 +7,22 @@ import {ipcRenderer} from "electron";
 import {App} from "../../index";
 import {isMac, isNotCtrl, isOnlyMeta} from "../../protyle/util/compatibility";
 import {showPopover} from "../../block/popover";
+import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 const matchKeymap = (keymap: Config.IKeys, key1: "general" | "editor", key2?: "general" | "insert" | "heading" | "list" | "table") => {
     if (key1 === "general") {
-        if (!window.siyuan.config.keymap[key1]) {
+        if (!getSiyuanConfig().keymap[key1]) {
             /// #if !BROWSER
             ipcRenderer.send(Constants.SIYUAN_CMD, {
                 cmd: "writeLog",
                 msg: "window.siyuan.config.keymap.general is not found"
             });
             /// #endif
-            window.siyuan.config.keymap[key1] = keymap as Config.IKeymapGeneral;
+            getSiyuanConfig().keymap[key1] = keymap as Config.IKeymapGeneral;
             return false;
         }
     } else {
-        if (!window.siyuan.config.keymap[key1]) {
+        if (!getSiyuanConfig().keymap[key1]) {
             /// #if !BROWSER
             ipcRenderer.send(Constants.SIYUAN_CMD, {
                 cmd: "writeLog",
@@ -109,7 +110,7 @@ export const correctHotkey = (app: App) => {
     const hasKeymap4 = hasKeymap(Constants.SIYUAN_KEYMAP.editor.heading, "editor", "heading");
     const hasKeymap5 = hasKeymap(Constants.SIYUAN_KEYMAP.editor.list, "editor", "list");
     const hasKeymap6 = hasKeymap(Constants.SIYUAN_KEYMAP.editor.table, "editor", "table");
-    if (!window.siyuan.config.readonly &&
+    if (!getSiyuanConfig().readonly &&
         (!matchKeymap1 || !matchKeymap2 || !matchKeymap3 || !matchKeymap4 || !matchKeymap5 || !matchKeymap6 ||
             !hasKeymap1 || !hasKeymap2 || !hasKeymap3 || !hasKeymap4 || !hasKeymap5 || !hasKeymap6)) {
         /// #if !BROWSER
@@ -119,7 +120,7 @@ export const correctHotkey = (app: App) => {
         });
         /// #endif
         fetchPost("/api/setting/setKeymap", {
-            data: window.siyuan.config.keymap
+            data: getSiyuanConfig().keymap
         }, () => {
             /// #if !BROWSER
             sendGlobalShortcut(app);

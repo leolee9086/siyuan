@@ -1,16 +1,16 @@
-import {Tab} from "../Tab";
-import {Model} from "../Model";
-import {Tree} from "../../util/Tree";
-import {setPanelFocus} from "../util";
-import {getDockByType} from "../tabUtil";
-import {fetchPost} from "../../util/fetch";
-import {updateHotkeyAfterTip} from "../../protyle/util/compatibility";
-import {openGlobalSearch} from "../../search/util";
+import { Tab } from "../Tab";
+import { Model } from "../Model";
+import { Tree } from "../../util/Tree";
+import { setPanelFocus } from "../utils/setPanelFocus";
+import { getDockByType } from "../tabUtil";
+import { fetchPost } from "../../util/fetch";
+import { updateHotkeyAfterTip } from "../../protyle/util/compatibility";
+import { openGlobalSearch } from "../../search/util";
 import { MenuItem } from "../../menus/Menu.Item";
-import {App} from "../../index";
-import {openTagMenu} from "../../menus/tag";
-import {hasClosestByClassName} from "../../protyle/util/hasClosest";
-import {Constants} from "../../constants";
+import { App } from "../../index";
+import { openTagMenu } from "../../menus/tag";
+import { hasClosestByClassName } from "../../protyle/util/hasClosest";
+import { Constants } from "../../constants";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export class Tag extends Model {
@@ -89,7 +89,7 @@ export class Tag extends Model {
                         return;
                     }
                 }
-                openGlobalSearch(app, `#${element.getAttribute("data-label")}#`, !window.siyuan.ctrlIsPressed, {method: 0});
+                openGlobalSearch(app, `#${element.getAttribute("data-label")}#`, !window.siyuan.ctrlIsPressed, { method: 0 });
             },
             rightClick: (element: HTMLElement, event: MouseEvent) => {
                 openTagMenu(element, event, element.getAttribute("data-label"));
@@ -164,7 +164,7 @@ export class Tag extends Model {
                                     this.update();
                                 },
                             }).element);
-                            window.siyuan.menus.menu.popup({x: event.clientX, y: event.clientY});
+                            window.siyuan.menus.menu.popup({ x: event.clientX, y: event.clientY });
                             event.preventDefault();
                             event.stopPropagation();
                             break;
