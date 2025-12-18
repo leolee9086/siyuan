@@ -23,13 +23,15 @@ export class Search extends Model {
         this.element = options.tab.panelElement as HTMLElement;
         this.config = options.config;
         this.editors = genSearch(options.app, this.config, this.element);
-        this.element.addEventListener("click", () => {
-            clearOBG();
-            const grandParent = this.element.parentElement?.parentElement;
-            if (grandParent) {
-                setPanelFocus(grandParent);
-            }
-        });
+        this.element.addEventListener("click", this.handleElementClick.bind(this));
+    }
+
+    private handleElementClick(): void {
+        clearOBG();
+        const grandParent = this.element.parentElement?.parentElement;
+        if (grandParent) {
+            setPanelFocus(grandParent);
+        }
     }
 
     public updateSearch(text: string, replace: boolean) {
