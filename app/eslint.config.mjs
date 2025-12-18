@@ -25,6 +25,7 @@ export default [{
         "src/types/dist",
         "stage",
         "appearance",
+        "test"
     ],
 }, ...compat.extends("eslint:recommended", "plugin:@typescript-eslint/recommended"), ...pluginVue.configs["flat/essential"], {
     plugins: {
