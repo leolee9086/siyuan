@@ -12,35 +12,37 @@ import { resetFloatDockSize } from "../layout/dock/util";
 import { confirmDialog } from "../dialog/confirmDialog";
 import { useShell } from "../util/pathName";
 import { setStatusBar } from "./util/setStatusBar";
+import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const appearance = {
     element: undefined as Element,
     genHTML: () => {
         return `<div class="fn__flex b3-label config__item">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.appearance4}
-        <div class="b3-label__text">${window.siyuan.languages.appearance5}</div>
+        ${siyuanI18n.appearance4}
+        <div class="b3-label__text">${siyuanI18n.appearance5}</div>
     </div>
     <span class="fn__space"></span>
     <select class="b3-select fn__flex-center fn__size200" id="mode">
-      <option value="0" ${(window.siyuan.config.appearance.mode === 0 && !window.siyuan.config.appearance.modeOS) ? "selected" : ""}>${window.siyuan.languages.themeLight}</option>
-      <option value="1" ${(window.siyuan.config.appearance.mode === 1 && !window.siyuan.config.appearance.modeOS) ? "selected" : ""}>${window.siyuan.languages.themeDark}</option>
-      <option value="2" ${window.siyuan.config.appearance.modeOS ? "selected" : ""}>${window.siyuan.languages.themeOS}</option>
+      <option value="0" ${(getSiyuanConfig().appearance.mode === 0 && !window.siyuan.config.appearance.modeOS) ? "selected" : ""}>${siyuanI18n.themeLight}</option>
+      <option value="1" ${(window.siyuan.config.appearance.mode === 1 && !window.siyuan.config.appearance.modeOS) ? "selected" : ""}>${siyuanI18n.themeDark}</option>
+      <option value="2" ${window.siyuan.config.appearance.modeOS ? "selected" : ""}>${siyuanI18n.themeOS}</option>
     </select>
 </div>
 <div class="b3-label">
     <div class="fn__flex">
-        <div class="fn__flex-center fn__flex-1">${window.siyuan.languages.theme}</div>
+        <div class="fn__flex-center fn__flex-1">${siyuanI18n.theme}</div>
         <span class="fn__space"></span>
         <button class="b3-button b3-button--outline fn__flex-center fn__size200${isBrowser() ? " fn__none" : ""}" id="appearanceOpenTheme">
             <svg><use xlink:href="#iconFolder"></use></svg>
-            ${window.siyuan.languages.appearance9}
+            ${siyuanI18n.appearance9}
         </button>
     </div>
     <div class="fn__hr"></div>
     <div class="fn__flex config__item">
         <div class="fn__flex-center fn__flex-1 ft__on-surface">
-            ${window.siyuan.languages.theme11}
+            ${siyuanI18n.theme11}
         </div>
         <span class="fn__space"></span>
         <select class="b3-select fn__flex-center fn__size200" id="themeLight">
@@ -50,7 +52,7 @@ export const appearance = {
     <div class="fn__hr"></div>
     <div class="fn__flex config__item">
         <div class="fn__flex-center fn__flex-1 ft__on-surface">
-            ${window.siyuan.languages.theme12}
+            ${siyuanI18n.theme12}
         </div>
         <span class="fn__space"></span>
         <select class="b3-select fn__flex-center fn__size200" id="themeDark">
@@ -61,17 +63,17 @@ export const appearance = {
 <div class="b3-label">
     <div class="fn__flex config__item">
         <div class="fn__flex-center fn__flex-1">
-            ${window.siyuan.languages.icon}
+            ${siyuanI18n.icon}
         </div>
         <span class="fn__space"></span>
         <button class="b3-button b3-button--outline fn__flex-center fn__size200${isBrowser() ? " fn__none" : ""}" id="appearanceOpenIcon">
             <svg><use xlink:href="#iconFolder"></use></svg>
-            ${window.siyuan.languages.appearance8}
+            ${siyuanI18n.appearance8}
         </button>
     </div>
     <div class="fn__hr"></div>
     <div class="fn__flex config__item">
-        <div class="fn__flex-center fn__flex-1 ft__on-surface">${window.siyuan.languages.theme2}</div>
+        <div class="fn__flex-center fn__flex-1 ft__on-surface">${siyuanI18n.theme2}</div>
         <span class="fn__space"></span>
         <select class="b3-select fn__flex-center fn__size200" id="icon">
             ${genOptions(window.siyuan.config.appearance.icons, window.siyuan.config.appearance.icon)}
@@ -81,11 +83,11 @@ export const appearance = {
 <div class="b3-label fn__flex">
     <div class="fn__block">
         <div>
-            ${window.siyuan.languages.appearance1}
+            ${siyuanI18n.appearance1}
         </div>
         <div class="fn__hr"></div>
         <div class="fn__flex config__item">
-            <div class="fn__flex-center fn__flex-1 ft__on-surface">${window.siyuan.languages.appearance2}</div>
+            <div class="fn__flex-center fn__flex-1 ft__on-surface">${siyuanI18n.appearance2}</div>
             <span class="fn__space"></span>
             <select id="codeBlockThemeLight" class="b3-select fn__size200">
                 ${genOptions(Constants.SIYUAN_CONFIG_APPEARANCE_LIGHT_CODE, window.siyuan.config.appearance.codeBlockThemeLight)}
@@ -93,7 +95,7 @@ export const appearance = {
         </div>
         <div class="fn__hr"></div>
         <div class="fn__flex config__item">
-            <div class="fn__flex-center fn__flex-1 ft__on-surface">${window.siyuan.languages.appearance3}</div>
+            <div class="fn__flex-center fn__flex-1 ft__on-surface">${siyuanI18n.appearance3}</div>
             <span class="fn__space"></span>
             <select id="codeBlockThemeDark" class="b3-select fn__size200">
                 ${genOptions(Constants.SIYUAN_CONFIG_APPEARANCE_DARK_CODE, window.siyuan.config.appearance.codeBlockThemeDark)}
@@ -103,60 +105,60 @@ export const appearance = {
 </div>
 <div class="fn__flex b3-label config__item">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.language}
-        <div class="b3-label__text">${window.siyuan.languages.language1}</div>
+        ${siyuanI18n.language}
+        <div class="b3-label__text">${siyuanI18n.language1}</div>
     </div>
     <span class="fn__space"></span>
     <select id="lang" class="b3-select fn__flex-center fn__size200">${genLangOptions(window.siyuan.config.langs, window.siyuan.config.appearance.lang)}</select>
 </div>
 <div class="b3-label config__item${isBrowser() ? " fn__none" : " fn__flex"}">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.customEmoji}
-        <div class="b3-label__text">${window.siyuan.languages.customEmojiTip}</div>
+        ${siyuanI18n.customEmoji}
+        <div class="b3-label__text">${siyuanI18n.customEmojiTip}</div>
     </div>
     <span class="fn__space"></span>
     <button class="b3-button b3-button--outline fn__flex-center fn__size200" id="appearanceOpenEmoji">
         <svg><use xlink:href="#iconFolder"></use></svg>
-        ${window.siyuan.languages.showInFolder}
+        ${siyuanI18n.showInFolder}
     </button>
 </div>
 <div class="b3-label fn__flex config__item">
    <div class="fn__flex-1">
-        ${window.siyuan.languages.resetLayout}
-        <div class="b3-label__text">${window.siyuan.languages.appearance6}</div>
+        ${siyuanI18n.resetLayout}
+        <div class="b3-label__text">${siyuanI18n.appearance6}</div>
     </div>
     <span class="fn__space"></span>
     <button class="b3-button b3-button--outline fn__flex-center fn__size200" id="resetLayout">
-        <svg><use xlink:href="#iconUndo"></use></svg>${window.siyuan.languages.reset}
+        <svg><use xlink:href="#iconUndo"></use></svg>${siyuanI18n.reset}
     </button>
 </div>
 <div class="b3-label">
     <div class="fn__flex config__item">
         <div class="fn__flex-1 fn__flex-center">
-            ${window.siyuan.languages.codeSnippet}
+            ${siyuanI18n.codeSnippet}
         </div>
         <span class="fn__space"></span>
         <a class="b3-button b3-button--outline fn__flex-center fn__size200${"zh_CN" !== window.siyuan.config.lang ? " fn__none" : ""}" target="_blank" href="https://ld246.com/tag/code-snippet">
-            <svg><use xlink:href="#iconUpload"></use></svg>${window.siyuan.languages.visitCommunityShare}
+            <svg><use xlink:href="#iconUpload"></use></svg>${siyuanI18n.visitCommunityShare}
         </a>
     </div>
     <div class="fn__hr"></div>
     <div class="fn__flex config__item">
         <div class="fn__flex-center fn__flex-1 ft__on-surface">
-            ${window.siyuan.languages.codeSnippetTip}
+            ${siyuanI18n.codeSnippetTip}
         </div>
         <span class="fn__space"></span>
         <button class="b3-button b3-button--outline fn__flex-center fn__size200" id="codeSnippet">
-            <svg><use xlink:href="#iconSettings"></use></svg>${window.siyuan.languages.config}
+            <svg><use xlink:href="#iconSettings"></use></svg>${siyuanI18n.config}
         </button>
     </div>
 </div>
 <div class="b3-label">
-    ${window.siyuan.languages.appearance16}
+    ${siyuanI18n.appearance16}
     <div class="fn__hr"></div>
     <label class="fn__flex">
         <div class="fn__flex-center fn__flex-1 ft__on-surface">
-           ${window.siyuan.languages.appearance17}
+           ${siyuanI18n.appearance17}
         </div>
         <span class="fn__space"></span>
         <input class="b3-switch fn__flex-center" id="hideStatusBar" type="checkbox"${window.siyuan.config.appearance.hideStatusBar ? " checked" : ""}>
@@ -164,18 +166,18 @@ export const appearance = {
     <div class="fn__hr"></div>
     <div class="fn__flex config__item">
         <div class="fn__flex-center fn__flex-1 ft__on-surface">
-            ${window.siyuan.languages.appearance18}
+            ${siyuanI18n.appearance18}
         </div>
         <span class="fn__space"></span>
         <button class="b3-button b3-button--outline fn__flex-center fn__size200" id="statusBarSetting">
-            <svg><use xlink:href="#iconSettings"></use></svg>${window.siyuan.languages.config}
+            <svg><use xlink:href="#iconSettings"></use></svg>${siyuanI18n.config}
         </button>
     </div>
 </div>
 <label class="fn__flex b3-label">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.appearance10}
-        <div class="b3-label__text">${window.siyuan.languages.appearance11}</div>
+        ${siyuanI18n.appearance10}
+        <div class="b3-label__text">${siyuanI18n.appearance11}</div>
     </div>
     <span class="fn__space"></span>
     <input class="b3-switch fn__flex-center" id="closeButtonBehavior" type="checkbox"${window.siyuan.config.appearance.closeButtonBehavior === 0 ? "" : " checked"}>
@@ -194,17 +196,17 @@ export const appearance = {
             codeBlockThemeLight: (appearance.element.querySelector("#codeBlockThemeLight") as HTMLSelectElement).value,
             themeDark,
             themeLight,
-            darkThemes: window.siyuan.config.appearance.darkThemes,
-            lightThemes: window.siyuan.config.appearance.lightThemes,
-            icons: window.siyuan.config.appearance.icons,
+            darkThemes: getSiyuanConfig().appearance.darkThemes,
+            lightThemes: getSiyuanConfig().appearance.lightThemes,
+            icons: getSiyuanConfig().appearance.icons,
             lang: (appearance.element.querySelector("#lang") as HTMLSelectElement).value,
             closeButtonBehavior: (appearance.element.querySelector("#closeButtonBehavior") as HTMLInputElement).checked ? 1 : 0,
             hideStatusBar: (appearance.element.querySelector("#hideStatusBar") as HTMLInputElement).checked,
             statusBar: {
-                msgTaskDatabaseIndexCommitDisabled: window.siyuan.config.appearance.statusBar.msgTaskDatabaseIndexCommitDisabled,
-                msgTaskHistoryDatabaseIndexCommitDisabled: window.siyuan.config.appearance.statusBar.msgTaskHistoryDatabaseIndexCommitDisabled,
-                msgTaskAssetDatabaseIndexCommitDisabled: window.siyuan.config.appearance.statusBar.msgTaskAssetDatabaseIndexCommitDisabled,
-                msgTaskHistoryGenerateFileDisabled: window.siyuan.config.appearance.statusBar.msgTaskHistoryGenerateFileDisabled,
+                msgTaskDatabaseIndexCommitDisabled: getSiyuanConfig().appearance.statusBar.msgTaskDatabaseIndexCommitDisabled,
+                msgTaskHistoryDatabaseIndexCommitDisabled: getSiyuanConfig().appearance.statusBar.msgTaskHistoryDatabaseIndexCommitDisabled,
+                msgTaskAssetDatabaseIndexCommitDisabled: getSiyuanConfig().appearance.statusBar.msgTaskAssetDatabaseIndexCommitDisabled,
+                msgTaskHistoryGenerateFileDisabled: getSiyuanConfig().appearance.statusBar.msgTaskHistoryGenerateFileDisabled,
             }
         }, () => {
             resetFloatDockSize();
@@ -216,7 +218,7 @@ export const appearance = {
             openSnippets();
         });
         appearance.element.querySelector("#resetLayout").addEventListener("click", () => {
-            confirmDialog("⚠️ " + window.siyuan.languages.reset, window.siyuan.languages.appearance6, () => {
+            confirmDialog("⚠️ " + siyuanI18n.reset, siyuanI18n.appearance6, () => {
                 resetLayout();
             });
         });
@@ -243,7 +245,7 @@ export const appearance = {
         });
     },
     onSetAppearance(data: Config.IAppearance) {
-        if (data.lang !== window.siyuan.config.appearance.lang) {
+        if (data.lang !== getSiyuanConfig().appearance.lang) {
             exportLayout({
                 cb() {
                     window.location.reload();
@@ -253,7 +255,7 @@ export const appearance = {
             return;
         }
 
-        window.siyuan.config.appearance = data;
+        getSiyuanConfig().appearance = data;
         if (appearance.element) {
             const modeElement = appearance.element.querySelector("#mode") as HTMLSelectElement;
             if (modeElement) {
@@ -265,7 +267,7 @@ export const appearance = {
             }
             const themeLightElement = appearance.element.querySelector("#themeLight") as HTMLSelectElement;
             if (themeLightElement) {
-                themeLightElement.innerHTML = genOptions(window.siyuan.config.appearance.lightThemes, window.siyuan.config.appearance.themeLight);
+                themeLightElement.innerHTML = genOptions(getSiyuanConfig().appearance.lightThemes, window.siyuan.config.appearance.themeLight);
             }
             const themeDarkElement = appearance.element.querySelector("#themeDark") as HTMLSelectElement;
             if (themeDarkElement) {

@@ -1,41 +1,43 @@
-import {adjustLayout, exportLayout, JSONToLayout, resetLayout, resizeTopBar} from "../layout/util";
-import {resizeTabs} from "../layout/tabUtil";
-import {setStorageVal} from "../protyle/util/compatibility";
+import { adjustLayout, exportLayout, JSONToLayout, resetLayout, resizeTopBar } from "../layout/util";
+import { resizeTabs } from "../layout/tabUtil";
+import { setStorageVal } from "../protyle/util/compatibility";
 /// #if !BROWSER
-import {ipcRenderer, webFrame} from "electron";
+import { ipcRenderer, webFrame } from "electron";
 import * as fs from "fs";
 import * as path from "path";
-import {afterExport} from "../protyle/export/util";
-import {onWindowsMsg} from "../window/onWindowsMsg";
-import {initFocusFix} from "../protyle/util/compatibility";
+import { afterExport } from "../protyle/export/util";
+import { onWindowsMsg } from "../window/onWindowsMsg";
+import { initFocusFix } from "../protyle/util/compatibility";
 /// #endif
-import {Constants} from "../constants";
-import {appearance} from "../config/appearance";
-import {fetchPost, fetchSyncPost} from "../util/fetch";
-import {initAssets, setInlineStyle} from "../util/assets";
-import {renderSnippet} from "../config/util/snippets";
-import {openFile} from "../editor/util";
+import { Constants } from "../constants";
+import { appearance } from "../config/appearance";
+import { fetchPost, fetchSyncPost } from "../util/fetch";
+import { initAssets, setInlineStyle } from "../util/assets";
+import { renderSnippet } from "../config/util/snippets";
+import { openFile } from "../editor/util";
 import { openFileById } from "../editor/utils.openFileById";
-import {exitSiYuan} from "../dialog/processSystem";
-import {isWindow} from "../util/functions";
-import {initStatus} from "../layout/status";
-import {showMessage} from "../dialog/message";
-import {replaceLocalPath} from "../editor/rename";
-import {setTabPosition} from "../window/setHeader";
-import {initBar} from "../layout/topBar";
-import {openChangelog} from "./openChangelog";
-import {App} from "../index";
-import {initWindowEvent} from "./globalEvent/event";
-import {sendGlobalShortcut} from "./globalEvent/keydown";
-import {closeWindow} from "../window/closeWin";
-import {correctHotkey} from "./globalEvent/commonHotkey";
-import {recordBeforeResizeTop} from "../protyle/util/resize";
-import {processSYLink} from "../editor/openLink";
+import { exitSiYuan } from "../dialog/processSystem";
+import { isWindow } from "../util/functions";
+import { initStatus } from "../layout/status";
+import { showMessage } from "../dialog/message";
+import { replaceLocalPath } from "../editor/rename";
+import { setTabPosition } from "../window/setHeader";
+import { initBar } from "../layout/topBar";
+import { openChangelog } from "./openChangelog";
+import { App } from "../index";
+import { initWindowEvent } from "./globalEvent/event";
+import { sendGlobalShortcut } from "./globalEvent/keydown";
+import { closeWindow } from "../window/closeWin";
+import { correctHotkey } from "./globalEvent/commonHotkey";
+import { recordBeforeResizeTop } from "../protyle/util/resize";
+import { processSYLink } from "../editor/openLink";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const onGetConfig = (isStart: boolean, app: App) => {
     correctHotkey(app);
     /// #if !BROWSER
     ipcRenderer.invoke(Constants.SIYUAN_INIT, {
+        // 注意：这里不能使用 siyuanI18n，因为它是 Proxy 对象，无法通过 IPC 克隆
         languages: window.siyuan.languages["_trayMenu"],
         workspaceDir: window.siyuan.config.system.workspaceDir,
         port: location.port
@@ -126,6 +128,7 @@ export const initWindow = async (app: App) => {
                     // 最小化
                     if ("windows" === window.siyuan.config.system.os) {
                         ipcRenderer.send(Constants.SIYUAN_CONFIG_TRAY, {
+                            // 注意：这里不能使用 siyuanI18n，因为它是 Proxy 对象，无法通过 IPC 克隆
                             languages: window.siyuan.languages["_trayMenu"],
                         });
                     } else {
@@ -212,7 +215,7 @@ export const initWindow = async (app: App) => {
         });
     });
     ipcRenderer.on(Constants.SIYUAN_EXPORT_PDF, async (e, ipcData) => {
-        const msgId = showMessage(window.siyuan.languages.exporting, -1);
+        const msgId = showMessage(siyuanI18n.exporting, -1);
         window.siyuan.storage[Constants.LOCAL_EXPORTPDF] = {
             removeAssets: ipcData.removeAssets,
             keepFold: ipcData.keepFold,
@@ -230,7 +233,7 @@ export const initWindow = async (app: App) => {
         setStorageVal(Constants.LOCAL_EXPORTPDF, window.siyuan.storage[Constants.LOCAL_EXPORTPDF]);
         try {
             if (window.siyuan.config.export.pdfFooter.trim()) {
-                const response = await fetchSyncPost("/api/template/renderSprig", {template: window.siyuan.config.export.pdfFooter});
+                const response = await fetchSyncPost("/api/template/renderSprig", { template: window.siyuan.config.export.pdfFooter });
                 ipcData.pdfOptions.displayHeaderFooter = true;
                 ipcData.pdfOptions.headerTemplate = "<span></span>";
                 ipcData.pdfOptions.footerTemplate = `<div style="text-align:center;width:100%;font-size:10px;line-height:12px;">
@@ -244,7 +247,7 @@ ${response.data.replace("%pages", "<span class=totalPages></span>").replace("%pa
             });
             const savePath = ipcData.filePaths[0];
             let pdfFilePath = path.join(savePath, replaceLocalPath(ipcData.rootTitle) + ".pdf");
-            const responseUnique = await fetchSyncPost("/api/file/getUniqueFilename", {path: pdfFilePath});
+            const responseUnique = await fetchSyncPost("/api/file/getUniqueFilename", { path: pdfFilePath });
             pdfFilePath = responseUnique.data.path;
             fetchPost("/api/export/exportHTML", {
                 id: ipcData.rootId,
@@ -254,7 +257,7 @@ ${response.data.replace("%pages", "<span class=totalPages></span>").replace("%pa
                 savePath,
             }, () => {
                 fs.writeFileSync(pdfFilePath, pdfData);
-                ipcRenderer.send(Constants.SIYUAN_CMD, {cmd: "destroy", webContentsId: ipcData.webContentsId});
+                ipcRenderer.send(Constants.SIYUAN_CMD, { cmd: "destroy", webContentsId: ipcData.webContentsId });
                 fetchPost("/api/export/processPDF", {
                     id: ipcData.rootId,
                     merge: ipcData.mergeSubdocs,
@@ -295,28 +298,28 @@ ${response.data.replace("%pages", "<span class=totalPages></span>").replace("%pa
             });
         } catch (e) {
             console.error(e);
-            showMessage(window.siyuan.languages.exportPDFLowMemory, 0, "error", msgId);
-            ipcRenderer.send(Constants.SIYUAN_CMD, {cmd: "destroy", webContentsId: ipcData.webContentsId});
+            showMessage(siyuanI18n.exportPDFLowMemory, 0, "error", msgId);
+            ipcRenderer.send(Constants.SIYUAN_CMD, { cmd: "destroy", webContentsId: ipcData.webContentsId });
         }
-        ipcRenderer.send(Constants.SIYUAN_CMD, {cmd: "hide", webContentsId: ipcData.webContentsId});
+        ipcRenderer.send(Constants.SIYUAN_CMD, { cmd: "hide", webContentsId: ipcData.webContentsId });
     });
 
     if (isWindow()) {
         document.body.insertAdjacentHTML("beforeend", `<div class="toolbar__window">
-<div class="toolbar__item ariaLabel" aria-label="${window.siyuan.languages.pin}" id="pinWindow">
+<div class="toolbar__item ariaLabel" aria-label="${siyuanI18n.pin}" id="pinWindow">
     <svg>
         <use xlink:href="#iconPin"></use>
     </svg>
 </div></div>`);
         const pinElement = document.getElementById("pinWindow");
         pinElement.addEventListener("click", () => {
-            if (pinElement.getAttribute("aria-label") === window.siyuan.languages.pin) {
+            if (pinElement.getAttribute("aria-label") === siyuanI18n.pin) {
                 pinElement.querySelector("use").setAttribute("xlink:href", "#iconUnpin");
-                pinElement.setAttribute("aria-label", window.siyuan.languages.unpin);
+                pinElement.setAttribute("aria-label", siyuanI18n.unpin);
                 ipcRenderer.send(Constants.SIYUAN_CMD, "setAlwaysOnTopTrue");
             } else {
                 pinElement.querySelector("use").setAttribute("xlink:href", "#iconPin");
-                pinElement.setAttribute("aria-label", window.siyuan.languages.pin);
+                pinElement.setAttribute("aria-label", siyuanI18n.pin);
                 ipcRenderer.send(Constants.SIYUAN_CMD, "setAlwaysOnTopFalse");
             }
         });
@@ -325,22 +328,22 @@ ${response.data.replace("%pages", "<span class=totalPages></span>").replace("%pa
         document.body.classList.add("body--win32");
 
         // 添加窗口控件
-        const controlsHTML = `<div class="toolbar__item ariaLabel toolbar__item--win" aria-label="${window.siyuan.languages.min}" id="minWindow">
+        const controlsHTML = `<div class="toolbar__item ariaLabel toolbar__item--win" aria-label="${siyuanI18n.min}" id="minWindow">
     <svg>
         <use xlink:href="#iconMin"></use>
     </svg>
 </div>
-<div aria-label="${window.siyuan.languages.max}" class="ariaLabel toolbar__item toolbar__item--win" id="maxWindow">
+<div aria-label="${siyuanI18n.max}" class="ariaLabel toolbar__item toolbar__item--win" id="maxWindow">
     <svg>
         <use xlink:href="#iconMax"></use>
     </svg>
 </div>
-<div aria-label="${window.siyuan.languages.restore}" class="ariaLabel toolbar__item toolbar__item--win" id="restoreWindow">
+<div aria-label="${siyuanI18n.restore}" class="ariaLabel toolbar__item toolbar__item--win" id="restoreWindow">
     <svg>
         <use xlink:href="#iconRestore"></use>
     </svg>
 </div>
-<div aria-label="${window.siyuan.languages.close}" class="ariaLabel toolbar__item toolbar__item--close" id="closeWindow">
+<div aria-label="${siyuanI18n.close}" class="ariaLabel toolbar__item toolbar__item--close" id="closeWindow">
     <svg>
         <use xlink:href="#iconClose"></use>
     </svg>
