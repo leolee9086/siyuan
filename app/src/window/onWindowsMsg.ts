@@ -11,57 +11,58 @@ const closeTab = (ipcData: IWebSocketData) => {
         tab.parent.removeTab(ipcData.data);
     }
 };
-export const onWindowsMsg = (ipcData: IWebSocketData) => {
-    switch (ipcData.cmd) {
-        case "closetab":
-            closeTab(ipcData);
-            break;
-        case "resetTabsStyle": {
-            // data: addRegionStyle, rmDragStyle, rmDragStyleRegionStyle
-            if (ipcData.data === "rmDragStyle") {
-                document.querySelectorAll(".layout-tab-bars--drag").forEach(item => {
-                    item.classList.remove("layout-tab-bars--drag");
-                });
-                document.querySelectorAll(".layout-tab-bar li[data-clone='true']").forEach(tabItem => {
-                    tabItem.remove();
-                });
-                break;
-            }
-            if (!isWindow()) {
-                break;
-            }
-            document.querySelectorAll<HTMLElement>(".layout-tab-bar--readonly .fn__flex-1").forEach(item => {
-                const isTopMost = item.getBoundingClientRect().top <= 0;
-                if (isTopMost && ipcData.data === "addRegionStyle") {
-                    (item.style as CSSStyleDeclarationElectron).WebkitAppRegion = "drag";
-                }
-                if (isTopMost && ipcData.data === "removeRegionStyle") {
-                    (item.style as CSSStyleDeclarationElectron).WebkitAppRegion = "";
-                }
-            });
-            break;
+const handleResetTabsStyle = (ipcData: IWebSocketData) => {
+    // data: addRegionStyle, rmDragStyle, rmDragStyleRegionStyle
+    if (ipcData.data === "rmDragStyle") {
+        for (const item of document.querySelectorAll(".layout-tab-bars--drag")) {
+            item.classList.remove("layout-tab-bars--drag");
         }
-        case "lockscreen":
-            exportLayout({
-                errorExit: false,
-                cb() {
-                    fetchPost("/api/system/logoutAuth", {}, () => {
-                        redirectToCheckAuth();
-                    });
-                }
-            });
-            break;
-        case "lockscreenByMode":
-            if (getSiyuanConfig().system.lockScreenMode === 1) {
-                exportLayout({
-                    errorExit: false,
-                    cb() {
-                        fetchPost("/api/system/logoutAuth", {}, () => {
-                            redirectToCheckAuth();
-                        });
-                    }
-                });
-            }
-            break;
+        for (const tabItem of document.querySelectorAll(".layout-tab-bar li[data-clone='true']")) {
+            tabItem.remove();
+        }
+        return;
     }
+    if (!isWindow()) {
+        return;
+    }
+    for (const item of document.querySelectorAll<HTMLElement>(".layout-tab-bar--readonly .fn__flex-1")) {
+        const isTopMost = item.getBoundingClientRect().top <= 0;
+        if (isTopMost && ipcData.data === "addRegionStyle") {
+            (item.style as CSSStyleDeclarationElectron).WebkitAppRegion = "drag";
+        }
+        if (isTopMost && ipcData.data === "removeRegionStyle") {
+            (item.style as CSSStyleDeclarationElectron).WebkitAppRegion = "";
+        }
+    }
+};
+
+const handleLockscreen = () => {
+    exportLayout({
+        errorExit: false,
+        cb() {
+            fetchPost("/api/system/logoutAuth", {}, () => {
+                redirectToCheckAuth();
+            });
+        }
+    });
+};
+
+const handleLockscreenByMode = () => {
+    if (getSiyuanConfig().system.lockScreenMode === 1) {
+        handleLockscreen();
+    }
+};
+
+const windowsMsgHandlers: Record<string, (ipcData: IWebSocketData) => void> = {
+    closetab: closeTab,
+    resetTabsStyle: handleResetTabsStyle,
+    lockscreen: handleLockscreen,
+    lockscreenByMode: handleLockscreenByMode,
+};
+
+export const onWindowsMsg = (ipcData: IWebSocketData) => {
+    if (!ipcData.cmd) {
+        return;
+    }
+    windowsMsgHandlers[ipcData.cmd]?.(ipcData);
 };
