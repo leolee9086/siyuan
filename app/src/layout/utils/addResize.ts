@@ -134,11 +134,8 @@ const onResizeMouseDown = (event: MouseEvent, resizeElement: HTMLElement, direct
     previousElement.style.overflow = "auto";
     nextElement.style.transition = "none";
     previousElement.style.transition = "none";
-    if (!nextElement.nextElementSibling || nextElement.nextElementSibling.classList.contains("layout__dockresize")) {
-        setSize(nextElement, direction);
-    } else {
-        setSize(previousElement, direction);
-    }
+    const resizeNext = !nextElement.nextElementSibling || nextElement.nextElementSibling.classList.contains("layout__dockresize");
+    setSize(resizeNext ? nextElement : previousElement, direction);
     const x = event[direction === "lr" ? "clientX" : "clientY"];
     const previousSize = direction === "lr" ? previousElement.clientWidth : previousElement.clientHeight;
     const nextSize = direction === "lr" ? nextElement.clientWidth : nextElement.clientHeight;
@@ -154,85 +151,90 @@ const onResizeMouseDown = (event: MouseEvent, resizeElement: HTMLElement, direct
     };
 };
 
-const onResizeDblClick = (resizeElement: HTMLElement) => {
-    const previousElement = resizeElement.previousElementSibling as HTMLElement;
-    const nextElement = resizeElement.nextElementSibling as HTMLElement;
-    if (previousElement && nextElement) {
-        const layout = getSiyuanLayout();
-        const bigType = ["graph", "inbox", "globalGraph", "backlink"];
-        let size = 232;
-        nextElement.style.transition = "none";
-        previousElement.style.transition = "none";
-        if (resizeElement.classList.contains("layout__resize--lr")) {
-            if (previousElement.classList.contains("layout__dockl")) {
-                const dockLeft = document.querySelectorAll("#dockLeft .dock__item--active");
-                for (let i = 0; i < dockLeft.length; i++) {
-                    const item = dockLeft[i];
-                    if (!item) continue;
-                    const type = item.getAttribute("data-type");
-                    if (type && bigType.includes(type)) {
-                        size = 320;
-                    }
-                }
-                previousElement.style.width = size + "px";
-                layout.leftDock?.setSize();
-            } else if (nextElement.classList.contains("layout__dockr")) {
-                const dockRight = document.querySelectorAll("#dockRight .dock__item--active");
-                for (let i = 0; i < dockRight.length; i++) {
-                    const item = dockRight[i];
-                    if (!item) continue;
-                    const type = item.getAttribute("data-type");
-                    if (type && bigType.includes(type)) {
-                        size = 320;
-                    }
-                }
-                nextElement.style.width = size + "px";
-                layout.rightDock?.setSize();
-            } else {
-                previousElement.style.width = "";
-                nextElement.style.width = "";
-                previousElement.classList.add("fn__flex-1");
-                nextElement.classList.add("fn__flex-1");
-                if (resizeElement.parentElement?.classList.contains("layout__dockb")) {
-                    layout.bottomDock?.setSize();
-                }
-            }
-        } else {
-            if (nextElement.classList.contains("layout__dockb")) {
-                nextElement.style.height = "232px";
-                layout.bottomDock?.setSize();
-            } else {
-                previousElement.style.height = "";
-                nextElement.style.height = "";
-                previousElement.classList.add("fn__flex-1");
-                nextElement.classList.add("fn__flex-1");
-                if (resizeElement.parentElement?.classList.contains("layout__dockl")) {
-                    layout.leftDock?.setSize();
-                } else if (resizeElement.parentElement?.classList.contains("layout__dockr")) {
-                    layout.rightDock?.setSize();
-                }
-            }
+const calculateDockSize = (selector: string) => {
+    const dockItems = document.querySelectorAll(`${selector} .dock__item--active`);
+    const bigType = ["graph", "inbox", "globalGraph", "backlink"];
+    for (let i = 0; i < dockItems.length; i++) {
+        const item = dockItems[i];
+        if (!item) continue;
+        const type = item.getAttribute("data-type");
+        if (type && bigType.includes(type)) {
+            return 320;
         }
-        resizeTabs();
-        nextElement.style.transition = "";
-        previousElement.style.transition = "";
+    }
+    return 232;
+};
+
+const handleHorizontalResizeDblClick = (layout: any, previousElement: HTMLElement, nextElement: HTMLElement, resizeElement: HTMLElement) => {
+    if (previousElement.classList.contains("layout__dockl")) {
+        previousElement.style.width = calculateDockSize("#dockLeft") + "px";
+        layout.leftDock?.setSize();
+        return;
+    }
+    if (nextElement.classList.contains("layout__dockr")) {
+        nextElement.style.width = calculateDockSize("#dockRight") + "px";
+        layout.rightDock?.setSize();
+        return;
+    }
+    previousElement.style.width = "";
+    nextElement.style.width = "";
+    previousElement.classList.add("fn__flex-1");
+    nextElement.classList.add("fn__flex-1");
+    if (resizeElement.parentElement?.classList.contains("layout__dockb")) {
+        layout.bottomDock?.setSize();
     }
 };
 
+const handleVerticalResizeDblClick = (layout: any, previousElement: HTMLElement, nextElement: HTMLElement, resizeElement: HTMLElement) => {
+    if (nextElement.classList.contains("layout__dockb")) {
+        nextElement.style.height = "232px";
+        layout.bottomDock?.setSize();
+        return;
+    }
+    previousElement.style.height = "";
+    nextElement.style.height = "";
+    previousElement.classList.add("fn__flex-1");
+    nextElement.classList.add("fn__flex-1");
+    if (resizeElement.parentElement?.classList.contains("layout__dockl")) {
+        layout.leftDock?.setSize();
+        return;
+    }
+    if (resizeElement.parentElement?.classList.contains("layout__dockr")) {
+        layout.rightDock?.setSize();
+    }
+};
+
+const onResizeDblClick = (resizeElement: HTMLElement) => {
+    const previousElement = resizeElement.previousElementSibling as HTMLElement;
+    const nextElement = resizeElement.nextElementSibling as HTMLElement;
+    if (!previousElement || !nextElement) {
+        return;
+    }
+    const layout = getSiyuanLayout();
+    nextElement.style.transition = "none";
+    previousElement.style.transition = "none";
+    const handleResize = resizeElement.classList.contains("layout__resize--lr") ? handleHorizontalResizeDblClick : handleVerticalResizeDblClick;
+    handleResize(layout, previousElement, nextElement, resizeElement);
+    resizeTabs();
+    nextElement.style.transition = "";
+    previousElement.style.transition = "";
+};
+
 export const addResize = (obj: Layout | Wnd) => {
-    if (!obj.resize) {
+    const resize = obj.resize;
+    if (!resize) {
         return;
     }
 
     const resizeElement = document.createElement("div");
-    if (obj.resize === "lr") {
+    if (resize === "lr") {
         resizeElement.classList.add("layout__resize--lr");
     }
     resizeElement.classList.add("layout__resize");
     obj.element.insertAdjacentElement("beforebegin", resizeElement);
 
     resizeElement.addEventListener("mousedown", (event: MouseEvent) => {
-        onResizeMouseDown(event, resizeElement, obj.resize);
+        onResizeMouseDown(event, resizeElement, resize);
     });
 
     resizeElement.addEventListener("dblclick", () => {
