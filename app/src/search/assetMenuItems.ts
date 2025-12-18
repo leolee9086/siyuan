@@ -32,7 +32,8 @@ export const createLayoutSubmenu = (element: Element, localData: ISearchAssetOpt
     label: siyuanI18n.topBottomLayout,
     current: localData.layout === 0,
     click() {
-        element.querySelector(".search__layout")?.classList.remove("search__layout--row");
+        const searchLayoutElement = element.querySelector(".search__layout");
+        searchLayoutElement?.classList.remove("search__layout--row");
         const previewElement = element.querySelector("#searchAssetPreview") as HTMLElement;
         previewElement.style.width = "";
         localData.layout = 0;
@@ -51,7 +52,8 @@ export const createLayoutSubmenu = (element: Element, localData: ISearchAssetOpt
     current: localData.layout === 1,
     click() {
         const previewElement = element.querySelector("#searchAssetPreview") as HTMLElement;
-        element.querySelector(".search__layout")?.classList.add("search__layout--row");
+        const searchLayoutElement = element.querySelector(".search__layout");
+        searchLayoutElement?.classList.add("search__layout--row");
         previewElement.style.height = "";
         localData.layout = 1;
         if (!localData.col) {
