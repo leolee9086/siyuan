@@ -3,6 +3,29 @@ import { Dialog } from "./index";
 import { Constants } from "../constants";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
+const createDialogClickHandler = (
+    dialog: Dialog,
+    confirm?: (dialog?: Dialog) => void,
+    cancel?: (dialog: Dialog) => void
+) => (event: MouseEvent) => {
+    let target = event.target as HTMLElement;
+    const isDispatch = typeof event.detail === "string";
+    while (target && target !== dialog.element || isDispatch) {
+        if (target.id === "cancelDialogConfirmBtn" || (isDispatch && event.detail === "Escape")) {
+            cancel?.(dialog);
+            dialog.destroy();
+            break;
+        }
+        if (target.id === "confirmDialogConfirmBtn" || (isDispatch && event.detail === "Enter")) {
+            confirm?.(dialog);
+            dialog.destroy();
+            break;
+        }
+        if (!target.parentElement) break;
+        target = target.parentElement;
+    }
+};
+
 export const confirmDialog = (title: string, text: string,
     confirm?: (dialog?: Dialog) => void,
     cancel?: (dialog: Dialog) => void,
@@ -23,25 +46,6 @@ export const confirmDialog = (title: string, text: string,
         width: isMobile() ? "92vw" : "520px",
     });
 
-    dialog.element.addEventListener("click", (event) => {
-        let target = event.target as HTMLElement;
-        const isDispatch = typeof event.detail === "string";
-        while (target && target !== dialog.element || isDispatch) {
-            if (target.id === "cancelDialogConfirmBtn" || (isDispatch && event.detail === "Escape")) {
-                if (cancel) {
-                    cancel(dialog);
-                }
-                dialog.destroy();
-                break;
-            } else if (target.id === "confirmDialogConfirmBtn" || (isDispatch && event.detail === "Enter")) {
-                if (confirm) {
-                    confirm(dialog);
-                }
-                dialog.destroy();
-                break;
-            }
-            target.parentElement ? target = target.parentElement : null;
-        }
-    });
+    dialog.element.addEventListener("click", createDialogClickHandler(dialog, confirm, cancel));
     dialog.element.setAttribute("data-key", Constants.DIALOG_CONFIRM);
 };
