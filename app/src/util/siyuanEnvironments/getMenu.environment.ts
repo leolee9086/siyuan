@@ -5,3 +5,7 @@ export const getSiyuanGlobalMenus = () => {
     }
     return window.siyuan.menus;
 };
+
+export const getSiyuanGlobalMenusMenu = () => {
+    return getSiyuanGlobalMenus().menu;
+};

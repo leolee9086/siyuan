@@ -30,6 +30,7 @@ import {hideTooltip, showTooltip} from "../../dialog/tooltip";
 import {selectOpenTab} from "./util";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import {  getSiyuanGlobalMenusMenu } from "../../util/siyuanEnvironments/getMenu.environment";
 
 export class Files extends Model {
     public element: HTMLElement;
@@ -1294,9 +1295,9 @@ aria-label="${ariaLabel}">${getDisplayName(item.name, true, true)}</span>
     }
 
     private initMoreMenu() {
-        window.siyuan.menus.menu.remove();
+        getSiyuanGlobalMenusMenu().remove();
         if (!getSiyuanConfig().readonly) {
-            window.siyuan.menus.menu.append(new MenuItem({
+            getSiyuanGlobalMenusMenu().append(new MenuItem({
                 icon: "iconFilesRoot",
                 label: siyuanI18n.newNotebook,
                 click: () => {
@@ -1304,7 +1305,7 @@ aria-label="${ariaLabel}">${getDisplayName(item.name, true, true)}</span>
                 }
             }).element);
         }
-        window.siyuan.menus.menu.append(new MenuItem({
+        getSiyuanGlobalMenusMenu().append(new MenuItem({
             icon: "iconRefresh",
             label: siyuanI18n.rebuildIndex,
             click: () => {
@@ -1333,13 +1334,13 @@ aria-label="${ariaLabel}">${getDisplayName(item.name, true, true)}</span>
                     });
                 });
             });
-            window.siyuan.menus.menu.append(new MenuItem({
+            getSiyuanGlobalMenusMenu().append(new MenuItem({
                 icon: "iconSort",
                 label: siyuanI18n.sort,
                 type: "submenu",
                 submenu: subMenu,
             }).element);
         }
-        return window.siyuan.menus.menu;
+        return getSiyuanGlobalMenusMenu();
     }
 }
