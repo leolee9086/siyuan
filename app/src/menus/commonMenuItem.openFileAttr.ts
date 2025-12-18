@@ -24,11 +24,12 @@ const initializeProtyle = (attrs: IObject, protyle?: IProtyle): { protyle: IProt
                 return true;
             }
         });
-        if (!protyle && attrs.id) {
-            ghostProtyle = new Protyle(window.siyuan.ws.app, document.createElement("div"), {
-                blockId: attrs.id,
-            });
-        }
+    }
+
+    if (!protyle && attrs.id) {
+        ghostProtyle = new Protyle(window.siyuan.ws.app, document.createElement("div"), {
+            blockId: attrs.id,
+        });
     }
     return { protyle, ghostProtyle };
 };
