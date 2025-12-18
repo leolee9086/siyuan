@@ -1,22 +1,23 @@
-import {hasClosestByClassName} from "../protyle/util/hasClosest";
-import {Protyle} from "../protyle";
-import {genUUID} from "../util/genID";
-import {setPosition} from "../util/setPosition";
-import {hideElements} from "../protyle/ui/hideElements";
-import {Constants} from "../constants";
+import { hasClosestByClassName } from "../protyle/util/hasClosest";
+import { Protyle } from "../protyle";
+import { genUUID } from "../util/genID";
+import { setPosition } from "../util/setPosition";
+import { hideElements } from "../protyle/ui/hideElements";
+import { Constants } from "../constants";
 /// #if !BROWSER
-import {openNewWindowById} from "../window/openNewWindow";
+import { openNewWindowById } from "../window/openNewWindow";
 /// #endif
 /// #if !MOBILE
-import {moveResize} from "../dialog/moveResize";
+import { moveResize } from "../dialog/moveResize";
 import { openFileById } from "../editor/utils.openFileById";
 /// #endif
-import {fetchPost} from "../util/fetch";
-import {showMessage} from "../dialog/message";
-import {App} from "../index";
-import {resize} from "../protyle/util/resize";
-import {checkFold} from "../util/noRelyPCFunction";
-import {updateHotkeyAfterTip} from "../protyle/util/compatibility";
+import { fetchPost } from "../util/fetch";
+import { showMessage } from "../dialog/message";
+import { App } from "../index";
+import { resize } from "../protyle/util/resize";
+import { checkFold } from "../util/noRelyPCFunction";
+import { updateHotkeyAfterTip } from "../protyle/util/compatibility";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export class BlockPanel {
     public element: HTMLElement;
@@ -85,11 +86,11 @@ export class BlockPanel {
             if (iconsElement) {
                 const pingElement = iconsElement.querySelector('[data-type="pin"]');
                 if (this.element.getAttribute("data-pin") === "true") {
-                    pingElement.setAttribute("aria-label", window.siyuan.languages.pin);
+                    pingElement.setAttribute("aria-label", siyuanI18n.pin);
                     pingElement.querySelector("use").setAttribute("xlink:href", "#iconPin");
                     this.element.setAttribute("data-pin", "false");
                 } else {
-                    pingElement.setAttribute("aria-label", window.siyuan.languages.unpin);
+                    pingElement.setAttribute("aria-label", siyuanI18n.unpin);
                     pingElement.querySelector("use").setAttribute("xlink:href", "#iconUnpin");
                     this.element.setAttribute("data-pin", "true");
                 }
@@ -110,11 +111,11 @@ export class BlockPanel {
                         this.destroy();
                     } else if (type === "pin") {
                         if (this.element.getAttribute("data-pin") === "true") {
-                            target.setAttribute("aria-label", window.siyuan.languages.pin);
+                            target.setAttribute("aria-label", siyuanI18n.pin);
                             target.querySelector("use").setAttribute("xlink:href", "#iconPin");
                             this.element.setAttribute("data-pin", "false");
                         } else {
-                            target.setAttribute("aria-label", window.siyuan.languages.unpin);
+                            target.setAttribute("aria-label", siyuanI18n.unpin);
                             target.querySelector("use").setAttribute("xlink:href", "#iconUnpin");
                             this.element.setAttribute("data-pin", "true");
                         }
@@ -144,7 +145,7 @@ export class BlockPanel {
         /// #if !MOBILE
         moveResize(this.element, () => {
             const pinElement = this.element.firstElementChild.querySelector('[data-type="pin"]');
-            pinElement.setAttribute("aria-label", window.siyuan.languages.unpin);
+            pinElement.setAttribute("aria-label", siyuanI18n.unpin);
             pinElement.querySelector("use").setAttribute("xlink:href", "#iconUnpin");
             this.element.setAttribute("data-pin", "true");
         });
@@ -154,7 +155,7 @@ export class BlockPanel {
 
     private initProtyle(editorElement: HTMLElement, afterCB?: () => void) {
         const index = parseInt(editorElement.getAttribute("data-index"));
-        fetchPost("/api/block/getBlockInfo", {id: this.refDefs[index].refID}, (response) => {
+        fetchPost("/api/block/getBlockInfo", { id: this.refDefs[index].refID }, (response) => {
             if (response.code === 3) {
                 showMessage(response.msg);
                 return;
@@ -241,22 +242,22 @@ export class BlockPanel {
         }
         let openHTML = "";
         if (this.refDefs.length === 1) {
-            openHTML = `<span data-type="stickTab" class="block__icon block__icon--show b3-tooltips b3-tooltips__sw" aria-label="${window.siyuan.languages.openInNewTab}${updateHotkeyAfterTip(window.siyuan.config.keymap.editor.general.openInNewTab.custom)}"><svg><use xlink:href="#iconOpen"></use></svg></span>
+            openHTML = `<span data-type="stickTab" class="block__icon block__icon--show b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.openInNewTab}${updateHotkeyAfterTip(window.siyuan.config.keymap.editor.general.openInNewTab.custom)}"><svg><use xlink:href="#iconOpen"></use></svg></span>
 <span class="fn__space"></span>`;
             /// #if !BROWSER
-            openHTML += `<span data-type="open" class="block__icon block__icon--show b3-tooltips b3-tooltips__sw" aria-label="${window.siyuan.languages.openByNewWindow}"><svg><use xlink:href="#iconOpenWindow"></use></svg></span>
+            openHTML += `<span data-type="open" class="block__icon block__icon--show b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.openByNewWindow}"><svg><use xlink:href="#iconOpenWindow"></use></svg></span>
 <span class="fn__space"></span>`;
             /// #endif
         }
         let html = `<div class="block__icons block__icons--menu">
     <span class="fn__space fn__flex-1 resize__move"></span>${openHTML}
-    <span data-type="pin" class="block__icon block__icon--show b3-tooltips b3-tooltips__sw" aria-label="${window.siyuan.languages.pin}"><svg><use xlink:href="#iconPin"></use></svg></span>
+    <span data-type="pin" class="block__icon block__icon--show b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.pin}"><svg><use xlink:href="#iconPin"></use></svg></span>
     <span class="fn__space"></span>
-    <span data-type="close" class="block__icon block__icon--show b3-tooltips b3-tooltips__sw" aria-label="${window.siyuan.languages.close}${updateHotkeyAfterTip(window.siyuan.config.keymap.general.closeTab.custom)}"><svg style="width: 12px;margin: 0 1px;"><use xlink:href="#iconClose"></use></svg></span>
+    <span data-type="close" class="block__icon block__icon--show b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.close}${updateHotkeyAfterTip(window.siyuan.config.keymap.general.closeTab.custom)}"><svg style="width: 12px;margin: 0 1px;"><use xlink:href="#iconClose"></use></svg></span>
 </div>
 <div class="block__content">`;
         if (this.refDefs.length === 0) {
-            html += `<div class="ft__smaller ft__smaller ft__secondary b3-form__space--small" contenteditable="false">${window.siyuan.languages.refExpired}</div>`;
+            html += `<div class="ft__smaller ft__smaller ft__secondary b3-form__space--small" contenteditable="false">${siyuanI18n.refExpired}</div>`;
         } else {
             this.refDefs.forEach((item, index) => {
                 html += `<div class="block__edit fn__flex-1 protyle" data-index="${index}"></div>`;

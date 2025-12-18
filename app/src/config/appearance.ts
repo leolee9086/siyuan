@@ -98,7 +98,7 @@ export const appearance = {
             <div class="fn__flex-center fn__flex-1 ft__on-surface">${siyuanI18n.appearance3}</div>
             <span class="fn__space"></span>
             <select id="codeBlockThemeDark" class="b3-select fn__size200">
-                ${genOptions(Constants.SIYUAN_CONFIG_APPEARANCE_DARK_CODE, window.siyuan.config.appearance.codeBlockThemeDark)}
+                ${genOptions(Constants.SIYUAN_CONFIG_APPEARANCE_DARK_CODE, getSiyuanConfig().appearance.codeBlockThemeDark)}
             </select>
         </div>
     </div>
@@ -109,7 +109,7 @@ export const appearance = {
         <div class="b3-label__text">${siyuanI18n.language1}</div>
     </div>
     <span class="fn__space"></span>
-    <select id="lang" class="b3-select fn__flex-center fn__size200">${genLangOptions(window.siyuan.config.langs, window.siyuan.config.appearance.lang)}</select>
+    <select id="lang" class="b3-select fn__flex-center fn__size200">${genLangOptions(getSiyuanConfig().langs, getSiyuanConfig().appearance.lang)}</select>
 </div>
 <div class="b3-label config__item${isBrowser() ? " fn__none" : " fn__flex"}">
     <div class="fn__flex-1">
@@ -180,7 +180,7 @@ export const appearance = {
         <div class="b3-label__text">${siyuanI18n.appearance11}</div>
     </div>
     <span class="fn__space"></span>
-    <input class="b3-switch fn__flex-center" id="closeButtonBehavior" type="checkbox"${window.siyuan.config.appearance.closeButtonBehavior === 0 ? "" : " checked"}>
+    <input class="b3-switch fn__flex-center" id="closeButtonBehavior" type="checkbox"${getSiyuanConfig().appearance.closeButtonBehavior === 0 ? "" : " checked"}>
 </label>`;
     },
     _send: () => {
