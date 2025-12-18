@@ -48,7 +48,7 @@ import { escapeHtml } from "../../util/escape";
 import { resizeSide } from "../../history/resizeSide";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { mergeNodes } from "../../util/DOM/rangeOperations";
-import { 显示特殊类型菜单, 整理零宽空格, 合并相邻同类型元素, 移除内联标记, 添加内联标记 } from "./inlineMark";
+import { 显示特殊类型菜单, 整理零宽空格, 合并相邻同类型元素, 移除内联标记, 添加内联标记, 准备标记内容, 清理内联标记内容 } from "./inlineMark";
 
 export class Toolbar {
     public element: HTMLElement;
@@ -301,107 +301,16 @@ export class Toolbar {
         }
         fixTableRange(this.range);
 
-        let contents;
-        let html;
-        let needWrapTarget;
-        if (this.range.startContainer.nodeType === 3 && this.range.startContainer.parentElement.tagName === "SPAN" &&
-            isSameNode) {
-            if (this.range.startOffset > -1 && this.range.endOffset <= this.range.endContainer.textContent.length) {
-                needWrapTarget = this.range.startContainer.parentElement;
-            }
-            const startPreviousSibling = hasPreviousSibling(this.range.startContainer);
-            const endNextSibling = hasNextSibling(this.range.endContainer);
-            if ((
-                this.range.startOffset !== 0 ||
-                // https://github.com/siyuan-note/siyuan/issues/14869
-                (this.range.startOffset === 0 && startPreviousSibling &&
-                    (startPreviousSibling.nodeType === 3 || (startPreviousSibling as HTMLElement).tagName === "BR") &&
-                    this.range.startContainer.previousSibling.parentElement === this.range.startContainer.parentElement)
-            ) && (
-                    this.range.endOffset !== this.range.endContainer.textContent.length ||
-                    // https://github.com/siyuan-note/siyuan/issues/14869#issuecomment-2911553387
-                    (
-                        this.range.endOffset === this.range.endContainer.textContent.length && endNextSibling &&
-                        (endNextSibling.nodeType === 3 || (endNextSibling as HTMLElement).tagName === "BR") &&
-                        this.range.endContainer.nextSibling.parentElement === this.range.endContainer.parentElement
-                    )
-                ) &&
-                !(this.range.startOffset === 1 && this.range.startContainer.textContent.startsWith(Constants.ZWSP))) {
-                // 切割元素
-                const parentElement = this.range.startContainer.parentElement;
-                const afterElement = document.createElement("span");
-                const attributes = parentElement.attributes;
-                for (let i = 0; i < attributes.length; i++) {
-                    afterElement.setAttribute(attributes[i].name, attributes[i].value);
-                }
-                this.range.insertNode(document.createElement("wbr"));
-                html = nodeElement.outerHTML;
-                contents = this.range.extractContents();
-                this.range.setEnd(parentElement.lastChild, parentElement.lastChild.textContent.length);
-                afterElement.append(this.range.extractContents());
-                parentElement.after(afterElement);
-                this.range.setStartBefore(afterElement);
-                this.range.collapse(true);
-            }
-        }
-        let isEndSpan = false;
-        // https://github.com/siyuan-note/siyuan/issues/7200
-        if (this.range.endOffset === this.range.startContainer.textContent.length &&
-            !["DIV", "TD", "TH", "TR"].includes(this.range.endContainer.parentElement.tagName) &&
-            !hasNextSibling(this.range.endContainer)) {
-            this.range.setEndAfter(this.range.endContainer.parentElement);
-            isEndSpan = true;
-        }
-        if (this.range.startOffset === 0 &&
-            !["DIV", "TD", "TH", "TR"].includes(this.range.startContainer.parentElement.tagName) &&
-            !hasPreviousSibling(this.range.startContainer)) {
-            this.range.setStartBefore(this.range.startContainer.parentElement);
-        }
-        if (!html) {
-            this.range.insertNode(document.createElement("wbr"));
-            html = nodeElement.outerHTML;
-            contents = this.range.extractContents();
-        }
-        this.mergeNode(contents.childNodes);
-        contents.childNodes.forEach((item: HTMLElement) => {
-            if (item.nodeType === 3 && item.textContent === Constants.ZWSP) {
-                item.remove();
-            }
-            if (item.nodeType === 1 && item.textContent === "" && item.tagName === "SPAN") {
-                item.remove();
-            }
-        });
-        if (selectText && this.range.startContainer.nodeType !== 3) {
-            let emptyNode: Element = this.range.startContainer.childNodes[this.range.startOffset] as HTMLElement;
-            if (!emptyNode) {
-                emptyNode = this.range.startContainer.childNodes[this.range.startOffset - 1] as HTMLElement;
-            }
-            if (emptyNode && emptyNode.nodeType === 3) {
-                if ((this.range.startContainer as HTMLElement).tagName === "DIV") {
-                    emptyNode = emptyNode.previousSibling as HTMLElement;
-                } else {
-                    emptyNode = this.range.startContainer as HTMLElement;
-                }
-            }
-            if (emptyNode && emptyNode.nodeType !== 3 && emptyNode.textContent.replace(Constants.ZWSP, "") === "" &&
-                !["TD", "TH", "BR"].includes(emptyNode.tagName)) {
-                emptyNode.remove();
-            }
-        }
-        // 选择 span 中的部分需进行包裹
-        if (needWrapTarget) {
-            const attributes = needWrapTarget.attributes;
-            contents.childNodes.forEach(item => {
-                if (item.nodeType === 3) {
-                    const spanElement = document.createElement("span");
-                    for (let i = 0; i < attributes.length; i++) {
-                        spanElement.setAttribute(attributes[i].name, attributes[i].value);
-                    }
-                    spanElement.innerHTML = item.textContent;
-                    item.replaceWith(spanElement);
-                }
-            });
-        }
+        const { contents, html, needWrapTarget, isEndSpan } = 准备标记内容(
+            this.range,
+            nodeElement,
+            isSameNode,
+            hasPreviousSibling,
+            hasNextSibling
+        );
+
+        清理内联标记内容(contents, this.range, needWrapTarget, selectText);
+
         const toolbarElement = isMobile() ? document.querySelector("#keyboardToolbar .keyboard__dynamic").nextElementSibling : this.element;
         const actionBtn = action === "toolbar" ? toolbarElement.querySelector(`[data-type="${type}"]`) : undefined;
         let newNodes: Node[] = [];
