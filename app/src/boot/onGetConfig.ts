@@ -15,7 +15,7 @@ import { fetchPost, fetchSyncPost } from "../util/fetch";
 import { initAssets, setInlineStyle } from "../util/assets";
 import { renderSnippet } from "../config/util/snippets";
 import { openFile } from "../editor/util";
-import { openFileById } from "../editor/utils.openFileById";
+
 import { exitSiYuan } from "../dialog/processSystem";
 import { isWindow } from "../util/functions";
 import { initStatus } from "../layout/status";
@@ -32,6 +32,7 @@ import { correctHotkey } from "./globalEvent/commonHotkey";
 import { recordBeforeResizeTop } from "../protyle/util/resize";
 import { processSYLink } from "../editor/openLink";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
+import { getAllEditor } from "../layout/getAll";
 
 export const onGetConfig = (isStart: boolean, app: App) => {
     correctHotkey(app);
@@ -91,7 +92,15 @@ export const onGetConfig = (isStart: boolean, app: App) => {
             resizeTabs();
             resizeTopBar();
             firstResize = true;
-        }, 200);
+            if (getSelection().rangeCount > 0) {
+                const range = getSelection().getRangeAt(0);
+                getAllEditor().forEach(item => {
+                    if (item.protyle.wysiwyg.element.contains(range.startContainer)) {
+                        item.protyle.toolbar.render(item.protyle, range);
+                    }
+                });
+            }
+        }, Constants.TIMEOUT_RESIZE);
     });
 };
 
