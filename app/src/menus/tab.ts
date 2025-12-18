@@ -14,6 +14,7 @@ import {Asset} from "../asset";
 import {writeText} from "../protyle/util/compatibility";
 import {getAssetName, pathPosix} from "../util/pathName";
 import {Constants} from "../constants";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 const closeMenu = (tab: Tab) => {
     const unmodifiedTabs: Tab[] = [];
@@ -38,7 +39,7 @@ const closeMenu = (tab: Tab) => {
     window.siyuan.menus.menu.append(new MenuItem({
         id: "close",
         icon: "iconClose",
-        label: window.siyuan.languages.close,
+        label: siyuanI18n.close,
         accelerator: window.siyuan.config.keymap.general.closeTab.custom,
         click: () => {
             tab.parent.removeTab(tab.id);
@@ -47,7 +48,7 @@ const closeMenu = (tab: Tab) => {
     if (tab.parent.children.length > 1) {
         window.siyuan.menus.menu.append(new MenuItem({
             id: "closeOthers",
-            label: window.siyuan.languages.closeOthers,
+            label: siyuanI18n.closeOthers,
             accelerator: window.siyuan.config.keymap.general.closeOthers.custom,
             click() {
                 closeTabByType(tab, "closeOthers");
@@ -55,7 +56,7 @@ const closeMenu = (tab: Tab) => {
         }).element);
         window.siyuan.menus.menu.append(new MenuItem({
             id: "closeAll",
-            label: window.siyuan.languages.closeAll,
+            label: siyuanI18n.closeAll,
             accelerator: window.siyuan.config.keymap.general.closeAll.custom,
             click() {
                 closeTabByType(tab, "closeAll");
@@ -64,7 +65,7 @@ const closeMenu = (tab: Tab) => {
         if (unmodifiedTabs.length > 0) {
             window.siyuan.menus.menu.append(new MenuItem({
                 id: "closeUnmodified",
-                label: window.siyuan.languages.closeUnmodified,
+                label: siyuanI18n.closeUnmodified,
                 accelerator: window.siyuan.config.keymap.general.closeUnmodified.custom,
                 click() {
                     closeTabByType(tab, "other", unmodifiedTabs);
@@ -74,7 +75,7 @@ const closeMenu = (tab: Tab) => {
         if (leftTabs.length > 0) {
             window.siyuan.menus.menu.append(new MenuItem({
                 id: "closeLeft",
-                label: window.siyuan.languages.closeLeft,
+                label: siyuanI18n.closeLeft,
                 accelerator: window.siyuan.config.keymap.general.closeLeft.custom,
                 click: async () => {
                     closeTabByType(tab, "other", leftTabs);
@@ -84,7 +85,7 @@ const closeMenu = (tab: Tab) => {
         if (rightTabs.length > 0) {
             window.siyuan.menus.menu.append(new MenuItem({
                 id: "closeRight",
-                label: window.siyuan.languages.closeRight,
+                label: siyuanI18n.closeRight,
                 accelerator: window.siyuan.config.keymap.general.closeRight.custom,
                 click() {
                     closeTabByType(tab, "other", rightTabs);
@@ -100,7 +101,7 @@ const splitSubMenu = (app: App, tab: Tab) => {
         id: "splitLR",
         icon: "iconSplitLR",
         accelerator: window.siyuan.config.keymap.general.splitLR.custom,
-        label: window.siyuan.languages.splitLR,
+        label: siyuanI18n.splitLR,
         click: () => {
             tab.parent.split("lr").addTab(copyTab(app, tab));
         }
@@ -110,7 +111,7 @@ const splitSubMenu = (app: App, tab: Tab) => {
             id: "splitMoveR",
             icon: "iconLayoutRight",
             accelerator: window.siyuan.config.keymap.general.splitMoveR.custom,
-            label: window.siyuan.languages.splitMoveR,
+            label: siyuanI18n.splitMoveR,
             click: () => {
                 const newWnd = tab.parent.split("lr");
                 newWnd.headersElement.append(tab.headElement);
@@ -124,7 +125,7 @@ const splitSubMenu = (app: App, tab: Tab) => {
         id: "splitTB",
         icon: "iconSplitTB",
         accelerator: window.siyuan.config.keymap.general.splitTB.custom,
-        label: window.siyuan.languages.splitTB,
+        label: siyuanI18n.splitTB,
         click: () => {
             tab.parent.split("tb").addTab(copyTab(app, tab));
         }
@@ -135,7 +136,7 @@ const splitSubMenu = (app: App, tab: Tab) => {
             id: "splitMoveB",
             icon: "iconLayoutBottom",
             accelerator: window.siyuan.config.keymap.general.splitMoveB.custom,
-            label: window.siyuan.languages.splitMoveB,
+            label: siyuanI18n.splitMoveB,
             click: () => {
                 const newWnd = tab.parent.split("tb");
                 newWnd.headersElement.append(tab.headElement);
@@ -150,7 +151,7 @@ const splitSubMenu = (app: App, tab: Tab) => {
     if (wndsTemp.length > 1) {
         subMenus.push({
             id: "unsplit",
-            label: window.siyuan.languages.unsplit,
+            label: siyuanI18n.unsplit,
             accelerator: window.siyuan.config.keymap.general.unsplit.custom,
             click: () => {
                 let layout = tab.parent.parent;
@@ -169,7 +170,7 @@ const splitSubMenu = (app: App, tab: Tab) => {
         });
         subMenus.push({
             id: "unsplitAll",
-            label: window.siyuan.languages.unsplitAll,
+            label: siyuanI18n.unsplitAll,
             accelerator: window.siyuan.config.keymap.general.unsplitAll.custom,
             click: () => {
                 unsplitWnd(window.siyuan.layout.centerLayout, window.siyuan.layout.centerLayout, false);
@@ -186,7 +187,7 @@ export const initTabMenu = (app: App, tab: Tab) => {
     closeMenu(tab);
     window.siyuan.menus.menu.append(new MenuItem({
         id: "split",
-        label: window.siyuan.languages.split,
+        label: siyuanI18n.split,
         submenu: splitSubMenu(app, tab)
     }).element);
     const model = tab.model;
@@ -205,7 +206,7 @@ export const initTabMenu = (app: App, tab: Tab) => {
     if (rootId) {
         window.siyuan.menus.menu.append(new MenuItem({
             id: "copy",
-            label: window.siyuan.languages.copy,
+            label: siyuanI18n.copy,
             icon: "iconCopy",
             type: "submenu",
             submenu: copySubMenu([rootId], false)
@@ -213,7 +214,7 @@ export const initTabMenu = (app: App, tab: Tab) => {
     } else if (model && model instanceof Asset) {
         window.siyuan.menus.menu.append(new MenuItem({
             id: "copy",
-            label: window.siyuan.languages.copy,
+            label: siyuanI18n.copy,
             icon: "iconCopy",
             click() {
                 writeText(`[${getAssetName(model.parent.title)}${pathPosix().extname(model.path)}](${model.path})`);
@@ -223,7 +224,7 @@ export const initTabMenu = (app: App, tab: Tab) => {
     if (tab.headElement.classList.contains("item--pin")) {
         window.siyuan.menus.menu.append(new MenuItem({
             id: "unpin",
-            label: window.siyuan.languages.unpin,
+            label: siyuanI18n.unpin,
             icon: "iconUnpin",
             click: () => {
                 tab.unpin();
@@ -232,7 +233,7 @@ export const initTabMenu = (app: App, tab: Tab) => {
     } else {
         window.siyuan.menus.menu.append(new MenuItem({
             id: "pin",
-            label: window.siyuan.languages.pin,
+            label: siyuanI18n.pin,
             icon: "iconPin",
             click: () => {
                 tab.pin();
@@ -242,7 +243,7 @@ export const initTabMenu = (app: App, tab: Tab) => {
     /// #if !BROWSER
     window.siyuan.menus.menu.append(new MenuItem({
         id: "tabToWindow",
-        label: window.siyuan.languages.tabToWindow,
+        label: siyuanI18n.tabToWindow,
         accelerator: window.siyuan.config.keymap.general.tabToWindow.custom,
         icon: "iconOpenWindow",
         click: () => {

@@ -15,6 +15,7 @@ import {avRender} from "../render/av/render";
 import {cellScrollIntoView, getCellText} from "../render/av/cell";
 import {getContenteditableElement} from "../wysiwyg/getBlock";
 import {clearBlockElement} from "./clearSelect";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const getTextStar = (blockElement: HTMLElement, contentOnly = false) => {
     const dataType = blockElement.dataset.type;
@@ -24,17 +25,17 @@ export const getTextStar = (blockElement: HTMLElement, contentOnly = false) => {
     } else if ("NodeHTMLBlock" === dataType) {
         refText = "HTML";
     } else if ("NodeAttributeView" === dataType) {
-        refText = blockElement.querySelector(".av__title").textContent || window.siyuan.languages.database;
+        refText = blockElement.querySelector(".av__title").textContent || siyuanI18n.database;
     } else if ("NodeThematicBreak" === dataType) {
-        refText = window.siyuan.languages.line;
+        refText = siyuanI18n.line;
     } else if ("NodeIFrame" === dataType) {
         refText = "IFrame";
     } else if ("NodeWidget" === dataType) {
-        refText = window.siyuan.languages.widget;
+        refText = siyuanI18n.widget;
     } else if ("NodeVideo" === dataType) {
-        refText = window.siyuan.languages.video;
+        refText = siyuanI18n.video;
     } else if ("NodeAudio" === dataType) {
-        refText = window.siyuan.languages.audio;
+        refText = siyuanI18n.audio;
     } else if (["NodeCodeBlock", "NodeTable"].includes(dataType)) {
         refText = getPlainText(blockElement);
     } else if (blockElement.classList.contains("render-node")) {

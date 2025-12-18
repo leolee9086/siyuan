@@ -56,6 +56,7 @@ import {
     goGroupsSort,
     setGroupMethod
 } from "./groups";
+import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const openMenuPanel = (options: {
     protyle: IProtyle,
@@ -1210,19 +1211,19 @@ export const openMenuPanel = (options: {
                     const isTwoWay = colData.type === "relation" && colData.relation?.isTwoWay;
                     if (isCustomAttr || isTwoWay) {
                         const dialog = new Dialog({
-                            title: isTwoWay ? window.siyuan.languages.removeColConfirm : window.siyuan.languages.deleteOpConfirm,
+                            title: isTwoWay ? siyuanI18n.removeColConfirm : siyuanI18n.deleteOpConfirm,
                             content: `<div class="b3-dialog__content">
-    ${isTwoWay ? window.siyuan.languages.confirmRemoveRelationField
-                                    .replace("${x}", menuElement.querySelector("input").value || window.siyuan.languages._kernel[272])
+    ${isTwoWay ? siyuanI18n.confirmRemoveRelationField
+                                    .replace("${x}", menuElement.querySelector("input").value || siyuanI18n._kernel[272])
                                     .replace("${y}", menuElement.querySelector('.b3-menu__item[data-type="goSearchAV"] .b3-menu__accelerator').textContent)
-                                    .replace("${z}", (menuElement.querySelector('input[data-type="colName"]') as HTMLInputElement).value || window.siyuan.languages._kernel[272])
-                                : window.siyuan.languages.removeCol.replace("${x}", menuElement.querySelector("input").value || window.siyuan.languages._kernel[272])}
+                                    .replace("${z}", (menuElement.querySelector('input[data-type="colName"]') as HTMLInputElement).value || siyuanI18n._kernel[272])
+                                : siyuanI18n.removeCol.replace("${x}", menuElement.querySelector("input").value || siyuanI18n._kernel[272])}
     <div class="fn__hr--b"></div>
-    <button class="fn__block b3-button b3-button--remove" data-action="delete">${isTwoWay ? window.siyuan.languages.removeBothRelationField : window.siyuan.languages.delete}</button>
+    <button class="fn__block b3-button b3-button--remove" data-action="delete">${isTwoWay ? siyuanI18n.removeBothRelationField : siyuanI18n.delete}</button>
     <div class="fn__hr"></div>
-    <button class="fn__block b3-button b3-button--remove${isTwoWay ? "" : " fn__none"}" data-action="keep-relation">${window.siyuan.languages.removeButKeepRelationField}</button>
+    <button class="fn__block b3-button b3-button--remove${isTwoWay ? "" : " fn__none"}" data-action="keep-relation">${siyuanI18n.removeButKeepRelationField}</button>
     <div class="fn__hr"></div>
-    <button class="fn__block b3-button b3-button--cancel">${window.siyuan.languages.cancel}</button>
+    <button class="fn__block b3-button b3-button--cancel">${siyuanI18n.cancel}</button>
 </div>`,
                             width: "520px",
                         });
@@ -1602,7 +1603,7 @@ export const openMenuPanel = (options: {
                         }
                     });
                     target.parentElement.classList[isHide ? "remove" : "add"]("b3-menu__item--hidden");
-                    menuElement.querySelector('[data-type="hideGroups"]').innerHTML = `${window.siyuan.languages[showCount === 0 ? "showAll" : "hideAll"]}
+                    menuElement.querySelector('[data-type="hideGroups"]').innerHTML = `${siyuanI18n[showCount === 0 ? "showAll" : "hideAll"]}
 <span class="fn__space"></span>
 <svg><use xlink:href="#iconEye${showCount === 0 ? "" : "off"}"></use></svg>`;
                     transaction(options.protyle, [{
@@ -1624,7 +1625,7 @@ export const openMenuPanel = (options: {
                 } else if (type === "hideGroups") {
                     window.siyuan.menus.menu.remove();
                     const isShow = target.querySelector("use").getAttribute("xlink:href") === "#iconEyeoff";
-                    target.innerHTML = `${window.siyuan.languages[isShow ? "showAll" : "hideAll"]}
+                    target.innerHTML = `${siyuanI18n[isShow ? "showAll" : "hideAll"]}
 <span class="fn__space"></span>
 <svg><use xlink:href="#iconEye${isShow ? "" : "off"}"></use></svg>`;
                     data.view.groups.forEach((item) => {
@@ -1707,10 +1708,10 @@ export const getPropertiesHTML = (fields: IAVColumn[]) => {
         hideHTML = `<button class="b3-menu__separator"></button>
 <button class="b3-menu__item" data-type="nobg">
     <span class="b3-menu__label">
-        ${window.siyuan.languages.hideCol} 
+        ${siyuanI18n.hideCol} 
     </span>
     <span class="block__icon" data-type="showAllCol">
-        ${window.siyuan.languages.showAll}
+        ${siyuanI18n.showAll}
         <span class="fn__space"></span>
         <svg><use xlink:href="#iconEye"></use></svg>
     </span>
@@ -1722,15 +1723,15 @@ ${hideHTML}`;
     <span class="block__icon" style="padding: 8px;margin-left: -4px;" data-type="go-config">
         <svg><use xlink:href="#iconLeft"></use></svg>
     </span>
-    <span class="b3-menu__label ft__center">${window.siyuan.languages.fields}</span>
+    <span class="b3-menu__label ft__center">${siyuanI18n.fields}</span>
 </button>
 <button class="b3-menu__separator"></button>
 <button class="b3-menu__item" data-type="nobg">
     <span class="b3-menu__label">
-        ${window.siyuan.languages.showCol} 
+        ${siyuanI18n.showCol} 
     </span>
     <span class="block__icon" data-type="hideAllCol">
-        ${window.siyuan.languages.hideAll}
+        ${siyuanI18n.hideAll}
         <span class="fn__space"></span>
         <svg><use xlink:href="#iconEyeoff"></use></svg>
     </span>
@@ -1740,7 +1741,7 @@ ${hideHTML}
 <button class="b3-menu__separator"></button>
 <button class="b3-menu__item" data-type="newCol">
     <svg class="b3-menu__icon"><use xlink:href="#iconAdd"></use></svg>
-    <span class="b3-menu__label">${window.siyuan.languages.new}</span>
+    <span class="b3-menu__label">${siyuanI18n.new}</span>
 </button>
 </div>`;
 };

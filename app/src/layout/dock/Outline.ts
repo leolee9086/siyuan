@@ -28,6 +28,7 @@ import {mathRender} from "../../protyle/render/mathRender";
 import {genEmptyElement} from "../../block/util";
 import {focusBlock, focusByWbr} from "../../protyle/util/selection";
 import {dragOverScroll, stopScrollAnimation} from "../../boot/globalEvent/dragover";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export class Outline extends Model {
     public tree: Tree;
@@ -97,31 +98,31 @@ export class Outline extends Model {
         options.tab.panelElement.classList.add("fn__flex-column", "file-tree", "sy__outline");
         options.tab.panelElement.innerHTML = `<div class="block__icons fn__hidescrollbar">
     <div class="block__logo">
-        <svg class="block__logoicon"><use xlink:href="#iconAlignCenter"></use></svg>${window.siyuan.languages.outline}
+        <svg class="block__logoicon"><use xlink:href="#iconAlignCenter"></use></svg>${siyuanI18n.outline}
     </div>
     <span class="fn__flex-1 fn__space"></span>
-    <input class="b3-text-field search__label fn__none fn__size200" placeholder="${window.siyuan.languages.filterKeywordEnter}" />
-    <span data-type="search" class="block__icon ariaLabel" aria-label="${window.siyuan.languages.filter}">
+    <input class="b3-text-field search__label fn__none fn__size200" placeholder="${siyuanI18n.filterKeywordEnter}" />
+    <span data-type="search" class="block__icon ariaLabel" aria-label="${siyuanI18n.filter}">
         <svg><use xlink:href='#iconFilter'></use></svg>
     </span>
     <span class="fn__space"></span>
-    <span data-type="keepCurrentExpand" class="block__icon ariaLabel${window.siyuan.storage[Constants.LOCAL_OUTLINE].keepCurrentExpand ? " block__icon--active" : ""}" aria-label="${window.siyuan.languages.outlineKeepCurrentExpand}">
+    <span data-type="keepCurrentExpand" class="block__icon ariaLabel${window.siyuan.storage[Constants.LOCAL_OUTLINE].keepCurrentExpand ? " block__icon--active" : ""}" aria-label="${siyuanI18n.outlineKeepCurrentExpand}">
         <svg><use xlink:href="#iconFocus"></use></svg>
     </span>
     <span class="fn__space"></span>
-    <span data-type="expandLevel" class="block__icon ariaLabel" aria-label="${window.siyuan.languages.expandLevel}">
+    <span data-type="expandLevel" class="block__icon ariaLabel" aria-label="${siyuanI18n.expandLevel}">
         <svg><use xlink:href="#iconList"></use></svg>
     </span>
     <span class="fn__space"></span>
-    <span data-type="expand" class="block__icon ariaLabel" aria-label="${window.siyuan.languages.expandAll}${updateHotkeyAfterTip(window.siyuan.config.keymap.editor.general.expand.custom)}">
+    <span data-type="expand" class="block__icon ariaLabel" aria-label="${siyuanI18n.expandAll}${updateHotkeyAfterTip(window.siyuan.config.keymap.editor.general.expand.custom)}">
         <svg><use xlink:href="#iconExpand"></use></svg>
     </span>
     <span class="fn__space"></span>
-    <span data-type="collapse" class="block__icon ariaLabel" aria-label="${window.siyuan.languages.foldAll}${updateHotkeyAfterTip(window.siyuan.config.keymap.editor.general.collapse.custom)}">
+    <span data-type="collapse" class="block__icon ariaLabel" aria-label="${siyuanI18n.foldAll}${updateHotkeyAfterTip(window.siyuan.config.keymap.editor.general.collapse.custom)}">
         <svg><use xlink:href="#iconContract"></use></svg>
     </span>
     <span class="${this.type === "local" ? "fn__none " : ""}fn__space"></span>
-    <span data-type="min" class="${this.type === "local" ? "fn__none " : ""}block__icon ariaLabel" aria-label="${window.siyuan.languages.min}${updateHotkeyAfterTip(window.siyuan.config.keymap.general.closeTab.custom)}">
+    <span data-type="min" class="${this.type === "local" ? "fn__none " : ""}block__icon ariaLabel" aria-label="${siyuanI18n.min}${updateHotkeyAfterTip(window.siyuan.config.keymap.general.closeTab.custom)}">
         <svg><use xlink:href='#iconMin'></use></svg>
     </span>
 </div>
@@ -136,10 +137,10 @@ export class Outline extends Model {
             const value = inputElement.value;
             if (value) {
                 filterIconElement.classList.add("block__icon--active");
-                filterIconElement.setAttribute("aria-label", window.siyuan.languages.filter + " " + escapeAttr(value));
+                filterIconElement.setAttribute("aria-label", siyuanI18n.filter + " " + escapeAttr(value));
             } else {
                 filterIconElement.classList.remove("block__icon--active");
-                filterIconElement.setAttribute("aria-label", window.siyuan.languages.filter);
+                filterIconElement.setAttribute("aria-label", siyuanI18n.filter);
             }
             if (inputElement.dataset.value !== value) {
                 this.setFilter();
@@ -809,7 +810,7 @@ export class Outline extends Model {
             window.siyuan.menus.menu.append(new MenuItem({
                 id: `heading${i}`,
                 icon: `iconH${i}`,
-                label: window.siyuan.languages[`heading${i}`],
+                label: siyuanI18n[`heading${i}`],
                 click: () => this.expandToLevel(i)
             }).element);
         }
@@ -893,7 +894,7 @@ export class Outline extends Model {
                 window.siyuan.menus.menu.append(new MenuItem({
                     id: "upgrade",
                     icon: "iconUp",
-                    label: window.siyuan.languages.upgrade,
+                    label: siyuanI18n.upgrade,
                     click: () => {
                         const data = this.getProtyleAndBlockElement(element);
                         if (data) {
@@ -913,7 +914,7 @@ export class Outline extends Model {
                 window.siyuan.menus.menu.append(new MenuItem({
                     id: "downgrade",
                     icon: "iconDown",
-                    label: window.siyuan.languages.downgrade,
+                    label: siyuanI18n.downgrade,
                     click: () => {
                         const data = this.getProtyleAndBlockElement(element);
                         if (data) {
@@ -963,7 +964,7 @@ export class Outline extends Model {
                     id: "tWithSubtitle",
                     type: "submenu",
                     icon: "iconRefresh",
-                    label: window.siyuan.languages.tWithSubtitle,
+                    label: siyuanI18n.tWithSubtitle,
                     submenu: headingSubMenu
                 }).element);
             }
@@ -974,7 +975,7 @@ export class Outline extends Model {
             window.siyuan.menus.menu.append(new MenuItem({
                 id: "insertSameLevelHeadingBefore",
                 icon: "iconBefore",
-                label: window.siyuan.languages.insertSameLevelHeadingBefore,
+                label: siyuanI18n.insertSameLevelHeadingBefore,
                 click: () => {
                     const data = this.getProtyleAndBlockElement(element);
                     const newId = Lute.NewNodeID();
@@ -999,7 +1000,7 @@ export class Outline extends Model {
             window.siyuan.menus.menu.append(new MenuItem({
                 id: "insertSameLevelHeadingAfter",
                 icon: "iconAfter",
-                label: window.siyuan.languages.insertSameLevelHeadingAfter,
+                label: siyuanI18n.insertSameLevelHeadingAfter,
                 click: () => {
                     fetchPost("/api/block/getHeadingDeleteTransaction", {
                         id,
@@ -1033,7 +1034,7 @@ export class Outline extends Model {
                 window.siyuan.menus.menu.append(new MenuItem({
                     id: "addChildHeading",
                     icon: "iconAdd",
-                    label: window.siyuan.languages.addChildHeading,
+                    label: siyuanI18n.addChildHeading,
                     click: () => {
                         fetchPost("/api/block/getHeadingDeleteTransaction", {
                             id,
@@ -1078,7 +1079,7 @@ export class Outline extends Model {
         window.siyuan.menus.menu.append(new MenuItem({
             id: "copyHeadings1",
             icon: "iconCopy",
-            label: `${window.siyuan.languages.copy} ${window.siyuan.languages.headings1}`,
+            label: `${siyuanI18n.copy} ${siyuanI18n.headings1}`,
             click: () => {
                 const data = this.getProtyleAndBlockElement(element);
                 fetchPost("/api/block/getHeadingChildrenDOM", {
@@ -1101,7 +1102,7 @@ export class Outline extends Model {
             window.siyuan.menus.menu.append(new MenuItem({
                 id: "cutHeadings1",
                 icon: "iconCut",
-                label: `${window.siyuan.languages.cut} ${window.siyuan.languages.headings1}`,
+                label: `${siyuanI18n.cut} ${siyuanI18n.headings1}`,
                 click: () => {
                     const data = this.getProtyleAndBlockElement(element);
                     fetchPost("/api/block/getHeadingChildrenDOM", {
@@ -1149,7 +1150,7 @@ export class Outline extends Model {
             window.siyuan.menus.menu.append(new MenuItem({
                 id: "deleteHeadings1",
                 icon: "iconTrashcan",
-                label: `${window.siyuan.languages.delete} ${window.siyuan.languages.headings1}`,
+                label: `${siyuanI18n.delete} ${siyuanI18n.headings1}`,
                 click: () => {
                     const data = this.getProtyleAndBlockElement(element);
                     fetchPost("/api/block/getHeadingDeleteTransaction", {
@@ -1187,8 +1188,8 @@ export class Outline extends Model {
         window.siyuan.menus.menu.append(new MenuItem({
             id: "expandChildHeading",
             icon: "iconExpand",
-            label: window.siyuan.languages.expandChildHeading,
-            accelerator: "⌘" + window.siyuan.languages.clickArrow,
+            label: siyuanI18n.expandChildHeading,
+            accelerator: "⌘" + siyuanI18n.clickArrow,
             click: () => this.collapseChildren(element, true)
         }).element);
 
@@ -1196,8 +1197,8 @@ export class Outline extends Model {
         window.siyuan.menus.menu.append(new MenuItem({
             id: "foldChildHeading",
             icon: "iconContract",
-            label: window.siyuan.languages.foldChildHeading,
-            accelerator: "⌘" + window.siyuan.languages.clickArrow,
+            label: siyuanI18n.foldChildHeading,
+            accelerator: "⌘" + siyuanI18n.clickArrow,
             click: () => this.collapseChildren(element, false)
         }).element);
 
@@ -1205,8 +1206,8 @@ export class Outline extends Model {
         window.siyuan.menus.menu.append(new MenuItem({
             id: "expandSameLevelHeading",
             icon: "iconExpand",
-            label: window.siyuan.languages.expandSameLevelHeading,
-            accelerator: "⌥" + window.siyuan.languages.clickArrow,
+            label: siyuanI18n.expandSameLevelHeading,
+            accelerator: "⌥" + siyuanI18n.clickArrow,
             click: () => this.collapseSameLevel(element, true)
         }).element);
 
@@ -1214,8 +1215,8 @@ export class Outline extends Model {
         window.siyuan.menus.menu.append(new MenuItem({
             id: "foldSameLevelHeading",
             icon: "iconContract",
-            label: window.siyuan.languages.foldSameLevelHeading,
-            accelerator: "⌥" + window.siyuan.languages.clickArrow,
+            label: siyuanI18n.foldSameLevelHeading,
+            accelerator: "⌥" + siyuanI18n.clickArrow,
             click: () => this.collapseSameLevel(element, false)
         }).element);
 
@@ -1223,7 +1224,7 @@ export class Outline extends Model {
         window.siyuan.menus.menu.append(new MenuItem({
             id: "expandAll",
             icon: "iconExpand",
-            label: window.siyuan.languages.expandAll,
+            label: siyuanI18n.expandAll,
             click: () => {
                 this.tree.expandAll();
                 this.saveExpendIds();
@@ -1234,7 +1235,7 @@ export class Outline extends Model {
         window.siyuan.menus.menu.append(new MenuItem({
             id: "foldAll",
             icon: "iconContract",
-            label: window.siyuan.languages.foldAll,
+            label: siyuanI18n.foldAll,
             click: () => {
                 this.tree.collapseAll();
                 this.saveExpendIds();
@@ -1275,7 +1276,7 @@ export class Outline extends Model {
             id: "heading" + level,
             iconHTML: "",
             icon: "iconHeading" + level,
-            label: window.siyuan.languages["heading" + level],
+            label: siyuanI18n["heading" + level],
             click: () => {
                 let protyle: IProtyle;
                 getAllModels().editor.find(editItem => {

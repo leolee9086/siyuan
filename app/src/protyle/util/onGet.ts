@@ -20,6 +20,7 @@ import {hideTooltip} from "../../dialog/tooltip";
 import {stickyRow} from "../render/av/row";
 import {getContenteditableElement} from "../wysiwyg/getBlock";
 import {activeBlur} from "../../mobile/util/keyboardToolbar";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const onGet = (options: {
     data: IWebSocketData,
@@ -40,7 +41,7 @@ export const onGet = (options: {
             if (options.protyle.model) {
                 options.protyle.model.parent.parent.removeTab(options.protyle.model.parent.id, false);
             } else {
-                options.protyle.element.innerHTML = `<div class="ft__smaller ft__secondary b3-form__space--small" contenteditable="false">${window.siyuan.languages.refExpired}</div>`;
+                options.protyle.element.innerHTML = `<div class="ft__smaller ft__secondary b3-form__space--small" contenteditable="false">${siyuanI18n.refExpired}</div>`;
             }
         }
         return;
@@ -219,9 +220,9 @@ const setHTML = (options: {
         if (editElement && editElement.textContent === "") {
             editElement.classList.add("protyle-wysiwyg--empty");
             /// #if MOBILE
-            editElement.setAttribute("placeholder", window.siyuan.languages.emptyMobilePlaceholder);
+            editElement.setAttribute("placeholder", siyuanI18n.emptyMobilePlaceholder);
             /// #else
-            editElement.setAttribute("placeholder", window.siyuan.languages.emptyPlaceholder);
+            editElement.setAttribute("placeholder", siyuanI18n.emptyPlaceholder);
             /// #endif
         }
     }
@@ -317,7 +318,7 @@ const setHTML = (options: {
             // https://github.com/siyuan-note/siyuan/issues/8224
             // https://github.com/siyuan-note/siyuan/issues/10716
             if (index > 1 && protyle.block.blockCount > 1 && protyle.contentElement.scrollHeight <= protyle.contentElement.clientHeight) {
-                showMessage(window.siyuan.languages.scrollGetMore);
+                showMessage(siyuanI18n.scrollGetMore);
             }
         });
     }
@@ -330,9 +331,9 @@ const setHTML = (options: {
 export const disabledForeverProtyle = (protyle: IProtyle) => {
     disabledProtyle(protyle);
     if (protyle.breadcrumb && !isMobile()) {
-        protyle.breadcrumb.element.nextElementSibling.textContent = window.siyuan.languages["_kernel"][81];
+        protyle.breadcrumb.element.nextElementSibling.textContent = siyuanI18n["_kernel"][81];
     } else {
-        showMessage(window.siyuan.languages["_kernel"][81]);
+        showMessage(siyuanI18n["_kernel"][81]);
     }
     protyle.element.setAttribute("disabled-forever", "true");
 };
@@ -378,7 +379,7 @@ export const disabledProtyle = (protyle: IProtyle) => {
     if (protyle.breadcrumb) {
         const readonlyButton = protyle.breadcrumb.element.parentElement.querySelector('[data-type="readonly"]');
         readonlyButton.querySelector("use").setAttribute("xlink:href", "#iconLock");
-        readonlyButton.setAttribute("aria-label", window.siyuan.config.editor.readOnly ? window.siyuan.languages.tempUnlock : window.siyuan.languages.unlockEdit);
+        readonlyButton.setAttribute("aria-label", window.siyuan.config.editor.readOnly ? siyuanI18n.tempUnlock : siyuanI18n.unlockEdit);
         readonlyButton.setAttribute("data-subtype", "lock");
         const undoElement = protyle.breadcrumb.element.parentElement.querySelector('[data-type="undo"]');
         if (undoElement && !undoElement.classList.contains("fn__none")) {
@@ -438,7 +439,7 @@ export const enableProtyle = (protyle: IProtyle) => {
     if (protyle.breadcrumb) {
         const readonlyButton = protyle.breadcrumb.element.parentElement.querySelector('[data-type="readonly"]');
         readonlyButton.querySelector("use").setAttribute("xlink:href", "#iconUnlock");
-        readonlyButton.setAttribute("aria-label", window.siyuan.config.editor.readOnly ? window.siyuan.languages.cancelTempUnlock : window.siyuan.languages.lockEdit);
+        readonlyButton.setAttribute("aria-label", window.siyuan.config.editor.readOnly ? siyuanI18n.cancelTempUnlock : siyuanI18n.lockEdit);
         readonlyButton.setAttribute("data-subtype", "unlock");
         const undoElement = protyle.breadcrumb.element.parentElement.querySelector('[data-type="undo"]');
         if (undoElement && undoElement.classList.contains("fn__none")) {

@@ -54,6 +54,7 @@ import {img3115} from "../boot/compatibleVersion";
 import {hideTooltip} from "../dialog/tooltip";
 import {clearSelect} from "../protyle/util/clearSelect";
 import {scrollCenter} from "../util/highlightById";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const enterBack = (protyle: IProtyle, id: string) => {
     if (!protyle.block.showAll) {
@@ -95,7 +96,7 @@ export const zoomOut = (options: {
     if (blockPanelElement) {
         const pingElement = blockPanelElement.querySelector('[data-type="pin"]');
         if (pingElement && blockPanelElement.getAttribute("data-pin") !== "true") {
-            pingElement.setAttribute("aria-label", window.siyuan.languages.unpin);
+            pingElement.setAttribute("aria-label", siyuanI18n.unpin);
             pingElement.querySelector("use").setAttribute("xlink:href", "#iconUnpin");
             blockPanelElement.setAttribute("data-pin", "true");
         }
@@ -239,21 +240,21 @@ export const imgMenu = (protyle: IProtyle, range: Range, assetElement: HTMLEleme
             iconHTML: "",
             type: "readonly",
             label: `<div class="fn__flex">
-    <span class="fn__flex-center">${window.siyuan.languages.imageURL}</span>
+    <span class="fn__flex-center">${siyuanI18n.imageURL}</span>
     <span class="fn__space"></span>
-    <span data-action="copy" class="block__icon block__icon--show b3-tooltips b3-tooltips__e fn__flex-center" aria-label="${window.siyuan.languages.copy}">
+    <span data-action="copy" class="block__icon block__icon--show b3-tooltips b3-tooltips__e fn__flex-center" aria-label="${siyuanI18n.copy}">
         <svg><use xlink:href="#iconCopy"></use></svg>
     </span>   
 </div><textarea spellcheck="false" style="margin:4px 0;width: ${isMobile() ? "100%" : "360px"}" rows="1" class="b3-text-field">${src}</textarea><div class="fn__hr"></div><div class="fn__flex">
-    <span class="fn__flex-center">${window.siyuan.languages.title}</span>
+    <span class="fn__flex-center">${siyuanI18n.title}</span>
     <span class="fn__space"></span>
-    <span data-action="copy" class="block__icon block__icon--show b3-tooltips b3-tooltips__e fn__flex-center" aria-label="${window.siyuan.languages.copy}">
+    <span data-action="copy" class="block__icon block__icon--show b3-tooltips b3-tooltips__e fn__flex-center" aria-label="${siyuanI18n.copy}">
         <svg><use xlink:href="#iconCopy"></use></svg>
     </span>   
 </div><textarea style="margin:4px 0;width: ${isMobile() ? "100%" : "360px"}" rows="1" class="b3-text-field"></textarea><div class="fn__hr"></div><div class="fn__flex">
-    <span class="fn__flex-center">${window.siyuan.languages.tooltipText}</span>
+    <span class="fn__flex-center">${siyuanI18n.tooltipText}</span>
     <span class="fn__space"></span>
-    <span data-action="copy" class="block__icon block__icon--show b3-tooltips b3-tooltips__e fn__flex-center" aria-label="${window.siyuan.languages.copy}">
+    <span data-action="copy" class="block__icon block__icon--show b3-tooltips b3-tooltips__e fn__flex-center" aria-label="${siyuanI18n.copy}">
         <svg><use xlink:href="#iconCopy"></use></svg>
     </span>   
 </div><textarea style="margin:4px 0;width: ${isMobile() ? "100%" : "360px"}" rows="1" class="b3-text-field"></textarea>`,
@@ -286,7 +287,7 @@ export const imgMenu = (protyle: IProtyle, range: Range, assetElement: HTMLEleme
                     while (target) {
                         if (target.dataset.action === "copy") {
                             writeText((target.parentElement.nextElementSibling as HTMLTextAreaElement).value);
-                            showMessage(window.siyuan.languages.copied);
+                            showMessage(siyuanI18n.copied);
                             break;
                         }
                         target = target.parentElement;
@@ -298,7 +299,7 @@ export const imgMenu = (protyle: IProtyle, range: Range, assetElement: HTMLEleme
     }
     window.siyuan.menus.menu.append(new MenuItem({
         id: "copy",
-        label: window.siyuan.languages.copy,
+        label: siyuanI18n.copy,
         accelerator: "⌘C",
         icon: "iconCopy",
         click() {
@@ -311,7 +312,7 @@ export const imgMenu = (protyle: IProtyle, range: Range, assetElement: HTMLEleme
     if (protyle.disabled) {
         window.siyuan.menus.menu.append(new MenuItem({
             id: "copyImageURL",
-            label: window.siyuan.languages.copy + " " + window.siyuan.languages.imageURL,
+            label: siyuanI18n.copy + " " + siyuanI18n.imageURL,
             icon: "iconLink",
             click() {
                 writeText(imgElement.getAttribute("src"));
@@ -320,7 +321,7 @@ export const imgMenu = (protyle: IProtyle, range: Range, assetElement: HTMLEleme
     }
     window.siyuan.menus.menu.append(new MenuItem({
         id: "copyAsPNG",
-        label: window.siyuan.languages.copyAsPNG,
+        label: siyuanI18n.copyAsPNG,
         accelerator: window.siyuan.config.keymap.editor.general.copyBlockRef.custom,
         icon: "iconImage",
         click() {
@@ -332,7 +333,7 @@ export const imgMenu = (protyle: IProtyle, range: Range, assetElement: HTMLEleme
             id: "cut",
             icon: "iconCut",
             accelerator: "⌘X",
-            label: window.siyuan.languages.cut,
+            label: siyuanI18n.cut,
             click() {
                 let content = protyle.lute.BlockDOM2StdMd(assetElement.outerHTML);
                 // The file name encoding is abnormal after copying the image and pasting it https://github.com/siyuan-note/siyuan/issues/11246
@@ -348,7 +349,7 @@ export const imgMenu = (protyle: IProtyle, range: Range, assetElement: HTMLEleme
             id: "delete",
             icon: "iconTrashcan",
             accelerator: "⌫",
-            label: window.siyuan.languages.delete,
+            label: siyuanI18n.delete,
             click: function () {
                 (assetElement as HTMLElement).outerHTML = "<wbr>";
                 nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
@@ -361,7 +362,7 @@ export const imgMenu = (protyle: IProtyle, range: Range, assetElement: HTMLEleme
         if (imagePath.startsWith("assets/")) {
             window.siyuan.menus.menu.append(new MenuItem({
                 id: "rename",
-                label: window.siyuan.languages.rename,
+                label: siyuanI18n.rename,
                 icon: "iconEdit",
                 click() {
                     renameAsset(imagePath);
@@ -375,7 +376,7 @@ export const imgMenu = (protyle: IProtyle, range: Range, assetElement: HTMLEleme
                 id: "ocrResult",
                 iconHTML: "",
                 type: "readonly",
-                label: `<textarea spellcheck="false" data-type="ocr" style="margin: 4px 0" rows="1" class="b3-text-field fn__block" placeholder="${window.siyuan.languages.ocrResult}"></textarea>`,
+                label: `<textarea spellcheck="false" data-type="ocr" style="margin: 4px 0" rows="1" class="b3-text-field fn__block" placeholder="${siyuanI18n.ocrResult}"></textarea>`,
                 bind(element) {
                     element.style.maxWidth = "none";
                     fetchPost("/api/asset/getImageOCRText", {
@@ -391,7 +392,7 @@ export const imgMenu = (protyle: IProtyle, range: Range, assetElement: HTMLEleme
             }, {
                 id: "reOCR",
                 iconHTML: "",
-                label: window.siyuan.languages.reOCR,
+                label: siyuanI18n.reOCR,
                 click() {
                     fetchPost("/api/asset/ocr", {
                         path: imgElement.getAttribute("src"),
@@ -403,7 +404,7 @@ export const imgMenu = (protyle: IProtyle, range: Range, assetElement: HTMLEleme
         window.siyuan.menus.menu.append(new MenuItem({
             id: "alignCenter",
             icon: "iconAlignCenter",
-            label: window.siyuan.languages.alignCenter,
+            label: siyuanI18n.alignCenter,
             accelerator: window.siyuan.config.keymap.editor.general.alignCenter.custom,
             click() {
                 alignImgCenter(protyle, nodeElement, [assetElement], id, html);
@@ -412,7 +413,7 @@ export const imgMenu = (protyle: IProtyle, range: Range, assetElement: HTMLEleme
         window.siyuan.menus.menu.append(new MenuItem({
             id: "alignLeft",
             icon: "iconAlignLeft",
-            label: window.siyuan.languages.alignLeft,
+            label: siyuanI18n.alignLeft,
             accelerator: window.siyuan.config.keymap.editor.general.alignLeft.custom,
             click() {
                 alignImgLeft(protyle, nodeElement, [assetElement], id, html);
@@ -421,17 +422,17 @@ export const imgMenu = (protyle: IProtyle, range: Range, assetElement: HTMLEleme
         let rangeElement: HTMLInputElement;
         window.siyuan.menus.menu.append(new MenuItem({
             id: "width",
-            label: window.siyuan.languages.width,
+            label: siyuanI18n.width,
             submenu: [{
                 id: "widthInput",
                 iconHTML: "",
                 type: "readonly",
-                label: `<div class="fn__flex"><input class="b3-text-field fn__flex-1" style="margin: 4px 8px 4px 0" value="${imgElement.parentElement.style.width.endsWith("px") ? parseInt(imgElement.parentElement.style.width) : ""}" type="number" placeholder="${window.siyuan.languages.width}"><span class="fn__flex-center">px</span></div>`,
+                label: `<div class="fn__flex"><input class="b3-text-field fn__flex-1" style="margin: 4px 8px 4px 0" value="${imgElement.parentElement.style.width.endsWith("px") ? parseInt(imgElement.parentElement.style.width) : ""}" type="number" placeholder="${siyuanI18n.width}"><span class="fn__flex-center">px</span></div>`,
                 bind(element) {
                     const inputElement = element.querySelector("input");
                     inputElement.addEventListener("input", () => {
                         rangeElement.value = "0";
-                        rangeElement.parentElement.setAttribute("aria-label", inputElement.value ? (inputElement.value + "px") : window.siyuan.languages.default);
+                        rangeElement.parentElement.setAttribute("aria-label", inputElement.value ? (inputElement.value + "px") : siyuanI18n.default);
 
                         img3115(assetElement);
                         imgElement.parentElement.style.width = inputElement.value ? (inputElement.value + "px") : "";
@@ -460,7 +461,7 @@ export const imgMenu = (protyle: IProtyle, range: Range, assetElement: HTMLEleme
                     id: "widthDrag",
                     iconHTML: "",
                     type: "readonly",
-                    label: `<div style="margin: 4px 0;" aria-label="${imgElement.parentElement.style.width ? imgElement.parentElement.style.width.replace("vw", "%").replace("calc(", "").replace(" - 8px)", "") : window.siyuan.languages.default}" class="b3-tooltips b3-tooltips__n"><input style="box-sizing: border-box" value="${(imgElement.parentElement.style.width.indexOf("%") > -1 || imgElement.parentElement.style.width.endsWith("vw")) ? parseInt(imgElement.parentElement.style.width.replace("calc(", "")) : 0}" class="b3-slider fn__block" max="100" min="1" step="1" type="range"></div>`,
+                    label: `<div style="margin: 4px 0;" aria-label="${imgElement.parentElement.style.width ? imgElement.parentElement.style.width.replace("vw", "%").replace("calc(", "").replace(" - 8px)", "") : siyuanI18n.default}" class="b3-tooltips b3-tooltips__n"><input style="box-sizing: border-box" value="${(imgElement.parentElement.style.width.indexOf("%") > -1 || imgElement.parentElement.style.width.endsWith("vw")) ? parseInt(imgElement.parentElement.style.width.replace("calc(", "")) : 0}" class="b3-slider fn__block" max="100" min="1" step="1" type="range"></div>`,
                     bind(element) {
                         rangeElement = element.querySelector("input");
                         rangeElement.addEventListener("input", () => {
@@ -480,23 +481,23 @@ export const imgMenu = (protyle: IProtyle, range: Range, assetElement: HTMLEleme
                     id: "separator_2",
                     type: "separator",
                 },
-                genImageWidthMenu(window.siyuan.languages.default, imgElement, protyle, id, nodeElement, html),
+                genImageWidthMenu(siyuanI18n.default, imgElement, protyle, id, nodeElement, html),
             ]
         }).element);
         let rangeHeightElement: HTMLInputElement;
         window.siyuan.menus.menu.append(new MenuItem({
             id: "height",
-            label: window.siyuan.languages.height,
+            label: siyuanI18n.height,
             submenu: [{
                 id: "heightInput",
                 iconHTML: "",
                 type: "readonly",
-                label: `<div class="fn__flex"><input class="b3-text-field fn__flex-1" value="${imgElement.style.height.endsWith("px") ? parseInt(imgElement.style.height) : ""}" type="number" style="margin: 4px 8px 4px 0" placeholder="${window.siyuan.languages.height}"><span class="fn__flex-center">px</span></div>`,
+                label: `<div class="fn__flex"><input class="b3-text-field fn__flex-1" value="${imgElement.style.height.endsWith("px") ? parseInt(imgElement.style.height) : ""}" type="number" style="margin: 4px 8px 4px 0" placeholder="${siyuanI18n.height}"><span class="fn__flex-center">px</span></div>`,
                 bind(element) {
                     const inputElement = element.querySelector("input");
                     inputElement.addEventListener("input", () => {
                         rangeHeightElement.value = "0";
-                        rangeHeightElement.parentElement.setAttribute("aria-label", inputElement.value ? (inputElement.value + "px") : window.siyuan.languages.default);
+                        rangeHeightElement.parentElement.setAttribute("aria-label", inputElement.value ? (inputElement.value + "px") : siyuanI18n.default);
 
                         imgElement.style.height = inputElement.value ? (inputElement.value + "px") : "";
                         img3115(assetElement);
@@ -525,7 +526,7 @@ export const imgMenu = (protyle: IProtyle, range: Range, assetElement: HTMLEleme
                     id: "heightDrag",
                     iconHTML: "",
                     type: "readonly",
-                    label: `<div style="margin: 4px 0;" aria-label="${imgElement.style.height ? imgElement.style.height.replace("vh", "%") : window.siyuan.languages.default}" class="b3-tooltips b3-tooltips__n"><input style="box-sizing: border-box" value="${imgElement.style.height.endsWith("vh") ? parseInt(imgElement.style.height) : 0}" class="b3-slider fn__block" max="100" min="1" step="1" type="range"></div>`,
+                    label: `<div style="margin: 4px 0;" aria-label="${imgElement.style.height ? imgElement.style.height.replace("vh", "%") : siyuanI18n.default}" class="b3-tooltips b3-tooltips__n"><input style="box-sizing: border-box" value="${imgElement.style.height.endsWith("vh") ? parseInt(imgElement.style.height) : 0}" class="b3-slider fn__block" max="100" min="1" step="1" type="range"></div>`,
                     bind(element) {
                         rangeHeightElement = element.querySelector("input");
                         rangeHeightElement.addEventListener("input", () => {
@@ -545,7 +546,7 @@ export const imgMenu = (protyle: IProtyle, range: Range, assetElement: HTMLEleme
                     id: "separator_2",
                     type: "separator",
                 },
-                genImageHeightMenu(window.siyuan.languages.default, imgElement, protyle, id, nodeElement, html),
+                genImageHeightMenu(siyuanI18n.default, imgElement, protyle, id, nodeElement, html),
             ]
         }).element);
     }
@@ -617,22 +618,22 @@ export const linkMenu = (protyle: IProtyle, linkElement: HTMLElement, focusText 
             iconHTML: "",
             type: "readonly",
             label: `<div class="fn__flex">
-    <span class="fn__flex-center">${window.siyuan.languages.link}</span>
+    <span class="fn__flex-center">${siyuanI18n.link}</span>
     <span class="fn__space"></span>
-    <span data-action="copy" class="block__icon block__icon--show b3-tooltips b3-tooltips__e fn__flex-center" aria-label="${window.siyuan.languages.copy}">
+    <span data-action="copy" class="block__icon block__icon--show b3-tooltips b3-tooltips__e fn__flex-center" aria-label="${siyuanI18n.copy}">
         <svg><use xlink:href="#iconCopy"></use></svg>
     </span>   
 </div><textarea spellcheck="false" rows="1" 
 style="margin:4px 0;width: ${isMobile() ? "100%" : "360px"}" class="b3-text-field"></textarea><div class="fn__hr"></div><div class="fn__flex">
-    <span class="fn__flex-center">${window.siyuan.languages.anchor}</span>
+    <span class="fn__flex-center">${siyuanI18n.anchor}</span>
     <span class="fn__space"></span>
-    <span data-action="copy" class="block__icon block__icon--show b3-tooltips b3-tooltips__e fn__flex-center" aria-label="${window.siyuan.languages.copy}">
+    <span data-action="copy" class="block__icon block__icon--show b3-tooltips b3-tooltips__e fn__flex-center" aria-label="${siyuanI18n.copy}">
         <svg><use xlink:href="#iconCopy"></use></svg>
     </span>   
 </div><textarea style="width: ${isMobile() ? "100%" : "360px"};margin: 4px 0;" rows="1" class="b3-text-field"></textarea><div class="fn__hr"></div><div class="fn__flex">
-    <span class="fn__flex-center">${window.siyuan.languages.title}</span>
+    <span class="fn__flex-center">${siyuanI18n.title}</span>
     <span class="fn__space"></span>
-    <span data-action="copy" class="block__icon block__icon--show b3-tooltips b3-tooltips__e fn__flex-center" aria-label="${window.siyuan.languages.copy}">
+    <span data-action="copy" class="block__icon block__icon--show b3-tooltips b3-tooltips__e fn__flex-center" aria-label="${siyuanI18n.copy}">
         <svg><use xlink:href="#iconCopy"></use></svg>
     </span>   
 </div><textarea style="width: ${isMobile() ? "100%" : "360px"};margin: 4px 0;" rows="1" class="b3-text-field"></textarea>`,
@@ -711,7 +712,7 @@ style="margin:4px 0;width: ${isMobile() ? "100%" : "360px"}" class="b3-text-fiel
                     while (target) {
                         if (target.dataset.action === "copy") {
                             writeText((target.parentElement.nextElementSibling as HTMLTextAreaElement).value);
-                            showMessage(window.siyuan.languages.copied);
+                            showMessage(siyuanI18n.copied);
                             break;
                         }
                         target = target.parentElement;
@@ -723,7 +724,7 @@ style="margin:4px 0;width: ${isMobile() ? "100%" : "360px"}" class="b3-text-fiel
     }
     window.siyuan.menus.menu.append(new MenuItem({
         id: "copy",
-        label: window.siyuan.languages.copy,
+        label: siyuanI18n.copy,
         icon: "iconCopy",
         click() {
             const range = document.createRange();
@@ -735,7 +736,7 @@ style="margin:4px 0;width: ${isMobile() ? "100%" : "360px"}" class="b3-text-fiel
     if (protyle.disabled) {
         window.siyuan.menus.menu.append(new MenuItem({
             id: "copyAHref",
-            label: window.siyuan.languages.copyAHref,
+            label: siyuanI18n.copyAHref,
             icon: "iconLink",
             click() {
                 writeText(linkAddress);
@@ -746,7 +747,7 @@ style="margin:4px 0;width: ${isMobile() ? "100%" : "360px"}" class="b3-text-fiel
         window.siyuan.menus.menu.append(new MenuItem({
             id: "cut",
             icon: "iconCut",
-            label: window.siyuan.languages.cut,
+            label: siyuanI18n.cut,
             click() {
                 const range = document.createRange();
                 range.selectNode(linkElement);
@@ -757,7 +758,7 @@ style="margin:4px 0;width: ${isMobile() ? "100%" : "360px"}" class="b3-text-fiel
         window.siyuan.menus.menu.append(new MenuItem({
             id: "remove",
             icon: "iconTrashcan",
-            label: window.siyuan.languages.remove,
+            label: siyuanI18n.remove,
             click() {
                 linkElement.insertAdjacentHTML("afterend", "<wbr>");
                 linkElement.remove();
@@ -770,7 +771,7 @@ style="margin:4px 0;width: ${isMobile() ? "100%" : "360px"}" class="b3-text-fiel
         if (linkAddress?.startsWith("assets/")) {
             window.siyuan.menus.menu.append(new MenuItem({
                 id: "rename",
-                label: window.siyuan.languages.rename,
+                label: siyuanI18n.rename,
                 icon: "iconEdit",
                 click() {
                     renameAsset(linkAddress);
@@ -780,7 +781,7 @@ style="margin:4px 0;width: ${isMobile() ? "100%" : "360px"}" class="b3-text-fiel
         if (linkAddress?.startsWith("siyuan://blocks/")) {
             window.siyuan.menus.menu.append(new MenuItem({
                 id: "turnIntoRef",
-                label: `${window.siyuan.languages.turnInto} <b>${window.siyuan.languages.ref}</b>`,
+                label: `${siyuanI18n.turnInto} <b>${siyuanI18n.ref}</b>`,
                 icon: "iconRef",
                 click() {
                     linkElement.setAttribute("data-subtype", "s");
@@ -804,7 +805,7 @@ style="margin:4px 0;width: ${isMobile() ? "100%" : "360px"}" class="b3-text-fiel
         }
         window.siyuan.menus.menu.append(new MenuItem({
             id: "turnIntoText",
-            label: `${window.siyuan.languages.turnInto} <b>${window.siyuan.languages.text}</b>`,
+            label: `${siyuanI18n.turnInto} <b>${siyuanI18n.text}</b>`,
             icon: "iconRefresh",
             click() {
                 inputElements[0].value = "";
@@ -901,7 +902,7 @@ export const tagMenu = (protyle: IProtyle, tagElement: HTMLElement) => {
         id: "tag",
         iconHTML: "",
         type: "readonly",
-        label: `<input class="b3-text-field fn__block" style="margin: 4px 0" placeholder="${window.siyuan.languages.tag}">`,
+        label: `<input class="b3-text-field fn__block" style="margin: 4px 0" placeholder="${siyuanI18n.tag}">`,
         bind(element) {
             const inputElement = element.querySelector("input");
             inputElement.value = tagElement.textContent.replace(Constants.ZWSP, "");
@@ -945,8 +946,8 @@ export const tagMenu = (protyle: IProtyle, tagElement: HTMLElement) => {
 
     window.siyuan.menus.menu.append(new MenuItem({
         id: "search",
-        label: window.siyuan.languages.search,
-        accelerator: window.siyuan.languages.click,
+        label: siyuanI18n.search,
+        accelerator: siyuanI18n.click,
         icon: "iconSearch",
         click() {
             /// #if !MOBILE
@@ -966,7 +967,7 @@ export const tagMenu = (protyle: IProtyle, tagElement: HTMLElement) => {
     }).element);
     window.siyuan.menus.menu.append(new MenuItem({
         id: "rename",
-        label: window.siyuan.languages.rename,
+        label: siyuanI18n.rename,
         icon: "iconEdit",
         click() {
             renameTag(tagElement.textContent.replace(Constants.ZWSP, ""));
@@ -975,7 +976,7 @@ export const tagMenu = (protyle: IProtyle, tagElement: HTMLElement) => {
     window.siyuan.menus.menu.append(new MenuItem({id: "separator_2", type: "separator"}).element);
     window.siyuan.menus.menu.append(new MenuItem({
         id: "turnIntoText",
-        label: `${window.siyuan.languages.turnInto} <b>${window.siyuan.languages.text}</b>`,
+        label: `${siyuanI18n.turnInto} <b>${siyuanI18n.text}</b>`,
         icon: "iconRefresh",
         click() {
             protyle.toolbar.range.setStart(tagElement.firstChild, 0);
@@ -985,7 +986,7 @@ export const tagMenu = (protyle: IProtyle, tagElement: HTMLElement) => {
     }).element);
     window.siyuan.menus.menu.append(new MenuItem({
         id: "copy",
-        label: window.siyuan.languages.copy,
+        label: siyuanI18n.copy,
         icon: "iconCopy",
         click() {
             const range = document.createRange();
@@ -996,7 +997,7 @@ export const tagMenu = (protyle: IProtyle, tagElement: HTMLElement) => {
     }).element);
     window.siyuan.menus.menu.append(new MenuItem({
         id: "cut",
-        label: window.siyuan.languages.cut,
+        label: siyuanI18n.cut,
         icon: "iconCut",
         click() {
             const range = document.createRange();
@@ -1008,7 +1009,7 @@ export const tagMenu = (protyle: IProtyle, tagElement: HTMLElement) => {
     window.siyuan.menus.menu.append(new MenuItem({
         id: "remove",
         icon: "iconTrashcan",
-        label: window.siyuan.languages.remove,
+        label: siyuanI18n.remove,
         click() {
             const oldHTML = nodeElement.outerHTML;
             tagElement.insertAdjacentHTML("afterend", "<wbr>");
@@ -1057,7 +1058,7 @@ export const inlineMathMenu = (protyle: IProtyle, element: Element) => {
     const html = nodeElement.outerHTML;
     window.siyuan.menus.menu.append(new MenuItem({
         id: "copy",
-        label: window.siyuan.languages.copy,
+        label: siyuanI18n.copy,
         icon: "iconCopy",
         click() {
             const range = document.createRange();
@@ -1070,7 +1071,7 @@ export const inlineMathMenu = (protyle: IProtyle, element: Element) => {
         window.siyuan.menus.menu.append(new MenuItem({
             id: "cut",
             icon: "iconCut",
-            label: window.siyuan.languages.cut,
+            label: siyuanI18n.cut,
             click() {
                 const range = document.createRange();
                 range.selectNode(element);
@@ -1081,7 +1082,7 @@ export const inlineMathMenu = (protyle: IProtyle, element: Element) => {
         window.siyuan.menus.menu.append(new MenuItem({
             id: "remove",
             icon: "iconTrashcan",
-            label: window.siyuan.languages.remove,
+            label: siyuanI18n.remove,
             click() {
                 element.insertAdjacentHTML("afterend", "<wbr>");
                 element.remove();
@@ -1101,13 +1102,13 @@ export const inlineMathMenu = (protyle: IProtyle, element: Element) => {
 
 const genImageWidthMenu = (label: string, imgElement: HTMLElement, protyle: IProtyle, id: string, nodeElement: HTMLElement, html: string) => {
     return {
-        id: label === window.siyuan.languages.default ? "default" : "width_" + label,
+        id: label === siyuanI18n.default ? "default" : "width_" + label,
         iconHTML: "",
         label,
         click() {
             nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
             img3115(imgElement.parentElement.parentElement);
-            imgElement.parentElement.style.width = label === window.siyuan.languages.default ? "" : `calc(${label} - 8px)`;
+            imgElement.parentElement.style.width = label === siyuanI18n.default ? "" : `calc(${label} - 8px)`;
             imgElement.style.height = "";
             updateTransaction(protyle, id, nodeElement.outerHTML, html);
             focusBlock(nodeElement);
@@ -1117,12 +1118,12 @@ const genImageWidthMenu = (label: string, imgElement: HTMLElement, protyle: IPro
 
 const genImageHeightMenu = (label: string, imgElement: HTMLElement, protyle: IProtyle, id: string, nodeElement: HTMLElement, html: string) => {
     return {
-        id: label === window.siyuan.languages.default ? "default" : "width_" + label,
+        id: label === siyuanI18n.default ? "default" : "width_" + label,
         iconHTML: "",
         label,
         click() {
             nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-            imgElement.style.height = label === window.siyuan.languages.default ? "" : parseInt(label) + "vh";
+            imgElement.style.height = label === siyuanI18n.default ? "" : parseInt(label) + "vh";
             img3115(imgElement.parentElement.parentElement);
             imgElement.parentElement.style.width = "";
             updateTransaction(protyle, id, nodeElement.outerHTML, html);
@@ -1139,7 +1140,7 @@ export const iframeMenu = (protyle: IProtyle, nodeElement: Element) => {
         id: "asset",
         iconHTML: "",
         type: "readonly",
-        label: `<textarea spellcheck="false" rows="1" class="b3-text-field fn__block" placeholder="${window.siyuan.languages.link}" style="margin: 4px 0">${iframeElement.getAttribute("src") || ""}</textarea>`,
+        label: `<textarea spellcheck="false" rows="1" class="b3-text-field fn__block" placeholder="${siyuanI18n.link}" style="margin: 4px 0">${iframeElement.getAttribute("src") || ""}</textarea>`,
         bind(element) {
             element.style.maxWidth = "none";
             element.querySelector("textarea").addEventListener("change", (event) => {
@@ -1210,7 +1211,7 @@ export const videoMenu = (protyle: IProtyle, nodeElement: Element, type: string)
         id: "asset",
         iconHTML: "",
         type: "readonly",
-        label: `<textarea spellcheck="false" rows="1" style="margin: 4px 0" class="b3-text-field fn__block" placeholder="${window.siyuan.languages.link}">${videoElement.getAttribute("src")}</textarea>`,
+        label: `<textarea spellcheck="false" rows="1" style="margin: 4px 0" class="b3-text-field fn__block" placeholder="${siyuanI18n.link}">${videoElement.getAttribute("src")}</textarea>`,
         bind(element) {
             element.style.maxWidth = "none";
             element.querySelector("textarea").addEventListener("change", (event) => {
@@ -1228,7 +1229,7 @@ export const videoMenu = (protyle: IProtyle, nodeElement: Element, type: string)
         });
         subMenus.push({
             id: "rename",
-            label: window.siyuan.languages.rename,
+            label: siyuanI18n.rename,
             icon: "iconEdit",
             click() {
                 renameAsset(src);
@@ -1238,7 +1239,7 @@ export const videoMenu = (protyle: IProtyle, nodeElement: Element, type: string)
     if (src) {
         subMenus.push({
             id: "openBy",
-            label: window.siyuan.languages.openBy,
+            label: siyuanI18n.openBy,
             icon: "iconOpen",
             submenu: openMenu(protyle.app, src, true, false) as IMenu[]
         });
@@ -1255,7 +1256,7 @@ export const tableMenu = (protyle: IProtyle, nodeElement: Element, cellElement: 
     if (cellElement.rowSpan > 1 || cellElement.colSpan > 1) {
         otherMenus.push({
             id: "cancelMerged",
-            label: window.siyuan.languages.cancelMerged,
+            label: siyuanI18n.cancelMerged,
             click: () => {
                 const oldHTML = nodeElement.outerHTML;
                 let rowSpan = cellElement.rowSpan;
@@ -1306,7 +1307,7 @@ export const tableMenu = (protyle: IProtyle, nodeElement: Element, cellElement: 
     if (thMatchElement.style.width || thMatchElement.style.minWidth !== "60px") {
         otherMenus.push({
             id: "useDefaultWidth",
-            label: window.siyuan.languages.useDefaultWidth,
+            label: siyuanI18n.useDefaultWidth,
             click: () => {
                 const html = nodeElement.outerHTML;
                 thMatchElement.style.width = "";
@@ -1319,7 +1320,7 @@ export const tableMenu = (protyle: IProtyle, nodeElement: Element, cellElement: 
     otherMenus.push({
         id: isPinHead ? "unpinTableHead" : "pinTableHead",
         icon: isPinHead ? "iconUnpin" : "iconPin",
-        label: isPinHead ? window.siyuan.languages.unpinTableHead : window.siyuan.languages.pinTableHead,
+        label: isPinHead ? siyuanI18n.unpinTableHead : siyuanI18n.pinTableHead,
         click: () => {
             const html = nodeElement.outerHTML;
             if (isPinHead) {
@@ -1335,7 +1336,7 @@ export const tableMenu = (protyle: IProtyle, nodeElement: Element, cellElement: 
         id: "alignLeft",
         icon: "iconAlignLeft",
         accelerator: window.siyuan.config.keymap.editor.general.alignLeft.custom,
-        label: window.siyuan.languages.alignLeft,
+        label: siyuanI18n.alignLeft,
         click: () => {
             setTableAlign(protyle, [cellElement], nodeElement, "left", range);
         }
@@ -1343,7 +1344,7 @@ export const tableMenu = (protyle: IProtyle, nodeElement: Element, cellElement: 
     otherMenus.push({
         id: "alignCenter",
         icon: "iconAlignCenter",
-        label: window.siyuan.languages.alignCenter,
+        label: siyuanI18n.alignCenter,
         accelerator: window.siyuan.config.keymap.editor.general.alignCenter.custom,
         click: () => {
             setTableAlign(protyle, [cellElement], nodeElement, "center", range);
@@ -1352,7 +1353,7 @@ export const tableMenu = (protyle: IProtyle, nodeElement: Element, cellElement: 
     otherMenus.push({
         id: "alignRight",
         icon: "iconAlignRight",
-        label: window.siyuan.languages.alignRight,
+        label: siyuanI18n.alignRight,
         accelerator: window.siyuan.config.keymap.editor.general.alignRight.custom,
         click: () => {
             setTableAlign(protyle, [cellElement], nodeElement, "right", range);
@@ -1361,7 +1362,7 @@ export const tableMenu = (protyle: IProtyle, nodeElement: Element, cellElement: 
     otherMenus.push({
         id: "useDefaultAlign",
         icon: "",
-        label: window.siyuan.languages.useDefaultAlign,
+        label: siyuanI18n.useDefaultAlign,
         click: () => {
             setTableAlign(protyle, [cellElement], nodeElement, "", range);
         }
@@ -1447,7 +1448,7 @@ export const tableMenu = (protyle: IProtyle, nodeElement: Element, cellElement: 
     insertMenus.push({
         id: "insertRowAbove",
         icon: "iconBefore",
-        label: window.siyuan.languages.insertRowAbove,
+        label: siyuanI18n.insertRowAbove,
         accelerator: window.siyuan.config.keymap.editor.table.insertRowAbove.custom,
         click: () => {
             insertRowAbove(protyle, range, cellElement, nodeElement);
@@ -1457,7 +1458,7 @@ export const tableMenu = (protyle: IProtyle, nodeElement: Element, cellElement: 
         insertMenus.push({
             id: "insertRowBelow",
             icon: "iconAfter",
-            label: window.siyuan.languages.insertRowBelow,
+            label: siyuanI18n.insertRowBelow,
             accelerator: window.siyuan.config.keymap.editor.table.insertRowBelow.custom,
             click: () => {
                 insertRow(protyle, range, cellElement, nodeElement);
@@ -1468,7 +1469,7 @@ export const tableMenu = (protyle: IProtyle, nodeElement: Element, cellElement: 
         insertMenus.push({
             id: "insertColumnLeft",
             icon: "iconInsertLeft",
-            label: window.siyuan.languages.insertColumnLeft,
+            label: siyuanI18n.insertColumnLeft,
             accelerator: window.siyuan.config.keymap.editor.table.insertColumnLeft.custom,
             click: () => {
                 insertColumn(protyle, nodeElement, cellElement, "beforebegin", range);
@@ -1479,7 +1480,7 @@ export const tableMenu = (protyle: IProtyle, nodeElement: Element, cellElement: 
         insertMenus.push({
             id: "insertColumnRight",
             icon: "iconInsertRight",
-            label: window.siyuan.languages.insertColumnRight,
+            label: siyuanI18n.insertColumnRight,
             accelerator: window.siyuan.config.keymap.editor.table.insertColumnRight.custom,
             click: () => {
                 insertColumn(protyle, nodeElement, cellElement, "afterend", range);
@@ -1506,7 +1507,7 @@ export const tableMenu = (protyle: IProtyle, nodeElement: Element, cellElement: 
         other2Menus.push({
             id: "moveToUp",
             icon: "iconUp",
-            label: window.siyuan.languages.moveToUp,
+            label: siyuanI18n.moveToUp,
             accelerator: window.siyuan.config.keymap.editor.table.moveToUp.custom,
             click: () => {
                 moveRowToUp(protyle, range, cellElement, nodeElement);
@@ -1518,7 +1519,7 @@ export const tableMenu = (protyle: IProtyle, nodeElement: Element, cellElement: 
         other2Menus.push({
             id: "moveToDown",
             icon: "iconDown",
-            label: window.siyuan.languages.moveToDown,
+            label: siyuanI18n.moveToDown,
             accelerator: window.siyuan.config.keymap.editor.table.moveToDown.custom,
             click: () => {
                 moveRowToDown(protyle, range, cellElement, nodeElement);
@@ -1529,7 +1530,7 @@ export const tableMenu = (protyle: IProtyle, nodeElement: Element, cellElement: 
         other2Menus.push({
             id: "moveToLeft",
             icon: "iconLeft",
-            label: window.siyuan.languages.moveToLeft,
+            label: siyuanI18n.moveToLeft,
             accelerator: window.siyuan.config.keymap.editor.table.moveToLeft.custom,
             click: () => {
                 moveColumnToLeft(protyle, range, cellElement, nodeElement);
@@ -1540,7 +1541,7 @@ export const tableMenu = (protyle: IProtyle, nodeElement: Element, cellElement: 
         other2Menus.push({
             id: "moveToRight",
             icon: "iconRight",
-            label: window.siyuan.languages.moveToRight,
+            label: siyuanI18n.moveToRight,
             accelerator: window.siyuan.config.keymap.editor.table.moveToRight.custom,
             click: () => {
                 moveColumnToRight(protyle, range, cellElement, nodeElement);
@@ -1560,7 +1561,7 @@ export const tableMenu = (protyle: IProtyle, nodeElement: Element, cellElement: 
         removeMenus.push({
             id: "deleteRow",
             icon: "iconDeleteRow",
-            label: window.siyuan.languages["delete-row"],
+            label: siyuanI18n["delete-row"],
             accelerator: window.siyuan.config.keymap.editor.table["delete-row"].custom,
             click: () => {
                 deleteRow(protyle, range, cellElement, nodeElement);
@@ -1571,7 +1572,7 @@ export const tableMenu = (protyle: IProtyle, nodeElement: Element, cellElement: 
         removeMenus.push({
             id: "deleteColumn",
             icon: "iconDeleteColumn",
-            label: window.siyuan.languages["delete-column"],
+            label: siyuanI18n["delete-column"],
             accelerator: window.siyuan.config.keymap.editor.table["delete-column"].custom,
             click: () => {
                 deleteColumn(protyle, range, nodeElement, cellElement);

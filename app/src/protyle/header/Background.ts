@@ -18,6 +18,7 @@ import {previewImages} from "../preview/image";
 import {Menu} from "../../plugin/Menu";
 import {escapeHtml} from "../../util/escape";
 import { bgs } from "../../util/css/bgs";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export class Background {
     public element: HTMLElement;
@@ -34,17 +35,17 @@ export class Background {
         this.element.innerHTML = `<div class="protyle-background__img">
     <img src="${this.transparentData}">
     <div class="protyle-icons">
-        <span class="protyle-icon protyle-icon--first" style="position: relative;overflow: hidden"><input aria-label="${window.siyuan.languages.upload}" class="ariaLabel b3-form__upload" type="file"><svg><use xlink:href="#iconUpload"></use></svg></span>
-        <span class="protyle-icon ariaLabel" data-type="link" aria-label="${window.siyuan.languages.link}"><svg><use xlink:href="#iconLink"></use></svg></span>
-        <span class="protyle-icon ariaLabel" data-type="asset" aria-label="${window.siyuan.languages.assets}"><svg><use xlink:href="#iconImage"></use></svg></span>
-        <span class="protyle-icon ariaLabel" data-type="show-random" aria-label="${window.siyuan.languages.builtIn}"><svg><use xlink:href="#iconRefresh"></use></svg></span>
-        <span class="protyle-icon ariaLabel fn__none" data-type="position" aria-label="${window.siyuan.languages.dragPosition}"><svg><use xlink:href="#iconMove"></use></svg></span>
-        <span class="protyle-icon protyle-icon--last ariaLabel" data-type="remove" aria-label="${window.siyuan.languages.remove}"><svg><use xlink:href="#iconTrashcan"></use></svg></span>
+        <span class="protyle-icon protyle-icon--first" style="position: relative;overflow: hidden"><input aria-label="${siyuanI18n.upload}" class="ariaLabel b3-form__upload" type="file"><svg><use xlink:href="#iconUpload"></use></svg></span>
+        <span class="protyle-icon ariaLabel" data-type="link" aria-label="${siyuanI18n.link}"><svg><use xlink:href="#iconLink"></use></svg></span>
+        <span class="protyle-icon ariaLabel" data-type="asset" aria-label="${siyuanI18n.assets}"><svg><use xlink:href="#iconImage"></use></svg></span>
+        <span class="protyle-icon ariaLabel" data-type="show-random" aria-label="${siyuanI18n.builtIn}"><svg><use xlink:href="#iconRefresh"></use></svg></span>
+        <span class="protyle-icon ariaLabel fn__none" data-type="position" aria-label="${siyuanI18n.dragPosition}"><svg><use xlink:href="#iconMove"></use></svg></span>
+        <span class="protyle-icon protyle-icon--last ariaLabel" data-type="remove" aria-label="${siyuanI18n.remove}"><svg><use xlink:href="#iconTrashcan"></use></svg></span>
     </div>
-    <div class="protyle-icons fn__none"><span class="protyle-icon protyle-icon--text">${window.siyuan.languages.dragPosition}</span></div>
+    <div class="protyle-icons fn__none"><span class="protyle-icon protyle-icon--text">${siyuanI18n.dragPosition}</span></div>
     <div class="protyle-icons fn__none" style="opacity: .86;">
-        <span class="protyle-icon protyle-icon--first" data-type="cancel">${window.siyuan.languages.cancel}</span>
-        <span class="protyle-icon protyle-icon--last" data-type="confirm">${window.siyuan.languages.confirm}</span>
+        <span class="protyle-icon protyle-icon--first" data-type="cancel">${siyuanI18n.cancel}</span>
+        <span class="protyle-icon protyle-icon--last" data-type="confirm">${siyuanI18n.confirm}</span>
     </div>
 </div>
 <div class="protyle-background__ia">
@@ -53,15 +54,15 @@ export class Background {
     <div class="protyle-background__action">
         <button class="b3-button b3-button--cancel" data-menu="true" data-type="tag">
             <svg><use xlink:href="#iconTags"></use></svg>
-            ${window.siyuan.languages.addTag}
+            ${siyuanI18n.addTag}
         </button>
         <button class="b3-button b3-button--cancel" data-type="icon">
             <svg><use xlink:href="#iconEmoji"></use></svg>
-            ${window.siyuan.languages.addIcon}
+            ${siyuanI18n.addIcon}
         </button>
         <button class="b3-button b3-button--cancel" data-type="random">
             <svg><use xlink:href="#iconImage"></use></svg>
-            ${window.siyuan.languages.titleBg}
+            ${siyuanI18n.titleBg}
         </button>
     </div>
 </div>`;
@@ -190,7 +191,7 @@ export class Background {
                         html += `<div data-index="${index}" style="height: 128px;${item}" class="b3-card b3-card--wrap"></div>`;
                     });
                     const dialog = new Dialog({
-                        title: window.siyuan.languages.builtIn,
+                        title: siyuanI18n.builtIn,
                         content: `<div class="b3-cards">${html}</div>`,
                         width: isMobile() ? "92vw" : "912px",
                         height: isMobile() ? "80vh" : "70vh",
@@ -282,14 +283,14 @@ export class Background {
                     break;
                 } else if (type === "link" && !protyle.disabled) {
                     const dialog = new Dialog({
-                        title: window.siyuan.languages.link,
+                        title: siyuanI18n.link,
                         width: isMobile() ? "92vw" : "520px",
                         content: `<div class="b3-dialog__content">
         <input class="b3-text-field fn__block" value="${this.imgElement.src.startsWith("data:") ? "" : this.imgElement.getAttribute("src")}">
 </div>
 <div class="b3-dialog__action">
-    <button class="b3-button b3-button--cancel">${window.siyuan.languages.cancel}</button><div class="fn__space"></div>
-    <button class="b3-button b3-button--text">${window.siyuan.languages.confirm}</button>
+    <button class="b3-button b3-button--cancel">${siyuanI18n.cancel}</button><div class="fn__space"></div>
+    <button class="b3-button b3-button--text">${siyuanI18n.confirm}</button>
 </div>`,
                     });
                     dialog.element.setAttribute("data-key", Constants.DIALOG_BACKGROUNDLINK);
@@ -376,7 +377,7 @@ export class Background {
             });
             this.tagsElement.innerHTML = `${html}
 <div class="protyle-background__action fn__flex-center">
-    <button class="b3-button b3-button--cancel" style="margin-bottom: 8px" data-menu="true" data-type="tag"><svg><use xlink:href="#iconAdd"></use></svg>${window.siyuan.languages.addTag}</button>
+    <button class="b3-button b3-button--cancel" style="margin-bottom: 8px" data-menu="true" data-type="tag"><svg><use xlink:href="#iconAdd"></use></svg>${siyuanI18n.addTag}</button>
 </div>`;
             this.tagsElement.classList.remove("fn__none");
             this.actionElements[0].classList.add("fn__none");
@@ -435,7 +436,7 @@ export class Background {
             iconHTML: "",
             type: "empty",
             label: `<div class="fn__flex-column b3-menu__filter">
-    <input class="b3-text-field fn__flex-shrink" placeholder="${window.siyuan.languages.tag}"/>
+    <input class="b3-text-field fn__flex-shrink" placeholder="${siyuanI18n.tag}"/>
     <div class="fn__hr"></div>
     <div class="b3-list fn__flex-1 b3-list--background">
         <img style="margin: 0 auto;display: block;width: 64px;height: 64px" src="/stage/loading-pure.svg">
@@ -493,7 +494,7 @@ export class Background {
                             }
                         });
                         if (!hasKey && response.data.k) {
-                            searchHTML = `<div data-type="new" class="b3-list-item b3-list-item--narrow${searchHTML ? "" : " b3-list-item--focus"}"><div class="fn__flex-1">${window.siyuan.languages.new} <mark>${escapeHtml(response.data.k)}</mark></div></div>` + searchHTML;
+                            searchHTML = `<div data-type="new" class="b3-list-item b3-list-item--narrow${searchHTML ? "" : " b3-list-item--focus"}"><div class="fn__flex-1">${siyuanI18n.new} <mark>${escapeHtml(response.data.k)}</mark></div></div>` + searchHTML;
                         }
                         listElement.innerHTML = searchHTML;
                     });

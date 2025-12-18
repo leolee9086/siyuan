@@ -3,6 +3,7 @@ import {fetchPost} from "../../util/fetch";
 import {reloadProtyle} from "../../protyle/util/reload";
 import {setInlineStyle} from "../../util/assets";
 import {confirmDialog} from "../../dialog/confirmDialog";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 const setEditor = (modelMainElement: Element) => {
     let dynamicLoadBlocks = parseInt((modelMainElement.querySelector("#dynamicLoadBlocks") as HTMLInputElement).value);
@@ -66,203 +67,203 @@ export const initEditor = () => {
         fontSizeHTML += `<option ${window.siyuan.config.editor.fontSize === i ? "selected" : ""} value="${i}">${i}</option>`;
     }
     openModel({
-        title: window.siyuan.languages.editor,
+        title: siyuanI18n.editor,
         icon: "iconEdit",
         html: `<label class="fn__flex b3-label">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.justify}
-        <div class="b3-label__text">${window.siyuan.languages.justifyTip}</div>
+        ${siyuanI18n.justify}
+        <div class="b3-label__text">${siyuanI18n.justifyTip}</div>
     </div>
     <span class="fn__space"></span>
     <input class="b3-switch fn__flex-center" id="justify" type="checkbox"${window.siyuan.config.editor.justify ? " checked" : ""}/>
 </label>
 <label class="fn__flex b3-label">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.rtl}
-        <div class="b3-label__text">${window.siyuan.languages.rtlTip}</div>
+        ${siyuanI18n.rtl}
+        <div class="b3-label__text">${siyuanI18n.rtlTip}</div>
     </div>
     <span class="fn__space"></span>
     <input class="b3-switch fn__flex-center" id="rtl" type="checkbox"${window.siyuan.config.editor.rtl ? " checked" : ""}/>
 </label>
 <label class="fn__flex b3-label">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.editReadonly}
-        <div class="b3-label__text">${window.siyuan.languages.editReadonlyTip}</div>
+        ${siyuanI18n.editReadonly}
+        <div class="b3-label__text">${siyuanI18n.editReadonlyTip}</div>
     </div>
     <span class="fn__space"></span>
     <input class="b3-switch fn__flex-center" id="readOnly" type="checkbox"${window.siyuan.config.editor.readOnly ? " checked" : ""}/>
 </label>
 <label class="fn__flex b3-label">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.md12}
-        <div class="b3-label__text">${window.siyuan.languages.md16}</div>
+        ${siyuanI18n.md12}
+        <div class="b3-label__text">${siyuanI18n.md16}</div>
     </div>
     <span class="fn__space"></span>
     <input class="b3-switch fn__flex-center" id="displayBookmarkIcon" type="checkbox"${window.siyuan.config.editor.displayBookmarkIcon ? " checked" : ""}/>
 </label>
 <label class="fn__flex b3-label">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.md7}
-        <div class="b3-label__text">${window.siyuan.languages.md8}</div>
+        ${siyuanI18n.md7}
+        <div class="b3-label__text">${siyuanI18n.md8}</div>
     </div>
     <span class="fn__space"></span>
     <input class="b3-switch fn__flex-center" id="displayNetImgMark" type="checkbox"${window.siyuan.config.editor.displayNetImgMark ? " checked" : ""}/>
 </label>
 <label class="fn__flex b3-label">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.embedBlockBreadcrumb}
-        <div class="b3-label__text">${window.siyuan.languages.embedBlockBreadcrumbTip}</div>
+        ${siyuanI18n.embedBlockBreadcrumb}
+        <div class="b3-label__text">${siyuanI18n.embedBlockBreadcrumbTip}</div>
     </div>
     <span class="fn__space"></span>
     <input class="b3-switch fn__flex-center" id="embedBlockBreadcrumb" type="checkbox"${window.siyuan.config.editor.embedBlockBreadcrumb ? " checked" : ""}/>
 </label>
 <div class="b3-label">
-    ${window.siyuan.languages.headingEmbedMode}
+    ${siyuanI18n.headingEmbedMode}
     <span class="fn__hr"></span>
     <select class="b3-select fn__block" id="headingEmbedMode">
-      <option value="0" ${window.siyuan.config.editor.headingEmbedMode === 0 ? "selected" : ""}>${window.siyuan.languages.showHeadingWithBlocks}</option>
-      <option value="1" ${window.siyuan.config.editor.headingEmbedMode === 1 ? "selected" : ""}>${window.siyuan.languages.showHeadingOnlyTitle}</option>
-      <option value="2" ${window.siyuan.config.editor.headingEmbedMode === 2 ? "selected" : ""}>${window.siyuan.languages.showHeadingOnlyBlocks}</option>
+      <option value="0" ${window.siyuan.config.editor.headingEmbedMode === 0 ? "selected" : ""}>${siyuanI18n.showHeadingWithBlocks}</option>
+      <option value="1" ${window.siyuan.config.editor.headingEmbedMode === 1 ? "selected" : ""}>${siyuanI18n.showHeadingOnlyTitle}</option>
+      <option value="2" ${window.siyuan.config.editor.headingEmbedMode === 2 ? "selected" : ""}>${siyuanI18n.showHeadingOnlyBlocks}</option>
     </select>
-    <div class="b3-label__text">${window.siyuan.languages.headingEmbedModeTip}</div>
+    <div class="b3-label__text">${siyuanI18n.headingEmbedModeTip}</div>
 </div>
 <label class="fn__flex b3-label">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.outlineOutdent}
-        <div class="b3-label__text">${window.siyuan.languages.outlineOutdentTip}</div>
+        ${siyuanI18n.outlineOutdent}
+        <div class="b3-label__text">${siyuanI18n.outlineOutdentTip}</div>
     </div>
     <span class="fn__space"></span>
     <input class="b3-switch fn__flex-center" id="listLogicalOutdent" type="checkbox"${window.siyuan.config.editor.listLogicalOutdent ? " checked" : ""}/>
 </label>
 <label class="fn__flex b3-label">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.listItemDotNumberClickFocus}
-        <div class="b3-label__text">${window.siyuan.languages.listItemDotNumberClickFocusTip}</div>
+        ${siyuanI18n.listItemDotNumberClickFocus}
+        <div class="b3-label__text">${siyuanI18n.listItemDotNumberClickFocusTip}</div>
     </div>
     <span class="fn__space"></span>
     <input class="b3-switch fn__flex-center" id="listItemDotNumberClickFocus" type="checkbox"${window.siyuan.config.editor.listItemDotNumberClickFocus ? " checked" : ""}/>
 </label>
 <label class="fn__flex b3-label">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.spellcheck}
-        <div class="b3-label__text">${window.siyuan.languages.spellcheckTip}</div>
+        ${siyuanI18n.spellcheck}
+        <div class="b3-label__text">${siyuanI18n.spellcheckTip}</div>
     </div>
     <span class="fn__space"></span>
     <input class="b3-switch fn__flex-center" id="spellcheck" type="checkbox"${window.siyuan.config.editor.spellcheck ? " checked" : ""}/>
 </label>
 <label class="fn__flex b3-label">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.onlySearchForDoc}
-        <div class="b3-label__text">${window.siyuan.languages.onlySearchForDocTip}</div>
+        ${siyuanI18n.onlySearchForDoc}
+        <div class="b3-label__text">${siyuanI18n.onlySearchForDocTip}</div>
     </div>
     <span class="fn__space"></span>
     <input class="b3-switch fn__flex-center" id="onlySearchForDoc" type="checkbox"${window.siyuan.config.editor.spellcheck ? " checked" : ""}/>
 </label>
 <label class="fn__flex b3-label">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.md31}
-        <div class="b3-label__text">${window.siyuan.languages.md32}</div>
+        ${siyuanI18n.md31}
+        <div class="b3-label__text">${siyuanI18n.md32}</div>
     </div>
     <span class="fn__space"></span>
     <input class="b3-switch fn__flex-center" id="codeLineWrap" type="checkbox"${window.siyuan.config.editor.codeLineWrap ? " checked" : ""}/>
 </label>
 <label class="fn__flex b3-label">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.md2}
-        <div class="b3-label__text">${window.siyuan.languages.md3}</div>
+        ${siyuanI18n.md2}
+        <div class="b3-label__text">${siyuanI18n.md3}</div>
     </div>
     <span class="fn__space"></span>
     <input class="b3-switch fn__flex-center" id="codeLigatures" type="checkbox"${window.siyuan.config.editor.codeLigatures ? " checked" : ""}/>
 </label>
 <label class="fn__flex b3-label">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.md27}
-        <div class="b3-label__text">${window.siyuan.languages.md28}</div>
+        ${siyuanI18n.md27}
+        <div class="b3-label__text">${siyuanI18n.md28}</div>
     </div>
     <span class="fn__space"></span>
     <input class="b3-switch fn__flex-center" id="codeSyntaxHighlightLineNum" type="checkbox"${window.siyuan.config.editor.codeSyntaxHighlightLineNum ? " checked" : ""}/>
 </label>
 <label class="fn__flex b3-label">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.md33}
-        <div class="b3-label__text">${window.siyuan.languages.md34}</div>
+        ${siyuanI18n.md33}
+        <div class="b3-label__text">${siyuanI18n.md34}</div>
     </div>
     <span class="fn__space"></span>
     <input class="b3-switch fn__flex-center" id="virtualBlockRef" type="checkbox"${window.siyuan.config.editor.virtualBlockRef ? " checked" : ""}/>
 </label>
 <div class="b3-label">
-    ${window.siyuan.languages.md9}
+    ${siyuanI18n.md9}
     <span class="fn__hr"></span>
     <textarea class="b3-text-field fn__block" id="virtualBlockRefInclude">${window.siyuan.config.editor.virtualBlockRefInclude}</textarea>
-    <div class="b3-label__text">${window.siyuan.languages.md36}</div>
+    <div class="b3-label__text">${siyuanI18n.md36}</div>
 </div>
 <div class="b3-label">
-    ${window.siyuan.languages.md35}
+    ${siyuanI18n.md35}
     <span class="fn__hr"></span>
     <textarea class="b3-text-field fn__block" id="virtualBlockRefExclude">${window.siyuan.config.editor.virtualBlockRefExclude}</textarea>
-    <div class="b3-label__text">${window.siyuan.languages.md36}</div>
-    <div class="b3-label__text">${window.siyuan.languages.md41}</div>
+    <div class="b3-label__text">${siyuanI18n.md36}</div>
+    <div class="b3-label__text">${siyuanI18n.md41}</div>
 </div>
 <div class="b3-label">
-    ${window.siyuan.languages.md39}
+    ${siyuanI18n.md39}
     <span class="fn__hr"></span>
     <input class="b3-text-field fn__block" id="plantUMLServePath" value="${window.siyuan.config.editor.plantUMLServePath}"/>
-    <div class="b3-label__text">${window.siyuan.languages.md40}</div>
+    <div class="b3-label__text">${siyuanI18n.md40}</div>
 </div>
 <div class="b3-label">
-    ${window.siyuan.languages.dynamicLoadBlocks}
+    ${siyuanI18n.dynamicLoadBlocks}
     <span class="fn__hr"></span>
     <input class="b3-text-field fn__block" id="dynamicLoadBlocks" type="number" min="48" value="${window.siyuan.config.editor.dynamicLoadBlocks}"/>
-    <div class="b3-label__text">${window.siyuan.languages.dynamicLoadBlocksTip}</div>
+    <div class="b3-label__text">${siyuanI18n.dynamicLoadBlocksTip}</div>
 </div>
 <div class="b3-label">
-    ${window.siyuan.languages.md37}
+    ${siyuanI18n.md37}
     <span class="fn__hr"></span>
     <input class="b3-text-field fn__block" id="blockRefDynamicAnchorTextMaxLen" type="number" min="1" max="5120" value="${window.siyuan.config.editor.blockRefDynamicAnchorTextMaxLen}"/>
-    <div class="b3-label__text">${window.siyuan.languages.md38}</div>
+    <div class="b3-label__text">${siyuanI18n.md38}</div>
 </div>
 <div class="b3-label">
-    ${window.siyuan.languages.backlinkExpand}
+    ${siyuanI18n.backlinkExpand}
     <span class="fn__hr"></span>
     <input class="b3-text-field fn__block" id="backlinkExpandCount" type="number" min="0" max="512" value="${window.siyuan.config.editor.backlinkExpandCount}"/>
-    <div class="b3-label__text">${window.siyuan.languages.backlinkExpandTip}</div>
+    <div class="b3-label__text">${siyuanI18n.backlinkExpandTip}</div>
 </div>
 <div class="b3-label">
-    ${window.siyuan.languages.backmentionExpand}
+    ${siyuanI18n.backmentionExpand}
     <span class="fn__hr"></span>
     <input class="b3-text-field fn__block" id="backmentionExpandCount" type="number" min="-1" max="512" value="${window.siyuan.config.editor.backmentionExpandCount}"/>
-    <div class="b3-label__text">${window.siyuan.languages.backmentionExpandTip}</div>
+    <div class="b3-label__text">${siyuanI18n.backmentionExpandTip}</div>
 </div>
 <label class="fn__flex b3-label">
     <div class="fn__flex-1">
-        ${window.siyuan.languages.backlinkContainChildren}
-        <div class="b3-label__text">${window.siyuan.languages.backlinkContainChildrenTip}</div>
+        ${siyuanI18n.backlinkContainChildren}
+        <div class="b3-label__text">${siyuanI18n.backlinkContainChildrenTip}</div>
     </div>
     <span class="fn__space"></span>
     <input class="b3-switch fn__flex-center" id="backlinkContainChildren" type="checkbox"${window.siyuan.config.editor.backlinkContainChildren ? " checked" : ""}/>
 </label>
 <div class="b3-label">
-    ${window.siyuan.languages.generateHistory}
+    ${siyuanI18n.generateHistory}
     <span class="fn__hr"></span>
     <input class="b3-text-field fn__block" id="generateHistoryInterval" type="number" min="0" max="120" value="${window.siyuan.config.editor.generateHistoryInterval}"/>
-    <div class="b3-label__text">${window.siyuan.languages.generateHistoryInterval}</div>
+    <div class="b3-label__text">${siyuanI18n.generateHistoryInterval}</div>
 </div>
 <div class="b3-label">
-    ${window.siyuan.languages.historyRetentionDays} 
-    <a href="javascript:void(0)" id="clearHistory">${window.siyuan.languages.clearHistory}</a>
+    ${siyuanI18n.historyRetentionDays} 
+    <a href="javascript:void(0)" id="clearHistory">${siyuanI18n.clearHistory}</a>
     <span class="fn__hr"></span>
     <input class="b3-text-field fn__block" id="historyRetentionDays" type="number" min="1" max="3650" value="${window.siyuan.config.editor.historyRetentionDays}"/>
-    <div class="b3-label__text">${window.siyuan.languages.historyRetentionDaysTip}</div>
+    <div class="b3-label__text">${siyuanI18n.historyRetentionDaysTip}</div>
 </div>
 <div class="b3-label">
-    ${window.siyuan.languages.fontSize} 
+    ${siyuanI18n.fontSize} 
     <span class="ft__on-surface">${window.siyuan.config.editor.fontSize}</span>
     <div class="fn__hr"></div>
     <select id="fontSize" class="b3-select fn__block">${fontSizeHTML}</select>
-    <div class="b3-label__text">${window.siyuan.languages.fontSizeTip}</div>
+    <div class="b3-label__text">${siyuanI18n.fontSizeTip}</div>
 </div>
 <div class="b3-label">
-    ${window.siyuan.languages.md29} 
+    ${siyuanI18n.md29} 
     <div class="fn__hr"></div>
     <select id="codeTabSpaces" class="b3-select fn__block">
         <option ${window.siyuan.config.editor.codeTabSpaces === 0 ? "selected" : ""} value="0">0</option>
@@ -271,89 +272,89 @@ export const initEditor = () => {
         <option ${window.siyuan.config.editor.codeTabSpaces === 6 ? "selected" : ""} value="6">6</option>
         <option ${window.siyuan.config.editor.codeTabSpaces === 8 ? "selected" : ""} value="8">8</option>
     </select>
-    <div class="b3-label__text">${window.siyuan.languages.md30}</div>
+    <div class="b3-label__text">${siyuanI18n.md30}</div>
 </div>
 <div class="b3-label">
-    ${window.siyuan.languages.katexMacros}
+    ${siyuanI18n.katexMacros}
     <div class="fn__hr"></div>
     <textarea class="b3-text-field fn__block" id="katexMacros">${window.siyuan.config.editor.katexMacros}</textarea>
-    <div class="b3-label__text">${window.siyuan.languages.katexMacrosTip}</div>
+    <div class="b3-label__text">${siyuanI18n.katexMacrosTip}</div>
 </div>
 <label class="fn__flex b3-label">
     <div class="fn__flex-1">
-       ${window.siyuan.languages.allowHTMLBLockScript}
-        <div class="b3-label__text">${window.siyuan.languages.allowHTMLBLockScriptTip}</div>
+       ${siyuanI18n.allowHTMLBLockScript}
+        <div class="b3-label__text">${siyuanI18n.allowHTMLBLockScriptTip}</div>
     </div>
     <span class="fn__space"></span>
     <input class="b3-switch fn__flex-center" id="allowHTMLBLockScript" type="checkbox"${window.siyuan.config.editor.allowHTMLBLockScript ? " checked" : ""}/>
 </label>
 <label class="fn__flex b3-label">
     <div class="fn__flex-1">
-       ${window.siyuan.languages.editorMarkdownInlineAsterisk}
-        <div class="b3-label__text">${window.siyuan.languages.editorMarkdownInlineAsteriskTip}</div>
+       ${siyuanI18n.editorMarkdownInlineAsterisk}
+        <div class="b3-label__text">${siyuanI18n.editorMarkdownInlineAsteriskTip}</div>
     </div>
     <span class="fn__space"></span>
     <input class="b3-switch fn__flex-center" id="editorMarkdownInlineAsterisk" type="checkbox"${window.siyuan.config.editor.markdown.inlineAsterisk ? " checked" : ""}/>
 </label>
 <label class="fn__flex b3-label">
     <div class="fn__flex-1">
-       ${window.siyuan.languages.editorMarkdownInlineUnderscore}
-        <div class="b3-label__text">${window.siyuan.languages.editorMarkdownInlineUnderscoreTip}</div>
+       ${siyuanI18n.editorMarkdownInlineUnderscore}
+        <div class="b3-label__text">${siyuanI18n.editorMarkdownInlineUnderscoreTip}</div>
     </div>
     <span class="fn__space"></span>
     <input class="b3-switch fn__flex-center" id="editorMarkdownInlineUnderscore" type="checkbox"${window.siyuan.config.editor.markdown.inlineUnderscore ? " checked" : ""}/>
 </label>
 <label class="fn__flex b3-label">
     <div class="fn__flex-1">
-       ${window.siyuan.languages.editorMarkdownInlineSup}
-        <div class="b3-label__text">${window.siyuan.languages.editorMarkdownInlineSupTip}</div>
+       ${siyuanI18n.editorMarkdownInlineSup}
+        <div class="b3-label__text">${siyuanI18n.editorMarkdownInlineSupTip}</div>
     </div>
     <span class="fn__space"></span>
     <input class="b3-switch fn__flex-center" id="editorMarkdownInlineSup" type="checkbox"${window.siyuan.config.editor.markdown.inlineSup ? " checked" : ""}/>
 </label>
 <label class="fn__flex b3-label">
     <div class="fn__flex-1">
-       ${window.siyuan.languages.editorMarkdownInlineSub}
-        <div class="b3-label__text">${window.siyuan.languages.editorMarkdownInlineSubTip}</div>
+       ${siyuanI18n.editorMarkdownInlineSub}
+        <div class="b3-label__text">${siyuanI18n.editorMarkdownInlineSubTip}</div>
     </div>
     <span class="fn__space"></span>
     <input class="b3-switch fn__flex-center" id="editorMarkdownInlineSub" type="checkbox"${window.siyuan.config.editor.markdown.inlineSub ? " checked" : ""}/>
 </label>
 <label class="fn__flex b3-label">
     <div class="fn__flex-1">
-       ${window.siyuan.languages.editorMarkdownInlineTag}
-        <div class="b3-label__text">${window.siyuan.languages.editorMarkdownInlineTagTip}</div>
+       ${siyuanI18n.editorMarkdownInlineTag}
+        <div class="b3-label__text">${siyuanI18n.editorMarkdownInlineTagTip}</div>
     </div>
     <span class="fn__space"></span>
     <input class="b3-switch fn__flex-center" id="editorMarkdownInlineTag" type="checkbox"${window.siyuan.config.editor.markdown.inlineTag ? " checked" : ""}/>
 </label>
 <label class="fn__flex b3-label">
     <div class="fn__flex-1">
-       ${window.siyuan.languages.editorMarkdownInlineMath}
-        <div class="b3-label__text">${window.siyuan.languages.editorMarkdownInlineMathTip}</div>
+       ${siyuanI18n.editorMarkdownInlineMath}
+        <div class="b3-label__text">${siyuanI18n.editorMarkdownInlineMathTip}</div>
     </div>
     <span class="fn__space"></span>
     <input class="b3-switch fn__flex-center" id="editorMarkdownInlineMath" type="checkbox"${window.siyuan.config.editor.markdown.inlineMath ? " checked" : ""}/>
 </label>
 <label class="fn__flex b3-label">
     <div class="fn__flex-1">
-       ${window.siyuan.languages.editorMarkdownInlineStrikethrough}
-        <div class="b3-label__text">${window.siyuan.languages.editorMarkdownInlineStrikethroughTip}</div>
+       ${siyuanI18n.editorMarkdownInlineStrikethrough}
+        <div class="b3-label__text">${siyuanI18n.editorMarkdownInlineStrikethroughTip}</div>
     </div>
     <span class="fn__space"></span>
     <input class="b3-switch fn__flex-center" id="editorMarkdownInlineStrikethrough" type="checkbox"${window.siyuan.config.editor.markdown.inlineStrikethrough ? " checked" : ""}/>
 </label>
 <label class="fn__flex b3-label">
     <div class="fn__flex-1">
-       ${window.siyuan.languages.editorMarkdownInlineMark}
-        <div class="b3-label__text">${window.siyuan.languages.editorMarkdownInlineMarkTip}</div>
+       ${siyuanI18n.editorMarkdownInlineMark}
+        <div class="b3-label__text">${siyuanI18n.editorMarkdownInlineMarkTip}</div>
     </div>
     <span class="fn__space"></span>
     <input class="b3-switch fn__flex-center" id="editorMarkdownInlineMark" type="checkbox"${window.siyuan.config.editor.markdown.inlineMark ? " checked" : ""}/>
 </label>`,
         bindEvent(modelMainElement: HTMLElement) {
             modelMainElement.querySelector("#clearHistory").addEventListener("click", () => {
-                confirmDialog(window.siyuan.languages.clearHistory, window.siyuan.languages.confirmClearHistory, () => {
+                confirmDialog(siyuanI18n.clearHistory, siyuanI18n.confirmClearHistory, () => {
                     fetchPost("/api/history/clearWorkspaceHistory", {});
                 });
             });

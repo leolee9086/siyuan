@@ -5,6 +5,7 @@ import {unicode2Emoji} from "../../../../emoji";
 import {getColIconByType} from "../col";
 import {avContextmenu} from "../action";
 import {Constants} from "../../../../constants";
+import { siyuanI18n } from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const setGalleryCover = (options: {
     view: IAVGallery
@@ -19,7 +20,7 @@ export const setGalleryCover = (options: {
     menu.addItem({
         iconHTML: "",
         checked: options.view.coverFrom === 0,
-        label: window.siyuan.languages.calcOperatorNone,
+        label: siyuanI18n.calcOperatorNone,
         click() {
             transaction(options.protyle, [{
                 action: "setAttrViewCoverFrom",
@@ -33,13 +34,13 @@ export const setGalleryCover = (options: {
                 data: options.view.coverFrom
             }]);
             options.view.coverFrom = 0;
-            targetNameElement.textContent = window.siyuan.languages.calcOperatorNone;
+            targetNameElement.textContent = siyuanI18n.calcOperatorNone;
         }
     });
     menu.addItem({
         iconHTML: "",
         checked: options.view.coverFrom === 3,
-        label: window.siyuan.languages.contentBlock,
+        label: siyuanI18n.contentBlock,
         click() {
             transaction(options.protyle, [{
                 action: "setAttrViewCoverFrom",
@@ -53,13 +54,13 @@ export const setGalleryCover = (options: {
                 data: options.view.coverFrom
             }]);
             options.view.coverFrom = 3;
-            targetNameElement.textContent = window.siyuan.languages.contentBlock;
+            targetNameElement.textContent = siyuanI18n.contentBlock;
         }
     });
     menu.addItem({
         iconHTML: "",
         checked: options.view.coverFrom === 1,
-        label: window.siyuan.languages.contentImage,
+        label: siyuanI18n.contentImage,
         click() {
             transaction(options.protyle, [{
                 action: "setAttrViewCoverFrom",
@@ -73,7 +74,7 @@ export const setGalleryCover = (options: {
                 data: options.view.coverFrom
             }]);
             options.view.coverFrom = 1;
-            targetNameElement.textContent = window.siyuan.languages.contentImage;
+            targetNameElement.textContent = siyuanI18n.contentImage;
         }
     });
     let addedSeparator = false;
@@ -134,7 +135,7 @@ export const setGallerySize = (options: {
     menu.addItem({
         iconHTML: "",
         checked: options.view.cardSize === 0,
-        label: window.siyuan.languages.small,
+        label: siyuanI18n.small,
         click() {
             transaction(options.protyle, [{
                 action: "setAttrViewCardSize",
@@ -150,13 +151,13 @@ export const setGallerySize = (options: {
                 viewID
             }]);
             options.view.cardSize = 0;
-            targetNameElement.textContent = window.siyuan.languages.small;
+            targetNameElement.textContent = siyuanI18n.small;
         }
     });
     menu.addItem({
         iconHTML: "",
         checked: options.view.cardSize === 1,
-        label: window.siyuan.languages.medium,
+        label: siyuanI18n.medium,
         click() {
             transaction(options.protyle, [{
                 action: "setAttrViewCardSize",
@@ -172,13 +173,13 @@ export const setGallerySize = (options: {
                 viewID
             }]);
             options.view.cardSize = 1;
-            targetNameElement.textContent = window.siyuan.languages.medium;
+            targetNameElement.textContent = siyuanI18n.medium;
         }
     });
     menu.addItem({
         iconHTML: "",
         checked: options.view.cardSize === 2,
-        label: window.siyuan.languages.large,
+        label: siyuanI18n.large,
         click() {
             transaction(options.protyle, [{
                 action: "setAttrViewCardSize",
@@ -194,7 +195,7 @@ export const setGallerySize = (options: {
                 viewID
             }]);
             options.view.cardSize = 2;
-            targetNameElement.textContent = window.siyuan.languages.large;
+            targetNameElement.textContent = siyuanI18n.large;
         }
     });
     const rect = options.target.getBoundingClientRect();
@@ -280,7 +281,7 @@ export const editGalleryItem = (target: Element) => {
     if (itemElement) {
         const fieldsElement = itemElement.querySelector(".av__gallery-fields");
         if (fieldsElement) {
-            target.setAttribute("aria-label", window.siyuan.languages[fieldsElement.classList.contains("av__gallery-fields--edit") ? "displayEmptyFields" : "hideEmptyFields"]);
+            target.setAttribute("aria-label", siyuanI18n[fieldsElement.classList.contains("av__gallery-fields--edit") ? "displayEmptyFields" : "hideEmptyFields"]);
             fieldsElement.classList.toggle("av__gallery-fields--edit");
         }
     }

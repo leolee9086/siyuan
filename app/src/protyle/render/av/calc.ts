@@ -4,6 +4,7 @@ import {hasClosestBlock, hasClosestByClassName} from "../../util/hasClosest";
 import {fetchSyncPost} from "../../../util/fetch";
 import {getFieldsByData} from "./view";
 import {Constants} from "../../../constants";
+import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 const calcItem = (options: {
     menu: Menu,
@@ -435,64 +436,64 @@ export const getCalcValue = (column: IAVColumn) => {
     let value = "";
     switch (column.calc.operator) {
         case "Count all":
-            value = `<span>${resultCalc.formattedContent}</span><small>${window.siyuan.languages.calcResultCountAll}</small>`;
+            value = `<span>${resultCalc.formattedContent}</span><small>${siyuanI18n.calcResultCountAll}</small>`;
             break;
         case "Count values":
-            value = `<span>${resultCalc.formattedContent}</span><small>${window.siyuan.languages.calcResultCountValues}</small>`;
+            value = `<span>${resultCalc.formattedContent}</span><small>${siyuanI18n.calcResultCountValues}</small>`;
             break;
         case "Count unique values":
-            value = `<span>${resultCalc.formattedContent}</span><small>${window.siyuan.languages.calcResultCountUniqueValues}</small>`;
+            value = `<span>${resultCalc.formattedContent}</span><small>${siyuanI18n.calcResultCountUniqueValues}</small>`;
             break;
         case "Count empty":
-            value = `<span>${resultCalc.formattedContent}</span><small>${window.siyuan.languages.calcResultCountEmpty}</small>`;
+            value = `<span>${resultCalc.formattedContent}</span><small>${siyuanI18n.calcResultCountEmpty}</small>`;
             break;
         case "Count not empty":
-            value = `<span>${resultCalc.formattedContent}</span><small>${window.siyuan.languages.calcResultCountNotEmpty}</small>`;
+            value = `<span>${resultCalc.formattedContent}</span><small>${siyuanI18n.calcResultCountNotEmpty}</small>`;
             break;
         case "Percent empty":
-            value = `<span>${resultCalc.formattedContent}</span><small>${window.siyuan.languages.calcResultPercentEmpty}</small>`;
+            value = `<span>${resultCalc.formattedContent}</span><small>${siyuanI18n.calcResultPercentEmpty}</small>`;
             break;
         case "Percent not empty":
-            value = `<span>${resultCalc.formattedContent}</span><small>${window.siyuan.languages.calcResultPercentNotEmpty}</small>`;
+            value = `<span>${resultCalc.formattedContent}</span><small>${siyuanI18n.calcResultPercentNotEmpty}</small>`;
             break;
         case "Percent unique values":
-            value = `<span>${resultCalc.formattedContent}</span><small>${window.siyuan.languages.calcResultPercentUniqueValues}</small>`;
+            value = `<span>${resultCalc.formattedContent}</span><small>${siyuanI18n.calcResultPercentUniqueValues}</small>`;
             break;
         case "Sum":
-            value = `<span>${resultCalc.formattedContent}</span><small>${window.siyuan.languages.calcResultSum}</small>`;
+            value = `<span>${resultCalc.formattedContent}</span><small>${siyuanI18n.calcResultSum}</small>`;
             break;
         case  "Average":
-            value = `<span>${resultCalc.formattedContent}</span><small>${window.siyuan.languages.calcResultAverage}</small>`;
+            value = `<span>${resultCalc.formattedContent}</span><small>${siyuanI18n.calcResultAverage}</small>`;
             break;
         case  "Median":
-            value = `<span>${resultCalc.formattedContent}</span><small>${window.siyuan.languages.calcResultMedian}</small>`;
+            value = `<span>${resultCalc.formattedContent}</span><small>${siyuanI18n.calcResultMedian}</small>`;
             break;
         case  "Min":
-            value = `<span>${resultCalc.formattedContent}</span><small>${window.siyuan.languages.calcResultMin}</small>`;
+            value = `<span>${resultCalc.formattedContent}</span><small>${siyuanI18n.calcResultMin}</small>`;
             break;
         case  "Max":
-            value = `<span>${resultCalc.formattedContent}</span><small>${window.siyuan.languages.calcResultMax}</small>`;
+            value = `<span>${resultCalc.formattedContent}</span><small>${siyuanI18n.calcResultMax}</small>`;
             break;
         case  "Range":
-            value = `<span>${resultCalc.formattedContent}</span><small>${window.siyuan.languages.calcResultRange}</small>`;
+            value = `<span>${resultCalc.formattedContent}</span><small>${siyuanI18n.calcResultRange}</small>`;
             break;
         case  "Earliest":
-            value = `<span>${resultCalc.formattedContent}</span><small>${window.siyuan.languages.calcOperatorEarliest}</small>`;
+            value = `<span>${resultCalc.formattedContent}</span><small>${siyuanI18n.calcOperatorEarliest}</small>`;
             break;
         case  "Latest":
-            value = `<span>${resultCalc.formattedContent}</span><small>${window.siyuan.languages.calcOperatorLatest}</small>`;
+            value = `<span>${resultCalc.formattedContent}</span><small>${siyuanI18n.calcOperatorLatest}</small>`;
             break;
         case  "Checked":
-            value = `<span>${resultCalc.formattedContent}</span><small>${window.siyuan.languages.checked}</small>`;
+            value = `<span>${resultCalc.formattedContent}</span><small>${siyuanI18n.checked}</small>`;
             break;
         case  "Unchecked":
-            value = `<span>${resultCalc.formattedContent}</span><small>${window.siyuan.languages.unchecked}</small>`;
+            value = `<span>${resultCalc.formattedContent}</span><small>${siyuanI18n.unchecked}</small>`;
             break;
         case  "Percent checked":
-            value = `<span>${resultCalc.formattedContent}</span><small>${window.siyuan.languages.percentChecked}</small>`;
+            value = `<span>${resultCalc.formattedContent}</span><small>${siyuanI18n.percentChecked}</small>`;
             break;
         case  "Percent unchecked":
-            value = `<span>${resultCalc.formattedContent}</span><small>${window.siyuan.languages.percentUnchecked}</small>`;
+            value = `<span>${resultCalc.formattedContent}</span><small>${siyuanI18n.percentUnchecked}</small>`;
             break;
     }
     return value;
@@ -502,49 +503,49 @@ export const getNameByOperator = (operator: string, isRollup: boolean) => {
     switch (operator) {
         case undefined:
         case "":
-            return isRollup ? window.siyuan.languages.original : window.siyuan.languages.calcOperatorNone;
+            return isRollup ? siyuanI18n.original : siyuanI18n.calcOperatorNone;
         case "Unique values": // 仅汇总字段的汇总方式在使用
-            return window.siyuan.languages.uniqueValues;
+            return siyuanI18n.uniqueValues;
         case "Count all":
-            return window.siyuan.languages.calcOperatorCountAll;
+            return siyuanI18n.calcOperatorCountAll;
         case "Count values":
-            return window.siyuan.languages.calcOperatorCountValues;
+            return siyuanI18n.calcOperatorCountValues;
         case "Count unique values":
-            return window.siyuan.languages.calcOperatorCountUniqueValues;
+            return siyuanI18n.calcOperatorCountUniqueValues;
         case "Count empty":
-            return window.siyuan.languages.calcOperatorCountEmpty;
+            return siyuanI18n.calcOperatorCountEmpty;
         case "Count not empty":
-            return window.siyuan.languages.calcOperatorCountNotEmpty;
+            return siyuanI18n.calcOperatorCountNotEmpty;
         case "Percent empty":
-            return window.siyuan.languages.calcOperatorPercentEmpty;
+            return siyuanI18n.calcOperatorPercentEmpty;
         case "Percent not empty":
-            return window.siyuan.languages.calcOperatorPercentNotEmpty;
+            return siyuanI18n.calcOperatorPercentNotEmpty;
         case "Percent unique values":
-            return window.siyuan.languages.calcOperatorPercentUniqueValues;
+            return siyuanI18n.calcOperatorPercentUniqueValues;
         case "Checked":
-            return window.siyuan.languages.checked;
+            return siyuanI18n.checked;
         case "Unchecked":
-            return window.siyuan.languages.unchecked;
+            return siyuanI18n.unchecked;
         case "Percent checked":
-            return window.siyuan.languages.percentChecked;
+            return siyuanI18n.percentChecked;
         case "Percent unchecked":
-            return window.siyuan.languages.percentUnchecked;
+            return siyuanI18n.percentUnchecked;
         case "Sum":
-            return window.siyuan.languages.calcOperatorSum;
+            return siyuanI18n.calcOperatorSum;
         case "Average":
-            return window.siyuan.languages.calcOperatorAverage;
+            return siyuanI18n.calcOperatorAverage;
         case "Median":
-            return window.siyuan.languages.calcOperatorMedian;
+            return siyuanI18n.calcOperatorMedian;
         case "Min":
-            return window.siyuan.languages.calcOperatorMin;
+            return siyuanI18n.calcOperatorMin;
         case "Max":
-            return window.siyuan.languages.calcOperatorMax;
+            return siyuanI18n.calcOperatorMax;
         case "Range":
-            return window.siyuan.languages.calcOperatorRange;
+            return siyuanI18n.calcOperatorRange;
         case "Earliest":
-            return window.siyuan.languages.calcOperatorEarliest;
+            return siyuanI18n.calcOperatorEarliest;
         case "Latest":
-            return window.siyuan.languages.calcOperatorLatest;
+            return siyuanI18n.calcOperatorLatest;
         default:
             return "";
     }

@@ -11,11 +11,12 @@ import { MenuItem } from "./Menu.Item";
 import {App} from "../index";
 import {exportByMobile, isInAndroid, updateHotkeyTip} from "../protyle/util/compatibility";
 import {checkFold} from "../util/noRelyPCFunction";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const exportAsset = (src: string) => {
     return {
         id: "export",
-        label: window.siyuan.languages.export,
+        label: siyuanI18n.export,
         icon: "iconUpload",
         async click() {
             /// #if BROWSER
@@ -39,8 +40,8 @@ export const openEditorTab = (app: App, ids: string[], notebookId?: string, path
     const openSubmenus: IMenu[] = [{
         id: "insertRight",
         icon: "iconLayoutRight",
-        label: window.siyuan.languages.insertRight,
-        accelerator: ids.length === 1 ? `${updateHotkeyTip(window.siyuan.config.keymap.editor.general.insertRight.custom)}/${updateHotkeyTip("⌥" + window.siyuan.languages.click)}` : undefined,
+        label: siyuanI18n.insertRight,
+        accelerator: ids.length === 1 ? `${updateHotkeyTip(window.siyuan.config.keymap.editor.general.insertRight.custom)}/${updateHotkeyTip("⌥" + siyuanI18n.click)}` : undefined,
         click: () => {
             if (notebookId) {
                 openFileById({
@@ -66,8 +67,8 @@ export const openEditorTab = (app: App, ids: string[], notebookId?: string, path
     }, {
         id: "insertBottom",
         icon: "iconLayoutBottom",
-        label: window.siyuan.languages.insertBottom,
-        accelerator: ids.length === 1 ? "⇧⌘" + window.siyuan.languages.click : "",
+        label: siyuanI18n.insertBottom,
+        accelerator: ids.length === 1 ? "⇧⌘" + siyuanI18n.click : "",
         click: () => {
             if (notebookId) {
                 openFileById({
@@ -94,8 +95,8 @@ export const openEditorTab = (app: App, ids: string[], notebookId?: string, path
     if (window.siyuan.config.fileTree.openFilesUseCurrentTab) {
         openSubmenus.push({
             id: "openInNewTab",
-            label: window.siyuan.languages.openInNewTab,
-            accelerator: ids.length === 1 ? "⌥⌘" + window.siyuan.languages.click : undefined,
+            label: siyuanI18n.openInNewTab,
+            accelerator: ids.length === 1 ? "⌥⌘" + siyuanI18n.click : undefined,
             click: () => {
                 if (notebookId) {
                     openFileById({
@@ -123,7 +124,7 @@ export const openEditorTab = (app: App, ids: string[], notebookId?: string, path
     /// #if !BROWSER
     openSubmenus.push({
         id: "openByNewWindow",
-        label: window.siyuan.languages.openByNewWindow,
+        label: siyuanI18n.openByNewWindow,
         icon: "iconOpenWindow",
         click() {
             openNewWindowById(ids);
@@ -134,7 +135,7 @@ export const openEditorTab = (app: App, ids: string[], notebookId?: string, path
     openSubmenus.push({
         id: "preview",
         icon: "iconPreview",
-        label: window.siyuan.languages.preview,
+        label: siyuanI18n.preview,
         click: () => {
             ids.forEach((id) => {
                 openFileById({app, id, mode: "preview"});
@@ -146,7 +147,7 @@ export const openEditorTab = (app: App, ids: string[], notebookId?: string, path
     openSubmenus.push({
         id: "showInFolder",
         icon: "iconFolder",
-        label: window.siyuan.languages.showInFolder,
+        label: siyuanI18n.showInFolder,
         click: () => {
             if (notebookId) {
                 useShell("showItemInFolder", path.join(window.siyuan.config.system.dataDir, notebookId, pathString));
@@ -165,7 +166,7 @@ export const openEditorTab = (app: App, ids: string[], notebookId?: string, path
     }
     window.siyuan.menus.menu.append(new MenuItem({
         id: "openBy",
-        label: window.siyuan.languages.openBy,
+        label: siyuanI18n.openBy,
         icon: "iconOpen",
         submenu: openSubmenus,
     }).element);

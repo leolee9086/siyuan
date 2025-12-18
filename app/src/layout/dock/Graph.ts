@@ -13,6 +13,7 @@ import {openGlobalSearch} from "../../search/util";
 import {App} from "../../index";
 import {checkFold} from "../../util/noRelyPCFunction";
 import {Editor} from "../../editor";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 declare const vis: any;
 
@@ -93,196 +94,196 @@ export class Graph extends Model {
         if (this.type === "global") {
             panelHTML = `
 <label>
-    <span>${window.siyuan.languages.headings}</span> 
+    <span>${siyuanI18n.headings}</span> 
     <input data-type="heading" type="checkbox" class="b3-switch"${window.siyuan.config.graph.global.type.heading ? " checked" : ""}/>
 </label>
 <label>
-    <span>${window.siyuan.languages.list1}</span> 
+    <span>${siyuanI18n.list1}</span> 
     <input data-type="list" type="checkbox" class="b3-switch"${window.siyuan.config.graph.global.type.list ? " checked" : ""}/>
 </label>
 <label>
-    <span>${window.siyuan.languages.listItem}</span> 
+    <span>${siyuanI18n.listItem}</span> 
     <input data-type="listItem" type="checkbox" class="b3-switch"${window.siyuan.config.graph.global.type.listItem ? " checked" : ""}/>
 </label>
 <label>
-    <span>${window.siyuan.languages.quote}</span> 
+    <span>${siyuanI18n.quote}</span> 
     <input data-type="blockquote" type="checkbox" class="b3-switch"${window.siyuan.config.graph.global.type.blockquote ? " checked" : ""}/>
 </label>
 <label>
-    <span>${window.siyuan.languages.callout}</span> 
+    <span>${siyuanI18n.callout}</span> 
     <input data-type="callout" type="checkbox" class="b3-switch"${window.siyuan.config.graph.global.type.callout ? " checked" : ""}/>
 </label>
 <label>
-    <span>${window.siyuan.languages.superBlock}</span> 
+    <span>${siyuanI18n.superBlock}</span> 
     <input data-type="super" type="checkbox" class="b3-switch"${window.siyuan.config.graph.global.type.super ? " checked" : ""}/>
 </label>
 <label>
-    <span>${window.siyuan.languages.table}</span> 
+    <span>${siyuanI18n.table}</span> 
     <input data-type="table" type="checkbox" class="b3-switch"${window.siyuan.config.graph.global.type.table ? " checked" : ""}/>
 </label>
 <label>
-    <span>${window.siyuan.languages.math}</span> 
+    <span>${siyuanI18n.math}</span> 
     <input data-type="math" type="checkbox" class="b3-switch"${window.siyuan.config.graph.global.type.math ? " checked" : ""}/>
 </label>
 <label>
-    <span>${window.siyuan.languages.code}</span> 
+    <span>${siyuanI18n.code}</span> 
     <input data-type="code" type="checkbox" class="b3-switch"${window.siyuan.config.graph.global.type.code ? " checked" : ""}/>
 </label>
 <label>
-    <span>${window.siyuan.languages.paragraph}</span> 
+    <span>${siyuanI18n.paragraph}</span> 
     <input data-type="paragraph" type="checkbox" class="b3-switch"${window.siyuan.config.graph.global.type.paragraph ? " checked" : ""}/>
 </label>
 <label>
-    <span>${window.siyuan.languages.dailyNote}</span>  
+    <span>${siyuanI18n.dailyNote}</span>  
     <input data-type="dailyNote" type="checkbox" class="b3-switch"${window.siyuan.config.graph.global.dailyNote ? " checked" : ""}/>
 </label>
 <label>
-    <span>${window.siyuan.languages.tag}</span>  
+    <span>${siyuanI18n.tag}</span>  
     <input data-type="tag" type="checkbox" class="b3-switch"${window.siyuan.config.graph.global.type.tag ? " checked" : ""}/>
 </label>
 <label>
-    <span>${window.siyuan.languages.arrow}</span> 
+    <span>${siyuanI18n.arrow}</span> 
     <input data-type="arrow" type="checkbox" class="b3-switch"${window.siyuan.config.graph.global.d3.arrow ? " checked" : ""}/>
 </label>
 <label> 
-    <span>${window.siyuan.languages.graphConfig2}</span>  
+    <span>${siyuanI18n.graphConfig2}</span>  
     <input data-type="minRefs" class="b3-slider b3-tooltips__n b3-tooltips" max="16" min="0" step="1" type="range" value="${window.siyuan.config.graph.global.minRefs}" aria-label="${window.siyuan.config.graph.global.minRefs}" />
 </label>
 <label>
-    <span>${window.siyuan.languages.nodeSize}</span> 
+    <span>${siyuanI18n.nodeSize}</span> 
     <input data-type="nodeSize" class="b3-slider b3-tooltips__n b3-tooltips" aria-label="${window.siyuan.config.graph.global.d3.nodeSize}" max="32" min="4" step="2" type="range" value="${window.siyuan.config.graph.global.d3.nodeSize}" />
 </label>
 <label>
-    <span>${window.siyuan.languages.lineWidth}</span> 
+    <span>${siyuanI18n.lineWidth}</span> 
     <input data-type="linkWidth" class="b3-tooltips b3-tooltips__n b3-slider" max="32" min="4" step="2" type="range" value="${window.siyuan.config.graph.global.d3.linkWidth}" aria-label="${window.siyuan.config.graph.global.d3.linkWidth}"/>
 </label>
 <label>
-    <span>${window.siyuan.languages.lineOpacity}</span> 
+    <span>${siyuanI18n.lineOpacity}</span> 
     <input data-type="lineOpacity" class="b3-tooltips b3-tooltips__n b3-slider" max="1" min="0.1" step="0.01" type="range" value="${window.siyuan.config.graph.global.d3.lineOpacity}" aria-label="${window.siyuan.config.graph.global.d3.lineOpacity}"/>
 </label>
 <label>
-    <span>${window.siyuan.languages.centerStrength}</span> 
+    <span>${siyuanI18n.centerStrength}</span> 
     <input data-type="centerStrength" class="b3-tooltips b3-tooltips__n b3-slider" max="0.1" min="0.005" step="0.01" type="range" value="${window.siyuan.config.graph.global.d3.centerStrength}" aria-label="${window.siyuan.config.graph.global.d3.centerStrength}"/>
 </label>
 <label>
-    <span>${window.siyuan.languages.collideRadius}</span> 
+    <span>${siyuanI18n.collideRadius}</span> 
     <input data-type="collideRadius" class="b3-tooltips b3-tooltips__n b3-slider" max="5000" min="400" step="200" type="range" value="${window.siyuan.config.graph.global.d3.collideRadius}" aria-label="${window.siyuan.config.graph.global.d3.collideRadius}"/>
 </label>
 <label>
-    <span>${window.siyuan.languages.collideStrength}</span> 
+    <span>${siyuanI18n.collideStrength}</span> 
     <input data-type="collideStrength" class="b3-tooltips b3-tooltips__n b3-slider" max="1" min="0.01" step="0.01" type="range" value="${window.siyuan.config.graph.global.d3.collideStrength}" aria-label="${window.siyuan.config.graph.global.d3.collideStrength}"/>
 </label>
 <label>
-    <span>${window.siyuan.languages.linkDistance}</span> 
+    <span>${siyuanI18n.linkDistance}</span> 
     <input data-type="linkDistance" class="b3-tooltips b3-tooltips__n b3-slider" max="2000" min="100" step="100" type="range" value="${window.siyuan.config.graph.global.d3.linkDistance}" aria-label="${window.siyuan.config.graph.global.d3.linkDistance}"/>
 </label>
 <div class="fn__hr"></div>
-<button class="b3-button b3-button--small fn__block">${window.siyuan.languages.reset}</button>`;
+<button class="b3-button b3-button--small fn__block">${siyuanI18n.reset}</button>`;
         } else {
             panelHTML = `
 <label>
-    <span>${window.siyuan.languages.headings}</span> 
+    <span>${siyuanI18n.headings}</span> 
     <input data-type="heading" type="checkbox" class="b3-switch"${window.siyuan.config.graph.local.type.heading ? " checked" : ""}/>
 </label>
 <label>
-    <span>${window.siyuan.languages.list1}</span> 
+    <span>${siyuanI18n.list1}</span> 
     <input data-type="list" type="checkbox" class="b3-switch"${window.siyuan.config.graph.local.type.list ? " checked" : ""}/>
 </label>
 <label>
-    <span>${window.siyuan.languages.listItem}</span> 
+    <span>${siyuanI18n.listItem}</span> 
     <input data-type="listItem" type="checkbox" class="b3-switch"${window.siyuan.config.graph.local.type.listItem ? " checked" : ""}/>
 </label>
 <label>
-    <span>${window.siyuan.languages.quote}</span> 
+    <span>${siyuanI18n.quote}</span> 
     <input data-type="blockquote" type="checkbox" class="b3-switch"${window.siyuan.config.graph.local.type.blockquote ? " checked" : ""}/>
 </label>
 <label>
-    <span>${window.siyuan.languages.callout}</span> 
+    <span>${siyuanI18n.callout}</span> 
     <input data-type="callout" type="checkbox" class="b3-switch"${window.siyuan.config.graph.local.type.callout ? " checked" : ""}/>
 </label>
 <label>
-    <span>${window.siyuan.languages.superBlock}</span> 
+    <span>${siyuanI18n.superBlock}</span> 
     <input data-type="super" type="checkbox" class="b3-switch"${window.siyuan.config.graph.local.type.super ? " checked" : ""}/>
 </label>
 <label>
-    <span>${window.siyuan.languages.table}</span> 
+    <span>${siyuanI18n.table}</span> 
     <input data-type="table" type="checkbox" class="b3-switch"${window.siyuan.config.graph.local.type.table ? " checked" : ""}/>
 </label>
 <label>
-    <span>${window.siyuan.languages.math}</span> 
+    <span>${siyuanI18n.math}</span> 
     <input data-type="math" type="checkbox" class="b3-switch"${window.siyuan.config.graph.local.type.math ? " checked" : ""}/>
 </label>
 <label>
-    <span>${window.siyuan.languages.code}</span> 
+    <span>${siyuanI18n.code}</span> 
     <input data-type="code" type="checkbox" class="b3-switch"${window.siyuan.config.graph.local.type.code ? " checked" : ""}/>
 </label>
 <label>
-    <span>${window.siyuan.languages.paragraph}</span> 
+    <span>${siyuanI18n.paragraph}</span> 
     <input data-type="paragraph" type="checkbox" class="b3-switch"${window.siyuan.config.graph.local.type.paragraph ? " checked" : ""}/>
 </label>
 <label>
-    <span>${window.siyuan.languages.dailyNote}</span>  
+    <span>${siyuanI18n.dailyNote}</span>  
     <input data-type="dailyNote" type="checkbox" class="b3-switch"${window.siyuan.config.graph.local.dailyNote ? " checked" : ""}/>
 </label>
 <label>
-    <span>${window.siyuan.languages.tag}</span>  
+    <span>${siyuanI18n.tag}</span>  
     <input data-type="tag" type="checkbox" class="b3-switch"${window.siyuan.config.graph.local.type.tag ? " checked" : ""}/>
 </label>
 <label>
-    <span>${window.siyuan.languages.arrow}</span> 
+    <span>${siyuanI18n.arrow}</span> 
     <input data-type="arrow" type="checkbox" class="b3-switch"${window.siyuan.config.graph.local.d3.arrow ? " checked" : ""}/>
 </label>
 <label>
-    <span>${window.siyuan.languages.nodeSize}</span> 
+    <span>${siyuanI18n.nodeSize}</span> 
     <input data-type="nodeSize" class="b3-slider b3-tooltips__n b3-tooltips" aria-label="${window.siyuan.config.graph.local.d3.nodeSize}" max="32" min="4" step="2" type="range" value="${window.siyuan.config.graph.local.d3.nodeSize}" />
 </label>
 <label>
-    <span>${window.siyuan.languages.lineWidth}</span> 
+    <span>${siyuanI18n.lineWidth}</span> 
     <input data-type="linkWidth" class="b3-tooltips b3-tooltips__n b3-slider" max="32" min="4" step="2" type="range" value="${window.siyuan.config.graph.local.d3.linkWidth}" aria-label="${window.siyuan.config.graph.local.d3.linkWidth}"/>
 </label>
 <label>
-    <span>${window.siyuan.languages.lineOpacity}</span> 
+    <span>${siyuanI18n.lineOpacity}</span> 
     <input data-type="lineOpacity" class="b3-tooltips b3-tooltips__n b3-slider" max="1" min="0.1" step="0.01" type="range" value="${window.siyuan.config.graph.local.d3.lineOpacity}" aria-label="${window.siyuan.config.graph.local.d3.lineOpacity}"/>
 </label>
 <label>
-    <span>${window.siyuan.languages.centerStrength}</span> 
+    <span>${siyuanI18n.centerStrength}</span> 
     <input data-type="centerStrength" class="b3-tooltips b3-tooltips__n b3-slider" max="0.1" min="0.005" step="0.01" type="range" value="${window.siyuan.config.graph.local.d3.centerStrength}" aria-label="${window.siyuan.config.graph.local.d3.centerStrength}"/>
 </label>
 <label>
-    <span>${window.siyuan.languages.collideRadius}</span> 
+    <span>${siyuanI18n.collideRadius}</span> 
     <input data-type="collideRadius" class="b3-tooltips b3-tooltips__n b3-slider" max="5000" min="400" step="200" type="range" value="${window.siyuan.config.graph.local.d3.collideRadius}" aria-label="${window.siyuan.config.graph.local.d3.collideRadius}"/>
 </label>
 <label>
-    <span>${window.siyuan.languages.collideStrength}</span> 
+    <span>${siyuanI18n.collideStrength}</span> 
     <input data-type="collideStrength" class="b3-tooltips b3-tooltips__n b3-slider" max="1" min="0.01" step="0.01" type="range" value="${window.siyuan.config.graph.local.d3.collideStrength}" aria-label="${window.siyuan.config.graph.local.d3.collideStrength}"/>
 </label>
 <label>
-    <span>${window.siyuan.languages.linkDistance}</span> 
+    <span>${siyuanI18n.linkDistance}</span> 
     <input data-type="linkDistance" class="b3-tooltips b3-tooltips__n b3-slider" max="2000" min="100" step="100" type="range" value="${window.siyuan.config.graph.local.d3.linkDistance}" aria-label="${window.siyuan.config.graph.local.d3.linkDistance}"/>
 </label>
 <div class="fn__hr"></div>
-<button class="b3-button b3-button--small fn__block">${window.siyuan.languages.reset}</button>`;
+<button class="b3-button b3-button--small fn__block">${siyuanI18n.reset}</button>`;
         }
         this.element.innerHTML = `<div class="block__icons"> 
     <div class="block__logo">
-        <svg class="block__logoicon"><use xlink:href="#icon${this.type === "global" ? "GlobalGraph" : "Graph"}"></use></svg>${this.type === "global" ? window.siyuan.languages.globalGraph : window.siyuan.languages.graphView}
+        <svg class="block__logoicon"><use xlink:href="#icon${this.type === "global" ? "GlobalGraph" : "Graph"}"></use></svg>${this.type === "global" ? siyuanI18n.globalGraph : siyuanI18n.graphView}
     </div>
     <span class="fn__flex-1"></span>
     <span class="fn__space"></span>
-    <input class="b3-text-field search__label fn__size200 fn__none" placeholder="${window.siyuan.languages.search}" />
-    <span data-type="search" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${window.siyuan.languages.search}"><svg><use xlink:href='#iconFilter'></use></svg></span>
+    <input class="b3-text-field search__label fn__size200 fn__none" placeholder="${siyuanI18n.search}" />
+    <span data-type="search" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.search}"><svg><use xlink:href='#iconFilter'></use></svg></span>
     <span class="fn__space"></span>
-    <span data-type="refresh" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${window.siyuan.languages.refresh}"><svg><use xlink:href='#iconRefresh'></use></svg></span>
+    <span data-type="refresh" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.refresh}"><svg><use xlink:href='#iconRefresh'></use></svg></span>
     <div class="fn__space"></div>
-    <div data-type="fullscreen" class="b3-tooltips b3-tooltips__sw block__icon" aria-label="${window.siyuan.languages.fullscreen}">
+    <div data-type="fullscreen" class="b3-tooltips b3-tooltips__sw block__icon" aria-label="${siyuanI18n.fullscreen}">
         <svg><use xlink:href="#iconFullscreen"></use></svg>
     </div>
     <div class="fn__space"></div>
-    <div data-type="menu" class="b3-tooltips b3-tooltips__sw block__icon" aria-label="${window.siyuan.languages.more}">
+    <div data-type="menu" class="b3-tooltips b3-tooltips__sw block__icon" aria-label="${siyuanI18n.more}">
         <svg><use xlink:href="#iconMore"></use></svg>
     </div> 
     <span class="${this.type === "local" ? "fn__none " : ""}fn__space"></span>
-    <span data-type="min"  class="${this.type === "local" ? "fn__none " : ""}block__icon b3-tooltips b3-tooltips__sw" aria-label="${window.siyuan.languages.min}${updateHotkeyAfterTip(window.siyuan.config.keymap.general.closeTab.custom)}"><svg><use xlink:href='#iconMin'></use></svg></span>
+    <span data-type="min"  class="${this.type === "local" ? "fn__none " : ""}block__icon b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.min}${updateHotkeyAfterTip(window.siyuan.config.keymap.general.closeTab.custom)}"><svg><use xlink:href='#iconMin'></use></svg></span>
 </div>
 <div class="graph__panel">
     ${panelHTML}

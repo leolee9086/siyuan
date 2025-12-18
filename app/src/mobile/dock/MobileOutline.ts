@@ -19,6 +19,7 @@ import {focusBlock, focusByWbr} from "../../protyle/util/selection";
 import {openMobileFileById} from "../editor";
 import {Model} from "../../layout/Model";
 import {genUUID} from "../../util/genID";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export class MobileOutline extends Model {
     public tree: Tree;
@@ -52,10 +53,10 @@ export class MobileOutline extends Model {
         this.element.innerHTML = `<div class="toolbar toolbar--border toolbar--dark">
     <div class="fn__space"></div>
     <div class="toolbar__text">
-        ${window.siyuan.languages.outline}
+        ${siyuanI18n.outline}
     </div>
     <div class="fn__flex-1 fn__space"></div>
-    <input class="b3-text-field search__label fn__none fn__size200" placeholder="${window.siyuan.languages.filterKeywordEnter}" />
+    <input class="b3-text-field search__label fn__none fn__size200" placeholder="${siyuanI18n.filterKeywordEnter}" />
     <svg data-type="search" class="toolbar__icon"><use xlink:href='#iconFilter'></use></svg>
     <svg data-type="keepCurrentExpand" class="toolbar__icon${window.siyuan.storage[Constants.LOCAL_OUTLINE].keepCurrentExpand ? " toolbar__icon--active" : ""}"><use xlink:href="#iconFocus"></use></svg>
     <svg data-type="expandLevel" class="toolbar__icon"><use xlink:href="#iconList"></use></svg>
@@ -450,7 +451,7 @@ export class MobileOutline extends Model {
             window.siyuan.menus.menu.append(new MenuItem({
                 id: `heading${i}`,
                 icon: `iconH${i}`,
-                label: window.siyuan.languages[`heading${i}`],
+                label: siyuanI18n[`heading${i}`],
                 click: () => this.expandToLevel(i)
             }).element);
         }
@@ -577,7 +578,7 @@ export class MobileOutline extends Model {
                 window.siyuan.menus.menu.append(new MenuItem({
                     id: "upgrade",
                     icon: "iconUp",
-                    label: window.siyuan.languages.upgrade,
+                    label: siyuanI18n.upgrade,
                     click: () => {
                         const data = this.getProtyleAndBlockElement(element);
                         if (data) {
@@ -597,7 +598,7 @@ export class MobileOutline extends Model {
                 window.siyuan.menus.menu.append(new MenuItem({
                     id: "downgrade",
                     icon: "iconDown",
-                    label: window.siyuan.languages.downgrade,
+                    label: siyuanI18n.downgrade,
                     click: () => {
                         const data = this.getProtyleAndBlockElement(element);
                         if (data) {
@@ -637,7 +638,7 @@ export class MobileOutline extends Model {
                     id: "tWithSubtitle",
                     type: "submenu",
                     icon: "iconRefresh",
-                    label: window.siyuan.languages.tWithSubtitle,
+                    label: siyuanI18n.tWithSubtitle,
                     submenu: headingSubMenu
                 }).element);
             }
@@ -648,7 +649,7 @@ export class MobileOutline extends Model {
             window.siyuan.menus.menu.append(new MenuItem({
                 id: "insertSameLevelHeadingBefore",
                 icon: "iconBefore",
-                label: window.siyuan.languages.insertSameLevelHeadingBefore,
+                label: siyuanI18n.insertSameLevelHeadingBefore,
                 click: () => {
                     const data = this.getProtyleAndBlockElement(element);
                     const newId = Lute.NewNodeID();
@@ -673,7 +674,7 @@ export class MobileOutline extends Model {
             window.siyuan.menus.menu.append(new MenuItem({
                 id: "insertSameLevelHeadingAfter",
                 icon: "iconAfter",
-                label: window.siyuan.languages.insertSameLevelHeadingAfter,
+                label: siyuanI18n.insertSameLevelHeadingAfter,
                 click: () => {
                     fetchPost("/api/block/getHeadingDeleteTransaction", {
                         id,
@@ -707,7 +708,7 @@ export class MobileOutline extends Model {
                 window.siyuan.menus.menu.append(new MenuItem({
                     id: "addChildHeading",
                     icon: "iconAdd",
-                    label: window.siyuan.languages.addChildHeading,
+                    label: siyuanI18n.addChildHeading,
                     click: () => {
                         fetchPost("/api/block/getHeadingDeleteTransaction", {
                             id,
@@ -752,7 +753,7 @@ export class MobileOutline extends Model {
         window.siyuan.menus.menu.append(new MenuItem({
             id: "copyHeadings1",
             icon: "iconCopy",
-            label: `${window.siyuan.languages.copy} ${window.siyuan.languages.headings1}`,
+            label: `${siyuanI18n.copy} ${siyuanI18n.headings1}`,
             click: () => {
                 const data = this.getProtyleAndBlockElement(element);
                 fetchPost("/api/block/getHeadingChildrenDOM", {
@@ -775,7 +776,7 @@ export class MobileOutline extends Model {
             window.siyuan.menus.menu.append(new MenuItem({
                 id: "cutHeadings1",
                 icon: "iconCut",
-                label: `${window.siyuan.languages.cut} ${window.siyuan.languages.headings1}`,
+                label: `${siyuanI18n.cut} ${siyuanI18n.headings1}`,
                 click: () => {
                     const data = this.getProtyleAndBlockElement(element);
                     fetchPost("/api/block/getHeadingChildrenDOM", {
@@ -823,7 +824,7 @@ export class MobileOutline extends Model {
             window.siyuan.menus.menu.append(new MenuItem({
                 id: "deleteHeadings1",
                 icon: "iconTrashcan",
-                label: `${window.siyuan.languages.delete} ${window.siyuan.languages.headings1}`,
+                label: `${siyuanI18n.delete} ${siyuanI18n.headings1}`,
                 click: () => {
                     const data = this.getProtyleAndBlockElement(element);
                     fetchPost("/api/block/getHeadingDeleteTransaction", {
@@ -861,8 +862,8 @@ export class MobileOutline extends Model {
         window.siyuan.menus.menu.append(new MenuItem({
             id: "expandChildHeading",
             icon: "iconExpand",
-            label: window.siyuan.languages.expandChildHeading,
-            accelerator: "⌘" + window.siyuan.languages.clickArrow,
+            label: siyuanI18n.expandChildHeading,
+            accelerator: "⌘" + siyuanI18n.clickArrow,
             click: () => this.collapseChildren(element, true)
         }).element);
 
@@ -870,8 +871,8 @@ export class MobileOutline extends Model {
         window.siyuan.menus.menu.append(new MenuItem({
             id: "foldChildHeading",
             icon: "iconContract",
-            label: window.siyuan.languages.foldChildHeading,
-            accelerator: "⌘" + window.siyuan.languages.clickArrow,
+            label: siyuanI18n.foldChildHeading,
+            accelerator: "⌘" + siyuanI18n.clickArrow,
             click: () => this.collapseChildren(element, false)
         }).element);
 
@@ -879,8 +880,8 @@ export class MobileOutline extends Model {
         window.siyuan.menus.menu.append(new MenuItem({
             id: "expandSameLevelHeading",
             icon: "iconExpand",
-            label: window.siyuan.languages.expandSameLevelHeading,
-            accelerator: "⌥" + window.siyuan.languages.clickArrow,
+            label: siyuanI18n.expandSameLevelHeading,
+            accelerator: "⌥" + siyuanI18n.clickArrow,
             click: () => this.collapseSameLevel(element, true)
         }).element);
 
@@ -888,8 +889,8 @@ export class MobileOutline extends Model {
         window.siyuan.menus.menu.append(new MenuItem({
             id: "foldSameLevelHeading",
             icon: "iconContract",
-            label: window.siyuan.languages.foldSameLevelHeading,
-            accelerator: "⌥" + window.siyuan.languages.clickArrow,
+            label: siyuanI18n.foldSameLevelHeading,
+            accelerator: "⌥" + siyuanI18n.clickArrow,
             click: () => this.collapseSameLevel(element, false)
         }).element);
 
@@ -897,7 +898,7 @@ export class MobileOutline extends Model {
         window.siyuan.menus.menu.append(new MenuItem({
             id: "expandAll",
             icon: "iconExpand",
-            label: window.siyuan.languages.expandAll,
+            label: siyuanI18n.expandAll,
             click: () => {
                 this.tree.expandAll();
                 this.saveExpendIds();
@@ -908,7 +909,7 @@ export class MobileOutline extends Model {
         window.siyuan.menus.menu.append(new MenuItem({
             id: "foldAll",
             icon: "iconContract",
-            label: window.siyuan.languages.foldAll,
+            label: siyuanI18n.foldAll,
             click: () => {
                 this.tree.collapseAll();
                 this.saveExpendIds();
@@ -940,7 +941,7 @@ export class MobileOutline extends Model {
             id: "heading" + level,
             iconHTML: "",
             icon: "iconHeading" + level,
-            label: window.siyuan.languages["heading" + level],
+            label: siyuanI18n["heading" + level],
             click: () => {
                 const protyle = window.siyuan.mobile.editor?.protyle;
                 if (!protyle) {
