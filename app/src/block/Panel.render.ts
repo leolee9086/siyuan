@@ -5,6 +5,7 @@ import { updateHotkeyAfterTip } from "../protyle/util/compatibility";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig, incrementSiyuanZIndex } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getWindowInnerHeight } from "../util/siyuanEnvironments/getWindowInnerHeight.environment";
+import { checkClassListContain } from "../util/DOM/fnClasses";
 
 /**
  * 构建面板的 HTML 内容
@@ -58,7 +59,7 @@ export function 设置面板位置(参数: 设置面板位置参数): void {
     const innerHeight = getWindowInnerHeight();
     let targetRect: DOMRect | undefined;
 
-    if (targetElement && targetElement.classList.contains("protyle-wysiwyg__embed")) {
+    if (targetElement && checkClassListContain(targetElement, "protyle-wysiwyg__embed")) {
         处理嵌入块定位(element, targetElement, innerHeight);
         return;
     }
@@ -100,7 +101,7 @@ function 处理嵌入块定位(element: HTMLElement, targetElement: HTMLElement,
 }
 
 function 获取目标元素矩形(targetElement: HTMLElement): DOMRect | undefined {
-    if (targetElement.classList.contains("pdf__rect")) {
+    if (checkClassListContain(targetElement, "pdf__rect")) {
         const firstChild = targetElement.firstElementChild;
         if (firstChild) {
             return firstChild.getBoundingClientRect();

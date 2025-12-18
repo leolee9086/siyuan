@@ -6,7 +6,36 @@
 export const switchFnNoneByFlag = (element: Element, flag: boolean): void => {
     if (flag) {
         element.classList.add("fn__none");
-    } else {
-        element.classList.remove("fn__none");
+        return;
     }
+    element.classList.remove("fn__none");
+};
+
+/**
+ * 检查元素的 classList 是否包含指定的 className
+ * @param element - 要检查的 DOM 元素
+ * @param className - 要检查的 className
+ * @returns - 如果 classList 包含 className，返回 true；否则返回 false
+ */
+export const checkClassListContain = (element: Element, className: string): boolean => {
+    return !!element.classList.contains(className);
+};
+
+/**
+ * 检查元素的 classList 是否包含指定的 className
+ * @param element - 要检查的 DOM 元素
+ * @param classNames - 要检查的 className 数组
+ * @returns - 如果 classList 包含所有 className，返回 true；否则返回 false
+ */
+export const checkClassListContainAll = (element: Element, classNames: string[]): boolean => {
+    return !!classNames.every((className) => element.classList.contains(className));
+};
+/**
+ * 检查元素的 classList 是否包含指定的 className
+ * @param element - 要检查的 DOM 元素
+ * @param classNames - 要检查的 className 数组
+ * @returns - 如果 classList 包含任意一个 className，返回 true；否则返回 false
+ */
+export const checkClassListContainAny = (element: Element, classNames: string[]): boolean => {
+    return !!classNames.some((className) => element.classList.contains(className));
 };

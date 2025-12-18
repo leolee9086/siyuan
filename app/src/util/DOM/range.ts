@@ -10,7 +10,7 @@ export const getFirstSelectedRange = () => {
     if (getSelection().rangeCount > 0) {
         const range = getSelection().getRangeAt(0);
         return range;
-    }else {
+    } else {
         return undefined;
     }
 };

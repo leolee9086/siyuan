@@ -36,9 +36,8 @@ const getRefDefsFromDataId = async (dataId: string, showRef: boolean): Promise<R
 
     // 卫语句：dataId 是数组格式
     if (dataId.startsWith("[")) {
-        const refDefs: IRefDefs[] = [];
-        JSON.parse(dataId).forEach((item: string) => {
-            refDefs.push({ refID: item });
+        const refDefs: IRefDefs[] = JSON.parse(dataId).map((item: string) => {
+            return { refID: item };
         });
         return { refDefs, originalRefBlockIDs: {} };
     }
@@ -55,7 +54,7 @@ const getRefDefsFromVirtualBlockRef = async (): Promise<RefDefsResult> => {
     const nodeElement = hasClosestBlock(popoverTargetElement);
     if (nodeElement) {
         const postResponse = await fetchSyncPost("/api/block/getBlockDefIDsByRefText", {
-            anchor: popoverTargetElement.textContent,
+            anchor: popoverTargetElement?.textContent,
             excludeIDs: [nodeElement.getAttribute("data-node-id")]
         });
         return { refDefs: postResponse.data.refDefs, originalRefBlockIDs: {} };
@@ -89,9 +88,9 @@ const getRefDefsFromRefCountOrPDF = async (): Promise<RefDefsResult> => {
 
     // 卫语句2：PDF 标注 - 有 relationIds 的情况
     if (isPdfRect && relationIds) {
-        relationIds.split(",").forEach((item: string) => {
+        for (const item of relationIds.split(",")) {
             refDefs.push({ refID: item });
-        });
+        }
         return { refDefs, originalRefBlockIDs };
     }
 
