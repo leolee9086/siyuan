@@ -85,7 +85,7 @@ type RiffCard struct {
 
 func (block *Block) IsContainerBlock() bool {
 	switch block.Type {
-	case "NodeDocument", "NodeBlockquote", "NodeList", "NodeListItem", "NodeSuperBlock":
+	case "NodeDocument", "NodeBlockquote", "NodeList", "NodeListItem", "NodeSuperBlock", "NodeCallout":
 		return true
 	}
 	return false
@@ -244,7 +244,20 @@ func GetBlockSiblingID(id string) (parent, previous, next string) {
 		}
 
 		parent = listParent2.ID
-		previous, next = getPreNext(listParent)
+		if nil == listParent.Previous {
+			if nil != listParent2.Previous {
+				previous = listParent2.Previous.ID
+			}
+		} else {
+			previous = listParent.Previous.ID
+		}
+		if nil == listParent.Next {
+			if nil != listParent2.Next {
+				next = listParent2.Next.ID
+			}
+		} else {
+			next = listParent.Next.ID
+		}
 		return
 	}
 
