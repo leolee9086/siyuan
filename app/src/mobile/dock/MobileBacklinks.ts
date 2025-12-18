@@ -3,7 +3,7 @@ import {fetchPost} from "../../util/fetch";
 import {Constants} from "../../constants";
 import {openMobileFileById} from "../editor";
 import {App} from "../../index";
-
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 export class MobileBacklinks {
     public element: HTMLElement;
     private tree: Tree;
@@ -16,7 +16,7 @@ export class MobileBacklinks {
         this.element.innerHTML = `<div class="toolbar toolbar--border toolbar--dark">
     <div class="fn__space"></div>
     <div class="toolbar__text">
-        ${window.siyuan.languages.backlinks}
+        ${siyuanI18n.backlinks}
     </div>
     <span class="counter listCount"></span>
     <span class="fn__space"></span>
@@ -28,7 +28,7 @@ export class MobileBacklinks {
 <div class="toolbar">
     <div class="fn__space"></div>
     <div class="toolbar__text">
-        ${window.siyuan.languages.mentions}
+        ${siyuanI18n.mentions}
     </div>
     <span class="counter listMCount"></span>
     <span class="fn__space"></span>
@@ -76,21 +76,21 @@ export class MobileBacklinks {
                             if (this.mTree.element.style.flex) {
                                 if (this.mTree.element.style.height === "0px") {
                                     this.mTree.element.removeAttribute("style");
-                                    target.setAttribute("aria-label", window.siyuan.languages.up);
+                                    target.setAttribute("aria-label", siyuanI18n.up);
                                     target.querySelector("use").setAttribute("xlink:href", "#iconUp");
                                 } else {
                                     this.mTree.element.removeAttribute("style");
-                                    target.setAttribute("aria-label", window.siyuan.languages.down);
+                                    target.setAttribute("aria-label", siyuanI18n.down);
                                     target.querySelector("use").setAttribute("xlink:href", "#iconDown");
                                 }
                             } else {
-                                if (target.getAttribute("aria-label") === window.siyuan.languages.down) {
+                                if (target.getAttribute("aria-label") === siyuanI18n.down) {
                                     this.mTree.element.setAttribute("style", "flex:none;height:0px");
-                                    target.setAttribute("aria-label", window.siyuan.languages.up);
+                                    target.setAttribute("aria-label", siyuanI18n.up);
                                     target.querySelector("use").setAttribute("xlink:href", "#iconUp");
                                 } else {
                                     this.mTree.element.setAttribute("style", `flex:none;height:${this.element.clientHeight - this.tree.element.previousElementSibling.clientHeight * 2}px`);
-                                    target.setAttribute("aria-label", window.siyuan.languages.down);
+                                    target.setAttribute("aria-label", siyuanI18n.down);
                                     target.querySelector("use").setAttribute("xlink:href", "#iconDown");
                                 }
                             }
@@ -137,17 +137,17 @@ export class MobileBacklinks {
             }
             if (response.data.mentionsCount === 0) {
                 this.mTree.element.setAttribute("style", "flex:none;height:0px");
-                layoutElement.setAttribute("aria-label", window.siyuan.languages.up);
+                layoutElement.setAttribute("aria-label", siyuanI18n.up);
                 layoutElement.querySelector("use").setAttribute("xlink:href", "#iconUp");
                 return;
             }
             if (response.data.linkRefsCount === 0) {
                 this.mTree.element.setAttribute("style", `flex:none;height:${this.element.clientHeight - this.tree.element.previousElementSibling.clientHeight * 2}px`);
-                layoutElement.setAttribute("aria-label", window.siyuan.languages.down);
+                layoutElement.setAttribute("aria-label", siyuanI18n.down);
                 layoutElement.querySelector("use").setAttribute("xlink:href", "#iconDown");
             } else {
                 this.mTree.element.removeAttribute("style");
-                layoutElement.setAttribute("aria-label", window.siyuan.languages.down);
+                layoutElement.setAttribute("aria-label", siyuanI18n.down);
                 layoutElement.querySelector("use").setAttribute("xlink:href", "#iconDown");
             }
         });
