@@ -42,7 +42,7 @@ import { hintMoveBlock } from "../hint/extend";
 import { makeCard, quickMakeCard } from "../../card/makeCard";
 import { transferBlockRef } from "../../menus/block";
 import { isMobile } from "../../util/functions";
-import { openAIActionsMenu } from "../../ai/actions";
+import { isMobile } from "../../util/functions";
 import { activeBlur, renderTextMenu, showKeyboardToolbarUtil } from "../../mobile/util/keyboardToolbar";
 import { hideTooltip } from "../../dialog/tooltip";
 import { appearanceMenu } from "../toolbar/Font";
@@ -63,14 +63,15 @@ import * as path from "path";
 import { checkFold } from "../../util/noRelyPCFunction";
 import { clearSelect } from "../util/clearSelect";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { buildGutterCopyMenu } from "./buildGutterCopyMenu";
-import { buildGutterTurnIntoMenu } from "./buildGutterTurnIntoMenu";
+import { buildGutterCopyMenuItem } from "./buildGutterCopyMenu";
+import { buildGutterTurnIntoMenuItem } from "./buildGutterTurnIntoMenu";
 import { buildGutterAlignMenu, buildGutterWidthsMenu } from "./buildGutterStyleMenu";
 import { showMobileAppearance } from "./showMobileAppearance";
 import { buildGutterMultipleMenu } from "./buildGutterMultipleMenu";
 import { buildGutterCommonMenu } from "./buildGutterCommonMenu";
 import { buildGutterEditMenu } from "./buildGutterEditMenu";
 import { buildGutterTypeSpecificMenu } from "./buildGutterTypeSpecificMenu";
+import { buildGutterAiMenu } from "./buildGutterAiMenu";
 
 
 
@@ -556,7 +557,7 @@ export class Gutter {
         nodeElement.classList.add("protyle-wysiwyg--select");
         countBlockWord([id], protyle.block.rootID);
         // "heading1-6", "list", "ordered-list", "check", "quote", "code", "table", "line", "math", "paragraph"
-        const turnIntoSubmenu = buildGutterTurnIntoMenu({
+        const turnIntoSubmenu = buildGutterTurnIntoMenuItem({
             nodeElement,
             id,
             type,
@@ -564,40 +565,20 @@ export class Gutter {
             protyle,
 
         });
-        if (turnIntoSubmenu.length > 0 && !protyle.disabled) {
-            getSiyuanGlobalMenus().menu.append(new MenuItem({
-                id: "turnInto",
-                icon: "iconRefresh",
-                label: siyuanI18n.turnInto,
-                type: "submenu",
-                submenu: turnIntoSubmenu
-            }).element);
+        if (turnIntoSubmenu) {
+            getSiyuanGlobalMenus().menu.append(new MenuItem(turnIntoSubmenu).element);
         }
-        if (!protyle.disabled && !nodeElement.classList.contains("hr")) {
-            getSiyuanGlobalMenus().menu.append(new MenuItem({
-                id: "ai",
-                icon: "iconSparkles",
-                label: siyuanI18n.ai,
-                accelerator: getSiyuanConfig().keymap.editor.general.ai.custom,
-                click() {
-                    openAIActionsMenu([nodeElement], protyle);
-                }
-            }).element);
+        const aiMenuItem = buildGutterAiMenu({ protyle, nodeElement });
+        if (aiMenuItem) {
+            getSiyuanGlobalMenus().menu.append(new MenuItem(aiMenuItem).element);
         }
 
-        const copyMenu = buildGutterCopyMenu({
+        getSiyuanGlobalMenus().menu.append(new MenuItem(buildGutterCopyMenuItem({
             nodeElement,
             type,
             id,
             protyle
-        });
-        getSiyuanGlobalMenus().menu.append(new MenuItem({
-            id: "copy",
-            icon: "iconCopy",
-            label: siyuanI18n.copy,
-            type: "submenu",
-            submenu: copyMenu
-        }).element);
+        })).element);
         if (!protyle.disabled) {
             for (const item of buildGutterEditMenu({ protyle, nodeElement })) {
                 getSiyuanGlobalMenus().menu.append(new MenuItem(item).element);

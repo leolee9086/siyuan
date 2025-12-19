@@ -106,7 +106,7 @@ const createCopyAVIDItem = (ctx: IGutterCopyMenuContext): IMenu => ({
     iconHTML: "",
     label: siyuanI18n.copyAVID,
     click() {
-        writeText(ctx.nodeElement.getAttribute("data-av-id"));
+        writeText(ctx.nodeElement.getAttribute("data-av-id") || "");
     }
 });
 
@@ -188,22 +188,12 @@ const appendNormalBlockItems = (copyMenu: IMenu[], ctx: IGutterCopyMenuContext):
 };
 
 /**
- * 构建 Gutter 复制子菜单
+ * 构建 Gutter 复制子菜单项
  * 
  * @param ctx 复制菜单构建上下文
- * @returns 复制子菜单项数组
- * 
- * @example
- * ```typescript
- * const copyMenu = buildGutterCopyMenu({
- *     nodeElement,
- *     type,
- *     id,
- *     protyle
- * });
- * ```
+ * @returns 复制菜单项
  */
-export const buildGutterCopyMenu = (ctx: IGutterCopyMenuContext): IMenu[] => {
+export const buildGutterCopyMenuItem = (ctx: IGutterCopyMenuContext): IMenu => {
     // 基础复制菜单项
     const copyMenu = (copySubMenu([ctx.id], true, ctx.nodeElement) as IMenu[]).concat([
         createCopyPlainTextItem(ctx),
@@ -217,12 +207,21 @@ export const buildGutterCopyMenu = (ctx: IGutterCopyMenuContext): IMenu[] => {
     }
 
     // 属性视图特殊处理
+    // 属性视图特殊处理
     if (ctx.type === "NodeAttributeView") {
         appendAttributeViewItems(copyMenu, ctx);
-        return copyMenu;
     }
 
-    // 普通块处理
-    appendNormalBlockItems(copyMenu, ctx);
-    return copyMenu;
+    if (ctx.type !== "NodeAttributeView") {
+        // 普通块处理
+        appendNormalBlockItems(copyMenu, ctx);
+    }
+
+    return {
+        id: "copy",
+        icon: "iconCopy",
+        label: siyuanI18n.copy,
+        type: "submenu",
+        submenu: copyMenu
+    };
 };

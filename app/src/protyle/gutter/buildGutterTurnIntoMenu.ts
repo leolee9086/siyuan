@@ -25,15 +25,20 @@ export const genTurnsOneInto = (options: {
     level?: number,
     accelerator?: string
 }): IMenu => {
-    return {
-        id: options.menuId,
+    const item: IMenu = {
         icon: options.icon,
         label: options.label,
-        accelerator: options.accelerator,
         click() {
             turnsOneInto(options);
         }
-    } as IMenu;
+    };
+    if (options.menuId) {
+        item.id = options.menuId;
+    }
+    if (options.accelerator) {
+        item.accelerator = options.accelerator;
+    }
+    return item;
 };
 
 /**
@@ -49,15 +54,22 @@ export const genTurnsIntoOne = (options: {
     type: TTurnIntoOne,
     level?: TTurnIntoOneSub,
 }): IMenu => {
-    return {
-        id: options.menuId,
-        icon: options.icon,
+    const item: IMenu = {
         label: options.label,
-        accelerator: options.accelerator,
         click() {
             turnsIntoOneTransaction(options);
         }
-    } as IMenu;
+    };
+    if (options.icon) {
+        item.icon = options.icon;
+    }
+    if (options.menuId) {
+        item.id = options.menuId;
+    }
+    if (options.accelerator) {
+        item.accelerator = options.accelerator;
+    }
+    return item;
 };
 
 /**
@@ -74,15 +86,22 @@ export const genTurnsInto = (options: {
     isContinue?: boolean,
     accelerator?: string,
 }): IMenu => {
-    return {
-        id: options.menuId,
-        icon: options.icon,
+    const item: IMenu = {
         label: options.label,
-        accelerator: options.accelerator,
         click() {
             turnsIntoTransaction(options);
         }
-    } as IMenu;
+    };
+    if (options.icon) {
+        item.icon = options.icon;
+    }
+    if (options.menuId) {
+        item.id = options.menuId;
+    }
+    if (options.accelerator) {
+        item.accelerator = options.accelerator;
+    }
+    return item;
 };
 
 // Local definition for missing global types
@@ -184,41 +203,42 @@ const buildParagraphMenu = (ctx: IGutterTurnIntoContext, turnIntoSubmenu: IMenu[
     const insertKeys = getInsertKeymap();
     const headingKeys = getHeadingKeymap();
 
-    // 解决隐式上下文切换
-    const orderedListConfig = insertKeys["ordered-list"];
+    if (insertKeys) {
+        const orderedListConfig = insertKeys["ordered-list"];
+        addTurnIntoOne(ctx, turnIntoSubmenu, {
+            menuId: "list",
+            icon: "iconList",
+            label: siyuanI18n.list,
+            accelerator: insertKeys.list?.custom,
+            type: "Blocks2ULs"
+        });
+        addTurnIntoOne(ctx, turnIntoSubmenu, {
+            menuId: "orderedList",
+            icon: "iconOrderedList",
+            label: siyuanI18n["ordered-list"],
+            accelerator: orderedListConfig?.custom,
+            type: "Blocks2OLs"
+        });
+        addTurnIntoOne(ctx, turnIntoSubmenu, {
+            menuId: "check",
+            icon: "iconCheck",
+            label: siyuanI18n.check,
+            accelerator: insertKeys.check?.custom,
+            type: "Blocks2TLs"
+        });
+        addTurnIntoOne(ctx, turnIntoSubmenu, {
+            menuId: "quote",
+            icon: "iconQuote",
+            label: siyuanI18n.quote,
+            accelerator: insertKeys.quote?.custom,
+            type: "Blocks2Blockquote"
+        });
+    }
 
-    addTurnIntoOne(ctx, turnIntoSubmenu, {
-        menuId: "list",
-        icon: "iconList",
-        label: siyuanI18n.list,
-        accelerator: insertKeys.list.custom,
-        type: "Blocks2ULs"
-    });
-    addTurnIntoOne(ctx, turnIntoSubmenu, {
-        menuId: "orderedList",
-        icon: "iconOrderedList",
-        label: siyuanI18n["ordered-list"],
-        accelerator: orderedListConfig.custom,
-        type: "Blocks2OLs"
-    });
-    addTurnIntoOne(ctx, turnIntoSubmenu, {
-        menuId: "check",
-        icon: "iconCheck",
-        label: siyuanI18n.check,
-        accelerator: insertKeys.check.custom,
-        type: "Blocks2TLs"
-    });
-    addTurnIntoOne(ctx, turnIntoSubmenu, {
-        menuId: "quote",
-        icon: "iconQuote",
-        label: siyuanI18n.quote,
-        accelerator: insertKeys.quote.custom,
-        type: "Blocks2Blockquote"
-    });
     addTurnIntoOne(ctx, turnIntoSubmenu, {
         menuId: "callout",
         icon: "iconCallout",
-        label: siyuanI18n.callout,
+        label: (siyuanI18n as any).callout,
         type: "Blocks2Callout"
     });
 
@@ -248,13 +268,13 @@ const buildHeadingMenu = (ctx: IGutterTurnIntoContext, turnIntoSubmenu: IMenu[])
         menuId: "quote",
         icon: "iconQuote",
         label: siyuanI18n.quote,
-        accelerator: insertKeys.quote.custom,
+        accelerator: insertKeys?.quote?.custom,
         type: "Blocks2Blockquote"
     });
     addTurnIntoOne(ctx, turnIntoSubmenu, {
         menuId: "callout",
         icon: "iconCallout",
-        label: siyuanI18n.callout,
+        label: (siyuanI18n as any).callout,
         type: "Blocks2Callout"
     });
 
@@ -273,44 +293,43 @@ const buildHeadingMenu = (ctx: IGutterTurnIntoContext, turnIntoSubmenu: IMenu[])
 
 import { buildBlockquoteMenu, buildCalloutMenu } from "./buildGutterQuoteMenu";
 
+
 /**
  * 构建 Gutter 转换子菜单
  * 
  * @param ctx 转换菜单构建上下文
- * @returns 转换子菜单项数组
+ * @returns 转换菜单项或 null
  */
-export const buildGutterTurnIntoMenu = (ctx: IGutterTurnIntoContext): IMenu[] => {
+export const buildGutterTurnIntoMenuItem = (ctx: IGutterTurnIntoContext): IMenu | null => {
     const { type, protyle } = ctx;
     const turnIntoSubmenu: IMenu[] = [];
 
     if (protyle.disabled) {
-        return turnIntoSubmenu;
+        return null;
     }
 
-    if (type === "NodeParagraph") {
-        buildParagraphMenu(ctx, turnIntoSubmenu);
-        return turnIntoSubmenu;
+    const builders: Record<string, (ctx: IGutterTurnIntoContext, menu: IMenu[]) => void> = {
+        "NodeParagraph": buildParagraphMenu,
+        "NodeHeading": buildHeadingMenu,
+        "NodeList": buildListMenu,
+        "NodeBlockquote": buildBlockquoteMenu,
+        "NodeCallout": buildCalloutMenu
+    };
+
+    const builder = builders[type];
+    if (builder) {
+        builder(ctx, turnIntoSubmenu);
     }
 
-    if (type === "NodeHeading") {
-        buildHeadingMenu(ctx, turnIntoSubmenu);
-        return turnIntoSubmenu;
+    if (turnIntoSubmenu.length === 0) {
+        return null;
     }
 
-    if (type === "NodeList") {
-        buildListMenu(ctx, turnIntoSubmenu);
-        return turnIntoSubmenu;
-    }
-
-    if (type === "NodeBlockquote") {
-        buildBlockquoteMenu(ctx, turnIntoSubmenu);
-        return turnIntoSubmenu;
-    }
-
-    if (type === "NodeCallout") {
-        buildCalloutMenu(ctx, turnIntoSubmenu);
-        return turnIntoSubmenu;
-    }
-
-    return turnIntoSubmenu;
+    return {
+        id: "turnInto",
+        icon: "iconRefresh",
+        label: siyuanI18n.turnInto,
+        type: "submenu",
+        submenu: turnIntoSubmenu
+    };
 };
