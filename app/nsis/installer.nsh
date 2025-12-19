@@ -1,14 +1,20 @@
 !include WinVer.nsh
 Caption "${PRODUCT_NAME} ${VERSION}"
 
+; 设置默认安装目录
+InstallDir "$LOCALAPPDATA\Programs\siyuan-forge"
+
 !macro preInit
+    ; 设置默认安装目录为 siyuan-forge
+    StrCpy $INSTDIR "$LOCALAPPDATA\Programs\siyuan-forge"
+    
     ${IfNot} ${AtLeastWin10}
         MessageBox MB_ICONEXCLAMATION "非常抱歉，思源笔记无法在低于 Windows 10 的系统上进行安装$\n$\n\
             Sorry, SiYuan cannot be installed on systems below Windows 10$\n"
         Quit
     ${EndIf}
 
-    nsExec::Exec 'TASKKILL /F /IM "SiYuan.exe"'
+    nsExec::Exec 'TASKKILL /F /IM "S-Forge.exe"'
     nsExec::Exec 'TASKKILL /F /IM "SiYuan-Kernel.exe"'
 !macroend
 
@@ -32,20 +38,20 @@ Caption "${PRODUCT_NAME} ${VERSION}"
 
 !macro customUnInstall
     ${IfNot} ${isUpdated}
-        MessageBox MB_YESNO "是否需要彻底删除全局配置（$PROFILE\.config\siyuan\）？$\n$\n\
-            Do you want to delete the global configuration ($PROFILE\.config\siyuan\)?$\n" \
+        MessageBox MB_YESNO "是否需要彻底删除全局配置（$PROFILE\.config\siyuan-forge\）？$\n$\n\
+            Do you want to delete the global configuration ($PROFILE\.config\siyuan-forge\)?$\n" \
             /SD IDYES IDYES AcceptedRMConf IDNO SkippedRMConf
             AcceptedRMConf:
-                RMDir /r "$PROFILE\.config\siyuan\"
+                RMDir /r "$PROFILE\.config\siyuan-forge\"
             SkippedRMConf:
     ${EndIf}
 
     ${IfNot} ${isUpdated}
-        MessageBox MB_YESNO "是否需要彻底删除默认工作空间（$PROFILE\SiYuan\）？$\n$\n\
-            Do you want to completely delete the default workspace ($PROFILE\SiYuan\)?$\n" \
+        MessageBox MB_YESNO "是否需要彻底删除默认工作空间（$PROFILE\SiYuan-Forge\）？$\n$\n\
+            Do you want to completely delete the default workspace ($PROFILE\SiYuan-Forge\)?$\n" \
             /SD IDNO IDYES AcceptedRMWorkspace IDNO SkippedRMWrokspace
             AcceptedRMWorkspace:
-                RMDir /r "$PROFILE\SiYuan\"
+                RMDir /r "$PROFILE\SiYuan-Forge\"
             SkippedRMWrokspace:
     ${EndIf}
 !macroend

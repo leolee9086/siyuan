@@ -165,5 +165,5 @@ export const openTab = (options: IOpenTabOptions) => {
     if (options.custom) {
         return openFile(options);
     }
+    /// #endif
 };
-/// #endif
