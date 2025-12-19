@@ -17,6 +17,30 @@ import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environme
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 /**
+ * 生成复制文本引用菜单项
+ * @param nodeElements 选中元素列表
+ * @returns 菜单项或false
+ */
+const genCopyTextRef = (nodeElements: Element[]): false | IMenu => {
+    const element = nodeElements[0];
+    if (!element || isNotEditBlock(element)) {
+        return false;
+    }
+    return {
+        id: "copyText",
+        iconHTML: "",
+        accelerator: getSiyuanConfig().keymap.editor.general.copyText.custom,
+        label: siyuanI18n.copyText,
+        click() {
+            // 用于标识复制文本 *
+            element.setAttribute("data-reftext", "true");
+            focusByRange(getEditorRange(element));
+            document.execCommand("copy");
+        }
+    };
+};
+
+/**
  * Gutter 复制菜单构建上下文
  * @interface IGutterCopyMenuContext
  */
@@ -29,8 +53,6 @@ export interface IGutterCopyMenuContext {
     id: string;
     /** Protyle 实例 */
     protyle: IProtyle;
-    /** 生成复制文本引用菜单项的方法 */
-    genCopyTextRef: (nodeElements: Element[]) => false | IMenu;
 }
 
 /**
@@ -177,8 +199,7 @@ const appendNormalBlockItems = (copyMenu: IMenu[], ctx: IGutterCopyMenuContext):
  *     nodeElement,
  *     type,
  *     id,
- *     protyle,
- *     genCopyTextRef: this.genCopyTextRef.bind(this)
+ *     protyle
  * });
  * ```
  */
@@ -190,7 +211,7 @@ export const buildGutterCopyMenu = (ctx: IGutterCopyMenuContext): IMenu[] => {
     ]);
 
     // 添加复制文本引用菜单项
-    const copyTextRefMenu = ctx.genCopyTextRef([ctx.nodeElement]);
+    const copyTextRefMenu = genCopyTextRef([ctx.nodeElement]);
     if (copyTextRefMenu) {
         copyMenu.splice(7, 0, copyTextRefMenu);
     }

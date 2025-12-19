@@ -1032,8 +1032,7 @@ export class Gutter {
             nodeElement,
             type,
             id,
-            protyle,
-            genCopyTextRef: this.genCopyTextRef.bind(this)
+            protyle
         });
         getSiyuanGlobalMenus().menu.append(new MenuItem({
             id: "copy",
@@ -1408,23 +1407,7 @@ export class Gutter {
 
 
 
-    private genCopyTextRef(selectsElement: Element[]): false | IMenu {
-        if (isNotEditBlock(selectsElement[0])) {
-            return false;
-        }
-        return {
-            id: "copyText",
-            iconHTML: "",
-            accelerator: getSiyuanConfig().keymap.editor.general.copyText.custom,
-            label: siyuanI18n.copyText,
-            click() {
-                // 用于标识复制文本 *
-                selectsElement[0].setAttribute("data-reftext", "true");
-                focusByRange(getEditorRange(selectsElement[0]));
-                document.execCommand("copy");
-            }
-        };
-    }
+
 
     public render(protyle: IProtyle, element: Element, target?: Element) {
         // https://github.com/siyuan-note/siyuan/issues/4659
