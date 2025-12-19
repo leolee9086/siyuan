@@ -22,47 +22,60 @@ export const handleOpen = (dataObj: any) => {
     /// #endif
 };
 
+const initBazaarActions: Record<string, (bazaar: any) => void> = {
+    template: (bazaar: any) => {
+        fetchPost("/api/bazaar/getBazaarTemplate", {}, response => {
+            bazaar._onBazaar(response, "templates");
+            bazaar._data.templates = response.data.packages;
+        });
+    },
+    icon: (bazaar: any) => {
+        fetchPost("/api/bazaar/getBazaarIcon", {}, response => {
+            bazaar._onBazaar(response, "icons");
+            bazaar._data.icons = response.data.packages;
+        });
+    },
+    widget: (bazaar: any) => {
+        fetchPost("/api/bazaar/getBazaarWidget", {}, response => {
+            bazaar._onBazaar(response, "widgets");
+            bazaar._data.widgets = response.data.packages;
+        });
+    },
+    theme: (bazaar: any) => {
+        fetchPost("/api/bazaar/getBazaarTheme", {}, response => {
+            bazaar._onBazaar(response, "themes");
+            bazaar._data.themes = response.data.packages;
+        });
+    },
+    plugin: (bazaar: any) => {
+        fetchPost("/api/bazaar/getBazaarPlugin", {
+            frontend: getFrontend()
+        }, response => {
+            bazaar._onBazaar(response, "plugins");
+            bazaar._data.plugins = response.data.packages;
+        });
+    }
+};
+
 export const handleTabSwitch = (target: HTMLElement, type: string, bazaar: any) => {
     bazaar.element.querySelector(".layout-tab-bar .item--focus")?.classList.remove("item--focus");
     target.classList.add("item--focus");
-    bazaar.element.querySelectorAll(".config-bazaar__panel").forEach((item: HTMLElement) => {
-        if (type === item.getAttribute("data-type")) {
-            item.classList.remove("fn__none");
-            if (!item.getAttribute("data-init")) {
-                if (type === "template") {
-                    fetchPost("/api/bazaar/getBazaarTemplate", {}, response => {
-                        bazaar._onBazaar(response, "templates");
-                        bazaar._data.templates = response.data.packages;
-                    });
-                } else if (type === "icon") {
-                    fetchPost("/api/bazaar/getBazaarIcon", {}, response => {
-                        bazaar._onBazaar(response, "icons");
-                        bazaar._data.icons = response.data.packages;
-                    });
-                } else if (type === "widget") {
-                    fetchPost("/api/bazaar/getBazaarWidget", {}, response => {
-                        bazaar._onBazaar(response, "widgets");
-                        bazaar._data.widgets = response.data.packages;
-                    });
-                } else if (type === "theme") {
-                    fetchPost("/api/bazaar/getBazaarTheme", {}, response => {
-                        bazaar._onBazaar(response, "themes");
-                        bazaar._data.themes = response.data.packages;
-                    });
-                } else if (type === "plugin") {
-                    fetchPost("/api/bazaar/getBazaarPlugin", {
-                        frontend: getFrontend()
-                    }, response => {
-                        bazaar._onBazaar(response, "plugins");
-                        bazaar._data.plugins = response.data.packages;
-                    });
-                }
-                item.setAttribute("data-init", "true");
-            }
-        } else {
+    const panels = bazaar.element.querySelectorAll(".config-bazaar__panel");
+    for (const panel of panels) {
+        const item = panel as HTMLElement;
+        if (type !== item.getAttribute("data-type")) {
             item.classList.add("fn__none");
+            continue;
         }
-    });
+        item.classList.remove("fn__none");
+        if (item.getAttribute("data-init")) {
+            continue;
+        }
+        if (initBazaarActions[type]) {
+            initBazaarActions[type](bazaar);
+        }
+        item.setAttribute("data-init", "true");
+    }
 };
 
 export const handleBazaarNavClick = (type: string, target: HTMLElement, dataObj: any, bazaar: any, app: App, event: MouseEvent): boolean => {
