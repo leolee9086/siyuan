@@ -27,6 +27,7 @@ export default [{
         "appearance",
         "test",
         "**/*.d.ts",
+        "webpack*.js",
     ],
 }, ...compat.extends("eslint:recommended", "plugin:@typescript-eslint/recommended"), ...pluginVue.configs["flat/essential"], {
     files: ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "src/**/*.mjs"],
