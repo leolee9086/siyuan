@@ -222,14 +222,6 @@ func IsValidPandocBin(binPath string) bool {
 		return false
 	}
 
-	// 在 Unix-like 上要求拥有可执行权限
-	if !gulu.OS.IsWindows() {
-		if fi.Mode().Perm()&0111 == 0 {
-			logging.LogWarnf("file [%s] is not executable", binPath)
-			return false
-		}
-	}
-
 	// 读取文件头判断是否为二进制并排除脚本（#!）
 	f, err := os.Open(binPath)
 	if err != nil {
@@ -247,17 +239,20 @@ func IsValidPandocBin(binPath string) bool {
 	}
 
 	isBin := false
-	// 常见二进制魔数：ELF, PE("MZ"), Mach-O/FAT
+	// 常见二进制魔数：ELF, PE("MZ"), Mach-O (32/64, big/little), FAT
 	if len(header) >= 4 {
 		switch {
 		case bytes.Equal(header[:4], []byte{0x7f, 'E', 'L', 'F'}):
 			isBin = true // ELF
-		case bytes.Equal(header[:4], []byte{0xfe, 0xed, 0xfa, 0xce}):
-			isBin = true // Mach-O
-		case bytes.Equal(header[:4], []byte{0xce, 0xfa, 0xed, 0xfe}):
-			isBin = true // Mach-O (swapped)
-		case bytes.Equal(header[:4], []byte{0xca, 0xfe, 0xba, 0xbe}):
-			isBin = true // FAT
+		// Mach-O / Mach-O swapped (32-bit)
+		case bytes.Equal(header[:4], []byte{0xfe, 0xed, 0xfa, 0xce}), bytes.Equal(header[:4], []byte{0xce, 0xfa, 0xed, 0xfe}):
+			isBin = true
+		// Mach-O 64-bit / swapped
+		case bytes.Equal(header[:4], []byte{0xfe, 0xed, 0xfa, 0xcf}), bytes.Equal(header[:4], []byte{0xcf, 0xfa, 0xed, 0xfe}):
+			isBin = true
+		// FAT / FAT swapped
+		case bytes.Equal(header[:4], []byte{0xca, 0xfe, 0xba, 0xbe}), bytes.Equal(header[:4], []byte{0xbe, 0xba, 0xfe, 0xca}):
+			isBin = true
 		}
 	}
 	// PE only needs first 2 bytes "MZ"

@@ -1,21 +1,21 @@
-import {showMessage} from "../dialog/message";
-import {fetchPost} from "../util/fetch";
-import {confirmDialog} from "../dialog/confirmDialog";
-import {highlightRender} from "../protyle/render/highlightRender";
-import {saveLayout} from "../layout/util";
-import {Constants} from "../constants";
+import { showMessage } from "../dialog/message";
+import { fetchPost } from "../util/fetch";
+import { confirmDialog } from "../dialog/confirmDialog";
+import { highlightRender } from "../protyle/render/highlightRender";
+import { saveLayout } from "../layout/util";
+import { Constants } from "../constants";
 /// #if !BROWSER
 import * as path from "path";
 /// #endif
-import {getFrontend, isBrowser} from "../util/functions";
-import {setStorageVal} from "../protyle/util/compatibility";
-import {hasClosestByAttribute, hasClosestByClassName} from "../protyle/util/hasClosest";
-import {Plugin} from "../plugin";
-import {App} from "../index";
-import {escapeAttr} from "../util/escape";
-import {uninstall} from "../plugin/uninstall";
-import {afterLoadPlugin, loadPlugin, loadPlugins, reloadPlugin} from "../plugin/loader";
-import {useShell} from "../util/pathName";
+import { getFrontend, isBrowser } from "../util/functions";
+import { setStorageVal, writeText } from "../protyle/util/compatibility";
+import { hasClosestByAttribute, hasClosestByClassName } from "../protyle/util/hasClosest";
+import { Plugin } from "../plugin";
+import { App } from "../index";
+import { escapeAttr } from "../util/escape";
+import { uninstall } from "../plugin/uninstall";
+import { afterLoadPlugin, loadPlugin, loadPlugins, reloadPlugin } from "../plugin/loader";
+import { useShell } from "../util/pathName";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const bazaar = {
@@ -23,7 +23,7 @@ export const bazaar = {
     // 提取并统计关键词
     _extractKeywords(items: IBazaarItem[]): string[] {
         const keywordCount: { [key: string]: number } = {};
-        
+
         items.forEach(item => {
             if (item.keywords) {
                 item.keywords.forEach(keyword => {
@@ -35,30 +35,30 @@ export const bazaar = {
                 });
             }
         });
-                console.log(bazaar,keywordCount);
+        console.log(bazaar, keywordCount);
 
         // 按出现频率排序，返回前10个关键词
-        const data= Object.entries(keywordCount)
+        const data = Object.entries(keywordCount)
             .sort((a, b) => b[1] - a[1])
             .slice(0, 10)
             .map(entry => entry[0]);
-            console.log(data);
-            return data;
+        console.log(data);
+        return data;
     },
     // 生成关键词标签HTML
     _genKeywordsHTML(bazaarType: TBazaarType): string {
         const keywords = bazaar._data.keywords[bazaarType];
-        console.log(bazaar,bazaarType,keywords);
+        console.log(bazaar, bazaarType, keywords);
         const selectedKeywords = bazaar._data.selectedKeywords[bazaarType];
-        
+
         let html = '<div class="config-bazaar__keywords">';
         html += '<div class="config-bazaar__keywords-list">';
-        
+
         keywords.forEach(keyword => {
             const isSelected = selectedKeywords.includes(keyword);
             html += `<span class="b3-chip ${isSelected ? "b3-chip--primary" : ""}" data-keyword="${keyword}" data-type="${bazaarType}">${keyword}</span>`;
         });
-        
+
         html += "</div></div>";
         console.log(html);
         return html;
@@ -67,18 +67,18 @@ export const bazaar = {
     _filterPackagesByKeywords(bazaarType: TBazaarType) {
         const selectedKeywords = bazaar._data.selectedKeywords[bazaarType];
         const allPackages = bazaar._data[bazaarType];
-        
+
         // 如果没有选中任何关键词，显示所有包
         if (selectedKeywords.length === 0) {
             return allPackages;
         }
-        
+
         // 过滤包含所有选中关键词的包
         return allPackages.filter(item => {
             if (!item.keywords || item.keywords.length === 0) {
                 return false;
             }
-            
+
             // 检查是否包含所有选中的关键词
             return selectedKeywords.every(selectedKeyword =>
                 item.keywords!.includes(selectedKeyword)
@@ -306,6 +306,17 @@ export const bazaar = {
 <div id="configBazaarReadme" class="config-bazaar__readme"></div>
 </div>`;
     },
+    _genFundingHTML(funding: string): string {
+        if (!funding) {
+            return "";
+        }
+        try {
+            new URL(funding);
+            return `<a target="_blank" href="${escapeAttr(funding)}" class="block__icon block__icon--show ariaLabel" aria-label="${siyuanI18n.sponsor} ${escapeAttr(funding)}"><svg class="ft__pink"><use xlink:href="#iconHeart"></use></svg></a>`;
+        } catch (e) {
+            return `<span data-type="copy-funding" data-funding="${escapeAttr(funding)}" class="block__icon block__icon--show ariaLabel" aria-label="${siyuanI18n.sponsor} ${escapeAttr(funding)}"><svg class="ft__pink"><use xlink:href="#iconHeart"></use></svg></span>`;
+        }
+    },
     _genCardHTML(item: IBazaarItem, bazaarType: TBazaarType) {
         let hide = false;
         let themeMode = "";
@@ -349,7 +360,7 @@ export const bazaar = {
                 ${item.downloads}
             </span>
             <span class="fn__space"></span>
-            ${item.preferredFunding ? `<a target="_blank" href="${item.preferredFunding}" class="block__icon block__icon--show ariaLabel" aria-label="${siyuanI18n.sponsor} ${item.preferredFunding}"><svg class="ft__pink"><use xlink:href="#iconHeart"></use></svg></a><span class="fn__space"></span>` : ""}
+            ${item.preferredFunding ? bazaar._genFundingHTML(item.preferredFunding) + '<span class="fn__space"></span>' : ""}
             <div class="fn__flex-1"></div>
             <span class="b3-tooltips b3-tooltips__nw block__icon block__icon--show${item.installed ? "" : " fn__none"}" data-type="uninstall" aria-label="${siyuanI18n.uninstall}">
                 <svg><use xlink:href="#iconTrashcan"></use></svg>
@@ -386,7 +397,7 @@ export const bazaar = {
     </div>
     <div class="b3-card__actions b3-card__actions--right">
         ${item.incompatible ? `<span class="fn__space"></span><span class="fn__flex-center b3-tooltips b3-tooltips__nw b3-chip b3-chip--error b3-chip--small" aria-label="${siyuanI18n.incompatiblePluginTip}">${siyuanI18n.incompatible}</span>` : ""}
-        ${item.preferredFunding ? `<a target="_blank" href="${item.preferredFunding}" class="block__icon block__icon--show ariaLabel" aria-label="${siyuanI18n.sponsor} ${item.preferredFunding}"><svg class="ft__pink"><use xlink:href="#iconHeart"></use></svg></a>` : ""}
+        ${bazaar._genFundingHTML(item.preferredFunding)}
         <span class="b3-tooltips b3-tooltips__nw block__icon block__icon--show${isBrowser() ? " fn__none" : ""}" data-type="open" aria-label="${siyuanI18n.showInFolder}">
             <svg><use xlink:href="#iconFolder"></use></svg>
         </span>
@@ -397,7 +408,7 @@ export const bazaar = {
 </div>`;
     },
     _getUpdate() {
-        fetchPost("/api/bazaar/getUpdatedPackage", {frontend: getFrontend()}, (response) => {
+        fetchPost("/api/bazaar/getUpdatedPackage", { frontend: getFrontend() }, (response) => {
             let html = "";
             response.data.plugins.forEach((item: IBazaarItem) => {
                 html += this._genUpdateItemHTML(item, "plugins");
@@ -495,7 +506,7 @@ export const bazaar = {
     </div>
     <div class="b3-card__actions b3-card__actions--right">
         ${item.incompatible ? `<span class="fn__space"></span><span class="fn__flex-center b3-tooltips b3-tooltips__nw b3-chip b3-chip--error b3-chip--small" aria-label="${siyuanI18n.incompatiblePluginTip}">${siyuanI18n.incompatible}</span>` : ""}
-        ${item.preferredFunding ? `<a target="_blank" href="${item.preferredFunding}" class="block__icon block__icon--show ariaLabel" aria-label="${siyuanI18n.sponsor} ${item.preferredFunding}"><svg class="ft__pink"><use xlink:href="#iconHeart"></use></svg></a>` : ""}
+        ${bazaar._genFundingHTML(item.preferredFunding)}
         <span class="b3-tooltips b3-tooltips__nw block__icon block__icon--show${hasSetting ? "" : " fn__none"}" data-type="setting" aria-label="${siyuanI18n.config}">
             <svg><use xlink:href="#iconSettings"></use></svg>
         </span>
@@ -598,9 +609,9 @@ export const bazaar = {
     <div class="block__icons">
         <span class="fn__flex-1"></span>
         ${data.preferredFunding ?
-            `<a target="_blank" href="${data.preferredFunding}" class="block__icon block__icon--show ariaLabel" aria-label="${siyuanI18n.sponsor} ${data.preferredFunding}"><svg class="ft__pink"><use xlink:href="#iconHeart"></use></svg></a>` :
-            `<span class="b3-tooltips b3-tooltips__ne block__icon block__icon--show ft__primary" aria-label="${siyuanI18n.author}"><svg><use xlink:href="#iconAccount"></use></svg></span>`
-        }
+                bazaar._genFundingHTML(data.preferredFunding) :
+                `<span class="b3-tooltips b3-tooltips__ne block__icon block__icon--show ft__primary" aria-label="${siyuanI18n.author}" style="cursor: default"><svg><use xlink:href="#iconAccount"></use></svg></span>`
+            }
         <span class="fn__space"></span>
         <a href="${urls.join("/")}" target="_blank" title="Creator">${data.author}</a>
         <span class="fn__flex-1"></span>
@@ -708,6 +719,16 @@ export const bazaar = {
                 const type = target.getAttribute("data-type");
                 if (target.tagName === "A") {
                     break;
+                }
+                if (type === "copy-funding") {
+                    const funding = target.getAttribute("data-funding");
+                    if (funding) {
+                        writeText(funding);
+                        showMessage(window.siyuan.languages.copied);
+                    }
+                    event.preventDefault();
+                    event.stopPropagation();
+                    break;
                 } else if (type === "open" && dataObj) {
                     /// #if !BROWSER
                     const dirName = dataObj.bazaarType;
@@ -786,7 +807,7 @@ export const bazaar = {
                     break;
                 } else if (type === "install-all") {
                     confirmDialog("⬆️ " + siyuanI18n.updateAll, siyuanI18n.confirmUpdateAll, () => {
-                        fetchPost("/api/bazaar/batchUpdatePackage", {frontend: getFrontend()});
+                        fetchPost("/api/bazaar/batchUpdatePackage", { frontend: getFrontend() });
                     });
                     event.preventDefault();
                     event.stopPropagation();
@@ -1054,22 +1075,22 @@ export const bazaar = {
                     const keyword = inputElement.value.trim();
                     const type = (hasClosestByClassName(inputElement, "config-bazaar__panel") as HTMLElement).getAttribute("data-type");
                     if (type === "template") {
-                        fetchPost("/api/bazaar/getBazaarTemplate", {keyword}, response => {
+                        fetchPost("/api/bazaar/getBazaarTemplate", { keyword }, response => {
                             bazaar._onBazaar(response, "templates");
                             bazaar._data.templates = response.data.packages;
                         });
                     } else if (type === "icon") {
-                        fetchPost("/api/bazaar/getBazaarIcon", {keyword}, response => {
+                        fetchPost("/api/bazaar/getBazaarIcon", { keyword }, response => {
                             bazaar._onBazaar(response, "icons");
                             bazaar._data.icons = response.data.packages;
                         });
                     } else if (type === "widget") {
-                        fetchPost("/api/bazaar/getBazaarWidget", {keyword}, response => {
+                        fetchPost("/api/bazaar/getBazaarWidget", { keyword }, response => {
                             bazaar._onBazaar(response, "widgets");
                             bazaar._data.widgets = response.data.packages;
                         });
                     } else if (type === "theme") {
-                        fetchPost("/api/bazaar/getBazaarTheme", {keyword}, response => {
+                        fetchPost("/api/bazaar/getBazaarTheme", { keyword }, response => {
                             bazaar._onBazaar(response, "themes");
                             bazaar._data.themes = response.data.packages;
                         });
@@ -1161,11 +1182,11 @@ export const bazaar = {
             if (target.classList.contains("b3-chip") && target.hasAttribute("data-keyword")) {
                 const keyword = target.getAttribute("data-keyword");
                 const bazaarType = target.getAttribute("data-type") as TBazaarType;
-                
+
                 // 切换关键词选中状态
                 const selectedKeywords = bazaar._data.selectedKeywords[bazaarType];
                 const index = selectedKeywords.indexOf(keyword);
-                
+
                 if (index === -1) {
                     // 添加关键词
                     selectedKeywords.push(keyword);
@@ -1175,7 +1196,7 @@ export const bazaar = {
                     selectedKeywords.splice(index, 1);
                     target.classList.remove("b3-chip--primary");
                 }
-                
+
                 // 应用过滤
                 bazaar._renderFilteredPackages(bazaarType);
             }
@@ -1185,11 +1206,11 @@ export const bazaar = {
     _renderFilteredPackages(bazaarType: TBazaarType) {
         const filteredPackages = bazaar._filterPackagesByKeywords(bazaarType);
         let html = "";
-        
+
         filteredPackages.forEach((item: IBazaarItem) => {
             html += bazaar._genCardHTML(item, bazaarType);
         });
-        
+
         let id = "#configBazaarTemplate";
         if (bazaarType === "themes") {
             id = "#configBazaarTheme";
@@ -1200,11 +1221,11 @@ export const bazaar = {
         } else if (bazaarType === "plugins") {
             id = "#configBazaarPlugin";
         }
-        
+
         const element = bazaar.element.querySelector(id);
         element.innerHTML = `<div class="b3-cards">${html}</div>`;
         element.parentElement.querySelector(".counter").textContent = filteredPackages.length.toString();
-        
+
         // 应用当前排序
         const localSort = window.siyuan.storage[Constants.LOCAL_BAZAAR];
         if (localSort[bazaarType.replace("s", "")] === "1") {
@@ -1229,11 +1250,11 @@ export const bazaar = {
                 html += item.outerHTML;
             });
         }
-        
+
         if (filteredPackages.length > 1) {
             html += '<div class="fn__flex-1" style="margin-left: 15px;min-width: 342px;"></div><div class="fn__flex-1" style="margin-left: 15px;min-width: 342px;"></div>';
         }
-        
+
         element.innerHTML = `<div class="b3-cards">${html}</div>`;
     },
     _onBazaar(response: IWebSocketData, bazaarType: TBazaarType) {
@@ -1266,7 +1287,7 @@ export const bazaar = {
         });
         bazaar._data[bazaarType] = response.data.packages;
         // 提取并存储关键词
-        console.log(bazaar,bazaarType);
+        console.log(bazaar, bazaarType);
         bazaar._data.keywords[bazaarType] = bazaar._extractKeywords(response.data.packages);
         element.innerHTML = `<div class="b3-cards">${html}</div>`;
         element.parentElement.querySelector(".counter").textContent = element.querySelectorAll(".b3-card:not(.fn__none)").length.toString();
