@@ -88,8 +88,11 @@ const 创建代码块开关菜单项 = (
     ctx: IGutterCodeBlockMenuContext
 ): IMenu => {
     const attrValue = ctx.nodeElement.getAttribute(config.attrName);
-    const editorConfig = getSiyuanConfig().editor;
-    const isChecked = 计算开关初始状态(attrValue, editorConfig[config.editorConfigKey]);
+    const siyuanConfig = getSiyuanConfig();
+    if (!siyuanConfig?.editor) {
+        throw new Error("SiYuan config or editor config is not available");
+    }
+    const isChecked = 计算开关初始状态(attrValue, siyuanConfig.editor[config.editorConfigKey]);
 
     return {
         id: config.menuId,
@@ -98,9 +101,13 @@ const 创建代码块开关菜单项 = (
 <input type="checkbox" class="b3-switch fn__flex-center"${isChecked ? " checked" : ""}></div>`,
         bind(element) {
             // @内联回调
-            element.addEventListener("click", (event: MouseEvent & { target: HTMLElement }) => {
-                const inputElement = element.querySelector("input");
-                if (event.target.tagName !== "INPUT") {
+            element.addEventListener("click", (event: Event) => {
+                const inputElement = element.querySelector("input") as HTMLInputElement;
+                if (!inputElement) {
+                    return;
+                }
+                const target = event.target as HTMLElement;
+                if (target.tagName !== "INPUT") {
                     inputElement.checked = !inputElement.checked;
                 }
                 // 更新节点属性
