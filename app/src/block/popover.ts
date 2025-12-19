@@ -37,7 +37,7 @@ const POPOVER_SHOW_DELAY_MS = 620;
 /** 检查面板是否已固定且内容相同 */
 const 是已固定的相同面板 = (refDefs: IRefDefs[]) => (item: BlockPanel) =>
     (item.targetElement || typeof item.x === "number")
-    && item.element.getAttribute("data-pin") === "true"
+    && item.element?.getAttribute("data-pin") === "true"
     && JSON.stringify(refDefs) === JSON.stringify(item.refDefs);
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
