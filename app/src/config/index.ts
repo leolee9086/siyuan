@@ -1,26 +1,26 @@
 /// #if MOBILE
-import {popMenu} from "../mobile/menu";
+import { popMenu } from "../mobile/menu";
 /// #else
-import {editor} from "./editor";
-import {about} from "./about";
-import {appearance} from "./appearance";
-import {image} from "./image";
-import {initConfigSearch} from "./search";
-import {fileTree} from "./fileTree";
-import {exportConfig} from "./exportConfig";
-import {account} from "./account";
-import {repos} from "./repos";
-import {keymap} from "./keymap";
-import {bazaar} from "./bazaar";
-import {query} from "./query";
-import {Dialog} from "../dialog";
-import {ai} from "./ai";
-import {flashcard} from "./flashcard";
-import {publish} from "./publish";
-import {App} from "../index";
-import {isHuawei, isInHarmony} from "../protyle/util/compatibility";
-import {Constants} from "../constants";
-import {focusByRange} from "../protyle/util/selection";
+import { editor } from "./editor";
+import { about } from "./about";
+import { appearance } from "./appearance";
+import { image } from "./image";
+import { initConfigSearch } from "./search";
+import { fileTree } from "./fileTree";
+import { exportConfig } from "./exportConfig";
+import { account } from "./account";
+import { repos } from "./repos";
+import { keymap } from "./keymap";
+import { bazaar } from "./bazzar/bazaar";
+import { query } from "./query";
+import { Dialog } from "../dialog";
+import { ai } from "./ai";
+import { flashcard } from "./flashcard";
+import { publish } from "./publish";
+import { App } from "../index";
+import { isHuawei, isInHarmony } from "../protyle/util/compatibility";
+import { Constants } from "../constants";
+import { focusByRange } from "../protyle/util/selection";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 /// #endif
 
@@ -161,9 +161,9 @@ export const openSetting = (app: App) => {
                 focusByRange(range);
             }
         },
-        transparent:true,
-        disableScrimClose:true,
-        scrimPointerEvents:true,
+        transparent: true,
+        disableScrimClose: true,
+        scrimPointerEvents: true,
     });
     dialog.element.setAttribute("data-key", Constants.DIALOG_SETTING);
 

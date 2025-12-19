@@ -1,22 +1,22 @@
-import { showMessage } from "../dialog/message";
-import { fetchPost } from "../util/fetch";
-import { confirmDialog } from "../dialog/confirmDialog";
-import { highlightRender } from "../protyle/render/highlightRender";
-import { saveLayout } from "../layout/util";
-import { Constants } from "../constants";
+import { showMessage } from "../../dialog/message";
+import { fetchPost } from "../../util/fetch";
+import { confirmDialog } from "../../dialog/confirmDialog";
+import { highlightRender } from "../../protyle/render/highlightRender";
+import { saveLayout } from "../../layout/util";
+import { Constants } from "../../constants";
 /// #if !BROWSER
 import * as path from "path";
 /// #endif
-import { getFrontend, isBrowser } from "../util/functions";
-import { setStorageVal, writeText } from "../protyle/util/compatibility";
-import { hasClosestByAttribute, hasClosestByClassName } from "../protyle/util/hasClosest";
-import { Plugin } from "../plugin";
-import { App } from "../index";
-import { escapeAttr } from "../util/escape";
-import { uninstall } from "../plugin/uninstall";
-import { afterLoadPlugin, loadPlugin, loadPlugins, reloadPlugin } from "../plugin/loader";
-import { useShell } from "../util/pathName";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
+import { getFrontend, isBrowser } from "../../util/functions";
+import { setStorageVal, writeText } from "../../protyle/util/compatibility";
+import { hasClosestByAttribute, hasClosestByClassName } from "../../protyle/util/hasClosest";
+import { Plugin } from "../../plugin";
+import { App } from "../../index";
+import { escapeAttr } from "../../util/escape";
+import { uninstall } from "../../plugin/uninstall";
+import { afterLoadPlugin, loadPlugin, loadPlugins, reloadPlugin } from "../../plugin/loader";
+import { useShell } from "../../util/pathName";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const bazaar = {
     element: undefined as Element,
