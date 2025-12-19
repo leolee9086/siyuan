@@ -78,7 +78,8 @@ const 创建新消息HTML = (id: string, messageVersion: string, timeout: number
     let html = `<div data-id="${id}" class="b3-snackbar--hide b3-snackbar${errorClass}"><div data-type="textMenu" class="${contentClass}">${messageVersion}</div>`;
     if (timeout === 0) {
         html += '<svg class="b3-snackbar__close"><use xlink:href="#iconCloseRound"></use></svg>';
-    } else if (timeout !== -1) {
+    }
+    if (timeout > 0) {
         const timeoutId = window.setTimeout(() => hideMessage(id), timeout);
         html = html.replace("<div data-id", `<div data-timeoutid="${timeoutId}" data-id`);
     }
@@ -87,7 +88,8 @@ const 创建新消息HTML = (id: string, messageVersion: string, timeout: number
 
 const 移除隐藏类 = (messagesElement: Element) => {
     setTimeout(() => {
-        messagesElement.querySelectorAll(".b3-snackbar--hide").forEach(item => item.classList.remove("b3-snackbar--hide"));
+        const 隐藏的消息 = messagesElement.querySelectorAll(".b3-snackbar--hide");
+        隐藏的消息.forEach(item => item.classList.remove("b3-snackbar--hide"));
     });
 };
 
@@ -126,35 +128,34 @@ export const hideMessage = (id?: string) => {
     if (!messagesElement) {
         return;
     }
-    if (id) {
-        const messageElement = messagesElement.querySelector(`[data-id="${id}"]`);
-        if (messageElement) {
-            messageElement.classList.add("b3-snackbar--hide");
-            window.clearTimeout(parseInt(messageElement.getAttribute("data-timeoutid")));
-            setTimeout(() => {
-                messageElement.remove();
-                if (messagesElement.childElementCount === 0) {
-                    messagesElement.parentElement.classList.remove("b3-snackbars--show");
-                    messagesElement.innerHTML = "";
-                }
-            }, Constants.TIMEOUT_INPUT);
-        }
-        let hasShowItem = false;
-        Array.from(messagesElement.children).find(item => {
-            if (!item.classList.contains("b3-snackbar--hide")) {
-                hasShowItem = true;
-                return true;
-            }
-        });
-        if (hasShowItem) {
-            messagesElement.parentElement.classList.add("b3-snackbars--show");
-        } else {
-            messagesElement.parentElement.classList.remove("b3-snackbars--show");
-        }
-    } else {
+    // 卫语句：无指定 id 时清除所有消息
+    if (!id) {
         messagesElement.parentElement.classList.remove("b3-snackbars--show");
         setTimeout(() => {
             messagesElement.innerHTML = "";
         }, Constants.TIMEOUT_INPUT);
+        return;
     }
+
+    // 处理指定 id 的消息
+    const messageElement = messagesElement.querySelector(`[data-id="${id}"]`);
+    if (messageElement) {
+        messageElement.classList.add("b3-snackbar--hide");
+        window.clearTimeout(parseInt(messageElement.getAttribute("data-timeoutid")));
+        setTimeout(() => {
+            messageElement.remove();
+            if (messagesElement.childElementCount === 0) {
+                messagesElement.parentElement.classList.remove("b3-snackbars--show");
+                messagesElement.innerHTML = "";
+            }
+        }, Constants.TIMEOUT_INPUT);
+    }
+    const hasShowItem = Array.from(messagesElement.children).some(
+        item => !item.classList.contains("b3-snackbar--hide")
+    );
+    if (hasShowItem) {
+        messagesElement.parentElement.classList.add("b3-snackbars--show");
+        return;
+    }
+    messagesElement.parentElement.classList.remove("b3-snackbars--show");
 };
