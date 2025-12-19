@@ -68,10 +68,7 @@ import { buildGutterTurnIntoMenuItem } from "./buildGutterTurnIntoMenu";
 import { buildGutterAlignMenu, buildGutterWidthsMenu } from "./buildGutterStyleMenu";
 import { showMobileAppearance } from "./showMobileAppearance";
 import { buildGutterMultipleMenu } from "./buildGutterMultipleMenu";
-import { buildGutterCommonMenu } from "./buildGutterCommonMenu";
-import { buildGutterEditMenu } from "./buildGutterEditMenu";
-import { buildGutterTypeSpecificMenu } from "./buildGutterTypeSpecificMenu";
-import { buildGutterAiMenu } from "./buildGutterAiMenu";
+import { buildGutterMenu } from "./buildGutterMenu";
 
 
 
@@ -513,84 +510,7 @@ export class Gutter {
     }
 
     public renderMenu(protyle: IProtyle, buttonElement: Element) {
-        if (!buttonElement) {
-            return;
-        }
-        hideElements(["util", "toolbar", "hint"], protyle);
-        getSiyuanGlobalMenus().menu.remove();
-        if (isMobile()) {
-            activeBlur();
-        }
-        const id = buttonElement.getAttribute("data-node-id");
-        const selectsElement = protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select");
-        if (selectsElement.length > 1) {
-            getSiyuanGlobalMenus().menu.element.setAttribute("data-name", Constants.MENU_BLOCK_MULTI);
-            const match = Array.from(selectsElement).find(item => {
-                if (id === item.getAttribute("data-node-id")) {
-                    return true;
-                }
-            });
-            if (match) {
-                return this.renderMultipleMenu(protyle, Array.from(selectsElement));
-            }
-        } else {
-            getSiyuanGlobalMenus().menu.element.setAttribute("data-name", Constants.MENU_BLOCK_SINGLE);
-        }
-
-        let nodeElement: Element;
-        if (buttonElement.tagName === "BUTTON") {
-            Array.from(protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${id}"]`)).find(item => {
-                if (!isInEmbedBlock(item) && this.isMatchNode(item)) {
-                    nodeElement = item;
-                    return true;
-                }
-            });
-        } else {
-            nodeElement = buttonElement;
-        }
-        if (!nodeElement) {
-            return;
-        }
-        const type = nodeElement.getAttribute("data-type");
-        const subType = nodeElement.getAttribute("data-subtype");
-        hideElements(["select"], protyle);
-        nodeElement.classList.add("protyle-wysiwyg--select");
-        countBlockWord([id], protyle.block.rootID);
-        // "heading1-6", "list", "ordered-list", "check", "quote", "code", "table", "line", "math", "paragraph"
-        const turnIntoSubmenu = buildGutterTurnIntoMenuItem({
-            nodeElement,
-            id,
-            type,
-            subType,
-            protyle,
-
-        });
-        if (turnIntoSubmenu) {
-            getSiyuanGlobalMenus().menu.append(new MenuItem(turnIntoSubmenu).element);
-        }
-        const aiMenuItem = buildGutterAiMenu({ protyle, nodeElement });
-        if (aiMenuItem) {
-            getSiyuanGlobalMenus().menu.append(new MenuItem(aiMenuItem).element);
-        }
-
-        getSiyuanGlobalMenus().menu.append(new MenuItem(buildGutterCopyMenuItem({
-            nodeElement,
-            type,
-            id,
-            protyle
-        })).element);
-        if (!protyle.disabled) {
-            for (const item of buildGutterEditMenu({ protyle, nodeElement })) {
-                getSiyuanGlobalMenus().menu.append(new MenuItem(item).element);
-            }
-        }
-        // 类型特定菜单
-        buildGutterTypeSpecificMenu({ protyle, nodeElement, id, type, subType });
-        // 通用操作菜单
-        for (const item of buildGutterCommonMenu({ protyle, nodeElement, id, type })) {
-            getSiyuanGlobalMenus().menu.append(new MenuItem(item).element);
-        }
-        return getSiyuanGlobalMenus().menu;
+        return buildGutterMenu({ protyle, buttonElement });
     }
 
 
