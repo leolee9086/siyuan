@@ -2,101 +2,124 @@ import {openModel} from "../menu/model";
 import {fetchPost} from "../../util/fetch";
 import {genNotebookOption} from "../../menus/onGetnotebookconf";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import type { SiYuanI18n } from "../../types/i18n.types";
+const generateCheckboxHTML = (id: string, i18nKey: keyof SiYuanI18n, i18nTextKey: keyof SiYuanI18n, checked: boolean) => {
+    return `<label class="fn__flex b3-label">
+    <div class="fn__flex-1">
+        ${siyuanI18n[i18nKey]}
+        <div class="b3-label__text">${siyuanI18n[i18nTextKey]}</div>
+    </div>
+    <span class="fn__space"></span>
+    <input class="b3-switch fn__flex-center" id="${id}" type="checkbox"${checked ? " checked" : ""}/>
+</label>`;
+};
+
+const generateNumberInputHTML = (id: string, i18nKey: keyof SiYuanI18n, i18nTextKey: keyof SiYuanI18n, value: number, min: number, max: number, suffix?: string) => {
+    const suffixHTML = suffix ? `
+        <span class="fn__space"></span>
+        <span class="ft__on-surface fn__flex-center">${suffix}</span>` : "";
+    
+    return `<div class="b3-label">
+    ${siyuanI18n[i18nKey]}
+    <span class="fn__hr"></span>
+    <div class="fn__flex">
+        <input class="b3-text-field fn__flex-1" id="${id}" type="number" min="${min}" max="${max}" value="${value}">
+        ${suffixHTML}
+    </div>
+    <div class="b3-label__text">${siyuanI18n[i18nTextKey]}</div>
+</div>`;
+};
+
+const generateBlockNumberInputHTML = (id: string, i18nKey: keyof SiYuanI18n, i18nTextKey: keyof SiYuanI18n, value: number, min: number, max: number) => {
+    return `<div class="b3-label">
+    ${siyuanI18n[i18nKey]}
+    <span class="fn__hr"></span>
+    <input class="b3-text-field fn__block" id="${id}" type="number" min="${min}" max="${max}" value="${value}">
+    <div class="b3-label__text">${siyuanI18n[i18nTextKey]}</div>
+</div>`;
+};
+
+const generateSavePathHTML = (id: string, i18nKey: keyof SiYuanI18n, i18nTextKey: keyof SiYuanI18n, boxId: string, boxValue: string, pathValue: string) => {
+    return `<div class="b3-label">
+    ${siyuanI18n[i18nKey]}
+    <span class="fn__hr"></span>
+    <select class="b3-select fn__block" id="${boxId}">${genNotebookOption(boxValue)}</select>
+    <span class="fn__hr"></span>
+    <input class="b3-text-field fn__block" id="${id}" value="${pathValue}">
+    <div class="b3-label__text">${siyuanI18n[i18nTextKey]}</div>
+</div>`;
+};
+
+const generateFileTreeHTML = (config: Config.IFileTree) => {
+    return generateCheckboxHTML("allowCreateDeeper", "fileTree18", "fileTree19", config.allowCreateDeeper) +
+    generateCheckboxHTML("removeDocWithoutConfirm", "fileTree3", "fileTree4", config.removeDocWithoutConfirm) +
+    generateCheckboxHTML("useSingleLineSave", "fileTree20", "fileTree21", config.useSingleLineSave) +
+    generateCheckboxHTML("createDocAtTop", "fileTree24", "fileTree25", config.createDocAtTop) +
+    generateNumberInputHTML("largeFileWarningSize", "fileTree22", "fileTree23", config.largeFileWarningSize, 2, 10240, "MB") +
+    generateBlockNumberInputHTML("maxListCount", "fileTree16", "fileTree17", config.maxListCount, 1, 10240) +
+    generateSavePathHTML("docCreateSavePath", "fileTree12", "fileTree13", "docCreateSaveBox", config.docCreateSaveBox, "") +
+    generateSavePathHTML("refCreateSavePath", "fileTree5", "fileTree6", "refCreateSaveBox", config.refCreateSaveBox, config.refCreateSavePath);
+};
+
+const handleInputChange = (modelMainElement: HTMLElement, config: Config.IFileTree) => {
+    const docCreateSavePathElement = modelMainElement.querySelector("#docCreateSavePath") as HTMLInputElement;
+    const refCreateSavePathElement = modelMainElement.querySelector("#refCreateSavePath") as HTMLInputElement;
+    const refCreateSaveBoxElement = modelMainElement.querySelector("#refCreateSaveBox") as HTMLInputElement;
+    const docCreateSaveBoxElement = modelMainElement.querySelector("#docCreateSaveBox") as HTMLInputElement;
+    const allowCreateDeeperElement = modelMainElement.querySelector("#allowCreateDeeper") as HTMLInputElement;
+    const removeDocWithoutConfirmElement = modelMainElement.querySelector("#removeDocWithoutConfirm") as HTMLInputElement;
+    const useSingleLineSaveElement = modelMainElement.querySelector("#useSingleLineSave") as HTMLInputElement;
+    const createDocAtTopElement = modelMainElement.querySelector("#createDocAtTop") as HTMLInputElement;
+    const largeFileWarningSizeElement = modelMainElement.querySelector("#largeFileWarningSize") as HTMLInputElement;
+    const maxListCountElement = modelMainElement.querySelector("#maxListCount") as HTMLInputElement;
+
+    fetchPost("/api/setting/setFiletree", {
+        sort: config.sort,
+        alwaysSelectOpenedFile: config.alwaysSelectOpenedFile,
+        refCreateSavePath: refCreateSavePathElement.value,
+        refCreateSaveBox: refCreateSaveBoxElement.value,
+        docCreateSavePath: docCreateSavePathElement.value,
+        docCreateSaveBox: docCreateSaveBoxElement.value,
+        openFilesUseCurrentTab: config.openFilesUseCurrentTab,
+        closeTabsOnStart: config.closeTabsOnStart,
+        allowCreateDeeper: allowCreateDeeperElement.checked,
+        removeDocWithoutConfirm: removeDocWithoutConfirmElement.checked,
+        useSingleLineSave: useSingleLineSaveElement.checked,
+        createDocAtTop: createDocAtTopElement.checked,
+        largeFileWarningSize: parseInt(largeFileWarningSizeElement.value),
+        maxListCount: parseInt(maxListCountElement.value),
+        maxOpenTabCount: config.maxOpenTabCount,
+    }, response => {
+        const config = getSiyuanConfig();
+        config.fileTree = response.data;
+    });
+};
+
+const bindFileTreeEvents = (modelMainElement: HTMLElement, config: Config.IFileTree) => {
+    const docCreateSavePathElement = modelMainElement.querySelector("#docCreateSavePath") as HTMLInputElement;
+    const refCreateSavePathElement = modelMainElement.querySelector("#refCreateSavePath") as HTMLInputElement;
+    
+    docCreateSavePathElement.value = config.docCreateSavePath;
+    refCreateSavePathElement.value = config.refCreateSavePath;
+
+    const inputElements = modelMainElement.querySelectorAll("input, select");
+    for (const item of inputElements) {
+        item.addEventListener("change", () => {
+            handleInputChange(modelMainElement, config);
+        });
+    }
+};
 
 export const initFileTree = () => {
+    const config = getSiyuanConfig().fileTree;
+    
     openModel({
         title: siyuanI18n.fileTree,
         icon: "iconFiles",
-        html: `<label class="fn__flex b3-label">
-    <div class="fn__flex-1">
-        ${siyuanI18n.fileTree18}
-        <div class="b3-label__text">${siyuanI18n.fileTree19}</div>
-    </div>
-    <span class="fn__space"></span>
-    <input class="b3-switch fn__flex-center" id="allowCreateDeeper" type="checkbox"${window.siyuan.config.fileTree.allowCreateDeeper ? " checked" : ""}/>
-</label>
-<label class="fn__flex b3-label">
-    <div class="fn__flex-1">
-        ${siyuanI18n.fileTree3}
-        <div class="b3-label__text">${siyuanI18n.fileTree4}</div>
-    </div>
-    <span class="fn__space"></span>
-    <input class="b3-switch fn__flex-center" id="removeDocWithoutConfirm" type="checkbox"${window.siyuan.config.fileTree.removeDocWithoutConfirm ? " checked" : ""}/>
-</label>
-<label class="fn__flex b3-label">
-    <div class="fn__flex-1">
-        ${siyuanI18n.fileTree20}
-        <div class="b3-label__text">${siyuanI18n.fileTree21}</div>
-    </div>
-    <span class="fn__space"></span>
-    <input class="b3-switch fn__flex-center" id="useSingleLineSave" type="checkbox"${window.siyuan.config.fileTree.useSingleLineSave ? " checked" : ""}/>
-</label>
-<label class="fn__flex b3-label">
-    <div class="fn__flex-1">
-        ${siyuanI18n.fileTree24}
-        <div class="b3-label__text">${siyuanI18n.fileTree25}</div>
-    </div>
-    <span class="fn__space"></span>
-    <input class="b3-switch fn__flex-center" id="createDocAtTop" type="checkbox"${window.siyuan.config.fileTree.createDocAtTop ? " checked" : ""}/>
-</label>
-<div class="b3-label">
-    ${siyuanI18n.fileTree22}
-    <span class="fn__hr"></span>
-    <div class="fn__flex">
-        <input class="b3-text-field fn__flex-1" id="largeFileWarningSize" type="number" min="2" max="10240" value="${window.siyuan.config.fileTree.largeFileWarningSize}">
-        <span class="fn__space"></span>
-        <span class="ft__on-surface fn__flex-center">MB</span>
-    </div>
-    <div class="b3-label__text">${siyuanI18n.fileTree23}</div>
-</div>
-<div class="b3-label">
-    ${siyuanI18n.fileTree16}
-    <span class="fn__hr"></span>
-    <input class="b3-text-field fn__block" id="maxListCount" type="number" min="1" max="10240" value="${window.siyuan.config.fileTree.maxListCount}">
-    <div class="b3-label__text">${siyuanI18n.fileTree17}</div>
-</div>
-<div class="b3-label">
-    ${siyuanI18n.fileTree12}
-    <span class="fn__hr"></span>
-    <select class="b3-select fn__block" id="docCreateSaveBox">${genNotebookOption(window.siyuan.config.fileTree.docCreateSaveBox)}</select>
-    <span class="fn__hr"></span>
-    <input class="b3-text-field fn__block" id="docCreateSavePath" value="">
-    <div class="b3-label__text">${siyuanI18n.fileTree13}</div>
-</div>
-<div class="b3-label">
-    ${siyuanI18n.fileTree5}
-    <span class="fn__hr"></span>
-    <select class="b3-select fn__block" id="refCreateSaveBox">${genNotebookOption(window.siyuan.config.fileTree.refCreateSaveBox)}</select>
-    <span class="fn__hr"></span>
-    <input class="b3-text-field fn__block" id="refCreateSavePath" value="${window.siyuan.config.fileTree.refCreateSavePath}">
-    <div class="b3-label__text">${siyuanI18n.fileTree6}</div>
-</div>`,
+        html: generateFileTreeHTML(config),
         bindEvent(modelMainElement: HTMLElement) {
-            (modelMainElement.querySelector("#docCreateSavePath") as HTMLInputElement).value = window.siyuan.config.fileTree.docCreateSavePath;
-            (modelMainElement.querySelector("#refCreateSavePath") as HTMLInputElement).value = window.siyuan.config.fileTree.refCreateSavePath;
-            modelMainElement.querySelectorAll("input, select").forEach((item) => {
-                item.addEventListener("change", () => {
-                    fetchPost("/api/setting/setFiletree", {
-                        sort: window.siyuan.config.fileTree.sort,
-                        alwaysSelectOpenedFile: window.siyuan.config.fileTree.alwaysSelectOpenedFile,
-                        refCreateSavePath: (modelMainElement.querySelector("#refCreateSavePath") as HTMLInputElement).value,
-                        refCreateSaveBox: (modelMainElement.querySelector("#refCreateSaveBox") as HTMLInputElement).value,
-                        docCreateSavePath: (modelMainElement.querySelector("#docCreateSavePath") as HTMLInputElement).value,
-                        docCreateSaveBox: (modelMainElement.querySelector("#docCreateSaveBox") as HTMLInputElement).value,
-                        openFilesUseCurrentTab: window.siyuan.config.fileTree.openFilesUseCurrentTab,
-                        closeTabsOnStart: window.siyuan.config.fileTree.closeTabsOnStart,
-                        allowCreateDeeper: (modelMainElement.querySelector("#allowCreateDeeper") as HTMLInputElement).checked,
-                        removeDocWithoutConfirm: (modelMainElement.querySelector("#removeDocWithoutConfirm") as HTMLInputElement).checked,
-                        useSingleLineSave: (modelMainElement.querySelector("#useSingleLineSave") as HTMLInputElement).checked,
-                        createDocAtTop: (modelMainElement.querySelector("#createDocAtTop") as HTMLInputElement).checked,
-                        largeFileWarningSize: parseInt((modelMainElement.querySelector("#largeFileWarningSize") as HTMLInputElement).value),
-                        maxListCount: parseInt((modelMainElement.querySelector("#maxListCount") as HTMLInputElement).value),
-                        maxOpenTabCount: window.siyuan.config.fileTree.maxOpenTabCount,
-                    }, response => {
-                        window.siyuan.config.fileTree = response.data;
-                    });
-                });
-            });
+            bindFileTreeEvents(modelMainElement, config);
         }
     });
 };

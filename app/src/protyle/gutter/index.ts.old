@@ -9,10 +9,11 @@ import {
 import { getIconByType } from "../../editor/getIcon";
 import { enterBack, iframeMenu, setFold, videoMenu, zoomOut } from "../../menus/protyle";
 import { MenuItem } from "../../menus/Menu.Item";
-import { openAttr } from "../../menus/commonMenuItem";
+import { copySubMenu, openAttr } from "../../menus/commonMenuItem";
 import { openFileAttr } from "../../menus/commonMenuItem.openFileAttr";
 import { openWechatNotify } from "../../menus/commonMenuItem.openWechatNotify";
 import {
+    copyPlainText,
     isInAndroid,
     isInHarmony,
     isMac,
@@ -28,14 +29,14 @@ import { focusBlock, focusByRange, getEditorRange } from "../util/selection";
 import { hideElements } from "../ui/hideElements";
 import { highlightRender } from "../render/highlightRender";
 
-import { getContenteditableElement, getParentBlock, getTopAloneElement } from "../wysiwyg/getBlock";
+import { getContenteditableElement, getParentBlock, getTopAloneElement, isNotEditBlock } from "../wysiwyg/getBlock";
 import * as dayjs from "dayjs";
 import { fetchPost } from "../../util/fetch";
 import { cancelSB, genEmptyElement, getLangByType, insertEmptyBlock, jumpToParent, } from "../../block/util";
 import { countBlockWord } from "../../layout/status";
 import { Constants } from "../../constants";
 import { mathRender } from "../render/mathRender";
-
+import { duplicateBlock } from "../wysiwyg/commonHotkey";
 import { useShell } from "../../util/pathName";
 import { movePathTo } from "../../util/pathName/movePathTo";
 import { hintMoveBlock } from "../hint/extend";
@@ -50,7 +51,7 @@ import { setPosition } from "../../util/setPosition";
 import { emitOpenMenu } from "../../plugin/EventBus";
 import { insertAttrViewBlockAnimation, updateHeader } from "../render/av/row";
 import { avContextmenu, duplicateCompletely } from "../render/av/action";
-
+import { getPlainText } from "../util/paste";
 import { addEditorToDatabase } from "../render/av/addToDatabase";
 import { processClonePHElement } from "../render/util";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
@@ -62,10 +63,14 @@ import * as path from "path";
 import { checkFold } from "../../util/noRelyPCFunction";
 import { clearSelect } from "../util/clearSelect";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { buildGutterCopyMenu } from "./buildGutterCopyMenu";
+import { buildGutterCopyMenu, genCopyTextRef } from "./buildGutterCopyMenu";
 import { buildGutterCodeBlockMenu } from "./buildGutterCodeBlockMenu";
 import { buildGutterHeadingMenu } from "./buildGutterHeadingMenu";
-import { buildGutterTurnIntoMenu } from "./buildGutterTurnIntoMenu";
+import {
+    buildGutterTurnIntoMenu,
+    genTurnsInto,
+    genTurnsIntoOne
+} from "./buildGutterTurnIntoMenu";
 import { buildGutterEmbedMenu } from "./buildGutterEmbedMenu";
 import { buildGutterTableMenu } from "./buildGutterTableMenu";
 import { buildGutterAlignMenu, buildGutterHeightsMenu, buildGutterWidthsMenu } from "./buildGutterStyleMenu";
@@ -73,8 +78,6 @@ import { buildGutterSuperBlockMenu } from "./buildGutterSuperBlockMenu";
 import { buildGutterMediaMenu } from "./buildGutterHtmlMenu";
 import { buildGutterAvMenu } from "./buildGutterAvMenu";
 import { showMobileAppearance } from "./showMobileAppearance";
-import { buildGutterMultipleMenu } from "./buildGutterMultipleMenu";
-import { buildGutterCommonMenu } from "./buildGutterCommonMenu";
 
 export class Gutter {
     public element: HTMLElement;
@@ -510,7 +513,445 @@ export class Gutter {
 
 
     public renderMultipleMenu(protyle: IProtyle, selectsElement: Element[]) {
-        return buildGutterMultipleMenu({ protyle, selectsElement });
+        let isList = false;
+        let isContinue = false;
+        selectsElement.find((item, index) => {
+            if (item.classList.contains("li")) {
+                isList = true;
+                return true;
+            }
+            if (item.nextElementSibling && selectsElement[index + 1] &&
+                item.nextElementSibling === selectsElement[index + 1]) {
+                isContinue = true;
+            } else if (index !== selectsElement.length - 1) {
+                isContinue = false;
+                return true;
+            }
+        });
+        if (!isList && !protyle.disabled) {
+            const turnIntoSubmenu: IMenu[] = [];
+            if (isContinue) {
+                turnIntoSubmenu.push(genTurnsIntoOne({
+                    menuId: "list",
+                    icon: "iconList",
+                    label: siyuanI18n.list,
+                    protyle,
+                    accelerator: getSiyuanConfig().keymap.editor.insert.list.custom,
+                    selectsElement,
+                    type: "Blocks2ULs"
+                }));
+                turnIntoSubmenu.push(genTurnsIntoOne({
+                    menuId: "orderedList",
+                    icon: "iconOrderedList",
+                    label: siyuanI18n["ordered-list"],
+                    accelerator: getSiyuanConfig().keymap.editor.insert["ordered-list"].custom,
+                    protyle,
+                    selectsElement,
+                    type: "Blocks2OLs"
+                }));
+                turnIntoSubmenu.push(genTurnsIntoOne({
+                    menuId: "check",
+                    icon: "iconCheck",
+                    label: siyuanI18n.check,
+                    accelerator: getSiyuanConfig().keymap.editor.insert.check.custom,
+                    protyle,
+                    selectsElement,
+                    type: "Blocks2TLs"
+                }));
+                turnIntoSubmenu.push(genTurnsIntoOne({
+                    menuId: "quote",
+                    icon: "iconQuote",
+                    label: siyuanI18n.quote,
+                    accelerator: getSiyuanConfig().keymap.editor.insert.quote.custom,
+                    protyle,
+                    selectsElement,
+                    type: "Blocks2Blockquote"
+                }));
+                turnIntoSubmenu.push(genTurnsIntoOne({
+                    menuId: "callout",
+                    icon: "iconCallout",
+                    label: siyuanI18n.callout,
+                    protyle,
+                    selectsElement,
+                    type: "Blocks2Callout"
+                }));
+                if (isContinue) {
+                    turnIntoSubmenu.push(genTurnsInto({
+                        menuId: "paragraph",
+                        icon: "iconParagraph",
+                        label: siyuanI18n.paragraph,
+                        accelerator: getSiyuanConfig().keymap.editor.heading.paragraph.custom,
+                        protyle,
+                        selectsElement,
+                        type: "Blocks2Ps",
+                        isContinue
+                    }));
+                } else {
+                    turnIntoSubmenu.push(genTurnsIntoOne({
+                        menuId: "paragraph",
+                        accelerator: getSiyuanConfig().keymap.editor.heading.paragraph.custom,
+                        icon: "iconParagraph",
+                        label: siyuanI18n.paragraph,
+                        protyle,
+                        selectsElement,
+                        type: "BlocksMergeSuperBlock",
+                        level: "col"
+                    }));
+                    turnIntoSubmenu.push(genTurnsIntoOne({
+                        menuId: "paragraph",
+                        icon: "iconParagraph",
+                        label: siyuanI18n.rowMerge,
+                        protyle,
+                        selectsElement,
+                        type: "BlocksMergeSuperBlock",
+                        level: "row"
+                    }));
+                }
+            } else {
+                turnIntoSubmenu.push(genTurnsInto({
+                    menuId: "paragraph",
+                    icon: "iconParagraph",
+                    label: siyuanI18n.paragraph,
+                    accelerator: getSiyuanConfig().keymap.editor.heading.paragraph.custom,
+                    protyle,
+                    selectsElement,
+                    type: "Blocks2Ps",
+                    isContinue
+                }));
+            }
+            turnIntoSubmenu.push(genTurnsInto({
+                menuId: "heading1",
+                icon: "iconH1",
+                label: siyuanI18n.heading1,
+                accelerator: getSiyuanConfig().keymap.editor.heading.heading1.custom,
+                protyle,
+                selectsElement,
+                level: 1,
+                type: "Blocks2Hs",
+                isContinue
+            }));
+            turnIntoSubmenu.push(genTurnsInto({
+                menuId: "heading2",
+                icon: "iconH2",
+                label: siyuanI18n.heading2,
+                accelerator: getSiyuanConfig().keymap.editor.heading.heading2.custom,
+                protyle,
+                selectsElement,
+                level: 2,
+                type: "Blocks2Hs",
+                isContinue
+            }));
+            turnIntoSubmenu.push(genTurnsInto({
+                menuId: "heading3",
+                icon: "iconH3",
+                label: siyuanI18n.heading3,
+                accelerator: getSiyuanConfig().keymap.editor.heading.heading3.custom,
+                protyle,
+                selectsElement,
+                level: 3,
+                type: "Blocks2Hs",
+                isContinue
+            }));
+            turnIntoSubmenu.push(genTurnsInto({
+                menuId: "heading4",
+                icon: "iconH4",
+                label: siyuanI18n.heading4,
+                accelerator: getSiyuanConfig().keymap.editor.heading.heading4.custom,
+                protyle,
+                selectsElement,
+                level: 4,
+                type: "Blocks2Hs",
+                isContinue
+            }));
+            turnIntoSubmenu.push(genTurnsInto({
+                menuId: "heading5",
+                icon: "iconH5",
+                label: siyuanI18n.heading5,
+                accelerator: getSiyuanConfig().keymap.editor.heading.heading5.custom,
+                protyle,
+                selectsElement,
+                level: 5,
+                type: "Blocks2Hs",
+                isContinue
+            }));
+            turnIntoSubmenu.push(genTurnsInto({
+                menuId: "heading6",
+                icon: "iconH6",
+                label: siyuanI18n.heading6,
+                accelerator: getSiyuanConfig().keymap.editor.heading.heading6.custom,
+                protyle,
+                selectsElement,
+                level: 6,
+                type: "Blocks2Hs",
+                isContinue
+            }));
+            if (!isList) {
+                turnIntoSubmenu.push(genTurnsIntoOne({
+                    menuId: "list",
+                    icon: "iconList",
+                    label: siyuanI18n.list,
+                    accelerator: getSiyuanConfig().keymap.editor.insert.list.custom,
+                    protyle,
+                    selectsElement,
+                    type: "Blocks2ULs"
+                }));
+                turnIntoSubmenu.push(genTurnsIntoOne({
+                    menuId: "orderedList",
+                    icon: "iconOrderedList",
+                    label: siyuanI18n["ordered-list"],
+                    accelerator: getSiyuanConfig().keymap.editor.insert["ordered-list"].custom,
+                    protyle,
+                    selectsElement,
+                    type: "Blocks2OLs"
+                }));
+                turnIntoSubmenu.push(genTurnsIntoOne({
+                    menuId: "check",
+                    icon: "iconCheck",
+                    label: siyuanI18n.check,
+                    accelerator: getSiyuanConfig().keymap.editor.insert.check.custom,
+                    protyle,
+                    selectsElement,
+                    type: "Blocks2TLs"
+                }));
+            }
+            turnIntoSubmenu.push(genTurnsIntoOne({
+                menuId: "quote",
+                icon: "iconQuote",
+                label: siyuanI18n.quote,
+                accelerator: getSiyuanConfig().keymap.editor.insert.quote.custom,
+                protyle,
+                selectsElement,
+                type: "Blocks2Blockquote"
+            }));
+            turnIntoSubmenu.push(genTurnsIntoOne({
+                menuId: "callout",
+                icon: "iconCallout",
+                label: (siyuanI18n as any).callout || "Callout",
+                protyle,
+                selectsElement,
+                type: "Blocks2Callout"
+            }));
+            getSiyuanGlobalMenus().menu.append(new MenuItem({
+                id: "turnInto",
+                icon: "iconRefresh",
+                label: siyuanI18n.turnInto,
+                type: "submenu",
+                submenu: turnIntoSubmenu
+            }).element);
+            if (isContinue && !(selectsElement[0].parentElement.classList.contains("sb") &&
+                selectsElement.length + 1 === selectsElement[0].parentElement.childElementCount)) {
+                getSiyuanGlobalMenus().menu.append(new MenuItem({
+                    id: "mergeSuperBlock",
+                    icon: "iconSuper",
+                    label: siyuanI18n.merge + " " + siyuanI18n.superBlock,
+                    type: "submenu",
+                    submenu: [genTurnsIntoOne({
+                        menuId: "hLayout",
+                        label: siyuanI18n.hLayout,
+                        accelerator: getSiyuanConfig().keymap.editor.general.hLayout.custom,
+                        icon: "iconSplitLR",
+                        protyle,
+                        selectsElement,
+                        type: "BlocksMergeSuperBlock",
+                        level: "col"
+                    }), genTurnsIntoOne({
+                        menuId: "vLayout",
+                        label: siyuanI18n.vLayout,
+                        accelerator: getSiyuanConfig().keymap.editor.general.vLayout.custom,
+                        icon: "iconSplitTB",
+                        protyle,
+                        selectsElement,
+                        type: "BlocksMergeSuperBlock",
+                        level: "row"
+                    })]
+                }).element);
+            }
+        }
+        if (!protyle.disabled) {
+            getSiyuanGlobalMenus().menu.append(new MenuItem({
+                id: "ai",
+                icon: "iconSparkles",
+                label: siyuanI18n.ai,
+                accelerator: getSiyuanConfig().keymap.editor.general.ai.custom,
+                click() {
+                    openAIActionsMenu(selectsElement, protyle);
+                }
+            }).element);
+        }
+        const copyMenu: IMenu[] = (copySubMenu(Array.from(selectsElement).map(item => item.getAttribute("data-node-id")), true, selectsElement[0]) as IMenu[]).concat([{
+            id: "copyPlainText",
+            iconHTML: "",
+            label: siyuanI18n.copyPlainText,
+            accelerator: getSiyuanConfig().keymap.editor.general.copyPlainText.custom,
+            click() {
+                let html = "";
+                selectsElement.forEach((item: HTMLElement) => {
+                    html += getPlainText(item) + "\n";
+                });
+                copyPlainText(html.trimEnd());
+                focusBlock(selectsElement[0]);
+            }
+        }, {
+            id: "copy",
+            iconHTML: "",
+            label: siyuanI18n.copy,
+            accelerator: "⌘C",
+            click() {
+                if (isNotEditBlock(selectsElement[0])) {
+                    focusBlock(selectsElement[0]);
+                } else {
+                    focusByRange(getEditorRange(selectsElement[0]));
+                }
+                document.execCommand("copy");
+            }
+        }]);
+        const copyTextRefMenu = genCopyTextRef(Array.from(selectsElement));
+        if (copyTextRefMenu) {
+            copyMenu.splice(7, 0, copyTextRefMenu);
+        }
+        if (!protyle.disabled) {
+            copyMenu.push({
+                id: "duplicate",
+                iconHTML: "",
+                label: siyuanI18n.duplicate,
+                accelerator: getSiyuanConfig().keymap.editor.general.duplicate.custom,
+                click() {
+                    duplicateBlock(selectsElement, protyle);
+                }
+            });
+        }
+        getSiyuanGlobalMenus().menu.append(new MenuItem({
+            id: "copy",
+            label: siyuanI18n.copy,
+            icon: "iconCopy",
+            type: "submenu",
+            submenu: copyMenu,
+        }).element);
+        if (!protyle.disabled) {
+            getSiyuanGlobalMenus().menu.append(new MenuItem({
+                id: "cut",
+                label: siyuanI18n.cut,
+                accelerator: "⌘X",
+                icon: "iconCut",
+                click: () => {
+                    focusBlock(selectsElement[0]);
+                    document.execCommand("cut");
+                }
+            }).element);
+            getSiyuanGlobalMenus().menu.append(new MenuItem({
+                id: "move",
+                label: siyuanI18n.move,
+                accelerator: getSiyuanConfig().keymap.general.move.custom,
+                icon: "iconMove",
+                click: () => {
+                    movePathTo({
+                        cb: (toPath) => {
+                            hintMoveBlock(toPath[0], selectsElement, protyle);
+                        },
+                        flashcard: false
+                    });
+                }
+            }).element);
+            getSiyuanGlobalMenus().menu.append(new MenuItem({
+                id: "addToDatabase",
+                label: siyuanI18n.addToDatabase,
+                accelerator: getSiyuanConfig().keymap.general.addToDatabase.custom,
+                icon: "iconDatabase",
+                click: () => {
+                    addEditorToDatabase(protyle, getEditorRange(selectsElement[0]));
+                }
+            }).element);
+            getSiyuanGlobalMenus().menu.append(new MenuItem({
+                id: "delete",
+                label: siyuanI18n.delete,
+                icon: "iconTrashcan",
+                accelerator: "⌫",
+                click: () => {
+                    protyle.breadcrumb?.hide();
+                    removeBlock(protyle, selectsElement[0], getEditorRange(selectsElement[0]), "Backspace");
+                }
+            }).element);
+
+            getSiyuanGlobalMenus().menu.append(new MenuItem({ id: "separator_appearance", type: "separator" }).element);
+            const appearanceElement = new MenuItem({
+                id: "appearance",
+                label: siyuanI18n.appearance,
+                icon: "iconFont",
+                accelerator: getSiyuanConfig().keymap.editor.insert.appearance.custom,
+                click: () => {
+                    /// #if MOBILE
+                    showMobileAppearance(protyle);
+                    /// #else
+                    protyle.toolbar.element.classList.add("fn__none");
+                    protyle.toolbar.subElement.innerHTML = "";
+                    protyle.toolbar.subElement.style.width = "";
+                    protyle.toolbar.subElement.style.padding = "";
+                    protyle.toolbar.subElement.append(appearanceMenu(protyle, selectsElement));
+                    protyle.toolbar.subElement.style.zIndex = (++window.siyuan.zIndex).toString();
+                    protyle.toolbar.subElement.classList.remove("fn__none");
+                    protyle.toolbar.subElementCloseCB = undefined;
+                    const position = selectsElement[0].getBoundingClientRect();
+                    setPosition(protyle.toolbar.subElement, position.left, position.top);
+                    /// #endif
+                }
+            }).element;
+            getSiyuanGlobalMenus().menu.append(appearanceElement);
+            if (!isMobile()) {
+                appearanceElement.lastElementChild.classList.add("b3-menu__submenu--row");
+            }
+            getSiyuanGlobalMenus().menu.append(new MenuItem(buildGutterAlignMenu(selectsElement, protyle)).element);
+            getSiyuanGlobalMenus().menu.append(new MenuItem(buildGutterWidthsMenu(selectsElement, protyle)).element);
+            // const heightsMenu = buildGutterHeightsMenu(selectsElement, protyle);
+            // if (heightsMenu) {
+            //     getSiyuanGlobalMenus().menu.append(new MenuItem(heightsMenu).element);
+            // }
+        }
+        if (!getSiyuanConfig().readonly) {
+            getSiyuanGlobalMenus().menu.append(new MenuItem({
+                id: "separator_quickMakeCard",
+                type: "separator"
+            }).element);
+            const allCardsMade = !selectsElement.some(item => !item.hasAttribute(Constants.CUSTOM_RIFF_DECKS) && item.getAttribute("data-type") !== "NodeThematicBreak");
+            getSiyuanGlobalMenus().menu.append(new MenuItem({
+                id: allCardsMade ? "removeCard" : "quickMakeCard",
+                label: allCardsMade ? siyuanI18n.removeCard : siyuanI18n.quickMakeCard,
+                accelerator: getSiyuanConfig().keymap.editor.general.quickMakeCard.custom,
+                icon: "iconRiffCard",
+                click() {
+                    quickMakeCard(protyle, selectsElement);
+                }
+            }).element);
+            getSiyuanGlobalMenus().menu.append(new MenuItem({
+                id: "addToDeck",
+                label: siyuanI18n.addToDeck,
+                icon: "iconRiffCard",
+                ignore: !getSiyuanConfig().flashcard.deck,
+                click() {
+                    const ids: string[] = [];
+                    selectsElement.forEach(item => {
+                        if (item.getAttribute("data-type") === "NodeThematicBreak") {
+                            return;
+                        }
+                        ids.push(item.getAttribute("data-node-id"));
+                    });
+                    makeCard(protyle.app, ids);
+                }
+            }).element);
+        }
+
+        if (protyle?.app?.plugins) {
+            emitOpenMenu({
+                plugins: protyle.app.plugins,
+                type: "click-blockicon",
+                detail: {
+                    protyle,
+                    blockElements: selectsElement,
+                },
+                separatorPosition: "top",
+            });
+        }
+
+        return getSiyuanGlobalMenus().menu;
     }
 
     public renderMenu(protyle: IProtyle, buttonElement: Element) {
@@ -743,10 +1184,223 @@ export class Gutter {
                 getSiyuanGlobalMenus().menu.append(new MenuItem(item).element);
             }
         }
-        // 通用操作菜单
-        for (const item of buildGutterCommonMenu({ protyle, nodeElement, id, type })) {
-            getSiyuanGlobalMenus().menu.append(new MenuItem(item).element);
+        getSiyuanGlobalMenus().menu.append(new MenuItem({ id: "separator_2", type: "separator" }).element);
+        if (!protyle.options.backlinkData) {
+            getSiyuanGlobalMenus().menu.append(new MenuItem({
+                id: "enter",
+                accelerator: `${getSiyuanConfig().keymap.general.enter.custom ? updateHotkeyTip(getSiyuanConfig().keymap.general.enter.custom) + "/" : ""}${updateHotkeyAfterTip("⌘" + siyuanI18n.click)}`,
+                label: siyuanI18n.enter,
+                click: () => {
+                    zoomOut({ protyle, id });
+                }
+            }).element);
+            getSiyuanGlobalMenus().menu.append(new MenuItem({
+                id: "enterBack",
+                accelerator: getSiyuanConfig().keymap.general.enterBack.custom,
+                label: siyuanI18n.enterBack,
+                click: () => {
+                    enterBack(protyle, id);
+                }
+            }).element);
+        } else {
+            /// #if !MOBILE
+            getSiyuanGlobalMenus().menu.append(new MenuItem({
+                id: "enter",
+                accelerator: `${updateHotkeyTip(getSiyuanConfig().keymap.general.enter.custom)}/${updateHotkeyTip("⌘" + siyuanI18n.click)}`,
+                label: siyuanI18n.openBy,
+                click: () => {
+                    checkFold(id, (zoomIn, action) => {
+                        openFileById({
+                            app: protyle.app,
+                            id,
+                            action,
+                            zoomIn
+                        });
+                    });
+                }
+            }).element);
+            /// #endif
         }
+        if (!protyle.disabled) {
+            getSiyuanGlobalMenus().menu.append(new MenuItem({
+                id: "insertBefore",
+                icon: "iconBefore",
+                label: siyuanI18n.insertBefore,
+                accelerator: getSiyuanConfig().keymap.editor.general.insertBefore.custom,
+                click() {
+                    hideElements(["select"], protyle);
+                    countBlockWord([], protyle.block.rootID);
+                    insertEmptyBlock(protyle, "beforebegin", id);
+                }
+            }).element);
+            getSiyuanGlobalMenus().menu.append(new MenuItem({
+                id: "insertAfter",
+                icon: "iconAfter",
+                label: siyuanI18n.insertAfter,
+                accelerator: getSiyuanConfig().keymap.editor.general.insertAfter.custom,
+                click() {
+                    hideElements(["select"], protyle);
+                    countBlockWord([], protyle.block.rootID);
+                    insertEmptyBlock(protyle, "afterend", id);
+                }
+            }).element);
+            const countElement = nodeElement.lastElementChild.querySelector(".protyle-attr--refcount");
+            if (countElement && countElement.textContent) {
+                transferBlockRef(id);
+            }
+        }
+        getSiyuanGlobalMenus().menu.append(new MenuItem({
+            id: "jumpTo",
+            type: "submenu",
+            label: siyuanI18n.jumpTo,
+            submenu: [{
+                id: "jumpToParentPrev",
+                iconHTML: "",
+                label: siyuanI18n.jumpToParentPrev,
+                accelerator: getSiyuanConfig().keymap.editor.general.jumpToParentPrev.custom,
+                click() {
+                    hideElements(["select"], protyle);
+                    jumpToParent(protyle, nodeElement, "previous");
+                }
+            }, {
+                iconHTML: "",
+                id: "jumpToParentNext",
+                label: siyuanI18n.jumpToParentNext,
+                accelerator: getSiyuanConfig().keymap.editor.general.jumpToParentNext.custom,
+                click() {
+                    hideElements(["select"], protyle);
+                    jumpToParent(protyle, nodeElement, "next");
+                }
+            }, {
+                iconHTML: "",
+                id: "jumpToParent",
+                label: siyuanI18n.jumpToParent,
+                accelerator: getSiyuanConfig().keymap.editor.general.jumpToParent.custom,
+                click() {
+                    hideElements(["select"], protyle);
+                    jumpToParent(protyle, nodeElement, "parent");
+                }
+            }]
+        }).element);
+
+        getSiyuanGlobalMenus().menu.append(new MenuItem({ id: "separator_3", type: "separator" }).element);
+
+        if (type !== "NodeThematicBreak") {
+            getSiyuanGlobalMenus().menu.append(new MenuItem({
+                id: "fold",
+                label: siyuanI18n.fold,
+                accelerator: `${updateHotkeyTip(getSiyuanConfig().keymap.editor.general.collapse.custom)}/${updateHotkeyTip("⌥" + siyuanI18n.click)}`,
+                click() {
+                    setFold(protyle, nodeElement);
+                    focusBlock(nodeElement);
+                }
+            }).element);
+            if (!protyle.disabled) {
+                getSiyuanGlobalMenus().menu.append(new MenuItem({
+                    id: "attr",
+                    label: siyuanI18n.attr,
+                    icon: "iconAttr",
+                    accelerator: getSiyuanConfig().keymap.editor.general.attr.custom + "/" + updateHotkeyTip("⇧" + siyuanI18n.click),
+                    click() {
+                        openAttr(nodeElement, "bookmark", protyle);
+                    }
+                }).element);
+            }
+        }
+        if (!protyle.disabled) {
+            const appearanceElement = new MenuItem({
+                id: "appearance",
+                label: siyuanI18n.appearance,
+                icon: "iconFont",
+                accelerator: getSiyuanConfig().keymap.editor.insert.appearance.custom,
+                click: () => {
+                    /// #if MOBILE
+                    showMobileAppearance(protyle);
+                    /// #else
+                    protyle.toolbar.element.classList.add("fn__none");
+                    protyle.toolbar.subElement.innerHTML = "";
+                    protyle.toolbar.subElement.style.width = "";
+                    protyle.toolbar.subElement.style.padding = "";
+                    protyle.toolbar.subElement.append(appearanceMenu(protyle, [nodeElement]));
+                    protyle.toolbar.subElement.style.zIndex = (++window.siyuan.zIndex).toString();
+                    protyle.toolbar.subElement.classList.remove("fn__none");
+                    protyle.toolbar.subElementCloseCB = undefined;
+                    const position = nodeElement.getBoundingClientRect();
+                    setPosition(protyle.toolbar.subElement, position.left, position.top);
+                    /// #endif
+                }
+            }).element;
+            getSiyuanGlobalMenus().menu.append(appearanceElement);
+            if (!isMobile()) {
+                appearanceElement.lastElementChild.classList.add("b3-menu__submenu--row");
+            }
+            getSiyuanGlobalMenus().menu.append(new MenuItem(buildGutterAlignMenu([nodeElement], protyle)).element);
+            getSiyuanGlobalMenus().menu.append(new MenuItem(buildGutterWidthsMenu([nodeElement], protyle)).element);
+            // const heightsMenu = buildGutterHeightsMenu([nodeElement], protyle);
+            // if (heightsMenu) {
+            //     getSiyuanGlobalMenus().menu.append(new MenuItem(heightsMenu).element);
+            // }
+        }
+        getSiyuanGlobalMenus().menu.append(new MenuItem({ id: "separator_4", type: "separator" }).element);
+        if (getSiyuanConfig().cloudRegion === 0 &&
+            !["NodeThematicBreak", "NodeBlockQueryEmbed", "NodeIFrame", "NodeHTMLBlock", "NodeWidget", "NodeVideo", "NodeAudio"].includes(type) &&
+            getContenteditableElement(nodeElement)?.textContent.trim() !== "" &&
+            (type !== "NodeCodeBlock" || (type === "NodeCodeBlock" && !nodeElement.getAttribute("data-subtype")))) {
+            getSiyuanGlobalMenus().menu.append(new MenuItem({
+                id: "wechatReminder",
+                icon: "iconMp",
+                label: siyuanI18n.wechatReminder,
+                ignore: getSiyuanConfig().readonly,
+                click() {
+                    openWechatNotify(nodeElement);
+                }
+            }).element);
+        }
+        if (type !== "NodeThematicBreak" && !getSiyuanConfig().readonly) {
+            const isCardMade = nodeElement.hasAttribute(Constants.CUSTOM_RIFF_DECKS);
+            getSiyuanGlobalMenus().menu.append(new MenuItem({
+                id: isCardMade ? "removeCard" : "quickMakeCard",
+                icon: "iconRiffCard",
+                label: isCardMade ? siyuanI18n.removeCard : siyuanI18n.quickMakeCard,
+                accelerator: getSiyuanConfig().keymap.editor.general.quickMakeCard.custom,
+                click() {
+                    quickMakeCard(protyle, [nodeElement]);
+                }
+            }).element);
+            getSiyuanGlobalMenus().menu.append(new MenuItem({
+                id: "addToDeck",
+                label: siyuanI18n.addToDeck,
+                ignore: !getSiyuanConfig().flashcard.deck,
+                icon: "iconRiffCard",
+                click() {
+                    makeCard(protyle.app, [id]);
+                }
+            }).element);
+            getSiyuanGlobalMenus().menu.append(new MenuItem({ id: "separator_5", type: "separator" }).element);
+        }
+
+        if (protyle?.app?.plugins) {
+            emitOpenMenu({
+                plugins: protyle.app.plugins,
+                type: "click-blockicon",
+                detail: {
+                    protyle,
+                    blockElements: [nodeElement]
+                },
+                separatorPosition: "bottom",
+            });
+        }
+
+        let updateHTML = nodeElement.getAttribute("updated") || "";
+        if (updateHTML) {
+            updateHTML = `${siyuanI18n.modifiedAt} ${dayjs(updateHTML).format("YYYY-MM-DD HH:mm:ss")}<br>`;
+        }
+        getSiyuanGlobalMenus().menu.append(new MenuItem({
+            id: "updateAndCreatedAt",
+            iconHTML: "",
+            type: "readonly",
+            label: `${updateHTML}${siyuanI18n.createdAt} ${dayjs(id.substr(0, 14)).format("YYYY-MM-DD HH:mm:ss")}`,
+        }).element);
         return getSiyuanGlobalMenus().menu;
     }
 
