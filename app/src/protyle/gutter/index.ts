@@ -69,6 +69,7 @@ import { checkFold } from "../../util/noRelyPCFunction";
 import { clearSelect } from "../util/clearSelect";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { buildGutterCopyMenu } from "./buildGutterCopyMenu";
+import { buildGutterCodeBlockMenu } from "./buildGutterCodeBlockMenu";
 
 export class Gutter {
     public element: HTMLElement;
@@ -1435,79 +1436,15 @@ export class Gutter {
             }).element);
         } else if (type === "NodeCodeBlock" && !protyle.disabled && !nodeElement.getAttribute("data-subtype")) {
             window.siyuan.menus.menu.append(new MenuItem({ id: "separator_code", type: "separator" }).element);
-            const linewrap = nodeElement.getAttribute("linewrap");
-            const ligatures = nodeElement.getAttribute("ligatures");
-            const linenumber = nodeElement.getAttribute("linenumber");
-
             window.siyuan.menus.menu.append(new MenuItem({
                 id: "code",
                 type: "submenu",
                 icon: "iconCode",
                 label: siyuanI18n.code,
-                submenu: [{
-                    id: "md31",
-                    iconHTML: "",
-                    label: `<div class="fn__flex" style="margin-bottom: 4px"><span>${siyuanI18n.md31}</span><span class="fn__space fn__flex-1"></span>
-<input type="checkbox" class="b3-switch fn__flex-center"${linewrap === "true" ? " checked" : ((window.siyuan.config.editor.codeLineWrap && linewrap !== "false") ? " checked" : "")}></div>`,
-                    bind(element) {
-                        element.addEventListener("click", (event: MouseEvent & { target: HTMLElement }) => {
-                            const inputElement = element.querySelector("input");
-                            if (event.target.tagName !== "INPUT") {
-                                inputElement.checked = !inputElement.checked;
-                            }
-                            nodeElement.setAttribute("linewrap", inputElement.checked.toString());
-                            nodeElement.querySelector(".hljs").removeAttribute("data-render");
-                            highlightRender(nodeElement);
-                            fetchPost("/api/attr/setBlockAttrs", {
-                                id,
-                                attrs: { linewrap: inputElement.checked.toString() }
-                            });
-                            window.siyuan.menus.menu.remove();
-                        });
-                    }
-                }, {
-                    id: "md2",
-                    iconHTML: "",
-                    label: `<div class="fn__flex" style="margin-bottom: 4px"><span>${siyuanI18n.md2}</span><span class="fn__space fn__flex-1"></span>
-<input type="checkbox" class="b3-switch fn__flex-center"${ligatures === "true" ? " checked" : ((window.siyuan.config.editor.codeLigatures && ligatures !== "false") ? " checked" : "")}></div>`,
-                    bind(element) {
-                        element.addEventListener("click", (event: MouseEvent & { target: HTMLElement }) => {
-                            const inputElement = element.querySelector("input");
-                            if (event.target.tagName !== "INPUT") {
-                                inputElement.checked = !inputElement.checked;
-                            }
-                            nodeElement.setAttribute("ligatures", inputElement.checked.toString());
-                            nodeElement.querySelector(".hljs").removeAttribute("data-render");
-                            highlightRender(nodeElement);
-                            fetchPost("/api/attr/setBlockAttrs", {
-                                id,
-                                attrs: { ligatures: inputElement.checked.toString() }
-                            });
-                            window.siyuan.menus.menu.remove();
-                        });
-                    }
-                }, {
-                    id: "md27",
-                    iconHTML: "",
-                    label: `<div class="fn__flex" style="margin-bottom: 4px"><span>${siyuanI18n.md27}</span><span class="fn__space fn__flex-1"></span>
-<input type="checkbox" class="b3-switch fn__flex-center"${linenumber === "true" ? " checked" : ((window.siyuan.config.editor.codeSyntaxHighlightLineNum && linenumber !== "false") ? " checked" : "")}></div>`,
-                    bind(element) {
-                        element.addEventListener("click", (event: MouseEvent & { target: HTMLElement }) => {
-                            const inputElement = element.querySelector("input");
-                            if (event.target.tagName !== "INPUT") {
-                                inputElement.checked = !inputElement.checked;
-                            }
-                            nodeElement.setAttribute("linenumber", inputElement.checked.toString());
-                            nodeElement.querySelector(".hljs").removeAttribute("data-render");
-                            highlightRender(nodeElement);
-                            fetchPost("/api/attr/setBlockAttrs", {
-                                id,
-                                attrs: { linenumber: inputElement.checked.toString() }
-                            });
-                            window.siyuan.menus.menu.remove();
-                        });
-                    }
-                }]
+                submenu: buildGutterCodeBlockMenu({
+                    nodeElement,
+                    id
+                })
             }).element);
         } else if (type === "NodeCodeBlock" && !protyle.disabled && ["echarts", "mindmap"].includes(nodeElement.getAttribute("data-subtype"))) {
             window.siyuan.menus.menu.append(new MenuItem({ id: "separator_chart", type: "separator" }).element);
