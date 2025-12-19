@@ -7,7 +7,7 @@ import {
     isInEmbedBlock
 } from "../util/hasClosest";
 import { getIconByType } from "../../editor/getIcon";
-import { enterBack, iframeMenu, setFold, tableMenu, videoMenu, zoomOut } from "../../menus/protyle";
+import { enterBack, iframeMenu, setFold, videoMenu, zoomOut } from "../../menus/protyle";
 import { MenuItem } from "../../menus/Menu.Item";
 import { copySubMenu, openAttr } from "../../menus/commonMenuItem";
 import { openFileAttr } from "../../menus/commonMenuItem.openFileAttr";
@@ -73,6 +73,7 @@ import { buildGutterCodeBlockMenu } from "./buildGutterCodeBlockMenu";
 import { buildGutterHeadingMenu } from "./buildGutterHeadingMenu";
 import { buildGutterTurnIntoMenu } from "./buildGutterTurnIntoMenu";
 import { buildGutterEmbedMenu } from "./buildGutterEmbedMenu";
+import { buildGutterTableMenu } from "./buildGutterTableMenu";
 
 export class Gutter {
     public element: HTMLElement;
@@ -1163,22 +1164,9 @@ export class Gutter {
                 }]
             }).element);
         } else if (type === "NodeTable" && !protyle.disabled) {
-            let range = getEditorRange(nodeElement);
-            const tableElement = nodeElement.querySelector("table");
-            if (!tableElement.contains(range.startContainer)) {
-                range = getEditorRange(tableElement.querySelector("th"));
-            }
-            const cellElement = hasClosestByTag(range.startContainer, "TD") || hasClosestByTag(range.startContainer, "TH");
-            if (cellElement) {
-                window.siyuan.menus.menu.append(new MenuItem({ id: "separator_table", type: "separator" }).element);
-                window.siyuan.menus.menu.append(new MenuItem({
-                    id: "table",
-                    type: "submenu",
-                    icon: "iconTable",
-                    label: siyuanI18n.table,
-                    submenu: tableMenu(protyle, nodeElement, cellElement as HTMLTableCellElement, range).menus as IMenu[]
-                }).element);
-            }
+            buildGutterTableMenu(protyle, nodeElement).forEach(item => {
+                window.siyuan.menus.menu.append(new MenuItem(item).element);
+            });
         } else if (type === "NodeAttributeView") {
             window.siyuan.menus.menu.append(new MenuItem({ id: "separator_exportCSV", type: "separator" }).element);
             window.siyuan.menus.menu.append(new MenuItem({
