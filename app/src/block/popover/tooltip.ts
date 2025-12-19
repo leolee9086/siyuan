@@ -151,6 +151,7 @@ export const getTooltipInfo = (aElement: HTMLElement, target: HTMLElement): Tool
         if (href) {
             tip = `<span style="word-break: break-all">${href.substring(0, Constants.SIZE_TITLE)}</span>`;
             tooltipClass = "href"; // 为超链接添加 class https://github.com/siyuan-note/siyuan/issues/11440#issuecomment-2119080691
+            tooltipSpace = 0;
         }
         const title = aElement.getAttribute("data-title");
         if (title) {

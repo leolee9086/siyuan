@@ -17,7 +17,7 @@ import {
     getSiyuanMenus,
     getSiyuanConfig,
 } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
-import {  setTimeout } from "../util/siyuanEnvironments/windowTimer.environment";
+import { setTimeout } from "../util/siyuanEnvironments/windowTimer.environment";
 
 // 子模块导入
 import { TooltipInfo, getTooltipInfo, handleTooltipDisplay } from "./popover/tooltip";
