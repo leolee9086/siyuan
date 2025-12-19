@@ -68,6 +68,7 @@ import * as path from "path";
 import { checkFold } from "../../util/noRelyPCFunction";
 import { clearSelect } from "../util/clearSelect";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { buildGutterCopyMenu } from "./buildGutterCopyMenu";
 
 export class Gutter {
     public element: HTMLElement;
@@ -1339,72 +1340,13 @@ export class Gutter {
             }).element);
         }
 
-        const copyMenu = (copySubMenu([id], true, nodeElement) as IMenu[]).concat([{
-            id: "copyPlainText",
-            iconHTML: "",
-            label: siyuanI18n.copyPlainText,
-            accelerator: window.siyuan.config.keymap.editor.general.copyPlainText.custom,
-            click() {
-                copyPlainText(getPlainText(nodeElement as HTMLElement).trimEnd());
-                focusBlock(nodeElement);
-            }
-        }, {
-            id: type === "NodeAttributeView" ? "copyMirror" : "copy",
-            iconHTML: "",
-            label: type === "NodeAttributeView" ? siyuanI18n.copyMirror : siyuanI18n.copy,
-            accelerator: "⌘C",
-            click() {
-                if (isNotEditBlock(nodeElement)) {
-                    focusBlock(nodeElement);
-                } else {
-                    focusByRange(getEditorRange(nodeElement));
-                }
-                document.execCommand("copy");
-            }
-        }]);
-        const copyTextRefMenu = this.genCopyTextRef([nodeElement]);
-        if (copyTextRefMenu) {
-            copyMenu.splice(7, 0, copyTextRefMenu);
-        }
-        if (type === "NodeAttributeView") {
-            copyMenu.splice(6, 0, {
-                iconHTML: "",
-                label: siyuanI18n.copyAVID,
-                click() {
-                    writeText(nodeElement.getAttribute("data-av-id"));
-                }
-            });
-            if (!protyle.disabled) {
-                copyMenu.push({
-                    id: "duplicateMirror",
-                    iconHTML: "",
-                    label: siyuanI18n.duplicateMirror,
-                    accelerator: window.siyuan.config.keymap.editor.general.duplicate.custom,
-                    click() {
-                        duplicateBlock([nodeElement], protyle);
-                    }
-                });
-                copyMenu.push({
-                    id: "duplicateCompletely",
-                    iconHTML: "",
-                    label: siyuanI18n.duplicateCompletely,
-                    accelerator: window.siyuan.config.keymap.editor.general.duplicateCompletely.custom,
-                    click() {
-                        duplicateCompletely(protyle, nodeElement as HTMLElement);
-                    }
-                });
-            }
-        } else if (!protyle.disabled) {
-            copyMenu.push({
-                id: "duplicate",
-                iconHTML: "",
-                label: siyuanI18n.duplicate,
-                accelerator: window.siyuan.config.keymap.editor.general.duplicate.custom,
-                click() {
-                    duplicateBlock([nodeElement], protyle);
-                }
-            });
-        }
+        const copyMenu = buildGutterCopyMenu({
+            nodeElement,
+            type,
+            id,
+            protyle,
+            genCopyTextRef: this.genCopyTextRef.bind(this)
+        });
         window.siyuan.menus.menu.append(new MenuItem({
             id: "copy",
             icon: "iconCopy",
