@@ -50,6 +50,7 @@ import { setPosition } from "../../util/setPosition";
 import { emitOpenMenu } from "../../plugin/EventBus";
 import { insertAttrViewBlockAnimation, updateHeader } from "../render/av/row";
 import { avContextmenu, duplicateCompletely } from "../render/av/action";
+import { transaction } from "../wysiwyg/transaction";
 
 import { addEditorToDatabase } from "../render/av/addToDatabase";
 import { processClonePHElement } from "../render/util";
@@ -63,18 +64,15 @@ import { checkFold } from "../../util/noRelyPCFunction";
 import { clearSelect } from "../util/clearSelect";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { buildGutterCopyMenu } from "./buildGutterCopyMenu";
-import { buildGutterCodeBlockMenu } from "./buildGutterCodeBlockMenu";
-import { buildGutterHeadingMenu } from "./buildGutterHeadingMenu";
 import { buildGutterTurnIntoMenu } from "./buildGutterTurnIntoMenu";
-import { buildGutterEmbedMenu } from "./buildGutterEmbedMenu";
-import { buildGutterTableMenu } from "./buildGutterTableMenu";
-import { buildGutterAlignMenu, buildGutterHeightsMenu, buildGutterWidthsMenu } from "./buildGutterStyleMenu";
-import { buildGutterSuperBlockMenu } from "./buildGutterSuperBlockMenu";
-import { buildGutterMediaMenu } from "./buildGutterHtmlMenu";
-import { buildGutterAvMenu } from "./buildGutterAvMenu";
+import { buildGutterAlignMenu, buildGutterWidthsMenu } from "./buildGutterStyleMenu";
 import { showMobileAppearance } from "./showMobileAppearance";
 import { buildGutterMultipleMenu } from "./buildGutterMultipleMenu";
 import { buildGutterCommonMenu } from "./buildGutterCommonMenu";
+import { buildGutterEditMenu } from "./buildGutterEditMenu";
+import { buildGutterTypeSpecificMenu } from "./buildGutterTypeSpecificMenu";
+
+
 
 export class Gutter {
     public element: HTMLElement;
@@ -601,148 +599,12 @@ export class Gutter {
             submenu: copyMenu
         }).element);
         if (!protyle.disabled) {
-            getSiyuanGlobalMenus().menu.append(new MenuItem({
-                id: "cut",
-                icon: "iconCut",
-                label: siyuanI18n.cut,
-                accelerator: "⌘X",
-                click: () => {
-                    focusBlock(nodeElement);
-                    document.execCommand("cut");
-                }
-            }).element);
-            getSiyuanGlobalMenus().menu.append(new MenuItem({
-                id: "move",
-                icon: "iconMove",
-                label: siyuanI18n.move,
-                accelerator: getSiyuanConfig().keymap.general.move.custom,
-                click: () => {
-                    movePathTo({
-                        cb: (toPath) => {
-                            hintMoveBlock(toPath[0], [nodeElement], protyle);
-                        },
-                        flashcard: false,
-                    });
-                }
-            }).element);
-            getSiyuanGlobalMenus().menu.append(new MenuItem({
-                id: "addToDatabase",
-                icon: "iconDatabase",
-                label: siyuanI18n.addToDatabase,
-                accelerator: getSiyuanConfig().keymap.general.addToDatabase.custom,
-                click: () => {
-                    addEditorToDatabase(protyle, getEditorRange(nodeElement));
-                }
-            }).element);
-            getSiyuanGlobalMenus().menu.append(new MenuItem({
-                id: "delete",
-                icon: "iconTrashcan",
-                label: siyuanI18n.delete,
-                accelerator: "⌫",
-                click: () => {
-                    protyle.breadcrumb?.hide();
-                    removeBlock(protyle, nodeElement, getEditorRange(nodeElement), "Backspace");
-                }
-            }).element);
-        }
-        if (type === "NodeSuperBlock" && !protyle.disabled) {
-            getSiyuanGlobalMenus().menu.append(new MenuItem({
-                id: "separator_cancelSuperBlock",
-                type: "separator"
-            }).element);
-
-            buildGutterSuperBlockMenu(protyle, nodeElement, id).forEach(item => {
-                getSiyuanGlobalMenus().menu.append(new MenuItem(item).element);
-            });
-        } else if (type === "NodeCodeBlock" && !protyle.disabled && !nodeElement.getAttribute("data-subtype")) {
-            getSiyuanGlobalMenus().menu.append(new MenuItem({ id: "separator_code", type: "separator" }).element);
-            getSiyuanGlobalMenus().menu.append(new MenuItem({
-                id: "code",
-                type: "submenu",
-                icon: "iconCode",
-                label: siyuanI18n.code,
-                submenu: buildGutterCodeBlockMenu({
-                    nodeElement,
-                    id
-                })
-            }).element);
-        } else if (type === "NodeCodeBlock" && !protyle.disabled && ["echarts", "mindmap"].includes(nodeElement.getAttribute("data-subtype"))) {
-            getSiyuanGlobalMenus().menu.append(new MenuItem({ id: "separator_chart", type: "separator" }).element);
-            const height = (nodeElement as HTMLElement).style.height;
-            let html = nodeElement.outerHTML;
-            getSiyuanGlobalMenus().menu.append(new MenuItem({
-                id: "chart",
-                label: siyuanI18n.chart,
-                icon: "iconCode",
-                submenu: [{
-                    id: "height",
-                    iconHTML: "",
-                    type: "readonly",
-                    label: `<div class="fn__flex"><input class="b3-text-field fn__flex-1" value="${height ? parseInt(height) : "420"}" step="1" min="148" style="margin: 4px 8px 4px 0" placeholder="${siyuanI18n.height}"><span class="fn__flex-center">px</span></div>`,
-                    bind: (element) => {
-                        element.querySelector("input").addEventListener("change", (event) => {
-                            const newHeight = ((event.target as HTMLInputElement).value || "420") + "px";
-                            (nodeElement as HTMLElement).style.height = newHeight;
-                            updateTransaction(protyle, id, nodeElement.outerHTML, html);
-                            html = nodeElement.outerHTML;
-                            event.stopPropagation();
-                            const renderElement = nodeElement.querySelector('[contenteditable="false"]') as HTMLElement;
-                            if (renderElement) {
-                                renderElement.style.height = newHeight;
-                                const chartInstance = window.echarts.getInstanceById(renderElement.getAttribute("_echarts_instance_"));
-                                if (chartInstance) {
-                                    chartInstance.resize();
-                                }
-                            }
-                        });
-                    }
-                }, {
-                    id: "update",
-                    label: siyuanI18n.update,
-                    icon: "iconEdit",
-                    click() {
-                        protyle.toolbar.showRender(protyle, nodeElement);
-                    }
-                }]
-            }).element);
-        } else if (type === "NodeTable" && !protyle.disabled) {
-            buildGutterTableMenu(protyle, nodeElement).forEach(item => {
-                getSiyuanGlobalMenus().menu.append(new MenuItem(item).element);
-            });
-        } else if (type === "NodeAttributeView") {
-            buildGutterAvMenu(protyle, nodeElement, id).forEach(item => {
-                getSiyuanGlobalMenus().menu.append(new MenuItem(item).element);
-            });
-        } else if (["NodeVideo", "NodeAudio", "NodeIFrame", "NodeHTMLBlock"].includes(type) && !protyle.disabled) {
-            buildGutterMediaMenu(protyle, nodeElement, type).forEach(item => {
-                getSiyuanGlobalMenus().menu.append(new MenuItem(item).element);
-            });
-        } else if (type === "NodeBlockQueryEmbed" && !protyle.disabled) {
-            getSiyuanGlobalMenus().menu.append(new MenuItem({ id: "separator_blockEmbed", type: "separator" }).element);
-            getSiyuanGlobalMenus().menu.append(new MenuItem(buildGutterEmbedMenu(protyle, nodeElement, id)).element);
-        } else if (type === "NodeHeading" && !protyle.disabled) {
-            const { 标题级别转换, 其他操作 } = buildGutterHeadingMenu({
-                protyle,
-                id,
-                subType: subType as "h1" | "h2" | "h3" | "h4" | "h5" | "h6",
-                nodeElement
-            });
-
-            if (标题级别转换.length > 0) {
-                getSiyuanGlobalMenus().menu.append(new MenuItem({ id: "separator_1", type: "separator" }).element);
-                getSiyuanGlobalMenus().menu.append(new MenuItem({
-                    id: "tWithSubtitle",
-                    type: "submenu",
-                    icon: "iconRefresh",
-                    label: siyuanI18n.tWithSubtitle,
-                    submenu: 标题级别转换
-                }).element);
-            }
-
-            for (const item of 其他操作) {
+            for (const item of buildGutterEditMenu({ protyle, nodeElement })) {
                 getSiyuanGlobalMenus().menu.append(new MenuItem(item).element);
             }
         }
+        // 类型特定菜单
+        buildGutterTypeSpecificMenu({ protyle, nodeElement, id, type, subType });
         // 通用操作菜单
         for (const item of buildGutterCommonMenu({ protyle, nodeElement, id, type })) {
             getSiyuanGlobalMenus().menu.append(new MenuItem(item).element);
