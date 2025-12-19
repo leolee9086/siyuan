@@ -1,6 +1,6 @@
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { IGutterTurnIntoContext } from "./buildGutterTurnIntoMenu";
+import { IGutterTurnIntoContext, genTurnsIntoOne, genTurnsOneInto } from "./buildGutterTurnIntoMenu";
 
 type TTurnIntoOne = "BlocksMergeSuperBlock" | "Blocks2ULs" | "Blocks2OLs" | "Blocks2TLs" | "Blocks2Blockquote" | "Blocks2Callout";
 type TTurnIntoOneSub = "row" | "col";
@@ -17,7 +17,7 @@ const addTurnIntoOne = (
         level?: TTurnIntoOneSub;
     }
 ) => {
-    target.push(ctx.turnsIntoOne({
+    target.push(genTurnsIntoOne({
         menuId: options.menuId,
         icon: options.icon,
         label: options.label,
@@ -40,7 +40,7 @@ const addTurnsOneInto = (
         type: string;
     }
 ) => {
-    target.push(ctx.turnsOneInto({
+    target.push(genTurnsOneInto({
         menuId: options.menuId,
         id: ctx.id,
         icon: options.icon,

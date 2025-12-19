@@ -23,14 +23,7 @@ import {
     updateHotkeyTip,
     writeText
 } from "../util/compatibility";
-import {
-    transaction,
-    turnsIntoOneTransaction,
-    turnsIntoTransaction,
-    turnsOneInto,
-    updateBatchTransaction,
-    updateTransaction
-} from "../wysiwyg/transaction";
+
 import { removeBlock } from "../wysiwyg/remove";
 import { focusBlock, focusByRange, getEditorRange } from "../util/selection";
 import { hideElements } from "../ui/hideElements";
@@ -70,10 +63,14 @@ import * as path from "path";
 import { checkFold } from "../../util/noRelyPCFunction";
 import { clearSelect } from "../util/clearSelect";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { buildGutterCopyMenu } from "./buildGutterCopyMenu";
+import { buildGutterCopyMenu, genCopyTextRef } from "./buildGutterCopyMenu";
 import { buildGutterCodeBlockMenu } from "./buildGutterCodeBlockMenu";
 import { buildGutterHeadingMenu } from "./buildGutterHeadingMenu";
-import { buildGutterTurnIntoMenu } from "./buildGutterTurnIntoMenu";
+import {
+    buildGutterTurnIntoMenu,
+    genTurnsInto,
+    genTurnsIntoOne
+} from "./buildGutterTurnIntoMenu";
 import { buildGutterEmbedMenu } from "./buildGutterEmbedMenu";
 import { buildGutterTableMenu } from "./buildGutterTableMenu";
 import { buildGutterAlignMenu, buildGutterHeightsMenu, buildGutterWidthsMenu } from "./buildGutterStyleMenu";
@@ -511,70 +508,6 @@ export class Gutter {
         return itemRect.top <= gutterTop && itemRect.bottom >= gutterTop;
     }
 
-    private turnsOneInto(options: {
-        menuId?: string,
-        id: string,
-        icon: string,
-        label: string,
-        protyle: IProtyle,
-        nodeElement: Element,
-        accelerator?: string
-        type: string,
-        level?: number
-    }) {
-        return {
-            id: options.menuId,
-            icon: options.icon,
-            label: options.label,
-            accelerator: options.accelerator,
-            click() {
-                turnsOneInto(options);
-            }
-        };
-    }
-
-    private turnsIntoOne(options: {
-        menuId?: string,
-        accelerator?: string,
-        icon?: string,
-        label: string,
-        protyle: IProtyle,
-        selectsElement: Element[],
-        type: TTurnIntoOne,
-        level?: TTurnIntoOneSub,
-    }) {
-        return {
-            id: options.menuId,
-            icon: options.icon,
-            label: options.label,
-            accelerator: options.accelerator,
-            click() {
-                turnsIntoOneTransaction(options);
-            }
-        };
-    }
-
-    private turnsInto(options: {
-        menuId?: string,
-        icon?: string,
-        label: string,
-        protyle: IProtyle,
-        selectsElement: Element[],
-        type: TTurnInto,
-        level?: number,
-        isContinue?: boolean,
-        accelerator?: string,
-    }) {
-        return {
-            id: options.menuId,
-            icon: options.icon,
-            label: options.label,
-            accelerator: options.accelerator,
-            click() {
-                turnsIntoTransaction(options);
-            }
-        };
-    }
 
     private showMobileAppearance(protyle: IProtyle) {
         const toolbarElement = document.getElementById("keyboardToolbar");
@@ -608,7 +541,7 @@ export class Gutter {
         if (!isList && !protyle.disabled) {
             const turnIntoSubmenu: IMenu[] = [];
             if (isContinue) {
-                turnIntoSubmenu.push(this.turnsIntoOne({
+                turnIntoSubmenu.push(genTurnsIntoOne({
                     menuId: "list",
                     icon: "iconList",
                     label: siyuanI18n.list,
@@ -617,7 +550,7 @@ export class Gutter {
                     selectsElement,
                     type: "Blocks2ULs"
                 }));
-                turnIntoSubmenu.push(this.turnsIntoOne({
+                turnIntoSubmenu.push(genTurnsIntoOne({
                     menuId: "orderedList",
                     icon: "iconOrderedList",
                     label: siyuanI18n["ordered-list"],
@@ -626,7 +559,7 @@ export class Gutter {
                     selectsElement,
                     type: "Blocks2OLs"
                 }));
-                turnIntoSubmenu.push(this.turnsIntoOne({
+                turnIntoSubmenu.push(genTurnsIntoOne({
                     menuId: "check",
                     icon: "iconCheck",
                     label: siyuanI18n.check,
@@ -635,7 +568,7 @@ export class Gutter {
                     selectsElement,
                     type: "Blocks2TLs"
                 }));
-                turnIntoSubmenu.push(this.turnsIntoOne({
+                turnIntoSubmenu.push(genTurnsIntoOne({
                     menuId: "quote",
                     icon: "iconQuote",
                     label: siyuanI18n.quote,
@@ -644,7 +577,7 @@ export class Gutter {
                     selectsElement,
                     type: "Blocks2Blockquote"
                 }));
-                turnIntoSubmenu.push(this.turnsIntoOne({
+                turnIntoSubmenu.push(genTurnsIntoOne({
                     menuId: "callout",
                     icon: "iconCallout",
                     label: siyuanI18n.callout,
@@ -652,18 +585,51 @@ export class Gutter {
                     selectsElement,
                     type: "Blocks2Callout"
                 }));
+                if (isContinue) {
+                    turnIntoSubmenu.push(genTurnsInto({
+                        menuId: "paragraph",
+                        icon: "iconParagraph",
+                        label: siyuanI18n.paragraph,
+                        accelerator: getSiyuanConfig().keymap.editor.heading.paragraph.custom,
+                        protyle,
+                        selectsElement,
+                        type: "Blocks2Ps",
+                        isContinue
+                    }));
+                } else {
+                    turnIntoSubmenu.push(genTurnsIntoOne({
+                        menuId: "paragraph",
+                        accelerator: getSiyuanConfig().keymap.editor.heading.paragraph.custom,
+                        icon: "iconParagraph",
+                        label: siyuanI18n.paragraph,
+                        protyle,
+                        selectsElement,
+                        type: "BlocksMergeSuperBlock",
+                        level: "col"
+                    }));
+                    turnIntoSubmenu.push(genTurnsIntoOne({
+                        menuId: "paragraph",
+                        icon: "iconParagraph",
+                        label: siyuanI18n.rowMerge,
+                        protyle,
+                        selectsElement,
+                        type: "BlocksMergeSuperBlock",
+                        level: "row"
+                    }));
+                }
+            } else {
+                turnIntoSubmenu.push(genTurnsInto({
+                    menuId: "paragraph",
+                    icon: "iconParagraph",
+                    label: siyuanI18n.paragraph,
+                    accelerator: getSiyuanConfig().keymap.editor.heading.paragraph.custom,
+                    protyle,
+                    selectsElement,
+                    type: "Blocks2Ps",
+                    isContinue
+                }));
             }
-            turnIntoSubmenu.push(this.turnsInto({
-                menuId: "paragraph",
-                icon: "iconParagraph",
-                label: siyuanI18n.paragraph,
-                accelerator: getSiyuanConfig().keymap.editor.heading.paragraph.custom,
-                protyle,
-                selectsElement,
-                type: "Blocks2Ps",
-                isContinue
-            }));
-            turnIntoSubmenu.push(this.turnsInto({
+            turnIntoSubmenu.push(genTurnsInto({
                 menuId: "heading1",
                 icon: "iconH1",
                 label: siyuanI18n.heading1,
@@ -674,7 +640,7 @@ export class Gutter {
                 type: "Blocks2Hs",
                 isContinue
             }));
-            turnIntoSubmenu.push(this.turnsInto({
+            turnIntoSubmenu.push(genTurnsInto({
                 menuId: "heading2",
                 icon: "iconH2",
                 label: siyuanI18n.heading2,
@@ -685,7 +651,7 @@ export class Gutter {
                 type: "Blocks2Hs",
                 isContinue
             }));
-            turnIntoSubmenu.push(this.turnsInto({
+            turnIntoSubmenu.push(genTurnsInto({
                 menuId: "heading3",
                 icon: "iconH3",
                 label: siyuanI18n.heading3,
@@ -696,7 +662,7 @@ export class Gutter {
                 type: "Blocks2Hs",
                 isContinue
             }));
-            turnIntoSubmenu.push(this.turnsInto({
+            turnIntoSubmenu.push(genTurnsInto({
                 menuId: "heading4",
                 icon: "iconH4",
                 label: siyuanI18n.heading4,
@@ -707,7 +673,7 @@ export class Gutter {
                 type: "Blocks2Hs",
                 isContinue
             }));
-            turnIntoSubmenu.push(this.turnsInto({
+            turnIntoSubmenu.push(genTurnsInto({
                 menuId: "heading5",
                 icon: "iconH5",
                 label: siyuanI18n.heading5,
@@ -718,7 +684,7 @@ export class Gutter {
                 type: "Blocks2Hs",
                 isContinue
             }));
-            turnIntoSubmenu.push(this.turnsInto({
+            turnIntoSubmenu.push(genTurnsInto({
                 menuId: "heading6",
                 icon: "iconH6",
                 label: siyuanI18n.heading6,
@@ -728,6 +694,52 @@ export class Gutter {
                 level: 6,
                 type: "Blocks2Hs",
                 isContinue
+            }));
+            if (!isList) {
+                turnIntoSubmenu.push(genTurnsIntoOne({
+                    menuId: "list",
+                    icon: "iconList",
+                    label: siyuanI18n.list,
+                    accelerator: getSiyuanConfig().keymap.editor.insert.list.custom,
+                    protyle,
+                    selectsElement,
+                    type: "Blocks2ULs"
+                }));
+                turnIntoSubmenu.push(genTurnsIntoOne({
+                    menuId: "orderedList",
+                    icon: "iconOrderedList",
+                    label: siyuanI18n["ordered-list"],
+                    accelerator: getSiyuanConfig().keymap.editor.insert["ordered-list"].custom,
+                    protyle,
+                    selectsElement,
+                    type: "Blocks2OLs"
+                }));
+                turnIntoSubmenu.push(genTurnsIntoOne({
+                    menuId: "check",
+                    icon: "iconCheck",
+                    label: siyuanI18n.check,
+                    accelerator: getSiyuanConfig().keymap.editor.insert.check.custom,
+                    protyle,
+                    selectsElement,
+                    type: "Blocks2TLs"
+                }));
+            }
+            turnIntoSubmenu.push(genTurnsIntoOne({
+                menuId: "quote",
+                icon: "iconQuote",
+                label: siyuanI18n.quote,
+                accelerator: getSiyuanConfig().keymap.editor.insert.quote.custom,
+                protyle,
+                selectsElement,
+                type: "Blocks2Blockquote"
+            }));
+            turnIntoSubmenu.push(genTurnsIntoOne({
+                menuId: "callout",
+                icon: "iconCallout",
+                label: (siyuanI18n as any).callout || "Callout",
+                protyle,
+                selectsElement,
+                type: "Blocks2Callout"
             }));
             getSiyuanGlobalMenus().menu.append(new MenuItem({
                 id: "turnInto",
@@ -743,7 +755,7 @@ export class Gutter {
                     icon: "iconSuper",
                     label: siyuanI18n.merge + " " + siyuanI18n.superBlock,
                     type: "submenu",
-                    submenu: [this.turnsIntoOne({
+                    submenu: [genTurnsIntoOne({
                         menuId: "hLayout",
                         label: siyuanI18n.hLayout,
                         accelerator: getSiyuanConfig().keymap.editor.general.hLayout.custom,
@@ -752,7 +764,7 @@ export class Gutter {
                         selectsElement,
                         type: "BlocksMergeSuperBlock",
                         level: "col"
-                    }), this.turnsIntoOne({
+                    }), genTurnsIntoOne({
                         menuId: "vLayout",
                         label: siyuanI18n.vLayout,
                         accelerator: getSiyuanConfig().keymap.editor.general.vLayout.custom,
@@ -803,7 +815,7 @@ export class Gutter {
                 document.execCommand("copy");
             }
         }]);
-        const copyTextRefMenu = this.genCopyTextRef(selectsElement);
+        const copyTextRefMenu = genCopyTextRef(Array.from(selectsElement));
         if (copyTextRefMenu) {
             copyMenu.splice(7, 0, copyTextRefMenu);
         }
@@ -1003,9 +1015,7 @@ export class Gutter {
             type,
             subType,
             protyle,
-            turnsOneInto: this.turnsOneInto.bind(this),
-            turnsIntoOne: this.turnsIntoOne.bind(this),
-            turnsInto: this.turnsInto.bind(this)
+
         });
         if (turnIntoSubmenu.length > 0 && !protyle.disabled) {
             getSiyuanGlobalMenus().menu.append(new MenuItem({

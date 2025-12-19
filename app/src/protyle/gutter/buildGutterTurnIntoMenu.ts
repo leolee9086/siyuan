@@ -9,6 +9,81 @@
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { buildListMenu } from "./buildGutterListMenu";
+import { turnsIntoOneTransaction, turnsIntoTransaction, turnsOneInto } from "../wysiwyg/transaction";
+
+/**
+ * 生成单个块转换菜单项
+ */
+export const genTurnsOneInto = (options: {
+    menuId?: string,
+    id: string,
+    icon: string,
+    label: string,
+    protyle: IProtyle,
+    nodeElement: Element,
+    type: string,
+    level?: number,
+    accelerator?: string
+}): IMenu => {
+    return {
+        id: options.menuId,
+        icon: options.icon,
+        label: options.label,
+        accelerator: options.accelerator,
+        click() {
+            turnsOneInto(options);
+        }
+    } as IMenu;
+};
+
+/**
+ * 生成转换为单一块菜单项
+ */
+export const genTurnsIntoOne = (options: {
+    menuId?: string,
+    accelerator?: string,
+    icon?: string,
+    label: string,
+    protyle: IProtyle,
+    selectsElement: Element[],
+    type: TTurnIntoOne,
+    level?: TTurnIntoOneSub,
+}): IMenu => {
+    return {
+        id: options.menuId,
+        icon: options.icon,
+        label: options.label,
+        accelerator: options.accelerator,
+        click() {
+            turnsIntoOneTransaction(options);
+        }
+    } as IMenu;
+};
+
+/**
+ * 生成转换菜单项
+ */
+export const genTurnsInto = (options: {
+    menuId?: string,
+    icon?: string,
+    label: string,
+    protyle: IProtyle,
+    selectsElement: Element[],
+    type: TTurnInto,
+    level?: number,
+    isContinue?: boolean,
+    accelerator?: string,
+}): IMenu => {
+    return {
+        id: options.menuId,
+        icon: options.icon,
+        label: options.label,
+        accelerator: options.accelerator,
+        click() {
+            turnsIntoTransaction(options);
+        }
+    } as IMenu;
+};
 
 // Local definition for missing global types
 type TTurnIntoOne = "BlocksMergeSuperBlock" | "Blocks2ULs" | "Blocks2OLs" | "Blocks2TLs" | "Blocks2Blockquote" | "Blocks2Callout";
@@ -30,40 +105,6 @@ export interface IGutterTurnIntoContext {
     subType: string;
     /** Protyle 实例 */
     protyle: IProtyle;
-    /** 转换一个块的方法 (由 Gutter 实例提供) */
-    turnsOneInto: (options: {
-        menuId?: string,
-        id: string,
-        icon: string,
-        label: string,
-        protyle: IProtyle,
-        nodeElement: Element,
-        type: string,
-        level?: number
-    }) => IMenu;
-    /** 将块转换为另一个块的方法 (由 Gutter 实例提供) */
-    turnsIntoOne: (options: {
-        menuId?: string,
-        accelerator?: string,
-        icon?: string,
-        label: string,
-        protyle: IProtyle,
-        selectsElement: Element[],
-        type: TTurnIntoOne,
-        level?: TTurnIntoOneSub,
-    }) => IMenu;
-    /** 转换块的方法 (由 Gutter 实例提供) */
-    turnsInto: (options: {
-        menuId?: string,
-        icon?: string,
-        label: string,
-        protyle: IProtyle,
-        selectsElement: Element[],
-        type: TTurnInto,
-        level?: number,
-        isContinue?: boolean,
-        accelerator?: string,
-    }) => IMenu;
 }
 
 /**
@@ -81,7 +122,7 @@ const addTurnIntoOne = (
         level?: TTurnIntoOneSub;
     }
 ) => {
-    target.push(ctx.turnsIntoOne({
+    target.push(genTurnsIntoOne({
         menuId: options.menuId,
         icon: options.icon,
         label: options.label,
@@ -108,7 +149,7 @@ const addTurnInto = (
         level?: number;
     }
 ) => {
-    target.push(ctx.turnsInto({
+    target.push(genTurnsInto({
         menuId: options.menuId,
         icon: options.icon,
         label: options.label,

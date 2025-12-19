@@ -21,7 +21,7 @@ import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.e
  * @param nodeElements 选中元素列表
  * @returns 菜单项或false
  */
-const genCopyTextRef = (nodeElements: Element[]): false | IMenu => {
+export const genCopyTextRef = (nodeElements: Element[]): false | IMenu => {
     const element = nodeElements[0];
     if (!element || isNotEditBlock(element)) {
         return false;

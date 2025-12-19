@@ -1,6 +1,6 @@
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { IGutterTurnIntoContext } from "./buildGutterTurnIntoMenu";
+import { IGutterTurnIntoContext, genTurnsOneInto } from "./buildGutterTurnIntoMenu";
 
 const addTurnsOneInto = (
     ctx: IGutterTurnIntoContext,
@@ -13,7 +13,7 @@ const addTurnsOneInto = (
         type: string;
     }
 ) => {
-    target.push(ctx.turnsOneInto({
+    target.push(genTurnsOneInto({
         menuId: options.menuId,
         id: ctx.id,
         icon: options.icon,
