@@ -120,30 +120,7 @@ const addTurnInto = (
     }));
 };
 
-/**
- * 添加 "转换单个块" (turnsOneInto) 菜单项的辅助函数
- */
-const addTurnsOneInto = (
-    ctx: IGutterTurnIntoContext,
-    target: IMenu[],
-    options: {
-        menuId: string;
-        icon: string;
-        label: string;
-        accelerator?: string;
-        type: string;
-    }
-) => {
-    target.push(ctx.turnsOneInto({
-        menuId: options.menuId,
-        id: ctx.id,
-        icon: options.icon,
-        label: options.label,
-        protyle: ctx.protyle,
-        nodeElement: ctx.nodeElement,
-        type: options.type
-    }));
-};
+
 
 /**
  * 获取插入操作的快捷键配置
@@ -253,47 +230,7 @@ const buildHeadingMenu = (ctx: IGutterTurnIntoContext, turnIntoSubmenu: IMenu[])
  */
 
 
-/**
- * 添加引用块类型的转换菜单
- */
-const buildBlockquoteMenu = (ctx: IGutterTurnIntoContext, turnIntoSubmenu: IMenu[]) => {
-    const headingKeys = getHeadingKeymap();
-
-    addTurnsOneInto(ctx, turnIntoSubmenu, {
-        menuId: "paragraph",
-        icon: "iconParagraph",
-        label: siyuanI18n.paragraph,
-        accelerator: headingKeys.paragraph.custom,
-        type: "CancelBlockquote"
-    });
-    addTurnsOneInto(ctx, turnIntoSubmenu, {
-        menuId: "callout",
-        icon: "iconCallout",
-        label: siyuanI18n.callout,
-        type: "Blockquote2Callout"
-    });
-};
-
-/**
- * 添加提示块类型的转换菜单
- */
-const buildCalloutMenu = (ctx: IGutterTurnIntoContext, turnIntoSubmenu: IMenu[]) => {
-    const headingKeys = getHeadingKeymap();
-
-    addTurnsOneInto(ctx, turnIntoSubmenu, {
-        menuId: "paragraph",
-        icon: "iconParagraph",
-        label: siyuanI18n.paragraph,
-        accelerator: headingKeys.paragraph.custom,
-        type: "CancelCallout"
-    });
-    addTurnsOneInto(ctx, turnIntoSubmenu, {
-        menuId: "quote",
-        icon: "iconQuote",
-        label: siyuanI18n.quote,
-        type: "Callout2Blockquote"
-    });
-};
+import { buildBlockquoteMenu, buildCalloutMenu } from "./buildGutterQuoteMenu";
 
 /**
  * 构建 Gutter 转换子菜单
