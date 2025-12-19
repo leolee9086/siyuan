@@ -11,8 +11,13 @@ import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environme
 import * as path from "path";
 /// #endif
 
-export const handleOpen = (dataObj: any) => {
+import { IBazaar, IBazaarDataObj } from "./interfaces";
+
+export const handleOpen = (dataObj: IBazaarDataObj) => {
     /// #if !BROWSER
+    if (!dataObj.name) {
+        return;
+    }
     const dirName = dataObj.bazaarType;
     if (dirName === "icons" || dirName === "themes") {
         useShell("openPath", path.join(getSiyuanConfig().system.confDir, "appearance", dirName, dataObj.name));
@@ -22,32 +27,32 @@ export const handleOpen = (dataObj: any) => {
     /// #endif
 };
 
-const initBazaarActions: Record<string, (bazaar: any) => void> = {
-    template: (bazaar: any) => {
+const initBazaarActions: Record<string, (bazaar: IBazaar) => void> = {
+    template: (bazaar: IBazaar) => {
         fetchPost("/api/bazaar/getBazaarTemplate", {}, response => {
             bazaar._onBazaar(response, "templates");
             bazaar._data.templates = response.data.packages;
         });
     },
-    icon: (bazaar: any) => {
+    icon: (bazaar: IBazaar) => {
         fetchPost("/api/bazaar/getBazaarIcon", {}, response => {
             bazaar._onBazaar(response, "icons");
             bazaar._data.icons = response.data.packages;
         });
     },
-    widget: (bazaar: any) => {
+    widget: (bazaar: IBazaar) => {
         fetchPost("/api/bazaar/getBazaarWidget", {}, response => {
             bazaar._onBazaar(response, "widgets");
             bazaar._data.widgets = response.data.packages;
         });
     },
-    theme: (bazaar: any) => {
+    theme: (bazaar: IBazaar) => {
         fetchPost("/api/bazaar/getBazaarTheme", {}, response => {
             bazaar._onBazaar(response, "themes");
             bazaar._data.themes = response.data.packages;
         });
     },
-    plugin: (bazaar: any) => {
+    plugin: (bazaar: IBazaar) => {
         fetchPost("/api/bazaar/getBazaarPlugin", {
             frontend: getFrontend()
         }, response => {
@@ -57,7 +62,7 @@ const initBazaarActions: Record<string, (bazaar: any) => void> = {
     }
 };
 
-export const handleTabSwitch = (target: HTMLElement, type: string, bazaar: any) => {
+export const handleTabSwitch = (target: HTMLElement, type: string, bazaar: IBazaar) => {
     bazaar.element.querySelector(".layout-tab-bar .item--focus")?.classList.remove("item--focus");
     target.classList.add("item--focus");
     const panels = bazaar.element.querySelectorAll(".config-bazaar__panel");
@@ -78,7 +83,7 @@ export const handleTabSwitch = (target: HTMLElement, type: string, bazaar: any) 
     }
 };
 
-export const handleBazaarNavClick = (type: string, target: HTMLElement, dataObj: any, bazaar: any, app: App, event: MouseEvent): boolean => {
+export const handleBazaarNavClick = (type: string, target: HTMLElement, dataObj: IBazaarDataObj, bazaar: IBazaar, app: App, event: MouseEvent): boolean => {
     if (type === "copy-funding") {
         const funding = target.getAttribute("data-funding");
         if (funding) {
@@ -121,36 +126,41 @@ export const handleBazaarNavClick = (type: string, target: HTMLElement, dataObj:
     return false;
 };
 
-const handleBazaarCardClick = (target: HTMLElement, bazaar: any, event: MouseEvent) => {
+const handleBazaarCardClick = (target: HTMLElement, bazaar: IBazaar, event: MouseEvent) => {
     if (hasClosestByClassName(event.target as HTMLElement, "b3-card__actions--right")) {
         return;
     }
     const objStr = target.getAttribute("data-obj");
-    if (objStr) {
-        const dataObjLocal = JSON.parse(objStr);
-        const bazaarType = (dataObjLocal.bazaarType) as TBazaarType;
-        let data;
-        if (hasClosestByAttribute(target, "data-type", "downloaded-update")) {
-            data = bazaar._data.update[(dataObjLocal.bazaarType) as TBazaarType].find((item: IBazaarItem) => item.repoURL === dataObjLocal.repoURL);
-        } else {
-            data = (dataObjLocal.downloaded ? bazaar._data.downloaded : bazaar._data[bazaarType]).find((item: IBazaarItem) => item.repoURL === dataObjLocal.repoURL);
-        }
-        bazaar._renderReadme(bazaarType, data, dataObjLocal.downloaded);
+    if (!objStr) {
+        return;
+    }
+    const dataObjLocal = JSON.parse(objStr) as IBazaarDataObj;
+    const bazaarType = (dataObjLocal.bazaarType) as TBazaarType;
+    let data;
+    if (hasClosestByAttribute(target, "data-type", "downloaded-update")) {
+        data = bazaar._data.update[(dataObjLocal.bazaarType) as TBazaarType].find((item: IBazaarItem) => item.repoURL === dataObjLocal.repoURL);
+    } else {
+        data = (dataObjLocal.downloaded ? bazaar._data.downloaded : bazaar._data[bazaarType]).find((item: IBazaarItem) => item.repoURL === dataObjLocal.repoURL);
+    }
+    if (data) {
+        bazaar._renderReadme(bazaarType, data, !!dataObjLocal.downloaded);
     }
 };
 
-export const handleBazaarUIInteraction = (target: HTMLElement, type: string | null, bazaar: any, event: MouseEvent): boolean => {
+export const handleBazaarUIInteraction = (target: HTMLElement, type: string | null, bazaar: IBazaar, event: MouseEvent): boolean => {
     if (target.classList.contains("b3-card")) {
         handleBazaarCardClick(target, bazaar, event);
         event.preventDefault();
         event.stopPropagation();
         return true;
-    } else if (target.classList.contains("item") && !target.classList.contains("item--focus")) {
+    }
+    if (target.classList.contains("item") && !target.classList.contains("item--focus")) {
         handleTabSwitch(target, type || "", bazaar);
         event.preventDefault();
         event.stopPropagation();
         return true;
-    } else if (target.classList.contains("item__preview")) {
+    }
+    if (target.classList.contains("item__preview")) {
         target.classList.toggle("item__preview--fullscreen");
         event.preventDefault();
         event.stopPropagation();
