@@ -9,11 +9,7 @@ import { movePathTo } from "../../util/pathName/movePathTo";
 import { hintMoveBlock } from "../hint/extend";
 import { addEditorToDatabase } from "../../protyle/render/av/addToDatabase";
 import { removeBlock } from "../wysiwyg/remove";
-
-interface IGutterEditMenuContext {
-    protyle: IProtyle;
-    nodeElement: Element;
-}
+import type { IGutterEditMenuContext } from "./gutter.types";
 
 /**
  * 构建编辑操作菜单项数组(剪切、移动、添加到数据库、删除)
@@ -42,7 +38,9 @@ export function buildGutterEditMenu(context: IGutterEditMenuContext): IMenu[] {
             click: () => {
                 movePathTo({
                     cb: (toPath) => {
-                        hintMoveBlock(toPath[0], [nodeElement], protyle);
+                        if (toPath && toPath.length > 0 && toPath[0]) {
+                            hintMoveBlock(toPath[0], [nodeElement], protyle);
+                        }
                     },
                     flashcard: false,
                 });
