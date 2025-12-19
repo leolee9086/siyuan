@@ -35,7 +35,7 @@ import { removeBlock } from "../wysiwyg/remove";
 import { focusBlock, focusByRange, getEditorRange } from "../util/selection";
 import { hideElements } from "../ui/hideElements";
 import { highlightRender } from "../render/highlightRender";
-import { blockRender } from "../render/blockRender";
+
 import { getContenteditableElement, getParentBlock, getTopAloneElement, isNotEditBlock } from "../wysiwyg/getBlock";
 import * as dayjs from "dayjs";
 import { fetchPost } from "../../util/fetch";
@@ -72,6 +72,7 @@ import { buildGutterCopyMenu } from "./buildGutterCopyMenu";
 import { buildGutterCodeBlockMenu } from "./buildGutterCodeBlockMenu";
 import { buildGutterHeadingMenu } from "./buildGutterHeadingMenu";
 import { buildGutterTurnIntoMenu } from "./buildGutterTurnIntoMenu";
+import { buildGutterEmbedMenu } from "./buildGutterEmbedMenu";
 
 export class Gutter {
     public element: HTMLElement;
@@ -1231,112 +1232,7 @@ export class Gutter {
             }).element);
         } else if (type === "NodeBlockQueryEmbed" && !protyle.disabled) {
             window.siyuan.menus.menu.append(new MenuItem({ id: "separator_blockEmbed", type: "separator" }).element);
-            const breadcrumb = nodeElement.getAttribute("breadcrumb");
-            window.siyuan.menus.menu.append(new MenuItem({
-                id: "blockEmbed",
-                type: "submenu",
-                icon: "iconSQL",
-                label: siyuanI18n.blockEmbed,
-                submenu: [{
-                    id: "refresh",
-                    icon: "iconRefresh",
-                    label: `${siyuanI18n.refresh} SQL`,
-                    click() {
-                        nodeElement.removeAttribute("data-render");
-                        blockRender(protyle, nodeElement);
-                    }
-                }, {
-                    id: "update",
-                    icon: "iconEdit",
-                    label: `${siyuanI18n.update} SQL`,
-                    click() {
-                        protyle.toolbar.showRender(protyle, nodeElement);
-                    }
-                }, {
-                    type: "separator"
-                }, {
-                    id: "embedBlockBreadcrumb",
-                    label: `<div class="fn__flex" style="margin-bottom: 4px"><span>${siyuanI18n.embedBlockBreadcrumb}</span><span class="fn__space fn__flex-1"></span>
-<input type="checkbox" class="b3-switch fn__flex-center"${breadcrumb === "true" ? " checked" : ((window.siyuan.config.editor.embedBlockBreadcrumb && breadcrumb !== "false") ? " checked" : "")}></div>`,
-                    bind(element) {
-                        element.addEventListener("click", (event: MouseEvent & { target: HTMLElement }) => {
-                            const inputElement = element.querySelector("input");
-                            if (event.target.tagName !== "INPUT") {
-                                inputElement.checked = !inputElement.checked;
-                            }
-                            nodeElement.setAttribute("breadcrumb", inputElement.checked.toString());
-                            fetchPost("/api/attr/setBlockAttrs", {
-                                id,
-                                attrs: { breadcrumb: inputElement.checked.toString() }
-                            });
-                            nodeElement.removeAttribute("data-render");
-                            blockRender(protyle, nodeElement);
-                            window.siyuan.menus.menu.remove();
-                        });
-                    }
-                }, {
-                    id: "headingEmbedMode",
-                    label: siyuanI18n.headingEmbedMode,
-                    type: "submenu",
-                    submenu: [{
-                        id: "showHeadingWithBlocks",
-                        label: siyuanI18n.showHeadingWithBlocks,
-                        iconHTML: "",
-                        checked: nodeElement.getAttribute("custom-heading-mode") === "0",
-                        click() {
-                            nodeElement.setAttribute("custom-heading-mode", "0");
-                            fetchPost("/api/attr/setBlockAttrs", {
-                                id,
-                                attrs: { "custom-heading-mode": "0" }
-                            });
-                            nodeElement.removeAttribute("data-render");
-                            blockRender(protyle, nodeElement);
-                        }
-                    }, {
-                        id: "showHeadingOnlyTitle",
-                        label: siyuanI18n.showHeadingOnlyTitle,
-                        iconHTML: "",
-                        checked: nodeElement.getAttribute("custom-heading-mode") === "1",
-                        click() {
-                            nodeElement.setAttribute("custom-heading-mode", "1");
-                            fetchPost("/api/attr/setBlockAttrs", {
-                                id,
-                                attrs: { "custom-heading-mode": "1" }
-                            });
-                            nodeElement.removeAttribute("data-render");
-                            blockRender(protyle, nodeElement);
-                        }
-                    }, {
-                        id: "showHeadingOnlyBlocks",
-                        label: siyuanI18n.showHeadingOnlyBlocks,
-                        iconHTML: "",
-                        checked: nodeElement.getAttribute("custom-heading-mode") === "2",
-                        click() {
-                            nodeElement.setAttribute("custom-heading-mode", "2");
-                            fetchPost("/api/attr/setBlockAttrs", {
-                                id,
-                                attrs: { "custom-heading-mode": "2" }
-                            });
-                            nodeElement.removeAttribute("data-render");
-                            blockRender(protyle, nodeElement);
-                        }
-                    }, {
-                        id: "default",
-                        label: siyuanI18n.default,
-                        iconHTML: "",
-                        checked: !nodeElement.getAttribute("custom-heading-mode"),
-                        click() {
-                            nodeElement.removeAttribute("custom-heading-mode");
-                            fetchPost("/api/attr/setBlockAttrs", {
-                                id,
-                                attrs: { "custom-heading-mode": "" }
-                            });
-                            nodeElement.removeAttribute("data-render");
-                            blockRender(protyle, nodeElement);
-                        }
-                    }]
-                }]
-            }).element);
+            window.siyuan.menus.menu.append(new MenuItem(buildGutterEmbedMenu(protyle, nodeElement, id)).element);
         } else if (type === "NodeHeading" && !protyle.disabled) {
             const { 标题级别转换, 其他操作 } = buildGutterHeadingMenu({
                 protyle,
