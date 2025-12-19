@@ -77,6 +77,7 @@ import { buildGutterAlignMenu, buildGutterHeightsMenu, buildGutterWidthsMenu } f
 import { buildGutterSuperBlockMenu } from "./buildGutterSuperBlockMenu";
 import { buildGutterMediaMenu } from "./buildGutterHtmlMenu";
 import { buildGutterAvMenu } from "./buildGutterAvMenu";
+import { showMobileAppearance } from "./showMobileAppearance";
 
 export class Gutter {
     public element: HTMLElement;
@@ -509,18 +510,7 @@ export class Gutter {
     }
 
 
-    private showMobileAppearance(protyle: IProtyle) {
-        const toolbarElement = document.getElementById("keyboardToolbar");
-        const dynamicElements = toolbarElement.querySelectorAll("#keyboardToolbar .keyboard__dynamic");
-        dynamicElements[0].classList.add("fn__none");
-        dynamicElements[1].classList.remove("fn__none");
-        toolbarElement.querySelector('.keyboard__action[data-type="text"]').classList.add("protyle-toolbar__item--current");
-        toolbarElement.querySelector('.keyboard__action[data-type="done"] use').setAttribute("xlink:href", "#iconCloseRound");
-        toolbarElement.classList.remove("fn__none");
-        const oldScrollTop = protyle.contentElement.scrollTop + 333.5;  // toolbarElement.clientHeight
-        renderTextMenu(protyle, toolbarElement);
-        showKeyboardToolbarUtil(oldScrollTop);
-    }
+
 
     public renderMultipleMenu(protyle: IProtyle, selectsElement: Element[]) {
         let isList = false;
@@ -890,7 +880,7 @@ export class Gutter {
                 accelerator: getSiyuanConfig().keymap.editor.insert.appearance.custom,
                 click: () => {
                     /// #if MOBILE
-                    this.showMobileAppearance(protyle);
+                    showMobileAppearance(protyle);
                     /// #else
                     protyle.toolbar.element.classList.add("fn__none");
                     protyle.toolbar.subElement.innerHTML = "";
@@ -1325,7 +1315,7 @@ export class Gutter {
                 accelerator: getSiyuanConfig().keymap.editor.insert.appearance.custom,
                 click: () => {
                     /// #if MOBILE
-                    this.showMobileAppearance(protyle);
+                    showMobileAppearance(protyle);
                     /// #else
                     protyle.toolbar.element.classList.add("fn__none");
                     protyle.toolbar.subElement.innerHTML = "";
