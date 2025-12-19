@@ -33,17 +33,17 @@ export const bazaarData = {
 export const extractKeywords = (items: IBazaarItem[]): string[] => {
     const keywordCount: { [key: string]: number } = {};
 
-    items.forEach(item => {
+    for (const item of items) {
         if (item.keywords) {
-            item.keywords.forEach(keyword => {
+            for (const keyword of item.keywords) {
                 if (keywordCount[keyword]) {
                     keywordCount[keyword]++;
                 } else {
                     keywordCount[keyword] = 1;
                 }
-            });
+            }
         }
-    });
+    }
 
 
     // 按出现频率排序，返回前10个关键词
@@ -53,6 +53,16 @@ export const extractKeywords = (items: IBazaarItem[]): string[] => {
         .map(entry => entry[0]);
 
     return data;
+};
+
+const matchesKeywords = (item: IBazaarItem, selectedKeywords: string[]) => {
+    if (!item.keywords || item.keywords.length === 0) {
+        return false;
+    }
+    // 检查是否包含所有选中的关键词
+    return selectedKeywords.every(selectedKeyword =>
+        item.keywords!.includes(selectedKeyword)
+    );
 };
 
 // 根据选中的关键词过滤包
@@ -66,14 +76,5 @@ export const filterPackagesByKeywords = (bazaarType: TBazaarType) => {
     }
 
     // 过滤包含所有选中关键词的包
-    return allPackages.filter(item => {
-        if (!item.keywords || item.keywords.length === 0) {
-            return false;
-        }
-
-        // 检查是否包含所有选中的关键词
-        return selectedKeywords.every(selectedKeyword =>
-            item.keywords!.includes(selectedKeyword)
-        );
-    });
+    return allPackages.filter(item => matchesKeywords(item, selectedKeywords));
 };
