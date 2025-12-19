@@ -17,6 +17,73 @@ const compat = new FlatCompat({
     allConfig: js.configs.all
 });
 
+const COMMON_RESTRICTED_SYNTAX = [
+    {
+        selector: "IfStatement[alternate]",
+        message: "❌ 禁止使用 else。请使用 \"卫语句 (Guard Clauses)\" 或者其它策略扁平化逻辑。",
+    },
+    {
+        selector: "IfStatement > BlockStatement > IfStatement",
+        message: "❌ 禁止嵌套 If。请合并判断条件 (&&) 或提取函数。",
+    },
+    {
+        selector: "IfStatement > IfStatement",
+        message: "❌ 禁止嵌套 If。请合并逻辑。",
+    },
+    // 禁止在函数内部定义命名函数（闭包）
+    {
+        selector: ":function BlockStatement > FunctionDeclaration",
+        message: "❌ 禁止在函数内部定义命名函数。请将函数提取到模块顶层，或使用匿名箭头函数。",
+    },
+    {
+        selector: ":function BlockStatement VariableDeclarator > FunctionExpression",
+        message: "❌ 禁止在函数内部定义命名函数。请将函数提取到模块顶层，或使用匿名箭头函数。",
+    },
+    {
+        selector: ":function BlockStatement VariableDeclarator > ArrowFunctionExpression",
+        message: "❌ 禁止在函数内部定义命名函数。请将函数提取到模块顶层，或使用匿名箭头函数。",
+    },
+    {
+        selector: "MemberExpression[object.type='CallExpression'][object.callee.property.name=/^(querySelector|querySelectorAll|getElementById|getElementsByClassName|getElementsByTagName)$/]",
+        message: "❌ 禁止隐式上下文切换：在 DOM 获取接口 (querySelector, getElementById 等) 返回的对象上直接链式调用。请务必先声明变量再使用。",
+    },
+    {
+        selector: "MemberExpression[object.type='MemberExpression'][object.computed=true]",
+        message: "❌ 禁止隐式上下文切换：禁止在使用列表下标取值操作 ([]) 之后直接访问属性。请务必先声明变量再使用。",
+    },
+    {
+        selector: "CallExpression[callee.property.name='forEach']",
+        message: [
+            "❌ 禁止使用 .forEach()。",
+            "原因 1: forEach 无法等待异步操作。",
+            "原因 2: forEach 无法提前中断。",
+            "替代方案: for...of / .map() / .filter()"
+        ].join("\n"),
+    },
+    {
+        selector: "SwitchStatement",
+        message: [
+            "❌ 禁止使用 switch 语句。",
+            "替代方案: Object Literal / Map / Strategy Pattern / Polymorphism"
+        ].join("\n"),
+    },
+];
+
+const TYPE_DEFINITION_RESTRICTIONS = [
+    {
+        selector: "TSTypeAliasDeclaration",
+        message: "架构约束：禁止在业务/UI文件定义 Type。请移至 *.types.ts。",
+    },
+    {
+        selector: "TSInterfaceDeclaration",
+        message: "架构约束：禁止在业务/UI文件定义 Interface。请移至 *.types.ts。",
+    },
+    {
+        selector: "TSEnumDeclaration",
+        message: "架构约束：禁止在业务/UI文件定义 Enum。请移至 *.types.ts。",
+    },
+];
+
 export default [{
     ignores: [
         "build",
@@ -58,55 +125,7 @@ export default [{
         // 禁止 else 和嵌套 if 的规则
         "no-restricted-syntax": [
             "error",
-            {
-                selector: "IfStatement[alternate]",
-                message: "❌ 禁止使用 else。请使用 \"卫语句 (Guard Clauses)\" 或者其它策略扁平化逻辑。",
-            },
-            {
-                selector: "IfStatement > BlockStatement > IfStatement",
-                message: "❌ 禁止嵌套 If。请合并判断条件 (&&) 或提取函数。",
-            },
-            {
-                selector: "IfStatement > IfStatement",
-                message: "❌ 禁止嵌套 If。请合并逻辑。",
-            },
-            // 禁止在函数内部定义命名函数（闭包）
-            {
-                selector: ":function BlockStatement > FunctionDeclaration",
-                message: "❌ 禁止在函数内部定义命名函数。请将函数提取到模块顶层，或使用匿名箭头函数。",
-            },
-            {
-                selector: ":function BlockStatement VariableDeclarator > FunctionExpression",
-                message: "❌ 禁止在函数内部定义命名函数。请将函数提取到模块顶层，或使用匿名箭头函数。",
-            },
-            {
-                selector: ":function BlockStatement VariableDeclarator > ArrowFunctionExpression",
-                message: "❌ 禁止在函数内部定义命名函数。请将函数提取到模块顶层，或使用匿名箭头函数。",
-            },
-            {
-                selector: "MemberExpression[object.type='CallExpression'][object.callee.property.name=/^(querySelector|querySelectorAll|getElementById|getElementsByClassName|getElementsByTagName)$/]",
-                message: "❌ 禁止隐式上下文切换：在 DOM 获取接口 (querySelector, getElementById 等) 返回的对象上直接链式调用。请务必先声明变量再使用。",
-            },
-            {
-                selector: "MemberExpression[object.type='MemberExpression'][object.computed=true]",
-                message: "❌ 禁止隐式上下文切换：禁止在使用列表下标取值操作 ([]) 之后直接访问属性。请务必先声明变量再使用。",
-            },
-            {
-                selector: "CallExpression[callee.property.name='forEach']",
-                message: [
-                    "❌ 禁止使用 .forEach()。",
-                    "原因 1: forEach 无法等待异步操作。",
-                    "原因 2: forEach 无法提前中断。",
-                    "替代方案: for...of / .map() / .filter()"
-                ].join("\n"),
-            },
-            {
-                selector: "SwitchStatement",
-                message: [
-                    "❌ 禁止使用 switch 语句。",
-                    "替代方案: Object Literal / Map / Strategy Pattern / Polymorphism"
-                ].join("\n"),
-            },
+            ...COMMON_RESTRICTED_SYNTAX
         ],
         "max-lines": ["error", { "max": 300, "skipBlankLines": true, "skipComments": true }],
         "max-lines-per-function": ["error", { "max": 50, "skipBlankLines": true, "skipComments": true, "IIFEs": true }],
@@ -125,7 +144,7 @@ export default [{
         "@typescript-eslint/no-var-requires": "off",
         "@typescript-eslint/explicit-function-return-type": "off",
         "@typescript-eslint/explicit-module-boundary-types": "off",
-        "@typescript-eslint/no-explicit-any": "off",
+        "@typescript-eslint/no-explicit-any": "error",
         "@typescript-eslint/no-require-imports": "off",
         "vue/multi-word-component-names": "off",
         "vue/no-unused-components": "warn",
@@ -133,6 +152,20 @@ export default [{
         "vue/require-default-prop": "off",
         "vue/require-explicit-emits": "off",
     },
+}, {
+    // 专门针对非 types/schema 文件的严格限制
+    files: ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "src/**/*.mjs"],
+    ignores: [
+        "**/*.types.ts",
+        "**/*.schema.ts"
+    ],
+    rules: {
+        "no-restricted-syntax": [
+            "error",
+            ...COMMON_RESTRICTED_SYNTAX,
+            ...TYPE_DEFINITION_RESTRICTIONS
+        ]
+    }
 }, {
     // 禁止在非环境文件中访问全局对象
     files: ["**/*.ts", "**/*.tsx", "**/*.vue"],
