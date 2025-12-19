@@ -8,6 +8,7 @@
 
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { buildListMenu } from "./buildGutterListMenu";
 
 // Local definition for missing global types
 type TTurnIntoOne = "BlocksMergeSuperBlock" | "Blocks2ULs" | "Blocks2OLs" | "Blocks2TLs" | "Blocks2Blockquote" | "Blocks2Callout";
@@ -250,89 +251,7 @@ const buildHeadingMenu = (ctx: IGutterTurnIntoContext, turnIntoSubmenu: IMenu[])
 /**
  * 添加列表类型的转换菜单
  */
-const buildListMenu = (ctx: IGutterTurnIntoContext, turnIntoSubmenu: IMenu[]) => {
-    const insertKeys = getInsertKeymap();
-    const headingKeys = getHeadingKeymap();
 
-    // 解决隐式上下文切换
-    const orderedListConfig = insertKeys["ordered-list"];
-
-    addTurnsOneInto(ctx, turnIntoSubmenu, {
-        menuId: "paragraph",
-        icon: "iconParagraph",
-        label: siyuanI18n.paragraph,
-        accelerator: headingKeys.paragraph.custom,
-        type: "CancelList"
-    });
-    addTurnIntoOne(ctx, turnIntoSubmenu, {
-        menuId: "quote",
-        icon: "iconQuote",
-        label: siyuanI18n.quote,
-        accelerator: insertKeys.quote.custom,
-        type: "Blocks2Blockquote"
-    });
-    addTurnIntoOne(ctx, turnIntoSubmenu, {
-        menuId: "callout",
-        icon: "iconCallout",
-        label: siyuanI18n.callout,
-        type: "Blocks2Callout"
-    });
-
-    const listSubType = ctx.nodeElement.getAttribute("data-subtype");
-
-    // 扁平化逻辑，避免 nested if 和 else
-    if (listSubType === "o") { // Ordered list
-        addTurnsOneInto(ctx, turnIntoSubmenu, {
-            menuId: "list",
-            icon: "iconList",
-            label: siyuanI18n.list,
-            accelerator: insertKeys.list.custom,
-            type: "OL2UL"
-        });
-        addTurnsOneInto(ctx, turnIntoSubmenu, {
-            menuId: "check",
-            icon: "iconCheck",
-            label: siyuanI18n.check,
-            accelerator: insertKeys.check.custom,
-            type: "UL2TL"
-        });
-        return;
-    }
-
-    if (listSubType === "t") { // Task list
-        addTurnsOneInto(ctx, turnIntoSubmenu, {
-            menuId: "list",
-            icon: "iconList",
-            label: siyuanI18n.list,
-            accelerator: insertKeys.list.custom,
-            type: "TL2UL"
-        });
-        addTurnsOneInto(ctx, turnIntoSubmenu, {
-            menuId: "orderedList",
-            icon: "iconOrderedList",
-            label: siyuanI18n["ordered-list"],
-            accelerator: orderedListConfig.custom,
-            type: "TL2OL"
-        });
-        return;
-    }
-
-    // Unordered list (default)
-    addTurnsOneInto(ctx, turnIntoSubmenu, {
-        menuId: "orderedList",
-        icon: "iconOrderedList",
-        label: siyuanI18n["ordered-list"],
-        accelerator: orderedListConfig.custom,
-        type: "UL2OL"
-    });
-    addTurnsOneInto(ctx, turnIntoSubmenu, {
-        menuId: "check",
-        icon: "iconCheck",
-        label: siyuanI18n.check,
-        accelerator: insertKeys.check.custom,
-        type: "OL2TL"
-    });
-};
 
 /**
  * 添加引用块类型的转换菜单
@@ -392,14 +311,27 @@ export const buildGutterTurnIntoMenu = (ctx: IGutterTurnIntoContext): IMenu[] =>
 
     if (type === "NodeParagraph") {
         buildParagraphMenu(ctx, turnIntoSubmenu);
-    } else if (type === "NodeHeading") {
+        return turnIntoSubmenu;
+    }
+
+    if (type === "NodeHeading") {
         buildHeadingMenu(ctx, turnIntoSubmenu);
-    } else if (type === "NodeList") {
+        return turnIntoSubmenu;
+    }
+
+    if (type === "NodeList") {
         buildListMenu(ctx, turnIntoSubmenu);
-    } else if (type === "NodeBlockquote") {
+        return turnIntoSubmenu;
+    }
+
+    if (type === "NodeBlockquote") {
         buildBlockquoteMenu(ctx, turnIntoSubmenu);
-    } else if (type === "NodeCallout") {
+        return turnIntoSubmenu;
+    }
+
+    if (type === "NodeCallout") {
         buildCalloutMenu(ctx, turnIntoSubmenu);
+        return turnIntoSubmenu;
     }
 
     return turnIntoSubmenu;
