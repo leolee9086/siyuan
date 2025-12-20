@@ -33,7 +33,10 @@ const removeSameElementIfNotSameDoc = (context: IMoveContext, element: Element) 
 };
 
 const handleTopSourceElementCleanup = async (topSourceElement: Element, context: IMoveContext) => {
-    const topSourceId = topSourceElement.getAttribute("data-node-id")!;
+    const topSourceId = topSourceElement.getAttribute("data-node-id");
+    if (!topSourceId) {
+        return;
+    }
 
     context.doOperations.push({
         action: "delete",
@@ -60,19 +63,26 @@ const handleTopSourceElementCleanup = async (topSourceElement: Element, context:
     }
 };
 
+const handleCancelSBSameDoc = async (element: HTMLElement, context: IMoveContext) => {
+    const sbData = await cancelSB(context.protyle, element);
+    //@AIDONE:变量应该先声明后使用sbData.doOperations[0]等应该有明确而合适的变量名
+    // @存疑: 原代码只取了 doOperations[0] 和 [1]，undoOperations[0] 和 [1]
+    // cancelSB 返回的结构是: doOperations = [移动子块操作..., 删除超级块操作]
+    // 如果超级块有超过2个子块，这里可能会丢失中间的操作，但此处保持原有逻辑不变
+    const firstDoOp = sbData.doOperations[0];
+    const secondDoOp = sbData.doOperations[1];
+    const firstUndoOp = sbData.undoOperations[0];
+    const secondUndoOp = sbData.undoOperations[1];
+    if (!firstDoOp || !secondDoOp || !firstUndoOp || !secondUndoOp) {
+        return;
+    }
+    context.doOperations.push(firstDoOp, secondDoOp);
+    context.undoOperations.push(secondUndoOp, firstUndoOp);
+};
+
 const handleCancelSB = async (element: HTMLElement, context: IMoveContext) => {
     if (context.isSameDoc) {
-        const sbData = await cancelSB(context.protyle, element);
-        //@AIDONE:变量应该先声明后使用sbData.doOperations[0]等应该有明确而合适的变量名
-        // @存疑: 原代码只取了 doOperations[0] 和 [1]，undoOperations[0] 和 [1]
-        // cancelSB 返回的结构是: doOperations = [移动子块操作..., 删除超级块操作]
-        // 如果超级块有超过2个子块，这里可能会丢失中间的操作，但此处保持原有逻辑不变
-        const firstDoOp = sbData.doOperations[0]!;
-        const secondDoOp = sbData.doOperations[1]!;
-        const firstUndoOp = sbData.undoOperations[0]!;
-        const secondUndoOp = sbData.undoOperations[1]!;
-        context.doOperations.push(firstDoOp, secondDoOp);
-        context.undoOperations.push(secondUndoOp, firstUndoOp);
+        await handleCancelSBSameDoc(element, context);
         return;
     }
     /// #if !MOBILE
@@ -84,13 +94,16 @@ const handleCancelSB = async (element: HTMLElement, context: IMoveContext) => {
 
         const otherSbData = await cancelSB(editor.protyle, element);
         // @存疑: 同上，只取了前两个操作，可能丢失多子块场景的操作
-        const firstOtherDoOp = otherSbData.doOperations[0]!;
-        const secondOtherDoOp = otherSbData.doOperations[1]!;
-        const firstOtherUndoOp = otherSbData.undoOperations[0]!;
-        const secondOtherUndoOp = otherSbData.undoOperations[1]!;
+        const firstOtherDoOp = otherSbData.doOperations[0];
+        const secondOtherDoOp = otherSbData.doOperations[1];
+        const firstOtherUndoOp = otherSbData.undoOperations[0];
+        const secondOtherUndoOp = otherSbData.undoOperations[1];
+        if (!firstOtherDoOp || !secondOtherDoOp || !firstOtherUndoOp || !secondOtherUndoOp) {
+            continue;
+        }
         context.doOperations.push(firstOtherDoOp, secondOtherDoOp);
         context.undoOperations.push(secondOtherUndoOp, firstOtherUndoOp);
-        editor.protyle.undo.clear();
+        editor.protyle.undo?.clear();
         break;
     }
     /// #endif
