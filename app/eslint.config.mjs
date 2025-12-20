@@ -7,6 +7,7 @@ import js from "@eslint/js";
 import { FlatCompat } from "@eslint/eslintrc";
 import pluginVue from "eslint-plugin-vue";
 import { 禁止内联回调插件 } from "./0_lints/no-inline-callback.mjs";
+import { aiWorkerPlugin } from "./0_lints/ai-worker-rules.mjs";
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -103,6 +104,7 @@ export default [{
         "@typescript-eslint": typescriptEslint,
         "vue": pluginVue,
         "no-inline-callback": 禁止内联回调插件,
+        "ai-worker": aiWorkerPlugin,
     },
 
     languageOptions: {
@@ -151,6 +153,7 @@ export default [{
         "vue/no-unused-vars": "warn",
         "vue/require-default-prop": "off",
         "vue/require-explicit-emits": "off",
+        "ai-worker/detect-ai-todo": "error",
     },
 }, {
     // 专门针对非 types/schema 文件的严格限制
