@@ -70,6 +70,18 @@ const COMMON_RESTRICTED_SYNTAX = [
     },
 ];
 
+// 类型断言限制 (仅在非 .guard.ts 文件中生效)
+const TYPE_ASSERTION_RESTRICTIONS = [
+    {
+        selector: "TSAsExpression:not([typeAnnotation.type='TSTypeReference'][typeAnnotation.typeName.name='const']), TSTypeAssertion",
+        message: "❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。",
+    },
+    {
+        selector: "TSTypePredicate",
+        message: "❌ 架构约束：禁止在常规文件使用 'is' 关键字。类型守卫逻辑必须移至 *.guard.ts 文件中。",
+    },
+];
+
 const TYPE_DEFINITION_RESTRICTIONS = [
     {
         selector: "TSTypeAliasDeclaration",
@@ -161,6 +173,7 @@ export default [{
     files: ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "src/**/*.mjs"],
     ignores: [
         "**/*.types.ts",
+        "**/types.ts",
         "**/*.schema.ts"
     ],
     rules: {
@@ -168,6 +181,19 @@ export default [{
             "error",
             ...COMMON_RESTRICTED_SYNTAX,
             ...TYPE_DEFINITION_RESTRICTIONS
+        ]
+    }
+}, {
+    // 禁止在非 .guard.ts 文件中使用类型断言
+    files: ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"],
+    ignores: [
+        "**/*.guard.ts",
+    ],
+    rules: {
+        "no-restricted-syntax": [
+            "error",
+            ...COMMON_RESTRICTED_SYNTAX,
+            ...TYPE_ASSERTION_RESTRICTIONS
         ]
     }
 }, {
