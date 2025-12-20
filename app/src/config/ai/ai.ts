@@ -1,6 +1,9 @@
 import { fetchPost } from "../../util/fetch";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+// @ts-ignore
+import ModelScopeConfig from "./ModelScopeConfig.vue";
+import { createVueComponentLoader } from "../../util/vue/mount";
 
 // 生成移动端HTML的独立函数
 function genMobileHTML() {
@@ -199,41 +202,88 @@ export const ai = {
         return `<div class="fn__flex-column" style="height: 100%">
 <div class="layout-tab-bar fn__flex">
     <div data-type="openai" class="item item--full item--focus"><span class="fn__flex-1"></span><span class="item__text">OpenAI</span><span class="fn__flex-1"></span></div>
+    <div data-type="modelscope" class="item item--full"><span class="fn__flex-1"></span><span class="item__text">ModelScope</span><span class="fn__flex-1"></span></div>
 </div>
 <div class="fn__flex-1">
-    <div data-type="openai">
+    <div data-type="openai" class="ai-config-tab">
         ${responsiveHTML}
     </div>
+    <div data-type="modelscope" class="ai-config-tab fn__none" style="height:100%"></div>
 </div>
 </div>`;
     },
     bindEvent: () => {
-        const togglePassword = ai.element.querySelector('.b3-form__icona-icon[data-action="togglePassword"]');
-        togglePassword.addEventListener("click", () => {
-            const isEye = togglePassword.firstElementChild.getAttribute("xlink:href") === "#iconEye";
-            togglePassword.firstElementChild.setAttribute("xlink:href", isEye ? "#iconEyeoff" : "#iconEye");
-            togglePassword.previousElementSibling.setAttribute("type", isEye ? "text" : "password");
-        });
-        ai.element.querySelectorAll("input, select").forEach((item) => {
-            item.addEventListener("change", () => {
-                fetchPost("/api/setting/setAI", {
-                    openAI: {
-                        apiUserAgent: (ai.element.querySelector("#apiUserAgent") as HTMLInputElement).value,
-                        apiBaseURL: (ai.element.querySelector("#apiBaseURL") as HTMLInputElement).value,
-                        apiVersion: (ai.element.querySelector("#apiVersion") as HTMLInputElement).value,
-                        apiKey: (ai.element.querySelector("#apiKey") as HTMLInputElement).value,
-                        apiModel: (ai.element.querySelector("#apiModel") as HTMLSelectElement).value,
-                        apiMaxTokens: parseInt((ai.element.querySelector("#apiMaxTokens") as HTMLInputElement).value),
-                        apiTemperature: parseFloat((ai.element.querySelector("#apiTemperature") as HTMLInputElement).value),
-                        apiMaxContexts: parseInt((ai.element.querySelector("#apiMaxContexts") as HTMLInputElement).value),
-                        apiProxy: (ai.element.querySelector("#apiProxy") as HTMLInputElement).value,
-                        apiTimeout: parseInt((ai.element.querySelector("#apiTimeout") as HTMLInputElement).value),
-                        apiProvider: (ai.element.querySelector("#apiProvider") as HTMLSelectElement).value,
-                    }
-                }, response => {
-                    getSiyuanConfig().ai = response.data;
-                });
-            });
-        });
+        ai.bindTabEvent();
+        ai.bindPasswordEvent();
+        ai.bindInputEvent();
     },
+    bindTabEvent: () => {
+        const tabs = ai.element.querySelectorAll(".layout-tab-bar .item");
+        for (const tab of tabs) {
+            // @内联回调
+            tab.addEventListener("click", () => {
+                const type = tab.getAttribute("data-type");
+                for (const item of tabs) {
+                    item.classList.remove("item--focus");
+                }
+                tab.classList.add("item--focus");
+                const configTabs = ai.element.querySelectorAll(".ai-config-tab");
+                for (const item of configTabs) {
+                    item.classList.add("fn__none");
+                }
+                const panel = ai.element.querySelector(`.ai-config-tab[data-type="${type}"]`);
+                if (panel) {
+                    panel.classList.remove("fn__none");
+                    if (type === "modelscope") {
+                        if (panel.innerHTML === "") { // Only mount once
+                            createVueComponentLoader(panel as HTMLElement, {
+                                components: { ModelScopeConfig },
+                                template: '<ModelScopeConfig />'
+                            });
+                        }
+                    }
+                }
+            });
+        }
+    },
+    bindPasswordEvent: () => {
+        const togglePassword = ai.element.querySelector('.b3-form__icona-icon[data-action="togglePassword"]');
+        if (togglePassword) {
+            // @内联回调
+            togglePassword.addEventListener("click", () => {
+                if (!togglePassword.firstElementChild || !togglePassword.previousElementSibling) return;
+                const isEye = togglePassword.firstElementChild.getAttribute("xlink:href") === "#iconEye";
+                togglePassword.firstElementChild.setAttribute("xlink:href", isEye ? "#iconEyeoff" : "#iconEye");
+                togglePassword.previousElementSibling.setAttribute("type", isEye ? "text" : "password");
+            });
+        }
+    },
+    bindInputEvent: () => {
+        const inputs = ai.element.querySelectorAll("input, select");
+        for (const item of inputs) {
+            if (item.closest('.ai-config-tab[data-type="openai"]')) { // Only bind OpenAI events
+                // @内联回调
+                item.addEventListener("change", () => {
+                    // @内联回调
+                    fetchPost("/api/setting/setAI", {
+                        openAI: {
+                            apiUserAgent: (ai.element.querySelector("#apiUserAgent") as HTMLInputElement)?.value,
+                            apiBaseURL: (ai.element.querySelector("#apiBaseURL") as HTMLInputElement)?.value,
+                            apiVersion: (ai.element.querySelector("#apiVersion") as HTMLInputElement)?.value,
+                            apiKey: (ai.element.querySelector("#apiKey") as HTMLInputElement)?.value,
+                            apiModel: (ai.element.querySelector("#apiModel") as HTMLSelectElement)?.value,
+                            apiMaxTokens: parseInt((ai.element.querySelector("#apiMaxTokens") as HTMLInputElement)?.value || "0"),
+                            apiTemperature: parseFloat((ai.element.querySelector("#apiTemperature") as HTMLInputElement)?.value || "0"),
+                            apiMaxContexts: parseInt((ai.element.querySelector("#apiMaxContexts") as HTMLInputElement)?.value || "0"),
+                            apiProxy: (ai.element.querySelector("#apiProxy") as HTMLInputElement)?.value,
+                            apiTimeout: parseInt((ai.element.querySelector("#apiTimeout") as HTMLInputElement)?.value || "0"),
+                            apiProvider: (ai.element.querySelector("#apiProvider") as HTMLSelectElement)?.value,
+                        }
+                    }, response => {
+                        getSiyuanConfig().ai = response.data;
+                    });
+                });
+            }
+        }
+    }
 };
