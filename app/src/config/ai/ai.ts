@@ -1,6 +1,6 @@
-import { fetchPost } from "../util/fetch";
-import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
+import { fetchPost } from "../../util/fetch";
+import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 // 生成移动端HTML的独立函数
 function genMobileHTML() {

@@ -209,7 +209,7 @@ const genPanel = (
     </div>`;
 };
 
-import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { getSiyuanConfig, getSafeSiyuanStorage } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 const genTabBarHTML = () => {
     return `<div class="layout-tab-bar fn__flex">
@@ -261,7 +261,7 @@ export const genBazaarHTML = (clientHeight: number) => {
     if (!getSiyuanConfig().bazaar.trust) {
         return genTrustHTML();
     }
-    const localSort = window.siyuan?.storage?.[Constants.LOCAL_BAZAAR] || {
+    const localSort = getSafeSiyuanStorage()?.[Constants.LOCAL_BAZAAR] || {
         theme: "0",
         template: "0",
         plugin: "0",

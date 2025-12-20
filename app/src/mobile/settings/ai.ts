@@ -1,5 +1,5 @@
-import {openModel} from "../menu/model";
-import {ai} from "../../config/ai";
+import { openModel } from "../menu/model";
+import { ai } from "../../config/ai/ai";
 
 export const initAI = () => {
     openModel({

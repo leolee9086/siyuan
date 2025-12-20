@@ -14,7 +14,7 @@ import { keymap } from "./keymap";
 import { bazaar } from "./bazzar/bazaar";
 import { query } from "./query";
 import { Dialog } from "../dialog";
-import { ai } from "./ai";
+import { ai } from "./ai/ai";
 import { flashcard } from "./flashcard";
 import { publish } from "./publish";
 import { App } from "../index";

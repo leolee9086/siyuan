@@ -165,3 +165,10 @@ export const incrementSiyuanZIndex = (): number => {
     }
     return ++window.siyuan.zIndex;
 };
+
+/**
+ * 安全获取 window.siyuan.storage (如果不存在返回 undefined)
+ */
+export const getSafeSiyuanStorage = () => {
+    return window.siyuan?.storage;
+};

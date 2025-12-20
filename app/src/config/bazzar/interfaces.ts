@@ -7,6 +7,9 @@ export interface IBazaar {
     _onBazaar(response: IWebSocketData, bazaarType: TBazaarType): void;
     _genMyHTML(bazaarType: TBazaarType, app: App, updateUpdate?: boolean): void;
     _renderReadme(bazaarType: TBazaarType, data: IBazaarItem, downloaded: boolean): void;
+    genHTML(): string;
+    bindEvent(app: App): void;
+    _renderFilteredPackages(bazaarType: TBazaarType): void;
 }
 
 export interface IBazaarDataObj {
@@ -17,5 +20,6 @@ export interface IBazaarDataObj {
     repoURL?: string;
     repoHash?: string;
     downloaded?: boolean;
-    [key: string]: any;
+    downloads?: number;
+    [key: string]: unknown;
 }
