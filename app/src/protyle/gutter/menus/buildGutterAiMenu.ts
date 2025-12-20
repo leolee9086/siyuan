@@ -51,7 +51,7 @@ async function handleAiImageGeneration(
     let vueApp: App<Element> | null = null;
     const dialog = new Dialog({
         title: "AI 图片生成",
-        content: `<div class="ai-image-generation-container" style="height: 100%;"></div>`,
+        content: "<div class=\"ai-image-generation-container\" style=\"height: 100%;\"></div>",
         width: "500px",
         destroyCallback: () => {
             if (vueApp) {

@@ -238,7 +238,7 @@ export const ai = {
                         if (panel.innerHTML === "") { // Only mount once
                             createVueComponentLoader(panel as HTMLElement, {
                                 components: { ModelScopeConfig },
-                                template: '<ModelScopeConfig />'
+                                template: "<ModelScopeConfig />"
                             });
                         }
                     }
