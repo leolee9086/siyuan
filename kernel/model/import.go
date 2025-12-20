@@ -60,7 +60,7 @@ func HTML2Markdown(htmlStr string, luteEngine *lute.Lute) (markdown string, with
 	tree, withMath := HTML2Tree(htmlStr, luteEngine)
 
 	var formatted []byte
-	renderer := render.NewFormatRenderer(tree, luteEngine.RenderOptions)
+	renderer := render.NewFormatRenderer(tree, luteEngine.RenderOptions, luteEngine.ParseOptions)
 	for nodeType, rendererFunc := range luteEngine.HTML2MdRendererFuncs {
 		renderer.ExtRendererFuncs[nodeType] = rendererFunc
 	}
@@ -262,6 +262,14 @@ func ImportSY(zipPath, boxID, toPath string) (err error) {
 			if d == nil {
 				return nil
 			}
+
+			if ".json" == d.Name() { // https://github.com/siyuan-note/siyuan/issues/16637
+				if removeErr := os.RemoveAll(path); nil != removeErr {
+					logging.LogErrorf("remove empty av file [%s] failed: %s", path, removeErr)
+				}
+				return nil
+			}
+
 			if !strings.HasSuffix(path, ".json") || !ast.IsNodeIDPattern(strings.TrimSuffix(d.Name(), ".json")) {
 				return nil
 			}
@@ -419,7 +427,7 @@ func ImportSY(zipPath, boxID, toPath string) (err error) {
 		util.PushEndlessProgress(Conf.language(73) + " " + fmt.Sprintf(Conf.language(70), tree.Root.IALAttr("title")))
 		syPath := filepath.Join(unzipRootPath, tree.Path)
 		treenode.UpgradeSpec(tree)
-		renderer := render.NewJSONRenderer(tree, luteEngine.RenderOptions)
+		renderer := render.NewJSONRenderer(tree, luteEngine.RenderOptions, luteEngine.ParseOptions)
 		data := renderer.Render()
 
 		if !util.UseSingleLineSave {
