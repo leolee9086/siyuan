@@ -10,7 +10,6 @@ export const 创建失焦事件处理器 = (inputElement: HTMLInputElement) => {
     return () => {
         const storage = getSiyuanStorage();
         const config = getSiyuanConfig();
-
         const movePathStorage = storage[Constants.LOCAL_MOVE_PATH];
         if (inputElement.value) {
             let list: string[] = movePathStorage.keys;

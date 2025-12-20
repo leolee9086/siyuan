@@ -11,10 +11,10 @@ export const genKeywordsHTML = (bazaarType: TBazaarType, keywords: string[], sel
     let html = '<div class="config-bazaar__keywords">';
     html += '<div class="config-bazaar__keywords-list">';
 
-    keywords.forEach(keyword => {
+    html += keywords.map(keyword => {
         const isSelected = selectedKeywords.includes(keyword);
-        html += `<span class="b3-chip ${isSelected ? "b3-chip--primary" : ""}" data-keyword="${keyword}" data-type="${bazaarType}">${keyword}</span>`;
-    });
+        return `<span class="b3-chip ${isSelected ? "b3-chip--primary" : ""}" data-keyword="${keyword}" data-type="${bazaarType}">${keyword}</span>`;
+    }).join("");
 
     html += "</div></div>";
     return html;
@@ -32,15 +32,36 @@ export const genFundingHTML = (funding: string): string => {
     }
 };
 
+const genCardActionsHTML = (item: IBazaarItem, showSwitch: boolean) => {
+    return `<div class="b3-card__actions">
+            <span class="block__icon block__icon--show ft__primary">
+                <svg><use xlink:href="#iconDownload"></use></svg>
+                <span class="fn__space"></span>
+                ${item.downloads}
+            </span>
+            <span class="fn__space"></span>
+            ${item.preferredFunding ? genFundingHTML(item.preferredFunding) + '<span class="fn__space"></span>' : ""}
+            <div class="fn__flex-1"></div>
+            <span class="b3-tooltips b3-tooltips__nw block__icon block__icon--show${item.installed ? "" : " fn__none"}" data-type="uninstall" aria-label="${siyuanI18n.uninstall}">
+                <svg><use xlink:href="#iconTrashcan"></use></svg>
+            </span>
+            <div class="fn__space${!item.current && item.installed && showSwitch ? "" : " fn__none"}"></div>
+            <span class="b3-tooltips b3-tooltips__nw block__icon block__icon--show${!item.current && item.installed && showSwitch ? "" : " fn__none"}" data-type="switch" aria-label="${siyuanI18n.use}">
+                <svg><use xlink:href="#iconSelect"></use></svg>
+            </span>
+            <div class="fn__space${item.outdated ? "" : " fn__none"}"></div>
+            <span data-type="install-t" class="b3-tooltips b3-tooltips__nw block__icon block__icon--show${item.outdated ? "" : " fn__none"}" aria-label="${siyuanI18n.update}">
+                <svg class="ft__primary"><use xlink:href="#iconRefresh"></use></svg>
+            </span>
+        </div>`;
+};
+
 export const genCardHTML = (item: IBazaarItem, bazaarType: TBazaarType, selectValue: string): string => {
     let hide = false;
     let themeMode = "";
     if (bazaarType === "themes") {
         const themeValue = selectValue;
-        if ((themeValue === "0" && item.modes.includes("dark")) ||
-            themeValue === "1" && item.modes.includes("light")) {
-            hide = true;
-        }
+        hide = (themeValue === "0" && item.modes.includes("dark")) || (themeValue === "1" && item.modes.includes("light"));
         themeMode = item.modes.toString();
     }
     let showSwitch = false;
@@ -68,27 +89,7 @@ export const genCardHTML = (item: IBazaarItem, bazaarType: TBazaarType, selectVa
                 ${item.preferredDesc || ""}
             </div>
         </div>
-        <div class="b3-card__actions">
-            <span class="block__icon block__icon--show ft__primary">
-                <svg><use xlink:href="#iconDownload"></use></svg>
-                <span class="fn__space"></span>
-                ${item.downloads}
-            </span>
-            <span class="fn__space"></span>
-            ${item.preferredFunding ? genFundingHTML(item.preferredFunding) + '<span class="fn__space"></span>' : ""}
-            <div class="fn__flex-1"></div>
-            <span class="b3-tooltips b3-tooltips__nw block__icon block__icon--show${item.installed ? "" : " fn__none"}" data-type="uninstall" aria-label="${siyuanI18n.uninstall}">
-                <svg><use xlink:href="#iconTrashcan"></use></svg>
-            </span>
-            <div class="fn__space${!item.current && item.installed && showSwitch ? "" : " fn__none"}"></div>
-            <span class="b3-tooltips b3-tooltips__nw block__icon block__icon--show${!item.current && item.installed && showSwitch ? "" : " fn__none"}" data-type="switch" aria-label="${siyuanI18n.use}">
-                <svg><use xlink:href="#iconSelect"></use></svg>
-            </span>
-            <div class="fn__space${item.outdated ? "" : " fn__none"}"></div>
-            <span data-type="install-t" class="b3-tooltips b3-tooltips__nw block__icon block__icon--show${item.outdated ? "" : " fn__none"}" aria-label="${siyuanI18n.update}">
-                <svg class="ft__primary"><use xlink:href="#iconRefresh"></use></svg>
-            </span>
-        </div>
+        ${genCardActionsHTML(item, showSwitch)}
     </div>
 </div>`;
 };
@@ -210,27 +211,19 @@ const genPanel = (
 
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 
-export const genBazaarHTML = (clientHeight: number) => {
-    if (!getSiyuanConfig().bazaar.trust) {
-        return genTrustHTML();
-    }
-    const localSort = window.siyuan!.storage[Constants.LOCAL_BAZAAR];
-    const _genKeywordsHTML = (bazaarType: TBazaarType): string => {
-        return genKeywordsHTML(bazaarType, bazaarData.keywords[bazaarType], bazaarData.selectedKeywords[bazaarType]);
-    };
-    const loadingHTML = `<div style="height: ${clientHeight - 80}px;display: flex;align-items: center;justify-content: center;"><img src="/stage/loading-pure.svg"></div>`;
-
-    return `<div class="fn__flex-column" style="height: 100%">
-<div class="layout-tab-bar fn__flex">
+const genTabBarHTML = () => {
+    return `<div class="layout-tab-bar fn__flex">
     <div data-type="downloaded" class="item item--full item--focus"><span class="fn__flex-1"></span><span class="item__text">${siyuanI18n.downloaded}</span><span class="fn__flex-1"></span></div>
     <div data-type="plugin" class="item item--full"><span class="fn__flex-1"></span><span class="item__text">${siyuanI18n.plugin}</span><span class="fn__flex-1"></span></div>
     <div data-type="theme" class="item item--full"><span class="fn__flex-1"></span><span class="item__text">${siyuanI18n.theme}</span><span class="fn__flex-1"></span></div>
     <div data-type="icon" class="item item--full"><span class="fn__flex-1"></span><span class="item__text">${siyuanI18n.icon}</span><span class="fn__flex-1"></span></div>
     <div data-type="template" class="item item--full"><span class="fn__flex-1"></span><span class="item__text">${siyuanI18n.template}</span><span class="fn__flex-1"></span></div>
     <div data-type="widget" class="item item--full"><span class="fn__flex-1"></span><span class="item__text">${siyuanI18n.widget}</span><span class="fn__flex-1"></span></div>
-</div>
-<div class="fn__flex-1">
-    <div class="config-bazaar__panel" data-type="downloaded" data-init="true">
+</div>`;
+};
+
+const genDownloadedPanelHTML = (keywordsHTML: string, loadingHTML: string, petalDisabled: boolean) => {
+    return `<div class="config-bazaar__panel" data-type="downloaded" data-init="true">
         <div data-type="downloaded-update"></div>
         <div class="fn__flex config-bazaar__title">
             <button data-type="myPlugin" class="b3-button">${siyuanI18n.plugin}</button>
@@ -248,25 +241,48 @@ export const genBazaarHTML = (clientHeight: number) => {
                 <input class="b3-text-field b3-form__icon-input fn__block" placeholder="${siyuanI18n.enterKey} ${siyuanI18n.search}">
             </div>
             <div class="fn__space"></div>
-            ${_genKeywordsHTML("themes")}
+            ${keywordsHTML}
             <div class="fn__space"></div>
             <div class="fn__flex-1"></div>
-            <input ${getSiyuanConfig().bazaar.petalDisabled ? "" : " checked"} data-type="plugins-enable" type="checkbox" class="b3-switch fn__flex-center" style="margin-right: 8px">
+            <input ${petalDisabled ? "" : " checked"} data-type="plugins-enable" type="checkbox" class="b3-switch fn__flex-center" style="margin-right: 8px">
             <div class="counter counter--bg fn__none fn__flex-center b3-tooltips b3-tooltips__w" aria-label="${siyuanI18n.total}"></div>
         </div>
         <div id="configBazaarDownloaded" class="config-bazaar__content">
             ${loadingHTML}
         </div>
-    </div>
-    ${genPanel("theme", localSort.theme, _genKeywordsHTML("plugins"), loadingHTML, `
+    </div>`;
+};
+
+const getKeywordsHTML = (bazaarType: TBazaarType) => {
+    return genKeywordsHTML(bazaarType, bazaarData.keywords[bazaarType], bazaarData.selectedKeywords[bazaarType]);
+};
+
+export const genBazaarHTML = (clientHeight: number) => {
+    if (!getSiyuanConfig().bazaar.trust) {
+        return genTrustHTML();
+    }
+    const localSort = window.siyuan?.storage?.[Constants.LOCAL_BAZAAR] || {
+        theme: "0",
+        template: "0",
+        plugin: "0",
+        icon: "0",
+        widget: "0"
+    };
+    const loadingHTML = `<div style="height: ${clientHeight - 80}px;display: flex;align-items: center;justify-content: center;"><img src="/stage/loading-pure.svg"></div>`;
+
+    return `<div class="fn__flex-column" style="height: 100%">
+${genTabBarHTML()}
+<div class="fn__flex-1">
+    ${genDownloadedPanelHTML(getKeywordsHTML("themes"), loadingHTML, getSiyuanConfig().bazaar.petalDisabled)}
+    ${genPanel("theme", localSort.theme, getKeywordsHTML("plugins"), loadingHTML, `
             <select id="bazaarSelect" class="b3-select">
                 <option selected value="2">${siyuanI18n.all}</option>
                 <option value="0">${siyuanI18n.themeLight}</option>
                 <option value="1">${siyuanI18n.themeDark}</option>
             </select>
             <div class="fn__space"></div>`, true)}
-    ${genPanel("template", localSort.template, _genKeywordsHTML("icons"), loadingHTML)}
-    ${genPanel("plugin", localSort.plugin, _genKeywordsHTML("widgets"), loadingHTML)}
+    ${genPanel("template", localSort.template, getKeywordsHTML("icons"), loadingHTML)}
+    ${genPanel("plugin", localSort.plugin, getKeywordsHTML("widgets"), loadingHTML)}
     ${genPanel("icon", localSort.icon, "", loadingHTML)}
     ${genPanel("widget", localSort.widget, "", loadingHTML)}
 </div>
