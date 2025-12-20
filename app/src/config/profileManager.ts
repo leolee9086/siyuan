@@ -135,18 +135,29 @@ export class ProfileManager {
             return "";
         }
         const response = await fetchSyncPost("/api/file/getFile", { path: `${this.basePath}/_state.json` });
-        if (!response || !response.data) {
+
+        // getFile API returns file content directly, not wrapped in {code, data}
+        // It can be a string (file content) or parsed JSON object, or {code, msg} on error
+        if (!response) {
             return "";
         }
-        let data = response.data;
+
+        // If it's an error response with code
+        if (typeof response.code === "number" && response.code !== 0) {
+            return "";
+        }
+
+        // Response IS the state directly (not wrapped)
+        let data = response;
+
         if (typeof data === "string") {
             try {
                 data = JSON.parse(data);
             } catch (e) {
-                // ignore
+                return "";
             }
         }
-        return (data as NamespaceState).activeProfileId || "";
+        return (data as unknown as NamespaceState).activeProfileId || "";
     }
 
     public async setActiveProfileId(id: string): Promise<void> {

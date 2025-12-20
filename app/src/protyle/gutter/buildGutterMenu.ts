@@ -7,7 +7,7 @@ import { activeBlur } from "../../mobile/util/keyboardToolbar";
 import { countBlockWord } from "../../layout/status";
 import { MenuItem } from "../../menus/Menu.Item";
 import { buildGutterTurnIntoMenuItem } from "./buildGutterTurnIntoMenu";
-import { buildGutterAiMenu } from "./buildGutterAiMenu";
+import { buildGutterAiMenu } from "./menus/buildGutterAiMenu";
 import { buildGutterCopyMenuItem } from "./buildGutterCopyMenu";
 import { buildGutterEditMenu } from "./buildGutterEditMenu";
 import { buildGutterTypeSpecificMenu } from "./buildGutterTypeSpecificMenu";
