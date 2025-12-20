@@ -17,6 +17,7 @@ import { Constants } from "../../../constants";
 import { genAssetHTML } from "../../../asset/renderAssets";
 import * as dayjs from "dayjs";
 import type { IGutterEditMenuContext, IProgressStatusUpdater } from "../gutter.types";
+import { isProgressStatusUpdater } from "../gutter.guard";
 
 
 /**
@@ -115,76 +116,96 @@ async function 插入图片到块后(
 }
 
 /**
- * 获取块的文本内容
+ * 获取块的文本内容（通过后端 API）
+ * @param blockId - 块 ID
+ * @returns 块的 kramdown 源码，如果失败则返回空字符串
  */
-function 获取块文本内容(nodeElement: Element): string {
-    // 获取块内的纯文本内容
-    const editableElement = nodeElement.querySelector("[contenteditable]");
-    if (editableElement) {
-        return editableElement.textContent || "";
+async function 获取块文本内容(blockId: string): Promise<string> {
+    const response = await fetch("/api/block/getBlockKramdown", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: blockId })
+    });
+    if (!response.ok) {
+        console.error("获取块内容失败:", response.status);
+        return "";
     }
-    return nodeElement.textContent || "";
+    const result = await response.json();
+    if (result.code !== 0) {
+        console.error("获取块内容失败:", result.msg);
+        return "";
+    }
+    return result.data?.kramdown || "";
 }
 
 /**
- * 安全更新 Vue 组件的状态
- * @param vm - Vue 组件实例
- * @param msg - 状态消息
- * @param isLoading - 是否显示加载状态
+ * 创建进度对话框并挂载 Vue 组件
+ * @returns 对话框实例、Vue 应用实例和状态更新器，失败返回 null
  */
-function safeUpdateStatus(vm: IProgressStatusUpdater, msg: string, isLoading = true) {
-    vm?.updateStatus?.(msg, isLoading);
-}
-
-/**
- * 处理 AI 图片生成逻辑
- */
-async function handleAiImageGeneration(
-    nodeElement: Element,
-    protyle: IProtyle,
-    authManager: ProfileManager
-) {
-    const blockText = 获取块文本内容(nodeElement);
-    if (!blockText.trim()) {
-        // TODO: 显示提示信息
-        console.warn("块内容为空，无法生成图片");
-        return;
-    }
-
+function 创建进度对话框(ProgressComponent: ReturnType<typeof import("vue").defineComponent>): { dialog: Dialog; vueApp: App<Element>; vm: IProgressStatusUpdater } | null {
     let vueApp: App<Element> | null = null;
     const dialog = new Dialog({
         title: "AI 图片生成",
         content: "<div class=\"ai-image-generation-container\" style=\"height: 100%;\"></div>",
         width: "500px",
-        destroyCallback: () => {
-            if (vueApp) {
-                vueApp.unmount();
-            }
-        }
+        destroyCallback: () => { vueApp?.unmount(); }
     });
 
     const container = dialog.element.querySelector(".ai-image-generation-container");
-    if (!container) return; // Should not happen
+    if (!container) return null;
 
-    vueApp = createApp(AiImageGenerationProgress);
-    const vm = vueApp.mount(container) as unknown as IProgressStatusUpdater;
+    vueApp = createApp(ProgressComponent);
+    const mountedInstance = vueApp.mount(container);
+
+    if (!isProgressStatusUpdater(mountedInstance)) {
+        console.error("挂载的组件不符合 IProgressStatusUpdater 接口");
+        dialog.destroy();
+        return null;
+    }
+
+    return { dialog, vueApp, vm: mountedInstance };
+}
+
+/**
+ * @AIDONE 组件由调用方传递，符合 IProgressStatusUpdater 接口即可
+ * 处理 AI 图片生成逻辑
+ * @param ProgressComponent - 进度显示组件，需实现 IProgressStatusUpdater 接口
+ */
+async function handleAiImageGeneration(
+    nodeElement: Element,
+    protyle: IProtyle,
+    authManager: ProfileManager,
+    ProgressComponent: ReturnType<typeof import("vue").defineComponent>
+) {
+    const blockId = nodeElement.getAttribute("data-node-id");
+    if (!blockId) {
+        console.warn("无法获取块 ID");
+        return;
+    }
+
+    const blockText = await 获取块文本内容(blockId);
+    if (!blockText.trim()) {
+        console.warn("块内容为空，无法生成图片");
+        return;
+    }
+
+    const result = 创建进度对话框(ProgressComponent);
+    if (!result) return;
+    const { dialog, vm } = result;
 
     await 生成块内容图片({
         prompt: blockText,
         protyle,
         nodeElement,
         authManager,
-        onProgress: (msg: string) => safeUpdateStatus(vm, msg),
+        onProgress: (msg: string) => vm.updateStatus?.(msg, true),
         onComplete: async (base64Data: string) => {
-            await 插入图片到块后(nodeElement, base64Data, (msg: string, isLoading?: boolean) => safeUpdateStatus(vm, msg, isLoading ?? true));
+            await 插入图片到块后(nodeElement, base64Data, (msg: string, isLoading?: boolean) => vm.updateStatus?.(msg, isLoading ?? true));
         }
     });
 
-    safeUpdateStatus(vm, "生成完成", false);
-    // 延迟关闭，让用户看到完成状态
-    setTimeout(() => {
-        dialog.destroy();
-    }, 2000);
+    vm.updateStatus?.("生成完成", false);
+    setTimeout(() => { dialog.destroy(); }, 2000);
 }
 
 /**
@@ -228,7 +249,7 @@ export function buildGutterAiMenu(context: IGutterEditMenuContext): IMenu | null
                 icon: "iconImage",
                 label: "使用块内容生成图片",
                 click() {
-                    handleAiImageGeneration(nodeElement, protyle, authManager);
+                    handleAiImageGeneration(nodeElement, protyle, authManager, AiImageGenerationProgress);
                     // click needs to be a MouseEvent handler or similar if expected, but here it's IMenu click
                     return true;
                 }

@@ -81,8 +81,9 @@ const getLiElement = (target: HTMLElement, x: number, y: number) => {
     return null;
 };
 
-export const onDragOver = (files: Files, event: DragEvent & { target: HTMLElement }) => {
+export const onDragOver = (files: Files, event: DragEvent) => {
     if (getSiyuanConfig().readonly || event.dataTransfer?.types.includes(Constants.SIYUAN_DROP_TAB)) return;
+    if (!(event.target instanceof HTMLElement)) return;
 
     const liElement = getLiElement(event.target, event.clientX, event.clientY);
     if (!liElement || !getSiyuanDragElement()) {

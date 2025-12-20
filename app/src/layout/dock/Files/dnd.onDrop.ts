@@ -7,7 +7,7 @@ import { pathPosix } from "../../../util/pathName";
 import { showMessage } from "../../../dialog/message";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 
-export const onDrop = async (files: Files, event: DragEvent & { target: HTMLElement }) => {
+export const onDrop = async (files: Files, event: DragEvent) => {
     const newElement = files.element.querySelector(".dragover, .dragover__bottom, .dragover__top");
     if (!newElement) {
         return;
@@ -142,7 +142,7 @@ const getSelectedFiles = (files: Files, newElement: Element) => {
     if (!newElementPath) {
         return { selectRootElements, selectFileElements, fromPaths };
     }
-    for (const item of Array.from(files.element.querySelectorAll(".b3-list-item--focus")) as HTMLElement[]) {
+    for (const item of files.element.querySelectorAll<HTMLElement>(".b3-list-item--focus")) {
         if (item.getAttribute("data-type") === "navigation-root") {
             selectRootElements.push(item);
             continue;

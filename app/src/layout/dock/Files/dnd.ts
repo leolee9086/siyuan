@@ -8,12 +8,12 @@ import { onDragEnd } from "./dnd.onDragEnd";
 
 export const initFilesDrag = (files: Files) => {
     files.element.addEventListener("dragstart", (event: DragEvent) => {
-        onDragStart(files, event as DragEvent & { target: HTMLElement });
+        onDragStart(files, event);
     });
     files.element.addEventListener("dragend", (event) => {
         onDragEnd(files, event);
     });
-    files.element.addEventListener("dragover", (event: any) => {
+    files.element.addEventListener("dragover", (event: DragEvent) => {
         onDragOver(files, event);
     });
     let counter = 0;
@@ -33,6 +33,6 @@ export const initFilesDrag = (files: Files) => {
     });
     files.element.addEventListener("drop", async (event: DragEvent) => {
         counter = 0;
-        await onDrop(files, event as DragEvent & { target: HTMLElement });
+        await onDrop(files, event);
     });
 };
