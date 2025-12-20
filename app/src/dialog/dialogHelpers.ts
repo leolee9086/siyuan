@@ -5,6 +5,7 @@ import { createVueComponentLoader, VueComponentMountConfig, VueComponentLoaderCo
 import { App } from "vue";
 import { getSiyuanDialogStorage } from "../util/siyuanEnvironments/getDialog.environment";
 import { getSiyuanWindowSize } from "../util/siyuanEnvironments/getWindow.environment";
+import { isHTMLElement, isSVGElement, isSVGUseElement } from "./dialog.guard";
 
 /**
  * 对话框选项接口
@@ -74,7 +75,8 @@ export function 创建输入框键盘事件处理器(options: {
             event.stopPropagation();
             return;
         }
-        const 应处理Enter = !event.shiftKey && isNotCtrl(event) && event.key === "Enter" && options.enterEvent && options.bindEnter;
+        const { enterEvent } = options;
+        const 应处理Enter = !event.shiftKey && isNotCtrl(event) && event.key === "Enter" && enterEvent && options.bindEnter;
         if (!应处理Enter) {
             return;
         }
@@ -83,7 +85,7 @@ export function 创建输入框键盘事件处理器(options: {
             return;
         }
         options.setTimeStamp(event.timeStamp);
-        options.enterEvent!();
+        enterEvent();
         event.preventDefault();
         event.stopPropagation();
     };
@@ -93,18 +95,20 @@ export function 创建输入框键盘事件处理器(options: {
 export function 设置ResizeHandles显示状态(container: Element, visible: boolean): void {
     const resizeHandles = container.querySelectorAll("[class^='resize__']");
     for (const handle of resizeHandles) {
-        (handle as HTMLElement).style.display = visible ? "" : "none";
+        if (handle instanceof HTMLElement) {
+            handle.style.display = visible ? "" : "none";
+        }
     }
 }
 
-/** 更新全屏按钮的图标和标题 */
+/** 更新全屏按钮图标和标题 */
 export function 更新全屏按钮状态(dialogElement: Element, isFullscreen: boolean): void {
-    const fullscreenButton = dialogElement.querySelector(".b3-dialog__fullscreen use") as SVGUseElement;
-    const fullscreenButtonSvg = dialogElement.querySelector(".b3-dialog__fullscreen") as SVGElement;
-    if (fullscreenButton) {
+    const fullscreenButton = dialogElement.querySelector(".b3-dialog__fullscreen use");
+    const fullscreenButtonSvg = dialogElement.querySelector(".b3-dialog__fullscreen");
+    if (isSVGUseElement(fullscreenButton)) {
         fullscreenButton.setAttribute("xlink:href", isFullscreen ? "#iconFullscreenExit" : "#iconFullscreen");
     }
-    if (fullscreenButtonSvg) {
+    if (isSVGElement(fullscreenButtonSvg)) {
         fullscreenButtonSvg.setAttribute("title", isFullscreen ? "退出全屏" : "全屏");
     }
 }
@@ -279,9 +283,12 @@ export function 挂载标题Vue组件(element: HTMLElement, options: IDialogOpti
         return null;
     }
     titleElement.innerHTML = "";
-    return createVueComponentLoader(
-        titleElement as HTMLElement,
-        options.titleVueConfig,
-        options.titleVueContext
-    );
+    if (isHTMLElement(titleElement)) {
+        return createVueComponentLoader(
+            titleElement,
+            options.titleVueConfig,
+            options.titleVueContext
+        );
+    }
+    return null;
 }
