@@ -37,7 +37,16 @@ import { processClonePHElement } from "../render/util";
 import { insertGalleryItemAnimation } from "../render/av/gallery/item";
 import { clearSelect } from "./clearSelect";
 import { dragoverTab } from "../render/av/view";
-
+/**
+ * @AITODO 此文件过长且存在多处lint问题,应该被拆分并修正
+ * @param protyle 
+ * @param sourceElements 
+ * @param targetElement 
+ * @param isSameDoc 
+ * @param position 
+ * @param isCopy 
+ * @returns 
+ */
 // position: afterbegin 为拖拽成超级块; "afterend", "beforebegin" 一般拖拽
 const moveTo = async (protyle: IProtyle, sourceElements: Element[], targetElement: Element,
     isSameDoc: boolean, position: InsertPosition, isCopy: boolean) => {
