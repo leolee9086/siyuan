@@ -147,6 +147,7 @@ export default [{
         "@typescript-eslint/explicit-function-return-type": "off",
         "@typescript-eslint/explicit-module-boundary-types": "off",
         "@typescript-eslint/no-explicit-any": "error",
+        "@typescript-eslint/no-non-null-assertion": "error",
         "@typescript-eslint/no-require-imports": "off",
         "vue/multi-word-component-names": "off",
         "vue/no-unused-components": "warn",
