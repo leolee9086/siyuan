@@ -4,58 +4,47 @@
  * 基于 ModelScope 文生图 API 实现
  */
 
-import { ProfileManager } from "../../../config/profileManager";
-import { fetchPost } from "../../../util/fetch";
-import { Constants } from "../../../constants";
-import { genAssetHTML } from "../../../asset/renderAssets";
-import * as dayjs from "dayjs";
 import {
     提交生成任务,
     轮询任务直到完成,
     获取图片,
     提取图片URL
 } from "../../../apis/modelscope/client";
+import type { ModelScopeAuthData } from "../../../apis/modelscope/types";
+import type { 生成块内容图片参数 } from "../gutter.types";
+import { showMessage } from "../../../dialog/message";
+
+// 导出类型供外部使用
+export type { 生成块内容图片参数 } from "../gutter.types";
 
 /**
- * 生成图片的参数
+ * 创建进度报告器
+ * 
+ * @param onProgress - 可选的进度回调函数
+ * @returns 进度报告函数
  */
-export interface 生成块内容图片参数 {
-    /** 提示词（块内容） */
-    prompt: string;
-    /** Protyle 实例 */
-    protyle: IProtyle;
-    /** 当前块元素 */
-    nodeElement: Element;
-    /** Auth 配置管理器 */
-    authManager: ProfileManager;
-    /** 进度回调 */
-    onProgress?: (msg: string) => void;
-}
-
-/**
- * ModelScope Auth 配置数据结构
- */
-interface ModelScopeAuthData {
-    apiToken: string;
-}
-
-/**
- * 使用块内容生成图片
- */
-export async function 生成块内容图片(params: 生成块内容图片参数): Promise<void> {
-    const { prompt, nodeElement, authManager, onProgress } = params;
-
-    const reportProgress = (msg: string) => {
+function 创建进度报告器(onProgress?: (msg: string) => void): (msg: string) => void {
+    return (msg: string) => {
         if (onProgress) onProgress(msg);
         console.log(`[生成块内容图片] ${msg}`);
     };
+}
+
+/**
+ * @AIDONE 插入到块后的行为已改为 onComplete 回调,由调用方决定如何处理生成的图片
+ * 使用块内容生成图片
+ */
+export async function 生成块内容图片(params: 生成块内容图片参数): Promise<void> {
+    const { prompt, authManager, onProgress, onComplete } = params;
+
+    const reportProgress = 创建进度报告器(onProgress);
 
     try {
         // 获取当前激活的配置
         const activeId = await authManager.getActiveProfileId();
         if (!activeId) {
-            console.error("未配置 ModelScope API Token，请先在设置中配置");
-            // TODO: 显示提示对话框
+            // @AIDONE: 显示提示对话框
+            showMessage("未配置 ModelScope API Token，请先在设置中配置", 5000, "error");
             return;
         }
 
@@ -97,106 +86,15 @@ export async function 生成块内容图片(params: 生成块内容图片参数)
 
         // 4. 获取图片 Base64
         const base64Data = await 获取图片({ imageUrl });
-        reportProgress("图片生成成功，正在上传...");
+        reportProgress("图片生成成功");
 
-        // 5. 在块后插入图片
-        await 插入图片到块后(nodeElement, base64Data, reportProgress);
+        // 5. 通过回调将结果传递给调用方处理
+        if (onComplete) {
+            await onComplete(base64Data);
+        }
 
     } catch (error) {
         console.error("[生成块内容图片] 生成失败:", error);
         reportProgress("[异常] " + error);
     }
-}
-
-/**
- * 上传图片
- */
-async function 上传图片(blob: Blob, imageName: string): Promise<{ success: boolean; msg: string; path?: string }> {
-    const formData = new FormData();
-    formData.append("file[]", blob, imageName);
-
-    return new Promise((resolve) => {
-        // @内联回调
-        fetchPost(Constants.UPLOAD_ADDRESS, formData, (uploadResponse) => {
-            if (uploadResponse.code !== 0) {
-                resolve({ success: false, msg: uploadResponse.msg });
-                return;
-            }
-            const assetPath = uploadResponse.data.succMap[imageName];
-            resolve({ success: true, msg: "success", path: assetPath });
-        });
-    });
-}
-
-/**
- * 插入段落
- */
-async function 插入段落(previousID: string, paragraphHtml: string): Promise<{ success: boolean; msg: string }> {
-    return new Promise((resolve) => {
-        // @内联回调
-        fetchPost("/api/block/insertBlock", {
-            dataType: "dom",
-            data: paragraphHtml,
-            previousID
-        }, (insertResponse) => {
-            if (insertResponse.code !== 0) {
-                resolve({ success: false, msg: insertResponse.msg });
-                return;
-            }
-            resolve({ success: true, msg: "success" });
-        });
-    });
-}
-
-/**
- * 在当前块后插入图片
- * 
- * 流程：先将 base64 图片上传到资源系统，再使用资源路径插入块
- */
-async function 插入图片到块后(
-    nodeElement: Element,
-    base64Data: string,
-    reportProgress: (msg: string) => void
-): Promise<void> {
-    // 获取块 ID
-    const blockId = nodeElement.getAttribute("data-node-id");
-    if (!blockId) {
-        console.error("无法获取块 ID");
-        return;
-    }
-
-    // 1. 将 base64 转换为 Blob
-    const response = await fetch(base64Data);
-    const blob = await response.blob();
-
-    // 2. 上传图片
-    const timestamp = Date.now();
-    const imageName = `ai-generated-${timestamp}.png`;
-
-    const uploadResult = await 上传图片(blob, imageName);
-    if (!uploadResult.success || !uploadResult.path) {
-        console.error("[插入图片] 上传失败:", uploadResult.msg);
-        reportProgress("[上传失败] " + uploadResult.msg);
-        return;
-    }
-
-    reportProgress("图片上传成功, 正在插入文档...");
-
-    // 3. 生成新块 ID 和时间戳
-    const newBlockId = Lute.NewNodeID();
-    const updateTime = dayjs().format("YYYYMMDDHHmmss");
-
-    // 4. 使用正确的图片 DOM 结构
-    const imgName = `ai-generated-${timestamp}`;
-    const imgHtml = genAssetHTML(".png", uploadResult.path, imgName, imageName);
-    const paragraphHtml = `<div data-node-id="${newBlockId}" data-type="NodeParagraph" class="p" updated="${updateTime}"><div contenteditable="true" spellcheck="false">${imgHtml}</div><div class="protyle-attr" contenteditable="false">${Constants.ZWSP}</div></div>`;
-
-    // 5. 使用思源 API 插入新段落到当前块后面
-    const insertResult = await 插入段落(blockId, paragraphHtml);
-    if (!insertResult.success) {
-        console.error("[插入图片] 插入失败:", insertResult.msg);
-        reportProgress("[插入失败] " + insertResult.msg);
-        return;
-    }
-    reportProgress("图片插入成功");
 }

@@ -1,22 +1,22 @@
-import {hasClosestByClassName} from "../util/hasClosest";
-import {getRandom, isMobile} from "../../util/functions";
-import {hideElements} from "../ui/hideElements";
-import {uploadFiles} from "../upload";
-import {fetchPost} from "../../util/fetch";
-import {getRandomEmoji, openEmojiPanel, unicode2Emoji, updateFileTreeEmoji, updateOutlineEmoji} from "../../emoji";
-import {upDownHint} from "../../util/upDownHint";
+import { hasClosestByClassName } from "../util/hasClosest";
+import { getRandom, isMobile } from "../../util/functions";
+import { hideElements } from "../ui/hideElements";
+import { uploadFiles } from "../upload";
+import { fetchPost } from "../../util/fetch";
+import { getRandomEmoji, openEmojiPanel, unicode2Emoji, updateFileTreeEmoji, updateOutlineEmoji } from "../../emoji";
+import { upDownHint } from "../../util/upDownHint";
 /// #if !MOBILE
-import {openGlobalSearch} from "../../search/util";
+import { openGlobalSearch } from "../../search/util";
 /// #else
-import {popSearch} from "../../mobile/menu/search";
+import { popSearch } from "../../mobile/menu/search";
 /// #endif
-import {getEventName} from "../util/compatibility";
-import {Dialog} from "../../dialog";
-import {Constants} from "../../constants";
-import { assetMenu } from "../../menus/protyle.asset";
-import {previewImages} from "../preview/image";
-import {Menu} from "../../plugin/Menu";
-import {escapeHtml} from "../../util/escape";
+import { getEventName } from "../util/compatibility";
+import { Dialog } from "../../dialog";
+import { Constants } from "../../constants";
+import { assetMenu } from "../../menus/protyleMenus/protyle.asset";
+import { previewImages } from "../preview/image";
+import { Menu } from "../../plugin/Menu";
+import { escapeHtml } from "../../util/escape";
 import { bgs } from "../../util/css/bgs";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
@@ -83,7 +83,7 @@ export class Background {
                     this.render(this.ial, protyle.block.rootID);
                     fetchPost("/api/attr/setBlockAttrs", {
                         id: protyle.block.rootID,
-                        attrs: {"title-img": style}
+                        attrs: { "title-img": style }
                     });
                 });
             }
@@ -126,7 +126,7 @@ export class Background {
                 this.render(this.ial, protyle.block.rootID);
                 fetchPost("/api/attr/setBlockAttrs", {
                     id: protyle.block.rootID,
-                    attrs: {"title-img": style}
+                    attrs: { "title-img": style }
                 });
             });
         });
@@ -166,7 +166,7 @@ export class Background {
                         this.ial["title-img"] = style;
                         fetchPost("/api/attr/setBlockAttrs", {
                             id: protyle.block.rootID,
-                            attrs: {"title-img": style}
+                            attrs: { "title-img": style }
                         });
                     } else {
                         this.render(this.ial, protyle.block.rootID);
@@ -204,7 +204,7 @@ export class Background {
                             this.render(this.ial, protyle.block.rootID);
                             fetchPost("/api/attr/setBlockAttrs", {
                                 id: protyle.block.rootID,
-                                attrs: {"title-img": this.ial["title-img"]}
+                                attrs: { "title-img": this.ial["title-img"] }
                             });
                             dialog.destroy();
                         }
@@ -217,7 +217,7 @@ export class Background {
                     this.render(this.ial, protyle.block.rootID);
                     fetchPost("/api/attr/setBlockAttrs", {
                         id: protyle.block.rootID,
-                        attrs: {"title-img": this.ial["title-img"]}
+                        attrs: { "title-img": this.ial["title-img"] }
                     });
                     event.preventDefault();
                     event.stopPropagation();
@@ -233,7 +233,7 @@ export class Background {
                         this.render(this.ial, protyle.block.rootID);
                         fetchPost("/api/attr/setBlockAttrs", {
                             id: protyle.block.rootID,
-                            attrs: {"title-img": this.ial["title-img"]}
+                            attrs: { "title-img": this.ial["title-img"] }
                         });
                         /// #if MOBILE
                         window.siyuan.menus.menu.remove();
@@ -247,7 +247,7 @@ export class Background {
                     this.render(this.ial, protyle.block.rootID);
                     fetchPost("/api/attr/setBlockAttrs", {
                         id: protyle.block.rootID,
-                        attrs: {"title-img": ""}
+                        attrs: { "title-img": "" }
                     });
                     event.preventDefault();
                     event.stopPropagation();
@@ -259,7 +259,7 @@ export class Background {
                         updateOutlineEmoji(emoji, protyle.block.rootID);
                         fetchPost("/api/attr/setBlockAttrs", {
                             id: protyle.block.rootID,
-                            attrs: {"icon": emoji}
+                            attrs: { "icon": emoji }
                         });
                         if (protyle.model) {
                             protyle.model.parent.setDocIcon(emoji);
@@ -304,7 +304,7 @@ export class Background {
                         this.render(this.ial, protyle.block.rootID);
                         fetchPost("/api/attr/setBlockAttrs", {
                             id: protyle.block.rootID,
-                            attrs: {"title-img": this.ial["title-img"]}
+                            attrs: { "title-img": this.ial["title-img"] }
                         });
                         dialog.destroy();
                     });
@@ -314,7 +314,7 @@ export class Background {
                     break;
                 } else if (type === "open-search") {
                     /// #if !MOBILE
-                    openGlobalSearch(protyle.app, `#${target.textContent}#`, !window.siyuan.ctrlIsPressed, {method: 0});
+                    openGlobalSearch(protyle.app, `#${target.textContent}#`, !window.siyuan.ctrlIsPressed, { method: 0 });
                     /// #else
                     popSearch(protyle.app, {
                         hasReplace: false,
@@ -345,7 +345,7 @@ export class Background {
         const tags = this.getTags();
         fetchPost("/api/attr/setBlockAttrs", {
             id: protyle.block.rootID,
-            attrs: {"tags": tags.toString()}
+            attrs: { "tags": tags.toString() }
         }, () => {
             if (cb) {
                 cb();
@@ -469,9 +469,9 @@ export class Background {
                         this.addTags(currentElement ?
                             (currentElement.dataset.type === "new" ? currentElement.querySelector("mark").textContent.trim() : currentElement.textContent.trim()) :
                             inputElement.value.trim(), protyle, () => {
-                            inputElement.value = "";
-                            inputElement.dispatchEvent(new CustomEvent("input"));
-                        });
+                                inputElement.value = "";
+                                inputElement.dispatchEvent(new CustomEvent("input"));
+                            });
                     } else if (event.key === "Escape") {
                         window.siyuan.menus.menu.remove();
                     }
@@ -521,7 +521,7 @@ export class Background {
         itemsElement.firstElementChild.setAttribute("style", "padding: 0 8px;height: 100%;");
         /// #else
         const rect = target.getBoundingClientRect();
-        menu.open({x: rect.left, y: rect.top + rect.height});
+        menu.open({ x: rect.left, y: rect.top + rect.height });
         menu.element.querySelector("input").focus();
         /// #endif
     }
@@ -547,7 +547,7 @@ export class Background {
         tags.push(tag);
         fetchPost("/api/attr/setBlockAttrs", {
             id: protyle.block.rootID,
-            attrs: {"tags": tags.toString()}
+            attrs: { "tags": tags.toString() }
         }, () => {
             cb();
         });

@@ -1,5 +1,5 @@
-import {transaction} from "../../wysiwyg/transaction";
-import {fetchPost} from "../../../util/fetch";
+import { transaction } from "../../wysiwyg/transaction";
+import { fetchPost } from "../../../util/fetch";
 import {
     addCol,
     bindEditEvent,
@@ -10,25 +10,25 @@ import {
     getEditHTML,
     removeCol
 } from "./col";
-import {setPosition} from "../../../util/setPosition";
-import {hasClosestByAttribute, hasClosestByClassName} from "../../util/hasClosest";
-import {addColOptionOrCell, bindSelectEvent, getSelectHTML, removeCellOption, setColOption} from "./select";
-import {addFilter, getFiltersHTML, setFilter} from "./filter";
-import {addSort, bindSortsEvent, getSortsHTML} from "./sort";
-import {bindDateEvent, getDateHTML} from "./date";
-import {formatNumber} from "./number";
-import {updateAttrViewCellAnimation} from "./action";
-import {addAssetLink, bindAssetEvent, editAssetItem, getAssetHTML, updateAssetCell} from "./asset";
-import {Constants} from "../../../constants";
-import {hideElements} from "../../ui/hideElements";
-import {isLocalPath, pathPosix} from "../../../util/pathName";
-import {openEmojiPanel, unicode2Emoji} from "../../../emoji";
-import {getSearch, isMobile} from "../../../util/functions";
+import { setPosition } from "../../../util/setPosition";
+import { hasClosestByAttribute, hasClosestByClassName } from "../../util/hasClosest";
+import { addColOptionOrCell, bindSelectEvent, getSelectHTML, removeCellOption, setColOption } from "./select";
+import { addFilter, getFiltersHTML, setFilter } from "./filter";
+import { addSort, bindSortsEvent, getSortsHTML } from "./sort";
+import { bindDateEvent, getDateHTML } from "./date";
+import { formatNumber } from "./number";
+import { updateAttrViewCellAnimation } from "./action";
+import { addAssetLink, bindAssetEvent, editAssetItem, getAssetHTML, updateAssetCell } from "./asset";
+import { Constants } from "../../../constants";
+import { hideElements } from "../../ui/hideElements";
+import { isLocalPath, pathPosix } from "../../../util/pathName";
+import { openEmojiPanel, unicode2Emoji } from "../../../emoji";
+import { getSearch, isMobile } from "../../../util/functions";
 /// #if !MOBILE
 import { openAsset } from "../../../editor/util.openAsset";
 /// #endif
-import {previewAttrViewImages} from "../../preview/image";
-import { assetMenu } from "../../../menus/protyle.asset";
+import { previewAttrViewImages } from "../../preview/image";
+import { assetMenu } from "../../../menus/protyleMenus/protyle.asset";
 import {
     addView,
     bindSwitcherEvent,
@@ -38,16 +38,16 @@ import {
     getViewHTML,
     openViewMenu
 } from "./view";
-import {focusBlock} from "../../util/selection";
-import {getFieldIdByCellElement, setPageSize} from "./row";
-import {bindRelationEvent, getRelationHTML, openSearchAV, setRelationCell, updateRelation} from "./relation";
-import {bindRollupData, getRollupHTML, goSearchRollupCol} from "./rollup";
-import {updateCellsValue} from "./cell";
-import {openCalcMenu} from "./calc";
-import {escapeAttr, escapeHtml} from "../../../util/escape";
-import {Dialog} from "../../../dialog";
-import {bindLayoutEvent, getLayoutHTML, updateLayout} from "./layout";
-import {setGalleryCover, setGalleryRatio, setGallerySize} from "./gallery/util";
+import { focusBlock } from "../../util/selection";
+import { getFieldIdByCellElement, setPageSize } from "./row";
+import { bindRelationEvent, getRelationHTML, openSearchAV, setRelationCell, updateRelation } from "./relation";
+import { bindRollupData, getRollupHTML, goSearchRollupCol } from "./rollup";
+import { updateCellsValue } from "./cell";
+import { openCalcMenu } from "./calc";
+import { escapeAttr, escapeHtml } from "../../../util/escape";
+import { Dialog } from "../../../dialog";
+import { bindLayoutEvent, getLayoutHTML, updateLayout } from "./layout";
+import { setGalleryCover, setGalleryRatio, setGallerySize } from "./gallery/util";
 import {
     bindGroupsEvent, bindGroupsNumber,
     getGroupsHTML,
@@ -131,11 +131,11 @@ export const openMenuPanel = (options: {
                     }
                 }
             }
-            html = getEditHTML({protyle: options.protyle, data, colId: options.colId, isCustomAttr});
+            html = getEditHTML({ protyle: options.protyle, data, colId: options.colId, isCustomAttr });
         } else if (options.type === "date") {
             html = getDateHTML(options.cellElements);
         } else if (options.type === "rollup") {
-            html = `<div class="b3-menu__items">${getRollupHTML({data, cellElements: options.cellElements})}</div>`;
+            html = `<div class="b3-menu__items">${getRollupHTML({ data, cellElements: options.cellElements })}</div>`;
         } else if (options.type === "relation") {
             html = getRelationHTML(data, options.cellElements);
             if (!html) {
@@ -198,7 +198,7 @@ export const openMenuPanel = (options: {
                     blockElement: options.blockElement
                 });
             } else if (options.type === "rollup") {
-                bindRollupData({protyle: options.protyle, data, menuElement});
+                bindRollupData({ protyle: options.protyle, data, menuElement });
             }
             if (["select", "date", "relation", "rollup"].includes(options.type)) {
                 const inputElement = menuElement.querySelector("input");
@@ -213,11 +213,11 @@ export const openMenuPanel = (options: {
             if (options.type === "sorts") {
                 bindSortsEvent(options.protyle, menuElement, data, blockID);
             } else if (options.type === "edit") {
-                bindEditEvent({protyle: options.protyle, data, menuElement, isCustomAttr, blockID});
+                bindEditEvent({ protyle: options.protyle, data, menuElement, isCustomAttr, blockID });
             } else if (options.type === "config") {
-                bindViewEvent({protyle: options.protyle, data, menuElement, blockElement: options.blockElement});
+                bindViewEvent({ protyle: options.protyle, data, menuElement, blockElement: options.blockElement });
             } else if (options.type === "switcher") {
-                bindSwitcherEvent({protyle: options.protyle, menuElement, blockElement: options.blockElement});
+                bindSwitcherEvent({ protyle: options.protyle, menuElement, blockElement: options.blockElement });
             }
         }
         if (options.cb) {
@@ -416,7 +416,7 @@ export const openMenuPanel = (options: {
                         colId,
                         isCustomAttr
                     });
-                    bindEditEvent({protyle: options.protyle, data, menuElement, isCustomAttr, blockID});
+                    bindEditEvent({ protyle: options.protyle, data, menuElement, isCustomAttr, blockID });
                 }
                 menuElement.querySelector(".b3-menu__items").scrollTop = oldScroll;
                 return;
@@ -581,7 +581,7 @@ export const openMenuPanel = (options: {
         });
         avPanelElement.addEventListener("mousedown", (event: MouseEvent & { target: HTMLElement }) => {
             if (event.button === 1 && !hasClosestByClassName(event.target, "b3-menu")) {
-                document.querySelector(".av__panel").dispatchEvent(new CustomEvent("click", {detail: "close"}));
+                document.querySelector(".av__panel").dispatchEvent(new CustomEvent("click", { detail: "close" }));
             }
         });
         avPanelElement.addEventListener("click", async (event: MouseEvent) => {
@@ -615,7 +615,7 @@ export const openMenuPanel = (options: {
                 } else if (type === "go-config") {
                     menuElement.innerHTML = getViewHTML(data);
                     setPosition(menuElement, tabRect.right - menuElement.clientWidth, tabRect.bottom, tabRect.height);
-                    bindViewEvent({protyle: options.protyle, data, menuElement, blockElement: options.blockElement});
+                    bindViewEvent({ protyle: options.protyle, data, menuElement, blockElement: options.blockElement });
                     window.siyuan.menus.menu.remove();
                     event.preventDefault();
                     event.stopPropagation();
@@ -632,7 +632,7 @@ export const openMenuPanel = (options: {
                 } else if (type === "go-layout") {
                     menuElement.innerHTML = getLayoutHTML(data);
                     setPosition(menuElement, tabRect.right - menuElement.clientWidth, tabRect.bottom, tabRect.height);
-                    bindLayoutEvent({protyle: options.protyle, data, menuElement, blockElement: options.blockElement});
+                    bindLayoutEvent({ protyle: options.protyle, data, menuElement, blockElement: options.blockElement });
                     window.siyuan.menus.menu.remove();
                     event.preventDefault();
                     event.stopPropagation();
@@ -896,7 +896,7 @@ export const openMenuPanel = (options: {
                             const iconElement = options.blockElement.querySelector(`.av__row[data-col-id="${colId}"] .block__logoicon`);
                             iconElement.outerHTML = unicode ? unicode2Emoji(unicode, "block__logoicon", true) : `<svg class="block__logoicon"><use xlink:href="#${getColIconByType(iconElement.nextElementSibling.getAttribute("data-type") as TAVCol)}"></use></svg>`;
                         } else {
-                            updateAttrViewCellAnimation(options.blockElement.querySelector(`.av__row--header .av__cell[data-col-id="${colId}"]`), undefined, {icon: unicode});
+                            updateAttrViewCellAnimation(options.blockElement.querySelector(`.av__row--header .av__cell[data-col-id="${colId}"]`), undefined, { icon: unicode });
                         }
                         target.dataset.icon = unicode;
                     }, target.querySelector("img"));
@@ -970,7 +970,7 @@ export const openMenuPanel = (options: {
                         colId: target.dataset.id,
                         isCustomAttr
                     });
-                    bindEditEvent({protyle: options.protyle, data, menuElement, isCustomAttr, blockID});
+                    bindEditEvent({ protyle: options.protyle, data, menuElement, isCustomAttr, blockID });
                     setPosition(menuElement, tabRect.right - menuElement.clientWidth, tabRect.bottom, tabRect.height);
                     event.preventDefault();
                     event.stopPropagation();
@@ -1051,7 +1051,7 @@ export const openMenuPanel = (options: {
                         colId,
                         isCustomAttr
                     });
-                    bindEditEvent({protyle: options.protyle, data, menuElement, isCustomAttr, blockID});
+                    bindEditEvent({ protyle: options.protyle, data, menuElement, isCustomAttr, blockID });
                     setPosition(menuElement, tabRect.right - menuElement.clientWidth, tabRect.bottom, tabRect.height);
                     event.preventDefault();
                     event.stopPropagation();
@@ -1147,7 +1147,7 @@ export const openMenuPanel = (options: {
                             colId,
                             isCustomAttr
                         });
-                        bindEditEvent({protyle: options.protyle, data, menuElement, isCustomAttr, blockID});
+                        bindEditEvent({ protyle: options.protyle, data, menuElement, isCustomAttr, blockID });
                     } else {
                         menuElement.innerHTML = getPropertiesHTML(fields);
                     }
@@ -1179,7 +1179,7 @@ export const openMenuPanel = (options: {
                             colId,
                             isCustomAttr
                         });
-                        bindEditEvent({protyle: options.protyle, data, menuElement, isCustomAttr, blockID});
+                        bindEditEvent({ protyle: options.protyle, data, menuElement, isCustomAttr, blockID });
                     } else {
                         menuElement.innerHTML = getPropertiesHTML(fields);
                     }
@@ -1217,7 +1217,7 @@ export const openMenuPanel = (options: {
                                     .replace("${x}", menuElement.querySelector("input").value || siyuanI18n._kernel[272])
                                     .replace("${y}", menuElement.querySelector('.b3-menu__item[data-type="goSearchAV"] .b3-menu__accelerator').textContent)
                                     .replace("${z}", (menuElement.querySelector('input[data-type="colName"]') as HTMLInputElement).value || siyuanI18n._kernel[272])
-                                : siyuanI18n.removeCol.replace("${x}", menuElement.querySelector("input").value || siyuanI18n._kernel[272])}
+                                    : siyuanI18n.removeCol.replace("${x}", menuElement.querySelector("input").value || siyuanI18n._kernel[272])}
     <div class="fn__hr--b"></div>
     <button class="fn__block b3-button b3-button--remove" data-action="delete">${isTwoWay ? siyuanI18n.removeBothRelationField : siyuanI18n.delete}</button>
     <div class="fn__hr"></div>

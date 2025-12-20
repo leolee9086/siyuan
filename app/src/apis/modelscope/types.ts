@@ -2,6 +2,11 @@
  * 魔搭社区 (ModelScope) 文生图 API 类型定义
  */
 
+/** Auth 配置数据 */
+export interface ModelScopeAuthData {
+    apiToken: string;
+}
+
 /** 生成参数 */
 export interface 生成参数 {
     /** 模型 ID */

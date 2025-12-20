@@ -601,6 +601,18 @@ export const focusByRange = (range: Range) => {
     }
 };
 
+/**
+ * 聚焦到 protyle toolbar 当前保存的范围
+ * 若 range 不存在则不执行任何操作
+ */
+export const focusToolbarRange = (protyle: IProtyle) => {
+    const range = protyle.toolbar?.range;
+    if (range) {
+        focusByRange(range);
+    }
+};
+export { focusToolbarRange as 聚焦工具栏范围 };
+
 export const focusBlock = (element: Element, parentElement?: HTMLElement, toStart = true): false | Range => {
     if (!element) {
         return false;

@@ -1,23 +1,19 @@
-import { focusByRange } from "../ai/imports";
-import { renderAssetsPreview } from "../asset/renderAssets";
-import { Constants } from "../constants";
-import { Menu } from "../plugin/Menu";
-import { hintRenderAssets } from "../protyle/hint/extend";
-import { hasClosestByClassName, hasClosestByAttribute } from "../protyle/util/hasClosest";
-import { isMobile } from "../util/functions";
-import { upDownHint } from "../util/upDownHint";
-import { fetchPost } from "../ai/imports";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
-import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu.environment";
-import { getWindowOuterWidth } from "../util/siyuanEnvironments/getWindowGeometry.environment";
-
-interface 资源项 {
-    path: string;
-    hName: string;
-}
+import { focusToolbarRange } from "../../protyle/util/selection";
+import { renderAssetsPreview } from "../../asset/renderAssets";
+import { Constants } from "../../constants";
+import { Menu } from "../../plugin/Menu";
+import { hintRenderAssets } from "../../protyle/hint/extend";
+import { hasClosestByClassName, hasClosestByAttribute } from "../../protyle/util/hasClosest";
+import { isMobile } from "../../util/functions";
+import { upDownHint } from "../../util/upDownHint";
+import { fetchPost } from "../../ai/imports";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";
+import { getWindowOuterWidth } from "../../util/siyuanEnvironments/getWindowGeometry.environment";
+import { assetItem } from "./protyle.asset.types";
 
 /** 生成资源列表 HTML */
-const 生成资源列表HTML = (data: 资源项[]) => {
+const 生成资源列表HTML = (data: assetItem[]) => {
     return data.map((item, index) => {
         const focusClass = index === 0 ? " b3-list-item--focus" : "";
         return `<div data-value="${item.path}" class="b3-list-item${focusClass}"><div class="b3-list-item__text">${item.hName}</div></div>`;
@@ -25,13 +21,13 @@ const 生成资源列表HTML = (data: 资源项[]) => {
 };
 
 /** 更新资源列表 UI */
-const 更新资源列表UI = (listElement: Element, data: 资源项[]) => {
+const 更新资源列表UI = (listElement: Element, data: assetItem[]) => {
     const searchHTML = 生成资源列表HTML(data);
     listElement.innerHTML = searchHTML || `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
 };
 
 /** 更新预览区域 */
-const 更新预览区域 = (previewElement: Element | null, data: 资源项[]) => {
+const 更新预览区域 = (previewElement: Element | null, data: assetItem[]) => {
     if (!previewElement) {
         return;
     }
@@ -57,7 +53,7 @@ const 处理搜索资源响应 = (
     element: Element,
     k: string,
     position: IPosition,
-    data: 资源项[]
+    data: assetItem[]
 ) => {
     const inputElement = element.querySelector("input");
     const previewElement = element.querySelector("#preview");
@@ -76,17 +72,9 @@ const 处理搜索资源响应 = (
 
 export const renderAssetList = (element: Element, k: string, position: IPosition, exts: string[] = []) => {
     fetchPost("/api/search/searchAsset", { k, exts }, (response) => {
-        const data = (response.data ?? []) as 资源项[];
+        const data = (response.data ?? []) as assetItem[];
         处理搜索资源响应(element, k, position, data);
     });
-};
-
-/** 聚焦 Toolbar 范围 */
-const 聚焦Toolbar范围 = (protyle: IProtyle) => {
-    const range = protyle.toolbar?.range;
-    if (range) {
-        focusByRange(range);
-    }
 };
 
 /** 处理列表悬停事件 */
@@ -113,7 +101,7 @@ const 处理Enter键 = (
     // 列表为空时，如果没有回调，则关闭菜单并聚焦
     if (isEmpty && !callback) {
         getSiyuanGlobalMenus().menu.remove();
-        聚焦Toolbar范围(protyle);
+        focusToolbarRange(protyle);
         event.preventDefault();
         event.stopPropagation();
         return;
@@ -155,7 +143,7 @@ const 处理Escape键 = (protyle: IProtyle, callback?: (url: string, name: strin
     if (callback) {
         return;
     }
-    聚焦Toolbar范围(protyle);
+    focusToolbarRange(protyle);
 };
 
 /** 处理键盘事件 */

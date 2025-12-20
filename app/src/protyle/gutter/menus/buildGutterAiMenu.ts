@@ -12,13 +12,106 @@ import { createApp, App } from "vue";
 import { Dialog } from "../../../dialog";
 import AiImageGenerationProgress from "./AiImageGenerationProgress.vue";
 import { ProfileManager } from "../../../config/profileManager";
+import { fetchPost } from "../../../util/fetch";
+import { Constants } from "../../../constants";
+import { genAssetHTML } from "../../../asset/renderAssets";
+import * as dayjs from "dayjs";
+import type { IGutterEditMenuContext, IProgressStatusUpdater } from "../gutter.types";
+
 
 /**
- * 构建 Gutter AI 菜单项的上下文参数
+ * 上传图片到资源系统
  */
-interface IGutterAiMenuContext {
-    protyle: IProtyle;
-    nodeElement: Element;
+async function 上传图片(blob: Blob, imageName: string): Promise<{ success: boolean; msg: string; path?: string }> {
+    const formData = new FormData();
+    formData.append("file[]", blob, imageName);
+
+    return new Promise((resolve) => {
+        // @内联回调
+        fetchPost(Constants.UPLOAD_ADDRESS, formData, (uploadResponse) => {
+            if (uploadResponse.code !== 0) {
+                resolve({ success: false, msg: uploadResponse.msg });
+                return;
+            }
+            const assetPath = uploadResponse.data.succMap[imageName];
+            resolve({ success: true, msg: "success", path: assetPath });
+        });
+    });
+}
+
+/**
+ * 插入段落到指定块后面
+ */
+async function 插入段落(previousID: string, paragraphHtml: string): Promise<{ success: boolean; msg: string }> {
+    return new Promise((resolve) => {
+        // @内联回调
+        fetchPost("/api/block/insertBlock", {
+            dataType: "dom",
+            data: paragraphHtml,
+            previousID
+        }, (insertResponse) => {
+            if (insertResponse.code !== 0) {
+                resolve({ success: false, msg: insertResponse.msg });
+                return;
+            }
+            resolve({ success: true, msg: "success" });
+        });
+    });
+}
+
+/**
+ * 在当前块后插入图片
+ * 
+ * 流程：先将 base64 图片上传到资源系统，再使用资源路径插入块
+ */
+async function 插入图片到块后(
+    nodeElement: Element,
+    base64Data: string,
+    reportProgress: (msg: string, isLoading?: boolean) => void
+): Promise<void> {
+    // 获取块 ID
+    const blockId = nodeElement.getAttribute("data-node-id");
+    if (!blockId) {
+        console.error("无法获取块 ID");
+        return;
+    }
+
+    reportProgress("正在上传图片...");
+
+    // 1. 将 base64 转换为 Blob
+    const response = await fetch(base64Data);
+    const blob = await response.blob();
+
+    // 2. 上传图片
+    const timestamp = Date.now();
+    const imageName = `ai-generated-${timestamp}.png`;
+
+    const uploadResult = await 上传图片(blob, imageName);
+    if (!uploadResult.success || !uploadResult.path) {
+        console.error("[插入图片] 上传失败:", uploadResult.msg);
+        reportProgress("[上传失败] " + uploadResult.msg, false);
+        return;
+    }
+
+    reportProgress("图片上传成功, 正在插入文档...");
+
+    // 3. 生成新块 ID 和时间戳
+    const newBlockId = Lute.NewNodeID();
+    const updateTime = dayjs().format("YYYYMMDDHHmmss");
+
+    // 4. 使用正确的图片 DOM 结构
+    const imgName = `ai-generated-${timestamp}`;
+    const imgHtml = genAssetHTML(".png", uploadResult.path, imgName, imageName);
+    const paragraphHtml = `<div data-node-id="${newBlockId}" data-type="NodeParagraph" class="p" updated="${updateTime}"><div contenteditable="true" spellcheck="false">${imgHtml}</div><div class="protyle-attr" contenteditable="false">${Constants.ZWSP}</div></div>`;
+
+    // 5. 使用思源 API 插入新段落到当前块后面
+    const insertResult = await 插入段落(blockId, paragraphHtml);
+    if (!insertResult.success) {
+        console.error("[插入图片] 插入失败:", insertResult.msg);
+        reportProgress("[插入失败] " + insertResult.msg, false);
+        return;
+    }
+    reportProgress("图片插入成功");
 }
 
 /**
@@ -31,6 +124,16 @@ function 获取块文本内容(nodeElement: Element): string {
         return editableElement.textContent || "";
     }
     return nodeElement.textContent || "";
+}
+
+/**
+ * 安全更新 Vue 组件的状态
+ * @param vm - Vue 组件实例
+ * @param msg - 状态消息
+ * @param isLoading - 是否显示加载状态
+ */
+function safeUpdateStatus(vm: IProgressStatusUpdater, msg: string, isLoading = true) {
+    vm?.updateStatus?.(msg, isLoading);
 }
 
 /**
@@ -64,23 +167,20 @@ async function handleAiImageGeneration(
     if (!container) return; // Should not happen
 
     vueApp = createApp(AiImageGenerationProgress);
-    const vm = vueApp.mount(container) as any; // Vue instance type is complex, any is acceptable here for updateStatus
+    const vm = vueApp.mount(container) as unknown as IProgressStatusUpdater;
 
     await 生成块内容图片({
         prompt: blockText,
         protyle,
         nodeElement,
         authManager,
-        onProgress: (msg: string) => {
-            if (vm && vm.updateStatus) {
-                vm.updateStatus(msg);
-            }
+        onProgress: (msg: string) => safeUpdateStatus(vm, msg),
+        onComplete: async (base64Data: string) => {
+            await 插入图片到块后(nodeElement, base64Data, (msg: string, isLoading?: boolean) => safeUpdateStatus(vm, msg, isLoading ?? true));
         }
     });
 
-    if (vm && vm.updateStatus) {
-        vm.updateStatus("生成完成", false);
-    }
+    safeUpdateStatus(vm, "生成完成", false);
     // 延迟关闭，让用户看到完成状态
     setTimeout(() => {
         dialog.destroy();
@@ -93,7 +193,7 @@ async function handleAiImageGeneration(
  * @param context - 包含 protyle 和 nodeElement 的上下文
  * @returns AI 菜单项配置，如果不应显示则返回 null
  */
-export function buildGutterAiMenu(context: IGutterAiMenuContext): IMenu | null {
+export function buildGutterAiMenu(context: IGutterEditMenuContext): IMenu | null {
     const { protyle, nodeElement } = context;
 
     // 禁用状态或分割线不显示 AI 菜单

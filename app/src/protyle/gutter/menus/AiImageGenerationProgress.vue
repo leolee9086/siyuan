@@ -1,6 +1,6 @@
 <template>
     <div class="fn__flex-column fn__flex-center" style="padding: 20px; text-align: center; min-width: 300px;">
-        <div v-if="loading" style="width: 40px; height: 40px; margin-bottom: 16px;">
+        <div v-if="loading" style="width: 40px; height: 40px; margin: 0 auto 16px;">
             <svg class="fn__rotate" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"
                 width="100%" height="100%">
                 <path
