@@ -33,6 +33,14 @@
             <div v-if="currentAuthProfile">
                 <div class="fn__flex b3-label config__item">
                     <div class="fn__flex-1">
+                        Profile Name
+                        <div class="b3-label__text">Display name for this profile</div>
+                    </div>
+                    <input class="b3-text-field fn__size200" v-model="currentAuthProfile.name"
+                        @change="saveAuthProfile">
+                </div>
+                <div class="fn__flex b3-label config__item">
+                    <div class="fn__flex-1">
                         API Token
                         <div class="b3-label__text">ModelScope API Token</div>
                     </div>
@@ -76,6 +84,13 @@
             <div v-if="currentGenProfile">
                 <div class="fn__flex b3-label config__item">
                     <div class="fn__flex-1">
+                        Profile Name
+                        <div class="b3-label__text">Display name for this profile</div>
+                    </div>
+                    <input class="b3-text-field fn__size200" v-model="currentGenProfile.name" @change="saveGenProfile">
+                </div>
+                <div class="fn__flex b3-label config__item">
+                    <div class="fn__flex-1">
                         Model
                         <div class="b3-label__text">Model Name (e.g. modelscope/damo-text-to-image-synthesis)</div>
                     </div>
@@ -105,6 +120,48 @@
                 </div>
             </div>
         </div>
+
+        <!-- Test Section -->
+        <div class="b3-label">
+            Test Generation
+            <div class="fn__hr"></div>
+
+            <!-- Prompt Input -->
+            <div class="fn__flex b3-label config__item">
+                <div class="fn__flex-1">
+                    Prompt
+                    <div class="b3-label__text">Enter a prompt to test image generation</div>
+                </div>
+                <input class="b3-text-field fn__size200" v-model="testPrompt" placeholder="a cute cat">
+            </div>
+
+            <!-- Test Button and Status -->
+            <div class="fn__flex b3-label config__item">
+                <div class="fn__flex-1">
+                    Status
+                    <div class="b3-label__text">{{ testStatusMessage }}</div>
+                </div>
+                <button class="b3-button b3-button--outline fn__flex-center fn__size200" @click="handleTestGeneration"
+                    :disabled="testLoading">
+                    {{ testLoading ? 'Generating...' : 'Test Generate' }}
+                </button>
+            </div>
+
+            <!-- Result Image -->
+            <div v-if="testResultImage" class="fn__flex b3-label config__item">
+                <div class="fn__block" style="text-align: center;">
+                    <img :src="testResultImage" alt="Generated Image"
+                        style="max-width: 100%; max-height: 400px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" />
+                </div>
+            </div>
+
+            <!-- Error Message -->
+            <div v-if="testError" class="fn__flex b3-label config__item">
+                <div class="fn__block ft__error" style="color: var(--b3-theme-error);">
+                    {{ testError }}
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -114,6 +171,12 @@ import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environme
 import { getSForgeConfigs } from "../sforge";
 import { Profile } from "../profile.types";
 import { confirmDialog } from "../../dialog/confirmDialog";
+import {
+    提交生成任务,
+    轮询任务直到完成,
+    获取图片,
+    提取图片URL
+} from "../../apis/modelscope";
 
 const authManager = getSForgeConfigs().ai.modelScope.auth;
 const genManager = getSForgeConfigs().ai.modelScope.text2image;
@@ -124,6 +187,13 @@ const currentAuthId = ref("");
 const currentGenId = ref("");
 const currentAuthProfile = ref<Profile | null>(null);
 const currentGenProfile = ref<Profile | null>(null);
+
+// Test generation state
+const testPrompt = ref("a cute cat");
+const testLoading = ref(false);
+const testStatusMessage = ref("Ready to test");
+const testResultImage = ref<string | null>(null);
+const testError = ref<string | null>(null);
 
 const loadProfiles = async () => {
     console.log("loadProfiles: starting");
@@ -244,12 +314,82 @@ const deleteGenProfile = async () => {
 const saveAuthProfile = async () => {
     if (currentAuthProfile.value) {
         await authManager.saveProfile(currentAuthProfile.value);
+        // Refresh list to update dropdown display
+        const authList = await authManager.listProfiles();
+        authProfiles.value = authList;
     }
 };
 
 const saveGenProfile = async () => {
     if (currentGenProfile.value) {
         await genManager.saveProfile(currentGenProfile.value);
+        // Refresh list to update dropdown display
+        const genList = await genManager.listProfiles();
+        genProfiles.value = genList;
+    }
+};
+
+// Test generation handler
+const handleTestGeneration = async () => {
+    if (!currentAuthProfile.value?.data?.apiToken) {
+        testError.value = "Please configure an API Token first";
+        return;
+    }
+    if (!testPrompt.value.trim()) {
+        testError.value = "Please enter a prompt";
+        return;
+    }
+
+    testLoading.value = true;
+    testError.value = null;
+    testResultImage.value = null;
+    testStatusMessage.value = "Submitting task...";
+
+    try {
+        // Build generation params from current profile
+        const genData = currentGenProfile.value?.data || {};
+        const params = {
+            model: genData.model || undefined,
+            width: genData.width || undefined,
+            height: genData.height || undefined,
+            steps: genData.steps || undefined
+        };
+
+        // Submit task
+        const taskId = await 提交生成任务({
+            apiToken: currentAuthProfile.value.data.apiToken,
+            prompt: testPrompt.value,
+            params
+        });
+        testStatusMessage.value = `Task submitted: ${taskId.substring(0, 8)}... Polling...`;
+
+        // Poll until complete
+        const status = await 轮询任务直到完成({
+            apiToken: currentAuthProfile.value.data.apiToken,
+            taskId
+        });
+
+        if (status.task_status === "FAILED") {
+            throw new Error(status.error?.message || "Generation failed");
+        }
+
+        testStatusMessage.value = "Fetching image...";
+
+        // Get image URL and fetch
+        const imageUrl = 提取图片URL(status);
+        if (!imageUrl) {
+            throw new Error("No image URL in response");
+        }
+
+        const base64Image = await 获取图片({ imageUrl });
+        testResultImage.value = base64Image;
+        testStatusMessage.value = "Generation complete!";
+    } catch (e) {
+        console.error("Test generation failed:", e);
+        testError.value = e instanceof Error ? e.message : "Unknown error";
+        testStatusMessage.value = "Generation failed";
+    } finally {
+        testLoading.value = false;
     }
 };
 
