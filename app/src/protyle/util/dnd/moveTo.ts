@@ -7,7 +7,7 @@ import { fetchSyncPost } from "../../../util/fetch";
 import { getAllEditor } from "../../../layout/getAll";
 import { zoomOut } from "../../../menus/protyle";
 /// #endif
-
+//@AITODO这个文件的代码冗长而且多处违反lint规则,应该进行改进
 // position: afterbegin 为拖拽成超级块; "afterend", "beforebegin" 一般拖拽
 export const moveTo = async (protyle: IProtyle, sourceElements: Element[], targetElement: Element,
     isSameDoc: boolean, position: InsertPosition, isCopy: boolean) => {
