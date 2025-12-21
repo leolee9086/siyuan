@@ -1,6 +1,26 @@
 /**
- * 收藏夹模块类型守卫
+ * dock.guard.ts - Dock 模块类型守卫
+ * 用于替代 as 类型断言，提供运行时类型检查
  */
+
+import { Wnd } from "../Wnd";
+import type { Layout } from "../index";
+
+const DOCK_TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGraph", "backlink"];
+
+/**
+ * 判断布局子元素是否为 Wnd
+ */
+export function isWnd(child: Layout | Wnd | unknown): child is Wnd {
+    return child instanceof Wnd;
+}
+
+/**
+ * 判断类型字符串是否为有效的 TDock 类型
+ */
+export function isTDock(type: string | null | undefined): type is TDock {
+    return type !== null && type !== undefined && DOCK_TYPES.includes(type);
+}
 
 const checkString = (val: unknown) => val === undefined || typeof val === "string";
 const checkBoolean = (val: unknown) => val === undefined || typeof val === "boolean";
