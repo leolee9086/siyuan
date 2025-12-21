@@ -22,7 +22,7 @@ const path = require("path");
 
 // 默认配置
 const DEFAULT_CONFIG = {
-    inputFile: path.resolve(__dirname, "../appearance/langs/forge.i18n.json"),
+    inputFile: path.resolve(__dirname, "../appearance/forge/lang/forge.i18n.json"),
     outputFile: path.resolve(__dirname, "../src/types/forgeI18n.types.ts"),
     typeName: "ForgeI18nKeys",
     rootInterfaceName: "ForgeI18n",

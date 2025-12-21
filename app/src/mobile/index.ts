@@ -1,35 +1,35 @@
-import {addScript, addScriptSync} from "../protyle/util/addScript";
-import {Constants} from "../constants";
-import {onMessage} from "./util/onMessage";
-import {genUUID} from "../util/genID";
-import {hasClosestBlock, hasClosestByAttribute, hasTopClosestByClassName} from "../protyle/util/hasClosest";
-import {Model} from "../layout/Model";
+import { addScript, addScriptSync } from "../protyle/util/addScript";
+import { Constants } from "../constants";
+import { onMessage } from "./util/onMessage";
+import { genUUID } from "../util/genID";
+import { hasClosestBlock, hasClosestByAttribute, hasTopClosestByClassName } from "../protyle/util/hasClosest";
+import { Model } from "../layout/Model";
 import "../assets/scss/mobile.scss";
-import {Menus} from "../menus";
-import {addBaseURL, getIdFromSYProtocol, isSYProtocol, setNoteBook} from "../util/pathName";
-import {handleTouchEnd, handleTouchMove, handleTouchStart} from "./util/touch";
-import {fetchGet, fetchPost} from "../util/fetch";
-import {initFramework} from "./util/initFramework";
-import {initAssets, loadAssets} from "../util/assets";
-import {bootSync} from "../dialog/processSystem";
-import {initMessage, showMessage} from "../dialog/message";
-import {goBack} from "./util/MobileBackFoward";
-import {hideKeyboardToolbar, showKeyboardToolbar} from "./util/keyboardToolbar";
-import {getLocalStorage, writeText} from "../protyle/util/compatibility";
-import {getCurrentEditor, openMobileFileById} from "./editor";
-import {getSearch} from "../util/functions";
-import {initRightMenu} from "./menu";
-import {openChangelog} from "../boot/openChangelog";
-import {registerServiceWorker} from "../util/serviceWorker";
-import {loadPlugins} from "../plugin/loader";
-import {saveScroll} from "../protyle/scroll/saveScroll";
-import {removeBlock} from "../protyle/wysiwyg/remove";
-import {isNotEditBlock} from "../protyle/wysiwyg/getBlock";
-import {updateCardHV} from "../card/util";
-import {mobileKeydown} from "./util/keydown";
-import {correctHotkey} from "../boot/globalEvent/commonHotkey";
-import {processIOSPurchaseResponse} from "../util/iOSPurchase";
-import {updateControlAlt} from "../protyle/util/hotKey";
+import { Menus } from "../menus";
+import { addBaseURL, getIdFromSYProtocol, isSYProtocol, setNoteBook } from "../util/pathName";
+import { handleTouchEnd, handleTouchMove, handleTouchStart } from "./util/touch";
+import { fetchGet, fetchPost } from "../util/fetch";
+import { initFramework } from "./util/initFramework";
+import { initAssets, loadAssets } from "../util/assets";
+import { bootSync } from "../dialog/processSystem";
+import { initMessage, showMessage } from "../dialog/message";
+import { goBack } from "./util/MobileBackFoward";
+import { hideKeyboardToolbar, showKeyboardToolbar } from "./util/keyboardToolbar";
+import { getLocalStorage, writeText } from "../protyle/util/compatibility";
+import { getCurrentEditor, openMobileFileById } from "./editor";
+import { getSearch } from "../util/functions";
+import { initRightMenu } from "./menu";
+import { openChangelog } from "../boot/openChangelog";
+import { registerServiceWorker } from "../util/serviceWorker";
+import { loadPlugins } from "../plugin/loader";
+import { saveScroll } from "../protyle/scroll/saveScroll";
+import { removeBlock } from "../protyle/wysiwyg/remove";
+import { isNotEditBlock } from "../protyle/wysiwyg/getBlock";
+import { updateCardHV } from "../card/util";
+import { mobileKeydown } from "./util/keydown";
+import { correctHotkey } from "../boot/globalEvent/commonHotkey";
+import { processIOSPurchaseResponse } from "../util/iOSPurchase";
+import { updateControlAlt } from "../protyle/util/hotKey";
 
 class App {
     public plugins: import("../plugin").Plugin[] = [];
@@ -102,8 +102,11 @@ class App {
             correctHotkey(siyuanApp);
             await loadPlugins(this);
             getLocalStorage(() => {
-                fetchGet(`/appearance/langs/${window.siyuan.config.appearance.lang}.json?v=${Constants.SIYUAN_VERSION}`, (lauguages: IObject) => {
+                fetchGet(`/appearance/langs/${window.siyuan.config.appearance.lang}.json?v=${Constants.SIYUAN_VERSION}`, async (lauguages: IObject) => {
                     window.siyuan.languages = lauguages;
+                    // 加载 Forge 翻译
+                    const { loadForgeI18n } = await import("../util/siyuanEnvironments/forgeI18n.getI18n.environment");
+                    await loadForgeI18n();
                     window.siyuan.menus = new Menus(this);
                     document.title = window.siyuan.languages.siyuanNote;
                     bootSync();

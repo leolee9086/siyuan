@@ -1,14 +1,14 @@
 <template>
-    <div class="fn__flex-column" style="height: 100%; overflow: auto;">
+    <div v-if="i18nReady" class="fn__flex-column" style="height: 100%; overflow: auto;">
         <!-- Authentication Section -->
         <div class="b3-label">
-            Authentication
+            {{ i18n.modelScope.auth.标题 }}
             <div class="fn__hr"></div>
 
             <!-- Auth Profile Selector -->
             <div class="fn__flex config__item">
                 <div class="fn__flex-1">
-                    Profile
+                    {{ i18n.modelScope.auth.配置档案 }}
                 </div>
                 <select class="b3-select fn__flex-center fn__size200" v-model="currentAuthId"
                     @change="handleAuthChange">
@@ -33,16 +33,16 @@
             <div v-if="currentAuthProfile">
                 <div class="fn__flex b3-label config__item">
                     <div class="fn__flex-1">
-                        Profile Name
-                        <div class="b3-label__text">Display name for this profile</div>
+                        {{ i18n.modelScope.auth.配置名称 }}
+                        <div class="b3-label__text">{{ i18n.modelScope.auth.配置名称提示 }}</div>
                     </div>
                     <input class="b3-text-field fn__size200" v-model="currentAuthProfile.name"
                         @change="saveAuthProfile">
                 </div>
                 <div class="fn__flex b3-label config__item">
                     <div class="fn__flex-1">
-                        API Token
-                        <div class="b3-label__text">ModelScope API Token</div>
+                        {{ i18n.modelScope.auth.apiToken }}
+                        <div class="b3-label__text">{{ i18n.modelScope.auth.apiTokenTip }}</div>
                     </div>
                     <div class="b3-form__icona fn__size200">
                         <input class="b3-text-field b3-form__icona-input" v-model="currentAuthProfile.data.apiToken"
@@ -54,13 +54,13 @@
 
         <!-- Generation Section -->
         <div class="b3-label">
-            Generation Configuration
+            {{ i18n.modelScope.text2image.标题 }}
             <div class="fn__hr"></div>
 
             <!-- Gen Profile Selector -->
             <div class="fn__flex config__item">
                 <div class="fn__flex-1">
-                    Profile
+                    {{ i18n.modelScope.auth.配置档案 }}
                 </div>
                 <select class="b3-select fn__flex-center fn__size200" v-model="currentGenId" @change="handleGenChange">
                     <option v-for="p in genProfiles" :key="p.id" :value="p.id">{{ p.name }}</option>
@@ -84,36 +84,36 @@
             <div v-if="currentGenProfile">
                 <div class="fn__flex b3-label config__item">
                     <div class="fn__flex-1">
-                        Profile Name
-                        <div class="b3-label__text">Display name for this profile</div>
+                        {{ i18n.modelScope.auth.配置名称 }}
+                        <div class="b3-label__text">{{ i18n.modelScope.auth.配置名称提示 }}</div>
                     </div>
                     <input class="b3-text-field fn__size200" v-model="currentGenProfile.name" @change="saveGenProfile">
                 </div>
                 <div class="fn__flex b3-label config__item">
                     <div class="fn__flex-1">
-                        Model
-                        <div class="b3-label__text">Model Name (e.g. modelscope/damo-text-to-image-synthesis)</div>
+                        {{ i18n.modelScope.text2image.模型 }}
+                        <div class="b3-label__text">{{ i18n.modelScope.text2image.模型提示 }}</div>
                     </div>
                     <input class="b3-text-field fn__size200" v-model="currentGenProfile.data.model"
                         @change="saveGenProfile">
                 </div>
                 <div class="fn__flex b3-label config__item">
                     <div class="fn__flex-1">
-                        Width
+                        {{ i18n.modelScope.text2image.宽度 }}
                     </div>
                     <input type="number" class="b3-text-field fn__size200" v-model.number="currentGenProfile.data.width"
                         @change="saveGenProfile">
                 </div>
                 <div class="fn__flex b3-label config__item">
                     <div class="fn__flex-1">
-                        Height
+                        {{ i18n.modelScope.text2image.高度 }}
                     </div>
                     <input type="number" class="b3-text-field fn__size200"
                         v-model.number="currentGenProfile.data.height" @change="saveGenProfile">
                 </div>
                 <div class="fn__flex b3-label config__item">
                     <div class="fn__flex-1">
-                        Steps
+                        {{ i18n.modelScope.text2image.步数 }}
                     </div>
                     <input type="number" class="b3-text-field fn__size200" v-model.number="currentGenProfile.data.steps"
                         @change="saveGenProfile">
@@ -123,14 +123,14 @@
 
         <!-- Test Section -->
         <div class="b3-label">
-            Test Generation
+            {{ i18n.modelScope.test.标题 }}
             <div class="fn__hr"></div>
 
             <!-- Prompt Input -->
             <div class="fn__flex b3-label config__item">
                 <div class="fn__flex-1">
-                    Prompt
-                    <div class="b3-label__text">Enter a prompt to test image generation</div>
+                    {{ i18n.modelScope.test.提示词 }}
+                    <div class="b3-label__text">{{ i18n.modelScope.test.提示词说明 }}</div>
                 </div>
                 <input class="b3-text-field fn__size200" v-model="testPrompt" placeholder="a cute cat">
             </div>
@@ -138,12 +138,12 @@
             <!-- Test Button and Status -->
             <div class="fn__flex b3-label config__item">
                 <div class="fn__flex-1">
-                    Status
+                    {{ i18n.modelScope.test.状态 }}
                     <div class="b3-label__text">{{ testStatusMessage }}</div>
                 </div>
                 <button class="b3-button b3-button--outline fn__flex-center fn__size200" @click="handleTestGeneration"
                     :disabled="testLoading">
-                    {{ testLoading ? 'Generating...' : 'Test Generate' }}
+                    {{ testLoading ? i18n.modelScope.test.生成中 : i18n.modelScope.test.测试生成 }}
                 </button>
             </div>
 
@@ -163,11 +163,15 @@
             </div>
         </div>
     </div>
+    <div v-else class="fn__flex-center" style="height: 100%;">
+        加载中...
+    </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, shallowRef } from "vue";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { forgeI18n, loadForgeI18n } from "../../util/siyuanEnvironments/forgeI18n.getI18n.environment";
 import { getSForgeConfigs } from "../sforge";
 import { Profile } from "../profile.types";
 import { confirmDialog } from "../../dialog/confirmDialog";
@@ -177,6 +181,10 @@ import {
     获取图片,
     提取图片URL
 } from "../../apis/modelscope";
+
+// 使用 shallowRef 包裹 forgeI18n，在组件挂载时会触发更新
+const i18n = shallowRef(forgeI18n);
+const i18nReady = ref(false);
 
 const authManager = getSForgeConfigs().ai.modelScope.auth;
 const genManager = getSForgeConfigs().ai.modelScope.text2image;
@@ -393,7 +401,11 @@ const handleTestGeneration = async () => {
     }
 };
 
-onMounted(() => {
+onMounted(async () => {
+    // 确保翻译已加载
+    await loadForgeI18n();
+    i18n.value = forgeI18n;
+    i18nReady.value = true;
     loadProfiles();
 });
 </script>

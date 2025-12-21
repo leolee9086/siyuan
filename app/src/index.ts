@@ -202,8 +202,11 @@ export class App {
             window.siyuan.isPublish = response.data.isPublish;
             await loadPlugins(this);
             getLocalStorage(() => {
-                fetchGet(`/appearance/langs/${window.siyuan.config?.appearance.lang}.json?v=${Constants.SIYUAN_VERSION}`, (lauguages: IObject) => {
+                fetchGet(`/appearance/langs/${window.siyuan.config?.appearance.lang}.json?v=${Constants.SIYUAN_VERSION}`, async (lauguages: IObject) => {
                     window.siyuan.languages = lauguages;
+                    // 加载 Forge 翻译
+                    const { loadForgeI18n } = await import("./util/siyuanEnvironments/forgeI18n.getI18n.environment");
+                    await loadForgeI18n();
                     window.siyuan.menus = new Menus(this);
                     bootSync();
                     fetchPost("/api/setting/getCloudUser", {}, userResponse => {
