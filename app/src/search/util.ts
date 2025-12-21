@@ -499,7 +499,7 @@ export const genSearch = (app: App, config: Config.IUILayoutTabSearchConfig, ele
                         window.siyuan.storage["local-customlists"][uuid] = {
                             id: uuid,
                             title: title,
-                            icon: "iconSearch",
+                            icon: "iconList",
                             type: "static",
                             target: ids
                         };
@@ -511,7 +511,7 @@ export const genSearch = (app: App, config: Config.IUILayoutTabSearchConfig, ele
                             dock.addCustomItem({
                                 type: type,
                                 title: title,
-                                icon: "iconSearch",
+                                icon: "iconList",
                                 show: true,
                                 size: { width: 300, height: 0 },
                                 hotkey: "",

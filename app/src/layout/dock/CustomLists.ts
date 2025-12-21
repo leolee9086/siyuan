@@ -50,9 +50,19 @@ export class CustomLists extends Model {
         this.listData = data;
 
         this.element.classList.add("fn__flex-column", "file-tree", "sy__custom-list");
+        const icon = this.listData.type === "dynamic" ? "iconSearch" : "iconList";
+        if (tab.icon !== icon) {
+            tab.icon = icon;
+            tab.headElement?.querySelector("use")?.setAttribute("xlink:href", "#" + icon);
+        }
+        const key = `custom_list:${this.listData.type}:${this.listData.id}`;
+        const dock = getDockByType(key);
+        if (dock) {
+            dock.element.querySelector(`[data-type="${key}"]`)?.querySelector("use")?.setAttribute("xlink:href", "#" + icon);
+        }
         this.element.innerHTML = `<div class="block__icons">
     <div class="block__logo">
-        <svg class="block__logoicon"><use xlink:href="#iconList"></use></svg>${this.listData.title}
+        <svg class="block__logoicon"><use xlink:href="#${icon}"></use></svg>${this.listData.title}
     </div>
     <span class="fn__flex-1 fn__space"></span>
     <span data-type="refresh" class="block__icon ariaLabel" aria-label="${siyuanI18n.refresh}">
