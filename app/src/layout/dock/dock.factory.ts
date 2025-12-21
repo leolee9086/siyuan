@@ -26,7 +26,8 @@ const initTag: ModelInitializer = (app, tab) => {
 
 const initOutline: ModelInitializer = (app, tab, editor) => {
     const blockId = editor?.protyle?.block?.rootID || "";
-    const isPreview = editor?.protyle?.preview ? !editor.protyle.preview.element.classList.contains("fn__none") : false;
+    const preview = editor?.protyle?.preview;
+    const isPreview = preview ? !preview.element.classList.contains("fn__none") : false;
     const outline = new Outline({
         app,
         type: "pin",
@@ -83,12 +84,12 @@ const MODEL_INITIALIZERS: Record<string, ModelInitializer> = {
 
 const initPlugin = (app: App, tab: Tab, type: string) => {
     let customModel;
-    app.plugins.find((item: Plugin) => {
+    for (const item of app.plugins) {
         if (item.docks[type]) {
             customModel = item.docks[type].model({ tab });
-            return true;
+            break;
         }
-    });
+    }
     if (customModel) {
         tab.addModel(customModel);
     }

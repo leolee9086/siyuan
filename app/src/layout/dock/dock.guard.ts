@@ -72,3 +72,10 @@ export function isBlockTreeArray(data: unknown): data is IBlockTree[] {
     const item = first as Record<string, unknown>;
     return typeof item.id === "string" || typeof item.name === "string" || typeof item.label === "string";
 }
+
+/**
+ * 判断是否为 HTMLElement
+ */
+export function isHTMLElement(element: unknown): element is HTMLElement {
+    return element instanceof HTMLElement;
+}

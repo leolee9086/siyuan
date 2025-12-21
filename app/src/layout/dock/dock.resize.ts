@@ -26,7 +26,7 @@ const onMouseMove = (event: MouseEvent, context: {
     for (const item of fileTrees) {
         if (item.classList.contains("sy__backlink") || item.classList.contains("sy__graph")
             || item.classList.contains("sy__globalGraph") || item.classList.contains("sy__inbox")) {
-            if (!item.classList.contains("fn__none") && !hasClosestByClassName(item as HTMLElement, "fn__none")) {
+            if (!item.classList.contains("fn__none") && (item instanceof HTMLElement) && !hasClosestByClassName(item, "fn__none")) {
                 minSize = 320;
                 break;
             }

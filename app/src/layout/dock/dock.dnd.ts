@@ -27,7 +27,7 @@ class DockDragHandler {
     }
 
     private onMouseMove = (moveEvent: MouseEvent) => {
-        if ((window as any).siyuan.config.readonly ||
+        if (window.siyuan.config.readonly ||
             Math.abs(moveEvent.clientY - this.startEvent.clientY) < 3 && Math.abs(moveEvent.clientX - this.startEvent.clientX) < 3) {
             return;
         }
@@ -75,9 +75,12 @@ class DockDragHandler {
     }
 
     private updateMoveItem(moveEvent: MouseEvent) {
-        const targetItem = hasClosestByClassName(moveEvent.target as HTMLElement, "dock__item") ||
-            hasClosestByClassName(moveEvent.target as HTMLElement, "dock__items") as HTMLElement ||
-            hasClosestByClassName(moveEvent.target as HTMLElement, "dock__item--space") as HTMLElement;
+        let targetItem: HTMLElement | false = false;
+        if (moveEvent.target instanceof HTMLElement) {
+            targetItem = hasClosestByClassName(moveEvent.target, "dock__item") ||
+                hasClosestByClassName(moveEvent.target, "dock__items") ||
+                hasClosestByClassName(moveEvent.target, "dock__item--space");
+        }
 
         if (targetItem && this.selectItem && targetItem === this.selectItem) {
             this.handleTargetMatch(moveEvent, targetItem);
@@ -195,11 +198,11 @@ class DockDragHandler {
         if (!this.moveItem.classList.contains("fn__none") && this.moveItem.parentElement && this.moveItem.parentElement.parentElement) {
             let dockTarget: Dock | undefined;
             if (this.moveItem.parentElement.parentElement.id === "dockBottom") {
-                dockTarget = (window as any).siyuan.layout.bottomDock as unknown as Dock;
+                dockTarget = window.siyuan.layout.bottomDock as unknown as Dock;
             } else if (this.moveItem.parentElement.parentElement.id === "dockLeft") {
-                dockTarget = (window as any).siyuan.layout.leftDock as unknown as Dock;
+                dockTarget = window.siyuan.layout.leftDock as unknown as Dock;
             } else if (this.moveItem.parentElement.parentElement.id === "dockRight") {
-                dockTarget = (window as any).siyuan.layout.rightDock as unknown as Dock;
+                dockTarget = window.siyuan.layout.rightDock as unknown as Dock;
             }
             if (dockTarget) {
                 dockTarget.add(this.moveItem.parentElement === dockTarget.element.firstElementChild ? 0 : 1, this.item, this.moveItem.previousElementSibling?.getAttribute("data-type") || undefined);
@@ -212,10 +215,13 @@ class DockDragHandler {
 export const initDockDnD = (dock: Dock) => {
     // @内联回调
     dock.element.addEventListener("mousedown", (event: MouseEvent) => {
-        const item = hasClosestByClassName(event.target as HTMLElement, "dock__item");
+        if (!(event.target instanceof HTMLElement)) {
+            return;
+        }
+        const item = hasClosestByClassName(event.target, "dock__item");
         if (!item || !item.getAttribute("data-type")) {
             return;
         }
-        new DockDragHandler(dock, item as HTMLElement, event).start();
+        new DockDragHandler(dock, item, event).start();
     });
 };

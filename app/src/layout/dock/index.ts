@@ -1,27 +1,22 @@
 import { updateHotkeyTip } from "../../protyle/util/compatibility";
 import { Layout } from "../index";
 import { Wnd } from "../Wnd";
-import { Tab } from "../Tab";
-import { Files } from "./Files";
-import { Outline } from "./Outline";
 import { getAllModels, getAllTabs } from "../getAll";
-import { Bookmark } from "./Bookmark";
-import { Tag } from "./Tag";
-import { Graph } from "./Graph";
 import { Model } from "../Model";
 import { adjustLayout, saveLayout } from "../util";
 import { setPanelFocus } from "../utils/setPanelFocus";
 import { getDockByType, resizeTabs } from "../tabUtil";
-import { Inbox } from "./Inbox";
 import { Protyle } from "../../protyle";
-import { Backlink } from "./Backlink";
 import { resetFloatDockSize } from "./util";
 import { hasClosestByClassName } from "../../protyle/util/hasClosest";
 import { App } from "../../index";
-import { Plugin } from "../../plugin";
 import { Custom } from "./Custom";
+import { Graph } from "./Graph";
 import { clearBeforeResizeTop, recordBeforeResizeTop } from "../../protyle/util/resize";
 import { Constants } from "../../constants";
+import { createDockTab } from "./dock.factory";
+import { initDockResize } from "./dock.resize";
+import { initDockDnD } from "./dock.dnd";
 
 const TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGraph", "backlink"];
 /**
@@ -30,9 +25,6 @@ const TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGr
  * 拆分实现不应该使类
  * 应该在拆分过程中执行类型检查,保证拆分出的文件本身没有lint错误
  */
-import { createDockTab } from "./dock.factory";
-import { initDockResize } from "./dock.resize";
-import { initDockDnD } from "./dock.dnd";
 export class Dock {
     public element: HTMLElement;
     public layout: Layout;
@@ -51,127 +43,21 @@ export class Dock {
         },
         position: TDockPosition
     }) {
-        switch (options.position) {
-            case "Left":
-                this.layout = window.siyuan.layout.layout.children[0].children[0] as Layout;
-                this.resizeElement = this.layout.element.nextElementSibling as HTMLElement;
-                this.layout.element.classList.add("layout__dockl");
-                this.layout.element.insertAdjacentHTML("beforeend", '<div class="layout__dockresize layout__dockresize--lr"></div>');
-                break;
-            case "Right":
-                this.layout = window.siyuan.layout.layout.children[0].children[2] as Layout;
-                this.resizeElement = this.layout.element.previousElementSibling as HTMLElement;
-                this.layout.element.classList.add("layout__dockr");
-                this.layout.element.insertAdjacentHTML("beforeend", '<div class="layout__dockresize layout__dockresize--lr"></div>');
-                break;
-            case "Bottom":
-                this.layout = window.siyuan.layout.layout.children[1] as Layout;
-                this.resizeElement = this.layout.element.previousElementSibling as HTMLElement;
-                this.layout.element.classList.add("layout__dockb");
-                this.layout.element.insertAdjacentHTML("beforeend", '<div class="layout__dockresize"></div>');
-                break;
-        }
         this.app = options.app;
-        this.element = document.getElementById("dock" + options.position);
-        const dockClass = options.position === "Bottom" ? ' class="fn__flex dock__items"' : ' class="dock__items"';
-        this.element.innerHTML = `<div${dockClass}></div><div class="fn__flex-1 dock__item--space"></div><div${dockClass}></div>`;
         this.position = options.position;
         this.pin = options.data.pin;
         this.data = {};
-        let showDock = false;
-        if (options.data.data.length !== 0) {
-            if (!showDock) {
-                options.data.data[0]?.find(item => {
-                    if (TYPES.includes(item.type)) {
-                        showDock = true;
-                        return true;
-                    }
-                });
-            }
-            if (!showDock && options.data.data[1]) {
-                options.data.data[1]?.find(item => {
-                    if (TYPES.includes(item.type)) {
-                        showDock = true;
-                        return true;
-                    }
-                });
-            }
-        }
-        if (!showDock) {
-            this.element.firstElementChild.innerHTML = `<span class="dock__item dock__item--pin ariaLabel" aria-label="${this.pin ? window.siyuan.languages.unpin : window.siyuan.languages.pin}">
-    <svg><use xlink:href="#icon${this.pin ? "Unpin" : "Pin"}"></use></svg>
-</span>`;
-            this.element.classList.add("fn__none");
-        } else {
-            this.genButton(options.data.data[0], 0);
-            if (options.data.data[1]) {
-                this.genButton(options.data.data[1], 1);
-            }
-            this.element.classList.remove("fn__none");
-        }
-        const activeElements = this.element.querySelectorAll(".dock__item--active");
+        this.initLayout(options.position);
 
-        // 初始化文件树
-        this.element.querySelectorAll(".dock__item").forEach(item => {
-            if (item.getAttribute("data-type") === "file" && !item.classList.contains("dock__item--active")) {
-                this.toggleModel("file", true, false, false, false);
-                this.toggleModel("file", false, false, false, false);
-            }
-        });
+        this.element = document.getElementById("dock" + options.position);
+        const dockClass = options.position === "Bottom" ? ' class="fn__flex dock__items"' : ' class="dock__items"';
+        this.element.innerHTML = `<div${dockClass}></div><div class="fn__flex-1 dock__item--space"></div><div${dockClass}></div>`;
 
-        if (activeElements.length === 0) {
-            this.resizeElement.classList.add("fn__none");
-            // 如果没有打开的侧栏，隐藏 layout 的子元素
-            if (this.layout.children.length > 1) {
-                this.layout.children.forEach(child => {
-                    child.element.classList.add("fn__none");
-                });
-                this.layout.children[0].element.nextElementSibling?.classList.add("fn__none");
-            }
-        } else {
-            activeElements.forEach(item => {
-                this.toggleModel(item.getAttribute("data-type") as TDock, true, false, false, false);
-            });
-        }
-        this.element.addEventListener("click", (event) => {
-            let target = event.target as HTMLElement;
-            while (target && !target.isEqualNode(this.element)) {
-                const type = target.getAttribute("data-type") as TDock;
-                if (type) {
-                    this.toggleModel(type, false, true);
-                    event.preventDefault();
-                    break;
-                } else if (target.classList.contains("dock__item")) {
-                    this.togglePin();
-                    target.setAttribute("aria-label", this.pin ? window.siyuan.languages.unpin : window.siyuan.languages.pin);
-                    target.querySelector("use").setAttribute("xlink:href", this.pin ? "#iconUnpin" : "#iconPin");
-                    event.preventDefault();
-                    break;
-                }
-                target = target.parentElement;
-            }
-        });
-
-        initDockDnD(this);
-
-        this.layout.element.addEventListener("mouseleave", (event: MouseEvent & { toElement: HTMLElement }) => {
-            if (event.buttons !== 0 || this.pin || event.toElement?.classList.contains("b3-menu") ||
-                event.toElement?.classList.contains("tooltip")) {
-                return;
-            }
-            if (this.position === "Left" && event.clientX < 43) {
-                return;
-            }
-            if (this.position === "Right" && event.clientX > window.innerWidth - 43) {
-                return;
-            }
-            if (this.position === "Bottom" && event.clientY > window.innerHeight - 73) {
-                return;
-            }
-            this.hideDock();
-        });
+        this.initDockData(options.data.data);
+        this.initEvents();
 
         initDockResize(this);
+        initDockDnD(this);
 
         if (window.siyuan.config.uiLayout.hideDock) {
             this.element.classList.add("fn__none");
@@ -183,6 +69,178 @@ export class Dock {
                 this.layout.element.classList.add("layout--float");
                 this.resizeElement.classList.add("fn__none");
             });   // 需等待所有 Dock 初始化完成后才有稳定布局，才可进行定位
+        }
+    }
+
+    private initLayout(position: TDockPosition) {
+        const layoutInstance = window.siyuan?.layout?.layout;
+        const layoutChildren = layoutInstance?.children;
+        if (!layoutChildren) return;
+        let layout: Layout | undefined;
+        let resizeElement: Element | null = null;
+        let cls = "";
+        let html = "";
+
+        if (position === "Left") {
+            const firstChild = layoutChildren[0];
+            if (firstChild && firstChild.children) {
+                layout = firstChild.children[0] as Layout;
+            }
+            if (layout instanceof Layout) {
+                resizeElement = layout.element.nextElementSibling;
+                cls = "layout__dockl";
+                html = '<div class="layout__dockresize layout__dockresize--lr"></div>';
+            }
+        } else if (position === "Right") {
+            const firstChild = layoutChildren[0];
+            if (firstChild && firstChild.children) {
+                layout = firstChild.children[2] as Layout;
+            }
+            if (layout instanceof Layout) {
+                resizeElement = layout.element.previousElementSibling;
+                cls = "layout__dockr";
+                html = '<div class="layout__dockresize layout__dockresize--lr"></div>';
+            }
+        } else if (position === "Bottom") {
+            layout = layoutChildren[1] as Layout;
+            if (layout instanceof Layout) {
+                resizeElement = layout.element.previousElementSibling;
+                cls = "layout__dockb";
+                html = '<div class="layout__dockresize"></div>';
+            }
+        }
+
+        if (layout && resizeElement instanceof HTMLElement) {
+            this.layout = layout;
+            this.resizeElement = resizeElement;
+            this.layout.element.classList.add(cls);
+            this.layout.element.insertAdjacentHTML("beforeend", html);
+        }
+    }
+
+    private initDockData(data: Config.IUILayoutDockTab[][]) {
+        let showDock = false;
+        const hasType = (item: Config.IUILayoutDockTab) => TYPES.includes(item.type);
+        if (data[0]?.find(hasType)) {
+            showDock = true;
+        } else if (data[1]?.find(hasType)) {
+            showDock = true;
+        }
+
+        if (showDock) {
+            if (data[0]) this.genButton(data[0], 0);
+            if (data[1]) this.genButton(data[1], 1);
+            this.element.classList.remove("fn__none");
+        } else {
+            this.renderPin();
+            this.element.classList.add("fn__none");
+        }
+
+        this.initDockFiles();
+        this.initDockActive();
+    }
+
+    private renderPin() {
+        if (!window.siyuan.languages) return;
+        const unpin = window.siyuan.languages.unpin;
+        const pin = window.siyuan.languages.pin;
+        this.element.firstElementChild.innerHTML = `<span class="dock__item dock__item--pin ariaLabel" aria-label="${this.pin ? unpin : pin}">
+    <svg><use xlink:href="#icon${this.pin ? "Unpin" : "Pin"}"></use></svg>
+</span>`;
+    }
+
+    private initDockFiles() {
+        const dockItems = this.element.querySelectorAll(".dock__item");
+        for (const item of Array.from(dockItems)) {
+            if (item.getAttribute("data-type") === "file" && !item.classList.contains("dock__item--active")) {
+                this.toggleModel("file", true, false, false, false);
+                this.toggleModel("file", false, false, false, false);
+            }
+        }
+    }
+
+    private initDockActive() {
+        const activeElements = Array.from(this.element.querySelectorAll(".dock__item--active"));
+        if (activeElements.length === 0) {
+            this.resizeElement.classList.add("fn__none");
+            // 如果没有打开的侧栏，隐藏 layout 的子元素
+            const children = this.layout.children;
+            if (children && children.length > 1) {
+                for (const child of children) {
+                    child.element.classList.add("fn__none");
+                }
+                const firstChild = children[0];
+                if (firstChild && firstChild.element.nextElementSibling) {
+                    firstChild.element.nextElementSibling.classList.add("fn__none");
+                }
+            }
+        } else {
+            for (const item of activeElements) {
+                const type = item.getAttribute("data-type");
+                if (type) {
+                    this.toggleModel(type as TDock, true, false, false, false);
+                }
+            }
+        }
+    }
+
+    private initEvents() {
+        this.element.addEventListener("click", this.onClick.bind(this));
+
+        this.layout.element.addEventListener("mouseleave", this.onMouseLeave.bind(this));
+        // 需等待所有 Dock 初始化完成后才有稳定布局，才可进行定位
+        setTimeout(this.onRunLayout.bind(this));
+    }
+
+    private onRunLayout() {
+        this.resetDockPosition(false);
+        this.hideDock(true);
+        this.layout.element.classList.add("layout--float");
+        this.resizeElement.classList.add("fn__none");
+    }
+
+    private onMouseLeave(event: MouseEvent) {
+        const toElement = event.relatedTarget as HTMLElement;
+        if (event.buttons !== 0 || this.pin || (toElement && (toElement.classList.contains("b3-menu") ||
+            toElement.classList.contains("tooltip")))) {
+            return;
+        }
+        if (this.position === "Left" && event.clientX < 43) {
+            return;
+        }
+        if (this.position === "Right" && event.clientX > window.innerWidth - 43) {
+            return;
+        }
+        if (this.position === "Bottom" && event.clientY > window.innerHeight - 73) {
+            return;
+        }
+        this.hideDock();
+    }
+
+    private onClick(event: MouseEvent) {
+        let target = event.target as HTMLElement;
+        while (target && !target.isEqualNode(this.element)) {
+            const type = target.getAttribute("data-type");
+            if (type) {
+                this.toggleModel(type as TDock, false, true);
+                event.preventDefault();
+                break;
+            }
+            if (target.classList.contains("dock__item")) {
+                this.togglePin();
+                const unpin = window.siyuan.languages?.unpin;
+                const pin = window.siyuan.languages?.pin;
+                if (unpin && pin) {
+                    target.setAttribute("aria-label", this.pin ? unpin : pin);
+                }
+                const use = target.querySelector("use");
+                if (use) {
+                    use.setAttribute("xlink:href", this.pin ? "#iconUnpin" : "#iconPin");
+                }
+                event.preventDefault();
+                break;
+            }
+            target = target.parentElement as HTMLElement;
         }
     }
 
@@ -308,20 +366,23 @@ export class Dock {
         if (show && target.classList.contains("dock__item--active")) {
             target.classList.remove("dock__item--active", "dock__item--activefocus");
         }
-        const index = parseInt(target.getAttribute("data-index"));
+        const index = parseInt(target.getAttribute("data-index") || "0", 10);
         const wnd = this.layout.children[index] as Wnd;
         if (target.classList.contains("dock__item--active") || hide) {
             if (!close) {
                 let needFocus = false;
-                Array.from(wnd.element.querySelector(".layout-tab-container").children).find(item => {
-                    if (item.getAttribute("data-id") === target.getAttribute("data-id")) {
-                        if (!item.classList.contains("layout__tab--active")) {
-                            setPanelFocus(item);
-                            needFocus = true;
+                const tabContainer = wnd.element.querySelector(".layout-tab-container");
+                if (tabContainer) {
+                    Array.from(tabContainer.children).find(item => {
+                        if (item.getAttribute("data-id") === target.getAttribute("data-id")) {
+                            if (!item.classList.contains("layout__tab--active")) {
+                                setPanelFocus(item);
+                                needFocus = true;
+                            }
+                            return true;
                         }
-                        return true;
-                    }
-                });
+                    });
+                }
                 if (needFocus) {
                     if (document.activeElement) {
                         (document.activeElement as HTMLElement).blur();
@@ -348,8 +409,10 @@ export class Dock {
                 if (this.layout.element.querySelector(".fullscreen")) {
                     document.getElementById("drag")?.classList.remove("fn__hidden");
                 }
-                const graph = this.data[type] as Graph;
-                graph.destroy();
+                const graph = this.data[type];
+                if (graph instanceof Graph) {
+                    graph.destroy();
+                }
             }
             // 关闭 dock 后设置光标，初始化的时候不能设置，否则关闭文档树且多页签时会请求两次 getDoc
             if (isSaveLayout && !document.querySelector(".layout__center .layout__wnd--active")) {
@@ -474,34 +537,49 @@ export class Dock {
         resizeTabs(isSaveLayout);
         this.showDock();
         if (target.classList.contains("dock__item--active") && !hide && (type === "graph" || type === "globalGraph")) {
-            const graph = this.data[type] as Graph;
-            graph.onGraph(false);
+            const graph = this.data[type];
+            if (graph instanceof Graph) {
+                graph.onGraph(false);
+            }
         }
     }
 
     public add(index: number, sourceElement: Element, previousType?: string) {
         sourceElement.setAttribute("data-height", "");
         sourceElement.setAttribute("data-width", "");
-        const type = sourceElement.getAttribute("data-type") as TDock;
+
+        const typeAttr = sourceElement.getAttribute("data-type");
+        if (!typeAttr || !TYPES.includes(typeAttr)) return;
+        const type = typeAttr as TDock;
+
         const sourceDock = getDockByType(type);
-        if (sourceDock.element.querySelectorAll(".dock__item").length === 2) {
-            sourceDock.element.classList.add("fn__none");
+        // ...
+
+        const sourceIndex = parseInt(sourceElement.getAttribute("data-index") || "0", 10);
+        if (sourceDock && sourceDock.layout && sourceDock.layout.children) {
+            const sourceWnd = sourceDock.layout.children[sourceIndex];
+            if (sourceWnd instanceof Wnd) {
+                const sourceId = sourceElement.getAttribute("data-id");
+                if (sourceId) {
+                    sourceWnd.removeTab(sourceId, false, true, false);
+                    sourceElement.removeAttribute("data-id");
+                }
+            }
         }
-        const sourceWnd = sourceDock.layout.children[parseInt(sourceElement.getAttribute("data-index"))] as Wnd;
-        const sourceId = sourceElement.getAttribute("data-id");
-        if (sourceId) {
-            sourceWnd.removeTab(sourceElement.getAttribute("data-id"), false, true, false);
-            sourceElement.removeAttribute("data-id");
-        }
+
         const hasActive = sourceElement.classList.contains("dock__item--active");
-        if (hasActive) {
+        if (hasActive && sourceDock) {
             sourceDock.toggleModel(type, false, false, false, false);
         }
-        delete sourceDock.data[type];
+        if (sourceDock) {
+            delete sourceDock.data[type];
+        }
+
         // 目标处理
         sourceElement.setAttribute("data-index", index.toString());
         if (previousType) {
-            this.element.querySelector(`[data-type="${previousType}"]`).after(sourceElement);
+            const prev = this.element.querySelector(`[data-type="${previousType}"]`);
+            if (prev) prev.after(sourceElement);
         } else {
             if (index === 0) {
                 this.element.firstElementChild.insertAdjacentElement("afterbegin", sourceElement);
@@ -522,10 +600,13 @@ export class Dock {
     }
 
     public remove(key: TDock | string) {
-        this.toggleModel(key, false, true, true);
-        this.element.querySelector(`[data-type="${key}"]`).remove();
-        const custom = this.data[key] as Custom;
-        if (custom.parent) {
+        const type = key as TDock; // validation typically happens before call or within toggleModel
+        this.toggleModel(type, false, true, true);
+        const item = this.element.querySelector(`[data-type="${key}"]`);
+        if (item) item.remove();
+
+        const custom = this.data[key];
+        if (custom instanceof Custom && custom.parent) {
             custom.parent.parent.removeTab(custom.parent.id);
         }
         delete this.data[key];
@@ -533,66 +614,94 @@ export class Dock {
 
     public setSize() {
         const activesElement = this.element.querySelectorAll(".dock__item--active");
-        activesElement.forEach((item) => {
+        for (const item of Array.from(activesElement)) {
+            const index = item.getAttribute("data-index");
+            const type = item.getAttribute("data-type") as TDock; // Assuming known type
+
             if (this.position === "Left" || this.position === "Right") {
-                if (item.getAttribute("data-index") === "1" && activesElement.length > 1) {
-                    const dockElement = (this.data[item.getAttribute("data-type") as TDock] as Model).parent.parent.element;
-                    item.setAttribute("data-height", dockElement.style.height ? dockElement.clientHeight.toString() : "");
+                if (index === "1" && activesElement.length > 1) {
+                    const model = this.data[type];
+                    if (model instanceof Model) {
+                        const dockElement = model.parent.parent.element;
+                        item.setAttribute("data-height", dockElement.style.height ? dockElement.clientHeight.toString() : "");
+                    }
                 }
                 item.setAttribute("data-width", this.layout.element.clientWidth.toString());
             } else {
-                if (item.getAttribute("data-index") === "1" && activesElement.length > 1) {
-                    const dockElement = (this.data[item.getAttribute("data-type") as TDock] as Model).parent.parent.element;
-                    item.setAttribute("data-width", dockElement.style.width ? dockElement.clientWidth.toString() : "");
+                if (index === "1" && activesElement.length > 1) {
+                    const model = this.data[type];
+                    if (model instanceof Model) {
+                        const dockElement = model.parent.parent.element;
+                        item.setAttribute("data-width", dockElement.style.width ? dockElement.clientWidth.toString() : "");
+                    }
                 }
                 item.setAttribute("data-height", this.layout.element.clientHeight.toString());
             }
-        });
+        }
     }
 
     private getMaxSize() {
         let max = 0;
-        this.element.querySelectorAll(".dock__item--active").forEach((item) => {
-            let size;
-            if (this.position === "Left" || this.position === "Right") {
-                size = parseInt(item.getAttribute("data-width") || "0") || (["graph", "globalGraph", "backlink"].includes(item.getAttribute("data-type")) ? 320 : 232);
-            } else {
-                size = parseInt(item.getAttribute("data-height") || "0") || 232;
+        const activeItems = this.element.querySelectorAll(".dock__item--active");
+        for (const item of Array.from(activeItems)) {
+            let size = 0;
+            const sizeAttr = (this.position === "Left" || this.position === "Right") ? "data-width" : "data-height";
+            const attrVal = item.getAttribute(sizeAttr);
+            if (attrVal) {
+                size = parseInt(attrVal, 10);
+            }
+
+            if (!size) {
+                const type = item.getAttribute("data-type");
+                if (this.position === "Left" || this.position === "Right") {
+                    size = (type && ["graph", "globalGraph", "backlink"].includes(type)) ? 320 : 232;
+                } else {
+                    size = 232;
+                }
             }
             if (size > max) {
                 max = size;
             }
-        });
+        }
         return max;
     }
 
     public genButton(data: Config.IUILayoutDockTab[], index: number, tabIndex?: number) {
         let html = "";
-        data.forEach(item => {
+        const languages = window.siyuan.languages;
+        const dockTip = languages?.dockTip || "";
+        const pinText = this.pin ? languages?.unpin : languages?.pin;
+
+        for (const item of data) {
             if (typeof tabIndex === "undefined" && !TYPES.includes(item.type)) {
-                return;
+                continue;
             }
-            html += `<span data-height="${item.size.height}" data-width="${item.size.width}" data-type="${item.type}" data-index="${index}" data-hotkey="${item.hotkey || ""}" data-hotkeyLangId="${item.hotkeyLangId || ""}" data-title="${item.title}" class="dock__item${item.show ? " dock__item--active" : ""} ariaLabel" aria-label="<span style='white-space:pre'>${item.title} ${item.hotkey ? updateHotkeyTip(item.hotkey) : ""}${window.siyuan.languages.dockTip}</span>">
+            const hotkey = item.hotkey ? updateHotkeyTip(item.hotkey) : "";
+            const activeClass = item.show ? " dock__item--active" : "";
+            html += `<span data-height="${item.size.height}" data-width="${item.size.width}" data-type="${item.type}" data-index="${index}" data-hotkey="${item.hotkey || ""}" data-hotkeyLangId="${item.hotkeyLangId || ""}" data-title="${item.title}" class="dock__item${activeClass} ariaLabel" aria-label="<span style='white-space:pre'>${item.title} ${hotkey}${dockTip}</span>">
     <svg><use xlink:href="#${item.icon}"></use></svg>
 </span>`;
             this.data[item.type] = true;
-        });
+        }
+
         if (index === 0) {
             if (typeof tabIndex === "number") {
-                if (this.element.firstElementChild.children[tabIndex]) {
-                    this.element.firstElementChild.children[tabIndex].insertAdjacentHTML("beforebegin", html);
+                const target = this.element.firstElementChild.children[tabIndex];
+                if (target) {
+                    target.insertAdjacentHTML("beforebegin", html);
                 } else {
-                    this.element.firstElementChild.lastElementChild.insertAdjacentHTML("beforebegin", html);
+                    this.element.firstElementChild.lastElementChild?.insertAdjacentHTML("beforebegin", html);
                 }
             } else {
-                this.element.firstElementChild.innerHTML = `${html}<span class="dock__item dock__item--pin ariaLabel" aria-label="${this.pin ? window.siyuan.languages.unpin : window.siyuan.languages.pin}">
+                this.element.firstElementChild.innerHTML = `${html}<span class="dock__item dock__item--pin ariaLabel" aria-label="${pinText}">
     <svg><use xlink:href="#icon${this.pin ? "Unpin" : "Pin"}"></use></svg>
 </span>`;
             }
         } else {
             if (typeof tabIndex === "number") {
-                if (this.element.lastElementChild.children[tabIndex]) {
-                    this.element.lastElementChild.children[tabIndex].insertAdjacentHTML("beforebegin", html);
+                const target = this.element.lastElementChild.children[tabIndex];
+                if (target) {
+                    target.insertAdjacentHTML("beforebegin", html);
                 } else {
                     this.element.lastElementChild.insertAdjacentHTML("beforeend", html);
                 }
@@ -602,11 +711,12 @@ export class Dock {
         }
 
         if (typeof tabIndex === "number") {
+            const config = window.siyuan.config;
             // https://github.com/siyuan-note/siyuan/issues/8614
-            if (!window.siyuan.config.uiLayout.hideDock) {
+            if (config && !config.uiLayout.hideDock) {
                 this.element.classList.remove("fn__none");
             }
-            if (data[0].show) {
+            if (data[0] && data[0].show) {
                 this.toggleModel(data[0].type, true, false, false, false);
             }
         }
