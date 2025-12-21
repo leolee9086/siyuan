@@ -1,18 +1,19 @@
 import { updateHotkeyTip } from "../../protyle/util/compatibility";
 import { Layout } from "../index";
 import { Wnd } from "../Wnd";
-import { getAllModels, getAllTabs } from "../getAll";
+import { getAllModels } from "../getAll";
 import { Model } from "../Model";
 import { adjustLayout, saveLayout } from "../util";
 import { setPanelFocus } from "../utils/setPanelFocus";
 import { getDockByType, resizeTabs } from "../tabUtil";
 import { Protyle } from "../../protyle";
 import { resetFloatDockSize } from "./util";
-import { hasClosestByClassName } from "../../protyle/util/hasClosest";
+// hasClosestByClassName 已移至 dock.dnd.ts
 import { App } from "../../index";
 import { Custom } from "./Custom";
-import { Graph } from "./Graph";
-import { clearBeforeResizeTop, recordBeforeResizeTop } from "../../protyle/util/resize";
+// Graph 已移至 dock.toggle.ts 和 dock.factory.ts
+import { recordBeforeResizeTop } from "../../protyle/util/resize";
+// clearBeforeResizeTop 已移至 dock.toggle.ts
 import { Constants } from "../../constants";
 import { createDockTab } from "./dock.factory";
 import { initDockResize } from "./dock.resize";
@@ -25,7 +26,11 @@ import {
     handleTabSwitch,
     updateDockPanelRelation,
     updatePanelVisibility,
-    handleGraphShow
+    handleGraphShow,
+    handleDockHideSize,
+    setDockLayoutSize,
+    handleGraphFullscreenDrag,
+    blurActiveElement
 } from "./dock.toggle";
 import {
     generateAllButtonsHTML,
@@ -334,63 +339,20 @@ export class Dock {
         const index = parseInt(target.getAttribute("data-index") || "0", 10);
         const wnd = this.layout.children[index] as Wnd;
         if (target.classList.contains("dock__item--active") || hide) {
-            if (!close) {
-                let needFocus = false;
-                const tabContainer = wnd.element.querySelector(".layout-tab-container");
-                if (tabContainer) {
-                    Array.from(tabContainer.children).find(item => {
-                        if (item.getAttribute("data-id") === target.getAttribute("data-id")) {
-                            if (!item.classList.contains("layout__tab--active")) {
-                                setPanelFocus(item);
-                                needFocus = true;
-                            }
-                            return true;
-                        }
-                    });
-                }
-                if (needFocus) {
-                    if (document.activeElement) {
-                        (document.activeElement as HTMLElement).blur();
-                    }
-                    clearBeforeResizeTop();
-                    this.showDock();
-                    return;
-                }
+            if (!close && handlePanelFocusSwitch(wnd, target, this)) {
+                return;
             }
 
             target.classList.remove("dock__item--active", "dock__item--activefocus");
             // dock 隐藏
-            if (this.element.querySelectorAll(".dock__item--active").length === 0) {
-                if (this.position === "Left" || this.position === "Right") {
-                    this.layout.element.style.width = "0px";
-                } else {
-                    this.layout.element.style.height = "0px";
-                }
-                this.resizeElement.classList.add("fn__none");
+            const hasNoActiveItems = this.element.querySelectorAll(".dock__item--active").length === 0;
+            if (handleDockHideSize(this, hasNoActiveItems)) {
                 clearTimeout(this.hideResizeTimeout);
                 this.hideDock();
             }
-            if ((type === "graph" || type === "globalGraph")) {
-                if (this.layout.element.querySelector(".fullscreen")) {
-                    document.getElementById("drag")?.classList.remove("fn__hidden");
-                }
-                const graph = this.data[type];
-                if (graph instanceof Graph) {
-                    graph.destroy();
-                }
-            }
-            // 关闭 dock 后设置光标，初始化的时候不能设置，否则关闭文档树且多页签时会请求两次 getDoc
-            if (isSaveLayout && !document.querySelector(".layout__center .layout__wnd--active")) {
-                const currentElement = document.querySelector(".layout__center ul.layout-tab-bar .item--focus");
-                if (currentElement) {
-                    getAllTabs().find(item => {
-                        if (item.id === currentElement.getAttribute("data-id")) {
-                            item.parent.switchTab(item.headElement, false, true, false);
-                            return true;
-                        }
-                    });
-                }
-            }
+            handleGraphDestroy(type, this);
+            // 关闭 dock 后设置光标
+            handlePostCloseFocus(isSaveLayout);
         } else {
             this.element.querySelectorAll(`.dock__item--active[data-index="${index}"]`).forEach(item => {
                 item.classList.remove("dock__item--active", "dock__item--activefocus");
@@ -416,34 +378,19 @@ export class Dock {
                 setPanelFocus(tab.panelElement);
             } else {
                 // tab 切换
-                Array.from(wnd.element.querySelector(".layout-tab-container").children).forEach(item => {
-                    if (item.getAttribute("data-id") === target.getAttribute("data-id")) {
-                        item.classList.remove("fn__none");
-                        setPanelFocus(item);
-                    } else {
-                        item.classList.add("fn__none");
-                    }
-                });
+                handleTabSwitch(wnd, target.getAttribute("data-id"));
             }
             // dock 显示
-            if (this.position === "Left" || this.position === "Right") {
-                this.layout.element.style.width = this.getMaxSize() + "px";
-            } else {
-                this.layout.element.style.height = this.getMaxSize() + "px";
-            }
-            if ((type === "graph" || type === "globalGraph") && this.layout.element.querySelector(".fullscreen")) {
-                document.getElementById("drag")?.classList.add("fn__hidden");
-            }
+            setDockLayoutSize(this, this.getMaxSize());
+            handleGraphFullscreenDrag(type, this, true);
             if (this.pin) {
                 this.layout.element.style.opacity = "";
                 this.hideResizeTimeout = window.setTimeout(() => {
                     this.resizeElement.classList.remove("fn__none");
                     adjustLayout();
-                }, Constants.TIMEOUT_TRANSITION);    // 需等待动画完毕后再出现，否则会出现滚动条 https://ld246.com/article/1676596622064
+                }, Constants.TIMEOUT_TRANSITION);
             }
-            if (document.activeElement) {
-                (document.activeElement as HTMLElement).blur();
-            }
+            blurActiveElement();
         }
 
         // dock 中两个面板的显示关系

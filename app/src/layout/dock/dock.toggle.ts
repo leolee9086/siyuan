@@ -248,3 +248,63 @@ export function handleGraphShow(type: string, dock: Dock): void {
         graph.onGraph(false);
     }
 }
+
+/**
+ * 处理 dock 隐藏时的尺寸和状态重置
+ * @returns true 如果 dock 已被隐藏
+ */
+export function handleDockHideSize(
+    dock: Dock,
+    hasNoActiveItems: boolean
+): boolean {
+    if (!hasNoActiveItems) {
+        return false;
+    }
+
+    const isHorizontal = dock.position === "Left" || dock.position === "Right";
+    const styleProp = isHorizontal ? "width" : "height";
+    dock.layout.element.style[styleProp] = "0px";
+    dock.resizeElement.classList.add("fn__none");
+    return true;
+}
+
+/**
+ * 设置 dock 显示时的尺寸
+ */
+export function setDockLayoutSize(dock: Dock, size: number): void {
+    const isHorizontal = dock.position === "Left" || dock.position === "Right";
+    const styleProp = isHorizontal ? "width" : "height";
+    dock.layout.element.style[styleProp] = size + "px";
+}
+
+/**
+ * 处理全屏 Graph 的拖动条显示/隐藏
+ */
+export function handleGraphFullscreenDrag(type: string, dock: Dock, show: boolean): void {
+    if (type !== "graph" && type !== "globalGraph") {
+        return;
+    }
+
+    const fullscreenElement = dock.layout.element.querySelector(".fullscreen");
+    if (!fullscreenElement) {
+        return;
+    }
+
+    const dragElement = document.getElementById("drag");
+    if (!dragElement) {
+        return;
+    }
+
+    const method = show ? "add" : "remove";
+    dragElement.classList[method]("fn__hidden");
+}
+
+/**
+ * 模糊当前活动元素
+ */
+export function blurActiveElement(): void {
+    const activeElement = document.activeElement;
+    if (activeElement instanceof HTMLElement) {
+        activeElement.blur();
+    }
+}
