@@ -153,6 +153,12 @@ export default [{
         quotes: [2, "double", {
             avoidEscape: true,
         }],
+        // 禁止 if/else/for/while 等不使用大括号
+        "curly": ["error", "all"],
+        // 强制大括号换行风格 (1tbs = one true brace style，但要求换行)
+        "brace-style": ["error", "1tbs", { "allowSingleLine": false }],
+        // 禁止一行内写多条语句 (用分号分隔)
+        "max-statements-per-line": ["error", { "max": 1 }],
         "@typescript-eslint/no-unused-vars": ["warn", { caughtErrors: "none" }],
         "no-async-promise-executor": "off",
         "no-prototype-builtins": "off",
