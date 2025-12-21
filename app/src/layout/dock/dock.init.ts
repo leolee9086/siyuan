@@ -8,6 +8,7 @@ import { getDockByType } from "../tabUtil";
 import { Protyle } from "../../protyle";
 import { getAllModels } from "../getAll";
 import { isWnd, isTDock } from "./dock.guard";
+import { hasValidDockType } from "./dock.visibility";
 
 /**
  * 初始化活动元素
@@ -114,3 +115,56 @@ export function initDockFiles(dock: Dock): void {
         }
     }
 }
+
+/**
+ * 初始化 dock 浮动模式
+ */
+export function initDockFloatMode(dock: Dock): void {
+    dock.resetDockPosition(false);
+    dock.hideDock(true);
+    dock.layout.element.classList.add("layout--float");
+    dock.resizeElement.classList.add("fn__none");
+}
+
+/**
+ * 初始化 dock 数据
+ */
+export function initDockData(
+    dock: Dock,
+    data: Config.IUILayoutDockTab[][],
+    TYPES: string[],
+    getSiyuanLanguagesFn: () => { unpin?: string; pin?: string } | undefined
+): void {
+    if (!hasValidDockType(data, TYPES)) {
+        renderPinButton(dock, getSiyuanLanguagesFn());
+        dock.element.classList.add("fn__none");
+        initDockFiles(dock);
+        initDockActiveState(dock);
+        return;
+    }
+    const first = data[0];
+    const second = data[1];
+    if (first) {
+        dock.genButton(first, 0);
+    }
+    if (second) {
+        dock.genButton(second, 1);
+    }
+    dock.element.classList.remove("fn__none");
+    initDockFiles(dock);
+    initDockActiveState(dock);
+}
+
+/**
+ * 初始化 dock 激活状态
+ */
+export function initDockActiveState(dock: Dock): void {
+    const activeElements = Array.from(dock.element.querySelectorAll(".dock__item--active"));
+    if (activeElements.length > 0) {
+        initActiveElements(dock, activeElements);
+        return;
+    }
+    initNoActiveElements(dock);
+}
+
+
