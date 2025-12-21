@@ -9,7 +9,6 @@ import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu.environ
 import { getSiyuanDialogs } from "../util/siyuanEnvironments/getDialog.environment";
 import { incrementSiyuanZIndex, pushSiyuanDialog } from "../util/siyuanEnvironments/siyuanDialogs.environment";
 import {
-    IDialogOptions,
     计算对话框位置,
     生成关闭按钮HTML,
     生成全屏按钮HTML,
@@ -21,9 +20,11 @@ import {
     更新全屏按钮状态,
     创建输入框键盘事件处理器
 } from "./dialogHelpers";
+import { IDialogOptions } from "./dialog.types";
+import { isHTMLElement } from "./dialog.guard";
 
 // 重新导出接口，保持向后兼容
-export type { IDialogOptions } from "./dialogHelpers";
+export type { IDialogOptions } from "./dialog.types";
 
 export class Dialog {
     private destroyCallback: (options?: IObject) => void;
@@ -34,7 +35,7 @@ export class Dialog {
     private disableEscapeClose: boolean;
     private scrimPointerEvents: boolean;
     public editors: { [key: string]: Protyle } = {};
-    public data: any;
+    public data: IObject = {};
     private titleVueApp: App | null = null;
     private isFullscreen: boolean = false;
     private originalSize: { width: string; height: string; left: string; top: string } | null = null;
@@ -47,7 +48,8 @@ export class Dialog {
         this.id = genUUID();
         pushSiyuanDialog(this);
         this.destroyCallback = options.destroyCallback ?? (() => { });
-        this.element = document.createElement("div") as HTMLElement;
+        this.data = options.data || {};
+        this.element = document.createElement("div");
 
         this.初始化对话框内容(options);
         this.绑定事件处理();
@@ -55,8 +57,8 @@ export class Dialog {
         this.titleVueApp = 挂载标题Vue组件(this.element, options);
 
         /// #if !MOBILE
-        const containerElement = this.element.querySelector(".b3-dialog__container") as HTMLElement;
-        if (containerElement) {
+        const containerElement = this.element.querySelector(".b3-dialog__container");
+        if (isHTMLElement(containerElement)) {
             moveResize(containerElement, options.resizeCallback);
         }
         /// #endif
@@ -116,7 +118,10 @@ export class Dialog {
 
     /** 执行销毁后的清理工作 */
     private 执行销毁清理(options?: IObject): void {
-        const dialogElement = this.element.querySelector(".b3-dialog") as HTMLElement;
+        const dialogElement = this.element.querySelector(".b3-dialog");
+        if (!isHTMLElement(dialogElement)) {
+            return;
+        }
         const menuElement = getSiyuanGlobalMenus().menu.element;
         if (dialogElement.style.zIndex < menuElement.style.zIndex) {
             getSiyuanGlobalMenus().menu.remove();
@@ -146,8 +151,8 @@ export class Dialog {
     }
 
     public fullscreen(): void {
-        const container = this.element.querySelector(".b3-dialog__container") as HTMLElement;
-        if (!container) return;
+        const container = this.element.querySelector(".b3-dialog__container");
+        if (!isHTMLElement(container)) return;
 
         // 退出全屏模式
         if (this.isFullscreen) {

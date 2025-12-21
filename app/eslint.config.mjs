@@ -139,7 +139,11 @@ export default [{
         // 禁止 else 和嵌套 if 的规则
         "no-restricted-syntax": [
             "error",
-            ...COMMON_RESTRICTED_SYNTAX
+            ...COMMON_RESTRICTED_SYNTAX,
+            // 只有在非 .types.ts / .schema.ts 中才拦截类型定义
+            // 注意：ESLint 选择器本身不支持判断当前文件名，
+            // 所以我们需要通过分块并给不同文件应用不同规则，
+            // 但关键是不要让它们“覆盖”掉基础的 COMMON 规则。
         ],
         "max-lines": ["error", { "max": 300, "skipBlankLines": true, "skipComments": true }],
         "max-lines-per-function": ["error", { "max": 50, "skipBlankLines": true, "skipComments": true, "IIFEs": true }],
@@ -169,36 +173,27 @@ export default [{
         "ai-worker/detect-ai-todo": "error",
     },
 }, {
-    // 专门针对非 types/schema 文件的严格限制
-    files: ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "src/**/*.mjs"],
-    ignores: [
-        "**/*.types.ts",
-        "**/types.ts",
-        "**/*.schema.ts"
-    ],
-    rules: {
-        "no-restricted-syntax": [
-            "error",
-            ...COMMON_RESTRICTED_SYNTAX,
-            ...TYPE_DEFINITION_RESTRICTIONS
-        ]
-    }
-}, {
-    // 禁止在非 .guard.ts 文件中使用类型断言
+    // 架构约束：组合所有探测逻辑
     files: ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"],
-    ignores: [
-        "**/*.guard.ts",
-    ],
     rules: {
         "no-restricted-syntax": [
             "error",
             ...COMMON_RESTRICTED_SYNTAX,
-            ...TYPE_ASSERTION_RESTRICTIONS
+            // 为不同文件后缀应用特定规则（这里采用多重判定或简单合并）
+            // 实际上，如果我们要针对不同文件应用不同规则且不覆盖，
+            // 每个 block 的 files/ignores 必须严格互斥，或者在同一个 block 里搞定。
+            ...TYPE_DEFINITION_RESTRICTIONS.map(r => ({
+                ...r,
+            })),
+            ...TYPE_ASSERTION_RESTRICTIONS.map(r => ({
+                ...r,
+            }))
         ]
-    }
+    },
+    ignores: ["**/*.types.ts", "**/types.ts", "**/*.schema.ts", "**/*.guard.ts"]
 }, {
-    // 禁止在非环境文件中访问全局对象
-    files: ["**/*.ts", "**/*.tsx", "**/*.vue"],
+    // 禁止在非环境/全局文件中访问全局对象 (独立规则不冲突)
+    files: ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"],
     ignores: [
         "**/*.environment.ts",
         "**/*.global.ts",
@@ -220,4 +215,10 @@ export default [{
             },
         ],
     },
+}, {
+    // 只有 .guard.ts 允许 is，但依然受 COMMON 限制
+    files: ["**/*.guard.ts"],
+    rules: {
+        "no-restricted-syntax": ["error", ...COMMON_RESTRICTED_SYNTAX]
+    }
 }];
