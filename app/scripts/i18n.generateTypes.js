@@ -17,6 +17,9 @@ const DEFAULT_CONFIG = {
   language: "zh_CN"
 };
 
+// 运行时配置（可被命令行参数覆盖）
+let runtimeConfig = { ...DEFAULT_CONFIG };
+
 /**
  * 命令行参数接口
  */
@@ -26,7 +29,7 @@ function parseCliArgs() {
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
-    
+
     switch (arg) {
       case "-i":
       case "--input":
@@ -39,6 +42,10 @@ function parseCliArgs() {
       case "-l":
       case "--language":
         options.language = args[++i];
+        break;
+      case "-n":
+      case "--name":
+        options.rootInterfaceName = args[++i];
         break;
       case "-h":
       case "--help":
@@ -66,12 +73,14 @@ function showHelp() {
   -i, --input <path>     输入的 JSON 文件路径 (默认: ${DEFAULT_CONFIG.inputFile})
   -o, --output <path>    输出的 TypeScript 文件路径 (默认: ${DEFAULT_CONFIG.outputFile})
   -l, --language <lang>  指定语言代码 (默认: ${DEFAULT_CONFIG.language})
+  -n, --name <name>      指定根接口名称 (默认: ${DEFAULT_CONFIG.rootInterfaceName})
   -h, --help            显示帮助信息
 
 示例:
   node i18n.generateTypes.js
   node i18n.generateTypes.js -l en_US
   node i18n.generateTypes.js -i ./en_US.json -o ./i18n.en.types.ts -l en_US
+  node i18n.generateTypes.js -n ForgeI18n -i ./forge.zh_CN.json -o ./forgeI18n.types.ts
 `);
 }
 
@@ -95,14 +104,14 @@ function generateNestedType(obj, indent = 0) {
 
   for (const [key, value] of Object.entries(obj)) {
     const validKey = toValidPropertyName(key);
-    
+
     if (typeof value === "object" && value !== null && !Array.isArray(value)) {
       // 嵌套对象
       const nestedType = generateNestedType(value, indent + 1);
       entries.push(`${spaces}${validKey}: ${nestedType};`);
     } else {
       // 基本类型值
-      entries.push(`${spaces}${validKey}: \`${value.replace(/\$\{/g,"\\\$\\\{").replace(/\}/g,"\\\}")}\``);
+      entries.push(`${spaces}${validKey}: \`${value.replace(/\$\{/g, "\\\$\\\{").replace(/\}/g, "\\\}")}\``);
     }
   }
 
@@ -127,10 +136,10 @@ function generateTypeDefinition(jsonData, language = DEFAULT_CONFIG.language) {
 `;
 
   // 生成主接口
-  const mainInterface = `export interface ${DEFAULT_CONFIG.rootInterfaceName} ${generateNestedType(jsonData)}`;
+  const mainInterface = `export interface ${runtimeConfig.rootInterfaceName} ${generateNestedType(jsonData)}`;
 
   // 生成类型别名，用于直接访问
-  const typeAlias = `export type ${DEFAULT_CONFIG.typeName} = ${DEFAULT_CONFIG.rootInterfaceName}[keyof ${DEFAULT_CONFIG.rootInterfaceName}]`;
+  const typeAlias = `export type ${runtimeConfig.typeName} = ${runtimeConfig.rootInterfaceName}[keyof ${runtimeConfig.rootInterfaceName}]`;
 
   // 生成特殊键的类型
   const specialKeys = Object.keys(jsonData).filter(key => key.startsWith("_"));
@@ -142,7 +151,7 @@ function generateTypeDefinition(jsonData, language = DEFAULT_CONFIG.language) {
       const value = jsonData[key];
       const validKey = toValidPropertyName(key);
       const typeName = key.replace(/^_/, "").replace(/^[a-z]/, c => c.toUpperCase());
-      
+
       if (typeof value === "object" && value !== null && !Array.isArray(value)) {
         specialKeysTypes += `export interface ${typeName} ${generateNestedType(value)}\n\n`;
       }
@@ -159,7 +168,7 @@ async function main() {
   try {
     // 解析命令行参数
     const options = parseCliArgs();
-    
+
     // 显示帮助信息
     if (options.help) {
       showHelp();
@@ -171,21 +180,34 @@ async function main() {
     const inputFile = options.input ? path.resolve(options.input) : DEFAULT_CONFIG.inputFile;
     const outputFile = options.output ? path.resolve(options.output) : DEFAULT_CONFIG.outputFile;
 
+    // 更新运行时配置
+    runtimeConfig = {
+      ...DEFAULT_CONFIG,
+      language,
+      inputFile,
+      outputFile,
+      rootInterfaceName: options.rootInterfaceName || DEFAULT_CONFIG.rootInterfaceName,
+      typeName: options.rootInterfaceName
+        ? `${options.rootInterfaceName}Keys`
+        : DEFAULT_CONFIG.typeName
+    };
+
+    console.log(`生成接口名称: ${runtimeConfig.rootInterfaceName}`);
     console.log(`正在读取文件: ${inputFile}`);
-    
+
     // 检查文件是否存在
     if (!fs.existsSync(inputFile)) {
       console.error(`错误: 输入文件不存在: ${inputFile}`);
       process.exit(1);
     }
-    
+
     // 读取 JSON 文件
     const jsonContent = fs.readFileSync(inputFile, "utf-8");
     const jsonData = JSON.parse(jsonContent);
 
     console.log(`已解析 ${Object.keys(jsonData).length} 个顶级键`);
     console.log(`输出文件: ${outputFile}`);
-    
+
     // 生成类型定义
     console.log("正在生成类型定义...");
     const typeDefinition = generateTypeDefinition(jsonData, language);
@@ -199,7 +221,7 @@ async function main() {
     // 写入类型定义文件
     fs.writeFileSync(outputFile, typeDefinition, "utf-8");
     console.log(`类型定义已生成到: ${outputFile}`);
-    
+
     console.log("完成！");
   } catch (error) {
     console.error("错误:", error instanceof Error ? error.message : String(error));

@@ -33,7 +33,8 @@
     "genI18nTypes:en": "node ./scripts/i18n.generateTypes.js -l en_US -i ./appearance/langs/en_US.json -o ./src/types/i18n.types.ts",
     "genI18nTypes:zh_CN": "node ./scripts/i18n.generateTypes.js -l zh_CN -i ./appearance/langs/zh_CN.json -o ./src/types/i18n.types.ts",
     "genI18nTypes:zh_TW": "node ./scripts/i18n.generateTypes.js -l zh_TW -i ./appearance/langs/zh_CHT.json -o ./src/types/i18n.types.ts",
-    "genI18nTypes:ja": "node ./scripts/i18n.generateTypes.js -l ja_JP -i ./appearance/langs/ja_JP.json -o ./src/types/i18n.types.ts"
+    "genI18nTypes:ja": "node ./scripts/i18n.generateTypes.js -l ja_JP -i ./appearance/langs/ja_JP.json -o ./src/types/i18n.types.ts",
+    "genForgeI18nTypes": "node ./scripts/forgeI18n.generateTypes.js"
   },
   "keywords": [
     "markdown",
