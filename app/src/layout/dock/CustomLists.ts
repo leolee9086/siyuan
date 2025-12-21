@@ -3,7 +3,6 @@ import { Model } from "../Model";
 import { App } from "../../index";
 
 import { fetchPost } from "../../util/fetch";
-import { setStorageVal } from "../../protyle/util/compatibility";
 import { Tree } from "../../util/Tree";
 import { checkFold } from "../../util/noRelyPCFunction";
 import { openFileById } from "../../editor/utils.openFileById";
@@ -11,7 +10,7 @@ import { Protyle } from "../../protyle";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getIconByType } from "../../editor/getIcon";
 import { getDockByType } from "../tabUtil";
-import { unicode2Emoji } from "../../emoji";
+import { getCustomListIcon, getTopExtHTML, handleRemoveFromStorage, handleRemoveItemFromList } from "./customLists.util";
 
 export interface ICustomList {
     id: string;
@@ -50,7 +49,7 @@ export class CustomLists extends Model {
         this.listData = data;
 
         this.element.classList.add("fn__flex-column", "file-tree", "sy__custom-list");
-        const icon = this.listData.type === "dynamic" ? "iconSearch" : "iconList";
+        const icon = getCustomListIcon(this.listData.type);
         if (tab.icon !== icon) {
             tab.icon = icon;
             tab.headElement?.querySelector("use")?.setAttribute("xlink:href", "#" + icon);
@@ -86,6 +85,7 @@ export class CustomLists extends Model {
         this.tree = new Tree({
             element: this.element.lastElementChild as HTMLElement,
             data: [],
+            topExtHTML: getTopExtHTML(this.listData.type),
             click: (element: HTMLElement, event?: MouseEvent) => this.onTreeClick(element, event),
             toggleClick: (element: HTMLElement) => this.toggleItem(element)
         });
@@ -163,21 +163,10 @@ export class CustomLists extends Model {
                 getDockByType(key).toggleModel(key, false, true);
                 break;
             case "remove": {
-                const id = this.listData.id;
-                if (!id) {
+                if (!this.listData.id) {
                     break;
                 }
-                const storage = window.siyuan.storage;
-                const customLists = storage?.["local-customlists"];
-                if (customLists) {
-                    delete customLists[id];
-                    setStorageVal("local-customlists", customLists);
-                }
-                const key = `custom_list:${this.listData.type}:${id}`;
-                const dock = getDockByType(key);
-                if (dock) {
-                    dock.remove(key);
-                }
+                handleRemoveFromStorage(this.listData.id, this.listData);
                 break;
             }
         }
@@ -186,6 +175,10 @@ export class CustomLists extends Model {
     private onTreeClick(element: HTMLElement, event?: MouseEvent) {
         const id = element.getAttribute("data-node-id");
         if (!id) {
+            return;
+        }
+
+        if (event && this.handleItemRemove(element, event, id)) {
             return;
         }
 
@@ -198,6 +191,22 @@ export class CustomLists extends Model {
                 zoomIn
             });
         });
+    }
+
+    private handleItemRemove(element: HTMLElement, event: MouseEvent, id: string): boolean {
+        let target = event.target as HTMLElement;
+        while (target && !target.isEqualNode(element)) {
+            if (target.classList.contains("b3-list-item__action")) {
+                if (handleRemoveItemFromList(id, this.listData)) {
+                    this.update();
+                }
+                event.preventDefault();
+                event.stopPropagation();
+                return true;
+            }
+            target = target.parentElement;
+        }
+        return false;
     }
 
     private toggleItem(liElement: HTMLElement) {
@@ -244,10 +253,8 @@ export class CustomLists extends Model {
 
         const id = liElement.getAttribute("data-node-id");
         if (!id) {
-            console.error("CustomLists: expandItem - missing data-node-id");
             return;
         }
-        console.log("CustomLists: expandItem", id);
 
         // Ensure proper cleanup if re-expanding
         if (nextSibling && nextSibling.tagName === "DIV") {
@@ -256,7 +263,6 @@ export class CustomLists extends Model {
 
         const editorElement = document.createElement("div");
         editorElement.style.minHeight = "auto";
-        console.log("CustomLists: editorElement created", editorElement);
 
         liElement.after(editorElement);
 
@@ -273,10 +279,9 @@ export class CustomLists extends Model {
                     breadcrumb: false,
                 }
             });
-            console.log("CustomLists: Protyle ok", editor);
             this.editors.push(editor);
         } catch (e) {
-            console.error("CustomLists: Protyle init failed", e);
+            console.error(e);
         }
     }
 }
