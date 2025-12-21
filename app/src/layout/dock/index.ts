@@ -38,7 +38,9 @@ import { initActiveElements, initNoActiveElements, findActiveEditor, removeSourc
 import { setSizeForItem, getMaxSize } from "./dock.size";
 
 const TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGraph", "backlink"];
-
+/**
+ * @AITODO 尽可能减少单纯操作DOM的逻辑在主文件中的出现,例如initDockActive方法时是纯粹的dom属性操作
+ */
 export class Dock {
     public element!: HTMLElement;
     public layout!: Layout;
@@ -105,13 +107,21 @@ export class Dock {
     }
 
     private onClick(event: MouseEvent): void {
-        let target = event.target; if (!(target instanceof HTMLElement)) return;
-        while (target && !target.isEqualNode(this.element)) {
-            const type = target.getAttribute("data-type");
-            if (isTDock(type)) { this.toggleModel(type, false, true); event.preventDefault(); return; }
-            if (target.classList.contains("dock__item")) { this.handlePinClick(target, event); return; }
-            const parent = target.parentElement; if (!(parent instanceof HTMLElement)) return; target = parent;
+        const eventTarget = event.target;
+        if (!(eventTarget instanceof Element)) return;
+        let target: Element | null = eventTarget;
+        while (target && target !== this.element) {
+            if (this.processClickTarget(target, event)) return;
+            target = target.parentElement;
         }
+    }
+
+    private processClickTarget(target: Element, event: MouseEvent): boolean {
+        if (!(target instanceof HTMLElement)) return false;
+        const type = target.getAttribute("data-type");
+        if (isTDock(type)) { this.toggleModel(type, false, true); event.preventDefault(); return true; }
+        if (target.classList.contains("dock__item")) { this.handlePinClick(target, event); return true; }
+        return false;
     }
 
     private handlePinClick(target: HTMLElement, event: MouseEvent): void {
