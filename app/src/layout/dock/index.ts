@@ -1,4 +1,4 @@
-import { updateHotkeyTip } from "../../protyle/util/compatibility";
+// updateHotkeyTip 已移至 dock.button.ts
 import { Layout } from "../index";
 import { Wnd } from "../Wnd";
 import { getAllModels } from "../getAll";
@@ -533,58 +533,35 @@ export class Dock {
     }
 
     public genButton(data: Config.IUILayoutDockTab[], index: number, tabIndex?: number) {
-        let html = "";
         const languages = window.siyuan.languages;
         const dockTip = languages?.dockTip || "";
-        const pinText = this.pin ? languages?.unpin : languages?.pin;
+        const pinText = (this.pin ? languages?.unpin : languages?.pin) || "";
 
+        // 生成按钮 HTML
+        const html = generateAllButtonsHTML(data, index, dockTip, tabIndex);
+
+        // 更新 data 状态
         for (const item of data) {
-            if (typeof tabIndex === "undefined" && !TYPES.includes(item.type)) {
-                continue;
-            }
-            const hotkey = item.hotkey ? updateHotkeyTip(item.hotkey) : "";
-            const activeClass = item.show ? " dock__item--active" : "";
-            html += `<span data-height="${item.size.height}" data-width="${item.size.width}" data-type="${item.type}" data-index="${index}" data-hotkey="${item.hotkey || ""}" data-hotkeyLangId="${item.hotkeyLangId || ""}" data-title="${item.title}" class="dock__item${activeClass} ariaLabel" aria-label="<span style='white-space:pre'>${item.title} ${hotkey}${dockTip}</span>">
-    <svg><use xlink:href="#${item.icon}"></use></svg>
-</span>`;
             this.data[item.type] = true;
         }
 
-        if (index === 0) {
-            if (typeof tabIndex === "number") {
-                const target = this.element.firstElementChild.children[tabIndex];
-                if (target) {
-                    target.insertAdjacentHTML("beforebegin", html);
-                } else {
-                    this.element.firstElementChild.lastElementChild?.insertAdjacentHTML("beforebegin", html);
-                }
-            } else {
-                this.element.firstElementChild.innerHTML = `${html}<span class="dock__item dock__item--pin ariaLabel" aria-label="${pinText}">
-    <svg><use xlink:href="#icon${this.pin ? "Unpin" : "Pin"}"></use></svg>
-</span>`;
-            }
-        } else {
-            if (typeof tabIndex === "number") {
-                const target = this.element.lastElementChild.children[tabIndex];
-                if (target) {
-                    target.insertAdjacentHTML("beforebegin", html);
-                } else {
-                    this.element.lastElementChild.insertAdjacentHTML("beforeend", html);
-                }
-            } else {
-                this.element.lastElementChild.innerHTML = html;
-            }
+        // 插入到正确的容器
+        const container = index === 0 ? this.element.firstElementChild : this.element.lastElementChild;
+        insertButtonsToContainer(container, html, tabIndex, pinText, this.pin, index === 0);
+
+        // 处理 tabIndex 特殊情况
+        if (typeof tabIndex !== "number") {
+            return;
         }
 
-        if (typeof tabIndex === "number") {
-            const config = window.siyuan.config;
-            // https://github.com/siyuan-note/siyuan/issues/8614
-            if (config && !config.uiLayout.hideDock) {
-                this.element.classList.remove("fn__none");
-            }
-            if (data[0] && data[0].show) {
-                this.toggleModel(data[0].type, true, false, false, false);
-            }
+        const config = window.siyuan.config;
+        if (config && !config.uiLayout.hideDock) {
+            this.element.classList.remove("fn__none");
+        }
+
+        const firstItem = data[0];
+        if (firstItem && firstItem.show) {
+            this.toggleModel(firstItem.type, true, false, false, false);
         }
     }
 }
