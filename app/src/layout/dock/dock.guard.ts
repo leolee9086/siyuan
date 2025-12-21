@@ -50,3 +50,25 @@ export function isOperations(data: unknown): data is IOperation[] {
     }
     return data.every(isOperation);
 }
+
+/**
+ * 判断是否为块树数据数组（用于Tag等面板的数据）
+ * 这是一个宽松的类型守卫，只验证基本结构
+ */
+export function isBlockTreeArray(data: unknown): data is IBlockTree[] {
+    if (!Array.isArray(data)) {
+        return false;
+    }
+    // 空数组视为有效
+    if (data.length === 0) {
+        return true;
+    }
+    // 检查第一个元素是否具有IBlockTree的基本结构
+    const first = data[0];
+    if (typeof first !== "object" || first === null) {
+        return false;
+    }
+    // IBlockTree至少应该有这些属性之一
+    const item = first as Record<string, unknown>;
+    return typeof item.id === "string" || typeof item.name === "string" || typeof item.label === "string";
+}

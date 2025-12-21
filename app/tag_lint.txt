@@ -1,0 +1,54 @@
+﻿
+D:\dev\siyuan-note\app\src\layout\dock\Tag.ts
+   15:1    error  馃 Agent鎸囦护: AI-001: Pending Task | GENERAL_AGENT
+妫€娴嬪埌鏂囦欢鍖呭惈 @AITODO 浠诲姟鏍囪銆?璇疯鍙栨敞閲婅姹傦紝鎵ц鐩稿簲浠诲姟锛屽畬鎴愬悗灏嗘爣璁版敼涓?@AIDONE銆? ai-worker/detect-ai-todo
+   23:5    error  Constructor has too many lines (156). Maximum allowed is 50                                              max-lines-per-function
+   29:21   error  鉂?绂佹浣跨敤 switch 璇彞銆?鏇夸唬鏂规: Object Literal / Map / Strategy Pattern / Polymorphism                           no-restricted-syntax
+   31:29   error  鉂?绂佹浣跨敤 .forEach()銆?鍘熷洜 1: forEach 鏃犳硶绛夊緟寮傛鎿嶄綔銆?鍘熷洜 2: forEach 鏃犳硶鎻愬墠涓柇銆?鏇夸唬鏂规: for...of / .map() / .filter()     no-restricted-syntax
+   31:29   error  鉂?绂佹闅愬紡涓婁笅鏂囧垏鎹細绂佹鍦ㄤ娇鐢ㄥ垪琛ㄤ笅鏍囧彇鍊兼搷浣?([]) 涔嬪悗鐩存帴璁块棶灞炴€с€傝鍔″繀鍏堝０鏄庡彉閲忓啀浣跨敤銆?                                                    no-restricted-syntax
+   31:63   error  鉂?绂佹瓒呰繃 5 琛岀殑鍐呰仈鍥炶皟鍑芥暟 (璋冪敤: forEach)銆傚綋鍓?9 琛屻€傝鎻愬彇涓哄懡鍚嶅嚱鏁颁互鎻愰珮鍙鎬с€?馃挕 璞佸厤鏂瑰紡: 鍦ㄨ皟鐢ㄨ鍙ュ墠娣诲姞 // @鍐呰仈鍥炶皟 娉ㄩ噴                     no-inline-callback/no-inline-callback
+   33:33   error  鉂?绂佹浣跨敤 else銆傝浣跨敤 "鍗鍙?(Guard Clauses)" 鎴栬€呭叾瀹冪瓥鐣ユ墎骞冲寲閫昏緫銆?                                                      no-restricted-syntax
+   35:40   error  鉂?绂佹宓屽 If銆傝鍚堝苟閫昏緫銆?                                                                                        no-restricted-syntax
+   66:76   error  Unexpected use of 'window'. 鉂?绂佹鐩存帴璁块棶 window銆傝鍦?*.environment.ts 鎴?*.global.ts 鏂囦欢涓皝瑁呭悗浣跨敤銆?                 no-restricted-globals
+   69:29   error  Unexpected use of 'window'. 鉂?绂佹鐩存帴璁块棶 window銆傝鍦?*.environment.ts 鎴?*.global.ts 鏂囦欢涓皝瑁呭悗浣跨敤銆?                 no-restricted-globals
+   70:133  error  Unexpected use of 'window'. 鉂?绂佹鐩存帴璁块棶 window銆傝鍦?*.environment.ts 鎴?*.global.ts 鏂囦欢涓皝瑁呭悗浣跨敤銆?                 no-restricted-globals
+   74:137  error  Unexpected use of 'window'. 鉂?绂佹鐩存帴璁块棶 window銆傝鍦?*.environment.ts 鎴?*.global.ts 鏂囦欢涓皝瑁呭悗浣跨敤銆?                 no-restricted-globals
+   78:127  error  Unexpected use of 'window'. 鉂?绂佹鐩存帴璁块棶 window銆傝鍦?*.environment.ts 鎴?*.global.ts 鏂囦欢涓皝瑁呭悗浣跨敤銆?                 no-restricted-globals
+   83:22   error  鉂?绂佹浣跨敤 'as' 鏂█銆傝鍦?.guard.ts 涓娇鐢ㄧ被鍨嬪畧鍗紝鎴栦緷璧栬嚜鍔ㄦ帹鏂€?                                                            no-restricted-syntax
+   88:65   error  鉂?绂佹浣跨敤 'as' 鏂█銆傝鍦?.guard.ts 涓娇鐢ㄧ被鍨嬪畧鍗紝鎴栦緷璧栬嚜鍔ㄦ帹鏂€?                                                            no-restricted-syntax
+   89:21   error  鉂?绂佹宓屽 If銆傝鍚堝苟鍒ゆ柇鏉′欢 (&&) 鎴栨彁鍙栧嚱鏁般€?                                                                           no-restricted-syntax
+   94:83   error  Unexpected use of 'window'. 鉂?绂佹鐩存帴璁块棶 window銆傝鍦?*.environment.ts 鎴?*.global.ts 鏂囦欢涓皝瑁呭悗浣跨敤銆?                 no-restricted-globals
+   99:27   error  Unexpected use of 'window'. 鉂?绂佹鐩存帴璁块棶 window銆傝鍦?*.environment.ts 鎴?*.global.ts 鏂囦欢涓皝瑁呭悗浣跨敤銆?                 no-restricted-globals
+  100:25   error  Unexpected use of 'window'. 鉂?绂佹鐩存帴璁块棶 window銆傝鍦?*.environment.ts 鎴?*.global.ts 鏂囦欢涓皝瑁呭悗浣跨敤銆?                 no-restricted-globals
+  103:9    error  鉂?绂佹闅愬紡涓婁笅鏂囧垏鎹細鍦?DOM 鑾峰彇鎺ュ彛 (querySelector, getElementById 绛? 杩斿洖鐨勫璞′笂鐩存帴閾惧紡璋冪敤銆傝鍔″繀鍏堝０鏄庡彉閲忓啀浣跨敤銆?                      no-restricted-syntax
+  106:9    error  鉂?绂佹闅愬紡涓婁笅鏂囧垏鎹細鍦?DOM 鑾峰彇鎺ュ彛 (querySelector, getElementById 绛? 杩斿洖鐨勫璞′笂鐩存帴閾惧紡璋冪敤銆傝鍔″繀鍏堝０鏄庡彉閲忓啀浣跨敤銆?                      no-restricted-syntax
+  109:48   error  Arrow function has too many lines (72). Maximum allowed is 50                                            max-lines-per-function
+  109:48   error  鉂?绂佹瓒呰繃 5 琛岀殑鍐呰仈鍥炶皟鍑芥暟 (璋冪敤: addEventListener)銆傚綋鍓?69 琛屻€傝鎻愬彇涓哄懡鍚嶅嚱鏁颁互鎻愰珮鍙鎬с€?馃挕 璞佸厤鏂瑰紡: 鍦ㄨ皟鐢ㄨ鍙ュ墠娣诲姞 // @鍐呰仈鍥炶皟 娉ㄩ噴           no-inline-callback/no-inline-callback
+  111:26   error  鉂?绂佹浣跨敤 'as' 鏂█銆傝鍦?.guard.ts 涓娇鐢ㄧ被鍨嬪畧鍗紝鎴栦緷璧栬嚜鍔ㄦ帹鏂€?                                                            no-restricted-syntax
+  115:21   error  鉂?绂佹浣跨敤 switch 璇彞銆?鏇夸唬鏂规: Object Literal / Map / Strategy Pattern / Polymorphism                           no-restricted-syntax
+  120:29   error  Unexpected use of 'window'. 鉂?绂佹鐩存帴璁块棶 window銆傝鍦?*.environment.ts 鎴?*.global.ts 鏂囦欢涓皝瑁呭悗浣跨敤銆?                 no-restricted-globals
+  121:29   error  Unexpected use of 'window'. 鉂?绂佹鐩存帴璁块棶 window銆傝鍦?*.environment.ts 鎴?*.global.ts 鏂囦欢涓皝瑁呭悗浣跨敤銆?                 no-restricted-globals
+  122:39   error  Unexpected use of 'window'. 鉂?绂佹鐩存帴璁块棶 window銆傝鍦?*.environment.ts 鎴?*.global.ts 鏂囦欢涓皝瑁呭悗浣跨敤銆?                 no-restricted-globals
+  125:37   error  Unexpected use of 'window'. 鉂?绂佹鐩存帴璁块棶 window銆傝鍦?*.environment.ts 鎴?*.global.ts 鏂囦欢涓皝瑁呭悗浣跨敤銆?                 no-restricted-globals
+  129:29   error  Unexpected use of 'window'. 鉂?绂佹鐩存帴璁块棶 window銆傝鍦?*.environment.ts 鎴?*.global.ts 鏂囦欢涓皝瑁呭悗浣跨敤銆?                 no-restricted-globals
+  130:39   error  Unexpected use of 'window'. 鉂?绂佹鐩存帴璁块棶 window銆傝鍦?*.environment.ts 鎴?*.global.ts 鏂囦欢涓皝瑁呭悗浣跨敤銆?                 no-restricted-globals
+  133:37   error  Unexpected use of 'window'. 鉂?绂佹鐩存帴璁块棶 window銆傝鍦?*.environment.ts 鎴?*.global.ts 鏂囦欢涓皝瑁呭悗浣跨敤銆?                 no-restricted-globals
+  137:29   error  Unexpected use of 'window'. 鉂?绂佹鐩存帴璁块棶 window銆傝鍦?*.environment.ts 鎴?*.global.ts 鏂囦欢涓皝瑁呭悗浣跨敤銆?                 no-restricted-globals
+  138:39   error  Unexpected use of 'window'. 鉂?绂佹鐩存帴璁块棶 window銆傝鍦?*.environment.ts 鎴?*.global.ts 鏂囦欢涓皝瑁呭悗浣跨敤銆?                 no-restricted-globals
+  141:37   error  Unexpected use of 'window'. 鉂?绂佹鐩存帴璁块棶 window銆傝鍦?*.environment.ts 鎴?*.global.ts 鏂囦欢涓皝瑁呭悗浣跨敤銆?                 no-restricted-globals
+  145:29   error  Unexpected use of 'window'. 鉂?绂佹鐩存帴璁块棶 window銆傝鍦?*.environment.ts 鎴?*.global.ts 鏂囦欢涓皝瑁呭悗浣跨敤銆?                 no-restricted-globals
+  146:39   error  Unexpected use of 'window'. 鉂?绂佹鐩存帴璁块棶 window銆傝鍦?*.environment.ts 鎴?*.global.ts 鏂囦欢涓皝瑁呭悗浣跨敤銆?                 no-restricted-globals
+  149:37   error  Unexpected use of 'window'. 鉂?绂佹鐩存帴璁块棶 window銆傝鍦?*.environment.ts 鎴?*.global.ts 鏂囦欢涓皝瑁呭悗浣跨敤銆?                 no-restricted-globals
+  153:29   error  Unexpected use of 'window'. 鉂?绂佹鐩存帴璁块棶 window銆傝鍦?*.environment.ts 鎴?*.global.ts 鏂囦欢涓皝瑁呭悗浣跨敤銆?                 no-restricted-globals
+  154:39   error  Unexpected use of 'window'. 鉂?绂佹鐩存帴璁块棶 window銆傝鍦?*.environment.ts 鎴?*.global.ts 鏂囦欢涓皝瑁呭悗浣跨敤銆?                 no-restricted-globals
+  157:37   error  Unexpected use of 'window'. 鉂?绂佹鐩存帴璁块棶 window銆傝鍦?*.environment.ts 鎴?*.global.ts 鏂囦欢涓皝瑁呭悗浣跨敤銆?                 no-restricted-globals
+  161:29   error  Unexpected use of 'window'. 鉂?绂佹鐩存帴璁块棶 window銆傝鍦?*.environment.ts 鎴?*.global.ts 鏂囦欢涓皝瑁呭悗浣跨敤銆?                 no-restricted-globals
+  162:39   error  Unexpected use of 'window'. 鉂?绂佹鐩存帴璁块棶 window銆傝鍦?*.environment.ts 鎴?*.global.ts 鏂囦欢涓皝瑁呭悗浣跨敤銆?                 no-restricted-globals
+  165:37   error  Unexpected use of 'window'. 鉂?绂佹鐩存帴璁块棶 window銆傝鍦?*.environment.ts 鎴?*.global.ts 鏂囦欢涓皝瑁呭悗浣跨敤銆?                 no-restricted-globals
+  169:29   error  Unexpected use of 'window'. 鉂?绂佹鐩存帴璁块棶 window銆傝鍦?*.environment.ts 鎴?*.global.ts 鏂囦欢涓皝瑁呭悗浣跨敤銆?                 no-restricted-globals
+  191:19   error  Unexpected use of 'window'. 鉂?绂佹鐩存帴璁块棶 window銆傝鍦?*.environment.ts 鎴?*.global.ts 鏂囦欢涓皝瑁呭悗浣跨敤銆?                 no-restricted-globals
+  194:12   error  鉂?绂佹瓒呰繃 5 琛岀殑鍐呰仈鍥炶皟鍑芥暟 (璋冪敤: fetchPost)銆傚綋鍓?10 琛屻€傝鎻愬彇涓哄懡鍚嶅嚱鏁颁互鎻愰珮鍙鎬с€?馃挕 璞佸厤鏂瑰紡: 鍦ㄨ皟鐢ㄨ鍙ュ墠娣诲姞 // @鍐呰仈鍥炶皟 娉ㄩ噴                  no-inline-callback/no-inline-callback
+  199:13   error  鉂?绂佹浣跨敤 else銆傝浣跨敤 "鍗鍙?(Guard Clauses)" 鎴栬€呭叾瀹冪瓥鐣ユ墎骞冲寲閫昏緫銆?                                                      no-restricted-syntax
+
+鉁?48 problems (48 errors, 0 warnings)
+
