@@ -24,10 +24,7 @@ import { clearBeforeResizeTop, recordBeforeResizeTop } from "../../protyle/util/
 import { Constants } from "../../constants";
 
 const TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGraph", "backlink"];
-/**
- * @AITODO
- * 拆分重构这个文件,直到清理所有lint错误和类型问题,注意文件备份
- */
+
 export class Dock {
     public element: HTMLElement;
     public layout: Layout;

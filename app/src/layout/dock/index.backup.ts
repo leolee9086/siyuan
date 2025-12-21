@@ -25,18 +25,15 @@ import { Constants } from "../../constants";
 
 const TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGraph", "backlink"];
 /**
- * @AIDONE
+ * @AITODO
  * 拆分重构这个文件,直到清理所有lint错误和类型问题,注意文件备份
  * 拆分实现不应该使类
  * 应该在拆分过程中执行类型检查,保证拆分出的文件本身没有lint错误
  */
-import { createDockTab } from "./dock.factory";
-import { initDockResize } from "./dock.resize";
-import { initDockDnD } from "./dock.dnd";
 export class Dock {
     public element: HTMLElement;
     public layout: Layout;
-    public position: TDockPosition;
+    private position: TDockPosition;
     private app: App;
     public resizeElement: HTMLElement;
     public pin = true;
@@ -81,7 +78,7 @@ export class Dock {
         let showDock = false;
         if (options.data.data.length !== 0) {
             if (!showDock) {
-                options.data.data[0]?.find(item => {
+                options.data.data[0].find(item => {
                     if (TYPES.includes(item.type)) {
                         showDock = true;
                         return true;
@@ -89,7 +86,7 @@ export class Dock {
                 });
             }
             if (!showDock && options.data.data[1]) {
-                options.data.data[1]?.find(item => {
+                options.data.data[1].find(item => {
                     if (TYPES.includes(item.type)) {
                         showDock = true;
                         return true;
@@ -152,7 +149,170 @@ export class Dock {
             }
         });
 
-        initDockDnD(this);
+        this.element.addEventListener("mousedown", (event: MouseEvent) => {
+            const item = hasClosestByClassName(event.target as HTMLElement, "dock__item");
+            if (!item || !item.getAttribute("data-type")) {
+                return;
+            }
+            const documentSelf = document;
+            documentSelf.ondragstart = () => false;
+            let ghostElement: HTMLElement;
+            let selectItem: HTMLElement;
+            const moveItem = document.createElement("span");
+            moveItem.classList.add("dock__item", "fn__none");
+            moveItem.style.background = "var(--b3-theme-primary-light)";
+            moveItem.innerHTML = "<svg></svg>";
+            moveItem.id = "dockMoveItem";
+            documentSelf.onmousemove = (moveEvent: MouseEvent) => {
+                if (window.siyuan.config.readonly ||
+                    Math.abs(moveEvent.clientY - event.clientY) < 3 && Math.abs(moveEvent.clientX - event.clientX) < 3) {
+                    return;
+                }
+                moveEvent.preventDefault();
+                moveEvent.stopPropagation();
+                if (!ghostElement) {
+                    item.style.opacity = "0.38";
+                    ghostElement = item.cloneNode(true) as HTMLElement;
+                    ghostElement.setAttribute("data-ghost-type", "dock");
+                    this.element.append(ghostElement);
+                    ghostElement.setAttribute("data-original", JSON.stringify({
+                        position: this.position,
+                        index: item.getAttribute("data-index"),
+                        previousType: item.previousElementSibling?.getAttribute("data-type"),
+                        type: item.getAttribute("data-type"),
+                    }));
+                    ghostElement.setAttribute("id", "dragGhost");
+                    ghostElement.setAttribute("style", `background-color:var(--b3-theme-background-light);position: fixed; top: ${event.clientY}px; left: ${event.clientX}px; z-index:999997;`);
+                }
+                if (this.position === "Bottom") {
+                    ghostElement.style.top = (moveEvent.clientY - 40) + "px";
+                    ghostElement.style.left = (moveEvent.clientX - 20) + "px";
+                } else {
+                    ghostElement.style.top = (moveEvent.clientY - 20) + "px";
+                    if (this.position === "Left") {
+                        ghostElement.style.left = (moveEvent.clientX) + "px";
+                    } else {
+                        ghostElement.style.left = (moveEvent.clientX - 40) + "px";
+                    }
+                }
+
+                const targetItem = hasClosestByClassName(moveEvent.target as HTMLElement, "dock__item") ||
+                    hasClosestByClassName(moveEvent.target as HTMLElement, "dock__items") as HTMLElement ||
+                    hasClosestByClassName(moveEvent.target as HTMLElement, "dock__item--space") as HTMLElement;
+                if (targetItem && selectItem && targetItem === selectItem) {
+                    if (selectItem.classList.contains("dock__item--space")) {
+                        const selectRect = selectItem.getBoundingClientRect();
+                        if (selectItem.parentElement.id === "dockBottom") {
+                            if (moveEvent.clientX < selectRect.right && moveEvent.clientX > selectRect.right - 40) {
+                                const lastFirstElement = selectItem.nextElementSibling.firstElementChild;
+                                if (lastFirstElement && lastFirstElement === item) {
+                                    moveItem.classList.add("fn__none");
+                                } else {
+                                    moveItem.classList.remove("fn__none");
+                                    lastFirstElement.before(moveItem);
+                                }
+                            }
+                        } else {
+                            if (moveEvent.clientY < selectRect.bottom && moveEvent.clientY > selectRect.bottom - 40) {
+                                const lastFirstElement = selectItem.nextElementSibling.firstElementChild;
+                                if (lastFirstElement && lastFirstElement === item) {
+                                    moveItem.classList.add("fn__none");
+                                } else {
+                                    moveItem.classList.remove("fn__none");
+                                    lastFirstElement.before(moveItem);
+                                }
+                            }
+                        }
+                    } else if (selectItem.classList.contains("dock__item--pin")) {
+                        if (item.nextElementSibling && item.nextElementSibling === selectItem) {
+                            moveItem.classList.add("fn__none");
+                        } else {
+                            moveItem.classList.remove("fn__none");
+                            selectItem.before(moveItem);
+                        }
+                    } else if (selectItem.classList.contains("dock__item")) {
+                        const selectRect = selectItem.getBoundingClientRect();
+                        if (selectItem.parentElement.parentElement.id === "dockBottom") {
+                            if (selectRect.left + selectRect.width / 2 > moveEvent.clientX) {
+                                if (item.nextElementSibling && item.nextElementSibling === selectItem) {
+                                    moveItem.classList.add("fn__none");
+                                } else {
+                                    moveItem.classList.remove("fn__none");
+                                    selectItem.before(moveItem);
+                                }
+                            } else {
+                                if (item.previousElementSibling && item.previousElementSibling === selectItem) {
+                                    moveItem.classList.add("fn__none");
+                                } else {
+                                    moveItem.classList.remove("fn__none");
+                                    selectItem.after(moveItem);
+                                }
+                            }
+                        } else {
+                            if (selectRect.top + selectRect.height / 2 > moveEvent.clientY) {
+                                if (item.nextElementSibling && item.nextElementSibling === selectItem) {
+                                    moveItem.classList.add("fn__none");
+                                } else {
+                                    moveItem.classList.remove("fn__none");
+                                    selectItem.before(moveItem);
+                                }
+                            } else {
+                                if (item.previousElementSibling && item.previousElementSibling === selectItem) {
+                                    moveItem.classList.add("fn__none");
+                                } else {
+                                    moveItem.classList.remove("fn__none");
+                                    selectItem.after(moveItem);
+                                }
+                            }
+                        }
+                    } else if (selectItem.childElementCount === 0) {
+                        moveItem.classList.remove("fn__none");
+                        selectItem.append(moveItem);
+                    } else if (selectItem.childElementCount === 1 && selectItem.firstElementChild.id === "dockMoveItem") {
+                        moveItem.classList.remove("fn__none");
+                    } else if (selectItem.childElementCount === 1 && selectItem.firstElementChild.classList.contains("dock__item--pin")) {
+                        moveItem.classList.remove("fn__none");
+                        selectItem.insertAdjacentElement("afterbegin", moveItem);
+                    } else if (selectItem.childElementCount === 2 &&
+                        selectItem.firstElementChild.id === "dockMoveItem" && selectItem.lastElementChild.classList.contains("dock__item--pin")) {
+                        moveItem.classList.remove("fn__none");
+                    }
+                    return;
+                }
+                if (!targetItem || targetItem.style.position === "fixed" || (targetItem === item) || targetItem.id === "dockMoveItem") {
+                    if (targetItem && targetItem === item) {
+                        moveItem.classList.add("fn__none");
+                    }
+                    return;
+                }
+                selectItem = targetItem;
+            };
+
+            documentSelf.onmouseup = () => {
+                documentSelf.onmousemove = null;
+                documentSelf.onmouseup = null;
+                documentSelf.ondragstart = null;
+                documentSelf.onselectstart = null;
+                documentSelf.onselect = null;
+                ghostElement?.remove();
+                if (item.style.opacity !== "0.38") {
+                    return;
+                }
+                item.style.opacity = "";
+                if (!moveItem.classList.contains("fn__none")) {
+                    let dock;
+                    if (moveItem.parentElement.parentElement.id === "dockBottom") {
+                        dock = window.siyuan.layout.bottomDock;
+                    } else if (moveItem.parentElement.parentElement.id === "dockLeft") {
+                        dock = window.siyuan.layout.leftDock;
+                    } else if (moveItem.parentElement.parentElement.id === "dockRight") {
+                        dock = window.siyuan.layout.rightDock;
+                    }
+                    dock.add(moveItem.parentElement === dock.element.firstElementChild ? 0 : 1, item, moveItem.previousElementSibling?.getAttribute("data-type"));
+                }
+                moveItem.remove();
+            };
+        });
 
         this.layout.element.addEventListener("mouseleave", (event: MouseEvent & { toElement: HTMLElement }) => {
             if (event.buttons !== 0 || this.pin || event.toElement?.classList.contains("b3-menu") ||
@@ -171,7 +331,56 @@ export class Dock {
             this.hideDock();
         });
 
-        initDockResize(this);
+        this.layout.element.querySelector(".layout__dockresize").addEventListener("mousedown", (event: MouseEvent) => {
+            const documentSelf = document;
+            const direction = this.position === "Bottom" ? "tb" : "lr";
+            const x = event[direction === "lr" ? "clientX" : "clientY"];
+            const currentSize = direction === "lr" ? this.layout.element.clientWidth : this.layout.element.clientHeight;
+            documentSelf.onmousemove = (moveEvent: MouseEvent) => {
+                moveEvent.preventDefault();
+                moveEvent.stopPropagation();
+                let currentNowSize;
+                if (this.position === "Left") {
+                    currentNowSize = (currentSize + (moveEvent.clientX - x));
+                } else if (this.position === "Right") {
+                    currentNowSize = (currentSize + (x - moveEvent.clientX));
+                } else {
+                    currentNowSize = (currentSize + (x - moveEvent.clientY));
+                }
+                let minSize = 232;
+                Array.from(this.layout.element.querySelectorAll(".file-tree")).find((item) => {
+                    if (item.classList.contains("sy__backlink") || item.classList.contains("sy__graph")
+                        || item.classList.contains("sy__globalGraph") || item.classList.contains("sy__inbox")) {
+                        if (!item.classList.contains("fn__none") && !hasClosestByClassName(item, "fn__none")) {
+                            minSize = 320;
+                            return true;
+                        }
+                    }
+                });
+                if (currentNowSize < minSize && direction === "lr") {
+                    return;
+                }
+                if (currentNowSize < 64 && direction === "tb") {
+                    return;
+                }
+                this.layout.element.style[direction === "lr" ? "width" : "height"] = currentNowSize + "px";
+            };
+
+            documentSelf.onmouseup = () => {
+                documentSelf.onmousemove = null;
+                documentSelf.onmouseup = null;
+                documentSelf.ondragstart = null;
+                documentSelf.onselectstart = null;
+                documentSelf.onselect = null;
+                this.setSize();
+                this.element.querySelectorAll(".dock__item--active").forEach(item => {
+                    const customModel = this.data[item.getAttribute("data-type") as TDock];
+                    if (customModel && customModel instanceof Custom && customModel.resize) {
+                        customModel.resize();
+                    }
+                });
+            };
+        });
 
         if (window.siyuan.config.uiLayout.hideDock) {
             this.element.classList.add("fn__none");
@@ -377,11 +586,105 @@ export class Dock {
                         return true;
                     }
                 });
-                const tab = createDockTab({
-                    app: this.app,
-                    type,
-                    editor
-                });
+                let tab;
+                switch (type) {
+                    case "file":
+                        tab = new Tab({
+                            callback: (tab: Tab) => {
+                                tab.addModel(new Files({ tab, app: this.app }));
+                            }
+                        });
+                        break;
+                    case "bookmark":
+                        tab = new Tab({
+                            callback: (tab: Tab) => {
+                                tab.addModel(new Bookmark(this.app, tab));
+                            }
+                        });
+                        break;
+                    case "tag":
+                        tab = new Tab({
+                            callback: (tab: Tab) => {
+                                tab.addModel(new Tag(this.app, tab));
+                            }
+                        });
+                        break;
+                    case "outline":
+                        tab = new Tab({
+                            callback: (tab: Tab) => {
+                                const outline = new Outline({
+                                    app: this.app,
+                                    type: "pin",
+                                    tab,
+                                    blockId: editor?.protyle?.block?.rootID,
+                                    isPreview: editor?.protyle?.preview ? !editor.protyle.preview.element.classList.contains("fn__none") : false
+                                });
+                                if (editor?.protyle?.block?.rootID) {
+                                    outline.updateDocTitle(editor?.protyle?.background?.ial);
+                                }
+                                tab.addModel(outline);
+                            }
+                        });
+                        break;
+                    case "graph":
+                        tab = new Tab({
+                            callback: (tab: Tab) => {
+                                tab.addModel(new Graph({
+                                    app: this.app,
+                                    tab,
+                                    blockId: editor?.protyle?.block?.rootID,
+                                    type: "pin"
+                                }));
+                            }
+                        });
+                        break;
+                    case "globalGraph":
+                        tab = new Tab({
+                            callback: (tab: Tab) => {
+                                tab.addModel(new Graph({
+                                    app: this.app,
+                                    tab,
+                                    type: "global"
+                                }));
+                            }
+                        });
+                        break;
+                    case "backlink":
+                        tab = new Tab({
+                            callback: (tab: Tab) => {
+                                tab.addModel(new Backlink({
+                                    app: this.app,
+                                    type: "pin",
+                                    tab,
+                                    blockId: editor?.protyle?.block?.rootID,
+                                }));
+                            }
+                        });
+                        break;
+                    case "inbox":
+                        tab = new Tab({
+                            callback: (tab: Tab) => {
+                                tab.addModel(new Inbox(this.app, tab));
+                            }
+                        });
+                        break;
+                    default:
+                        tab = new Tab({
+                            callback: (tab: Tab) => {
+                                let customModel;
+                                this.app.plugins.find((item: Plugin) => {
+                                    if (item.docks[type]) {
+                                        customModel = item.docks[type].model({ tab });
+                                        return true;
+                                    }
+                                });
+                                if (customModel) {
+                                    tab.addModel(customModel);
+                                }
+                            }
+                        });
+                        break;
+                }
                 wnd.addTab(tab, false, false);
                 target.setAttribute("data-id", tab.id);
                 this.data[type] = tab.model;
@@ -555,9 +858,9 @@ export class Dock {
         this.element.querySelectorAll(".dock__item--active").forEach((item) => {
             let size;
             if (this.position === "Left" || this.position === "Right") {
-                size = parseInt(item.getAttribute("data-width") || "0") || (["graph", "globalGraph", "backlink"].includes(item.getAttribute("data-type")) ? 320 : 232);
+                size = parseInt(item.getAttribute("data-width")) || (["graph", "globalGraph", "backlink"].includes(item.getAttribute("data-type")) ? 320 : 232);
             } else {
-                size = parseInt(item.getAttribute("data-height") || "0") || 232;
+                size = parseInt(item.getAttribute("data-height")) || 232;
             }
             if (size > max) {
                 max = size;
