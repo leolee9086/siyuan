@@ -34,12 +34,12 @@ import {
     isFullscreenActive, isTextFieldFocused, hasHigherZIndexOverlay,
     applyHideTransform, shouldHideOnMouseLeave, hasValidDockType
 } from "./dock.visibility";
-import { initActiveElements, initNoActiveElements, findActiveEditor, removeSourceTab, insertSourceElement } from "./dock.init";
+import { initActiveElements, initNoActiveElements, findActiveEditor, removeSourceTab, insertSourceElement, renderPinButton, initDockFiles } from "./dock.init";
 import { setSizeForItem, getMaxSize } from "./dock.size";
 
 const TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGraph", "backlink"];
 /**
- * @AITODO 尽可能减少单纯操作DOM的逻辑在主文件中的出现,例如initDockActive方法时是纯粹的dom属性操作
+ * @AIDONE 已将纯 DOM 操作方法 (renderPin, initDockFiles) 提取到 dock.init.ts
  */
 export class Dock {
     public element!: HTMLElement;
@@ -74,25 +74,19 @@ export class Dock {
     }
 
     private initDockData(data: Config.IUILayoutDockTab[][]): void {
-        if (!hasValidDockType(data, TYPES)) { this.renderPin(); this.element.classList.add("fn__none"); this.initDockFiles(); this.initDockActive(); return; }
+        if (!hasValidDockType(data, TYPES)) {
+            renderPinButton(this, getSiyuanLanguages());
+            this.element.classList.add("fn__none");
+            initDockFiles(this);
+            this.initDockActive();
+            return;
+        }
         const first = data[0]; const second = data[1];
         if (first) this.genButton(first, 0);
         if (second) this.genButton(second, 1);
-        this.element.classList.remove("fn__none"); this.initDockFiles(); this.initDockActive();
-    }
-
-    private renderPin(): void {
-        const languages = getSiyuanLanguages(); if (!languages) return;
-        const firstChild = this.element.firstElementChild; if (!firstChild) return;
-        firstChild.innerHTML = `<span class="dock__item dock__item--pin ariaLabel" aria-label="${this.pin ? languages.unpin : languages.pin}"><svg><use xlink:href="#icon${this.pin ? "Unpin" : "Pin"}"></use></svg></span>`;
-    }
-
-    private initDockFiles(): void {
-        for (const item of Array.from(this.element.querySelectorAll(".dock__item"))) {
-            if (item.getAttribute("data-type") === "file" && !item.classList.contains("dock__item--active")) {
-                this.toggleModel("file", true, false, false, false); this.toggleModel("file", false, false, false, false);
-            }
-        }
+        this.element.classList.remove("fn__none");
+        initDockFiles(this);
+        this.initDockActive();
     }
 
     private initDockActive(): void {

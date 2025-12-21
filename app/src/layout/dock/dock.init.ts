@@ -92,3 +92,25 @@ export function insertSourceElement(
     if (!container) return;
     container.insertAdjacentElement("afterbegin", sourceElement);
 }
+
+/**
+ * 渲染 pin 按钮
+ */
+export function renderPinButton(dock: Dock, languages: { unpin?: string, pin?: string } | undefined): void {
+    if (!languages) return;
+    const firstChild = dock.element.firstElementChild;
+    if (!firstChild) return;
+    firstChild.innerHTML = `<span class="dock__item dock__item--pin ariaLabel" aria-label="${dock.pin ? languages.unpin : languages.pin}"><svg><use xlink:href="#icon${dock.pin ? "Unpin" : "Pin"}"></use></svg></span>`;
+}
+
+/**
+ * 初始化 dock 文件（触发 file 类型的 toggle）
+ */
+export function initDockFiles(dock: Dock): void {
+    for (const item of Array.from(dock.element.querySelectorAll(".dock__item"))) {
+        if (item.getAttribute("data-type") === "file" && !item.classList.contains("dock__item--active")) {
+            dock.toggleModel("file", true, false, false, false);
+            dock.toggleModel("file", false, false, false, false);
+        }
+    }
+}
