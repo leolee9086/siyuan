@@ -15,11 +15,7 @@ import { isOperations, isBlockTreeArray } from "./dock.guard";
 import { Protyle } from "../../protyle";
 import { getSiyuanConfig, getSiyuanMenus, getSiyuanKeyboardState } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getTagPanelHTML, getTagSortOptions, shouldReloadTag, TAG_EDITOR_RENDER_CONFIG, genTagBlockListHTML } from "./tag.util";
-/**
- * @AIDONE tag列表应该使用跟书签列表类似的展开方式(显示块条目并且默认不展开所有编辑器)
- * 以避免展开某一个标签时,大量编辑器加载
- * 这一实现需要考虑到,跟书签列表不同,标签是有层级的,
- */
+
 export class Tag extends Model {
     private openNodes: string[] = [];
     public tree: Tree;
