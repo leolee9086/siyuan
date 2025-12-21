@@ -68,6 +68,24 @@ const COMMON_RESTRICTED_SYNTAX = [
             "替代方案: Object Literal / Map / Strategy Pattern / Polymorphism"
         ].join("\n"),
     },
+    // 禁止类的私有方法 (TypeScript private 修饰符)
+    {
+        selector: "MethodDefinition[accessibility='private']",
+        message: [
+            "❌ 禁止类的私有方法。",
+            "原因: 类应该只作为状态和公开方法的容器,私有方法没有可测试切面。",
+            "替代方案: 将私有逻辑提取为模块级辅助函数。"
+        ].join("\n"),
+    },
+    // 禁止类的私有方法 (ES2022 # 前缀)
+    {
+        selector: "MethodDefinition[key.type='PrivateIdentifier']",
+        message: [
+            "❌ 禁止类的私有方法 (# 前缀)。",
+            "原因: 类应该只作为状态和公开方法的容器,私有方法没有可测试切面。",
+            "替代方案: 将私有逻辑提取为模块级辅助函数。"
+        ].join("\n"),
+    },
 ];
 
 // 类型断言限制 (仅在非 .guard.ts 文件中生效)
