@@ -52,7 +52,9 @@ export function getType(ctor: any): string {
 
 function makeMap(str: string) {
   const map = /* @__PURE__ */ Object.create(null);
-  for (const key of str.split(",")) map[key] = 1;
+  for (const key of str.split(",")) {
+map[key] = 1;
+}
   return (val: string) => val in map;
 }
 

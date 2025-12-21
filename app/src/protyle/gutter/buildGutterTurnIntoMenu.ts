@@ -278,12 +278,24 @@ const buildHeadingMenu = (ctx: IGutterTurnIntoContext, turnIntoSubmenu: IMenu[])
         type: "Blocks2Callout"
     });
 
-    if (ctx.subType !== "h1") addTurnInto(ctx, turnIntoSubmenu, { menuId: "heading1", icon: "iconH1", label: siyuanI18n.heading1, accelerator: headingKeys.heading1.custom, type: "Blocks2Hs", level: 1 });
-    if (ctx.subType !== "h2") addTurnInto(ctx, turnIntoSubmenu, { menuId: "heading2", icon: "iconH2", label: siyuanI18n.heading2, accelerator: headingKeys.heading2.custom, type: "Blocks2Hs", level: 2 });
-    if (ctx.subType !== "h3") addTurnInto(ctx, turnIntoSubmenu, { menuId: "heading3", icon: "iconH3", label: siyuanI18n.heading3, accelerator: headingKeys.heading3.custom, type: "Blocks2Hs", level: 3 });
-    if (ctx.subType !== "h4") addTurnInto(ctx, turnIntoSubmenu, { menuId: "heading4", icon: "iconH4", label: siyuanI18n.heading4, accelerator: headingKeys.heading4.custom, type: "Blocks2Hs", level: 4 });
-    if (ctx.subType !== "h5") addTurnInto(ctx, turnIntoSubmenu, { menuId: "heading5", icon: "iconH5", label: siyuanI18n.heading5, accelerator: headingKeys.heading5.custom, type: "Blocks2Hs", level: 5 });
-    if (ctx.subType !== "h6") addTurnInto(ctx, turnIntoSubmenu, { menuId: "heading6", icon: "iconH6", label: siyuanI18n.heading6, accelerator: headingKeys.heading6.custom, type: "Blocks2Hs", level: 6 });
+    if (ctx.subType !== "h1") {
+addTurnInto(ctx, turnIntoSubmenu, { menuId: "heading1", icon: "iconH1", label: siyuanI18n.heading1, accelerator: headingKeys.heading1.custom, type: "Blocks2Hs", level: 1 });
+}
+    if (ctx.subType !== "h2") {
+addTurnInto(ctx, turnIntoSubmenu, { menuId: "heading2", icon: "iconH2", label: siyuanI18n.heading2, accelerator: headingKeys.heading2.custom, type: "Blocks2Hs", level: 2 });
+}
+    if (ctx.subType !== "h3") {
+addTurnInto(ctx, turnIntoSubmenu, { menuId: "heading3", icon: "iconH3", label: siyuanI18n.heading3, accelerator: headingKeys.heading3.custom, type: "Blocks2Hs", level: 3 });
+}
+    if (ctx.subType !== "h4") {
+addTurnInto(ctx, turnIntoSubmenu, { menuId: "heading4", icon: "iconH4", label: siyuanI18n.heading4, accelerator: headingKeys.heading4.custom, type: "Blocks2Hs", level: 4 });
+}
+    if (ctx.subType !== "h5") {
+addTurnInto(ctx, turnIntoSubmenu, { menuId: "heading5", icon: "iconH5", label: siyuanI18n.heading5, accelerator: headingKeys.heading5.custom, type: "Blocks2Hs", level: 5 });
+}
+    if (ctx.subType !== "h6") {
+addTurnInto(ctx, turnIntoSubmenu, { menuId: "heading6", icon: "iconH6", label: siyuanI18n.heading6, accelerator: headingKeys.heading6.custom, type: "Blocks2Hs", level: 6 });
+}
 };
 
 /**

@@ -40,6 +40,8 @@ export const saveCustomAIAction = (
     setStorageVal(
         Constants.LOCAL_AI,
         window.siyuan.storage[Constants.LOCAL_AI],
-        () => { ctx.onAfterSave(); }
+        () => {
+ ctx.onAfterSave(); 
+}
     );
 };

@@ -105,10 +105,14 @@ export const handlePdfClick = async (event: MouseEvent | CustomEvent, element: H
     if (externalEventClickHandler.guard(ctx)) {
         await externalEventClickHandler.handler(ctx, controller);
     }
-    if (signal.aborted) return;
+    if (signal.aborted) {
+return;
+}
 
     const target = event.target as HTMLElement;
-    if (!target) return;
+    if (!target) {
+return;
+}
 
     // 1. 处理颜色方块点击
     const colorSquare = target.closest(`.${AnnoConstants.CSS.COLOR_SQUARE}`) as HTMLElement;

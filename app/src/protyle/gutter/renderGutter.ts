@@ -27,14 +27,20 @@ import { getParentBlock, getTopAloneElement } from "../wysiwyg/getBlock";
 export const renderGutter = (protyle: IProtyle, element: Element, options: { target?: Element | undefined, gutterElement: HTMLElement, gutterTip: string }) => {
     // 检查标题是否已渲染完成，防止在标题未渲染时显示 Gutter
     // 参考: https://github.com/siyuan-note/siyuan/issues/4659
-    if (protyle.title && protyle.title.element.getAttribute("data-render") !== "true") return;
+    if (protyle.title && protyle.title.element.getAttribute("data-render") !== "true") {
+return;
+}
     
     // 防止在文本选择时触碰图标导致高亮无法移除
     const selectElement = protyle.element.querySelector(".protyle-select");
-    if (selectElement && !selectElement.classList.contains("fn__none")) return;
+    if (selectElement && !selectElement.classList.contains("fn__none")) {
+return;
+}
     
     // 确保内容元素存在
-    if (!protyle.contentElement) return;
+    if (!protyle.contentElement) {
+return;
+}
 
     const { target, gutterElement, gutterTip } = options;
     const result = buildGutterHtml(protyle, element, target, gutterTip, gutterElement);
@@ -71,70 +77,104 @@ export const renderGutter = (protyle: IProtyle, element: Element, options: { tar
 const buildGutterHtml = (protyle: IProtyle, element: Element, target: Element | undefined, gutterTip: string, gutterElement: HTMLElement) => {
     // 处理属性视图（Attribute View）的特殊情况
     const avResult = handleAttributeView(target, element, protyle, element.getAttribute("data-type"));
-    if (avResult) return { html: avResult.html, match: false, space: 0, element: avResult.element };
+    if (avResult) {
+return { html: avResult.html, match: false, space: 0, element: avResult.element };
+}
 
     // 计算初始节点和列表项
     const initial = calculateInitialNode(element, target);
-    if (initial.shouldReturn) return { html: "", match: false, space: 0, element: element };
+    if (initial.shouldReturn) {
+return { html: "", match: false, space: 0, element: element };
+}
     let { nodeElement, listItem } = initial;
     let html = "", space = 0, index = 0, hideParent = false;
 
     // 遍历元素的父级链，为每个需要显示 Gutter 的元素生成按钮
     while (nodeElement) {
-        if (!nodeElement.parentElement) break;
+        if (!nodeElement.parentElement) {
+break;
+}
         const inputParent = hasClosestBlock(nodeElement.parentElement);
         const parentElement = inputParent === false ? undefined : inputParent;
         
         // 检查是否为嵌入块
         const embedCheck = checkEmbedBlock(nodeElement, parentElement);
-        if (embedCheck.shouldBreak) break;
+        if (embedCheck.shouldBreak) {
+break;
+}
         if (embedCheck.shouldContinue) {
             nodeElement = embedCheck.nodeElement!;
             continue;
         }
 
         let type: string | null = null;
-        if (!hideParent) type = nodeElement.getAttribute("data-type");
+        if (!hideParent) {
+type = nodeElement.getAttribute("data-type");
+}
         
         // 处理列表项的特殊情况
-        if (type === "NodeListItem" && index === 1) html = "";
+        if (type === "NodeListItem" && index === 1) {
+html = "";
+}
         index += 1;
 
         // 生成按钮 HTML
         const { buttonHTML, foldHTML } = generateButtonHtml(protyle, nodeElement, type, gutterTip, nodeElement.getAttribute("data-node-id"));
-        if (!hideParent) html = buttonHTML + html;
+        if (!hideParent) {
+html = buttonHTML + html;
+}
 
         // 处理列表项和列表
-        if (type === "NodeListItem" || type === "NodeList") listItem = nodeElement;
-        if (type === "NodeListItem" && nodeElement.childElementCount > 3) html = buttonHTML + foldHTML;
+        if (type === "NodeListItem" || type === "NodeList") {
+listItem = nodeElement;
+}
+        if (type === "NodeListItem" && nodeElement.childElementCount > 3) {
+html = buttonHTML + foldHTML;
+}
 
         // 处理标题
-        if (type === "NodeHeading") html = html + foldHTML;
+        if (type === "NodeHeading") {
+html = html + foldHTML;
+}
         
         // 处理引用块和标注块，增加缩进
-        if (["NodeBlockquote", "NodeCallout"].includes(type || "")) space += 8;
+        if (["NodeBlockquote", "NodeCallout"].includes(type || "")) {
+space += 8;
+}
 
         // 处理父级逻辑
         const parentLogic = handleParentLogic(nodeElement, parentElement);
-        if (parentLogic.shouldReturn) return { html: "", match: false, space: 0, element: element };
-        if (parentLogic.hideParent) hideParent = true;
+        if (parentLogic.shouldReturn) {
+return { html: "", match: false, space: 0, element: element };
+}
+        if (parentLogic.hideParent) {
+hideParent = true;
+}
         space += parentLogic.space;
 
-        if (!parentElement) break;
+        if (!parentElement) {
+break;
+}
         nodeElement = parentElement;
     }
 
     // 检查生成的 HTML 是否与现有按钮匹配
     let match = true;
     const buttonsElement = gutterElement.querySelectorAll("button");
-    if (buttonsElement.length !== html.split("</button>").length - 1) match = false;
+    if (buttonsElement.length !== html.split("</button>").length - 1) {
+match = false;
+}
 
     if (match) {
         for (const item of Array.from(buttonsElement)) {
             const id = item.getAttribute("data-node-id");
-            if (id && html.indexOf(id) === -1) { match = false; break; }
+            if (id && html.indexOf(id) === -1) {
+ match = false; break; 
+}
             const rowId = item.getAttribute("data-row-id");
-            if ((rowId && html.indexOf(rowId) === -1) || (!rowId && html.indexOf("NodeAttributeViewRowMenu") > -1)) { match = false; break; }
+            if ((rowId && html.indexOf(rowId) === -1) || (!rowId && html.indexOf("NodeAttributeViewRowMenu") > -1)) {
+ match = false; break; 
+}
         }
     }
     
@@ -152,10 +192,14 @@ const buildGutterHtml = (protyle: IProtyle, element: Element, target: Element | 
  */
 const checkEmbedBlock = (nodeElement: Element, parentElement: Element | undefined | null) => {
     // 如果不是嵌入块，无需特殊处理
-    if (!isInEmbedBlock(nodeElement)) return {};
+    if (!isInEmbedBlock(nodeElement)) {
+return {};
+}
     
     // 如果没有父级元素，应该中断处理
-    if (!parentElement) return { shouldBreak: true };
+    if (!parentElement) {
+return { shouldBreak: true };
+}
     
     // 继续处理父级元素
     return { nodeElement: parentElement, shouldContinue: true };
@@ -180,7 +224,9 @@ const calculateInitialNode = (element: Element, target: Element | undefined) => 
     const isInfoCallout = target && type === "NodeCallout" && hasTopClosestByClassName(target, "callout-info");
     
     // 如果是特殊类型且不是信息标注，则直接返回
-    if (isSpecialType && !isInfoCallout) return { nodeElement, shouldReturn: true };
+    if (isSpecialType && !isInfoCallout) {
+return { nodeElement, shouldReturn: true };
+}
 
     // 获取顶级独立元素
     let topElement = getTopAloneElement(nodeElement);
@@ -193,7 +239,9 @@ const calculateInitialNode = (element: Element, target: Element | undefined) => 
     
     // 查找列表项
     let listItem = topElement.querySelector(".li") || topElement.querySelector(".list") || undefined;
-    if (listItem && (isInEmbedBlock(listItem) || isInAVBlock(listItem))) listItem = undefined;
+    if (listItem && (isInEmbedBlock(listItem) || isInAVBlock(listItem))) {
+listItem = undefined;
+}
 
     // 如果顶级元素不是当前元素且不是标题或标注，则使用顶级元素
     if (topElement !== nodeElement && type !== "NodeHeading" && !topElement.classList.contains("callout")) {
@@ -225,10 +273,14 @@ const handleParentLogic = (nodeElement: Element, parentElement: Element | undefi
     }
     
     // 如果父级元素已折叠，则应该中断处理
-    if (shouldCheckParent && parentElement && parentElement.getAttribute("fold") === "1") shouldReturn = true;
+    if (shouldCheckParent && parentElement && parentElement.getAttribute("fold") === "1") {
+shouldReturn = true;
+}
     
     // 如果父级元素是引用块或标注块，增加缩进
-    if (shouldCheckParent && parentElement && ["NodeBlockquote", "NodeCallout"].includes(parentElement.getAttribute("data-type") || "")) space = 8;
+    if (shouldCheckParent && parentElement && ["NodeBlockquote", "NodeCallout"].includes(parentElement.getAttribute("data-type") || "")) {
+space = 8;
+}
     
     return { hideParent, space, shouldReturn };
 };
@@ -247,11 +299,15 @@ const handleParentLogic = (nodeElement: Element, parentElement: Element | undefi
  */
 const handleAttributeView = (target: Element | undefined, nodeElement: Element, protyle: IProtyle, type: string | null) => {
     // 如果不是属性视图或没有目标元素，则不处理
-    if (type !== "NodeAttributeView" || !target) return null;
+    if (type !== "NodeAttributeView" || !target) {
+return null;
+}
     
     // 查找行元素
     const rowElement = hasClosestByClassName(target, "av__row");
-    if (!rowElement || rowElement.classList.contains("av__row--header") || !rowElement.dataset.id) return null;
+    if (!rowElement || rowElement.classList.contains("av__row--header") || !rowElement.dataset.id) {
+return null;
+}
 
     // 获取属性视图主体元素
     const bodyElement = hasClosestByClassName(rowElement, "av__body") as HTMLElement;
@@ -299,11 +355,15 @@ const handleAttributeView = (target: Element | undefined, nodeElement: Element, 
 const generateButtonHtml = (protyle: IProtyle, nodeElement: Element, type: string | null, gutterTip: string, dataNodeId: string | null) => {
     // 根据编辑器状态调整提示文本
     let currentGutterTip = gutterTip;
-    if (protyle.disabled) currentGutterTip = gutterTip.split("<br>").splice(0, 2).join("<br>");
+    if (protyle.disabled) {
+currentGutterTip = gutterTip.split("<br>").splice(0, 2).join("<br>");
+}
     
     // 处理反向链接数据的情况
     let popoverHTML = "";
-    if (protyle.options.backlinkData) popoverHTML = `class="popover__block" data-id="${dataNodeId}"`;
+    if (protyle.options.backlinkData) {
+popoverHTML = `class="popover__block" data-id="${dataNodeId}"`;
+}
     
     // 生成主按钮 HTML
     const buttonHTML = `<button class="ariaLabel" data-position="parentW" aria-label="${currentGutterTip}"
@@ -440,7 +500,9 @@ const setGutterPosition = (protyle: IProtyle, element: Element, gutterElement: H
         let html = "";
         const children = Array.from(gutterElement.children).reverse();
         for (const [index, item] of children.entries()) {
-            if (index !== 0) (item.firstElementChild as HTMLElement).style.height = "14px";
+            if (index !== 0) {
+(item.firstElementChild as HTMLElement).style.height = "14px";
+}
             html += item.outerHTML;
         }
         gutterElement.innerHTML = html;
@@ -449,5 +511,7 @@ const setGutterPosition = (protyle: IProtyle, element: Element, gutterElement: H
     
     // 重置 SVG 高度
     const svgList = gutterElement.querySelectorAll("svg");
-    for (const item of svgList) item.style.height = "";
+    for (const item of svgList) {
+item.style.height = "";
+}
 };

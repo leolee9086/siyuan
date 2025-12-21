@@ -45,7 +45,9 @@ const createRenameBookmarkMenuItem = (element: HTMLElement): MenuItem | null => 
         label: siyuanI18n.rename,
         click: () => {
             const textElement = element.querySelector(".b3-list-item__text");
-            if (!textElement) return;
+            if (!textElement) {
+return;
+}
 
             const oldBookmark = textElement.textContent || "";
             const dialog = new Dialog({

@@ -40,7 +40,9 @@ function 处理点击目标(event: MouseEvent, context: ClickHandlerContext) {
         const handled = 分派点击处理(target, {
             searchListElement, searchTreeElement, toggleMovePathHistory, options, dialog, event
         });
-        if (handled) break;
+        if (handled) {
+break;
+}
         target = target.parentElement as HTMLElement;
     }
 }
@@ -107,8 +109,12 @@ function 处理确认按钮点击(
     for (const item of currentItemElements) {
         const path = item.getAttribute("data-path");
         const box = item.getAttribute("data-box");
-        if (path) pathList.push(path);
-        if (box) notebookIdList.push(box);
+        if (path) {
+pathList.push(path);
+}
+        if (box) {
+notebookIdList.push(box);
+}
     }
     options.cb(pathList, notebookIdList);
     dialog.destroy();

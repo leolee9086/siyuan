@@ -69,8 +69,12 @@ export const useImageProcessing = () => {
 
   // 计算属性
   const statusMessage = computed(() => {
-    if (isProcessing.value) return "正在处理图像...";
-    if (!originalImage.value) return "请选择图像文件";
+    if (isProcessing.value) {
+return "正在处理图像...";
+}
+    if (!originalImage.value) {
+return "请选择图像文件";
+}
     return "就绪";
   });
 
@@ -89,7 +93,9 @@ export const useImageProcessing = () => {
     dehazeFunction: (imageData: ImageData, params: ProcessingParams) => Promise<ProcessingResult>, 
     params: ProcessingParams
   ) => {
-    if (!imageElement) return;
+    if (!imageElement) {
+return;
+}
 
     isProcessing.value = true;
     error.value = "";
@@ -100,7 +106,9 @@ export const useImageProcessing = () => {
       // 创建canvas获取图像数据
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
-      if (!ctx) throw new Error("无法获取Canvas上下文");
+      if (!ctx) {
+throw new Error("无法获取Canvas上下文");
+}
       
       canvas.width = imageElement.naturalWidth;
       canvas.height = imageElement.naturalHeight;
@@ -130,7 +138,9 @@ export const useImageProcessing = () => {
       // 将处理后的图像数据转换为canvas
       const resultCanvas = document.createElement("canvas");
       const resultCtx = resultCanvas.getContext("2d");
-      if (!resultCtx) throw new Error("无法获取结果Canvas上下文");
+      if (!resultCtx) {
+throw new Error("无法获取结果Canvas上下文");
+}
       
       resultCanvas.width = result.imageData.width;
       resultCanvas.height = result.imageData.height;
@@ -217,7 +227,9 @@ export const useImageProcessing = () => {
 const estimateImageDataSize = (width: number, height: number): string => {
   // RGBA格式，每个像素4字节
   const bytes = width * height * 4;
-  if (bytes === 0) return "0 Bytes";
+  if (bytes === 0) {
+return "0 Bytes";
+}
   const k = 1024;
   const sizes = ["Bytes", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));

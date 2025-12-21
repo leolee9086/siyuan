@@ -58,7 +58,7 @@ export class Tree {
         let html = `<ul${data[0].depth === 0 ? " class='b3-list b3-list--background'" : ""}>`;
         data.forEach((item) => {
             let titleTip = "";
-            let iconHTML = '<svg class="b3-list-item__graphic"><use xlink:href="#iconFolder"></use></svg>';
+            let iconHTML = `<svg class="b3-list-item__graphic"><use xlink:href="#${item.icon || "iconFolder"}"></use></svg>`;
             if (item.type === "bookmark") {
                 iconHTML = '<svg class="b3-list-item__graphic"><use xlink:href="#iconBookmark"></use></svg>';
             } else if (item.type === "tag") {
@@ -83,7 +83,7 @@ export class Tree {
             } else {
                 style = `padding-left: ${(item.depth * 18) || 4}px;margin-right: 2px`;
             }
-            const showArrow = hasChild || ((item.type === "backlink" || item.type === "bookmark" || item.type === "tag") && !isMobile());
+            const showArrow = item.showArrow || hasChild || ((item.type === "backlink" || item.type === "bookmark" || item.type === "tag") && !isMobile());
             // data-id 需要添加 item.id，否则大纲更新时 name 不一致导致 https://github.com/siyuan-note/siyuan/issues/11843
             html += `<li class="b3-list-item${isMobile() ? "" : " b3-list-item--hide-action"}" 
 ${item.id ? 'data-node-id="' + item.id + '"' : ""} 

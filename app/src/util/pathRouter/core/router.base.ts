@@ -57,7 +57,9 @@ class baseRouter<
     public host?: string | RegExp;
     
     constructor(opts: RouterOptions = {}) {
-        if (!(this instanceof baseRouter)) return new baseRouter(opts);
+        if (!(this instanceof baseRouter)) {
+return new baseRouter(opts);
+}
 
         // 将传入的选项赋值给this.opts
         this.opts = opts;
@@ -136,7 +138,9 @@ class baseRouter<
         // lookup source route by name
         if (typeof source === "symbol" || (typeof source === "string" && source[0] !== "/")) {
             const sourceResult = this.url(source);
-            if (sourceResult instanceof Error) throw sourceResult;
+            if (sourceResult instanceof Error) {
+throw sourceResult;
+}
             source = sourceResult;
         }
         // lookup destination route by name
@@ -145,7 +149,9 @@ class baseRouter<
             (typeof destination === "string" && destination[0] !== "/" && !destination.includes("://"))
         ) {
             const destResult = this.url(destination);
-            if (destResult instanceof Error) throw destResult;
+            if (destResult instanceof Error) {
+throw destResult;
+}
             destination = destResult;
         }
         return this.all(null, source, (ctx: Context) => {
@@ -164,7 +170,9 @@ class baseRouter<
         const routes = this.stack;
 
         for (let len = routes.length, i = 0; i < len; i++) {
-            if (routes[i].name && routes[i].name === name) return routes[i];
+            if (routes[i].name && routes[i].name === name) {
+return routes[i];
+}
         }
 
         return false;
@@ -173,7 +181,9 @@ class baseRouter<
     // url方法
     url(name: string | RegExp | symbol, ...args: any): string | Error {
         const route = this.route(name);
-        if (route) return route.url.apply(route, args);
+        if (route) {
+return route.url.apply(route, args);
+}
         return new Error(`No route found for name: ${String(name)}`);
     }
 

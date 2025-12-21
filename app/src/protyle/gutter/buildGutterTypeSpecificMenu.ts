@@ -34,7 +34,9 @@ function appendMenuItems(menu: Menu, items: IMenu[]): void {
 
 /** 处理超级块菜单 */
 function handleSuperBlockMenu(protyle: IProtyle, nodeElement: Element, id: string): boolean {
-    if (protyle.disabled) return false;
+    if (protyle.disabled) {
+return false;
+}
     const menu = getSiyuanGlobalMenus().menu;
     menu.append(new MenuItem({
         id: "separator_cancelSuperBlock",
@@ -46,7 +48,9 @@ function handleSuperBlockMenu(protyle: IProtyle, nodeElement: Element, id: strin
 
 /** 处理代码块菜单 */
 function handleCodeBlockMenu(protyle: IProtyle, nodeElement: Element, id: string): boolean {
-    if (protyle.disabled) return false;
+    if (protyle.disabled) {
+return false;
+}
     const subtype = nodeElement.getAttribute("data-subtype") || "";
     const menu = getSiyuanGlobalMenus().menu;
 
@@ -75,7 +79,9 @@ function handleCodeBlockMenu(protyle: IProtyle, nodeElement: Element, id: string
 
 /** 处理表格菜单 */
 function handleTableMenu(protyle: IProtyle, nodeElement: Element): boolean {
-    if (protyle.disabled) return false;
+    if (protyle.disabled) {
+return false;
+}
     appendMenuItems(getSiyuanGlobalMenus().menu, buildGutterTableMenu(protyle, nodeElement));
     return true;
 }
@@ -88,14 +94,18 @@ function handleAttributeViewMenu(protyle: IProtyle, nodeElement: Element, id: st
 
 /** 处理媒体菜单（视频、音频、iframe、HTML块） */
 function handleMediaMenu(protyle: IProtyle, nodeElement: Element, type: string): boolean {
-    if (protyle.disabled) return false;
+    if (protyle.disabled) {
+return false;
+}
     appendMenuItems(getSiyuanGlobalMenus().menu, buildGutterMediaMenu(protyle, nodeElement, type));
     return true;
 }
 
 /** 处理嵌入块菜单 */
 function handleEmbedMenu(protyle: IProtyle, nodeElement: Element, id: string): boolean {
-    if (protyle.disabled) return false;
+    if (protyle.disabled) {
+return false;
+}
     const menu = getSiyuanGlobalMenus().menu;
     menu.append(new MenuItem({ id: "separator_blockEmbed", type: "separator" }).element);
     menu.append(new MenuItem(buildGutterEmbedMenu(protyle, nodeElement, id)).element);
@@ -109,7 +119,9 @@ function handleHeadingMenu(
     id: string,
     subType: string | null
 ): boolean {
-    if (protyle.disabled) return false;
+    if (protyle.disabled) {
+return false;
+}
     const menu = getSiyuanGlobalMenus().menu;
     const { 标题级别转换, 其他操作 } = buildGutterHeadingMenu({
         protyle,

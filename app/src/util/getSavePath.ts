@@ -7,7 +7,9 @@ const 创建保存路径响应处理器 = (
     notebookId: string,
     cb: (p: string, notebookId: string) => void
 ) => (data: IWebSocketData) => {
-    if (!data.data) return;
+    if (!data.data) {
+return;
+}
     let targetPath = pathString;
     if (notebookId !== data.data.box) {
         targetPath = data.data.path || "/";

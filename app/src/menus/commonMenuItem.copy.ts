@@ -163,7 +163,9 @@ const copyMarkdownItem = (ctx: copyMenuCtxData) => {
         label: siyuanI18n.copyMarkdown,
         accelerator: "",
         click: async () => {
-            if (!ctx.stdMarkdownId) return;
+            if (!ctx.stdMarkdownId) {
+return;
+}
             const response = await fetchSyncPost("/api/export/exportMdContent", {
                 id: ctx.stdMarkdownId,
                 refMode: 3,

@@ -164,8 +164,12 @@ function 处理确认键(
     for (const item of currentItemElements) {
         const path = item.getAttribute("data-path");
         const box = item.getAttribute("data-box");
-        if (path) pathList.push(path);
-        if (box) notebookIdList.push(box);
+        if (path) {
+pathList.push(path);
+}
+        if (box) {
+notebookIdList.push(box);
+}
     }
     options.cb(pathList, notebookIdList);
     dialog.destroy();

@@ -39,7 +39,9 @@ export function hasBlockingOverlay(): boolean {
     const hasDialog = document.querySelector(".b3-dialog");
     const hasPopover = document.querySelector(".block__popover");
     const hasMenu = document.querySelector("#commonMenu:not(.fn__none)");
-    if (!hasDialog && !hasPopover && !hasMenu) return false;
+    if (!hasDialog && !hasPopover && !hasMenu) {
+return false;
+}
 
     const siyuanLayout = getSiyuanLayout();
     const leftOpacity = siyuanLayout?.leftDock?.layout?.element?.style?.opacity === "1";
@@ -80,7 +82,9 @@ export function isFullscreenActive(dock: Dock): boolean {
  */
 export function isTextFieldFocused(dock: Dock): boolean {
     const activeEl = document.activeElement;
-    if (!activeEl) return false;
+    if (!activeEl) {
+return false;
+}
     const isTextField = activeEl.classList.contains("b3-text-field");
     return dock.layout.element.contains(activeEl) && isTextField;
 }
@@ -94,9 +98,15 @@ export function hasHigherZIndexOverlay(dock: Dock): boolean {
     const blockElement = document.querySelector(".block__popover");
     const menuElement = document.querySelector("#commonMenu:not(.fn__none)");
 
-    if (dialogElement instanceof HTMLElement && dialogElement.style.zIndex > layoutZIndex) return true;
-    if (blockElement instanceof HTMLElement && blockElement.style.zIndex > layoutZIndex) return true;
-    if (menuElement instanceof HTMLElement && menuElement.style.zIndex > layoutZIndex) return true;
+    if (dialogElement instanceof HTMLElement && dialogElement.style.zIndex > layoutZIndex) {
+return true;
+}
+    if (blockElement instanceof HTMLElement && blockElement.style.zIndex > layoutZIndex) {
+return true;
+}
+    if (menuElement instanceof HTMLElement && menuElement.style.zIndex > layoutZIndex) {
+return true;
+}
     return false;
 }
 
@@ -128,14 +138,24 @@ export function shouldHideOnMouseLeave(
     event: MouseEvent,
     toElement: HTMLElement | null
 ): boolean {
-    if (event.buttons !== 0 || dock.pin) return false;
+    if (event.buttons !== 0 || dock.pin) {
+return false;
+}
     if (toElement) {
         const isMenuOrTooltip = toElement.classList.contains("b3-menu") || toElement.classList.contains("tooltip");
-        if (isMenuOrTooltip) return false;
+        if (isMenuOrTooltip) {
+return false;
+}
     }
-    if (dock.position === "Left" && event.clientX < 43) return false;
-    if (dock.position === "Right" && event.clientX > getWindowInnerWidth() - 43) return false;
-    if (dock.position === "Bottom" && event.clientY > getWindowInnerHeight() - 73) return false;
+    if (dock.position === "Left" && event.clientX < 43) {
+return false;
+}
+    if (dock.position === "Right" && event.clientX > getWindowInnerWidth() - 43) {
+return false;
+}
+    if (dock.position === "Bottom" && event.clientY > getWindowInnerHeight() - 73) {
+return false;
+}
     return true;
 }
 

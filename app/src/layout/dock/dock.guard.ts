@@ -19,7 +19,7 @@ export function isWnd(child: Layout | Wnd | unknown): child is Wnd {
  * 判断类型字符串是否为有效的 TDock 类型
  */
 export function isTDock(type: string | null | undefined): type is TDock {
-    return type !== null && type !== undefined && DOCK_TYPES.includes(type);
+    return type !== null && type !== undefined && (DOCK_TYPES.includes(type) || type.startsWith("custom_list:"));
 }
 
 const checkString = (val: unknown) => val === undefined || typeof val === "string";

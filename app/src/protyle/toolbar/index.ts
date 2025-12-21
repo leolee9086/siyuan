@@ -874,9 +874,15 @@ export class Toolbar {
                     const bStartsWith = b.toLowerCase().startsWith(lowerCaseValue);
 
                     // 两者都匹配开头时，短字符串优先
-                    if (aStartsWith && bStartsWith) return a.length - b.length;
-                    if (aStartsWith) return -1;
-                    if (bStartsWith) return 1;
+                    if (aStartsWith && bStartsWith) {
+return a.length - b.length;
+}
+                    if (aStartsWith) {
+return -1;
+}
+                    if (bStartsWith) {
+return 1;
+}
 
                     // 都不匹配时保持原顺序
                     return 0;

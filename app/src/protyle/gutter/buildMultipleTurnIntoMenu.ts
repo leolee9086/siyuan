@@ -25,7 +25,9 @@ export const 检查选中元素状态 = (selectsElement: Element[]): { isList: b
 
     for (let index = 0; index < 元素数量; index++) {
         const item = selectsElement[index];
-        if (!item) continue;
+        if (!item) {
+continue;
+}
         if (item.classList.contains("li")) {
             isList = true;
             break;

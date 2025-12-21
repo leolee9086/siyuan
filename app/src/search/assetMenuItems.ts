@@ -8,22 +8,30 @@ export const createSortMenuItems = (localData: ISearchAssetOption, cb: () => voi
     iconHTML: "",
     label: siyuanI18n.sortByRankAsc,
     current: localData.sort === 1,
-    click() { localData.sort = 1; cb(); }
+    click() {
+ localData.sort = 1; cb(); 
+}
 }, {
     iconHTML: "",
     label: siyuanI18n.sortByRankDesc,
     current: localData.sort === 0,
-    click() { localData.sort = 0; cb(); }
+    click() {
+ localData.sort = 0; cb(); 
+}
 }, {
     iconHTML: "",
     label: siyuanI18n.modifiedASC,
     current: localData.sort === 3,
-    click() { localData.sort = 3; cb(); }
+    click() {
+ localData.sort = 3; cb(); 
+}
 }, {
     iconHTML: "",
     label: siyuanI18n.modifiedDESC,
     current: localData.sort === 2,
-    click() { localData.sort = 2; cb(); }
+    click() {
+ localData.sort = 2; cb(); 
+}
 }];
 
 /** 创建布局子菜单 */

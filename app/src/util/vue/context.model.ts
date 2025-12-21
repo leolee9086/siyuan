@@ -145,6 +145,8 @@ export const 创建响应式vmodel绑定器 = <TValue = any>(
     绑定器: (组件: VueComponent, 配置?: ComponentWrapperConfig<any, any>) =>
       绑定组件vmodel到带有getter函数和setter函数的值对象(组件, 值对象, 配置, getter函数名, setter函数名),
     获取值: () => 当前值,
-    设置值: (value: TValue) => { 当前值 = value; }
+    设置值: (value: TValue) => {
+ 当前值 = value; 
+}
   };
 };

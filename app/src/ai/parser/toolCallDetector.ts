@@ -43,14 +43,20 @@ export function 从块DOM提取首个符合条件的特定语言代码块内容(
         const span = languageSpans[i];
 
         // 确保span存在
-        if (!span) continue;
+        if (!span) {
+continue;
+}
 
         // 检查语言是否匹配，不匹配则继续下一个
-        if (span.textContent !== language) continue;
+        if (span.textContent !== language) {
+continue;
+}
 
         // 提取代码块信息
         const codeBlockInfo = 提取代码块信息(span);
-        if (!codeBlockInfo) continue;
+        if (!codeBlockInfo) {
+continue;
+}
 
         const { codeElement, codeContent, blockElement } = codeBlockInfo;
 

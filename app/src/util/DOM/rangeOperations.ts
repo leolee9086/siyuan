@@ -11,7 +11,9 @@ export const mergeNodes = (nodes: NodeListOf<ChildNode>): void => {
 const processNodes = (nodes: NodeListOf<ChildNode>): void => {
     for (let i = 0; i < nodes.length; i++) {
         const currentNode = nodes[i];
-        if (!currentNode) continue;
+        if (!currentNode) {
+continue;
+}
         // 处理 WBR 标签
         if (currentNode.nodeType !== Node.TEXT_NODE && currentNode.nodeName === "WBR") {
             currentNode.remove();

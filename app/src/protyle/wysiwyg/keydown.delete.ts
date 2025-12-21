@@ -65,8 +65,7 @@ export const deleteKeyMiddleware = async (
             }
             if (previousSibling.classList.contains("img")) {
                 previousSibling.classList.add("img--select");
-            }
-            else if (nodeDataType.indexOf("inline-math") > -1) {
+            } else if (nodeDataType.indexOf("inline-math") > -1) {
                 // 数学公式相邻中有 zwsp,无法删除
                 previousSibling.after(document.createElement("wbr"));
                 const oldHTML = nodeElement.outerHTML;

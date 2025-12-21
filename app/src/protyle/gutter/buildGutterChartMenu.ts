@@ -70,7 +70,9 @@ export function buildGutterChartMenu(context: IGutterChartMenuContext): IMenu {
                             protyle,
                             id,
                             () => html,
-                            (newHtml) => { html = newHtml; }
+                            (newHtml) => {
+ html = newHtml; 
+}
                         );
                     });
                 }

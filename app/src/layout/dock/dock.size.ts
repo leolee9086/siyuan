@@ -15,7 +15,9 @@ const GRAPH_TYPES = ["graph", "globalGraph", "backlink"];
 export function setSizeForItem(dock: Dock, item: Element, totalActive: number): void {
     const index = item.getAttribute("data-index");
     const type = item.getAttribute("data-type");
-    if (!isTDock(type)) return;
+    if (!isTDock(type)) {
+return;
+}
 
     const isHorizontal = dock.position === "Left" || dock.position === "Right";
     if (isHorizontal) {
@@ -78,7 +80,9 @@ export function getSizeForItem(dock: Dock, item: Element): number {
     const attrVal = item.getAttribute(sizeAttr);
     if (attrVal) {
         const parsed = parseInt(attrVal, 10);
-        if (parsed > 0) return parsed;
+        if (parsed > 0) {
+return parsed;
+}
     }
 
     const type = item.getAttribute("data-type");

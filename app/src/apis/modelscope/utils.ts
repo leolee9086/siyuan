@@ -9,7 +9,9 @@ import type { 思源代理响应 } from "./types";
  */
 export function 转换请求头(headersInit?: HeadersInit): Record<string, string> {
     const headers: Record<string, string> = {};
-    if (!headersInit) return headers;
+    if (!headersInit) {
+return headers;
+}
 
     if (Array.isArray(headersInit)) {
         for (const [key, value] of headersInit) {
@@ -44,7 +46,9 @@ export function 解码Base64(str: string): string {
  */
 function 获取错误信息(data: { statusCode: number; body?: string }): string {
     let msg = `HTTP ${data.statusCode}`;
-    if (!data.body) return msg;
+    if (!data.body) {
+return msg;
+}
 
     try {
         msg += `: ${解码Base64(data.body)}`;

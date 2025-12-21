@@ -53,7 +53,9 @@ const 创建临时消息 = (message: string, timeout: number, type: string, mess
 };
 
 const 设置消息超时 = (id: string, timeout: number, element?: Element) => {
-    if (timeout <= 0) return;
+    if (timeout <= 0) {
+return;
+}
     const timeoutId = window.setTimeout(() => hideMessage(id), timeout);
     element?.setAttribute("data-timeoutid", timeoutId.toString());
     return timeoutId;

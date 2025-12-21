@@ -156,7 +156,9 @@ const calculateDockSize = (selector: string) => {
     const bigType = ["graph", "inbox", "globalGraph", "backlink"];
     for (let i = 0; i < dockItems.length; i++) {
         const item = dockItems[i];
-        if (!item) continue;
+        if (!item) {
+continue;
+}
         const type = item.getAttribute("data-type");
         if (type && bigType.includes(type)) {
             return 320;

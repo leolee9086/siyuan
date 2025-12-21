@@ -142,7 +142,9 @@ export default class BaseLayer implements LayerLike {
       return [];
     }
     const match = path.match(this.regexp);
-    if (!match) return [];
+    if (!match) {
+return [];
+}
 
     return match.slice(1);
   }

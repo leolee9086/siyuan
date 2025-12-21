@@ -4,8 +4,9 @@ export const cancelDrag = () => {
     if (ghostElement) {
         if (ghostElement.dataset.ghostType === "dock") {
             ghostElement.parentElement?.querySelectorAll(".dock__item").forEach((item) => {
-                if(item instanceof HTMLElement)
-                item.style.opacity = "";
+                if(item instanceof HTMLElement) {
+item.style.opacity = "";
+}
             });
             document.querySelector("#dockMoveItem")?.remove();
         } else {

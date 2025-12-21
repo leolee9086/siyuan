@@ -353,9 +353,15 @@ export const updateHotkeyTip = (hotkey: string) => {
         return hotkey;
     }
     const keys = [];
-    if ((hotkey.indexOf("⌘") > -1 || hotkey.indexOf("⌃") > -1)) keys.push("Ctrl");
-    if (hotkey.indexOf("⇧") > -1) keys.push("Shift");
-    if (hotkey.indexOf("⌥") > -1) keys.push("Alt");
+    if ((hotkey.indexOf("⌘") > -1 || hotkey.indexOf("⌃") > -1)) {
+keys.push("Ctrl");
+}
+    if (hotkey.indexOf("⇧") > -1) {
+keys.push("Shift");
+}
+    if (hotkey.indexOf("⌥") > -1) {
+keys.push("Alt");
+}
 
     // 不能去最后一个，需匹配 F2
     const lastKey = hotkey.replace(/[⌘⇧⌥⌃]/g, "");

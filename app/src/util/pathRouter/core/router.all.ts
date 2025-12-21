@@ -137,8 +137,9 @@ export function all<
         typeof actualPath !== "string" &&
         !(actualPath instanceof RegExp) &&
         (!Array.isArray(actualPath) || actualPath.length === 0)
-    )
-        throw new Error("You have to provide a path when adding an all handler");
+    ) {
+throw new Error("You have to provide a path when adding an all handler");
+}
     
     router.register(actualPath, methods, middleware, { name: actualName });
     return router ;

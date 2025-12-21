@@ -202,13 +202,19 @@ export const expandSelectMiddleware = async (
     const signal = controller.signal;
 
     await expandUpSelectMiddleware(event, protyle, nodeElement, editorElement, range, controller);
-    if (signal.aborted) { return; }
+    if (signal.aborted) {
+ return; 
+}
 
     await expandDownSelectMiddleware(event, protyle, nodeElement, editorElement, range, controller);
-    if (signal.aborted) { return; }
+    if (signal.aborted) {
+ return; 
+}
 
     await shiftUpSelectMiddleware(event, protyle, nodeElement, editorElement, range, controller);
-    if (signal.aborted) { return; }
+    if (signal.aborted) {
+ return; 
+}
 
     await shiftDownSelectMiddleware(event, protyle, nodeElement, editorElement, range, controller);
 };

@@ -19,7 +19,9 @@ function isText(mime: string | null): boolean {
   }
   if (mime == "application/x-javascript") {
     return true;
-  } else return false;
+  } else {
+return false;
+}
 }
 
 export class Workspace {
@@ -187,8 +189,7 @@ export class Workspace {
           return file.name === name;
         });
         return result || undefined;
-      }
-      else {
+      } else {
         console.warn(`无效的路径: ${name}`);
         return undefined;
       }

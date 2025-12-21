@@ -44,7 +44,9 @@ export function match(stack: LayerLike[], path: string, method: string): MatchRe
 
             if (layer.methods.length === 0 || ~layer.methods.indexOf(method)) {
                 matched.pathAndMethod.push(layer);
-                if (layer.methods.length > 0) matched.route = true;
+                if (layer.methods.length > 0) {
+matched.route = true;
+}
             }
         }
     }

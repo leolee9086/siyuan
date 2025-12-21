@@ -1,78 +1,286 @@
-/**
- * @AITODO
- * 实现一个"自定义块列表"面板
- *
- * ## 实施计划 (Implementation Plan) v5
- *
- * 1. **重构准备 (Refactoring - Pre-requisites)**
- *    - **目标**: 解决 `layout/dock/index.ts` 文件过大和类型硬编码问题。
- *    - **[NEW] `layout/dock/factory.ts`**:
- *      - 提取 Model 工厂方法 `createModel(type: string, tab: Tab, app: App, dock: Dock): Model | undefined`.
- *      - 将 `Dock.toggleModel` 中的 switch-case 逻辑迁移至此。
- *    - **[MODIFY] `layout/dock/index.ts`**:
- *      - 使用 `createModel` 替代原有的 switch-case 逻辑。
- *
- * 2. **通用动态 Dock 支持 (Generic Dynamic Dock Support)**
- *    - **目标**: 支持任意插件或模块注册动态侧边栏面板，不限于 CustomLists。
- *    - **[MODIFY] `layout/dock/index.ts`**:
- *      - **识别机制**: 实现静态方法 `Dock.isDynamicDock(type: string): boolean`。
- *        - 默认逻辑: check if `type` starts with `custom_list:` (之后可扩展为注册制)。
- *      - **按钮生成 (`genButton`)**: 允许 `isDynamicDock(type)` 的项渲染按钮。
- *      - **面板切换 (`toggleModel`)**:
- *        - `Dock` 类负责调用 `factory.createModel`。
- *        - `factory.ts` 负责解析 dynamic type (e.g. `custom_list:uuid`) 并实例化对应的 Model (e.g. `CustomLists`).
- *      - **API 扩展**:
- *        - `addCustomItem(type: string, title: string, icon: string)`: 动态添加 Dock 项。
- *        - `removeCustomItem(type: string)`: 动态移除 Dock 项。
- *
- * 3. **CustomLists 核心实现 (CustomLists Implementation)**
- *    - **类定义**: `export class CustomLists extends Model`
- *    - **数据存储**: `window.siyuan.storage[Constants.LOCAL_CUSTOMLISTS]`.
- *    - **数据结构**:
- *      ```typescript
- *      type CustomListType = 'dynamic' | 'static';
- *
- *      interface ICustomList {
- *          id: string;          // 唯一标识 (UUID), e.g. "uuid" -> type = "custom_list:uuid"
- *          title: string;       // 列表标题
- *          icon: string;        // 列表图标 (默认为 search 或 list)
- *          type: CustomListType;// 列表类型: 动态查询 vs 静态列表
- *          target: string | string[]; // 数据源:
- *                                    // - dynamic: 搜索查询语句 (string)
- *                                    // - static: 块ID列表 (string[])
- *          sort?: number;       // 排序方式
- *          openNodes?: string[];// 展开的节点ID
- *      }
- *      ```
- *    - **工厂集成**:
- *      - 在 `factory.ts` 中处理 `custom_list:` 前缀。
- *      - 解析 ID 并传递给 `new CustomLists({ app, tab, id })`.
- *
- *    - **渲染逻辑 (`renderList`)**:
- *      - **Dynamic (动态)**: 调用 `fetchPost("/api/search/searchBlock", { query: list.target })`。
- *        - 始终反映最新的搜索结果。
- *      - **Static (静态)**:
- *        - 直接根据 `list.target` (Block IDs) 渲染列表。
- *        - 类似 "收藏夹" 或 "暂存区"，内容固定，除非手动移除/重新排序。
- *
- *    - **操作接口 (API)**:
- *      - `addList(query: string, title?: string)`: 创建动态列表 -> 调用 `dock.addCustomItem`.
- *      - `createStaticList(title: string)`: 创建空的静态列表 -> 调用 `dock.addCustomItem`.
- *      - `addToStaticList(listId: string, blockIds: string[])`: 向静态列表添加块。
- *
- * 4. **集成与交互 (Integration)**
- *    - **Search 面板**: Pin 按钮 -> 调用 `dock.addCustomItem("custom_list:"+uuid, query, "icon")`.
- *    - **持久化**:
- *      - 确认 `layout/util.ts` 的 `dockToJSON` 能够序列化所有 Dock items.
- *      - 确保 `addCustomItem` 正确更新 DOM 和 `Dock.data`.
- *
- * 5. **待办事项 (TODO)**
- *    - [ ] Refactor `layout/dock/index.ts` -> `factory.ts`.
- *    - [ ] Implement `Dock.isDynamicDock` & `addCustomItem`.
- *    - [ ] Implement `CustomLists` skeleton.
- *    - [ ] Connect Search Panel "Pin" action.
- *
- * 6. **已知问题与风险 (Risks)**
- *    - **静态列表失效**: 如果块被删除，静态列表中的 ID 需要清理或标记失效。
- *      - *对策*: 渲染时过滤掉不存在的块，或者显示"已失效"。
- */
+import { Tab } from "../Tab";
+import { Model } from "../Model";
+import { App } from "../../index";
+import { Constants } from "../../constants";
+import { fetchPost } from "../../util/fetch";
+import { Tree } from "../../util/Tree";
+import { checkFold } from "../../util/noRelyPCFunction";
+import { openFileById } from "../../editor/utils.openFileById";
+import { Protyle } from "../../protyle";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { getIconByType } from "../../editor/getIcon";
+import { getDockByType } from "../tabUtil";
+import { unicode2Emoji } from "../../emoji";
+
+export interface ICustomList {
+    id: string;
+    title: string;
+    icon: string;
+    type: "dynamic" | "static"; // custom_list:dynamic:uuid or custom_list:static:uuid
+    target: string | string[];
+}
+
+interface IBlock {
+    id: string;
+    content?: string;
+    tag?: string;
+    box?: string;
+    type?: string;
+    subType?: string;
+    hPath?: string;
+    ial?: { icon?: string };
+}
+
+export class CustomLists extends Model {
+    public element: HTMLElement;
+    public tree: Tree;
+    public listData: ICustomList;
+    public editors: Protyle[] = [];
+
+    constructor(app: App, tab: Tab, data: ICustomList) {
+        super({
+            app,
+            id: tab.id,
+            msgCallback: (data) => {
+                this.onMessage(data);
+            }
+        });
+        this.element = tab.panelElement;
+        this.listData = data;
+
+        this.element.classList.add("fn__flex-column", "file-tree", "sy__custom-list");
+        this.element.innerHTML = `<div class="block__icons">
+    <div class="block__logo">
+        <svg class="block__logoicon"><use xlink:href="#iconList"></use></svg>${this.listData.title}
+    </div>
+    <span class="fn__flex-1 fn__space"></span>
+    <span data-type="refresh" class="block__icon ariaLabel" aria-label="${siyuanI18n.refresh}">
+        <svg><use xlink:href="#iconRefresh"></use></svg>
+    </span>
+    <span class="fn__space"></span>
+    <span data-type="collapse" class="block__icon ariaLabel" aria-label="${siyuanI18n.collapse}">
+        <svg><use xlink:href="#iconContract"></use></svg>
+    </span>
+    <span class="fn__space"></span>
+    <span data-type="min" class="block__icon ariaLabel" aria-label="${siyuanI18n.min}">
+        <svg><use xlink:href="#iconMin"></use></svg>
+    </span>
+</div>
+<div class="fn__flex-1" style="overflow:auto;"></div>`;
+
+        this.tree = new Tree({
+            element: this.element.lastElementChild as HTMLElement,
+            data: [],
+            click: (element: HTMLElement, event?: MouseEvent) => this.onTreeClick(element, event),
+            toggleClick: (element: HTMLElement) => this.toggleItem(element)
+        });
+
+        this.update();
+        this.bindEvents();
+    }
+
+    public update() {
+        if (this.listData.type === "dynamic") {
+            const query = this.listData.target as string;
+            if (!query) {
+                return;
+            }
+            // Use searchBlock API to get results
+            fetchPost("/api/search/searchBlock", {
+                query: query,
+                page: 1,
+                pagesize: 50, // Limit for better performance
+            }, (response) => {
+                this.renderData(response.data.blocks);
+            });
+        } else {
+            // Static list - target is string[] of IDs
+            const ids = this.listData.target as string[];
+            if (!ids || ids.length === 0) {
+                this.tree.updateData([]);
+                return;
+            }
+            const sql = `SELECT * FROM blocks WHERE id IN ('${ids.join("','")}')`;
+            fetchPost("/api/query/sql", { stmt: sql }, (response) => {
+                this.renderData(response.data);
+            });
+        }
+    }
+
+    private renderData(blocks: IBlock[]) {
+        const treeData = blocks.map(block => mapBlockToTreeData(block));
+        this.tree.updateData(treeData);
+    }
+
+    private onMessage(data: IWebSocketData) {
+        if (data.cmd === "transactions" && this.listData.type === "dynamic") {
+            // Optional: debounce update
+        }
+    }
+
+    private bindEvents() {
+        this.element.addEventListener("click", (event: MouseEvent) => {
+            let target = event.target as HTMLElement | null;
+            while (target && !target.isEqualNode(this.element)) {
+                if (target.classList.contains("block__icon")) {
+                    const type = target.getAttribute("data-type");
+                    this.handleIconClick(type);
+                    event.preventDefault();
+                    event.stopPropagation();
+                    break;
+                }
+                target = target.parentElement;
+            }
+        });
+    }
+
+    private handleIconClick(type: string | null) {
+        if (!type) { return; }
+        switch (type) {
+            case "refresh":
+                this.update();
+                break;
+            case "collapse":
+                this.tree.collapseAll();
+                break;
+            case "min":
+                const key = `custom_list:${this.listData.type}:${this.listData.id}`;
+                getDockByType(key).toggleModel(key, false, true);
+                break;
+        }
+    }
+
+    private onTreeClick(element: HTMLElement, event?: MouseEvent) {
+        const id = element.getAttribute("data-node-id");
+        if (!id) {
+            return;
+        }
+
+        // Open file
+        checkFold(id, (zoomIn: boolean, action: TProtyleAction[]) => {
+            openFileById({
+                app: this.app,
+                id,
+                action,
+                zoomIn
+            });
+        });
+    }
+
+    private toggleItem(liElement: HTMLElement) {
+        if (!liElement.nextElementSibling) {
+            return;
+        }
+        const svgElement = liElement.firstElementChild?.firstElementChild;
+        if (!svgElement) {
+            return;
+        }
+        if (svgElement.classList.contains("b3-list-item__arrow--open")) {
+            this.collapseItem(liElement, svgElement);
+            return;
+        }
+
+        this.expandItem(liElement, svgElement);
+    }
+
+    private collapseItem(liElement: HTMLElement, svgElement: Element) {
+        svgElement.classList.remove("b3-list-item__arrow--open");
+        const nextSibling = liElement.nextElementSibling;
+        if (nextSibling && nextSibling.tagName === "DIV") {
+            const index = this.editors.findIndex(e => e.protyle?.element === nextSibling);
+            if (index > -1) {
+                const editor = this.editors[index];
+                editor?.destroy();
+                this.editors.splice(index, 1);
+            }
+            nextSibling.remove();
+        }
+
+        const childrenList = liElement.nextElementSibling;
+        if (childrenList?.tagName === "UL") {
+            childrenList.classList.add("fn__none");
+        }
+    }
+
+    private expandItem(liElement: HTMLElement, svgElement: Element) {
+        svgElement.classList.add("b3-list-item__arrow--open");
+        const nextSibling = liElement.nextElementSibling;
+        if (nextSibling && nextSibling.tagName === "UL") {
+            nextSibling.classList.remove("fn__none");
+        }
+
+        const id = liElement.getAttribute("data-node-id");
+        if (!id) {
+            console.error("CustomLists: expandItem - missing data-node-id");
+            return;
+        }
+        console.log("CustomLists: expandItem", id);
+
+        // Ensure proper cleanup if re-expanding
+        if (nextSibling && nextSibling.tagName === "DIV") {
+            return;
+        }
+
+        const editorElement = document.createElement("div");
+        editorElement.style.minHeight = "auto";
+        console.log("CustomLists: editorElement created", editorElement);
+
+        liElement.after(editorElement);
+
+        try {
+            const editor = new Protyle(this.app, editorElement, {
+                blockId: id,
+                action: [Constants.CB_GET_CONTEXT, Constants.CB_GET_HL],
+                click: {
+                    preventInsetEmptyBlock: true
+                },
+                render: {
+                    background: false,
+                    gutter: true,
+                    scroll: false,
+                    breadcrumb: false,
+                }
+            });
+            console.log("CustomLists: Protyle ok", editor);
+            this.editors.push(editor);
+        } catch (e) {
+            console.error("CustomLists: Protyle init failed", e);
+        }
+    }
+}
+
+const sqlTypeToNodeType = (type: string): string => {
+    switch (type) {
+        case "d": return "NodeDocument";
+        case "h": return "NodeHeading";
+        case "p": return "NodeParagraph";
+        case "l": return "NodeList";
+        case "i": return "NodeListItem";
+        case "q": return "NodeBlockquote";
+        case "c": return "NodeCodeBlock";
+        case "m": return "NodeMathBlock";
+        case "t": return "NodeTable";
+        case "s": return "NodeSuperBlock";
+        case "b": return "NodeBlockQueryEmbed"; // b is usually embed in some contexts, or check
+        case "av": return "NodeAttributeView";
+        default: return "NodeParagraph";
+    }
+};
+
+const mapBlockToTreeData = (block: IBlock): IBlockTree => {
+    const nodeType = sqlTypeToNodeType(block.type || "p");
+    return {
+        id: block.id,
+        text: block.content || "Untitled",
+        name: block.content || "Untitled",
+        icon: getIconByType(nodeType, block.subType),
+        showArrow: true,
+        type: nodeType, // Use full type
+        nodeType: nodeType,
+        subType: block.subType,
+        box: block.box,
+        hPath: block.hPath,
+        depth: 0,
+        ial: block.ial || {}
+    };
+}

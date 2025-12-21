@@ -67,7 +67,9 @@ export class ProfileManager {
         for (const name of fileNames) {
             if (name.endsWith(".json") && !name.startsWith("_state")) {
                 const p = await this.loadProfile(name.replace(".json", ""));
-                if (p) profiles.push(p);
+                if (p) {
+profiles.push(p);
+}
             }
         }
         return profiles;

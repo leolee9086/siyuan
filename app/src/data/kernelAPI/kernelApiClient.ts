@@ -96,7 +96,9 @@ class KernelApiClient {
 
     } catch (error) {
       // If it's an error we threw deliberately from !response.ok, rethrow it
-      if ((error as any).status) throw error; 
+      if ((error as any).status) {
+throw error;
+} 
       // Otherwise, it's likely a network error or an issue with customFetch itself
       const networkError = new Error(`Network error during ${method} ${endpoint}: ${(error as Error).message}`);
       (networkError as any).cause = error;

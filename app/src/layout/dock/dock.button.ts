@@ -16,7 +16,7 @@ export function generateButtonHTML(
     dockTip: string,
     tabIndex?: number
 ): string {
-    if (typeof tabIndex === "undefined" && !TYPES.includes(item.type)) {
+    if (typeof tabIndex === "undefined" && !TYPES.includes(item.type) && !item.type.startsWith("custom_list:")) {
         return "";
     }
 
@@ -73,14 +73,79 @@ export function insertButtonsToContainer(
         return;
     }
 
-    // 完整替换内容
+    // 完整替换内容 OR 追加？
+    // If we are just initializing (genButton), we might want replace.
+    // But addCustomItem re-uses this.
+    // However, genButton logic is: 
+    // const container = index === 0 ? this.element.firstElementChild : this.element.lastElementChild;
+    // insertButtonsToContainer(container, html, tabIndex, ... index === 0);
+
+    // If genButton is called, `html` contains ALL buttons for that side. So replace is correct for genButton.
+    // But addCustomItem parses `html` for JUST the new item.
+
+    // We need a way to distinguish "Replace All" vs "Append One".
+    // genButton passes `tabIndex` as undefined? No, genButton loops? 
+    // genButton(data, index, tabIndex) -> generateAllButtonsHTML(data...)
+    // if tabIndex is undefined in genButton, it means "Generate ALL buttons for this dock side". So Replace is correct.
+
+    // addCustomItem calls: generateAllButtonsHTML([item], ...) -> insertButtonsToContainer(..., html, undefined, ...)
+    // It passes `undefined` for tabIndex too!
+
+    // We need to differentiate. 
+    // `genButton` is primarily for initialization.
+    // `addCustomItem` is for dynamic addition.
+
+    // Check if container already has children?
+    // If container has children (other buttons), we should PROBABLY append if we are not overwriting everything.
+    // But genButton might be called to "Refresh" the dock?
+
+    // Let's look at `index.ts`. `genButton` iterates `this.data`.
+
+    // Ideally, we add a flag `append: boolean`.
+    // But changing signature affects `genButton`.
+
+    // QUICK FIX: If `html` contains only one item (roughly checked) and container has children? 
+    // No, too hacky.
+
+    // Better: In `addCustomItem` in index.ts, we should use a different specific logic or pass a flag.
+    // But I can modify `insertButtonsToContainer` to support append.
+    // Let's assume if it is NOT first container (bottom/right end), we usually append?
+    // No, Bottom dock has 2 sides?
+
+    // Let's modify `dock.button.ts` to accept `append` flag, defaulting to false.
+    // Then update `index.ts` to pass `true` for `addCustomItem`.
+
+    // Wait, I can't easily change `index.ts` all call sites in one go if I am not careful.
+    // `genButton` calls it.
+
+    // Alternative: `addCustomItem` logic in `index.ts` is:
+    // const container = this.element.lastElementChild;
+    // insertButtonsToContainer(..., html, undefined, ...)
+
+    // If I change `dock.button.ts` to ALWAYS append if container is not empty? 
+    // `genButton` likely calling on empty container (initialization).
+
+    // Let's try: if (container.children.length > 0 && !isFirstContainer) { append } else { innerHTML }
+    // `genButton` clears container? No.
+    // But `genButton` is called once per side?
+
     if (isFirstContainer) {
         const pinHtml = generatePinButtonHTML(pinText, isPinned);
+        if (container.children.length > 0) {
+            // If first container already has content (Pin?), we might want to preserve pin?
+            // But genButton replaces everything.
+            container.innerHTML = `${html}${pinHtml}`;
+            return;
+        }
         container.innerHTML = `${html}${pinHtml}`;
         return;
     }
 
-    container.innerHTML = html;
+    if (container.children.length > 0) {
+        container.insertAdjacentHTML("beforeend", html);
+    } else {
+        container.innerHTML = html;
+    }
 }
 
 function insertAtTabIndex(

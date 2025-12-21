@@ -6,7 +6,9 @@ import { pinyin } from "pinyin-pro";
  * @returns 拼音字符串（不带声调）
  */
 export const convertToPinyin = (text: string): string => {
-    if (!text) return "";
+    if (!text) {
+return "";
+}
 
     try {
         // 使用 pinyin-pro 库转换，去除声调，保留空格分隔
@@ -25,8 +27,12 @@ export const convertToPinyin = (text: string): string => {
  * @returns 是否匹配
  */
 export const matchPinyinSearch = (text: string, keyword: string): boolean => {
-    if (!keyword) return true;
-    if (!text) return false;
+    if (!keyword) {
+return true;
+}
+    if (!text) {
+return false;
+}
 
     const lowerText = text.toLowerCase();
     const lowerKeyword = keyword.toLowerCase();

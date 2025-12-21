@@ -42,7 +42,9 @@ function extractCSSVariables(element: Element): CSSVariableInfo[] {
     // 获取元素的所有CSS属性
     for (let i = 0; i < computedStyle.length; i++) {
         const propertyName = computedStyle[i];
-        if (!propertyName) continue; // 确保属性名不为undefined
+        if (!propertyName) {
+continue;
+} // 确保属性名不为undefined
         
         const propertyValue = computedStyle.getPropertyValue(propertyName);
 
@@ -139,15 +141,21 @@ function getVariableFromStylesheets(variableName: string): string | null {
         // 遍历所有样式表查找变量定义
         for (let i = 0; i < document.styleSheets.length; i++) {
             const stylesheet = document.styleSheets[i];
-            if (!stylesheet) continue;
+            if (!stylesheet) {
+continue;
+}
 
             try {
                 const rules = stylesheet.cssRules || stylesheet.rules;
-                if (!rules) continue;
+                if (!rules) {
+continue;
+}
 
                 for (let j = 0; j < rules.length; j++) {
                     const rule = rules[j];
-                    if (!rule) continue;
+                    if (!rule) {
+continue;
+}
 
                     // 检查是否是CSSStyleRule类型
                     if (rule.type === CSSRule.STYLE_RULE) {

@@ -96,7 +96,9 @@ export function routes(router: baseRouter): MiddlewareFunction {
         }
 
         ctx.router = router;
-        if (!matched.route) return next();
+        if (!matched.route) {
+return next();
+}
 
         const matchedLayers = matched.pathAndMethod;
         const mostSpecificLayer = matchedLayers[matchedLayers.length - 1];

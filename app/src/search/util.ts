@@ -1,25 +1,26 @@
-import {getAllModels} from "../layout/getAll";
+import { getAllModels } from "../layout/getAll";
 /// #if !BROWSER
 import * as path from "path";
 /// #endif
-import {Constants} from "../constants";
-import {escapeAriaLabel, escapeGreat, escapeHtml} from "../util/escape";
-import {fetchPost} from "../util/fetch";
-import {openFile} from "../editor/util";
+import { Constants } from "../constants";
+import { escapeAriaLabel, escapeGreat, escapeHtml } from "../util/escape";
+import { fetchPost } from "../util/fetch";
+import { openFile } from "../editor/util";
 import { openFileById } from "../editor/utils.openFileById";
-import {showMessage} from "../dialog/message";
-import {reloadProtyle} from "../protyle/util/reload";
+import { showMessage } from "../dialog/message";
+import { reloadProtyle } from "../protyle/util/reload";
 import { MenuItem } from "../menus/Menu.Item";
-import {getDisplayName, getNotebookIcon, getNotebookName, pathPosix, useShell} from "../util/pathName";
+import { genUUID } from "../util/genID";
+import { getDisplayName, getNotebookIcon, getNotebookName, pathPosix, useShell } from "../util/pathName";
 import { movePathTo } from "../util/pathName/movePathTo";
-import {Protyle} from "../protyle";
-import {onGet} from "../protyle/util/onGet";
-import {addLoading} from "../protyle/ui/initUI";
-import {getIconByType} from "../editor/getIcon";
-import {unicode2Emoji} from "../emoji";
-import {hasClosestBlock, hasClosestByClassName} from "../protyle/util/hasClosest";
-import {isIPad, isNotCtrl, setStorageVal, updateHotkeyTip} from "../protyle/util/compatibility";
-import {newFileByName} from "../util/newFile";
+import { Protyle } from "../protyle";
+import { onGet } from "../protyle/util/onGet";
+import { addLoading } from "../protyle/ui/initUI";
+import { getIconByType } from "../editor/getIcon";
+import { unicode2Emoji } from "../emoji";
+import { hasClosestBlock, hasClosestByClassName } from "../protyle/util/hasClosest";
+import { isIPad, isNotCtrl, setStorageVal, updateHotkeyTip } from "../protyle/util/compatibility";
+import { newFileByName } from "../util/newFile";
 import {
     filterMenu,
     getKeyByLiElement,
@@ -29,7 +30,7 @@ import {
     replaceFilterMenu,
     saveCriterion
 } from "./menu";
-import {App} from "../index";
+import { App } from "../index";
 import {
     assetFilterMenu,
     assetInputEvent,
@@ -39,17 +40,17 @@ import {
     renderPreview,
 } from "./assets";
 import { openSearchAsset } from "./assets.openSearchAsset";
-import {resize} from "../protyle/util/resize";
-import {addClearButton} from "../util/addClearButton";
-import {checkFold} from "../util/noRelyPCFunction";
-import {getUnRefList, openSearchUnRef, unRefMoreMenu} from "./unRef";
-import {getDefaultType} from "./getDefault";
-import {isSupportCSSHL, searchMarkRender} from "../protyle/render/searchMarkRender";
-import {saveKeyList, toggleAssetHistory, toggleReplaceHistory, toggleSearchHistory} from "./toggleHistory";
-import {highlightById} from "../util/highlightById";
+import { resize } from "../protyle/util/resize";
+import { addClearButton } from "../util/addClearButton";
+import { checkFold } from "../util/noRelyPCFunction";
+import { getUnRefList, openSearchUnRef, unRefMoreMenu } from "./unRef";
+import { getDefaultType } from "./getDefault";
+import { isSupportCSSHL, searchMarkRender } from "../protyle/render/searchMarkRender";
+import { saveKeyList, toggleAssetHistory, toggleReplaceHistory, toggleSearchHistory } from "./toggleHistory";
+import { highlightById } from "../util/highlightById";
 import { scrollToCurrent } from "./utils.scrollToCurrent";
-import {getSelectionOffset} from "../protyle/util/selection";
-import {electronUndo} from "../protyle/undo";
+import { getSelectionOffset } from "../protyle/util/selection";
+import { electronUndo } from "../protyle/undo";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const openGlobalSearch = (app: App, text: string, replace: boolean, searchData?: Config.IUILayoutTabSearchConfig) => {
@@ -117,6 +118,10 @@ export const genSearch = (app: App, config: Config.IUILayoutTabSearchConfig, ele
         <span class="fn__space"></span>
         <span id="searchPath" aria-label="${siyuanI18n.specifyPath}" class="block__icon block__icon--show ariaLabel" data-position="9south">
             <svg><use xlink:href="#iconFolder"></use></svg>
+        </span>
+        <span class="fn__space"></span>
+        <span id="searchPin" aria-label="${siyuanI18n.pin || "Pin to Dock"}" class="block__icon block__icon--show ariaLabel" data-position="9south">
+            <svg><use xlink:href="#iconPin"></use></svg>
         </span>
         <span class="fn__space"></span>
         <span id="searchMore" aria-label="${siyuanI18n.more}" class="block__icon block__icon--show ariaLabel" data-position="9south">
@@ -406,7 +411,7 @@ export const genSearch = (app: App, config: Config.IUILayoutTabSearchConfig, ele
                 break;
             } else if (target.classList.contains("b3-chip__close") && type === "remove-criteria") {
                 const name = target.parentElement.textContent;
-                fetchPost("/api/storage/removeCriterion", {name});
+                fetchPost("/api/storage/removeCriterion", { name });
                 criteriaData.find((item, index) => {
                     if (item.name === name) {
                         criteriaData.splice(index, 1);
@@ -466,10 +471,96 @@ export const genSearch = (app: App, config: Config.IUILayoutTabSearchConfig, ele
                 event.stopPropagation();
                 event.preventDefault();
                 break;
+            } else if (target.id === "searchPin") {
+                const uuid = genUUID();
+                const query = searchInputElement.value;
+                const title = query || "Search Results";
+
+                window.siyuan.menus.menu.remove();
+                window.siyuan.menus.menu.append(new MenuItem({
+                    label: siyuanI18n.pinSearchResult || "Pin Search Result (Static)",
+                    iconHTML: "",
+                    click: () => {
+                        const ids: string[] = [];
+                        const listElement = element.querySelector("#searchList");
+                        if (listElement) {
+                            listElement.querySelectorAll("[data-node-id]").forEach((item) => {
+                                ids.push(item.getAttribute("data-node-id"));
+                            });
+                        }
+                        if (ids.length === 0) {
+                            return;
+                        }
+                        const type = "custom_list:static:" + uuid;
+                        // Save data
+                        if (!window.siyuan.storage["local-customlists"]) {
+                            window.siyuan.storage["local-customlists"] = {};
+                        }
+                        window.siyuan.storage["local-customlists"][uuid] = {
+                            id: uuid,
+                            title: title,
+                            icon: "iconSearch",
+                            type: "static",
+                            target: ids
+                        };
+                        setStorageVal("local-customlists", window.siyuan.storage["local-customlists"]);
+
+                        // Add to Dock
+                        const dock = window.siyuan.layout.leftDock || window.siyuan.layout.rightDock;
+                        if (dock) {
+                            dock.addCustomItem({
+                                type: type,
+                                title: title,
+                                icon: "iconSearch",
+                                show: true,
+                                size: { width: 300, height: 0 },
+                                hotkey: "",
+                            });
+                        }
+                    }
+                }).element);
+                window.siyuan.menus.menu.append(new MenuItem({
+                    label: siyuanI18n.pinSearchQuery || "Pin Search Query (Dynamic)",
+                    iconHTML: "",
+                    click: () => {
+                        const type = "custom_list:dynamic:" + uuid;
+                        // Save data
+                        if (!window.siyuan.storage["local-customlists"]) {
+                            window.siyuan.storage["local-customlists"] = {};
+                        }
+                        window.siyuan.storage["local-customlists"][uuid] = {
+                            id: uuid,
+                            title: title,
+                            icon: "iconSearch",
+                            type: "dynamic",
+                            target: query
+                        };
+                        setStorageVal("local-customlists", window.siyuan.storage["local-customlists"]);
+
+                        // Add to Dock
+                        const dock = window.siyuan.layout.leftDock || window.siyuan.layout.rightDock;
+                        if (dock) {
+                            dock.addCustomItem({
+                                type: type,
+                                title: title,
+                                icon: "iconSearch",
+                                show: true,
+                                size: { width: 300, height: 0 },
+                                hotkey: "",
+                            });
+                        }
+                    }
+                }).element);
+                const rect = target.getBoundingClientRect();
+                window.siyuan.menus.menu.popup({ x: rect.right, y: rect.bottom, isLeft: true });
+
+                event.stopPropagation();
+                event.preventDefault();
+                break;
             } else if (target.id === "searchPath") {
                 movePathTo({
                     cb: (toPath, toNotebook) => {
-                        fetchPost("/api/filetree/getHPathsByPaths", {paths: toPath}, (response) => {
+                        fetchPost("/api/filetree/getHPathsByPaths", { paths: toPath }, (response) => {
                             config.idPath = [];
                             const hPathList: string[] = [];
                             let enableIncludeChild = false;
@@ -682,7 +773,7 @@ export const genSearch = (app: App, config: Config.IUILayoutTabSearchConfig, ele
                     }).element);
                 });
                 const rect = target.getBoundingClientRect();
-                window.siyuan.menus.menu.popup({x: rect.right, y: rect.bottom, isLeft: true});
+                window.siyuan.menus.menu.popup({ x: rect.right, y: rect.bottom, isLeft: true });
                 event.stopPropagation();
                 event.preventDefault();
                 break;
@@ -752,7 +843,7 @@ export const genSearch = (app: App, config: Config.IUILayoutTabSearchConfig, ele
                     inputEvent(element, config, edit, true);
                 });
                 const rect = target.getBoundingClientRect();
-                window.siyuan.menus.menu.popup({x: rect.right, y: rect.bottom, isLeft: true});
+                window.siyuan.menus.menu.popup({ x: rect.right, y: rect.bottom, isLeft: true });
                 event.stopPropagation();
                 event.preventDefault();
                 break;
@@ -922,7 +1013,7 @@ export const genSearch = (app: App, config: Config.IUILayoutTabSearchConfig, ele
         height: searchInputElement.clientHeight,
     });
     inputEvent(element, config, edit);
-    return {edit, unRefEdit};
+    return { edit, unRefEdit };
 };
 
 export const openSearchEditor = (options: {
@@ -997,7 +1088,7 @@ export const genQueryHTML = (method: number, id: string) => {
 };
 
 export const updateConfig = (element: Element, item: Config.IUILayoutTabSearchConfig, config: Config.IUILayoutTabSearchConfig,
-                             edit: Protyle, clear = false) => {
+    edit: Protyle, clear = false) => {
     const dialogElement = hasClosestByClassName(element, "b3-dialog--open");
     if (dialogElement && dialogElement.getAttribute("data-key") === Constants.DIALOG_SEARCH) {
         // https://github.com/siyuan-note/siyuan/issues/6828
@@ -1281,11 +1372,11 @@ export const replace = (element: Element, config: Config.IUILayoutTabSearchConfi
 };
 
 export const inputEvent = (element: Element, config: Config.IUILayoutTabSearchConfig,
-                           edit: Protyle, rmCurrentCriteria = false,
-                           focusId?: {
-                               currentId?: string,
-                               newId?: string
-                           }) => {
+    edit: Protyle, rmCurrentCriteria = false,
+    focusId?: {
+        currentId?: string,
+        newId?: string
+    }) => {
     let inputTimeout = parseInt(element.getAttribute("data-timeout") || "0");
     clearTimeout(inputTimeout);
     inputTimeout = window.setTimeout(() => {
@@ -1376,10 +1467,10 @@ export const getAttr = (block: IBlock) => {
 };
 
 const onSearch = (data: IBlock[], edit: Protyle, element: Element, config: Config.IUILayoutTabSearchConfig,
-                  focusId?: {
-                      currentId?: string,
-                      newId?: string
-                  }) => {
+    focusId?: {
+        currentId?: string,
+        newId?: string
+    }) => {
     let resultHTML = "";
     let currentData;
     let newData;

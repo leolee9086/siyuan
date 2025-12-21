@@ -3,6 +3,7 @@ export const closeTitleMenuIfOpened = () => {
         window.siyuan.menus.menu.element.getAttribute("data-name") === "titleMenu") {
         window.siyuan.menus.menu.remove();
         return true;
-    }
-    else return false;
+    } else {
+return false;
+}
 };

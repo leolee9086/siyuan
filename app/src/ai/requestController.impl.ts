@@ -72,7 +72,9 @@ export class AIRequestController {
             const streamHandlers = {
                 onMessage: (dataStr: string) => {
                     // 确保只处理当前请求的事件，一旦停止就不会响应之前请求的事件
-                    if (this.isDestroyed || currentRequestId !== this.currentRequestId) return;
+                    if (this.isDestroyed || currentRequestId !== this.currentRequestId) {
+return;
+}
                     // 直接传递原始数据，并提供获取当前内容的方法
                     this.events.onMessage?.(dataStr, () => {
                         // 通过UI函数获取当前内容，避免控制器持有状态
@@ -83,17 +85,23 @@ export class AIRequestController {
                 },
                 onDone: () => {
                     // 确保只处理当前请求的事件
-                    if (this.isDestroyed || currentRequestId !== this.currentRequestId) return;
+                    if (this.isDestroyed || currentRequestId !== this.currentRequestId) {
+return;
+}
                     this.events.onComplete?.();
                 },
                 onError: (error: Error) => {
                     // 确保只处理当前请求的事件
-                    if (this.isDestroyed || currentRequestId !== this.currentRequestId) return;
+                    if (this.isDestroyed || currentRequestId !== this.currentRequestId) {
+return;
+}
                     this.events.onError?.(error);
                 },
                 onAbort: () => {
                     // 确保只处理当前请求的事件
-                    if (this.isDestroyed || currentRequestId !== this.currentRequestId) return;
+                    if (this.isDestroyed || currentRequestId !== this.currentRequestId) {
+return;
+}
                     this.events.onAbort?.();
                 }
             };

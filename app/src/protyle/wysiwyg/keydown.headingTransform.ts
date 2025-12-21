@@ -74,7 +74,9 @@ const handleParagraphTransform = (
     } else {
         // 单个块转换为段落
         const selectedElement = selectsElement[0];
-        if (!selectedElement) return true;
+        if (!selectedElement) {
+return true;
+}
 
         const type = selectedElement.getAttribute("data-type");
         if (type === "NodeHeading") {

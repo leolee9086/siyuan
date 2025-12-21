@@ -8,7 +8,9 @@ const createDialogClickHandler = (
     confirm?: (dialog?: Dialog) => void,
     cancel?: (dialog: Dialog) => void
 ) => (event: MouseEvent) => {
-    if (!(event.target instanceof HTMLElement)) return;
+    if (!(event.target instanceof HTMLElement)) {
+return;
+}
     let target: HTMLElement = event.target;
     const isDispatch = typeof event.detail === "string";
     while (target && target !== dialog.element || isDispatch) {
@@ -22,7 +24,9 @@ const createDialogClickHandler = (
             dialog.destroy();
             break;
         }
-        if (!target.parentElement) break;
+        if (!target.parentElement) {
+break;
+}
         target = target.parentElement;
     }
 };

@@ -148,11 +148,15 @@ function 创建进度对话框(ProgressComponent: ReturnType<typeof import("vue"
         title: "AI 图片生成",
         content: "<div class=\"ai-image-generation-container\" style=\"height: 100%;\"></div>",
         width: "500px",
-        destroyCallback: () => { vueApp?.unmount(); }
+        destroyCallback: () => {
+ vueApp?.unmount(); 
+}
     });
 
     const container = dialog.element.querySelector(".ai-image-generation-container");
-    if (!container) return null;
+    if (!container) {
+return null;
+}
 
     vueApp = createApp(ProgressComponent);
     const mountedInstance = vueApp.mount(container);
@@ -190,7 +194,9 @@ async function handleAiImageGeneration(
     }
 
     const result = 创建进度对话框(ProgressComponent);
-    if (!result) return;
+    if (!result) {
+return;
+}
     const { dialog, vm } = result;
 
     await 生成块内容图片({
@@ -205,7 +211,9 @@ async function handleAiImageGeneration(
     });
 
     vm.updateStatus?.("生成完成", false);
-    setTimeout(() => { dialog.destroy(); }, 2000);
+    setTimeout(() => {
+ dialog.destroy(); 
+}, 2000);
 }
 
 /**

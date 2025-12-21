@@ -38,12 +38,20 @@ export class Tag extends Model {
     }
 
     private _处理消息(data: IWebSocketData) {
-        if (!data) return;
-        if (data.cmd === "unmount" || data.cmd === "removeDoc" || (data.cmd === "mount" && data.code !== 1)) { this.update(); return; }
-        if (data.cmd !== "transactions") return;
+        if (!data) {
+            return;
+        }
+        if (data.cmd === "unmount" || data.cmd === "removeDoc" || (data.cmd === "mount" && data.code !== 1)) {
+            this.update(); return;
+        }
+        if (data.cmd !== "transactions") {
+            return;
+        }
         const firstData = Array.isArray(data.data) ? data.data[0] : null;
         const ops = firstData?.doOperations;
-        if (isOperations(ops) && ops.some(shouldReloadTag)) this.update();
+        if (isOperations(ops) && ops.some(shouldReloadTag)) {
+            this.update();
+        }
     }
 
     private _初始化外观() {
@@ -199,7 +207,9 @@ export class Tag extends Model {
                 tempDiv.innerHTML = html;
                 const lis = tempDiv.querySelectorAll("li");
                 for (const li of lis) {
-                    if (targetUL) targetUL.appendChild(li);
+                    if (targetUL) {
+                        targetUL.appendChild(li);
+                    }
                 }
             } else {
                 // 如果没有子列表，插入新列表

@@ -153,16 +153,24 @@ export const formatMiddleware = async (
     controller: AbortController
 ) => {
     await alignLeftMiddleware(event, protyle, nodeElement, range, controller);
-    if (controller.signal.aborted) { return; }
+    if (controller.signal.aborted) {
+ return; 
+}
 
     await alignCenterMiddleware(event, protyle, nodeElement, range, controller);
-    if (controller.signal.aborted) { return; }
+    if (controller.signal.aborted) {
+ return; 
+}
 
     await alignRightMiddleware(event, protyle, nodeElement, range, controller);
-    if (controller.signal.aborted) { return; }
+    if (controller.signal.aborted) {
+ return; 
+}
 
     await rtlMiddleware(event, protyle, nodeElement, range, controller);
-    if (controller.signal.aborted) { return; }
+    if (controller.signal.aborted) {
+ return; 
+}
 
     await ltrMiddleware(event, protyle, nodeElement, range, controller);
     // 最后一个中间件不需要检查 aborted 状态

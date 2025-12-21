@@ -758,7 +758,9 @@ interface IBlockTree {
     id?: string,
     blocks?: IBlock[],
     count: number,
-    children?: IBlockTree[]
+    children?: IBlockTree[],
+    showArrow?: boolean,
+    icon?: string
 }
 
 interface IBlock {

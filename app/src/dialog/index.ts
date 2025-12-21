@@ -70,8 +70,12 @@ export class Dialog {
         const hasTitle = !!(options.title || options.titleVueConfig);
 
         const 位置信息 = 计算对话框位置(options);
-        if (位置信息.width) options.width = 位置信息.width;
-        if (位置信息.height) options.height = 位置信息.height;
+        if (位置信息.width) {
+options.width = 位置信息.width;
+}
+        if (位置信息.height) {
+options.height = 位置信息.height;
+}
 
         const closeButtonHtml = 生成关闭按钮HTML({
             disableClose: this.disableClose,
@@ -152,7 +156,9 @@ export class Dialog {
 
     public fullscreen(): void {
         const container = this.element.querySelector(".b3-dialog__container");
-        if (!isHTMLElement(container)) return;
+        if (!isHTMLElement(container)) {
+return;
+}
 
         // 退出全屏模式
         if (this.isFullscreen) {
@@ -220,7 +226,9 @@ export class Dialog {
             enterEvent,
             bindEnter,
             getTimeStamp: () => timeStamp,
-            setTimeStamp: (value: number) => { timeStamp = value; },
+            setTimeStamp: (value: number) => {
+ timeStamp = value; 
+},
             isFullscreen: () => this.isFullscreen,
             disableEscapeClose: () => this.disableEscapeClose
         });

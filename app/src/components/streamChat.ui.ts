@@ -104,7 +104,9 @@ export function useStreamChatUI(): StreamChatUIReturn {
         statusColor,
         dots,
         showResponse: () => showResponse(uiContext),
-        setCompleteStatus: () => { uiContext.statusText.value = "生成完成"; },
+        setCompleteStatus: () => {
+ uiContext.statusText.value = "生成完成"; 
+},
         setErrorStatus: (error: Error) => setErrorStatus(uiContext, error),
         setAbortStatus: () => setAbortStatus(uiContext),
         stopAnimation: () => stopAnimation(uiContext)

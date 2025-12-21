@@ -25,7 +25,9 @@ export const cleanupSourceElement = async (item: Element, oldSourceParentElement
 };
 
 const removeSameElementIfNotSameDoc = (context: IMoveContext, element: Element) => {
-    if (context.isSameDoc) return;
+    if (context.isSameDoc) {
+return;
+}
 
     const nodeId = element.getAttribute("data-node-id");
     const sameElement = context.protyle.wysiwyg.element.querySelector(`[data-node-id="${nodeId}"]`);

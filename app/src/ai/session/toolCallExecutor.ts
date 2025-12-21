@@ -211,7 +211,9 @@ async function handleAsyncToolCallLimit(
 
     // 工具调用到达上限后，仅仅发起一次请求，告知AI它的工具调用次数已经达到上限
     // 如果已经通知过，则直接返回
-    if (asyncToolLimitNotified.value) { return; }
+    if (asyncToolLimitNotified.value) {
+ return; 
+}
     asyncToolLimitNotified.value = true;
     try {
         await config.startAIRequest([

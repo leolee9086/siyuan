@@ -70,9 +70,15 @@ export const useProcessingParams = () => {
    */
   const getAdaptiveStrengthDescription = (): string => {
     const strength = params.adaptiveStrength;
-    if (strength < 0.8) return "保守调整 - 轻微自适应";
-    if (strength < 1.2) return "标准调整 - 平衡自适应";
-    if (strength < 1.6) return "激进调整 - 强烈自适应";
+    if (strength < 0.8) {
+return "保守调整 - 轻微自适应";
+}
+    if (strength < 1.2) {
+return "标准调整 - 平衡自适应";
+}
+    if (strength < 1.6) {
+return "激进调整 - 强烈自适应";
+}
     return "极强调整 - 最大自适应";
   };
 
@@ -82,8 +88,12 @@ export const useProcessingParams = () => {
    */
   const getSaturationDescription = (): string => {
     const saturation = params.enhancementOptions.saturationEnhancement;
-    if (saturation < 1.0) return "降低饱和度";
-    if (saturation > 1.0) return "增强饱和度";
+    if (saturation < 1.0) {
+return "降低饱和度";
+}
+    if (saturation > 1.0) {
+return "增强饱和度";
+}
     return "保持原始饱和度";
   };
 
@@ -93,8 +103,12 @@ export const useProcessingParams = () => {
    */
   const getContrastDescription = (): string => {
     const contrast = params.enhancementOptions.contrastEnhancement;
-    if (contrast < 1.0) return "降低对比度";
-    if (contrast > 1.0) return "增强对比度";
+    if (contrast < 1.0) {
+return "降低对比度";
+}
+    if (contrast > 1.0) {
+return "增强对比度";
+}
     return "保持原始对比度";
   };
 
@@ -104,8 +118,12 @@ export const useProcessingParams = () => {
    */
   const getBrightnessDescription = (): string => {
     const brightness = params.enhancementOptions.brightnessEnhancement;
-    if (brightness < 1.0) return "降低明度";
-    if (brightness > 1.0) return "增强明度";
+    if (brightness < 1.0) {
+return "降低明度";
+}
+    if (brightness > 1.0) {
+return "增强明度";
+}
     return "保持原始明度";
   };
 
@@ -120,10 +138,18 @@ export const useProcessingParams = () => {
     const minChannel = Math.min(r, g, b);
     const range = maxChannel - minChannel;
     
-    if (range < 0.1) return "平衡 - 各通道差异小";
-    if (b > r && b > g) return "偏蓝 - 蓝色通道较强";
-    if (r > g && r > b) return "偏红 - 红色通道较强";
-    if (g > r && g > b) return "偏绿 - 绿色通道较强";
+    if (range < 0.1) {
+return "平衡 - 各通道差异小";
+}
+    if (b > r && b > g) {
+return "偏蓝 - 蓝色通道较强";
+}
+    if (r > g && r > b) {
+return "偏红 - 红色通道较强";
+}
+    if (g > r && g > b) {
+return "偏绿 - 绿色通道较强";
+}
     return "混合 - 多通道平衡";
   };
 

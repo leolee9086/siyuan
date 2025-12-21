@@ -95,7 +95,9 @@ const requestMoveBlock = (id: string, previousID: string): Promise<void> => {
 };
 
 const handleInsertBlockResponse = (protyle: IProtyle, nodeElement: Element, deleteEmbed: boolean) => {
-    if (deleteEmbed) removeBlock(protyle, nodeElement, getEditorRange(nodeElement), "Backspace");
+    if (deleteEmbed) {
+removeBlock(protyle, nodeElement, getEditorRange(nodeElement), "Backspace");
+}
     // 重新渲染
     const embeds = protyle.wysiwyg?.element.querySelectorAll('[data-type="NodeBlockQueryEmbed"]');
     if (embeds) {
@@ -117,7 +119,9 @@ const convertToType = async (
     deleteEmbed: boolean
 ) => {
     const ids = getEmbedResultIds(nodeElement);
-    if (ids.length === 0) return;
+    if (ids.length === 0) {
+return;
+}
 
     const blockTexts = new Map<string, string>();
     if (type !== "star") {
@@ -156,7 +160,9 @@ const doSwapNext = (
         removeBlock(protyle, nodeElement, getEditorRange(nodeElement), "Backspace");
         return;
     }
-    if (index >= resultIds.length) return;
+    if (index >= resultIds.length) {
+return;
+}
     fetchPost("/api/block/swapBlockRef", { refID: embedId, defID: resultIds[index], includeChildren }, () => {
         doSwapNext(protyle, nodeElement, embedId, resultIds, includeChildren, deleteEmbed, index + 1);
     });
@@ -170,7 +176,9 @@ const swapToDefBlock = (
     includeChildren: boolean, deleteEmbed: boolean
 ) => {
     const resultIds = getEmbedResultIds(nodeElement);
-    if (resultIds.length === 0) return;
+    if (resultIds.length === 0) {
+return;
+}
     doSwapNext(protyle, nodeElement, embedId, resultIds, includeChildren, deleteEmbed, 0);
 };
 
@@ -179,7 +187,9 @@ const swapToDefBlock = (
  */
 const moveResultsAfterEmbed = async (protyle: IProtyle, nodeElement: Element, id: string, deleteEmbed: boolean) => {
     const resultIds = getEmbedResultIds(nodeElement);
-    if (resultIds.length === 0) return;
+    if (resultIds.length === 0) {
+return;
+}
 
     let previousId = id;
     for (const resultId of resultIds) {
@@ -216,8 +226,12 @@ const buildUpdateItem = (protyle: IProtyle, nodeElement: Element): IMenu => ({
 const handleBreadcrumbClick = (event: Event, element: Element, nodeElement: Element, id: string, protyle: IProtyle) => {
     const target = event.target as HTMLElement;
     const inputElement = element.querySelector("input");
-    if (!inputElement) return;
-    if (target.tagName !== "INPUT") inputElement.checked = !inputElement.checked;
+    if (!inputElement) {
+return;
+}
+    if (target.tagName !== "INPUT") {
+inputElement.checked = !inputElement.checked;
+}
     nodeElement.setAttribute("breadcrumb", inputElement.checked.toString());
     fetchPost("/api/attr/setBlockAttrs", { id, attrs: { breadcrumb: inputElement.checked.toString() } });
     nodeElement.removeAttribute("data-render");
@@ -276,8 +290,12 @@ const convertTypeOptions: { id: string; label: string; type: ConvertType }[] = [
 ];
 
 const getConvertLabel = (opt: { label: string }): string => {
-    if (opt.label === "*") return "*";
-    if (opt.label === "text *") return siyuanI18n.text + " *";
+    if (opt.label === "*") {
+return "*";
+}
+    if (opt.label === "text *") {
+return siyuanI18n.text + " *";
+}
     return (siyuanI18n as unknown as Record<string, string>)[opt.label] || opt.label;
 };
 

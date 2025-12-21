@@ -25,7 +25,9 @@ export type { 生成块内容图片参数 } from "../gutter.types";
  */
 function 创建进度报告器(onProgress?: (msg: string) => void): (msg: string) => void {
     return (msg: string) => {
-        if (onProgress) onProgress(msg);
+        if (onProgress) {
+onProgress(msg);
+}
         console.log(`[生成块内容图片] ${msg}`);
     };
 }

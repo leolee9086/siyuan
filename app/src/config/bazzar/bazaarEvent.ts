@@ -171,10 +171,14 @@ const getBazaarObj = (element: HTMLElement) => {
 
 const handleSortSelect = (bazaar: IBazaar, selectElement: HTMLSelectElement) => {
     // sort
-    if (!window.siyuan || !window.siyuan.storage) return;
+    if (!window.siyuan || !window.siyuan.storage) {
+return;
+}
     const localSort = window.siyuan.storage[Constants.LOCAL_BAZAAR];
     const panelElement = selectElement.parentElement?.parentElement;
-    if (!panelElement) return;
+    if (!panelElement) {
+return;
+}
 
     let html = "";
     const cardElements = Array.from(panelElement.querySelectorAll(".b3-card") as NodeListOf<HTMLElement>);

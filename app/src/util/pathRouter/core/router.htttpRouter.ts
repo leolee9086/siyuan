@@ -81,7 +81,9 @@ class Router<
 
     constructor(opts: RouterOptions = {}) {
         super();
-        if (!(this instanceof Router)) return new Router(opts);
+        if (!(this instanceof Router)) {
+return new Router(opts);
+}
 
         // 将传入的选项赋值给this.opts
         this.opts = opts;

@@ -35,8 +35,12 @@ function cloneRouterLayers<
             Object.create(Layer.prototype),
             nestedLayer
         );
-        if (path) cloneLayer.setPrefix(path);
-        if (router.opts.prefix) cloneLayer.setPrefix(router.opts.prefix);
+        if (path) {
+cloneLayer.setPrefix(path);
+}
+        if (router.opts.prefix) {
+cloneLayer.setPrefix(router.opts.prefix);
+}
         router.stack.push(cloneLayer);
         cloneRouter.stack[j] = cloneLayer;
     }
@@ -194,7 +198,9 @@ export function use<
         return router;
     }
     const hasPath = typeof middleware[0] === "string";
-    if (hasPath) path = middleware.shift();
+    if (hasPath) {
+path = middleware.shift();
+}
     
     for (const m of middleware) {
         if (m.router) {

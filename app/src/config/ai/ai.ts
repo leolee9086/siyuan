@@ -251,7 +251,9 @@ export const ai = {
         if (togglePassword) {
             // @内联回调
             togglePassword.addEventListener("click", () => {
-                if (!togglePassword.firstElementChild || !togglePassword.previousElementSibling) return;
+                if (!togglePassword.firstElementChild || !togglePassword.previousElementSibling) {
+return;
+}
                 const isEye = togglePassword.firstElementChild.getAttribute("xlink:href") === "#iconEye";
                 togglePassword.firstElementChild.setAttribute("xlink:href", isEye ? "#iconEyeoff" : "#iconEye");
                 togglePassword.previousElementSibling.setAttribute("type", isEye ? "text" : "password");

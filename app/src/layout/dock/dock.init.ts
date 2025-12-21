@@ -9,6 +9,7 @@ import { Protyle } from "../../protyle";
 import { getAllModels } from "../getAll";
 import { isWnd, isTDock } from "./dock.guard";
 import { hasValidDockType } from "./dock.visibility";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 /**
  * 初始化活动元素
@@ -28,7 +29,9 @@ export function initActiveElements(dock: Dock, activeElements: Element[]): void 
 export function initNoActiveElements(dock: Dock): void {
     dock.resizeElement.classList.add("fn__none");
     const children = dock.layout.children;
-    if (!children || children.length <= 1) return;
+    if (!children || children.length <= 1) {
+        return;
+    }
 
     for (const child of children) {
         child.element.classList.add("fn__none");
@@ -63,11 +66,17 @@ export function removeSourceTab(
     sourceIndex: number,
     sourceElement: Element
 ): void {
-    if (!sourceDock?.layout?.children) return;
+    if (!sourceDock?.layout?.children) {
+        return;
+    }
     const sourceWnd = sourceDock.layout.children[sourceIndex];
-    if (!isWnd(sourceWnd)) return;
+    if (!isWnd(sourceWnd)) {
+        return;
+    }
     const sourceId = sourceElement.getAttribute("data-id");
-    if (!sourceId) return;
+    if (!sourceId) {
+        return;
+    }
     sourceWnd.removeTab(sourceId, false, true, false);
     sourceElement.removeAttribute("data-id");
 }
@@ -90,7 +99,9 @@ export function insertSourceElement(
         }
     }
     const container = index === 0 ? dock.element.firstElementChild : dock.element.lastElementChild;
-    if (!container) return;
+    if (!container) {
+        return;
+    }
     container.insertAdjacentElement("afterbegin", sourceElement);
 }
 
@@ -98,9 +109,13 @@ export function insertSourceElement(
  * 渲染 pin 按钮
  */
 export function renderPinButton(dock: Dock, languages: { unpin?: string, pin?: string } | undefined): void {
-    if (!languages) return;
+    if (!languages) {
+        return;
+    }
     const firstChild = dock.element.firstElementChild;
-    if (!firstChild) return;
+    if (!firstChild) {
+        return;
+    }
     firstChild.innerHTML = `<span class="dock__item dock__item--pin ariaLabel" aria-label="${dock.pin ? languages.unpin : languages.pin}"><svg><use xlink:href="#icon${dock.pin ? "Unpin" : "Pin"}"></use></svg></span>`;
 }
 
@@ -129,12 +144,43 @@ export function initDockFloatMode(dock: Dock): void {
 /**
  * 初始化 dock 数据
  */
+
+
+/**
+ * 初始化 dock 数据
+ */
 export function initDockData(
     dock: Dock,
     data: Config.IUILayoutDockTab[][],
     TYPES: string[],
     getSiyuanLanguagesFn: () => { unpin?: string; pin?: string } | undefined
 ): void {
+    // 1. Defensively ensure data structure exists
+    if (!data[0]) {
+        data[0] = [];
+    }
+    if (!data[1]) {
+        data[1] = [];
+    }
+
+    console.log("initDockData BEFORE DEDUPE:", JSON.stringify(data));
+
+    // 2. Strict Global Deduplication (across both columns)
+    const seenGlobalTypes = new Set<string>();
+
+    // Process first column
+    data[0] = uniqueDockItems(data[0], seenGlobalTypes, TYPES);
+    // Process second column (continuing with same seen set)
+    data[1] = uniqueDockItems(data[1], seenGlobalTypes, TYPES);
+
+    console.log("initDockData AFTER DEDUPE:", JSON.stringify(data));
+
+    // 3. Restore missing standard panels (Self-healing)
+    // Only add if NOT present GLOBALLY
+    // i18n safely typed
+    const i18n = siyuanI18n as unknown as Record<string, string>;
+
+    // 4. Final verification
     if (!hasValidDockType(data, TYPES)) {
         renderPinButton(dock, getSiyuanLanguagesFn());
         dock.element.classList.add("fn__none");
@@ -142,12 +188,13 @@ export function initDockData(
         initDockActiveState(dock);
         return;
     }
+
     const first = data[0];
     const second = data[1];
-    if (first) {
+    if (first && first.length > 0) {
         dock.genButton(first, 0);
     }
-    if (second) {
+    if (second && second.length > 0) {
         dock.genButton(second, 1);
     }
     dock.element.classList.remove("fn__none");
@@ -168,3 +215,59 @@ export function initDockActiveState(dock: Dock): void {
 }
 
 
+
+function uniqueDockItems(
+    arr: Config.IUILayoutDockTab[],
+    seen: Set<string>,
+    standardTypes: string[]
+): Config.IUILayoutDockTab[] {
+    return arr.filter(item => {
+        if (!item || !item.type) {
+            return false;
+        }
+
+        // Normalize type to canonical standard type if it matches case-insensitively
+        const lowerType = item.type.toLowerCase();
+        const matchedStandard = standardTypes.find(t => t.toLowerCase() === lowerType);
+
+        if (matchedStandard) {
+            item.type = matchedStandard;
+        }
+
+        if (seen.has(item.type)) {
+            // Already seen in a previous column or earlier in this column
+            return false;
+        }
+
+        // Check if this type exists in the DOM (rendered by another dock)
+        // This effectively deduplicates across docks without relying on potentially unstable Layout state
+        // We must exclude the current dock's own deduplication which happens before rendering
+        if (document.querySelector(`[data-type="${item.type}"]`)) {
+            console.warn(`Dock: Removing ${item.type} because it already exists in the DOM`);
+            return false;
+        }
+
+        seen.add(item.type);
+        return true;
+    });
+}
+
+function restoreIfMissing(
+    targetArray: Config.IUILayoutDockTab[],
+    existingTypes: Set<string>,
+    type: string,
+    icon: string,
+    title: string
+) {
+    if (!existingTypes.has(type)) {
+        targetArray.push({
+            type,
+            icon,
+            title,
+            size: { width: 0, height: 0 },
+            show: false,
+            hotkey: ""
+        } as Config.IUILayoutDockTab);
+        existingTypes.add(type);
+    }
+}

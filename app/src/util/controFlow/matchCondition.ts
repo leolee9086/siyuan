@@ -28,7 +28,9 @@ export const createTypedMatcher = <
     for (const [key, flagValue] of Object.entries(flag)) {
       const conditionValue = conditions[key];
       
-      if (conditionValue === undefined) return undefined;
+      if (conditionValue === undefined) {
+return undefined;
+}
       
       if (flagValue instanceof RegExp) {
         if (typeof conditionValue !== "string" || !flagValue.test(conditionValue)) {

@@ -101,12 +101,13 @@ const createWaitToolCallHandler = (
             console.error("工具调用执行失败:", error);
             // 将错误信息添加到消息历史中
             state.errorCount += 1;
-            if (error instanceof Error)
-                state.savedMessages.push({
+            if (error instanceof Error) {
+state.savedMessages.push({
                     role: "user",
                     content: `system:工具调用执行失败: ${error.message},\n你必须使用标准esm语法并且以default导出你需要的结果`,
                     timestamp: Date.now()
                 });
+}
         } finally {
             // 恢复对话
             console.log(state.errorCount);

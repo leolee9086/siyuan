@@ -116,7 +116,9 @@ const handleKeyDown = (
     if (hintElement) {
         event.stopPropagation();
     }
-    if (event.key !== "Enter") { return; }
+    if (event.key !== "Enter") {
+        return;
+    }
 
     event.preventDefault();
     event.stopPropagation();
@@ -153,7 +155,9 @@ const handleClick = (
         elements: HTMLElement[]
     ): boolean => {
         const 是AI聊天菜单项 = currentElement?.dataset.action === "aiChat";
-        if (!是AI聊天菜单项) { return false; }
+        if (!是AI聊天菜单项) {
+            return false;
+        }
         const 第一个元素 = elements[0];
         if (!第一个元素) {
             throw new Error("目标元素不是有效的HTMLElement");
@@ -166,10 +170,14 @@ const handleClick = (
     /**
      * 修复：支持 HTMLElement 和 SVGElement，使 SVGSymbol 图标能够响应点击
      */
-    if (!(target instanceof HTMLElement || target instanceof SVGElement)) { return; }
+    if (!(target instanceof HTMLElement || target instanceof SVGElement)) {
+        return;
+    }
 
     const currentElement = target.closest(".b3-list-item") as HTMLElement;
-    if (尝试处理AI聊天点击(currentElement, elements)) { return; }
+    if (尝试处理AI聊天点击(currentElement, elements)) {
+        return;
+    }
 
     const context: AIMenuContext = {
         protyle,

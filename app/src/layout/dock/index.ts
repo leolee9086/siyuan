@@ -232,4 +232,43 @@ export class Dock {
             this.toggleModel(firstItem.type, true, false, false, false);
         }
     }
+
+    public addCustomItem(item: Config.IUILayoutDockTab): void {
+        // Find correct dock position/index for new item
+        // For now, assume adding to the active dock side or default to first available
+        // Usually added to Left or Right dock, "Left" or "Right" is in this.position
+
+        // 1. Update Layout Config (persist)
+        // We need to modify the data structure that was passed in constructor or find where it lives
+        // this.data is only the runtime map.
+        // We need to find the array of tabs for this dock instance.
+        // Since we don't hold a reference to the source array (it was passed in options.data.data),
+        // we might not be able to easily update "Config.IUILayoutDockTab[][]".
+        // However, we can append the button and rely on saveLayout() to serialize the current DOM state?
+        // layout/util.ts `dockToJSON` serializes based on DOM buttons.
+        // So we just need to append the button to DOM.
+
+        if (this.data[item.type]) {
+            return; // Already exists
+        }
+
+        const languages = getSiyuanLanguages();
+        const html = generateAllButtonsHTML([item], 0, languages?.dockTip || ""); // index 0 or whatever
+
+        // Append to last container (bottom/right part of dock usually?) or first?
+        // Usually Custom Lists are added to the bottom/end.
+        const container = this.element.lastElementChild;
+        if (container) {
+            insertButtonsToContainer(container, html, undefined, (this.pin ? languages?.unpin : languages?.pin) || "", this.pin, false);
+        }
+
+        this.data[item.type] = true; // Mark as present
+
+        // Show if requested
+        if (item.show) {
+            this.toggleModel(item.type, true);
+        }
+
+        saveLayout();
+    }
 }

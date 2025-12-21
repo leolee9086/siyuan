@@ -99,7 +99,9 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
 
         const range = getEditorRange(protyle.wysiwyg.element);
         const nodeElement = hasClosestBlock(range.startContainer);
-        if (!nodeElement) { throw (new Error("未能找到块元素")); }
+        if (!nodeElement) {
+ throw (new Error("未能找到块元素")); 
+}
         const eventState: Record<string, string> = {
             blockType: ""
         };
@@ -114,8 +116,12 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         let currentItem = { handle: async () => { }, describe: "" };
         const eventDriver = {
             abort: (reason: string) => controller.abort(`中止处理${currentItem.describe}:${reason}\n\n${history.join("")}\n\n${new Error().stack?.replace("Error", "")}`),
-            stop: (reason: string) => { event.stopPropagation(); console.log(`停止冒泡:${currentItem.describe}:${reason}\n\n${new Error().stack?.replace("Error", "")}`); },
-            prevent: (reason: string) => { event.preventDefault(); console.log(`阻止原生事件:${currentItem.describe}:${reason}\n\n${new Error().stack?.replace("Error", "")}`); },
+            stop: (reason: string) => {
+ event.stopPropagation(); console.log(`停止冒泡:${currentItem.describe}:${reason}\n\n${new Error().stack?.replace("Error", "")}`); 
+},
+            prevent: (reason: string) => {
+ event.preventDefault(); console.log(`阻止原生事件:${currentItem.describe}:${reason}\n\n${new Error().stack?.replace("Error", "")}`); 
+},
         };
         const createHandleWithRecord = (item: any) => {
             return async (
@@ -144,42 +150,70 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         //currentItem = htmlBlockGuardRgistyItem
         //eventState.blockType === htmlBlockGuardRgistyItem.condition.blockType && await createHandleWithRecord(htmlBlockGuardRgistyItem)(event, protyle, nodeElement, range)
         await executeItem(htmlBlockGuardRgistyItem);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         //当在input元素中输入时
         (event.target?.localName === "input") ? await inputElementGuard(editorContext) : null;
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         protyle.disabled ? await protyleDisabledGuard(event, protyle, nodeElement, range, controller) : null;
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         (!protyle.selectElement?.classList.contains("fn__none")) ? await protyleHaveSelectedGuard(event, protyle, nodeElement, range, controller) : null;
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         await setProtyleWysiwygPreventKeyupMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         await hideProtyleUtilMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         await hideProtyleToolbarMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         await crossBlockCopyMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         if (document.querySelector(".av__panel")) {
             controller.abort("属性视图面板已打开");
         }
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         await avPanelGuard(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         //选中块状态下插入新的块
         await handleSelectedBlockInsertKeyMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         if (event.isComposing) {
             event.stopPropagation();
             controller.abort("输入法处理中");
         }
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         // https://github.com/siyuan-note/siyuan/issues/2261
         await hintSlashMiddleware(editorContext);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         // 有可能输入 shift+. ，因此需要使用 event.key 来进行判断
         await insertWbrMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         if (!getSiyuanGlobalMenus().menu.element.classList.contains("fn__none") &&
             (["←", "↑", "→", "↓"].includes(Constants.KEYCODELIST[event.keyCode] || "") || Constants.KEYCODELIST[event.keyCode] === "↩") &&
             !event.altKey && !event.shiftKey && isNotCtrl(event)) {
@@ -192,79 +226,137 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
             protyle.breadcrumb?.hide();
         }
         await arrowUpDownMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         // 仅处理以下快捷键操作
         await commonInputMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         await foldHotkeyMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         await expandSelectMiddleware(event, protyle, nodeElement, editorElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         await 处理块进入聚焦(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         await 处理块退出聚焦(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         await superBlockSelectMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
 
         // https://github.com/siyuan-note/siyuan/issues/11726
         await hideHintMiddleware(editorContext);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         await pageNavigationMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         // hint: 上下、回车选择
         await hintNavigationMiddleware(editorContext);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         //行内元素菜单和块菜单
         await inlineMenuMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         await fixTableMiddleware(editorContext);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         // 上下左右光标移动
         await arrowNavigationMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
 
 
         // 删除，不可使用 isNotCtrl(event)，否则软删除回导致 https://github.com/siyuan-note/siyuan/issues/5607
         // 不可使用 !event.shiftKey，否则 https://ld246.com/article/1666434796806
         await deleteKeyMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         // 软换行
         await softEnterMiddleware(editorContext);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         // 代码块语言选择 https://github.com/siyuan-note/siyuan/issues/14126
         await altEnterMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         // 回车
         await enterKeyMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         await selectAllMiddleware(editorContext);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         await undoMiddleware(editorContext);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         await redoMiddleware(editorContext);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         /// #if !MOBILE
         await commonHotkeyMiddleware(editorContext);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         /// #endif
         await copyTextMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         await attrMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         await renameMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         await createNamedNewFileMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         await createNewFileByContentMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         await formatMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         await escapeKeyMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         // h1 - h6 hotkey
         await headingTransformMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         if (matchHotKey(getSiyuanConfig().keymap.editor.insert.code.custom, event) &&
             !["NodeCodeBlock", "NodeHeading", "NodeTable"].includes(nodeElement.getAttribute("data-type")!)) {
             const editElement = getContenteditableElement(nodeElement);
@@ -286,44 +378,82 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
 
         // toolbar action
         await toolbarLastUsedMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         await toolbarHotkeyMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         await listOutdentMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         await listIndentMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         await listTransformMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         await handleTableBlockCreation(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         await listCheckToggleMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         await insertBeforeMiddleWare(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         await insertAfterMiddleWare(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         await jumpToMiddleWare(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         await moveToUpMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         await moveToDownMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         await handleVLayoutMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         await handleHLayoutMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         await aiActionsMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         await aiWritingMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         await openInNewTabMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         // tab 需等待 list 和 table 处理完成,避免在这些块中造成异常行为
         await tabKeyMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         await contextMenuMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         /// #if !MOBILE
         const refElement = hasClosestByAttribute(range.startContainer, "data-type", "block-ref");
         if (refElement) {
@@ -408,23 +538,35 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         }
         /// #endif
         await pasteAsPlainTextMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         /// #if !BROWSER
         await openLocalMiddleWare(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         /// #endif
         //打开外部链接或者素材链接
         await openByMiddleWare(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         // 和自定义 alt+shift+左/右 冲突，降低优先级  https://github.com/siyuan-note/siyuan/issues/14638
         await arrowLeftRightMiddleWare(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         // 置于最后，太多快捷键会使用到选中元素
         removeSelectIndicatorElementMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         //工具条中的各种装饰元素快捷键不应该唤出工具条
         decorationMatchMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) { return; }
+        if (signal.aborted) {
+ return; 
+}
         //最后一步不再需要检查控制器是否已经取消
         return;
     });

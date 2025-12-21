@@ -74,7 +74,9 @@ export class Menu {
     }
 
     private async processQueue() {
-        if (this.processingQueue) return;
+        if (this.processingQueue) {
+return;
+}
         this.processingQueue = true;
         
         // 创建队列的快照，避免处理过程中添加新项目
@@ -83,7 +85,9 @@ export class Menu {
         
         while (queueSnapshot.length > 0) {
             const item = queueSnapshot.shift();
-            if (!item) continue;
+            if (!item) {
+continue;
+}
             
             try {
                 const resolvedOption = await this.resolveOption(item);
