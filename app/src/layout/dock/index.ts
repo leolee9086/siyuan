@@ -147,10 +147,12 @@ export class Dock {
         if (!isWnd(wndChild)) {
             return;
         }
-        if (target.classList.contains("dock__item--active") || hide) {
-            executeToggleHide(this, wndChild, target, type, close, isSaveLayout);
+        // 互斥逻辑：hide 或 active 状态执行隐藏，否则执行显示
+        const isHideAction = target.classList.contains("dock__item--active") || hide;
+        if (isHideAction && executeToggleHide(this, wndChild, target, type, close, isSaveLayout)) {
+            return;
         }
-        if (!target.classList.contains("dock__item--active") && !hide) {
+        if (!isHideAction) {
             executeToggleShow(this, wndChild, target, type, index);
         }
         executeUpdatePanelRelations(this, wndChild, index);

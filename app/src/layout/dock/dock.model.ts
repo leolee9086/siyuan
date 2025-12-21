@@ -22,6 +22,7 @@ import { getMaxSize } from "./dock.size";
 
 /**
  * 执行 toggle 隐藏
+ * @returns true 如果焦点切换已处理，调用方应提前 return；false 则继续执行后续逻辑
  */
 export function executeToggleHide(
     dock: Dock,
@@ -30,9 +31,9 @@ export function executeToggleHide(
     type: string,
     close: boolean,
     isSaveLayout: boolean
-): void {
+): boolean {
     if (!close && handlePanelFocusSwitch(wnd, target, dock)) {
-        return;
+        return true;
     }
     target.classList.remove("dock__item--active", "dock__item--activefocus");
     const activeItems = dock.element.querySelectorAll(".dock__item--active");
@@ -43,6 +44,7 @@ export function executeToggleHide(
     }
     handleGraphDestroy(type, dock);
     handlePostCloseFocus(isSaveLayout);
+    return false;
 }
 
 /**
