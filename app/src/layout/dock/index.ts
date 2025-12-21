@@ -17,23 +17,38 @@ import { Constants } from "../../constants";
 import { createDockTab } from "./dock.factory";
 import { initDockResize } from "./dock.resize";
 import { initDockDnD } from "./dock.dnd";
+import { initDockLayout } from "./dock.layout";
+import {
+    handlePanelFocusSwitch,
+    handleGraphDestroy,
+    handlePostCloseFocus,
+    handleTabSwitch,
+    updateDockPanelRelation,
+    updatePanelVisibility,
+    handleGraphShow
+} from "./dock.toggle";
+import {
+    generateAllButtonsHTML,
+    insertButtonsToContainer
+} from "./dock.button";
 
 const TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGraph", "backlink"];
 /**
- * @AIDONE
+ * @AITODO
  * 拆分重构这个文件,直到清理所有lint错误和类型问题,注意文件备份
  * 拆分实现不应该使类
  * 应该在拆分过程中执行类型检查,保证拆分出的文件本身没有lint错误
+ * 对于已经拆分的部分,应该核对其功能是否正确实现,再尝试应用
  */
 export class Dock {
-    public element: HTMLElement;
-    public layout: Layout;
+    public element!: HTMLElement;
+    public layout!: Layout;
     public position: TDockPosition;
     private app: App;
-    public resizeElement: HTMLElement;
+    public resizeElement!: HTMLElement;
     public pin = true;
-    public data: { [key in TDock | string]?: Model | boolean };
-    private hideResizeTimeout: number;
+    public data: { [key in TDock | string]?: Model | boolean } = {};
+    private hideResizeTimeout = 0;
 
     constructor(options: {
         app: App,
@@ -73,26 +88,7 @@ export class Dock {
     }
 
     private initLayout(position: TDockPosition) {
-        switch (position) {
-            case "Left":
-                this.layout = window.siyuan.layout.layout.children[0].children[0] as Layout;
-                this.resizeElement = this.layout.element.nextElementSibling as HTMLElement;
-                this.layout.element.classList.add("layout__dockl");
-                this.layout.element.insertAdjacentHTML("beforeend", '<div class="layout__dockresize layout__dockresize--lr"></div>');
-                break;
-            case "Right":
-                this.layout = window.siyuan.layout.layout.children[0].children[2] as Layout;
-                this.resizeElement = this.layout.element.previousElementSibling as HTMLElement;
-                this.layout.element.classList.add("layout__dockr");
-                this.layout.element.insertAdjacentHTML("beforeend", '<div class="layout__dockresize layout__dockresize--lr"></div>');
-                break;
-            case "Bottom":
-                this.layout = window.siyuan.layout.layout.children[1] as Layout;
-                this.resizeElement = this.layout.element.previousElementSibling as HTMLElement;
-                this.layout.element.classList.add("layout__dockb");
-                this.layout.element.insertAdjacentHTML("beforeend", '<div class="layout__dockresize"></div>');
-                break;
-        }
+        initDockLayout(this, position);
     }
 
     private initDockData(data: Config.IUILayoutDockTab[][]) {
@@ -455,61 +451,15 @@ export class Dock {
         const anotherWnd = this.layout.children[anotherIndex] as Wnd;
         const anotherHasActive = this.element.querySelectorAll(`.dock__item--active[data-index="${anotherIndex}"]`).length > 0;
         const hasActive = this.element.querySelectorAll(`.dock__item--active[data-index="${index}"]`).length > 0;
-        if (hasActive && anotherHasActive) {
-            let lastWnd = wnd;
-            if (anotherIndex === 0) {
-                anotherWnd.element.nextElementSibling.classList.remove("fn__none");
-            } else {
-                lastWnd = anotherWnd;
-                anotherWnd.element.previousElementSibling.classList.remove("fn__none");
-            }
-            const lastActiveElement = this.element.querySelector('.dock__item--active[data-index="1"]');
-            if (this.position === "Left" || this.position === "Right") {
-                const dataHeight = parseInt(lastActiveElement.getAttribute("data-height"));
-                if (dataHeight !== 0 && !isNaN(dataHeight)) {
-                    lastWnd.element.style.height = dataHeight + "px";
-                    lastWnd.element.classList.remove("fn__flex-1");
-                }
-            } else {
-                const dataWidth = parseInt(lastActiveElement.getAttribute("data-width"));
-                if (dataWidth !== 0 && !isNaN(dataWidth)) {
-                    lastWnd.element.style.width = dataWidth + "px";
-                    lastWnd.element.classList.remove("fn__flex-1");
-                }
-            }
-        } else {
-            if (anotherIndex === 0) {
-                anotherWnd.element.nextElementSibling.classList.add("fn__none");
-            } else {
-                anotherWnd.element.previousElementSibling.classList.add("fn__none");
-            }
-        }
-        if (!anotherHasActive) {
-            anotherWnd.element.classList.add("fn__none");
-        } else {
-            anotherWnd.element.classList.remove("fn__none");
-        }
-        if (hasActive) {
-            wnd.element.classList.remove("fn__none");
-        } else {
-            wnd.element.classList.add("fn__none");
-        }
-        if (hasActive && !anotherHasActive) {
-            wnd.element.classList.add("fn__flex-1");
-            wnd.element.style.height = "";
-            wnd.element.style.width = "";
-        } else if (!hasActive && anotherHasActive) {
-            anotherWnd.element.classList.add("fn__flex-1");
-            anotherWnd.element.style.height = "";
-            anotherWnd.element.style.width = "";
-        }
+
+        updateDockPanelRelation(this, wnd, anotherWnd, index, anotherIndex, hasActive, anotherHasActive);
+        updatePanelVisibility(wnd, anotherWnd, hasActive, anotherHasActive);
+
         resizeTabs(isSaveLayout);
         this.showDock();
-        if (target.classList.contains("dock__item--active") && !hide && (type === "graph" || type === "globalGraph")) {
-            const graph = this.data[type];
-            if (graph instanceof Graph) {
-                graph.onGraph(false);
-            }
+
+        if (target.classList.contains("dock__item--active") && !hide) {
+            handleGraphShow(type, this);
         }
     }
 
