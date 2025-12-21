@@ -11,177 +11,252 @@ import { openBookmarkMenu } from "../../menus/bookmark";
 import { App } from "../../index";
 import { Constants } from "../../constants";
 import { checkFold } from "../../util/noRelyPCFunction";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { isOperations } from "./dock.guard";
 
 export class Bookmark extends Model {
-    private openNodes: string[];
+
     public tree: Tree;
-    private element: Element;
+    private element: HTMLElement;
 
     constructor(app: App, tab: Tab) {
         super({
             app,
             id: tab.id,
-            msgCallback(data) {
-                if (data) {
-                    switch (data.cmd) {
-                        case "transactions":
-                            data.data[0].doOperations.forEach((item: IOperation) => {
-                                let needReload = false;
-                                if ((item.action === "update" || item.action === "insert") && item.data.indexOf('class="protyle-attr--bookmark"') > -1) {
-                                    needReload = true;
-                                } else if (item.action === "delete") {
-                                    needReload = true;
-                                }
-                                if (needReload) {
-                                    fetchPost("/api/bookmark/getBookmark", {}, response => {
-                                        this.update(response.data);
-                                    });
-                                }
-                            });
-                            break;
-                        case "unmount":
-                        case "removeDoc":
-                        case "mount":
-                            if (data.cmd !== "mount" || data.code !== 1) {
-                                fetchPost("/api/bookmark/getBookmark", {}, response => {
-                                    this.update(response.data);
-                                });
-                            }
-                            break;
-                    }
-                }
+            msgCallback: (data) => {
+                this._处理消息(data);
             }
         });
         this.element = tab.panelElement;
+        this._初始化外观();
+        this.tree = this._生成树对象(app);
+        this._绑定事件();
+
+        this.update();
+    }
+
+    private _处理消息(data: IWebSocketData) {
+        if (!data) {
+            return;
+        }
+        if (data.cmd === "transactions") {
+            this._处理事务(data);
+            return;
+        }
+        if ((data.cmd === "unmount" || data.cmd === "removeDoc" || data.cmd === "mount") && (data.cmd !== "mount" || data.code !== 1)) {
+            fetchPost("/api/bookmark/getBookmark", {}, response => {
+                this.update(response.data);
+            });
+        }
+    }
+
+    private _处理事务(data: IWebSocketData) {
+        const itemData = data.data;
+        if (!Array.isArray(itemData) || itemData.length === 0) {
+            return;
+        }
+        const firstDataItem = itemData[0];
+        const operations = firstDataItem?.doOperations;
+        if (!isOperations(operations)) {
+            return;
+        }
+        for (const item of operations) {
+            this._执行操作检查(item);
+        }
+    }
+
+    private _执行操作检查(item: IOperation) {
+        let needReload = false;
+        const action = item.action;
+        const itemContent = item.data;
+        if ((action === "update" || action === "insert") && typeof itemContent === "string" && itemContent.indexOf('class="protyle-attr--bookmark"') > -1) {
+            needReload = true;
+        }
+        if (action === "delete") {
+            needReload = true;
+        }
+        if (needReload) {
+            fetchPost("/api/bookmark/getBookmark", {}, response => {
+                this.update(response.data);
+            });
+        }
+    }
+
+    private _初始化外观() {
+        const config = getSiyuanConfig();
         this.element.classList.add("fn__flex-column", "file-tree", "sy__bookmark");
         this.element.innerHTML = `<div class="block__icons">
     <div class="block__logo">
-        <svg class="block__logoicon"><use xlink:href="#iconBookmark"></use></svg>${window.siyuan.languages.bookmark}
+        <svg class="block__logoicon"><use xlink:href="#iconBookmark"></use></svg>${siyuanI18n.bookmark}
     </div>
     <span class="fn__flex-1"></span>
     <span class="fn__space"></span>
-    <span data-type="refresh" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${window.siyuan.languages.refresh}"><svg><use xlink:href='#iconRefresh'></use></svg></span>
+    <span data-type="refresh" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.refresh}"><svg><use xlink:href='#iconRefresh'></use></svg></span>
     <span class="fn__space"></span>
-    <span data-type="expand" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${window.siyuan.languages.expand}${updateHotkeyAfterTip(window.siyuan.config.keymap.editor.general.expand.custom)}">
+    <span data-type="expand" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.expand}${updateHotkeyAfterTip(config.keymap.editor.general.expand.custom)}">
         <svg><use xlink:href="#iconExpand"></use></svg>
     </span>
     <span class="fn__space"></span>
-    <span data-type="collapse" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${window.siyuan.languages.collapse}${updateHotkeyAfterTip(window.siyuan.config.keymap.editor.general.collapse.custom)}">
+    <span data-type="collapse" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.collapse}${updateHotkeyAfterTip(config.keymap.editor.general.collapse.custom)}">
         <svg><use xlink:href="#iconContract"></use></svg>
     </span>
     <span class="fn__space"></span>
-    <span data-type="min" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${window.siyuan.languages.min}${updateHotkeyAfterTip(window.siyuan.config.keymap.general.closeTab.custom)}"><svg><use xlink:href='#iconMin'></use></svg></span>
+    <span data-type="min" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.min}${updateHotkeyAfterTip(config.keymap.general.closeTab.custom)}"><svg><use xlink:href='#iconMin'></use></svg></span>
 </div>
 <div class="fn__flex-1" style="margin-bottom: 8px"></div>`;
-        this.tree = new Tree({
-            element: this.element.lastElementChild as HTMLElement,
-            data: null,
+    }
+
+    private _生成树对象(app: App): Tree {
+        const treeElement = this.element.lastElementChild;
+        if (!(treeElement instanceof HTMLElement)) {
+            throw new Error("bookmark tree element not found");
+        }
+        return new Tree({
+            element: treeElement,
+            data: [],
             click: (element: HTMLElement, event?: MouseEvent) => {
-                if (event) {
-                    const actionElement = hasClosestByClassName(event.target as HTMLElement, "b3-list-item__action");
-                    if (actionElement) {
-                        openBookmarkMenu(actionElement.parentElement, event, this);
-                        return;
-                    }
-                }
-                const id = element.getAttribute("data-node-id");
-                checkFold(id, (zoomIn, action: TProtyleAction[]) => {
-                    openFileById({
-                        app,
-                        id,
-                        action,
-                        zoomIn
-                    });
-                });
+                this._onTreeClick(app, element, event);
             },
             rightClick: (element: HTMLElement, event: MouseEvent) => {
                 openBookmarkMenu(element, event, this);
             },
             ctrlClick: (element: HTMLElement) => {
-                const id = element.getAttribute("data-node-id");
-                checkFold(id, (zoomIn) => {
-                    openFileById({
-                        app,
-                        id,
-                        keepCursor: true,
-                        action: zoomIn ? [Constants.CB_GET_HL, Constants.CB_GET_ALL] : [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL],
-                        zoomIn
-                    });
-                });
+                Bookmark._onTreeCtrlClick(app, element);
             },
-            altClick: (element: HTMLElement,) => {
-                const id = element.getAttribute("data-node-id");
-                checkFold(id, (zoomIn, action: TProtyleAction[]) => {
-                    openFileById({
-                        app,
-                        id,
-                        position: "bottom",
-                        action,
-                        zoomIn
-                    });
-                });
+            altClick: (element: HTMLElement) => {
+                Bookmark._onTreeAltShiftClick(app, element);
             },
             shiftClick: (element: HTMLElement) => {
-                const id = element.getAttribute("data-node-id");
-                checkFold(id, (zoomIn, action: TProtyleAction[]) => {
-                    openFileById({
-                        app,
-                        id,
-                        position: "bottom",
-                        action,
-                        zoomIn
-                    });
-                });
+                Bookmark._onTreeAltShiftClick(app, element);
             },
             blockExtHTML: '<span class="b3-list-item__action"><svg><use xlink:href="#iconMore"></use></svg></span>',
             topExtHTML: '<span class="b3-list-item__action"><svg><use xlink:href="#iconMore"></use></svg></span>',
         });
-        // 为了快捷键的 dispatch
-        this.element.querySelector('[data-type="collapse"]').addEventListener("click", () => {
+    }
+
+    private _onTreeClick(app: App, element: HTMLElement, event?: MouseEvent) {
+        const eventTarget = event?.target;
+        const actionElement = eventTarget instanceof HTMLElement ? hasClosestByClassName(eventTarget, "b3-list-item__action") : null;
+        if (event && actionElement && actionElement.parentElement instanceof HTMLElement) {
+            openBookmarkMenu(actionElement.parentElement, event, this);
+            return;
+        }
+        const id = element.getAttribute("data-node-id");
+        if (!id) {
+            return;
+        }
+        checkFold(id, (zoomIn: boolean, action: TProtyleAction[]) => {
+            Bookmark._openFileById(app, id, zoomIn, action);
+        });
+    }
+
+    private static _onTreeCtrlClick(app: App, element: HTMLElement) {
+        const id = element.getAttribute("data-node-id");
+        if (!id) {
+            return;
+        }
+        checkFold(id, (zoomIn: boolean) => {
+            Bookmark._openFileByCtrlClick(app, id, zoomIn);
+        });
+    }
+
+    private static _onTreeAltShiftClick(app: App, element: HTMLElement) {
+        const id = element.getAttribute("data-node-id");
+        if (!id) {
+            return;
+        }
+        checkFold(id, (zoomIn: boolean, action: TProtyleAction[]) => {
+            Bookmark._openFileById(app, id, zoomIn, action, "bottom");
+        });
+    }
+
+    private _绑定事件() {
+        const collapseElement = this.element.querySelector('[data-type="collapse"]');
+        collapseElement?.addEventListener("click", () => {
             this.tree.collapseAll();
         });
-        this.element.querySelector('[data-type="expand"]').addEventListener("click", () => {
+        const expandElement = this.element.querySelector('[data-type="expand"]');
+        expandElement?.addEventListener("click", () => {
             this.tree.expandAll();
         });
         this.element.addEventListener("click", (event) => {
-            setPanelFocus(this.element);
-            let target = event.target as HTMLElement;
-            while (target && !target.isEqualNode(this.element)) {
-                if (target.classList.contains("block__icon")) {
-                    const type = target.getAttribute("data-type");
-                    switch (type) {
-                        case "min":
-                            getDockByType("bookmark").toggleModel("bookmark", false, true);
-                            break;
-                        case "refresh":
-                            this.update();
-                            break;
-                    }
-                }
-                target = target.parentElement;
+            if (event instanceof MouseEvent) {
+                this._onElementClick(event);
             }
         });
-
-        this.update();
     }
 
-    public update() {
+    private _onElementClick(event: MouseEvent) {
+        setPanelFocus(this.element);
+        const eventTarget = event.target;
+        if (!(eventTarget instanceof HTMLElement)) {
+            return;
+        }
+        let target: HTMLElement | null = eventTarget;
+        while (target && !target.isEqualNode(this.element)) {
+            if (target.classList.contains("block__icon")) {
+                const type = target.getAttribute("data-type");
+                this._handleIconClick(type);
+            }
+            target = target.parentElement;
+        }
+    }
+
+    private _handleIconClick(type: string | null) {
+        if (type === "min") {
+            getDockByType("bookmark")?.toggleModel("bookmark", false, true);
+            return;
+        }
+        if (type === "refresh") {
+            this.update();
+        }
+    }
+
+    public update(data?: IBlockTree[]) {
         const element = this.element.querySelector('.block__icon[data-type="refresh"] svg');
-        if (element.classList.contains("fn__rotate")) {
+        if (!element || element.classList.contains("fn__rotate")) {
+            return;
+        }
+        if (data) {
+            this.tree.updateData(data);
             return;
         }
         element.classList.add("fn__rotate");
         fetchPost("/api/bookmark/getBookmark", {}, response => {
-            if (this.openNodes) {
-                this.openNodes = this.tree.getExpandIds();
+            if (element) {
+                this._onUpdateData(response.data, element);
             }
-            this.tree.updateData(response.data);
-            if (this.openNodes) {
-                this.tree.setExpandIds(this.openNodes);
-            } else {
-                this.openNodes = this.tree.getExpandIds();
-            }
-            element.classList.remove("fn__rotate");
         });
     }
+
+    private _onUpdateData(data: IBlockTree[], element: Element) {
+        const openNodes = this.tree.getExpandIds();
+        this.tree.updateData(data);
+        if (openNodes) {
+            this.tree.setExpandIds(openNodes);
+        }
+        element.classList.remove("fn__rotate");
+    }
+
+    private static _openFileById(app: App, id: string, zoomIn: boolean, action: TProtyleAction[], position?: string) {
+        openFileById({
+            app,
+            id,
+            action,
+            zoomIn,
+            position
+        });
+    }
+
+    private static _openFileByCtrlClick(app: App, id: string, zoomIn: boolean) {
+        openFileById({
+            app,
+            id,
+            keepCursor: true,
+            action: zoomIn ? [Constants.CB_GET_HL, Constants.CB_GET_ALL] : [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL],
+            zoomIn
+        });
+    }
+
 }
