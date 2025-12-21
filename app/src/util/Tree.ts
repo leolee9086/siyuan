@@ -1,10 +1,10 @@
-import {getIconByType} from "../editor/getIcon";
-import {isMobile} from "./functions";
-import {mathRender} from "../protyle/render/mathRender";
-import {unicode2Emoji} from "../emoji";
-import {Constants} from "../constants";
-import {escapeAriaLabel} from "./escape";
-import {hasClosestByTag} from "../protyle/util/hasClosest";
+import { getIconByType } from "../editor/getIcon";
+import { isMobile } from "./functions";
+import { mathRender } from "../protyle/render/mathRender";
+import { unicode2Emoji } from "../emoji";
+import { Constants } from "../constants";
+import { escapeAriaLabel } from "./escape";
+import { hasClosestByTag } from "../protyle/util/hasClosest";
 
 export class Tree {
     public element: HTMLElement;
@@ -83,7 +83,7 @@ export class Tree {
             } else {
                 style = `padding-left: ${(item.depth * 18) || 4}px;margin-right: 2px`;
             }
-            const showArrow = hasChild || (item.type === "backlink" && !isMobile());
+            const showArrow = hasChild || ((item.type === "backlink" || item.type === "bookmark") && !isMobile());
             // data-id 需要添加 item.id，否则大纲更新时 name 不一致导致 https://github.com/siyuan-note/siyuan/issues/11843
             html += `<li class="b3-list-item${isMobile() ? "" : " b3-list-item--hide-action"}" 
 ${item.id ? 'data-node-id="' + item.id + '"' : ""} 
@@ -143,6 +143,7 @@ ${item.label ? "data-label='" + item.label + "'" : ""}>
             } else {
                 style = `padding-left: ${item.depth * 18 || 4}px;margin-right: 2px`;
             }
+            const showBlockArrow = (item.children && item.children.length > 0) || ((type === "backlink" || type === "bookmark") && !isMobile());
             html += `<li class="b3-list-item${isMobile() ? "" : " b3-list-item--hide-action"}"  
 style="--file-toggle-width:${item.depth === 0 ? 22 : ((item.depth + 1) * 18)}px" 
 data-node-id="${item.id}" 
@@ -152,8 +153,8 @@ data-type="${item.type}"
 data-subtype="${item.subType}" 
 data-treetype="${type}" 
 data-def-path="${item.defPath}">
-    <span style="${style}" class="b3-list-item__toggle${item.children ? " b3-list-item__toggle--hl" : ""}${item.children ? "" : " fn__hidden"}">
-        <svg data-id="${item.id}" class="b3-list-item__arrow${(type === "outline" ? !item.folded : show) ? " b3-list-item__arrow--open" : ""}"><use xlink:href="#iconRight"></use></svg>
+    <span style="${style}" class="b3-list-item__toggle${showBlockArrow ? " b3-list-item__toggle--hl" : ""}${showBlockArrow ? "" : " fn__hidden"}">
+        <svg data-id="${item.id}" class="b3-list-item__arrow${(type === "outline" ? !item.folded : !!item.children) ? " b3-list-item__arrow--open" : ""}"><use xlink:href="#iconRight"></use></svg>
     </span>
     ${iconHTML}
     <span class="b3-list-item__text ariaLabel" data-position="parentE" ${type === "outline" ? ' aria-label="' + escapeAriaLabel(Lute.BlockDOM2Content(item.content)) + '"' : ""}>${item.content}</span>
