@@ -1,8 +1,9 @@
 import { Tab } from "../Tab";
 import { Model } from "../Model";
 import { App } from "../../index";
-import { Constants } from "../../constants";
+
 import { fetchPost } from "../../util/fetch";
+import { setStorageVal } from "../../protyle/util/compatibility";
 import { Tree } from "../../util/Tree";
 import { checkFold } from "../../util/noRelyPCFunction";
 import { openFileById } from "../../editor/utils.openFileById";
@@ -58,6 +59,10 @@ export class CustomLists extends Model {
         <svg><use xlink:href="#iconRefresh"></use></svg>
     </span>
     <span class="fn__space"></span>
+    <span data-type="remove" class="block__icon ariaLabel" aria-label="${siyuanI18n.remove}">
+        <svg><use xlink:href="#iconTrashcan"></use></svg>
+    </span>
+    <span class="fn__space"></span>
     <span data-type="collapse" class="block__icon ariaLabel" aria-label="${siyuanI18n.collapse}">
         <svg><use xlink:href="#iconContract"></use></svg>
     </span>
@@ -86,7 +91,7 @@ export class CustomLists extends Model {
                 return;
             }
             // Use searchBlock API to get results
-            fetchPost("/api/search/searchBlock", {
+            fetchPost("/api/search/fullTextSearchBlock", {
                 query: query,
                 page: 1,
                 pagesize: 50, // Limit for better performance
@@ -135,7 +140,7 @@ export class CustomLists extends Model {
     }
 
     private handleIconClick(type: string | null) {
-        if (!type) { return; }
+        if (!type || !this.listData) { return; }
         switch (type) {
             case "refresh":
                 this.update();
@@ -147,6 +152,24 @@ export class CustomLists extends Model {
                 const key = `custom_list:${this.listData.type}:${this.listData.id}`;
                 getDockByType(key).toggleModel(key, false, true);
                 break;
+            case "remove": {
+                const id = this.listData.id;
+                if (!id) {
+                    break;
+                }
+                const storage = window.siyuan.storage;
+                const customLists = storage?.["local-customlists"];
+                if (customLists) {
+                    delete customLists[id];
+                    setStorageVal("local-customlists", customLists);
+                }
+                const key = `custom_list:${this.listData.type}:${id}`;
+                const dock = getDockByType(key);
+                if (dock) {
+                    dock.remove(key);
+                }
+                break;
+            }
         }
     }
 
@@ -156,7 +179,7 @@ export class CustomLists extends Model {
             return;
         }
 
-        // Open file
+        // @内联回调
         checkFold(id, (zoomIn: boolean, action: TProtyleAction[]) => {
             openFileById({
                 app: this.app,
@@ -230,7 +253,6 @@ export class CustomLists extends Model {
         try {
             const editor = new Protyle(this.app, editorElement, {
                 blockId: id,
-                action: [Constants.CB_GET_CONTEXT, Constants.CB_GET_HL],
                 click: {
                     preventInsetEmptyBlock: true
                 },

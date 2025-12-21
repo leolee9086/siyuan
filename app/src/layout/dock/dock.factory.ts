@@ -75,8 +75,8 @@ const initInbox: ModelFactory = (app, tab) => {
 
 const initCustomList: ModelFactory = (app, tab, editor, data) => {
     if (!data) {
-return undefined;
-}
+        return undefined;
+    }
     return new CustomLists(app, tab, data as ICustomList);
 };
 
@@ -110,6 +110,7 @@ export const createModel = (options: {
     data?: any
 }): Model | undefined => {
     const factory = MODEL_FACTORIES[options.type];
+
     if (factory) {
         return factory(options.app, options.tab, options.editor, options.data);
     }
@@ -122,6 +123,15 @@ export const createModel = (options: {
             if (uuid) {
                 const storage = window.siyuan.storage["local-customlists"];
                 data = storage ? storage[uuid] : undefined;
+                if (!data) {
+                    data = {
+                        id: uuid,
+                        title: window.siyuan.languages.remove,
+                        icon: "iconTrashcan",
+                        type: parts[1],
+                        target: ""
+                    };
+                }
             }
         }
         return initCustomList(options.app, options.tab, options.editor, data);
