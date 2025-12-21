@@ -1,6 +1,12 @@
 import { updateHotkeyAfterTip } from "../../protyle/util/compatibility";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { isMobile } from "../../util/functions";
+import { getIconByType } from "../../editor/getIcon";
+import { unicode2Emoji } from "../../emoji";
+import { Constants } from "../../constants";
+import { escapeAriaLabel } from "../../util/escape";
+
 
 /**
  * 生成 Tag 面板的 HTML 模板
@@ -73,4 +79,48 @@ export const TAG_EDITOR_RENDER_CONFIG = {
     scroll: false,
     breadcrumb: false,
 };
+
+/**
+ * 生成 Tag 块列表 HTML
+ */
+export function genTagBlockListHTML(blocks: IBlock[]): string {
+    let html = "<ul>";
+    for (const item of blocks) {
+        let iconHTML;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const subType = (item as any).subType;
+        if (item.type === "NodeDocument") {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const defaultIcon = (window as any).siyuan.storage[Constants.LOCAL_IMAGES].file;
+            iconHTML = `<span data-showref="true" class="b3-list-item__graphic popover__block" data-id="${item.id}">${unicode2Emoji(item.ial?.icon || defaultIcon)}</span>`;
+        } else {
+            iconHTML = `<svg data-showref="true" class="b3-list-item__graphic popover__block" data-id="${item.id}"><use xlink:href="#${getIconByType(item.type, subType || "")}"></use></svg>`;
+        }
+
+        let style = "";
+        if (isMobile()) {
+            style = "padding-left: 24px";
+        } else {
+            style = "padding-left: 22px;margin-right: 2px";
+        }
+
+        const content = item.content || "";
+
+        html += `<li class="b3-list-item${isMobile() ? "" : " b3-list-item--hide-action"}" 
+style="--file-toggle-width: 36px" 
+data-node-id="${item.id}" 
+data-type="${item.type}" 
+data-subtype="${subType}" 
+data-treetype="tag-block">
+<span style="${style}" class="b3-list-item__toggle b3-list-item__toggle--hl">
+    <svg data-id="${item.id}" class="b3-list-item__arrow"><use xlink:href="#iconRight"></use></svg>
+</span>
+${iconHTML}
+<span class="b3-list-item__text ariaLabel" data-position="parentE" aria-label="${escapeAriaLabel(content.replace(/<[^>]+>/g, ""))}">${content}</span>
+<span class="b3-list-item__action"><svg><use xlink:href="#iconMore"></use></svg></span>
+</li>`;
+    }
+    html += "</ul>";
+    return html;
+}
 
