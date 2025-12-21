@@ -825,10 +825,11 @@ app.whenReady().then(() => {
         if (data.cmd === "siyuan-open-file") {
             let hasMatch = false;
             BrowserWindow.getAllWindows().find(item => {
-                if (item.webContents.id === event.sender.id) {
+                const url = new URL(item.webContents.getURL());
+                if (item.webContents.id === event.sender.id || data.port !== url.port) {
                     return;
                 }
-                const ids = decodeURIComponent(new URL(item.webContents.getURL()).hash.substring(1)).split("\u200b");
+                const ids = decodeURIComponent(url.hash.substring(1)).split("\u200b");
                 const options = JSON.parse(data.options);
                 if (ids.includes(options.rootID) || ids.includes(options.assetPath)) {
                     item.focus();

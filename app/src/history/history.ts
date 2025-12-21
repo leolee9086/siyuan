@@ -1,21 +1,21 @@
-import {Dialog} from "../dialog";
-import {confirmDialog} from "../dialog/confirmDialog";
-import {Constants} from "../constants";
-import {hasClosestByClassName} from "../protyle/util/hasClosest";
-import {renderAssetsPreview} from "../asset/renderAssets";
-import {Protyle} from "../protyle";
-import {disabledProtyle, onGet} from "../protyle/util/onGet";
+import { Dialog } from "../dialog";
+import { confirmDialog } from "../dialog/confirmDialog";
+import { Constants } from "../constants";
+import { hasClosestByClassName } from "../protyle/util/hasClosest";
+import { renderAssetsPreview } from "../asset/renderAssets";
+import { Protyle } from "../protyle";
+import { disabledProtyle, onGet } from "../protyle/util/onGet";
 import * as dayjs from "dayjs";
-import {fetchPost} from "../util/fetch";
-import {escapeAttr, escapeHtml} from "../util/escape";
-import {isMobile} from "../util/functions";
-import {showDiff} from "./diff";
-import {setStorageVal} from "../protyle/util/compatibility";
-import {openModel} from "../mobile/menu/model";
-import {closeModel} from "../mobile/util/closePanel";
-import {App} from "../index";
-import {resizeSide} from "./resizeSide";
-import {isSupportCSSHL, searchMarkRender} from "../protyle/render/searchMarkRender";
+import { fetchPost } from "../util/fetch";
+import { escapeAttr, escapeHtml } from "../util/escape";
+import { isMobile } from "../util/functions";
+import { showDiff } from "./diff";
+import { setStorageVal } from "../protyle/util/compatibility";
+import { openModel } from "../mobile/menu/model";
+import { closeModel } from "../mobile/util/closePanel";
+import { App } from "../index";
+import { resizeSide } from "./resizeSide";
+import { isSupportCSSHL, searchMarkRender } from "../protyle/render/searchMarkRender";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 let historyEditor: Protyle;
@@ -119,6 +119,12 @@ const renderRepoItem = (response: IWebSocketData, element: Element, type: string
     ${siyuanI18n.download}
 </span>
 <span class="fn__flex-1"></span>
+<span class="b3-list-item__action" data-type="downloadRollback">
+    <svg><use xlink:href="#iconUndo"></use></svg>
+    <span class="fn__space"></span>
+    ${window.siyuan.languages.downloadRollback}
+</span>
+<span class="fn__flex-1"></span>
 <span class="b3-list-item__action" data-type="removeCloudRepoTagSnapshot">
     <svg><use xlink:href="#iconTrashcan"></use></svg>
     <span class="fn__space"></span>
@@ -131,6 +137,12 @@ const renderRepoItem = (response: IWebSocketData, element: Element, type: string
     <svg><use xlink:href="#iconDownload"></use></svg>
     <span class="fn__space"></span>
     ${siyuanI18n.download}
+</span>
+<span class="fn__flex-1"></span>
+<span class="b3-list-item__action" data-type="downloadRollback">
+    <svg><use xlink:href="#iconUndo"></use></svg>
+    <span class="fn__space"></span>
+    ${window.siyuan.languages.downloadRollback}
 </span>
 <span class="fn__flex-1"></span>`;
     } else if (type === "getRepoTagSnapshots") {
@@ -171,9 +183,11 @@ const renderRepoItem = (response: IWebSocketData, element: Element, type: string
     /// #else
     if (type === "getCloudRepoTagSnapshots") {
         actionHTML = `<span class="b3-list-item__action b3-tooltips b3-tooltips__w" data-type="downloadSnapshot" aria-label="${siyuanI18n.download}"><svg><use xlink:href="#iconDownload"></use></svg></span>
+<span class="b3-list-item__action b3-tooltips b3-tooltips__w" data-type="downloadRollback" aria-label="${siyuanI18n.downloadRollback}"><svg><use xlink:href="#iconUndo"></use></svg></span>
 <span class="b3-list-item__action b3-tooltips b3-tooltips__w" data-type="removeCloudRepoTagSnapshot" aria-label="${siyuanI18n.remove}"><svg><use xlink:href="#iconTrashcan"></use></svg></span>`;
     } else if (type === "getCloudRepoSnapshots") {
-        actionHTML = `<span class="b3-list-item__action b3-tooltips b3-tooltips__w" data-type="downloadSnapshot" aria-label="${siyuanI18n.download}"><svg><use xlink:href="#iconDownload"></use></svg></span>`;
+        actionHTML = `<span class="b3-list-item__action b3-tooltips b3-tooltips__w" data-type="downloadSnapshot" aria-label="${siyuanI18n.download}"><svg><use xlink:href="#iconDownload"></use></svg></span>
+<span class="b3-list-item__action b3-tooltips b3-tooltips__w" data-type="downloadRollback" aria-label="${siyuanI18n.downloadRollback}"><svg><use xlink:href="#iconUndo"></use></svg></span>`;
     } else if (type === "getRepoTagSnapshots") {
         actionHTML = `<span class="b3-list-item__action b3-tooltips b3-tooltips__w" data-type="uploadSnapshot" aria-label="${siyuanI18n.upload}"><svg><use xlink:href="#iconUpload"></use></svg></span>
 <span class="b3-list-item__action b3-tooltips b3-tooltips__w" data-type="rollback" aria-label="${siyuanI18n.rollback}"><svg><use xlink:href="#iconUndo"></use></svg></span>
@@ -225,7 +239,7 @@ ${statHTML}`;
         repoHTML += `<li class="b3-list-item" data-type="repoitem" data-id="${item.id}" data-tag="${item.tag}">
 <div class="fn__flex-1">
     ${infoHTML}
-    <div class="fn__flex" style="height: 26px" data-id="${item.id}" data-tag="${item.tag}">
+    <div class="fn__flex" style="height: 26px" data-type="repoitem"" data-id="${item.id}" data-tag="${item.tag}">
         ${actionHTML}
         <span class="b3-list-item__action" data-type="more">
             <svg><use xlink:href="#iconMore"></use></svg>
@@ -278,7 +292,7 @@ const renderRepo = (element: Element, currentPage: number) => {
             previousElement.setAttribute("disabled", "disabled");
         }
         nextElement.setAttribute("disabled", "disabled");
-        fetchPost(`/api/repo/${selectValue}`, {page: currentPage}, (response) => {
+        fetchPost(`/api/repo/${selectValue}`, { page: currentPage }, (response) => {
             selectElement.disabled = false;
             if (currentPage < response.data.pageCount) {
                 nextElement.removeAttribute("disabled");
@@ -435,7 +449,7 @@ export const openHistory = (app: App) => {
                     </button>
                 </div>    
             </div>
-            <ul class="b3-list b3-list--background fn__flex-1" style="padding-bottom: 8px">
+            <ul class="b3-list b3-list--background fn__flex-1" style="padding: 8px 0">
                 <li class="b3-list--empty">${siyuanI18n.emptyContent}</li>
             </ul>
         </div>
@@ -548,7 +562,7 @@ const bindEvent = (app: App, element: Element, dialog?: Dialog) => {
                     time = target.parentElement.parentElement.previousElementSibling.textContent.trim();
                 } else if (dataType === "repoitem") {
                     name = siyuanI18n.workspaceData;
-                    time = target.parentElement.querySelector("span[data-type='hCreated']").textContent.trim();
+                    time = (isMobile() ? target.parentElement.parentElement : target.parentElement).querySelector("span[data-type='hCreated']").textContent.trim();
                 }
                 const confirmTip = siyuanI18n.rollbackConfirm.replace("${name}", name)
                     .replace("${time}", time);
@@ -677,7 +691,7 @@ const bindEvent = (app: App, element: Element, dialog?: Dialog) => {
                             target.parentElement.querySelector(`.b3-list-item[data-id="${idJSON.splice(0, 1)[0].id}"]`)?.classList.remove("b3-list-item--focus");
                         }
                     }
-                    idJSON.push({id, time: target.querySelector('[data-type="hCreated"]').textContent});
+                    idJSON.push({ id, time: target.querySelector('[data-type="hCreated"]').textContent });
                 }
 
                 if (idJSON.length === 2) {
@@ -754,7 +768,7 @@ const bindEvent = (app: App, element: Element, dialog?: Dialog) => {
                     genRepoDialog.destroy();
                 });
                 btnsElement[1].addEventListener("click", () => {
-                    fetchPost("/api/repo/createSnapshot", {memo: textareaElement.value}, () => {
+                    fetchPost("/api/repo/createSnapshot", { memo: textareaElement.value }, () => {
                         renderRepo(repoElement, 1);
                     });
                     genRepoDialog.destroy();
@@ -765,7 +779,7 @@ const bindEvent = (app: App, element: Element, dialog?: Dialog) => {
             } else if (type === "removeRepoTagSnapshot" || type === "removeCloudRepoTagSnapshot") {
                 const tag = target.parentElement.getAttribute("data-tag");
                 confirmDialog(siyuanI18n.deleteOpConfirm, `${siyuanI18n.confirmDelete} <i>${tag}</i>?`, () => {
-                    fetchPost("/api/repo/" + type, {tag}, () => {
+                    fetchPost("/api/repo/" + type, { tag }, () => {
                         renderRepo(repoElement, 1);
                     });
                 }, undefined, true);
@@ -785,6 +799,22 @@ const bindEvent = (app: App, element: Element, dialog?: Dialog) => {
                     tag: target.parentElement.getAttribute("data-tag"),
                     id: target.parentElement.getAttribute("data-id")
                 });
+                event.stopPropagation();
+                event.preventDefault();
+                break;
+            } else if (type === "downloadRollback" && !window.siyuan.config.readonly) {
+                confirmDialog("⚠️ " + window.siyuan.languages.downloadRollback, window.siyuan.languages.rollbackConfirm.replace("${name}", window.siyuan.languages.workspaceData)
+                    .replace("${time}", (isMobile() ? target.parentElement.parentElement : target.parentElement).querySelector("span[data-type='hCreated']").textContent.trim()), () => {
+                        const repoId = target.parentElement.getAttribute("data-id");
+                        fetchPost("/api/repo/downloadCloudSnapshot", {
+                            tag: target.parentElement.getAttribute("data-tag"),
+                            id: repoId
+                        }, () => {
+                            fetchPost("/api/repo/checkoutRepo", {
+                                id: repoId
+                            });
+                        });
+                    });
                 event.stopPropagation();
                 event.preventDefault();
                 break;
