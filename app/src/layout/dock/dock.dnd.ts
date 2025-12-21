@@ -1,4 +1,5 @@
 import { hasClosestByClassName } from "../../protyle/util/hasClosest";
+import { isHTMLElement } from "./dock.guard";
 import type { Dock } from "./index";
 
 class DockDragHandler {
@@ -27,7 +28,7 @@ class DockDragHandler {
     }
 
     private onMouseMove = (moveEvent: MouseEvent) => {
-        if (window.siyuan.config.readonly ||
+        if (!window.siyuan?.config || window.siyuan.config.readonly ||
             Math.abs(moveEvent.clientY - this.startEvent.clientY) < 3 && Math.abs(moveEvent.clientX - this.startEvent.clientX) < 3) {
             return;
         }
@@ -44,17 +45,20 @@ class DockDragHandler {
 
     private createGhost() {
         this.item.style.opacity = "0.38";
-        this.ghostElement = this.item.cloneNode(true) as HTMLElement;
-        this.ghostElement.setAttribute("data-ghost-type", "dock");
-        this.dock.element.append(this.ghostElement);
-        this.ghostElement.setAttribute("data-original", JSON.stringify({
-            position: this.dock.position,
-            index: this.item.getAttribute("data-index"),
-            previousType: this.item.previousElementSibling?.getAttribute("data-type"),
-            type: this.item.getAttribute("data-type"),
-        }));
-        this.ghostElement.setAttribute("id", "dragGhost");
-        this.ghostElement.setAttribute("style", `background-color:var(--b3-theme-background-light);position: fixed; top: ${this.startEvent.clientY}px; left: ${this.startEvent.clientX}px; z-index:999997;`);
+        const ghostElement = this.item.cloneNode(true);
+        if (isHTMLElement(ghostElement)) {
+            this.ghostElement = ghostElement;
+            this.ghostElement.setAttribute("data-ghost-type", "dock");
+            this.dock.element.append(this.ghostElement);
+            this.ghostElement.setAttribute("data-original", JSON.stringify({
+                position: this.dock.position,
+                index: this.item.getAttribute("data-index"),
+                previousType: this.item.previousElementSibling?.getAttribute("data-type"),
+                type: this.item.getAttribute("data-type"),
+            }));
+            this.ghostElement.setAttribute("id", "dragGhost");
+            this.ghostElement.setAttribute("style", `background-color:var(--b3-theme-background-light);position: fixed; top: ${this.startEvent.clientY}px; left: ${this.startEvent.clientX}px; z-index:999997;`);
+        }
     }
 
     private updateGhostPosition(moveEvent: MouseEvent) {
@@ -64,14 +68,14 @@ class DockDragHandler {
         if (this.dock.position === "Bottom") {
             this.ghostElement.style.top = (moveEvent.clientY - 40) + "px";
             this.ghostElement.style.left = (moveEvent.clientX - 20) + "px";
-        } else {
-            this.ghostElement.style.top = (moveEvent.clientY - 20) + "px";
-            if (this.dock.position === "Left") {
-                this.ghostElement.style.left = (moveEvent.clientX) + "px";
-            } else {
-                this.ghostElement.style.left = (moveEvent.clientX - 40) + "px";
-            }
+            return;
         }
+        this.ghostElement.style.top = (moveEvent.clientY - 20) + "px";
+        if (this.dock.position === "Left") {
+            this.ghostElement.style.left = (moveEvent.clientX) + "px";
+            return;
+        }
+        this.ghostElement.style.left = (moveEvent.clientX - 40) + "px";
     }
 
     private updateMoveItem(moveEvent: MouseEvent) {
@@ -83,7 +87,7 @@ class DockDragHandler {
         }
 
         if (targetItem && this.selectItem && targetItem === this.selectItem) {
-            this.handleTargetMatch(moveEvent, targetItem);
+            this.handleTargetMatch(moveEvent);
             return;
         }
 
@@ -93,30 +97,42 @@ class DockDragHandler {
             }
             return;
         }
-        this.selectItem = targetItem as HTMLElement;
+        this.selectItem = targetItem;
     }
 
-    private handleTargetMatch(moveEvent: MouseEvent, targetItem: HTMLElement) {
+    private handleTargetMatch(moveEvent: MouseEvent) {
         if (this.selectItem?.classList.contains("dock__item--space")) {
             this.handleSpaceMatch(moveEvent, this.selectItem);
-        } else if (this.selectItem?.classList.contains("dock__item--pin")) {
+            return;
+        }
+        if (this.selectItem?.classList.contains("dock__item--pin")) {
             if (this.item.nextElementSibling && this.item.nextElementSibling === this.selectItem) {
                 this.moveItem.classList.add("fn__none");
-            } else {
-                this.moveItem.classList.remove("fn__none");
-                this.selectItem.before(this.moveItem);
+                return;
             }
-        } else if (this.selectItem?.classList.contains("dock__item")) {
+            this.moveItem.classList.remove("fn__none");
+            this.selectItem.before(this.moveItem);
+            return;
+        }
+        if (this.selectItem?.classList.contains("dock__item")) {
             this.handleItemMatch(moveEvent, this.selectItem);
-        } else if (this.selectItem?.childElementCount === 0) {
+            return;
+        }
+        if (this.selectItem?.childElementCount === 0) {
             this.moveItem.classList.remove("fn__none");
             this.selectItem.append(this.moveItem);
-        } else if (this.selectItem?.childElementCount === 1 && this.selectItem.firstElementChild?.id === "dockMoveItem") {
+            return;
+        }
+        if (this.selectItem?.childElementCount === 1 && this.selectItem.firstElementChild?.id === "dockMoveItem") {
             this.moveItem.classList.remove("fn__none");
-        } else if (this.selectItem?.childElementCount === 1 && this.selectItem.firstElementChild?.classList.contains("dock__item--pin")) {
+            return;
+        }
+        if (this.selectItem?.childElementCount === 1 && this.selectItem.firstElementChild?.classList.contains("dock__item--pin")) {
             this.moveItem.classList.remove("fn__none");
             this.selectItem.insertAdjacentElement("afterbegin", this.moveItem);
-        } else if (this.selectItem?.childElementCount === 2 &&
+            return;
+        }
+        if (this.selectItem?.childElementCount === 2 &&
             this.selectItem.firstElementChild?.id === "dockMoveItem" && this.selectItem.lastElementChild?.classList.contains("dock__item--pin")) {
             this.moveItem.classList.remove("fn__none");
         }
@@ -129,58 +145,65 @@ class DockDragHandler {
                 const lastFirstElement = selectItem.nextElementSibling?.firstElementChild;
                 if (lastFirstElement && lastFirstElement === this.item) {
                     this.moveItem.classList.add("fn__none");
-                } else if (lastFirstElement) {
+                    return;
+                }
+                if (lastFirstElement) {
                     this.moveItem.classList.remove("fn__none");
                     lastFirstElement.before(this.moveItem);
                 }
             }
-        } else {
-            if (moveEvent.clientY < selectRect.bottom && moveEvent.clientY > selectRect.bottom - 40) {
-                const lastFirstElement = selectItem.nextElementSibling?.firstElementChild;
-                if (lastFirstElement && lastFirstElement === this.item) {
-                    this.moveItem.classList.add("fn__none");
-                } else if (lastFirstElement) {
-                    this.moveItem.classList.remove("fn__none");
-                    lastFirstElement.before(this.moveItem);
-                }
+            return;
+        }
+        if (moveEvent.clientY < selectRect.bottom && moveEvent.clientY > selectRect.bottom - 40) {
+            const lastFirstElement = selectItem.nextElementSibling?.firstElementChild;
+            if (lastFirstElement && lastFirstElement === this.item) {
+                this.moveItem.classList.add("fn__none");
+                return;
+            }
+            if (lastFirstElement) {
+                this.moveItem.classList.remove("fn__none");
+                lastFirstElement.before(this.moveItem);
             }
         }
     }
 
     private handleItemMatch(moveEvent: MouseEvent, selectItem: HTMLElement) {
         const selectRect = selectItem.getBoundingClientRect();
-        if (selectItem.parentElement?.parentElement?.id === "dockBottom") {
-            if (selectRect.left + selectRect.width / 2 > moveEvent.clientX) {
-                if (this.item.nextElementSibling && this.item.nextElementSibling === selectItem) {
-                    this.moveItem.classList.add("fn__none");
-                } else {
-                    this.moveItem.classList.remove("fn__none");
-                    selectItem.before(this.moveItem);
-                }
-            } else {
-                if (this.item.previousElementSibling && this.item.previousElementSibling === selectItem) {
-                    this.moveItem.classList.add("fn__none");
-                } else {
-                    this.moveItem.classList.remove("fn__none");
-                    selectItem.after(this.moveItem);
-                }
+        const isBottom = selectItem.parentElement?.parentElement?.id === "dockBottom";
+        const isInsertBefore = isBottom ?
+            (selectRect.left + selectRect.width / 2 > moveEvent.clientX) :
+            (selectRect.top + selectRect.height / 2 > moveEvent.clientY);
+
+        if (isInsertBefore) {
+            if (this.item.nextElementSibling === selectItem) {
+                this.moveItem.classList.add("fn__none");
+                return;
             }
-        } else {
-            if (selectRect.top + selectRect.height / 2 > moveEvent.clientY) {
-                if (this.item.nextElementSibling && this.item.nextElementSibling === selectItem) {
-                    this.moveItem.classList.add("fn__none");
-                } else {
-                    this.moveItem.classList.remove("fn__none");
-                    selectItem.before(this.moveItem);
-                }
-            } else {
-                if (this.item.previousElementSibling && this.item.previousElementSibling === selectItem) {
-                    this.moveItem.classList.add("fn__none");
-                } else {
-                    this.moveItem.classList.remove("fn__none");
-                    selectItem.after(this.moveItem);
-                }
-            }
+            this.moveItem.classList.remove("fn__none");
+            selectItem.before(this.moveItem);
+            return;
+        }
+
+        if (this.item.previousElementSibling === selectItem) {
+            this.moveItem.classList.add("fn__none");
+            return;
+        }
+        this.moveItem.classList.remove("fn__none");
+        selectItem.after(this.moveItem);
+    }
+
+    private static getDockTarget(id: string | undefined): Dock | undefined {
+        if (!id) {
+            return;
+        }
+        if (id === "dockBottom") {
+            return window.siyuan.layout?.bottomDock;
+        }
+        if (id === "dockLeft") {
+            return window.siyuan.layout?.leftDock;
+        }
+        if (id === "dockRight") {
+            return window.siyuan.layout?.rightDock;
         }
     }
 
@@ -195,18 +218,9 @@ class DockDragHandler {
             return;
         }
         this.item.style.opacity = "";
-        if (!this.moveItem.classList.contains("fn__none") && this.moveItem.parentElement && this.moveItem.parentElement.parentElement) {
-            let dockTarget: Dock | undefined;
-            if (this.moveItem.parentElement.parentElement.id === "dockBottom") {
-                dockTarget = window.siyuan.layout.bottomDock as unknown as Dock;
-            } else if (this.moveItem.parentElement.parentElement.id === "dockLeft") {
-                dockTarget = window.siyuan.layout.leftDock as unknown as Dock;
-            } else if (this.moveItem.parentElement.parentElement.id === "dockRight") {
-                dockTarget = window.siyuan.layout.rightDock as unknown as Dock;
-            }
-            if (dockTarget) {
-                dockTarget.add(this.moveItem.parentElement === dockTarget.element.firstElementChild ? 0 : 1, this.item, this.moveItem.previousElementSibling?.getAttribute("data-type") || undefined);
-            }
+        const dockTarget = DockDragHandler.getDockTarget(this.moveItem.parentElement?.parentElement?.id);
+        if (!this.moveItem.classList.contains("fn__none") && dockTarget && this.moveItem.parentElement) {
+            dockTarget.add(this.moveItem.parentElement === dockTarget.element.firstElementChild ? 0 : 1, this.item, this.moveItem.previousElementSibling?.getAttribute("data-type") || undefined);
         }
         this.moveItem.remove();
     };

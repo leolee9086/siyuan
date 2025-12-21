@@ -73,48 +73,25 @@ export class Dock {
     }
 
     private initLayout(position: TDockPosition) {
-        const layoutInstance = window.siyuan?.layout?.layout;
-        const layoutChildren = layoutInstance?.children;
-        if (!layoutChildren) return;
-        let layout: Layout | undefined;
-        let resizeElement: Element | null = null;
-        let cls = "";
-        let html = "";
-
-        if (position === "Left") {
-            const firstChild = layoutChildren[0];
-            if (firstChild && firstChild.children) {
-                layout = firstChild.children[0] as Layout;
-            }
-            if (layout instanceof Layout) {
-                resizeElement = layout.element.nextElementSibling;
-                cls = "layout__dockl";
-                html = '<div class="layout__dockresize layout__dockresize--lr"></div>';
-            }
-        } else if (position === "Right") {
-            const firstChild = layoutChildren[0];
-            if (firstChild && firstChild.children) {
-                layout = firstChild.children[2] as Layout;
-            }
-            if (layout instanceof Layout) {
-                resizeElement = layout.element.previousElementSibling;
-                cls = "layout__dockr";
-                html = '<div class="layout__dockresize layout__dockresize--lr"></div>';
-            }
-        } else if (position === "Bottom") {
-            layout = layoutChildren[1] as Layout;
-            if (layout instanceof Layout) {
-                resizeElement = layout.element.previousElementSibling;
-                cls = "layout__dockb";
-                html = '<div class="layout__dockresize"></div>';
-            }
-        }
-
-        if (layout && resizeElement instanceof HTMLElement) {
-            this.layout = layout;
-            this.resizeElement = resizeElement;
-            this.layout.element.classList.add(cls);
-            this.layout.element.insertAdjacentHTML("beforeend", html);
+        switch (position) {
+            case "Left":
+                this.layout = window.siyuan.layout.layout.children[0].children[0] as Layout;
+                this.resizeElement = this.layout.element.nextElementSibling as HTMLElement;
+                this.layout.element.classList.add("layout__dockl");
+                this.layout.element.insertAdjacentHTML("beforeend", '<div class="layout__dockresize layout__dockresize--lr"></div>');
+                break;
+            case "Right":
+                this.layout = window.siyuan.layout.layout.children[0].children[2] as Layout;
+                this.resizeElement = this.layout.element.previousElementSibling as HTMLElement;
+                this.layout.element.classList.add("layout__dockr");
+                this.layout.element.insertAdjacentHTML("beforeend", '<div class="layout__dockresize layout__dockresize--lr"></div>');
+                break;
+            case "Bottom":
+                this.layout = window.siyuan.layout.layout.children[1] as Layout;
+                this.resizeElement = this.layout.element.previousElementSibling as HTMLElement;
+                this.layout.element.classList.add("layout__dockb");
+                this.layout.element.insertAdjacentHTML("beforeend", '<div class="layout__dockresize"></div>');
+                break;
         }
     }
 
@@ -188,16 +165,8 @@ export class Dock {
         this.element.addEventListener("click", this.onClick.bind(this));
 
         this.layout.element.addEventListener("mouseleave", this.onMouseLeave.bind(this));
-        // 需等待所有 Dock 初始化完成后才有稳定布局，才可进行定位
-        setTimeout(this.onRunLayout.bind(this));
     }
 
-    private onRunLayout() {
-        this.resetDockPosition(false);
-        this.hideDock(true);
-        this.layout.element.classList.add("layout--float");
-        this.resizeElement.classList.add("fn__none");
-    }
 
     private onMouseLeave(event: MouseEvent) {
         const toElement = event.relatedTarget as HTMLElement;
