@@ -4,7 +4,6 @@ import { Tree } from "../../util/Tree";
 import { setPanelFocus } from "../utils/setPanelFocus";
 import { getDockByType } from "../tabUtil";
 import { fetchPost } from "../../util/fetch";
-import { updateHotkeyAfterTip } from "../../protyle/util/compatibility";
 import { openGlobalSearch } from "../../search/util";
 import { MenuItem } from "../../menus/Menu.Item";
 import { App } from "../../index";
@@ -13,13 +12,17 @@ import { hasClosestByClassName } from "../../protyle/util/hasClosest";
 import { Constants } from "../../constants";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { isOperations, isBlockTreeArray } from "./dock.guard";
+import { Protyle } from "../../protyle";
 import { getSiyuanConfig, getSiyuanMenus, getSiyuanKeyboardState } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { getTagPanelHTML, getTagSortOptions, shouldReloadTag, TAG_EDITOR_RENDER_CONFIG } from "./tag.util";
 /**
- * @AIDONE 此文件中的lint错误已被清理，重构了代码结构
+ * @AIDONE tag列表本质上也是一个块查询结果列表,因此,它应该能够显示编辑器直接编辑块的内容
+ * 参考书签和反向链接面板实现
  */
 export class Tag extends Model {
     private openNodes: string[] = [];
     public tree: Tree;
+    public editors: Protyle[] = [];
     private element: HTMLElement;
 
     constructor(app: App, tab: Tab) {
@@ -38,85 +41,17 @@ export class Tag extends Model {
     }
 
     private _处理消息(data: IWebSocketData) {
-        if (!data) {
-            return;
-        }
-        if (data.cmd === "transactions") {
-            this._处理事务(data);
-            return;
-        }
-        if (data.cmd === "unmount" || data.cmd === "removeDoc") {
-            this.update();
-            return;
-        }
-        if (data.cmd === "mount" && data.code !== 1) {
-            this.update();
-        }
-    }
-
-    private _处理事务(data: IWebSocketData) {
-        const itemData = data.data;
-        if (!Array.isArray(itemData) || itemData.length === 0) {
-            return;
-        }
-        const firstDataItem = itemData[0];
-        const operations = firstDataItem?.doOperations;
-        if (!isOperations(operations)) {
-            return;
-        }
-        for (const item of operations) {
-            if (Tag._应该重新加载(item)) {
-                this.update();
-                return;
-            }
-        }
-    }
-
-    private static _应该重新加载(item: IOperation): boolean {
-        if (item.action === "delete") {
-            return true;
-        }
-        if ((item.action === "update" || item.action === "insert") && typeof item.data === "string") {
-            return item.data.indexOf('data-type="tag"') > -1;
-        }
-        return false;
+        if (!data) return;
+        if (data.cmd === "unmount" || data.cmd === "removeDoc" || (data.cmd === "mount" && data.code !== 1)) { this.update(); return; }
+        if (data.cmd !== "transactions") return;
+        const firstData = Array.isArray(data.data) ? data.data[0] : null;
+        const ops = firstData?.doOperations;
+        if (isOperations(ops) && ops.some(shouldReloadTag)) this.update();
     }
 
     private _初始化外观() {
         this.element.classList.add("fn__flex-column", "file-tree", "sy__tag");
-        this.element.innerHTML = Tag._生成面板HTML();
-    }
-
-    private static _生成面板HTML(): string {
-        const config = getSiyuanConfig();
-        const readonlyClass = config?.readonly ? " fn__none" : "";
-        const expandHotkey = updateHotkeyAfterTip(config?.keymap?.editor?.general?.expand?.custom ?? "");
-        const collapseHotkey = updateHotkeyAfterTip(config?.keymap?.editor?.general?.collapse?.custom ?? "");
-        const minHotkey = updateHotkeyAfterTip(config?.keymap?.general?.closeTab?.custom ?? "");
-
-        return `<div class="block__icons">
-    <div class="block__logo">
-        <svg class="block__logoicon"><use xlink:href="#iconTags"></use></svg>${siyuanI18n.tag}
-    </div>
-    <span class="fn__flex-1"></span>
-    <span class="fn__space"></span>
-    <span data-type="refresh" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.refresh}"><svg><use xlink:href='#iconRefresh'></use></svg></span>
-    <span class="fn__space"></span>
-    <span data-type="sort" class="block__icon b3-tooltips b3-tooltips__sw${readonlyClass}" aria-label="${siyuanI18n.sort}">
-        <svg><use xlink:href="#iconSort"></use></svg>
-    </span>
-    <span class="fn__space${readonlyClass}"></span>
-    <span data-type="expand" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.expand}${expandHotkey}">
-        <svg><use xlink:href="#iconExpand"></use></svg>
-    </span>
-    <span class="fn__space"></span>
-    <span data-type="collapse" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.collapse}${collapseHotkey}">
-        <svg><use xlink:href="#iconContract"></use></svg>
-    </span>
-    <span class="fn__space"></span>
-    <span data-type="min" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.min}${minHotkey}"><svg><use xlink:href='#iconMin'></use></svg></span>
-</div>
-<div class="fn__flex-1" style="margin-bottom: 8px"></div>`;
+        this.element.innerHTML = getTagPanelHTML();
     }
 
     private _生成树对象(app: App): Tree {
@@ -124,45 +59,125 @@ export class Tag extends Model {
         if (!(treeElement instanceof HTMLElement)) {
             throw new Error("tag tree element not found");
         }
-        const config = getSiyuanConfig();
-        const isReadonly = config?.readonly ?? false;
-
+        const isReadonly = getSiyuanConfig()?.readonly ?? false;
+        const extHTML = '<span class="b3-list-item__action"><svg><use xlink:href="#iconMore"></use></svg></span>';
         return new Tree({
             element: treeElement,
-            data: null,
+            data: [],
             click: (element: HTMLElement, event?: MouseEvent) => Tag._onTreeClick(app, element, event),
-            rightClick: (element: HTMLElement, event: MouseEvent) => {
-                openTagMenu(element, event, element.getAttribute("data-label") ?? "");
-            },
-            blockExtHTML: isReadonly ? undefined : '<span class="b3-list-item__action"><svg><use xlink:href="#iconMore"></use></svg></span>',
-            topExtHTML: isReadonly ? undefined : '<span class="b3-list-item__action"><svg><use xlink:href="#iconMore"></use></svg></span>'
+            rightClick: (element: HTMLElement, event: MouseEvent) => openTagMenu(element, event, element.getAttribute("data-label") ?? ""),
+            blockExtHTML: isReadonly ? "" : extHTML,
+            topExtHTML: isReadonly ? "" : extHTML,
+            toggleClick: (element: HTMLElement) => this._toggleItem(element)
         });
     }
 
     private static _onTreeClick(app: App, element: HTMLElement, event?: MouseEvent) {
-        if (!event) {
-            Tag._执行搜索(app, element);
+        const eventTarget = event?.target;
+        const actionElement = eventTarget instanceof HTMLElement && hasClosestByClassName(eventTarget, "b3-list-item__action");
+        if (actionElement && actionElement.parentElement && event) {
+            openTagMenu(actionElement.parentElement, event, element.getAttribute("data-label") ?? "");
             return;
         }
-        const eventTarget = event.target;
-        if (!(eventTarget instanceof HTMLElement)) {
-            Tag._执行搜索(app, element);
-            return;
-        }
-        const actionElement = hasClosestByClassName(eventTarget, "b3-list-item__action");
-        if (actionElement && actionElement.parentElement) {
-            const labelName = element.getAttribute("data-label");
-            openTagMenu(actionElement.parentElement, event, labelName ?? "");
-            return;
-        }
-        Tag._执行搜索(app, element);
+        const label = element.getAttribute("data-label") ?? "";
+        openGlobalSearch(app, `#${label}#`, !getSiyuanKeyboardState().ctrlIsPressed, { method: 0 });
     }
 
-    private static _执行搜索(app: App, element: HTMLElement) {
-        const label = element.getAttribute("data-label") ?? "";
-        const keyboardState = getSiyuanKeyboardState();
-        openGlobalSearch(app, `#${label}#`, !keyboardState.ctrlIsPressed, { method: 0 });
+    private _toggleItem(liElement: HTMLElement) {
+        const toggleElement = liElement.firstElementChild;
+        if (!toggleElement) {
+            return;
+        }
+        const svgElement = toggleElement.firstElementChild;
+        if (!svgElement) {
+            return;
+        }
+        if (svgElement.classList.contains("b3-list-item__arrow--open")) {
+            this._collapseItem(liElement, svgElement);
+            return;
+        }
+        this._expandItem(liElement, svgElement);
     }
+
+    private _collapseItem(liElement: HTMLElement, svgElement: Element) {
+        svgElement.classList.remove("b3-list-item__arrow--open");
+        // 移除编辑器容器
+        const nextSibling = liElement.nextElementSibling;
+        if (nextSibling && nextSibling.classList.contains("tag-editor-container")) {
+            this._destroyEditorsInContainer(nextSibling);
+            nextSibling.remove();
+        }
+        // 隐藏子标签列表
+        const childrenList = liElement.nextElementSibling;
+        if (childrenList?.tagName === "UL") {
+            childrenList.classList.add("fn__none");
+        }
+    }
+
+    private _destroyEditorsInContainer(container: Element) {
+        const editorsToRemove: number[] = [];
+        for (let index = 0; index < this.editors.length; index++) {
+            const editor = this.editors[index];
+            if (editor && container.contains(editor.protyle.element)) {
+                editor.destroy();
+                editorsToRemove.push(index);
+            }
+        }
+        // 从后往前删除，避免索引错误
+        for (let i = editorsToRemove.length - 1; i >= 0; i--) {
+            const indexToRemove = editorsToRemove[i];
+            if (typeof indexToRemove === "number") {
+                this.editors.splice(indexToRemove, 1);
+            }
+        }
+    }
+
+    private _expandItem(liElement: HTMLElement, svgElement: Element) {
+        svgElement.classList.add("b3-list-item__arrow--open");
+        // 显示子标签列表
+        const nextSibling = liElement.nextElementSibling;
+        if (nextSibling && nextSibling.tagName === "UL") {
+            nextSibling.classList.remove("fn__none");
+        }
+        // 获取标签名并搜索对应的块
+        const label = liElement.getAttribute("data-label");
+        if (!label) {
+            return;
+        }
+        // 创建编辑器容器
+        const containerElement = document.createElement("div");
+        containerElement.className = "tag-editor-container";
+        containerElement.style.paddingLeft = "18px";
+        liElement.after(containerElement);
+        // @内联回调
+        // 搜索带有此标签的块
+        fetchPost("/api/search/fullTextSearchBlock", {
+            query: `#${label}#`,
+            method: 0,
+            pageSize: 10 // 限制数量避免性能问题
+        }, (response) => {
+            const blocks = response.data?.blocks;
+            if (!blocks || blocks.length === 0) {
+                containerElement.innerHTML = `<div class="b3-list--empty" style="padding: 8px;">${siyuanI18n.emptyContent}</div>`;
+                return;
+            }
+            this._createEditorsForBlocks(blocks, containerElement);
+        });
+    }
+
+    private _createEditorsForBlocks(blocks: { id: string }[], container: Element) {
+        for (const block of blocks) {
+            const el = document.createElement("div");
+            el.style.cssText = "min-height: auto; margin-bottom: 8px";
+            container.appendChild(el);
+            this.editors.push(new Protyle(this.app, el, {
+                blockId: block.id,
+                click: { preventInsetEmptyBlock: true },
+                render: TAG_EDITOR_RENDER_CONFIG
+            }));
+        }
+    }
+
 
     private _绑定事件() {
         const collapseElement = this.element.querySelector('[data-type="collapse"]');
@@ -219,7 +234,7 @@ export class Tag extends Model {
         }
         menus.menu.remove();
 
-        const sortOptions = Tag._获取排序选项(currentSort);
+        const sortOptions = getTagSortOptions(currentSort);
         for (const option of sortOptions) {
             menus.menu.append(new MenuItem({
                 icon: option.isSelected ? "iconSelect" : "",
@@ -233,17 +248,6 @@ export class Tag extends Model {
         menus.menu.popup({ x: event.clientX, y: event.clientY });
         event.preventDefault();
         event.stopPropagation();
-    }
-
-    private static _获取排序选项(currentSort: number) {
-        return [
-            { sortValue: 0, label: siyuanI18n.fileNameASC, isSelected: currentSort === 0 },
-            { sortValue: 1, label: siyuanI18n.fileNameDESC, isSelected: currentSort === 1 },
-            { sortValue: 4, label: siyuanI18n.fileNameNatASC, isSelected: currentSort === 4 },
-            { sortValue: 5, label: siyuanI18n.fileNameNatDESC, isSelected: currentSort === 5 },
-            { sortValue: 7, label: siyuanI18n.refCountASC, isSelected: currentSort === 7 },
-            { sortValue: 8, label: siyuanI18n.refCountDESC, isSelected: currentSort === 8 },
-        ];
     }
 
     private _设置排序(sortValue: number) {
@@ -293,3 +297,4 @@ export class Tag extends Model {
         element.classList.remove("fn__rotate");
     }
 }
+
