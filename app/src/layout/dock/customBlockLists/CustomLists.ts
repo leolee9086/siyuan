@@ -10,7 +10,10 @@ import { Protyle } from "../../../protyle";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getIconByType } from "../../../editor/getIcon";
 import { getDockByType } from "../../tabUtil";
-import { getCustomListIcon, getTopExtHTML, handleRemoveFromStorage, handleRemoveItemFromList } from "./customLists.util";
+import { getCustomListIcon, getTopExtHTML, handleRemoveFromStorage, handleRemoveItemFromList, updateListTarget } from "./customLists.util";
+// Duplicate import removed
+import { fetchPost } from "../../../util/fetch";
+import { showCustomListMenu } from "./customLists.menu";
 
 export interface ICustomList {
     id: string;
@@ -50,37 +53,9 @@ export class CustomLists extends Model {
 
         this.element.classList.add("fn__flex-column", "file-tree", "sy__custom-list");
         const icon = getCustomListIcon(this.listData.type);
-        if (tab.icon !== icon) {
-            tab.icon = icon;
-            tab.headElement?.querySelector("use")?.setAttribute("xlink:href", "#" + icon);
-        }
-        const key = `custom_list:${this.listData.type}:${this.listData.id}`;
-        const dock = getDockByType(key);
-        if (dock) {
-            dock.element.querySelector(`[data-type="${key}"]`)?.querySelector("use")?.setAttribute("xlink:href", "#" + icon);
-        }
-        this.element.innerHTML = `<div class="block__icons">
-    <div class="block__logo">
-        <svg class="block__logoicon"><use xlink:href="#${icon}"></use></svg>${this.listData.title}
-    </div>
-    <span class="fn__flex-1 fn__space"></span>
-    <span data-type="refresh" class="block__icon ariaLabel" aria-label="${siyuanI18n.refresh}">
-        <svg><use xlink:href="#iconRefresh"></use></svg>
-    </span>
-    <span class="fn__space"></span>
-    <span data-type="remove" class="block__icon ariaLabel" aria-label="${siyuanI18n.remove}">
-        <svg><use xlink:href="#iconTrashcan"></use></svg>
-    </span>
-    <span class="fn__space"></span>
-    <span data-type="collapse" class="block__icon ariaLabel" aria-label="${siyuanI18n.collapse}">
-        <svg><use xlink:href="#iconContract"></use></svg>
-    </span>
-    <span class="fn__space"></span>
-    <span data-type="min" class="block__icon ariaLabel" aria-label="${siyuanI18n.min}">
-        <svg><use xlink:href="#iconMin"></use></svg>
-    </span>
-</div>
-<div class="fn__flex-1" style="overflow:auto;"></div>`;
+        this.updateDockIcon(tab, icon);
+        this.renderHeader(icon);
+
 
         this.tree = new Tree({
             element: this.element.lastElementChild as HTMLElement,
@@ -100,12 +75,33 @@ export class CustomLists extends Model {
             if (!query) {
                 return;
             }
-            // Use searchBlock API to get results
-            fetchPost("/api/search/fullTextSearchBlock", {
+            let searchConfig: any = {
                 query: query,
                 page: 1,
-                pagesize: 50, // Limit for better performance
-            }, (response) => {
+                pagesize: 50,
+            };
+
+            // Try to parse query as JSON config
+            if (query.trim().startsWith("{")) {
+                try {
+                    const config = JSON.parse(query);
+                    searchConfig = {
+                        query: config.k,
+                        method: config.method,
+                        types: config.types,
+                        paths: config.idPath || [],
+                        groupBy: config.group,
+                        orderBy: config.sort,
+                        page: 1,
+                        pagesize: 50,
+                    };
+                } catch (e) {
+                    // Ignore error, treat as plain text query
+                }
+            }
+
+            // Use searchBlock API to get results
+            fetchPost("/api/search/fullTextSearchBlock", searchConfig, (response) => {
                 this.renderData(response.data.blocks);
             });
         } else {
@@ -120,6 +116,56 @@ export class CustomLists extends Model {
                 this.renderData(response.data);
             });
         }
+    }
+
+    public updateTitle(title: string) {
+        this.listData.title = title;
+        const logo = this.element.querySelector(".block__logo");
+        if (logo) {
+            const icon = getCustomListIcon(this.listData.type);
+            logo.innerHTML = `<svg class="block__logoicon"><use xlink:href="#${icon}"></use></svg>${title}`;
+        }
+    }
+
+    private updateDockIcon(tab: Tab, icon: string) {
+        if (tab.icon !== icon) {
+            tab.icon = icon;
+            tab.headElement?.querySelector("use")?.setAttribute("xlink:href", "#" + icon);
+        }
+        const key = `custom_list:${this.listData.type}:${this.listData.id}`;
+        const dock = getDockByType(key);
+        if (dock) {
+            dock.element.querySelector(`[data-type="${key}"]`)?.querySelector("use")?.setAttribute("xlink:href", "#" + icon);
+        }
+    }
+
+    private renderHeader(icon: string) {
+        this.element.innerHTML = `<div class="block__icons">
+    <div class="block__logo">
+        <svg class="block__logoicon"><use xlink:href="#${icon}"></use></svg>${this.listData.title}
+    </div>
+    <span class="fn__flex-1 fn__space"></span>
+    <span data-type="refresh" class="block__icon ariaLabel" aria-label="${siyuanI18n.refresh}">
+        <svg><use xlink:href="#iconRefresh"></use></svg>
+    </span>
+    <span class="fn__space"></span>
+    <span data-type="more" class="block__icon ariaLabel" aria-label="${siyuanI18n.more}">
+        <svg><use xlink:href="#iconMore"></use></svg>
+    </span>
+    <span class="fn__space"></span>
+    <span data-type="remove" class="block__icon ariaLabel" aria-label="${siyuanI18n.remove}">
+        <svg><use xlink:href="#iconTrashcan"></use></svg>
+    </span>
+    <span class="fn__space"></span>
+    <span data-type="collapse" class="block__icon ariaLabel" aria-label="${siyuanI18n.collapse}">
+        <svg><use xlink:href="#iconContract"></use></svg>
+    </span>
+    <span class="fn__space"></span>
+    <span data-type="min" class="block__icon ariaLabel" aria-label="${siyuanI18n.min}">
+        <svg><use xlink:href="#iconMin"></use></svg>
+    </span>
+</div>
+<div class="fn__flex-1" style="overflow:auto;"></div>`;
     }
 
     private renderData(blocks: IBlock[]) {
@@ -139,7 +185,7 @@ export class CustomLists extends Model {
             while (target && !target.isEqualNode(this.element)) {
                 if (target.classList.contains("block__icon")) {
                     const type = target.getAttribute("data-type");
-                    this.handleIconClick(type);
+                    this.handleIconClick(type, event);
                     event.preventDefault();
                     event.stopPropagation();
                     break;
@@ -149,7 +195,7 @@ export class CustomLists extends Model {
         });
     }
 
-    private handleIconClick(type: string | null) {
+    private handleIconClick(type: string | null, event?: MouseEvent) {
         if (!type || !this.listData) { return; }
         switch (type) {
             case "refresh":
@@ -169,6 +215,11 @@ export class CustomLists extends Model {
                 handleRemoveFromStorage(this.listData.id, this.listData);
                 break;
             }
+            case "more":
+                if (event) {
+                    showCustomListMenu(this, event);
+                }
+                break;
         }
     }
 
@@ -285,6 +336,7 @@ export class CustomLists extends Model {
         }
     }
 }
+
 
 const sqlTypeToNodeType = (type: string): string => {
     switch (type) {

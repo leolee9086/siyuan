@@ -46,3 +46,16 @@ export const handleRemoveItemFromList = (id: string, listData: ICustomList) => {
     }
     return false;
 };
+
+export const updateListTarget = (listData: ICustomList) => {
+    const storage = window.siyuan.storage;
+    const customLists = storage?.["local-customlists"];
+    if (customLists && customLists[listData.id]) {
+        customLists[listData.id] = listData;
+        setStorageVal("local-customlists", customLists);
+    }
+    const key = `custom_list:${listData.type}:${listData.id}`;
+    const dock = getDockByType(key);
+    // Dock doesn't need explicit updateData for custom list content changes
+    // as we handle persistence directly to storage.
+};
