@@ -27,6 +27,10 @@ const 查询量化位数 = 1
 // 索引向量量化位数 (1位用于压缩存储)
 const 索引量化位数 = 1
 
+// BBQEnableThreshold defines the minimum dimension to enable Binary Quantization
+// Vectors with dimension >= this value will use BBQ optimization
+const BBQEnableThreshold = 33
+
 // 4位量化缩放因子: 将0-15映射到[0,1]
 const 四位缩放因子 = 1.0 / 15.0
 

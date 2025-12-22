@@ -269,6 +269,7 @@ func (s *VectorStore) ComputeBBQDistance(a, b DocID) float32 {
 
 // ComputeBBQDistanceFromQuery 计算查询向量与已索引向量的BBQ距离
 // 1-bit 量化模式：使用打包位点积 + POPCNT 硬件加速
+// 4-bit 量化模式 (dim < 128)：使用朴素点积 (4-bit query x 1-bit index)
 func (s *VectorStore) ComputeBBQDistanceFromQuery(queryPacked []byte, queryCorrection 量化结果, docID DocID) float32 {
     id := int(docID)
     
@@ -276,6 +277,30 @@ func (s *VectorStore) ComputeBBQDistanceFromQuery(queryPacked []byte, queryCorre
         return 1e9
     }
     
+    if s.Dimension < 128 {
+        // 4-bit Query strategy
+        // queryPacked actually contains unpacked 4-bit values (0-15)
+        
+        // Ensure we have access to unpacked 1-bit index data
+        offset := id * s.Dimension
+        endOffset := offset + s.Dimension
+        if endOffset > len(s.bbqQuantized) {
+             return 1e9
+        }
+        
+        indexQuantized := s.bbqQuantized[offset:endOffset] // Unpacked 1-bit values (0 or 1)
+        
+        // Compute dot product between 4-bit query and 1-bit index
+        // This effectively computes sum(q[i] * index[i])
+        bitDotProduct := 计算朴素点积(queryPacked, indexQuantized)
+        
+        indexCorrection := s.bbqCorrections[id]
+        
+        // Use 4-bit scoring mode
+        return s.scorer.计算量化距离(bitDotProduct, queryCorrection, indexCorrection, s.Dimension, 0, true)
+    }
+
+    // Standard 1-bit strategy
     // 获取打包的索引向量
     packedOffset := id * s.packedSize
     endOffset := packedOffset + s.packedSize
@@ -292,8 +317,17 @@ func (s *VectorStore) ComputeBBQDistanceFromQuery(queryPacked []byte, queryCorre
     return s.scorer.计算量化距离(bitDotProduct, queryCorrection, indexCorrection, s.Dimension, 0, false)
 }
 
-// QuantizeQuery 对查询向量进行1-bit量化并打包
+// QuantizeQuery 对查询向量进行量化
 func (s *VectorStore) QuantizeQuery(query []float32) ([]byte, 量化结果) {
+    if s.Dimension < 128 {
+        // 4-bit quantization for dimensions < 128
+        // Note: For 4-bit, we return the raw quantized values (0-15) in []byte
+        // They are NOT packed into bits because we need 4-bit precision for dot product
+        quantized := make([]byte, len(query))
+        correction := s.quantizer.标量量化(query, quantized, 4, s.centroid)
+        return quantized, correction
+    }
+
     quantized := make([]byte, len(query))
     correction := s.quantizer.标量量化(query, quantized, 查询量化位数, s.centroid)
     // 打包为二进制 (8个bit压缩为1个byte)

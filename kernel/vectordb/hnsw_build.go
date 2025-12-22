@@ -174,7 +174,7 @@ func (c *Collection) buildHNSWIndex(itemDocID DocID, entryPointID DocID, itemLev
                 // But forward pass used BQ if >= 128.
                 // Let's use BQ if applicable.
                 
-                useBQForNeighbor := c.Dimension >= 128
+                useBQForNeighbor := c.Dimension >= BBQEnableThreshold
                 nID := candidatesForNeighbor[i].ID
                 
                 if useBQForNeighbor {
@@ -220,7 +220,7 @@ func (c *Collection) greedySearch(queryID DocID, entryPointID DocID, level int, 
     // Greedy search is just finding a local minimum.
     // Let's use BQ distance here if possible!
     
-    useBQ := c.Dimension >= 128
+    useBQ := c.Dimension >= BBQEnableThreshold
     
     var currentDist float32
     if useBQ {
@@ -267,7 +267,7 @@ func (c *Collection) searchLevel(queryID DocID, entryPointID DocID, level int, e
 	candidates := NewMinHeap() // Keep furthest candidate to explore
 	results := NewMaxHeap(ef)  // Keep nearest results found so far
 	
-    useBQ := c.Dimension >= 128
+    useBQ := c.Dimension >= BBQEnableThreshold
     
     var entryDist float32
     if useBQ {
@@ -343,7 +343,7 @@ func (c *Collection) selectNeighborsHeuristic(itemID DocID, candidates []Neighbo
 	sortNeighborsByDistance(candidates)
 	
 	result := make([]NeighborRecord, 0, M)
-    useBQ := c.Dimension >= 128
+    useBQ := c.Dimension >= BBQEnableThreshold
 	
 	for _, candidate := range candidates {
 		if len(result) >= M {

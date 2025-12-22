@@ -54,7 +54,7 @@ func (c *Collection) Search(queryVec []float32, k int, efSearch int) []SearchRes
 	entryLevel := GetItemLevel(c, entryPointID, "")
 	
     // BBQ: 对查询向量进行4-bit量化
-    useBBQ := c.Dimension >= 128
+    useBBQ := c.Dimension >= BBQEnableThreshold
     var queryQuantized []byte
     var queryCorrection 量化结果
     if useBBQ {
