@@ -218,5 +218,23 @@
             "zh_CN": "当前激活",
             "en_US": "Active"
         }
+    },
+    "customList": {
+        "savedCriteria": {
+            "zh_CN": "保存的查询条件",
+            "en_US": "Saved Criteria"
+        },
+        "editSearchConditions": {
+            "zh_CN": "编辑查询条件",
+            "en_US": "Edit Search Conditions"
+        },
+        "pinSearchResult": {
+            "zh_CN": "固定搜索结果",
+            "en_US": "Pin Search Result"
+        },
+        "pinSearchQuery": {
+            "zh_CN": "固定查询参数",
+            "en_US": "Pin Search Query"
+        }
     }
 }

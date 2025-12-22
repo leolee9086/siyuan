@@ -85,7 +85,7 @@ export const openGlobalSearch = (app: App, text: string, replace: boolean, searc
 };
 
 // closeCB 不存在为页签搜索
-export const genSearch = (app: App, config: Config.IUILayoutTabSearchConfig, element: HTMLElement, closeCB?: () => void) => {
+export const genSearch = (app: App, config: Config.IUILayoutTabSearchConfig, element: HTMLElement, closeCB?: () => void, updateCB?: (config: Config.IUILayoutTabSearchConfig) => void) => {
     let includeChild = true;
     let enableIncludeChild = false;
     config.idPath.forEach(item => {
@@ -367,6 +367,7 @@ export const genSearch = (app: App, config: Config.IUILayoutTabSearchConfig, ele
                     types: getDefaultType(),
                     replaceTypes: Object.assign({}, Constants.SIYUAN_DEFAULT_REPLACETYPES),
                 }, config, edit, true);
+                if (updateCB) { updateCB(config); }
                 element.querySelector(".b3-chip--current")?.classList.remove("b3-chip--current");
                 event.stopPropagation();
                 event.preventDefault();
@@ -403,6 +404,7 @@ export const genSearch = (app: App, config: Config.IUILayoutTabSearchConfig, ele
                 criteriaData.find(item => {
                     if (item.name === target.innerText.trim()) {
                         config = updateConfig(element, item, config, edit);
+                        if (updateCB) { updateCB(config); }
                         return true;
                     }
                 });
@@ -445,6 +447,7 @@ export const genSearch = (app: App, config: Config.IUILayoutTabSearchConfig, ele
                 searchPathInputElement.textContent = "";
                 searchPathInputElement.setAttribute("aria-label", "");
                 inputEvent(element, config, edit, true);
+                if (updateCB) { updateCB(config); }
                 const includeElement = element.querySelector("#searchInclude");
                 includeElement.firstElementChild.classList.add("ft__primary");
                 includeElement.setAttribute("disabled", "disabled");
@@ -588,6 +591,7 @@ export const genSearch = (app: App, config: Config.IUILayoutTabSearchConfig, ele
                                 includeElement.setAttribute("disabled", "disabled");
                             }
                             inputEvent(element, config, edit, true);
+                            if (updateCB) { updateCB(config); }
                         });
                     },
                     title: siyuanI18n.specifyPath,
@@ -619,10 +623,12 @@ export const genSearch = (app: App, config: Config.IUILayoutTabSearchConfig, ele
                 }
                 config.page = 1;
                 inputEvent(element, config, edit, true);
+                if (updateCB) { updateCB(config); }
                 break;
             } else if (target.id === "searchReplace") {
                 // ctrl+P 不需要保存
                 config.hasReplace = !config.hasReplace;
+                if (updateCB) { updateCB(config); }
                 element.querySelectorAll(".search__header")[1].classList.toggle("fn__none");
                 element.querySelector("#criteria .b3-chip--current")?.classList.remove("b3-chip--current");
                 event.stopPropagation();
@@ -697,6 +703,7 @@ export const genSearch = (app: App, config: Config.IUILayoutTabSearchConfig, ele
                 break;
             } else if (target.id === "searchRefresh") {
                 inputEvent(element, config, edit);
+                if (updateCB) { updateCB(config); }
                 event.stopPropagation();
                 event.preventDefault();
                 break;
@@ -704,6 +711,7 @@ export const genSearch = (app: App, config: Config.IUILayoutTabSearchConfig, ele
                 moreMenu(config, criteriaData, element, () => {
                     config.page = 1;
                     inputEvent(element, config, edit, true);
+                    if (updateCB) { updateCB(config); }
                 }, () => {
                     config = updateConfig(element, {
                         removed: true,
@@ -719,6 +727,7 @@ export const genSearch = (app: App, config: Config.IUILayoutTabSearchConfig, ele
                         types: getDefaultType(),
                         replaceTypes: Object.assign({}, Constants.SIYUAN_DEFAULT_REPLACETYPES),
                     }, config, edit, true);
+                    if (updateCB) { updateCB(config); }
                     element.querySelector("#criteria .b3-chip--current")?.classList.remove("b3-chip--current");
                 }, () => {
                     const localData = window.siyuan.storage[Constants.LOCAL_SEARCHKEYS];
@@ -782,6 +791,7 @@ export const genSearch = (app: App, config: Config.IUILayoutTabSearchConfig, ele
                 filterMenu(config, () => {
                     config.page = 1;
                     inputEvent(element, config, edit, true);
+                    if (updateCB) { updateCB(config); }
                 });
                 event.stopPropagation();
                 event.preventDefault();
@@ -841,6 +851,7 @@ export const genSearch = (app: App, config: Config.IUILayoutTabSearchConfig, ele
                     element.querySelector("#searchSyntaxCheck").outerHTML = genQueryHTML(config.method, "searchSyntaxCheck");
                     config.page = 1;
                     inputEvent(element, config, edit, true);
+                    if (updateCB) { updateCB(config); }
                 });
                 const rect = target.getBoundingClientRect();
                 window.siyuan.menus.menu.popup({ x: rect.right, y: rect.bottom, isLeft: true });
@@ -976,6 +987,7 @@ export const genSearch = (app: App, config: Config.IUILayoutTabSearchConfig, ele
             return;
         }
         inputEvent(element, config, edit, true);
+        if (updateCB) { updateCB(config); }
     });
     searchInputElement.addEventListener("input", (event: InputEvent) => {
         config.page = 1;
@@ -983,6 +995,7 @@ export const genSearch = (app: App, config: Config.IUILayoutTabSearchConfig, ele
             return;
         }
         inputEvent(element, config, edit, true);
+        if (updateCB) { updateCB(config); }
     });
     searchInputElement.addEventListener("blur", () => {
         if (config.removed) {
@@ -1005,6 +1018,7 @@ export const genSearch = (app: App, config: Config.IUILayoutTabSearchConfig, ele
         clearCB() {
             config.page = 1;
             inputEvent(element, config, edit);
+            if (updateCB) { updateCB(config); }
         }
     });
     addClearButton({

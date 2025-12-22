@@ -217,7 +217,7 @@ export class CustomLists extends Model {
             }
             case "more":
                 if (event) {
-                    showCustomListMenu(this, event);
+                    showCustomListMenu(this.app, this, event);
                 }
                 break;
         }
@@ -372,4 +372,4 @@ const mapBlockToTreeData = (block: IBlock): IBlockTree => {
         depth: 0,
         ial: block.ial || {}
     };
-}
+};
