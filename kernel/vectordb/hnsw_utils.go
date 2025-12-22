@@ -89,57 +89,33 @@ func GetItemLevel(c *Collection, docID DocID, modelName string) int {
     return c.Nodes[docID].Level
 }
 
-// GetLevelNeighbors gets neighbors at specific level
-func GetLevelNeighbors(c *Collection, docID DocID, modelName string, level int) []NeighborRecord {
-    c.Mu.RLock()
-    defer c.Mu.RUnlock()
-    
+// GetLevelNeighborIDs 零分配版本：直接返回邻居ID切片引用
+// 调用方不得修改返回的切片！
+func GetLevelNeighborIDs(c *Collection, docID DocID, modelName string, level int) []DocID {
     if int(docID) >= len(c.Nodes) {
         return nil
     }
     node := c.Nodes[docID]
     
-    if level > node.Level || level < 0 {
+    if level > node.Level || level < 0 || level >= len(node.Neighbors) {
         return nil
     }
     
-    // NeighborRecord struct requires Distance, but adjacency list only stores IDs.
-    // We need to re-compute distances or store them.
-    // Storing distances in graph consumes more memory (8 bytes per link vs 4).
-    // Usually HNSW graph only needs IDs. Distance is computed on fly during search.
-    // BUT, the original GetLevelNeighbors returned []NeighborRecord.
-    // If we changed storage to only IDs, we must adapt this.
-    // Re-computing distance here is expensive if used for pure traversal logic that doesn't need dist.
-    // However, standard HNSW traversal calculates dist to candidates.
-    // Logic that calls GetLevelNeighbors usually:
-    // 1. Iterate neighbors
-    // 2. Calc distance to Query (not to current node)
-    // So we don't need the distance to *current* node (edge weight) for the search itself, 
-    // we need distance from neighbor to *query*.
-    // Exception: heuristics might use edge weight.
+    return node.Neighbors[level]
+}
+
+// GetLevelNeighbors gets neighbors at specific level (分配版本，兼容旧接口)
+func GetLevelNeighbors(c *Collection, docID DocID, modelName string, level int) []NeighborRecord {
+    ids := GetLevelNeighborIDs(c, docID, modelName, level)
+    if ids == nil {
+        return nil
+    }
     
-    // Fix: Return dummy distance or change return type?
-    // Changing return type is a big refactor.
-    // Let's look at usage.
-    // Usage: `greedySearch` -> `neighborItem`, `computeDistance(query, neighbor)`.
-    // It doesn't use the distance from NeighborRecord!
-    // Usage: `selectNeighborsHeuristic` -> uses `candidates` which HAS distance (calculated before).
-    // `SetLevelNeighbors` passes `candidates` (with dist).
-    
-    // PROBLEM: `SetLevelNeighbors` was storing `NeighborRecord` (ID+Dist).
-    // New `NodeData` stores `[]DocID`. We lost the edge weight.
-    // HNSW edges are technically just links. Is edge weight needed?
-    // `selectNeighborsHeuristic` checks distance between neighbors.
-    // If we reload neighbors, we only have IDs.
-    // If we need distance between neighbors (for diversity), we re-compute.
-    // Since Item vectors are in VectorStore, re-compute is fast.
-    
-    ids := node.Neighbors[level]
     records := make([]NeighborRecord, len(ids))
     for i, id := range ids {
         records[i] = NeighborRecord{
-            ID: id,
-            Distance: 0, // Unknown/Recalculate if needed
+            ID:       id,
+            Distance: 0,
         }
     }
     return records

@@ -27,13 +27,26 @@ import (
 
 // 计算朴素点积 直接计算未打包量化向量的点积
 // 适用于4-bit查询 x 1-bit索引
+// 循环展开4x优化
 func 计算朴素点积(查询 []byte, 索引 []byte) int {
 	if len(查询) != len(索引) {
 		return 0
 	}
 	
 	和 := 0
-	for i := 0; i < len(查询); i++ {
+	n := len(查询)
+	i := 0
+	
+	// 每次处理4个元素
+	for ; i <= n-4; i += 4 {
+		和 += int(查询[i])*int(索引[i]) +
+			int(查询[i+1])*int(索引[i+1]) +
+			int(查询[i+2])*int(索引[i+2]) +
+			int(查询[i+3])*int(索引[i+3])
+	}
+	
+	// 处理剩余元素
+	for ; i < n; i++ {
 		和 += int(查询[i]) * int(索引[i])
 	}
 	return 和

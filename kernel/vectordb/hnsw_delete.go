@@ -16,6 +16,8 @@
 
 package vectordb
 
+import "sort"
+
 // =========================================
 // HNSW Delete and Rebuild
 // =========================================
@@ -196,17 +198,10 @@ func (c *Collection) RebuildIndex(modelName string) error {
 		return nil
 	}
 	
-	// Sort items for deterministic build (by DocID)
-	// We need to implement a sort.
-	// Simple bubble sort or import sort?
-	// Let's use simple sort since import sort might need interface.
-	for i := 0; i < len(items)-1; i++ {
-	    for j := i+1; j < len(items); j++ {
-	        if items[i].DocID > items[j].DocID {
-	            items[i], items[j] = items[j], items[i]
-	        }
-	    }
-	}
+	// 使用标准库排序 O(n log n) 替代冒泡 O(n²)
+	sort.Slice(items, func(i, j int) bool {
+		return items[i].DocID < items[j].DocID
+	})
 	
 	// Clear Graph
 	c.Mu.Lock()

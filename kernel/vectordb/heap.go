@@ -34,9 +34,10 @@ type MinHeap struct {
 }
 
 // NewMinHeap 创建最小堆
+// 预分配容量减少搜索过程中的扩容次数
 func NewMinHeap() *MinHeap {
 	return &MinHeap{
-		data: make([]*HeapItem, 0),
+		data: make([]*HeapItem, 0, 64), // 预分配容量
 	}
 }
 

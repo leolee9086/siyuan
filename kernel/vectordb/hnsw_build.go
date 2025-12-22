@@ -16,6 +16,8 @@
 
 package vectordb
 
+import "sort"
+
 // =========================================
 // HNSW Build (Insert)
 // =========================================
@@ -287,16 +289,10 @@ func (c *Collection) searchLevel(queryID DocID, entryPointID DocID, modelName st
 		})
 	}
 	
-	// Reverse to get ascending order (closest first)
-	for i, j := 0, len(result)-1; i < j; i, j = i+1, j-1 {
-		result[i], result[j] = result[j], result[i]
-	}
-	
-    // Rescoring phase? If we used BQ, distance values are Hamming ints (as float32).
-    // We should probably re-score using full precision if this is the final level?
-    // But searchLevel is used for construction too.
-    // Internal construction should be consistent.
-    // If output is used for heuristic, heuristic should use same metric.
+	// 使用标准库排序替代手写反转 (MaxHeap pop 是降序, 需要升序)
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Distance < result[j].Distance
+	})
 	
 	return result
 }

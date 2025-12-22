@@ -183,7 +183,7 @@ func (s *VectorStore) Set(docID DocID, vec []float32) {
     copy(s.bbqPacked[packedOffset:], packed)
 }
 
-// Get retrieves a vector by DocID
+// Get retrieves a vector by DocID (returns a copy for safety)
 func (s *VectorStore) Get(docID DocID) ([]float32, bool) {
     s.mu.RLock()
     defer s.mu.RUnlock()
@@ -194,42 +194,43 @@ func (s *VectorStore) Get(docID DocID) ([]float32, bool) {
         return nil, false
     }
     
-    // Return a copy to avoid external modification affecting store?
-    // For performance, return slice reference?
-    // Go slice is safe unless modified. Let's return copy for safety for now, or slice for speed.
-    // Given optimization context, returning slice is better but dangerous if caller modifies it.
-    // But caller usually just reads for distance.
-    // Let's return a copy for now to be safe, optimizing later if needed.
-    // HNSW implementation needs many reads. Copying 1024 floats is 4KB.
-    // Actually, let's return a slice wrapper.
-    
     vec := make([]float32, s.Dimension)
     copy(vec, s.vectors[offset:offset+s.Dimension])
     return vec, true
 }
 
-// ComputeDistance computes distance between two docIDs using raw vectors
-func (s *VectorStore) ComputeDistance(a, b DocID, metric string) float32 {
-    s.mu.RLock()
+// GetUnsafe 零拷贝获取向量 (调用方不得修改返回值!)
+// 性能优化: 避免每次 4KB 的内存分配
+func (s *VectorStore) GetUnsafe(docID DocID) ([]float32, bool) {
+    id := int(docID)
+    offset := id * s.Dimension
+    endOffset := offset + s.Dimension
     
+    // 直接读取无锁 (向量数组只追加不修改)
+    if endOffset > len(s.vectors) {
+        return nil, false
+    }
+    
+    return s.vectors[offset:endOffset:endOffset], true
+}
+
+// ComputeDistance computes distance between two docIDs using raw vectors
+// 零锁优化: 向量数组只追加不删除,读取无需加锁
+func (s *VectorStore) ComputeDistance(a, b DocID, metric string) float32 {
     idA := int(a)
     idB := int(b)
     
     offsetA := idA * s.Dimension
-    offsetB := idB * s.Dimension // Fixed bug here (was idA)
+    offsetB := idB * s.Dimension
+    endA := offsetA + s.Dimension
+    endB := offsetB + s.Dimension
     
-    if offsetA >= len(s.vectors) || offsetB >= len(s.vectors) {
-         s.mu.RUnlock()
-        return 1e9 // Max dist
+    if endA > len(s.vectors) || endB > len(s.vectors) {
+        return 1e9
     }
     
-    // Direct access slice
-    vecA := s.vectors[offsetA : offsetA+s.Dimension]
-    vecB := s.vectors[offsetB : offsetB+s.Dimension]
-    
-    s.mu.RUnlock() // Unlock before computation to allow concurrency? 
-    // Actually map access is fast, computation takes time.
-    // But here we are just reading slices.
+    vecA := s.vectors[offsetA:endA]
+    vecB := s.vectors[offsetB:endB]
     
     if metric == "l2" {
         return L2Distance(vecA, vecB)
@@ -238,32 +239,28 @@ func (s *VectorStore) ComputeDistance(a, b DocID, metric string) float32 {
 }
 
 // ComputeBBQDistance 计算两个已索引向量间的BBQ量化距离
-// 返回值: 距离 (越小越相似)
+// 零锁优化: 数组只追加不删除
 func (s *VectorStore) ComputeBBQDistance(a, b DocID) float32 {
-    s.mu.RLock()
-    defer s.mu.RUnlock()
-    
     idA := int(a)
     idB := int(b)
     
-    // 获取打包数据
     packedOffsetA := idA * s.packedSize
     packedOffsetB := idB * s.packedSize
+    endA := packedOffsetA + s.packedSize
+    endB := packedOffsetB + s.packedSize
     
-    if packedOffsetA >= len(s.bbqPacked) || packedOffsetB >= len(s.bbqPacked) {
+    if endA > len(s.bbqPacked) || endB > len(s.bbqPacked) {
         return 1e9
     }
     if idA >= len(s.bbqCorrections) || idB >= len(s.bbqCorrections) {
         return 1e9
     }
     
-    packedA := s.bbqPacked[packedOffsetA : packedOffsetA+s.packedSize]
-    packedB := s.bbqPacked[packedOffsetB : packedOffsetB+s.packedSize]
+    packedA := s.bbqPacked[packedOffsetA:endA]
+    packedB := s.bbqPacked[packedOffsetB:endB]
     
-    // 计算打包位点积
     bitDotProduct := 计算打包位点积(packedA, packedB)
     
-    // 使用评分器还原相似度
     corrA := s.bbqCorrections[idA]
     corrB := s.bbqCorrections[idB]
     
@@ -273,26 +270,20 @@ func (s *VectorStore) ComputeBBQDistance(a, b DocID) float32 {
 // ComputeBBQDistanceFromQuery 计算查询向量与已索引向量的BBQ距离
 // 使用4-bit查询量化以获得更高精度
 func (s *VectorStore) ComputeBBQDistanceFromQuery(queryQuantized []byte, queryCorrection 量化结果, docID DocID) float32 {
-    s.mu.RLock()
-    defer s.mu.RUnlock()
-    
     id := int(docID)
     
     if id >= len(s.bbqCorrections) {
         return 1e9
     }
     
-    // 获取索引向量的未打包量化数据 (用于4-bit x 1-bit点积)
     offset := id * s.Dimension
-    if offset >= len(s.bbqQuantized) {
+    endOffset := offset + s.Dimension
+    if endOffset > len(s.bbqQuantized) {
         return 1e9
     }
     
-    indexQuantized := s.bbqQuantized[offset : offset+s.Dimension]
-    
-    // 计算4-bit x 1-bit 朴素点积
+    indexQuantized := s.bbqQuantized[offset:endOffset]
     bitDotProduct := 计算朴素点积(queryQuantized, indexQuantized)
-    
     indexCorrection := s.bbqCorrections[id]
     
     return s.scorer.计算量化距离(bitDotProduct, queryCorrection, indexCorrection, s.Dimension, 0, true)
@@ -318,18 +309,18 @@ func (s *VectorStore) GetCorrection(docID DocID) (量化结果, bool) {
 }
 
 // ComputeDistanceFromVector computes distance between a query vector and a stored docID
+// 零拷贝优化: 直接访问存储的向量切片
 func (s *VectorStore) ComputeDistanceFromVector(query []float32, docID DocID, metric string) float32 {
-    s.mu.RLock()
-    defer s.mu.RUnlock()
-    
     id := int(docID)
     offset := id * s.Dimension
+    endOffset := offset + s.Dimension
     
-    if offset >= len(s.vectors) {
+    // 直接读取无锁 (向量数组只追加不修改)
+    if endOffset > len(s.vectors) {
         return 1e9
     }
     
-    vec := s.vectors[offset : offset+s.Dimension]
+    vec := s.vectors[offset:endOffset]
     
     if metric == "l2" {
         return L2Distance(query, vec)

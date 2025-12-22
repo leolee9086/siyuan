@@ -16,6 +16,8 @@
 
 package vectordb
 
+import "sort"
+
 // =========================================
 // HNSW Query (Search)
 // =========================================
@@ -83,8 +85,8 @@ func (c *Collection) Search(queryVec []float32, modelName string, k int, efSearc
         
         var finalDist float32
         if useBBQ {
-            // Compute real distance for final ranking
-            vec, ok := c.Store.Get(candidate.ID)
+            // 零拷贝优化: 使用 GetUnsafe 避免 4KB 内存分配
+            vec, ok := c.Store.GetUnsafe(candidate.ID)
             if ok && len(vec) == len(queryVec) {
                 if config.MetricType == "l2" {
                     finalDist = L2Distance(queryVec, vec)
@@ -125,14 +127,10 @@ func (c *Collection) Search(queryVec []float32, modelName string, k int, efSearc
 		})
 	}
 	
-	// Sort by score descending (best match first)
-	for i := 0; i < len(searchResults)-1; i++ {
-		for j := i + 1; j < len(searchResults); j++ {
-			if searchResults[j].Score > searchResults[i].Score {
-				searchResults[i], searchResults[j] = searchResults[j], searchResults[i]
-			}
-		}
-	}
+	// 使用标准库排序 O(n log n) 替代冒泡 O(n²)
+	sort.Slice(searchResults, func(i, j int) bool {
+		return searchResults[i].Score > searchResults[j].Score
+	})
 	
 	if len(searchResults) > k {
 		searchResults = searchResults[:k]
@@ -158,21 +156,22 @@ func (c *Collection) greedySearchVec(queryVec []float32, queryQuantized []byte, 
 	improved := true
 	for improved {
 		improved = false
-		neighbors := GetLevelNeighbors(c, currentBestID, modelName, level)
-		if neighbors == nil {
+		// 零分配优化: 使用 GetLevelNeighborIDs
+		neighborIDs := GetLevelNeighborIDs(c, currentBestID, modelName, level)
+		if neighborIDs == nil {
 			break
 		}
 		
-		for _, neighbor := range neighbors {
+		for _, neighborID := range neighborIDs {
             var dist float32
             if useBBQ {
-                dist = c.Store.ComputeBBQDistanceFromQuery(queryQuantized, queryCorrection, neighbor.ID)
+                dist = c.Store.ComputeBBQDistanceFromQuery(queryQuantized, queryCorrection, neighborID)
             } else {
-                dist = c.Store.ComputeDistanceFromVector(queryVec, neighbor.ID, metricType)
+                dist = c.Store.ComputeDistanceFromVector(queryVec, neighborID, metricType)
             }
             
 			if dist < currentDist {
-				currentBestID = neighbor.ID
+				currentBestID = neighborID
 				currentDist = dist
 				improved = true
 			}
@@ -210,30 +209,31 @@ func (c *Collection) searchLevelVec(queryVec []float32, queryQuantized []byte, q
 			break
 		}
 		
-		neighbors := GetLevelNeighbors(c, current.ID, modelName, level)
-		if neighbors == nil {
+		// 零分配优化: 使用 GetLevelNeighborIDs
+		neighborIDs := GetLevelNeighborIDs(c, current.ID, modelName, level)
+		if neighborIDs == nil {
 			continue
 		}
 		
-		for _, neighbor := range neighbors {
-			if c.Store.IsVisited(neighbor.ID, epoch) {
+		for _, neighborID := range neighborIDs {
+			if c.Store.IsVisited(neighborID, epoch) {
 				continue
 			}
-			c.Store.MarkVisited(neighbor.ID, epoch)
+			c.Store.MarkVisited(neighborID, epoch)
 			
             var dist float32
             if useBBQ {
-                dist = c.Store.ComputeBBQDistanceFromQuery(queryQuantized, queryCorrection, neighbor.ID)
+                dist = c.Store.ComputeBBQDistanceFromQuery(queryQuantized, queryCorrection, neighborID)
             } else {
-                dist = c.Store.ComputeDistanceFromVector(queryVec, neighbor.ID, metricType)
+                dist = c.Store.ComputeDistanceFromVector(queryVec, neighborID, metricType)
             }
 			
 			if !results.IsFull() {
-				candidates.Push(&HeapItem{ID: neighbor.ID, Distance: dist})
-				results.Push(&HeapItem{ID: neighbor.ID, Distance: dist})
+				candidates.Push(&HeapItem{ID: neighborID, Distance: dist})
+				results.Push(&HeapItem{ID: neighborID, Distance: dist})
 			} else if dist < results.Peek().Distance {
-				candidates.Push(&HeapItem{ID: neighbor.ID, Distance: dist})
-				results.Replace(&HeapItem{ID: neighbor.ID, Distance: dist})
+				candidates.Push(&HeapItem{ID: neighborID, Distance: dist})
+				results.Replace(&HeapItem{ID: neighborID, Distance: dist})
 			}
 		}
 	}
@@ -248,14 +248,10 @@ func (c *Collection) searchLevelVec(queryVec []float32, queryQuantized []byte, q
 		})
 	}
 	
-	// Sort by distance ascending (closest first)
-	for i := 0; i < len(result)-1; i++ {
-		for j := i + 1; j < len(result); j++ {
-			if result[j].Distance < result[i].Distance {
-				result[i], result[j] = result[j], result[i]
-			}
-		}
-	}
+	// 使用标准库排序 O(n log n) 替代冒泡 O(n²)
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Distance < result[j].Distance
+	})
 	
 	return result
 }
