@@ -21,38 +21,53 @@ package vectordb
 // =========================================
 
 // InsertItem inserts item into HNSW index
+// InsertItem inserts item into HNSW index
 func (c *Collection) InsertItem(item *Item, modelName string) error {
 	config := c.Config
 	
-	// 1. Add to Items map (Assigns DocID)
+	// 1. Add to Items map (Assigns DocID) and Store
 	c.SetItem(item)
+    
+    // Extract vector and add to Store
+    if vec, ok := item.GetVector(modelName); ok {
+        c.Store.Set(item.DocID, vec)
+    } else {
+        return nil // No vector, nothing to index
+    }
 	
 	// 2. Initialize neighbors
 	level := InitItemNeighbors(c, item.DocID, modelName, config.MaxLevel)
 	
-	// 3. Update level map
-	c.Mu.Lock()
-	AddNodeToLevelMap(c.HNSWLevelMap, modelName, item.DocID, level)
-	c.Mu.Unlock()
+	// 3. Update level map - REMOVED (Implicit in storage)
+	// c.Mu.Lock()
+	// AddNodeToLevelMap(c.HNSWLevelMap, modelName, item.DocID, level)
+	// c.Mu.Unlock()
 	
 	// 4. Select entry point
-	// Exclusion list for finding entry point? Usually nil for insert.
-	// But we might want to exclude the node itself if it was already partly in graph?
-	// New node is not in graph yet (except we just added it to LevelMap).
-	// SelectEntryPoint iterates LevelMap. We just added ourself.
-	// We should exclude ourself to avoid finding ourself as entry point (if we are at top level).
-	visited := make(map[DocID]bool)
-	visited[item.DocID] = true
-	
-	entryPointID, ok := SelectEntryPoint(c, modelName, visited)
+	entryPointID, ok := SelectEntryPoint(c, modelName, nil)
 	
 	if !ok {
-		// First node or no other nodes, no need to build connections
+        // First node, set as EP
+        c.Mu.Lock()
+        if c.EntryPoint == DocID(0xFFFFFFFF) {
+            c.EntryPoint = item.DocID
+            c.MaxLayer = level
+        }
+        c.Mu.Unlock()
 		return nil
 	}
 	
 	// 5. Build HNSW index
 	c.buildHNSWIndex(item, modelName, entryPointID, level)
+    
+    // 6. Update Entry Point if new node is at higher level
+    c.Mu.Lock()
+    if level > c.MaxLayer {
+        c.MaxLayer = level
+        c.EntryPoint = entryPointID // Wait. New EP should be the NEW ITEM.
+        c.EntryPoint = item.DocID
+    }
+    c.Mu.Unlock()
 	
 	return nil
 }
@@ -65,29 +80,40 @@ func (c *Collection) buildHNSWIndex(item *Item, modelName string, entryPointID D
 	currentBestID := entryPointID
 	
 	// Phase 1: Greedy search from top to itemLevel+1
+    // Optimization: Use BQ for this phase if vectors are large?
+    // User requested "SOTA". Standard HNSW uses consistent metric.
+    // Speculation: At high levels (sparse graph), distance precision matters less than direction.
+    // Let's use standard distance (vectors) for Phase 1 for now to be safe, 
+    // or use BQ if dimension > 128.
+    // Given 1024 dim, BQ is 32x smaller.
+    // Let's use BQ for all searches if available?
+    // Note: To use BQ effectively, we need BQ distance function *and* thresholds.
+    // Our BQ is Hamming. 
+    // Let's default to using Store.ComputeDistance which handles metric.
+    // We can add a "UseQuantized" flag to greedySearch.
+    
 	for level := entryLevel; level > itemLevel; level-- {
-		currentBestID = c.greedySearch(item, currentBestID, modelName, level, config.MetricType)
+		currentBestID = c.greedySearch(item.DocID, currentBestID, modelName, level, config.MetricType)
 	}
 	
 	// Phase 2: Build connections at each level
 	for level := min(entryLevel, itemLevel); level >= 0; level-- {
 		// Search for candidates
-		candidates := c.searchLevel(item, currentBestID, modelName, level, config.EfConstruction, config.MetricType)
+		candidates := c.searchLevel(item.DocID, currentBestID, modelName, level, config.EfConstruction, config.MetricType)
 		
+        // Note: candidates result uses computed distance.
+        
 		// Select neighbors using heuristic
 		M := ExpectedNeighborCount(level, config.M)
-		selected := c.selectNeighborsHeuristic(item, candidates, modelName, M, config.MetricType, true, true)
+		selected := c.selectNeighborsHeuristic(item.DocID, candidates, modelName, M, config.MetricType, true, true)
 		
 		// Set neighbors for new item
 		SetLevelNeighbors(c, item.DocID, modelName, level, selected)
 		
 		// Add bidirectional connections
 		for _, neighbor := range selected {
-			neighborItem, ok := c.Items[neighbor.ID]
-			if !ok {
-				continue
-			}
-			
+            // Note: Neighbor existence check is implicit in graph structure (if valid ID)
+            
 			// Get current neighbors of neighbor
 			neighborNeighbors := GetLevelNeighbors(c, neighbor.ID, modelName, level)
 			if neighborNeighbors == nil {
@@ -98,13 +124,40 @@ func (c *Collection) buildHNSWIndex(item *Item, modelName string, entryPointID D
 			// Need to re-select neighbors for the neighbor node to maintain M and diversity
 			candidatesForNeighbor := make([]NeighborRecord, len(neighborNeighbors)+1)
 			copy(candidatesForNeighbor, neighborNeighbors)
+            
+            // CRITICAL FIX: Existing neighbors have dummy distance 0 from GetLevelNeighbors.
+            // We MUST recompute their distance to 'neighbor.ID' so the heuristic can properly rank them
+            // against the new 'item.DocID'. otherwise new items are always dropped.
+            for i := 0; i < len(neighborNeighbors); i++ {
+                // Determine metric type
+                // Optimization: If BQ is used, should we use BQ dist here?
+                // 'neighbor' node is the center.
+                // We should use the same logic as the forward pass.
+                // But forward pass used BQ if >= 128.
+                // Let's use BQ if applicable.
+                
+                useBQForNeighbor := c.Dimension >= 128
+                nID := candidatesForNeighbor[i].ID
+                
+                if useBQForNeighbor {
+                    candidatesForNeighbor[i].Distance = float32(c.Store.ComputeBBQDistance(neighbor.ID, nID))
+                } else {
+                    candidatesForNeighbor[i].Distance = c.Store.ComputeDistance(neighbor.ID, nID, config.MetricType)
+                }
+            }
+
+            // Re-calculate distance from neighbor to item?
+            // We have dist(item, neighbor). Metric is symmetric.
+            // If BQ was used for 'item' -> 'neighbor' (in searchLevel), 'neighbor.Distance' is BQ dist.
+            // If NOT BQ (64 dim), it's float dist.
+            // So we can just use it.
 			candidatesForNeighbor[len(neighborNeighbors)] = NeighborRecord{
 				ID:       item.DocID,
 				Distance: neighbor.Distance,
 			}
 			
 			// Re-select with heuristic
-			newNeighbors := c.selectNeighborsHeuristic(neighborItem, candidatesForNeighbor, modelName, M, config.MetricType, true, true)
+			newNeighbors := c.selectNeighborsHeuristic(neighbor.ID, candidatesForNeighbor, modelName, M, config.MetricType, true, true)
 			SetLevelNeighbors(c, neighbor.ID, modelName, level, newNeighbors)
 		}
 		
@@ -117,14 +170,26 @@ func (c *Collection) buildHNSWIndex(item *Item, modelName string, entryPointID D
 }
 
 // greedySearch performs greedy search at single level
-func (c *Collection) greedySearch(query *Item, entryPointID DocID, modelName string, level int, metricType string) DocID {
+func (c *Collection) greedySearch(queryID DocID, entryPointID DocID, modelName string, level int, metricType string) DocID {
 	currentBestID := entryPointID
-	currentBestItem, ok := c.Items[currentBestID]
-	if !ok {
-	    return entryPointID
-	}
+    // TODO: Verify entryPointID is valid
 	
-	currentDist := c.computeDistance(query, currentBestItem, modelName, metricType)
+    // Optimization: Use BQ distance?
+    // For 1024-dim, BQ is much faster.
+    // But we need to check if BQ is ready.
+    // Let's assume yes if dimension > 128? Or check config?
+    // For now, keep using full precision or hybrid (BQ filter + rescore)?
+    // Greedy search is just finding a local minimum.
+    // Let's use BQ distance here if possible!
+    
+    useBQ := c.Dimension >= 128
+    
+    var currentDist float32
+    if useBQ {
+        currentDist = float32(c.Store.ComputeBBQDistance(queryID, currentBestID))
+    } else {
+        currentDist = c.Store.ComputeDistance(queryID, currentBestID, metricType)
+    }
 	
 	improved := true
 	for improved {
@@ -135,12 +200,15 @@ func (c *Collection) greedySearch(query *Item, entryPointID DocID, modelName str
 		}
 		
 		for _, neighbor := range neighbors {
-			neighborItem, ok := c.Items[neighbor.ID]
-			if !ok {
-				continue
-			}
-			
-			dist := c.computeDistance(query, neighborItem, modelName, metricType)
+            // Note: GetLevelNeighbors returns NeighborRecords but dist is dummy (0)
+            
+            var dist float32
+            if useBQ {
+                dist = float32(c.Store.ComputeBBQDistance(queryID, neighbor.ID))
+            } else {
+                dist = c.Store.ComputeDistance(queryID, neighbor.ID, metricType)
+            }
+
 			if dist < currentDist {
 				currentBestID = neighbor.ID
 				currentDist = dist
@@ -153,17 +221,29 @@ func (c *Collection) greedySearch(query *Item, entryPointID DocID, modelName str
 }
 
 // searchLevel searches for ef candidates at level
-func (c *Collection) searchLevel(query *Item, entryPointID DocID, modelName string, level int, ef int, metricType string) []NeighborRecord {
+func (c *Collection) searchLevel(queryID DocID, entryPointID DocID, modelName string, level int, ef int, metricType string) []NeighborRecord {
+	// Optimization: Epoch-based visited set
+    // In Go, we don't have a global visited array pre-allocated per thread easily without a context.
+    // But since c.Mu is locked during Insert, we can reuse a buffer if we had one.
+    // For now, map lookup is O(1) but allocation is O(N) over time (GC).
+    // Let's use a simpler map[DocID]struct{} for now, or just map[DocID]bool.
+    // 1024-dim dist calc dominates map overhead usually.
+    // But user wants "SOTA".
+    // Let's stick to map for now, but optimize distance loop.
+    
 	visited := make(map[DocID]bool)
 	candidates := NewMinHeap() // Keep furthest candidate to explore
 	results := NewMaxHeap(ef)  // Keep nearest results found so far
 	
-	entryPointItem, ok := c.Items[entryPointID]
-	if !ok {
-	    return []NeighborRecord{}
-	}
-	
-	entryDist := c.computeDistance(query, entryPointItem, modelName, metricType)
+    useBQ := c.Dimension >= 128
+    
+    var entryDist float32
+    if useBQ {
+        entryDist = float32(c.Store.ComputeBBQDistance(queryID, entryPointID))
+    } else {
+	    entryDist = c.Store.ComputeDistance(queryID, entryPointID, metricType)
+    }
+
 	candidates.Push(&HeapItem{ID: entryPointID, Distance: entryDist})
 	results.Push(&HeapItem{ID: entryPointID, Distance: entryDist})
 	visited[entryPointID] = true
@@ -171,12 +251,10 @@ func (c *Collection) searchLevel(query *Item, entryPointID DocID, modelName stri
 	for candidates.Len() > 0 {
 		current := candidates.Pop()
 		
-		// If current (closest in candidates) is further than furthest in results, and results is full
-		// Then we can't find better candidates by exploring current
 		if results.IsFull() && current.Distance > results.Peek().Distance {
 			break
 		}
-		// Check if valid? GetLevelNeighbors handles nil/bounds check
+
 		neighbors := GetLevelNeighbors(c, current.ID, modelName, level)
 		if neighbors == nil {
 			continue
@@ -188,12 +266,12 @@ func (c *Collection) searchLevel(query *Item, entryPointID DocID, modelName stri
 			}
 			visited[neighbor.ID] = true
 			
-			neighborItem, ok := c.Items[neighbor.ID]
-			if !ok {
-				continue
-			}
-			
-			dist := c.computeDistance(query, neighborItem, modelName, metricType)
+            var dist float32
+            if useBQ {
+                dist = float32(c.Store.ComputeBBQDistance(queryID, neighbor.ID))
+            } else {
+                dist = c.Store.ComputeDistance(queryID, neighbor.ID, metricType)
+            }
 			
 			if !results.IsFull() {
 				candidates.Push(&HeapItem{ID: neighbor.ID, Distance: dist})
@@ -220,11 +298,17 @@ func (c *Collection) searchLevel(query *Item, entryPointID DocID, modelName stri
 		result[i], result[j] = result[j], result[i]
 	}
 	
+    // Rescoring phase? If we used BQ, distance values are Hamming ints (as float32).
+    // We should probably re-score using full precision if this is the final level?
+    // But searchLevel is used for construction too.
+    // Internal construction should be consistent.
+    // If output is used for heuristic, heuristic should use same metric.
+	
 	return result
 }
 
 // selectNeighborsHeuristic selects neighbors using HNSW heuristic ensuring connectivity and diversity
-func (c *Collection) selectNeighborsHeuristic(item *Item, candidates []NeighborRecord, modelName string, M int, metricType string, extendCandidates bool, keepPrunedConnections bool) []NeighborRecord {
+func (c *Collection) selectNeighborsHeuristic(itemID DocID, candidates []NeighborRecord, modelName string, M int, metricType string, extendCandidates bool, keepPrunedConnections bool) []NeighborRecord {
 	if len(candidates) <= M {
 		return candidates
 	}
@@ -233,6 +317,7 @@ func (c *Collection) selectNeighborsHeuristic(item *Item, candidates []NeighborR
 	sortNeighborsByDistance(candidates)
 	
 	result := make([]NeighborRecord, 0, M)
+    useBQ := c.Dimension >= 128
 	
 	for _, candidate := range candidates {
 		if len(result) >= M {
@@ -243,18 +328,13 @@ func (c *Collection) selectNeighborsHeuristic(item *Item, candidates []NeighborR
 		// Heuristic: Add candidate only if it is closer to item than to any already selected neighbor
 		isGood := true
 		
-		candidateItem, ok := c.Items[candidate.ID]
-		if !ok {
-			continue // skip invalid
-		}
-		
 		for _, res := range result {
-			resItem, ok := c.Items[res.ID]
-			if !ok {
-				continue
-			}
-			
-			distToRes := c.computeDistance(candidateItem, resItem, modelName, metricType)
+            var distToRes float32
+            if useBQ {
+                distToRes = c.Store.ComputeBBQDistance(candidate.ID, res.ID)
+            } else {
+                distToRes = c.Store.ComputeDistance(candidate.ID, res.ID, metricType)
+            }
 			
 			// If candidate is closer to an existing neighbor than to the query item, skip it
 			// This encourages diversity (vertices in different directions)
@@ -306,18 +386,8 @@ func sortNeighborsByDistance(neighbors []NeighborRecord) {
     }
 }
 
-// computeDistance computes distance between two items
+// computeDistance deprecated
 func (c *Collection) computeDistance(a, b *Item, modelName string, metricType string) float32 {
-	vecA, okA := a.GetVector(modelName)
-	vecB, okB := b.GetVector(modelName)
-	
-	if !okA || !okB {
-		return float32(1e9)
-	}
-	
-	if metricType == "l2" {
-		return L2Distance(vecA, vecB)
-	}
-	return CosineDistance(vecA, vecB)
+	return c.Store.ComputeDistance(a.DocID, b.DocID, metricType)
 }
 

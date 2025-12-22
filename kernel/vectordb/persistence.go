@@ -42,8 +42,18 @@ type SnapshotData struct {
 	DocMap       []string                             `msgpack:"docMap"`
 	IDMap        map[string]DocID                     `msgpack:"idMap"`
 	Items        map[DocID]*Item                      `msgpack:"items"`
-	HNSWNodes    map[string]map[DocID][]LevelData     `msgpack:"hnswNodes"`
-	HNSWLevelMap map[string]map[int][]DocID           `msgpack:"hnswLevelMap"`
+    // New fields
+    Nodes        []NodeData                           `msgpack:"nodes"`
+    Vectors      []float32                            `msgpack:"vectors"`
+    // BBQ量化存储
+    BBQQuantized   []byte                             `msgpack:"bbqQuantized"`
+    BBQPacked      []byte                             `msgpack:"bbqPacked"`
+    BBQCorrections []量化结果                          `msgpack:"bbqCorrections"`
+    EntryPoint   DocID                                `msgpack:"entryPoint"`
+    MaxLayer     int                                  `msgpack:"maxLayer"`
+    
+	// HNSWNodes    map[string]map[DocID][]LevelData     `msgpack:"hnswNodes"` // Deprecated
+	// HNSWLevelMap map[string]map[int][]DocID           `msgpack:"hnswLevelMap"` // Deprecated
 }
 
 // WALEntry represents a single operation in WAL
@@ -59,7 +69,6 @@ const (
 )
 
 // SaveCollection performs a Checkpoint (Snapshot)
-// Saves full state to snapshot.msgpack and truncates wal.msgpack
 func SaveCollection(c *Collection, basePath string) error {
 	c.Mu.RLock()
 	defer c.Mu.RUnlock()
@@ -68,17 +77,34 @@ func SaveCollection(c *Collection, basePath string) error {
 	if err := os.MkdirAll(collectionPath, 0755); err != nil {
 		return err
 	}
+    
+    // Lock store for read
+    c.Store.mu.RLock()
+    vectors := make([]float32, len(c.Store.vectors))
+    copy(vectors, c.Store.vectors)
+    bbqQuantized := make([]byte, len(c.Store.bbqQuantized))
+    copy(bbqQuantized, c.Store.bbqQuantized)
+    bbqPacked := make([]byte, len(c.Store.bbqPacked))
+    copy(bbqPacked, c.Store.bbqPacked)
+    bbqCorrections := make([]量化结果, len(c.Store.bbqCorrections))
+    copy(bbqCorrections, c.Store.bbqCorrections)
+    c.Store.mu.RUnlock()
 	
 	snapshot := SnapshotData{
-		Name:         c.Name,
-		Dimension:    c.Dimension,
-		Config:       c.Config,
-		NextDocID:    c.NextDocID,
-		DocMap:       c.DocMap,
-		IDMap:        c.IDMap,
-		Items:        c.Items,
-		HNSWNodes:    c.HNSWNodes,
-		HNSWLevelMap: c.HNSWLevelMap,
+		Name:           c.Name,
+		Dimension:      c.Dimension,
+		Config:         c.Config,
+		NextDocID:      c.NextDocID,
+		DocMap:         c.DocMap,
+		IDMap:          c.IDMap,
+		Items:          c.Items,
+        Nodes:          c.Nodes,
+        Vectors:        vectors,
+        BBQQuantized:   bbqQuantized,
+        BBQPacked:      bbqPacked,
+        BBQCorrections: bbqCorrections,
+        EntryPoint:     c.EntryPoint,
+        MaxLayer:       c.MaxLayer,
 	}
 	
 	data, err := msgpack.Marshal(&snapshot)
@@ -90,16 +116,15 @@ func SaveCollection(c *Collection, basePath string) error {
 	if err := atomicWriteFile(filepath.Join(collectionPath, SnapshotFileName), data); err != nil {
 		return err
 	}
-	
-	// Truncate WAL (Clear it)
-	// We just remove it or truncate it.
-	walPath := filepath.Join(collectionPath, WALFileName)
-	os.Remove(walPath) // Ignore error if not exists
-	
-	return nil
+    
+    // ... rest same
+    walPath := filepath.Join(collectionPath, WALFileName)
+    os.Remove(walPath)
+    
+    return nil
 }
 
-// LoadCollection loads collection from disk (Snapshot + WAL Replay)
+// LoadCollection loads collection from disk
 func LoadCollection(basePath string, name string) (*Collection, error) {
 	collectionPath := filepath.Join(basePath, name)
 	
@@ -115,17 +140,18 @@ func LoadCollection(basePath string, name string) (*Collection, error) {
 		}
 		// Snapshot doesn't exist, create new
 		return NewCollection(name, 0), nil 
-		// Note: Dimension unknown if create new? 
-		// Should caller handle creation?
-		// LoadDatabase calls this. If failed, it skips.
-		// If snap not exists, maybe WAL exists?
-		// If both missing, clean start.
 	} else {
 		// Restore from snapshot
 		var snapshot SnapshotData
 		if err := msgpack.Unmarshal(data, &snapshot); err != nil {
 			return nil, err
 		}
+		
+        store := NewVectorStore(snapshot.Dimension)
+        store.vectors = snapshot.Vectors
+        store.bbqQuantized = snapshot.BBQQuantized
+        store.bbqPacked = snapshot.BBQPacked
+        store.bbqCorrections = snapshot.BBQCorrections
 		
 		c = &Collection{
 			Name:         snapshot.Name,
@@ -135,14 +161,15 @@ func LoadCollection(basePath string, name string) (*Collection, error) {
 			DocMap:       snapshot.DocMap,
 			IDMap:        snapshot.IDMap,
 			Items:        snapshot.Items,
-			HNSWNodes:    snapshot.HNSWNodes,
-			HNSWLevelMap: snapshot.HNSWLevelMap,
+            Nodes:        snapshot.Nodes,
+            Store:        store,
+            EntryPoint:   snapshot.EntryPoint,
+            MaxLayer:     snapshot.MaxLayer,
 		}
 		// Fix nil maps if empty
 		if c.IDMap == nil { c.IDMap = make(map[string]DocID) }
 		if c.Items == nil { c.Items = make(map[DocID]*Item) }
-		if c.HNSWNodes == nil { c.HNSWNodes = make(map[string]map[DocID][]LevelData) }
-		if c.HNSWLevelMap == nil { c.HNSWLevelMap = make(map[string]map[int][]DocID) }
+        if c.Nodes == nil { c.Nodes = make([]NodeData, 0) }
 	}
 	
 	// 2. Replay WAL
@@ -158,57 +185,29 @@ func LoadCollection(basePath string, name string) (*Collection, error) {
 				if err == io.EOF {
 					break // Done
 				}
-				// Log error? partial read?
 				break
 			}
 			
 			// Replay entry
 			if entry.Op == OpAdd {
 				for _, item := range entry.Items {
-					// InsertItem logic (but simple reconstruction)
-					// Since WAL stores *Item with vectors, we can just Insert.
-					// BUT: DocID might need consistency if WAL didn't store DocID assignments order?
-					// Wait, WAL is appended AFTER Insert? Or BEFORE?
-					// If we append after Insert, then Snapshot + WAL is fine.
-					// But we need to ensure DocID generation is deterministic or stored.
-					// If WAL stores *Item, does it include DocID?
-					// Yes, Item struct has `DocID`.
-					// So we just put it back into maps.
-					// But we also need to Rebuild Index because HNSW Graph is not linear log.
-					// Actually, if we Snapshot `HNSWNodes`, we restored the graph.
-					// The WAL contains items added SINCE snapshot.
-					// We need to ADD them to the graph.
-					// So we call `c.InsertItem`.
-					// Note: `InsertItem` assigns New DocID?
-					// If Item in WAL already has DocID, should we respect it?
-					// `SetItem` in types.go:
-					// `if docID, exists := c.IDMap[item.ID]; exists { update } else { assign new }`.
-					// If we are replaying, IDMap might not have it yet.
-					// So `InsertItem` will assign `NextDocID`.
-					// This matches the order of operations if Replay order == Original order.
-					// So `c.InsertItem` is safe.
-					// One caveat: `InsertItem` updates `c.NextDocID`.
-					c.InsertItem(item, "text_embedding") // Model logic?
-					// Wait, `modelName` is lost in WALEntry?
-					// `Items` have `Vectors` map.
-					// `InsertItem` signature needs `modelName`.
-					// `InsertItem` builds index for ONE model?
-					// `InsertItem` iterates models?
-					// The current `InsertItem` takes `modelName`.
-					// We might need to iterate all models in `item.Vectors`?
-					for modelName := range item.Vectors {
-						c.InsertItem(item, modelName)
-					}
+					// InsertItem logic
+                    // We need modelName. Item struct doesn't strictly have a "Main Model".
+                    // But InsertItem iterates models if we call it safely?
+                    // Or we assume "text_embedding" or similar.
+                    // For correctness, we should iterate keys in item.Vectors
+                    if item.Vectors != nil {
+                        for modelName := range item.Vectors {
+                            c.InsertItem(item, modelName)
+                        }
+                    } else {
+                        // fallback
+                        c.InsertItem(item, "")
+                    }
 				}
 			} else if entry.Op == OpDelete {
 				for _, key := range entry.Keys {
-					// Iterate models?
-					// `DeleteItemWithIndex` needs modelName.
-					// We need to know which models exist.
-					// `c.HNSWLevelMap` keys are models.
-					for modelName := range c.HNSWLevelMap {
-						c.DeleteItemWithIndex(key, modelName)
-					}
+                    c.DeleteItemWithIndex(key, "")
 				}
 			}
 		}

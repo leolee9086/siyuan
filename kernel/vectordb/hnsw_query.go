@@ -29,6 +29,7 @@ type SearchResult struct {
 }
 
 // Search searches for k nearest neighbors
+// Search searches for k nearest neighbors
 func (c *Collection) Search(queryVec []float32, modelName string, k int, efSearch int) []SearchResult {
 	if efSearch <= 0 {
 		efSearch = c.Config.EfSearch
@@ -46,21 +47,28 @@ func (c *Collection) Search(queryVec []float32, modelName string, k int, efSearc
 	config := c.Config
 	entryLevel := GetItemLevel(c, entryPointID, modelName)
 	
+    // BBQ: 对查询向量进行4-bit量化
+    useBBQ := c.Dimension >= 128
+    var queryQuantized []byte
+    var queryCorrection 量化结果
+    if useBBQ {
+        queryQuantized, queryCorrection = c.Store.QuantizeQuery(queryVec)
+    }
+    
 	// Phase 1: Greedy search from top level down to level 1
 	// Navigate the graph to reach the region closest to the query
 	currentBestID := entryPointID
 	for level := entryLevel; level > 0; level-- {
-		currentBestID = c.greedySearchVec(queryVec, currentBestID, modelName, level, config.MetricType)
+		currentBestID = c.greedySearchVec(queryVec, queryQuantized, queryCorrection, currentBestID, modelName, level, config.MetricType)
 	}
 	
 	// Phase 2: Search at level 0 (base layer) with ef candidates
-	// Use a priority queue to explore neighbors and find k nearest
-	candidates := c.searchLevelVec(queryVec, currentBestID, modelName, 0, efSearch, config.MetricType)
+	candidates := c.searchLevelVec(queryVec, queryQuantized, queryCorrection, currentBestID, modelName, 0, efSearch, config.MetricType)
 	
 	// Convert candidates to search results
 	searchResults := make([]SearchResult, 0, len(candidates))
 	for _, candidate := range candidates {
-		// Get Item Data
+		// Get Item Data (Metadata mainly)
 		item, ok := c.Items[candidate.ID]
 		if !ok {
 			// Item might have been deleted concurrently
@@ -70,15 +78,35 @@ func (c *Collection) Search(queryVec []float32, modelName string, k int, efSearc
 		// Resolve External ID
 		externalID, _ := c.GetExternalID(candidate.ID)
 		
+        // Re-score with full precision if BBQ was used
+        // BBQ距离是估计值,需要用原始向量重新计算精确距离
+        
+        var finalDist float32
+        if useBBQ {
+            // Compute real distance for final ranking
+            vec, ok := c.Store.Get(candidate.ID)
+            if ok && len(vec) == len(queryVec) {
+                if config.MetricType == "l2" {
+                    finalDist = L2Distance(queryVec, vec)
+                } else {
+                    finalDist = CosineDistance(queryVec, vec)
+                }
+            } else {
+                finalDist = 1e9
+            }
+        } else {
+            finalDist = candidate.Distance
+        }
+		
 		// Convert distance to score (0 to 1)
 		score := float32(1.0)
 		if config.MetricType == "cosine" {
-			score = 1.0 - candidate.Distance/2.0
+			score = 1.0 - finalDist/2.0
 		} else {
-			if candidate.Distance < 1e-6 {
+			if finalDist < 1e-6 {
 				score = 1.0
 			} else {
-				score = 1.0 / (1.0 + candidate.Distance)
+				score = 1.0 / (1.0 + finalDist)
 			}
 		}
 		
@@ -92,7 +120,7 @@ func (c *Collection) Search(queryVec []float32, modelName string, k int, efSearc
 		searchResults = append(searchResults, SearchResult{
 			ID:       externalID,
 			Score:    score,
-			Distance: candidate.Distance,
+			Distance: finalDist,
 			Meta:     item.Meta,
 		})
 	}
@@ -115,15 +143,17 @@ func (c *Collection) Search(queryVec []float32, modelName string, k int, efSearc
 
 // greedySearchVec performs greedy search at a single level using raw vector
 // Returns the closest node found at this level
-func (c *Collection) greedySearchVec(queryVec []float32, entryPointID DocID, modelName string, level int, metricType string) DocID {
+func (c *Collection) greedySearchVec(queryVec []float32, queryQuantized []byte, queryCorrection 量化结果, entryPointID DocID, modelName string, level int, metricType string) DocID {
 	currentBestID := entryPointID
-	currentBestItem, ok := c.Items[currentBestID]
-	if !ok {
-	    // Should not happen if entry point is valid
-	    return entryPointID
-	}
 	
-	currentDist := c.computeDistanceVec(queryVec, currentBestItem, modelName, metricType)
+    // 使用BBQ计算距离
+    useBBQ := len(queryQuantized) > 0
+    var currentDist float32
+    if useBBQ {
+        currentDist = c.Store.ComputeBBQDistanceFromQuery(queryQuantized, queryCorrection, currentBestID)
+    } else {
+        currentDist = c.Store.ComputeDistanceFromVector(queryVec, currentBestID, metricType)
+    }
 	
 	improved := true
 	for improved {
@@ -134,12 +164,13 @@ func (c *Collection) greedySearchVec(queryVec []float32, entryPointID DocID, mod
 		}
 		
 		for _, neighbor := range neighbors {
-			neighborItem, ok := c.Items[neighbor.ID]
-			if !ok {
-				continue
-			}
-			
-			dist := c.computeDistanceVec(queryVec, neighborItem, modelName, metricType)
+            var dist float32
+            if useBBQ {
+                dist = c.Store.ComputeBBQDistanceFromQuery(queryQuantized, queryCorrection, neighbor.ID)
+            } else {
+                dist = c.Store.ComputeDistanceFromVector(queryVec, neighbor.ID, metricType)
+            }
+            
 			if dist < currentDist {
 				currentBestID = neighbor.ID
 				currentDist = dist
@@ -153,25 +184,24 @@ func (c *Collection) greedySearchVec(queryVec []float32, entryPointID DocID, mod
 
 // searchLevelVec performs full search at a specific level (usually level 0)
 // Returns ef closest candidates found
-func (c *Collection) searchLevelVec(queryVec []float32, entryPointID DocID, modelName string, level int, ef int, metricType string) []NeighborRecord {
+func (c *Collection) searchLevelVec(queryVec []float32, queryQuantized []byte, queryCorrection 量化结果, entryPointID DocID, modelName string, level int, ef int, metricType string) []NeighborRecord {
 	visited := make(map[DocID]bool)
 	candidates := NewMinHeap() // Min-heap to store candidates to explore
-	
 	results := NewMaxHeap(ef)  // Max-heap to store best k results found
 	
-	entryItem, ok := c.Items[entryPointID]
-	if !ok {
-	    return []NeighborRecord{}
-	}
-	
-	entryDist := c.computeDistanceVec(queryVec, entryItem, modelName, metricType)
+    useBBQ := len(queryQuantized) > 0
+    var entryDist float32
+    if useBBQ {
+        entryDist = c.Store.ComputeBBQDistanceFromQuery(queryQuantized, queryCorrection, entryPointID)
+    } else {
+        entryDist = c.Store.ComputeDistanceFromVector(queryVec, entryPointID, metricType)
+    }
 	
 	candidates.Push(&HeapItem{ID: entryPointID, Distance: entryDist})
 	results.Push(&HeapItem{ID: entryPointID, Distance: entryDist})
 	visited[entryPointID] = true
 	
 	for candidates.Len() > 0 {
-		// Get closest candidate to explore
 		current := candidates.Pop()
 		
 		if results.IsFull() && current.Distance > results.Peek().Distance {
@@ -189,12 +219,12 @@ func (c *Collection) searchLevelVec(queryVec []float32, entryPointID DocID, mode
 			}
 			visited[neighbor.ID] = true
 			
-			neighborItem, ok := c.Items[neighbor.ID]
-			if !ok {
-				continue
-			}
-			
-			dist := c.computeDistanceVec(queryVec, neighborItem, modelName, metricType)
+            var dist float32
+            if useBBQ {
+                dist = c.Store.ComputeBBQDistanceFromQuery(queryQuantized, queryCorrection, neighbor.ID)
+            } else {
+                dist = c.Store.ComputeDistanceFromVector(queryVec, neighbor.ID, metricType)
+            }
 			
 			if !results.IsFull() {
 				candidates.Push(&HeapItem{ID: neighbor.ID, Distance: dist})
@@ -228,20 +258,8 @@ func (c *Collection) searchLevelVec(queryVec []float32, entryPointID DocID, mode
 	return result
 }
 
-// computeDistanceVec computes distance between query vector and item's vector
+// computeDistanceVec deprecated
 func (c *Collection) computeDistanceVec(queryVec []float32, item *Item, modelName string, metricType string) float32 {
-	vec, ok := item.GetVector(modelName)
-	if !ok {
-		return float32(1e9) // Treat as infinity if vector missing
-	}
-	
-	if len(vec) != len(queryVec) {
-		// Dimension mismatch, treat as infinity
-		return float32(1e9)
-	}
-	
-	if metricType == "l2" {
-		return L2Distance(queryVec, vec)
-	}
-	return CosineDistance(queryVec, vec)
+    // Redirect to store
+    return c.Store.ComputeDistanceFromVector(queryVec, item.DocID, metricType)
 }

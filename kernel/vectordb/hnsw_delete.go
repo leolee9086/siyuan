@@ -30,10 +30,7 @@ func (c *Collection) DeleteItemWithIndex(id string, modelName string) {
 	
 	affectedNeighbors := make([]DocID, 0)
 	
-	// Remove from level map
-	c.Mu.Lock()
-	RemoveNodeFromLevelMap(c.HNSWLevelMap, modelName, docID)
-	c.Mu.Unlock()
+	// Remove from level map - Removed
 	
 	// Remove from all neighbors' adjacency lists
 	level := GetItemLevel(c, docID, modelName)
@@ -50,7 +47,48 @@ func (c *Collection) DeleteItemWithIndex(id string, modelName string) {
 	}
 	
 	// Delete item
+	// Note: We don't remove from Store (sparse array) to avoid shifting
+    // Or we should?
+    // VectorStore doesn't support delete yet.
+    // For soft delete, we just remove from Items/IDMap.
+    // HNSW graph edges are removed above.
 	c.DeleteItem(id)
+    
+    // Also remove node data from Nodes?
+    // c.Nodes[docID] = NodeData{} ?
+    // Or mark as empty.
+    c.Mu.Lock()
+    if int(docID) < len(c.Nodes) {
+        c.Nodes[docID] = NodeData{Level: -1} // Mark as deleted/invalid
+    }
+    
+    // If deleted node was entry point, reselect
+    if c.EntryPoint == docID {
+        // Simple reselect
+        // This is slow if we scan all nodes.
+        // Or pick first valid node.
+        // Ideally we pick one from max level.
+        c.EntryPoint = DocID(0xFFFFFFFF)
+        // Scan nodes to find new EP
+        // Optimization: Keep track of max level nodes?
+        // Fallback: Use RecalculateEP
+        
+        // Scan nodes for highest level
+        maxL := -1
+        var newEp DocID = 0xFFFFFFFF
+        for i, node := range c.Nodes {
+            if i != int(docID) && node.Level >= 0 && node.Level > maxL {
+                // Must be valid item
+                if _, ok := c.Items[DocID(i)]; ok {
+                    maxL = node.Level
+                    newEp = DocID(i)
+                }
+            }
+        }
+        c.EntryPoint = newEp
+        c.MaxLayer = maxL
+    }
+    c.Mu.Unlock()
 	
 	// Recompute affected neighbors
 	for _, neighborID := range affectedNeighbors {
@@ -60,7 +98,7 @@ func (c *Collection) DeleteItemWithIndex(id string, modelName string) {
 
 // recomputeNeighbors recomputes neighbors after deletion
 func (c *Collection) recomputeNeighbors(docID DocID, modelName string) {
-	item, ok := c.Items[docID]
+	_, ok := c.Items[docID]
 	if !ok {
 		return
 	}
@@ -76,7 +114,7 @@ func (c *Collection) recomputeNeighbors(docID DocID, modelName string) {
 			continue
 		}
 		
-		// BFS to find more neighbors
+// BFS to find more neighbors
 		visited := make(map[DocID]bool)
 		visited[docID] = true
 		for _, n := range neighbors {
@@ -108,12 +146,12 @@ func (c *Collection) recomputeNeighbors(docID DocID, modelName string) {
 				visited[n.ID] = true
 				queue = append(queue, n.ID)
 				
-				neighborItem, ok := c.Items[n.ID]
-				if !ok {
-					continue
-				}
+				// Valid check implicit if in graph, but check Items/Nodes just in case
+                if int(n.ID) >= len(c.Nodes) || c.Nodes[n.ID].Level == -1 {
+                    continue
+                }
 				
-				distance := c.computeDistance(item, neighborItem, modelName, config.MetricType)
+				distance := c.Store.ComputeDistance(docID, n.ID, config.MetricType)
 				neighbors = append(neighbors, NeighborRecord{
 					ID:       n.ID,
 					Distance: distance,
@@ -170,18 +208,24 @@ func (c *Collection) RebuildIndex(modelName string) error {
 	    }
 	}
 	
-	// Clear level map
+	// Clear Graph
 	c.Mu.Lock()
-	c.HNSWLevelMap[modelName] = make(map[int][]DocID)
-	c.HNSWNodes[modelName] = make(map[DocID][]LevelData)
+    // Reset Nodes
+    // Keep nodes array but reset content?
+    // Rebuild assumes items exist in Items map.
+    // DocIDs are preserved.
+    // So we just clear neighbors.
+    for i := range c.Nodes {
+        c.Nodes[i] = NodeData{Level: -1}
+    }
+    c.EntryPoint = DocID(0xFFFFFFFF)
+    c.MaxLayer = -1
 	c.Mu.Unlock()
 	
 	// Initialize first node
 	firstItem := items[0]
-	level := InitItemNeighbors(c, firstItem.DocID, modelName, config.MaxLevel)
-	c.Mu.Lock()
-	AddNodeToLevelMap(c.HNSWLevelMap, modelName, firstItem.DocID, level)
-	c.Mu.Unlock()
+	_ = InitItemNeighbors(c, firstItem.DocID, modelName, config.MaxLevel)
+    // EntryPoint is updated in InitItemNeighbors/Insert logic
 	
 	// Insert other nodes
 	for i := 1; i < len(items); i++ {
@@ -189,13 +233,9 @@ func (c *Collection) RebuildIndex(modelName string) error {
 		
 		level := InitItemNeighbors(c, item.DocID, modelName, config.MaxLevel)
 		
-		c.Mu.Lock()
-		AddNodeToLevelMap(c.HNSWLevelMap, modelName, item.DocID, level)
-		c.Mu.Unlock()
-		
-		visited := make(map[DocID]bool)
-		visited[item.DocID] = true
-		entryPointID, ok := SelectEntryPoint(c, modelName, visited)
+		// visited := make(map[DocID]bool)
+		// visited[item.DocID] = true
+		entryPointID, ok := SelectEntryPoint(c, modelName, nil)
 		
 		if ok {
 			c.buildHNSWIndex(item, modelName, entryPointID, level)

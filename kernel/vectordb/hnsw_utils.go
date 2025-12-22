@@ -45,20 +45,35 @@ func RandomLevel(maxLevel int) int {
 func InitItemNeighbors(c *Collection, docID DocID, modelName string, maxLevel int) int {
 	level := RandomLevel(maxLevel)
 	
-	levels := make([]LevelData, level+1)
-	for l := 0; l <= level; l++ {
-		levels[l] = LevelData{
-			Type:  l,
-			Items: make([]NeighborRecord, 0),
-		}
-	}
-	
 	c.Mu.Lock()
-	if c.HNSWNodes[modelName] == nil {
-	    c.HNSWNodes[modelName] = make(map[DocID][]LevelData)
-	}
-	c.HNSWNodes[modelName][docID] = levels
-	c.Mu.Unlock()
+    defer c.Mu.Unlock()
+    
+    // Ensure capacity
+    // Note: This relies on c.Nodes growing in sync with docID.
+    // Usually InitItemNeighbors is called after SetItem, so we should check capacity.
+    if int(docID) >= len(c.Nodes) {
+        // Grow nodes
+        newNodes := make([]NodeData, int(docID)+1+1000) // Buffer
+        copy(newNodes, c.Nodes)
+        c.Nodes = newNodes
+    }
+    
+    // Initialize node
+    // Optimization: For Level 0, we could use a single flat array in Collection later.
+    // For now, allocate slice of slices.
+    neighbors := make([][]DocID, level+1)
+    for l := 0; l <= level; l++ {
+        // Pre-allocate capacity? M?
+        neighbors[l] = make([]DocID, 0, c.Config.M)
+    }
+    
+    c.Nodes[docID] = NodeData{
+        Level:     level,
+        Neighbors: neighbors,
+    }
+    
+    // NOTE: EntryPoint and MaxLayer update should happen in InsertItem AFTER linking
+    // to avoid searching from a disconnected node.
 	
 	return level
 }
@@ -68,15 +83,10 @@ func GetItemLevel(c *Collection, docID DocID, modelName string) int {
     c.Mu.RLock()
     defer c.Mu.RUnlock()
     
-    if c.HNSWNodes[modelName] == nil {
+    if int(docID) >= len(c.Nodes) {
         return -1
     }
-	neighbors := c.HNSWNodes[modelName][docID]
-	if len(neighbors) == 0 {
-		return -1
-	}
-	
-	return len(neighbors) - 1
+    return c.Nodes[docID].Level
 }
 
 // GetLevelNeighbors gets neighbors at specific level
@@ -84,18 +94,55 @@ func GetLevelNeighbors(c *Collection, docID DocID, modelName string, level int) 
     c.Mu.RLock()
     defer c.Mu.RUnlock()
     
-    if c.HNSWNodes[modelName] == nil {
+    if int(docID) >= len(c.Nodes) {
+        return nil
+    }
+    node := c.Nodes[docID]
+    
+    if level > node.Level || level < 0 {
         return nil
     }
     
-    allLevels := c.HNSWNodes[modelName][docID]
-    // Valid check
-    if level >= len(allLevels) {
-        return nil
-    }
+    // NeighborRecord struct requires Distance, but adjacency list only stores IDs.
+    // We need to re-compute distances or store them.
+    // Storing distances in graph consumes more memory (8 bytes per link vs 4).
+    // Usually HNSW graph only needs IDs. Distance is computed on fly during search.
+    // BUT, the original GetLevelNeighbors returned []NeighborRecord.
+    // If we changed storage to only IDs, we must adapt this.
+    // Re-computing distance here is expensive if used for pure traversal logic that doesn't need dist.
+    // However, standard HNSW traversal calculates dist to candidates.
+    // Logic that calls GetLevelNeighbors usually:
+    // 1. Iterate neighbors
+    // 2. Calc distance to Query (not to current node)
+    // So we don't need the distance to *current* node (edge weight) for the search itself, 
+    // we need distance from neighbor to *query*.
+    // Exception: heuristics might use edge weight.
     
-    // Direct access if sorted by level index
-    return allLevels[level].Items
+    // Fix: Return dummy distance or change return type?
+    // Changing return type is a big refactor.
+    // Let's look at usage.
+    // Usage: `greedySearch` -> `neighborItem`, `computeDistance(query, neighbor)`.
+    // It doesn't use the distance from NeighborRecord!
+    // Usage: `selectNeighborsHeuristic` -> uses `candidates` which HAS distance (calculated before).
+    // `SetLevelNeighbors` passes `candidates` (with dist).
+    
+    // PROBLEM: `SetLevelNeighbors` was storing `NeighborRecord` (ID+Dist).
+    // New `NodeData` stores `[]DocID`. We lost the edge weight.
+    // HNSW edges are technically just links. Is edge weight needed?
+    // `selectNeighborsHeuristic` checks distance between neighbors.
+    // If we reload neighbors, we only have IDs.
+    // If we need distance between neighbors (for diversity), we re-compute.
+    // Since Item vectors are in VectorStore, re-compute is fast.
+    
+    ids := node.Neighbors[level]
+    records := make([]NeighborRecord, len(ids))
+    for i, id := range ids {
+        records[i] = NeighborRecord{
+            ID: id,
+            Distance: 0, // Unknown/Recalculate if needed
+        }
+    }
+    return records
 }
 
 // SetLevelNeighbors sets neighbors at specific level
@@ -103,123 +150,77 @@ func SetLevelNeighbors(c *Collection, docID DocID, modelName string, level int, 
 	c.Mu.Lock()
 	defer c.Mu.Unlock()
 	
-    if c.HNSWNodes[modelName] == nil {
+    if int(docID) >= len(c.Nodes) {
         return
     }
     
-    allLevels := c.HNSWNodes[modelName][docID]
-    if level < len(allLevels) {
-        allLevels[level].Items = neighbors
+    // Extract IDs
+    ids := make([]DocID, len(neighbors))
+    for i, n := range neighbors {
+        ids[i] = n.ID
+    }
+    
+    // Safety check for level
+    if level <= c.Nodes[docID].Level {
+        c.Nodes[docID].Neighbors[level] = ids
     }
 }
 
 // RemoveNeighbor removes a neighbor from item at specific level
 func RemoveNeighbor(c *Collection, docID DocID, modelName string, level int, neighborID DocID) {
-    // Acquire lock inside Set/Get is risky for read-modify-write if not atomic.
-    // Better to have specific function or lock outside.
-    // For now, let's just do it with lock.
-    
     c.Mu.Lock()
     defer c.Mu.Unlock()
     
-    if c.HNSWNodes[modelName] == nil {
-        return
-    }
-    allLevels := c.HNSWNodes[modelName][docID]
-    if level >= len(allLevels) {
+    if int(docID) >= len(c.Nodes) {
         return
     }
     
-    neighbors := allLevels[level].Items
-	newNeighbors := make([]NeighborRecord, 0, len(neighbors))
-	for _, n := range neighbors {
-		if n.ID != neighborID {
-			newNeighbors = append(newNeighbors, n)
-		}
-	}
-	
-	allLevels[level].Items = newNeighbors
+    node := c.Nodes[docID]
+    if level > node.Level {
+        return
+    }
+    
+    ids := node.Neighbors[level]
+    newIds := make([]DocID, 0, len(ids))
+    for _, id := range ids {
+        if id != neighborID {
+            newIds = append(newIds, id)
+        }
+    }
+    c.Nodes[docID].Neighbors[level] = newIds
 }
 
 // =========================================
 // Level Map Utils
 // =========================================
 
-// AddNodeToLevelMap adds node ID to level map
-func AddNodeToLevelMap(levelMap map[string]map[int][]DocID, modelName string, id DocID, level int) {
-	if levelMap[modelName] == nil {
-		levelMap[modelName] = make(map[int][]DocID)
-	}
-	
-	for l := 0; l <= level; l++ {
-		levelMap[modelName][l] = append(levelMap[modelName][l], id)
-	}
-}
-
-// RemoveNodeFromLevelMap removes node from level map
-func RemoveNodeFromLevelMap(levelMap map[string]map[int][]DocID, modelName string, id DocID) {
-	modelMap := levelMap[modelName]
-	if modelMap == nil {
-		return
-	}
-	
-	for level, nodes := range modelMap {
-		newNodes := make([]DocID, 0, len(nodes))
-		found := false
-		for _, nodeID := range nodes {
-			if nodeID != id {
-				newNodes = append(newNodes, nodeID)
-			} else {
-				found = true
-			}
-		}
-		if found {
-			modelMap[level] = newNodes
-		}
-	}
-}
-
-// SelectEntryPoint selects an entry point for HNSW search
-// Returns a node DocID at the highest available level
+// SelectEntryPoint returns the global entry point
+// The exclude list is largely unused in standard inserts, unless we want to avoid self.
 func SelectEntryPoint(c *Collection, modelName string, exclude map[DocID]bool) (DocID, bool) {
     c.Mu.RLock()
     defer c.Mu.RUnlock()
     
-	levelMap := c.HNSWLevelMap[modelName]
-	if levelMap == nil {
-		return 0, false
-	}
-	
-	// Find highest level existing in map
-	maxLevel := -1
-	for level := range levelMap {
-		if level > maxLevel {
-			maxLevel = level
-		}
-	}
-	
-	if maxLevel < 0 {
-		return 0, false
-	}
-	
-	// Find valid node starting from max level
-	// NOTE: HNSW entry point is usually global. We just need ANY valid node.
-	// Prioritize highest level.
-	for level := maxLevel; level >= 0; level-- {
-		nodes := levelMap[level]
-		for _, nodeID := range nodes {
-			if exclude != nil && exclude[nodeID] {
-				continue
-			}
-			
-			// Verify it exists in Items map (soft-delete check)
-			if _, ok := c.Items[nodeID]; ok {
-			    return nodeID, true
-			}
-		}
-	}
-	
-	return 0, false
+    ep := c.EntryPoint
+    if ep == DocID(0xFFFFFFFF) {
+        return 0, false
+    }
+    
+    // If we need to exclude the entry point (e.g. it's the node we are inserting and it was set as EP)
+    // This happens if we update EP before linking.
+    if exclude != nil && exclude[ep] {
+        // Need to find another node?
+        // With single EP optimization, we might not have a list of all nodes at top level handy
+        // unless we keep HNSWLevelMap.
+        // But types.go removed HNSWLevelMap.
+        // Fallback: If excluded, return false?
+        // Or scan nodes (slow).
+        // In InsertItem, we set EP *after* searching if level is higher.
+        // If level is lower, we start from current EP.
+        // HNSW EP is usually just one node.
+        return 0, false 
+    }
+    
+    return ep, true
 }
 
 // ExpectedNeighborCount returns M parameter for a level

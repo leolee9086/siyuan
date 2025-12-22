@@ -217,9 +217,8 @@ func handleDeleteVectors(c *gin.Context) {
 
 	deletedCount := 0
 	for _, key := range req.Keys {
-		for modelName := range collection.HNSWLevelMap {
-			collection.DeleteItemWithIndex(key, modelName)
-		}
+		// HNSWLevelMap is deprecated. Assumes single model or handles internally.
+		collection.DeleteItemWithIndex(key, "")
 		deletedCount++
 	}
 
@@ -376,11 +375,5 @@ func GetCollection(dbName, collectionName string) *Collection {
 }
 
 func getModelNames(c *Collection) []string {
-	c.Mu.RLock()
-	defer c.Mu.RUnlock()
-	names := make([]string, 0, len(c.HNSWLevelMap))
-	for name := range c.HNSWLevelMap {
-		names = append(names, name)
-	}
-	return names
+	return []string{"default"}
 }

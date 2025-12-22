@@ -63,19 +63,42 @@ type Collection struct {
 	IDMap      map[string]DocID     `msgpack:"-"` // External ID -> DocID
 	DocMap     []string             `msgpack:"-"` // DocID -> External ID (Index is DocID)
 	NextDocID  DocID                `msgpack:"-"` // Auto-increment counter
+    
+    // 2. Data Store
+    // Items      map[DocID]*Item      `msgpack:"-"` // DEPRECATED: Use VectorStore for vectors
+    // Storing metadata separately if needed, or keeping Items for metadata only
+    Items      map[DocID]*Item      `msgpack:"-"` // Still used for Metadata, but not for matching
+    
+    // Optimized Vector Storage
+    Store      *VectorStore         `msgpack:"-"`
 
-	// 2. Data Store
-	Items      map[DocID]*Item      `msgpack:"-"` // DocID -> Item (Data)
-	
 	// 3. Graph Index
-	// Map[ModelName] -> Map[DocID] -> []LevelData
-	// Optimization: slice of pointers if DocID is dense
-	HNSWNodes  map[string]map[DocID][]LevelData `msgpack:"-"` 
-	
-	// Entry Points
-	HNSWLevelMap map[string]map[int][]DocID  `msgpack:"hnswLevelMap"`
+    // Optimized: Flat array of nodes
+    Nodes      []NodeData           `msgpack:"-"`
+    
+    // Entry Point
+    EntryPoint DocID                `msgpack:"entryPoint"`
+    MaxLayer   int                  `msgpack:"maxLayer"`
 
+    // Auxiliary for visited set (per collection or global?)
+    // Making it part of search context is better, but for single-threaded usage (or pooled)
+    // we can keep it here or just allocate. 
+    // For Epoch-based, we need a global/per-collection VisitEpoch and a []uint32 Visited array.
+    // Visited []uint32 - moved to search context/pool
+    
 	Mu           sync.RWMutex       `msgpack:"-"`
+}
+
+// NodeData optimized graph node
+type NodeData struct {
+    Level    int       // Max level of this node
+    // Adjacency list: Neighbors[level] -> []DocID
+    // To flatten further: single array with offsets?
+    // For now, let's keep [][]DocID for simplicity of update, or flat array if possible.
+    // Slice of slices is pointer heavy.
+    // Optimization: Flat array with implicit structure or explicit bounds?
+    // Let's stick to [][]DocID for now, it's better than map[int][]DocID
+    Neighbors [][]DocID
 }
 
 // CollectionConfig collection config
@@ -140,8 +163,10 @@ func NewCollection(name string, dimension int) *Collection {
 		IDMap:        make(map[string]DocID),
 		DocMap:       make([]string, 0),
 		Items:        make(map[DocID]*Item),
-		HNSWNodes:    make(map[string]map[DocID][]LevelData),
-		HNSWLevelMap: make(map[string]map[int][]DocID),
+        Store:        NewVectorStore(dimension),
+        Nodes:        make([]NodeData, 0),
+        EntryPoint:   DocID(0xFFFFFFFF), // Invalid ID
+        MaxLayer:     -1,
 	}
 }
 
@@ -262,14 +287,8 @@ func (c *Collection) ItemCount() int {
 }
 
 // InitLevelMap initializes level mapping for model
+// InitLevelMap deprecated
 func (c *Collection) InitLevelMap(modelName string) {
-	c.Mu.Lock()
-	defer c.Mu.Unlock()
-	if c.HNSWLevelMap[modelName] == nil {
-		c.HNSWLevelMap[modelName] = make(map[int][]DocID)
-	}
-    if c.HNSWNodes[modelName] == nil {
-        c.HNSWNodes[modelName] = make(map[DocID][]LevelData)
-    }
+    // No-op for compatibility or remove
 }
 
