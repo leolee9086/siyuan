@@ -6,7 +6,7 @@ import { Outline } from "./Outline";
 import { Graph } from "./Graph";
 import { Backlink } from "./Backlink";
 import { Inbox } from "./Inbox";
-import { CustomLists, ICustomList } from "./CustomLists";
+import { CustomLists, ICustomList } from "./customBlockLists/CustomLists";
 import { App } from "../../index";
 import { Plugin } from "../../plugin";
 import { Protyle } from "../../protyle";

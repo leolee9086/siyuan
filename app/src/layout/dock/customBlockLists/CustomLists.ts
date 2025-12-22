@@ -1,15 +1,15 @@
-import { Tab } from "../Tab";
-import { Model } from "../Model";
-import { App } from "../../index";
+import { Tab } from "../../Tab";
+import { Model } from "../../Model";
+import { App } from "../../../index";
 
-import { fetchPost } from "../../util/fetch";
-import { Tree } from "../../util/Tree";
-import { checkFold } from "../../util/noRelyPCFunction";
-import { openFileById } from "../../editor/utils.openFileById";
-import { Protyle } from "../../protyle";
-import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { getIconByType } from "../../editor/getIcon";
-import { getDockByType } from "../tabUtil";
+import { fetchPost } from "../../../util/fetch";
+import { Tree } from "../../../util/Tree";
+import { checkFold } from "../../../util/noRelyPCFunction";
+import { openFileById } from "../../../editor/utils.openFileById";
+import { Protyle } from "../../../protyle";
+import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { getIconByType } from "../../../editor/getIcon";
+import { getDockByType } from "../../tabUtil";
 import { getCustomListIcon, getTopExtHTML, handleRemoveFromStorage, handleRemoveItemFromList } from "./customLists.util";
 
 export interface ICustomList {

@@ -1,7 +1,7 @@
 import { ICustomList } from "./CustomLists";
-import { getDockByType } from "../tabUtil";
-import { setStorageVal } from "../../protyle/util/compatibility";
-import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { getDockByType } from "../../tabUtil";
+import { setStorageVal } from "../../../protyle/util/compatibility";
+import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const getCustomListIcon = (type: "dynamic" | "static") => {
     return type === "dynamic" ? "iconSearch" : "iconList";
