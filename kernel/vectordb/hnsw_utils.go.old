@@ -1,0 +1,216 @@
+// SiYuan - Refactor your thinking
+// Copyright (c) 2020-present, b3log.org
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+package vectordb
+
+import (
+	"hash/fnv"
+	"math/bits"
+)
+
+// =========================================
+// HNSW 工具函数
+// =========================================
+
+// 计算层级分配（确定性算法）
+// 基于 ID 哈希，保证同一 ID 总是分配到相同层级
+func 计算层级(id string, maxLevel int) int {
+	h := fnv.New32a()
+	h.Write([]byte(id))
+	hashValue := h.Sum32()
+	
+	// 使用最低有效位确定层级
+	internalID := hashValue + 1
+	lowestBit := internalID & uint32(-int32(internalID))
+	level := 31 - bits.LeadingZeros32(lowestBit)
+	
+	if level >= maxLevel {
+		level = maxLevel - 1
+	}
+	if level < 0 {
+		level = 0
+	}
+	
+	return level
+}
+
+// 计算层级预期邻居数量
+// 底层 (level 0) 使用 M*2，其他层使用 M
+func 计算层级预期邻居数量(level int, M int) int {
+	if level == 0 {
+		return M * 2
+	}
+	return M
+}
+
+// 获取数据项的 HNSW 层级
+func 获取数据项所在层级(item *Item, modelName string) int {
+	neighbors := item.GetHNSWNeighbors(modelName)
+	if len(neighbors) == 0 {
+		return -1
+	}
+	// 邻接表长度 - 1 就是最高层级
+	return len(neighbors) - 1
+}
+
+// 初始化数据项的 HNSW 邻接表
+func 初始化数据项邻接表(item *Item, modelName string, maxLevel int) int {
+	level := 计算层级(item.ID, maxLevel)
+	
+	levels := make([]LevelData, level+1)
+	for i := 0; i <= level; i++ {
+		levels[i] = LevelData{
+			Type:  i,
+			Items: make([]NeighborRecord, 0),
+		}
+	}
+	
+	item.SetHNSWNeighbors(modelName, levels)
+	return level
+}
+
+// =========================================
+// 层级映射操作
+// =========================================
+
+// 添加节点到层级映射
+func 添加节点到层级映射(levelMap map[string]map[int][]string, modelName string, id string, level int) {
+	if levelMap[modelName] == nil {
+		levelMap[modelName] = make(map[int][]string)
+	}
+	
+	for l := 0; l <= level; l++ {
+		if levelMap[modelName][l] == nil {
+			levelMap[modelName][l] = make([]string, 0)
+		}
+		levelMap[modelName][l] = append(levelMap[modelName][l], id)
+	}
+}
+
+// 从层级映射移除节点
+func 从层级映射移除节点(levelMap map[string]map[int][]string, modelName string, id string) {
+	if levelMap[modelName] == nil {
+		return
+	}
+	
+	for level, ids := range levelMap[modelName] {
+		newIDs := make([]string, 0, len(ids))
+		for _, existingID := range ids {
+			if existingID != id {
+				newIDs = append(newIDs, existingID)
+			}
+		}
+		levelMap[modelName][level] = newIDs
+	}
+}
+
+// 选择入口点
+// 从最高层开始，找一个有效的未访问节点
+func 选择入口点(c *Collection, modelName string, visited map[string]bool) *Item {
+	levelMap := c.GetLevelMap(modelName)
+	if levelMap == nil {
+		return nil
+	}
+	
+	// 找到最高层级
+	maxLevel := -1
+	for level := range levelMap {
+		if level > maxLevel {
+			maxLevel = level
+		}
+	}
+	
+	// 从最高层向下找
+	for level := maxLevel; level >= 0; level-- {
+		ids := levelMap[level]
+		for _, id := range ids {
+			if visited != nil && visited[id] {
+				continue
+			}
+			if item, ok := c.GetItem(id); ok {
+				return item
+			}
+		}
+	}
+	
+	return nil
+}
+
+// 获取指定层级的所有节点 ID
+func 获取层级节点列表(levelMap map[string]map[int][]string, modelName string, level int) []string {
+	if levelMap[modelName] == nil {
+		return nil
+	}
+	return levelMap[modelName][level]
+}
+
+// =========================================
+// 邻居操作
+// =========================================
+
+// 获取指定层级的邻居列表
+func 获取层级邻居(item *Item, modelName string, level int) []NeighborRecord {
+	levelData := item.GetLevelNeighbors(modelName, level)
+	if levelData == nil {
+		return nil
+	}
+	return levelData.Items
+}
+
+// 设置指定层级的邻居列表
+func 设置层级邻居(item *Item, modelName string, level int, neighbors []NeighborRecord) {
+	hnswNeighbors := item.GetHNSWNeighbors(modelName)
+	
+	for i := range hnswNeighbors {
+		if hnswNeighbors[i].Type == level {
+			hnswNeighbors[i].Items = neighbors
+			return
+		}
+	}
+}
+
+// 添加邻居到指定层级
+func 添加邻居(item *Item, modelName string, level int, neighbor NeighborRecord) {
+	levelData := item.GetLevelNeighbors(modelName, level)
+	if levelData == nil {
+		return
+	}
+	
+	// 检查是否已存在
+	for _, n := range levelData.Items {
+		if n.ID == neighbor.ID {
+			return
+		}
+	}
+	
+	levelData.Items = append(levelData.Items, neighbor)
+}
+
+// 从指定层级移除邻居
+func 移除邻居(item *Item, modelName string, level int, neighborID string) {
+	levelData := item.GetLevelNeighbors(modelName, level)
+	if levelData == nil {
+		return
+	}
+	
+	newItems := make([]NeighborRecord, 0, len(levelData.Items))
+	for _, n := range levelData.Items {
+		if n.ID != neighborID {
+			newItems = append(newItems, n)
+		}
+	}
+	levelData.Items = newItems
+}

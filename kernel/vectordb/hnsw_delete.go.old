@@ -1,0 +1,240 @@
+// SiYuan - Refactor your thinking
+// Copyright (c) 2020-present, b3log.org
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+package vectordb
+
+// =========================================
+// HNSW 删除与重建
+// =========================================
+
+// DeleteItemWithIndex 删除数据项并更新 HNSW 索引
+func (c *Collection) DeleteItemWithIndex(id string, modelName string) []string {
+	// 1. 获取数据项
+	item, ok := c.GetItem(id)
+	if !ok {
+		return nil
+	}
+	
+	affectedNeighbors := make([]string, 0)
+	
+	// 2. 从层级映射中移除
+	c.Mu.Lock()
+	从层级映射移除节点(c.HNSWLevelMap, modelName, id)
+	c.Mu.Unlock()
+	
+	// 3. 从所有邻居的邻接表中移除该节点
+	level := 获取数据项所在层级(item, modelName)
+	for l := 0; l <= level; l++ {
+		neighbors := 获取层级邻居(item, modelName, l)
+		if neighbors == nil {
+			continue
+		}
+		
+		for _, neighbor := range neighbors {
+			neighborItem, ok := c.GetItem(neighbor.ID)
+			if !ok {
+				continue
+			}
+			
+			// 移除邻居对自己的引用
+			移除邻居(neighborItem, modelName, l, id)
+			
+			// 记录受影响的邻居
+			affectedNeighbors = append(affectedNeighbors, neighbor.ID)
+		}
+	}
+	
+	// 4. 删除数据项
+	c.DeleteItem(id)
+	
+	// 5. 重新计算受影响邻居的邻接表
+	for _, neighborID := range affectedNeighbors {
+		c.recomputeNeighbors(neighborID, modelName)
+	}
+	
+	return affectedNeighbors
+}
+
+// recomputeNeighbors 重新计算邻居的邻接表
+// 当邻居被删除后，使用 BFS 搜索补充新邻居
+func (c *Collection) recomputeNeighbors(id string, modelName string) {
+	item, ok := c.GetItem(id)
+	if !ok {
+		return
+	}
+	
+	config := c.Config
+	level := 获取数据项所在层级(item, modelName)
+	
+	for l := 0; l <= level; l++ {
+		expectedNeighbors := 计算层级预期邻居数量(l, config.M)
+		neighbors := 获取层级邻居(item, modelName, l)
+		
+		// 如果邻居数量已满足，跳过
+		if len(neighbors) >= expectedNeighbors {
+			continue
+		}
+		
+		// BFS 搜索补充邻居
+		visited := make(map[string]bool)
+		visited[id] = true
+		for _, n := range neighbors {
+			visited[n.ID] = true
+		}
+		
+		queue := make([]string, 0)
+		for _, n := range neighbors {
+			queue = append(queue, n.ID)
+		}
+		
+		for len(queue) > 0 && len(neighbors) < expectedNeighbors {
+			currentID := queue[0]
+			queue = queue[1:]
+			
+			currentItem, ok := c.GetItem(currentID)
+			if !ok {
+				continue
+			}
+			
+			currentNeighbors := 获取层级邻居(currentItem, modelName, l)
+			if currentNeighbors == nil {
+				continue
+			}
+			
+			for _, n := range currentNeighbors {
+				if visited[n.ID] {
+					continue
+				}
+				if n.ID == id {
+					continue
+				}
+				
+				visited[n.ID] = true
+				queue = append(queue, n.ID)
+				
+				// 计算距离
+				neighborItem, ok := c.GetItem(n.ID)
+				if !ok {
+					continue
+				}
+				
+				distance := c.computeDistance(item, neighborItem, modelName, config.MetricType)
+				neighbors = append(neighbors, NeighborRecord{
+					ID:       n.ID,
+					Distance: distance,
+				})
+				
+				if len(neighbors) >= expectedNeighbors {
+					break
+				}
+			}
+		}
+		
+		// 排序并截取
+		sortNeighborsByDistance(neighbors)
+		if len(neighbors) > expectedNeighbors {
+			neighbors = neighbors[:expectedNeighbors]
+		}
+		
+		设置层级邻居(item, modelName, l, neighbors)
+	}
+}
+
+// sortNeighborsByDistance 按距离排序邻居
+func sortNeighborsByDistance(neighbors []NeighborRecord) {
+	for i := 0; i < len(neighbors)-1; i++ {
+		for j := i + 1; j < len(neighbors); j++ {
+			if neighbors[j].Distance < neighbors[i].Distance {
+				neighbors[i], neighbors[j] = neighbors[j], neighbors[i]
+			}
+		}
+	}
+}
+
+// =========================================
+// 入口点重选
+// =========================================
+
+// ReselectEntryPoint 重新选择入口点
+// 当当前入口点被删除时调用
+func (c *Collection) ReselectEntryPoint(modelName string) *Item {
+	return 选择入口点(c, modelName, nil)
+}
+
+// =========================================
+// 索引重建
+// =========================================
+
+// RebuildIndex 重建整个 HNSW 索引
+// 用于清理碎片或修复索引
+func (c *Collection) RebuildIndex(modelName string) error {
+	config := c.Config
+	
+	// 1. 收集所有数据项
+	items := make([]*Item, 0)
+	c.Mu.RLock()
+	for _, item := range c.Items {
+		if _, ok := item.GetVector(modelName); ok {
+			items = append(items, item)
+		}
+	}
+	c.Mu.RUnlock()
+	
+	if len(items) == 0 {
+		return nil
+	}
+	
+	// 2. 清空层级映射
+	c.Mu.Lock()
+	c.HNSWLevelMap[modelName] = make(map[int][]string)
+	c.Mu.Unlock()
+	
+	// 3. 清空所有邻接表
+	for _, item := range items {
+		item.SetHNSWNeighbors(modelName, nil)
+	}
+	
+	// 4. 重新初始化第一个节点
+	firstItem := items[0]
+	level := 初始化数据项邻接表(firstItem, modelName, config.MaxLevel)
+	c.Mu.Lock()
+	添加节点到层级映射(c.HNSWLevelMap, modelName, firstItem.ID, level)
+	c.Mu.Unlock()
+	
+	// 5. 依次插入其他节点
+	for i := 1; i < len(items); i++ {
+		item := items[i]
+		
+		// 初始化邻接表
+		level := 初始化数据项邻接表(item, modelName, config.MaxLevel)
+		
+		// 更新层级映射
+		c.Mu.Lock()
+		添加节点到层级映射(c.HNSWLevelMap, modelName, item.ID, level)
+		c.Mu.Unlock()
+		
+		// 选择入口点
+		visited := make(map[string]bool)
+		visited[item.ID] = true
+		entryPoint := 选择入口点(c, modelName, visited)
+		
+		if entryPoint != nil {
+			c.buildHNSWIndex(item, modelName, entryPoint, level)
+		}
+	}
+	
+	return nil
+}

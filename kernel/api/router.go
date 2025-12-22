@@ -512,4 +512,14 @@ func ServeAPI(ginServer *gin.Engine) {
 	ginServer.Handle("POST", "/api/ui/reloadProtyle", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, reloadProtyle)
 	ginServer.Handle("POST", "/api/ui/reloadFiletree", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, reloadFiletree)
 	ginServer.Handle("POST", "/api/ui/reloadTag", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, reloadTag)
+
+	// 向量数据库
+	vectorGroup := ginServer.Group("/api/vector", model.CheckAuth)
+	vectorGroup.POST("/collections/build", model.CheckAdminRole, model.CheckReadonly, vectorBuildCollection)
+	vectorGroup.POST("/add", model.CheckAdminRole, model.CheckReadonly, vectorAdd)
+	vectorGroup.POST("/delete", model.CheckAdminRole, model.CheckReadonly, vectorDelete)
+	vectorGroup.POST("/query", vectorQuery)
+	vectorGroup.POST("/keys", vectorKeys)
+	vectorGroup.POST("/state", vectorState)
+	vectorGroup.POST("/rebuild", model.CheckAdminRole, model.CheckReadonly, vectorRebuild)
 }
