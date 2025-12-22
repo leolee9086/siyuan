@@ -1,16 +1,16 @@
 /// #if !BROWSER
 /// #endif
 import { confirmDialog } from "../dialog/confirmDialog";
-import { isMobile } from "../util/functions";
-import { moveToPath } from "../util/pathName";
+import { getSearch, isMobile, isValidCustomAttrName } from "../util/functions";
+import { isLocalPath, moveToPath, pathPosix } from "../util/pathName";
 import { movePathTo } from "../util/pathName/movePathTo";
 import { MenuItem } from "./Menu.Item";
 import { onExport, saveExport } from "../protyle/export";
-import { isInAndroid, isInHarmony, isInIOS, openByMobile } from "../protyle/util/compatibility";
+import { isInAndroid, isInHarmony, isInIOS, openByMobile, writeText } from "../protyle/util/compatibility";
 import { fetchPost, fetchSyncPost } from "../util/fetch";
 import { hideMessage, showMessage } from "../dialog/message";
 import { Dialog } from "../dialog";
-import { focusBlock } from "../protyle/util/selection";
+import { focusBlock, focusByRange, getEditorRange } from "../protyle/util/selection";
 /// #if !MOBILE
 /// #endif
 import { rename, replaceFileName } from "../editor/rename";
@@ -28,6 +28,7 @@ export const bindAttrInput = (inputElement: HTMLInputElement, id: string) => {
         });
     });
 };
+
 
 
 
