@@ -68,9 +68,9 @@ func (c *Collection) buildHNSWIndex(item *Item, modelName string, entryPoint *It
 		// Search for candidates
 		candidates := c.searchLevel(item, currentBest, modelName, level, config.EfConstruction, config.MetricType)
 		
-		// Select neighbors
+		// Select neighbors using heuristic
 		M := ExpectedNeighborCount(level, config.M)
-		selected := c.selectNeighbors(candidates, M)
+		selected := c.selectNeighborsHeuristic(item, candidates, modelName, M, config.MetricType, true, true)
 		
 		// Set neighbors for new item
 		SetLevelNeighbors(item, modelName, level, selected)
@@ -88,29 +88,18 @@ func (c *Collection) buildHNSWIndex(item *Item, modelName string, entryPoint *It
 				neighborNeighbors = make([]NeighborRecord, 0)
 			}
 			
-			// Check if already connected
-			alreadyConnected := false
-			for _, n := range neighborNeighbors {
-				if n.ID == item.ID {
-					alreadyConnected = true
-					break
-				}
+			// Add new connection (candidate) to neighbor's list
+			// Need to re-select neighbors for the neighbor node to maintain M and diversity
+			candidatesForNeighbor := make([]NeighborRecord, len(neighborNeighbors)+1)
+			copy(candidatesForNeighbor, neighborNeighbors)
+			candidatesForNeighbor[len(neighborNeighbors)] = NeighborRecord{
+				ID:       item.ID,
+				Distance: neighbor.Distance,
 			}
 			
-			if !alreadyConnected {
-				// Add new connection
-				neighborNeighbors = append(neighborNeighbors, NeighborRecord{
-					ID:       item.ID,
-					Distance: neighbor.Distance,
-				})
-				
-				// Prune if exceeds M
-				if len(neighborNeighbors) > M {
-					neighborNeighbors = c.selectNeighbors(neighborNeighbors, M)
-				}
-				
-				SetLevelNeighbors(neighborItem, modelName, level, neighborNeighbors)
-			}
+			// Re-select with heuristic
+			newNeighbors := c.selectNeighborsHeuristic(neighborItem, candidatesForNeighbor, modelName, M, config.MetricType, true, true)
+			SetLevelNeighbors(neighborItem, modelName, level, newNeighbors)
 		}
 		
 		// Use closest candidate as next entry point
@@ -157,8 +146,8 @@ func (c *Collection) greedySearch(query *Item, entryPoint *Item, modelName strin
 // searchLevel searches for ef candidates at level
 func (c *Collection) searchLevel(query *Item, entryPoint *Item, modelName string, level int, ef int, metricType string) []NeighborRecord {
 	visited := make(map[string]bool)
-	candidates := NewMinHeap()
-	results := NewMaxHeap(ef)
+	candidates := NewMinHeap() // Keep furthest candidate to explore
+	results := NewMaxHeap(ef)  // Keep nearest results found so far
 	
 	entryDist := c.computeDistance(query, entryPoint, modelName, metricType)
 	candidates.Push(&HeapItem{ID: entryPoint.ID, Distance: entryDist})
@@ -168,7 +157,8 @@ func (c *Collection) searchLevel(query *Item, entryPoint *Item, modelName string
 	for candidates.Len() > 0 {
 		current := candidates.Pop()
 		
-		// If current is farther than farthest result, stop
+		// If current (closest in candidates) is further than furthest in results, and results is full
+		// Then we can't find better candidates by exploring current
 		if results.IsFull() && current.Distance > results.Peek().Distance {
 			break
 		}
@@ -196,9 +186,12 @@ func (c *Collection) searchLevel(query *Item, entryPoint *Item, modelName string
 			
 			dist := c.computeDistance(query, neighborItem, modelName, metricType)
 			
-			if !results.IsFull() || dist < results.Peek().Distance {
+			if !results.IsFull() {
 				candidates.Push(&HeapItem{ID: neighbor.ID, Distance: dist})
 				results.Push(&HeapItem{ID: neighbor.ID, Distance: dist})
+			} else if dist < results.Peek().Distance {
+				candidates.Push(&HeapItem{ID: neighbor.ID, Distance: dist})
+				results.Replace(&HeapItem{ID: neighbor.ID, Distance: dist})
 			}
 		}
 	}
@@ -213,7 +206,7 @@ func (c *Collection) searchLevel(query *Item, entryPoint *Item, modelName string
 		})
 	}
 	
-	// Reverse to get ascending order
+	// Reverse to get ascending order (closest first)
 	for i, j := 0, len(result)-1; i < j; i, j = i+1, j-1 {
 		result[i], result[j] = result[j], result[i]
 	}
@@ -221,22 +214,86 @@ func (c *Collection) searchLevel(query *Item, entryPoint *Item, modelName string
 	return result
 }
 
-// selectNeighbors selects best M neighbors
-func (c *Collection) selectNeighbors(candidates []NeighborRecord, M int) []NeighborRecord {
+// selectNeighborsHeuristic selects neighbors using HNSW heuristic ensuring connectivity and diversity
+func (c *Collection) selectNeighborsHeuristic(item *Item, candidates []NeighborRecord, modelName string, M int, metricType string, extendCandidates bool, keepPrunedConnections bool) []NeighborRecord {
 	if len(candidates) <= M {
 		return candidates
 	}
 	
-	// Sort by distance
-	for i := 0; i < len(candidates)-1; i++ {
-		for j := i + 1; j < len(candidates); j++ {
-			if candidates[j].Distance < candidates[i].Distance {
-				candidates[i], candidates[j] = candidates[j], candidates[i]
+	// Sort candidates by distance to item
+	// Note: candidates array passed here is usually already sorted, but let's ensure it or perform a partial sort if needed.
+	// For heuristic, we need strictly sorted.
+	sortNeighborsByDistance(candidates)
+	
+	if extendCandidates {
+		// Extend candidates by waiting neighbors' neighbors?
+		// Standard basic heuristic just filters.
+		// Extended heuristic not implemented here for brevity unless required.
+	}
+	
+	result := make([]NeighborRecord, 0, M)
+	
+	for _, candidate := range candidates {
+		if len(result) >= M {
+			break
+		}
+		
+		// Check distance from candidate to existing results
+		// Heuristic: Add candidate only if it is closer to item than to any already selected neighbor
+		isGood := true
+		
+		candidateItem, ok := c.GetItem(candidate.ID)
+		if !ok {
+			continue // skip invalid
+		}
+		
+		for _, res := range result {
+			resItem, ok := c.GetItem(res.ID)
+			if !ok {
+				continue
+			}
+			
+			distToRes := c.computeDistance(candidateItem, resItem, modelName, metricType)
+			
+			// If candidate is closer to an existing neighbor than to the query item, skip it
+			// This encourages diversity (vertices in different directions)
+			if distToRes < candidate.Distance {
+				isGood = false
+				break
+			}
+		}
+		
+		if isGood {
+			result = append(result, candidate)
+		}
+	}
+	
+	// If keepPrunedConnections is true and we haven't filled M, 
+	// we might want to add some discarded connections back?
+	// Standard implementation often just stops here or fills up with non-diverse ones if needed.
+	// We will fill up with remaining closest if we have space, to ensure connectivity?
+	// The paper says: "if the number of selected neighbors is less than M, we can add some of the discarded connections"
+	
+	if keepPrunedConnections && len(result) < M {
+		for _, candidate := range candidates {
+			if len(result) >= M {
+				break
+			}
+			// Check if already in result
+			found := false
+			for _, res := range result {
+				if res.ID == candidate.ID {
+					found = true
+					break
+				}
+			}
+			if !found {
+				result = append(result, candidate)
 			}
 		}
 	}
 	
-	return candidates[:M]
+	return result
 }
 
 // computeDistance computes distance between two items
@@ -253,3 +310,4 @@ func (c *Collection) computeDistance(a, b *Item, modelName string, metricType st
 	}
 	return CosineDistance(vecA, vecB)
 }
+

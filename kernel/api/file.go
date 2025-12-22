@@ -69,7 +69,7 @@ func globalCopyFiles(c *gin.Context) {
 	for _, src := range srcs {
 		if !filelock.IsExist(src) {
 			msg := fmt.Sprintf("file [%s] does not exist", src)
-			logging.LogErrorf(msg)
+			logging.LogErrorf("%s", msg)
 			ret.Code = -1
 			ret.Msg = msg
 			return
