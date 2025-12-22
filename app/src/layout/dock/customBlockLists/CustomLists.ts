@@ -75,6 +75,15 @@ export class CustomLists extends Model {
             if (!query) {
                 return;
             }
+
+            // Check if query is SQL (starts with select)
+            if (query.trim().toLowerCase().startsWith("select")) {
+                fetchPost("/api/query/sql", { stmt: query }, (response) => {
+                    this.renderData(response.data);
+                });
+                return;
+            }
+
             let searchConfig: any = {
                 query: query,
                 page: 1,

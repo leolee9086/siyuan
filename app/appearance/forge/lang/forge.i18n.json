@@ -235,6 +235,14 @@
         "pinSearchQuery": {
             "zh_CN": "固定查询参数",
             "en_US": "Pin Search Query"
+        },
+        "pinEmbedResult": {
+            "zh_CN": "固定结果到侧边栏",
+            "en_US": "Pin Results to Sidebar"
+        },
+        "pinEmbedQuery": {
+            "zh_CN": "固定查询到侧边栏",
+            "en_US": "Pin Query to Sidebar"
         }
     }
 }
