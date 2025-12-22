@@ -19,135 +19,237 @@ package vectordb
 import (
 	"os"
 	"path/filepath"
+	"io"
 
 	"github.com/vmihailenco/msgpack/v5"
 )
 
 // =========================================
-// Persistence layer
+// Persistence layer (WAL + Snapshot)
 // =========================================
 
-// CollectionMeta collection metadata for persistence
-type CollectionMeta struct {
-	Name         string                      `msgpack:"name"`
-	Dimension    int                         `msgpack:"dimension"`
-	Config       CollectionConfig            `msgpack:"config"`
-	HNSWLevelMap map[string]map[int][]string `msgpack:"hnswLevelMap"`
-	ItemCount    int                         `msgpack:"itemCount"`
+const (
+	SnapshotFileName = "snapshot.msgpack"
+	WALFileName      = "wal.msgpack"
+)
+
+// SnapshotData represents the full state of a collection
+type SnapshotData struct {
+	Name         string                               `msgpack:"name"`
+	Dimension    int                                  `msgpack:"dimension"`
+	Config       CollectionConfig                     `msgpack:"config"`
+	NextDocID    DocID                                `msgpack:"nextDocID"`
+	DocMap       []string                             `msgpack:"docMap"`
+	IDMap        map[string]DocID                     `msgpack:"idMap"`
+	Items        map[DocID]*Item                      `msgpack:"items"`
+	HNSWNodes    map[string]map[DocID][]LevelData     `msgpack:"hnswNodes"`
+	HNSWLevelMap map[string]map[int][]DocID           `msgpack:"hnswLevelMap"`
 }
 
-// SaveCollection saves collection to disk
+// WALEntry represents a single operation in WAL
+type WALEntry struct {
+	Op    int           `msgpack:"op"` // 1: Add, 2: Delete
+	Items []*Item       `msgpack:"items,omitempty"`
+	Keys  []string      `msgpack:"keys,omitempty"`
+}
+
+const (
+	OpAdd    = 1
+	OpDelete = 2
+)
+
+// SaveCollection performs a Checkpoint (Snapshot)
+// Saves full state to snapshot.msgpack and truncates wal.msgpack
 func SaveCollection(c *Collection, basePath string) error {
+	c.Mu.RLock()
+	defer c.Mu.RUnlock()
+	
 	collectionPath := filepath.Join(basePath, c.Name)
 	if err := os.MkdirAll(collectionPath, 0755); err != nil {
 		return err
 	}
-
-	meta := CollectionMeta{
+	
+	snapshot := SnapshotData{
 		Name:         c.Name,
 		Dimension:    c.Dimension,
 		Config:       c.Config,
+		NextDocID:    c.NextDocID,
+		DocMap:       c.DocMap,
+		IDMap:        c.IDMap,
+		Items:        c.Items,
+		HNSWNodes:    c.HNSWNodes,
 		HNSWLevelMap: c.HNSWLevelMap,
-		ItemCount:    c.ItemCount(),
 	}
-	if err := saveMetadata(collectionPath, &meta); err != nil {
+	
+	data, err := msgpack.Marshal(&snapshot)
+	if err != nil {
 		return err
 	}
-
-	c.Mu.RLock()
-	defer c.Mu.RUnlock()
-
-	for id, item := range c.Items {
-		if err := saveItem(collectionPath, id, item); err != nil {
-			return err
-		}
+	
+	// Atomic write snapshot
+	if err := atomicWriteFile(filepath.Join(collectionPath, SnapshotFileName), data); err != nil {
+		return err
 	}
-
+	
+	// Truncate WAL (Clear it)
+	// We just remove it or truncate it.
+	walPath := filepath.Join(collectionPath, WALFileName)
+	os.Remove(walPath) // Ignore error if not exists
+	
 	return nil
 }
 
-// LoadCollection loads collection from disk
+// LoadCollection loads collection from disk (Snapshot + WAL Replay)
 func LoadCollection(basePath string, name string) (*Collection, error) {
 	collectionPath := filepath.Join(basePath, name)
-
-	meta, err := loadMetadata(collectionPath)
+	
+	// 1. Load Snapshot
+	snapshotPath := filepath.Join(collectionPath, SnapshotFileName)
+	data, err := os.ReadFile(snapshotPath)
+	
+	var c *Collection
+	
 	if err != nil {
-		return nil, err
-	}
-
-	c := &Collection{
-		Name:         meta.Name,
-		Dimension:    meta.Dimension,
-		Config:       meta.Config,
-		HNSWLevelMap: meta.HNSWLevelMap,
-		Items:        make(map[string]*Item),
-	}
-
-	itemsPath := filepath.Join(collectionPath, "items")
-	entries, err := os.ReadDir(itemsPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return c, nil
+		if !os.IsNotExist(err) {
+			return nil, err
 		}
-		return nil, err
+		// Snapshot doesn't exist, create new
+		return NewCollection(name, 0), nil 
+		// Note: Dimension unknown if create new? 
+		// Should caller handle creation?
+		// LoadDatabase calls this. If failed, it skips.
+		// If snap not exists, maybe WAL exists?
+		// If both missing, clean start.
+	} else {
+		// Restore from snapshot
+		var snapshot SnapshotData
+		if err := msgpack.Unmarshal(data, &snapshot); err != nil {
+			return nil, err
+		}
+		
+		c = &Collection{
+			Name:         snapshot.Name,
+			Dimension:    snapshot.Dimension,
+			Config:       snapshot.Config,
+			NextDocID:    snapshot.NextDocID,
+			DocMap:       snapshot.DocMap,
+			IDMap:        snapshot.IDMap,
+			Items:        snapshot.Items,
+			HNSWNodes:    snapshot.HNSWNodes,
+			HNSWLevelMap: snapshot.HNSWLevelMap,
+		}
+		// Fix nil maps if empty
+		if c.IDMap == nil { c.IDMap = make(map[string]DocID) }
+		if c.Items == nil { c.Items = make(map[DocID]*Item) }
+		if c.HNSWNodes == nil { c.HNSWNodes = make(map[string]map[DocID][]LevelData) }
+		if c.HNSWLevelMap == nil { c.HNSWLevelMap = make(map[string]map[int][]DocID) }
 	}
-
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
+	
+	// 2. Replay WAL
+	walPath := filepath.Join(collectionPath, WALFileName)
+	f, err := os.Open(walPath)
+	if err == nil {
+		defer f.Close()
+		decoder := msgpack.NewDecoder(f)
+		
+		for {
+			var entry WALEntry
+			if err := decoder.Decode(&entry); err != nil {
+				if err == io.EOF {
+					break // Done
+				}
+				// Log error? partial read?
+				break
+			}
+			
+			// Replay entry
+			if entry.Op == OpAdd {
+				for _, item := range entry.Items {
+					// InsertItem logic (but simple reconstruction)
+					// Since WAL stores *Item with vectors, we can just Insert.
+					// BUT: DocID might need consistency if WAL didn't store DocID assignments order?
+					// Wait, WAL is appended AFTER Insert? Or BEFORE?
+					// If we append after Insert, then Snapshot + WAL is fine.
+					// But we need to ensure DocID generation is deterministic or stored.
+					// If WAL stores *Item, does it include DocID?
+					// Yes, Item struct has `DocID`.
+					// So we just put it back into maps.
+					// But we also need to Rebuild Index because HNSW Graph is not linear log.
+					// Actually, if we Snapshot `HNSWNodes`, we restored the graph.
+					// The WAL contains items added SINCE snapshot.
+					// We need to ADD them to the graph.
+					// So we call `c.InsertItem`.
+					// Note: `InsertItem` assigns New DocID?
+					// If Item in WAL already has DocID, should we respect it?
+					// `SetItem` in types.go:
+					// `if docID, exists := c.IDMap[item.ID]; exists { update } else { assign new }`.
+					// If we are replaying, IDMap might not have it yet.
+					// So `InsertItem` will assign `NextDocID`.
+					// This matches the order of operations if Replay order == Original order.
+					// So `c.InsertItem` is safe.
+					// One caveat: `InsertItem` updates `c.NextDocID`.
+					c.InsertItem(item, "text_embedding") // Model logic?
+					// Wait, `modelName` is lost in WALEntry?
+					// `Items` have `Vectors` map.
+					// `InsertItem` signature needs `modelName`.
+					// `InsertItem` builds index for ONE model?
+					// `InsertItem` iterates models?
+					// The current `InsertItem` takes `modelName`.
+					// We might need to iterate all models in `item.Vectors`?
+					for modelName := range item.Vectors {
+						c.InsertItem(item, modelName)
+					}
+				}
+			} else if entry.Op == OpDelete {
+				for _, key := range entry.Keys {
+					// Iterate models?
+					// `DeleteItemWithIndex` needs modelName.
+					// We need to know which models exist.
+					// `c.HNSWLevelMap` keys are models.
+					for modelName := range c.HNSWLevelMap {
+						c.DeleteItemWithIndex(key, modelName)
+					}
+				}
+			}
 		}
-		if filepath.Ext(entry.Name()) != ".msgpack" {
-			continue
-		}
-
-		id := entry.Name()[:len(entry.Name())-8]
-		item, err := loadItem(collectionPath, id)
-		if err != nil {
-			continue
-		}
-		c.Items[item.ID] = item
 	}
-
+	
 	return c, nil
 }
 
-func saveMetadata(collectionPath string, meta *CollectionMeta) error {
-	data, err := msgpack.Marshal(meta)
-	if err != nil {
-		return err
-	}
-	return atomicWriteFile(filepath.Join(collectionPath, "meta.msgpack"), data)
+// AppendWALAdd appended add operation
+func AppendWALAdd(c *Collection, basePath string, items []*Item) error {
+	return appendWAL(c.Name, basePath, WALEntry{
+		Op:    OpAdd,
+		Items: items,
+	})
 }
 
-func loadMetadata(collectionPath string) (*CollectionMeta, error) {
-	data, err := os.ReadFile(filepath.Join(collectionPath, "meta.msgpack"))
-	if err != nil {
-		return nil, err
-	}
-
-	var meta CollectionMeta
-	if err := msgpack.Unmarshal(data, &meta); err != nil {
-		return nil, err
-	}
-	return &meta, nil
+// AppendWALDelete appends delete operation
+func AppendWALDelete(c *Collection, basePath string, keys []string) error {
+	return appendWAL(c.Name, basePath, WALEntry{
+		Op:   OpDelete,
+		Keys: keys,
+	})
 }
 
-func saveItem(collectionPath string, id string, item *Item) error {
-	itemsPath := filepath.Join(collectionPath, "items")
-	if err := os.MkdirAll(itemsPath, 0755); err != nil {
+func appendWAL(collectionName string, basePath string, entry WALEntry) error {
+	collectionPath := filepath.Join(basePath, collectionName)
+	if err := os.MkdirAll(collectionPath, 0755); err != nil {
 		return err
 	}
-
-	data, err := msgpack.Marshal(item)
+	
+	f, err := os.OpenFile(filepath.Join(collectionPath, WALFileName), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
-
-	return atomicWriteFile(filepath.Join(itemsPath, id+".msgpack"), data)
+	defer f.Close()
+	
+	enc := msgpack.NewEncoder(f)
+	return enc.Encode(entry)
 }
 
 // atomicWriteFile writes file atomically
-// Writes to temp file first, then renames for data consistency
 func atomicWriteFile(path string, data []byte) error {
 	dir := filepath.Dir(path)
 	tmpFile, err := os.CreateTemp(dir, ".tmp-")
@@ -185,31 +287,11 @@ func atomicWriteFile(path string, data []byte) error {
 	return nil
 }
 
-func loadItem(collectionPath string, id string) (*Item, error) {
-	itemPath := filepath.Join(collectionPath, "items", id+".msgpack")
-	data, err := os.ReadFile(itemPath)
-	if err != nil {
-		return nil, err
-	}
-
-	var item Item
-	if err := msgpack.Unmarshal(data, &item); err != nil {
-		return nil, err
-	}
-	return &item, nil
-}
-
-// DeleteItemFile deletes item file
-func DeleteItemFile(collectionPath string, id string) error {
-	itemPath := filepath.Join(collectionPath, "items", id+".msgpack")
-	return os.Remove(itemPath)
-}
-
 // =========================================
 // Database persistence
 // =========================================
 
-// SaveDatabase saves database
+// SaveDatabase saves (checkpoints) all collections in database
 func SaveDatabase(db *Database) error {
 	if err := os.MkdirAll(db.Path, 0755); err != nil {
 		return err

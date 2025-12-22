@@ -21,34 +21,30 @@ package vectordb
 // =========================================
 
 // DeleteItemWithIndex deletes item and updates HNSW index
-func (c *Collection) DeleteItemWithIndex(id string, modelName string) []string {
+func (c *Collection) DeleteItemWithIndex(id string, modelName string) {
 	item, ok := c.GetItem(id)
 	if !ok {
-		return nil
+		return
 	}
+	docID := item.DocID
 	
-	affectedNeighbors := make([]string, 0)
+	affectedNeighbors := make([]DocID, 0)
 	
 	// Remove from level map
 	c.Mu.Lock()
-	RemoveNodeFromLevelMap(c.HNSWLevelMap, modelName, id)
+	RemoveNodeFromLevelMap(c.HNSWLevelMap, modelName, docID)
 	c.Mu.Unlock()
 	
 	// Remove from all neighbors' adjacency lists
-	level := GetItemLevel(item, modelName)
+	level := GetItemLevel(c, docID, modelName)
 	for l := 0; l <= level; l++ {
-		neighbors := GetLevelNeighbors(item, modelName, l)
+		neighbors := GetLevelNeighbors(c, docID, modelName, l)
 		if neighbors == nil {
 			continue
 		}
 		
 		for _, neighbor := range neighbors {
-			neighborItem, ok := c.GetItem(neighbor.ID)
-			if !ok {
-				continue
-			}
-			
-			RemoveNeighbor(neighborItem, modelName, l, id)
+			RemoveNeighbor(c, neighbor.ID, modelName, l, docID)
 			affectedNeighbors = append(affectedNeighbors, neighbor.ID)
 		}
 	}
@@ -60,36 +56,34 @@ func (c *Collection) DeleteItemWithIndex(id string, modelName string) []string {
 	for _, neighborID := range affectedNeighbors {
 		c.recomputeNeighbors(neighborID, modelName)
 	}
-	
-	return affectedNeighbors
 }
 
 // recomputeNeighbors recomputes neighbors after deletion
-func (c *Collection) recomputeNeighbors(id string, modelName string) {
-	item, ok := c.GetItem(id)
+func (c *Collection) recomputeNeighbors(docID DocID, modelName string) {
+	item, ok := c.Items[docID]
 	if !ok {
 		return
 	}
 	
 	config := c.Config
-	level := GetItemLevel(item, modelName)
+	level := GetItemLevel(c, docID, modelName)
 	
 	for l := 0; l <= level; l++ {
 		expectedNeighbors := ExpectedNeighborCount(l, config.M)
-		neighbors := GetLevelNeighbors(item, modelName, l)
+		neighbors := GetLevelNeighbors(c, docID, modelName, l)
 		
 		if len(neighbors) >= expectedNeighbors {
 			continue
 		}
 		
 		// BFS to find more neighbors
-		visited := make(map[string]bool)
-		visited[id] = true
+		visited := make(map[DocID]bool)
+		visited[docID] = true
 		for _, n := range neighbors {
 			visited[n.ID] = true
 		}
 		
-		queue := make([]string, 0)
+		queue := make([]DocID, 0)
 		for _, n := range neighbors {
 			queue = append(queue, n.ID)
 		}
@@ -98,12 +92,7 @@ func (c *Collection) recomputeNeighbors(id string, modelName string) {
 			currentID := queue[0]
 			queue = queue[1:]
 			
-			currentItem, ok := c.GetItem(currentID)
-			if !ok {
-				continue
-			}
-			
-			currentNeighbors := GetLevelNeighbors(currentItem, modelName, l)
+			currentNeighbors := GetLevelNeighbors(c, currentID, modelName, l)
 			if currentNeighbors == nil {
 				continue
 			}
@@ -112,14 +101,14 @@ func (c *Collection) recomputeNeighbors(id string, modelName string) {
 				if visited[n.ID] {
 					continue
 				}
-				if n.ID == id {
+				if n.ID == docID {
 					continue
 				}
 				
 				visited[n.ID] = true
 				queue = append(queue, n.ID)
 				
-				neighborItem, ok := c.GetItem(n.ID)
+				neighborItem, ok := c.Items[n.ID]
 				if !ok {
 					continue
 				}
@@ -142,22 +131,12 @@ func (c *Collection) recomputeNeighbors(id string, modelName string) {
 			neighbors = neighbors[:expectedNeighbors]
 		}
 		
-		SetLevelNeighbors(item, modelName, l, neighbors)
-	}
-}
-
-func sortNeighborsByDistance(neighbors []NeighborRecord) {
-	for i := 0; i < len(neighbors)-1; i++ {
-		for j := i + 1; j < len(neighbors); j++ {
-			if neighbors[j].Distance < neighbors[i].Distance {
-				neighbors[i], neighbors[j] = neighbors[j], neighbors[i]
-			}
-		}
+		SetLevelNeighbors(c, docID, modelName, l, neighbors)
 	}
 }
 
 // ReselectEntryPoint reselects entry point
-func (c *Collection) ReselectEntryPoint(modelName string) *Item {
+func (c *Collection) ReselectEntryPoint(modelName string) (DocID, bool) {
 	return SelectEntryPoint(c, modelName, nil)
 }
 
@@ -179,39 +158,47 @@ func (c *Collection) RebuildIndex(modelName string) error {
 		return nil
 	}
 	
+	// Sort items for deterministic build (by DocID)
+	// We need to implement a sort.
+	// Simple bubble sort or import sort?
+	// Let's use simple sort since import sort might need interface.
+	for i := 0; i < len(items)-1; i++ {
+	    for j := i+1; j < len(items); j++ {
+	        if items[i].DocID > items[j].DocID {
+	            items[i], items[j] = items[j], items[i]
+	        }
+	    }
+	}
+	
 	// Clear level map
 	c.Mu.Lock()
-	c.HNSWLevelMap[modelName] = make(map[int][]string)
+	c.HNSWLevelMap[modelName] = make(map[int][]DocID)
+	c.HNSWNodes[modelName] = make(map[DocID][]LevelData)
 	c.Mu.Unlock()
-	
-	// Clear all neighbors
-	for _, item := range items {
-		item.SetHNSWNeighbors(modelName, nil)
-	}
 	
 	// Initialize first node
 	firstItem := items[0]
-	level := InitItemNeighbors(firstItem, modelName, config.MaxLevel)
+	level := InitItemNeighbors(c, firstItem.DocID, modelName, config.MaxLevel)
 	c.Mu.Lock()
-	AddNodeToLevelMap(c.HNSWLevelMap, modelName, firstItem.ID, level)
+	AddNodeToLevelMap(c.HNSWLevelMap, modelName, firstItem.DocID, level)
 	c.Mu.Unlock()
 	
 	// Insert other nodes
 	for i := 1; i < len(items); i++ {
 		item := items[i]
 		
-		level := InitItemNeighbors(item, modelName, config.MaxLevel)
+		level := InitItemNeighbors(c, item.DocID, modelName, config.MaxLevel)
 		
 		c.Mu.Lock()
-		AddNodeToLevelMap(c.HNSWLevelMap, modelName, item.ID, level)
+		AddNodeToLevelMap(c.HNSWLevelMap, modelName, item.DocID, level)
 		c.Mu.Unlock()
 		
-		visited := make(map[string]bool)
-		visited[item.ID] = true
-		entryPoint := SelectEntryPoint(c, modelName, visited)
+		visited := make(map[DocID]bool)
+		visited[item.DocID] = true
+		entryPointID, ok := SelectEntryPoint(c, modelName, visited)
 		
-		if entryPoint != nil {
-			c.buildHNSWIndex(item, modelName, entryPoint, level)
+		if ok {
+			c.buildHNSWIndex(item, modelName, entryPointID, level)
 		}
 	}
 	

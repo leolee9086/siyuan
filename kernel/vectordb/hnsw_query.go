@@ -37,52 +37,44 @@ func (c *Collection) Search(queryVec []float32, modelName string, k int, efSearc
 		efSearch = k
 	}
 	
-	// Create temporary query item for distance calculation interface if needed, 
-	// but here we use computeDistanceVec directly for performance.
-	
 	// Select initial entry point
-	entryPoint := SelectEntryPoint(c, modelName, nil)
-	if entryPoint == nil {
+	entryPointID, ok := SelectEntryPoint(c, modelName, nil)
+	if !ok {
 		return []SearchResult{}
 	}
 	
 	config := c.Config
-	entryLevel := GetItemLevel(entryPoint, modelName)
+	entryLevel := GetItemLevel(c, entryPointID, modelName)
 	
 	// Phase 1: Greedy search from top level down to level 1
 	// Navigate the graph to reach the region closest to the query
-	currentBest := entryPoint
+	currentBestID := entryPointID
 	for level := entryLevel; level > 0; level-- {
-		currentBest = c.greedySearchVec(queryVec, currentBest, modelName, level, config.MetricType)
+		currentBestID = c.greedySearchVec(queryVec, currentBestID, modelName, level, config.MetricType)
 	}
 	
 	// Phase 2: Search at level 0 (base layer) with ef candidates
 	// Use a priority queue to explore neighbors and find k nearest
-	candidates := c.searchLevelVec(queryVec, currentBest, modelName, 0, efSearch, config.MetricType)
+	candidates := c.searchLevelVec(queryVec, currentBestID, modelName, 0, efSearch, config.MetricType)
 	
 	// Convert candidates to search results
 	searchResults := make([]SearchResult, 0, len(candidates))
 	for _, candidate := range candidates {
-		item, ok := c.GetItem(candidate.ID)
+		// Get Item Data
+		item, ok := c.Items[candidate.ID]
 		if !ok {
 			// Item might have been deleted concurrently
 			continue
 		}
 		
+		// Resolve External ID
+		externalID, _ := c.GetExternalID(candidate.ID)
+		
 		// Convert distance to score (0 to 1)
-		// For cosine similarity: distance is 1 - cosine
-		//   cosine = 1 - distance
-		//   score = (cosine + 1) / 2  (map -1..1 to 0..1)
-		//   score = (1 - distance + 1) / 2 = 1 - distance/2
-		// For L2: result is simply distance
-		// We use a generic score conversion for compatibility
 		score := float32(1.0)
 		if config.MetricType == "cosine" {
 			score = 1.0 - candidate.Distance/2.0
 		} else {
-			// L2 distance, smaller is better.
-			// Just return distance in Distance field, Score might be inverse?
-			// Let's keep score intuitive: higher is better.
 			if candidate.Distance < 1e-6 {
 				score = 1.0
 			} else {
@@ -98,7 +90,7 @@ func (c *Collection) Search(queryVec []float32, modelName string, k int, efSearc
 		}
 		
 		searchResults = append(searchResults, SearchResult{
-			ID:       candidate.ID,
+			ID:       externalID,
 			Score:    score,
 			Distance: candidate.Distance,
 			Meta:     item.Meta,
@@ -123,68 +115,70 @@ func (c *Collection) Search(queryVec []float32, modelName string, k int, efSearc
 
 // greedySearchVec performs greedy search at a single level using raw vector
 // Returns the closest node found at this level
-func (c *Collection) greedySearchVec(queryVec []float32, entryPoint *Item, modelName string, level int, metricType string) *Item {
-	currentBest := entryPoint
-	currentDist := c.computeDistanceVec(queryVec, currentBest, modelName, metricType)
+func (c *Collection) greedySearchVec(queryVec []float32, entryPointID DocID, modelName string, level int, metricType string) DocID {
+	currentBestID := entryPointID
+	currentBestItem, ok := c.Items[currentBestID]
+	if !ok {
+	    // Should not happen if entry point is valid
+	    return entryPointID
+	}
+	
+	currentDist := c.computeDistanceVec(queryVec, currentBestItem, modelName, metricType)
 	
 	improved := true
 	for improved {
 		improved = false
-		neighbors := GetLevelNeighbors(currentBest, modelName, level)
+		neighbors := GetLevelNeighbors(c, currentBestID, modelName, level)
 		if neighbors == nil {
 			break
 		}
 		
 		for _, neighbor := range neighbors {
-			neighborItem, ok := c.GetItem(neighbor.ID)
+			neighborItem, ok := c.Items[neighbor.ID]
 			if !ok {
 				continue
 			}
 			
 			dist := c.computeDistanceVec(queryVec, neighborItem, modelName, metricType)
 			if dist < currentDist {
-				currentBest = neighborItem
+				currentBestID = neighbor.ID
 				currentDist = dist
 				improved = true
 			}
 		}
 	}
 	
-	return currentBest
+	return currentBestID
 }
 
 // searchLevelVec performs full search at a specific level (usually level 0)
 // Returns ef closest candidates found
-func (c *Collection) searchLevelVec(queryVec []float32, entryPoint *Item, modelName string, level int, ef int, metricType string) []NeighborRecord {
-	visited := make(map[string]bool)
-	candidates := NewMinHeap() // Min-heap to store candidates to explore (ordered by distance, closest first popped?)
-	// Wait, MinHeap pops smallest. We want to pop closest to query to explore. Correct.
+func (c *Collection) searchLevelVec(queryVec []float32, entryPointID DocID, modelName string, level int, ef int, metricType string) []NeighborRecord {
+	visited := make(map[DocID]bool)
+	candidates := NewMinHeap() // Min-heap to store candidates to explore
 	
-	results := NewMaxHeap(ef)  // Max-heap to store best k results found (ordered by distance, furthest first popped/peeked)
+	results := NewMaxHeap(ef)  // Max-heap to store best k results found
 	
-	entryDist := c.computeDistanceVec(queryVec, entryPoint, modelName, metricType)
+	entryItem, ok := c.Items[entryPointID]
+	if !ok {
+	    return []NeighborRecord{}
+	}
 	
-	candidates.Push(&HeapItem{ID: entryPoint.ID, Distance: entryDist})
-	results.Push(&HeapItem{ID: entryPoint.ID, Distance: entryDist})
-	visited[entryPoint.ID] = true
+	entryDist := c.computeDistanceVec(queryVec, entryItem, modelName, metricType)
+	
+	candidates.Push(&HeapItem{ID: entryPointID, Distance: entryDist})
+	results.Push(&HeapItem{ID: entryPointID, Distance: entryDist})
+	visited[entryPointID] = true
 	
 	for candidates.Len() > 0 {
 		// Get closest candidate to explore
 		current := candidates.Pop()
 		
-		// Optimization: if the closest candidate in queue is further than the furthest result we already have,
-		// and we have enough results (results is full), then strict search can stop.
-		// Because any neighbors of 'current' will likely be even further.
 		if results.IsFull() && current.Distance > results.Peek().Distance {
 			break
 		}
 		
-		currentItem, ok := c.GetItem(current.ID)
-		if !ok {
-			continue
-		}
-		
-		neighbors := GetLevelNeighbors(currentItem, modelName, level)
+		neighbors := GetLevelNeighbors(c, current.ID, modelName, level)
 		if neighbors == nil {
 			continue
 		}
@@ -195,14 +189,13 @@ func (c *Collection) searchLevelVec(queryVec []float32, entryPoint *Item, modelN
 			}
 			visited[neighbor.ID] = true
 			
-			neighborItem, ok := c.GetItem(neighbor.ID)
+			neighborItem, ok := c.Items[neighbor.ID]
 			if !ok {
 				continue
 			}
 			
 			dist := c.computeDistanceVec(queryVec, neighborItem, modelName, metricType)
 			
-			// If we found a better candidate (closer) than our current worst result, or if we don't have enough results yet
 			if !results.IsFull() {
 				candidates.Push(&HeapItem{ID: neighbor.ID, Distance: dist})
 				results.Push(&HeapItem{ID: neighbor.ID, Distance: dist})

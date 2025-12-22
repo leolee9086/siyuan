@@ -42,7 +42,7 @@ func RandomLevel(maxLevel int) int {
 
 // InitItemNeighbors initializes HNSW neighbors for item
 // Returns the max level assigned to this item
-func InitItemNeighbors(item *Item, modelName string, maxLevel int) int {
+func InitItemNeighbors(c *Collection, docID DocID, modelName string, maxLevel int) int {
 	level := RandomLevel(maxLevel)
 	
 	levels := make([]LevelData, level+1)
@@ -52,70 +52,93 @@ func InitItemNeighbors(item *Item, modelName string, maxLevel int) int {
 			Items: make([]NeighborRecord, 0),
 		}
 	}
-	item.SetHNSWNeighbors(modelName, levels)
+	
+	c.Mu.Lock()
+	if c.HNSWNodes[modelName] == nil {
+	    c.HNSWNodes[modelName] = make(map[DocID][]LevelData)
+	}
+	c.HNSWNodes[modelName][docID] = levels
+	c.Mu.Unlock()
 	
 	return level
 }
 
 // GetItemLevel gets item's max level
-func GetItemLevel(item *Item, modelName string) int {
-	neighbors := item.GetHNSWNeighbors(modelName)
+func GetItemLevel(c *Collection, docID DocID, modelName string) int {
+    c.Mu.RLock()
+    defer c.Mu.RUnlock()
+    
+    if c.HNSWNodes[modelName] == nil {
+        return -1
+    }
+	neighbors := c.HNSWNodes[modelName][docID]
 	if len(neighbors) == 0 {
 		return -1
 	}
 	
-	// Assuming levels are sorted or we find max
-	// Usually stored as index 0=level0, 1=level1...
 	return len(neighbors) - 1
 }
 
 // GetLevelNeighbors gets neighbors at specific level
-func GetLevelNeighbors(item *Item, modelName string, level int) []NeighborRecord {
-	levelData := item.GetLevelNeighbors(modelName, level)
-	if levelData == nil {
-		return nil
-	}
-	return levelData.Items
+func GetLevelNeighbors(c *Collection, docID DocID, modelName string, level int) []NeighborRecord {
+    c.Mu.RLock()
+    defer c.Mu.RUnlock()
+    
+    if c.HNSWNodes[modelName] == nil {
+        return nil
+    }
+    
+    allLevels := c.HNSWNodes[modelName][docID]
+    // Valid check
+    if level >= len(allLevels) {
+        return nil
+    }
+    
+    // Direct access if sorted by level index
+    return allLevels[level].Items
 }
 
 // SetLevelNeighbors sets neighbors at specific level
-func SetLevelNeighbors(item *Item, modelName string, level int, neighbors []NeighborRecord) {
-	allLevels := item.GetHNSWNeighbors(modelName)
-	if allLevels == nil {
-		return
-	}
+func SetLevelNeighbors(c *Collection, docID DocID, modelName string, level int, neighbors []NeighborRecord) {
+	c.Mu.Lock()
+	defer c.Mu.Unlock()
 	
-	// Ensure we are setting correct level
-	// LevelData type should match level
-	found := false
-	for i := range allLevels {
-		if allLevels[i].Type == level {
-			allLevels[i].Items = neighbors
-			found = true
-			break
-		}
-	}
-	
-	// If not found (should not happen if Init called correctly)
-	if !found {
-		// handle error or ignore?
-	}
+    if c.HNSWNodes[modelName] == nil {
+        return
+    }
+    
+    allLevels := c.HNSWNodes[modelName][docID]
+    if level < len(allLevels) {
+        allLevels[level].Items = neighbors
+    }
 }
 
 // RemoveNeighbor removes a neighbor from item at specific level
-func RemoveNeighbor(item *Item, modelName string, level int, neighborID string) {
-	neighbors := GetLevelNeighbors(item, modelName, level)
-	if neighbors == nil {
-		return
-	}
-	
+func RemoveNeighbor(c *Collection, docID DocID, modelName string, level int, neighborID DocID) {
+    // Acquire lock inside Set/Get is risky for read-modify-write if not atomic.
+    // Better to have specific function or lock outside.
+    // For now, let's just do it with lock.
+    
+    c.Mu.Lock()
+    defer c.Mu.Unlock()
+    
+    if c.HNSWNodes[modelName] == nil {
+        return
+    }
+    allLevels := c.HNSWNodes[modelName][docID]
+    if level >= len(allLevels) {
+        return
+    }
+    
+    neighbors := allLevels[level].Items
 	newNeighbors := make([]NeighborRecord, 0, len(neighbors))
 	for _, n := range neighbors {
 		if n.ID != neighborID {
 			newNeighbors = append(newNeighbors, n)
 		}
 	}
-	SetLevelNeighbors(item, modelName, level, newNeighbors)
+	
+	allLevels[level].Items = newNeighbors
 }
 
 // =========================================
@@ -123,27 +146,10 @@ func RemoveNeighbor(item *Item, modelName string, level int, neighborID string) 
 // =========================================
 
 // AddNodeToLevelMap adds node ID to level map
-func AddNodeToLevelMap(levelMap map[string]map[int][]string, modelName string, id string, level int) {
+func AddNodeToLevelMap(levelMap map[string]map[int][]DocID, modelName string, id DocID, level int) {
 	if levelMap[modelName] == nil {
-		levelMap[modelName] = make(map[int][]string)
+		levelMap[modelName] = make(map[int][]DocID)
 	}
-	
-	// Add to all levels up to assigned level
-	// No, HNSW "LevelMap" usually tracks nodes AT each level, to find entry points?
-	// ACTUALLY: HNSW entry point is highest level node.
-	// We need to know which nodes exist at level L to traverse layer L.
-	// If a node has level 3, it exists at 0, 1, 2, 3.
-	// Implementation choice: do we store it in list for 0, test for 1, etc?
-	// Or just "top level" in a list?
-	// Usually we need to pick an entry point. The global entry point is sufficient.
-	// But `SelectEntryPoint` implementation iterates level map.
-	// So we should add to map for relevant levels.
-	
-	// Let's store at 'max level' or all levels?
-	// If SelectEntryPoint searches from Top to Bottom, it needs to find ONE node at Top.
-	// Standard HNSW maintains a GLOBAL entry point (highest level node).
-	// If we use LevelMap, maybe we store all nodes at each level?
-	// Let's assume AddNodeToLevelMap adds to the map[level] -> list of nodes.
 	
 	for l := 0; l <= level; l++ {
 		levelMap[modelName][l] = append(levelMap[modelName][l], id)
@@ -151,14 +157,14 @@ func AddNodeToLevelMap(levelMap map[string]map[int][]string, modelName string, i
 }
 
 // RemoveNodeFromLevelMap removes node from level map
-func RemoveNodeFromLevelMap(levelMap map[string]map[int][]string, modelName string, id string) {
+func RemoveNodeFromLevelMap(levelMap map[string]map[int][]DocID, modelName string, id DocID) {
 	modelMap := levelMap[modelName]
 	if modelMap == nil {
 		return
 	}
 	
 	for level, nodes := range modelMap {
-		newNodes := make([]string, 0, len(nodes))
+		newNodes := make([]DocID, 0, len(nodes))
 		found := false
 		for _, nodeID := range nodes {
 			if nodeID != id {
@@ -174,11 +180,14 @@ func RemoveNodeFromLevelMap(levelMap map[string]map[int][]string, modelName stri
 }
 
 // SelectEntryPoint selects an entry point for HNSW search
-// Returns a node at the highest available level
-func SelectEntryPoint(c *Collection, modelName string, exclude map[string]bool) *Item {
-	levelMap := c.GetLevelMap(modelName)
+// Returns a node DocID at the highest available level
+func SelectEntryPoint(c *Collection, modelName string, exclude map[DocID]bool) (DocID, bool) {
+    c.Mu.RLock()
+    defer c.Mu.RUnlock()
+    
+	levelMap := c.HNSWLevelMap[modelName]
 	if levelMap == nil {
-		return nil
+		return 0, false
 	}
 	
 	// Find highest level existing in map
@@ -190,24 +199,27 @@ func SelectEntryPoint(c *Collection, modelName string, exclude map[string]bool) 
 	}
 	
 	if maxLevel < 0 {
-		return nil
+		return 0, false
 	}
 	
 	// Find valid node starting from max level
+	// NOTE: HNSW entry point is usually global. We just need ANY valid node.
+	// Prioritize highest level.
 	for level := maxLevel; level >= 0; level-- {
 		nodes := levelMap[level]
 		for _, nodeID := range nodes {
 			if exclude != nil && exclude[nodeID] {
 				continue
 			}
-			item, ok := c.GetItem(nodeID)
-			if ok {
-				return item
+			
+			// Verify it exists in Items map (soft-delete check)
+			if _, ok := c.Items[nodeID]; ok {
+			    return nodeID, true
 			}
 		}
 	}
 	
-	return nil
+	return 0, false
 }
 
 // ExpectedNeighborCount returns M parameter for a level

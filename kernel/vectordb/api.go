@@ -280,17 +280,17 @@ func handleKeys(c *gin.Context) {
 
 	if req.WithMeta {
 		result := make([]map[string]interface{}, 0, len(collection.Items))
-		for id, item := range collection.Items {
+		for _, item := range collection.Items {
 			result = append(result, map[string]interface{}{
-				"id":   id,
+				"id":   item.ID,
 				"meta": item.Meta,
 			})
 		}
 		c.JSON(http.StatusOK, gin.H{"code": 0, "data": result})
 	} else {
 		keys := make([]string, 0, len(collection.Items))
-		for id := range collection.Items {
-			keys = append(keys, id)
+		for _, item := range collection.Items {
+			keys = append(keys, item.ID)
 		}
 		c.JSON(http.StatusOK, gin.H{"code": 0, "data": keys})
 	}

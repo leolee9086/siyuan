@@ -1568,3 +1568,209 @@
   ```
 
     * `data`: 精度为毫秒
+
+## 向量数据库 (Forge 版本独占)
+
+**注意：本功能为 Forge 版本额外扩展，思源笔记官方原版不支持此接口。**
+
+### 存储结构
+
+向量数据库完全基于本地文件系统存储，不依赖外部服务。数据位于工作空间 `data/public/vectorStorage/` (公共库) 或 `data/storage/.../vectorStorage` (插件库) 目录下。
+每一个 Collection (数据集) 对应一个文件夹，包含以下结构：
+
+*   `meta.msgpack`: 数据集元数据 (采用 MsgPack 格式)
+    *   包含数据集名称、向量维度、配置信息
+    *   包含 HNSW 索引的层级入口表 (HNSWLevelMap)
+*   `items/`: 存放具体向量数据的目录
+    *   `{ID}.msgpack`: 单个数据项文件。每个 ID 对应一个独立文件，支持增量读写。
+    *   文件内容包含：
+        *   `ID`: 主键
+        *   `Meta`: 任意 JSON 对象元数据 (如 content, title 等)
+        *   `Vectors`: 字典，支持多模型向量 (Map<ModelName, []float32>)
+        *   `Neighbors`: HNSW 索引邻接表数据 (Map<ModelName, []LevelData>)
+
+### 创建数据集 (Build)
+
+*   `/api/vector/collections/build`
+*   参数
+
+    ```json
+    {
+      "database": "public",
+      "collection_name": "my_collection",
+      "dimension": 1536
+    }
+    ```
+
+    *   `database`: 数据库名称，默认为 "public"
+    *   `collection_name`: 数据集名称
+    *   `dimension`: 向量维度
+*   返回值
+
+    ```json
+    {
+      "code": 0,
+      "msg": "",
+      "data": {
+        "collection_name": "my_collection",
+        "dimension": 1536
+      }
+    }
+    ```
+
+### 添加/更新向量 (Add)
+
+*   `/api/vector/add`
+*   参数
+
+    ```json
+    {
+      "database": "public",
+      "collection_name": "my_collection",
+      "vectors": [
+        {
+          "id": "block-id-1",
+          "meta": {
+            "content": "这是一段测试文本",
+            "box": "notebook-id"
+          },
+          "vector": {
+            "text-embedding-3-small": [0.1, 0.2, ...]
+          }
+        }
+      ]
+    }
+    ```
+
+    *   `vectors`: 向量列表，支持批量添加
+    *   `vector`: 支持多模型，key 为模型名称
+*   返回值
+
+    ```json
+    {
+      "code": 0,
+      "msg": "",
+      "data": {
+        "added_count": 1
+      }
+    }
+    ```
+
+### 删除向量 (Delete)
+
+*   `/api/vector/delete`
+*   参数
+
+    ```json
+    {
+      "database": "public",
+      "collection_name": "my_collection",
+      "keys": ["block-id-1"]
+    }
+    ```
+
+    *   `keys`: 要删除的 ID 列表
+*   返回值
+
+    ```json
+    {
+      "code": 0,
+      "msg": "",
+      "data": {
+        "deleted_count": 1
+      }
+    }
+    ```
+
+### 查询相似向量 (Query)
+
+*   `/api/vector/query`
+*   参数
+
+    ```json
+    {
+      "database": "public",
+      "collection_name": "my_collection",
+      "vector_name": "text-embedding-3-small",
+      "vector": [0.1, 0.2, ...],
+      "limit": 10,
+      "ef_search": 100
+    }
+    ```
+
+    *   `vector_name`: 使用哪个模型的向量进行检索
+    *   `limit`: 返回结果数量 (Top K)
+    *   `ef_search`: (可选) HNSW 搜索时的动态列表大小，值越大精度越高但速度越慢，默认为 0 (自适应)
+*   返回值
+
+    ```json
+    {
+      "code": 0,
+      "msg": "",
+      "data": [
+        {
+          "id": "block-id-1",
+          "meta": { "content": "..." },
+          "score": 0.85,
+          "dist": 0.15
+        }
+      ]
+    }
+    ```
+
+### 获取所有 Keys
+
+*   `/api/vector/keys`
+*   参数
+
+    ```json
+    {
+      "database": "public",
+      "collection_name": "my_collection",
+      "with_meta": false
+    }
+    ```
+
+    *   `with_meta`: 是否返回元数据。若为 true，返回包含 meta 的对象列表；若为 false，仅返回 ID 字符串列表。
+*   返回值
+
+    ```json
+    {
+      "code": 0,
+      "msg": "",
+      "data": ["block-id-1", "block-id-2"]
+    }
+    ```
+
+### 获取数据集状态
+
+*   `/api/vector/state`
+*   参数
+
+    ```json
+    {
+      "database": "public",
+      "collection_name": "my_collection"
+    }
+    ```
+*   返回值
+
+    ```json
+    {
+      "code": 0,
+      "msg": "",
+      "data": {
+        "name": "my_collection",
+        "dimension": 1536,
+        "item_count": 100,
+        "models": ["text-embedding-3-small"]
+      }
+    }
+    ```
+
+### 重建索引 (Rebuild)
+
+*   `/api/vector/rebuild`
+*   参数 (暂时与 Build 类似，用于强制刷新)
+*   返回值
+    *   `msg`: "索引重建完成"

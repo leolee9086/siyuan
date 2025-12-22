@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 
 	"github.com/gin-gonic/gin"
+	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/util"
 	"github.com/siyuan-note/siyuan/kernel/vectordb"
 )
@@ -49,14 +50,13 @@ func vectorBuildCollection(c *gin.Context) {
 	ret := map[string]interface{}{"code": 0}
 	defer c.JSON(http.StatusOK, ret)
 
-	arg, ok := c.Get("bodyArg")
-	if !ok {
+	body := map[string]interface{}{}
+	if err := c.BindJSON(&body); err != nil {
 		ret["code"] = -1
 		ret["msg"] = "参数解析失败"
 		return
 	}
 	
-	body := arg.(map[string]interface{})
 	database, _ := body["database"].(string)
 	if database == "" {
 		database = "public"
@@ -81,6 +81,12 @@ func vectorBuildCollection(c *gin.Context) {
 	collection := vectordb.NewCollection(collectionName, dimension)
 	db.Collections[collectionName] = collection
 	
+	if err := vectordb.SaveCollection(collection, db.Path); err != nil {
+		ret["code"] = -1
+		ret["msg"] = "保存数据集失败: " + err.Error()
+		return
+	}
+	
 	ret["data"] = map[string]interface{}{
 		"collection_name": collectionName,
 		"dimension":       dimension,
@@ -93,14 +99,13 @@ func vectorAdd(c *gin.Context) {
 	ret := map[string]interface{}{"code": 0}
 	defer c.JSON(http.StatusOK, ret)
 
-	arg, ok := c.Get("bodyArg")
-	if !ok {
+	body := map[string]interface{}{}
+	if err := c.BindJSON(&body); err != nil {
 		ret["code"] = -1
 		ret["msg"] = "参数解析失败"
 		return
 	}
 	
-	body := arg.(map[string]interface{})
 	database, _ := body["database"].(string)
 	if database == "" {
 		database = "public"
@@ -114,6 +119,9 @@ func vectorAdd(c *gin.Context) {
 		ret["msg"] = "数据集不存在"
 		return
 	}
+	
+	// Collect items for WAL
+	newItems := make([]*vectordb.Item, 0, len(vectorsRaw))
 	
 	addedCount := 0
 	for _, vRaw := range vectorsRaw {
@@ -135,7 +143,14 @@ func vectorAdd(c *gin.Context) {
 			collection.InitLevelMap(modelName)
 			collection.InsertItem(item, modelName)
 		}
+		newItems = append(newItems, item)
 		addedCount++
+	}
+	
+	if db := vectordb.GetDatabase(database); db != nil {
+		if err := vectordb.AppendWALAdd(collection, db.Path, newItems); err != nil {
+			logging.LogErrorf("append wal failed: %v", err)
+		}
 	}
 	
 	ret["data"] = map[string]interface{}{
@@ -149,14 +164,13 @@ func vectorDelete(c *gin.Context) {
 	ret := map[string]interface{}{"code": 0}
 	defer c.JSON(http.StatusOK, ret)
 
-	arg, ok := c.Get("bodyArg")
-	if !ok {
+	body := map[string]interface{}{}
+	if err := c.BindJSON(&body); err != nil {
 		ret["code"] = -1
 		ret["msg"] = "参数解析失败"
 		return
 	}
 	
-	body := arg.(map[string]interface{})
 	database, _ := body["database"].(string)
 	if database == "" {
 		database = "public"
@@ -171,13 +185,21 @@ func vectorDelete(c *gin.Context) {
 		return
 	}
 	
+	keys := make([]string, 0, len(keysRaw))
 	deletedCount := 0
 	for _, keyRaw := range keysRaw {
 		key := keyRaw.(string)
 		for modelName := range collection.HNSWLevelMap {
 			collection.DeleteItemWithIndex(key, modelName)
 		}
+		keys = append(keys, key)
 		deletedCount++
+	}
+	
+	if db := vectordb.GetDatabase(database); db != nil {
+		if err := vectordb.AppendWALDelete(collection, db.Path, keys); err != nil {
+			logging.LogErrorf("append wal delete failed: %v", err)
+		}
 	}
 	
 	ret["data"] = map[string]interface{}{
@@ -191,14 +213,13 @@ func vectorQuery(c *gin.Context) {
 	ret := map[string]interface{}{"code": 0}
 	defer c.JSON(http.StatusOK, ret)
 
-	arg, ok := c.Get("bodyArg")
-	if !ok {
+	body := map[string]interface{}{}
+	if err := c.BindJSON(&body); err != nil {
 		ret["code"] = -1
 		ret["msg"] = "参数解析失败"
 		return
 	}
 	
-	body := arg.(map[string]interface{})
 	database, _ := body["database"].(string)
 	if database == "" {
 		database = "public"
@@ -239,14 +260,13 @@ func vectorKeys(c *gin.Context) {
 	ret := map[string]interface{}{"code": 0}
 	defer c.JSON(http.StatusOK, ret)
 
-	arg, ok := c.Get("bodyArg")
-	if !ok {
+	body := map[string]interface{}{}
+	if err := c.BindJSON(&body); err != nil {
 		ret["code"] = -1
 		ret["msg"] = "参数解析失败"
 		return
 	}
 	
-	body := arg.(map[string]interface{})
 	database, _ := body["database"].(string)
 	if database == "" {
 		database = "public"
@@ -264,9 +284,9 @@ func vectorKeys(c *gin.Context) {
 	if withMeta {
 		result := make([]map[string]interface{}, 0)
 		collection.Mu.RLock()
-		for id, item := range collection.Items {
+		for _, item := range collection.Items {
 			result = append(result, map[string]interface{}{
-				"id":   id,
+				"id":   item.ID,
 				"meta": item.Meta,
 			})
 		}
@@ -275,8 +295,8 @@ func vectorKeys(c *gin.Context) {
 	} else {
 		keys := make([]string, 0)
 		collection.Mu.RLock()
-		for id := range collection.Items {
-			keys = append(keys, id)
+		for _, item := range collection.Items {
+			keys = append(keys, item.ID)
 		}
 		collection.Mu.RUnlock()
 		ret["data"] = keys
@@ -289,14 +309,13 @@ func vectorState(c *gin.Context) {
 	ret := map[string]interface{}{"code": 0}
 	defer c.JSON(http.StatusOK, ret)
 
-	arg, ok := c.Get("bodyArg")
-	if !ok {
+	body := map[string]interface{}{}
+	if err := c.BindJSON(&body); err != nil {
 		ret["code"] = -1
 		ret["msg"] = "参数解析失败"
 		return
 	}
 	
-	body := arg.(map[string]interface{})
 	database, _ := body["database"].(string)
 	if database == "" {
 		database = "public"
@@ -329,14 +348,13 @@ func vectorRebuild(c *gin.Context) {
 	ret := map[string]interface{}{"code": 0}
 	defer c.JSON(http.StatusOK, ret)
 
-	arg, ok := c.Get("bodyArg")
-	if !ok {
+	body := map[string]interface{}{}
+	if err := c.BindJSON(&body); err != nil {
 		ret["code"] = -1
 		ret["msg"] = "参数解析失败"
 		return
 	}
 	
-	body := arg.(map[string]interface{})
 	database, _ := body["database"].(string)
 	if database == "" {
 		database = "public"
@@ -355,6 +373,12 @@ func vectorRebuild(c *gin.Context) {
 		ret["code"] = -1
 		ret["msg"] = err.Error()
 		return
+	}
+	
+	if db := vectordb.GetDatabase(database); db != nil {
+		if err := vectordb.SaveCollection(collection, db.Path); err != nil {
+			logging.LogErrorf("save collection failed: %v", err)
+		}
 	}
 	
 	ret["msg"] = "索引重建完成"

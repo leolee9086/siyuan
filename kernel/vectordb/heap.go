@@ -23,7 +23,7 @@ package vectordb
 
 // HeapItem 堆元素
 type HeapItem struct {
-	ID       string
+	ID       DocID
 	Distance float32
 	Data     *Item // 可选，用于携带完整数据
 }

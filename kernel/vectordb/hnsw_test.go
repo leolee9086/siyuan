@@ -73,9 +73,9 @@ func TestL2Distance(t *testing.T) {
 func TestMinHeap(t *testing.T) {
 	heap := NewMinHeap()
 	
-	heap.Push(&HeapItem{ID: "a", Distance: 3})
-	heap.Push(&HeapItem{ID: "b", Distance: 1})
-	heap.Push(&HeapItem{ID: "c", Distance: 2})
+	heap.Push(&HeapItem{ID: 1, Distance: 3})
+	heap.Push(&HeapItem{ID: 2, Distance: 1})
+	heap.Push(&HeapItem{ID: 3, Distance: 2})
 	
 	if heap.Len() != 3 {
 		t.Errorf("堆大小应为3，实际: %d", heap.Len())
@@ -83,22 +83,22 @@ func TestMinHeap(t *testing.T) {
 	
 	// 最小值应该先出
 	item := heap.Pop()
-	if item.ID != "b" || item.Distance != 1 {
-		t.Errorf("应该先弹出b，实际: %s", item.ID)
+	if item.ID != 2 || item.Distance != 1 {
+		t.Errorf("应该先弹出2，实际: %d", item.ID)
 	}
 	
 	item = heap.Pop()
-	if item.ID != "c" || item.Distance != 2 {
-		t.Errorf("应该弹出c，实际: %s", item.ID)
+	if item.ID != 3 || item.Distance != 2 {
+		t.Errorf("应该弹出3，实际: %d", item.ID)
 	}
 }
 
 func TestMaxHeap(t *testing.T) {
 	heap := NewMaxHeap(3)
 	
-	heap.Push(&HeapItem{ID: "a", Distance: 1})
-	heap.Push(&HeapItem{ID: "b", Distance: 3})
-	heap.Push(&HeapItem{ID: "c", Distance: 2})
+	heap.Push(&HeapItem{ID: 1, Distance: 1})
+	heap.Push(&HeapItem{ID: 2, Distance: 3})
+	heap.Push(&HeapItem{ID: 3, Distance: 2})
 	
 	if !heap.IsFull() {
 		t.Error("堆应该已满")
@@ -106,8 +106,8 @@ func TestMaxHeap(t *testing.T) {
 	
 	// 最大值应该先出
 	item := heap.Pop()
-	if item.ID != "b" || item.Distance != 3 {
-		t.Errorf("应该先弹出b，实际: %s", item.ID)
+	if item.ID != 2 || item.Distance != 3 {
+		t.Errorf("应该先弹出2，实际: %d", item.ID)
 	}
 }
 
@@ -218,8 +218,8 @@ func TestHNSWDelete(t *testing.T) {
 	t.Logf("初始数量: %d", initialCount)
 	
 	// 删除一个节点
-	affectedNeighbors := collection.DeleteItemWithIndex("item-5", modelName)
-	t.Logf("删除 item-5，受影响邻居数: %d", len(affectedNeighbors))
+	collection.DeleteItemWithIndex("item-5", modelName)
+	t.Logf("删除 item-5")
 	
 	// 验证删除
 	if _, ok := collection.GetItem("item-5"); ok {
@@ -425,9 +425,9 @@ func TestPersistence(t *testing.T) {
 	}
 	
 	// 验证文件存在
-	metaPath := filepath.Join(tmpDir, "test-collection", "meta.msgpack")
+	metaPath := filepath.Join(tmpDir, "test-collection", "snapshot.msgpack")
 	if _, err := os.Stat(metaPath); os.IsNotExist(err) {
-		t.Error("元数据文件不存在")
+		t.Error("快照文件不存在")
 	}
 	
 	// 3. 从磁盘加载
