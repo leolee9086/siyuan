@@ -278,18 +278,28 @@ func handleKeys(c *gin.Context) {
 	defer collection.Mu.RUnlock()
 
 	if req.WithMeta {
-		result := make([]map[string]interface{}, 0, len(collection.Items))
-		for _, item := range collection.Items {
+		result := make([]map[string]interface{}, 0, len(collection.DocMap))
+		for i, id := range collection.DocMap {
+			if collection.Deleted[DocID(i)] {
+				continue
+			}
+			meta := map[string]interface{}{}
+			if i < len(collection.Metas) {
+				meta = collection.Metas[i]
+			}
 			result = append(result, map[string]interface{}{
-				"id":   item.ID,
-				"meta": item.Meta,
+				"id":   id,
+				"meta": meta,
 			})
 		}
 		c.JSON(http.StatusOK, gin.H{"code": 0, "data": result})
 	} else {
-		keys := make([]string, 0, len(collection.Items))
-		for _, item := range collection.Items {
-			keys = append(keys, item.ID)
+		keys := make([]string, 0, len(collection.DocMap))
+		for i, id := range collection.DocMap {
+			if collection.Deleted[DocID(i)] {
+				continue
+			}
+			keys = append(keys, id)
 		}
 		c.JSON(http.StatusOK, gin.H{"code": 0, "data": keys})
 	}

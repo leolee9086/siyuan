@@ -70,10 +70,8 @@ func (c *Collection) Search(queryVec []float32, modelName string, k int, efSearc
 	// Convert candidates to search results
 	searchResults := make([]SearchResult, 0, len(candidates))
 	for _, candidate := range candidates {
-		// Get Item Data (Metadata mainly)
-		item, ok := c.Items[candidate.ID]
-		if !ok {
-			// Item might have been deleted concurrently
+		// 跳过已删除的节点
+		if c.Deleted[candidate.ID] {
 			continue
 		}
 		
@@ -119,11 +117,14 @@ func (c *Collection) Search(queryVec []float32, modelName string, k int, efSearc
 			score = 1
 		}
 		
+		// 获取元数据
+		meta, _ := c.GetMeta(candidate.ID)
+		
 		searchResults = append(searchResults, SearchResult{
 			ID:       externalID,
 			Score:    score,
 			Distance: finalDist,
-			Meta:     item.Meta,
+			Meta:     meta,
 		})
 	}
 	

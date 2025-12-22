@@ -14,8 +14,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-// Package vectordb provides embedded vector database for SiYuan
-// Based on HNSW algorithm for efficient approximate nearest neighbor search
+// Package vectordb 提供嵌入式向量数据库
+// 基于 HNSW 算法实现高效近似最近邻搜索
+// 设计参考: toread/src/vector.optimized.ts
 package vectordb
 
 import (
@@ -23,128 +24,223 @@ import (
 )
 
 // =========================================
-// Core Data Structures
+// 核心类型定义 (简化版)
 // =========================================
 
-// DocID internal integer ID
+// DocID 内部整数 ID，用于数组索引
 type DocID uint32
 
-// Item stores vector and metadata
-type Item struct {
-	ID      string                 `msgpack:"id"`      // Primary key (External)
-	DocID   DocID                  `msgpack:"docId"`   // Internal key
-	Meta    map[string]interface{} `msgpack:"meta"`    // Arbitrary metadata
-	Vectors map[string][]float32   `msgpack:"vectors"` // Model name -> vector
-	
-	// Neighbors is REMOVED from Item. It is now stored in the Graph structure.
-	// But for compatibility/simplicity during transition, we might keep it?
-	// NO, "Industrial Strength" means we separate Data from Index.
-}
+// =========================================
+// Collection 数据集 (简化版)
+// 参考 TS 实现: vectors[], norms[], neighbors[][][]
+// =========================================
 
-// LevelData HNSW level data (Graph Node)
-type LevelData struct {
-	Type  int              `msgpack:"type"`  // Level number
-	Items []NeighborRecord `msgpack:"items"` // Neighbor list
-}
-
-// NeighborRecord neighbor record
-type NeighborRecord struct {
-	ID       DocID   `msgpack:"id"`       // Neighbor DocID
-	Distance float32 `msgpack:"distance"` // Pre-computed distance
-}
-
-// Collection dataset
+// Collection 向量集合
 type Collection struct {
-	Name      string               `msgpack:"name"`      // Collection name
-	Dimension int                  `msgpack:"dimension"` // Vector dimension
-	Config    CollectionConfig     `msgpack:"config"`    // Config
+	Name      string           `msgpack:"name"`
+	Dimension int              `msgpack:"dimension"`
+	Config    CollectionConfig `msgpack:"config"`
 
-	// 1. Primary Lookups (In-Memory)
-	IDMap      map[string]DocID     `msgpack:"-"` // External ID -> DocID
-	DocMap     []string             `msgpack:"-"` // DocID -> External ID (Index is DocID)
-	NextDocID  DocID                `msgpack:"-"` // Auto-increment counter
-    
-    // 2. Data Store
-    // Items      map[DocID]*Item      `msgpack:"-"` // DEPRECATED: Use VectorStore for vectors
-    // Storing metadata separately if needed, or keeping Items for metadata only
-    Items      map[DocID]*Item      `msgpack:"-"` // Still used for Metadata, but not for matching
-    
-    // Optimized Vector Storage
-    Store      *VectorStore         `msgpack:"-"`
+	// === ID 映射 ===
+	IDMap  map[string]DocID `msgpack:"-"` // 外部ID -> DocID
+	DocMap []string         `msgpack:"-"` // DocID -> 外部ID (索引即 DocID)
 
-	// 3. Graph Index
-    // Optimized: Flat array of nodes
-    Nodes      []NodeData           `msgpack:"-"`
-    
-    // Entry Point
-    EntryPoint DocID                `msgpack:"entryPoint"`
-    MaxLayer   int                  `msgpack:"maxLayer"`
+	// === 向量存储 (统一存储，无冗余) ===
+	Store *VectorStore `msgpack:"-"`
 
-    // Auxiliary for visited set (per collection or global?)
-    // Making it part of search context is better, but for single-threaded usage (or pooled)
-    // we can keep it here or just allocate. 
-    // For Epoch-based, we need a global/per-collection VisitEpoch and a []uint32 Visited array.
-    // Visited []uint32 - moved to search context/pool
-    
-	Mu           sync.RWMutex       `msgpack:"-"`
+	// === 元数据 (简化存储) ===
+	// 使用 slice 而非 map，DocID 直接索引
+	Metas []map[string]interface{} `msgpack:"-"`
+
+	// === 图索引 ===
+	// neighbors[nodeID][level] -> []DocID
+	// 参考 TS: const neighbors: number[][][] = []
+	Neighbors [][]docIDSlice `msgpack:"-"`
+
+	// === 删除标记 ===
+	Deleted map[DocID]bool `msgpack:"-"`
+
+	// === 入口点 ===
+	EntryPoint DocID `msgpack:"entryPoint"`
+	MaxLayer   int   `msgpack:"maxLayer"`
+
+	// === 同步 ===
+	Mu sync.RWMutex `msgpack:"-"`
 }
 
-// NodeData optimized graph node
-type NodeData struct {
-    Level    int       // Max level of this node
-    // Adjacency list: Neighbors[level] -> []DocID
-    // To flatten further: single array with offsets?
-    // For now, let's keep [][]DocID for simplicity of update, or flat array if possible.
-    // Slice of slices is pointer heavy.
-    // Optimization: Flat array with implicit structure or explicit bounds?
-    // Let's stick to [][]DocID for now, it's better than map[int][]DocID
-    Neighbors [][]DocID
+// docIDSlice 邻居 ID 列表 (避免 [][]DocID 的类型别名问题)
+type docIDSlice []DocID
+
+// NeighborRecord 邻居记录 (搜索时使用)
+type NeighborRecord struct {
+	ID       DocID
+	Distance float32
 }
 
-// CollectionConfig collection config
+// CollectionConfig 配置
 type CollectionConfig struct {
-	M              int    `msgpack:"m"`              // Max neighbors per level (default 16)
-	EfConstruction int    `msgpack:"efConstruction"` // Candidate list size during construction (default 200)
-	EfSearch       int    `msgpack:"efSearch"`       // Candidate list size during search (default 100)
-	MaxLevel       int    `msgpack:"maxLevel"`       // Max level count (default 16)
-	MetricType     string `msgpack:"metricType"`     // Distance type: "cosine" or "l2"
+	M              int    `msgpack:"m"`
+	EfConstruction int    `msgpack:"efConstruction"`
+	EfSearch       int    `msgpack:"efSearch"`
+	MaxLevel       int    `msgpack:"maxLevel"`
+	MetricType     string `msgpack:"metricType"`
 }
 
-// Database database
-type Database struct {
-	Path        string                 `msgpack:"path"`        // Storage path
-	Collections map[string]*Collection `msgpack:"-"`           // Name -> Collection
-	
-	mu          sync.RWMutex           `msgpack:"-"`
-}
-
-// VectorStorage vector storage root
-type VectorStorage struct {
-	Databases map[string]*Database `msgpack:"-"` // public, plugin, temp
-	
-	mu        sync.RWMutex         `msgpack:"-"`
-}
-
-// =========================================
-// Default Config
-// =========================================
-
-// DefaultCollectionConfig returns default config
+// DefaultCollectionConfig 默认配置
 func DefaultCollectionConfig() CollectionConfig {
 	return CollectionConfig{
 		M:              16,
 		EfConstruction: 200,
-		EfSearch:       100,
+		EfSearch:       64,
 		MaxLevel:       16,
 		MetricType:     "cosine",
 	}
 }
 
 // =========================================
-// Constructors
+// Database 与 Storage
 // =========================================
 
-// NewItem creates new item
+// Database 数据库
+type Database struct {
+	Path        string                 `msgpack:"path"`
+	Collections map[string]*Collection `msgpack:"-"`
+	mu          sync.RWMutex           `msgpack:"-"`
+}
+
+// VectorStorage 根存储
+type VectorStorage struct {
+	Databases map[string]*Database `msgpack:"-"`
+	mu        sync.RWMutex         `msgpack:"-"`
+}
+
+// =========================================
+// 构造函数
+// =========================================
+
+// NewCollection 创建新集合
+func NewCollection(name string, dimension int) *Collection {
+	return &Collection{
+		Name:      name,
+		Dimension: dimension,
+		Config:    DefaultCollectionConfig(),
+
+		IDMap:     make(map[string]DocID),
+		DocMap:    make([]string, 0, 1000),
+		Store:     NewVectorStore(dimension),
+		Metas:     make([]map[string]interface{}, 0, 1000),
+		Neighbors: make([][]docIDSlice, 0, 1000),
+		Deleted:   make(map[DocID]bool),
+
+		EntryPoint: DocID(0xFFFFFFFF), // 无效 ID
+		MaxLayer:   -1,
+	}
+}
+
+// NewDatabase 创建新数据库
+func NewDatabase(path string) *Database {
+	return &Database{
+		Path:        path,
+		Collections: make(map[string]*Collection),
+	}
+}
+
+// NewVectorStorage 创建根存储
+func NewVectorStorage() *VectorStorage {
+	return &VectorStorage{
+		Databases: make(map[string]*Database),
+	}
+}
+
+// =========================================
+// Collection 方法
+// =========================================
+
+// ItemCount 返回有效项目数
+func (c *Collection) ItemCount() int {
+	c.Mu.RLock()
+	defer c.Mu.RUnlock()
+	return len(c.DocMap) - len(c.Deleted)
+}
+
+// IsValidNode 检查节点是否有效
+func (c *Collection) IsValidNode(docID DocID) bool {
+	return int(docID) < len(c.DocMap) && !c.Deleted[docID]
+}
+
+// GetDocID 通过外部 ID 获取 DocID
+func (c *Collection) GetDocID(id string) (DocID, bool) {
+	c.Mu.RLock()
+	defer c.Mu.RUnlock()
+	docID, ok := c.IDMap[id]
+	return docID, ok
+}
+
+// GetExternalID 通过 DocID 获取外部 ID
+func (c *Collection) GetExternalID(docID DocID) (string, bool) {
+	c.Mu.RLock()
+	defer c.Mu.RUnlock()
+	if int(docID) >= len(c.DocMap) {
+		return "", false
+	}
+	return c.DocMap[docID], true
+}
+
+// GetMeta 获取元数据
+func (c *Collection) GetMeta(docID DocID) (map[string]interface{}, bool) {
+	c.Mu.RLock()
+	defer c.Mu.RUnlock()
+	if int(docID) >= len(c.Metas) {
+		return nil, false
+	}
+	return c.Metas[docID], true
+}
+
+// GetLevelNeighborIDs 获取指定层级的邻居 (零分配版本)
+func (c *Collection) GetLevelNeighborIDs(docID DocID, level int) []DocID {
+	if int(docID) >= len(c.Neighbors) {
+		return nil
+	}
+	if level >= len(c.Neighbors[docID]) {
+		return nil
+	}
+	return c.Neighbors[docID][level]
+}
+
+// SetLevelNeighbors 设置指定层级的邻居
+func (c *Collection) SetLevelNeighbors(docID DocID, level int, neighborIDs []DocID) {
+	// 确保邻居数组足够大
+	for int(docID) >= len(c.Neighbors) {
+		c.Neighbors = append(c.Neighbors, nil)
+	}
+	// 确保层级数组足够大
+	for level >= len(c.Neighbors[docID]) {
+		c.Neighbors[docID] = append(c.Neighbors[docID], nil)
+	}
+	c.Neighbors[docID][level] = neighborIDs
+}
+
+// GetNodeLevel 获取节点最大层级
+func (c *Collection) GetNodeLevel(docID DocID) int {
+	if int(docID) >= len(c.Neighbors) {
+		return -1
+	}
+	return len(c.Neighbors[docID]) - 1
+}
+
+// =========================================
+// 兼容性 (逐步移除)
+// =========================================
+
+// Item 简化版 (仅用于 API 兼容)
+type Item struct {
+	ID      string
+	DocID   DocID
+	Meta    map[string]interface{}
+	Vectors map[string][]float32 // 兼容旧 API
+}
+
+// NewItem 创建新 Item
 func NewItem(id string) *Item {
 	return &Item{
 		ID:      id,
@@ -153,142 +249,74 @@ func NewItem(id string) *Item {
 	}
 }
 
-// NewCollection creates new collection
-func NewCollection(name string, dimension int) *Collection {
-	return &Collection{
-		Name:         name,
-		Dimension:    dimension,
-		Config:       DefaultCollectionConfig(),
-		
-		IDMap:        make(map[string]DocID),
-		DocMap:       make([]string, 0),
-		Items:        make(map[DocID]*Item),
-        Store:        NewVectorStore(dimension),
-        Nodes:        make([]NodeData, 0),
-        EntryPoint:   DocID(0xFFFFFFFF), // Invalid ID
-        MaxLayer:     -1,
-	}
-}
-
-// NewDatabase creates new database
-func NewDatabase(path string) *Database {
-	return &Database{
-		Path:        path,
-		Collections: make(map[string]*Collection),
-	}
-}
-
-// NewVectorStorage creates vector storage root
-func NewVectorStorage() *VectorStorage {
-	return &VectorStorage{
-		Databases: make(map[string]*Database),
-	}
-}
-
-// =========================================
-// Item Methods
-// =========================================
-
-// GetVector gets vector for specified model
+// GetVector 获取向量 (兼容方法)
 func (item *Item) GetVector(modelName string) ([]float32, bool) {
 	vec, ok := item.Vectors[modelName]
 	return vec, ok
 }
 
-// SetVector sets vector
+// SetVector 设置向量 (兼容方法)
 func (item *Item) SetVector(modelName string, vector []float32) {
 	item.Vectors[modelName] = vector
 }
 
-// NOTE: Neighbors methods moved to Collection/Graph logic as Item no longer holds Neighbors
+// SetItem 设置项目 (兼容方法)
+func (c *Collection) SetItem(item *Item) {
+	c.Mu.Lock()
+	defer c.Mu.Unlock()
 
-// =========================================
-// Collection Methods
-// =========================================
+	// 检查是否已存在
+	if docID, exists := c.IDMap[item.ID]; exists {
+		// 更新现有项
+		item.DocID = docID
+		if int(docID) < len(c.Metas) {
+			c.Metas[docID] = item.Meta
+		}
+	} else {
+		// 分配新 DocID
+		docID := DocID(len(c.DocMap))
+		item.DocID = docID
 
-// GetItem gets item (thread-safe)
+		c.IDMap[item.ID] = docID
+		c.DocMap = append(c.DocMap, item.ID)
+		c.Metas = append(c.Metas, item.Meta)
+	}
+}
+
+// 兼容方法 - 逐步移除
 func (c *Collection) GetItem(id string) (*Item, bool) {
 	c.Mu.RLock()
 	defer c.Mu.RUnlock()
+
 	docID, ok := c.IDMap[id]
 	if !ok {
 		return nil, false
 	}
-	item, ok := c.Items[docID]
-	return item, ok
-}
 
-// GetDocID gets DocID by external ID
-func (c *Collection) GetDocID(id string) (DocID, bool) {
-    c.Mu.RLock()
-    defer c.Mu.RUnlock()
-    docID, ok := c.IDMap[id]
-    return docID, ok
-}
-
-// GetExternalID gets external ID by DocID
-func (c *Collection) GetExternalID(docID DocID) (string, bool) {
-    c.Mu.RLock()
-    defer c.Mu.RUnlock()
-    if int(docID) >= len(c.DocMap) {
-        return "", false
-    }
-    return c.DocMap[docID], true
-}
-
-// SetItem sets item (thread-safe) and manages ID mapping
-func (c *Collection) SetItem(item *Item) {
-	c.Mu.Lock()
-	defer c.Mu.Unlock()
-	
-	// Check if exists
-	if docID, exists := c.IDMap[item.ID]; exists {
-	    // Update existing
-	    item.DocID = docID
-	    c.Items[docID] = item
-	} else {
-	    // Assign new DocID
-	    docID = c.NextDocID
-	    c.NextDocID++
-	    
-	    item.DocID = docID
-	    c.IDMap[item.ID] = docID
-	    c.DocMap = append(c.DocMap, item.ID)
-	    c.Items[docID] = item
+	item := &Item{
+		ID:    id,
+		DocID: docID,
 	}
+	if int(docID) < len(c.Metas) {
+		item.Meta = c.Metas[docID]
+	}
+	return item, true
 }
 
-// DeleteItem deletes item (thread-safe) (Soft Delete)
-// In HNSW, hard delete is complex. We usually just remove from IDMap and mark as deleted.
-// For now, removing from Items and IDMap. Graph links remain but point to non-existent Item?
-// We need a proper delete in HNSW.
+// DeleteItem 删除项目 (软删除)
 func (c *Collection) DeleteItem(id string) bool {
 	c.Mu.Lock()
 	defer c.Mu.Unlock()
-	
+
 	docID, ok := c.IDMap[id]
 	if !ok {
-	    return false
+		return false
 	}
-	
-	delete(c.Items, docID)
+
+	c.Deleted[docID] = true
 	delete(c.IDMap, id)
-	// We don't remove from DocMap to keep DocIDs stable (sparse array)
-	// c.DocMap[docID] = "" // Mark as empty?
-	
 	return true
 }
 
-// ItemCount gets item count
-func (c *Collection) ItemCount() int {
-	c.Mu.RLock()
-	defer c.Mu.RUnlock()
-	return len(c.Items)
-}
-
-// InitLevelMap initializes level mapping for model
-// InitLevelMap deprecated
-func (c *Collection) InitLevelMap(modelName string) {
-    // No-op for compatibility or remove
-}
-
+// InitLevelMap 兼容方法 (no-op)
+func (c *Collection) InitLevelMap(modelName string) {}

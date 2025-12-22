@@ -268,32 +268,37 @@ func (s *VectorStore) ComputeBBQDistance(a, b DocID) float32 {
 }
 
 // ComputeBBQDistanceFromQuery 计算查询向量与已索引向量的BBQ距离
-// 使用4-bit查询量化以获得更高精度
-func (s *VectorStore) ComputeBBQDistanceFromQuery(queryQuantized []byte, queryCorrection 量化结果, docID DocID) float32 {
+// 1-bit 量化模式：使用打包位点积 + POPCNT 硬件加速
+func (s *VectorStore) ComputeBBQDistanceFromQuery(queryPacked []byte, queryCorrection 量化结果, docID DocID) float32 {
     id := int(docID)
     
     if id >= len(s.bbqCorrections) {
         return 1e9
     }
     
-    offset := id * s.Dimension
-    endOffset := offset + s.Dimension
-    if endOffset > len(s.bbqQuantized) {
+    // 获取打包的索引向量
+    packedOffset := id * s.packedSize
+    endOffset := packedOffset + s.packedSize
+    if endOffset > len(s.bbqPacked) {
         return 1e9
     }
     
-    indexQuantized := s.bbqQuantized[offset:endOffset]
-    bitDotProduct := 计算朴素点积(queryQuantized, indexQuantized)
+    indexPacked := s.bbqPacked[packedOffset:endOffset]
+    
+    // 使用 POPCNT 优化的打包位点积
+    bitDotProduct := 计算打包位点积(queryPacked, indexPacked)
     indexCorrection := s.bbqCorrections[id]
     
-    return s.scorer.计算量化距离(bitDotProduct, queryCorrection, indexCorrection, s.Dimension, 0, true)
+    return s.scorer.计算量化距离(bitDotProduct, queryCorrection, indexCorrection, s.Dimension, 0, false)
 }
 
-// QuantizeQuery 对查询向量进行4-bit量化
+// QuantizeQuery 对查询向量进行1-bit量化并打包
 func (s *VectorStore) QuantizeQuery(query []float32) ([]byte, 量化结果) {
     quantized := make([]byte, len(query))
     correction := s.quantizer.标量量化(query, quantized, 查询量化位数, s.centroid)
-    return quantized, correction
+    // 打包为二进制 (8个bit压缩为1个byte)
+    packed := 打包为二进制(quantized)
+    return packed, correction
 }
 
 // GetCorrection 获取指定文档的校正因子

@@ -17,15 +17,15 @@
 package vectordb
 
 import (
+	"io"
 	"os"
 	"path/filepath"
-	"io"
 
 	"github.com/vmihailenco/msgpack/v5"
 )
 
 // =========================================
-// Persistence layer (WAL + Snapshot)
+// 持久化层 (简化版)
 // =========================================
 
 const (
@@ -33,34 +33,40 @@ const (
 	WALFileName      = "wal.msgpack"
 )
 
-// SnapshotData represents the full state of a collection
+// SnapshotData 快照数据 (简化版)
 type SnapshotData struct {
-	Name         string                               `msgpack:"name"`
-	Dimension    int                                  `msgpack:"dimension"`
-	Config       CollectionConfig                     `msgpack:"config"`
-	NextDocID    DocID                                `msgpack:"nextDocID"`
-	DocMap       []string                             `msgpack:"docMap"`
-	IDMap        map[string]DocID                     `msgpack:"idMap"`
-	Items        map[DocID]*Item                      `msgpack:"items"`
-    // New fields
-    Nodes        []NodeData                           `msgpack:"nodes"`
-    Vectors      []float32                            `msgpack:"vectors"`
-    // BBQ量化存储
-    BBQQuantized   []byte                             `msgpack:"bbqQuantized"`
-    BBQPacked      []byte                             `msgpack:"bbqPacked"`
-    BBQCorrections []量化结果                          `msgpack:"bbqCorrections"`
-    EntryPoint   DocID                                `msgpack:"entryPoint"`
-    MaxLayer     int                                  `msgpack:"maxLayer"`
-    
-	// HNSWNodes    map[string]map[DocID][]LevelData     `msgpack:"hnswNodes"` // Deprecated
-	// HNSWLevelMap map[string]map[int][]DocID           `msgpack:"hnswLevelMap"` // Deprecated
+	Name      string           `msgpack:"name"`
+	Dimension int              `msgpack:"dimension"`
+	Config    CollectionConfig `msgpack:"config"`
+
+	// ID 映射
+	DocMap []string         `msgpack:"docMap"`
+	IDMap  map[string]DocID `msgpack:"idMap"`
+
+	// 元数据 (简化)
+	Metas []map[string]interface{} `msgpack:"metas"`
+
+	// 图结构 (简化)
+	// Neighbors[nodeID][level] -> []DocID
+	Neighbors [][][]DocID `msgpack:"neighbors"`
+	Deleted   map[DocID]bool `msgpack:"deleted"`
+
+	// 向量存储
+	Vectors        []float32    `msgpack:"vectors"`
+	BBQQuantized   []byte       `msgpack:"bbqQuantized"`
+	BBQPacked      []byte       `msgpack:"bbqPacked"`
+	BBQCorrections []量化结果   `msgpack:"bbqCorrections"`
+
+	// 入口点
+	EntryPoint DocID `msgpack:"entryPoint"`
+	MaxLayer   int   `msgpack:"maxLayer"`
 }
 
-// WALEntry represents a single operation in WAL
+// WALEntry WAL 条目
 type WALEntry struct {
-	Op    int           `msgpack:"op"` // 1: Add, 2: Delete
-	Items []*Item       `msgpack:"items,omitempty"`
-	Keys  []string      `msgpack:"keys,omitempty"`
+	Op    int      `msgpack:"op"`
+	Items []*Item  `msgpack:"items,omitempty"`
+	Keys  []string `msgpack:"keys,omitempty"`
 }
 
 const (
@@ -68,155 +74,165 @@ const (
 	OpDelete = 2
 )
 
-// SaveCollection performs a Checkpoint (Snapshot)
+// SaveCollection 保存集合快照
 func SaveCollection(c *Collection, basePath string) error {
 	c.Mu.RLock()
 	defer c.Mu.RUnlock()
-	
+
 	collectionPath := filepath.Join(basePath, c.Name)
 	if err := os.MkdirAll(collectionPath, 0755); err != nil {
 		return err
 	}
-    
-    // Lock store for read
-    c.Store.mu.RLock()
-    vectors := make([]float32, len(c.Store.vectors))
-    copy(vectors, c.Store.vectors)
-    bbqQuantized := make([]byte, len(c.Store.bbqQuantized))
-    copy(bbqQuantized, c.Store.bbqQuantized)
-    bbqPacked := make([]byte, len(c.Store.bbqPacked))
-    copy(bbqPacked, c.Store.bbqPacked)
-    bbqCorrections := make([]量化结果, len(c.Store.bbqCorrections))
-    copy(bbqCorrections, c.Store.bbqCorrections)
-    c.Store.mu.RUnlock()
-	
+
+	// 复制向量存储
+	c.Store.mu.RLock()
+	vectors := make([]float32, len(c.Store.vectors))
+	copy(vectors, c.Store.vectors)
+	bbqQuantized := make([]byte, len(c.Store.bbqQuantized))
+	copy(bbqQuantized, c.Store.bbqQuantized)
+	bbqPacked := make([]byte, len(c.Store.bbqPacked))
+	copy(bbqPacked, c.Store.bbqPacked)
+	bbqCorrections := make([]量化结果, len(c.Store.bbqCorrections))
+	copy(bbqCorrections, c.Store.bbqCorrections)
+	c.Store.mu.RUnlock()
+
+	// 转换 Neighbors 格式
+	neighbors := make([][][]DocID, len(c.Neighbors))
+	for i, levels := range c.Neighbors {
+		neighbors[i] = make([][]DocID, len(levels))
+		for j, ids := range levels {
+			neighbors[i][j] = make([]DocID, len(ids))
+			copy(neighbors[i][j], ids)
+		}
+	}
+
 	snapshot := SnapshotData{
 		Name:           c.Name,
 		Dimension:      c.Dimension,
 		Config:         c.Config,
-		NextDocID:      c.NextDocID,
 		DocMap:         c.DocMap,
 		IDMap:          c.IDMap,
-		Items:          c.Items,
-        Nodes:          c.Nodes,
-        Vectors:        vectors,
-        BBQQuantized:   bbqQuantized,
-        BBQPacked:      bbqPacked,
-        BBQCorrections: bbqCorrections,
-        EntryPoint:     c.EntryPoint,
-        MaxLayer:       c.MaxLayer,
+		Metas:          c.Metas,
+		Neighbors:      neighbors,
+		Deleted:        c.Deleted,
+		Vectors:        vectors,
+		BBQQuantized:   bbqQuantized,
+		BBQPacked:      bbqPacked,
+		BBQCorrections: bbqCorrections,
+		EntryPoint:     c.EntryPoint,
+		MaxLayer:       c.MaxLayer,
 	}
-	
+
 	data, err := msgpack.Marshal(&snapshot)
 	if err != nil {
 		return err
 	}
-	
-	// Atomic write snapshot
+
 	if err := atomicWriteFile(filepath.Join(collectionPath, SnapshotFileName), data); err != nil {
 		return err
 	}
-    
-    // ... rest same
-    walPath := filepath.Join(collectionPath, WALFileName)
-    os.Remove(walPath)
-    
-    return nil
+
+	// 清除 WAL
+	walPath := filepath.Join(collectionPath, WALFileName)
+	os.Remove(walPath)
+
+	return nil
 }
 
-// LoadCollection loads collection from disk
+// LoadCollection 加载集合
 func LoadCollection(basePath string, name string) (*Collection, error) {
 	collectionPath := filepath.Join(basePath, name)
-	
-	// 1. Load Snapshot
+
 	snapshotPath := filepath.Join(collectionPath, SnapshotFileName)
 	data, err := os.ReadFile(snapshotPath)
-	
+
 	var c *Collection
-	
+
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return nil, err
 		}
-		// Snapshot doesn't exist, create new
-		return NewCollection(name, 0), nil 
-	} else {
-		// Restore from snapshot
-		var snapshot SnapshotData
-		if err := msgpack.Unmarshal(data, &snapshot); err != nil {
-			return nil, err
-		}
-		
-        store := NewVectorStore(snapshot.Dimension)
-        store.vectors = snapshot.Vectors
-        store.bbqQuantized = snapshot.BBQQuantized
-        store.bbqPacked = snapshot.BBQPacked
-        store.bbqCorrections = snapshot.BBQCorrections
-		
-		c = &Collection{
-			Name:         snapshot.Name,
-			Dimension:    snapshot.Dimension,
-			Config:       snapshot.Config,
-			NextDocID:    snapshot.NextDocID,
-			DocMap:       snapshot.DocMap,
-			IDMap:        snapshot.IDMap,
-			Items:        snapshot.Items,
-            Nodes:        snapshot.Nodes,
-            Store:        store,
-            EntryPoint:   snapshot.EntryPoint,
-            MaxLayer:     snapshot.MaxLayer,
-		}
-		// Fix nil maps if empty
-		if c.IDMap == nil { c.IDMap = make(map[string]DocID) }
-		if c.Items == nil { c.Items = make(map[DocID]*Item) }
-        if c.Nodes == nil { c.Nodes = make([]NodeData, 0) }
+		return NewCollection(name, 0), nil
 	}
-	
-	// 2. Replay WAL
+
+	var snapshot SnapshotData
+	if err := msgpack.Unmarshal(data, &snapshot); err != nil {
+		return nil, err
+	}
+
+	store := NewVectorStore(snapshot.Dimension)
+	store.vectors = snapshot.Vectors
+	store.bbqQuantized = snapshot.BBQQuantized
+	store.bbqPacked = snapshot.BBQPacked
+	store.bbqCorrections = snapshot.BBQCorrections
+
+	// 转换 Neighbors 格式
+	neighbors := make([][]docIDSlice, len(snapshot.Neighbors))
+	for i, levels := range snapshot.Neighbors {
+		neighbors[i] = make([]docIDSlice, len(levels))
+		for j, ids := range levels {
+			neighbors[i][j] = ids
+		}
+	}
+
+	c = &Collection{
+		Name:       snapshot.Name,
+		Dimension:  snapshot.Dimension,
+		Config:     snapshot.Config,
+		IDMap:      snapshot.IDMap,
+		DocMap:     snapshot.DocMap,
+		Store:      store,
+		Metas:      snapshot.Metas,
+		Neighbors:  neighbors,
+		Deleted:    snapshot.Deleted,
+		EntryPoint: snapshot.EntryPoint,
+		MaxLayer:   snapshot.MaxLayer,
+	}
+
+	// 修复空 map
+	if c.IDMap == nil {
+		c.IDMap = make(map[string]DocID)
+	}
+	if c.Deleted == nil {
+		c.Deleted = make(map[DocID]bool)
+	}
+
+	// 重放 WAL
 	walPath := filepath.Join(collectionPath, WALFileName)
 	f, err := os.Open(walPath)
 	if err == nil {
 		defer f.Close()
 		decoder := msgpack.NewDecoder(f)
-		
+
 		for {
 			var entry WALEntry
 			if err := decoder.Decode(&entry); err != nil {
 				if err == io.EOF {
-					break // Done
+					break
 				}
 				break
 			}
-			
-			// Replay entry
+
 			if entry.Op == OpAdd {
 				for _, item := range entry.Items {
-					// InsertItem logic
-                    // We need modelName. Item struct doesn't strictly have a "Main Model".
-                    // But InsertItem iterates models if we call it safely?
-                    // Or we assume "text_embedding" or similar.
-                    // For correctness, we should iterate keys in item.Vectors
-                    if item.Vectors != nil {
-                        for modelName := range item.Vectors {
-                            c.InsertItem(item, modelName)
-                        }
-                    } else {
-                        // fallback
-                        c.InsertItem(item, "")
-                    }
+					if item.Vectors != nil {
+						for modelName := range item.Vectors {
+							c.InsertItem(item, modelName)
+						}
+					}
 				}
 			} else if entry.Op == OpDelete {
 				for _, key := range entry.Keys {
-                    c.DeleteItemWithIndex(key, "")
+					c.DeleteItemWithIndex(key, "")
 				}
 			}
 		}
 	}
-	
+
 	return c, nil
 }
 
-// AppendWALAdd appended add operation
+// AppendWALAdd 追加添加操作
 func AppendWALAdd(c *Collection, basePath string, items []*Item) error {
 	return appendWAL(c.Name, basePath, WALEntry{
 		Op:    OpAdd,
@@ -224,7 +240,7 @@ func AppendWALAdd(c *Collection, basePath string, items []*Item) error {
 	})
 }
 
-// AppendWALDelete appends delete operation
+// AppendWALDelete 追加删除操作
 func AppendWALDelete(c *Collection, basePath string, keys []string) error {
 	return appendWAL(c.Name, basePath, WALEntry{
 		Op:   OpDelete,
@@ -237,18 +253,17 @@ func appendWAL(collectionName string, basePath string, entry WALEntry) error {
 	if err := os.MkdirAll(collectionPath, 0755); err != nil {
 		return err
 	}
-	
+
 	f, err := os.OpenFile(filepath.Join(collectionPath, WALFileName), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	
+
 	enc := msgpack.NewEncoder(f)
 	return enc.Encode(entry)
 }
 
-// atomicWriteFile writes file atomically
 func atomicWriteFile(path string, data []byte) error {
 	dir := filepath.Dir(path)
 	tmpFile, err := os.CreateTemp(dir, ".tmp-")
@@ -256,32 +271,32 @@ func atomicWriteFile(path string, data []byte) error {
 		return err
 	}
 	tmpPath := tmpFile.Name()
-	
+
 	success := false
 	defer func() {
 		if !success {
 			os.Remove(tmpPath)
 		}
 	}()
-	
+
 	if _, err := tmpFile.Write(data); err != nil {
 		tmpFile.Close()
 		return err
 	}
-	
+
 	if err := tmpFile.Sync(); err != nil {
 		tmpFile.Close()
 		return err
 	}
-	
+
 	if err := tmpFile.Close(); err != nil {
 		return err
 	}
-	
+
 	if err := os.Rename(tmpPath, path); err != nil {
 		return err
 	}
-	
+
 	success = true
 	return nil
 }
@@ -290,7 +305,6 @@ func atomicWriteFile(path string, data []byte) error {
 // Database persistence
 // =========================================
 
-// SaveDatabase saves (checkpoints) all collections in database
 func SaveDatabase(db *Database) error {
 	if err := os.MkdirAll(db.Path, 0755); err != nil {
 		return err
@@ -308,7 +322,6 @@ func SaveDatabase(db *Database) error {
 	return nil
 }
 
-// LoadDatabase loads database
 func LoadDatabase(path string) (*Database, error) {
 	db := NewDatabase(path)
 

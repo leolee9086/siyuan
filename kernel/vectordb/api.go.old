@@ -26,14 +26,14 @@ import (
 // HTTP API
 // =========================================
 
-// 全局存储实例（由 Init 初始化）
+// Global storage instance (initialized by Init)
 var storage *VectorStorage
 
-// Init 初始化向量数据库
+// Init initializes vector database
 func Init(publicPath, pluginPath, tempPath string) error {
 	storage = NewVectorStorage()
 
-	// 加载或创建数据库
+	// Load or create databases
 	if publicPath != "" {
 		db, err := LoadDatabase(publicPath)
 		if err != nil {
@@ -61,7 +61,7 @@ func Init(publicPath, pluginPath, tempPath string) error {
 	return nil
 }
 
-// RegisterRoutes 注册 HTTP 路由
+// RegisterRoutes registers HTTP routes
 func RegisterRoutes(router *gin.RouterGroup) {
 	router.POST("/collections/build", handleBuildCollection)
 	router.POST("/add", handleAddVectors)
@@ -73,7 +73,7 @@ func RegisterRoutes(router *gin.RouterGroup) {
 }
 
 // =========================================
-// 请求/响应结构
+// Request/Response structures
 // =========================================
 
 type buildCollectionRequest struct {
@@ -91,7 +91,7 @@ type addVectorsRequest struct {
 type VectorData struct {
 	ID     string                       `json:"id"`
 	Meta   map[string]interface{}       `json:"meta"`
-	Vector map[string][]float32         `json:"vector"` // 模型�?�?向量
+	Vector map[string][]float32         `json:"vector"`
 }
 
 type deleteVectorsRequest struct {
@@ -127,10 +127,9 @@ type rebuildRequest struct {
 }
 
 // =========================================
-// Handler 实现
+// Handler implementations
 // =========================================
 
-// handleBuildCollection 创建数据�?
 func handleBuildCollection(c *gin.Context) {
 	var req buildCollectionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -140,11 +139,10 @@ func handleBuildCollection(c *gin.Context) {
 
 	db := GetDatabase(req.Database)
 	if db == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": "数据库不存在"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": "database not found"})
 		return
 	}
 
-	// 获取或创�?Collection
 	db.mu.Lock()
 	collection, exists := db.Collections[req.CollectionName]
 	if !exists {
@@ -163,7 +161,6 @@ func handleBuildCollection(c *gin.Context) {
 	})
 }
 
-// handleAddVectors 添加向量
 func handleAddVectors(c *gin.Context) {
 	var req addVectorsRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -173,7 +170,7 @@ func handleAddVectors(c *gin.Context) {
 
 	collection := GetCollection(req.Database, req.CollectionName)
 	if collection == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": "数据集不存在"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": "collection not found"})
 		return
 	}
 
@@ -185,8 +182,6 @@ func handleAddVectors(c *gin.Context) {
 		for modelName, vec := range vd.Vector {
 			item.SetVector(modelName, vec)
 			collection.InitLevelMap(modelName)
-			
-			// 插入�?HNSW 索引
 			if err := collection.InsertItem(item, modelName); err != nil {
 				continue
 			}
@@ -194,7 +189,6 @@ func handleAddVectors(c *gin.Context) {
 		addedCount++
 	}
 
-	// 保存到磁�?
 	db := GetDatabase(req.Database)
 	if db != nil {
 		SaveCollection(collection, db.Path)
@@ -208,7 +202,6 @@ func handleAddVectors(c *gin.Context) {
 	})
 }
 
-// handleDeleteVectors 删除向量
 func handleDeleteVectors(c *gin.Context) {
 	var req deleteVectorsRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -218,20 +211,17 @@ func handleDeleteVectors(c *gin.Context) {
 
 	collection := GetCollection(req.Database, req.CollectionName)
 	if collection == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": "数据集不存在"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": "collection not found"})
 		return
 	}
 
 	deletedCount := 0
 	for _, key := range req.Keys {
-		// 从所有模型的索引中删�?
-		for modelName := range collection.HNSWLevelMap {
-			collection.DeleteItemWithIndex(key, modelName)
-		}
+		// HNSWLevelMap is deprecated. Assumes single model or handles internally.
+		collection.DeleteItemWithIndex(key, "")
 		deletedCount++
 	}
 
-	// 保存到磁�?
 	db := GetDatabase(req.Database)
 	if db != nil {
 		SaveCollection(collection, db.Path)
@@ -245,7 +235,6 @@ func handleDeleteVectors(c *gin.Context) {
 	})
 }
 
-// handleQuery 向量查询
 func handleQuery(c *gin.Context) {
 	var req queryRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -255,7 +244,7 @@ func handleQuery(c *gin.Context) {
 
 	collection := GetCollection(req.Database, req.CollectionName)
 	if collection == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": "数据集不存在"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": "collection not found"})
 		return
 	}
 
@@ -272,7 +261,6 @@ func handleQuery(c *gin.Context) {
 	})
 }
 
-// handleKeys 获取所有键
 func handleKeys(c *gin.Context) {
 	var req keysRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -282,32 +270,31 @@ func handleKeys(c *gin.Context) {
 
 	collection := GetCollection(req.Database, req.CollectionName)
 	if collection == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": "数据集不存在"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": "collection not found"})
 		return
 	}
 
-	collection.mu.RLock()
-	defer collection.mu.RUnlock()
+	collection.Mu.RLock()
+	defer collection.Mu.RUnlock()
 
 	if req.WithMeta {
 		result := make([]map[string]interface{}, 0, len(collection.Items))
-		for id, item := range collection.Items {
+		for _, item := range collection.Items {
 			result = append(result, map[string]interface{}{
-				"id":   id,
+				"id":   item.ID,
 				"meta": item.Meta,
 			})
 		}
 		c.JSON(http.StatusOK, gin.H{"code": 0, "data": result})
 	} else {
 		keys := make([]string, 0, len(collection.Items))
-		for id := range collection.Items {
-			keys = append(keys, id)
+		for _, item := range collection.Items {
+			keys = append(keys, item.ID)
 		}
 		c.JSON(http.StatusOK, gin.H{"code": 0, "data": keys})
 	}
 }
 
-// handleState 获取状�?
 func handleState(c *gin.Context) {
 	var req stateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -317,7 +304,7 @@ func handleState(c *gin.Context) {
 
 	collection := GetCollection(req.Database, req.CollectionName)
 	if collection == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": "数据集不存在"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": "collection not found"})
 		return
 	}
 
@@ -332,7 +319,6 @@ func handleState(c *gin.Context) {
 	})
 }
 
-// handleRebuild 重建索引
 func handleRebuild(c *gin.Context) {
 	var req rebuildRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -342,7 +328,7 @@ func handleRebuild(c *gin.Context) {
 
 	collection := GetCollection(req.Database, req.CollectionName)
 	if collection == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": "数据集不存在"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": "collection not found"})
 		return
 	}
 
@@ -351,7 +337,6 @@ func handleRebuild(c *gin.Context) {
 		return
 	}
 
-	// 保存到磁�?
 	db := GetDatabase(req.Database)
 	if db != nil {
 		SaveCollection(collection, db.Path)
@@ -359,15 +344,14 @@ func handleRebuild(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 0,
-		"msg":  "索引重建完成",
+		"msg":  "index rebuilt",
 	})
 }
 
 // =========================================
-// 辅助函数
+// Helper functions
 // =========================================
 
-// GetDatabase 获取数据库（导出�?
 func GetDatabase(name string) *Database {
 	if storage == nil {
 		return nil
@@ -380,7 +364,6 @@ func GetDatabase(name string) *Database {
 	return storage.Databases[name]
 }
 
-// GetCollection 获取数据集（导出�?
 func GetCollection(dbName, collectionName string) *Collection {
 	db := GetDatabase(dbName)
 	if db == nil {
@@ -392,11 +375,5 @@ func GetCollection(dbName, collectionName string) *Collection {
 }
 
 func getModelNames(c *Collection) []string {
-	c.Mu.RLock()
-	defer c.Mu.RUnlock()
-	names := make([]string, 0, len(c.HNSWLevelMap))
-	for name := range c.HNSWLevelMap {
-		names = append(names, name)
-	}
-	return names
+	return []string{"default"}
 }

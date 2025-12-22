@@ -19,223 +19,182 @@ package vectordb
 import "sort"
 
 // =========================================
-// HNSW Delete and Rebuild
+// HNSW Delete (简化版)
 // =========================================
 
-// DeleteItemWithIndex deletes item and updates HNSW index
+// DeleteItemWithIndex 删除项目并更新 HNSW 索引
 func (c *Collection) DeleteItemWithIndex(id string, modelName string) {
-	item, ok := c.GetItem(id)
+	docID, ok := c.GetDocID(id)
 	if !ok {
 		return
 	}
-	docID := item.DocID
-	
+
 	affectedNeighbors := make([]DocID, 0)
-	
-	// Remove from level map - Removed
-	
-	// Remove from all neighbors' adjacency lists
-	level := GetItemLevel(c, docID, modelName)
+
+	// 从所有邻居的邻接表中移除
+	level := c.GetNodeLevel(docID)
 	for l := 0; l <= level; l++ {
-		neighbors := GetLevelNeighbors(c, docID, modelName, l)
-		if neighbors == nil {
+		neighborIDs := c.GetLevelNeighborIDs(docID, l)
+		if neighborIDs == nil {
 			continue
 		}
-		
-		for _, neighbor := range neighbors {
-			RemoveNeighbor(c, neighbor.ID, modelName, l, docID)
-			affectedNeighbors = append(affectedNeighbors, neighbor.ID)
+
+		for _, neighborID := range neighborIDs {
+			RemoveNeighbor(c, neighborID, modelName, l, docID)
+			affectedNeighbors = append(affectedNeighbors, neighborID)
 		}
 	}
-	
-	// Delete item
-	// Note: We don't remove from Store (sparse array) to avoid shifting
-    // Or we should?
-    // VectorStore doesn't support delete yet.
-    // For soft delete, we just remove from Items/IDMap.
-    // HNSW graph edges are removed above.
-	c.DeleteItem(id)
-    
-    // Also remove node data from Nodes?
-    // c.Nodes[docID] = NodeData{} ?
-    // Or mark as empty.
-    c.Mu.Lock()
-    if int(docID) < len(c.Nodes) {
-        c.Nodes[docID] = NodeData{Level: -1} // Mark as deleted/invalid
-    }
-    
-    // If deleted node was entry point, reselect
-    if c.EntryPoint == docID {
-        // Simple reselect
-        // This is slow if we scan all nodes.
-        // Or pick first valid node.
-        // Ideally we pick one from max level.
-        c.EntryPoint = DocID(0xFFFFFFFF)
-        // Scan nodes to find new EP
-        // Optimization: Keep track of max level nodes?
-        // Fallback: Use RecalculateEP
-        
-        // Scan nodes for highest level
-        maxL := -1
-        var newEp DocID = 0xFFFFFFFF
-        for i, node := range c.Nodes {
-            if i != int(docID) && node.Level >= 0 && node.Level > maxL {
-                // Must be valid item
-                if _, ok := c.Items[DocID(i)]; ok {
-                    maxL = node.Level
-                    newEp = DocID(i)
-                }
-            }
-        }
-        c.EntryPoint = newEp
-        c.MaxLayer = maxL
-    }
-    c.Mu.Unlock()
-	
-	// Recompute affected neighbors
+
+	// 软删除
+	c.Mu.Lock()
+	c.Deleted[docID] = true
+	delete(c.IDMap, id)
+
+	// 清空邻居列表
+	if int(docID) < len(c.Neighbors) {
+		c.Neighbors[docID] = nil
+	}
+
+	// 如果删除的是入口点，重新选择
+	if c.EntryPoint == docID {
+		c.EntryPoint = DocID(0xFFFFFFFF)
+		maxL := -1
+		var newEp DocID = 0xFFFFFFFF
+
+		for i := 0; i < len(c.Neighbors); i++ {
+			if DocID(i) == docID || c.Deleted[DocID(i)] {
+				continue
+			}
+			nodeLevel := len(c.Neighbors[i]) - 1
+			if nodeLevel > maxL {
+				maxL = nodeLevel
+				newEp = DocID(i)
+			}
+		}
+		c.EntryPoint = newEp
+		c.MaxLayer = maxL
+	}
+	c.Mu.Unlock()
+
+	// 重计算受影响的邻居
 	for _, neighborID := range affectedNeighbors {
 		c.recomputeNeighbors(neighborID, modelName)
 	}
 }
 
-// recomputeNeighbors recomputes neighbors after deletion
+// recomputeNeighbors 删除后重计算邻居
 func (c *Collection) recomputeNeighbors(docID DocID, modelName string) {
-	_, ok := c.Items[docID]
-	if !ok {
+	if c.Deleted[docID] {
 		return
 	}
-	
+
 	config := c.Config
-	level := GetItemLevel(c, docID, modelName)
-	
+	level := c.GetNodeLevel(docID)
+
 	for l := 0; l <= level; l++ {
 		expectedNeighbors := ExpectedNeighborCount(l, config.M)
-		neighbors := GetLevelNeighbors(c, docID, modelName, l)
-		
-		if len(neighbors) >= expectedNeighbors {
+		neighborIDs := c.GetLevelNeighborIDs(docID, l)
+
+		if len(neighborIDs) >= expectedNeighbors {
 			continue
 		}
-		
-// BFS to find more neighbors
+
+		// BFS 寻找更多邻居
 		visited := make(map[DocID]bool)
 		visited[docID] = true
-		for _, n := range neighbors {
-			visited[n.ID] = true
-		}
-		
+
+		candidates := make([]NeighborRecord, 0, expectedNeighbors*2)
+
 		queue := make([]DocID, 0)
-		for _, n := range neighbors {
-			queue = append(queue, n.ID)
+		for _, nid := range neighborIDs {
+			queue = append(queue, nid)
+			visited[nid] = true
 		}
-		
-		for len(queue) > 0 && len(neighbors) < expectedNeighbors {
-			currentID := queue[0]
+
+		for len(queue) > 0 && len(candidates) < expectedNeighbors*2 {
+			current := queue[0]
 			queue = queue[1:]
-			
-			currentNeighbors := GetLevelNeighbors(c, currentID, modelName, l)
-			if currentNeighbors == nil {
+
+			if c.Deleted[current] {
 				continue
 			}
-			
-			for _, n := range currentNeighbors {
-				if visited[n.ID] {
-					continue
-				}
-				if n.ID == docID {
-					continue
-				}
-				
-				visited[n.ID] = true
-				queue = append(queue, n.ID)
-				
-				// Valid check implicit if in graph, but check Items/Nodes just in case
-                if int(n.ID) >= len(c.Nodes) || c.Nodes[n.ID].Level == -1 {
-                    continue
-                }
-				
-				distance := c.Store.ComputeDistance(docID, n.ID, config.MetricType)
-				neighbors = append(neighbors, NeighborRecord{
-					ID:       n.ID,
-					Distance: distance,
-				})
-				
-				if len(neighbors) >= expectedNeighbors {
-					break
+
+			dist := c.Store.ComputeDistance(docID, current, config.MetricType)
+			candidates = append(candidates, NeighborRecord{ID: current, Distance: dist})
+
+			nextNeighbors := c.GetLevelNeighborIDs(current, l)
+			for _, nnID := range nextNeighbors {
+				if !visited[nnID] && !c.Deleted[nnID] {
+					visited[nnID] = true
+					queue = append(queue, nnID)
 				}
 			}
 		}
-		
-		// Sort and truncate
-		sortNeighborsByDistance(neighbors)
-		if len(neighbors) > expectedNeighbors {
-			neighbors = neighbors[:expectedNeighbors]
+
+		// 排序选择最近的
+		sort.Slice(candidates, func(i, j int) bool {
+			return candidates[i].Distance < candidates[j].Distance
+		})
+
+		newNeighborIDs := make([]DocID, 0, expectedNeighbors)
+		for _, cand := range candidates {
+			if len(newNeighborIDs) >= expectedNeighbors {
+				break
+			}
+			newNeighborIDs = append(newNeighborIDs, cand.ID)
 		}
-		
-		SetLevelNeighbors(c, docID, modelName, l, neighbors)
+
+		SetLevelNeighborIDs(c, docID, l, newNeighborIDs)
 	}
 }
 
-// ReselectEntryPoint reselects entry point
-func (c *Collection) ReselectEntryPoint(modelName string) (DocID, bool) {
-	return SelectEntryPoint(c, modelName, nil)
-}
-
-// RebuildIndex rebuilds entire HNSW index
+// RebuildIndex 重建索引
 func (c *Collection) RebuildIndex(modelName string) error {
-	config := c.Config
-	
-	// Collect all items
+	// 收集所有有效项
 	items := make([]*Item, 0)
+
 	c.Mu.RLock()
-	for _, item := range c.Items {
-		if _, ok := item.GetVector(modelName); ok {
-			items = append(items, item)
+	for i, id := range c.DocMap {
+		docID := DocID(i)
+		if c.Deleted[docID] {
+			continue
 		}
+		item := &Item{
+			ID:    id,
+			DocID: docID,
+		}
+		if int(docID) < len(c.Metas) {
+			item.Meta = c.Metas[docID]
+		}
+		items = append(items, item)
 	}
 	c.Mu.RUnlock()
-	
+
 	if len(items) == 0 {
 		return nil
 	}
-	
-	// 使用标准库排序 O(n log n) 替代冒泡 O(n²)
+
+	// 按 DocID 排序
 	sort.Slice(items, func(i, j int) bool {
 		return items[i].DocID < items[j].DocID
 	})
-	
-	// Clear Graph
+
+	// 清空图结构
 	c.Mu.Lock()
-    // Reset Nodes
-    // Keep nodes array but reset content?
-    // Rebuild assumes items exist in Items map.
-    // DocIDs are preserved.
-    // So we just clear neighbors.
-    for i := range c.Nodes {
-        c.Nodes[i] = NodeData{Level: -1}
-    }
-    c.EntryPoint = DocID(0xFFFFFFFF)
-    c.MaxLayer = -1
+	c.Neighbors = make([][]docIDSlice, 0, len(items))
+	c.Deleted = make(map[DocID]bool)
+	c.EntryPoint = DocID(0xFFFFFFFF)
+	c.MaxLayer = -1
 	c.Mu.Unlock()
-	
-	// Initialize first node
-	firstItem := items[0]
-	_ = InitItemNeighbors(c, firstItem.DocID, modelName, config.MaxLevel)
-    // EntryPoint is updated in InitItemNeighbors/Insert logic
-	
-	// Insert other nodes
-	for i := 1; i < len(items); i++ {
-		item := items[i]
-		
-		level := InitItemNeighbors(c, item.DocID, modelName, config.MaxLevel)
-		
-		// visited := make(map[DocID]bool)
-		// visited[item.DocID] = true
-		entryPointID, ok := SelectEntryPoint(c, modelName, nil)
-		
-		if ok {
-			c.buildHNSWIndex(item, modelName, entryPointID, level)
+
+	// 重新插入
+	for _, item := range items {
+		// 从 Store 获取向量
+		if vec, ok := c.Store.GetUnsafe(item.DocID); ok {
+			item.Vectors = map[string][]float32{modelName: vec}
+			c.InsertItem(item, modelName)
 		}
 	}
-	
+
 	return nil
 }
