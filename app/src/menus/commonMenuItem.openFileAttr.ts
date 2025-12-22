@@ -8,7 +8,7 @@ import { Protyle } from "../protyle";
 import { renderAVAttribute } from "../protyle/render/av/blockAttr";
 import { hideElements } from "../protyle/ui/hideElements";
 import { escapeHtml } from "../util/escape";
-import { isMobile, isValidAttrName } from "../util/functions";
+import { isMobile, isValidCustomAttrName } from "../util/functions";
 import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { bindAttrInput } from "./commonMenuItem";
@@ -208,7 +208,7 @@ const handleAddCustomAction = (target: HTMLElement, dialog: Dialog, attrs: IObje
     }
     if (btnsElement[1]) {
         btnsElement[1].addEventListener("click", () => {
-            if (!isValidAttrName(inputElement.value)) {
+            if (!isValidCustomAttrName(inputElement.value)) {
                 showMessage(siyuanI18n.attrName + " <b>" + escapeHtml(inputElement.value) + "</b> " + siyuanI18n.invalid);
                 return false;
             }

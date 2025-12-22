@@ -1,22 +1,20 @@
 /// #if !BROWSER
 /// #endif
 import { confirmDialog } from "../dialog/confirmDialog";
-import { getSearch, isMobile, isValidCustomAttrName } from "../util/functions";
-import { isLocalPath, moveToPath, pathPosix } from "../util/pathName";
+import { isMobile } from "../util/functions";
+import { moveToPath, pathPosix } from "../util/pathName";
 import { movePathTo } from "../util/pathName/movePathTo";
 import { MenuItem } from "./Menu.Item";
 import { onExport, saveExport } from "../protyle/export";
-import { isInAndroid, isInHarmony, isInIOS, openByMobile, writeText } from "../protyle/util/compatibility";
+import { isInAndroid, isInHarmony, isInIOS, openByMobile } from "../protyle/util/compatibility";
 import { fetchPost, fetchSyncPost } from "../util/fetch";
 import { hideMessage, showMessage } from "../dialog/message";
 import { Dialog } from "../dialog";
-import { focusBlock, focusByRange, getEditorRange } from "../protyle/util/selection";
 /// #if !MOBILE
 /// #endif
 import { rename, replaceFileName } from "../editor/rename";
 import { Constants } from "../constants";
 import { exportImage } from "../protyle/export/util";
-import { copyTextByType } from "../protyle/toolbar/util";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { openFileAttr } from "./commonMenuItem.openFileAttr";
