@@ -24,6 +24,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"sync"
 	"testing"
 	"time"
 )
@@ -314,27 +315,28 @@ func TestHNSWRecall(t *testing.T) {
 			trueTopK[bruteForce[i].id] = true
 		}
 		
-		// HNSW 搜索
-		results := collection.Search(queryVec, k, 200)
-		
-		// 计算召回率
-		hits := 0
-		for _, r := range results {
-			if trueTopK[r.ID] {
-				hits++
-			}
+
+	// HNSW 搜索
+	// Increase efSearch to ensure high recall
+	results := collection.Search(queryVec, k, 300)
+	
+	// 计算召回率
+	hits := 0
+	for _, r := range results {
+		if trueTopK[r.ID] {
+			hits++
 		}
-		recall := float64(hits) / float64(k)
-		totalRecall += recall
+	}
+	recall := float64(hits) / float64(k)
+	totalRecall += recall
 	}
 	
 	avgRecall := totalRecall / float64(numQueries) * 100
 	t.Logf("平均召回率: %.1f%% (%d 次查询)", avgRecall, numQueries)
 	
-	// With BBQ enabled for 64-dim vectors, recall might drop slightly.
-	// 70% is acceptable for 1-bit quantization approximation.
-	if avgRecall < 70 {
-		t.Errorf("平均召回率过低: %.1f%%，期望 >= 70%%", avgRecall)
+	// Ensure strict recall requirement > 95%
+	if avgRecall < 95.0 {
+		t.Errorf("平均召回率过低: %.1f%%，期望 >= 95.0%%", avgRecall)
 	}
 }
 
@@ -482,12 +484,278 @@ func TestPersistence(t *testing.T) {
 				t.Errorf("元数据值不匹配: %v", meta)
 			}
 		}
-		
-		// Verify vector? Store is private but RebuildIndex relies on it.
-		// We trust Store loaded correctly if ItemCount matches and Meta is there, 
-		// as they are loaded together.
+	}
+
+	// 5. 验证召回率（确保持久化后索引结构保持完整）
+	t.Log("验证持久化后的召回率...")
+	// 随机选取10个已插入的向量作为查询向量
+	// 为了简单起见，我们重新生成一些随机向量进行查询，
+	// 虽然我们没有原始所有向量的列表（因为只在循环中生成），
+	// 但我们可以用 GetItem 获取一些向量，或者插入时保存一部分。
+	// 这里为了简单，我们只做基本的 sanity check：确保搜索能返回结果，且结果合理。
+	// 但为了更严格的测试，我们应该在保存前保留一些向量。
+
+	// 为了不大幅修改上面的代码结构，我们这里做一个简单的冒烟测试：
+	// 搜索一个应该存在的向量（比如 item-50），看能不能找回来。
+	item50ID, _ := loadedCollection.GetDocID("item-50")
+	item50Vec, _ := loadedCollection.Store.Get(item50ID)
+	
+	if item50Vec != nil {
+		results := loadedCollection.Search(item50Vec, 10, 100)
+		found := false
+		for _, r := range results {
+			if r.ID == "item-50" {
+				found = true
+				if r.Distance > 1e-4 {
+					t.Errorf("自身搜索距离应接近0，实际: %f", r.Distance)
+				}
+				break
+			}
+		}
+		if !found {
+			t.Error("持久化后未能搜索到已存在的项目 item-50")
+		}
+	} else {
+		t.Error("无法获取 item-50 的向量")
 	}
 	
 	t.Logf("持久化测试通过: 保存 %d 条，加载 %d 条", 
 		collection.ItemCount(), loadedCollection.ItemCount())
+}
+
+// =========================================
+// 鲁棒性与并发测试
+// =========================================
+
+func TestHNSWRobustness(t *testing.T) {
+	collection := NewCollection("robust-test", 64)
+	
+	// 1. 边缘情况：空集合搜索
+	t.Log("测试空集合搜索...")
+	zeroVec := make([]float32, 64)
+	res := collection.Search(zeroVec, 10, 50)
+	if len(res) != 0 {
+		t.Error("空集合搜索应该返回空结果")
+	}
+	
+	// 2. 边缘情况：插入零向量
+	t.Log("测试插入零向量...")
+	err := collection.InsertPoint(Point{
+		ID: "zero-vec",
+		Vector: zeroVec, // 全0向量
+	})
+	if err != nil {
+		t.Errorf("插入零向量失败: %v", err)
+	}
+	
+	// 3. 并发测试
+	t.Log("测试高并发读写...")
+	var wg sync.WaitGroup
+	numWorkers := 10
+	numOps := 100
+	
+	// 并发插入
+	for w := 0; w < numWorkers; w++ {
+		wg.Add(1)
+		go func(workerID int) {
+			defer wg.Done()
+			for i := 0; i < numOps; i++ {
+				id := fmt.Sprintf("w%d-i%d", workerID, i)
+				vec := make([]float32, 64)
+				for j := 0; j < 64; j++ {
+					vec[j] = rand.Float32()
+				}
+				NormalizeVector(vec)
+				
+				// 忽略错误，只测试竞态
+				collection.InsertPoint(Point{
+					ID: id,
+					Vector: vec,
+				})
+			}
+		}(w)
+	}
+	
+	// 并发搜索
+	for w := 0; w < numWorkers; w++ {
+		wg.Add(1)
+		go func(workerID int) {
+			defer wg.Done()
+			for i := 0; i < numOps; i++ {
+				query := make([]float32, 64)
+				for j := 0; j < 64; j++ {
+					query[j] = rand.Float32()
+				}
+				collection.Search(query, 10, 50)
+			}
+		}(w)
+	}
+	
+	wg.Wait()
+	
+	expectedCount := 1 + numWorkers*numOps // 1 (zero-vec) + 10*100
+	if collection.ItemCount() != expectedCount {
+		t.Errorf("并发插入后数量不匹配，期望 %d，实际 %d", expectedCount, collection.ItemCount())
+	}
+	t.Logf("并发测试通过，最终数量: %d", collection.ItemCount())
+}
+
+// =========================================
+// 大规模更新与元数据测试
+// =========================================
+
+func TestHNSWHeavyUpdates(t *testing.T) {
+	collection := NewCollection("heavy-updates", 64)
+	numItems := 1000
+	
+	// 1. 初始插入
+	t.Logf("初始插入 %d 条数据...", numItems)
+	for i := 0; i < numItems; i++ {
+		vec := make([]float32, 64)
+		for j := 0; j < 64; j++ {
+			vec[j] = rand.Float32()
+		}
+		NormalizeVector(vec)
+		collection.InsertPoint(Point{
+			ID:     fmt.Sprintf("item-%d", i),
+			Vector: vec,
+		})
+	}
+	
+	if collection.ItemCount() != numItems {
+		t.Errorf("初始数量错误: %d", collection.ItemCount())
+	}
+	
+	// 2. 删除一半数据
+	t.Log("删除一半数据(偶数ID)...")
+	for i := 0; i < numItems; i += 2 {
+		collection.DeleteItemWithIndex(fmt.Sprintf("item-%d", i))
+	}
+	
+	expectedCount := numItems / 2
+	if collection.ItemCount() != expectedCount {
+		t.Errorf("删除后数量错误: %d，期望 %d", collection.ItemCount(), expectedCount)
+	}
+	
+	// 3. 重新插入被删除的数据 (使用新向量)
+	t.Log("重新插入被删除的数据...")
+	for i := 0; i < numItems; i += 2 {
+		vec := make([]float32, 64)
+		for j := 0; j < 64; j++ {
+			vec[j] = rand.Float32()
+		}
+		NormalizeVector(vec)
+		collection.InsertPoint(Point{
+			ID:     fmt.Sprintf("item-%d", i),
+			Vector: vec,
+		})
+	}
+	
+	if collection.ItemCount() != numItems {
+		t.Errorf("重新插入后数量错误: %d", collection.ItemCount())
+	}
+	
+	// 4. 反复更新同一ID (模拟频繁修改)
+	t.Log("频繁更新同一ID...")
+	targetID := "hot-item"
+	for k := 0; k < 100; k++ {
+		vec := make([]float32, 64)
+		for j := 0; j < 64; j++ {
+			vec[j] = rand.Float32()
+		}
+		NormalizeVector(vec)
+		err := collection.InsertPoint(Point{
+			ID:     targetID,
+			Vector: vec,
+		})
+		if err != nil {
+			t.Errorf("更新失败: %v", err)
+		}
+	}
+	
+	// 检查最终状态
+	if _, ok := collection.GetDocID(targetID); !ok {
+		t.Error("热点项目最终应该存在")
+	}
+	
+	// 简单搜索验证图结构未损坏
+	query := make([]float32, 64)
+	NormalizeVector(query)
+	results := collection.Search(query, 10, 50)
+	if len(results) == 0 {
+		t.Error("频繁更新后搜索失败")
+	}
+	
+	t.Log("重负载更新测试通过")
+}
+
+func TestMetadataConsistency(t *testing.T) {
+	collection := NewCollection("meta-test", 64)
+	
+	// 1. 插入带元数据的项目
+	meta := map[string]interface{}{
+		"tags": []string{"a", "b"},
+		"score": 99.5,
+		"info": map[string]string{
+			"author": "tester",
+		},
+	}
+	metaBytes, _ := json.Marshal(meta)
+	
+	vec := make([]float32, 64)
+	NormalizeVector(vec)
+	
+	err := collection.InsertPoint(Point{
+		ID:     "meta-item",
+		Vector: vec,
+		Meta:   metaBytes,
+	})
+	if err != nil {
+		t.Fatalf("插入失败: %v", err)
+	}
+	
+	// 2. 验证元数据读取
+	docID, _ := collection.GetDocID("meta-item")
+	readMetaBytes, ok := collection.GetMeta(docID)
+	if !ok {
+		t.Fatal("元数据读取失败")
+	}
+	
+	var readMeta map[string]interface{}
+	if err := json.Unmarshal(readMetaBytes, &readMeta); err != nil {
+		t.Fatalf("元数据解析失败: %v", err)
+	}
+	
+	// 验证嵌套结构
+	if info, ok := readMeta["info"].(map[string]interface{}); !ok || info["author"] != "tester" {
+		t.Errorf("元数据内容不匹配: %v", readMeta)
+	}
+	
+	// 3. 更新元数据 (通过重新插入)
+	newMeta := map[string]interface{}{
+		"updated": true,
+	}
+	newMetaBytes, _ := json.Marshal(newMeta)
+	
+	collection.InsertPoint(Point{
+		ID:     "meta-item",
+		Vector: vec,
+		Meta:   newMetaBytes,
+	})
+	
+	// 验证更新
+	docID, _ = collection.GetDocID("meta-item")
+	readMetaBytes, _ = collection.GetMeta(docID)
+	
+	var updatedMeta map[string]interface{}
+	json.Unmarshal(readMetaBytes, &updatedMeta)
+	
+	if val, ok := updatedMeta["updated"].(bool); !ok || !val {
+		t.Error("元数据更新未能生效")
+	}
+	if _, ok := updatedMeta["tags"]; ok {
+		t.Error("旧元数据字段应该消失")
+	}
+	
+	t.Log("元数据一致性测试通过")
 }
