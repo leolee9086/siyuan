@@ -33,7 +33,7 @@ const (
 	WALFileName      = "wal.msgpack"
 )
 
-// SnapshotData 快照数据 (简化版)
+// SnapshotData 快照数据
 type SnapshotData struct {
 	Name      string           `msgpack:"name"`
 	Dimension int              `msgpack:"dimension"`
@@ -43,10 +43,10 @@ type SnapshotData struct {
 	DocMap []string         `msgpack:"docMap"`
 	IDMap  map[string]DocID `msgpack:"idMap"`
 
-	// 元数据 (简化)
-	Metas []map[string]interface{} `msgpack:"metas"`
+	// 元数据 (Raw JSON)
+	Metas [][]byte `msgpack:"metas"`
 
-	// 图结构 (简化)
+	// 图结构
 	// Neighbors[nodeID][level] -> []DocID
 	Neighbors [][][]DocID `msgpack:"neighbors"`
 	Deleted   map[DocID]bool `msgpack:"deleted"`
@@ -64,9 +64,9 @@ type SnapshotData struct {
 
 // WALEntry WAL 条目
 type WALEntry struct {
-	Op    int      `msgpack:"op"`
-	Items []*Item  `msgpack:"items,omitempty"`
-	Keys  []string `msgpack:"keys,omitempty"`
+	Op     int      `msgpack:"op"`
+	Points []Point  `msgpack:"points,omitempty"`
+	Keys   []string `msgpack:"keys,omitempty"`
 }
 
 const (
@@ -167,9 +167,9 @@ func LoadCollection(basePath string, name string) (*Collection, error) {
 	store.bbqCorrections = snapshot.BBQCorrections
 
 	// 转换 Neighbors 格式
-	neighbors := make([][]docIDSlice, len(snapshot.Neighbors))
+	neighbors := make([][][]DocID, len(snapshot.Neighbors))
 	for i, levels := range snapshot.Neighbors {
-		neighbors[i] = make([]docIDSlice, len(levels))
+		neighbors[i] = make([][]DocID, len(levels))
 		for j, ids := range levels {
 			neighbors[i][j] = ids
 		}
@@ -214,16 +214,12 @@ func LoadCollection(basePath string, name string) (*Collection, error) {
 			}
 
 			if entry.Op == OpAdd {
-				for _, item := range entry.Items {
-					if item.Vectors != nil {
-						for modelName := range item.Vectors {
-							c.InsertItem(item, modelName)
-						}
-					}
+				for _, point := range entry.Points {
+					c.InsertPoint(point)
 				}
 			} else if entry.Op == OpDelete {
 				for _, key := range entry.Keys {
-					c.DeleteItemWithIndex(key, "")
+					c.DeleteItemWithIndex(key)
 				}
 			}
 		}
@@ -233,10 +229,10 @@ func LoadCollection(basePath string, name string) (*Collection, error) {
 }
 
 // AppendWALAdd 追加添加操作
-func AppendWALAdd(c *Collection, basePath string, items []*Item) error {
+func AppendWALAdd(c *Collection, basePath string, points []Point) error {
 	return appendWAL(c.Name, basePath, WALEntry{
-		Op:    OpAdd,
-		Items: items,
+		Op:     OpAdd,
+		Points: points,
 	})
 }
 

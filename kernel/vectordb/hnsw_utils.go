@@ -40,7 +40,7 @@ func RandomLevel(maxLevel int) int {
 
 // InitItemNeighbors 初始化节点邻居结构
 // 返回分配的最大层级
-func InitItemNeighbors(c *Collection, docID DocID, modelName string, maxLevel int) int {
+func InitItemNeighbors(c *Collection, docID DocID, maxLevel int) int {
 	level := RandomLevel(maxLevel)
 
 	c.Mu.Lock()
@@ -52,7 +52,7 @@ func InitItemNeighbors(c *Collection, docID DocID, modelName string, maxLevel in
 	}
 
 	// 初始化各层邻居列表
-	neighbors := make([]docIDSlice, level+1)
+	neighbors := make([][]DocID, level+1)
 	for l := 0; l <= level; l++ {
 		neighbors[l] = make([]DocID, 0, c.Config.M)
 	}
@@ -62,7 +62,7 @@ func InitItemNeighbors(c *Collection, docID DocID, modelName string, maxLevel in
 }
 
 // GetItemLevel 获取节点最大层级
-func GetItemLevel(c *Collection, docID DocID, modelName string) int {
+func GetItemLevel(c *Collection, docID DocID, _ string) int {
 	c.Mu.RLock()
 	defer c.Mu.RUnlock()
 
@@ -74,7 +74,7 @@ func GetItemLevel(c *Collection, docID DocID, modelName string) int {
 
 // GetLevelNeighborIDs 零分配版本：直接返回邻居 ID 切片
 // 调用方不得修改返回的切片！
-func GetLevelNeighborIDs(c *Collection, docID DocID, modelName string, level int) []DocID {
+func GetLevelNeighborIDs(c *Collection, docID DocID, level int) []DocID {
 	if int(docID) >= len(c.Neighbors) {
 		return nil
 	}
@@ -85,8 +85,8 @@ func GetLevelNeighborIDs(c *Collection, docID DocID, modelName string, level int
 }
 
 // GetLevelNeighbors 兼容版本：返回 NeighborRecord
-func GetLevelNeighbors(c *Collection, docID DocID, modelName string, level int) []NeighborRecord {
-	ids := GetLevelNeighborIDs(c, docID, modelName, level)
+func GetLevelNeighbors(c *Collection, docID DocID, level int) []NeighborRecord {
+	ids := GetLevelNeighborIDs(c, docID, level)
 	if ids == nil {
 		return nil
 	}
@@ -102,7 +102,7 @@ func GetLevelNeighbors(c *Collection, docID DocID, modelName string, level int) 
 }
 
 // SetLevelNeighbors 设置指定层级的邻居
-func SetLevelNeighbors(c *Collection, docID DocID, modelName string, level int, neighbors []NeighborRecord) {
+func SetLevelNeighbors(c *Collection, docID DocID, level int, neighbors []NeighborRecord) {
 	c.Mu.Lock()
 	defer c.Mu.Unlock()
 
@@ -139,7 +139,7 @@ func SetLevelNeighborIDs(c *Collection, docID DocID, level int, ids []DocID) {
 }
 
 // RemoveNeighbor 从邻居列表中移除指定节点
-func RemoveNeighbor(c *Collection, docID DocID, modelName string, level int, neighborID DocID) {
+func RemoveNeighbor(c *Collection, docID DocID, level int, neighborID DocID) {
 	c.Mu.Lock()
 	defer c.Mu.Unlock()
 
@@ -164,8 +164,8 @@ func RemoveNeighbor(c *Collection, docID DocID, modelName string, level int, nei
 // 入口点管理
 // =========================================
 
-// SelectEntryPoint 返回全局入口点
-func SelectEntryPoint(c *Collection, modelName string, exclude map[DocID]bool) (DocID, bool) {
+// SelectEntryPoint 选择入口点
+func SelectEntryPoint(c *Collection, visited map[DocID]bool) (DocID, bool) {
 	c.Mu.RLock()
 	defer c.Mu.RUnlock()
 
@@ -174,7 +174,7 @@ func SelectEntryPoint(c *Collection, modelName string, exclude map[DocID]bool) (
 		return 0, false
 	}
 
-	if exclude != nil && exclude[ep] {
+	if visited != nil && visited[ep] {
 		return 0, false
 	}
 

@@ -149,38 +149,5 @@ func NormalizeVector(v []float32) {
 	}
 }
 
-// =========================================
-// 数据项距离计算
-// =========================================
-
-// ComputeItemDistance 计算两个数据项之间的距离
-func ComputeItemDistance(a, b *Item, modelName string, metricType string) float32 {
-	vecA, okA := a.GetVector(modelName)
-	vecB, okB := b.GetVector(modelName)
-	
-	if !okA || !okB {
-		return float32(math.MaxFloat32)
-	}
-	
-	switch metricType {
-	case "l2":
-		return L2Distance(vecA, vecB)
-	default: // cosine
-		return CosineDistance(vecA, vecB)
-	}
-}
-
-// ComputeQueryDistance 计算查询向量到数据项的距离
-func ComputeQueryDistance(query []float32, item *Item, modelName string, metricType string) float32 {
-	vec, ok := item.GetVector(modelName)
-	if !ok {
-		return float32(math.MaxFloat32)
-	}
-	
-	switch metricType {
-	case "l2":
-		return L2Distance(query, vec)
-	default: // cosine
-		return CosineDistance(query, vec)
-	}
-}
+// ComputeItemDistance deprecated and removed
+// ComputeQueryDistance deprecated and removed

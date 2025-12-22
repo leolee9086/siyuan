@@ -16,7 +16,10 @@
 
 package vectordb
 
-import "sort"
+import (
+	"encoding/json"
+	"sort"
+)
 
 // =========================================
 // HNSW Query (Search)
@@ -24,15 +27,16 @@ import "sort"
 
 // SearchResult represents a search result
 type SearchResult struct {
-	ID       string                 `json:"id"`
-	Score    float32                `json:"score"`
-	Distance float32                `json:"distance"`
-	Meta     map[string]interface{} `json:"meta"`
+	ID       string          `json:"id"`
+	Score    float32         `json:"score"`
+	Distance float32         `json:"distance"`
+	Meta     json.RawMessage `json:"meta"`
 }
 
 // Search searches for k nearest neighbors
 // Search searches for k nearest neighbors
-func (c *Collection) Search(queryVec []float32, modelName string, k int, efSearch int) []SearchResult {
+// Search searches for k nearest neighbors
+func (c *Collection) Search(queryVec []float32, k int, efSearch int) []SearchResult {
 	if efSearch <= 0 {
 		efSearch = c.Config.EfSearch
 	}
@@ -41,13 +45,13 @@ func (c *Collection) Search(queryVec []float32, modelName string, k int, efSearc
 	}
 	
 	// Select initial entry point
-	entryPointID, ok := SelectEntryPoint(c, modelName, nil)
+	entryPointID, ok := SelectEntryPoint(c, nil)
 	if !ok {
 		return []SearchResult{}
 	}
 	
 	config := c.Config
-	entryLevel := GetItemLevel(c, entryPointID, modelName)
+	entryLevel := GetItemLevel(c, entryPointID, "")
 	
     // BBQ: 对查询向量进行4-bit量化
     useBBQ := c.Dimension >= 128
@@ -61,11 +65,11 @@ func (c *Collection) Search(queryVec []float32, modelName string, k int, efSearc
 	// Navigate the graph to reach the region closest to the query
 	currentBestID := entryPointID
 	for level := entryLevel; level > 0; level-- {
-		currentBestID = c.greedySearchVec(queryVec, queryQuantized, queryCorrection, currentBestID, modelName, level, config.MetricType)
+		currentBestID = c.greedySearchVec(queryVec, queryQuantized, queryCorrection, currentBestID, level, config.MetricType)
 	}
 	
 	// Phase 2: Search at level 0 (base layer) with ef candidates
-	candidates := c.searchLevelVec(queryVec, queryQuantized, queryCorrection, currentBestID, modelName, 0, efSearch, config.MetricType)
+	candidates := c.searchLevelVec(queryVec, queryQuantized, queryCorrection, currentBestID, 0, efSearch, config.MetricType)
 	
 	// Convert candidates to search results
 	searchResults := make([]SearchResult, 0, len(candidates))
@@ -142,7 +146,7 @@ func (c *Collection) Search(queryVec []float32, modelName string, k int, efSearc
 
 // greedySearchVec performs greedy search at a single level using raw vector
 // Returns the closest node found at this level
-func (c *Collection) greedySearchVec(queryVec []float32, queryQuantized []byte, queryCorrection 量化结果, entryPointID DocID, modelName string, level int, metricType string) DocID {
+func (c *Collection) greedySearchVec(queryVec []float32, queryQuantized []byte, queryCorrection 量化结果, entryPointID DocID, level int, metricType string) DocID {
 	currentBestID := entryPointID
 	
     // 使用BBQ计算距离
@@ -158,7 +162,7 @@ func (c *Collection) greedySearchVec(queryVec []float32, queryQuantized []byte, 
 	for improved {
 		improved = false
 		// 零分配优化: 使用 GetLevelNeighborIDs
-		neighborIDs := GetLevelNeighborIDs(c, currentBestID, modelName, level)
+		neighborIDs := GetLevelNeighborIDs(c, currentBestID, level)
 		if neighborIDs == nil {
 			break
 		}
@@ -184,7 +188,7 @@ func (c *Collection) greedySearchVec(queryVec []float32, queryQuantized []byte, 
 
 // searchLevelVec performs full search at a specific level (usually level 0)
 // Returns ef closest candidates found
-func (c *Collection) searchLevelVec(queryVec []float32, queryQuantized []byte, queryCorrection 量化结果, entryPointID DocID, modelName string, level int, ef int, metricType string) []NeighborRecord {
+func (c *Collection) searchLevelVec(queryVec []float32, queryQuantized []byte, queryCorrection 量化结果, entryPointID DocID, level int, ef int, metricType string) []NeighborRecord {
 	// P0优化: Epoch-based visited set
     epoch := c.Store.NewSearchEpoch()
     
@@ -211,7 +215,7 @@ func (c *Collection) searchLevelVec(queryVec []float32, queryQuantized []byte, q
 		}
 		
 		// 零分配优化: 使用 GetLevelNeighborIDs
-		neighborIDs := GetLevelNeighborIDs(c, current.ID, modelName, level)
+		neighborIDs := GetLevelNeighborIDs(c, current.ID, level)
 		if neighborIDs == nil {
 			continue
 		}

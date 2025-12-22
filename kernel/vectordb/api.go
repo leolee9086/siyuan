@@ -18,372 +18,219 @@ package vectordb
 
 import (
 	"net/http"
+	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	// "github.com/siyuan-note/logging"
 )
 
-// =========================================
-// HTTP API
-// =========================================
+var (
+	// Global DB Instance for API
+	// In real app this should be injected
+	GlobalDB *Database
+	once     sync.Once
+)
 
-// Global storage instance (initialized by Init)
-var storage *VectorStorage
-
-// Init initializes vector database
-func Init(publicPath, pluginPath, tempPath string) error {
-	storage = NewVectorStorage()
-
-	// Load or create databases
-	if publicPath != "" {
-		db, err := LoadDatabase(publicPath)
-		if err != nil {
-			db = NewDatabase(publicPath)
-		}
-		storage.Databases["public"] = db
-	}
-
-	if pluginPath != "" {
-		db, err := LoadDatabase(pluginPath)
-		if err != nil {
-			db = NewDatabase(pluginPath)
-		}
-		storage.Databases["plugin"] = db
-	}
-
-	if tempPath != "" {
-		db, err := LoadDatabase(tempPath)
-		if err != nil {
-			db = NewDatabase(tempPath)
-		}
-		storage.Databases["temp"] = db
-	}
-
-	return nil
-}
-
-// RegisterRoutes registers HTTP routes
-func RegisterRoutes(router *gin.RouterGroup) {
-	router.POST("/collections/build", handleBuildCollection)
-	router.POST("/add", handleAddVectors)
-	router.POST("/delete", handleDeleteVectors)
-	router.POST("/query", handleQuery)
-	router.POST("/keys", handleKeys)
-	router.POST("/state", handleState)
-	router.POST("/rebuild", handleRebuild)
-}
-
-// =========================================
-// Request/Response structures
-// =========================================
-
-type buildCollectionRequest struct {
-	Database       string `json:"database"`
-	CollectionName string `json:"collection_name"`
-	Dimension      int    `json:"dimension"`
-}
-
-type addVectorsRequest struct {
-	Database       string       `json:"database"`
-	CollectionName string       `json:"collection_name"`
-	Vectors        []VectorData `json:"vectors"`
-}
-
-type VectorData struct {
-	ID     string                       `json:"id"`
-	Meta   map[string]interface{}       `json:"meta"`
-	Vector map[string][]float32         `json:"vector"`
-}
-
-type deleteVectorsRequest struct {
-	Database       string   `json:"database"`
-	CollectionName string   `json:"collection_name"`
-	Keys           []string `json:"keys"`
-}
-
-type queryRequest struct {
-	Database       string    `json:"database"`
-	CollectionName string    `json:"collection_name"`
-	VectorName     string    `json:"vector_name"`
-	Vector         []float32 `json:"vector"`
-	Limit          int       `json:"limit"`
-	EfSearch       int       `json:"ef_search"`
-}
-
-type keysRequest struct {
-	Database       string `json:"database"`
-	CollectionName string `json:"collection_name"`
-	WithMeta       bool   `json:"with_meta"`
-}
-
-type stateRequest struct {
-	Database       string `json:"database"`
-	CollectionName string `json:"collection_name"`
-}
-
-type rebuildRequest struct {
-	Database       string `json:"database"`
-	CollectionName string `json:"collection_name"`
-	VectorName     string `json:"vector_name"`
-}
-
-// =========================================
-// Handler implementations
-// =========================================
-
-func handleBuildCollection(c *gin.Context) {
-	var req buildCollectionRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": err.Error()})
-		return
-	}
-
-	db := GetDatabase(req.Database)
-	if db == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": "database not found"})
-		return
-	}
-
-	db.mu.Lock()
-	collection, exists := db.Collections[req.CollectionName]
-	if !exists {
-		collection = NewCollection(req.CollectionName, req.Dimension)
-		db.Collections[req.CollectionName] = collection
-	}
-	db.mu.Unlock()
-
-	c.JSON(http.StatusOK, gin.H{
-		"code": 0,
-		"data": gin.H{
-			"collection_name": collection.Name,
-			"dimension":       collection.Dimension,
-			"item_count":      collection.ItemCount(),
-		},
-	})
-}
-
-func handleAddVectors(c *gin.Context) {
-	var req addVectorsRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": err.Error()})
-		return
-	}
-
-	collection := GetCollection(req.Database, req.CollectionName)
-	if collection == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": "collection not found"})
-		return
-	}
-
-	addedCount := 0
-	for _, vd := range req.Vectors {
-		item := NewItem(vd.ID)
-		item.Meta = vd.Meta
-
-		for modelName, vec := range vd.Vector {
-			item.SetVector(modelName, vec)
-			collection.InitLevelMap(modelName)
-			if err := collection.InsertItem(item, modelName); err != nil {
-				continue
-			}
-		}
-		addedCount++
-	}
-
-	db := GetDatabase(req.Database)
-	if db != nil {
-		SaveCollection(collection, db.Path)
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"code": 0,
-		"data": gin.H{
-			"added_count": addedCount,
-		},
-	})
-}
-
-func handleDeleteVectors(c *gin.Context) {
-	var req deleteVectorsRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": err.Error()})
-		return
-	}
-
-	collection := GetCollection(req.Database, req.CollectionName)
-	if collection == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": "collection not found"})
-		return
-	}
-
-	deletedCount := 0
-	for _, key := range req.Keys {
-		// HNSWLevelMap is deprecated. Assumes single model or handles internally.
-		collection.DeleteItemWithIndex(key, "")
-		deletedCount++
-	}
-
-	db := GetDatabase(req.Database)
-	if db != nil {
-		SaveCollection(collection, db.Path)
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"code": 0,
-		"data": gin.H{
-			"deleted_count": deletedCount,
-		},
-	})
-}
-
-func handleQuery(c *gin.Context) {
-	var req queryRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": err.Error()})
-		return
-	}
-
-	collection := GetCollection(req.Database, req.CollectionName)
-	if collection == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": "collection not found"})
-		return
-	}
-
-	limit := req.Limit
-	if limit <= 0 {
-		limit = 10
-	}
-
-	results := collection.Search(req.Vector, req.VectorName, limit, req.EfSearch)
-
-	c.JSON(http.StatusOK, gin.H{
-		"code": 0,
-		"data": results,
-	})
-}
-
-func handleKeys(c *gin.Context) {
-	var req keysRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": err.Error()})
-		return
-	}
-
-	collection := GetCollection(req.Database, req.CollectionName)
-	if collection == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": "collection not found"})
-		return
-	}
-
-	collection.Mu.RLock()
-	defer collection.Mu.RUnlock()
-
-	if req.WithMeta {
-		result := make([]map[string]interface{}, 0, len(collection.DocMap))
-		for i, id := range collection.DocMap {
-			if collection.Deleted[DocID(i)] {
-				continue
-			}
-			meta := map[string]interface{}{}
-			if i < len(collection.Metas) {
-				meta = collection.Metas[i]
-			}
-			result = append(result, map[string]interface{}{
-				"id":   id,
-				"meta": meta,
-			})
-		}
-		c.JSON(http.StatusOK, gin.H{"code": 0, "data": result})
-	} else {
-		keys := make([]string, 0, len(collection.DocMap))
-		for i, id := range collection.DocMap {
-			if collection.Deleted[DocID(i)] {
-				continue
-			}
-			keys = append(keys, id)
-		}
-		c.JSON(http.StatusOK, gin.H{"code": 0, "data": keys})
-	}
-}
-
-func handleState(c *gin.Context) {
-	var req stateRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": err.Error()})
-		return
-	}
-
-	collection := GetCollection(req.Database, req.CollectionName)
-	if collection == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": "collection not found"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"code": 0,
-		"data": gin.H{
-			"name":       collection.Name,
-			"dimension":  collection.Dimension,
-			"item_count": collection.ItemCount(),
-			"models":     getModelNames(collection),
-		},
-	})
-}
-
-func handleRebuild(c *gin.Context) {
-	var req rebuildRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": err.Error()})
-		return
-	}
-
-	collection := GetCollection(req.Database, req.CollectionName)
-	if collection == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": "collection not found"})
-		return
-	}
-
-	if err := collection.RebuildIndex(req.VectorName); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"code": -1, "msg": err.Error()})
-		return
-	}
-
-	db := GetDatabase(req.Database)
-	if db != nil {
-		SaveCollection(collection, db.Path)
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"code": 0,
-		"msg":  "index rebuilt",
+// InitGlobalDB initializes the global database instance
+func InitGlobalDB(path string) {
+	once.Do(func() {
+		GlobalDB = NewDatabase(path)
+		// Load from persistence... (TODO)
 	})
 }
 
 // =========================================
-// Helper functions
+// API Schemas
 // =========================================
 
-func GetDatabase(name string) *Database {
-	if storage == nil {
-		return nil
-	}
-	if name == "" {
-		name = "public"
-	}
-	storage.mu.RLock()
-	defer storage.mu.RUnlock()
-	return storage.Databases[name]
+type CreateCollectionRequest struct {
+	Database   string `json:"database"`
+	Collection string `json:"collection"`
+	Dimension  int    `json:"dimension"`
+	Metric     string `json:"metric"` // optional
 }
 
-func GetCollection(dbName, collectionName string) *Collection {
-	db := GetDatabase(dbName)
-	if db == nil {
-		return nil
-	}
-	db.mu.RLock()
-	defer db.mu.RUnlock()
-	return db.Collections[collectionName]
+type PutRequest struct {
+	Database   string  `json:"database"`
+	Collection string  `json:"collection"`
+	Points     []Point `json:"points"`
 }
 
-func getModelNames(c *Collection) []string {
-	return []string{"default"}
+type DeleteRequest struct {
+	Database   string   `json:"database"`
+	Collection string   `json:"collection"`
+	IDs        []string `json:"ids"`
+}
+
+type QueryRequest struct {
+	Database   string    `json:"database"`
+	Collection string    `json:"collection"`
+	Vector     []float32 `json:"vector"`
+	TopK       int       `json:"top_k"`
+	EfSearch   int       `json:"ef_search"` // optional
+}
+
+type RebuildRequest struct {
+	Database   string `json:"database"`
+	Collection string `json:"collection"`
+}
+
+type Response struct {
+	Code int         `json:"code"`
+	Msg  string      `json:"msg"`
+	Data interface{} `json:"data,omitempty"`
+}
+
+// =========================================
+// Handlers
+// =========================================
+
+func RegisterVectorDBRoutes(r *gin.Engine) {
+	group := r.Group("/api/vector")
+	{
+		group.POST("/collections/build", createCollectionHandler)
+		group.POST("/put", putPointsHandler)
+		group.POST("/delete", deletePointsHandler)
+		group.POST("/query", queryHandler)
+		group.POST("/rebuild", rebuildHandler)
+	}
+}
+
+func createCollectionHandler(c *gin.Context) {
+	var req CreateCollectionRequest
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, Response{Code: 400, Msg: "Invalid request"})
+		return
+	}
+
+	if req.Collection == "" || req.Dimension <= 0 {
+		c.JSON(http.StatusBadRequest, Response{Code: 400, Msg: "Invalid collection name or dimension"})
+		return
+	}
+
+	// Always use "default" database logic for now if multi-tenancy not fully implemented
+	// Assuming req.Database is just ignored or used as namespace prefix
+	// Here we just map collection name directly
+
+	col, err := GlobalDB.CreateCollection(req.Collection, req.Dimension)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, Response{Code: 500, Msg: err.Error()})
+		return
+	}
+	
+	col.Mu.Lock()
+	if req.Metric != "" {
+		col.Config.MetricType = req.Metric
+	}
+	col.Mu.Unlock()
+
+	c.JSON(http.StatusOK, Response{Code: 0, Msg: "Collection created"})
+}
+
+func putPointsHandler(c *gin.Context) {
+	var req PutRequest
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, Response{Code: 400, Msg: "Invalid request body"})
+		return
+	}
+
+	col := GlobalDB.GetCollection(req.Collection)
+	if col == nil {
+		c.JSON(http.StatusNotFound, Response{Code: 404, Msg: "Collection not found"})
+		return
+	}
+
+	start := time.Now()
+	count := 0
+	
+	for _, point := range req.Points {
+		if len(point.Vector) != col.Dimension {
+			continue // Skip invalid dimension
+		}
+		col.InsertPoint(point)
+		count++
+	}
+	
+	elapsed := time.Since(start)
+	// logging.Logger.Debugf("Inserted %d points in %v", count, elapsed)
+    _ = elapsed
+
+	c.JSON(http.StatusOK, Response{Code: 0, Msg: "Points upserted", Data: map[string]int{"count": count}})
+}
+
+func deletePointsHandler(c *gin.Context) {
+	var req DeleteRequest
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, Response{Code: 400, Msg: "Invalid request"})
+		return
+	}
+
+	col := GlobalDB.GetCollection(req.Collection)
+	if col == nil {
+		c.JSON(http.StatusNotFound, Response{Code: 404, Msg: "Collection not found"})
+		return
+	}
+
+	for _, id := range req.IDs {
+		// New delete logic
+		col.DeleteItemWithIndex(id)
+	}
+
+	c.JSON(http.StatusOK, Response{Code: 0, Msg: "Points deleted"})
+}
+
+func queryHandler(c *gin.Context) {
+	var req QueryRequest
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, Response{Code: 400, Msg: "Invalid request"})
+		return
+	}
+
+	col := GlobalDB.GetCollection(req.Collection)
+	if col == nil {
+		c.JSON(http.StatusNotFound, Response{Code: 404, Msg: "Collection not found"})
+		return
+	}
+	
+	if len(req.Vector) != col.Dimension {
+		c.JSON(http.StatusBadRequest, Response{Code: 400, Msg: "Dimension mismatch"})
+		return
+	}
+
+	topK := req.TopK
+	if topK <= 0 {
+		topK = 10
+	}
+	
+	results := col.Search(req.Vector, topK, req.EfSearch)
+
+	c.JSON(http.StatusOK, Response{Code: 0, Msg: "OK", Data: results})
+}
+
+func rebuildHandler(c *gin.Context) {
+	var req RebuildRequest
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, Response{Code: 400, Msg: "Invalid request"})
+		return
+	}
+
+	col := GlobalDB.GetCollection(req.Collection)
+	if col == nil {
+		c.JSON(http.StatusNotFound, Response{Code: 404, Msg: "Collection not found"})
+		return
+	}
+
+	start := time.Now()
+	err := col.RebuildIndex()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, Response{Code: 500, Msg: err.Error()})
+		return
+	}
+	
+	elapsed := time.Since(start)
+	// logging.Logger.Infof("Rebuilt index for collection %s in %v", req.Collection, elapsed)
+    _ = elapsed
+
+	c.JSON(http.StatusOK, Response{Code: 0, Msg: "Index rebuilt"})
 }
