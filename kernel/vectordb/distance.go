@@ -28,7 +28,7 @@ import (
 // 返回值范围 [0, 2]，0 表示完全相同，2 表示完全相反
 func CosineDistance(a, b []float32) float32 {
 	if len(a) != len(b) || len(a) == 0 {
-		return 2.0 // 无效输入返回最大距离
+		return 2.0
 	}
 	
 	var dotProduct float32
@@ -54,15 +54,12 @@ func CosineDistance(a, b []float32) float32 {
 	}
 	
 	if normA == 0 || normB == 0 {
-		return 1.0 // 零向量返回中间距离
+		return 1.0
 	}
 	
-	// 余弦相似度 = dot / (|a| * |b|)
-	// 余弦距离 = 1 - 余弦相似度
 	similarity := dotProduct / (float32(math.Sqrt(float64(normA))) * float32(math.Sqrt(float64(normB))))
-	
-	// 确保结果在 [0, 2] 范围内
 	distance := 1.0 - similarity
+	
 	if distance < 0 {
 		distance = 0
 	}
@@ -74,7 +71,6 @@ func CosineDistance(a, b []float32) float32 {
 }
 
 // CosineDistanceWithNorm 使用预计算范数的余弦距离
-// normA 和 normB 是预计算的向量模长
 func CosineDistanceWithNorm(a, b []float32, normA, normB float32) float32 {
 	if len(a) != len(b) || len(a) == 0 {
 		return 2.0
@@ -88,7 +84,6 @@ func CosineDistanceWithNorm(a, b []float32, normA, normB float32) float32 {
 	n := len(a)
 	i := 0
 	
-	// 循环展开
 	for ; i <= n-4; i += 4 {
 		dotProduct += a[i]*b[i] + a[i+1]*b[i+1] + a[i+2]*b[i+2] + a[i+3]*b[i+3]
 	}
@@ -110,7 +105,6 @@ func CosineDistanceWithNorm(a, b []float32, normA, normB float32) float32 {
 }
 
 // L2Distance 计算欧几里得距离的平方
-// 返回平方距离以避免开方运算
 func L2Distance(a, b []float32) float32 {
 	if len(a) != len(b) || len(a) == 0 {
 		return float32(math.MaxFloat32)
@@ -120,7 +114,6 @@ func L2Distance(a, b []float32) float32 {
 	n := len(a)
 	i := 0
 	
-	// 循环展开
 	for ; i <= n-4; i += 4 {
 		d0 := a[i] - b[i]
 		d1 := a[i+1] - b[i+1]

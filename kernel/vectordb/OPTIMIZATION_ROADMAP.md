@@ -70,26 +70,22 @@ s.mu.RLock()  // 每次距离计算都锁!
 
 ## P2: SIMD距离计算
 
-### 问题
-当前循环展开无法利用CPU向量指令:
-```go
-for ; i <= n-4; i += 4 {
-    dotProduct += a[i]*b[i] + a[i+1]*b[i+1] + ...
-}
-```
+> [!WARNING]
+> **实验结论: 对BBQ量化架构收益有限,已回滚**
 
-### 解决方案
-使用 [github.com/viterin/vek](https://github.com/viterin/vek):
-```go
-import "github.com/viterin/vek"
+### 实验结果 (2025-12-23)
+- 使用 `github.com/viterin/vek/vek32` 替换循环展开版本
+- 插入: 697 → 720 (+3%) ✅
+- 查询: 0.53ms → 1.56ms ❌ (反而变慢)
 
-func CosineDistance(a, b []float32) float32 {
-    dot := vek.Dot(a, b)
-    normA := vek.Norm(a)
-    normB := vek.Norm(b)
-    return 1.0 - dot/(normA*normB)
-}
-```
+### 原因分析
+1. **BBQ位运算主导**: 搜索时主要使用`计算打包位点积`(POPCNT),不是浮点距离
+2. **精排占比小**: CosineDistance只在最终Top-K精排调用(~100次),占比<5%
+3. **函数调用开销**: vek库引入额外函数调用,抵消了SIMD收益
+
+### 建议
+- 若要优化距离计算,应优化**BBQ位运算**(批量SIMD popcount)
+- 或在**非BBQ场景**(dim<128)使用SIMD
 
 ---
 
