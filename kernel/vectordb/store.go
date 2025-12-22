@@ -2,6 +2,7 @@ package vectordb
 
 import (
     "sync"
+    "sync/atomic"
 )
 
 // VectorStore manages storage for high-dimensional vectors.
@@ -30,6 +31,11 @@ type VectorStore struct {
     scorer    *量化评分器
     centroid  []float32 // 默认使用零向量
     
+    // Epoch-based Visited Set (P0优化)
+    // 使用epoch替代map[DocID]bool,消除每次搜索的map分配
+    visitedEpoch []uint32  // 每个节点的最后访问epoch
+    currentEpoch uint32    // 当前搜索epoch (原子操作)
+    
     mu sync.RWMutex
 }
 
@@ -46,6 +52,8 @@ func NewVectorStore(dimension int) *VectorStore {
         quantizer:      新建标量量化器(余弦相似度),
         scorer:         新建量化评分器(余弦相似度),
         centroid:       创建零质心(dimension),
+        visitedEpoch:   make([]uint32, 0),
+        currentEpoch:   1, // 从1开始,0表示未访问
     }
 }
 
@@ -92,6 +100,15 @@ func (s *VectorStore) Grow(n int) {
         s.bbqCorrections = newCorr
     } else if len(s.bbqCorrections) < n {
         s.bbqCorrections = s.bbqCorrections[:n]
+    }
+    
+    // Visited Epoch (P0优化)
+    if cap(s.visitedEpoch) < n {
+        newVisited := make([]uint32, n, n*2)
+        copy(newVisited, s.visitedEpoch)
+        s.visitedEpoch = newVisited
+    } else if len(s.visitedEpoch) < n {
+        s.visitedEpoch = s.visitedEpoch[:n]
     }
 }
 
@@ -320,3 +337,62 @@ func (s *VectorStore) ComputeDistanceFromVector(query []float32, docID DocID, me
     return CosineDistance(query, vec)
 }
 
+// =========================================
+// Epoch-based Visited Set (P0优化)
+// 使用epoch计数器替代map分配,O(1)重置
+// =========================================
+
+// NewSearchEpoch 开始新的搜索,递增epoch计数器
+// 返回当前epoch值,用于后续的IsVisited和MarkVisited
+func (s *VectorStore) NewSearchEpoch() uint32 {
+    return atomic.AddUint32(&s.currentEpoch, 1)
+}
+
+// IsVisited 检查节点是否在当前搜索中已被访问
+// 无需加锁,使用原子读取
+func (s *VectorStore) IsVisited(docID DocID, epoch uint32) bool {
+    id := int(docID)
+    if id >= len(s.visitedEpoch) {
+        return false
+    }
+    return atomic.LoadUint32(&s.visitedEpoch[id]) == epoch
+}
+
+// MarkVisited 标记节点为已访问
+// 无需加锁,使用原子写入
+func (s *VectorStore) MarkVisited(docID DocID, epoch uint32) {
+    id := int(docID)
+    if id >= len(s.visitedEpoch) {
+        // 需要扩展数组 (通常不应发生,因为Grow应该已经调用)
+        s.mu.Lock()
+        if id >= len(s.visitedEpoch) {
+            newLen := id + 1
+            if cap(s.visitedEpoch) < newLen {
+                newVisited := make([]uint32, newLen, newLen*2)
+                copy(newVisited, s.visitedEpoch)
+                s.visitedEpoch = newVisited
+            } else {
+                s.visitedEpoch = s.visitedEpoch[:newLen]
+            }
+        }
+        s.mu.Unlock()
+    }
+    atomic.StoreUint32(&s.visitedEpoch[id], epoch)
+}
+
+// EnsureVisitedCapacity 确保visitedEpoch数组有足够容量
+// 在搜索开始前调用一次
+func (s *VectorStore) EnsureVisitedCapacity(n int) {
+    s.mu.Lock()
+    defer s.mu.Unlock()
+    
+    if len(s.visitedEpoch) < n {
+        if cap(s.visitedEpoch) < n {
+            newVisited := make([]uint32, n, n*2)
+            copy(newVisited, s.visitedEpoch)
+            s.visitedEpoch = newVisited
+        } else {
+            s.visitedEpoch = s.visitedEpoch[:n]
+        }
+    }
+}

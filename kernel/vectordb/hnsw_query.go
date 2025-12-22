@@ -185,7 +185,9 @@ func (c *Collection) greedySearchVec(queryVec []float32, queryQuantized []byte, 
 // searchLevelVec performs full search at a specific level (usually level 0)
 // Returns ef closest candidates found
 func (c *Collection) searchLevelVec(queryVec []float32, queryQuantized []byte, queryCorrection 量化结果, entryPointID DocID, modelName string, level int, ef int, metricType string) []NeighborRecord {
-	visited := make(map[DocID]bool)
+	// P0优化: Epoch-based visited set
+    epoch := c.Store.NewSearchEpoch()
+    
 	candidates := NewMinHeap() // Min-heap to store candidates to explore
 	results := NewMaxHeap(ef)  // Max-heap to store best k results found
 	
@@ -199,7 +201,7 @@ func (c *Collection) searchLevelVec(queryVec []float32, queryQuantized []byte, q
 	
 	candidates.Push(&HeapItem{ID: entryPointID, Distance: entryDist})
 	results.Push(&HeapItem{ID: entryPointID, Distance: entryDist})
-	visited[entryPointID] = true
+	c.Store.MarkVisited(entryPointID, epoch)
 	
 	for candidates.Len() > 0 {
 		current := candidates.Pop()
@@ -214,10 +216,10 @@ func (c *Collection) searchLevelVec(queryVec []float32, queryQuantized []byte, q
 		}
 		
 		for _, neighbor := range neighbors {
-			if visited[neighbor.ID] {
+			if c.Store.IsVisited(neighbor.ID, epoch) {
 				continue
 			}
-			visited[neighbor.ID] = true
+			c.Store.MarkVisited(neighbor.ID, epoch)
 			
             var dist float32
             if useBBQ {

@@ -222,16 +222,10 @@ func (c *Collection) greedySearch(queryID DocID, entryPointID DocID, modelName s
 
 // searchLevel searches for ef candidates at level
 func (c *Collection) searchLevel(queryID DocID, entryPointID DocID, modelName string, level int, ef int, metricType string) []NeighborRecord {
-	// Optimization: Epoch-based visited set
-    // In Go, we don't have a global visited array pre-allocated per thread easily without a context.
-    // But since c.Mu is locked during Insert, we can reuse a buffer if we had one.
-    // For now, map lookup is O(1) but allocation is O(N) over time (GC).
-    // Let's use a simpler map[DocID]struct{} for now, or just map[DocID]bool.
-    // 1024-dim dist calc dominates map overhead usually.
-    // But user wants "SOTA".
-    // Let's stick to map for now, but optimize distance loop.
+	// P0优化: Epoch-based visited set
+    // 使用epoch计数器替代map分配,消除GC开销
+    epoch := c.Store.NewSearchEpoch()
     
-	visited := make(map[DocID]bool)
 	candidates := NewMinHeap() // Keep furthest candidate to explore
 	results := NewMaxHeap(ef)  // Keep nearest results found so far
 	
@@ -246,7 +240,7 @@ func (c *Collection) searchLevel(queryID DocID, entryPointID DocID, modelName st
 
 	candidates.Push(&HeapItem{ID: entryPointID, Distance: entryDist})
 	results.Push(&HeapItem{ID: entryPointID, Distance: entryDist})
-	visited[entryPointID] = true
+	c.Store.MarkVisited(entryPointID, epoch)
 	
 	for candidates.Len() > 0 {
 		current := candidates.Pop()
@@ -261,10 +255,10 @@ func (c *Collection) searchLevel(queryID DocID, entryPointID DocID, modelName st
 		}
 		
 		for _, neighbor := range neighbors {
-			if visited[neighbor.ID] {
+			if c.Store.IsVisited(neighbor.ID, epoch) {
 				continue
 			}
-			visited[neighbor.ID] = true
+			c.Store.MarkVisited(neighbor.ID, epoch)
 			
             var dist float32
             if useBQ {
