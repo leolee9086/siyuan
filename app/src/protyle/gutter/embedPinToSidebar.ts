@@ -6,6 +6,7 @@ import { setStorageVal } from "../util/compatibility";
 import { forgeI18n } from "../../util/siyuanEnvironments/forgeI18n.getI18n.environment";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanStorage, getSiyuanLayout } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { isRecordObject } from "./embedPinToSidebar.guard";
 
 /**
  * 获取嵌入块内所有搜索结果的块ID
@@ -77,8 +78,8 @@ const saveCustomListToStorage = (uuid: string, listData: {
 
     // 获取现有列表对象并添加新项
     const customLists = storage[customListsKey];
-    if (customLists && typeof customLists === "object") {
-        (customLists as Record<string, unknown>)[uuid] = listData;
+    if (isRecordObject(customLists)) {
+        customLists[uuid] = listData;
     }
 
     // 异步保存到持久化存储
