@@ -1,6 +1,10 @@
 /**
  * 构建 Gutter AI 菜单项
  * 从 renderMenu 中拆分出来的 AI 操作菜单
+ * @AIDONE 
+ * 1.多块时通过 buildMultiAiMenu 支持子菜单结构
+ * 2.使用 SQL 查询 content 字段获取纯文本替代 kramdown
+ * 3.添加丰富的进度提示内容
  */
 
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
@@ -18,6 +22,19 @@ import { genAssetHTML } from "../../../asset/renderAssets";
 import * as dayjs from "dayjs";
 import type { IGutterEditMenuContext, IProgressStatusUpdater } from "../gutter.types";
 import { isProgressStatusUpdater } from "../gutter.guard";
+
+/**
+ * 进度提示消息数组 - 在等待时显示有趣的提示
+ */
+const 进度提示消息列表 = [
+    "✨ 小技巧：AI 生成的图片会自动保存到资源目录",
+    "💡 提示：生成完成后可以右键图片调整大小",
+    "🎨 你知道吗：可以用更具体的描述获得更精准的图片效果",
+    "⚡ 效率技巧：块内容越精确，生成的图片越符合预期",
+    "🌟 小贴士：支持中英文混合描述，效果可能更好",
+    "📝 建议：简洁清晰的描述往往比冗长的句子效果更好",
+    "🎯 技巧：描述时可以指定风格，如「水彩风格」「简笔画」等",
+];
 
 
 /**
@@ -116,26 +133,24 @@ async function 插入图片到块后(
 }
 
 /**
- * 获取块的文本内容（通过后端 API）
- * @param blockId - 块 ID
- * @returns 块的 kramdown 源码，如果失败则返回空字符串
+ * 获取块的纯文本内容（通过 getDOMText 接口）
+ * 使用块元素的 DOM 直接提取纯文本，性能优于 SQL 查询且不会截断
+ * @param nodeElement - 块元素
+ * @returns 块的完整纯文本内容，如果失败则返回空字符串
  */
-async function 获取块文本内容(blockId: string): Promise<string> {
-    const response = await fetch("/api/block/getBlockKramdown", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: blockId })
+async function 获取块文本内容(nodeElement: Element): Promise<string> {
+    const dom = nodeElement.outerHTML;
+    return new Promise((resolve) => {
+        // @内联回调 - 使用 getDOMText 从 DOM 提取纯文本
+        fetchPost("/api/block/getDOMText", { dom }, (response) => {
+            if (response.code !== 0) {
+                console.error("获取块内容失败:", response.msg);
+                resolve("");
+                return;
+            }
+            resolve(response.data || "");
+        });
     });
-    if (!response.ok) {
-        console.error("获取块内容失败:", response.status);
-        return "";
-    }
-    const result = await response.json();
-    if (result.code !== 0) {
-        console.error("获取块内容失败:", result.msg);
-        return "";
-    }
-    return result.data?.kramdown || "";
 }
 
 /**
@@ -149,14 +164,14 @@ function 创建进度对话框(ProgressComponent: ReturnType<typeof import("vue"
         content: "<div class=\"ai-image-generation-container\" style=\"height: 100%;\"></div>",
         width: "500px",
         destroyCallback: () => {
- vueApp?.unmount(); 
-}
+            vueApp?.unmount();
+        }
     });
 
     const container = dialog.element.querySelector(".ai-image-generation-container");
     if (!container) {
-return null;
-}
+        return null;
+    }
 
     vueApp = createApp(ProgressComponent);
     const mountedInstance = vueApp.mount(container);
@@ -187,7 +202,7 @@ async function handleAiImageGeneration(
         return;
     }
 
-    const blockText = await 获取块文本内容(blockId);
+    const blockText = await 获取块文本内容(nodeElement);
     if (!blockText.trim()) {
         console.warn("块内容为空，无法生成图片");
         return;
@@ -195,9 +210,14 @@ async function handleAiImageGeneration(
 
     const result = 创建进度对话框(ProgressComponent);
     if (!result) {
-return;
-}
+        return;
+    }
     const { dialog, vm } = result;
+
+    // 随机选择一条提示消息
+    const 随机提示索引 = Math.floor(Math.random() * 进度提示消息列表.length);
+    const 初始提示 = 进度提示消息列表[随机提示索引] ?? "AI 图片生成中...";
+    vm.updateStatus?.(初始提示, true);
 
     await 生成块内容图片({
         prompt: blockText,
@@ -212,8 +232,8 @@ return;
 
     vm.updateStatus?.("生成完成", false);
     setTimeout(() => {
- dialog.destroy(); 
-}, 2000);
+        dialog.destroy();
+    }, 2000);
 }
 
 /**
@@ -263,5 +283,38 @@ export function buildGutterAiMenu(context: IGutterEditMenuContext): IMenu | null
                 }
             }
         ]
+    };
+}
+
+/**
+ * 构建多块选择时的 AI 菜单项
+ * 供 buildMultipleAppearanceMenu 调用，保持子菜单结构一致性
+ * 
+ * @param protyle - Protyle 实例
+ * @param selectsElement - 选中的块元素数组
+ * @returns AI 菜单项配置，如果不应显示则返回 null
+ */
+export function buildMultiAiMenu(protyle: IProtyle, selectsElement: Element[]): IMenu | null {
+    if (protyle.disabled) {
+        return null;
+    }
+
+    const 原AI菜单项: IMenu = {
+        id: "ai-actions",
+        icon: "iconSparkles",
+        label: siyuanI18n.ai,
+        accelerator: getSiyuanConfig().keymap.editor.general.ai.custom,
+        click() {
+            openAIActionsMenu(selectsElement, protyle);
+            return true;
+        }
+    };
+
+    // 多块时只显示原 AI 菜单，不显示图片生成（需要单块场景）
+    return {
+        id: "ai",
+        icon: "iconSparkles",
+        label: siyuanI18n.ai,
+        submenu: [原AI菜单项]
     };
 }

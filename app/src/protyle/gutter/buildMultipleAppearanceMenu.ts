@@ -4,7 +4,6 @@
  */
 import { MenuItem } from "../../menus/Menu.Item";
 import { isMobile } from "../../util/functions";
-import { openAIActionsMenu } from "../../ai/actions";
 import { appearanceMenu } from "../toolbar/Font";
 import { setPosition } from "../../util/setPosition";
 import { emitOpenMenu } from "../../plugin/EventBus";
@@ -15,24 +14,18 @@ import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environme
 import { buildGutterAlignMenu, buildGutterWidthsMenu } from "./buildGutterStyleMenu";
 import { showMobileAppearance } from "./showMobileAppearance";
 import { Constants } from "../../constants";
+import { buildMultiAiMenu } from "./menus/buildGutterAiMenu";
 
 /**
- * 构建AI菜单
+ * 构建AI菜单（多块选择时）
+ * 使用统一的 buildMultiAiMenu 保持子菜单结构一致性
  */
 export const 构建AI菜单 = (protyle: IProtyle, selectsElement: Element[]): void => {
-    if (protyle.disabled) {
+    const aiMenu = buildMultiAiMenu(protyle, selectsElement);
+    if (!aiMenu) {
         return;
     }
-
-    getSiyuanGlobalMenus().menu.append(new MenuItem({
-        id: "ai",
-        icon: "iconSparkles",
-        label: siyuanI18n.ai,
-        accelerator: getSiyuanConfig().keymap.editor.general.ai.custom,
-        click() {
-            openAIActionsMenu(selectsElement, protyle);
-        }
-    }).element);
+    getSiyuanGlobalMenus().menu.append(new MenuItem(aiMenu).element);
 };
 
 /**
