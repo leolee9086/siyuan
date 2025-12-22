@@ -24,19 +24,19 @@ export const renderAssetsPreview = (pathString: string) => {
 
 export const pdfResize = () => {
     /// #if !MOBILE
-    getAllModels().asset.forEach(item => {
+    for (const item of getAllModels().asset) {
         const pdfInstance = item.pdfObject;
         if (!pdfInstance) {
-            return;
+            continue;
         }
         const { pdfDocument, pdfViewer } = pdfInstance;
         if (!pdfDocument) {
-            return;
+            continue;
         }
         // https://github.com/siyuan-note/siyuan/issues/8097
         const pdfViewerElement = item.element.querySelector("#viewerContainer");
         if (!pdfViewerElement || pdfViewerElement.clientHeight === 0) {
-            return;
+            continue;
         }
         const scrollTop = pdfViewerElement?.getAttribute("data-scrolltop");
         if (pdfViewerElement && scrollTop) {
@@ -54,7 +54,7 @@ export const pdfResize = () => {
             pdfViewer.currentScaleValue = currentScaleValue;
         }
         pdfViewer.update();
-    });
+    }
     /// #endif
 };
 
