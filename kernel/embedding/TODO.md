@@ -308,25 +308,158 @@ func SplitText(text string, opts SplitOptions) []TextChunk
 2. **Dock 新建**：创建动态数据集（SQL）
 3. **从现有 CustomList 转换**：一键转为嵌入数据集
 
+### 4.4 前端实现计划
+
+> [!IMPORTANT]
+> 复用 CustomLists 组件模式，新建 `embeddingDock/` 目录。
+
+#### 文件结构
+
+```
+app/src/layout/dock/
+├── customBlockLists/          # 现有：自定义块列表
+│   ├── CustomLists.ts
+│   ├── customLists.menu.ts
+│   └── customLists.util.ts
+│
+└── embeddingDock/             # 新建：嵌入管理 Dock
+    ├── EmbeddingDock.ts       # 主组件
+    ├── DatasetItem.ts         # 数据集列表项
+    ├── embeddingDock.api.ts   # API 封装（复用 vectorApi.ts）
+    └── embeddingDock.util.ts  # 工具函数
+```
+
+#### 核心组件设计
+
+**EmbeddingDock** - 主面板
+
+```typescript
+// 数据集配置（与 ICustomList 对应）
+interface IEmbeddingDataset {
+    id: string;
+    title: string;
+    icon: string;
+    type: "dynamic" | "static";
+    target: string | string[];  // SQL 或 ID 列表
+    model: string;              // 嵌入模型名
+    scopeVersion: number;       // 范围版本号
+}
+
+// 数据集状态
+interface IDatasetStatus {
+    embedded: number;   // 已嵌入数
+    pending: number;    // 待处理数
+    lastRefresh?: Date; // 上次刷新时间
+}
+```
+
+**DatasetItem** - 单个数据集显示
+
+- 显示类型图标（动态/静态）
+- 显示嵌入状态（✅ 已嵌入 / ⏳ 待处理）
+- 刷新按钮（动态类型专用）
+- 嵌入按钮（启动嵌入任务）
+- 配置按钮（打开设置）
+
+#### 已有前端 API
+
+`app/src/util/embedding/vectorApi.ts` 已提供：
+- `创建集合` / `createCollection`
+- `添加向量` / `addVectors`
+- `查询向量` / `queryVectors`
+- `获取集合状态` / `getCollectionState`
+- `重建索引` / `rebuildIndex`
+
+#### 需要新增的后端 API
+
+| API | 用途 |
+|-----|------|
+| `/api/embedding/datasets` | 获取/保存数据集配置列表 |
+| `/api/embedding/datasets/{id}/status` | 获取数据集嵌入状态 |
+| `/api/embedding/datasets/{id}/refresh` | 刷新动态数据集范围 |
+
+#### 实现步骤
+
+1. [ ] 创建 `embeddingDock/` 目录结构
+2. [ ] 实现 `EmbeddingDock.ts` 基本框架（继承 Model）
+3. [ ] 实现 `DatasetItem.ts` 列表项组件
+4. [ ] 注册到 dock.factory.ts
+5. [ ] 实现刷新/嵌入/配置按钮交互
+6. [ ] 同步调整后端 API
+
+### 4.5 前端嵌入流程（Transformer.js）
+
+> [!IMPORTANT]
+> 当没有 Ollama 时，**前端使用 Transformer.js 进行嵌入是唯一选择**。
+
+#### 已有实现
+
+`app/src/util/embedding/transformer.ts`:
+- 模型：`leolee9086/text2vec-base-chinese`（768 维）
+- 加速：WebGPU（自动回退 WASM）
+- 量化：使用 `model_quantized` 减小体积
+
+```typescript
+// 使用方式
+import { embeddingText } from "./transformer";
+const vector = await embeddingText("你好世界"); // Float32Array[768]
+```
+
+#### 嵌入流程
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    前端嵌入流程                          │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  1. 点击"嵌入"按钮                                      │
+│     └── 调用 /api/embedding/blocks/pending              │
+│         获取该数据集的待嵌入块列表                       │
+│                                                         │
+│  2. 批量处理                                            │
+│     └── 每批 N 个块                                     │
+│         ├── 获取块内容（已在 pending 响应中）           │
+│         ├── 调用 embeddingText() 生成向量               │
+│         └── 调用 /api/embedding/blocks/pushWithVectors  │
+│                                                         │
+│  3. 更新 UI                                             │
+│     └── 显示进度条                                      │
+│     └── 完成后刷新状态                                  │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+#### 模型管理（后续）
+
+| 功能 | 说明 |
+|------|------|
+| 模型选择 | 支持选择不同模型（需配置维度）|
+| 本地缓存 | 首次下载后缓存到 `/public/onnxModels/` |
+| 进度显示 | 模型下载和嵌入进度 |
+
 ---
 
 ## 五、优先级与时间线
 
 | 优先级 | 任务 | 前置 | 预估时间 |
 |--------|------|------|----------|
-| **P0** | 数据集配置模块（复用 CustomLists） | 无 | 0.5 天 |
-| **P0** | 后端 GetPending 改造 | 数据集配置 | 1 天 |
-| **P0** | 范围变更 → 重建逻辑 | GetPending 改造 | 0.5 天 |
-| P1 | 统一文本分割模块 | 无 | 1 天 |
-| P1 | 前端 Dock（复用 CustomLists） | 数据集配置 | 1 天 |
+| **P0** | 前端 EmbeddingDock 基本框架 | 无 | 0.5 天 |
+| **P0** | 数据集配置 API | 无 | 0.5 天 |
+| **P0** | 动态数据集刷新逻辑 | 上述两项 | 0.5 天 |
 | P1 | 块右键菜单入口 | 数据集配置 | 0.5 天 |
-| P2 | 长文本分割集成 | 分割模块 | 0.5 天 |
+| P1 | 后端 GetPending 改造（refresh 参数） | 前端调试 | 0.5 天 |
+| P2 | 统一文本分割模块 | 无 | 1 天 |
 | P2 | Ollama 状态监控 | 无 | 0.5 天 |
 
 ---
 
 ## 更新日志
 
+- 2025-12-24 00:42: 前端优先策略
+  - 新增 **4.4 前端实现计划**（文件结构、组件设计、API 列表）
+  - 调整优先级：前端 EmbeddingDock → 数据集 API → 动态刷新
+  - 新增 **0.6 动态数据集 Pending 机制**（refresh 参数设计）
+  - 修正重建索引逻辑（调用 RebuildIndex，保留数据）
 - 2025-12-24: 简化设计
   - **复用 CustomLists 配置模式**（static/dynamic）
   - 新增**后端 GetPending 改造说明**
