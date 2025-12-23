@@ -276,9 +276,15 @@ func embeddingBlocksPending(c *gin.Context) {
 		box = b
 	}
 
-	model := embedding.OllamaEmbedModel
+	// model 参数必填，避免默认使用 Ollama 模型导致混淆
+	model := ""
 	if m, ok := body["model"].(string); ok && m != "" {
 		model = m
+	}
+	if model == "" {
+		ret["code"] = -1
+		ret["msg"] = "model 参数必填"
+		return
 	}
 
 	pending, total := embedding.GetPendingBlocksWithModel(dataset, box, limit, model)

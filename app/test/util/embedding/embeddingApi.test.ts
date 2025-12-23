@@ -91,7 +91,8 @@ describe("Embedding API Integration Tests", () => {
 
     it("should get pending blocks", async () => {
         const res = await postAPI("/api/embedding/blocks/pending", {
-            limit: 10
+            limit: 10,
+            model: "leolee9086/text2vec-base-chinese" // model 参数必填
         });
         expect(res.code).toBe(0);
         expect(Array.isArray(res.data.pending)).toBe(true);
