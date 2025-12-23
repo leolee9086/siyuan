@@ -24,19 +24,14 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/siyuan-note/logging"
 )
 
 var (
-	// OllamaEnabled 表示是否检测到可用的 Ollama 服务
-	OllamaEnabled bool
-
-	// OllamaHost Ollama 服务地址
+	// OllamaHost Ollama 服务地址（默认值，可通过 API 自定义）
 	OllamaHost = "http://127.0.0.1:11434"
 
 	// OllamaEmbedModel 当前使用的嵌入模型
@@ -45,15 +40,20 @@ var (
 	// OllamaDimension 嵌入向量维度
 	OllamaDimension = 768
 
-	// OllamaVersion Ollama 版本
-	OllamaVersion = ""
-
-	ollamaInited = atomic.Bool{}
-
 	// 模型缓存锁
 	ollamaModelsLock sync.RWMutex
 	ollamaModels     []OllamaModel
 )
+
+// IsOllamaEnabled 动态检测 Ollama 服务是否可用
+func IsOllamaEnabled() bool {
+	return getOllamaVersion() != ""
+}
+
+// GetOllamaVersion 动态获取 Ollama 版本
+func GetOllamaVersion() string {
+	return getOllamaVersion()
+}
 
 // 推荐的嵌入模型列表
 var RecommendedEmbedModels = []string{
@@ -115,41 +115,6 @@ type OllamaPullProgress struct {
 	Completed int64  `json:"completed,omitempty"`
 }
 
-// InitOllama 初始化 Ollama 服务检测
-func InitOllama() {
-	if host := os.Getenv("SIYUAN_OLLAMA_HOST"); host != "" {
-		OllamaHost = host
-	}
-	if model := os.Getenv("SIYUAN_OLLAMA_MODEL"); model != "" {
-		OllamaEmbedModel = model
-	}
-
-	OllamaVersion = getOllamaVersion()
-	if OllamaVersion == "" {
-		logging.LogInfof("ollama service not detected at [%s]", OllamaHost)
-		ollamaInited.Store(true)
-		return
-	}
-
-	OllamaEnabled = true
-	logging.LogInfof("ollama enabled [ver=%s, host=%s, model=%s]", OllamaVersion, OllamaHost, OllamaEmbedModel)
-
-	// 初始加载模型列表
-	go RefreshOllamaModels()
-
-	ollamaInited.Store(true)
-}
-
-// WaitForOllamaInit 等待 Ollama 初始化完成
-func WaitForOllamaInit() {
-	for {
-		if ollamaInited.Load() {
-			return
-		}
-		time.Sleep(100 * time.Millisecond)
-	}
-}
-
 // getOllamaVersion 获取 Ollama 版本
 func getOllamaVersion() string {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -185,7 +150,7 @@ func getOllamaVersion() string {
 
 // RefreshOllamaModels 刷新本地模型列表
 func RefreshOllamaModels() error {
-	if !OllamaEnabled {
+	if !IsOllamaEnabled() {
 		return fmt.Errorf("ollama not enabled")
 	}
 
@@ -240,7 +205,7 @@ func HasModel(modelName string) bool {
 
 // OllamaPullModel 拉取模型（阻塞式，带进度回调）
 func OllamaPullModel(modelName string, progressCb func(OllamaPullProgress)) error {
-	if !OllamaEnabled {
+	if !IsOllamaEnabled() {
 		return fmt.Errorf("ollama not enabled")
 	}
 
@@ -329,7 +294,7 @@ func OllamaEmbed(text string) ([]float32, error) {
 
 // OllamaEmbedWithModel 使用指定模型生成嵌入向量
 func OllamaEmbedWithModel(text string, model string) ([]float32, error) {
-	if !OllamaEnabled {
+	if !IsOllamaEnabled() {
 		return nil, fmt.Errorf("ollama service not enabled")
 	}
 
@@ -392,7 +357,7 @@ func OllamaEmbedBatch(texts []string) ([][]float32, error) {
 
 // OllamaEmbedBatchWithModel 使用指定模型批量生成嵌入向量
 func OllamaEmbedBatchWithModel(texts []string, model string) ([][]float32, error) {
-	if !OllamaEnabled {
+	if !IsOllamaEnabled() {
 		return nil, fmt.Errorf("ollama service not enabled")
 	}
 
@@ -416,8 +381,8 @@ func GetOllamaStatus() map[string]interface{} {
 	}
 
 	return map[string]interface{}{
-		"enabled":            OllamaEnabled,
-		"version":            OllamaVersion,
+		"enabled":            IsOllamaEnabled(),
+		"version":            GetOllamaVersion(),
 		"host":               OllamaHost,
 		"model":              OllamaEmbedModel,
 		"dimension":          OllamaDimension,

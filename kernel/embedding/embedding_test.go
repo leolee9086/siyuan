@@ -13,20 +13,16 @@ import (
 )
 
 func TestOllamaInit(t *testing.T) {
-	InitOllama()
-
-	if !OllamaEnabled {
+	if !IsOllamaEnabled() {
 		t.Skip("Ollama not available, skipping test")
 	}
 
 	t.Logf("Ollama enabled: host=%s, model=%s, ver=%s",
-		OllamaHost, OllamaEmbedModel, OllamaVersion)
+		OllamaHost, OllamaEmbedModel, GetOllamaVersion())
 }
 
 func TestOllamaEmbed(t *testing.T) {
-	InitOllama()
-
-	if !OllamaEnabled {
+	if !IsOllamaEnabled() {
 		t.Skip("Ollama not available, skipping test")
 	}
 
@@ -77,7 +73,6 @@ func TestCollectionNames(t *testing.T) {
 }
 
 func TestGetStatus(t *testing.T) {
-	InitOllama()
 
 	status := GetStatus()
 	t.Logf("Status: %+v", status)

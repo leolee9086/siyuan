@@ -43,7 +43,7 @@ func embeddingBlocksPush(c *gin.Context) {
 		return
 	}
 
-	if !embedding.OllamaEnabled {
+	if !embedding.IsOllamaEnabled() {
 		ret["code"] = -1
 		ret["msg"] = "Ollama 服务未启用"
 		return
@@ -103,7 +103,7 @@ func embeddingBlocksQuery(c *gin.Context) {
 		return
 	}
 
-	if !embedding.OllamaEnabled {
+	if !embedding.IsOllamaEnabled() {
 		ret["code"] = -1
 		ret["msg"] = "Ollama 服务未启用"
 		return
@@ -196,7 +196,7 @@ func embeddingAssetsPush(c *gin.Context) {
 		return
 	}
 
-	if !embedding.OllamaEnabled {
+	if !embedding.IsOllamaEnabled() {
 		ret["code"] = -1
 		ret["msg"] = "Ollama 服务未启用"
 		return
@@ -255,7 +255,7 @@ func embeddingAssetsQuery(c *gin.Context) {
 		return
 	}
 
-	if !embedding.OllamaEnabled {
+	if !embedding.IsOllamaEnabled() {
 		ret["code"] = -1
 		ret["msg"] = "Ollama 服务未启用"
 		return
@@ -330,7 +330,7 @@ func embeddingModels(c *gin.Context) {
 	ret := map[string]interface{}{"code": 0}
 	defer c.JSON(http.StatusOK, ret)
 
-	if !embedding.OllamaEnabled {
+	if !embedding.IsOllamaEnabled() {
 		ret["code"] = -1
 		ret["msg"] = "Ollama 服务未启用"
 		return
@@ -358,7 +358,7 @@ func embeddingPullModel(c *gin.Context) {
 		return
 	}
 
-	if !embedding.OllamaEnabled {
+	if !embedding.IsOllamaEnabled() {
 		ret["code"] = -1
 		ret["msg"] = "Ollama 服务未启用"
 		return
@@ -399,7 +399,7 @@ func embeddingSetModel(c *gin.Context) {
 		return
 	}
 
-	if !embedding.OllamaEnabled {
+	if !embedding.IsOllamaEnabled() {
 		ret["code"] = -1
 		ret["msg"] = "Ollama 服务未启用"
 		return

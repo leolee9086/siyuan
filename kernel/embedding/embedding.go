@@ -83,8 +83,8 @@ func GetStatus() map[string]interface{} {
 	}
 
 	return map[string]interface{}{
-		"enabled":            OllamaEnabled,
-		"version":            OllamaVersion,
+		"enabled":            IsOllamaEnabled(),
+		"version":            GetOllamaVersion(),
 		"host":               OllamaHost,
 		"model":              OllamaEmbedModel,
 		"dimension":          OllamaDimension,
@@ -110,7 +110,7 @@ func PushBlocks(ids []string, dataset string, force bool) (pushed, skipped int, 
 
 // PushBlocksWithModel 使用指定模型推送块嵌入
 func PushBlocksWithModel(ids []string, dataset string, model string, force bool) (pushed, skipped int, err error) {
-	if !OllamaEnabled {
+	if !IsOllamaEnabled() {
 		err = fmt.Errorf("ollama not enabled")
 		return
 	}
@@ -346,7 +346,7 @@ func PushAssets(paths []string, dataset string, force bool) (pushed, skipped int
 
 // PushAssetsWithModel 使用指定模型推送素材嵌入
 func PushAssetsWithModel(paths []string, dataset string, model string, force bool) (pushed, skipped int, err error) {
-	if !OllamaEnabled {
+	if !IsOllamaEnabled() {
 		err = fmt.Errorf("ollama not enabled")
 		return
 	}
