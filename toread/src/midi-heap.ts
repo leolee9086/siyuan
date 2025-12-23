@@ -28,7 +28,7 @@ export class MidiHeapGeneric<T> {
             this.heapify();
         }
     }
-    
+
     get length(): number {
         return this.size;
     }
@@ -49,15 +49,15 @@ export class MidiHeapGeneric<T> {
         const data = this.data;
         const compare = this.compare;
         let pos = this.size++;
-        
+
         while (pos > 0) {
             const parent = (pos - 1) >>> 1;
             if (compare(item, data[parent]!) >= 0) break;
-            
+
             data[pos] = data[parent]!;
             pos = parent;
         }
-        
+
         data[pos] = item;
     }
 
@@ -67,7 +67,7 @@ export class MidiHeapGeneric<T> {
         const data = this.data;
         const top = data[0]!;
         const newSize = --this.size;
-        
+
         if (newSize > 0) {
             data[0] = data[newSize]!;
             this.downHeap(0, newSize);
@@ -91,24 +91,24 @@ export class MidiHeapGeneric<T> {
         const data = this.data;
         const compare = this.compare;
         const item = data[pos]!;
-        
+
         while (true) {
             const leftChild = (pos << 1) + 1;
             if (leftChild >= size) break;
-            
+
             let bestChild = leftChild;
-            
+
             const rightChild = leftChild + 1;
             if (rightChild < size && compare(data[rightChild]!, data[leftChild]!) < 0) {
                 bestChild = rightChild;
             }
-            
+
             if (compare(item, data[bestChild]!) <= 0) break;
-            
+
             data[pos] = data[bestChild]!;
             pos = bestChild;
         }
-        
+
         data[pos] = item;
     }
 
@@ -131,16 +131,15 @@ export class MidiHeapGeneric<T> {
     clear(): void {
         this.size = 0;
     }
-    
+
     toArray(): T[] {
         return this.data.slice(0, this.size);
     }
 
     toSortedArray(): T[] {
-        // 哥哥说得对，这里直接复制数组然后排序，比新建一个堆实例效率高得多！
         // 1. 复制数组的有效部分
         const sorted = this.data.slice(0, this.size);
-        
+
         // 2. 使用与堆相同的比较逻辑进行排序。
         sorted.sort(this.compare);
 

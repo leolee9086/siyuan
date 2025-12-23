@@ -70,7 +70,8 @@ export const 获取待嵌入块 = async (
     dataset: string,
     model: string,
     limit = 100,
-    refresh = false
+    refresh = false,
+    ids?: string[]
 ): Promise<{ pending: IPendingBlock[]; total: number }> => {
     return new Promise((resolve, reject) => {
         fetchPost("/api/embedding/blocks/pending", {
@@ -78,6 +79,7 @@ export const 获取待嵌入块 = async (
             model,
             limit,
             refresh,
+            ids,
         }, (res) => {
             if (res.code !== 0) {
                 reject(new Error(res.msg || "获取待嵌入块失败"));
@@ -129,7 +131,7 @@ export const 获取嵌入状态 = async (
     model: string
 ): Promise<IDatasetStatus> => {
     // 通过 pending 接口获取状态
-    const { total } = await 获取待嵌入块(dataset, model, 1, false);
+    const { total } = await 获取待嵌入块(dataset, model, 1000, false);
 
     // TODO: 需要后端提供已嵌入数量的接口
     return {

@@ -237,6 +237,25 @@ export class EmbeddingDock extends Model {
     private loadDatasets() {
         this.datasets = 获取数据集列表();
         this.renderList();
+        this.loadStatuses();
+    }
+
+    private async loadStatuses() {
+        for (const dataset of this.datasets) {
+            try {
+                // 如果是静态数据集，传 ID 名单；动态数据集后续可传 SQL
+                const ids = dataset.type === "static" ? (Array.isArray(dataset.target) ? dataset.target : [dataset.target]) : undefined;
+                const result = await 获取待嵌入块(dataset.id, dataset.model, 1, false, ids);
+                this.statuses.set(dataset.id, {
+                    embedded: 0, // TODO: 需要后端 API 直接返回已嵌入数量
+                    pending: result.total,
+                    lastRefresh: Date.now(),
+                });
+                this.renderList();
+            } catch (error) {
+                console.error(`加载数据集 ${dataset.id} 状态失败:`, error);
+            }
+        }
     }
 
     private renderList() {
@@ -366,7 +385,24 @@ export class EmbeddingDock extends Model {
         this.updateProgressUI();
 
         try {
-            const { pending, total } = await 获取待嵌入块(dataset.id, dataset.model, 1000, false);
+            console.log(`[Embedding] 开始处理数据集: ${dataset.title} (${dataset.id})`);
+            const ids = dataset.type === "static" ? (Array.isArray(dataset.target) ? dataset.target : [dataset.target]) : undefined;
+            const { pending, total } = await 获取待嵌入块(dataset.id, dataset.model, 1000, false, ids);
+
+            if (total === 0 || pending.length === 0) {
+                console.log("[Embedding] 没有待嵌入的数据块");
+                this.progress = { total: 0, current: 0, status: "done" };
+                this.updateProgressUI();
+                const textEl = this.element.querySelector(".embedding-dock__progress-text");
+                if (textEl) {
+                    textEl.textContent = "∅ 没有待嵌入的数据块";
+                }
+                setTimeout(() => {
+                    this.element.querySelector(".embedding-dock__progress")?.classList.add("fn__none");
+                }, 3000);
+                return;
+            }
+
             this.progress.total = total;
             this.updateProgressUI();
 
@@ -375,17 +411,36 @@ export class EmbeddingDock extends Model {
                 const batch = pending.slice(i, i + batchSize);
                 const vectors: { id: string; vector: number[] }[] = [];
 
-                for (const block of batch) {
-                    const vector = await embeddingText(block.content);
-                    vectors.push({
-                        id: block.id,
-                        vector: Array.from(vector),
-                    });
+                const progressText = `[TransformerJS] 正在计算向量 (${i + 1}-${Math.min(i + batchSize, pending.length)}/${total})...`;
+                console.log(progressText);
+                const textEl = this.element.querySelector(".embedding-dock__progress-text");
+                if (textEl) {
+                    textEl.textContent = progressText;
                 }
 
-                await 推送块嵌入(vectors, dataset.model, 默认模型维度, dataset.id);
-                this.progress.current += batch.length;
-                this.updateProgressUI();
+                for (const block of batch) {
+                    try {
+                        const vector = await embeddingText(block.content);
+                        vectors.push({
+                            id: block.id,
+                            vector: Array.from(vector),
+                        });
+                    } catch (e) {
+                        console.error(`[Embedding] 向量化失败 ID: ${block.id}`, e);
+                        // 单块失败继续处理其它块
+                    }
+                }
+
+                if (vectors.length > 0) {
+                    const pushText = `[Embedding] 正在推送至向量库 (${vectors.length} 个)...`;
+                    console.log(pushText);
+                    if (textEl) {
+                        textEl.textContent = pushText;
+                    }
+                    await 推送块嵌入(vectors, dataset.model, 默认模型维度, dataset.id);
+                    this.progress.current += vectors.length;
+                    this.updateProgressUI();
+                }
             }
 
             this.progress.status = "done";
@@ -395,11 +450,12 @@ export class EmbeddingDock extends Model {
                 const progressEl = this.element.querySelector(".embedding-dock__progress");
                 progressEl?.classList.add("fn__none");
                 this.loadDatasets();
-            }, 1000);
+            }, 2000);
 
         } catch (error) {
+            console.error("[Embedding] 处理过程中发生错误:", error);
             this.progress.status = "error";
-            this.progress.error = (error as Error).message;
+            this.progress.error = (error as Error).message || "未知错误";
             this.updateProgressUI();
         }
     }

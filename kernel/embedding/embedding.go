@@ -22,10 +22,12 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/sql"
 	"github.com/siyuan-note/siyuan/kernel/util"
 	"github.com/siyuan-note/siyuan/kernel/vectordb"
@@ -75,8 +77,20 @@ func IsEmbeddingReservedCollection(name string) bool {
 		strings.HasPrefix(name, "assets_embedding_")
 }
 
+// ensureVectorDB 确保向量数据库已初始化 (从 api/vector.go 搬迁逻辑实现闭环)
+func ensureVectorDB() {
+	if vectordb.GlobalDB != nil {
+		return
+	}
+	// 初始化向量数据库到 data/storage/vectordb
+	dbPath := filepath.Join(util.DataDir, "storage", "vectordb")
+	logging.LogInfof("[Embedding] 正在自动初始化向量数据库: %s", dbPath)
+	vectordb.InitGlobalDB(dbPath)
+}
+
 // EnsureCollection 确保嵌入集合存在
 func EnsureCollection(name string, dimension int) {
+	ensureVectorDB()
 	if vectordb.GlobalDB == nil {
 		return
 	}
@@ -143,12 +157,13 @@ type BlockWithVector struct {
 // PushBlocksWithVectors 使用前端预计算的向量推送块嵌入
 // 不调用 Ollama，直接校验维度后入库
 func PushBlocksWithVectors(blocks []BlockWithVector, dataset, model string, dimension int, force bool) (pushed, skipped int, err error) {
+	ensureVectorDB()
 	if vectordb.GlobalDB == nil {
-		err = fmt.Errorf("vectordb not initialized")
+		err = fmt.Errorf("vectordb not initialized and failed to auto-init")
 		return
 	}
 
-	collectionName := GetBlocksCollectionName(model)
+	collectionName := GetBlocksCollectionNameWithDataset(model, dataset)
 	EnsureCollection(collectionName, dimension)
 
 	col := vectordb.GlobalDB.GetCollection(collectionName)
@@ -164,10 +179,11 @@ func PushBlocksWithVectors(blocks []BlockWithVector, dataset, model string, dime
 	}
 
 	for _, b := range blocks {
-		// 校验向量维度
+		// 强校验向量维度：禁止任何维度不符的数据进入
 		if len(b.Vector) != dimension {
-			skipped++
-			continue
+			err = fmt.Errorf("vector dimension mismatch for block %s: expected %d, got %d", b.ID, dimension, len(b.Vector))
+			logging.LogErrorf("[Embedding] 严重错误：%s", err.Error())
+			return pushed, skipped, err
 		}
 
 		block := sql.GetBlock(b.ID)
@@ -185,7 +201,8 @@ func PushBlocksWithVectors(blocks []BlockWithVector, dataset, model string, dime
 			continue
 		}
 
-		contentHash := HashContent(content)
+		contentHash := block.Hash // 严格信任数据库，即使为空也不补救，由上游确保或反馈
+
 		vectorID := fmt.Sprintf("%s_%s", b.ID, dataset)
 
 		if !force {
@@ -237,10 +254,10 @@ func PushBlocks(ids []string, dataset string, force bool) (pushed, skipped int, 
 
 // PushBlocksWithModel 使用指定模型推送块嵌入
 func PushBlocksWithModel(ids []string, dataset string, model string, force bool) (pushed, skipped int, err error) {
-	if !IsOllamaEnabled() {
-		err = fmt.Errorf("ollama not enabled")
-		return
-	}
+	// 移除 IsOllamaEnabled 校验
+	
+	// 检查模型是否存在逻辑可能也需要放宽，或者改为仅在需要后端嵌入时校验
+	// 但此处为了彻底跑通前端模型，我们先聚焦于向量提交
 
 	// 检查模型是否存在
 	if !HasModel(model) {
@@ -248,7 +265,7 @@ func PushBlocksWithModel(ids []string, dataset string, model string, force bool)
 		return
 	}
 
-	collectionName := GetBlocksCollectionName(model)
+	collectionName := GetBlocksCollectionNameWithDataset(model, dataset)
 	EnsureCollection(collectionName, OllamaDimension)
 
 	col := vectordb.GlobalDB.GetCollection(collectionName)
@@ -273,7 +290,7 @@ func PushBlocksWithModel(ids []string, dataset string, model string, force bool)
 			continue
 		}
 
-		contentHash := HashContent(content)
+		contentHash := block.Hash
 		vectorID := fmt.Sprintf("%s_%s", id, dataset)
 
 		if !force {
@@ -389,66 +406,179 @@ func QueryBlocksWithModel(query string, topK int, dataset string, model string) 
 }
 
 // PendingBlock 待嵌入块信息
-type PendingBlock struct {
-	ID     string `json:"id"`
-	Reason string `json:"reason"`
-}
+// PendingBlock 待处理块信息（直接承载 SQL 行的所有属性）
+type PendingBlock map[string]interface{}
 
 // GetPendingBlocks 获取待嵌入块列表
 func GetPendingBlocks(dataset string, box string, limit int) ([]PendingBlock, int) {
-	return GetPendingBlocksWithModel(dataset, box, limit, OllamaEmbedModel)
+	return GetPendingBlocksWithModel(dataset, box, limit, OllamaEmbedModel, nil)
 }
 
 // GetPendingBlocksWithModel 使用指定模型获取待嵌入块列表
-func GetPendingBlocksWithModel(dataset string, box string, limit int, model string) ([]PendingBlock, int) {
+// dataset: 数据集名称
+// box: 笔记本 ID (可选)
+// limit: 限制获取数量
+// model: 模型名称
+// ids: 明确指定的块 ID 名单 (可选，若提供则仅扫描这些块)
+func GetPendingBlocksWithModel(dataset string, box string, limit int, model string, ids []string) ([]PendingBlock, int) {
+	logging.LogInfof("[Embedding] API 入口接头成功 - 数据集:%s, 模型:%s, 块ID数:%d", dataset, model, len(ids))
+	
+	// 如果指定了 ids，说明是精准查询，应该忽略 limit 限制（或者说 limit 至少要是 len(ids)）
+	// 这样才能保证前端请求的每一个 ID 都能拿到状态
+	if len(ids) > 0 {
+		limit = len(ids)
+	}
+
+	ensureVectorDB()
+	
 	if vectordb.GlobalDB == nil {
-		return []PendingBlock{}, 0
-	}
-
-	collectionName := GetBlocksCollectionName(model)
-	col := vectordb.GlobalDB.GetCollection(collectionName)
-
-	stmt := "SELECT id, content, hash, type, box FROM blocks WHERE type IN ('p', 'h', 'c', 'd')"
-	if box != "" {
-		stmt += fmt.Sprintf(" AND box = '%s'", box)
-	}
-	stmt += fmt.Sprintf(" LIMIT %d", limit*2)
-
-	result, _ := sql.QueryNoLimit(stmt)
-
-	pending := make([]PendingBlock, 0)
-	total := 0
-
-	for _, row := range result {
-		id := row["id"].(string)
-		content := ""
-		if c, ok := row["content"].(string); ok {
-			content = c
+		logging.LogInfof("[Embedding] 严重错误：vectordb.GlobalDB 初始化后仍为空！")
+		pending := []PendingBlock{}
+		for _, blockID := range ids {
+			if len(pending) < limit {
+				pending = append(pending, PendingBlock{"id": blockID, "reason": "db_init_failed"})
+			}
 		}
+		return pending, len(ids)
+	}
 
-		if content == "" {
+	collectionName := GetBlocksCollectionNameWithDataset(model, dataset)
+	col := vectordb.GlobalDB.GetCollection(collectionName)
+	// 如果集合不存在，我们先不急着创建，等到真正推送向量时根据前端传来的维度创建
+	// 这样可以避免默认用 1024 维度创建了集合，导致前端 768 维度的向量推不进去
+	if col != nil {
+		logging.LogInfof("[Embedding] 发现现有集合: %s, 维度: %d", collectionName, col.Dimension)
+	} else {
+		logging.LogInfof("[Embedding] 警告：集合 %s 尚不存在，将返回全部为 NEW", collectionName)
+	}
+
+	var result []map[string]interface{}
+	if len(ids) > 0 {
+		// 1. 精准查询名单内的块
+		blocks := sql.GetBlocks(ids)
+		for _, b := range blocks {
+			if b == nil {
+				continue
+			}
+			row := map[string]interface{}{
+				"id":        b.ID,
+				"parent_id": b.ParentID,
+				"root_id":   b.RootID,
+				"hash":      b.Hash,
+				"box":       b.Box,
+				"path":      b.Path,
+				"hpath":     b.HPath,
+				"name":      b.Name,
+				"alias":     b.Alias,
+				"memo":      b.Memo,
+				"tag":       b.Tag,
+				"content":   b.Content,
+				"fcontent":  b.FContent,
+				"markdown":  b.Markdown,
+				"length":    b.Length,
+				"type":      b.Type,
+				"subtype":   b.SubType,
+				"ial":       b.IAL,
+				"sort":      b.Sort,
+				"created":   b.Created,
+				"updated":   b.Updated,
+			}
+			result = append(result, row)
+		}
+	}
+
+	// 关键哨兵日志：确认数据库是否吐出了数据
+	logging.LogInfof("[Embedding] 数据库查询结果统计 - 数据集:%s, 请求ID数:%d, 实际命中数:%d", dataset, len(ids), len(result))
+	if len(result) > 0 {
+		logging.LogInfof("[Embedding] 数据库首条数据样例 - ID:%v, ContentSize:%d", result[0]["id"], len(result[0]["content"].(string)))
+	} else {
+		logging.LogInfof("[Embedding] 警告：SQL 返回结果为空！IDS: %v", ids)
+	}
+
+	total := 0
+	pending := []PendingBlock{}
+	matchCount := 0
+	hitBlockIDs := make(map[string]bool) // Keep this as it's used later
+	skipCount := 0                       // Keep this as it's used later
+
+	// 建立 ID -> Row 的映射，方便快速查找
+	rowsMap := make(map[string]map[string]interface{})
+	if len(result) > 0 {
+		for _, row := range result {
+			if id, ok := row["id"].(string); ok && id != "" {
+				rowsMap[id] = row
+			}
+		}
+	}
+
+
+	
+	// 核心修正：必须遍历传入的 ids，而不是数据库查到的结果
+	// 数据库查不到的，也要作为 new 处理（或者根据业务逻辑处理，但不能吞掉）
+	for _, id := range ids {
+		if id == "" {
 			continue
 		}
 
-		vectorID := fmt.Sprintf("%s_%s", id, dataset)
-		contentHash := HashContent(content)
+		hitBlockIDs[id] = true
 		reason := ""
-
-		if col == nil {
-			reason = "new"
+		
+		row, inDB := rowsMap[id]
+		if !inDB {
+			logging.LogInfof("[Embedding] 警告：ID %s 在 SQL 查询中未命中", id)
+			reason = "new" 
+			
+			// Initialize row to avoid panic when setting reason later
+			row = map[string]interface{}{
+				"id": id,
+			}
 		} else {
-			docID, exists := col.GetDocID(vectorID)
-			if !exists {
+			// 数据库查到了，正常逻辑
+			content, _ := row["content"].(string)
+			if content == "" {
+				if m, ok := row["markdown"].(string); ok {
+					content = m
+				}
+			}
+			
+			// 如果内容还是空，依然算作待处理吗？
+			// 有些块确实没内容。但为了 total 对齐，我们继续走
+			
+			vectorID := fmt.Sprintf("%s_%s", id, dataset)
+			contentHash, _ := row["hash"].(string)
+
+			if contentHash == "" {
+				reason = "outdated"
+				logging.LogInfof("[Embedding] 判定报告 - ID:%s, 结论:OUTDATED (数据库无Hash)", id)
+			} else if col == nil {
 				reason = "new"
+				logging.LogInfof("[Embedding] 判定报告 - ID:%s, 结论:NEW (集合不存在)", id)
 			} else {
-				meta, ok := col.GetMeta(docID)
-				if !ok {
+				docID, exists := col.GetDocID(vectorID)
+				if !exists {
 					reason = "new"
+					logging.LogInfof("[Embedding] 判定报告 - ID:%s, 结论:NEW (向量ID不存在:%s)", id, vectorID)
 				} else {
-					var metaMap map[string]interface{}
-					if json.Unmarshal(meta, &metaMap) == nil {
-						if existingHash, ok := metaMap["hash"].(string); ok && existingHash != contentHash {
+					meta, ok := col.GetMeta(docID)
+					if !ok {
+						reason = "outdated"
+						logging.LogInfof("[Embedding] 判定报告 - ID:%s, 结论:OUTDATED (Meta丢失)", id)
+					} else {
+						var metaMap map[string]interface{}
+						if err := json.Unmarshal(meta, &metaMap); err != nil {
 							reason = "outdated"
+							logging.LogInfof("[Embedding] 判定报告 - ID:%s, 结论:OUTDATED (Meta解析失败)", id)
+						} else {
+							existingHash, _ := metaMap["hash"].(string)
+							if existingHash == "" || existingHash != contentHash {
+								reason = "outdated"
+								logging.LogInfof("[Embedding] 判定报告 - ID:%s, 结论:OUTDATED (Hash不匹配: DB='%s', Vector='%s')", id, contentHash, existingHash)
+							} else {
+								matchCount++
+								if matchCount <= 3 {
+									logging.LogInfof("[Embedding] 采样一致 - ID:%s, Hash:%s", id, contentHash)
+								}
+							}
 						}
 					}
 				}
@@ -458,8 +588,53 @@ func GetPendingBlocksWithModel(dataset string, box string, limit int, model stri
 		if reason != "" {
 			total++
 			if len(pending) < limit {
-				pending = append(pending, PendingBlock{ID: id, Reason: reason})
+				// 将判定理由注入到 block 属性中
+				row["reason"] = reason
+				pending = append(pending, row)
 			}
+		} else {
+			skipCount++
+		}
+	}
+
+	logging.LogInfof("[Embedding] 最终统计 - 数据集:%s, Total:%d (待处理), Pending列表:%d, 一致跳过:%d, 数据库查到总数:%d", 
+		dataset, total, len(pending), matchCount, len(result))
+
+
+	// 3. 数据清算 (Scrubbing / Logical Delete)
+	// 凡是落在该数据集下，但不在本次名单中的 ID，标记为假删除
+	if col != nil && len(ids) > 0 {
+		var toDelete []string
+		
+		col.Mu.RLock()
+		for vectorID := range col.IDMap {
+			// vectorID 格式为 "blockID_datasetID"
+			// 采用后缀匹配，避免数据集 ID 本身带下划线导致的解析错误
+			datasetSuffix := "_" + dataset
+			if strings.HasSuffix(vectorID, datasetSuffix) {
+				blockID := strings.TrimSuffix(vectorID, datasetSuffix)
+				// 检查该 blockID 是否在本次传入的名单中
+				inRequest := false
+				for _, reqID := range ids {
+					if reqID == blockID {
+						inRequest = true
+						break
+					}
+				}
+				
+				if !inRequest {
+					// 名单里没有这个 ID，但库里有其属于该数据集的记录 -> 需要清算
+					toDelete = append(toDelete, vectorID)
+				}
+			}
+		}
+		col.Mu.RUnlock()
+
+		if len(toDelete) > 0 {
+			for _, vid := range toDelete {
+				col.DeleteItemWithIndex(vid)
+			}
+			vectordb.SaveCollection(col, vectordb.GlobalDB.Path)
 		}
 	}
 

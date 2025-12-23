@@ -287,7 +287,17 @@ func embeddingBlocksPending(c *gin.Context) {
 		return
 	}
 
-	pending, total := embedding.GetPendingBlocksWithModel(dataset, box, limit, model)
+	// ids 参数可选 (精准同步名单)
+	var ids []string
+	if idsRaw, ok := body["ids"].([]interface{}); ok {
+		for _, idRaw := range idsRaw {
+			if id, ok := idRaw.(string); ok {
+				ids = append(ids, id)
+			}
+		}
+	}
+
+	pending, total := embedding.GetPendingBlocksWithModel(dataset, box, limit, model, ids)
 	ret["data"] = map[string]interface{}{
 		"pending": pending,
 		"total":   total,

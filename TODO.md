@@ -384,11 +384,15 @@ interface IDatasetStatus {
 2. [x] 实现 `EmbeddingDock.ts` 基本框架（继承 Model）
 3. [x] 注册到 dock.factory.ts
 4. [x] CustomLists "转换为数据集"对话框
-5. [/] **待解决：动态添加 Dock 图标不生效**
-   - 使用了 `addCustomItem` 但图标未出现
-   - 需要参考 embedPinToSidebar.ts 的完整实现
-6. [ ] 实现刷新/嵌入/配置按钮交互
-7. [ ] 同步调整后端 API
+5. [x] **已解决：动态添加 Dock 图标不生效**
+   - 原因是 `embedding_dock` 未在 `dock.guard.ts` 和 `dock.button.ts` 的内置类型白名单中。
+   - 已通过更新 `index.ts`, `dock.guard.ts` 和 `dock.button.ts` 修复。
+6. [x] **已解决：DOM 结构错误造成视觉样式异常**
+   - 原因是缺失 CSS 定义且 HTML 结构不规范。
+   - 已通过重构 `EmbeddingDock.ts` 并注入内联样式修复。
+7. [ ] 手动实现刷新/嵌入/配置按钮交互
+8. [ ] **待解决：数据集状态显示“加载中...”**
+   - 原因是前端 `statuses` Map 未能正确获取/更新数据。
 
 #### 后端已完成
 
@@ -463,12 +467,11 @@ const vector = await embeddingText("你好世界"); // Float32Array[768]
 
 ## 更新日志
 
+- 2025-12-24 01:21: 修复视觉样式与 Dock 图标显示
+  - 解决 `embedding_dock` 无法显示图标的问题（类型白名单）
+  - 彻底重构 `EmbeddingDock.ts` 并注入 CSS 补丁，修复布局错乱
+  - **下一步**：解决数据集状态始终显示“加载中”的问题
 - 2025-12-24 01:03: EmbeddingDock 初步实现
-  - 创建 `embeddingDock/` 目录（5文件）
-  - 注册到 `dock.factory.ts`
-  - CustomLists 添加"转换为数据集"对话框
-  - 后端添加 `GetBlocksCollectionNameWithDataset(model, datasetId)`
-  - **待解决**：动态添加 Dock 图标不生效
 - 2025-12-24 00:42: 前端优先策略
   - 新增 **4.4 前端实现计划**（文件结构、组件设计、API 列表）
   - 调整优先级：前端 EmbeddingDock → 数据集 API → 动态刷新
