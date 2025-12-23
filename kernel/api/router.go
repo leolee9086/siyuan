@@ -522,4 +522,18 @@ func ServeAPI(ginServer *gin.Engine) {
 	vectorGroup.POST("/keys", vectorKeys)
 	vectorGroup.POST("/state", vectorState)
 	vectorGroup.POST("/rebuild", model.CheckAdminRole, model.CheckReadonly, vectorRebuild)
+
+	// 嵌入向量服务
+	embeddingGroup := ginServer.Group("/api/embedding", model.CheckAuth)
+	embeddingGroup.POST("/status", embeddingStatus)
+	embeddingGroup.POST("/blocks/push", model.CheckAdminRole, model.CheckReadonly, embeddingBlocksPush)
+	embeddingGroup.POST("/blocks/query", embeddingBlocksQuery)
+	embeddingGroup.POST("/blocks/pending", embeddingBlocksPending)
+	embeddingGroup.POST("/assets/push", model.CheckAdminRole, model.CheckReadonly, embeddingAssetsPush)
+	embeddingGroup.POST("/assets/query", embeddingAssetsQuery)
+	embeddingGroup.POST("/assets/pending", embeddingAssetsPending)
+	// 模型管理
+	embeddingGroup.POST("/models", embeddingModels)
+	embeddingGroup.POST("/models/pull", model.CheckAdminRole, model.CheckReadonly, embeddingPullModel)
+	embeddingGroup.POST("/models/set", model.CheckAdminRole, model.CheckReadonly, embeddingSetModel)
 }
