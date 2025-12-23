@@ -8,7 +8,7 @@
  * 相关文件见app\stage\protyle\js\transformers.js
  * @param content 
  */
-export const embeddingText = async (content: string) => {
+export const embeddingText = async (content: string): Promise<Float32Array> => {
     //@ts-ignore
     const transformers = await import(/* webpackIgnore: true */ "/stage/protyle/js/transformers.js");
     //wasm位置,注意路径最后的斜杠
@@ -23,7 +23,7 @@ export const embeddingText = async (content: string) => {
     if (window.process) {
         node_version = window.process.versions.node;
         //由于onnx_runtime会通过这个属性判断是否是node环境而且在electron下会有一些问题,所以需要临时将它hack
-        
+
         Object.defineProperty(window.process.versions, "node", {
             value: undefined,
             writable: true,
@@ -59,6 +59,6 @@ export const embeddingText = async (content: string) => {
     }
 
     const embeddings = await extractor(content, { pooling: "mean", normalize: true });
-    //一个Float32Array
-    console.log(embeddings.data);
+    // embeddings.data 是 Float32Array
+    return embeddings.data;
 };
