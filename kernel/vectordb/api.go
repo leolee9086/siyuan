@@ -18,12 +18,20 @@ package vectordb
 
 import (
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	// "github.com/siyuan-note/logging"
 )
+
+// isEmbeddingReservedCollection 检查是否为 embedding 专用集合
+// 这些集合只能通过 embedding 包的接口修改，通用 API 禁止直接操作
+func isEmbeddingReservedCollection(name string) bool {
+	return strings.HasPrefix(name, "blocks_embedding_") ||
+		strings.HasPrefix(name, "assets_embedding_")
+}
 
 var (
 	// Global DB Instance for API
@@ -135,6 +143,12 @@ func putPointsHandler(c *gin.Context) {
 		return
 	}
 
+	// 保护 embedding 专用集合
+	if isEmbeddingReservedCollection(req.Collection) {
+		c.JSON(http.StatusForbidden, Response{Code: 403, Msg: "Embedding collections are protected. Use /api/embedding/* endpoints."})
+		return
+	}
+
 	col := GlobalDB.GetCollection(req.Collection)
 	if col == nil {
 		c.JSON(http.StatusNotFound, Response{Code: 404, Msg: "Collection not found"})
@@ -163,6 +177,12 @@ func deletePointsHandler(c *gin.Context) {
 	var req DeleteRequest
 	if err := c.BindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, Response{Code: 400, Msg: "Invalid request"})
+		return
+	}
+
+	// 保护 embedding 专用集合
+	if isEmbeddingReservedCollection(req.Collection) {
+		c.JSON(http.StatusForbidden, Response{Code: 403, Msg: "Embedding collections are protected. Use /api/embedding/* endpoints."})
 		return
 	}
 

@@ -91,6 +91,111 @@ func embeddingBlocksPush(c *gin.Context) {
 	}
 }
 
+// embeddingBlocksPushWithVectors 使用前端预计算向量推送块嵌入
+// 不调用 Ollama，直接校验维度后入库
+func embeddingBlocksPushWithVectors(c *gin.Context) {
+	ret := map[string]interface{}{"code": 0}
+	defer c.JSON(http.StatusOK, ret)
+
+	body := map[string]interface{}{}
+	if err := c.BindJSON(&body); err != nil {
+		ret["code"] = -1
+		ret["msg"] = "参数解析失败"
+		return
+	}
+
+	// 解析 blocks 数组
+	blocksRaw, ok := body["blocks"].([]interface{})
+	if !ok || len(blocksRaw) == 0 {
+		ret["code"] = -1
+		ret["msg"] = "blocks 参数必填"
+		return
+	}
+
+	// 必须指定维度
+	dimension := 0
+	if d, ok := body["dimension"].(float64); ok {
+		dimension = int(d)
+	}
+	if dimension <= 0 {
+		ret["code"] = -1
+		ret["msg"] = "dimension 必须大于 0"
+		return
+	}
+
+	// 必须指定模型名（用于确定集合）
+	model := ""
+	if m, ok := body["model"].(string); ok && m != "" {
+		model = m
+	}
+	if model == "" {
+		ret["code"] = -1
+		ret["msg"] = "model 参数必填"
+		return
+	}
+
+	dataset := "default"
+	if ds, ok := body["dataset"].(string); ok && ds != "" {
+		dataset = ds
+	}
+
+	force := false
+	if f, ok := body["force"].(bool); ok {
+		force = f
+	}
+
+	// 解析 blocks
+	blocks := make([]embedding.BlockWithVector, 0, len(blocksRaw))
+	for _, bRaw := range blocksRaw {
+		b, ok := bRaw.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		id, _ := b["id"].(string)
+		if id == "" {
+			continue
+		}
+
+		vectorRaw, _ := b["vector"].([]interface{})
+		if len(vectorRaw) != dimension {
+			continue
+		}
+
+		vector := make([]float32, len(vectorRaw))
+		for i, v := range vectorRaw {
+			if f, ok := v.(float64); ok {
+				vector[i] = float32(f)
+			}
+		}
+
+		blocks = append(blocks, embedding.BlockWithVector{
+			ID:     id,
+			Vector: vector,
+		})
+	}
+
+	if len(blocks) == 0 {
+		ret["code"] = -1
+		ret["msg"] = "没有有效的块数据"
+		return
+	}
+
+	pushed, skipped, err := embedding.PushBlocksWithVectors(blocks, dataset, model, dimension, force)
+	if err != nil {
+		ret["code"] = -1
+		ret["msg"] = err.Error()
+		return
+	}
+
+	ret["data"] = map[string]interface{}{
+		"pushed":    pushed,
+		"skipped":   skipped,
+		"model":     model,
+		"dimension": dimension,
+	}
+}
+
 // embeddingBlocksQuery 查询相似块
 func embeddingBlocksQuery(c *gin.Context) {
 	ret := map[string]interface{}{"code": 0}

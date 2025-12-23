@@ -82,32 +82,36 @@ const embedText = async (content: string): Promise<number[]> => {
     return Array.from(embeddings.data as Float32Array);
 };
 
-// =========== Vector API 封装 ===========
+// =========== Embedding API 封装 ===========
 
-const 创建集合 = async (集合名称: string, 向量维度: number): Promise<void> => {
-    const res = await postAPI("/api/vector/collections/build", {
-        collection_name: 集合名称,
-        dimension: 向量维度,
-    });
+/**
+ * 使用前端预计算向量推送块嵌入
+ * 调用 /api/embedding/blocks/pushWithVectors
+ */
+const 推送带向量的块 = async (
+    块列表: { id: string; vector: number[] }[],
+    模型名: string,
+    维度: number,
+    dataset = "default"
+): Promise<{ pushed: number; skipped: number }> => {
+    const res = await postAPI<{ pushed: number; skipped: number; model: string; dimension: number }>(
+        "/api/embedding/blocks/pushWithVectors",
+        {
+            blocks: 块列表,
+            model: 模型名,
+            dimension: 维度,
+            dataset,
+        }
+    );
     if (res.code !== 0) {
-        throw new Error(res.msg || "创建集合失败");
+        throw new Error(res.msg || "推送块嵌入失败");
     }
+    return { pushed: res.data?.pushed ?? 0, skipped: res.data?.skipped ?? 0 };
 };
 
-const 添加向量 = async (
-    集合名称: string,
-    向量列表: { id: string; vector: number[]; meta?: Record<string, unknown> }[]
-): Promise<number> => {
-    const res = await postAPI<{ added_count: number }>("/api/vector/add", {
-        collection_name: 集合名称,
-        points: 向量列表,
-    });
-    if (res.code !== 0) {
-        throw new Error(res.msg || "添加向量失败");
-    }
-    return res.data?.added_count ?? 0;
-};
-
+/**
+ * 查询相似块（使用向量直接查询）
+ */
 const 查询向量 = async (
     集合名称: string,
     查询向量: number[],
@@ -124,38 +128,13 @@ const 查询向量 = async (
     return res.data ?? [];
 };
 
-const 删除集合 = async (集合名称: string): Promise<void> => {
-    // 尝试获取集合中的所有 key
-    const resKeys = await postAPI<{ data: string[] }>("/api/vector/keys", {
-        collection_name: 集合名称,
-        with_meta: false,
-    });
-
-    if (resKeys.code !== 0 || !Array.isArray(resKeys.data) || resKeys.data.length === 0) {
-        return; // 集合不存在或为空，无需删除
-    }
-
-    const keys = resKeys.data;
-    console.log(`正在清理集合 ${集合名称}, 共 ${keys.length} 条数据...`);
-
-    // 批量删除
-    const resDel = await postAPI<{ deleted_count: number }>("/api/vector/delete", {
-        collection_name: 集合名称,
-        ids: keys,
-    });
-
-    if (resDel.code !== 0) {
-        throw new Error(resDel.msg || "清理集合失败");
-    }
-    console.log(`成功清理 ${resDel.data?.deleted_count} 条数据`);
-};
-
 // =========== 测试用例 ===========
 
 describe("前端嵌入集成测试 - ONNX 模型", () => {
-    // 关键修正：使用符合后端命名规则的集合名，以便 Pending 状态检查能正确关联
-    // 规则：blocks_embedding_<模型名safe>，其中 / 被替换为 _
-    const 集合名 = "blocks_embedding_leolee9086_text2vec-base-chinese";
+    // 使用 embedding 专用集合名
+    const 模型名 = "leolee9086/text2vec-base-chinese";
+    const 安全模型名 = 模型名.replace(/:/g, "_").replace(/\//g, "_");
+    const 集合名 = `blocks_embedding_${安全模型名}`;
     const 向量维度 = 768; // text2vec-base-chinese 的维度
     const 测试块数量 = 100;
 

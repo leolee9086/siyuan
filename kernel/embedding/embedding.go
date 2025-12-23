@@ -23,6 +23,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/siyuan-note/siyuan/kernel/sql"
 	"github.com/siyuan-note/siyuan/kernel/util"
@@ -42,6 +44,13 @@ func GetAssetsCollectionName(model string) string {
 	safeName := strings.ReplaceAll(model, ":", "_")
 	safeName = strings.ReplaceAll(safeName, "/", "_")
 	return fmt.Sprintf("assets_embedding_%s", safeName)
+}
+
+// IsEmbeddingReservedCollection 检查是否为 embedding 专用集合
+// 这些集合只能通过 embedding 包的接口修改
+func IsEmbeddingReservedCollection(name string) bool {
+	return strings.HasPrefix(name, "blocks_embedding_") ||
+		strings.HasPrefix(name, "assets_embedding_")
 }
 
 // EnsureCollection 确保嵌入集合存在
@@ -101,6 +110,102 @@ type PushBlocksOptions struct {
 	Dataset string
 	Model   string // 可选，默认使用当前模型
 	Force   bool
+}
+
+// BlockWithVector 带向量的块信息（用于前端直推）
+type BlockWithVector struct {
+	ID     string    `json:"id"`
+	Vector []float32 `json:"vector"` // 前端预计算的向量
+}
+
+// PushBlocksWithVectors 使用前端预计算的向量推送块嵌入
+// 不调用 Ollama，直接校验维度后入库
+func PushBlocksWithVectors(blocks []BlockWithVector, dataset, model string, dimension int, force bool) (pushed, skipped int, err error) {
+	if vectordb.GlobalDB == nil {
+		err = fmt.Errorf("vectordb not initialized")
+		return
+	}
+
+	collectionName := GetBlocksCollectionName(model)
+	EnsureCollection(collectionName, dimension)
+
+	col := vectordb.GlobalDB.GetCollection(collectionName)
+	if col == nil {
+		err = fmt.Errorf("collection %s not found", collectionName)
+		return
+	}
+
+	// 校验集合维度
+	if col.Dimension != dimension {
+		err = fmt.Errorf("dimension mismatch: collection has %d, expected %d", col.Dimension, dimension)
+		return
+	}
+
+	for _, b := range blocks {
+		// 校验向量维度
+		if len(b.Vector) != dimension {
+			skipped++
+			continue
+		}
+
+		block := sql.GetBlock(b.ID)
+		if block == nil {
+			skipped++
+			continue
+		}
+
+		content := block.Content
+		if content == "" {
+			content = block.Markdown
+		}
+		if content == "" {
+			skipped++
+			continue
+		}
+
+		contentHash := HashContent(content)
+		vectorID := fmt.Sprintf("%s_%s", b.ID, dataset)
+
+		if !force {
+			if docID, ok := col.GetDocID(vectorID); ok {
+				if meta, ok := col.GetMeta(docID); ok {
+					var metaMap map[string]interface{}
+					if json.Unmarshal(meta, &metaMap) == nil {
+						if existingHash, ok := metaMap["hash"].(string); ok && existingHash == contentHash {
+							skipped++
+							continue
+						}
+					}
+				}
+			}
+		}
+
+		metaData := map[string]interface{}{
+			"block_id": b.ID,
+			"dataset":  dataset,
+			"hash":     contentHash,
+			"type":     block.Type,
+			"box":      block.Box,
+			"path":     block.Path,
+			"model":    model,
+			"source":   "frontend", // 标记来源为前端
+		}
+		metaBytes, _ := json.Marshal(metaData)
+
+		point := vectordb.Point{
+			ID:     vectorID,
+			Vector: b.Vector,
+			Meta:   metaBytes,
+		}
+		if insertErr := col.InsertPoint(point); insertErr != nil {
+			err = fmt.Errorf("insert block %s failed: %w", b.ID, insertErr)
+			return
+		}
+		pushed++
+	}
+
+	vectordb.SaveCollection(col, vectordb.GlobalDB.Path)
+	return
 }
 
 // PushBlocks 推送块嵌入
@@ -479,3 +584,170 @@ func GetPendingAssets(dataset string, limit int) ([]PendingAsset, int) {
 	// TODO: 需要从 util.assetsTexts 遍历获取有 OCR 文本的素材
 	return []PendingAsset{}, 0
 }
+
+// AssetWithVector 带向量的素材信息（用于前端直推）
+type AssetWithVector struct {
+	Path   string    `json:"path"`
+	Vector []float32 `json:"vector"` // 前端预计算的向量
+}
+
+// PushAssetsWithVectors 使用前端预计算的向量推送素材嵌入
+// 不调用 Ollama，直接校验维度后入库
+func PushAssetsWithVectors(assets []AssetWithVector, dataset, model string, dimension int, force bool) (pushed, skipped int, err error) {
+	if vectordb.GlobalDB == nil {
+		err = fmt.Errorf("vectordb not initialized")
+		return
+	}
+
+	collectionName := GetAssetsCollectionName(model)
+	EnsureCollection(collectionName, dimension)
+
+	col := vectordb.GlobalDB.GetCollection(collectionName)
+	if col == nil {
+		err = fmt.Errorf("collection %s not found", collectionName)
+		return
+	}
+
+	// 校验集合维度
+	if col.Dimension != dimension {
+		err = fmt.Errorf("dimension mismatch: collection has %d, expected %d", col.Dimension, dimension)
+		return
+	}
+
+	for _, a := range assets {
+		// 校验向量维度
+		if len(a.Vector) != dimension {
+			skipped++
+			continue
+		}
+
+		text := util.GetAssetText(a.Path)
+		if text == "" {
+			skipped++
+			continue
+		}
+
+		contentHash := HashContent(text)
+		vectorID := fmt.Sprintf("%s_%s", a.Path, dataset)
+
+		if !force {
+			if docID, ok := col.GetDocID(vectorID); ok {
+				if meta, ok := col.GetMeta(docID); ok {
+					var metaMap map[string]interface{}
+					if json.Unmarshal(meta, &metaMap) == nil {
+						if existingHash, ok := metaMap["hash"].(string); ok && existingHash == contentHash {
+							skipped++
+							continue
+						}
+					}
+				}
+			}
+		}
+
+		metaData := map[string]interface{}{
+			"path":    a.Path,
+			"dataset": dataset,
+			"hash":    contentHash,
+			"model":   model,
+			"source":  "frontend", // 标记来源为前端
+		}
+		metaBytes, _ := json.Marshal(metaData)
+
+		point := vectordb.Point{
+			ID:     vectorID,
+			Vector: a.Vector,
+			Meta:   metaBytes,
+		}
+		if insertErr := col.InsertPoint(point); insertErr != nil {
+			err = fmt.Errorf("insert asset %s failed: %w", a.Path, insertErr)
+			return
+		}
+		pushed++
+	}
+
+	vectordb.SaveCollection(col, vectordb.GlobalDB.Path)
+	return
+}
+
+// =========================================
+// 删除数据集 - 两阶段确认机制
+// =========================================
+
+// 删除请求记录
+var deleteRequests = make(map[string]time.Time)
+var deleteRequestsMu sync.RWMutex
+
+// DeleteCollectionResult 删除集合结果
+type DeleteCollectionResult struct {
+	NeedConfirm   bool   `json:"need_confirm"`   // 是否需要确认（首次请求）
+	WaitSeconds   int    `json:"wait_seconds"`   // 需要等待的秒数
+	Deleted       bool   `json:"deleted"`        // 是否已删除
+	CollectionName string `json:"collection_name"` // 集合名称
+}
+
+// RequestDeleteCollection 请求删除数据集（两阶段确认）
+// 第一次请求：记录时间，返回需要确认
+// 3秒后到30秒内再次请求：执行删除
+// 超过30秒：重新开始
+func RequestDeleteCollection(collectionType, model string) (result DeleteCollectionResult, err error) {
+	var collectionName string
+	if collectionType == "blocks" {
+		collectionName = GetBlocksCollectionName(model)
+	} else if collectionType == "assets" {
+		collectionName = GetAssetsCollectionName(model)
+	} else {
+		err = fmt.Errorf("invalid collection type: %s, must be 'blocks' or 'assets'", collectionType)
+		return
+	}
+
+	result.CollectionName = collectionName
+
+	deleteRequestsMu.Lock()
+	defer deleteRequestsMu.Unlock()
+
+	firstRequest, exists := deleteRequests[collectionName]
+	now := time.Now()
+
+	if !exists {
+		// 第一次请求，记录时间
+		deleteRequests[collectionName] = now
+		result.NeedConfirm = true
+		result.WaitSeconds = 3
+		return
+	}
+
+	elapsed := now.Sub(firstRequest)
+	if elapsed < 3*time.Second {
+		// 太早，需要等待
+		result.NeedConfirm = false
+		result.WaitSeconds = 3 - int(elapsed.Seconds())
+		err = fmt.Errorf("请在 %d 秒后重试", result.WaitSeconds)
+		return
+	}
+	if elapsed > 30*time.Second {
+		// 超时，重新开始
+		deleteRequests[collectionName] = now
+		result.NeedConfirm = true
+		result.WaitSeconds = 3
+		return
+	}
+
+	// 时间窗口内，执行删除
+	delete(deleteRequests, collectionName)
+	err = doDeleteCollection(collectionName)
+	if err == nil {
+		result.Deleted = true
+	}
+	return
+}
+
+// doDeleteCollection 实际执行删除集合
+func doDeleteCollection(collectionName string) error {
+	if vectordb.GlobalDB == nil {
+		return fmt.Errorf("vectordb not initialized")
+	}
+
+	// 从数据库中移除集合（同时删除持久化文件）
+	return vectordb.GlobalDB.DeleteCollection(collectionName)
+}
+

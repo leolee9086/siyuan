@@ -20,11 +20,19 @@ import (
 	"encoding/json"
 	"net/http"
 	"path/filepath"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/siyuan-note/siyuan/kernel/util"
 	"github.com/siyuan-note/siyuan/kernel/vectordb"
 )
+
+// isEmbeddingReservedCollection 检查是否为 embedding 专用集合
+// 这些集合只能通过 embedding 包的接口修改，通用 vector API 禁止直接操作
+func isEmbeddingReservedCollection(name string) bool {
+	return strings.HasPrefix(name, "blocks_embedding_") ||
+		strings.HasPrefix(name, "assets_embedding_")
+}
 
 // ensureVectorDB 确保向量数据库已初始化
 func ensureVectorDB() {
@@ -58,6 +66,13 @@ func vectorBuildCollection(c *gin.Context) {
 	if collectionName == "" {
 		ret["code"] = -1
 		ret["msg"] = "collection_name 不能为空"
+		return
+	}
+
+	// 保护 embedding 专用集合名称
+	if isEmbeddingReservedCollection(collectionName) {
+		ret["code"] = 403
+		ret["msg"] = "Embedding 集合名称受保护，请使用 /api/embedding/* 接口"
 		return
 	}
 
@@ -103,6 +118,13 @@ func vectorAdd(c *gin.Context) {
 
 	collectionName, _ := body["collection_name"].(string)
 	pointsRaw, _ := body["points"].([]interface{})
+
+	// 保护 embedding 专用集合
+	if isEmbeddingReservedCollection(collectionName) {
+		ret["code"] = 403
+		ret["msg"] = "Embedding 集合受保护，请使用 /api/embedding/* 接口"
+		return
+	}
 
 	col := vectordb.GlobalDB.GetCollection(collectionName)
 	if col == nil {
@@ -172,6 +194,13 @@ func vectorDelete(c *gin.Context) {
 
 	collectionName, _ := body["collection_name"].(string)
 	idsRaw, _ := body["ids"].([]interface{})
+
+	// 保护 embedding 专用集合
+	if isEmbeddingReservedCollection(collectionName) {
+		ret["code"] = 403
+		ret["msg"] = "Embedding 集合受保护，请使用 /api/embedding/* 接口"
+		return
+	}
 
 	col := vectordb.GlobalDB.GetCollection(collectionName)
 	if col == nil {
@@ -362,3 +391,52 @@ func vectorRebuild(c *gin.Context) {
 
 	ret["msg"] = "索引重建完成"
 }
+
+func vectorDeleteCollection(c *gin.Context) {
+	ensureVectorDB()
+
+	ret := map[string]interface{}{"code": 0}
+	defer c.JSON(http.StatusOK, ret)
+
+	body := map[string]interface{}{}
+	if err := c.BindJSON(&body); err != nil {
+		ret["code"] = -1
+		ret["msg"] = "参数解析失败"
+		return
+	}
+
+	collectionName, _ := body["collection_name"].(string)
+
+	if collectionName == "" {
+		ret["code"] = -1
+		ret["msg"] = "collection_name 不能为空"
+		return
+	}
+
+	// 保护 embedding 专用集合
+	if isEmbeddingReservedCollection(collectionName) {
+		ret["code"] = 403
+		ret["msg"] = "Embedding 集合受保护，请使用 /api/embedding/* 接口"
+		return
+	}
+
+	col := vectordb.GlobalDB.GetCollection(collectionName)
+	if col == nil {
+		ret["code"] = -1
+		ret["msg"] = "数据集不存在"
+		return
+	}
+
+	// 删除集合
+	if err := vectordb.GlobalDB.DeleteCollection(collectionName); err != nil {
+		ret["code"] = -1
+		ret["msg"] = "删除数据集失败: " + err.Error()
+		return
+	}
+
+	ret["msg"] = "数据集已删除"
+	ret["data"] = map[string]interface{}{
+		"collection_name": collectionName,
+	}
+}
+

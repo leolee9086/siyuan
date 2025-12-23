@@ -516,6 +516,7 @@ func ServeAPI(ginServer *gin.Engine) {
 	// 向量数据库
 	vectorGroup := ginServer.Group("/api/vector", model.CheckAuth)
 	vectorGroup.POST("/collections/build", model.CheckAdminRole, model.CheckReadonly, vectorBuildCollection)
+	vectorGroup.POST("/collections/delete", model.CheckAdminRole, model.CheckReadonly, vectorDeleteCollection)
 	vectorGroup.POST("/add", model.CheckAdminRole, model.CheckReadonly, vectorAdd)
 	vectorGroup.POST("/delete", model.CheckAdminRole, model.CheckReadonly, vectorDelete)
 	vectorGroup.POST("/query", vectorQuery)
@@ -527,6 +528,7 @@ func ServeAPI(ginServer *gin.Engine) {
 	embeddingGroup := ginServer.Group("/api/embedding", model.CheckAuth)
 	embeddingGroup.POST("/status", embeddingStatus)
 	embeddingGroup.POST("/blocks/push", model.CheckAdminRole, model.CheckReadonly, embeddingBlocksPush)
+	embeddingGroup.POST("/blocks/pushWithVectors", model.CheckAdminRole, model.CheckReadonly, embeddingBlocksPushWithVectors)
 	embeddingGroup.POST("/blocks/query", embeddingBlocksQuery)
 	embeddingGroup.POST("/blocks/pending", embeddingBlocksPending)
 	embeddingGroup.POST("/assets/push", model.CheckAdminRole, model.CheckReadonly, embeddingAssetsPush)

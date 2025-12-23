@@ -18,7 +18,9 @@ package vectordb
 
 import (
 	"encoding/json"
-
+	"fmt"
+	"os"
+	"path/filepath"
 	"sync"
 )
 
@@ -208,8 +210,7 @@ func (db *Database) CreateCollection(name string, dimension int) (*Collection, e
 
 	if c, exists := db.Collections[name]; exists {
 		if c.Dimension != dimension {
-			// 维度不匹配警告或错误，目前简单返回旧的
-			// 在实际应用中可能需要报错
+			return nil, fmt.Errorf("collection %s already exists with dimension %d, requested %d", name, c.Dimension, dimension)
 		}
 		return c, nil
 	}
@@ -217,6 +218,27 @@ func (db *Database) CreateCollection(name string, dimension int) (*Collection, e
 	c := NewCollection(name, dimension)
 	db.Collections[name] = c
 	return c, nil
+}
+
+// DeleteCollection 删除集合及其持久化文件
+func (db *Database) DeleteCollection(name string) error {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
+	if _, exists := db.Collections[name]; !exists {
+		return fmt.Errorf("collection %s not found", name)
+	}
+
+	delete(db.Collections, name)
+
+	// 删除持久化文件目录
+	collectionPath := filepath.Join(db.Path, name)
+	if err := os.RemoveAll(collectionPath); err != nil {
+		// 集合已从内存移除，文件删除失败只记录警告
+		return fmt.Errorf("collection removed from memory but failed to delete files: %w", err)
+	}
+
+	return nil
 }
 
 // 兼容性辅助函数 (如果需要)
