@@ -17,36 +17,28 @@
 package api
 
 import (
+	"encoding/json"
 	"net/http"
 	"path/filepath"
 
 	"github.com/gin-gonic/gin"
-	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/util"
 	"github.com/siyuan-note/siyuan/kernel/vectordb"
 )
 
-// 初始化标记
-var vectorDBInitialized = false
-
 // ensureVectorDB 确保向量数据库已初始化
 func ensureVectorDB() {
-	if vectorDBInitialized {
+	if vectordb.GlobalDB != nil {
 		return
 	}
-	
-	// 初始化向量数据库
-	publicPath := filepath.Join(util.DataDir, "public", "vectorStorage")
-	pluginPath := "" // 插件路径稍后处理
-	tempPath := filepath.Join(util.TempDir, "vectorStorage")
-	
-	vectordb.Init(publicPath, pluginPath, tempPath)
-	vectorDBInitialized = true
+	// 初始化向量数据库到 data/storage/vectordb
+	dbPath := filepath.Join(util.DataDir, "storage", "vectordb")
+	vectordb.InitGlobalDB(dbPath)
 }
 
 func vectorBuildCollection(c *gin.Context) {
 	ensureVectorDB()
-	
+
 	ret := map[string]interface{}{"code": 0}
 	defer c.JSON(http.StatusOK, ret)
 
@@ -56,37 +48,40 @@ func vectorBuildCollection(c *gin.Context) {
 		ret["msg"] = "参数解析失败"
 		return
 	}
-	
-	database, _ := body["database"].(string)
-	if database == "" {
-		database = "public"
-	}
+
 	collectionName, _ := body["collection_name"].(string)
-	dimension := int(body["dimension"].(float64))
-	
+	dimension := 0
+	if d, ok := body["dimension"].(float64); ok {
+		dimension = int(d)
+	}
+
 	if collectionName == "" {
 		ret["code"] = -1
 		ret["msg"] = "collection_name 不能为空"
 		return
 	}
-	
-	// 创建数据集
-	db := vectordb.GetDatabase(database)
-	if db == nil {
+
+	if dimension <= 0 {
 		ret["code"] = -1
-		ret["msg"] = "数据库不存在"
+		ret["msg"] = "dimension 必须大于 0"
 		return
 	}
-	
-	collection := vectordb.NewCollection(collectionName, dimension)
-	db.Collections[collectionName] = collection
-	
-	if err := vectordb.SaveCollection(collection, db.Path); err != nil {
+
+	// 创建数据集
+	col, err := vectordb.GlobalDB.CreateCollection(collectionName, dimension)
+	if err != nil {
+		ret["code"] = -1
+		ret["msg"] = "创建数据集失败: " + err.Error()
+		return
+	}
+
+	// 保存
+	if err := vectordb.SaveCollection(col, vectordb.GlobalDB.Path); err != nil {
 		ret["code"] = -1
 		ret["msg"] = "保存数据集失败: " + err.Error()
 		return
 	}
-	
+
 	ret["data"] = map[string]interface{}{
 		"collection_name": collectionName,
 		"dimension":       dimension,
@@ -95,7 +90,7 @@ func vectorBuildCollection(c *gin.Context) {
 
 func vectorAdd(c *gin.Context) {
 	ensureVectorDB()
-	
+
 	ret := map[string]interface{}{"code": 0}
 	defer c.JSON(http.StatusOK, ret)
 
@@ -105,54 +100,58 @@ func vectorAdd(c *gin.Context) {
 		ret["msg"] = "参数解析失败"
 		return
 	}
-	
-	database, _ := body["database"].(string)
-	if database == "" {
-		database = "public"
-	}
+
 	collectionName, _ := body["collection_name"].(string)
-	vectorsRaw, _ := body["vectors"].([]interface{})
-	
-	collection := vectordb.GetCollection(database, collectionName)
-	if collection == nil {
+	pointsRaw, _ := body["points"].([]interface{})
+
+	col := vectordb.GlobalDB.GetCollection(collectionName)
+	if col == nil {
 		ret["code"] = -1
 		ret["msg"] = "数据集不存在"
 		return
 	}
-	
-	// Collect items for WAL
-	newItems := make([]*vectordb.Item, 0, len(vectorsRaw))
-	
+
 	addedCount := 0
-	for _, vRaw := range vectorsRaw {
-		v := vRaw.(map[string]interface{})
-		id, _ := v["id"].(string)
-		meta, _ := v["meta"].(map[string]interface{})
-		vectorMap, _ := v["vector"].(map[string]interface{})
-		
-		item := vectordb.NewItem(id)
-		item.Meta = meta
-		
-		for modelName, vecRaw := range vectorMap {
-			vecSlice := vecRaw.([]interface{})
-			vec := make([]float32, len(vecSlice))
-			for i, val := range vecSlice {
-				vec[i] = float32(val.(float64))
-			}
-			item.SetVector(modelName, vec)
-			collection.InitLevelMap(modelName)
-			collection.InsertItem(item, modelName)
+	for _, pRaw := range pointsRaw {
+		p, ok := pRaw.(map[string]interface{})
+		if !ok {
+			continue
 		}
-		newItems = append(newItems, item)
+		id, _ := p["id"].(string)
+		vectorRaw, _ := p["vector"].([]interface{})
+
+		// 转换向量
+		vec := make([]float32, len(vectorRaw))
+		for i, val := range vectorRaw {
+			if v, ok := val.(float64); ok {
+				vec[i] = float32(v)
+			}
+		}
+
+		if len(vec) != col.Dimension {
+			continue
+		}
+
+		// 构造 Point
+		point := vectordb.Point{
+			ID:     id,
+			Vector: vec,
+		}
+
+		// 转换 meta
+		if metaRaw, ok := p["meta"]; ok && metaRaw != nil {
+			if metaBytes, err := json.Marshal(metaRaw); err == nil {
+				point.Meta = json.RawMessage(metaBytes)
+			}
+		}
+
+		col.InsertPoint(point)
 		addedCount++
 	}
-	
-	if db := vectordb.GetDatabase(database); db != nil {
-		if err := vectordb.AppendWALAdd(collection, db.Path, newItems); err != nil {
-			logging.LogErrorf("append wal failed: %v", err)
-		}
-	}
-	
+
+	// 持久化
+	vectordb.SaveCollection(col, vectordb.GlobalDB.Path)
+
 	ret["data"] = map[string]interface{}{
 		"added_count": addedCount,
 	}
@@ -160,7 +159,7 @@ func vectorAdd(c *gin.Context) {
 
 func vectorDelete(c *gin.Context) {
 	ensureVectorDB()
-	
+
 	ret := map[string]interface{}{"code": 0}
 	defer c.JSON(http.StatusOK, ret)
 
@@ -170,38 +169,28 @@ func vectorDelete(c *gin.Context) {
 		ret["msg"] = "参数解析失败"
 		return
 	}
-	
-	database, _ := body["database"].(string)
-	if database == "" {
-		database = "public"
-	}
+
 	collectionName, _ := body["collection_name"].(string)
-	keysRaw, _ := body["keys"].([]interface{})
-	
-	collection := vectordb.GetCollection(database, collectionName)
-	if collection == nil {
+	idsRaw, _ := body["ids"].([]interface{})
+
+	col := vectordb.GlobalDB.GetCollection(collectionName)
+	if col == nil {
 		ret["code"] = -1
 		ret["msg"] = "数据集不存在"
 		return
 	}
-	
-	keys := make([]string, 0, len(keysRaw))
+
 	deletedCount := 0
-	for _, keyRaw := range keysRaw {
-		key := keyRaw.(string)
-		for modelName := range collection.HNSWLevelMap {
-			collection.DeleteItemWithIndex(key, modelName)
-		}
-		keys = append(keys, key)
-		deletedCount++
-	}
-	
-	if db := vectordb.GetDatabase(database); db != nil {
-		if err := vectordb.AppendWALDelete(collection, db.Path, keys); err != nil {
-			logging.LogErrorf("append wal delete failed: %v", err)
+	for _, idRaw := range idsRaw {
+		if id, ok := idRaw.(string); ok {
+			col.DeleteItemWithIndex(id)
+			deletedCount++
 		}
 	}
-	
+
+	// 持久化
+	vectordb.SaveCollection(col, vectordb.GlobalDB.Path)
+
 	ret["data"] = map[string]interface{}{
 		"deleted_count": deletedCount,
 	}
@@ -209,7 +198,7 @@ func vectorDelete(c *gin.Context) {
 
 func vectorQuery(c *gin.Context) {
 	ensureVectorDB()
-	
+
 	ret := map[string]interface{}{"code": 0}
 	defer c.JSON(http.StatusOK, ret)
 
@@ -219,44 +208,50 @@ func vectorQuery(c *gin.Context) {
 		ret["msg"] = "参数解析失败"
 		return
 	}
-	
-	database, _ := body["database"].(string)
-	if database == "" {
-		database = "public"
-	}
+
 	collectionName, _ := body["collection_name"].(string)
-	vectorName, _ := body["vector_name"].(string)
 	vectorRaw, _ := body["vector"].([]interface{})
-	limit := int(body["limit"].(float64))
+	topK := 10
+	if k, ok := body["top_k"].(float64); ok && k > 0 {
+		topK = int(k)
+	}
+	// 兼容旧参数名 limit
+	if k, ok := body["limit"].(float64); ok && k > 0 {
+		topK = int(k)
+	}
 	efSearch := 0
-	if raw, ok := body["ef_search"]; ok {
-		efSearch = int(raw.(float64))
+	if ef, ok := body["ef_search"].(float64); ok {
+		efSearch = int(ef)
 	}
-	
-	if limit <= 0 {
-		limit = 10
-	}
-	
-	collection := vectordb.GetCollection(database, collectionName)
-	if collection == nil {
+
+	col := vectordb.GlobalDB.GetCollection(collectionName)
+	if col == nil {
 		ret["code"] = -1
 		ret["msg"] = "数据集不存在"
 		return
 	}
-	
+
 	// 转换向量
 	queryVec := make([]float32, len(vectorRaw))
 	for i, val := range vectorRaw {
-		queryVec[i] = float32(val.(float64))
+		if v, ok := val.(float64); ok {
+			queryVec[i] = float32(v)
+		}
 	}
-	
-	results := collection.Search(queryVec, vectorName, limit, efSearch)
+
+	if len(queryVec) != col.Dimension {
+		ret["code"] = -1
+		ret["msg"] = "向量维度不匹配"
+		return
+	}
+
+	results := col.Search(queryVec, topK, efSearch)
 	ret["data"] = results
 }
 
 func vectorKeys(c *gin.Context) {
 	ensureVectorDB()
-	
+
 	ret := map[string]interface{}{"code": 0}
 	defer c.JSON(http.StatusOK, ret)
 
@@ -266,46 +261,47 @@ func vectorKeys(c *gin.Context) {
 		ret["msg"] = "参数解析失败"
 		return
 	}
-	
-	database, _ := body["database"].(string)
-	if database == "" {
-		database = "public"
-	}
+
 	collectionName, _ := body["collection_name"].(string)
 	withMeta, _ := body["with_meta"].(bool)
-	
-	collection := vectordb.GetCollection(database, collectionName)
-	if collection == nil {
+
+	col := vectordb.GlobalDB.GetCollection(collectionName)
+	if col == nil {
 		ret["code"] = -1
 		ret["msg"] = "数据集不存在"
 		return
 	}
-	
+
+	col.Mu.RLock()
+	defer col.Mu.RUnlock()
+
 	if withMeta {
-		result := make([]map[string]interface{}, 0)
-		collection.Mu.RLock()
-		for _, item := range collection.Items {
-			result = append(result, map[string]interface{}{
-				"id":   item.ID,
-				"meta": item.Meta,
-			})
+		result := make([]map[string]interface{}, 0, len(col.DocMap))
+		for docID, id := range col.DocMap {
+			item := map[string]interface{}{
+				"id": id,
+			}
+			if docID < len(col.Metas) && len(col.Metas[docID]) > 0 {
+				var metaObj interface{}
+				if json.Unmarshal(col.Metas[docID], &metaObj) == nil {
+					item["meta"] = metaObj
+				}
+			}
+			result = append(result, item)
 		}
-		collection.Mu.RUnlock()
 		ret["data"] = result
 	} else {
-		keys := make([]string, 0)
-		collection.Mu.RLock()
-		for _, item := range collection.Items {
-			keys = append(keys, item.ID)
+		keys := make([]string, 0, len(col.DocMap))
+		for _, id := range col.DocMap {
+			keys = append(keys, id)
 		}
-		collection.Mu.RUnlock()
 		ret["data"] = keys
 	}
 }
 
 func vectorState(c *gin.Context) {
 	ensureVectorDB()
-	
+
 	ret := map[string]interface{}{"code": 0}
 	defer c.JSON(http.StatusOK, ret)
 
@@ -315,36 +311,27 @@ func vectorState(c *gin.Context) {
 		ret["msg"] = "参数解析失败"
 		return
 	}
-	
-	database, _ := body["database"].(string)
-	if database == "" {
-		database = "public"
-	}
+
 	collectionName, _ := body["collection_name"].(string)
-	
-	collection := vectordb.GetCollection(database, collectionName)
-	if collection == nil {
+
+	col := vectordb.GlobalDB.GetCollection(collectionName)
+	if col == nil {
 		ret["code"] = -1
 		ret["msg"] = "数据集不存在"
 		return
 	}
-	
-	models := make([]string, 0)
-	for name := range collection.HNSWLevelMap {
-		models = append(models, name)
-	}
-	
+
 	ret["data"] = map[string]interface{}{
-		"name":       collection.Name,
-		"dimension":  collection.Dimension,
-		"item_count": collection.ItemCount(),
-		"models":     models,
+		"name":       col.Name,
+		"dimension":  col.Dimension,
+		"item_count": col.ItemCount(),
+		"max_layer":  col.MaxLayer,
 	}
 }
 
 func vectorRebuild(c *gin.Context) {
 	ensureVectorDB()
-	
+
 	ret := map[string]interface{}{"code": 0}
 	defer c.JSON(http.StatusOK, ret)
 
@@ -354,32 +341,24 @@ func vectorRebuild(c *gin.Context) {
 		ret["msg"] = "参数解析失败"
 		return
 	}
-	
-	database, _ := body["database"].(string)
-	if database == "" {
-		database = "public"
-	}
+
 	collectionName, _ := body["collection_name"].(string)
-	vectorName, _ := body["vector_name"].(string)
-	
-	collection := vectordb.GetCollection(database, collectionName)
-	if collection == nil {
+
+	col := vectordb.GlobalDB.GetCollection(collectionName)
+	if col == nil {
 		ret["code"] = -1
 		ret["msg"] = "数据集不存在"
 		return
 	}
-	
-	if err := collection.RebuildIndex(vectorName); err != nil {
+
+	if err := col.RebuildIndex(); err != nil {
 		ret["code"] = -1
 		ret["msg"] = err.Error()
 		return
 	}
-	
-	if db := vectordb.GetDatabase(database); db != nil {
-		if err := vectordb.SaveCollection(collection, db.Path); err != nil {
-			logging.LogErrorf("save collection failed: %v", err)
-		}
-	}
-	
+
+	// 持久化
+	vectordb.SaveCollection(col, vectordb.GlobalDB.Path)
+
 	ret["msg"] = "索引重建完成"
 }
