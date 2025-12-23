@@ -32,18 +32,40 @@ import (
 )
 
 // GetBlocksCollectionName 获取块嵌入集合名称（包含模型名）
+// 使用默认数据集 "default"
 func GetBlocksCollectionName(model string) string {
-	// 将模型名中的特殊字符替换为下划线
+	return GetBlocksCollectionNameWithDataset(model, "default")
+}
+
+// GetBlocksCollectionNameWithDataset 获取块嵌入集合名称（包含模型名和数据集ID）
+func GetBlocksCollectionNameWithDataset(model, datasetId string) string {
+	// 将模型名和数据集ID中的特殊字符替换为下划线
 	safeName := strings.ReplaceAll(model, ":", "_")
 	safeName = strings.ReplaceAll(safeName, "/", "_")
-	return fmt.Sprintf("blocks_embedding_%s", safeName)
+	safeDataset := strings.ReplaceAll(datasetId, ":", "_")
+	safeDataset = strings.ReplaceAll(safeDataset, "/", "_")
+	if safeDataset == "" || safeDataset == "default" {
+		return fmt.Sprintf("blocks_embedding_%s", safeName)
+	}
+	return fmt.Sprintf("blocks_embedding_%s_%s", safeName, safeDataset)
 }
 
 // GetAssetsCollectionName 获取素材嵌入集合名称（包含模型名）
+// 使用默认数据集 "default"
 func GetAssetsCollectionName(model string) string {
+	return GetAssetsCollectionNameWithDataset(model, "default")
+}
+
+// GetAssetsCollectionNameWithDataset 获取素材嵌入集合名称（包含模型名和数据集ID）
+func GetAssetsCollectionNameWithDataset(model, datasetId string) string {
 	safeName := strings.ReplaceAll(model, ":", "_")
 	safeName = strings.ReplaceAll(safeName, "/", "_")
-	return fmt.Sprintf("assets_embedding_%s", safeName)
+	safeDataset := strings.ReplaceAll(datasetId, ":", "_")
+	safeDataset = strings.ReplaceAll(safeDataset, "/", "_")
+	if safeDataset == "" || safeDataset == "default" {
+		return fmt.Sprintf("assets_embedding_%s", safeName)
+	}
+	return fmt.Sprintf("assets_embedding_%s_%s", safeName, safeDataset)
 }
 
 // IsEmbeddingReservedCollection 检查是否为 embedding 专用集合

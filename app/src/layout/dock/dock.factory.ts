@@ -7,6 +7,7 @@ import { Graph } from "./Graph";
 import { Backlink } from "./Backlink";
 import { Inbox } from "./Inbox";
 import { CustomLists, ICustomList } from "./customBlockLists/CustomLists";
+import { EmbeddingDock } from "./embeddingDock/EmbeddingDock";
 import { App } from "../../index";
 import { Plugin } from "../../plugin";
 import { Protyle } from "../../protyle";
@@ -80,6 +81,10 @@ const initCustomList: ModelFactory = (app, tab, editor, data) => {
     return new CustomLists(app, tab, data as ICustomList);
 };
 
+const initEmbeddingDock: ModelFactory = (app, tab) => {
+    return new EmbeddingDock(app, tab);
+};
+
 const MODEL_FACTORIES: Record<string, ModelFactory> = {
     file: initFile,
     bookmark: initBookmark,
@@ -89,6 +94,7 @@ const MODEL_FACTORIES: Record<string, ModelFactory> = {
     globalGraph: initGlobalGraph,
     backlink: initBacklink,
     inbox: initInbox,
+    embedding_dock: initEmbeddingDock,
 };
 
 const initPlugin = (app: App, tab: Tab, type: string) => {

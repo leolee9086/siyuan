@@ -126,6 +126,97 @@ export const showCustomListMenu = (app: App, customList: CustomLists, event: Mou
             }).element);
         }
 
+        // 转换为嵌入数据集
+        window.siyuan.menus.menu.append(new MenuItem({
+            iconHTML: "",
+            label: (forgeI18n as any).customList?.convertToDataset || "转换为嵌入数据集",
+            icon: "iconDatabase",
+            click: () => {
+                showConvertToDatasetDialog(app, customList);
+            }
+        }).element);
+
         window.siyuan.menus.menu.popup({ x, y });
+    });
+};
+
+/**
+ * 显示转换为嵌入数据集对话框
+ */
+const showConvertToDatasetDialog = (app: App, customList: CustomLists) => {
+    const defaultModel = "leolee9086/text2vec-base-chinese";
+    const dialog = new Dialog({
+        title: (forgeI18n as any).customList?.convertToDataset || "转换为嵌入数据集",
+        content: `<div class="b3-dialog__content">
+            <div class="b3-label">
+                <span>数据集名称</span>
+                <input class="b3-text-field fn__block" id="datasetName" value="${customList.listData.title}">
+            </div>
+            <div class="b3-label">
+                <span>嵌入模型</span>
+                <select class="b3-select fn__block" id="modelSelect">
+                    <option value="${defaultModel}" selected>${defaultModel}</option>
+                </select>
+            </div>
+            <div class="b3-label">
+                <span>模型维度</span>
+                <input class="b3-text-field fn__block" id="modelDimension" value="768" readonly>
+            </div>
+        </div>
+        <div class="b3-dialog__action">
+            <button class="b3-button b3-button--cancel">${siyuanI18n.cancel}</button>
+            <button class="b3-button b3-button--text" id="confirmBtn">${siyuanI18n.confirm}</button>
+        </div>`,
+        width: "400px",
+    });
+
+    const nameInput = dialog.element.querySelector("#datasetName") as HTMLInputElement;
+    const modelSelect = dialog.element.querySelector("#modelSelect") as HTMLSelectElement;
+    const cancelBtn = dialog.element.querySelector(".b3-button--cancel");
+    const confirmBtn = dialog.element.querySelector("#confirmBtn");
+
+    cancelBtn?.addEventListener("click", () => {
+        dialog.destroy();
+    });
+
+    // @内联回调
+    confirmBtn?.addEventListener("click", () => {
+        const datasetName = nameInput.value.trim() || customList.listData.title;
+        const model = modelSelect.value;
+
+        // 动态导入并调用添加数据集
+        // @内联回调
+        import("../embeddingDock/embeddingDock.api").then(({ 添加数据集 }) => {
+            添加数据集({
+                id: `ds_${Date.now().toString(36)}`,
+                title: datasetName,
+                icon: customList.listData.icon,
+                type: customList.listData.type,
+                target: customList.listData.target,
+                model,
+                scopeVersion: 1,
+            });
+            dialog.destroy();
+
+            // 动态添加 EmbeddingDock 到侧边栏
+            import("../../../util/siyuanEnvironments/getSiyuanConfig.environment").then(({ getSiyuanLayout }) => {
+                const layout = getSiyuanLayout();
+                if (!layout) {
+                    return;
+                }
+                const dock = layout.leftDock || layout.rightDock;
+                if (dock) {
+                    dock.addCustomItem({
+                        type: "embedding_dock",
+                        title: "嵌入管理",
+                        icon: "iconDatabase",
+                        show: true,
+                        size: { width: 300, height: 0 },
+                        hotkey: "",
+                        hotkeyLangId: "",
+                    });
+                }
+            });
+        });
     });
 };

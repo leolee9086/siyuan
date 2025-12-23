@@ -24,7 +24,7 @@ import { setSizeForItem } from "./dock.size";
 import { handleClick, handleMouseLeave } from "./dock.events";
 import { executeToggleHide, executeToggleShow, executeUpdatePanelRelations } from "./dock.model";
 
-const TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGraph", "backlink"];
+const TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGraph", "backlink", "embedding_dock"];
 
 export class Dock {
     public element!: HTMLElement;
