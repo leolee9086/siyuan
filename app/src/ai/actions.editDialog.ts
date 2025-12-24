@@ -1,6 +1,6 @@
 import { getSiyuanStorage } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
-import { z } from "./deps";
+import type { AiActionConfig, AiActionStorageContext } from "./types";
 import {
     Constants,
     Dialog,
@@ -9,39 +9,6 @@ import {
     createVueDialog,
     AiEditDialog
 } from "./imports";
-
-/**
- * AI动作配置项类型定义
- */
-const AiActionConfigSchema = z.object({
-    name: z.string().min(1, "动作名称不能为空"),
-    memo: z.string().min(1, "动作描述不能为空")
-});
-
-/**
- * AI动作配置项类型
- */
-type AiActionConfig = z.infer<typeof AiActionConfigSchema>;
-
-/**
- * AI动作存储上下文接口
- */
-interface AiActionStorageContext {
-    /**
-     * 获取AI动作配置列表
-     */
-    getAiActions(): AiActionConfig[];
-
-    /**
-     * 设置AI动作配置列表
-     */
-    setAiActions(actions: AiActionConfig[]): void;
-
-    /**
-     * 保存AI动作配置到存储
-     */
-    saveAiActions(): void;
-}
 
 /**
  * 创建AI动作存储上下文

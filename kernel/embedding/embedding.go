@@ -77,6 +77,131 @@ func IsEmbeddingReservedCollection(name string) bool {
 		strings.HasPrefix(name, "assets_embedding_")
 }
 
+// DatasetInfo 数据集信息
+type DatasetInfo struct {
+	Name           string `json:"name"`           // 数据集名称（从向量元数据读取）
+	CollectionName string `json:"collectionName"` // 完整集合名
+	Type           string `json:"type"`           // blocks 或 assets
+	Model          string `json:"model"`          // 模型名（从向量元数据读取）
+	Dimension      int    `json:"dimension"`      // 向量维度
+	Count          int    `json:"count"`          // 向量数量
+}
+
+// ListDatasets 列出所有 embedding 专用数据集
+func ListDatasets() []DatasetInfo {
+	ensureVectorDB()
+	if vectordb.GlobalDB == nil {
+		return []DatasetInfo{}
+	}
+
+	var datasets []DatasetInfo
+	for _, colInfo := range vectordb.GlobalDB.ListCollections() {
+		if !IsEmbeddingReservedCollection(colInfo.Name) {
+			continue
+		}
+
+		info := DatasetInfo{
+			CollectionName: colInfo.Name,
+			Dimension:      colInfo.Dimension,
+			Count:          colInfo.Count,
+		}
+
+		// 从集合元数据中读取 model、dataset 和 type
+		col := vectordb.GlobalDB.GetCollection(colInfo.Name)
+		if col != nil {
+			info.Model = col.Meta.Model
+			info.Name = col.Meta.Dataset
+			info.Type = col.Meta.Type
+			
+			// 如果元数据为空（旧数据），从集合名推断类型
+			if info.Type == "" {
+				if strings.HasPrefix(colInfo.Name, "blocks_embedding_") {
+					info.Type = "blocks"
+				} else if strings.HasPrefix(colInfo.Name, "assets_embedding_") {
+					info.Type = "assets"
+				}
+			}
+			if info.Name == "" {
+				info.Name = "default"
+			}
+		}
+
+		datasets = append(datasets, info)
+	}
+	return datasets
+}
+
+// EmbeddedBlock 已嵌入块信息
+type EmbeddedBlock struct {
+	BlockID   string                 `json:"blockId"`
+	VectorID  string                 `json:"vectorId"`
+	Hash      string                 `json:"hash"`
+	Meta      map[string]interface{} `json:"meta"`
+}
+
+// GetEmbeddedBlocksWithModel 获取已完成嵌入的块列表
+// dataset: 数据集名称
+// model: 模型名称
+// limit: 限制数量，0 表示不限制
+// offset: 偏移量
+func GetEmbeddedBlocksWithModel(dataset string, model string, limit, offset int) ([]EmbeddedBlock, int) {
+	ensureVectorDB()
+	if vectordb.GlobalDB == nil {
+		return []EmbeddedBlock{}, 0
+	}
+
+	collectionName := GetBlocksCollectionNameWithDataset(model, dataset)
+	col := vectordb.GlobalDB.GetCollection(collectionName)
+	if col == nil {
+		return []EmbeddedBlock{}, 0
+	}
+
+	var result []EmbeddedBlock
+	total := 0
+	datasetSuffix := "_" + dataset
+
+	col.Mu.RLock()
+	for vectorID := range col.IDMap {
+		// 仅统计属于该数据集的向量
+		if !strings.HasSuffix(vectorID, datasetSuffix) {
+			continue
+		}
+		total++
+
+		// 应用分页
+		if total <= offset {
+			continue
+		}
+		if limit > 0 && len(result) >= limit {
+			continue
+		}
+
+		blockID := strings.TrimSuffix(vectorID, datasetSuffix)
+		embedded := EmbeddedBlock{
+			BlockID:  blockID,
+			VectorID: vectorID,
+		}
+
+		// 获取元数据
+		if docID, ok := col.IDMap[vectorID]; ok {
+			if meta, ok := col.GetMeta(docID); ok {
+				var metaMap map[string]interface{}
+				if json.Unmarshal(meta, &metaMap) == nil {
+					embedded.Meta = metaMap
+					if hash, ok := metaMap["hash"].(string); ok {
+						embedded.Hash = hash
+					}
+				}
+			}
+		}
+
+		result = append(result, embedded)
+	}
+	col.Mu.RUnlock()
+
+	return result, total
+}
+
 // ensureVectorDB 确保向量数据库已初始化 (从 api/vector.go 搬迁逻辑实现闭环)
 func ensureVectorDB() {
 	if vectordb.GlobalDB != nil {
@@ -88,14 +213,27 @@ func ensureVectorDB() {
 	vectordb.InitGlobalDB(dbPath)
 }
 
-// EnsureCollection 确保嵌入集合存在
+// EnsureCollection 确保嵌入集合存在（向后兼容，不设置元数据）
 func EnsureCollection(name string, dimension int) {
+	EnsureCollectionWithMeta(name, dimension, "", "", "")
+}
+
+// EnsureCollectionWithMeta 确保嵌入集合存在，并设置集合元数据
+// model: 模型名
+// dataset: 数据集名
+// collectionType: 集合类型 (blocks 或 assets)
+func EnsureCollectionWithMeta(name string, dimension int, model, dataset, collectionType string) {
 	ensureVectorDB()
 	if vectordb.GlobalDB == nil {
 		return
 	}
 	if vectordb.GlobalDB.GetCollection(name) == nil {
-		vectordb.GlobalDB.CreateCollection(name, dimension)
+		meta := vectordb.CollectionMeta{
+			Model:   model,
+			Dataset: dataset,
+			Type:    collectionType,
+		}
+		vectordb.GlobalDB.CreateCollectionWithMeta(name, dimension, meta)
 	}
 }
 
@@ -164,7 +302,7 @@ func PushBlocksWithVectors(blocks []BlockWithVector, dataset, model string, dime
 	}
 
 	collectionName := GetBlocksCollectionNameWithDataset(model, dataset)
-	EnsureCollection(collectionName, dimension)
+	EnsureCollectionWithMeta(collectionName, dimension, model, dataset, "blocks")
 
 	col := vectordb.GlobalDB.GetCollection(collectionName)
 	if col == nil {
@@ -266,7 +404,7 @@ func PushBlocksWithModel(ids []string, dataset string, model string, force bool)
 	}
 
 	collectionName := GetBlocksCollectionNameWithDataset(model, dataset)
-	EnsureCollection(collectionName, OllamaDimension)
+	EnsureCollectionWithMeta(collectionName, OllamaDimension, model, dataset, "blocks")
 
 	col := vectordb.GlobalDB.GetCollection(collectionName)
 	if col == nil {
@@ -414,6 +552,52 @@ func GetPendingBlocks(dataset string, box string, limit int) ([]PendingBlock, in
 	return GetPendingBlocksWithModel(dataset, box, limit, OllamaEmbedModel, nil)
 }
 
+// determineBlockPendingReason 判定块的待嵌入原因
+// 返回值: reason ("表示已嵌入最新版本, "new"/"outdated"表示待嵌入), isMatch (是否hash一致)
+func determineBlockPendingReason(blockID, vectorID, contentHash string, col *vectordb.Collection) (reason string, isMatch bool) {
+	// 数据库无 Hash
+	if contentHash == "" {
+		logging.LogInfof("[Embedding] 判定报告 - ID:%s, 结论:OUTDATED (数据库无Hash)", blockID)
+		return "outdated", false
+	}
+
+	// 集合不存在
+	if col == nil {
+		logging.LogInfof("[Embedding] 判定报告 - ID:%s, 结论:NEW (集合不存在)", blockID)
+		return "new", false
+	}
+
+	// 向量 ID 不存在
+	docID, exists := col.GetDocID(vectorID)
+	if !exists {
+		logging.LogInfof("[Embedding] 判定报告 - ID:%s, 结论:NEW (向量ID不存在:%s)", blockID, vectorID)
+		return "new", false
+	}
+
+	// Meta 丢失
+	meta, ok := col.GetMeta(docID)
+	if !ok {
+		logging.LogInfof("[Embedding] 判定报告 - ID:%s, 结论:OUTDATED (Meta丢失)", blockID)
+		return "outdated", false
+	}
+
+	// Meta 解析失败
+	var metaMap map[string]interface{}
+	if err := json.Unmarshal(meta, &metaMap); err != nil {
+		logging.LogInfof("[Embedding] 判定报告 - ID:%s, 结论:OUTDATED (Meta解析失败)", blockID)
+		return "outdated", false
+	}
+
+	// Hash 不匹配
+	existingHash, _ := metaMap["hash"].(string)
+	if existingHash == "" || existingHash != contentHash {
+		logging.LogInfof("[Embedding] 判定报告 - ID:%s, 结论:OUTDATED (Hash不匹配: DB='%s', Vector='%s')", blockID, contentHash, existingHash)
+		return "outdated", false
+	}
+
+	// Hash 一致，不需要重新嵌入
+	return "", true
+}
 // GetPendingBlocksWithModel 使用指定模型获取待嵌入块列表
 // dataset: 数据集名称
 // box: 笔记本 ID (可选)
@@ -541,46 +725,15 @@ func GetPendingBlocksWithModel(dataset string, box string, limit int, model stri
 				}
 			}
 			
-			// 如果内容还是空，依然算作待处理吗？
-			// 有些块确实没内容。但为了 total 对齐，我们继续走
-			
+			// 使用提取的辅助函数判定待嵌入原因
 			vectorID := fmt.Sprintf("%s_%s", id, dataset)
 			contentHash, _ := row["hash"].(string)
-
-			if contentHash == "" {
-				reason = "outdated"
-				logging.LogInfof("[Embedding] 判定报告 - ID:%s, 结论:OUTDATED (数据库无Hash)", id)
-			} else if col == nil {
-				reason = "new"
-				logging.LogInfof("[Embedding] 判定报告 - ID:%s, 结论:NEW (集合不存在)", id)
-			} else {
-				docID, exists := col.GetDocID(vectorID)
-				if !exists {
-					reason = "new"
-					logging.LogInfof("[Embedding] 判定报告 - ID:%s, 结论:NEW (向量ID不存在:%s)", id, vectorID)
-				} else {
-					meta, ok := col.GetMeta(docID)
-					if !ok {
-						reason = "outdated"
-						logging.LogInfof("[Embedding] 判定报告 - ID:%s, 结论:OUTDATED (Meta丢失)", id)
-					} else {
-						var metaMap map[string]interface{}
-						if err := json.Unmarshal(meta, &metaMap); err != nil {
-							reason = "outdated"
-							logging.LogInfof("[Embedding] 判定报告 - ID:%s, 结论:OUTDATED (Meta解析失败)", id)
-						} else {
-							existingHash, _ := metaMap["hash"].(string)
-							if existingHash == "" || existingHash != contentHash {
-								reason = "outdated"
-								logging.LogInfof("[Embedding] 判定报告 - ID:%s, 结论:OUTDATED (Hash不匹配: DB='%s', Vector='%s')", id, contentHash, existingHash)
-							} else {
-								matchCount++
-								if matchCount <= 3 {
-									logging.LogInfof("[Embedding] 采样一致 - ID:%s, Hash:%s", id, contentHash)
-								}
-							}
-						}
-					}
+			var isMatch bool
+			reason, isMatch = determineBlockPendingReason(id, vectorID, contentHash, col)
+			if isMatch {
+				matchCount++
+				if matchCount <= 3 {
+					logging.LogInfof("[Embedding] 采样一致 - ID:%s, Hash:%s", id, contentHash)
 				}
 			}
 		}
@@ -654,7 +807,7 @@ func PushAssetsWithModel(paths []string, dataset string, model string, force boo
 	}
 
 	collectionName := GetAssetsCollectionName(model)
-	EnsureCollection(collectionName, OllamaDimension)
+	EnsureCollectionWithMeta(collectionName, OllamaDimension, model, dataset, "assets")
 
 	col := vectordb.GlobalDB.GetCollection(collectionName)
 	if col == nil {
@@ -797,7 +950,7 @@ func PushAssetsWithVectors(assets []AssetWithVector, dataset, model string, dime
 	}
 
 	collectionName := GetAssetsCollectionName(model)
-	EnsureCollection(collectionName, dimension)
+	EnsureCollectionWithMeta(collectionName, dimension, model, dataset, "assets")
 
 	col := vectordb.GlobalDB.GetCollection(collectionName)
 	if col == nil {

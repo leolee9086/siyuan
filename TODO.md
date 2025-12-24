@@ -391,13 +391,27 @@ interface IDatasetStatus {
    - 原因是缺失 CSS 定义且 HTML 结构不规范。
    - 已通过重构 `EmbeddingDock.ts` 并注入内联样式修复。
 7. [ ] 手动实现刷新/嵌入/配置按钮交互
-8. [ ] **待解决：数据集状态显示“加载中...”**
-   - 原因是前端 `statuses` Map 未能正确获取/更新数据。
+8. [/] **进行中：数据集状态显示问题**
+   - 前端 `获取嵌入状态` 只能获取 pending 数量，无法获取已嵌入数量
+   - 后端已实现 `ListDatasets` 和 `GetEmbeddedBlocksWithModel` 接口
+   - 需要添加 API 端点并连接前端
 
 #### 后端已完成
 
 - [x] `GetBlocksCollectionNameWithDataset(model, datasetId)` 支持专用数据集名称
 - [x] `GetAssetsCollectionNameWithDataset(model, datasetId)`
+- [x] `ListDatasets()` 列出所有 embedding 专用数据集
+- [x] `GetEmbeddedBlocksWithModel(dataset, model, limit, offset)` 获取已嵌入块列表
+- [x] `CollectionMeta` 集合级别元数据（model, dataset, type, created, updated）
+- [x] `EnsureCollectionWithMeta` 创建集合时自动设置元数据
+- [x] `determineBlockPendingReason` 重构深层 if-else 嵌套
+
+#### 后端待添加 API
+
+| API 端点 | 功能 | 状态 |
+|---------|------|------|
+| `/api/embedding/datasets` | 获取所有数据集列表及状态 | 待添加 |
+| `/api/embedding/blocks/embedded` | 获取已嵌入块列表 | 待添加 |
 
 ### 4.5 前端嵌入流程（Transformer.js）
 
@@ -455,9 +469,9 @@ const vector = await embeddingText("你好世界"); // Float32Array[768]
 
 | 优先级 | 任务 | 前置 | 预估时间 |
 |--------|------|------|----------|
-| **P0** | 前端 EmbeddingDock 基本框架 | 无 | 0.5 天 |
-| **P0** | 数据集配置 API | 无 | 0.5 天 |
-| **P0** | 动态数据集刷新逻辑 | 上述两项 | 0.5 天 |
+| **P0** | 前端 EmbeddingDock 基本框架 | 无 | ✅ 已完成 |
+| **P0** | 后端 ListDatasets/GetEmbedded API | 无 | ✅ 已完成 (需添加端点) |
+| **P0** | 数据集状态显示修复 | 上述两项 | 0.5 天 |
 | P1 | 块右键菜单入口 | 数据集配置 | 0.5 天 |
 | P1 | 后端 GetPending 改造（refresh 参数） | 前端调试 | 0.5 天 |
 | P2 | 统一文本分割模块 | 无 | 1 天 |
@@ -467,10 +481,17 @@ const vector = await embeddingText("你好世界"); // Float32Array[768]
 
 ## 更新日志
 
+- 2025-12-24 18:42: 后端接口完善
+  - 新增 `ListDatasets()` 列出所有 embedding 专用数据集
+  - 新增 `GetEmbeddedBlocksWithModel()` 获取已嵌入块列表
+  - 新增 `CollectionMeta` 集合级别元数据（model, dataset, type, created, updated）
+  - 新增 `EnsureCollectionWithMeta` 创建集合时自动设置元数据
+  - 新增 `vectordb.ListCollections()` 方法
+  - 重构 `GetPendingBlocksWithModel` 消除深层 if-else 嵌套（提取 `determineBlockPendingReason`）
+  - **下一步**：添加 `/api/embedding/datasets` 和 `/api/embedding/blocks/embedded` API 端点
 - 2025-12-24 01:21: 修复视觉样式与 Dock 图标显示
   - 解决 `embedding_dock` 无法显示图标的问题（类型白名单）
   - 彻底重构 `EmbeddingDock.ts` 并注入 CSS 补丁，修复布局错乱
-  - **下一步**：解决数据集状态始终显示“加载中”的问题
 - 2025-12-24 01:03: EmbeddingDock 初步实现
 - 2025-12-24 00:42: 前端优先策略
   - 新增 **4.4 前端实现计划**（文件结构、组件设计、API 列表）

@@ -38,6 +38,7 @@ type SnapshotData struct {
 	Name      string           `msgpack:"name"`
 	Dimension int              `msgpack:"dimension"`
 	Config    CollectionConfig `msgpack:"config"`
+	Meta      CollectionMeta   `msgpack:"meta"` // 集合元数据
 
 	// ID 映射
 	DocMap []string         `msgpack:"docMap"`
@@ -110,6 +111,7 @@ func SaveCollection(c *Collection, basePath string) error {
 		Name:           c.Name,
 		Dimension:      c.Dimension,
 		Config:         c.Config,
+		Meta:           c.Meta,
 		DocMap:         c.DocMap,
 		IDMap:          c.IDMap,
 		Metas:          c.Metas,
@@ -179,6 +181,7 @@ func LoadCollection(basePath string, name string) (*Collection, error) {
 		Name:       snapshot.Name,
 		Dimension:  snapshot.Dimension,
 		Config:     snapshot.Config,
+		Meta:       snapshot.Meta,
 		IDMap:      snapshot.IDMap,
 		DocMap:     snapshot.DocMap,
 		Store:      store,

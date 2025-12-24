@@ -177,3 +177,36 @@ export const selectorOperationConfigSchema = z.object({
  * 选择器操作配置接口（从zod schema推断）
  */
 export type SelectorOperationConfig = z.infer<typeof selectorOperationConfigSchema>;
+
+/**
+ * AI动作配置项的Zod验证模式
+ */
+export const aiActionConfigSchema = z.object({
+    name: z.string().min(1, "动作名称不能为空"),
+    memo: z.string().min(1, "动作描述不能为空")
+});
+
+/**
+ * AI动作配置项类型（从zod schema推断）
+ */
+export type AiActionConfig = z.infer<typeof aiActionConfigSchema>;
+
+/**
+ * AI动作存储上下文接口
+ */
+export interface AiActionStorageContext {
+    /**
+     * 获取AI动作配置列表
+     */
+    getAiActions(): AiActionConfig[];
+
+    /**
+     * 设置AI动作配置列表
+     */
+    setAiActions(actions: AiActionConfig[]): void;
+
+    /**
+     * 保存AI动作配置到存储
+     */
+    saveAiActions(): void;
+}

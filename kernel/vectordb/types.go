@@ -22,6 +22,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 )
 
 // =========================================
@@ -52,12 +53,23 @@ type NeighborRecord struct {
 	Distance float32 `msgpack:"distance"`
 }
 
+// CollectionMeta 集合级别元数据
+// 用于存储集合的全局信息，不依赖于单个向量点
+type CollectionMeta struct {
+	Model     string                 `json:"model" msgpack:"model"`           // 模型名
+	Dataset   string                 `json:"dataset" msgpack:"dataset"`       // 数据集名
+	Type      string                 `json:"type" msgpack:"type"`             // 类型: blocks 或 assets
+	Created   int64                  `json:"created" msgpack:"created"`       // 创建时间戳 (Unix秒)
+	Updated   int64                  `json:"updated" msgpack:"updated"`       // 最后修改时间戳 (Unix秒)
+	Extra     map[string]interface{} `json:"extra,omitempty" msgpack:"extra"` // 扩展字段
+}
 // Collection 向量集合
 // 采用 "Point" 概念，不感知上层模型
 type Collection struct {
 	Name      string
 	Dimension int
 	Config    CollectionConfig
+	Meta      CollectionMeta   // 集合级别元数据
 
 	// ID 映射 (External ID <-> Internal DocID)
 	// ID 是任意字符串，DocID 是紧凑的整数索引
@@ -205,6 +217,11 @@ func (db *Database) GetCollection(name string) *Collection {
 }
 
 func (db *Database) CreateCollection(name string, dimension int) (*Collection, error) {
+	return db.CreateCollectionWithMeta(name, dimension, CollectionMeta{})
+}
+
+// CreateCollectionWithMeta 创建带元数据的集合
+func (db *Database) CreateCollectionWithMeta(name string, dimension int, meta CollectionMeta) (*Collection, error) {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
@@ -216,6 +233,13 @@ func (db *Database) CreateCollection(name string, dimension int) (*Collection, e
 	}
 
 	c := NewCollection(name, dimension)
+	// 设置元数据，并确保创建时间
+	if meta.Created == 0 {
+		meta.Created = time.Now().Unix()
+	}
+	meta.Updated = meta.Created
+	c.Meta = meta
+
 	db.Collections[name] = c
 	return c, nil
 }
@@ -239,6 +263,29 @@ func (db *Database) DeleteCollection(name string) error {
 	}
 
 	return nil
+}
+
+// CollectionInfo 集合信息摘要
+type CollectionInfo struct {
+	Name      string `json:"name"`
+	Dimension int    `json:"dimension"`
+	Count     int    `json:"count"`
+}
+
+// ListCollections 列出所有集合
+func (db *Database) ListCollections() []CollectionInfo {
+	db.mu.RLock()
+	defer db.mu.RUnlock()
+
+	result := make([]CollectionInfo, 0, len(db.Collections))
+	for name, col := range db.Collections {
+		result = append(result, CollectionInfo{
+			Name:      name,
+			Dimension: col.Dimension,
+			Count:     len(col.IDMap),
+		})
+	}
+	return result
 }
 
 // 兼容性辅助函数 (如果需要)
