@@ -180,6 +180,9 @@ export function initDockData(
     // i18n safely typed
     const i18n = siyuanI18n as unknown as Record<string, string>;
 
+    restoreIfMissing(data[1], seenGlobalTypes, "tag", "iconTags", i18n.tag || "Tags");
+    restoreIfMissing(data[1], seenGlobalTypes, "embedding_dock", "iconDatabase", i18n.embedding || "Embeddings");
+
     // 4. Final verification
     if (!hasValidDockType(data, TYPES)) {
         renderPinButton(dock, getSiyuanLanguagesFn());
