@@ -72,16 +72,78 @@ export const calculateWeightedAverageVector = (vectors: (number[] | Float32Array
     }
 };
 
+const logWebGPUInfo = async () => {
+    console.log("[WebGPU Debug] 开始检查WebGPU环境...");
+
+    if (!navigator.gpu) {
+        console.error("[WebGPU Debug] ❌ navigator.gpu 不存在，WebGPU不可用");
+        return null;
+    }
+    console.log("[WebGPU Debug] ✓ navigator.gpu 存在");
+
+    try {
+        const adapter = await navigator.gpu.requestAdapter();
+        if (!adapter) {
+            console.error("[WebGPU Debug] ❌ 无法获取WebGPU adapter");
+            return null;
+        }
+
+        // 兼容新旧WebGPU API - 新版是属性，旧版是方法
+        let adapterInfo;
+        if (typeof adapter.requestAdapterInfo === "function") {
+            adapterInfo = await adapter.requestAdapterInfo();
+        } else {
+            adapterInfo = adapter.info;
+        }
+        console.log("[WebGPU Debug] ✓ Adapter信息:", adapterInfo);
+
+        // 检查adapter的限制
+        console.log("[WebGPU Debug] Adapter限制:", {
+            maxComputeWorkgroupSizeX: adapter.limits.maxComputeWorkgroupSizeX,
+            maxComputeWorkgroupSizeY: adapter.limits.maxComputeWorkgroupSizeY,
+            maxComputeWorkgroupSizeZ: adapter.limits.maxComputeWorkgroupSizeZ,
+            maxComputeInvocationsPerWorkgroup: adapter.limits.maxComputeInvocationsPerWorkgroup,
+            maxStorageBufferBindingSize: adapter.limits.maxStorageBufferBindingSize,
+            maxBufferSize: adapter.limits.maxBufferSize,
+        });
+
+        // 检查支持的特性
+        console.log("[WebGPU Debug] 支持的特性:", [...adapter.features]);
+
+        return adapter;
+    } catch (e) {
+        console.error("[WebGPU Debug] ❌ 检查WebGPU时出错:", e);
+        return null;
+    }
+};
+
 const initTransformerEnv = async () => {
+    console.log("[Transformer] ========== 开始初始化Transformer环境 ==========");
+
+    // 先检查WebGPU环境
+    await logWebGPUInfo();
+
+    console.log("[Transformer] 正在加载transformers.js...");
     //@ts-ignore
     const transformers = await import(/* webpackIgnore: true */ "/stage/protyle/js/transformers.js");
+    console.log("[Transformer] ✓ transformers.js 加载完成");
+
+    console.log("[Transformer] 配置ONNX环境...");
     transformers.env.backends.onnx.wasm.wasmPaths = "/stage/protyle/js/@huggingface/transformers@3.8.0/";
     transformers.env.allowRemoteModels = true;
     transformers.env.localModelPath = "/public/onnxModels/";
+    // 设置ONNX日志级别为error，隐藏性能警告（如节点未分配到首选执行提供程序的警告）
+    transformers.env.backends.onnx.logLevel = "error";
+    console.log("[Transformer] ✓ ONNX环境配置完成:", {
+        wasmPaths: transformers.env.backends.onnx.wasm.wasmPaths,
+        allowRemoteModels: transformers.env.allowRemoteModels,
+        localModelPath: transformers.env.localModelPath,
+    });
 
     let node_version: string | undefined;
     if (window.process) {
         node_version = window.process.versions.node;
+        console.log("[Transformer] 检测到Node环境, 版本:", node_version);
         try {
             const descriptor = Object.getOwnPropertyDescriptor(window.process.versions, "node");
             if (!descriptor || descriptor.configurable) {
@@ -91,27 +153,47 @@ const initTransformerEnv = async () => {
                     configurable: true,
                     enumerable: true
                 });
+                console.log("[Transformer] ✓ 临时移除node版本标识");
             } else if (descriptor.writable) {
                 window.process.versions.node = undefined;
+                console.log("[Transformer] ✓ 临时移除node版本标识 (writable)");
             } else {
-                console.warn("Cannot hack window.process.versions.node: property is non-configurable and non-writable");
+                console.warn("[Transformer] ⚠ Cannot hack window.process.versions.node: property is non-configurable and non-writable");
             }
         } catch (e) {
-            console.warn("Failed to hack window.process.versions.node", e);
+            console.warn("[Transformer] ⚠ Failed to hack window.process.versions.node", e);
         }
     }
+
+    console.log("[Transformer] 正在创建feature-extraction pipeline...");
+    console.log("[Transformer] 参数: device=webgpu, model=leolee9086/text2vec-base-chinese, model_file=model_quantized");
 
     //@ts-ignore
     const { pipeline } = await import(/* webpackIgnore: true */ "/stage/protyle/js/transformers.js");
 
-    const extractor = await pipeline(
-        "feature-extraction",
-        "leolee9086/text2vec-base-chinese",
-        {
-            device: "webgpu",
-            model_file_name: "model_quantized",
-        },
-    );
+    let extractor;
+    try {
+        console.log("[Transformer] 开始加载模型... (这可能需要一些时间)");
+        const startTime = performance.now();
+
+        // 注意：已修复onnxruntime-web的WGSL代码生成bug (变量名空格问题)
+        // 修复位置: stage/protyle/js/onnxruntime-web@1.22.0-dev.../es2022/onnxruntime-web.mjs 第7918-7923行
+        extractor = await pipeline(
+            "feature-extraction",
+            "leolee9086/text2vec-base-chinese",
+            {
+                device: "webgpu",
+                model_file_name: "model_quantized",
+            },
+        );
+
+        const loadTime = performance.now() - startTime;
+        console.log(`[Transformer] ✓ Pipeline创建成功, 耗时: ${loadTime.toFixed(2)}ms`);
+    } catch (pipelineError) {
+        console.error("[Transformer] ❌ Pipeline创建失败:", pipelineError);
+        console.error("[Transformer] 错误堆栈:", (pipelineError as Error).stack);
+        throw pipelineError;
+    }
 
     if (window.process && node_version !== undefined) {
         try {
@@ -123,50 +205,109 @@ const initTransformerEnv = async () => {
                     configurable: false,
                     enumerable: true
                 });
+                console.log("[Transformer] ✓ 恢复node版本标识:", node_version);
             } else if (descriptor.writable) {
                 window.process.versions.node = node_version;
+                console.log("[Transformer] ✓ 恢复node版本标识 (writable):", node_version);
             }
         } catch (e) {
-            console.warn("Failed to restore window.process.versions.node", e);
+            console.warn("[Transformer] ⚠ Failed to restore window.process.versions.node", e);
         }
     }
 
+    console.log("[Transformer] ========== Transformer环境初始化完成 ==========");
     return extractor;
 };
 
 export const embeddingText = async (content: string): Promise<Float32Array> => {
-    const extractor = await initTransformerEnv();
+    console.log("[Embedding] ========== 开始embedding文本 ==========");
+    console.log(`[Embedding] 输入文本长度: ${content.length} 字符`);
+    console.log(`[Embedding] 输入文本预览: "${content.substring(0, 100)}${content.length > 100 ? "..." : ""}"`);
+
+    let extractor;
+    try {
+        extractor = await initTransformerEnv();
+    } catch (initError) {
+        console.error("[Embedding] ❌ 初始化失败:", initError);
+        throw initError;
+    }
 
     // Split text and embed each chunk
     const chunks = splitText(content);
+    console.log(`[Embedding] 文本分割完成, 共 ${chunks.length} 个片段`);
 
     // Handle empty content or empty split result
     if (chunks.length === 0 || !content.trim()) {
-        const embeddings = await extractor(content, { pooling: "mean", normalize: true });
-        return embeddings.data as Float32Array;
+        console.log("[Embedding] ⚠ 内容为空或分割结果为空，直接embedding原始内容");
+        try {
+            const embeddings = await extractor(content, { pooling: "mean", normalize: true });
+            console.log("[Embedding] ✓ 空内容embedding完成");
+            if (!embeddings.data) {
+                throw new Error("Embedding结果中没有data字段");
+            }
+            return embeddings.data;
+        } catch (emptyContentError) {
+            console.error("[Embedding] ❌ 空内容embedding失败:", emptyContentError);
+            throw emptyContentError;
+        }
     }
 
     const vectors: Float32Array[] = [];
     const weights: number[] = [];
+    const totalStartTime = performance.now();
 
-    for (const chunk of chunks) {
-        console.log(chunk);
-        const embeddings = await extractor(chunk, { pooling: "mean", normalize: true });
-        if (!embeddings.data) {
-            throw new Error(`Failed to embed chunk: "${chunk.substring(0, 20)}..."`);
+    for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i];
+        console.log(`[Embedding] 处理片段 ${i + 1}/${chunks.length}:`);
+        console.log(`[Embedding]   长度: ${chunk.length} 字符`);
+        console.log(`[Embedding]   内容: "${chunk.substring(0, 50)}${chunk.length > 50 ? "..." : ""}"`);
+
+        try {
+            const chunkStartTime = performance.now();
+            console.log(`[Embedding]   调用extractor...`);
+
+            const embeddings = await extractor(chunk, { pooling: "mean", normalize: true });
+
+            const chunkTime = performance.now() - chunkStartTime;
+            console.log(`[Embedding]   ✓ 完成, 耗时: ${chunkTime.toFixed(2)}ms`);
+
+            if (!embeddings.data) {
+                console.error(`[Embedding]   ❌ 返回的embeddings没有data字段:`, embeddings);
+                throw new Error(`Failed to embed chunk: "${chunk.substring(0, 20)}..."`);
+            }
+
+            console.log(`[Embedding]   向量维度: ${embeddings.data.length}`);
+            vectors.push(embeddings.data);
+            weights.push(chunk.length);
+        } catch (chunkError) {
+            console.error(`[Embedding] ❌ 片段 ${i + 1} embedding失败:`, chunkError);
+            if (chunkError instanceof Error) {
+                console.error(`[Embedding]   错误类型: ${chunkError.name}`);
+                console.error(`[Embedding]   错误信息: ${chunkError.message}`);
+                console.error(`[Embedding]   错误堆栈: ${chunkError.stack}`);
+            }
+            throw chunkError;
         }
-        vectors.push(embeddings.data as Float32Array);
-        weights.push(chunk.length);
     }
+
+    const totalTime = performance.now() - totalStartTime;
+    console.log(`[Embedding] 所有片段处理完成, 总耗时: ${totalTime.toFixed(2)}ms`);
+    console.log(`[Embedding] 成功生成 ${vectors.length} 个向量`);
 
     if (vectors.length === 0) {
         throw new Error("Failed to generate embeddings: input text resulted in no vectors");
     }
 
     if (vectors.length === 1) {
+        console.log("[Embedding] 只有一个向量，直接返回");
+        console.log("[Embedding] ========== embedding完成 ==========");
         return vectors[0];
     }
 
     // Aggregate vectors
-    return calculateWeightedAverageVector(vectors, weights, true);
+    console.log("[Embedding] 正在聚合多个向量...");
+    const result = calculateWeightedAverageVector(vectors, weights, true);
+    console.log(`[Embedding] ✓ 向量聚合完成, 最终维度: ${result.length}`);
+    console.log("[Embedding] ========== embedding完成 ==========");
+    return result;
 };
