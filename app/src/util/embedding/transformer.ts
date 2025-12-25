@@ -219,6 +219,33 @@ const initTransformerEnv = async () => {
     return extractor;
 };
 
+// 缓存已初始化的 extractor，避免每次调用都重新加载模型
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let 缓存Extractor: any = null;
+let 初始化Promise: Promise<any> | null = null;
+
+/**
+ * 获取或初始化 extractor（单例模式）
+ */
+const getExtractor = async () => {
+    if (缓存Extractor) {
+        return 缓存Extractor;
+    }
+
+    // 防止并发初始化
+    if (初始化Promise) {
+        return 初始化Promise;
+    }
+
+    初始化Promise = initTransformerEnv();
+    try {
+        缓存Extractor = await 初始化Promise;
+        return 缓存Extractor;
+    } finally {
+        初始化Promise = null;
+    }
+};
+
 export const embeddingText = async (content: string): Promise<Float32Array> => {
     console.log("[Embedding] ========== 开始embedding文本 ==========");
     console.log(`[Embedding] 输入文本长度: ${content.length} 字符`);
@@ -226,7 +253,7 @@ export const embeddingText = async (content: string): Promise<Float32Array> => {
 
     let extractor;
     try {
-        extractor = await initTransformerEnv();
+        extractor = await getExtractor();
     } catch (initError) {
         console.error("[Embedding] ❌ 初始化失败:", initError);
         throw initError;
