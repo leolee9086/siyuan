@@ -259,7 +259,7 @@ export class Dock {
         // Usually Custom Lists are added to the bottom/end.
         const container = this.element.lastElementChild;
         if (container) {
-            insertButtonsToContainer(container, html, undefined, (this.pin ? languages?.unpin : languages?.pin) || "", this.pin, false);
+            insertButtonsToContainer(container, html, undefined, (this.pin ? languages?.unpin : languages?.pin) || "", this.pin, false, true);
         }
 
         this.data[item.type] = true; // Mark as present

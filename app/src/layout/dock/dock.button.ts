@@ -55,6 +55,13 @@ export function generatePinButtonHTML(pinText: string, isPinned: boolean): strin
 
 /**
  * 插入按钮到容器
+ * @param container 目标容器
+ * @param html 按钮HTML
+ * @param tabIndex 可选的tab索引，用于指定插入位置
+ * @param pinText pin按钮文本
+ * @param isPinned 是否已pin
+ * @param isFirstContainer 是否是第一个容器
+ * @param append 是否追加模式（默认false为替换模式，用于初始化；true为追加模式，用于动态添加）
  */
 export function insertButtonsToContainer(
     container: Element | null,
@@ -62,7 +69,8 @@ export function insertButtonsToContainer(
     tabIndex: number | undefined,
     pinText: string,
     isPinned: boolean,
-    isFirstContainer: boolean
+    isFirstContainer: boolean,
+    append: boolean = false
 ): void {
     if (!container) {
         return;
@@ -73,79 +81,21 @@ export function insertButtonsToContainer(
         return;
     }
 
-    // 完整替换内容 OR 追加？
-    // If we are just initializing (genButton), we might want replace.
-    // But addCustomItem re-uses this.
-    // However, genButton logic is: 
-    // const container = index === 0 ? this.element.firstElementChild : this.element.lastElementChild;
-    // insertButtonsToContainer(container, html, tabIndex, ... index === 0);
-
-    // If genButton is called, `html` contains ALL buttons for that side. So replace is correct for genButton.
-    // But addCustomItem parses `html` for JUST the new item.
-
-    // We need a way to distinguish "Replace All" vs "Append One".
-    // genButton passes `tabIndex` as undefined? No, genButton loops? 
-    // genButton(data, index, tabIndex) -> generateAllButtonsHTML(data...)
-    // if tabIndex is undefined in genButton, it means "Generate ALL buttons for this dock side". So Replace is correct.
-
-    // addCustomItem calls: generateAllButtonsHTML([item], ...) -> insertButtonsToContainer(..., html, undefined, ...)
-    // It passes `undefined` for tabIndex too!
-
-    // We need to differentiate. 
-    // `genButton` is primarily for initialization.
-    // `addCustomItem` is for dynamic addition.
-
-    // Check if container already has children?
-    // If container has children (other buttons), we should PROBABLY append if we are not overwriting everything.
-    // But genButton might be called to "Refresh" the dock?
-
-    // Let's look at `index.ts`. `genButton` iterates `this.data`.
-
-    // Ideally, we add a flag `append: boolean`.
-    // But changing signature affects `genButton`.
-
-    // QUICK FIX: If `html` contains only one item (roughly checked) and container has children? 
-    // No, too hacky.
-
-    // Better: In `addCustomItem` in index.ts, we should use a different specific logic or pass a flag.
-    // But I can modify `insertButtonsToContainer` to support append.
-    // Let's assume if it is NOT first container (bottom/right end), we usually append?
-    // No, Bottom dock has 2 sides?
-
-    // Let's modify `dock.button.ts` to accept `append` flag, defaulting to false.
-    // Then update `index.ts` to pass `true` for `addCustomItem`.
-
-    // Wait, I can't easily change `index.ts` all call sites in one go if I am not careful.
-    // `genButton` calls it.
-
-    // Alternative: `addCustomItem` logic in `index.ts` is:
-    // const container = this.element.lastElementChild;
-    // insertButtonsToContainer(..., html, undefined, ...)
-
-    // If I change `dock.button.ts` to ALWAYS append if container is not empty? 
-    // `genButton` likely calling on empty container (initialization).
-
-    // Let's try: if (container.children.length > 0 && !isFirstContainer) { append } else { innerHTML }
-    // `genButton` clears container? No.
-    // But `genButton` is called once per side?
-
+    // 处理第一个容器（带pin按钮）
     if (isFirstContainer) {
         const pinHtml = generatePinButtonHTML(pinText, isPinned);
-        if (container.children.length > 0) {
-            // If first container already has content (Pin?), we might want to preserve pin?
-            // But genButton replaces everything.
-            container.innerHTML = `${html}${pinHtml}`;
-            return;
-        }
         container.innerHTML = `${html}${pinHtml}`;
         return;
     }
 
-    if (container.children.length > 0) {
+    // 第二个容器：根据 append 参数决定替换还是追加
+    if (append) {
         container.insertAdjacentHTML("beforeend", html);
-    } else {
-        container.innerHTML = html;
+        return;
     }
+
+    // 默认替换模式
+    container.innerHTML = html;
 }
 
 function insertAtTabIndex(

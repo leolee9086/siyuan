@@ -163,7 +163,6 @@ export function initDockData(
         data[1] = [];
     }
 
-    console.log("initDockData BEFORE DEDUPE:", JSON.stringify(data));
 
     // 2. Strict Global Deduplication (across both columns)
     const seenGlobalTypes = new Set<string>();
@@ -173,7 +172,6 @@ export function initDockData(
     // Process second column (continuing with same seen set)
     data[1] = uniqueDockItems(data[1], seenGlobalTypes, TYPES);
 
-    console.log("initDockData AFTER DEDUPE:", JSON.stringify(data));
 
     // 3. Restore missing standard panels (Self-healing)
     // Only add if NOT present GLOBALLY
@@ -246,7 +244,6 @@ function uniqueDockItems(
         // This effectively deduplicates across docks without relying on potentially unstable Layout state
         // We must exclude the current dock's own deduplication which happens before rendering
         if (document.querySelector(`[data-type="${item.type}"]`)) {
-            console.warn(`Dock: Removing ${item.type} because it already exists in the DOM`);
             return false;
         }
 
@@ -262,15 +259,23 @@ function restoreIfMissing(
     icon: string,
     title: string
 ) {
-    if (!existingTypes.has(type)) {
-        targetArray.push({
-            type,
-            icon,
-            title,
-            size: { width: 0, height: 0 },
-            show: false,
-            hotkey: ""
-        } as Config.IUILayoutDockTab);
-        existingTypes.add(type);
+    // 先检查全局 DOM 中是否已存在该类型按钮（跨 dock 实例去重）
+    if (document.querySelector(`[data-type="${type}"]`)) {
+        return;
     }
+
+    // 再检查当前 dock 的数据中是否已存在
+    if (existingTypes.has(type)) {
+        return;
+    }
+
+    targetArray.push({
+        type,
+        icon,
+        title,
+        size: { width: 0, height: 0 },
+        show: false,
+        hotkey: ""
+    } as Config.IUILayoutDockTab);
+    existingTypes.add(type);
 }
