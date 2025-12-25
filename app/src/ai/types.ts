@@ -127,7 +127,7 @@ export interface StreamRequestConfigWithAI {
     url: string;
     method?: "GET" | "POST" | "PUT" | "DELETE";
     headers?: Record<string, string>;
-    body?: any;
+    body?: string | Record<string, unknown>;
     timeout?: number;
     // 新增AI配置支持
     aiConfig?: AIConfig;
