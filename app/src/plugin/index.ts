@@ -81,8 +81,11 @@ export class Plugin {
         });
 
         this.updateProtyleToolbar([]).forEach(toolbarItem => {
-            if (typeof toolbarItem === "string" || Constants.INLINE_TYPE.concat("|").includes(toolbarItem.name) || !toolbarItem.hotkey) {
+            if (typeof toolbarItem === "string" || Constants.INLINE_TYPE.concat("|").includes(toolbarItem.name)) {
                 return;
+            }
+            if (typeof toolbarItem.hotkey !== "string") {
+                toolbarItem.hotkey = "";
             }
             if (!window.siyuan.config.keymap.plugin) {
                 window.siyuan.config.keymap.plugin = {};
@@ -100,6 +103,8 @@ export class Plugin {
                     default: toolbarItem.hotkey,
                     custom: toolbarItem.hotkey,
                 };
+            } else {
+                window.siyuan.config.keymap.plugin[options.name][toolbarItem.name].default = toolbarItem.hotkey;
             }
         });
     }
@@ -137,6 +142,9 @@ export class Plugin {
     }
 
     public addCommand(command: ICommand) {
+        if (typeof command.hotkey !== "string") {
+            command.hotkey = "";
+        }
         if (!window.siyuan.config.keymap.plugin) {
             window.siyuan.config.keymap.plugin = {};
         }

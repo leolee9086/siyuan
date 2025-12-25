@@ -330,23 +330,27 @@ func refreshAnnouncement() {
 func RefreshUser(token string) {
 	threeDaysAfter := util.CurrentTimeMillis() + 1000*60*60*24*3
 	if "" == token {
-		if "" != Conf.UserData {
-			Conf.SetUser(loadUserFromConf())
+		user := Conf.GetUser()
+		if nil == user && "" != Conf.UserData {
+			user = loadUserFromConf()
+			if nil != user {
+				Conf.SetUser(user)
+			}
 		}
-		if nil == Conf.GetUser() {
+		if nil == user {
 			return
 		}
 
 		var tokenExpireTime int64
-		tokenExpireTime, err := strconv.ParseInt(Conf.GetUser().UserTokenExpireTime+"000", 10, 64)
+		tokenExpireTime, err := strconv.ParseInt(user.UserTokenExpireTime+"000", 10, 64)
 		if err != nil {
-			logging.LogErrorf("convert token expire time [%s] failed: %s", Conf.GetUser().UserTokenExpireTime, err)
+			logging.LogErrorf("convert token expire time [%s] failed: %s", user.UserTokenExpireTime, err)
 			util.PushErrMsg(Conf.Language(19), 5000)
 			return
 		}
 
 		if threeDaysAfter > tokenExpireTime {
-			token = Conf.GetUser().UserToken
+			token = user.UserToken
 			goto Net
 		}
 		return

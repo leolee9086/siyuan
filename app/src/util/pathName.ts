@@ -145,30 +145,30 @@ const isChildPath = (path: string, existingPaths: string[]): boolean => {
 
 export const getTopPaths = (liElements: Element[]) => {
     const fromPaths: string[] = [];
-    
+
     for (const element of liElements) {
         // 确保元素是HTMLElement类型
         if (!(element instanceof HTMLElement)) {
             continue;
         }
-        
+
         // 检查是否为非根导航元素
         if (element.getAttribute("data-type") === "navigation-root") {
             continue;
         }
-        
+
         // 获取data-path属性并检查是否为null
         const dataPath = element.getAttribute("data-path");
         if (!dataPath) {
             continue;
         }
-        
+
         // 检查是否为子路径，如果不是则添加到结果中
         if (!isChildPath(dataPath, fromPaths)) {
             fromPaths.push(dataPath);
         }
     }
-    
+
     return fromPaths;
 };
 
@@ -199,7 +199,7 @@ const handleLeafResponse = (response: IWebSocketData, liElement: HTMLElement, no
         showMessage(siyuanI18n.emptyContent);
         return;
     }
-    
+
     let fileHTML = "";
     for (const item of response.data.files) {
         if (flashcard) {
@@ -220,7 +220,7 @@ const handleLeafResponse = (response: IWebSocketData, liElement: HTMLElement, no
     if (!nextElement) {
         return;
     }
-    
+
     setTimeout(() => {
         setElementHeightAndRemoveStyle(nextElement, nextElement.childElementCount * liElement.clientHeight);
     }, 2);
@@ -254,18 +254,21 @@ export const getLeaf = (liElement: HTMLElement, flashcard: boolean) => {
     if (!toggleElement) {
         return;
     }
-    
+
     if (toggleElement.classList.contains("b3-list-item__arrow--open")) {
         handleOpenedLeaf(liElement, toggleElement);
         return;
     }
-    
+
     const nextElement = liElement.nextElementSibling;
     if (nextElement?.tagName === "UL") {
         handleClosedExistingLeaf(toggleElement, nextElement);
         return;
     }
-
+    if (liElement.getAttribute("data-loading") === "true") {
+        return;
+    }
+    liElement.setAttribute("data-loading", "true");
     const notebookId = liElement.getAttribute("data-box") || "";
     fetchPost("/api/filetree/listDocsByPath", {
         notebook: notebookId,
@@ -273,6 +276,7 @@ export const getLeaf = (liElement: HTMLElement, flashcard: boolean) => {
         flashcard,
         app: Constants.SIYUAN_APPID,
     }, response => {
+        liElement.removeAttribute("data-loading");
         handleLeafResponse(response, liElement, notebookId, toggleElement, flashcard);
     });
 };
@@ -314,11 +318,11 @@ const handleNotebookResponse = (response: IWebSocketData, cb?: (notebook: INoteb
         cb(response.data.notebooks);
         return;
     }
-    
+
     if (!flashcard) {
         setSiyuanNotebooks(response.data.notebooks);
     }
-    
+
     if (!flashcard && cb) {
         cb(response.data.notebooks);
     }

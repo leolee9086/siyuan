@@ -52,6 +52,7 @@ import { scrollToCurrent } from "./utils.scrollToCurrent";
 import { getSelectionOffset } from "../protyle/util/selection";
 import { electronUndo } from "../protyle/undo";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
+import { getContenteditableElement } from "../protyle/wysiwyg/getBlock";
 
 // inputEvent 已拆分到独立文件，导入供内部使用并重新导出
 import { inputEvent } from "./inputEvent";
@@ -1075,7 +1076,7 @@ export const openSearchEditor = (options: {
         const rangeBlockElement = hasClosestBlock(currentRange.startContainer);
         if (rangeBlockElement) {
             options.id = rangeBlockElement.getAttribute("data-node-id");
-            const offset = getSelectionOffset(rangeBlockElement, null, options.protyle.highlight.ranges[options.protyle.highlight.rangeIndex]);
+            const offset = getSelectionOffset(getContenteditableElement(rangeBlockElement), null, options.protyle.highlight.ranges[options.protyle.highlight.rangeIndex]);
             const scrollAttr: IScrollAttr = {
                 rootId: options.protyle.block.rootID,
                 focusId: options.id,

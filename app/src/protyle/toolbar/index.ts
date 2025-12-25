@@ -75,6 +75,9 @@ export class Toolbar {
                 if (typeof toolbarItem === "string" || Constants.INLINE_TYPE.concat("|").includes(toolbarItem.name) || !toolbarItem.hotkey) {
                     continue;
                 }
+                if (typeof toolbarItem.hotkey !== "string") {
+                    toolbarItem.hotkey = "";
+                }
                 if (window.siyuan.config.keymap.plugin && window.siyuan.config.keymap.plugin[item.name] && window.siyuan.config.keymap.plugin[item.name][toolbarItem.name]) {
                     toolbarItem.hotkey = window.siyuan.config.keymap.plugin[item.name][toolbarItem.name].custom;
                 }
@@ -95,6 +98,9 @@ export class Toolbar {
             for (const toolbarItem of pluginToolbar) {
                 if (typeof toolbarItem === "string" || Constants.INLINE_TYPE.concat("|").includes(toolbarItem.name) || !toolbarItem.hotkey) {
                     continue;
+                }
+                if (typeof toolbarItem.hotkey !== "string") {
+                    toolbarItem.hotkey = "";
                 }
                 if (window.siyuan.config.keymap.plugin && window.siyuan.config.keymap.plugin[item.name] && window.siyuan.config.keymap.plugin[item.name][toolbarItem.name]) {
                     toolbarItem.hotkey = window.siyuan.config.keymap.plugin[item.name][toolbarItem.name].custom;
@@ -875,14 +881,14 @@ export class Toolbar {
 
                     // 两者都匹配开头时，短字符串优先
                     if (aStartsWith && bStartsWith) {
-return a.length - b.length;
-}
+                        return a.length - b.length;
+                    }
                     if (aStartsWith) {
-return -1;
-}
+                        return -1;
+                    }
                     if (bStartsWith) {
-return 1;
-}
+                        return 1;
+                    }
 
                     // 都不匹配时保持原顺序
                     return 0;
