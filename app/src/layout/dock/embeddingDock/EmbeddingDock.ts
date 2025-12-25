@@ -13,6 +13,7 @@ import type { IEmbeddingDataset, IDatasetStatus, IEmbeddingProgress } from "./em
 import {
     获取数据集列表,
     获取待嵌入块,
+    获取已嵌入块,
     推送块嵌入,
     添加数据集,
     删除数据集,
@@ -245,10 +246,16 @@ export class EmbeddingDock extends Model {
             try {
                 // 如果是静态数据集，传 ID 名单；动态数据集后续可传 SQL
                 const ids = dataset.type === "static" ? (Array.isArray(dataset.target) ? dataset.target : [dataset.target]) : undefined;
-                const result = await 获取待嵌入块(dataset.id, dataset.model, 1, false, ids);
+
+                // 并行获取待嵌入和已嵌入数量
+                const [pendingResult, embeddedResult] = await Promise.all([
+                    获取待嵌入块(dataset.id, dataset.model, 1, false, ids),
+                    获取已嵌入块(dataset.id, dataset.model, 1, 0),
+                ]);
+
                 this.statuses.set(dataset.id, {
-                    embedded: 0, // TODO: 需要后端 API 直接返回已嵌入数量
-                    pending: result.total,
+                    embedded: embeddedResult.total,
+                    pending: pendingResult.total,
                     lastRefresh: Date.now(),
                 });
                 this.renderList();
