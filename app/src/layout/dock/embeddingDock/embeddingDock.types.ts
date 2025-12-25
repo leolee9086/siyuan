@@ -34,3 +34,22 @@ export interface IEmbeddingProgress {
     status: "idle" | "embedding" | "done" | "error";
     error?: string;
 }
+
+// 后端数据集信息（从 /api/embedding/datasets 返回）
+export interface IBackendDataset {
+    name: string;
+    collectionName: string;
+    type: string;  // "blocks" | "assets"
+    model: string;
+    dimension: number;
+    count: number;
+}
+
+// 已嵌入块信息
+export interface IEmbeddedBlock {
+    blockId: string;
+    vectorId: string;
+    hash: string;
+    meta?: Record<string, unknown>;
+}
+

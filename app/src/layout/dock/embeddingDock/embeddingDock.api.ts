@@ -4,7 +4,7 @@
  */
 
 import { fetchPost } from "../../../util/fetch";
-import type { IEmbeddingDataset, IDatasetStatus, IPendingBlock } from "./embeddingDock.types";
+import type { IEmbeddingDataset, IDatasetStatus, IPendingBlock, IBackendDataset, IEmbeddedBlock } from "./embeddingDock.types";
 
 // =========== 数据集配置 API ===========
 
@@ -74,6 +74,7 @@ export const 获取待嵌入块 = async (
     ids?: string[]
 ): Promise<{ pending: IPendingBlock[]; total: number }> => {
     return new Promise((resolve, reject) => {
+        // @内联回调
         fetchPost("/api/embedding/blocks/pending", {
             dataset,
             model,
@@ -104,6 +105,7 @@ export const 推送块嵌入 = async (
     dataset = "default"
 ): Promise<{ pushed: number; skipped: number }> => {
     return new Promise((resolve, reject) => {
+        // @内联回调
         fetchPost("/api/embedding/blocks/pushWithVectors", {
             blocks,
             model,
@@ -130,13 +132,91 @@ export const 获取嵌入状态 = async (
     dataset: string,
     model: string
 ): Promise<IDatasetStatus> => {
-    // 通过 pending 接口获取状态
-    const { total } = await 获取待嵌入块(dataset, model, 1000, false);
+    // 获取待嵌入数量
+    const { total: pending } = await 获取待嵌入块(dataset, model, 1, false);
 
-    // TODO: 需要后端提供已嵌入数量的接口
+    // 获取已嵌入数量
+    const { total: embedded } = await 获取已嵌入块(dataset, model, 1, 0);
+
     return {
-        embedded: 0, // 暂时无法获取
-        pending: total,
+        embedded,
+        pending,
     };
 };
 export const getDatasetStatus = 获取嵌入状态;
+
+// =========== 后端数据集 API ===========
+
+/**
+ * 获取后端数据集列表
+ */
+export const 获取后端数据集列表 = async (): Promise<IBackendDataset[]> => {
+    return new Promise((resolve, reject) => {
+        // @内联回调
+        fetchPost("/api/embedding/datasets", {}, (res) => {
+            if (res.code !== 0) {
+                reject(new Error(res.msg || "获取数据集列表失败"));
+                return;
+            }
+            resolve(res.data?.datasets ?? []);
+        });
+    });
+};
+export const getBackendDatasets = 获取后端数据集列表;
+
+/**
+ * 获取已嵌入块列表
+ */
+export const 获取已嵌入块 = async (
+    dataset: string,
+    model: string,
+    limit = 100,
+    offset = 0
+): Promise<{ blocks: IEmbeddedBlock[]; total: number }> => {
+    return new Promise((resolve, reject) => {
+        // @内联回调
+        fetchPost("/api/embedding/blocks/embedded", {
+            dataset,
+            model,
+            limit,
+            offset,
+        }, (res) => {
+            if (res.code !== 0) {
+                reject(new Error(res.msg || "获取已嵌入块失败"));
+                return;
+            }
+            resolve({
+                blocks: res.data?.blocks ?? [],
+                total: res.data?.total ?? 0,
+            });
+        });
+    });
+};
+export const getEmbeddedBlocks = 获取已嵌入块;
+
+/**
+ * 删除 embedding 集合（两阶段确认）
+ */
+export const 删除嵌入集合 = async (
+    collectionType: "blocks" | "assets",
+    model: string
+): Promise<{ needConfirm: boolean; waitSeconds?: number; deleted?: boolean }> => {
+    return new Promise((resolve, reject) => {
+        // @内联回调
+        fetchPost("/api/embedding/collections/delete", {
+            collection_type: collectionType,
+            model,
+        }, (res) => {
+            if (res.code !== 0) {
+                reject(new Error(res.msg || "删除集合失败"));
+                return;
+            }
+            resolve({
+                needConfirm: res.data?.need_confirm ?? false,
+                waitSeconds: res.data?.wait_seconds,
+                deleted: res.data?.deleted,
+            });
+        });
+    });
+};
+export const deleteEmbeddingCollection = 删除嵌入集合;
