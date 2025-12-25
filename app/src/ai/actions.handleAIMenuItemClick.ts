@@ -12,19 +12,7 @@ import { editDialog } from "./actions.editDialog";
 import { fillContent } from "./actions.fillContent";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanStorage } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
-
-
-export interface AIMenuContext {
-    protyle: IProtyle;
-    ids: string[];
-    elements: Element[];
-    menu: Menu;
-    clearContext: string;
-}export interface AIMenuRequest {
-    target: HTMLElement | SVGElement;
-    element: HTMLElement;
-    event: Event;
-}
+import type { AIMenuContext, AIMenuRequest } from "./types";
 /**
  * 处理 b3-list-item__action 类元素的点击事件
  * @param currentTarget 当前点击的目标元素

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { Menu } from "../plugin/Menu";
 
 /**
  * AI配置接口定义
@@ -209,4 +210,24 @@ export interface AiActionStorageContext {
      * 保存AI动作配置到存储
      */
     saveAiActions(): void;
+}
+
+/**
+ * AI菜单上下文接口
+ */
+export interface AIMenuContext {
+    protyle: IProtyle;
+    ids: string[];
+    elements: Element[];
+    menu: Menu;
+    clearContext: string;
+}
+
+/**
+ * AI菜单请求接口
+ */
+export interface AIMenuRequest {
+    target: HTMLElement | SVGElement;
+    element: HTMLElement;
+    event: Event;
 }
