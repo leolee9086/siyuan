@@ -544,3 +544,208 @@ func embeddingSetModel(c *gin.Context) {
 		"dimension": embedding.OllamaDimension,
 	}
 }
+
+// embeddingDatasets 获取所有 embedding 数据集列表
+func embeddingDatasets(c *gin.Context) {
+	ret := map[string]interface{}{"code": 0}
+	defer c.JSON(http.StatusOK, ret)
+
+	datasets := embedding.ListDatasets()
+	ret["data"] = map[string]interface{}{
+		"datasets": datasets,
+	}
+}
+
+// embeddingBlocksEmbedded 获取已嵌入块列表
+func embeddingBlocksEmbedded(c *gin.Context) {
+	ret := map[string]interface{}{"code": 0}
+	defer c.JSON(http.StatusOK, ret)
+
+	body := map[string]interface{}{}
+	if err := c.BindJSON(&body); err != nil {
+		ret["code"] = -1
+		ret["msg"] = "参数解析失败"
+		return
+	}
+
+	dataset := "default"
+	if ds, ok := body["dataset"].(string); ok && ds != "" {
+		dataset = ds
+	}
+
+	// model 参数必填
+	model := ""
+	if m, ok := body["model"].(string); ok && m != "" {
+		model = m
+	}
+	if model == "" {
+		ret["code"] = -1
+		ret["msg"] = "model 参数必填"
+		return
+	}
+
+	limit := 100
+	if l, ok := body["limit"].(float64); ok {
+		limit = int(l)
+	}
+
+	offset := 0
+	if o, ok := body["offset"].(float64); ok {
+		offset = int(o)
+	}
+
+	blocks, total := embedding.GetEmbeddedBlocksWithModel(dataset, model, limit, offset)
+	ret["data"] = map[string]interface{}{
+		"blocks": blocks,
+		"total":  total,
+		"model":  model,
+	}
+}
+
+// embeddingAssetsPushWithVectors 使用前端预计算向量推送素材嵌入
+func embeddingAssetsPushWithVectors(c *gin.Context) {
+	ret := map[string]interface{}{"code": 0}
+	defer c.JSON(http.StatusOK, ret)
+
+	body := map[string]interface{}{}
+	if err := c.BindJSON(&body); err != nil {
+		ret["code"] = -1
+		ret["msg"] = "参数解析失败"
+		return
+	}
+
+	// 解析 assets 数组
+	assetsRaw, ok := body["assets"].([]interface{})
+	if !ok || len(assetsRaw) == 0 {
+		ret["code"] = -1
+		ret["msg"] = "assets 参数必填"
+		return
+	}
+
+	// 必须指定维度
+	dimension := 0
+	if d, ok := body["dimension"].(float64); ok {
+		dimension = int(d)
+	}
+	if dimension <= 0 {
+		ret["code"] = -1
+		ret["msg"] = "dimension 必须大于 0"
+		return
+	}
+
+	// 必须指定模型名
+	model := ""
+	if m, ok := body["model"].(string); ok && m != "" {
+		model = m
+	}
+	if model == "" {
+		ret["code"] = -1
+		ret["msg"] = "model 参数必填"
+		return
+	}
+
+	dataset := "default"
+	if ds, ok := body["dataset"].(string); ok && ds != "" {
+		dataset = ds
+	}
+
+	force := false
+	if f, ok := body["force"].(bool); ok {
+		force = f
+	}
+
+	// 解析 assets
+	assets := make([]embedding.AssetWithVector, 0, len(assetsRaw))
+	for _, aRaw := range assetsRaw {
+		a, ok := aRaw.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		path, _ := a["path"].(string)
+		if path == "" {
+			continue
+		}
+
+		vectorRaw, _ := a["vector"].([]interface{})
+		if len(vectorRaw) != dimension {
+			continue
+		}
+
+		vector := make([]float32, len(vectorRaw))
+		for i, v := range vectorRaw {
+			if f, ok := v.(float64); ok {
+				vector[i] = float32(f)
+			}
+		}
+
+		assets = append(assets, embedding.AssetWithVector{
+			Path:   path,
+			Vector: vector,
+		})
+	}
+
+	if len(assets) == 0 {
+		ret["code"] = -1
+		ret["msg"] = "没有有效的素材数据"
+		return
+	}
+
+	pushed, skipped, err := embedding.PushAssetsWithVectors(assets, dataset, model, dimension, force)
+	if err != nil {
+		ret["code"] = -1
+		ret["msg"] = err.Error()
+		return
+	}
+
+	ret["data"] = map[string]interface{}{
+		"pushed":    pushed,
+		"skipped":   skipped,
+		"model":     model,
+		"dimension": dimension,
+	}
+}
+
+// embeddingCollectionsDelete 删除 embedding 集合（两阶段确认）
+func embeddingCollectionsDelete(c *gin.Context) {
+	ret := map[string]interface{}{"code": 0}
+	defer c.JSON(http.StatusOK, ret)
+
+	body := map[string]interface{}{}
+	if err := c.BindJSON(&body); err != nil {
+		ret["code"] = -1
+		ret["msg"] = "参数解析失败"
+		return
+	}
+
+	// collection_type: blocks 或 assets
+	collectionType := ""
+	if t, ok := body["collection_type"].(string); ok && t != "" {
+		collectionType = t
+	}
+	if collectionType != "blocks" && collectionType != "assets" {
+		ret["code"] = -1
+		ret["msg"] = "collection_type 必须是 blocks 或 assets"
+		return
+	}
+
+	// model 参数必填
+	model := ""
+	if m, ok := body["model"].(string); ok && m != "" {
+		model = m
+	}
+	if model == "" {
+		ret["code"] = -1
+		ret["msg"] = "model 参数必填"
+		return
+	}
+
+	result, err := embedding.RequestDeleteCollection(collectionType, model)
+	if err != nil {
+		ret["code"] = -1
+		ret["msg"] = err.Error()
+		return
+	}
+
+	ret["data"] = result
+}

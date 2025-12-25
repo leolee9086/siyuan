@@ -527,13 +527,17 @@ func ServeAPI(ginServer *gin.Engine) {
 	// 嵌入向量服务
 	embeddingGroup := ginServer.Group("/api/embedding", model.CheckAuth)
 	embeddingGroup.POST("/status", embeddingStatus)
+	embeddingGroup.POST("/datasets", embeddingDatasets)
 	embeddingGroup.POST("/blocks/push", model.CheckAdminRole, model.CheckReadonly, embeddingBlocksPush)
 	embeddingGroup.POST("/blocks/pushWithVectors", model.CheckAdminRole, model.CheckReadonly, embeddingBlocksPushWithVectors)
 	embeddingGroup.POST("/blocks/query", embeddingBlocksQuery)
 	embeddingGroup.POST("/blocks/pending", embeddingBlocksPending)
+	embeddingGroup.POST("/blocks/embedded", embeddingBlocksEmbedded)
 	embeddingGroup.POST("/assets/push", model.CheckAdminRole, model.CheckReadonly, embeddingAssetsPush)
+	embeddingGroup.POST("/assets/pushWithVectors", model.CheckAdminRole, model.CheckReadonly, embeddingAssetsPushWithVectors)
 	embeddingGroup.POST("/assets/query", embeddingAssetsQuery)
 	embeddingGroup.POST("/assets/pending", embeddingAssetsPending)
+	embeddingGroup.POST("/collections/delete", model.CheckAdminRole, model.CheckReadonly, embeddingCollectionsDelete)
 	// 模型管理
 	embeddingGroup.POST("/models", embeddingModels)
 	embeddingGroup.POST("/models/pull", model.CheckAdminRole, model.CheckReadonly, embeddingPullModel)
