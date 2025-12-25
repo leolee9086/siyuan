@@ -156,6 +156,7 @@ case 4:
 - [x] 新增 `/api/embedding/blocks/queryWithVector` 端点（向量直查）
 - [ ] **改进**: 返回完整块信息（content, hpath, type, box 等），避免前端二次查询
 - [ ] **改进**: 结果包含相似度分数字段
+- [ ] **改进**: 支持单次请求查询多个数据集（datasets[] 参数），后端合并结果，避免前端多次请求
 - [ ] 支持跨数据集合并搜索结果
 
 #### 3.2 Phase 2: 前端 API 封装 ✅ 已完成
@@ -313,6 +314,7 @@ interface IEmbeddingDataset {
 
 ## 更新日志
 
+- 2025-12-25 21:51: 归档 Phase 1-3 已完成部分到 Done.md
 - 2025-12-25 18:47: 语义搜索向量查询 API 完成
   - 后端: 新增 `QueryBlocksWithVector` 函数 + `/api/embedding/blocks/queryWithVector` 路由
   - 前端: 新增 `使用向量查询块` 客户端 (`embeddingDock.api.ts`)

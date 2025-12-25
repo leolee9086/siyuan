@@ -128,8 +128,48 @@ const vector = await embeddingText("你好世界"); // Float32Array[768]
 
 ---
 
+## 五、语义搜索集成（method=4）
+
+### 5.1 后端 API
+
+| API 端点 | 功能 | 文件位置 |
+|---------|------|----------|
+| `/api/embedding/blocks/query` | 块语义搜索（向量直查） | `kernel/api/embedding.go` |
+| `/api/embedding/blocks/queryWithVector` | 使用给定向量查询相似块 | `kernel/api/embedding.go` |
+
+**核心函数**：
+
+- `QueryBlocksWithVector`：接受查询向量、数据集列表、TopK 等参数，返回相似块列表
+
+### 5.2 前端 API 封装
+
+| 功能 | 文件位置 | 说明 |
+|------|----------|------|
+| `语义搜索` / `semanticSearch` | `semanticSearch.api.ts` | 语义搜索主函数 |
+| `解析语义查询` | `semanticSearch.api.ts` | 解析 `@dataset:` 前缀语法 |
+| `使用向量查询块` | `embeddingDock.api.ts` | 向量直查客户端 |
+| `LOCAL_SEMANTIC_SEARCH` 常量 | `constants.ts` | 语义搜索配置存储键 |
+
+**多模型分组查询**：
+
+- 按数据集使用的模型自动分组
+- 支持前端模型（`isFrontendModel`）和后端 Ollama 模型
+- 每组生成不同的查询向量
+
+### 5.3 搜索 UI 改造
+
+| 组件 | 修改 | 说明 |
+|------|------|------|
+| `menu.ts` | `queryMenu` 添加 method=4 | 语义搜索选项入口 |
+| `util.ts` | `genQueryHTML` 添加 method=4 图标 | 搜索框图标显示 |
+| `util.ts` | `inputEvent` 处理 method=4 分支 | 调用语义搜索 API |
+| `compatible.ts` | 默认配置初始化 | `LOCAL_SEMANTIC_SEARCH` 默认值 |
+
+---
+
 ## 更新日志
 
+- 2025-12-25 21:51: 归档语义搜索集成已完成部分（Phase 1-3 核心功能）
 - 2025-12-25 18:00: 从 TODO.md 归档已完成内容
 - 2025-12-25 17:42: 实现重新嵌入功能（Split Button + force 参数）
 - 2025-12-25 17:10: 前后端接口完善（4 个新 API 端点）
