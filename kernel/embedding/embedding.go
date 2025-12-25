@@ -543,6 +543,67 @@ func QueryBlocksWithModel(query string, topK int, dataset string, model string) 
 	return ret, nil
 }
 
+// QueryBlocksWithVector 使用前端预计算向量查询相似块
+// 不调用 Ollama，直接用传入的向量进行搜索
+func QueryBlocksWithVector(queryVec []float32, topK int, dataset string, model string) ([]map[string]interface{}, error) {
+	if vectordb.GlobalDB == nil {
+		return []map[string]interface{}{}, nil
+	}
+
+	collectionName := GetBlocksCollectionNameWithDataset(model, dataset)
+	col := vectordb.GlobalDB.GetCollection(collectionName)
+	if col == nil {
+		return []map[string]interface{}{}, nil
+	}
+
+	// 校验向量维度
+	if col.Dimension != len(queryVec) {
+		return nil, fmt.Errorf("vector dimension mismatch: collection has %d, query has %d", col.Dimension, len(queryVec))
+	}
+
+	results := col.Search(queryVec, topK, 0)
+
+	ret := make([]map[string]interface{}, 0, len(results))
+	for _, r := range results {
+		var metaMap map[string]interface{}
+		if r.Meta != nil {
+			json.Unmarshal(r.Meta, &metaMap)
+		}
+
+		// 检查 dataset 匹配（如果有元数据）
+		if metaMap != nil {
+			if ds, ok := metaMap["dataset"].(string); ok && ds != dataset {
+				continue
+			}
+		}
+
+		blockID := ""
+		if metaMap != nil {
+			if bid, ok := metaMap["block_id"].(string); ok {
+				blockID = bid
+			}
+		}
+
+		block := sql.GetBlock(blockID)
+		content := ""
+		hpath := ""
+		if block != nil {
+			content = block.Content
+			hpath = block.HPath
+		}
+
+		ret = append(ret, map[string]interface{}{
+			"id":      blockID,
+			"score":   r.Score,
+			"content": content,
+			"hpath":   hpath,
+			"meta":    metaMap,
+		})
+	}
+
+	return ret, nil
+}
+
 // PendingBlock 待嵌入块信息
 // PendingBlock 待处理块信息（直接承载 SQL 行的所有属性）
 type PendingBlock map[string]interface{}

@@ -1,527 +1,329 @@
-# Embedding 模块开发计划
+# Embedding 模块 - 待办事项
 
-## 概述
-
-本计划涵盖思源笔记嵌入模块的完整实现路线，包括**块嵌入**、**素材嵌入（Assets）**和**前端数据集管理**三大部分。
-
-> [!IMPORTANT]
-> **核心设计原则**：
-> 1. 块嵌入和素材嵌入都需要考虑**文本分割**问题
-> 2. 采用**手动订阅**模式，用户完全控制嵌入范围
-> 3. 支持**多数据集**，直接复用 CustomLists 的配置模式
+> 已完成的工作已归档到 [Done.md](file:///d:/dev/siyuan-note/Done.md)
 
 ---
 
-## 零、数据集范围配置设计
-
-### 0.1 设计原则
-
-> [!CAUTION]
-> **不采用自动全量嵌入**，避免隐私泄露和资源浪费。
-
-### 0.2 复用 CustomLists 配置模式
-
-直接复用 `CustomLists.ts` 中的 `ICustomList` 结构：
-
-```typescript
-interface ICustomList {
-    id: string;
-    title: string;
-    icon: string;
-    type: "dynamic" | "static";
-    target: string | string[];  // dynamic: SQL/搜索配置, static: ID列表
-}
-```
-
-**对应数据集配置**：
-
-| 类型 | target 含义 | 范围更新方式 |
-|------|-------------|--------------|
-| `static` | `string[]` ID 列表 | 手动添加/移除 |
-| `dynamic` | SQL 查询 或 搜索配置 JSON | 手动刷新更新（见 0.6 节）|
-
-### 0.3 后端修改说明
-
-#### 现有问题
-
-`GetPendingBlocksWithModel` 目前从**全量数据**对比：
-
-```go
-// 现有逻辑（需修改）
-// 1. 查询所有块
-// 2. 对比已嵌入集合
-// 3. 返回差集
-```
-
-#### 需要修改为
-
-`GetPendingBlocksWithDataset(datasetConfig)` 从**指定范围**对比：
-
-```go
-// 新逻辑
-// 1. 根据 datasetConfig.Type 决定范围：
-//    - static: 直接使用 ManualIDs
-//    - dynamic: 执行 SQL/搜索查询获取 ID 列表
-// 2. 对比已嵌入集合
-// 3. 返回差集
-```
-
-**需要修改的函数**：
-- `kernel/embedding/embedding.go`
-  - `GetPendingBlocksWithModel` → `GetPendingBlocksWithDataset`
-  - `GetPendingAssets` → `GetPendingAssetsWithDataset`
-  - `PushBlocksWithModel` → 需要传入 dataset 信息记录到 meta
-
-### 0.4 范围变更 → 索引重建策略
-
-> [!WARNING]
-> 当数据集范围配置变更时，可能需要**强制重建索引**。
-
-#### 场景分析
-
-| 变更类型 | 处理策略 |
-|----------|----------|
-| static 新增 ID | 增量嵌入新增的 ID |
-| static 移除 ID | 从索引中删除对应向量 |
-| dynamic 查询变更 | **调用 RebuildIndex()** 重建 HNSW 图，保留向量数据 |
-| 切换 static ↔ dynamic | **调用 RebuildIndex()** 重建 HNSW 图 |
-
-#### 实现方案
-
-```go
-// DatasetConfig 扩展
-type DatasetConfig struct {
-    ID          string   `json:"id"`
-    Title       string   `json:"title"`
-    Type        string   `json:"type"`   // "static" | "dynamic"
-    Target      any      `json:"target"` // string[] | string
-    Model       string   `json:"model"`
-    
-    // 范围版本号，每次修改范围配置时递增
-    // 用于判断是否需要强制重建
-    ScopeVersion int     `json:"scopeVersion"`
-}
-
-// 重建判断逻辑
-func ShouldRebuildIndex(oldConfig, newConfig DatasetConfig) bool {
-    // 1. dynamic 类型的 target 变更 → 重建
-    if oldConfig.Type == "dynamic" && newConfig.Type == "dynamic" {
-        if oldConfig.Target != newConfig.Target {
-            return true
-        }
-    }
-    // 2. 类型切换 → 重建
-    if oldConfig.Type != newConfig.Type {
-        return true
-    }
-    // 3. 模型变更 → 重建
-    if oldConfig.Model != newConfig.Model {
-        return true
-    }
-    return false
-}
-```
-
-#### 重建流程
-
-1. 检测到需要重建 → 弹窗确认（可能耗时较长）
-2. 调用 `Collection.RebuildIndex()` 重建 HNSW 图索引
-   - 收集所有有效向量数据（跳过已删除）
-   - 清空 HNSW 图结构
-   - 重新插入所有有效数据点
-3. 如果有新 pending 块，继续执行嵌入任务
-
-### 0.6 动态数据集 Pending 机制
+## 当前阶段：搜索界面集成语义搜索
 
 > [!IMPORTANT]
-> 动态数据集**不会实时更新范围**，但**已嵌入块修改后应立刻变为 pending**。
+> **核心目标**：在现有搜索对话框中集成语义搜索能力，支持多数据集查询。
 
-#### 核心行为
+### 1. 多数据集查询语法设计
 
-| 场景 | 行为 |
-|------|------|
-| 范围刷新 | **手动触发**：用户点击刷新按钮才执行 SQL 获取新范围 |
-| 已嵌入块被修改 | **立刻 pending**：下次获取 pending 列表时应返回 |
-| 新块进入查询范围 | **等待刷新**：只有刷新后才会加入 pending 列表 |
-| 上一次刷新 | 提供按钮复用上次的查询结果，不重新执行 SQL |
+#### 1.1 问题分析
 
-#### GetPendingBlocks 逻辑改造
+- 块专用数据集有多个，每个数据集可能使用不同模型
+- 用户需要指定查询目标：一个或多个数据集
+- 需要兼顾易用性和灵活性
+- **兼容性要求**：S-forge 是 siyuan-note 的功能超集，数据结构必须兼容
+
+#### 1.2 语法方案对比
+
+| 方案 | 语法示例 | 优点 | 缺点 |
+|------|----------|------|------|
+| A. 前缀指定 | `@work-notes: 向量数据库原理` | 直观，类似现有搜索语法 | 多数据集时较长 |
+| B. 数据集选择器 | UI 下拉多选 + 文本输入 | 易发现，无需记忆语法 | 占用界面空间 |
+| C. 混合模式 | 默认 UI 选择，支持 @ 覆盖 | 兼顾两者 | 规则复杂 |
+| D. method=4 模式 | 新增搜索方式，独立配置存储 | 与现有体系一致，数据兼容 | 需独立 UI |
+
+#### 1.3 推荐方案：D. 新增 method=4 + 独立配置存储
+
+**理由**：
+1. 与现有 method 0/1/2/3 体系一致
+2. **独立存储语义搜索配置**，不修改 `IUILayoutTabSearchConfig`
+3. 保持与 siyuan-note 完全数据兼容
+4. UI 上只需在搜索方式菜单新增一项
+
+**配置存储方案**（类似 `LOCAL_SEARCHASSET`）：
+
+```typescript
+// constants.ts 新增
+public static readonly LOCAL_SEMANTIC_SEARCH = "local-semanticsearch";
+
+// 独立的语义搜索配置接口（不修改现有类型）
+interface ISemanticSearchConfig {
+    datasets: string[];      // 数据集 ID 列表（空数组=全部）
+    model?: string;          // 嵌入模型名（默认使用数据集配置的模型）
+    topK: number;            // 返回结果数（默认 10）
+    threshold: number;       // 相似度阈值（0-1，默认 0）
+    lastQuery?: string;      // 上次查询内容
+}
+
+// 使用方式
+window.siyuan.storage[Constants.LOCAL_SEMANTIC_SEARCH] = {
+    datasets: ['work-notes', 'dev-docs'],
+    topK: 10,
+    threshold: 0.7
+};
+```
+
+**method=4 判断**：
+- 现有 `IUILayoutTabSearchConfig.method` 仍只存 0-3
+- 语义搜索通过独立 UI 入口触发，不修改 method 字段
+- 或者允许 method=4 但 siyuan-note 会忽略（优雅降级）
+
+#### 1.4 查询语法（method=4 下的输入框）
+
+**输入格式**：直接输入自然语言查询
+
+```
+向量数据库的工作原理是什么
+如何优化 HNSW 算法性能
+思源笔记的插件开发指南
+```
+
+**可选前缀语法**（覆盖 UI 选择）：
+
+```
+@work-notes: 向量数据库原理      # 指定单个数据集
+@[work-notes,dev-docs]: HNSW     # 指定多个数据集
+@*: 所有笔记                      # 查询所有数据集
+```
+
+**语法解析规则**：
+
+```typescript
+function parseSemanticQuery(input: string): {
+    datasets: string[] | null;  // null 表示使用 UI 配置
+    query: string;
+} {
+    // 匹配 @dataset: 或 @[d1,d2]: 或 @*:
+    const prefixMatch = input.match(/^@(\*|\[[\w,\-]+\]|[\w\-]+):\s*/);
+    if (!prefixMatch) {
+        return { datasets: null, query: input };
+    }
+    
+    const datasetStr = prefixMatch[1];
+    const query = input.slice(prefixMatch[0].length);
+    
+    if (datasetStr === '*') {
+        return { datasets: [], query };  // 空数组表示全部
+    }
+    if (datasetStr.startsWith('[')) {
+        const datasets = datasetStr.slice(1, -1).split(',').map(s => s.trim());
+        return { datasets, query };
+    }
+    return { datasets: [datasetStr], query };
+}
+```
+
+### 2. UI 设计
+
+#### 2.1 搜索方式菜单扩展
+
+在 `genQueryHTML` 和 `queryMenu` 中新增 method=4：
+
+```typescript
+case 4:
+    methodTip = "语义搜索";  // 或 siyuanI18n.semanticSearch
+    methodIcon = "Embedding";  // 需要新图标
+    break;
+```
+
+#### 2.2 语义搜索配置面板
+
+当 method=4 时，在搜索框下方显示专用配置区：
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│              GetPendingBlocks 改造方案                   │
+│ 🧠 语义搜索                                      ⚙️    │
 ├─────────────────────────────────────────────────────────┤
-│                                                         │
-│  refresh=false（默认）:                                  │
-│  1. 从 vectordb 获取该 dataset 已嵌入的所有块 ID        │
-│  2. 对比块的当前 content hash 与存储的 hash             │
-│  3. hash 不同 → pending (原因: outdated)                │
-│                                                         │
-│  refresh=true :                                         │
-│  1. 执行 datasetConfig.Target 中的 SQL/搜索查询        │
-│  2. 查询结果 - 已嵌入 = pending (原因: new)             │
-│  3. 同时检查已嵌入块的 hash 变化                        │
-│                                                         │
+│ 数据集: [✓ work-notes] [✓ dev-docs] [  personal]       │
+│ TopK: [10 ▼]    阈值: [0.7 ▼]                          │
+├─────────────────────────────────────────────────────────┤
+│ ┌─────────────────────────────────────────────────────┐ │
+│ │ 输入查询内容...                                     │ │
+│ └─────────────────────────────────────────────────────┘ │
+│                                            [搜索]      │
+├─────────────────────────────────────────────────────────┤
+│ 结果 (按相似度排序)                                     │
+│ 0.95  📄 向量数据库笔记                                │
+│ 0.87  📄 HNSW 算法实现                                 │
 └─────────────────────────────────────────────────────────┘
 ```
 
-#### 需要的后端函数
+#### 2.3 结果显示
 
-```go
-// GetOutdatedBlocks 获取已嵌入但内容已过期的块
-// 无需执行 SQL 查询，直接对比已嵌入数据
-func GetOutdatedBlocks(dataset, model string, limit int) ([]PendingBlock, int)
+- 显示相似度分数（百分比或小数）
+- 按相似度降序排列
+- 点击结果项跳转到块
+- 悬停显示块内容预览
 
-// GetPendingBlocksWithRefresh 支持 refresh 参数
-func GetPendingBlocksWithRefresh(
-    dataset string, 
-    model string, 
-    limit int, 
-    refresh bool, 
-    datasetConfig *DatasetConfig,
-) ([]PendingBlock, int)
-```
+### 3. 实现步骤
 
-#### API 变化
+#### 3.1 Phase 1: 后端 API ✅ 已完成基础版
+- [x] 新增 `/api/embedding/blocks/queryWithVector` 端点（向量直查）
+- [ ] **改进**: 返回完整块信息（content, hpath, type, box 等），避免前端二次查询
+- [ ] **改进**: 结果包含相似度分数字段
+- [ ] 支持跨数据集合并搜索结果
 
-`/api/embedding/blocks/pending` 新增可选参数：
+#### 3.2 Phase 2: 前端 API 封装 ✅ 已完成
+- [x] `semanticSearch.api.ts` 新增 `语义搜索` / `semanticSearch` 函数
+- [x] 支持前端生成查询向量（`isFrontendModel` 判断）
+- [x] 支持后端 Ollama 向量生成（`/api/embedding/embed`）
+- [x] 多模型分组查询（按数据集使用的模型分组）
+- [x] `解析语义查询` 支持 @dataset: 语法
+- [x] `LOCAL_SEMANTIC_SEARCH` 常量和默认配置初始化
 
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| `refresh` | bool | 是否刷新范围（默认 false）|
-| `datasetConfig` | object | 数据集配置（refresh=true 时需要）|
+#### 3.3 Phase 3: 搜索 UI 改造 ✅ 已完成
+- [x] `menu.ts` 中 `queryMenu` 添加 method=4 选项
+- [x] `util.ts` 中 `genQueryHTML` 添加 method=4 图标
+- [x] `inputEvent` 中处理 method=4 分支（调用语义搜索 API，结果转换为标准格式）
+- [ ] 创建语义搜索配置面板组件（可选增强）
 
-### 0.5 素材数据集
+#### 3.4 Phase 4: 结果渲染
+- [x] `onSearch` 已支持语义搜索结果格式
+- [x] 通过 SQL 查询获取块详情（临时方案）
+- [ ] **改进**: 使用专用 API 直接返回完整块信息（取消 SQL 查询）
+- [ ] **改进**: 在 UI 中显示相似度分数
+- [ ] 高亮匹配内容（语义匹配可能无法精确高亮，可选增强）
 
-素材数据集同样采用 static/dynamic 模式：
+### 4. 技术细节
 
-- **static**：手动添加素材路径列表
-- **dynamic**：按文件夹/文件类型过滤
-
----
-
-## 一、统一文本分割模块
-
-### 我的建议
-
-采用**按语义边界 + token 估算**的混合策略：
-
-1. **分割策略**：优先在段落/换行符处分割
-2. **Token 估算**：中文按字符数 × 1.5 估算
-3. **Overlap 重叠**：相邻 chunk 重叠 10%
-4. **最大长度**：默认 512 tokens
-
-### 1.1 设计
-
-位置：`kernel/embedding/splitter.go`
-
-```go
-type TextChunk struct {
-    Index int
-    Text  string
-    Start int
-    End   int
-}
-
-type SplitOptions struct {
-    MaxTokens   int  // 默认 512
-    Overlap     int  // 默认 50
-    ByParagraph bool // 默认 true
-}
-
-func SplitText(text string, opts SplitOptions) []TextChunk
-```
-
----
-
-## 二、块嵌入（Block Embedding）
-
-### 2.1 现有状态
-- [x] 基础 API 已实现
-- [x] 支持后端 Ollama / 前端直推
-- [x] 脏数据检测
-- [ ] 多数据集支持（需改造 GetPending）
-- [ ] 长文本分割
-
-### 2.2 后端改造要点
-
-**前置**：数据集配置模块
-
-1. **集合命名**：`blocks_{model}_{datasetID}`
-2. **GetPendingBlocksWithDataset**：根据 static/dynamic 配置获取范围内待嵌入块
-3. **Meta 记录数据集信息**：`{ datasetId, scopeVersion, ... }`
-4. **范围变更检测**：对比 scopeVersion，触发重建
-
----
-
-## 三、素材嵌入（Assets Embedding）
-
-### 3.1 现有状态
-- [x] 基础 API 已实现
-- [x] 后端 OCR（Tesseract）
-- [ ] 多数据集支持
-- [ ] `GetPendingAssets` 需改造
-
-### 3.2 图片嵌入双轨策略
-
-- **后端 OCR**：Tesseract 文本 → Ollama 嵌入
-- **前端自选**：CLIP 等模型 → 直推 `/api/vector/add`
-
----
-
-## 四、前端数据集管理 Dock
-
-### 4.1 复用 CustomLists
-
-数据集面板可以**直接复用 CustomLists 组件**或其变体：
-
-- 每个数据集本质上就是一个 "自定义块列表" + 嵌入状态
-- 只需扩展 UI 显示嵌入进度和状态
-
-### 4.2 UI 设计
-
-```
-┌─────────────────────────────────────┐
-│ 📦 嵌入管理          🔄 ⚙️ ▢     │
-├─────────────────────────────────────┤
-│ ● Ollama: 已连接                    │
-├─────────────────────────────────────┤
-│ ▼ 块数据集                          │
-│   📁 work-notes [动态]              │
-│      SQL: SELECT * FROM blocks...   │
-│      ✅ 234 已嵌入 / ⏳ 12 待处理   │
-│      [嵌入] [配置]                  │
-│   ────────────────────────────────  │
-│   � manual-picks [静态]            │
-│      手动添加 89 个块               │
-│      ✅ 89 已嵌入                   │
-│   [+ 新建数据集]                    │
-├─────────────────────────────────────┤
-│ ▼ 素材数据集                        │
-│   ...                               │
-└─────────────────────────────────────┘
-```
-
-### 4.3 添加入口
-
-1. **块右键菜单**：添加到数据集（静态列表）
-2. **Dock 新建**：创建动态数据集（SQL）
-3. **从现有 CustomList 转换**：一键转为嵌入数据集
-
-### 4.4 前端实现计划
-
-> [!IMPORTANT]
-> 复用 CustomLists 组件模式，新建 `embeddingDock/` 目录。
-
-#### 文件结构
-
-```
-app/src/layout/dock/
-├── customBlockLists/          # 现有：自定义块列表
-│   ├── CustomLists.ts
-│   ├── customLists.menu.ts
-│   └── customLists.util.ts
-│
-└── embeddingDock/             # 新建：嵌入管理 Dock
-    ├── EmbeddingDock.ts       # 主组件
-    ├── DatasetItem.ts         # 数据集列表项
-    ├── embeddingDock.api.ts   # API 封装（复用 vectorApi.ts）
-    └── embeddingDock.util.ts  # 工具函数
-```
-
-#### 核心组件设计
-
-**EmbeddingDock** - 主面板
+#### 4.1 查询向量生成策略
 
 ```typescript
-// 数据集配置（与 ICustomList 对应）
+async function generateQueryVector(query: string, model: string): Promise<Float32Array> {
+    // 优先使用后端 Ollama
+    try {
+        const response = await fetchPost('/api/embedding/embed', { text: query, model });
+        if (response.code === 0) {
+            return new Float32Array(response.data.vector);
+        }
+    } catch (e) {}
+    
+    // 回退到前端 Transformer.js
+    return await embeddingText(query);
+}
+```
+
+#### 4.2 跨数据集搜索
+
+```go
+// 跨数据集搜索实现
+func SearchAcrossDatasets(query []float32, datasets []string, topK int) []SearchResult {
+    var allResults []SearchResult
+    
+    for _, dataset := range datasets {
+        collectionName := GetBlocksCollectionNameWithDataset(model, dataset)
+        results := vectordb.Query(collectionName, query, topK)
+        for _, r := range results {
+            allResults = append(allResults, SearchResult{
+                Dataset: dataset,
+                BlockID: r.ID,
+                Score:   r.Score,
+            })
+        }
+    }
+    
+    // 按分数排序，取 topK
+    sort.Slice(allResults, func(i, j int) bool {
+        return allResults[i].Score > allResults[j].Score
+    })
+    
+    if len(allResults) > topK {
+        allResults = allResults[:topK]
+    }
+    
+    return allResults
+}
+```
+
+#### 4.3 前端配置初始化
+
+```typescript
+// protyle/util/compatibility.ts 中添加默认值
+defaultStorage[Constants.LOCAL_SEMANTIC_SEARCH] = {
+    datasets: [],      // 空数组表示查询所有数据集
+    topK: 10,
+    threshold: 0,
+    lastQuery: ""
+};
+```
+
+
+---
+
+## 后续任务队列
+
+### P1 优先级
+
+#### 块右键菜单入口（0.5 天）
+- [ ] 在块右键菜单添加「添加到数据集」选项
+- [ ] 弹出数据集选择对话框
+- [ ] 支持多选块批量添加
+
+#### GetPending refresh 参数支持（0.5 天）
+- [ ] 后端 `GetPendingBlocksWithDataset` 支持 `refresh` 参数
+- [ ] `refresh=false`：只检查已嵌入块的 hash 变化
+- [ ] `refresh=true`：重新执行 SQL 查询获取新范围
+
+### P2 优先级
+
+#### 统一文本分割模块（1 天）
+- [ ] `kernel/embedding/splitter.go` 实现
+- [ ] 按语义边界 + token 估算的混合策略
+- [ ] 支持中文优化（字符数 × 1.5 估算 token）
+- [ ] 相邻 chunk 10% 重叠
+
+#### Ollama 状态监控（0.5 天）
+- [ ] 检测 Ollama 服务状态
+- [ ] 无 Ollama 时提示使用前端嵌入
+- [ ] 模型列表获取
+
+---
+
+## 设计备忘
+
+### 数据集配置（复用 ICustomList）
+
+```typescript
 interface IEmbeddingDataset {
     id: string;
     title: string;
     icon: string;
     type: "dynamic" | "static";
     target: string | string[];  // SQL 或 ID 列表
-    model: string;              // 嵌入模型名
-    scopeVersion: number;       // 范围版本号
-}
-
-// 数据集状态
-interface IDatasetStatus {
-    embedded: number;   // 已嵌入数
-    pending: number;    // 待处理数
-    lastRefresh?: Date; // 上次刷新时间
+    model: string;
+    scopeVersion: number;
+    embedMode?: "incremental" | "full";
 }
 ```
 
-**DatasetItem** - 单个数据集显示
+### 范围变更策略
 
-- 显示类型图标（动态/静态）
-- 显示嵌入状态（✅ 已嵌入 / ⏳ 待处理）
-- 刷新按钮（动态类型专用）
-- 嵌入按钮（启动嵌入任务）
-- 配置按钮（打开设置）
+| 变更类型 | 处理策略 |
+|----------|----------|
+| static 新增 ID | 增量嵌入新增的 ID |
+| static 移除 ID | 从索引中删除对应向量 |
+| dynamic 查询变更 | 调用 `RebuildIndex()` 重建 HNSW 图 |
+| 切换 static ↔ dynamic | 调用 `RebuildIndex()` 重建 HNSW 图 |
+| 模型变更 | 调用 `RebuildIndex()` 重建 HNSW 图 |
 
-#### 已有前端 API
+### 动态数据集 Pending 机制
 
-`app/src/util/embedding/vectorApi.ts` 已提供：
-- `创建集合` / `createCollection`
-- `添加向量` / `addVectors`
-- `查询向量` / `queryVectors`
-- `获取集合状态` / `getCollectionState`
-- `重建索引` / `rebuildIndex`
-
-#### 需要新增的后端 API
-
-| API | 用途 |
-|-----|------|
-| `/api/embedding/datasets` | 获取/保存数据集配置列表 |
-| `/api/embedding/datasets/{id}/status` | 获取数据集嵌入状态 |
-| `/api/embedding/datasets/{id}/refresh` | 刷新动态数据集范围 |
-
-#### 实现步骤
-
-1. [x] 创建 `embeddingDock/` 目录结构（5文件）
-2. [x] 实现 `EmbeddingDock.ts` 基本框架（继承 Model）
-3. [x] 注册到 dock.factory.ts
-4. [x] CustomLists "转换为数据集"对话框
-5. [x] **已解决：动态添加 Dock 图标不生效**
-   - 原因是 `embedding_dock` 未在 `dock.guard.ts` 和 `dock.button.ts` 的内置类型白名单中。
-   - 已通过更新 `index.ts`, `dock.guard.ts` 和 `dock.button.ts` 修复。
-6. [x] **已解决：DOM 结构错误造成视觉样式异常**
-   - 原因是缺失 CSS 定义且 HTML 结构不规范。
-   - 已通过重构 `EmbeddingDock.ts` 并注入内联样式修复。
-7. [x] **已解决：嵌入按钮改为 Split Button**
-   - 支持增量嵌入（默认）和全量重新嵌入两种模式
-   - 后端 `GetPendingBlocksWithModel` 添加 `force` 参数
-   - 点击主按钮执行当前选择的嵌入方式，点击下拉选择并执行
-8. [x] **已解决：数据集状态显示问题**
-   - 前端 `获取嵌入状态` 已连接后端接口
-   - 后端新增 `/api/embedding/datasets`、`/api/embedding/blocks/embedded` 等 4 个端点
-   - `EmbeddingDock.ts` 的 `loadStatuses()` 已使用 `获取已嵌入块` 接口
-9. [ ] **下一步：前端查询界面**
-   - 实现向量相似度查询 UI
-   - 展示查询结果
-
-#### 后端已完成
-
-- [x] `GetBlocksCollectionNameWithDataset(model, datasetId)` 支持专用数据集名称
-- [x] `GetAssetsCollectionNameWithDataset(model, datasetId)`
-- [x] `ListDatasets()` 列出所有 embedding 专用数据集
-- [x] `GetEmbeddedBlocksWithModel(dataset, model, limit, offset)` 获取已嵌入块列表
-- [x] `CollectionMeta` 集合级别元数据（model, dataset, type, created, updated）
-- [x] `EnsureCollectionWithMeta` 创建集合时自动设置元数据
-- [x] `determineBlockPendingReason` 重构深层 if-else 嵌套
-- [x] `GetPendingBlocksWithModel` 支持 `force` 参数（强制重新嵌入）
-
-#### 后端待添加 API
-
-| API 端点 | 功能 | 状态 |
-|---------|------|------|
-| `/api/embedding/datasets` | 获取所有数据集列表及状态 | ✅ 已完成 |
-| `/api/embedding/blocks/embedded` | 获取已嵌入块列表 | ✅ 已完成 |
-| `/api/embedding/assets/pushWithVectors` | 前端直推素材向量 | ✅ 已完成 |
-| `/api/embedding/collections/delete` | 删除集合（两阶段确认） | ✅ 已完成 |
-
-### 4.5 前端嵌入流程（Transformer.js）
-
-> [!IMPORTANT]
-> 当没有 Ollama 时，**前端使用 Transformer.js 进行嵌入是唯一选择**。
-
-#### 已有实现
-
-`app/src/util/embedding/transformer.ts`:
-- 模型：`leolee9086/text2vec-base-chinese`（768 维）
-- 加速：WebGPU（自动回退 WASM）
-- 量化：使用 `model_quantized` 减小体积
-
-```typescript
-// 使用方式
-import { embeddingText } from "./transformer";
-const vector = await embeddingText("你好世界"); // Float32Array[768]
-```
-
-#### 嵌入流程
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                    前端嵌入流程                          │
-├─────────────────────────────────────────────────────────┤
-│                                                         │
-│  1. 点击"嵌入"按钮                                      │
-│     └── 调用 /api/embedding/blocks/pending              │
-│         获取该数据集的待嵌入块列表                       │
-│                                                         │
-│  2. 批量处理                                            │
-│     └── 每批 N 个块                                     │
-│         ├── 获取块内容（已在 pending 响应中）           │
-│         ├── 调用 embeddingText() 生成向量               │
-│         └── 调用 /api/embedding/blocks/pushWithVectors  │
-│                                                         │
-│  3. 更新 UI                                             │
-│     └── 显示进度条                                      │
-│     └── 完成后刷新状态                                  │
-│                                                         │
-└─────────────────────────────────────────────────────────┘
-```
-
-#### 模型管理（后续）
-
-| 功能 | 说明 |
+| 场景 | 行为 |
 |------|------|
-| 模型选择 | 支持选择不同模型（需配置维度）|
-| 本地缓存 | 首次下载后缓存到 `/public/onnxModels/` |
-| 进度显示 | 模型下载和嵌入进度 |
-
----
-
-## 五、优先级与时间线
-
-| 优先级 | 任务 | 前置 | 预估时间 |
-|--------|------|------|----------|
-| **P0** | 前端 EmbeddingDock 基本框架 | 无 | ✅ 已完成 |
-| **P0** | 后端 ListDatasets/GetEmbedded API | 无 | ✅ 已完成 (需添加端点) |
-| **P0** | 数据集状态显示修复 | 上述两项 | 0.5 天 |
-| P1 | 块右键菜单入口 | 数据集配置 | 0.5 天 |
-| P1 | 后端 GetPending 改造（refresh 参数） | 前端调试 | 0.5 天 |
-| P2 | 统一文本分割模块 | 无 | 1 天 |
-| P2 | Ollama 状态监控 | 无 | 0.5 天 |
+| 范围刷新 | 手动触发：用户点击刷新按钮才执行 SQL |
+| 已嵌入块被修改 | 立刻变为 pending |
+| 新块进入查询范围 | 等待刷新后才加入 pending |
 
 ---
 
 ## 更新日志
 
-- 2025-12-25 17:10: 前后端接口完善
-  - 后端新增 4 个 API 端点：`/api/embedding/datasets`、`/blocks/embedded`、`/assets/pushWithVectors`、`/collections/delete`
-  - 前端 `embeddingDock.api.ts` 新增对应封装函数
-  - 修复 `EmbeddingDock.ts` 中 `loadStatuses()` 使用后端接口获取已嵌入数量
-  - `transformer.ts` 缓存 extractor 单例，避免重复加载模型
-  - **下一步**：实现前端查询界面
-- 2025-12-25 17:42: 实现重新嵌入功能
-  - 后端 `GetPendingBlocksWithModel` 添加 `force` 参数，跳过 hash 检查
-  - 前端嵌入按钮改为 Split Button，支持「增量嵌入」和「全量重新嵌入」
-  - 数据集类型 `IEmbeddingDataset` 新增 `embedMode` 字段
-  - **下一步**：实现前端查询界面
-- 2025-12-24 18:42: 后端接口完善
-  - 新增 `ListDatasets()` 列出所有 embedding 专用数据集
-  - 新增 `GetEmbeddedBlocksWithModel()` 获取已嵌入块列表
-  - 新增 `CollectionMeta` 集合级别元数据（model, dataset, type, created, updated）
-  - 新增 `EnsureCollectionWithMeta` 创建集合时自动设置元数据
-  - 新增 `vectordb.ListCollections()` 方法
-  - 重构 `GetPendingBlocksWithModel` 消除深层 if-else 嵌套（提取 `determineBlockPendingReason`）
-  - **下一步**：添加 `/api/embedding/datasets` 和 `/api/embedding/blocks/embedded` API 端点
-- 2025-12-24 01:21: 修复视觉样式与 Dock 图标显示
-  - 解决 `embedding_dock` 无法显示图标的问题（类型白名单）
-  - 彻底重构 `EmbeddingDock.ts` 并注入 CSS 补丁，修复布局错乱
-- 2025-12-24 01:03: EmbeddingDock 初步实现
-- 2025-12-24 00:42: 前端优先策略
-  - 新增 **4.4 前端实现计划**（文件结构、组件设计、API 列表）
-  - 调整优先级：前端 EmbeddingDock → 数据集 API → 动态刷新
-  - 新增 **0.6 动态数据集 Pending 机制**（refresh 参数设计）
-  - 修正重建索引逻辑（调用 RebuildIndex，保留数据）
-- 2025-12-24: 简化设计
-  - **复用 CustomLists 配置模式**（static/dynamic）
-  - 新增**后端 GetPending 改造说明**
-  - 新增**范围变更 → 索引重建策略**
-  - 简化 UI，复用现有组件
-- 2025-12-24: 新增多数据集和范围配置设计
-- 2025-12-24: 初始版本
+- 2025-12-25 18:47: 语义搜索向量查询 API 完成
+  - 后端: 新增 `QueryBlocksWithVector` 函数 + `/api/embedding/blocks/queryWithVector` 路由
+  - 前端: 新增 `使用向量查询块` 客户端 (`embeddingDock.api.ts`)
+  - 搜索: `util.ts` 改用 `/api/query/sql` 获取块详情
+  - **下一步改进**:
+    1. 块查询接口直接返回完整块信息（避免二次 SQL 查询）
+    2. 结果包含相似度分数供 UI 显示
+- 2025-12-25 18:02: 深化语义搜索集成设计
+  - 新增 method=4 语义搜索模式设计
+  - 设计多数据集查询语法（@ 前缀 + UI 选择）
+  - 规划语义搜索配置面板 UI
+  - 定义后端 `/api/embedding/search` API
+  - 分 4 个 Phase 规划实现步骤
+- 2025-12-25 18:00: 精简 TODO，已完成内容归档到 Done.md

@@ -1,14 +1,14 @@
-import {Dialog} from "../dialog";
-import {isMobile, objEquals} from "../util/functions";
+import { Dialog } from "../dialog";
+import { isMobile, objEquals } from "../util/functions";
 import { MenuItem } from "../menus/Menu.Item";
-import {Constants} from "../constants";
-import {showMessage} from "../dialog/message";
-import {fetchPost} from "../util/fetch";
-import {escapeHtml} from "../util/escape";
-import {setStorageVal} from "../protyle/util/compatibility";
-import {confirmDialog} from "../dialog/confirmDialog";
-import {goUnRef, updateSearchResult} from "../mobile/menu/search";
-import {siyuanI18n} from "../util/siyuanEnvironments/i18n.getI18n.environment";
+import { Constants } from "../constants";
+import { showMessage } from "../dialog/message";
+import { fetchPost } from "../util/fetch";
+import { escapeHtml } from "../util/escape";
+import { setStorageVal } from "../protyle/util/compatibility";
+import { confirmDialog } from "../dialog/confirmDialog";
+import { goUnRef, updateSearchResult } from "../mobile/menu/search";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 export const filterMenu = (config: Config.IUILayoutTabSearchConfig, cb: () => void) => {
     const filterDialog = new Dialog({
         title: siyuanI18n.searchType,
@@ -284,20 +284,31 @@ export const queryMenu = (config: Config.IUILayoutTabSearchConfig, cb: () => voi
             cb();
         }
     }).element);
+    // 语义搜索 method=4
+    window.siyuan.menus.menu.append(new MenuItem({
+        icon: "iconMindmap",  // 使用脑图图标表示语义/向量搜索
+        label: "语义搜索",    // TODO: 后续添加到 i18n
+        current: config.method === 4,
+        click() {
+            config.method = 4;
+            cb();
+        }
+    }).element);
 };
 
+
 const saveCriterionData = (config: Config.IUILayoutTabSearchConfig,
-                           criteriaData: Config.IUILayoutTabSearchConfig[],
-                           element: Element,
-                           value: string,
-                           saveDialog: Dialog) => {
+    criteriaData: Config.IUILayoutTabSearchConfig[],
+    element: Element,
+    value: string,
+    saveDialog: Dialog) => {
     config.removed = false;
     const criterion = config;
     criterion.name = value;
     criteriaData.push(Object.assign({}, criterion));
     window.siyuan.storage[Constants.LOCAL_SEARCHDATA] = Object.assign({}, config);
     setStorageVal(Constants.LOCAL_SEARCHDATA, window.siyuan.storage[Constants.LOCAL_SEARCHDATA]);
-    fetchPost("/api/storage/setCriterion", {criterion}, () => {
+    fetchPost("/api/storage/setCriterion", { criterion }, () => {
         saveDialog.destroy();
         const criteriaElement = element.querySelector("#criteria").firstElementChild;
         criteriaElement.classList.remove("fn__none");
@@ -307,8 +318,8 @@ const saveCriterionData = (config: Config.IUILayoutTabSearchConfig,
 };
 
 export const saveCriterion = (config: Config.IUILayoutTabSearchConfig,
-                              criteriaData: Config.IUILayoutTabSearchConfig[],
-                              element: Element) => {
+    criteriaData: Config.IUILayoutTabSearchConfig[],
+    element: Element) => {
     const saveDialog = new Dialog({
         title: siyuanI18n.saveCriterion,
         content: `<div class="b3-dialog__content">
@@ -382,7 +393,7 @@ export const saveCriterion = (config: Config.IUILayoutTabSearchConfig,
                     });
                     criteriaData.find((item, index) => {
                         if (item.name === removeName || item.name === hasSameName) {
-                            fetchPost("/api/storage/removeCriterion", {name: removeName});
+                            fetchPost("/api/storage/removeCriterion", { name: removeName });
                             criteriaData.splice(index, 1);
                             return true;
                         }
@@ -399,7 +410,7 @@ export const saveCriterion = (config: Config.IUILayoutTabSearchConfig,
                 });
                 criteriaData.find((item, index) => {
                     if (item.name === hasSameConfig) {
-                        fetchPost("/api/storage/removeCriterion", {name: hasSameConfig});
+                        fetchPost("/api/storage/removeCriterion", { name: hasSameConfig });
                         criteriaData.splice(index, 1);
                         return true;
                     }
@@ -413,11 +424,11 @@ export const saveCriterion = (config: Config.IUILayoutTabSearchConfig,
 };
 
 export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
-                               criteriaData: Config.IUILayoutTabSearchConfig[],
-                               element: Element,
-                               cb: () => void,
-                               removeCriterion: () => void,
-                               layoutMenu?: () => void) => {
+    criteriaData: Config.IUILayoutTabSearchConfig[],
+    element: Element,
+    cb: () => void,
+    removeCriterion: () => void,
+    layoutMenu?: () => void) => {
     if (!window.siyuan.menus.menu.element.classList.contains("fn__none") &&
         window.siyuan.menus.menu.element.getAttribute("data-name") === Constants.MENU_SEARCH_MORE) {
         window.siyuan.menus.menu.remove();
@@ -433,7 +444,7 @@ export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
             goUnRef();
         }
     }).element);
-    window.siyuan.menus.menu.append(new MenuItem({type: "separator"}).element);
+    window.siyuan.menus.menu.append(new MenuItem({ type: "separator" }).element);
     window.siyuan.menus.menu.append(new MenuItem({
         iconHTML: "",
         label: siyuanI18n.searchType,
@@ -607,7 +618,7 @@ export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
     if (layoutMenu) {
         layoutMenu();
     }
-    window.siyuan.menus.menu.append(new MenuItem({type: "separator"}).element);
+    window.siyuan.menus.menu.append(new MenuItem({ type: "separator" }).element);
     window.siyuan.menus.menu.append(new MenuItem({
         label: siyuanI18n.saveCriterion,
         iconHTML: "",
@@ -646,7 +657,7 @@ export const initCriteriaMenu = (element: HTMLElement, data: Config.IUILayoutTab
             html += `<div data-type="set-criteria" class="${isSame ? "b3-chip--current " : ""}b3-chip b3-chip--middle b3-chip--pointer">${escapeHtml(item.name)}<svg class="b3-chip__close" data-type="remove-criteria"><use xlink:href="#iconCloseRound"></use></svg></div>`;
         });
         /// #if MOBILE
-        element.innerHTML = `<div class="b3-chips${html?"":" fn__none"}">
+        element.innerHTML = `<div class="b3-chips${html ? "" : " fn__none"}">
     ${html}
 </div>`;
         /// #else

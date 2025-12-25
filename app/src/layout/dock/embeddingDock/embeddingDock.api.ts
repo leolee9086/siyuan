@@ -223,3 +223,41 @@ export const 删除嵌入集合 = async (
     });
 };
 export const deleteEmbeddingCollection = 删除嵌入集合;
+
+// =========== 语义搜索 API ===========
+
+/**
+ * 使用向量查询块（语义搜索）
+ * 直接传入前端生成的向量，不依赖 Ollama
+ */
+export interface IBlockQueryResult {
+    id: string;
+    score: number;
+    content: string;
+    hpath: string;
+    meta?: Record<string, unknown>;
+}
+
+export const 使用向量查询块 = async (
+    vector: number[] | Float32Array,
+    model: string,
+    dataset: string,
+    topK = 10
+): Promise<IBlockQueryResult[]> => {
+    return new Promise((resolve, reject) => {
+        // @内联回调
+        fetchPost("/api/embedding/blocks/queryWithVector", {
+            vector: Array.from(vector),
+            model,
+            dataset,
+            top_k: topK,
+        }, (res) => {
+            if (res.code !== 0) {
+                reject(new Error(res.msg || "查询失败"));
+                return;
+            }
+            resolve(res.data?.results ?? []);
+        });
+    });
+};
+export const queryBlocksWithVector = 使用向量查询块;

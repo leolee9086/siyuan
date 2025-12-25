@@ -531,6 +531,7 @@ func ServeAPI(ginServer *gin.Engine) {
 	embeddingGroup.POST("/blocks/push", model.CheckAdminRole, model.CheckReadonly, embeddingBlocksPush)
 	embeddingGroup.POST("/blocks/pushWithVectors", model.CheckAdminRole, model.CheckReadonly, embeddingBlocksPushWithVectors)
 	embeddingGroup.POST("/blocks/query", embeddingBlocksQuery)
+	embeddingGroup.POST("/blocks/queryWithVector", embeddingBlocksQueryWithVector)
 	embeddingGroup.POST("/blocks/pending", embeddingBlocksPending)
 	embeddingGroup.POST("/blocks/embedded", embeddingBlocksEmbedded)
 	embeddingGroup.POST("/assets/push", model.CheckAdminRole, model.CheckReadonly, embeddingAssetsPush)

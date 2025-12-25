@@ -52,6 +52,7 @@ import { scrollToCurrent } from "./utils.scrollToCurrent";
 import { getSelectionOffset } from "../protyle/util/selection";
 import { electronUndo } from "../protyle/undo";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
+import { 语义搜索, 获取语义搜索配置 } from "../layout/dock/embeddingDock/semanticSearch.api";
 
 export const openGlobalSearch = (app: App, text: string, replace: boolean, searchData?: Config.IUILayoutTabSearchConfig) => {
     text = text.trim();
@@ -1095,11 +1096,16 @@ export const genQueryHTML = (method: number, id: string) => {
             methodTip = siyuanI18n.regex;
             methodIcon = "Regex";
             break;
+        case 4:
+            methodTip = "语义搜索";  // TODO: 后续添加到 i18n
+            methodIcon = "Mindmap";
+            break;
     }
     return `<span id="${id}" aria-label="${siyuanI18n.searchMethod} ${methodTip}" class="block__icon ariaLabel" data-position="9south">
     <svg><use xlink:href="#icon${methodIcon}"></use></svg>
 </span>`;
 };
+
 
 export const updateConfig = (element: Element, item: Config.IUILayoutTabSearchConfig, config: Config.IUILayoutTabSearchConfig,
     edit: Protyle, clear = false) => {
@@ -1430,37 +1436,82 @@ export const inputEvent = (element: Element, config: Config.IUILayoutTabSearchCo
             } else {
                 previousElement.setAttribute("disabled", "disabled");
             }
-            fetchPost("/api/search/fullTextSearchBlock", {
-                query: config.query,
-                method: config.method,
-                types: config.types,
-                paths: config.idPath || [],
-                groupBy: config.group,
-                orderBy: config.sort,
-                page: config.page || 1,
-            }, (response) => {
-                if (window.siyuan.reqIds["/api/block/getRecentUpdatedBlocks"] && window.siyuan.reqIds["/api/search/fullTextSearchBlock"] &&
-                    window.siyuan.reqIds["/api/block/getRecentUpdatedBlocks"] > window.siyuan.reqIds["/api/search/fullTextSearchBlock"]) {
-                    return;
-                }
-                if (!config.page) {
-                    config.page = 1;
-                }
-                if (config.page < response.data.pageCount) {
-                    nextElement.removeAttribute("disabled");
-                } else {
-                    nextElement.setAttribute("disabled", "disabled");
-                }
-                onSearch(response.data.blocks, edit, element, config, focusId);
-                let text = siyuanI18n.findInDoc.replace("${x}", response.data.matchedRootCount).replace("${y}", response.data.matchedBlockCount);
-                if (response.data.docMode) {
-                    text = siyuanI18n.matchDoc.replace("${x}", response.data.matchedRootCount);
-                }
-                searchResultElement.innerHTML = `${config.page}/${response.data.pageCount || 1}<span class="fn__space"></span>
+            // method=4 表示语义搜索
+            if (config.method === 4) {
+                // 异步执行语义搜索
+                (async () => {
+                    try {
+                        const semanticConfig = 获取语义搜索配置();
+                        const results = await 语义搜索(config.query, semanticConfig);
+
+                        // 获取块详情用于展示
+                        const blockIds = results.map(r => r.blockId);
+                        if (blockIds.length === 0) {
+                            loadingElement?.classList.add("fn__none");
+                            searchResultElement.innerHTML = `<span class="ft__on-surface">语义搜索: 0 个结果</span>`;
+                            onSearch([], edit, element, config, focusId);
+                            return;
+                        }
+
+                        // 使用 SQL 查询获取块详细信息
+                        const idsStr = blockIds.map(id => `'${id}'`).join(",");
+                        fetchPost("/api/query/sql", {
+                            stmt: `SELECT * FROM blocks WHERE id IN (${idsStr})`,
+                        }, (blockInfoResp) => {
+                            // 将块信息转换为搜索结果格式
+                            const blocks = blockInfoResp.data || [];
+                            // 按语义搜索的分数顺序排列
+                            const orderedBlocks = blockIds
+                                .map(id => blocks.find((b: { id: string }) => b.id === id))
+                                .filter((b: unknown): b is IBlock => b !== undefined);
+
+                            onSearch(orderedBlocks, edit, element, config, focusId);
+                            loadingElement?.classList.add("fn__none");
+                            searchResultElement.innerHTML = `<span class="ft__on-surface">语义搜索: ${results.length} 个结果</span>`;
+                            // 语义搜索不分页
+                            previousElement.setAttribute("disabled", "disabled");
+                            nextElement.setAttribute("disabled", "disabled");
+                        });
+                    } catch (err) {
+                        console.error("[SemanticSearch] 搜索失败:", err);
+                        loadingElement?.classList.add("fn__none");
+                        searchResultElement.innerHTML = `<span class="ft__error">语义搜索失败</span>`;
+                    }
+                })();
+            } else {
+                // 传统文本搜索
+                fetchPost("/api/search/fullTextSearchBlock", {
+                    query: config.query,
+                    method: config.method,
+                    types: config.types,
+                    paths: config.idPath || [],
+                    groupBy: config.group,
+                    orderBy: config.sort,
+                    page: config.page || 1,
+                }, (response) => {
+                    if (window.siyuan.reqIds["/api/block/getRecentUpdatedBlocks"] && window.siyuan.reqIds["/api/search/fullTextSearchBlock"] &&
+                        window.siyuan.reqIds["/api/block/getRecentUpdatedBlocks"] > window.siyuan.reqIds["/api/search/fullTextSearchBlock"]) {
+                        return;
+                    }
+                    if (!config.page) {
+                        config.page = 1;
+                    }
+                    if (config.page < response.data.pageCount) {
+                        nextElement.removeAttribute("disabled");
+                    } else {
+                        nextElement.setAttribute("disabled", "disabled");
+                    }
+                    onSearch(response.data.blocks, edit, element, config, focusId);
+                    let text = siyuanI18n.findInDoc.replace("${x}", response.data.matchedRootCount).replace("${y}", response.data.matchedBlockCount);
+                    if (response.data.docMode) {
+                        text = siyuanI18n.matchDoc.replace("${x}", response.data.matchedRootCount);
+                    }
+                    searchResultElement.innerHTML = `${config.page}/${response.data.pageCount || 1}<span class="fn__space"></span>
 <span class="ft__on-surface">${text}</span>`;
-                loadingElement.classList.add("fn__none");
-                searchResultElement.setAttribute("data-pagecount", response.data.pageCount || 1);
-            });
+                    loadingElement.classList.add("fn__none");
+                    searchResultElement.setAttribute("data-pagecount", response.data.pageCount || 1);
+                });
+            }
         }
     }, Constants.TIMEOUT_INPUT);
     element.setAttribute("data-timeout", inputTimeout.toString());

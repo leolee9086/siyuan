@@ -249,6 +249,69 @@ func embeddingBlocksQuery(c *gin.Context) {
 	}
 }
 
+// embeddingBlocksQueryWithVector 使用前端预计算向量查询相似块
+// 不需要 Ollama，直接使用传入的向量进行搜索
+func embeddingBlocksQueryWithVector(c *gin.Context) {
+	ret := map[string]interface{}{"code": 0}
+	defer c.JSON(http.StatusOK, ret)
+
+	body := map[string]interface{}{}
+	if err := c.BindJSON(&body); err != nil {
+		ret["code"] = -1
+		ret["msg"] = "参数解析失败"
+		return
+	}
+
+	// 必须传入向量
+	vectorRaw, ok := body["vector"].([]interface{})
+	if !ok || len(vectorRaw) == 0 {
+		ret["code"] = -1
+		ret["msg"] = "vector 参数必填"
+		return
+	}
+
+	// 转换向量
+	queryVec := make([]float32, len(vectorRaw))
+	for i, v := range vectorRaw {
+		if f, ok := v.(float64); ok {
+			queryVec[i] = float32(f)
+		}
+	}
+
+	topK := 10
+	if k, ok := body["top_k"].(float64); ok {
+		topK = int(k)
+	}
+
+	dataset := "default"
+	if ds, ok := body["dataset"].(string); ok && ds != "" {
+		dataset = ds
+	}
+
+	// model 参数必填（用于确定集合）
+	model := ""
+	if m, ok := body["model"].(string); ok && m != "" {
+		model = m
+	}
+	if model == "" {
+		ret["code"] = -1
+		ret["msg"] = "model 参数必填"
+		return
+	}
+
+	results, err := embedding.QueryBlocksWithVector(queryVec, topK, dataset, model)
+	if err != nil {
+		ret["code"] = -1
+		ret["msg"] = err.Error()
+		return
+	}
+
+	ret["data"] = map[string]interface{}{
+		"results": results,
+		"model":   model,
+	}
+}
+
 // embeddingBlocksPending 获取待嵌入块列表
 func embeddingBlocksPending(c *gin.Context) {
 	ret := map[string]interface{}{"code": 0}

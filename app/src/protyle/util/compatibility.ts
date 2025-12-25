@@ -1,11 +1,11 @@
-import {focusByRange} from "./selection";
-import {fetchPost, fetchSyncPost} from "../../util/fetch";
-import {Constants} from "../../constants";
+import { focusByRange } from "./selection";
+import { fetchPost, fetchSyncPost } from "../../util/fetch";
+import { Constants } from "../../constants";
 /// #if !BROWSER
-import {clipboard, ipcRenderer} from "electron";
+import { clipboard, ipcRenderer } from "electron";
 /// #endif
 /// #if MOBILE
-import {processSYLink} from "../../editor/openLink";
+import { processSYLink } from "../../editor/openLink";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 /// #endif
 
@@ -142,7 +142,7 @@ export const getLocalFiles = async () => {
 /// #endif
 
 export const readClipboard = async () => {
-    const text: IClipboardData = {textPlain: "", textHTML: "", siyuanHTML: ""};
+    const text: IClipboardData = { textPlain: "", textHTML: "", siyuanHTML: "" };
     if (isInAndroid()) {
         text.textPlain = window.JSAndroid.readClipboard();
         text.textHTML = window.JSAndroid.readHTMLClipboard();
@@ -184,7 +184,7 @@ export const readClipboard = async () => {
             }
             if (item.types.includes("image/png")) {
                 const blob = await item.getType("image/png");
-                text.files = [new File([blob], "image.png", {type: "image/png", lastModified: Date.now()})];
+                text.files = [new File([blob], "image.png", { type: "image/png", lastModified: Date.now() })];
             }
         }
         /// #if !BROWSER
@@ -354,14 +354,14 @@ export const updateHotkeyTip = (hotkey: string) => {
     }
     const keys = [];
     if ((hotkey.indexOf("⌘") > -1 || hotkey.indexOf("⌃") > -1)) {
-keys.push("Ctrl");
-}
+        keys.push("Ctrl");
+    }
     if (hotkey.indexOf("⇧") > -1) {
-keys.push("Shift");
-}
+        keys.push("Shift");
+    }
     if (hotkey.indexOf("⌥") > -1) {
-keys.push("Alt");
-}
+        keys.push("Alt");
+    }
 
     // 不能去最后一个，需匹配 F2
     const lastKey = hotkey.replace(/[⌘⇧⌥⌃]/g, "");
@@ -418,7 +418,7 @@ export const getLocalStorage = (cb: () => void) => {
         defaultStorage[Constants.LOCAL_AI] = [];   // {name: "", memo: ""}
         defaultStorage[Constants.LOCAL_PLUGIN_DOCKS] = {};  // { pluginName: {dockId: IPluginDockTab}}
         defaultStorage[Constants.LOCAL_PLUGINTOPUNPIN] = [];
-        defaultStorage[Constants.LOCAL_OUTLINE] = {keepCurrentExpand: false};
+        defaultStorage[Constants.LOCAL_OUTLINE] = { keepCurrentExpand: false };
         defaultStorage[Constants.LOCAL_FILEPOSITION] = {}; // {id: IScrollAttr}
         defaultStorage[Constants.LOCAL_DIALOGPOSITION] = {}; // {id: IPosition}
         defaultStorage[Constants.LOCAL_HISTORY] = {
@@ -438,7 +438,7 @@ export const getLocalStorage = (cb: () => void) => {
             icon: "0",
             widget: "0",
         };
-        defaultStorage[Constants.LOCAL_EXPORTWORD] = {removeAssets: false, mergeSubdocs: false};
+        defaultStorage[Constants.LOCAL_EXPORTWORD] = { removeAssets: false, mergeSubdocs: false };
         defaultStorage[Constants.LOCAL_EXPORTPDF] = {
             landscape: false,
             marginType: "0",
@@ -494,16 +494,23 @@ export const getLocalStorage = (cb: () => void) => {
             replaceTypes: Object.assign({}, Constants.SIYUAN_DEFAULT_REPLACETYPES),
         };
         defaultStorage[Constants.LOCAL_ZOOM] = 1;
-        defaultStorage[Constants.LOCAL_MOVE_PATH] = {keys: [], k: ""};
-        defaultStorage[Constants.LOCAL_RECENT_DOCS] = {type: "viewedAt"};   // TRecentDocsSort
+        defaultStorage[Constants.LOCAL_MOVE_PATH] = { keys: [], k: "" };
+        defaultStorage[Constants.LOCAL_RECENT_DOCS] = { type: "viewedAt" };   // TRecentDocsSort
+        defaultStorage[Constants.LOCAL_SEMANTIC_SEARCH] = {
+            datasets: [],      // 空数组表示查询所有数据集
+            topK: 10,
+            threshold: 0,
+            lastQuery: ""
+        };
 
         [Constants.LOCAL_EXPORTIMG, Constants.LOCAL_SEARCHKEYS, Constants.LOCAL_PDFTHEME, Constants.LOCAL_BAZAAR,
-            Constants.LOCAL_EXPORTWORD, Constants.LOCAL_EXPORTPDF, Constants.LOCAL_DOCINFO, Constants.LOCAL_FONTSTYLES,
-            Constants.LOCAL_SEARCHDATA, Constants.LOCAL_ZOOM, Constants.LOCAL_LAYOUTS, Constants.LOCAL_AI,
-            Constants.LOCAL_PLUGINTOPUNPIN, Constants.LOCAL_SEARCHASSET, Constants.LOCAL_FLASHCARD,
-            Constants.LOCAL_DIALOGPOSITION, Constants.LOCAL_SEARCHUNREF, Constants.LOCAL_HISTORY,
-            Constants.LOCAL_OUTLINE, Constants.LOCAL_FILEPOSITION, Constants.LOCAL_FILESPATHS, Constants.LOCAL_IMAGES,
-            Constants.LOCAL_PLUGIN_DOCKS, Constants.LOCAL_EMOJIS, Constants.LOCAL_MOVE_PATH, Constants.LOCAL_RECENT_DOCS].forEach((key) => {
+        Constants.LOCAL_EXPORTWORD, Constants.LOCAL_EXPORTPDF, Constants.LOCAL_DOCINFO, Constants.LOCAL_FONTSTYLES,
+        Constants.LOCAL_SEARCHDATA, Constants.LOCAL_ZOOM, Constants.LOCAL_LAYOUTS, Constants.LOCAL_AI,
+        Constants.LOCAL_PLUGINTOPUNPIN, Constants.LOCAL_SEARCHASSET, Constants.LOCAL_FLASHCARD,
+        Constants.LOCAL_DIALOGPOSITION, Constants.LOCAL_SEARCHUNREF, Constants.LOCAL_HISTORY,
+        Constants.LOCAL_OUTLINE, Constants.LOCAL_FILEPOSITION, Constants.LOCAL_FILESPATHS, Constants.LOCAL_IMAGES,
+        Constants.LOCAL_PLUGIN_DOCKS, Constants.LOCAL_EMOJIS, Constants.LOCAL_MOVE_PATH, Constants.LOCAL_RECENT_DOCS,
+        Constants.LOCAL_SEMANTIC_SEARCH].forEach((key) => {
             if (typeof response.data[key] === "string") {
                 try {
                     const parseData = JSON.parse(response.data[key]);
