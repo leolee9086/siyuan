@@ -391,10 +391,13 @@ interface IDatasetStatus {
    - 原因是缺失 CSS 定义且 HTML 结构不规范。
    - 已通过重构 `EmbeddingDock.ts` 并注入内联样式修复。
 7. [ ] 手动实现刷新/嵌入/配置按钮交互
-8. [/] **进行中：数据集状态显示问题**
-   - 前端 `获取嵌入状态` 只能获取 pending 数量，无法获取已嵌入数量
-   - 后端已实现 `ListDatasets` 和 `GetEmbeddedBlocksWithModel` 接口
-   - 需要添加 API 端点并连接前端
+8. [x] **已解决：数据集状态显示问题**
+   - 前端 `获取嵌入状态` 已连接后端接口
+   - 后端新增 `/api/embedding/datasets`、`/api/embedding/blocks/embedded` 等 4 个端点
+   - `EmbeddingDock.ts` 的 `loadStatuses()` 已使用 `获取已嵌入块` 接口
+9. [ ] **下一步：前端查询界面**
+   - 实现向量相似度查询 UI
+   - 展示查询结果
 
 #### 后端已完成
 
@@ -410,8 +413,10 @@ interface IDatasetStatus {
 
 | API 端点 | 功能 | 状态 |
 |---------|------|------|
-| `/api/embedding/datasets` | 获取所有数据集列表及状态 | 待添加 |
-| `/api/embedding/blocks/embedded` | 获取已嵌入块列表 | 待添加 |
+| `/api/embedding/datasets` | 获取所有数据集列表及状态 | ✅ 已完成 |
+| `/api/embedding/blocks/embedded` | 获取已嵌入块列表 | ✅ 已完成 |
+| `/api/embedding/assets/pushWithVectors` | 前端直推素材向量 | ✅ 已完成 |
+| `/api/embedding/collections/delete` | 删除集合（两阶段确认） | ✅ 已完成 |
 
 ### 4.5 前端嵌入流程（Transformer.js）
 
@@ -481,6 +486,12 @@ const vector = await embeddingText("你好世界"); // Float32Array[768]
 
 ## 更新日志
 
+- 2025-12-25 17:10: 前后端接口完善
+  - 后端新增 4 个 API 端点：`/api/embedding/datasets`、`/blocks/embedded`、`/assets/pushWithVectors`、`/collections/delete`
+  - 前端 `embeddingDock.api.ts` 新增对应封装函数
+  - 修复 `EmbeddingDock.ts` 中 `loadStatuses()` 使用后端接口获取已嵌入数量
+  - `transformer.ts` 缓存 extractor 单例，避免重复加载模型
+  - **下一步**：实现前端查询界面
 - 2025-12-24 18:42: 后端接口完善
   - 新增 `ListDatasets()` 列出所有 embedding 专用数据集
   - 新增 `GetEmbeddedBlocksWithModel()` 获取已嵌入块列表
