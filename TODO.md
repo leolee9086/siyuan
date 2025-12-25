@@ -4,31 +4,29 @@
 
 ---
 
-## ✅ 已修复 Bug
+## 🎯 下一步计划
 
-### Bug: 核心重启后已嵌入块数量显示为零 ✅ 2025-12-25
+### P0 - 嵌入进度显示细化
 
-**现象**：
-- 核心（kernel）重新启动后，再次获取数据集进度时，已嵌入块数量总是显示为 0
-- 实际数据已存在于向量数据库中
+**目标**：嵌入进度应该细化到每一个数据集独立显示
 
-**根本原因**：
+- [ ] EmbeddingDock 进度条按数据集分离显示
+- [ ] 每个数据集显示独立的 embedded/pending 计数
+- [ ] 支持按数据集展开/折叠查看详情
 
-`kernel/vectordb/api.go` 的 `InitGlobalDB` 函数只调用 `NewDatabase(path)` 创建空数据库，
-没有调用 `LoadDatabase(path)` 加载持久化数据。
+### P0 - Protyle 嵌入块自然语言查询
 
-**修复方案**（已实施）：
+**目标**：改动 protyle，让嵌入块支持自然语言查询
 
-1. 修改 `InitGlobalDB` 调用 `LoadDatabase(path)` 加载持久化数据
-2. 添加 `IsDBLoading()` 和 `GetDBLoadError()` 函数用于状态查询
-3. 在 `embedding.ensureVectorDB()` 中添加加载状态日志
+> [!IMPORTANT]
+> 需要仔细推敲语法设计，确保与现有语法兼容且直观易用
 
-**相关代码**：
-- `kernel/vectordb/api.go` - InitGlobalDB 已修复
-- `kernel/embedding/embedding.go` - ensureVectorDB 已增强日志
+**语法设计待定**：
+- 考虑使用 `{{语义: 查询内容}}` 或类似语法
+- 需要支持指定数据集范围
+- 查询结果如何呈现（内嵌展开 vs 浮窗）
 
 ---
-
 
 ## 当前阶段：搜索界面集成语义搜索
 
@@ -340,6 +338,7 @@ interface IEmbeddingDataset {
 
 ## 更新日志
 
+- 2025-12-25 23:41: 修复核心重启后嵌入块数量显示为零的 Bug，归档至 Done.md；添加下一步计划
 - 2025-12-25 21:51: 归档 Phase 1-3 已完成部分到 Done.md
 - 2025-12-25 18:47: 语义搜索向量查询 API 完成
   - 后端: 新增 `QueryBlocksWithVector` 函数 + `/api/embedding/blocks/queryWithVector` 路由

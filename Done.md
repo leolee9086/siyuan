@@ -4,6 +4,21 @@
 
 ---
 
+## 零、已修复 Bug
+
+### Bug: 核心重启后已嵌入块数量显示为零 ✅ 2025-12-25
+
+**现象**：核心重启后，已嵌入块数量总是显示为 0
+
+**原因**：`kernel/vectordb/api.go` 的 `InitGlobalDB` 只调用 `NewDatabase()` 创建空库，未调用 `LoadDatabase()` 加载持久化数据
+
+**修复**：
+- `InitGlobalDB` 改为调用 `LoadDatabase()` 加载持久化数据
+- 添加 `IsDBLoading()` 和 `GetDBLoadError()` 状态查询函数
+- `embedding.ensureVectorDB()` 增加加载状态日志
+
+---
+
 ## 一、前端 EmbeddingDock 实现
 
 ### 1.1 基本框架 ✅
