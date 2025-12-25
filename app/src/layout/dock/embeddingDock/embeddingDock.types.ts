@@ -81,10 +81,28 @@ export interface ISemanticSearchResult {
     score: number;
     /** 所属数据集 */
     dataset: string;
-    /** 块内容（可选，需要额外查询） */
-    content?: string | undefined;
+    /** 块内容 */
+    content?: string;
+    /** 块路径 */
+    hpath?: string;
+    /** 块类型 */
+    type?: string;
+    /** 笔记本 ID */
+    box?: string;
+    /** 根文档 ID */
+    rootID?: string;
+    /** 命名 */
+    name?: string;
+    /** 别名 */
+    alias?: string;
+    /** 备注 */
+    memo?: string;
+    /** 标签 */
+    tag?: string;
+    /** 块属性 */
+    ial?: string;
     /** 块元数据 */
-    meta?: Record<string, unknown> | undefined;
+    meta?: Record<string, unknown>;
 }
 
 /**

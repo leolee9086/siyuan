@@ -11,13 +11,13 @@
 export const splitText = (content: string, maxChunkLength = 499): string[] => {
     const sentenceDelimiters = /[。！？；;]/g;
     const clauseDelimiters = /[，、]/g;
-    const paragraphs = content.split('\n');
+    const paragraphs = content.split("\n");
     const result: string[] = [];
 
     for (const paragraph of paragraphs) {
         if (paragraph.length > maxChunkLength) {
             const sentences = paragraph.split(sentenceDelimiters);
-            for (let sentence of sentences) {
+            for (const sentence of sentences) {
                 if (sentence.length > maxChunkLength) {
                     const clauses = sentence.split(clauseDelimiters);
                     for (let clause of clauses) {
@@ -34,7 +34,7 @@ export const splitText = (content: string, maxChunkLength = 499): string[] => {
             result.push(paragraph);
         }
     }
-    return result.filter(s => s.trim() !== '');
+    return result.filter(s => s.trim() !== "");
 };
 
 export const normalizeVector = (vector: number[] | Float32Array): number[] => {
@@ -42,12 +42,16 @@ export const normalizeVector = (vector: number[] | Float32Array): number[] => {
     const sumSq = arr.reduce((acc, cur) => acc + cur * cur, 0);
     const length = Math.sqrt(sumSq);
     // Prevent division by zero
-    if (length === 0) return arr;
+    if (length === 0) {
+return arr;
+}
     return arr.map(value => value / length);
 };
 
 export const calculateWeightedAverageVector = (vectors: (number[] | Float32Array)[], weights: number[], normalize: boolean): Float32Array => {
-    if (vectors.length === 0) return new Float32Array(0);
+    if (vectors.length === 0) {
+return new Float32Array(0);
+}
     const dimension = vectors[0].length;
     const totalVector = new Float32Array(dimension);
 
@@ -291,7 +295,7 @@ export const embeddingText = async (content: string): Promise<Float32Array> => {
 
         try {
             const chunkStartTime = performance.now();
-            console.log(`[Embedding]   调用extractor...`);
+            console.log("[Embedding]   调用extractor...");
 
             const embeddings = await extractor(chunk, { pooling: "mean", normalize: true });
 
@@ -299,7 +303,7 @@ export const embeddingText = async (content: string): Promise<Float32Array> => {
             console.log(`[Embedding]   ✓ 完成, 耗时: ${chunkTime.toFixed(2)}ms`);
 
             if (!embeddings.data) {
-                console.error(`[Embedding]   ❌ 返回的embeddings没有data字段:`, embeddings);
+                console.error("[Embedding]   ❌ 返回的embeddings没有data字段:", embeddings);
                 throw new Error(`Failed to embed chunk: "${chunk.substring(0, 20)}..."`);
             }
 

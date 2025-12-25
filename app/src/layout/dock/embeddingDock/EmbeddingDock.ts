@@ -229,7 +229,7 @@ const renderDatasetItemHTML = (dataset: IEmbeddingDataset, status?: IDatasetStat
             <div class="embedding-dock__item-status">${pendingText}</div>
             <div class="embedding-dock__item-actions">
                 ${dataset.type === "dynamic"
-            ? `<button class="b3-button b3-button--small b3-button--outline" data-action="refresh-scope">刷新范围</button>`
+            ? "<button class=\"b3-button b3-button--small b3-button--outline\" data-action=\"refresh-scope\">刷新范围</button>"
             : ""
         }
                 <div class="embedding-dock__split-btn">

@@ -205,7 +205,9 @@ export class CustomLists extends Model {
     }
 
     private handleIconClick(type: string | null, event?: MouseEvent) {
-        if (!type || !this.listData) { return; }
+        if (!type || !this.listData) {
+ return; 
+}
         switch (type) {
             case "refresh":
                 this.update();

@@ -211,6 +211,15 @@ func ensureVectorDB() {
 	dbPath := filepath.Join(util.DataDir, "storage", "vectordb")
 	logging.LogInfof("[Embedding] 正在自动初始化向量数据库: %s", dbPath)
 	vectordb.InitGlobalDB(dbPath)
+
+	// 检查加载错误
+	if err := vectordb.GetDBLoadError(); err != nil {
+		logging.LogWarnf("[Embedding] 向量数据库加载失败，使用空数据库: %v", err)
+	} else if vectordb.GlobalDB != nil {
+		// 加载成功，记录集合数量
+		collections := vectordb.GlobalDB.ListCollections()
+		logging.LogInfof("[Embedding] 向量数据库加载成功，共 %d 个集合", len(collections))
+	}
 }
 
 // EnsureCollection 确保嵌入集合存在（向后兼容，不设置元数据）
@@ -585,19 +594,31 @@ func QueryBlocksWithVector(queryVec []float32, topK int, dataset string, model s
 		}
 
 		block := sql.GetBlock(blockID)
-		content := ""
-		hpath := ""
-		if block != nil {
-			content = block.Content
-			hpath = block.HPath
+		if block == nil {
+			// 块不存在，跳过
+			continue
+		}
+
+		content := block.Content
+		if content == "" {
+			content = block.Markdown
 		}
 
 		ret = append(ret, map[string]interface{}{
 			"id":      blockID,
 			"score":   r.Score,
 			"content": content,
-			"hpath":   hpath,
+			"hpath":   block.HPath,
 			"meta":    metaMap,
+			// 新增完整块信息
+			"type":   block.Type,
+			"box":    block.Box,
+			"rootID": block.RootID,
+			"name":   block.Name,
+			"alias":  block.Alias,
+			"memo":   block.Memo,
+			"tag":    block.Tag,
+			"ial":    block.IAL,
 		})
 	}
 

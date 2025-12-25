@@ -236,6 +236,15 @@ export interface IBlockQueryResult {
     content: string;
     hpath: string;
     meta?: Record<string, unknown>;
+    // 完整块信息
+    type: string;
+    box: string;
+    rootID: string;
+    name?: string;
+    alias?: string;
+    memo?: string;
+    tag?: string;
+    ial?: string;
 }
 
 export const 使用向量查询块 = async (

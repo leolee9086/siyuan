@@ -1,24 +1,43 @@
 import {showMessage} from "../dialog/message";
 import {getCloudURL} from "../config/util/about";
 import { siyuanI18n } from "./siyuanEnvironments/i18n.getI18n.environment";
+import { getSiyuanUser, getSiyuanConfig } from "./siyuanEnvironments/getSiyuanConfig.environment";
+
+const showTipMessage = (tip: string): void => {
+    const config = getSiyuanConfig();
+    const isIOS = config.system.container === "ios";
+    const isDefaultTip = tip === siyuanI18n._kernel[29];
+
+    if (isDefaultTip && isIOS) {
+        showMessage(siyuanI18n._kernel[122]);
+        return;
+    }
+
+    if (isDefaultTip) {
+        const formattedTip = tip.replaceAll("${accountServer}", getCloudURL(""));
+        showMessage(formattedTip);
+        return;
+    }
+
+    showMessage(tip);
+};
 
 export const needSubscribe = (tip = siyuanI18n._kernel[29]) => {
-    if (window.siyuan.user && (window.siyuan.user.userSiYuanProExpireTime === -1 || window.siyuan.user.userSiYuanProExpireTime > 0)) {
+    const user = getSiyuanUser();
+    const isProUser = user && (user.userSiYuanProExpireTime === -1 || user.userSiYuanProExpireTime > 0);
+
+    if (isProUser) {
         return false;
     }
+
     if (tip) {
-        if (tip === siyuanI18n._kernel[29] && window.siyuan.config.system.container === "ios") {
-            showMessage(siyuanI18n._kernel[122]);
-        } else {
-            if (tip === siyuanI18n._kernel[29]) {
-                tip = siyuanI18n._kernel[29].replaceAll("${accountServer}", getCloudURL(""));
-            }
-            showMessage(tip);
-        }
+        showTipMessage(tip);
     }
+
     return true;
 };
 
 export const isPaidUser = () => {
-    return window.siyuan.user && (0 === window.siyuan.user.userSiYuanSubscriptionStatus || 1 === window.siyuan.user.userSiYuanOneTimePayStatus);
+    const user = getSiyuanUser();
+    return user && (0 === user.userSiYuanSubscriptionStatus || 1 === user.userSiYuanOneTimePayStatus);
 };

@@ -36,15 +36,39 @@ func isEmbeddingReservedCollection(name string) bool {
 var (
 	// Global DB Instance for API
 	// In real app this should be injected
-	GlobalDB *Database
-	once     sync.Once
+	GlobalDB   *Database
+	once       sync.Once
+	dbLoading  bool   // 数据库是否正在加载
+	dbLoadErr  error  // 加载错误（如果有）
+	dbLoadPath string // 数据库路径
 )
 
+// IsDBLoading 返回数据库是否正在加载
+func IsDBLoading() bool {
+	return dbLoading
+}
+
+// GetDBLoadError 返回数据库加载错误（如果有）
+func GetDBLoadError() error {
+	return dbLoadErr
+}
+
 // InitGlobalDB initializes the global database instance
+// 从持久化存储加载数据库，如果加载失败则创建新数据库
 func InitGlobalDB(path string) {
 	once.Do(func() {
-		GlobalDB = NewDatabase(path)
-		// Load from persistence... (TODO)
+		dbLoading = true
+		dbLoadPath = path
+		defer func() { dbLoading = false }()
+
+		db, err := LoadDatabase(path)
+		if err != nil {
+			// 加载失败，记录错误并创建空数据库
+			dbLoadErr = err
+			GlobalDB = NewDatabase(path)
+			return
+		}
+		GlobalDB = db
 	})
 }
 
@@ -126,7 +150,7 @@ func createCollectionHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, Response{Code: 500, Msg: err.Error()})
 		return
 	}
-	
+
 	col.Mu.Lock()
 	if req.Metric != "" {
 		col.Config.MetricType = req.Metric
@@ -157,7 +181,7 @@ func putPointsHandler(c *gin.Context) {
 
 	start := time.Now()
 	count := 0
-	
+
 	for _, point := range req.Points {
 		if len(point.Vector) != col.Dimension {
 			continue // Skip invalid dimension
@@ -165,10 +189,10 @@ func putPointsHandler(c *gin.Context) {
 		col.InsertPoint(point)
 		count++
 	}
-	
+
 	elapsed := time.Since(start)
 	// logging.Logger.Debugf("Inserted %d points in %v", count, elapsed)
-    _ = elapsed
+	_ = elapsed
 
 	c.JSON(http.StatusOK, Response{Code: 0, Msg: "Points upserted", Data: map[string]int{"count": count}})
 }
@@ -212,7 +236,7 @@ func queryHandler(c *gin.Context) {
 		c.JSON(http.StatusNotFound, Response{Code: 404, Msg: "Collection not found"})
 		return
 	}
-	
+
 	if len(req.Vector) != col.Dimension {
 		c.JSON(http.StatusBadRequest, Response{Code: 400, Msg: "Dimension mismatch"})
 		return
@@ -222,7 +246,7 @@ func queryHandler(c *gin.Context) {
 	if topK <= 0 {
 		topK = 10
 	}
-	
+
 	results := col.Search(req.Vector, topK, req.EfSearch)
 
 	c.JSON(http.StatusOK, Response{Code: 0, Msg: "OK", Data: results})
@@ -247,10 +271,10 @@ func rebuildHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, Response{Code: 500, Msg: err.Error()})
 		return
 	}
-	
+
 	elapsed := time.Since(start)
 	// logging.Logger.Infof("Rebuilt index for collection %s in %v", req.Collection, elapsed)
-    _ = elapsed
+	_ = elapsed
 
 	c.JSON(http.StatusOK, Response{Code: 0, Msg: "Index rebuilt"})
 }

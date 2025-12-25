@@ -4,6 +4,32 @@
 
 ---
 
+## ✅ 已修复 Bug
+
+### Bug: 核心重启后已嵌入块数量显示为零 ✅ 2025-12-25
+
+**现象**：
+- 核心（kernel）重新启动后，再次获取数据集进度时，已嵌入块数量总是显示为 0
+- 实际数据已存在于向量数据库中
+
+**根本原因**：
+
+`kernel/vectordb/api.go` 的 `InitGlobalDB` 函数只调用 `NewDatabase(path)` 创建空数据库，
+没有调用 `LoadDatabase(path)` 加载持久化数据。
+
+**修复方案**（已实施）：
+
+1. 修改 `InitGlobalDB` 调用 `LoadDatabase(path)` 加载持久化数据
+2. 添加 `IsDBLoading()` 和 `GetDBLoadError()` 函数用于状态查询
+3. 在 `embedding.ensureVectorDB()` 中添加加载状态日志
+
+**相关代码**：
+- `kernel/vectordb/api.go` - InitGlobalDB 已修复
+- `kernel/embedding/embedding.go` - ensureVectorDB 已增强日志
+
+---
+
+
 ## 当前阶段：搜索界面集成语义搜索
 
 > [!IMPORTANT]

@@ -160,6 +160,17 @@ async function 执行搜索核心(
                             blockId: r.id,
                             score,
                             dataset: dataset.id,
+                            // 传递完整块信息
+                            content: r.content,
+                            hpath: r.hpath,
+                            type: r.type,
+                            box: r.box,
+                            rootID: r.rootID,
+                            name: r.name,
+                            alias: r.alias,
+                            memo: r.memo,
+                            tag: r.tag,
+                            ial: r.ial,
                             meta: r.meta,
                         });
                     }
