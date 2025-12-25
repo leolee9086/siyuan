@@ -11,6 +11,7 @@ export interface IEmbeddingDataset {
     target: string | string[];  // SQL 或 ID 列表
     model: string;              // 嵌入模型名
     scopeVersion: number;       // 范围版本号
+    embedMode?: "incremental" | "full"; // 嵌入方式：增量（默认）或全量重新嵌入
 }
 
 // 数据集状态
@@ -24,7 +25,7 @@ export interface IDatasetStatus {
 export interface IPendingBlock {
     id: string;
     content: string;
-    reason: "new" | "outdated";
+    reason: "new" | "outdated" | "force";
 }
 
 // 嵌入进度

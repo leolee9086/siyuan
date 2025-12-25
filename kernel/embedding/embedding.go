@@ -112,7 +112,7 @@ func ListDatasets() []DatasetInfo {
 			info.Model = col.Meta.Model
 			info.Name = col.Meta.Dataset
 			info.Type = col.Meta.Type
-			
+
 			// 如果元数据为空（旧数据），从集合名推断类型
 			if info.Type == "" {
 				if strings.HasPrefix(colInfo.Name, "blocks_embedding_") {
@@ -133,10 +133,10 @@ func ListDatasets() []DatasetInfo {
 
 // EmbeddedBlock 已嵌入块信息
 type EmbeddedBlock struct {
-	BlockID   string                 `json:"blockId"`
-	VectorID  string                 `json:"vectorId"`
-	Hash      string                 `json:"hash"`
-	Meta      map[string]interface{} `json:"meta"`
+	BlockID  string                 `json:"blockId"`
+	VectorID string                 `json:"vectorId"`
+	Hash     string                 `json:"hash"`
+	Meta     map[string]interface{} `json:"meta"`
 }
 
 // GetEmbeddedBlocksWithModel 获取已完成嵌入的块列表
@@ -393,7 +393,7 @@ func PushBlocks(ids []string, dataset string, force bool) (pushed, skipped int, 
 // PushBlocksWithModel 使用指定模型推送块嵌入
 func PushBlocksWithModel(ids []string, dataset string, model string, force bool) (pushed, skipped int, err error) {
 	// 移除 IsOllamaEnabled 校验
-	
+
 	// 检查模型是否存在逻辑可能也需要放宽，或者改为仅在需要后端嵌入时校验
 	// 但此处为了彻底跑通前端模型，我们先聚焦于向量提交
 
@@ -549,7 +549,7 @@ type PendingBlock map[string]interface{}
 
 // GetPendingBlocks 获取待嵌入块列表
 func GetPendingBlocks(dataset string, box string, limit int) ([]PendingBlock, int) {
-	return GetPendingBlocksWithModel(dataset, box, limit, OllamaEmbedModel, nil)
+	return GetPendingBlocksWithModel(dataset, box, limit, OllamaEmbedModel, nil, false)
 }
 
 // determineBlockPendingReason 判定块的待嵌入原因
@@ -598,15 +598,17 @@ func determineBlockPendingReason(blockID, vectorID, contentHash string, col *vec
 	// Hash 一致，不需要重新嵌入
 	return "", true
 }
+
 // GetPendingBlocksWithModel 使用指定模型获取待嵌入块列表
 // dataset: 数据集名称
 // box: 笔记本 ID (可选)
 // limit: 限制获取数量
 // model: 模型名称
 // ids: 明确指定的块 ID 名单 (可选，若提供则仅扫描这些块)
-func GetPendingBlocksWithModel(dataset string, box string, limit int, model string, ids []string) ([]PendingBlock, int) {
+// force: 是否强制重新嵌入（跳过 hash 检查）
+func GetPendingBlocksWithModel(dataset string, box string, limit int, model string, ids []string, force bool) ([]PendingBlock, int) {
 	logging.LogInfof("[Embedding] API 入口接头成功 - 数据集:%s, 模型:%s, 块ID数:%d", dataset, model, len(ids))
-	
+
 	// 如果指定了 ids，说明是精准查询，应该忽略 limit 限制（或者说 limit 至少要是 len(ids)）
 	// 这样才能保证前端请求的每一个 ID 都能拿到状态
 	if len(ids) > 0 {
@@ -614,7 +616,7 @@ func GetPendingBlocksWithModel(dataset string, box string, limit int, model stri
 	}
 
 	ensureVectorDB()
-	
+
 	if vectordb.GlobalDB == nil {
 		logging.LogInfof("[Embedding] 严重错误：vectordb.GlobalDB 初始化后仍为空！")
 		pending := []PendingBlock{}
@@ -695,8 +697,6 @@ func GetPendingBlocksWithModel(dataset string, box string, limit int, model stri
 		}
 	}
 
-
-	
 	// 核心修正：必须遍历传入的 ids，而不是数据库查到的结果
 	// 数据库查不到的，也要作为 new 处理（或者根据业务逻辑处理，但不能吞掉）
 	for _, id := range ids {
@@ -706,12 +706,12 @@ func GetPendingBlocksWithModel(dataset string, box string, limit int, model stri
 
 		hitBlockIDs[id] = true
 		reason := ""
-		
+
 		row, inDB := rowsMap[id]
 		if !inDB {
 			logging.LogInfof("[Embedding] 警告：ID %s 在 SQL 查询中未命中", id)
-			reason = "new" 
-			
+			reason = "new"
+
 			// Initialize row to avoid panic when setting reason later
 			row = map[string]interface{}{
 				"id": id,
@@ -724,16 +724,21 @@ func GetPendingBlocksWithModel(dataset string, box string, limit int, model stri
 					content = m
 				}
 			}
-			
-			// 使用提取的辅助函数判定待嵌入原因
-			vectorID := fmt.Sprintf("%s_%s", id, dataset)
-			contentHash, _ := row["hash"].(string)
-			var isMatch bool
-			reason, isMatch = determineBlockPendingReason(id, vectorID, contentHash, col)
-			if isMatch {
-				matchCount++
-				if matchCount <= 3 {
-					logging.LogInfof("[Embedding] 采样一致 - ID:%s, Hash:%s", id, contentHash)
+
+			// 如果是强制重新嵌入，跳过 hash 检查
+			if force {
+				reason = "force"
+			} else {
+				// 使用提取的辅助函数判定待嵌入原因
+				vectorID := fmt.Sprintf("%s_%s", id, dataset)
+				contentHash, _ := row["hash"].(string)
+				var isMatch bool
+				reason, isMatch = determineBlockPendingReason(id, vectorID, contentHash, col)
+				if isMatch {
+					matchCount++
+					if matchCount <= 3 {
+						logging.LogInfof("[Embedding] 采样一致 - ID:%s, Hash:%s", id, contentHash)
+					}
 				}
 			}
 		}
@@ -750,15 +755,14 @@ func GetPendingBlocksWithModel(dataset string, box string, limit int, model stri
 		}
 	}
 
-	logging.LogInfof("[Embedding] 最终统计 - 数据集:%s, Total:%d (待处理), Pending列表:%d, 一致跳过:%d, 数据库查到总数:%d", 
+	logging.LogInfof("[Embedding] 最终统计 - 数据集:%s, Total:%d (待处理), Pending列表:%d, 一致跳过:%d, 数据库查到总数:%d",
 		dataset, total, len(pending), matchCount, len(result))
-
 
 	// 3. 数据清算 (Scrubbing / Logical Delete)
 	// 凡是落在该数据集下，但不在本次名单中的 ID，标记为假删除
 	if col != nil && len(ids) > 0 {
 		var toDelete []string
-		
+
 		col.Mu.RLock()
 		for vectorID := range col.IDMap {
 			// vectorID 格式为 "blockID_datasetID"
@@ -774,7 +778,7 @@ func GetPendingBlocksWithModel(dataset string, box string, limit int, model stri
 						break
 					}
 				}
-				
+
 				if !inRequest {
 					// 名单里没有这个 ID，但库里有其属于该数据集的记录 -> 需要清算
 					toDelete = append(toDelete, vectorID)
@@ -1029,9 +1033,9 @@ var deleteRequestsMu sync.RWMutex
 
 // DeleteCollectionResult 删除集合结果
 type DeleteCollectionResult struct {
-	NeedConfirm   bool   `json:"need_confirm"`   // 是否需要确认（首次请求）
-	WaitSeconds   int    `json:"wait_seconds"`   // 需要等待的秒数
-	Deleted       bool   `json:"deleted"`        // 是否已删除
+	NeedConfirm    bool   `json:"need_confirm"`    // 是否需要确认（首次请求）
+	WaitSeconds    int    `json:"wait_seconds"`    // 需要等待的秒数
+	Deleted        bool   `json:"deleted"`         // 是否已删除
 	CollectionName string `json:"collection_name"` // 集合名称
 }
 
@@ -1100,4 +1104,3 @@ func doDeleteCollection(collectionName string) error {
 	// 从数据库中移除集合（同时删除持久化文件）
 	return vectordb.GlobalDB.DeleteCollection(collectionName)
 }
-

@@ -65,13 +65,15 @@ export const updateDataset = 更新数据集;
 
 /**
  * 获取待嵌入块列表
+ * @param force 是否强制重新嵌入（跳过 hash 检查，返回所有范围内的块）
  */
 export const 获取待嵌入块 = async (
     dataset: string,
     model: string,
     limit = 100,
     refresh = false,
-    ids?: string[]
+    ids?: string[],
+    force = false
 ): Promise<{ pending: IPendingBlock[]; total: number }> => {
     return new Promise((resolve, reject) => {
         // @内联回调
@@ -81,6 +83,7 @@ export const 获取待嵌入块 = async (
             limit,
             refresh,
             ids,
+            force,
         }, (res) => {
             if (res.code !== 0) {
                 reject(new Error(res.msg || "获取待嵌入块失败"));

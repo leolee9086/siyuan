@@ -390,7 +390,10 @@ interface IDatasetStatus {
 6. [x] **已解决：DOM 结构错误造成视觉样式异常**
    - 原因是缺失 CSS 定义且 HTML 结构不规范。
    - 已通过重构 `EmbeddingDock.ts` 并注入内联样式修复。
-7. [ ] 手动实现刷新/嵌入/配置按钮交互
+7. [x] **已解决：嵌入按钮改为 Split Button**
+   - 支持增量嵌入（默认）和全量重新嵌入两种模式
+   - 后端 `GetPendingBlocksWithModel` 添加 `force` 参数
+   - 点击主按钮执行当前选择的嵌入方式，点击下拉选择并执行
 8. [x] **已解决：数据集状态显示问题**
    - 前端 `获取嵌入状态` 已连接后端接口
    - 后端新增 `/api/embedding/datasets`、`/api/embedding/blocks/embedded` 等 4 个端点
@@ -408,6 +411,7 @@ interface IDatasetStatus {
 - [x] `CollectionMeta` 集合级别元数据（model, dataset, type, created, updated）
 - [x] `EnsureCollectionWithMeta` 创建集合时自动设置元数据
 - [x] `determineBlockPendingReason` 重构深层 if-else 嵌套
+- [x] `GetPendingBlocksWithModel` 支持 `force` 参数（强制重新嵌入）
 
 #### 后端待添加 API
 
@@ -491,6 +495,11 @@ const vector = await embeddingText("你好世界"); // Float32Array[768]
   - 前端 `embeddingDock.api.ts` 新增对应封装函数
   - 修复 `EmbeddingDock.ts` 中 `loadStatuses()` 使用后端接口获取已嵌入数量
   - `transformer.ts` 缓存 extractor 单例，避免重复加载模型
+  - **下一步**：实现前端查询界面
+- 2025-12-25 17:42: 实现重新嵌入功能
+  - 后端 `GetPendingBlocksWithModel` 添加 `force` 参数，跳过 hash 检查
+  - 前端嵌入按钮改为 Split Button，支持「增量嵌入」和「全量重新嵌入」
+  - 数据集类型 `IEmbeddingDataset` 新增 `embedMode` 字段
   - **下一步**：实现前端查询界面
 - 2025-12-24 18:42: 后端接口完善
   - 新增 `ListDatasets()` 列出所有 embedding 专用数据集

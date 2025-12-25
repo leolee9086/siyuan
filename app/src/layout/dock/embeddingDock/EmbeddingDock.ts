@@ -17,6 +17,7 @@ import {
     推送块嵌入,
     添加数据集,
     删除数据集,
+    更新数据集,
 } from "./embeddingDock.api";
 
 // 默认模型配置
@@ -135,6 +136,60 @@ const injectStyles = () => {
             width: 0%;
             transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
+        /* Split Button 样式 */
+        .embedding-dock__split-btn {
+            display: inline-flex;
+            position: relative;
+        }
+        .embedding-dock__split-btn-main {
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+            border-right: none;
+        }
+        .embedding-dock__split-btn-dropdown {
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+            padding: 4px 6px;
+            min-width: 0;
+        }
+        .embedding-dock__split-btn-dropdown svg {
+            width: 10px;
+            height: 10px;
+        }
+        .embedding-dock__dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            z-index: 100;
+            min-width: 120px;
+            background: var(--b3-theme-surface);
+            border: 1px solid var(--b3-border-color);
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            padding: 4px 0;
+            display: none;
+        }
+        .embedding-dock__dropdown-menu.show {
+            display: block;
+        }
+        .embedding-dock__dropdown-item {
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .embedding-dock__dropdown-item:hover {
+            background: var(--b3-list-hover);
+        }
+        .embedding-dock__dropdown-item.active {
+            color: var(--b3-theme-primary);
+        }
+        .embedding-dock__dropdown-item svg {
+            width: 12px;
+            height: 12px;
+        }
     `;
     document.head.appendChild(style);
 };
@@ -154,8 +209,12 @@ const renderDatasetItemHTML = (dataset: IEmbeddingDataset, status?: IDatasetStat
         ? `✅ ${status.embedded} 已嵌入 / ⏳ ${status.pending} 待处理`
         : "加载中...";
 
+    // 当前嵌入模式
+    const embedMode = dataset.embedMode || "incremental";
+    const embedLabel = embedMode === "full" ? "全量嵌入" : "增量嵌入";
+
     return `
-        <div class="embedding-dock__item" data-id="${dataset.id}">
+        <div class="embedding-dock__item" data-id="${dataset.id}" data-embed-mode="${embedMode}">
             <div class="embedding-dock__item-header">
                 <svg class="embedding-dock__item-icon"><use xlink:href="#${typeIcon}"></use></svg>
                 <span class="embedding-dock__item-title">${dataset.title}</span>
@@ -163,8 +222,8 @@ const renderDatasetItemHTML = (dataset: IEmbeddingDataset, status?: IDatasetStat
             </div>
             <div class="embedding-dock__item-info">
                 ${dataset.type === "dynamic"
-            ? `<div class="embedding-dock__item-sql">${truncateSQL(dataset.target as string)}</div>`
-            : `<div class="embedding-dock__item-count">手动添加 ${(dataset.target as string[]).length} 个块</div>`
+            ? `<div class="embedding-dock__item-sql">${truncateSQL(String(dataset.target))}</div>`
+            : `<div class="embedding-dock__item-count">手动添加 ${Array.isArray(dataset.target) ? dataset.target.length : 0} 个块</div>`
         }
             </div>
             <div class="embedding-dock__item-status">${pendingText}</div>
@@ -173,7 +232,22 @@ const renderDatasetItemHTML = (dataset: IEmbeddingDataset, status?: IDatasetStat
             ? `<button class="b3-button b3-button--small b3-button--outline" data-action="refresh-scope">刷新范围</button>`
             : ""
         }
-                <button class="b3-button b3-button--small b3-button--outline" data-action="embed">嵌入</button>
+                <div class="embedding-dock__split-btn">
+                    <button class="b3-button b3-button--small b3-button--outline embedding-dock__split-btn-main" data-action="embed">${embedLabel}</button>
+                    <button class="b3-button b3-button--small b3-button--outline embedding-dock__split-btn-dropdown" data-action="embed-dropdown">
+                        <svg><use xlink:href="#iconDown"></use></svg>
+                    </button>
+                    <div class="embedding-dock__dropdown-menu">
+                        <div class="embedding-dock__dropdown-item${embedMode === "incremental" ? " active" : ""}" data-mode="incremental">
+                            <svg><use xlink:href="#iconAdd"></use></svg>
+                            增量嵌入
+                        </div>
+                        <div class="embedding-dock__dropdown-item${embedMode === "full" ? " active" : ""}" data-mode="full">
+                            <svg><use xlink:href="#iconRefresh"></use></svg>
+                            全量重新嵌入
+                        </div>
+                    </div>
+                </div>
                 <button class="b3-button b3-button--small b3-button--text" data-action="config">配置</button>
                 <button class="b3-button b3-button--small b3-button--text" data-action="delete">删除</button>
             </div>
@@ -297,6 +371,14 @@ export class EmbeddingDock extends Model {
         this.element.addEventListener("click", (event: MouseEvent) => {
             const target = event.target as HTMLElement;
 
+            // 关闭所有下拉菜单（点击其他地方时）
+            const allDropdowns = this.element.querySelectorAll(".embedding-dock__dropdown-menu.show");
+            allDropdowns.forEach(menu => {
+                if (!menu.contains(target) && !target.closest(".embedding-dock__split-btn-dropdown")) {
+                    menu.classList.remove("show");
+                }
+            });
+
             // 头部按钮
             const iconButton = target.closest(".block__icon") as HTMLElement;
             if (iconButton) {
@@ -305,10 +387,44 @@ export class EmbeddingDock extends Model {
                 return;
             }
 
+            // 下拉菜单项点击
+            const dropdownItem = target.closest(".embedding-dock__dropdown-item") as HTMLElement;
+            if (dropdownItem) {
+                const mode = dropdownItem.getAttribute("data-mode");
+                const item = dropdownItem.closest(".embedding-dock__item") as HTMLElement;
+                const datasetId = item?.getAttribute("data-id");
+                if (datasetId && mode) {
+                    this.handleModeChange(datasetId, mode as "incremental" | "full");
+                }
+                // 关闭下拉菜单
+                const menu = dropdownItem.closest(".embedding-dock__dropdown-menu");
+                if (menu) {
+                    menu.classList.remove("show");
+                }
+                return;
+            }
+
             // 数据集操作按钮
             const actionButton = target.closest("[data-action]") as HTMLElement;
             if (actionButton) {
                 const action = actionButton.getAttribute("data-action");
+
+                // 特殊处理：下拉按钮切换菜单显示
+                if (action === "embed-dropdown") {
+                    const splitBtn = actionButton.closest(".embedding-dock__split-btn");
+                    const menu = splitBtn?.querySelector(".embedding-dock__dropdown-menu");
+                    if (menu) {
+                        // 关闭其他打开的菜单
+                        allDropdowns.forEach(m => {
+                            if (m !== menu) {
+                                m.classList.remove("show");
+                            }
+                        });
+                        menu.classList.toggle("show");
+                    }
+                    return;
+                }
+
                 const item = actionButton.closest(".embedding-dock__item") as HTMLElement;
                 const datasetId = item?.getAttribute("data-id");
                 if (datasetId && action) {
@@ -354,6 +470,23 @@ export class EmbeddingDock extends Model {
         }
     }
 
+    private handleModeChange(datasetId: string, mode: "incremental" | "full") {
+        const dataset = this.datasets.find(d => d.id === datasetId);
+        if (!dataset) {
+            return;
+        }
+
+        // 更新数据集的嵌入模式
+        dataset.embedMode = mode;
+        更新数据集(datasetId, { embedMode: mode });
+
+        // 重新渲染列表以更新按钮文字
+        this.renderList();
+
+        // 立即执行嵌入
+        this.startEmbedding(dataset);
+    }
+
     private showAddDialog() {
         const id = `ds_${Date.now().toString(36)}`;
         const newDataset: IEmbeddingDataset = {
@@ -392,9 +525,14 @@ export class EmbeddingDock extends Model {
         this.updateProgressUI();
 
         try {
-            console.log(`[Embedding] 开始处理数据集: ${dataset.title} (${dataset.id})`);
+            // 根据嵌入模式决定是否强制重新嵌入
+            const force = dataset.embedMode === "full";
+            const modeLabel = force ? "全量重新嵌入" : "增量嵌入";
+            console.log(`[Embedding] 开始处理数据集: ${dataset.title} (${dataset.id}), 模式: ${modeLabel}`);
+
             const ids = dataset.type === "static" ? (Array.isArray(dataset.target) ? dataset.target : [dataset.target]) : undefined;
-            const { pending, total } = await 获取待嵌入块(dataset.id, dataset.model, 1000, false, ids);
+            const { pending, total } = await 获取待嵌入块(dataset.id, dataset.model, 1000, false, ids, force);
+
 
             if (total === 0 || pending.length === 0) {
                 console.log("[Embedding] 没有待嵌入的数据块");

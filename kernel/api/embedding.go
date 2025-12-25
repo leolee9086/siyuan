@@ -297,7 +297,13 @@ func embeddingBlocksPending(c *gin.Context) {
 		}
 	}
 
-	pending, total := embedding.GetPendingBlocksWithModel(dataset, box, limit, model, ids)
+	// force 参数可选（强制重新嵌入，跳过 hash 检查）
+	force := false
+	if f, ok := body["force"].(bool); ok {
+		force = f
+	}
+
+	pending, total := embedding.GetPendingBlocksWithModel(dataset, box, limit, model, ids, force)
 	ret["data"] = map[string]interface{}{
 		"pending": pending,
 		"total":   total,
