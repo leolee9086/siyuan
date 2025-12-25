@@ -304,7 +304,8 @@ export const openAIActionsMenu = (elements: Element[], protyle: IProtyle) => {
         }
     });
 
-    menu.element.querySelector(".b3-menu__items")?.setAttribute("style", "overflow: initial");
+    const menuItemsElement = menu.element.querySelector(".b3-menu__items");
+    menuItemsElement?.setAttribute("style", "overflow: initial");
     /// #if MOBILE
     menu.fullscreen();
     /// #else
@@ -318,6 +319,7 @@ export const openAIActionsMenu = (elements: Element[], protyle: IProtyle) => {
         y: rect.bottom,
         h: rect.height,
     });
-    menu.element.querySelector("input")?.focus();
+    const menuInputElement = menu.element.querySelector("input");
+    menuInputElement?.focus();
     /// #endif
 };

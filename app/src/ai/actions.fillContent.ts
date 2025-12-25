@@ -56,11 +56,12 @@ export const fillContent = (protyle: IProtyle, rawContent: string, blockElements
         return;
     }
     const editableElement = lastBlockElement ? getContenteditableElement(lastBlockElement) : null;
-    if (editableElement && protyle.toolbar?.range) {
-        setLastNodeRange(editableElement, protyle.toolbar.range);
+    const range = protyle.toolbar?.range;
+    if (editableElement && range) {
+        setLastNodeRange(editableElement, range);
     }
     // 折叠选区到范围的末尾，确保新内容插入到正确位置
-    protyle.toolbar?.range.collapse(true);
+    range?.collapse(true);
 
     // 优先使用提供的blockDOM内容，如果没有则使用原始内容生成blockDOM
     const blockDom = blockDOMContent || protyle.lute?.SpinBlockDOM(rawContent);
