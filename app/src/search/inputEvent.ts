@@ -77,7 +77,9 @@ export const inputEvent = (element: Element, config: Config.IUILayoutTabSearchCo
                         const blocks: IBlock[] = results.map(r => {
                             let ialObj = {};
                             if (r.ial) {
-                                try { ialObj = JSON.parse(r.ial); } catch { /* ignore */ }
+                                try {
+                                    ialObj = JSON.parse(r.ial);
+                                } catch { /* ignore */ }
                             }
                             return {
                                 id: r.blockId,
