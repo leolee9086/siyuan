@@ -86,7 +86,7 @@ export class Gutter {
      * @param selectsElement 被选中的元素数组
      * @returns 构建的菜单对象
      */
-    // eslint-disable-next-line class-methods-use-this
+     
     public renderMultipleMenu(protyle: IProtyle, selectsElement: Element[]) {
         return buildGutterMultipleMenu({ protyle, selectsElement });
     }
@@ -101,7 +101,7 @@ export class Gutter {
      * @param buttonElement 被点击的按钮元素
      * @returns 构建的菜单对象
      */
-    // eslint-disable-next-line class-methods-use-this
+     
     public renderMenu(protyle: IProtyle, buttonElement: Element) {
         return buildGutterMenu({ protyle, buttonElement });
     }
