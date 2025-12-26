@@ -86,6 +86,15 @@ const COMMON_RESTRICTED_SYNTAX = [
             "替代方案: 将私有逻辑提取为模块级辅助函数。"
         ].join("\n"),
     },
+    // 禁止类的静态方法
+    {
+        selector: "MethodDefinition[static=true]",
+        message: [
+            "❌ 禁止类的静态方法。",
+            "原因: 静态方法不依赖实例状态，应该作为独立的模块级函数存在。",
+            "替代方案: 将静态方法提取为模块级函数并导出。"
+        ].join("\n"),
+    },
 ];
 
 // 类型断言限制 (仅在非 .guard.ts 文件中生效)
@@ -166,7 +175,7 @@ export default [{
         "max-lines": ["error", { "max": 300, "skipBlankLines": true, "skipComments": true }],
         "max-lines-per-function": ["error", { "max": 50, "skipBlankLines": true, "skipComments": true, "IIFEs": true }],
         "no-inline-callback/no-inline-callback": "error",
-        "class-methods-use-this": ["error", { "enforceForClassFields": true }],
+        "class-methods-use-this": "off",  // 静态方法已被 no-restricted-syntax 禁止，此规则不再需要
         semi: [2, "always"],
         quotes: [2, "double", {
             avoidEscape: true,
