@@ -18,9 +18,13 @@ const updateMobileStatusBar = (OSTheme: string) => {
     }
     if (isInIOS()) {
         getWindowWebkit().messageHandlers.changeStatusBar.postMessage((backgroundColor || (mode === 0 ? "#fff" : "#1e1e1e")) + " " + mode);
-    } else if (isInAndroid()) {
+        return;
+    }
+    if (isInAndroid()) {
         getWindowJSAndroid().changeStatusBarColor(backgroundColor, mode);
-    } else if (isInHarmony()) {
+        return;
+    }
+    if (isInHarmony()) {
         getWindowJSHarmony().changeStatusBarColor(backgroundColor, mode);
     }
 };
@@ -29,16 +33,26 @@ const rgba2hex = (rgba: string) => {
     if (rgba.startsWith("#")) {
         return rgba;
     }
-    let a: any;
-    const rgb: any = rgba.replace(/\s/g, "").match(/^rgba?\((\d+),(\d+),(\d+),?([^,\s)]+)?/i);
-    const alpha = (rgb && rgb[4] || "").trim();
-    let hex = rgb ?
-        (rgb[1] | 1 << 8).toString(16).slice(1) +
-        (rgb[2] | 1 << 8).toString(16).slice(1) +
-        (rgb[3] | 1 << 8).toString(16).slice(1) : rgba;
+    const rgb = rgba.replace(/\s/g, "").match(/^rgba?\((\d+),(\d+),(\d+),?([^,\s)]+)?/i);
+    if (!rgb) {
+        return rgba;
+    }
+    const alpha = (rgb[4] || "").trim();
+    const r = Number(rgb[1]);
+    const g = Number(rgb[2]);
+    const b = Number(rgb[3]);
+    if (isNaN(r) || isNaN(g) || isNaN(b)) {
+        return rgba;
+    }
+    let hex = (r | 1 << 8).toString(16).slice(1) +
+        (g | 1 << 8).toString(16).slice(1) +
+        (b | 1 << 8).toString(16).slice(1);
 
-    a = (alpha !== "") ? alpha : 0o1;
-    a = ((a * 255) | 1 << 8).toString(16).slice(1);
-    hex = hex + a;
+    const a = (alpha !== "") ? Number(alpha) : 0o1;
+    if (isNaN(a)) {
+        return rgba;
+    }
+    const alphaHex = ((a * 255) | 1 << 8).toString(16).slice(1);
+    hex = hex + alphaHex;
     return hex;
 };

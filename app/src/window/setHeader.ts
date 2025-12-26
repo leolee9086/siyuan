@@ -8,6 +8,7 @@ import { ipcRenderer } from "electron";
 import { setLocationHash, getWindowInnerWidth } from "../util/siyuanEnvironments/windowLocation.environment";
 import { getSiyuanLayout, getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { Tab } from "../layout/Tab";
+import { isElectronStyle, isHTMLElement } from "./setHeader.guard";
 
 /** 处理单个窗口的标签页位置设置 */
 const processWndForTabPosition = async (item: Wnd): Promise<void> => {
@@ -16,15 +17,24 @@ const processWndForTabPosition = async (item: Wnd): Promise<void> => {
         return;
     }
     const rect = headerElement.getBoundingClientRect();
-    const dragElement = headerElement.querySelector(".item--readonly .fn__flex-1") as HTMLElement;
-    // 先设置默认值
-    (dragElement.style as CSSStyleDeclarationElectron).WebkitAppRegion = "";
-    // 再根据条件覆盖
-    if (rect.top <= 0) {
-        dragElement.style.height = (dragElement.parentElement?.clientHeight ?? 0) + "px";
-        (dragElement.style as CSSStyleDeclarationElectron).WebkitAppRegion = "drag";
+    const dragElement = headerElement.querySelector<HTMLElement>(".item--readonly .fn__flex-1");
+    if (!dragElement) {
+        return;
     }
-    const headersLastElement = headerElement.lastElementChild as HTMLElement;
+    // 先设置默认值
+    const dragStyle = dragElement.style;
+    if (isElectronStyle(dragStyle)) {
+        dragStyle.WebkitAppRegion = "";
+    }
+    // 再根据条件覆盖
+    if (rect.top <= 0 && isElectronStyle(dragStyle)) {
+        dragElement.style.height = (dragElement.parentElement?.clientHeight ?? 0) + "px";
+        dragStyle.WebkitAppRegion = "drag";
+    }
+    const headersLastElement = headerElement.lastElementChild;
+    if (!isHTMLElement(headersLastElement)) {
+        return;
+    }
     const isDarwin = "darwin" === getSiyuanConfig().system.os;
 
     // darwin 系统专用：处理左侧 padding

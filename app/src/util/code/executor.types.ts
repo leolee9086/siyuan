@@ -134,3 +134,28 @@ export type ModuleRedirectConfig = z.infer<typeof ModuleRedirectConfigSchema>;
 export type ModuleRedirectRule = z.infer<typeof ModuleRedirectRuleSchema>;
 export type TemporaryModule = z.infer<typeof TemporaryModuleSchema>;
 export type ImportSpec = z.infer<typeof ImportSpecSchema>;
+
+/**
+ * 应用模块重定向参数
+ */
+export interface 重定向参数 {
+  magicString: unknown; // MagicString 类型
+  importSpec: { s: number; e: number };
+  importSource: string;
+  packageName: string;
+  redirectConfig: ModuleRedirectConfig;
+  getPackageRedirectUrl: (name: string) => string | null;
+  generateRedirectUrl: (name: string) => string | null;
+}
+
+/**
+ * 代码转换参数
+ */
+export interface 代码转换参数 {
+  code: string;
+  options: ImportHandlingOptions;
+  isPackageAllowed: (name: string) => boolean;
+  getModuleRedirectConfig: () => ModuleRedirectConfig;
+  getPackageRedirectUrl: (name: string) => string | null;
+  generateRedirectUrl: (name: string) => string | null;
+}
