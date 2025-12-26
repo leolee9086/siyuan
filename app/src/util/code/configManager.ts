@@ -256,14 +256,16 @@ export class ConfigManager {
     }
 
     // 检查动态模式
-    for (const [name, pattern] of this.dynamicPatterns) {
+    const dynamicPatternEntries = Array.from(this.dynamicPatterns.entries());
+    for (const [, pattern] of dynamicPatternEntries) {
       if (packageName.match(pattern)) {
         return true;
       }
     }
 
     // 检查作用域前缀
-    for (const prefix of this.scopedPrefixes) {
+    const prefixList = Array.from(this.scopedPrefixes);
+    for (const prefix of prefixList) {
       if (packageName.startsWith(prefix)) {
         return true;
       }
