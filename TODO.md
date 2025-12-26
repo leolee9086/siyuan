@@ -14,17 +14,24 @@
 - [ ] 每个数据集显示独立的 embedded/pending 计数
 - [ ] 支持按数据集展开/折叠查看详情
 
-### P0 - Protyle 嵌入块自然语言查询
+### P0 - Protyle 嵌入块能力全对齐
 
-**目标**：改动 protyle，让嵌入块支持自然语言查询
+**目标**：将嵌入块查询能力与搜索面板 (Keywords/Syntax/SQL/Regex/Semantic) 完全对齐
 
 > [!IMPORTANT]
-> 需要仔细推敲语法设计，确保与现有语法兼容且直观易用
+> **统一语法**：
+> - `{{k:关键词}}` -> Method 0 (Keyword)
+> - `{{s:语法}}` -> Method 1 (Query Syntax)
+> - `{{r:正则}}` -> Method 3 (Regex)
+> - `{{n:语义}}` -> Method 4 (Semantic)
+> - `{{SQL}}` -> Method 2 (SQL, 现状)
+> - `//!js` -> JS 脚本逻辑 (现状)
 
-**语法设计待定**：
-- 考虑使用 `{{语义: 查询内容}}` 或类似语法
-- 需要支持指定数据集范围
-- 查询结果如何呈现（内嵌展开 vs 浮窗）
+**实现计划**：
+- [ ] **拦截与分发**：在 `blockRender.ts` 中解析上述前缀并统一分发到对应的搜索 API 或函数。
+- [ ] **多 API 支持**：集成 `fullTextSearchBlock` 和 `semanticSearch` 到嵌入块渲染流程。
+- [ ] **结果转换**：统一不同搜索 API 的返回结果格式为 `renderEmbed` 可识别的结构。
+- [ ] **向后兼容**：默认维持现有 SQL 解析逻辑。
 
 ---
 

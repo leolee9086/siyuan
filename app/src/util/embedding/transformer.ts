@@ -6,36 +6,113 @@
  * 注意如果使用webpack,不要将打包目标设置为高于es2022,否则会出问题
  * 有时间我再说一下怎么在思源里面直接实现类似ollama的模型加载功能,如果做补全可能有用
  * 相关文件见app\stage\protyle\js\transformers.js
- * @param content 
  */
-export const splitText = (content: string, maxChunkLength = 499): string[] => {
-    const sentenceDelimiters = /[。！？；;]/g;
-    const clauseDelimiters = /[，、]/g;
-    const paragraphs = content.split("\n");
-    const result: string[] = [];
+
+// =========== 文本分割 ===========
+
+/**
+ * 按语义边界分割成小单元（保留分隔符）
+ */
+function 按语义边界分割(content: string): string[] {
+    const units: string[] = [];
+
+    // 先按段落分割
+    const paragraphs = content.split(/\n+/);
 
     for (const paragraph of paragraphs) {
-        if (paragraph.length > maxChunkLength) {
-            const sentences = paragraph.split(sentenceDelimiters);
-            for (const sentence of sentences) {
-                if (sentence.length > maxChunkLength) {
-                    const clauses = sentence.split(clauseDelimiters);
-                    for (let clause of clauses) {
-                        if (clause.length > maxChunkLength) {
-                            clause = clause.substring(0, maxChunkLength);
-                        }
-                        result.push(clause);
-                    }
-                } else {
-                    result.push(sentence);
-                }
+        if (!paragraph.trim()) {
+            continue;
+        }
+
+        // 按句子分割（保留分隔符）
+        // 匹配中英文句号、问号、叹号、分号后的位置
+        const sentences = paragraph.split(/(?<=[。！？；;.!?])/);
+
+        for (const sentence of sentences) {
+            if (!sentence.trim()) {
+                continue;
             }
-        } else {
-            result.push(paragraph);
+            units.push(sentence);
         }
     }
-    return result.filter(s => s.trim() !== "");
+
+    return units;
+}
+
+/**
+ * 贪婪合并：将小单元合并到接近但不超过上限长度的 chunk
+ */
+function 贪婪合并(units: string[], maxChunkLength: number): string[] {
+    const chunks: string[] = [];
+    let currentChunk = "";
+
+    for (const unit of units) {
+        // 如果单个单元就超过上限，需要强制截断
+        if (unit.length > maxChunkLength) {
+            // 先保存当前累积的 chunk
+            if (currentChunk.trim()) {
+                chunks.push(currentChunk.trim());
+                currentChunk = "";
+            }
+            // 对超长单元按子句进一步分割
+            const subUnits = unit.split(/(?<=[，、,])/);
+            for (const sub of subUnits) {
+                if (sub.length > maxChunkLength) {
+                    // 仍然超长，强制截断
+                    for (let i = 0; i < sub.length; i += maxChunkLength) {
+                        chunks.push(sub.slice(i, i + maxChunkLength));
+                    }
+                    continue;
+                }
+                if ((currentChunk + sub).length <= maxChunkLength) {
+                    currentChunk += sub;
+                    continue;
+                }
+                if (currentChunk.trim()) {
+                    chunks.push(currentChunk.trim());
+                }
+                currentChunk = sub;
+            }
+            continue;
+        }
+
+        // 正常情况：尝试合并
+        if ((currentChunk + unit).length <= maxChunkLength) {
+            currentChunk += unit;
+            continue;
+        }
+        // 放不下了，保存当前 chunk，开始新的
+        if (currentChunk.trim()) {
+            chunks.push(currentChunk.trim());
+        }
+        currentChunk = unit;
+    }
+
+    // 保存最后一个 chunk
+    if (currentChunk.trim()) {
+        chunks.push(currentChunk.trim());
+    }
+
+    return chunks;
+}
+
+/**
+ * 文本分割：按语义边界分割后贪婪合并到设定上限长度
+ * @param content 原始文本
+ * @param maxChunkLength chunk 最大长度（默认 499，适配大多数嵌入模型的 512 token 限制）
+ * @returns 分割后的 chunk 数组
+ */
+export const splitText = (content: string, maxChunkLength = 499): string[] => {
+    // 第一步：按语义边界分割成小单元
+    const units = 按语义边界分割(content);
+
+    // 第二步：贪婪合并到设定上限
+    const chunks = 贪婪合并(units, maxChunkLength);
+
+    return chunks.filter(s => s.trim() !== "");
 };
+
+// =========== 向量操作 ===========
 
 export const normalizeVector = (vector: number[] | Float32Array): number[] => {
     const arr = Array.from(vector);
@@ -43,15 +120,15 @@ export const normalizeVector = (vector: number[] | Float32Array): number[] => {
     const length = Math.sqrt(sumSq);
     // Prevent division by zero
     if (length === 0) {
-return arr;
-}
+        return arr;
+    }
     return arr.map(value => value / length);
 };
 
 export const calculateWeightedAverageVector = (vectors: (number[] | Float32Array)[], weights: number[], normalize: boolean): Float32Array => {
     if (vectors.length === 0) {
-return new Float32Array(0);
-}
+        return new Float32Array(0);
+    }
     const dimension = vectors[0].length;
     const totalVector = new Float32Array(dimension);
 
@@ -71,10 +148,11 @@ return new Float32Array(0);
     if (normalize) {
         const result = normalizeVector(averagedVector);
         return new Float32Array(result);
-    } else {
-        return averagedVector;
     }
+    return averagedVector;
 };
+
+// =========== WebGPU 检测 ===========
 
 const logWebGPUInfo = async () => {
     console.log("[WebGPU Debug] 开始检查WebGPU环境...");
@@ -120,6 +198,8 @@ const logWebGPUInfo = async () => {
         return null;
     }
 };
+
+// =========== Transformer 环境初始化 ===========
 
 const initTransformerEnv = async () => {
     console.log("[Transformer] ========== 开始初始化Transformer环境 ==========");
@@ -223,9 +303,12 @@ const initTransformerEnv = async () => {
     return extractor;
 };
 
+// =========== Extractor 单例 ===========
+
 // 缓存已初始化的 extractor，避免每次调用都重新加载模型
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let 缓存Extractor: any = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let 初始化Promise: Promise<any> | null = null;
 
 /**
@@ -249,6 +332,8 @@ const getExtractor = async () => {
         初始化Promise = null;
     }
 };
+
+// =========== Embedding 主函数 ===========
 
 export const embeddingText = async (content: string): Promise<Float32Array> => {
     console.log("[Embedding] ========== 开始embedding文本 ==========");

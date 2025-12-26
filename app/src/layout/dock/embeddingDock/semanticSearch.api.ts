@@ -98,69 +98,188 @@ function 按模型分组数据集(datasets: IEmbeddingDataset[]): Map<string, IE
         const existingGroup = groups.get(model);
         if (existingGroup) {
             existingGroup.push(ds);
-        } else {
-            groups.set(model, [ds]);
+            continue;
         }
+        groups.set(model, [ds]);
     }
     return groups;
 }
 
+/** 向量召回数量（扩大召回以提高精度） */
+const RECALL_K = 100;
+
 /**
- * 将距离转换为相似度分数
- * 向量搜索返回的是距离（越小越相似），我们需要转换为分数（越大越相似）
- * 使用 1 / (1 + distance) 公式，结果范围 (0, 1]
+ * 计算两个字符串的编辑距离（Levenshtein Distance）
+ * 使用动态规划，空间优化为 O(min(m,n))
  */
-function 距离转相似度(distance: number): number {
-    return 1 / (1 + distance);
+function 计算编辑距离(a: string, b: string): number {
+    if (a.length > b.length) {
+        [a, b] = [b, a];  // 确保 a 是较短的字符串
+    }
+
+    const m = a.length;
+    const n = b.length;
+
+    // 空字符串情况
+    if (m === 0) {
+        return n;
+    }
+
+    // 使用一维数组优化空间
+    let prev = new Array(m + 1);
+    let curr = new Array(m + 1);
+
+    for (let i = 0; i <= m; i++) {
+        prev[i] = i;
+    }
+
+    for (let j = 1; j <= n; j++) {
+        curr[0] = j;
+        for (let i = 1; i <= m; i++) {
+            if (a[i - 1] === b[j - 1]) {
+                curr[i] = prev[i - 1];
+                continue;
+            }
+            curr[i] = 1 + Math.min(prev[i - 1], prev[i], curr[i - 1]);
+        }
+        [prev, curr] = [curr, prev];
+    }
+
+    return prev[m];
 }
 
 /**
- * 执行语义搜索（内部实现）
+ * 计算编辑距离相似度（归一化到 0-1）
+ * 1 表示完全相同，0 表示完全不同
  */
-async function 执行搜索核心(
+function 编辑距离相似度(query: string, content: string): number {
+    // 取内容前 500 字符进行比较（避免长文本计算过慢）
+    const contentTruncated = content.slice(0, 500);
+    const distance = 计算编辑距离(query, contentTruncated);
+    const maxLen = Math.max(query.length, contentTruncated.length);
+    if (maxLen === 0) {
+        return 1;
+    }
+    return 1 - distance / maxLen;
+}
+
+/**
+ * 混合排序：结合向量相似度和编辑距离相似度
+ * 使用加权平均，编辑距离权重较高以处理量化精度损失
+ */
+function 混合排序(
+    results: ISemanticSearchResult[],
+    query: string,
+    vectorWeight = 0.3,
+    editWeight = 0.7
+): ISemanticSearchResult[] {
+    const scored = results.map(item => {
+        const editSim = 编辑距离相似度(query, item.content || "");
+        const hybridScore = vectorWeight * item.score + editWeight * editSim;
+        return { ...item, score: hybridScore };
+    });
+
+    scored.sort((a, b) => b.score - a.score);
+    return scored;
+}
+
+/**
+ * 倒数排名融合 (Reciprocal Rank Fusion, RRF) 算法
+ * 通过融合多个来源的排名而非原始评分，提升结果的相关性。
+ * @param resultsBySource 各数据源的结果列表（每个列表应预先排好序）
+ * @param k RRF 常数，通常设为 60
+ */
+// @内联回调
+function rrf融合(resultsBySource: ISemanticSearchResult[][], k = 60): ISemanticSearchResult[] {
+    const fusedScores = new Map<string, { score: number; item: ISemanticSearchResult }>();
+
+    for (const sourceResults of resultsBySource) {
+        let rank = 1;
+        for (const item of sourceResults) {
+            const rrfScore = 1 / (k + rank);
+            const existing = fusedScores.get(item.blockId);
+            if (existing) {
+                existing.score += rrfScore;
+            } else {
+                fusedScores.set(item.blockId, { score: rrfScore, item });
+            }
+            rank++;
+        }
+    }
+
+    // 转换为数组并按融合后的分数降序排序
+    const finalResults = Array.from(fusedScores.values()).map(({ score, item }) => {
+        return {
+            ...item,
+            score: score // 将 RRF 分数存回 score 字段
+        };
+    });
+
+    finalResults.sort((a, b) => b.score - a.score);
+    return finalResults;
+}
+
+/**
+ * 合并同模型下多个数据集的结果
+ * 同一个 blockId 出现在多个数据集时，取分数平均值
+ */
+function 合并同模型结果(datasetResults: ISemanticSearchResult[][]): ISemanticSearchResult[] {
+    const merged = new Map<string, { total: number; count: number; item: ISemanticSearchResult }>();
+
+    for (const results of datasetResults) {
+        for (const item of results) {
+            const existing = merged.get(item.blockId);
+            if (existing) {
+                existing.total += item.score;
+                existing.count += 1;
+            } else {
+                merged.set(item.blockId, { total: item.score, count: 1, item });
+            }
+        }
+    }
+
+    // 计算平均分数并排序
+    const finalResults = Array.from(merged.values()).map(({ total, count, item }) => ({
+        ...item,
+        score: total / count  // 平均分数
+    }));
+
+    finalResults.sort((a, b) => b.score - a.score);
+    return finalResults;
+}
+
+/**
+ * 执行语义搜索（内部实现）返回按模型分组的结果
+ * 同模型下的多个数据集结果会合并（同ID取平均分数）
+ * @param cleanQuery 原始查询文本（用于编辑距离计算）
+ */
+async function 执行搜索按模型分组(
     cleanQuery: string,
     modelGroups: Map<string, IEmbeddingDataset[]>,
     config: ISemanticSearchConfig
-): Promise<ISemanticSearchResult[]> {
-    const allResults: ISemanticSearchResult[] = [];
+): Promise<ISemanticSearchResult[][]> {
+    const resultsByModel: ISemanticSearchResult[][] = [];
 
     for (const [model, datasets] of modelGroups) {
-        console.log(`[SemanticSearch] 处理模型 ${model}，包含 ${datasets.length} 个数据集`);
-
         try {
-            // 生成该模型的查询向量
             const queryVector = await 生成查询向量(cleanQuery, model);
-            console.log(`[SemanticSearch] 模型 ${model} 向量维度: ${queryVector.length}`);
+            const datasetResults: ISemanticSearchResult[][] = [];
 
-            // 查询每个数据集
             for (const dataset of datasets) {
-                console.log(`[SemanticSearch] 查询数据集: ${dataset.id}`);
-
                 try {
-                    // 使用 embedding API 查询（会自动处理集合名称）
-                    const results = await 使用向量查询块(
-                        queryVector,
-                        model,
-                        dataset.id,
-                        config.topK
-                    );
-
-                    // 转换结果格式
+                    // 扩大召回：使用 RECALL_K 而非 topK
+                    const results = await 使用向量查询块(queryVector, model, dataset.id, RECALL_K);
+                    const currentDatasetResults: ISemanticSearchResult[] = [];
                     for (const r of results) {
-                        // embedding API 返回的是 score（距离，越小越的相似）
-                        // 转换为相似度分数（越大越相似）
-                        const score = 距离转相似度(r.score);
-
-                        // 过滤低于阈值的结果
+                        // 后端返回的 score 已经是相似度（0-1，越大越相似），无需转换
+                        const score = r.score;
                         if (config.threshold > 0 && score < config.threshold) {
                             continue;
                         }
-
-                        allResults.push({
+                        currentDatasetResults.push({
                             blockId: r.id,
                             score,
                             dataset: dataset.id,
-                            // 传递完整块信息
                             content: r.content,
                             hpath: r.hpath,
                             type: r.type,
@@ -174,20 +293,27 @@ async function 执行搜索核心(
                             meta: r.meta,
                         });
                     }
-
-                    console.log(`[SemanticSearch] 数据集 ${dataset.id} 返回 ${results.length} 条结果`);
+                    datasetResults.push(currentDatasetResults);
                 } catch (queryError) {
                     console.error(`[SemanticSearch] 查询数据集 ${dataset.id} 失败:`, queryError);
-                    // 继续查询其他集合
                 }
+            }
+
+            // 同模型下的多个数据集结果合并（同ID取平均分数）
+            const mergedResults = 合并同模型结果(datasetResults);
+
+            // 二次排序：使用编辑距离重排序，提升精确匹配的排名
+            const rerankedResults = 混合排序(mergedResults, cleanQuery);
+
+            if (rerankedResults.length > 0) {
+                resultsByModel.push(rerankedResults);
             }
         } catch (vectorError) {
             console.error(`[SemanticSearch] 模型 ${model} 生成向量失败:`, vectorError);
-            // 继续处理其他模型
         }
     }
 
-    return allResults;
+    return resultsByModel;
 }
 
 /**
@@ -225,12 +351,25 @@ export async function 语义搜索(
     const modelGroups = 按模型分组数据集(targetDatasets);
     console.log(`[SemanticSearch] 涉及 ${modelGroups.size} 个不同模型`);
 
-    // 4. 执行搜索
-    const allResults = await 执行搜索核心(cleanQuery, modelGroups, config);
+    // 4. 执行搜索并获取按模型分组的结果（同模型内已合并取平均）
+    const resultsByModel = await 执行搜索按模型分组(cleanQuery, modelGroups, config);
 
-    // 5. 按分数排序并截取 topK
-    allResults.sort((a, b) => b.score - a.score);
-    const finalResults = allResults.slice(0, config.topK);
+    // 5. 融合策略：单模型直接使用，多模型间 RRF 融合
+    // @内联回调
+    const aggregatedResults = ((): ISemanticSearchResult[] => {
+        if (resultsByModel.length === 0) {
+            return [];
+        }
+        if (resultsByModel.length === 1) {
+            // 单模型：直接使用合并后的结果（已按分数排序）
+            return resultsByModel[0] ?? [];
+        }
+        // 多模型：使用 RRF 融合（不同模型的分数不可直接比较）
+        return rrf融合(resultsByModel);
+    })();
+
+    // 6. 截取 topK
+    const finalResults = aggregatedResults.slice(0, config.topK);
 
     console.log(`[SemanticSearch] 最终返回 ${finalResults.length} 条结果`);
     console.log("[SemanticSearch] ========== 语义搜索完成 ==========");
