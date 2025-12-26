@@ -1,4 +1,5 @@
 import { AssistantMessageController } from "./assistantResponse.controller";
+import { TemporaryModule } from "../../util/code/scripts.types";
 
 // 工具调用执行回调函数类型
 export type ToolCallExecutionCallback = (toolCode: string) => Promise<void>;
@@ -30,13 +31,13 @@ export interface IChatStateController {
     hasError(): boolean;
     getErrorMessage(): string | null;
     getSessionId(): string;
-    
+
     // 聊天控制方法
     startSession(): void;
     endSession(): void;
     setError(error: string): void;
     clearError(): void;
-    
+
     // 重置状态
     reset(): void;
 }
@@ -61,10 +62,10 @@ export interface AssistantResponseState {
         timestamp: number;
     }>;
     // 异步工具调用结果堆栈
-    asyncToolResults: Array<any>;
-    messageControllers?: Array<any>;
+    asyncToolResults: Array<Promise<Partial<TemporaryModule>> | Partial<TemporaryModule> | { error: string }>;
+    messageControllers?: Array<AssistantMessageController>;
     chatStateController?: AssistantMessageController;
-    errorCount:number;
+    errorCount: number;
     // 同步工具调用计数器
     syncToolCallCount: number;
     // 异步工具调用计数器

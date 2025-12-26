@@ -1,14 +1,4 @@
-/**
- * 临时ESM模块信息
- */
- interface TemporaryModule {
-    /** 模块URL */
-    moduleUrl: string;
-    /** 模块导出 */
-    moduleExport: any;
-    /** 清理函数 */
-    cleanup: () => void;
-}
+import { TemporaryModule } from "./scripts.types";
 /**
  * 创建临时ESM模块
  */

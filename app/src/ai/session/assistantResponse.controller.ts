@@ -15,8 +15,8 @@ import { executeSyncToolCall, executeAsyncToolCallFn, ToolCallExecutorConfig } f
  */
 export class AssistantMessageController extends SafeEventEmitter<typeof assistantResponseEventDefines> {
     private state: AssistantResponseState;
-    private waitToolCallCallback: ToolCallExecutionCallback = async () => { };
-    private asyncToolCallCallback: ToolCallExecutionCallback = async () => { };
+    private waitToolCallCallback: ToolCallExecutionCallback;
+    private asyncToolCallCallback: ToolCallExecutionCallback;
     private abortFunction: (() => void) | null = null;
     private startTime: number = 0;
     private requestController: AIRequestController | null = null;
@@ -25,6 +25,8 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
 
     constructor(initialState?: Partial<AssistantResponseState>) {
         super(assistantResponseEventDefines);
+        this.waitToolCallCallback = async () => { };
+        this.asyncToolCallCallback = async () => { };
         this.state = {
             responseContentStr: "",
             isStreaming: false,
@@ -161,24 +163,12 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
         this.asyncToolCallCallback = callback;
     }
 
-    private getToolCallExecutorConfig(): ToolCallExecutorConfig {
-        return {
-            getState: () => this.state,
-            emitToolCallEvent: (toolCode, result, isAsync) => {
-                this.emit("toolCallExecuted", { toolCode, result, isAsync, timestamp: Date.now() });
-            },
-            startAIRequest: (messages) => this.startAIRequest(messages),
-            pause: () => this.pause(),
-            autoResumeIfNeeded: () => this.autoResumeIfNeeded()
-        };
-    }
-
     async executeWaitToolCall(toolCode: string): Promise<void> {
-        await executeSyncToolCall(toolCode, this.getToolCallExecutorConfig(), this.syncToolLimitNotified);
+        await executeSyncToolCall(toolCode, buildToolCallExecutorConfig(this), this.syncToolLimitNotified);
     }
 
     async executeAsyncToolCall(toolCode: string): Promise<void> {
-        await executeAsyncToolCallFn(toolCode, this.getToolCallExecutorConfig(), this.asyncToolLimitNotified);
+        await executeAsyncToolCallFn(toolCode, buildToolCallExecutorConfig(this), this.asyncToolLimitNotified);
     }
 
     // DOM内容处理
@@ -194,51 +184,10 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
 
     // 请求管理功能
 
-    /** 初始化请求控制器 */
-    private initializeRequestController(): void {
-        if (this.requestController) {
-            this.requestController.destroy();
-        }
-
-        this.requestController = createAIRequestController(
-            {
-                onStart: () => this.startStreaming(),
-                onMessage: (dataStr: string) => {
-                    const result = handleOpenAILikeStreamResponse(dataStr);
-                    if (result.error) {
-                        this.emit("responseAborted", {
-                            content: this.state.responseContentStr,
-                            reason: result.error.message || String(result.error),
-                            timestamp: Date.now()
-                        });
-                        return;
-                    }
-                    if (result.content) {
-                        this.appendResponseContent(result.content);
-                    }
-                    if (result.isFinished) {
-                        this.setDone();
-                    }
-                },
-                onComplete: () => this.setDone(),
-                onError: (error: Error) => {
-                    this.emit("responseAborted", { content: this.state.responseContentStr, reason: error.message, timestamp: Date.now() });
-                },
-                onAbort: () => {
-                    this.stopStreaming();
-                    this.emit("responseAborted", { content: this.state.responseContentStr, reason: "请求被中止", timestamp: Date.now() });
-                },
-                onPause: () => this.pause(),
-                onResume: () => this.resume()
-            },
-            getAIConfigFromSiyuan
-        );
-    }
-
     /** 发起AI请求 */
     async startAIRequest(messages: Array<{ role: "user" | "assistant"; content: string; timestamp: number }>): Promise<void> {
         if (!this.requestController) {
-            this.initializeRequestController();
+            this.requestController = initializeRequestController(this, this.requestController);
         }
         if (this.requestController) {
             this.setAbortFunction(() => this.requestController?.cancelRequest());
@@ -304,4 +253,74 @@ export class AssistantMessageController extends SafeEventEmitter<typeof assistan
         this.state.asyncToolCallCount = 0;
         this.state.asyncToolResults = [];
     }
+}
+
+/**
+ * 辅助函数：构建工具调用执行器配置
+ */
+function buildToolCallExecutorConfig(controller: AssistantMessageController): ToolCallExecutorConfig {
+    return {
+        getState: () => controller.getState(),
+        emitToolCallEvent: (toolCode, result, isAsync) => {
+            controller.emit("toolCallExecuted", { toolCode, result, isAsync, timestamp: Date.now() });
+        },
+        startAIRequest: (messages) => controller.startAIRequest(messages),
+        pause: () => controller.pause(),
+        autoResumeIfNeeded: () => controller.autoResumeIfNeeded()
+    };
+}
+
+/**
+ * 辅助函数：初始化请求控制器
+ */
+function initializeRequestController(
+    controller: AssistantMessageController,
+    currentRequestController: AIRequestController | null
+): AIRequestController {
+    if (currentRequestController) {
+        currentRequestController.destroy();
+    }
+
+    return createAIRequestController(
+        {
+            onStart: () => controller.startStreaming(),
+            onMessage: (dataStr: string) => {
+                const result = handleOpenAILikeStreamResponse(dataStr);
+                const state = controller.getState();
+                if (result.error) {
+                    controller.emit("responseAborted", {
+                        content: state.responseContentStr,
+                        reason: result.error.message || String(result.error),
+                        timestamp: Date.now()
+                    });
+                    return;
+                }
+                if (result.content) {
+                    controller.appendResponseContent(result.content);
+                }
+                if (result.isFinished) {
+                    controller.setDone();
+                }
+            },
+            onComplete: () => controller.setDone(),
+            onError: (error: Error) => {
+                controller.emit("responseAborted", {
+                    content: controller.getState().responseContentStr,
+                    reason: error.message,
+                    timestamp: Date.now()
+                });
+            },
+            onAbort: () => {
+                controller.stopStreaming();
+                controller.emit("responseAborted", {
+                    content: controller.getState().responseContentStr,
+                    reason: "请求被中止",
+                    timestamp: Date.now()
+                });
+            },
+            onPause: () => controller.pause(),
+            onResume: () => controller.resume()
+        },
+        getAIConfigFromSiyuan
+    );
 }
