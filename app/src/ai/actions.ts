@@ -19,6 +19,19 @@ import { generateBuildingMenuHTML } from "./actions.generateBuildingMenuHTML";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 /**
+ * 生成单个AI菜单项的HTML
+ * @param item AI菜单项数据
+ * @param index 菜单项索引
+ * @returns 单个菜单项的HTML字符串
+ */
+const generateAIMenuItemHTML = (item: { name: string, memo: string }, index: number): string => {
+    return `<div data-action="${escapeAttr(item.memo || item.name)}" data-position="10west" data-index="${index}" class="b3-list-item b3-list-item--narrow ariaLabel" aria-label="${escapeAriaLabel(item.memo)}">
+    <span class="b3-list-item__text">${escapeHtml(item.name)}</span>
+    <span data-type="edit" class="b3-list-item__action"><svg><use xlink:href="#iconEdit"></use></svg></span>
+</div>`;
+};
+
+/**
  * 生成自定义AI菜单项的HTML
  * @returns 自定义菜单项的HTML字符串
  */
@@ -28,12 +41,10 @@ const generateCustomMenuItems = (storage: Record<string, unknown>): string => {
         throw new Error("传入的AI定义表不是有效的数组");
     }
     let customHTML = "";
-    localAIItems.forEach((item: { name: string, memo: string }, index: number) => {
-        customHTML += `<div data-action="${escapeAttr(item.memo || item.name)}" data-position="10west" data-index="${index}" class="b3-list-item b3-list-item--narrow ariaLabel" aria-label="${escapeAriaLabel(item.memo)}">
-    <span class="b3-list-item__text">${escapeHtml(item.name)}</span>
-    <span data-type="edit" class="b3-list-item__action"><svg><use xlink:href="#iconEdit"></use></svg></span>
-</div>`;
-    });
+    let index = 0;
+    for (const item of localAIItems) {
+        customHTML += generateAIMenuItemHTML(item, index++);
+    }
 
     // 添加AI聊天菜单项
     const aiChatHTML = `<div data-action="aiChat" class="b3-list-item b3-list-item--narrow ariaLabel" aria-label="AI聊天">
