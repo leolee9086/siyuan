@@ -1,0 +1,10 @@
+﻿node.exe : The compact formatter is no longer part of core ESLint. Insta
+ll it manually with `npm install -D eslint-formatter-compact`
+所在位置 行:1 字符: 1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo 
+...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (The compact for...matter-c 
+   ompact`:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
