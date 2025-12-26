@@ -11,7 +11,8 @@ export class PackagePermissionManager {
      * @returns 是否已缓存及许可结果，未缓存返回null
      */
     getCachedPermission(packageName: string): boolean | null {
-        return this.cache.has(packageName) ? this.cache.get(packageName)! : null;
+        const result = this.cache.get(packageName);
+        return result !== undefined ? result : null;
     }
 
     /**
@@ -39,17 +40,18 @@ export class PackagePermissionManager {
         const cached: string[] = [];
         const uncached: string[] = [];
 
-        packages.forEach(pkg => {
+        for (const pkg of packages) {
             const permission = this.getCachedPermission(pkg);
+            // 如果用户之前拒绝过这个包，直接抛出错误
+            if (permission === false) {
+                throw new Error(`用户之前已拒绝导入包: ${pkg}`);
+            }
             if (permission === true) {
                 cached.push(pkg);
-            } else if (permission === false) {
-                // 如果用户之前拒绝过这个包，直接抛出错误
-                throw new Error(`用户之前已拒绝导入包: ${pkg}`);
-            } else {
-                uncached.push(pkg);
+                continue;
             }
-        });
+            uncached.push(pkg);
+        }
 
         return { cached, uncached };
     }
@@ -60,8 +62,8 @@ export class PackagePermissionManager {
      * @param allowed 用户是否允许
      */
     batchCachePermissions(packages: string[], allowed: boolean): void {
-        packages.forEach(pkg => {
+        for (const pkg of packages) {
             this.cachePermission(pkg, allowed);
-        });
+        }
     }
 }
