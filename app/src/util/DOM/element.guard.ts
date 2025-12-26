@@ -1,0 +1,8 @@
+/**
+ * DOM 元素类型守卫
+ */
+
+/** 类型守卫：判断元素是否为 HTMLDivElement */
+export const isHTMLDivElement = (el: Element): el is HTMLDivElement => {
+    return el instanceof HTMLDivElement;
+};

@@ -134,6 +134,17 @@ declare module "blueimp-md5"
 
 
 
+
+interface IEchartsInstance {
+    setOption(option: any): void;
+    getZr(): any;
+    on(name: string, event: (e: any) => void): any;
+    containPixel(name: string, position: number[]): any;
+    resize(): void;
+    clear(): void;
+    getOption(): { series: { type: string }[] };
+}
+
 interface CSSStyleDeclarationElectron extends CSSStyleDeclaration {
     WebkitAppRegion: string;
 }
@@ -145,19 +156,9 @@ interface Window {
     echarts: {
         init(element: Element, theme?: string, options?: {
             width: number
-        }): {
-            setOption(option: any): void;
-            getZr(): any;
-            on(name: string, event: (e: any) => void): any;
-            containPixel(name: string, position: number[]): any;
-            resize(): void;
-        };
+        }): IEchartsInstance;
         dispose(element: Element): void;
-        getInstanceById(id: string): {
-            resize: () => void
-            clear: () => void
-            getOption: () => { series: { type: string }[] }
-        };
+        getInstanceById(id: string): IEchartsInstance;
     };
     ABCJS: {
         renderAbc(element: Element, text: string, options: {
