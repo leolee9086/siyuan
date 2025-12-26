@@ -82,11 +82,11 @@ export const getContenteditableElement = (element: Element): Element => {
     if (!element) {
         return element;
     }
-    let blockElement = element;
+    let blockElement: Element | null = element;
     if (!blockElement.getAttribute("data-node-id")) {
         blockElement = element.querySelector("[data-node-id]");
         if (!blockElement) {
-            blockElement = hasClosestBlock(blockElement) as Element;
+            blockElement = hasClosestBlock(element) as Element;
         }
     }
     if (!blockElement) {
@@ -98,7 +98,7 @@ export const getContenteditableElement = (element: Element): Element => {
     } else if ("NodeTable" === type) {
         return blockElement.querySelector("table");
     } else if ("NodeCodeBlock" === type) {
-        return blockElement.querySelector(".hljs").lastElementChild;
+        return blockElement.querySelector(".hljs")?.lastElementChild;
     } else if (["NodeBlockQueryEmbed", "NodeMathBlock", "NodeHTMLBlock"].includes(type)) {
         return element;
     } else if (element.getAttribute("data-node-id")) {
