@@ -57,23 +57,22 @@ export const getNextBlock = (element: Element) => {
             return parentElement.nextElementSibling as HTMLElement;
         }
         const pElement = hasClosestBlock(parentElement.parentElement);
-        if (pElement) {
-            parentElement = pElement;
-        } else {
+        if (!pElement) {
             return false;
         }
+        parentElement = pElement;
     }
     return false;
 };
 
 export const getNoContainerElement = (element: Element) => {
-    let childElement = element;
+    let childElement: Element | null = element;
     while (childElement) {
         if (childElement.classList.contains("list") || childElement.classList.contains("li") || childElement.classList.contains("bq") || childElement.classList.contains("sb")) {
             childElement = childElement.querySelector("[data-node-id]");
-        } else {
-            return childElement;
+            continue;
         }
+        return childElement;
     }
     return false;
 };
