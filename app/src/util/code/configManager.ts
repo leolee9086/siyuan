@@ -1,6 +1,21 @@
 import type { ConfigSummary, ModuleRedirectConfig } from "./executor.types";
 
 /**
+ * 判断是否为裸模块
+ * 裸模块是指不以 './', '../', '/', 'http://', 'https://' 开头的模块
+ */
+export function isBareModule(importSource: string): boolean {
+  // 移除查询参数和哈希
+  const cleanSource = (importSource.split("?")[0] ?? "").split("#")[0] ?? "";
+
+  return !cleanSource.startsWith("./") &&
+    !cleanSource.startsWith("../") &&
+    !cleanSource.startsWith("/") &&
+    !cleanSource.startsWith("http://") &&
+    !cleanSource.startsWith("https://");
+}
+
+/**
  * 配置管理器类
  * 负责管理安全模块创建器的配置，包括允许的包、模式等
  */
@@ -183,20 +198,7 @@ export class ConfigManager {
     return this.moduleRedirectConfig.packageRedirects[packageName] || null;
   }
 
-  /**
-   * 判断是否为裸模块
-   */
-  isBareModule(importSource: string): boolean {
-    // 移除查询参数和哈希
-    const cleanSource = importSource.split("?")[0].split("#")[0];
-    
-    // 裸模块是指不以 './', '../', '/', 'http://', 'https://' 开头的模块
-    return !cleanSource.startsWith("./") &&
-           !cleanSource.startsWith("../") &&
-           !cleanSource.startsWith("/") &&
-           !cleanSource.startsWith("http://") &&
-           !cleanSource.startsWith("https://");
-  }
+
 
   /**
    * 生成重定向后的模块URL
@@ -212,7 +214,7 @@ export class ConfigManager {
     }
 
     // 如果只重定向裸模块，检查是否为裸模块
-    if (this.moduleRedirectConfig.bareModulesOnly && !this.isBareModule(packageName)) {
+    if (this.moduleRedirectConfig.bareModulesOnly && !isBareModule(packageName)) {
       return null;
     }
 
@@ -242,12 +244,12 @@ export class ConfigManager {
     if (this.allowedPackages.has(packageName)) {
       return true;
     }
-    
+
     // 检查模式匹配
     if (this.packagePatterns.some(pattern => packageName.match(pattern))) {
       return true;
     }
-    
+
     // 自动允许特定作用域的包
     if (this.autoAllowScoped && packageName.startsWith("@company/")) {
       return true;
@@ -266,7 +268,7 @@ export class ConfigManager {
         return true;
       }
     }
-    
+
     return false;
   }
 
