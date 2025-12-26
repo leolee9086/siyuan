@@ -84,10 +84,7 @@ export const getContenteditableElement = (element: Element): Element => {
     }
     let blockElement: Element | null = element;
     if (!blockElement.getAttribute("data-node-id")) {
-        blockElement = element.querySelector("[data-node-id]");
-        if (!blockElement) {
-            blockElement = hasClosestBlock(element) as Element;
-        }
+        blockElement = element.querySelector("[data-node-id]") || (hasClosestBlock(element) as Element);
     }
     if (!blockElement) {
         return element;
