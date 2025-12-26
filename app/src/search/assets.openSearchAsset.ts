@@ -80,7 +80,7 @@ const 初始化搜索输入框 = (element: HTMLElement, localSearch: ISearchAsse
         assetInputEvent(element, localSearch);
     });
     searchInputElement.addEventListener("input", (event: Event) => {
-        if ((event as InputEvent).isComposing) {
+        if ("isComposing" in event && event.isComposing) {
             return;
         }
         assetInputEvent(element, localSearch);

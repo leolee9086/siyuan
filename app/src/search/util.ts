@@ -48,7 +48,7 @@ import { getDefaultType } from "./getDefault";
 import { isSupportCSSHL, searchMarkRender } from "../protyle/render/searchMarkRender";
 import { saveKeyList, toggleAssetHistory, toggleReplaceHistory, toggleSearchHistory } from "./toggleHistory";
 import { highlightById } from "../util/highlightById";
-import { scrollToCurrent } from "./utils.scrollToCurrent";
+import { scrollToCurrent } from "./utils/utils.scrollToCurrent";
 import { getSelectionOffset } from "../protyle/util/selection";
 import { electronUndo } from "../protyle/undo";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";

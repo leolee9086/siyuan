@@ -9,29 +9,33 @@ export const createSortMenuItems = (localData: ISearchAssetOption, cb: () => voi
     label: siyuanI18n.sortByRankAsc,
     current: localData.sort === 1,
     click() {
- localData.sort = 1; cb(); 
-}
+        localData.sort = 1;
+        cb();
+    }
 }, {
     iconHTML: "",
     label: siyuanI18n.sortByRankDesc,
     current: localData.sort === 0,
     click() {
- localData.sort = 0; cb(); 
-}
+        localData.sort = 0;
+        cb();
+    }
 }, {
     iconHTML: "",
     label: siyuanI18n.modifiedASC,
     current: localData.sort === 3,
     click() {
- localData.sort = 3; cb(); 
-}
+        localData.sort = 3;
+        cb();
+    }
 }, {
     iconHTML: "",
     label: siyuanI18n.modifiedDESC,
     current: localData.sort === 2,
     click() {
- localData.sort = 2; cb(); 
-}
+        localData.sort = 2;
+        cb();
+    }
 }];
 
 /** 创建布局子菜单 */
@@ -42,7 +46,10 @@ export const createLayoutSubmenu = (element: Element, localData: ISearchAssetOpt
     click() {
         const searchLayoutElement = element.querySelector(".search__layout");
         searchLayoutElement?.classList.remove("search__layout--row");
-        const previewElement = element.querySelector("#searchAssetPreview") as HTMLElement;
+        const previewElement = element.querySelector("#searchAssetPreview");
+        if (!(previewElement instanceof HTMLElement)) {
+            return;
+        }
         previewElement.style.width = "";
         localData.layout = 0;
         if (!localData.row) {
@@ -59,7 +66,10 @@ export const createLayoutSubmenu = (element: Element, localData: ISearchAssetOpt
     label: siyuanI18n.leftRightLayout,
     current: localData.layout === 1,
     click() {
-        const previewElement = element.querySelector("#searchAssetPreview") as HTMLElement;
+        const previewElement = element.querySelector("#searchAssetPreview");
+        if (!(previewElement instanceof HTMLElement)) {
+            return;
+        }
         const searchLayoutElement = element.querySelector(".search__layout");
         searchLayoutElement?.classList.add("search__layout--row");
         previewElement.style.height = "";
