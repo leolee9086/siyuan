@@ -6,7 +6,7 @@ import { CustomLists } from "./CustomLists";
 import { updateListTarget } from "./customLists.util";
 
 // @ts-ignore
-import { genSearch } from "../../../search/util";
+import { genSearch } from "../../../search/utils/genSearch";
 import { Dialog } from "../../../dialog";
 import { App } from "../../../index";
 // @ts-ignore

@@ -1,7 +1,7 @@
 import { Model } from "../layout/Model";
 import { Tab } from "../layout/Tab";
 import { Protyle } from "../protyle";
-import { genSearch } from "./util";
+import { genSearch } from "./utils/genSearch";
 import { setPanelFocus } from "../layout/utils/setPanelFocus";
 import { App } from "../index";
 import { clearOBG } from "../layout/dock/util";

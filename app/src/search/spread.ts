@@ -1,10 +1,11 @@
-import {getNotebookName, pathPosix} from "../util/pathName";
-import {Constants} from "../constants";
-import {Dialog} from "../dialog";
-import {fetchPost, fetchSyncPost} from "../util/fetch";
-import {focusByRange} from "../protyle/util/selection";
-import {genSearch, updateConfig} from "./util";
-import {App} from "../index";
+import { getNotebookName, pathPosix } from "../util/pathName";
+import { Constants } from "../constants";
+import { Dialog } from "../dialog";
+import { fetchPost, fetchSyncPost } from "../util/fetch";
+import { focusByRange } from "../protyle/util/selection";
+import { updateConfig } from "./util";
+import { genSearch } from "./utils/genSearch";
+import { App } from "../index";
 
 export const openSearch = async (options: {
     app: App,
@@ -72,7 +73,7 @@ export const openSearch = async (options: {
             } else if (options.hotkey === Constants.DIALOG_SEARCH) {
                 cloneData.hasReplace = false;
                 const toPath = item.editors.edit.protyle.path;
-                fetchPost("/api/filetree/getHPathsByPaths", {paths: [toPath]}, (response) => {
+                fetchPost("/api/filetree/getHPathsByPaths", { paths: [toPath] }, (response) => {
                     cloneData.idPath = [pathPosix().join(item.editors.edit.protyle.notebookId, toPath)];
                     cloneData.hPath = response.data[0];
                     item.data.idPath = cloneData.idPath;
@@ -114,7 +115,7 @@ export const openSearch = async (options: {
     });
     dialog.element.setAttribute("data-key", options.hotkey);
     dialog.editors = genSearch(options.app, config, dialog.element.querySelector(".b3-dialog__body"), () => {
-        dialog.destroy({focus: "false"});
+        dialog.destroy({ focus: "false" });
     });
     dialog.data = config;
 };
