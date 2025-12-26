@@ -92,13 +92,17 @@ export const getContenteditableElement = (element: Element): Element => {
     const type = blockElement.getAttribute("data-type");
     if (["NodeParagraph", "NodeHeading"].includes(type)) {
         return blockElement.firstElementChild;
-    } else if ("NodeTable" === type) {
+    }
+    if ("NodeTable" === type) {
         return blockElement.querySelector("table");
-    } else if ("NodeCodeBlock" === type) {
+    }
+    if ("NodeCodeBlock" === type) {
         return blockElement.querySelector(".hljs")?.lastElementChild;
-    } else if (["NodeBlockQueryEmbed", "NodeMathBlock", "NodeHTMLBlock"].includes(type)) {
+    }
+    if (["NodeBlockQueryEmbed", "NodeMathBlock", "NodeHTMLBlock"].includes(type)) {
         return element;
-    } else if (element.getAttribute("data-node-id")) {
+    }
+    if (element.getAttribute("data-node-id")) {
         return getContenteditableElement(element.querySelector("[data-node-id]"));
     }
     return element;
