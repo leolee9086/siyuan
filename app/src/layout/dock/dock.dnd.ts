@@ -1,5 +1,5 @@
 import { hasClosestByClassName } from "../../protyle/util/hasClosest";
-import { isHTMLElement } from "./dock.guard";
+import { isHTMLOrSVGElement } from "./dock.guard";
 import type { Dock } from "./index";
 
 class DockDragHandler {
@@ -46,8 +46,8 @@ class DockDragHandler {
     private createGhost() {
         this.item.style.opacity = "0.38";
         const ghostElement = this.item.cloneNode(true);
-        if (isHTMLElement(ghostElement)) {
-            this.ghostElement = ghostElement;
+        if (isHTMLOrSVGElement(ghostElement)) {
+            this.ghostElement = ghostElement as HTMLElement;
             this.ghostElement.setAttribute("data-ghost-type", "dock");
             this.dock.element.append(this.ghostElement);
             this.ghostElement.setAttribute("data-original", JSON.stringify({
@@ -229,7 +229,7 @@ class DockDragHandler {
 export const initDockDnD = (dock: Dock) => {
     // @内联回调
     dock.element.addEventListener("mousedown", (event: MouseEvent) => {
-        if (!(event.target instanceof HTMLElement)) {
+        if (!isHTMLOrSVGElement(event.target)) {
             return;
         }
         const item = hasClosestByClassName(event.target, "dock__item");

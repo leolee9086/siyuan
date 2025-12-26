@@ -195,28 +195,31 @@ function createClickListener(
 
         while (target && target !== ui.element) {
             // 只处理 HTMLElement，忽略 purely SVG 节点（如 path, use 等），但在 DOM 树中向上查找直到找到 HTMLElement
-            if (target instanceof HTMLElement) {
-                const type = target.getAttribute("data-type");
-                const targetId = target.id;
-                const ctx: IClickContext = {
-                    target, type, targetId, ui, state, callbacks, event,
-                    clickTimeout: listenerState.clickTimeout,
-                    lastClickTime: listenerState.lastClickTime,
-                };
+            if (!(target instanceof HTMLElement)) {
+                target = target.parentElement;
+                continue;
+            }
 
-                // 历史按钮需要特殊处理（提前返回）
-                if (historyHandlers[targetId]) {
-                    historyHandlers[targetId](ctx);
-                    event.stopPropagation();
-                    event.preventDefault();
-                    return;
-                }
+            const type = target.getAttribute("data-type");
+            const targetId = target.id;
+            const ctx: IClickContext = {
+                target, type, targetId, ui, state, callbacks, event,
+                clickTimeout: listenerState.clickTimeout,
+                lastClickTime: listenerState.lastClickTime,
+            };
 
-                if (dispatchClick(ctx, state, listenerState)) {
-                    event.stopPropagation();
-                    event.preventDefault();
-                    break;
-                }
+            // 历史按钮需要特殊处理（提前返回）
+            if (historyHandlers[targetId]) {
+                historyHandlers[targetId](ctx);
+                event.stopPropagation();
+                event.preventDefault();
+                return;
+            }
+
+            if (dispatchClick(ctx, state, listenerState)) {
+                event.stopPropagation();
+                event.preventDefault();
+                break;
             }
             target = target.parentElement;
         }

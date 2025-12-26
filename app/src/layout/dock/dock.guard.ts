@@ -94,8 +94,8 @@ export function isBlockTreeArray(data: unknown): data is IBlockTree[] {
 }
 
 /**
- * 判断是否为 HTMLElement
+ * 判断是否为 HTMLElement 或 SVGElement
  */
-export function isHTMLElement(element: unknown): element is HTMLElement {
-    return element instanceof HTMLElement;
+export function isHTMLOrSVGElement(element: unknown): element is HTMLElement | SVGElement {
+    return element instanceof HTMLElement || element instanceof SVGElement;
 }
