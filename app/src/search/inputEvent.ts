@@ -8,7 +8,7 @@ import { fetchPost } from "../util/fetch";
 import { Protyle } from "../protyle";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { 语义搜索, 获取语义搜索配置 } from "../layout/dock/embeddingDock/semanticSearch.api";
-import { onSearch } from "./util";
+import { onSearch } from "./utils/onSearch";
 
 /**
  * 搜索输入事件处理函数

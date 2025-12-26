@@ -74,7 +74,10 @@ const 设置预览元素布局 = (previewElement: HTMLElement, localSearch: ISea
 
 /** 初始化搜索输入框的事件监听 */
 const 初始化搜索输入框 = (element: HTMLElement, localSearch: ISearchAssetOption): void => {
-    const searchInputElement = element.querySelector("#searchAssetInput") as HTMLInputElement;
+    const searchInputElement = element.querySelector("#searchAssetInput");
+    if (!(searchInputElement instanceof HTMLInputElement)) {
+        return;
+    }
     searchInputElement.select();
     searchInputElement.addEventListener("compositionend", () => {
         assetInputEvent(element, localSearch);
@@ -108,7 +111,10 @@ const 处理拖拽mousedown = (
     localSearch: ISearchAssetOption
 ): void => {
     const documentSelf = document;
-    const previousElement = dragElement.previousElementSibling as HTMLElement;
+    const previousElement = dragElement.previousElementSibling;
+    if (!(previousElement instanceof HTMLElement)) {
+        return;
+    }
     const direction = localSearch.layout === 1 ? "lr" : "tb";
     const x = event[direction === "lr" ? "clientX" : "clientY"];
     const previousSize = direction === "lr" ? previousElement.offsetWidth : previousElement.offsetHeight;
@@ -160,13 +166,24 @@ const 初始化拖拽功能 = (
     previewElement: HTMLElement,
     localSearch: ISearchAssetOption
 ): void => {
-    const dragElement = element.querySelector(".search__drag") as HTMLElement;
+    const dragElement = element.querySelector(".search__drag");
+    if (!(dragElement instanceof HTMLElement)) {
+        return;
+    }
     dragElement.addEventListener("mousedown", (event: MouseEvent) => {
         处理拖拽mousedown(event, element, previewElement, dragElement, localSearch);
     });
     dragElement.addEventListener("dblclick", () => {
         处理拖拽dblclick(previewElement, localSearch);
     });
+};
+
+/** 选中搜索输入框 */
+const 选中搜索输入框 = (element: HTMLElement): void => {
+    const inputEl = element.querySelector("#searchAssetInput");
+    if (inputEl instanceof HTMLInputElement) {
+        inputEl.select();
+    }
 };
 
 /** 打开搜索资源面板 */
@@ -176,10 +193,10 @@ export const 打开搜索资源面板 = (element: HTMLElement, isStick: boolean)
     element.previousElementSibling?.classList.add("fn__none");
     element.classList.remove("fn__none");
     if (element.innerHTML) {
-        (element.querySelector("#searchAssetInput") as HTMLInputElement).select();
+        选中搜索输入框(element);
         return;
     }
-    const localSearch = getSiyuanStorage()[Constants.LOCAL_SEARCHASSET] as ISearchAssetOption;
+    const localSearch: ISearchAssetOption = getSiyuanStorage()[Constants.LOCAL_SEARCHASSET];
     const parent = element.parentElement;
     const loadingElement = parent?.querySelector(".fn__loading--top");
     loadingElement?.classList.remove("fn__none");
@@ -192,7 +209,10 @@ export const 打开搜索资源面板 = (element: HTMLElement, isStick: boolean)
     if (searchAssetListElement && searchAssetListElement.innerHTML !== "") {
         return;
     }
-    const previewElement = element.querySelector("#searchAssetPreview") as HTMLElement;
+    const previewElement = element.querySelector("#searchAssetPreview");
+    if (!(previewElement instanceof HTMLElement)) {
+        return;
+    }
     设置预览元素布局(previewElement, localSearch);
     初始化搜索输入框(element, localSearch);
     初始化拖拽功能(element, previewElement, localSearch);
