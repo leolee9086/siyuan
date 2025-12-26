@@ -139,3 +139,18 @@ export interface ILayoutConfig {
     clientSizeKey: "clientWidth" | "clientHeight";
     storageKey: string;
 }
+
+/** 列表项点击上下文 */
+export interface IListItemClickContext {
+    app: App;
+    element: HTMLElement;
+    edit: Protyle;
+    unRefEdit: Protyle;
+    config: Config.IUILayoutTabSearchConfig;
+    searchInputElement: HTMLInputElement;
+    searchPanelElement: Element;
+    unRefPanelElement: HTMLElement;
+    closeCB: (() => void) | undefined;
+    clickTimeout: number;
+    lastClickTime: number;
+}

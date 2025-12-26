@@ -4,27 +4,13 @@
 
 import * as path from "path";
 import { Constants } from "../../../../constants";
-import { Protyle } from "../../../../protyle";
 import { isIPad, isNotCtrl } from "../../../../protyle/util/compatibility";
 import { useShell } from "../../../../util/pathName";
 import { newFileByName } from "../../../../util/newFile";
 import { renderPreview, renderNextAssetMark } from "../../../assets";
 import { getArticle, openSearchEditor, renderNextSearchMark } from "../../../util";
-import type { App } from "../../../..";
-
-interface IListItemClickContext {
-    app: App;
-    element: HTMLElement;
-    edit: Protyle;
-    unRefEdit: Protyle;
-    config: Config.IUILayoutTabSearchConfig;
-    searchInputElement: HTMLInputElement;
-    searchPanelElement: Element;
-    unRefPanelElement: HTMLElement;
-    closeCB: (() => void) | undefined;
-    clickTimeout: number;
-    lastClickTime: number;
-}
+import { isHTMLInputElement } from "../search.guard";
+import type { IListItemClickContext } from "../SearchContext.types";
 
 /**
  * 处理列表项点击
@@ -35,9 +21,10 @@ export function handleListItemClick(
     ctx: IListItemClickContext
 ): { clickTimeout: number; lastClickTime: number } {
     const type = target.getAttribute("data-type");
-    const searchAssetInputElement = ctx.element.querySelector("#searchAssetInput") as HTMLInputElement;
+    const element = ctx.element.querySelector("#searchAssetInput");
+    const searchAssetInputElement = isHTMLInputElement(element) ? element : null;
 
-    let { clickTimeout, lastClickTime } = ctx;
+    const { clickTimeout, lastClickTime } = ctx;
 
     // 新建文件
     if (type === "search-new") {
@@ -49,31 +36,7 @@ export function handleListItemClick(
 
     // 搜索项点击
     if (type === "search-item") {
-        const searchType = target.dataset.id ? "asset" : (ctx.unRefPanelElement.classList.contains("fn__none") ? "doc" : "unRef");
-
-        let isClick = event.detail === 1;
-        let isDblClick = event.detail === 2;
-
-        /// #if BROWSER
-        if (isIPad()) {
-            const newDate = new Date().getTime();
-            isClick = newDate - lastClickTime > Constants.TIMEOUT_DBLCLICK;
-            isDblClick = !isClick;
-            lastClickTime = newDate;
-        }
-        /// #endif
-
-        if (isClick) {
-            clickTimeout = window.setTimeout(() => {
-                handleSingleClick(target, searchType, ctx, searchAssetInputElement);
-            }, Constants.TIMEOUT_DBLCLICK);
-        } else if (isDblClick && isNotCtrl(event)) {
-            clearTimeout(clickTimeout);
-            handleDoubleClick(target, searchType, ctx);
-        }
-
-        window.siyuan.menus.menu.remove();
-        return { clickTimeout, lastClickTime };
+        return processSearchItemClick(target, event, ctx, searchAssetInputElement, clickTimeout, lastClickTime);
     }
 
     // 切换子项展开/折叠
@@ -86,34 +49,98 @@ export function handleListItemClick(
 }
 
 /**
+ * 处理搜索项点击
+ */
+function processSearchItemClick(
+    target: HTMLElement,
+    event: MouseEvent,
+    ctx: IListItemClickContext,
+    searchAssetInputElement: HTMLInputElement | null,
+    clickTimeout: number,
+    lastClickTime: number
+): { clickTimeout: number; lastClickTime: number } {
+    const searchType = target.dataset.id ? "asset" : (ctx.unRefPanelElement.classList.contains("fn__none") ? "doc" : "unRef");
+
+    let isClick = event.detail === 1;
+    let isDblClick = event.detail === 2;
+
+    /// #if BROWSER
+    if (isIPad()) {
+        const newDate = new Date().getTime();
+        isClick = newDate - lastClickTime > Constants.TIMEOUT_DBLCLICK;
+        isDblClick = !isClick;
+        lastClickTime = newDate;
+    }
+    /// #endif
+
+    if (isClick) {
+        const altKey = event.altKey;
+        clickTimeout = window.setTimeout(() => {
+            handleSingleClick(target, searchType, ctx, searchAssetInputElement, altKey);
+        }, Constants.TIMEOUT_DBLCLICK);
+    }
+
+    if (isDblClick && isNotCtrl(event)) {
+        clearTimeout(clickTimeout);
+        handleDoubleClick(target, searchType, ctx);
+    }
+
+    window.siyuan.menus?.menu?.remove();
+    return { clickTimeout, lastClickTime };
+}
+
+/**
  * 处理单击
  */
 function handleSingleClick(
     target: HTMLElement,
     searchType: string,
     ctx: IListItemClickContext,
-    searchAssetInputElement: HTMLInputElement
+    searchAssetInputElement: HTMLInputElement | null,
+    altKey: boolean
 ): void {
     if (searchType === "asset") {
-        if (!target.classList.contains("b3-list-item--focus")) {
-            ctx.element.querySelector("#searchAssets .b3-list-item--focus")?.classList.remove("b3-list-item--focus");
-            target.classList.add("b3-list-item--focus");
-            renderPreview(
-                ctx.element.querySelector("#searchAssetPreview"),
-                target.dataset.id || "",
-                searchAssetInputElement?.value || "",
-                window.siyuan.storage[Constants.LOCAL_SEARCHASSET].method
-            );
-            searchAssetInputElement?.focus();
-        } else {
-            renderNextAssetMark(ctx.element.querySelector("#searchAssetPreview"));
-            searchAssetInputElement?.focus();
-        }
+        processAssetClick(target, ctx, searchAssetInputElement);
         return;
     }
 
-    // 文档或无效引用
-    const altKey = window.event && (window.event as KeyboardEvent).altKey;
+    processDocOrUnRefClick(target, searchType, ctx, altKey);
+}
+
+/**
+ * 处理资源点击
+ */
+function processAssetClick(
+    target: HTMLElement,
+    ctx: IListItemClickContext,
+    searchAssetInputElement: HTMLInputElement | null
+): void {
+    if (!target.classList.contains("b3-list-item--focus")) {
+        ctx.element.querySelector("#searchAssets .b3-list-item--focus")?.classList.remove("b3-list-item--focus");
+        target.classList.add("b3-list-item--focus");
+        renderPreview(
+            ctx.element.querySelector("#searchAssetPreview"),
+            target.dataset.id || "",
+            searchAssetInputElement?.value || "",
+            window.siyuan.storage[Constants.LOCAL_SEARCHASSET].method
+        );
+        searchAssetInputElement?.focus();
+        return;
+    }
+
+    renderNextAssetMark(ctx.element.querySelector("#searchAssetPreview"));
+    searchAssetInputElement?.focus();
+}
+
+/**
+ * 处理文档或无效引用点击
+ */
+function processDocOrUnRefClick(
+    target: HTMLElement,
+    searchType: string,
+    ctx: IListItemClickContext,
+    altKey: boolean
+): void {
     if (altKey) {
         openSearchEditor({
             rootId: target.getAttribute("data-root-id") || "",
@@ -136,7 +163,10 @@ function handleSingleClick(
             value: searchType === "doc" ? ctx.searchInputElement.value : null,
         });
         ctx.searchInputElement.focus();
-    } else if (searchType === "doc") {
+        return;
+    }
+
+    if (searchType === "doc") {
         renderNextSearchMark({
             edit: ctx.edit,
             id: target.getAttribute("data-node-id") || "",

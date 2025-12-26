@@ -6,22 +6,26 @@
  * 处理展开所有点击
  */
 export function handleSearchExpand(searchPanelElement: Element): void {
-    Array.from(searchPanelElement.children).forEach(item => {
+    for (const item of Array.from(searchPanelElement.children)) {
         if (item.classList.contains("b3-list-item")) {
-            item.querySelector(".b3-list-item__arrow")?.classList.add("b3-list-item__arrow--open");
-            item.nextElementSibling?.classList.remove("fn__none");
+            const arrowElement = item.querySelector(".b3-list-item__arrow");
+            arrowElement?.classList.add("b3-list-item__arrow--open");
+            const nextElement = item.nextElementSibling;
+            nextElement?.classList.remove("fn__none");
         }
-    });
+    }
 }
 
 /**
  * 处理折叠所有点击
  */
 export function handleSearchCollapse(searchPanelElement: Element): void {
-    Array.from(searchPanelElement.children).forEach(item => {
+    for (const item of Array.from(searchPanelElement.children)) {
         if (item.classList.contains("b3-list-item")) {
-            item.querySelector(".b3-list-item__arrow")?.classList.remove("b3-list-item__arrow--open");
-            item.nextElementSibling?.classList.add("fn__none");
+            const arrowElement = item.querySelector(".b3-list-item__arrow");
+            arrowElement?.classList.remove("b3-list-item__arrow--open");
+            const nextElement = item.nextElementSibling;
+            nextElement?.classList.add("fn__none");
         }
-    });
+    }
 }

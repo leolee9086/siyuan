@@ -25,14 +25,14 @@ import {
     handleUnRefPrevious,
     handleUnRefNext,
 } from "./handlers/handleUnRefClick";
-import { assetInputEvent, assetFilterMenu } from "../../assets";
+import { assetInputEvent, assetFilterMenu, assetMethodMenu } from "../../assets";
 import { openSearchAsset } from "../../assets.openSearchAsset";
 import {
     handleSearchAssetClose,
     handleAssetMore,
     handleAssetPrevious,
     handleAssetNext,
-    handleAssetSyntaxCheck,
+    onAssetMethodChange,
 } from "./handlers/handleAssetClick";
 import { toggleSearchHistory, toggleAssetHistory } from "../../toggleHistory";
 import {
@@ -43,6 +43,7 @@ import {
     handleReplaceHistoryBtn,
 } from "./handlers/handleSearchControlClick";
 import { handleListItemClick, handleListToggleClick } from "./handlers/handleListItemClick";
+import { isHTMLOrSVGElement } from "./search.guard";
 import type {
     IClickHandlerUIElements,
     IClickHandlerState,
@@ -73,7 +74,7 @@ const idHandlers: Record<string, (ctx: IClickContext) => void> = {
     searchAssetClose: (ctx) => handleSearchAssetClose(ctx.ui.assetsElement, ctx.ui.searchInputElement),
     assetMore: (ctx) => handleAssetMore(ctx.target, ctx.ui.assetsElement, ctx.state.localSearch),
     assetFilter: (ctx) => assetFilterMenu(ctx.ui.assetsElement),
-    assetSyntaxCheck: (ctx) => handleAssetSyntaxCheck(ctx.target, ctx.ui.element, ctx.ui.assetsElement, ctx.state.localSearch),
+    assetSyntaxCheck: (ctx) => assetMethodMenu(ctx.target, () => onAssetMethodChange(ctx.ui.element, ctx.ui.assetsElement, ctx.state.localSearch)),
     searchRefresh: (ctx) => handleSearchRefresh(ctx.ui.element, ctx.state.config, ctx.state.edit, ctx.callbacks.updateCB),
     searchOpen: (ctx) => handleSearchOpen(ctx.state.app, ctx.state.config, ctx.ui.searchInputElement, ctx.ui.replaceInputElement, ctx.callbacks.closeCB),
     searchFilter: (ctx) => handleSearchFilter(ctx.state.config, ctx.ui.element, ctx.state.edit, ctx.callbacks.updateCB),
@@ -187,32 +188,35 @@ function createClickListener(
 ): (event: MouseEvent) => void {
     return (event: MouseEvent) => {
         const eventTarget = event.target;
-        if (!(eventTarget instanceof HTMLElement)) {
+        if (!isHTMLOrSVGElement(eventTarget)) {
             return;
         }
-        let target: HTMLElement | null = eventTarget;
+        let target: Element | null = eventTarget;
 
         while (target && target !== ui.element) {
-            const type = target.getAttribute("data-type");
-            const targetId = target.id;
-            const ctx: IClickContext = {
-                target, type, targetId, ui, state, callbacks, event,
-                clickTimeout: listenerState.clickTimeout,
-                lastClickTime: listenerState.lastClickTime,
-            };
+            // 只处理 HTMLElement，忽略 purely SVG 节点（如 path, use 等），但在 DOM 树中向上查找直到找到 HTMLElement
+            if (target instanceof HTMLElement) {
+                const type = target.getAttribute("data-type");
+                const targetId = target.id;
+                const ctx: IClickContext = {
+                    target, type, targetId, ui, state, callbacks, event,
+                    clickTimeout: listenerState.clickTimeout,
+                    lastClickTime: listenerState.lastClickTime,
+                };
 
-            // 历史按钮需要特殊处理（提前返回）
-            if (historyHandlers[targetId]) {
-                historyHandlers[targetId](ctx);
-                event.stopPropagation();
-                event.preventDefault();
-                return;
-            }
+                // 历史按钮需要特殊处理（提前返回）
+                if (historyHandlers[targetId]) {
+                    historyHandlers[targetId](ctx);
+                    event.stopPropagation();
+                    event.preventDefault();
+                    return;
+                }
 
-            if (dispatchClick(ctx, state, listenerState)) {
-                event.stopPropagation();
-                event.preventDefault();
-                break;
+                if (dispatchClick(ctx, state, listenerState)) {
+                    event.stopPropagation();
+                    event.preventDefault();
+                    break;
+                }
             }
             target = target.parentElement;
         }

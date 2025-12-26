@@ -9,6 +9,7 @@ import type { App } from "../../..";
 import { getSiyuanStorage } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import type { IEditorInitResult, ILayoutData } from "./initSearchEditors.types";
 
+
 /**
  * 初始化搜索预览编辑器
  * 
@@ -25,7 +26,13 @@ export function initSearchEditors(
     const data: ILayoutData = getSiyuanStorage()[Constants.LOCAL_SEARCHKEYS];
 
     // 创建主搜索预览编辑器
-    const edit = new Protyle(app, element.querySelector("#searchPreview") as HTMLElement, {
+    const searchPreviewElement = element.querySelector("#searchPreview");
+    if (!(searchPreviewElement instanceof HTMLElement)) {
+        throw new Error("#searchPreview not found");
+    }
+
+    // 创建主搜索预览编辑器
+    const edit = new Protyle(app, searchPreviewElement, {
         blockId: "",
         render: {
             gutter: true,
@@ -35,8 +42,13 @@ export function initSearchEditors(
     });
     edit.resize();
 
+    const searchUnRefPreviewElement = element.querySelector("#searchUnRefPreview");
+    if (!(searchUnRefPreviewElement instanceof HTMLElement)) {
+        throw new Error("#searchUnRefPreview not found");
+    }
+
     // 创建无效引用预览编辑器
-    const unRefEdit = new Protyle(app, element.querySelector("#searchUnRefPreview") as HTMLElement, {
+    const unRefEdit = new Protyle(app, searchUnRefPreviewElement, {
         blockId: "",
         render: {
             gutter: true,

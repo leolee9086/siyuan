@@ -4,7 +4,8 @@
 
 import { setStorageVal } from "../../../../ai/imports";
 import { Constants } from "../../../../constants";
-import { assetInputEvent, assetMoreMenu, assetMethodMenu } from "../../../assets";
+import { assetInputEvent, assetMoreMenu } from "../../../assets";
+import { getSiyuanGlobalMenusMenu } from "../../../../util/siyuanEnvironments/getMenu.environment";
 import { genQueryHTML } from "../../../util";
 
 /**
@@ -14,7 +15,7 @@ export function handleSearchAssetClose(
     assetsElement: HTMLElement,
     searchInputElement: HTMLInputElement
 ): void {
-    window.siyuan.menus.menu.remove();
+    getSiyuanGlobalMenusMenu().remove();
     assetsElement.classList.add("fn__none");
     assetsElement.previousElementSibling?.classList.remove("fn__none");
     searchInputElement.select();
@@ -52,7 +53,7 @@ export function handleAssetPrevious(
     }
 
     const textContent = resultElement.textContent || "";
-    let currentPage = parseInt(textContent.split("/")[0]);
+    let currentPage = parseInt(textContent.split("/")[0] || "1");
 
     if (currentPage > 1) {
         currentPage--;
@@ -78,7 +79,7 @@ export function handleAssetNext(
     }
 
     const textContent = resultElement.textContent || "";
-    const currentPage = parseInt(textContent.split("/")[0]);
+    const currentPage = parseInt(textContent.split("/")[0] || "1");
     const totalPages = parseInt(textContent.split("/")[1] || "1");
 
     if (currentPage < totalPages) {
@@ -89,19 +90,19 @@ export function handleAssetNext(
 /**
  * 处理资源语法检查
  */
-export function handleAssetSyntaxCheck(
-    target: HTMLElement,
+/**
+ * 资源搜索方法变更回调
+ */
+export function onAssetMethodChange(
     element: HTMLElement,
     assetsElement: HTMLElement,
     localSearch: ISearchAssetOption
 ): void {
-    assetMethodMenu(target, () => {
-        const syntaxCheckElement = element.querySelector("#assetSyntaxCheck");
-        if (syntaxCheckElement) {
-            syntaxCheckElement.outerHTML = genQueryHTML(localSearch.method, "assetSyntaxCheck");
-        }
-        assetInputEvent(assetsElement, localSearch);
-        setStorageVal(Constants.LOCAL_SEARCHASSET, localSearch);
-    });
+    const syntaxCheckElement = element.querySelector("#assetSyntaxCheck");
+    if (syntaxCheckElement) {
+        syntaxCheckElement.outerHTML = genQueryHTML(localSearch.method, "assetSyntaxCheck");
+    }
+    assetInputEvent(assetsElement, localSearch);
+    setStorageVal(Constants.LOCAL_SEARCHASSET, localSearch);
 }
 

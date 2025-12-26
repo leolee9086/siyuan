@@ -11,8 +11,9 @@ import { updateConfig } from "../../../util";
 /**
  * 获取默认配置对象
  */
-function getDefaultConfig(): Partial<Config.IUILayoutTabSearchConfig> {
+function getDefaultConfig(): Config.IUILayoutTabSearchConfig {
     return {
+        name: "",
         removed: true,
         sort: 0,
         group: 0,
@@ -37,12 +38,15 @@ export function handleRemoveCriterion(
     edit: Protyle,
     updateCB?: (config: Config.IUILayoutTabSearchConfig) => void
 ): Config.IUILayoutTabSearchConfig {
-    const newConfig = updateConfig(element, getDefaultConfig(), config, edit, true);
+    updateConfig(element, getDefaultConfig(), config, edit, true);
     if (updateCB) {
-        updateCB(newConfig);
+        updateCB(config);
     }
-    element.querySelector(".b3-chip--current")?.classList.remove("b3-chip--current");
-    return newConfig;
+    const currentChip = element.querySelector(".b3-chip--current");
+    if (currentChip) {
+        currentChip.classList.remove("b3-chip--current");
+    }
+    return config;
 }
 
 /**
@@ -57,21 +61,21 @@ export function handleSetCriteria(
     updateCB?: (config: Config.IUILayoutTabSearchConfig) => void
 ): Config.IUILayoutTabSearchConfig {
     config.removed = false;
-    target.parentElement?.querySelector(".b3-chip--current")?.classList.remove("b3-chip--current");
+    const parent = target.parentElement;
+    const currentElement = parent?.querySelector(".b3-chip--current");
+    if (currentElement) {
+        currentElement.classList.remove("b3-chip--current");
+    }
     target.classList.add("b3-chip--current");
 
-    let newConfig = config;
-    criteriaData.find(item => {
-        if (item.name === target.innerText.trim()) {
-            newConfig = updateConfig(element, item, config, edit);
-            if (updateCB) {
-                updateCB(newConfig);
-            }
-            return true;
-        }
-    });
+    const targetName = target.innerText.trim();
+    const foundItem = criteriaData.find(item => item.name === targetName);
+    if (foundItem) {
+        updateConfig(element, foundItem, config, edit);
+        updateCB?.(config);
+    }
 
-    return newConfig;
+    return config;
 }
 
 /**
@@ -84,21 +88,22 @@ export function handleRemoveCriteria(
     element: HTMLElement,
     edit: Protyle
 ): Config.IUILayoutTabSearchConfig {
-    const name = target.parentElement?.textContent || "";
+    const parentElement = target.parentElement;
+    if (!parentElement) {
+        return config;
+    }
+    const name = parentElement.textContent || "";
     fetchPost("/api/storage/removeCriterion", { name });
 
-    criteriaData.find((item, index) => {
-        if (item.name === name) {
-            criteriaData.splice(index, 1);
-            return true;
-        }
-    });
-
-    let newConfig = config;
-    if (target.parentElement?.classList.contains("b3-chip--current")) {
-        newConfig = updateConfig(element, getDefaultConfig(), config, edit, true);
+    const criteriaIndex = criteriaData.findIndex(item => item.name === name);
+    if (criteriaIndex !== -1) {
+        criteriaData.splice(criteriaIndex, 1);
     }
 
-    target.parentElement?.remove();
-    return newConfig;
+    if (parentElement.classList.contains("b3-chip--current")) {
+        updateConfig(element, getDefaultConfig(), config, edit, true);
+    }
+
+    parentElement.remove();
+    return config;
 }
