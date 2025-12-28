@@ -5,13 +5,15 @@
 
 import { getContenteditableElement } from "../../ai/imports";
 import { extractCSSVariables, replaceCSSVariables } from "../css/extractCSSVariables";
+import { getSelection } from "../DOM/range.global";
+import { isSecureContext } from "../siyuanEnvironments/windowStandard.environment";
 
 /**
  * 获取当前选择范围的HTML内容
  * @returns 选择范围的HTML字符串，如果没有选择则返回空字符串
  */
 function getSelectedHTML(): string {
-    const selection = window.getSelection();
+    const selection = getSelection();
     if (!selection || selection.rangeCount === 0) {
         return "";
     }
@@ -19,7 +21,7 @@ function getSelectedHTML(): string {
     const range = selection.getRangeAt(0);
     const container = document.createElement("div");
     container.appendChild(range.cloneContents());
-    
+
     return container.innerHTML;
 }
 
@@ -32,10 +34,10 @@ function processCSSVariablesInHTML(html: string): string {
     // 创建临时容器
     const tempContainer = document.createElement("div");
     tempContainer.innerHTML = html;
-    
+
     // 获取所有需要处理的元素
     const elements = tempContainer.querySelectorAll("*");
-    
+
     // 处理每个元素的CSS变量
     elements.forEach(element => {
         const variables = extractCSSVariables(element);
@@ -43,10 +45,10 @@ function processCSSVariablesInHTML(html: string): string {
             replaceCSSVariables(element, variables);
         }
     });
-    
+
     // 处理span标签转换为a标签
     convertSpanToLink(tempContainer);
-    
+
     return tempContainer.innerHTML;
 }
 
@@ -57,32 +59,32 @@ function processCSSVariablesInHTML(html: string): string {
 function convertSpanToLink(container: HTMLElement): void {
     // 查找所有span标签
     const spanElements = container.querySelectorAll("span[data-href]");
-    
+
     spanElements.forEach(span => {
         const dataType = span.getAttribute("data-type") || "";
         const href = span.getAttribute("data-href");
         const textContent = span.textContent || "";
-        
+
         // 检查data-type是否包含"a"（使用类似classList的解析方法）
         const typeClasses = dataType.split(/\s+/);
         const hasLinkType = typeClasses.some(type => type.includes("a"));
-        
+
         if (!hasLinkType || !href) {
             return; // 跳过不符合条件的span
         }
-        
+
         // 创建新的a标签
         const linkElement = document.createElement("a");
         linkElement.href = href;
         linkElement.textContent = textContent.replace(/\u200B/g, ""); // 移除零宽空格
-        
+
         // 复制其他属性
         Array.from(span.attributes).forEach(attr => {
             if (attr.name !== "data-type" && attr.name !== "data-href") {
                 linkElement.setAttribute(attr.name, attr.value);
             }
         });
-        
+
         // 替换span标签
         span.parentNode?.replaceChild(linkElement, span);
     });
@@ -95,7 +97,7 @@ function convertSpanToLink(container: HTMLElement): void {
  */
 async function copyToClipboard(text: string): Promise<boolean> {
     try {
-        if (navigator.clipboard && window.isSecureContext) {
+        if (navigator.clipboard && isSecureContext()) {
             // 使用现代剪贴板API
             await navigator.clipboard.writeText(text);
             return true;
@@ -109,7 +111,7 @@ async function copyToClipboard(text: string): Promise<boolean> {
             document.body.appendChild(textArea);
             textArea.focus();
             textArea.select();
-            
+
             const result = document.execCommand("copy");
             document.body.removeChild(textArea);
             return result;
@@ -132,41 +134,41 @@ async function copySelectedHTMLWithResolvedCSS(container): Promise<boolean> {
             console.warn("没有选择任何内容");
             return false;
         }
-        
+
         // 处理CSS变量
         const processedHTML = processCSSVariablesInHTML(selectedHTML);
-        
+
         // 创建临时元素并使用execCommand复制
         const tempElement = document.createElement("span");
         tempElement.innerHTML = processedHTML;
-        if(getContenteditableElement(container)){
-            container =getContenteditableElement(container);
-            
+        if (getContenteditableElement(container)) {
+            container = getContenteditableElement(container);
+
         }
         document.body.appendChild(tempElement);
-        
+
         // 选择临时元素的内容
         const range = document.createRange();
         range.selectNodeContents(tempElement);
-        const selection = window.getSelection();
+        const selection = getSelection();
         if (selection) {
             selection.removeAllRanges();
             selection.addRange(range);
-            
+
             // 使用execCommand复制
             const success = document.execCommand("copy");
-            
+
             // 清理
             selection.removeAllRanges();
             document.body.removeChild(tempElement);
-            
+
             return success;
         } else {
             // 如果无法获取selection，清理临时元素并返回失败
             document.body.removeChild(tempElement);
             return false;
         }
-        
+
     } catch (error) {
         console.error("处理选择范围HTML时发生错误:", error);
         return false;

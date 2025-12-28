@@ -5,7 +5,7 @@ import { Model } from "./Model";
 import { Graph } from "./dock/Graph";
 import { Editor } from "../editor";
 import { Files } from "./dock/Files";
-import { Outline } from "./dock/Outline";
+import { Outline } from "./dock/outline/Outline";
 import { Bookmark } from "./dock/Bookmark";
 import { Tag } from "./dock/Tag";
 import { getAllModels, getAllTabs, getAllWnds } from "./getAll";

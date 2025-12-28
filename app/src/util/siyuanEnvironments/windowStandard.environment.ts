@@ -41,3 +41,12 @@ export const getLocationSearch = () => {
 export const isTouchDevice = () => {
     return ("ontouchstart" in window) && navigator.maxTouchPoints > 1;
 };
+
+/**
+ * 封装 window.isSecureContext
+ * 检查当前上下文是否为安全上下文（HTTPS 或 localhost）
+ * @returns boolean
+ */
+export const isSecureContext = () => {
+    return window.isSecureContext;
+};

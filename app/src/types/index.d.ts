@@ -797,7 +797,7 @@ interface IRiffCard {
 interface IModels {
     editor: import("../editor").Editor[],
     graph: import("../layout/dock/Graph").Graph[],
-    outline: import("../layout/dock/Outline").Outline[]
+    outline: import("../layout/dock/outline/Outline").Outline[]
     backlink: import("../layout/dock/Backlink").Backlink[]
     inbox: import("../layout/dock/Inbox").Inbox[]
     files: import("../layout/dock/Files").Files[]

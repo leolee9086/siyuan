@@ -1,35 +1,35 @@
-import { Tab } from "../Tab";
-import { Model } from "../Model";
-import { Tree } from "../../util/Tree";
-import { getInstanceById } from "../util";
-import { setPanelFocus } from "../utils/setPanelFocus";
-import { getDockByType } from "../tabUtil";
-import { fetchPost } from "../../util/fetch";
-import { getAllModels } from "../getAll";
-import { hasClosestBlock, hasClosestByClassName, hasTopClosestByClassName } from "../../protyle/util/hasClosest";
+import { Tab } from "../../Tab";
+import { Model } from "../../Model";
+import { Tree } from "../../../util/Tree";
+import { getInstanceById } from "../../util";
+import { setPanelFocus } from "../../utils/setPanelFocus";
+import { getDockByType } from "../../tabUtil";
+import { fetchPost } from "../../../util/fetch";
+import { getAllModels } from "../../getAll";
+import { hasClosestBlock, hasClosestByClassName, hasTopClosestByClassName } from "../../../protyle/util/hasClosest";
 import {
     isInAndroid,
     isInHarmony,
     setStorageVal,
     updateHotkeyAfterTip,
     writeText
-} from "../../protyle/util/compatibility";
-import { openFileById } from "../../editor/utils.openFileById";
-import { Constants } from "../../constants";
-import { MenuItem } from "../../menus/Menu.Item";
-import { escapeAttr, escapeHtml } from "../../util/escape";
-import { unicode2Emoji } from "../../emoji";
-import { getPreviousBlock } from "../../protyle/wysiwyg/getBlock";
-import { App } from "../../index";
-import { checkFold } from "../../util/noRelyPCFunction";
-import { transaction, turnsIntoTransaction } from "../../protyle/wysiwyg/transaction";
-import { goHome } from "../../protyle/wysiwyg/commonHotkey";
-import { Editor } from "../../editor";
-import { mathRender } from "../../protyle/render/mathRender";
-import { genEmptyElement } from "../../block/util";
-import { focusBlock, focusByWbr } from "../../protyle/util/selection";
-import { dragOverScroll, stopScrollAnimation } from "../../boot/globalEvent/dragover";
-import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+} from "../../../protyle/util/compatibility";
+import { openFileById } from "../../../editor/utils.openFileById";
+import { Constants } from "../../../constants";
+import { MenuItem } from "../../../menus/Menu.Item";
+import { escapeAttr, escapeHtml } from "../../../util/escape";
+import { unicode2Emoji } from "../../../emoji";
+import { getPreviousBlock } from "../../../protyle/wysiwyg/getBlock";
+import { App } from "../../../index";
+import { checkFold } from "../../../util/noRelyPCFunction";
+import { transaction, turnsIntoTransaction } from "../../../protyle/wysiwyg/transaction";
+import { goHome } from "../../../protyle/wysiwyg/commonHotkey";
+import { Editor } from "../../../editor";
+import { mathRender } from "../../../protyle/render/mathRender";
+import { genEmptyElement } from "../../../block/util";
+import { focusBlock, focusByWbr } from "../../../protyle/util/selection";
+import { dragOverScroll, stopScrollAnimation } from "../../../boot/globalEvent/dragover";
+import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export class Outline extends Model {
     public tree: Tree;

@@ -1,18 +1,18 @@
 /// #if !MOBILE
-import {Layout} from "./index";
-import {Tab} from "./Tab";
-import {Editor} from "../editor";
-import {Graph} from "./dock/Graph";
-import {Outline} from "./dock/Outline";
-import {Backlink} from "./dock/Backlink";
-import {Asset} from "../asset";
-import {Search} from "../search";
-import {Files} from "./dock/Files";
-import {Bookmark} from "./dock/Bookmark";
-import {Tag} from "./dock/Tag";
-import {Custom} from "./dock/Custom";
-import {Protyle} from "../protyle";
-import {Wnd} from "./Wnd";
+import { Layout } from "./index";
+import { Tab } from "./Tab";
+import { Editor } from "../editor";
+import { Graph } from "./dock/Graph";
+import { Outline } from "./dock/outline/Outline";
+import { Backlink } from "./dock/Backlink";
+import { Asset } from "../asset";
+import { Search } from "../search";
+import { Files } from "./dock/Files";
+import { Bookmark } from "./dock/Bookmark";
+import { Tag } from "./dock/Tag";
+import { Custom } from "./dock/Custom";
+import { Protyle } from "../protyle";
+import { Wnd } from "./Wnd";
 /// #endif
 
 export const getAllEditor = () => {

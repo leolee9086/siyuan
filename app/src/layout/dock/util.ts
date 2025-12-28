@@ -1,15 +1,15 @@
-import {getAllModels} from "../getAll";
-import {Tab} from "../Tab";
-import {Graph} from "./Graph";
-import {Outline} from "./Outline";
-import {fixWndFlex1, getInstanceById, getWndByLayout, saveLayout, switchWnd} from "../util";
-import {getDockByType, resizeTabs} from "../tabUtil";
-import {Backlink} from "./Backlink";
-import {App} from "../../index";
-import {Wnd} from "../Wnd";
-import {fetchSyncPost} from "../../util/fetch";
-import {Files} from "./Files";
-import {Editor} from "../../editor";
+import { getAllModels } from "../getAll";
+import { Tab } from "../Tab";
+import { Graph } from "./Graph";
+import { Outline } from "./outline/Outline";
+import { fixWndFlex1, getInstanceById, getWndByLayout, saveLayout, switchWnd } from "../util";
+import { getDockByType, resizeTabs } from "../tabUtil";
+import { Backlink } from "./Backlink";
+import { App } from "../../index";
+import { Wnd } from "../Wnd";
+import { fetchSyncPost } from "../../util/fetch";
+import { Files } from "./Files";
+import { Editor } from "../../editor";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const openBacklink = async (options: {
@@ -37,7 +37,7 @@ export const openBacklink = async (options: {
         wnd = getWndByLayout(window.siyuan.layout.centerLayout);
     }
     if (!options.rootId) {
-        const response = await fetchSyncPost("api/block/getDocInfo", {id: options.blockId});
+        const response = await fetchSyncPost("api/block/getDocInfo", { id: options.blockId });
         if (response.code === -1) {
             return;
         }
@@ -45,7 +45,7 @@ export const openBacklink = async (options: {
         options.useBlockId = response.data.rootID !== response.data.id;
         options.title = response.data.name || siyuanI18n.untitled;
     } else if (!options.title) {
-        const response = await fetchSyncPost("api/block/getDocInfo", {id: options.blockId});
+        const response = await fetchSyncPost("api/block/getDocInfo", { id: options.blockId });
         if (response.code === -1) {
             return;
         }
@@ -93,7 +93,7 @@ export const openGraph = async (options: {
         wnd = getWndByLayout(window.siyuan.layout.centerLayout);
     }
     if (!options.rootId) {
-        const response = await fetchSyncPost("api/block/getDocInfo", {id: options.blockId});
+        const response = await fetchSyncPost("api/block/getDocInfo", { id: options.blockId });
         if (response.code === -1) {
             return;
         }
@@ -101,7 +101,7 @@ export const openGraph = async (options: {
         options.useBlockId = response.data.rootID !== response.data.id;
         options.title = response.data.name || siyuanI18n.untitled;
     } else if (!options.title) {
-        const response = await fetchSyncPost("api/block/getDocInfo", {id: options.blockId});
+        const response = await fetchSyncPost("api/block/getDocInfo", { id: options.blockId });
         if (response.code === -1) {
             return;
         }
@@ -148,7 +148,7 @@ export const openOutline = async (options: {
     }
     const newWnd = wnd.split("lr");
     if (options.title) {
-        const response = await fetchSyncPost("api/block/getDocInfo", {id: options.rootId});
+        const response = await fetchSyncPost("api/block/getDocInfo", { id: options.rootId });
         options.title = response.data.name || siyuanI18n.untitled;
     }
     newWnd.addTab(new Tab({
@@ -210,7 +210,7 @@ export const clearOBG = () => {
                 return;
             }
             item.isPreview = false;
-            item.update({data: [], msg: "", code: 0}, "");
+            item.update({ data: [], msg: "", code: 0 }, "");
             item.updateDocTitle();
         }
     });

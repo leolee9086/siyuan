@@ -2,7 +2,7 @@ import { Tab } from "../Tab";
 import { Files } from "./Files";
 import { Bookmark } from "./Bookmark";
 import { Tag } from "./Tag";
-import { Outline } from "./Outline";
+import { Outline } from "./outline/Outline";
 import { Graph } from "./Graph";
 import { Backlink } from "./Backlink";
 import { Inbox } from "./Inbox";

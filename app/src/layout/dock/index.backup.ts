@@ -3,7 +3,7 @@ import { Layout } from "../index";
 import { Wnd } from "../Wnd";
 import { Tab } from "../Tab";
 import { Files } from "./Files";
-import { Outline } from "./Outline";
+import { Outline } from "./outline/Outline";
 import { getAllModels, getAllTabs } from "../getAll";
 import { Bookmark } from "./Bookmark";
 import { Tag } from "./Tag";
