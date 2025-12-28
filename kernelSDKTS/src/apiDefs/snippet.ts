@@ -12,6 +12,7 @@ const 代码片段Schema = z.object({
     type: z.enum(['js', 'css']).describe("代码片段的类型：'js' 或 'css'"),
     enabled: z.boolean().describe('代码片段是否启用'),
     content: z.string().describe('代码片段的实际内容'),
+    disabledInPublish: z.boolean().optional().describe('是否在发布模式下禁用'),
 });
 
 export const snippetApiDefs = [
@@ -34,6 +35,7 @@ export const snippetApiDefs = [
                 snippets: z.array(代码片段Schema),
             }).nullable()
         ),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -48,6 +50,7 @@ export const snippetApiDefs = [
             id: z.string().describe('要移除的代码片段ID'),
         }),
         zodResponseSchema: 创建响应Schema(代码片段Schema.nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -62,6 +65,7 @@ export const snippetApiDefs = [
             snippets: z.array(代码片段Schema).describe('完整的代码片段列表'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
 ] as const satisfies readonly Api定义[];
 

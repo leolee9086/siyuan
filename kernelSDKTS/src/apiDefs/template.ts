@@ -21,6 +21,7 @@ export const templateApiDefs = [
             overwrite: z.boolean().describe('如果已存在同名模板，是否覆盖'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -42,6 +43,7 @@ export const templateApiDefs = [
                 content: z.string().describe('渲染后的模板内容 (HTML)'),
             }).nullable()
         ),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -56,6 +58,7 @@ export const templateApiDefs = [
             template: z.string().describe('包含 Sprig 模板语法的字符串'),
         }),
         zodResponseSchema: 创建响应Schema(z.string().nullable()),
+        lastVerified: '2025-12-28',
     },
 ] as const satisfies readonly Api定义[];
 

@@ -41,6 +41,7 @@ export const outlineApiDefs = [
         zodResponseSchema: 创建响应Schema(
             z.array(大纲条目Schema).nullable().describe('文档的大纲结构数组。')
         ),
+        lastVerified: '2025-12-28',
     },
 ] as const satisfies readonly Api定义[];
 

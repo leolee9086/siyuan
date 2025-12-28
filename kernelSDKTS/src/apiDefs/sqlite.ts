@@ -17,6 +17,7 @@ export const sqliteApiDefs = [
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({}),
         zodResponseSchema: 创建响应Schema(z.null().describe('接口成功执行时，data 固定为 null。')),
+        lastVerified: '2025-12-28',
     },
 ] as const satisfies readonly Api定义[];
 

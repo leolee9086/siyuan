@@ -22,6 +22,7 @@ export const archiveApiDefs = [
             path: z.string().describe('解压到目标目录的绝对路径或相对于工作空间的路径'),
         }),
         zodResponseSchema: 标准空响应,
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -37,6 +38,7 @@ export const archiveApiDefs = [
             zipPath: z.string().describe('生成的 .zip 文件保存的绝对路径或相对于工作空间的路径'),
         }),
         zodResponseSchema: 标准空响应,
+        lastVerified: '2025-12-28',
     },
 ] as const satisfies readonly Api定义[];
 

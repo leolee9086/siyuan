@@ -37,6 +37,7 @@ export const inboxApiDefs = [
             id: z.string().describe('要获取的速记的唯一标识符 (通常为时间戳字符串)'),
         }),
         zodResponseSchema: 创建响应Schema(速记详情Schema),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -55,6 +56,7 @@ export const inboxApiDefs = [
                 shorthands: z.array(速记Schema).describe('速记对象列表'),
             }).catchall(z.any()),
         ),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -69,6 +71,7 @@ export const inboxApiDefs = [
             ids: z.array(z.string()).describe('要移除的速记的唯一标识符数组'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
 ] as const satisfies readonly Api定义[];
 

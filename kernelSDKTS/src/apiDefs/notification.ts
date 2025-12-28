@@ -27,6 +27,7 @@ export const notificationApiDefs = [
             timeout: z.number().int().positive().optional().describe('可选。消息显示持续时间，单位毫秒。默认 7000ms'),
         }),
         zodResponseSchema: 消息响应Schema,
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -42,6 +43,7 @@ export const notificationApiDefs = [
             timeout: z.number().int().positive().optional().describe('可选。消息显示持续时间，单位毫秒。默认 7000ms'),
         }),
         zodResponseSchema: 消息响应Schema,
+        lastVerified: '2025-12-28',
     },
 ] as const satisfies readonly Api定义[];
 

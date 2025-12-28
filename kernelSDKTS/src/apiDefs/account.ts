@@ -22,6 +22,7 @@ export const accountApiDefs = [
             data: z.string().describe('要检查的激活码'),
         }),
         zodResponseSchema: 标准空响应,
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -34,6 +35,7 @@ export const accountApiDefs = [
         description: '注销当前用户账号。',
         zodRequestSchema: z.object({}),
         zodResponseSchema: 标准空响应,
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -51,6 +53,7 @@ export const accountApiDefs = [
             cloudRegion: z.number().describe('云端区域代码，例如 0 表示中国区'),
         }),
         zodResponseSchema: 创建响应Schema(z.any().nullable().describe('登录成功时可能包含用户信息')),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -63,6 +66,7 @@ export const accountApiDefs = [
         description: '为当前用户开启免费试用。',
         zodRequestSchema: z.object({}),
         zodResponseSchema: 标准空响应,
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -77,6 +81,7 @@ export const accountApiDefs = [
             data: z.string().describe('要使用的激活码'),
         }),
         zodResponseSchema: 标准空响应,
+        lastVerified: '2025-12-28',
     },
 ] as const satisfies readonly Api定义[];
 

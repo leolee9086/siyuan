@@ -21,6 +21,7 @@ export const miscApiDefs = [
             retry: z.number().int().positive().optional().describe('SSE 连接断开后的重试间隔时间 (毫秒)。此参数通过 URL Query String 传递。'),
         }),
         zodResponseSchema: 创建响应Schema(z.object({})),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'GET',
@@ -35,6 +36,7 @@ export const miscApiDefs = [
             channel: z.string().describe('要连接的广播频道名称。此参数通过 URL Query String 传递。'),
         }),
         zodResponseSchema: 创建响应Schema(z.object({})),
+        lastVerified: '2025-12-28',
     },
 ] as const satisfies readonly Api定义[];
 

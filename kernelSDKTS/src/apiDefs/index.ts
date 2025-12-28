@@ -64,7 +64,18 @@ export { bazaarApiDefs } from './bazaar';
 export { settingApiDefs } from './setting';
 export { exportApiDefs } from './export';
 export { filetreeApiDefs } from './filetree';
-export { blockApiDefs } from './block';
+// block 模块已拆分为多个子文件，从 block/ 目录导入
+export { blockApiDefs } from './block/index';
+// 也导出 block 子模块，方便按需导入
+export {
+    insertApiDefs as blockInsertApiDefs,
+    updateApiDefs as blockUpdateApiDefs,
+    deleteAndMoveApiDefs as blockDeleteAndMoveApiDefs,
+    queryApiDefs as blockQueryApiDefs,
+    refApiDefs as blockRefApiDefs,
+    headingApiDefs as blockHeadingApiDefs,
+    miscApiDefs as blockMiscApiDefs,
+} from './block/index';
 export { avApiDefs } from './av';
 
 // ========== 统一 API 定义集合 ==========
@@ -114,7 +125,7 @@ import { bazaarApiDefs } from './bazaar';
 import { settingApiDefs } from './setting';
 import { exportApiDefs } from './export';
 import { filetreeApiDefs } from './filetree';
-import { blockApiDefs } from './block';
+import { blockApiDefs } from './block/index';
 import { avApiDefs } from './av';
 
 import type { Api定义 } from '../client/types';

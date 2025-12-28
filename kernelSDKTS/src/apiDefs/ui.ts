@@ -20,6 +20,7 @@ export const uiApiDefs = [
             id: z.string().describe('要重新加载的属性视图的 ID。'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -32,6 +33,7 @@ export const uiApiDefs = [
         unavailableIfReadonly: true,
         zodRequestSchema: 空请求Schema,
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -44,6 +46,7 @@ export const uiApiDefs = [
         unavailableIfReadonly: true,
         zodRequestSchema: 空请求Schema,
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -58,6 +61,7 @@ export const uiApiDefs = [
             id: z.string().describe('要重新加载的 Protyle 编辑器实例对应的块 ID 或文档 ID。'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -70,6 +74,7 @@ export const uiApiDefs = [
         unavailableIfReadonly: true,
         zodRequestSchema: 空请求Schema,
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -82,6 +87,7 @@ export const uiApiDefs = [
         unavailableIfReadonly: true,
         zodRequestSchema: 空请求Schema,
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
 ] as const satisfies readonly Api定义[];
 

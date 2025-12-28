@@ -5,10 +5,26 @@
  */
 import { z } from 'zod';
 
+/** 操作 Schema */
+export const OperationSchema = z.object({
+    action: z.string().describe('操作类型'),
+    data: z.any().optional().describe('操作数据'),
+    id: z.string().optional().describe('操作对象的ID'),
+    parentID: z.string().optional().describe('父级ID'),
+    previousID: z.string().optional().describe('前一个ID'),
+    nextID: z.string().optional().describe('后一个ID'),
+    retData: z.any().optional().describe('返回数据'),
+    srcIDs: z.array(z.string()).optional().describe('源ID列表'),
+});
+
+/** 事务 Schema */
+export const TransactionSchema = z.object({
+    doOperations: z.array(OperationSchema).describe('执行的操作列表'),
+    undoOperations: z.array(OperationSchema).optional().describe('撤销的操作列表'),
+});
+
 /** 插入块结果 Schema */
-export const 插入块结果Schema = z.array(z.object({
-    id: z.string().describe('新创建块的 ID'),
-})).nullable();
+export const 插入块结果Schema = z.array(TransactionSchema).describe('事务列表');
 
 /** 数据类型枚举 */
 export const 数据类型Schema = z.enum(['markdown', 'dom']);

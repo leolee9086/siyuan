@@ -24,6 +24,7 @@ export const iconApiDefs = [
             id: z.string().optional().describe("图标ID，当 type='8' (文字图标) 时使用，用于生成固定的背景色"),
         }),
         zodResponseSchema: z.any().describe('此接口不返回 JSON。成功时直接返回 image/svg+xml 类型的 SVG 图像数据。'),
+        lastVerified: '2025-12-28',
     },
 ] as const satisfies readonly Api定义[];
 

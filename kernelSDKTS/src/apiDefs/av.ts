@@ -36,12 +36,15 @@ export const avApiDefs = [
         unavailableIfReadonly: false,
         zodRequestSchema: z.object({
             id: z.string().describe('属性视图的 ID'),
+            blockID: z.string().optional().describe('关联的块 ID'),
             viewID: z.string().optional().describe('可选，要渲染的特定视图的 ID'),
             query: z.string().optional().describe('可选，查询关键词或条件'),
             page: z.number().optional().describe('可选，页码'),
             pageSize: z.number().optional().describe('可选，每页数量'),
+            groupPaging: z.record(z.any()).optional().describe('分组分页信息'),
         }),
         zodResponseSchema: 创建响应Schema(属性视图渲染结果Schema),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -55,8 +58,15 @@ export const avApiDefs = [
         zodRequestSchema: z.object({
             id: z.string().describe('属性视图的 ID'),
             created: z.string().describe('历史版本创建的时间戳字符串'),
+            blockID: z.string().optional().describe('关联的块 ID'),
+            viewID: z.string().optional().describe('可选，要渲染的特定视图的 ID'),
+            query: z.string().optional().describe('可选，查询关键词或条件'),
+            page: z.number().optional().describe('可选，页码'),
+            pageSize: z.number().optional().describe('可选，每页数量'),
+            groupPaging: z.record(z.any()).optional().describe('分组分页信息'),
         }),
         zodResponseSchema: 创建响应Schema(属性视图渲染结果Schema),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -72,6 +82,7 @@ export const avApiDefs = [
             id: z.string().describe('属性视图的 ID'),
         }),
         zodResponseSchema: 创建响应Schema(属性视图渲染结果Schema),
+        lastVerified: '2025-12-28',
     },
 
     // ========== 获取属性视图信息 ==========
@@ -88,6 +99,7 @@ export const avApiDefs = [
             id: z.string().describe('属性视图的 ID'),
         }),
         zodResponseSchema: 创建响应Schema(z.array(z.any()).nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -101,12 +113,14 @@ export const avApiDefs = [
         zodRequestSchema: z.object({
             avID: z.string().describe('属性视图的 ID'),
             keyID: z.string().describe('列的 ID'),
-            rowID: z.string().describe('行的 ID（数据块的 ID）'),
+            itemID: z.string().optional().describe('行的 ID (Item ID), 优先使用'),
+            rowID: z.string().optional().describe('行的 ID (兼容旧版)'),
             value: z.any().describe('要设置的新值'),
         }),
         zodResponseSchema: 创建响应Schema(z.object({
             value: z.any().describe('成功设置后的值'),
         }).nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -126,6 +140,7 @@ export const avApiDefs = [
             })).describe('包含多个要更新单元格信息的数组'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
 
     // ========== 搜索属性视图 ==========
@@ -145,6 +160,7 @@ export const avApiDefs = [
         zodResponseSchema: 创建响应Schema(z.object({
             results: z.array(z.any()).describe('搜索结果对象数组'),
         }).nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -161,6 +177,7 @@ export const avApiDefs = [
         zodResponseSchema: 创建响应Schema(z.object({
             av: z.any().describe('属性视图对象的详细信息'),
         }).nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -178,6 +195,7 @@ export const avApiDefs = [
         zodResponseSchema: 创建响应Schema(z.object({
             keys: z.array(z.any()).describe('匹配的关联列定义对象数组'),
         }).nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -195,6 +213,7 @@ export const avApiDefs = [
         zodResponseSchema: 创建响应Schema(z.object({
             keys: z.array(z.any()).describe('匹配的非关联列定义对象数组'),
         }).nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -205,8 +224,12 @@ export const avApiDefs = [
         needAuth: true,
         needAdminRole: true,
         unavailableIfReadonly: true,
-        zodRequestSchema: z.object({}),
+        zodRequestSchema: z.object({
+            avID: z.string().describe('属性视图的 ID'),
+            keyword: z.string().describe('搜索关键词'),
+        }),
         zodResponseSchema: 创建响应Schema(z.any()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -225,6 +248,7 @@ export const avApiDefs = [
             filters: z.array(z.any()).describe('筛选条件对象数组'),
             sorts: z.array(z.any()).describe('排序规则对象数组'),
         }).nullable()),
+        lastVerified: '2025-12-28',
     },
 
     // ========== 列操作 ==========
@@ -246,6 +270,7 @@ export const avApiDefs = [
             previousKeyID: z.string().describe('新列将插入到此列 ID 之前'),
         }),
         zodResponseSchema: 创建响应Schema(z.any().nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -262,6 +287,7 @@ export const avApiDefs = [
             removeRelationDest: z.boolean().optional().describe('如果是关联列，是否同时移除关联目标'),
         }),
         zodResponseSchema: 创建响应Schema(z.any().nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -279,6 +305,7 @@ export const avApiDefs = [
             previousKeyID: z.string().describe('目标位置：将列移动到此列 ID 之前'),
         }),
         zodResponseSchema: 创建响应Schema(z.any().nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -295,6 +322,7 @@ export const avApiDefs = [
             previousKeyID: z.string().describe('目标位置：将列移动到此列 ID 之前'),
         }),
         zodResponseSchema: 创建响应Schema(z.any().nullable()),
+        lastVerified: '2025-12-28',
     },
 
     // ========== 块操作 ==========
@@ -310,11 +338,14 @@ export const avApiDefs = [
         zodRequestSchema: z.object({
             avID: z.string().describe('属性视图的 ID'),
             blockID: z.string().optional().describe('新块将插入到此块 ID 之后'),
+            viewID: z.string().optional().describe('视图 ID'),
+            groupID: z.string().optional().describe('分组 ID'),
             previousID: z.string().optional().describe('新块将插入到此块 ID 之前'),
-            ignoreFillFilter: z.boolean().optional().describe('是否忽略填充过滤器'),
+            ignoreDefaultFill: z.boolean().optional().describe('是否忽略默认填充'),
             srcs: z.array(z.record(z.any())).describe('要添加的源数据块信息数组'),
         }),
         zodResponseSchema: 创建响应Schema(z.any().nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -330,6 +361,7 @@ export const avApiDefs = [
             srcIDs: z.array(z.string()).describe('要移除的源数据块的 ID 数组'),
         }),
         zodResponseSchema: 创建响应Schema(z.any().nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -351,6 +383,7 @@ export const avApiDefs = [
             blockIDs: z.array(z.string()).describe('匹配的主键值对应的块 ID 列表'),
             rows: z.array(z.any()).describe('匹配的行数据数组'),
         }).nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -364,8 +397,10 @@ export const avApiDefs = [
         zodRequestSchema: z.object({
             id: z.string().describe('数据库块的 ID'),
             viewID: z.string().describe('要设置为默认视图的视图 ID'),
+            avID: z.string().describe('属性视图的 ID'),
         }),
         zodResponseSchema: 创建响应Schema(z.any().nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -381,10 +416,11 @@ export const avApiDefs = [
         }),
         zodResponseSchema: 创建响应Schema(z.object({
             refDefs: z.array(z.object({
-                RefID: z.string().describe('引用的块ID'),
-                DefIDs: z.array(z.string()).describe('被引用的定义块ID列表'),
+                refID: z.string().describe('引用的块ID'),
+                defIDs: z.array(z.string()).describe('被引用的定义块ID列表'),
             })).describe('引用定义对象数组'),
         }).nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -399,6 +435,7 @@ export const avApiDefs = [
             avID: z.string().describe('属性视图的 ID'),
         }),
         zodResponseSchema: 创建响应Schema(z.array(z.any()).nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -409,8 +446,12 @@ export const avApiDefs = [
         needAuth: true,
         needAdminRole: false,
         unavailableIfReadonly: false,
-        zodRequestSchema: z.object({}),
+        zodRequestSchema: z.object({
+            avID: z.string().describe('属性视图的 ID'),
+            keyIDs: z.array(z.string()).describe('列 ID 数组'),
+        }),
         zodResponseSchema: 创建响应Schema(z.any()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -428,6 +469,7 @@ export const avApiDefs = [
             avID: z.string().describe('新复制的属性视图的 ID'),
             blockID: z.string().describe('新复制的属性视图块的 ID'),
         }).nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -443,6 +485,7 @@ export const avApiDefs = [
             blocksValues: z.array(z.array(z.any())).describe('二维数组，外层代表多个新块，内层代表各列的初始值'),
         }),
         zodResponseSchema: 创建响应Schema(z.any().nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -459,6 +502,7 @@ export const avApiDefs = [
             query: z.string().optional().describe('查询关键词'),
         }),
         zodResponseSchema: 创建响应Schema(z.array(z.string())),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -475,6 +519,7 @@ export const avApiDefs = [
             layoutType: 布局类型Schema.describe('新的布局类型'),
         }),
         zodResponseSchema: 创建响应Schema(属性视图渲染结果Schema),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -490,7 +535,8 @@ export const avApiDefs = [
             blockID: z.string().describe('属性视图关联的块 ID'),
             group: z.any().describe('分组配置对象'),
         }),
-        zodResponseSchema: 创建响应Schema(z.null()),
+        zodResponseSchema: 创建响应Schema(属性视图渲染结果Schema),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -507,6 +553,7 @@ export const avApiDefs = [
             oldNew: z.array(z.record(z.string(), z.string())).describe('包含旧块ID和新块ID映射关系的数组'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -517,8 +564,15 @@ export const avApiDefs = [
         needAuth: true,
         needAdminRole: false,
         unavailableIfReadonly: false,
-        zodRequestSchema: z.object({}),
+        zodRequestSchema: z.object({
+            avID: z.string().describe('属性视图的 ID'),
+            viewID: z.string().optional().describe('视图 ID'),
+            groupID: z.string().optional().describe('分组 ID'),
+            previousID: z.string().optional().describe('前一个块 ID'),
+            addingBlockID: z.string().optional().describe('正在添加的块 ID'),
+        }),
         zodResponseSchema: 创建响应Schema(z.any()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -529,7 +583,10 @@ export const avApiDefs = [
         needAuth: true,
         needAdminRole: false,
         unavailableIfReadonly: false,
-        zodRequestSchema: z.object({}),
+        zodRequestSchema: z.object({
+            avID: z.string().describe('属性视图的 ID'),
+            itemIDs: z.array(z.string()).describe('条目 ID 数组'),
+        }),
         zodResponseSchema: 创建响应Schema(z.any()),
     },
     {
@@ -541,7 +598,10 @@ export const avApiDefs = [
         needAuth: true,
         needAdminRole: false,
         unavailableIfReadonly: false,
-        zodRequestSchema: z.object({}),
+        zodRequestSchema: z.object({
+            avID: z.string().describe('属性视图的 ID'),
+            blockIDs: z.array(z.string()).describe('块 ID 数组'),
+        }),
         zodResponseSchema: 创建响应Schema(z.any()),
     },
 ] as const satisfies readonly Api定义[];

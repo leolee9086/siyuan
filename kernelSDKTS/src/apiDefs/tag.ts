@@ -33,8 +33,11 @@ export const tagApiDefs = [
         unavailableIfReadonly: false,
         zodRequestSchema: z.object({
             sort: z.number().int().optional().describe('可选的排序模式。0: 按引用计数降序, 1-6: 其他排序方式'),
+            app: z.string().describe('应用标识'),
+            ignoreMaxListHint: z.boolean().optional().describe('是否忽略最大列表提示限制'),
         }),
         zodResponseSchema: 创建响应Schema(z.array(标签Schema).nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -49,6 +52,7 @@ export const tagApiDefs = [
             label: z.string().describe('要移除的标签的名称'),
         }),
         zodResponseSchema: 操作响应Schema,
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -64,6 +68,7 @@ export const tagApiDefs = [
             newLabel: z.string().describe('新的标签名称'),
         }),
         zodResponseSchema: 操作响应Schema,
+        lastVerified: '2025-12-28',
     },
 ] as const satisfies readonly Api定义[];
 

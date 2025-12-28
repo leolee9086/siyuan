@@ -6,23 +6,18 @@
  * 2. apiDefs 中有但 rawApiList 中没有的 (需标记 deprecated)
  * 3. en、needAuth 等属性是否一致
  * 4. zh_cn、description 是否填写
- * 5. zodRequestSchema/zodResponseSchema 是否为默认值
  */
-import { readFile, readdir, writeFile } from 'fs/promises';
+import { readFile, writeFile } from 'fs/promises';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { pathToFileURL } from 'url';
+import { allApiDefs } from '../src/apiDefs/index';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const 根目录 = join(__dirname, '..');
 
 const RAW_API_LIST_PATH = join(根目录, 'rawApiList.json');
-const API_DEFS_DIR = join(根目录, 'src', 'apiDefs');
 const RESULT_FILE_PATH = join(根目录, 'sync_check_result.md');
-
-// 输出缓冲
-const 输出行: string[] = [];
 
 /** 原始 API 信息 */
 interface 原始Api {
@@ -61,23 +56,6 @@ interface 校验问题 {
     实际?: unknown;
 }
 
-/** 动态导入 apiDefs 模块 */
-async function 导入ApiDefs(filePath: string, groupName: string): Promise<ApiDef[]> {
-    try {
-        const fileUrl = pathToFileURL(filePath).href;
-        // 添加时间戳绕过缓存
-        const module = await import(`${fileUrl}?t=${Date.now()}`);
-        const varName = `${groupName}ApiDefs`;
-        if (module?.[varName] && Array.isArray(module[varName])) {
-            return module[varName];
-        }
-        return [];
-    } catch (error) {
-        // 文件不存在或解析失败
-        return [];
-    }
-}
-
 async function main() {
     // 检查 rawApiList.json 是否存在
     let rawApiList: 原始Api[];
@@ -104,25 +82,27 @@ async function main() {
     console.log('开始校验 API 定义...\n');
     const 问题列表: 校验问题[] = [];
 
-    // 获取所有 apiDefs 文件
-    let apiDefFiles: string[] = [];
-    try {
-        apiDefFiles = await readdir(API_DEFS_DIR);
-    } catch {
-        console.warn(`警告: apiDefs 目录不存在 (${API_DEFS_DIR})`);
-        console.warn('这是新项目，你需要开始迁移 API 定义\n');
+    // 从 allApiDefs 构建所有已定义的 API 映射
+    // 键: "method endpoint", 值: { def, groupName }
+    const 已定义APIs = new Map<string, { def: ApiDef; groupName: string }>();
+    for (const [groupName, defs] of Object.entries(allApiDefs)) {
+        for (const def of defs) {
+            const key = `${def.method} ${def.endpoint}`;
+            已定义APIs.set(key, { def: def as ApiDef, groupName });
+        }
     }
 
-    // 遍历每个分组
+    // 遍历每个分组检查
     for (const [groupName, rawApis] of 分组RawApis) {
-        const defFileName = `${groupName}.ts`;
+        // 检查该分组是否有定义
+        const groupDefs = allApiDefs[groupName];
 
-        if (!apiDefFiles.includes(defFileName)) {
-            // 定义文件不存在，报告所有 API 缺失
+        if (!groupDefs || groupDefs.length === 0) {
+            // 该分组没有任何定义
             问题列表.push({
                 类型: '缺失定义文件',
                 分组: groupName,
-                消息: `定义文件 ${defFileName} 不存在，该分组有 ${rawApis.length} 个 API 需要定义`,
+                消息: `分组 ${groupName} 没有 API 定义，该分组有 ${rawApis.length} 个 API 需要定义`,
             });
             for (const api of rawApis) {
                 问题列表.push({
@@ -136,13 +116,10 @@ async function main() {
             continue;
         }
 
-        // 加载定义
-        const defFilePath = join(API_DEFS_DIR, defFileName);
-        const apiDefs = await 导入ApiDefs(defFilePath, groupName);
         const 已处理端点 = new Set<string>();
 
         // 检查定义中的 API
-        for (const def of apiDefs) {
+        for (const def of groupDefs) {
             const key = `${def.method} ${def.endpoint}`;
             已处理端点.add(key);
 
@@ -292,7 +269,7 @@ async function main() {
         }
     }
 
-    const finalMsg = `\n共处理 ${分组RawApis.size} 个 API 分组`;
+    const finalMsg = `\n共处理 ${分组RawApis.size} 个 API 分组，allApiDefs 中有 ${Object.keys(allApiDefs).length} 个模块`;
     console.log(finalMsg);
     输出到文件.push(`\n---\n\n共处理 ${分组RawApis.size} 个 API 分组`);
 

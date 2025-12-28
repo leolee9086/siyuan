@@ -131,6 +131,7 @@ export const transactionsApiDefs = [
             msg: z.string().describe('错误或成功信息。成功时通常为空字符串。'),
             data: z.array(事务Schema响应).nullable().describe('成功时返回处理后的事务数组。失败或无数据时为 null。'),
         }),
+        lastVerified: '2025-12-28',
     },
 ] as const satisfies readonly Api定义[];
 

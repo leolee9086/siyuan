@@ -41,6 +41,7 @@ export const cloudApiDefs = [
         unavailableIfReadonly: false,
         zodRequestSchema: z.object({}),
         zodResponseSchema: 创建响应Schema(云空间信息Schema),
+        lastVerified: '2025-12-28',
     },
 ] as const satisfies readonly Api定义[];
 

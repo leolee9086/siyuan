@@ -63,8 +63,10 @@ export const filetreeApiDefs = [
         zodRequestSchema: z.object({
             k: z.string().describe('搜索关键词。'),
             flashcard: z.boolean().optional().describe('是否仅在包含闪卡的文档中搜索'),
+            excludeIDs: z.array(z.string()).optional().describe('排除的文档ID列表'),
         }),
         zodResponseSchema: 创建响应Schema(z.array(搜索文档结果Schema)),
+        lastVerified: '2025-12-28',
     },
 
     // ========== 文档列表 ==========
@@ -85,6 +87,7 @@ export const filetreeApiDefs = [
             maxListCount: z.number().optional().describe('最大列出数量'),
             showHidden: z.boolean().optional().describe('是否显示隐藏文件'),
             ignoreMaxListHint: z.boolean().optional().describe('是否忽略超出数量限制的提示'),
+            app: z.string().optional().describe('应用标识'),
         }),
         zodResponseSchema: 创建响应Schema(
             z.object({
@@ -93,6 +96,7 @@ export const filetreeApiDefs = [
                 files: z.array(文档文件Schema).describe('文档和子目录列表'),
             })
         ),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -115,6 +119,7 @@ export const filetreeApiDefs = [
                 })).describe('文档树结构数组'),
             })
         ),
+        lastVerified: '2025-12-28',
     },
 
     // ========== 获取文档内容 ==========
@@ -162,6 +167,7 @@ export const filetreeApiDefs = [
                 reqId: z.string().optional().describe('请求时传递的 reqId'),
             })
         ),
+        lastVerified: '2025-12-28',
     },
 
     // ========== 路径相关 ==========
@@ -183,6 +189,7 @@ export const filetreeApiDefs = [
                 path: z.string().describe('用于保存新文档的人类可读路径'),
             })
         ),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -202,6 +209,7 @@ export const filetreeApiDefs = [
                 path: z.string().describe('用于保存新块引文档的人类可读路径'),
             })
         ),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -217,6 +225,7 @@ export const filetreeApiDefs = [
             path: z.string().describe('文档的实际存储路径'),
         }),
         zodResponseSchema: 创建响应Schema(z.string()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -228,12 +237,10 @@ export const filetreeApiDefs = [
         needAdminRole: false,
         unavailableIfReadonly: false,
         zodRequestSchema: z.object({
-            paths: z.array(z.object({
-                notebook: z.string().describe('文档所在的笔记本ID'),
-                path: z.string().describe('文档的实际存储路径'),
-            })).describe('包含笔记本ID和文档路径的对象数组'),
+            paths: z.array(z.string()).describe('文档的实际存储路径列表'),
         }),
         zodResponseSchema: 创建响应Schema(z.array(z.string())),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -248,6 +255,7 @@ export const filetreeApiDefs = [
             id: z.string().describe('要查询的文档或块的ID'),
         }),
         zodResponseSchema: 创建响应Schema(z.string()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -267,6 +275,7 @@ export const filetreeApiDefs = [
                 notebook: z.string().describe('文档所在的笔记本ID'),
             })
         ),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -281,6 +290,7 @@ export const filetreeApiDefs = [
             id: z.string().describe('要查询的文档或块的ID'),
         }),
         zodResponseSchema: 创建响应Schema(z.string()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -296,6 +306,7 @@ export const filetreeApiDefs = [
             path: z.string().describe('要查询的文档的人类可读路径'),
         }),
         zodResponseSchema: 创建响应Schema(z.array(z.string())),
+        lastVerified: '2025-12-28',
     },
 
     // ========== 创建文档 ==========
@@ -321,6 +332,7 @@ export const filetreeApiDefs = [
             callback: z.string().optional().describe('回调标识'),
         }),
         zodResponseSchema: 创建响应Schema(z.string()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -341,6 +353,7 @@ export const filetreeApiDefs = [
                 id: z.string().describe('创建或获取到的日记文档的根块ID'),
             })
         ),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -366,6 +379,7 @@ export const filetreeApiDefs = [
                 closeTimeout: z.number().optional().describe('操作失败时的建议等待时间'),
             })
         ),
+        lastVerified: '2025-12-28',
     },
 
     // ========== 重命名文档 ==========
@@ -384,6 +398,7 @@ export const filetreeApiDefs = [
             title: z.string().describe('文档的新标题'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -399,6 +414,7 @@ export const filetreeApiDefs = [
             title: z.string().describe('文档的新标题'),
         }),
         zodResponseSchema: 创建响应Schema(操作结果Schema.nullable()),
+        lastVerified: '2025-12-28',
     },
 
     // ========== 删除文档 ==========
@@ -416,6 +432,7 @@ export const filetreeApiDefs = [
             path: z.string().describe('要移除的文档的相对路径'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -430,6 +447,7 @@ export const filetreeApiDefs = [
             id: z.string().describe('要移除的文档的ID'),
         }),
         zodResponseSchema: 创建响应Schema(操作结果Schema.nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -444,6 +462,7 @@ export const filetreeApiDefs = [
             paths: z.array(z.string()).describe('要移除的文档的复合路径数组'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
 
     // ========== 移动文档 ==========
@@ -463,6 +482,7 @@ export const filetreeApiDefs = [
             callback: z.string().optional().describe('回调标识'),
         }),
         zodResponseSchema: 创建响应Schema(操作结果Schema.nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -479,6 +499,7 @@ export const filetreeApiDefs = [
             callback: z.string().optional().describe('回调标识'),
         }),
         zodResponseSchema: 创建响应Schema(操作结果Schema.nullable()),
+        lastVerified: '2025-12-28',
     },
 
     // ========== 复制文档 ==========
@@ -505,6 +526,7 @@ export const filetreeApiDefs = [
                 closeTimeout: z.number().optional().describe('操作失败时的建议等待时间'),
             })
         ),
+        lastVerified: '2025-12-28',
     },
 
     // ========== 文档转换 ==========
@@ -529,6 +551,7 @@ export const filetreeApiDefs = [
                 closeTimeout: z.number().optional().describe('操作失败时的建议等待时间'),
             })
         ),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -546,13 +569,8 @@ export const filetreeApiDefs = [
             previousPath: z.string().optional().describe('用于指定新文档在文档树中的排序位置'),
             callback: z.string().optional().describe('回调标识'),
         }),
-        zodResponseSchema: 创建响应Schema(
-            z.object({
-                srcRootBlockID: z.string().describe('转换后新文档的根块ID'),
-                path: z.string().describe('新文档在目标笔记本中的实际存储路径'),
-                closeTimeout: z.number().optional().describe('操作失败时的建议等待时间'),
-            })
-        ),
+        zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -570,13 +588,8 @@ export const filetreeApiDefs = [
             previousPath: z.string().optional().describe('用于指定新文档在文档树中的排序位置'),
             callback: z.string().optional().describe('回调标识'),
         }),
-        zodResponseSchema: 创建响应Schema(
-            z.object({
-                srcRootBlockID: z.string().describe('转换后新文档的根块ID'),
-                path: z.string().describe('新文档在目标笔记本中的实际存储路径'),
-                closeTimeout: z.number().optional().describe('操作失败时的建议等待时间'),
-            })
-        ),
+        zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
 
     // ========== 排序和索引 ==========
@@ -594,6 +607,7 @@ export const filetreeApiDefs = [
             paths: z.array(z.string()).describe('需要调整排序的文档路径列表'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -608,6 +622,7 @@ export const filetreeApiDefs = [
             paths: z.array(z.string()).describe('需要更新索引的文档绝对路径列表'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -622,6 +637,7 @@ export const filetreeApiDefs = [
             paths: z.array(z.string()).describe('需要移除索引的文档绝对路径列表'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
 
     // ========== 其他 ==========
@@ -640,6 +656,7 @@ export const filetreeApiDefs = [
             parentID: z.string().optional().describe('可选的目标父文档ID'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -652,6 +669,7 @@ export const filetreeApiDefs = [
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({}),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
 ] as const satisfies readonly Api定义[];
 

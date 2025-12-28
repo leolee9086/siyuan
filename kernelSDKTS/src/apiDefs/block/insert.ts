@@ -137,6 +137,7 @@ export const insertApiDefs = [
             notebook: z.string().describe('目标笔记本的 ID'),
         }),
         zodResponseSchema: 创建响应Schema(插入块结果Schema),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -152,6 +153,7 @@ export const insertApiDefs = [
             dataType: 数据类型Schema.describe('指定 data 参数的类型'),
             notebook: z.string().describe('目标笔记本的 ID'),
         }),
-        zodResponseSchema: 创建响应Schema(z.any().nullable()),
+        zodResponseSchema: 创建响应Schema(插入块结果Schema),
+        lastVerified: '2025-12-28',
     },
 ] as const satisfies readonly Api定义[];

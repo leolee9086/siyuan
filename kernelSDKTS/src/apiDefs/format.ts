@@ -21,6 +21,7 @@ export const formatApiDefs = [
             id: z.string().describe('要处理的块 ID'),
         }),
         zodResponseSchema: 标准空响应,
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -35,6 +36,7 @@ export const formatApiDefs = [
             id: z.string().describe('要处理的块 ID'),
         }),
         zodResponseSchema: 标准空响应,
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -47,9 +49,10 @@ export const formatApiDefs = [
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({
             id: z.string().describe('要处理的块 ID'),
-            url: z.string().url().optional().describe('可选。只转存指定 URL 的图片，留空则转存全部'),
+            url: z.string().optional().describe('可选。只转存指定 URL 的图片，留空则转存全部'),
         }),
         zodResponseSchema: 标准空响应,
+        lastVerified: '2025-12-28',
     },
 ] as const satisfies readonly Api定义[];
 

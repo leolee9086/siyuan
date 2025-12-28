@@ -26,6 +26,7 @@ export const extensionApiDefs = [
                 withMath: z.boolean().describe('是否包含数学公式 (KaTeX)'),
             }).nullable()
         ),
+        lastVerified: '2025-12-28',
     },
 ] as const satisfies readonly Api定义[];
 

@@ -19,6 +19,7 @@ export const aiApiDefs = [
             msg: z.string().describe('发送给 ChatGPT 的消息内容'),
         }),
         zodResponseSchema: 创建响应Schema(z.string().describe('ChatGPT 的回复内容')),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -34,6 +35,7 @@ export const aiApiDefs = [
             action: z.string().describe('要执行的动作指令'),
         }),
         zodResponseSchema: 创建响应Schema(z.string().describe('ChatGPT 执行动作后的返回结果')),
+        lastVerified: '2025-12-28',
     },
 ] as const satisfies readonly Api定义[];
 

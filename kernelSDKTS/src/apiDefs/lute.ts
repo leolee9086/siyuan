@@ -17,8 +17,13 @@ export const luteApiDefs = [
         unavailableIfReadonly: false,
         zodRequestSchema: z.object({
             id: z.string().describe('要导出内容的块的ID'),
+            assetsDestSpace2Underscore: z.boolean().optional().describe('是否将资源文件名中的空格替换为下划线'),
+            fillCSSVar: z.boolean().optional().describe('是否填充 CSS 变量'),
+            adjustHeadingLevel: z.boolean().optional().describe('是否调整标题层级'),
+            imgTag: z.boolean().optional().describe('是否使用 img 标签而非 Markdown 语法'),
         }),
         zodResponseSchema: 创建响应Schema(z.string().describe('导出的标准 Markdown 内容')),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -33,6 +38,7 @@ export const luteApiDefs = [
             dom: z.string().describe('要转换的 HTML 字符串'),
         }),
         zodResponseSchema: 创建响应Schema(z.string().describe('转换后的块级 DOM (HTML 格式的字符串)')),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -51,6 +57,7 @@ export const luteApiDefs = [
                 dom: z.string().describe('经过 SpinBlockDOM 处理后的块级 DOM 字符串'),
             })
         ),
+        lastVerified: '2025-12-28',
     },
 ] as const satisfies readonly Api定义[];
 

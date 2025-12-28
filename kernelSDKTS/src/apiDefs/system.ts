@@ -10,7 +10,6 @@ import { 创建响应Schema } from './types';
  */
 const BootProgressSchema = z.object({
     progress: z.number().describe('启动进度百分比'),
-    state: z.number().describe('当前启动状态码'),
     details: z.string().describe('当前启动状态的详细描述'),
 });
 
@@ -31,6 +30,15 @@ const WorkspaceSchema = z.object({
 const SysFontSchema = z.object({
     label: z.string().describe('字体名称，用于显示'),
     value: z.string().describe('字体族名称，用于 CSS'),
+});
+
+/**
+ * 网络代理配置 Schema
+ */
+const NetworkProxySchema = z.object({
+    scheme: z.string().describe('代理协议，如 http, socks5'),
+    host: z.string().describe('代理服务器地址'),
+    port: z.string().describe('代理端口'),
 });
 
 /**
@@ -77,6 +85,7 @@ export const systemApiDefs = [
         unavailableIfReadonly: false,
         zodRequestSchema: z.object({}),
         zodResponseSchema: 创建响应Schema(BootProgressSchema.nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'GET',
@@ -89,6 +98,7 @@ export const systemApiDefs = [
         unavailableIfReadonly: false,
         zodRequestSchema: z.object({}),
         zodResponseSchema: 创建响应Schema(z.string().describe('版本号字符串')),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -113,6 +123,7 @@ export const systemApiDefs = [
         unavailableIfReadonly: false,
         zodRequestSchema: z.object({}),
         zodResponseSchema: 创建响应Schema(z.number().describe('Unix 时间戳 (毫秒)')),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -127,6 +138,7 @@ export const systemApiDefs = [
             pid: z.number().int().optional().describe('UI 进程的 PID'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -154,6 +166,7 @@ export const systemApiDefs = [
         unavailableIfReadonly: false,
         zodRequestSchema: z.object({}),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'GET',
@@ -180,6 +193,7 @@ export const systemApiDefs = [
         unavailableIfReadonly: false,
         zodRequestSchema: z.object({}),
         zodResponseSchema: 创建响应Schema(z.array(EmojiGroupSchema)),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -203,7 +217,14 @@ export const systemApiDefs = [
         needAdminRole: false,
         unavailableIfReadonly: false,
         zodRequestSchema: z.object({}),
-        zodResponseSchema: 创建响应Schema(z.any().describe('完整配置对象')),
+        zodResponseSchema: 创建响应Schema(
+            z.object({
+                conf: z.any().describe('完整配置对象'),
+                start: z.boolean().describe('UI 是否已加载'),
+                isPublish: z.boolean().describe('是否发布模式'),
+            })
+        ),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -221,6 +242,7 @@ export const systemApiDefs = [
                 html: z.string().describe('更新日志的 HTML 内容'),
             })
         ),
+        lastVerified: '2025-12-28',
     },
 
     // === 需要管理员权限的 API ===
@@ -237,6 +259,7 @@ export const systemApiDefs = [
             token: z.string().describe('新的 API 令牌，空字符串表示清空'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -248,10 +271,10 @@ export const systemApiDefs = [
         needAdminRole: true,
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({
-            code: z.string().describe('新的授权码，空字符串表示清空'),
-            permanent: z.boolean().optional().describe('是否永久有效'),
+            accessAuthCode: z.string().describe('新的授权码，空字符串表示清空'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -263,9 +286,10 @@ export const systemApiDefs = [
         needAdminRole: true,
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({
-            follow: z.boolean().describe('是否跟随系统锁屏'),
+            lockScreenMode: z.number().int().describe('锁屏模式: 0=跟随系统, 1=手动, 2=禁用'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -277,11 +301,10 @@ export const systemApiDefs = [
         needAdminRole: true,
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({
-            serve: z.boolean().describe('是否启用网络服务'),
-            port: z.string().describe('端口号'),
-            accessPermission: z.string().describe('访问权限：lan/wan/localhost'),
+            networkServe: z.boolean().describe('是否允许远程访问'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -293,9 +316,10 @@ export const systemApiDefs = [
         needAdminRole: true,
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({
-            autoLaunch: z.boolean().describe('是否开机自启动'),
+            autoLaunch: z.number().int().describe('开机自启动模式: 0=禁用, 1=启用, 2=后台启动'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -321,9 +345,12 @@ export const systemApiDefs = [
         needAdminRole: true,
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({
-            proxy: z.string().describe('代理服务器地址，空字符串表示清除'),
+            scheme: z.string().describe('代理协议，如 http, socks5'),
+            host: z.string().describe('代理服务器地址'),
+            port: z.string().describe('代理端口'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -423,7 +450,12 @@ export const systemApiDefs = [
         zodRequestSchema: z.object({
             mode: z.number().int().min(0).max(1).describe('0=亮色，1=暗色'),
         }),
-        zodResponseSchema: 创建响应Schema(z.null()),
+        zodResponseSchema: 创建响应Schema(
+            z.object({
+                appearance: z.any().describe('更新后的外观配置对象'),
+            })
+        ),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -435,9 +467,10 @@ export const systemApiDefs = [
         needAdminRole: true,
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({
-            layout: z.string().describe('布局模式标识符'),
+            layout: z.any().describe('UI 布局配置对象'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -450,6 +483,7 @@ export const systemApiDefs = [
         unavailableIfReadonly: false,
         zodRequestSchema: z.object({}),
         zodResponseSchema: 创建响应Schema(z.array(SysFontSchema)),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -460,8 +494,17 @@ export const systemApiDefs = [
         needAuth: true,
         needAdminRole: true,
         unavailableIfReadonly: false,
-        zodRequestSchema: z.object({}),
-        zodResponseSchema: 创建响应Schema(z.null()),
+        zodRequestSchema: z.object({
+            force: z.boolean().optional().describe('是否强制退出，忽略同步状态'),
+            execInstallPkg: z.number().int().optional().describe('0=默认检查新版本, 1=不执行安装, 2=执行安装'),
+            setCurrentWorkspace: z.boolean().optional().describe('是否设置当前工作空间'),
+        }),
+        zodResponseSchema: 创建响应Schema(
+            z.object({
+                closeTimeout: z.number().optional().describe('关闭超时时间'),
+            }).nullable()
+        ),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -505,9 +548,10 @@ export const systemApiDefs = [
         zodRequestSchema: z.object({}),
         zodResponseSchema: 创建响应Schema(
             z.object({
-                proxy: z.string().describe('代理服务器配置'),
+                proxy: NetworkProxySchema.describe('代理服务器配置'),
             })
         ),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -521,10 +565,11 @@ export const systemApiDefs = [
         zodRequestSchema: z.object({}),
         zodResponseSchema: 创建响应Schema(
             z.object({
-                path: z.string().describe('配置文件所在目录'),
                 name: z.string().describe('配置文件名'),
+                zip: z.string().describe('压缩文件的相对路径'),
             })
         ),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -540,6 +585,7 @@ export const systemApiDefs = [
             file: z.any().describe('conf.json 文件'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -557,6 +603,7 @@ export const systemApiDefs = [
                 siyuanVer: z.string().describe('思源版本号'),
             })
         ),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -569,6 +616,7 @@ export const systemApiDefs = [
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({}),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -581,6 +629,7 @@ export const systemApiDefs = [
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({}),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -593,6 +642,7 @@ export const systemApiDefs = [
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({}),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -605,6 +655,7 @@ export const systemApiDefs = [
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({}),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -617,6 +668,7 @@ export const systemApiDefs = [
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({}),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
 ] as const satisfies readonly Api定义[];
 

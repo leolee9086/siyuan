@@ -6,6 +6,7 @@
 import { z } from 'zod';
 import type { Api定义 } from '../../client/types';
 import { 创建响应Schema } from '../types';
+import { 插入块结果Schema } from './schemas';
 
 export const deleteAndMoveApiDefs = [
     {
@@ -20,7 +21,7 @@ export const deleteAndMoveApiDefs = [
         zodRequestSchema: z.object({
             id: z.string().describe('要删除的块 ID'),
         }),
-        zodResponseSchema: 创建响应Schema(z.any().nullable()),
+        zodResponseSchema: 创建响应Schema(插入块结果Schema),
         lastVerified: '2025-12-28',
     },
     {
@@ -37,7 +38,7 @@ export const deleteAndMoveApiDefs = [
             parentID: z.string().optional().describe('新的父块 ID'),
             previousID: z.string().optional().describe('新的前一个同级块的 ID'),
         }),
-        zodResponseSchema: 创建响应Schema(z.null()),
+        zodResponseSchema: 创建响应Schema(插入块结果Schema),
         lastVerified: '2025-12-28',
     },
     {
@@ -54,7 +55,7 @@ export const deleteAndMoveApiDefs = [
             parentID: z.string().optional().describe('新的父块 ID'),
             previousID: z.string().optional().describe('新的前一个同级标题块的 ID'),
         }),
-        zodResponseSchema: 创建响应Schema(z.any().nullable()),
+        zodResponseSchema: 创建响应Schema(插入块结果Schema),
         lastVerified: '2025-12-28',
     },
     // 折叠/展开
@@ -70,7 +71,7 @@ export const deleteAndMoveApiDefs = [
         zodRequestSchema: z.object({
             id: z.string().describe('要折叠的块 ID'),
         }),
-        zodResponseSchema: 创建响应Schema(z.any().nullable()),
+        zodResponseSchema: 创建响应Schema(插入块结果Schema),
         lastVerified: '2025-12-28',
     },
     {
@@ -85,7 +86,7 @@ export const deleteAndMoveApiDefs = [
         zodRequestSchema: z.object({
             id: z.string().describe('要展开的块 ID'),
         }),
-        zodResponseSchema: 创建响应Schema(z.any().nullable()),
+        zodResponseSchema: 创建响应Schema(插入块结果Schema),
         lastVerified: '2025-12-28',
     },
 ] as const satisfies readonly Api定义[];

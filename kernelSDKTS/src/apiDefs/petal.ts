@@ -30,6 +30,7 @@ export const petalApiDefs = [
             frontend: z.string().describe("必需。指定前端界面，如 'desktop', 'mobile'"),
         }),
         zodResponseSchema: 创建响应Schema(z.array(插件Schema).nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -44,6 +45,7 @@ export const petalApiDefs = [
             packageName: z.string().describe('必需。插件的包名'),
             enabled: z.boolean().describe('必需。true 启用，false 禁用'),
             frontend: z.string().describe("必需。前端界面，如 'desktop', 'mobile'"),
+            app: z.string().optional().describe('可选。应用标识'),
         }),
         zodResponseSchema: 创建响应Schema(
             z.object({
@@ -53,6 +55,7 @@ export const petalApiDefs = [
                 incompatible: z.boolean(),
             }).nullable()
         ),
+        lastVerified: '2025-12-28',
     },
 ] as const satisfies readonly Api定义[];
 

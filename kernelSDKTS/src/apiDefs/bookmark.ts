@@ -51,6 +51,7 @@ export const bookmarkApiDefs = [
         zodResponseSchema: 创建响应Schema(
             z.array(书签分组Schema).describe('书签数据数组，每个元素是一个书签分组及其包含的书签块列表')
         ),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -65,6 +66,7 @@ export const bookmarkApiDefs = [
             bookmark: z.string().describe('要移除的书签的名称 (块 IAL 中 bookmark 属性的值)'),
         }),
         zodResponseSchema: 操作响应Schema,
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -80,6 +82,7 @@ export const bookmarkApiDefs = [
             newBookmark: z.string().describe('新的书签名称 (将写入块 IAL 中 bookmark 属性的新值)'),
         }),
         zodResponseSchema: 操作响应Schema,
+        lastVerified: '2025-12-28',
     },
 ] as const satisfies readonly Api定义[];
 

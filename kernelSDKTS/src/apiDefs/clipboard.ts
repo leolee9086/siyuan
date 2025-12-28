@@ -19,6 +19,7 @@ export const clipboardApiDefs = [
         zodResponseSchema: 创建响应Schema(
             z.array(z.string()).describe('从剪贴板中读取到的文件绝对路径列表。如果剪贴板中不是文件路径，或在 Linux 等受限情况下，可能返回空数组。')
         ),
+        lastVerified: '2025-12-28',
     },
 ] as const satisfies readonly Api定义[];
 

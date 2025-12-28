@@ -24,6 +24,7 @@ export const convertApiDefs = [
                 path: z.string().describe('转换后输出文件的路径'),
             })
         ),
+        lastVerified: '2025-12-28',
     },
 ] as const satisfies readonly Api定义[];
 
