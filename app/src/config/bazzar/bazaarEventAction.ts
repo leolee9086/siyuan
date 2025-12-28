@@ -2,7 +2,7 @@ import { hasClosestByAttribute } from "../../protyle/util/hasClosest";
 import { App } from "../../index";
 import { handleBazaarInstallClick } from "./bazaarInstallHandlers";
 import { handleBazaarNavClick, handleBazaarUIInteraction } from "./bazaarUIHandlers";
-import { IBazaar, IBazaarDataObj } from "./interfaces";
+import { IBazaar, IBazaarDataObj } from "./types";
 
 export function handleBazaarClick(event: MouseEvent, bazaar: IBazaar, app: App) {
     let target = event.target as HTMLElement;

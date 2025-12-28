@@ -6,7 +6,7 @@ import { setStorageVal } from "../../protyle/util/compatibility";
 import { hasClosestByClassName } from "../../protyle/util/hasClosest";
 import { App } from "../../index";
 import { handleBazaarClick } from "./bazaarEventAction";
-import { IBazaar, IBazaarDataObj } from "./interfaces";
+import { IBazaar, IBazaarDataObj } from "./types";
 
 export const bindBazaarEvent = (bazaar: IBazaar, app: App) => {
     if (!getSiyuanConfig().bazaar.trust) {

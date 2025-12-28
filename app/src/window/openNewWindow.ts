@@ -9,17 +9,9 @@ import { showMessage } from "../dialog/message";
 import { getDisplayName, pathPosix } from "../util/pathName";
 import { getSearch } from "../util/functions";
 import { getLocationProtocol, getLocationHost } from "../util/siyuanEnvironments/windowLocation.environment";
+import type { WindowOptions, AssetTabConfig } from "./openNewWindow.types";
 
-interface windowOptions {
-    position?: {
-        x: number,
-        y: number,
-    },
-    width?: number,
-    height?: number
-}
-
-export const openNewWindow = (tab: Tab, options: windowOptions = {}) => {
+export const openNewWindow = (tab: Tab, options: WindowOptions = {}) => {
     const json = {};
     layoutToJSON(tab, json);
     /// #if !BROWSER
@@ -34,7 +26,7 @@ export const openNewWindow = (tab: Tab, options: windowOptions = {}) => {
     tab.parent.removeTab(tab.id);
 };
 
-export const openNewWindowById = async (id: string | string[], options: windowOptions = {}) => {
+export const openNewWindowById = async (id: string | string[], options: WindowOptions = {}) => {
     let ids = id;
     if (typeof ids === "string") {
         ids = [ids];
@@ -86,12 +78,12 @@ const getAssetDocIcon = (suffix: string): string => {
     return "iconPDF";
 };
 
-export const openAssetNewWindow = (assetPath: string, options: windowOptions = {}) => {
+export const openAssetNewWindow = (assetPath: string, options: WindowOptions = {}) => {
     /// #if !BROWSER
     const suffix = pathPosix().extname(assetPath).split("?")[0] ?? "";
     if (Constants.SIYUAN_ASSETS_EXTS.includes(suffix)) {
         const docIcon = getAssetDocIcon(suffix);
-        const json: any = [{
+        const json: AssetTabConfig[] = [{
             title: getDisplayName(assetPath),
             docIcon,
             pin: false,

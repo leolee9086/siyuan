@@ -11,7 +11,7 @@ import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environme
 import * as path from "path";
 /// #endif
 
-import { IBazaar, IBazaarDataObj } from "./interfaces";
+import { IBazaar, IBazaarDataObj } from "./types";
 
 export const handleOpen = (dataObj: IBazaarDataObj) => {
     /// #if !BROWSER
@@ -66,7 +66,9 @@ export const handleTabSwitch = (target: HTMLElement, type: string, bazaar: IBaza
     bazaar.element?.querySelector(".layout-tab-bar .item--focus")?.classList.remove("item--focus");
     target.classList.add("item--focus");
     const panels = bazaar.element?.querySelectorAll(".config-bazaar__panel");
-    if (!panels) return;
+    if (!panels) {
+return;
+}
     for (const panel of panels) {
         const item = panel as HTMLElement;
         if (type !== item.getAttribute("data-type")) {
