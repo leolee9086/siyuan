@@ -7,8 +7,8 @@ export const render = (element: HTMLElement, src: string) => {
     // 清空容器
     element.innerHTML = "";
     const ImageViewerBinded = withProps(() => {
- return { src }; 
-})(ImageViewer);
+        return { src };
+    })(ImageViewer);
     createVueComponentLoader(
         element,
         {

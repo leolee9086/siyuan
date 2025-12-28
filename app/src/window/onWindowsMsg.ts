@@ -4,6 +4,7 @@ import { fetchPost } from "../util/fetch";
 import { redirectToCheckAuth } from "../util/pathName";
 import { isWindow } from "../util/functions";
 import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { isElectronStyle } from "./setHeader.guard";
 
 const closeTab = (ipcData: IWebSocketData) => {
     const tab = getInstanceById(ipcData.data);
@@ -27,11 +28,14 @@ const handleResetTabsStyle = (ipcData: IWebSocketData) => {
     }
     for (const item of document.querySelectorAll<HTMLElement>(".layout-tab-bar--readonly .fn__flex-1")) {
         const isTopMost = item.getBoundingClientRect().top <= 0;
-        if (isTopMost && ipcData.data === "addRegionStyle") {
-            (item.style as CSSStyleDeclarationElectron).WebkitAppRegion = "drag";
+        if (!isTopMost || !isElectronStyle(item.style)) {
+            continue;
         }
-        if (isTopMost && ipcData.data === "removeRegionStyle") {
-            (item.style as CSSStyleDeclarationElectron).WebkitAppRegion = "";
+        if (ipcData.data === "addRegionStyle") {
+            item.style.WebkitAppRegion = "drag";
+        }
+        if (ipcData.data === "removeRegionStyle") {
+            item.style.WebkitAppRegion = "";
         }
     }
 };

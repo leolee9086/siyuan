@@ -11,15 +11,17 @@ import { getSearch } from "../util/functions";
 import { initWindow } from "../boot/onGetConfig";
 import { App } from "../index";
 import { afterLoadPlugin } from "../plugin/loader";
-import { Tab } from "../layout/Tab";
 import { initWindowEvent } from "../boot/globalEvent/event";
 import { getSiyuanConfig, getSiyuanLayout, getSiyuanStorage, setSiyuanEmojis, setSiyuanLayoutCenterLayout } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { windowAddEventListener, clearTimeout, setTimeout } from "../util/siyuanEnvironments/windowTimer.environment";
 import { getAllEditor } from "../layout/getAll";
+import { isEmojiArray, isTab } from "./init.guard";
 
 /** 处理获取Emoji配置的响应 */
 const handleEmojiConfResponse = (app: App, response: IWebSocketData) => {
-    setSiyuanEmojis(response.data as IEmoji[]);
+    if (isEmojiArray(response.data)) {
+        setSiyuanEmojis(response.data);
+    }
 
     const layout = JSON.parse(sessionStorage.getItem("layout") || "{}");
     if (layout.layout) {
@@ -51,11 +53,12 @@ const handleEmojiConfResponse = (app: App, response: IWebSocketData) => {
 const resize = () => {
     adjustLayout(getSiyuanLayout().centerLayout);
     resizeTabs();
-    if (getSelection().rangeCount > 0) {
-        const range = getSelection().getRangeAt(0);
+    const selection = getSelection();
+    if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
         for (const item of getAllEditor()) {
-            if (item.protyle.wysiwyg.element.contains(range.startContainer)) {
-                item.protyle.toolbar.render(item.protyle, range);
+            if (item.protyle.wysiwyg?.element.contains(range.startContainer)) {
+                item.protyle.toolbar?.render(item.protyle, range);
             }
         }
     }
@@ -93,7 +96,9 @@ const afterLayout = (app: App) => {
     }
     const tabHeaders = document.querySelectorAll<HTMLLIElement>('li[data-type="tab-header"][data-init-active="true"]');
     for (const item of tabHeaders) {
-        const tab = getInstanceById(item.getAttribute("data-id") || "") as Tab;
-        tab.parent.switchTab(item, false, false);
+        const tab = getInstanceById(item.getAttribute("data-id") || "");
+        if (isTab(tab)) {
+            tab.parent.switchTab(item, false, false);
+        }
     }
 };
