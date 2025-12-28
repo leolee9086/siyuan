@@ -15,20 +15,24 @@ import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.enviro
 import { getSiyuanGlobalMenusMenu } from "../../../util/siyuanEnvironments/getMenu.environment";
 import { getSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getWindowJSAndroid, getWindowJSHarmony } from "../../../util/siyuanEnvironments/windowNative.environment";
+import { isOperations, isHTMLElement } from "../dock.guard";
 import type { Outline } from "./Outline";
 
 /** 获取 Protyle 和块元素 */
 export function getProtyleAndBlockElement(this: Outline, element: HTMLElement) {
     const id = element.getAttribute("data-node-id");
-    let protyle: IProtyle, blockElement: HTMLElement;
-    getAllModels().editor.find(editItem => {
-        if (editItem.editor.protyle.block.rootID === this.blockId) {
-            protyle = editItem.editor.protyle;
-            blockElement = protyle.wysiwyg.element.querySelector(`[data-node-id="${id}"]`);
-            return true;
-        }
-    });
-    if (!protyle || !blockElement) return;
+    const editItem = getAllModels().editor.find(editItem => editItem.editor.protyle.block.rootID === this.blockId);
+    if (!editItem) {
+        return;
+    }
+    const protyle = editItem.editor.protyle;
+    if (!protyle.wysiwyg) {
+        return;
+    }
+    const blockElement = protyle.wysiwyg.element.querySelector(`[data-node-id="${id}"]`);
+    if (!blockElement || !isHTMLElement(blockElement)) {
+        return;
+    }
     return { protyle, blockElement };
 }
 
@@ -37,11 +41,15 @@ const 处理标题级别变换响应 = (protyle: IProtyle, responseData: { doOpe
     for (const op of responseData.doOperations) {
         const elements = protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${op.id}"]`);
         for (const el of elements) {
-            (el as HTMLElement).outerHTML = op.data;
+            if (isHTMLElement(el)) {
+                el.outerHTML = op.data;
+            }
         }
         const newElements = protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${op.id}"]`);
         for (const el of newElements) {
-            mathRender(el as HTMLElement);
+            if (isHTMLElement(el)) {
+                mathRender(el);
+            }
         }
     }
     const firstOp = responseData.doOperations[0];
@@ -58,16 +66,11 @@ export function genHeadingTransform(this: Outline, id: string, level: number) {
         id: "heading" + level, iconHTML: "", icon: "iconHeading" + level,
         label: siyuanI18n["heading" + level],
         click: () => {
-            let protyle: IProtyle | undefined = undefined;
-            getAllModels().editor.find(editItem => {
-                if (editItem.editor.protyle.block.rootID === this.blockId) {
-                    protyle = editItem.editor.protyle;
-                    return true;
-                }
-            });
-            if (!protyle) {
+            const editItem = getAllModels().editor.find(editItem => editItem.editor.protyle.block.rootID === this.blockId);
+            if (!editItem) {
                 return;
             }
+            const protyle = editItem.editor.protyle;
             fetchPost("/api/block/getHeadingLevelTransaction", { id, level }, (response) => {
                 if (!protyle || !response.data) {
                     return;
@@ -131,21 +134,53 @@ const 创建插入同级标题后处理器 = (
     currentLevel: number
 ) => (response: IWebSocketData) => {
     const data = 获取Protyle和块元素();
-    if (!data || !response.data) {
+    if (!data || !response.data || !isOperations(response.data.doOperations)) {
         return;
     }
-    const doOps = response.data.doOperations as IOperation[];
+    const doOps = response.data.doOperations;
     const lastOp = doOps[doOps.length - 1];
     const previousID = lastOp.id;
     const newId = Lute.NewNodeID(), html = genHeadingHTML(currentLevel, newId);
     transaction(data.protyle, [{ action: "insert", data: html, id: newId, previousID }], [{ action: "delete", id: newId }]);
     const prevEl = data.protyle.wysiwyg.element.querySelector(`[data-node-id="${previousID}"]`);
-    if (!prevEl) return;
+    if (!prevEl) {
+        return;
+    }
     prevEl.insertAdjacentHTML("afterend", html);
     const nextEl = prevEl.nextElementSibling;
     if (nextEl) {
         nextEl.scrollIntoView();
         focusByWbr(nextEl, document.createRange());
+    }
+};
+
+/** 创建添加子标题的响应处理器 */
+const 创建添加子标题响应处理器 = (
+    获取Protyle和块元素: () => { protyle: IProtyle; blockElement: HTMLElement } | undefined,
+    currentLevel: number
+) => (delResp: IWebSocketData) => {
+    let previousID = delResp.data.doOperations[delResp.data.doOperations.length - 1].id;
+    const idx = delResp.data.undoOperations.findIndex((op: IOperation) => {
+        const si = op.data.indexOf(' data-subtype="h');
+        return si > -1 && si < 260 && parseInt(op.data.substring(si + 16, si + 17)) === currentLevel + 1;
+    });
+    if (idx > -1) {
+        previousID = delResp.data.undoOperations[idx - 1].id;
+    }
+    const data = 获取Protyle和块元素();
+    if (!data) {
+        return;
+    }
+    const newId = Lute.NewNodeID(), html = genHeadingHTML(currentLevel + 1, newId);
+    transaction(data.protyle, [{ action: "insert", data: html, id: newId, previousID }], [{ action: "delete", id: newId }]);
+    const prevEl = data.protyle.wysiwyg.element.querySelector(`[data-node-id="${previousID}"]`);
+    if (prevEl) {
+        prevEl.insertAdjacentHTML("afterend", html);
+        const nextEl = prevEl.nextElementSibling;
+        if (nextEl) {
+            nextEl.scrollIntoView();
+            focusByWbr(nextEl, document.createRange());
+        }
     }
 };
 
@@ -178,26 +213,20 @@ export function appendInsertMenuItems(this: Outline, element: HTMLElement, id: s
         getSiyuanGlobalMenusMenu().append(new MenuItem({
             id: "addChildHeading", icon: "iconAdd", label: siyuanI18n.addChildHeading,
             click: () => {
-                fetchPost("/api/block/getHeadingDeleteTransaction", { id }, (delResp) => {
-                    let previousID = delResp.data.doOperations[delResp.data.doOperations.length - 1].id;
-                    delResp.data.undoOperations.find((op: IOperation, idx: number) => {
-                        const si = op.data.indexOf(' data-subtype="h');
-                        if (si > -1 && si < 260 && parseInt(op.data.substring(si + 16, si + 17)) === currentLevel + 1) { previousID = delResp.data.undoOperations[idx - 1].id; return true; }
-                    });
-                    const data = this.getProtyleAndBlockElement(element), newId = Lute.NewNodeID(), html = genHeadingHTML(currentLevel + 1, newId);
-                    transaction(data.protyle, [{ action: "insert", data: html, id: newId, previousID }], [{ action: "delete", id: newId }]);
-                    const prevEl = data.protyle.wysiwyg.element.querySelector(`[data-node-id="${previousID}"]`);
-                    if (prevEl) { prevEl.insertAdjacentHTML("afterend", html); prevEl.nextElementSibling.scrollIntoView(); focusByWbr(prevEl.nextElementSibling, document.createRange()); }
-                });
+                fetchPost("/api/block/getHeadingDeleteTransaction", { id }, 创建添加子标题响应处理器(() => this.getProtyleAndBlockElement(element), currentLevel));
             }
         }).element);
     }
 }
 
 const writeClipboard = (protyle: IProtyle, respData: string) => {
-    if (isInAndroid()) getWindowJSAndroid()?.writeHTMLClipboard(protyle.lute.BlockDOM2StdMd(respData).trimEnd(), respData + Constants.ZWSP);
-    else if (isInHarmony()) getWindowJSHarmony()?.writeHTMLClipboard(protyle.lute.BlockDOM2StdMd(respData).trimEnd(), respData + Constants.ZWSP);
-    else writeText(respData + Constants.ZWSP);
+    if (isInAndroid()) {
+        getWindowJSAndroid()?.writeHTMLClipboard(protyle.lute.BlockDOM2StdMd(respData).trimEnd(), respData + Constants.ZWSP);
+    } else if (isInHarmony()) {
+        getWindowJSHarmony()?.writeHTMLClipboard(protyle.lute.BlockDOM2StdMd(respData).trimEnd(), respData + Constants.ZWSP);
+    } else {
+        writeText(respData + Constants.ZWSP);
+    }
 };
 
 const handleEmptyContent = (protyle: IProtyle, doOps: IOperation[], undoOps: IOperation[]) => {
@@ -216,7 +245,9 @@ export function appendClipboardMenuItems(this: Outline, element: HTMLElement, id
         id: "copyHeadings1", icon: "iconCopy", label: `${siyuanI18n.copy} ${siyuanI18n.headings1}`,
         click: () => {
             const data = this.getProtyleAndBlockElement(element);
-            fetchPost("/api/block/getHeadingChildrenDOM", { id, removeFoldAttr: data.blockElement.getAttribute("fold") !== "1" }, (resp) => { writeClipboard(data.protyle, resp.data); });
+            fetchPost("/api/block/getHeadingChildrenDOM", { id, removeFoldAttr: data.blockElement.getAttribute("fold") !== "1" }, (resp) => {
+                writeClipboard(data.protyle, resp.data);
+            });
         }
     }).element);
     if (!getSiyuanConfig().readonly) {
@@ -227,7 +258,9 @@ export function appendClipboardMenuItems(this: Outline, element: HTMLElement, id
                 fetchPost("/api/block/getHeadingChildrenDOM", { id, removeFoldAttr: data.blockElement.getAttribute("fold") !== "1" }, (resp) => {
                     writeClipboard(data.protyle, resp.data);
                     fetchPost("/api/block/getHeadingDeleteTransaction", { id }, (delResp) => {
-                        delResp.data.doOperations.forEach((op: IOperation) => { data.protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${op.id}"]`).forEach((el: HTMLElement) => el.remove()); });
+                        delResp.data.doOperations.forEach((op: IOperation) => {
+                            data.protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${op.id}"]`).forEach((el: HTMLElement) => el.remove());
+                        });
                         handleEmptyContent(data.protyle, delResp.data.doOperations, delResp.data.undoOperations);
                         transaction(data.protyle, delResp.data.doOperations, delResp.data.undoOperations);
                     });
@@ -239,7 +272,9 @@ export function appendClipboardMenuItems(this: Outline, element: HTMLElement, id
             click: () => {
                 const data = this.getProtyleAndBlockElement(element);
                 fetchPost("/api/block/getHeadingDeleteTransaction", { id }, (resp) => {
-                    resp.data.doOperations.forEach((op: IOperation) => { data.protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${op.id}"]`).forEach((el: HTMLElement) => el.remove()); });
+                    resp.data.doOperations.forEach((op: IOperation) => {
+                        data.protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${op.id}"]`).forEach((el: HTMLElement) => el.remove());
+                    });
                     handleEmptyContent(data.protyle, resp.data.doOperations, resp.data.undoOperations);
                     transaction(data.protyle, resp.data.doOperations, resp.data.undoOperations);
                 });

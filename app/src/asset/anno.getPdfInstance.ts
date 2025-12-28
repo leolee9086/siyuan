@@ -1,13 +1,13 @@
 import { getAllModels } from "../layout/getAll";
 
-
+/**
+ * 
+ * @param element 
+ * @returns 
+ */
 export const getPdfInstance = (element: HTMLElement) => {
-    let pdfInstance;
-    getAllModels().asset.find(item => {
-        if (item.pdfObject && element && item.element && typeof item.element.contains !== "undefined" && item.element.contains(element)) {
-            pdfInstance = item.pdfObject;
-            return true;
-        }
+    const asset = getAllModels().asset.find(item => {
+        return item.pdfObject && element && item.element && typeof item.element.contains !== "undefined" && item.element.contains(element);
     });
-    return pdfInstance;
+    return asset?.pdfObject;
 };

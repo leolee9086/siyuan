@@ -1,10 +1,11 @@
 import { getConfig } from "./anno.config";
 import { getPdfInstance } from "./anno.getPdfInstance";
 import { showHighlight } from "./anno.showHighlight";
+import type { IPdfInstance } from "./anno.types";
 
 
 export const getHighlight = (element: HTMLElement) => {
-    const pdfInstance: any = getPdfInstance(element);
+    const pdfInstance: IPdfInstance = getPdfInstance(element);
     if (!pdfInstance) {
         return;
     }
@@ -18,13 +19,9 @@ export const getHighlight = (element: HTMLElement) => {
     }
     const pageIndex = parseInt(pageNumberString) - 1;
     const config = getConfig(pdfInstance);
-    Object.keys(config).find(key => {
+    for (const key of Object.keys(config)) {
         const item = config[key];
-        const page = item.pages.find((page: { index: number; }) => {
-            if (page.index === pageIndex) {
-                return true;
-            }
-        });
+        const page = item.pages.find((page: { index: number; }) => page.index === pageIndex);
 
         if (page) {
             showHighlight({
@@ -37,6 +34,7 @@ export const getHighlight = (element: HTMLElement) => {
                 mode: item.mode || "",
                 ids: item.ids
             }, pdfInstance, pdfInstance.annoId === key);
+            break;
         }
-    });
+    }
 };
