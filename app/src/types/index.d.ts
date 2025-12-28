@@ -833,6 +833,7 @@ interface IBazaarItem {
     incompatible?: boolean;  // 仅 plugin
     enabled: boolean;
     preferredName: string;
+    minAppVersion: string;
     preferredDesc: string;
     preferredReadme: string;
     iconURL: string;
@@ -840,6 +841,7 @@ interface IBazaarItem {
     author: string;
     updated: string;
     downloads: string;
+    disallowInstall: boolean;
     current: false;
     installed: false;
     outdated: false;
