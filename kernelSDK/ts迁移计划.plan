@@ -1,0 +1,342 @@
+# kernelSDK TypeScript 迁移计划
+
+## 一、现状分析
+
+### 1.1 当前代码生成架构
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        数据源层                                      │
+├─────────────────────────────────────────────────────────────────────┤
+│  GitHub router.go                                                   │
+│       │                                                             │
+│       ▼ updateApiListFromGo.js                                     │
+│  rawApiList.json (原始API列表: endpoint, method, 权限等)           │
+│       │                                                             │
+│       ▼ mergeRawApiWithDefs.js                                     │
+│  packages/apiDefs/*.js (API定义: Zod schema, 中文描述等)           │
+└─────────────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                        代码生成层                                    │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  ┌──────────────────────┐   ┌────────────────────────────────────┐ │
+│  │generateApiClients.cjs│   │generateSingleFileClient.cjs        │ │
+│  │        ▼             │   │         ▼                          │ │
+│  │packages/client/      │   │packages/kernelApiClient.js         │ │
+│  │  ├── index.js        │   │(单文件 ESM + JSDoc)                 │ │
+│  │  ├── index.d.ts      │   └────────────────────────────────────┘ │
+│  │  └── [group].js      │                                         │
+│  └──────────────────────┘   ┌────────────────────────────────────┐ │
+│                             │generateSingleTSFileClient.cjs      │ │
+│                             │         ▼                          │ │
+│                             │packages/kernelApiClient.ts         │ │
+│                             │(单文件 TypeScript)                  │ │
+│                             └────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### 1.2 apiDefs当前结构 (JS)
+
+```javascript
+// packages/apiDefs/account.js
+export const accountApiDefs = [
+  {
+    method: "POST",
+    endpoint: "/api/account/login",
+    en: "login",               // API英文名/方法名
+    zh_cn: "登录账号",          // API中文名
+    needAuth: true,            // 是否需要认证
+    needAdminRole: true,       // 是否需要管理员权限
+    unavailableIfReadonly: true,  // 只读模式是否可用
+    description: "用户登录...", // 详细描述
+    zodRequestSchema: (z) => ({ // 请求参数schema
+      userName: z.string().describe("用户名"),
+      userPassword: z.string().describe("用户密码"),
+      // ...
+    }),
+    zodResponseSchema: (z) => ({ // 响应数据schema
+      code: z.number().describe("返回码，0 表示成功"),
+      msg: z.string().describe("返回消息"),
+      data: z.any().nullable().describe("返回数据")
+    })
+  },
+  // ...
+];
+```
+
+### 1.3 现有问题
+
+1. **类型信息分散**: Zod schema以函数形式存在，运行时解析生成类型
+2. **字符串扫描开销**: 验证和生成时需要字符串化并比较schema函数
+3. **IDE支持差**: apiDefs是JS文件，缺乏静态类型检查
+4. **维护成本高**: 修改API需要同时考虑schema和生成器逻辑
+
+## 二、迁移目标
+
+### 2.1 核心目标
+
+1. 将 `apiDefs/*.js` 迁移为 `apiDefs/*.ts`
+2. 使用 TypeScript 类型系统替代运行时 Zod schema 解析
+3. 保持向后兼容，现有生成器能继续工作
+
+### 2.2 期望收益
+
+- **编译时类型检查**: 修改API定义时立即发现类型错误
+- **更好的开发体验**: IDE自动补全、跳转定义
+- **减少字符串扫描**: 直接导入类型定义进行属性校验
+- **代码可读性**: TypeScript类型比Zod函数更直观
+
+## 三、迁移方案
+
+### 3.1 新的apiDefs结构 (TS)
+
+```typescript
+// packages/apiDefs/account.ts
+import { z } from 'zod';
+
+// 请求类型
+export interface LoginRequest {
+  /** 用户名 */
+  userName: string;
+  /** 用户密码 */
+  userPassword: string;
+  /** 验证码 */
+  captcha: string;
+  /** 云端区域代码，例如 0 表示中国区 */
+  cloudRegion: number;
+}
+
+// 响应类型
+export interface LoginResponse {
+  /** 返回码，0 表示成功，其他表示失败 */
+  code: number;
+  /** 返回消息 */
+  msg: string;
+  /** 登录成功时可能包含用户信息，失败时为 null */
+  data: unknown | null;
+}
+
+// Zod schema (用于运行时验证)
+export const loginRequestSchema = z.object({
+  userName: z.string(),
+  userPassword: z.string(),
+  captcha: z.string(),
+  cloudRegion: z.number(),
+});
+
+export const loginResponseSchema = z.object({
+  code: z.number(),
+  msg: z.string(),
+  data: z.any().nullable(),
+});
+
+// API定义
+export interface LoginApiDef {
+  method: "POST";
+  endpoint: "/api/account/login";
+  en: "login";
+  zh_cn: "登录账号";
+  needAuth: true;
+  needAdminRole: true;
+  unavailableIfReadonly: true;
+  description: "用户登录，需要提供用户名、密码、验证码和云端区域。";
+  request: LoginRequest;
+  response: LoginResponse;
+  zodRequestSchema: typeof loginRequestSchema;
+  zodResponseSchema: typeof loginResponseSchema;
+}
+
+// 导出API定义列表
+export const accountApiDefs = [
+  {
+    method: "POST" as const,
+    endpoint: "/api/account/login" as const,
+    en: "login" as const,
+    zh_cn: "登录账号",
+    needAuth: true,
+    needAdminRole: true,
+    unavailableIfReadonly: true,
+    description: "用户登录，需要提供用户名、密码、验证码和云端区域。",
+    zodRequestSchema: loginRequestSchema,
+    zodResponseSchema: loginResponseSchema,
+  },
+  // ...
+] as const;
+
+export type AccountApiDefs = typeof accountApiDefs;
+```
+
+### 3.2 迁移步骤
+
+#### 阶段一：准备工作
+
+1. [ ] 配置TypeScript环境
+   - 创建 `packages/apiDefs/tsconfig.json`
+   - 配置编译输出到同目录
+
+2. [ ] 创建通用类型定义
+   - `packages/apiDefs/types.ts`: 通用类型和接口
+   - `packages/apiDefs/helpers.ts`: 类型工具函数
+
+#### 阶段二：逐步迁移 apiDefs
+
+3. [ ] 选择一个简单的API组作为试点 (建议: account.js)
+   - 创建 account.ts
+   - 定义所有请求/响应接口
+   - 创建Zod schema常量
+   - 导出兼容的apiDefs数组
+
+4. [ ] 验证兼容性
+   - 确保现有生成器能正常工作
+   - 确保validateApiDefs.js能正常验证
+
+5. [ ] 按优先级迁移其他API组
+   - 优先级1: 常用API (block, filetree, file)
+   - 优先级2: 中等使用 (attr, av, search)
+   - 优先级3: 其余API
+
+#### 阶段三：更新生成器
+
+6. [ ] 更新生成器以利用类型信息
+   - 直接导入类型定义而非解析Zod函数
+   - 使用TypeScript编译器API进行类型提取
+
+7. [ ] 更新验证脚本
+   - 使用直接属性比较替代字符串扫描
+   - 支持 .ts 文件的导入和验证
+
+#### 阶段四：清理和文档
+
+8. [ ] 删除旧的 .js 文件
+9. [ ] 更新 README.md 文档
+10. [ ] 创建贡献指南：如何添加新API
+
+## 四、技术细节
+
+### 4.1 TypeScript配置
+
+```json
+// packages/apiDefs/tsconfig.json
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "declaration": true,
+    "declarationMap": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "outDir": "./dist"
+  },
+  "include": ["*.ts"],
+  "exclude": ["node_modules", "generateIndex.cjs"]
+}
+```
+
+### 4.2 类型工具
+
+```typescript
+// packages/apiDefs/types.ts
+import { z } from 'zod';
+
+// HTTP方法类型
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'HEAD';
+
+// 基础API定义接口
+export interface BaseApiDef<
+  TMethod extends HttpMethod,
+  TEndpoint extends string,
+  TName extends string,
+  TRequest,
+  TResponse
+> {
+  method: TMethod;
+  endpoint: TEndpoint;
+  en: TName;
+  zh_cn: string;
+  needAuth?: boolean;
+  needAdminRole?: boolean;
+  unavailableIfReadonly?: boolean;
+  deprecated?: boolean | string;
+  description: string;
+  zodRequestSchema: z.ZodType<TRequest>;
+  zodResponseSchema: z.ZodType<TResponse>;
+}
+
+// 标准响应包装类型
+export interface StandardResponse<T> {
+  code: number;
+  msg: string;
+  data: T;
+}
+
+// 空请求 (用于不需要参数的API)
+export type EmptyRequest = Record<string, never>;
+```
+
+### 4.3 生成器更新策略
+
+当前生成器通过调用 `zodRequestSchema(z)` 获取schema对象，然后解析其 `_def` 属性。
+
+迁移后，可以：
+
+1. **兼容模式**: 保持现有逻辑，TS文件编译后导出相同的函数签名
+2. **优化模式**: 使用TypeScript编译器API直接从类型定义提取接口信息
+
+推荐先使用兼容模式完成迁移，再逐步优化。
+
+## 五、风险和对策
+
+| 风险 | 影响 | 对策 |
+|------|------|------|
+| 编译后代码与现有生成器不兼容 | 生成失败 | 先在试点API上验证，确保兼容再大规模迁移 |
+| Zod schema类型推断不准确 | 类型信息丢失 | 手动定义接口类型，schema作为补充验证 |
+| 迁移过程中API变更 | 需要同时维护两种格式 | 设置合理的迁移窗口期，期间冻结API变更 |
+
+## 六、时间估算
+
+| 阶段 | 预计时间 |
+|------|----------|
+| 阶段一：准备工作 | 1-2小时 |
+| 阶段二：迁移apiDefs | 4-8小时 (51个API组) |
+| 阶段三：更新生成器 | 2-4小时 |
+| 阶段四：清理和文档 | 1-2小时 |
+| **总计** | **8-16小时** |
+
+## 七、附录
+
+### 7.1 现有文件列表
+
+#### API定义文件 (packages/apiDefs/)
+- account.js, ai.js, archive.js, asset.js, attr.js
+- av.js, bazaar.js, block.js, bookmark.js, broadcast.js
+- clipboard.js, cloud.js, convert.js, export.js, extension.js
+- file.js, filetree.js, format.js, graph.js, history.js
+- icon.js, import.js, inbox.js, lute.js, misc.js
+- network.js, notebook.js, notification.js, outline.js
+- petal.js, query.js, ref.js, repo.js, riff.js
+- search.js, setting.js, snippet.js, sqlite.js, storage.js
+- sync.js, system.js, tag.js, template.js
+- transactions.js, ui.js
+
+#### 生成器文件
+- generateApiClients.cjs → packages/client/ (多文件)
+- generateSingleFileClient.cjs → packages/kernelApiClient.js
+- generateSingleTSFileClient.cjs → packages/kernelApiClient.ts
+
+#### 辅助脚本
+- updateApiListFromGo.js: 从router.go提取API列表
+- mergeRawApiWithDefs.js: 合并raw API和定义
+- validateApiDefs.js: 验证API定义完整性
+- restoreChineseNames.js: 恢复中文名称
+- convertApiDefsFormat.js: 格式转换工具
+
+### 7.2 参考资料
+
+- [Zod TypeScript-first schema validation](https://zod.dev/)
+- [TypeScript Compiler API](https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API)
+- 现有README.md: packages/apiDefs/README.md
