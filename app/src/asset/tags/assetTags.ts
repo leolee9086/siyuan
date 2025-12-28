@@ -38,13 +38,11 @@ export async function removeFilesFromTag(
     tags: ITag[]
 ): Promise<ITag[] | undefined> {
     try {
-        if (tags) {
-            const tag = tags.find(item => item.label === tagLabel);
-            if (tag && tag.assets) {
-                // 从资产列表中移除指定文件名
-                tag.assets = tag.assets.filter(asset => !fileNames.includes(asset));
-                return tags;
-            }
+        const tag = tags?.find(item => item.label === tagLabel);
+        if (tag?.assets) {
+            // 从资产列表中移除指定文件名
+            tag.assets = tag.assets.filter(asset => !fileNames.includes(asset));
+            return tags;
         }
     } catch (error) {
         console.error("Error removing files from tag:", error);
@@ -113,30 +111,28 @@ export async function addFilesToTag(
     tags: ITag[]
 ): Promise<ITag[] | undefined> {
     try {
-        if (tags) {
-            const tag = tags.find(item => item.label === tagLabel);
-            if (tag) {
-                if (!tag.assets) {
-                    tag.assets = [];
-                }
-                // 添加文件名到资产列表中
-                tag.assets = Array.from(new Set([...tag.assets, ...fileNames]));
-                return tags;
+        const tag = tags?.find(item => item.label === tagLabel);
+        if (tag) {
+            if (!tag.assets) {
+                tag.assets = [];
             }
+            // 添加文件名到资产列表中
+            tag.assets = Array.from(new Set([...tag.assets, ...fileNames]));
+            return tags;
         }
     } catch (error) {
         console.error("Error adding files to tag:", error);
     }
 }
-const loadAssetsTags = async ():Promise<TagType[]> => {
-    let data:TagType[] = [];
-    if (await localWorkerSpace.exists("/data/storage/tags/assets.json")) {
-        const raw = await localWorkerSpace.readFile("/data/storage/tags/assets.json");
-        if(typeof raw === "string"){
-            data =JSON.parse(raw);
-        }
-    } else {
+const loadAssetsTags = async (): Promise<TagType[]> => {
+    let data: TagType[] = [];
+    if (!(await localWorkerSpace.exists("/data/storage/tags/assets.json"))) {
         await localWorkerSpace.writeFile("/data/storage/tags/assets.json", JSON.stringify([]));
+        return data;
+    }
+    const raw = await localWorkerSpace.readFile("/data/storage/tags/assets.json");
+    if (typeof raw === "string") {
+        data = JSON.parse(raw);
     }
     return data;
 };
