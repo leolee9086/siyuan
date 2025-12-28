@@ -1,0 +1,56 @@
+{
+    "name": "@siyuan/kernel-sdk",
+    "version": "0.1.0",
+    "description": "类型安全的思源笔记内核 API 客户端",
+    "type": "module",
+    "main": "./dist/index.js",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "import": "./dist/index.js",
+            "types": "./dist/index.d.ts"
+        },
+        "./client": {
+            "import": "./dist/client/index.js",
+            "types": "./dist/client/index.d.ts"
+        },
+        "./apiDefs": {
+            "import": "./dist/apiDefs/index.js",
+            "types": "./dist/apiDefs/index.d.ts"
+        }
+    },
+    "files": [
+        "dist",
+        "src"
+    ],
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsc --watch",
+        "clean": "rimraf dist",
+        "typecheck": "tsc --noEmit",
+        "sync:check": "tsx scripts/validateSync.ts",
+        "sync:update": "tsx scripts/updateFromGo.ts"
+    },
+    "keywords": [
+        "siyuan",
+        "api",
+        "sdk",
+        "kernel",
+        "typescript"
+    ],
+    "author": "",
+    "license": "AGPL-3.0",
+    "dependencies": {
+        "zod": "^3.23.8"
+    },
+    "devDependencies": {
+        "@types/node": "^20.10.0",
+        "rimraf": "^5.0.5",
+        "tsx": "^4.6.0",
+        "typescript": "^5.3.0"
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    }
+}

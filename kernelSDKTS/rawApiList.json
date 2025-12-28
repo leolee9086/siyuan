@@ -1,0 +1,3962 @@
+[
+  {
+    "method": "GET",
+    "endpoint": "/api/system/bootProgress",
+    "en": "bootProgress",
+    "needAuth": false,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/system/bootProgress",
+    "en": "bootProgress",
+    "needAuth": false,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/system/version",
+    "en": "version",
+    "needAuth": false,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/system/version",
+    "en": "version",
+    "needAuth": false,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/system/currentTime",
+    "en": "currentTime",
+    "needAuth": false,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/system/uiproc",
+    "en": "addUIProcess",
+    "needAuth": false,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/system/loginAuth",
+    "en": "LoginAuth",
+    "needAuth": false,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/system/logoutAuth",
+    "en": "LogoutAuth",
+    "needAuth": false,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/system/getCaptcha",
+    "en": "GetCaptcha",
+    "needAuth": false,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "GET",
+    "endpoint": "/api/icon/getDynamicIcon",
+    "en": "getDynamicIcon",
+    "needAuth": false,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/system/getEmojiConf",
+    "en": "getEmojiConf",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/system/setAPIToken",
+    "en": "setAPIToken",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/system/setAccessAuthCode",
+    "en": "setAccessAuthCode",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/system/setFollowSystemLockScreen",
+    "en": "setFollowSystemLockScreen",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/system/setNetworkServe",
+    "en": "setNetworkServe",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/system/setAutoLaunch",
+    "en": "setAutoLaunch",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/system/setDownloadInstallPkg",
+    "en": "setDownloadInstallPkg",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/system/setNetworkProxy",
+    "en": "setNetworkProxy",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/system/setWorkspaceDir",
+    "en": "setWorkspaceDir",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/system/getWorkspaces",
+    "en": "getWorkspaces",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/system/getMobileWorkspaces",
+    "en": "getMobileWorkspaces",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/system/checkWorkspaceDir",
+    "en": "checkWorkspaceDir",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/system/createWorkspaceDir",
+    "en": "createWorkspaceDir",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/system/removeWorkspaceDir",
+    "en": "removeWorkspaceDir",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/system/removeWorkspaceDirPhysically",
+    "en": "removeWorkspaceDirPhysically",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/system/setAppearanceMode",
+    "en": "setAppearanceMode",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/system/setUILayout",
+    "en": "setUILayout",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/system/getSysFonts",
+    "en": "getSysFonts",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/system/exit",
+    "en": "exit",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/system/getConf",
+    "en": "getConf",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/system/checkUpdate",
+    "en": "checkUpdate",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/system/exportLog",
+    "en": "exportLog",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/system/getChangelog",
+    "en": "getChangelog",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/system/getNetwork",
+    "en": "getNetwork",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/system/exportConf",
+    "en": "exportConf",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/system/importConf",
+    "en": "importConf",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/system/getWorkspaceInfo",
+    "en": "getWorkspaceInfo",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/system/reloadUI",
+    "en": "reloadUI",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/system/addMicrosoftDefenderExclusion",
+    "en": "addMicrosoftDefenderExclusion",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/system/ignoreAddMicrosoftDefenderExclusion",
+    "en": "ignoreAddMicrosoftDefenderExclusion",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/system/vacuumDataIndex",
+    "en": "vacuumDataIndex",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/system/rebuildDataIndex",
+    "en": "rebuildDataIndex",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/storage/setLocalStorage",
+    "en": "setLocalStorage",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/storage/getLocalStorage",
+    "en": "getLocalStorage",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/storage/setLocalStorageVal",
+    "en": "setLocalStorageVal",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/storage/removeLocalStorageVals",
+    "en": "removeLocalStorageVals",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/storage/setCriterion",
+    "en": "setCriterion",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/storage/getCriteria",
+    "en": "getCriteria",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/storage/removeCriterion",
+    "en": "removeCriterion",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/storage/getRecentDocs",
+    "en": "getRecentDocs",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/storage/updateRecentDocViewTime",
+    "en": "updateRecentDocViewTime",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/storage/updateRecentDocCloseTime",
+    "en": "updateRecentDocCloseTime",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/storage/updateRecentDocOpenTime",
+    "en": "updateRecentDocOpenTime",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/storage/getOutlineStorage",
+    "en": "getOutlineStorage",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/storage/setOutlineStorage",
+    "en": "setOutlineStorage",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/storage/removeOutlineStorage",
+    "en": "removeOutlineStorage",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/account/login",
+    "en": "login",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/account/checkActivationcode",
+    "en": "checkActivationcode",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/account/useActivationcode",
+    "en": "useActivationcode",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/account/deactivate",
+    "en": "deactivateUser",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/account/startFreeTrial",
+    "en": "startFreeTrial",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/notebook/lsNotebooks",
+    "en": "lsNotebooks",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/notebook/openNotebook",
+    "en": "openNotebook",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/notebook/closeNotebook",
+    "en": "closeNotebook",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/notebook/getNotebookConf",
+    "en": "getNotebookConf",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/notebook/setNotebookConf",
+    "en": "setNotebookConf",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/notebook/createNotebook",
+    "en": "createNotebook",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/notebook/removeNotebook",
+    "en": "removeNotebook",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/notebook/renameNotebook",
+    "en": "renameNotebook",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/notebook/changeSortNotebook",
+    "en": "changeSortNotebook",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/notebook/setNotebookIcon",
+    "en": "setNotebookIcon",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/notebook/getNotebookInfo",
+    "en": "getNotebookInfo",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/filetree/searchDocs",
+    "en": "searchDocs",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/filetree/listDocsByPath",
+    "en": "listDocsByPath",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/filetree/getDoc",
+    "en": "getDoc",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/filetree/getDocCreateSavePath",
+    "en": "getDocCreateSavePath",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/filetree/getRefCreateSavePath",
+    "en": "getRefCreateSavePath",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/filetree/changeSort",
+    "en": "changeSort",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/filetree/createDocWithMd",
+    "en": "createDocWithMd",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/filetree/createDailyNote",
+    "en": "createDailyNote",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/filetree/createDoc",
+    "en": "createDoc",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/filetree/renameDoc",
+    "en": "renameDoc",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/filetree/renameDocByID",
+    "en": "renameDocByID",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/filetree/removeDoc",
+    "en": "removeDoc",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/filetree/removeDocByID",
+    "en": "removeDocByID",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/filetree/removeDocs",
+    "en": "removeDocs",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/filetree/moveDocs",
+    "en": "moveDocs",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/filetree/moveDocsByID",
+    "en": "moveDocsByID",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/filetree/duplicateDoc",
+    "en": "duplicateDoc",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/filetree/getHPathByPath",
+    "en": "getHPathByPath",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/filetree/getHPathsByPaths",
+    "en": "getHPathsByPaths",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/filetree/getHPathByID",
+    "en": "getHPathByID",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/filetree/getPathByID",
+    "en": "getPathByID",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/filetree/getFullHPathByID",
+    "en": "getFullHPathByID",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/filetree/getIDsByHPath",
+    "en": "getIDsByHPath",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/filetree/doc2Heading",
+    "en": "doc2Heading",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/filetree/heading2Doc",
+    "en": "heading2Doc",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/filetree/li2Doc",
+    "en": "li2Doc",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/filetree/upsertIndexes",
+    "en": "upsertIndexes",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/filetree/removeIndexes",
+    "en": "removeIndexes",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/filetree/listDocTree",
+    "en": "listDocTree",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/filetree/moveLocalShorthands",
+    "en": "moveLocalShorthands",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/filetree/refreshFiletree ",
+    "en": "rebuildDataIndex",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/format/autoSpace",
+    "en": "autoSpace",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/format/netImg2LocalAssets",
+    "en": "netImg2LocalAssets",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/format/netAssets2LocalAssets",
+    "en": "netAssets2LocalAssets",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/history/getNotebookHistory",
+    "en": "getNotebookHistory",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/history/rollbackNotebookHistory",
+    "en": "rollbackNotebookHistory",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/history/rollbackAssetsHistory",
+    "en": "rollbackAssetsHistory",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/history/getDocHistoryContent",
+    "en": "getDocHistoryContent",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/history/rollbackDocHistory",
+    "en": "rollbackDocHistory",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/history/clearWorkspaceHistory",
+    "en": "clearWorkspaceHistory",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/history/reindexHistory",
+    "en": "reindexHistory",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/history/searchHistory",
+    "en": "searchHistory",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/history/getHistoryItems",
+    "en": "getHistoryItems",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/outline/getDocOutline",
+    "en": "getDocOutline",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/bookmark/getBookmark",
+    "en": "getBookmark",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/bookmark/renameBookmark",
+    "en": "renameBookmark",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/bookmark/removeBookmark",
+    "en": "removeBookmark",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/tag/getTag",
+    "en": "getTag",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/tag/renameTag",
+    "en": "renameTag",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/tag/removeTag",
+    "en": "removeTag",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/lute/spinBlockDOM",
+    "en": "spinBlockDOM",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/lute/html2BlockDOM",
+    "en": "html2BlockDOM",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/lute/copyStdMarkdown",
+    "en": "copyStdMarkdown",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/query/sql",
+    "en": "SQL",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/sqlite/flushTransaction",
+    "en": "flushTransaction",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/search/searchTag",
+    "en": "searchTag",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/search/searchTemplate",
+    "en": "searchTemplate",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/search/removeTemplate",
+    "en": "removeTemplate",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/search/searchWidget",
+    "en": "searchWidget",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/search/searchRefBlock",
+    "en": "searchRefBlock",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/search/searchEmbedBlock",
+    "en": "searchEmbedBlock",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/search/getEmbedBlock",
+    "en": "getEmbedBlock",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/search/updateEmbedBlock",
+    "en": "updateEmbedBlock",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/search/fullTextSearchBlock",
+    "en": "fullTextSearchBlock",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/search/searchAsset",
+    "en": "searchAsset",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/search/findReplace",
+    "en": "findReplace",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/search/fullTextSearchAssetContent",
+    "en": "fullTextSearchAssetContent",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/search/getAssetContent",
+    "en": "getAssetContent",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/search/listInvalidBlockRefs",
+    "en": "listInvalidBlockRefs",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/getBlockInfo",
+    "en": "getBlockInfo",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/getBlockDOM",
+    "en": "getBlockDOM",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/getBlockDOMs",
+    "en": "getBlockDOMs",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/getBlockDOMWithEmbed",
+    "en": "getBlockDOMWithEmbed",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/getBlockDOMsWithEmbed",
+    "en": "getBlockDOMsWithEmbed",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/getBlockKramdown",
+    "en": "getBlockKramdown",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/getChildBlocks",
+    "en": "getChildBlocks",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/getTailChildBlocks",
+    "en": "getTailChildBlocks",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/getBlockBreadcrumb",
+    "en": "getBlockBreadcrumb",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/getBlockIndex",
+    "en": "getBlockIndex",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/getBlocksIndexes",
+    "en": "getBlocksIndexes",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/getRefIDs",
+    "en": "getRefIDs",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/getRefIDsByFileAnnotationID",
+    "en": "getRefIDsByFileAnnotationID",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/getBlockDefIDsByRefText",
+    "en": "getBlockDefIDsByRefText",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/getRefText",
+    "en": "getRefText",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/getDOMText",
+    "en": "getDOMText",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/getTreeStat",
+    "en": "getTreeStat",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/getBlocksWordCount",
+    "en": "getBlocksWordCount",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/getContentWordCount",
+    "en": "getContentWordCount",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/getRecentUpdatedBlocks",
+    "en": "getRecentUpdatedBlocks",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/getDocInfo",
+    "en": "getDocInfo",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/getDocsInfo",
+    "en": "getDocsInfo",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/checkBlockExist",
+    "en": "checkBlockExist",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/getUnfoldedParentID",
+    "en": "getUnfoldedParentID",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/checkBlockFold",
+    "en": "checkBlockFold",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/insertBlock",
+    "en": "insertBlock",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/batchInsertBlock",
+    "en": "batchInsertBlock",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/prependBlock",
+    "en": "prependBlock",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/batchPrependBlock",
+    "en": "batchPrependBlock",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/appendBlock",
+    "en": "appendBlock",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/batchAppendBlock",
+    "en": "batchAppendBlock",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/appendDailyNoteBlock",
+    "en": "appendDailyNoteBlock",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/prependDailyNoteBlock",
+    "en": "prependDailyNoteBlock",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/updateBlock",
+    "en": "updateBlock",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/batchUpdateBlock",
+    "en": "batchUpdateBlock",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/deleteBlock",
+    "en": "deleteBlock",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/moveBlock",
+    "en": "moveBlock",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/moveOutlineHeading",
+    "en": "moveOutlineHeading",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/foldBlock",
+    "en": "foldBlock",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/unfoldBlock",
+    "en": "unfoldBlock",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/setBlockReminder",
+    "en": "setBlockReminder",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/getHeadingLevelTransaction",
+    "en": "getHeadingLevelTransaction",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/getHeadingDeleteTransaction",
+    "en": "getHeadingDeleteTransaction",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/getHeadingInsertTransaction",
+    "en": "getHeadingInsertTransaction",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/getHeadingChildrenIDs",
+    "en": "getHeadingChildrenIDs",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/getHeadingChildrenDOM",
+    "en": "getHeadingChildrenDOM",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/swapBlockRef",
+    "en": "swapBlockRef",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/transferBlockRef",
+    "en": "transferBlockRef",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/getBlockSiblingID",
+    "en": "getBlockSiblingID",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/getBlockRelevantIDs",
+    "en": "getBlockRelevantIDs",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/getBlockTreeInfos",
+    "en": "getBlockTreeInfos",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/checkBlockRef",
+    "en": "checkBlockRef",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/block/appendHeadingChildren",
+    "en": "appendHeadingChildren",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/file/getFile",
+    "en": "getFile",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/file/putFile",
+    "en": "putFile",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/file/copyFile",
+    "en": "copyFile",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/file/globalCopyFiles",
+    "en": "globalCopyFiles",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/file/removeFile",
+    "en": "removeFile",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/file/renameFile",
+    "en": "renameFile",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/file/readDir",
+    "en": "readDir",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/file/getUniqueFilename",
+    "en": "getUniqueFilename",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/ref/refreshBacklink",
+    "en": "refreshBacklink",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/ref/getBacklink",
+    "en": "getBacklink",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/ref/getBacklink2",
+    "en": "getBacklink2",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/ref/getBacklinkDoc",
+    "en": "getBacklinkDoc",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/ref/getBackmentionDoc",
+    "en": "getBackmentionDoc",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/attr/getBookmarkLabels",
+    "en": "getBookmarkLabels",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/attr/resetBlockAttrs",
+    "en": "resetBlockAttrs",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/attr/setBlockAttrs",
+    "en": "setBlockAttrs",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/attr/batchSetBlockAttrs",
+    "en": "batchSetBlockAttrs",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/attr/getBlockAttrs",
+    "en": "getBlockAttrs",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/attr/batchGetBlockAttrs",
+    "en": "batchGetBlockAttrs",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/cloud/getCloudSpace",
+    "en": "getCloudSpace",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/sync/setSyncEnable",
+    "en": "setSyncEnable",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/sync/setSyncInterval",
+    "en": "setSyncInterval",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/sync/setSyncPerception",
+    "en": "setSyncPerception",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/sync/setSyncGenerateConflictDoc",
+    "en": "setSyncGenerateConflictDoc",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/sync/setSyncMode",
+    "en": "setSyncMode",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/sync/setSyncProvider",
+    "en": "setSyncProvider",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/sync/setSyncProviderS3",
+    "en": "setSyncProviderS3",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/sync/setSyncProviderWebDAV",
+    "en": "setSyncProviderWebDAV",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/sync/setSyncProviderLocal",
+    "en": "setSyncProviderLocal",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/sync/setCloudSyncDir",
+    "en": "setCloudSyncDir",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/sync/createCloudSyncDir",
+    "en": "createCloudSyncDir",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/sync/removeCloudSyncDir",
+    "en": "removeCloudSyncDir",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/sync/listCloudSyncDir",
+    "en": "listCloudSyncDir",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/sync/performSync",
+    "en": "performSync",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/sync/performBootSync",
+    "en": "performBootSync",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/sync/getBootSync",
+    "en": "getBootSync",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/sync/getSyncInfo",
+    "en": "getSyncInfo",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/sync/exportSyncProviderS3",
+    "en": "exportSyncProviderS3",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/sync/importSyncProviderS3",
+    "en": "importSyncProviderS3",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/sync/exportSyncProviderWebDAV",
+    "en": "exportSyncProviderWebDAV",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/sync/importSyncProviderWebDAV",
+    "en": "importSyncProviderWebDAV",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/inbox/getShorthands",
+    "en": "getShorthands",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/inbox/getShorthand",
+    "en": "getShorthand",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/inbox/removeShorthands",
+    "en": "removeShorthands",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/extension/copy",
+    "en": "extensionCopy",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/clipboard/readFilePaths",
+    "en": "readFilePaths",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/asset/uploadCloud",
+    "en": "uploadCloud",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/asset/uploadCloudByAssetsPaths",
+    "en": "uploadCloudByAssetsPaths",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/asset/insertLocalAssets",
+    "en": "insertLocalAssets",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/asset/resolveAssetPath",
+    "en": "resolveAssetPath",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/asset/upload",
+    "en": "Upload",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/asset/setFileAnnotation",
+    "en": "setFileAnnotation",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/asset/getFileAnnotation",
+    "en": "getFileAnnotation",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/asset/getUnusedAssets",
+    "en": "getUnusedAssets",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/asset/getMissingAssets",
+    "en": "getMissingAssets",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/asset/removeUnusedAsset",
+    "en": "removeUnusedAsset",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/asset/removeUnusedAssets",
+    "en": "removeUnusedAssets",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/asset/getDocImageAssets",
+    "en": "getDocImageAssets",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/asset/getDocAssets",
+    "en": "getDocAssets",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/asset/renameAsset",
+    "en": "renameAsset",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/asset/getImageOCRText",
+    "en": "getImageOCRText",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/asset/setImageOCRText",
+    "en": "setImageOCRText",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/asset/ocr",
+    "en": "ocr",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/asset/fullReindexAssetContent",
+    "en": "fullReindexAssetContent",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/asset/statAsset",
+    "en": "statAsset",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/export/exportNotebookMd",
+    "en": "exportNotebookMd",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/export/exportMds",
+    "en": "exportMds",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/export/exportMd",
+    "en": "exportMd",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/export/exportSY",
+    "en": "exportSY",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/export/exportNotebookSY",
+    "en": "exportNotebookSY",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/export/exportMdContent",
+    "en": "exportMdContent",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/export/exportHTML",
+    "en": "exportHTML",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/export/exportPreviewHTML",
+    "en": "exportPreviewHTML",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/export/exportMdHTML",
+    "en": "exportMdHTML",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/export/exportDocx",
+    "en": "exportDocx",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/export/processPDF",
+    "en": "processPDF",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/export/preview",
+    "en": "exportPreview",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/export/exportResources",
+    "en": "exportResources",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/export/exportAsFile",
+    "en": "exportAsFile",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/export/exportData",
+    "en": "exportData",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/export/exportDataInFolder",
+    "en": "exportDataInFolder",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/export/exportTempContent",
+    "en": "exportTempContent",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/export/exportBrowserHTML",
+    "en": "exportBrowserHTML",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/export/export2Liandi",
+    "en": "export2Liandi",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/export/exportReStructuredText",
+    "en": "exportReStructuredText",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/export/exportAsciiDoc",
+    "en": "exportAsciiDoc",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/export/exportTextile",
+    "en": "exportTextile",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/export/exportOPML",
+    "en": "exportOPML",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/export/exportOrgMode",
+    "en": "exportOrgMode",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/export/exportMediaWiki",
+    "en": "exportMediaWiki",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/export/exportODT",
+    "en": "exportODT",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/export/exportRTF",
+    "en": "exportRTF",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/export/exportEPUB",
+    "en": "exportEPUB",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/export/exportAttributeView",
+    "en": "exportAttributeView",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/import/importStdMd",
+    "en": "importStdMd",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/import/importZipMd",
+    "en": "importZipMd",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/import/importData",
+    "en": "importData",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/import/importSY",
+    "en": "importSY",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/convert/pandoc",
+    "en": "pandoc",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/template/render",
+    "en": "renderTemplate",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/template/docSaveAsTemplate",
+    "en": "docSaveAsTemplate",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/template/renderSprig",
+    "en": "renderSprig",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/transactions",
+    "en": "performTransactions",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/setting/setAccount",
+    "en": "setAccount",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/setting/setEditor",
+    "en": "setEditor",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/setting/setExport",
+    "en": "setExport",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/setting/setFiletree",
+    "en": "setFiletree",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/setting/setSearch",
+    "en": "setSearch",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/setting/setKeymap",
+    "en": "setKeymap",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/setting/setAppearance",
+    "en": "setAppearance",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/setting/getCloudUser",
+    "en": "getCloudUser",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/setting/logoutCloudUser",
+    "en": "logoutCloudUser",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/setting/login2faCloudUser",
+    "en": "login2faCloudUser",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/setting/setEmoji",
+    "en": "setEmoji",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/setting/setFlashcard",
+    "en": "setFlashcard",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/setting/setAI",
+    "en": "setAI",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/setting/setBazaar",
+    "en": "setBazaar",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/setting/setPublish",
+    "en": "setPublish",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/setting/getPublish",
+    "en": "getPublish",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/setting/refreshVirtualBlockRef",
+    "en": "refreshVirtualBlockRef",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/setting/addVirtualBlockRefInclude",
+    "en": "addVirtualBlockRefInclude",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/setting/addVirtualBlockRefExclude",
+    "en": "addVirtualBlockRefExclude",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/setting/setSnippet",
+    "en": "setConfSnippet",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/setting/setEditorReadOnly",
+    "en": "setEditorReadOnly",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/graph/resetGraph",
+    "en": "resetGraph",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/graph/resetLocalGraph",
+    "en": "resetLocalGraph",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/graph/getGraph",
+    "en": "getGraph",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/graph/getLocalGraph",
+    "en": "getLocalGraph",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/bazaar/getBazaarPlugin",
+    "en": "getBazaarPlugin",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/bazaar/getInstalledPlugin",
+    "en": "getInstalledPlugin",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/bazaar/installBazaarPlugin",
+    "en": "installBazaarPlugin",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/bazaar/uninstallBazaarPlugin",
+    "en": "uninstallBazaarPlugin",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/bazaar/getBazaarWidget",
+    "en": "getBazaarWidget",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/bazaar/getInstalledWidget",
+    "en": "getInstalledWidget",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/bazaar/installBazaarWidget",
+    "en": "installBazaarWidget",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/bazaar/uninstallBazaarWidget",
+    "en": "uninstallBazaarWidget",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/bazaar/getBazaarIcon",
+    "en": "getBazaarIcon",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/bazaar/getInstalledIcon",
+    "en": "getInstalledIcon",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/bazaar/installBazaarIcon",
+    "en": "installBazaarIcon",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/bazaar/uninstallBazaarIcon",
+    "en": "uninstallBazaarIcon",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/bazaar/getBazaarTemplate",
+    "en": "getBazaarTemplate",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/bazaar/getInstalledTemplate",
+    "en": "getInstalledTemplate",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/bazaar/installBazaarTemplate",
+    "en": "installBazaarTemplate",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/bazaar/uninstallBazaarTemplate",
+    "en": "uninstallBazaarTemplate",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/bazaar/getBazaarTheme",
+    "en": "getBazaarTheme",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/bazaar/getInstalledTheme",
+    "en": "getInstalledTheme",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/bazaar/installBazaarTheme",
+    "en": "installBazaarTheme",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/bazaar/uninstallBazaarTheme",
+    "en": "uninstallBazaarTheme",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/bazaar/getBazaarPackageREAME",
+    "en": "getBazaarPackageREAME",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/bazaar/getUpdatedPackage",
+    "en": "getUpdatedPackage",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/bazaar/batchUpdatePackage",
+    "en": "batchUpdatePackage",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/repo/initRepoKey",
+    "en": "initRepoKey",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/repo/initRepoKeyFromPassphrase",
+    "en": "initRepoKeyFromPassphrase",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/repo/resetRepo",
+    "en": "resetRepo",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/repo/purgeRepo",
+    "en": "purgeRepo",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/repo/purgeCloudRepo",
+    "en": "purgeCloudRepo",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/repo/importRepoKey",
+    "en": "importRepoKey",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/repo/createSnapshot",
+    "en": "createSnapshot",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/repo/tagSnapshot",
+    "en": "tagSnapshot",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/repo/checkoutRepo",
+    "en": "checkoutRepo",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/repo/getRepoSnapshots",
+    "en": "getRepoSnapshots",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/repo/getRepoTagSnapshots",
+    "en": "getRepoTagSnapshots",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/repo/removeRepoTagSnapshot",
+    "en": "removeRepoTagSnapshot",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/repo/getCloudRepoTagSnapshots",
+    "en": "getCloudRepoTagSnapshots",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/repo/getCloudRepoSnapshots",
+    "en": "getCloudRepoSnapshots",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/repo/removeCloudRepoTagSnapshot",
+    "en": "removeCloudRepoTagSnapshot",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/repo/uploadCloudSnapshot",
+    "en": "uploadCloudSnapshot",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/repo/downloadCloudSnapshot",
+    "en": "downloadCloudSnapshot",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/repo/diffRepoSnapshots",
+    "en": "diffRepoSnapshots",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/repo/openRepoSnapshotDoc",
+    "en": "openRepoSnapshotDoc",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/repo/getRepoFile",
+    "en": "getRepoFile",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/repo/setRepoIndexRetentionDays",
+    "en": "setRepoIndexRetentionDays",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/repo/setRetentionIndexesDaily",
+    "en": "setRetentionIndexesDaily",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/riff/createRiffDeck",
+    "en": "createRiffDeck",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/riff/renameRiffDeck",
+    "en": "renameRiffDeck",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/riff/removeRiffDeck",
+    "en": "removeRiffDeck",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/riff/getRiffDecks",
+    "en": "getRiffDecks",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/riff/addRiffCards",
+    "en": "addRiffCards",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/riff/removeRiffCards",
+    "en": "removeRiffCards",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/riff/getRiffDueCards",
+    "en": "getRiffDueCards",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/riff/getTreeRiffDueCards",
+    "en": "getTreeRiffDueCards",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/riff/getNotebookRiffDueCards",
+    "en": "getNotebookRiffDueCards",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/riff/reviewRiffCard",
+    "en": "reviewRiffCard",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/riff/skipReviewRiffCard",
+    "en": "skipReviewRiffCard",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/riff/getRiffCards",
+    "en": "getRiffCards",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/riff/getTreeRiffCards",
+    "en": "getTreeRiffCards",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/riff/getNotebookRiffCards",
+    "en": "getNotebookRiffCards",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/riff/resetRiffCards",
+    "en": "resetRiffCards",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/riff/batchSetRiffCardsDueTime",
+    "en": "batchSetRiffCardsDueTime",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/riff/getRiffCardsByBlockIDs",
+    "en": "getRiffCardsByBlockIDs",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/notification/pushMsg",
+    "en": "pushMsg",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/notification/pushErrMsg",
+    "en": "pushErrMsg",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/snippet/getSnippet",
+    "en": "getSnippet",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/snippet/setSnippet",
+    "en": "setSnippet",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/snippet/removeSnippet",
+    "en": "removeSnippet",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/av/renderAttributeView",
+    "en": "renderAttributeView",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/av/renderHistoryAttributeView",
+    "en": "renderHistoryAttributeView",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/av/renderSnapshotAttributeView",
+    "en": "renderSnapshotAttributeView",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/av/getAttributeViewKeys",
+    "en": "getAttributeViewKeys",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/av/setAttributeViewBlockAttr",
+    "en": "setAttributeViewBlockAttr",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/av/batchSetAttributeViewBlockAttrs",
+    "en": "batchSetAttributeViewBlockAttrs",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/av/searchAttributeView",
+    "en": "searchAttributeView",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/av/getAttributeView",
+    "en": "getAttributeView",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/av/searchAttributeViewRelationKey",
+    "en": "searchAttributeViewRelationKey",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/av/searchAttributeViewNonRelationKey",
+    "en": "searchAttributeViewNonRelationKey",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/av/searchAttributeViewRollupDestKeys",
+    "en": "searchAttributeViewRollupDestKeys",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/av/getAttributeViewFilterSort",
+    "en": "getAttributeViewFilterSort",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/av/addAttributeViewKey",
+    "en": "addAttributeViewKey",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/av/removeAttributeViewKey",
+    "en": "removeAttributeViewKey",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/av/sortAttributeViewViewKey",
+    "en": "sortAttributeViewViewKey",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/av/sortAttributeViewKey",
+    "en": "sortAttributeViewKey",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/av/addAttributeViewBlocks",
+    "en": "addAttributeViewBlocks",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/av/removeAttributeViewBlocks",
+    "en": "removeAttributeViewBlocks",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/av/getAttributeViewPrimaryKeyValues",
+    "en": "getAttributeViewPrimaryKeyValues",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/av/setDatabaseBlockView",
+    "en": "setDatabaseBlockView",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/av/getMirrorDatabaseBlocks",
+    "en": "getMirrorDatabaseBlocks",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/av/getAttributeViewKeysByAvID",
+    "en": "getAttributeViewKeysByAvID",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/av/getAttributeViewKeysByID",
+    "en": "getAttributeViewKeysByID",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/av/duplicateAttributeViewBlock",
+    "en": "duplicateAttributeViewBlock",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/av/appendAttributeViewDetachedBlocksWithValues",
+    "en": "appendAttributeViewDetachedBlocksWithValues",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/av/getCurrentAttrViewImages",
+    "en": "getCurrentAttrViewImages",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/av/changeAttrViewLayout",
+    "en": "changeAttrViewLayout",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/av/setAttrViewGroup",
+    "en": "setAttrViewGroup",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/av/batchReplaceAttributeViewBlocks",
+    "en": "batchReplaceAttributeViewBlocks",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/av/getAttributeViewAddingBlockDefaultValues",
+    "en": "getAttributeViewAddingBlockDefaultValues",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/av/getAttributeViewBoundBlockIDsByItemIDs",
+    "en": "getAttributeViewBoundBlockIDsByItemIDs",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/av/getAttributeViewItemIDsByBoundIDs",
+    "en": "getAttributeViewItemIDsByBoundIDs",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/ai/chatGPT",
+    "en": "chatGPT",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/ai/chatGPTWithAction",
+    "en": "chatGPTWithAction",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/petal/loadPetals",
+    "en": "loadPetals",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/petal/setPetalEnabled",
+    "en": "setPetalEnabled",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/network/forwardProxy",
+    "en": "forwardProxy",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "GET",
+    "endpoint": "/ws/broadcast",
+    "en": "broadcast",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "GET",
+    "endpoint": "/es/broadcast/subscribe",
+    "en": "broadcastSubscribe",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/broadcast/publish",
+    "en": "broadcastPublish",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/broadcast/postMessage",
+    "en": "postMessage",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/broadcast/getChannels",
+    "en": "getChannels",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/broadcast/getChannelInfo",
+    "en": "getChannelInfo",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/archive/zip",
+    "en": "zip",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/archive/unzip",
+    "en": "unzip",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/ui/reloadUI",
+    "en": "reloadUI",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/ui/reloadIcon",
+    "en": "reloadIcon",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/ui/reloadAttributeView",
+    "en": "reloadAttributeView",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/ui/reloadProtyle",
+    "en": "reloadProtyle",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/ui/reloadFiletree",
+    "en": "reloadFiletree",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/ui/reloadTag",
+    "en": "reloadTag",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": []
+  }
+]
