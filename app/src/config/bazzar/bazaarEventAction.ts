@@ -12,7 +12,7 @@ export function handleBazaarClick(event: MouseEvent, bazaar: IBazaar, app: App) 
     if (objStr) {
         dataObj = JSON.parse(objStr);
     }
-    while (target && !target.isEqualNode(bazaar.element)) {
+    while (target && bazaar.element && !target.isEqualNode(bazaar.element)) {
         const type = target.getAttribute("data-type");
         if (target.tagName === "A") {
             break;

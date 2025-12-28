@@ -3,9 +3,12 @@ import { bazaarData, extractKeywords, filterPackagesByKeywords } from "./bazaarD
 import { genBazaarHTML, genCardHTML, genFundingHTML, genKeywordsHTML, genUpdateItemHTML } from "./bazaarHtml";
 import { renderFilteredPackages, onBazaar, renderReadme, genMyHTML, getUpdate } from "./bazaarRender";
 import { App } from "../../index";
+import { isHTMLSelectElement } from "../../util/DOM/element.guard";
+
+const getElement = (): HTMLElement | undefined => undefined;
 
 export const bazaar = {
-    element: undefined as unknown as Element,
+    element: getElement(),
 
     get _data() {
         return bazaarData;
@@ -35,8 +38,8 @@ export const bazaar = {
     },
 
     _genCardHTML(item: IBazaarItem, bazaarType: TBazaarType) {
-        const selectElement = this.element.querySelector("#bazaarSelect") as HTMLSelectElement;
-        const selectValue = selectElement ? selectElement.value : "2";
+        const selectElement = this.element?.querySelector("#bazaarSelect");
+        const selectValue = isHTMLSelectElement(selectElement) ? selectElement.value : "2";
         return genCardHTML(item, bazaarType, selectValue);
     },
 
@@ -45,15 +48,21 @@ export const bazaar = {
     },
 
     _getUpdate() {
-        getUpdate(this.element);
+        if (this.element) {
+            getUpdate(this.element);
+        }
     },
 
     _genMyHTML(bazaarType: TBazaarType, app: App, updateUpdate = true) {
-        genMyHTML(this.element, bazaarType, app, updateUpdate);
+        if (this.element) {
+            genMyHTML(this.element, bazaarType, app, updateUpdate);
+        }
     },
 
     _renderReadme(bazaarType: TBazaarType, data: IBazaarItem, downloaded: boolean) {
-        renderReadme(this.element, bazaarType, data, downloaded);
+        if (this.element) {
+            renderReadme(this.element, bazaarType, data, downloaded);
+        }
     },
 
     bindEvent(app: App) {
@@ -62,10 +71,14 @@ export const bazaar = {
 
     // 渲染过滤后的包
     _renderFilteredPackages(bazaarType: TBazaarType) {
-        renderFilteredPackages(this.element, bazaarType);
+        if (this.element) {
+            renderFilteredPackages(this.element, bazaarType);
+        }
     },
 
     _onBazaar(response: IWebSocketData, bazaarType: TBazaarType) {
-        onBazaar(this.element, response, bazaarType);
+        if (this.element) {
+            onBazaar(this.element, response, bazaarType);
+        }
     }
 };

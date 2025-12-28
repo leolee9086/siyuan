@@ -14,7 +14,7 @@ export const bindBazaarEvent = (bazaar: IBazaar, app: App) => {
         return;
     }
     bazaar._genMyHTML("plugins", app);
-    bazaar.element.firstElementChild?.addEventListener("click", (event: MouseEvent) => {
+    (bazaar.element?.firstElementChild as HTMLElement)?.addEventListener("click", (event: MouseEvent) => {
         handleBazaarClick(event, bazaar, app);
     });
 
@@ -24,7 +24,7 @@ export const bindBazaarEvent = (bazaar: IBazaar, app: App) => {
 };
 
 const bindTrustEvent = (bazaar: IBazaar, app: App) => {
-    bazaar.element.querySelector("button")?.addEventListener("click", () => {
+    bazaar.element?.querySelector("button")?.addEventListener("click", () => {
         handleTrustBtnClick(bazaar, app);
     });
 };
@@ -35,13 +35,18 @@ const handleTrustBtnClick = (bazaar: IBazaar, app: App) => {
         petalDisabled: getSiyuanConfig().bazaar.petalDisabled
     }, () => {
         getSiyuanConfig().bazaar.trust = true;
-        bazaar.element.innerHTML = bazaar.genHTML();
+        if (bazaar.element) {
+            bazaar.element.innerHTML = bazaar.genHTML();
+        }
         bazaar.bindEvent(app);
     });
 };
 
 const bindSearchInputEvent = (bazaar: IBazaar, app: App) => {
-    const inputElements = bazaar.element.querySelectorAll(".config-bazaar__panel .b3-form__icon > .b3-text-field");
+    const inputElements = bazaar.element?.querySelectorAll(".config-bazaar__panel .b3-form__icon > .b3-text-field");
+    if (!inputElements) {
+        return;
+    }
     for (const item of inputElements) {
         const inputElement = item as HTMLInputElement;
         inputElement.addEventListener("keydown", (event: KeyboardEvent) => {
@@ -115,7 +120,10 @@ const handleBazaarSearch = (type: string, bazaar: IBazaar, keyword: string, app:
 };
 
 const bindSelectChangeEvent = (bazaar: IBazaar) => {
-    const selectElements = bazaar.element.querySelectorAll(".b3-select");
+    const selectElements = bazaar.element?.querySelectorAll(".b3-select");
+    if (!selectElements) {
+        return;
+    }
     for (const item of selectElements) {
         const selectElement = item as HTMLSelectElement;
         selectElement.addEventListener("change", (event: Event) => {
@@ -135,7 +143,10 @@ const handleSelectChange = (bazaar: IBazaar, selectElement: HTMLSelectElement, e
 
 const handleThemeSelect = (bazaar: IBazaar, selectElement: HTMLSelectElement, target: HTMLElement) => {
     // theme select
-    const cards = bazaar.element.querySelectorAll("#configBazaarTheme .b3-card");
+    const cards = bazaar.element?.querySelectorAll("#configBazaarTheme .b3-card");
+    if (!cards) {
+        return;
+    }
     for (const cardNode of cards) {
         const item = cardNode as HTMLElement;
         const objStr = item.getAttribute("data-obj");
@@ -161,7 +172,7 @@ const handleThemeSelect = (bazaar: IBazaar, selectElement: HTMLSelectElement, ta
     }
     const counter = target.parentElement?.querySelector(".counter");
     if (counter) {
-        counter.textContent = bazaar.element.querySelectorAll("#configBazaarTheme .b3-card:not(.fn__none)").length.toString();
+        counter.textContent = bazaar.element?.querySelectorAll("#configBazaarTheme .b3-card:not(.fn__none)").length.toString() || "0";
     }
 };
 
@@ -172,13 +183,13 @@ const getBazaarObj = (element: HTMLElement) => {
 const handleSortSelect = (bazaar: IBazaar, selectElement: HTMLSelectElement) => {
     // sort
     if (!window.siyuan || !window.siyuan.storage) {
-return;
-}
+        return;
+    }
     const localSort = window.siyuan.storage[Constants.LOCAL_BAZAAR];
     const panelElement = selectElement.parentElement?.parentElement;
     if (!panelElement) {
-return;
-}
+        return;
+    }
 
     let html = "";
     const cardElements = Array.from(panelElement.querySelectorAll(".b3-card") as NodeListOf<HTMLElement>);
@@ -256,7 +267,7 @@ const handleKeywordClick = (bazaar: IBazaar, event: MouseEvent) => {
 
 const bindKeywordClickEvent = (bazaar: IBazaar) => {
     // 使用事件委托处理关键词点击事件
-    bazaar.element.addEventListener("click", (event: MouseEvent) => {
+    bazaar.element?.addEventListener("click", (event: MouseEvent) => {
         handleKeywordClick(bazaar, event);
     });
 };

@@ -63,9 +63,10 @@ const initBazaarActions: Record<string, (bazaar: IBazaar) => void> = {
 };
 
 export const handleTabSwitch = (target: HTMLElement, type: string, bazaar: IBazaar) => {
-    bazaar.element.querySelector(".layout-tab-bar .item--focus")?.classList.remove("item--focus");
+    bazaar.element?.querySelector(".layout-tab-bar .item--focus")?.classList.remove("item--focus");
     target.classList.add("item--focus");
-    const panels = bazaar.element.querySelectorAll(".config-bazaar__panel");
+    const panels = bazaar.element?.querySelectorAll(".config-bazaar__panel");
+    if (!panels) return;
     for (const panel of panels) {
         const item = panel as HTMLElement;
         if (type !== item.getAttribute("data-type")) {
@@ -100,7 +101,7 @@ export const handleBazaarNavClick = (type: string, target: HTMLElement, dataObj:
         return true;
     } else if (["myTheme", "myTemplate", "myIcon", "myWidget", "myPlugin"].includes(type || "")) {
         if (target.classList.contains("b3-button--outline") &&
-            !bazaar.element.querySelector("#configBazaarDownloaded")?.getAttribute("data-loading")) {
+            !bazaar.element?.querySelector("#configBazaarDownloaded")?.getAttribute("data-loading")) {
             target.parentElement?.childNodes.forEach((item: ChildNode) => {
                 const el = item as HTMLElement;
                 if (el.nodeType !== 3 && el.classList.contains("b3-button")) {
@@ -114,7 +115,7 @@ export const handleBazaarNavClick = (type: string, target: HTMLElement, dataObj:
         event.stopPropagation();
         return true;
     } else if (type === "goBack") {
-        bazaar.element.querySelector("#configBazaarReadme")?.classList.remove("config-bazaar__readme--show");
+        bazaar.element?.querySelector("#configBazaarReadme")?.classList.remove("config-bazaar__readme--show");
         event.preventDefault();
         event.stopPropagation();
         return true;

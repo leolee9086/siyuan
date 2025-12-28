@@ -2,7 +2,7 @@ import { bazaarData } from "./bazaarData";
 import { App } from "../../index";
 
 export interface IBazaar {
-    element: HTMLElement;
+    element: HTMLElement | undefined;
     _data: typeof bazaarData;
     _onBazaar(response: IWebSocketData, bazaarType: TBazaarType): void;
     _genMyHTML(bazaarType: TBazaarType, app: App, updateUpdate?: boolean): void;

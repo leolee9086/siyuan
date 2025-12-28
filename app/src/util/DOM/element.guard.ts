@@ -11,3 +11,8 @@ export const isHTMLDivElement = (el: Element): el is HTMLDivElement => {
 export const isHTMLElement = (node: unknown): node is HTMLElement => {
     return node instanceof HTMLElement;
 };
+
+/** 类型守卫：判断元素是否为 HTMLSelectElement */
+export const isHTMLSelectElement = (el: unknown): el is HTMLSelectElement => {
+    return el instanceof HTMLSelectElement;
+};
