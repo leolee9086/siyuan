@@ -8,7 +8,7 @@
  * 4. zh_cn、description 是否填写
  * 5. zodRequestSchema/zodResponseSchema 是否为默认值
  */
-import { readFile, readdir } from 'fs/promises';
+import { readFile, readdir, writeFile } from 'fs/promises';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { pathToFileURL } from 'url';
@@ -19,6 +19,10 @@ const 根目录 = join(__dirname, '..');
 
 const RAW_API_LIST_PATH = join(根目录, 'rawApiList.json');
 const API_DEFS_DIR = join(根目录, 'src', 'apiDefs');
+const RESULT_FILE_PATH = join(根目录, 'sync_check_result.md');
+
+// 输出缓冲
+const 输出行: string[] = [];
 
 /** 原始 API 信息 */
 interface 原始Api {
@@ -242,12 +246,22 @@ async function main() {
     }
 
     // 输出结果
+    const 输出到文件: string[] = [];
+    输出到文件.push(`# API 定义同步检查结果`);
+    输出到文件.push(`\n检查时间: ${new Date().toLocaleString('zh-CN')}\n`);
+
     if (问题列表.length === 0) {
-        console.log('✅ 校验通过，所有 API 定义与 rawApiList.json 一致\n');
+        const msg = '✅ 校验通过，所有 API 定义与 rawApiList.json 一致';
+        console.log(msg + '\n');
+        输出到文件.push(msg);
+        await writeFile(RESULT_FILE_PATH, 输出到文件.join('\n'), 'utf-8');
+        console.log(`结果已写入: ${RESULT_FILE_PATH}`);
         return;
     }
 
-    console.warn(`\n发现 ${问题列表.length} 个问题:\n`);
+    const summaryMsg = `\n发现 ${问题列表.length} 个问题:\n`;
+    console.warn(summaryMsg);
+    输出到文件.push(`## 发现 ${问题列表.length} 个问题\n`);
 
     // 按类型分组输出
     const 按类型分组 = new Map<string, 校验问题[]>();
@@ -259,7 +273,10 @@ async function main() {
     }
 
     for (const [type, issues] of [...按类型分组].sort((a, b) => a[0].localeCompare(b[0]))) {
-        console.warn(`\n--- ${type} (${issues.length}) ---`);
+        const header = `\n--- ${type} (${issues.length}) ---`;
+        console.warn(header);
+        输出到文件.push(`\n### ${type} (${issues.length})\n`);
+
         for (const issue of issues) {
             let detail = `[${issue.分组}] ${issue.method ?? ''} ${issue.endpoint ?? ''}: ${issue.消息}`;
             if (issue.期望 !== undefined) {
@@ -267,10 +284,20 @@ async function main() {
                 detail += `\n    实际: ${JSON.stringify(issue.实际)}`;
             }
             console.warn(detail);
+            输出到文件.push(`- \`${issue.分组}\` ${issue.method ?? ''} \`${issue.endpoint ?? ''}\`: ${issue.消息}`);
+            if (issue.期望 !== undefined) {
+                输出到文件.push(`  - 期望: \`${JSON.stringify(issue.期望)}\``);
+                输出到文件.push(`  - 实际: \`${JSON.stringify(issue.实际)}\``);
+            }
         }
     }
 
-    console.log(`\n共处理 ${分组RawApis.size} 个 API 分组`);
+    const finalMsg = `\n共处理 ${分组RawApis.size} 个 API 分组`;
+    console.log(finalMsg);
+    输出到文件.push(`\n---\n\n共处理 ${分组RawApis.size} 个 API 分组`);
+
+    await writeFile(RESULT_FILE_PATH, 输出到文件.join('\n'), 'utf-8');
+    console.log(`\n结果已写入: ${RESULT_FILE_PATH}`);
     process.exit(1);
 }
 

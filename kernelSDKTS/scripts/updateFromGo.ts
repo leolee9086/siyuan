@@ -1,21 +1,24 @@
 /**
- * 从 GitHub 获取 router.go 并解析 API 列表
+ * 从 GitHub 和本地获取 router.go 并解析 API 列表
  * 
  * 功能：
- * 1. 从 GitHub 获取最新的 router.go
- * 2. 解析出所有 API 端点信息
- * 3. 生成 rawApiList.json 用于后续校验
- * 4. 生成变更报告 diff.md
+ * 1. 从 GitHub 获取官方 siyuan-note/siyuan 的 router.go
+ * 2. 从本地读取当前项目的 router.go
+ * 3. 比对两者，本地多出来的接口标记为 isForgeApi: true (S-forge 独有)
+ * 4. 生成 rawApiList.json 用于后续校验
+ * 5. 生成变更报告 diff.md
  */
-import { writeFile, readFile, mkdir } from 'fs/promises';
+import { writeFile, readFile } from 'fs/promises';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const 根目录 = join(__dirname, '..');
+const 项目根目录 = join(根目录, '..'); // siyuan-note 根目录
 
 const GITHUB_ROUTER_GO_URL = 'https://raw.githubusercontent.com/siyuan-note/siyuan/master/kernel/api/router.go';
+const 本地ROUTER_GO路径 = join(项目根目录, 'kernel', 'api', 'router.go');
 const 输出文件 = 'rawApiList.json';
 const 差异报告文件 = 'diff.md';
 
@@ -28,6 +31,8 @@ interface 原始Api {
     needAdminRole: boolean;
     unavailableIfReadonly: boolean;
     otherAuthChecks: string[];
+    /** 是否为 S-forge 独有接口 (本地有但官方没有) */
+    isForgeApi?: boolean;
 }
 
 /** 差异比较结果 */
@@ -35,15 +40,26 @@ interface 差异结果 {
     新增: 原始Api[];
     移除: 原始Api[];
     变更: { old: 原始Api; new: 原始Api }[];
+    forge独有: 原始Api[];
 }
 
-async function 获取RouterGo(): Promise<string> {
-    console.log('正在从 GitHub 获取 router.go ...');
+async function 获取GitHubRouterGo(): Promise<string> {
+    console.log('正在从 GitHub 获取官方 router.go ...');
     const response = await fetch(GITHUB_ROUTER_GO_URL);
     if (!response.ok) {
         throw new Error(`获取 router.go 失败: ${response.status} ${response.statusText}`);
     }
     return response.text();
+}
+
+async function 获取本地RouterGo(): Promise<string> {
+    console.log(`正在读取本地 router.go: ${本地ROUTER_GO路径}`);
+    try {
+        return await readFile(本地ROUTER_GO路径, 'utf8');
+    } catch (error) {
+        console.warn('警告: 无法读取本地 router.go，将仅使用 GitHub 版本');
+        throw error;
+    }
 }
 
 function 解析Go代码(goContent: string): 原始Api[] {
@@ -126,7 +142,38 @@ function 解析Go代码(goContent: string): 原始Api[] {
     return rawApis;
 }
 
-function 比较Api列表(oldList: 原始Api[], newList: 原始Api[]): 差异结果 {
+/**
+ * 合并官方和本地 API 列表
+ * 本地多出来的接口标记为 isForgeApi: true
+ */
+function 合并Api列表(官方Apis: 原始Api[], 本地Apis: 原始Api[]): { merged: 原始Api[]; forgeApis: 原始Api[] } {
+    const 官方Map = new Map(官方Apis.map(api => [`${api.method}|${api.endpoint}`, api]));
+    const 本地Map = new Map(本地Apis.map(api => [`${api.method}|${api.endpoint}`, api]));
+
+    const merged: 原始Api[] = [];
+    const forgeApis: 原始Api[] = [];
+
+    // 先添加所有官方 API
+    for (const api of 官方Apis) {
+        merged.push(api);
+    }
+
+    // 检查本地独有的 API
+    for (const [key, 本地Api] of 本地Map) {
+        if (!官方Map.has(key)) {
+            const forgeApi: 原始Api = {
+                ...本地Api,
+                isForgeApi: true,
+            };
+            merged.push(forgeApi);
+            forgeApis.push(forgeApi);
+        }
+    }
+
+    return { merged, forgeApis };
+}
+
+function 比较Api列表(oldList: 原始Api[], newList: 原始Api[], forgeApis: 原始Api[]): 差异结果 {
     const oldMap = new Map(oldList.map(api => [`${api.method}|${api.endpoint}`, api]));
     const newMap = new Map(newList.map(api => [`${api.method}|${api.endpoint}`, api]));
 
@@ -137,7 +184,10 @@ function 比较Api列表(oldList: 原始Api[], newList: 原始Api[]): 差异结�
     for (const [key, newApi] of newMap) {
         const oldApi = oldMap.get(key);
         if (!oldApi) {
-            新增.push(newApi);
+            // 新增的，但如果是 forge API 则不算新增
+            if (!newApi.isForgeApi) {
+                新增.push(newApi);
+            }
         } else if (JSON.stringify(oldApi) !== JSON.stringify(newApi)) {
             变更.push({ old: oldApi, new: newApi });
         }
@@ -149,16 +199,33 @@ function 比较Api列表(oldList: 原始Api[], newList: 原始Api[]): 差异结�
         }
     }
 
-    return { 新增, 移除, 变更 };
+    return { 新增, 移除, 变更, forge独有: forgeApis };
 }
 
 function 生成差异报告(diff: 差异结果): string {
     let md = '# API 变更报告\n\n';
     let hasChanges = false;
 
+    if (diff.forge独有.length > 0) {
+        hasChanges = true;
+        md += '## 🔧 S-forge 独有 API\n\n';
+        md += '> 以下 API 是本地项目独有的，官方 siyuan-note/siyuan 中不存在\n\n';
+        md += '| 方法 | 端点 | 处理函数 | 认证 |\n';
+        md += '|------|------|----------|------|\n';
+        for (const api of diff.forge独有) {
+            const auth = [
+                api.needAuth && 'Auth',
+                api.needAdminRole && 'Admin',
+                api.unavailableIfReadonly && 'Readonly',
+            ].filter(Boolean).join(', ');
+            md += `| ${api.method} | \`${api.endpoint}\` | \`${api.en}\` | ${auth} |\n`;
+        }
+        md += '\n';
+    }
+
     if (diff.新增.length > 0) {
         hasChanges = true;
-        md += '## 新增 API\n\n';
+        md += '## ➕ 官方新增 API\n\n';
         md += '| 方法 | 端点 | 处理函数 | 认证 |\n';
         md += '|------|------|----------|------|\n';
         for (const api of diff.新增) {
@@ -174,7 +241,7 @@ function 生成差异报告(diff: 差异结果): string {
 
     if (diff.移除.length > 0) {
         hasChanges = true;
-        md += '## 移除 API\n\n';
+        md += '## ➖ 移除 API\n\n';
         md += '| 方法 | 端点 | 处理函数 |\n';
         md += '|------|------|----------|\n';
         for (const api of diff.移除) {
@@ -185,7 +252,7 @@ function 生成差异报告(diff: 差异结果): string {
 
     if (diff.变更.length > 0) {
         hasChanges = true;
-        md += '## 变更 API\n\n';
+        md += '## 🔄 变更 API\n\n';
         for (const change of diff.变更) {
             md += `### \`${change.new.method}\` \`${change.new.endpoint}\`\n\n`;
             md += '```diff\n';
@@ -199,13 +266,41 @@ function 生成差异报告(diff: 差异结果): string {
 }
 
 async function main() {
-    // 确保 scripts 目录存在用于放置输出
     const 输出目录 = 根目录;
 
-    const goContent = await 获取RouterGo();
-    console.log('正在解析 router.go ...');
-    const rawApis = 解析Go代码(goContent);
-    console.log(`解析到 ${rawApis.length} 个 API`);
+    // 获取官方 API
+    const 官方GoContent = await 获取GitHubRouterGo();
+    console.log('正在解析官方 router.go ...');
+    const 官方Apis = 解析Go代码(官方GoContent);
+    console.log(`官方 API 数量: ${官方Apis.length}`);
+
+    // 获取本地 API
+    let 本地Apis: 原始Api[] = [];
+    let hasLocalRouter = false;
+    try {
+        const 本地GoContent = await 获取本地RouterGo();
+        console.log('正在解析本地 router.go ...');
+        本地Apis = 解析Go代码(本地GoContent);
+        console.log(`本地 API 数量: ${本地Apis.length}`);
+        hasLocalRouter = true;
+    } catch {
+        console.log('将仅使用官方 API 列表');
+        本地Apis = 官方Apis;
+    }
+
+    // 合并 API 列表，标记 Forge 独有接口
+    const { merged: 合并后Apis, forgeApis } = hasLocalRouter
+        ? 合并Api列表(官方Apis, 本地Apis)
+        : { merged: 官方Apis, forgeApis: [] };
+
+    if (forgeApis.length > 0) {
+        console.log(`\n🔧 检测到 ${forgeApis.length} 个 S-forge 独有接口:`);
+        for (const api of forgeApis) {
+            console.log(`   - ${api.method} ${api.endpoint} (${api.en})`);
+        }
+    }
+
+    console.log(`\n合并后 API 总数: ${合并后Apis.length}`);
 
     const 输出路径 = join(输出目录, 输出文件);
     const 差异路径 = join(输出目录, 差异报告文件);
@@ -219,17 +314,17 @@ async function main() {
         // 文件不存在，忽略
     }
 
-    const diff = 比较Api列表(oldList, rawApis);
+    const diff = 比较Api列表(oldList, 合并后Apis, forgeApis);
     const diffMd = 生成差异报告(diff);
 
     if (diffMd) {
         await writeFile(差异路径, diffMd, 'utf8');
-        console.log(`已生成变更报告: ${差异路径}`);
+        console.log(`\n已生成变更报告: ${差异路径}`);
     } else {
-        console.log('未检测到变更');
+        console.log('\n未检测到变更');
     }
 
-    await writeFile(输出路径, JSON.stringify(rawApis, null, 2), 'utf8');
+    await writeFile(输出路径, JSON.stringify(合并后Apis, null, 2), 'utf8');
     console.log(`已更新 API 列表: ${输出路径}`);
 }
 

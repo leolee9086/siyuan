@@ -50,9 +50,7 @@ export function 创建客户端<TDefs extends readonly Api定义[]>(
     for (const def of apiDefs) {
         client[def.en] = async (data?: unknown) => {
             const url = `${config.baseUrl}${def.endpoint}`;
-            const headers: Record<string, string> = {
-                'Content-Type': 'application/json',
-            };
+            const headers: Record<string, string> = {};
 
             // 添加认证头
             if (def.needAuth && config.apiToken) {
@@ -66,7 +64,17 @@ export function 创建客户端<TDefs extends readonly Api定义[]>(
 
             // POST/PUT/PATCH 请求添加 body
             if (data !== undefined && ['POST', 'PUT', 'PATCH'].includes(def.method)) {
-                fetchOptions.body = JSON.stringify(data);
+                if (def.formDataRequest && data instanceof FormData) {
+                    // FormData 请求：直接传递 FormData，不设置 Content-Type（让浏览器自动设置 boundary）
+                    fetchOptions.body = data;
+                } else {
+                    // JSON 请求：设置 Content-Type 并序列化
+                    headers['Content-Type'] = 'application/json';
+                    fetchOptions.body = JSON.stringify(data);
+                }
+            } else if (!def.formDataRequest) {
+                // 非 FormData 请求默认设置 Content-Type
+                headers['Content-Type'] = 'application/json';
             }
 
             const response = await config.customFetch(url, fetchOptions);

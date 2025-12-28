@@ -1,0 +1,968 @@
+/**
+ * block 相关 API 定义
+ *
+ * 块操作相关的 API，包括查询、创建、更新、删除、移动等
+ */
+import { z } from 'zod';
+import type { Api定义 } from '../client/types';
+import { 创建响应Schema } from './types';
+
+// ========== 通用 Schema 定义 ==========
+
+/** 插入块结果 Schema */
+const 插入块结果Schema = z.array(z.object({
+    id: z.string().describe('新创建块的 ID'),
+})).nullable();
+
+/** 数据类型枚举 */
+const 数据类型Schema = z.enum(['markdown', 'dom']);
+
+/** 子块信息 Schema */
+const 子块信息Schema = z.object({
+    id: z.string().describe('子块的 ID'),
+    type: z.string().describe('子块的类型'),
+});
+
+/** 字数统计 Schema */
+const 字数统计Schema = z.object({
+    wordCount: z.number().describe('总字数'),
+    charCount: z.number().describe('总字符数'),
+    linkCount: z.number().describe('总链接数'),
+});
+
+/** 面包屑项 Schema */
+const 面包屑项Schema = z.object({
+    id: z.string().describe('面包屑项的块 ID'),
+    name: z.string().describe('面包屑项的名称'),
+    type: z.string().describe('面包屑项的块类型'),
+    icon: z.string().optional().describe('面包屑项的图标'),
+});
+
+/** 块信息 Schema */
+const 块信息Schema = z.object({
+    box: z.string().describe('块所在的笔记本 ID'),
+    path: z.string().describe('块在笔记本中的绝对路径'),
+    rootID: z.string().describe('块所属的根文档块 ID'),
+    rootTitle: z.string().describe('根文档块的标题'),
+    rootChildID: z.string().describe('该块在根文档块下的一级子块ID'),
+    rootIcon: z.string().describe('根文档块的图标'),
+});
+
+/** 文档信息 Schema */
+const 文档信息Schema = z.object({
+    id: z.string().describe('文档块 ID'),
+    box: z.string().describe('笔记本 ID'),
+    path: z.string().describe('文档的存储路径'),
+    dom: z.string().describe('文档内容的 DOM'),
+    title: z.string().describe('文档标题'),
+    icon: z.string().describe('文档图标'),
+    iconURL: z.string().describe('文档图标的 URL'),
+    breadcrumb: z.string().describe('文档的面包屑路径'),
+    isTemplate: z.boolean().describe('该文档是否为模板'),
+    updated: z.string().describe('文档更新时间'),
+});
+
+/** 树统计 Schema */
+const 树统计Schema = z.object({
+    id: z.string().describe('块 ID'),
+    box: z.string().describe('笔记本 ID'),
+    path: z.string().describe('块路径'),
+    refCount: z.number().describe('引用数量'),
+    defCount: z.number().describe('定义数量'),
+    childrenCount: z.number().describe('直接子块数量'),
+    codeBlockCount: z.number().describe('代码块数量'),
+    avCount: z.number().describe('属性视图数量'),
+    docSize: z.number().describe('文档大小'),
+    subFileCount: z.number().describe('子文件数量'),
+    headingCount: z.number().describe('标题块数量'),
+    listCount: z.number().describe('列表块数量'),
+    listItemCount: z.number().describe('列表项数量'),
+    mathBlockCount: z.number().describe('数学公式块数量'),
+    htmlBlockCount: z.number().describe('HTML块数量'),
+    tableCount: z.number().describe('表格块数量'),
+    quoteCount: z.number().describe('引述块数量'),
+    superBlockCount: z.number().describe('超级块数量'),
+    paragraphCount: z.number().describe('段落数量'),
+    todoCount: z.number().describe('待办事项数量'),
+    imageCount: z.number().describe('图片资源数量'),
+    audioCount: z.number().describe('音频资源数量'),
+    videoCount: z.number().describe('视频资源数量'),
+    otherAssetCount: z.number().describe('其他资源数量'),
+});
+
+export const blockApiDefs = [
+    // ========== 插入块 ==========
+    {
+        method: 'POST',
+        endpoint: '/api/block/appendBlock',
+        en: 'appendBlock',
+        zh_cn: '插入后置子块',
+        description: '在指定父块的末尾插入新的子块。',
+        needAuth: true,
+        needAdminRole: true,
+        unavailableIfReadonly: true,
+        zodRequestSchema: z.object({
+            data: z.string().describe('要插入的内容'),
+            dataType: 数据类型Schema.describe('指定 data 参数的类型'),
+            parentID: z.string().describe('父块的 ID'),
+        }),
+        zodResponseSchema: 创建响应Schema(插入块结果Schema),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/prependBlock',
+        en: 'prependBlock',
+        zh_cn: '插入前置子块',
+        description: '在指定父块的开头插入新的子块。',
+        needAuth: true,
+        needAdminRole: true,
+        unavailableIfReadonly: true,
+        zodRequestSchema: z.object({
+            data: z.string().describe('要插入的内容'),
+            dataType: 数据类型Schema.describe('指定 data 参数的类型'),
+            parentID: z.string().describe('父块的 ID'),
+        }),
+        zodResponseSchema: 创建响应Schema(插入块结果Schema),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/insertBlock',
+        en: 'insertBlock',
+        zh_cn: '插入块',
+        description: '在指定位置插入新的内容块。通过 previousID 指定插入到某块之后，通过 nextID 指定插入到某块之前，通过 parentID 指定作为子块插入。',
+        needAuth: true,
+        needAdminRole: true,
+        unavailableIfReadonly: true,
+        zodRequestSchema: z.object({
+            data: z.string().describe('要插入的内容'),
+            dataType: 数据类型Schema.describe('指定 data 参数的类型'),
+            parentID: z.string().optional().describe('父块的 ID，插入为其子块'),
+            previousID: z.string().optional().describe('前一个同级块的 ID，插入在其后'),
+            nextID: z.string().optional().describe('后一个同级块的 ID，插入在其前'),
+        }),
+        zodResponseSchema: 创建响应Schema(插入块结果Schema),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/batchInsertBlock',
+        en: 'batchInsertBlock',
+        zh_cn: '批量插入块',
+        description: '批量插入新的内容块。',
+        needAuth: true,
+        needAdminRole: true,
+        unavailableIfReadonly: true,
+        zodRequestSchema: z.object({
+            blocks: z.array(z.object({
+                data: z.string().describe('要插入的内容'),
+                dataType: 数据类型Schema.describe('指定 data 参数的类型'),
+                parentID: z.string().optional().describe('父块的 ID'),
+                previousID: z.string().optional().describe('前一个同级块的 ID'),
+                nextID: z.string().optional().describe('后一个同级块的 ID'),
+            })).describe('包含多个待插入块信息的数组'),
+        }),
+        zodResponseSchema: 创建响应Schema(插入块结果Schema),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/batchAppendBlock',
+        en: 'batchAppendBlock',
+        zh_cn: '批量后置插入块',
+        description: '在指定父块的末尾批量插入新的子块。',
+        needAuth: true,
+        needAdminRole: true,
+        unavailableIfReadonly: true,
+        zodRequestSchema: z.object({
+            blocks: z.array(z.object({
+                data: z.string().describe('要插入的内容'),
+                dataType: 数据类型Schema.describe('指定 data 参数的类型'),
+                parentID: z.string().describe('父块的 ID'),
+            })).describe('包含多个待插入块信息的数组'),
+        }),
+        zodResponseSchema: 创建响应Schema(插入块结果Schema),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/batchPrependBlock',
+        en: 'batchPrependBlock',
+        zh_cn: '批量前置插入块',
+        description: '在指定父块的开头批量插入新的子块。',
+        needAuth: true,
+        needAdminRole: true,
+        unavailableIfReadonly: true,
+        zodRequestSchema: z.object({
+            blocks: z.array(z.object({
+                data: z.string().describe('要插入的内容'),
+                dataType: 数据类型Schema.describe('指定 data 参数的类型'),
+                parentID: z.string().describe('父块的 ID'),
+            })).describe('包含多个待插入块信息的数组'),
+        }),
+        zodResponseSchema: 创建响应Schema(插入块结果Schema),
+    },
+
+    // ========== 日记块 ==========
+    {
+        method: 'POST',
+        endpoint: '/api/block/appendDailyNoteBlock',
+        en: 'appendDailyNoteBlock',
+        zh_cn: '追加日记块',
+        description: '向指定笔记本的当日日记文档末尾追加新的内容块。',
+        needAuth: true,
+        needAdminRole: true,
+        unavailableIfReadonly: true,
+        zodRequestSchema: z.object({
+            data: z.string().describe('要追加的内容'),
+            dataType: 数据类型Schema.describe('指定 data 参数的类型'),
+            notebook: z.string().describe('目标笔记本的 ID'),
+        }),
+        zodResponseSchema: 创建响应Schema(插入块结果Schema),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/prependDailyNoteBlock',
+        en: 'prependDailyNoteBlock',
+        zh_cn: '前置追加日记块',
+        description: '在指定笔记本的当日日记文档开头追加新的内容块。',
+        needAuth: true,
+        needAdminRole: true,
+        unavailableIfReadonly: true,
+        zodRequestSchema: z.object({
+            data: z.string().describe('要追加的内容'),
+            dataType: 数据类型Schema.describe('指定 data 参数的类型'),
+            notebook: z.string().describe('目标笔记本的 ID'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.any().nullable()),
+    },
+
+    // ========== 更新块 ==========
+    {
+        method: 'POST',
+        endpoint: '/api/block/updateBlock',
+        en: 'updateBlock',
+        zh_cn: '更新块内容',
+        description: '更新指定块ID的内容。',
+        needAuth: true,
+        needAdminRole: true,
+        unavailableIfReadonly: true,
+        zodRequestSchema: z.object({
+            id: z.string().describe('要更新的块 ID'),
+            data: z.string().describe('新的块内容'),
+            dataType: 数据类型Schema.describe('指定 data 参数的类型'),
+        }),
+        zodResponseSchema: 创建响应Schema(插入块结果Schema),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/batchUpdateBlock',
+        en: 'batchUpdateBlock',
+        zh_cn: '批量更新块内容',
+        description: '批量更新多个块的内容。',
+        needAuth: true,
+        needAdminRole: true,
+        unavailableIfReadonly: true,
+        zodRequestSchema: z.object({
+            blocks: z.array(z.object({
+                id: z.string().describe('要更新的块 ID'),
+                data: z.string().describe('新的块内容'),
+                dataType: 数据类型Schema.describe('指定 data 参数的类型'),
+            })).describe('包含多个待更新块信息的数组'),
+        }),
+        zodResponseSchema: 创建响应Schema(插入块结果Schema),
+    },
+
+    // ========== 删除块 ==========
+    {
+        method: 'POST',
+        endpoint: '/api/block/deleteBlock',
+        en: 'deleteBlock',
+        zh_cn: '删除块',
+        description: '删除指定的块ID。',
+        needAuth: true,
+        needAdminRole: true,
+        unavailableIfReadonly: true,
+        zodRequestSchema: z.object({
+            id: z.string().describe('要删除的块 ID'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.any().nullable()),
+    },
+
+    // ========== 移动块 ==========
+    {
+        method: 'POST',
+        endpoint: '/api/block/moveBlock',
+        en: 'moveBlock',
+        zh_cn: '移动块',
+        description: '将指定的块移动到新的父块下或同级块的特定位置。',
+        needAuth: true,
+        needAdminRole: true,
+        unavailableIfReadonly: true,
+        zodRequestSchema: z.object({
+            id: z.string().describe('要移动的块的 ID'),
+            parentID: z.string().optional().describe('新的父块 ID'),
+            previousID: z.string().optional().describe('新的前一个同级块的 ID'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.null()),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/moveOutlineHeading',
+        en: 'moveOutlineHeading',
+        zh_cn: '移动大纲标题块',
+        description: '移动大纲中的标题块到新的父级或同级位置。',
+        needAuth: true,
+        needAdminRole: true,
+        unavailableIfReadonly: true,
+        zodRequestSchema: z.object({
+            id: z.string().describe('要移动的大纲标题块的 ID'),
+            parentID: z.string().optional().describe('新的父块 ID'),
+            previousID: z.string().optional().describe('新的前一个同级标题块的 ID'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.any().nullable()),
+    },
+
+    // ========== 折叠/展开 ==========
+    {
+        method: 'POST',
+        endpoint: '/api/block/foldBlock',
+        en: 'foldBlock',
+        zh_cn: '折叠块',
+        description: '折叠指定的块ID。',
+        needAuth: true,
+        needAdminRole: true,
+        unavailableIfReadonly: true,
+        zodRequestSchema: z.object({
+            id: z.string().describe('要折叠的块 ID'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.any().nullable()),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/unfoldBlock',
+        en: 'unfoldBlock',
+        zh_cn: '展开块',
+        description: '展开指定的块ID。',
+        needAuth: true,
+        needAdminRole: true,
+        unavailableIfReadonly: true,
+        zodRequestSchema: z.object({
+            id: z.string().describe('要展开的块 ID'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.any().nullable()),
+    },
+
+    // ========== 获取块信息 ==========
+    {
+        method: 'POST',
+        endpoint: '/api/block/getBlockInfo',
+        en: 'getBlockInfo',
+        zh_cn: '获取块信息',
+        description: '获取指定块ID的详细信息。',
+        needAuth: true,
+        needAdminRole: false,
+        unavailableIfReadonly: false,
+        zodRequestSchema: z.object({
+            id: z.string().describe('要获取信息的块 ID'),
+        }),
+        zodResponseSchema: 创建响应Schema(块信息Schema),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/getBlockDOM',
+        en: 'getBlockDOM',
+        zh_cn: '获取块DOM',
+        description: '获取指定块ID的DOM表示（HTML字符串）。',
+        needAuth: true,
+        needAdminRole: false,
+        unavailableIfReadonly: false,
+        zodRequestSchema: z.object({
+            id: z.string().describe('要获取 DOM 的块 ID'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.object({
+            id: z.string().describe('块 ID'),
+            dom: z.string().describe('块的 DOM 内容'),
+            isFullWidth: z.boolean().optional().describe('是否为页宽块'),
+        })),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/getBlockDOMs',
+        en: 'getBlockDOMs',
+        zh_cn: '批量获取块DOM',
+        description: '批量获取指定块ID列表的DOM表示。',
+        needAuth: true,
+        needAdminRole: false,
+        unavailableIfReadonly: false,
+        zodRequestSchema: z.object({
+            ids: z.array(z.string()).describe('要获取 DOM 的块 ID 数组'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.record(z.string(), z.string())),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/getBlockDOMWithEmbed',
+        en: 'getBlockDOMWithEmbed',
+        zh_cn: '获取块DOM（含嵌入）',
+        description: '获取指定块ID的DOM表示，包含嵌入块的内容。',
+        needAuth: true,
+        needAdminRole: false,
+        unavailableIfReadonly: false,
+        zodRequestSchema: z.object({}),
+        zodResponseSchema: 创建响应Schema(z.any()),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/getBlockDOMsWithEmbed',
+        en: 'getBlockDOMsWithEmbed',
+        zh_cn: '批量获取块DOM（含嵌入）',
+        description: '批量获取指定块ID列表的DOM表示，包含嵌入块的内容。',
+        needAuth: true,
+        needAdminRole: false,
+        unavailableIfReadonly: false,
+        zodRequestSchema: z.object({}),
+        zodResponseSchema: 创建响应Schema(z.any()),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/getBlockKramdown',
+        en: 'getBlockKramdown',
+        zh_cn: '获取块Kramdown源码',
+        description: '获取指定块ID的Kramdown源码表示。',
+        needAuth: true,
+        needAdminRole: false,
+        unavailableIfReadonly: false,
+        zodRequestSchema: z.object({
+            id: z.string().describe('要获取 Kramdown 源码的块 ID'),
+            mode: z.enum(['md', 'textmark']).optional().describe('获取模式'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.object({
+            id: z.string().describe('块 ID'),
+            kramdown: z.string().describe('块的 Kramdown 源码'),
+        })),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/getChildBlocks',
+        en: 'getChildBlocks',
+        zh_cn: '获取子块基本信息',
+        description: '获取指定块ID的所有直接子块的基本信息列表。',
+        needAuth: true,
+        needAdminRole: false,
+        unavailableIfReadonly: false,
+        zodRequestSchema: z.object({
+            id: z.string().describe('父块的 ID'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.array(子块信息Schema)),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/getTailChildBlocks',
+        en: 'getTailChildBlocks',
+        zh_cn: '获取块的尾部若干子块',
+        description: '获取指定块ID的尾部指定数量的直接子块。',
+        needAuth: true,
+        needAdminRole: false,
+        unavailableIfReadonly: false,
+        zodRequestSchema: z.object({
+            id: z.string().describe('父块的 ID'),
+            size: z.number().int().describe('要获取的尾部子块数量'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.array(子块信息Schema)),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/getBlockBreadcrumb',
+        en: 'getBlockBreadcrumb',
+        zh_cn: '获取块面包屑',
+        description: '获取指定块ID到其根块的面包屑路径。',
+        needAuth: true,
+        needAdminRole: false,
+        unavailableIfReadonly: false,
+        zodRequestSchema: z.object({
+            id: z.string().describe('目标块的 ID'),
+            excludeTypes: z.array(z.string()).optional().describe('需要排除的块类型数组'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.array(面包屑项Schema)),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/getBlockIndex',
+        en: 'getBlockIndex',
+        zh_cn: '获取块在父级中的位置',
+        description: '获取指定块ID在其父级块的子块列表中的位置索引。',
+        needAuth: true,
+        needAdminRole: false,
+        unavailableIfReadonly: false,
+        zodRequestSchema: z.object({
+            id: z.string().describe('要获取索引的块 ID'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.number()),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/getBlocksIndexes',
+        en: 'getBlocksIndexes',
+        zh_cn: '批量获取块在父级中的位置',
+        description: '批量获取指定块ID列表各自在其父级块的子块列表中的位置索引。',
+        needAuth: true,
+        needAdminRole: false,
+        unavailableIfReadonly: false,
+        zodRequestSchema: z.object({
+            ids: z.array(z.string()).describe('要获取索引的块 ID 数组'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.record(z.string(), z.number())),
+    },
+
+    // ========== 块引用相关 ==========
+    {
+        method: 'POST',
+        endpoint: '/api/block/getRefIDs',
+        en: 'getRefIDs',
+        zh_cn: '获取块引用的所有定义块ID',
+        description: '获取指定块ID所引用的所有定义块的ID列表。',
+        needAuth: true,
+        needAdminRole: false,
+        unavailableIfReadonly: false,
+        zodRequestSchema: z.object({
+            id: z.string().describe('发起引用的块 ID'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.array(z.string())),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/getRefIDsByFileAnnotationID',
+        en: 'getRefIDsByFileAnnotationID',
+        zh_cn: '通过文件注解ID获取相关的引用ID和定义ID',
+        description: '根据文件注解块的ID，查找与该注解相关的引用块ID和定义块ID。',
+        needAuth: true,
+        needAdminRole: false,
+        unavailableIfReadonly: false,
+        zodRequestSchema: z.object({
+            id: z.string().describe('文件注解块的 ID'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.object({
+            refID: z.string().describe('相关的引用块 ID'),
+            defID: z.string().describe('相关的定义块 ID'),
+        })),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/getBlockDefIDsByRefText',
+        en: 'getBlockDefIDsByRefText',
+        zh_cn: '根据引用文本获取块定义ID',
+        description: '根据引用文本搜索并返回其可能指向的块定义ID列表。',
+        needAuth: true,
+        needAdminRole: false,
+        unavailableIfReadonly: false,
+        zodRequestSchema: z.object({
+            anchor: z.string().describe('要搜索的引用锚文本'),
+            excludeIDs: z.array(z.string()).optional().describe('需要排除的块 ID 数组'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.object({
+            refDefs: z.array(z.object({
+                RefID: z.string().describe('引用块的ID'),
+                DefIDs: z.array(z.string()).describe('被引用的定义块ID列表'),
+            })).describe('引用定义对的列表'),
+        })),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/getRefText',
+        en: 'getRefText',
+        zh_cn: '获取引用块的锚文本',
+        description: '获取指定引用块ID的锚文本内容。',
+        needAuth: true,
+        needAdminRole: false,
+        unavailableIfReadonly: false,
+        zodRequestSchema: z.object({
+            id: z.string().describe('引用块的 ID'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.string()),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/getDOMText',
+        en: 'getDOMText',
+        zh_cn: '获取DOM中的纯文本内容',
+        description: '提取给定DOM字符串中的纯文本内容。',
+        needAuth: true,
+        needAdminRole: false,
+        unavailableIfReadonly: false,
+        zodRequestSchema: z.object({
+            dom: z.string().describe('包含 HTML 标签的 DOM 字符串'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.string()),
+    },
+
+    // ========== 字数统计 ==========
+    {
+        method: 'POST',
+        endpoint: '/api/block/getTreeStat',
+        en: 'getTreeStat',
+        zh_cn: '获取块树统计信息',
+        description: '获取指定块ID的树结构统计信息。',
+        needAuth: true,
+        needAdminRole: false,
+        unavailableIfReadonly: false,
+        zodRequestSchema: z.object({
+            id: z.string().describe('目标块的 ID'),
+        }),
+        zodResponseSchema: 创建响应Schema(树统计Schema),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/getBlocksWordCount',
+        en: 'getBlocksWordCount',
+        zh_cn: '获取多块字数统计',
+        description: '获取指定块ID列表的总字数、字符数和链接数统计信息。',
+        needAuth: true,
+        needAdminRole: false,
+        unavailableIfReadonly: false,
+        zodRequestSchema: z.object({
+            ids: z.array(z.string()).describe('要统计字数的块 ID 数组'),
+            reqId: z.string().optional().describe('可选的请求 ID'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.object({
+            reqId: z.string().optional().describe('如果请求中提供了 reqId'),
+            stat: 字数统计Schema.describe('字数统计结果'),
+        })),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/getContentWordCount',
+        en: 'getContentWordCount',
+        zh_cn: '获取内容字数统计',
+        description: '获取给定内容字符串的字数统计信息。',
+        needAuth: true,
+        needAdminRole: false,
+        unavailableIfReadonly: false,
+        zodRequestSchema: z.object({
+            content: z.string().describe('要统计字数的文本内容'),
+            reqId: z.string().optional().describe('可选的请求 ID'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.object({
+            reqId: z.string().optional().describe('如果请求中提供了 reqId'),
+            stat: 字数统计Schema.describe('字数统计结果'),
+        })),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/getRecentUpdatedBlocks',
+        en: 'getRecentUpdatedBlocks',
+        zh_cn: '获取最近更新的块列表',
+        description: '获取最近更新的块列表，按更新时间倒序排列。',
+        needAuth: true,
+        needAdminRole: false,
+        unavailableIfReadonly: false,
+        zodRequestSchema: z.object({}),
+        zodResponseSchema: 创建响应Schema(z.array(z.object({
+            id: z.string().describe('块 ID'),
+            box: z.string().describe('笔记本 ID'),
+            path: z.string().describe('块所在文档的路径'),
+            hPath: z.string().describe('块所在文档的人类可读路径'),
+            name: z.string().describe('块的名称/内容预览'),
+            bookmark: z.string().describe('块的书签内容'),
+            memo: z.string().describe('块的备注内容'),
+            alias: z.string().describe('块的别名'),
+            type: z.string().describe('块类型'),
+            updated: z.string().describe('块更新时间'),
+        }))),
+    },
+
+    // ========== 文档信息 ==========
+    {
+        method: 'POST',
+        endpoint: '/api/block/getDocInfo',
+        en: 'getDocInfo',
+        zh_cn: '获取文档信息',
+        description: '获取指定文档块ID的信息。',
+        needAuth: true,
+        needAdminRole: false,
+        unavailableIfReadonly: false,
+        zodRequestSchema: z.object({
+            id: z.string().describe('目标文档块的 ID'),
+        }),
+        zodResponseSchema: 创建响应Schema(文档信息Schema),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/getDocsInfo',
+        en: 'getDocsInfo',
+        zh_cn: '批量获取多个文档信息',
+        description: '批量获取多个文档块ID的信息。',
+        needAuth: true,
+        needAdminRole: false,
+        unavailableIfReadonly: false,
+        zodRequestSchema: z.object({
+            ids: z.array(z.string()).describe('包含多个文档块 ID 的数组'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.array(z.object({
+            id: z.string().describe('文档块 ID'),
+            box: z.string().describe('笔记本 ID'),
+            path: z.string().describe('文档的存储路径'),
+            title: z.string().describe('文档标题'),
+            icon: z.string().describe('文档图标'),
+            iconURL: z.string().describe('文档图标的 URL'),
+            isTemplate: z.boolean().describe('该文档是否为模板'),
+            updated: z.string().describe('文档更新时间'),
+        }))),
+    },
+
+    // ========== 检查块状态 ==========
+    {
+        method: 'POST',
+        endpoint: '/api/block/checkBlockExist',
+        en: 'checkBlockExist',
+        zh_cn: '检查块是否存在',
+        description: '检查指定的块ID是否存在。',
+        needAuth: true,
+        needAdminRole: false,
+        unavailableIfReadonly: false,
+        zodRequestSchema: z.object({
+            id: z.string().describe('要检查的块 ID'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.boolean()),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/getUnfoldedParentID',
+        en: 'getUnfoldedParentID',
+        zh_cn: '获取块的最近展开的父块ID',
+        description: '向上查找指定块ID的父块链，返回最近的一个已展开的父块ID。',
+        needAuth: true,
+        needAdminRole: false,
+        unavailableIfReadonly: false,
+        zodRequestSchema: z.object({
+            id: z.string().describe('起始块的 ID'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.string()),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/checkBlockFold',
+        en: 'checkBlockFold',
+        zh_cn: '检查块是否折叠',
+        description: '检查指定的块ID是否已折叠。',
+        needAuth: true,
+        needAdminRole: false,
+        unavailableIfReadonly: false,
+        zodRequestSchema: z.object({
+            id: z.string().describe('要检查的块 ID'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.object({
+            isFolded: z.boolean().describe('块是否已折叠'),
+            isRoot: z.boolean().describe('块是否为根块'),
+        })),
+    },
+
+    // ========== 标题块相关 ==========
+    {
+        method: 'POST',
+        endpoint: '/api/block/getHeadingLevelTransaction',
+        en: 'getHeadingLevelTransaction',
+        zh_cn: '获取调整标题级别的事务',
+        description: '获取调整指定标题块级别所需的事务操作列表。',
+        needAuth: true,
+        needAdminRole: false,
+        unavailableIfReadonly: false,
+        zodRequestSchema: z.object({
+            id: z.string().describe('要调整级别的标题块 ID'),
+            level: z.number().int().describe('新的标题级别 (1-6)'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.object({
+            doOperations: z.array(z.object({
+                action: z.string().describe('操作类型'),
+                id: z.string().describe('操作的块 ID'),
+                data: z.string().optional().describe('操作相关数据'),
+            })).describe('正向操作列表'),
+        })),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/getHeadingDeleteTransaction',
+        en: 'getHeadingDeleteTransaction',
+        zh_cn: '获取删除标题块的事务',
+        description: '获取删除指定标题块所需的事务操作列表。',
+        needAuth: true,
+        needAdminRole: false,
+        unavailableIfReadonly: false,
+        zodRequestSchema: z.object({
+            id: z.string().describe('要获取删除事务的标题块 ID'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.object({
+            doOperations: z.array(z.object({
+                action: z.string().describe('操作类型'),
+                id: z.string().optional().describe('操作的块 ID'),
+                data: z.string().optional().describe('操作相关数据'),
+                parentID: z.string().optional().describe('父块 ID'),
+                previousID: z.string().optional().describe('前一个同级块 ID'),
+                dataType: z.string().optional().describe('数据类型'),
+            })).describe('正向操作列表'),
+        })),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/getHeadingInsertTransaction',
+        en: 'getHeadingInsertTransaction',
+        zh_cn: '获取插入标题块的事务',
+        description: '获取插入标题块所需的事务操作列表。',
+        needAuth: true,
+        needAdminRole: false,
+        unavailableIfReadonly: false,
+        zodRequestSchema: z.object({}),
+        zodResponseSchema: 创建响应Schema(z.any()),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/getHeadingChildrenIDs',
+        en: 'getHeadingChildrenIDs',
+        zh_cn: '获取标题块下所有子孙块的ID',
+        description: '获取指定标题块ID下的所有子孙块的ID列表。',
+        needAuth: true,
+        needAdminRole: false,
+        unavailableIfReadonly: false,
+        zodRequestSchema: z.object({
+            id: z.string().describe('目标标题块的 ID'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.array(z.string())),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/getHeadingChildrenDOM',
+        en: 'getHeadingChildrenDOM',
+        zh_cn: '获取标题块下所有子孙块的DOM',
+        description: '获取指定标题块ID下的所有子孙块的DOM内容。',
+        needAuth: true,
+        needAdminRole: false,
+        unavailableIfReadonly: false,
+        zodRequestSchema: z.object({
+            id: z.string().describe('目标标题块的 ID'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.string()),
+    },
+
+    // ========== 引用操作 ==========
+    {
+        method: 'POST',
+        endpoint: '/api/block/swapBlockRef',
+        en: 'swapBlockRef',
+        zh_cn: '交换引用块和定义块',
+        description: '交换指定的引用块和其指向的定义块的角色。',
+        needAuth: true,
+        needAdminRole: true,
+        unavailableIfReadonly: true,
+        zodRequestSchema: z.object({
+            refID: z.string().describe('原引用块的 ID'),
+            defID: z.string().describe('原定义块的 ID'),
+            includeChildren: z.boolean().describe('是否包含子块进行交换'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.null()),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/transferBlockRef',
+        en: 'transferBlockRef',
+        zh_cn: '转移块引用关系',
+        description: '将原块的所有引用关系转移到目标块。',
+        needAuth: true,
+        needAdminRole: true,
+        unavailableIfReadonly: true,
+        zodRequestSchema: z.object({
+            fromID: z.string().describe('原块的 ID'),
+            toID: z.string().describe('目标块的 ID'),
+            refIDs: z.array(z.string()).optional().describe('指定要转移的引用块ID'),
+            reloadUI: z.boolean().optional().describe('操作完成后是否重新加载UI'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.null()),
+    },
+
+    // ========== 其他 ==========
+    {
+        method: 'POST',
+        endpoint: '/api/block/setBlockReminder',
+        en: 'setBlockReminder',
+        zh_cn: '设置块提醒时间',
+        description: '为指定的块ID设置一个提醒时间。',
+        needAuth: true,
+        needAdminRole: true,
+        unavailableIfReadonly: true,
+        zodRequestSchema: z.object({
+            id: z.string().describe('要设置提醒的块 ID'),
+            timed: z.string().describe('提醒时间，格式为 yyyyMMddHHmmss'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.null()),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/getBlockSiblingID',
+        en: 'getBlockSiblingID',
+        zh_cn: '获取块的同级和父级ID',
+        description: '获取指定块ID的父块ID、上一个同级块ID和下一个同级块ID。',
+        needAuth: true,
+        needAdminRole: false,
+        unavailableIfReadonly: false,
+        zodRequestSchema: z.object({
+            id: z.string().describe('目标块的 ID'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.object({
+            parent: z.string().describe('父块 ID'),
+            previous: z.string().describe('上一个同级块 ID'),
+            next: z.string().describe('下一个同级块 ID'),
+        })),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/getBlockTreeInfos',
+        en: 'getBlockTreeInfos',
+        zh_cn: '获取多个块的树信息',
+        description: '批量获取指定块ID列表对应的块树信息。',
+        needAuth: true,
+        needAdminRole: false,
+        unavailableIfReadonly: false,
+        zodRequestSchema: z.object({
+            ids: z.array(z.string()).describe('要获取块树信息的块 ID 数组'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.array(z.any())),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/getBlockRelevantIDs',
+        en: 'getBlockRelevantIDs',
+        zh_cn: '获取块相关ID',
+        description: '获取与指定块相关的ID列表。',
+        needAuth: true,
+        needAdminRole: false,
+        unavailableIfReadonly: false,
+        zodRequestSchema: z.object({}),
+        zodResponseSchema: 创建响应Schema(z.any()),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/checkBlockRef',
+        en: 'checkBlockRef',
+        zh_cn: '检查块引用状态',
+        description: '检查一批块ID的引用状态。',
+        needAuth: true,
+        needAdminRole: false,
+        unavailableIfReadonly: false,
+        zodRequestSchema: z.object({
+            ids: z.array(z.string()).describe('要检查的块 ID 数组'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.record(z.string(), z.object({
+            defCount: z.number().describe('该块作为定义块被引用的次数'),
+            refCount: z.number().describe('该块作为引用块引用其他块的次数'),
+        }))),
+    },
+    {
+        method: 'POST',
+        endpoint: '/api/block/appendHeadingChildren',
+        en: 'appendHeadingChildren',
+        zh_cn: '追加标题块子块',
+        description: '追加标题块的子块内容。',
+        needAuth: true,
+        needAdminRole: false,
+        unavailableIfReadonly: false,
+        zodRequestSchema: z.object({}),
+        zodResponseSchema: 创建响应Schema(z.any()),
+    },
+] as const satisfies readonly Api定义[];
+
+export type BlockApiDefs = typeof blockApiDefs;

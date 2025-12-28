@@ -1,8 +1,7 @@
 /**
  * API 定义模块入口
  * 
- * 这个文件导出所有 API 定义，
- * 后续迁移时会逐个添加各分组的 API 定义。
+ * 这个文件导出所有 API 定义
  */
 
 // 导出通用类型
@@ -19,17 +18,51 @@ export {
 
 export type { 标准响应 } from './types';
 
-// TODO: 后续迁移时添加各分组 API 定义
-// export { accountApiDefs } from './account';
-// export { blockApiDefs } from './block';
-// ...
-
-/**
- * 所有 API 定义的合并 (待实现)
- *
- * @example
- * ```typescript
- * const allApiDefs = [...accountApiDefs, ...blockApiDefs] as const;
- * ```
- */
-// export const allApiDefs = [] as const;
+// ========== 已迁移的 API 定义 ==========
+export { accountApiDefs } from './account';
+export { aiApiDefs } from './ai';
+export { archiveApiDefs } from './archive';
+export { attrApiDefs } from './attr';
+export { bookmarkApiDefs } from './bookmark';
+export { broadcastApiDefs } from './broadcast';
+export { clipboardApiDefs } from './clipboard';
+export { cloudApiDefs } from './cloud';
+export { convertApiDefs } from './convert';
+export { extensionApiDefs } from './extension';
+export { formatApiDefs } from './format';
+export { iconApiDefs } from './icon';
+export { importApiDefs } from './import';
+export { inboxApiDefs } from './inbox';
+export { luteApiDefs } from './lute';
+export { miscApiDefs } from './misc';
+export { networkApiDefs } from './network';
+export { notificationApiDefs } from './notification';
+export { outlineApiDefs } from './outline';
+export { petalApiDefs } from './petal';
+export { queryApiDefs } from './query';
+export { snippetApiDefs } from './snippet';
+export { sqliteApiDefs } from './sqlite';
+export { tagApiDefs } from './tag';
+export { templateApiDefs } from './template';
+export { uiApiDefs } from './ui';
+export { transactionsApiDefs } from './transactions';
+export { graphApiDefs } from './graph';
+export { refApiDefs } from './ref';
+export { fileApiDefs } from './file';
+export { notebookApiDefs } from './notebook';
+export { historyApiDefs } from './history';
+export { storageApiDefs } from './storage';
+export { syncApiDefs } from './sync';
+export { searchApiDefs } from './search';
+export { vectorApiDefs } from './vector';
+export { embeddingApiDefs } from './embedding';
+export { systemApiDefs } from './system';
+export { riffApiDefs } from './riff';
+export { repoApiDefs } from './repo';
+export { assetApiDefs } from './asset';
+export { bazaarApiDefs } from './bazaar';
+export { settingApiDefs } from './setting';
+export { exportApiDefs } from './export';
+export { filetreeApiDefs } from './filetree';
+export { blockApiDefs } from './block';
+export { avApiDefs } from './av';

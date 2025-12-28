@@ -40,6 +40,8 @@ export interface Api定义 {
     readonly unavailableIfReadonly?: boolean;
     /** 是否已废弃 */
     readonly deprecated?: boolean;
+    /** 是否为 FormData 请求 (multipart/form-data) */
+    readonly formDataRequest?: boolean;
     /** 请求参数 Zod Schema */
     readonly zodRequestSchema: z.ZodType<unknown>;
     /** 响应数据 Zod Schema */

@@ -3958,5 +3958,255 @@
     "needAdminRole": true,
     "unavailableIfReadonly": true,
     "otherAuthChecks": []
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/bazaar/getBazaarKeywords",
+    "en": "getBazaarKeywords",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": [],
+    "isForgeApi": true
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/vector/collections/build",
+    "en": "vectorBuildCollection",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": [],
+    "isForgeApi": true
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/vector/collections/delete",
+    "en": "vectorDeleteCollection",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": [],
+    "isForgeApi": true
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/vector/add",
+    "en": "vectorAdd",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": [],
+    "isForgeApi": true
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/vector/delete",
+    "en": "vectorDelete",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": [],
+    "isForgeApi": true
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/vector/query",
+    "en": "vectorQuery",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": [],
+    "isForgeApi": true
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/vector/keys",
+    "en": "vectorKeys",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": [],
+    "isForgeApi": true
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/vector/state",
+    "en": "vectorState",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": [],
+    "isForgeApi": true
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/vector/rebuild",
+    "en": "vectorRebuild",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": [],
+    "isForgeApi": true
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/embedding/status",
+    "en": "embeddingStatus",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": [],
+    "isForgeApi": true
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/embedding/datasets",
+    "en": "embeddingDatasets",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": [],
+    "isForgeApi": true
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/embedding/blocks/push",
+    "en": "embeddingBlocksPush",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": [],
+    "isForgeApi": true
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/embedding/blocks/pushWithVectors",
+    "en": "embeddingBlocksPushWithVectors",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": [],
+    "isForgeApi": true
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/embedding/blocks/query",
+    "en": "embeddingBlocksQuery",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": [],
+    "isForgeApi": true
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/embedding/blocks/queryWithVector",
+    "en": "embeddingBlocksQueryWithVector",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": [],
+    "isForgeApi": true
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/embedding/blocks/pending",
+    "en": "embeddingBlocksPending",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": [],
+    "isForgeApi": true
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/embedding/blocks/embedded",
+    "en": "embeddingBlocksEmbedded",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": [],
+    "isForgeApi": true
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/embedding/assets/push",
+    "en": "embeddingAssetsPush",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": [],
+    "isForgeApi": true
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/embedding/assets/pushWithVectors",
+    "en": "embeddingAssetsPushWithVectors",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": [],
+    "isForgeApi": true
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/embedding/assets/query",
+    "en": "embeddingAssetsQuery",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": [],
+    "isForgeApi": true
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/embedding/assets/pending",
+    "en": "embeddingAssetsPending",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": [],
+    "isForgeApi": true
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/embedding/collections/delete",
+    "en": "embeddingCollectionsDelete",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": [],
+    "isForgeApi": true
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/embedding/models",
+    "en": "embeddingModels",
+    "needAuth": true,
+    "needAdminRole": false,
+    "unavailableIfReadonly": false,
+    "otherAuthChecks": [],
+    "isForgeApi": true
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/embedding/models/pull",
+    "en": "embeddingPullModel",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": [],
+    "isForgeApi": true
+  },
+  {
+    "method": "POST",
+    "endpoint": "/api/embedding/models/set",
+    "en": "embeddingSetModel",
+    "needAuth": true,
+    "needAdminRole": true,
+    "unavailableIfReadonly": true,
+    "otherAuthChecks": [],
+    "isForgeApi": true
   }
 ]
