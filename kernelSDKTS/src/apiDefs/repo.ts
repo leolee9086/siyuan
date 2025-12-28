@@ -35,14 +35,7 @@ const SnapshotPageResponseSchema = z.object({
     totalCount: z.number().int().describe('总数量'),
 });
 
-/**
- * 标签快照分页响应 Schema
- */
-const TagSnapshotPageResponseSchema = z.object({
-    snapshots: z.array(TagSnapshotSchema).describe('标签快照列表'),
-    pageCount: z.number().int().describe('总页数'),
-    totalCount: z.number().int().describe('总数量'),
-});
+
 
 /**
  * 文档差异项 Schema
@@ -72,7 +65,10 @@ export const repoApiDefs = [
         needAdminRole: true,
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({}),
-        zodResponseSchema: 创建响应Schema(z.null()),
+        zodResponseSchema: 创建响应Schema(z.object({
+            key: z.string().describe('新的仓库密钥'),
+        })),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -84,9 +80,12 @@ export const repoApiDefs = [
         needAdminRole: true,
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({
-            passphrase: z.string().min(1).describe('用于生成密钥的用户口令'),
+            pass: z.string().min(1).describe('用于生成密钥的用户口令'),
         }),
-        zodResponseSchema: 创建响应Schema(z.null()),
+        zodResponseSchema: 创建响应Schema(z.object({
+            key: z.string().describe('生成的仓库密钥'),
+        })),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -99,6 +98,7 @@ export const repoApiDefs = [
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({}),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -111,6 +111,7 @@ export const repoApiDefs = [
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({}),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -123,19 +124,24 @@ export const repoApiDefs = [
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({}),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
         endpoint: '/api/repo/importRepoKey',
         en: 'importRepoKey',
         zh_cn: '导入仓库密钥',
-        description: '导入仓库加密密钥文件 (.sykey)。通过 FormData 接收文件。',
+        description: '导入仓库加密密钥内容 (Base64)。',
         needAuth: true,
         needAdminRole: true,
         unavailableIfReadonly: true,
-        formDataRequest: true,
-        zodRequestSchema: z.object({}),
-        zodResponseSchema: 创建响应Schema(z.null()),
+        zodRequestSchema: z.object({
+            key: z.string().describe('Base64 编码的密钥字符串'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.object({
+            key: z.string().describe('导入的仓库密钥'),
+        })),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -148,13 +154,9 @@ export const repoApiDefs = [
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({
             memo: z.string().optional().describe('快照备注信息'),
-            tag: z.string().optional().describe('标签名，如果提供则同时成为标签快照'),
         }),
-        zodResponseSchema: 创建响应Schema(
-            z.object({
-                id: z.string().describe('新创建的快照 ID'),
-            })
-        ),
+        zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -167,10 +169,10 @@ export const repoApiDefs = [
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({
             id: z.string().describe('快照 ID'),
-            tag: z.string().min(1).describe('标签名'),
-            memo: z.string().optional().describe('备注，会覆盖原有备注'),
+            name: z.string().min(1).describe('标签名'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -185,6 +187,7 @@ export const repoApiDefs = [
             id: z.string().describe('要检出的快照 ID'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -199,20 +202,22 @@ export const repoApiDefs = [
             page: z.number().int().positive().describe('页码，从 1 开始'),
         }),
         zodResponseSchema: 创建响应Schema(SnapshotPageResponseSchema),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
         endpoint: '/api/repo/getRepoTagSnapshots',
         en: 'getRepoTagSnapshots',
         zh_cn: '获取本地标签快照列表',
-        description: '分页获取本地存储的所有标签快照列表。',
+        description: '获取本地存储的所有标签快照列表。',
         needAuth: true,
         needAdminRole: true,
         unavailableIfReadonly: false,
-        zodRequestSchema: z.object({
-            page: z.number().int().positive().describe('页码，从 1 开始'),
-        }),
-        zodResponseSchema: 创建响应Schema(TagSnapshotPageResponseSchema),
+        zodRequestSchema: z.object({}),
+        zodResponseSchema: 创建响应Schema(z.object({
+            snapshots: z.array(TagSnapshotSchema).describe('标签快照列表'),
+        })),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -224,24 +229,25 @@ export const repoApiDefs = [
         needAdminRole: true,
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({
-            id: z.string().describe('标签快照 ID'),
             tag: z.string().describe('标签名'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
         endpoint: '/api/repo/getCloudRepoTagSnapshots',
         en: 'getCloudRepoTagSnapshots',
         zh_cn: '获取云端标签快照列表',
-        description: '分页获取云端存储的所有标签快照列表。',
+        description: '获取云端存储的所有标签快照列表。',
         needAuth: true,
         needAdminRole: true,
         unavailableIfReadonly: false,
-        zodRequestSchema: z.object({
-            page: z.number().int().positive().describe('页码，从 1 开始'),
-        }),
-        zodResponseSchema: 创建响应Schema(TagSnapshotPageResponseSchema),
+        zodRequestSchema: z.object({}),
+        zodResponseSchema: 创建响应Schema(z.object({
+            snapshots: z.array(TagSnapshotSchema).describe('标签快照列表'),
+        })),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -256,6 +262,7 @@ export const repoApiDefs = [
             page: z.number().int().positive().describe('页码，从 1 开始'),
         }),
         zodResponseSchema: 创建响应Schema(SnapshotPageResponseSchema),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -267,10 +274,10 @@ export const repoApiDefs = [
         needAdminRole: true,
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({
-            id: z.string().describe('标签快照 ID'),
             tag: z.string().describe('标签名'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -286,6 +293,7 @@ export const repoApiDefs = [
             tag: z.string().optional().describe('标签名（标签快照时需要）'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -301,6 +309,7 @@ export const repoApiDefs = [
             tag: z.string().optional().describe('标签名（标签快照时需要）'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -325,6 +334,7 @@ export const repoApiDefs = [
                 right: SnapshotMetaSchema.describe('右侧快照元信息'),
             })
         ),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -346,6 +356,7 @@ export const repoApiDefs = [
                 updated: z.string().describe('最后更新时间戳'),
             }).nullable()
         ),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -358,9 +369,9 @@ export const repoApiDefs = [
         unavailableIfReadonly: false,
         zodRequestSchema: z.object({
             id: z.string().describe('快照 ID'),
-            path: z.string().optional().describe('文件的相对路径'),
         }),
         zodResponseSchema: z.any().describe('文件数据流'),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -375,6 +386,7 @@ export const repoApiDefs = [
             days: z.number().int().min(1).describe('保留天数'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -389,6 +401,7 @@ export const repoApiDefs = [
             indexes: z.number().int().min(1).describe('每日保留数量'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
 ] as const satisfies readonly Api定义[];
 

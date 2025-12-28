@@ -22,6 +22,7 @@ export const attrApiDefs = [
         zodResponseSchema: 创建响应Schema(
             z.record(z.record(z.string())).describe('一个对象，键为块 ID，值为该块的属性对象 (属性名: 属性值)'),
         ),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -39,6 +40,7 @@ export const attrApiDefs = [
             })).describe('包含多个块属性设置的对象数组'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -55,6 +57,7 @@ export const attrApiDefs = [
         zodResponseSchema: 创建响应Schema(
             z.record(z.string()).describe('该块的属性对象 (属性名: 属性值)'),
         ),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -69,6 +72,7 @@ export const attrApiDefs = [
         zodResponseSchema: 创建响应Schema(
             z.array(z.string()).describe('书签标签字符串数组'),
         ),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -84,6 +88,7 @@ export const attrApiDefs = [
             attrs: z.record(z.string()).describe('要重置的属性对象 (属性名: 期望的当前属性值)。只有当块的属性值与此处提供的值匹配时，该属性才会被移除。'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -99,6 +104,7 @@ export const attrApiDefs = [
             attrs: z.record(z.string().nullable()).describe('要设置的属性对象 (属性名: 属性值)。如果属性值为 null，则删除该属性。'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
 ] as const satisfies readonly Api定义[];
 

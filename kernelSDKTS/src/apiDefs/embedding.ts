@@ -82,6 +82,7 @@ export const embeddingApiDefs = [
         unavailableIfReadonly: false,
         zodRequestSchema: z.object({}),
         zodResponseSchema: 创建响应Schema(EmbeddingStatusSchema),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -98,6 +99,7 @@ export const embeddingApiDefs = [
                 datasets: z.array(DatasetInfoSchema).describe('数据集列表'),
             })
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -121,6 +123,7 @@ export const embeddingApiDefs = [
                 model: z.string().describe('使用的模型名称'),
             })
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -146,6 +149,7 @@ export const embeddingApiDefs = [
                 dimension: z.number().describe('向量维度'),
             })
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -168,6 +172,7 @@ export const embeddingApiDefs = [
                 model: z.string().describe('使用的模型名称'),
             })
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -190,6 +195,7 @@ export const embeddingApiDefs = [
                 model: z.string().describe('使用的模型名称'),
             })
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -215,6 +221,7 @@ export const embeddingApiDefs = [
                 model: z.string().describe('使用的模型名称'),
             })
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -238,6 +245,7 @@ export const embeddingApiDefs = [
                 model: z.string().describe('使用的模型名称'),
             })
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -261,6 +269,7 @@ export const embeddingApiDefs = [
                 model: z.string().describe('使用的模型名称'),
             })
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -286,6 +295,7 @@ export const embeddingApiDefs = [
                 dimension: z.number().describe('向量维度'),
             })
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -308,6 +318,7 @@ export const embeddingApiDefs = [
                 model: z.string().describe('使用的模型名称'),
             })
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -330,6 +341,7 @@ export const embeddingApiDefs = [
                 total: z.number().describe('待嵌入素材总数'),
             })
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -350,6 +362,7 @@ export const embeddingApiDefs = [
                 message: z.string().optional().describe('操作消息'),
             }).nullable()
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -368,6 +381,7 @@ export const embeddingApiDefs = [
                 recommended_models: z.array(z.string()).describe('推荐的嵌入模型列表'),
             })
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -387,6 +401,7 @@ export const embeddingApiDefs = [
                 status: z.string().describe('拉取状态'),
             })
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -406,6 +421,7 @@ export const embeddingApiDefs = [
                 dimension: z.number().describe('模型的向量维度'),
             })
         ),
+        lastVerified: '2025-12-29',
     },
 ] as const satisfies readonly Api定义[];
 

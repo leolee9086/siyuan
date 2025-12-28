@@ -42,6 +42,7 @@ export const exportApiDefs = [
             id: z.string().describe('要导出到链滴的文档ID'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
 
     // ========== 文件导出 ==========
@@ -55,14 +56,15 @@ export const exportApiDefs = [
         needAdminRole: true,
         unavailableIfReadonly: false,
         zodRequestSchema: z.object({
+            file: z.any().describe('上传的文件对象 (File/Blob)'),
             type: z.string().describe('上传文件的MIME类型'),
         }),
         zodResponseSchema: 创建响应Schema(
             z.object({
-                name: z.string().describe('处理后的文件名'),
                 file: z.string().describe('文件在服务器上的可访问路径 (相对于/export/)'),
             })
         ),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -82,6 +84,7 @@ export const exportApiDefs = [
                 path: z.string().describe('导出的 .zip 文件在服务器上的绝对路径'),
             })
         ),
+        lastVerified: '2025-12-28',
     },
 
     // ========== 导出全部数据 ==========
@@ -96,6 +99,7 @@ export const exportApiDefs = [
         unavailableIfReadonly: false,
         zodRequestSchema: z.object({}),
         zodResponseSchema: 创建响应Schema(导出Zip路径Schema),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -114,6 +118,7 @@ export const exportApiDefs = [
                 name: z.string().describe('导出的压缩包文件名 (不含路径)'),
             })
         ),
+        lastVerified: '2025-12-28',
     },
 
     // ========== Markdown 导出 ==========
@@ -130,6 +135,7 @@ export const exportApiDefs = [
             id: z.string().describe('要导出的文档ID'),
         }),
         zodResponseSchema: 创建响应Schema(导出Zip结果Schema),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -144,6 +150,7 @@ export const exportApiDefs = [
             ids: z.array(z.string()).describe('要导出的文档ID数组'),
         }),
         zodResponseSchema: 创建响应Schema(导出Zip结果Schema),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -158,6 +165,7 @@ export const exportApiDefs = [
             notebook: z.string().describe('要导出的笔记本ID'),
         }),
         zodResponseSchema: 创建响应Schema(导出Zip结果Schema),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -173,6 +181,9 @@ export const exportApiDefs = [
             refMode: z.number().optional().describe('块引用处理模式 (0: 锚文本, 1: ((id)) 形式, 2: 嵌入块, 默认遵从全局配置)'),
             embedMode: z.number().optional().describe('嵌入块处理模式 (0: 忽略, 1: 展开, 默认遵从全局配置)'),
             yfm: z.boolean().optional().describe('是否包含 YAML Front Matter (默认为 true)'),
+            fillCSSVar: z.boolean().optional().describe('是否填充 CSS 变量'),
+            adjustHeadingLevel: z.boolean().optional().describe('是否调整标题级别'),
+            imgTag: z.boolean().optional().describe('是否生成 img 标签'),
         }),
         zodResponseSchema: 创建响应Schema(
             z.object({
@@ -180,6 +191,7 @@ export const exportApiDefs = [
                 content: z.string().describe('导出的 Markdown 文本内容'),
             })
         ),
+        lastVerified: '2025-12-28',
     },
 
     // ========== HTML 导出 ==========
@@ -199,7 +211,10 @@ export const exportApiDefs = [
             keepFold: z.boolean().optional().describe('是否在导出时保持块的折叠状态'),
             merge: z.boolean().optional().describe('是否将子文档内容合并到主文档中导出'),
         }),
-        zodResponseSchema: 创建响应Schema(导出HTML内容Schema),
+        zodResponseSchema: 创建响应Schema(导出HTML内容Schema.extend({
+            folder: z.string().optional().describe('生成的文件夹名称 (如果 savePath 为空)'),
+        })),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -225,6 +240,7 @@ export const exportApiDefs = [
                 type: z.string().describe('文档块的类型'),
             })
         ),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -239,7 +255,10 @@ export const exportApiDefs = [
             id: z.string().describe('要导出 HTML 内容的文档ID'),
             savePath: z.string().describe('服务器上保存 HTML 文件的绝对路径'),
         }),
-        zodResponseSchema: 创建响应Schema(导出HTML内容Schema),
+        zodResponseSchema: 创建响应Schema(导出HTML内容Schema.extend({
+            folder: z.string().optional().describe('生成的文件夹名称 (如果 savePath 为空)'),
+        })),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -250,8 +269,15 @@ export const exportApiDefs = [
         needAuth: true,
         needAdminRole: true,
         unavailableIfReadonly: false,
-        zodRequestSchema: z.object({}),
-        zodResponseSchema: 创建响应Schema(z.any()),
+        zodRequestSchema: z.object({
+            folder: z.string().describe('导出文件夹名称'),
+            html: z.string().describe('HTML 内容'),
+            name: z.string().describe('导出文件名 (无扩展名)'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.object({
+            zip: z.string().describe('生成的 Zip 文件下载 URL'),
+        })),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -268,8 +294,10 @@ export const exportApiDefs = [
         zodResponseSchema: 创建响应Schema(
             z.object({
                 html: z.string().describe('生成的文档 HTML 预览内容'),
+                fillCSSVar: z.boolean().describe('是否填充了 CSS 变量'),
             })
         ),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -282,18 +310,13 @@ export const exportApiDefs = [
         unavailableIfReadonly: false,
         zodRequestSchema: z.object({
             content: z.string().describe('要导出预览的 Markdown 内容字符串'),
-            mode: z.number().optional().describe('导出模式'),
-            theme: z.string().optional().describe('主题名称'),
-            title: z.string().optional().describe('导出内容的标题'),
-            type: z.string().optional().describe("导出类型，如 'html', 'pdf', 'png'"),
-            css: z.string().optional().describe('自定义 CSS 内容'),
-            js: z.string().optional().describe('自定义 JavaScript 内容'),
         }),
         zodResponseSchema: 创建响应Schema(
             z.object({
                 url: z.string().describe('生成的临时内容预览 URL'),
             })
         ),
+        lastVerified: '2025-12-28',
     },
 
     // ========== 思源原生格式导出 ==========
@@ -310,6 +333,7 @@ export const exportApiDefs = [
             id: z.string().describe('要导出的文档ID'),
         }),
         zodResponseSchema: 创建响应Schema(导出Zip结果Schema),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -324,6 +348,7 @@ export const exportApiDefs = [
             id: z.string().describe('要导出的笔记本ID'),
         }),
         zodResponseSchema: 创建响应Schema(导出Zip路径Schema),
+        lastVerified: '2025-12-28',
     },
 
     // ========== Office 格式导出 ==========
@@ -347,6 +372,7 @@ export const exportApiDefs = [
                 path: z.string().describe('最终生成的 .docx 文件在服务器上的绝对路径'),
             })
         ),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -361,6 +387,7 @@ export const exportApiDefs = [
             id: z.string().describe('要导出的文档ID'),
         }),
         zodResponseSchema: 创建响应Schema(导出Zip结果Schema),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -375,6 +402,7 @@ export const exportApiDefs = [
             id: z.string().describe('要导出的文档ID'),
         }),
         zodResponseSchema: 创建响应Schema(导出Zip结果Schema),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -389,6 +417,7 @@ export const exportApiDefs = [
             id: z.string().describe('要导出的文档ID'),
         }),
         zodResponseSchema: 创建响应Schema(导出Zip结果Schema),
+        lastVerified: '2025-12-28',
     },
 
     // ========== 其他文本格式导出 ==========
@@ -405,6 +434,7 @@ export const exportApiDefs = [
             id: z.string().describe('要导出的文档ID'),
         }),
         zodResponseSchema: 创建响应Schema(导出Zip结果Schema),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -419,6 +449,7 @@ export const exportApiDefs = [
             id: z.string().describe('要导出的文档ID'),
         }),
         zodResponseSchema: 创建响应Schema(导出Zip结果Schema),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -433,6 +464,7 @@ export const exportApiDefs = [
             id: z.string().describe('要导出的文档ID'),
         }),
         zodResponseSchema: 创建响应Schema(导出Zip结果Schema),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -447,6 +479,7 @@ export const exportApiDefs = [
             id: z.string().describe('要导出的文档ID'),
         }),
         zodResponseSchema: 创建响应Schema(导出Zip结果Schema),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -461,6 +494,7 @@ export const exportApiDefs = [
             id: z.string().describe('要导出的文档ID'),
         }),
         zodResponseSchema: 创建响应Schema(导出Zip结果Schema),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -475,6 +509,7 @@ export const exportApiDefs = [
             id: z.string().describe('要导出的文档ID'),
         }),
         zodResponseSchema: 创建响应Schema(导出Zip结果Schema),
+        lastVerified: '2025-12-28',
     },
 
     // ========== PDF 相关 ==========
@@ -495,6 +530,7 @@ export const exportApiDefs = [
             watermark: z.boolean().describe('是否添加水印'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
 
     // ========== 属性视图导出 ==========
@@ -512,6 +548,7 @@ export const exportApiDefs = [
             blockID: z.string().describe('包含该属性视图的块ID'),
         }),
         zodResponseSchema: 创建响应Schema(导出Zip路径Schema),
+        lastVerified: '2025-12-28',
     },
 ] as const satisfies readonly Api定义[];
 

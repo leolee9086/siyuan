@@ -49,6 +49,7 @@ export const bazaarApiDefs = [
             keyword: z.string().optional().describe('搜索关键词'),
         }),
         zodResponseSchema: 创建响应Schema(PackagesResponseSchema.nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -64,6 +65,7 @@ export const bazaarApiDefs = [
             keyword: z.string().optional().describe('搜索关键词'),
         }),
         zodResponseSchema: 创建响应Schema(PackagesResponseSchema.nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -82,6 +84,7 @@ export const bazaarApiDefs = [
             keyword: z.string().optional().describe('刷新列表的关键词'),
         }),
         zodResponseSchema: 创建响应Schema(PackagesResponseSchema.nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -98,6 +101,7 @@ export const bazaarApiDefs = [
             keyword: z.string().optional().describe('刷新列表的关键词'),
         }),
         zodResponseSchema: 创建响应Schema(PackagesResponseSchema.nullable()),
+        lastVerified: '2025-12-28',
     },
 
     // === 挂件 ===
@@ -114,6 +118,7 @@ export const bazaarApiDefs = [
             keyword: z.string().optional().describe('搜索关键词'),
         }),
         zodResponseSchema: 创建响应Schema(PackagesResponseSchema.nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -128,6 +133,7 @@ export const bazaarApiDefs = [
             keyword: z.string().optional().describe('搜索关键词'),
         }),
         zodResponseSchema: 创建响应Schema(PackagesResponseSchema.nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -145,6 +151,7 @@ export const bazaarApiDefs = [
             keyword: z.string().optional().describe('刷新列表的关键词'),
         }),
         zodResponseSchema: 创建响应Schema(PackagesResponseSchema.nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -160,6 +167,7 @@ export const bazaarApiDefs = [
             keyword: z.string().optional().describe('刷新列表的关键词'),
         }),
         zodResponseSchema: 创建响应Schema(PackagesResponseSchema.nullable()),
+        lastVerified: '2025-12-28',
     },
 
     // === 图标包 ===
@@ -176,6 +184,7 @@ export const bazaarApiDefs = [
             keyword: z.string().optional().describe('搜索关键词'),
         }),
         zodResponseSchema: 创建响应Schema(PackagesResponseSchema.nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -190,6 +199,7 @@ export const bazaarApiDefs = [
             keyword: z.string().optional().describe('搜索关键词'),
         }),
         zodResponseSchema: 创建响应Schema(PackagesResponseSchema.nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -207,6 +217,7 @@ export const bazaarApiDefs = [
             keyword: z.string().optional().describe('刷新列表的关键词'),
         }),
         zodResponseSchema: 创建响应Schema(PackagesWithAppearanceResponseSchema.nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -222,6 +233,7 @@ export const bazaarApiDefs = [
             keyword: z.string().optional().describe('刷新列表的关键词'),
         }),
         zodResponseSchema: 创建响应Schema(PackagesWithAppearanceResponseSchema.nullable()),
+        lastVerified: '2025-12-28',
     },
 
     // === 模板 ===
@@ -238,6 +250,7 @@ export const bazaarApiDefs = [
             keyword: z.string().optional().describe('搜索关键词'),
         }),
         zodResponseSchema: 创建响应Schema(PackagesResponseSchema.nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -252,6 +265,7 @@ export const bazaarApiDefs = [
             keyword: z.string().optional().describe('搜索关键词'),
         }),
         zodResponseSchema: 创建响应Schema(PackagesResponseSchema.nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -269,6 +283,7 @@ export const bazaarApiDefs = [
             keyword: z.string().optional().describe('刷新列表的关键词'),
         }),
         zodResponseSchema: 创建响应Schema(PackagesResponseSchema.nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -284,6 +299,7 @@ export const bazaarApiDefs = [
             keyword: z.string().optional().describe('刷新列表的关键词'),
         }),
         zodResponseSchema: 创建响应Schema(PackagesResponseSchema.nullable()),
+        lastVerified: '2025-12-28',
     },
 
     // === 主题 ===
@@ -300,6 +316,7 @@ export const bazaarApiDefs = [
             keyword: z.string().optional().describe('搜索关键词'),
         }),
         zodResponseSchema: 创建响应Schema(PackagesResponseSchema.nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -314,6 +331,7 @@ export const bazaarApiDefs = [
             keyword: z.string().optional().describe('搜索关键词'),
         }),
         zodResponseSchema: 创建响应Schema(PackagesResponseSchema.nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -333,6 +351,7 @@ export const bazaarApiDefs = [
             keyword: z.string().optional().describe('刷新列表的关键词'),
         }),
         zodResponseSchema: 创建响应Schema(PackagesWithAppearanceResponseSchema.nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -345,10 +364,10 @@ export const bazaarApiDefs = [
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({
             packageName: z.string().describe('包名称'),
-            mode: z.number().describe('主题模式'),
             keyword: z.string().optional().describe('刷新列表的关键词'),
         }),
         zodResponseSchema: 创建响应Schema(PackagesWithAppearanceResponseSchema.nullable()),
+        lastVerified: '2025-12-28',
     },
 
     // === 其他 ===
@@ -371,6 +390,7 @@ export const bazaarApiDefs = [
                 html: z.string().describe('README HTML 内容'),
             }).nullable()
         ),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -385,6 +405,7 @@ export const bazaarApiDefs = [
             frontend: z.string().describe('客户端类型'),
         }),
         zodResponseSchema: 创建响应Schema(UpdatedPackagesResponseSchema.nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -399,6 +420,7 @@ export const bazaarApiDefs = [
             frontend: z.string().describe('客户端类型'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -409,12 +431,17 @@ export const bazaarApiDefs = [
         needAuth: true,
         needAdminRole: false,
         unavailableIfReadonly: false,
-        zodRequestSchema: z.object({}),
+        zodRequestSchema: z.object({
+            type: z.string().describe('集市类型 (plugins, themes, icons, templates, widgets)'),
+            frontend: z.string().optional().describe('客户端类型'),
+            keyword: z.string().optional().describe('搜索关键词'),
+        }),
         zodResponseSchema: 创建响应Schema(
             z.object({
                 keywords: z.array(z.string()).describe('关键词列表'),
             }).nullable()
         ),
+        lastVerified: '2025-12-28',
     },
 ] as const satisfies readonly Api定义[];
 

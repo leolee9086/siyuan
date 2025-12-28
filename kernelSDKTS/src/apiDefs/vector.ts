@@ -47,6 +47,7 @@ export const vectorApiDefs = [
                 dimension: z.number().describe('向量维度'),
             }).nullable()
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -65,6 +66,7 @@ export const vectorApiDefs = [
                 collection_name: z.string().describe('已删除的集合名称'),
             }).nullable()
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -84,6 +86,7 @@ export const vectorApiDefs = [
                 added_count: z.number().describe('成功添加的向量点数量'),
             }).nullable()
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -103,6 +106,7 @@ export const vectorApiDefs = [
                 deleted_count: z.number().describe('成功删除的向量点数量'),
             }).nullable()
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -123,6 +127,7 @@ export const vectorApiDefs = [
         zodResponseSchema: 创建响应Schema(
             z.array(SearchResultSchema).describe('搜索结果数组')
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -146,6 +151,7 @@ export const vectorApiDefs = [
                 })).describe('包含元数据的对象数组 (when with_meta=true)'),
             ])
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -167,6 +173,7 @@ export const vectorApiDefs = [
                 max_layer: z.number().describe('HNSW 索引最大层数'),
             }).nullable()
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -181,6 +188,7 @@ export const vectorApiDefs = [
             collection_name: z.string().describe('目标集合名称'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-29',
     },
 ] as const satisfies readonly Api定义[];
 

@@ -9,10 +9,10 @@
 | 指标 | 数量 | 占比 |
 |------|------|------|
 | 总计 | 465 | 100% |
-| 🔴 从未核对 | 272 | 58.5% |
+| 🔴 从未核对 | 0 | 0.0% |
 | 🟠 高优先级 (>30天) | 0 | 0.0% |
 | 🟡 中优先级 (>14天) | 0 | 0.0% |
-| 🟢 低优先级 (近期已核对) | 193 | 41.5% |
+| 🟢 低优先级 (近期已核对) | 465 | 100.0% |
 
 ---
 
@@ -20,37 +20,19 @@
 
 | 文件 | 总数 | 🔴 从未 | 🟠 高 | 🟡 中 | 🟢 低 |
 |------|------|---------|-------|-------|------|
-| export.ts | 29 | 29 | 0 | 0 | 0 |
-| bazaar.ts | 24 | 24 | 0 | 0 | 0 |
-| repo.ts | 22 | 22 | 0 | 0 | 0 |
-| sync.ts | 21 | 21 | 0 | 0 | 0 |
-| setting.ts | 21 | 21 | 0 | 0 | 0 |
-| asset.ts | 19 | 19 | 0 | 0 | 0 |
-| riff.ts | 17 | 17 | 0 | 0 | 0 |
-| embedding.ts | 16 | 16 | 0 | 0 | 0 |
-| storage.ts | 14 | 14 | 0 | 0 | 0 |
-| search.ts | 14 | 14 | 0 | 0 | 0 |
-| system.ts | 41 | 14 | 0 | 0 | 27 |
-| notebook.ts | 11 | 11 | 0 | 0 | 0 |
-| history.ts | 9 | 9 | 0 | 0 | 0 |
-| file.ts | 8 | 8 | 0 | 0 | 0 |
-| vector.ts | 8 | 8 | 0 | 0 | 0 |
-| attr.ts | 6 | 6 | 0 | 0 | 0 |
-| ref.ts | 5 | 5 | 0 | 0 | 0 |
-| broadcast.ts | 4 | 4 | 0 | 0 | 0 |
-| import.ts | 4 | 4 | 0 | 0 | 0 |
-| graph.ts | 4 | 4 | 0 | 0 | 0 |
-| av.ts | 32 | 2 | 0 | 0 | 30 |
 | account.ts | 5 | 0 | 0 | 0 | 5 |
 | ai.ts | 2 | 0 | 0 | 0 | 2 |
 | archive.ts | 2 | 0 | 0 | 0 | 2 |
+| attr.ts | 6 | 0 | 0 | 0 | 6 |
 | bookmark.ts | 3 | 0 | 0 | 0 | 3 |
+| broadcast.ts | 4 | 0 | 0 | 0 | 4 |
 | clipboard.ts | 1 | 0 | 0 | 0 | 1 |
 | cloud.ts | 1 | 0 | 0 | 0 | 1 |
 | convert.ts | 1 | 0 | 0 | 0 | 1 |
 | extension.ts | 1 | 0 | 0 | 0 | 1 |
 | format.ts | 3 | 0 | 0 | 0 | 3 |
 | icon.ts | 1 | 0 | 0 | 0 | 1 |
+| import.ts | 4 | 0 | 0 | 0 | 4 |
 | inbox.ts | 3 | 0 | 0 | 0 | 3 |
 | lute.ts | 3 | 0 | 0 | 0 | 3 |
 | misc.ts | 2 | 0 | 0 | 0 | 2 |
@@ -65,347 +47,32 @@
 | template.ts | 3 | 0 | 0 | 0 | 3 |
 | ui.ts | 6 | 0 | 0 | 0 | 6 |
 | transactions.ts | 1 | 0 | 0 | 0 | 1 |
+| graph.ts | 4 | 0 | 0 | 0 | 4 |
+| ref.ts | 5 | 0 | 0 | 0 | 5 |
+| file.ts | 8 | 0 | 0 | 0 | 8 |
+| notebook.ts | 11 | 0 | 0 | 0 | 11 |
+| history.ts | 9 | 0 | 0 | 0 | 9 |
+| storage.ts | 14 | 0 | 0 | 0 | 14 |
+| sync.ts | 21 | 0 | 0 | 0 | 21 |
+| search.ts | 14 | 0 | 0 | 0 | 14 |
+| vector.ts | 8 | 0 | 0 | 0 | 8 |
+| embedding.ts | 16 | 0 | 0 | 0 | 16 |
+| system.ts | 41 | 0 | 0 | 0 | 41 |
+| riff.ts | 17 | 0 | 0 | 0 | 17 |
+| repo.ts | 22 | 0 | 0 | 0 | 22 |
+| asset.ts | 19 | 0 | 0 | 0 | 19 |
+| bazaar.ts | 24 | 0 | 0 | 0 | 24 |
+| setting.ts | 21 | 0 | 0 | 0 | 21 |
+| export.ts | 29 | 0 | 0 | 0 | 29 |
 | filetree.ts | 31 | 0 | 0 | 0 | 31 |
 | block.ts | 53 | 0 | 0 | 0 | 53 |
+| av.ts | 32 | 0 | 0 | 0 | 32 |
 
 ---
 
 ## 🔴 从未核对的 API
 
-### export.ts
-
-- `/api/export/export2Liandi` - export2Liandi
-- `/api/export/exportAsFile` - exportAsFile
-- `/api/export/exportResources` - exportResources
-- `/api/export/exportData` - exportData
-- `/api/export/exportDataInFolder` - exportDataInFolder
-- `/api/export/exportMd` - exportMd
-- `/api/export/exportMds` - exportMds
-- `/api/export/exportNotebookMd` - exportNotebookMd
-- `/api/export/exportMdContent` - exportMdContent
-- `/api/export/exportHTML` - exportHTML
-- `/api/export/exportPreviewHTML` - exportPreviewHTML
-- `/api/export/exportMdHTML` - exportMdHTML
-- `/api/export/exportBrowserHTML` - exportBrowserHTML
-- `/api/export/preview` - exportPreview
-- `/api/export/exportTempContent` - exportTempContent
-- `/api/export/exportSY` - exportSY
-- `/api/export/exportNotebookSY` - exportNotebookSY
-- `/api/export/exportDocx` - exportDocx
-- `/api/export/exportODT` - exportODT
-- `/api/export/exportRTF` - exportRTF
-- `/api/export/exportEPUB` - exportEPUB
-- `/api/export/exportAsciiDoc` - exportAsciiDoc
-- `/api/export/exportReStructuredText` - exportReStructuredText
-- `/api/export/exportTextile` - exportTextile
-- `/api/export/exportOPML` - exportOPML
-- `/api/export/exportOrgMode` - exportOrgMode
-- `/api/export/exportMediaWiki` - exportMediaWiki
-- `/api/export/processPDF` - processPDF
-- `/api/export/exportAttributeView` - exportAttributeView
-
-### bazaar.ts
-
-- `/api/bazaar/getBazaarPlugin` - getBazaarPlugin
-- `/api/bazaar/getInstalledPlugin` - getInstalledPlugin
-- `/api/bazaar/installBazaarPlugin` - installBazaarPlugin
-- `/api/bazaar/uninstallBazaarPlugin` - uninstallBazaarPlugin
-- `/api/bazaar/getBazaarWidget` - getBazaarWidget
-- `/api/bazaar/getInstalledWidget` - getInstalledWidget
-- `/api/bazaar/installBazaarWidget` - installBazaarWidget
-- `/api/bazaar/uninstallBazaarWidget` - uninstallBazaarWidget
-- `/api/bazaar/getBazaarIcon` - getBazaarIcon
-- `/api/bazaar/getInstalledIcon` - getInstalledIcon
-- `/api/bazaar/installBazaarIcon` - installBazaarIcon
-- `/api/bazaar/uninstallBazaarIcon` - uninstallBazaarIcon
-- `/api/bazaar/getBazaarTemplate` - getBazaarTemplate
-- `/api/bazaar/getInstalledTemplate` - getInstalledTemplate
-- `/api/bazaar/installBazaarTemplate` - installBazaarTemplate
-- `/api/bazaar/uninstallBazaarTemplate` - uninstallBazaarTemplate
-- `/api/bazaar/getBazaarTheme` - getBazaarTheme
-- `/api/bazaar/getInstalledTheme` - getInstalledTheme
-- `/api/bazaar/installBazaarTheme` - installBazaarTheme
-- `/api/bazaar/uninstallBazaarTheme` - uninstallBazaarTheme
-- `/api/bazaar/getBazaarPackageREAME` - getBazaarPackageREAME
-- `/api/bazaar/getUpdatedPackage` - getUpdatedPackage
-- `/api/bazaar/batchUpdatePackage` - batchUpdatePackage
-- `/api/bazaar/getBazaarKeywords` - getBazaarKeywords
-
-### repo.ts
-
-- `/api/repo/initRepoKey` - initRepoKey
-- `/api/repo/initRepoKeyFromPassphrase` - initRepoKeyFromPassphrase
-- `/api/repo/resetRepo` - resetRepo
-- `/api/repo/purgeRepo` - purgeRepo
-- `/api/repo/purgeCloudRepo` - purgeCloudRepo
-- `/api/repo/importRepoKey` - importRepoKey
-- `/api/repo/createSnapshot` - createSnapshot
-- `/api/repo/tagSnapshot` - tagSnapshot
-- `/api/repo/checkoutRepo` - checkoutRepo
-- `/api/repo/getRepoSnapshots` - getRepoSnapshots
-- `/api/repo/getRepoTagSnapshots` - getRepoTagSnapshots
-- `/api/repo/removeRepoTagSnapshot` - removeRepoTagSnapshot
-- `/api/repo/getCloudRepoTagSnapshots` - getCloudRepoTagSnapshots
-- `/api/repo/getCloudRepoSnapshots` - getCloudRepoSnapshots
-- `/api/repo/removeCloudRepoTagSnapshot` - removeCloudRepoTagSnapshot
-- `/api/repo/uploadCloudSnapshot` - uploadCloudSnapshot
-- `/api/repo/downloadCloudSnapshot` - downloadCloudSnapshot
-- `/api/repo/diffRepoSnapshots` - diffRepoSnapshots
-- `/api/repo/openRepoSnapshotDoc` - openRepoSnapshotDoc
-- `/api/repo/getRepoFile` - getRepoFile
-- `/api/repo/setRepoIndexRetentionDays` - setRepoIndexRetentionDays
-- `/api/repo/setRetentionIndexesDaily` - setRetentionIndexesDaily
-
-### sync.ts
-
-- `/api/sync/setSyncEnable` - setSyncEnable
-- `/api/sync/setSyncInterval` - setSyncInterval
-- `/api/sync/setSyncPerception` - setSyncPerception
-- `/api/sync/setSyncGenerateConflictDoc` - setSyncGenerateConflictDoc
-- `/api/sync/setSyncMode` - setSyncMode
-- `/api/sync/setSyncProvider` - setSyncProvider
-- `/api/sync/setSyncProviderS3` - setSyncProviderS3
-- `/api/sync/setSyncProviderWebDAV` - setSyncProviderWebDAV
-- `/api/sync/setSyncProviderLocal` - setSyncProviderLocal
-- `/api/sync/setCloudSyncDir` - setCloudSyncDir
-- `/api/sync/createCloudSyncDir` - createCloudSyncDir
-- `/api/sync/removeCloudSyncDir` - removeCloudSyncDir
-- `/api/sync/listCloudSyncDir` - listCloudSyncDir
-- `/api/sync/performSync` - performSync
-- `/api/sync/performBootSync` - performBootSync
-- `/api/sync/getBootSync` - getBootSync
-- `/api/sync/getSyncInfo` - getSyncInfo
-- `/api/sync/exportSyncProviderS3` - exportSyncProviderS3
-- `/api/sync/importSyncProviderS3` - importSyncProviderS3
-- `/api/sync/exportSyncProviderWebDAV` - exportSyncProviderWebDAV
-- `/api/sync/importSyncProviderWebDAV` - importSyncProviderWebDAV
-
-### setting.ts
-
-- `/api/setting/addVirtualBlockRefExclude` - addVirtualBlockRefExclude
-- `/api/setting/addVirtualBlockRefInclude` - addVirtualBlockRefInclude
-- `/api/setting/refreshVirtualBlockRef` - refreshVirtualBlockRef
-- `/api/setting/getCloudUser` - getCloudUser
-- `/api/setting/login2faCloudUser` - login2faCloudUser
-- `/api/setting/logoutCloudUser` - logoutCloudUser
-- `/api/setting/getPublish` - getPublish
-- `/api/setting/setPublish` - setPublish
-- `/api/setting/setAI` - setAI
-- `/api/setting/setAccount` - setAccount
-- `/api/setting/setAppearance` - setAppearance
-- `/api/setting/setBazaar` - setBazaar
-- `/api/setting/setEditor` - setEditor
-- `/api/setting/setEditorReadOnly` - setEditorReadOnly
-- `/api/setting/setEmoji` - setEmoji
-- `/api/setting/setExport` - setExport
-- `/api/setting/setFiletree` - setFiletree
-- `/api/setting/setFlashcard` - setFlashcard
-- `/api/setting/setKeymap` - setKeymap
-- `/api/setting/setSearch` - setSearch
-- `/api/setting/setSnippet` - setConfSnippet
-
-### asset.ts
-
-- `/api/asset/uploadCloud` - uploadCloud
-- `/api/asset/uploadCloudByAssetsPaths` - uploadCloudByAssetsPaths
-- `/api/asset/insertLocalAssets` - insertLocalAssets
-- `/api/asset/resolveAssetPath` - resolveAssetPath
-- `/api/asset/upload` - Upload
-- `/api/asset/setFileAnnotation` - setFileAnnotation
-- `/api/asset/getFileAnnotation` - getFileAnnotation
-- `/api/asset/getUnusedAssets` - getUnusedAssets
-- `/api/asset/getMissingAssets` - getMissingAssets
-- `/api/asset/removeUnusedAsset` - removeUnusedAsset
-- `/api/asset/removeUnusedAssets` - removeUnusedAssets
-- `/api/asset/getDocImageAssets` - getDocImageAssets
-- `/api/asset/getDocAssets` - getDocAssets
-- `/api/asset/renameAsset` - renameAsset
-- `/api/asset/getImageOCRText` - getImageOCRText
-- `/api/asset/setImageOCRText` - setImageOCRText
-- `/api/asset/ocr` - ocr
-- `/api/asset/fullReindexAssetContent` - fullReindexAssetContent
-- `/api/asset/statAsset` - statAsset
-
-### riff.ts
-
-- `/api/riff/createRiffDeck` - createRiffDeck
-- `/api/riff/renameRiffDeck` - renameRiffDeck
-- `/api/riff/removeRiffDeck` - removeRiffDeck
-- `/api/riff/getRiffDecks` - getRiffDecks
-- `/api/riff/addRiffCards` - addRiffCards
-- `/api/riff/removeRiffCards` - removeRiffCards
-- `/api/riff/getRiffDueCards` - getRiffDueCards
-- `/api/riff/getTreeRiffDueCards` - getTreeRiffDueCards
-- `/api/riff/getNotebookRiffDueCards` - getNotebookRiffDueCards
-- `/api/riff/reviewRiffCard` - reviewRiffCard
-- `/api/riff/skipReviewRiffCard` - skipReviewRiffCard
-- `/api/riff/getRiffCards` - getRiffCards
-- `/api/riff/getTreeRiffCards` - getTreeRiffCards
-- `/api/riff/getNotebookRiffCards` - getNotebookRiffCards
-- `/api/riff/resetRiffCards` - resetRiffCards
-- `/api/riff/batchSetRiffCardsDueTime` - batchSetRiffCardsDueTime
-- `/api/riff/getRiffCardsByBlockIDs` - getRiffCardsByBlockIDs
-
-### embedding.ts
-
-- `/api/embedding/status` - embeddingStatus
-- `/api/embedding/datasets` - embeddingDatasets
-- `/api/embedding/blocks/push` - embeddingBlocksPush
-- `/api/embedding/blocks/pushWithVectors` - embeddingBlocksPushWithVectors
-- `/api/embedding/blocks/query` - embeddingBlocksQuery
-- `/api/embedding/blocks/queryWithVector` - embeddingBlocksQueryWithVector
-- `/api/embedding/blocks/pending` - embeddingBlocksPending
-- `/api/embedding/blocks/embedded` - embeddingBlocksEmbedded
-- `/api/embedding/assets/push` - embeddingAssetsPush
-- `/api/embedding/assets/pushWithVectors` - embeddingAssetsPushWithVectors
-- `/api/embedding/assets/query` - embeddingAssetsQuery
-- `/api/embedding/assets/pending` - embeddingAssetsPending
-- `/api/embedding/collections/delete` - embeddingCollectionsDelete
-- `/api/embedding/models` - embeddingModels
-- `/api/embedding/models/pull` - embeddingPullModel
-- `/api/embedding/models/set` - embeddingSetModel
-
-### storage.ts
-
-- `/api/storage/setLocalStorage` - setLocalStorage
-- `/api/storage/getLocalStorage` - getLocalStorage
-- `/api/storage/setLocalStorageVal` - setLocalStorageVal
-- `/api/storage/removeLocalStorageVals` - removeLocalStorageVals
-- `/api/storage/setCriterion` - setCriterion
-- `/api/storage/getCriteria` - getCriteria
-- `/api/storage/removeCriterion` - removeCriterion
-- `/api/storage/getRecentDocs` - getRecentDocs
-- `/api/storage/updateRecentDocViewTime` - updateRecentDocViewTime
-- `/api/storage/updateRecentDocCloseTime` - updateRecentDocCloseTime
-- `/api/storage/updateRecentDocOpenTime` - updateRecentDocOpenTime
-- `/api/storage/getOutlineStorage` - getOutlineStorage
-- `/api/storage/setOutlineStorage` - setOutlineStorage
-- `/api/storage/removeOutlineStorage` - removeOutlineStorage
-
-### search.ts
-
-- `/api/search/searchTag` - searchTag
-- `/api/search/searchTemplate` - searchTemplate
-- `/api/search/removeTemplate` - removeTemplate
-- `/api/search/searchWidget` - searchWidget
-- `/api/search/searchRefBlock` - searchRefBlock
-- `/api/search/searchEmbedBlock` - searchEmbedBlock
-- `/api/search/getEmbedBlock` - getEmbedBlock
-- `/api/search/updateEmbedBlock` - updateEmbedBlock
-- `/api/search/fullTextSearchBlock` - fullTextSearchBlock
-- `/api/search/searchAsset` - searchAsset
-- `/api/search/findReplace` - findReplace
-- `/api/search/fullTextSearchAssetContent` - fullTextSearchAssetContent
-- `/api/search/getAssetContent` - getAssetContent
-- `/api/search/listInvalidBlockRefs` - listInvalidBlockRefs
-
-### system.ts
-
-- `/api/system/bootProgress` - bootProgress
-- `/api/system/version` - version
-- `/api/system/loginAuth` - LoginAuth
-- `/api/system/getCaptcha` - GetCaptcha
-- `/api/system/getWorkspaces` - getWorkspaces
-- `/api/system/setDownloadInstallPkg` - setDownloadInstallPkg
-- `/api/system/setWorkspaceDir` - setWorkspaceDir
-- `/api/system/getMobileWorkspaces` - getMobileWorkspaces
-- `/api/system/checkWorkspaceDir` - checkWorkspaceDir
-- `/api/system/createWorkspaceDir` - createWorkspaceDir
-- `/api/system/removeWorkspaceDir` - removeWorkspaceDir
-- `/api/system/removeWorkspaceDirPhysically` - removeWorkspaceDirPhysically
-- `/api/system/checkUpdate` - checkUpdate
-- `/api/system/exportLog` - exportLog
-
-### notebook.ts
-
-- `/api/notebook/lsNotebooks` - lsNotebooks
-- `/api/notebook/openNotebook` - openNotebook
-- `/api/notebook/closeNotebook` - closeNotebook
-- `/api/notebook/getNotebookConf` - getNotebookConf
-- `/api/notebook/setNotebookConf` - setNotebookConf
-- `/api/notebook/createNotebook` - createNotebook
-- `/api/notebook/removeNotebook` - removeNotebook
-- `/api/notebook/renameNotebook` - renameNotebook
-- `/api/notebook/changeSortNotebook` - changeSortNotebook
-- `/api/notebook/setNotebookIcon` - setNotebookIcon
-- `/api/notebook/getNotebookInfo` - getNotebookInfo
-
-### history.ts
-
-- `/api/history/getNotebookHistory` - getNotebookHistory
-- `/api/history/rollbackNotebookHistory` - rollbackNotebookHistory
-- `/api/history/rollbackAssetsHistory` - rollbackAssetsHistory
-- `/api/history/getDocHistoryContent` - getDocHistoryContent
-- `/api/history/rollbackDocHistory` - rollbackDocHistory
-- `/api/history/clearWorkspaceHistory` - clearWorkspaceHistory
-- `/api/history/reindexHistory` - reindexHistory
-- `/api/history/searchHistory` - searchHistory
-- `/api/history/getHistoryItems` - getHistoryItems
-
-### file.ts
-
-- `/api/file/getFile` - getFile
-- `/api/file/putFile` - putFile
-- `/api/file/copyFile` - copyFile
-- `/api/file/globalCopyFiles` - globalCopyFiles
-- `/api/file/removeFile` - removeFile
-- `/api/file/renameFile` - renameFile
-- `/api/file/readDir` - readDir
-- `/api/file/getUniqueFilename` - getUniqueFilename
-
-### vector.ts
-
-- `/api/vector/collections/build` - vectorBuildCollection
-- `/api/vector/collections/delete` - vectorDeleteCollection
-- `/api/vector/add` - vectorAdd
-- `/api/vector/delete` - vectorDelete
-- `/api/vector/query` - vectorQuery
-- `/api/vector/keys` - vectorKeys
-- `/api/vector/state` - vectorState
-- `/api/vector/rebuild` - vectorRebuild
-
-### attr.ts
-
-- `/api/attr/batchGetBlockAttrs` - batchGetBlockAttrs
-- `/api/attr/batchSetBlockAttrs` - batchSetBlockAttrs
-- `/api/attr/getBlockAttrs` - getBlockAttrs
-- `/api/attr/getBookmarkLabels` - getBookmarkLabels
-- `/api/attr/resetBlockAttrs` - resetBlockAttrs
-- `/api/attr/setBlockAttrs` - setBlockAttrs
-
-### ref.ts
-
-- `/api/ref/refreshBacklink` - refreshBacklink
-- `/api/ref/getBacklink` - getBacklink
-- `/api/ref/getBacklink2` - getBacklink2
-- `/api/ref/getBacklinkDoc` - getBacklinkDoc
-- `/api/ref/getBackmentionDoc` - getBackmentionDoc
-
-### broadcast.ts
-
-- `/api/broadcast/getChannelInfo` - getChannelInfo
-- `/api/broadcast/getChannels` - getChannels
-- `/api/broadcast/postMessage` - postMessage
-- `/api/broadcast/publish` - broadcastPublish
-
-### import.ts
-
-- `/api/import/importData` - importData
-- `/api/import/importSY` - importSY
-- `/api/import/importStdMd` - importStdMd
-- `/api/import/importZipMd` - importZipMd
-
-### graph.ts
-
-- `/api/graph/getGraph` - getGraph
-- `/api/graph/getLocalGraph` - getLocalGraph
-- `/api/graph/resetGraph` - resetGraph
-- `/api/graph/resetLocalGraph` - resetLocalGraph
-
-### av.ts
-
-- `/api/av/getAttributeViewBoundBlockIDsByItemIDs` - getAttributeViewBoundBlockIDsByItemIDs
-- `/api/av/getAttributeViewItemIDsByBoundIDs` - getAttributeViewItemIDsByBoundIDs
+✅ 所有 API 都已核对过至少一次！
 
 ---
 

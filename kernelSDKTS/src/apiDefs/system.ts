@@ -18,9 +18,9 @@ const BootProgressSchema = z.object({
  */
 const WorkspaceSchema = z.object({
     path: z.string().describe('工作空间的绝对路径'),
-    name: z.string().describe('工作空间的名称'),
-    title: z.string().describe('工作空间的标题'),
-    bookmark: z.string().describe('工作空间的备注/书签'),
+    name: z.string().optional().describe('工作空间的名称'),
+    title: z.string().optional().describe('工作空间的标题'),
+    bookmark: z.string().optional().describe('工作空间的备注/书签'),
     closed: z.boolean().describe('工作空间是否已关闭'),
 });
 
@@ -73,6 +73,7 @@ export const systemApiDefs = [
         unavailableIfReadonly: false,
         zodRequestSchema: z.object({}),
         zodResponseSchema: 创建响应Schema(BootProgressSchema.nullable()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -111,6 +112,7 @@ export const systemApiDefs = [
         unavailableIfReadonly: false,
         zodRequestSchema: z.object({}),
         zodResponseSchema: 创建响应Schema(z.string().describe('版本号字符串')),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -154,6 +156,7 @@ export const systemApiDefs = [
             captcha: z.string().optional().describe('验证码'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -179,6 +182,7 @@ export const systemApiDefs = [
         unavailableIfReadonly: false,
         zodRequestSchema: z.object({}),
         zodResponseSchema: z.any().describe('图片二进制数据'),
+        lastVerified: '2025-12-29',
     },
 
     // === 需要认证但非管理员权限的 API ===
@@ -206,6 +210,7 @@ export const systemApiDefs = [
         unavailableIfReadonly: false,
         zodRequestSchema: z.object({}),
         zodResponseSchema: 创建响应Schema(z.array(WorkspaceSchema)),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -334,6 +339,7 @@ export const systemApiDefs = [
             downloadInstallPkg: z.boolean().describe('是否自动下载更新包'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -365,6 +371,7 @@ export const systemApiDefs = [
             path: z.string().describe('工作空间绝对路径'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -376,7 +383,8 @@ export const systemApiDefs = [
         needAdminRole: true,
         unavailableIfReadonly: false,
         zodRequestSchema: z.object({}),
-        zodResponseSchema: 创建响应Schema(z.array(WorkspaceSchema)),
+        zodResponseSchema: 创建响应Schema(z.array(z.string()).describe('工作空间路径列表')),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -395,6 +403,7 @@ export const systemApiDefs = [
                 isWorkspace: z.boolean().describe('是否可以作为工作空间'),
             }).nullable()
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -409,6 +418,7 @@ export const systemApiDefs = [
             path: z.string().describe('工作空间目录路径'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -423,6 +433,7 @@ export const systemApiDefs = [
             path: z.string().describe('工作空间绝对路径'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -434,9 +445,10 @@ export const systemApiDefs = [
         needAdminRole: true,
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({
-            paths: z.array(z.string()).describe('要删除的工作空间路径列表'),
+            path: z.string().describe('要删除的工作空间路径'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -519,6 +531,7 @@ export const systemApiDefs = [
             showMsg: z.boolean().describe('是否显示提示消息'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -535,6 +548,7 @@ export const systemApiDefs = [
                 zip: z.string().describe('日志压缩文件的绝对路径'),
             })
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',

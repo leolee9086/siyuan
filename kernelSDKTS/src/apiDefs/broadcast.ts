@@ -25,7 +25,10 @@ export const broadcastApiDefs = [
         zodRequestSchema: z.object({
             name: z.string().describe('要查询的广播频道名称'),
         }),
-        zodResponseSchema: 创建响应Schema(频道信息Schema),
+        zodResponseSchema: 创建响应Schema(z.object({
+            channel: 频道信息Schema,
+        })),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -38,24 +41,31 @@ export const broadcastApiDefs = [
         unavailableIfReadonly: false,
         zodRequestSchema: 空请求Schema,
         zodResponseSchema: 创建响应Schema(
-            z.array(频道信息Schema).describe('活跃频道信息对象数组'),
+            z.object({
+                channels: z.array(频道信息Schema).describe('活跃频道信息对象数组'),
+            })
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
         endpoint: '/api/broadcast/postMessage',
         en: 'postMessage',
         zh_cn: '发送消息到频道',
-        description: '向指定的广播频道发送文本消息。也可以用于发送特定命令 (cmd)。',
+        description: '向指定的广播频道发送文本消息。',
         needAuth: true,
         needAdminRole: true,
         unavailableIfReadonly: false,
         zodRequestSchema: z.object({
             channel: z.string().describe('目标广播频道的名称'),
-            cmd: z.string().optional().describe('可选，要执行的命令（例如 wsctrl、protyle等）'),
-            data: z.string().describe('要发送的消息内容或命令参数 (JSON 字符串)'),
+            message: z.string().describe('要发送的消息内容'),
         }),
-        zodResponseSchema: 创建响应Schema(z.any().nullable()),
+        zodResponseSchema: 创建响应Schema(
+            z.object({
+                channel: 频道信息Schema.describe('接收消息的频道信息'),
+            })
+        ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -74,16 +84,19 @@ export const broadcastApiDefs = [
         }),
         zodResponseSchema: 创建响应Schema(
             z.object({
-                code: z.number().describe('操作结果返回码，0 表示成功'),
-                msg: z.string().describe('操作结果消息'),
-                channel: 频道信息Schema.describe('频道信息'),
-                message: z.object({
-                    type: z.enum(['string', 'binary']).describe('发布的消息类型'),
-                    size: z.number().int().describe('发布的消息大小 (字节)'),
-                    filename: z.string().describe("发布的文件名 (如果 type 为 'binary')"),
-                }).describe('发布的消息详情'),
+                results: z.array(z.object({
+                    code: z.number().describe('操作结果返回码，0 表示成功'),
+                    msg: z.string().describe('操作结果消息'),
+                    channel: 频道信息Schema.describe('频道信息'),
+                    message: z.object({
+                        type: z.enum(['string', 'binary']).describe('发布的消息类型'),
+                        size: z.number().int().describe('发布的消息大小 (字节)'),
+                        filename: z.string().describe("发布的文件名 (如果 type 为 'binary')"),
+                    }).describe('发布的消息详情'),
+                })),
             }),
         ),
+        lastVerified: '2025-12-29',
     },
 ] as const satisfies readonly Api定义[];
 

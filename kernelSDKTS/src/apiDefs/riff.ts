@@ -63,6 +63,7 @@ export const riffApiDefs = [
             name: z.string().describe('新闪卡包的名称'),
         }),
         zodResponseSchema: 创建响应Schema(RiffDeckSchema),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -78,6 +79,7 @@ export const riffApiDefs = [
             name: z.string().describe('新的闪卡包名称'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -92,6 +94,7 @@ export const riffApiDefs = [
             deckID: z.string().describe('要移除的闪卡包 ID'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -104,6 +107,7 @@ export const riffApiDefs = [
         unavailableIfReadonly: false,
         zodRequestSchema: z.object({}),
         zodResponseSchema: 创建响应Schema(z.array(RiffDeckSchema)),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -119,6 +123,7 @@ export const riffApiDefs = [
             blockIDs: z.array(z.string()).describe('要添加为闪卡的块 ID 数组'),
         }),
         zodResponseSchema: 创建响应Schema(RiffDeckSchema.nullable()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -134,6 +139,7 @@ export const riffApiDefs = [
             blockIDs: z.array(z.string()).describe('要移除的闪卡块 ID 数组'),
         }),
         zodResponseSchema: 创建响应Schema(RiffDeckSchema.nullable()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -149,6 +155,7 @@ export const riffApiDefs = [
             reviewedCards: z.array(ReviewedCardSchema).optional().describe('已复习过的卡片列表，用于排除'),
         }),
         zodResponseSchema: 创建响应Schema(DueCardsResponseSchema),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -164,6 +171,7 @@ export const riffApiDefs = [
             reviewedCards: z.array(ReviewedCardSchema).optional().describe('已复习过的卡片列表'),
         }),
         zodResponseSchema: 创建响应Schema(DueCardsResponseSchema),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -179,6 +187,7 @@ export const riffApiDefs = [
             reviewedCards: z.array(ReviewedCardSchema).optional().describe('已复习过的卡片列表'),
         }),
         zodResponseSchema: 创建响应Schema(DueCardsResponseSchema),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -196,6 +205,7 @@ export const riffApiDefs = [
             reviewedCards: z.array(ReviewedCardSchema).optional().describe('已复习过的卡片列表'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -211,6 +221,7 @@ export const riffApiDefs = [
             cardID: z.string().describe('要跳过复习的闪卡块 ID'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -233,6 +244,7 @@ export const riffApiDefs = [
                 pageCount: z.number().int().describe('总页数'),
             })
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -255,6 +267,7 @@ export const riffApiDefs = [
                 pageCount: z.number().int().describe('总页数'),
             })
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -277,6 +290,7 @@ export const riffApiDefs = [
                 pageCount: z.number().int().describe('总页数'),
             })
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -294,6 +308,7 @@ export const riffApiDefs = [
             blockIDs: z.array(z.string()).optional().describe('要重置的具体闪卡块 ID 数组'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -311,6 +326,7 @@ export const riffApiDefs = [
             })).describe('闪卡 ID 和对应新到期时间的数组'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -329,6 +345,7 @@ export const riffApiDefs = [
                 blocks: z.array(RiffCardSchema).describe('对应的闪卡信息数组'),
             })
         ),
+        lastVerified: '2025-12-29',
     },
 ] as const satisfies readonly Api定义[];
 

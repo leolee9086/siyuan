@@ -19,6 +19,7 @@ export const importApiDefs = [
         formDataRequest: true,
         zodRequestSchema: 空请求Schema, // FormData 请求，不使用 JSON schema
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -32,6 +33,7 @@ export const importApiDefs = [
         formDataRequest: true,
         zodRequestSchema: 空请求Schema, // FormData 请求，不使用 JSON schema
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -48,6 +50,7 @@ export const importApiDefs = [
             toPath: z.string().describe("导入到笔记本内的目标父路径，例如 '/' 表示笔记本根目录"),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -61,6 +64,7 @@ export const importApiDefs = [
         formDataRequest: true,
         zodRequestSchema: 空请求Schema, // FormData 请求，不使用 JSON schema
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-29',
     },
 ] as const satisfies readonly Api定义[];
 

@@ -41,6 +41,7 @@ export const assetApiDefs = [
             id: z.string().describe('文档块 ID'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -52,9 +53,10 @@ export const assetApiDefs = [
         needAdminRole: true,
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({
-            assetPaths: z.array(z.string()).describe('资源路径列表'),
+            paths: z.array(z.string()).describe('资源路径列表'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -75,6 +77,7 @@ export const assetApiDefs = [
                 succMap: z.record(z.string()).describe('成功插入的资源映射'),
             })
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -89,6 +92,7 @@ export const assetApiDefs = [
             path: z.string().describe('资源相对路径'),
         }),
         zodResponseSchema: 创建响应Schema(z.string().describe('绝对路径')),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -110,6 +114,7 @@ export const assetApiDefs = [
                 succMap: z.record(z.string()).describe('上传成功的文件映射'),
             })
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -125,6 +130,7 @@ export const assetApiDefs = [
             data: z.string().describe('标注数据（XFDF 格式）'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -140,10 +146,10 @@ export const assetApiDefs = [
         }),
         zodResponseSchema: 创建响应Schema(
             z.object({
-                path: z.string().describe('资源文件路径'),
                 data: z.string().describe('标注数据'),
             })
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -160,6 +166,7 @@ export const assetApiDefs = [
                 unusedAssets: z.array(z.any()).describe('未使用的资源列表'),
             })
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -176,6 +183,7 @@ export const assetApiDefs = [
                 missingAssets: z.array(z.any()).describe('丢失的资源列表'),
             })
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -194,6 +202,7 @@ export const assetApiDefs = [
                 path: z.string().describe('被移除的资源路径'),
             })
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -210,6 +219,7 @@ export const assetApiDefs = [
                 paths: z.array(z.string()).describe('被移除的资源路径列表'),
             })
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -224,6 +234,7 @@ export const assetApiDefs = [
             id: z.string().describe('文档块 ID'),
         }),
         zodResponseSchema: 创建响应Schema(z.any().describe('图片资源列表')),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -238,6 +249,7 @@ export const assetApiDefs = [
             id: z.string().describe('文档块 ID'),
         }),
         zodResponseSchema: 创建响应Schema(z.any().describe('资源文件列表')),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -257,6 +269,7 @@ export const assetApiDefs = [
                 newPath: z.string().describe('重命名后的新路径'),
             })
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -270,7 +283,10 @@ export const assetApiDefs = [
         zodRequestSchema: z.object({
             path: z.string().describe('图片资源路径'),
         }),
-        zodResponseSchema: 创建响应Schema(OcrResultSchema),
+        zodResponseSchema: 创建响应Schema(z.object({
+            text: z.string().describe('OCR 识别出的文本内容'),
+        })),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -286,6 +302,7 @@ export const assetApiDefs = [
             text: z.string().describe('OCR 文本'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -300,6 +317,7 @@ export const assetApiDefs = [
             path: z.string().describe('图片资源路径'),
         }),
         zodResponseSchema: 创建响应Schema(OcrResultSchema),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -312,6 +330,7 @@ export const assetApiDefs = [
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({}),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -326,6 +345,7 @@ export const assetApiDefs = [
             path: z.string().describe('资源路径或 file:/// 绝对路径'),
         }),
         zodResponseSchema: 创建响应Schema(FileStatSchema),
+        lastVerified: '2025-12-29',
     },
 ] as const satisfies readonly Api定义[];
 

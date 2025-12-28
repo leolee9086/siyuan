@@ -92,6 +92,7 @@ export const settingApiDefs = [
             keywords: z.array(z.string()).describe('要添加到排除列表的关键字数组。'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -106,6 +107,7 @@ export const settingApiDefs = [
             keywords: z.array(z.string()).describe('要添加到包含列表的关键字数组。'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -118,6 +120,7 @@ export const settingApiDefs = [
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({}),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-29',
     },
 
     // ========== 云端用户相关 ==========
@@ -134,6 +137,7 @@ export const settingApiDefs = [
             token: z.string().optional().describe('可选的访问令牌，用于刷新用户信息。如果未提供，则尝试使用现有会话。'),
         }),
         zodResponseSchema: 创建响应Schema(云端用户信息Schema.nullable()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -149,6 +153,7 @@ export const settingApiDefs = [
             code: z.string().describe('6位数字的两步验证码。'),
         }),
         zodResponseSchema: 创建响应Schema(z.record(z.string(), z.any()).nullable()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -161,6 +166,7 @@ export const settingApiDefs = [
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({}),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-29',
     },
 
     // ========== 发布服务相关 ==========
@@ -180,6 +186,7 @@ export const settingApiDefs = [
                 publish: 发布配置Schema.describe('详细的发布配置项。'),
             }).nullable()
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -208,6 +215,7 @@ export const settingApiDefs = [
                 publish: 发布配置Schema.describe('详细的发布配置项。'),
             }).nullable()
         ),
+        lastVerified: '2025-12-29',
     },
 
     // ========== 各类设置相关 ==========
@@ -228,6 +236,7 @@ export const settingApiDefs = [
                 openAI: OpenAI配置Schema.describe('OpenAI 相关配置。'),
             }).nullable()
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -248,6 +257,7 @@ export const settingApiDefs = [
                 displayVIP: z.boolean().describe('是否在用户头像旁显示Pro标识。'),
             }).nullable()
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -288,6 +298,7 @@ export const settingApiDefs = [
                 customCSS: z.string().optional().describe('自定义全局 CSS。'),
             }).nullable()
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -308,6 +319,7 @@ export const settingApiDefs = [
                 petalDisabled: z.boolean().optional().describe('是否禁用所有插件。'),
             }).nullable()
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -355,6 +367,7 @@ export const settingApiDefs = [
             markdown: z.any().optional().describe('Markdown 解析和渲染相关的详细配置对象。'),
         }),
         zodResponseSchema: 创建响应Schema(z.any().nullable()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -369,6 +382,7 @@ export const settingApiDefs = [
             readonly: z.boolean().describe('是否将编辑器设置为只读模式。'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -383,6 +397,7 @@ export const settingApiDefs = [
             emoji: z.array(z.string()).describe('新的常用表情符号列表。'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -414,6 +429,7 @@ export const settingApiDefs = [
             imageWatermarkDesc: z.string().optional().describe('图片导出时的水印位置、大小和样式等描述。'),
         }),
         zodResponseSchema: 创建响应Schema(z.any().nullable()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -440,6 +456,7 @@ export const settingApiDefs = [
             sort: z.number().int().optional().describe('文件树默认排序方式的数字代码。'),
         }),
         zodResponseSchema: 创建响应Schema(z.any().nullable()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -472,6 +489,7 @@ export const settingApiDefs = [
                 againInterval: z.number().describe('重来间隔系数。'),
             }).nullable()
         ),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -494,6 +512,7 @@ export const settingApiDefs = [
             }).describe('包含各类快捷键映射的对象。'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -540,6 +559,7 @@ export const settingApiDefs = [
             virtualRefDoc: z.boolean().optional().describe('虚拟引用是否作用于文档标题。更改此项会刷新虚拟引用缓存。'),
         }),
         zodResponseSchema: 创建响应Schema(z.any().nullable()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -560,6 +580,7 @@ export const settingApiDefs = [
                 enabledJS: z.boolean().describe('是否启用所有自定义JS代码片段。'),
             }).nullable()
         ),
+        lastVerified: '2025-12-29',
     },
 ] as const satisfies readonly Api定义[];
 

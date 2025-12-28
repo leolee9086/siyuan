@@ -22,6 +22,7 @@ export const searchApiDefs = [
             tags: z.array(z.string()).describe('匹配到的标签列表。'),
             k: z.string().describe('原始搜索关键词。'),
         }).nullable()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -43,6 +44,7 @@ export const searchApiDefs = [
             }).catchall(z.any())).describe('匹配到的模板列表。'),
             k: z.string().describe('原始搜索关键词。'),
         }).nullable()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -57,6 +59,7 @@ export const searchApiDefs = [
             path: z.string().describe('必需。要移除的模板文件的相对路径。'),
         }),
         zodResponseSchema: 创建响应Schema(z.null().describe('成功或失败时 Data 均为 null。')),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -78,6 +81,7 @@ export const searchApiDefs = [
             }).catchall(z.any())).describe('匹配到的挂件块列表。'),
             k: z.string().describe('原始搜索关键词。'),
         }).nullable()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -107,6 +111,7 @@ export const searchApiDefs = [
             k: z.string().describe('原始搜索关键词。'),
             reqId: z.any().optional().describe('透传的请求 ID。'),
         }).nullable()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -127,6 +132,7 @@ export const searchApiDefs = [
         zodResponseSchema: 创建响应Schema(z.object({
             blocks: z.array(z.any()).describe('满足 SQL 查询条件的块内容数组。'),
         }).nullable()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -146,6 +152,7 @@ export const searchApiDefs = [
         zodResponseSchema: 创建响应Schema(z.object({
             blocks: z.array(z.any()).describe('渲染后的嵌入块内容数组。'),
         }).nullable()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -161,6 +168,7 @@ export const searchApiDefs = [
             content: z.string().describe('必需。查询嵌入块新的原始 Markdown 内容。'),
         }),
         zodResponseSchema: 创建响应Schema(z.null().describe('成功或失败时 Data 均为 null。')),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -189,6 +197,7 @@ export const searchApiDefs = [
             pageCount: z.number().int().describe('总页数。'),
             docMode: z.boolean().describe('是否为文档模式搜索结果。'),
         }).nullable()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -213,6 +222,7 @@ export const searchApiDefs = [
             hPath: z.string().describe('文档层级路径。'),
             updated: z.string().describe('更新时间。'),
         })).describe('匹配到的资源文件列表。')),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -238,6 +248,7 @@ export const searchApiDefs = [
         zodResponseSchema: 创建响应Schema(z.object({
             closeTimeout: z.number().optional().describe('对话框的关闭延迟时间（毫秒）。'),
         }).nullable()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -271,6 +282,7 @@ export const searchApiDefs = [
             matchedAssetCount: z.number().int().describe('匹配到的资源文件总数。'),
             pageCount: z.number().int().describe('总页数。'),
         }).nullable()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -289,6 +301,7 @@ export const searchApiDefs = [
         zodResponseSchema: 创建响应Schema(z.object({
             assetContent: z.string().describe('匹配到的资源文件内容片段。'),
         }).nullable()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -316,6 +329,7 @@ export const searchApiDefs = [
             matchedRootCount: z.number().int().describe('匹配到的包含无效引用的文档总数。'),
             pageCount: z.number().int().describe('总页数。'),
         }).nullable()),
+        lastVerified: '2025-12-29',
     },
 ] as const satisfies readonly Api定义[];
 

@@ -44,6 +44,7 @@ export const storageApiDefs = [
             app: z.string().describe('发起操作的 App ID，用于事件广播。'),
         }),
         zodResponseSchema: 创建响应Schema(z.null().describe('接口成功执行时，Data 固定为 null。')),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -56,6 +57,7 @@ export const storageApiDefs = [
         unavailableIfReadonly: false,
         zodRequestSchema: z.object({}).optional(),
         zodResponseSchema: 创建响应Schema(z.record(z.any()).describe('包含 LocalStorage 所有键值对的对象。')),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -72,6 +74,7 @@ export const storageApiDefs = [
             app: z.string().describe('发起操作的 App ID，用于事件广播。'),
         }),
         zodResponseSchema: 创建响应Schema(z.null().describe('接口成功执行时，Data 固定为 null。')),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -87,6 +90,7 @@ export const storageApiDefs = [
             app: z.string().describe('发起操作的 App ID，用于事件广播。'),
         }),
         zodResponseSchema: 创建响应Schema(z.null().describe('接口成功执行时，Data 固定为 null。')),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -101,6 +105,7 @@ export const storageApiDefs = [
             criterion: 搜索标准Schema.describe('要保存或更新的搜索标准对象。'),
         }),
         zodResponseSchema: 创建响应Schema(z.null().describe('接口成功执行时，Data 固定为 null。')),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -113,6 +118,7 @@ export const storageApiDefs = [
         unavailableIfReadonly: false,
         zodRequestSchema: z.object({}).optional(),
         zodResponseSchema: 创建响应Schema(z.array(搜索标准Schema).describe('已保存的搜索标准列表。')),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -127,6 +133,7 @@ export const storageApiDefs = [
             name: z.string().describe('要移除的搜索标准的名称。'),
         }),
         zodResponseSchema: 创建响应Schema(z.null().describe('接口成功执行时，Data 固定为 null。')),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -137,7 +144,9 @@ export const storageApiDefs = [
         needAuth: true,
         needAdminRole: false,
         unavailableIfReadonly: false,
-        zodRequestSchema: z.object({}).optional(),
+        zodRequestSchema: z.object({
+            sortBy: z.string().optional().describe('排序方式，默认为 viewedAt。可选值：viewedAt, openAt, closedAt。'),
+        }),
         zodResponseSchema: 创建响应Schema(z.array(z.object({
             id: z.string().describe('文档的 ID。'),
             notebookID: z.string().describe('文档所属笔记本的 ID。'),
@@ -150,6 +159,7 @@ export const storageApiDefs = [
             subFileCount: z.number().describe('子文件数量。'),
             updated: z.string().describe('文档的最后更新时间。'),
         })).describe('最近打开的文档列表。')),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -160,8 +170,11 @@ export const storageApiDefs = [
         needAuth: true,
         needAdminRole: false,
         unavailableIfReadonly: false,
-        zodRequestSchema: z.object({}).optional(),
+        zodRequestSchema: z.object({
+            rootID: z.string().describe('文档的根 ID。'),
+        }),
         zodResponseSchema: 创建响应Schema(z.object({}).optional()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -172,8 +185,11 @@ export const storageApiDefs = [
         needAuth: true,
         needAdminRole: false,
         unavailableIfReadonly: false,
-        zodRequestSchema: z.object({}).optional(),
+        zodRequestSchema: z.object({
+            rootID: z.string().describe('文档的根 ID。'),
+        }),
         zodResponseSchema: 创建响应Schema(z.object({}).optional()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -184,8 +200,11 @@ export const storageApiDefs = [
         needAuth: true,
         needAdminRole: false,
         unavailableIfReadonly: false,
-        zodRequestSchema: z.object({}).optional(),
+        zodRequestSchema: z.object({
+            rootID: z.string().describe('文档的根 ID。'),
+        }),
         zodResponseSchema: 创建响应Schema(z.object({}).optional()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -196,8 +215,11 @@ export const storageApiDefs = [
         needAuth: true,
         needAdminRole: false,
         unavailableIfReadonly: false,
-        zodRequestSchema: z.object({}).optional(),
+        zodRequestSchema: z.object({
+            docID: z.string().describe('文档 ID。'),
+        }),
         zodResponseSchema: 创建响应Schema(z.object({}).optional()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -208,8 +230,12 @@ export const storageApiDefs = [
         needAuth: true,
         needAdminRole: true,
         unavailableIfReadonly: true,
-        zodRequestSchema: z.object({}).optional(),
+        zodRequestSchema: z.object({
+            docID: z.string().describe('文档 ID。'),
+            val: z.any().describe('大纲存储数据。'),
+        }),
         zodResponseSchema: 创建响应Schema(z.object({}).optional()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -220,8 +246,11 @@ export const storageApiDefs = [
         needAuth: true,
         needAdminRole: true,
         unavailableIfReadonly: true,
-        zodRequestSchema: z.object({}).optional(),
+        zodRequestSchema: z.object({
+            docID: z.string().describe('文档 ID。'),
+        }),
         zodResponseSchema: 创建响应Schema(z.object({}).optional()),
+        lastVerified: '2025-12-29',
     },
 ] as const satisfies readonly Api定义[];
 

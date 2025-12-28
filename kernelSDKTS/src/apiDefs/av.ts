@@ -587,7 +587,8 @@ export const avApiDefs = [
             avID: z.string().describe('属性视图的 ID'),
             itemIDs: z.array(z.string()).describe('条目 ID 数组'),
         }),
-        zodResponseSchema: 创建响应Schema(z.any()),
+        zodResponseSchema: 创建响应Schema(z.record(z.string(), z.string()).optional().describe('条目ID到块ID的映射')),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -602,7 +603,8 @@ export const avApiDefs = [
             avID: z.string().describe('属性视图的 ID'),
             blockIDs: z.array(z.string()).describe('块 ID 数组'),
         }),
-        zodResponseSchema: 创建响应Schema(z.any()),
+        zodResponseSchema: 创建响应Schema(z.record(z.string(), z.string()).optional().describe('块ID到条目ID的映射')),
+        lastVerified: '2025-12-29',
     },
 ] as const satisfies readonly Api定义[];
 

@@ -23,6 +23,7 @@ export const fileApiDefs = [
             code: z.number().describe('错误状态码 (例如 403, 404, 500)'),
             msg: z.string().describe('错误消息'),
         }),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -41,6 +42,7 @@ export const fileApiDefs = [
             file: z.any().optional().describe('如果 isDir 为 false，还需要一个名为 "file" 的 FormData 文件字段。'),
         }),
         zodResponseSchema: 创建响应Schema(z.null().optional().describe('此接口成功时不返回具体数据')),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -58,6 +60,7 @@ export const fileApiDefs = [
         zodResponseSchema: 创建响应Schema(z.object({
             closeTimeout: z.number().optional().describe('在操作失败时，可能返回此字段，建议客户端在此毫秒数后关闭相关提示。'),
         }).nullable().describe('成功时 Data 为 null；失败时可能包含 closeTimeout。')),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -73,6 +76,7 @@ export const fileApiDefs = [
             destDir: z.string().describe('目标目录路径 (相对于工作空间根目录)。'),
         }),
         zodResponseSchema: 创建响应Schema(z.null().optional().describe('此接口成功时不返回具体数据')),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -87,6 +91,7 @@ export const fileApiDefs = [
             path: z.string().describe('要移除的文件或目录路径 (相对于工作空间根目录)。'),
         }),
         zodResponseSchema: 创建响应Schema(z.null().optional().describe('此接口成功时不返回具体数据')),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -102,6 +107,7 @@ export const fileApiDefs = [
             newPath: z.string().describe('新的文件或目录路径 (相对于工作空间根目录)。'),
         }),
         zodResponseSchema: 创建响应Schema(z.null().optional().describe('此接口成功时不返回具体数据')),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -121,6 +127,7 @@ export const fileApiDefs = [
             isSymlink: z.boolean().describe('是否为符号链接'),
             updated: z.number().describe('最后修改时间的Unix时间戳 (秒)'),
         })).describe('目录中的条目列表')),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -137,6 +144,7 @@ export const fileApiDefs = [
         zodResponseSchema: 创建响应Schema(z.object({
             path: z.string().describe('处理后的唯一文件路径。'),
         })),
+        lastVerified: '2025-12-29',
     },
 ] as const satisfies readonly Api定义[];
 

@@ -27,6 +27,20 @@ const 笔记本统计Schema = z.object({
     updated: z.number().int().describe('最后更新时间 (Unix时间戳，秒)'),
 });
 
+/** 笔记本配置信息 */
+const 笔记本配置Schema = z.object({
+    name: z.string().describe('笔记本名称'),
+    sort: z.number().int().describe('笔记本的排序值'),
+    icon: z.string().describe('笔记本图标 (Emoji 或 Base64)'),
+    closed: z.boolean().describe('笔记本是否关闭'),
+    sortMode: z.number().int().describe('文档排序模式: 0(自定义拖拽), 1(修改时间升序), 2(修改时间降序), 3(创建时间升序), 4(创建时间降序), 5(字母升序), 6(字母降序), 7(HPath升序), 8(HPath降序), 11(文档包含块升序), 12(文档包含块降序), 13(子文档数升序), 14(子文档数降序)'),
+    refCreateSavePath: z.string().describe('块引目标文档默认保存路径 (HPath)'),
+    docCreateSavePath: z.string().describe('新文档默认保存路径 (HPath)'),
+    dailyNoteSavePath: z.string().describe('日记默认保存路径 (HPath)'),
+    dailyNoteTemplatePath: z.string().describe('日记模板路径 (HPath)'),
+    boxStat: 笔记本统计Schema.optional().describe('笔记本统计信息 (可能不存在，例如笔记本关闭时)'),
+});
+
 export const notebookApiDefs = [
     {
         method: 'POST',
@@ -37,7 +51,9 @@ export const notebookApiDefs = [
         needAuth: true,
         needAdminRole: false,
         unavailableIfReadonly: false,
-        zodRequestSchema: z.object({}).optional(),
+        zodRequestSchema: z.object({
+            flashcard: z.boolean().optional().describe('是否获取闪卡相关的笔记本'),
+        }).optional(),
         zodResponseSchema: 创建响应Schema(z.object({
             notebooks: z.array(z.object({
                 id: z.string().describe('笔记本的唯一标识符 (ID)'),
@@ -48,6 +64,7 @@ export const notebookApiDefs = [
                 sortMode: z.number().int().optional().describe('笔记本内文档的排序模式 (仅在笔记本打开时存在)'),
             })).describe('笔记本对象数组。'),
         })),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -60,8 +77,11 @@ export const notebookApiDefs = [
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({
             notebook: z.string().describe('要打开的笔记本的唯一标识符 (ID)。'),
+            callback: z.string().optional().describe('可选的回调命令ID。'),
+            app: z.string().optional().describe('可选的App ID。'),
         }),
         zodResponseSchema: 创建响应Schema(z.object({}).catchall(z.any()).nullable().describe('成功时可能返回空对象或 null，主要通过推送事件传递笔记本信息。')),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -74,9 +94,9 @@ export const notebookApiDefs = [
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({
             notebook: z.string().describe('要关闭的笔记本的唯一标识符 (ID)。'),
-            callback: z.string().optional().describe('可选的回调命令ID，用于操作完成后的事件通知。'),
         }),
         zodResponseSchema: 创建响应Schema(z.null().optional().describe('成功时通常为 null。')),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -91,19 +111,11 @@ export const notebookApiDefs = [
             notebook: z.string().describe('要获取配置的笔记本的唯一标识符 (ID)。'),
         }),
         zodResponseSchema: 创建响应Schema(z.object({
-            conf: z.object({
-                name: z.string().describe('笔记本名称'),
-                sort: z.number().int().describe('笔记本的排序值'),
-                icon: z.string().describe('笔记本图标 (Emoji 或 Base64)'),
-                closed: z.boolean().describe('笔记本是否关闭'),
-                sortMode: z.number().int().describe('文档排序模式: 0(自定义拖拽), 1(修改时间升序), 2(修改时间降序), 3(创建时间升序), 4(创建时间降序), 5(字母升序), 6(字母降序), 7(HPath升序), 8(HPath降序), 11(文档包含块升序), 12(文档包含块降序), 13(子文档数升序), 14(子文档数降序)'),
-                refCreateSavePath: z.string().describe('块引目标文档默认保存路径 (HPath)'),
-                docCreateSavePath: z.string().describe('新文档默认保存路径 (HPath)'),
-                dailyNoteSavePath: z.string().describe('日记默认保存路径 (HPath)'),
-                dailyNoteTemplatePath: z.string().describe('日记模板路径 (HPath)'),
-                boxStat: 笔记本统计Schema.optional().describe('笔记本统计信息 (可能不存在，例如笔记本关闭时)'),
-            }).describe('笔记本的配置对象。'),
+            box: z.string().describe('笔记本ID'),
+            name: z.string().describe('笔记本名称'),
+            conf: 笔记本配置Schema.describe('笔记本的配置对象。'),
         })),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -126,7 +138,8 @@ export const notebookApiDefs = [
                 dailyNoteTemplatePath: z.string().optional().describe('可选。新的日记模板路径 (HPath)。'),
             }).describe('要更新的配置项对象。只提供需要修改的字段。'),
         }),
-        zodResponseSchema: 创建响应Schema(z.null().optional().describe('成功时通常为 null。')),
+        zodResponseSchema: 创建响应Schema(笔记本配置Schema.describe('更新后的笔记本配置对象。')),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -150,6 +163,7 @@ export const notebookApiDefs = [
                 sortMode: z.number().int().describe('文档排序模式'),
             }).describe('新创建的笔记本对象信息。'),
         })),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -165,6 +179,7 @@ export const notebookApiDefs = [
             callback: z.string().optional().describe('可选的回调命令ID，用于操作完成后的事件通知。'),
         }),
         zodResponseSchema: 创建响应Schema(z.null().optional().describe('成功时通常为 null。')),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -182,6 +197,7 @@ export const notebookApiDefs = [
         zodResponseSchema: 创建响应Schema(z.object({
             closeTimeout: z.number().int().optional().describe('如果重命名失败，可能有关闭提示框的超时时间。'),
         }).catchall(z.any()).nullable().describe('成功时为 null 或空对象，失败时可能包含 closeTimeout。')),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -196,6 +212,7 @@ export const notebookApiDefs = [
             notebooks: z.array(z.string()).describe('按新的期望顺序排列的笔记本 ID 数组。'),
         }),
         zodResponseSchema: 创建响应Schema(z.null().optional().describe('成功时通常为 null。')),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -211,6 +228,7 @@ export const notebookApiDefs = [
             icon: z.string().describe('笔记本的新图标，可以是 Emoji 字符或图片的 Base64 编码字符串。'),
         }),
         zodResponseSchema: 创建响应Schema(z.null().optional().describe('成功时通常为 null。')),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -239,6 +257,7 @@ export const notebookApiDefs = [
                 boxStat: 笔记本统计Schema.describe('笔记本统计信息。'),
             }).describe('笔记本的详细信息对象。'),
         })),
+        lastVerified: '2025-12-29',
     },
 ] as const satisfies readonly Api定义[];
 

@@ -95,6 +95,7 @@ export const graphApiDefs = [
             box: z.string().describe('当前知识空间（笔记本组）ID'),
             reqId: z.any().describe('请求 ID，与请求参数中的 reqId 一致'),
         })),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -119,6 +120,7 @@ export const graphApiDefs = [
             conf: 局部关系图配置Schema.describe('更新后的局部关系图配置项'),
             reqId: z.any().describe('请求 ID，与请求参数中的 reqId 一致'),
         })),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -133,6 +135,7 @@ export const graphApiDefs = [
         zodResponseSchema: 创建响应Schema(z.object({
             conf: 全局关系图配置Schema.describe('重置后的全局关系图配置项'),
         })),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -147,6 +150,7 @@ export const graphApiDefs = [
         zodResponseSchema: 创建响应Schema(z.object({
             conf: 局部关系图配置Schema.describe('重置后的局部关系图配置项'),
         })),
+        lastVerified: '2025-12-29',
     },
 ] as const satisfies readonly Api定义[];
 

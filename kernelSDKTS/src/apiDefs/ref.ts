@@ -19,6 +19,7 @@ export const refApiDefs = [
             id: z.string().describe('必需。要刷新反向链接和提及信息的目标块的 ID。'),
         }),
         zodResponseSchema: 创建响应Schema(z.null().describe('成功时 Data 固定为 null。')),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -45,6 +46,7 @@ export const refApiDefs = [
             mk: z.string().describe('实际用于筛选反向提及的关键词。'),
             box: z.string().describe('目标块所在的笔记本 ID。'),
         }).nullable().describe('包含反向链接、反向提及列表及相关信息的对象。')),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -72,6 +74,7 @@ export const refApiDefs = [
             mk: z.string().describe('实际用于筛选反向提及的关键词。'),
             box: z.string().describe('目标块所在的笔记本 ID。'),
         }).nullable().describe('包含反向链接、反向提及列表及相关信息的对象。')),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -93,6 +96,7 @@ export const refApiDefs = [
             backlinks: z.array(z.any()).describe('反向链接块的详细信息数组，具体结构复杂，参考 model.Backlink。'),
             keywords: z.array(z.string()).describe('实际用于高亮的关键词列表。'),
         }).nullable().describe('包含反向链接列表和高亮关键词的对象。')),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -114,6 +118,7 @@ export const refApiDefs = [
             backmentions: z.array(z.any()).describe('反向提及块的详细信息数组，具体结构复杂，参考 model.Backmention。'),
             keywords: z.array(z.string()).describe('实际用于高亮的关键词列表。'),
         }).nullable().describe('包含反向提及列表和高亮关键词的对象。')),
+        lastVerified: '2025-12-29',
     },
 ] as const satisfies readonly Api定义[];
 

@@ -19,6 +19,7 @@ export const syncApiDefs = [
             enabled: z.boolean().describe('是否启用同步。true 为启用，false 为禁用。'),
         }),
         zodResponseSchema: 创建响应Schema(z.null().describe('接口成功执行时，Data 固定为 null。')),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -30,9 +31,10 @@ export const syncApiDefs = [
         needAdminRole: false,
         unavailableIfReadonly: false,
         zodRequestSchema: z.object({
-            syncInterval: z.number().int().min(1).describe('自动同步的时间间隔，单位为分钟。最小值为1分钟。'),
+            interval: z.number().int().min(1).describe('自动同步的时间间隔，单位为分钟。最小值为1分钟。'),
         }),
         zodResponseSchema: 创建响应Schema(z.null().describe('接口成功执行时，Data 固定为 null。')),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -44,9 +46,10 @@ export const syncApiDefs = [
         needAdminRole: true,
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({
-            syncPerception: z.boolean().describe('是否启用同步感知。'),
+            enabled: z.boolean().describe('是否启用同步感知。'),
         }),
         zodResponseSchema: 创建响应Schema(z.null().describe('接口成功执行时，Data 固定为 null。')),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -58,9 +61,10 @@ export const syncApiDefs = [
         needAdminRole: true,
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({
-            generateConflictDoc: z.boolean().describe('是否生成冲突文档。'),
+            enabled: z.boolean().describe('是否生成冲突文档。'),
         }),
         zodResponseSchema: 创建响应Schema(z.null().describe('接口成功执行时，Data 固定为 null。')),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -72,9 +76,10 @@ export const syncApiDefs = [
         needAdminRole: true,
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({
-            syncMode: z.number().int().min(0).describe('同步模式。'),
+            mode: z.number().int().min(0).describe('同步模式。'),
         }),
         zodResponseSchema: 创建响应Schema(z.null().describe('接口成功执行时，Data 固定为 null。')),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -86,9 +91,10 @@ export const syncApiDefs = [
         needAdminRole: true,
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({
-            syncProvider: z.string().describe('同步服务提供商的标识符。'),
+            provider: z.number().int().describe('同步服务提供商的标识符。'),
         }),
         zodResponseSchema: 创建响应Schema(z.null().describe('接口成功执行时，Data 固定为 null。')),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -100,14 +106,17 @@ export const syncApiDefs = [
         needAdminRole: true,
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({
-            s3AccessKeyID: z.string().describe('S3 Access Key ID.'),
-            s3SecretAccessKey: z.string().describe('S3 Secret Access Key.'),
-            s3Endpoint: z.string().describe('S3 服务的 Endpoint。'),
-            s3Region: z.string().describe('S3 Bucket 所在区域。'),
-            s3Bucket: z.string().describe('S3 Bucket 名称。'),
-            s3CDN: z.string().optional().describe('S3 关联的 CDN 地址，可选。'),
+            s3: z.object({
+                accessKey: z.string().describe('S3 Access Key ID。'),
+                secretKey: z.string().describe('S3 Secret Access Key。'),
+                endpoint: z.string().describe('S3 服务的 Endpoint。'),
+                region: z.string().describe('S3 Bucket 所在区域。'),
+                bucket: z.string().describe('S3 Bucket 名称。'),
+                cdn: z.string().optional().describe('S3 关联的 CDN 地址，可选。'),
+            }),
         }),
         zodResponseSchema: 创建响应Schema(z.null().describe('接口成功执行时，Data 固定为 null。')),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -119,11 +128,14 @@ export const syncApiDefs = [
         needAdminRole: true,
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({
-            webdavEndpoint: z.string().describe('WebDAV 服务的 URL。'),
-            webdavUsername: z.string().describe('WebDAV 用户名。'),
-            webdavPassword: z.string().describe('WebDAV 密码。'),
+            webdav: z.object({
+                endpoint: z.string().describe('WebDAV 服务的 URL。'),
+                username: z.string().describe('WebDAV 用户名。'),
+                password: z.string().describe('WebDAV 密码。'),
+            }),
         }),
         zodResponseSchema: 创建响应Schema(z.null().describe('接口成功执行时，Data 固定为 null。')),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -135,9 +147,12 @@ export const syncApiDefs = [
         needAdminRole: true,
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({
-            syncProviderLocalPath: z.string().describe('本地同步文件夹的绝对路径。'),
+            local: z.object({
+                path: z.string().describe('本地同步文件夹的绝对路径。'),
+            }),
         }),
         zodResponseSchema: 创建响应Schema(z.null().describe('接口成功执行时，Data 固定为 null。')),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -152,6 +167,7 @@ export const syncApiDefs = [
             name: z.string().describe('要设置为当前同步目录的云端目录名称。'),
         }),
         zodResponseSchema: 创建响应Schema(z.null().describe('接口成功执行时，Data 固定为 null。')),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -166,6 +182,7 @@ export const syncApiDefs = [
             name: z.string().describe('要创建的云端同步目录的名称。'),
         }),
         zodResponseSchema: 创建响应Schema(z.null().describe('接口成功执行时，Data 固定为 null。')),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -179,7 +196,8 @@ export const syncApiDefs = [
         zodRequestSchema: z.object({
             name: z.string().describe('要移除的云端同步目录的名称。'),
         }),
-        zodResponseSchema: 创建响应Schema(z.null().describe('接口成功执行时，Data 固定为 null。')),
+        zodResponseSchema: 创建响应Schema(z.string().describe('当前内核配置中正在使用的云端同步目录名称。')),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -200,6 +218,7 @@ export const syncApiDefs = [
             hSize: z.string().describe('所有同步目录的总大小的人类可读格式。'),
             checkedSyncDir: z.string().describe('当前内核配置中正在使用的云端同步目录名称。'),
         }).nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -215,6 +234,7 @@ export const syncApiDefs = [
             upload: z.boolean().optional().describe('仅在同步模式为3时有效。true 表示上传，false 表示下载。'),
         }),
         zodResponseSchema: 创建响应Schema(z.null().describe('此接口不通过 Data 返回具体数据。')),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -227,6 +247,7 @@ export const syncApiDefs = [
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({}).optional(),
         zodResponseSchema: 创建响应Schema(z.null().describe('此接口不通过 Data 返回具体数据。')),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -243,6 +264,7 @@ export const syncApiDefs = [
             msg: z.string().describe('接口返回的消息。'),
             data: z.null().describe('此接口不通过 Data 返回数据。'),
         }),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -260,6 +282,7 @@ export const syncApiDefs = [
             kernels: z.array(z.string()).describe('当前在线的其他内核实例的 ID 列表。'),
             kernel: z.string().describe('当前内核实例的 ID。'),
         }).nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -275,6 +298,7 @@ export const syncApiDefs = [
             name: z.string().describe('导出的文件名。'),
             zip: z.string().describe('导出的 .zip 文件在服务端的临时路径。'),
         }).nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -285,17 +309,21 @@ export const syncApiDefs = [
         needAuth: true,
         needAdminRole: true,
         unavailableIfReadonly: true,
-        zodRequestSchema: z.object({}).optional(),
+        formDataRequest: true,
+        zodRequestSchema: z.object({
+            file: z.any().describe('上传的 S3 配置文件 (.zip/.json)'),
+        }),
         zodResponseSchema: 创建响应Schema(z.object({
             s3: z.object({
                 endpoint: z.string().describe('S3 服务的 Endpoint。'),
-                accessKeyID: z.string().describe('S3 Access Key ID。'),
-                secretAccessKey: z.string().describe('S3 Secret Access Key。'),
+                accessKey: z.string().describe('S3 Access Key ID。'),
+                secretKey: z.string().describe('S3 Secret Access Key。'),
                 bucket: z.string().describe('S3 Bucket 名称。'),
                 region: z.string().describe('S3 Bucket 所在区域。'),
                 cdn: z.string().optional().describe('CDN 地址。'),
             }).describe('导入的 S3 配置对象。'),
         }).nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -311,6 +339,7 @@ export const syncApiDefs = [
             name: z.string().describe('导出的文件名。'),
             zip: z.string().describe('导出的 .zip 文件在服务端的临时路径。'),
         }).nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -321,7 +350,10 @@ export const syncApiDefs = [
         needAuth: true,
         needAdminRole: true,
         unavailableIfReadonly: true,
-        zodRequestSchema: z.object({}).optional(),
+        formDataRequest: true,
+        zodRequestSchema: z.object({
+            file: z.any().describe('上传的 WebDAV 配置文件 (.zip/.json)'),
+        }),
         zodResponseSchema: 创建响应Schema(z.object({
             webdav: z.object({
                 endpoint: z.string().describe('WebDAV 服务的 URL。'),
@@ -329,6 +361,7 @@ export const syncApiDefs = [
                 password: z.string().describe('WebDAV 密码。'),
             }).describe('导入的 WebDAV 配置对象。'),
         }).nullable()),
+        lastVerified: '2025-12-28',
     },
 ] as const satisfies readonly Api定义[];
 

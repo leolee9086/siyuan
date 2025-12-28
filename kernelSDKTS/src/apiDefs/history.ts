@@ -53,6 +53,7 @@ export const historyApiDefs = [
                 historyPath: z.string().describe('历史文件的完整存储路径'),
             })).describe('笔记本历史记录数组'),
         }).nullable()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -67,6 +68,7 @@ export const historyApiDefs = [
             historyPath: z.string().describe('笔记本历史版本的路径，通常从 getNotebookHistory 接口获取'),
         }),
         zodResponseSchema: 创建响应Schema(z.null().describe('成功时固定为 null')),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -81,6 +83,7 @@ export const historyApiDefs = [
             historyPath: z.string().describe('资源文件历史版本的路径'),
         }),
         zodResponseSchema: 创建响应Schema(z.null().describe('成功时固定为 null')),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -102,6 +105,7 @@ export const historyApiDefs = [
             content: z.string().describe('文档历史版本的内容 (HTML 格式)'),
             isLargeDoc: z.boolean().describe('是否为大文档'),
         }).nullable()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -119,6 +123,7 @@ export const historyApiDefs = [
         zodResponseSchema: 创建响应Schema(z.object({
             box: z.string().describe('文档所属的笔记本 ID'),
         }).nullable()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -131,6 +136,7 @@ export const historyApiDefs = [
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({}).optional(),
         zodResponseSchema: 创建响应Schema(z.null().describe('成功时固定为 null')),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -143,6 +149,7 @@ export const historyApiDefs = [
         unavailableIfReadonly: true,
         zodRequestSchema: z.object({}).optional(),
         zodResponseSchema: 创建响应Schema(z.null().describe('成功时固定为 null')),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -169,6 +176,7 @@ export const historyApiDefs = [
             pageCount: z.number().int().describe('总页数'),
             totalCount: z.number().int().describe('符合条件的总历史记录条目数'),
         }).nullable()),
+        lastVerified: '2025-12-29',
     },
     {
         method: 'POST',
@@ -189,6 +197,7 @@ export const historyApiDefs = [
         zodResponseSchema: 创建响应Schema(z.object({
             items: z.array(历史条目Schema).describe('符合条件的历史条目数组'),
         }).nullable()),
+        lastVerified: '2025-12-29',
     },
 ] as const satisfies readonly Api定义[];
 
