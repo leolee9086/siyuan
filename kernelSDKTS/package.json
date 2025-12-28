@@ -30,7 +30,9 @@
         "clean": "rimraf dist",
         "typecheck": "tsc --noEmit",
         "sync:check": "tsx scripts/validateSync.ts",
-        "sync:update": "tsx scripts/updateFromGo.ts"
+        "sync:update": "tsx scripts/updateFromGo.ts",
+        "verify:list": "tsx scripts/listPendingVerification.ts",
+        "verify:report": "tsx scripts/generateVerificationReport.ts"
     },
     "keywords": [
         "siyuan",

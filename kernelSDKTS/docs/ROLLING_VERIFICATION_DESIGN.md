@@ -235,12 +235,14 @@ interface Api定义 {
 
 ## 5. 实施计划
 
-### Phase 1: 基础框架 (1 小时)
+### Phase 1: 基础框架 ✅ (已完成 2025-12-28)
 
-- [ ] 修改 `Api定义` 接口，增加 `lastVerified` 字段
-- [ ] 更新类型检查确保可选字段不破坏现有代码
-- [ ] 编写 `scripts/listPendingVerification.ts`
-- [ ] 添加 npm script
+- [x] 修改 `Api定义` 接口，增加 `lastVerified` 字段
+- [x] 更新类型检查确保可选字段不破坏现有代码
+- [x] 编写 `scripts/listPendingVerification.ts`
+- [x] 编写 `scripts/generateVerificationReport.ts`
+- [x] 在 `src/apiDefs/index.ts` 添加 `allApiDefs` 统一导出
+- [x] 添加 npm script (`verify:list`, `verify:report`)
 
 ### Phase 2: 初始化 (30 分钟)
 

@@ -46,6 +46,13 @@ export interface Api定义 {
     readonly zodRequestSchema: z.ZodType<unknown>;
     /** 响应数据 Zod Schema */
     readonly zodResponseSchema: z.ZodType<unknown>;
+
+    // ========== 核对追踪字段 ==========
+    /** 
+     * 上次核对日期 (ISO 格式: "2025-12-28")
+     * undefined = 从未核对过 (最高优先级)
+     */
+    readonly lastVerified?: string;
 }
 
 /** Api定义的英文别名 */

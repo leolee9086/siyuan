@@ -66,3 +66,111 @@ export { exportApiDefs } from './export';
 export { filetreeApiDefs } from './filetree';
 export { blockApiDefs } from './block';
 export { avApiDefs } from './av';
+
+// ========== 统一 API 定义集合 ==========
+// 用于核对脚本等需要遍历所有 API 的场景
+import { accountApiDefs } from './account';
+import { aiApiDefs } from './ai';
+import { archiveApiDefs } from './archive';
+import { attrApiDefs } from './attr';
+import { bookmarkApiDefs } from './bookmark';
+import { broadcastApiDefs } from './broadcast';
+import { clipboardApiDefs } from './clipboard';
+import { cloudApiDefs } from './cloud';
+import { convertApiDefs } from './convert';
+import { extensionApiDefs } from './extension';
+import { formatApiDefs } from './format';
+import { iconApiDefs } from './icon';
+import { importApiDefs } from './import';
+import { inboxApiDefs } from './inbox';
+import { luteApiDefs } from './lute';
+import { miscApiDefs } from './misc';
+import { networkApiDefs } from './network';
+import { notificationApiDefs } from './notification';
+import { outlineApiDefs } from './outline';
+import { petalApiDefs } from './petal';
+import { queryApiDefs } from './query';
+import { snippetApiDefs } from './snippet';
+import { sqliteApiDefs } from './sqlite';
+import { tagApiDefs } from './tag';
+import { templateApiDefs } from './template';
+import { uiApiDefs } from './ui';
+import { transactionsApiDefs } from './transactions';
+import { graphApiDefs } from './graph';
+import { refApiDefs } from './ref';
+import { fileApiDefs } from './file';
+import { notebookApiDefs } from './notebook';
+import { historyApiDefs } from './history';
+import { storageApiDefs } from './storage';
+import { syncApiDefs } from './sync';
+import { searchApiDefs } from './search';
+import { vectorApiDefs } from './vector';
+import { embeddingApiDefs } from './embedding';
+import { systemApiDefs } from './system';
+import { riffApiDefs } from './riff';
+import { repoApiDefs } from './repo';
+import { assetApiDefs } from './asset';
+import { bazaarApiDefs } from './bazaar';
+import { settingApiDefs } from './setting';
+import { exportApiDefs } from './export';
+import { filetreeApiDefs } from './filetree';
+import { blockApiDefs } from './block';
+import { avApiDefs } from './av';
+
+import type { Api定义 } from '../client/types';
+
+/**
+ * 所有 API 定义的统一集合
+ * 键为文件名，值为该文件的 API 定义数组
+ * 
+ * 注意：新增 API 模块时，需要在这里添加对应条目
+ */
+export const allApiDefs: Record<string, readonly Api定义[]> = {
+    'account': accountApiDefs,
+    'ai': aiApiDefs,
+    'archive': archiveApiDefs,
+    'attr': attrApiDefs,
+    'bookmark': bookmarkApiDefs,
+    'broadcast': broadcastApiDefs,
+    'clipboard': clipboardApiDefs,
+    'cloud': cloudApiDefs,
+    'convert': convertApiDefs,
+    'extension': extensionApiDefs,
+    'format': formatApiDefs,
+    'icon': iconApiDefs,
+    'import': importApiDefs,
+    'inbox': inboxApiDefs,
+    'lute': luteApiDefs,
+    'misc': miscApiDefs,
+    'network': networkApiDefs,
+    'notification': notificationApiDefs,
+    'outline': outlineApiDefs,
+    'petal': petalApiDefs,
+    'query': queryApiDefs,
+    'snippet': snippetApiDefs,
+    'sqlite': sqliteApiDefs,
+    'tag': tagApiDefs,
+    'template': templateApiDefs,
+    'ui': uiApiDefs,
+    'transactions': transactionsApiDefs,
+    'graph': graphApiDefs,
+    'ref': refApiDefs,
+    'file': fileApiDefs,
+    'notebook': notebookApiDefs,
+    'history': historyApiDefs,
+    'storage': storageApiDefs,
+    'sync': syncApiDefs,
+    'search': searchApiDefs,
+    'vector': vectorApiDefs,
+    'embedding': embeddingApiDefs,
+    'system': systemApiDefs,
+    'riff': riffApiDefs,
+    'repo': repoApiDefs,
+    'asset': assetApiDefs,
+    'bazaar': bazaarApiDefs,
+    'setting': settingApiDefs,
+    'export': exportApiDefs,
+    'filetree': filetreeApiDefs,
+    'block': blockApiDefs,
+    'av': avApiDefs,
+};

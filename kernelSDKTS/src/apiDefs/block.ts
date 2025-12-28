@@ -107,6 +107,7 @@ export const blockApiDefs = [
             parentID: z.string().describe('父块的 ID'),
         }),
         zodResponseSchema: 创建响应Schema(插入块结果Schema),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -123,6 +124,7 @@ export const blockApiDefs = [
             parentID: z.string().describe('父块的 ID'),
         }),
         zodResponseSchema: 创建响应Schema(插入块结果Schema),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -141,6 +143,7 @@ export const blockApiDefs = [
             nextID: z.string().optional().describe('后一个同级块的 ID，插入在其前'),
         }),
         zodResponseSchema: 创建响应Schema(插入块结果Schema),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -161,6 +164,7 @@ export const blockApiDefs = [
             })).describe('包含多个待插入块信息的数组'),
         }),
         zodResponseSchema: 创建响应Schema(插入块结果Schema),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -179,6 +183,7 @@ export const blockApiDefs = [
             })).describe('包含多个待插入块信息的数组'),
         }),
         zodResponseSchema: 创建响应Schema(插入块结果Schema),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -197,6 +202,7 @@ export const blockApiDefs = [
             })).describe('包含多个待插入块信息的数组'),
         }),
         zodResponseSchema: 创建响应Schema(插入块结果Schema),
+        lastVerified: '2025-12-28',
     },
 
     // ========== 日记块 ==========
@@ -249,6 +255,7 @@ export const blockApiDefs = [
             dataType: 数据类型Schema.describe('指定 data 参数的类型'),
         }),
         zodResponseSchema: 创建响应Schema(插入块结果Schema),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -267,6 +274,7 @@ export const blockApiDefs = [
             })).describe('包含多个待更新块信息的数组'),
         }),
         zodResponseSchema: 创建响应Schema(插入块结果Schema),
+        lastVerified: '2025-12-28',
     },
 
     // ========== 删除块 ==========
@@ -283,6 +291,7 @@ export const blockApiDefs = [
             id: z.string().describe('要删除的块 ID'),
         }),
         zodResponseSchema: 创建响应Schema(z.any().nullable()),
+        lastVerified: '2025-12-28',
     },
 
     // ========== 移动块 ==========
@@ -301,6 +310,7 @@ export const blockApiDefs = [
             previousID: z.string().optional().describe('新的前一个同级块的 ID'),
         }),
         zodResponseSchema: 创建响应Schema(z.null()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -317,6 +327,7 @@ export const blockApiDefs = [
             previousID: z.string().optional().describe('新的前一个同级标题块的 ID'),
         }),
         zodResponseSchema: 创建响应Schema(z.any().nullable()),
+        lastVerified: '2025-12-28',
     },
 
     // ========== 折叠/展开 ==========
@@ -333,6 +344,7 @@ export const blockApiDefs = [
             id: z.string().describe('要折叠的块 ID'),
         }),
         zodResponseSchema: 创建响应Schema(z.any().nullable()),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -347,6 +359,7 @@ export const blockApiDefs = [
             id: z.string().describe('要展开的块 ID'),
         }),
         zodResponseSchema: 创建响应Schema(z.any().nullable()),
+        lastVerified: '2025-12-28',
     },
 
     // ========== 获取块信息 ==========
@@ -363,6 +376,7 @@ export const blockApiDefs = [
             id: z.string().describe('要获取信息的块 ID'),
         }),
         zodResponseSchema: 创建响应Schema(块信息Schema),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -381,6 +395,7 @@ export const blockApiDefs = [
             dom: z.string().describe('块的 DOM 内容'),
             isFullWidth: z.boolean().optional().describe('是否为页宽块'),
         })),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -395,6 +410,7 @@ export const blockApiDefs = [
             ids: z.array(z.string()).describe('要获取 DOM 的块 ID 数组'),
         }),
         zodResponseSchema: 创建响应Schema(z.record(z.string(), z.string())),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -405,8 +421,14 @@ export const blockApiDefs = [
         needAuth: true,
         needAdminRole: false,
         unavailableIfReadonly: false,
-        zodRequestSchema: z.object({}),
-        zodResponseSchema: 创建响应Schema(z.any()),
+        zodRequestSchema: z.object({
+            id: z.string().describe('要获取 DOM 的块 ID'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.object({
+            id: z.string().describe('块 ID'),
+            dom: z.string().describe('块的 DOM 内容（含嵌入）'),
+        })),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -417,8 +439,11 @@ export const blockApiDefs = [
         needAuth: true,
         needAdminRole: false,
         unavailableIfReadonly: false,
-        zodRequestSchema: z.object({}),
-        zodResponseSchema: 创建响应Schema(z.any()),
+        zodRequestSchema: z.object({
+            ids: z.array(z.string()).describe('要获取 DOM 的块 ID 数组'),
+        }),
+        zodResponseSchema: 创建响应Schema(z.record(z.string(), z.string())),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -437,6 +462,7 @@ export const blockApiDefs = [
             id: z.string().describe('块 ID'),
             kramdown: z.string().describe('块的 Kramdown 源码'),
         })),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -451,6 +477,7 @@ export const blockApiDefs = [
             id: z.string().describe('父块的 ID'),
         }),
         zodResponseSchema: 创建响应Schema(z.array(子块信息Schema)),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
@@ -463,9 +490,10 @@ export const blockApiDefs = [
         unavailableIfReadonly: false,
         zodRequestSchema: z.object({
             id: z.string().describe('父块的 ID'),
-            size: z.number().int().describe('要获取的尾部子块数量'),
+            n: z.number().int().optional().describe('要获取的尾部子块数量，默认为 7'),
         }),
         zodResponseSchema: 创建响应Schema(z.array(子块信息Schema)),
+        lastVerified: '2025-12-28',
     },
     {
         method: 'POST',
