@@ -107,13 +107,17 @@ export class Outline extends Model {
 
 
     public setCurrent(nodeElement: HTMLElement) {
-        if (!nodeElement) return;
+        if (!nodeElement) {
+return;
+}
         if (nodeElement.getAttribute("data-type") === "NodeHeading") {
             this.setCurrentById(nodeElement.getAttribute("data-node-id"));
         } else {
             let previousElement = getPreviousBlock(nodeElement);
             while (previousElement) {
-                if (previousElement.getAttribute("data-type") === "NodeHeading") break;
+                if (previousElement.getAttribute("data-type") === "NodeHeading") {
+break;
+}
                 previousElement = getPreviousBlock(previousElement);
             }
             if (previousElement) {
@@ -132,10 +136,14 @@ export class Outline extends Model {
     }
 
     public setCurrentByPreview(nodeElement: Element) {
-        if (!nodeElement) return;
+        if (!nodeElement) {
+return;
+}
         let previousElement = nodeElement;
         while (previousElement && !previousElement.classList.contains("b3-typography")) {
-            if (["H1", "H2", "H3", "H4", "H5", "H6"].includes(previousElement.tagName)) break;
+            if (["H1", "H2", "H3", "H4", "H5", "H6"].includes(previousElement.tagName)) {
+break;
+}
             previousElement = previousElement.previousElementSibling || previousElement.parentElement;
         }
         if (previousElement && previousElement.id) {
@@ -169,9 +177,13 @@ export class Outline extends Model {
     public update(data: IWebSocketData, callbackId?: string) {
         let currentElement = this.element.querySelector(".b3-list-item--focus");
         let currentId;
-        if (currentElement) currentId = currentElement.getAttribute("data-node-id");
+        if (currentElement) {
+currentId = currentElement.getAttribute("data-node-id");
+}
         const scrollTop = this.element.scrollTop;
-        if (typeof callbackId !== "undefined") this.blockId = callbackId;
+        if (typeof callbackId !== "undefined") {
+this.blockId = callbackId;
+}
         this.tree.updateData(data.data);
         if (this.isPreview) {
             this.tree.element.querySelectorAll(".popover__block").forEach(item => item.classList.remove("popover__block"));
@@ -184,13 +196,17 @@ export class Outline extends Model {
         }
         if (currentId) {
             currentElement = this.element.querySelector(`[data-node-id="${currentId}"]`);
-            if (currentElement) currentElement.classList.add("b3-list-item--focus");
+            if (currentElement) {
+currentElement.classList.add("b3-list-item--focus");
+}
         }
         this.element.removeAttribute("data-loading");
     }
 
     public saveExpendIds() {
-        if (window.siyuan.config.readonly || window.siyuan.isPublish) return;
+        if (window.siyuan.config.readonly || window.siyuan.isPublish) {
+return;
+}
         if (!this.isPreview && this.type === "pin") {
             fetchPost("/api/storage/setOutlineStorage", { docID: this.blockId, val: { expandIds: this.tree.getExpandIds() } });
         }
