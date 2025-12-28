@@ -6,3 +6,8 @@
 export const isHTMLDivElement = (el: Element): el is HTMLDivElement => {
     return el instanceof HTMLDivElement;
 };
+
+/** 类型守卫：判断节点是否为 HTMLElement */
+export const isHTMLElement = (node: unknown): node is HTMLElement => {
+    return node instanceof HTMLElement;
+};
