@@ -8,92 +8,137 @@ import { App } from "../../index";
 import { isMac, isNotCtrl, isOnlyMeta } from "../../protyle/util/compatibility";
 import { showPopover } from "../../block/popover";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { getSiyuanDialogs } from "../../util/siyuanEnvironments/siyuanDialogs.environment";
+import { setSiyuanCtrlIsPressed, setSiyuanShiftIsPressed, setSiyuanAltIsPressed } from "../../util/siyuanEnvironments/keyboardStatus.environment";
+
+const matchGeneralKeymap = (keymap: Config.IKeys) => {
+    const key1 = "general";
+    const entireConfig = getSiyuanConfig().keymap;
+    if (!entireConfig[key1]) {
+        /// #if !BROWSER
+        ipcRenderer.send(Constants.SIYUAN_CMD, {
+            cmd: "writeLog",
+            msg: "window.siyuan.config.keymap.general is not found"
+        });
+        /// #endif
+        entireConfig[key1] = keymap as Config.IKeymapGeneral;
+        return false;
+    }
+    const configKeymap = entireConfig[key1];
+    let match = true;
+    for (const key of Object.keys(keymap)) {
+        const configItem = configKeymap[key];
+        const sourceItem = keymap[key];
+        if (!sourceItem) {
+            continue;
+        }
+        if (!configItem || configItem.default !== sourceItem.default) {
+            /// #if !BROWSER
+            ipcRenderer.send(Constants.SIYUAN_CMD, {
+                cmd: "writeLog",
+                msg: `window.siyuan.config.keymap.${key1}.${key} is not found or match: ${configItem?.default}`
+            });
+            /// #endif
+            match = false;
+            configKeymap[key] = sourceItem;
+        }
+    }
+    return match;
+};
+
+const matchEditorKeymap = (keymap: Config.IKeys, key1: "editor", key2: "general" | "insert" | "heading" | "list" | "table") => {
+    const entireConfig = getSiyuanConfig().keymap;
+    if (!entireConfig[key1]) {
+        /// #if !BROWSER
+        ipcRenderer.send(Constants.SIYUAN_CMD, {
+            cmd: "writeLog",
+            msg: "window.siyuan.config.keymap.editor is not found"
+        });
+        /// #endif
+        entireConfig[key1] = JSON.parse(JSON.stringify(Constants.SIYUAN_KEYMAP.editor));
+        return false;
+    }
+    const editorConfig = entireConfig[key1];
+    if (!editorConfig[key2]) {
+        /// #if !BROWSER
+        ipcRenderer.send(Constants.SIYUAN_CMD, {
+            cmd: "writeLog",
+            msg: `window.siyuan.config.keymap.editor.${key2} is not found`
+        });
+        /// #endif
+        (editorConfig[key2] as Config.IKeymapEditor[typeof key2]) = keymap as Config.IKeymapEditor[typeof key2];
+        return false;
+    }
+    const configKeymap = editorConfig[key2];
+    let match = true;
+    for (const key of Object.keys(keymap)) {
+        const configItem = configKeymap[key];
+        const sourceItem = keymap[key];
+        if (!sourceItem) {
+            continue;
+        }
+        if (!configItem || configItem.default !== sourceItem.default) {
+            /// #if !BROWSER
+            ipcRenderer.send(Constants.SIYUAN_CMD, {
+                cmd: "writeLog",
+                msg: `window.siyuan.config.keymap.${key1}.${key2}.${key} is not found or match: ${configItem?.default}`
+            });
+            /// #endif
+            match = false;
+            configKeymap[key] = sourceItem;
+        }
+    }
+    return match;
+};
 
 const matchKeymap = (keymap: Config.IKeys, key1: "general" | "editor", key2?: "general" | "insert" | "heading" | "list" | "table") => {
     if (key1 === "general") {
-        if (!getSiyuanConfig().keymap[key1]) {
-            /// #if !BROWSER
-            ipcRenderer.send(Constants.SIYUAN_CMD, {
-                cmd: "writeLog",
-                msg: "window.siyuan.config.keymap.general is not found"
-            });
-            /// #endif
-            getSiyuanConfig().keymap[key1] = keymap as Config.IKeymapGeneral;
-            return false;
-        }
-    } else {
-        if (!getSiyuanConfig().keymap[key1]) {
-            /// #if !BROWSER
-            ipcRenderer.send(Constants.SIYUAN_CMD, {
-                cmd: "writeLog",
-                msg: "window.siyuan.config.keymap.editor is not found"
-            });
-            /// #endif
-            getSiyuanConfig().keymap[key1] = JSON.parse(JSON.stringify(Constants.SIYUAN_KEYMAP.editor));
-            return false;
-        }
-        if (!getSiyuanConfig().keymap[key1][key2]) {
-            /// #if !BROWSER
-            ipcRenderer.send(Constants.SIYUAN_CMD, {
-                cmd: "writeLog",
-                msg: `window.siyuan.config.keymap.editor.${key2} is not found`
-            });
-            /// #endif
-            (getSiyuanConfig().keymap[key1][key2] as Config.IKeymapEditor[typeof key2]) = keymap as Config.IKeymapEditor[typeof key2];
-            return false;
+        return matchGeneralKeymap(keymap);
+    }
+    if (key2) {
+        return matchEditorKeymap(keymap, key1, key2);
+    }
+    return true;
+};
+
+const hasGeneralKeymap = (keymap: Record<string, IKeymapItem>, key1: "general") => {
+    let match = true;
+    const configKeymap = getSiyuanConfig().keymap[key1];
+    const defaultKeymap = Constants.SIYUAN_KEYMAP[key1];
+    if (Object.keys(configKeymap).length !== Object.keys(defaultKeymap).length) {
+        for (const item of Object.keys(configKeymap)) {
+            if (!defaultKeymap[item]) {
+                match = false;
+                delete configKeymap[item];
+            }
         }
     }
+    return match;
+};
+
+const hasEditorKeymap = (keymap: Record<string, IKeymapItem>, key1: "editor", key2: "general" | "insert" | "heading" | "list" | "table") => {
     let match = true;
-    Object.keys(keymap).forEach(key => {
-        if (key1 === "general") {
-            if (!getSiyuanConfig().keymap[key1][key] || getSiyuanConfig().keymap[key1][key].default !== keymap[key].default) {
-                /// #if !BROWSER
-                ipcRenderer.send(Constants.SIYUAN_CMD, {
-                    cmd: "writeLog",
-                    msg: `window.siyuan.config.keymap.${key1}.${key} is not found or match: ${getSiyuanConfig().keymap[key1][key]?.default}`
-                });
-                /// #endif
+    const configKeymap = getSiyuanConfig().keymap[key1][key2];
+    const defaultKeymap = Constants.SIYUAN_KEYMAP[key1][key2];
+    if (Object.keys(configKeymap).length !== Object.keys(defaultKeymap).length) {
+        for (const item of Object.keys(configKeymap)) {
+            if (!defaultKeymap[item]) {
                 match = false;
-                getSiyuanConfig().keymap[key1][key] = keymap[key];
-            }
-        } else {
-            if (!getSiyuanConfig().keymap[key1][key2][key] || getSiyuanConfig().keymap[key1][key2][key].default !== keymap[key].default) {
-                /// #if !BROWSER
-                ipcRenderer.send(Constants.SIYUAN_CMD, {
-                    cmd: "writeLog",
-                    msg: `window.siyuan.config.keymap.${key1}.${key2}.${key} is not found or match: ${getSiyuanConfig().keymap[key1][key2][key]?.default}`
-                });
-                /// #endif
-                match = false;
-                getSiyuanConfig().keymap[key1][key2][key] = keymap[key];
+                delete configKeymap[item];
             }
         }
-    });
+    }
     return match;
 };
 
 const hasKeymap = (keymap: Record<string, IKeymapItem>, key1: "general" | "editor", key2?: "general" | "insert" | "heading" | "list" | "table") => {
-    let match = true;
-    if (key1 === "editor") {
-        if (Object.keys(getSiyuanConfig().keymap[key1][key2]).length !== Object.keys(Constants.SIYUAN_KEYMAP[key1][key2]).length) {
-            Object.keys(getSiyuanConfig().keymap[key1][key2]).forEach(item => {
-                if (!Constants.SIYUAN_KEYMAP[key1][key2][item]) {
-                    match = false;
-                    delete getSiyuanConfig().keymap[key1][key2][item];
-                }
-            });
-        }
-    } else {
-        if (Object.keys(getSiyuanConfig().keymap[key1]).length !== Object.keys(Constants.SIYUAN_KEYMAP[key1]).length) {
-            Object.keys(getSiyuanConfig().keymap[key1]).forEach(item => {
-                if (!Constants.SIYUAN_KEYMAP[key1][item]) {
-                    match = false;
-                    delete getSiyuanConfig().keymap[key1][item];
-                }
-            });
-        }
+    if (key1 === "general") {
+        return hasGeneralKeymap(keymap, key1);
     }
-    return match;
+    if (key2) {
+        return hasEditorKeymap(keymap, key1, key2);
+    }
+    return true;
 };
 
 export const correctHotkey = (app: App) => {
@@ -129,31 +174,69 @@ export const correctHotkey = (app: App) => {
     }
 };
 
+const handleDialogOpencard = (event: KeyboardEvent) => {
+    const target = event.target as HTMLElement;
+    // 点击最近的文档列表会 dispatch keydown 的 Enter https://github.com/siyuan-note/siyuan/issues/12967
+    if (!event.isTrusted || !isNotCtrl(event) || event.shiftKey || event.altKey ||
+        ["INPUT", "TEXTAREA"].includes(target.tagName) ||
+        !["0", "1", "2", "3", "4", "j", "k", "l", ";", "s", " ", "p", "enter", "a", "s", "d", "f", "q", "x"].includes(event.key.toLowerCase())) {
+        return false;
+    }
+    let cardElement: Element | undefined | null;
+    getSiyuanDialogs().find(item => {
+        if (item.element.getAttribute("data-key") === Constants.DIALOG_OPENCARD) {
+            cardElement = item.element;
+            return true;
+        }
+    });
+    if (!cardElement) {
+        cardElement = document.querySelector(`.layout__wnd--active div[data-key="${Constants.DIALOG_OPENCARD}"]:not(.fn__none)`);
+    }
+    if (cardElement && cardElement.firstElementChild) {
+        event.preventDefault();
+        cardElement.firstElementChild.dispatchEvent(new CustomEvent("click", { detail: event.key.toLowerCase() }));
+        return true;
+    }
+    return false;
+};
+
+const handleFloatWindowShortcut = (event: KeyboardEvent, app: App) => {
+    if (event.altKey || event.shiftKey || !isOnlyMeta(event)) {
+        return;
+    }
+    if (!((isMac() ? event.key === "Meta" : event.key === "Control") || isOnlyMeta(event))) {
+        setSiyuanCtrlIsPressed(false);
+        return;
+    }
+    setSiyuanCtrlIsPressed(true);
+    if ((event.key === "Meta" || event.key === "Control") &&
+        getSiyuanConfig().editor.floatWindowMode === 1 && !event.repeat) {
+        showPopover(app);
+    }
+};
+
+const handleSearchShortcut = (event: KeyboardEvent, app: App) => {
+    if (event.altKey || !event.shiftKey || !isNotCtrl(event)) {
+        return;
+    }
+    if (event.key !== "Shift") {
+        setSiyuanShiftIsPressed(false);
+        return;
+    }
+    setSiyuanShiftIsPressed(true);
+    if (!event.repeat) {
+        showPopover(app, true);
+    }
+};
+
 export const filterHotkey = (event: KeyboardEvent, app: App) => {
     // https://github.com/siyuan-note/siyuan/issues/9848 忘记为什么要阻止了 .av__mask 的情况，测了下没问题就先移除
     if (document.getElementById("progress") || document.getElementById("errorLog") || event.isComposing) {
         return true;
     }
-    const target = event.target as HTMLElement;
-    // 点击最近的文档列表会 dispatch keydown 的 Enter https://github.com/siyuan-note/siyuan/issues/12967
-    if (event.isTrusted && isNotCtrl(event) && !event.shiftKey && !event.altKey &&
-        !["INPUT", "TEXTAREA"].includes(target.tagName) &&
-        ["0", "1", "2", "3", "4", "j", "k", "l", ";", "s", " ", "p", "enter", "a", "s", "d", "f", "q", "x"].includes(event.key.toLowerCase())) {
-        let cardElement: Element;
-        window.siyuan.dialogs.find(item => {
-            if (item.element.getAttribute("data-key") === Constants.DIALOG_OPENCARD) {
-                cardElement = item.element;
-                return true;
-            }
-        });
-        if (!cardElement) {
-            cardElement = document.querySelector(`.layout__wnd--active div[data-key="${Constants.DIALOG_OPENCARD}"]:not(.fn__none)`);
-        }
-        if (cardElement) {
-            event.preventDefault();
-            cardElement.firstElementChild.dispatchEvent(new CustomEvent("click", { detail: event.key.toLowerCase() }));
-            return true;
-        }
+
+    if (handleDialogOpencard(event)) {
+        return true;
     }
 
     // 仅处理以下快捷键操作
@@ -165,29 +248,8 @@ export const filterHotkey = (event: KeyboardEvent, app: App) => {
         return true;
     }
 
-    if (!event.altKey && !event.shiftKey && isOnlyMeta(event)) {
-        if ((isMac() ? event.key === "Meta" : event.key === "Control") || isOnlyMeta(event)) {
-            window.siyuan.ctrlIsPressed = true;
-            if ((event.key === "Meta" || event.key === "Control") &&
-                getSiyuanConfig().editor.floatWindowMode === 1 && !event.repeat) {
-                showPopover(app);
-            }
-        } else {
-            window.siyuan.ctrlIsPressed = false;
-        }
-    }
-
-    if (!event.altKey && event.shiftKey && isNotCtrl(event)) {
-        if (event.key === "Shift") {
-            window.siyuan.shiftIsPressed = true;
-            if (!event.repeat) {
-                showPopover(app, true);
-            }
-        } else {
-            window.siyuan.shiftIsPressed = false;
-        }
-    }
-
+    handleFloatWindowShortcut(event, app);
+    handleSearchShortcut(event, app);
     setSiyuanAltPressedFromEvent(event);
 };
 
@@ -196,8 +258,8 @@ const setSiyuanAltPressedFromEvent = (event: KeyboardEvent) => {
         return;
     }
     if (event.key === "Alt") {
-        window.siyuan.altIsPressed = true;
+        setSiyuanAltIsPressed(true);
         return;
     }
-    window.siyuan.altIsPressed = false;
+    setSiyuanAltIsPressed(false);
 };

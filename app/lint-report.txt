@@ -770,80 +770,12 @@ D:\dev\siyuan-note\app\src\boot\globalEvent\command\protyle.ts
 💡 豁免方式: 在调用语句前添加 // @内联回调 注释   no-inline-callback/no-inline-callback
 
 D:\dev\siyuan-note\app\src\boot\globalEvent\commonHotkey.ts
-   12:21   error  Arrow function has too many lines (52). Maximum allowed is 50                                         max-lines-per-function
-   13:5    error  ❌ 禁止使用 else。请使用 "卫语句 (Guard Clauses)" 或者其它策略扁平化逻辑。                                                    no-restricted-syntax
-   14:9    error  ❌ 禁止嵌套 If。请合并判断条件 (&&) 或提取函数。                                                                         no-restricted-syntax
-   21:46   error  ❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。                                                          no-restricted-syntax
-   25:9    error  ❌ 禁止嵌套 If。请合并判断条件 (&&) 或提取函数。                                                                         no-restricted-syntax
-   35:9    error  ❌ 禁止嵌套 If。请合并判断条件 (&&) 或提取函数。                                                                         no-restricted-syntax
-   35:14   error  ❌ 禁止隐式上下文切换：禁止在使用列表下标取值操作 ([]) 之后直接访问属性。请务必先声明变量再使用。                                                  no-restricted-syntax
-   42:14   error  ❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。                                                          no-restricted-syntax
-   42:14   error  ❌ 禁止隐式上下文切换：禁止在使用列表下标取值操作 ([]) 之后直接访问属性。请务必先声明变量再使用。                                                  no-restricted-syntax
-   42:91   error  ❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。                                                          no-restricted-syntax
-   47:5    error  ❌ 禁止使用 .forEach()。
-原因 1: forEach 无法等待异步操作。
-原因 2: forEach 无法提前中断。
-替代方案: for...of / .map() / .filter()  no-restricted-syntax
-   47:33   error  ❌ 禁止超过 5 行的内联回调函数 (调用: forEach)。当前 18 行。请提取为命名函数以提高可读性。
-💡 豁免方式: 在调用语句前添加 // @内联回调 注释                 no-inline-callback/no-inline-callback
-   48:9    error  ❌ 禁止使用 else。请使用 "卫语句 (Guard Clauses)" 或者其它策略扁平化逻辑。                                                    no-restricted-syntax
-   49:13   error  ❌ 禁止嵌套 If。请合并判断条件 (&&) 或提取函数。                                                                         no-restricted-syntax
-   49:18   error  ❌ 禁止隐式上下文切换：禁止在使用列表下标取值操作 ([]) 之后直接访问属性。请务必先声明变量再使用。                                                  no-restricted-syntax
-   49:57   error  ❌ 禁止隐式上下文切换：禁止在使用列表下标取值操作 ([]) 之后直接访问属性。请务必先声明变量再使用。                                                  no-restricted-syntax
-   49:57   error  ❌ 禁止隐式上下文切换：禁止在使用列表下标取值操作 ([]) 之后直接访问属性。请务必先声明变量再使用。                                                  no-restricted-syntax
-   49:105  error  ❌ 禁止隐式上下文切换：禁止在使用列表下标取值操作 ([]) 之后直接访问属性。请务必先声明变量再使用。                                                  no-restricted-syntax
-   53:95   error  ❌ 禁止隐式上下文切换：禁止在使用列表下标取值操作 ([]) 之后直接访问属性。请务必先声明变量再使用。                                                  no-restricted-syntax
-   53:95   error  ❌ 禁止隐式上下文切换：禁止在使用列表下标取值操作 ([]) 之后直接访问属性。请务必先声明变量再使用。                                                  no-restricted-syntax
-   57:17   error  ❌ 禁止隐式上下文切换：禁止在使用列表下标取值操作 ([]) 之后直接访问属性。请务必先声明变量再使用。                                                  no-restricted-syntax
-   60:13   error  ❌ 禁止嵌套 If。请合并判断条件 (&&) 或提取函数。                                                                         no-restricted-syntax
-   60:18   error  ❌ 禁止隐式上下文切换：禁止在使用列表下标取值操作 ([]) 之后直接访问属性。请务必先声明变量再使用。                                                  no-restricted-syntax
-   60:18   error  ❌ 禁止隐式上下文切换：禁止在使用列表下标取值操作 ([]) 之后直接访问属性。请务必先声明变量再使用。                                                  no-restricted-syntax
-   60:63   error  ❌ 禁止隐式上下文切换：禁止在使用列表下标取值操作 ([]) 之后直接访问属性。请务必先声明变量再使用。                                                  no-restricted-syntax
-   60:63   error  ❌ 禁止隐式上下文切换：禁止在使用列表下标取值操作 ([]) 之后直接访问属性。请务必先声明变量再使用。                                                  no-restricted-syntax
-   60:63   error  ❌ 禁止隐式上下文切换：禁止在使用列表下标取值操作 ([]) 之后直接访问属性。请务必先声明变量再使用。                                                  no-restricted-syntax
-   60:117  error  ❌ 禁止隐式上下文切换：禁止在使用列表下标取值操作 ([]) 之后直接访问属性。请务必先声明变量再使用。                                                  no-restricted-syntax
-   64:103  error  ❌ 禁止隐式上下文切换：禁止在使用列表下标取值操作 ([]) 之后直接访问属性。请务必先声明变量再使用。                                                  no-restricted-syntax
-   64:103  error  ❌ 禁止隐式上下文切换：禁止在使用列表下标取值操作 ([]) 之后直接访问属性。请务必先声明变量再使用。                                                  no-restricted-syntax
-   64:103  error  ❌ 禁止隐式上下文切换：禁止在使用列表下标取值操作 ([]) 之后直接访问属性。请务必先声明变量再使用。                                                  no-restricted-syntax
-   68:17   error  ❌ 禁止隐式上下文切换：禁止在使用列表下标取值操作 ([]) 之后直接访问属性。请务必先声明变量再使用。                                                  no-restricted-syntax
-   68:17   error  ❌ 禁止隐式上下文切换：禁止在使用列表下标取值操作 ([]) 之后直接访问属性。请务必先声明变量再使用。                                                  no-restricted-syntax
-   77:5    error  ❌ 禁止使用 else。请使用 "卫语句 (Guard Clauses)" 或者其它策略扁平化逻辑。                                                    no-restricted-syntax
-   78:9    error  ❌ 禁止嵌套 If。请合并判断条件 (&&) 或提取函数。                                                                         no-restricted-syntax
-   78:25   error  ❌ 禁止隐式上下文切换：禁止在使用列表下标取值操作 ([]) 之后直接访问属性。请务必先声明变量再使用。                                                  no-restricted-syntax
-   78:86   error  ❌ 禁止隐式上下文切换：禁止在使用列表下标取值操作 ([]) 之后直接访问属性。请务必先声明变量再使用。                                                  no-restricted-syntax
-   79:13   error  ❌ 禁止使用 .forEach()。
-原因 1: forEach 无法等待异步操作。
-原因 2: forEach 无法提前中断。
-替代方案: for...of / .map() / .filter()  no-restricted-syntax
-   79:25   error  ❌ 禁止隐式上下文切换：禁止在使用列表下标取值操作 ([]) 之后直接访问属性。请务必先声明变量再使用。                                                  no-restricted-syntax
-   80:22   error  ❌ 禁止隐式上下文切换：禁止在使用列表下标取值操作 ([]) 之后直接访问属性。请务必先声明变量再使用。                                                  no-restricted-syntax
-   80:22   error  ❌ 禁止隐式上下文切换：禁止在使用列表下标取值操作 ([]) 之后直接访问属性。请务必先声明变量再使用。                                                  no-restricted-syntax
-   82:28   error  ❌ 禁止隐式上下文切换：禁止在使用列表下标取值操作 ([]) 之后直接访问属性。请务必先声明变量再使用。                                                  no-restricted-syntax
-   82:28   error  ❌ 禁止隐式上下文切换：禁止在使用列表下标取值操作 ([]) 之后直接访问属性。请务必先声明变量再使用。                                                  no-restricted-syntax
-   87:9    error  ❌ 禁止嵌套 If。请合并判断条件 (&&) 或提取函数。                                                                         no-restricted-syntax
-   88:13   error  ❌ 禁止使用 .forEach()。
-原因 1: forEach 无法等待异步操作。
-原因 2: forEach 无法提前中断。
-替代方案: for...of / .map() / .filter()  no-restricted-syntax
-   89:22   error  ❌ 禁止隐式上下文切换：禁止在使用列表下标取值操作 ([]) 之后直接访问属性。请务必先声明变量再使用。                                                  no-restricted-syntax
-   91:28   error  ❌ 禁止隐式上下文切换：禁止在使用列表下标取值操作 ([]) 之后直接访问属性。请务必先声明变量再使用。                                                  no-restricted-syntax
-  132:29   error  Arrow function has too many lines (54). Maximum allowed is 50                                         max-lines-per-function
-  137:20   error  ❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。                                                          no-restricted-syntax
-  143:9    error  Unexpected use of 'window'. ❌ 禁止直接访问 window。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。               no-restricted-globals
-  149:9    error  ❌ 禁止嵌套 If。请合并判断条件 (&&) 或提取函数。                                                                         no-restricted-syntax
-  152:9    error  ❌ 禁止嵌套 If。请合并判断条件 (&&) 或提取函数。                                                                         no-restricted-syntax
-  169:9    error  ❌ 禁止嵌套 If。请合并判断条件 (&&) 或提取函数。                                                                         no-restricted-syntax
-  169:9    error  ❌ 禁止使用 else。请使用 "卫语句 (Guard Clauses)" 或者其它策略扁平化逻辑。                                                    no-restricted-syntax
-  170:13   error  Unexpected use of 'window'. ❌ 禁止直接访问 window。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。               no-restricted-globals
-  171:13   error  ❌ 禁止嵌套 If。请合并判断条件 (&&) 或提取函数。                                                                         no-restricted-syntax
-  176:13   error  Unexpected use of 'window'. ❌ 禁止直接访问 window。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。               no-restricted-globals
-  181:9    error  ❌ 禁止嵌套 If。请合并判断条件 (&&) 或提取函数。                                                                         no-restricted-syntax
-  181:9    error  ❌ 禁止使用 else。请使用 "卫语句 (Guard Clauses)" 或者其它策略扁平化逻辑。                                                    no-restricted-syntax
-  182:13   error  Unexpected use of 'window'. ❌ 禁止直接访问 window。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。               no-restricted-globals
-  183:13   error  ❌ 禁止嵌套 If。请合并判断条件 (&&) 或提取函数。                                                                         no-restricted-syntax
-  187:13   error  Unexpected use of 'window'. ❌ 禁止直接访问 window。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。               no-restricted-globals
-  199:9    error  Unexpected use of 'window'. ❌ 禁止直接访问 window。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。               no-restricted-globals
-  202:5    error  Unexpected use of 'window'. ❌ 禁止直接访问 window。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。               no-restricted-globals
+   24:30  error  ❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。          no-restricted-syntax
+   69:10  error  ❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。          no-restricted-syntax
+   69:69  error  ❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。          no-restricted-syntax
+  121:26  error  ❌ 禁止隐式上下文切换：禁止在使用列表下标取值操作 ([]) 之后直接访问属性。请务必先声明变量再使用。  no-restricted-syntax
+  122:27  error  ❌ 禁止隐式上下文切换：禁止在使用列表下标取值操作 ([]) 之后直接访问属性。请务必先声明变量再使用。  no-restricted-syntax
+  178:20  error  ❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。          no-restricted-syntax
 
 D:\dev\siyuan-note\app\src\boot\globalEvent\dragover.ts
    5:9   error  ❌ 禁止嵌套 If。请合并判断条件 (&&) 或提取函数。                                                                         no-restricted-syntax
@@ -27465,4 +27397,4 @@ D:\dev\siyuan-note\app\src\window\index.ts
   181:25   error  Unexpected use of 'window'. ❌ 禁止直接访问 window。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。               no-restricted-globals
   183:34   error  Unexpected use of 'window'. ❌ 禁止直接访问 window。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。               no-restricted-globals
 
-✖ 20878 problems (20720 errors, 158 warnings)
+✖ 20820 problems (20662 errors, 158 warnings)

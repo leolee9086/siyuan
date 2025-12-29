@@ -23,3 +23,11 @@ export const incrementSiyuanZIndex = (): number => {
 export const pushSiyuanDialog = (dialog: Dialog): void => {
     window.siyuan.dialogs.push(dialog);
 };
+
+/**
+ * 获取 window.siyuan.dialogs
+ * @returns Dialog 数组
+ */
+export const getSiyuanDialogs = (): Dialog[] => {
+    return window.siyuan.dialogs;
+};
