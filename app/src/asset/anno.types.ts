@@ -38,11 +38,36 @@ export interface IPdfPageView {
     /** 页面缩放比例 */
     scale: number;
     /** 视口信息 */
-    viewport: {
-        width: number;
-        height: number;
-        scale: number;
+    viewport: IPdfViewport;
+    /** 文本层 */
+    textLayer: {
+        /** 文本层容器元素 */
+        div: HTMLElement;
     };
+}
+
+/**
+ * PDF 视口接口（PDF.js 的 PageViewport 对象）
+ */
+export interface IPdfViewport {
+    /** 视口宽度 */
+    width: number;
+    /** 视口高度 */
+    height: number;
+    /** 缩放比例 */
+    scale: number;
+    /**
+     * 克隆视口并应用新选项
+     * @param options - 克隆选项
+     * @returns 新的视口对象
+     */
+    clone: (options?: { rotation?: number; scale?: number }) => IPdfViewport;
+    /**
+     * 将PDF坐标转换为视口坐标
+     * @param rect - PDF坐标数组 [x1, y1, x2, y2]
+     * @returns 视口坐标元组 [x1, y1, x2, y2]
+     */
+    convertToViewportRectangle: (rect: number[]) => [number, number, number, number];
 }
 
 /**

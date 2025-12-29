@@ -295,14 +295,6 @@ D:\dev\siyuan-note\app\src\asset\anno.initRectAnnoTool.ts
   22:47  error  ❌ 禁止超过 5 行的内联回调函数 (调用: addEventListener)。当前 6 行。请提取为命名函数以提高可读性。
 💡 豁免方式: 在调用语句前添加 // @内联回调 注释  no-inline-callback/no-inline-callback
 
-D:\dev\siyuan-note\app\src\asset\anno.mergeRects.ts
-  19:5   error  ❌ 禁止使用 .forEach()。
-原因 1: forEach 无法等待异步操作。
-原因 2: forEach 无法提前中断。
-替代方案: for...of / .map() / .filter()  no-restricted-syntax
-  19:31  error  ❌ 禁止超过 5 行的内联回调函数 (调用: forEach)。当前 11 行。请提取为命名函数以提高可读性。
-💡 豁免方式: 在调用语句前添加 // @内联回调 注释                 no-inline-callback/no-inline-callback
-
 D:\dev\siyuan-note\app\src\asset\anno.resize.ts
    8:34  error  Arrow function has too many lines (77). Maximum allowed is 50                                         max-lines-per-function
    8:40  error  Unexpected any. Specify a different type                                                              @typescript-eslint/no-explicit-any
@@ -27271,4 +27263,4 @@ D:\dev\siyuan-note\app\src\window\index.ts
   181:25   error  Unexpected use of 'window'. ❌ 禁止直接访问 window。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。               no-restricted-globals
   183:34   error  Unexpected use of 'window'. ❌ 禁止直接访问 window。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。               no-restricted-globals
 
-✖ 20742 problems (20584 errors, 158 warnings)
+✖ 20740 problems (20582 errors, 158 warnings)

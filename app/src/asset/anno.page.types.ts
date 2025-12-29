@@ -1,4 +1,4 @@
-import type { IPdfPageView } from "./anno.types";
+import type { IPdfPageView, IPdfViewport } from "./anno.types";
 
 /**
  * 页面信息接口
@@ -11,5 +11,5 @@ export interface IPageInfo {
     /** 页面矩形 */
     pageRect: DOMRect;
     /** 页面视口 */
-    viewport: IPdfPageView["viewport"] | undefined;
+    viewport: IPdfViewport | undefined;
 }
