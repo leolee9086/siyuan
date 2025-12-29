@@ -238,16 +238,6 @@ D:\dev\siyuan-note\app\src\asset\anno.click.handleToolbarAction.ts
    8:51  warning  'ToolbarActionHandler' is defined but never used  @typescript-eslint/no-unused-vars
   48:34  warning  'pdf' is assigned a value but never used          @typescript-eslint/no-unused-vars
 
-D:\dev\siyuan-note\app\src\asset\anno.click.ts
-   20:16  error  Forbidden non-null assertion                                                             @typescript-eslint/no-non-null-assertion
-   73:23  error  Unexpected use of 'window'. ❌ 禁止直接访问 window。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。  no-restricted-globals
-  112:20  error  ❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。                                             no-restricted-syntax
-  118:25  error  ❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。                                             no-restricted-syntax
-  127:21  error  ❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。                                             no-restricted-syntax
-  129:30  error  ❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。                                             no-restricted-syntax
-  129:43  error  Unexpected any. Specify a different type                                                 @typescript-eslint/no-explicit-any
-  136:23  error  ❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。                                             no-restricted-syntax
-
 D:\dev\siyuan-note\app\src\asset\anno.config.ts
   48:64  error  Unexpected any. Specify a different type                                                @typescript-eslint/no-explicit-any
   89:62  error  Unexpected any. Specify a different type                                                @typescript-eslint/no-explicit-any
@@ -333,11 +323,6 @@ D:\dev\siyuan-note\app\src\asset\anno.mergeRects.ts
   19:31  error  ❌ 禁止超过 5 行的内联回调函数 (调用: forEach)。当前 11 行。请提取为命名函数以提高可读性。
 💡 豁免方式: 在调用语句前添加 // @内联回调 注释                 no-inline-callback/no-inline-callback
 
-D:\dev\siyuan-note\app\src\asset\anno.page.ts
-   7:8   error  架构约束：禁止在业务/UI文件定义 Interface。请移至 *.types.ts。  no-restricted-syntax
-  11:15  error  Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
-  15:15  error  Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
-
 D:\dev\siyuan-note\app\src\asset\anno.resize.ts
    8:34  error  Arrow function has too many lines (77). Maximum allowed is 50                                         max-lines-per-function
    8:40  error  Unexpected any. Specify a different type                                                              @typescript-eslint/no-explicit-any
@@ -398,11 +383,6 @@ D:\dev\siyuan-note\app\src\asset\anno.showHighlight.ts
 原因 2: forEach 无法提前中断。
 替代方案: for...of / .map() / .filter()  no-restricted-syntax
 
-D:\dev\siyuan-note\app\src\asset\anno.showToolbar.ts
-  13:25  error  ❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。  no-restricted-syntax
-  20:34  error  Forbidden non-null assertion                  @typescript-eslint/no-non-null-assertion
-  20:46  error  Forbidden non-null assertion                  @typescript-eslint/no-non-null-assertion
-
 D:\dev\siyuan-note\app\src\asset\anno.ts
   37:53  error  Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
   42:24  error  ❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。  no-restricted-syntax
@@ -434,12 +414,6 @@ D:\dev\siyuan-note\app\src\asset\index.ts
 D:\dev\siyuan-note\app\src\asset\tags\assetTags.ts
    72:15  warning  'parsedTag' is assigned a value but never used       @typescript-eslint/no-unused-vars
   106:7   warning  'loadAssetsTags' is assigned a value but never used  @typescript-eslint/no-unused-vars
-
-D:\dev\siyuan-note\app\src\block\Panel.render.ts
-  31:5  error  ❌ 禁止使用 else。请使用 "卫语句 (Guard Clauses)" 或者其它策略扁平化逻辑。  no-restricted-syntax
-  44:1  error  架构约束：禁止在业务/UI文件定义 Interface。请移至 *.types.ts。         no-restricted-syntax
-  69:9  error  ❌ 禁止嵌套 If。请合并判断条件 (&&) 或提取函数。                       no-restricted-syntax
-  90:9  error  ❌ 禁止嵌套 If。请合并判断条件 (&&) 或提取函数。                       no-restricted-syntax
 
 D:\dev\siyuan-note\app\src\block\Panel.ts
    84:5   error  ❌ 禁止类的私有方法。
@@ -27317,4 +27291,4 @@ D:\dev\siyuan-note\app\src\window\index.ts
   181:25   error  Unexpected use of 'window'. ❌ 禁止直接访问 window。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。               no-restricted-globals
   183:34   error  Unexpected use of 'window'. ❌ 禁止直接访问 window。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。               no-restricted-globals
 
-✖ 20766 problems (20608 errors, 158 warnings)
+✖ 20748 problems (20590 errors, 158 warnings)
