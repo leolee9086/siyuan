@@ -68,6 +68,13 @@ export interface IPdfViewport {
      * @returns 视口坐标元组 [x1, y1, x2, y2]
      */
     convertToViewportRectangle: (rect: number[]) => [number, number, number, number];
+    /**
+     * 将视口坐标转换为PDF坐标
+     * @param x - 视口X坐标
+     * @param y - 视口Y坐标
+     * @returns PDF坐标数组 [x, y]
+     */
+    convertToPdfPoint: (x: number, y: number) => number[];
 }
 
 /**

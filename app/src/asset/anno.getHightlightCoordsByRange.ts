@@ -103,6 +103,9 @@ const processPageSelection = (pdf: IPdfInstance, pageIndex: number, range: Range
         return [];
     }
     const pageRect = canvasRects[0];
+    if (!pageRect) {
+        return [];
+    }
     const viewport = page.viewport;
 
     const selected: number[] = [];
