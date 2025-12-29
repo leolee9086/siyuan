@@ -1,29 +1,10 @@
-import { z } from "zod";
 import { Workspace } from "../../data/kernelAPI/defaultWorkspace";
 import { localKernel } from "../../ai/imports";
+import { ITag, tagSchema, TagType } from "./assetTags.types";
+
 const localWorkerSpace = new Workspace(localKernel);
-/**
- * 标签接口定义
- */
-export interface ITag {
-    /** 标签名称 */
-    label: string;
-    /** 关联的资产文件列表 */
-    assets?: string[];
-}
 
-/**
- * 使用 zod 定义的标签验证模式
- */
-export const tagSchema = z.object({
-    label: z.string(),
-    assets: z.array(z.string()).optional()
-});
-
-/**
- * 标签类型推断
- */
-export type TagType = z.infer<typeof tagSchema>;
+export { ITag, tagSchema, TagType };
 
 /**
  * 从标签中移除文件
@@ -113,10 +94,8 @@ export async function addFilesToTag(
     try {
         const tag = tags?.find(item => item.label === tagLabel);
         if (tag) {
-            if (!tag.assets) {
-                tag.assets = [];
-            }
-            // 添加文件名到资产列表中
+            // 确保 assets 数组存在，然后添加文件名（去重）
+            tag.assets ??= [];
             tag.assets = Array.from(new Set([...tag.assets, ...fileNames]));
             return tags;
         }
