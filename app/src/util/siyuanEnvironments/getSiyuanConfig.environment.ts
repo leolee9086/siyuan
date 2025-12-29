@@ -172,3 +172,27 @@ export const incrementSiyuanZIndex = (): number => {
 export const getSafeSiyuanStorage = () => {
     return window.siyuan?.storage;
 };
+
+/**
+ * 获取指定 URL 的 reqId
+ * @param url API 路径
+ * @returns 对应的 reqId，不存在则返回 undefined
+ */
+export const getSiyuanReqId = (url: string): number | undefined => {
+    return window.siyuan?.reqIds?.[url];
+};
+
+/**
+ * 设置指定 URL 的 reqId
+ * @param url API 路径
+ * @param reqId 请求 ID（通常是时间戳）
+ */
+export const setSiyuanReqId = (url: string, reqId: number) => {
+    if (!window.siyuan) {
+        throw ("[setSiyuanReqId] window.siyuan 不存在");
+    }
+    if (!window.siyuan.reqIds) {
+        window.siyuan.reqIds = {};
+    }
+    window.siyuan.reqIds[url] = reqId;
+};
