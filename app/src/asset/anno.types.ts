@@ -3,6 +3,26 @@
  */
 
 /**
+ * 开始页面信息
+ */
+export interface IStartPageInfo {
+    /** 开始页面元素 */
+    startPageElement: HTMLElement;
+    /** 开始页面索引 */
+    startIndex: number;
+}
+
+/**
+ * 页面列表项
+ */
+export interface IPageListItem {
+    /** 页面索引 */
+    index: number;
+    /** 坐标位置列表 */
+    positions: number[][];
+}
+
+/**
  * PDF 注释数据结构
  */
 export interface IPdfAnno {
@@ -31,6 +51,8 @@ export interface IPdfAnno {
  * PDF 页面视图接口（PDF.js 的 PageView 对象）
  */
 export interface IPdfPageView {
+    /** 页面ID（页码，从1开始） */
+    id: number;
     /** 页面容器 div 元素 */
     div: HTMLDivElement;
     /** 页面 canvas 元素 */
