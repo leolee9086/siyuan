@@ -1,7 +1,8 @@
 import Router from "./router.htttpRouter";
 import baseRouter from "./router.base";
-import type { MiddlewareFunction, PathType, RouteParamType } from "./types";
+import type { RouteParamType } from "./types";
 import { z } from "zod";
+import { isMiddleware, isMiddlewareArray, isPath } from "./router.guard";
 // HTTP方法列表
 const methods = [
     "get",
@@ -32,34 +33,7 @@ const methods = [
     "connect"
 ];
 
-/**
- * 检查是否是路径类型
- * @param value 待检查的值
- * @returns 是否是路径类型
- */
-const isPath = (value: any): value is PathType => {
-    return typeof value === "string" ||
-        value instanceof RegExp ||
-        (Array.isArray(value) && value.length > 0 && typeof value[0] === "string");
-};
 
-/**
- * 检查是否是中间件函数
- * @param value 待检查的值
- * @returns 是否是中间件函数
- */
-const isMiddleware = (value: any): value is MiddlewareFunction => {
-    return typeof value === "function";
-};
-
-/**
- * 检查是否是中间件数组
- * @param value 待检查的值
- * @returns 是否是中间件数组
- */
-const isMiddlewareArray = (value: any): value is MiddlewareFunction[] => {
-    return Array.isArray(value) && value.length > 0 && typeof value[0] === "function";
-};
 
 
 
