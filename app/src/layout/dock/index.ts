@@ -25,7 +25,9 @@ import { handleClick, handleMouseLeave } from "./dock.events";
 import { executeToggleHide, executeToggleShow, executeUpdatePanelRelations } from "./dock.model";
 
 const TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGraph", "backlink", "embedding_dock"];
-
+/**
+ * @AITODO 界面初始化时Tag类型的dock有时消失,需要修复这个bug
+ */
 export class Dock {
     public element!: HTMLElement;
     public layout!: Layout;
