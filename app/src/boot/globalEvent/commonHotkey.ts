@@ -10,18 +10,25 @@ import { showPopover } from "../../block/popover";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getSiyuanDialogs } from "../../util/siyuanEnvironments/siyuanDialogs.environment";
 import { setSiyuanCtrlIsPressed, setSiyuanShiftIsPressed, setSiyuanAltIsPressed } from "../../util/siyuanEnvironments/keyboardStatus.environment";
+import { isHTMLElement, isKeymapEditorSection, isKeymapGeneral } from "./commonHotkey.guard";
+
+const initGeneralKeymap = (entireConfig: Config.IKeymap, keymap: Config.IKeys) => {
+    /// #if !BROWSER
+    ipcRenderer.send(Constants.SIYUAN_CMD, {
+        cmd: "writeLog",
+        msg: "window.siyuan.config.keymap.general is not found"
+    });
+    /// #endif
+    if (isKeymapGeneral(keymap)) {
+        entireConfig.general = keymap;
+    }
+};
 
 const matchGeneralKeymap = (keymap: Config.IKeys) => {
     const key1 = "general";
     const entireConfig = getSiyuanConfig().keymap;
     if (!entireConfig[key1]) {
-        /// #if !BROWSER
-        ipcRenderer.send(Constants.SIYUAN_CMD, {
-            cmd: "writeLog",
-            msg: "window.siyuan.config.keymap.general is not found"
-        });
-        /// #endif
-        entireConfig[key1] = keymap as Config.IKeymapGeneral;
+        initGeneralKeymap(entireConfig, keymap);
         return false;
     }
     const configKeymap = entireConfig[key1];
@@ -46,6 +53,19 @@ const matchGeneralKeymap = (keymap: Config.IKeys) => {
     return match;
 };
 
+const initEditorSectionKeymap = (editorConfig: Config.IKeymapEditor, key2: keyof Config.IKeymapEditor, keymap: Config.IKeys) => {
+    /// #if !BROWSER
+    ipcRenderer.send(Constants.SIYUAN_CMD, {
+        cmd: "writeLog",
+        msg: `window.siyuan.config.keymap.editor.${key2} is not found`
+    });
+    /// #endif
+    if (isKeymapEditorSection(keymap)) {
+        // key2 is union type, so direct assignment is not allowed by TS
+        Reflect.set(editorConfig, key2, keymap);
+    }
+};
+
 const matchEditorKeymap = (keymap: Config.IKeys, key1: "editor", key2: "general" | "insert" | "heading" | "list" | "table") => {
     const entireConfig = getSiyuanConfig().keymap;
     if (!entireConfig[key1]) {
@@ -60,13 +80,7 @@ const matchEditorKeymap = (keymap: Config.IKeys, key1: "editor", key2: "general"
     }
     const editorConfig = entireConfig[key1];
     if (!editorConfig[key2]) {
-        /// #if !BROWSER
-        ipcRenderer.send(Constants.SIYUAN_CMD, {
-            cmd: "writeLog",
-            msg: `window.siyuan.config.keymap.editor.${key2} is not found`
-        });
-        /// #endif
-        (editorConfig[key2] as Config.IKeymapEditor[typeof key2]) = keymap as Config.IKeymapEditor[typeof key2];
+        initEditorSectionKeymap(editorConfig, key2, keymap);
         return false;
     }
     const configKeymap = editorConfig[key2];
@@ -118,8 +132,10 @@ const hasGeneralKeymap = (keymap: Record<string, IKeymapItem>, key1: "general") 
 
 const hasEditorKeymap = (keymap: Record<string, IKeymapItem>, key1: "editor", key2: "general" | "insert" | "heading" | "list" | "table") => {
     let match = true;
-    const configKeymap = getSiyuanConfig().keymap[key1][key2];
-    const defaultKeymap = Constants.SIYUAN_KEYMAP[key1][key2];
+    const editorKeymap = getSiyuanConfig().keymap[key1];
+    const configKeymap = editorKeymap[key2];
+    const defaultEditorKeymap = Constants.SIYUAN_KEYMAP[key1];
+    const defaultKeymap = defaultEditorKeymap[key2];
     if (Object.keys(configKeymap).length !== Object.keys(defaultKeymap).length) {
         for (const item of Object.keys(configKeymap)) {
             if (!defaultKeymap[item]) {
@@ -175,7 +191,10 @@ export const correctHotkey = (app: App) => {
 };
 
 const handleDialogOpencard = (event: KeyboardEvent) => {
-    const target = event.target as HTMLElement;
+    const target = event.target;
+    if (!isHTMLElement(target)) {
+        return false;
+    }
     // 点击最近的文档列表会 dispatch keydown 的 Enter https://github.com/siyuan-note/siyuan/issues/12967
     if (!event.isTrusted || !isNotCtrl(event) || event.shiftKey || event.altKey ||
         ["INPUT", "TEXTAREA"].includes(target.tagName) ||
