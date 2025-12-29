@@ -4,123 +4,123 @@ import { ipcRenderer } from "electron";
 /// #endif
 import { processMessage } from "./processMessage";
 import { kernelError } from "../dialog/processSystem";
+import { isWebSocketData } from "./fetch.guard";
+
+const setupRequestData = (url: string, data?: any) => {
+    if (!data) {
+        return null;
+    }
+    const specialUrls = ["/api/search/searchRefBlock", "/api/graph/getGraph", "/api/graph/getLocalGraph",
+        "/api/block/getRecentUpdatedBlocks", "/api/search/fullTextSearchBlock"];
+    if (specialUrls.includes(url)) {
+        window.siyuan.reqIds[url] = new Date().getTime();
+    }
+    const isNotLocalGraph = data.type !== "local" || url !== "/api/graph/getLocalGraph";
+    if (specialUrls.includes(url) && isNotLocalGraph) {
+        data.reqId = window.siyuan.reqIds[url];
+    }
+    if (url === "/api/transactions") {
+        data.reqId = new Date().getTime();
+    }
+    if (data instanceof FormData) {
+        return data;
+    }
+    return JSON.stringify(data);
+};
+
+const handleFetchError = (url: string, data: any, e: Error) => {
+    console.warn("fetch post failed [" + e + "], url [" + url + "]");
+    if (url === "/api/transactions" && (e.message === "Failed to fetch" || e.message === "Unexpected end of JSON input")) {
+        kernelError();
+        return;
+    }
+    /// #if !BROWSER
+    const isExitCall = url === "/api/system/exit" || url === "/api/system/setWorkspaceDir" || (
+        ["/api/system/setUILayout"].includes(url) && data?.errorExit
+    );
+    if (isExitCall) {
+        ipcRenderer.send(Constants.SIYUAN_QUIT, location.port);
+    }
+    /// #endif
+};
+
+const handleFetchResponse = (response: Response) => {
+    if (response.status === 403 || response.status === 404) {
+        return {
+            data: null,
+            msg: response.statusText,
+            code: -response.status,
+        };
+    }
+    if (401 == response.status) {
+        setTimeout(() => {
+            window.location.reload();
+        }, 3000);
+    }
+    const contentType = response.headers.get("content-type");
+    if (contentType && contentType.indexOf("application/json") > -1) {
+        return response.json();
+    }
+    return response.text();
+};
+
+const createPostResponseHandler = (url: string, cb?: (response: IWebSocketData) => void) => {
+    return (response: IWebSocketData) => {
+        if (typeof response === "string") {
+            cb?.(response);
+            return;
+        }
+        const specialUrls = ["/api/search/searchRefBlock", "/api/graph/getGraph", "/api/graph/getLocalGraph",
+            "/api/block/getRecentUpdatedBlocks", "/api/search/fullTextSearchBlock"];
+        if (specialUrls.includes(url) && response.data?.reqId && window.siyuan.reqIds[url] && window.siyuan.reqIds[url] > response.data.reqId) {
+            return;
+        }
+        if (!cb) {
+            return;
+        }
+        const isMessage = typeof response === "object" && typeof response.msg === "string" && typeof response.code === "number";
+        if (isMessage && processMessage(response)) {
+            cb(response);
+            return;
+        }
+        if (!isMessage) {
+            cb(response);
+        }
+    };
+};
 
 export const fetchPost = (url: string, data?: any, cb?: (response: IWebSocketData) => void, headers?: IObject) => {
     const init: RequestInit = {
         method: "POST",
+        body: setupRequestData(url, data),
     };
-    if (data) {
-        if (["/api/search/searchRefBlock", "/api/graph/getGraph", "/api/graph/getLocalGraph",
-            "/api/block/getRecentUpdatedBlocks", "/api/search/fullTextSearchBlock"].includes(url)) {
-            window.siyuan.reqIds[url] = new Date().getTime();
-            if (data.type === "local" && url === "/api/graph/getLocalGraph") {
-                // 当打开文档A的关系图、关系图、文档A后刷新，由于防止请求重复处理，文档A关系图无法渲染。
-            } else {
-                data.reqId = window.siyuan.reqIds[url];
-            }
-        }
-        // 并发导出后端接受顺序不一致
-        if (url === "/api/transactions") {
-            data.reqId = new Date().getTime();
-        }
-        if (data instanceof FormData) {
-            init.body = data;
-        } else {
-            init.body = JSON.stringify(data);
-        }
-    }
     if (headers) {
         init.headers = headers;
     }
-    fetch(url, init).then((response) => {
-        switch (response.status) {
-            case 403:
-            case 404:
-                return {
-                    data: null,
-                    msg: response.statusText,
-                    code: -response.status,
-                };
-            default:
-                if (401 == response.status) {
-                    // 返回鉴权失败的话直接刷新页面，避免用户在当前页面操作 https://github.com/siyuan-note/siyuan/issues/15163
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 3000);
-                }
-
-                const contentType = response.headers.get("content-type");
-                if (contentType && contentType.indexOf("application/json") > -1) {
-                    return response.json();
-                } else {
-                    return response.text();
-                }
-        }
-    }).then((response: IWebSocketData) => {
-        if (typeof response === "string") {
-            if (cb) {
-                cb(response);
-            }
-            return;
-        }
-        if (["/api/search/searchRefBlock", "/api/graph/getGraph", "/api/graph/getLocalGraph",
-            "/api/block/getRecentUpdatedBlocks", "/api/search/fullTextSearchBlock"].includes(url)) {
-            if (response.data.reqId && window.siyuan.reqIds[url] && window.siyuan.reqIds[url] > response.data.reqId) {
-                return;
-            }
-        }
-        if (typeof response === "object" && typeof response.msg === "string" && typeof response.code === "number") {
-            if (processMessage(response) && cb) {
-                cb(response);
-            }
-        } else if (cb) {
-            cb(response);
-        }
-    }).catch((e) => {
-        console.warn("fetch post failed [" + e + "], url [" + url + "]");
-        if (url === "/api/transactions" && (e.message === "Failed to fetch" || e.message === "Unexpected end of JSON input")) {
-            kernelError();
-            return;
-        }
-        /// #if !BROWSER
-        if (url === "/api/system/exit" || url === "/api/system/setWorkspaceDir" || (
-            ["/api/system/setUILayout"].includes(url) && data.errorExit // 内核中断，点关闭处理
-        )) {
-            ipcRenderer.send(Constants.SIYUAN_QUIT, location.port);
-        }
-        /// #endif
-    });
+    fetch(url, init)
+        .then(handleFetchResponse)
+        .then(createPostResponseHandler(url, cb))
+        .catch((e) => handleFetchError(url, data, e));
 };
 
 export const fetchSyncPost = async (url: string, data?: any) => {
     const init: RequestInit = {
         method: "POST",
+        body: setupRequestData(url, data),
     };
-    if (data) {
-        if (data instanceof FormData) {
-            init.body = data;
-        } else {
-            init.body = JSON.stringify(data);
-        }
-    }
     const res = await fetch(url, init);
-    const res2 = await res.json() as IWebSocketData;
-    processMessage(res2);
-    return res2;
+    const jsonResult: unknown = await res.json();
+    if (!isWebSocketData(jsonResult)) {
+        throw new Error(`fetchSyncPost: 响应格式不符合预期 (url: ${url})`);
+    }
+    processMessage(jsonResult);
+    return jsonResult;
 };
 
 export const fetchGet = (url: string, cb: (response: IWebSocketData | IObject | string) => void) => {
-    fetch(url).then((response) => {
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.indexOf("application/json") > -1) {
-            return response.json();
-        } else {
-            return response.text();
-        }
-
-    }).then((response) => {
-        cb(response);
-    });
+    fetch(url)
+        .then(handleFetchResponse)
+        .then((response) => {
+            cb(response);
+        });
 };
-
-
