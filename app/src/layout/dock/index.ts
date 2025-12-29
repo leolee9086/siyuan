@@ -26,7 +26,9 @@ import { executeToggleHide, executeToggleShow, executeUpdatePanelRelations } fro
 
 const TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGraph", "backlink", "embedding_dock"];
 /**
- * @AITODO 界面初始化时Tag类型的dock有时消失,需要修复这个bug
+ * @AIDONE 已修复：界面初始化时Tag类型的dock有时消失的bug
+ * 原因：各 Dock 实例初始化顺序不确定，使用 DOM 查询去重不可靠
+ * 解决：在 dock.init.ts 中使用全局注册表 (dock.registry.ts) 替代 DOM 查询进行跨 Dock 去重
  */
 export class Dock {
     public element!: HTMLElement;

@@ -73,12 +73,22 @@ export interface API错误 {
     status?: number;
 }
 
-/** 思源代理响应数据 */
+/** 思源代理响应数据 (来自 /api/network/forwardProxy) */
 export interface 思源代理响应 {
-    statusCode: number;
-    body?: string;
-    bodyEncoding?: string;
-    headers?: Record<string, string[]>;
+    /** 请求的目标 URL */
+    url: string;
+    /** 目标服务器返回的 HTTP 状态码 */
+    status: number;
+    /** 目标服务器返回的 Content-Type */
+    contentType: string;
+    /** 响应体内容 */
+    body: string;
+    /** 响应体编码方式 */
+    bodyEncoding: "text" | "base64" | "base64-std" | "base64-url" | "base32" | "base32-std" | "base32-hex" | "hex";
+    /** HTTP 响应头 */
+    headers: Record<string, string[]>;
+    /** 请求耗时 (毫秒) */
+    elapsed: number;
 }
 
 /** 提交生成任务参数 */

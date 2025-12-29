@@ -1,6 +1,6 @@
-import { fetchSyncPost } from "../util/fetch";
+import { fetchSyncPost, fetchSyncPostRaw } from "../util/fetch";
 import { genUUID } from "../util/genID";
-import { Profile, NamespaceState } from "./profile.types";
+import { Profile, NamespaceState, GetFileResponse } from "./profile.types";
 
 export class ProfileManager {
     private static instances: Map<string, ProfileManager> = new Map();
@@ -68,15 +68,15 @@ export class ProfileManager {
             if (name.endsWith(".json") && !name.startsWith("_state")) {
                 const p = await this.loadProfile(name.replace(".json", ""));
                 if (p) {
-profiles.push(p);
-}
+                    profiles.push(p);
+                }
             }
         }
         return profiles;
     }
 
     public async loadProfile<T>(id: string): Promise<Profile<T> | null> {
-        const response = await fetchSyncPost("/api/file/getFile", { path: `${this.basePath}/${id}.json` });
+        const response = await fetchSyncPostRaw<GetFileResponse<Profile<T>>>("/api/file/getFile", { path: `${this.basePath}/${id}.json` });
         console.log("loadProfile response for", id, ":", response);
 
         // getFile API returns file content directly, not wrapped in {code, data}
@@ -85,8 +85,8 @@ profiles.push(p);
             return null;
         }
 
-        // If it's an error response with code
-        if (typeof response.code === "number" && response.code !== 0) {
+        // If it's an error response with code (use type guard)
+        if (typeof response === "object" && response !== null && "code" in response && typeof response.code === "number" && response.code !== 0) {
             return null;
         }
 
@@ -136,7 +136,7 @@ profiles.push(p);
         if (!fileNames.includes("_state.json")) {
             return "";
         }
-        const response = await fetchSyncPost("/api/file/getFile", { path: `${this.basePath}/_state.json` });
+        const response = await fetchSyncPostRaw<GetFileResponse<NamespaceState>>("/api/file/getFile", { path: `${this.basePath}/_state.json` });
 
         // getFile API returns file content directly, not wrapped in {code, data}
         // It can be a string (file content) or parsed JSON object, or {code, msg} on error
@@ -144,8 +144,8 @@ profiles.push(p);
             return "";
         }
 
-        // If it's an error response with code
-        if (typeof response.code === "number" && response.code !== 0) {
+        // If it's an error response with code (use type guard)
+        if (typeof response === "object" && response !== null && "code" in response && typeof response.code === "number" && response.code !== 0) {
             return "";
         }
 

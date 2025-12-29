@@ -45,8 +45,8 @@ export function 解码Base64(str: string): string {
 /**
  * 获取错误信息
  */
-function 获取错误信息(data: { statusCode: number; body?: string }): string {
-    let msg = `HTTP ${data.statusCode}`;
+function 获取错误信息(data: { status: number; body?: string }): string {
+    let msg = `HTTP ${data.status}`;
     if (!data.body) {
         return msg;
     }
@@ -67,7 +67,7 @@ export function 处理思源代理响应<T>(innerData: unknown): T | undefined {
         throw new Error("收到的响应不符合 思源代理响应 结构");
     }
     const data = innerData;
-    if (data.statusCode < 200 || data.statusCode >= 300) {
+    if (data.status < 200 || data.status >= 300) {
         throw new Error(获取错误信息(data));
     }
 

@@ -223,10 +223,8 @@ export async function 获取图片(params: 获取图片参数): Promise<string> 
         const isTextEncoding = response.data.bodyEncoding === "text";
         const base64Data = isTextEncoding ? btoa(response.data.body) : response.data.body;
 
-        // 获取 Content-Type
-        const headers = response.data.headers || {};
-        const contentTypeArr = headers["Content-Type"] || headers["content-type"] || ["image/png"];
-        const contentType = contentTypeArr[0] || "image/png";
+        // 使用 contentType 字段
+        const contentType = response.data.contentType || "image/png";
 
         return `data:${contentType};base64,${base64Data}`;
     }

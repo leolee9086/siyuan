@@ -240,6 +240,29 @@ export const fetchSyncPost = async (url: string, data?: TFetchRequestData) => {
 };
 
 /**
+ * 发送 POST 请求并获取原始响应（不验证 IWebSocketData 格式）
+ *
+ * 专门用于 /api/file/getFile 等返回非标准格式的 API。
+ * 这些 API 直接返回文件内容，而非包装在 {code, msg, data} 结构中。
+ *
+ * @param url - API 路径
+ * @param data - 请求数据
+ * @returns Promise，resolve 为 JSON 解析后的原始响应
+ *
+ * @example
+ * // 获取文件内容
+ * const content = await fetchSyncPostRaw("/api/file/getFile", { path: "/data/storage/file.json" });
+ */
+export const fetchSyncPostRaw = async <T = unknown>(url: string, data?: TFetchRequestData): Promise<T> => {
+    const init: RequestInit = {
+        method: "POST",
+        body: setupRequestData(url, data),
+    };
+    const res = await fetch(url, init);
+    return await res.json();
+};
+
+/**
  * 发送 GET 请求（回调风格）
  *
  * 主要用于获取静态资源，如语言文件、主题配置等。

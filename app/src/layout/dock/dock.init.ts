@@ -1,6 +1,10 @@
 /**
  * dock.init.ts - Dock 初始化逻辑
  * 从 index.ts 提取的初始化相关函数
+ * 
+ * @AIDONE 修复：界面初始化时 Tag 类型的 dock 有时消失的 bug
+ * 原因：各 Dock 实例初始化顺序不确定，使用 DOM 查询去重不可靠
+ * 解决：使用全局注册表 (dock.registry.ts) 替代 DOM 查询进行跨 Dock 去重
  */
 
 import type { Dock } from "./index";
@@ -10,6 +14,7 @@ import { getAllModels } from "../getAll";
 import { isWnd, isTDock } from "./dock.guard";
 import { hasValidDockType } from "./dock.visibility";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { 注册类型, 类型可用 } from "./dock.registry";
 
 /**
  * 初始化活动元素
@@ -165,21 +170,23 @@ export function initDockData(
 
 
     // 2. Strict Global Deduplication (across both columns)
+    // 使用全局注册表进行跨 Dock 去重，position 参数用于标识当前 Dock
     const seenGlobalTypes = new Set<string>();
+    const position = dock.position;
 
     // Process first column
-    data[0] = uniqueDockItems(data[0], seenGlobalTypes, TYPES);
+    data[0] = uniqueDockItems(data[0], seenGlobalTypes, TYPES, position);
     // Process second column (continuing with same seen set)
-    data[1] = uniqueDockItems(data[1], seenGlobalTypes, TYPES);
+    data[1] = uniqueDockItems(data[1], seenGlobalTypes, TYPES, position);
 
 
     // 3. Restore missing standard panels (Self-healing)
-    // Only add if NOT present GLOBALLY
+    // 使用全局注册表检查是否已存在，避免依赖不稳定的 DOM 查询
     // i18n safely typed
     const i18n = siyuanI18n as unknown as Record<string, string>;
 
-    restoreIfMissing(data[1], seenGlobalTypes, "tag", "iconTags", i18n.tag || "Tags");
-    restoreIfMissing(data[1], seenGlobalTypes, "embedding_dock", "iconDatabase", i18n.embedding || "Embeddings");
+    restoreIfMissing(data[1], seenGlobalTypes, "tag", "iconTags", i18n.tag || "Tags", position);
+    restoreIfMissing(data[1], seenGlobalTypes, "embedding_dock", "iconDatabase", i18n.embedding || "Embeddings", position);
 
     // 4. Final verification
     if (!hasValidDockType(data, TYPES)) {
@@ -217,10 +224,18 @@ export function initDockActiveState(dock: Dock): void {
 
 
 
+/**
+ * 去重 dock items，使用全局注册表代替 DOM 查询
+ * @param arr dock item 数组
+ * @param seen 本次初始化中已看到的类型集合
+ * @param standardTypes 标准类型列表
+ * @param position 当前 Dock 的位置
+ */
 function uniqueDockItems(
     arr: Config.IUILayoutDockTab[],
     seen: Set<string>,
-    standardTypes: string[]
+    standardTypes: string[],
+    position: TDockPosition
 ): Config.IUILayoutDockTab[] {
     return arr.filter(item => {
         if (!item || !item.type) {
@@ -235,15 +250,14 @@ function uniqueDockItems(
             item.type = matchedStandard;
         }
 
+        // 已在本 dock 数据中出现过（同一 column 或前一 column）
         if (seen.has(item.type)) {
-            // Already seen in a previous column or earlier in this column
             return false;
         }
 
-        // Check if this type exists in the DOM (rendered by another dock)
-        // This effectively deduplicates across docks without relying on potentially unstable Layout state
-        // We must exclude the current dock's own deduplication which happens before rendering
-        if (document.querySelector(`[data-type="${item.type}"]`)) {
+        // 使用全局注册表检查并注册类型
+        // 如果类型已被其他 Dock 占用，则过滤掉
+        if (!注册类型(item.type, position)) {
             return false;
         }
 
@@ -252,20 +266,36 @@ function uniqueDockItems(
     });
 }
 
+/**
+ * 恢复缺失的标准 panel（自愈机制）
+ * 使用全局注册表代替 DOM 查询检查是否已存在
+ * @param targetArray 目标数组
+ * @param existingTypes 本次初始化中已存在的类型
+ * @param type 要恢复的类型
+ * @param icon 图标
+ * @param title 标题
+ * @param position 当前 Dock 的位置
+ */
 function restoreIfMissing(
     targetArray: Config.IUILayoutDockTab[],
     existingTypes: Set<string>,
     type: string,
     icon: string,
-    title: string
+    title: string,
+    position: TDockPosition
 ) {
-    // 先检查全局 DOM 中是否已存在该类型按钮（跨 dock 实例去重）
-    if (document.querySelector(`[data-type="${type}"]`)) {
+    // 使用全局注册表检查是否已被其他 Dock 占用
+    if (!类型可用(type)) {
         return;
     }
 
-    // 再检查当前 dock 的数据中是否已存在
+    // 检查当前 dock 的数据中是否已存在
     if (existingTypes.has(type)) {
+        return;
+    }
+
+    // 尝试注册该类型
+    if (!注册类型(type, position)) {
         return;
     }
 

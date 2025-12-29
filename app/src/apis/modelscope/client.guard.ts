@@ -21,7 +21,7 @@ export const 检查思源代理响应 = (value: unknown): value is 思源代理�
         return false;
     }
     const obj = value as Record<string, unknown>;
-    return typeof obj.statusCode === "number";
+    return typeof obj.status === "number";
 };
 
 /**
@@ -47,6 +47,7 @@ export const 检查思源代理请求响应 = (value: unknown): value is 思源�
  */
 export function 断言思源代理请求响应(value: unknown): asserts value is 思源代理请求响应 {
     if (!检查思源代理请求响应(value)) {
-        throw new Error("fetchSyncPost 返回了非预期的响应结构");
+        const preview = JSON.stringify(value, null, 2).substring(0, 500);
+        throw new Error(`fetchSyncPost 返回了非预期的响应结构: ${preview}`);
     }
 }
