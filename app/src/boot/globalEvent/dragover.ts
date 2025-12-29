@@ -1,28 +1,60 @@
-import {Constants} from "../../constants";
+import { Constants } from "../../constants";
+
+const stopDrag = (ghostElement: HTMLElement) => {
+    ghostElement.remove();
+    document.onmousemove = null;
+    stopScrollAnimation();
+};
+
+const handleDockDrag = (parentElement: HTMLElement | null) => {
+    const dockMoveItem = document.querySelector("#dockMoveItem");
+    if (dockMoveItem) {
+        dockMoveItem.remove();
+    }
+
+    if (!parentElement) {
+        return;
+    }
+    const elements = parentElement.querySelectorAll(".dock__item");
+    for (const item of elements) {
+        if (item instanceof HTMLElement) {
+            item.style.opacity = "";
+        }
+    }
+};
+
+const handleGeneralDrag = (ghostElement: HTMLElement, parentElement: HTMLElement | null) => {
+    if (!parentElement) {
+        return;
+    }
+    const nodeId = ghostElement.getAttribute("data-node-id");
+    const startElement = parentElement.querySelector(`[data-node-id="${nodeId}"]`);
+    if (startElement instanceof HTMLElement) {
+        startElement.style.opacity = "";
+    }
+    const items = parentElement.querySelectorAll(".dragover__top, .dragover__bottom, .dragover, .dragover__current");
+    for (const item of items) {
+        if (item instanceof HTMLElement) {
+            item.classList.remove("dragover__top", "dragover__bottom", "dragover", "dragover__current");
+            item.style.opacity = "";
+        }
+    }
+};
+
 export const cancelDrag = () => {
     const ghostElement = document.getElementById("dragGhost");
-    if (ghostElement) {
-        if (ghostElement.dataset.ghostType === "dock") {
-            ghostElement.parentElement?.querySelectorAll(".dock__item").forEach((item) => {
-                if(item instanceof HTMLElement) {
-item.style.opacity = "";
-}
-            });
-            document.querySelector("#dockMoveItem")?.remove();
-        } else {
-            const startElement = ghostElement.parentElement?.querySelector(`[data-node-id="${ghostElement.getAttribute("data-node-id")}"]`) ;
-            if (startElement instanceof HTMLElement) {
-                startElement.style.opacity = "";
-            }
-            ghostElement.parentElement?.querySelectorAll(".dragover__top, .dragover__bottom, .dragover, .dragover__current").forEach((item: HTMLElement) => {
-                item.classList.remove("dragover__top", "dragover__bottom", "dragover", "dragover__current");
-                item.style.opacity = "";
-            });
-        }
-        ghostElement.remove();
-        document.onmousemove = null;
-        stopScrollAnimation();
+    if (!ghostElement) {
+        return;
     }
+    const parentElement = ghostElement.parentElement;
+    if (ghostElement.dataset.ghostType === "dock") {
+        handleDockDrag(parentElement);
+        stopDrag(ghostElement);
+        return;
+    }
+
+    handleGeneralDrag(ghostElement, parentElement);
+    stopDrag(ghostElement);
 };
 
 const dragoverScroll: {
@@ -56,16 +88,19 @@ const scrollAnimation = (timestamp: number) => {
 
 export const dragOverScroll = (moveEvent: MouseEvent, contentRect: DOMRect, element: Element) => {
     const dragToUp = moveEvent.clientY < contentRect.top + Constants.SIZE_SCROLL_TB;
-    if (dragToUp ||
-        moveEvent.clientY > contentRect.bottom - Constants.SIZE_SCROLL_TB) {
-        dragoverScroll.space = dragToUp ? moveEvent.clientY - contentRect.top - Constants.SIZE_SCROLL_TB :
-            moveEvent.clientY - contentRect.bottom + Constants.SIZE_SCROLL_TB;
-        if (!dragoverScroll.animationId) {
-            dragoverScroll.element = element;
-            dragoverScroll.animationId = requestAnimationFrame(scrollAnimation);
-        }
-    } else {
+    const dragToDown = moveEvent.clientY > contentRect.bottom - Constants.SIZE_SCROLL_TB;
+
+    if (!dragToUp && !dragToDown) {
         // 离开滚动区域时停止滚动
         stopScrollAnimation();
+        return;
+    }
+
+    dragoverScroll.space = dragToUp ? moveEvent.clientY - contentRect.top - Constants.SIZE_SCROLL_TB :
+        moveEvent.clientY - contentRect.bottom + Constants.SIZE_SCROLL_TB;
+
+    if (!dragoverScroll.animationId) {
+        dragoverScroll.element = element;
+        dragoverScroll.animationId = requestAnimationFrame(scrollAnimation);
     }
 };

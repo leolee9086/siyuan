@@ -50,3 +50,19 @@ export const isTouchDevice = () => {
 export const isSecureContext = () => {
     return window.isSecureContext;
 };
+
+/**
+ * 封装 window.getSelection
+ * @returns Selection | null
+ */
+export const getWindowSelection = () => {
+    return window.getSelection();
+};
+
+/**
+ * 封装 window.location.origin
+ * @returns string
+ */
+export const getLocationOrigin = () => {
+    return window.location.origin;
+};

@@ -14,10 +14,11 @@ import { AnnoConstants } from "./anno.constants";
 import type { IPdfInstance } from "./anno.types";
 import { createToolbarActionContext, toolbarActionRegistry } from "./anno.click.handleToolbarAction";
 import { externalEventClickHandler } from "./anno.click.handleExternalEvent";
+import { getLocationOrigin, getWindowSelection } from "../util/siyuanEnvironments/windowStandard.environment";
 
 const updateExistingAnnotation = (color: string, element: HTMLElement, pdf: IPdfInstance) => {
     const config = getConfig(pdf);
-    const id = rectElement!.getAttribute(AnnoConstants.ATTR.DATA_NODE_ID);
+    const id = rectElement?.getAttribute(AnnoConstants.ATTR.DATA_NODE_ID);
     if (id) {
         const annoItem = config[id];
         annoItem.color = color;
@@ -31,7 +32,7 @@ const updateExistingAnnotation = (color: string, element: HTMLElement, pdf: IPdf
             }
         }
         fetchPost("/api/asset/setFileAnnotation", {
-            path: pdf.appConfig.file.replace(location.origin, "").substr(1) + ".sya",
+            path: pdf.appConfig.file.replace(getLocationOrigin(), "").substr(1) + ".sya",
             data: JSON.stringify(config),
         });
     }
@@ -44,8 +45,8 @@ const createNewAnnotation = (color: string, pdf: IPdfInstance) => {
             const newElement = showHighlight(item, pdf);
             if (index === 0) {
                 setRectElement(newElement);
-                copyAnno(`${pdf.appConfig.file.replace(location.origin, "").substr(1)}/${newElement.getAttribute(AnnoConstants.ATTR.DATA_NODE_ID)}`,
-                    pdf.appConfig.file.replace(location.origin, "").substr(8).replace(/-\d{14}-\w{7}.pdf$/, ""), pdf);
+                copyAnno(`${pdf.appConfig.file.replace(getLocationOrigin(), "").substr(1)}/${newElement.getAttribute(AnnoConstants.ATTR.DATA_NODE_ID)}`,
+                    pdf.appConfig.file.replace(getLocationOrigin(), "").substr(8).replace(/-\d{14}-\w{7}.pdf$/, ""), pdf);
             }
         }
     }
@@ -70,7 +71,7 @@ const handleColorClick = (target: HTMLElement, element: HTMLElement, pdf: IPdfIn
 
 
 const processSelection = (element: HTMLElement) => {
-    const selection = window.getSelection();
+    const selection = getWindowSelection();
     const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
     if (range && range.toString() !== "" &&
         hasClosestByClassName(range.commonAncestorContainer, AnnoConstants.CSS.PDF_VIEWER)) {
@@ -106,17 +107,17 @@ export const handlePdfClick = async (event: MouseEvent | CustomEvent, element: H
         await externalEventClickHandler.handler(ctx, controller);
     }
     if (signal.aborted) {
-return;
-}
+        return;
+    }
 
-    const target = event.target as HTMLElement;
-    if (!target) {
-return;
-}
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) {
+        return;
+    }
 
     // 1. 处理颜色方块点击
-    const colorSquare = target.closest(`.${AnnoConstants.CSS.COLOR_SQUARE}`) as HTMLElement;
-    if (colorSquare) {
+    const colorSquare = target.closest(`.${AnnoConstants.CSS.COLOR_SQUARE}`);
+    if (colorSquare instanceof HTMLElement) {
         handleColorClick(colorSquare, element, pdf);
         event.preventDefault();
         event.stopPropagation();
@@ -124,16 +125,16 @@ return;
     }
 
     // 2. 处理PDF矩形点击（显示工具栏）
-    const pdfRect = target.closest(`.${AnnoConstants.CSS.PDF_RECT}`) as HTMLElement;
-    if (pdfRect) {
-        showToolbar(element, undefined as any, pdfRect);
+    const pdfRect = target.closest(`.${AnnoConstants.CSS.PDF_RECT}`);
+    if (pdfRect instanceof HTMLElement) {
+        showToolbar(element, undefined, pdfRect);
         event.preventDefault();
         event.stopPropagation();
         return;
     }
 
     // 3. 处理工具栏操作
-    const actionBtn = target.closest(`[${AnnoConstants.ATTR.DATA_TYPE}]`) as HTMLElement;
+    const actionBtn = target.closest(`[${AnnoConstants.ATTR.DATA_TYPE}]`);
     const type = actionBtn?.getAttribute(AnnoConstants.ATTR.DATA_TYPE);
     if (type) {
         // 确保我们在工具栏或相关容器内（如果需要），
@@ -152,7 +153,7 @@ return;
     // 原始代码在循环中还检查了`!target.classList.contains("pdf__outer")`。
     // 这里`closest`在找不到时自然停止。
 
-    // 然而，我们需要确保我们不处理PDF区域*外部*的点击（如果这是意图的话），
+    // 然而, 我们需要确保我们不处理PDF区域*外部*的点击（如果这是意图的话），
     // 但监听器附加到`element`（这可能是容器）。
 
     handleSelection(element);

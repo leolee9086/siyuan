@@ -480,78 +480,24 @@ D:\dev\siyuan-note\app\src\block\popover\tooltip.ts
   8:10  warning  'hideTooltip' is defined but never used  @typescript-eslint/no-unused-vars
 
 D:\dev\siyuan-note\app\src\block\util.ts
-   15:25   error  Async arrow function has too many lines (69). Maximum allowed is 50                                   max-lines-per-function
-   23:23   error  ❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。                                                          no-restricted-syntax
-   28:9    error  ❌ 禁止嵌套 If。请合并判断条件 (&&) 或提取函数。                                                                         no-restricted-syntax
-   28:9    error  ❌ 禁止使用 else。请使用 "卫语句 (Guard Clauses)" 或者其它策略扁平化逻辑。                                                    no-restricted-syntax
-   43:5    error  ❌ 禁止使用 .forEach()。
-原因 1: forEach 无法等待异步操作。
-原因 2: forEach 无法提前中断。
-替代方案: for...of / .map() / .filter()  no-restricted-syntax
-   43:46   error  ❌ 禁止超过 5 行的内联回调函数 (调用: forEach)。当前 27 行。请提取为命名函数以提高可读性。
-💡 豁免方式: 在调用语句前添加 // @内联回调 注释                 no-inline-callback/no-inline-callback
-   49:13   error  ❌ 禁止嵌套 If。请合并判断条件 (&&) 或提取函数。                                                                         no-restricted-syntax
-   54:13   error  ❌ 禁止嵌套 If。请合并判断条件 (&&) 或提取函数。                                                                         no-restricted-syntax
-   75:5    error  ❌ 禁止使用 .forEach()。
-原因 1: forEach 无法等待异步操作。
-原因 2: forEach 无法提前中断。
-替代方案: for...of / .map() / .filter()  no-restricted-syntax
-   75:26   error  ❌ 禁止超过 5 行的内联回调函数 (调用: forEach)。当前 6 行。请提取为命名函数以提高可读性。
-💡 豁免方式: 在调用语句前添加 // @内联回调 注释                  no-inline-callback/no-inline-callback
-   98:95   error  ❌ 禁止超过 5 行的内联回调函数 (调用: fetchPost)。当前 11 行。请提取为命名函数以提高可读性。
-💡 豁免方式: 在调用语句前添加 // @内联回调 注释               no-inline-callback/no-inline-callback
-  115:33   error  Arrow function has too many lines (84). Maximum allowed is 50                                         max-lines-per-function
-  118:5    error  ❌ 禁止使用 else。请使用 "卫语句 (Guard Clauses)" 或者其它策略扁平化逻辑。                                                    no-restricted-syntax
-  122:9    error  ❌ 禁止嵌套 If。请合并判断条件 (&&) 或提取函数。                                                                         no-restricted-syntax
-  122:9    error  ❌ 禁止使用 else。请使用 "卫语句 (Guard Clauses)" 或者其它策略扁平化逻辑。                                                    no-restricted-syntax
-  123:13   error  ❌ 禁止嵌套 If。请合并判断条件 (&&) 或提取函数。                                                                         no-restricted-syntax
-  123:13   error  ❌ 禁止使用 else。请使用 "卫语句 (Guard Clauses)" 或者其它策略扁平化逻辑。                                                    no-restricted-syntax
-  130:28   error  ❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。                                                          no-restricted-syntax
-  133:13   error  ❌ 禁止嵌套 If。请合并判断条件 (&&) 或提取函数。                                                                         no-restricted-syntax
-  133:13   error  ❌ 禁止使用 else。请使用 "卫语句 (Guard Clauses)" 或者其它策略扁平化逻辑。                                                    no-restricted-syntax
-  134:32   error  ❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。                                                          no-restricted-syntax
-  135:20   error  ❌ 禁止嵌套 If。请合并逻辑。                                                                                      no-restricted-syntax
-  136:32   error  ❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。                                                          no-restricted-syntax
-  146:5    error  ❌ 禁止使用 else。请使用 "卫语句 (Guard Clauses)" 或者其它策略扁平化逻辑。                                                    no-restricted-syntax
-  147:22   error  ❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。                                                          no-restricted-syntax
-  149:12   error  ❌ 禁止嵌套 If。请合并逻辑。                                                                                      no-restricted-syntax
-  149:12   error  ❌ 禁止使用 else。请使用 "卫语句 (Guard Clauses)" 或者其它策略扁平化逻辑。                                                    no-restricted-syntax
-  152:22   error  ❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。                                                          no-restricted-syntax
-  153:12   error  ❌ 禁止嵌套 If。请合并逻辑。                                                                                      no-restricted-syntax
-  156:22   error  ❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。                                                          no-restricted-syntax
-  162:5    error  ❌ 禁止使用 else。请使用 "卫语句 (Guard Clauses)" 或者其它策略扁平化逻辑。                                                    no-restricted-syntax
-  168:9    error  ❌ 禁止嵌套 If。请合并判断条件 (&&) 或提取函数。                                                                         no-restricted-syntax
-  168:9    error  ❌ 禁止使用 else。请使用 "卫语句 (Guard Clauses)" 或者其它策略扁平化逻辑。                                                    no-restricted-syntax
-  213:131  error  Unexpected use of 'window'. ❌ 禁止直接访问 window。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。               no-restricted-globals
-  221:68   error  Unexpected use of 'window'. ❌ 禁止直接访问 window。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。               no-restricted-globals
-  227:5    error  ❌ 禁止使用 else。请使用 "卫语句 (Guard Clauses)" 或者其它策略扁平化逻辑。                                                    no-restricted-syntax
-  238:5    error  ❌ 禁止使用 switch 语句。
-替代方案: Object Literal / Map / Strategy Pattern / Polymorphism                        no-restricted-syntax
+   16:25  error  Async arrow function has too many lines (80). Maximum allowed is 50  max-lines-per-function
+   29:23  error  ❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。                         no-restricted-syntax
+   33:5   error  ❌ 禁止使用 else。请使用 "卫语句 (Guard Clauses)" 或者其它策略扁平化逻辑。                   no-restricted-syntax
+   37:12  error  ❌ 禁止嵌套 If。请合并逻辑。                                                     no-restricted-syntax
+   58:13  error  ❌ 禁止嵌套 If。请合并判断条件 (&&) 或提取函数。                                        no-restricted-syntax
+   63:13  error  ❌ 禁止嵌套 If。请合并判断条件 (&&) 或提取函数。                                        no-restricted-syntax
+  111:28  error  ❌ 禁止在函数内部定义命名函数。请将函数提取到模块顶层，或使用匿名箭头函数。                               no-restricted-syntax
+  134:16  error  ❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。                         no-restricted-syntax
+  140:16  error  ❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。                         no-restricted-syntax
+  152:9   error  ❌ 禁止嵌套 If。请合并判断条件 (&&) 或提取函数。                                        no-restricted-syntax
+  158:9   error  ❌ 禁止嵌套 If。请合并判断条件 (&&) 或提取函数。                                        no-restricted-syntax
+  170:22  error  ❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。                         no-restricted-syntax
+  172:9   error  ❌ 禁止嵌套 If。请合并判断条件 (&&) 或提取函数。                                        no-restricted-syntax
+  181:22  error  ❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。                         no-restricted-syntax
+  188:22  error  ❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。                         no-restricted-syntax
 
 D:\dev\siyuan-note\app\src\boot\compatibleVersion.ts
   3:5  error  ❌ 禁止使用 else。请使用 "卫语句 (Guard Clauses)" 或者其它策略扁平化逻辑。  no-restricted-syntax
-
-D:\dev\siyuan-note\app\src\boot\globalEvent\click.ts
-  12:10  error  Unexpected use of 'window'. ❌ 禁止直接访问 window。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。               no-restricted-globals
-  13:9   error  ❌ 禁止嵌套 If。请合并判断条件 (&&) 或提取函数。                                                                         no-restricted-syntax
-  13:9   error  ❌ 禁止使用 else。请使用 "卫语句 (Guard Clauses)" 或者其它策略扁平化逻辑。                                                    no-restricted-syntax
-  13:46  error  Unexpected use of 'window'. ❌ 禁止直接访问 window。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。               no-restricted-globals
-  14:13  error  Unexpected use of 'window'. ❌ 禁止直接访问 window。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。               no-restricted-globals
-  17:13  error  Unexpected use of 'window'. ❌ 禁止直接访问 window。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。               no-restricted-globals
-  22:28  error  Arrow function has too many lines (65). Maximum allowed is 50                                         max-lines-per-function
-  30:9   error  ❌ 禁止嵌套 If。请合并判断条件 (&&) 或提取函数。                                                                         no-restricted-syntax
-  37:9   error  ❌ 禁止使用 .forEach()。
-原因 1: forEach 无法等待异步操作。
-原因 2: forEach 无法提前中断。
-替代方案: for...of / .map() / .filter()  no-restricted-syntax
-  37:9   error  ❌ 禁止隐式上下文切换：在 DOM 获取接口 (querySelector, getElementById 等) 返回的对象上直接链式调用。请务必先声明变量再使用。                    no-restricted-syntax
-  54:24  error  Unexpected use of 'window'. ❌ 禁止直接访问 window。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。               no-restricted-globals
-  61:9   error  Unexpected use of 'window'. ❌ 禁止直接访问 window。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。               no-restricted-globals
-  62:9   error  Unexpected use of 'window'. ❌ 禁止直接访问 window。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。               no-restricted-globals
-  63:9   error  Unexpected use of 'window'. ❌ 禁止直接访问 window。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。               no-restricted-globals
-  76:33  error  Unexpected any. Specify a different type                                                              @typescript-eslint/no-explicit-any
-  77:31  error  ❌ 禁止超过 5 行的内联回调函数 (调用: find)。当前 6 行。请提取为命名函数以提高可读性。
-💡 豁免方式: 在调用语句前添加 // @内联回调 注释                     no-inline-callback/no-inline-callback
 
 D:\dev\siyuan-note\app\src\boot\globalEvent\command\global.ts
    45:30  error  Arrow function has too many lines (373). Maximum allowed is 50                                        max-lines-per-function
@@ -768,32 +714,6 @@ D:\dev\siyuan-note\app\src\boot\globalEvent\command\protyle.ts
   46:9   error  ❌ 禁止使用 else。请使用 "卫语句 (Guard Clauses)" 或者其它策略扁平化逻辑。                                       no-restricted-syntax
   48:27  error  ❌ 禁止超过 5 行的内联回调函数 (调用: checkFold)。当前 8 行。请提取为命名函数以提高可读性。
 💡 豁免方式: 在调用语句前添加 // @内联回调 注释   no-inline-callback/no-inline-callback
-
-D:\dev\siyuan-note\app\src\boot\globalEvent\commonHotkey.ts
-   24:30  error  ❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。          no-restricted-syntax
-   69:10  error  ❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。          no-restricted-syntax
-   69:69  error  ❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。          no-restricted-syntax
-  121:26  error  ❌ 禁止隐式上下文切换：禁止在使用列表下标取值操作 ([]) 之后直接访问属性。请务必先声明变量再使用。  no-restricted-syntax
-  122:27  error  ❌ 禁止隐式上下文切换：禁止在使用列表下标取值操作 ([]) 之后直接访问属性。请务必先声明变量再使用。  no-restricted-syntax
-  178:20  error  ❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。          no-restricted-syntax
-
-D:\dev\siyuan-note\app\src\boot\globalEvent\dragover.ts
-   5:9   error  ❌ 禁止嵌套 If。请合并判断条件 (&&) 或提取函数。                                                                         no-restricted-syntax
-   5:9   error  ❌ 禁止使用 else。请使用 "卫语句 (Guard Clauses)" 或者其它策略扁平化逻辑。                                                    no-restricted-syntax
-   6:13  error  ❌ 禁止使用 .forEach()。
-原因 1: forEach 无法等待异步操作。
-原因 2: forEach 无法提前中断。
-替代方案: for...of / .map() / .filter()  no-restricted-syntax
-   6:13  error  ❌ 禁止隐式上下文切换：在 DOM 获取接口 (querySelector, getElementById 等) 返回的对象上直接链式调用。请务必先声明变量再使用。                    no-restricted-syntax
-  11:13  error  ❌ 禁止隐式上下文切换：在 DOM 获取接口 (querySelector, getElementById 等) 返回的对象上直接链式调用。请务必先声明变量再使用。                    no-restricted-syntax
-  14:13  error  ❌ 禁止嵌套 If。请合并判断条件 (&&) 或提取函数。                                                                         no-restricted-syntax
-  17:13  error  ❌ 禁止使用 .forEach()。
-原因 1: forEach 无法等待异步操作。
-原因 2: forEach 无法提前中断。
-替代方案: for...of / .map() / .filter()  no-restricted-syntax
-  17:13  error  ❌ 禁止隐式上下文切换：在 DOM 获取接口 (querySelector, getElementById 等) 返回的对象上直接链式调用。请务必先声明变量再使用。                    no-restricted-syntax
-  59:5   error  ❌ 禁止使用 else。请使用 "卫语句 (Guard Clauses)" 或者其它策略扁平化逻辑。                                                    no-restricted-syntax
-  63:9   error  ❌ 禁止嵌套 If。请合并判断条件 (&&) 或提取函数。                                                                         no-restricted-syntax
 
 D:\dev\siyuan-note\app\src\boot\globalEvent\event.ts
    25:32  error  Arrow function has too many lines (165). Maximum allowed is 50                                        max-lines-per-function
@@ -27397,4 +27317,4 @@ D:\dev\siyuan-note\app\src\window\index.ts
   181:25   error  Unexpected use of 'window'. ❌ 禁止直接访问 window。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。               no-restricted-globals
   183:34   error  Unexpected use of 'window'. ❌ 禁止直接访问 window。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。               no-restricted-globals
 
-✖ 20820 problems (20662 errors, 158 warnings)
+✖ 20766 problems (20608 errors, 158 warnings)

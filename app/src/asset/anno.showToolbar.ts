@@ -1,7 +1,17 @@
 import { setPosition } from "../util/setPosition";
 import { clearRectElement, setRectElement } from "./anno";
 
-export const showToolbar = (element: HTMLElement, range: Range, target?: HTMLElement) => {
+const handleRange = (utilElement: HTMLElement, range: Range) => {
+    utilElement.classList.add("pdf__util--hide");
+    const rects = range.getClientRects();
+    const rect = rects.item(rects.length - 1);
+    if (rect) {
+        setPosition(utilElement, rect.left, rect.bottom);
+    }
+    clearRectElement();
+};
+
+export const showToolbar = (element: HTMLElement, range?: Range, target?: HTMLElement) => {
     if (target) {
         // 阻止 popover
         target.setAttribute("prevent-popover", "true");
@@ -10,15 +20,14 @@ export const showToolbar = (element: HTMLElement, range: Range, target?: HTMLEle
         }, 620);
     }
 
-    const utilElement = element.querySelector(".pdf__util") as HTMLElement;
+    const utilElement = element.querySelector(".pdf__util");
+    if (!(utilElement instanceof HTMLElement)) {
+        return;
+    }
     utilElement.classList.remove("fn__none");
 
     if (range) {
-        utilElement.classList.add("pdf__util--hide");
-        const rects = range.getClientRects();
-        const rect = rects[rects.length - 1];
-        setPosition(utilElement, rect!.left, rect!.bottom);
-        clearRectElement();
+        handleRange(utilElement, range);
         return;
     }
     if (!target) {
