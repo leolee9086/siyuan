@@ -8,7 +8,6 @@ import { fetchSyncPost } from "../../util/fetch";
 import type {
     任务响应,
     任务状态响应,
-    思源代理响应,
     提交生成任务参数,
     获取任务状态参数,
     轮询任务参数,
@@ -30,6 +29,7 @@ import {
     处理思源代理响应,
     等待
 } from "./utils";
+import { 断言思源代理请求响应 } from "./client.guard";
 
 /**
  * 通过思源代理发起请求（带重试）
@@ -64,7 +64,8 @@ async function 通过思源代理请求<T>(
     let lastError: Error | null = null;
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
-        const response = await fetchSyncPost(思源代理端点, payload) as { code: number; msg: string; data: 思源代理响应 | null };
+        const response = await fetchSyncPost(思源代理端点, payload);
+        断言思源代理请求响应(response);
 
         if (response.code !== 0) {
             throw new Error(`思源代理错误: ${response.msg}`);
@@ -78,7 +79,14 @@ async function 通过思源代理请求<T>(
             continue;
         }
 
-        return 处理思源代理响应<T>(response.data);
+        const result = 处理思源代理响应<T>(response.data);
+        if (result === undefined) {
+            lastError = new Error("思源代理错误: 响应体为空");
+            console.warn(`[思源代理] 响应体为空, 重试中 (${attempt + 1}/${maxRetries})...`);
+            await 等待(1000 * (attempt + 1));
+            continue;
+        }
+        return result;
     }
 
     throw lastError || new Error("思源代理错误: 已达到最大重试次数");
@@ -193,7 +201,8 @@ export async function 获取图片(params: 获取图片参数): Promise<string> 
     let lastError: Error | null = null;
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
-        const response = await fetchSyncPost(思源代理端点, payload) as { code: number; msg: string; data: 思源代理响应 | null };
+        const response = await fetchSyncPost(思源代理端点, payload);
+        断言思源代理请求响应(response);
 
         if (response.code !== 0) {
             throw new Error(`思源代理错误: ${response.msg}`);
