@@ -1,14 +1,14 @@
-import { fetchPost } from "../ai/imports";
-import { rectElement } from "./anno";
-import { getConfig } from "./anno.config";
-import { AnnoConstants } from "./anno.constants";
-import { copyAnno } from "./anno.copy";
-import { hideToolbar } from "./anno.hideToolbar";
-import { setRelation } from "./anno.setRelation";
-import type { IPdfInstance, ToolbarActionContext, ToolbarActionHandler, ToolbarActionRegistry } from "./anno.types";
+import { fetchPost } from "../../ai/imports";
+import { rectElement } from "../anno";
+import { getConfig } from "../anno.config";
+import { AnnoConstants } from "../anno.constants";
+import { copyAnno } from "../anno.copy";
+import { hideToolbar } from "../anno.hideToolbar";
+import { setRelation } from "../anno.setRelation";
+import type { IPdfInstance, ToolbarActionContext, ToolbarActionHandler, ToolbarActionRegistry } from "../anno.types";
 
 // 类型重新导出，保持向后兼容
-export type { ToolbarActionContext, ToolbarActionHandler } from "./anno.types";
+export type { ToolbarActionContext, ToolbarActionHandler } from "../anno.types";
 /**
  * 创建工具栏操作上下文
  *
@@ -139,6 +139,9 @@ const handleToggleAction = (ctx: ToolbarActionContext) => {
     }
 
     const annoItem = config[id];
+    if (!annoItem) {
+        return;
+    }
     annoItem.type = annoItem.type === "border" ? "text" : "border";
     if (element) {
         updateAnnotationStyle(element, id, annoItem.type);

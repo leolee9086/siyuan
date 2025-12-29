@@ -12,30 +12,36 @@ import { hasClosestByClassName } from "../protyle/util/hasClosest";
 import { rectElement, setRectElement } from "./anno";
 import { AnnoConstants } from "./anno.constants";
 import type { IPdfInstance } from "./anno.types";
-import { createToolbarActionContext, toolbarActionRegistry } from "./anno.click.handleToolbarAction";
+import { createToolbarActionContext, toolbarActionRegistry } from "./anno/click.handleToolbarAction";
 import { externalEventClickHandler } from "./anno/click.handleExternalEvent";
 import { getLocationOrigin, getWindowSelection } from "../util/siyuanEnvironments/windowStandard.environment";
 
 const updateExistingAnnotation = (color: string, element: HTMLElement, pdf: IPdfInstance) => {
     const config = getConfig(pdf);
     const id = rectElement?.getAttribute(AnnoConstants.ATTR.DATA_NODE_ID);
-    if (id) {
-        const annoItem = config[id];
-        annoItem.color = color;
-        const rectItems = element.querySelectorAll(`.${AnnoConstants.CSS.PDF_RECT}[${AnnoConstants.ATTR.DATA_NODE_ID}="${id}"]`);
-        for (const rectItem of rectItems) {
-            for (const item of Array.from(rectItem.children)) {
-                if (item instanceof HTMLElement) {
-                    item.style.border = "2px solid " + color;
-                    item.style.backgroundColor = annoItem.type === "text" ? color : "transparent";
-                }
+    if (!id) {
+        return;
+    }
+
+    const annoItem = config[id];
+    if (!annoItem) {
+        return;
+    }
+
+    annoItem.color = color;
+    const rectItems = element.querySelectorAll(`.${AnnoConstants.CSS.PDF_RECT}[${AnnoConstants.ATTR.DATA_NODE_ID}="${id}"]`);
+    for (const rectItem of rectItems) {
+        for (const item of Array.from(rectItem.children)) {
+            if (item instanceof HTMLElement) {
+                item.style.border = "2px solid " + color;
+                item.style.backgroundColor = annoItem.type === "text" ? color : "transparent";
             }
         }
-        fetchPost("/api/asset/setFileAnnotation", {
-            path: pdf.appConfig.file.replace(getLocationOrigin(), "").substr(1) + ".sya",
-            data: JSON.stringify(config),
-        });
     }
+    fetchPost("/api/asset/setFileAnnotation", {
+        path: pdf.appConfig.file.replace(getLocationOrigin(), "").substr(1) + ".sya",
+        data: JSON.stringify(config),
+    });
 };
 
 const createNewAnnotation = (color: string, pdf: IPdfInstance) => {

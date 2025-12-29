@@ -1,5 +1,5 @@
 import type { IPdfInstance } from "./anno.types";
-import type { IPageInfo } from "./anno.page";
+import type { IPageInfo } from "./anno.page.types";
 import type { IAnnoCoords } from "./anno.types";
 
 /**
@@ -10,7 +10,7 @@ import type { IAnnoCoords } from "./anno.types";
  * @returns 注释内容
  */
 export const generateRectContent = (pdf: IPdfInstance, pageInfo: IPageInfo, id: string): string => {
-    return `${pdf.appConfig.file.replace(location.origin, "").substr(8).replace(/-\d{14}-\w{7}.pdf$/, "")}-P${pageInfo.pageView.id}-${id}`;
+    return `${pdf.appConfig.file.replace(location.origin, "").substr(8).replace(/-\d{14}-\w{7}.pdf$/, "")}-P${pageInfo.index + 1}-${id}`;
 };
 
 /**
@@ -34,7 +34,7 @@ export const createAnnoCoords = (
     mode: string
 ): IAnnoCoords => {
     return {
-        index: pageInfo.pageView.id - 1,
+        index: pageInfo.index,
         coords: [coords],
         id,
         color,

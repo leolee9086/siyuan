@@ -1,5 +1,5 @@
 import { fetchPost } from "../util/fetch";
-import type { IPdfInstance } from "./anno.types";
+import type { IPdfInstance, IPdfAnno } from "./anno.types";
 
 /**
  * PDF注释配置管理模块
@@ -45,13 +45,21 @@ import type { IPdfInstance } from "./anno.types";
  * - 如果配置中已存在相同id的项，会完全覆盖原有数据
  * - 该函数被anno.click.handleToolbarAction.ts中的各种操作处理器调用
  */
-export const setConfig = (pdf: IPdfInstance, id: string, data: any): void => {
+export const setConfig = (pdf: IPdfInstance, id: string, data: IPdfAnno): void => {
     const config = getConfig(pdf);
     config[id] = data;
     fetchPost("/api/asset/setFileAnnotation", {
         path: pdf.appConfig.file.replace(location.origin, "").substr(1) + ".sya",
         data: JSON.stringify(config),
     });
+};
+
+const handleGetConfigResponse = (response: IWebSocketData, pdf: IPdfInstance) => {
+    let config = {};
+    if (response.code !== 1) {
+        config = JSON.parse(response.data.data);
+    }
+    pdf.appConfig.config = config;
 };
 
 /**
@@ -86,19 +94,13 @@ export const setConfig = (pdf: IPdfInstance, id: string, data: any): void => {
  * - 如果需要确保配置已完全加载，应考虑使用回调或其他异步机制
  * - JSON解析失败时会静默处理，返回空配置对象
  */
-export const getConfig = (pdf: IPdfInstance): Record<string, any> => {
+export const getConfig = (pdf: IPdfInstance): Record<string, IPdfAnno> => {
     if (pdf.appConfig.config) {
         return pdf.appConfig.config;
     }
     const urlPath = pdf.appConfig.file.replace(location.origin, "").substr(1) + ".sya";
     fetchPost("/api/asset/getFileAnnotation", {
         path: urlPath,
-    }, (response) => {
-        let config = {};
-        if (response.code !== 1) {
-            config = JSON.parse(response.data.data);
-        }
-        pdf.appConfig.config = config;
-    });
+    }, (response) => handleGetConfigResponse(response, pdf));
     return pdf.appConfig.config || {};
 };
