@@ -246,3 +246,25 @@ export interface 复制注释参数 {
     /** 注释内容 */
     content: string | null;
 }
+
+/**
+ * 注释结果参数
+ *
+ * 用于创建注释结果时传递的参数
+ */
+export interface AnnotationResultParams {
+    /** PDF实例 */
+    pdf: IPdfInstance;
+    /** 开始页面索引 */
+    startIndex: number;
+    /** 结束页面索引 */
+    endIndex: number;
+    /** 开始页选中的坐标 */
+    startSelected: number[];
+    /** 结束页选中的坐标 */
+    endSelected: number[];
+    /** 注释内容 */
+    content: string;
+    /** 注释颜色 */
+    color: string;
+}

@@ -244,10 +244,6 @@ D:\dev\siyuan-note\app\src\asset\anno.config.ts
   96:8   error  ❌ 禁止超过 5 行的内联回调函数 (调用: fetchPost)。当前 6 行。请提取为命名函数以提高可读性。
 💡 豁免方式: 在调用语句前添加 // @内联回调 注释  no-inline-callback/no-inline-callback
 
-D:\dev\siyuan-note\app\src\asset\anno.getCaptureCanvas.ts
-  2:48  error  Unexpected any. Specify a different type                                                 @typescript-eslint/no-explicit-any
-  4:89  error  Unexpected use of 'window'. ❌ 禁止直接访问 window。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。  no-restricted-globals
-
 D:\dev\siyuan-note\app\src\asset\anno.getHightlightCoordsByRange.ts
    9:1   error  架构约束：禁止在业务/UI文件定义 Interface。请移至 *.types.ts。                                                           no-restricted-syntax
   10:10  error  Unexpected any. Specify a different type                                                              @typescript-eslint/no-explicit-any
@@ -27248,4 +27244,4 @@ D:\dev\siyuan-note\app\src\window\index.ts
   181:25   error  Unexpected use of 'window'. ❌ 禁止直接访问 window。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。               no-restricted-globals
   183:34   error  Unexpected use of 'window'. ❌ 禁止直接访问 window。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。               no-restricted-globals
 
-✖ 20733 problems (20575 errors, 158 warnings)
+✖ 20731 problems (20573 errors, 158 warnings)
