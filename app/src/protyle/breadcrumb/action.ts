@@ -13,7 +13,6 @@ import { isWindow } from "../../util/functions";
 import { Wnd } from "../../layout/Wnd";
 import {
     getSiyuanConfig,
-    getSiyuanEditorIsFullscreen,
     getSiyuanLayout,
     getSiyuanZIndex,
     incrementSiyuanZIndex,
@@ -24,11 +23,11 @@ const onNet2LocalAssets = (protyle: IProtyle) => {
     /// #if MOBILE
     reloadProtyle(protyle, false);
     /// #else
-    getAllEditor().forEach(item => {
+    for (const item of getAllEditor()) {
         if (item.protyle.block.rootID === protyle.block.rootID) {
             reloadProtyle(item.protyle, item.protyle.element === protyle.element);
         }
-    });
+    }
     /// #endif
 };
 
@@ -43,86 +42,112 @@ export const net2LocalAssets = (protyle: IProtyle, type: "Assets" | "Img") => {
     }, () => onNet2LocalAssets(protyle));
 };
 
+const updateHeaderDragRegion = (item: Wnd, isFullscreen: boolean) => {
+    const headerElement = item.headersElement.parentElement;
+    if (!headerElement || headerElement.getBoundingClientRect().top > 0) {
+        return false;
+    }
+    const readonlyElement = headerElement.querySelector(".item--readonly .fn__flex-1");
+    if (readonlyElement instanceof HTMLElement) {
+        // @ts-ignore
+        readonlyElement.style.WebkitAppRegion = isFullscreen ? "drag" : "";
+        return true;
+    }
+    return false;
+};
+
+/// #if !MOBILE
+const updateLayoutDragRegion = (isFullscreen: boolean) => {
+    const wndsTemp: Wnd[] = [];
+    const layout = getSiyuanLayout()?.layout;
+    if (layout) {
+        getAllWnds(layout, wndsTemp);
+    }
+    wndsTemp.find((item) => updateHeaderDragRegion(item, isFullscreen));
+};
+
+const updateWindowControlsZIndex = (isFullscreen: boolean) => {
+    if ("darwin" === getSiyuanConfig()?.system.os || isWindow()) {
+        return;
+    }
+    const windowControlsElement = document.getElementById("windowControls");
+    if (isFullscreen && windowControlsElement) {
+        windowControlsElement.style.zIndex = "";
+    }
+
+    if (isFullscreen) {
+        return;
+    }
+
+    incrementSiyuanZIndex();
+    if (windowControlsElement) {
+        windowControlsElement.style.zIndex = getSiyuanZIndex().toString();
+    }
+};
+/// #endif
+
+const updateWindowUI = (isFullscreen: boolean) => {
+    if (isWindow()) {
+        // 编辑器全屏
+        /// #if !MOBILE
+        updateLayoutDragRegion(isFullscreen);
+        /// #endif
+    }
+    /// #if !MOBILE
+    updateWindowControlsZIndex(isFullscreen);
+    /// #endif
+};
+
+const updateButtonAndDock = (element: Element, btnElement: Element, isFullscreen: boolean) => {
+    const useElement = btnElement.querySelector("use");
+    useElement?.setAttribute("xlink:href", isFullscreen ? "#iconFullscreen" : "#iconFullscreenExit");
+
+    const dockLayoutElement = hasClosestByClassName(element, "layout--float");
+    if (!dockLayoutElement) {
+        return;
+    }
+
+    if (isFullscreen) {
+        dockLayoutElement.setAttribute("data-temp", dockLayoutElement.style.transform);
+        dockLayoutElement.style.transform = "none";
+        return;
+    }
+
+    dockLayoutElement.style.transform = dockLayoutElement.getAttribute("data-temp") || "";
+    dockLayoutElement.removeAttribute("data-temp");
+};
+
+const syncEditors = (element: Element, isFullscreen: boolean) => {
+    /// #if !MOBILE
+    if (element.classList.contains("protyle")) {
+        setSiyuanEditorIsFullscreen(!isFullscreen);
+    }
+    for (const item of getAllModels().editor) {
+        if (element !== item.element && item.element.classList.contains("fullscreen")) {
+            item.element.classList.remove("fullscreen");
+            resize(item.editor.protyle);
+        }
+    }
+    /// #endif
+};
+
 export const fullscreen = (element: Element, btnElement?: Element) => {
     setTimeout(() => {
         hideAllElements(["gutter"]);
     }, Constants.TIMEOUT_TRANSITION);   // 等待页面动画结束
 
     const isFullscreen = element.className.includes("fullscreen");
-    if (isFullscreen) {
-        element.classList.remove("fullscreen");
-        document.getElementById("drag")?.classList.remove("fn__hidden");
-    } else {
-        element.classList.add("fullscreen");
-        document.getElementById("drag")?.classList.add("fn__hidden");
-    }
-    if (isWindow()) {
-        // 编辑器全屏
-        /// #if !MOBILE
-        const wndsTemp: Wnd[] = [];
-        const layout = getSiyuanLayout()?.layout;
-        if (layout) {
-            getAllWnds(layout, wndsTemp);
-        }
-        wndsTemp.find(async item => {
-            const headerElement = item.headersElement.parentElement;
-            if (headerElement && headerElement.getBoundingClientRect().top <= 0) {
-                // @ts-ignore
-                (headerElement.querySelector(".item--readonly .fn__flex-1") as HTMLElement).style.WebkitAppRegion = isFullscreen ? "drag" : "";
-                return true;
-            }
-        });
-        /// #endif
-    }
-    /// #if !MOBILE
-    if ("darwin" !== getSiyuanConfig()?.system.os && !isWindow()) {
-        const windowControlsElement = document.getElementById("windowControls");
-        if (isFullscreen) {
-            windowControlsElement ? windowControlsElement.style.zIndex = "" : null;
-        } else {
-            incrementSiyuanZIndex();
-            windowControlsElement ? windowControlsElement.style.zIndex = getSiyuanZIndex().toString() : null;
-        }
-    }
-    /// #endif
+    element.classList.toggle("fullscreen", !isFullscreen);
+    const dragElement = document.getElementById("drag");
+    dragElement?.classList.toggle("fn__hidden", !isFullscreen);
+
+    updateWindowUI(isFullscreen);
+
     if (btnElement) {
-        if (isFullscreen) {
-            btnElement.querySelector("use")?.setAttribute("xlink:href", "#iconFullscreen");
-        } else {
-            btnElement.querySelector("use")?.setAttribute("xlink:href", "#iconFullscreenExit");
-        }
-        const dockLayoutElement = hasClosestByClassName(element, "layout--float");
-        if (dockLayoutElement) {
-            if (isFullscreen) {
-                dockLayoutElement.setAttribute("data-temp", dockLayoutElement.style.transform);
-                dockLayoutElement.style.transform = "none";
-            } else {
-                if (dockLayoutElement) {
-                    dockLayoutElement.style.transform = dockLayoutElement.getAttribute("data-temp") || "";
-                    dockLayoutElement.removeAttribute("data-temp");
-                }
-            }
-        }
+        updateButtonAndDock(element, btnElement, isFullscreen);
         return;
     }
-    /// #if !MOBILE
-    if (element.classList.contains("protyle")) {
-        setSiyuanEditorIsFullscreen(!isFullscreen);
-    }
-    getAllModels().editor.forEach(item => {
-        if (element !== item.element) {
-            if (getSiyuanEditorIsFullscreen()) {
-                if (item.element.classList.contains("fullscreen")) {
-                    item.element.classList.remove("fullscreen");
-                    resize(item.editor.protyle);
-                }
-            } else if (item.element.classList.contains("fullscreen")) {
-                item.element.classList.remove("fullscreen");
-                resize(item.editor.protyle);
-            }
-        }
-    });
-    /// #endif
+    syncEditors(element, isFullscreen);
 };
 
 export const updateReadonly = (target: Element, protyle: IProtyle) => {
