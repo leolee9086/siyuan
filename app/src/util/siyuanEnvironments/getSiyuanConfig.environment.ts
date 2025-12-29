@@ -196,3 +196,19 @@ export const setSiyuanReqId = (url: string, reqId: number) => {
     }
     window.siyuan.reqIds[url] = reqId;
 };
+
+/**
+ * 获取 window.siyuan.editorIsFullscreen
+ */
+export const getSiyuanEditorIsFullscreen = () => {
+    return window.siyuan?.editorIsFullscreen;
+};
+
+/**
+ * 设置 window.siyuan.editorIsFullscreen
+ */
+export const setSiyuanEditorIsFullscreen = (isFullscreen: boolean) => {
+    if (window.siyuan) {
+        window.siyuan.editorIsFullscreen = isFullscreen;
+    }
+};

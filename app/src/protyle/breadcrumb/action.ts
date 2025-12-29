@@ -11,6 +11,26 @@ import { resize } from "../util/resize";
 import { disabledProtyle, enableProtyle } from "../util/onGet";
 import { isWindow } from "../../util/functions";
 import { Wnd } from "../../layout/Wnd";
+import {
+    getSiyuanConfig,
+    getSiyuanEditorIsFullscreen,
+    getSiyuanLayout,
+    getSiyuanZIndex,
+    incrementSiyuanZIndex,
+    setSiyuanEditorIsFullscreen
+} from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
+
+const onNet2LocalAssets = (protyle: IProtyle) => {
+    /// #if MOBILE
+    reloadProtyle(protyle, false);
+    /// #else
+    getAllEditor().forEach(item => {
+        if (item.protyle.block.rootID === protyle.block.rootID) {
+            reloadProtyle(item.protyle, item.protyle.element === protyle.element);
+        }
+    });
+    /// #endif
+};
 
 export const net2LocalAssets = (protyle: IProtyle, type: "Assets" | "Img") => {
     if (protyle.element.querySelector(".wysiwygLoading")) {
@@ -20,17 +40,7 @@ export const net2LocalAssets = (protyle: IProtyle, type: "Assets" | "Img") => {
     hideElements(["toolbar"], protyle);
     fetchPost(`/api/format/net${type}2LocalAssets`, {
         id: protyle.block.rootID
-    }, () => {
-        /// #if MOBILE
-        reloadProtyle(protyle, false);
-        /// #else
-        getAllEditor().forEach(item => {
-            if (item.protyle.block.rootID === protyle.block.rootID) {
-                reloadProtyle(item.protyle, item.protyle.element === protyle.element);
-            }
-        });
-        /// #endif
-    });
+    }, () => onNet2LocalAssets(protyle));
 };
 
 export const fullscreen = (element: Element, btnElement?: Element) => {
@@ -50,8 +60,9 @@ export const fullscreen = (element: Element, btnElement?: Element) => {
         // 编辑器全屏
         /// #if !MOBILE
         const wndsTemp: Wnd[] = [];
-        if (window.siyuan.layout?.layout) {
-            getAllWnds(window.siyuan.layout.layout, wndsTemp);
+        const layout = getSiyuanLayout()?.layout;
+        if (layout) {
+            getAllWnds(layout, wndsTemp);
         }
         wndsTemp.find(async item => {
             const headerElement = item.headersElement.parentElement;
@@ -64,13 +75,13 @@ export const fullscreen = (element: Element, btnElement?: Element) => {
         /// #endif
     }
     /// #if !MOBILE
-    if ("darwin" !== window.siyuan.config?.system.os && !isWindow()) {
+    if ("darwin" !== getSiyuanConfig()?.system.os && !isWindow()) {
         const windowControlsElement = document.getElementById("windowControls");
         if (isFullscreen) {
             windowControlsElement ? windowControlsElement.style.zIndex = "" : null;
         } else {
-            window.siyuan.zIndex++;
-            windowControlsElement ? windowControlsElement.style.zIndex = window.siyuan.zIndex.toString() : null;
+            incrementSiyuanZIndex();
+            windowControlsElement ? windowControlsElement.style.zIndex = getSiyuanZIndex().toString() : null;
         }
     }
     /// #endif
@@ -96,11 +107,11 @@ export const fullscreen = (element: Element, btnElement?: Element) => {
     }
     /// #if !MOBILE
     if (element.classList.contains("protyle")) {
-        window.siyuan.editorIsFullscreen = !isFullscreen;
+        setSiyuanEditorIsFullscreen(!isFullscreen);
     }
     getAllModels().editor.forEach(item => {
         if (element !== item.element) {
-            if (window.siyuan.editorIsFullscreen) {
+            if (getSiyuanEditorIsFullscreen()) {
                 if (item.element.classList.contains("fullscreen")) {
                     item.element.classList.remove("fullscreen");
                     resize(item.editor.protyle);
@@ -115,21 +126,25 @@ export const fullscreen = (element: Element, btnElement?: Element) => {
 };
 
 export const updateReadonly = (target: Element, protyle: IProtyle) => {
-    if (!window.siyuan.config?.readonly) {
-        const isReadonly = target.querySelector("use")?.getAttribute("xlink:href") !== "#iconUnlock";
-        if (window.siyuan.config?.editor.readOnly) {
-            if (isReadonly) {
-                enableProtyle(protyle);
-            } else {
-                disabledProtyle(protyle);
-            }
-        } else {
-            fetchPost("/api/attr/setBlockAttrs", {
-                id: protyle.block.rootID,
-                attrs: {
-                    [Constants.CUSTOM_SY_READONLY]: isReadonly ? "false" : "true"
-                }
-            });
-        }
+    if (getSiyuanConfig()?.readonly) {
+        return;
     }
+    const useElement = target.querySelector("use");
+    const isReadonly = useElement?.getAttribute("xlink:href") !== "#iconUnlock";
+    if (getSiyuanConfig()?.editor.readOnly && isReadonly) {
+        enableProtyle(protyle);
+        return;
+    }
+
+    if (getSiyuanConfig()?.editor.readOnly) {
+        disabledProtyle(protyle);
+        return;
+    }
+
+    fetchPost("/api/attr/setBlockAttrs", {
+        id: protyle.block.rootID,
+        attrs: {
+            [Constants.CUSTOM_SY_READONLY]: isReadonly ? "false" : "true"
+        }
+    });
 };
