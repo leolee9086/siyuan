@@ -16,10 +16,10 @@ export const mergeRects = (range: Range) => {
     let lastTop: number | undefined = undefined;
 
     // 遍历所有矩形
-    Array.from(rects).forEach(item => {
+    for (const item of Array.from(rects)) {
         // 跳过高度或宽度为0的矩形（通常是空行或不可见元素）
         if (item.height === 0 || item.width === 0) {
-            return;
+            continue;
         }
 
         // 如果是第一个矩形，或者当前矩形与上一个矩形不在同一行（垂直距离超过4像素）
@@ -27,7 +27,7 @@ export const mergeRects = (range: Range) => {
             // 创建新的合并矩形
             mergedRects.push({ left: item.left, top: item.top, right: item.right, bottom: item.bottom });
             lastTop = item.top;
-            return;
+            continue;
         }
 
         // 与上一个矩形在同一行，扩展上一个矩形的右边界
@@ -35,7 +35,7 @@ export const mergeRects = (range: Range) => {
         if (lastRect) {
             lastRect.right = item.right;
         }
-    });
+    }
 
     return mergedRects;
 };

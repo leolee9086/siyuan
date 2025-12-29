@@ -2,9 +2,10 @@ import { hasClosestByAttribute } from "../protyle/util/hasClosest";
 
 
 export const hlPDFRect = (element: HTMLElement, id: string) => {
-    element.querySelectorAll(`.pdf__rect[data-node-id="${id}"]`).forEach(item => {
+    const rectElements = element.querySelectorAll(`.pdf__rect[data-node-id="${id}"]`);
+    for (const item of rectElements) {
         if (!item || !item.firstElementChild) {
-            return;
+            continue;
         }
         item.classList.add("pdf__rect--hl");
         setTimeout(() => {
@@ -13,18 +14,18 @@ export const hlPDFRect = (element: HTMLElement, id: string) => {
 
         const scrollElement = hasClosestByAttribute(item, "id", "viewerContainer");
         if (!scrollElement) {
-            return;
+            continue;
         }
         const currentRect = item.firstElementChild.getBoundingClientRect();
         const scrollRect = scrollElement.getBoundingClientRect();
         if (currentRect.top < scrollRect.top) {
             scrollElement.scrollTop = scrollElement.scrollTop - (scrollRect.top - currentRect.top) -
                 (scrollRect.height - currentRect.height) / 2;
-            return;
+            continue;
         }
         if (currentRect.bottom > scrollRect.bottom) {
             scrollElement.scrollTop = scrollElement.scrollTop + (currentRect.bottom - scrollRect.bottom) +
                 (scrollRect.height - currentRect.height) / 2;
         }
-    });
+    }
 };

@@ -1,4 +1,5 @@
 
 export const hideToolbar = (element: HTMLElement) => {
-    element.querySelector(".pdf__util")?.classList.add("fn__none");
+    const toolbarElement = element.querySelector(".pdf__util");
+    toolbarElement?.classList.add("fn__none");
 };
