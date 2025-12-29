@@ -5,51 +5,10 @@ import { AnnoConstants } from "./anno.constants";
 import { copyAnno } from "./anno.copy";
 import { hideToolbar } from "./anno.hideToolbar";
 import { setRelation } from "./anno.setRelation";
-import type { IPdfInstance } from "./anno.types";
+import type { IPdfInstance, ToolbarActionContext, ToolbarActionHandler, ToolbarActionRegistry } from "./anno.types";
 
-/**
- * 工具栏操作处理器接口
- *
- * 定义了工具栏操作处理器的标准签名，所有处理器都应遵循此接口
- *
- * @param ctx - 工具栏操作上下文，包含共享数据和PDF实例
- */
-export type ToolbarActionHandler = (ctx: ToolbarActionContext) => void;
-/**
- * 工具栏操作处理器注册表
- *
- * 使用对象映射将操作类型字符串与对应的处理函数关联
- * 实现了策略模式，便于扩展新的操作类型
- *
- * @example
- * ```typescript
- * const registry: ToolbarActionRegistry = {
- *   'remove': handleRemoveAction,
- *   'copy': handleCopyAction,
- *   // 可以轻松添加新操作
- *   'newAction': handleNewAction,
- * };
- * ```
- */
-type ToolbarActionRegistry = Record<string, ToolbarActionHandler>;
-
-/**
- * 工具栏操作上下文
- *
- * 包含工具栏操作处理所需的共享数据，避免重复获取
- */
-export interface ToolbarActionContext {
-    /** PDF文件路径，不包含origin */
-    urlPath: string;
-    /** 注释配置对象 */
-    config: Record<string, any>;
-    /** 当前注释ID */
-    id: string | undefined;
-    /** PDF实例对象 */
-    pdf: IPdfInstance;
-    /** 容器元素 */
-    element: HTMLElement;
-}
+// 类型重新导出，保持向后兼容
+export type { ToolbarActionContext, ToolbarActionHandler } from "./anno.types";
 /**
  * 创建工具栏操作上下文
  *
@@ -90,9 +49,10 @@ const handleRemoveAction = (ctx: ToolbarActionContext) => {
 
     if (id) {
         delete config[id];
-        element.querySelectorAll(`[${AnnoConstants.ATTR.DATA_NODE_ID}="${id}"]`).forEach(item => {
+        const itemsToRemove = element.querySelectorAll(`[${AnnoConstants.ATTR.DATA_NODE_ID}="${id}"]`);
+        for (const item of itemsToRemove) {
             item.remove();
-        });
+        }
 
         fetchPost("/api/asset/setFileAnnotation", {
             path: urlPath + ".sya",
@@ -160,13 +120,14 @@ const handleRelateAction = (ctx: ToolbarActionContext) => {
  * @param type - 注释类型
  */
 const updateAnnotationStyle = (element: HTMLElement, id: string, type: string) => {
-    element.querySelectorAll(`.${AnnoConstants.CSS.PDF_RECT}[${AnnoConstants.ATTR.DATA_NODE_ID}="${id}"]`).forEach(rectItem => {
-        Array.from(rectItem.children).forEach((item) => {
+    const rectItems = element.querySelectorAll(`.${AnnoConstants.CSS.PDF_RECT}[${AnnoConstants.ATTR.DATA_NODE_ID}="${id}"]`);
+    for (const rectItem of rectItems) {
+        for (const item of Array.from(rectItem.children)) {
             if (item instanceof HTMLElement) {
                 item.style.backgroundColor = type === "text" ? item.style.border.replace("2px solid ", "") : "";
             }
-        });
-    });
+        }
+    }
 };
 
 const handleToggleAction = (ctx: ToolbarActionContext) => {

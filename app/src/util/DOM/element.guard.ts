@@ -16,3 +16,8 @@ export const isHTMLElement = (node: unknown): node is HTMLElement => {
 export const isHTMLSelectElement = (el: unknown): el is HTMLSelectElement => {
     return el instanceof HTMLSelectElement;
 };
+
+/** 类型守卫：判断事件是否为 CustomEvent */
+export const isCustomEvent = <T = unknown>(event: Event): event is CustomEvent<T> => {
+    return event instanceof CustomEvent;
+};

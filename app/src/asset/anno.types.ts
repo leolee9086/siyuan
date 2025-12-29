@@ -28,6 +28,42 @@ export interface IPdfAnno {
 }
 
 /**
+ * PDF 页面视图接口（PDF.js 的 PageView 对象）
+ */
+export interface IPdfPageView {
+    /** 页面容器 div 元素 */
+    div: HTMLDivElement;
+    /** 页面 canvas 元素 */
+    canvas: HTMLCanvasElement;
+    /** 页面缩放比例 */
+    scale: number;
+    /** 视口信息 */
+    viewport: {
+        width: number;
+        height: number;
+        scale: number;
+    };
+}
+
+/**
+ * PDF 页面接口（PDF.js 的 PDFPageProxy 对象）
+ */
+export interface IPdfPage {
+    /** 页面编号（从1开始） */
+    pageNumber: number;
+    /** 获取视口 */
+    getViewport: (options: { scale: number; rotation?: number }) => {
+        width: number;
+        height: number;
+        scale: number;
+    };
+    /** 渲染页面 */
+    render: (params: { canvasContext: CanvasRenderingContext2D; viewport: unknown }) => {
+        promise: Promise<void>;
+    };
+}
+
+/**
  * PDF 配置接口
  */
 export interface IPdfConfig {
@@ -53,7 +89,7 @@ export interface IPdfInstance {
     /** PDF 查看器 */
     pdfViewer: {
         /** 获取页面视图 */
-        getPageView: (index: number) => any;
+        getPageView: (index: number) => IPdfPageView | undefined;
         /** 当前缩放比例 */
         currentScale: number;
         /** 获取可见页面 */
@@ -64,7 +100,7 @@ export interface IPdfInstance {
     };
     /** PDF 文档 */
     pdfDocument: {
-        getPage: (pageNumber: number) => Promise<any>;
+        getPage: (pageNumber: number) => Promise<IPdfPage>;
     };
     /** PDF 光标工具 */
     pdfCursorTools: {
@@ -124,3 +160,48 @@ export interface IPagePosition {
  * 全局变量 rectElement 的类型
  */
 export type RectElementType = HTMLElement | null;
+
+/**
+ * 工具栏操作上下文
+ *
+ * 包含工具栏操作处理所需的共享数据，避免重复获取
+ */
+export interface ToolbarActionContext {
+    /** PDF文件路径，不包含origin */
+    urlPath: string;
+    /** 注释配置对象 */
+    config: Record<string, IPdfAnno>;
+    /** 当前注释ID */
+    id: string | undefined;
+    /** PDF实例对象 */
+    pdf: IPdfInstance;
+    /** 容器元素 */
+    element: HTMLElement;
+}
+
+/**
+ * 工具栏操作处理器接口
+ *
+ * 定义了工具栏操作处理器的标准签名，所有处理器都应遵循此接口
+ *
+ * @param ctx - 工具栏操作上下文，包含共享数据和PDF实例
+ */
+export type ToolbarActionHandler = (ctx: ToolbarActionContext) => void;
+
+/**
+ * 工具栏操作处理器注册表
+ *
+ * 使用对象映射将操作类型字符串与对应的处理函数关联
+ * 实现了策略模式，便于扩展新的操作类型
+ *
+ * @example
+ * ```typescript
+ * const registry: ToolbarActionRegistry = {
+ *   'remove': handleRemoveAction,
+ *   'copy': handleCopyAction,
+ *   // 可以轻松添加新操作
+ *   'newAction': handleNewAction,
+ * };
+ * ```
+ */
+export type ToolbarActionRegistry = Record<string, ToolbarActionHandler>;
