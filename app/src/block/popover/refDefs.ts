@@ -7,15 +7,7 @@ import { hasClosestBlock } from "../../protyle/util/hasClosest";
 import { fetchSyncPost } from "../../util/fetch";
 import { getIdFromSYProtocol } from "../../util/pathName";
 import { getPopoverTargetElement } from "./target";
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// 类型定义
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-export interface RefDefsResult {
-    refDefs: IRefDefs[];
-    originalRefBlockIDs: IObject;
-}
+import { RefDefsResult } from "./refDefs.types";
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // RefDefs 获取函数
@@ -51,6 +43,9 @@ const getRefDefsFromDataId = async (dataId: string, showRef: boolean): Promise<R
  */
 const getRefDefsFromVirtualBlockRef = async (): Promise<RefDefsResult> => {
     const popoverTargetElement = getPopoverTargetElement();
+    if (!popoverTargetElement) {
+        return { refDefs: [], originalRefBlockIDs: {} };
+    }
     const nodeElement = hasClosestBlock(popoverTargetElement);
     if (nodeElement) {
         const postResponse = await fetchSyncPost("/api/block/getBlockDefIDsByRefText", {
@@ -67,6 +62,9 @@ const getRefDefsFromVirtualBlockRef = async (): Promise<RefDefsResult> => {
  */
 const getRefDefsFromRefCountOrPDF = async (): Promise<RefDefsResult> => {
     const popoverTargetElement = getPopoverTargetElement();
+    if (!popoverTargetElement) {
+        return { refDefs: [], originalRefBlockIDs: {} };
+    }
     const refDefs: IRefDefs[] = [];
     const originalRefBlockIDs: IObject = {};
 
@@ -115,6 +113,9 @@ const getRefDefsFromRefCountOrPDF = async (): Promise<RefDefsResult> => {
  */
 export const getRefDefs = async (showRef: boolean): Promise<RefDefsResult> => {
     const popoverTargetElement = getPopoverTargetElement();
+    if (!popoverTargetElement) {
+        return { refDefs: [], originalRefBlockIDs: {} };
+    }
     const dataId = popoverTargetElement.getAttribute("data-id");
 
     // 从 data-id 获取
