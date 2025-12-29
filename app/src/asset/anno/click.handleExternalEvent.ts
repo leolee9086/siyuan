@@ -1,13 +1,13 @@
-import { Constants, setStorageVal } from "../ai/imports";
-import { getSiyuanStorage } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { setRectElement } from "./anno";
-import { AnnoConstants } from "./anno.constants";
-import { copyAnno } from "./anno.copy";
-import { getHightlightCoordsByRange } from "./anno.getHightlightCoordsByRange";
-import { hideToolbar } from "./anno.hideToolbar";
-import { showHighlight } from "./anno.showHighlight";
-import { IPdfInstance } from "./anno.types";
-import { isExternalEventContext, ICustomEventContext } from "./anno.click.guard";
+import { Constants, setStorageVal } from "../../ai/imports";
+import { getSiyuanStorage } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { setRectElement } from "../anno";
+import { AnnoConstants } from "../anno.constants";
+import { copyAnno } from "../anno.copy";
+import { getHightlightCoordsByRange } from "../anno.getHightlightCoordsByRange";
+import { hideToolbar } from "../anno.hideToolbar";
+import { showHighlight } from "../anno.showHighlight";
+import { IPdfInstance } from "../anno.types";
+import { isExternalEventContext, ICustomEventContext } from "./click.guard";
 
 const handleExternalEvent = (event: CustomEvent<string>, element: HTMLElement, pdf: IPdfInstance) => {
     const pdfTheme = getSiyuanStorage()[Constants.LOCAL_PDFTHEME];

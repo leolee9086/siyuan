@@ -13,7 +13,7 @@ import { rectElement, setRectElement } from "./anno";
 import { AnnoConstants } from "./anno.constants";
 import type { IPdfInstance } from "./anno.types";
 import { createToolbarActionContext, toolbarActionRegistry } from "./anno.click.handleToolbarAction";
-import { externalEventClickHandler } from "./anno.click.handleExternalEvent";
+import { externalEventClickHandler } from "./anno/click.handleExternalEvent";
 import { getLocationOrigin, getWindowSelection } from "../util/siyuanEnvironments/windowStandard.environment";
 
 const updateExistingAnnotation = (color: string, element: HTMLElement, pdf: IPdfInstance) => {

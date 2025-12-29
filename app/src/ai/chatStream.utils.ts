@@ -50,6 +50,16 @@ export const parseAndValidateStreamData = (dataStr: string) => {
 
 const cache = new Map();
 // 处理工具调用的通用函数
+const checkBlockCondition = (content: string, state: AssistantResponseState): boolean => {
+    let flag = false;
+    const lastUsed = cache.get(content);
+    if (!state.responseContentStr.split("\`\`\`").pop()?.trim()) {
+        flag = true;
+        cache.set(content, flag);
+    }
+    return !!(flag && !lastUsed);
+};
+
 const 处理工具调用 = (
     tempDiv: HTMLElement,
     toolClass: string,
@@ -57,18 +67,7 @@ const 处理工具调用 = (
     错误信息前缀: string,
     state: AssistantResponseState
 ): void => {
-    const 代码块处理条件 = (blockElement: Element, content: string) => {
-
-        let flag = false;
-        const lastUsed = cache.get(content);
-        if (!state.responseContentStr.split("\`\`\`").pop()?.trim()) {
-            flag = true;
-            cache.set(content, flag);
-        }
-        //console.log(flag, lastUsed)
-        return flag && !lastUsed;
-    };
-    const toolCode = 从块DOM提取首个符合条件的特定语言代码块内容(tempDiv, toolClass, 代码块处理条件);
+    const toolCode = 从块DOM提取首个符合条件的特定语言代码块内容(tempDiv, toolClass, (_blockElement, content) => checkBlockCondition(content, state));
     if (toolCode && 回调函数) {
         回调函数(toolCode).catch(error => {
             console.error(`${错误信息前缀}执行失败:`, error);
@@ -92,10 +91,10 @@ export const processBlockDOMContent = (
     tempDiv.innerHTML = blockDom;
     // 查找所有带有data-node-id属性的元素
     const elementsWithNodeId = tempDiv.querySelectorAll("[data-node-id]");
-    elementsWithNodeId.forEach(element => {
+    for (const element of elementsWithNodeId) {
         // 设置custom-assistant-name属性为default
         element.setAttribute("custom-assistant-name", "default");
-    });
+    }
 
     // 检测并处理DOM中的工具调用
     处理工具调用(tempDiv, JAVASCRIPT_TOOLS_WAIT_CLASS, state.onWaitToolCallDetected, "工具调用", state);
