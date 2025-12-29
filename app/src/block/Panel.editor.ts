@@ -7,23 +7,9 @@ import { Protyle } from "../protyle";
 import { Constants } from "../constants";
 import { fetchPost } from "../util/fetch";
 import { showMessage } from "../dialog/message";
-import { App } from "../index";
-import { getWindowInnerHeight } from "../util/siyuanEnvironments/getWindowInnerHeight.environment";
 
-/**
- * 初始化编辑器的上下文参数
- */
-export interface EditorInitContext {
-    app: App;
-    refDefs: IRefDefs[];
-    isBacklink: boolean;
-    originalRefBlockIDs?: IObject | undefined;
-    targetElement?: HTMLElement | undefined;
-    x?: number | undefined;
-    y?: number | undefined;
-    editors: Protyle[];
-    onFirstEditorReady?: () => void;
-}
+import { getWindowInnerHeight } from "../util/siyuanEnvironments/getWindowInnerHeight.environment";
+import { EditorInitContext } from "./Panel.editor.types";
 
 /**
  * 初始化单个 Protyle 编辑器

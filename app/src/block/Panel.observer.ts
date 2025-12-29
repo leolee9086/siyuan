@@ -6,28 +6,20 @@
 import { Constants } from "../constants";
 import { hideElements } from "../protyle/ui/hideElements";
 import { resize } from "../protyle/util/resize";
-import { Protyle } from "../protyle";
+import { isHTMLElement } from "../util/DOM/element.guard";
+
 import {
     setTimeout,
     clearTimeout
 } from "../util/siyuanEnvironments/windowTimer.environment";
 
-/**
- * 设置观察器的参数
- */
-export interface 设置观察器参数 {
-    element: HTMLElement;
-    editors: Protyle[];
-    initProtyle: (editorElement: HTMLElement, afterCB?: () => void) => void;
-}
+import {
+    设置观察器参数,
+    观察器实例,
+    绑定滚动事件参数
+} from "./Panel.observer.types";
 
-/**
- * 设置观察器的返回值
- */
-export interface 观察器实例 {
-    observerResize: ResizeObserver;
-    observerLoad: IntersectionObserver;
-}
+
 
 /**
  * 设置 ResizeObserver 和 IntersectionObserver
@@ -48,8 +40,8 @@ export function 设置观察器(参数: 设置观察器参数): 观察器实例 
 
     const observerLoad = new IntersectionObserver((e) => {
         for (const item of e) {
-            if (item.isIntersecting && item.target.innerHTML === "") {
-                initProtyle(item.target as HTMLElement);
+            if (item.isIntersecting && isHTMLElement(item.target) && item.target.innerHTML === "") {
+                initProtyle(item.target);
             }
         }
     }, {
@@ -59,13 +51,7 @@ export function 设置观察器(参数: 设置观察器参数): 观察器实例 
     return { observerResize, observerLoad };
 }
 
-/**
- * 绑定滚动事件的参数
- */
-export interface 绑定滚动事件参数 {
-    element: HTMLElement;
-    editors: Protyle[];
-}
+
 
 /**
  * 绑定滚动事件，隐藏 gutter

@@ -12,6 +12,7 @@ import { openFileById } from "../editor/utils.openFileById";
 import { checkFold } from "../util/noRelyPCFunction";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { App } from "../index";
+import { headIconCtx } from "./Panel.types";
 
 /**
  * 切换面板的固定状态
@@ -50,17 +51,6 @@ function 应用固定状态(
     element.setAttribute("data-pin", "false");
 }
 
-/**
- * 执行图标操作的参数
- */
-export interface headIconCtx {
-    type: string | null;
-    target: HTMLElement;
-    element: HTMLElement;
-    refDefs: IRefDefs[];
-    app: App;
-    onDestroy: () => void;
-}
 
 /**
  * 执行图标点击后的操作

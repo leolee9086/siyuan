@@ -7,7 +7,8 @@ import { BlockPanel } from "../Panel";
 import { hasClosestByAttribute, hasClosestByClassName, hasClosestBlock } from "../../protyle/util/hasClosest";
 import { Constants } from "../../constants";
 import { isTouchDevice } from "../../util/functions";
-import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { isHTMLElement } from "../../util/DOM/element.guard";
+import { getSiyuanConfig, getSiyuanBlockPanels, getSiyuanMenus, getSiyuanKeyboardState } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 模块状态
@@ -33,15 +34,15 @@ export const setPopoverTargetElement = (element: HTMLElement) => {
  * 统一 hidePopover 和 getTarget 中的重复查找逻辑
  */
 export const findBlockRefTarget = (target: HTMLElement): HTMLElement | undefined => {
-    let element = hasClosestByAttribute(target, "data-type", "block-ref") as HTMLElement ||
-        hasClosestByAttribute(target, "data-type", "virtual-block-ref") as HTMLElement;
+    let element = hasClosestByAttribute(target, "data-type", "block-ref") ||
+        hasClosestByAttribute(target, "data-type", "virtual-block-ref");
 
     if (element && element.classList.contains("b3-tooltips")) {
         return undefined;
     }
 
     if (!element) {
-        element = hasClosestByClassName(target, "popover__block") as HTMLElement;
+        element = hasClosestByClassName(target, "popover__block");
     }
 
     return element || undefined;
@@ -68,8 +69,8 @@ export const findTargetFromPropagatedLink = (aElement: HTMLElement): HTMLElement
     if (!aElement.classList.contains("av__cell")) {
         return undefined;
     }
-    const textElement = aElement.querySelector(".av__celltext--url") as HTMLElement;
-    if (textElement?.dataset.type === "url" && textElement.dataset.href?.startsWith("siyuan://blocks")) {
+    const textElement = aElement.querySelector(".av__celltext--url");
+    if (isHTMLElement(textElement) && textElement.dataset.type === "url" && textElement.dataset.href?.startsWith("siyuan://blocks")) {
         return textElement;
     }
     return undefined;
@@ -94,8 +95,8 @@ export const isSpecialElement = (target: HTMLElement): boolean => {
 export const hasBlockingAVPanel = (target: HTMLElement): boolean => {
     const avPanelElement = hasClosestByClassName(target, "av__panel") || hasClosestByClassName(target, "av__mask");
     if (avPanelElement) {
-        const blockPanel = window.siyuan.blockPanels.find((item) => {
-            if (item.element.style.zIndex < (avPanelElement as HTMLElement).style.zIndex) {
+        const blockPanel = getSiyuanBlockPanels().find((item) => {
+            if (item.element && item.element.style.zIndex < avPanelElement.style.zIndex) {
                 return true;
             }
         });
@@ -110,8 +111,8 @@ export const hasBlockingAVPanel = (target: HTMLElement): boolean => {
 export const hasBlockingMenu = (target: HTMLElement): boolean => {
     const menuElement = hasClosestByClassName(target, "b3-menu");
     if (menuElement && menuElement.getAttribute("data-name") !== Constants.MENU_DOC_TREE_MORE) {
-        const blockPanel = window.siyuan.blockPanels.find((item) => {
-            if (item.element.style.zIndex < menuElement.style.zIndex) {
+        const blockPanel = getSiyuanBlockPanels().find((item) => {
+            if (item.element && item.element.style.zIndex < menuElement.style.zIndex) {
                 return true;
             }
         });
@@ -141,9 +142,12 @@ const hasSelectionInTarget = (target: HTMLElement): boolean => {
  */
 const getMaxEditLevels = (): Record<string, number> => {
     const maxEditLevels: Record<string, number> = { oid: 0 };
-    window.siyuan.blockPanels.forEach((item) => {
+    for (const item of getSiyuanBlockPanels()) {
+        if (!item.element) {
+            continue;
+        }
         if (!((item.targetElement || typeof item.x === "number") && item.element.getAttribute("data-pin") === "true")) {
-            return;
+            continue;
         }
 
         const level = parseInt(item.element.getAttribute("data-level") || "0");
@@ -151,7 +155,7 @@ const getMaxEditLevels = (): Record<string, number> => {
         if (!maxEditLevels[oid] || level > maxEditLevels[oid]) {
             maxEditLevels[oid] = level; // 不能为1，否则 pin 住第三层，第二层会消失
         }
-    });
+    }
     return maxEditLevels;
 };
 
@@ -160,7 +164,7 @@ const getMaxEditLevels = (): Record<string, number> => {
  */
 const hasOpenToolbar = (item: BlockPanel): boolean => {
     return !!item.editors.find(editItem => {
-        if (!editItem.protyle.toolbar.subElement.classList.contains("fn__none")) {
+        if (editItem.protyle?.toolbar?.subElement && !editItem.protyle.toolbar.subElement.classList.contains("fn__none")) {
             return true;
         }
     });
@@ -176,8 +180,11 @@ const cleanupBlockPanelsWithBlock = (
 ): void => {
     const blockLevel = parseInt(blockElement.getAttribute("data-level") || "0");
 
-    for (let i = window.siyuan.blockPanels.length - 1; i >= 0; i--) {
-        const item = window.siyuan.blockPanels[i];
+    for (let i = getSiyuanBlockPanels().length - 1; i >= 0; i--) {
+        const item = getSiyuanBlockPanels()[i];
+        if (!item?.element) {
+            continue;
+        }
         const itemLevel = parseInt(item.element.getAttribute("data-level") || "0");
 
         if (!((item.targetElement || typeof item.x === "number") &&
@@ -205,8 +212,11 @@ const cleanupAllUnpinnedBlockPanels = (
     targetElement: HTMLElement,
     menuLevel: number
 ): void => {
-    for (let i = window.siyuan.blockPanels.length - 1; i >= 0; i--) {
-        const item = window.siyuan.blockPanels[i];
+    for (let i = getSiyuanBlockPanels().length - 1; i >= 0; i--) {
+        const item = getSiyuanBlockPanels()[i];
+        if (!item?.element) {
+            continue;
+        }
         const itemLevel = parseInt(item.element.getAttribute("data-level") || "0");
 
         if (!((item.targetElement || typeof item.x === "number") && item.element.getAttribute("data-pin") === "false")) {
@@ -236,17 +246,17 @@ const cleanupPopovers = (target: HTMLElement, event: MouseEvent & { path?: HTMLE
     // 移动到弹窗的 loading 元素上，但经过 settimeout 后 loading 已经被移除了
     // https://ld246.com/article/1673596577519/comment/1673767749885#comments
     let targetElement = target;
-    if (!targetElement.parentElement && event.path?.[1]) {
-        targetElement = event.path![1];
+    if (!targetElement.parentElement && event.path && event.path[1]) {
+        targetElement = event.path[1];
     }
 
     const blockElement = hasClosestByClassName(targetElement, "block__popover", true);
     const maxEditLevels = getMaxEditLevels();
 
-    if (!window.siyuan.menus?.menu?.element) {
+    if (!getSiyuanMenus()?.menu?.element) {
         return;
     }
-    const menuLevel = parseInt(window.siyuan.menus.menu.element.dataset.from || "0");
+    const menuLevel = parseInt(getSiyuanMenus()?.menu?.element.dataset.from || "0");
 
     if (blockElement) {
         cleanupBlockPanelsWithBlock(blockElement, maxEditLevels, menuLevel);
@@ -265,8 +275,8 @@ const cleanupPopovers = (target: HTMLElement, event: MouseEvent & { path?: HTMLE
  */
 export const hidePopover = (event: MouseEvent & { path?: HTMLElement[] }): boolean => {
     // pad 端点击后 event.target 不会更新
-    const target = isTouchDevice() ? document.elementFromPoint(event.clientX, event.clientY) as HTMLElement : event.target as HTMLElement;
-    if (!target) {
+    const target = isTouchDevice() ? document.elementFromPoint(event.clientX, event.clientY) : event.target;
+    if (!isHTMLElement(target)) {
         return false;
     }
 
@@ -284,7 +294,7 @@ export const hidePopover = (event: MouseEvent & { path?: HTMLElement[] }): boole
     popoverTargetElement = findBlockRefTarget(target) || findLinkTarget(target);
 
     // 处理 BlockPanel 清理
-    if (!popoverTargetElement || (popoverTargetElement && window.siyuan.menus.menu.data && window.siyuan.menus.menu.data === popoverTargetElement)) {
+    if (!popoverTargetElement || (popoverTargetElement && getSiyuanMenus()?.menu?.data && getSiyuanMenus()?.menu?.data === popoverTargetElement)) {
         cleanupPopovers(target, event);
     }
 
@@ -309,8 +319,8 @@ export const getTarget = (event: MouseEvent & { target: HTMLElement }, aElement:
     }
 
     // 检查是否应该显示 popover
-    if (!popoverTargetElement || window.siyuan.altIsPressed ||
-        (getSiyuanConfig().editor.floatWindowMode === 0 && window.siyuan.ctrlIsPressed) ||
+    if (!popoverTargetElement || getSiyuanKeyboardState().altIsPressed ||
+        (getSiyuanConfig().editor.floatWindowMode === 0 && getSiyuanKeyboardState().ctrlIsPressed) ||
         popoverTargetElement?.getAttribute("prevent-popover") === "true") {
         return false;
     }

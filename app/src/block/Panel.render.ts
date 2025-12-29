@@ -102,11 +102,7 @@ function 处理嵌入块定位(element: HTMLElement, targetElement: HTMLElement,
 
 function 获取目标元素矩形(targetElement: HTMLElement): DOMRect | undefined {
     if (checkClassListContain(targetElement, "pdf__rect")) {
-        const firstChild = targetElement.firstElementChild;
-        if (firstChild) {
-            return firstChild.getBoundingClientRect();
-        }
-        return undefined;
+        return targetElement.firstElementChild?.getBoundingClientRect();
     }
     return targetElement.getBoundingClientRect();
 }
@@ -124,12 +120,16 @@ function 完成定位(element: HTMLElement, targetRect: DOMRect | undefined, inn
     const elementRect = element.getBoundingClientRect();
 
     if (targetRect) {
-        if (elementRect.top < targetRect.top) {
-            element.style.maxHeight = Math.floor(targetRect.top - elementRect.top - 8) + "px";
-        } else {
-            element.style.maxHeight = Math.floor(innerHeight - elementRect.top - 8) + "px";
-        }
+        设置悬浮窗高度(element, elementRect, targetRect, innerHeight);
     }
     element.classList.add("block__popover--open");
     element.style.zIndex = incrementSiyuanZIndex().toString();
+}
+
+function 设置悬浮窗高度(element: HTMLElement, elementRect: DOMRect, targetRect: DOMRect, innerHeight: number): void {
+    if (elementRect.top < targetRect.top) {
+        element.style.maxHeight = Math.floor(targetRect.top - elementRect.top - 8) + "px";
+        return;
+    }
+    element.style.maxHeight = Math.floor(innerHeight - elementRect.top - 8) + "px";
 }
