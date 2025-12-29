@@ -207,16 +207,12 @@ D:\dev\siyuan-note\app\src\ai\handleOpenAILikeStreamResponse.ts
   11:47  error  Arrow function has too many lines (82). Maximum allowed is 50  max-lines-per-function
 
 D:\dev\siyuan-note\app\src\ai\requestController.impl.ts
-    8:1   error  架构约束：禁止在业务/UI文件定义 Interface。请移至 *.types.ts。                                              no-restricted-syntax
-   38:36  error  Unexpected any. Specify a different type                                                 @typescript-eslint/no-explicit-any
-   44:5   error  Async method 'startRequest' has too many lines (51). Maximum allowed is 50               max-lines-per-function
-   82:30  error  ❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。                                             no-restricted-syntax
-   82:55  error  Unexpected any. Specify a different type                                                 @typescript-eslint/no-explicit-any
-  174:5   error  ❌ 禁止类的私有方法。
-原因: 类应该只作为状态和公开方法的容器,私有方法没有可测试切面。
-替代方案: 将私有逻辑提取为模块级辅助函数。                     no-restricted-syntax
-  176:30  error  Unexpected use of 'window'. ❌ 禁止直接访问 window。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。  no-restricted-globals
-  239:24  error  Unexpected any. Specify a different type                                                 @typescript-eslint/no-explicit-any
+   27:36  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+   33:5   error  Async method 'startRequest' has too many lines (52). Maximum allowed is 50  max-lines-per-function
+   73:30  error  ❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。                                no-restricted-syntax
+   73:55  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+  166:93  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+  231:24  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
 
 D:\dev\siyuan-note\app\src\ai\session\toolCallExecutor.ts
     7:8   error  架构约束：禁止在业务/UI文件定义 Interface。请移至 *.types.ts。  no-restricted-syntax
@@ -243,16 +239,6 @@ D:\dev\siyuan-note\app\src\asset\anno.config.ts
   89:62  error  Unexpected any. Specify a different type                                                @typescript-eslint/no-explicit-any
   96:8   error  ❌ 禁止超过 5 行的内联回调函数 (调用: fetchPost)。当前 6 行。请提取为命名函数以提高可读性。
 💡 豁免方式: 在调用语句前添加 // @内联回调 注释  no-inline-callback/no-inline-callback
-
-D:\dev\siyuan-note\app\src\asset\anno.getHightlightCoordsByRect.ts
-  23:78   error    Unexpected any. Specify a different type               @typescript-eslint/no-explicit-any
-  30:30   error    Unexpected any. Specify a different type               @typescript-eslint/no-explicit-any
-  30:135  error    Unexpected any. Specify a different type               @typescript-eslint/no-explicit-any
-  30:150  error    Unexpected any. Specify a different type               @typescript-eslint/no-explicit-any
-  35:28   error    ❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。           no-restricted-syntax
-  64:43   error    Unexpected any. Specify a different type               @typescript-eslint/no-explicit-any
-  68:48   error    Unexpected any. Specify a different type               @typescript-eslint/no-explicit-any
-  75:13   warning  'startPageElement' is assigned a value but never used  @typescript-eslint/no-unused-vars
 
 D:\dev\siyuan-note\app\src\asset\anno.getRectImgData.ts
   17:45  error  Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
@@ -27224,4 +27210,4 @@ D:\dev\siyuan-note\app\src\window\index.ts
   181:25   error  Unexpected use of 'window'. ❌ 禁止直接访问 window。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。               no-restricted-globals
   183:34   error  Unexpected use of 'window'. ❌ 禁止直接访问 window。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。               no-restricted-globals
 
-✖ 20721 problems (20563 errors, 158 warnings)
+✖ 20711 problems (20554 errors, 157 warnings)
