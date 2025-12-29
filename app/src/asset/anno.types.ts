@@ -230,3 +230,19 @@ export type ToolbarActionHandler = (ctx: ToolbarActionContext) => void;
  * ```
  */
 export type ToolbarActionRegistry = Record<string, ToolbarActionHandler>;
+
+/**
+ * 复制注释的核心逻辑参数
+ */
+export interface 复制注释参数 {
+    /** 注释 ID 路径 */
+    idPath: string;
+    /** 文件名 */
+    fileName: string;
+    /** PDF 实例 */
+    pdf: IPdfInstance;
+    /** 注释模式 */
+    mode: string | null;
+    /** 注释内容 */
+    content: string | null;
+}

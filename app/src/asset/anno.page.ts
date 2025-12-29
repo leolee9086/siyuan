@@ -50,7 +50,13 @@ export const getPageInfoFromPoint = (x: number, y: number): IPageInfo | null => 
  */
 export const getPageViewInfo = (pdf: IPdfInstance, pageIndex: number): IPageInfo => {
     const pageView = pdf.pdfViewer.getPageView(pageIndex);
+    if (!pageView) {
+        throw new Error(`无法获取页面视图: pageIndex=${pageIndex}`);
+    }
     const pageRect = pageView.canvas.getClientRects()[0];
+    if (!pageRect) {
+        throw new Error(`无法获取页面矩形: pageIndex=${pageIndex}`);
+    }
     const viewport = pageView.viewport;
 
     return {
