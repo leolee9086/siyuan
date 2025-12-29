@@ -1,7 +1,7 @@
 import { use } from "./router.use";
 import { routes } from "./router.routes";
 import { getAllowedMethods, handleNotImplementedMethod, handleOptionsRequest, handleMethodNotAllowed } from "./router.allowedMethods";
-import { createHttpMethodHandler, HttpMethodHandler } from "./router.httpMethod";
+import { createHttpMethodHandler } from "./router.httpMethod";
 import { register } from "./router.register";
 import { match } from "./router.match";
 import { all } from "./router.all";
@@ -18,16 +18,8 @@ import type {
     RouteParamType,
     MiddlewareWithRouter,
     HttpMethod,
+    HttpMethodHandler,
 } from "./types";
-
-const Errors: HttpErrors = {
-    NotImplemented: () => {
-        return new Error("not implemented");
-    },
-    MethodNotAllowed: () => {
-        return new Error("method not allowed");
-    }
-};
 
 const HttpError = Errors;
 
@@ -50,7 +42,7 @@ class Router<
     TRequestBodySchema extends z.ZodTypeAny = z.ZodTypeAny,
     TResponseBodySchema extends z.ZodTypeAny = z.ZodTypeAny
 > extends baseRouter {
-    
+
     // 泛型HTTP方法定义
     public get: HttpMethodHandler<"get", TRequestBodySchema, TResponseBodySchema>;
     public post: HttpMethodHandler<"post", TRequestBodySchema, TResponseBodySchema>;
@@ -82,8 +74,8 @@ class Router<
     constructor(opts: RouterOptions = {}) {
         super();
         if (!(this instanceof Router)) {
-return new Router(opts);
-}
+            return new Router(opts);
+        }
 
         // 将传入的选项赋值给this.opts
         this.opts = opts;
@@ -110,7 +102,7 @@ return new Router(opts);
         // 初始化泛型HTTP方法
         this.initializeHttpMethods();
     }
-    
+
     /**
      * 初始化HTTP方法处理器
      */
@@ -142,9 +134,9 @@ return new Router(opts);
         this.search = createHttpMethodHandler(this, "search");
         this.connect = createHttpMethodHandler(this, "connect");
     }
-    
+
     // use方法
-    use(...args: (MiddlewareFunction<TRequestBodySchema, TResponseBodySchema> | MiddlewareWithRouter | string[]|string)[]): this {
+    use(...args: (MiddlewareFunction<TRequestBodySchema, TResponseBodySchema> | MiddlewareWithRouter | string[] | string)[]): this {
         use(this, ...args);
         return this;
     }
@@ -156,7 +148,7 @@ return new Router(opts);
     public createHttpMethod<T extends HttpMethod>(method: T): HttpMethodHandler<T> {
         return createHttpMethodHandler(this, method);
     }
-      // 静态url方法
+    // 静态url方法
     static url(path: string, ...restArgs: any[]): string {
         const args = Array.prototype.slice.call(restArgs);
         return Layer.prototype.url.apply({ path }, args);

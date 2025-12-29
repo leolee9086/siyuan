@@ -183,7 +183,7 @@ export interface IAnnoCoords {
     /** 注释模式 */
     mode: "text" | "rect" | string;
     /** 关联的注释ID列表 */
-    ids?: string[];
+    ids?: string[] | undefined;
 }
 
 /**

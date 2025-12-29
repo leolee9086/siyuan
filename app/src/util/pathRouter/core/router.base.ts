@@ -1,7 +1,7 @@
 import { use } from "./router.use";
 import { routes } from "./router.routes";
 import { getAllowedMethods, handleNotImplementedMethod, handleOptionsRequest, handleMethodNotAllowed } from "./router.allowedMethods";
-import { createHttpMethodHandler, HttpMethodHandler } from "./router.httpMethod";
+import { createHttpMethodHandler } from "./router.httpMethod";
 import { register } from "./router.register";
 import { match } from "./router.match";
 import { all } from "./router.all";
@@ -18,6 +18,7 @@ import type {
     RouteParamType,
     MiddlewareWithRouter,
     HttpMethod,
+    HttpMethodHandler,
 } from "./types";
 
 const Errors: HttpErrors = {
@@ -31,8 +32,33 @@ const Errors: HttpErrors = {
 
 const HttpError = Errors;
 
+function handleAllowedMethodsResponse(ctx: Context, options: AllowedMethodsOptions, implemented: string[]) {
+    if (ctx.status && ctx.status !== 404) {
+        return;
+    }
 
-import Layer from "./layer";
+    const allowedArr = getAllowedMethods(ctx);
+
+    if (!~implemented.indexOf(ctx.method)) {
+        handleNotImplementedMethod(ctx, implemented, options, HttpError);
+        return;
+    }
+
+    if (allowedArr.length === 0) {
+        return;
+    }
+
+    if (ctx.method === "OPTIONS") {
+        handleOptionsRequest(ctx);
+        return;
+    }
+
+    if (!allowedArr.includes(ctx.method)) {
+        handleMethodNotAllowed(ctx, options, HttpError);
+    }
+}
+
+
 import { LayerLike } from "./layerLike.types";
 
 /**
@@ -49,17 +75,17 @@ class baseRouter<
     TRequestBodySchema extends z.ZodTypeAny = z.ZodTypeAny,
     TResponseBodySchema extends z.ZodTypeAny = z.ZodTypeAny
 > {
-    public opts: RouterOptions;
-    public methods: string[];
-    public exclusive: boolean;
-    public params: Record<string, ParamMiddlewareFunction>;
-    public stack: any[];
-    public host?: string | RegExp;
-    
+    public opts!: RouterOptions;
+    public methods!: string[];
+    public exclusive!: boolean;
+    public params!: Record<string, ParamMiddlewareFunction>;
+    public stack!: LayerLike[];
+    public host?: string | RegExp | undefined;
+
     constructor(opts: RouterOptions = {}) {
         if (!(this instanceof baseRouter)) {
-return new baseRouter(opts);
-}
+            return new baseRouter(opts);
+        }
 
         // 将传入的选项赋值给this.opts
         this.opts = opts;
@@ -84,10 +110,10 @@ return new baseRouter(opts);
         // 如果传入的选项中包含host，则将其赋值给this.host
         this.host = this.opts.host;
     }
-  
+
 
     // use方法
-    use(...args: (MiddlewareFunction<TRequestBodySchema, TResponseBodySchema> | MiddlewareWithRouter | string[]|string)[]): this {
+    use(...args: (MiddlewareFunction<TRequestBodySchema, TResponseBodySchema> | MiddlewareWithRouter | string[] | string)[]): this {
         use(this, ...args);
         return this;
     }
@@ -98,7 +124,9 @@ return new baseRouter(opts);
         this.opts.prefix = prefix;
         for (let i = 0; i < this.stack.length; i++) {
             const route = this.stack[i];
-            route.setPrefix(prefix);
+            if (route) {
+                route.setPrefix(prefix);
+            }
         }
         return this;
     }
@@ -111,21 +139,7 @@ return new baseRouter(opts);
     allowedMethods(options: AllowedMethodsOptions = {}): MiddlewareFunction {
         const implemented = this.methods;
         return function allowedMethods(ctx: Context, next: () => Promise<void> | void): Promise<void> | void {
-            return Promise.resolve(next()).then(function () {
-                if (!ctx.status || ctx.status === 404) {
-                    const allowedArr = getAllowedMethods(ctx);
-
-                    if (!~implemented.indexOf(ctx.method)) {
-                        handleNotImplementedMethod(ctx, implemented, options, HttpError);
-                    } else if (allowedArr.length > 0) {
-                        if (ctx.method === "OPTIONS") {
-                            handleOptionsRequest(ctx);
-                        } else if (!allowedArr.includes(ctx.method)) {
-                            handleMethodNotAllowed(ctx, options, HttpError);
-                        }
-                    }
-                }
-            });
+            return Promise.resolve(next()).then(() => handleAllowedMethodsResponse(ctx, options, implemented));
         };
     }
     // all方法
@@ -137,27 +151,27 @@ return new baseRouter(opts);
     redirect(source: string | RegExp, destination: string | symbol, code?: number): this {
         // lookup source route by name
         if (typeof source === "symbol" || (typeof source === "string" && source[0] !== "/")) {
-            const sourceResult = this.url(source);
-            if (sourceResult instanceof Error) {
-throw sourceResult;
-}
-            source = sourceResult;
+            source = this.resolveRoutePath(source);
         }
         // lookup destination route by name
         if (
             typeof destination === "symbol" ||
             (typeof destination === "string" && destination[0] !== "/" && !destination.includes("://"))
         ) {
-            const destResult = this.url(destination);
-            if (destResult instanceof Error) {
-throw destResult;
-}
-            destination = destResult;
+            destination = this.resolveRoutePath(destination);
         }
         return this.all(null, source, (ctx: Context) => {
-            ctx.redirect(destination);
+            ctx.redirect?.(destination);
             ctx.status = code || 301;
         });
+    }
+
+    resolveRoutePath(path: string | RegExp | symbol): string {
+        const result = this.url(path);
+        if (result instanceof Error) {
+            throw result;
+        }
+        return result;
     }
 
     // register方法
@@ -170,20 +184,21 @@ throw destResult;
         const routes = this.stack;
 
         for (let len = routes.length, i = 0; i < len; i++) {
-            if (routes[i].name && routes[i].name === name) {
-return routes[i];
-}
+            const route = routes[i];
+            if (route && route.name && route.name === name) {
+                return route;
+            }
         }
 
         return false;
     }
 
     // url方法
-    url(name: string | RegExp | symbol, ...args: any): string | Error {
+    url(name: string | RegExp | symbol, params?: Record<string, string | number | boolean> | (string | number | boolean)[], options?: { query?: string | Record<string, string | number | boolean> }): string | Error {
         const route = this.route(name);
         if (route) {
-return route.url.apply(route, args);
-}
+            return route.url(params || {}, options);
+        }
         return new Error(`No route found for name: ${String(name)}`);
     }
 
@@ -208,6 +223,7 @@ return route.url.apply(route, args);
         if (typeof host === "object" && host instanceof RegExp) {
             return host.test(input);
         }
+        return false;
     }
 
     // param方法
@@ -215,12 +231,14 @@ return route.url.apply(route, args);
         this.params[param] = middleware;
         for (let i = 0; i < this.stack.length; i++) {
             const route = this.stack[i];
-            route.param(param, middleware);
+            if (route) {
+                route.param(param, middleware);
+            }
         }
         return this;
     }
 
-  
+
 }
 
 export default baseRouter;

@@ -21,6 +21,9 @@ export const getHighlight = (element: HTMLElement) => {
     const config = getConfig(pdfInstance);
     for (const key of Object.keys(config)) {
         const item = config[key];
+        if (!item) {
+            continue;
+        }
         const page = item.pages.find((page: { index: number; }) => page.index === pageIndex);
 
         if (page) {

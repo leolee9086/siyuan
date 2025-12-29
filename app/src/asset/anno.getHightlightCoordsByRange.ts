@@ -179,14 +179,14 @@ const createAnnotationResults = (params: AnnotationResultParams) => {
     const id = Lute.NewNodeID();
     const pages: {
         index: number;
-        positions: number[];
+        positions: number[][];
     }[] = [];
     const results = [];
 
     if (startSelected.length > 0) {
         pages.push({
             index: startIndex,
-            positions: startSelected,
+            positions: [startSelected],
         });
         const pageInfo = getPageViewInfo(pdf, startIndex);
         results.push(createAnnoCoords(pageInfo, startSelected, id, color, content, "text", "text"));
@@ -194,7 +194,7 @@ const createAnnotationResults = (params: AnnotationResultParams) => {
     if (endSelected.length > 0) {
         pages.push({
             index: endIndex,
-            positions: endSelected,
+            positions: [endSelected],
         });
         const pageInfo = getPageViewInfo(pdf, endIndex);
         results.push(createAnnoCoords(pageInfo, endSelected, id, color, content, "text", "text"));
@@ -205,6 +205,7 @@ const createAnnotationResults = (params: AnnotationResultParams) => {
     }
 
     setConfig(pdf, id, {
+        id,
         pages,
         content,
         color,

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import Router from "./router.htttpRouter";
+import type Router from "./router.htttpRouter";
 import { LayerLike } from "./layerLike.types";
 
 
@@ -375,8 +375,20 @@ export type MiddlewareType<
   TResponseBodySchema extends z.ZodTypeAny = z.ZodTypeAny
 > = MiddlewareFunction<TRequestBodySchema, TResponseBodySchema> | MiddlewareFunction<TRequestBodySchema, TResponseBodySchema>[];
 
-// 路由参数类型定义
 export type RouteParamType<
   TRequestBodySchema extends z.ZodTypeAny = z.ZodTypeAny,
   TResponseBodySchema extends z.ZodTypeAny = z.ZodTypeAny
-> = PathType | MiddlewareType<TRequestBodySchema, TResponseBodySchema>;
+> = PathType | MiddlewareType<TRequestBodySchema, TResponseBodySchema> | null;
+
+/**
+ * HTTP方法处理函数类型
+ */
+export type HttpMethodHandler<
+  T extends HttpMethod = HttpMethod,
+  TRequestBodySchema extends z.ZodTypeAny = z.ZodTypeAny,
+  TResponseBodySchema extends z.ZodTypeAny = z.ZodTypeAny
+> = (
+  nameOrPath: string | RegExp | string[] | null,
+  pathOrMiddleware: string | RegExp | string[] | MiddlewareFunction<TRequestBodySchema, TResponseBodySchema> | MiddlewareFunction<TRequestBodySchema, TResponseBodySchema>[],
+  ...rest: (MiddlewareFunction<TRequestBodySchema, TResponseBodySchema> | RouteOptions)[]
+) => Router<TRequestBodySchema, TResponseBodySchema>;

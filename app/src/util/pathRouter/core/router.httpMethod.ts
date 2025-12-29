@@ -2,30 +2,20 @@ import type {
     MiddlewareFunction,
     RouteOptions,
     HttpMethod,
+    HttpMethodHandler,
 } from "./types";
-import Router from "./router.htttpRouter";
+import type Router from "./router.htttpRouter";
 import { z } from "zod";
- 
- /**
-  * HTTP方法处理函数类型
-  */
- export type HttpMethodHandler<
-    T extends HttpMethod = HttpMethod,
-    TRequestBodySchema extends z.ZodTypeAny = z.ZodTypeAny,
-    TResponseBodySchema extends z.ZodTypeAny = z.ZodTypeAny
-> = (
-    nameOrPath: string | RegExp | string[] | null,
-    pathOrMiddleware: string | RegExp | string[] | MiddlewareFunction<TRequestBodySchema, TResponseBodySchema> | MiddlewareFunction<TRequestBodySchema, TResponseBodySchema>[],
-    ...rest: (MiddlewareFunction<TRequestBodySchema, TResponseBodySchema> | RouteOptions)[]
-) => Router<TRequestBodySchema, TResponseBodySchema>;
- 
- /**
-  * 创建HTTP方法处理函数
-  * @param router Router实例
-  * @param method HTTP方法名
-  * @returns HTTP方法处理函数
-  */
- export function createHttpMethodHandler<
+
+
+
+/**
+ * 创建HTTP方法处理函数
+ * @param router Router实例
+ * @param method HTTP方法名
+ * @returns HTTP方法处理函数
+ */
+export function createHttpMethodHandler<
     T extends HttpMethod,
     TRequestBodySchema extends z.ZodTypeAny,
     TResponseBodySchema extends z.ZodTypeAny
@@ -46,7 +36,7 @@ import { z } from "zod";
             return typeof value === "function";
         };
 
-      
+
 
         // 处理命名路由的情况: router.get('name', '/path', middleware)
         if (isPath(pathOrMiddleware)) {
