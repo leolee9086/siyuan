@@ -45,3 +45,20 @@ export interface 移除标记结果 {
     startOffset?: number | undefined;
     keepZWPS: boolean;
 }
+
+/**
+ * setInlineMark 上下文信息
+ */
+export interface 标记上下文 {
+    /** 选区包含的类型列表 */
+    rangeTypes: string[];
+    /** 是否同节点选择 */
+    isSameNode: boolean;
+    /** 选中的文本 */
+    selectText: string;
+    /** 是否保持 ZWSP */
+    keepZWPS: boolean;
+    /** 是否应该早期返回 */
+    shouldReturn: boolean;
+}
+
