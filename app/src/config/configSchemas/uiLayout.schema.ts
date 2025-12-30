@@ -202,7 +202,7 @@ const layoutWndSchema = z.object({
 
 
 // 使用 z.lazy() 来处理循环引用，并添加明确的类型注解
-const layoutLayoutSchema: z.ZodType<Config.IUILayoutLayout> = z.object({
+export const layoutLayoutSchema: z.ZodType<Config.IUILayoutLayout> = z.object({
     children: z.array(z.lazy(() => z.union([layoutLayoutSchema, layoutWndSchema]))),
     direction: layoutDirectionSchema,
     instance: z.literal("Layout"),
@@ -240,12 +240,11 @@ function validateTypeCompatibility(): InferredUILayout {
 function validateTypeCompatibilityReverse(): Config.IConf["uiLayout"] {
     return {} as InferredUILayout; // 如果类型不匹配，这里会报错
 }
-export const parseAsUiLayoutConfig = (rawConf: {}): Config.IConf["uiLayout"] => {
+export const parseAsUiLayoutConfig = (rawConf: object): Config.IConf["uiLayout"] => {
     const result = schema.safeParse(rawConf);
 
     if (!result.success) {
         throw new Error(`UI布局配置解析失败: ${result.error.message}`);
     }
-
     return result.data;
 };

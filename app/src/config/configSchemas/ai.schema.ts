@@ -84,7 +84,7 @@ function validateTypeCompatibilityReverse(): Config.IConf["ai"] {
 }
 
 // 解析函数
-export const parseAsAiConfig = (rawConf: {}): Config.IConf["ai"] => {
+export const parseAsAiConfig = (rawConf: object): Config.IConf["ai"] => {
     const result = schema.safeParse(rawConf);
 
     if (!result.success) {
@@ -94,7 +94,7 @@ export const parseAsAiConfig = (rawConf: {}): Config.IConf["ai"] => {
             message: issue.message,
             code: issue.code
         }));
-        
+
         throw new Error(`AI配置解析失败: ${JSON.stringify(errorDetails, null, 2)}`);
     }
 
