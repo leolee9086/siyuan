@@ -68,11 +68,9 @@ function 处理ZWSP场景(
         return { rangeTypes, keepZWPS: false };
     }
 
-    let newElement: HTMLElement | null;
+    let newElement: HTMLElement | null = range.startContainer.parentElement;
     if (range.startContainer.nodeType === 1 && isHTMLElement(range.startContainer)) {
         newElement = range.startContainer;
-    } else {
-        newElement = range.startContainer.parentElement;
     }
 
     if (!newElement || newElement.tagName !== "SPAN") {

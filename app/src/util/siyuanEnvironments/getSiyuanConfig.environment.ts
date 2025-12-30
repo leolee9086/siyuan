@@ -234,3 +234,25 @@ export const setSiyuanHideBreadcrumb = (hide: boolean) => {
         window.siyuan.hideBreadcrumb = hide;
     }
 };
+
+/**
+ * 获取插件的自定义快捷键
+ * @param pluginName 插件名称
+ * @param toolbarItemName 工具栏项名称
+ * @returns 自定义快捷键字符串，如果不存在则返回 undefined
+ */
+export const getPluginCustomHotkey = (pluginName: string, toolbarItemName: string): string | undefined => {
+    const keymapPlugin = window.siyuan?.config?.keymap?.plugin;
+    if (!keymapPlugin) {
+        return undefined;
+    }
+    const pluginKeymap = keymapPlugin[pluginName];
+    if (!pluginKeymap) {
+        return undefined;
+    }
+    const itemKeymap = pluginKeymap[toolbarItemName];
+    if (!itemKeymap) {
+        return undefined;
+    }
+    return itemKeymap.custom;
+};
