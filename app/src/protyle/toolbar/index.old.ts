@@ -36,20 +36,32 @@ import { matchHotKey } from "../util/hotKey";
 import { hideElements } from "../ui/hideElements";
 import { electronUndo } from "../undo";
 import { previewTemplate, toolbarKeyToMenu } from "./util";
-import { hideMessage, showMessage } from "../../dialog/message";
 import { InlineMath } from "./InlineMath";
 import { InlineMemo } from "./InlineMemo";
-import { mathRender } from "../render/mathRender";
-import { linkMenu } from "../../menus/protyle";
-import { addScript } from "../util/addScript";
 import { confirmDialog } from "../../dialog/confirmDialog";
 import { paste, pasteAsPlainText, pasteEscaped } from "../util/paste";
 import { escapeHtml } from "../../util/escape";
 import { resizeSide } from "../../history/resizeSide";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { mergeNodes } from "../../util/DOM/rangeOperations";
-import { 显示特殊类型菜单, 整理零宽空格, 合并相邻同类型元素, 移除内联标记, 添加内联标记, 准备标记内容, 清理内联标记内容 } from "./inlineMark";
-
+import { 显示特殊类型菜单, 整理零宽空格, 合并相邻同类型元素, 移除内联标记, 添加内联标记, 准备标记内容, 清理内联标记内容, 构建标记上下文 } from "./inlineMark";
+import {
+    确定渲染标题,
+    获取文本框初始值,
+    检查固定状态,
+    生成渲染面板HTML,
+    处理头部按钮点击,
+    处理文本输入,
+    处理键盘事件,
+    发射插件打开事件,
+    导出为图片,
+    创建关闭回调,
+    创建自动高度函数,
+    type 渲染面板上下文
+} from "./showRender";
+/**
+ * 需要拆分重构,直到消除所有lint错误和ts错误
+ */
 export class Toolbar {
     public element: HTMLElement;
     public subElement: HTMLElement;
@@ -256,55 +268,14 @@ export class Toolbar {
             this.range = setLastNodeRange(getContenteditableElement(nodeElement), this.range, false);
         }
 
-        let rangeTypes: string[] = [];
-        this.range.cloneContents().childNodes.forEach((item: HTMLElement) => {
-            if (item.nodeType !== 3) {
-                rangeTypes = rangeTypes.concat((item.getAttribute("data-type") || "").split(" "));
-            }
-        });
-        let rangeStartNextSibling = hasNextSibling(this.range.startContainer);
-        while (rangeStartNextSibling && rangeStartNextSibling.nodeType === 1 && (rangeStartNextSibling as HTMLElement).tagName === "BR") {
-            rangeStartNextSibling = hasNextSibling(rangeStartNextSibling);
+
+        // 构建上下文信息
+        const context = 构建标记上下文(this.range, type, textObj);
+        if (context.shouldReturn) {
+            return;
         }
-        const isSameNode = this.range.startContainer === this.range.endContainer ||
-            (rangeStartNextSibling && rangeStartNextSibling === this.range.endContainer &&
-                this.range.startContainer.parentElement === this.range.endContainer.parentElement);
-        if (this.range.startContainer.nodeType === 3 && this.range.startContainer.parentElement.tagName === "SPAN" &&
-            isSameNode &&
-            this.range.startOffset > -1 && this.range.endOffset <= this.range.endContainer.textContent.length) {
-            rangeTypes = rangeTypes.concat((this.range.startContainer.parentElement.getAttribute("data-type") || "").split(" "));
-        }
-        const selectText = this.range.toString();
-        let keepZWPS = false;
-        // ctrl+b/u/i  https://github.com/siyuan-note/siyuan/issues/14820
-        if (!selectText && this.range.startOffset === 1 && this.range.startContainer.textContent === Constants.ZWSP) {
-            let newElement;
-            if (this.range.startContainer.nodeType === 1) {
-                newElement = this.range.startContainer as HTMLElement;
-            } else {
-                newElement = this.range.startContainer.parentElement;
-            }
-            if (newElement.tagName === "SPAN") {
-                rangeTypes = rangeTypes.concat((newElement.getAttribute("data-type") || "").split(" "));
-                this.range.setStart(newElement.firstChild, 0);
-                this.range.setEnd(newElement.lastChild, newElement.lastChild.textContent.length || 0);
-                keepZWPS = true;
-            }
-        }
-        if (rangeTypes.length === 1) {
-            // https://github.com/siyuan-note/siyuan/issues/6501
-            // https://github.com/siyuan-note/siyuan/issues/12877
-            if (["block-ref", "virtual-block-ref", "file-annotation-ref", "a", "inline-memo", "inline-math", "tag"].includes(rangeTypes[0]) && type === "clear") {
-                return;
-            }
-        }
-        // https://github.com/siyuan-note/siyuan/issues/14534
-        if (rangeTypes.includes("text") && type === "text" && textObj && this.range.startContainer.nodeType === 3 && this.range.startContainer === this.range.endContainer) {
-            const selectParentElement = this.range.startContainer.parentElement;
-            if (selectParentElement && hasSameTextStyle(null, selectParentElement, textObj)) {
-                return;
-            }
-        }
+        const { rangeTypes, isSameNode, selectText } = context;
+        let keepZWPS = context.keepZWPS;
         fixTableRange(this.range);
 
         const { contents, html, needWrapTarget, isEndSpan } = 准备标记内容(
@@ -428,376 +399,109 @@ export class Toolbar {
         }
         hideElements(["hint"], protyle);
         window.siyuan.menus.menu.remove();
-        const id = nodeElement.getAttribute("data-node-id");
-        const types = (renderElement.getAttribute("data-type") || "").split(" ");
-        const html = oldHTML || nodeElement.outerHTML;
-        let title = "HTML";
-        let placeholder = "";
-        const isInlineMemo = types.includes("inline-memo");
-        switch (renderElement.getAttribute("data-subtype")) {
-            case "abc":
-                title = siyuanI18n.staff;
-                break;
-            case "echarts":
-                title = siyuanI18n.chart;
-                break;
-            case "flowchart":
-                title = "Flow Chart";
-                break;
-            case "graphviz":
-                title = "Graphviz";
-                break;
-            case "mermaid":
-                title = "Mermaid";
-                break;
-            case "mindmap":
-                placeholder = `- foo
-  - bar
-- baz`;
-                title = siyuanI18n.mindmap;
-                break;
-            case "plantuml":
-                title = "UML";
-                break;
-            case "math":
-                if (types.includes("NodeMathBlock")) {
-                    title = siyuanI18n.math;
-                } else {
-                    title = siyuanI18n["inline-math"];
-                }
-                break;
-        }
-        if (types.includes("NodeBlockQueryEmbed")) {
-            title = siyuanI18n.blockEmbed;
-        } else if (isInlineMemo) {
-            title = siyuanI18n.memo;
-        }
-        const isPin = this.subElement.querySelector('[data-type="pin"]')?.getAttribute("aria-label") === siyuanI18n.unpin;
-        const pinData: IObject = {};
-        if (isPin) {
-            const textElement = this.subElement.querySelector(".b3-text-field") as HTMLTextAreaElement;
-            pinData.styleH = textElement.style.height;
-            pinData.styleW = textElement.style.width;
-        } else {
+
+        const id = nodeElement.getAttribute("data-node-id") ?? "";
+        const types = (renderElement.getAttribute("data-type") ?? "").split(" ");
+        const html = oldHTML ?? nodeElement.outerHTML;
+        const subtype = renderElement.getAttribute("data-subtype");
+        const 是否行内备注 = types.includes("inline-memo");
+
+        // 确定标题和占位符
+        const { 标题, 占位符 } = 确定渲染标题(subtype, types, 是否行内备注);
+
+        // 检查固定状态
+        const { 是否固定, 固定样式, 是否拖拽中, 刷新按钮激活 } = 检查固定状态(this.subElement);
+
+        if (!是否固定) {
             this.subElement.style.width = "";
             this.subElement.style.padding = "0";
         }
-        this.subElement.innerHTML = `<div ${(isPin && this.subElement.firstElementChild.getAttribute("data-drag") === "true") ? 'data-drag="true"' : ""}><div class="block__icons block__icons--menu fn__flex" style="border-radius: var(--b3-border-radius-b) var(--b3-border-radius-b) 0 0;">
-    <span class="fn__flex-1 resize__move" style="line-height: 24px;">
-        ${title}
-    </span>
-    <span class="fn__space"></span>
-    <button data-type="refresh" class="block__icon block__icon--show b3-tooltips b3-tooltips__nw${(isPin && !this.subElement.querySelector('[data-type="refresh"]').classList.contains("block__icon--active")) ? "" : " block__icon--active"}${types.includes("NodeBlockQueryEmbed") ? " fn__none" : ""}" aria-label="${siyuanI18n.refresh}"><svg><use xlink:href="#iconRefresh"></use></svg></button>
-    <span class="fn__space"></span>
-    <button data-type="before" class="block__icon block__icon--show b3-tooltips b3-tooltips__nw${protyle.disabled ? " fn__none" : ""}" aria-label="${siyuanI18n.insertBefore}"><svg><use xlink:href="#iconBefore"></use></svg></button>
-    <span class="fn__space${protyle.disabled ? " fn__none" : ""}"></span>
-    <button data-type="after" class="block__icon block__icon--show b3-tooltips b3-tooltips__nw${protyle.disabled ? " fn__none" : ""}" aria-label="${siyuanI18n.insertAfter}"><svg><use xlink:href="#iconAfter"></use></svg></button>
-    <span class="fn__space${protyle.disabled ? " fn__none" : ""}"></span>
-    <button data-type="export" class="block__icon block__icon--show b3-tooltips b3-tooltips__nw" aria-label="${siyuanI18n.export} ${siyuanI18n.image}"><svg><use xlink:href="#iconImage"></use></svg></button>
-    <span class="fn__space"></span>
-    <button data-type="pin" class="block__icon block__icon--show b3-tooltips b3-tooltips__nw" aria-label="${isPin ? siyuanI18n.unpin : siyuanI18n.pin}"><svg><use xlink:href="#icon${isPin ? "Unpin" : "Pin"}"></use></svg></button>
-    <span class="fn__space"></span>
-    <button data-type="close" class="block__icon block__icon--show b3-tooltips b3-tooltips__nw" aria-label="${siyuanI18n.close}"><svg style="width: 10px;margin: 0 2px;"><use xlink:href="#iconClose"></use></svg></button>
-</div>
-<textarea ${protyle.disabled ? " readonly" : ""} spellcheck="false" class="b3-text-field b3-text-field--text fn__block" placeholder="${placeholder}" style="${isMobile() ? "" : "width:" + Math.max(480, renderElement.clientWidth * 0.7) + "px"};max-height:calc(80vh - 44px);min-height: 48px;min-width: 268px;border-radius: 0 0 var(--b3-border-radius-b) var(--b3-border-radius-b);font-family: var(--b3-font-family-code);"></textarea></div>`;
-        const autoHeight = () => {
-            textElement.style.height = textElement.scrollHeight + "px";
-            if (isMobile()) {
-                setPosition(this.subElement, 0, 0);
-                return;
-            }
-            if (this.subElement.firstElementChild.getAttribute("data-drag") === "true") {
-                if (textElement.getBoundingClientRect().bottom > window.innerHeight) {
-                    this.subElement.style.top = window.innerHeight - this.subElement.clientHeight + "px";
-                }
-                return;
-            }
-            const bottom = nodeRect.bottom === nodeRect.top ? nodeRect.bottom + 26 : nodeRect.bottom;
-            if (this.subElement.clientHeight <= window.innerHeight - bottom || this.subElement.clientHeight <= nodeRect.top) {
-                if (types.includes("inline-math") || isInlineMemo) {
-                    setPosition(this.subElement, nodeRect.left, bottom, nodeRect.height || 26);
-                } else {
-                    setPosition(this.subElement, nodeRect.left + (nodeRect.width - this.subElement.clientWidth) / 2, bottom, nodeRect.height || 26);
-                }
-            } else {
-                setPosition(this.subElement, nodeRect.right, bottom);
-            }
-        };
-        const headerElement = this.subElement.querySelector(".block__icons");
-        headerElement.addEventListener("click", (event: MouseEvent) => {
-            const target = event.target as HTMLElement;
-            const btnElement = hasClosestByClassName(target, "b3-tooltips");
-            if (!btnElement) {
-                if (event.detail === 2) {
-                    const pingElement = headerElement.querySelector('[data-type="pin"]');
-                    if (pingElement.getAttribute("aria-label") === siyuanI18n.unpin) {
-                        pingElement.querySelector("svg use").setAttribute("xlink:href", "#iconPin");
-                        pingElement.setAttribute("aria-label", siyuanI18n.pin);
-                    } else {
-                        pingElement.querySelector("svg use").setAttribute("xlink:href", "#iconUnpin");
-                        pingElement.setAttribute("aria-label", siyuanI18n.unpin);
-                    }
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-                return;
-            }
-            event.stopPropagation();
-            switch (btnElement.getAttribute("data-type")) {
-                case "close":
-                    this.subElement.querySelector('[data-type="pin"]').setAttribute("aria-label", siyuanI18n.pin);
-                    hideElements(["util"], protyle);
-                    break;
-                case "pin":
-                    if (btnElement.getAttribute("aria-label") === siyuanI18n.unpin) {
-                        btnElement.querySelector("svg use").setAttribute("xlink:href", "#iconPin");
-                        btnElement.setAttribute("aria-label", siyuanI18n.pin);
-                    } else {
-                        btnElement.querySelector("svg use").setAttribute("xlink:href", "#iconUnpin");
-                        btnElement.setAttribute("aria-label", siyuanI18n.unpin);
-                    }
-                    break;
-                case "refresh":
-                    btnElement.classList.toggle("block__icon--active");
-                    break;
-                case "before":
-                    insertEmptyBlock(protyle, "beforebegin", id);
-                    hideElements(["util"], protyle);
-                    break;
-                case "after":
-                    insertEmptyBlock(protyle, "afterend", id);
-                    hideElements(["util"], protyle);
-                    break;
-                case "export":
-                    exportImg();
-                    break;
-            }
+
+        // 生成面板 HTML
+        this.subElement.innerHTML = 生成渲染面板HTML({
+            标题,
+            占位符,
+            是否固定,
+            是否禁用: protyle.disabled,
+            是否行内备注,
+            类型列表: types,
+            渲染元素宽度: renderElement.clientWidth,
+            是否拖拽中,
+            刷新按钮激活
         });
-        const exportImg = () => {
-            const msgId = showMessage(siyuanI18n.exporting, 0);
-            if (renderElement.getAttribute("data-subtype") === "plantuml") {
-                fetch(renderElement.querySelector("object").getAttribute("data")).then(function (response) {
-                    return response.blob();
-                }).then(function (blob) {
-                    const formData = new FormData();
-                    formData.append("file", blob);
-                    formData.append("type", "image/svg+xml");
-                    fetchPost("/api/export/exportAsFile", formData, (response) => {
-                        openByMobile(response.data.file);
-                        hideMessage(msgId);
-                    });
-                });
-                return;
-            }
-            setTimeout(() => {
-                addScript("/stage/protyle/js/html-to-image.min.js?v=1.11.13", "protyleHtml2image").then(() => {
-                    (renderElement as HTMLHtmlElement).style.display = "inline-block";
-                    window.htmlToImage.toBlob(renderElement).then(blob => {
-                        (renderElement as HTMLHtmlElement).style.display = "";
-                        const formData = new FormData();
-                        formData.append("file", blob);
-                        formData.append("type", "image/png");
-                        fetchPost("/api/export/exportAsFile", formData, (response) => {
-                            openByMobile(response.data.file);
-                            hideMessage(msgId);
-                        });
-                    });
-                });
-            }, Constants.TIMEOUT_LOAD);
-        };
+
+        // 获取元素引用
         const textElement = this.subElement.querySelector(".b3-text-field") as HTMLTextAreaElement;
-        if (types.includes("NodeHTMLBlock")) {
-            textElement.value = Lute.UnEscapeHTMLStr(renderElement.querySelector("protyle-html").getAttribute("data-content") || "");
-        } else if (isInlineMemo) {
-            textElement.value = Lute.UnEscapeHTMLStr(renderElement.getAttribute("data-inline-memo-content") || "");
-        } else {
-            textElement.value = Lute.UnEscapeHTMLStr(renderElement.getAttribute("data-content") || "");
+        const headerElement = this.subElement.querySelector(".block__icons");
+        if (!headerElement) {
+            return;
         }
+
+        // 设置初始值
+        textElement.value = 获取文本框初始值(renderElement, types, 是否行内备注);
         const oldTextValue = textElement.value;
-        textElement.addEventListener("input", (event) => {
-            if (!renderElement.parentElement) {
-                return;
-            }
-            if (textElement.clientHeight !== textElement.scrollHeight) {
-                autoHeight();
-            }
-            if (!this.subElement.querySelector('[data-type="refresh"]').classList.contains("block__icon--active")) {
-                return;
-            }
-            if (types.includes("NodeHTMLBlock")) {
-                renderElement.querySelector("protyle-html").setAttribute("data-content", Lute.EscapeHTMLStr(textElement.value));
-            } else if (isInlineMemo) {
-                let inlineMemoElements;
-                if (updateElements) {
-                    inlineMemoElements = updateElements;
-                } else {
-                    inlineMemoElements = [renderElement];
-                }
-                inlineMemoElements.forEach((item) => {
-                    if (item.nodeType !== 3) {
-                        item.setAttribute("data-inline-memo-content", window.DOMPurify.sanitize(textElement.value));
-                    }
-                });
-            } else {
-                renderElement.setAttribute("data-content", Lute.EscapeHTMLStr(textElement.value));
-                renderElement.removeAttribute("data-render");
-            }
-            if (!types.includes("NodeBlockQueryEmbed") || !types.includes("NodeHTMLBlock") || !isInlineMemo) {
-                processRender(renderElement);
-            }
-            event.stopPropagation();
-        });
-        textElement.addEventListener("keydown", (event: KeyboardEvent) => {
-            event.stopPropagation();
-            // 阻止 ctrl+m 缩小窗口 https://github.com/siyuan-note/siyuan/issues/5541
-            if (matchHotKey(window.siyuan.config.keymap.editor.insert["inline-math"].custom, event)) {
-                event.preventDefault();
-                return;
-            }
-            if (event.isComposing) {
-                return;
-            }
-            if (event.key === "Escape" || matchHotKey("⌘↩", event)) {
-                this.subElement.querySelector('[data-type="pin"]').setAttribute("aria-label", siyuanI18n.pin);
-                hideElements(["util"], protyle);
-            } else if (event.key === "Tab") {
-                // https://github.com/siyuan-note/siyuan/issues/5270
-                document.execCommand("insertText", false, "\t");
-                event.preventDefault();
-            } else if (electronUndo(event)) {
-                return;
-            }
-        });
-        this.subElementCloseCB = () => {
-            if (!renderElement.parentElement || protyle.disabled ||
-                (oldTextValue === textElement.value && textElement.value)) {
-                return;
-            }
-            let inlineLastNode: Element;
-            if (types.includes("NodeHTMLBlock")) {
-                let htmlText = textElement.value;
-                if (htmlText) {
-                    // 需移除首尾的空白字符与连续的换行 (空行) https://github.com/siyuan-note/siyuan/issues/7921
-                    htmlText = htmlText.trim().replace(/\n+/g, "\n");
-                    // 需一对 div 标签包裹，否则行内元素会解析错误 https://github.com/siyuan-note/siyuan/issues/6764
-                    if (!(htmlText.startsWith("<div>") && htmlText.endsWith("</div>"))) {
-                        htmlText = `<div>\n${htmlText}\n</div>`;
-                    }
-                }
-                renderElement.querySelector("protyle-html").setAttribute("data-content", Lute.EscapeHTMLStr(htmlText));
-            } else if (isInlineMemo) {
-                let inlineMemoElements;
-                if (updateElements) {
-                    inlineMemoElements = updateElements;
-                } else {
-                    inlineMemoElements = [renderElement];
-                }
-                inlineMemoElements.forEach((item, index) => {
-                    if (!textElement.value) {
-                        // https://github.com/siyuan-note/insider/issues/1046
-                        const currentTypes = item.getAttribute("data-type").split(" ");
-                        if (currentTypes.length === 1 && currentTypes[0] === "inline-memo") {
-                            item.outerHTML = item.innerHTML + (index === inlineMemoElements.length - 1 ? "<wbr>" : "");
-                        } else {
-                            currentTypes.find((typeItem, index) => {
-                                if (typeItem === "inline-memo") {
-                                    currentTypes.splice(index, 1);
-                                    return true;
-                                }
-                            });
-                            item.setAttribute("data-type", currentTypes.join(" "));
-                            item.removeAttribute("data-inline-memo-content");
-                        }
-                        if (index === inlineMemoElements.length - 1) {
-                            inlineLastNode = item;
-                        }
-                    } else if (item.nodeType !== 3) {
-                        // 行级备注自动移除换行  https://ld246.com/article/1664205917326
-                        item.setAttribute("data-inline-memo-content", window.DOMPurify.sanitize(textElement.value));
-                    }
-                });
-            } else if (types.includes("inline-math")) {
-                // 行内数学公式不允许换行 https://github.com/siyuan-note/siyuan/issues/2187
-                if (textElement.value) {
-                    renderElement.setAttribute("data-content", Lute.EscapeHTMLStr(textElement.value));
-                    renderElement.removeAttribute("data-render");
-                    processRender(renderElement);
-                } else {
-                    inlineLastNode = renderElement;
-                    // esc 后需要 focus range，但点击空白处不能 focus range，否则光标无法留在点击位置
-                    renderElement.outerHTML = "<wbr>";
-                }
-            } else {
-                renderElement.setAttribute("data-content", Lute.EscapeHTMLStr(textElement.value));
-                renderElement.removeAttribute("data-render");
-                if (types.includes("NodeBlockQueryEmbed")) {
-                    blockRender(protyle, renderElement);
-                    (renderElement as HTMLElement).style.height = "";
-                } else {
-                    processRender(renderElement);
-                }
-            }
 
-            // 光标定位
-            if (getSelection().rangeCount === 0 ||
-                // $$ 中间输入后再 ESC 光标无法定位
-                (getSelection().rangeCount > 0 && hasClosestByClassName(getSelection().getRangeAt(0).startContainer, "protyle-util"))
-            ) {  // https://ld246.com/article/1665306093005
-                if (renderElement.tagName === "SPAN") {
-                    if (inlineLastNode) {
-                        if (inlineLastNode.parentElement) {
-                            this.range.setStartAfter(inlineLastNode);
-                            this.range.collapse(true);
-                            focusByRange(this.range);
-                        } else {
-                            focusByWbr(nodeElement, this.range);
-                        }
-                    } else if (renderElement.parentElement) {
-                        this.range.setStartAfter(renderElement);
-                        this.range.collapse(true);
-                        focusByRange(this.range);
-                    }
-                } else {
-                    focusBlock(renderElement);
-                    renderElement.classList.add("protyle-wysiwyg--select");
-                }
-            } else {
-                // ctrl+M 后点击空白会留下 wbr
-                nodeElement.querySelector("wbr")?.remove();
-            }
-
-            nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-            // HTML 块中包含多个 <pre> 时只能保存第一个 https://github.com/siyuan-note/siyuan/issues/5732
-            if (types.includes("NodeHTMLBlock")) {
-                const tempElement = document.createElement("template");
-                tempElement.innerHTML = protyle.lute.SpinBlockDOM(nodeElement.outerHTML);
-                if (tempElement.content.childElementCount > 1) {
-                    showMessage(siyuanI18n.htmlBlockTip);
-                }
-            }
-            updateTransaction(protyle, id, nodeElement.outerHTML, html);
-        };
+        // 显示面板并计算位置
         this.subElement.style.zIndex = (++window.siyuan.zIndex).toString();
         this.subElement.classList.remove("fn__none");
         const nodeRect = renderElement.getBoundingClientRect();
         this.element.classList.add("fn__none");
-        if (isPin) {
-            textElement.style.width = pinData.styleW;
-            textElement.style.height = pinData.styleH;
+
+        // 创建上下文
+        const 上下文: 渲染面板上下文 = {
+            protyle,
+            renderElement,
+            nodeElement,
+            updateElements,
+            subElement: this.subElement,
+            textElement,
+            types,
+            是否行内备注,
+            id,
+            html,
+            range: this.range
+        };
+
+        // 创建自动高度函数
+        const autoHeight = 创建自动高度函数(
+            { textElement, nodeRect, types, 是否行内备注 },
+            this.subElement
+        );
+
+        // 创建导出图片回调
+        const exportImg = () => 导出为图片(renderElement);
+
+        // 绑定事件
+        headerElement.addEventListener("click", (event: MouseEvent) => {
+            处理头部按钮点击(event, headerElement, 上下文, exportImg);
+        });
+
+        textElement.addEventListener("input", (event) => {
+            处理文本输入(event, 上下文, autoHeight);
+        });
+
+        textElement.addEventListener("keydown", (event: KeyboardEvent) => {
+            处理键盘事件(event, 上下文);
+        });
+
+        // 设置关闭回调
+        this.subElementCloseCB = 创建关闭回调(上下文, oldTextValue, this.range);
+
+        // 应用固定样式或自动高度
+        if (是否固定 && 固定样式) {
+            textElement.style.width = 固定样式.宽度;
+            textElement.style.height = 固定样式.高度;
         } else {
             autoHeight();
         }
+
+        // 选中文本
         if (!protyle.disabled) {
             textElement.select();
         }
-        protyle.app.plugins.forEach(item => {
-            item.eventBus.emit("open-noneditableblock", {
-                protyle,
-                toolbar: this,
-                blockElement: nodeElement,
-                renderElement,
-            });
-        });
+
+        // 发射插件事件
+        发射插件打开事件(protyle, this, nodeElement, renderElement);
     }
 
     public showCodeLanguage(protyle: IProtyle, languageElements: HTMLElement[]) {

@@ -44,6 +44,10 @@ import { escapeHtml } from "../../util/escape";
 import { resizeSide } from "../../history/resizeSide";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { mergeNodes } from "../../util/DOM/rangeOperations";
+import { 显示挂件选择 } from "./showWidget";
+import { 显示内容操作 } from "./showContent";
+import { 显示代码语言选择 } from "./showCodeLanguage";
+import { 显示模板选择 } from "./showTpl";
 import { 显示特殊类型菜单, 整理零宽空格, 合并相邻同类型元素, 移除内联标记, 添加内联标记, 准备标记内容, 清理内联标记内容, 构建标记上下文 } from "./inlineMark";
 import {
     确定渲染标题,
@@ -505,514 +509,44 @@ export class Toolbar {
     }
 
     public showCodeLanguage(protyle: IProtyle, languageElements: HTMLElement[]) {
-        const nodeElement = hasClosestBlock(languageElements[0]);
-        if (!nodeElement) {
-            return;
-        }
-        hideElements(["hint"], protyle);
-        window.siyuan.menus.menu.remove();
-        this.range = getEditorRange(nodeElement);
-
-        this.subElement.style.width = "";
-        this.subElement.style.padding = "";
-        this.subElement.innerHTML = `<div data-id="codeLanguage" class="fn__flex-column" style="max-height:50vh">
-    <input placeholder="${siyuanI18n.search}" style="margin: 0 8px 4px 8px" class="b3-text-field"/>
-    <div class="b3-list fn__flex-1 b3-list--background" style="position: relative"></div>
-</div>`;
-        const listElement = this.subElement.lastElementChild.lastElementChild as HTMLElement;
-
-        let html = `<div data-id="clearLanguage" class="b3-list-item">${siyuanI18n.clear}</div>`;
-        let hljsLanguages = Constants.ALIAS_CODE_LANGUAGES.concat(window.hljs?.listLanguages() ?? []).sort();
-
-        const eventDetail = { languages: hljsLanguages, type: "init", listElement };
-        if (protyle.app && protyle.app.plugins) {
-            protyle.app.plugins.forEach((plugin: any) => {
-                plugin.eventBus.emit("code-language-update", eventDetail);
-            });
-        }
-
-        hljsLanguages = eventDetail.languages;
-        hljsLanguages.forEach((item) => {
-            html += `<div data-id="${item}" class="b3-list-item">${item}</div>`;
-        });
-
-        listElement.innerHTML = html;
-        listElement.firstElementChild.nextElementSibling.classList.add("b3-list-item--focus");
-
-        const inputElement = this.subElement.querySelector("input");
-        inputElement.addEventListener("keydown", (event: KeyboardEvent) => {
-            event.stopPropagation();
-            if (event.isComposing) {
-                return;
-            }
-            upDownHint(listElement, event);
-            if (event.key === "Enter") {
-                this.updateLanguage(languageElements, protyle, this.subElement.querySelector(".b3-list-item--focus").textContent);
-                event.preventDefault();
-                return;
-            }
-            if (event.key === "Escape") {
-                this.subElement.classList.add("fn__none");
-                focusByRange(this.range);
-            }
-        });
-
-        const highlightText = (text: string, search: string) => {
-            // 转义正则特殊字符
-            const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-            // 创建不区分大小写的正则表达式
-            const regex = new RegExp(escapedSearch, "gi");
-            // 替换匹配内容并保留原始大小写
-            return text.replace(regex, match =>
-                `<b>${match}</b>`
-            );
-        };
-
-        inputElement.addEventListener("input", (event) => {
-            const value = inputElement.value.trim();
-            let matchLanguages;
-            let html = `<div data-id="clearLanguage" class="b3-list-item">${siyuanI18n.clear}</div>`;
-            let isMatchLanguages = false;
-            // Sort
-            if (value) {
-                const lowerCaseValue = value.toLowerCase();
-                matchLanguages = hljsLanguages.filter(
-                    item => item.toLowerCase().includes(lowerCaseValue)
-                ).sort((a, b) => {
-                    // 不区分大小写
-                    const aStartsWith = a.toLowerCase().startsWith(lowerCaseValue);
-                    const bStartsWith = b.toLowerCase().startsWith(lowerCaseValue);
-
-                    // 两者都匹配开头时，短字符串优先
-                    if (aStartsWith && bStartsWith) {
-                        return a.length - b.length;
-                    }
-                    if (aStartsWith) {
-                        return -1;
-                    }
-                    if (bStartsWith) {
-                        return 1;
-                    }
-
-                    // 都不匹配时保持原顺序
-                    return 0;
-                });
-
-                if (window.hljs?.getLanguage(value)) {
-                    // Default languages and their aliases
-                    matchLanguages = [value].concat(matchLanguages.filter(item => item !== value));
-                }
-            }
-
-            const eventDetail = { languages: value ? matchLanguages : hljsLanguages, type: "match", value, listElement };
-            if (protyle.app && protyle.app.plugins) {
-                protyle.app.plugins.forEach((plugin: any) => {
-                    plugin.eventBus.emit("code-language-update", eventDetail);
-                });
-            }
-
-            matchLanguages = eventDetail.languages;
-            if (value) {
-                matchLanguages.forEach((item) => {
-                    if (value === item) {
-                        isMatchLanguages = true;
-                        html += `<div data-id="${item}" class="b3-list-item"><b>${item}</b></div>`;
-                    } else {
-                        html += `<div data-id="${item}" class="b3-list-item">${highlightText(item, value)}</div>`;
-                    }
-                });
-            } else {
-                matchLanguages.forEach((item) => {
-                    html += `<div data-id="${item}" class="b3-list-item">${item}</div>`;
-                });
-            }
-            if (value && !isMatchLanguages) {
-                html += `<div data-id="customLanguage" class="b3-list-item"><b>${escapeHtml(value.replace(/`| /g, "_"))}</b></div>`;
-            }
-            listElement.innerHTML = html;
-            listElement.firstElementChild.nextElementSibling.classList.add("b3-list-item--focus");
-            event.stopPropagation();
-        });
-        listElement.addEventListener("click", (event) => {
-            const target = event.target as HTMLElement;
-            const listElement = hasClosestByClassName(target, "b3-list-item");
-            if (!listElement) {
-                return;
-            }
-            this.updateLanguage(languageElements, protyle, listElement.textContent);
-        });
-        this.subElement.style.zIndex = (++window.siyuan.zIndex).toString();
-        this.subElement.classList.remove("fn__none");
-        this.subElementCloseCB = undefined;
-        /// #if !MOBILE
-        const nodeRect = languageElements[0].getBoundingClientRect();
-        setPosition(this.subElement, nodeRect.left, nodeRect.bottom, nodeRect.height);
-        /// #else
-        setPosition(this.subElement, 0, 0);
-        /// #endif
-        this.element.classList.add("fn__none");
-        inputElement.select();
+        显示代码语言选择(protyle, languageElements, this.subElement, this.element, (range: Range) => {
+            this.range = range;
+        }, this.updateLanguage.bind(this));
+        return;
     }
 
     public showTpl(protyle: IProtyle, nodeElement: HTMLElement, range: Range) {
-        this.range = range;
-        hideElements(["hint"], protyle);
-        window.siyuan.menus.menu.remove();
-        this.subElement.style.width = "";
-        this.subElement.style.padding = "";
-        this.subElement.innerHTML = `<div style="max-height:50vh" class="fn__flex">
-<div class="fn__flex-column" style="${isMobile() ? "width: 100%" : "width: 256px"}">
-    <div class="fn__flex" style="margin: 0 8px 4px 8px">
-        <input class="b3-text-field fn__flex-1"/>
-        <span class="fn__space"></span>
-        <span data-type="previous" class="block__icon block__icon--show"><svg><use xlink:href="#iconLeft"></use></svg></span>
-        <span class="fn__space"></span>
-        <span data-type="next" class="block__icon block__icon--show"><svg><use xlink:href="#iconRight"></use></svg></span>
-    </div>
-    <div class="b3-list fn__flex-1 b3-list--background" style="position: relative"><img style="margin: 0 auto;display: block;width: 64px;height: 64px" src="/stage/loading-pure.svg"></div>
-</div>
-<div class="toolbarResize" style="    cursor: col-resize;
-    box-shadow: 2px 0 0 0 var(--b3-theme-surface) inset, 3px 0 0 0 var(--b3-border-color) inset;
-    width: 5px;
-    margin-left: -2px;"></div>
-<div style="width: 520px;${isMobile() || window.outerWidth < window.outerWidth / 2 + 520 ? "display:none;" : ""}overflow: auto;"></div>
-</div>`;
-        const listElement = this.subElement.querySelector(".b3-list");
-        resizeSide(this.subElement.querySelector(".toolbarResize"), listElement.parentElement);
-        const previewElement = this.subElement.firstElementChild.lastElementChild;
-        let previewPath: string;
-        listElement.addEventListener("mouseover", (event) => {
-            const target = event.target as HTMLElement;
-            const hoverItemElement = hasClosestByClassName(target, "b3-list-item");
-            if (!hoverItemElement) {
-                return;
-            }
-            const currentPath = hoverItemElement.getAttribute("data-value");
-            if (previewPath === currentPath) {
-                return;
-            }
-            previewPath = currentPath;
-            previewTemplate(previewPath, previewElement, protyle.block.parentID);
-            event.stopPropagation();
-        });
-        const inputElement = this.subElement.querySelector("input");
-        inputElement.addEventListener("keydown", (event: KeyboardEvent) => {
-            event.stopPropagation();
-            if (event.isComposing) {
-                return;
-            }
-            const isEmpty = !this.subElement.querySelector(".b3-list-item");
-            if (!isEmpty) {
-                const currentElement = upDownHint(listElement, event);
-                if (currentElement) {
-                    const currentPath = currentElement.getAttribute("data-value");
-                    if (previewPath === currentPath) {
-                        return;
-                    }
-                    previewPath = currentPath;
-                    previewTemplate(previewPath, previewElement, protyle.block.parentID);
-                }
-            }
-            if (event.key === "Enter") {
-                if (!isEmpty) {
-                    hintRenderTemplate(decodeURIComponent(this.subElement.querySelector(".b3-list-item--focus").getAttribute("data-value")), protyle, nodeElement);
-                } else {
-                    focusByRange(this.range);
-                }
-                this.subElement.classList.add("fn__none");
-                event.preventDefault();
-            } else if (event.key === "Escape") {
-                this.subElement.classList.add("fn__none");
-                focusByRange(this.range);
-            }
-        });
-        inputElement.addEventListener("input", (event) => {
-            event.stopPropagation();
-            fetchPost("/api/search/searchTemplate", {
-                k: inputElement.value,
-            }, (response) => {
-                let searchHTML = "";
-                response.data.blocks.forEach((item: { path: string, content: string }, index: number) => {
-                    searchHTML += `<div data-value="${item.path}" class="b3-list-item--hide-action b3-list-item${index === 0 ? " b3-list-item--focus" : ""}">
-<span class="b3-list-item__text">${item.content}</span>`;
-                    /// #if !BROWSER
-                    searchHTML += `<span data-type="open" class="b3-list-item__action b3-tooltips b3-tooltips__w" aria-label="${siyuanI18n.showInFolder}">
-    <svg><use xlink:href="#iconFolder"></use></svg>
-</span>`;
-                    /// #endif
-                    searchHTML += `<span data-type="remove" class="b3-list-item__action b3-tooltips b3-tooltips__w" aria-label="${siyuanI18n.remove}">
-    <svg><use xlink:href="#iconTrashcan"></use></svg>
-</span></div>`;
-                });
-                listElement.innerHTML = searchHTML || `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
-                const currentPath = response.data.blocks[0]?.path;
-                if (previewPath === currentPath) {
-                    return;
-                }
-                previewPath = currentPath;
-                previewTemplate(previewPath, previewElement, protyle.block.parentID);
-            });
-        });
-        this.subElement.lastElementChild.addEventListener("click", (event) => {
-            const target = event.target as HTMLElement;
-            if (target.classList.contains("b3-list--empty")) {
-                this.subElement.classList.add("fn__none");
-                focusByRange(this.range);
-                event.stopPropagation();
-                return;
-            }
-            const iconElement = hasClosestByClassName(target, "b3-list-item__action");
-            /// #if !BROWSER
-            if (iconElement && iconElement.getAttribute("data-type") === "open") {
-                openBy(iconElement.parentElement.getAttribute("data-value"), "folder");
-                event.stopPropagation();
-                return;
-            }
-            /// #endif
-            if (iconElement && iconElement.getAttribute("data-type") === "remove") {
-                confirmDialog(siyuanI18n.remove, siyuanI18n.confirmDelete + "?", () => {
-                    fetchPost("/api/search/removeTemplate", { path: iconElement.parentElement.getAttribute("data-value") }, () => {
-                        if (iconElement.parentElement.parentElement.childElementCount === 1) {
-                            iconElement.parentElement.parentElement.innerHTML = `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
-                            previewTemplate("", previewElement, protyle.block.parentID);
-                        } else {
-                            if (iconElement.parentElement.classList.contains("b3-list-item--focus")) {
-                                const sideElement = iconElement.parentElement.previousElementSibling || iconElement.parentElement.nextElementSibling;
-                                sideElement.classList.add("b3-list-item--focus");
-                                const currentPath = sideElement.getAttribute("data-value");
-                                if (previewPath === currentPath) {
-                                    return;
-                                }
-                                previewPath = currentPath;
-                                previewTemplate(previewPath, previewElement, protyle.block.parentID);
-                            }
-                            iconElement.parentElement.remove();
-                        }
-                    });
-                });
-                event.stopPropagation();
-                return;
-            }
-            const previousElement = hasClosestByAttribute(target, "data-type", "previous");
-            if (previousElement) {
-                inputElement.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp" }));
-                event.stopPropagation();
-                return;
-            }
-            const nextElement = hasClosestByAttribute(target, "data-type", "next");
-            if (nextElement) {
-                inputElement.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown" }));
-                event.stopPropagation();
-                return;
-            }
-            const listElement = hasClosestByClassName(target, "b3-list-item");
-            if (listElement) {
-                hintRenderTemplate(decodeURIComponent(listElement.getAttribute("data-value")), protyle, nodeElement);
-                event.stopPropagation();
-            }
-        });
-        this.subElement.style.zIndex = (++window.siyuan.zIndex).toString();
-        this.subElement.classList.remove("fn__none");
-        this.subElementCloseCB = undefined;
-        this.element.classList.add("fn__none");
-        inputElement.select();
-        fetchPost("/api/search/searchTemplate", {
-            k: "",
-        }, (response) => {
-            let html = "";
-            response.data.blocks.forEach((item: { path: string, content: string }, index: number) => {
-                html += `<div data-value="${item.path}" class="b3-list-item--hide-action b3-list-item${index === 0 ? " b3-list-item--focus" : ""}">
-<span class="b3-list-item__text">${item.content}</span>`;
-                /// #if !BROWSER
-                html += `<span data-type="open" class="b3-list-item__action b3-tooltips b3-tooltips__w" aria-label="${siyuanI18n.showInFolder}">
-    <svg><use xlink:href="#iconFolder"></use></svg>
-</span>`;
-                /// #endif
-                html += `<span data-type="remove" class="b3-list-item__action b3-tooltips b3-tooltips__w" aria-label="${siyuanI18n.remove}">
-    <svg><use xlink:href="#iconTrashcan"></use></svg>
-</span></div>`;
-            });
-            this.subElement.querySelector(".b3-list--background").innerHTML = html || `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
-            /// #if !MOBILE
-            const rangePosition = getSelectionPosition(nodeElement, range);
-            setPosition(this.subElement, rangePosition.left, rangePosition.top + 18, Constants.SIZE_TOOLBAR_HEIGHT);
-            (this.subElement.firstElementChild as HTMLElement).style.maxHeight = Math.min(window.innerHeight * 0.8, window.innerHeight - this.subElement.getBoundingClientRect().top) - 16 + "px";
-            /// #else
-            setPosition(this.subElement, 0, 0);
-            /// #endif
-            previewPath = listElement.firstElementChild.getAttribute("data-value");
-            previewTemplate(previewPath, previewElement, protyle.block.parentID);
+        显示模板选择(protyle, nodeElement, range, this.subElement, this.element, (range: Range) => {
+            this.range = range;
         });
     }
 
     public showWidget(protyle: IProtyle, nodeElement: HTMLElement, range: Range) {
-        this.range = range;
-        hideElements(["hint"], protyle);
-        window.siyuan.menus.menu.remove();
-        this.subElement.style.width = "";
-        this.subElement.style.padding = "";
-        this.subElement.innerHTML = `<div class="fn__flex-column" style="max-height:50vh">
-    <input style="margin: 0 8px 4px 8px" class="b3-text-field"/>
-    <div class="b3-list fn__flex-1 b3-list--background" style="position: relative"><img style="margin: 0 auto;display: block;width: 64px;height:64px" src="/stage/loading-pure.svg"></div>
-</div>`;
-        const listElement = this.subElement.lastElementChild.lastElementChild as HTMLElement;
-        const inputElement = this.subElement.querySelector("input");
-        inputElement.addEventListener("keydown", (event: KeyboardEvent) => {
-            event.stopPropagation();
-            if (event.isComposing) {
-                return;
+        显示挂件选择(
+            protyle,
+            nodeElement,
+            range,
+            this.subElement,
+            this.element,
+            (r) => {
+                this.range = r;
             }
-            upDownHint(listElement, event);
-            if (event.key === "Enter") {
-                hintRenderWidget(this.subElement.querySelector(".b3-list-item--focus").getAttribute("data-content"), protyle);
-                this.subElement.classList.add("fn__none");
-                event.preventDefault();
-            } else if (event.key === "Escape") {
-                this.subElement.classList.add("fn__none");
-                focusByRange(this.range);
-            }
-        });
-        inputElement.addEventListener("input", (event) => {
-            event.stopPropagation();
-            fetchPost("/api/search/searchWidget", {
-                k: inputElement.value,
-            }, (response) => {
-                let searchHTML = "";
-                response.data.blocks.forEach((item: { path: string, content: string, name: string }, index: number) => {
-                    searchHTML += `<div data-value="${item.path}" data-content="${item.content}" class="b3-list-item${index === 0 ? " b3-list-item--focus" : ""}">
-    ${item.name}
-    <span class="b3-list-item__meta">${item.content}</span>
-</div>`;
-                });
-                listElement.innerHTML = searchHTML;
-            });
-        });
-        this.subElement.lastElementChild.addEventListener("click", (event) => {
-            const target = event.target as HTMLElement;
-            const listElement = hasClosestByClassName(target, "b3-list-item");
-            if (!listElement) {
-                return;
-            }
-            hintRenderWidget(listElement.dataset.content, protyle);
-        });
-        this.subElement.style.zIndex = (++window.siyuan.zIndex).toString();
-        this.subElement.classList.remove("fn__none");
+        );
         this.subElementCloseCB = undefined;
-        this.element.classList.add("fn__none");
-        inputElement.select();
-        fetchPost("/api/search/searchWidget", {
-            k: "",
-        }, (response) => {
-            let html = "";
-            response.data.blocks.forEach((item: { content: string, name: string }, index: number) => {
-                html += `<div class="b3-list-item${index === 0 ? " b3-list-item--focus" : ""}" data-content="${item.content}">
-${item.name}
-<span class="b3-list-item__meta">${item.content}</span>
-</div>`;
-            });
-            this.subElement.querySelector(".b3-list--background").innerHTML = html;
-            /// #if !MOBILE
-            const rangePosition = getSelectionPosition(nodeElement, range);
-            setPosition(this.subElement, rangePosition.left, rangePosition.top + 18, Constants.SIZE_TOOLBAR_HEIGHT);
-            /// #else
-            setPosition(this.subElement, 0, 0);
-            /// #endif
-        });
     }
 
     public showContent(protyle: IProtyle, range: Range, nodeElement: Element) {
-        this.range = range;
-        hideElements(["hint"], protyle);
-
-        this.subElement.style.width = "auto";
-        this.subElement.style.padding = "0 8px";
-        let html = "";
-        const hasCopy = range.toString() !== "" || (range.cloneContents().childNodes[0] as HTMLElement)?.classList?.contains("emoji");
-        if (hasCopy) {
-            html += '<button class="keyboard__action" data-action="copy"><svg><use xlink:href="#iconCopy"></use></svg></button>';
-            if (!protyle.disabled) {
-                html += `<button class="keyboard__action" data-action="cut"><svg><use xlink:href="#iconCut"></use></svg></button>
-<button class="keyboard__action" data-action="delete"><svg><use xlink:href="#iconTrashcan"></use></svg></button>`;
+        显示内容操作(
+            protyle,
+            range,
+            nodeElement,
+            this.subElement,
+            this.element,
+            (r) => {
+                this.range = r;
             }
-        }
-        if (!protyle.disabled) {
-            html += `<button class="keyboard__action" data-action="paste"><svg><use xlink:href="#iconPaste"></use></svg></button>
-<button class="keyboard__action" data-action="select"><svg><use xlink:href="#iconSelect"></use></svg></button>`;
-        }
-        if (hasCopy || !protyle.disabled) {
-            html += '<button class="keyboard__action" data-action="more"><svg><use xlink:href="#iconMore"></use></svg></button>';
-        }
-        this.subElement.innerHTML = `<div class="fn__flex">${html}</div>`;
-        this.subElement.lastElementChild.addEventListener("click", async (event) => {
-            const btnElemen = hasClosestByClassName(event.target as HTMLElement, "keyboard__action");
-            if (!btnElemen) {
-                return;
-            }
-            const action = btnElemen.getAttribute("data-action");
-            if (action === "copy") {
-                focusByRange(getEditorRange(nodeElement));
-                document.execCommand("copy");
-                this.subElement.classList.add("fn__none");
-            } else if (action === "cut") {
-                focusByRange(getEditorRange(nodeElement));
-                document.execCommand("cut");
-                this.subElement.classList.add("fn__none");
-            } else if (action === "delete") {
-                const currentRange = getEditorRange(nodeElement);
-                currentRange.insertNode(document.createElement("wbr"));
-                const oldHTML = nodeElement.outerHTML;
-                currentRange.extractContents();
-                focusByWbr(nodeElement, currentRange);
-                focusByRange(currentRange);
-                updateTransaction(protyle, nodeElement.getAttribute("data-node-id"), nodeElement.outerHTML, oldHTML);
-                this.subElement.classList.add("fn__none");
-            } else if (action === "paste") {
-                focusByRange(getEditorRange(nodeElement));
-                if (document.queryCommandSupported("paste")) {
-                    document.execCommand("paste");
-                } else {
-                    try {
-                        const text = await readClipboard();
-                        paste(protyle, Object.assign(text, { target: nodeElement as HTMLElement }));
-                    } catch (e) {
-                        console.log(e);
-                    }
-                }
-                this.subElement.classList.add("fn__none");
-            } else if (action === "select") {
-                selectAll(protyle, nodeElement, range);
-                this.subElement.classList.add("fn__none");
-            } else if (action === "copyPlainText") {
-                focusByRange(getEditorRange(nodeElement));
-                copyPlainText(getSelection().getRangeAt(0).toString());
-                this.subElement.classList.add("fn__none");
-            } else if (action === "pasteAsPlainText") {
-                focusByRange(getEditorRange(nodeElement));
-                pasteAsPlainText(protyle);
-                this.subElement.classList.add("fn__none");
-            } else if (action === "pasteEscaped") {
-                focusByRange(getEditorRange(nodeElement));
-                pasteEscaped(protyle, nodeElement);
-                this.subElement.classList.add("fn__none");
-            } else if (action === "back") {
-                this.subElement.lastElementChild.innerHTML = html;
-            } else if (action === "more") {
-                this.subElement.lastElementChild.innerHTML = `<button class="keyboard__action${hasCopy ? "" : " fn__none"}" data-action="copyPlainText"><span>${siyuanI18n.copyPlainText}</span></button>
-<div class="keyboard__split${hasCopy ? "" : " fn__none"}"></div>
-<button class="keyboard__action${protyle.disabled ? " fn__none" : ""}" data-action="pasteAsPlainText"><span>${siyuanI18n.pasteAsPlainText}</span></button>
-<div class="keyboard__split${protyle.disabled ? " fn__none" : ""}"></div>
-<button class="keyboard__action${protyle.disabled ? " fn__none" : ""}" data-action="pasteEscaped"><span>${siyuanI18n.pasteEscaped}</span></button>
-<div class="keyboard__split${protyle.disabled ? " fn__none" : ""}"></div>
-<button class="keyboard__action" data-action="back"><svg><use xlink:href="#iconBack"></use></svg></button>`;
-                setPosition(this.subElement, rangePosition.left, rangePosition.top + 28, Constants.SIZE_TOOLBAR_HEIGHT);
-            }
-        });
-        this.subElement.style.zIndex = (++window.siyuan.zIndex).toString();
-        this.subElement.classList.remove("fn__none");
+        );
         this.subElementCloseCB = undefined;
-        this.element.classList.add("fn__none");
-        const rangePosition = getSelectionPosition(nodeElement, range);
-        setPosition(this.subElement, rangePosition.left, rangePosition.top - 48, Constants.SIZE_TOOLBAR_HEIGHT);
     }
 
     private genItem(protyle: IProtyle, menuItem: IMenuItem) {
