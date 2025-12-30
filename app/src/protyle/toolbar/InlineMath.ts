@@ -7,54 +7,80 @@ export class InlineMath extends ToolbarItem {
 
     constructor(protyle: IProtyle, menuItem: IMenuItem) {
         super(protyle, menuItem);
-        this.element.addEventListener("click", async (event: MouseEvent & { changedTouches: MouseEvent[] }) => {
-            protyle.toolbar.element.classList.add("fn__none");
-            event.stopPropagation();
-
-            const range = protyle.toolbar.range;
-            const nodeElement = hasClosestBlock(range.startContainer);
-            if (!nodeElement) {
-                return;
-            }
-            let mathElement = hasClosestByAttribute(range.startContainer, "data-type", "inline-math") as Element;
-            if (!mathElement && range.startContainer.nodeType !== 3 && range.startContainer.childNodes[range.startOffset]) {
-                const previousSibling = hasPreviousSibling(range.startContainer.childNodes[range.startOffset]) as HTMLElement;
-                if (previousSibling && previousSibling.nodeType !== 3 && previousSibling.getAttribute("data-type").indexOf("inline-math") > -1) {
-                    mathElement = previousSibling;
-                }
-            }
-            if (!mathElement && range.startOffset === range.startContainer.textContent.length && range.startContainer.nodeType === 3) {
-                let isMath = true;
-                let hasMath = false;
-                // https://github.com/siyuan-note/siyuan/issues/6007
-                range.cloneContents().childNodes.forEach((item: HTMLElement) => {
-                    if ((item.nodeType !== 3 && (item.getAttribute("data-type") || "").indexOf("inline-math") > -1) ||
-                        (item.nodeType == 3 && item.textContent === "")) {
-                        // 是否仅选中数学公式
-                        hasMath = true;
-                    } else {
-                        isMath = false;
-                    }
-                });
-                if (isMath && hasMath) {
-                    const nextSibling = hasNextSibling(range.startContainer) as HTMLElement;
-                    if (nextSibling && nextSibling.nodeType !== 3 && nextSibling.getAttribute("data-type").indexOf("inline-math") > -1) {
-                        mathElement = nextSibling;
-                    } else {
-                        const previousSibling = hasPreviousSibling(range.startContainer) as HTMLElement;
-                        if (range.startOffset === 0 && previousSibling && previousSibling.nodeType !== 3 && previousSibling.getAttribute("data-type").indexOf("inline-math") > -1) {
-                            mathElement = previousSibling;
-                        }
-                    }
-                }
-            }
-            if (mathElement) {
-                protyle.toolbar.showRender(protyle, mathElement);
-                return;
-            }
-            protyle.toolbar.setInlineMark(protyle, "inline-math", "range", {
-                type: "inline-math",
-            });
+        this.element.addEventListener("click", (event) => {
+            处理点击(protyle, event);
         });
     }
+}
+
+function 处理点击(protyle: IProtyle, event: MouseEvent) {
+    if (!protyle.toolbar) {
+        return;
+    }
+    protyle.toolbar.element.classList.add("fn__none");
+    event.stopPropagation();
+
+    const range = protyle.toolbar.range;
+    if (!range) {
+        return;
+    }
+    const nodeElement = hasClosestBlock(range.startContainer);
+    if (!nodeElement) {
+        return;
+    }
+    let mathElement: HTMLElement | boolean | undefined = hasClosestByAttribute(range.startContainer, "data-type", "inline-math");
+    if (!mathElement) {
+        mathElement = 查找前置数学公式节点(range);
+    }
+    if (!mathElement && range.startOffset === (range.startContainer.textContent || "").length && range.startContainer.nodeType === 3) {
+        mathElement = findMathElementInContext(range) || mathElement;
+    }
+    if (mathElement) {
+        protyle.toolbar.showRender(protyle, mathElement);
+        return;
+    }
+    protyle.toolbar.setInlineMark(protyle, "inline-math", "range", {
+        type: "inline-math",
+    });
+}
+
+function 查找前置数学公式节点(range: Range) {
+    const currentNode = range.startContainer.childNodes[range.startOffset];
+    if (range.startContainer.nodeType === 3 || !currentNode) {
+        return undefined;
+    }
+    const previousSibling = hasPreviousSibling(currentNode);
+    if (previousSibling instanceof HTMLElement && (previousSibling.getAttribute("data-type") || "").indexOf("inline-math") > -1) {
+        return previousSibling;
+    }
+    return undefined;
+}
+
+function findMathElementInContext(range: Range) {
+    let isMath = true;
+    let hasMath = false;
+    // https://github.com/siyuan-note/siyuan/issues/6007
+    for (const item of Array.from(range.cloneContents().childNodes)) {
+        const isMathElement = item instanceof Element && (item.getAttribute("data-type") || "").indexOf("inline-math") > -1;
+        const isEmptyText = item.nodeType === 3 && item.textContent === "";
+        if (!isMathElement && !isEmptyText) {
+            isMath = false;
+            break;
+        }
+        // 是否仅选中数学公式
+        hasMath = true;
+    }
+
+    if (!isMath || !hasMath) {
+        return undefined;
+    }
+    const nextSibling = hasNextSibling(range.startContainer);
+    if (nextSibling instanceof HTMLElement && (nextSibling.getAttribute("data-type") || "").indexOf("inline-math") > -1) {
+        return nextSibling;
+    }
+    const previousSibling = hasPreviousSibling(range.startContainer);
+    if (range.startOffset === 0 && previousSibling instanceof HTMLElement && (previousSibling.getAttribute("data-type") || "").indexOf("inline-math") > -1) {
+        return previousSibling;
+    }
+    return undefined;
 }
