@@ -259,34 +259,48 @@ export class Plugin {
         this.setting.open(this.displayName || this.name);
     }
 
-    public loadData(storageName: string) {
+    public loadData(storageName: string): Promise<IWebSocketData> {
         if (typeof this.data[storageName] === "undefined") {
             this.data[storageName] = "";
         }
-        return new Promise((resolve) => {
-            fetchPost("/api/file/getFile", { path: `/data/storage/petal/${this.name}/${storageName}` }, (response) => {
-                if (response.code !== 404) {
-                    this.data[storageName] = response;
-                }
+        return new Promise((resolve, reject) => {
+            fetchPost("/api/file/getFile", {
+                path: `/data/storage/petal/${this.name}/${storageName.replace(/[\/\\]+/g, "")}`
+            }, (response) => {
+                this.data[storageName] = response;
                 resolve(this.data[storageName]);
+            }, null, (response) => {
+                reject(response);
             });
         });
     }
 
-    public saveData(storageName: string, data: any) {
+    public saveData(storageName: string, data: any): Promise<any | IWebSocketData> {
         if (window.siyuan.config.readonly || window.siyuan.isPublish) {
-            return;
+            return Promise.reject({
+                code: 403,
+                msg: "Readonly mode or publish mode",
+                data: null
+            });
         }
-
-        return new Promise((resolve) => {
-            const pathString = `/data/storage/petal/${this.name}/${storageName}`;
+        return new Promise((resolve, reject) => {
+            const pathString = `/data/storage/petal/${this.name}/${storageName.replace(/[\/\\]+/g, "")}`;
             let file: File;
-            if (typeof data === "object") {
-                file = new File([new Blob([JSON.stringify(data)], {
-                    type: "application/json"
-                })], pathString.split("/").pop());
-            } else {
-                file = new File([new Blob([data])], pathString.split("/").pop());
+            try {
+                if (typeof data === "object") {
+                    file = new File([new Blob([JSON.stringify(data)], {
+                        type: "application/json"
+                    })], pathString.split("/").pop());
+                } else {
+                    file = new File([new Blob([data])], pathString.split("/").pop());
+                }
+            } catch (e) {
+                reject({
+                    code: 400,
+                    msg: e instanceof Error ? e.message : String(e),
+                    data: null
+                });
+                return;
             }
             const formData = new FormData();
             formData.append("path", pathString);
@@ -299,16 +313,20 @@ export class Plugin {
         });
     }
 
-    public removeData(storageName: string) {
+    public removeData(storageName: string): Promise<IWebSocketData> {
         if (window.siyuan.config.readonly || window.siyuan.isPublish) {
-            return;
+            return Promise.reject({
+                code: 403,
+                msg: "Readonly mode or publish mode",
+                data: null
+            } as IWebSocketData);
         }
 
         return new Promise((resolve) => {
             if (!this.data) {
                 this.data = {};
             }
-            fetchPost("/api/file/removeFile", { path: `/data/storage/petal/${this.name}/${storageName}` }, (response) => {
+            fetchPost("/api/file/removeFile", { path: `/data/storage/petal/${this.name}/${storageName.replace(/[\/\\]+/g, "")}` }, (response) => {
                 delete this.data[storageName];
                 resolve(response);
             });

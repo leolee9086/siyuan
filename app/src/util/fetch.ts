@@ -9,6 +9,7 @@ import { TFetchRequestData } from "./fetch.types";
 import { getSiyuanReqId, setSiyuanReqId } from "./siyuanEnvironments/getSiyuanConfig.environment";
 import { reloadLocation } from "./siyuanEnvironments/windowLocation.environment";
 
+
 /**
  * @file fetch.ts
  * @description 思源笔记前端 HTTP 请求封装模块
@@ -77,13 +78,17 @@ const setupRequestData = (url: string, data?: TFetchRequestData) => {
  * @param url - 请求的 API 路径
  * @param data - 原始请求数据
  * @param e - 捕获的错误对象
- *
- * @remarks
- * 特殊处理逻辑：
- * - **事务请求失败**：`/api/transactions` 失败时触发 kernelError，提示用户内核可能崩溃
- * - **退出类请求失败**（仅桌面端）：如 exit/setWorkspaceDir 失败，直接通知 Electron 退出
+ * @param failCallback - 失败回调
  */
-const handleFetchError = (url: string, data: TFetchRequestData | undefined, e: Error) => {
+const handleFetchError = (url: string, data: TFetchRequestData | undefined, e: Error, failCallback?: (response: IWebSocketData) => void) => {
+    if (failCallback && url === "/api/file/getFile") {
+        failCallback({
+            data: null,
+            msg: e.message,
+            code: 400,
+        });
+        return;
+    }
     console.warn("fetch post failed [" + e + "], url [" + url + "]");
     if (url === "/api/transactions" && (e.message === "Failed to fetch" || e.message === "Unexpected end of JSON input")) {
         kernelError();
@@ -124,6 +129,14 @@ const handleFetchResponse = (response: Response) => {
         setTimeout(() => {
             reloadLocation();
         }, 3000);
+        // return error to stop processing? The original code returns the parsed body or error object.
+        // Remote triggers reload but also returns {data: null...} IF it flows through default?
+        // Wait, remote has: case 401: setTimeout... return { ... }
+        return {
+            data: null,
+            msg: response.statusText,
+            code: -response.status,
+        };
     }
     const contentType = response.headers.get("content-type");
     if (contentType && contentType.indexOf("application/json") > -1) {
@@ -193,7 +206,13 @@ const createPostResponseHandler = (url: string, cb?: (response: IWebSocketData) 
  * // 不需要回调的请求
  * fetchPost("/api/system/exit");
  */
-export const fetchPost = (url: string, data?: TFetchRequestData, cb?: (response: IWebSocketData) => void, headers?: IObject) => {
+export const fetchPost = (
+    url: string,
+    data?: TFetchRequestData,
+    cb?: (response: IWebSocketData) => void,
+    headers?: IObject,
+    failCallback?: (response: IWebSocketData) => void
+) => {
     const init: RequestInit = {
         method: "POST",
         body: setupRequestData(url, data),
@@ -201,10 +220,23 @@ export const fetchPost = (url: string, data?: TFetchRequestData, cb?: (response:
     if (headers) {
         init.headers = headers;
     }
+    let isGetFile202 = false;
     fetch(url, init)
-        .then(handleFetchResponse)
-        .then(createPostResponseHandler(url, cb))
-        .catch((e) => handleFetchError(url, data, e));
+        .then((response) => {
+            // Check for 202 on getFile
+            if (response.status === 202 && url === "/api/file/getFile") {
+                isGetFile202 = true;
+            }
+            return handleFetchResponse(response);
+        })
+        .then((response: any) => {
+            if (failCallback && url === "/api/file/getFile" && isGetFile202) {
+                failCallback(response);
+                return;
+            }
+            createPostResponseHandler(url, cb)(response);
+        })
+        .catch((e) => handleFetchError(url, data, e, failCallback));
 };
 
 /**

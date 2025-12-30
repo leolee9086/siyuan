@@ -1,6 +1,6 @@
-import {openModel} from "../menu/model";
-import {fetchPost} from "../../util/fetch";
-import {genNotebookOption} from "../../menus/onGetnotebookconf";
+import { openModel } from "../menu/model";
+import { fetchPost } from "../../util/fetch";
+import { genNotebookOption } from "../../menus/onGetnotebookconf";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import type { SiYuanI18n } from "../../types/i18n.types";
@@ -19,7 +19,7 @@ const generateNumberInputHTML = (id: string, i18nKey: keyof SiYuanI18n, i18nText
     const suffixHTML = suffix ? `
         <span class="fn__space"></span>
         <span class="ft__on-surface fn__flex-center">${suffix}</span>` : "";
-    
+
     return `<div class="b3-label">
     ${siyuanI18n[i18nKey]}
     <span class="fn__hr"></span>
@@ -43,6 +43,7 @@ const generateBlockNumberInputHTML = (id: string, i18nKey: keyof SiYuanI18n, i18
 const generateSavePathHTML = (id: string, i18nKey: keyof SiYuanI18n, i18nTextKey: keyof SiYuanI18n, boxId: string, boxValue: string, pathValue: string) => {
     return `<div class="b3-label">
     ${siyuanI18n[i18nKey]}
+
     <span class="fn__hr"></span>
     <select class="b3-select fn__block" id="${boxId}">${genNotebookOption(boxValue)}</select>
     <span class="fn__hr"></span>
@@ -53,13 +54,14 @@ const generateSavePathHTML = (id: string, i18nKey: keyof SiYuanI18n, i18nTextKey
 
 const generateFileTreeHTML = (config: Config.IFileTree) => {
     return generateCheckboxHTML("allowCreateDeeper", "fileTree18", "fileTree19", config.allowCreateDeeper) +
-    generateCheckboxHTML("removeDocWithoutConfirm", "fileTree3", "fileTree4", config.removeDocWithoutConfirm) +
-    generateCheckboxHTML("useSingleLineSave", "fileTree20", "fileTree21", config.useSingleLineSave) +
-    generateCheckboxHTML("createDocAtTop", "fileTree24", "fileTree25", config.createDocAtTop) +
-    generateNumberInputHTML("largeFileWarningSize", "fileTree22", "fileTree23", config.largeFileWarningSize, 2, 10240, "MB") +
-    generateBlockNumberInputHTML("maxListCount", "fileTree16", "fileTree17", config.maxListCount, 1, 10240) +
-    generateSavePathHTML("docCreateSavePath", "fileTree12", "fileTree13", "docCreateSaveBox", config.docCreateSaveBox, "") +
-    generateSavePathHTML("refCreateSavePath", "fileTree5", "fileTree6", "refCreateSaveBox", config.refCreateSaveBox, config.refCreateSavePath);
+        generateCheckboxHTML("removeDocWithoutConfirm", "fileTree3", "fileTree4", config.removeDocWithoutConfirm) +
+        generateCheckboxHTML("useSingleLineSave", "fileTree20", "fileTree21", config.useSingleLineSave) +
+        generateCheckboxHTML("createDocAtTop", "fileTree24", "fileTree25", config.createDocAtTop) +
+        generateNumberInputHTML("largeFileWarningSize", "fileTree22", "fileTree23", config.largeFileWarningSize, 2, 10240, "MB") +
+        generateBlockNumberInputHTML("maxListCount", "fileTree16", "fileTree17", config.maxListCount, 1, 10240) +
+        generateBlockNumberInputHTML("recentDocsMaxListCount", "recentDocsMaxListCount", "recentDocsMaxListCountTip", config.recentDocsMaxListCount, 32, 256) +
+        generateSavePathHTML("docCreateSavePath", "fileTree12", "fileTree13", "docCreateSaveBox", config.docCreateSaveBox, "") +
+        generateSavePathHTML("refCreateSavePath", "fileTree5", "fileTree6", "refCreateSaveBox", config.refCreateSaveBox, config.refCreateSavePath);
 };
 
 const handleInputChange = (modelMainElement: HTMLElement, config: Config.IFileTree) => {
@@ -73,6 +75,7 @@ const handleInputChange = (modelMainElement: HTMLElement, config: Config.IFileTr
     const createDocAtTopElement = modelMainElement.querySelector("#createDocAtTop") as HTMLInputElement;
     const largeFileWarningSizeElement = modelMainElement.querySelector("#largeFileWarningSize") as HTMLInputElement;
     const maxListCountElement = modelMainElement.querySelector("#maxListCount") as HTMLInputElement;
+    const recentDocsMaxListCountElement = modelMainElement.querySelector("#recentDocsMaxListCount") as HTMLInputElement;
 
     fetchPost("/api/setting/setFiletree", {
         sort: config.sort,
@@ -89,6 +92,7 @@ const handleInputChange = (modelMainElement: HTMLElement, config: Config.IFileTr
         createDocAtTop: createDocAtTopElement.checked,
         largeFileWarningSize: parseInt(largeFileWarningSizeElement.value),
         maxListCount: parseInt(maxListCountElement.value),
+        recentDocsMaxListCount: parseInt(recentDocsMaxListCountElement.value),
         maxOpenTabCount: config.maxOpenTabCount,
     }, response => {
         const config = getSiyuanConfig();
@@ -99,7 +103,7 @@ const handleInputChange = (modelMainElement: HTMLElement, config: Config.IFileTr
 const bindFileTreeEvents = (modelMainElement: HTMLElement, config: Config.IFileTree) => {
     const docCreateSavePathElement = modelMainElement.querySelector("#docCreateSavePath") as HTMLInputElement;
     const refCreateSavePathElement = modelMainElement.querySelector("#refCreateSavePath") as HTMLInputElement;
-    
+
     docCreateSavePathElement.value = config.docCreateSavePath;
     refCreateSavePathElement.value = config.refCreateSavePath;
 
@@ -113,7 +117,7 @@ const bindFileTreeEvents = (modelMainElement: HTMLElement, config: Config.IFileT
 
 export const initFileTree = () => {
     const config = getSiyuanConfig().fileTree;
-    
+
     openModel({
         title: siyuanI18n.fileTree,
         icon: "iconFiles",

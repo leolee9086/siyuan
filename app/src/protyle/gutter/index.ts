@@ -27,7 +27,7 @@ export class Gutter {
      * Gutter 的 DOM 元素，包含所有块操作按钮
      */
     public element: HTMLElement;
-    
+
     /**
      * Gutter 的提示文本，包含快捷键信息
      * 根据操作系统和配置动态生成
@@ -44,21 +44,21 @@ export class Gutter {
         this.gutterTip = siyuanI18n.gutterTip.replace("⌥→", updateHotkeyAfterTip(getSiyuanConfig().keymap.general.enter.custom, "/"))
             .replace("⌘↑", updateHotkeyAfterTip(getSiyuanConfig().keymap.editor.general.collapse.custom, "/"))
             .replace("⌥⌘A", updateHotkeyAfterTip(getSiyuanConfig().keymap.editor.general.attr.custom, "/"));
-        
+
         // 如果不是 Mac 系统，将 Mac 风格的快捷键符号转换为 Windows/Linux 风格
         if (!isMac()) {
             this.gutterTip = this.gutterTip.replace(/⌘/g, "Ctrl+").replace(/⌥/g, "Alt+").replace(/⇧/g, "Shift+").replace(/⌃/g, "Ctrl+");
         }
-        
+
         // 如果是反向链接模式，修改提示文本
         if (protyle.options.backlinkData) {
             this.gutterTip = this.gutterTip.replace(siyuanI18n.enter, siyuanI18n.openBy);
         }
-        
+
         // 创建 Gutter 的 DOM 元素
         this.element = document.createElement("div");
         this.element.className = "protyle-gutters";
-        
+
         // 绑定事件处理器
         bindEvent(protyle, this.element);
     }
@@ -86,7 +86,7 @@ export class Gutter {
      * @param selectsElement 被选中的元素数组
      * @returns 构建的菜单对象
      */
-     
+
     public renderMultipleMenu(protyle: IProtyle, selectsElement: Element[]) {
         return buildGutterMultipleMenu({ protyle, selectsElement });
     }
@@ -101,7 +101,7 @@ export class Gutter {
      * @param buttonElement 被点击的按钮元素
      * @returns 构建的菜单对象
      */
-     
+
     public renderMenu(protyle: IProtyle, buttonElement: Element) {
         return buildGutterMenu({ protyle, buttonElement });
     }
