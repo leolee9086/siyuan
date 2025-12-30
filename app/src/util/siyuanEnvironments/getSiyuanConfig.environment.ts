@@ -1,4 +1,6 @@
 
+import { isCenterLayout } from "./getSiyuanConfig.guard";
+
 /**
  * 获取配置项的工具函数
  * @param path 配置项的路径，例如 "editor.fontSize" 或 "appearance.themeDark"
@@ -68,7 +70,10 @@ export const setSiyuanLayoutCenterLayout = (layout: unknown) => {
     if (!window.siyuan?.layout) {
         throw ("[setSiyuanLayoutCenterLayout] window.siyuan.layout 不存在");
     }
-    window.siyuan.layout.centerLayout = layout as NonNullable<typeof window.siyuan.layout.centerLayout>;
+    if (!isCenterLayout(layout)) {
+        throw ("[setSiyuanLayoutCenterLayout] layout 参数无效");
+    }
+    window.siyuan.layout.centerLayout = layout;
 };
 
 /**
