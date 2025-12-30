@@ -11,7 +11,8 @@
 
 export { 显示特殊类型菜单 } from "./inlineMark.menu";
 export { 整理零宽空格 } from "./inlineMark.zwsp";
-export { 合并相邻同类型元素, type 合并结果 } from "./inlineMark.merge";
+export { 合并相邻同类型元素 } from "./inlineMark.merge";
+export { type 合并结果 } from "./inlineMark.types";
 export { 移除内联标记, type 移除标记结果 } from "./inlineMark.remove";
 export { 添加内联标记, type 添加标记结果 } from "./inlineMark.add";
 export { 准备标记内容, type 准备标记内容结果 } from "./inlineMark.prepare";

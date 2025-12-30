@@ -5,14 +5,8 @@
 
 import { Constants } from "../../../constants";
 import { setFontStyle } from "../Font";
-
-/**
- * 添加内联标记处理结果
- */
-export interface 添加标记结果 {
-    newNodes: Node[];
-    keepZWPS: boolean;
-}
+import { 添加标记结果 } from "./inlineMark.types";
+import { isHTMLElement, isTextNode } from "./inlineMark.guard";
 
 function 清理结尾跨度类型(rangeTypes: string[], type: string) {
     let removeIndex = 0;
@@ -170,7 +164,7 @@ const pushRemoveText = (removeText: string, newNodes: Node[]) => {
 };
 
 function 处理文本节点(
-    item: HTMLElement, // 实际上是 Text 节点，但为了方便访问 textContent
+    item: Text,
     type: string,
     textObj: ITextOption | undefined,
     newNodes: Node[]
@@ -249,14 +243,13 @@ export function 添加内联标记(
 
     const childNodes = Array.from(contents.childNodes);
     for (const item of childNodes) {
-        const htmlItem = item as HTMLElement;
-        if (item.nodeType === 3) {
-            处理文本节点(htmlItem, type, textObj, newNodes);
+        if (isTextNode(item)) {
+            处理文本节点(item, type, textObj, newNodes);
             continue;
         }
 
-        if (item.nodeType === 1) {
-            处理元素节点(htmlItem, type, toolbarElement, textObj, newNodes);
+        if (isHTMLElement(item)) {
+            处理元素节点(item, type, toolbarElement, textObj, newNodes);
         }
     }
 

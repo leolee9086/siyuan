@@ -4,16 +4,7 @@
  */
 
 import { Constants } from "../../../constants";
-
-/**
- * 移除标记处理结果
- */
-export interface 移除标记结果 {
-    newNodes: Node[];
-    startContainer?: Node | undefined;
-    startOffset?: number | undefined;
-    keepZWPS: boolean;
-}
+import { 移除标记结果 } from "./inlineMark.types";
 
 /**
  * 处理空选区时的移除逻辑
@@ -173,9 +164,8 @@ export function 移除内联标记(
     }
 
     // 处理每个子节点
-    for (const item of Array.from(contents.childNodes) as HTMLElement[]) {
-        const 是需要处理的元素 = item.nodeType !== 3 && item.tagName !== "BR" && item.tagName !== "IMG" && !item.classList.contains("img");
-        if (是需要处理的元素) {
+    for (const item of Array.from(contents.childNodes)) {
+        if (item instanceof HTMLElement && item.tagName !== "BR" && item.tagName !== "IMG" && !item.classList.contains("img")) {
             处理元素节点类型移除(item, type, textObj, newNodes);
             continue;
         }

@@ -4,67 +4,80 @@
  */
 
 import { Constants } from "../../../constants";
+import { 合并结果 } from "./inlineMark.types";
+import { isHTMLElement, isChildNode } from "./inlineMark.guard";
 
-/**
- * 合并相邻的同类型元素
- * 当两个相邻元素具有相同的 data-type 和 text style 时，合并它们
- * 
- * 原始位置: index.ts L678-754
- * 
- * @returns 合并后需要更新的 range 位置信息
- */
-export interface 合并结果 {
-    startContainer?: Node;
-    endContainer?: Node;
-    startOffset?: number;
-    endOffset?: number;
-}
+
 
 /** 获取前一个有效元素（跳过 ZWSP 文本节点） */
 function 获取前一个有效元素(
     currentIndex: number,
     newNodes: Node[],
     hasPreviousSibling: (node: Node) => Node | false
-): HTMLElement | null {
-    let previousElement = currentIndex === newNodes.length
-        ? newNodes[currentIndex - 1] as HTMLElement
-        : hasPreviousSibling(newNodes[currentIndex] as Node) as HTMLElement;
+): Node | null {
+    const nodeAtIndex = newNodes[currentIndex];
+    const previousElement = currentIndex === newNodes.length
+        ? newNodes[currentIndex - 1]
+        : (nodeAtIndex ? hasPreviousSibling(nodeAtIndex) : null);
 
-    if (previousElement?.nodeType === 3 && previousElement.textContent === Constants.ZWSP) {
-        previousElement = hasPreviousSibling(previousElement) as HTMLElement;
-        previousElement?.nextSibling?.remove();
+    if (!previousElement) {
+        return null;
     }
-    return previousElement || null;
-}
 
-/** 跳过 ZWSP 节点并移除它 (用于向后查找时) */
-function 跳过ZWSP节点(
-    node: HTMLElement,
-    hasNextSibling: (node: Node) => Node | false
-): HTMLElement | null {
-    if (!node || node.nodeType !== 3 || node.textContent !== Constants.ZWSP) {
-        return node;
+    const isZWSP = previousElement.nodeType === 3 && previousElement.textContent === Constants.ZWSP;
+    if (!isZWSP) {
+        return previousElement;
     }
-    const nextNode = hasNextSibling(node as Node) as HTMLElement;
-    if (nextNode) {
-        (nextNode.previousSibling as ChildNode).remove();
-        return nextNode;
+
+    const prev = hasPreviousSibling(previousElement);
+    if (prev) {
+        prev.nextSibling?.remove();
+        return prev;
     }
     return null;
 }
 
+/** 跳过 ZWSP 节点并移除它 (用于向后查找时) */
+function 跳过ZWSP节点(
+    node: Node,
+    hasNextSibling: (node: Node) => Node | false
+): Node | null {
+    if (!node || node.nodeType !== 3 || node.textContent !== Constants.ZWSP) {
+        return node;
+    }
+    const nextNode = hasNextSibling(node);
+    if (!nextNode) {
+        return null;
+    }
+    const prev = nextNode.previousSibling;
+    if (isChildNode(prev)) {
+        prev.remove();
+    }
+    return nextNode;
+}
+
 /** 获取当前有效节点（处理边界情况和 ZWSP） */
+// Retained signature
 function 获取当前有效节点(
     currentIndex: number,
     newNodes: Node[],
     hasNextSibling: (node: Node) => Node | false
-): HTMLElement | null {
-    let currentNode = newNodes[currentIndex] as HTMLElement;
-    if (!currentNode) {
-        currentNode = hasNextSibling(newNodes[currentIndex - 1] as Node) as HTMLElement;
-        currentNode = 跳过ZWSP节点(currentNode, hasNextSibling) as HTMLElement;
+): Node | null {
+    const currentNode = newNodes[currentIndex];
+    if (currentNode) {
+        return currentNode;
     }
-    return currentNode || null;
+
+    const prev = newNodes[currentIndex - 1];
+    if (!prev) {
+        return null;
+    }
+
+    const nextNode = hasNextSibling(prev);
+    if (nextNode) {
+        return 跳过ZWSP节点(nextNode, hasNextSibling);
+    }
+    return null;
 }
 
 /** 判断两个元素是否可以合并 */
@@ -165,20 +178,23 @@ export function 合并相邻同类型元素(
         const previousElement = 获取前一个有效元素(i, newNodes, hasPreviousSibling);
         const currentNode = 获取当前有效节点(i, newNodes, hasNextSibling);
 
-        if (!currentNode || currentNode.nodeType === 3) {
+        if (!currentNode || !isHTMLElement(currentNode)) {
             continue;
         }
 
         const currentType = (currentNode.getAttribute("data-type") || "").split(" ");
+        if (!previousElement || !isHTMLElement(previousElement)) {
+            continue;
+        }
         if (!判断是否可合并(currentNode, previousElement, currentType, isArrayEqual, hasSameTextStyle)) {
             continue;
         }
 
         处理ZWSP前缀(currentNode, currentType);
-        执行合并内容(currentNode, previousElement!, currentType);
-        更新Range位置(i, newNodes.length, currentNode, previousElement!, currentType, result);
+        执行合并内容(currentNode, previousElement, currentType);
+        更新Range位置(i, newNodes.length, currentNode, previousElement, currentType, result);
 
-        previousElement!.remove();
+        previousElement.remove();
         if (i > 0) {
             newNodes.splice(i - 1, 1);
             i--;

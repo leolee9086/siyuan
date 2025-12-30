@@ -6,6 +6,7 @@
 import { Constants } from "../../../constants";
 import { linkMenu } from "../../../menus/protyle";
 import { mathRender } from "../../render/mathRender";
+import { isHTMLElement } from "./inlineMark.guard";
 
 /**
  * 显示特殊类型的编辑菜单
@@ -44,7 +45,7 @@ export function 显示特殊类型菜单(
         !showMenuElement.getAttribute("data-inline-memo-content") &&
         showMenuTypes.includes("inline-memo") &&
         protyle.toolbar) {
-        protyle.toolbar.showRender(protyle, showMenuElement, newNodes as Element[], html);
+        protyle.toolbar.showRender(protyle, showMenuElement, newNodes.filter(isHTMLElement), html);
         return;
     }
 

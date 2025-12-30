@@ -1,17 +1,19 @@
 import { Constants } from "../../../constants";
 import { mergeNodes } from "../../../util/DOM/rangeOperations";
+import { isHTMLElement } from "./inlineMark.guard";
 
 const removeEmptyNode = (range: Range) => {
-    let emptyNode: Element = range.startContainer.childNodes[range.startOffset] as HTMLElement;
+    let emptyNode: Node | undefined | null = range.startContainer.childNodes[range.startOffset];
     if (!emptyNode) {
-        emptyNode = range.startContainer.childNodes[range.startOffset - 1] as HTMLElement;
+        emptyNode = range.startContainer.childNodes[range.startOffset - 1];
     }
     if (emptyNode && emptyNode.nodeType === 3) {
-        emptyNode = (range.startContainer as HTMLElement).tagName === "DIV" ?
-            emptyNode.previousSibling as HTMLElement :
-            range.startContainer as HTMLElement;
+        const container = range.startContainer;
+        emptyNode = (isHTMLElement(container) && container.tagName === "DIV")
+            ? emptyNode.previousSibling
+            : container;
     }
-    if (emptyNode && emptyNode.nodeType !== 3 && emptyNode.textContent?.replace(Constants.ZWSP, "") === "" &&
+    if (emptyNode && isHTMLElement(emptyNode) && emptyNode.textContent?.replace(Constants.ZWSP, "") === "" &&
         !["TD", "TH", "BR"].includes(emptyNode.tagName)) {
         emptyNode.remove();
     }
@@ -28,7 +30,7 @@ export const 清理内联标记内容 = (
         if (item.nodeType === 3 && item.textContent === Constants.ZWSP) {
             item.remove();
         }
-        if (item.nodeType === 1 && item.textContent === "" && (item as HTMLElement).tagName === "SPAN") {
+        if (isHTMLElement(item) && item.textContent === "" && item.tagName === "SPAN") {
             item.remove();
         }
     }
