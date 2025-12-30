@@ -23,6 +23,14 @@ export const getSiyuanUser = () => {
 };
 
 /**
+ * 检查 window.siyuan.user 是否存在（安全版本，不抛异常）
+ * @returns 如果用户已登录返回 true，否则返回 false
+ */
+export const hasSiyuanUser = (): boolean => {
+    return !!window.siyuan?.user;
+};
+
+/**
  * 获取配置项的工具函数
  * @returns 如果存在则返回对应的值，否则返回 undefined
  */
@@ -210,5 +218,14 @@ export const getSiyuanEditorIsFullscreen = () => {
 export const setSiyuanEditorIsFullscreen = (isFullscreen: boolean) => {
     if (window.siyuan) {
         window.siyuan.editorIsFullscreen = isFullscreen;
+    }
+};
+
+/**
+ * 设置 window.siyuan.hideBreadcrumb
+ */
+export const setSiyuanHideBreadcrumb = (hide: boolean) => {
+    if (window.siyuan) {
+        window.siyuan.hideBreadcrumb = hide;
     }
 };
