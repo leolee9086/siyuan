@@ -22,7 +22,7 @@ const removeEmptyNode = (range: Range) => {
 export const 清理内联标记内容 = (
     contents: DocumentFragment,
     range: Range,
-    needWrapTarget: HTMLElement | null,
+    needWrapTarget: HTMLElement | undefined,
     selectText: string
 ) => {
     mergeNodes(contents.childNodes);

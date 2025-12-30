@@ -120,11 +120,11 @@ function 调整Range范围(
     hasNextSibling: (node: Node) => Node | false
 ): { isEndSpan: boolean } {
     let isEndSpan = false;
-    const startContainerText = range.startContainer.textContent || "";
+    const endContainerText = range.endContainer.textContent || "";
     const endContainerParentElement = range.endContainer.parentElement;
 
     // https://github.com/siyuan-note/siyuan/issues/7200
-    if (range.endOffset === startContainerText.length &&
+    if (range.endOffset === endContainerText.length &&
         endContainerParentElement &&
         !["DIV", "TD", "TH", "TR"].includes(endContainerParentElement.tagName) &&
         !hasNextSibling(range.endContainer)) {

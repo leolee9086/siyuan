@@ -35,7 +35,7 @@ function 处理空选区移除(
     let removeIndex = 0;
     while (removeIndex < rangeTypes.length) {
         const currentType = rangeTypes[removeIndex];
-        const shouldRemove = currentType && ["inline-memo", "text", "block-ref", "virtual-block-ref", "file-annotation-ref", "a"].includes(currentType);
+        const shouldRemove = currentType && ["text"].includes(currentType);
         if (shouldRemove) {
             rangeTypes.splice(removeIndex, 1);
             continue;
@@ -52,7 +52,7 @@ function 处理空选区移除(
     return {
         startContainer: firstNode?.firstChild || undefined,
         startOffset: 1,
-        keepZWPS: true
+        keepZWPS: !(rangeTypes.includes("code") || rangeTypes.includes("tag") || rangeTypes.includes("kbd"))
     };
 }
 

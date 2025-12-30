@@ -42,6 +42,9 @@ function 处理空选区添加(
     inlineElement.textContent = Constants.ZWSP;
     setFontStyle(inlineElement, textObj);
     newNodes.push(inlineElement);
+    if (rangeTypes.includes("code") || rangeTypes.includes("tag") || rangeTypes.includes("kbd")) {
+        return false;
+    }
     return true;
 }
 
