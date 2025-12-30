@@ -9,6 +9,7 @@ export const schema = z.object({
     backlinkMentionKeywordsLimit: z.number(),
     backlinkMentionName: z.boolean(),
     blockquote: z.boolean(),
+    callout: z.boolean(),
     caseSensitive: z.boolean(),
     codeBlock: z.boolean(),
     databaseBlock: z.boolean(),
@@ -37,7 +38,7 @@ export const schema = z.object({
 });
 
 
-export const parseAsSearchConfig = (rawConf: {}): Config.IConf["search"] => {
+export const parseAsSearchConfig = (rawConf: object): Config.IConf["search"] => {
     const result = schema.safeParse(rawConf);
 
     if (!result.success) {

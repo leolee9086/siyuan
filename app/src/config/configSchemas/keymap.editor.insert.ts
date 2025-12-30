@@ -23,8 +23,8 @@ export const schema = z.object({
     ref: buildKeymapEntrySchema(),
     table: buildKeymapEntrySchema()
 });
-export {schema as editorKeyMapInsertSchema};
-export const parseAsConfig = (rawConf: {}): Config.IConf["keymap"]["editor"]["insert"] => {
+export { schema as editorKeyMapInsertSchema };
+export const parseAsConfig = (rawConf: object): Config.IConf["keymap"]["editor"]["insert"] => {
     const result = schema.safeParse(rawConf);
 
     if (!result.success) {

@@ -279,8 +279,8 @@ const schema = z.object({
     config: buildKeymapEntrySchema(),
     toggleWin: buildKeymapEntrySchema(),
 });
-export {schema as generalKeymapSchema};
-const parseAsConfig = (rawConf: {}): Config.IConf["keymap"]["general"] => {
+export { schema as generalKeymapSchema };
+const parseAsConfig = (rawConf: object): Config.IConf["keymap"]["general"] => {
     const result = schema.safeParse(rawConf);
     if (!result.success) {
         throw new Error(`配置解析失败: ${result.error.message}`);

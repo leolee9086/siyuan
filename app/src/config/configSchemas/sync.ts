@@ -43,7 +43,7 @@ export const schema = z.object({
 });
 
 
-export const parseAsSyncConfig = (rawConf: {}): Config.IConf["sync"] => {
+export const parseAsSyncConfig = (rawConf: object): Config.IConf["sync"] => {
     const result = schema.safeParse(rawConf);
 
     if (!result.success) {

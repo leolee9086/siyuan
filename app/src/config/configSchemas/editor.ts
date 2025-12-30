@@ -44,11 +44,12 @@ export const schema = z.object({
     rtl: z.boolean(),
     spellcheck: z.boolean(),
     virtualBlockRef: z.boolean(),
+    spellcheckLanguages: z.array(z.string()),
     virtualBlockRefExclude: z.string(),
     virtualBlockRefInclude: z.string()
 });
 
-const parseAsConfig = (rawConf: {}): Config.IConf["editor"] => {
+const parseAsConfig = (rawConf: object): Config.IConf["editor"] => {
     const result = schema.safeParse(rawConf);
 
     if (!result.success) {

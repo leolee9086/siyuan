@@ -11,8 +11,8 @@ export const schema = z.object({
     heading6: buildKeymapEntrySchema(),
     paragraph: buildKeymapEntrySchema()
 });
-export {schema as editorKeyMapHeadingSchema};
-export const parseAsConfig = (rawConf: {}): Config.IConf["keymap"]["editor"]["heading"] => {
+export { schema as editorKeyMapHeadingSchema };
+export const parseAsConfig = (rawConf: object): Config.IConf["keymap"]["editor"]["heading"] => {
     const result = schema.safeParse(rawConf);
 
     if (!result.success) {

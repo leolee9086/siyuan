@@ -20,8 +20,8 @@ export const schema = z.object({
         default: z.string()
     })
 });
-export {schema as editorKeyMapTableSchema};
-export const parseAsConfig = (rawConf: {}): Config.IConf["keymap"]["editor"]["table"] => {
+export { schema as editorKeyMapTableSchema };
+export const parseAsConfig = (rawConf: object): Config.IConf["keymap"]["editor"]["table"] => {
     const result = schema.safeParse(rawConf);
 
     if (!result.success) {

@@ -21,7 +21,7 @@ export const schema = z.object({
     tagOpenMarker: z.string()
 });
 
-const parseAsConfig = (rawConf: {}): Config.IConf["export"] => {
+const parseAsConfig = (rawConf: object): Config.IConf["export"] => {
     const result = schema.safeParse(rawConf);
 
     if (!result.success) {

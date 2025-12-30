@@ -2,13 +2,13 @@ import { z } from "zod";
 import { schema as editorConfigSchema } from "./editor";
 import { editorKeyMapSchema } from "./keymap.editor";
 import { generalKeymapSchema } from "./keyMap.general";
-import {schema as systemConfigSchema} from "./system";
-import { uiLayoutSchema } from "./uiLayout";
-import { schema as syncConfigSchema} from "./sync";
+import { schema as systemConfigSchema } from "./system";
+import { uiLayoutSchema } from "./uiLayout.schema";
+import { schema as syncConfigSchema } from "./sync";
 import { schema as searchConfigSchema } from "./search";
-import {schema as graphConfigSchema} from "./graph";
-import {schema as appearanceConfigSchema} from "./appearance";
-import {schema as flashcardConfigSchema} from "./flashcard";
+import { schema as graphConfigSchema } from "./graph";
+import { schema as appearanceConfigSchema } from "./appearance";
+import { schema as flashcardConfigSchema } from "./flashcard";
 const configSchema = z.object({
     accessAuthCode: z.enum(["", "*******"]).optional().default(""),
     account: z.object({
@@ -77,7 +77,7 @@ const configSchema = z.object({
         largeFileWarningSize: z.number(),
         createDocAtTop: z.boolean()
     }),
-    flashcard:flashcardConfigSchema,
+    flashcard: flashcardConfigSchema,
     graph: graphConfigSchema,
     keymap: z.object({
         editor: editorKeyMapSchema,
@@ -134,7 +134,7 @@ const configSchema = z.object({
     tag: z.object({
         sort: z.number()
     }),
-    uiLayout:uiLayoutSchema,
+    uiLayout: uiLayoutSchema,
     userData: z.string(),
     /**
      * 用户界面语言
@@ -144,7 +144,7 @@ const configSchema = z.object({
 }
 );
 
-const parseAsConfig = (rawConf: {}): Config.IConf => {
+const parseAsConfig = (rawConf: object): Config.IConf => {
     const result = configSchema.safeParse(rawConf);
 
     if (!result.success) {

@@ -2,6 +2,7 @@ import z from "zod";
 
 const graphNodeSchema = z.object({
     blockquote: z.boolean(),
+    callout: z.boolean(),
     code: z.boolean(),
     heading: z.boolean(),
     list: z.boolean(),
@@ -39,7 +40,7 @@ export const schema = z.object({
     maxBlocks: z.number()
 });
 
-const parseAsConfig = (rawConf: {}): Config.IConf["graph"] => {
+const parseAsConfig = (rawConf: object): Config.IConf["graph"] => {
     const result = schema.safeParse(rawConf);
 
     if (!result.success) {

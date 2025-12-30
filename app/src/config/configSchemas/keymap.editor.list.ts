@@ -6,8 +6,8 @@ export const schema = z.object({
     indent: buildKeymapEntrySchema(),
     outdent: buildKeymapEntrySchema(),
 });
-export {schema as editorKeyMapListSchema};
-export const parseAsConfig = (rawConf: {}): Config.IConf["keymap"]["editor"]["list"] => {
+export { schema as editorKeyMapListSchema };
+export const parseAsConfig = (rawConf: object): Config.IConf["keymap"]["editor"]["list"] => {
     const result = schema.safeParse(rawConf);
 
     if (!result.success) {

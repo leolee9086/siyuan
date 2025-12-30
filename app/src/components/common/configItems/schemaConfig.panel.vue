@@ -37,7 +37,7 @@ import NumberItem from './numberItem.vue'
 import TextItem from './textItem.vue'
 import SelectItem from './selectItem.vue'
 import CompositeItem from './compositeItem.vue'
-import { type UIDescription, type UIFormDescription, UIDescriptionSchema, UIFormDescriptionSchema } from '../../../config/configSchemas/utils'
+import { type UIDescription, type UIFormDescription, UIDescriptionSchema, UIFormDescriptionSchema } from '../../../config/configSchemas/utils.schema'
 import { siyuanI18n } from '../../../util/siyuanEnvironments/i18n.getI18n.environment'
 import { Constants } from '../../../constants'
 

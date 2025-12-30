@@ -132,7 +132,7 @@ export const schema = z.object({
     }
 );
 
-const parseAsConfig = (rawConf: {}): Config.IConf["fileTree"] => {
+const parseAsConfig = (rawConf: object): Config.IConf["fileTree"] => {
     const result = schema.safeParse(rawConf);
 
     if (!result.success) {

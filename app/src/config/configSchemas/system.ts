@@ -29,7 +29,7 @@ export const schema = z.object({
 });
 
 
-export const parseAsSystemConfig = (rawConf: {}): Config.IConf["system"] => {
+export const parseAsSystemConfig = (rawConf: object): Config.IConf["system"] => {
     const result = schema.safeParse(rawConf);
 
     if (!result.success) {

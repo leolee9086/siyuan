@@ -14,7 +14,7 @@ export const schema = z.object({
     weights: z.string()
 });
 
-const parseAsConfig = (rawConf: {}): Config.IConf["flashcard"] => {
+const parseAsConfig = (rawConf: object): Config.IConf["flashcard"] => {
     const result = schema.safeParse(rawConf);
 
     if (!result.success) {

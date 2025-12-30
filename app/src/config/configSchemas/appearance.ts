@@ -25,7 +25,7 @@ export const schema = z.object({
     })
 });
 
-const parseAsConfig = (rawConf: {}): Config.IConf["appearance"] => {
+const parseAsConfig = (rawConf: object): Config.IConf["appearance"] => {
     const result = schema.safeParse(rawConf);
 
     if (!result.success) {
