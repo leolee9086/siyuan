@@ -426,12 +426,17 @@ const calculateMetricsForDefault = (rect: DOMRect, gutterElement: HTMLElement, n
  * @returns 包含位置度量信息的对象
  */
 const calculatePositionMetrics = (protyle: IProtyle, element: Element, gutterElement: HTMLElement, listItem: Element | undefined, nodeElement: Element | undefined) => {
+    // 确保内容元素存在
+    if (!protyle.contentElement) {
+        throw new Error("protyle.contentElement 不存在，protyle 对象不完整");
+    }
+
     let rect = element.getBoundingClientRect();
 
     // 检查是否应该使用列表项的位置
     const shouldCheckListItem = listItem && !getSiyuanConfig().editor.rtl && getComputedStyle(element).direction !== "rtl" && !element.classList.contains("callout");
-    if (shouldCheckListItem && listItem!.firstElementChild) {
-        rect = listItem!.firstElementChild.getBoundingClientRect();
+    if (shouldCheckListItem && listItem.firstElementChild) {
+        rect = listItem.firstElementChild.getBoundingClientRect();
     }
 
     if (shouldCheckListItem) {
@@ -449,7 +454,7 @@ const calculatePositionMetrics = (protyle: IProtyle, element: Element, gutterEle
     }
 
     // 默认情况
-    return { rect, marginHeight: calculateMetricsForDefault(rect, gutterElement, nodeElement, element, protyle.contentElement!.getBoundingClientRect().top), space: 0 };
+    return { rect, marginHeight: calculateMetricsForDefault(rect, gutterElement, nodeElement, element, protyle.contentElement.getBoundingClientRect().top), space: 0 };
 };
 
 /**
@@ -466,9 +471,14 @@ const calculatePositionMetrics = (protyle: IProtyle, element: Element, gutterEle
  * @param space 额外的空间偏移
  */
 const setGutterPosition = (protyle: IProtyle, element: Element, gutterElement: HTMLElement, listItem: Element | undefined, nodeElement: Element | undefined, space: number) => {
+    // 确保内容元素存在
+    if (!protyle.contentElement) {
+        throw new Error("protyle.contentElement 不存在，protyle 对象不完整");
+    }
+
     // 计算位置度量信息
     const { rect, marginHeight, space: pSpace } = calculatePositionMetrics(protyle, element, gutterElement, listItem, nodeElement);
-    const contentTop = protyle.contentElement!.getBoundingClientRect().top;
+    const contentTop = protyle.contentElement.getBoundingClientRect().top;
 
     // 设置垂直位置
     gutterElement.style.top = `${Math.max(rect.top, contentTop) + marginHeight}px`;
