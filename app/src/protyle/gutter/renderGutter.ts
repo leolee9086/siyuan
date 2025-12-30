@@ -28,19 +28,19 @@ export const renderGutter = (protyle: IProtyle, element: Element, options: { tar
     // 检查标题是否已渲染完成，防止在标题未渲染时显示 Gutter
     // 参考: https://github.com/siyuan-note/siyuan/issues/4659
     if (protyle.title && protyle.title.element.getAttribute("data-render") !== "true") {
-return;
-}
-    
+        return;
+    }
+
     // 防止在文本选择时触碰图标导致高亮无法移除
     const selectElement = protyle.element.querySelector(".protyle-select");
     if (selectElement && !selectElement.classList.contains("fn__none")) {
-return;
-}
-    
+        return;
+    }
+
     // 确保内容元素存在
     if (!protyle.contentElement) {
-return;
-}
+        return;
+    }
 
     const { target, gutterElement, gutterTip } = options;
     const result = buildGutterHtml(protyle, element, target, gutterTip, gutterElement);
@@ -51,7 +51,7 @@ return;
         gutterElement.classList.remove("fn__none");
         return;
     }
-    
+
     // 更新 Gutter 内容
     gutterElement.innerHTML = result.html;
     gutterElement.classList.remove("fn__none");
@@ -78,30 +78,30 @@ const buildGutterHtml = (protyle: IProtyle, element: Element, target: Element | 
     // 处理属性视图（Attribute View）的特殊情况
     const avResult = handleAttributeView(target, element, protyle, element.getAttribute("data-type"));
     if (avResult) {
-return { html: avResult.html, match: false, space: 0, element: avResult.element };
-}
+        return { html: avResult.html, match: false, space: 0, element: avResult.element, nodeElement: avResult.nodeElement };
+    }
 
     // 计算初始节点和列表项
     const initial = calculateInitialNode(element, target);
     if (initial.shouldReturn) {
-return { html: "", match: false, space: 0, element: element };
-}
+        return { html: "", match: false, space: 0, element: element };
+    }
     let { nodeElement, listItem } = initial;
     let html = "", space = 0, index = 0, hideParent = false;
 
     // 遍历元素的父级链，为每个需要显示 Gutter 的元素生成按钮
     while (nodeElement) {
         if (!nodeElement.parentElement) {
-break;
-}
+            break;
+        }
         const inputParent = hasClosestBlock(nodeElement.parentElement);
         const parentElement = inputParent === false ? undefined : inputParent;
-        
+
         // 检查是否为嵌入块
         const embedCheck = checkEmbedBlock(nodeElement, parentElement);
         if (embedCheck.shouldBreak) {
-break;
-}
+            break;
+        }
         if (embedCheck.shouldContinue) {
             nodeElement = embedCheck.nodeElement!;
             continue;
@@ -109,52 +109,52 @@ break;
 
         let type: string | null = null;
         if (!hideParent) {
-type = nodeElement.getAttribute("data-type");
-}
-        
+            type = nodeElement.getAttribute("data-type");
+        }
+
         // 处理列表项的特殊情况
         if (type === "NodeListItem" && index === 1) {
-html = "";
-}
+            html = "";
+        }
         index += 1;
 
         // 生成按钮 HTML
         const { buttonHTML, foldHTML } = generateButtonHtml(protyle, nodeElement, type, gutterTip, nodeElement.getAttribute("data-node-id"));
         if (!hideParent) {
-html = buttonHTML + html;
-}
+            html = buttonHTML + html;
+        }
 
         // 处理列表项和列表
         if (type === "NodeListItem" || type === "NodeList") {
-listItem = nodeElement;
-}
+            listItem = nodeElement;
+        }
         if (type === "NodeListItem" && nodeElement.childElementCount > 3) {
-html = buttonHTML + foldHTML;
-}
+            html = buttonHTML + foldHTML;
+        }
 
         // 处理标题
         if (type === "NodeHeading") {
-html = html + foldHTML;
-}
-        
+            html = html + foldHTML;
+        }
+
         // 处理引用块和标注块，增加缩进
         if (["NodeBlockquote", "NodeCallout"].includes(type || "")) {
-space += 8;
-}
+            space += 8;
+        }
 
         // 处理父级逻辑
         const parentLogic = handleParentLogic(nodeElement, parentElement);
         if (parentLogic.shouldReturn) {
-return { html: "", match: false, space: 0, element: element };
-}
+            return { html: "", match: false, space: 0, element: element };
+        }
         if (parentLogic.hideParent) {
-hideParent = true;
-}
+            hideParent = true;
+        }
         space += parentLogic.space;
 
         if (!parentElement) {
-break;
-}
+            break;
+        }
         nodeElement = parentElement;
     }
 
@@ -162,22 +162,22 @@ break;
     let match = true;
     const buttonsElement = gutterElement.querySelectorAll("button");
     if (buttonsElement.length !== html.split("</button>").length - 1) {
-match = false;
-}
+        match = false;
+    }
 
     if (match) {
         for (const item of Array.from(buttonsElement)) {
             const id = item.getAttribute("data-node-id");
             if (id && html.indexOf(id) === -1) {
- match = false; break; 
-}
+                match = false; break;
+            }
             const rowId = item.getAttribute("data-row-id");
             if ((rowId && html.indexOf(rowId) === -1) || (!rowId && html.indexOf("NodeAttributeViewRowMenu") > -1)) {
- match = false; break; 
-}
+                match = false; break;
+            }
         }
     }
-    
+
     return { html, match, listItem, nodeElement: nodeElement || undefined, space, element };
 };
 
@@ -193,14 +193,14 @@ match = false;
 const checkEmbedBlock = (nodeElement: Element, parentElement: Element | undefined | null) => {
     // 如果不是嵌入块，无需特殊处理
     if (!isInEmbedBlock(nodeElement)) {
-return {};
-}
-    
+        return {};
+    }
+
     // 如果没有父级元素，应该中断处理
     if (!parentElement) {
-return { shouldBreak: true };
-}
-    
+        return { shouldBreak: true };
+    }
+
     // 继续处理父级元素
     return { nodeElement: parentElement, shouldContinue: true };
 };
@@ -218,36 +218,36 @@ return { shouldBreak: true };
 const calculateInitialNode = (element: Element, target: Element | undefined) => {
     let nodeElement = element;
     const type = nodeElement.getAttribute("data-type");
-    
+
     // 检查是否为特殊类型的块
     const isSpecialType = ["NodeBlockquote", "NodeList", "NodeCallout", "NodeSuperBlock"].includes(type || "");
     const isInfoCallout = target && type === "NodeCallout" && hasTopClosestByClassName(target, "callout-info");
-    
+
     // 如果是特殊类型且不是信息标注，则直接返回
     if (isSpecialType && !isInfoCallout) {
-return { nodeElement, shouldReturn: true };
-}
+        return { nodeElement, shouldReturn: true };
+    }
 
     // 获取顶级独立元素
     let topElement = getTopAloneElement(nodeElement);
-    
+
     // 处理标注块的特殊情况
     if (topElement.classList.contains("callout") && !nodeElement.classList.contains("callout") &&
         getParentBlock(nodeElement) !== topElement) {
         topElement = topElement.querySelector("[data-node-id]") || topElement;
     }
-    
+
     // 查找列表项
     let listItem = topElement.querySelector(".li") || topElement.querySelector(".list") || undefined;
     if (listItem && (isInEmbedBlock(listItem) || isInAVBlock(listItem))) {
-listItem = undefined;
-}
+        listItem = undefined;
+    }
 
     // 如果顶级元素不是当前元素且不是标题或标注，则使用顶级元素
     if (topElement !== nodeElement && type !== "NodeHeading" && !topElement.classList.contains("callout")) {
         nodeElement = topElement;
     }
-    
+
     return { nodeElement, listItem, shouldReturn: false };
 };
 
@@ -263,25 +263,25 @@ listItem = undefined;
  */
 const handleParentLogic = (nodeElement: Element, parentElement: Element | undefined | null) => {
     let hideParent = false, space = 0, shouldReturn = false;
-    
+
     // 检查是否应该检查父级元素
     const shouldCheckParent = (nodeElement.previousElementSibling && nodeElement.previousElementSibling.getAttribute("data-node-id")) ||
         (nodeElement.parentElement && nodeElement.parentElement.classList.contains("callout-content"));
-    
+
     if (shouldCheckParent) {
         hideParent = true;
     }
-    
+
     // 如果父级元素已折叠，则应该中断处理
     if (shouldCheckParent && parentElement && parentElement.getAttribute("fold") === "1") {
-shouldReturn = true;
-}
-    
+        shouldReturn = true;
+    }
+
     // 如果父级元素是引用块或标注块，增加缩进
     if (shouldCheckParent && parentElement && ["NodeBlockquote", "NodeCallout"].includes(parentElement.getAttribute("data-type") || "")) {
-space = 8;
-}
-    
+        space = 8;
+    }
+
     return { hideParent, space, shouldReturn };
 };
 
@@ -300,18 +300,18 @@ space = 8;
 const handleAttributeView = (target: Element | undefined, nodeElement: Element, protyle: IProtyle, type: string | null) => {
     // 如果不是属性视图或没有目标元素，则不处理
     if (type !== "NodeAttributeView" || !target) {
-return null;
-}
-    
+        return null;
+    }
+
     // 查找行元素
     const rowElement = hasClosestByClassName(target, "av__row");
     if (!rowElement || rowElement.classList.contains("av__row--header") || !rowElement.dataset.id) {
-return null;
-}
+        return null;
+    }
 
     // 获取属性视图主体元素
     const bodyElement = hasClosestByClassName(rowElement, "av__body") as HTMLElement;
-    
+
     // 根据操作系统设置提示标签
     let iconAriaLabel = isMac() ? siyuanI18n.rowTip : siyuanI18n.rowTip.replace("⇧", "Shift+");
     const firstBlock = rowElement.querySelector('[data-dtype="block"]');
@@ -320,23 +320,23 @@ return null;
     if (protyle.disabled) {
         iconAriaLabel = siyuanI18n.rowTip.substring(0, siyuanI18n.rowTip.indexOf("<br"));
     }
-    
+
     // 如果第一个块是分离的，调整提示标签
     if (!protyle.disabled && firstBlock?.getAttribute("data-detached") === "true") {
         iconAriaLabel = siyuanI18n.rowTip.substring(0, siyuanI18n.rowTip.lastIndexOf("<br"));
     }
-    
+
     const dataNodeId = nodeElement.getAttribute("data-node-id");
-    
+
     // 生成行菜单按钮（拖拽按钮）
     let html = `<button data-type="NodeAttributeViewRowMenu" data-node-id="${dataNodeId}" data-row-id="${rowElement.dataset.id}" data-group-id="${bodyElement.dataset.groupId || ""}" class="ariaLabel" data-position="parentW" aria-label="${iconAriaLabel}"><svg><use xlink:href="#iconDrag"></use></svg><span ${protyle.disabled ? "" : 'draggable="true" class="fn__grab"'}></span></button>`;
-    
+
     // 如果编辑器未被禁用，添加添加按钮
     if (!protyle.disabled) {
         html = `<button data-type="NodeAttributeViewRow" data-node-id="${dataNodeId}" data-row-id="${rowElement.dataset.id}" data-group-id="${bodyElement.dataset.groupId || ""}" class="ariaLabel" data-position="parentW" aria-label="${isMac() ? siyuanI18n.addBelowAbove : siyuanI18n.addBelowAbove.replace("⌥", "Alt+")}"><svg><use xlink:href="#iconAdd"></use></svg></button>${html}`;
     }
-    
-    return { html, element: rowElement };
+
+    return { html, element: rowElement, nodeElement };
 };
 
 /**
@@ -356,22 +356,22 @@ const generateButtonHtml = (protyle: IProtyle, nodeElement: Element, type: strin
     // 根据编辑器状态调整提示文本
     let currentGutterTip = gutterTip;
     if (protyle.disabled) {
-currentGutterTip = gutterTip.split("<br>").splice(0, 2).join("<br>");
-}
-    
+        currentGutterTip = gutterTip.split("<br>").splice(0, 2).join("<br>");
+    }
+
     // 处理反向链接数据的情况
     let popoverHTML = "";
     if (protyle.options.backlinkData) {
-popoverHTML = `class="popover__block" data-id="${dataNodeId}"`;
-}
-    
+        popoverHTML = `class="popover__block" data-id="${dataNodeId}"`;
+    }
+
     // 生成主按钮 HTML
     const buttonHTML = `<button class="ariaLabel" data-position="parentW" aria-label="${currentGutterTip}"
 data-type="${type}" data-subtype="${nodeElement.getAttribute("data-subtype")}" data-node-id="${dataNodeId}">
 <svg><use xlink:href="#${getIconByType((type || "") as string, nodeElement.getAttribute("data-subtype") || undefined)}"></use></svg>
 <span ${popoverHTML} ${protyle.disabled ? "" : 'draggable="true"'}></span>
 </button>`;
-    
+
     // 生成折叠按钮 HTML（如果需要）
     let foldHTML = "";
     if (type === "NodeListItem" && nodeElement.childElementCount > 3 || type === "NodeHeading") {
@@ -379,7 +379,7 @@ data-type="${type}" data-subtype="${nodeElement.getAttribute("data-subtype")}" d
         foldHTML = `<button class="ariaLabel" data-position="parentW" aria-label="${siyuanI18n.fold}"
 data-type="fold" style="cursor:inherit;"><svg style="width: 10px${fold && fold === "1" ? "" : ";transform:rotate(90deg)"}"><use xlink:href="#iconPlay"></use></svg></button>`;
     }
-    
+
     return { buttonHTML, foldHTML };
 };
 
@@ -403,12 +403,12 @@ const calculateMetricsForDefault = (rect: DOMRect, gutterElement: HTMLElement, n
     if (rect.height < fontHeight || (rect.height > fontHeight && rect.height < Math.floor(fontSize * 1.625) * 2 + 8)) {
         return (rect.height - gutterElement.clientHeight) / 2;
     }
-    
+
     // 如果是属性视图且内容区域在元素上方，返回固定偏移
     if ((nodeElement && nodeElement.getAttribute("data-type") === "NodeAttributeView" || element.getAttribute("data-type") === "NodeAttributeView") && contentTop < rect.top) {
         return 8;
     }
-    
+
     return 0;
 };
 
@@ -427,27 +427,27 @@ const calculateMetricsForDefault = (rect: DOMRect, gutterElement: HTMLElement, n
  */
 const calculatePositionMetrics = (protyle: IProtyle, element: Element, gutterElement: HTMLElement, listItem: Element | undefined, nodeElement: Element | undefined) => {
     let rect = element.getBoundingClientRect();
-    
+
     // 检查是否应该使用列表项的位置
     const shouldCheckListItem = listItem && !getSiyuanConfig().editor.rtl && getComputedStyle(element).direction !== "rtl" && !element.classList.contains("callout");
     if (shouldCheckListItem && listItem!.firstElementChild) {
         rect = listItem!.firstElementChild.getBoundingClientRect();
     }
-    
+
     if (shouldCheckListItem) {
         return { rect, marginHeight: 0, space: 0 };
     }
-    
+
     // 处理嵌入查询块的特殊情况
     if (nodeElement && nodeElement.getAttribute("data-type") === "NodeBlockQueryEmbed") {
         return { rect: nodeElement.getBoundingClientRect(), marginHeight: 0, space: 0 };
     }
-    
+
     // 处理属性视图行的特殊情况
     if (element.classList.contains("av__row")) {
         return { rect, marginHeight: 0, space: 0 };
     }
-    
+
     // 默认情况
     return { rect, marginHeight: calculateMetricsForDefault(rect, gutterElement, nodeElement, element, protyle.contentElement!.getBoundingClientRect().top), space: 0 };
 };
@@ -472,46 +472,47 @@ const setGutterPosition = (protyle: IProtyle, element: Element, gutterElement: H
 
     // 设置垂直位置
     gutterElement.style.top = `${Math.max(rect.top, contentTop) + marginHeight}px`;
-    
+
     // 计算初始水平位置
     let left = rect.left - gutterElement.clientWidth - space - pSpace;
 
     // 处理嵌入块的特殊情况
     const isEmbed = (nodeElement && nodeElement.getAttribute("data-type") === "NodeBlockQueryEmbed" && gutterElement.childElementCount === 1);
     const isAvRow = element.classList.contains("av__row");
-    
-    if (isEmbed) {
-        left = nodeElement!.getBoundingClientRect().left - gutterElement.clientWidth - space;
+
+    if (isEmbed && nodeElement) {
+        left = nodeElement.getBoundingClientRect().left - gutterElement.clientWidth - space;
     }
-    
+
     // 处理属性视图行的特殊情况
-    if (!isEmbed && isAvRow) {
-        left = nodeElement!.getBoundingClientRect().left - gutterElement.clientWidth - space + parseInt(getComputedStyle(nodeElement || element).paddingLeft);
+    if (!isEmbed && isAvRow && nodeElement) {
+        left = nodeElement.getBoundingClientRect().left - gutterElement.clientWidth - space + parseInt(getComputedStyle(nodeElement).paddingLeft);
     }
-    
+
     gutterElement.style.left = `${left}px`;
 
     // 处理空间不足的情况
-    if (left < gutterElement.parentElement!.getBoundingClientRect().left) {
+    const parentElement = gutterElement.parentElement;
+    if (parentElement && left < parentElement.getBoundingClientRect().left) {
         gutterElement.style.width = "24px";
         gutterElement.style.left = `${rect.left - gutterElement.clientWidth - space / 2 + 3}px`;
-        
+
         // 重新排列按钮，使其垂直堆叠
         let html = "";
         const children = Array.from(gutterElement.children).reverse();
         for (const [index, item] of children.entries()) {
             if (index !== 0) {
-(item.firstElementChild as HTMLElement).style.height = "14px";
-}
+                (item.firstElementChild as HTMLElement).style.height = "14px";
+            }
             html += item.outerHTML;
         }
         gutterElement.innerHTML = html;
         return;
     }
-    
+
     // 重置 SVG 高度
     const svgList = gutterElement.querySelectorAll("svg");
     for (const item of svgList) {
-item.style.height = "";
-}
+        item.style.height = "";
+    }
 };
