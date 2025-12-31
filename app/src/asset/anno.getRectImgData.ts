@@ -1,4 +1,4 @@
-import { hasClosestByClassName } from "../protyle/util/hasClosest";
+代码aa就import { hasClosestByClassName } from "../protyle/util/hasClosest";
 import { rectElement } from "./anno";
 import { getCaptureCanvas } from "./anno.getCaptureCanvas";
 

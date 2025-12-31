@@ -73,7 +73,7 @@ const processEndPage = (
     id: string,
     color: string,
     content: string,
-    type: string,
+    type: "text" | "border",
     pages: IPageListItem[],
     result: ReturnType<typeof createAnnoCoords>[]
 ): ReturnType<typeof createAnnoCoords>[] => {
@@ -132,7 +132,7 @@ const createAnnotationResult = (
     id: string,
     color: string,
     content: string,
-    type: string
+    type: "text" | "border"
 ): ReturnType<typeof createAnnoCoords>[] => {
     return [createAnnoCoords(pageInfo, startSelected, id, color, content, type, "rect")];
 };
@@ -149,7 +149,7 @@ export const getHightlightCoordsByRect = (
     pdf: IPdfInstance,
     color: string,
     rectResizeElement: HTMLElement,
-    type: string
+    type: "text" | "border"
 ): ReturnType<typeof createAnnoCoords>[] | undefined => {
     const rect = rectResizeElement.getBoundingClientRect();
 
