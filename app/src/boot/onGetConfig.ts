@@ -148,6 +148,10 @@ const winOnMaxRestore = async () => {
     /// #if !BROWSER
     const maxBtnElement = document.getElementById("maxWindow");
     const restoreBtnElement = document.getElementById("restoreWindow");
+    // 如果按钮元素不存在，则提前返回
+    if (!maxBtnElement || !restoreBtnElement) {
+        return;
+    }
     const isFullScreen = await ipcRenderer.invoke(Constants.SIYUAN_GET, {
         cmd: "isFullScreen",
     });
