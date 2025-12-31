@@ -1,11 +1,12 @@
 import { type AIConfig, validateAIConfig } from "./types";
+import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 /**
  * 从思源配置中获取AI配置
  */
 
 export const getAIConfigFromSiyuan = (): AIConfig => {
-    const siyuanConfig = window.siyuan?.config?.ai?.openAI;
+    const siyuanConfig = getSiyuanConfig()?.ai?.openAI;
     if (!siyuanConfig) {
         throw new Error("未找到思源AI配置，请检查配置文件");
     }

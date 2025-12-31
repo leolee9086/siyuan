@@ -12,11 +12,13 @@ import {
 } from "./imports";
 import { fillContent } from "./actions.fillContent";
 import { AIChat } from "./chatStream";
-import { AIMenuContext, AIMenuRequest, handleAIMenuItemClick } from "./actions.handleAIMenuItemClick";
+import { handleAIMenuItemClick } from "./actions.handleAIMenuItemClick";
+import type { AIMenuContext, AIMenuRequest } from "./types";
 import { customDialog } from "./customDialog";
 import { filterAIMenuItems } from "./actions.filterAIMenuItems";
 import { generateBuildingMenuHTML } from "./actions.generateBuildingMenuHTML";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
+import { getSiyuanStorage, getSiyuanMenus } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 /**
  * 生成单个AI菜单项的HTML
@@ -272,22 +274,18 @@ const bindMenuEvents = (
     });
 };
 
-const getSiyuanStorage = () => {
-    if (!window.siyuan.storage) {
-        console.error(window.siyuan);
-        throw new Error("siyuan 对象结构错误");
-    }
-    if (!Array.isArray(window.siyuan.storage[Constants.LOCAL_AI])) {
-        console.error(window.siyuan.storage[Constants.LOCAL_AI]);
+const getValidSiyuanStorage = () => {
+    const storage = getSiyuanStorage();
+    if (!Array.isArray(storage[Constants.LOCAL_AI])) {
+        console.error(storage[Constants.LOCAL_AI]);
         throw new Error(`siyuan 对象结构错误 ${Constants.LOCAL_AI}应该是一个数组`);
-
     }
-    return window.siyuan.storage;
+    return storage;
 };
 
 export const openAIActionsMenu = (elements: Element[], protyle: IProtyle) => {
 
-    window.siyuan.menus?.menu.remove();
+    getSiyuanMenus()?.menu.remove();
     const ids = getElementsBlockId(elements);
     const menu = new Menu("ai", () => {
         if (protyle.toolbar?.range) {
@@ -296,7 +294,7 @@ export const openAIActionsMenu = (elements: Element[], protyle: IProtyle) => {
     });
 
     // 使用独立函数生成自定义菜单项HTML
-    const customHTML = generateCustomMenuItems(getSiyuanStorage());
+    const customHTML = generateCustomMenuItems(getValidSiyuanStorage());
     const clearContext = "Clear context";
 
     // 使用独立函数生成菜单HTML模板

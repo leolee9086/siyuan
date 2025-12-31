@@ -39,6 +39,7 @@ export const onGetConfig = (isStart: boolean, app: App) => {
     /// #if !BROWSER
     ipcRenderer.invoke(Constants.SIYUAN_INIT, {
         // 注意：这里不能使用 siyuanI18n，因为它是 Proxy 对象，无法通过 IPC 克隆
+        // 但是直接访问window依旧需要修复,建议特殊处理
         languages: window.siyuan.languages["_trayMenu"],
         workspaceDir: window.siyuan.config.system.workspaceDir,
         port: location.port

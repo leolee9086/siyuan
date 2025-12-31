@@ -1,4 +1,5 @@
 import { hideToolbar } from "./anno.hideToolbar";
+import { getWindowSelection } from "../util/siyuanEnvironments/windowStandard.environment";
 
 const deactivateRectAnnotation = (rectAnnoElement: HTMLElement, mainContainer: HTMLElement) => {
     rectAnnoElement.classList.remove("toggled");
@@ -9,7 +10,7 @@ const activateRectAnnotation = (pdf: any, rectAnnoElement: HTMLElement, mainCont
     pdf.pdfCursorTools.switchTool(0);
     rectAnnoElement.classList.add("toggled");
     mainContainer.classList.add("rect-to-annotation");
-    const selection = window.getSelection();
+    const selection = getWindowSelection();
     if (selection && selection.rangeCount > 0) {
         selection.getRangeAt(0).collapse(true);
     }
