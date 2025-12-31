@@ -6,10 +6,13 @@ import { fileURLToPath } from "node:url";
 import js from "@eslint/js";
 import { FlatCompat } from "@eslint/eslintrc";
 import pluginVue from "eslint-plugin-vue";
-import { 禁止内联回调插件 } from "./0_lints/no-inline-callback.mjs";
+import { noInlineCallbackPlugin } from "./0_lints/no-inline-callback.mjs";
 import { aiWorkerPlugin } from "./0_lints/ai-worker-rules.mjs";
-import { 代码量限制插件 } from "./0_lints/code-size-limits.mjs";
-import { 全量修复提示 } from "./0_lints/shared-constants.mjs";
+import { codeSizeLimitsPlugin } from "./0_lints/code-size-limits.mjs";
+import { FULL_FIX_REMINDER } from "./0_lints/shared-constants.mjs";
+
+// Defining local constant for backward compatibility and internal usage
+const 全量修复提示 = FULL_FIX_REMINDER;
 
 // 重新导出全量修复提示供外部使用 (保持向后兼容性)
 export { 全量修复提示 };
@@ -147,9 +150,9 @@ export default [{
     plugins: {
         "@typescript-eslint": typescriptEslint,
         "vue": pluginVue,
-        "no-inline-callback": 禁止内联回调插件,
+        "no-inline-callback": noInlineCallbackPlugin,
         "ai-worker": aiWorkerPlugin,
-        "code-size": 代码量限制插件,
+        "code-size": codeSizeLimitsPlugin,
     },
 
     languageOptions: {
