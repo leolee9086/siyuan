@@ -5,6 +5,8 @@
  * 这有助于提高代码可读性，避免深层嵌套的回调地狱
  */
 
+import { 全量修复提示 } from "./shared-constants.mjs";
+
 /**
  * 豁免注释标记
  * 使用 @内联回调 注释可以豁免此检查
@@ -88,7 +90,7 @@ function 是函数调用参数(node) {
  */
 function 生成错误信息(actualLines, functionName) {
     const callerInfo = functionName ? ` (调用: ${functionName})` : "";
-    return `❌ 禁止超过 ${MAX_INLINE_CALLBACK_LINES} 行的内联回调函数${callerInfo}。当前 ${actualLines} 行。请提取为命名函数以提高可读性。\n💡 豁免方式: 在调用语句前添加 // ${EXEMPT_COMMENT} 注释`;
+    return `❌ 禁止超过 ${MAX_INLINE_CALLBACK_LINES} 行的内联回调函数${callerInfo}。当前 ${actualLines} 行。请提取为命名函数以提高可读性。\n💡 豁免方式: 在调用语句前添加 // ${EXEMPT_COMMENT} 注释${全量修复提示}`;
 }
 
 /**
