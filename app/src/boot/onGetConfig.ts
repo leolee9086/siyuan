@@ -32,77 +32,116 @@ import { correctHotkey } from "./globalEvent/commonHotkey";
 import { recordBeforeResizeTop } from "../protyle/util/resize";
 import { processSYLink } from "../editor/openLink";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
+import { getSiyuanConfig, getSiyuanLanguages, getSiyuanStorage, getSiyuanUILayout, setSiyuanUILayout } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getAllEditor } from "../layout/getAll";
+import { setTimeout, clearTimeout, windowAddEventListener } from "../util/siyuanEnvironments/windowTimer.environment";
 
-export const onGetConfig = (isStart: boolean, app: App) => {
-    correctHotkey(app);
+/**
+ * 初始化 IPC 通信（仅桌面端）
+ */
+const 初始化IPC = () => {
     /// #if !BROWSER
     ipcRenderer.invoke(Constants.SIYUAN_INIT, {
         // 注意：这里不能使用 siyuanI18n，因为它是 Proxy 对象，无法通过 IPC 克隆
-        // 但是直接访问window依旧需要修复,建议特殊处理
-        languages: window.siyuan.languages["_trayMenu"],
-        workspaceDir: window.siyuan.config.system.workspaceDir,
+        // 使用 getSiyuanLanguages() 获取原始对象
+        languages: getSiyuanLanguages()["_trayMenu"],
+        workspaceDir: getSiyuanConfig().system.workspaceDir,
         port: location.port
     });
-    webFrame.setZoomFactor(window.siyuan.storage[Constants.LOCAL_ZOOM]);
+    webFrame.setZoomFactor(getSiyuanStorage()[Constants.LOCAL_ZOOM]);
     ipcRenderer.send(Constants.SIYUAN_CMD, {
         cmd: "setTrafficLightPosition",
-        zoom: window.siyuan.storage[Constants.LOCAL_ZOOM],
-        position: Constants.SIZE_ZOOM.find((item) => item.zoom === window.siyuan.storage[Constants.LOCAL_ZOOM]).position
+        zoom: getSiyuanStorage()[Constants.LOCAL_ZOOM],
+        position: Constants.SIZE_ZOOM.find((item) => item.zoom === getSiyuanStorage()[Constants.LOCAL_ZOOM])?.position ?? { x: 8, y: 12 }
     });
     /// #endif
-    if (!window.siyuan.config.uiLayout || (window.siyuan.config.uiLayout && !window.siyuan.config.uiLayout.left)) {
-        window.siyuan.config.uiLayout = Constants.SIYUAN_EMPTY_LAYOUT;
+};
+
+/**
+ * 更新编辑器工具栏（用于 resize 后重新渲染选区）
+ */
+const 更新编辑器工具栏 = () => {
+    const selection = getSelection();
+    if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        for (const item of getAllEditor()) {
+            if (item.protyle.wysiwyg?.element.contains(range.startContainer)) {
+                item.protyle.toolbar?.render(item.protyle, range);
+            }
+        }
+    }
+};
+
+/**
+ * 延迟执行布局调整（防抖后的回调）
+ */
+const 延迟执行布局调整 = (状态: { resizeTimeout: number; firstResize: boolean }) => {
+    adjustLayout();
+    resizeTabs();
+    resizeTopBar();
+    状态.firstResize = true;
+    更新编辑器工具栏();
+};
+
+/**
+ * 处理窗口 resize 事件
+ */
+const 处理窗口Resize = (状态: { resizeTimeout: number; firstResize: boolean }) => {
+    if (状态.firstResize) {
+        recordBeforeResizeTop();
+        状态.firstResize = false;
+    }
+    clearTimeout(状态.resizeTimeout);
+    状态.resizeTimeout = setTimeout(() => 延迟执行布局调整(状态), Constants.TIMEOUT_RESIZE);
+};
+
+/**
+ * 初始化窗口 resize 事件处理器
+ */
+const 初始化ResizeHandler = () => {
+    const 状态 = { resizeTimeout: 0, firstResize: true };
+    windowAddEventListener("resize", () => 处理窗口Resize(状态));
+};
+
+/**
+ * 处理 Emoji 配置响应（从 API 获取后初始化布局）
+ */
+const 处理Emoji配置 = (app: App, isStart: boolean, response: IWebSocketData) => {
+    window.siyuan.emojis = response.data as IEmoji[];
+    try {
+        JSONToLayout(app, isStart);
+        setTimeout(() => {
+            adjustLayout();
+        }); // 等待 dock 中 !this.pin 的 setTimeout
+        /// #if !BROWSER
+        sendGlobalShortcut(app);
+        /// #endif
+        openChangelog();
+    } catch (e) {
+        resetLayout();
+    }
+};
+
+export const onGetConfig = (isStart: boolean, app: App) => {
+    correctHotkey(app);
+    初始化IPC();
+    const uiLayout = getSiyuanUILayout();
+    if (!uiLayout || (uiLayout && !uiLayout.left)) {
+        setSiyuanUILayout(Constants.SIYUAN_EMPTY_LAYOUT);
     }
     initWindowEvent(app);
-    fetchPost("/api/system/getEmojiConf", {}, response => {
-        window.siyuan.emojis = response.data as IEmoji[];
-        try {
-            JSONToLayout(app, isStart);
-            setTimeout(() => {
-                adjustLayout();
-            }); // 等待 dock 中 !this.pin 的 setTimeout
-            /// #if !BROWSER
-            sendGlobalShortcut(app);
-            /// #endif
-            openChangelog();
-        } catch (e) {
-            resetLayout();
-        }
-    });
+    fetchPost("/api/system/getEmojiConf", {}, response => 处理Emoji配置(app, isStart, response));
     initBar(app);
     initStatus();
     initWindow(app);
     /// #if !BROWSER
     initFocusFix();
     /// #endif
-    appearance.onSetAppearance(window.siyuan.config.appearance);
+    appearance.onSetAppearance(getSiyuanConfig().appearance);
     initAssets();
     setInlineStyle();
     renderSnippet();
-    let resizeTimeout = 0;
-    let firstResize = true;
-    window.addEventListener("resize", () => {
-        if (firstResize) {
-            recordBeforeResizeTop();
-            firstResize = false;
-        }
-        window.clearTimeout(resizeTimeout);
-        resizeTimeout = window.setTimeout(() => {
-            adjustLayout();
-            resizeTabs();
-            resizeTopBar();
-            firstResize = true;
-            if (getSelection().rangeCount > 0) {
-                const range = getSelection().getRangeAt(0);
-                getAllEditor().forEach(item => {
-                    if (item.protyle.wysiwyg.element.contains(range.startContainer)) {
-                        item.protyle.toolbar.render(item.protyle, range);
-                    }
-                });
-            }
-        }, Constants.TIMEOUT_RESIZE);
-    });
+    初始化ResizeHandler();
 };
 
 const winOnMaxRestore = async () => {
@@ -115,12 +154,13 @@ const winOnMaxRestore = async () => {
     const isMaximized = await ipcRenderer.invoke(Constants.SIYUAN_GET, {
         cmd: "isMaximized",
     });
+    // 默认：显示最大化按钮，隐藏还原按钮
+    restoreBtnElement.style.display = "none";
+    maxBtnElement.style.display = "flex";
+    // 如果已最大化或全屏，则反转显示状态
     if (isMaximized || isFullScreen) {
         restoreBtnElement.style.display = "flex";
         maxBtnElement.style.display = "none";
-    } else {
-        restoreBtnElement.style.display = "none";
-        maxBtnElement.style.display = "flex";
     }
     /// #endif
 };

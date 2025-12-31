@@ -256,3 +256,38 @@ export const getPluginCustomHotkey = (pluginName: string, toolbarItemName: strin
     }
     return itemKeymap.custom;
 };
+
+/**
+ * 获取原始的 window.siyuan.languages 对象
+ * 
+ * 注意：此函数返回原始对象，不是 Proxy。
+ * 主要用于 IPC 通信场景，因为 Proxy 对象无法通过结构化克隆算法传输。
+ * 普通的 i18n 访问请使用 siyuanI18n 代理对象。
+ * 
+ * @returns languages 对象
+ */
+export const getSiyuanLanguages = () => {
+    if (!window.siyuan?.languages) {
+        throw ("[getSiyuanLanguages] window.siyuan.languages 不存在");
+    }
+    return window.siyuan.languages;
+};
+
+/**
+ * 获取 window.siyuan.config.uiLayout
+ * @returns uiLayout 对象，可能为 undefined
+ */
+export const getSiyuanUILayout = () => {
+    return window.siyuan?.config?.uiLayout;
+};
+
+/**
+ * 设置 window.siyuan.config.uiLayout
+ * @param layout 新的 uiLayout 配置
+ */
+export const setSiyuanUILayout = (layout: Config.IUiLayout) => {
+    if (!window.siyuan?.config) {
+        throw ("[setSiyuanUILayout] window.siyuan.config 不存在");
+    }
+    window.siyuan.config.uiLayout = layout;
+};
