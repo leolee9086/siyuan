@@ -190,6 +190,7 @@ export const getHightlightCoordsByRect = (
     processEndPage(pdf, rect, startIndex, id, color, content, type, pages, result);
 
     setConfig(pdf, id, {
+        id,
         pages,
         content,
         color,

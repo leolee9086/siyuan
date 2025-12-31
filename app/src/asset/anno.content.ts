@@ -30,8 +30,8 @@ export const createAnnoCoords = (
     id: string,
     color: string,
     content: string,
-    type: string,
-    mode: string
+    type: "text" | "border",
+    mode: "text" | "rect"
 ): IAnnoCoords => {
     return {
         index: pageInfo.index,
