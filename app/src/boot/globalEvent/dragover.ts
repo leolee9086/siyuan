@@ -58,23 +58,26 @@ export const cancelDrag = () => {
 };
 
 const dragoverScroll: {
-    animationId?: number,
-    element?: Element,
-    space?: number // -1 向上；1 向下
-    lastTime?: number
+    animationId?: number | undefined,
+    element?: Element | undefined,
+    space?: number | undefined, // -1 向上；1 向下
+    lastTime?: number | undefined
 } = {};
 
 export const stopScrollAnimation = () => {
     if (dragoverScroll.animationId) {
         cancelAnimationFrame(dragoverScroll.animationId);
-        dragoverScroll.animationId = null;
-        dragoverScroll.element = null;
-        dragoverScroll.space = null;
-        dragoverScroll.lastTime = null;
+        dragoverScroll.animationId = undefined;
+        dragoverScroll.element = undefined;
+        dragoverScroll.space = undefined;
+        dragoverScroll.lastTime = undefined;
     }
 };
 
 const scrollAnimation = (timestamp: number) => {
+    if (!dragoverScroll.element || dragoverScroll.space === undefined) {
+        return;
+    }
     if (!dragoverScroll.lastTime) {
         dragoverScroll.lastTime = timestamp - 8;
     }
