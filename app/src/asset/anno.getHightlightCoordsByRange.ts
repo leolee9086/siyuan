@@ -4,7 +4,7 @@ import { getWindowSelection } from "../util/siyuanEnvironments/windowStandard.en
 import { getTextNode } from "./anno";
 import { setConfig } from "./anno.config";
 import { createAnnoCoords } from "./anno.content";
-import { mergeRects } from "./anno.mergeRects";
+import { mergeRects } from "../util/DOM/mergeRects";
 import { getPageViewInfo } from "./anno.page";
 import type { AnnotationResultParams, IPdfInstance, IRectBounds } from "./anno.types";
 
