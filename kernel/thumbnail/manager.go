@@ -231,8 +231,8 @@ func (m *Manager) checkCache(cacheKey string) ([]byte, bool) {
 		return nil, false
 	}
 
-	// 尝试 .jpg 和 .svg 两种后缀
-	for _, ext := range []string{".jpg", ".svg"} {
+	// 尝试所有可能的后缀
+	for _, ext := range []string{".png", ".jpg", ".svg", ".bin"} {
 		cachePath := filepath.Join(m.cacheDir, cacheKey+ext)
 		if gulu.File.IsExist(cachePath) {
 			data, err := os.ReadFile(cachePath)
@@ -251,9 +251,17 @@ func (m *Manager) writeCache(cacheKey string, data []byte) {
 	}
 
 	// 根据内容类型确定后缀
-	ext := ".jpg"
-	if len(data) > 5 && (string(data[:5]) == "<?xml" || string(data[:4]) == "<svg") {
-		ext = ".svg"
+	ext := ".bin"
+	if len(data) > 8 {
+		// PNG: 89 50 4E 47 0D 0A 1A 0A
+		if data[0] == 0x89 && data[1] == 0x50 && data[2] == 0x4E && data[3] == 0x47 {
+			ext = ".png"
+		} else if data[0] == 0xFF && data[1] == 0xD8 {
+			// JPEG: FF D8
+			ext = ".jpg"
+		} else if string(data[:5]) == "<?xml" || string(data[:4]) == "<svg" {
+			ext = ".svg"
+		}
 	}
 
 	// 异步写入文件系统
@@ -266,7 +274,70 @@ func (m *Manager) writeCache(cacheKey string, data []byte) {
 	}()
 }
 
-// ClearCache 清除缓存
-func (m *Manager) ClearCache() error {
-	return os.RemoveAll(m.cacheDir)
+// ClearCache 清除指定文件的缓存
+func (m *Manager) ClearCache(filePath string, width, height int) error {
+	cacheKey := m.getCacheKey(filePath, width, height)
+	if cacheKey == "" {
+		return nil
+	}
+
+	// 删除所有可能的缓存文件
+	for _, ext := range []string{".png", ".jpg", ".svg", ".bin"} {
+		cachePath := filepath.Join(m.cacheDir, cacheKey+ext)
+		os.Remove(cachePath)
+	}
+	return nil
+}
+
+// ClearAllCache 清除所有缩略图缓存
+func (m *Manager) ClearAllCache() error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	if err := os.RemoveAll(m.cacheDir); err != nil {
+		return err
+	}
+	return os.MkdirAll(m.cacheDir, 0755)
+}
+
+// Refresh 强制刷新缓存（重新生成缩略图并更新缓存）
+func (m *Manager) Refresh(filePath string, width, height int) (data []byte, contentType string, err error) {
+	// 参数校验
+	if width <= 0 {
+		width = 256
+	}
+	if height <= 0 {
+		height = 256
+	}
+	if width > 2048 {
+		width = 2048
+	}
+	if height > 2048 {
+		height = 2048
+	}
+
+	// 检查文件是否存在
+	if !gulu.File.IsExist(filePath) {
+		return nil, "", ErrFileNotFound
+	}
+
+	// 直接生成，不检查缓存
+	data, err = m.generate(filePath, width, height)
+	if err != nil {
+		return nil, "", err
+	}
+
+	// 写入缓存（更新缓存）
+	cacheKey := m.getCacheKey(filePath, width, height)
+	m.writeCache(cacheKey, data)
+
+	// 确定 content type
+	contentType = "image/png"
+	if len(data) > 5 && (string(data[:5]) == "<?xml" || string(data[:4]) == "<svg") {
+		contentType = "image/svg+xml"
+	} else if len(data) > 2 && data[0] == 0xFF && data[1] == 0xD8 {
+		contentType = "image/jpeg"
+	}
+
+	return data, contentType, nil
 }

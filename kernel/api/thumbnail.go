@@ -85,16 +85,29 @@ func getSForgeThumbnail(c *gin.Context) {
 	// 解析尺寸参数
 	width, height := parseSizeParams(c)
 
+	// 检查是否需要刷新缓存
+	refresh := c.Query("refresh") == "true" || c.Query("refresh") == "1"
+
 	// 获取缩略图
-	data, contentType, err := thumbnail.NewInstance().GetWithSize(absPath, width, height)
+	var data []byte
+	var contentType string
+	if refresh {
+		data, contentType, err = thumbnail.NewInstance().Refresh(absPath, width, height)
+	} else {
+		data, contentType, err = thumbnail.NewInstance().GetWithSize(absPath, width, height)
+	}
 	if err != nil {
 		logging.LogWarnf("get thumbnail failed for [%s]: %v", absPath, err)
 		c.Status(http.StatusNotFound)
 		return
 	}
 
-	// 设置缓存头
-	c.Header("Cache-Control", "public, max-age=86400") // 缓存 1 天
+	// 设置缓存头（如果是刷新则不缓存）
+	if refresh {
+		c.Header("Cache-Control", "no-cache")
+	} else {
+		c.Header("Cache-Control", "public, max-age=86400") // 缓存 1 天
+	}
 	c.Data(http.StatusOK, contentType, data)
 }
 
@@ -199,4 +212,20 @@ type pathError struct {
 
 func (e *pathError) Error() string {
 	return e.msg + ": " + e.path
+}
+
+// clearAllThumbnailCache 清除所有缩略图缓存
+func clearAllThumbnailCache(c *gin.Context) {
+	err := thumbnail.NewInstance().ClearAllCache()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"code": -1,
+			"msg":  err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, map[string]interface{}{
+		"code": 0,
+		"msg":  "缓存已清除",
+	})
 }

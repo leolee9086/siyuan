@@ -547,4 +547,5 @@ func ServeAPI(ginServer *gin.Engine) {
 
 	// S-Forge Thumbnail Service
 	ginServer.Handle("GET", "/api/s-forge/thumbnail", model.CheckAuth, getSForgeThumbnail)
+	ginServer.Handle("POST", "/api/s-forge/thumbnail/clearCache", model.CheckAuth, model.CheckAdminRole, clearAllThumbnailCache)
 }

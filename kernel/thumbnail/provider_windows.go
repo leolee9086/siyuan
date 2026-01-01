@@ -336,7 +336,17 @@ func HBitmapToImage(hBitmap HBITMAP) (image.Image, error) {
 		return nil, fmt.Errorf("GetDIBits failed")
 	}
 
-	// Convert BGRA to RGBA, 并处理透明度
+	// Convert BGRA to RGBA，保留原始透明度
+	// Windows 图标的透明部分 alpha=0, RGB 可能也是 0
+	// 我们需要检测是否整个图像都是 alpha=0（说明是不支持透明的格式）
+	hasValidAlpha := false
+	for i := 3; i < len(pixels); i += 4 {
+		if pixels[i] != 0 {
+			hasValidAlpha = true
+			break
+		}
+	}
+
 	for i := 0; i < len(pixels); i += 4 {
 		b := pixels[i]
 		g := pixels[i+1]
@@ -345,9 +355,12 @@ func HBitmapToImage(hBitmap HBITMAP) (image.Image, error) {
 		pixels[i] = r
 		pixels[i+1] = g
 		pixels[i+2] = b
-		// 保留 alpha，如果为 0 则设为 255（不透明）
-		if a == 0 {
+		// 如果整个图像都没有 alpha（如 JPEG 转换），则设为不透明
+		// 否则保留原始 alpha 值
+		if !hasValidAlpha {
 			pixels[i+3] = 255
+		} else {
+			pixels[i+3] = a
 		}
 	}
 
