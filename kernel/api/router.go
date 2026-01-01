@@ -544,4 +544,7 @@ func ServeAPI(ginServer *gin.Engine) {
 	ginServer.Handle("POST", "/api/embedding/models", model.CheckAuth, embeddingModels)
 	ginServer.Handle("POST", "/api/embedding/models/pull", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, embeddingPullModel)
 	ginServer.Handle("POST", "/api/embedding/models/set", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, embeddingSetModel)
+
+	// S-Forge Thumbnail Service
+	ginServer.Handle("GET", "/api/s-forge/thumbnail", model.CheckAuth, getSForgeThumbnail)
 }

@@ -1,0 +1,272 @@
+// SiYuan - Refactor your thinking
+// Copyright (c) 2020-present, b3log.org
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+package thumbnail
+
+import (
+	"crypto/md5"
+	"encoding/hex"
+	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+	"sync"
+
+	"github.com/88250/gulu"
+	"github.com/siyuan-note/logging"
+	"github.com/siyuan-note/siyuan/kernel/util"
+	"golang.org/x/sync/singleflight"
+)
+
+var (
+	// ErrProviderFailed 表示所有 Provider 都无法生成缩略图
+	ErrProviderFailed = errors.New("thumbnail generation failed")
+	// ErrRefused 表示 Provider 拒绝处理该文件
+	ErrRefused = errors.New("provider refused to handle")
+	// ErrFileNotFound 表示文件不存在
+	ErrFileNotFound = errors.New("file not found")
+)
+
+// Service 定义缩略图服务接口
+type Service interface {
+	// Get 返回指定文件的缩略图数据
+	// filePath: 绝对路径
+	// maxSize: 最大边长（宽或高的最大值）
+	Get(filePath string, maxSize int) (data []byte, contentType string, err error)
+
+	// GetWithSize 返回指定尺寸的缩略图
+	// filePath: 绝对路径
+	// width, height: 目标尺寸（保持宽高比填充到此范围内）
+	GetWithSize(filePath string, width, height int) (data []byte, contentType string, err error)
+}
+
+// Provider 定义缩略图生成器接口
+type Provider interface {
+	// Name 返回 Provider 名称
+	Name() string
+	// CanHandle 检查是否能处理该文件
+	CanHandle(filePath string) bool
+	// Generate 生成缩略图
+	// width, height: 目标尺寸范围
+	Generate(filePath string, width, height int) (data []byte, err error)
+	// Priority 返回优先级 (越小越高)
+	Priority() int
+}
+
+// Manager 实现 Service 接口，管理多个 Provider
+type Manager struct {
+	providers []Provider
+
+	// Cache config
+	cacheDir string
+	mutex    sync.RWMutex
+
+	// SingleFlight 防止同时生成相同的缩略图
+	sfGroup singleflight.Group
+}
+
+var instance *Manager
+var once sync.Once
+
+// NewInstance 创建或获取单例
+func NewInstance() *Manager {
+	once.Do(func() {
+		instance = &Manager{
+			providers: make([]Provider, 0),
+			cacheDir:  filepath.Join(util.TempDir, "thumbnails", "s-forge"),
+		}
+
+		if err := os.MkdirAll(instance.cacheDir, 0755); err != nil {
+			logging.LogErrorf("failed to create thumbnail cache dir: %v", err)
+		}
+
+		instance.registerProviders()
+	})
+	return instance
+}
+
+// registerProviders 注册所有可用的 Provider
+// 注册顺序决定优先级：先注册的会先尝试
+func (m *Manager) registerProviders() {
+	// 1. Windows Provider (Highest Priority on Windows)
+	//    使用 Windows Shell API，支持系统能预览的所有文件
+	if p := NewWindowsProvider(); p != nil {
+		m.providers = append(m.providers, p)
+		logging.LogInfof("registered thumbnail provider: %s", p.Name())
+	}
+
+	// 2. Go Imaging Provider (图片通用处理)
+	//    纯 Go 实现，支持常见图片格式
+	m.providers = append(m.providers, NewGoImagingProvider())
+	logging.LogInfof("registered thumbnail provider: GoImaging (fallback)")
+
+	// 3. File Icon Provider (最终 fallback)
+	//    对于无法生成缩略图的文件，生成基于扩展名的图标
+	m.providers = append(m.providers, NewFileIconProvider())
+	logging.LogInfof("registered thumbnail provider: FileIcon (fallback)")
+}
+
+// Get 获取缩略图（使用最大边长）
+func (m *Manager) Get(filePath string, maxSize int) (data []byte, contentType string, err error) {
+	return m.GetWithSize(filePath, maxSize, maxSize)
+}
+
+// GetWithSize 获取指定尺寸的缩略图
+func (m *Manager) GetWithSize(filePath string, width, height int) (data []byte, contentType string, err error) {
+	// 参数校验
+	if width <= 0 {
+		width = 256
+	}
+	if height <= 0 {
+		height = 256
+	}
+	if width > 2048 {
+		width = 2048
+	}
+	if height > 2048 {
+		height = 2048
+	}
+
+	// 检查文件是否存在
+	if !gulu.File.IsExist(filePath) {
+		return nil, "", ErrFileNotFound
+	}
+
+	// 使用 singleflight 防止并发重复生成
+	cacheKey := m.getCacheKey(filePath, width, height)
+	if cacheKey == "" {
+		return nil, "", ErrFileNotFound
+	}
+
+	result, err, _ := m.sfGroup.Do(cacheKey, func() (interface{}, error) {
+		// 1. 检查缓存
+		if cachedData, ok := m.checkCache(cacheKey); ok {
+			return cachedData, nil
+		}
+
+		// 2. 生成缩略图
+		data, genErr := m.generate(filePath, width, height)
+		if genErr != nil {
+			return nil, genErr
+		}
+
+		// 3. 写入缓存
+		m.writeCache(cacheKey, data)
+
+		return data, nil
+	})
+
+	if err != nil {
+		return nil, "", err
+	}
+
+	data = result.([]byte)
+	// 缩略图统一使用 JPEG 格式（除了 SVG 图标）
+	contentType = "image/jpeg"
+	// 检查是否是 SVG（文件图标 fallback）
+	if len(data) > 5 && string(data[:5]) == "<?xml" || (len(data) > 4 && string(data[:4]) == "<svg") {
+		contentType = "image/svg+xml"
+	}
+
+	return data, contentType, nil
+}
+
+// generate 尝试使用各个 Provider 生成缩略图
+func (m *Manager) generate(filePath string, width, height int) ([]byte, error) {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+
+	var lastErr error
+	for _, p := range m.providers {
+		if !p.CanHandle(filePath) {
+			continue
+		}
+
+		data, err := p.Generate(filePath, width, height)
+		if err == nil && len(data) > 0 {
+			logging.LogInfof("thumbnail generated by [%s] for [%s]", p.Name(), filePath)
+			return data, nil
+		}
+		lastErr = err
+		logging.LogInfof("provider [%s] failed to generate thumbnail for [%s]: %v", p.Name(), filePath, err)
+	}
+
+	if lastErr != nil {
+		return nil, lastErr
+	}
+	return nil, ErrProviderFailed
+}
+
+// getCacheKey 生成缓存键
+// 格式: Hash(AbsPath)_MTime_WxH.jpg
+func (m *Manager) getCacheKey(filePath string, width, height int) string {
+	info, err := os.Stat(filePath)
+	if err != nil {
+		return ""
+	}
+
+	h := md5.Sum([]byte(filePath))
+	hash := hex.EncodeToString(h[:])
+	mtime := strconv.FormatInt(info.ModTime().Unix(), 10)
+	return fmt.Sprintf("%s_%s_%dx%d", hash, mtime, width, height)
+}
+
+// checkCache 检查缓存是否存在
+func (m *Manager) checkCache(cacheKey string) ([]byte, bool) {
+	if cacheKey == "" {
+		return nil, false
+	}
+
+	// 尝试 .jpg 和 .svg 两种后缀
+	for _, ext := range []string{".jpg", ".svg"} {
+		cachePath := filepath.Join(m.cacheDir, cacheKey+ext)
+		if gulu.File.IsExist(cachePath) {
+			data, err := os.ReadFile(cachePath)
+			if err == nil {
+				return data, true
+			}
+		}
+	}
+	return nil, false
+}
+
+// writeCache 写入缓存
+func (m *Manager) writeCache(cacheKey string, data []byte) {
+	if cacheKey == "" || len(data) == 0 {
+		return
+	}
+
+	// 根据内容类型确定后缀
+	ext := ".jpg"
+	if len(data) > 5 && (string(data[:5]) == "<?xml" || string(data[:4]) == "<svg") {
+		ext = ".svg"
+	}
+
+	// 异步写入文件系统
+	go func() {
+		cachePath := filepath.Join(m.cacheDir, cacheKey+ext)
+		tmpPath := cachePath + ".tmp"
+		if err := os.WriteFile(tmpPath, data, 0644); err == nil {
+			os.Rename(tmpPath, cachePath)
+		}
+	}()
+}
+
+// ClearCache 清除缓存
+func (m *Manager) ClearCache() error {
+	return os.RemoveAll(m.cacheDir)
+}

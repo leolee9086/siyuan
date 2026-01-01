@@ -1,0 +1,149 @@
+# 统一缩略图服务设计方案
+
+## 1. 背景与目标
+
+目前 `kernel` 中的缩略图生成仅针对图片资源 (`assets.go/GenerateAssetsThumbnail`)，且使用 Go 语言库 `imaging` 进行处理。为了提升各种格式文件的预览体验（如视频、PDF、PPT、PSD等），并利用操作系统原生能力优化性能，计划实现一个统一的缩略图服务。
+
+**核心目标：**
+1.  **支持任意文件**：只要操作系统文件管理器能预览的文件，理论上都应支持生成缩略图。
+2.  **OS API 优先**：Windows 下使用 COM 接口，macOS 使用 QuickLook，以获得最佳性能和兼容性。
+3.  **统一缓存**：构建统一的缓存层，避免重复生成。
+4.  **降级策略**：在 Docker/Linux 无头环境或 OS API 失败时，回退到纯 Go 实现（仅支持图片）。
+
+### 2.1 策略模式
+
+服务内部根据运行环境采用不同的 Provider：
+
+-   **WindowsProvider**: 基于 `IShellItemImageFactory` (Windows Vista+)，覆盖最广。
+-   **MacProvider**: 
+    -   `CmdLineProvider`: 调用 `qlmanage` (无 CGO 依赖，便于分发)。
+    -   `CGOProvider`: 调用 CGO QuickLook (高性能，可选)。
+-   **LinuxProvider**: 
+    -   `XDGProvider`: 读取 `~/.cache/thumbnails`。
+    -   `ExternalToolProvider`: 调用 `ffmpeg`, `convert` 等。
+-   **GoImagingProvider**: 纯 Go 实现，仅支持常见图片格式 (JPG/PNG/GIF/BMP/TIFF)，作为**全平台兜底**。
+
+服务启动时按优先级注册 Provider。例如在 macOS 上：`[MacProvider, GoImagingProvider]`。
+
+## 3. 详细设计
+
+### 3.1 平台策略 (Platform Strategy)
+
+**Windows**
+- **技术**: `IShellItemImageFactory` (COM)
+- **优势**: 支持所有已安装 Shell Extension 的文件类型（Office, PSD, PDF 等），性能极高，系统级缓存。
+- **实现**: 通过 `go-ole` 调用，需注意 STA 线程模型。
+
+**macOS**
+- **技术**: QuickLook Framework (`QLThumbnailImageCreate`)
+- **优势**: 系统原生支持，覆盖面广。
+- **挑战**: 需要 CGO 调用 Cocoa/CoreFoundation 库。
+- **策略**: 
+    1.  **首选**: 如果编译环境允许 CGO，封装 C 函数调用 QL API。
+    2.  **备选**: 调用 `qlmanage -t -s <size> -o <outDir> <file>` 命令行工具 (性能稍弱，但在无 CGO 环境下可行)。
+    3.  **注意**: `kernel` 可能作为独立二进制分发，需确认是否包含 CGO 依赖。当前暂定尝试 **命令行方案作为通用降级**，若性能不可接受再考虑 CGO。
+
+**Linux / Docker (Headless)**
+- **技术**: 
+    1.  **Standard**: 遵循 FreeDesktop Thumbnail Managing Standard，尝试读取 `~/.cache/thumbnails` (若有桌面环境)。
+    2.  **Tools**: 调用外部工具如 `ffmpeg` (视频), `pdftoppm` (PDF), `imagemagick` (图片)。
+- **策略**: 
+    - 优先检查是否存在预生成缩略图。
+    - 既然通常运行在 Docker 或服务器环境，重点依赖纯 Go 的 `imaging` 处理图片。
+    - 对于 Video/PDF，若检测到 `ffmpeg` / `poppler-utils` 等工具存在，则调用生成。
+
+**Mobile (Android/iOS)**
+- **背景**: `kernel` 在移动端是通过 Gomobile 编译为库运行在 App 进程中，或者是作为独立子进程？从 `mobile/kernel.go` 看是 gomobile 绑定。
+- **策略**: 
+    - **iOS**: iOS App 即使在 Go 侧也难以直接调用 UI/QuickLook 接口 (需主线程)。建议 **Go 侧仅处理本地图片**，复杂文件建议 **回调给原生层** 处理 (通过 Gomobile 暴露接口让 Swift/Kotlin 层生成后传入路径或数据)。
+    - **Android**: 同上，Go 侧能力有限，建议仅兜底图片。
+    - **当前阶段**: 移动端暂回退到 **Go Imaging Provider** (仅图片)，复杂文件缩略图留待原生层桥接方案后续完善。
+
+### 3.2 依赖库选择 (Library Selection)
+
+为了响应 "极限利用依赖" 和 "全能处理" 的需求，我们需要引入一个强大的图像处理库来替换现有的 `disintegration/imaging`。
+
+**推荐方案: [bimg](https://github.com/h2non/bimg) (基于 libvips)**
+
+*   **对标**: Node.js 生态的 `sharp`。
+*   **优势**:
+    *   **速度**: 基于 C 语言的 libvips，比纯 Go 快 4-8 倍。
+    *   **全能**: 支持 WebP, AVIF, TIFF, HEIC, PDF (作为图片读取), SVG 等多种格式。
+    *   **功能**: 智能裁剪 (Smart Crop), 水印, 颜色空间转换, 压缩优化等。
+    *   **资源占用**: 内存占用低，适合高并发服务。
+*   **挑战**:
+    *   **CGO**: 需要系统安装 `libvips` 或在构建时包含 C 库。
+    *   **跨平台**: Windows 需要 dll，Mobile 需要静态库编译。
+*   **决策**: 鉴于项目已经使用了 `go-pdfium` (隐含 CGO/C++ 依赖)，引入 `bimg` 是合理的升级，能够显著提升缩略图服务的质量和性能。我们将使用 `bimg` 作为 `CGOProvider` (macOS/Linux) 的核心实现，并在 Windows 下配合 DLL 使用。
+
+**备选方案 (降级)**:
+如果 `bimg` 的构建成本在移动端过高，保留 `imaging` 仅作为 Mobile 端的轻量级兜底。
+
+### 3.3 缓存设计
+
+
+### 3.2 缓存设计
+
+为了性能，必须设计两级缓存：
+
+1.  **文件系统缓存 (L2)**：
+    -   位置：`temp/thumbnails/<Hash(Path)>_<MTime>_<Width>x<Height>.jpg`
+    -   命名规则包含修改时间 (MTime)，文件变更自动失效。
+    -   使用 `sync.Map` 或 `SingleFlight` 防止对同一文件并发生成。
+
+2.  **内存缓存 (L1)** (可选)：
+    -   针对极高频访问的小图，暂不作为 MVP 需求。
+
+### 3.3 接口定义
+
+```go
+// GenerateRequest 请求参数
+type GenerateRequest struct {
+    FilePath string
+    Width    int
+    Height   int
+    Quality  int // 0-100, default 80
+}
+
+// Manager 管理器
+type Manager struct {
+    providers []Provider
+}
+
+// 注册流程
+func New() *Manager {
+    m := &Manager{}
+    if runtime.GOOS == "windows" {
+        m.providers = append(m.providers, &WindowsProvider{})
+    } else if runtime.GOOS == "darwin" {
+        m.providers = append(m.providers, &MacProvider{})
+    }
+    m.providers = append(m.providers, &GoImagingProvider{}) //兜底
+    return m
+}
+```
+
+## 4. 实施步骤
+
+1.  **原型验证 (POC)**：
+    -   编写一个独立的 Go 程序，测试在 Windows 下通过 `syscall` 调用 `IShellItemImageFactory` 成功生成本地任意文件的缩略图。
+2.  **核心包实现**：
+    -   在 `kernel/thumbnail` 下实现 `Manager` 和 `GoImagingProvider` (迁移现有逻辑)。
+    -   实现 `WindowsProvider`。
+3.  **API 接入**：
+    -   改造 `serve.go` 中的 `/assets/` 路由，或者新增 `/thumbnail/` 通用路由。
+    -   替换 `model.GenerateAssetsThumbnail` 调用。
+4.  **清理与优化**：
+    -   删除旧的缩略图生成代码。
+    -   添加定期清理缓存的逻辑。
+
+## 5. 风险评估
+
+1.  **CGO 问题**：macOS 的 QuickLook API 是 C 接口，Go 调用可能需要 CGO。如果项目强制纯 Go (CGO_ENABLED=0)，则 macOS 下只能回退到 `imaging` 库（仅限图片），或者通过命令行调用 `qlmanage` (性能较差)。
+    -   *应对*：优先实现 Windows (用户当前环境)，macOS 视项目编译约束而定。
+2.  **并发稳定性**：COM 组件在 Go 的多线程 (Goroutine) 环境下需要注意 `CoInitialize` / `CoUninitialize` 的线程绑定问题。
+    -   *应对*：使用 `runtime.LockOSThread()` 确保在特定线程执行 COM 操作。
+
+## 6. 下一步动作
+
+-   在 `kernel/thumbnail` 下建立 POC 代码，验证 Windows API 调用。
