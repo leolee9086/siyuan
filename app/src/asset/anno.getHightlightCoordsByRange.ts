@@ -5,6 +5,7 @@ import { getTextNode } from "./anno";
 import { setConfig } from "./anno.config";
 import { createAnnoCoords } from "./anno.content";
 import { mergeRects } from "../util/DOM/mergeRects";
+import { processRangeContents } from "../util/DOM/rangeOperations";
 import { getPageViewInfo } from "./anno.page";
 import type { AnnotationResultParams, IPdfInstance, IRectBounds } from "./anno.types";
 
@@ -26,55 +27,6 @@ const getRangePageInfo = (range: Range) => {
     const endIndex = parseInt(endPageElement.getAttribute("data-page-number") || "0") - 1;
 
     return { startIndex, endIndex };
-};
-
-/**
- * 处理 BR 换行符，决定是否添加空格
- *
- * 处理以下情况：
- * 1. 如果前一个元素以 "-" 结尾（连字符换行），删除连字符
- * 2. 如果前后都是英文字母，添加空格
- * 3. 中文情况不添加空格
- */
-const processBrElement = (item: Element) => {
-    if (item.tagName !== "BR" || !item.previousElementSibling || !item.nextElementSibling) {
-        return;
-    }
-
-    const previousText = item.previousElementSibling.textContent;
-    const nextText = item.nextElementSibling.textContent;
-    if (!previousText || !nextText) {
-        return;
-    }
-
-    if (!/^[A-Za-z]$/.test(previousText.substring(previousText.length - 2, previousText.length - 1)) ||
-        !/^[A-Za-z]$/.test(nextText.substring(0, 1))) {
-        return;
-    }
-
-    if (previousText.endsWith("-")) {
-        item.previousElementSibling.textContent = previousText.substring(0, previousText.length - 1);
-        return;
-    }
-
-    // 中文情况不能添加 https://github.com/siyuan-note/siyuan/issues/8152
-    item.insertAdjacentText("afterend", " ");
-};
-
-/**
- * 处理 Range 的内容，返回转义后的文本
- */
-const processRangeContents = (range: Range) => {
-    // https://github.com/siyuan-note/siyuan/issues/5213
-    const rangeContents = range.cloneContents();
-    for (const item of Array.from(rangeContents.children)) {
-        processBrElement(item);
-    }
-    const textContent = rangeContents.textContent ?? "";
-    // 移除 NULL 字符和换行符
-    const NULL_CHAR = String.fromCharCode(0);
-    const cleanedText = textContent.replaceAll(NULL_CHAR, "").replaceAll("\n", "");
-    return Lute.EscapeHTMLStr(cleanedText);
 };
 
 /**
