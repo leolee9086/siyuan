@@ -463,6 +463,12 @@
                 </svg>
                 <span class="b3-menu__label">{{ siyuanI18n.relation }}</span>
             </button>
+            <button class="b3-menu__item pdf__util__hide" data-type="download">
+                <svg class="b3-menu__icon">
+                    <use xlink:href="#iconDownload"></use>
+                </svg>
+                <span class="b3-menu__label">{{ siyuanI18n.download }}</span>
+            </button>
             <button class="b3-menu__item pdf__util__hide" data-type="remove">
                 <svg class="b3-menu__icon">
                     <use xlink:href="#iconTrashcan"></use>

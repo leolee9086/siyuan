@@ -4,6 +4,7 @@ import { getConfig } from "../anno.config";
 import { AnnoConstants } from "../anno.constants";
 import { copyAnno } from "../anno.copy";
 import { hideToolbar } from "../anno.hideToolbar";
+import { downloadRectAsPng } from "../anno.getRectImgData";
 import { setRelation } from "../anno.setRelation";
 import type { IPdfInstance, ToolbarActionContext, ToolbarActionHandler, ToolbarActionRegistry } from "../anno.types";
 
@@ -154,6 +155,21 @@ const handleToggleAction = (ctx: ToolbarActionContext) => {
 
 
 /**
+ * 处理下载注释为PNG操作
+ *
+ * 将当前选中的矩形注释区域截图并下载为PNG文件：
+ * 1. 调用截图下载功能
+ * 2. 隐藏工具栏
+ *
+ * @param ctx - 工具栏操作上下文，包含共享数据
+ */
+const handleDownloadAction = async (ctx: ToolbarActionContext) => {
+    const { pdf, element } = ctx;
+    await downloadRectAsPng(pdf);
+    hideToolbar(element);
+};
+
+/**
  * 工具栏操作处理器注册表
  *
  * 使用策略模式实现，将操作类型映射到对应的处理函数
@@ -170,5 +186,6 @@ export const toolbarActionRegistry: ToolbarActionRegistry = {
     [AnnoConstants.ACTION.COPY]: handleCopyAction,
     [AnnoConstants.ACTION.RELATE]: handleRelateAction,
     [AnnoConstants.ACTION.TOGGLE]: handleToggleAction,
+    [AnnoConstants.ACTION.DOWNLOAD]: handleDownloadAction,
 };
 

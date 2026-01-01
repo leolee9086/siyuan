@@ -9,7 +9,8 @@ export const AnnoConstants = {
         REMOVE: "remove",
         COPY: "copy",
         RELATE: "relate",
-        TOGGLE: "toggle"
+        TOGGLE: "toggle",
+        DOWNLOAD: "download"
     },
     ATTR: {
         DATA_TYPE: "data-type",

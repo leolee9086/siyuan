@@ -3,6 +3,19 @@
  */
 
 /**
+ * PDF页面渲染所需的参数
+ *
+ * @作用 封装PDF页面渲染所需的页面对象和视口参数
+ * @使用场景 在getCaptureCanvas流程中，用于传递页面数据到渲染函数
+ */
+export interface IPDF页面渲染参数 {
+    /** PDF页面对象 */
+    pdfPage: IPdfPage;
+    /** 视口参数，包含宽高和缩放信息 */
+    viewport: ReturnType<IPdfPage["getViewport"]>;
+}
+
+/**
  * 开始页面信息
  */
 export interface IStartPageInfo {
