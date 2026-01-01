@@ -36,6 +36,10 @@ InstallDir "$LOCALAPPDATA\Programs\siyuan-forge"
     ${EndIf}
 !macroend
 
+!macro customInstall
+    RMDir /r "$PROFILE\AppData\Local\siyuan-updater"
+!macroend
+
 !macro customUnInstall
     ${IfNot} ${isUpdated}
         MessageBox MB_YESNO "是否需要彻底删除全局配置（$PROFILE\.config\siyuan-forge\）？$\n$\n\
@@ -54,6 +58,8 @@ InstallDir "$LOCALAPPDATA\Programs\siyuan-forge"
                 RMDir /r "$PROFILE\SiYuan-Forge\"
             SkippedRMWrokspace:
     ${EndIf}
+
+    RMDir /r "$PROFILE\AppData\Local\siyuan-updater"
 !macroend
 
 # https://nsis.sourceforge.io/FindIt:_Simple_search_for_file_/_directory

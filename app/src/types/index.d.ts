@@ -694,6 +694,7 @@ interface IWebSocketData {
     msg: string;
     code: number;
     sid?: string;
+    context?: any;
 }
 
 interface IGraphCommon {
@@ -859,7 +860,9 @@ interface IBazaarItem {
     hInstallDate: string;
     hUpdated: string;
     preferredFunding: string;
-    keywords?: string[]
+    keywords?: string[];
+    disallowUpdate: boolean;
+    updateRequiredMinAppVer: string;
 }
 
 interface IAV {
