@@ -328,3 +328,84 @@ func ImportEagleLibrary(libraryPath string, opts ImportOptions) error {
 | 数据源 | `data/storage/s-forge-asset-meta/meta.json` | 同步 |
 | 索引 | `temp/s-forge-asset-meta.db` | 不同步 |
 
+### 7. 色彩分析 (MMCQ)
+
+自行实现 Go 版本的 MMCQ (Modified Median Cut Quantization) 算法，用于提取素材主色调。
+
+**核心步骤**：
+1. **采样**：读取图像像素，进行下采样（如每隔 5 个像素取一个），减少计算量。
+2. **量化**：
+   - 将 RGB 颜色空间视为立方体。
+   - 初始为一个包含所有采样像素的 VBox。
+   - 迭代切割：选择 RGB 范围最大的轴进行切割，将 VBox 一分为二，直到达到目标颜色数量（如 8 色）。
+3. **提取**：计算每个 VBox 的平均颜色作为调色板颜色。
+4. **存储**：将提取的调色板 (Color + Ratio) 存入 `metadata.json`。
+
+**用途**：
+- 为没有调色板的导入素材补全信息
+- 为新添加的素材自动生成调色板
+- 支持按颜色筛选素材
+
+### 9. 标签 (Tag) 系统协调
+
+思源笔记的 Tag 是隐式的（跟随文档/区块），没有独立的 Tag 数据库表。素材管理系统的 Tag 策略如下：
+
+### 9. 标签 (Tag) 系统协调
+
+利用思源 Tag 系统隐式、开放的特性（无严格 Schema），我们采取 **深度融合** 策略，将素材 Tag 视为思源标签生态的一部分。
+
+1.  **逻辑统一**：在用户视角，素材 Tag 和笔记 Tag 同属于一个标签池。只要被素材 **或者** 笔记引用，该 Tag 即视为 **"存在"**。仅当没有任何笔记且没有任何素材使用某 Tag 时，该 Tag 才视为 **"不存在"**（删除）。
+2.  **数据互补**：
+    - 笔记标签：来自思源数据库（`spans` 表）。
+    - 素材标签：来自素材索引（`s-forge-asset-meta.db`）。
+    - **融合展示**：在前端展示时，将两者的标签集合并。
+3.  **双向互通**：
+    - **搜索**：搜索某个 Tag 时，API 并行查询思源和素材库，聚合返回结果。
+    - **补全**：打标签时，提供所有已知标签（笔记+素材）的自动补全。
+    - **无隔离**：不再强制使用命名空间前缀（虽仍允许用户自行规划），鼓励标签复用。
+
+
+### 8. 颜色相似查询实现
+
+为了在百万级素材中实现高效且符合视觉感知的颜色查找，采用 **HSV 空间粗筛 + CIEDE2000 精排** 的策略。RGB 空间非线性，不适合直接做相似度度量。
+
+**SQLite 存储结构**：
+```sql
+-- 存储 RGB 及转换后的 HSL/HSV，便于不同维度的筛选
+CREATE TABLE asset_palettes (
+    path TEXT,
+    r INTEGER, g INTEGER, b INTEGER,
+    h INTEGER, -- Hue: 0-360
+    s INTEGER, -- Saturation: 0-100
+    l INTEGER, -- Lightness: 0-100 (亦可存 V)
+    ratio REAL,
+    FOREIGN KEY(path) REFERENCES asset_meta(path)
+);
+-- 针对 Hue 建立索引，因为色相是颜色查找的核心
+CREATE INDEX idx_palette_h ON asset_palettes(h);
+CREATE INDEX idx_palette_sl ON asset_palettes(s, l);
+```
+
+**粗筛算法 (SQL 层)**：
+1.  **颜色转换**：将目标颜色转为 HSL (H: 0-360, S: 0-100, L: 0-100)。
+2.  **Hue 环绕处理**：色相环首尾相接（0度≈360度）。
+    - 设阈值 `dH = 30` (可调)。
+    - 如果 `target.h < dH`，查询范围为 `[0, target.h + dH] OR [360 - (dH - target.h), 360]`。
+    - 如果 `target.h > 360 - dH`，查询范围为 `[target.h - dH, 360] OR [0, dH - (360 - target.h)]`。
+    - 否则，范围为 `[target.h - dH, target.h + dH]`。
+3.  **饱和度/亮度筛选**：`S` 和 `L` 设定较宽的阈值（如 `+/- 50`），排除掉差异过大的颜色（如黑白灰与鲜艳色的区分）。
+4.  **SQL 查询**：
+    ```sql
+    SELECT path, r, g, b, ratio FROM asset_palettes
+    WHERE (h BETWEEN ? AND ? OR h BETWEEN ? AND ?) -- 处理 Hue 环绕
+      AND s BETWEEN ? AND ?
+      AND l BETWEEN ? AND ?
+    ```
+
+**精排算法 (Go 内存层)**：
+1.  **CIEDE2000 距离**：计算目标颜色与候选集颜色的 CIEDE2000 色差（比欧氏距离更符合人眼感知）。
+2.  **权重计算**：
+    - `Score = (1 - CIEDE2000 / 100) * (0.7 + 0.3 * ratio)`
+    - 结合颜色相似度和该颜色在图片中的占比。
+3.  **Top N**：按分数排序返回前 N 个结果。
+
