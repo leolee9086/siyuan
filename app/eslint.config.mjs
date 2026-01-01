@@ -9,6 +9,7 @@ import pluginVue from "eslint-plugin-vue";
 import { noInlineCallbackPlugin } from "./0_lints/no-inline-callback.mjs";
 import { aiWorkerPlugin } from "./0_lints/ai-worker-rules.mjs";
 import { codeSizeLimitsPlugin } from "./0_lints/code-size-limits.mjs";
+import { requireFunctionCommentPlugin } from "./0_lints/require-function-comment.mjs";
 import { FULL_FIX_REMINDER } from "./0_lints/shared-constants.mjs";
 
 // Defining local constant for backward compatibility and internal usage
@@ -153,6 +154,7 @@ export default [{
         "no-inline-callback": noInlineCallbackPlugin,
         "ai-worker": aiWorkerPlugin,
         "code-size": codeSizeLimitsPlugin,
+        "function-comment": requireFunctionCommentPlugin,
     },
 
     languageOptions: {
@@ -215,6 +217,8 @@ export default [{
         "vue/require-default-prop": "off",
         "vue/require-explicit-emits": "off",
         "ai-worker/detect-ai-todo": "error",
+        "function-comment/require-function-comment": "error",
+        "function-comment/require-type-comment": "error",
     },
 }, {
     // 架构约束：组合所有探测逻辑
