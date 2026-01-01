@@ -54,6 +54,12 @@ export const setConfig = (pdf: IPdfInstance, id: string, data: IPdfAnno): void =
     });
 };
 
+/**
+ * 处理获取配置的服务器响应
+ * 
+ * 解析服务器返回的注释配置数据，并更新到PDF实例的缓存中。
+ * 由 getConfig 内部调用，作为 fetchPost 的回调函数。
+ */
 const handleGetConfigResponse = (response: IWebSocketData, pdf: IPdfInstance) => {
     let config = {};
     if (response.code !== 1) {

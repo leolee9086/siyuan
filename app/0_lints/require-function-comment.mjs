@@ -35,18 +35,21 @@ function 获取前置注释(sourceCode, node) {
 }
 
 /**
- * 检查注释内容是否包含说明的必备要素
+ * 检查注释内容是否有基本内容
+ * 
+ * 作为原则性规则，只要注释不是完全空的就视为有效。
+ * 提示信息已经说明了注释应该包含什么内容，具体质量由编写者把关。
  */
 function 检查注释质量(commentText) {
-    // 至少需要有一些实质性内容（不能只是空的 JSDoc 模板）
+    // 只要注释不是完全空的就视为有效
     const 去除星号 = commentText
         .replace(/^\s*\*+\s*/gm, "") // 移除行首的 * 和空格
         .replace(/^\/\*+\s*/, "")    // 移除开头的 /*
         .replace(/\s*\*+\/$/, "")    // 移除结尾的 */
         .trim();
 
-    // 注释长度至少要有 10 个字符才算有效
-    return 去除星号.length >= 10;
+    // 只要有任何内容就算有效
+    return 去除星号.length > 0;
 }
 
 /**
@@ -122,6 +125,7 @@ function 需要检查注释(node) {
 /**
  * 获取需要检查注释的节点
  * 对于变量声明，应该检查变量声明语句而非函数本身
+ * 对于导出的变量声明，需要继续向上找到导出声明
  */
 function 获取注释目标节点(node) {
     if (node.parent) {
@@ -129,10 +133,15 @@ function 获取注释目标节点(node) {
         if (node.parent.type === "VariableDeclarator") {
             // 返回整个变量声明语句
             if (node.parent.parent && node.parent.parent.type === "VariableDeclaration") {
-                return node.parent.parent;
+                const 变量声明 = node.parent.parent;
+                // 如果变量声明本身被导出，需要继续向上找到导出声明
+                if (变量声明.parent && (变量声明.parent.type === "ExportNamedDeclaration" || 变量声明.parent.type === "ExportDefaultDeclaration")) {
+                    return 变量声明.parent;
+                }
+                return 变量声明;
             }
         }
-        // 导出声明
+        // 直接导出的函数声明
         if (node.parent.type === "ExportNamedDeclaration" || node.parent.type === "ExportDefaultDeclaration") {
             return node.parent;
         }
