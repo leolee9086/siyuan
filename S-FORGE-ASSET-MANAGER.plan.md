@@ -134,7 +134,10 @@ type ImportAdapter interface {
 - [x] 实现 JSON 数据源读写 (`model.go`: `LoadAsset`, `SaveAsset`, `RemoveAsset`)
 - [x] 实现 SQLite 索引管理 (`index.go`: 完整的表结构和 CRUD)
 - [x] 索引重建逻辑 (`RebuildIndex`, `BatchUpdateIndexAssets`)
+- [x] 索引重建逻辑 (`RebuildIndex`, `BatchUpdateIndexAssets`)
 - [x] 路径安全验证 (`isPathInsideDir`, `ErrPathTraversal`)
+- [x] 元数据完整性修复 (自动补全 0 值属性)
+- [x] 色彩提取性能优化 (避免重复计算 MMCQ)
 
 ### Phase 2：API 层 🔄 进行中
 
@@ -281,7 +284,15 @@ type ImportResult struct {
 
 ### Phase 4：前端集成 📋 待开始
 
-- [ ] 集成现有视图组件
+#### 4.1 素材选择面板增强 (Next Step)
+
+![属性过滤设计图](C:/Users/al765/.gemini/antigravity/brain/94964cde-9798-44b3-b55b-ef760015ce29/asset_filter_ui_mockup_1767342708787.png)
+
+- [ ] **属性过滤支持**：在素材选择面板增加过滤功能
+    - [ ] 格式过滤 (Ext)
+    - [ ] 分辨率/尺寸过滤
+    - [ ] 文件大小过滤
+    - [ ] 星级过滤
 - [ ] 标签筛选 UI
 - [ ] 元数据编辑面板
 - [ ] Eagle 导入向导 UI
@@ -481,7 +492,7 @@ Go 版本的 MMCQ (Modified Median Cut Quantization) 算法已实现。
 **实现文件**: `kernel/assetmeta/mmcq.go` (482 行)
 
 **核心实现**：
-1. **降采样**：图像自动缩放到 64×64 最大边长（最近邻采样）
+1. **降采样**：图像自动缩放到 64×64 最大边长（最近邻采样）(已验证)
 2. **量化**：5 位量化 (32³ = 32768 个直方图桶)
 3. **两阶段切割**：
    - 阶段 1：按像素数量切割（目标 75% 颜色数）

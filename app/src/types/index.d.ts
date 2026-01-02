@@ -362,7 +362,29 @@ interface ISearchAssetOption {
     },
     sort: number,
     k: string,
+    /** S-Forge 素材元数据扩展过滤选项 */
+    sForgeFilters?: {
+        /** 最小宽度 (像素) */
+        minWidth?: number,
+        /** 最大宽度 (像素) */
+        maxWidth?: number,
+        /** 最小高度 (像素) */
+        minHeight?: number,
+        /** 最大高度 (像素) */
+        maxHeight?: number,
+        /** 最小文件大小 (字节) */
+        minFileSize?: number,
+        /** 最大文件大小 (字节) */
+        maxFileSize?: number,
+        /** 最小星级 (0-5) */
+        minStar?: number,
+        /** 最大星级 (0-5) */
+        maxStar?: number,
+        /** 扩展名列表，如 [".png", ".jpg"] */
+        exts?: string[],
+    }
 }
+
 
 interface ITextOption {
     color?: string,

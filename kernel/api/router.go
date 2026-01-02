@@ -554,4 +554,5 @@ func ServeAPI(ginServer *gin.Engine) {
 	ginServer.Handle("POST", "/api/s-forge/asset-meta/palette/batch", model.CheckAuth, model.CheckAdminRole, batchExtractAssetPalettes)
 	ginServer.Handle("POST", "/api/s-forge/asset-meta/get", model.CheckAuth, getAssetMeta)
 	ginServer.Handle("POST", "/api/s-forge/asset-meta/set", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, setAssetMeta)
+	ginServer.Handle("POST", "/api/s-forge/asset-meta/search", model.CheckAuth, sForgeAssetMetaSearchHandler)
 }

@@ -7,9 +7,10 @@ import { Dialog } from "../dialog";
 import { getSiyuanStorage } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu.environment";
-import {  setTimeout } from "../util/siyuanEnvironments/windowTimer.environment";
+import { setTimeout } from "../util/siyuanEnvironments/windowTimer.environment";
 import { filterTypesHTML } from "./filterTypesHTML";
 import { createSortMenuItems, createLayoutSubmenu } from "./assetMenuItems";
+import { 生成素材过滤面板HTML, 解析过滤面板值, 初始化过滤面板事件 } from "./assetFilterPanel";
 
 /** 处理资源搜索响应的参数 */
 interface HandleAssetSearchResponseParams {
@@ -231,37 +232,73 @@ export const assetMethodMenu = (target: HTMLElement, cb: () => void) => {
     /// #endif
 };
 
+/**
+ * 处理过滤确认：解析原有文件类型开关和 S-Forge 高级过滤
+ */
 const handleAssetFilterConfirm = (
     filterDialog: Dialog,
-    localData: any,
+    localData: Record<string, boolean>,
     assetsElement: Element
 ) => {
-    const switches = filterDialog.element.querySelectorAll<HTMLInputElement>(".b3-switch");
+    const searchAsset = getSiyuanStorage()[Constants.LOCAL_SEARCHASSET] as ISearchAssetOption;
+
+    // 1. 处理原有的文件类型开关
+    const switches = filterDialog.element.querySelectorAll<HTMLInputElement>(".b3-switch[data-type]");
     for (const item of switches) {
         const dataType = item.getAttribute("data-type");
         if (dataType) {
             localData[dataType] = item.checked;
         }
     }
+
+    // 2. 处理 S-Forge 高级过滤选项
+    const sForgeFilters = 解析过滤面板值(filterDialog.element);
+    searchAsset.sForgeFilters = sForgeFilters;
+
     assetInputEvent(assetsElement);
-    setStorageVal(Constants.LOCAL_SEARCHASSET, getSiyuanStorage()[Constants.LOCAL_SEARCHASSET]);
+    setStorageVal(Constants.LOCAL_SEARCHASSET, searchAsset);
     filterDialog.destroy();
 };
 
+/**
+ * 素材过滤菜单
+ * 
+ * @description 打开过滤对话框，包含原有的文件类型过滤和 S-Forge 高级过滤
+ * @param assetsElement - 素材搜索面板元素
+ */
 export const assetFilterMenu = (assetsElement: Element) => {
-    const searchAsset = getSiyuanStorage()[Constants.LOCAL_SEARCHASSET];
+    const searchAsset = getSiyuanStorage()[Constants.LOCAL_SEARCHASSET] as ISearchAssetOption;
     const localData = searchAsset.types;
+
+    // 生成组合过滤面板：原有类型 + S-Forge 高级过滤
+    const combinedContent = `
+        <div class="b3-dialog__content" style="max-height: 60vh; overflow-y: auto;">
+            <div class="b3-label b3-label--noborder" style="padding-bottom: 0;">
+                <span class="ft__primary b3-label__text">文件类型过滤</span>
+            </div>
+            ${filterTypesHTML(localData)}
+            <div style="margin-top: 16px; border-top: 1px solid var(--b3-border-color); padding-top: 16px;">
+                ${生成素材过滤面板HTML(searchAsset.sForgeFilters)}
+            </div>
+        </div>
+        <div class="b3-dialog__action">
+            <button class="b3-button b3-button--cancel">${siyuanI18n.cancel}</button>
+            <div class="fn__space"></div>
+            <button class="b3-button b3-button--text">${siyuanI18n.confirm}</button>
+        </div>
+    `;
+
     const filterDialog = new Dialog({
-        title: siyuanI18n.type,
-        content: `<div class="b3-dialog__content">${filterTypesHTML(localData)}</div>
-<div class="b3-dialog__action">
-    <button class="b3-button b3-button--cancel">${siyuanI18n.cancel}</button><div class="fn__space"></div>
-    <button class="b3-button b3-button--text">${siyuanI18n.confirm}</button>
-</div>`,
-        width: "520px",
-        height: "70vh",
+        title: "素材过滤条件",
+        content: combinedContent,
+        width: "680px",
+        height: "75vh",
     });
     filterDialog.element.setAttribute("data-key", Constants.DIALOG_SEARCHASSETSTYPE);
+
+    // 初始化 S-Forge 过滤面板交互事件
+    初始化过滤面板事件(filterDialog.element);
+
     const btnsElement = filterDialog.element.querySelectorAll(".b3-button");
     const cancelBtn = btnsElement[0];
     cancelBtn?.addEventListener("click", () => {

@@ -3,6 +3,7 @@ package assetmeta
 import (
 	"database/sql"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/siyuan-note/logging"
@@ -454,4 +455,140 @@ func GetIndexAssets(paths []string) []AssetMeta {
 		}
 	}
 	return results
+}
+
+// SearchRequest S-Forge 素材高级搜索请求
+type SearchRequest struct {
+	Keyword   string   `json:"keyword"`   // 关键词搜索
+	Limit     int      `json:"limit"`     // 每页数量，默认 200
+	Offset    int      `json:"offset"`    // 分页偏移
+	MinWidth  int      `json:"minWidth"`  // 最小宽度
+	MaxWidth  int      `json:"maxWidth"`  // 最大宽度
+	MinHeight int      `json:"minHeight"` // 最小高度
+	MaxHeight int      `json:"maxHeight"` // 最大高度
+	MinSize   int64    `json:"minSize"`   // 最小文件大小 (字节)
+	MaxSize   int64    `json:"maxSize"`   // 最大文件大小 (字节)
+	MinStar   int      `json:"minStar"`   // 最小星级 (0-5)
+	MaxStar   int      `json:"maxStar"`   // 最大星级 (0-5)
+	Exts      []string `json:"exts"`      // 扩展名列表
+	OrderBy   string   `json:"orderBy"`   // 排序字段
+}
+
+// SearchAssetsAdvanced 高级素材搜索
+func SearchAssetsAdvanced(req SearchRequest) ([]AssetMeta, int, error) {
+	if indexDB == nil {
+		return nil, 0, nil
+	}
+
+	// 构建 WHERE 子句
+	var conditions []string
+	var args []interface{}
+
+	// 关键词搜索 (name 或 path)
+	if req.Keyword != "" {
+		conditions = append(conditions, "(name LIKE ? OR path LIKE ?)")
+		keyword := "%" + req.Keyword + "%"
+		args = append(args, keyword, keyword)
+	}
+
+	// 尺寸过滤
+	if req.MinWidth > 0 {
+		conditions = append(conditions, "width >= ?")
+		args = append(args, req.MinWidth)
+	}
+	if req.MaxWidth > 0 {
+		conditions = append(conditions, "width <= ?")
+		args = append(args, req.MaxWidth)
+	}
+	if req.MinHeight > 0 {
+		conditions = append(conditions, "height >= ?")
+		args = append(args, req.MinHeight)
+	}
+	if req.MaxHeight > 0 {
+		conditions = append(conditions, "height <= ?")
+		args = append(args, req.MaxHeight)
+	}
+
+	// 文件大小过滤
+	if req.MinSize > 0 {
+		conditions = append(conditions, "file_size >= ?")
+		args = append(args, req.MinSize)
+	}
+	if req.MaxSize > 0 {
+		conditions = append(conditions, "file_size <= ?")
+		args = append(args, req.MaxSize)
+	}
+
+	// 星级过滤
+	if req.MinStar > 0 {
+		conditions = append(conditions, "star >= ?")
+		args = append(args, req.MinStar)
+	}
+	if req.MaxStar > 0 && req.MaxStar < 5 {
+		conditions = append(conditions, "star <= ?")
+		args = append(args, req.MaxStar)
+	}
+
+	// 扩展名过滤
+	if len(req.Exts) > 0 {
+		var extConditions []string
+		for _, ext := range req.Exts {
+			extConditions = append(extConditions, "path LIKE ?")
+			args = append(args, "%"+ext)
+		}
+		conditions = append(conditions, "("+strings.Join(extConditions, " OR ")+")")
+	}
+
+	// 构建完整 SQL
+	whereClause := ""
+	if len(conditions) > 0 {
+		whereClause = " WHERE " + strings.Join(conditions, " AND ")
+	}
+
+	// 排序
+	orderClause := " ORDER BY import_time DESC"
+	switch req.OrderBy {
+	case "name":
+		orderClause = " ORDER BY name ASC"
+	case "size":
+		orderClause = " ORDER BY file_size DESC"
+	case "resolution":
+		orderClause = " ORDER BY width * height DESC"
+	case "star":
+		orderClause = " ORDER BY star DESC"
+	}
+
+	// 查询总数
+	countSQL := "SELECT COUNT(*) FROM asset_meta" + whereClause
+	var totalCount int
+	if err := indexDB.QueryRow(countSQL, args...).Scan(&totalCount); err != nil {
+		return nil, 0, err
+	}
+
+	// 查询数据
+	dataSQL := "SELECT path, name, source, star, import_time, width, height, file_size FROM asset_meta" +
+		whereClause + orderClause + " LIMIT ? OFFSET ?"
+	args = append(args, req.Limit, req.Offset)
+
+	rows, err := indexDB.Query(dataSQL, args...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var results []AssetMeta
+	for rows.Next() {
+		var meta AssetMeta
+		var fileSize sql.NullInt64
+		err := rows.Scan(&meta.Path, &meta.Name, &meta.Source, &meta.Star, &meta.ImportTime, &meta.Width, &meta.Height, &fileSize)
+		if err != nil {
+			continue
+		}
+		if fileSize.Valid {
+			meta.FileSize = fileSize.Int64
+		}
+		results = append(results, meta)
+	}
+
+	return results, totalCount, nil
 }

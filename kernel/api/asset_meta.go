@@ -333,3 +333,69 @@ func setAssetMeta(c *gin.Context) {
 		"data": meta,
 	})
 }
+
+// sForgeAssetMetaSearchHandler S-Forge 素材高级搜索 API
+//
+// POST /api/s-forge/asset-meta/search
+//
+// 请求体:
+//
+//	{
+//	  "keyword": "搜索关键词",
+//	  "limit": 200,
+//	  "offset": 0,
+//	  "minWidth": 100,
+//	  "maxWidth": 1000,
+//	  "minHeight": 100,
+//	  "maxHeight": 1000,
+//	  "minSize": 1024,
+//	  "maxSize": 10485760,
+//	  "minStar": 0,
+//	  "maxStar": 5,
+//	  "exts": [".png", ".jpg"],
+//	  "orderBy": "name"
+//	}
+func sForgeAssetMetaSearchHandler(c *gin.Context) {
+	var req assetmeta.SearchRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			"msg":  "invalid request: " + err.Error(),
+		})
+		return
+	}
+
+	// 默认值
+	if req.Limit <= 0 {
+		req.Limit = 200
+	}
+	if req.MaxStar <= 0 {
+		req.MaxStar = 5
+	}
+
+	assets, totalCount, err := assetmeta.SearchAssetsAdvanced(req)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			"msg":  "search failed: " + err.Error(),
+		})
+		return
+	}
+
+	// 计算页数
+	pageCount := 1
+	if req.Limit > 0 && totalCount > 0 {
+		pageCount = (totalCount + req.Limit - 1) / req.Limit
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 0,
+		"msg":  "",
+		"data": gin.H{
+			"assets":     assets,
+			"totalCount": totalCount,
+			"pageCount":  pageCount,
+		},
+	})
+}
