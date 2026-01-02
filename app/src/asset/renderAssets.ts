@@ -141,6 +141,58 @@ const renderTags = (tags: string[]): string => {
     return tags.map(t => `<span style="background: var(--b3-theme-primary-light); color: var(--b3-theme-primary); padding: 1px 6px; border-radius: 3px; margin-right: 4px; margin-bottom: 4px;">${escapeHtml(t)}</span>`).join("");
 };
 
+/** 确保获取完整的素材元数据（如果缺失则尝试修复） */
+const ensureAssetMeta = async (path: string) => {
+    // 1. 获取现有元数据
+    const getResponse = await fetch("/api/s-forge/asset-meta/get", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path }),
+    });
+    const getResult = await getResponse.json();
+    let meta = getResult.data;
+    const metaMissing = !meta?.width || !meta?.fileSize;
+    const palettes = meta?.palettes;
+
+    // 2. 如果数据完整，直接返回
+    if (palettes && palettes.length > 0 && !metaMissing) {
+        return meta;
+    }
+
+    // 3. 调用提取接口进行修复
+    const extractResponse = await fetch("/api/s-forge/asset-meta/palette", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path, colorCount: 8 }),
+    });
+    const extractResult = await extractResponse.json();
+
+    // 4. 如果是修复了元数据，重新获取完整信息
+    if (metaMissing && extractResult.code === 0) {
+        const refreshResponse = await fetch("/api/s-forge/asset-meta/get", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ path }),
+        });
+        const refreshResult = await refreshResponse.json();
+        if (refreshResult.code === 0) {
+            meta = refreshResult.data;
+        }
+    }
+
+    // 确保 meta 对象存在以便后续使用
+    if (!meta) {
+        meta = {};
+    }
+
+    // 使用新提取的调色板（如果 meta 中还没有）
+    if (extractResult.code === 0 && (!meta.palettes || meta.palettes.length === 0)) {
+        meta.palettes = extractResult.data?.palettes;
+    }
+
+    return meta;
+};
+
 /**
  * 异步加载素材元信息预览
  * 
@@ -149,26 +201,8 @@ const renderTags = (tags: string[]): string => {
  */
 const loadAssetMetaPreview = async (path: string, elementId: string) => {
     try {
-        // 获取元数据
-        const getResponse = await fetch("/api/s-forge/asset-meta/get", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ path }),
-        });
-        const getResult = await getResponse.json();
-        const meta = getResult.data;
-        let palettes = meta?.palettes;
-
-        // 如果没有调色板，则提取
-        if (!palettes || palettes.length === 0) {
-            const extractResponse = await fetch("/api/s-forge/asset-meta/palette", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ path, colorCount: 8 }),
-            });
-            const extractResult = await extractResponse.json();
-            palettes = extractResult.code === 0 ? extractResult.data?.palettes : null;
-        }
+        const meta = await ensureAssetMeta(path);
+        const palettes = meta?.palettes;
 
         const element = document.getElementById(elementId);
         if (!element) {

@@ -389,7 +389,11 @@ func parseDim(s string) int {
 // 复用缩略图服务进行降采样，提升性能
 // relPath: 相对于 data/ 的路径 (如 "assets/xxx.png")
 // colorCount: 目标颜色数量，默认 8
-func (s *AssetMetaService) ExtractAndStorePalette(relPath string, colorCount int) ([]Palette, error) {
+// ExtractAndStorePalette 提取并存储调色板
+// relPath: 相对于 data/ 的路径 (如 "assets/xxx.png")
+// colorCount: 目标颜色数量，默认 8
+// overwrite: 是否覆盖现有调色板
+func (s *AssetMetaService) ExtractAndStorePalette(relPath string, colorCount int, overwrite bool) ([]Palette, error) {
 	if colorCount <= 0 {
 		colorCount = 8
 	}
@@ -400,18 +404,12 @@ func (s *AssetMetaService) ExtractAndStorePalette(relPath string, colorCount int
 		return nil, os.ErrNotExist
 	}
 
-	// 直接使用 MMCQ 提取（内部会自动降采样到 64px）
-	palettes, err := ExtractPaletteFromImage(absPath, colorCount)
-	if err != nil {
-		return nil, err
-	}
-
-	// 更新元数据
+	// 1. 加载现有元数据
 	meta, loadErr := s.manager.LoadAsset(relPath)
 	if loadErr != nil {
 		// 如果不存在，创建新的
 		if !errors.Is(loadErr, os.ErrNotExist) && !errors.Is(loadErr, ErrPathTraversal) {
-			return palettes, loadErr
+			return nil, loadErr
 		}
 		meta = AssetMeta{
 			Path:       relPath,
@@ -419,22 +417,48 @@ func (s *AssetMetaService) ExtractAndStorePalette(relPath string, colorCount int
 			Source:     "palette-extract",
 			ImportTime: time.Now().Unix(),
 		}
-		// 补全物理属性
+	}
+
+	// 2. 检查并补全物理属性 (无论是新建的还是已有的)
+	isDirty := loadErr != nil // 如果是新建的，必然脏
+	if meta.Width == 0 || meta.Height == 0 {
 		if w, h, err := getImageDimensions(absPath); err == nil {
 			meta.Width = w
 			meta.Height = h
+			isDirty = true
+		} else {
+			logging.LogErrorf("get image dimensions for [%s] failed: %s", absPath, err)
 		}
+	}
+	if meta.FileSize == 0 {
 		if info, statErr := os.Stat(absPath); statErr == nil {
 			meta.FileSize = info.Size()
+			isDirty = true
+		} else {
+			logging.LogErrorf("stat file [%s] failed: %s", absPath, statErr)
 		}
 	}
 
-	meta.Palettes = palettes
+	// 3. 提取调色板 (如果需要)
+	var palettes []Palette
+	if overwrite || len(meta.Palettes) == 0 {
+		var err error
+		palettes, err = ExtractPaletteFromImage(absPath, colorCount)
+		if err != nil {
+			return nil, err
+		}
+		meta.Palettes = palettes
+		isDirty = true
+	} else {
+		palettes = meta.Palettes
+	}
 
-	// 保存
-	if saveErr := s.SetAsset(meta); saveErr != nil {
-		logging.LogErrorf("save palette for [%s] failed: %s", relPath, saveErr)
-		return palettes, saveErr
+	// 4. 保存 (只有数据变更才保存)
+	if isDirty {
+		if saveErr := s.SetAsset(meta); saveErr != nil {
+			logging.LogErrorf("save palette for [%s] failed: %s", relPath, saveErr)
+			return palettes, saveErr
+		}
 	}
 
 	return palettes, nil

@@ -53,6 +53,7 @@ func extractAssetPalette(c *gin.Context) {
 	var req struct {
 		Path       string `json:"path"`
 		ColorCount int    `json:"colorCount"`
+		Overwrite  bool   `json:"overwrite"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -88,7 +89,7 @@ func extractAssetPalette(c *gin.Context) {
 	// 3. 更新 SQLite 索引
 	// 4. 返回结果
 	service := assetmeta.NewInstance()
-	palettes, err := service.ExtractAndStorePalette(req.Path, req.ColorCount)
+	palettes, err := service.ExtractAndStorePalette(req.Path, req.ColorCount, req.Overwrite)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"code": -1,
@@ -134,6 +135,7 @@ func batchExtractAssetPalettes(c *gin.Context) {
 	var req struct {
 		Paths      []string `json:"paths"`
 		ColorCount int      `json:"colorCount"`
+		Overwrite  bool     `json:"overwrite"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -184,7 +186,7 @@ func batchExtractAssetPalettes(c *gin.Context) {
 			continue
 		}
 
-		palettes, err := service.ExtractAndStorePalette(path, req.ColorCount)
+		palettes, err := service.ExtractAndStorePalette(path, req.ColorCount, req.Overwrite)
 		if err != nil {
 			results[path] = Result{Palettes: nil, Error: err.Error()}
 			failCount++
