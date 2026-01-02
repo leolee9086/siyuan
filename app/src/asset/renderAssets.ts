@@ -45,10 +45,19 @@ export const renderAssetsPreview = (pathString: string) => {
     }
     const type = pathPosix().extname(pathString).toLowerCase();
 
-    // 图片：使用缩略图 API
+    // 图片：使用缩略图 API + 调色板色块
     if (Constants.SIYUAN_ASSETS_IMAGE.includes(type)) {
         const thumbnailUrl = `/api/s-forge/thumbnail?path=${encodeURIComponent(pathString)}&size=360`;
-        return `<img style="max-height: 100%" src="${thumbnailUrl}" data-original="${pathString}">`;
+        // 生成唯一 ID 用于后续填充调色板
+        const paletteId = `palette-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+        // 异步加载调色板
+        loadPalettePreview(pathString, paletteId);
+
+        return `<div style="display: flex; flex-direction: column; align-items: center; width: 100%; height: 100%;">
+            <img style="max-height: calc(100% - 32px); max-width: 100%; object-fit: contain;" src="${thumbnailUrl}" data-original="${pathString}">
+            <div id="${paletteId}" class="fn__flex" style="margin-top: 8px; gap: 4px; min-height: 24px;"></div>
+        </div>`;
     }
 
     // 音频：使用原生播放器
@@ -82,6 +91,72 @@ export const renderAssetsPreview = (pathString: string) => {
             ${escapeHtml(pathPosix().basename(pathString))}
         </div>
     </div>`;
+};
+
+/** 将 RGB 转换为十六进制 */
+const rgbToHexStr = (r: number, g: number, b: number): string =>
+    `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`.toUpperCase();
+
+/** 渲染单个色块 HTML */
+const renderPaletteBlock = (p: { color: [number, number, number]; ratio: number }): string => {
+    const [r, g, b] = p.color;
+    const hex = rgbToHexStr(r, g, b);
+    // 悬浮提示：有占比则显示百分比，否则只显示色值
+    const title = p.ratio > 0 ? `${hex} (${(p.ratio * 100).toFixed(1)}%)` : hex;
+    return `<div title="${title}" style="width: 20px; height: 20px; background: ${hex}; border-radius: 4px; cursor: pointer; border: 1px solid var(--b3-border-color);" data-color="${hex}"></div>`;
+};
+
+/** 处理色块点击复制 */
+const handlePaletteClick = (e: Event): void => {
+    const target = e.target;
+    if (!(target instanceof HTMLElement)) {
+        return;
+    }
+    const color = target.getAttribute("data-color");
+    if (color) {
+        navigator.clipboard.writeText(color).catch(() => { });
+    }
+};
+
+/**
+ * 异步加载调色板预览
+ * 
+ * @param path - 素材路径
+ * @param elementId - 目标容器元素 ID
+ */
+const loadPalettePreview = async (path: string, elementId: string) => {
+    try {
+        // 先尝试获取已有的元数据
+        const getResponse = await fetch("/api/s-forge/asset-meta/get", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ path }),
+        });
+        const getResult = await getResponse.json();
+        let palettes = getResult.data?.palettes;
+
+        // 如果没有调色板，则提取
+        if (!palettes || palettes.length === 0) {
+            const extractResponse = await fetch("/api/s-forge/asset-meta/palette", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ path, colorCount: 8 }),
+            });
+            const extractResult = await extractResponse.json();
+            palettes = extractResult.code === 0 ? extractResult.data?.palettes : null;
+        }
+
+        // 渲染色块
+        const element = document.getElementById(elementId);
+        if (!element || !palettes || palettes.length === 0) {
+            return;
+        }
+
+        element.innerHTML = palettes.map(renderPaletteBlock).join("");
+        element.addEventListener("click", handlePaletteClick);
+    } catch {
+        // 静默失败，不显示错误
+    }
 };
 
 /**

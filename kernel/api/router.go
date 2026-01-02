@@ -548,4 +548,10 @@ func ServeAPI(ginServer *gin.Engine) {
 	// S-Forge Thumbnail Service
 	ginServer.Handle("GET", "/api/s-forge/thumbnail", model.CheckAuth, getSForgeThumbnail)
 	ginServer.Handle("POST", "/api/s-forge/thumbnail/clearCache", model.CheckAuth, model.CheckAdminRole, clearAllThumbnailCache)
+
+	// S-Forge Asset Meta Service
+	ginServer.Handle("POST", "/api/s-forge/asset-meta/palette", model.CheckAuth, model.CheckAdminRole, extractAssetPalette)
+	ginServer.Handle("POST", "/api/s-forge/asset-meta/palette/batch", model.CheckAuth, model.CheckAdminRole, batchExtractAssetPalettes)
+	ginServer.Handle("POST", "/api/s-forge/asset-meta/get", model.CheckAuth, getAssetMeta)
+	ginServer.Handle("POST", "/api/s-forge/asset-meta/set", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, setAssetMeta)
 }
