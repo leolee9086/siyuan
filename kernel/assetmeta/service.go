@@ -44,6 +44,8 @@ func NewInstance() *AssetMetaService {
 		Instance = &AssetMetaService{
 			manager: NewManager(rootDir),
 		}
+		// 初始化数据库（确保在任何 API 调用前完成）
+		InitIndexDB()
 	})
 	return Instance
 }
@@ -90,13 +92,20 @@ func (s *AssetMetaService) Shutdown() {
 	CloseIndexDB()
 }
 
-// GetAsset 获取素材元数据
+// GetAsset 获取素材元数据 (从 JSON 文件读取)
+// 注意：API 应使用 GetAssetFromIndex，此方法仅供内部使用
 func (s *AssetMetaService) GetAsset(path string) (AssetMeta, bool) {
 	meta, err := s.manager.LoadAsset(path)
 	if err != nil {
 		return AssetMeta{}, false
 	}
 	return meta, true
+}
+
+// GetAssetFromIndex 从索引表获取素材元数据
+// 这是前端 API 获取元数据的标准方式
+func (s *AssetMetaService) GetAssetFromIndex(path string) (AssetMeta, bool) {
+	return GetIndexAsset(path)
 }
 
 // SetAsset 设置/更新素材元数据
@@ -409,6 +418,14 @@ func (s *AssetMetaService) ExtractAndStorePalette(relPath string, colorCount int
 			Name:       filepath.Base(relPath),
 			Source:     "palette-extract",
 			ImportTime: time.Now().Unix(),
+		}
+		// 补全物理属性
+		if w, h, err := getImageDimensions(absPath); err == nil {
+			meta.Width = w
+			meta.Height = h
+		}
+		if info, statErr := os.Stat(absPath); statErr == nil {
+			meta.FileSize = info.Size()
 		}
 	}
 

@@ -25,6 +25,7 @@ type AssetMeta struct {
 	ImportTime   int64     `json:"importTime"`         // 导入时间
 	Width        int       `json:"width,omitempty"`    // 宽度
 	Height       int       `json:"height,omitempty"`   // 高度
+	FileSize     int64     `json:"fileSize,omitempty"` // 文件大小 (字节)
 	Palettes     []Palette `json:"palettes,omitempty"` // 调色板
 }
 

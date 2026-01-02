@@ -148,7 +148,7 @@ func RebuildIndex(assets []AssetMeta) error {
 	}
 
 	// 预编译语句
-	stmtMeta, err := tx.Prepare("INSERT INTO asset_meta (path, name, source, source_id, star, import_time, width, height) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+	stmtMeta, err := tx.Prepare("INSERT INTO asset_meta (path, name, source, source_id, star, import_time, width, height, file_size) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		return err
 	}
@@ -167,7 +167,7 @@ func RebuildIndex(assets []AssetMeta) error {
 	defer stmtPalette.Close()
 
 	for _, asset := range assets {
-		if _, err := stmtMeta.Exec(asset.Path, asset.Name, asset.Source, asset.SourceID, asset.Star, asset.ImportTime, asset.Width, asset.Height); err != nil {
+		if _, err := stmtMeta.Exec(asset.Path, asset.Name, asset.Source, asset.SourceID, asset.Star, asset.ImportTime, asset.Width, asset.Height, asset.FileSize); err != nil {
 			logging.LogErrorf("index asset meta [%s] failed: %s", asset.Path, err)
 			continue
 		}
@@ -202,8 +202,8 @@ func UpdateIndexAsset(asset AssetMeta) error {
 	tx.Exec("DELETE FROM asset_palettes WHERE path = ?", asset.Path)
 
 	// 插入新数据
-	if _, err := tx.Exec("INSERT INTO asset_meta (path, name, source, source_id, star, import_time, width, height) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-		asset.Path, asset.Name, asset.Source, asset.SourceID, asset.Star, asset.ImportTime, asset.Width, asset.Height); err != nil {
+	if _, err := tx.Exec("INSERT INTO asset_meta (path, name, source, source_id, star, import_time, width, height, file_size) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		asset.Path, asset.Name, asset.Source, asset.SourceID, asset.Star, asset.ImportTime, asset.Width, asset.Height, asset.FileSize); err != nil {
 		return err
 	}
 
@@ -265,7 +265,7 @@ func BatchUpdateIndexAssets(assets []AssetMeta) error {
 	}
 	defer stmtDelPalette.Close()
 
-	stmtMeta, err := tx.Prepare("INSERT INTO asset_meta (path, name, source, source_id, star, import_time, width, height) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+	stmtMeta, err := tx.Prepare("INSERT INTO asset_meta (path, name, source, source_id, star, import_time, width, height, file_size) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		return err
 	}
@@ -293,7 +293,7 @@ func BatchUpdateIndexAssets(assets []AssetMeta) error {
 		stmtDelPalette.Exec(asset.Path)
 
 		// 2. 插入新数据
-		if _, err := stmtMeta.Exec(asset.Path, asset.Name, asset.Source, asset.SourceID, asset.Star, asset.ImportTime, asset.Width, asset.Height); err != nil {
+		if _, err := stmtMeta.Exec(asset.Path, asset.Name, asset.Source, asset.SourceID, asset.Star, asset.ImportTime, asset.Width, asset.Height, asset.FileSize); err != nil {
 			logging.LogErrorf("batch index insert meta [%s] failed: %s", asset.Path, err)
 			continue
 		}
@@ -388,4 +388,70 @@ func GetAllTags() ([]string, error) {
 		tags = append(tags, tag)
 	}
 	return tags, nil
+}
+
+// GetIndexAsset 从索引表读取单个素材元数据
+// 这是前端 API 获取元数据的标准方式
+func GetIndexAsset(path string) (AssetMeta, bool) {
+	var meta AssetMeta
+
+	// 1. 查询主表
+	row := indexDB.QueryRow(`
+		SELECT path, name, source, source_id, star, import_time, width, height, file_size 
+		FROM asset_meta WHERE path = ?`, path)
+
+	var sourceID sql.NullString
+	var fileSize sql.NullInt64
+	err := row.Scan(&meta.Path, &meta.Name, &meta.Source, &sourceID,
+		&meta.Star, &meta.ImportTime, &meta.Width, &meta.Height, &fileSize)
+	if err != nil {
+		return AssetMeta{}, false
+	}
+	if sourceID.Valid {
+		meta.SourceID = sourceID.String
+	}
+	if fileSize.Valid {
+		meta.FileSize = fileSize.Int64
+	}
+
+	// 2. 查询标签
+	tagRows, err := indexDB.Query("SELECT tag FROM asset_tags WHERE path = ?", path)
+	if err == nil {
+		defer tagRows.Close()
+		for tagRows.Next() {
+			var tag string
+			if tagRows.Scan(&tag) == nil {
+				meta.Tags = append(meta.Tags, tag)
+			}
+		}
+	}
+
+	// 3. 查询调色板
+	paletteRows, err := indexDB.Query("SELECT r, g, b, h, s, l, ratio FROM asset_palettes WHERE path = ?", path)
+	if err == nil {
+		defer paletteRows.Close()
+		for paletteRows.Next() {
+			var p Palette
+			if paletteRows.Scan(&p.Color[0], &p.Color[1], &p.Color[2], &p.H, &p.S, &p.L, &p.Ratio) == nil {
+				meta.Palettes = append(meta.Palettes, p)
+			}
+		}
+	}
+
+	return meta, true
+}
+
+// GetIndexAssets 从索引表批量读取素材元数据
+func GetIndexAssets(paths []string) []AssetMeta {
+	if len(paths) == 0 {
+		return nil
+	}
+
+	var results []AssetMeta
+	for _, path := range paths {
+		if meta, ok := GetIndexAsset(path); ok {
+			results = append(results, meta)
+		}
+	}
+	return results
 }

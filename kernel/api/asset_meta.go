@@ -237,7 +237,7 @@ func getAssetMeta(c *gin.Context) {
 	}
 
 	service := assetmeta.NewInstance()
-	meta, ok := service.GetAsset(req.Path)
+	meta, ok := service.GetAssetFromIndex(req.Path)
 	if !ok {
 		c.JSON(http.StatusOK, gin.H{
 			"code": -1,
