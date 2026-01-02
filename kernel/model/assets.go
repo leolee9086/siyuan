@@ -42,6 +42,7 @@ import (
 	"github.com/siyuan-note/filelock"
 	"github.com/siyuan-note/httpclient"
 	"github.com/siyuan-note/logging"
+	"github.com/siyuan-note/siyuan/kernel/assetmeta"
 	"github.com/siyuan-note/siyuan/kernel/av"
 	"github.com/siyuan-note/siyuan/kernel/cache"
 	"github.com/siyuan-note/siyuan/kernel/filesys"
@@ -67,11 +68,17 @@ func GetAssetPathByHash(hash string) string {
 func HandleAssetsRemoveEvent(assetAbsPath string) {
 	removeIndexAssetContent(assetAbsPath)
 	removeAssetThumbnail(assetAbsPath)
+	if assetmeta.Instance != nil {
+		assetmeta.Instance.HandleFileRemove(assetAbsPath)
+	}
 }
 
 func HandleAssetsChangeEvent(assetAbsPath string) {
 	indexAssetContent(assetAbsPath)
 	removeAssetThumbnail(assetAbsPath)
+	if assetmeta.Instance != nil {
+		assetmeta.Instance.HandleFileChange(assetAbsPath)
+	}
 }
 
 func removeAssetThumbnail(assetAbsPath string) {

@@ -128,26 +128,163 @@ type ImportAdapter interface {
 
 ## 实现计划
 
-### Phase 1：基础设施
-- [ ] 创建 `assetmeta` 包
-- [ ] 实现 JSON 数据源读写
-- [ ] 实现 SQLite 索引管理
-- [ ] 索引重建逻辑
+### Phase 1：基础设施 ✅ 已完成
 
-### Phase 2：API 层
-- [ ] 列表/查询 API
-- [ ] 设置/批量设置 API
-- [ ] 标签管理 API
+- [x] 创建 `assetmeta` 包 (`kernel/assetmeta/`)
+- [x] 实现 JSON 数据源读写 (`model.go`: `LoadAsset`, `SaveAsset`, `RemoveAsset`)
+- [x] 实现 SQLite 索引管理 (`index.go`: 完整的表结构和 CRUD)
+- [x] 索引重建逻辑 (`RebuildIndex`, `BatchUpdateIndexAssets`)
+- [x] 路径安全验证 (`isPathInsideDir`, `ErrPathTraversal`)
 
-### Phase 3：Eagle 导入
-- [ ] Eagle 格式解析
-- [ ] 文件复制逻辑
-- [ ] 元数据迁移
+### Phase 2：API 层 🔄 进行中
 
-### Phase 4：前端集成
+参照 `toread/forEagle/useEagleItem.js` 的接口设计，实现以下 API:
+
+#### 2.1 查询 API
+- [ ] `POST /api/s-forge/asset-meta/list` - 分页列表查询
+  ```go
+  type ListRequest struct {
+      Limit   int      `json:"limit"`   // 默认 200
+      Offset  int      `json:"offset"`  // 分页偏移
+      OrderBy string   `json:"orderBy"` // CREATEDATE, FILESIZE, NAME, RESOLUTION
+      Keyword string   `json:"keyword"` // 关键词搜索
+      Ext     string   `json:"ext"`     // 文件类型过滤
+      Tags    []string `json:"tags"`    // 标签过滤
+      Star    int      `json:"star"`    // 星级过滤
+  }
+  ```
+- [ ] `POST /api/s-forge/asset-meta/get` - 获取单个素材
+- [ ] `POST /api/s-forge/asset-meta/search` - 高级搜索（支持颜色）
+
+#### 2.2 修改 API  
+- [ ] `POST /api/s-forge/asset-meta/set` - 设置/更新单个素材
+  ```go
+  type SetRequest struct {
+      Path       string   `json:"path"`       // 必需
+      Name       string   `json:"name"`       // 可选
+      Tags       []string `json:"tags"`       // 可选
+      Star       int      `json:"star"`       // 可选 0-5
+      Annotation string   `json:"annotation"` // 可选
+  }
+  ```
+- [ ] `POST /api/s-forge/asset-meta/batch-set` - 批量设置
+
+#### 2.3 标签 API
+- [ ] `GET /api/s-forge/asset-meta/tags` - 获取所有标签（合并思源标签）
+- [ ] `POST /api/s-forge/asset-meta/tags/set` - 设置标签颜色
+
+#### 2.4 索引管理
+- [ ] `POST /api/s-forge/asset-meta/rebuild-index` - 强制重建索引
+- [ ] `GET /api/s-forge/asset-meta/status` - 获取索引状态
+
+### Phase 3：Eagle 导入 📋 详细规划
+
+参照 `toread/forEagle/` 的参考实现，支持两种导入模式：
+
+#### 3.1 Eagle 文件系统结构 (fromEagleFs.js)
+
+```
+MyLibrary.library/              # 库根目录 (.library 结尾)
+├── metadata.json               # 库元数据 (folders, smartFolders, tagsGroups)
+├── tags.json                   # 标签定义 (可选)
+└── images/                     # 素材存储目录
+    └── <ID>.info/              # 单个素材目录
+        ├── metadata.json       # 素材元数据
+        └── <ID>.<ext>          # 原始文件
+```
+
+#### 3.2 导入适配器接口
+
+```go
+// eagle_import.go
+type EagleImporter struct{}
+
+// DetectLibrary 检测是否为有效的 Eagle 库
+func (e *EagleImporter) DetectLibrary(path string) (bool, error)
+
+// ImportLibrary 导入整个 Eagle 库
+func (e *EagleImporter) ImportLibrary(libraryPath string, opts ImportOptions) (*ImportResult, error)
+
+type ImportOptions struct {
+    TargetDir    string   // 目标 assets 子目录，默认 "eagle-import"
+    CopyFiles    bool     // 是否复制文件，false 表示只导入元数据（外部库模式）
+    IncludeTags  []string // 只导入包含这些标签的素材，空表示全部
+    ExcludeTags  []string // 排除包含这些标签的素材
+    SyncMode     bool     // 同步模式：保持与 Eagle 库的关联
+}
+
+type ImportResult struct {
+    TotalCount   int
+    SuccessCount int
+    FailedCount  int
+    FailedItems  []FailedItem
+}
+```
+
+#### 3.3 素材元数据映射 (useEagleItem.js)
+
+| Eagle 字段 | 我们的字段 | 说明 |
+|-----------|-----------|------|
+| id | sourceId | Eagle 原始 ID |
+| name | name | 显示名称 |
+| tags | tags | 标签列表 |
+| star | star | 星级 0-5 |
+| annotation | annotation | 注释 |
+| width/height | width/height | 图片尺寸 |
+| palettes | palettes | 调色板 (RGB + ratio) |
+| folders | (映射为标签) | Eagle 文件夹转为标签前缀 |
+| url | (存入 annotation) | 来源 URL |
+| bTime | importTime | 创建时间 |
+
+#### 3.4 API 端点
+
+- [ ] `POST /api/s-forge/asset-meta/import/eagle/detect` - 检测 Eagle 库
+  ```go
+  // Request
+  type DetectRequest struct {
+      Path string `json:"path"` // .library 目录路径
+  }
+  // Response
+  type DetectResponse struct {
+      Valid       bool   `json:"valid"`
+      Name        string `json:"name"`        // 库名称
+      ItemCount   int    `json:"itemCount"`   // 素材数量
+      FolderCount int    `json:"folderCount"` // 文件夹数量
+      TagCount    int    `json:"tagCount"`    // 标签数量
+  }
+  ```
+
+- [ ] `POST /api/s-forge/asset-meta/import/eagle/start` - 开始导入
+- [ ] `GET /api/s-forge/asset-meta/import/status` - 导入进度查询
+
+#### 3.5 实现步骤
+
+1. **库验证** (`detect`)
+   - 检查路径是否以 `.library` 结尾
+   - 读取 `metadata.json` 验证格式
+   - 统计 `images/` 下的 `.info` 目录数量
+
+2. **标签导入** (`importTags`)
+   - 读取 `tags.json` 和 `metadata.json` 中的 `tagsGroups`
+   - 合并到我们的 `tags.json`
+
+3. **文件夹映射** (`mapFolders`)
+   - 解析 `metadata.json` 中的 `folders` 树结构
+   - 转换为标签前缀（如 `eagle/设计/图标`）
+
+4. **素材导入** (`importItems`)
+   - 遍历 `images/*.info/` 目录
+   - 读取每个 `metadata.json`
+   - 复制原始文件到 `assets/eagle-import/`
+   - 创建我们的元数据 JSON
+   - 批量更新索引
+
+### Phase 4：前端集成 📋 待开始
+
 - [ ] 集成现有视图组件
 - [ ] 标签筛选 UI
 - [ ] 元数据编辑面板
+- [ ] Eagle 导入向导 UI
 
 ---
 
@@ -325,21 +462,53 @@ func ImportEagleLibrary(libraryPath string, opts ImportOptions) error {
 | 类型 | 路径 | 备注 |
 |------|------|------|
 | 包目录 | `kernel/assetmeta/` | 素材元数据服务 |
-| 数据源 | `data/storage/s-forge-asset-meta/meta.json` | 同步 |
-| 索引 | `temp/s-forge-asset-meta.db` | 不同步 |
+| 数据源 | `data/storage/s-forge-asset-meta/assets/*.json` | 同步，每素材一个 JSON |
+| 标签 | `data/storage/s-forge-asset-meta/tags.json` | 同步 |
+| 索引 | `temp/s-forge-asset-meta.db` | 不同步，可重建 |
 
-### 7. 色彩分析 (MMCQ)
+**已实现源文件**:
+| 文件 | 行数 | 说明 |
+|------|------|------|
+| `model.go` | 266 | 数据模型 + 文件读写 + 路径安全验证 |
+| `service.go` | 437 | 服务层 + 文件变更处理 + 调色板提取集成 |
+| `index.go` | 392 | SQLite 索引管理 |
+| `mmcq.go` | 482 | MMCQ 色彩量化算法 |
 
-自行实现 Go 版本的 MMCQ (Modified Median Cut Quantization) 算法，用于提取素材主色调。
+### 7. 色彩分析 (MMCQ) ✅ 已完成
 
-**核心步骤**：
-1. **采样**：读取图像像素，进行下采样（如每隔 5 个像素取一个），减少计算量。
-2. **量化**：
-   - 将 RGB 颜色空间视为立方体。
-   - 初始为一个包含所有采样像素的 VBox。
-   - 迭代切割：选择 RGB 范围最大的轴进行切割，将 VBox 一分为二，直到达到目标颜色数量（如 8 色）。
-3. **提取**：计算每个 VBox 的平均颜色作为调色板颜色。
-4. **存储**：将提取的调色板 (Color + Ratio) 存入 `metadata.json`。
+Go 版本的 MMCQ (Modified Median Cut Quantization) 算法已实现。
+
+**实现文件**: `kernel/assetmeta/mmcq.go` (482 行)
+
+**核心实现**：
+1. **降采样**：图像自动缩放到 64×64 最大边长（最近邻采样）
+2. **量化**：5 位量化 (32³ = 32768 个直方图桶)
+3. **两阶段切割**：
+   - 阶段 1：按像素数量切割（目标 75% 颜色数）
+   - 阶段 2：按体积×像素数切割（剩余 25%）
+4. **颜色空间转换**：RGB → HSL（用于颜色相似度搜索）
+
+**API 接口**：
+```go
+// 提取并存储调色板
+palettes, err := service.ExtractAndStorePalette("assets/xxx.png", 8)
+
+// 仅提取不存储
+palettes, err := service.ExtractPaletteOnly("assets/xxx.png", 8)
+
+// 底层函数
+palettes, err := ExtractPaletteFromImage(absPath, colorCount)
+palettes := ExtractPaletteFromRGBA(rgbaImage, colorCount)
+```
+
+**数据结构**：
+```go
+type Palette struct {
+    Color [3]int  `json:"color"` // RGB
+    Ratio float64 `json:"ratio"` // 占比 0-1
+    H, S, L int   // HSL (用于颜色搜索索引)
+}
+```
 
 **用途**：
 - 为没有调色板的导入素材补全信息
@@ -363,6 +532,15 @@ func ImportEagleLibrary(libraryPath string, opts ImportOptions) error {
     - **搜索**：搜索某个 Tag 时，API 并行查询思源和素材库，聚合返回结果。
     - **补全**：打标签时，提供所有已知标签（笔记+素材）的自动补全。
     - **无隔离**：不再强制使用命名空间前缀（虽仍允许用户自行规划），鼓励标签复用。
+
+### 10. 元数据绑定 (Block Binding)
+
+支持将素材的描述/元数据直接绑定到思源的某个区块（Block）。
+- **字段**：`AssetMeta` 增加 `BoundBlockID` 字段。
+- **机制**：
+    - 如果设置了 `BoundBlockID`，则素材的 `Annotation` (描述) 视为该 Block 的内容。
+    - 在素材管理界面修改描述时，同步更新对应的 Block。
+    - 允许复用已有的文档块作为素材说明，无需重复编写。
 
 
 ### 8. 颜色相似查询实现
