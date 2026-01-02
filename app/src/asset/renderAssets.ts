@@ -45,18 +45,18 @@ export const renderAssetsPreview = (pathString: string) => {
     }
     const type = pathPosix().extname(pathString).toLowerCase();
 
-    // 图片：使用缩略图 API + 调色板色块
+    // 图片：使用缩略图 API + 元信息面板
     if (Constants.SIYUAN_ASSETS_IMAGE.includes(type)) {
         const thumbnailUrl = `/api/s-forge/thumbnail?path=${encodeURIComponent(pathString)}&size=360`;
-        // 生成唯一 ID 用于后续填充调色板
-        const paletteId = `palette-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        // 生成唯一 ID 用于后续填充元信息
+        const metaId = `asset-meta-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-        // 异步加载调色板
-        loadPalettePreview(pathString, paletteId);
+        // 异步加载元信息
+        loadAssetMetaPreview(pathString, metaId);
 
-        return `<div style="display: flex; flex-direction: column; align-items: center; width: 100%; height: 100%;">
-            <img style="max-height: calc(100% - 32px); max-width: 100%; object-fit: contain;" src="${thumbnailUrl}" data-original="${pathString}">
-            <div id="${paletteId}" class="fn__flex" style="margin-top: 8px; gap: 4px; min-height: 24px;"></div>
+        return `<div style="display: flex; flex-direction: column; align-items: center; width: 100%; height: 100%; overflow: auto;">
+            <img style="max-height: 200px; max-width: 100%; object-fit: contain;" src="${thumbnailUrl}" data-original="${pathString}">
+            <div id="${metaId}" style="width: 100%; margin-top: 8px; font-size: 12px;"></div>
         </div>`;
     }
 
@@ -118,22 +118,46 @@ const handlePaletteClick = (e: Event): void => {
     }
 };
 
+/** 格式化文件大小 */
+const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) {
+        return `${bytes} B`;
+    }
+    if (bytes < 1024 * 1024) {
+        return `${(bytes / 1024).toFixed(1)} KB`;
+    }
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+/** 渲染星级 */
+const renderStars = (star: number): string => {
+    const filled = "★".repeat(star);
+    const empty = "☆".repeat(5 - star);
+    return `<span style="color: var(--b3-theme-primary);">${filled}</span><span style="opacity: 0.3;">${empty}</span>`;
+};
+
+/** 渲染标签 */
+const renderTags = (tags: string[]): string => {
+    return tags.map(t => `<span style="background: var(--b3-theme-primary-light); color: var(--b3-theme-primary); padding: 1px 6px; border-radius: 3px; margin-right: 4px; margin-bottom: 4px;">${escapeHtml(t)}</span>`).join("");
+};
+
 /**
- * 异步加载调色板预览
+ * 异步加载素材元信息预览
  * 
  * @param path - 素材路径
  * @param elementId - 目标容器元素 ID
  */
-const loadPalettePreview = async (path: string, elementId: string) => {
+const loadAssetMetaPreview = async (path: string, elementId: string) => {
     try {
-        // 先尝试获取已有的元数据
+        // 获取元数据
         const getResponse = await fetch("/api/s-forge/asset-meta/get", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ path }),
         });
         const getResult = await getResponse.json();
-        let palettes = getResult.data?.palettes;
+        const meta = getResult.data;
+        let palettes = meta?.palettes;
 
         // 如果没有调色板，则提取
         if (!palettes || palettes.length === 0) {
@@ -146,13 +170,46 @@ const loadPalettePreview = async (path: string, elementId: string) => {
             palettes = extractResult.code === 0 ? extractResult.data?.palettes : null;
         }
 
-        // 渲染色块
         const element = document.getElementById(elementId);
-        if (!element || !palettes || palettes.length === 0) {
+        if (!element) {
             return;
         }
 
-        element.innerHTML = palettes.map(renderPaletteBlock).join("");
+        // 构建元信息 HTML
+        const infoRows: string[] = [];
+
+        // 调色板
+        const paletteHtml = (palettes && palettes.length > 0)
+            ? `<div class="fn__flex" style="gap: 4px; margin-bottom: 8px;">${palettes.map(renderPaletteBlock).join("")}</div>`
+            : "<div style=\"color: var(--b3-theme-on-surface-light); opacity: 0.5; margin-bottom: 8px;\">调色板: 提取中...</div>";
+        infoRows.push(paletteHtml);
+
+        // 尺寸
+        const sizeText = (meta?.width && meta?.height) ? `${meta.width} × ${meta.height}` : "—";
+        infoRows.push(`<div style="color: var(--b3-theme-on-surface-light);">尺寸: ${sizeText}</div>`);
+
+        // 文件大小
+        const fileSizeText = meta?.fileSize ? formatFileSize(meta.fileSize) : "—";
+        infoRows.push(`<div style="color: var(--b3-theme-on-surface-light);">大小: ${fileSizeText}</div>`);
+
+        // 星级
+        infoRows.push(`<div>评分: ${renderStars(meta?.star ?? 0)}</div>`);
+
+        // 标签
+        const tagsHtml = (meta?.tags && meta.tags.length > 0)
+            ? renderTags(meta.tags)
+            : "<span style=\"opacity: 0.5;\">无标签</span>";
+        infoRows.push(`<div class="fn__flex" style="flex-wrap: wrap; margin-top: 4px;">${tagsHtml}</div>`);
+
+        // 注释
+        const annotationText = meta?.annotation ? escapeHtml(meta.annotation) : "—";
+        infoRows.push(`<div style="margin-top: 4px; color: var(--b3-theme-on-surface-light);">备注: <span style="font-style: italic;">${annotationText}</span></div>`);
+
+        // 来源
+        const sourceText = meta?.source ? escapeHtml(meta.source) : "本地";
+        infoRows.push(`<div style="margin-top: 4px; color: var(--b3-theme-on-surface-light); opacity: 0.7;">来源: ${sourceText}</div>`);
+
+        element.innerHTML = infoRows.join("");
         element.addEventListener("click", handlePaletteClick);
     } catch {
         // 静默失败，不显示错误
