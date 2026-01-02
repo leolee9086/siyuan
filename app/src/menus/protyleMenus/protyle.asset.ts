@@ -1,7 +1,8 @@
 import { focusToolbarRange } from "../../protyle/util/selection";
 import { renderAssetsPreview } from "../../asset/renderAssets";
-import { Constants } from "../../constants";
+import { openAssetDialog } from "../../asset/assetDialog";
 import { Menu } from "../../plugin/Menu";
+import { MenuItem } from "../Menu.Item";
 import { hintRenderAssets } from "../../protyle/hint/extend";
 import { hasClosestByClassName } from "../../protyle/util/hasClosest";
 import { isMobile } from "../../util/functions";
@@ -11,8 +12,6 @@ import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environme
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";
 import { getWindowOuterWidth } from "../../util/siyuanEnvironments/getWindowGeometry.environment";
 import { assetItem } from "./protyle.asset.types";
-import { Dialog } from "../../dialog";
-import { 生成素材过滤面板HTML, 解析过滤面板值, 初始化过滤面板事件 } from "../../search/assetFilterPanel";
 
 /** 生成资源列表 HTML */
 const 生成资源列表HTML = (data: assetItem[]) => {
@@ -290,53 +289,100 @@ const 处理列表点击 = (
 };
 
 /**
- * 打开过滤对话框
- * @description 显示 S-Forge 素材高级过滤面板
+ * 显示类型过滤下拉菜单
+ * @description 在按钮下方显示文件类型过滤选项
  */
-const 打开过滤对话框 = (
+const 显示类型过滤菜单 = (
+    btn: Element,
     menuElement: HTMLElement,
     inputElement: HTMLInputElement,
     position: IPosition,
     extsRef: { current: string[] }
 ) => {
-    const filterDialog = new Dialog({
-        title: "素材过滤",
-        content: `<div class="b3-dialog__content" style="max-height: 60vh; overflow-y: auto;">
-            ${生成素材过滤面板HTML()}
-        </div>
-        <div class="b3-dialog__action">
-            <button class="b3-button b3-button--cancel">${siyuanI18n.cancel}</button>
-            <div class="fn__space"></div>
-            <button class="b3-button b3-button--text">${siyuanI18n.confirm}</button>
-        </div>`,
-        width: "600px",
-        height: "70vh",
-    });
+    const typeMenu = new Menu("asset-filter-type");
+    const types = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".ico"];
 
-    初始化过滤面板事件(filterDialog.element);
+    for (const ext of types) {
+        const isSelected = extsRef.current.includes(ext);
+        typeMenu.addItem({
+            icon: isSelected ? "iconCheck" : "",
+            label: ext,
+            click: () => {
+                if (isSelected) {
+                    extsRef.current = extsRef.current.filter(e => e !== ext);
+                } else {
+                    extsRef.current = [...extsRef.current, ext];
+                }
+                renderAssetList(menuElement, inputElement.value, position, extsRef.current);
+            }
+        });
+    }
 
-    const btns = filterDialog.element.querySelectorAll(".b3-button");
-    const cancelBtn = btns[0];
-    const confirmBtn = btns[1];
-
-    // @内联回调
-    cancelBtn?.addEventListener("click", () => {
-        filterDialog.destroy();
-    });
-
-    // @内联回调
-    confirmBtn?.addEventListener("click", () => {
-        const filters = 解析过滤面板值(filterDialog.element);
-        // 更新扩展名过滤
-        if (filters?.exts && filters.exts.length > 0) {
-            extsRef.current = filters.exts;
-        } else {
+    typeMenu.addSeparator();
+    typeMenu.addItem({
+        label: "清除过滤",
+        click: () => {
             extsRef.current = [];
+            renderAssetList(menuElement, inputElement.value, position, extsRef.current);
         }
-        filterDialog.destroy();
-        // 重新搜索
-        renderAssetList(menuElement, inputElement.value, position, extsRef.current);
     });
+
+    const btnRect = btn.getBoundingClientRect();
+    typeMenu.open({ x: btnRect.left, y: btnRect.bottom });
+};
+
+/**
+ * 显示尺寸过滤下拉菜单
+ */
+const 显示尺寸过滤菜单 = (btn: Element) => {
+    const sizeMenu = new Menu("asset-filter-size");
+    const sizes = ["小 (< 500px)", "中 (500-2000px)", "大 (> 2000px)", "全部"];
+
+    for (const size of sizes) {
+        sizeMenu.addItem({
+            label: size,
+            click: () => {
+                // TODO: 实现尺寸过滤
+            }
+        });
+    }
+
+    const btnRect = btn.getBoundingClientRect();
+    sizeMenu.open({ x: btnRect.left, y: btnRect.bottom });
+};
+
+/**
+ * 显示评分过滤下拉菜单
+ */
+const 显示评分过滤菜单 = (btn: Element) => {
+    const ratingMenu = new Menu("asset-filter-rating");
+    const ratings = ["★★★★★", "★★★★☆ 以上", "★★★☆☆ 以上", "★★☆☆☆ 以上", "★☆☆☆☆ 以上", "全部"];
+
+    for (const rating of ratings) {
+        ratingMenu.addItem({
+            label: rating,
+            click: () => {
+                // TODO: 实现评分过滤
+            }
+        });
+    }
+
+    const btnRect = btn.getBoundingClientRect();
+    ratingMenu.open({ x: btnRect.left, y: btnRect.bottom });
+};
+
+/**
+ * 显示颜色过滤下拉菜单
+ */
+const 显示颜色过滤菜单 = (btn: Element) => {
+    const colorMenu = new Menu("asset-filter-color");
+    colorMenu.addItem({
+        label: "颜色过滤功能开发中...",
+        click: () => { }
+    });
+
+    const btnRect = btn.getBoundingClientRect();
+    colorMenu.open({ x: btnRect.left, y: btnRect.bottom });
 };
 
 /** 判断预览区域是否应该隐藏 */
@@ -371,14 +417,28 @@ const 绑定菜单元素事件 = (
     inputElement.addEventListener("input", 处理输入事件(element, inputElement, position, extsRef.current));
     inputElement.addEventListener("compositionend", 处理组合输入结束(element, inputElement, position, extsRef.current));
 
-    // 直接为过滤按钮绑定事件
-    const filterBtns = element.querySelectorAll("[data-type^='filter-']");
-    for (const btn of filterBtns) {
-        btn.addEventListener("click", (e) => {
-            e.stopPropagation();
-            打开过滤对话框(element, inputElement, position, extsRef);
-        });
-    }
+    // 为过滤按钮绑定下拉菜单事件
+    const typeBtn = element.querySelector("[data-type='filter-type']");
+    const sizeBtn = element.querySelector("[data-type='filter-size']");
+    const ratingBtn = element.querySelector("[data-type='filter-rating']");
+    const colorBtn = element.querySelector("[data-type='filter-color']");
+
+    typeBtn?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        显示类型过滤菜单(typeBtn, element, inputElement, position, extsRef);
+    });
+    sizeBtn?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        显示尺寸过滤菜单(sizeBtn);
+    });
+    ratingBtn?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        显示评分过滤菜单(ratingBtn);
+    });
+    colorBtn?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        显示颜色过滤菜单(colorBtn);
+    });
 
     // 上一个/下一个按钮
     const prevBtn = element.querySelector("[data-type='previous']");
@@ -428,17 +488,35 @@ const 生成菜单HTML模板 = () => {
 </div>`;
 };
 
-export const assetMenu = (protyle: IProtyle, position: IPosition, callback?: (url: string, name: string) => void, exts?: string[]) => {
-    const menu = new Menu(Constants.MENU_BACKGROUND_ASSET);
-    if (menu.isOpen) {
-        return;
-    }
-    menu.addItem({
+/**
+ * 资源选择菜单
+ * @description 移动端使用原有 Menu 实现，桌面端使用全局单例 Dialog
+ * @param protyle - 编辑器实例（移动端需要）
+ * @param position - 位置信息（移动端需要）
+ * @param callback - 可选的回调函数，选中资源时调用
+ * @param exts - 文件扩展名过滤列表
+ */
+export const assetMenu = (
+    protyle: IProtyle,
+    position: IPosition,
+    callback?: (url: string, name: string) => void,
+    exts?: string[]
+) => {
+    /// #if MOBILE
+    // 移动端保持原有 Menu 实现
+    const menu = getSiyuanGlobalMenus().menu;
+    menu.remove();
+    menu.append(new MenuItem({
         iconHTML: "",
         type: "readonly",
         label: 生成菜单HTML模板(),
         bind(element) {
             绑定菜单元素事件(element, position, protyle, callback, exts);
         }
-    });
+    }).element);
+    menu.popup(position);
+    /// #else
+    // 桌面端使用全局单例 Dialog
+    openAssetDialog(callback);
+    /// #endif
 };
