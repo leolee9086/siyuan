@@ -95,3 +95,53 @@ export interface 设置素材元数据参数 {
 
 /** SetAssetMetaParams 的英文别名 */
 export type SetAssetMetaParams = 设置素材元数据参数;
+
+/**
+ * 搜索素材元数据请求参数
+ */
+export interface 搜索素材元数据参数 {
+    /** 搜索关键词 */
+    keyword?: string;
+    /** 每页数量，默认 200 */
+    limit?: number;
+    /** 偏移量，默认 0 */
+    offset?: number;
+    /** 最小宽度 */
+    minWidth?: number;
+    /** 最大宽度 */
+    maxWidth?: number;
+    /** 最小高度 */
+    minHeight?: number;
+    /** 最大高度 */
+    maxHeight?: number;
+    /** 最小文件大小 (字节) */
+    minSize?: number;
+    /** 最大文件大小 (字节) */
+    maxSize?: number;
+    /** 最小星级 */
+    minStar?: number;
+    /** 最大星级 */
+    maxStar?: number;
+    /** 文件扩展名列表，如 [".png", ".jpg"] */
+    exts?: string[];
+    /** 排序字段: "name", "size", "star", "updated", "created" */
+    orderBy?: string;
+}
+
+/** SearchAssetMetaParams 的英文别名 */
+export type SearchAssetMetaParams = 搜索素材元数据参数;
+
+/**
+ * 搜索素材元数据响应
+ */
+export interface 搜索素材元数据响应 {
+    /** 素材列表 */
+    assets: 素材元数据[];
+    /** 总记录数 */
+    totalCount: number;
+    /** 总页数 */
+    pageCount: number;
+}
+
+/** SearchAssetMetaResponse 的英文别名 */
+export type SearchAssetMetaResponse = 搜索素材元数据响应;

@@ -12,6 +12,8 @@ import type {
     素材元数据,
     批量提取单项结果,
     设置素材元数据参数,
+    搜索素材元数据参数,
+    搜索素材元数据响应,
 } from "./sforgeAssetMeta.types";
 
 // 导出类型
@@ -24,6 +26,10 @@ export type {
     BatchExtractResult,
     设置素材元数据参数,
     SetAssetMetaParams,
+    搜索素材元数据参数,
+    SearchAssetMetaParams,
+    搜索素材元数据响应,
+    SearchAssetMetaResponse,
 } from "./sforgeAssetMeta.types";
 
 // ============================================================
@@ -161,6 +167,39 @@ export async function 设置素材元数据(params: 设置素材元数据参数)
 
 /** setAssetMeta 的英文别名 */
 export const setAssetMeta = 设置素材元数据;
+
+/**
+ * 搜索素材元数据 (高级搜索)
+ *
+ * 支持多条件组合过滤搜索，包括尺寸、大小、星级、颜色等
+ *
+ * @param params 搜索参数
+ * @returns 搜索结果
+ *
+ * @example
+ * ```ts
+ * const result = await 搜索素材元数据({
+ *     keyword: "design",
+ *     minWidth: 1000,
+ *     minStar: 4,
+ *     exts: [".png", ".jpg"]
+ * });
+ * console.log(result.assets);
+ * console.log(result.totalCount);
+ * ```
+ */
+export async function 搜索素材元数据(params: 搜索素材元数据参数): Promise<搜索素材元数据响应> {
+    const result = await fetchSyncPost("/api/s-forge/asset-meta/search", { ...params });
+
+    if (result.code !== 0) {
+        throw new Error(result.msg || "搜索素材元数据失败");
+    }
+
+    return result.data;
+}
+
+/** searchAssetsAdvanced 的英文别名 */
+export const searchAssetsAdvanced = 搜索素材元数据;
 
 // ============================================================
 // 工具函数

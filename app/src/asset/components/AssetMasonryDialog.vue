@@ -42,48 +42,17 @@
             </div>
         </div>
 
-        <!-- 右侧：预览面板（仅桌面端） -->
-        <div v-if="!isMobileDevice" class="asset-masonry-dialog__preview">
-            <div class="asset-masonry-dialog__preview-image">
-                <img v-if="selectedAsset && isImageAsset(selectedAsset)" :src="getAssetUrl(selectedAsset.path)"
-                    :alt="selectedAsset.hName" />
-                <div v-else-if="selectedAsset" class="asset-masonry-dialog__preview-icon">
-                    <svg style="width: 64px; height: 64px;">
-                        <use xlink:href="#iconFile"></use>
-                    </svg>
-                </div>
-                <div v-else class="asset-masonry-dialog__preview-placeholder">
-                    选择一个素材预览
-                </div>
-            </div>
-            <div v-if="selectedAsset" class="asset-masonry-dialog__preview-info">
-                <div class="asset-masonry-dialog__preview-name">{{ selectedAsset.hName }}</div>
-                <div v-if="assetMeta" class="asset-masonry-dialog__preview-meta">
-                    <div v-if="assetMeta.width && assetMeta.height">
-                        尺寸: {{ assetMeta.width }} × {{ assetMeta.height }}
-                    </div>
-                    <div v-if="assetMeta.fileSize">
-                        大小: {{ formatFileSize(assetMeta.fileSize) }}
-                    </div>
-                    <div v-if="assetMeta.star > 0">
-                        评分: {{ '★'.repeat(assetMeta.star) }}
-                    </div>
-                    <div v-if="assetMeta.palettes?.length" class="asset-masonry-dialog__palette">
-                        <div v-for="(palette, idx) in assetMeta.palettes" :key="idx"
-                            class="asset-masonry-dialog__palette-item"
-                            :style="{ background: `rgb(${palette.color[0]}, ${palette.color[1]}, ${palette.color[2]})` }">
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
+
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import VirtualMasonryGrid from '../../components/masonry/components/VirtualMasonryGrid.vue';
 import AssetCard from './AssetCard.vue';
+import { getSiyuanGlobalMenus } from '../../util/siyuanEnvironments/getMenu.environment';
+import { searchAssetsAdvanced, type SearchAssetMetaParams } from '../../data/kernelAPI/sforgeAssetMeta';
+import { pathPosix } from '../../util/pathName';
 
 interface AssetItem {
     hName: string;
@@ -112,9 +81,11 @@ const emit = defineEmits<{
 const searchKey = ref('');
 const assets = ref<AssetItem[]>([]);
 const selectedAsset = ref<AssetItem | null>(null);
-const assetMeta = ref<AssetMeta | null>(null);
 const isLoading = ref(true);
-const currentExts = ref<string[]>([]);
+const currentFilters = ref<SearchAssetMetaParams>({
+    limit: 200,
+    offset: 0,
+});
 const searchInputRef = ref<HTMLInputElement | null>(null);
 const gridContainerRef = ref<HTMLElement | null>(null);
 
@@ -143,37 +114,22 @@ const estimateItemHeight = (item: AssetItem, colWidth: number) => {
     return 120; // 非图片固定高度
 };
 
-/** 判断是否为图片类型 */
-const isImageAsset = (item: AssetItem) => {
-    const ext = item.path.split('.').pop()?.toLowerCase() || '';
-    return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(ext);
-};
-
-/** 获取素材 URL */
-const getAssetUrl = (path: string) => {
-    return path.startsWith('assets/') ? `/${path}` : path;
-};
-
-/** 格式化文件大小 */
-const formatFileSize = (bytes: number) => {
-    const kb = bytes / 1024;
-    return kb > 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${kb.toFixed(1)} KB`;
-};
-
+/** 搜索素材 */
 /** 搜索素材 */
 const searchAssets = async () => {
     isLoading.value = true;
     try {
-        const response = await fetch('/api/search/searchAsset', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                k: searchKey.value,
-                exts: currentExts.value
-            })
-        });
-        const result = await response.json();
-        assets.value = result.data || [];
+        const params: SearchAssetMetaParams = {
+            ...currentFilters.value,
+            keyword: searchKey.value,
+        };
+
+        const result = await searchAssetsAdvanced(params);
+
+        assets.value = result.assets.map(meta => ({
+            path: meta.path,
+            hName: meta.name || pathPosix().basename(meta.path)
+        }));
     } catch (error) {
         console.error('搜索素材失败:', error);
         assets.value = [];
@@ -197,7 +153,6 @@ const handleSearch = () => {
 /** 选择素材 */
 const handleSelect = (item: AssetItem) => {
     selectedAsset.value = item;
-    loadAssetMeta(item.path);
 
     // 双击或单击后插入
     if (props.onSelect) {
@@ -207,40 +162,77 @@ const handleSelect = (item: AssetItem) => {
     }
 };
 
-/** 加载素材元数据 */
-const loadAssetMeta = async (path: string) => {
-    try {
-        const response = await fetch('/api/s-forge/asset-meta/get', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ path })
-        });
-        const result = await response.json();
-        if (result.code === 0 && result.data) {
-            assetMeta.value = result.data;
-        } else {
-            assetMeta.value = null;
-        }
-    } catch (error) {
-        console.error('加载素材元数据失败:', error);
-        assetMeta.value = null;
-    }
-};
-
 /** 显示类型过滤菜单 */
 const showTypeFilter = (e: MouseEvent) => {
-    // TODO: 使用 Menu 组件显示过滤选项
-    console.log('显示类型过滤菜单');
+    e.stopPropagation();
+    e.preventDefault();
+    const menu = getSiyuanGlobalMenus().menu;
+    menu.remove();
+    const updateType = (label: string, exts?: string[]) => {
+        currentFilters.value.exts = exts;
+        handleSearch();
+    };
+
+    menu.addItem({
+        label: i18n.value.all || '全部',
+        click: () => updateType(i18n.value.all || '全部')
+    });
+    menu.addItem({
+        label: i18n.value.image || '图片',
+        click: () => updateType(i18n.value.image || '图片', ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp', '.ico'])
+    });
+    menu.addItem({
+        label: '音视频',
+        click: () => updateType('音视频', ['.mp3', '.wav', '.ogg', '.mp4', '.webm', '.mov'])
+    });
+    menu.addItem({
+        label: i18n.value.doc || '文档',
+        click: () => updateType(i18n.value.doc || '文档', ['.pdf', '.doc', '.docx', '.ppt', '.pptx', '.xls', '.xlsx'])
+    });
+
+    const rect = (e.target as HTMLElement).getBoundingClientRect();
+    menu.popup({ x: rect.left, y: rect.bottom, isLeft: true });
 };
 
 /** 显示尺寸过滤菜单 */
 const showSizeFilter = (e: MouseEvent) => {
-    console.log('显示尺寸过滤菜单');
+    e.stopPropagation();
+    e.preventDefault();
+    const menu = getSiyuanGlobalMenus().menu;
+    menu.remove();
+    const updateSize = (min?: number, max?: number) => {
+        currentFilters.value.minSize = min;
+        currentFilters.value.maxSize = max;
+        handleSearch();
+    };
+
+    menu.addItem({ label: '全部', click: () => updateSize() });
+    menu.addItem({ label: '< 1MB', click: () => updateSize(undefined, 1024 * 1024) });
+    menu.addItem({ label: '1MB - 10MB', click: () => updateSize(1024 * 1024, 10 * 1024 * 1024) });
+    menu.addItem({ label: '> 10MB', click: () => updateSize(10 * 1024 * 1024) });
+
+    const rect = (e.target as HTMLElement).getBoundingClientRect();
+    menu.popup({ x: rect.left, y: rect.bottom, isLeft: true });
 };
 
 /** 显示评分过滤菜单 */
 const showRatingFilter = (e: MouseEvent) => {
-    console.log('显示评分过滤菜单');
+    e.stopPropagation();
+    e.preventDefault();
+    const menu = getSiyuanGlobalMenus().menu;
+    menu.remove();
+    const updateRating = (min?: number) => {
+        currentFilters.value.minStar = min;
+        handleSearch();
+    };
+
+    menu.addItem({ label: '全部', click: () => updateRating() });
+    menu.addItem({ label: '★★★★★', click: () => updateRating(5) });
+    menu.addItem({ label: '≥ ★★★★', click: () => updateRating(4) });
+    menu.addItem({ label: '≥ ★★★', click: () => updateRating(3) });
+
+    const rect = (e.target as HTMLElement).getBoundingClientRect();
+    menu.popup({ x: rect.left, y: rect.bottom, isLeft: true });
 };
 
 // 初始化
@@ -290,68 +282,5 @@ onMounted(() => {
     align-items: center;
     height: 100%;
     color: var(--b3-theme-on-surface-light);
-}
-
-.asset-masonry-dialog__preview {
-    width: 300px;
-    border-left: 1px solid var(--b3-border-color);
-    display: flex;
-    flex-direction: column;
-    padding: 8px;
-    overflow: auto;
-}
-
-.asset-masonry-dialog__preview-image {
-    flex: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 200px;
-}
-
-.asset-masonry-dialog__preview-image img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
-    border-radius: 4px;
-}
-
-.asset-masonry-dialog__preview-icon,
-.asset-masonry-dialog__preview-placeholder {
-    color: var(--b3-theme-on-surface-light);
-    text-align: center;
-}
-
-.asset-masonry-dialog__preview-info {
-    padding-top: 8px;
-    border-top: 1px solid var(--b3-border-color);
-    margin-top: 8px;
-}
-
-.asset-masonry-dialog__preview-name {
-    font-weight: 500;
-    word-break: break-all;
-    margin-bottom: 8px;
-}
-
-.asset-masonry-dialog__preview-meta {
-    font-size: 12px;
-    color: var(--b3-theme-on-surface-light);
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.asset-masonry-dialog__palette {
-    display: flex;
-    gap: 2px;
-    flex-wrap: wrap;
-    margin-top: 4px;
-}
-
-.asset-masonry-dialog__palette-item {
-    width: 24px;
-    height: 24px;
-    border-radius: 2px;
 }
 </style>

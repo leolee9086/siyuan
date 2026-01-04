@@ -9,7 +9,7 @@
                 </svg>
             </div>
         </div>
-        <div class="asset-card__overlay">
+        <div class="asset-card__info" :title="item.hName">
             <span class="asset-card__name">{{ item.hName }}</span>
         </div>
     </div>
@@ -44,8 +44,8 @@ const isImage = computed(() => {
 
 /** 缩略图 URL */
 const thumbnailUrl = computed(() => {
-    // 使用思源的 assets 路径
-    return props.item.path.startsWith('assets/') ? `/${props.item.path}` : props.item.path;
+    // 使用缩略图服务, 指定宽度为 360px 以适配瀑布流列宽
+    return `/api/s-forge/thumbnail?path=${encodeURIComponent(props.item.path)}&size=360`;
 });
 
 /** 非图片类型的图标 */
@@ -78,16 +78,23 @@ const handleClick = () => {
 <style lang="scss" scoped>
 .asset-card {
     position: relative;
-    border-radius: 8px;
+    border-radius: 6px;
     overflow: hidden;
     background: var(--b3-theme-surface);
     cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
+    border: 1px solid transparent;
+    /* 预留边框位置避免抖动 */
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+
+    /* 增加底部 padding 给文件名留空间 */
+    display: flex;
+    flex-direction: column;
 }
 
 .asset-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1;
 }
 
 .asset-card--selected {
@@ -100,6 +107,8 @@ const handleClick = () => {
     justify-content: center;
     align-items: center;
     background: var(--b3-theme-background);
+    min-height: 80px;
+    /* 最小高度 */
 }
 
 .asset-card__image img {
@@ -111,7 +120,7 @@ const handleClick = () => {
 
 .asset-card__icon {
     width: 100%;
-    height: 120px;
+    height: 100px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -123,27 +132,19 @@ const handleClick = () => {
     fill: var(--b3-theme-on-surface-light);
 }
 
-.asset-card__overlay {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
+.asset-card__info {
     padding: 8px;
-    background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
-    opacity: 0;
-    transition: opacity 0.2s;
-}
-
-.asset-card:hover .asset-card__overlay {
-    opacity: 1;
+    background: var(--b3-theme-surface);
 }
 
 .asset-card__name {
-    color: white;
+    color: var(--b3-theme-on-surface);
     font-size: 12px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     display: block;
+    text-align: center;
+    line-height: 1.4;
 }
 </style>
