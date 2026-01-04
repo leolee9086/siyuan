@@ -19,7 +19,7 @@ export const getSiyuanConfig = () => {
  */
 export const getSiyuanUser = () => {
     if (!window.siyuan?.user) {
-        throw ("[getConfig] window.siyuan.config 不存在");
+        throw ("[getSiyuanUser] window.siyuan.user 不存在");
     }
     return window.siyuan.user;
 };
@@ -30,6 +30,14 @@ export const getSiyuanUser = () => {
  */
 export const hasSiyuanUser = (): boolean => {
     return !!window.siyuan?.user;
+};
+
+/**
+ * 安全获取 window.siyuan.user（不抛异常）
+ * @returns 如果用户已登录返回用户对象，否则返回 undefined
+ */
+export const getSafeSiyuanUser = () => {
+    return window.siyuan?.user;
 };
 
 /**
