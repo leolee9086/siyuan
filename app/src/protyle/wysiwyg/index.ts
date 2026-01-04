@@ -3081,8 +3081,21 @@ export class WYSIWYG {
                         } else {
                             emojiHTML = unicode2Emoji(unicode);
                         }
+                        if (unicode === "") {
+                            const subType = nodeElement.getAttribute("data-subtype");
+                            if (subType === "NOTE") {
+                                emojiHTML = "✏️";
+                            } else if (subType === "TIP") {
+                                emojiHTML = "💡";
+                            } else if (subType === "IMPORTANT") {
+                                emojiHTML = "️❗";
+                            } else if (subType === "WARNING") {
+                                emojiHTML = "⚠️";
+                            } else if (subType === "CAUTION") {
+                                emojiHTML = "🚨";
+                            }
+                        }
                         calloutIconElement.innerHTML = emojiHTML;
-                        hideElements(["dialog"]);
                         updateTransaction(protyle, nodeElement.getAttribute("data-node-id"), nodeElement.outerHTML, oldHTML);
                         focusBlock(nodeElement);
                     }, calloutIconElement.querySelector("img"));

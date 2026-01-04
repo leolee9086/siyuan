@@ -6,59 +6,97 @@ import { Menu } from "../../plugin/Menu";
 import { isMobile } from "../../util/functions";
 import { Constants } from "../../constants";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { openEmojiPanel, unicode2Emoji } from "../../emoji";
 
+/**
+ * 更新 Callout 块的类型和标题
+ * @description 打开一个对话框让用户编辑 callout 的图标、类型和标题
+ * @param titleElement - callout 的标题元素
+ * @param protyle - Protyle 编辑器实例
+ */
 export const updateCalloutType = (titleElement: HTMLElement, protyle: IProtyle) => {
     const blockElement = hasClosestBlock(titleElement);
     if (!blockElement) {
         return;
     }
+    const blockCalloutElement = blockElement.querySelector(".callout-icon");
+    if (!blockCalloutElement) {
+        return;
+    }
+
+    const currentSubtype = blockElement.getAttribute("data-subtype") || "";
+
     const dialog = new Dialog({
         title: siyuanI18n.callout,
-        content: getCalloutDialogHTML(blockElement.getAttribute("data-subtype") || ""),
+        content: getCalloutDialogHTML(currentSubtype, blockCalloutElement.innerHTML),
         width: isMobile() ? "92vw" : "520px",
     });
+
     const btnElements = dialog.element.querySelectorAll(".b3-button");
     const textElements: NodeListOf<HTMLInputElement> = dialog.element.querySelectorAll(".b3-text-field");
     const cancelBtn = btnElements[0];
     const confirmBtn = btnElements[1];
-    const inputElement = textElements[0];
-    const titleInputElement = textElements[1];
+    const typeInput = textElements[0];
+    const titleInput = textElements[1];
+    const dialogCalloutIconElement = dialog.element.querySelector(".callout-icon");
 
-    if (!cancelBtn || !confirmBtn || !inputElement || !titleInputElement || !protyle.lute) {
+    if (!cancelBtn || !confirmBtn || !typeInput || !titleInput || !protyle.lute || !dialogCalloutIconElement) {
         return;
     }
 
-    let updateIcon = "";
-
-    const iconElement = dialog.element.querySelector(".b3-form__icona-icon");
-
+    // 取消按钮
     cancelBtn.addEventListener("click", () => {
         dialog.destroy();
     });
+
+    // 确认按钮
     confirmBtn.addEventListener("click", () => {
-        confirmCalloutUpdate(protyle, blockElement, titleElement, textElements, updateIcon);
+        confirmCalloutUpdate(protyle, blockElement, titleElement, blockCalloutElement, typeInput, titleInput, dialogCalloutIconElement);
         dialog.destroy();
     });
-    dialog.bindInput(titleInputElement, () => {
+
+    // 绑定回车确认
+    dialog.bindInput(titleInput, () => {
         confirmBtn.dispatchEvent(new CustomEvent("click"));
     });
-    bindTypeInput(textElements, dialog);
 
-    inputElement.focus();
-    inputElement.select();
-    titleInputElement.value = protyle.lute.BlockDOM2StdMd(titleElement.innerHTML);
+    // 类型输入框键盘事件
+    bindTypeInputKeydown(typeInput, dialog);
 
-    if (iconElement) {
-        iconElement.addEventListener("click", (event) => {
-            showCalloutTypeMenu(event, textElements, (icon) => {
-                updateIcon = icon;
-            });
+    // 初始化值
+    typeInput.focus();
+    typeInput.select();
+    titleInput.value = protyle.lute.BlockDOM2StdMd(titleElement.innerHTML);
+
+    // 图标点击事件 - 打开 emoji 选择器
+    dialogCalloutIconElement.addEventListener("click", () => {
+        openEmojiPanelForCallout(dialogCalloutIconElement, typeInput);
+    });
+
+    // 类型下拉菜单
+    const iconDownElement = dialog.element.querySelector(".b3-form__icona-icon");
+    if (iconDownElement) {
+        iconDownElement.addEventListener("click", (event) => {
+            showCalloutTypeMenu(event, typeInput, titleInput, dialogCalloutIconElement);
         });
     }
 };
 
-const getCalloutDialogHTML = (subtype: string) => {
+/**
+ * 生成 Callout 对话框的 HTML 内容
+ */
+const getCalloutDialogHTML = (subtype: string, iconHTML: string) => {
     return `<div class="b3-dialog__content">
+    <label class="fn__flex">
+        <div class="fn__flex-center">
+            ${siyuanI18n.icon}
+        </div>
+        <span class="fn__space"></span>
+        <div class="protyle-wysiwyg" style="padding: 0" data-readonly="false">
+            <span class="callout-icon">${iconHTML}</span>
+        </div>
+    </label>
+    <div class="fn__hr"></div>
     <label class="fn__flex">
         <div class="fn__flex-center">
             ${siyuanI18n.type}
@@ -84,6 +122,10 @@ const getCalloutDialogHTML = (subtype: string) => {
 </div>`;
 };
 
+/**
+ * 格式化 Callout 标题
+ * @description 将 Markdown 标题转换为 HTML
+ */
 const formatCalloutTitle = (protyle: IProtyle, title: string) => {
     if (!protyle.lute) {
         return title;
@@ -97,107 +139,155 @@ const formatCalloutTitle = (protyle: IProtyle, title: string) => {
     return title;
 };
 
+/**
+ * 确认 Callout 更新
+ * @description 应用用户的修改到 callout 块
+ */
 const confirmCalloutUpdate = (
     protyle: IProtyle,
     blockElement: Element,
     titleElement: HTMLElement,
-    textElements: NodeListOf<HTMLInputElement>,
-    updateIcon: string
+    blockCalloutElement: Element,
+    typeInput: HTMLInputElement,
+    titleInput: HTMLInputElement,
+    dialogCalloutIconElement: Element
 ) => {
-    const inputElement = textElements[0];
-    const titleInputElement = textElements[1];
-
-    if (!inputElement || !titleInputElement || !protyle.lute) {
-        return;
-    }
-
     const oldHTML = blockElement.outerHTML;
-    blockElement.setAttribute("data-subtype", inputElement.value.trim());
-    let title = titleInputElement.value.trim();
+    blockElement.setAttribute("data-subtype", typeInput.value.trim());
+
+    let title = titleInput.value.trim();
     if (title) {
         title = formatCalloutTitle(protyle, title);
     }
+
+    // 如果标题为空，使用类型名作为默认标题（首字母大写）
     titleElement.innerHTML = title ||
-        (inputElement.value.trim().substring(0, 1).toUpperCase() + inputElement.value.trim().substring(1).toLowerCase());
-    const iconContainer = blockElement.querySelector(".callout-icon");
-    if (updateIcon && iconContainer) {
-        iconContainer.textContent = updateIcon;
-    }
+        (typeInput.value.trim().substring(0, 1).toUpperCase() + typeInput.value.trim().substring(1).toLowerCase());
+
+    // 更新图标
+    blockCalloutElement.innerHTML = dialogCalloutIconElement.innerHTML;
+
     updateTransaction(protyle, blockElement.getAttribute("data-node-id") || "", blockElement.outerHTML, oldHTML);
     focusBlock(blockElement);
 };
 
-const handleTypeInputKeydown = (event: KeyboardEvent, textElements: NodeListOf<HTMLInputElement>, dialog: Dialog) => {
-    if (event.isComposing) {
-        return;
-    }
-    if (event.key.startsWith("Arrow")) {
-        const iconElement = dialog.element.querySelector(".b3-form__icona-icon");
-        iconElement?.dispatchEvent(new CustomEvent("click"));
-        const inputElement = textElements[0];
-        inputElement?.blur();
-        event.preventDefault();
-        event.stopPropagation();
-    }
-};
-
-const bindTypeInput = (textElements: NodeListOf<HTMLInputElement>, dialog: Dialog) => {
-    const inputElement = textElements[0];
-    if (inputElement) {
-        inputElement.addEventListener("keydown", (event: KeyboardEvent) => {
-            handleTypeInputKeydown(event, textElements, dialog);
-        });
-    }
-};
-
-const showCalloutTypeMenu = (event: Event, textElements: NodeListOf<HTMLInputElement>, setUpdateIcon: (icon: string) => void) => {
-    const inputElement = textElements[0];
-    const titleElement = textElements[1];
-    if (!inputElement || !titleElement) {
-        return;
-    }
-    const menu = new Menu(Constants.MENU_CALLOUT_SELECT, () => {
-        if (document.activeElement?.tagName === "BODY") {
-            inputElement.focus();
+/**
+ * 绑定类型输入框的键盘事件
+ * @description 方向键触发下拉菜单
+ */
+const bindTypeInputKeydown = (typeInput: HTMLInputElement, dialog: Dialog) => {
+    typeInput.addEventListener("keydown", (event: KeyboardEvent) => {
+        if (event.isComposing) {
+            return;
+        }
+        if (event.key.startsWith("Arrow")) {
+            const iconElement = dialog.element.querySelector(".b3-form__icona-icon");
+            iconElement?.dispatchEvent(new CustomEvent("click"));
+            typeInput.blur();
+            event.preventDefault();
+            event.stopPropagation();
         }
     });
+};
+
+/**
+ * 打开 Callout 图标的 Emoji 选择面板
+ */
+const openEmojiPanelForCallout = (dialogCalloutIconElement: Element, typeInput: HTMLInputElement) => {
+    const emojiRect = dialogCalloutIconElement.getBoundingClientRect();
+    openEmojiPanel("", "av", {
+        x: emojiRect.left,
+        y: emojiRect.bottom,
+        h: emojiRect.height,
+        w: emojiRect.width
+    }, (unicode) => {
+        let emojiHTML: string;
+        if (unicode.startsWith("api/icon/getDynamicIcon")) {
+            emojiHTML = `<img class="callout-img" src="${unicode}"/>`;
+        } else if (unicode.indexOf(".") > -1) {
+            emojiHTML = `<img class="callout-img" src="/emojis/${unicode}">`;
+        } else {
+            emojiHTML = unicode2Emoji(unicode);
+        }
+
+        // 如果用户清空了 emoji，根据类型恢复默认图标
+        if (unicode === "") {
+            emojiHTML = getDefaultIconByType(typeInput.value);
+        }
+
+        dialogCalloutIconElement.innerHTML = emojiHTML;
+    }, dialogCalloutIconElement.querySelector("img"));
+};
+
+/**
+ * 根据 callout 类型获取默认图标
+ */
+const getDefaultIconByType = (type: string): string => {
+    const typeUpper = type.toUpperCase();
+    const iconMap: Record<string, string> = {
+        "NOTE": "✏️",
+        "TIP": "💡",
+        "IMPORTANT": "❗",
+        "WARNING": "⚠️",
+        "CAUTION": "🚨"
+    };
+    return iconMap[typeUpper] || "✏️";
+};
+
+/**
+ * Callout 类型选项配置
+ */
+const CALLOUT_TYPE_ITEMS = [
+    { icon: "✏️", type: "Note", color: "var(--b3-callout-note)" },
+    { icon: "💡", type: "Tip", color: "var(--b3-callout-tip)" },
+    { icon: "❗", type: "Important", color: "var(--b3-callout-important)" },
+    { icon: "⚠️", type: "Warning", color: "var(--b3-callout-warning)" },
+    { icon: "🚨", type: "Caution", color: "var(--b3-callout-caution)" }
+];
+
+/**
+ * 显示 Callout 类型选择菜单
+ */
+const showCalloutTypeMenu = (
+    event: Event,
+    typeInput: HTMLInputElement,
+    titleInput: HTMLInputElement,
+    dialogCalloutIconElement: Element
+) => {
+    const menu = new Menu(Constants.MENU_CALLOUT_SELECT, () => {
+        if (document.activeElement?.tagName === "BODY") {
+            typeInput.focus();
+        }
+    });
+
     if (menu.isOpen) {
         menu.close();
         return;
     }
-    const items = [{
-        icon: "✏️", type: "Note", color: "var(--b3-callout-note)"
-    }, {
-        icon: "💡", type: "Tip", color: "var(--b3-callout-tip)"
-    }, {
-        icon: "❗", type: "Important", color: "var(--b3-callout-important)"
-    }, {
-        icon: "⚠️", type: "Warning", color: "var(--b3-callout-warning)"
-    }, {
-        icon: "🚨", type: "Caution", color: "var(--b3-callout-caution)"
-    }];
-    for (const item of items) {
+
+    for (const item of CALLOUT_TYPE_ITEMS) {
         menu.addItem({
             iconHTML: `<span class="b3-menu__icon">${item.icon.toUpperCase()}</span>`,
             label: `<span style="color: ${item.color}">${item.type}</span>`,
             click() {
-                if (inputElement.value.toLowerCase() === titleElement.value.toLowerCase()) {
-                    titleElement.value = item.type;
+                // 如果类型和标题相同，同步更新标题
+                if (typeInput.value.toLowerCase() === titleInput.value.toLowerCase()) {
+                    titleInput.value = item.type;
                 }
-                inputElement.value = item.type.toUpperCase();
-                setUpdateIcon(item.icon);
-                titleElement.focus();
-                titleElement.select();
+                typeInput.value = item.type.toUpperCase();
+                dialogCalloutIconElement.innerHTML = item.icon;
+                titleInput.focus();
+                titleInput.select();
             }
         });
     }
-    const inputRect = inputElement.getBoundingClientRect();
+
+    const inputRect = typeInput.getBoundingClientRect();
     menu.open({
         x: inputRect.left,
         y: inputRect.bottom
     });
+
     event.stopPropagation();
     event.preventDefault();
 };
-
-

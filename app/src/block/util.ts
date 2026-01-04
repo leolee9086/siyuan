@@ -153,10 +153,10 @@ const getInsertTargetBlock = (protyle: IProtyle, id?: string, position?: InsertP
             return liElement;
         }
     }
-    if (blockElement.classList.contains("bq")) {
-        const bqBlock = hasClosestBlock(range.startContainer);
-        if (bqBlock && bqBlock instanceof HTMLElement) {
-            return bqBlock;
+    if (blockElement.classList.contains("bq") || blockElement.classList.contains("callout")) {
+        const innerBlock = hasClosestBlock(range.startContainer);
+        if (innerBlock && innerBlock instanceof HTMLElement) {
+            return innerBlock;
         }
     }
     return blockElement;
