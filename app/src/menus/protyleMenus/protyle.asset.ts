@@ -12,6 +12,7 @@ import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environme
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";
 import { getWindowOuterWidth } from "../../util/siyuanEnvironments/getWindowGeometry.environment";
 import { assetItem } from "./protyle.asset.types";
+import { isAssetItemArray } from "./protyle.asset.guard";
 
 /** 生成资源列表 HTML */
 const 生成资源列表HTML = (data: assetItem[]) => {
@@ -119,9 +120,23 @@ const 处理搜索资源响应 = (
     }
 };
 
+/**
+ * 渲染资源列表
+ * @作用 根据搜索关键词和扩展名过滤条件，从后端获取资源列表并更新 UI
+ * @意图 作为资源选择菜单/对话框的核心渲染入口，统一处理搜索请求和 UI 更新
+ * @调用时机
+ *   - 菜单/对话框初始化时（k 为空字符串）
+ *   - 用户输入搜索关键词时（input 事件）
+ *   - 用户修改文件类型过滤条件时
+ * @param element - 菜单容器元素
+ * @param k - 搜索关键词
+ * @param position - 菜单弹出位置
+ * @param exts - 文件扩展名过滤列表，如 [".png", ".jpg"]
+ */
 export const renderAssetList = (element: Element, k: string, position: IPosition, exts: string[] = []) => {
     fetchPost("/api/search/searchAsset", { k, exts }, (response) => {
-        const data = (response.data ?? []) as assetItem[];
+        const rawData = response.data ?? [];
+        const data: assetItem[] = isAssetItemArray(rawData) ? rawData : [];
         处理搜索资源响应(element, k, position, data);
     });
 };
