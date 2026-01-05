@@ -27,6 +27,7 @@ export interface IDialogOptions {
 
 /** 对话框接口，用于辅助函数引用 */
 export interface IDialog {
+    id: string;
     destroy: (options?: IObject) => void;
     fullscreen: () => void;
 }

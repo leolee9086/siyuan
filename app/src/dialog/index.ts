@@ -5,20 +5,16 @@ import { moveResize } from "./moveResize";
 import { Protyle } from "../protyle";
 import { Constants } from "../constants";
 import { App } from "vue";
-import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu.environment";
-import { getSiyuanDialogs } from "../util/siyuanEnvironments/getDialog.environment";
-import { incrementSiyuanZIndex, pushSiyuanDialog } from "../util/siyuanEnvironments/siyuanDialogs.environment";
+import { pushSiyuanDialog } from "../util/siyuanEnvironments/siyuanDialogs.environment";
 import {
-    计算对话框位置,
-    生成关闭按钮HTML,
-    生成全屏按钮HTML,
-    计算标题栏样式,
-    生成对话框HTML,
     绑定对话框事件,
     挂载标题Vue组件,
-    设置ResizeHandles显示状态,
-    更新全屏按钮状态,
-    创建输入框键盘事件处理器
+    创建输入框键盘事件处理器,
+    进入全屏模式,
+    退出全屏模式,
+    初始化对话框内容,
+    添加对话框到DOM,
+    执行销毁清理
 } from "./dialogHelpers";
 import { IDialogOptions } from "./dialog.types";
 import { isHTMLElement } from "./dialog.guard";
@@ -29,7 +25,7 @@ export type { IDialogOptions } from "./dialog.types";
 export class Dialog {
     private destroyCallback: (options?: IObject) => void;
     public element: HTMLElement;
-    private id: string;
+    public id: string;
     private disableClose: boolean;
     private disableScrimClose: boolean;
     private disableEscapeClose: boolean;
@@ -53,9 +49,12 @@ export class Dialog {
         this.data = options.data || {};
         this.element = document.createElement("div");
 
-        this.初始化对话框内容(options);
-        this.绑定事件处理();
-        this.添加到DOM(options.disableAnimation);
+        初始化对话框内容(this.element, options, {
+            disableClose: this.disableClose,
+            scrimPointerEvents: this.scrimPointerEvents
+        });
+        绑定对话框事件(this, this.element, this.disableClose, this.disableScrimClose, () => this.isFullscreen);
+        添加对话框到DOM(this.element, options.disableAnimation);
         this.titleVueApp = 挂载标题Vue组件(this.element, options);
 
         /// #if !MOBILE
@@ -66,98 +65,29 @@ export class Dialog {
         /// #endif
     }
 
-    /** 初始化对话框内容 */
-    private 初始化对话框内容(options: IDialogOptions): void {
-        const closeButtonPosition = options.closeButtonPosition || "outside";
-        const hasTitle = !!(options.title || options.titleVueConfig);
-
-        const 位置信息 = 计算对话框位置(options);
-        if (位置信息.width) {
-            options.width = 位置信息.width;
-        }
-        if (位置信息.height) {
-            options.height = 位置信息.height;
-        }
-
-        const closeButtonHtml = 生成关闭按钮HTML({
-            disableClose: this.disableClose,
-            hideCloseIcon: options.hideCloseIcon ?? false,
-            closeButtonPosition,
-            hasTitle
-        });
-        const fullscreenButtonHtml = 生成全屏按钮HTML(hasTitle, closeButtonPosition);
-        const headerPaddingRight = 计算标题栏样式(hasTitle, closeButtonPosition);
-
-        this.element.innerHTML = 生成对话框HTML({
-            zIndex: incrementSiyuanZIndex(),
-            left: 位置信息.left,
-            top: 位置信息.top,
-            scrimPointerEvents: this.scrimPointerEvents,
-            transparent: options.transparent,
-            containerClassName: options.containerClassName,
-            width: options.width,
-            height: options.height,
-            closeButtonPosition,
-            closeButtonHtml,
-            fullscreenButtonHtml,
-            headerPaddingRight,
-            hasTitle,
-            title: options.title,
-            content: options.content
-        });
-    }
-
-    /** 绑定对话框事件处理 */
-    private 绑定事件处理(): void {
-        绑定对话框事件(this, this.element, this.disableClose, this.disableScrimClose, () => this.isFullscreen);
-    }
-
-    /** 将对话框添加到DOM并处理动画 */
-    private 添加到DOM(disableAnimation?: boolean): void {
-        document.body.append(this.element);
-        if (disableAnimation) {
-            this.element.classList.add("b3-dialog--open");
-            return;
-        }
-        setTimeout(() => this.element.classList.add("b3-dialog--open"), Constants.TIMEOUT_OPENDIALOG);
-    }
-
-    /** 执行销毁后的清理工作 */
-    private 执行销毁清理(options?: IObject): void {
-        const dialogElement = this.element.querySelector(".b3-dialog");
-        if (!isHTMLElement(dialogElement)) {
-            return;
-        }
-        const menuElement = getSiyuanGlobalMenus().menu.element;
-        if (dialogElement.style.zIndex < menuElement.style.zIndex) {
-            getSiyuanGlobalMenus().menu.remove();
-        }
-
-        if (this.titleVueApp) {
-            this.titleVueApp.unmount();
-            this.titleVueApp = null;
-        }
-
-        this.element.remove();
-        if (this.destroyCallback) {
-            this.destroyCallback(options);
-        }
-        const dialogs = getSiyuanDialogs();
-        const index = dialogs.findIndex((item) => item.id === this.id);
-        if (index !== -1) {
-            dialogs.splice(index, 1);
-        }
-        const dragElement = document.getElementById("drag");
-        dragElement?.classList.remove("fn__hidden");
-    }
-
+    /**
+     * @作用: 销毁对话框，移除 DOM 元素并清理所有相关资源。
+     * @意图: 提供统一的对话框销毁机制，确保正确清理所有资源（包括事件监听器、Vue 组件等），防止内存泄漏。
+     * @调用时机: 当对话框需要关闭时调用，可以是用户点击关闭按钮、按下 ESC 键，或程序逻辑需要关闭对话框时。
+     * @问题/改进: 无已知问题。
+     * 
+     * @param options 可选的销毁参数，会传递给 destroyCallback
+     */
     public destroy(options?: IObject) {
         // 中止所有通过 listen 方法添加的事件监听器
         this.abortController.abort();
         this.element.classList.remove("b3-dialog--open");
-        setTimeout(() => this.执行销毁清理(options), Constants.TIMEOUT_DBLCLICK);
+        setTimeout(() => {
+            this.titleVueApp = 执行销毁清理(this.element, this.id, this.titleVueApp, this.destroyCallback, options);
+        }, Constants.TIMEOUT_DBLCLICK);
     }
 
+    /**
+     * @作用: 切换对话框的全屏状态（全屏/退出全屏）。
+     * @意图: 为用户提供全屏查看对话框内容的能力，在全屏状态下可以获得更大的可视区域。
+     * @调用时机: 用户点击对话框标题栏的全屏按钮时，或在全屏状态下按 ESC 键时调用。
+     * @问题/改进: 无已知问题。
+     */
     public fullscreen(): void {
         const container = this.element.querySelector(".b3-dialog__container");
         if (!isHTMLElement(container)) {
@@ -165,62 +95,36 @@ export class Dialog {
         }
 
         // 退出全屏模式
-        if (this.isFullscreen) {
-            this.退出全屏模式(container);
+        if (this.isFullscreen && this.originalSize) {
+            退出全屏模式(container, this.element, this.originalSize);
+            this.isFullscreen = false;
+            this.originalSize = null;
             return;
         }
 
         // 进入全屏模式
-        this.进入全屏模式(container);
-    }
-
-    /** 退出全屏模式 */
-    private 退出全屏模式(container: HTMLElement): void {
-        if (this.originalSize) {
-            Object.assign(container.style, {
-                width: this.originalSize.width,
-                height: this.originalSize.height,
-                left: this.originalSize.left,
-                top: this.originalSize.top
-            });
+        if (!this.isFullscreen) {
+            this.originalSize = {
+                width: container.style.width,
+                height: container.style.height,
+                left: container.style.left,
+                top: container.style.top
+            };
+            进入全屏模式(container, this.element);
+            this.isFullscreen = true;
         }
-
-        container.style.maxWidth = "";
-        container.style.maxHeight = "";
-        container.style.borderRadius = "";
-
-        this.element.classList.remove("b3-dialog--fullscreen");
-        设置ResizeHandles显示状态(container, true);
-        更新全屏按钮状态(this.element, false);
-        this.isFullscreen = false;
-        this.originalSize = null;
     }
 
-    /** 进入全屏模式 */
-    private 进入全屏模式(container: HTMLElement): void {
-        this.originalSize = {
-            width: container.style.width,
-            height: container.style.height,
-            left: container.style.left,
-            top: container.style.top
-        };
-
-        Object.assign(container.style, {
-            width: "100vw",
-            height: "100vh",
-            left: "0",
-            top: "0",
-            maxWidth: "100vw",
-            maxHeight: "100vh",
-            borderRadius: "0"
-        });
-
-        this.element.classList.add("b3-dialog--fullscreen");
-        设置ResizeHandles显示状态(container, false);
-        更新全屏按钮状态(this.element, true);
-        this.isFullscreen = true;
-    }
-
+    /**
+     * @作用: 为输入框绑定键盘事件处理，支持回车确认和 ESC 关闭对话框。
+     * @意图: 提供统一的输入框键盘交互逻辑，简化对话框中输入操作的处理。
+     * @调用时机: 在对话框创建后，需要为输入框添加键盘交互时调用。
+     * @问题/改进: 无已知问题。
+     * 
+     * @param inputElement 要绑定事件的输入框元素
+     * @param enterEvent 按下回车键时的回调函数
+     * @param bindEnter 是否绑定回车键事件，默认为 true
+     */
     public bindInput(inputElement: HTMLInputElement | HTMLTextAreaElement, enterEvent?: () => void, bindEnter = true) {
         inputElement.focus();
         let timeStamp: number;
@@ -229,11 +133,15 @@ export class Dialog {
             dialog: this,
             enterEvent,
             bindEnter,
+            /** @简洁函数 获取时间戳用于防抖 */
             getTimeStamp: () => timeStamp,
+            /** @简洁函数 设置时间戳用于防抖 */
             setTimeStamp: (value: number) => {
                 timeStamp = value;
             },
+            /** @简洁函数 获取全屏状态 */
             isFullscreen: () => this.isFullscreen,
+            /** @简洁函数 获取 ESC 键关闭配置 */
             disableEscapeClose: () => this.disableEscapeClose
         });
 

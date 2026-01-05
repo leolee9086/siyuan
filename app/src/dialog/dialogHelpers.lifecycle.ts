@@ -1,0 +1,156 @@
+import { App } from "vue";
+import { Constants } from "../constants";
+import { createVueComponentLoader } from "../util/vue/mount";
+import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu.environment";
+import { getSiyuanDialogs } from "../util/siyuanEnvironments/getDialog.environment";
+import { incrementSiyuanZIndex } from "../util/siyuanEnvironments/siyuanDialogs.environment";
+import { isHTMLElement } from "./dialog.guard";
+
+import { IDialogOptions } from "./dialog.types";
+import { 计算对话框位置, 生成关闭按钮HTML, 生成全屏按钮HTML, 计算标题栏样式, 生成对话框HTML } from "./dialogHelpers.html";
+
+/**
+ * @function 挂载标题Vue组件
+ * @zh-CN
+ * @作用: 将 Vue 组件挂载到对话框标题区域
+ * @意图: 支持使用 Vue 组件作为对话框标题，实现更复杂的交互式标题
+ * @调用时机: 在对话框初始化时，如果提供了 titleVueConfig 则调用
+ * @已知问题: 无
+ * @改进方向: 无
+ */
+export function 挂载标题Vue组件(element: HTMLElement, options: IDialogOptions): App | null {
+    if (!options.titleVueConfig) {
+        return null;
+    }
+    const titleElement = element.querySelector(".b3-dialog__header");
+    if (!titleElement) {
+        return null;
+    }
+    titleElement.innerHTML = "";
+    if (isHTMLElement(titleElement)) {
+        return createVueComponentLoader(
+            titleElement,
+            options.titleVueConfig,
+            options.titleVueContext
+        );
+    }
+    return null;
+}
+
+/**
+ * @function 初始化对话框内容
+ * @zh-CN
+ * @作用: 初始化对话框的 HTML 内容，包括计算位置、生成结构
+ * @意图: 集中处理对话框的初始化逻辑，生成完整的 DOM 结构
+ * @调用时机: 在对话框创建时调用，在 DOM 添加之前
+ * @已知问题: 无
+ * @改进方向: 可以进一步拆分为更小的函数
+ */
+export function 初始化对话框内容(
+    element: HTMLElement,
+    options: IDialogOptions,
+    config: {
+        disableClose: boolean;
+        scrimPointerEvents: boolean;
+    }
+): void {
+    const closeButtonPosition = options.closeButtonPosition || "outside";
+    const hasTitle = !!(options.title || options.titleVueConfig);
+    const 位置信息 = 计算对话框位置(options);
+    if (位置信息.width) {
+        options.width = 位置信息.width;
+    }
+    if (位置信息.height) {
+        options.height = 位置信息.height;
+    }
+
+    const closeButtonHtml = 生成关闭按钮HTML({
+        disableClose: config.disableClose,
+        hideCloseIcon: options.hideCloseIcon ?? false,
+        closeButtonPosition,
+        hasTitle
+    });
+    const fullscreenButtonHtml = 生成全屏按钮HTML(hasTitle, closeButtonPosition);
+    const headerPaddingRight = 计算标题栏样式(hasTitle, closeButtonPosition);
+
+    element.innerHTML = 生成对话框HTML({
+        zIndex: incrementSiyuanZIndex(),
+        left: 位置信息.left,
+        top: 位置信息.top,
+        scrimPointerEvents: config.scrimPointerEvents,
+        transparent: options.transparent,
+        containerClassName: options.containerClassName,
+        width: options.width,
+        height: options.height,
+        closeButtonPosition,
+        closeButtonHtml,
+        fullscreenButtonHtml,
+        headerPaddingRight,
+        hasTitle,
+        title: options.title,
+        content: options.content
+    });
+}
+
+/**
+ * @function 添加对话框到DOM
+ * @zh-CN
+ * @作用: 将对话框元素添加到 DOM 并处理显示动画
+ * @意图: 统一处理对话框的 DOM 添加和动画，支持禁用动画选项
+ * @调用时机: 在对话框内容初始化完成后调用
+ * @已知问题: 无
+ * @改进方向: 无
+ */
+export function 添加对话框到DOM(element: HTMLElement, disableAnimation?: boolean): void {
+    document.body.append(element);
+    if (disableAnimation) {
+        element.classList.add("b3-dialog--open");
+        return;
+    }
+    setTimeout(() => element.classList.add("b3-dialog--open"), Constants.TIMEOUT_OPENDIALOG);
+}
+
+/**
+ * @function 执行销毁清理
+ * @zh-CN
+ * @作用: 执行对话框销毁后的清理工作，包括卸载 Vue 组件、移除 DOM、调用回调
+ * @意图: 集中处理对话框销毁时的所有清理逻辑，防止内存泄漏
+ * @调用时机: 在对话框销毁时调用
+ * @已知问题: 无
+ * @改进方向: 可以考虑使用 AbortController 来自动清理事件监听器
+ */
+export function 执行销毁清理(
+    element: HTMLElement,
+    id: string,
+    titleVueApp: App | null,
+    destroyCallback: ((options?: IObject) => void) | undefined,
+    options?: IObject
+): App | null {
+    const dialogElement = element.querySelector(".b3-dialog");
+    if (!isHTMLElement(dialogElement)) {
+        return titleVueApp;
+    }
+    const menuElement = getSiyuanGlobalMenus().menu.element;
+    if (dialogElement.style.zIndex < menuElement.style.zIndex) {
+        getSiyuanGlobalMenus().menu.remove();
+    }
+
+    if (titleVueApp) {
+        titleVueApp.unmount();
+        titleVueApp = null;
+    }
+
+    element.remove();
+    if (destroyCallback) {
+        destroyCallback(options);
+    }
+    const dialogs = getSiyuanDialogs();
+    const index = dialogs.findIndex((item) => item.id === id);
+    if (index !== -1) {
+        dialogs.splice(index, 1);
+    }
+    const dragElement = document.getElementById("drag");
+    dragElement?.classList.remove("fn__hidden");
+
+    return titleVueApp;
+}
