@@ -35,6 +35,120 @@ function 获取前置注释(sourceCode, node) {
 }
 
 /**
+ * 豁免注释标记
+ * 使用 @简洁函数 注释可以豁免函数注释检查
+ * 适用场景：简单的 getter/setter、谓词函数、工具函数等
+ */
+const EXEMPT_COMMENT = '@简洁函数';
+
+/**
+ * 最短函数行数限制
+ * 只有实际代码行数少于此值的函数才能使用豁免标记
+ */
+const MIN_LINES_FOR_EXEMPTION = 3;
+
+/**
+ * 计算函数的实际行数（排除空行和注释）
+ * 参考 function-min-lines.ts 的实现
+ */
+function 计算函数实际行数(node, sourceCode) {
+    if (!node.loc) {
+        return 0;
+    }
+
+    const lines = sourceCode.getLines();
+    const startLine = node.loc.start.line - 1; // 转换为0基索引
+    const endLine = node.loc.end.line - 1;
+
+    let actualLines = 0;
+
+    for (let i = startLine; i <= endLine; i++) {
+        const line = lines[i];
+
+        // 跳过空行
+        if (line.trim() === '') {
+            continue;
+        }
+
+        // 跳过只包含注释的行
+        if (line.trim().startsWith('//') || line.trim().startsWith('/*') || line.trim().startsWith('*')) {
+            continue;
+        }
+
+        // 跳过函数声明行和函数体的大括号行
+        if (i === startLine || line.trim() === '{' || line.trim() === '}') {
+            continue;
+        }
+
+        actualLines++;
+    }
+
+    return actualLines;
+}
+
+/**
+ * 检查函数前面的注释是否包含豁免标记
+ * 同时检查函数本身和其父节点（如 export 声明、变量声明）的注释
+ * 
+ * 重要：只有极短的函数（少于 MIN_LINES_FOR_EXEMPTION 行）才能使用豁免
+ */
+function 检查是否豁免(node, sourceCode) {
+    // 首先计算函数的实际行数
+    const 实际行数 = 计算函数实际行数(node, sourceCode);
+
+    // 如果函数行数 >= MIN_LINES_FOR_EXEMPTION，不允许豁免
+    if (实际行数 >= MIN_LINES_FOR_EXEMPTION) {
+        return false;
+    }
+
+    // 只有极短的函数才检查豁免标记
+    // 检查函数本身前的注释
+    const comments = sourceCode.getCommentsBefore(node);
+    if (comments.some((comment) => comment.value.includes(EXEMPT_COMMENT))) {
+        return true;
+    }
+
+    // 检查父节点
+    if (node.parent) {
+        // 对于 export function，注释可能在 ExportNamedDeclaration 上
+        if (node.parent.type === 'ExportNamedDeclaration' || node.parent.type === 'ExportDefaultDeclaration') {
+            const parentComments = sourceCode.getCommentsBefore(node.parent);
+            if (parentComments.some((comment) => comment.value.includes(EXEMPT_COMMENT))) {
+                return true;
+            }
+        }
+
+        // 检查 VariableDeclarator (例如: const foo = () => {})
+        if (node.parent.type === 'VariableDeclarator') {
+            if (node.parent.parent && node.parent.parent.type === 'VariableDeclaration') {
+                const grandParentComments = sourceCode.getCommentsBefore(node.parent.parent);
+                if (grandParentComments.some((comment) => comment.value.includes(EXEMPT_COMMENT))) {
+                    return true;
+                }
+            }
+        }
+
+        // 检查 Property (例如在对象字面量中: { foo: () => {} })
+        if (node.parent.type === 'Property') {
+            const parentComments = sourceCode.getCommentsBefore(node.parent);
+            if (parentComments.some((comment) => comment.value.includes(EXEMPT_COMMENT))) {
+                return true;
+            }
+        }
+
+        // 检查 MethodDefinition (类方法)
+        if (node.parent.type === 'MethodDefinition') {
+            const parentComments = sourceCode.getCommentsBefore(node.parent);
+            if (parentComments.some((comment) => comment.value.includes(EXEMPT_COMMENT))) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+/**
  * 检查注释内容是否有基本内容
  * 
  * 作为原则性规则，只要注释不是完全空的就视为有效。
@@ -160,7 +274,8 @@ const 注释要求提示 = [
     "  - 意图：为什么需要这个函数",
     "  - 调用时机：什么时候/在哪里调用",
     "  - 问题/改进：如果有已知问题或改进空间也应指出",
-    "注释应该仔细阅读的函数的使用情况之后编写,保证任何新加入的项目参与者能够迅速理解 "
+    "注释应该仔细阅读的函数的使用情况之后编写,保证任何新加入的项目参与者能够迅速理解",
+    "💡 豁免方式: 如果函数确实需要保持简洁（如简单的 getter/setter、谓词函数、工具函数），可在函数前添加 @简洁函数 标记并说明原因。例如：/** @简洁函数 这是一个简单的 getter 函数 */"
 ].join("\n");
 
 const 类型注释要求提示 = [
@@ -217,6 +332,11 @@ export const 函数注释要求插件 = {
                  */
                 function 检查函数(node) {
                     if (!需要检查注释(node)) {
+                        return;
+                    }
+
+                    // 检查是否有豁免标记
+                    if (检查是否豁免(node, sourceCode)) {
                         return;
                     }
 
