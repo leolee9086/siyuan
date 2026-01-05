@@ -19,6 +19,8 @@
 package main
 
 import (
+	"github.com/siyuan-note/logging"
+	"github.com/siyuan-note/siyuan/kernel/assetmeta"
 	"github.com/siyuan-note/siyuan/kernel/cache"
 	"github.com/siyuan-note/siyuan/kernel/job"
 	"github.com/siyuan-note/siyuan/kernel/model"
@@ -43,6 +45,11 @@ func main() {
 	model.InitBoxes()
 	model.LoadFlashcards()
 	util.LoadAssetsTexts()
+
+	// Initialize S-Forge Asset Meta Service
+	if err := assetmeta.NewInstance().Initialize(); err != nil {
+		logging.LogErrorf("init asset meta service failed: %s", err)
+	}
 
 	util.SetBooted()
 	util.PushClearAllMsg()

@@ -126,7 +126,7 @@ const searchAssets = async () => {
 
         const result = await searchAssetsAdvanced(params);
 
-        assets.value = result.assets.map(meta => ({
+        assets.value = (result?.assets || []).map(meta => ({
             path: meta.path,
             hName: meta.name || pathPosix().basename(meta.path)
         }));
