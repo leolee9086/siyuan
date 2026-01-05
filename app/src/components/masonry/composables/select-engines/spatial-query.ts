@@ -5,22 +5,22 @@ import type {
   IntersectionType,
   SpatialCache,
   SpatialHashGrid 
-} from './types';
+} from "./types";
 import { 
   isRectIntersecting, 
   isRectContaining, 
   getIntersectionType,
   computeIntersectionArea 
-} from './spatial-utils';
+} from "./spatial-utils";
 import { 
   getElementSpatialData, 
   updateElementSpatialData,
   shouldUpdateCache 
-} from './spatial-cache';
+} from "./spatial-cache";
 import { 
   queryIntersectingElements,
   getBlocksInArea 
-} from './spatial-hash';
+} from "./spatial-hash";
 
 // 查询与指定矩形相交的元素
 export const queryIntersectingElementsWithCache = (
@@ -93,7 +93,7 @@ export const queryPartialElements = (
     const spatialData = getElementSpatialData(cache, element, options.updateInterval);
     if (spatialData) {
       const intersectionType = getIntersectionType(queryRect, spatialData.rect);
-      if (intersectionType === 'intersecting') {
+      if (intersectionType === "intersecting") {
         partialElements.push(element);
       }
     }
@@ -236,9 +236,9 @@ export const getQueryStats = (
         intersecting++;
         
         const intersectionType = getIntersectionType(queryRect, spatialData.rect);
-        if (intersectionType === 'contained') {
+        if (intersectionType === "contained") {
           contained++;
-        } else if (intersectionType === 'intersecting') {
+        } else if (intersectionType === "intersecting") {
           partial++;
         }
       }

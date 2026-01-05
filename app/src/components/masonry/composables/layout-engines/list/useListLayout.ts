@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ref, shallowRef, nextTick } from 'vue';
-import RBush from 'rbush';
+import { ref, shallowRef, nextTick } from "vue";
+import RBush from "rbush";
 import { 
     LayoutItem, 
     BushItem, 
     UseLayoutEngineOptions, 
     LayoutEngineResult 
-} from '../types';
+} from "../types";
 import {
     initializeColumns,
     calculateTotalHeight,
@@ -15,7 +15,7 @@ import {
     createContentHeightComputed,
     createUpdateScheduler,
     setupItemsWatch
-} from '../layoutUtils';
+} from "../layoutUtils";
 import {
     binarySearch,
     findItemsInYRange,
@@ -25,7 +25,7 @@ import {
     processListHeightUpdates,
     findListVisibleItems,
     findItemsInSelectionBox
-} from './list-utils';
+} from "./list-utils";
 
 /**
  * 列表布局引擎 - 使用混合策略优化性能
@@ -43,7 +43,7 @@ export function useListLayout({
     estimatedTotalCount,
     onBeforeRebuildLayout,
     onAfterRebuildLayout,
-}: Omit<UseLayoutEngineOptions, 'mode'>): LayoutEngineResult {
+}: Omit<UseLayoutEngineOptions, "mode">): LayoutEngineResult {
     // R-tree 用于选择框查询
     const tree = new RBush<BushItem>();
     
@@ -98,7 +98,9 @@ export function useListLayout({
      * 添加新项目到布局中
      */
     const appendItemsLocal = (itemsToAppend: any[]) => {
-        if (itemsToAppend.length === 0) return;
+        if (itemsToAppend.length === 0) {
+return;
+}
 
         // 使用列表布局算法
         const { newLayoutItems, newBushItems } = appendListItems({
@@ -131,7 +133,9 @@ export function useListLayout({
      * 处理高度更新请求
      */
     const processPendingUpdatesLocal = () => {
-        if (pendingUpdates.size === 0) return;
+        if (pendingUpdates.size === 0) {
+return;
+}
         
         // 创建一个副本用于处理
         const updatesToProcess = new Map(pendingUpdates);

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ref, shallowRef, watch, type Ref } from 'vue'
+import { ref, shallowRef, watch, type Ref } from "vue";
 
 /**
  * @织: 定义数据项的基本结构，必须包含一个唯一的 id
@@ -150,7 +150,9 @@ const createRequestDataForRange = (
     requestedIndices: Set<number>
 ) => {
     return async (indices: number[]) => {
-        if (isFetching.value) return [];
+        if (isFetching.value) {
+return [];
+}
 
         const indicesToRequest = indices.filter(index => !requestedIndices.has(index));
         
@@ -240,7 +242,7 @@ const createInitialDataLoader = (
  * ```
  */
 const handleFetchError = (error: any, indicesToRequest: number[], requestedIndices: Set<number>): void => {
-    console.error('[useVirtualDataSource] Error fetching data:', error);
+    console.error("[useVirtualDataSource] Error fetching data:", error);
     // @织: 如果请求失败，需要将索引从 requestedIndices 中移除，以便后续可以重试
     indicesToRequest.forEach(index => requestedIndices.delete(index));
 };

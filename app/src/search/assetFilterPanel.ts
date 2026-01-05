@@ -8,7 +8,7 @@
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 /** S-Forge 过滤选项类型 */
-type SForgeFilters = NonNullable<ISearchAssetOption['sForgeFilters']>;
+type SForgeFilters = NonNullable<ISearchAssetOption["sForgeFilters"]>;
 
 /**
  * 常用图片格式
@@ -231,11 +231,11 @@ export function 解析过滤面板值(dialogElement: Element): SForgeFilters | u
     let hasAnyFilter = false;
 
     // 1. 解析格式过滤
-    const extCheckboxes = dialogElement.querySelectorAll<HTMLInputElement>('input[data-ext]');
+    const extCheckboxes = dialogElement.querySelectorAll<HTMLInputElement>("input[data-ext]");
     const selectedExts: string[] = [];
     extCheckboxes.forEach(checkbox => {
         if (checkbox.checked) {
-            const ext = checkbox.getAttribute('data-ext');
+            const ext = checkbox.getAttribute("data-ext");
             if (ext) {
                 selectedExts.push(ext);
             }
@@ -247,30 +247,46 @@ export function 解析过滤面板值(dialogElement: Element): SForgeFilters | u
     }
 
     // 2. 解析尺寸过滤
-    const minWidth = parseInt((dialogElement.querySelector('#sforgeMinWidth') as HTMLInputElement)?.value || "");
-    const maxWidth = parseInt((dialogElement.querySelector('#sforgeMaxWidth') as HTMLInputElement)?.value || "");
-    const minHeight = parseInt((dialogElement.querySelector('#sforgeMinHeight') as HTMLInputElement)?.value || "");
-    const maxHeight = parseInt((dialogElement.querySelector('#sforgeMaxHeight') as HTMLInputElement)?.value || "");
+    const minWidth = parseInt((dialogElement.querySelector("#sforgeMinWidth") as HTMLInputElement)?.value || "");
+    const maxWidth = parseInt((dialogElement.querySelector("#sforgeMaxWidth") as HTMLInputElement)?.value || "");
+    const minHeight = parseInt((dialogElement.querySelector("#sforgeMinHeight") as HTMLInputElement)?.value || "");
+    const maxHeight = parseInt((dialogElement.querySelector("#sforgeMaxHeight") as HTMLInputElement)?.value || "");
 
-    if (!isNaN(minWidth) && minWidth > 0) { result.minWidth = minWidth; hasAnyFilter = true; }
-    if (!isNaN(maxWidth) && maxWidth > 0) { result.maxWidth = maxWidth; hasAnyFilter = true; }
-    if (!isNaN(minHeight) && minHeight > 0) { result.minHeight = minHeight; hasAnyFilter = true; }
-    if (!isNaN(maxHeight) && maxHeight > 0) { result.maxHeight = maxHeight; hasAnyFilter = true; }
+    if (!isNaN(minWidth) && minWidth > 0) {
+ result.minWidth = minWidth; hasAnyFilter = true; 
+}
+    if (!isNaN(maxWidth) && maxWidth > 0) {
+ result.maxWidth = maxWidth; hasAnyFilter = true; 
+}
+    if (!isNaN(minHeight) && minHeight > 0) {
+ result.minHeight = minHeight; hasAnyFilter = true; 
+}
+    if (!isNaN(maxHeight) && maxHeight > 0) {
+ result.maxHeight = maxHeight; hasAnyFilter = true; 
+}
 
     // 3. 解析文件大小过滤 (KB -> 字节)
-    const minSizeKB = parseInt((dialogElement.querySelector('#sforgeMinFileSize') as HTMLInputElement)?.value || "");
-    const maxSizeKB = parseInt((dialogElement.querySelector('#sforgeMaxFileSize') as HTMLInputElement)?.value || "");
+    const minSizeKB = parseInt((dialogElement.querySelector("#sforgeMinFileSize") as HTMLInputElement)?.value || "");
+    const maxSizeKB = parseInt((dialogElement.querySelector("#sforgeMaxFileSize") as HTMLInputElement)?.value || "");
 
-    if (!isNaN(minSizeKB) && minSizeKB > 0) { result.minFileSize = minSizeKB * 1024; hasAnyFilter = true; }
-    if (!isNaN(maxSizeKB) && maxSizeKB > 0) { result.maxFileSize = maxSizeKB * 1024; hasAnyFilter = true; }
+    if (!isNaN(minSizeKB) && minSizeKB > 0) {
+ result.minFileSize = minSizeKB * 1024; hasAnyFilter = true; 
+}
+    if (!isNaN(maxSizeKB) && maxSizeKB > 0) {
+ result.maxFileSize = maxSizeKB * 1024; hasAnyFilter = true; 
+}
 
     // 4. 解析星级过滤
-    const minStar = parseInt((dialogElement.querySelector('#sforgeMinStar') as HTMLSelectElement)?.value || "0");
-    const maxStar = parseInt((dialogElement.querySelector('#sforgeMaxStar') as HTMLSelectElement)?.value || "5");
+    const minStar = parseInt((dialogElement.querySelector("#sforgeMinStar") as HTMLSelectElement)?.value || "0");
+    const maxStar = parseInt((dialogElement.querySelector("#sforgeMaxStar") as HTMLSelectElement)?.value || "5");
 
     // 只有非默认值才记录
-    if (minStar > 0) { result.minStar = minStar; hasAnyFilter = true; }
-    if (maxStar < 5) { result.maxStar = maxStar; hasAnyFilter = true; }
+    if (minStar > 0) {
+ result.minStar = minStar; hasAnyFilter = true; 
+}
+    if (maxStar < 5) {
+ result.maxStar = maxStar; hasAnyFilter = true; 
+}
 
     return hasAnyFilter ? result : undefined;
 }
@@ -283,36 +299,52 @@ export function 解析过滤面板值(dialogElement: Element): SForgeFilters | u
  */
 export function 初始化过滤面板事件(dialogElement: Element): void {
     // 尺寸预设按钮
-    dialogElement.querySelectorAll<HTMLButtonElement>('[data-preset-size]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const presetIndex = parseInt(btn.getAttribute('data-preset-size') || "0");
+    dialogElement.querySelectorAll<HTMLButtonElement>("[data-preset-size]").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const presetIndex = parseInt(btn.getAttribute("data-preset-size") || "0");
             const preset = 尺寸预设[presetIndex];
-            if (!preset) return;
+            if (!preset) {
+return;
+}
 
-            const minWidthInput = dialogElement.querySelector('#sforgeMinWidth') as HTMLInputElement;
-            const maxWidthInput = dialogElement.querySelector('#sforgeMaxWidth') as HTMLInputElement;
-            const minHeightInput = dialogElement.querySelector('#sforgeMinHeight') as HTMLInputElement;
-            const maxHeightInput = dialogElement.querySelector('#sforgeMaxHeight') as HTMLInputElement;
+            const minWidthInput = dialogElement.querySelector("#sforgeMinWidth") as HTMLInputElement;
+            const maxWidthInput = dialogElement.querySelector("#sforgeMaxWidth") as HTMLInputElement;
+            const minHeightInput = dialogElement.querySelector("#sforgeMinHeight") as HTMLInputElement;
+            const maxHeightInput = dialogElement.querySelector("#sforgeMaxHeight") as HTMLInputElement;
 
-            if (minWidthInput) minWidthInput.value = preset.minWidth?.toString() || "";
-            if (maxWidthInput) maxWidthInput.value = preset.maxWidth?.toString() || "";
-            if (minHeightInput) minHeightInput.value = "";
-            if (maxHeightInput) maxHeightInput.value = "";
+            if (minWidthInput) {
+minWidthInput.value = preset.minWidth?.toString() || "";
+}
+            if (maxWidthInput) {
+maxWidthInput.value = preset.maxWidth?.toString() || "";
+}
+            if (minHeightInput) {
+minHeightInput.value = "";
+}
+            if (maxHeightInput) {
+maxHeightInput.value = "";
+}
         });
     });
 
     // 文件大小预设按钮
-    dialogElement.querySelectorAll<HTMLButtonElement>('[data-preset-filesize]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const presetIndex = parseInt(btn.getAttribute('data-preset-filesize') || "0");
+    dialogElement.querySelectorAll<HTMLButtonElement>("[data-preset-filesize]").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const presetIndex = parseInt(btn.getAttribute("data-preset-filesize") || "0");
             const preset = 文件大小预设[presetIndex];
-            if (!preset) return;
+            if (!preset) {
+return;
+}
 
-            const minSizeInput = dialogElement.querySelector('#sforgeMinFileSize') as HTMLInputElement;
-            const maxSizeInput = dialogElement.querySelector('#sforgeMaxFileSize') as HTMLInputElement;
+            const minSizeInput = dialogElement.querySelector("#sforgeMinFileSize") as HTMLInputElement;
+            const maxSizeInput = dialogElement.querySelector("#sforgeMaxFileSize") as HTMLInputElement;
 
-            if (minSizeInput) minSizeInput.value = preset.minSize ? Math.round(preset.minSize / 1024).toString() : "";
-            if (maxSizeInput) maxSizeInput.value = preset.maxSize ? Math.round(preset.maxSize / 1024).toString() : "";
+            if (minSizeInput) {
+minSizeInput.value = preset.minSize ? Math.round(preset.minSize / 1024).toString() : "";
+}
+            if (maxSizeInput) {
+maxSizeInput.value = preset.maxSize ? Math.round(preset.maxSize / 1024).toString() : "";
+}
         });
     });
 }

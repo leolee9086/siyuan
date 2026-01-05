@@ -22,3 +22,17 @@ export const tagSchema = z.object({
  * 标签类型推断
  */
 export type TagType = z.infer<typeof tagSchema>;
+
+/**
+ * 类型守卫：验证对象是否为有效的 ITag
+ * @param value - 要验证的对象
+ * @returns 如果是有效的 ITag 返回 true，并收窄类型
+ */
+export function isValidTag(value: unknown): value is ITag {
+    try {
+        tagSchema.parse(value);
+        return true;
+    } catch {
+        return false;
+    }
+}

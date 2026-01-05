@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Ref } from 'vue';
+import { Ref } from "vue";
 
 // @织: 浏览器能够安全处理的最大CSS高度 (一个比较保守的值)
 export const MAX_BROWSER_HEIGHT = 15_000_000;
@@ -40,7 +40,7 @@ export interface UseLayoutEngineOptions {
     idKey: string;
     itemHeight?: (itemData: any, columnWidth?: number) => number;
     estimatedTotalCount?: Ref<number | undefined>;
-    mode?: 'masonry' | 'grid' | 'justified' | 'list';
+    mode?: "masonry" | "grid" | "justified" | "list";
     // 布局重建前的回调
     onBeforeRebuildLayout?: () => void;
     // 布局重建后的回调

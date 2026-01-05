@@ -1,7 +1,7 @@
-import { ref, computed, type Ref } from 'vue';
-import type { EntityId } from './useSelectionSystem';
-import { createDefaultSpatialSelector, isRectIntersecting, isRectContaining } from './select-engines';
-import { usePositionObserver } from './usePositionObserver';
+import { ref, computed, type Ref } from "vue";
+import type { EntityId } from "./useSelectionSystem";
+import { createDefaultSpatialSelector, isRectIntersecting, isRectContaining } from "./select-engines";
+import { usePositionObserver } from "./usePositionObserver";
 
 // 类型定义
 export interface SelectionBoxState {
@@ -31,8 +31,8 @@ export interface UseSelectionBoxOptions {
 export function useSelectionBox(options: UseSelectionBoxOptions = {}) {
   const {
     enableSpatialSelection = false,
-    elementFilter = (element: Element) => element.hasAttribute('data-selectable'),
-    idExtractor = (element: Element) => element.getAttribute('data-id') || element.id,
+    elementFilter = (element: Element) => element.hasAttribute("data-selectable"),
+    idExtractor = (element: Element) => element.getAttribute("data-id") || element.id,
     onSelectionBoxChange,
     onSelectionBoxStart,
     onSelectionBoxUpdate,
@@ -60,7 +60,7 @@ export function useSelectionBox(options: UseSelectionBoxOptions = {}) {
   });
 
   // 拖拽方向状态
-  const dragDirection = ref<'left-to-right' | 'right-to-left' | null>(null);
+  const dragDirection = ref<"left-to-right" | "right-to-left" | null>(null);
 
   // 空间选择器（按需创建）
   const spatialSelector = enableSpatialSelection ? createDefaultSpatialSelector() : null;
@@ -109,7 +109,9 @@ export function useSelectionBox(options: UseSelectionBoxOptions = {}) {
 
   // 更新空间选择器
   const updateSpatialSelector = (elements: Element[]) => {
-    if (!spatialSelector || !elements || elements.length === 0) return;
+    if (!spatialSelector || !elements || elements.length === 0) {
+return;
+}
 
     elements.forEach(element => {
       const rect = element.getBoundingClientRect();
@@ -165,7 +167,9 @@ export function useSelectionBox(options: UseSelectionBoxOptions = {}) {
   };
 
   const handleMouseMove = (event: MouseEvent) => {
-    if (!isMouseDown.value || !selectionBoxState.value.isSelecting) return;
+    if (!isMouseDown.value || !selectionBoxState.value.isSelecting) {
+return;
+}
     
     // 直接使用屏幕坐标
     const x = event.clientX;
@@ -188,19 +192,21 @@ export function useSelectionBox(options: UseSelectionBoxOptions = {}) {
     
     // 检测拖拽方向（只在开始拖拽时检测一次）
     if (!dragDirection.value && width > 5) { // 5px阈值避免误判
-      dragDirection.value = x > selectionBoxState.value.startX ? 'left-to-right' : 'right-to-left';
+      dragDirection.value = x > selectionBoxState.value.startX ? "left-to-right" : "right-to-left";
     }
     
     // 检测相交的元素
     if (spatialSelector) {
       const queryRect = { left, top, right: left + width, bottom: top + height, width, height };
-      const selectableElements = Array.from(containerRef.value?.querySelectorAll('[data-selectable]') || []);
+      const selectableElements = Array.from(containerRef.value?.querySelectorAll("[data-selectable]") || []);
       
       if (selectableElements.length > 0) {
         // 根据拖拽方向选择不同的检测策略
         const intersectingElements = selectableElements.filter(element => {
           const rect = getElementPosition(element);
-          if (!rect) return false;
+          if (!rect) {
+return false;
+}
           
           const elementRect = {
             left: rect.left,
@@ -212,10 +218,10 @@ export function useSelectionBox(options: UseSelectionBoxOptions = {}) {
           };
           
           // 左交右框选择逻辑
-          if (dragDirection.value === 'left-to-right') {
+          if (dragDirection.value === "left-to-right") {
             // 从左向右：只有完全位于选择框内部的元素才会被选中（框选模式）
             return isRectContaining(queryRect, elementRect);
-          } else if (dragDirection.value === 'right-to-left') {
+          } else if (dragDirection.value === "right-to-left") {
             // 从右向左：位于选择框内部或与选择框相交的元素被选中（相交模式）
             return isRectIntersecting(queryRect, elementRect);
           } else {
@@ -240,7 +246,9 @@ export function useSelectionBox(options: UseSelectionBoxOptions = {}) {
   };
 
   const handleMouseUp = (event: MouseEvent) => {
-    if (!isMouseDown.value) return;
+    if (!isMouseDown.value) {
+return;
+}
     
     isMouseDown.value = false;
     

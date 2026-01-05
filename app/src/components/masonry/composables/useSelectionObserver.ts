@@ -1,5 +1,5 @@
-import { ref, onUnmounted } from 'vue';
-import type { EntityId } from './useSelectionSystem';
+import { ref, onUnmounted } from "vue";
+import type { EntityId } from "./useSelectionSystem";
 
 export interface UseSelectionObserverOptions {
   container: any; // Ref<HTMLElement | null>
@@ -10,7 +10,9 @@ export interface UseSelectionObserverOptions {
 
 // 扫描容器中的所有可选择元素
 const scanElements = (container: HTMLElement, elementFilter: (element: Element) => boolean): Element[] => {
-  if (!container) return [];
+  if (!container) {
+return [];
+}
   
   const elements: Element[] = [];
   const walker = document.createTreeWalker(
@@ -36,34 +38,44 @@ const scanElements = (container: HTMLElement, elementFilter: (element: Element) 
 
 // 检查元素列表是否发生变化
 const hasElementsChanged = (newElements: Element[], currentElements: Element[]): boolean => {
-  if (newElements.length !== currentElements.length) return true;
+  if (newElements.length !== currentElements.length) {
+return true;
+}
   return !newElements.every((el, index) => el === currentElements[index]);
 };
 
 // 检查节点是否包含可选择元素
 const isRelevantNode = (node: Node, elementFilter: (element: Element) => boolean): boolean => {
-  if (node.nodeType !== Node.ELEMENT_NODE) return false;
+  if (node.nodeType !== Node.ELEMENT_NODE) {
+return false;
+}
   const element = node as Element;
-  return elementFilter(element) || !!element.querySelector('[data-selectable]');
+  return elementFilter(element) || !!element.querySelector("[data-selectable]");
 };
 
 // 检查属性变化是否相关
 const isRelevantAttributeChange = (mutation: MutationRecord): boolean => {
-  return mutation.type === 'attributes' && 
-         (mutation.attributeName === 'data-selectable' || 
-          mutation.attributeName === 'data-id');
+  return mutation.type === "attributes" && 
+         (mutation.attributeName === "data-selectable" || 
+          mutation.attributeName === "data-id");
 };
 
 // 检查子节点变化是否相关
 const hasRelevantChildListChanges = (mutation: MutationRecord, elementFilter: (element: Element) => boolean): boolean => {
-  if (mutation.type !== 'childList') return false;
+  if (mutation.type !== "childList") {
+return false;
+}
   
   for (const node of mutation.addedNodes) {
-    if (isRelevantNode(node, elementFilter)) return true;
+    if (isRelevantNode(node, elementFilter)) {
+return true;
+}
   }
   
   for (const node of mutation.removedNodes) {
-    if (isRelevantNode(node, elementFilter)) return true;
+    if (isRelevantNode(node, elementFilter)) {
+return true;
+}
   }
   
   return false;
@@ -97,7 +109,9 @@ export function useSelectionObserver(options: UseSelectionObserverOptions) {
 
   // 更新元素列表
   const updateElements = () => {
-    if (!container.value) return;
+    if (!container.value) {
+return;
+}
     
     const newElements = scanElements(container.value, elementFilter);
     
@@ -116,7 +130,9 @@ export function useSelectionObserver(options: UseSelectionObserverOptions) {
 
   // 开始观察
   const startObserving = () => {
-    if (!container.value) return;
+    if (!container.value) {
+return;
+}
 
     // 初始扫描
     updateElements();
@@ -127,7 +143,7 @@ export function useSelectionObserver(options: UseSelectionObserverOptions) {
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ['data-selectable', 'data-id'],
+      attributeFilter: ["data-selectable", "data-id"],
     });
   };
 

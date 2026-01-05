@@ -1,8 +1,8 @@
-import { reactive, ref, watch } from 'vue';
+import { reactive, ref, watch } from "vue";
 
 // 类型定义
 export type EntityId = string | number;
-export type SelectionMode = 'single' | 'multiple' | 'range';
+export type SelectionMode = "single" | "multiple" | "range";
 
 export interface SelectionState {
   selectedIds: Set<EntityId>;
@@ -14,10 +14,10 @@ export interface SelectionState {
 }
 
 export interface SelectionEvent {
-  type: 'select' | 'deselect' | 'focus' | 'blur' | 'clear';
+  type: "select" | "deselect" | "focus" | "blur" | "clear";
   entityId: EntityId;
   data?: any;
-  source: 'click' | 'keyboard' | 'programmatic' | 'drag';
+  source: "click" | "keyboard" | "programmatic" | "drag";
 }
 
 export interface UseSelectionSystemOptions {
@@ -68,7 +68,7 @@ export interface SelectionApi {
 
 export function useSelectionSystem(options: UseSelectionSystemOptions = {}) {
   const {
-    mode = 'multiple',
+    mode = "multiple",
     allowEmpty = true,
     onSelectionChange,
     onFocusChange,
@@ -94,8 +94,8 @@ export function useSelectionSystem(options: UseSelectionSystemOptions = {}) {
     getSelectionMode: () => state.selectionMode,
     
     // 选择操作
-    select: (entityId: EntityId, source: string = 'programmatic') => {
-      if (state.selectionMode === 'single') {
+    select: (entityId: EntityId, source: string = "programmatic") => {
+      if (state.selectionMode === "single") {
         // 单选模式：清空之前的选择
         state.selectedIds.clear();
       }
@@ -103,28 +103,28 @@ export function useSelectionSystem(options: UseSelectionSystemOptions = {}) {
       state.lastSelectedId = entityId;
       
       const event: SelectionEvent = {
-        type: 'select',
+        type: "select",
         entityId,
         source: source as any,
       };
       onSelectionChange?.(event);
     },
     
-    deselect: (entityId: EntityId, source: string = 'programmatic') => {
+    deselect: (entityId: EntityId, source: string = "programmatic") => {
       if (!allowEmpty && state.selectedIds.size === 1) {
         return; // 不允许空选择
       }
       state.selectedIds.delete(entityId);
       
       const event: SelectionEvent = {
-        type: 'deselect',
+        type: "deselect",
         entityId,
         source: source as any,
       };
       onSelectionChange?.(event);
     },
     
-    toggle: (entityId: EntityId, source: string = 'programmatic') => {
+    toggle: (entityId: EntityId, source: string = "programmatic") => {
       if (state.selectedIds.has(entityId)) {
         selectionApi.deselect(entityId, source);
       } else {
@@ -132,12 +132,14 @@ export function useSelectionSystem(options: UseSelectionSystemOptions = {}) {
       }
     },
     
-    clear: (source: string = 'programmatic') => {
-      if (!allowEmpty) return;
+    clear: (source: string = "programmatic") => {
+      if (!allowEmpty) {
+return;
+}
       state.selectedIds.clear();
       
       const event: SelectionEvent = {
-        type: 'clear',
+        type: "clear",
         entityId: null as any,
         source: source as any,
       };
@@ -146,7 +148,7 @@ export function useSelectionSystem(options: UseSelectionSystemOptions = {}) {
     
     // 批量选择操作
     selectEntities: (entityIds: EntityId[]) => {
-      if (state.selectionMode === 'single' && entityIds.length > 0) {
+      if (state.selectionMode === "single" && entityIds.length > 0) {
         // 单选模式：只选择第一个
         state.selectedIds.clear();
         state.selectedIds.add(entityIds[0]);
@@ -162,9 +164,9 @@ export function useSelectionSystem(options: UseSelectionSystemOptions = {}) {
       }
       
       const event: SelectionEvent = {
-        type: 'select',
+        type: "select",
         entityId: null as any,
-        source: 'programmatic',
+        source: "programmatic",
       };
       onSelectionChange?.(event);
     },
@@ -181,16 +183,18 @@ export function useSelectionSystem(options: UseSelectionSystemOptions = {}) {
       state.selectedIds = newSelection;
       
       const event: SelectionEvent = {
-        type: 'select',
+        type: "select",
         entityId: null as any,
-        source: 'programmatic',
+        source: "programmatic",
       };
       onSelectionChange?.(event);
     },
     
     // 焦点操作
     focus: (entityId: EntityId) => {
-      if (state.focusedId === entityId) return;
+      if (state.focusedId === entityId) {
+return;
+}
       state.focusedId = entityId;
       onFocusChange?.(entityId);
     },
@@ -202,7 +206,9 @@ export function useSelectionSystem(options: UseSelectionSystemOptions = {}) {
     
     // 导航操作
     navigateNext: () => {
-      if (state.navigableEntities.length === 0) return;
+      if (state.navigableEntities.length === 0) {
+return;
+}
       
       let nextIndex = 0;
       if (state.focusedId !== null) {
@@ -217,7 +223,9 @@ export function useSelectionSystem(options: UseSelectionSystemOptions = {}) {
     },
     
     navigatePrevious: () => {
-      if (state.navigableEntities.length === 0) return;
+      if (state.navigableEntities.length === 0) {
+return;
+}
       
       let prevIndex = state.navigableEntities.length - 1;
       if (state.focusedId !== null) {
@@ -250,9 +258,9 @@ export function useSelectionSystem(options: UseSelectionSystemOptions = {}) {
       });
       
       const event: SelectionEvent = {
-        type: 'select',
+        type: "select",
         entityId: null as any,
-        source: 'programmatic',
+        source: "programmatic",
       };
       onSelectionChange?.(event);
     },
@@ -261,7 +269,9 @@ export function useSelectionSystem(options: UseSelectionSystemOptions = {}) {
       const fromIndex = state.navigableEntities.indexOf(fromId);
       const toIndex = state.navigableEntities.indexOf(toId);
       
-      if (fromIndex === -1 || toIndex === -1) return;
+      if (fromIndex === -1 || toIndex === -1) {
+return;
+}
       
       const startIndex = Math.min(fromIndex, toIndex);
       const endIndex = Math.max(fromIndex, toIndex);
@@ -271,9 +281,9 @@ export function useSelectionSystem(options: UseSelectionSystemOptions = {}) {
       }
       
       const event: SelectionEvent = {
-        type: 'select',
+        type: "select",
         entityId: null as any,
-        source: 'programmatic',
+        source: "programmatic",
       };
       onSelectionChange?.(event);
     },
@@ -292,43 +302,43 @@ export function useSelectionSystem(options: UseSelectionSystemOptions = {}) {
       }
       
       switch (event.key) {
-        case 'ArrowDown':
-        case 'ArrowRight':
+        case "ArrowDown":
+        case "ArrowRight":
           event.preventDefault();
           selectionApi.navigateNext();
           break;
           
-        case 'ArrowUp':
-        case 'ArrowLeft':
+        case "ArrowUp":
+        case "ArrowLeft":
           event.preventDefault();
           selectionApi.navigatePrevious();
           break;
           
-        case 'Home':
+        case "Home":
           event.preventDefault();
           selectionApi.navigateToFirst();
           break;
           
-        case 'End':
+        case "End":
           event.preventDefault();
           selectionApi.navigateToLast();
           break;
           
-        case ' ':
-        case 'Enter':
+        case " ":
+        case "Enter":
           event.preventDefault();
           if (state.focusedId !== null) {
-            selectionApi.toggle(state.focusedId, 'keyboard');
+            selectionApi.toggle(state.focusedId, "keyboard");
           }
           break;
           
-        case 'Escape':
+        case "Escape":
           event.preventDefault();
-          selectionApi.clear('keyboard');
+          selectionApi.clear("keyboard");
           selectionApi.blur();
           break;
           
-        case 'a':
+        case "a":
           if (event.ctrlKey || event.metaKey) {
             event.preventDefault();
             selectionApi.selectAll();
@@ -337,8 +347,8 @@ export function useSelectionSystem(options: UseSelectionSystemOptions = {}) {
       }
       
       // Shift + 方向键进行范围选择
-      if (event.shiftKey && (event.key === 'ArrowDown' || event.key === 'ArrowRight' || 
-                            event.key === 'ArrowUp' || event.key === 'ArrowLeft')) {
+      if (event.shiftKey && (event.key === "ArrowDown" || event.key === "ArrowRight" || 
+                            event.key === "ArrowUp" || event.key === "ArrowLeft")) {
         event.preventDefault();
         
         if (state.lastSelectedId !== null && state.focusedId !== null) {

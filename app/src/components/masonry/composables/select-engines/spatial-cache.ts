@@ -1,5 +1,5 @@
-import type { SpatialData, SpatialCache, Rect, Point } from './types';
-import { convertDOMRectToRect, computeRectCenter, computeRectArea } from './spatial-utils';
+import type { SpatialData, SpatialCache, Rect, Point } from "./types";
+import { convertDOMRectToRect, computeRectCenter, computeRectArea } from "./spatial-utils";
 
 // 创建空间缓存
 export const createSpatialCache = (): SpatialCache => ({

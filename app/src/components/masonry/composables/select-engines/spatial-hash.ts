@@ -1,5 +1,5 @@
-import type { Rect, BlockData } from './types';
-import { isRectIntersecting } from './spatial-utils';
+import type { Rect, BlockData } from "./types";
+import { isRectIntersecting } from "./spatial-utils";
 
 // 空间哈希网格
 export interface SpatialHashGrid {
@@ -175,7 +175,7 @@ export const getBlocksInArea = (
   blockKeys.forEach(key => {
     const elements = grid.blocks.get(key);
     if (elements && elements.length > 0) {
-      const [x, y] = key.split(',').map(Number);
+      const [x, y] = key.split(",").map(Number);
       const bounds: Rect = {
         left: x * grid.blockSize,
         top: y * grid.blockSize,

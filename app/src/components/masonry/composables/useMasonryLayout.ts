@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ref, reactive, computed, Ref, shallowRef, onMounted, onUnmounted, watch } from 'vue';
-import RBush from 'rbush';
-import { createRafScheduler } from '../utils/createRafScheduler';
+import { ref, reactive, computed, Ref, shallowRef, onMounted, onUnmounted, watch } from "vue";
+import RBush from "rbush";
+import { createRafScheduler } from "../utils/createRafScheduler";
 
 // @织: 浏览器能够安全处理的最大CSS高度 (一个比较保守的值)
 const MAX_BROWSER_HEIGHT = 15_000_000;
@@ -98,7 +98,9 @@ export function useMasonryLayout({ containerWidth, columnWidth, gap, items, idKe
     const totalHeight = ref(0);
 
     const columnCount = computed(() => {
-        if (!containerWidth.value || !columnWidth.value) return 1;
+        if (!containerWidth.value || !columnWidth.value) {
+return 1;
+}
         return Math.max(1, Math.floor(containerWidth.value / columnWidth.value));
     });
 
@@ -136,10 +138,14 @@ export function useMasonryLayout({ containerWidth, columnWidth, gap, items, idKe
 
         updatesToProcess.forEach((height, id) => {
             const item = idToItemMap.get(id);
-            if (!item) return;
+            if (!item) {
+return;
+}
 
             const oldHeight = item.height;
-            if (oldHeight === height) return;
+            if (oldHeight === height) {
+return;
+}
 
             item.height = height;
 
@@ -156,7 +162,9 @@ export function useMasonryLayout({ containerWidth, columnWidth, gap, items, idKe
         if (changedColumns.size > 0) {
             changedColumns.forEach((minChangedIndexInColumn, columnIndex) => {
                 const column = columns[columnIndex];
-                if (!column) return;
+                if (!column) {
+return;
+}
 
                 // Start from the first changed item in the column
                 const startItem = column.items[minChangedIndexInColumn];
@@ -210,7 +218,9 @@ export function useMasonryLayout({ containerWidth, columnWidth, gap, items, idKe
 
     // @织: 将 rebuildLayout 拆分为完全重建和增量添加
     const appendItems = (itemsToAppend: any[]) => {
-        if (itemsToAppend.length === 0) return;
+        if (itemsToAppend.length === 0) {
+return;
+}
 
         const newLayoutItems: LayoutItem[] = [];
         const newBushItems: BushItem[] = [];
@@ -218,7 +228,9 @@ export function useMasonryLayout({ containerWidth, columnWidth, gap, items, idKe
         itemsToAppend.forEach(itemData => {
             const id = itemData[idKey];
             // 防止重复添加
-            if (idToItemMap.has(id)) return;
+            if (idToItemMap.has(id)) {
+return;
+}
 
             const shortestColumn = getShortestColumn();
             const columnIndex = shortestColumn.index;
@@ -283,7 +295,7 @@ export function useMasonryLayout({ containerWidth, columnWidth, gap, items, idKe
         // @织: 从 R-Tree 拿到 ID，再从 allItems 中获取最新的响应式对象
         const visibleIds = new Set(results.map(r => r.id));
         return allItems.value.filter(item => visibleIds.has(item.id));
-    }
+    };
 
     initializeColumns();
 

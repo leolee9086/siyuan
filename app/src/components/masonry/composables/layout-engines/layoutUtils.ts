@@ -1,7 +1,7 @@
-import { computed, ref, Ref, watch, ComputedRef } from 'vue';
-import { createRafScheduler } from '../../utils/createRafScheduler';
-import type { LayoutColumn, LayoutItem, UseLayoutEngineOptions } from './types';
-import { MAX_BROWSER_HEIGHT } from './types';
+import { computed, ref, Ref, watch, ComputedRef } from "vue";
+import { createRafScheduler } from "../../utils/createRafScheduler";
+import type { LayoutColumn, LayoutItem, UseLayoutEngineOptions } from "./types";
+import { MAX_BROWSER_HEIGHT } from "./types";
 
 /**
  * 初始化列数据结构
@@ -29,16 +29,16 @@ export function getShortestColumn(columns: LayoutColumn[]): { index: number; hei
 export function calculateTotalHeight(
     columns: LayoutColumn[], 
     allItems: LayoutItem[], 
-    mode: 'masonry' | 'grid' | 'justified',
+    mode: "masonry" | "grid" | "justified",
     estimatedTotalCount?: number
 ): number {
-    if (columns.length === 0 && mode === 'masonry') {
+    if (columns.length === 0 && mode === "masonry") {
         return 0;
     }
 
     let calculatedHeight = 0;
 
-    if (mode === 'grid' || mode === 'justified') {
+    if (mode === "grid" || mode === "justified") {
         const lastItem = allItems[allItems.length - 1];
         if (lastItem) {
             calculatedHeight = lastItem.y + lastItem.height;
@@ -61,9 +61,11 @@ export function calculateTotalHeight(
 /**
  * 创建计算列数的计算属性
  */
-export function createColumnCountComputed({ containerWidth, columnWidth }: Pick<UseLayoutEngineOptions, 'containerWidth' | 'columnWidth'>): ComputedRef<number> {
+export function createColumnCountComputed({ containerWidth, columnWidth }: Pick<UseLayoutEngineOptions, "containerWidth" | "columnWidth">): ComputedRef<number> {
     return computed(() => {
-        if (!containerWidth.value || !columnWidth.value) return 1;
+        if (!containerWidth.value || !columnWidth.value) {
+return 1;
+}
         return Math.max(1, Math.floor(containerWidth.value / columnWidth.value));
     });
 }
@@ -73,7 +75,7 @@ export function createColumnCountComputed({ containerWidth, columnWidth }: Pick<
  */
 export function createScrollHeightComputed(
     totalHeight: Ref<number>, 
-    estimatedTotalCount: UseLayoutEngineOptions['estimatedTotalCount'], 
+    estimatedTotalCount: UseLayoutEngineOptions["estimatedTotalCount"], 
     allItems: LayoutItem[]
 ): ComputedRef<number> {
     return computed(() => {
@@ -107,7 +109,7 @@ export function createContentHeightComputed(logicalScrollHeight: ComputedRef<num
  * 创建对items监听的逻辑
  */
 export function setupItemsWatch(
-    items: UseLayoutEngineOptions['items'], 
+    items: UseLayoutEngineOptions["items"], 
     appendItems: (itemsToAppend: any[]) => void, 
     rebuildLayout: () => void,
     idKey: string
@@ -127,7 +129,7 @@ export function setupItemsWatch(
 /**
  * 创建智能更新调度器
  */
-export function createUpdateScheduler(isScrolling: UseLayoutEngineOptions['isScrolling'], processPendingUpdates: () => void) {
+export function createUpdateScheduler(isScrolling: UseLayoutEngineOptions["isScrolling"], processPendingUpdates: () => void) {
     const scheduleProcessing = createRafScheduler(processPendingUpdates);
     
     // 监听滚动状态

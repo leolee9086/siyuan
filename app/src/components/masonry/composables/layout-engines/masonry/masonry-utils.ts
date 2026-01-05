@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Ref } from 'vue';
-import RBush from 'rbush';
-import { BushItem, LayoutItem, LayoutColumn } from '../types';
-import { getShortestColumn } from '../layoutUtils';
+import { Ref } from "vue";
+import RBush from "rbush";
+import { BushItem, LayoutItem, LayoutColumn } from "../types";
+import { getShortestColumn } from "../layoutUtils";
 
 /**
  * 瀑布流布局项目追加函数  
@@ -64,7 +64,9 @@ export function appendMasonryItems(params: {
     itemsToAppend.forEach(itemData => {
         const id = itemData[idKey];
         // 防止重复添加
-        if (idToItemMap.has(id)) return;
+        if (idToItemMap.has(id)) {
+return;
+}
 
         const shortestColumn = getShortestColumn(modifiedColumns);
         const columnIndex = shortestColumn.index;
@@ -144,10 +146,14 @@ export function processMasonryHeightUpdates(params: {
     // 记录每列中最小的变化项目索引
     pendingUpdates.forEach((newHeight, id) => {
         const item = idToItemMap.get(id);
-        if (!item) return;
+        if (!item) {
+return;
+}
         
         const oldHeight = item.height;
-        if (oldHeight === newHeight) return;
+        if (oldHeight === newHeight) {
+return;
+}
         
         // 找到对应的项目并更新高度
         const columnIndex = item.columnIndex;
@@ -182,7 +188,9 @@ export function processMasonryHeightUpdates(params: {
         const column = updatedColumns[columnIndex];
         const items = column.items;
         
-        if (startIndexInColumn >= items.length) return;
+        if (startIndexInColumn >= items.length) {
+return;
+}
         
         // 计算起始Y坐标
         let currentY = 0;

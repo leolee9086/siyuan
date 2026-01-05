@@ -24,7 +24,7 @@ export interface SpatialData {
 }
 
 export interface SpatialQueryOptions {
-  cacheStrategy: 'none' | 'weak' | 'strong';
+  cacheStrategy: "none" | "weak" | "strong";
   updateInterval: number;
   blockSize: number;
   useVirtualization: boolean;
@@ -38,7 +38,7 @@ export interface SpatialQueryResult {
   partialElements: Element[];
 }
 
-export type IntersectionType = 'none' | 'intersecting' | 'contained' | 'partial';
+export type IntersectionType = "none" | "intersecting" | "contained" | "partial";
 
 export interface BlockData {
   key: string;

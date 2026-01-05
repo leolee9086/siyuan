@@ -1,4 +1,4 @@
-import { ref, watch, onMounted, onUnmounted, type Ref } from 'vue';
+import { ref, watch, onMounted, onUnmounted, type Ref } from "vue";
 
 const MIN_THUMB_HEIGHT = 20; // 滚动条滑块的最小高度 (px)
 
@@ -13,7 +13,9 @@ export function useVirtualScrollbar({ scrollContainer, totalHeight }: UseVirtual
   let animationFrameId: number | null = null;
 
   const updateThumb = () => {
-    if (!scrollContainer.value || !thumbRef.value || !trackRef.value) return;
+    if (!scrollContainer.value || !thumbRef.value || !trackRef.value) {
+return;
+}
 
     const {
       scrollTop,
@@ -23,12 +25,12 @@ export function useVirtualScrollbar({ scrollContainer, totalHeight }: UseVirtual
 
     // 如果内容不需要滚动，则隐藏滚动条但不要return
     if (scrollHeight <= clientHeight) {
-      thumbRef.value.style.display = 'none';
-      trackRef.value.style.display = 'none';
+      thumbRef.value.style.display = "none";
+      trackRef.value.style.display = "none";
       return;
     } else {
-      thumbRef.value.style.display = 'block';
-      trackRef.value.style.display = 'block';
+      thumbRef.value.style.display = "block";
+      trackRef.value.style.display = "block";
     }
 
     // 计算滚动条高度，使用滚动容器物理高度而不是逻辑高度
@@ -57,26 +59,26 @@ export function useVirtualScrollbar({ scrollContainer, totalHeight }: UseVirtual
   onMounted(() => {
     // 在组件挂载后立即更新滚动条状态
     if (scrollContainer.value) {
-      scrollContainer.value.addEventListener('scroll', handleScroll, { passive: true });
+      scrollContainer.value.addEventListener("scroll", handleScroll, { passive: true });
       // 确保初始化时调用一次updateThumb
       requestAnimationFrame(updateThumb);
     }
     if (trackRef.value) {
-        trackRef.value.addEventListener('mousedown', handleTrackMouseDown);
+        trackRef.value.addEventListener("mousedown", handleTrackMouseDown);
     }
   });
 
   onUnmounted(() => {
     if (scrollContainer.value) {
-      scrollContainer.value.removeEventListener('scroll', handleScroll);
+      scrollContainer.value.removeEventListener("scroll", handleScroll);
     }
     if (animationFrameId) {
       cancelAnimationFrame(animationFrameId);
     }
-    document.removeEventListener('mousemove', handleThumbMouseMove);
-    document.removeEventListener('mouseup', handleThumbMouseUp);
+    document.removeEventListener("mousemove", handleThumbMouseMove);
+    document.removeEventListener("mouseup", handleThumbMouseUp);
     if (trackRef.value) {
-      trackRef.value.removeEventListener('mousedown', handleTrackMouseDown);
+      trackRef.value.removeEventListener("mousedown", handleTrackMouseDown);
     }
   });
 
@@ -90,7 +92,9 @@ export function useVirtualScrollbar({ scrollContainer, totalHeight }: UseVirtual
   let startScrollTop = 0;
 
   const handleTrackMouseDown = (e: MouseEvent) => {
-    if (!(e.target instanceof HTMLElement)) return;
+    if (!(e.target instanceof HTMLElement)) {
+return;
+}
 
     if (e.target === thumbRef.value || e.target.parentElement === trackRef.value) {
         e.preventDefault();
@@ -100,11 +104,13 @@ export function useVirtualScrollbar({ scrollContainer, totalHeight }: UseVirtual
         startY = e.clientY;
         startScrollTop = scrollContainer.value?.scrollTop ?? 0;
 
-        document.addEventListener('mousemove', handleThumbMouseMove);
-        document.addEventListener('mouseup', handleThumbMouseUp);
+        document.addEventListener("mousemove", handleThumbMouseMove);
+        document.addEventListener("mouseup", handleThumbMouseUp);
     } else if (e.target === trackRef.value) {
         const { clientY, currentTarget } = e;
-        if (!scrollContainer.value || !currentTarget) return;
+        if (!scrollContainer.value || !currentTarget) {
+return;
+}
 
         const trackRect = (currentTarget as HTMLElement).getBoundingClientRect();
         const clickRatio = (clientY - trackRect.top) / trackRect.height;
@@ -117,7 +123,9 @@ export function useVirtualScrollbar({ scrollContainer, totalHeight }: UseVirtual
   };
 
   const handleThumbMouseMove = (e: MouseEvent) => {
-    if (!isDragging.value || !scrollContainer.value) return;
+    if (!isDragging.value || !scrollContainer.value) {
+return;
+}
 
     e.preventDefault();
     e.stopPropagation();
@@ -142,14 +150,16 @@ export function useVirtualScrollbar({ scrollContainer, totalHeight }: UseVirtual
   };
 
   const handleThumbMouseUp = (e: MouseEvent) => {
-    if (!isDragging.value) return;
+    if (!isDragging.value) {
+return;
+}
 
     e.preventDefault();
     e.stopPropagation();
 
     isDragging.value = false;
-    document.removeEventListener('mousemove', handleThumbMouseMove);
-    document.removeEventListener('mouseup', handleThumbMouseUp);
+    document.removeEventListener("mousemove", handleThumbMouseMove);
+    document.removeEventListener("mouseup", handleThumbMouseUp);
   };
 
   return {

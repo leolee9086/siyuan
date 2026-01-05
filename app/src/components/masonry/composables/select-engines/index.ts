@@ -11,7 +11,7 @@ export type {
   BlockData,
   SpatialCache,
   SpatialHashGrid,
-} from './types';
+} from "./types";
 
 // 空间计算工具
 export {
@@ -26,7 +26,7 @@ export {
   isPointInRect,
   computePointToRectDistance,
   mergeRects,
-} from './spatial-utils';
+} from "./spatial-utils";
 
 // 空间缓存系统
 export {
@@ -41,7 +41,7 @@ export {
   shouldUpdateCache,
   preloadSpatialData,
   getCacheStats,
-} from './spatial-cache';
+} from "./spatial-cache";
 
 // 空间哈希索引
 export {
@@ -56,7 +56,7 @@ export {
   cleanupEmptyBlocks,
   rebuildSpatialHash,
   getBlocksInArea,
-} from './spatial-hash';
+} from "./spatial-hash";
 
 // 空间查询核心
 export {
@@ -67,14 +67,14 @@ export {
   queryElementsNearPoint,
   queryElementsByIntersectionArea,
   getQueryStats,
-} from './spatial-query';
+} from "./spatial-query";
 
 // 导入用于内部使用
-import type { Rect, Point, SpatialQueryOptions } from './types';
-import { createSpatialCache } from './spatial-cache';
-import { createSpatialHashGrid, addElementToSpatialHash, removeElementFromSpatialHash, updateElementInSpatialHash, rebuildSpatialHash, cleanupEmptyBlocks, getGridStats } from './spatial-hash';
-import { updateElementSpatialData, cleanupExpiredCache, getCacheStats } from './spatial-cache';
-import { queryIntersectingElementsWithCache, queryContainedElements, queryPartialElements, executeSpatialQuery, queryElementsNearPoint } from './spatial-query';
+import type { Rect, Point, SpatialQueryOptions } from "./types";
+import { createSpatialCache } from "./spatial-cache";
+import { createSpatialHashGrid, addElementToSpatialHash, removeElementFromSpatialHash, updateElementInSpatialHash, rebuildSpatialHash, cleanupEmptyBlocks, getGridStats } from "./spatial-hash";
+import { updateElementSpatialData, cleanupExpiredCache, getCacheStats } from "./spatial-cache";
+import { queryIntersectingElementsWithCache, queryContainedElements, queryPartialElements, executeSpatialQuery, queryElementsNearPoint } from "./spatial-query";
 
 // 创建默认配置的空间选择器
 export const createDefaultSpatialSelector = () => {
@@ -82,7 +82,7 @@ export const createDefaultSpatialSelector = () => {
   const grid = createSpatialHashGrid(100);
   
   const defaultOptions: SpatialQueryOptions = {
-    cacheStrategy: 'weak',
+    cacheStrategy: "weak",
     updateInterval: 16,
     blockSize: 100,
     useVirtualization: true,

@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ref, shallowRef, nextTick } from 'vue';
-import RBush from 'rbush';
+import { ref, shallowRef, nextTick } from "vue";
+import RBush from "rbush";
 import { 
     BushItem, 
     LayoutItem, 
     LayoutColumn, 
     UseLayoutEngineOptions, 
     LayoutEngineResult 
-} from '../types';
+} from "../types";
 import {
     initializeColumns,
     calculateTotalHeight,
@@ -16,12 +16,12 @@ import {
     createContentHeightComputed,
     createUpdateScheduler,
     setupItemsWatch
-} from '../layoutUtils';
+} from "../layoutUtils";
 import {
     appendGridItems,
     processGridHeightUpdates,
     findGridVisibleItems
-} from './grid-utils';
+} from "./grid-utils";
 
 /**
  * 网格布局引擎 - 处理均匀宽度，每行等高的项目
@@ -38,7 +38,7 @@ export function useGridLayout({
     estimatedTotalCount,
     onBeforeRebuildLayout,
     onAfterRebuildLayout,
-}: Omit<UseLayoutEngineOptions, 'mode'>): LayoutEngineResult {
+}: Omit<UseLayoutEngineOptions, "mode">): LayoutEngineResult {
     // R-tree 用于高效的空间查询
     const tree = new RBush<BushItem>();
     
@@ -70,7 +70,7 @@ export function useGridLayout({
         totalHeight.value = calculateTotalHeight(
             columns, 
             allItems.value, 
-            'grid', 
+            "grid", 
             estimatedTotalCount?.value
         );
     };
@@ -79,7 +79,9 @@ export function useGridLayout({
      * 添加新项目到布局中 - 使用抽离的纯函数
      */
     const appendItemsLocal = (itemsToAppend: any[]) => {
-        if (itemsToAppend.length === 0) return;
+        if (itemsToAppend.length === 0) {
+return;
+}
 
         // 使用抽离出的纯函数
         const { newLayoutItems, newBushItems, modifiedColumns } = appendGridItems({
@@ -115,7 +117,9 @@ export function useGridLayout({
      * 处理高度更新请求 - 使用抽离的纯函数
      */
     const processPendingUpdatesLocal = () => {
-        if (pendingUpdates.size === 0) return;
+        if (pendingUpdates.size === 0) {
+return;
+}
         
         // 创建一个副本用于处理
         const updatesToProcess = new Map(pendingUpdates);

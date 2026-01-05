@@ -1,9 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import type { UseLayoutEngineOptions, LayoutEngineResult } from './layout-engines/types';
-import { useMasonryLayout } from './layout-engines/masonry/useMasonryLayout';
-import { useGridLayout } from './layout-engines/grid/useGridLayout';
-import { useJustifiedLayout } from './layout-engines/justified/useJustifiedLayout';
-import { useListLayout } from './layout-engines/list/useListLayout';
+ 
+import type { UseLayoutEngineOptions, LayoutEngineResult } from "./layout-engines/types";
+import { useMasonryLayout } from "./layout-engines/masonry/useMasonryLayout";
+import { useGridLayout } from "./layout-engines/grid/useGridLayout";
+import { useJustifiedLayout } from "./layout-engines/justified/useJustifiedLayout";
+import { useListLayout } from "./layout-engines/list/useListLayout";
 
 /**
  * 布局引擎工厂 - 根据模式选择合适的布局实现
@@ -17,13 +17,13 @@ import { useListLayout } from './layout-engines/list/useListLayout';
  * @returns LayoutEngineResult 布局引擎结果对象
  */
 export function useLayoutEngine(options: UseLayoutEngineOptions): LayoutEngineResult {
-    const { mode = 'masonry' } = options;
+    const { mode = "masonry" } = options;
     // 根据模式选择不同的布局引擎
-    if (mode === 'grid') {
+    if (mode === "grid") {
         return useGridLayout(options);
-    } else if (mode === 'justified') {
+    } else if (mode === "justified") {
         return useJustifiedLayout(options);
-    } else if (mode === 'list') {
+    } else if (mode === "list") {
         return useListLayout(options);
     } else {
         // 默认使用瀑布流布局

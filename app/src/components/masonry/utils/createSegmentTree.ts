@@ -118,7 +118,7 @@ export function createSegmentTree(inputArray: number[]): SegmentTree {
             // 左子树放不下，递归到左子树中查找断点
             return findBreakpointRecursive(leftChildIndex, start, mid, currentSum, targetSum);
         }
-    }
+    };
 
 
     // --- 初始化 ---
@@ -129,16 +129,22 @@ export function createSegmentTree(inputArray: number[]): SegmentTree {
     // --- 公开 API ---
     return {
         update: (index: number, value: number) => {
-            if (index < 0 || index >= n) return;
+            if (index < 0 || index >= n) {
+return;
+}
             inputArray[index] = value; // 保持原始数组同步
             updateRecursive(0, 0, n - 1, index, value);
         },
         query: (queryLeft: number, queryRight: number) => {
-            if (queryLeft < 0 || queryRight >= n || queryLeft > queryRight) return 0;
+            if (queryLeft < 0 || queryRight >= n || queryLeft > queryRight) {
+return 0;
+}
             return queryRecursive(0, 0, n - 1, queryLeft, queryRight);
         },
         findBreakpoint: (startIndex: number, targetSum: number) => {
-            if (startIndex < 0 || startIndex >= n) return { endIndex: startIndex - 1, sum: 0 };
+            if (startIndex < 0 || startIndex >= n) {
+return { endIndex: startIndex - 1, sum: 0 };
+}
             // @织: 这里的实现比我想象的要复杂，findBreakpointRecursive 只是一个雏形
             // @织: 一个更健壮的实现需要从 startIndex 开始遍历，不断用 query 查询来逼近目标
             let low = startIndex;

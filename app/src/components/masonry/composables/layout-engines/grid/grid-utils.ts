@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Ref } from 'vue';
-import RBush from 'rbush';
-import { BushItem, LayoutItem, LayoutColumn } from '../types';
-import { getShortestColumn } from '../layoutUtils';
+import { Ref } from "vue";
+import RBush from "rbush";
+import { BushItem, LayoutItem, LayoutColumn } from "../types";
+import { getShortestColumn } from "../layoutUtils";
 
 /**
  * 网格布局项目追加函数
@@ -64,7 +64,9 @@ export function appendGridItems(params: {
     itemsToAppend.forEach(itemData => {
         const id = itemData[idKey];
         // 防止重复添加
-        if (idToItemMap.has(id)) return;
+        if (idToItemMap.has(id)) {
+return;
+}
 
         const shortestColumn = getShortestColumn(modifiedColumns);
         const columnIndex = shortestColumn.index;
@@ -139,7 +141,9 @@ export function processGridHeightUpdates(params: {
     // 首先检测哪些行受到影响
     pendingUpdates.forEach((newHeight, id) => {
         const item = idToItemMap.get(id);
-        if (!item || item.height === newHeight) return;
+        if (!item || item.height === newHeight) {
+return;
+}
 
         item.height = newHeight;
         changedRows.add(item.indexInColumn);
@@ -160,7 +164,9 @@ export function processGridHeightUpdates(params: {
         const rowEndIndex = Math.min(rowStartIndex + columnCount.value, updatedItems.length);
         const rowItems = updatedItems.slice(rowStartIndex, rowEndIndex);
 
-        if (rowItems.length === 0) return;
+        if (rowItems.length === 0) {
+return;
+}
 
         const maxRowHeight = Math.max(...rowItems.map(item => item.height));
 

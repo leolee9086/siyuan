@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Ref } from 'vue';
-import RBush from 'rbush';
-import { BushItem, LayoutItem } from '../types';
-import { createSegmentTree, type SegmentTree } from '../../../utils/createSegmentTree';
+import { Ref } from "vue";
+import RBush from "rbush";
+import { BushItem, LayoutItem } from "../types";
+import { createSegmentTree, type SegmentTree } from "../../../utils/createSegmentTree";
 
 // 默认宽高比
 const DEFAULT_ASPECT_RATIO = 1; 
@@ -252,7 +252,9 @@ export function processJustifiedHeightUpdates(params: {
 
     pendingUpdates.forEach((newHeight, id) => {
         const item = idToItemMap.get(id);
-        if (!item || item.height === newHeight) return;
+        if (!item || item.height === newHeight) {
+return;
+}
         
         const oldAspectRatio = itemAspectRatios.get(id) || DEFAULT_ASPECT_RATIO;
         const newAspectRatio = item.width / newHeight;

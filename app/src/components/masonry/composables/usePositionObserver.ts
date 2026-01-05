@@ -1,5 +1,5 @@
-import { ref, onUnmounted } from 'vue';
-import type { EntityId } from './useSelectionSystem';
+import { ref, onUnmounted } from "vue";
+import type { EntityId } from "./useSelectionSystem";
 
 export interface UsePositionObserverOptions {
   elements: Element[];
@@ -37,7 +37,9 @@ export function usePositionObserver(options: UsePositionObserverOptions) {
 
   // 开始观察
   const startObserving = () => {
-    if (elements.length === 0) return;
+    if (elements.length === 0) {
+return;
+}
 
     // 初始更新位置
     updateElementPositions();

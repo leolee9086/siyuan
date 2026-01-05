@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import RBush from 'rbush';
-import { LayoutItem, BushItem } from '../types';
+import RBush from "rbush";
+import { LayoutItem, BushItem } from "../types";
 
 /**
  * 二分查找工具函数
@@ -184,7 +184,9 @@ export function processListHeightUpdates({
 
   for (const [id, newHeight] of sortedUpdates) {
     const item = idToItemMap.get(id);
-    if (!item || item.height === newHeight) continue;
+    if (!item || item.height === newHeight) {
+continue;
+}
 
     // 更新项目高度
     const oldHeight = item.height;

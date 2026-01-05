@@ -110,7 +110,7 @@ export const openAssetDialog = (callback?: (url: string, name: string) => void) 
                     dialogInstance = null;
                 }
             },
-            template: `<AssetMasonryDialog @select="handleSelect" @cancel="handleCancel" ref="assetMasonryDialogComponent" />`
+            template: "<AssetMasonryDialog @select=\"handleSelect\" @cancel=\"handleCancel\" ref=\"assetMasonryDialogComponent\" />"
         }),
         dialogOptions: {
             title: siyuanI18n.insertAsset || "插入素材",

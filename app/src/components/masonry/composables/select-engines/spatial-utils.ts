@@ -1,4 +1,4 @@
-import type { Rect, Point, IntersectionType } from './types';
+import type { Rect, Point, IntersectionType } from "./types";
 
 // 将DOMRect转换为Rect
 export const convertDOMRectToRect = (domRect: DOMRect): Rect => ({
@@ -37,7 +37,9 @@ export const isRectContaining = (rect1: Rect, rect2: Rect): boolean => {
 
 // 计算两个矩形的交集
 export const computeRectIntersection = (rect1: Rect, rect2: Rect): Rect | null => {
-  if (!isRectIntersecting(rect1, rect2)) return null;
+  if (!isRectIntersecting(rect1, rect2)) {
+return null;
+}
   
   const left = Math.max(rect1.left, rect2.left);
   const top = Math.max(rect1.top, rect2.top);
@@ -62,16 +64,22 @@ export const computeIntersectionArea = (rect1: Rect, rect2: Rect): number => {
 
 // 判断交集类型
 export const getIntersectionType = (rect1: Rect, rect2: Rect): IntersectionType => {
-  if (!isRectIntersecting(rect1, rect2)) return 'none';
-  if (isRectContaining(rect1, rect2)) return 'contained';
+  if (!isRectIntersecting(rect1, rect2)) {
+return "none";
+}
+  if (isRectContaining(rect1, rect2)) {
+return "contained";
+}
   
   const intersectionArea = computeIntersectionArea(rect1, rect2);
   const rect2Area = computeRectArea(rect2);
   
   // 如果交集面积超过90%，认为是包含关系
-  if (intersectionArea / rect2Area > 0.9) return 'contained';
+  if (intersectionArea / rect2Area > 0.9) {
+return "contained";
+}
   
-  return 'intersecting';
+  return "intersecting";
 };
 
 // 检查点是否在矩形内
@@ -91,7 +99,9 @@ export const computePointToRectDistance = (point: Point, rect: Rect): number => 
 
 // 合并多个矩形
 export const mergeRects = (rects: Rect[]): Rect | null => {
-  if (rects.length === 0) return null;
+  if (rects.length === 0) {
+return null;
+}
   
   let left = rects[0].left;
   let top = rects[0].top;

@@ -1,8 +1,8 @@
-import type { RectElementType } from "./anno.types";
+import type { RectElementType, IPdfInstance } from "./anno.types";
 import { getConfig } from "./anno.config";
 import { initRectAnnoTool } from "./anno.initRectAnnoTool";
 import { initResizeHandler } from "./anno.resize";
-import { handlePdfClick } from "./anno.click";
+import { handlePdfClick } from "./anno/click";
 
 /**
  * 全局变量，存储当前选中的矩形注释元素
@@ -34,12 +34,12 @@ export const setRectElement = (element: RectElementType) => {
  * @param pdf PDF实例对象，包含PDF文档和查看器的相关信息
  * @returns 返回传入的PDF实例，便于链式调用
  */
-export const initAnno = (element: HTMLElement, pdf: any) => {
+export const initAnno = (element: HTMLElement, pdf: IPdfInstance) => {
     getConfig(pdf);
     initRectAnnoTool(element, pdf);
     initResizeHandler(pdf);
     element.addEventListener("click", (event) => {
-        handlePdfClick(event as MouseEvent | CustomEvent, element, pdf);
+        handlePdfClick(event, element, pdf);
     });
     return pdf;
 };

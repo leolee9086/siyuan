@@ -1,9 +1,9 @@
-import { ref, onMounted, onUnmounted, Ref } from 'vue';
-import { throttle } from '../utils/throttle';
+import { ref, onMounted, onUnmounted, Ref } from "vue";
+import { throttle } from "../utils/throttle";
 
 export interface UseScrollObserverOptions {
     scrollContainer: Ref<HTMLElement | null>;
-    onScroll?: (scrollTop: number, scrollDirection: 'up' | 'down' | 'none') => void;
+    onScroll?: (scrollTop: number, scrollDirection: "up" | "down" | "none") => void;
     onScrollSettled?: (scrollTop: number) => void;
     throttleTime?: number;
     scrollSettleTime?: number;
@@ -17,8 +17,8 @@ function createHandleScroll(
     scrollTop: Ref<number>,
     isScrolling: Ref<boolean>,
     isScrollIgnored: Ref<boolean>,
-    scrollDirection: Ref<'up' | 'down' | 'none'>,
-    onScroll?: (scrollTop: number, scrollDirection: 'up' | 'down' | 'none') => void,
+    scrollDirection: Ref<"up" | "down" | "none">,
+    onScroll?: (scrollTop: number, scrollDirection: "up" | "down" | "none") => void,
     onScrollSettled?: (scrollTop: number) => void,
     throttleTime: number = 50,
     scrollSettleTime: number = 150
@@ -27,14 +27,16 @@ function createHandleScroll(
     let lastScrollTop = 0;
     
     const handleScroll = throttle(() => {
-        if (!scrollContainer.value || isScrollIgnored.value) return;
+        if (!scrollContainer.value || isScrollIgnored.value) {
+return;
+}
 
         const currentScrollTop = scrollContainer.value.scrollTop;
         
         if (currentScrollTop > lastScrollTop) {
-            scrollDirection.value = 'down';
+            scrollDirection.value = "down";
         } else if (currentScrollTop < lastScrollTop) {
-            scrollDirection.value = 'up';
+            scrollDirection.value = "up";
         }
         
         scrollTop.value = currentScrollTop;
@@ -51,7 +53,7 @@ function createHandleScroll(
         
         scrollTimeout = setTimeout(() => {
             isScrolling.value = false;
-            scrollDirection.value = 'none';
+            scrollDirection.value = "none";
             
             if (onScrollSettled) {
                 onScrollSettled(scrollTop.value);
@@ -96,7 +98,7 @@ export function useScrollObserver({
     const scrollTop = ref(0);
     const isScrolling = ref(false);
     const isScrollIgnored = ref(false);
-    const scrollDirection = ref<'up' | 'down' | 'none'>('none');
+    const scrollDirection = ref<"up" | "down" | "none">("none");
 
     const { handleScroll, scrollTimeout } = createHandleScroll(
         scrollContainer,
@@ -114,13 +116,13 @@ export function useScrollObserver({
 
     onMounted(() => {
         if (scrollContainer.value) {
-            scrollContainer.value.addEventListener('scroll', handleScroll, { passive: true });
+            scrollContainer.value.addEventListener("scroll", handleScroll, { passive: true });
         }
     });
 
     onUnmounted(() => {
         if (scrollContainer.value) {
-            scrollContainer.value.removeEventListener('scroll', handleScroll);
+            scrollContainer.value.removeEventListener("scroll", handleScroll);
         }
         if (scrollTimeout) {
             clearTimeout(scrollTimeout);

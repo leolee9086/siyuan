@@ -1,26 +1,26 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ref, shallowRef, nextTick, watch } from 'vue';
-import RBush from 'rbush';
+import { ref, shallowRef, nextTick, watch } from "vue";
+import RBush from "rbush";
 import { 
     BushItem, 
     LayoutItem,
     UseLayoutEngineOptions, 
     LayoutEngineResult 
-} from '../types';
+} from "../types";
 import {
     calculateTotalHeight,
     createColumnCountComputed,
     createScrollHeightComputed,
     createContentHeightComputed,
     createUpdateScheduler
-} from '../layoutUtils';
+} from "../layoutUtils";
 import {
     calculateJustifiedLayout,
     appendJustifiedItems,
     processJustifiedHeightUpdates,
     findJustifiedVisibleItems
-} from './justified-utils';
-import { createSegmentTree, type SegmentTree } from '../../../utils/createSegmentTree';
+} from "./justified-utils";
+import { createSegmentTree, type SegmentTree } from "../../../utils/createSegmentTree";
 
 // 默认宽高比
 const DEFAULT_ASPECT_RATIO = 1; 
@@ -40,7 +40,7 @@ export function useJustifiedLayout({
     estimatedTotalCount,
     onBeforeRebuildLayout,
     onAfterRebuildLayout,
-}: Omit<UseLayoutEngineOptions, 'mode'>): LayoutEngineResult {
+}: Omit<UseLayoutEngineOptions, "mode">): LayoutEngineResult {
     // R-tree 用于高效的空间查询
     const tree = new RBush<BushItem>();
     
@@ -69,7 +69,7 @@ export function useJustifiedLayout({
         totalHeight.value = calculateTotalHeight(
             [], // justified模式不使用columns
             allItems.value, 
-            'justified', 
+            "justified", 
             estimatedTotalCount?.value
         );
     };
@@ -78,7 +78,9 @@ export function useJustifiedLayout({
      * 分割行并布局 - 使用抽离的纯函数
      */
     const partitionAndLayoutLocal = (startIndex = 0) => {
-        if (!segmentTree) return;
+        if (!segmentTree) {
+return;
+}
 
         // 使用抽离出的纯函数
         const { newLayoutItems, layoutComplete } = calculateJustifiedLayout({
@@ -93,13 +95,17 @@ export function useJustifiedLayout({
             existingItems: allItems.value
         });
 
-        if (!layoutComplete) return;
+        if (!layoutComplete) {
+return;
+}
 
         // 更新布局
         allItems.value = newLayoutItems;
         idToItemMap.clear();
         newLayoutItems.forEach(item => {
-            if (item) idToItemMap.set(item.id, item)
+            if (item) {
+idToItemMap.set(item.id, item);
+}
         });
         
         // 更新R-Tree
@@ -115,7 +121,9 @@ export function useJustifiedLayout({
      * 添加新项目到布局中 - 使用抽离的纯函数
      */
     const appendItemsLocal = (itemsToAppend: any[]) => {
-        if (itemsToAppend.length === 0) return;
+        if (itemsToAppend.length === 0) {
+return;
+}
 
         // 使用抽离出的纯函数计算理想宽度
         const { newIdealWidths } = appendJustifiedItems({
@@ -135,7 +143,9 @@ export function useJustifiedLayout({
      * 处理高度更新请求 - 使用抽离的纯函数
      */
     const processPendingUpdatesLocal = () => {
-        if (pendingUpdates.size === 0) return;
+        if (pendingUpdates.size === 0) {
+return;
+}
         
         const updatesToProcess = new Map(pendingUpdates);
         pendingUpdates.clear();
