@@ -12,7 +12,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed } from "vue";
 
 interface Props {
   label: string
@@ -27,25 +27,25 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  dataId: '',
+  dataId: "",
   min: 0,
   max: 1,
   step: 0.01,
   disabled: false,
-  hint: '',
+  hint: "",
   formatValue: (value: number) => value
-})
+});
 
 const emit = defineEmits<{
-  'update:modelValue': [value: number]
-}>()
+  "update:modelValue": [value: number]
+}>();
 
 const displayValue = computed(() => {
-  return props.formatValue(props.modelValue)
-})
+  return props.formatValue(props.modelValue);
+});
 
 const handleInput = (event: Event) => {
-  const target = event.target as HTMLInputElement
-  emit('update:modelValue', Number(target.value))
-}
+  const target = event.target as HTMLInputElement;
+  emit("update:modelValue", Number(target.value));
+};
 </script>

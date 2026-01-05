@@ -32,7 +32,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed } from "vue";
 
 interface Props {
     id: string
@@ -46,23 +46,23 @@ interface Props {
 }
 
 interface Emits {
-    (e: 'update:modelValue', value: number): void
-    (e: 'change'): void
+    (e: "update:modelValue", value: number): void
+    (e: "change"): void
 }
 
-const props = defineProps<Props>()
-const emit = defineEmits<Emits>()
+const props = defineProps<Props>();
+const emit = defineEmits<Emits>();
 
 const modelValue = computed({
     get: () => props.modelValue,
-    set: (value: number) => emit('update:modelValue', value)
-})
+    set: (value: number) => emit("update:modelValue", value)
+});
 
 const handleChange = () => {
     if (props.customHandler) {
-        props.customHandler()
+        props.customHandler();
     } else {
-        emit('change')
+        emit("change");
     }
-}
+};
 </script>

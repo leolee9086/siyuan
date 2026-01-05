@@ -26,9 +26,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue';
-import DialogContent from './common/DialogContent.vue';
-import { siyuanI18n } from '../util/siyuanEnvironments/i18n.getI18n.environment';
+import { ref, onMounted, nextTick } from "vue";
+import DialogContent from "./common/DialogContent.vue";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 // 定义组件属性
 interface Props {
@@ -38,9 +38,9 @@ interface Props {
 
 // 定义组件事件
 interface Emits {
-  (e: 'cancel'): void;
-  (e: 'confirm', name: string, memo: string): void;
-  (e: 'delete'): void;
+  (e: "cancel"): void;
+  (e: "confirm", name: string, memo: string): void;
+  (e: "delete"): void;
 }
 
 const props = defineProps<Props>();
@@ -58,15 +58,15 @@ const customTextarea = ref<HTMLTextAreaElement>();
 
 // 事件处理函数
 const handleCancel = () => {
-  emit('cancel');
+  emit("cancel");
 };
 
 const handleConfirm = () => {
-  emit('confirm', localName.value, localMemo.value);
+  emit("confirm", localName.value, localMemo.value);
 };
 
 const handleDelete = () => {
-  emit('delete');
+  emit("delete");
 };
 
 // 聚焦到输入框的方法

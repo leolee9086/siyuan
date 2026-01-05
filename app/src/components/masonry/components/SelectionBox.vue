@@ -20,8 +20,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
-import type { SelectionBoxState } from '../composables/useSelectionBox';
+import { computed } from "vue";
+import type { SelectionBoxState } from "../composables/useSelectionBox";
 
 // Props
 interface Props {
@@ -32,7 +32,7 @@ interface Props {
   width?: number;
   height?: number;
   selectionBoxState?: SelectionBoxState;
-  renderMode?: 'default' | 'custom';
+  renderMode?: "default" | "custom";
   zIndex?: number;
   class?: string;
   style?: any;
@@ -45,9 +45,9 @@ const props = withDefaults(defineProps<Props>(), {
   top: 0,
   width: 0,
   height: 0,
-  renderMode: 'default',
+  renderMode: "default",
   zIndex: 1000,
-  class: '',
+  class: "",
   style: undefined,
 });
 

@@ -210,7 +210,9 @@ const loadProfiles = async () => {
     console.log("loadProfiles: authList", authList);
     authProfiles.value = authList;
     let authId = await authManager.getActiveProfileId();
-    if (!authId && authList.length > 0) authId = authList[0].id;
+    if (!authId && authList.length > 0) {
+authId = authList[0].id;
+}
     currentAuthId.value = authId;
     await loadAuthProfile();
 
@@ -219,7 +221,9 @@ const loadProfiles = async () => {
     console.log("loadProfiles: genList", genList);
     genProfiles.value = genList;
     let genId = await genManager.getActiveProfileId();
-    if (!genId && genList.length > 0) genId = genList[0].id;
+    if (!genId && genList.length > 0) {
+genId = genList[0].id;
+}
     currentGenId.value = genId;
     await loadGenProfile();
     console.log("loadProfiles: done");
@@ -232,7 +236,9 @@ const loadAuthProfile = async () => {
     }
     const p = await authManager.loadProfile(currentAuthId.value);
     currentAuthProfile.value = p;
-    if (p) await authManager.setActiveProfileId(p.id);
+    if (p) {
+await authManager.setActiveProfileId(p.id);
+}
 };
 
 const loadGenProfile = async () => {
@@ -242,7 +248,9 @@ const loadGenProfile = async () => {
     }
     const p = await genManager.loadProfile(currentGenId.value);
     currentGenProfile.value = p;
-    if (p) await genManager.setActiveProfileId(p.id);
+    if (p) {
+await genManager.setActiveProfileId(p.id);
+}
 };
 
 const handleAuthChange = async () => {
@@ -290,7 +298,9 @@ const createGenProfile = async () => {
 };
 
 const deleteAuthProfile = async () => {
-    if (authProfiles.value.length <= 1 || !currentAuthId.value) return;
+    if (authProfiles.value.length <= 1 || !currentAuthId.value) {
+return;
+}
     confirmDialog("Delete Profile", "Are you sure you want to delete this profile?", async () => {
         await authManager.deleteProfile(currentAuthId.value);
         await loadProfiles();
@@ -305,7 +315,9 @@ const deleteAuthProfile = async () => {
 };
 
 const deleteGenProfile = async () => {
-    if (genProfiles.value.length <= 1 || !currentGenId.value) return;
+    if (genProfiles.value.length <= 1 || !currentGenId.value) {
+return;
+}
     confirmDialog("Delete Profile", "Are you sure you want to delete this profile?", async () => {
         await genManager.deleteProfile(currentGenId.value);
         await loadProfiles();

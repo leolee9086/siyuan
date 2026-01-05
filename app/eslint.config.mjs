@@ -6,10 +6,12 @@ import { fileURLToPath } from "node:url";
 import js from "@eslint/js";
 import { FlatCompat } from "@eslint/eslintrc";
 import pluginVue from "eslint-plugin-vue";
+import vueParser from "vue-eslint-parser";
 import { noInlineCallbackPlugin } from "./0_lints/no-inline-callback.mjs";
 import { aiWorkerPlugin } from "./0_lints/ai-worker-rules.mjs";
 import { codeSizeLimitsPlugin } from "./0_lints/code-size-limits.mjs";
 import { requireFunctionCommentPlugin } from "./0_lints/require-function-comment.mjs";
+import { vueCustomRulesPlugin } from "./0_lints/vue-custom-rules.mjs";
 import { FULL_FIX_REMINDER } from "./0_lints/shared-constants.mjs";
 
 // Defining local constant for backward compatibility and internal usage
@@ -133,6 +135,67 @@ const TYPE_DEFINITION_RESTRICTIONS = [
     },
 ];
 
+const SHARED_PLUGINS = {
+    "@typescript-eslint": typescriptEslint,
+    "vue": pluginVue,
+    "no-inline-callback": noInlineCallbackPlugin,
+    "ai-worker": aiWorkerPlugin,
+    "code-size": codeSizeLimitsPlugin,
+    "function-comment": requireFunctionCommentPlugin,
+    "vue-custom": vueCustomRulesPlugin,
+};
+
+const SHARED_RULES = {
+    // 禁止 else 和嵌套 if 的规则
+    "no-restricted-syntax": [
+        "error",
+        ...COMMON_RESTRICTED_SYNTAX,
+        // 只有在非 .types.ts / .schema.ts 中才拦截类型定义
+        // 注意：ESLint 选择器本身不支持判断当前文件名，
+        // 所以我们需要通过分块并给不同文件应用不同规则，
+        // 但关键是不要让它们“覆盖”掉基础的 COMMON 规则。
+    ],
+    "max-lines": "off",  // 使用自定义规则 code-size/max-lines 代替
+    "max-lines-per-function": "off",  // 使用自定义规则 code-size/max-lines-per-function 代替
+    "code-size/max-lines": ["error", { "max": 300, "skipBlankLines": true, "skipComments": true }],
+    "code-size/max-lines-per-function": ["error", { "max": 50, "skipBlankLines": true, "skipComments": true, "IIFEs": true }],
+    "no-inline-callback/no-inline-callback": "error",
+    "class-methods-use-this": "off",  // 静态方法已被 no-restricted-syntax 禁止，此规则不再需要
+    semi: [2, "always"],
+    quotes: [2, "double", {
+        avoidEscape: true,
+    }],
+    // 禁止 if/else/for/while 等不使用大括号
+    "curly": ["error", "all"],
+    // 强制大括号换行风格 (1tbs = one true brace style，但要求换行)
+    "brace-style": ["error", "1tbs", { "allowSingleLine": false }],
+    // 禁止一行内写多条语句 (用分号分隔)
+    "max-statements-per-line": ["error", { "max": 1 }],
+    "@typescript-eslint/no-unused-vars": ["warn", { caughtErrors: "none" }],
+    "no-async-promise-executor": "off",
+    "no-prototype-builtins": "off",
+    "no-useless-escape": "off",
+    "no-irregular-whitespace": "off",
+    "@typescript-eslint/ban-ts-comment": "off",
+    "@typescript-eslint/no-var-requires": "off",
+    "@typescript-eslint/explicit-function-return-type": "off",
+    "@typescript-eslint/explicit-module-boundary-types": "off",
+    "@typescript-eslint/no-explicit-any": "error",
+    "@typescript-eslint/no-non-null-assertion": "error",
+    "@typescript-eslint/no-require-imports": "off",
+    "vue/multi-word-component-names": "off",
+    "vue/no-unused-components": "warn",
+    "vue/no-unused-vars": "warn",
+    "vue/require-default-prop": "off",
+    "vue/require-explicit-emits": "off",
+    "ai-worker/detect-ai-todo": "error",
+    "function-comment/require-function-comment": "error",
+    "function-comment/require-type-comment": "error",
+    "vue-custom/vue-script-max-lines": "error",
+    "vue-custom/vue-template-max-lines": "error",
+    "vue-custom/no-vue-style-block": "error",
+};
+
 export default [{
     ignores: [
         "build",
@@ -145,17 +208,12 @@ export default [{
         "**/*.d.ts",
         "webpack*.js",
     ],
-}, ...compat.extends("eslint:recommended", "plugin:@typescript-eslint/recommended"), ...pluginVue.configs["flat/essential"], {
-    files: ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "src/**/*.mjs"],
+}, ...compat.extends("eslint:recommended", "plugin:@typescript-eslint/recommended"), ...pluginVue.configs["flat/essential"],
+{
+    // TypeScript & JavaScript Files
+    files: ["src/**/*.ts", "src/**/*.tsx", "src/**/*.mjs"],
 
-    plugins: {
-        "@typescript-eslint": typescriptEslint,
-        "vue": pluginVue,
-        "no-inline-callback": noInlineCallbackPlugin,
-        "ai-worker": aiWorkerPlugin,
-        "code-size": codeSizeLimitsPlugin,
-        "function-comment": requireFunctionCommentPlugin,
-    },
+    plugins: SHARED_PLUGINS,
 
     languageOptions: {
         globals: {
@@ -173,54 +231,35 @@ export default [{
         },
     },
 
-    rules: {
-        // 禁止 else 和嵌套 if 的规则
-        "no-restricted-syntax": [
-            "error",
-            ...COMMON_RESTRICTED_SYNTAX,
-            // 只有在非 .types.ts / .schema.ts 中才拦截类型定义
-            // 注意：ESLint 选择器本身不支持判断当前文件名，
-            // 所以我们需要通过分块并给不同文件应用不同规则，
-            // 但关键是不要让它们“覆盖”掉基础的 COMMON 规则。
-        ],
-        "max-lines": "off",  // 使用自定义规则 code-size/max-lines 代替
-        "max-lines-per-function": "off",  // 使用自定义规则 code-size/max-lines-per-function 代替
-        "code-size/max-lines": ["error", { "max": 300, "skipBlankLines": true, "skipComments": true }],
-        "code-size/max-lines-per-function": ["error", { "max": 50, "skipBlankLines": true, "skipComments": true, "IIFEs": true }],
-        "no-inline-callback/no-inline-callback": "error",
-        "class-methods-use-this": "off",  // 静态方法已被 no-restricted-syntax 禁止，此规则不再需要
-        semi: [2, "always"],
-        quotes: [2, "double", {
-            avoidEscape: true,
-        }],
-        // 禁止 if/else/for/while 等不使用大括号
-        "curly": ["error", "all"],
-        // 强制大括号换行风格 (1tbs = one true brace style，但要求换行)
-        "brace-style": ["error", "1tbs", { "allowSingleLine": false }],
-        // 禁止一行内写多条语句 (用分号分隔)
-        "max-statements-per-line": ["error", { "max": 1 }],
-        "@typescript-eslint/no-unused-vars": ["warn", { caughtErrors: "none" }],
-        "no-async-promise-executor": "off",
-        "no-prototype-builtins": "off",
-        "no-useless-escape": "off",
-        "no-irregular-whitespace": "off",
-        "@typescript-eslint/ban-ts-comment": "off",
-        "@typescript-eslint/no-var-requires": "off",
-        "@typescript-eslint/explicit-function-return-type": "off",
-        "@typescript-eslint/explicit-module-boundary-types": "off",
-        "@typescript-eslint/no-explicit-any": "error",
-        "@typescript-eslint/no-non-null-assertion": "error",
-        "@typescript-eslint/no-require-imports": "off",
-        "vue/multi-word-component-names": "off",
-        "vue/no-unused-components": "warn",
-        "vue/no-unused-vars": "warn",
-        "vue/require-default-prop": "off",
-        "vue/require-explicit-emits": "off",
-        "ai-worker/detect-ai-todo": "error",
-        "function-comment/require-function-comment": "error",
-        "function-comment/require-type-comment": "error",
+    rules: SHARED_RULES,
+},
+{
+    // Vue Files
+    files: ["src/**/*.vue"],
+
+    plugins: SHARED_PLUGINS,
+
+    languageOptions: {
+        globals: {
+            ...globals.node,
+            ...globals.browser,
+        },
+
+        parser: vueParser,
+        parserOptions: {
+            parser: tsParser,
+            ecmaVersion: "latest",
+            sourceType: "module",
+            ecmaFeatures: {
+                jsx: true,
+            },
+            extraFileExtensions: ['.vue'],
+        },
     },
-}, {
+
+    rules: SHARED_RULES,
+},
+{
     // 架构约束：组合所有探测逻辑
     files: ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"],
     rules: {

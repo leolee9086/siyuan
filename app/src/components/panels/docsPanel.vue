@@ -25,72 +25,74 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue'
-import { unicode2Emoji } from "../../emoji"
-import { Constants } from "../../constants"
-import { isWindow } from "../../util/functions"
-import { matchPinyinSearch } from "../../util/pinyin"
+import { ref, computed, nextTick } from "vue";
+import { unicode2Emoji } from "../../emoji";
+import { Constants } from "../../constants";
+import { isWindow } from "../../util/functions";
+import { matchPinyinSearch } from "../../util/pinyin";
 
 // 定义 props
 const props = defineProps<{
     recentDocs: { rootID: string, icon: string, title: string }[]
-}>()
+}>();
 
 // 定义 emits
 const emit = defineEmits<{
     docSelected: [doc: { rootID: string, icon: string, title: string }]
     searchKeyChanged: [key: string]
-}>()
+}>();
 
 // 响应式数据
-const searchKey = ref('')
-const searchInput = ref<HTMLInputElement | null>(null)
+const searchKey = ref("");
+const searchInput = ref<HTMLInputElement | null>(null);
 
 // 获取全局变量
-const siyuanStorage = window.siyuan?.storage
+const siyuanStorage = window.siyuan?.storage;
 
 // 计算属性
 const filteredDocs = computed(() => {
-    if (!searchKey.value) return props.recentDocs
+    if (!searchKey.value) {
+return props.recentDocs;
+}
     return props.recentDocs.filter(doc =>
         matchPinyinSearch(doc.title, searchKey.value)
-    )
-})
+    );
+});
 
 // 方法
 const selectDoc = (doc: { rootID: string, icon: string, title: string }, index: number) => {
-    emit('docSelected', doc)
-}
+    emit("docSelected", doc);
+};
 
 const setSearchKey = (key: string) => {
-    searchKey.value = key
-    emit('searchKeyChanged', key)
-}
+    searchKey.value = key;
+    emit("searchKeyChanged", key);
+};
 
 const handleSearchInput = (event: InputEvent) => {
     if (event.isComposing) {
-        return
+        return;
     }
     // 搜索逻辑已经通过 v-model 自动处理
-    emit('searchKeyChanged', searchKey.value)
-}
+    emit("searchKeyChanged", searchKey.value);
+};
 
 const handleCompositionEnd = (event: CompositionEvent) => {
     // 搜索逻辑已经通过 v-model 自动处理
-    emit('searchKeyChanged', searchKey.value)
-}
+    emit("searchKeyChanged", searchKey.value);
+};
 
 const focusSearchInput = () => {
     nextTick(() => {
         if (searchInput.value) {
-            searchInput.value.focus()
+            searchInput.value.focus();
         }
-    })
-}
+    });
+};
 
 // 暴露方法给父组件
 defineExpose({
     setSearchKey,
     focusSearchInput
-})
+});
 </script>

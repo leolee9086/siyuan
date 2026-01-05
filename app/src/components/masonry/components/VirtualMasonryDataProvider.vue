@@ -17,9 +17,9 @@
 </template>
 
 <script setup lang="ts">
-import { toRef, type VNodeProps, ref, nextTick } from 'vue';
-import { useVirtualDataSource, type DataFetcher } from '../composables/useVirtualDataSource';
-import VirtualMasonryGrid from './VirtualMasonryGrid.vue';
+import { toRef, type VNodeProps, ref, nextTick } from "vue";
+import { useVirtualDataSource, type DataFetcher } from "../composables/useVirtualDataSource";
+import VirtualMasonryGrid from "./VirtualMasonryGrid.vue";
 
 const gridRef = ref<InstanceType<typeof VirtualMasonryGrid> | null>(null);
 
@@ -29,13 +29,13 @@ const gridRef = ref<InstanceType<typeof VirtualMasonryGrid> | null>(null);
 
 // --- Types ---
 // @织: 从 VirtualMasonryGrid 组件获取其 Props 类型，实现真正的类型安全
-type GridProps = VNodeProps & InstanceType<typeof VirtualMasonryGrid>['$props'];
+type GridProps = VNodeProps & InstanceType<typeof VirtualMasonryGrid>["$props"];
 
 // --- Props ---
 // @织: 让本组件的props继承自Grid,
 // Omit排除了我们自己管理的几个props,
 // 这样就能把所有其它grid的props(例如min/maxColumnWidth)透传下去
-interface Props extends /* @vue-ignore */ Omit<GridProps, 'items' | 'estimatedTotalCount' | 'onScrollSettled'> {
+interface Props extends /* @vue-ignore */ Omit<GridProps, "items" | "estimatedTotalCount" | "onScrollSettled"> {
   // --- DataProvider Props ---
   totalCount: number;
   dataFetcher: DataFetcher;
@@ -45,12 +45,14 @@ const props = defineProps<Props>();
 
 // --- Logic ---
 const { items, requestDataForRange } = useVirtualDataSource({
-  totalCount: toRef(props, 'totalCount'),
+  totalCount: toRef(props, "totalCount"),
   dataFetcher: props.dataFetcher,
 });
 
 const handleScrollSettled = async (visibleIndices: number[]) => {
-  if (visibleIndices.length === 0) return;
+  if (visibleIndices.length === 0) {
+return;
+}
   
   // 加载数据前禁用布局动画，防止占位符被替换时的布局抖动
   if (gridRef.value) {
@@ -81,7 +83,7 @@ const handleScrollSettled = async (visibleIndices: number[]) => {
     }
   } catch (error) {
     // 发生错误时确保恢复动画状态
-    console.error('[VirtualMasonryDataProvider] 数据加载错误:', error);
+    console.error("[VirtualMasonryDataProvider] 数据加载错误:", error);
     if (gridRef.value) {
       gridRef.value.setTransitionEnabled(true);
     }

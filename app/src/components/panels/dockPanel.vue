@@ -23,58 +23,58 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { isWindow } from "../../util/functions"
-import { updateHotkeyTip } from "../../protyle/util/compatibility"
-import { getAllDocks } from "../../layout/getAll"
-import { siyuanI18n } from '../../util/siyuanEnvironments/i18n.getI18n.environment';
-import { getSiyuanConfig } from '../../util/siyuanEnvironments/getSiyuanConfig.environment';
+import { ref, computed } from "vue";
+import { isWindow } from "../../util/functions";
+import { updateHotkeyTip } from "../../protyle/util/compatibility";
+import { getAllDocks } from "../../layout/getAll";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 // 定义 props
 const props = defineProps<{
   searchKey: string
   switchPath: string
-}>()
+}>();
 
 // 定义 emits
 const emit = defineEmits<{
   itemSelected: [type: string, index: number]
   pathUpdated: [path: string]
-}>()
+}>();
 
 // 响应式数据
-const selectedDockIndex = ref(0)
-const docks = ref<{ type: string, title: string, icon: string, hotkey: string }[]>([])
+const selectedDockIndex = ref(0);
+const docks = ref<{ type: string, title: string, icon: string, hotkey: string }[]>([]);
 
 
 // 计算属性
 const filteredDocks = computed(() => {
   // 搜索时不包含dock栏，直接返回所有dock
-  return docks.value
-})
+  return docks.value;
+});
 
 // 方法
 const selectItem = (type: string, index: number) => {
-  selectedDockIndex.value = index
-  if (type === 'riffCard') {
-    emit('pathUpdated', siyuanI18n.riffCard)
+  selectedDockIndex.value = index;
+  if (type === "riffCard") {
+    emit("pathUpdated", siyuanI18n.riffCard);
   }
-  emit('itemSelected', type, index)
-}
+  emit("itemSelected", type, index);
+};
 
 // 初始化
 const initializeDocks = () => {
   if (!isWindow()) {
     docks.value = getAllDocks().map(dock => ({
       type: dock.type,
-      title: dock.title || '',
+      title: dock.title || "",
       icon: dock.icon,
-      hotkey: dock.hotkey || ''
-    }))
+      hotkey: dock.hotkey || ""
+    }));
   }
-}
+};
 
 // 暴露方法给父组件
 defineExpose({
   initializeDocks
-})
+});
 </script>

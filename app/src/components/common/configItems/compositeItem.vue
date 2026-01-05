@@ -18,7 +18,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed } from "vue";
 
 interface Option {
     value: string
@@ -37,28 +37,28 @@ interface Props {
 }
 
 interface Emits {
-    (e: 'update:selectValue', value: string): void
-    (e: 'update:inputValue', value: string): void
-    (e: 'change'): void
+    (e: "update:selectValue", value: string): void
+    (e: "update:inputValue", value: string): void
+    (e: "change"): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
-    placeholderText: ''
-})
+    placeholderText: ""
+});
 
-const emit = defineEmits<Emits>()
+const emit = defineEmits<Emits>();
 
 const selectValue = computed({
     get: () => props.selectValue,
-    set: (value: string) => emit('update:selectValue', value)
-})
+    set: (value: string) => emit("update:selectValue", value)
+});
 
 const inputValue = computed({
     get: () => props.inputValue,
-    set: (value: string) => emit('update:inputValue', value)
-})
+    set: (value: string) => emit("update:inputValue", value)
+});
 
 const handleChange = () => {
-    emit('change')
-}
+    emit("change");
+};
 </script>

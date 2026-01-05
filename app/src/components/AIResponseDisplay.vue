@@ -11,29 +11,29 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick, onUnmounted } from 'vue';
-import { AssistantResponseState } from '../ai/session/session.types';
-import type { PropType } from 'vue';
-import { processRender } from '../protyle/util/processCode';
+import { ref, watch, nextTick, onUnmounted } from "vue";
+import { AssistantResponseState } from "../ai/session/session.types";
+import type { PropType } from "vue";
+import { processRender } from "../protyle/util/processCode";
 
 // 定义组件属性
 const props = defineProps({
 
     state: {
         type: Object as PropType<AssistantResponseState>,
-        default: ''
+        default: ""
     },
     statusText: {
         type: String,
-        default: ''
+        default: ""
     },
     statusColor: {
         type: String,
-        default: 'var(--b3-theme-on-surface)'
+        default: "var(--b3-theme-on-surface)"
     },
     dots: {
         type: String,
-        default: ''
+        default: ""
     }
 });
 
@@ -71,7 +71,9 @@ const renderCodeBlocks = async () => {
     isRendering = true;
     
     try {
-        if (!responseContentRef.value) return;
+        if (!responseContentRef.value) {
+return;
+}
         
         // 直接对整个响应内容容器进行处理
         processRender(responseContentRef.value);

@@ -47,12 +47,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
-import VirtualMasonryGrid from '../../components/masonry/components/VirtualMasonryGrid.vue';
-import AssetCard from './AssetCard.vue';
-import { getSiyuanGlobalMenus } from '../../util/siyuanEnvironments/getMenu.environment';
-import { searchAssetsAdvanced, type SearchAssetMetaParams } from '../../data/kernelAPI/sforgeAssetMeta';
-import { pathPosix } from '../../util/pathName';
+import { ref, computed, onMounted, watch } from "vue";
+import VirtualMasonryGrid from "../../components/masonry/components/VirtualMasonryGrid.vue";
+import AssetCard from "./AssetCard.vue";
+import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";
+import { searchAssetsAdvanced, type SearchAssetMetaParams } from "../../data/kernelAPI/sforgeAssetMeta";
+import { pathPosix } from "../../util/pathName";
 
 interface AssetItem {
     hName: string;
@@ -73,12 +73,12 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-    (e: 'select', url: string, name: string): void;
-    (e: 'cancel'): void;
+    (e: "select", url: string, name: string): void;
+    (e: "cancel"): void;
 }>();
 
 // 状态
-const searchKey = ref('');
+const searchKey = ref("");
 const assets = ref<AssetItem[]>([]);
 const selectedAsset = ref<AssetItem | null>(null);
 const isLoading = ref(true);
@@ -107,8 +107,8 @@ const i18n = computed(() => {
 const estimateItemHeight = (item: AssetItem, colWidth: number) => {
     // 对于图片，假设平均宽高比为 4:3
     // 对于非图片，返回固定高度
-    const ext = item.path.split('.').pop()?.toLowerCase() || '';
-    if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(ext)) {
+    const ext = item.path.split(".").pop()?.toLowerCase() || "";
+    if (["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "ico"].includes(ext)) {
         return Math.round(colWidth * 0.75); // 4:3 比例
     }
     return 120; // 非图片固定高度
@@ -131,7 +131,7 @@ const searchAssets = async () => {
             hName: meta.name || pathPosix().basename(meta.path)
         }));
     } catch (error) {
-        console.error('搜索素材失败:', error);
+        console.error("搜索素材失败:", error);
         assets.value = [];
     } finally {
         isLoading.value = false;
@@ -141,7 +141,9 @@ const searchAssets = async () => {
 /** 防抖搜索 */
 let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 const debouncedSearch = () => {
-    if (searchTimeout) clearTimeout(searchTimeout);
+    if (searchTimeout) {
+clearTimeout(searchTimeout);
+}
     searchTimeout = setTimeout(searchAssets, 300);
 };
 
@@ -158,7 +160,7 @@ const handleSelect = (item: AssetItem) => {
     if (props.onSelect) {
         props.onSelect(item.path, item.hName);
     } else {
-        emit('select', item.path, item.hName);
+        emit("select", item.path, item.hName);
     }
 };
 
@@ -174,20 +176,20 @@ const showTypeFilter = (e: MouseEvent) => {
     };
 
     menu.addItem({
-        label: i18n.value.all || '全部',
-        click: () => updateType(i18n.value.all || '全部')
+        label: i18n.value.all || "全部",
+        click: () => updateType(i18n.value.all || "全部")
     });
     menu.addItem({
-        label: i18n.value.image || '图片',
-        click: () => updateType(i18n.value.image || '图片', ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp', '.ico'])
+        label: i18n.value.image || "图片",
+        click: () => updateType(i18n.value.image || "图片", [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".ico"])
     });
     menu.addItem({
-        label: '音视频',
-        click: () => updateType('音视频', ['.mp3', '.wav', '.ogg', '.mp4', '.webm', '.mov'])
+        label: "音视频",
+        click: () => updateType("音视频", [".mp3", ".wav", ".ogg", ".mp4", ".webm", ".mov"])
     });
     menu.addItem({
-        label: i18n.value.doc || '文档',
-        click: () => updateType(i18n.value.doc || '文档', ['.pdf', '.doc', '.docx', '.ppt', '.pptx', '.xls', '.xlsx'])
+        label: i18n.value.doc || "文档",
+        click: () => updateType(i18n.value.doc || "文档", [".pdf", ".doc", ".docx", ".ppt", ".pptx", ".xls", ".xlsx"])
     });
 
     const rect = (e.target as HTMLElement).getBoundingClientRect();
@@ -206,10 +208,10 @@ const showSizeFilter = (e: MouseEvent) => {
         handleSearch();
     };
 
-    menu.addItem({ label: '全部', click: () => updateSize() });
-    menu.addItem({ label: '< 1MB', click: () => updateSize(undefined, 1024 * 1024) });
-    menu.addItem({ label: '1MB - 10MB', click: () => updateSize(1024 * 1024, 10 * 1024 * 1024) });
-    menu.addItem({ label: '> 10MB', click: () => updateSize(10 * 1024 * 1024) });
+    menu.addItem({ label: "全部", click: () => updateSize() });
+    menu.addItem({ label: "< 1MB", click: () => updateSize(undefined, 1024 * 1024) });
+    menu.addItem({ label: "1MB - 10MB", click: () => updateSize(1024 * 1024, 10 * 1024 * 1024) });
+    menu.addItem({ label: "> 10MB", click: () => updateSize(10 * 1024 * 1024) });
 
     const rect = (e.target as HTMLElement).getBoundingClientRect();
     menu.popup({ x: rect.left, y: rect.bottom, isLeft: true });
@@ -226,10 +228,10 @@ const showRatingFilter = (e: MouseEvent) => {
         handleSearch();
     };
 
-    menu.addItem({ label: '全部', click: () => updateRating() });
-    menu.addItem({ label: '★★★★★', click: () => updateRating(5) });
-    menu.addItem({ label: '≥ ★★★★', click: () => updateRating(4) });
-    menu.addItem({ label: '≥ ★★★', click: () => updateRating(3) });
+    menu.addItem({ label: "全部", click: () => updateRating() });
+    menu.addItem({ label: "★★★★★", click: () => updateRating(5) });
+    menu.addItem({ label: "≥ ★★★★", click: () => updateRating(4) });
+    menu.addItem({ label: "≥ ★★★", click: () => updateRating(3) });
 
     const rect = (e.target as HTMLElement).getBoundingClientRect();
     menu.popup({ x: rect.left, y: rect.bottom, isLeft: true });

@@ -26,7 +26,7 @@
 // 定义工具栏项目类型
 interface ToolbarButton {
   id: string;
-  type: 'button';
+  type: "button";
   icon: string;
   title?: string|undefined;
   action: () => void;
@@ -36,12 +36,12 @@ interface ToolbarButton {
 
 interface ToolbarSpacer {
   id: string;
-  type: 'spacer';
+  type: "spacer";
 }
 
 interface ToolbarZoomLevel {
   id: string;
-  type: 'zoom-level';
+  type: "zoom-level";
 }
 
 export type ToolbarItem = ToolbarButton | ToolbarSpacer | ToolbarZoomLevel;
@@ -54,7 +54,7 @@ interface Props {
 
 // 定义组件事件
 interface Emits {
-  (e: 'action', detail: any): void;
+  (e: "action", detail: any): void;
 }
 
 const props = defineProps<Props>();
@@ -72,8 +72,8 @@ const isButtonActive = (item: ToolbarButton): boolean => {
 
 // 处理按钮点击
 const handleButtonClick = (item: ToolbarButton) => {
-  item.action && item.action()
-  emit('action', item);
+  item.action && item.action();
+  emit("action", item);
  
 };
 </script>

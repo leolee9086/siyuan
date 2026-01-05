@@ -19,15 +19,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, provide, onMounted, onUnmounted, computed } from 'vue';
-import { useSelectionSystem } from '../composables/useSelectionSystem';
-import { useSelectionObserver } from '../composables/useSelectionObserver';
-import { useSelectionBox } from '../composables/useSelectionBox';
-import SelectionBox from './SelectionBox.vue';
+import { ref, provide, onMounted, onUnmounted, computed } from "vue";
+import { useSelectionSystem } from "../composables/useSelectionSystem";
+import { useSelectionObserver } from "../composables/useSelectionObserver";
+import { useSelectionBox } from "../composables/useSelectionBox";
+import SelectionBox from "./SelectionBox.vue";
 
 // 类型定义
 type EntityId = string | number;
-type SelectionMode = 'single' | 'multiple' | 'range';
+type SelectionMode = "single" | "multiple" | "range";
 
 interface SelectionWrapperProps {
   // 选择模式
@@ -61,28 +61,28 @@ interface SelectionWrapperProps {
 
 // Props
 const props = withDefaults(defineProps<SelectionWrapperProps>(), {
-  mode: 'multiple',
+  mode: "multiple",
   allowEmpty: true,
   enableMouseSelection: true,
   enableKeyboardSelection: true,
   enableSpatialSelection: false,
-  elementFilter: (element: Element) => element.hasAttribute('data-selectable'),
-  idExtractor: (element: Element) => element.getAttribute('data-id') || element.id,
-  wrapperClass: '',
+  elementFilter: (element: Element) => element.hasAttribute("data-selectable"),
+  idExtractor: (element: Element) => element.getAttribute("data-id") || element.id,
+  wrapperClass: "",
   wrapperStyle: undefined,
-  selectionBoxClass: '',
+  selectionBoxClass: "",
   selectionBoxStyle: undefined,
   selectionBoxZIndex: 1000,
 });
 
 // Emits
 const emit = defineEmits<{
-  (e: 'selection-change', event: any): void;
-  (e: 'focus-change', entityId: EntityId | null): void;
-  (e: 'selection-box-change', state: any): void;
-  (e: 'selection-box-start', event: MouseEvent): void;
-  (e: 'selection-box-update', event: MouseEvent): void;
-  (e: 'selection-box-end', event: MouseEvent): void;
+  (e: "selection-change", event: any): void;
+  (e: "focus-change", entityId: EntityId | null): void;
+  (e: "selection-box-change", state: any): void;
+  (e: "selection-box-start", event: MouseEvent): void;
+  (e: "selection-box-update", event: MouseEvent): void;
+  (e: "selection-box-end", event: MouseEvent): void;
 }>();
 
 // 响应式状态
@@ -93,11 +93,11 @@ const { selectionApi, selectionState } = useSelectionSystem({
   mode: props.mode,
   allowEmpty: props.allowEmpty,
   onSelectionChange: (event) => {
-    emit('selection-change', event);
+    emit("selection-change", event);
     props.onSelectionChange?.(event);
   },
   onFocusChange: (entityId) => {
-    emit('focus-change', entityId);
+    emit("focus-change", entityId);
     props.onFocusChange?.(entityId);
   },
 });
@@ -125,19 +125,19 @@ const {
   elementFilter: props.elementFilter,
   idExtractor: props.idExtractor,
   onSelectionBoxChange: (state) => {
-    emit('selection-box-change', state);
+    emit("selection-box-change", state);
     props.onSelectionBoxChange?.(state);
   },
   onSelectionBoxStart: (event) => {
-    emit('selection-box-start', event);
+    emit("selection-box-start", event);
     props.onSelectionBoxStart?.(event);
   },
   onSelectionBoxUpdate: (event) => {
-    emit('selection-box-update', event);
+    emit("selection-box-update", event);
     props.onSelectionBoxUpdate?.(event);
   },
   onSelectionBoxEnd: (event) => {
-    emit('selection-box-end', event);
+    emit("selection-box-end", event);
     props.onSelectionBoxEnd?.(event);
 
     // 自动选择框选中的元素
@@ -173,23 +173,31 @@ const { startObserving, stopObserving } = useSelectionObserver({
 
 // 鼠标事件处理（条件性启用）
 const handleMouseDown = (event: MouseEvent) => {
-  if (!props.enableMouseSelection) return;
+  if (!props.enableMouseSelection) {
+return;
+}
   selectionBoxMouseDown(event);
 };
 
 const handleMouseMove = (event: MouseEvent) => {
-  if (!props.enableMouseSelection) return;
+  if (!props.enableMouseSelection) {
+return;
+}
   selectionBoxMouseMove(event);
 };
 
 const handleMouseUp = (event: MouseEvent) => {
-  if (!props.enableMouseSelection) return;
+  if (!props.enableMouseSelection) {
+return;
+}
   selectionBoxMouseUp(event);
 };
 
 // 键盘事件处理
 const handleKeyDown = (event: KeyboardEvent) => {
-  if (!props.enableKeyboardSelection) return;
+  if (!props.enableKeyboardSelection) {
+return;
+}
 
   // 防止在输入框中触发导航
   if (event.target instanceof HTMLInputElement ||
@@ -214,7 +222,7 @@ const handleBlur = () => {
 };
 
 // 提供选择上下文给子组件
-provide('selection-context', {
+provide("selection-context", {
   api: selectionApi,
   state: selectionState,
   selectionBox: selectionBoxState,

@@ -16,30 +16,30 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue';
-import { siyuanI18n } from '../../util/siyuanEnvironments/i18n.getI18n.environment';
+import { ref, onMounted, nextTick } from "vue";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 // 定义组件事件
 interface Emits {
-  (e: 'cancel'): void;
-  (e: 'confirm', message: string): void;
+  (e: "cancel"): void;
+  (e: "confirm", message: string): void;
 }
 
 const emit = defineEmits<Emits>();
 
 // 本地数据
-const chatMessage = ref('');
+const chatMessage = ref("");
 
 // 引用DOM元素
 const chatTextarea = ref<HTMLTextAreaElement>();
 
 // 事件处理函数
 const handleCancel = () => {
-  emit('cancel');
+  emit("cancel");
 };
 
 const handleConfirm = () => {
-  emit('confirm', chatMessage.value);
+  emit("confirm", chatMessage.value);
 };
 
 // 聚焦到输入框的方法

@@ -11,9 +11,9 @@
 <script setup lang="ts">
 // 定义组件事件
 interface Emits {
-  (e: 'cancel'): void;
-  (e: 'use'): void;
-  (e: 'save'): void;
+  (e: "cancel"): void;
+  (e: "use"): void;
+  (e: "save"): void;
 }
 
 const emit = defineEmits<Emits>();
@@ -23,14 +23,14 @@ const languages = window.siyuan.languages;
 
 // 事件处理函数
 const handleCancel = () => {
-  emit('cancel');
+  emit("cancel");
 };
 
 const handleUse = () => {
-  emit('use');
+  emit("use");
 };
 
 const handleSave = () => {
-  emit('save');
+  emit("save");
 };
 </script>

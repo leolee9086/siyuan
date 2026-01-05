@@ -75,22 +75,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
+import { ref, onMounted, onUnmounted, computed, watch } from "vue";
 //本地包,实际文件位于packages\dehaze
 //@ts-ignore
-import { dehazeImageWebGPUSimple } from '@leolee9086/image-dehazing'
+import { dehazeImageWebGPUSimple } from "@leolee9086/image-dehazing";
 // 导入composable
-import { useAutoProcessing } from '../composables/useAutoProcessing'
-import { useProcessingParams } from '../composables/useProcessingParams'
-import { useImageProcessing } from '../composables/useImageProcessing'
+import { useAutoProcessing } from "../composables/useAutoProcessing";
+import { useProcessingParams } from "../composables/useProcessingParams";
+import { useImageProcessing } from "../composables/useImageProcessing";
 // 导入参数控制组件
-import ParameterControl from '../ParameterControl.vue'
+import ParameterControl from "../ParameterControl.vue";
 // 导入工具栏组件
-import ImageToolbar, { type ToolbarItem } from '../imageToolbar.vue'
-import { onImageLoadWithCtx } from './imageEditor.onImageLoad';
-import { centerImageWithCtx, resetZoomWithCtx, setScaleWithCtx, zoomInWithCtx, zoomOutWithCtx } from './imageEditor.zoom';
-import { createToolbarItems } from './imageEditor.toolbarItem';
-import { handleWheelWithCtx } from './imageEditor.wheel';
+import ImageToolbar, { type ToolbarItem } from "../imageToolbar.vue";
+import { onImageLoadWithCtx } from "./imageEditor.onImageLoad";
+import { centerImageWithCtx, resetZoomWithCtx, setScaleWithCtx, zoomInWithCtx, zoomOutWithCtx } from "./imageEditor.zoom";
+import { createToolbarItems } from "./imageEditor.toolbarItem";
+import { handleWheelWithCtx } from "./imageEditor.wheel";
 
 // 定义组件属性
 interface Props {
@@ -99,7 +99,7 @@ interface Props {
 
 const props = defineProps<Props>();
 // 使用composable
-const { isProcessing: autoProcessing, createAutoProcessor, cleanup } = useAutoProcessing()
+const { isProcessing: autoProcessing, createAutoProcessor, cleanup } = useAutoProcessing();
 const {
   params,
   getAdaptiveStrengthDescription,
@@ -107,7 +107,7 @@ const {
   getContrastDescription,
   getBrightnessDescription,
   getColorBalanceDescription
-} = useProcessingParams()
+} = useProcessingParams();
 const {
   processedImage,
   isProcessing: imageProcessing,
@@ -123,7 +123,7 @@ const {
   statusMessage,
   isCanvasObject,
   resetImage
-} = useImageProcessing()
+} = useImageProcessing();
 
 // 缩放和平移状态
 const scale = ref(1);
@@ -176,7 +176,7 @@ const imageLoadedCtx = {
   setOriginalImageFn: () => {
     setOriginalImage(originImageElement.value!);
   }
-}
+};
 
 // 居中图片
 const centerImage = () => {
@@ -187,8 +187,8 @@ const centerImage = () => {
     translateY,
     imageWidth,
     imageHeight
-  }
-  centerImageWithCtx(ctx)
+  };
+  centerImageWithCtx(ctx);
 };
 
 
@@ -202,7 +202,7 @@ const handleWheel = (event: WheelEvent) => {
     setScaleWithCtx,
     zoomInWithCtx,
     zoomOutWithCtx,
-  }
+  };
   // 调用通用的滚轮处理函数
    handleWheelWithCtx(ctx, event);
 };
@@ -218,7 +218,7 @@ const handleMouseDown = (event: MouseEvent) => {
 
     // 改变鼠标样式
     if (imageWrapper.value) {
-      imageWrapper.value.style.cursor = 'grabbing';
+      imageWrapper.value.style.cursor = "grabbing";
     }
   }
 };
@@ -230,8 +230,8 @@ const handleMouseMove = (event: MouseEvent) => {
     const deltaY = event.clientY - dragStartY.value;
     translateX.value = dragStartTranslateX.value + deltaX;
     translateY.value = dragStartTranslateY.value + deltaY;
-    event.preventDefault()
-    event.stopPropagation()
+    event.preventDefault();
+    event.stopPropagation();
   }
 };
 
@@ -241,7 +241,7 @@ const handleMouseUp = () => {
 
   // 恢复鼠标样式
   if (imageWrapper.value) {
-    imageWrapper.value.style.cursor = 'grab';
+    imageWrapper.value.style.cursor = "grab";
   }
 };
 
@@ -252,11 +252,11 @@ const handleResize = () => {
 
 // 组件挂载
 onMounted(() => {
-  window.addEventListener('resize', handleResize);
+  window.addEventListener("resize", handleResize);
 
   // 设置初始鼠标样式
   if (imageWrapper.value) {
-    imageWrapper.value.style.cursor = 'grab';
+    imageWrapper.value.style.cursor = "grab";
   }
 });
 
@@ -276,7 +276,9 @@ const toggleOriginalImage = () => {
 
 // 创建自动处理函数
 const autoProcessFunction = async () => {
-  if (!originImageElement.value) return;
+  if (!originImageElement.value) {
+return;
+}
   // 确保每次都从原始图像开始处理，使用originImageElement而不是originalImage.value
   // 因为originImageElement是独立的DOM元素，不会被处理过程修改
   await processImageElement(originImageElement.value, dehazeImageWebGPUSimple, params);
@@ -300,7 +302,7 @@ onUnmounted(() => {
 
 // 组件卸载
 onUnmounted(() => {
-  window.removeEventListener('resize', handleResize);
+  window.removeEventListener("resize", handleResize);
 });
 
 // 工具栏配置

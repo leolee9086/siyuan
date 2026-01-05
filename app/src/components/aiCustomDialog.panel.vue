@@ -14,18 +14,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue';
-import { useAiCustomDialog, type AiCustomDialogEvents } from './aiCustomDialog.componentLogic';
-import AiCustomDialogField from './common/TextField.vue';
-import AiCustomDialogButtons from './common/DialogActions.vue';
-import DialogContent from './common/DialogContent.vue';
-import { siyuanI18n } from '../util/siyuanEnvironments/i18n.getI18n.environment';
+import { ref, onMounted, nextTick } from "vue";
+import { useAiCustomDialog, type AiCustomDialogEvents } from "./aiCustomDialog.componentLogic";
+import AiCustomDialogField from "./common/TextField.vue";
+import AiCustomDialogButtons from "./common/DialogActions.vue";
+import DialogContent from "./common/DialogContent.vue";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 // 定义组件事件
 interface Emits {
-  (e: 'cancel'): void;
-  (e: 'use', customAction: string): void;
-  (e: 'save', name: string, customAction: string): void;
+  (e: "cancel"): void;
+  (e: "use", customAction: string): void;
+  (e: "save", name: string, customAction: string): void;
 }
 
 const emit = defineEmits<Emits>();
@@ -35,9 +35,9 @@ const languages = siyuanI18n;
 
 // 创建组件逻辑
 const events: AiCustomDialogEvents = {
-  cancel: () => emit('cancel'),
-  use: (customAction: string) => emit('use', customAction),
-  save: (name: string, customAction: string) => emit('save', name, customAction)
+  cancel: () => emit("cancel"),
+  use: (customAction: string) => emit("use", customAction),
+  save: (name: string, customAction: string) => emit("save", name, customAction)
 };
 
 const {

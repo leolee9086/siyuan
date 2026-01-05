@@ -23,12 +23,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
-import type { PropType } from 'vue';
-import { useStreamChatUI, getI18nText } from './streamChat.ui';
-import TextField from './common/TextField.vue';
-import AIResponseDisplay from './AIResponseDisplay.vue';
-import { AssistantResponseState } from '../ai/session/session.types';
+import { ref, onMounted, computed } from "vue";
+import type { PropType } from "vue";
+import { useStreamChatUI, getI18nText } from "./streamChat.ui";
+import TextField from "./common/TextField.vue";
+import AIResponseDisplay from "./AIResponseDisplay.vue";
+import { AssistantResponseState } from "../ai/session/session.types";
 
 const props = defineProps(
     {
@@ -45,10 +45,10 @@ const props = defineProps(
         }
 
     }
-)
+);
 const textFieldRef = ref<InstanceType<typeof TextField> | null>(null);
 const aiResponseDisplayRefs = ref<(InstanceType<typeof AIResponseDisplay> | null)[]>([]);
-const inputValue = ref('');
+const inputValue = ref("");
 
 const setResponseDisplayRef = (el: any, index: number) => {
     if (el && el.$el) {
@@ -70,29 +70,33 @@ const {
 } = useStreamChatUI();
 
 // 获取国际化文本
-const aiWritingText = getI18nText('aiWriting');
-const cancelText = getI18nText('cancel');
-const confirmText = getI18nText('追加到笔记');
+const aiWritingText = getI18nText("aiWriting");
+const cancelText = getI18nText("cancel");
+const confirmText = getI18nText("追加到笔记");
 
 const confirmButtonText = computed(() => {
-    if (isStreaming.value) return '响应中...点击终止';
-    if (props.controller.taskStates.every(state => state.isDone)) return confirmText;
+    if (isStreaming.value) {
+return "响应中...点击终止";
+}
+    if (props.controller.taskStates.every(state => state.isDone)) {
+return confirmText;
+}
     return confirmText;
 });
 
 const confirmButtonColor = computed(() => {
-    return isStreaming.value ? 'var(--b3-theme-error)' : '';
+    return isStreaming.value ? "var(--b3-theme-error)" : "";
 });
 
 // 当UI函数准备好时，通知父组件
-const emit = defineEmits(['ui-functions-ready', 'pauseClick', 'resumeClick']);
+const emit = defineEmits(["ui-functions-ready", "pauseClick", "resumeClick"]);
 onMounted(() => {
     if (textFieldRef.value) {
         textFieldRef.value.focus();
     }
 
     // 通知父组件UI函数已准备好
-    emit('ui-functions-ready', {
+    emit("ui-functions-ready", {
         showResponse,
         setCompleteStatus,
         setErrorStatus,

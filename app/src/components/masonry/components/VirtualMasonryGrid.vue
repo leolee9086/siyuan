@@ -23,12 +23,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, toRef, nextTick } from 'vue';
-import { useLayoutEngine } from '../composables/useLayoutEngine';
-import { useVirtualization } from '../composables/useVirtualization';
-import { useScrollObserver } from '../composables/useScrollObserver';
-import { useVirtualScrollbar } from '../composables/useVirtualScrollbar';
-import type { LayoutItem } from '../composables/layout-engines/types';
+import { ref, computed, onMounted, onUnmounted, watch, toRef, nextTick } from "vue";
+import { useLayoutEngine } from "../composables/useLayoutEngine";
+import { useVirtualization } from "../composables/useVirtualization";
+import { useScrollObserver } from "../composables/useScrollObserver";
+import { useVirtualScrollbar } from "../composables/useVirtualScrollbar";
+import type { LayoutItem } from "../composables/layout-engines/types";
 // 为 props 定义类型
 interface Props {
     items: any[];
@@ -41,7 +41,7 @@ interface Props {
     estimatedTotalCount?: number;
     scrollToIndex?: number;
     scrollToOptions?: ScrollIntoViewOptions;
-    mode?: 'masonry' | 'grid' | 'justified' | 'list';
+    mode?: "masonry" | "grid" | "justified" | "list";
     managedByProvider?: boolean;
 }
 
@@ -49,18 +49,18 @@ const props = withDefaults(defineProps<Props>(), {
     columnWidth: 200,
     rowHeight: 200,
     gap: 15,
-    idKey: 'id',
+    idKey: "id",
     overscanBy: 2,
     itemHeight: undefined,
     estimatedTotalCount: undefined,
-    mode: 'masonry',
+    mode: "masonry",
     managedByProvider: false,
 });
 
 const emit = defineEmits<{
-    (e: 'load-more'): void;
-    (e: 'scroll-settled', visibleItemIndices: number[]): void;
-    (e: 'scroll', scrollTop: number, direction: 'up' | 'down' | 'none'): void;
+    (e: "load-more"): void;
+    (e: "scroll-settled", visibleItemIndices: number[]): void;
+    (e: "scroll", scrollTop: number, direction: "up" | "down" | "none"): void;
 }>();
 const scrollContainer = ref<HTMLElement | null>(null);
 const containerWidth = ref(0);
@@ -72,13 +72,13 @@ const { scrollTop, isScrolling, scrollDirection, ignoreScrollEventsFor } = useSc
     scrollContainer,
     onScroll: (currentScrollTop, direction) => {
         // 将滚动事件抛出给父组件
-        emit('scroll', currentScrollTop, direction);
+        emit("scroll", currentScrollTop, direction);
     },
     onScrollSettled: (currentScrollTop) => {
         // 滚动停止时，如果有可见项，触发 scroll-settled 事件
         const visibleIndices = visibleItems.value.map(item => item.index);
         if (visibleIndices.length > 0) {
-            emit('scroll-settled', visibleIndices);
+            emit("scroll-settled", visibleIndices);
         }
     }
 });
@@ -97,14 +97,14 @@ const {
     columnCount, // @织: 获取列数用于居中计算
 } = useLayoutEngine({
     containerWidth,
-    columnWidth: toRef(props, 'columnWidth'),
-    rowHeight: toRef(props, 'rowHeight'),
-    gap: toRef(props, 'gap'),
-    items: toRef(props, 'items'),
+    columnWidth: toRef(props, "columnWidth"),
+    rowHeight: toRef(props, "rowHeight"),
+    gap: toRef(props, "gap"),
+    items: toRef(props, "items"),
     isScrolling,
     idKey: props.idKey,
     itemHeight: props.itemHeight,
-    estimatedTotalCount: toRef(props, 'estimatedTotalCount'),
+    estimatedTotalCount: toRef(props, "estimatedTotalCount"),
     mode: props.mode,
     // 传入保存/恢复滚动位置的回调函数
     onBeforeRebuildLayout: () => {
@@ -169,7 +169,7 @@ const contentStyle = computed(() => {
     if (columnCount.value > 0) {
         const totalWidth = columnCount.value * props.columnWidth + (columnCount.value - 1) * props.gap;
         style.width = `${totalWidth}px`;
-        style.margin = '0 auto';
+        style.margin = "0 auto";
     }
 
     return style;
@@ -186,7 +186,7 @@ watch(isScrolling, (scrolling) => {
         if (scrollTop.value !== lastSettledScrollTop.value) {
             const visibleIndices = visibleItems.value.map(item => item.index);
             if (visibleIndices.length > 0) {
-                emit('scroll-settled', visibleIndices);
+                emit("scroll-settled", visibleIndices);
             }
             // 更新最后的位置
             lastSettledScrollTop.value = scrollTop.value;
@@ -196,7 +196,9 @@ watch(isScrolling, (scrolling) => {
 
 // @织: 滚动到指定项
 watch(() => props.scrollToIndex, (newIndex) => {
-    if (newIndex === undefined || newIndex < 0 || !scrollContainer.value) return;
+    if (newIndex === undefined || newIndex < 0 || !scrollContainer.value) {
+return;
+}
 
     // @织: 未来这里需要从 layout aitems 中找到精确的 y
     // @织: 目前我们先用一个估算值来测试
@@ -206,7 +208,7 @@ watch(() => props.scrollToIndex, (newIndex) => {
         const targetY = targetItem.y;
         scrollContainer.value.scrollTo({
             top: targetY,
-            behavior: props.scrollToOptions?.behavior || 'smooth',
+            behavior: props.scrollToOptions?.behavior || "smooth",
         });
     } else {
         // @织: 如果目标项还未被渲染（在很远的地方），
@@ -221,12 +223,12 @@ watch(() => props.scrollToIndex, (newIndex) => {
 const transitionEnabled = ref(true);
 
 const getItemStyle = (item: LayoutItem) => ({
-    position: 'absolute' as const,
+    position: "absolute" as const,
     top: `${item.y}px`,
     left: `${item.x}px`,
     width: `${item.width}px`,
     // 在滚动过程中或手动禁用时不使用过渡动画
-    transition: isScrolling.value || !transitionEnabled.value ? 'none' : 'top 0.3s, left 0.3s',
+    transition: isScrolling.value || !transitionEnabled.value ? "none" : "top 0.3s, left 0.3s",
 });
 
 // --- DOM Refs and Measurement ---
@@ -255,7 +257,9 @@ const setItemRef = (id: any) => (el: any) => {
         nextTick(() => {
             // nextTick 内 el 可能已经改变，重新从 map 获取最新的
             const wrapperEl = itemWrapperElements.get(id);
-            if (!wrapperEl) return;
+            if (!wrapperEl) {
+return;
+}
 
             const contentEl = wrapperEl.children[0] as HTMLElement;
             if (contentEl && contentEl.nodeType === 1) {
@@ -320,7 +324,7 @@ watch([containerWidth, () => props.columnWidth, () => props.gap, () => props.row
                     // 使用 scrollTo 使滚动更平滑
                     scrollContainer.value.scrollTo({
                         top: newScrollTop,
-                        behavior: 'auto'
+                        behavior: "auto"
                     });
                 }
             });
@@ -333,15 +337,17 @@ onMounted(() => {
     // 检查是否被 DataProvider 管理，如果不是，显示警告
     if (!props.managedByProvider) {
         console.warn(
-            '%c[VirtualMasonryGrid] 警告：您正在直接使用 VirtualMasonryGrid 组件。' +
-            '\n建议使用 VirtualMasonryDataProvider 组件进行封装，以获得更好的数据加载体验。' +
-            '\n直接使用 VirtualMasonryGrid 需要自行处理数据加载、占位符和动态高度等复杂逻辑。' +
-            '\n查看示例: examples/layout/data-provider.vue',
-            'color: #ff9800; font-weight: bold;'
+            "%c[VirtualMasonryGrid] 警告：您正在直接使用 VirtualMasonryGrid 组件。" +
+            "\n建议使用 VirtualMasonryDataProvider 组件进行封装，以获得更好的数据加载体验。" +
+            "\n直接使用 VirtualMasonryGrid 需要自行处理数据加载、占位符和动态高度等复杂逻辑。" +
+            "\n查看示例: examples/layout/data-provider.vue",
+            "color: #ff9800; font-weight: bold;"
         );
     }
 
-    if (!scrollContainer.value) return;
+    if (!scrollContainer.value) {
+return;
+}
     const resizeObserver = new ResizeObserver(entries => {
         if (entries[0]) {
             const { width, height } = entries[0].contentRect;
@@ -371,13 +377,13 @@ onMounted(() => {
 
                         // 更新完滚动位置后再触发滚动事件以更新滚动条
                         setTimeout(() => {
-                            scrollContainer.value?.dispatchEvent(new Event('scroll'));
+                            scrollContainer.value?.dispatchEvent(new Event("scroll"));
                         }, 50);
                     });
                 } else {
                     // 如果没有滚动位置需要恢复，直接触发滚动事件
                     setTimeout(() => {
-                        scrollContainer.value?.dispatchEvent(new Event('scroll'));
+                        scrollContainer.value?.dispatchEvent(new Event("scroll"));
                     }, 50);
                 }
             });
@@ -391,7 +397,7 @@ onMounted(() => {
         rebuildLayout();
         // 初始化时强制一次滚动事件
         setTimeout(() => {
-            scrollContainer.value?.dispatchEvent(new Event('scroll'));
+            scrollContainer.value?.dispatchEvent(new Event("scroll"));
         }, 50);
     });
 

@@ -499,33 +499,33 @@
     <div id="printContainer"></div>
 </template>
 <script setup lang="ts">
-import { Constants } from '../constants';
-import { siyuanI18n } from '../util/siyuanEnvironments/i18n.getI18n.environment';
-import { getSiyuanConfig, getSiyuanStorage } from '../util/siyuanEnvironments/getSiyuanConfig.environment';
-import { setStorageVal } from '../protyle/util/compatibility';
+import { Constants } from "../constants";
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
+import { getSiyuanConfig, getSiyuanStorage } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { setStorageVal } from "../protyle/util/compatibility";
 /// #if !MOBILE
 //@ts-ignore
 import { webViewerLoad } from "../asset/pdf/viewer";
 /// #endif
 /// #if !BROWSER
-import { setModelsHash } from '../window/setHeader';
+import { setModelsHash } from "../window/setHeader";
 /// #endif
 
-import { updateHotkeyTip } from '../protyle/util/compatibility';
-import { onMounted, ref } from 'vue';
-import { nextTick } from 'vue';
-import { genThemedColorList } from '../appearance/colorList';
-import { horizontalScroll } from '../util/DOM/scroll';
+import { updateHotkeyTip } from "../protyle/util/compatibility";
+import { onMounted, ref } from "vue";
+import { nextTick } from "vue";
+import { genThemedColorList } from "../appearance/colorList";
+import { horizontalScroll } from "../util/DOM/scroll";
 
 const props = defineProps([
-    'controller'
-])
-const pdfTheme = ref('dark')
+    "controller"
+]);
+const pdfTheme = ref("dark");
 
-const controller = props.controller
+const controller = props.controller;
 onMounted(
     async () => {
-        await nextTick(() => { })
+        await nextTick(() => { });
         const localPDF = getSiyuanStorage()[Constants.LOCAL_PDFTHEME];
         pdfTheme.value = getSiyuanConfig().appearance.mode === 0 ? localPDF.light : localPDF.dark;
         const darkElement = controller.element.querySelector("#pdfDark");
@@ -562,7 +562,7 @@ onMounted(
         });
         // 初始化完成后需等待页签是否显示设置完成，才可以判断 pdf 是否能进行渲染
         setTimeout(() => {
-            const baseURLElement = document.getElementById("baseURL") 
+            const baseURLElement = document.getElementById("baseURL"); 
             if(!baseURLElement){
                 console.error("DOM中缺少baseURL元素，无法加载PDF文件");
                 return;
@@ -589,5 +589,5 @@ onMounted(
         }, Constants.TIMEOUT_LOAD);
 
     }
-)
+);
 </script>

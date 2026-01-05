@@ -16,7 +16,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref } from "vue";
 
 interface AssetItem {
     hName: string;
@@ -29,8 +29,8 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-    (e: 'select', item: AssetItem): void;
-    (e: 'heightChange', height: number): void;
+    (e: "select", item: AssetItem): void;
+    (e: "heightChange", height: number): void;
 }>();
 
 const imageHeight = ref(0);
@@ -38,8 +38,8 @@ const imageError = ref(false);
 
 /** 是否为图片类型 */
 const isImage = computed(() => {
-    const ext = props.item.path.split('.').pop()?.toLowerCase() || '';
-    return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(ext);
+    const ext = props.item.path.split(".").pop()?.toLowerCase() || "";
+    return ["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "ico"].includes(ext);
 });
 
 /** 缩略图 URL */
@@ -50,18 +50,24 @@ const thumbnailUrl = computed(() => {
 
 /** 非图片类型的图标 */
 const iconHref = computed(() => {
-    const ext = props.item.path.split('.').pop()?.toLowerCase() || '';
-    if (['mp4', 'webm', 'mov', 'avi'].includes(ext)) return '#iconVideo';
-    if (['mp3', 'wav', 'ogg', 'flac'].includes(ext)) return '#iconRecord';
-    if (['pdf'].includes(ext)) return '#iconPDF';
-    return '#iconFile';
+    const ext = props.item.path.split(".").pop()?.toLowerCase() || "";
+    if (["mp4", "webm", "mov", "avi"].includes(ext)) {
+return "#iconVideo";
+}
+    if (["mp3", "wav", "ogg", "flac"].includes(ext)) {
+return "#iconRecord";
+}
+    if (["pdf"].includes(ext)) {
+return "#iconPDF";
+}
+    return "#iconFile";
 });
 
 /** 图片加载完成 */
 const onImageLoad = (e: Event) => {
     const img = e.target as HTMLImageElement;
     imageHeight.value = img.naturalHeight;
-    emit('heightChange', img.offsetHeight);
+    emit("heightChange", img.offsetHeight);
 };
 
 /** 图片加载失败 */
@@ -71,7 +77,7 @@ const onImageError = () => {
 
 /** 点击卡片 */
 const handleClick = () => {
-    emit('select', props.item);
+    emit("select", props.item);
 };
 </script>
 
