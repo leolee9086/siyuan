@@ -94,6 +94,7 @@ const {
     updateItemHeight,
     rebuildLayout,
     layoutUpdateStamp,
+    columnCount, // @织: 获取列数用于居中计算
 } = useLayoutEngine({
     containerWidth,
     columnWidth: toRef(props, 'columnWidth'),
@@ -158,9 +159,21 @@ const { visibleItems, forceUpdate: forceVirtualizationUpdate } = useVirtualizati
     overscanBy: props.overscanBy,
 });
 
-const contentStyle = computed(() => ({
-    height: `${contentHeight.value}px`,
-}));
+const contentStyle = computed(() => {
+    const style: Record<string, string> = {
+        height: `${contentHeight.value}px`,
+    };
+
+    // @织: 计算实际内容宽度并居中
+    // 只有在知道列数的情况下才能计算准确宽度
+    if (columnCount.value > 0) {
+        const totalWidth = columnCount.value * props.columnWidth + (columnCount.value - 1) * props.gap;
+        style.width = `${totalWidth}px`;
+        style.margin = '0 auto';
+    }
+
+    return style;
+});
 
 // @织: 记录上一次滚动停止的位置
 const lastSettledScrollTop = ref(-1);
