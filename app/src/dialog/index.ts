@@ -39,6 +39,7 @@ export class Dialog {
     private titleVueApp: App | null = null;
     private isFullscreen: boolean = false;
     private originalSize: { width: string; height: string; left: string; top: string } | null = null;
+    private abortController: AbortController;
 
     constructor(options: IDialogOptions) {
         this.disableClose = options.disableClose ?? false;
@@ -46,6 +47,7 @@ export class Dialog {
         this.disableEscapeClose = options.disableEscapeClose ?? false;
         this.scrimPointerEvents = options.scrimPointerEvents ?? false;
         this.id = genUUID();
+        this.abortController = new AbortController();
         pushSiyuanDialog(this);
         this.destroyCallback = options.destroyCallback ?? (() => { });
         this.data = options.data || {};
@@ -150,6 +152,8 @@ export class Dialog {
     }
 
     public destroy(options?: IObject) {
+        // 中止所有通过 listen 方法添加的事件监听器
+        this.abortController.abort();
         this.element.classList.remove("b3-dialog--open");
         setTimeout(() => this.执行销毁清理(options), Constants.TIMEOUT_DBLCLICK);
     }
@@ -234,5 +238,39 @@ export class Dialog {
         });
 
         inputElement.addEventListener("keydown", 处理器);
+    }
+
+    /**
+     * @作用: 为对话框添加事件监听器，并在对话框销毁时自动清理。
+     * @意图: 提供统一的事件监听器管理机制，避免手动管理 removeEventListener，防止内存泄漏。
+     * @调用时机: 在对话框创建后，需要为对话框内的元素或对话框本身添加事件监听器时调用。
+     * @问题/改进: 无已知问题。
+     * 
+     * @param target 要监听的目标元素
+     * @param type 事件类型，如 "click"、"keydown" 等
+     * @param listener 事件处理函数
+     * @param options 可选的事件监听器配置，会自动添加 signal
+     * 
+     * @example
+     * ```typescript
+     * const dialog = new Dialog({ ... });
+     * const inputElement = dialog.element.querySelector(".b3-text-field");
+     * dialog.listen(inputElement, "keydown", (event) => {
+     *     if (event.key === "Enter") {
+     *         // 处理回车
+     *     }
+     * });
+     */
+    public listen(
+        target: EventTarget,
+        type: string,
+        listener: EventListenerOrEventListenerObject,
+        options?: AddEventListenerOptions | boolean
+    ): void {
+        const listenerOptions = typeof options === "boolean"
+            ? { capture: options, signal: this.abortController.signal }
+            : { ...options, signal: this.abortController.signal };
+
+        target.addEventListener(type, listener, listenerOptions);
     }
 }

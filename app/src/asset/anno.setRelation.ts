@@ -81,7 +81,10 @@ const removeRelation = (target: HTMLElement, configItem: IPdfAnno, pdf: IPdfInst
  * @调用时机: 在setupDialogEventListeners中绑定到输入框的keydown事件，每次按键都会触发。
  * @问题/改进: 目前只处理了Enter键，可以考虑添加Escape键关闭对话框等其他快捷键支持。
  */
-const handleKeydownEvent = (event: KeyboardEvent, inputElement: HTMLInputElement, configItem: IPdfAnno, pdf: IPdfInstance, config: Record<string, IPdfAnno>, dialog: Dialog, rectElement: HTMLElement) => {
+const handleKeydownEvent = (event: Event, inputElement: HTMLInputElement, configItem: IPdfAnno, pdf: IPdfInstance, config: Record<string, IPdfAnno>, dialog: Dialog, rectElement: HTMLElement) => {
+    if (!(event instanceof KeyboardEvent)) {
+        return;
+    }
     if (event.isComposing) {
         return;
     }
@@ -159,16 +162,16 @@ const createRelationDialog = (configItem: IPdfAnno) => {
 
 /**
  * @作用: 为关联对话框设置事件监听器，包括输入框的键盘事件和对话框的点击事件，并将焦点设置到输入框。
- * @意图: 集中管理对话框的交互逻辑，确保用户可以通过键盘和鼠标操作管理关联。
+ * @意图: 集中管理对话框的交互逻辑，使用Dialog.listen方法统一管理监听器生命周期，在对话框销毁时自动清理。
  * @调用时机: 在setRelation函数中创建对话框后立即调用，完成对话框的交互初始化。
- * @问题/改进: 事件监听器没有清理机制，如果对话框频繁创建销毁可能造成内存泄漏。建议在对话框销毁时移除监听器。
+ * @问题/改进: 无已知问题。
  */
 const setupDialogEventListeners = (inputElement: HTMLInputElement, configItem: IPdfAnno, pdf: IPdfInstance, config: Record<string, IPdfAnno>, dialog: Dialog, rectElement: HTMLElement) => {
     inputElement.focus();
-    inputElement.addEventListener("keydown", (event: KeyboardEvent) => {
+    dialog.listen(inputElement, "keydown", (event) => {
         handleKeydownEvent(event, inputElement, configItem, pdf, config, dialog, rectElement);
     });
-    dialog.element.addEventListener("click", (event: Event) => {
+    dialog.listen(dialog.element, "click", (event) => {
         handleClickEvent(event, configItem, pdf, config, dialog, rectElement);
     });
 };
