@@ -23,13 +23,13 @@ import { isMobile } from "../../util/functions";
 import { previewDocImage } from "../preview/image";
 import {
     enterBack,
-    imgMenu,
     inlineMathMenu,
     linkMenu,
     setFold,
     tagMenu,
     zoomOut
 } from "../../menus/protyle";
+import { imgMenu } from "../../menus/protyle.imgMenu";
 import { contentMenu } from "../../menus/protyle.contentMenu";
 import { refMenu } from "../../menus/protyle.refMenu";
 import { fileAnnotationRefMenu } from "../../menus/protyle.fileAnnotationRefMenu";

@@ -18,7 +18,8 @@ import { getContenteditableElement, hasNextSibling, hasPreviousSibling } from ".
 import { transaction, updateTransaction } from "../wysiwyg/transaction";
 import { insertHTML } from "../util/insertHTML";
 import { highlightRender } from "../render/highlightRender";
-import { imgMenu, setFold } from "../../menus/protyle";
+import { setFold } from "../../menus/protyle";
+import { imgMenu } from "../../menus/protyle.imgMenu";
 import { assetMenu } from "../../menus/protyleMenus/protyle.asset";
 import { hideElements } from "../ui/hideElements";
 import { fetchPost } from "../../util/fetch";
