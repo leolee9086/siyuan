@@ -97,7 +97,9 @@ const handleCopyAction = (ctx: ToolbarActionContext) => {
 const handleRelateAction = (ctx: ToolbarActionContext) => {
     const { pdf } = ctx;
     console.log(pdf);
-    setRelation(pdf);
+    if (rectElement) {
+        setRelation(pdf, rectElement);
+    }
     hideToolbar(ctx.element);
 };
 
@@ -131,6 +133,29 @@ const updateAnnotationStyle = (element: HTMLElement, id: string, type: string) =
     }
 };
 
+/**
+ * 处理切换注释类型操作
+ *
+ * @作用 在文本注释(text)和边框注释(border)之间切换显示模式:
+ *       1. 隐藏工具栏
+ *       2. 切换注释类型(text ↔ border)
+ *       3. 更新DOM样式以反映新的类型
+ *       4. 保存更新后的配置到服务器
+ *
+ * @意图 为用户提供在不同视觉样式间快速切换注释显示模式的能力。
+ *       文本模式下,注释区域填充背景色;边框模式下,仅显示边框。
+ *       这样用户可以根据阅读需求选择更合适的显示方式。
+ *
+ * @调用时机 通过工具栏操作注册表(toolbarActionRegistry)调用,
+ *          当用户点击PDF注释工具栏上的切换按钮时触发。
+ *          该函数被注册为 AnnoConstants.ACTION.TOGGLE 对应的处理器。
+ *
+ * @问题改进 无已知问题。可能的改进:
+ *          - 可以考虑支持更多注释类型(如高亮、下划线等)
+ *          - 切换时可以添加过渡动画以提升用户体验
+ *
+ * @param ctx - 工具栏操作上下文,包含共享数据
+ */
 const handleToggleAction = (ctx: ToolbarActionContext) => {
     const { urlPath, config, id, element } = ctx;
 
