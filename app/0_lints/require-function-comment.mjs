@@ -129,6 +129,10 @@ function 需要检查注释(node) {
  */
 function 获取注释目标节点(node) {
     if (node.parent) {
+        // 类方法：注释应该在 MethodDefinition 上
+        if (node.parent.type === "MethodDefinition") {
+            return node.parent;
+        }
         // 变量声明中的函数
         if (node.parent.type === "VariableDeclarator") {
             // 返回整个变量声明语句
