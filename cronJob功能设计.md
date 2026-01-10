@@ -542,7 +542,15 @@ func Run(ctx *CronContext) error {
 - [x] 在 Yaegi 中暴露 `Context` 类型和方法
 - [x] 验证 `sql` 查询和 `exportMdContent` 导出 API 的可用性
 
-### 阶段六：前端 UI 📋 待实现
+### 阶段六：前端 UI (认证交互) ✅ 已完成
+- [x] 实现 WebSocket 鉴权请求监听
+- [x] 实现安全确认对话框
+- [x] 修复 Vue/TypeScript 构建问题
+
+### 阶段七：核查验证 (当前阶段) ⏳ 进行中
+- [ ] 提交代码核查 (1017a5ddee57b7e5550eea64b3017a92fd863e98 之后)
+- [ ] 验证全流程交互
+- [ ] 安全审计
 
 #### 参考的现有模式
 
