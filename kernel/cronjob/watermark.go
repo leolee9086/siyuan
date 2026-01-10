@@ -29,6 +29,7 @@ import (
 
 	"github.com/disintegration/imaging"
 	"github.com/siyuan-note/logging"
+	"github.com/siyuan-note/siyuan/kernel/conf"
 	"github.com/siyuan-note/siyuan/kernel/model"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/basicfont"
@@ -36,29 +37,11 @@ import (
 )
 
 // 获取当前图片水印配置 从思源配置读取水印设置
-func 获取当前图片水印配置() *图片水印配置 {
-	conf := model.Conf
-	if conf == nil || conf.Export == nil {
+func 获取当前图片水印配置() *conf.Export {
+	if model.Conf == nil || model.Conf.Export == nil {
 		return nil
 	}
-
-	水印文本 := conf.Export.ImageWatermarkStr
-	水印描述 := conf.Export.ImageWatermarkDesc
-
-	if 水印文本 == "" {
-		return nil
-	}
-
-	是否为图片水印 := strings.HasPrefix(水印文本, "http") ||
-		strings.HasSuffix(strings.ToLower(水印文本), ".png") ||
-		strings.HasSuffix(strings.ToLower(水印文本), ".jpg") ||
-		strings.HasSuffix(strings.ToLower(水印文本), ".jpeg")
-
-	return &图片水印配置{
-		水印文本:    水印文本,
-		水印描述:    水印描述,
-		是否为图片水印: 是否为图片水印,
-	}
+	return model.Conf.Export
 }
 
 // 为图片添加文字水印 在图片上绘制文字水印
@@ -258,8 +241,8 @@ func 是否为图片文件(路径 string) bool {
 }
 
 // 处理单个图片 为单个图片添加水印
-func 处理单个图片(图片路径 string, 配置 *图片水印配置) error {
-	if 配置 == nil || 配置.水印文本 == "" {
+func 处理单个图片(图片路径 string, 配置 *conf.Export) error {
+	if 配置 == nil || 配置.ImageWatermarkStr == "" {
 		return nil
 	}
 
@@ -270,14 +253,14 @@ func 处理单个图片(图片路径 string, 配置 *图片水印配置) error {
 
 	logging.LogInfof("为图片添加水印: %s -> %s", 图片路径, 输出路径)
 
-	if 配置.是否为图片水印 {
-		return 为图片添加图片水印(图片路径, 输出路径, 配置.水印文本)
+	if IsImage(配置.ImageWatermarkStr) {
+		return 为图片添加图片水印(图片路径, 输出路径, 配置.ImageWatermarkStr)
 	}
-	return 为图片添加文字水印(图片路径, 输出路径, 配置.水印文本)
+	return 为图片添加文字水印(图片路径, 输出路径, 配置.ImageWatermarkStr)
 }
 
 // 批量处理目录中的图片 为目录中所有未处理的图片添加水印
-func 批量处理目录中的图片(目录路径 string, 配置 *图片水印配置, 已处理记录 map[string]bool) error {
+func 批量处理目录中的图片(目录路径 string, 配置 *conf.Export, 已处理记录 map[string]bool) error {
 	return filepath.Walk(目录路径, func(路径 string, 信息 os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -289,7 +272,7 @@ func 批量处理目录中的图片(目录路径 string, 配置 *图片水印配
 		}
 
 		// 跳过非图片文件
-		if !是否为图片文件(路径) {
+		if !IsImage(路径) {
 			return nil
 		}
 
@@ -313,4 +296,9 @@ func 批量处理目录中的图片(目录路径 string, 配置 *图片水印配
 		已处理记录[路径] = true
 		return nil
 	})
+}
+
+func IsImage(path string) bool {
+	ext := strings.ToLower(filepath.Ext(path))
+	return ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".svg" || ext == ".gif" || ext == ".webp"
 }

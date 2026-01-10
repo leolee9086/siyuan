@@ -75,6 +75,14 @@ type Context struct {
 	Log    func(string)           // 日志记录函数
 }
 
+// Call 调用内核 API
+func (c *Context) Call(path string, args map[string]interface{}) (map[string]interface{}, error) {
+	if GlobalAPIProvider == nil {
+		return nil, nil // 或者返回错误
+	}
+	return GlobalAPIProvider(path, args)
+}
+
 // TaskHandler 由动态代码导出的任务执行函数签名
 type TaskHandler func(ctx *Context) error
 
@@ -91,6 +99,7 @@ type TaskInstance struct {
 type Manager struct {
 	Tasks       map[string]*TaskInstance
 	Extensions  map[string]*ExtensionConfig
+	LoadErrors  map[string]string // 记录任务加载失败的错误信息
 	Executor    *脚本执行器
 	Lock        sync.RWMutex
 	Initialized bool
@@ -99,7 +108,21 @@ type Manager struct {
 var (
 	GlobalManager *Manager
 	InitOnce      sync.Once
+
+	// GlobalAPIProvider 全局 API 提供者
+	GlobalAPIProvider APIProvider
 )
+
+// APIProvider API 提供者函数签名
+// path: API 路径，例如 "/api/system/getSysFonts"
+// args: 请求参数 map
+// 返回: 响应数据 map (通常对应 ret.Data) 和 错误
+type APIProvider func(path string, args map[string]interface{}) (map[string]interface{}, error)
+
+// SetAPIProvider 设置全局 API 提供者
+func SetAPIProvider(p APIProvider) {
+	GlobalAPIProvider = p
+}
 
 // GetManager 获取全局单例管理器
 func GetManager() *Manager {
@@ -107,6 +130,7 @@ func GetManager() *Manager {
 		GlobalManager = &Manager{
 			Tasks:      make(map[string]*TaskInstance),
 			Extensions: make(map[string]*ExtensionConfig),
+			LoadErrors: make(map[string]string),
 		}
 	})
 	return GlobalManager
@@ -202,12 +226,18 @@ func (m *Manager) CompileAndStartTask(docID string) error {
 	// 编译文档
 	result, err := m.Executor.编译文档(docID)
 	if err != nil {
+		m.Lock.Lock()
+		m.LoadErrors[docID] = err.Error()
+		m.Lock.Unlock()
 		return err
 	}
 
 	// 加载并执行编译后的代码，获取导出的变量
 	vars, err := m.Executor.加载代码(result)
 	if err != nil {
+		m.Lock.Lock()
+		m.LoadErrors[docID] = err.Error()
+		m.Lock.Unlock()
 		return err
 	}
 
@@ -235,7 +265,10 @@ func (m *Manager) CompileAndStartTask(docID string) error {
 		StopChan: make(chan struct{}),
 	}
 
+	m.Lock.Lock()
 	m.Tasks[docID] = task
+	delete(m.LoadErrors, docID) // 清除之前的错误
+	m.Lock.Unlock()
 
 	// 启动任务
 	go m.RunTaskLoop(task)
@@ -318,7 +351,11 @@ func (m *Manager) GetAllTasks() []TaskRuntimeInfo {
 		if task, ok := m.Tasks[docID]; ok {
 			result = append(result, task.Runtime)
 		} else {
-			// 对于未运行的任务，返回基础信息
+			// 对于未运行的任务，返回基础信息，包含可能的加载错误
+			lastError := ""
+			if err, exists := m.LoadErrors[docID]; exists {
+				lastError = err
+			}
 			result = append(result, TaskRuntimeInfo{
 				DocID:       config.ID,
 				Name:        "未加载",
@@ -327,7 +364,7 @@ func (m *Manager) GetAllTasks() []TaskRuntimeInfo {
 				Status:      任务状态_未运行,
 				LastRun:     0,
 				NextRun:     0,
-				LastError:   "",
+				LastError:   lastError,
 				RunCount:    0,
 			})
 		}
@@ -353,6 +390,7 @@ func (m *Manager) GetTask(docID string) *TaskRuntimeInfo {
 			Schedule:    "-",
 			Description: "任务未启动",
 			Status:      任务状态_未运行,
+			LastError:   m.LoadErrors[docID],
 		}
 	}
 

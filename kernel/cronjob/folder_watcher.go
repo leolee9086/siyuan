@@ -24,6 +24,7 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/siyuan-note/logging"
+	"github.com/siyuan-note/siyuan/kernel/conf"
 )
 
 // 文件夹监听器 监听文件夹变化
@@ -165,7 +166,7 @@ func (w *文件夹监听器) 停止监听() {
 type 图片水印监听器 struct {
 	文件夹监听器 *文件夹监听器
 	已处理文件  map[string]bool
-	水印配置   *图片水印配置
+	水印配置   *conf.Export
 	锁      sync.Mutex
 }
 
@@ -196,7 +197,7 @@ func (w *图片水印监听器) 处理文件事件(事件类型 string, 文件�
 	}
 
 	// 检查是否为图片文件
-	if !是否为图片文件(文件路径) {
+	if !IsImage(文件路径) {
 		return
 	}
 
@@ -215,7 +216,7 @@ func (w *图片水印监听器) 处理文件事件(事件类型 string, 文件�
 
 	// 刷新配置
 	配置 := 获取当前图片水印配置()
-	if 配置 == nil || 配置.水印文本 == "" {
+	if 配置 == nil || 配置.ImageWatermarkStr == "" {
 		logging.LogWarnf("水印配置为空，跳过处理: %s", 文件路径)
 		return
 	}

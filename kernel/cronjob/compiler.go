@@ -17,6 +17,9 @@
 package cronjob
 
 import (
+	"bytes"
+	"go/scanner"
+	"go/token"
 	"strings"
 
 	"github.com/88250/lute/ast"
@@ -45,10 +48,11 @@ func (c *文档编译器) 编译文档(文档ID string, 目标语言 string) (st
 		return "", nil
 	}
 
-	var 编译结果 strings.Builder
+	var 源码缓冲 bytes.Buffer
 
-	// 遍历文档节点
-	started := false
+	// 1. 遍历文档节点，将所有内容拼接为源码（Markdown 内容转为注释）
+	// 这样可以保留所有行号和上下文，方便后续处理
+	logging.LogInfof("Start collecting source for doc: %s", 文档ID)
 	ast.Walk(树.Root, func(n *ast.Node, entering bool) ast.WalkStatus {
 		if !entering {
 			return ast.WalkContinue
@@ -56,74 +60,51 @@ func (c *文档编译器) 编译文档(文档ID string, 目标语言 string) (st
 
 		switch n.Type {
 		case ast.NodeCodeBlock:
-			// 代码块处理
 			语言 := 获取代码块语言(n)
 			代码内容 := 获取代码块内容(n)
+			logging.LogInfof("Found CodeBlock. Lang: %s, Length: %d", 语言, len(代码内容))
 
 			if 语言匹配(语言, 目标语言) {
-				// 标记开始包含内容
-				started = true
-
-				// 目标语言的代码块：直接输出
-				编译结果.WriteString(代码内容)
-				编译结果.WriteString("\n\n")
-			} else if started && 代码内容 != "" {
-				// 其他语言代码块：仅在开始后转为注释
-				编写多行注释(&编译结果, "```"+语言+"\n"+代码内容+"\n```")
+				// 目标语言代码块：直接追加
+				源码缓冲.WriteString(代码内容)
+				源码缓冲.WriteString("\n")
+			} else if 代码内容 != "" {
+				// 其他语言：转为注释
+				编写多行注释(&源码缓冲, "```"+语言+"\n"+代码内容+"\n```")
 			}
 
 		case ast.NodeParagraph:
-			if !started {
-				return ast.WalkSkipChildren
-			}
-			// 段落：转为注释
 			文本 := 获取节点文本(n)
 			if 文本 != "" {
-				编写多行注释(&编译结果, 文本)
+				编写多行注释(&源码缓冲, 文本)
 			}
 
 		case ast.NodeHeading:
-			if !started {
-				return ast.WalkSkipChildren
-			}
-			// 标题：转为注释
 			文本 := 获取节点文本(n)
 			if 文本 != "" {
 				级别 := n.HeadingLevel
 				前缀 := strings.Repeat("#", int(级别)) + " "
-				编写多行注释(&编译结果, 前缀+文本)
+				编写多行注释(&源码缓冲, 前缀+文本)
 			}
 
 		case ast.NodeList:
-			if !started {
-				return ast.WalkSkipChildren
-			}
-			// 列表：转为注释
-			// 列表内容会在子节点中处理
+			// 列表本身不包含文本，由子项处理
 
 		case ast.NodeListItem:
-			if !started {
-				return ast.WalkSkipChildren
-			}
-			// 列表项：转为注释
 			文本 := 获取节点文本(n)
 			if 文本 != "" {
-				编写多行注释(&编译结果, "- "+文本)
+				编写多行注释(&源码缓冲, "- "+文本)
 			}
-			return ast.WalkSkipChildren // 已处理子节点
+			return ast.WalkSkipChildren
 
 		case ast.NodeBlockquote:
-			if !started {
-				return ast.WalkSkipChildren
-			}
-			// 引用块：转为注释
 			文本 := 获取节点文本(n)
 			if 文本 != "" {
 				行列表 := strings.Split(文本, "\n")
 				for _, 行 := range 行列表 {
-					编译结果.WriteString("// > ")
-					编译结果.WriteString(行)
-					编译结果.WriteString("\n")
+					源码缓冲.WriteString("// > ")
+					源码缓冲.WriteString(行)
+					源码缓冲.WriteString("\n")
 				}
 			}
 			return ast.WalkSkipChildren
@@ -132,22 +113,156 @@ func (c *文档编译器) 编译文档(文档ID string, 目标语言 string) (st
 		return ast.WalkContinue
 	})
 
-	return 编译结果.String(), nil
+	// 2. 使用 scanner 解析并提升 import 语句
+	fullSource := 源码缓冲.String()
+	logging.LogInfof("Full source length before hoisting: %d", len(fullSource))
+
+	finalSource, err := 提升Imports(fullSource)
+	logging.LogInfof("Final source length after hoisting: %d", len(finalSource)) // If this is double, we know where.
+
+	if err != nil {
+		// 如果解析失败，回退到原始源码（可能只是简单的语法错误，交由编译器报错）
+		logging.LogWarnf("解析 Imports 失败: %s", err)
+		return fullSource, nil
+	}
+
+	return finalSource, nil
 }
 
+// 提升Imports 解析源码，提取 package 和 import 声明并放到顶部
+func 提升Imports(source string) (string, error) {
+	var s scanner.Scanner
+	fset := token.NewFileSet()
+	file := fset.AddFile("", fset.Base(), len(source))
+
+	// Mode: 0 means comments are skipped and not returned as tokens.
+	s.Init(file, []byte(source), nil, 0)
+
+	var packageName = "main"
+	var imports []string
+	var bodySegments []string
+
+	lastPos := token.Pos(file.Base()) // 初始位置
+
+	for {
+		pos, tok, _ := s.Scan()
+		if tok == token.EOF {
+			// 添加最后一段剩余内容
+			if int(lastPos)-file.Base() < len(source) {
+				bodySegments = append(bodySegments, source[int(lastPos)-file.Base():])
+			}
+			break
+		}
+
+		// 处理 Package 声明
+		if tok == token.PACKAGE {
+			// 1. 将 package 之前的内容（包括注释和空白）添加到 bodySegments
+			if pos > lastPos {
+				bodySegments = append(bodySegments, source[int(lastPos)-file.Base():int(pos)-file.Base()])
+			}
+
+			// 2. 扫描包名
+			_, pkgNameTok, pkgName := s.Scan()
+			if pkgNameTok == token.IDENT {
+				packageName = pkgName
+			}
+
+			// 3. 找到 Package 声明的结束
+			for {
+				p, t, _ := s.Scan()
+				if t == token.SEMICOLON || t == token.EOF {
+					lastPos = p + 1
+					break
+				}
+			}
+			continue
+		}
+
+		// 处理 Import 声明
+		if tok == token.IMPORT {
+			// 1. 将 import 之前的内容（包括注释和空白）添加到 bodySegments
+			if pos > lastPos {
+				bodySegments = append(bodySegments, source[int(lastPos)-file.Base():int(pos)-file.Base()])
+			}
+
+			// 2. 记录 import 声明的开始位置
+			importStart := int(pos) - file.Base()
+
+			// 3. 扫描整个 import 声明
+			balance := 0
+			currentTok := tok
+			currentPos := pos
+
+			for {
+				// 预读逻辑调整：如果是 IMPORT 刚开始，根据下一个 token 决定是否多行
+				if currentTok == token.IMPORT {
+					p, nextTok, _ := s.Scan()
+					if nextTok == token.LPAREN {
+						balance = 1
+					}
+					currentTok = nextTok
+					currentPos = p
+				} else {
+					if currentTok == token.LPAREN {
+						balance++
+					} else if currentTok == token.RPAREN {
+						balance--
+					}
+				}
+
+				// 检查结束条件
+				if (balance == 0 && currentTok == token.SEMICOLON) || currentTok == token.EOF {
+					importEnd := int(currentPos) - file.Base()
+					if currentTok == token.SEMICOLON {
+						importEnd += 1 // 包含分号/换行
+					}
+
+					if importEnd > len(source) {
+						importEnd = len(source)
+					}
+
+					imports = append(imports, source[importStart:importEnd])
+					lastPos = token.Pos(importEnd + file.Base())
+					break
+				}
+
+				// 继续扫描
+				currentPos, currentTok, _ = s.Scan()
+			}
+			continue
+		}
+		// 其他内容留待下一次循环处理或最后附加
+	}
+
+	var result strings.Builder
+	result.WriteString("package " + packageName + "\n\n")
+
+	if len(imports) > 0 {
+		for _, imp := range imports {
+			result.WriteString(strings.TrimSpace(imp))
+			result.WriteString("\n")
+		}
+		result.WriteString("\n")
+	}
+
+	for _, seg := range bodySegments {
+		result.WriteString(seg)
+	}
+
+	return result.String(), nil
+}
+
+// 辅助函数保持不变
 // 获取代码块语言 获取代码块的语言标识
 func 获取代码块语言(节点 *ast.Node) string {
 	if 节点.Type != ast.NodeCodeBlock {
 		return ""
 	}
-
-	// 查找语言信息子节点
 	for 子节点 := 节点.FirstChild; 子节点 != nil; 子节点 = 子节点.Next {
 		if 子节点.Type == ast.NodeCodeBlockFenceInfoMarker {
 			return string(子节点.CodeBlockInfo)
 		}
 	}
-
 	return ""
 }
 
@@ -156,31 +271,25 @@ func 获取代码块内容(节点 *ast.Node) string {
 	if 节点.Type != ast.NodeCodeBlock {
 		return ""
 	}
-
-	// 查找代码内容子节点
 	for 子节点 := 节点.FirstChild; 子节点 != nil; 子节点 = 子节点.Next {
 		if 子节点.Type == ast.NodeCodeBlockCode {
 			return string(子节点.Tokens)
 		}
 	}
-
 	return ""
 }
 
 // 获取节点文本 获取节点的纯文本内容
 func 获取节点文本(节点 *ast.Node) string {
 	var 结果 strings.Builder
-
 	ast.Walk(节点, func(n *ast.Node, entering bool) ast.WalkStatus {
 		if !entering {
 			return ast.WalkContinue
 		}
-
 		switch n.Type {
 		case ast.NodeText:
 			结果.Write(n.Tokens)
 		case ast.NodeCodeSpan:
-			// 行内代码
 			for 子 := n.FirstChild; 子 != nil; 子 = 子.Next {
 				if 子.Type == ast.NodeCodeSpanContent {
 					结果.WriteString("`")
@@ -192,10 +301,8 @@ func 获取节点文本(节点 *ast.Node) string {
 		case ast.NodeBr:
 			结果.WriteString("\n")
 		}
-
 		return ast.WalkContinue
 	})
-
 	return 结果.String()
 }
 
@@ -203,7 +310,6 @@ func 获取节点文本(节点 *ast.Node) string {
 func 语言匹配(代码块语言 string, 目标语言 string) bool {
 	代码块语言 = strings.ToLower(strings.TrimSpace(代码块语言))
 	目标语言 = strings.ToLower(strings.TrimSpace(目标语言))
-
 	switch 目标语言 {
 	case "go", "golang":
 		return 代码块语言 == "go" || 代码块语言 == "golang"
@@ -213,7 +319,7 @@ func 语言匹配(代码块语言 string, 目标语言 string) bool {
 }
 
 // 编写多行注释 将多行文本转换为注释
-func 编写多行注释(结果 *strings.Builder, 文本 string) {
+func 编写多行注释(结果 *bytes.Buffer, 文本 string) {
 	行列表 := strings.Split(文本, "\n")
 	for _, 行 := range 行列表 {
 		结果.WriteString("// ")
@@ -221,42 +327,4 @@ func 编写多行注释(结果 *strings.Builder, 文本 string) {
 		结果.WriteString("\n")
 	}
 	结果.WriteString("\n")
-}
-
-// 获取文档扩展属性 获取文档的 ext-lang 和 ext-type 属性
-func 获取文档扩展属性(文档ID string) (扩展语言 string, 扩展类型 string, err error) {
-	树, err := model.LoadTreeByBlockID(文档ID)
-	if err != nil {
-		return "", "", err
-	}
-
-	if 树 == nil || 树.Root == nil {
-		return "", "", nil
-	}
-
-	// 从文档属性中读取
-	扩展语言 = 树.Root.IALAttr("ext-lang")
-	扩展类型 = 树.Root.IALAttr("ext-type")
-
-	return 扩展语言, 扩展类型, nil
-}
-
-// 设置文档扩展属性 设置文档的 ext-lang 和 ext-type 属性
-func 设置文档扩展属性(文档ID string, 扩展语言 string, 扩展类型 string) error {
-	树, err := model.LoadTreeByBlockID(文档ID)
-	if err != nil {
-		return err
-	}
-
-	if 树 == nil || 树.Root == nil {
-		return nil
-	}
-
-	// 设置属性
-	树.Root.SetIALAttr("ext-lang", 扩展语言)
-	树.Root.SetIALAttr("ext-type", 扩展类型)
-
-	// 保存文档
-	// TODO: 调用思源的保存机制
-	return nil
 }

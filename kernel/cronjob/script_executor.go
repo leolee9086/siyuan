@@ -18,10 +18,18 @@ package cronjob
 
 import (
 	"fmt"
+	"image"
+	"image/color"
+	"image/draw"
 	"reflect"
 
+	"github.com/siyuan-note/logging"
+	"github.com/siyuan-note/siyuan/kernel/conf"
 	"github.com/traefik/yaegi/interp"
 	"github.com/traefik/yaegi/stdlib"
+	"golang.org/x/image/font"
+	"golang.org/x/image/font/opentype"
+	"golang.org/x/image/math/fixed"
 )
 
 // 脚本执行器 使用 yaegi 解释执行 Go 代码
@@ -120,7 +128,8 @@ func (e *脚本执行器) 执行代码(代码 string) (interface{}, error) {
 var 思源符号表 = interp.Exports{
 	"siyuan/siyuan": map[string]reflect.Value{
 		// 定时任务上下文类型
-		"Context": reflect.ValueOf((*Context)(nil)),
+		"Context":     reflect.ValueOf((*Context)(nil)),
+		"TaskHandler": reflect.ValueOf((*TaskHandler)(nil)),
 
 		// 安全的工具函数
 		"日志信息": reflect.ValueOf(日志信息),
@@ -131,47 +140,116 @@ var 思源符号表 = interp.Exports{
 		"获取图片水印配置": reflect.ValueOf(获取图片水印配置),
 
 		// 图片处理
-		"添加图片水印": reflect.ValueOf(添加图片水印),
+		"添加图片水印":           reflect.ValueOf(添加图片水印),
+		"LoadOpenTypeFont": reflect.ValueOf(LoadOpenTypeFont),
+		"DrawText":         reflect.ValueOf(DrawText),
+		"MeasureText":      reflect.ValueOf(MeasureText),
+
+		// 类型
+		"图片水印配置": reflect.ValueOf((*conf.Export)(nil)),
 	},
 }
 
 // 日志信息 记录信息级别日志
 func 日志信息(消息 string) {
-	// TODO: 调用思源日志系统
-	fmt.Println("[INFO]", 消息)
+	logging.LogInfof("[CronJob] %s", 消息)
 }
 
 // 日志警告 记录警告级别日志
 func 日志警告(消息 string) {
-	// TODO: 调用思源日志系统
-	fmt.Println("[WARN]", 消息)
+	logging.LogWarnf("[CronJob] %s", 消息)
 }
 
 // 日志错误 记录错误级别日志
 func 日志错误(消息 string) {
-	// TODO: 调用思源日志系统
-	fmt.Println("[ERROR]", 消息)
-}
-
-// 图片水印配置 水印配置结构
-type 图片水印配置 struct {
-	水印文本    string // 水印文本或图片路径
-	水印描述    string // 位置、大小、样式等描述
-	是否为图片水印 bool   // true: 图片水印, false: 文本水印
+	logging.LogErrorf("[CronJob] %s", 消息)
 }
 
 // 获取图片水印配置 获取当前的图片水印配置
-func 获取图片水印配置() *图片水印配置 {
-	// TODO: 从 model.Conf.Export 读取配置
-	return &图片水印配置{
-		水印文本:    "",
-		水印描述:    "",
-		是否为图片水印: false,
+func 获取图片水印配置() *conf.Export {
+	return 获取当前图片水印配置()
+}
+
+// LoadOpenTypeFont 加载 OpenType 字体
+// 返回 interface{} 而不是 font.Face，避免脚本需要引入 font 包
+func LoadOpenTypeFont(descData []byte, size float64) (interface{}, error) {
+	f, err := opentype.Parse(descData)
+	if err != nil {
+		// 尝试解析为字体集合 (TTC)
+		coll, errColl := opentype.ParseCollection(descData)
+		if errColl != nil {
+			// 如果集合解析也失败，返回原始错误
+			return nil, err
+		}
+		// 默认使用集合中的第一个字体
+		f, err = coll.Font(0)
+		if err != nil {
+			return nil, err
+		}
 	}
+	face, err := opentype.NewFace(f, &opentype.FaceOptions{
+		Size:    size,
+		DPI:     72,
+		Hinting: font.HintingNone,
+	})
+	return face, err
+}
+
+// DrawText 绘制文本
+// face 参数接收 interface{} (即 font.Face)
+func DrawText(img image.Image, face interface{}, x, y int, text string, c color.Color) {
+	// 类型断言
+	f, ok := face.(font.Face)
+	if !ok {
+		logging.LogErrorf("[CronJob] DrawText: invalid font face type")
+		return
+	}
+
+	// 转换为可绘制的图像 (RGBA)
+	dst, ok := img.(draw.Image)
+	if !ok {
+		logging.LogWarnf("[CronJob] DrawText: image is not mutable (draw.Image)")
+		return
+	}
+
+	d := &font.Drawer{
+		Dst:  dst,
+		Src:  image.NewUniform(c),
+		Face: f,
+		Dot:  fixed.P(x, y),
+	}
+	d.DrawString(text)
+}
+
+// MeasureText 测量文本宽高等信息
+// 返回: width, height (asint), advance
+func MeasureText(face interface{}, text string) (int, int, int) {
+	f, ok := face.(font.Face)
+	if !ok {
+		return 0, 0, 0
+	}
+
+	d := &font.Drawer{Face: f}
+	a := d.MeasureString(text)
+	metrics := f.Metrics()
+
+	width := a.Ceil()
+	height := (metrics.Ascent + metrics.Descent).Ceil() // 行高
+	return width, height, width
 }
 
 // 添加图片水印 为图片添加水印
-func 添加图片水印(图片路径 string, 输出路径 string, 配置 *图片水印配置) error {
-	// TODO: 实现图片水印功能
-	return nil
+func 添加图片水印(图片路径 string, 输出路径 string, 配置 *conf.Export) error {
+	if 配置 == nil {
+		return nil
+	}
+	// ... (rest of original logic kept if needed, or we rely on the script implementation)
+	// The script now implements its own logic using LoadOpenTypeFont and DrawText.
+	// But let's keep the original implementation for backward compatibility or "standard" tasks.
+
+	logging.LogInfof("[CronJob] Adding watermark: %s -> %s", 图片路径, 输出路径)
+	if IsImage(配置.ImageWatermarkStr) {
+		return 为图片添加图片水印(图片路径, 输出路径, 配置.ImageWatermarkStr)
+	}
+	return 为图片添加文字水印(图片路径, 输出路径, 配置.ImageWatermarkStr)
 }

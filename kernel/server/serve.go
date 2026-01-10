@@ -24,6 +24,7 @@ import (
 	"mime"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"net/http/pprof"
 	"net/url"
 	"os"
@@ -44,6 +45,7 @@ import (
 	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/api"
 	"github.com/siyuan-note/siyuan/kernel/cmd"
+	"github.com/siyuan-note/siyuan/kernel/cronjob"
 	"github.com/siyuan-note/siyuan/kernel/model"
 	"github.com/siyuan-note/siyuan/kernel/server/proxy"
 	"github.com/siyuan-note/siyuan/kernel/util"
@@ -170,6 +172,55 @@ func Serve(fastMode bool, cookieKey string) {
 	serveCheckAuth(ginServer)
 	serveFixedStaticFiles(ginServer)
 	api.ServeAPI(ginServer)
+
+	// 注入 CronJob API Provider
+	cronjob.SetAPIProvider(func(path string, args map[string]interface{}) (map[string]interface{}, error) {
+		// 构造请求体
+		body, err := gulu.JSON.MarshalJSON(args)
+		if err != nil {
+			return nil, err
+		}
+
+		// 创建模拟请求
+		req := httptest.NewRequest("POST", path, bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+
+		// 模拟响应记录器
+		w := httptest.NewRecorder()
+
+		// 直接调用 Gin 处理请求
+		ginServer.ServeHTTP(w, req)
+
+		// 检查状态码
+		if w.Code != http.StatusOK {
+			return nil, fmt.Errorf("API call failed: status %d, body: %s", w.Code, w.Body.String())
+		}
+
+		// 解析响应
+		var ret gulu.Result
+		if err := gulu.JSON.UnmarshalJSON(w.Body.Bytes(), &ret); err != nil {
+			return nil, fmt.Errorf("parse response failed: %w", err)
+		}
+
+		if ret.Code != 0 {
+			return nil, fmt.Errorf("API error: %s", ret.Msg)
+		}
+
+		// 返回 Data 部分（可能是 map 或其他类型，这里我们统一按 map 处理，或者调用方自己转）
+		// 注意: gulu.Result.Data 是 interface{}
+		if data, ok := ret.Data.(map[string]interface{}); ok {
+			return data, nil
+		}
+
+		// 如果 Data 不是 map（比如 null 或其他），尝试构造个 map 或者报错
+		// 为了通用性，如果是 nil 我们返回 nil map
+		if ret.Data == nil {
+			return nil, nil
+		}
+
+		// 如果是其他类型，包装一下
+		return map[string]interface{}{"result": ret.Data}, nil
+	})
 
 	var host string
 	if model.Conf.System.NetworkServe || util.ContainerDocker == util.Container {

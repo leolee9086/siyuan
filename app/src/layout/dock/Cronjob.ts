@@ -11,11 +11,13 @@ import { setPanelFocus } from "../utils/setPanelFocus";
 import { getDockByType } from "../tabUtil";
 import { hasClosestByClassName } from "../../protyle/util/hasClosest";
 import { showMessage } from "../../dialog/message";
+import { fetchSyncPost } from "../../util/fetch";
 import {
     列出所有任务,
     启用任务,
     禁用任务,
-    立即执行
+    立即执行,
+    获取日志
 } from "../../util/cronjobApi";
 import { 任务运行时信息 } from "../../util/cronjob.types";
 import { 生成面板HTML, 生成任务列表HTML } from "./cronjob.util";
@@ -71,9 +73,64 @@ function 处理图标点击(cronjob: Cronjob, type: string | null) {
 }
 
 /**
+ * 导入任务日志到子文档
+ * @param docId 任务文档ID
+ */
+const 导入任务日志 = async (docId: string) => {
+    // 1. 获取文档信息
+    const docInfoRes = await fetchSyncPost("/api/block/getDocInfo", { id: docId });
+    if (docInfoRes.code !== 0) {
+        showMessage("获取文档信息失败: " + docInfoRes.msg);
+        return;
+    }
+    const { notebook, path: parentPath } = docInfoRes.data;
+
+    // 2. 获取日志
+    const logs = await 获取日志(docId, 100);
+    if (!logs || logs.length === 0) {
+        showMessage("暂无日志可导入");
+        return;
+    }
+
+    // 3. 构建 Markdown
+    let md = "## 任务执行日志\n\n";
+    md += `> 生成时间: ${new Date().toLocaleString()}\n\n`;
+    md += "| 时间 | 级别 | 信息 |\n|---|---|---|\n";
+
+    for (const log of logs) {
+        const timeStr = new Date(log.timestamp * 1000).toLocaleString();
+        // 简单的转义处理，防止 markdown 格式错乱
+        const safeMsg = log.message.replace(/\|/g, "\\|");
+        md += `| ${timeStr} | ${log.level} | ${safeMsg} |\n`;
+    }
+
+    // 4. 创建子文档
+    const newFileName = `Log-${new Date().getTime()}`;
+    const newPath = parentPath.replace(/\.sy$/, "") + "/" + newFileName + ".sy";
+
+    const createRes = await fetchSyncPost("/api/filetree/createDocWithMd", {
+        notebook,
+        path: newPath,
+        markdown: md,
+        parentID: docId
+    });
+
+    if (createRes.code === 0) {
+        showMessage("日志已导入到子文档");
+        return;
+    }
+    showMessage("导入失败: " + createRes.msg);
+};
+
+/**
  * 任务操作处理映射表
  */
 const 动作处理器: Record<string, (cronjob: Cronjob, docId: string) => Promise<void>> = {
+    /**
+     * 切换任务启用/禁用状态
+     * @param cronjob 面板实例
+     * @param docId 文档ID
+     */
     toggle: async (cronjob, docId) => {
         const task = cronjob.tasks.find(t => t.docId === docId);
         const isRunning = task?.status === "running";
@@ -84,15 +141,24 @@ const 动作处理器: Record<string, (cronjob: Cronjob, docId: string) => Promi
             showMessage(isRunning ? "任务已停止" : "任务已启动");
         }
     },
+    /**
+     * 立即执行一次任务
+     * @param cronjob 面板实例
+     * @param docId 文档ID
+     */
     run: async (cronjob, docId) => {
         const success = await 立即执行(docId);
         if (success) {
             showMessage("任务已开始执行");
         }
     },
-    logs: async () => {
-        // TODO: 打开日志对话框
-        showMessage("日志功能开发中");
+    /**
+     * 查看并导入日志
+     * @param cronjob 面板实例
+     * @param docId 文档ID
+     */
+    logs: async (cronjob, docId) => {
+        await 导入任务日志(docId);
     }
 };
 
@@ -105,9 +171,10 @@ const 动作处理器: Record<string, (cronjob: Cronjob, docId: string) => Promi
 async function 处理任务操作(cronjob: Cronjob, docId: string, action: string) {
     try {
         const processor = 动作处理器[action];
-        if (processor) {
-            await processor(cronjob, docId);
+        if (!processor) {
+            return;
         }
+        await processor(cronjob, docId);
         // 刷新列表
         await cronjob.update();
     } catch (e) {
@@ -167,6 +234,10 @@ export class Cronjob extends Model {
         super({
             app,
             id: tab.id,
+            /**
+             * 监听后端消息回调
+             * @param data 消息数据
+             */
             msgCallback: (data) => {
                 if (data && (data.cmd === "cronjobUpdate" || data.cmd === "cronjobStatus")) {
                     this.update();
