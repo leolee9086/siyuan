@@ -41,9 +41,14 @@ type 脚本执行器 struct {
 func 创建脚本执行器() (*脚本执行器, error) {
 	i := interp.New(interp.Options{})
 
-	// 导入标准库
+	// 先加载完整标准库（提供 fmt/strings/time 等安全包）
 	if err := i.Use(stdlib.Symbols); err != nil {
 		return nil, fmt.Errorf("加载标准库失败: %w", err)
+	}
+
+	// 再加载受限符号表，覆盖危险的 os/exec/net 操作
+	if err := i.Use(受限标准库符号表); err != nil {
+		return nil, fmt.Errorf("加载受限标准库失败: %w", err)
 	}
 
 	// 导入思源内部符号（受限的安全子集）
@@ -65,7 +70,12 @@ func (e *脚本执行器) 编译文档(文档ID string) (string, error) {
 func (e *脚本执行器) 加载代码(代码 string) (map[string]interface{}, error) {
 	// 创建新的解释器实例以隔离执行环境
 	i := interp.New(interp.Options{})
+	// 先加载完整标准库
 	if err := i.Use(stdlib.Symbols); err != nil {
+		return nil, err
+	}
+	// 再用受限符号表覆盖危险操作
+	if err := i.Use(受限标准库符号表); err != nil {
 		return nil, err
 	}
 	if err := i.Use(思源符号表); err != nil {

@@ -280,3 +280,96 @@ func HandleAuthResponse(请求ID string, 允许 bool) {
 	mgr := 获取鉴权管理器()
 	mgr.处理鉴权响应(请求ID, 允许)
 }
+
+// CheckAuthForSensitiveOp 检查敏感操作的鉴权状态
+// 操作类型: file_read, file_write, file_delete, command_exec, network_request
+// 目标: 文件路径、命令、URL 等
+func CheckAuthForSensitiveOp(文档ID string, 任务名称 string, 操作类型 string, 目标 string) error {
+	mgr := 获取鉴权管理器()
+
+	// 已授权直接放行
+	if mgr.是否已授权(文档ID) {
+		return nil
+	}
+
+	// 构造可读的原因描述
+	原因 := 构造敏感操作描述(操作类型, 目标)
+
+	// 发起交互鉴权
+	允许, err := mgr.请求鉴权_扩展(文档ID, 任务名称, 原因, 操作类型, 目标)
+	if err != nil {
+		return err
+	}
+
+	if !允许 {
+		return ErrAuthDenied
+	}
+
+	return nil
+}
+
+// 构造敏感操作描述
+func 构造敏感操作描述(操作类型 string, 目标 string) string {
+	switch 操作类型 {
+	case "file_read":
+		return "读取文件: " + 目标
+	case "file_write":
+		return "写入文件: " + 目标
+	case "file_delete":
+		return "删除文件: " + 目标
+	case "command_exec":
+		return "执行命令: " + 目标
+	case "network_request":
+		return "网络请求: " + 目标
+	default:
+		return "敏感操作: " + 目标
+	}
+}
+
+// 请求鉴权_扩展 发起包含操作类型的交互式鉴权请求
+func (m *鉴权管理器) 请求鉴权_扩展(文档ID string, 任务名称 string, 原因 string, 操作类型 string, 目标 string) (bool, error) {
+	// 1. 检查是否已授权
+	if m.是否已授权(文档ID) {
+		return true, nil
+	}
+
+	// 2. 生成请求ID
+	请求ID := gulu.Rand.String(16)
+
+	// 3. 创建等待通道
+	响应通道 := make(chan bool, 1)
+	m.lock.Lock()
+	m.等待中请求[请求ID] = 响应通道
+	m.lock.Unlock()
+
+	defer func() {
+		m.lock.Lock()
+		delete(m.等待中请求, 请求ID)
+		m.lock.Unlock()
+	}()
+
+	// 4. 发送鉴权请求到前端（包含操作类型和目标）
+	msg := map[string]interface{}{
+		"reqId":    请求ID,
+		"docId":    文档ID,
+		"taskName": 任务名称,
+		"reason":   原因,
+		"opType":   操作类型,
+		"target":   目标,
+	}
+
+	util.BroadcastByType("main", "cronjob_auth_request", 0, "", msg)
+	logging.LogInfof("[CronJob Auth] 已发送敏感操作鉴权请求: %s (文档: %s, 任务: %s, 操作: %s)", 请求ID, 文档ID, 任务名称, 操作类型)
+
+	// 5. 等待响应 (超时30秒)
+	select {
+	case 允许 := <-响应通道:
+		if 允许 {
+			m.标记已授权(文档ID)
+			return true, nil
+		}
+		return false, ErrAuthDenied
+	case <-time.After(30 * time.Second):
+		return false, ErrAuthTimeout
+	}
+}

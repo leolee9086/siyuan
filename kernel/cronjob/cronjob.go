@@ -279,6 +279,10 @@ func (m *Manager) CompileAndStartTask(docID string) error {
 	}
 
 	m.Lock.Lock()
+	// 先停止旧任务（如果存在），防止新旧任务同时运行
+	if oldTask, exists := m.Tasks[docID]; exists {
+		close(oldTask.StopChan) // 通知旧 goroutine 退出
+	}
 	m.Tasks[docID] = task
 	delete(m.LoadErrors, docID) // 清除之前的错误
 	m.Lock.Unlock()
@@ -315,27 +319,42 @@ func (m *Manager) ExecuteTask(task *TaskInstance) {
 	task.Runtime.LastRun = time.Now().Unix()
 	task.Lock.Unlock()
 
+	// 创建执行日志记录器
+	logger := 创建执行日志记录器(task.Config.ID, task.Runtime.Name)
+
 	ctx := &Context{
 		DocID: task.Config.ID,
 		Name:  task.Runtime.Name,
 		Time:  time.Now(),
 		Log: func(msg string) {
-			// TODO: 记录日志
+			logger.记录信息(msg)
 		},
 	}
+
+	// 设置执行上下文供安全包装函数使用
+	设置当前执行上下文(ctx)
+	defer 清除当前执行上下文()
 
 	err := task.Handler(ctx)
 
 	task.Lock.Lock()
+	执行成功 := true
+	错误信息 := ""
 	if err != nil {
 		task.Runtime.Status = 任务状态_出错
 		task.Runtime.LastError = err.Error()
+		执行成功 = false
+		错误信息 = err.Error()
+		logger.记录错误(错误信息)
 	} else {
 		task.Runtime.Status = 任务状态_未运行
 		task.Runtime.LastError = ""
 	}
 	task.Runtime.RunCount++
 	task.Lock.Unlock()
+
+	// 异步保存执行日志到子文档
+	go logger.保存日志到子文档(执行成功, 错误信息)
 }
 
 // StopTask 停止指定任务

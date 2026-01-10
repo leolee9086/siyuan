@@ -7,7 +7,6 @@
 *.aar
 *.jar
 *.syso
-*.review.md
 .DS_Store
 .eslintcache
 app/node_modules
