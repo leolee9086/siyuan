@@ -76,10 +76,17 @@ type Context struct {
 }
 
 // Call 调用内核 API
+// 首次调用时会触发鉴权检查（如果未通过 AuthCode 预授权）
 func (c *Context) Call(path string, args map[string]interface{}) (map[string]interface{}, error) {
 	if GlobalAPIProvider == nil {
 		return nil, nil // 或者返回错误
 	}
+
+	// 执行鉴权检查
+	if err := CheckAuthForAPICall(c.DocID, c.Name); err != nil {
+		return nil, err
+	}
+
 	return GlobalAPIProvider(path, args)
 }
 
@@ -246,6 +253,12 @@ func (m *Manager) CompileAndStartTask(docID string) error {
 	schedule, _ := vars["Schedule"].(string)
 	description, _ := vars["Description"].(string)
 	handler, _ := vars["Run"].(TaskHandler)
+	authCode, _ := vars["AuthCode"].(string)
+
+	// 如果脚本提供了 AuthCode，尝试预授权
+	if authCode != "" {
+		CheckAuthWithCode(docID, authCode)
+	}
 
 	if handler == nil {
 		return nil // 没有 Run 函数，跳过

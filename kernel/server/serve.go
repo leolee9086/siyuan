@@ -184,6 +184,7 @@ func Serve(fastMode bool, cookieKey string) {
 		// 创建模拟请求
 		req := httptest.NewRequest("POST", path, bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
+		req.RemoteAddr = "127.0.0.1:56789" // 视为本地请求以通过 auth 检查
 
 		// 模拟响应记录器
 		w := httptest.NewRecorder()

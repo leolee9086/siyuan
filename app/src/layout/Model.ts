@@ -1,10 +1,10 @@
-import {Constants} from "../constants";
+import { Constants } from "../constants";
 /// #if !MOBILE
-import {Tab} from "./Tab";
+import { Tab } from "./Tab";
 /// #endif
-import {processMessage} from "../util/processMessage";
-import {kernelError, reloadSync} from "../dialog/processSystem";
-import {App} from "../index";
+import { processMessage } from "../util/processMessage";
+import { kernelError, reloadSync } from "../dialog/processSystem";
+import { App } from "../index";
 
 export class Model {
     public ws: WebSocket;
@@ -45,7 +45,7 @@ export class Model {
             const logElement = document.getElementById("errorLog");
             if (logElement) {
                 // 内核中断后无法 catch fetch 请求错误，重连会导致无法执行 transactionsTimeout
-                reloadSync(this.app, {upsertRootIDs: [], removeRootIDs: []});
+                reloadSync(this.app, { upsertRootIDs: [], removeRootIDs: [] });
                 window.siyuan.dialogs.find(item => {
                     if (item.element.id === "errorLog") {
                         item.destroy();

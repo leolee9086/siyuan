@@ -349,7 +349,25 @@ func Run(ctx *CronContext) error {
 }
 ```
 
-#### 4.2 后端动态扩展接口
+#### 4.2 内核 API 调用支持
+
+任务脚本可以通过上下文对象调用的内核 API：
+
+```go
+func Run(ctx *CronContext) error {
+    // 调用 SQL 查询 API
+    ret, err := ctx.Call("/api/query/sql", map[string]interface{}{
+        "stmt": "SELECT * FROM blocks LIMIT 1",
+    })
+    // ...
+}
+```
+
+支持的 API 包括但不限于：
+*   `/api/query/sql`: 执行 SQL 查询
+*   `/api/export/exportMdContent`: 导出文档 Markdown
+
+#### 4.3 后端动态扩展接口
 
 Yaegi 还可用于实现动态后端 API 扩展：
 
@@ -519,7 +537,12 @@ func Run(ctx *CronContext) error {
 - [ ] 实现 `git_push` 动作
 - [ ] 实现 `http_request` 动作
 
-### 阶段五：前端 UI 📋 待实现
+### 阶段五：API支持 (新增) ✅ 已完成
+- [x] 实现 `Context.Call` 方法，允许脚本调用内核 API
+- [x] 在 Yaegi 中暴露 `Context` 类型和方法
+- [x] 验证 `sql` 查询和 `exportMdContent` 导出 API 的可用性
+
+### 阶段六：前端 UI 📋 待实现
 
 #### 参考的现有模式
 
@@ -769,13 +792,75 @@ window.siyuan.menus.menu.append(new MenuItem({
 
 ---
 
-## 安全考虑
+## 安全鉴权机制 (修订版)
 
-1. **脚本沙箱**：yaegi 执行器应限制可访问的包和功能
-2. **文件访问控制**：限制脚本只能访问特定目录
-3. **网络访问控制**：可选地限制外部网络请求
-4. **执行超时**：所有任务必须有超时限制
-5. **资源限制**：限制并发任务数量
+为了防止恶意脚本在未经用户允许的情况下执行敏感操作（如 API 调用），采用 **"前端交互确认 + 签名代码"** 的双重鉴权机制。
+
+### 1. 鉴权流程原理
+
+核心原则：**一次内核启动周期内，任意文档 ID 的任务只需成功鉴权一次**。
+
+每次任务尝试执行敏感操作（或任务启动）时，内核执行以下检查：
+
+1.  **检查内存缓存**：
+    *   检查该 `DocID` 是否已在 `AuthorizedSessionMap` (内存) 中标记为已授权。
+    *   如果已授权 -> **放行**。
+
+2.  **检查代码签名 (AuthCode)**：
+    *   检查脚本是否导出了 `AuthCode` 变量。
+    *   验证 `AuthCode` 是否有效（验证规则：`AuthCode == HMAC_SHA256(DocID, MachineSecret)`）。
+    *   如果有效 -> 标记入 `AuthorizedSessionMap` -> **放行**。
+
+3.  **发起前端交互鉴权**：
+    *   如果以上均不通过，挂起当前任务。
+    *   通过 WebSocket 向前端发送 `cronjob-auth-request`。
+    *   前端弹出“运行授权请求”对话框（展示任务名、来源文档、操作风险）。
+    *   用户点击 "允许" 或 "拒绝"。
+
+4.  **处理鉴权结果**：
+    *   **拒绝**：终止任务，报错。
+    *   **允许（单次）**：标记入 `AuthorizedSessionMap`，仅当前内核生命周期有效。
+    *   **允许（总是）**：前端请求内核生成该 `DocID` 的 `AuthCode`，并自动写入/提示用户写入到脚本中。写入后，下次启动内核时将自动通过步骤 2 验证。
+
+### 2. 交互协议设计 (WebSocket)
+
+#### 请求 (Kernel -> Frontend)
+
+```json
+{
+    "cmd": "cronjob_auth_request",
+    "data": {
+        "reqId": "uuid-gen-123",
+        "docId": "20230101000000-xxxxx",
+        "taskName": "每分钟导出文档",
+        "reason": "Request to execute sensitive Kernel API"
+    }
+}
+```
+
+#### 响应 (Frontend -> Kernel)
+
+```json
+{
+    "cmd": "cronjob_auth_response",
+    "data": {
+        "reqId": "uuid-gen-123",
+        "allow": true
+    }
+}
+```
+
+### 3. MachineSecret 管理
+
+*   每个内核实例（数据目录）生成并维护一个唯一的 `MachineSecret`（存放在 `conf/cronjob_secret.json` 或系统密钥库中）。
+*   `AuthCode` 绑定到特定机器和文档 ID，脚本复制到并通过其他机器运行时，因 `MachineSecret` 不同而失效，必须重新鉴权，从而防止恶意脚本传播。
+
+### 4. 其它安全措施 (保留)
+
+1.  **脚本沙箱**：yaegi 执行器应限制可访问的包和功能 (os.Exit, runtime 等)。
+2.  **文件访问控制**：限制脚本只能访问特定目录 (workspace, data)。
+3.  **执行超时**：所有任务必须有超时限制。
+4.  **资源限制**：限制并发任务数量。
 
 ## 依赖
 

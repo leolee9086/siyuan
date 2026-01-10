@@ -56,6 +56,8 @@ func NewCommand(cmdStr string, cmdId float64, param map[string]interface{}, sess
 		ret = &closews{baseCmd}
 	case "ping":
 		ret = &ping{baseCmd}
+	case "cronjob_auth_response":
+		ret = &cronjobAuthResponse{baseCmd}
 	}
 
 	if nil == ret {

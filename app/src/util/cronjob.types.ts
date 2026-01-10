@@ -67,3 +67,32 @@ export type TaskStatusType = 任务状态类型;
 export type TaskRuntimeInfo = 任务运行时信息;
 export type ExecutionLog = 执行日志;
 export type CompileResult = 编译结果;
+
+/**
+ * CronJob 鉴权请求数据结构
+ * 由后端通过 WebSocket 发送给前端
+ */
+export interface ICronjobAuthRequest {
+    /** 请求唯一标识 */
+    reqId: string;
+    /** 任务所属文档ID */
+    docId: string;
+    /** 任务名称 */
+    taskName: string;
+    /** 请求原因描述 */
+    reason: string;
+}
+
+/**
+ * CronJob 鉴权响应消息结构
+ * 由前端通过 WebSocket 发送给后端
+ */
+export interface ICronjobAuthResponseMessage {
+    cmd: "cronjob_auth_response";
+    reqId: number;
+    param: {
+        reqId: string;
+        allow: boolean;
+    };
+}
+

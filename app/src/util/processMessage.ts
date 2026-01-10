@@ -7,6 +7,7 @@ import { setStorageVal } from "../protyle/util/compatibility";
 import { Constants } from "../constants";
 import { fetchPost } from "./fetch";
 import { getSiyuanStorage } from "./siyuanEnvironments/getSiyuanConfig.environment";
+import { handleCronjobAuthRequest } from "./cronjobAuth";
 
 /** 触发 UI 重载 */
 const triggerReload = () => {
@@ -79,6 +80,12 @@ export const processMessage = (response: IWebSocketData) => {
     }
     if ("reloadui" === response.cmd) {
         handleReloadUI(response);
+        return false;
+    }
+    // 处理 CronJob 鉴权请求
+    if ("cronjob_auth_request" === response.cmd) {
+        console.log("[CronJob Auth] 收到鉴权请求:", response.data);
+        handleCronjobAuthRequest(response.data);
         return false;
     }
 

@@ -299,3 +299,11 @@ export const setSiyuanUILayout = (layout: Config.IUiLayout) => {
     }
     window.siyuan.config.uiLayout = layout;
 };
+
+/**
+ * 获取 window.siyuan.ws（WebSocket 连接）
+ * @returns ws 对象，可能为 undefined
+ */
+export const getSiyuanWebSocket = () => {
+    return window.siyuan?.ws;
+};

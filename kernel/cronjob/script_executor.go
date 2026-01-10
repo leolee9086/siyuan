@@ -96,6 +96,11 @@ func (e *脚本执行器) 加载代码(代码 string) (map[string]interface{}, e
 		导出变量["Description"] = v.Interface()
 	}
 
+	// 尝试获取 AuthCode 变量（用于预授权）
+	if v, err := i.Eval("main.AuthCode"); err == nil {
+		导出变量["AuthCode"] = v.Interface()
+	}
+
 	// 尝试获取 Run 函数
 	if v, err := i.Eval("main.Run"); err == nil {
 		// 将反射值转换为我们的处理器类型
