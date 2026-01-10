@@ -46,9 +46,24 @@ export const setWindowTimeout = (callback: () => void, ms?: number): number => {
     return window.setTimeout(callback, ms);
 };
 
+
 /**
  * 封装 window.clearTimeout
  */
 export const clearWindowTimeout = (timeoutId?: number): void => {
     window.clearTimeout(timeoutId);
+};
+
+/**
+ * 封装 window.setInterval
+ */
+export const setWindowInterval = (callback: () => void, ms?: number): number => {
+    return window.setInterval(callback, ms);
+};
+
+/**
+ * 封装 window.clearInterval
+ */
+export const clearWindowInterval = (intervalId?: number): void => {
+    window.clearInterval(intervalId);
 };

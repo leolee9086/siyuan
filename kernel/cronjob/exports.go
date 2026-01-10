@@ -18,52 +18,6 @@
 // 本文件提供英文别名导出，用于跨包访问
 package cronjob
 
-// ========== 管理器相关 ==========
-
-// GetManager 获取管理器的英文别名
-var GetManager = 获取管理器
-
-// Manager 管理器类型的英文别名
-type Manager = 管理器
-
-// TaskRuntimeInfo 任务运行时信息的英文别名
-type TaskRuntimeInfo = 任务运行时信息
-
-// GetAllTasks 获取所有任务 - 管理器方法代理
-func (m *Manager) GetAllTasks() []TaskRuntimeInfo {
-	return m.获取所有任务()
-}
-
-// GetTask 获取任务 - 管理器方法代理
-func (m *Manager) GetTask(docId string) *TaskRuntimeInfo {
-	return m.获取任务(docId)
-}
-
-// RegisterExtension 注册扩展 - 管理器方法代理
-func (m *Manager) RegisterExtension(docId string, extLang string, extType string) error {
-	return m.注册扩展(docId, extLang, extType)
-}
-
-// UnregisterExtension 注销扩展 - 管理器方法代理
-func (m *Manager) UnregisterExtension(docId string) error {
-	return m.注销扩展(docId)
-}
-
-// CompileAndStartTask 编译并启动任务 - 管理器方法代理
-func (m *Manager) CompileAndStartTask(docId string) error {
-	return m.编译并启动任务(docId)
-}
-
-// StopTask 停止任务 - 管理器方法代理
-func (m *Manager) StopTask(docId string) error {
-	return m.停止任务(docId)
-}
-
-// RunNow 立即执行 - 管理器方法代理
-func (m *Manager) RunNow(docId string) error {
-	return m.立即执行(docId)
-}
-
 // ========== 编译器相关 ==========
 
 // DocumentCompiler 文档编译器类型别名
@@ -76,20 +30,6 @@ var NewDocumentCompiler = 创建文档编译器
 func (c *DocumentCompiler) Compile(docId string, targetLang string) (string, error) {
 	return c.编译文档(docId, targetLang)
 }
-
-// ========== 存储相关 ==========
-
-// GetCompileOutputDir 获取编译输出目录的英文别名
-var GetCompileOutputDir = 获取编译输出目录
-
-// SaveCompileResult 保存编译结果的英文别名
-var SaveCompileResult = 保存编译结果
-
-// GetExecutionLogs 获取执行记录的英文别名
-var GetExecutionLogs = 获取执行记录
-
-// ExecutionLog 任务执行记录类型别名
-type ExecutionLog = 任务执行记录
 
 // ========== 文件夹监听器相关 ==========
 

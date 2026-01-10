@@ -179,6 +179,9 @@ export function initDockData(
     // Process second column (continuing with same seen set)
     data[1] = uniqueDockItems(data[1], seenGlobalTypes, TYPES, position);
 
+    // 修复旧数据中的 cronjob 图标 (从 iconClock 纠正为 iconHistory)
+    fixCronjobIcons(data);
+
 
     // 3. Restore missing standard panels (Self-healing)
     // 使用全局注册表检查是否已存在，避免依赖不稳定的 DOM 查询
@@ -187,6 +190,9 @@ export function initDockData(
 
     restoreIfMissing(data[1], seenGlobalTypes, "tag", "iconTags", i18n.tag || "Tags", position);
     restoreIfMissing(data[1], seenGlobalTypes, "embedding_dock", "iconDatabase", i18n.embedding || "Embeddings", position);
+    if (position === "Right") {
+        restoreIfMissing(data[1], seenGlobalTypes, "cronjob", "iconHistory", "定时任务", position);
+    }
 
     // 4. Final verification
     if (!hasValidDockType(data, TYPES)) {
@@ -299,13 +305,31 @@ function restoreIfMissing(
         return;
     }
 
-    targetArray.push({
+    const missingTab: Config.IUILayoutDockTab = {
         type,
         icon,
         title,
         size: { width: 0, height: 0 },
         show: false,
-        hotkey: ""
-    } as Config.IUILayoutDockTab);
+        hotkey: "",
+        hotkeyLangId: title
+    };
+    targetArray.push(missingTab);
     existingTypes.add(type);
+}
+
+/**
+ * 修复旧数据中的 cronjob 图标
+ */
+function fixCronjobIcons(data: Config.IUILayoutDockTab[][]) {
+    for (const column of data) {
+        if (!column) {
+            continue;
+        }
+        for (const item of column) {
+            if (item.type === "cronjob" && (item.icon === "iconClock" || !item.icon)) {
+                item.icon = "iconHistory";
+            }
+        }
+    }
 }

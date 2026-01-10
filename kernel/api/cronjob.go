@@ -213,7 +213,7 @@ func getCronjobLogs(c *gin.Context) {
 		count = int(n)
 	}
 
-	logs := cronjob.GetExecutionLogs(docId, count)
+	logs := cronjob.GetExecutionRecords(docId, count)
 	ret.Data = map[string]interface{}{
 		"logs": logs,
 	}

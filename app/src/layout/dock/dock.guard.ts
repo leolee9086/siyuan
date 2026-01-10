@@ -6,7 +6,7 @@
 import { Wnd } from "../Wnd";
 import type { Layout } from "../index";
 
-const DOCK_TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGraph", "backlink", "embedding_dock"];
+const DOCK_TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGraph", "backlink", "embedding_dock", "cronjob"];
 
 /**
  * 判断布局子元素是否为 Wnd

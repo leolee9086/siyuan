@@ -48,6 +48,7 @@ func (c *文档编译器) 编译文档(文档ID string, 目标语言 string) (st
 	var 编译结果 strings.Builder
 
 	// 遍历文档节点
+	started := false
 	ast.Walk(树.Root, func(n *ast.Node, entering bool) ast.WalkStatus {
 		if !entering {
 			return ast.WalkContinue
@@ -60,15 +61,21 @@ func (c *文档编译器) 编译文档(文档ID string, 目标语言 string) (st
 			代码内容 := 获取代码块内容(n)
 
 			if 语言匹配(语言, 目标语言) {
+				// 标记开始包含内容
+				started = true
+
 				// 目标语言的代码块：直接输出
 				编译结果.WriteString(代码内容)
 				编译结果.WriteString("\n\n")
-			} else if 代码内容 != "" {
-				// 其他语言代码块：转为注释
+			} else if started && 代码内容 != "" {
+				// 其他语言代码块：仅在开始后转为注释
 				编写多行注释(&编译结果, "```"+语言+"\n"+代码内容+"\n```")
 			}
 
 		case ast.NodeParagraph:
+			if !started {
+				return ast.WalkSkipChildren
+			}
 			// 段落：转为注释
 			文本 := 获取节点文本(n)
 			if 文本 != "" {
@@ -76,6 +83,9 @@ func (c *文档编译器) 编译文档(文档ID string, 目标语言 string) (st
 			}
 
 		case ast.NodeHeading:
+			if !started {
+				return ast.WalkSkipChildren
+			}
 			// 标题：转为注释
 			文本 := 获取节点文本(n)
 			if 文本 != "" {
@@ -85,10 +95,16 @@ func (c *文档编译器) 编译文档(文档ID string, 目标语言 string) (st
 			}
 
 		case ast.NodeList:
+			if !started {
+				return ast.WalkSkipChildren
+			}
 			// 列表：转为注释
 			// 列表内容会在子节点中处理
 
 		case ast.NodeListItem:
+			if !started {
+				return ast.WalkSkipChildren
+			}
 			// 列表项：转为注释
 			文本 := 获取节点文本(n)
 			if 文本 != "" {
@@ -97,6 +113,9 @@ func (c *文档编译器) 编译文档(文档ID string, 目标语言 string) (st
 			return ast.WalkSkipChildren // 已处理子节点
 
 		case ast.NodeBlockquote:
+			if !started {
+				return ast.WalkSkipChildren
+			}
 			// 引用块：转为注释
 			文本 := 获取节点文本(n)
 			if 文本 != "" {

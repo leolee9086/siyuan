@@ -19,140 +19,176 @@ import {
 } from "../../util/cronjobApi";
 import { 任务运行时信息 } from "../../util/cronjob.types";
 import { 生成面板HTML, 生成任务列表HTML } from "./cronjob.util";
+import { setWindowInterval, clearWindowInterval } from "./dock.environment";
+
+/**
+ * 初始化界面结构
+ * @param element - 面板容器元素
+ */
+function 初始化界面(element: HTMLElement) {
+    element.classList.add("fn__flex-column", "cronjob-panel");
+    element.innerHTML = 生成面板HTML();
+}
+
+/**
+ * 渲染任务列表
+ * @param element - 面板容器元素
+ * @param tasks - 任务列表数据
+ */
+function 渲染列表(element: HTMLElement, tasks: 任务运行时信息[]) {
+    const listContainer = element.querySelector(".cronjob-list");
+    if (!listContainer) {
+        return;
+    }
+
+    if (tasks.length === 0) {
+        listContainer.innerHTML = `
+            <div class="b3-list--empty">
+                暂无定时任务
+                <br><br>
+                <small>在文档右键菜单中选择「注册为定时任务」添加</small>
+            </div>
+        `;
+        return;
+    }
+
+    listContainer.innerHTML = 生成任务列表HTML(tasks);
+}
+
+/**
+ * 处理图标点击事件
+ * @param cronjob - Cronjob 实例
+ * @param type - 图标类型
+ */
+function 处理图标点击(cronjob: Cronjob, type: string | null) {
+    if (type === "min") {
+        getDockByType("cronjob")?.toggleModel("cronjob", false, true);
+        return;
+    }
+    if (type === "refresh") {
+        cronjob.update();
+    }
+}
+
+/**
+ * 任务操作处理映射表
+ */
+const 动作处理器: Record<string, (cronjob: Cronjob, docId: string) => Promise<void>> = {
+    toggle: async (cronjob, docId) => {
+        const task = cronjob.tasks.find(t => t.docId === docId);
+        const isRunning = task?.status === "running";
+        const success = isRunning
+            ? await 禁用任务(docId)
+            : await 启用任务(docId);
+        if (success) {
+            showMessage(isRunning ? "任务已停止" : "任务已启动");
+        }
+    },
+    run: async (cronjob, docId) => {
+        const success = await 立即执行(docId);
+        if (success) {
+            showMessage("任务已开始执行");
+        }
+    },
+    logs: async () => {
+        // TODO: 打开日志对话框
+        showMessage("日志功能开发中");
+    }
+};
+
+/**
+ * 处理任务具体操作
+ * @param cronjob - Cronjob 实例
+ * @param docId - 文档 ID
+ * @param action - 动作名称
+ */
+async function 处理任务操作(cronjob: Cronjob, docId: string, action: string) {
+    try {
+        const processor = 动作处理器[action];
+        if (processor) {
+            await processor(cronjob, docId);
+        }
+        // 刷新列表
+        await cronjob.update();
+    } catch (e) {
+        console.error("任务操作失败:", e);
+        showMessage("操作失败");
+    }
+}
+
+/**
+ * 处理面板点击事件
+ * @param cronjob - Cronjob 实例
+ * @param event - 鼠标事件
+ */
+function 处理点击(cronjob: Cronjob, event: MouseEvent) {
+    setPanelFocus(cronjob.element);
+
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) {
+        return;
+    }
+
+    // 处理图标按钮点击
+    const iconElement = hasClosestByClassName(target, "block__icon");
+    if (iconElement && cronjob.element.contains(iconElement)) {
+        处理图标点击(cronjob, iconElement.getAttribute("data-type"));
+        return;
+    }
+
+    // 处理操作按钮点击
+    const actionButton = hasClosestByClassName(target, "cronjob-action");
+    if (actionButton) {
+        const docId = actionButton.getAttribute("data-doc-id");
+        const action = actionButton.getAttribute("data-action");
+        if (docId && action) {
+            处理任务操作(cronjob, docId, action);
+        }
+    }
+}
 
 /**
  * 定时任务侧边栏面板
  */
 export class Cronjob extends Model {
     /** 面板根元素 */
-    private element: HTMLElement;
+    public element: HTMLElement;
     /** 任务列表数据 */
-    private tasks: 任务运行时信息[] = [];
+    public tasks: 任务运行时信息[] = [];
     /** 自动刷新定时器 */
-    private refreshTimer: number | null = null;
+    public refreshTimer: number | null = null;
 
+    /**
+     * 构造函数
+     * @param app - App 实例
+     * @param tab - Tab 实例
+     */
     constructor(app: App, tab: Tab) {
         super({
             app,
             id: tab.id,
             msgCallback: (data) => {
-                this._处理消息(data);
+                if (data && (data.cmd === "cronjobUpdate" || data.cmd === "cronjobStatus")) {
+                    this.update();
+                }
             }
         });
         this.element = tab.panelElement;
-        this._初始化界面();
-        this._绑定事件();
+        初始化界面(this.element);
+
+        this.element.addEventListener("click", (event) => {
+            if (event instanceof MouseEvent) {
+                处理点击(this, event);
+            }
+        });
+
         this.update();
-        this._启动自动刷新();
-    }
 
-    // ============== 初始化 ==============
-
-    private _初始化界面() {
-        this.element.classList.add("fn__flex-column", "cronjob-panel");
-        this.element.innerHTML = 生成面板HTML();
-    }
-
-    private _启动自动刷新() {
         // 每 30 秒刷新一次
-        this.refreshTimer = window.setInterval(() => {
+        this.refreshTimer = setWindowInterval(() => {
             this.update();
         }, 30000);
     }
-
-    // ============== 消息处理 ==============
-
-    private _处理消息(data: IWebSocketData) {
-        if (!data) {
-            return;
-        }
-        // 监听相关事件触发刷新
-        if (data.cmd === "cronjobUpdate" || data.cmd === "cronjobStatus") {
-            this.update();
-        }
-    }
-
-    // ============== 事件绑定 ==============
-
-    private _绑定事件() {
-        this.element.addEventListener("click", (event) => {
-            if (event instanceof MouseEvent) {
-                this._处理点击(event);
-            }
-        });
-    }
-
-    private _处理点击(event: MouseEvent) {
-        setPanelFocus(this.element);
-
-        const target = event.target;
-        if (!(target instanceof HTMLElement)) {
-            return;
-        }
-
-        // 处理图标按钮点击
-        const iconElement = hasClosestByClassName(target, "block__icon");
-        if (iconElement && this.element.contains(iconElement)) {
-            this._处理图标点击(iconElement.getAttribute("data-type"));
-            return;
-        }
-
-        // 处理操作按钮点击
-        const actionButton = hasClosestByClassName(target, "cronjob-action");
-        if (actionButton) {
-            const docId = actionButton.getAttribute("data-doc-id");
-            const action = actionButton.getAttribute("data-action");
-            if (docId && action) {
-                this._处理任务操作(docId, action);
-            }
-        }
-    }
-
-    private _处理图标点击(type: string | null) {
-        if (type === "min") {
-            getDockByType("cronjob")?.toggleModel("cronjob", false, true);
-            return;
-        }
-        if (type === "refresh") {
-            this.update();
-        }
-    }
-
-    private async _处理任务操作(docId: string, action: string) {
-        try {
-            switch (action) {
-                case "toggle": {
-                    const task = this.tasks.find(t => t.docId === docId);
-                    const isRunning = task?.status === "running";
-                    const success = isRunning
-                        ? await 禁用任务(docId)
-                        : await 启用任务(docId);
-                    if (success) {
-                        showMessage(isRunning ? "任务已停止" : "任务已启动");
-                    }
-                    break;
-                }
-                case "run": {
-                    const success = await 立即执行(docId);
-                    if (success) {
-                        showMessage("任务已开始执行");
-                    }
-                    break;
-                }
-                case "logs":
-                    // TODO: 打开日志对话框
-                    showMessage("日志功能开发中");
-                    break;
-            }
-            // 刷新列表
-            await this.update();
-        } catch (e) {
-            console.error("任务操作失败:", e);
-            showMessage("操作失败");
-        }
-    }
-
-    // ============== 数据更新 ==============
 
     /**
      * 刷新任务列表
@@ -167,7 +203,7 @@ export class Cronjob extends Model {
 
         try {
             this.tasks = await 列出所有任务();
-            this._渲染列表();
+            渲染列表(this.element, this.tasks);
         } catch (e) {
             console.error("获取任务列表失败:", e);
         } finally {
@@ -175,34 +211,12 @@ export class Cronjob extends Model {
         }
     }
 
-    private _渲染列表() {
-        const listContainer = this.element.querySelector(".cronjob-list");
-        if (!listContainer) {
-            return;
-        }
-
-        if (this.tasks.length === 0) {
-            listContainer.innerHTML = `
-                <div class="b3-list--empty">
-                    暂无定时任务
-                    <br><br>
-                    <small>在文档右键菜单中选择「注册为定时任务」添加</small>
-                </div>
-            `;
-            return;
-        }
-
-        listContainer.innerHTML = 生成任务列表HTML(this.tasks);
-    }
-
-    // ============== 生命周期 ==============
-
     /**
      * 销毁面板
      */
     public destroy() {
         if (this.refreshTimer) {
-            clearInterval(this.refreshTimer);
+            clearWindowInterval(this.refreshTimer);
             this.refreshTimer = null;
         }
     }
