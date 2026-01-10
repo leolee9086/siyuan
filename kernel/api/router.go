@@ -556,4 +556,15 @@ func ServeAPI(ginServer *gin.Engine) {
 	ginServer.Handle("POST", "/api/s-forge/asset-meta/get", model.CheckAuth, getAssetMeta)
 	ginServer.Handle("POST", "/api/s-forge/asset-meta/set", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, setAssetMeta)
 	ginServer.Handle("POST", "/api/s-forge/asset-meta/search", model.CheckAuth, sForgeAssetMetaSearchHandler)
+
+	// S-Forge CronJob Service
+	ginServer.Handle("POST", "/api/cronjob/list", model.CheckAuth, listCronjobs)
+	ginServer.Handle("POST", "/api/cronjob/get", model.CheckAuth, getCronjob)
+	ginServer.Handle("POST", "/api/cronjob/register", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, registerCronjob)
+	ginServer.Handle("POST", "/api/cronjob/unregister", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, unregisterCronjob)
+	ginServer.Handle("POST", "/api/cronjob/enable", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, enableCronjob)
+	ginServer.Handle("POST", "/api/cronjob/disable", model.CheckAuth, model.CheckAdminRole, model.CheckReadonly, disableCronjob)
+	ginServer.Handle("POST", "/api/cronjob/run", model.CheckAuth, model.CheckAdminRole, runCronjob)
+	ginServer.Handle("POST", "/api/cronjob/compile", model.CheckAuth, model.CheckAdminRole, compileCronjob)
+	ginServer.Handle("POST", "/api/cronjob/logs", model.CheckAuth, getCronjobLogs)
 }

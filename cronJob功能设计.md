@@ -494,33 +494,275 @@ func Run(ctx *CronContext) error {
 
 ## 实现阶段
 
-### 阶段一：基础框架（MVP）
-- [ ] 创建 `kernel/cronjob/` 模块基础结构
-- [ ] 实现 CronJobConfig 配置类型
-- [ ] 实现配置存储（`conf/cronjobs.json`）
-- [ ] 实现基础调度器（基于 time.Ticker）
-- [ ] 实现简单的任务管理器
-- [ ] 添加基础 API 端点
+### 阶段一：基础框架（MVP）✅ 已完成
+- [x] 创建 `kernel/cronjob/` 模块基础结构
+- [x] 实现扩展配置类型 (`cronjob.go`)
+- [x] 实现配置存储 (`storage.go`)
+- [x] 实现基础调度器（基于 time.Ticker）
+- [x] 实现任务管理器
+- [x] 添加基础 API 端点 (`api/cronjob.go`)
 
-### 阶段二：内置动作
-- [ ] 实现 `http_request` 动作
+### 阶段二：文学编程编译器 ✅ 已完成
+- [x] 实现文档内容提取 (`script_executor.go`)
+- [x] 实现代码块连接和编译
+- [x] 非代码块自动转为注释
+- [x] 同构测试验证
+
+### 阶段三：动态脚本 ✅ 已完成
+- [x] 集成 yaegi 解释器 (`script_executor.go`)
+- [x] 暴露受限的思源内部 API 给脚本
+- [x] 支持从笔记文档读取脚本
+
+### 阶段四：内置动作 ⏳ 部分完成
+- [x] 实现 `watch_folder` 动作（`folder_watcher.go`）
+- [x] 实现图片水印处理（`watermark.go`）
 - [ ] 实现 `git_push` 动作
-- [ ] 实现 `watch_folder` 动作（基于 fsnotify）
-- [ ] 实现 `call_api` 动作
+- [ ] 实现 `http_request` 动作
 
-### 阶段三：动态脚本
-- [ ] 集成 yaegi 解释器
-- [ ] 实现脚本执行安全沙箱
-- [ ] 暴露受限的思源内部 API 给脚本
-- [ ] 支持从笔记代码块读取脚本
+### 阶段五：前端 UI 📋 待实现
 
-### 阶段四：前端 UI
-- [ ] 设计任务管理界面
-- [ ] 实现任务创建/编辑表单
-- [ ] 实现任务执行日志查看
-- [ ] 实现笔记代码块语法高亮
+#### 参考的现有模式
 
-### 阶段五：后端动态扩展
+基于对现有代码的调研：
+
+| 模式 | 参考文件 | 说明 |
+|------|----------|------|
+| 侧边栏面板 | `Bookmark.ts` | 继承 Model，构造函数接收 App + Tab |
+| 工厂注册 | `dock.factory.ts` | MODEL_FACTORIES 映射表 |
+| 类型注册 | `dock.registry.ts` | 全局类型注册机制 |
+| 右键菜单 | `navigation.ts` | initFileMenu() 添加菜单项 |
+| API 调用 | `fetch.ts` | fetchPost() 通用方法 |
+
+#### 入口点：侧边栏
+任务管理界面放在**侧边栏**，与文档树、大纲等并列。
+
+#### 前端文件结构
+
+```
+app/src/
+├── layout/dock/
+│   ├── Cronjob.ts              # [NEW] 侧边栏面板组件
+│   ├── cronjob.util.ts         # [NEW] 工具函数
+│   └── dock.factory.ts         # [MODIFY] 注册新类型
+├── menus/
+│   └── navigation.ts           # [MODIFY] 添加右键菜单
+├── util/
+│   └── cronjobApi.ts           # [NEW] API 调用封装
+└── scss/
+    └── _dock.scss              # [MODIFY] 添加样式
+```
+
+#### 侧边栏面板设计
+
+```
+┌─────────────────────────────┐
+│ 定时任务                  🔄 │
+├─────────────────────────────┤
+│ ▶ 自动水印任务    运行中    │
+│     每5分钟 | 上次: 2分钟前  │
+│     [停止] [运行] [日志]    │
+├─────────────────────────────┤
+│ ⏸ 备份推送任务    已停止    │
+│     每天2点 | 上次: 1天前    │
+│     [启动] [运行] [日志]    │
+├─────────────────────────────┤
+│ ⚠ 数据同步任务    出错      │
+│     每小时 | 错误: ...       │
+│     [重试] [查看错误]       │
+└─────────────────────────────┘
+```
+
+#### 实现步骤
+
+##### 步骤 1：API 封装 (`cronjobApi.ts`)
+
+```typescript
+import { fetchPost } from "./fetch";
+
+// 类型定义
+export interface 任务运行时信息 {
+    docId: string
+    name: string
+    schedule: string
+    description: string
+    status: "idle" | "running" | "paused" | "error"
+    lastRun: number
+    nextRun: number
+    lastError: string
+    runCount: number
+}
+
+// 封装 API 调用
+export const 列出所有任务 = (): Promise<任务运行时信息[]> => 
+    fetchPost("/api/cronjob/list").then(res => res.data.tasks)
+
+export const 启用任务 = (docId: string): Promise<void> =>
+    fetchPost("/api/cronjob/enable", { docId })
+
+export const 禁用任务 = (docId: string): Promise<void> =>
+    fetchPost("/api/cronjob/disable", { docId })
+
+export const 立即执行 = (docId: string): Promise<void> =>
+    fetchPost("/api/cronjob/run", { docId })
+
+// ... 其他 API
+```
+
+##### 步骤 2：侧边栏组件 (`Cronjob.ts`)
+
+```typescript
+import { Model } from "../Model";
+import { Tab } from "../Tab";
+import { App } from "../../index";
+import { 列出所有任务, 启用任务, 禁用任务, 立即执行 } from "../../util/cronjobApi";
+
+export class Cronjob extends Model {
+    public element: HTMLElement;
+    private tasks: 任务运行时信息[] = [];
+    
+    constructor(app: App, tab: Tab) {
+        super({ app, tab });
+        this._初始化界面();
+        this._绑定事件();
+        this.update();
+    }
+    
+    private _初始化界面() {
+        this.element = tab.panelElement;
+        this.element.classList.add("cronjob-panel");
+        this.element.innerHTML = `
+            <div class="block__icons">
+                <span class="block__icon">定时任务</span>
+                <span class="fn__flex-1"></span>
+                <span class="block__icon" data-action="refresh">🔄</span>
+            </div>
+            <ul class="b3-list cronjob-list fn__flex-1"></ul>
+        `;
+    }
+    
+    public async update() {
+        this.tasks = await 列出所有任务();
+        this._渲染列表();
+    }
+    
+    private _渲染列表() {
+        const listEl = this.element.querySelector(".cronjob-list");
+        listEl.innerHTML = this.tasks.map(task => `
+            <li class="cronjob-item" data-doc-id="${task.docId}">
+                <div class="cronjob-item__header">
+                    <span class="cronjob-item__status">${this._状态图标(task.status)}</span>
+                    <span class="cronjob-item__name">${task.name}</span>
+                    <span class="cronjob-item__state cronjob-item__state--${task.status}">
+                        ${this._状态文本(task.status)}
+                    </span>
+                </div>
+                <div class="cronjob-item__info">
+                    ${task.schedule} | 上次: ${this._格式化时间(task.lastRun)}
+                </div>
+                <div class="cronjob-item__actions">
+                    <button data-action="toggle">${task.status === 'running' ? '停止' : '启动'}</button>
+                    <button data-action="run">运行</button>
+                    <button data-action="logs">日志</button>
+                </div>
+            </li>
+        `).join("");
+    }
+}
+```
+
+##### 步骤 3：注册到工厂 (`dock.factory.ts`)
+
+```diff
++ import { Cronjob } from "./Cronjob";
+
++ const initCronjob: ModelFactory = (app, tab) => {
++     return new Cronjob(app, tab);
++ };
+
+  const MODEL_FACTORIES: Record<string, ModelFactory> = {
+      file: initFile,
+      bookmark: initBookmark,
++     cronjob: initCronjob,
+      // ...
+  };
+```
+
+##### 步骤 4：右键菜单 (`navigation.ts`)
+
+在 `initFileMenu` 函数中添加：
+
+```typescript
+import { 注册扩展 } from "../util/cronjobApi";
+
+// 在合适位置添加
+window.siyuan.menus.menu.append(new MenuItem({
+    icon: "iconClock",
+    label: siyuanI18n().cronjob.registerAs,  // 待添加 i18n
+    submenu: [{
+        label: "Go 定时任务",
+        click: async () => {
+            const docId = liElement.getAttribute("data-node-id");
+            await 注册扩展(docId, "go", "cronjob");
+            showMessage("已注册为定时任务");
+        }
+    }]
+}).element);
+```
+
+#### 文档操作流程
+
+1. 用户右键文档 → 「注册为定时任务」→ 「Go 定时任务」
+2. 系统自动设置 `ext-lang: go` 和 `ext-type: cronjob` 属性
+3. 调用 `/api/cronjob/register` 注册
+4. 侧边栏面板刷新显示新任务
+
+#### 样式定义
+
+```scss
+// _dock.scss 添加
+.cronjob-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.cronjob-item {
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--b3-border-color);
+    
+    &__header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    &__state {
+        margin-left: auto;
+        font-size: 12px;
+        &--running { color: var(--b3-theme-primary); }
+        &--error { color: var(--b3-theme-error); }
+    }
+    
+    &__info {
+        font-size: 12px;
+        color: var(--b3-theme-on-surface-light);
+        margin: 4px 0 4px 24px;
+    }
+    
+    &__actions {
+        display: flex;
+        gap: 8px;
+        margin-left: 24px;
+        
+        button {
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+    }
+}
+
+### 阶段六：后端动态扩展 📋 待实现
 - [ ] 实现动态 API 端点注册
 - [ ] 支持脚本定义新的 HTTP 处理函数
 - [ ] 热加载和热更新机制
@@ -547,6 +789,25 @@ require (
 // 已有依赖，可直接使用
 // github.com/fsnotify/fsnotify v1.9.0  // 文件监听
 ```
+
+## 已创建文件
+
+### 后端 (`kernel/cronjob/`)
+- `cronjob.go` - 管理器、任务实例、配置结构
+- `script_executor.go` - yaegi 脚本执行器 + 文档内容获取
+- `compiler.go` - 文档编译器（AST 遍历）
+- `watermark.go` - 图片水印处理
+- `folder_watcher.go` - 文件夹监听器
+- `storage.go` - 配置持久化
+- `exports.go` - 英文别名导出
+- `compiler_test.go` - 编译器测试
+
+### API (`kernel/api/`)
+- `cronjob.go` - cronjob 相关 API 处理函数
+- `router.go` - 注册了 `/api/cronjob/*` 端点
+
+### 示例
+- `示例_自动水印任务.md` - 文学编程风格的水印任务示例
 
 ## 参考
 

@@ -22,7 +22,7 @@ import { popSearch } from "../../mobile/menu/search";
 import { openSearch } from "../../search/spread";
 import { openNewWindowById } from "../../window/openNewWindow";
 import { openFileById } from "../../editor/utils.openFileById";
-import { createProtyleCopyMenu, createFileHistoryMenuItem } from "./openTitleMenu.items";
+import { createProtyleCopyMenu, createFileHistoryMenuItem, createCronjobMenuItem } from "./openTitleMenu.items";
 import { closeTitleMenuIfOpened } from "./openTitleMenu.util";
 import { transferBlockRef } from "../../menus/block";
 import { appendFileOperationsMenuItemGroup } from "./openTitleMenu.FileOperations";
@@ -98,6 +98,10 @@ export const openTitleMenu = (protyle: IProtyle, position: IPosition) => {
         /// #if !MOBILE
         appendDesktopOnlyMenuItemGroup(protyle);
         /// #endif
+        // 定时任务菜单（仅非只读模式）
+        if (!window.siyuan.config.readonly) {
+            window.siyuan.menus.menu.append(createCronjobMenuItem(protyle).element);
+        }
         window.siyuan.menus.menu.append(new MenuItem({ id: "separator_2", type: "separator" }).element);
         window.siyuan.menus.menu.append(new MenuItem({
             id: "attr",

@@ -8,6 +8,7 @@ import { Backlink } from "./Backlink";
 import { Inbox } from "./Inbox";
 import { CustomLists, ICustomList } from "./customBlockLists/CustomLists";
 import { EmbeddingDock } from "./embeddingDock/EmbeddingDock";
+import { Cronjob } from "./Cronjob";
 import { App } from "../../index";
 import { Plugin } from "../../plugin";
 import { Protyle } from "../../protyle";
@@ -85,6 +86,10 @@ const initEmbeddingDock: ModelFactory = (app, tab) => {
     return new EmbeddingDock(app, tab);
 };
 
+const initCronjob: ModelFactory = (app, tab) => {
+    return new Cronjob(app, tab);
+};
+
 const MODEL_FACTORIES: Record<string, ModelFactory> = {
     file: initFile,
     bookmark: initBookmark,
@@ -95,6 +100,7 @@ const MODEL_FACTORIES: Record<string, ModelFactory> = {
     backlink: initBacklink,
     inbox: initInbox,
     embedding_dock: initEmbeddingDock,
+    cronjob: initCronjob,
 };
 
 const initPlugin = (app: App, tab: Tab, type: string) => {
