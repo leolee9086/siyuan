@@ -20,7 +20,7 @@
     flex-shrink: 0;
   }
 
-  & > .layout__dockresize {
+  &>.layout__dockresize {
     display: none;
   }
 
@@ -50,7 +50,7 @@
       bottom: 82px;
       right: 0;
 
-      & > .layout__dockresize--lr {
+      &>.layout__dockresize--lr {
         border-top: 0;
         border-right: 0;
         border-left: 1px solid transparent;
@@ -66,7 +66,7 @@
       bottom: 0;
     }
 
-    & > .layout__dockresize {
+    &>.layout__dockresize {
       display: block;
       cursor: row-resize;
       height: 6px;
@@ -183,7 +183,7 @@
       }
     }
 
-    &-bars--drag > .layout-tab-bar {
+    &-bars--drag>.layout-tab-bar {
       background-color: var(--b3-theme-primary-lightest);
     }
 
@@ -286,8 +286,8 @@
           flex-shrink: 0;
           font-family: var(--b3-font-family-emoji);
 
-          & > img,
-          & > svg {
+          &>img,
+          &>svg {
             float: left;
             height: 18px;
             width: 18px;
@@ -413,5 +413,88 @@
       color: var(--b3-theme-on-primary);
       background-color: var(--b3-theme-primary);
     }
+
+    // 错误状态指示器
+    &--error {
+      position: relative;
+
+      &::after {
+        content: '';
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        width: 6px;
+        height: 6px;
+        background: var(--b3-theme-error);
+        border-radius: 50%;
+      }
+    }
+  }
+}
+
+// 错误占位符组件
+.error-placeholder {
+  background-color: var(--b3-theme-background);
+  height: 100%;
+
+  &__header {
+    border-bottom: 1px solid var(--b3-border-color);
+  }
+
+  &__content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    gap: 16px;
+  }
+
+  &__icon svg {
+    color: var(--b3-theme-error);
+  }
+
+  &__info {
+    text-align: center;
+    max-width: 400px;
+    word-break: break-word;
+  }
+
+  &__type,
+  &__message {
+    margin: 8px 0;
+    color: var(--b3-theme-on-surface);
+    font-size: 14px;
+  }
+
+  &__details {
+    width: 100%;
+    max-width: 500px;
+    margin-top: 16px;
+
+    summary {
+      cursor: pointer;
+      color: var(--b3-theme-primary);
+      font-size: 14px;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+
+  &__stack {
+    margin-top: 8px;
+    padding: 12px;
+    background-color: var(--b3-theme-surface);
+    border-radius: var(--b3-border-radius);
+    font-size: 12px;
+    line-height: 1.5;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 200px;
+    overflow-y: auto;
+    color: var(--b3-theme-on-surface);
   }
 }

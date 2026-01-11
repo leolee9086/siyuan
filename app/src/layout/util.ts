@@ -33,6 +33,7 @@ import { newCenterEmptyTab } from "./tabUtil";
 import { setStorageVal } from "../protyle/util/compatibility";
 import { setPanelFocus } from "./utils/setPanelFocus";
 import { tabRegistry } from "./registry";
+import { ErrorPlaceholder, ERROR_PLACEHOLDER_TYPE } from "./dock/ErrorPlaceholder";
 
 export const switchWnd = (newWnd: Wnd, targetWnd: Wnd) => {
     // DOM 移动后 range 会变化
@@ -406,6 +407,17 @@ export const JSONToCenter = (
             (layout as Tab).headElement.classList.add("item--unupdate");
         }
         (layout as Tab).headElement.setAttribute("data-initdata", JSON.stringify(json));
+    } else if (json.instance === "ErrorPlaceholder") {
+        // 恢复已保存的错误占位符
+        const { createErrorPlaceholderFromData } = require("./dock/ErrorPlaceholder");
+        const { isErrorPlaceholderData } = require("./dock/dock.guard");
+        if (isErrorPlaceholderData(json.errorPlaceholderData)) {
+            (layout as Tab).addModel(createErrorPlaceholderFromData(
+                app,
+                layout as Tab,
+                json.errorPlaceholderData
+            ));
+        }
     }
     if ("children" in json) {
         if (Array.isArray(json.children)) {
@@ -592,6 +604,11 @@ export const layoutToJSON = (layout: Layout | Wnd | Tab | Model, json: any, brea
         json.instance = "Custom";
         json.customModelType = layout.type;
         json.customModelData = Object.assign({}, layout.data);
+    } else if (layout instanceof ErrorPlaceholder) {
+        // 错误占位符保存到布局配置
+        json.instance = "ErrorPlaceholder";
+        json.errorPlaceholderType = ERROR_PLACEHOLDER_TYPE;
+        json.errorPlaceholderData = layout.toJSON();
     }
 
     if (layout instanceof Layout || layout instanceof Wnd) {

@@ -106,3 +106,14 @@ export function isHTMLOrSVGElement(element: unknown): element is HTMLElement | S
 export function isHTMLElement(element: unknown): element is HTMLElement {
     return element instanceof HTMLElement;
 }
+
+/**
+ * 判断是否为错误占位符数据
+ */
+export function isErrorPlaceholderData(data: unknown): data is import("./ErrorPlaceholder").IErrorPlaceholderData {
+    if (typeof data !== "object" || data === null) {
+        return false;
+    }
+    const d = data as Record<string, unknown>;
+    return typeof d.原始类型 === "string" && typeof d.错误信息 === "string";
+}

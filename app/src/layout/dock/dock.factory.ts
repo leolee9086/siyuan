@@ -10,9 +10,10 @@ import { CustomLists, ICustomList } from "./customBlockLists/CustomLists";
 import { EmbeddingDock } from "./embeddingDock/EmbeddingDock";
 import { Cronjob } from "./Cronjob";
 import { App } from "../../index";
-import { Plugin } from "../../plugin";
 import { Protyle } from "../../protyle";
 import { Model } from "../Model";
+import { ErrorPlaceholder, ERROR_PLACEHOLDER_TYPE, createErrorPlaceholderFromData } from "./ErrorPlaceholder";
+import { isErrorPlaceholderData } from "./dock.guard";
 
 type ModelFactory = (app: App, tab: Tab, editor?: Protyle, data?: any) => Model | undefined;
 
@@ -119,10 +120,14 @@ export const createModel = (options: {
     tab: Tab,
     type: string,
     editor?: Protyle,
-    data?: any
+    data?: unknown
 }): Model | undefined => {
-    const factory = MODEL_FACTORIES[options.type];
+    // 处理已保存的错误占位符
+    if (options.type === ERROR_PLACEHOLDER_TYPE && isErrorPlaceholderData(options.data)) {
+        return createErrorPlaceholderFromData(options.app, options.tab, options.data);
+    }
 
+    const factory = MODEL_FACTORIES[options.type];
     if (factory) {
         return factory(options.app, options.tab, options.editor, options.data);
     }
@@ -152,20 +157,61 @@ export const createModel = (options: {
     return initPlugin(options.app, options.tab, options.type);
 };
 
+/**
+ * 安全创建 dock model
+ * 
+ * 作用：包装 createModel，捕获创建过程中的错误
+ * 意图：当组件创建失败时返回 ErrorPlaceholder 而不是抛出异常
+ * 调用时机：在 createDockTab 和其他需要安全创建 model 的地方使用
+ */
+export const safeCreateModel = (options: {
+    app: App,
+    tab: Tab,
+    type: string,
+    editor?: Protyle,
+    data?: unknown
+}): Model | undefined => {
+    try {
+        return createModel(options);
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorStack = error instanceof Error ? error.stack : undefined;
+
+        console.error("[safeCreateModel] 创建失败:", options.type, error);
+
+        return new ErrorPlaceholder({
+            app: options.app,
+            tab: options.tab,
+            原始类型: options.type,
+            错误信息: errorMessage,
+            错误堆栈: errorStack ?? undefined,
+        });
+    }
+};
+
+/**
+ * 创建 dock tab
+ * 
+ * 作用：创建一个带有指定类型 model 的 tab
+ * 意图：统一 dock tab 的创建逻辑
+ * 调用时机：在 dock 初始化或切换时调用
+ */
 export const createDockTab = (options: {
     app: App,
     type: string,
     editor?: Protyle,
-    data?: any
+    data?: unknown
 }): Tab => {
     return new Tab({
+        /** @简洁函数 创建 Tab 后的回调，创建并添加 model */
         callback: (tab: Tab) => {
-            const model = createModel({
+            // 使用 safeCreateModel 确保错误被捕获并显示为占位符
+            const model = safeCreateModel({
                 app: options.app,
                 tab,
                 type: options.type,
-                editor: options.editor,
-                data: options.data
+                editor: options.editor ?? undefined,
+                data: options.data ?? undefined
             });
             if (model) {
                 tab.addModel(model);
