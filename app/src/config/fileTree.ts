@@ -3,8 +3,11 @@ import { genNotebookOption } from "../menus/onGetnotebookconf";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { openFile } from "../editor/util";
-import { Custom } from "../layout/dock/Custom";
-import { Plugin } from "../plugin";
+import { tabRegistry } from "../layout/registry";
+import type { Custom } from "../layout/dock/Custom";
+
+// 内部设置 Tab 类型常量
+const INTERNAL_FILETREE_TAB_TYPE = "internal-settings-filetree";
 
 export const fileTree = {
     genHTML: () => {
@@ -175,45 +178,44 @@ export const fileTree = {
         });
         element.querySelectorAll("button").forEach((item) => {
             item.addEventListener("click", async () => {
+                // 直接使用新的 Tab 类型，无需通过伪造 Plugin
                 await openFile({
                     app: window.siyuan.ws.app,
                     custom: {
                         title: siyuanI18n.fileTree,
                         icon: "#iconFiles",
-                        id: "internal-plugin-filetree" + "internal-filetree"
+                        id: INTERNAL_FILETREE_TAB_TYPE
                     }
                 });
             });
         });
     }
 };
+
 import fileTreeConfigPanel from "../components/panels/fileTreeConfig.panel.vue";
 import { createApp } from "vue";
-let plugin: Plugin;
-document.addEventListener(
-    "app-ready", () => {
-        plugin = new Plugin(
-            {
-                app: window.siyuan.ws.app,
-                displayName: "文档树内部插件",
-                name: "internal-plugin-filetree",
-                i18n: {}
+
+/**
+ * 初始化内部文档树设置 Tab
+ * 
+ * 作用：使用 TabRegistry 直接注册内部 Tab 类型
+ * 意图：替代之前的伪造 Plugin 方式
+ * 调用时机：应用初始化时 (app-ready 事件)
+ */
+function 初始化文档树设置Tab() {
+    tabRegistry.register({
+        type: INTERNAL_FILETREE_TAB_TYPE,
+        init: (model: Custom) => {
+            const tab = model.tab;
+            const app = createApp(fileTreeConfigPanel);
+            if (tab) {
+                app.mount(tab.panelElement);
             }
-        );
-        plugin.addTab(
-            {
-                type: "internal-filetree",
-                init: (model: Custom) => {
-                    const tab = model.tab;
-                    const app = createApp(fileTreeConfigPanel);
-                    if (tab) {
-                        app.mount(tab.panelElement);
-                        // tab.panelElement.innerHTML = fileTree.genHTML()
-                        // fileTree.bindEvent(tab.panelElement)
-                    }
-                }
-            }
-        );
-        window.siyuan.ws.app.plugins.push(plugin);
-    }
-);
+        }
+    });
+}
+
+// 应用初始化时注册 Tab 类型
+document.addEventListener("app-ready", () => {
+    初始化文档树设置Tab();
+});

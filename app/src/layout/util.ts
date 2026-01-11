@@ -32,6 +32,7 @@ import { afterLoadPlugin } from "../plugin/loader";
 import { newCenterEmptyTab } from "./tabUtil";
 import { setStorageVal } from "../protyle/util/compatibility";
 import { setPanelFocus } from "./utils/setPanelFocus";
+import { tabRegistry } from "./registry";
 
 export const switchWnd = (newWnd: Wnd, targetWnd: Wnd) => {
     // DOM 移动后 range 会变化
@@ -692,15 +693,27 @@ export const newModelByInitData = (app: App, tab: Tab, json: any) => {
                 data: json.customModelData
             });
         } else {
-            app.plugins.find(item => {
-                if (item.models[json.customModelType]) {
-                    model = item.models[json.customModelType]({
-                        tab: tab,
-                        data: json.customModelData
-                    });
-                    return true;
-                }
+            // 优先从全局 TabRegistry 查找
+            const registryModel = tabRegistry.createModel({
+                app,
+                tab,
+                type: json.customModelType,
+                data: json.customModelData,
             });
+            if (registryModel) {
+                model = registryModel;
+            } else {
+                // 回退：遍历插件（兼容旧插件）
+                app.plugins.find(item => {
+                    if (item.models[json.customModelType]) {
+                        model = item.models[json.customModelType]({
+                            tab: tab,
+                            data: json.customModelData
+                        });
+                        return true;
+                    }
+                });
+            }
         }
     } else if (json.instance === "Editor") {
         if (json.rootId === json.blockId && json.action) {

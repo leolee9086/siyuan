@@ -9,6 +9,7 @@ import { Tab } from "../layout/Tab";
 import { resizeTopBar } from "../layout/util";
 import { setPanelFocus } from "../layout/utils/setPanelFocus";
 import { getDockByType } from "../layout/tabUtil";
+import { tabRegistry } from "../layout/registry";
 ///#else
 import { MobileCustom } from "../mobile/dock/MobileCustom";
 /// #endif
@@ -359,23 +360,25 @@ export class Plugin {
     }) {
         /// #if !MOBILE
         const type2 = this.name + options.type;
+
+        // 委托给 TabRegistry 注册
+        tabRegistry.register({
+            type: type2,
+            init: options.init,
+            destroy: options.destroy,
+            beforeDestroy: options.beforeDestroy,
+            resize: options.resize,
+            update: options.update,
+        });
+
+        // 保持兼容：同时存储在 this.models（供 getOpenedTab 使用）
         this.models[type2] = (arg: { data: any, tab: Tab }) => {
-            const customObj = new Custom({
+            return tabRegistry.createModel({
                 app: this.app,
                 tab: arg.tab,
                 type: type2,
                 data: arg.data,
-                init: options.init,
-                beforeDestroy: options.beforeDestroy,
-                destroy: options.destroy,
-                resize: options.resize,
-                update: options.update,
             });
-            customObj.element.addEventListener("click", () => {
-                clearOBG();
-                setPanelFocus(customObj.element.parentElement.parentElement);
-            });
-            return customObj;
         };
         return this.models[type2];
         /// #endif
