@@ -15,7 +15,7 @@ import { objEquals } from "../util/functions";
 import { clearOBG } from "../layout/dock/util";
 import { getUnInitTab } from "./util.getUnInitTab";
 import { switchEditor } from "./util.switchEditor";
-import { newTab } from "./util.newTab";
+import { newTab } from "../layout/utils/newTab";
 
 export const openFile = async (options: IOpenFileOptions) => {
     if (typeof options.removeCurrentTab === "undefined") {

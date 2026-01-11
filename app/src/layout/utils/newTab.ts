@@ -1,12 +1,12 @@
-import { Editor } from ".";
-import { Asset } from "../asset";
-import { newCardModel } from "../card/newCardTab";
-import { Constants } from "../constants";
-import { Tab } from "../layout/Tab";
-import { setPanelFocus } from "../layout/utils/setPanelFocus";
-import { tabRegistry } from "../layout/registry";
-import { Search } from "../search";
-import { pathPosix, getDisplayName } from "../util/pathName";
+import { Editor } from "../../editor";
+import { Asset } from "../../asset";
+import { newCardModel } from "../../card/newCardTab";
+import { Constants } from "../../constants";
+import { Tab } from "../Tab";
+import { setPanelFocus } from "./setPanelFocus";
+import { tabRegistry } from "../registry";
+import { Search } from "../../search";
+import { pathPosix, getDisplayName } from "../../util/pathName";
 export const newTab = (options: IOpenFileOptions) => {
     let tab: Tab;
     if (options.assetPath) {
