@@ -1,0 +1,47 @@
+{
+  "name": "SACCompiler",
+  "author": "椽承设计",
+  "url": "https://github.com/leolee9086/SACCompiler",
+  "version": "0.0.3",
+  "minAppVersion": "3.0.0",
+  "backends": [
+    "windows",
+    "linux",
+    "darwin",
+    "ios",
+    "android"
+  ],
+  "frontends": [
+    "desktop",
+    "mobile",
+    "browser-desktop",
+    "browser-mobile",
+    "desktop-window"
+  ],
+  "displayName": {
+    "default": "SACCompiler",
+    "zh_CN": "SAC代码工具箱"
+  },
+  "description": {
+    "default": "",
+    "zh_CN": "这是一个用于解析笔记成各种形式内容的插件，例如代码片段和AI的提示词,设计用于方便编写和分享代码片段"
+  },
+  "readme": {
+    "default": "README.md",
+    "zh_CN": "README_zh_CN.md"
+  },
+  "funding": {
+    "openCollective": "",
+    "patreon": "",
+    "github": "",
+    "custom": [
+      "https://ld246.com/sponsor"
+    ]
+  },
+  "keywords": [
+    "SAC",
+    "代码片段",
+    "js",
+    "snippets"
+  ]
+}
