@@ -60,7 +60,9 @@ const genWidthInputItem = (context: { rangeElement: HTMLInputElement | null }, a
         label: `<div class="fn__flex"><input class="b3-text-field fn__flex-1" style="margin: 4px 8px 4px 0" value="${widthVal}" type="number" placeholder="${siyuanI18n.width}"><span class="fn__flex-center">px</span></div>`,
         bind(element: HTMLElement) {
             const inputElement = element.querySelector("input");
-            if (!inputElement) return;
+            if (!inputElement) {
+return;
+}
             // @内联回调
             inputElement.addEventListener("input", () => {
                 if (context.rangeElement) {
@@ -114,7 +116,9 @@ const genWidthSliderItem = (context: { rangeElement: HTMLInputElement | null }, 
         label: `<div style="margin: 4px 0;" aria-label="${label}" class="b3-tooltips b3-tooltips__n"><input style="box-sizing: border-box" value="${sliderValue}" class="b3-slider fn__block" max="100" min="1" step="1" type="range"></div>`,
         bind(element: HTMLElement) {
             const rangeElement = element.querySelector("input");
-            if (!rangeElement) return;
+            if (!rangeElement) {
+return;
+}
             context.rangeElement = rangeElement;
             // @内联回调
             rangeElement.addEventListener("input", () => {
@@ -190,7 +194,9 @@ const genHeightInputItem = (context: { rangeHeightElement: HTMLInputElement | nu
         label: `<div class="fn__flex"><input class="b3-text-field fn__flex-1" value="${heightVal}" type="number" style="margin: 4px 8px 4px 0" placeholder="${siyuanI18n.height}"><span class="fn__flex-center">px</span></div>`,
         bind(element: HTMLElement) {
             const inputElement = element.querySelector("input");
-            if (!inputElement) return;
+            if (!inputElement) {
+return;
+}
             // @内联回调
             inputElement.addEventListener("input", () => {
                 if (context.rangeHeightElement) {
@@ -241,7 +247,9 @@ const genHeightSliderItem = (context: { rangeHeightElement: HTMLInputElement | n
         label: `<div style="margin: 4px 0;" aria-label="${label}" class="b3-tooltips b3-tooltips__n"><input style="box-sizing: border-box" value="${sliderValue}" class="b3-slider fn__block" max="100" min="1" step="1" type="range"></div>`,
         bind(element: HTMLElement) {
             const rangeHeightElement = element.querySelector("input");
-            if (!rangeHeightElement) return;
+            if (!rangeHeightElement) {
+return;
+}
             context.rangeHeightElement = rangeHeightElement;
             // @内联回调
             rangeHeightElement.addEventListener("input", () => {

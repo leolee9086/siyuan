@@ -47,7 +47,7 @@ export const imgMenu = (protyle: IProtyle, range: Range, assetElement: HTMLEleme
         return;
     }
     const html = nodeElement.outerHTML;
-    let src = imgElement.getAttribute("src") || "";
+    const src = imgElement.getAttribute("src") || "";
 
     if (!protyle.disabled) {
         getSiyuanGlobalMenusMenu().append(genImageSettingsItem(assetElement, nodeElement, imgElement).element);

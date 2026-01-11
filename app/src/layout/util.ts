@@ -788,6 +788,9 @@ export const pdfIsLoading = (element: HTMLElement) => {
 
 export const getInstanceById = (id: string, layout = window.siyuan.layout.centerLayout) => {
     const _getInstanceById = (item: Layout | Wnd, id: string) => {
+        if (!item) {
+            return;
+        }
         if (item.id === id) {
             return item;
         }
@@ -805,7 +808,10 @@ export const getInstanceById = (id: string, layout = window.siyuan.layout.center
     return _getInstanceById(layout, id);
 };
 
-export const adjustLayout = (layout: Layout = window.siyuan.layout.centerLayout.parent) => {
+export const adjustLayout = (layout: Layout = window.siyuan.layout.centerLayout?.parent) => {
+    if (!layout) {
+        return;
+    }
     layout.children.forEach((item: Layout | Wnd) => {
         item.element.style.maxWidth = "";
         if (!item.element.style.width && !item.element.classList.contains("layout__center")) {

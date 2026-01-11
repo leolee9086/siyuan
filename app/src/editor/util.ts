@@ -8,247 +8,232 @@ import { Constants } from "../constants";
 import { ipcRenderer } from "electron";
 /// #endif
 import { Layout } from "../layout";
-import {
-    hasClosestByClassName,
-} from "../protyle/util/hasClosest";
-import { objEquals } from "../util/functions";
-import { clearOBG } from "../layout/dock/util";
 import { getUnInitTab } from "./util.getUnInitTab";
 import { switchEditor } from "./util.switchEditor";
 import { newTab } from "../layout/utils/newTab";
+import { getSafeSiyuanConfig, getSafeSiyuanLayout } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { findAndOpenAsset, findAndOpenCustom, findAndOpenEditor, findAndOpenSearch } from "./util.find";
 
-export const openFile = async (options: IOpenFileOptions) => {
+/**  设置 keep-cursor 属性 */
+const setKeepCursorAttr = (element: HTMLElement, id?: string) => {
+    if (id) {
+        element.setAttribute("keep-cursor", id);
+    }
+};
+
+/**  准备 UI 环境 */
+const prepareUI = (options: IOpenFileOptions) => {
     if (typeof options.removeCurrentTab === "undefined") {
         options.removeCurrentTab = true;
     }
     // https://github.com/siyuan-note/siyuan/issues/10168
-    document.querySelectorAll(".av__panel, .av__mask").forEach(item => {
+    const avPanelsAndMasks = document.querySelectorAll(".av__panel, .av__mask");
+    for (const item of avPanelsAndMasks) {
         item.remove();
-    });
+    }
     // 打开 PDF 时移除文档光标
     if (document.activeElement instanceof HTMLElement) {
         document.activeElement.blur();
     }
-    const allModels = getAllModels();
-    // 文档已打开
-    if (options.assetPath) {
-        clearOBG();
-        const asset = allModels.asset.find((item) => {
-            if (item.path == options.assetPath) {
-                if (!pdfIsLoading(item.parent.parent.element)) {
-                    item.parent.parent.switchTab(item.parent.headElement);
-                    item.parent.parent.showHeading();
-                    item.goToPage(options.page);
-                }
-                return true;
-            }
-        });
-        if (asset) {
-            if (options.afterOpen) {
-                options.afterOpen(asset);
-            }
-            return asset.parent;
-        }
-    } else if (options.custom) {
-        clearOBG();
-        const custom = allModels.custom.find((item) => {
-            if (objEquals(item.data, options.custom.data) && (!options.custom.id || options.custom.id === item.type)) {
-                if (!pdfIsLoading(item.parent.parent.element)) {
-                    item.parent.parent.switchTab(item.parent.headElement);
-                    item.parent.parent.showHeading();
-                }
-                return true;
-            }
-        });
-        if (custom) {
-            if (options.afterOpen) {
-                options.afterOpen(custom);
-            }
-            return custom.parent;
-        }
-        const hasModel = getUnInitTab(options);
-        if (hasModel) {
-            if (options.afterOpen) {
-                options.afterOpen(hasModel.model);
-            }
-            return hasModel;
-        }
-    } else if (options.searchData) {
-        clearOBG();
-        const search = allModels.search.find((item) => {
-            if (objEquals(item.config, options.searchData)) {
-                if (!pdfIsLoading(item.parent.parent.element)) {
-                    item.parent.parent.switchTab(item.parent.headElement);
-                    item.parent.parent.showHeading();
-                }
-                return true;
-            }
-        });
-        if (search) {
-            return search.parent;
-        }
-    } else if (!options.position && !options.openNewTab) {
-        let editor: Editor;
-        let activeEditor: Editor;
-        allModels.editor.find((item) => {
-            if (item.editor.protyle.block.rootID === options.rootID) {
-                if (hasClosestByClassName(item.element, "layout__wnd--active")) {
-                    activeEditor = item;
-                }
-                if (!editor || item.headElement.getAttribute("data-activetime") > editor.headElement.getAttribute("data-activetime")) {
-                    // https://github.com/siyuan-note/siyuan/issues/11981#issuecomment-2351939812
-                    editor = item;
-                }
-            }
-            if (activeEditor) {
-                return true;
-            }
-        });
-        if (activeEditor) {
-            editor = activeEditor;
-        }
-        if (editor) {
-            if (!pdfIsLoading(editor.parent.parent.element)) {
-                switchEditor(editor, options, allModels);
-            }
-            if (options.afterOpen) {
-                options.afterOpen(editor);
-            }
-            return editor.parent;
-        }
-        // 没有初始化的页签无法检测到
-        const hasEditor = getUnInitTab(options);
-        if (hasEditor) {
-            if (options.afterOpen) {
-                options.afterOpen(hasEditor.model);
-            }
-            return hasEditor;
-        }
-    }
+};
 
+
+/**  在 Electron 中打开 */
+const openInElectron = async (options: IOpenFileOptions) => {
     /// #if !BROWSER
     // https://github.com/siyuan-note/siyuan/issues/7491
-    if (!options.position || (options.position === "right" && options.assetPath)) {
-        let hasMatch = false;
-        const optionsClone: IObject = {};
-        Object.keys(options).forEach((key: keyof IOpenFileOptions) => {
-            if (key !== "app" && options[key] && typeof options[key] !== "function") {
-                optionsClone[key] = JSON.parse(JSON.stringify(options[key]));
-            }
-        });
-        hasMatch = await ipcRenderer.invoke(Constants.SIYUAN_GET, {
-            cmd: Constants.SIYUAN_OPEN_FILE,
-            options: JSON.stringify(optionsClone),
-        });
-        if (hasMatch) {
-            if (options.afterOpen) {
-                options.afterOpen();
-            }
-            return;
+    if (options.position && !(options.position === "right" && options.assetPath)) {
+        return false;
+    }
+    let hasMatch = false;
+    const optionsClone: IObject = {};
+    for (const [key, value] of Object.entries(options)) {
+        if (key !== "app" && value && typeof value !== "function") {
+            optionsClone[key] = JSON.parse(JSON.stringify(value));
         }
+    }
+    hasMatch = await ipcRenderer.invoke(Constants.SIYUAN_GET, {
+        cmd: Constants.SIYUAN_OPEN_FILE,
+        options: JSON.stringify(optionsClone),
+    });
+    if (hasMatch) {
+        options.afterOpen?.();
+        return true;
     }
     /// #endif
+    return false;
+};
 
-    let wnd: Wnd = undefined;
-    // 获取光标所在 tab
-    const element = document.querySelector(".layout__wnd--active");
-    if (element) {
-        wnd = getInstanceById(element.getAttribute("data-id")) as Wnd;
+/**  获取目标窗口 */
+const getTargetWnd = (options: IOpenFileOptions, wnd: Wnd) => {
+    const direction = options.position === "right" ? "lr" : "tb";
+    let targetWnd: Wnd | undefined = undefined;
+    if (!(wnd.parent instanceof Layout && wnd.parent.children && wnd.parent.children.length > 1 && wnd.parent.direction === direction)) {
+        return targetWnd;
     }
-    if (!wnd) {
-        // 中心 tab
-        wnd = getWndByLayout(window.siyuan.layout.centerLayout);
+    const children = wnd.parent.children;
+    for (let index = 0; index < children.length; index++) {
+        const item = children[index];
+        if (!item || item.id !== wnd.id) {
+            continue;
+        }
+        let nextWnd = children[index + 1];
+        if (!nextWnd) {
+            // wnd 为右侧时，应设置其为目标
+            nextWnd = wnd;
+        }
+        while (nextWnd instanceof Layout) {
+            nextWnd = nextWnd.children?.[0];
+        }
+        targetWnd = nextWnd;
+        break;
     }
-    if (wnd) {
-        let createdTab: Tab;
-        if ((options.position === "right" || options.position === "bottom") && wnd.children[0].headElement) {
-            const direction = options.position === "right" ? "lr" : "tb";
-            let targetWnd: Wnd;
-            if (wnd.parent.children.length > 1 && wnd.parent instanceof Layout && wnd.parent.direction === direction) {
-                wnd.parent.children.find((item, index) => {
-                    if (item.id === wnd.id) {
-                        let nextWnd = wnd.parent.children[index + 1];
-                        if (!nextWnd) {
-                            // wnd 为右侧时，应设置其为目标
-                            nextWnd = wnd;
-                        }
-                        while (nextWnd instanceof Layout) {
-                            nextWnd = nextWnd.children[0];
-                        }
-                        targetWnd = nextWnd;
-                        return true;
-                    }
-                });
-            }
-            if (targetWnd) {
-                if (pdfIsLoading(targetWnd.element)) {
-                    if (options.afterOpen) {
-                        options.afterOpen();
-                    }
-                    return;
-                }
-                // 在右侧/下侧打开已有页签将进行页签切换 https://github.com/siyuan-note/siyuan/issues/5366
-                let hasEditor = targetWnd.children.find(item => {
-                    if (item.model && item.model instanceof Editor && item.model.editor.protyle.block.rootID === options.rootID) {
-                        switchEditor(item.model, options, allModels);
-                        return true;
-                    }
-                });
-                if (!hasEditor) {
-                    hasEditor = getUnInitTab(options);
-                    createdTab = hasEditor;
-                }
-                if (!hasEditor) {
-                    createdTab = newTab(options);
-                    targetWnd.addTab(createdTab);
-                }
-            } else {
-                createdTab = newTab(options);
-                wnd.split(direction).addTab(createdTab);
-            }
-            wnd.showHeading();
-            if (options.afterOpen) {
-                options.afterOpen(createdTab ? createdTab.model : undefined);
-            }
-            return createdTab;
-        }
-        if (pdfIsLoading(wnd.element)) {
-            if (options.afterOpen) {
-                options.afterOpen();
-            }
-            return;
-        }
-        if (options.keepCursor && wnd.children[0].headElement) {
-            createdTab = newTab(options);
-            createdTab.headElement.setAttribute("keep-cursor", options.id);
-            wnd.addTab(createdTab, options.keepCursor);
-        } else if (window.siyuan.config.fileTree.openFilesUseCurrentTab) {
-            let unUpdateTab: Tab;
-            // 不能 reverse, 找到也不能提前退出循环，否则 https://github.com/siyuan-note/siyuan/issues/3271
-            wnd.children.find((item) => {
-                if (item.headElement && item.headElement.classList.contains("item--unupdate") && !item.headElement.classList.contains("item--pin")) {
-                    unUpdateTab = item;
-                    if (item.headElement.classList.contains("item--focus")) {
-                        // https://ld246.com/article/1658979494658
-                        return true;
-                    }
-                }
-            });
-            createdTab = newTab(options);
-            wnd.addTab(createdTab);
-            if (unUpdateTab && options.removeCurrentTab) {
-                wnd.removeTab(unUpdateTab.id, false, false);
-            }
-        } else {
-            createdTab = newTab(options);
-            wnd.addTab(createdTab);
-        }
+    return targetWnd;
+};
+
+/**  打开分屏页签 */
+const openSplitTab = (options: IOpenFileOptions, wnd: Wnd, allModels: ReturnType<typeof getAllModels>) => {
+    const direction = options.position === "right" ? "lr" : "tb";
+    const targetWnd = getTargetWnd(options, wnd);
+    if (!targetWnd) {
+        const createdTab = newTab(options);
+        wnd.split(direction).addTab(createdTab);
         wnd.showHeading();
-        if (options.afterOpen) {
-            options.afterOpen(createdTab.model);
-        }
+        options.afterOpen?.(createdTab ? createdTab.model : undefined);
         return createdTab;
     }
+
+    if (pdfIsLoading(targetWnd.element)) {
+        options.afterOpen?.();
+        return;
+    }
+    // 在右侧/下侧打开已有页签将进行页签切换 https://github.com/siyuan-note/siyuan/issues/5366
+    let createdTab: Tab | undefined;
+    const children = targetWnd.children || [];
+    for (const item of children) {
+        if (!item.model || !(item.model instanceof Editor) || item.model.editor.protyle.block.rootID !== options.rootID) {
+            continue;
+        }
+        switchEditor(item.model, options, allModels);
+        createdTab = item;
+        break;
+    }
+
+    if (!createdTab) {
+        createdTab = getUnInitTab(options) || undefined;
+    }
+
+    if (!createdTab) {
+        createdTab = newTab(options);
+        targetWnd.addTab(createdTab);
+    }
+    wnd.showHeading();
+    options.afterOpen?.(createdTab ? createdTab.model : undefined);
+    return createdTab;
 };
-//之后的内容已经拆分
-// 没有初始化的页签无法检测到
+
+/** 在窗口中打开页签 */
+const openTabInWindow = (options: IOpenFileOptions, wnd: Wnd) => {
+    let createdTab: Tab;
+    if (pdfIsLoading(wnd.element)) {
+        options.afterOpen?.();
+        return;
+    }
+    const firstChild = wnd.children[0];
+    if (options.keepCursor && firstChild && firstChild.headElement) {
+        createdTab = newTab(options);
+        setKeepCursorAttr(createdTab.headElement, options.id);
+        wnd.addTab(createdTab, options.keepCursor);
+        wnd.showHeading();
+        options.afterOpen?.(createdTab.model);
+        return createdTab;
+    }
+
+    if (!getSafeSiyuanConfig()?.fileTree?.openFilesUseCurrentTab) {
+        createdTab = newTab(options);
+        wnd.addTab(createdTab);
+        wnd.showHeading();
+        options.afterOpen?.(createdTab.model);
+        return createdTab;
+    }
+
+    let unUpdateTab: Tab | undefined;
+    // 不能 reverse, 找到也不能提前退出循环，否则 https://github.com/siyuan-note/siyuan/issues/3271
+    // 解释: 这里原文并没有使用 find 的返回值，而是遍历所有，但 `find` 只要返回 true 就会停止。
+    // 根据注释意思 "找到也不能提前退出循环"，原来的 `find` 其实有 bug（如果找到了就退出了，除非没有 return true）。
+    // 实际上原来的代码： `if (...) { unUpdateTab = item; if(...) return true; }`
+    // 也就是如果 unupdate 且 focus，就停止。否则继续找。
+    // 这里改写为 for 循环。
+    for (const item of wnd.children) {
+        const isTarget = item.headElement && item.headElement.classList.contains("item--unupdate") && !item.headElement.classList.contains("item--pin");
+        if (isTarget) {
+            unUpdateTab = item;
+        }
+        if (isTarget && item.headElement && item.headElement.classList.contains("item--focus")) {
+            break;
+        }
+    }
+    createdTab = newTab(options);
+    wnd.addTab(createdTab);
+    if (unUpdateTab && options.removeCurrentTab) {
+        wnd.removeTab(unUpdateTab.id, false, false);
+    }
+    wnd.showHeading();
+    options.afterOpen?.(createdTab.model);
+    return createdTab;
+};
+
+/** 获取用于打开新页签的目标窗口 */
+const getActiveOrCenterWnd = () => {
+    let wnd: Wnd | undefined;
+    // 获取光标所在 tab
+    const activeWndElement = document.querySelector(".layout__wnd--active");
+    if (activeWndElement) {
+        const instance = getInstanceById(activeWndElement.getAttribute("data-id") || "");
+        wnd = (instance instanceof Wnd) ? instance : undefined;
+    }
+
+    // 中心 tab
+    const centerLayout = !wnd ? getSafeSiyuanLayout()?.centerLayout : undefined;
+    if (centerLayout) {
+        wnd = getWndByLayout(centerLayout);
+    }
+    return wnd;
+};
+
+/** 打开文件（编辑器、资源、自定义页签等） */
+export const openFile = async (options: IOpenFileOptions) => {
+    prepareUI(options);
+    const allModels = getAllModels();
+    let tab = findAndOpenAsset(options, allModels);
+    if (tab) {
+        return tab;
+    }
+    tab = findAndOpenCustom(options, allModels);
+    if (tab) {
+        return tab;
+    }
+    tab = findAndOpenSearch(options, allModels);
+    if (tab) {
+        return tab;
+    }
+    tab = findAndOpenEditor(options, allModels);
+    if (tab) {
+        return tab;
+    }
+
+    if (await openInElectron(options)) {
+        return;
+    }
+
+    const wnd = getActiveOrCenterWnd();
+    if (!wnd) {
+        return;
+    }
+
+    const firstChild = wnd.children[0];
+    if ((options.position === "right" || options.position === "bottom") && firstChild && firstChild.headElement) {
+        return openSplitTab(options, wnd, allModels);
+    }
+    return openTabInWindow(options, wnd);
+};

@@ -63,6 +63,22 @@ export const getSiyuanLayout = () => {
 };
 
 /**
+ * 安全获取 window.siyuan.layout（不抛异常）
+ * @returns layout 对象或 undefined
+ */
+export const getSafeSiyuanLayout = () => {
+    return window.siyuan?.layout;
+};
+
+/**
+ * 安全获取 window.siyuan.config（不抛异常）
+ * @returns config 对象或 undefined
+ */
+export const getSafeSiyuanConfig = () => {
+    return window.siyuan?.config;
+};
+
+/**
  * 设置 window.siyuan.emojis
  * @param emojis emoji 列表
  */

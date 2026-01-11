@@ -1,30 +1,94 @@
 import { Constants } from "../constants";
 import { getAllTabs } from "../layout/getAll";
 import { objEquals } from "../util/functions";
-// 没有初始化的页签无法检测到
-export const getUnInitTab = (options: IOpenFileOptions) => {
-    return getAllTabs().find(item => {
-        const initData = item.headElement?.getAttribute("data-initdata");
-        if (initData) {
-            const initObj = JSON.parse(initData);
-            if (initObj.instance === "Editor" &&
-                (initObj.rootId === options.rootID || initObj.blockId === options.rootID)) {
-                initObj.blockId = options.id;
-                initObj.mode = options.mode;
-                if (options.zoomIn) {
-                    initObj.action = [Constants.CB_GET_ALL, Constants.CB_GET_FOCUS];
-                } else {
-                    initObj.action = options.action;
-                }
-                item.headElement.setAttribute("data-initdata", JSON.stringify(initObj));
-                item.parent.switchTab(item.headElement);
-                return true;
-            } else if (initObj.instance === "Custom" && options.custom && objEquals(initObj.customModelData, options.custom.data)) {
-                item.parent.switchTab(item.headElement);
-                return true;
-            }
-        }
-    });
+import { Tab } from "../layout/Tab";
+
+/**
+ * 查找并更新未初始化的页签
+ *
+ * 作用：在所有页签中查找尚未初始化的页签（即只有初始化数据但没有实际模型实例的页签），
+ *       如果找到匹配的页签，则更新其初始化数据并切换到该页签。
+ *
+ * 意图：当用户尝试打开一个文件时，如果已经存在一个尚未初始化的页签（例如之前打开但未加载的页签），
+ *       则复用该页签而不是创建新的页签，这样可以避免重复打开相同的文档。
+ *
+ * 调用时机：在打开文件之前调用，用于检查是否可以复用现有的未初始化页签。
+ *
+ * 问题/改进：当前实现通过遍历所有页签来查找匹配项，如果页签数量很多可能会有性能问题。
+ *            可以考虑使用 Map 或其他数据结构来优化查找性能。
+ *
+ * @param options - 打开文件的选项参数
+ * @returns 找到的匹配页签，如果没有找到则返回 undefined
+ */
+export const getUnInitTab = (options: IOpenFileOptions): Tab | undefined => {
+    return getAllTabs().find(isMatchingUnInitTab(options));
 };
 
+/**
+ * 判断页签是否为匹配的未初始化页签
+ *
+ * 作用：检查给定的页签是否为未初始化状态，并且其初始化数据与指定的选项匹配。
+ *
+ * 意图：将复杂的匹配逻辑提取为独立函数，提高代码可读性和可维护性。
+ *
+ * 调用时机：由 getUnInitTab 函数在遍历页签时调用。
+ *
+ * @param options - 打开文件的选项参数
+ * @returns 返回一个谓词函数，用于判断页签是否匹配
+ */
+const isMatchingUnInitTab = (options: IOpenFileOptions) => {
+    return (item: Tab): boolean => {
+        const initData = item.headElement?.getAttribute("data-initdata");
+        if (!initData) {
+            return false;
+        }
 
+        const initObj = JSON.parse(initData);
+
+        // 处理 Editor 类型的页签
+        if (initObj.instance === "Editor" &&
+            (initObj.rootId === options.rootID || initObj.blockId === options.rootID)) {
+            return handleEditorTab(item, initObj, options);
+        }
+
+        // 处理 Custom 类型的页签
+        if (initObj.instance === "Custom" && options.custom && objEquals(initObj.customModelData, options.custom.data)) {
+            item.parent.switchTab(item.headElement);
+            return true;
+        }
+
+        return false;
+    };
+};
+
+/**
+ * 处理 Editor 类型的未初始化页签
+ *
+ * 作用：更新 Editor 类型页签的初始化数据，并切换到该页签。
+ *
+ * 意图：将 Editor 页签的处理逻辑提取为独立函数，遵循单一职责原则。
+ *
+ * 调用时机：当检测到页签为 Editor 类型且匹配时调用。
+ *
+ * @param item - 要处理的页签
+ * @param initObj - 页签的初始化数据对象（从 JSON 解析而来，类型为 any）
+ * @param options - 打开文件的选项参数
+ * @returns 始终返回 true，表示已找到匹配的页签
+ */
+const handleEditorTab = (item: Tab, initObj: any, options: IOpenFileOptions): boolean => {
+    initObj.blockId = options.id;
+    initObj.mode = options.mode;
+
+    // 使用卫语句设置 action
+    if (options.zoomIn) {
+        initObj.action = [Constants.CB_GET_ALL, Constants.CB_GET_FOCUS];
+        item.headElement.setAttribute("data-initdata", JSON.stringify(initObj));
+        item.parent.switchTab(item.headElement);
+        return true;
+    }
+
+    initObj.action = options.action;
+    item.headElement.setAttribute("data-initdata", JSON.stringify(initObj));
+    item.parent.switchTab(item.headElement);
+    return true;
+};

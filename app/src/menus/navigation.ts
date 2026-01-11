@@ -736,11 +736,15 @@ export const initFileMenu = (app: App, notebookId: string, pathString: string, l
                 click: async () => {
                     const { 注册扩展 } = await import("../util/cronjobApi");
                     const success = await 注册扩展(id, "go", "cronjob");
-                    if (!success) return;
+                    if (!success) {
+return;
+}
                     showMessage(已注册 ? "任务已更新" : "已注册为定时任务");
                     const { getDockByType } = await import("../layout/tabUtil");
                     const dock = getDockByType("cronjob");
-                    if (dock) dock.toggleModel("cronjob", true);
+                    if (dock) {
+dock.toggleModel("cronjob", true);
+}
                 }
             }, {
                 id: "compileCronjob",

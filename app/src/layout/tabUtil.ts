@@ -1,4 +1,5 @@
 import { Tab } from "./Tab";
+import { createTabModel } from "./registry";
 import { getInstanceById, newModelByInitData, saveLayout } from "./util";
 import { getAllModels, getAllTabs } from "./getAll";
 import { hideAllElements, hideElements } from "../protyle/ui/hideElements";
@@ -337,7 +338,15 @@ export const copyTab = (app: App, tab: Tab) => {
                 });
             } else if (tab.model instanceof Custom) {
                 const custom = tab.model as Custom;
-                if (custom.type === "siyuan-card") {
+                const registryModel = createTabModel({
+                    app,
+                    tab: newTab,
+                    type: custom.type,
+                    data: custom.data
+                });
+                if (registryModel) {
+                    model = registryModel;
+                } else if (custom.type === "siyuan-card") {
                     model = newCardModel({
                         app,
                         tab: newTab,
