@@ -22,7 +22,7 @@ import { popSearch } from "../../mobile/menu/search";
 import { openSearch } from "../../search/spread";
 import { openNewWindowById } from "../../window/openNewWindow";
 import { openFileById } from "../../editor/utils.openFileById";
-import { createProtyleCopyMenu, createFileHistoryMenuItem, createCronjobMenuItem } from "./openTitleMenu.items";
+import { createProtyleCopyMenu, createFileHistoryMenuItem, createCronjobMenuItem, createInNotePluginMenuItem } from "./openTitleMenu.items";
 import { closeTitleMenuIfOpened } from "./openTitleMenu.util";
 import { transferBlockRef } from "../../menus/block";
 import { appendFileOperationsMenuItemGroup } from "./openTitleMenu.FileOperations";
@@ -104,6 +104,12 @@ export const openTitleMenu = (protyle: IProtyle, position: IPosition) => {
             const taskRes = await fetchSyncPost("/api/cronjob/get", { docId: protyle.block.rootID });
             const isRegistered = taskRes.code === 0 && taskRes.data != null;
             window.siyuan.menus.menu.append(createCronjobMenuItem(protyle, isRegistered).element);
+        }
+        // 笔记内插件菜单（仅非只读模式）
+        if (!window.siyuan.config.readonly) {
+            const { inNotePluginManager } = await import("../../inNotePlugin");
+            const isPluginRegistered = inNotePluginManager.是否已启用(protyle.block.rootID);
+            window.siyuan.menus.menu.append(createInNotePluginMenuItem(protyle, isPluginRegistered).element);
         }
         window.siyuan.menus.menu.append(new MenuItem({ id: "separator_2", type: "separator" }).element);
         window.siyuan.menus.menu.append(new MenuItem({

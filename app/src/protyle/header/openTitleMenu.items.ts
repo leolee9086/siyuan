@@ -152,3 +152,39 @@ export const createCronjobMenuItem = (protyle: IProtyle, isRegistered?: boolean)
         }]
     });
 };
+
+/**
+ * 创建「注册为笔记内插件」菜单项
+ * 在文档标题菜单中显示，允许用户将文档注册为笔记内插件
+ * 如果文档已经是插件，则显示「更新插件」而非「注册」
+ * @param protyle - 编辑器实例
+ * @param isRegistered - 文档是否已注册为插件（可选，由调用方提供避免重复查询）
+ */
+export const createInNotePluginMenuItem = (protyle: IProtyle, isRegistered?: boolean) => {
+    // 根据是否已注册决定标签文案
+    const registerLabel = isRegistered ? "更新插件" : "注册为笔记内插件";
+
+    return new MenuItem({
+        id: "inNotePlugin",
+        label: registerLabel,
+        icon: "iconPlugin",
+        /**
+         * 注册/更新笔记内插件的点击回调
+         */
+        click: async () => {
+            const { inNotePluginManager, 设置为插件文档 } = await import("../../inNotePlugin");
+            const docId = protyle.block.rootID;
+            const name = protyle.title?.editElement?.textContent || docId;
+
+            await 设置为插件文档(docId);
+            // 已注册时重载,未注册时启用
+            const [动作, 成功消息, 失败消息] = isRegistered
+                ? [() => inNotePluginManager.重载插件(docId), "已重载", "重载失败"]
+                : [() => inNotePluginManager.启用插件(docId, name), "已启用", "启用失败"];
+            const success = await 动作();
+            const { showMessage } = await import("../../dialog/message");
+            const msg = success ? 成功消息 : 失败消息;
+            showMessage(`笔记内插件 [${name}] ${msg}`, success ? undefined : 3000, success ? undefined : "error");
+        }
+    });
+};

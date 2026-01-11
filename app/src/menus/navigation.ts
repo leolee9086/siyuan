@@ -720,6 +720,49 @@ export const initFileMenu = (app: App, notebookId: string, pathString: string, l
             }
         }).element);
     })();
+    // CronJob 菜单项 - 动态导入并检查注册状态
+    (async () => {
+        const { fetchSyncPost } = await import("../util/fetch");
+        const taskRes = await fetchSyncPost("/api/cronjob/get", { docId: id });
+        const 已注册 = taskRes.code === 0 && taskRes.data != null;
+        window.siyuan.menus.menu.append(new MenuItem({
+            id: "cronjob",
+            label: "定时任务",
+            icon: "iconHistory",
+            type: "submenu",
+            submenu: [{
+                id: "registerAsCronjob",
+                label: 已注册 ? "更新 Go 定时任务" : "注册为 Go 定时任务",
+                click: async () => {
+                    const { 注册扩展 } = await import("../util/cronjobApi");
+                    const success = await 注册扩展(id, "go", "cronjob");
+                    if (!success) return;
+                    showMessage(已注册 ? "任务已更新" : "已注册为定时任务");
+                    const { getDockByType } = await import("../layout/tabUtil");
+                    const dock = getDockByType("cronjob");
+                    if (dock) dock.toggleModel("cronjob", true);
+                }
+            }, {
+                id: "compileCronjob",
+                label: "预览编译结果",
+                click: async () => {
+                    const { 编译文档 } = await import("../util/cronjobApi");
+                    const result = await 编译文档(id, "go");
+                    if (result) {
+                        const { Dialog } = await import("../dialog");
+                        new Dialog({
+                            title: "编译结果预览",
+                            content: `<div class="b3-dialog__content">
+                                <pre style="max-height: 60vh; overflow: auto; background: var(--b3-theme-background); padding: 16px; border-radius: 4px;"><code>${result.code.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</code></pre>
+                                <div style="margin-top: 8px; color: var(--b3-theme-on-surface-light);">输出路径: ${result.output}</div>
+                            </div>`,
+                            width: "800px"
+                        });
+                    }
+                }
+            }]
+        }).element);
+    })();
     genImportMenu(notebookId, pathString);
     window.siyuan.menus.menu.append(exportMd(id));
     if (app.plugins) {

@@ -571,13 +571,21 @@ app/src/
 │   ├── Cronjob.ts              # [NEW] 侧边栏面板组件
 │   ├── cronjob.util.ts         # [NEW] 工具函数
 │   └── dock.factory.ts         # [MODIFY] 注册新类型
+├── protyle/header/
+│   ├── openTitleMenu.ts        # [MODIFY] 添加编辑器标题菜单入口 ✅
+│   └── openTitleMenu.items.ts  # [MODIFY] 添加 createCronjobMenuItem 函数 ✅
 ├── menus/
-│   └── navigation.ts           # [MODIFY] 添加右键菜单
+│   └── navigation.ts           # [MODIFY] 添加文档树右键菜单 ✅
 ├── util/
-│   └── cronjobApi.ts           # [NEW] API 调用封装
+│   └── cronjobApi.ts           # [NEW] API 调用封装 ✅
 └── scss/
     └── _dock.scss              # [MODIFY] 添加样式
 ```
+
+> **菜单入口对齐完成** (2026-01-11)
+> - 编辑器标题菜单：`openTitleMenu.ts` → `createCronjobMenuItem`
+> - 文档树右键菜单：`navigation.ts` → CronJob 菜单项
+> - 动态标签：已注册显示"更新 Go 定时任务"，未注册显示"注册为 Go 定时任务"
 
 #### 侧边栏面板设计
 
