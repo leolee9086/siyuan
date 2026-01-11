@@ -118,7 +118,8 @@ const 处理Emoji配置 = (app: App, isStart: boolean, response: IWebSocketData)
         /// #endif
         openChangelog();
     } catch (e) {
-        resetLayout();
+        const error = e instanceof Error ? e : new Error(String(e));
+        resetLayout(error);
     }
 };
 

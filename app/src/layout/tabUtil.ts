@@ -143,18 +143,24 @@ export const resizeTabs = (isSaveLayout = true) => {
 };
 
 export const getDockByType = (type: TDock | string) => {
-    if (!window.siyuan.layout.leftDock) {
+    const layout = window.siyuan.layout;
+    if (!layout) {
         return undefined;
     }
-    if (window.siyuan.layout.leftDock.data[type]) {
-        return window.siyuan.layout.leftDock;
+    // 检查每个 dock 是否存在且包含指定类型
+    const leftDock = layout.leftDock;
+    if (leftDock?.data?.[type]) {
+        return leftDock;
     }
-    if (window.siyuan.layout.rightDock.data[type]) {
-        return window.siyuan.layout.rightDock;
+    const rightDock = layout.rightDock;
+    if (rightDock?.data?.[type]) {
+        return rightDock;
     }
-    if (window.siyuan.layout.bottomDock.data[type]) {
-        return window.siyuan.layout.bottomDock;
+    const bottomDock = layout.bottomDock;
+    if (bottomDock?.data?.[type]) {
+        return bottomDock;
     }
+    return undefined;
 };
 
 export const newCenterEmptyTab = (app: App) => {

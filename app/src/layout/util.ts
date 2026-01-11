@@ -130,18 +130,32 @@ const dockToJSON = (dock: Dock) => {
     };
 };
 
-export const resetLayout = () => {
+/**
+ * 重置布局并刷新页面
+ * @param reason 可选的错误原因，如果传递则先显示错误信息，等待用户确认后再刷新
+ *               这可以避免无限刷新循环，方便排查数据错误
+ */
+export const resetLayout = (reason?: Error | string) => {
+    // 如果有错误原因，先输出并等待用户确认
+    if (reason) {
+        const errorMsg = reason instanceof Error ? reason.stack || reason.message : String(reason);
+        console.error("[resetLayout] 布局重置原因:", errorMsg);
+        showMessage(`布局初始化失败，需要重置布局。\n错误信息: ${errorMsg}\n\n点击确定后将刷新页面。`, 0, "error");
+        // 不自动刷新，让用户有机会查看控制台
+        return;
+    }
+
     if (window.siyuan.config.readonly) {
         window.location.reload();
-    } else {
-        fetchPost("/api/system/setUILayout", { layout: {} }, () => {
-            window.siyuan.storage[Constants.LOCAL_FILEPOSITION] = {};
-            setStorageVal(Constants.LOCAL_FILEPOSITION, window.siyuan.storage[Constants.LOCAL_FILEPOSITION]);
-            window.siyuan.storage[Constants.LOCAL_DIALOGPOSITION] = {};
-            setStorageVal(Constants.LOCAL_DIALOGPOSITION, window.siyuan.storage[Constants.LOCAL_DIALOGPOSITION]);
-            window.location.reload();
-        });
+        return;
     }
+    fetchPost("/api/system/setUILayout", { layout: {} }, () => {
+        window.siyuan.storage[Constants.LOCAL_FILEPOSITION] = {};
+        setStorageVal(Constants.LOCAL_FILEPOSITION, window.siyuan.storage[Constants.LOCAL_FILEPOSITION]);
+        window.siyuan.storage[Constants.LOCAL_DIALOGPOSITION] = {};
+        setStorageVal(Constants.LOCAL_DIALOGPOSITION, window.siyuan.storage[Constants.LOCAL_DIALOGPOSITION]);
+        window.location.reload();
+    });
 };
 
 let saveCount = 0;
@@ -241,12 +255,17 @@ export const getAllLayout = () => {
 };
 
 const initInternalDock = (dockItem: Config.IUILayoutDockTab[]) => {
-    dockItem.forEach((existSubItem) => {
-        if (existSubItem.hotkeyLangId) {
-            existSubItem.title = window.siyuan.languages[existSubItem.hotkeyLangId];
-            existSubItem.hotkey = window.siyuan.config.keymap.general[existSubItem.hotkeyLangId].custom;
+    for (const existSubItem of dockItem) {
+        if (!existSubItem.hotkeyLangId) {
+            continue;
         }
-    });
+        existSubItem.title = window.siyuan.languages[existSubItem.hotkeyLangId];
+        // custom_list 等自定义类型可能没有对应的快捷键配置
+        const keymapEntry = window.siyuan.config.keymap.general[existSubItem.hotkeyLangId];
+        if (keymapEntry) {
+            existSubItem.hotkey = keymapEntry.custom;
+        }
+    }
 };
 
 const JSONToDock = (json: any, app: App) => {

@@ -40,8 +40,8 @@ export function hasBlockingOverlay(): boolean {
     const hasPopover = document.querySelector(".block__popover");
     const hasMenu = document.querySelector("#commonMenu:not(.fn__none)");
     if (!hasDialog && !hasPopover && !hasMenu) {
-return false;
-}
+        return false;
+    }
 
     const siyuanLayout = getSiyuanLayout();
     const leftOpacity = siyuanLayout?.leftDock?.layout?.element?.style?.opacity === "1";
@@ -83,8 +83,8 @@ export function isFullscreenActive(dock: Dock): boolean {
 export function isTextFieldFocused(dock: Dock): boolean {
     const activeEl = document.activeElement;
     if (!activeEl) {
-return false;
-}
+        return false;
+    }
     const isTextField = activeEl.classList.contains("b3-text-field");
     return dock.layout.element.contains(activeEl) && isTextField;
 }
@@ -99,14 +99,14 @@ export function hasHigherZIndexOverlay(dock: Dock): boolean {
     const menuElement = document.querySelector("#commonMenu:not(.fn__none)");
 
     if (dialogElement instanceof HTMLElement && dialogElement.style.zIndex > layoutZIndex) {
-return true;
-}
+        return true;
+    }
     if (blockElement instanceof HTMLElement && blockElement.style.zIndex > layoutZIndex) {
-return true;
-}
+        return true;
+    }
     if (menuElement instanceof HTMLElement && menuElement.style.zIndex > layoutZIndex) {
-return true;
-}
+        return true;
+    }
     return false;
 }
 
@@ -139,34 +139,35 @@ export function shouldHideOnMouseLeave(
     toElement: HTMLElement | null
 ): boolean {
     if (event.buttons !== 0 || dock.pin) {
-return false;
-}
-    if (toElement) {
-        const isMenuOrTooltip = toElement.classList.contains("b3-menu") || toElement.classList.contains("tooltip");
-        if (isMenuOrTooltip) {
-return false;
-}
+        return false;
+    }
+    if (toElement && (toElement.classList.contains("b3-menu") || toElement.classList.contains("tooltip"))) {
+        return false;
     }
     if (dock.position === "Left" && event.clientX < 43) {
-return false;
-}
+        return false;
+    }
     if (dock.position === "Right" && event.clientX > getWindowInnerWidth() - 43) {
-return false;
-}
+        return false;
+    }
     if (dock.position === "Bottom" && event.clientY > getWindowInnerHeight() - 73) {
-return false;
-}
+        return false;
+    }
     return true;
 }
+
+/**
+ * @简洁函数 检查 item 是否为有效类型
+ */
+const isValidType = (item: Config.IUILayoutDockTab, types: string[]) => types.includes(item.type) || item.type.startsWith("custom_list:");
 
 /**
  * 检查数据数组中是否包含有效的类型
  */
 export function hasValidDockType(data: Config.IUILayoutDockTab[][], types: string[]): boolean {
-    const hasType = (item: Config.IUILayoutDockTab) => types.includes(item.type);
     const first = data[0];
     const second = data[1];
-    const firstHasType = first ? first.find(hasType) : undefined;
-    const secondHasType = second ? second.find(hasType) : undefined;
+    const firstHasType = first ? first.find(item => isValidType(item, types)) : undefined;
+    const secondHasType = second ? second.find(item => isValidType(item, types)) : undefined;
     return Boolean(firstHasType) || Boolean(secondHasType);
 }
