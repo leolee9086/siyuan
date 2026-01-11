@@ -4,6 +4,7 @@ import { newCardModel } from "../card/newCardTab";
 import { Constants } from "../constants";
 import { Tab } from "../layout/Tab";
 import { setPanelFocus } from "../layout/utils/setPanelFocus";
+import { tabRegistry } from "../layout/registry";
 import { Search } from "../search";
 import { pathPosix, getDisplayName } from "../util/pathName";
 export const newTab = (options: IOpenFileOptions) => {
@@ -46,15 +47,26 @@ export const newTab = (options: IOpenFileOptions) => {
                             data: options.custom.data
                         }));
                     } else {
-                        options.app.plugins.find(p => {
-                            if (p.models[options.custom.id]) {
-                                tab.addModel(p.models[options.custom.id]({
-                                    tab,
-                                    data: options.custom.data
-                                }));
-                                return true;
-                            }
+                        // 优先从全局 TabRegistry 查找
+                        const registryModel = tabRegistry.createModel({
+                            app: options.app,
+                            tab,
+                            type: options.custom.id,
+                            data: options.custom.data,
                         });
+                        if (registryModel) {
+                            tab.addModel(registryModel);
+                        } else {
+                            options.app.plugins.find(p => {
+                                if (p.models[options.custom.id]) {
+                                    tab.addModel(p.models[options.custom.id]({
+                                        tab,
+                                        data: options.custom.data
+                                    }));
+                                    return true;
+                                }
+                            });
+                        }
                     }
                 } else {
                     // plugin 0.8.3 历史兼容

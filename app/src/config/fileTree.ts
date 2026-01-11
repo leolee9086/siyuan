@@ -3,11 +3,9 @@ import { genNotebookOption } from "../menus/onGetnotebookconf";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { openFile } from "../editor/util";
-import { tabRegistry } from "../layout/registry";
-import type { Custom } from "../layout/dock/Custom";
 
 // 内部设置 Tab 类型常量
-const INTERNAL_FILETREE_TAB_TYPE = "internal-settings-filetree";
+export const INTERNAL_FILETREE_TAB_TYPE = "internal-settings-filetree";
 
 export const fileTree = {
     genHTML: () => {
@@ -192,30 +190,3 @@ export const fileTree = {
     }
 };
 
-import fileTreeConfigPanel from "../components/panels/fileTreeConfig.panel.vue";
-import { createApp } from "vue";
-
-/**
- * 初始化内部文档树设置 Tab
- * 
- * 作用：使用 TabRegistry 直接注册内部 Tab 类型
- * 意图：替代之前的伪造 Plugin 方式
- * 调用时机：应用初始化时 (app-ready 事件)
- */
-function 初始化文档树设置Tab() {
-    tabRegistry.register({
-        type: INTERNAL_FILETREE_TAB_TYPE,
-        init: (model: Custom) => {
-            const tab = model.tab;
-            const app = createApp(fileTreeConfigPanel);
-            if (tab) {
-                app.mount(tab.panelElement);
-            }
-        }
-    });
-}
-
-// 应用初始化时注册 Tab 类型
-document.addEventListener("app-ready", () => {
-    初始化文档树设置Tab();
-});

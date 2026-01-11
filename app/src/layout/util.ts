@@ -473,7 +473,13 @@ export const JSONToLayout = (app: App, isStart: boolean) => {
                     const tabId = item.getAttribute("data-id");
                     const tab = getInstanceById(tabId) as Tab;
                     if (tab) {
-                        tab.parent.removeTab(tabId, false, false, false);
+                        const { ErrorPlaceholder } = require("./dock/ErrorPlaceholder");
+                        tab.addModel(new ErrorPlaceholder({
+                            app,
+                            tab,
+                            原始类型: initDataObj.customModelType,
+                            错误信息: window.siyuan.languages.pluginNotFound || "Plugin not found"
+                        }));
                     }
                 }
             }
