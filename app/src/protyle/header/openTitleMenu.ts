@@ -88,7 +88,7 @@ export const openTitleMenu = (protyle: IProtyle, position: IPosition) => {
     }
     fetchPost("/api/block/getDocInfo", {
         id: protyle.block.rootID
-    }, (response) => {
+    }, async (response) => {
         window.siyuan.menus.menu.remove();
         window.siyuan.menus.menu.element.setAttribute("data-name", "titleMenu");
         window.siyuan.menus.menu.append(createProtyleCopyMenu(protyle).element);
@@ -99,8 +99,11 @@ export const openTitleMenu = (protyle: IProtyle, position: IPosition) => {
         appendDesktopOnlyMenuItemGroup(protyle);
         /// #endif
         // 定时任务菜单（仅非只读模式）
+        // 通过后端 API 检查是否已注册为 cronjob
         if (!window.siyuan.config.readonly) {
-            window.siyuan.menus.menu.append(createCronjobMenuItem(protyle).element);
+            const taskRes = await fetchSyncPost("/api/cronjob/get", { docId: protyle.block.rootID });
+            const isRegistered = taskRes.code === 0 && taskRes.data != null;
+            window.siyuan.menus.menu.append(createCronjobMenuItem(protyle, isRegistered).element);
         }
         window.siyuan.menus.menu.append(new MenuItem({ id: "separator_2", type: "separator" }).element);
         window.siyuan.menus.menu.append(new MenuItem({

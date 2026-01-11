@@ -86,9 +86,14 @@ export const createFileHistoryMenuItem = (protyle: IProtyle, response: any) => {
 /**
  * 创建「注册为定时任务」菜单项
  * 在文档标题菜单中显示，允许用户将文档注册为 cronJob 扩展
+ * 如果文档已经是任务，则显示「更新任务」而非「注册」
  * @param protyle - 编辑器实例
+ * @param isRegistered - 文档是否已注册为任务（可选，由调用方提供避免重复查询）
  */
-export const createCronjobMenuItem = (protyle: IProtyle) => {
+export const createCronjobMenuItem = (protyle: IProtyle, isRegistered?: boolean) => {
+    // 根据是否已注册决定标签文案
+    const registerLabel = isRegistered ? "更新 Go 定时任务" : "注册为 Go 定时任务";
+
     return new MenuItem({
         id: "cronjob",
         label: "定时任务",
@@ -96,9 +101,9 @@ export const createCronjobMenuItem = (protyle: IProtyle) => {
         type: "submenu",
         submenu: [{
             id: "registerAsCronjob",
-            label: "注册为 Go 定时任务",
+            label: registerLabel,
             /**
-             * 注册 cronjob 的点击回调
+             * 注册/更新 cronjob 的点击回调
              */
             click: async () => {
                 const { 注册扩展 } = await import("../../util/cronjobApi");
@@ -111,7 +116,8 @@ export const createCronjobMenuItem = (protyle: IProtyle) => {
                 }
 
                 const { showMessage } = await import("../../dialog/message");
-                showMessage("已注册为定时任务，可在侧边栏「定时任务」面板中管理");
+                const msg = isRegistered ? "任务已更新" : "已注册为定时任务，可在侧边栏「定时任务」面板中管理";
+                showMessage(msg);
                 // 自动打开侧边栏面板
                 const { getDockByType } = await import("../../layout/tabUtil");
                 const dock = getDockByType("cronjob");

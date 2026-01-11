@@ -92,9 +92,11 @@ export const 生成任务项HTML = (task: 任务运行时信息): string => {
         <div class="cronjob-item" data-doc-id="${task.docId}">
             <div class="cronjob-item__header">
                 <span class="cronjob-item__status">${获取状态图标(task.status)}</span>
-                <span class="cronjob-item__name" title="${task.description || task.name}">
+                <a class="cronjob-item__name cronjob-action" href="javascript:void(0)" 
+                   data-doc-id="${task.docId}" data-action="open" 
+                   title="${task.description || task.name}&#10;点击打开定义文档">
                     ${task.name || "未命名任务"}
-                </span>
+                </a>
                 <span class="cronjob-item__state ${statusClass}">
                     ${获取状态文本(task.status)}
                 </span>

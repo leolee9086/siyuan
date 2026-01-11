@@ -22,6 +22,7 @@ import {
 import { 任务运行时信息 } from "../../util/cronjob.types";
 import { 生成面板HTML, 生成任务列表HTML } from "./cronjob.util";
 import { setWindowInterval, clearWindowInterval } from "./dock.environment";
+import { openFileById } from "../../editor/utils.openFileById";
 
 /**
  * 初始化界面结构
@@ -159,6 +160,14 @@ const 动作处理器: Record<string, (cronjob: Cronjob, docId: string) => Promi
      */
     logs: async (cronjob, docId) => {
         await 导入任务日志(docId);
+    },
+    /**
+     * 打开定义文档
+     * @param cronjob 面板实例
+     * @param docId 文档ID
+     */
+    open: async (cronjob, docId) => {
+        openFileById({ app: cronjob.app, id: docId });
     }
 };
 
@@ -292,6 +301,3 @@ export class Cronjob extends Model {
         }
     }
 }
-
-// 英文别名导出
-export { Cronjob as CronjobDock };
