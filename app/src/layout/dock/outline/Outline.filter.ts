@@ -5,6 +5,7 @@
 import { MenuItem } from "../../../menus/Menu.Item";
 import { Constants } from "../../../constants";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { getSiyuanGlobalMenusMenu } from "../../../util/siyuanEnvironments/getMenu.environment";
 import type { Outline } from "./Outline";
 
 /**
@@ -13,7 +14,7 @@ import type { Outline } from "./Outline";
  * @returns 标题级别（1-6）
  */
 export function getHeadingLevel(this: Outline, element: HTMLElement) {
-    return parseInt(element.getAttribute("data-subtype")?.replace("h", "") || "0");
+    return parseInt(element.getAttribute("data-subtype")?.replace("h", "") || "0", 10);
 }
 
 /**
@@ -24,24 +25,31 @@ export function expandToLevel(this: Outline, targetLevel: number) {
     if (targetLevel >= 6) {
         // 全部展开
         this.tree.expandAll();
-    } else {
-        // 展开到指定标题级别
-        this.element.querySelectorAll("li.b3-list-item").forEach(item => {
-            const headingLevel = this.getHeadingLevel(item as HTMLElement);
-            const arrowElement = item.querySelector(".b3-list-item__arrow");
-            if (item.nextElementSibling && item.nextElementSibling.tagName === "UL" && arrowElement) {
-                if (headingLevel > 0 && headingLevel < targetLevel) {
-                    // 当前标题级别小于目标级别，展开
-                    arrowElement.classList.add("b3-list-item__arrow--open");
-                    item.nextElementSibling.classList.remove("fn__none");
-                } else if (headingLevel >= targetLevel) {
-                    // 当前标题级别大于等于目标级别，折叠
-                    arrowElement.classList.remove("b3-list-item__arrow--open");
-                    item.nextElementSibling.classList.add("fn__none");
-                }
-            }
-        });
+        this.saveExpendIds();
+        return;
     }
+
+    // 展开到指定标题级别
+    this.element.querySelectorAll("li.b3-list-item").forEach(item => {
+        const headingLevel = this.getHeadingLevel(item as HTMLElement);
+        const arrowElement = item.querySelector(".b3-list-item__arrow");
+
+        if (!item.nextElementSibling || item.nextElementSibling.tagName !== "UL" || !arrowElement) {
+            return;
+        }
+
+        if (headingLevel > 0 && headingLevel < targetLevel) {
+            // 当前标题级别小于目标级别，展开
+            arrowElement.classList.add("b3-list-item__arrow--open");
+            item.nextElementSibling.classList.remove("fn__none");
+        }
+
+        if (headingLevel >= targetLevel) {
+            // 当前标题级别大于等于目标级别，折叠
+            arrowElement.classList.remove("b3-list-item__arrow--open");
+            item.nextElementSibling.classList.add("fn__none");
+        }
+    });
     this.saveExpendIds();
 }
 
@@ -49,10 +57,11 @@ export function expandToLevel(this: Outline, targetLevel: number) {
  * 显示展开层级菜单
  */
 export function showExpandLevelMenu(this: Outline, target: HTMLElement) {
-    window.siyuan.menus.menu.remove();
-    window.siyuan.menus.menu.element.setAttribute("data-name", Constants.MENU_OUTLINE_EXPAND_LEVEL);
+    const menu = getSiyuanGlobalMenusMenu();
+    menu.remove();
+    menu.element.setAttribute("data-name", Constants.MENU_OUTLINE_EXPAND_LEVEL);
     for (let i = 1; i <= 6; i++) {
-        window.siyuan.menus.menu.append(new MenuItem({
+        menu.append(new MenuItem({
             id: `heading${i}`,
             icon: `iconH${i}`,
             label: siyuanI18n[`heading${i}`],
@@ -60,12 +69,12 @@ export function showExpandLevelMenu(this: Outline, target: HTMLElement) {
         }).element);
     }
     const rect = target.getBoundingClientRect();
-    window.siyuan.menus.menu.popup({
+    menu.popup({
         x: rect.left,
         y: rect.bottom,
         h: rect.height
     });
-    return window.siyuan.menus.menu;
+    return menu;
 }
 
 /**
@@ -75,8 +84,17 @@ export function collapseSameLevel(this: Outline, element: HTMLElement, expand?: 
     // 获取所有相同标题级别的元素
     this.element.querySelectorAll(`li.b3-list-item[data-subtype="${element.getAttribute("data-subtype")}"]`).forEach(item => {
         const arrowElement = item.querySelector(".b3-list-item__arrow");
+        if (!arrowElement) {
+            return;
+        }
+
         if (typeof expand === "undefined") {
-            expand = !element.querySelector(".b3-list-item__arrow").classList.contains("b3-list-item__arrow--open");
+            const currentArrow = element.querySelector(".b3-list-item__arrow");
+            if (currentArrow) {
+                expand = !currentArrow.classList.contains("b3-list-item__arrow--open");
+            } else {
+                expand = true;
+            }
         }
         if (expand) {
             if (item.nextElementSibling && item.nextElementSibling.tagName === "UL") {
@@ -86,14 +104,18 @@ export function collapseSameLevel(this: Outline, element: HTMLElement, expand?: 
             let ulElement = item.parentElement;
             while (ulElement && !ulElement.classList.contains("b3-list") && ulElement.tagName === "UL") {
                 ulElement.classList.remove("fn__none");
-                ulElement.previousElementSibling.querySelector(".b3-list-item__arrow").classList.add("b3-list-item__arrow--open");
+                const prevSibling = ulElement.previousElementSibling;
+                if (prevSibling) {
+                    prevSibling.querySelector(".b3-list-item__arrow")?.classList.add("b3-list-item__arrow--open");
+                }
                 ulElement = ulElement.parentElement;
             }
-        } else {
-            if (item.nextElementSibling && item.nextElementSibling.tagName === "UL") {
-                item.nextElementSibling.classList.add("fn__none");
-                arrowElement.classList.remove("b3-list-item__arrow--open");
-            }
+            return;
+        }
+
+        if (item.nextElementSibling && item.nextElementSibling.tagName === "UL") {
+            item.nextElementSibling.classList.add("fn__none");
+            arrowElement.classList.remove("b3-list-item__arrow--open");
         }
     });
     this.saveExpendIds();
@@ -108,6 +130,9 @@ export function collapseChildren(this: Outline, element: HTMLElement, expand?: b
         return;
     }
     const arrowElement = element.querySelector(".b3-list-item__arrow");
+    if (!arrowElement) {
+        return;
+    }
     if (typeof expand === "undefined") {
         expand = !arrowElement.classList.contains("b3-list-item__arrow--open");
     }
@@ -115,13 +140,17 @@ export function collapseChildren(this: Outline, element: HTMLElement, expand?: b
         arrowElement.classList.add("b3-list-item__arrow--open");
         nextElement.classList.remove("fn__none");
         nextElement.querySelectorAll("ul").forEach(item => {
-            item.previousElementSibling.querySelector(".b3-list-item__arrow").classList.add("b3-list-item__arrow--open");
+            const prevSibling = item.previousElementSibling;
+            if (prevSibling) {
+                prevSibling.querySelector(".b3-list-item__arrow")?.classList.add("b3-list-item__arrow--open");
+            }
             item.classList.remove("fn__none");
         });
-    } else {
-        arrowElement.classList.remove("b3-list-item__arrow--open");
-        nextElement.classList.add("fn__none");
+        this.saveExpendIds();
+        return;
     }
+    arrowElement.classList.remove("b3-list-item__arrow--open");
+    nextElement.classList.add("fn__none");
     this.saveExpendIds();
 }
 
@@ -134,70 +163,106 @@ export function setFilter(this: Outline) {
         item.style.display = "";
     });
     this.element.querySelectorAll("ul.fn__none").forEach((item) => {
-        item.previousElementSibling.querySelector(".b3-list-item__toggle").classList.remove("fn__hidden");
+        const toggle = item.previousElementSibling?.querySelector(".b3-list-item__toggle");
+        if (toggle) {
+            toggle.classList.remove("fn__hidden");
+        }
     });
     const keyword = (this.headerElement.querySelector("input.b3-text-field.search__label") as HTMLInputElement).value.toLowerCase();
-    if (keyword) {
-        // 首次筛选时记录折叠状态
-        if (!this.preFilterExpandIds) {
-            this.preFilterExpandIds = this.tree.getExpandIds();
+
+    if (!keyword) {
+        // 恢复折叠状态
+        if (this.preFilterExpandIds) {
+            this.tree.setExpandIds(this.preFilterExpandIds);
         }
-        const processUL = (ul: Element) => {
-            let hasMatch = false;
-            let hasChildMatch = false;
-            const children = ul.querySelectorAll(":scope > li.b3-list-item");
-
-            children.forEach((liItem: HTMLElement) => {
-                const nextUlElement = (liItem.nextElementSibling && liItem.nextElementSibling.tagName === "UL") ? liItem.nextElementSibling as HTMLElement : undefined;
-
-                let childResult = { hasMatch: false, hasChildMatch: false };
-                if (nextUlElement) {
-                    childResult = processUL(nextUlElement);
-                }
-
-                const arrowElement = liItem.querySelector(".b3-list-item__arrow");
-                if ((liItem.querySelector(".b3-list-item__text")?.textContent || "").trim().toLowerCase().includes(keyword)) {
-                    // 当前标题命中
-                    liItem.style.display = "";
-                    hasMatch = true;
-
-                    if (nextUlElement) {
-                        nextUlElement.classList.remove("fn__none");
-                        if (childResult.hasMatch || childResult.hasChildMatch) {
-                            // 子项也有命中
-                            arrowElement.classList.add("b3-list-item__arrow--open");
-                            nextUlElement.classList.remove("fn__none");
-                        } else {
-                            // 子项无命中，折叠所有子项
-                            arrowElement.classList.remove("b3-list-item__arrow--open");
-                            arrowElement.parentElement.classList.add("fn__hidden");
-                            nextUlElement.classList.add("fn__none");
-                        }
-                    }
-                } else if (childResult.hasMatch || childResult.hasChildMatch) {
-                    // 当前标题未命中，但子级有命中
-                    liItem.style.display = "";
-                    hasChildMatch = true;
-
-                    if (nextUlElement) {
-                        nextUlElement.classList.remove("fn__none");
-                        arrowElement.classList.add("b3-list-item__arrow--open");
-                    }
-                } else {
-                    // 当前标题和子级都未命中，隐藏
-                    liItem.style.display = "none";
-                    if (nextUlElement) {
-                        nextUlElement.classList.add("fn__none");
-                    }
-                }
-            });
-            return { hasMatch, hasChildMatch };
-        };
-
-        processUL(this.element.firstElementChild);
+        this.preFilterExpandIds = null;
         return;
     }
-    // 恢复折叠状态
-    this.tree.setExpandIds(this.preFilterExpandIds);
-    this.preFilterExpandIds = null;
+
+    // 首次筛选时记录折叠状态
+    if (!this.preFilterExpandIds) {
+        this.preFilterExpandIds = this.tree.getExpandIds();
+    }
+
+    filterListItems(this.element.firstElementChild, keyword);
+}
+
+/**
+ * 递归筛选列表项
+ */
+function filterListItems(ul: Element | null, keyword: string): { hasMatch: boolean, hasChildMatch: boolean } {
+    if (!ul) {
+        return { hasMatch: false, hasChildMatch: false };
+    }
+
+    let hasMatch = false;
+    let hasChildMatch = false;
+    const children = ul.querySelectorAll(":scope > li.b3-list-item");
+
+    children.forEach((liItem: Element) => {
+        const result = checkListItem(liItem as HTMLElement, keyword);
+        if (result.isMatch) {
+            hasMatch = true;
+        }
+        if (result.hasChildMatch) {
+            hasChildMatch = true;
+        }
+    });
+    return { hasMatch, hasChildMatch };
+}
+
+/**
+ * 检查单个列表项是否匹配
+ */
+function checkListItem(liItem: HTMLElement, keyword: string): { isMatch: boolean, hasChildMatch: boolean } {
+    const nextUlElement = (liItem.nextElementSibling && liItem.nextElementSibling.tagName === "UL") ? liItem.nextElementSibling as HTMLElement : undefined;
+
+    let childResult = { hasMatch: false, hasChildMatch: false };
+    if (nextUlElement) {
+        childResult = filterListItems(nextUlElement, keyword);
+    }
+
+    const arrowElement = liItem.querySelector(".b3-list-item__arrow");
+    const textContent = (liItem.querySelector(".b3-list-item__text")?.textContent || "").trim().toLowerCase();
+
+    if (textContent.includes(keyword)) {
+        // 当前标题命中
+        liItem.style.display = "";
+
+        if (nextUlElement) {
+            nextUlElement.classList.remove("fn__none");
+
+            if (childResult.hasMatch || childResult.hasChildMatch) {
+                // 子项也有命中
+                arrowElement?.classList.add("b3-list-item__arrow--open");
+                nextUlElement.classList.remove("fn__none");
+            }
+
+            if (!childResult.hasMatch && !childResult.hasChildMatch) {
+                // 子项无命中，折叠所有子项
+                arrowElement?.classList.remove("b3-list-item__arrow--open");
+                arrowElement?.parentElement?.classList.add("fn__hidden");
+                nextUlElement.classList.add("fn__none");
+            }
+        }
+        return { isMatch: true, hasChildMatch: false };
+    }
+
+    if (childResult.hasMatch || childResult.hasChildMatch) {
+        // 当前标题未命中，但子级有命中
+        liItem.style.display = "";
+
+        if (nextUlElement) {
+            nextUlElement.classList.remove("fn__none");
+            arrowElement?.classList.add("b3-list-item__arrow--open");
+        }
+        return { isMatch: false, hasChildMatch: true };
+    }
+
+    // 当前标题和子级都未命中，隐藏
+    liItem.style.display = "none";
+    if (nextUlElement) {
+        nextUlElement.classList.add("fn__none");
+    }
+    return { isMatch: false, hasChildMatch: false };
 }
