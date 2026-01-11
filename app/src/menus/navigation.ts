@@ -700,22 +700,26 @@ export const initFileMenu = (app: App, notebookId: string, pathString: string, l
             }
         }).element);
     }
-    // 笔记内插件菜单项
-    window.siyuan.menus.menu.append(new MenuItem({
-        id: "inNotePlugin",
-        label: "注册为笔记内插件",
-        icon: "iconPlugin",
-        click: async () => {
-            const { inNotePluginManager, 设置为插件文档 } = await import("../inNotePlugin");
-            await 设置为插件文档(id);
-            const success = await inNotePluginManager.启用插件(id, name);
-            if (success) {
-                showMessage(`笔记内插件 [${name}] 已启用`);
-            } else {
-                showMessage(`笔记内插件 [${name}] 启用失败`, 3000, "error");
+    // 笔记内插件菜单项 - 动态导入并检查注册状态
+    (async () => {
+        const { inNotePluginManager, 设置为插件文档 } = await import("../inNotePlugin");
+        const 已注册 = inNotePluginManager.是否已启用(id);
+        window.siyuan.menus.menu.append(new MenuItem({
+            id: "inNotePlugin",
+            label: 已注册 ? "更新插件" : "注册为笔记内插件",
+            icon: "iconPlugin",
+            click: async () => {
+                await 设置为插件文档(id);
+                // 已注册时重载,未注册时启用
+                const [动作, 成功消息, 失败消息] = 已注册
+                    ? [() => inNotePluginManager.重载插件(id), "已重载", "重载失败"]
+                    : [() => inNotePluginManager.启用插件(id, name), "已启用", "启用失败"];
+                const success = await 动作();
+                const msg = success ? 成功消息 : 失败消息;
+                showMessage(`笔记内插件 [${name}] ${msg}`, success ? undefined : 3000, success ? undefined : "error");
             }
-        }
-    }).element);
+        }).element);
+    })();
     genImportMenu(notebookId, pathString);
     window.siyuan.menus.menu.append(exportMd(id));
     if (app.plugins) {
