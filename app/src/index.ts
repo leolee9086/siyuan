@@ -201,6 +201,9 @@ export class App {
             updateControlAlt();
             window.siyuan.isPublish = response.data.isPublish;
             await loadPlugins(this);
+            // 初始化笔记内插件
+            const { inNotePluginManager } = await import("./inNotePlugin");
+            await inNotePluginManager.init(this);
             getLocalStorage(() => {
                 fetchGet(`/appearance/langs/${window.siyuan.config?.appearance.lang}.json?v=${Constants.SIYUAN_VERSION}`, async (lauguages: IObject) => {
                     window.siyuan.languages = lauguages;
