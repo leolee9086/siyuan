@@ -6,6 +6,26 @@
 
 ---
 
+## 🚀 快速开始（下次对话直接编码）
+
+**第一步**：创建 `app/src/layout/registry/TabRegistry.ts`
+- 参考下方"详细设计 - 1. TabRegistry"的代码
+- 参考现有 `dock.registry.ts` 的模式
+
+**第二步**：修改 `app/src/plugin/index.ts` 的 `addTab` 方法
+- 在 L352-382 处修改
+- 委托给 TabRegistry，但保持 `this.models` 兼容
+
+**第三步**：修改 `app/src/layout/util.ts` 的 `newModelByInitData`
+- 在 L685-724 处修改
+- 优先查 TabRegistry，回退到插件遍历
+
+**第四步**：重构 `app/src/config/fileTree.ts`
+- 删除 L190-219 的伪造 Plugin 代码
+- 直接使用 `tabRegistry.register()`
+
+---
+
 ## 架构决策
 
 > [!IMPORTANT]
