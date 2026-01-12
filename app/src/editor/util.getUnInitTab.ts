@@ -2,6 +2,8 @@ import { Constants } from "../constants";
 import { getAllTabs } from "../layout/getAll";
 import { objEquals } from "../util/functions";
 import { Tab } from "../layout/Tab";
+import { ITabInitData } from "./types";
+import { isTabInitData } from "./editor.guard";
 
 /**
  * 查找并更新未初始化的页签
@@ -44,6 +46,9 @@ const isMatchingUnInitTab = (options: IOpenFileOptions) => {
         }
 
         const initObj = JSON.parse(initData);
+        if (!isTabInitData(initObj)) {
+            return false;
+        }
 
         // 处理 Editor 类型的页签
         if (initObj.instance === "Editor" &&
@@ -71,11 +76,11 @@ const isMatchingUnInitTab = (options: IOpenFileOptions) => {
  * 调用时机：当检测到页签为 Editor 类型且匹配时调用。
  *
  * @param item - 要处理的页签
- * @param initObj - 页签的初始化数据对象（从 JSON 解析而来，类型为 any）
+ * @param initObj - 页签的初始化数据对象
  * @param options - 打开文件的选项参数
  * @returns 始终返回 true，表示已找到匹配的页签
  */
-const handleEditorTab = (item: Tab, initObj: any, options: IOpenFileOptions): boolean => {
+const handleEditorTab = (item: Tab, initObj: ITabInitData, options: IOpenFileOptions): boolean => {
     initObj.blockId = options.id;
     initObj.mode = options.mode;
 
