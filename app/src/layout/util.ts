@@ -470,16 +470,20 @@ export const JSONToLayout = (app: App, isStart: boolean) => {
                     }
                 });
                 if (!hasPlugin) {
-                    const tabId = item.getAttribute("data-id");
-                    const tab = getInstanceById(tabId) as Tab;
-                    if (tab) {
-                        const { ErrorPlaceholder } = require("./dock/ErrorPlaceholder");
-                        tab.addModel(new ErrorPlaceholder({
-                            app,
-                            tab,
-                            原始类型: initDataObj.customModelType,
-                            错误信息: window.siyuan.languages.pluginNotFound || "Plugin not found"
-                        }));
+                    // 在创建 ErrorPlaceholder 之前，先检查 tabRegistry 是否有注册
+                    const hasRegistry = tabRegistry.has(initDataObj.customModelType);
+                    if (!hasRegistry) {
+                        const tabId = item.getAttribute("data-id");
+                        const tab = getInstanceById(tabId) as Tab;
+                        if (tab) {
+                            const { ErrorPlaceholder } = require("./dock/ErrorPlaceholder");
+                            tab.addModel(new ErrorPlaceholder({
+                                app,
+                                tab,
+                                原始类型: initDataObj.customModelType,
+                                错误信息: window.siyuan.languages.pluginNotFound || "Plugin not found"
+                            }));
+                        }
                     }
                 }
             }
