@@ -1,4 +1,4 @@
-import { Editor } from "../../editor";
+import { Editor, IEditorOptions } from "../../editor";
 import { Asset } from "../../asset";
 import { newCardModel } from "../../card/newCardTab";
 import { Constants } from "../../constants";
@@ -46,18 +46,32 @@ const getAssetIcon = (suffix: string) => {
 };
 
 /**
+ * 安全设置面板焦点
+ * @param tab - 页签实例
+ */
+const safeSetFocus = (tab: Tab) => {
+    if (tab.panelElement.parentElement?.parentElement) {
+        setPanelFocus(tab.panelElement.parentElement.parentElement);
+    }
+};
+
+/**
  * 创建一个新的资源页签。
  * @param options - 选项。
  * @returns 页签实例或 undefined。
  */
 const newAssetTab = (options: IOpenFileOptions) => {
-    const suffix = pathPosix().extname(options.assetPath).split("?")[0];
+    const assetPath = options.assetPath;
+    if (!assetPath) {
+        return;
+    }
+    const suffix = pathPosix().extname(assetPath).split("?")[0] || "";
     if (!Constants.SIYUAN_ASSETS_EXTS.includes(suffix)) {
         return;
     }
     return new Tab({
         icon: getAssetIcon(suffix),
-        title: getDisplayName(options.assetPath),
+        title: getDisplayName(assetPath),
         /**
          * 页签回调
          * @param tab - 页签实例
@@ -66,10 +80,10 @@ const newAssetTab = (options: IOpenFileOptions) => {
             tab.addModel(new Asset({
                 app: options.app,
                 tab,
-                path: options.assetPath,
-                page: options.page,
+                path: assetPath,
+                ...(options.page !== undefined ? { page: options.page } : {}),
             }));
-            setPanelFocus(tab.panelElement.parentElement.parentElement);
+            safeSetFocus(tab);
         }
     });
 };
@@ -94,16 +108,18 @@ const newCustomTab = (options: IOpenFileOptions) => {
         callback(tab) {
             if (custom.id) {
                 initCustomTabModel(options, tab, custom);
-                setPanelFocus(tab.panelElement.parentElement.parentElement);
+                safeSetFocus(tab);
                 return;
             }
             // plugin 0.8.3 历史兼容
-            console.warn("0.8.3 将移除 custom.fn 参数，请参照 https://github.com/siyuan-note/plugin-sample/blob/91a716358941791b4269241f21db25fd22ae5ff5/src/index.ts 将其修改为 custom.id");
-            tab.addModel(custom.fn({
-                tab,
-                data: custom.data
-            }));
-            setPanelFocus(tab.panelElement.parentElement.parentElement);
+            if (custom.fn) {
+                console.warn("0.8.3 将移除 custom.fn 参数，请参照 https://github.com/siyuan-note/plugin-sample/blob/91a716358941791b4269241f21db25fd22ae5ff5/src/index.ts 将其修改为 custom.id");
+                tab.addModel(custom.fn({
+                    tab,
+                    data: custom.data
+                }));
+            }
+            safeSetFocus(tab);
         }
     });
 };
@@ -114,7 +130,7 @@ const newCustomTab = (options: IOpenFileOptions) => {
  * @param tab - 页签
  * @param custom - 自定义选项
  */
-const initCustomTabModel = (options: IOpenFileOptions, tab: Tab, custom: any) => {
+const initCustomTabModel = (options: IOpenFileOptions, tab: Tab, custom: NonNullable<IOpenFileOptions["custom"]>) => {
     if (custom.id === "siyuan-card") {
         tab.addModel(newCardModel({
             app: options.app,
@@ -135,8 +151,9 @@ const initCustomTabModel = (options: IOpenFileOptions, tab: Tab, custom: any) =>
         return;
     }
     for (const p of options.app.plugins) {
-        if (p.models[custom.id]) {
-            tab.addModel(p.models[custom.id]({
+        const createModel = p.models[custom.id];
+        if (createModel) {
+            tab.addModel(createModel({
                 tab,
                 data: custom.data
             }));
@@ -151,6 +168,10 @@ const initCustomTabModel = (options: IOpenFileOptions, tab: Tab, custom: any) =>
  * @returns 页签实例。
  */
 const newSearchTab = (options: IOpenFileOptions) => {
+    const config = options.searchData;
+    if (!config) {
+        throw new Error("options.searchData is missing");
+    }
     return new Tab({
         icon: "iconSearch",
         title: siyuanI18n.search,
@@ -162,9 +183,9 @@ const newSearchTab = (options: IOpenFileOptions) => {
             tab.addModel(new Search({
                 app: options.app,
                 tab,
-                config: options.searchData
+                config
             }));
-            setPanelFocus(tab.panelElement.parentElement.parentElement);
+            safeSetFocus(tab);
         }
     });
 };
@@ -175,9 +196,20 @@ const newSearchTab = (options: IOpenFileOptions) => {
  * @returns 页签实例。
  */
 const newEditorTab = (options: IOpenFileOptions) => {
+    const { id, app, rootID } = options;
+    if (!id) {
+        throw new Error("options.id is missing");
+    }
+    if (!app) {
+        throw new Error("options.app is missing");
+    }
+    if (!rootID) {
+        throw new Error("options.rootID is missing");
+    }
+
     return new Tab({
-        title: getDisplayName(options.fileName, true, true),
-        docIcon: options.rootIcon,
+        title: getDisplayName(options.fileName || "", true, true),
+        ...(options.rootIcon ? { docIcon: options.rootIcon } : {}),
         /**
          * 页签回调
          * @param tab - 页签实例
@@ -185,22 +217,27 @@ const newEditorTab = (options: IOpenFileOptions) => {
         callback(tab) {
             if (options.zoomIn) {
                 tab.addModel(new Editor({
-                    app: options.app,
+                    app: app,
                     tab,
-                    blockId: options.id,
-                    rootId: options.rootID,
+                    blockId: id,
+                    rootId: rootID,
                     action: [Constants.CB_GET_ALL, Constants.CB_GET_FOCUS],
                 }));
-            } else {
-                tab.addModel(new Editor({
-                    app: options.app,
-                    tab,
-                    blockId: options.id,
-                    rootId: options.rootID,
-                    mode: options.mode,
-                    action: options.action,
-                }));
+                return;
             }
+            const editorOptions: IEditorOptions = {
+                app,
+                tab,
+                blockId: id,
+                rootId: rootID,
+            };
+            if (options.mode) {
+                editorOptions.mode = options.mode;
+            }
+            if (options.action) {
+                editorOptions.action = options.action;
+            }
+            tab.addModel(new Editor(editorOptions));
         }
     });
 };

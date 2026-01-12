@@ -1,3 +1,25 @@
+import { App } from "../index";
+import { Tab } from "../layout/Tab";
+import { Protyle } from "../protyle";
+
+/**
+ * 编辑器构造函数选项接口
+ *
+ * 用途：定义创建 Editor 实例时所需的参数结构。
+ * 使用场景：Editor 类构造函数、newTab 等创建编辑器的场景。
+ * 关联类型：Editor 类。
+ */
+export interface IEditorOptions {
+    app: App;
+    tab: Tab;
+    blockId: string;
+    rootId: string;
+    mode?: TEditorMode;
+    action?: TProtyleAction[];
+    afterInitProtyle?: (editor: Protyle) => void;
+    scrollPosition?: ScrollLogicalPosition;
+}
+
 /**
  * 页签初始化数据接口
  *
