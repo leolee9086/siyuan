@@ -374,32 +374,4 @@ export const copyTab = (app: App, tab: Tab) => {
     });
 };
 
-export const closeTabByType = async (tab: Tab, type: "closeOthers" | "closeAll" | "other", tabs?: Tab[]) => {
-    if (type === "closeOthers") {
-        for (let index = 0; index < tab.parent.children.length; index++) {
-            if (tab.parent.children[index].id !== tab.id && !tab.parent.children[index].headElement.classList.contains("item--pin")) {
-                await tab.parent.children[index].parent.removeTab(tab.parent.children[index].id, true, false);
-                index--;
-            }
-        }
-    } else if (type === "closeAll") {
-        for (let index = 0; index < tab.parent.children.length; index++) {
-            if (!tab.parent.children[index].headElement.classList.contains("item--pin")) {
-                await tab.parent.children[index].parent.removeTab(tab.parent.children[index].id, true);
-                index--;
-            }
-        }
-    } else if (tabs.length > 0) {
-        for (let index = 0; index < tabs.length; index++) {
-            if (!tabs[index].headElement.classList.contains("item--pin")) {
-                await tabs[index].parent.removeTab(tabs[index].id);
-            }
-        }
-    }
 
-    if (tab.headElement.parentElement && !tab.headElement.parentElement.querySelector(".item--focus")) {
-        tab.parent.switchTab(tab.headElement, true);
-    } else if (tab.parent.children.length > 0) {
-        tab.parent.switchTab(tab.parent.children[tab.parent.children.length - 1].headElement, true);
-    }
-};

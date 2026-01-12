@@ -1,19 +1,20 @@
-import {Tab} from "../layout/Tab";
+import { Tab } from "../layout/Tab";
 import { MenuItem } from "./Menu.Item";
-import {Editor} from "../editor";
-import {closeTabByType, copyTab, resizeTabs} from "../layout/tabUtil";
+import { Editor } from "../editor";
+import { copyTab, resizeTabs } from "../layout/tabUtil";
+import { closeTabByType } from "../layout/utils/closeTabByType";
 /// #if !BROWSER
-import {openNewWindow} from "../window/openNewWindow";
+import { openNewWindow } from "../window/openNewWindow";
 /// #endif
-import {copySubMenu} from "./commonMenuItem";
-import {App} from "../index";
-import {Layout} from "../layout";
-import {Wnd} from "../layout/Wnd";
-import {getAllWnds} from "../layout/getAll";
-import {Asset} from "../asset";
-import {writeText} from "../protyle/util/compatibility";
-import {getAssetName, pathPosix} from "../util/pathName";
-import {Constants} from "../constants";
+import { copySubMenu } from "./commonMenuItem";
+import { App } from "../index";
+import { Layout } from "../layout";
+import { Wnd } from "../layout/Wnd";
+import { getAllWnds } from "../layout/getAll";
+import { Asset } from "../asset";
+import { writeText } from "../protyle/util/compatibility";
+import { getAssetName, pathPosix } from "../util/pathName";
+import { Constants } from "../constants";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 const closeMenu = (tab: Tab) => {
@@ -93,7 +94,7 @@ const closeMenu = (tab: Tab) => {
             }).element);
         }
     }
-    window.siyuan.menus.menu.append(new MenuItem({id: "separator_1", type: "separator"}).element);
+    window.siyuan.menus.menu.append(new MenuItem({ id: "separator_1", type: "separator" }).element);
 };
 
 const splitSubMenu = (app: App, tab: Tab) => {
