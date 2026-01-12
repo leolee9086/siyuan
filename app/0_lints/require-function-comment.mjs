@@ -243,6 +243,10 @@ function 需要检查注释(node) {
  */
 function 获取注释目标节点(node) {
     if (node.parent) {
+        // 对象属性方法：以及对象字面量中的方法 { foo() {} }
+        if (node.parent.type === "Property") {
+            return node.parent;
+        }
         // 类方法：注释应该在 MethodDefinition 上
         if (node.parent.type === "MethodDefinition") {
             return node.parent;
