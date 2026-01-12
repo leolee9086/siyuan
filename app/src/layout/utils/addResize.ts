@@ -60,8 +60,8 @@ const handleDragStart = () => {
     // 文件树拖拽会产生透明效果
     const files = document.querySelectorAll(".sy__file .b3-list-item");
     for (let i = 0; i < files.length; i++) {
-        const item = files[i] as HTMLElement;
-        if (item.style.opacity === "0.38") {
+        const item = files[i];
+        if (item instanceof HTMLElement && item.style.opacity === "0.38") {
             item.style.opacity = "";
         }
     }
@@ -165,8 +165,11 @@ const onResizeMouseDown = (event: MouseEvent, resizeElement: HTMLElement, direct
         range = selection.getRangeAt(0);
     }
     const documentSelf = document;
-    const nextElement = resizeElement.nextElementSibling as HTMLElement;
-    const previousElement = resizeElement.previousElementSibling as HTMLElement;
+    const nextElement = resizeElement.nextElementSibling;
+    const previousElement = resizeElement.previousElementSibling;
+    if (!nextElement || !previousElement || !(nextElement instanceof HTMLElement) || !(previousElement instanceof HTMLElement)) {
+        return;
+    }
     nextElement.style.overflow = "auto"; // 拖动时 layout__resize 会出现 https://github.com/siyuan-note/siyuan/issues/6221
     previousElement.style.overflow = "auto";
     nextElement.style.transition = "none";
@@ -264,9 +267,9 @@ const handleVerticalResizeDblClick = (layout: ReturnType<typeof getSiyuanLayout>
  * 调用时机：用户双击 resize 句柄时。
  */
 const onResizeDblClick = (resizeElement: HTMLElement) => {
-    const previousElement = resizeElement.previousElementSibling as HTMLElement;
-    const nextElement = resizeElement.nextElementSibling as HTMLElement;
-    if (!previousElement || !nextElement) {
+    const previousElement = resizeElement.previousElementSibling;
+    const nextElement = resizeElement.nextElementSibling;
+    if (!previousElement || !nextElement || !(previousElement instanceof HTMLElement) || !(nextElement instanceof HTMLElement)) {
         return;
     }
     const layout = getSiyuanLayout();
