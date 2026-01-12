@@ -196,17 +196,15 @@ export const openSetting = (app: App) => {
 };
 
 /// #if !MOBILE
-// 应用初始化时注册 Tab 类型
-document.addEventListener("app-ready", () => {
-    tabRegistry.register({
-        type: INTERNAL_FILETREE_TAB_TYPE,
-        init: (model: Custom) => {
-            const tab = model.tab;
-            const app = createApp(fileTreeConfigPanel);
-            if (tab) {
-                app.mount(tab.panelElement);
-            }
+// 立即注册 Tab 类型（不依赖 app-ready 事件，确保新窗口也能正确初始化）
+tabRegistry.register({
+    type: INTERNAL_FILETREE_TAB_TYPE,
+    init: (model: Custom) => {
+        const tab = model.tab;
+        const app = createApp(fileTreeConfigPanel);
+        if (tab) {
+            app.mount(tab.panelElement);
         }
-    });
+    }
 });
 /// #endif
