@@ -7,9 +7,14 @@ import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.envi
 import { isElectronStyle } from "./setHeader.guard";
 
 const closeTab = (ipcData: IWebSocketData) => {
+    console.log("[closeTab] 收到 closetab 消息, tab id:", ipcData.data);
     const tab = getInstanceById(ipcData.data);
+    console.log("[closeTab] getInstanceById 返回:", tab, "是否为 Tab:", tab instanceof Tab);
     if (tab && tab instanceof Tab) {
+        console.log("[closeTab] 开始移除 tab");
         tab.parent.removeTab(ipcData.data);
+    } else {
+        console.warn("[closeTab] 未找到对应的 tab 实例或不是 Tab 类型");
     }
 };
 const handleResetTabsStyle = (ipcData: IWebSocketData) => {

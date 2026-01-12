@@ -1,19 +1,19 @@
-import {Wnd} from "./Wnd";
-import {genUUID} from "../util/genID";
-import {Model} from "./Model";
-import {Editor} from "../editor";
-import {hasClosestByTag} from "../protyle/util/hasClosest";
-import {Constants} from "../constants";
-import {escapeGreat, escapeHtml} from "../util/escape";
-import {unicode2Emoji} from "../emoji";
-import {fetchPost} from "../util/fetch";
-import {hideTooltip, showTooltip} from "../dialog/tooltip";
-import {isTouchDevice} from "../util/functions";
+import { Wnd } from "./Wnd";
+import { genUUID } from "../util/genID";
+import { Model } from "./Model";
+import { Editor } from "../editor";
+import { hasClosestByTag } from "../protyle/util/hasClosest";
+import { Constants } from "../constants";
+import { escapeGreat, escapeHtml } from "../util/escape";
+import { unicode2Emoji } from "../emoji";
+import { fetchPost } from "../util/fetch";
+import { hideTooltip, showTooltip } from "../dialog/tooltip";
+import { isTouchDevice } from "../util/functions";
 /// #if !BROWSER
-import {openNewWindow} from "../window/openNewWindow";
-import {ipcRenderer} from "electron";
+import { openNewWindow } from "../window/openNewWindow";
+import { ipcRenderer } from "electron";
 /// #endif
-import {layoutToJSON, saveLayout} from "./util";
+import { layoutToJSON, saveLayout } from "./util";
 
 export class Tab {
     public parent: Wnd;
@@ -92,14 +92,14 @@ export class Tab {
                 const tabElement = hasClosestByTag(event.target, "LI");
                 if (tabElement) {
                     event.dataTransfer.setData("text/html", tabElement.outerHTML);
-                    const modeJSON = {id: this.id};
+                    const modeJSON = { id: this.id };
                     layoutToJSON(this, modeJSON);
                     event.dataTransfer.setData(Constants.SIYUAN_DROP_TAB, JSON.stringify(modeJSON));
                     event.dataTransfer.dropEffect = "move";
                     tabElement.style.opacity = "0.38";
                     window.siyuan.dragElement = this.headElement;
                 }
-                ipcRenderer.send(Constants.SIYUAN_SEND_WINDOWS, {cmd: "resetTabsStyle", data: "removeRegionStyle"});
+                ipcRenderer.send(Constants.SIYUAN_SEND_WINDOWS, { cmd: "resetTabsStyle", data: "removeRegionStyle" });
             });
             this.headElement.addEventListener("dragend", (event: DragEvent & { target: HTMLElement }) => {
                 const tabElement = hasClosestByTag(event.target, "LI");
@@ -107,14 +107,17 @@ export class Tab {
                     tabElement.style.opacity = "1";
                 }
                 /// #if !BROWSER
-                // 拖拽到屏幕外
+                // 拖拽到屏幕外时打开新窗口
+                // 注意：只有在 dropEffect 为 "none" 时才触发（表示拖拽被取消或未被其他窗口接收）
+                // 如果 dropEffect 为 "move"，说明 tab 已经被其他窗口接收，不应该再打开新窗口
                 setTimeout(() => {
-                    if (document.body.contains(this.panelElement) &&
+                    if (event.dataTransfer.dropEffect === "none" &&
+                        document.body.contains(this.panelElement) &&
                         (event.clientX < 0 || event.clientY < 0 || event.clientX > window.innerWidth || event.clientY > window.innerHeight)) {
                         openNewWindow(this);
                     }
                 }, Constants.TIMEOUT_LOAD); // 等待主进程发送关闭消息
-                ipcRenderer.send(Constants.SIYUAN_SEND_WINDOWS, {cmd: "resetTabsStyle", data: "rmDragStyle"});
+                ipcRenderer.send(Constants.SIYUAN_SEND_WINDOWS, { cmd: "resetTabsStyle", data: "rmDragStyle" });
                 /// #else
                 document.querySelectorAll(".layout-tab-bars--drag").forEach(item => {
                     item.classList.remove("layout-tab-bars--drag");
@@ -137,7 +140,7 @@ export class Tab {
                         }
                     });
                 }
-                ipcRenderer.send(Constants.SIYUAN_SEND_WINDOWS, {cmd: "resetTabsStyle", data: "addRegionStyle"});
+                ipcRenderer.send(Constants.SIYUAN_SEND_WINDOWS, { cmd: "resetTabsStyle", data: "addRegionStyle" });
             });
         }
 
