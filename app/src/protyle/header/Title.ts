@@ -337,17 +337,17 @@ export class Title {
     public setTitle(title: string) {
         /// #if MOBILE
         if (this.editElement) {
-            if (code160to32(title) !== code160to32(this.editElement.textContent)) {
+            if (nbsp2space(title) !== nbsp2space(this.editElement.textContent)) {
                 this.editElement.textContent = title === siyuanI18n.untitled ? "" : title;
             }
         } else {
             const inputElement = document.getElementById("toolbarName") as HTMLInputElement;
-            if (code160to32(title) !== code160to32(inputElement.value)) {
+            if (nbsp2space(title) !== nbsp2space(inputElement.value)) {
                 inputElement.value = title === siyuanI18n.untitled ? "" : title;
             }
         }
         /// #else
-        if (code160to32(title) !== code160to32(this.editElement.textContent)) {
+        if (nbsp2space(title) !== nbsp2space(this.editElement.textContent)) {
             this.editElement.textContent = title === siyuanI18n.untitled ? "" : title;
         }
         /// #endif
