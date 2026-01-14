@@ -1,4 +1,8 @@
-import { bindClickEvent, bindDropEvent, bindImgMoveEvent, bindUploadEvent, initBackgroundElement, renderBackground } from "./Background.util";
+import { bindClickEvent } from "./background/events";
+import { bindDropEvent, bindUploadEvent } from "./background/upload";
+import { bindImgMoveEvent } from "./background/image";
+import { initBackgroundElement } from "./background/init";
+import { renderBackground } from "./background/render";
 
 export class Background {
     public element!: HTMLElement;
@@ -16,7 +20,12 @@ export class Background {
         bindUploadEvent(this, protyle);
         bindClickEvent(this, protyle);
     }
-
+    /**
+     * 作用：渲染题头图。
+     * 意图：根据传入的 IAL 和 rootId，更新题头图的显示。
+     * @param ial 
+     * @param rootId 
+     */
     public render(ial: IObject, rootId: string) {
         renderBackground(this, ial, rootId);
     }

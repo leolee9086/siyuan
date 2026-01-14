@@ -86,26 +86,50 @@ export const 代码量限制插件 = {
                 return {
                     Program(node) {
                         const sourceCode = context.sourceCode || context.getSourceCode();
-                        const lines = sourceCode.getLines();
 
-                        let 行数;
-                        if (skipBlankLines && skipComments) {
-                            行数 = 计算实际行数(lines, 0, lines.length - 1);
-                        }
-                        if (!skipBlankLines && !skipComments) {
-                            行数 = lines.length;
-                        }
-                        if (skipBlankLines && !skipComments) {
-                            行数 = lines.filter(line => line.trim() !== "").length;
-                        }
-                        if (!skipBlankLines && skipComments) {
-                            行数 = 计算实际行数(lines, 0, lines.length - 1);
+                        // 创建带有行号的lines数组（参考ESLint实现）
+                        let lines = sourceCode.getLines().map((text, i) => ({
+                            lineNumber: i + 1,
+                            text,
+                        }));
+
+                        // 如果文件以换行符结尾，会有一个额外的空行，需要移除
+                        if (lines.length > 1 && lines[lines.length - 1].text === "") {
+                            lines.pop();
                         }
 
-                        if (行数 > max) {
+                        // 过滤空行
+                        if (skipBlankLines) {
+                            lines = lines.filter(l => l.text.trim() !== "");
+                        }
+
+                        // 过滤注释行（简化版本，因为我们已经有 计算实际行数 函数）
+                        if (skipComments) {
+                            // 简化实现：过滤单行注释
+                            lines = lines.filter(l => {
+                                const trimmed = l.text.trim();
+                                return !trimmed.startsWith("//") && !trimmed.startsWith("/*");
+                            });
+                        }
+
+                        if (lines.length > max) {
+                            // 使用范围报告：从第301行实际代码的物理行号到文件末尾
+                            // 参考 ESLint 自带的 max-lines 规则实现
+                            const 物理总行数 = sourceCode.getLines().length;
+                            const loc = {
+                                start: {
+                                    line: lines[max].lineNumber,  // 第301行实际代码对应的物理行号
+                                    column: 0
+                                },
+                                end: {
+                                    line: 物理总行数,
+                                    column: sourceCode.getLines()[物理总行数 - 1].length
+                                }
+                            };
+
                             context.report({
-                                loc: { line: max + 1, column: 0 },
-                                message: `❌ 文件超过最大行数限制。当前 ${行数} 行，最大允许 ${max} 行。请拆分为更小的模块。${全量修复提示}`
+                                loc,
+                                message: `❌ 文件超过最大行数限制。当前 ${lines.length} 行，最大允许 ${max} 行。请拆分为更小的模块。${全量修复提示}`
                             });
                         }
                     }
@@ -158,14 +182,11 @@ export const 代码量限制插件 = {
                     let 行数;
                     if (skipBlankLines && skipComments) {
                         行数 = 计算实际行数(lines, startLine, endLine);
-                    }
-                    if (!skipBlankLines && !skipComments) {
+                    } else if (!skipBlankLines && !skipComments) {
                         行数 = endLine - startLine + 1;
-                    }
-                    if (skipBlankLines && !skipComments) {
+                    } else if (skipBlankLines && !skipComments) {
                         行数 = lines.slice(startLine, endLine + 1).filter(line => line.trim() !== "").length;
-                    }
-                    if (!skipBlankLines && skipComments) {
+                    } else if (!skipBlankLines && skipComments) {
                         行数 = 计算实际行数(lines, startLine, endLine);
                     }
 

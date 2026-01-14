@@ -1,0 +1,313 @@
+import { fetchPost } from "../../../util/fetch";
+import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { upDownHint } from "../../../util/upDownHint";
+import { getSiyuanGlobalMenusMenu } from "../../../util/siyuanEnvironments/getMenu.environment";
+import { Menu } from "../../../plugin/Menu";
+import { hasClosestByClassName } from "../../util/hasClosest";
+import { escapeHtml } from "../../../util/escape";
+import type { Background } from "../Background";
+import { renderBackground } from "./render";
+import { getSiyuanCtrlIsPressed } from "../../../util/siyuanEnvironments/keyboardStatus.environment";
+/// #if !MOBILE
+import { openGlobalSearch } from "../../../search/util";
+/// #else
+import { popSearch } from "../../../mobile/menu/search";
+/// #endif
+
+/**
+ * 作用：从 DOM 元素中获取标签列表。
+ * 意图：解析当前的标签 DOM 结构获取数据。
+ * 调用时机：在保存、渲染或切换标签状态时调用。
+ */
+const getTags = (tagsElement: HTMLElement) => {
+    const tags: string[] = [];
+    const elements = tagsElement.querySelectorAll(".b3-chip");
+    for (const item of elements) {
+        const tagText = item.textContent?.trim();
+        if (tagText) {
+            tags.push(tagText);
+        }
+    }
+    return tags;
+};
+
+/**
+ * 作用：移除文档的标签。
+ * 意图：更新后端属性并在前端移除标签显示。
+ * 调用时机：用户点击移除标签或在菜单中取消选中时。
+ */
+export const removeTag = (background: Background, protyle: IProtyle, cb?: () => void) => {
+    const tags = getTags(background.tagsElement);
+    saveTags(background, protyle, tags, cb);
+};
+
+/**
+ * 作用：保存标签到后端并更新 UI。
+ * 意图：将最新的标签列表持久化到数据库，并刷新文档属性视图。
+ * 调用时机：标签被添加、移除或修改后。
+ */
+const saveTags = (background: Background, protyle: IProtyle, tags: string[], cb?: () => void) => {
+    const tagsStr = tags.toString();
+    fetchPost("/api/attr/setBlockAttrs", {
+        id: protyle.block.rootID,
+        attrs: { "tags": tagsStr }
+    }, () => {
+        cb?.();
+    });
+    if (tags.length === 0) {
+        delete background.ial.tags;
+        renderBackground(background, background.ial, protyle.block.rootID || "");
+        return;
+    }
+    background.ial.tags = tagsStr;
+    renderBackground(background, background.ial, protyle.block.rootID || "");
+};
+
+/**
+ * 作用：为当前文档添加指定标签，如果标签已存在则移除（Toggle 行为）。
+ * 意图：处理用户在标签搜索/选择菜单中的操作，同步更新 DOM 和后端属性。
+ * 调用时机：用户在标签菜单中按回车或点击选中某个标签时。
+ */
+const toggleTag = (background: Background, tag: string, protyle: IProtyle, cb: () => void) => {
+    const tags = getTags(background.tagsElement);
+    const newTags = tags.includes(tag) ? tags.filter(t => t !== tag) : [...tags, tag];
+    saveTags(background, protyle, newTags, cb);
+};
+
+/**
+ * 作用：处理标签点击（打开搜索）。
+ * 意图：允许用户点击文档头部的标签进行全局搜索。
+ * 调用时机：用户点击文档属性区域的标签时。
+ */
+export const clickOpenSearch = (background: Background, protyle: IProtyle, target: HTMLElement, event: MouseEvent) => {
+    /// #if !MOBILE
+    openGlobalSearch(protyle.app, `#${target.textContent}#`, !getSiyuanCtrlIsPressed(), { method: 0 });
+    /// #else
+    popSearch(protyle.app, {
+        hasReplace: false,
+        method: 0,
+        hPath: "",
+        idPath: [],
+        k: `#${target.textContent}#`,
+        r: "",
+        page: 1,
+    });
+    /// #endif
+    event.preventDefault();
+    event.stopPropagation();
+    return true;
+};
+
+/**
+ * 作用：处理“移除标签”点击。
+ * 意图：响应用户点击移除按钮的操作，删除特定标签。
+ * 调用时机：用户点击标签上的删除图标时。
+ */
+export const clickRemoveTag = (background: Background, protyle: IProtyle, target: HTMLElement, event: MouseEvent) => {
+    target.parentElement?.remove();
+    removeTag(background, protyle);
+    event.preventDefault();
+    event.stopPropagation();
+    return true;
+};
+
+/**
+ * 作用：处理点击标签按钮。
+ * 意图：作为标签区域的交互入口，触发标签编辑菜单。
+ * 调用时机：用户点击标签添加按钮或非特定功能区域时。
+ */
+export const clickTag = (background: Background, protyle: IProtyle, target: HTMLElement, event: MouseEvent) => {
+    openTag(background, protyle, target);
+    event.preventDefault();
+    event.stopPropagation();
+    return true;
+};
+
+/**
+ * 作用：打开标签选择菜单。
+ * 意图：创建并显示包含搜索和选择功能的标签弹窗菜单。
+ * 调用时机：clickTag 被触发时。
+ */
+export const openTag = (background: Background, protyle: IProtyle, target: HTMLElement) => {
+    getSiyuanGlobalMenusMenu()?.remove();
+    const menu = new Menu();
+    menu.addItem({
+        iconHTML: "",
+        type: "empty",
+        label: `<div class="fn__flex-column b3-menu__filter">
+    <input class="b3-text-field fn__flex-shrink" placeholder="${siyuanI18n.tag}"/>
+    <div class="fn__hr"></div>
+    <div class="b3-list fn__flex-1 b3-list--background">
+        <img style="margin: 0 auto;display: block;width: 64px;height: 64px" src="/stage/loading-pure.svg">
+    </div>
+</div>`,
+        /**
+         * 作用：菜单 DOM 挂载后的回调，用于绑定事件。
+         */
+        bind: (element: HTMLElement) => bindTagMenu(element, background, protyle)
+    });
+    const itemsElement = menu.element.querySelector(".b3-menu__items");
+    if (itemsElement) {
+        itemsElement.setAttribute("style", "overflow: initial");
+    }
+    /// #if MOBILE
+    menu.fullscreen();
+    const firstChild = itemsElement?.firstElementChild;
+    if (firstChild) {
+        firstChild.setAttribute("style", "padding: 0 8px;height: 100%;");
+    }
+    /// #else
+    const rect = target.getBoundingClientRect();
+    menu.open({ x: rect.left, y: rect.top + rect.height });
+    const input = menu.element.querySelector("input");
+    if (input) {
+        input.focus();
+    }
+    /// #endif
+};
+
+/**
+ * 作用：绑定标签菜单的事件和初始数据加载。
+ * 意图：初始化菜单的交互逻辑，包括加载标签列表和监听输入。
+ * 调用时机：标签菜单 DOM 创建并挂载后。
+ */
+const bindTagMenu = (element: HTMLElement, background: Background, protyle: IProtyle) => {
+    const listElement = element.querySelector(".b3-list--background");
+    const inputElement = element.querySelector("input");
+
+    if (!inputElement || !listElement) {
+        return;
+    }
+
+    // Initial Load
+    fetchTags("", background, listElement);
+
+    // Event Listeners
+    inputElement.addEventListener("keydown", (event: KeyboardEvent) => handleTagInputKeydown(event, listElement, inputElement, background, protyle));
+    inputElement.addEventListener("input", (event) => handleTagInputInput(event, listElement, inputElement, background));
+    listElement.addEventListener("click", (event) => handleTagListClick(event, background, protyle, inputElement));
+};
+
+/**
+ * 作用：搜索标签并渲染列表。
+ * 意图：根据用户输入的关键词从后端检索相关的标签。
+ * 调用时机：菜单初始化或用户输入关键词时。
+ */
+const fetchTags = (k: string, background: Background, listElement: Element) => {
+    fetchPost("/api/search/searchTag", { k }, (response) => {
+        renderTagList(response.data, k, background, listElement);
+    });
+};
+
+/**
+ * 作用：渲染标签搜索结果列表。
+ * 意图：将后端返回的标签数据可视化展示，并处理高亮和“新建标签”选项。
+ * 调用时机：fetchTags 成功获取数据后。
+ */
+const renderTagList = (data: { tags: string[], k: string }, k: string, background: Background, listElement: Element) => {
+    let html = "";
+    const currentTags = getTags(background.tagsElement);
+    for (const [index, item] of data.tags.entries()) {
+        const isSelected = currentTags.includes(Lute.UnEscapeHTMLStr(item.replace(/<mark>/g, "").replace(/<\/mark>/g, "")));
+        html += `<div class="b3-list-item b3-list-item--narrow${index === 0 ? " b3-list-item--focus" : ""}">
+<div class="fn__flex-1">${item}</div>
+${isSelected ? '<svg class="b3-menu__checked"><use xlink:href="#iconSelect"></use></svg>' : ""}
+</div>`;
+    }
+
+    let hasKey = false;
+    // Check if exact match exists in results
+    // logic copied from original: if (item === `<mark>${response.data.k}</mark>`)
+    for (const item of data.tags) {
+        if (item === `<mark>${k}</mark>`) {
+            hasKey = true;
+            break;
+        }
+    }
+
+    if (!hasKey && k) {
+        html = `<div data-type="new" class="b3-list-item b3-list-item--narrow${html ? "" : " b3-list-item--focus"}"><div class="fn__flex-1">${siyuanI18n.new} <mark>${escapeHtml(k)}</mark></div></div>` + html;
+    }
+    listElement.innerHTML = html;
+};
+
+/**
+ * 作用：处理标签输入框的键盘事件。
+ * 意图：支持键盘导航（上下键）、确认（回车键）和关闭（Esc键）操作，提升无障碍和效率。
+ * 调用时机：用户在标签输入框中按键时。
+ */
+const handleTagInputKeydown = (event: KeyboardEvent, listElement: Element, inputElement: HTMLInputElement, background: Background, protyle: IProtyle) => {
+    event.stopPropagation();
+    if (event.isComposing) {
+        return;
+    }
+    upDownHint(listElement, event);
+    if (event.key === "Enter") {
+        handleTagEnter(listElement, inputElement, background, protyle);
+        return;
+    }
+    if (event.key === "Escape") {
+        getSiyuanGlobalMenusMenu()?.remove();
+    }
+};
+
+/**
+ * 作用：处理标签输入框的输入事件。
+ * 意图：根据输入内容实时搜索标签。
+ * 调用时机：标签输入框 input 事件。
+ */
+const handleTagInputInput = (event: Event, listElement: Element, inputElement: HTMLInputElement, background: Background) => {
+    event.stopPropagation();
+    fetchTags(inputElement.value.trim(), background, listElement);
+};
+
+/**
+ * 作用：处理标签列表的点击事件。
+ * 意图：当用户点击标签列表项时，选择该标签或添加新标签。
+ * 调用时机：标签列表点击事件。
+ */
+const handleTagListClick = (event: Event, background: Background, protyle: IProtyle, inputElement: HTMLInputElement) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) {
+        return;
+    }
+    const listItemElement = hasClosestByClassName(target, "b3-list-item");
+    if (!listItemElement || !(listItemElement instanceof HTMLElement)) {
+        return;
+    }
+    const tagText = getTagTextFromElement(listItemElement);
+    toggleTag(background, tagText, protyle, () => {
+        inputElement.value = "";
+        inputElement.dispatchEvent(new CustomEvent("input"));
+        inputElement.focus();
+    });
+};
+
+/**
+ * 作用：处理标签输入框的回车事件。
+ * 意图：当用户按下回车时，选择当前高亮的标签或添加新标签。
+ * 调用时机：handleTagInputKeydown 中 key 为 Enter 时。
+ */
+const handleTagEnter = (listElement: Element, inputElement: HTMLInputElement, background: Background, protyle: IProtyle) => {
+    const currentElement = listElement.querySelector(".b3-list-item--focus");
+    let tagText = inputElement.value.trim();
+    if (currentElement instanceof HTMLElement) {
+        tagText = getTagTextFromElement(currentElement);
+    }
+    toggleTag(background, tagText, protyle, () => {
+        inputElement.value = "";
+        inputElement.dispatchEvent(new CustomEvent("input"));
+    });
+};
+
+/**
+ * @简洁函数
+ * 作用：从列表项元素中提取标签文本。
+ */
+const getTagTextFromElement = (element: HTMLElement) => {
+    const mark = element.querySelector("mark");
+    if (element.dataset.type === "new" && mark) {
+        return mark.textContent?.trim() || "";
+    }
+    return element.textContent?.trim() || "";
+};
