@@ -6,7 +6,7 @@ import { toolbarKeyToMenu } from "../toolbar/util";
 
 export class Options {
     public options: IProtyleOptions;
-    private  defaultOptions: IProtyleOptions = {
+    private defaultOptions: IProtyleOptions = {
         mode: "wysiwyg",
         blockId: "",
         render: {
@@ -115,7 +115,7 @@ export class Options {
             } else {
                 this.options.toolbar = this.mergeToolbar(this.defaultOptions.toolbar);
             }
-            if (this.options.hint?.emoji&&this.defaultOptions.hint) {
+            if (this.options.hint?.emoji && this.defaultOptions.hint) {
                 this.defaultOptions.hint.emoji = this.options.hint.emoji;
             }
         }
@@ -126,7 +126,7 @@ export class Options {
     private mergeToolbar(toolbar: Array<string | IMenuItem> | undefined) {
         if (toolbar) {
             return toolbarKeyToMenu(toolbar);
-        }else{
+        } else {
             throw new Error("必须传入正确的工具条定义");
         }
     }

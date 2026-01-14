@@ -6,28 +6,28 @@ import {
     getEditorRange,
     getSelectionOffset,
 } from "../util/selection";
-import {fetchPost} from "../../util/fetch";
-import {replaceFileName, validateName} from "../../editor/rename";
+import { fetchPost } from "../../util/fetch";
+import { replaceFileName, validateName } from "../../editor/rename";
 import { MenuItem } from "../../menus/Menu.Item";
-import {openFileAttr} from "../../menus/commonMenuItem.openFileAttr";
-import {Constants} from "../../constants";
-import {matchHotKey} from "../util/hotKey";
-import {isMac, readText} from "../util/compatibility";
+import { openFileAttr } from "../../menus/commonMenuItem.openFileAttr";
+import { Constants } from "../../constants";
+import { matchHotKey } from "../util/hotKey";
+import { isMac, readText } from "../util/compatibility";
 import * as dayjs from "dayjs";
 /// #if !MOBILE
 import { openFileById } from "../../editor/utils.openFileById";
 /// #endif
-import {setTitle} from "../../dialog/processSystem";
-import {getContenteditableElement, getNoContainerElement} from "../wysiwyg/getBlock";
-import {commonHotkey} from "../wysiwyg/commonHotkey";
-import {code160to32} from "../util/code160to32";
-import {genEmptyElement} from "../../block/util";
-import {transaction} from "../wysiwyg/transaction";
-import {hideTooltip} from "../../dialog/tooltip";
-import {commonClick} from "../wysiwyg/commonClick";
-import {openTitleMenu} from "./openTitleMenu";
-import {electronUndo} from "../undo";
-import {enableLuteMarkdownSyntax, restoreLuteMarkdownSyntax} from "../util/paste";
+import { setTitle } from "../../dialog/processSystem";
+import { getContenteditableElement, getNoContainerElement } from "../wysiwyg/getBlock";
+import { commonHotkey } from "../wysiwyg/commonHotkey";
+import { nbsp2space } from "../util/normalizeText";
+import { genEmptyElement } from "../../block/util";
+import { transaction } from "../wysiwyg/transaction";
+import { hideTooltip } from "../../dialog/tooltip";
+import { commonClick } from "../wysiwyg/commonClick";
+import { openTitleMenu } from "./openTitleMenu";
+import { electronUndo } from "../undo";
+import { enableLuteMarkdownSyntax, restoreLuteMarkdownSyntax } from "../util/paste";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export class Title {
@@ -195,7 +195,7 @@ export class Title {
                     });
                 } else {
                     const iconRect = iconElement.getBoundingClientRect();
-                    openTitleMenu(protyle, {x: iconRect.left, y: iconRect.bottom}, Constants.MENU_FROM_TITLE_PROTYLE);
+                    openTitleMenu(protyle, { x: iconRect.left, y: iconRect.bottom }, Constants.MENU_FROM_TITLE_PROTYLE);
                 }
             });
             this.element.addEventListener("contextmenu", (event) => {
@@ -203,7 +203,7 @@ export class Title {
                     return;
                 }
                 if (getSelection().rangeCount === 0 || iconElement.contains((event.target as HTMLElement))) {
-                    openTitleMenu(protyle, {x: event.clientX, y: event.clientY}, Constants.MENU_FROM_TITLE_PROTYLE);
+                    openTitleMenu(protyle, { x: event.clientX, y: event.clientY }, Constants.MENU_FROM_TITLE_PROTYLE);
                     return;
                 }
                 protyle.toolbar?.element.classList.add("fn__none");
@@ -294,7 +294,7 @@ export class Title {
                         focusByRange(range);
                     }
                 }).element);
-                window.siyuan.menus.menu.popup({x: event.clientX, y: event.clientY});
+                window.siyuan.menus.menu.popup({ x: event.clientX, y: event.clientY });
             });
         }
         this.element.querySelector(".protyle-attr").addEventListener("click", (event: MouseEvent & {

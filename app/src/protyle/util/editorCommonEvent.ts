@@ -22,6 +22,7 @@ export const dropEvent = (protyle: IProtyle, editorElement: HTMLElement) => {
         await onDrop(protyle, editorElement, event as DragEvent & { target: HTMLElement }, state);
     });
 
+
     editorElement.addEventListener("dragover", (event: DragEvent) => {
         onDragOver(protyle, editorElement, event as DragEvent & { target: HTMLElement }, state);
     });

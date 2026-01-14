@@ -177,17 +177,24 @@ const confirmCalloutUpdate = (
  */
 const bindTypeInputKeydown = (typeInput: HTMLInputElement, dialog: Dialog) => {
     typeInput.addEventListener("keydown", (event: KeyboardEvent) => {
-        if (event.isComposing) {
-            return;
-        }
-        if (event.key.startsWith("Arrow")) {
-            const iconElement = dialog.element.querySelector(".b3-form__icona-icon");
-            iconElement?.dispatchEvent(new CustomEvent("click"));
-            typeInput.blur();
-            event.preventDefault();
-            event.stopPropagation();
-        }
+        handleTypeInputKeydown(event, typeInput, dialog);
     });
+};
+
+/**
+ * 处理类型输入框的键盘事件
+ */
+const handleTypeInputKeydown = (event: KeyboardEvent, typeInput: HTMLInputElement, dialog: Dialog) => {
+    if (event.isComposing) {
+        return;
+    }
+    if (event.key.startsWith("Arrow")) {
+        const iconElement = dialog.element.querySelector(".b3-form__icona-icon");
+        iconElement?.dispatchEvent(new CustomEvent("click"));
+        typeInput.blur();
+        event.preventDefault();
+        event.stopPropagation();
+    }
 };
 
 /**
@@ -195,28 +202,38 @@ const bindTypeInputKeydown = (typeInput: HTMLInputElement, dialog: Dialog) => {
  */
 const openEmojiPanelForCallout = (dialogCalloutIconElement: Element, typeInput: HTMLInputElement) => {
     const emojiRect = dialogCalloutIconElement.getBoundingClientRect();
+    const imgElement = dialogCalloutIconElement.querySelector("img");
     openEmojiPanel("", "av", {
         x: emojiRect.left,
         y: emojiRect.bottom,
         h: emojiRect.height,
         w: emojiRect.width
     }, (unicode) => {
-        let emojiHTML: string;
-        if (unicode.startsWith("api/icon/getDynamicIcon")) {
-            emojiHTML = `<img class="callout-img" src="${unicode}"/>`;
-        } else if (unicode.indexOf(".") > -1) {
-            emojiHTML = `<img class="callout-img" src="/emojis/${unicode}">`;
-        } else {
-            emojiHTML = unicode2Emoji(unicode);
-        }
+        handleEmojiSelect(unicode, typeInput, dialogCalloutIconElement);
+    }, imgElement instanceof HTMLElement ? imgElement : undefined);
+};
 
-        // 如果用户清空了 emoji，根据类型恢复默认图标
-        if (unicode === "") {
-            emojiHTML = getDefaultIconByType(typeInput.value);
-        }
+/**
+ * 处理 Emoji 选择回调
+ */
+const handleEmojiSelect = (unicode: string, typeInput: HTMLInputElement, dialogCalloutIconElement: Element) => {
+    // 如果用户清空了 emoji，根据类型恢复默认图标
+    if (unicode === "") {
+        dialogCalloutIconElement.innerHTML = getDefaultIconByType(typeInput.value);
+        return;
+    }
 
-        dialogCalloutIconElement.innerHTML = emojiHTML;
-    }, dialogCalloutIconElement.querySelector("img"));
+    if (unicode.startsWith("api/icon/getDynamicIcon")) {
+        dialogCalloutIconElement.innerHTML = `<img class="callout-img" src="${unicode}"/>`;
+        return;
+    }
+
+    if (unicode.indexOf(".") > -1) {
+        dialogCalloutIconElement.innerHTML = `<img class="callout-img" src="/emojis/${unicode}">`;
+        return;
+    }
+
+    dialogCalloutIconElement.innerHTML = unicode2Emoji(unicode);
 };
 
 /**
@@ -269,6 +286,9 @@ const showCalloutTypeMenu = (
         menu.addItem({
             iconHTML: `<span class="b3-menu__icon">${item.icon.toUpperCase()}</span>`,
             label: `<span style="color: ${item.color}">${item.type}</span>`,
+            /**
+             * 选中类型后的回调
+             */
             click() {
                 // 如果类型和标题相同，同步更新标题
                 if (typeInput.value.toLowerCase() === titleInput.value.toLowerCase()) {

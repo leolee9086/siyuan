@@ -4,6 +4,11 @@ import { initRectAnnoTool } from "./anno.initRectAnnoTool";
 import { initResizeHandler } from "./anno.resize";
 import { handlePdfClick } from "./anno/click";
 
+export * from "./anno.copy";
+export * from "./anno.getHighlight";
+export * from "./anno.hlPDFRect";
+export * from "./anno.getPdfInstance";
+
 /**
  * 全局变量，存储当前选中的矩形注释元素
  * 用于跟踪和管理当前正在操作的注释元素
@@ -68,4 +73,3 @@ export const getTextNode = (element: HTMLElement, isFirst: boolean) => {
     }
     return spans[index];
 };
-

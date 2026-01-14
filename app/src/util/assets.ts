@@ -6,6 +6,7 @@ import { getAllModels } from "../layout/getAll";
 import { exportLayout } from "../layout/util";
 /// #endif
 import { fetchPost } from "./fetch";
+import { IFetchRequestObject } from "./fetch.types";
 import { getSiyuanConfig, getSiyuanStorage } from "./siyuanEnvironments/getSiyuanConfig.environment";
 import { getWindowDestroyTheme, setWindowDestroyTheme, windowMatchMedia } from "./siyuanEnvironments/windowAppearance.environment";
 import { reloadLocation } from "./siyuanEnvironments/windowLocation.environment";
@@ -14,12 +15,16 @@ import { isServiceWorkerAvailable } from "./siyuanEnvironments/windowStandard.en
 import { setInlineStyle } from "./assets/setInlineStyle";
 import { setCodeTheme } from "./assets/setCodeTheme";
 import { updateMobileTheme } from "./assets/mobile";
+import { getBackend, getFrontend } from "./functions";
 
 export { setInlineStyle, setCodeTheme };
 
+/** 更新 HTML 元素属性 */
 const updateHTMLAttrs = () => {
     const htmlElement = document.documentElement;
     htmlElement.setAttribute("lang", getSiyuanConfig().appearance.lang);
+    htmlElement.setAttribute("data-frontend", getFrontend());
+    htmlElement.setAttribute("data-backend", getBackend());
     htmlElement.setAttribute("data-theme-mode", getThemeMode());
     htmlElement.setAttribute("data-light-theme", getSiyuanConfig().appearance.themeLight);
     htmlElement.setAttribute("data-dark-theme", getSiyuanConfig().appearance.themeDark);
@@ -33,6 +38,7 @@ const updateHTMLAttrs = () => {
     }
 };
 
+/** 加载默认主题 */
 const loadDefaultTheme = (data: Config.IAppearance) => {
     const defaultStyleElement = document.getElementById("themeDefaultStyle");
     const defaultThemeAddress = `/appearance/themes/${data.mode === 1 ? "midnight" : "daylight"}/theme.css?v=${Constants.SIYUAN_VERSION}`;
@@ -56,6 +62,7 @@ const loadDefaultTheme = (data: Config.IAppearance) => {
     });
 };
 
+/** 加载自定义主题 */
 const loadCustomTheme = (data: Config.IAppearance) => {
     const styleElement = document.getElementById("themeStyle");
     if (!((data.mode === 1 && data.themeDark !== "midnight") || (data.mode === 0 && data.themeLight !== "daylight"))) {
@@ -72,6 +79,7 @@ const loadCustomTheme = (data: Config.IAppearance) => {
     }
 };
 
+/** 更新图表和 PDF 主题 */
 const updateGraphAndPDF = () => {
     /// #if !MOBILE
     for (const item of getAllModels().graph) {
@@ -80,11 +88,15 @@ const updateGraphAndPDF = () => {
     const pdfThemeSettings = getSiyuanStorage()[Constants.LOCAL_PDFTHEME];
     const pdfTheme = getSiyuanConfig().appearance.mode === 0 ? pdfThemeSettings.light : pdfThemeSettings.dark;
     for (const item of document.querySelectorAll(".pdf__outer")) {
-        updatePDFAttributes(item as HTMLElement, pdfTheme === "dark");
+        const htmlItem = item;
+        if (htmlItem instanceof HTMLElement) {
+            updatePDFAttributes(htmlItem, pdfTheme === "dark");
+        }
     }
     /// #endif
 };
 
+/** 更新 PDF 属性 */
 const updatePDFAttributes = (item: HTMLElement, isDark: boolean) => {
     const darkElement = item.querySelector("#pdfDark");
     const lightElement = item.querySelector("#pdfLight");
@@ -93,6 +105,7 @@ const updatePDFAttributes = (item: HTMLElement, isDark: boolean) => {
     darkElement?.classList.toggle("toggled", isDark);
 };
 
+/** 更新浏览器 Meta */
 const updateBrowserMeta = () => {
     /// #if BROWSER
     if (!getWindowWebkit()?.messageHandlers && !getWindowJSAndroid() && !getWindowJSHarmony() &&
@@ -102,6 +115,7 @@ const updateBrowserMeta = () => {
     /// #endif
 };
 
+/** 移除冗余 SVG 图标 */
 const 移除冗余SVG图标 = () => {
     for (const [index, item] of Array.from(document.body.children).entries()) {
         if (item.tagName === "svg" &&
@@ -113,6 +127,7 @@ const 移除冗余SVG图标 = () => {
     }
 };
 
+/** 加载主题脚本 */
 const loadThemeScript = (data: Config.IAppearance) => {
     const themeScriptElement = document.getElementById("themeScript");
     const themeScriptAddress = `/appearance/themes/${data.mode === 1 ? data.themeDark : data.themeLight}/theme.js?v=${data.themeVer}`;
@@ -127,6 +142,7 @@ const loadThemeScript = (data: Config.IAppearance) => {
     addScript(themeScriptAddress, "themeScript");
 };
 
+/** 加载图标 */
 const loadIcons = (data: Config.IAppearance) => {
     // load icons
     const isBuiltInIcon = ["ant", "material"].includes(data.icon);
@@ -162,6 +178,7 @@ const loadIcons = (data: Config.IAppearance) => {
     });
 };
 
+/** 加载所有资源 */
 export const loadAssets = (data: Config.IAppearance) => {
     updateHTMLAttrs();
     loadDefaultTheme(data);
@@ -173,6 +190,7 @@ export const loadAssets = (data: Config.IAppearance) => {
     loadIcons(data);
 };
 
+/** 处理外观模式响应 */
 const handleAppearanceModeResponse = async (response: IWebSocketData) => {
     if (!getSiyuanConfig().appearance.themeJS) {
         getSiyuanConfig().appearance = response.data.appearance;
@@ -182,6 +200,7 @@ const handleAppearanceModeResponse = async (response: IWebSocketData) => {
     if (!getWindowDestroyTheme()) {
         /// #if !MOBILE
         exportLayout({
+            /** 回调函数 */
             cb() {
                 reloadLocation();
             },
@@ -204,6 +223,7 @@ const handleAppearanceModeResponse = async (response: IWebSocketData) => {
     loadAssets(response.data.appearance);
 };
 
+/** 处理颜色方案变更 */
 const handlePrefersColorSchemeChange = (event: MediaQueryListEvent) => {
     const OSTheme = event.matches ? "dark" : "light";
     updateMobileTheme(OSTheme);
@@ -219,6 +239,7 @@ const handlePrefersColorSchemeChange = (event: MediaQueryListEvent) => {
     }, handleAppearanceModeResponse);
 };
 
+/** 初始化资源 */
 export const initAssets = () => {
     const loadingElement = document.getElementById("loading");
     if (loadingElement) {
@@ -230,19 +251,23 @@ export const initAssets = () => {
     windowMatchMedia("(prefers-color-scheme: dark)").addEventListener("change", handlePrefersColorSchemeChange);
 };
 
+/** 设置模式 */
 export const setMode = (modeElementValue: number) => {
     /// #if !MOBILE
     let mode = modeElementValue;
     if (modeElementValue === 2) {
         mode = windowMatchMedia("(prefers-color-scheme: dark)").matches ? 1 : 0;
     }
-    fetchPost("/api/setting/setAppearance", Object.assign({}, getSiyuanConfig().appearance, {
+    const requestData: IFetchRequestObject = {
+        ...getSiyuanConfig().appearance,
         mode,
         modeOS: modeElementValue === 2,
-    }));
+    };
+    fetchPost("/api/setting/setAppearance", requestData);
     /// #endif
 };
 
+/** 获取主题模式 */
 export const getThemeMode = () => {
     const OSTheme = windowMatchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
     if (getSiyuanConfig().appearance.modeOS) {

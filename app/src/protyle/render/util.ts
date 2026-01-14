@@ -1,6 +1,7 @@
-import {isInEmbedBlock} from "../util/hasClosest";
-import {Constants} from "../../constants";
+import { isInEmbedBlock } from "../util/hasClosest";
+import { Constants } from "../../constants";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { addStyle } from "../util/addStyle";
 
 export const genIconHTML = (element?: false | HTMLElement, actions = ["edit", "more"]) => {
     let enable = true;
@@ -47,4 +48,27 @@ export const processClonePHElement = (item: Element) => {
         phElement.setAttribute("data-content", Lute.UnEscapeHTMLStr(phElement.getAttribute("data-content")));
     });
     return item;
+};
+
+export const setCodeTheme = (cdn = Constants.PROTYLE_CDN) => {
+    const protyleHljsStyle = document.getElementById("protyleHljsStyle") as HTMLLinkElement;
+    let css;
+    if (window.siyuan.config.appearance.mode === 0) {
+        css = window.siyuan.config.appearance.codeBlockThemeLight;
+        if (!Constants.SIYUAN_CONFIG_APPEARANCE_LIGHT_CODE.includes(css)) {
+            css = "default";
+        }
+    } else {
+        css = window.siyuan.config.appearance.codeBlockThemeDark;
+        if (!Constants.SIYUAN_CONFIG_APPEARANCE_DARK_CODE.includes(css)) {
+            css = "github-dark";
+        }
+    }
+    const href = `${cdn}/js/highlight.js/styles/${css}.min.css?v=11.11.1`;
+    if (!protyleHljsStyle) {
+        addStyle(href, "protyleHljsStyle");
+    } else if (!protyleHljsStyle.href.includes(href)) {
+        protyleHljsStyle.remove();
+        addStyle(href, "protyleHljsStyle");
+    }
 };

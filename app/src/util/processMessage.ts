@@ -8,6 +8,7 @@ import { Constants } from "../constants";
 import { fetchPost } from "./fetch";
 import { getSiyuanStorage } from "./siyuanEnvironments/getSiyuanConfig.environment";
 import { handleCronjobAuthRequest } from "./cronjobAuth";
+import { isBrowser } from "./functions";
 
 /** 触发 UI 重载 */
 const triggerReload = () => {
@@ -15,6 +16,7 @@ const triggerReload = () => {
     reloadLocation();
     /// #else
     exportLayout({
+        /** 导出布局后的回调 */
         cb() {
             reloadLocation();
         },
@@ -25,7 +27,9 @@ const triggerReload = () => {
 
 /** 处理添加 Windows Defender 排除项的点击事件 */
 const createAddDefenderExclusionHandler = (messageId: string) => (event: Event) => {
-    (event.target as HTMLElement).innerHTML = '<svg class="fn__rotate" style="margin-right: 0;"><use xlink:href="#iconRefresh"></use></svg>';
+    if (event.target instanceof Element) {
+        event.target.innerHTML = '<svg class="fn__rotate" style="margin-right: 0;"><use xlink:href="#iconRefresh"></use></svg>';
+    }
     fetchPost("/api/system/addMicrosoftDefenderExclusion", {}, () => {
         hideMessage(messageId);
     });
@@ -55,6 +59,7 @@ const handleMessageCommand = (response: IWebSocketData) => {
 };
 
 
+/** 处理 UI 重载 */
 const handleReloadUI = (response: IWebSocketData) => {
     if (response.data?.resetScroll) {
         getSiyuanStorage()[Constants.LOCAL_FILEPOSITION] = {};
@@ -64,6 +69,7 @@ const handleReloadUI = (response: IWebSocketData) => {
     triggerReload();
 };
 
+/** 处理 WebSocket 消息 */
 export const processMessage = (response: IWebSocketData) => {
     if ("msg" === response.cmd) {
         handleMessageCommand(response);
@@ -88,6 +94,10 @@ export const processMessage = (response: IWebSocketData) => {
         handleCronjobAuthRequest(response.data);
         return false;
     }
+    if ("closepublishpage" === response.cmd) {
+        handlePublishServiceClosed(response.msg);
+        return false;
+    }
 
     // 小于 0 为提示：-2 提示；-1 报错，大于 0 的错误需处理，等于 0 的为正常操作
     if (response.code < 0) {
@@ -96,4 +106,26 @@ export const processMessage = (response: IWebSocketData) => {
     }
 
     return response;
+};
+
+/** 处理发布服务关闭 */
+export const handlePublishServiceClosed = (msg: string) => {
+    if (isBrowser()) {
+        sessionStorage.setItem("siyuanPublishServiceClosed", msg || "");
+        reloadLocation();
+    }
+};
+
+/** 检查发布服务是否关闭 */
+export const checkPublishServiceClosed = (): boolean => {
+    if (!isBrowser()) {
+        return false;
+    }
+    const publishServiceClosedMsg = sessionStorage.getItem("siyuanPublishServiceClosed");
+    if (!publishServiceClosedMsg) {
+        return false;
+    }
+    sessionStorage.removeItem("siyuanPublishServiceClosed");
+    document.body.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100vh">${publishServiceClosedMsg}</div>`;
+    return true;
 };

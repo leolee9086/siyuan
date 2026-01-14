@@ -423,6 +423,8 @@ export class Files extends Model {
             }
         });
         initFilesDrag(this);
+
+
         this.init();
         if (getSiyuanConfig().openHelp) {
             // 需等待链接建立，不能放在 ongetconfig 中

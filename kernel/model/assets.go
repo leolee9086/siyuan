@@ -70,6 +70,10 @@ func HandleAssetsRemoveEvent(assetAbsPath string) {
 		return
 	}
 
+	if ".DS_Store" == filepath.Base(assetAbsPath) {
+		return
+	}
+
 	removeIndexAssetContent(assetAbsPath)
 	removeAssetThumbnail(assetAbsPath)
 	if assetmeta.Instance != nil {
@@ -79,6 +83,10 @@ func HandleAssetsRemoveEvent(assetAbsPath string) {
 
 func HandleAssetsChangeEvent(assetAbsPath string) {
 	if !filelock.IsExist(assetAbsPath) {
+		return
+	}
+
+	if ".DS_Store" == filepath.Base(assetAbsPath) {
 		return
 	}
 
@@ -176,7 +184,7 @@ func DocAssets(rootID string) (ret []string, err error) {
 		return
 	}
 
-	ret = getAssetsLinkDests(tree.Root)
+	ret = getAssetsLinkDests(tree.Root, false)
 	return
 }
 
@@ -186,9 +194,6 @@ func NetAssets2LocalAssets(rootID string, onlyImg bool, originalURL string) (err
 		return
 	}
 
-	var files int
-	msgId := gulu.Rand.String(7)
-
 	docDirLocalPath := filepath.Join(util.DataDir, tree.Box, path.Dir(tree.Path))
 	assetsDirPath := getAssetsDir(filepath.Join(util.DataDir, tree.Box), docDirLocalPath)
 	if !gulu.File.IsExist(assetsDirPath) {
@@ -197,10 +202,20 @@ func NetAssets2LocalAssets(rootID string, onlyImg bool, originalURL string) (err
 		}
 	}
 
+	err = netAssets2LocalAssets0(tree, onlyImg, originalURL, assetsDirPath, true)
+	return
+}
+
+func netAssets2LocalAssets0(tree *parse.Tree, onlyImg bool, originalURL string, assetsDirPath string, needWriteTree bool) (err error) {
+	var files int
+	var size int64
+	msgId := gulu.Rand.String(7)
+
 	browserClient := util.NewCustomReqClient() // 自定义了 TLS 指纹，增加下载成功率
 
 	forbiddenCount := 0
 	destNodes := getRemoteAssetsLinkDestsInTree(tree, onlyImg)
+	assetsMap := map[string]string{}
 	for _, destNode := range destNodes {
 		dests := getRemoteAssetsLinkDests(destNode, onlyImg)
 		if 1 > len(dests) {
@@ -226,7 +241,13 @@ func NetAssets2LocalAssets(rootID string, onlyImg bool, originalURL string) (err
 					continue
 				}
 
-				name := filepath.Base(u)
+				name := assetsMap[u]
+				if "" != name {
+					setAssetsLinkDest(destNode, dest, "assets/"+name)
+					continue
+				}
+
+				name = filepath.Base(u)
 				name = util.FilterUploadFileName(name)
 				name = "network-asset-" + name
 				name = util.AssetName(name, ast.NewNodeID())
@@ -237,7 +258,9 @@ func NetAssets2LocalAssets(rootID string, onlyImg bool, originalURL string) (err
 				}
 
 				setAssetsLinkDest(destNode, dest, "assets/"+name)
+				assetsMap[u] = name
 				files++
+				size += gulu.File.GetFileSize(writePath)
 				continue
 			}
 
@@ -263,10 +286,17 @@ func NetAssets2LocalAssets(rootID string, onlyImg bool, originalURL string) (err
 					//}
 				}
 
+				name := assetsMap[u]
+				if "" != name {
+					setAssetsLinkDest(destNode, dest, "assets/"+name)
+					continue
+				}
+
 				displayU := u
 				if 64 < len(displayU) {
 					displayU = displayU[:64] + "..."
 				}
+
 				util.PushUpdateMsg(msgId, fmt.Sprintf(Conf.Language(119), displayU), 15000)
 				request := browserClient.R()
 				request.SetRetryCount(1).SetRetryFixedInterval(3 * time.Second)
@@ -300,7 +330,6 @@ func NetAssets2LocalAssets(rootID string, onlyImg bool, originalURL string) (err
 					logging.LogErrorf("download network asset [%s] failed: %s", u, repErr)
 					continue
 				}
-				var name string
 				if strings.Contains(u, "?") {
 					name = u[:strings.Index(u, "?")]
 					name = path.Base(name)
@@ -340,28 +369,33 @@ func NetAssets2LocalAssets(rootID string, onlyImg bool, originalURL string) (err
 				}
 
 				setAssetsLinkDest(destNode, dest, "assets/"+name)
+				assetsMap[u] = name
 				files++
+				size += int64(len(data))
 				continue
 			}
 		}
 	}
 
 	util.PushClearMsg(msgId)
-	if 0 < files {
-		msgId = util.PushMsg(Conf.Language(113), 7000)
-		if err = writeTreeUpsertQueue(tree); err != nil {
-			return
-		}
-		util.PushUpdateMsg(msgId, fmt.Sprintf(Conf.Language(120), files), 5000)
 
-		if 0 < forbiddenCount {
-			util.PushErrMsg(fmt.Sprintf(Conf.Language(255), forbiddenCount), 5000)
-		}
-	} else {
-		if 0 < forbiddenCount {
-			util.PushErrMsg(fmt.Sprintf(Conf.Language(255), forbiddenCount), 5000)
+	if needWriteTree {
+		if 0 < files {
+			msgId = util.PushMsg(Conf.Language(113), 7000)
+			if err = writeTreeUpsertQueue(tree); err != nil {
+				return
+			}
+			util.PushUpdateMsg(msgId, fmt.Sprintf(Conf.Language(120), files, humanize.BytesCustomCeil(uint64(size), 2)), 5000)
+
+			if 0 < forbiddenCount {
+				util.PushErrMsg(fmt.Sprintf(Conf.Language(255), forbiddenCount), 5000)
+			}
 		} else {
-			util.PushMsg(Conf.Language(121), 3000)
+			if 0 < forbiddenCount {
+				util.PushErrMsg(fmt.Sprintf(Conf.Language(255), forbiddenCount), 5000)
+			} else {
+				util.PushMsg(Conf.Language(121), 3000)
+			}
 		}
 	}
 	return
@@ -497,7 +531,7 @@ func GetAssetAbsPath(relativePath string) (ret string, err error) {
 	return "", errors.New(fmt.Sprintf(Conf.Language(12), relativePath))
 }
 
-func UploadAssets2Cloud(id string) (count int, err error) {
+func UploadAssets2Cloud(id string, ignorePushMsg bool) (count int, err error) {
 	if !IsSubscriber() {
 		return
 	}
@@ -520,23 +554,23 @@ func UploadAssets2Cloud(id string) (count int, err error) {
 
 	var assets []string
 	for _, n := range nodes {
-		assets = append(assets, getAssetsLinkDests(n)...)
+		assets = append(assets, getAssetsLinkDests(n, false)...)
 		assets = append(assets, getQueryEmbedNodesAssetsLinkDests(n)...)
 	}
 	assets = gulu.Str.RemoveDuplicatedElem(assets)
-	count, err = uploadAssets2Cloud(assets, bizTypeUploadAssets)
+	count, err = uploadAssets2Cloud(assets, bizTypeUploadAssets, ignorePushMsg)
 	if err != nil {
 		return
 	}
 	return
 }
 
-func UploadAssets2CloudByAssetsPaths(assetPaths []string) (count int, err error) {
+func UploadAssets2CloudByAssetsPaths(assetPaths []string, ignorePushMsg bool) (count int, err error) {
 	if !IsSubscriber() {
 		return
 	}
 
-	count, err = uploadAssets2Cloud(assetPaths, bizTypeUploadAssets)
+	count, err = uploadAssets2Cloud(assetPaths, bizTypeUploadAssets, ignorePushMsg)
 	return
 }
 
@@ -546,7 +580,7 @@ const (
 )
 
 // uploadAssets2Cloud 将资源文件上传到云端图床。
-func uploadAssets2Cloud(assetPaths []string, bizType string) (count int, err error) {
+func uploadAssets2Cloud(assetPaths []string, bizType string, ignorePushMsg bool) (count int, err error) {
 	var uploadAbsAssets []string
 	for _, assetPath := range assetPaths {
 		var absPath string
@@ -569,7 +603,11 @@ func uploadAssets2Cloud(assetPaths []string, bizType string) (count int, err err
 	}
 
 	logging.LogInfof("uploading [%d] assets", len(uploadAbsAssets))
-	msgId := util.PushMsg(fmt.Sprintf(Conf.Language(27), len(uploadAbsAssets)), 3000)
+
+	var msgId string
+	if !ignorePushMsg {
+		msgId = util.PushMsg(fmt.Sprintf(Conf.Language(27), len(uploadAbsAssets)), 3000)
+	}
 	if loadErr := LoadUploadToken(); nil != loadErr {
 		util.PushMsg(loadErr.Error(), 5000)
 		return
@@ -645,7 +683,10 @@ func uploadAssets2Cloud(assetPaths []string, bizType string) (count int, err err
 		logging.LogInfof("uploaded asset [%s]", relAsset)
 		count++
 	}
-	util.PushClearMsg(msgId)
+
+	if !ignorePushMsg {
+		util.PushClearMsg(msgId)
+	}
 
 	if 0 < len(completedUploadAssets) {
 		logging.LogInfof("uploaded [%d] assets", len(completedUploadAssets))
@@ -704,6 +745,10 @@ func RemoveUnusedAssets() (ret []string) {
 				}
 			}
 
+			if !isFileWatcherAvailable() {
+				HandleAssetsRemoveEvent(absPath)
+			}
+
 			if removeErr := filelock.RemoveWithoutFatal(absPath); removeErr != nil {
 				logging.LogErrorf("remove unused asset [%s] failed: %s", absPath, removeErr)
 				util.PushErrMsg(fmt.Sprintf("%s", removeErr), 7000)
@@ -711,9 +756,6 @@ func RemoveUnusedAssets() (ret []string) {
 			}
 
 			util.RemoveAssetText(unusedAsset)
-			if !isFileWatcherAvailable() {
-				HandleAssetsRemoveEvent(absPath)
-			}
 		}
 		ret = append(ret, absPath)
 	}
@@ -750,6 +792,10 @@ func RemoveUnusedAsset(p string) (ret string) {
 		cache.RemoveAssetHash(hash)
 	}
 
+	if !isFileWatcherAvailable() {
+		HandleAssetsRemoveEvent(absPath)
+	}
+
 	if err = filelock.RemoveWithoutFatal(absPath); err != nil {
 		logging.LogErrorf("remove unused asset [%s] failed: %s", absPath, err)
 		util.PushErrMsg(fmt.Sprintf("%s", err), 7000)
@@ -758,9 +804,6 @@ func RemoveUnusedAsset(p string) (ret string) {
 	ret = absPath
 
 	util.RemoveAssetText(p)
-	if !isFileWatcherAvailable() {
-		HandleAssetsRemoveEvent(absPath)
-	}
 
 	IncSync()
 
@@ -927,13 +970,13 @@ func UnusedAssets() (ret []string) {
 				trees = append(trees, tree)
 			}
 			for _, tree := range trees {
-				for _, d := range getAssetsLinkDests(tree.Root) {
+				for _, d := range getAssetsLinkDests(tree.Root, false) {
 					dests[d] = true
 				}
 
 				if titleImgPath := treenode.GetDocTitleImgPath(tree.Root); "" != titleImgPath {
 					// 题头图计入
-					if !util.IsAssetLinkDest([]byte(titleImgPath)) {
+					if !util.IsAssetLinkDest([]byte(titleImgPath), false) {
 						continue
 					}
 					dests[titleImgPath] = true
@@ -1090,13 +1133,13 @@ func MissingAssets() (ret []string) {
 				trees = append(trees, tree)
 			}
 			for _, tree := range trees {
-				for _, d := range getAssetsLinkDests(tree.Root) {
+				for _, d := range getAssetsLinkDests(tree.Root, false) {
 					dests[d] = true
 				}
 
 				if titleImgPath := treenode.GetDocTitleImgPath(tree.Root); "" != titleImgPath {
 					// 题头图计入
-					if !util.IsAssetLinkDest([]byte(titleImgPath)) {
+					if !util.IsAssetLinkDest([]byte(titleImgPath), false) {
 						continue
 					}
 					dests[titleImgPath] = true
@@ -1194,7 +1237,7 @@ func getQueryEmbedNodesAssetsLinkDests(node *ast.Node) (ret []string) {
 				continue
 			}
 
-			ret = append(ret, getAssetsLinkDests(embedNode)...)
+			ret = append(ret, getAssetsLinkDests(embedNode, false)...)
 		}
 		return ast.WalkContinue
 	})
@@ -1202,7 +1245,7 @@ func getQueryEmbedNodesAssetsLinkDests(node *ast.Node) (ret []string) {
 	return
 }
 
-func getAssetsLinkDests(node *ast.Node) (ret []string) {
+func getAssetsLinkDests(node *ast.Node, includeServePath bool) (ret []string) {
 	ret = []string{}
 	ast.Walk(node, func(n *ast.Node, entering bool) ast.WalkStatus {
 		if n.IsBlock() {
@@ -1212,7 +1255,7 @@ func getAssetsLinkDests(node *ast.Node) (ret []string) {
 				k := kv[0]
 				if strings.HasPrefix(k, "custom-data-assets") {
 					dest := kv[1]
-					if "" == dest || !util.IsAssetLinkDest([]byte(dest)) {
+					if "" == dest || !util.IsAssetLinkDest([]byte(dest), includeServePath) {
 						continue
 					}
 					ret = append(ret, dest)
@@ -1228,21 +1271,21 @@ func getAssetsLinkDests(node *ast.Node) (ret []string) {
 		}
 
 		if ast.NodeLinkDest == n.Type {
-			if !util.IsAssetLinkDest(n.Tokens) {
+			if !util.IsAssetLinkDest(n.Tokens, includeServePath) {
 				return ast.WalkContinue
 			}
 
 			dest := strings.TrimSpace(string(n.Tokens))
 			ret = append(ret, dest)
 		} else if n.IsTextMarkType("a") {
-			if !util.IsAssetLinkDest(gulu.Str.ToBytes(n.TextMarkAHref)) {
+			if !util.IsAssetLinkDest(gulu.Str.ToBytes(n.TextMarkAHref), includeServePath) {
 				return ast.WalkContinue
 			}
 
 			dest := strings.TrimSpace(n.TextMarkAHref)
 			ret = append(ret, dest)
 		} else if n.IsTextMarkType("file-annotation-ref") {
-			if !util.IsAssetLinkDest(gulu.Str.ToBytes(n.TextMarkFileAnnotationRefID)) {
+			if !util.IsAssetLinkDest(gulu.Str.ToBytes(n.TextMarkFileAnnotationRefID), includeServePath) {
 				return ast.WalkContinue
 			}
 
@@ -1268,7 +1311,7 @@ func getAssetsLinkDests(node *ast.Node) (ret []string) {
 
 						for _, asset := range value.MAsset {
 							dest := asset.Content
-							if !util.IsAssetLinkDest([]byte(dest)) {
+							if !util.IsAssetLinkDest([]byte(dest), includeServePath) {
 								continue
 							}
 							ret = append(ret, strings.TrimSpace(dest))
@@ -1278,7 +1321,7 @@ func getAssetsLinkDests(node *ast.Node) (ret []string) {
 					for _, value := range keyValues.Values {
 						if nil != value.URL {
 							dest := value.URL.Content
-							if !util.IsAssetLinkDest([]byte(dest)) {
+							if !util.IsAssetLinkDest([]byte(dest), includeServePath) {
 								continue
 							}
 							ret = append(ret, strings.TrimSpace(dest))
@@ -1293,13 +1336,13 @@ func getAssetsLinkDests(node *ast.Node) (ret []string) {
 					// 兼容两种属性名 custom-data-assets 和 data-assets https://github.com/siyuan-note/siyuan/issues/4122#issuecomment-1154796568
 					dataAssets = n.IALAttr("data-assets")
 				}
-				if !util.IsAssetLinkDest([]byte(dataAssets)) {
+				if !util.IsAssetLinkDest([]byte(dataAssets), includeServePath) {
 					return ast.WalkContinue
 				}
 				ret = append(ret, dataAssets)
 			} else { // HTMLBlock/InlineHTML/IFrame/Audio/Video
 				dest := treenode.GetNodeSrcTokens(n)
-				if !util.IsAssetLinkDest([]byte(dest)) {
+				if !util.IsAssetLinkDest([]byte(dest), includeServePath) {
 					return ast.WalkContinue
 				}
 				ret = append(ret, dest)
@@ -1369,7 +1412,7 @@ func getRemoteAssetsLinkDests(node *ast.Node, onlyImg bool) (ret []string) {
 	if onlyImg {
 		if ast.NodeLinkDest == node.Type {
 			if node.ParentIs(ast.NodeImage) {
-				if !util.IsAssetLinkDest(node.Tokens) {
+				if !util.IsAssetLinkDest(node.Tokens, false) {
 					ret = append(ret, string(node.Tokens))
 				}
 
@@ -1396,7 +1439,7 @@ func getRemoteAssetsLinkDests(node *ast.Node, onlyImg bool) (ret []string) {
 						}
 
 						dest := asset.Content
-						if !util.IsAssetLinkDest([]byte(dest)) {
+						if !util.IsAssetLinkDest([]byte(dest), false) {
 							ret = append(ret, strings.TrimSpace(dest))
 						}
 					}
@@ -1405,16 +1448,16 @@ func getRemoteAssetsLinkDests(node *ast.Node, onlyImg bool) (ret []string) {
 		}
 	} else {
 		if ast.NodeLinkDest == node.Type {
-			if !util.IsAssetLinkDest(node.Tokens) {
+			if !util.IsAssetLinkDest(node.Tokens, false) {
 				ret = append(ret, string(node.Tokens))
 			}
 		} else if node.IsTextMarkType("a") {
-			if !util.IsAssetLinkDest([]byte(node.TextMarkAHref)) {
+			if !util.IsAssetLinkDest([]byte(node.TextMarkAHref), false) {
 				ret = append(ret, node.TextMarkAHref)
 			}
 		} else if ast.NodeAudio == node.Type || ast.NodeVideo == node.Type {
 			src := treenode.GetNodeSrcTokens(node)
-			if !util.IsAssetLinkDest([]byte(src)) {
+			if !util.IsAssetLinkDest([]byte(src), false) {
 				ret = append(ret, src)
 			}
 		} else if ast.NodeAttributeView == node.Type {
@@ -1435,7 +1478,7 @@ func getRemoteAssetsLinkDests(node *ast.Node, onlyImg bool) (ret []string) {
 
 					for _, asset := range value.MAsset {
 						dest := asset.Content
-						if !util.IsAssetLinkDest([]byte(dest)) {
+						if !util.IsAssetLinkDest([]byte(dest), false) {
 							ret = append(ret, strings.TrimSpace(dest))
 						}
 					}

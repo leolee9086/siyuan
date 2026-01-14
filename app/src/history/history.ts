@@ -199,6 +199,8 @@ const renderRepoItem = (response: IWebSocketData, element: Element, type: string
     /// #endif
     let repoHTML = "";
     const isPhone = isMobile();
+    const selectId: { id: string, time: string }[] = ["getRepoTagSnapshots", "getRepoSnapshots"].includes(type) ?
+        JSON.parse(element.querySelector(".b3-button[data-type='compare']").getAttribute("data-ids") || "[]") : [];
     response.data.snapshots.forEach((item: {
         memo: string,
         id: string,
@@ -235,8 +237,9 @@ ${siyuanI18n.fileCount} ${item.count}<span class="fn__space"></span>`;
     <code class="fn__code">${item.id.substring(0, 7)}</code>
 </div>
 ${statHTML}`;
+        const hasSelected = selectId.find(subItem => subItem.id === item.id);
         /// #if MOBILE
-        repoHTML += `<li class="b3-list-item" data-type="repoitem" data-id="${item.id}" data-tag="${item.tag}">
+        repoHTML += `<li class="b3-list-item${hasSelected ? " b3-list-item--focus" : ""}" data-type="repoitem" data-id="${item.id}" data-tag="${item.tag}">
 <div class="fn__flex-1">
     ${infoHTML}
     <div class="fn__flex" style="height: 26px" data-type="repoitem"" data-id="${item.id}" data-tag="${item.tag}">
@@ -251,7 +254,7 @@ ${statHTML}`;
 </div>
 </li>`;
         /// #else
-        repoHTML += `<li class="b3-list-item b3-list-item--hide-action" data-type="repoitem" data-id="${item.id}" data-tag="${item.tag}">
+        repoHTML += `<li class="b3-list-item b3-list-item--hide-action${hasSelected ? " b3-list-item--focus" : ""}" data-type="repoitem" data-id="${item.id}" data-tag="${item.tag}">
 <div class="fn__flex-1">${infoHTML}</div>
 ${actionHTML}
 </li>`;
@@ -679,9 +682,10 @@ const bindEvent = (app: App, element: Element, dialog?: Dialog) => {
                 const id = target.getAttribute("data-id");
                 if (target.classList.contains("b3-list-item--focus")) {
                     target.classList.remove("b3-list-item--focus");
-                    idJSON.forEach((item: { id: string, time: string }, index: number) => {
+                    idJSON.find((item: { id: string, time: string }, index: number) => {
                         if (id === item.id) {
                             idJSON.splice(index, 1);
+                            return true;
                         }
                     });
                 } else {
@@ -689,6 +693,8 @@ const bindEvent = (app: App, element: Element, dialog?: Dialog) => {
                     while (idJSON.length > 1) {
                         if (idJSON[0].id !== id) {
                             target.parentElement.querySelector(`.b3-list-item[data-id="${idJSON.splice(0, 1)[0].id}"]`)?.classList.remove("b3-list-item--focus");
+                        } else {
+                            idJSON.splice(0, 1);
                         }
                     }
                     idJSON.push({ id, time: target.querySelector('[data-type="hCreated"]').textContent });

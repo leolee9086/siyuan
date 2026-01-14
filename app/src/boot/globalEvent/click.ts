@@ -10,6 +10,7 @@ import { cancelDrag } from "./dragover";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanGlobalMenusMenu } from "../../util/siyuanEnvironments/getMenu.environment";
 import { getSiyuanLayout } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { nbsp2space, removeZWJ } from "../../protyle/util/normalizeText";
 export const globalClickHideMenu = (element: HTMLElement) => {
     const menu = getSiyuanGlobalMenusMenu();
     if (!menu) {
@@ -58,8 +59,7 @@ const handleHiddenProtyleFont = (event: MouseEvent & { target: HTMLElement }) =>
 const handleCopyClick = (event: MouseEvent & { target: HTMLElement }) => {
     const copyElement = hasTopClosestByClassName(event.target, "protyle-action__copy");
     if (copyElement && copyElement.parentElement && copyElement.parentElement.nextElementSibling) {
-        let text = copyElement.parentElement.nextElementSibling.textContent || "";
-        text = text.replace(/\n$/, "").replace(/\u00A0/g, " "); // Replace non-breaking spaces with normal spaces when copying https://github.com/siyuan-note/siyuan/issues/9382
+        const text = removeZWJ(nbsp2space(copyElement.parentElement.nextElementSibling.textContent?.replace(/\n$/, "") || ""));
         writeText(text);
         showMessage(siyuanI18n.copied, 2000);
         event.preventDefault();

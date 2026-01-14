@@ -21,6 +21,7 @@ package model
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/88250/gulu"
@@ -71,14 +72,12 @@ func watchAssets() {
 					return
 				}
 
+				if strings.HasSuffix(event.Name, ".tmp") {
+					continue
+				}
+
 				lastEvent = event
 				timer.Reset(time.Millisecond * 100)
-
-				if lastEvent.Op&fsnotify.Rename == fsnotify.Rename || lastEvent.Op&fsnotify.Write == fsnotify.Write {
-					HandleAssetsChangeEvent(lastEvent.Name)
-				} else if lastEvent.Op&fsnotify.Remove == fsnotify.Remove {
-					HandleAssetsRemoveEvent(lastEvent.Name)
-				}
 			case err, ok := <-assetsWatcher.Errors:
 				if !ok {
 					return

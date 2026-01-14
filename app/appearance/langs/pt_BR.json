@@ -1,4 +1,7 @@
 {
+  "clearTempFiles": "Limpar arquivos temporários",
+  "clearTempFilesTip": "Limpe os arquivos temporários gerados durante a execução do aplicativo para liberar espaço de armazenamento",
+  "uploadFileTooLarge": "⚠️ O arquivo enviado [${x}] é muito grande [${y}]。 Tem certeza de que deseja continuar o upload?",
   "recentDocsMaxListCount": "Número máximo de documentos recentes listados",
   "recentDocsMaxListCountTip": "Número máximo de documentos listados na caixa de diálogo Documentos Recentes",
   "bazaarNeedVersion": "É necessário atualizar o SiYuan para a versão v${x} ou superior para usar",
@@ -1130,7 +1133,7 @@
   "appearance1": "Tema do Bloco de Código",
   "appearance10": "Configurações do botão fechar",
   "appearance11": "minimizar para a bandeja após clicar no botão fechar",
-  "appearance16": "Barra de status inferior",
+  "appearance16": "Ocultar a barra de status inferior",
   "appearance17": "Ao ativar, a barra de status será ocultada",
   "appearance18": "Configurar o interruptor de mensagens da barra de status",
   "min": "Mín",
@@ -1317,6 +1320,7 @@
   "edit-mode": "Alternar Modo",
   "emoji": "Emoji",
   "export": "Exportar",
+  "saveCodeBlockAsFile": "Salvar bloco de código como arquivo",
   "fileTypeError": "tipo de arquivo é inválido",
   "fullscreen": "Alternar Tela Cheia",
   "generate": "Gerando",
@@ -1559,7 +1563,7 @@
     "117": "[%s] não é um executável Pandoc válido",
     "118": "As configurações atuais não permitem a criação de subdocumentos sob um documento com 7 níveis de profundidade",
     "119": "Baixando arquivo da rede [%s]",
-    "120": "Download concluído, [%d] arquivos no total",
+    "120": "Download concluído, ao todo [%d] arquivos, ocupando [%s] de espaço em disco",
     "121": "Não há arquivo de rede neste documento",
     "122": "O recurso de barra lateral que vem com o plugin precisa ser configurado na área de trabalho (você pode acessar http://127.0.0.1:6806/stage/build/desktop usando um navegador móvel, após a configuração, por favor reinicie o SiYuan APP)",
     "123": "A função de sincronização só pode ser ativada após adicionar/selecionar o diretório de sincronização na nuvem",
@@ -1714,6 +1718,8 @@
     "272": "Campo sem nome",
     "273": "Não crie o espaço de trabalho na raiz da partição, crie uma nova pasta para o espaço de trabalho",
     "274": "Esta pasta contém outros arquivos, crie uma nova pasta para o espaço de trabalho",
-    "275": "Não é possível abrir o documento criado por uma versão mais recente. Atualize para a versão mais recente e tente novamente"
+    "275": "Não é possível abrir o documento criado por uma versão mais recente. Atualize para a versão mais recente e tente novamente",
+    "276": "Limpando arquivos temporários...",
+    "277": "Limpeza de arquivos temporários concluída, [%d] arquivos removidos, [%s] de espaço em disco liberado"
   }
 }

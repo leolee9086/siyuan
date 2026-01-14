@@ -1,21 +1,22 @@
-import {Constants} from "../../constants";
-import {uploadFiles, uploadLocalFiles} from "../upload";
-import {processPasteCode, processRender} from "./processCode";
-import {getLocalFiles, getTextSiyuanFromTextHTML, readText} from "./compatibility";
-import {hasClosestBlock, hasClosestByAttribute, hasClosestByClassName} from "./hasClosest";
-import {getEditorRange} from "./selection";
-import {blockRender} from "../render/blockRender";
-import {highlightRender} from "../render/highlightRender";
-import {fetchPost} from "../../util/fetch";
-import {isDynamicRef, isFileAnnotation} from "../../util/functions";
-import {insertHTML} from "./insertHTML";
-import {scrollCenter} from "../../util/highlightById";
-import {hideElements} from "../ui/hideElements";
-import {avRender} from "../render/av/render";
-import {cellScrollIntoView, getCellText} from "../render/av/cell";
-import {getContenteditableElement} from "../wysiwyg/getBlock";
-import {clearBlockElement} from "./clearSelect";
+import { Constants } from "../../constants";
+import { uploadFiles, uploadLocalFiles } from "../upload";
+import { processPasteCode, processRender } from "./processCode";
+import { getLocalFiles, getTextSiyuanFromTextHTML, readText } from "./compatibility";
+import { hasClosestBlock, hasClosestByAttribute, hasClosestByClassName } from "./hasClosest";
+import { getEditorRange } from "./selection";
+import { blockRender } from "../render/blockRender";
+import { highlightRender } from "../render/highlightRender";
+import { fetchPost } from "../../util/fetch";
+import { isDynamicRef, isFileAnnotation } from "../../util/functions";
+import { insertHTML } from "./insertHTML";
+import { scrollCenter } from "../../util/highlightById";
+import { hideElements } from "../ui/hideElements";
+import { avRender } from "../render/av/render";
+import { cellScrollIntoView, getCellText } from "../render/av/cell";
+import { getCalloutInfo, getContenteditableElement } from "../wysiwyg/getBlock";
+import { clearBlockElement } from "./clearSelect";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { removeZWJ } from "./normalizeText";
 
 export const getTextStar = (blockElement: HTMLElement, contentOnly = false) => {
     const dataType = blockElement.dataset.type;
@@ -82,8 +83,10 @@ export const getPlainText = (blockElement: HTMLElement, isNested = false) => {
     } else if (blockElement.classList.contains("render-node")) {
         // 需在嵌入块后，代码块前
         text += Lute.UnEscapeHTMLStr(blockElement.getAttribute("data-content"));
-    } else if (["NodeHeading", "NodeParagraph", "NodeCodeBlock"].includes(dataType)) {
+    } else if (["NodeHeading", "NodeParagraph"].includes(dataType)) {
         text += blockElement.querySelector("[spellcheck]").textContent;
+    } else if ("NodeCodeBlock" === dataType) {
+        text += removeZWJ(blockElement.querySelector("[spellcheck]").textContent);
     } else if (dataType === "NodeTable") {
         blockElement.querySelectorAll("th, td").forEach((item) => {
             text += item.textContent.trim() + "\t";
@@ -139,14 +142,14 @@ export const pasteEscaped = async (protyle: IProtyle, nodeElement: Element) => {
             .replace(/\|/g, "\\|")
             .replace(/\./g, "\\.");
         // 转义文本不能使用 DOM 结构 https://github.com/siyuan-note/siyuan/issues/11778
-        paste(protyle, {textPlain: clipText, textHTML: "", target: nodeElement as HTMLElement});
+        paste(protyle, { textPlain: clipText, textHTML: "", target: nodeElement as HTMLElement });
     } catch (e) {
         console.log(e);
     }
 };
 
 export const pasteAsPlainText = async (protyle: IProtyle) => {
-    let localFiles: string[] = [];
+    let localFiles: ILocalFiles[] = [];
     /// #if !BROWSER
     localFiles = await getLocalFiles();
     if (localFiles.length > 0) {
@@ -160,7 +163,7 @@ export const pasteAsPlainText = async (protyle: IProtyle) => {
         if (getSelection().rangeCount > 0) {
             const range = getSelection().getRangeAt(0);
             if (hasClosestByAttribute(range.startContainer, "data-type", "code") || hasClosestByClassName(range.startContainer, "hljs")) {
-                insertHTML(textPlain.replace(/\u200D```/g, "```").replace(/```/g, "\u200D```"), protyle);
+                insertHTML(removeZWJ(textPlain).replace(/```/g, "\u200D```"), protyle);
                 return;
             }
         }
@@ -212,24 +215,24 @@ export const restoreLuteMarkdownSyntax = (protyle: IProtyle) => {
     protyle.lute.SetMark(window.siyuan.config.editor.markdown.inlineMark);
 };
 
-const readLocalFile = async (protyle: IProtyle, localFiles: string[]) => {
+const readLocalFile = async (protyle: IProtyle, localFiles: ILocalFiles[]) => {
     if (protyle && protyle.app && protyle.app.plugins) {
         for (let i = 0; i < protyle.app.plugins.length; i++) {
-            const response: { files: string[] } = await new Promise((resolve) => {
+            const response: { localFiles: ILocalFiles[] } = await new Promise((resolve) => {
                 const emitResult = protyle.app.plugins[i].eventBus.emit("paste", {
                     protyle,
                     resolve,
                     textHTML: "",
                     textPlain: "",
                     siyuanHTML: "",
-                    files: localFiles
+                    localFiles
                 });
                 if (emitResult) {
                     resolve(undefined);
                 }
             });
-            if (response?.files) {
-                localFiles = response.files;
+            if (response?.localFiles) {
+                localFiles = response.localFiles;
             }
         }
     }
@@ -275,14 +278,14 @@ export const paste = async (protyle: IProtyle, event: (ClipboardEvent | DragEven
 
     /// #if !BROWSER
     if (!siyuanHTML && !textHTML && !textPlain && ("clipboardData" in event)) {
-        const localFiles: string[] = await getLocalFiles();
+        const localFiles: ILocalFiles[] = await getLocalFiles();
         if (localFiles.length > 0) {
             readLocalFile(protyle, localFiles);
             return;
         }
     }
     /// #endif
-
+    const originalTextHTML = textHTML;
     // 浏览器地址栏拷贝处理
     if (textHTML.replace(/&amp;/g, "&").replace(/<(|\/)(html|body|meta)[^>]*?>/ig, "").trim() ===
         `<a href="${textPlain}">${textPlain}</a>` ||
@@ -357,12 +360,12 @@ export const paste = async (protyle: IProtyle, event: (ClipboardEvent | DragEven
     protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--hl").forEach(item => {
         item.classList.remove("protyle-wysiwyg--hl");
     });
-    const code = processPasteCode(textHTML, textPlain, protyle);
+    const code = processPasteCode(textHTML, textPlain, originalTextHTML, protyle);
     const range = getEditorRange(protyle.wysiwyg.element);
     if (nodeElement.getAttribute("data-type") === "NodeCodeBlock" ||
         protyle.toolbar.getCurrentType(range).includes("code")) {
         // https://github.com/siyuan-note/siyuan/issues/13552
-        insertHTML(textPlain.replace(/\u200D```/g, "```").replace(/```/g, "\u200D```"), protyle);
+        insertHTML(removeZWJ(textPlain).replace(/```/g, "\u200D```"), protyle);
         return;
     } else if (siyuanHTML) {
         // 编辑器内部粘贴
@@ -440,10 +443,6 @@ export const paste = async (protyle: IProtyle, event: (ClipboardEvent | DragEven
                 // 复制 HTML 块粘贴出来的不是 HTML 块 https://github.com/siyuan-note/siyuan/issues/12994
                 tempInnerHTML = Lute.UnEscapeHTMLStr(tempInnerHTML);
             }
-
-            // https://github.com/siyuan-note/siyuan/issues/13552
-            tempInnerHTML = tempInnerHTML.replace(/\u200D```/g, "```");
-
             insertHTML(tempInnerHTML, protyle, isBlock, false, true);
         }
         blockRender(protyle, protyle.wysiwyg.element);
@@ -543,7 +542,7 @@ export const paste = async (protyle: IProtyle, event: (ClipboardEvent | DragEven
                 insertHTML(response.data, protyle, false, false, true);
                 protyle.wysiwyg.element.querySelectorAll('[data-type~="block-ref"]').forEach(item => {
                     if (item.textContent === "") {
-                        fetchPost("/api/block/getRefText", {id: item.getAttribute("data-id")}, (response) => {
+                        fetchPost("/api/block/getRefText", { id: item.getAttribute("data-id") }, (response) => {
                             item.innerHTML = response.data;
                         });
                     }
@@ -589,10 +588,6 @@ export const paste = async (protyle: IProtyle, event: (ClipboardEvent | DragEven
                     }
                 }
             }
-
-            // https://github.com/siyuan-note/siyuan/issues/13552
-            textPlain = textPlain.replace(/\u200D```/g, "```");
-
             const textPlainDom = protyle.lute.Md2BlockDOM(textPlain);
             insertHTML(textPlainDom, protyle, false, false, true);
         }

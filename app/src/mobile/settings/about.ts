@@ -1,15 +1,15 @@
-import {Constants} from "../../constants";
-import {setAccessAuthCode} from "../../config/util/about";
-import {Dialog} from "../../dialog";
-import {fetchPost} from "../../util/fetch";
-import {confirmDialog} from "../../dialog/confirmDialog";
-import {showMessage} from "../../dialog/message";
-import {isInAndroid, isInHarmony, isInIOS, isIPad, openByMobile, writeText} from "../../protyle/util/compatibility";
-import {exitSiYuan, processSync} from "../../dialog/processSystem";
-import {pathPosix} from "../../util/pathName";
-import {openModel} from "../menu/model";
-import {setKey} from "../../sync/syncGuide";
-import {isBrowser} from "../../util/functions";
+import { Constants } from "../../constants";
+import { setAccessAuthCode } from "../../config/util/about";
+import { Dialog } from "../../dialog";
+import { fetchPost } from "../../util/fetch";
+import { confirmDialog } from "../../dialog/confirmDialog";
+import { showMessage } from "../../dialog/message";
+import { isInAndroid, isInHarmony, isInIOS, isIPad, openByMobile, writeText } from "../../protyle/util/compatibility";
+import { exitSiYuan, processSync } from "../../dialog/processSystem";
+import { pathPosix } from "../../util/pathName";
+import { openModel } from "../menu/model";
+import { setKey } from "../../sync/syncGuide";
+import { isBrowser } from "../../util/functions";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const initAbout = () => {
@@ -37,21 +37,21 @@ export const initAbout = () => {
         <div class="b3-label__text">${siyuanI18n.about3.replace("${port}", location.port)}</div>
         <div class="fn__hr"></div>
         ${(() => {
-            const ipv4Codes: string[] = [];
-            const ipv6Codes: string[] = [];
-            for (const ip of window.siyuan.config.localIPs) {
-                if (!ip.trim()) {
-                    break;
+                const ipv4Codes: string[] = [];
+                const ipv6Codes: string[] = [];
+                for (const ip of window.siyuan.config.localIPs) {
+                    if (!ip.trim()) {
+                        break;
+                    }
+                    if (ip.startsWith("[") && ip.endsWith("]")) {
+                        ipv6Codes.push(`<code class="fn__code">${ip}</code>`);
+                    } else {
+                        ipv4Codes.push(`<code class="fn__code">${ip}</code>`);
+                    }
                 }
-                if (ip.startsWith("[") && ip.endsWith("]")) {
-                    ipv6Codes.push(`<code class="fn__code">${ip}</code>`);
-                } else {
-                    ipv4Codes.push(`<code class="fn__code">${ip}</code>`);
-                }
-            }
-            return `<div class="b3-label__text${ipv4Codes.length ? "" : " fn__none"}">${ipv4Codes.join(" ")}</div>
+                return `<div class="b3-label__text${ipv4Codes.length ? "" : " fn__none"}">${ipv4Codes.join(" ")}</div>
                     <div class="b3-label__text${ipv6Codes.length ? "" : " fn__none"}">${ipv6Codes.join(" ")}</div>`;
-        })()}
+            })()}
         <div class="fn__hr"></div>
         <div class="b3-label__text">${siyuanI18n.about18}</div>
 </div>
@@ -120,6 +120,14 @@ export const initAbout = () => {
        <svg><use xlink:href="#iconRefresh"></use></svg>${siyuanI18n.rebuildDataIndex}
     </button>
     <div class="b3-label__text">${siyuanI18n.rebuildDataIndexTip}</div>
+</div>
+<div class="b3-label">
+    ${siyuanI18n.clearTempFiles}
+    <div class="fn__hr"></div>
+    <button class="b3-button b3-button--outline fn__block" id="clearTempFiles">
+       <svg><use xlink:href="#iconTrashcan"></use></svg>${siyuanI18n.clearTempFiles}
+    </button>
+    <div class="b3-label__text">${siyuanI18n.clearTempFilesTip}</div>
 </div>
 <div class="b3-label">
     ${siyuanI18n.systemLog}
@@ -200,7 +208,7 @@ export const initAbout = () => {
         </div>
     </div>
     <div style="color:var(--b3-theme-surface);font-family: cursive;">会泽百家&nbsp;至公天下</div>
-    ${siyuanI18n.about1} ${"harmony" === window.siyuan.config.system.container? " • " + siyuanI18n.feedback + " 845765@qq.com" : ""}
+    ${siyuanI18n.about1} ${"harmony" === window.siyuan.config.system.container ? " • " + siyuanI18n.feedback + " 845765@qq.com" : ""}
 </div>
 </div>`,
         bindEvent(modelMainElement: HTMLElement) {
@@ -235,7 +243,7 @@ export const initAbout = () => {
                             passwordDialog.destroy();
                         });
                         btnsElement[1].addEventListener("click", () => {
-                            fetchPost("/api/repo/importRepoKey", {key: textAreaElement.value}, (response) => {
+                            fetchPost("/api/repo/importRepoKey", { key: textAreaElement.value }, (response) => {
                                 window.siyuan.config.repo.key = response.data.key;
                                 importKeyElement.parentElement.classList.add("fn__none");
                                 importKeyElement.parentElement.nextElementSibling.classList.remove("fn__none");
@@ -311,12 +319,17 @@ export const initAbout = () => {
                         event.stopPropagation();
                         break;
                     } else if (target.id === "vacuumDataIndex") {
-                        fetchPost("/api/system/vacuumDataIndex", {}, () => {});
+                        fetchPost("/api/system/vacuumDataIndex", {}, () => { });
                         event.preventDefault();
                         event.stopPropagation();
                         break;
                     } else if (target.id === "rebuildDataIndex") {
-                        fetchPost("/api/system/rebuildDataIndex", {}, () => {});
+                        fetchPost("/api/system/rebuildDataIndex", {}, () => { });
+                        event.preventDefault();
+                        event.stopPropagation();
+                        break;
+                    } else if (target.id === "clearTempFiles") {
+                        fetchPost("/api/system/clearTempFiles", {}, () => { });
                         event.preventDefault();
                         event.stopPropagation();
                         break;
@@ -399,10 +412,10 @@ export const initAbout = () => {
                         break;
                     } else if (target.getAttribute("data-type") === "remove") {
                         const removePath = target.parentElement.getAttribute("data-path");
-                        fetchPost("/api/system/removeWorkspaceDir", {path: removePath}, () => {
+                        fetchPost("/api/system/removeWorkspaceDir", { path: removePath }, () => {
                             genWorkspace(workspaceDirElement);
                             confirmDialog(siyuanI18n.deleteOpConfirm, siyuanI18n.removeWorkspacePhysically.replace("${x}", removePath), () => {
-                                fetchPost("/api/system/removeWorkspaceDirPhysically", {path: removePath});
+                                fetchPost("/api/system/removeWorkspaceDirPhysically", { path: removePath });
                             }, undefined, true);
                         });
                         event.preventDefault();
@@ -446,26 +459,26 @@ export const initAbout = () => {
             });
             const networkServeElement = modelMainElement.querySelector("#networkServe") as HTMLInputElement;
             networkServeElement.addEventListener("change", () => {
-                fetchPost("/api/system/setNetworkServe", {networkServe: networkServeElement.checked}, () => {
+                fetchPost("/api/system/setNetworkServe", { networkServe: networkServeElement.checked }, () => {
                     exitSiYuan();
                 });
             });
             const tokenElement = modelMainElement.querySelector("#token") as HTMLInputElement;
             tokenElement.addEventListener("change", () => {
-                fetchPost("/api/system/setAPIToken", {token: tokenElement.value}, () => {
+                fetchPost("/api/system/setAPIToken", { token: tokenElement.value }, () => {
                     window.siyuan.config.api.token = tokenElement.value;
                     modelMainElement.querySelector("#tokenTip").innerHTML = siyuanI18n.about14.replace("${token}", window.siyuan.config.api.token);
                 });
             });
             const indexRetentionDaysElement = modelMainElement.querySelector("#indexRetentionDays") as HTMLInputElement;
             indexRetentionDaysElement.addEventListener("change", () => {
-                fetchPost("/api/repo/setRepoIndexRetentionDays", {days: parseInt(indexRetentionDaysElement.value)}, () => {
+                fetchPost("/api/repo/setRepoIndexRetentionDays", { days: parseInt(indexRetentionDaysElement.value) }, () => {
                     window.siyuan.config.repo.indexRetentionDays = parseInt(indexRetentionDaysElement.value);
                 });
             });
             const retentionIndexesDailyElement = modelMainElement.querySelector("#retentionIndexesDaily") as HTMLInputElement;
             retentionIndexesDailyElement.addEventListener("change", () => {
-                fetchPost("/api/repo/setRetentionIndexesDaily", {indexes: parseInt(retentionIndexesDailyElement.value)}, () => {
+                fetchPost("/api/repo/setRetentionIndexesDaily", { indexes: parseInt(retentionIndexesDailyElement.value) }, () => {
                     window.siyuan.config.repo.retentionIndexesDaily = parseInt(retentionIndexesDailyElement.value);
                 });
             });
