@@ -9,6 +9,8 @@
 import { fetchPost } from "../../util/fetch";
 import { highlightRender } from "../render/highlightRender";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { showMessage, hideMessage } from "../../dialog/message";
+import { openByMobile } from "../util/compatibility";
 import { getSiyuanConfig, getSiyuanMenus } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 /**
@@ -145,5 +147,18 @@ const 创建代码块开关菜单项 = (
  * ```
  */
 export const buildGutterCodeBlockMenu = (ctx: IGutterCodeBlockMenuContext): IMenu[] => {
-    return 代码块开关配置列表.map(config => 创建代码块开关菜单项(config, ctx));
+    const menus = 代码块开关配置列表.map(config => 创建代码块开关菜单项(config, ctx));
+    menus.push({
+        id: "saveCodeBlockAsFile",
+        iconHTML: "",
+        label: siyuanI18n.saveCodeBlockAsFile,
+        click() {
+            const msgId = showMessage(siyuanI18n.exporting, -1);
+            fetchPost("/api/export/exportCodeBlock", { id: ctx.id }, (response) => {
+                hideMessage(msgId);
+                openByMobile(response.data.path);
+            });
+        }
+    });
+    return menus;
 };

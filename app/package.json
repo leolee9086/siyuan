@@ -1,5 +1,5 @@
 {
-  "name": "SiYuan",
+  "name": "s-forge",
   "version": "3.5.3",
   "description": "Refactor your thinking",
   "homepage": "https://b3log.org/siyuan",
@@ -107,6 +107,7 @@
     "@leolee9086/everything-client-http": "link:../packages/everything-client-http",
     "@leolee9086/image-dehazing": "link:../packages/dehaze/",
     "@modelcontextprotocol/sdk": "^1.20.2",
+    "@types/filesize": "^5.0.2",
     "es-module-lexer": "^1.7.0",
     "magic-string": "^0.30.21",
     "path-to-regexp": "^6.3.0",
