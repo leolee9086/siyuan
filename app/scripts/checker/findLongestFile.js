@@ -55,7 +55,8 @@ function findLongestFile(srcPath) {
         "types/i18n.types.ts",
         "types/index.d.ts",
         "assets/scss/pdf/*.scss",
-        "config/bazzar/bazaar.ts.old"
+        "config/bazzar/bazaar.ts.old",
+        "assets/scss/*"
     ];
 
     // 获取所有文件
