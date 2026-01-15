@@ -1,15 +1,15 @@
 import * as dayjs from "dayjs";
-import { fetchPost } from "../ai/imports";
-import { Constants } from "../constants";
-import { renameAsset } from "../editor/rename";
-import { emitOpenMenu } from "../plugin/EventBus";
-import { hideElements } from "../protyle/ui/hideElements";
-import { hasClosestBlock, hasTopClosestByClassName } from "../protyle/util/hasClosest";
-import { focusByWbr } from "../protyle/util/selection";
-import { updateTransaction } from "../protyle/wysiwyg/transaction";
-import { getSiyuanGlobalMenusMenu } from "../util/siyuanEnvironments/getMenu.environment";
-import { openMenu } from "./commonMenuItem.openMenu";
-import { MenuItem } from "./Menu.Item";
+import { fetchPost } from "../../ai/imports";
+import { Constants } from "../../constants";
+import { renameAsset } from "../../editor/rename";
+import { emitOpenMenu } from "../../plugin/EventBus";
+import { hideElements } from "../../protyle/ui/hideElements";
+import { hasClosestBlock, hasTopClosestByClassName } from "../../protyle/util/hasClosest";
+import { focusByWbr } from "../../protyle/util/selection";
+import { updateTransaction } from "../../protyle/wysiwyg/transaction";
+import { getSiyuanGlobalMenusMenu } from "../../util/siyuanEnvironments/getMenu.environment";
+import { openMenu } from "../commonMenuItem.openMenu";
+import { MenuItem } from "../Menu.Item";
 import {
     genAlignCenterItem,
     genAlignLeftItem,
@@ -20,9 +20,9 @@ import {
     genDeleteItem,
     genExportItem,
     genRenameItem
-} from "./protyle.imgMenu.actions";
-import { genImageSettingsItem, genOCRItem } from "./protyle.imgMenu.items";
-import { genHeightItem, genWidthItem } from "./protyle.imgMenu.size";
+} from "../protyle.imgMenu.actions";
+import { genImageSettingsItem, genOCRItem } from "../protyle.imgMenu.items";
+import { genHeightItem, genWidthItem } from "../protyle.imgMenu.size";
 
 /**
  * @zh-CN

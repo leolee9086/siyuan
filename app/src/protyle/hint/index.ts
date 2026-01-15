@@ -19,7 +19,7 @@ import { transaction, updateTransaction } from "../wysiwyg/transaction";
 import { insertHTML } from "../util/insertHTML";
 import { highlightRender } from "../render/highlightRender";
 import { setFold } from "../../menus/protyle";
-import { imgMenu } from "../../menus/protyle.imgMenu";
+import { imgMenu } from "../../menus/protyleMenus/protyle.imgMenu";
 import { assetMenu } from "../../menus/protyleMenus/protyle.asset";
 import { hideElements } from "../ui/hideElements";
 import { fetchPost } from "../../util/fetch";

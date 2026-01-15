@@ -31,7 +31,7 @@ import { inlineMathMenu } from "../../menus/protyle.inlineMathMenu";
 import { tagMenu } from "../../menus/protyle.tagMenu";
 import { linkMenu } from "../../menus/protyle.linkMenu";
 import { zoomOut } from "../../menus/protyle.zoomOut";
-import { imgMenu } from "../../menus/protyle.imgMenu";
+import { imgMenu } from "../../menus/protyleMenus/protyle.imgMenu";
 import { contentMenu } from "../../menus/protyleMenus/protyle.contentMenu";
 import { refMenu } from "../../menus/protyle.refMenu";
 import { fileAnnotationRefMenu } from "../../menus/protyle.fileAnnotationRefMenu";
