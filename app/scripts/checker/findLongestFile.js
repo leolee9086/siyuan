@@ -51,7 +51,11 @@ function findLongestFile(srcPath) {
         "data/kernelAPI/mimeDb.ts",
         "data/kernelAPI/kernelApiClient.ts",
         "asset/pdf/app.js",
-        "types/config.d.ts"
+        "types/config.d.ts",
+        "types/i18n.types.ts",
+        "types/index.d.ts",
+        "assets/scss/pdf/*.scss",
+        "config/bazzar/bazaar.ts.old"
     ];
 
     // 获取所有文件
@@ -68,7 +72,7 @@ function findLongestFile(srcPath) {
             return false;
         }
 
-        return !ignoreFiles.some(ignoreFile => normalizedPath.includes(ignoreFile));
+        return !ignoreFiles.some(pattern => matchGlob(pattern, normalizedPath));
     });
 
     console.log(`共找到 ${allFiles.length} 个文件，过滤后剩余 ${filteredFiles.length} 个文件`);
@@ -103,6 +107,37 @@ function findLongestFile(srcPath) {
     console.log(`最长文件: ${fileStats[0].relativePath} (${fileStats[0].lines} 行)`);
 
     return fileStats[0];
+}
+
+/**
+ * 简单的 Glob 匹配
+ * @param {string} pattern Glob 模式
+ * @param {string} str 待匹配的字符串
+ * @returns {boolean} 是否匹配
+ */
+function matchGlob(pattern, str) {
+    let output = "^";
+    let i = 0;
+    while (i < pattern.length) {
+        if (pattern.startsWith("**", i)) {
+            output += ".*";
+            i += 2;
+        } else if (pattern[i] === "*") {
+            output += "[^/]*";
+            i++;
+        } else if (pattern[i] === "?") {
+            output += ".";
+            i++;
+        } else if (["/", ".", "+", "^", "$", "{", "}", "(", ")", "|", "[", "]", "\\"].includes(pattern[i])) {
+            output += "\\" + pattern[i];
+            i++;
+        } else {
+            output += pattern[i];
+            i++;
+        }
+    }
+    output += "$";
+    return new RegExp(output).test(str);
 }
 
 // 主程序
