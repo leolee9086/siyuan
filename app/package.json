@@ -109,6 +109,7 @@
     "@modelcontextprotocol/sdk": "^1.20.2",
     "@types/filesize": "^5.0.2",
     "es-module-lexer": "^1.7.0",
+    "eslint-plugin-vue": "^10.6.2",
     "magic-string": "^0.30.21",
     "path-to-regexp": "^6.3.0",
     "rbush": "^4.0.1",

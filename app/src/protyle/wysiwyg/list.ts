@@ -163,7 +163,7 @@ export const listIndent = (protyle: IProtyle, liItemElements: Element[], range: 
     } else {
         const previousHTML = previousElement.outerHTML;
         const subType = liItemElements[0].getAttribute("data-subtype");
-        let newListElement = document.createElement("div");
+        const newListElement = document.createElement("div");
         const newListId = Lute.NewNodeID();
         newListElement.setAttribute("data-node-id", newListId);
         newListElement.setAttribute("data-type", "NodeList");

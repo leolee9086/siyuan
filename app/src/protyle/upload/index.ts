@@ -181,7 +181,9 @@ const genUploadedLabel = (responseText: string, protyle: IProtyle) => {
                 if (panelItems) {
                     for (const id of panelItems) {
                         const item = protyle.wysiwyg.element.querySelector(`.av__gallery-fields [data-dtype="mAsset"][data-id="${id}"]`) as HTMLElement;
-                        if (item) cellElements.push(item);
+                        if (item) {
+cellElements.push(item);
+}
                     }
                 }
             }
@@ -342,7 +344,9 @@ const processFiles = (files: FileList | DataTransferItemList | File[], protyle: 
  * @param element - 上传 input 元素
  */
 const handleXHRStateChange = (xhr: XMLHttpRequest, protyle: IProtyle, msgId: string, editorElement: HTMLElement, fileList: File[], successCB?: (res: string) => void, element?: HTMLInputElement) => {
-    if (xhr.readyState !== XMLHttpRequest.DONE) return;
+    if (xhr.readyState !== XMLHttpRequest.DONE) {
+return;
+}
 
     if (protyle.upload) {
         protyle.upload.isUploading = false;
@@ -442,7 +446,7 @@ export const uploadFiles = (protyle: IProtyle, files: FileList | DataTransferIte
         return;
     }
 
-    let fileList = processFiles(files, protyle);
+    const fileList = processFiles(files, protyle);
 
     if (protyle.options.upload.handler) {
         const isValidate = protyle.options.upload.handler(fileList);
