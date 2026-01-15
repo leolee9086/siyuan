@@ -8,7 +8,7 @@ import {
 } from "../util/hasClosest";
 import { getIconByType } from "../../editor/getIcon";
 import { setFold, tableMenu, videoMenu } from "../../menus/protyle";
-import { enterBack } from "../../menus/protyle.enterBack";
+import { enterBack } from "../../menus/protyleMenus/protyle.enterBack";
 import { iframeMenu } from "../../menus/protyle.iframeMenu";
 import { zoomOut } from "../../menus/protyle.zoomOut";
 import { MenuItem } from "../../menus/Menu";

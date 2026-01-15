@@ -26,7 +26,7 @@ import {
 } from "../../menus/protyle";
 import {
     enterBack
-} from "../../menus/protyle.enterBack";
+} from "../../menus/protyleMenus/protyle.enterBack";
 import { inlineMathMenu } from "../../menus/protyle.inlineMathMenu";
 import { tagMenu } from "../../menus/protyle.tagMenu";
 import { linkMenu } from "../../menus/protyle.linkMenu";

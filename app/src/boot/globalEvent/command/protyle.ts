@@ -1,6 +1,6 @@
 import { hasClosestBlock } from "../../../protyle/util/hasClosest";
 import { getTopAloneElement } from "../../../protyle/wysiwyg/getBlock";
-import { enterBack } from "../../../menus/protyle.enterBack";
+import { enterBack } from "../../../menus/protyleMenus/protyle.enterBack";
 import { zoomOut } from "../../../menus/protyle.zoomOut";
 /// #if !MOBILE
 import { openFileById } from "../../../editor/utils.openFileById";

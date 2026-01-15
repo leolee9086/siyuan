@@ -8,7 +8,7 @@
 
 import * as dayjs from "dayjs";
 import { setFold } from "../../menus/protyle";
-import { enterBack } from "../../menus/protyle.enterBack";
+import { enterBack } from "../../menus/protyleMenus/protyle.enterBack";
 import { zoomOut } from "../../menus/protyle.zoomOut";
 import { openAttr } from "../../menus/commonMenuItem";
 import { openWechatNotify } from "../../menus/commonMenuItem.openWechatNotify";
