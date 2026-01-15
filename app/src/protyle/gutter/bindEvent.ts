@@ -6,7 +6,8 @@ import {
     isInAVBlock,
     isInEmbedBlock
 } from "../util/hasClosest";
-import { setFold, zoomOut } from "../../menus/protyle";
+import { setFold } from "../../menus/protyle";
+import { zoomOut } from "../../menus/protyle.zoomOut";
 import { openAttr } from "../../menus/commonMenuItem";
 import { openFileAttr } from "../../menus/commonMenuItem.openFileAttr";
 import { isOnlyMeta } from "../util/compatibility";

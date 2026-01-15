@@ -1,6 +1,6 @@
 import { Editor } from ".";
 import { Constants } from "../constants";
-import { zoomOut } from "../menus/protyle";
+import { zoomOut } from "../menus/protyle.zoomOut";
 import { preventScroll } from "../protyle/scroll/preventScroll";
 import { isInEmbedBlock, hasClosestBlock } from "../protyle/util/hasClosest";
 import { onGet } from "../protyle/util/onGet";
@@ -23,7 +23,7 @@ export const switchEditor = (editor: Editor, options: IOpenFileOptions, allModel
         return true;
     }
     if (options.zoomIn) {
-        zoomOut({protyle: editor.editor.protyle, id: options.id});
+        zoomOut({ protyle: editor.editor.protyle, id: options.id });
         return true;
     }
     let nodeElement: Element;
@@ -39,7 +39,7 @@ export const switchEditor = (editor: Editor, options: IOpenFileOptions, allModel
             mode: (options.action && options.action.includes(Constants.CB_GET_CONTEXT)) ? 3 : 0,
             size: window.siyuan.config.editor.dynamicLoadBlocks,
         }, getResponse => {
-            onGet({data: getResponse, protyle: editor.editor.protyle, action: options.action});
+            onGet({ data: getResponse, protyle: editor.editor.protyle, action: options.action });
             // 大纲点击折叠标题下的内容时，需更新反链面板
             updateBacklinkGraph(allModels, editor.editor.protyle);
         });

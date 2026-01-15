@@ -1,26 +1,27 @@
-import {fetchPost, fetchSyncPost} from "../../util/fetch";
-import {focusBlock, focusByWbr, focusSideBlock, getEditorRange} from "../util/selection";
-import {getContenteditableElement, getFirstBlock, getTopAloneElement} from "./getBlock";
-import {Constants} from "../../constants";
-import {blockRender} from "../render/blockRender";
-import {processRender} from "../util/processCode";
-import {highlightRender} from "../render/highlightRender";
-import {hasClosestBlock, hasClosestByAttribute, hasTopClosestByAttribute, isInEmbedBlock} from "../util/hasClosest";
-import {setFold, zoomOut} from "../../menus/protyle";
-import {disabledProtyle, enableProtyle, onGet} from "../util/onGet";
+import { fetchPost, fetchSyncPost } from "../../util/fetch";
+import { focusBlock, focusByWbr, focusSideBlock, getEditorRange } from "../util/selection";
+import { getContenteditableElement, getFirstBlock, getTopAloneElement } from "./getBlock";
+import { Constants } from "../../constants";
+import { blockRender } from "../render/blockRender";
+import { processRender } from "../util/processCode";
+import { highlightRender } from "../render/highlightRender";
+import { hasClosestBlock, hasClosestByAttribute, hasTopClosestByAttribute, isInEmbedBlock } from "../util/hasClosest";
+import { setFold } from "../../menus/protyle";
+import { zoomOut } from "../../menus/protyle.zoomOut";
+import { disabledProtyle, enableProtyle, onGet } from "../util/onGet";
 /// #if !MOBILE
-import {getAllModels} from "../../layout/getAll";
+import { getAllModels } from "../../layout/getAll";
 /// #endif
-import {avRender, refreshAV} from "../render/av/render";
-import {removeFoldHeading} from "../util/heading";
-import {cancelSB, genEmptyElement, genSBElement} from "../../block/util";
-import {hideElements} from "../ui/hideElements";
-import {reloadProtyle} from "../util/reload";
-import {countBlockWord} from "../../layout/status";
-import {isPaidUser, needSubscribe} from "../../util/needSubscribe";
-import {resize} from "../util/resize";
-import {processClonePHElement} from "../render/util";
-import {scrollCenter} from "../../util/highlightById";
+import { avRender, refreshAV } from "../render/av/render";
+import { removeFoldHeading } from "../util/heading";
+import { cancelSB, genEmptyElement, genSBElement } from "../../block/util";
+import { hideElements } from "../ui/hideElements";
+import { reloadProtyle } from "../util/reload";
+import { countBlockWord } from "../../layout/status";
+import { isPaidUser, needSubscribe } from "../../util/needSubscribe";
+import { resize } from "../util/resize";
+import { processClonePHElement } from "../render/util";
+import { scrollCenter } from "../../util/highlightById";
 
 const removeTopElement = (updateElement: Element, protyle: IProtyle) => {
     // 移动到其他文档中，该块需移除
@@ -86,7 +87,7 @@ const promiseTransaction = () => {
         }
         /// #if MOBILE
         if (((0 !== window.siyuan.config.sync.provider && isPaidUser()) ||
-                (0 === window.siyuan.config.sync.provider && !needSubscribe(""))) &&
+            (0 === window.siyuan.config.sync.provider && !needSubscribe(""))) &&
             window.siyuan.config.repo.key && window.siyuan.config.sync.enabled) {
             document.getElementById("toolbarSync").classList.remove("fn__none");
         }
@@ -1281,7 +1282,7 @@ export const turnsOneInto = async (options: {
     const oldHTML = options.nodeElement.outerHTML;
     let previousId = options.nodeElement.previousElementSibling?.getAttribute("data-node-id");
     if (!options.nodeElement.previousElementSibling && options.protyle.block.showAll) {
-        const response = await fetchSyncPost("/api/block/getBlockRelevantIDs", {id: options.id});
+        const response = await fetchSyncPost("/api/block/getBlockRelevantIDs", { id: options.id });
         previousId = response.data.previousID;
     }
     const parentId = options.nodeElement.parentElement.getAttribute("data-node-id") || options.protyle.block.parentID;
@@ -1326,7 +1327,7 @@ export const turnsOneInto = async (options: {
     focusByWbr(options.protyle.wysiwyg.element, getEditorRange(options.protyle.wysiwyg.element));
     options.protyle.wysiwyg.element.querySelectorAll('[data-type~="block-ref"]').forEach(item => {
         if (item.textContent === "") {
-            fetchPost("/api/block/getRefText", {id: item.getAttribute("data-id")}, (response) => {
+            fetchPost("/api/block/getRefText", { id: item.getAttribute("data-id") }, (response) => {
                 item.innerHTML = response.data;
             });
         }

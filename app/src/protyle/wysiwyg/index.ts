@@ -22,13 +22,15 @@ import { Constants } from "../../constants";
 import { isMobile } from "../../util/functions";
 import { previewDocImage } from "../preview/image";
 import {
-    enterBack,
-    inlineMathMenu,
-    linkMenu,
-    setFold,
-    tagMenu,
-    zoomOut
+    setFold
 } from "../../menus/protyle";
+import {
+    enterBack
+} from "../../menus/protyle.enterBack";
+import { inlineMathMenu } from "../../menus/protyle.inlineMathMenu";
+import { tagMenu } from "../../menus/protyle.tagMenu";
+import { linkMenu } from "../../menus/protyle.linkMenu";
+import { zoomOut } from "../../menus/protyle.zoomOut";
 import { imgMenu } from "../../menus/protyle.imgMenu";
 import { contentMenu } from "../../menus/protyle.contentMenu";
 import { refMenu } from "../../menus/protyle.refMenu";

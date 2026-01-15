@@ -17,7 +17,8 @@ import { getSiyuanGlobalMenusMenu } from "../util/siyuanEnvironments/getMenu.env
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { openMenu } from "./commonMenuItem.openMenu";
 import { MenuItem } from "./Menu.Item";
-import { genImageWidthMenu, genImageHeightMenu } from "./protyle";
+import { genImageHeightMenu } from "./protyle.genImageHeightMenu";
+import { genImageWidthMenu } from "./protyle.genImageWidthMenu";
 import { copyPNGByLink, exportAsset } from "./util";
 
 

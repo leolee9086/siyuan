@@ -7,7 +7,7 @@ import { getAllModels } from "../layout/getAll";
 import { Tab } from "../layout/Tab";
 import { getInstanceById, getWndByLayout } from "../layout/util";
 import { Wnd } from "../layout/Wnd";
-import { zoomOut } from "../menus/protyle";
+import { zoomOut } from "../menus/protyle.zoomOut";
 import { saveScroll } from "../protyle/scroll/saveScroll";
 import { hideElements } from "../protyle/ui/hideElements";
 import { isInEmbedBlock } from "../protyle/util/hasClosest";
@@ -21,8 +21,8 @@ import { getSiyuanBackStack, getSiyuanConfig, getSiyuanLayout, getSiyuanStorage 
 const getBlockElement = (protyle: IProtyle, id: string) => {
     let blockElement: HTMLElement | undefined;
     if (!protyle.wysiwyg) {
-return;
-}
+        return;
+    }
     const elements = Array.from(protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${id}"]`));
     for (const item of elements) {
         if (!isInEmbedBlock(item as HTMLElement)) {
@@ -35,11 +35,11 @@ return;
 
 const switchTabIfHidden = (stack: IBackStack) => {
     if (!stack.protyle || !stack.protyle.title) {
-return;
-}
+        return;
+    }
     if (stack.protyle.title.editElement.getBoundingClientRect().height !== 0) {
-return;
-}
+        return;
+    }
 
     if (stack.protyle.model) {
         stack.protyle.model.parent.parent.switchTab(stack.protyle.model.parent.headElement);
@@ -51,8 +51,8 @@ return;
 
 const focusRoot = (stack: IBackStack) => {
     if (!stack.protyle || !stack.protyle.title) {
-return false;
-}
+        return false;
+    }
     switchTabIfHidden(stack);
     if (stack.position) {
         focusByOffset(stack.protyle.title.editElement, stack.position.start, stack.position.end);
@@ -62,8 +62,8 @@ return false;
 
 const focusExistingBlock = (stack: IBackStack, blockElement: HTMLElement) => {
     if (!stack.protyle) {
-return false;
-}
+        return false;
+    }
     if (blockElement.getBoundingClientRect().height === 0 && stack.protyle.model) {
         // 切换 tab
         stack.protyle.model.parent.parent.switchTab(stack.protyle.model.parent.headElement);
@@ -84,8 +84,8 @@ return false;
 
 const focusAfterLoadOrZoom = (stack: IBackStack) => {
     if (!stack.protyle) {
-return;
-}
+        return;
+    }
     const newBlockElement = getBlockElement(stack.protyle, stack.id);
     if (!newBlockElement) {
         return;
@@ -105,8 +105,8 @@ return;
 
 const handleDynamicBlockResponse = (stack: IBackStack, getResponse: any) => {
     if (!stack.protyle) {
-return;
-}
+        return;
+    }
     onGet({
         data: getResponse,
         protyle: stack.protyle,
@@ -119,8 +119,8 @@ return;
 const loadDynamicBlock = (stack: IBackStack) => {
     const config = getSiyuanConfig();
     if (!config.editor.dynamicLoadBlocks) {
-return;
-}
+        return;
+    }
     fetchPost("/api/filetree/getDoc", {
         id: stack.id,
         mode: 3,
@@ -130,12 +130,12 @@ return;
 
 const zoomToBlock = (stack: IBackStack) => {
     if (!stack.protyle) {
-return;
-}
+        return;
+    }
     const id = stack.zoomId || stack.protyle.block.rootID;
     if (!id) {
-return;
-}
+        return;
+    }
     zoomOut({
         protyle: stack.protyle,
         id,
@@ -157,11 +157,11 @@ const handleBlockMissing = () => {
 
 const checkAndLoad = async (stack: IBackStack, blockElement: HTMLElement | undefined) => {
     if (!stack.protyle) {
-return false;
-}
+        return false;
+    }
     if (!stack.protyle.element.parentElement) {
-return;
-}
+        return;
+    }
 
     const response = await fetchSyncPost("/api/block/checkBlockExist", { id: stack.id });
     if (!response.data) {
@@ -184,8 +184,8 @@ const createTabForStack = (app: App, stack: IBackStack, info: any) => {
         docIcon: info.data.rootIcon,
         callback(tab) {
             if (!stack.protyle) {
-return;
-}
+                return;
+            }
             const scrollAttr = saveScroll(stack.protyle, true) as IScrollAttr;
             scrollAttr.rootId = stack.protyle.block.rootID || "";
             scrollAttr.focusId = stack.id;
@@ -284,17 +284,17 @@ const focusAfterTabCreation = (stack: IBackStack, protyle: IProtyle, rootID: str
 
 const openProtyleInNewTab = async (app: App, stack: IBackStack) => {
     if (!stack.protyle) {
-return false;
-}
+        return false;
+    }
     const response = await fetchSyncPost("/api/block/checkBlockExist", { id: stack.protyle.block.rootID });
     if (!response.data) {
-return false;
-}
+        return false;
+    }
 
     const wnd = findTargetWnd();
     if (!wnd) {
-return false;
-}
+        return false;
+    }
 
     const info = await fetchSyncPost("/api/block/getBlockInfo", { id: stack.id });
     if (info.code === 3) {
@@ -316,8 +316,8 @@ return false;
 
 export const focusStack = async (app: App, stack: IBackStack) => {
     if (!stack.protyle) {
-return;
-}
+        return;
+    }
     hideElements(["gutter", "toolbar", "hint", "util", "dialog"], stack.protyle);
     if (!document.contains(stack.protyle.element)) {
         return await openProtyleInNewTab(app, stack);

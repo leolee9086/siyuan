@@ -1,4 +1,4 @@
-import {focusBlock, focusByRange, focusByWbr, getSelectionOffset, setLastNodeRange} from "../util/selection";
+import { focusBlock, focusByRange, focusByWbr, getSelectionOffset, setLastNodeRange } from "../util/selection";
 import {
     getContenteditableElement,
     getLastBlock,
@@ -9,22 +9,23 @@ import {
     hasNextSibling,
     hasPreviousSibling
 } from "./getBlock";
-import {transaction, turnsIntoOneTransaction, turnsIntoTransaction, updateTransaction} from "./transaction";
-import {cancelSB, genEmptyElement} from "../../block/util";
-import {listOutdent, updateListOrder} from "./list";
-import {setFold, zoomOut} from "../../menus/protyle";
-import {preventScroll} from "../scroll/preventScroll";
-import {hideElements} from "../ui/hideElements";
-import {Constants} from "../../constants";
-import {scrollCenter} from "../../util/highlightById";
-import {isMobile} from "../../util/functions";
-import {mathRender} from "../render/mathRender";
-import {hasClosestBlock, hasClosestByClassName} from "../util/hasClosest";
-import {getInstanceById} from "../../layout/util";
-import {Tab} from "../../layout/Tab";
-import {Backlink} from "../../layout/dock/Backlink";
-import {fetchPost, fetchSyncPost} from "../../util/fetch";
-import {onGet} from "../util/onGet";
+import { transaction, turnsIntoOneTransaction, turnsIntoTransaction, updateTransaction } from "./transaction";
+import { cancelSB, genEmptyElement } from "../../block/util";
+import { listOutdent, updateListOrder } from "./list";
+import { setFold } from "../../menus/protyle";
+import { zoomOut } from "../../menus/protyle.zoomOut";
+import { preventScroll } from "../scroll/preventScroll";
+import { hideElements } from "../ui/hideElements";
+import { Constants } from "../../constants";
+import { scrollCenter } from "../../util/highlightById";
+import { isMobile } from "../../util/functions";
+import { mathRender } from "../render/mathRender";
+import { hasClosestBlock, hasClosestByClassName } from "../util/hasClosest";
+import { getInstanceById } from "../../layout/util";
+import { Tab } from "../../layout/Tab";
+import { Backlink } from "../../layout/dock/Backlink";
+import { fetchPost, fetchSyncPost } from "../../util/fetch";
+import { onGet } from "../util/onGet";
 
 export const removeBlock = async (protyle: IProtyle, blockElement: Element, range: Range, type: "Delete" | "Backspace" | "remove") => {
     protyle.observerLoad?.disconnect();
@@ -168,7 +169,7 @@ export const removeBlock = async (protyle: IProtyle, blockElement: Element, rang
         if (sideElement) {
             if (protyle.block.showAll && sideElement.classList.contains("protyle-wysiwyg") && protyle.wysiwyg.element.childElementCount === 0) {
                 setTimeout(() => {
-                    zoomOut({protyle, id: protyle.block.parent2ID, focusId: protyle.block.parent2ID});
+                    zoomOut({ protyle, id: protyle.block.parent2ID, focusId: protyle.block.parent2ID });
                 }, Constants.TIMEOUT_INPUT * 2 + 100);
             } else {
                 if ((sideElement.classList.contains("protyle-wysiwyg") && protyle.wysiwyg.element.childElementCount === 0)) {
@@ -750,7 +751,7 @@ const removeLi = (protyle: IProtyle, blockElement: Element, range: Range, isDele
                 action: "move",
                 id,
                 previousID,
-                context: {ignoreProcess: foldElement ? "true" : "false"}
+                context: { ignoreProcess: foldElement ? "true" : "false" }
             });
             undoOperations.push({
                 action: "move",

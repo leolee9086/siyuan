@@ -7,7 +7,9 @@
  */
 
 import * as dayjs from "dayjs";
-import { enterBack, setFold, zoomOut } from "../../menus/protyle";
+import { setFold } from "../../menus/protyle";
+import { enterBack } from "../../menus/protyle.enterBack";
+import { zoomOut } from "../../menus/protyle.zoomOut";
 import { openAttr } from "../../menus/commonMenuItem";
 import { openWechatNotify } from "../../menus/commonMenuItem.openWechatNotify";
 import { updateHotkeyAfterTip, updateHotkeyTip } from "../util/compatibility";

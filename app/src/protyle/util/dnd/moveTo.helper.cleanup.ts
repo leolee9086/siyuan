@@ -2,7 +2,7 @@ import { cancelSB, genEmptyElement } from "../../../block/util";
 import { getTopAloneElement } from "../../wysiwyg/getBlock";
 /// #if !MOBILE
 import { getAllEditor } from "../../../layout/getAll";
-import { zoomOut } from "../../../menus/protyle";
+import { zoomOut } from "../../../menus/protyle.zoomOut";
 /// #endif
 import { IMoveContext } from "./moveTo.types";
 
@@ -26,8 +26,8 @@ export const cleanupSourceElement = async (item: Element, oldSourceParentElement
 
 const removeSameElementIfNotSameDoc = (context: IMoveContext, element: Element) => {
     if (context.isSameDoc) {
-return;
-}
+        return;
+    }
 
     const nodeId = element.getAttribute("data-node-id");
     const sameElement = context.protyle.wysiwyg.element.querySelector(`[data-node-id="${nodeId}"]`);

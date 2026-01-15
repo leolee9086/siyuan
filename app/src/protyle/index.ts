@@ -47,7 +47,8 @@ import { getAllModels } from "../layout/getAll";
 /// #endif
 import { isSupportCSSHL } from "./render/searchMarkRender";
 import { renderAVAttribute } from "./render/av/blockAttr";
-import { setFoldById, zoomOut } from "../menus/protyle";
+import { setFoldById } from "../menus/protyle";
+import { zoomOut } from "../menus/protyle.zoomOut";
 
 export class Protyle {
 
@@ -300,7 +301,7 @@ export class Protyle {
         }
         let needCreateAction = "";
         data.data[0].doOperations.find((item: IOperation) => {
-             if (this.protyle.options.backlinkData && ["delete", "move"].includes(item.action)) {
+            if (this.protyle.options.backlinkData && ["delete", "move"].includes(item.action)) {
                 // 只对特定情况刷新，否则展开、编辑等操作刷新会频繁
                 /// #if !MOBILE
                 getAllModels().backlink.find(backlinkItem => {

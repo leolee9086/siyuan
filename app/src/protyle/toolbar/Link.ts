@@ -1,8 +1,8 @@
-import {ToolbarItem} from "./ToolbarItem";
-import {linkMenu} from "../../menus/protyle";
-import {hasClosestBlock, hasClosestByAttribute} from "../util/hasClosest";
-import {readClipboard} from "../util/compatibility";
-import {Constants} from "../../constants";
+import { ToolbarItem } from "./ToolbarItem";
+import { linkMenu } from "../../menus/protyle.linkMenu";
+import { hasClosestBlock, hasClosestByAttribute } from "../util/hasClosest";
+import { readClipboard } from "../util/compatibility";
+import { Constants } from "../../constants";
 
 export class Link extends ToolbarItem {
     public declare element: HTMLElement;

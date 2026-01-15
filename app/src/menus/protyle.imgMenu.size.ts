@@ -5,7 +5,8 @@ import { updateTransaction } from "../protyle/wysiwyg/transaction";
 import { getSiyuanGlobalMenusMenu } from "../util/siyuanEnvironments/getMenu.environment";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { MenuItem } from "./Menu.Item";
-import { genImageHeightMenu, genImageWidthMenu } from "./protyle";
+import { genImageHeightMenu } from "./protyle.genImageHeightMenu";
+import { genImageWidthMenu } from "./protyle.genImageWidthMenu";
 
 /**
  * Generate the Width menu item.
@@ -61,8 +62,8 @@ const genWidthInputItem = (context: { rangeElement: HTMLInputElement | null }, a
         bind(element: HTMLElement) {
             const inputElement = element.querySelector("input");
             if (!inputElement) {
-return;
-}
+                return;
+            }
             // @内联回调
             inputElement.addEventListener("input", () => {
                 if (context.rangeElement) {
@@ -117,8 +118,8 @@ const genWidthSliderItem = (context: { rangeElement: HTMLInputElement | null }, 
         bind(element: HTMLElement) {
             const rangeElement = element.querySelector("input");
             if (!rangeElement) {
-return;
-}
+                return;
+            }
             context.rangeElement = rangeElement;
             // @内联回调
             rangeElement.addEventListener("input", () => {
@@ -195,8 +196,8 @@ const genHeightInputItem = (context: { rangeHeightElement: HTMLInputElement | nu
         bind(element: HTMLElement) {
             const inputElement = element.querySelector("input");
             if (!inputElement) {
-return;
-}
+                return;
+            }
             // @内联回调
             inputElement.addEventListener("input", () => {
                 if (context.rangeHeightElement) {
@@ -248,8 +249,8 @@ const genHeightSliderItem = (context: { rangeHeightElement: HTMLInputElement | n
         bind(element: HTMLElement) {
             const rangeHeightElement = element.querySelector("input");
             if (!rangeHeightElement) {
-return;
-}
+                return;
+            }
             context.rangeHeightElement = rangeHeightElement;
             // @内联回调
             rangeHeightElement.addEventListener("input", () => {

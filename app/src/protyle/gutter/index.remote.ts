@@ -7,7 +7,10 @@ import {
     isInEmbedBlock
 } from "../util/hasClosest";
 import { getIconByType } from "../../editor/getIcon";
-import { enterBack, iframeMenu, setFold, tableMenu, videoMenu, zoomOut } from "../../menus/protyle";
+import { setFold, tableMenu, videoMenu } from "../../menus/protyle";
+import { enterBack } from "../../menus/protyle.enterBack";
+import { iframeMenu } from "../../menus/protyle.iframeMenu";
+import { zoomOut } from "../../menus/protyle.zoomOut";
 import { MenuItem } from "../../menus/Menu";
 import { copySubMenu, openAttr, openFileAttr, openWechatNotify } from "../../menus/commonMenuItem";
 import {

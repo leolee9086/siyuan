@@ -1,18 +1,18 @@
-import {Constants} from "../../constants";
-import {hideElements} from "../../protyle/ui/hideElements";
-import {setEditMode} from "../../protyle/util/setEditMode";
-import {fetchPost} from "../../util/fetch";
-import {zoomOut} from "../../menus/protyle";
-import {processRender} from "../../protyle/util/processCode";
-import {highlightRender} from "../../protyle/render/highlightRender";
-import {blockRender} from "../../protyle/render/blockRender";
-import {disabledForeverProtyle, setReadonlyByConfig} from "../../protyle/util/onGet";
-import {setStorageVal} from "../../protyle/util/compatibility";
-import {closePanel} from "./closePanel";
-import {showMessage} from "../../dialog/message";
-import {getCurrentEditor} from "../editor";
-import {avRender} from "../../protyle/render/av/render";
-import {setTitle} from "../../dialog/processSystem";
+import { Constants } from "../../constants";
+import { hideElements } from "../../protyle/ui/hideElements";
+import { setEditMode } from "../../protyle/util/setEditMode";
+import { fetchPost } from "../../util/fetch";
+import { zoomOut } from "../../menus/protyle.zoomOut";
+import { processRender } from "../../protyle/util/processCode";
+import { highlightRender } from "../../protyle/render/highlightRender";
+import { blockRender } from "../../protyle/render/blockRender";
+import { disabledForeverProtyle, setReadonlyByConfig } from "../../protyle/util/onGet";
+import { setStorageVal } from "../../protyle/util/compatibility";
+import { closePanel } from "./closePanel";
+import { showMessage } from "../../dialog/message";
+import { getCurrentEditor } from "../editor";
+import { avRender } from "../../protyle/render/av/render";
+import { setTitle } from "../../dialog/processSystem";
 
 const forwardStack: IBackStack[] = [];
 
@@ -55,7 +55,7 @@ const focusStack = (backStack: IBackStack) => {
     const exitFocusElement = protyle.breadcrumb.element.parentElement.querySelector('[data-type="exit-focus"]');
     if (backStack.zoomId) {
         if (backStack.zoomId !== protyle.block.id) {
-            fetchPost("/api/block/checkBlockExist", {id: backStack.id}, existResponse => {
+            fetchPost("/api/block/checkBlockExist", { id: backStack.id }, existResponse => {
                 if (existResponse.data) {
                     zoomOut({
                         protyle,
@@ -105,8 +105,8 @@ const focusStack = (backStack: IBackStack) => {
         }, Constants.TIMEOUT_LOAD);
 
         protyle.app.plugins.forEach(item => {
-            item.eventBus.emit("switch-protyle", {protyle});
-            item.eventBus.emit("loaded-protyle-static", {protyle});
+            item.eventBus.emit("switch-protyle", { protyle });
+            item.eventBus.emit("loaded-protyle-static", { protyle });
         });
         exitFocusElement.classList.add("fn__none");
     });
@@ -134,7 +134,7 @@ export const goBack = () => {
     const editor = getCurrentEditor();
     if (window.siyuan.menus.menu.element.classList.contains("b3-menu--fullscreen") &&
         !window.siyuan.menus.menu.element.classList.contains("fn__none")) {
-        window.siyuan.menus.menu.element.dispatchEvent(new CustomEvent("click", {detail: "back"}));
+        window.siyuan.menus.menu.element.dispatchEvent(new CustomEvent("click", { detail: "back" }));
         return;
     } else if (document.getElementById("model").style.transform === "translateY(0px)") {
         const searchAssetsPanelElement = document.getElementById("searchAssetsPanel");

@@ -14,7 +14,7 @@ import { getAssetName, getDisplayName, pathPosix } from "../../util/pathName";
 import { genEmptyElement } from "../../block/util";
 import { updateListOrder } from "../wysiwyg/list";
 import { escapeHtml } from "../../util/escape";
-import { zoomOut } from "../../menus/protyle";
+import { zoomOut } from "../../menus/protyle.zoomOut";
 import { hideElements } from "../ui/hideElements";
 import { genAssetHTML } from "../../asset/renderAssets";
 import { unicode2Emoji } from "../../emoji";

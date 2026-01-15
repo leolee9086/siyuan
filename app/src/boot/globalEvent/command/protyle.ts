@@ -1,13 +1,14 @@
-import {hasClosestBlock} from "../../../protyle/util/hasClosest";
-import {getTopAloneElement} from "../../../protyle/wysiwyg/getBlock";
-import {enterBack, zoomOut} from "../../../menus/protyle";
+import { hasClosestBlock } from "../../../protyle/util/hasClosest";
+import { getTopAloneElement } from "../../../protyle/wysiwyg/getBlock";
+import { enterBack } from "../../../menus/protyle.enterBack";
+import { zoomOut } from "../../../menus/protyle.zoomOut";
 /// #if !MOBILE
 import { openFileById } from "../../../editor/utils.openFileById";
 /// #endif
-import {checkFold} from "../../../util/noRelyPCFunction";
-import {updateReadonly} from "../../../protyle/breadcrumb/action";
-import {Constants} from "../../../constants";
-import {fetchPost} from "../../../util/fetch";
+import { checkFold } from "../../../util/noRelyPCFunction";
+import { updateReadonly } from "../../../protyle/breadcrumb/action";
+import { Constants } from "../../../constants";
+import { fetchPost } from "../../../util/fetch";
 
 export const onlyProtyleCommand = (options: {
     command: string,
@@ -28,7 +29,7 @@ export const onlyProtyleCommand = (options: {
         }
         fetchPost("/api/attr/setBlockAttrs", {
             id: options.protyle.block.rootID,
-            attrs: {[Constants.CUSTOM_SY_FULLWIDTH]: fullWidth}
+            attrs: { [Constants.CUSTOM_SY_FULLWIDTH]: fullWidth }
         });
         return true;
     }
@@ -55,7 +56,7 @@ export const onlyProtyleCommand = (options: {
             });
             /// #endif
         } else {
-            zoomOut({protyle: options.protyle, id});
+            zoomOut({ protyle: options.protyle, id });
         }
         return true;
     }
