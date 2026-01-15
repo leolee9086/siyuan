@@ -10,7 +10,7 @@ import { hideElements } from "../protyle/ui/hideElements";
 import { writeText } from "../protyle/util/compatibility";
 import { hasClosestBlock, hasTopClosestByClassName } from "../protyle/util/hasClosest";
 import { focusByWbr, focusBlock } from "../protyle/util/selection";
-import { alignImgCenter, alignImgLeft } from "../protyle/wysiwyg/commonHotkey";
+import { alignImgCenter, alignImgLeft } from "../protyle/wysiwyg/commonHotkey/commonHotkey";
 import { updateTransaction } from "../protyle/wysiwyg/transaction";
 import { isMobile } from "../util/functions";
 import { getSiyuanGlobalMenusMenu } from "../util/siyuanEnvironments/getMenu.environment";

@@ -1,10 +1,10 @@
-import {Constants} from "../../constants";
-import {onGet} from "../util/onGet";
-import {fetchPost} from "../../util/fetch";
-import {updateHotkeyTip} from "../util/compatibility";
-import {hasClosestByClassName} from "../util/hasClosest";
-import {goEnd, goHome} from "../wysiwyg/commonHotkey";
-import {showTooltip} from "../../dialog/tooltip";
+import { Constants } from "../../constants";
+import { onGet } from "../util/onGet";
+import { fetchPost } from "../../util/fetch";
+import { updateHotkeyTip } from "../util/compatibility";
+import { hasClosestByClassName } from "../util/hasClosest";
+import { goEnd, goHome } from "../wysiwyg/commonHotkey/commonHotkey";
+import { showTooltip } from "../../dialog/tooltip";
 
 export class Scroll {
     public element: HTMLElement;
@@ -59,7 +59,7 @@ export class Scroll {
             if (event.deltaY !== 0 && protyle.scroll.lastScrollTop !== -1) {
                 protyle.contentElement.scrollTop += event.deltaY;
             }
-        }, {passive: true});
+        }, { passive: true });
     }
 
     private setIndex(protyle: IProtyle) {
@@ -89,7 +89,7 @@ export class Scroll {
     }
 
     public updateIndex(protyle: IProtyle, id: string, cb?: (index: number) => void) {
-        fetchPost("/api/block/getBlockIndex", {id}, (response) => {
+        fetchPost("/api/block/getBlockIndex", { id }, (response) => {
             if (!response.data) {
                 return;
             }

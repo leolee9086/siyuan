@@ -1,21 +1,21 @@
-import { matchHotKey } from "../util/hotKey";
-import { fetchPost, fetchSyncPost } from "../../util/fetch";
-import { writeText } from "../util/compatibility";
-import { focusBlock, } from "../util/selection";
-import { hideElements } from "../ui/hideElements";
-import { countBlockWord } from "../../layout/status";
-import { scrollCenter } from "../../util/highlightById";
-import { transaction, updateTransaction } from "./transaction";
-import { onGet } from "../util/onGet";
-import { Constants } from "../../constants";
+import { matchHotKey } from "../../util/hotKey";
+import { fetchPost, fetchSyncPost } from "../../../util/fetch";
+import { writeText } from "../../util/compatibility";
+import { focusBlock, } from "../../util/selection";
+import { hideElements } from "../../ui/hideElements";
+import { countBlockWord } from "../../../layout/status";
+import { scrollCenter } from "../../../util/highlightById";
+import { transaction, updateTransaction } from "../transaction";
+import { onGet } from "../../util/onGet";
+import { Constants } from "../../../constants";
 import * as dayjs from "dayjs";
-import { net2LocalAssets } from "../breadcrumb/action";
-import { processClonePHElement } from "../render/util";
-import { copyTextByType } from "../toolbar/util";
-import { hasTopClosestByClassName } from "../util/hasClosest";
-import { removeEmbed } from "./removeEmbed";
-import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { clearBlockElement } from "../util/clearSelect";
+import { net2LocalAssets } from "../../breadcrumb/action";
+import { processClonePHElement } from "../../render/util";
+import { copyTextByType } from "../../toolbar/util";
+import { hasTopClosestByClassName } from "../../util/hasClosest";
+import { removeEmbed } from "../removeEmbed";
+import { getSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { clearBlockElement } from "../../util/clearSelect";
 import {
     getInitialCloneState,
     createTempElement,
@@ -31,7 +31,7 @@ import {
     handleGoEndResponse,
     handleSelectUpEmpty,
     handleSelectDownEmpty
-} from "./commonHotkeyHelper";
+} from "../commonHotkeyHelper";
 
 export const commonHotkey = (protyle: IProtyle, event: KeyboardEvent, nodeElement?: HTMLElement) => {
     const editorGeneral = getSiyuanConfig().keymap.editor.general;

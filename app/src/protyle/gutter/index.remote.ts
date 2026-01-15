@@ -41,7 +41,7 @@ import { cancelSB, genEmptyElement, getLangByType, insertEmptyBlock, jumpToParen
 import { countBlockWord } from "../../layout/status";
 import { Constants } from "../../constants";
 import { mathRender } from "../render/mathRender";
-import { duplicateBlock } from "../wysiwyg/commonHotkey";
+import { duplicateBlock } from "../wysiwyg/commonHotkey/commonHotkey";
 import { movePathTo, useShell } from "../../util/pathName";
 import { hintMoveBlock } from "../hint/extend";
 import { makeCard, quickMakeCard } from "../../card/makeCard";

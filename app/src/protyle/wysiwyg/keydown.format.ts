@@ -1,5 +1,5 @@
 import { updateBatchTransaction } from "./transaction";
-import { alignImgCenter, alignImgLeft } from "./commonHotkey";
+import { alignImgCenter, alignImgLeft } from "./commonHotkey/commonHotkey";
 import { matchHotKey } from "../util/hotKey";
 
 // 左对齐快捷键处理
@@ -154,23 +154,23 @@ export const formatMiddleware = async (
 ) => {
     await alignLeftMiddleware(event, protyle, nodeElement, range, controller);
     if (controller.signal.aborted) {
- return; 
-}
+        return;
+    }
 
     await alignCenterMiddleware(event, protyle, nodeElement, range, controller);
     if (controller.signal.aborted) {
- return; 
-}
+        return;
+    }
 
     await alignRightMiddleware(event, protyle, nodeElement, range, controller);
     if (controller.signal.aborted) {
- return; 
-}
+        return;
+    }
 
     await rtlMiddleware(event, protyle, nodeElement, range, controller);
     if (controller.signal.aborted) {
- return; 
-}
+        return;
+    }
 
     await ltrMiddleware(event, protyle, nodeElement, range, controller);
     // 最后一个中间件不需要检查 aborted 状态

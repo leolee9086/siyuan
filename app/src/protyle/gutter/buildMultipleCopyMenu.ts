@@ -7,7 +7,7 @@ import { copySubMenu } from "../../menus/commonMenuItem";
 import { copyPlainText } from "../util/compatibility";
 import { focusBlock, focusByRange, getEditorRange } from "../util/selection";
 import { isNotEditBlock } from "../wysiwyg/getBlock";
-import { duplicateBlock } from "../wysiwyg/commonHotkey";
+import { duplicateBlock } from "../wysiwyg/commonHotkey/commonHotkey";
 import { getPlainText } from "../util/paste";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";

@@ -19,7 +19,7 @@ import { openFileById } from "../../editor/utils.openFileById";
 /// #endif
 import { setTitle } from "../../dialog/processSystem";
 import { getContenteditableElement, getNoContainerElement } from "../wysiwyg/getBlock";
-import { commonHotkey } from "../wysiwyg/commonHotkey";
+import { commonHotkey } from "../wysiwyg/commonHotkey/commonHotkey";
 import { nbsp2space } from "../util/normalizeText";
 import { genEmptyElement } from "../../block/util";
 import { transaction } from "../wysiwyg/transaction";

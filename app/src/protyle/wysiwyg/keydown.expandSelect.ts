@@ -2,7 +2,7 @@ import { matchHotKey } from "../util/hotKey";
 import { hideElements } from "../ui/hideElements";
 import { getPreviousBlock, getNextBlock } from "./getBlock";
 import { preventScroll } from "../scroll/preventScroll";
-import { upSelect, downSelect, getStartEndElement } from "./commonHotkey";
+import { upSelect, downSelect, getStartEndElement } from "./commonHotkey/commonHotkey";
 
 /**
  * 处理扩展向上选择的快捷键
@@ -203,18 +203,18 @@ export const expandSelectMiddleware = async (
 
     await expandUpSelectMiddleware(event, protyle, nodeElement, editorElement, range, controller);
     if (signal.aborted) {
- return; 
-}
+        return;
+    }
 
     await expandDownSelectMiddleware(event, protyle, nodeElement, editorElement, range, controller);
     if (signal.aborted) {
- return; 
-}
+        return;
+    }
 
     await shiftUpSelectMiddleware(event, protyle, nodeElement, editorElement, range, controller);
     if (signal.aborted) {
- return; 
-}
+        return;
+    }
 
     await shiftDownSelectMiddleware(event, protyle, nodeElement, editorElement, range, controller);
 };

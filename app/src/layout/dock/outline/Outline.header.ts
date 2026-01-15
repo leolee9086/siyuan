@@ -10,7 +10,7 @@ import { Constants } from "../../../constants";
 import { getDockByType } from "../../tabUtil";
 import { getAllModels } from "../../getAll";
 import { setPanelFocus } from "../../utils/setPanelFocus";
-import { goHome } from "../../../protyle/wysiwyg/commonHotkey";
+import { goHome } from "../../../protyle/wysiwyg/commonHotkey/commonHotkey";
 import { Editor } from "../../../editor";
 import { App } from "../../../index";
 import type { Outline } from "./Outline";

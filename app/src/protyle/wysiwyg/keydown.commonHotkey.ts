@@ -1,4 +1,4 @@
-import { commonHotkey } from "./commonHotkey";
+import { commonHotkey } from "./commonHotkey/commonHotkey";
 import { editorContext } from "./types";
 
 export const commonHotkeyMiddleware = (
