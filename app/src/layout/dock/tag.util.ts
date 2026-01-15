@@ -1,6 +1,7 @@
 import { updateHotkeyAfterTip } from "../../protyle/util/compatibility";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { getSiyuanConfig, getSiyuanStorage } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { hasSubType } from "./tag.guard";
 import { isMobile } from "../../util/functions";
 import { getIconByType } from "../../editor/getIcon";
 import { unicode2Emoji } from "../../emoji";
@@ -65,7 +66,7 @@ export function shouldReloadTag(item: IOperation): boolean {
         return true;
     }
     if ((item.action === "update" || item.action === "insert") && typeof item.data === "string") {
-        return item.data.indexOf('data-type="tag"') > -1;
+        return item.data.includes('data-type="tag"');
     }
     return false;
 }
@@ -85,28 +86,17 @@ export const TAG_EDITOR_RENDER_CONFIG = {
  */
 export function genTagBlockListHTML(blocks: IBlock[]): string {
     let html = "<ul>";
+    const isMobileLayout = isMobile();
+    const defaultIcon = getSiyuanStorage()[Constants.LOCAL_IMAGES].file;
     for (const item of blocks) {
-        let iconHTML;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const subType = (item as any).subType;
-        if (item.type === "NodeDocument") {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const defaultIcon = (window as any).siyuan.storage[Constants.LOCAL_IMAGES].file;
-            iconHTML = `<span data-showref="true" class="b3-list-item__graphic popover__block" data-id="${item.id}">${unicode2Emoji(item.ial?.icon || defaultIcon)}</span>`;
-        } else {
-            iconHTML = `<svg data-showref="true" class="b3-list-item__graphic popover__block" data-id="${item.id}"><use xlink:href="#${getIconByType(item.type, subType || "")}"></use></svg>`;
-        }
+        const subType = hasSubType(item) ? item.subType : undefined;
+        const iconHTML = getIconHTML(item, subType, defaultIcon);
 
-        let style = "";
-        if (isMobile()) {
-            style = "padding-left: 24px";
-        } else {
-            style = "padding-left: 22px;margin-right: 2px";
-        }
+        const style = isMobileLayout ? "padding-left: 24px" : "padding-left: 22px;margin-right: 2px";
 
         const content = item.content || "";
 
-        html += `<li class="b3-list-item${isMobile() ? "" : " b3-list-item--hide-action"}" 
+        html += `<li class="b3-list-item${isMobileLayout ? "" : " b3-list-item--hide-action"}" 
 style="--file-toggle-width: 36px" 
 data-node-id="${item.id}" 
 data-type="${item.type}" 
@@ -122,5 +112,21 @@ ${iconHTML}
     }
     html += "</ul>";
     return html;
+}
+
+/**
+ * 生成 Tag 图标 HTML
+ * - 作用：根据 Block 类型生成对应的图标 HTML。
+ * - 意图：将图标生成逻辑提取为辅助函数，以简化 `genTagBlockListHTML` 的逻辑并在循环中避免嵌套 if/else。
+ * - 调用时机：在生成标签面板块列表 HTML 时为每个块调用。
+ */
+function getIconHTML(item: IBlock, subType: string | undefined, defaultIcon: string) {
+    if (item.type === "NodeDocument") {
+        return `<span data-showref="true" class="b3-list-item__graphic popover__block" data-id="${item.id}">${unicode2Emoji(item.ial?.icon || defaultIcon)}</span>`;
+    }
+    if (item.type) {
+        return `<svg data-showref="true" class="b3-list-item__graphic popover__block" data-id="${item.id}"><use xlink:href="#${getIconByType(item.type, subType || "")}"></use></svg>`;
+    }
+    return "";
 }
 
