@@ -141,15 +141,20 @@ const renderTags = (tags: string[]): string => {
     return tags.map(t => `<span style="background: var(--b3-theme-primary-light); color: var(--b3-theme-primary); padding: 1px 6px; border-radius: 3px; margin-right: 4px; margin-bottom: 4px;">${escapeHtml(t)}</span>`).join("");
 };
 
-/** 确保获取完整的素材元数据（如果缺失则尝试修复） */
-const ensureAssetMeta = async (path: string) => {
-    // 1. 获取现有元数据
-    const getResponse = await fetch("/api/s-forge/asset-meta/get", {
+/** 获取素材元数据 */
+const fetchAssetMeta = async (path: string) => {
+    const response = await fetch("/api/s-forge/asset-meta/get", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ path }),
     });
-    const getResult = await getResponse.json();
+    return await response.json();
+};
+
+/** 确保获取完整的素材元数据（如果缺失则尝试修复） */
+const ensureAssetMeta = async (path: string) => {
+    // 1. 获取现有元数据
+    const getResult = await fetchAssetMeta(path);
     let meta = getResult.data;
     const metaMissing = !meta?.width || !meta?.fileSize;
     const palettes = meta?.palettes;
@@ -169,15 +174,8 @@ const ensureAssetMeta = async (path: string) => {
 
     // 4. 如果是修复了元数据，重新获取完整信息
     if (metaMissing && extractResult.code === 0) {
-        const refreshResponse = await fetch("/api/s-forge/asset-meta/get", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ path }),
-        });
-        const refreshResult = await refreshResponse.json();
-        if (refreshResult.code === 0) {
-            meta = refreshResult.data;
-        }
+        const refreshResult = await fetchAssetMeta(path);
+        meta = refreshResult.code === 0 ? refreshResult.data : meta;
     }
 
     // 确保 meta 对象存在以便后续使用

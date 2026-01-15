@@ -12,6 +12,7 @@ import { getCellText } from "../../protyle/render/av/cell";
 import { escapeAriaLabel, escapeHtml } from "../../util/escape";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { TooltipInfo } from "./tooltip.types";
+export type { TooltipInfo };
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 常量定义
