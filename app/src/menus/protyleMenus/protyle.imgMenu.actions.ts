@@ -1,13 +1,13 @@
 import * as dayjs from "dayjs";
-import { renameAsset } from "../editor/rename";
-import { MenuItem } from "./Menu.Item";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
-import { writeText } from "../protyle/util/compatibility";
-import { updateTransaction } from "../protyle/wysiwyg/transaction";
-import { focusByWbr, focusBlock } from "../protyle/util/selection";
-import { copyPNGByLink, exportAsset } from "./util";
-import { alignImgCenter, alignImgLeft } from "../protyle/wysiwyg/commonHotkey/commonHotkeyAlign";
-import { getSiyuanGlobalMenusMenu } from "../util/siyuanEnvironments/getMenu.environment";
+import { renameAsset } from "../../editor/rename";
+import { MenuItem } from "../Menu.Item";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { writeText } from "../../protyle/util/compatibility";
+import { updateTransaction } from "../../protyle/wysiwyg/transaction";
+import { focusByWbr, focusBlock } from "../../protyle/util/selection";
+import { copyPNGByLink, exportAsset } from "../util";
+import { alignImgCenter, alignImgLeft } from "../../protyle/wysiwyg/commonHotkey/commonHotkeyAlign";
+import { getSiyuanGlobalMenusMenu } from "../../util/siyuanEnvironments/getMenu.environment";
 
 /**
  * @zh-CN

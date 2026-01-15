@@ -1,10 +1,10 @@
-import { fetchPost } from "../ai/imports";
-import { showMessage } from "../dialog/message";
-import { mathRender } from "../protyle/render/mathRender";
-import { writeText } from "../protyle/util/compatibility";
-import { isMobile } from "../util/functions";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
-import { MenuItem } from "./Menu.Item";
+import { fetchPost } from "../../ai/imports";
+import { showMessage } from "../../dialog/message";
+import { mathRender } from "../../protyle/render/mathRender";
+import { writeText } from "../../protyle/util/compatibility";
+import { isMobile } from "../../util/functions";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { MenuItem } from "../Menu.Item";
 import { bindRatingEvents, genRatingHTML } from "./protyle.imgMenu.rating";
 
 /**

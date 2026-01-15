@@ -1,5 +1,5 @@
-import { fetchPost } from "../ai/imports";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
+import { fetchPost } from "../../ai/imports";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 /**
  * Update the visual display of stars based on rating.

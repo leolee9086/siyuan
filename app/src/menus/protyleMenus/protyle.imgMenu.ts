@@ -20,9 +20,9 @@ import {
     genDeleteItem,
     genExportItem,
     genRenameItem
-} from "../protyle.imgMenu.actions";
-import { genImageSettingsItem, genOCRItem } from "../protyle.imgMenu.items";
-import { genHeightItem, genWidthItem } from "../protyle.imgMenu.size";
+} from "./protyle.imgMenu.actions";
+import { genImageSettingsItem, genOCRItem } from "./protyle.imgMenu.items";
+import { genHeightItem, genWidthItem } from "./protyle.imgMenu.size";
 
 /**
  * @zh-CN
