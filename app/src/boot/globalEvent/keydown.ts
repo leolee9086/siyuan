@@ -76,36 +76,7 @@ import { onlyProtyleCommand } from "./command/protyle";
 import { cancelDrag } from "./dragover";
 import { bindAVPanelKeydown } from "../../protyle/render/av/keydown";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-const switchDialogEvent = (app: App, event: MouseEvent) => {
-    event.preventDefault();
-    let target = event.target as HTMLElement;
-    while (target !== switchDialog.element) {
-        if (target.classList.contains("b3-list-item")) {
-            const currentType = target.getAttribute("data-type");
-            if (currentType) {
-                if (currentType === "riffCard") {
-                    openCard(app);
-                } else {
-                    getDockByType(currentType).toggleModel(currentType, true);
-                }
-            } else {
-                const currentId = target.getAttribute("data-id");
-                getAllTabs().find(item => {
-                    if (item.id === currentId) {
-                        item.parent.switchTab(item.headElement);
-                        item.parent.showHeading();
-                        return true;
-                    }
-                });
-            }
-            switchDialog.destroy();
-            switchDialog = undefined;
-            break;
-        }
-        target = target.parentElement;
-    }
-};
-
+import { switchDialogEvent } from "./keydown/switchDialogEvent";
 const dialogArrow = (app: App, element: HTMLElement, event: KeyboardEvent) => {
     let currentLiElement = element.querySelector(".b3-list-item--focus");
     if (currentLiElement) {
@@ -1163,7 +1134,7 @@ const panelTreeKeydown = (app: App, event: KeyboardEvent) => {
     return false;
 };
 
-let switchDialog: Dialog;
+export let switchDialog: Dialog;
 export const windowKeyDown = (app: App, event: KeyboardEvent) => {
     if (filterHotkey(event, app)) {
         return;
