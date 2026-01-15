@@ -1,20 +1,20 @@
-import { Constants } from "../../constants";
-import { fetchSyncPost } from "../../util/fetch";
-import { hasClosestByTag, hasTopClosestByClassName } from "../util/hasClosest";
-import { getContenteditableElement, getNextBlock } from "./getBlock";
-import { getSelectionOffset, focusBlock, setFirstNodeRange, setLastNodeRange } from "../util/selection";
-import { isMac } from "../util/compatibility";
-import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { removeEmbed } from "./removeEmbed";
-import { processClonePHElement } from "../render/util";
-import { clearBlockElement } from "../util/clearSelect";
+import { Constants } from "../../../constants";
+import { fetchSyncPost } from "../../../util/fetch";
+import { hasClosestByTag, hasTopClosestByClassName } from "../../util/hasClosest";
+import { getContenteditableElement, getNextBlock } from "../getBlock";
+import { getSelectionOffset, focusBlock, setFirstNodeRange, setLastNodeRange } from "../../util/selection";
+import { isMac } from "../../util/compatibility";
+import { getSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { removeEmbed } from "../removeEmbed";
+import { processClonePHElement } from "../../render/util";
+import { clearBlockElement } from "../../util/clearSelect";
 
-import { scrollCenter } from "../../util/highlightById";
-import { transaction } from "./transaction";
-import { matchHotKey } from "../util/hotKey";
-import { onGet } from "../util/onGet";
-import { copyTextByType } from "../toolbar/util";
-import { isHTMLElement } from "../../util/DOM/element.guard";
+import { scrollCenter } from "../../../util/highlightById";
+import { transaction } from "../transaction";
+import { matchHotKey } from "../../util/hotKey";
+import { onGet } from "../../util/onGet";
+import { copyTextByType } from "../../toolbar/util";
+import { isHTMLElement } from "../../../util/DOM/element.guard";
 
 /**
  * 处理复制相关的快捷键操作。

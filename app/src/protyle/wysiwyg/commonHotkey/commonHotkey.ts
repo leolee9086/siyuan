@@ -31,7 +31,7 @@ import {
     handleGoEndResponse,
     handleSelectUpEmpty,
     handleSelectDownEmpty
-} from "../commonHotkeyHelper";
+} from "./commonHotkeyHelper";
 
 export const commonHotkey = (protyle: IProtyle, event: KeyboardEvent, nodeElement?: HTMLElement) => {
     const editorGeneral = getSiyuanConfig().keymap.editor.general;
