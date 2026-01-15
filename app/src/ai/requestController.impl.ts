@@ -239,28 +239,3 @@ const createStreamRequestConfig = (messages: MessageHistory, signal: AbortSignal
     };
 };
 
-/**
- * 创建AI请求控制器工厂函数
- * 
- * 作用：创建并返回 AIRequestController 实例
- * 意图：提供便捷的工厂函数来创建控制器，封装实例化逻辑
- * 调用时机：在需要发起AI请求的地方调用，如 createAIRequestHandlerWithState
- * 
- * @param events - 事件回调配置
- * @param getAIConfig - 获取AI配置的函数
- * @returns AIRequestController 实例
- */
-export const createAIRequestController = (
-    events: {
-        onStart?: () => void;
-        onMessage?: OnMessageCallback;
-        onComplete?: () => void;
-        onError?: (error: Error) => void;
-        onAbort?: () => void;
-        onPause?: () => void;
-        onResume?: () => void;
-    },
-    getAIConfig: () => AIConfig
-) => {
-    return new AIRequestController(events, getAIConfig);
-};

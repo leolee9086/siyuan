@@ -6,7 +6,7 @@ import { writeText } from "../protyle/util/compatibility";
 import { updateTransaction } from "../protyle/wysiwyg/transaction";
 import { focusByWbr, focusBlock } from "../protyle/util/selection";
 import { copyPNGByLink, exportAsset } from "./util";
-import { alignImgCenter, alignImgLeft } from "../protyle/wysiwyg/commonHotkey/commonHotkey";
+import { alignImgCenter, alignImgLeft } from "../protyle/wysiwyg/commonHotkey/commonHotkeyAlign";
 import { getSiyuanGlobalMenusMenu } from "../util/siyuanEnvironments/getMenu.environment";
 
 /**

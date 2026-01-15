@@ -19,18 +19,18 @@ export const selectAllThenEach = (
 ): void => {
     // 1. 选择所有符合的元素
     const elements = inputElement.querySelectorAll(config.selector);
-    
+
     // 2. 使用过滤函数进行过滤（如果提供）
     const elementsArray = Array.from(elements);
     const filteredElements = elementsArray.filter((element, index) => {
         return config.filterFn ? config.filterFn(element, index, elementsArray) : true;
     });
-    
+
     // 3. 对每个过滤后的元素执行操作
-    filteredElements.forEach((element, index) => {
-        config.eachFn(element, index, elementsArray );
-    });
-    
+    for (const [index, element] of filteredElements.entries()) {
+        config.eachFn(element, index, elementsArray);
+    }
+
     // 4. 操作完成后调用完成回调（如果提供）
     if (config.completeFn) {
         config.completeFn();

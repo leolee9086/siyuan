@@ -1,7 +1,7 @@
 import { setLute } from "../protyle/render/setLute";
 import { processBlockDOMContent } from "./chatStream.utils";
 import { handleOpenAILikeStreamResponse } from "./handleOpenAILikeStreamResponse";
-import { AIRequestController, createAIRequestController } from "./requestController.impl";
+import { AIRequestController } from "./requestController.impl";
 import { AssistantResponseState } from "./session/session.types";
 import { getAIConfigFromSiyuan } from "./utils.config";
 
@@ -12,7 +12,7 @@ export const createAIRequestHandlerWithState = async (
     messages: Array<{ role: "user" | "assistant" | "system"; content: string; timestamp: number; }>
 ): Promise<AIRequestController> => {
     // 创建请求控制器，完全断开与state的直接联系
-    const controller = createAIRequestController(
+    const controller = new AIRequestController(
         {
             onStart: () => {
                 state.isStreaming = true;

@@ -1,6 +1,6 @@
 import { AssistantResponseState, ToolCallExecutionCallback } from "./session.types";
 import { SafeEventEmitter } from "../../util/events/eventEmitter";
-import { createAIRequestController, AIRequestController } from "../requestController.impl";
+import { AIRequestController } from "../requestController.impl";
 import { getAIConfigFromSiyuan } from "../utils.config";
 import { handleOpenAILikeStreamResponse } from "../handleOpenAILikeStreamResponse";
 import { assistantResponseEventDefines } from "./assistantResponse.events";
@@ -281,7 +281,7 @@ function initializeRequestController(
         currentRequestController.destroy();
     }
 
-    return createAIRequestController(
+    return new AIRequestController(
         {
             onStart: () => controller.startStreaming(),
             onMessage: (dataStr: string) => {

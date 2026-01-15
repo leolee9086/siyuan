@@ -5,10 +5,10 @@ import { focusBlock, } from "../../util/selection";
 import { hideElements } from "../../ui/hideElements";
 import { countBlockWord } from "../../../layout/status";
 import { scrollCenter } from "../../../util/highlightById";
-import { transaction, updateTransaction } from "../transaction";
+import { transaction } from "../transaction";
 import { onGet } from "../../util/onGet";
 import { Constants } from "../../../constants";
-import * as dayjs from "dayjs";
+
 import { net2LocalAssets } from "../../breadcrumb/action";
 import { processClonePHElement } from "../../render/util";
 import { copyTextByType } from "../../toolbar/util";
@@ -17,21 +17,26 @@ import { removeEmbed } from "../removeEmbed";
 import { getSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { clearBlockElement } from "../../util/clearSelect";
 import {
-    getInitialCloneState,
-    createTempElement,
-    updateNewBlockAttributes,
-    updateOrderedMarker,
-    handleFoldedHeading,
-    updateSubsequentMarkers,
-    insertDuplicateItem,
-    finalizeDuplicateBlock,
     handleCopyHotKey,
     handlePluginHotKey,
-    handleListWrapperLogic,
-    handleGoEndResponse,
+    handleGoEndResponse
+} from "./commonHotkeyHelper";
+import {
     handleSelectUpEmpty,
     handleSelectDownEmpty
-} from "./commonHotkeyHelper";
+} from "./commonHotkeySelect";
+import {
+    getInitialCloneState,
+    createTempElement,
+    handleListWrapperLogic,
+    updateNewBlockAttributes,
+    updateOrderedMarker,
+    insertDuplicateItem
+} from "./commonHotkeyDuplicate";
+import {
+    handleFoldedHeading,
+    finalizeDuplicateBlock
+} from "./commonHotkeyDuplicateTransaction";
 
 export const commonHotkey = (protyle: IProtyle, event: KeyboardEvent, nodeElement?: HTMLElement) => {
     const editorGeneral = getSiyuanConfig().keymap.editor.general;
@@ -244,6 +249,18 @@ export const duplicateBlock = async (nodeElements: Element[], protyle: IProtyle)
     }
 };
 
+/**
+ * 跳转到文档开头。
+ * 
+ * @description
+ * - 作用：将编辑器视口滚动到文档开头，并将光标定位到第一个块。
+ * - 意图：与 `goEnd` 配对，提供快速导航到文档头部的能力。
+ * - 调用时机：
+ *   - 用户按下 Ctrl+Home 快捷键时
+ *   - 用户点击滚动条的向上箭头按钮时
+ * 
+ * @param protyle - 编辑器实例
+ */
 export const goHome = (protyle: IProtyle) => {
     const firstElement = protyle.wysiwyg?.element?.firstElementChild;
     if (!firstElement || (firstElement.getAttribute("data-node-index") !== "0" &&
@@ -268,6 +285,18 @@ export const goHome = (protyle: IProtyle) => {
     }
 };
 
+/**
+ * 跳转到文档末尾。
+ * 
+ * @description
+ * - 作用：将编辑器视口滚动到文档末尾，并将光标定位到最后一个块。
+ * - 意图：与 `goHome` 配对，提供快速导航到文档尾部的能力。
+ * - 调用时机：
+ *   - 用户按下 Ctrl+End 快捷键时
+ *   - 用户点击滚动条的向下箭头按钮时
+ * 
+ * @param protyle - 编辑器实例
+ */
 export const goEnd = (protyle: IProtyle) => {
     const lastElement = protyle.wysiwyg?.element?.lastElementChild;
     if (!lastElement) {
@@ -293,20 +322,4 @@ export const goEnd = (protyle: IProtyle) => {
     focusBlock(lastElement, undefined, false);
 };
 
-export const alignImgCenter = (protyle: IProtyle, nodeElement: Element, assetElements: Element[], id: string, html: string) => {
-    nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-    for (const item of assetElements) {
-        if (item instanceof HTMLElement) {
-            item.style.minWidth = "calc(100% - 0.1em)";
-        }
-    }
-    updateTransaction(protyle, id, nodeElement.outerHTML, html);
-};
 
-export const alignImgLeft = (protyle: IProtyle, nodeElement: Element, assetElements: Element[], id: string, html: string) => {
-    nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-    for (const item of assetElements) {
-        item.removeAttribute("style");
-    }
-    updateTransaction(protyle, id, nodeElement.outerHTML, html);
-};

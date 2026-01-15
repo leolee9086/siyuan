@@ -1,5 +1,5 @@
 import { updateBatchTransaction } from "./transaction";
-import { alignImgCenter, alignImgLeft } from "./commonHotkey/commonHotkey";
+import { alignImgCenter, alignImgLeft } from "./commonHotkey/commonHotkeyAlign";
 import { matchHotKey } from "../util/hotKey";
 
 // 左对齐快捷键处理
