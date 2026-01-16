@@ -1,252 +1,230 @@
+/**
+ * 链接菜单模块
+ *
+ * 显示针对链接元素的上下文菜单，提供链接编辑、复制、剪切、
+ * 删除、重命名、转换等功能。
+ */
 import * as dayjs from "dayjs";
 import { focusByRange } from "../../ai/imports";
 import { Constants } from "../../constants";
-import { showMessage } from "../../dialog/message";
 import { hideTooltip } from "../../dialog/tooltip";
-import { renameAsset } from "../../editor/rename";
 import { emitOpenMenu } from "../../plugin/EventBus";
-import { removeInlineType } from "../../protyle/toolbar/util";
 import { hideElements } from "../../protyle/ui/hideElements";
-import { electronUndo } from "../../protyle/undo";
-import { writeText } from "../../protyle/util/compatibility";
 import { hasClosestBlock, hasTopClosestByClassName } from "../../protyle/util/hasClosest";
-import { focusByWbr } from "../../protyle/util/selection";
 import { updateTransaction } from "../../protyle/wysiwyg/transaction";
-import { isMobile } from "../../util/functions";
 import { getSiyuanGlobalMenusMenu } from "../../util/siyuanEnvironments/getMenu.environment";
-import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { openMenu } from "../commonMenuItem.openMenu";
-import { MenuItem } from "../Menu.Item";
-import { exportAsset } from "../util";
 
+import type { LinkMenuContext } from "./protyle.linkMenu.types";
+import { 添加编辑模式菜单项 } from "./protyle.linkMenu.utils";
+import {
+    添加复制菜单项,
+    添加复制链接地址菜单项,
+    添加编辑操作菜单项,
+    添加链接操作菜单项,
+} from "./protyle.linkMenu.items";
 
+// ────────────────────────────────────────────────────────────
+// 菜单显示和回调
+// ────────────────────────────────────────────────────────────
+
+/** 显示菜单弹窗 */
+const 显示菜单弹窗 = (linkElement: HTMLElement, protyle: IProtyle): void => {
+    /// #if MOBILE
+    getSiyuanGlobalMenusMenu().fullscreen();
+    /// #else
+    const rect = linkElement.getBoundingClientRect();
+    getSiyuanGlobalMenusMenu().popup({
+        x: rect.left,
+        y: rect.top + 26,
+        h: 26
+    });
+    /// #endif
+
+    const popoverElement = hasTopClosestByClassName(protyle.element, "block__popover", true);
+    const fromValue = popoverElement ? popoverElement.dataset.level + "popover" : "app";
+    getSiyuanGlobalMenusMenu().element.setAttribute("data-from", fromValue);
+};
+
+/** 更新标题属性 */
+const 更新标题属性 = (ctx: LinkMenuContext): void => {
+    if (!ctx.inputElements) {
+        return;
+    }
+    const 标题输入框 = ctx.inputElements[2];
+    if (!标题输入框) {
+        return;
+    }
+    if (标题输入框.value) {
+        const title = Lute.EscapeHTMLStr(标题输入框.value.replace(/\n|\r\n|\r|\u2028|\u2029/g, ""));
+        ctx.linkElement.setAttribute("data-title", title);
+        return;
+    }
+    ctx.linkElement.removeAttribute("data-title");
+};
+
+/** 更新链接地址 */
+const 更新链接地址 = (ctx: LinkMenuContext): void => {
+    if (!ctx.inputElements) {
+        return;
+    }
+    const 链接地址输入框 = ctx.inputElements[0];
+    if (!链接地址输入框) {
+        return;
+    }
+    const dataType = ctx.linkElement.getAttribute("data-type") ?? "";
+    if (dataType.indexOf("a") > -1) {
+        const href = Lute.EscapeHTMLStr(链接地址输入框.value.replace(/\n|\r\n|\r|\u2028|\u2029/g, ""));
+        ctx.linkElement.setAttribute("data-href", href);
+        return;
+    }
+    ctx.linkElement.removeAttribute("data-href");
+};
+
+/** 处理空锚文本 */
+const 处理空锚文本 = (ctx: LinkMenuContext): void => {
+    if (!ctx.inputElements) {
+        return;
+    }
+    const 锚文本输入框 = ctx.inputElements[1];
+    const 链接地址输入框 = ctx.inputElements[0];
+    const 标题输入框 = ctx.inputElements[2];
+    if (!锚文本输入框 || !链接地址输入框 || !标题输入框) {
+        return;
+    }
+    if (!锚文本输入框.value && (链接地址输入框.value || 标题输入框.value)) {
+        ctx.linkElement.textContent = "*";
+    }
+};
+
+/** 恢复焦点 */
+const 恢复焦点 = (ctx: LinkMenuContext): void => {
+    const currentRange = getSelection()?.rangeCount === 0 ? undefined : getSelection()?.getRangeAt(0);
+    if (currentRange && !ctx.protyle.element.contains(currentRange.startContainer)) {
+        ctx.protyle.toolbar.range.selectNodeContents(ctx.linkElement);
+        ctx.protyle.toolbar.range.collapse(false);
+        focusByRange(ctx.protyle.toolbar.range);
+    }
+};
+
+/** 处理空链接删除 */
+const 处理空链接删除 = (ctx: LinkMenuContext): boolean => {
+    if (!ctx.inputElements) {
+        return false;
+    }
+    const 锚文本输入框 = ctx.inputElements[1];
+    const 链接地址输入框 = ctx.inputElements[0];
+    const 标题输入框 = ctx.inputElements[2];
+    if (!锚文本输入框 || !链接地址输入框 || !标题输入框) {
+        return false;
+    }
+    if (!锚文本输入框.value && !链接地址输入框.value && !标题输入框.value) {
+        ctx.linkElement.remove();
+        return true;
+    }
+    return false;
+};
+
+/** 设置菜单关闭时的回调 */
+const 设置菜单关闭回调 = (ctx: LinkMenuContext): void => {
+    if (!ctx.inputElements) {
+        return;
+    }
+
+    getSiyuanGlobalMenusMenu().removeCB = () => {
+        更新标题属性(ctx);
+        更新链接地址(ctx);
+        处理空锚文本(ctx);
+        恢复焦点(ctx);
+        处理空链接删除(ctx);
+
+        // 保存更改
+        if (ctx.html !== ctx.nodeElement.outerHTML) {
+            ctx.nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
+            updateTransaction(ctx.protyle, ctx.id, ctx.nodeElement.outerHTML, ctx.html);
+        }
+    };
+};
+
+/** 设置初始焦点 */
+const 设置初始焦点 = (ctx: LinkMenuContext, focusText: boolean): void => {
+    if (!ctx.inputElements) {
+        return;
+    }
+
+    const 锚文本输入框 = ctx.inputElements[1];
+    const 链接地址输入框 = ctx.inputElements[0];
+    if (!锚文本输入框 || !链接地址输入框) {
+        return;
+    }
+
+    const shouldFocusAnchor = focusText ||
+        ctx.protyle.lute.GetLinkDest(ctx.linkAddress ?? "") ||
+        ctx.linkAddress?.startsWith("assets/");
+
+    if (shouldFocusAnchor) {
+        锚文本输入框.select();
+        return;
+    }
+    链接地址输入框.select();
+};
+
+// ────────────────────────────────────────────────────────────
+// 主函数
+// ────────────────────────────────────────────────────────────
+
+/**
+ * 链接右键菜单
+ *
+ * 显示针对链接元素的上下文菜单，提供以下功能：
+ * - 编辑链接地址、锚文本、标题
+ * - 复制、剪切、删除链接
+ * - 重命名资源文件
+ * - 转换为引用或纯文本
+ * - 打开链接
+ *
+ * @param protyle - Protyle 编辑器实例
+ * @param linkElement - 链接元素
+ * @param focusText - 是否默认聚焦到锚文本输入框
+ */
 export const linkMenu = (protyle: IProtyle, linkElement: HTMLElement, focusText = false) => {
     getSiyuanGlobalMenusMenu().remove();
     getSiyuanGlobalMenusMenu().element.setAttribute("data-name", Constants.MENU_INLINE_A);
+
     const nodeElement = hasClosestBlock(linkElement);
     if (!nodeElement) {
         return;
     }
+
     hideTooltip();
     hideElements(["util", "toolbar", "hint"], protyle);
-    const id = nodeElement.getAttribute("data-node-id");
-    let html = nodeElement.outerHTML;
-    const linkAddress = linkElement.getAttribute("data-href");
-    let inputElements: NodeListOf<HTMLTextAreaElement>;
+
+    // 创建上下文对象
+    const ctx: LinkMenuContext = {
+        protyle,
+        linkElement,
+        nodeElement,
+        id: nodeElement.getAttribute("data-node-id") ?? "",
+        html: nodeElement.outerHTML,
+        linkAddress: linkElement.getAttribute("data-href"),
+    };
+
+    // 添加菜单项
     if (!protyle.disabled) {
-        getSiyuanGlobalMenusMenu().append(new MenuItem({
-            id: "linkAndAnchorAndTitle",
-            iconHTML: "",
-            type: "readonly",
-            label: `<div class="fn__flex">
-    <span class="fn__flex-center">${siyuanI18n.link}</span>
-    <span class="fn__space"></span>
-    <span data-action="copy" class="block__icon block__icon--show b3-tooltips b3-tooltips__e fn__flex-center" aria-label="${siyuanI18n.copy}">
-        <svg><use xlink:href="#iconCopy"></use></svg>
-    </span>   
-</div><textarea spellcheck="false" rows="1" 
-style="margin:4px 0;width: ${isMobile() ? "100%" : "360px"}" class="b3-text-field"></textarea><div class="fn__hr"></div><div class="fn__flex">
-    <span class="fn__flex-center">${siyuanI18n.anchor}</span>
-    <span class="fn__space"></span>
-    <span data-action="copy" class="block__icon block__icon--show b3-tooltips b3-tooltips__e fn__flex-center" aria-label="${siyuanI18n.copy}">
-        <svg><use xlink:href="#iconCopy"></use></svg>
-    </span>   
-</div><textarea style="width: ${isMobile() ? "100%" : "360px"};margin: 4px 0;" rows="1" class="b3-text-field"></textarea><div class="fn__hr"></div><div class="fn__flex">
-    <span class="fn__flex-center">${siyuanI18n.title}</span>
-    <span class="fn__space"></span>
-    <span data-action="copy" class="block__icon block__icon--show b3-tooltips b3-tooltips__e fn__flex-center" aria-label="${siyuanI18n.copy}">
-        <svg><use xlink:href="#iconCopy"></use></svg>
-    </span>   
-</div><textarea style="width: ${isMobile() ? "100%" : "360px"};margin: 4px 0;" rows="1" class="b3-text-field"></textarea>`,
-            bind(element) {
-                element.style.maxWidth = "none";
-                inputElements = element.querySelectorAll("textarea");
-                inputElements[0].value = Lute.UnEscapeHTMLStr(linkAddress) || "";
-                inputElements[0].addEventListener("keydown", (event) => {
-                    if ((event.key === "Enter" || event.key === "Escape") && !event.isComposing) {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        getSiyuanGlobalMenusMenu().remove();
-                    } else if (event.key === "Tab" && !event.isComposing) {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        inputElements[1].focus();
-                    } else if (electronUndo(event)) {
-                        return;
-                    }
-                });
-
-                // https://github.com/siyuan-note/siyuan/issues/6798
-                let anchor = linkElement.textContent.replace(Constants.ZWSP, "");
-                if (!anchor && linkAddress) {
-                    anchor = decodeURIComponent(linkAddress.replace("https://", "").replace("http://", ""));
-                    if (anchor.length > Constants.SIZE_LINK_TEXT_MAX) {
-                        anchor = anchor.substring(0, Constants.SIZE_LINK_TEXT_MAX) + "...";
-                    }
-                    linkElement.innerHTML = Lute.EscapeHTMLStr(anchor);
-                }
-                inputElements[1].value = anchor;
-                inputElements[1].addEventListener("compositionend", () => {
-                    linkElement.innerHTML = Lute.EscapeHTMLStr(inputElements[1].value.replace(/\n|\r\n|\r|\u2028|\u2029/g, "").trim() || "*");
-                });
-                inputElements[1].addEventListener("input", (event: KeyboardEvent) => {
-                    if (!event.isComposing) {
-                        // https://github.com/siyuan-note/siyuan/issues/4511
-                        linkElement.innerHTML = Lute.EscapeHTMLStr(inputElements[1].value.replace(/\n|\r\n|\r|\u2028|\u2029/g, "").trim()) || "*";
-                    }
-                });
-                inputElements[1].addEventListener("keydown", (event) => {
-                    if ((event.key === "Enter" || event.key === "Escape") && !event.isComposing) {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        getSiyuanGlobalMenusMenu().remove();
-                    } else if (event.key === "Tab" && !event.isComposing) {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        if (event.shiftKey) {
-                            inputElements[0].focus();
-                        } else {
-                            inputElements[2].focus();
-                        }
-                    } else if (electronUndo(event)) {
-                        return;
-                    }
-                });
-
-                inputElements[2].value = Lute.UnEscapeHTMLStr(linkElement.getAttribute("data-title") || "");
-                inputElements[2].addEventListener("keydown", (event) => {
-                    if ((event.key === "Enter" || event.key === "Escape") && !event.isComposing) {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        getSiyuanGlobalMenusMenu().remove();
-                    } else if (event.key === "Tab" && event.shiftKey && !event.isComposing) {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        inputElements[1].focus();
-                    } else if (electronUndo(event)) {
-                        return;
-                    }
-                });
-
-                element.addEventListener("click", (event) => {
-                    let target = event.target as HTMLElement;
-                    while (target) {
-                        if (target.dataset.action === "copy") {
-                            writeText((target.parentElement.nextElementSibling as HTMLTextAreaElement).value);
-                            showMessage(siyuanI18n.copied);
-                            break;
-                        }
-                        target = target.parentElement;
-                    }
-                });
-            }
-        }).element);
-        getSiyuanGlobalMenusMenu().append(new MenuItem({ id: "separator_1", type: "separator" }).element);
+        添加编辑模式菜单项(ctx);
     }
-    getSiyuanGlobalMenusMenu().append(new MenuItem({
-        id: "copy",
-        label: siyuanI18n.copy,
-        icon: "iconCopy",
-        click() {
-            const range = document.createRange();
-            range.selectNode(linkElement);
-            focusByRange(range);
-            document.execCommand("copy");
-        }
-    }).element);
+
+    添加复制菜单项(linkElement);
+
     if (protyle.disabled) {
-        getSiyuanGlobalMenusMenu().append(new MenuItem({
-            id: "copyAHref",
-            label: siyuanI18n.copyAHref,
-            icon: "iconLink",
-            click() {
-                writeText(linkAddress);
-            }
-        }).element);
+        添加复制链接地址菜单项(ctx.linkAddress);
     }
     if (!protyle.disabled) {
-        getSiyuanGlobalMenusMenu().append(new MenuItem({
-            id: "cut",
-            icon: "iconCut",
-            label: siyuanI18n.cut,
-            click() {
-                const range = document.createRange();
-                range.selectNode(linkElement);
-                focusByRange(range);
-                document.execCommand("cut");
-            }
-        }).element);
-        getSiyuanGlobalMenusMenu().append(new MenuItem({
-            id: "remove",
-            icon: "iconTrashcan",
-            label: siyuanI18n.remove,
-            click() {
-                linkElement.insertAdjacentHTML("afterend", "<wbr>");
-                linkElement.remove();
-                nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-                updateTransaction(protyle, id, nodeElement.outerHTML, html);
-                focusByWbr(nodeElement, protyle.toolbar.range);
-                html = nodeElement.outerHTML;
-            }
-        }).element);
-        if (linkAddress?.startsWith("assets/")) {
-            getSiyuanGlobalMenusMenu().append(new MenuItem({
-                id: "rename",
-                label: siyuanI18n.rename,
-                icon: "iconEdit",
-                click() {
-                    renameAsset(linkAddress);
-                }
-            }).element);
-        }
-        if (linkAddress?.startsWith("siyuan://blocks/")) {
-            getSiyuanGlobalMenusMenu().append(new MenuItem({
-                id: "turnIntoRef",
-                label: `${siyuanI18n.turnInto} <b>${siyuanI18n.ref}</b>`,
-                icon: "iconRef",
-                click() {
-                    linkElement.setAttribute("data-subtype", "s");
-                    const types = linkElement.getAttribute("data-type").split(" ");
-                    types.push("block-ref");
-                    types.splice(types.indexOf("a"), 1);
-                    linkElement.setAttribute("data-type", types.join(" "));
-                    linkElement.setAttribute("data-id", inputElements[0].value.replace("siyuan://blocks/", ""));
-                    inputElements[0].value = "";
-                    inputElements[2].value = "";
-                    linkElement.removeAttribute("data-href");
-                    linkElement.removeAttribute("data-title");
-                    nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-                    updateTransaction(protyle, id, nodeElement.outerHTML, html);
-                    protyle.toolbar.range.selectNode(linkElement);
-                    protyle.toolbar.range.collapse(false);
-                    focusByRange(protyle.toolbar.range);
-                    html = nodeElement.outerHTML;
-                }
-            }).element);
-        }
-        getSiyuanGlobalMenusMenu().append(new MenuItem({
-            id: "turnIntoText",
-            label: `${siyuanI18n.turnInto} <b>${siyuanI18n.text}</b>`,
-            icon: "iconRefresh",
-            click() {
-                inputElements[0].value = "";
-                inputElements[2].value = "";
-                nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-                removeInlineType(linkElement, "a", protyle.toolbar.range);
-                updateTransaction(protyle, id, nodeElement.outerHTML, html);
-                html = nodeElement.outerHTML;
-            }
-        }).element);
+        添加编辑操作菜单项(ctx);
     }
 
-    if (linkAddress) {
-        getSiyuanGlobalMenusMenu().append(new MenuItem({ id: "separator_2", type: "separator" }).element);
-        openMenu(protyle.app, linkAddress, false, true);
-        if (linkAddress?.startsWith("assets/")) {
-            getSiyuanGlobalMenusMenu().append(new MenuItem(exportAsset(linkAddress)).element);
-        }
-    }
+    添加链接操作菜单项(ctx);
 
+    // 触发插件菜单事件
     if (!protyle.disabled && protyle?.app?.plugins) {
         emitOpenMenu({
             plugins: protyle.app.plugins,
@@ -258,52 +236,16 @@ style="margin:4px 0;width: ${isMobile() ? "100%" : "360px"}" class="b3-text-fiel
             separatorPosition: "top",
         });
     }
-    /// #if MOBILE
-    getSiyuanGlobalMenusMenu().fullscreen();
-    /// #else
-    const rect = linkElement.getBoundingClientRect();
-    getSiyuanGlobalMenusMenu().popup({
-        x: rect.left,
-        y: rect.top + 26,
-        h: 26
-    });
-    /// #endif
-    const popoverElement = hasTopClosestByClassName(protyle.element, "block__popover", true);
-    getSiyuanGlobalMenusMenu().element.setAttribute("data-from", popoverElement ? popoverElement.dataset.level + "popover" : "app");
+
+    // 显示菜单
+    显示菜单弹窗(linkElement, protyle);
+
+    // 只读模式下直接返回
     if (protyle.disabled) {
         return;
     }
-    if (focusText || protyle.lute.GetLinkDest(linkAddress) || linkAddress?.startsWith("assets/")) {
-        inputElements[1].select();
-    } else {
-        inputElements[0].select();
-    }
-    getSiyuanGlobalMenusMenu().removeCB = () => {
-        if (inputElements[2].value) {
-            linkElement.setAttribute("data-title", Lute.EscapeHTMLStr(inputElements[2].value.replace(/\n|\r\n|\r|\u2028|\u2029/g, "")));
-        } else {
-            linkElement.removeAttribute("data-title");
-        }
-        if (linkElement.getAttribute("data-type").indexOf("a") > -1) {
-            linkElement.setAttribute("data-href", Lute.EscapeHTMLStr(inputElements[0].value.replace(/\n|\r\n|\r|\u2028|\u2029/g, "")));
-        } else {
-            linkElement.removeAttribute("data-href");
-        }
-        if (!inputElements[1].value && (inputElements[0].value || inputElements[2].value)) {
-            linkElement.textContent = "*";
-        }
-        const currentRange = getSelection().rangeCount === 0 ? undefined : getSelection().getRangeAt(0);
-        if (currentRange && !protyle.element.contains(currentRange.startContainer)) {
-            protyle.toolbar.range.selectNodeContents(linkElement);
-            protyle.toolbar.range.collapse(false);
-            focusByRange(protyle.toolbar.range);
-        }
-        if (!inputElements[1].value && !inputElements[0].value && !inputElements[2].value) {
-            linkElement.remove();
-        }
-        if (html !== nodeElement.outerHTML) {
-            nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-            updateTransaction(protyle, id, nodeElement.outerHTML, html);
-        }
-    };
+
+    // 设置初始焦点和关闭回调
+    设置初始焦点(ctx, focusText);
+    设置菜单关闭回调(ctx);
 };
