@@ -1,0 +1,27 @@
+{
+  "name": "TEColors",
+  "author": "椽承设计",
+  "url": "https://github.com/leolee9086/TEColors",
+  "version": "0.0.11",
+  "displayName": {
+    "default": "TEColors",
+    "zh_CN": "TE颜色选择器"
+  },
+  "description": {
+    "default": "Used for quickly adjusting the text color and background color of blocks, as well as simple color management and other functions.",
+    "zh_CN": "用于快速调节块的文字颜色和背景色,以及简单的颜色管理等功能"
+  },
+  "readme": {
+    "default": "README.md",
+    "zh_CN": "README_zh_CN.md"
+  },
+  "funding": {
+    "openCollective": "b3log",
+    "patreon": "",
+    "github": "",
+    "custom": [
+      "https://afdian.net/a/leolee9086"
+    ]
+  },
+  "keywords":["color","decoration","颜色","样式","装饰","椽承设计"]
+}
