@@ -1,19 +1,19 @@
-import {setEditMode} from "../util/setEditMode";
-import {scrollEvent} from "../scroll/event";
-import {isMobile} from "../../util/functions";
-import {Constants} from "../../constants";
-import {isMac} from "../util/compatibility";
-import {setInlineStyle} from "../../util/assets";
-import {fetchPost} from "../../util/fetch";
-import {lineNumberRender} from "../render/highlightRender";
-import {hideMessage, showMessage} from "../../dialog/message";
-import {genUUID} from "../../util/genID";
-import {getContenteditableElement, getLastBlock} from "../wysiwyg/getBlock";
-import {genEmptyElement, genHeadingElement} from "../../block/util";
-import {transaction} from "../wysiwyg/transaction";
-import {focusByRange} from "../util/selection";
+import { setEditMode } from "../util/setEditMode";
+import { scrollEvent } from "../scroll/event";
+import { isMobile } from "../../util/functions";
+import { Constants } from "../../constants";
+import { isMac } from "../util/compatibility";
+import { setInlineStyle } from "../../util/assets";
+import { fetchPost } from "../../util/fetch";
+import { lineNumberRender } from "../render/highlightRender";
+import { hideMessage, showMessage } from "../../dialog/message";
+import { genUUID } from "../../util/genID";
+import { getContenteditableElement, getLastBlock } from "../wysiwyg/getBlock";
+import { genEmptyElement, genHeadingElement } from "../../block/util";
+import { transaction } from "../wysiwyg/transaction";
+import { focusByRange } from "../util/selection";
 /// #if !MOBILE
-import {moveResize} from "../../dialog/moveResize";
+import { moveResize } from "../../dialog/moveResize";
 /// #endif
 import {
     hasClosestBlock,
@@ -119,7 +119,7 @@ export const initUI = (protyle: IProtyle) => {
                 });
             });
         }, Constants.TIMEOUT_LOAD);
-    }, {passive: true});
+    }, { passive: true });
     protyle.contentElement.addEventListener("click", (event: MouseEvent & { target: HTMLElement }) => {
         // wysiwyg 元素下方点击无效果 https://github.com/siyuan-note/siyuan/issues/12009
         if (protyle.disabled ||
@@ -209,6 +209,21 @@ export const initUI = (protyle: IProtyle) => {
                 // 光标在列表下部应显示右侧的元素，而不是列表本身。放在 windowEvent 中的 mousemove 下处理
                 return;
             }
+
+            // 当鼠标移到容器块区域（NodeBlockquote/NodeCallout）时，检查是否应保持当前gutter
+            const nodeType = nodeElement.getAttribute("data-type");
+            if (["NodeBlockquote", "NodeCallout"].includes(nodeType || "")) {
+                const currentGutterButton = protyle.gutter?.element.querySelector("button[data-node-id]");
+                if (currentGutterButton) {
+                    const currentNodeId = currentGutterButton.getAttribute("data-node-id");
+                    // 检查当前gutter显示的块是否是这个容器块的后代
+                    if (currentNodeId && nodeElement.querySelector(`[data-node-id="${currentNodeId}"]`)) {
+                        // 是后代，保持gutter不变
+                        return;
+                    }
+                }
+            }
+
             const embedElement = isInEmbedBlock(nodeElement);
             if (embedElement) {
                 protyle.gutter.render(protyle, embedElement);

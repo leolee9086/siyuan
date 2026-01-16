@@ -2,7 +2,6 @@ import { getIconByType } from "../../editor/getIcon";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {
     hasClosestBlock,
-    hasTopClosestByClassName,
     isInAVBlock,
     isInEmbedBlock
 } from "../util/hasClosest";
@@ -99,6 +98,17 @@ const processGutterNodes = (protyle: IProtyle, initialNodeElement: Element, init
     return { html: state.html, space: state.space, listItem: state.listItem, nodeElement, shouldReturn: false };
 };
 
+/**
+ * 累积生成 Gutter 按钮的 HTML 内容
+ *
+ * 此函数为单个节点元素生成 Gutter 按钮 HTML，并累积到 state 中。
+ * 它会根据元素类型处理特殊情况，如列表项、标题、引用块等。
+ *
+ * @param protyle 编辑器实例
+ * @param nodeElement 当前处理的节点元素
+ * @param gutterTip Gutter 的提示文本
+ * @param state 累积状态对象，包含 HTML、缩进、列表项等信息
+ */
 const accumulateGutterHtml = (protyle: IProtyle, nodeElement: Element, gutterTip: string, state: { html: string, space: number, listItem: Element | undefined, index: number, hideParent: boolean }) => {
     let type: string | null = null;
     if (!state.hideParent) {
@@ -197,16 +207,13 @@ const checkEmbedBlock = (nodeElement: Element, parentElement: Element | undefine
  * @param target 可选的目标子元素，用于精确定位
  * @returns 包含节点元素、列表项和是否应该返回标志的对象
  */
-const calculateInitialNode = (element: Element, target: Element | undefined) => {
+const calculateInitialNode = (element: Element, _target: Element | undefined) => {
     let nodeElement = element;
     const type = nodeElement.getAttribute("data-type");
 
-    // 检查是否为特殊类型的块
-    const isSpecialType = ["NodeBlockquote", "NodeList", "NodeCallout", "NodeSuperBlock"].includes(type || "");
-    const isInfoCallout = target && type === "NodeCallout" && hasTopClosestByClassName(target, "callout-info");
-
-    // 如果是特殊类型且不是信息标注，则直接返回
-    if (isSpecialType && !isInfoCallout) {
+    // 只对列表和超级块返回（这两种类型的gutter由其子元素处理）
+    // 引述块和callout块需要显示块标以便用户操作
+    if (["NodeList", "NodeSuperBlock"].includes(type || "")) {
         return { nodeElement, shouldReturn: true };
     }
 
