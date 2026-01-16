@@ -184,3 +184,10 @@ export interface IStyleBrushParameters {
 /** 样式刷子参数的中文别名 */
 export type 样式刷子参数 = IStyleBrushParameters;
 
+/** 样式刷子全局事件处理器集合 (用于避免模块与全局状态污染) */
+export interface IStyleBrushHandlers {
+    mousemove: ((e: MouseEvent) => void) | null;
+    click: ((e: MouseEvent) => void) | null;
+    keydown: ((e: KeyboardEvent) => void) | null;
+    mousedown: ((e: MouseEvent) => void) | null;
+}

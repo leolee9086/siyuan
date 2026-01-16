@@ -4,7 +4,7 @@
 
 import { SForgeSymbols } from "./sforge.symbols";
 import type { TabRegistration } from "../registry/TabRegistry.types";
-import type { ITriggerRegistration, IBrushSession } from "../registry/TriggerRegistry.types";
+import type { ITriggerRegistration, IBrushSession, IStyleBrushHandlers } from "../registry/TriggerRegistry.types";
 
 /**
  * SForge 全局状态类型定义
@@ -18,6 +18,7 @@ export interface ISForgeGlobalState {
     [SForgeSymbols.TAB_TYPE_REGISTRY]?: Map<string, TabRegistration>;
     [SForgeSymbols.TRIGGER_REGISTRY]?: Map<string, ITriggerRegistration>;
     [SForgeSymbols.BRUSH_SESSION]?: IBrushSession | null;
+    [SForgeSymbols.STYLE_BRUSH_HANDLERS]?: IStyleBrushHandlers;
 }
 
 /**

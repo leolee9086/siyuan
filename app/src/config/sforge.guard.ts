@@ -14,3 +14,12 @@ import type { IGlobalWithSForge } from "./sforge.types";
 export function asGlobalWithSForge(global: typeof globalThis): IGlobalWithSForge {
     return global as unknown as IGlobalWithSForge;
 }
+
+import type { IStyleBrushHandlers } from "../registry/TriggerRegistry.types";
+
+/**
+ * 将值转换为 IStyleBrushHandlers
+ */
+export function asStyleBrushHandlers(val: unknown): IStyleBrushHandlers | undefined {
+    return val as IStyleBrushHandlers | undefined;
+}

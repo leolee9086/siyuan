@@ -18,6 +18,8 @@ export const SForgeSymbols = {
     BRUSH_SESSION: Symbol.for("sforge.trigger.brushSession"),
     /** SForge 全局对象的 Symbol 键 */
     GLOBAL_KEY: Symbol.for("sforge.global"),
+    /** 样式刷子全局事件处理器 (用于解决模块级变量问题) */
+    STYLE_BRUSH_HANDLERS: Symbol.for("sforge.styleBrush.handlers"),
 } as const;
 
 // 中文别名

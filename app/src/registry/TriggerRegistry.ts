@@ -123,10 +123,22 @@ export function 获取所有触发器类型(): string[] {
 
 /**
  * 检查是否有刷子处于激活状态
+ * 
+ * @param type 可选，指定检查特定的刷子类型
  */
-export function 刷子是否激活(): boolean {
+export function 刷子是否激活(type?: string): boolean {
     const session = 获取刷子会话();
-    return session !== null && session.状态 !== "idle";
+    const isActive = session !== null && session.状态 !== "idle";
+
+    if (!isActive) {
+        return false;
+    }
+
+    if (type) {
+        return session.triggerType === type;
+    }
+
+    return true;
 }
 
 /**

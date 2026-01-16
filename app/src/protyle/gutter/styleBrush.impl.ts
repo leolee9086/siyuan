@@ -12,7 +12,10 @@ import {
     退出刷子,
     获取刷子参数,
 } from "../../registry/TriggerRegistry";
-import type { IStyleBrushParameters } from "../../registry/TriggerRegistry.types";
+import type { IStyleBrushParameters, IStyleBrushHandlers } from "../../registry/TriggerRegistry.types";
+import { SForgeSymbols } from "../../config/sforge.symbols";
+import { getSForgeState, setSForgeState } from "../../config/sforge.global";
+import { asStyleBrushHandlers } from "../../config/sforge.guard";
 
 // ============ 常量定义 ============
 
@@ -132,11 +135,9 @@ function 更新光标位置(cursor: HTMLElement, x: number, y: number): void {
 
 // ============ 事件处理 ============
 
-/** 全局事件处理器引用 */
-let 当前鼠标移动处理器: ((e: MouseEvent) => void) | null = null;
-let 当前点击处理器: ((e: MouseEvent) => void) | null = null;
-let 当前键盘处理器: ((e: KeyboardEvent) => void) | null = null;
-let 当前右键处理器: ((e: MouseEvent) => void) | null = null;
+// 移除模块级别变量，改用 SForge 全局状态存储
+// let 当前鼠标移动处理器... 
+// 参考: SForgeSymbols.STYLE_BRUSH_HANDLERS
 
 /**
  * 处理鼠标移动 - 更新光标位置
@@ -232,16 +233,25 @@ function 创建右键处理器(): (e: MouseEvent) => void {
 export function 设置事件监听(cursorElement: HTMLElement): void {
     const win = getGlobalWindow();
 
-    当前鼠标移动处理器 = 创建鼠标移动处理器(cursorElement);
-    当前点击处理器 = 创建点击处理器();
-    当前键盘处理器 = 创建键盘处理器();
-    当前右键处理器 = 创建右键处理器();
+    const mousemoveHandler = 创建鼠标移动处理器(cursorElement);
+    const clickHandler = 创建点击处理器();
+    const keydownHandler = 创建键盘处理器();
+    const mousedownHandler = 创建右键处理器();
+
+    const handlers: IStyleBrushHandlers = {
+        mousemove: mousemoveHandler,
+        click: clickHandler,
+        keydown: keydownHandler,
+        mousedown: mousedownHandler
+    };
+
+    setSForgeState(SForgeSymbols.STYLE_BRUSH_HANDLERS, handlers);
 
     // 使用 capture 确保优先处理
-    win.addEventListener("mousemove", 当前鼠标移动处理器);
-    win.addEventListener("click", 当前点击处理器, true);
-    win.addEventListener("keydown", 当前键盘处理器, true);
-    win.addEventListener("mousedown", 当前右键处理器, true);
+    win.addEventListener("mousemove", mousemoveHandler);
+    win.addEventListener("click", clickHandler, true);
+    win.addEventListener("keydown", keydownHandler, true);
+    win.addEventListener("mousedown", mousedownHandler, true);
 }
 
 /**
@@ -249,23 +259,28 @@ export function 设置事件监听(cursorElement: HTMLElement): void {
  */
 export function 清理事件监听(): void {
     const win = getGlobalWindow();
+    const handlers = asStyleBrushHandlers(getSForgeState(SForgeSymbols.STYLE_BRUSH_HANDLERS));
 
-    if (当前鼠标移动处理器) {
-        win.removeEventListener("mousemove", 当前鼠标移动处理器);
-        当前鼠标移动处理器 = null;
+    if (!handlers) {
+        document.body.style.cursor = "";
+        return;
     }
-    if (当前点击处理器) {
-        win.removeEventListener("click", 当前点击处理器, true);
-        当前点击处理器 = null;
+
+    if (handlers.mousemove) {
+        win.removeEventListener("mousemove", handlers.mousemove);
     }
-    if (当前键盘处理器) {
-        win.removeEventListener("keydown", 当前键盘处理器, true);
-        当前键盘处理器 = null;
+    if (handlers.click) {
+        win.removeEventListener("click", handlers.click, true);
     }
-    if (当前右键处理器) {
-        win.removeEventListener("mousedown", 当前右键处理器, true);
-        当前右键处理器 = null;
+    if (handlers.keydown) {
+        win.removeEventListener("keydown", handlers.keydown, true);
     }
+    if (handlers.mousedown) {
+        win.removeEventListener("mousedown", handlers.mousedown, true);
+    }
+
+    // 清理全局状态
+    setSForgeState(SForgeSymbols.STYLE_BRUSH_HANDLERS, undefined);
 
     // 恢复光标样式
     document.body.style.cursor = "";

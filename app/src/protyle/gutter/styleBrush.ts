@@ -37,6 +37,7 @@ import {
 // ============ 常量定义 ============
 
 export const STYLE_BRUSH_TYPE = 样式刷子类型;
+export { 提取DOM样式, 提取块样式 } from "./styleBrush.impl";
 
 // ============ 触发器注册 ============
 
@@ -158,6 +159,7 @@ export function 激活样式刷子(sourceStyle: string, sourceBlockId?: string):
 
 /**
  * 检查样式刷子是否激活
+ * @AITODO 特定刷子是否激活应该由管理模块统一实现,而不是在这里比对
  * @returns 是否激活
  */
 export function 样式刷子是否激活(): boolean {
@@ -166,6 +168,8 @@ export function 样式刷子是否激活(): boolean {
 
 /**
  * 退出样式刷子
+ * 
+ * @AITODO 特定刷子退出应该由管理模块统一实现,而不是在这里比对
  */
 export function 退出样式刷子(): void {
     if (样式刷子是否激活()) {
