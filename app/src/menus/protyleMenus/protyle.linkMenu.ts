@@ -1,23 +1,23 @@
 import * as dayjs from "dayjs";
-import { focusByRange } from "../ai/imports";
-import { Constants } from "../constants";
-import { showMessage } from "../dialog/message";
-import { hideTooltip } from "../dialog/tooltip";
-import { renameAsset } from "../editor/rename";
-import { emitOpenMenu } from "../plugin/EventBus";
-import { removeInlineType } from "../protyle/toolbar/util";
-import { hideElements } from "../protyle/ui/hideElements";
-import { electronUndo } from "../protyle/undo";
-import { writeText } from "../protyle/util/compatibility";
-import { hasClosestBlock, hasTopClosestByClassName } from "../protyle/util/hasClosest";
-import { focusByWbr } from "../protyle/util/selection";
-import { updateTransaction } from "../protyle/wysiwyg/transaction";
-import { isMobile } from "../util/functions";
-import { getSiyuanGlobalMenusMenu } from "../util/siyuanEnvironments/getMenu.environment";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
-import { openMenu } from "./commonMenuItem.openMenu";
-import { MenuItem } from "./Menu.Item";
-import { exportAsset } from "./util";
+import { focusByRange } from "../../ai/imports";
+import { Constants } from "../../constants";
+import { showMessage } from "../../dialog/message";
+import { hideTooltip } from "../../dialog/tooltip";
+import { renameAsset } from "../../editor/rename";
+import { emitOpenMenu } from "../../plugin/EventBus";
+import { removeInlineType } from "../../protyle/toolbar/util";
+import { hideElements } from "../../protyle/ui/hideElements";
+import { electronUndo } from "../../protyle/undo";
+import { writeText } from "../../protyle/util/compatibility";
+import { hasClosestBlock, hasTopClosestByClassName } from "../../protyle/util/hasClosest";
+import { focusByWbr } from "../../protyle/util/selection";
+import { updateTransaction } from "../../protyle/wysiwyg/transaction";
+import { isMobile } from "../../util/functions";
+import { getSiyuanGlobalMenusMenu } from "../../util/siyuanEnvironments/getMenu.environment";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { openMenu } from "../commonMenuItem.openMenu";
+import { MenuItem } from "../Menu.Item";
+import { exportAsset } from "../util";
 
 
 export const linkMenu = (protyle: IProtyle, linkElement: HTMLElement, focusText = false) => {

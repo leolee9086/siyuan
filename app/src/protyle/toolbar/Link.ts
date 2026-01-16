@@ -1,5 +1,5 @@
 import { ToolbarItem } from "./ToolbarItem";
-import { linkMenu } from "../../menus/protyle.linkMenu";
+import { linkMenu } from "../../menus/protyleMenus/protyle.linkMenu";
 import { hasClosestBlock, hasClosestByAttribute } from "../util/hasClosest";
 import { readClipboard } from "../util/compatibility";
 import { Constants } from "../../constants";

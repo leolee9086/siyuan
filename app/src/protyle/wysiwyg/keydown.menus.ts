@@ -2,7 +2,7 @@ import { hasClosestByAttribute } from "../util/hasClosest";
 import { removeSearchMark } from "../toolbar/util";
 import { refMenu } from "../../menus/protyle.refMenu";
 import { fileAnnotationRefMenu } from "../../menus/protyle.fileAnnotationRefMenu";
-import { linkMenu } from "../../menus/protyle.linkMenu";
+import { linkMenu } from "../../menus/protyleMenus/protyle.linkMenu";
 import { tagMenu } from "../../menus/protyle.tagMenu";
 import { inlineMathMenu } from "../../menus/protyle.inlineMathMenu";
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";

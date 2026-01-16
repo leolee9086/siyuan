@@ -8,7 +8,7 @@ import {
 import { initFileMenu, initNavigationMenu } from "../../menus/navigation";
 import { inlineMathMenu } from "../../menus/protyle.inlineMathMenu";
 import { tagMenu } from "../../menus/protyle.tagMenu";
-import { linkMenu } from "../../menus/protyle.linkMenu";
+import { linkMenu } from "../../menus/protyleMenus/protyle.linkMenu";
 import { refMenu } from "../../menus/protyle.refMenu";
 import { fileAnnotationRefMenu } from "../../menus/protyle.fileAnnotationRefMenu";
 import { App } from "../../index";

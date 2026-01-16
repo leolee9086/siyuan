@@ -29,7 +29,7 @@ import {
 } from "../../menus/protyleMenus/protyle.enterBack";
 import { inlineMathMenu } from "../../menus/protyle.inlineMathMenu";
 import { tagMenu } from "../../menus/protyle.tagMenu";
-import { linkMenu } from "../../menus/protyle.linkMenu";
+import { linkMenu } from "../../menus/protyleMenus/protyle.linkMenu";
 import { zoomOut } from "../../menus/protyle.zoomOut";
 import { imgMenu } from "../../menus/protyleMenus/protyle.imgMenu";
 import { contentMenu } from "../../menus/protyleMenus/protyle.contentMenu";
