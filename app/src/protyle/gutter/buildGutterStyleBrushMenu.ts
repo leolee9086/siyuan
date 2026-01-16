@@ -1,0 +1,54 @@
+/**
+ * buildGutterStyleBrushMenu.ts - 格式刷菜单项构建模块
+ * 
+ * 提供 Gutter 块菜单中格式刷相关菜单项的构建功能
+ * 
+ * @module protyle/gutter/buildGutterStyleBrushMenu
+ */
+
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { 提取块样式, 激活样式刷子 } from "./styleBrush";
+import type { IGutterCommonMenuContext } from "./buildGutterCommonMenu";
+
+/**
+ * 创建格式刷菜单项
+ * 
+ * 仅当目标块存在 style 属性时显示此菜单项
+ * 
+ * @param ctx 菜单构建上下文
+ * @returns 菜单项配置，若块无样式则返回 null
+ */
+export function 创建格式刷菜单项(ctx: IGutterCommonMenuContext): IMenu | null {
+    const style = 提取块样式(ctx.nodeElement);
+
+    // 块没有样式时不显示格式刷选项
+    if (!style) {
+        return null;
+    }
+
+    return {
+        id: "styleBrush",
+        icon: "iconFormat",
+        label: siyuanI18n.copy + siyuanI18n.appearance, // "复制外观" 或类似
+        click: () => {
+            激活样式刷子(style, ctx.id);
+        }
+    };
+}
+
+/**
+ * 添加格式刷菜单项到菜单列表
+ * 
+ * @param ctx 菜单构建上下文
+ * @param menuItems 菜单项列表
+ */
+export function 添加格式刷菜单(ctx: IGutterCommonMenuContext, menuItems: IMenu[]): void {
+    const menuItem = 创建格式刷菜单项(ctx);
+    if (menuItem) {
+        menuItems.push(menuItem);
+    }
+}
+
+// 英文别名
+export const createStyleBrushMenuItem = 创建格式刷菜单项;
+export const addStyleBrushMenu = 添加格式刷菜单;

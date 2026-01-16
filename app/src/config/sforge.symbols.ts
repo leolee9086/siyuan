@@ -12,9 +12,14 @@ export const SForgeSymbols = {
     DOCK_TYPE_REGISTRY: Symbol.for("sforge.dock.typeRegistry"),
     /** Tab 类型注册表 */
     TAB_TYPE_REGISTRY: Symbol.for("sforge.tab.typeRegistry"),
+    /** Trigger 触发器注册表 (智能工具箱) */
+    TRIGGER_REGISTRY: Symbol.for("sforge.trigger.registry"),
+    /** Brush 刷子会话状态 */
+    BRUSH_SESSION: Symbol.for("sforge.trigger.brushSession"),
     /** SForge 全局对象的 Symbol 键 */
     GLOBAL_KEY: Symbol.for("sforge.global"),
 } as const;
 
 // 中文别名
 export const SForge符号 = SForgeSymbols;
+

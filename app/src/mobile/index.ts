@@ -112,6 +112,9 @@ class App {
                     // 加载 Forge 翻译
                     const { loadForgeI18n } = await import("../util/siyuanEnvironments/forgeI18n.getI18n.environment");
                     await loadForgeI18n();
+                    // 初始化 S-Forge 扩展功能（移动端不注册刷子）
+                    const { initSForge } = await import("../config/sforge.init");
+                    await initSForge({ isMobile: true });
                     window.siyuan.menus = new Menus(this);
                     document.title = window.siyuan.languages.siyuanNote;
                     bootSync();

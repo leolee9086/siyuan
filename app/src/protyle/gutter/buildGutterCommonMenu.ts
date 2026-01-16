@@ -32,6 +32,7 @@ import { showMobileAppearance } from "./showMobileAppearance";
 import { openFileById } from "../../editor/utils.openFileById";
 /// #endif
 import { checkFold } from "../../util/noRelyPCFunction";
+import { 添加格式刷菜单 } from "./buildGutterStyleBrushMenu";
 
 /**
  * 通用操作菜单构建上下文
@@ -323,7 +324,7 @@ const 添加编辑菜单 = (ctx: IGutterCommonMenuContext, menuItems: IMenu[]): 
 };
 
 /**
- * 添加视图菜单项（折叠/属性/外观）
+ * 添加视图菜单项（折叠/属性/外观/格式刷）
  */
 const 添加视图菜单 = (ctx: IGutterCommonMenuContext, menuItems: IMenu[]): void => {
     if (ctx.type !== "NodeThematicBreak") {
@@ -336,6 +337,8 @@ const 添加视图菜单 = (ctx: IGutterCommonMenuContext, menuItems: IMenu[]): 
         menuItems.push(创建外观菜单(ctx));
         menuItems.push(buildGutterAlignMenu([ctx.nodeElement], ctx.protyle));
         menuItems.push(buildGutterWidthsMenu([ctx.nodeElement], ctx.protyle));
+        // [S-Forge] 格式刷菜单项
+        添加格式刷菜单(ctx, menuItems);
     }
 };
 

@@ -214,6 +214,9 @@ export class App {
                     // 加载 Forge 翻译
                     const { loadForgeI18n } = await import("./util/siyuanEnvironments/forgeI18n.getI18n.environment");
                     await loadForgeI18n();
+                    // 初始化 S-Forge 扩展功能
+                    const { initSForge } = await import("./config/sforge.init");
+                    await initSForge({ isMobile: false });
                     window.siyuan.menus = new Menus(this);
                     bootSync();
                     fetchPost("/api/setting/getCloudUser", {}, userResponse => {

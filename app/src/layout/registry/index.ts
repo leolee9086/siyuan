@@ -19,3 +19,43 @@ export {
     getAllTabTypes,
 } from "./TabRegistry";
 export type { TabRegistration } from "./TabRegistry.types";
+
+// Trigger 注册表 (智能工具箱)
+export {
+    triggerRegistry,
+    注册触发器,
+    获取触发器,
+    触发器已注册,
+    注销触发器,
+    获取所有触发器类型,
+    刷子是否激活,
+    获取激活刷子类型,
+    激活刷子,
+    退出刷子,
+    注册刷子清理函数,
+    设置刷子光标,
+    更新刷子状态,
+    获取刷子参数,
+    匹配触发器,
+    registerTrigger,
+    getTrigger,
+    hasTrigger,
+    unregisterTrigger,
+    getAllTriggerTypes,
+    isBrushActive,
+    getActiveBrushType,
+    activateBrush,
+    deactivateBrush,
+    registerBrushCleanup,
+    setBrushCursor,
+    updateBrushState,
+    getBrushParams,
+    matchTriggers,
+} from "./TriggerRegistry";
+export type {
+    ITriggerRegistration,
+    IBrushSession,
+    IGlobalContext,
+    触发模式,
+    刷子状态
+} from "./TriggerRegistry.types";
