@@ -12,7 +12,6 @@
  * @module protyle/gutter/styleBrush
  */
 
-import { fetchPost } from "../../util/fetch";
 import {
     注册触发器,
     激活刷子,
@@ -23,226 +22,21 @@ import {
     刷子是否激活,
     获取激活刷子类型
 } from "../../registry/TriggerRegistry";
-import type { IGlobalContext, I样式刷子参数 } from "../../registry/TriggerRegistry.types";
-import { getGlobalWindow } from "../../util/siyuanEnvironments/window.environment";
+import type { IGlobalContext, IStyleBrushParameters } from "../../registry/TriggerRegistry.types";
+import { isStyleBrushParameters } from "./styleBrush.guard";
+import {
+    样式刷子类型,
+    提取DOM样式,
+    提取块样式,
+    应用样式,
+    创建光标元素,
+    设置事件监听,
+    清理事件监听
+} from "./styleBrush.impl";
 
 // ============ 常量定义 ============
 
-/** 样式刷子的触发器类型标识 */
-export const 样式刷子类型 = "s-forge-style-brush";
 export const STYLE_BRUSH_TYPE = 样式刷子类型;
-
-/** 画笔光标的 CSS 类名 */
-const 光标类名 = "s-forge-brush-cursor";
-
-// ============ 核心功能 ============
-
-/**
- * 从块元素提取可复制的样式
- * 
- * @param element 块元素
- * @returns 样式字符串，若无样式则返回 null
- */
-export function 提取块样式(element: Element): string | null {
-    // 优先从 style 属性获取
-    const styleAttr = element.getAttribute("style");
-    if (styleAttr && styleAttr.trim()) {
-        return styleAttr;
-    }
-
-    // 备选：从 data-node 相关属性提取
-    // 未来可扩展更多样式来源
-
-    return null;
-}
-
-/**
- * 应用样式到目标块
- * 
- * 使用思源的 setBlockAttrs API，支持撤销
- * 
- * @param targetId 目标块 ID
- * @param style 样式字符串
- */
-export async function 应用样式(targetId: string, style: string): Promise<boolean> {
-    try {
-        await fetchPost("/api/attr/setBlockAttrs", {
-            id: targetId,
-            attrs: { style }
-        });
-        console.log(`[StyleBrush] 已应用样式到块 ${targetId}`);
-        return true;
-    } catch (e) {
-        console.error("[StyleBrush] 应用样式失败:", e);
-        return false;
-    }
-}
-
-/**
- * 创建画笔光标元素
- */
-function 创建光标元素(): HTMLElement {
-    const cursor = document.createElement("div");
-    cursor.className = 光标类名;
-    cursor.innerHTML = `
-        <svg viewBox="0 0 24 24" width="24" height="24">
-            <use xlink:href="#iconFormat"></use>
-        </svg>
-    `;
-    cursor.style.cssText = `
-        position: fixed;
-        pointer-events: none;
-        z-index: 99999;
-        transform: translate(-50%, -50%);
-        opacity: 0.9;
-        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
-    `;
-    document.body.appendChild(cursor);
-    return cursor;
-}
-
-/**
- * 更新光标位置
- */
-function 更新光标位置(cursor: HTMLElement, x: number, y: number): void {
-    cursor.style.left = `${x}px`;
-    cursor.style.top = `${y}px`;
-}
-
-// ============ 事件处理 ============
-
-/** 全局事件处理器引用 */
-let 当前鼠标移动处理器: ((e: MouseEvent) => void) | null = null;
-let 当前点击处理器: ((e: MouseEvent) => void) | null = null;
-let 当前键盘处理器: ((e: KeyboardEvent) => void) | null = null;
-let 当前右键处理器: ((e: MouseEvent) => void) | null = null;
-
-/**
- * 处理鼠标移动 - 更新光标位置
- */
-function 创建鼠标移动处理器(cursorElement: HTMLElement): (e: MouseEvent) => void {
-    return (e: MouseEvent) => {
-        更新光标位置(cursorElement, e.clientX, e.clientY);
-    };
-}
-
-/**
- * 处理左键点击 - 应用样式
- */
-function 创建点击处理器(): (e: MouseEvent) => void {
-    return (e: MouseEvent) => {
-        if (e.button !== 0) {
-            return; // 只处理左键
-        }
-
-        const target = e.target;
-        if (!(target instanceof HTMLElement)) {
-            return;
-        }
-
-        const blockElement = target.closest("[data-node-id]");
-        if (!(blockElement instanceof HTMLElement)) {
-            console.debug("[StyleBrush] 点击位置不是有效块");
-            return;
-        }
-
-        // 检查是否是链接或块引用（这些需要特殊处理）
-        const linkElement = target.closest("[data-type=\"a\"], [data-type=\"block-ref\"]");
-
-        const targetId = blockElement.getAttribute("data-node-id");
-        if (!targetId) {
-            return;
-        }
-
-        const params = 获取刷子参数<I样式刷子参数>();
-        if (!params?.sourceStyle) {
-            console.error("[StyleBrush] 无法获取源样式");
-            return;
-        }
-
-        // 阻止默认行为
-        e.preventDefault();
-        e.stopPropagation();
-
-        // 应用样式
-        应用样式(targetId, params.sourceStyle);
-
-        // 如果点击到链接，应用后退出
-        if (linkElement) {
-            退出刷子();
-        }
-    };
-}
-
-/**
- * 处理键盘事件 - Esc 退出
- */
-function 创建键盘处理器(): (e: KeyboardEvent) => void {
-    return (e: KeyboardEvent) => {
-        if (e.key === "Escape") {
-            e.preventDefault();
-            e.stopPropagation();
-            退出刷子();
-        }
-    };
-}
-
-/**
- * 处理右键 - 退出
- */
-function 创建右键处理器(): (e: MouseEvent) => void {
-    return (e: MouseEvent) => {
-        if (e.button === 2) {
-            e.preventDefault();
-            退出刷子();
-        }
-    };
-}
-
-/**
- * 设置刷子模式的全局事件监听
- */
-function 设置事件监听(cursorElement: HTMLElement): void {
-    const win = getGlobalWindow();
-
-    当前鼠标移动处理器 = 创建鼠标移动处理器(cursorElement);
-    当前点击处理器 = 创建点击处理器();
-    当前键盘处理器 = 创建键盘处理器();
-    当前右键处理器 = 创建右键处理器();
-
-    // 使用 capture 确保优先处理
-    win.addEventListener("mousemove", 当前鼠标移动处理器);
-    win.addEventListener("click", 当前点击处理器, true);
-    win.addEventListener("keydown", 当前键盘处理器, true);
-    win.addEventListener("mousedown", 当前右键处理器, true);
-}
-
-/**
- * 清理事件监听
- */
-function 清理事件监听(): void {
-    const win = getGlobalWindow();
-
-    if (当前鼠标移动处理器) {
-        win.removeEventListener("mousemove", 当前鼠标移动处理器);
-        当前鼠标移动处理器 = null;
-    }
-    if (当前点击处理器) {
-        win.removeEventListener("click", 当前点击处理器, true);
-        当前点击处理器 = null;
-    }
-    if (当前键盘处理器) {
-        win.removeEventListener("keydown", 当前键盘处理器, true);
-        当前键盘处理器 = null;
-    }
-    if (当前右键处理器) {
-        win.removeEventListener("mousedown", 当前右键处理器, true);
-        当前右键处理器 = null;
-    }
-
-    // 恢复光标样式
-    document.body.style.cursor = "";
-}
 
 // ============ 触发器注册 ============
 
@@ -255,19 +49,34 @@ export function 注册样式刷子(): void {
     注册触发器({
         type: 样式刷子类型,
         mode: "brush",
+        category: "格式",
 
-        // 匹配逻辑：当块有 style 属性时可用
-        match: (context: IGlobalContext) => {
+        /**
+         * 作用：判断当前上下文是否支持样式刷子触发
+         * 意图：仅在块包含可提取样式时，才在触发器列表中显示样式刷子选项（如 Gutter 菜单）
+         * 调用时机：TriggerRegistry 进行触发器匹配查找时调用，通常在弹出 Gutter 菜单前
+         * 问题/改进：当前仅通过内联 style 属性进行判断，未来可扩展至 CSS 类名或自定义属性的识别
+         */
+        match: async (context: IGlobalContext) => {
             const element = context.目标块?.element;
             if (!element) {
                 return false;
             }
-            return 提取块样式(element) !== null;
+            return (await 提取块样式(element)) !== null;
         },
 
-        // 进入刷子模式
+        /**
+         * 作用：初始化并进入刷子模式
+         * 意图：准备样式刷子的运行环境，包括光标替换和事件监听挂载
+         * 调用时机：用户从菜单选择样式刷子或通过快捷键激活刷子模式时
+         * 问题/改进：目前直接操作 document.body.style.cursor，在大屏高度交互时可能与其他插件冲突，考虑使用更隔离的层
+         */
         onEnter: (params: unknown) => {
-            const brushParams = params as I样式刷子参数;
+            if (!isStyleBrushParameters(params)) {
+                console.error("[StyleBrush] 参数无效: 必须包含 sourceStyle");
+                return;
+            }
+            const brushParams = params;
             console.log(`[StyleBrush] 进入刷子模式，源样式: ${brushParams.sourceStyle}`);
 
             // 创建光标
@@ -284,7 +93,12 @@ export function 注册样式刷子(): void {
             注册刷子清理函数(清理事件监听);
         },
 
-        // 应用逻辑
+        /**
+         * 作用：在目标元素执行刷子应用逻辑
+         * 意图：将暂存的源样式应用到用户点击的目标块上
+         * 调用时机：在刷子模式激活期间，用户点击编辑器内的块时
+         * 问题/改进：当前是覆盖式的样式应用，未来可以考虑样式的合并（Merge）逻辑
+         */
         onApply: (target: Element, _context: IGlobalContext, isSecondary: boolean) => {
             if (isSecondary) {
                 // 右键 = 退出
@@ -297,13 +111,18 @@ export function 注册样式刷子(): void {
                 return;
             }
 
-            const params = 获取刷子参数<I样式刷子参数>();
+            const params = 获取刷子参数<IStyleBrushParameters>();
             if (params?.sourceStyle) {
                 应用样式(targetId, params.sourceStyle);
             }
         },
 
-        // 退出清理
+        /**
+         * 作用：执行刷子模式退出时的资源清理
+         * 意图：保证刷子模式退出后，系统状态（如光标、事件监听）完全恢复至初始状态
+         * 调用时机：用户手动退出（Esc/右键）或系统强制关闭刷子模式时
+         * 问题/改进：清理逻辑应尽可能幂等，目前依赖于外部注册的清理函数
+         */
         onExit: () => {
             console.log("[StyleBrush] 退出刷子模式");
         }
@@ -327,16 +146,19 @@ export function 激活样式刷子(sourceStyle: string, sourceBlockId?: string):
         return false;
     }
 
-    const params: I样式刷子参数 = {
+    const params: IStyleBrushParameters = {
         sourceStyle,
-        sourceBlockId
     };
+    if (sourceBlockId) {
+        params.sourceBlockId = sourceBlockId;
+    }
 
     return 激活刷子(样式刷子类型, params);
 }
 
 /**
  * 检查样式刷子是否激活
+ * @returns 是否激活
  */
 export function 样式刷子是否激活(): boolean {
     return 刷子是否激活() && 获取激活刷子类型() === 样式刷子类型;
@@ -352,6 +174,7 @@ export function 退出样式刷子(): void {
 }
 
 // 英文别名
+export const extractDOMStyle = 提取DOM样式;
 export const extractBlockStyle = 提取块样式;
 export const applyStyle = 应用样式;
 export const registerStyleBrush = 注册样式刷子;

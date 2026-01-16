@@ -97,6 +97,12 @@ export interface ITriggerRegistration {
     /** 刷子模式下的光标 HTML（可选） */
     cursorHTML?: string;
 
+    /** 
+     * 触发器分类 (必填)
+     * 用于在 UI 中进行分组展示，如 "常用"、"格式"、"AI" 等
+     */
+    category: string;
+
     /**
      * 执行逻辑
      * @param target 目标元素
@@ -168,9 +174,13 @@ export interface IBrushSession {
  * 使用场景：在 styleBrush.ts 中作为 激活刷子 的参数
  * 关联类型：IBrushSession
  */
-export interface I样式刷子参数 {
+export interface IStyleBrushParameters {
     /** 源块的 style 属性值 */
     sourceStyle: string;
     /** 源块 ID (用于调试) */
     sourceBlockId?: string;
 }
+
+/** 样式刷子参数的中文别名 */
+export type 样式刷子参数 = IStyleBrushParameters;
+

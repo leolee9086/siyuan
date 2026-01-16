@@ -7,7 +7,7 @@
  */
 
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { 提取块样式, 激活样式刷子 } from "./styleBrush";
+import { 提取块样式, 提取DOM样式, 激活样式刷子 } from "./styleBrush";
 import type { IGutterCommonMenuContext } from "./buildGutterCommonMenu";
 
 /**
@@ -19,7 +19,7 @@ import type { IGutterCommonMenuContext } from "./buildGutterCommonMenu";
  * @returns 菜单项配置，若块无样式则返回 null
  */
 export function 创建格式刷菜单项(ctx: IGutterCommonMenuContext): IMenu | null {
-    const style = 提取块样式(ctx.nodeElement);
+    const style = 提取DOM样式(ctx.nodeElement);
 
     // 块没有样式时不显示格式刷选项
     if (!style) {
@@ -30,8 +30,16 @@ export function 创建格式刷菜单项(ctx: IGutterCommonMenuContext): IMenu |
         id: "styleBrush",
         icon: "iconFormat",
         label: siyuanI18n.copy + siyuanI18n.appearance, // "复制外观" 或类似
-        click: () => {
-            激活样式刷子(style, ctx.id);
+        /**
+         * 作用：处理菜单点击事件
+         * 意图：异步获取块的精确样式并激活刷子模式
+         * 调用时机：用户点击格式刷菜单项时
+         */
+        click: async () => {
+            const finalStyle = await 提取块样式(ctx.nodeElement);
+            if (finalStyle) {
+                激活样式刷子(finalStyle, ctx.id);
+            }
         }
     };
 }

@@ -8,8 +8,12 @@
 ### 2.1 触发介入 (Gutter Menu Integration)
 - **拦截位置**：`app/src/protyle/gutter/buildGutterCommonMenu.ts`
 - **逻辑**：
-    - 检查当前选中块（`blockElements`）的首个块是否具有 `style` 属性或 `ial` 中的自定义样式。
-    - 若存在样式，在菜单末尾注入操作项：`{ label: "格式刷", icon: "#iconBrush", click: () => activateStyleBrush(style) }`。
+- **拦截位置**：`app/src/protyle/gutter/buildGutterCommonMenu.ts`
+- **逻辑**：
+    - 在 `buildGutterStyleBrushMenu.ts` 中实现菜单项构建逻辑。
+    - 检查当前块（`nodeElement`）是否具有 `style` 属性。
+    - 若存在样式，在菜单中注入操作项：`{ label: "复制外观", icon: "#iconFormat", click: () => 激活样式刷子(style) }`。
+- **状态**：✅ 已完成
 
 ### 2.2 刷子注册注册与状态机 [SFORGE]
 - **标识符**：`s-forge-style-brush`
@@ -24,8 +28,8 @@
         - 调用 `transaction` API 将 `sourceStyle` 应用到目标块。
     - **Exit**：
         - 捕获到 `Esc` 或右键点击。
-        - 检测到重大的上下文切换（如打开了新文档或激活了其他插件浮层）。
-        - 清理 UI 并释放光标。
+        - 移除画笔光标，清理全局点击拦截器。
+- **状态**：✅ 已完成
 
 ## 3. 技术实现细节
 
@@ -37,18 +41,21 @@
 - **参考**：`toread/TEColors/source/utils/DOM/blockStyle.js`
 - **代码预演**：
     ```typescript
-    // 应用于目标块，需通过思源事务以支持撤销
-    const applyStyle = (targetId: string, style: string) => {
-        const protyle = window.siyuan.ws.app.activeProtyle;
-        if (!protyle) return;
-        
-        transaction(protyle, [{
-            action: "setBlockAttrs",
-            id: targetId,
-            data: { style }
-        }]);
-    };
+    // 应用于目标块，目前使用的是内核 API
+    // 未来可迁入事务以支持更平滑的撤销
+    export async function 应用样式(targetId: string, style: string): Promise<boolean> {
+        try {
+            await fetchPost("/api/attr/setBlockAttrs", {
+                id: targetId,
+                attrs: { style }
+            });
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
     ```
+- **状态**：✅ 已完成 (采用内核 API 实现)
 
 ### 3.3 退出拦截器
 - 监听 `window` 级的 `mousedown`：
@@ -56,9 +63,26 @@
     - 若 `e.target` 具有 `data-type="a"` 或 `data-type="block-ref"`，视为“上下文切换触发点”，执行动作后退出模式。
 
 ## 4. 文件变更预估
-1. `app/src/protyle/gutter/buildGutterCommonMenu.ts`：增加菜单项注入逻辑。
-2. `app/src/layout/registry/TriggerRegistry.ts` (新增)：核心管理类。
-3. `app/src/protyle/ui/event.ts`：增加画笔模式下的点击分发钩子。
+1. `app/src/protyle/gutter/buildGutterCommonMenu.ts`：注入菜单入口。
+2. `app/src/protyle/gutter/buildGutterStyleBrushMenu.ts`：格式刷专用菜单项构建。
+3. `app/src/protyle/gutter/styleBrush.ts`：核心逻辑实现，包含触发器注册。
+4. `app/src/registry/TriggerRegistry.ts`：核心管理类实现。
+
+---
+
+## 5. 当前进度 (Current Progress)
+
+MVP 阶段 1 **已全部完成**。
+
+### 已验证特性：
+- **TriggerRegistry 注册机制**：能够成功注册 `brush` 模式的触发器。
+- **刷子生命周期管理**：`onEnter`、`onExit` 钩子能正确处理光标切换和组件清理。
+- **状态机流转**：能够正确处理“激活 -> 应用 -> 退出”的完整链条。
+- **Gutter 菜单集成**：实现了上下文感知的菜单项显示（仅在有样式时显示）。
+
+### 遗留问题/待优化：
+- **同步撤销**：目前使用 `/api/attr/setBlockAttrs`，虽然也有撤销历史，但不如客户端事务流水（Transaction）平滑。
+- **跨窗口支持**：目前事件监听绑定在 `getGlobalWindow()`，需要确保在多窗口环境下依然稳定。
 
 ---
 *关联主设计方案: [[docs/智能工具箱设计方案.md]]*
