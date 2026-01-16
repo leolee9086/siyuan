@@ -4,7 +4,7 @@ import { newCardModel } from "../../card/newCardTab";
 import { Constants } from "../../constants";
 import { Tab } from "../Tab";
 import { setPanelFocus } from "./setPanelFocus";
-import { tabRegistry } from "../registry";
+import { tabRegistry } from "../../registry";
 import { Search } from "../../search";
 import { pathPosix, getDisplayName } from "../../util/pathName";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";

@@ -8,13 +8,14 @@
  * 内部功能可直接注册，插件 API 委托给此注册表。
  */
 
-import { App } from "../../index";
-import { SForgeSymbols, getSForgeState, setSForgeState } from "../../config/sforge";
-import { Custom } from "../dock/Custom";
-import { Tab } from "../Tab";
-import { clearOBG } from "../dock/util";
-import { setPanelFocus } from "../utils/setPanelFocus";
+import { App } from "../index";
+import { SForgeSymbols, getSForgeState, setSForgeState } from "../config/sforge";
+import { Custom } from "../layout/dock/Custom";
+import { Tab } from "../layout/Tab";
+import { clearOBG } from "../layout/dock/util";
+import { setPanelFocus } from "../layout/utils/setPanelFocus";
 import type { TabRegistration } from "./TabRegistry.types";
+import { isTabRegistryMap } from "./TabRegistry.guard";
 
 // 重新导出类型
 export type { TabRegistration } from "./TabRegistry.types";
@@ -28,7 +29,7 @@ export type { TabRegistration } from "./TabRegistry.types";
 function 获取注册表Map(): Map<string, TabRegistration> {
     const existing = getSForgeState(SForgeSymbols.TAB_TYPE_REGISTRY);
 
-    if (existing instanceof Map) {
+    if (isTabRegistryMap(existing)) {
         return existing;
     }
 

@@ -32,7 +32,7 @@ import { afterLoadPlugin } from "../plugin/loader";
 import { newCenterEmptyTab } from "./tabUtil";
 import { setStorageVal } from "../protyle/util/compatibility";
 import { setPanelFocus } from "./utils/setPanelFocus";
-import { tabRegistry } from "./registry";
+import { tabRegistry } from "../registry";
 import { ErrorPlaceholder, ERROR_PLACEHOLDER_TYPE } from "./dock/ErrorPlaceholder";
 
 export const switchWnd = (newWnd: Wnd, targetWnd: Wnd) => {

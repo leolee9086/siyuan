@@ -3,8 +3,8 @@
  */
 
 import { SForgeSymbols } from "./sforge.symbols";
-import type { TabRegistration } from "../layout/registry/TabRegistry.types";
-import type { ITriggerRegistration, IBrushSession } from "../layout/registry/TriggerRegistry.types";
+import type { TabRegistration } from "../registry/TabRegistry.types";
+import type { ITriggerRegistration, IBrushSession } from "../registry/TriggerRegistry.types";
 
 /**
  * SForge 全局状态类型定义

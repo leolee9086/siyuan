@@ -1,5 +1,5 @@
 import { Tab } from "./Tab";
-import { createTabModel } from "./registry";
+import { createTabModel } from "../registry";
 import { getInstanceById, newModelByInitData, saveLayout } from "./util";
 import { getAllModels, getAllTabs } from "./getAll";
 import { hideAllElements, hideElements } from "../protyle/ui/hideElements";

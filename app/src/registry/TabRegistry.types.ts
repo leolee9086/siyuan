@@ -2,7 +2,7 @@
  * TabRegistry.types.ts - Tab 注册表类型定义
  */
 
-import { Custom } from "../dock/Custom";
+import { Custom } from "../layout/dock/Custom";
 
 /**
  * Tab 注册信息

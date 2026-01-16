@@ -24,7 +24,7 @@ import { focusByRange } from "../protyle/util/selection";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { INTERNAL_FILETREE_TAB_TYPE } from "./fileTree";
 import fileTreeConfigPanel from "../components/panels/fileTreeConfig.panel.vue";
-import { tabRegistry } from "../layout/registry";
+import { tabRegistry } from "../registry";
 import { createApp } from "vue";
 import type { Custom } from "../layout/dock/Custom";
 /// #endif

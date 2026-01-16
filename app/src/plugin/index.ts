@@ -9,7 +9,7 @@ import { Tab } from "../layout/Tab";
 import { resizeTopBar } from "../layout/util";
 import { setPanelFocus } from "../layout/utils/setPanelFocus";
 import { getDockByType } from "../layout/tabUtil";
-import { tabRegistry } from "../layout/registry";
+import { tabRegistry } from "../registry";
 ///#else
 import { MobileCustom } from "../mobile/dock/MobileCustom";
 /// #endif

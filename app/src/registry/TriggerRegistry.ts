@@ -14,13 +14,14 @@
  * @module layout/registry/TriggerRegistry
  */
 
-import { SForgeSymbols, getSForgeState, setSForgeState } from "../../config/sforge";
+import { SForgeSymbols, getSForgeState, setSForgeState } from "../config/sforge";
 import type {
     ITriggerRegistration,
     IBrushSession,
     IGlobalContext,
     刷子状态
 } from "./TriggerRegistry.types";
+import { isTriggerRegistryMap, isBrushSession, isValidTriggerRegistration, isValidParams } from "./TriggerRegistry.guard";
 
 // 重新导出类型
 export type {
@@ -39,7 +40,7 @@ export type {
 function 获取注册表Map(): Map<string, ITriggerRegistration> {
     const existing = getSForgeState(SForgeSymbols.TRIGGER_REGISTRY);
 
-    if (existing instanceof Map) {
+    if (isTriggerRegistryMap(existing)) {
         return existing;
     }
 
@@ -56,7 +57,10 @@ function 获取刷子会话(): IBrushSession | null {
     if (session === undefined) {
         return null;
     }
-    return session;
+    if (isBrushSession(session)) {
+        return session;
+    }
+    return null;
 }
 
 /**
@@ -247,7 +251,11 @@ export function 获取刷子参数<T = unknown>(): T | null {
     if (!session) {
         return null;
     }
-    return session.params as T;
+
+    if (isValidParams<T>(session.params)) {
+        return session.params;
+    }
+    return null;
 }
 
 // ============ 上下文匹配 API ============
@@ -309,7 +317,7 @@ export async function 匹配触发器(
     );
 
     const results = await Promise.all(matchPromises);
-    return results.filter((r): r is ITriggerRegistration => r !== null);
+    return results.filter(isValidTriggerRegistration);
 }
 
 // ============ 兼容对象形式 API ============

@@ -22,8 +22,8 @@ import {
     获取刷子参数,
     刷子是否激活,
     获取激活刷子类型
-} from "../../layout/registry/TriggerRegistry";
-import type { IGlobalContext, I样式刷子参数 } from "../../layout/registry/TriggerRegistry.types";
+} from "../../registry/TriggerRegistry";
+import type { IGlobalContext, I样式刷子参数 } from "../../registry/TriggerRegistry.types";
 import { getGlobalWindow } from "../../util/siyuanEnvironments/window.environment";
 
 // ============ 常量定义 ============
