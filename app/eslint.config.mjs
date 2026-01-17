@@ -12,6 +12,7 @@ import { aiWorkerPlugin } from "./0_lints/ai-worker-rules.mjs";
 import { codeSizeLimitsPlugin } from "./0_lints/code-size-limits.mjs";
 import { requireFunctionCommentPlugin } from "./0_lints/require-function-comment.mjs";
 import { vueCustomRulesPlugin } from "./0_lints/vue-custom-rules.mjs";
+import { noAliasUsagePlugin } from "./0_lints/no-alias-usage.mjs";
 import { FULL_FIX_REMINDER } from "./0_lints/shared-constants.mjs";
 
 // Defining local constant for backward compatibility and internal usage
@@ -106,6 +107,7 @@ const COMMON_RESTRICTED_SYNTAX = [
             "替代方案: 将静态方法提取为模块级函数并导出。"
         ].join("\n") + 全量修复提示,
     },
+    // 禁止单纯的别名定义 (const A = B) logic moved to no-alias-usage plugin
 ];
 
 // 类型断言限制 (仅在非 .guard.ts 文件中生效)
@@ -142,7 +144,9 @@ const SHARED_PLUGINS = {
     "ai-worker": aiWorkerPlugin,
     "code-size": codeSizeLimitsPlugin,
     "function-comment": requireFunctionCommentPlugin,
+    "function-comment": requireFunctionCommentPlugin,
     "vue-custom": vueCustomRulesPlugin,
+    "no-alias-usage": noAliasUsagePlugin,
 };
 
 const SHARED_RULES = {
@@ -194,6 +198,7 @@ const SHARED_RULES = {
     "vue-custom/vue-script-max-lines": "error",
     "vue-custom/vue-template-max-lines": "error",
     "vue-custom/no-vue-style-block": "error",
+    "no-alias-usage/no-alias-usage": "error",
 };
 
 export default [{
