@@ -3,7 +3,7 @@ import { isCurrentEditor } from "./util.isCurrentEditor";
 import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { Graph } from "../layout/dock/Graph";
 import { Backlink } from "../layout/dock/Backlink";
-import { Forwardlink } from "../layout/dock/Forwardlink";
+import { Forwardlink } from "../layout/dock/forwardlink/Forwardlink";
 
 /**
  * 更新关系图面板

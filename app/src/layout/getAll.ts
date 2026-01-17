@@ -11,7 +11,7 @@ import { Files } from "./dock/Files";
 import { Bookmark } from "./dock/Bookmark";
 import { Tag } from "./dock/Tag";
 import { Custom } from "./dock/Custom";
-import { Forwardlink } from "./dock/Forwardlink";
+import { Forwardlink } from "./dock/forwardlink/Forwardlink";
 import { Protyle } from "../protyle";
 import { Wnd } from "./Wnd";
 

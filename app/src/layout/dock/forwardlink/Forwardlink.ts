@@ -9,21 +9,21 @@
  * - 正向链接: SELECT ... FROM refs WHERE root_id = 当前文档ID (我引用了谁)
  */
 
-import { Tab } from "../Tab";
-import { Model } from "../Model";
-import { Tree } from "../../util/Tree";
-import { setPanelFocus } from "../utils/setPanelFocus";
-import { getDockByType } from "../tabUtil";
-import { fetchPost } from "../../util/fetch";
-import { Constants } from "../../constants";
-import { updateHotkeyAfterTip } from "../../protyle/util/compatibility";
-import { openFileById } from "../../editor/utils.openFileById";
-import { Protyle } from "../../protyle";
-import { MenuItem } from "../../menus/Menu.Item";
-import { App } from "../../index";
-import { getIconByType } from "../../editor/getIcon";
-import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { forgeI18n } from "../../util/siyuanEnvironments/forgeI18n.getI18n.environment";
+import { Tab } from "../../Tab";
+import { Model } from "../../Model";
+import { Tree } from "../../../util/Tree";
+import { setPanelFocus } from "../../utils/setPanelFocus";
+import { getDockByType } from "../../tabUtil";
+import { fetchPost } from "../../../util/fetch";
+import { Constants } from "../../../constants";
+import { updateHotkeyAfterTip } from "../../../protyle/util/compatibility";
+import { openFileById } from "../../../editor/utils.openFileById";
+import { Protyle } from "../../../protyle";
+import { MenuItem } from "../../../menus/Menu.Item";
+import { App } from "../../../index";
+import { getIconByType } from "../../../editor/getIcon";
+import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { forgeI18n } from "../../../util/siyuanEnvironments/forgeI18n.getI18n.environment";
 
 /**
  * 正向链接树节点数据
@@ -423,11 +423,10 @@ export class Forwardlink extends Model {
             let html = "";
             response.data.forEach((block: any) => {
                 const icon = getIconByType(block.type, block.subType);
-                // 暂时使用 escapeHtml 简单处理 content，或者不仅进行处理
                 // CustomLists 使用 mapBlockToTreeData 处理
                 html += `<li data-node-id="${block.id}" data-type="${block.type}" data-subtype="${block.subType || ''}" class="b3-list-item b3-list-item--hide-action">
                     <span class="b3-list-item__toggle"><svg class="b3-list-item__arrow"><use xlink:href="#iconRight"></use></svg></span>
-                    <span class="b3-list-item__icon"><svg><use xlink:href="#${icon}"></use></svg></span>
+                    <svg class="b3-list-item__graphic"><use xlink:href="#${icon}"></use></svg>
                     <span class="b3-list-item__text">${block.content || "无内容"}</span>
                 </li>`;
             });
@@ -523,6 +522,7 @@ export class Forwardlink extends Model {
                 b.type,
                 b.box,
                 b.hPath,
+                b.ial,
                 COUNT(*) as refCount
             FROM refs AS r
             INNER JOIN blocks AS b ON b.id = r.def_block_root_id
@@ -539,14 +539,26 @@ export class Forwardlink extends Model {
             }
             const data = response.data || [];
             this.渲染数据({
-                forwardlinks: data.map((item: any) => ({
-                    id: item.id,
-                    name: item.name || item.hPath || "无标题",
-                    type: "NodeDocument",
-                    box: item.box,
-                    hPath: item.hPath,
-                    count: item.refCount || 1
-                })),
+                forwardlinks: data.map((item: any) => {
+                    const ial: { [key: string]: string } = {};
+                    if (item.ial) {
+                        item.ial.replace(/\\"/g, '"').replace(/\\\\/g, "\\").replace(Constants.IAL_REGEX, (m: string, k: string, v: string) => {
+                            ial[k] = v;
+                            return m;
+                        });
+                    }
+                    const nodeType = "NodeDocument";
+                    return {
+                        id: item.id,
+                        name: item.name || item.hPath || "无标题",
+                        type: nodeType,
+                        box: item.box,
+                        hPath: item.hPath,
+                        count: item.refCount || 1,
+                        ial,
+                        icon: getIconByType(nodeType)
+                    };
+                }),
                 count: data.length
             });
         });

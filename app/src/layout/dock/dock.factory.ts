@@ -5,7 +5,7 @@ import { Tag } from "./Tag";
 import { Outline } from "./outline/Outline";
 import { Graph } from "./Graph";
 import { Backlink } from "./Backlink";
-import { Forwardlink } from "./Forwardlink";
+import { Forwardlink } from "./forwardlink/Forwardlink";
 import { Inbox } from "./Inbox";
 import { CustomLists, ICustomList } from "./customBlockLists/CustomLists";
 import { EmbeddingDock } from "./embeddingDock/EmbeddingDock";
