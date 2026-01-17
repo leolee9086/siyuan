@@ -6,7 +6,7 @@ import { setStorageVal } from "../util/compatibility";
 import { forgeI18n } from "../../util/siyuanEnvironments/forgeI18n.getI18n.environment";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanStorage, getSiyuanLayout } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { isRecordObject } from "./embedPinToSidebar.guard";
+import { isRecordObject, isCustomListI18n, hasCustomList } from "./embedPinToSidebar.guard";
 
 /**
  * 获取嵌入块内所有搜索结果的块ID
@@ -63,7 +63,7 @@ const saveCustomListToStorage = (uuid: string, listData: {
     icon: string;
     type: "static" | "dynamic";
     target: string | string[];
-}) => {
+}): void => {
     // 直接获取storage对象引用以确保修改能同步
     const storage = getSiyuanStorage();
     if (!storage) {
@@ -89,7 +89,7 @@ const saveCustomListToStorage = (uuid: string, listData: {
 /**
  * 添加自定义dock项
  */
-const addCustomDockItem = (type: string, title: string, icon: string) => {
+const addCustomDockItem = (type: string, title: string, icon: string): void => {
     const layout = getSiyuanLayout();
     if (!layout) {
         return;
@@ -111,7 +111,7 @@ const addCustomDockItem = (type: string, title: string, icon: string) => {
 /**
  * 固定嵌入块结果到侧边栏（静态列表）
  */
-export const pinEmbedResultToSidebar = (ids: string[], title: string) => {
+export const pinEmbedResultToSidebar = (ids: string[], title: string): void => {
     if (ids.length === 0) {
         return;
     }
@@ -132,7 +132,7 @@ export const pinEmbedResultToSidebar = (ids: string[], title: string) => {
 /**
  * 固定嵌入块查询到侧边栏（动态列表）
  */
-export const pinEmbedQueryToSidebar = (sqlQuery: string, title: string) => {
+export const pinEmbedQueryToSidebar = (sqlQuery: string, title: string): void => {
     if (!sqlQuery) {
         return;
     }
@@ -172,6 +172,9 @@ export const buildPinToDockMenu = (nodeElement: Element): IMenu => {
                 iconHTML: "",
                 label: customListI18n.pinEmbedResult || "Pin Results to Sidebar",
                 disabled: ids.length === 0,
+                /**
+                 *这是一个简单的点击回调，调用 pinEmbedResultToSidebar 将嵌入块结果固定到侧边栏
+                 */
                 click: () => pinEmbedResultToSidebar(ids, title)
             },
             {
@@ -179,6 +182,9 @@ export const buildPinToDockMenu = (nodeElement: Element): IMenu => {
                 iconHTML: "",
                 label: customListI18n.pinEmbedQuery || "Pin Query to Sidebar",
                 disabled: !sqlQuery,
+                /**
+                 * 这是一个简单的点击回调，调用 pinEmbedQueryToSidebar 将嵌入块查询语句固定到侧边栏
+                 */
                 click: () => pinEmbedQueryToSidebar(sqlQuery, title)
             }
         ]
@@ -189,15 +195,12 @@ export const buildPinToDockMenu = (nodeElement: Element): IMenu => {
  * 获取customList的i18n
  */
 const getCustomListI18n = (): { pinEmbedResult?: string; pinEmbedQuery?: string } => {
-    const i18n = forgeI18n;
-    const isValidI18n = i18n && typeof i18n === "object" && "customList" in i18n;
-    if (!isValidI18n) {
+    if (!hasCustomList(forgeI18n)) {
         return {};
     }
-    const customList = i18n.customList;
-    const isValidCustomList = customList && typeof customList === "object";
-    if (!isValidCustomList) {
-        return {};
+    const customList = forgeI18n.customList;
+    if (isCustomListI18n(customList)) {
+        return customList;
     }
-    return customList;
+    return {};
 };

@@ -9,23 +9,44 @@ import type { Layout } from "../index";
 const DOCK_TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGraph", "backlink", "embedding_dock", "cronjob"];
 
 /**
- * 判断布局子元素是否为 Wnd
+ * 判断布局子元素是否为 Wnd 实例。
+ * 
+ * 作用：检查给定的布局子元素对象是否是 Wnd 类的实例。
+ * 意图：在布局树遍历或操作时，区分 Wnd 节点和其他类型的节点（如 Layout），作为 TypeScript 类型守卫使用。
+ * 调用时机：在处理 Dock 布局结构、查找特定窗口或进行布局调整时调用。
  */
 export function isWnd(child: Layout | Wnd | unknown): child is Wnd {
     return child instanceof Wnd;
 }
 
 /**
- * 判断类型字符串是否为有效的 TDock 类型
+ * 判断类型字符串是否为有效的 TDock 类型。
+ * 
+ * 作用：验证给定的字符串是否属于预定义的核心 Dock 类型列表，或者是自定义列表类型（custom_list: 前缀）。
+ * 意图：确保传入的 Dock 类型参数是系统支持的合法值，防止非法类型导致的渲染或逻辑错误。
+ * 调用时机：在创建 Dock、解析配置或处理 Dock 相关事件时调用。
  */
 export function isTDock(type: string | null | undefined): type is TDock {
     return type !== null && type !== undefined && (DOCK_TYPES.includes(type) || type.startsWith("custom_list:"));
 }
 
+/** @简洁函数 这是一个简单的 undefined 或 string 类型检查辅助函数 */
 const checkString = (val: unknown) => val === undefined || typeof val === "string";
+
+/** @简洁函数 这是一个简单的 undefined 或 boolean 类型检查辅助函数 */
 const checkBoolean = (val: unknown) => val === undefined || typeof val === "boolean";
+
+/** @简洁函数 这是一个简单的 undefined 或 纯字符串数组 类型检查辅助函数 */
 const checkArrayString = (val: unknown) => val === undefined || (Array.isArray(val) && val.every(i => typeof i === "string"));
 
+/**
+ * 校验对象是否符合 IOperation 接口结构。
+ *
+ * 作用：运行时检查对象是否具有 IOperation 接口要求的所有核心属性和正确的数据类型。
+ * 意图：在处理操作数据时提供强类型保证，确保数据的完整性和类型安全。
+ * 调用时机：通常由 `isOperations` 内部调用，用于验证单个操作对象。
+ * 问题/改进：校验逻辑与 IOperation 接口定义紧密耦合，如果接口变更，此处需同步更新。
+ */
 const isOperation = (item: unknown): item is IOperation => {
     if (typeof item !== "object" || item === null) {
         return false;
@@ -62,7 +83,11 @@ const isOperation = (item: unknown): item is IOperation => {
 };
 
 /**
- * 判断是否为操作接口数组
+ * 判断是否为操作接口数组。
+ * 
+ * 作用：验证输入数据是否为数组，且数组中的每个元素都符合 IOperation 接口定义。
+ * 意图：用于批量验证操作数据，确保整个操作序列的数据结构正确。
+ * 调用时机：在接收或处理批量操作指令（如事务处理、同步数据）时调用。
  */
 export function isOperations(data: unknown): data is IOperation[] {
     if (!Array.isArray(data)) {
@@ -72,8 +97,14 @@ export function isOperations(data: unknown): data is IOperation[] {
 }
 
 /**
- * 判断是否为块树数据数组（用于Tag等面板的数据）
- * 这是一个宽松的类型守卫，只验证基本结构
+ * 判断是否为块树数据数组（用于Tag等面板的数据）。
+ * 
+ * 作用：检查数据是否为数组，并验证其是否具备 IBlockTree 的基本特征。
+ * 意图：为标签页等面板的数据提供宽松的类型检查，防止完全格式错误的数据导致渲染崩溃。
+ * 调用时机：在加载或刷新 Tag、Backlink 等面板数据时调用。
+ * 问题/改进：
+ * 1. 这是一个宽松的类型守卫，只验证了数组结构和第一个元素的基本属性，不能保证所有元素都有效。
+ * 2. 依赖于第一个非空元素的检查，如果数组为空则直接视为有效（根据业务逻辑可能是允许的）。
  */
 export function isBlockTreeArray(data: unknown): data is IBlockTree[] {
     if (!Array.isArray(data)) {
@@ -94,21 +125,33 @@ export function isBlockTreeArray(data: unknown): data is IBlockTree[] {
 }
 
 /**
- * 判断是否为 HTMLElement 或 SVGElement
+ * 判断是否为 HTMLElement 或 SVGElement DOM 元素。
+ * 
+ * 作用：检查给定对象是否是标准的 HTML 元素或 SVG 元素实例。
+ * 意图：在 DOM 操作中确保操作对象的类型安全，涵盖了常规元素和矢量图形元素。
+ * 调用时机：在处理事件目标、根据坐标获取元素等通用的 DOM 操作场景中调用。
  */
 export function isHTMLOrSVGElement(element: unknown): element is HTMLElement | SVGElement {
     return element instanceof HTMLElement || element instanceof SVGElement;
 }
 
 /**
- * 判断是否为 HTMLElement
+ * 判断是否为 HTMLElement DOM 元素。
+ * 
+ * 作用：检查给定对象是否严格是 HTMLElement 实例（不包括 SVGElement）。
+ * 意图：当只需要操作标准 HTML 元素（如获取 offsetWidth 等 SVG 不具备或表现不同的属性）时使用。
+ * 调用时机：在布局计算、样式操作等特定于 HTML 元素的场景中调用。
  */
 export function isHTMLElement(element: unknown): element is HTMLElement {
     return element instanceof HTMLElement;
 }
 
 /**
- * 判断是否为错误占位符数据
+ * 判断是否为错误占位符数据。
+ * 
+ * 作用：验证对象是否符合 IErrorPlaceholderData 接口（包含"原始类型"和"错误信息"属性）。
+ * 意图：用于识别和处理错误状态的数据对象，以便在 UI 上显示错误占位符。
+ * 调用时机：在渲染流程中遇到无法解析的数据块或捕获到异常数据时调用。
  */
 export function isErrorPlaceholderData(data: unknown): data is import("./ErrorPlaceholder").IErrorPlaceholderData {
     if (typeof data !== "object" || data === null) {

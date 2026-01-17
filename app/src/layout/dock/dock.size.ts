@@ -16,8 +16,8 @@ export function setSizeForItem(dock: Dock, item: Element, totalActive: number): 
     const index = item.getAttribute("data-index");
     const type = item.getAttribute("data-type");
     if (!isTDock(type)) {
-return;
-}
+        return;
+    }
 
     const isHorizontal = dock.position === "Left" || dock.position === "Right";
     if (isHorizontal) {
@@ -38,13 +38,11 @@ function setHorizontalSize(
     totalActive: number
 ): void {
     const shouldSetHeight = index === "1" && totalActive > 1;
-    if (shouldSetHeight) {
-        const model = dock.data[type];
-        if (model instanceof Model) {
-            const dockElement = model.parent.parent.element;
-            const height = dockElement.style.height ? dockElement.clientHeight.toString() : "";
-            item.setAttribute("data-height", height);
-        }
+    const model = dock.data[type];
+    if (shouldSetHeight && model instanceof Model) {
+        const dockElement = model.parent.parent.element;
+        const height = dockElement.style.height ? dockElement.clientHeight.toString() : "";
+        item.setAttribute("data-height", height);
     }
     item.setAttribute("data-width", dock.layout.element.clientWidth.toString());
 }
@@ -60,13 +58,11 @@ function setVerticalSize(
     totalActive: number
 ): void {
     const shouldSetWidth = index === "1" && totalActive > 1;
-    if (shouldSetWidth) {
-        const model = dock.data[type];
-        if (model instanceof Model) {
-            const dockElement = model.parent.parent.element;
-            const width = dockElement.style.width ? dockElement.clientWidth.toString() : "";
-            item.setAttribute("data-width", width);
-        }
+    const model = dock.data[type];
+    if (shouldSetWidth && model instanceof Model) {
+        const dockElement = model.parent.parent.element;
+        const width = dockElement.style.width ? dockElement.clientWidth.toString() : "";
+        item.setAttribute("data-width", width);
     }
     item.setAttribute("data-height", dock.layout.element.clientHeight.toString());
 }
@@ -78,11 +74,9 @@ export function getSizeForItem(dock: Dock, item: Element): number {
     const isHorizontal = dock.position === "Left" || dock.position === "Right";
     const sizeAttr = isHorizontal ? "data-width" : "data-height";
     const attrVal = item.getAttribute(sizeAttr);
-    if (attrVal) {
-        const parsed = parseInt(attrVal, 10);
-        if (parsed > 0) {
-return parsed;
-}
+    const parsed = parseInt(attrVal || "0", 10);
+    if (parsed > 0) {
+        return parsed;
     }
 
     const type = item.getAttribute("data-type");

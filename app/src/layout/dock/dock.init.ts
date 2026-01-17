@@ -14,6 +14,7 @@ import { getAllModels } from "../getAll";
 import { isWnd, isTDock } from "./dock.guard";
 import { hasValidDockType } from "./dock.visibility";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { forgeI18n } from "../../util/siyuanEnvironments/forgeI18n.getI18n.environment";
 import { 注册类型, 类型可用 } from "./dock.registry";
 
 /**
@@ -183,13 +184,10 @@ export function initDockData(
     fixCronjobIcons(data);
 
 
-    // 3. Restore missing standard panels (Self-healing)
-    // 使用全局注册表检查是否已存在，避免依赖不稳定的 DOM 查询
-    // i18n safely typed
-    const i18n = siyuanI18n as unknown as Record<string, string>;
 
-    restoreIfMissing(data[1], seenGlobalTypes, "tag", "iconTags", i18n.tag || "Tags", position);
-    restoreIfMissing(data[1], seenGlobalTypes, "embedding_dock", "iconDatabase", i18n.embedding || "Embeddings", position);
+    restoreIfMissing(data[1], seenGlobalTypes, "tag", "iconTags", siyuanI18n.tag || "Tags", position);
+    const embeddingTitle = forgeI18n.embedding;
+    restoreIfMissing(data[1], seenGlobalTypes, "embedding_dock", "iconDatabase", typeof embeddingTitle === "string" ? embeddingTitle : "Embeddings", position);
     if (position === "Right") {
         restoreIfMissing(data[1], seenGlobalTypes, "cronjob", "iconHistory", "定时任务", position);
     }
@@ -243,33 +241,44 @@ function uniqueDockItems(
     standardTypes: string[],
     position: TDockPosition
 ): Config.IUILayoutDockTab[] {
-    return arr.filter(item => {
-        if (!item || !item.type) {
-            return false;
-        }
+    return arr.filter(item => 检查并注册Dock项(item, seen, standardTypes, position));
+}
 
-        // Normalize type to canonical standard type if it matches case-insensitively
-        const lowerType = item.type.toLowerCase();
-        const matchedStandard = standardTypes.find(t => t.toLowerCase() === lowerType);
+/**
+ * 检查并注册 Dock 项
+ * 提取自 uniqueDockItems 的 filter 回调
+ */
+function 检查并注册Dock项(
+    item: Config.IUILayoutDockTab,
+    seen: Set<string>,
+    standardTypes: string[],
+    position: TDockPosition
+): boolean {
+    if (!item || !item.type) {
+        return false;
+    }
 
-        if (matchedStandard) {
-            item.type = matchedStandard;
-        }
+    // Normalize type to canonical standard type if it matches case-insensitively
+    const lowerType = item.type.toLowerCase();
+    const matchedStandard = standardTypes.find(t => t.toLowerCase() === lowerType);
 
-        // 已在本 dock 数据中出现过（同一 column 或前一 column）
-        if (seen.has(item.type)) {
-            return false;
-        }
+    if (matchedStandard) {
+        item.type = matchedStandard;
+    }
 
-        // 使用全局注册表检查并注册类型
-        // 如果类型已被其他 Dock 占用，则过滤掉
-        if (!注册类型(item.type, position)) {
-            return false;
-        }
+    // 已在本 dock 数据中出现过（同一 column 或前一 column）
+    if (seen.has(item.type)) {
+        return false;
+    }
 
-        seen.add(item.type);
-        return true;
-    });
+    // 使用全局注册表检查并注册类型
+    // 如果类型已被其他 Dock 占用，则过滤掉
+    if (!注册类型(item.type, position)) {
+        return false;
+    }
+
+    seen.add(item.type);
+    return true;
 }
 
 /**

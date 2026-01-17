@@ -15,7 +15,7 @@ import { Model } from "../Model";
 import { ErrorPlaceholder, ERROR_PLACEHOLDER_TYPE, createErrorPlaceholderFromData } from "./ErrorPlaceholder";
 import { isErrorPlaceholderData } from "./dock.guard";
 
-type ModelFactory = (app: App, tab: Tab, editor?: Protyle, data?: any) => Model | undefined;
+type ModelFactory = (app: App, tab: Tab, editor?: Protyle, data?: unknown) => Model | undefined;
 
 const initFile: ModelFactory = (app, tab) => {
     return new Files({ tab, app });
@@ -119,7 +119,7 @@ export const createModel = (options: {
     app: App,
     tab: Tab,
     type: string,
-    editor?: Protyle,
+    editor?: Protyle | undefined,
     data?: unknown
 }): Model | undefined => {
     // 处理已保存的错误占位符
@@ -168,7 +168,7 @@ export const safeCreateModel = (options: {
     app: App,
     tab: Tab,
     type: string,
-    editor?: Protyle,
+    editor?: Protyle | undefined,
     data?: unknown
 }): Model | undefined => {
     try {
@@ -203,7 +203,7 @@ export const createDockTab = (options: {
     data?: unknown
 }): Tab => {
     return new Tab({
-        /** @简洁函数 创建 Tab 后的回调，创建并添加 model */
+        /**  创建 Tab 后的回调，创建并添加 model */
         callback: (tab: Tab) => {
             // 使用 safeCreateModel 确保错误被捕获并显示为占位符
             const model = safeCreateModel({
