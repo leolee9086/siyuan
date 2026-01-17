@@ -13,6 +13,7 @@ import { codeSizeLimitsPlugin } from "./0_lints/code-size-limits.mjs";
 import { requireFunctionCommentPlugin } from "./0_lints/require-function-comment.mjs";
 import { vueCustomRulesPlugin } from "./0_lints/vue-custom-rules.mjs";
 import { noAliasUsagePlugin } from "./0_lints/no-alias-usage.mjs";
+import { noLargeInlineArrayPlugin } from "./0_lints/no-large-inline-array.mjs";
 import { FULL_FIX_REMINDER } from "./0_lints/shared-constants.mjs";
 
 // Defining local constant for backward compatibility and internal usage
@@ -144,9 +145,9 @@ const SHARED_PLUGINS = {
     "ai-worker": aiWorkerPlugin,
     "code-size": codeSizeLimitsPlugin,
     "function-comment": requireFunctionCommentPlugin,
-    "function-comment": requireFunctionCommentPlugin,
     "vue-custom": vueCustomRulesPlugin,
     "no-alias-usage": noAliasUsagePlugin,
+    "no-large-inline-array": noLargeInlineArrayPlugin,
 };
 
 const SHARED_RULES = {
@@ -199,6 +200,7 @@ const SHARED_RULES = {
     "vue-custom/vue-template-max-lines": "error",
     "vue-custom/no-vue-style-block": "error",
     "no-alias-usage/no-alias-usage": "error",
+    "no-large-inline-array/no-large-inline-array": ["error", { "max": 3 }],
 };
 
 export default [{
