@@ -6,13 +6,13 @@ import { copyPlainText, writeText, readClipboard } from "../../protyle/util/comp
 import { hasClosestByTag } from "../../protyle/util/hasClosest";
 import { paste, pasteAsPlainText, pasteEscaped } from "../../protyle/util/paste";
 import { getEditorRange, focusByWbr, selectAll } from "../../protyle/util/selection";
+import { getProtyleToolbar, getProtyleLute } from "../../protyle/util/props.pick";
 import { updateTransaction } from "../../protyle/wysiwyg/transaction";
 import { MenuItem } from "../Menu.Item";
 import { tableMenu } from "../protyle";
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { get } from "http";
 import { getSelection } from "../../util/DOM/range.global";
 
 
@@ -113,7 +113,7 @@ export const contentMenu = (protyle: IProtyle, nodeElement: Element) => {
                             inlineElement.remove();
                             nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
                             updateTransaction(protyle, id, nodeElement.outerHTML, oldHTML);
-                            focusByWbr(nodeElement, getProtyleToolbar(protyle).range);
+                            focusByWbr(nodeElement, getProtyleToolbar(protyle).range ?? range);
                         }
                     }).element);
                     getSiyuanGlobalMenus().menu.append(new MenuItem({
@@ -125,7 +125,7 @@ export const contentMenu = (protyle: IProtyle, nodeElement: Element) => {
                             inlineElement.remove();
                             nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
                             updateTransaction(protyle, id, nodeElement.outerHTML, oldHTML);
-                            focusByWbr(nodeElement, getProtyleToolbar(protyle).range);
+                            focusByWbr(nodeElement, getProtyleToolbar(protyle).range ?? range);
                         }
                     }).element);
                 }
