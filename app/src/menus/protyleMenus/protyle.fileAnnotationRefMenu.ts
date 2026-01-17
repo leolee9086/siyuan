@@ -1,21 +1,21 @@
 import * as dayjs from "dayjs";
-import { focusByRange } from "../ai/imports";
-import { Constants } from "../constants";
-import { emitOpenMenu } from "../plugin/EventBus";
-import { removeInlineType } from "../protyle/toolbar/util";
-import { hideElements } from "../protyle/ui/hideElements";
-import { electronUndo } from "../protyle/undo";
-import { hasClosestBlock, hasTopClosestByClassName } from "../protyle/util/hasClosest";
-import { focusByWbr } from "../protyle/util/selection";
-import { updateTransaction } from "../protyle/wysiwyg/transaction";
-import { isMobile } from "../util/functions";
-import { MenuItem } from "./Menu.Item";
-import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu.environment";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
-import { isComposing } from "../util/events/eventGurds";
-import { requireRange } from "../protyle/util/protyleCheckers";
-import { asLuteNodeID, LuteNodeID } from "../util/noteDatas/id";
-import { Menu } from "./Menu";
+import { focusByRange } from "../../ai/imports";
+import { Constants } from "../../constants";
+import { emitOpenMenu } from "../../plugin/EventBus";
+import { removeInlineType } from "../../protyle/toolbar/util";
+import { hideElements } from "../../protyle/ui/hideElements";
+import { electronUndo } from "../../protyle/undo";
+import { hasClosestBlock, hasTopClosestByClassName } from "../../protyle/util/hasClosest";
+import { focusByWbr } from "../../protyle/util/selection";
+import { updateTransaction } from "../../protyle/wysiwyg/transaction";
+import { isMobile } from "../../util/functions";
+import { MenuItem } from "../Menu.Item";
+import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { isComposing } from "../../util/events/eventGurds";
+import { requireRange } from "../../protyle/util/protyleCheckers";
+import { asLuteNodeID, LuteNodeID } from "../../util/noteDatas/id";
+import { Menu } from "../Menu";
 
 
 export const fileAnnotationRefMenu = (protyle: IProtyle, refElement: HTMLElement, menu: Menu) => {

@@ -34,7 +34,7 @@ import { zoomOut } from "../../menus/protyle.zoomOut";
 import { imgMenu } from "../../menus/protyleMenus/protyle.imgMenu";
 import { contentMenu } from "../../menus/protyleMenus/protyle.contentMenu";
 import { refMenu } from "../../menus/protyle.refMenu";
-import { fileAnnotationRefMenu } from "../../menus/protyle.fileAnnotationRefMenu";
+import { fileAnnotationRefMenu } from "../../menus/protyleMenus/protyle.fileAnnotationRefMenu";
 import * as dayjs from "dayjs";
 import { dropEvent } from "../util/editorCommonEvent";
 import { input } from "./input";

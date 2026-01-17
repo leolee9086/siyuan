@@ -10,7 +10,7 @@ import { inlineMathMenu } from "../../menus/protyle.inlineMathMenu";
 import { tagMenu } from "../../menus/protyle.tagMenu";
 import { linkMenu } from "../../menus/protyleMenus/protyle.linkMenu";
 import { refMenu } from "../../menus/protyle.refMenu";
-import { fileAnnotationRefMenu } from "../../menus/protyle.fileAnnotationRefMenu";
+import { fileAnnotationRefMenu } from "../../menus/protyleMenus/protyle.fileAnnotationRefMenu";
 import { App } from "../../index";
 import { Protyle } from "../../protyle";
 import { getCurrentEditor } from "../../mobile/editor";
