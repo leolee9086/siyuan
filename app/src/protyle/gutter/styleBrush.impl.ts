@@ -7,7 +7,7 @@
  */
 
 import { fetchPost, fetchSyncPost } from "../../util/fetch";
-import { getGlobalWindow } from "../../util/siyuanEnvironments/window.environment";
+import { 添加窗口事件监听, 移除窗口事件监听 } from "../../util/siyuanEnvironments/window.environment";
 import {
     退出刷子,
     获取刷子参数,
@@ -231,8 +231,6 @@ function 创建右键处理器(): (e: MouseEvent) => void {
  * @param cursorElement 光标元素
  */
 export function 设置事件监听(cursorElement: HTMLElement): void {
-    const win = getGlobalWindow();
-
     const mousemoveHandler = 创建鼠标移动处理器(cursorElement);
     const clickHandler = 创建点击处理器();
     const keydownHandler = 创建键盘处理器();
@@ -248,17 +246,16 @@ export function 设置事件监听(cursorElement: HTMLElement): void {
     setSForgeState(SForgeSymbols.STYLE_BRUSH_HANDLERS, handlers);
 
     // 使用 capture 确保优先处理
-    win.addEventListener("mousemove", mousemoveHandler);
-    win.addEventListener("click", clickHandler, true);
-    win.addEventListener("keydown", keydownHandler, true);
-    win.addEventListener("mousedown", mousedownHandler, true);
+    添加窗口事件监听("mousemove", mousemoveHandler);
+    添加窗口事件监听("click", clickHandler, true);
+    添加窗口事件监听("keydown", keydownHandler, true);
+    添加窗口事件监听("mousedown", mousedownHandler, true);
 }
 
 /**
  * 清理事件监听
  */
 export function 清理事件监听(): void {
-    const win = getGlobalWindow();
     const handlers = asStyleBrushHandlers(getSForgeState(SForgeSymbols.STYLE_BRUSH_HANDLERS));
 
     if (!handlers) {
@@ -267,16 +264,16 @@ export function 清理事件监听(): void {
     }
 
     if (handlers.mousemove) {
-        win.removeEventListener("mousemove", handlers.mousemove);
+        移除窗口事件监听("mousemove", handlers.mousemove);
     }
     if (handlers.click) {
-        win.removeEventListener("click", handlers.click, true);
+        移除窗口事件监听("click", handlers.click, true);
     }
     if (handlers.keydown) {
-        win.removeEventListener("keydown", handlers.keydown, true);
+        移除窗口事件监听("keydown", handlers.keydown, true);
     }
     if (handlers.mousedown) {
-        win.removeEventListener("mousedown", handlers.mousedown, true);
+        移除窗口事件监听("mousedown", handlers.mousedown, true);
     }
 
     // 清理全局状态

@@ -1,34 +1,53 @@
 /**
  * window.environment.ts - Window 对象访问封装
  * 
- * 封装对全局 window 对象的访问，符合架构规范
- * 用于需要直接操作 window 对象的场景（如事件监听）
+ * 封装对全局 window 对象的访问，符合架构规范。
+ * 提供具体、细粒度的访问方法，而不是暴露整个 window/document 对象。
+ * 
+ * @module util/siyuanEnvironments/window.environment
  */
 
+import type { WindowEventHandler } from "./window.environment.types";
+
+// ============ 事件监听封装 ============
+
 /**
- * 获取全局 Window 对象
+ * 添加全局窗口事件监听
  * 
- * 用于需要操作 window 对象本身的场景，如：
- * - 添加/移除全局事件监听
- * - 访问 window 级别的 API
+ * 封装 window.addEventListener，用于需要监听全局事件的场景。
+ * @AIDONE: 提供具体的事件监听封装，替代直接暴露 window 对象
  * 
- * @returns Window 对象
+ * @param type 事件类型
+ * @param handler 事件处理函数
+ * @param options 事件选项
  */
-export function getGlobalWindow(): Window & typeof globalThis {
-    return window;
+export function 添加窗口事件监听<K extends keyof WindowEventMap>(
+    type: K,
+    handler: WindowEventHandler<K>,
+    options?: boolean | AddEventListenerOptions
+): void {
+    window.addEventListener(type, handler, options);
 }
 
 /**
- * 获取 Document 对象
+ * 移除全局窗口事件监听
  * 
- * 用于需要操作 document 对象的场景
+ * 封装 window.removeEventListener，用于清理事件监听。
+ * @AIDONE: 提供具体的事件监听封装，替代直接暴露 window 对象
  * 
- * @returns Document 对象
+ * @param type 事件类型
+ * @param handler 事件处理函数  
+ * @param options 事件选项
  */
-export function getDocument(): Document {
-    return document;
+export function 移除窗口事件监听<K extends keyof WindowEventMap>(
+    type: K,
+    handler: WindowEventHandler<K>,
+    options?: boolean | EventListenerOptions
+): void {
+    window.removeEventListener(type, handler, options);
 }
 
-// 中文别名
-export const 获取全局窗口 = getGlobalWindow;
-export const 获取文档 = getDocument;
+// ============ 英文别名 (向外导出) ============
+
+export const addWindowEventListener = 添加窗口事件监听;
+export const removeWindowEventListener = 移除窗口事件监听;
