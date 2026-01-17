@@ -14,6 +14,7 @@ import { WYSIWYG } from "./wysiwyg";
 import { Toolbar } from "./toolbar";
 import { Gutter } from "./gutter";
 import { Breadcrumb } from "./breadcrumb";
+import { 注册Protyle, 注销Protyle } from "../registry/TriggerRegistry.protyle";
 import {
     onTransaction,
     transaction,
@@ -288,9 +289,8 @@ export class Protyle {
             } else {
                 this.getDoc(mergedOptions);
             }
-        } else {
-            this.protyle.contentElement.classList.add("protyle-content--transition");
         }
+        注册Protyle(this.protyle);
     }
 
     private onTransaction(data: IWebSocketData) {
@@ -446,6 +446,7 @@ export class Protyle {
 
     /** 销毁编辑器 */
     public destroy() {
+        注销Protyle(this.protyle);
         destroy(this.protyle);
     }
 
@@ -531,6 +532,13 @@ export class Protyle {
     public getSelectedBlockElements() {
         return this.protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select");
     }
+    /**
+     * 获取当前选中的所有块 ID 列表
+     * 
+     * 作用：遍历编辑器中的选中块元素，提取其 data-node-id 属性
+     * 意图：为批量操作提供选中的块 ID 集合
+     * 调用时机：需要处理当前选区内的所有块时调用
+     */
     public getSelectedBlockIds() {
         return this.protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select")?.forEach(
             (element) => {

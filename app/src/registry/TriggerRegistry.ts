@@ -21,10 +21,10 @@ import type {
     IGlobalContext,
     刷子状态
 } from "./TriggerRegistry.types";
-import { isTriggerRegistryMap, isBrushSession, isValidTriggerRegistration, isValidParams } from "./TriggerRegistry.guard";
+import { isTriggerRegistryMap, isBrushSession, isValidParams } from "./TriggerRegistry.guard";
 import {
     创建刷子光标,
-    更新刷子光标位置 as 光标管理更新位置,
+    更新刷子光标位置,
     设置刷子光标,
     设置光标跟随,
     设置退出事件监听,
@@ -33,6 +33,8 @@ import {
     初始化光标会话,
     设置左键点击监听
 } from "./TriggerRegistry.cursor";
+import { 查找Protyle } from "./TriggerRegistry.protyle";
+import { 执行匹配触发器 } from "./TriggerRegistry.match";
 
 // 重新导出类型
 export type {
@@ -202,6 +204,7 @@ export function 获取激活刷子类型(): string | null {
  * @param registration 触发器注册对象
  * @param type 触发器类型
  * @returns 鼠标事件处理器
+ * @AIDONE 应该从块元素反向查找归属的protyle,因此所有的protyle必须在初始化的时候注册自身到一个全局注册表
  */
 function 创建应用处理器(registration: ITriggerRegistration, type: string): (e: MouseEvent) => void {
     return (e: MouseEvent) => {
@@ -210,10 +213,12 @@ function 创建应用处理器(registration: ITriggerRegistration, type: string)
             return;
         }
 
+        const protyle = 查找Protyle(target);
+
         // 此处只做简单的转发，更复杂的 Context 构建需要由具体的 Brush 自行处理或未来统一
         // 主要是为了确保 onApply 被调度，逻辑回归统一
         const 简易Context: IGlobalContext = {
-            protyle: null as unknown as any, // 暂未实现
+            protyle: protyle || (null as unknown as IProtyle),
             目标块: {
                 id: target.getAttribute("data-node-id") || "",
                 type: target.getAttribute("data-type") || "",
@@ -355,7 +360,7 @@ export function 更新刷子状态(状态: 刷子状态): void {
 /**
  * 更新刷子光标位置（代理到光标管理模块）
  */
-export const 更新刷子光标位置 = 光标管理更新位置;
+export { 更新刷子光标位置 };
 
 /**
  * 获取刷子参数
@@ -377,35 +382,6 @@ export function 获取刷子参数<T = unknown>(): T | null {
 /**
  * 尝试匹配单个触发器
  */
-async function 尝试匹配触发器(
-    registration: ITriggerRegistration,
-    context: IGlobalContext,
-    timeout: number
-): Promise<ITriggerRegistration | null> {
-    if (!registration.match) {
-        // 无 match 函数，默认匹配
-        return registration;
-    }
-
-    try {
-        // 带超时的匹配
-        const result = await Promise.race([
-            Promise.resolve(registration.match(context)),
-            new Promise<false>((_, reject) =>
-                setTimeout(() => reject(new Error("match timeout")), timeout)
-            )
-        ]);
-
-        if (result) {
-            return registration;
-        }
-    } catch {
-        // 超时或匹配失败，跳过
-        console.debug(`[TriggerRegistry] 触发器 ${registration.type} 匹配超时或失败`);
-    }
-    return null;
-}
-
 /**
  * 匹配当前上下文可用的触发器
  * 
@@ -423,15 +399,7 @@ export async function 匹配触发器(
     }
 ): Promise<ITriggerRegistration[]> {
     const 注册表 = 获取注册表Map();
-    const timeout = options?.timeout ?? 100;
-
-    // @内联回调
-    const matchPromises = Array.from(注册表.values()).map(
-        (reg) => 尝试匹配触发器(reg, context, timeout)
-    );
-
-    const results = await Promise.all(matchPromises);
-    return results.filter(isValidTriggerRegistration);
+    return 执行匹配触发器(context, 注册表, options);
 }
 
 // ============ 兼容对象形式 API ============
@@ -461,23 +429,3 @@ export const triggerRegistry = {
 
 export { 设置刷子光标 };
 
-// ============ 英文别名导出 ============
-// 仅保留 index.ts 需要的别名
-
-export const registerTrigger = 注册触发器;
-export const getTrigger = 获取触发器;
-export const hasTrigger = 触发器已注册;
-export const unregisterTrigger = 注销触发器;
-export const getAllTriggerTypes = 获取所有触发器类型;
-
-export const isBrushActive = 刷子是否激活;
-export const getActiveBrushType = 获取激活刷子类型;
-export const activateBrush = 激活刷子;
-export const deactivateBrush = 退出刷子;
-export const registerBrushCleanup = 注册刷子清理函数;
-export const setBrushCursor = 设置刷子光标;
-export const updateBrushCursorPosition = 更新刷子光标位置;
-export const updateBrushState = 更新刷子状态;
-export const getBrushParams = 获取刷子参数;
-
-export const matchTriggers = 匹配触发器;
