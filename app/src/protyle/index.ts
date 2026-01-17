@@ -381,13 +381,6 @@ export class Protyle {
         this.protyle.wysiwyg.element.addEventListener("focusin", () => {
             /// #if !MOBILE
             if (this.protyle && this.protyle.model) {
-                let needUpdate = true;
-                if (this.protyle.model.element.parentElement.parentElement.classList.contains("layout__wnd--active") && this.protyle.model.headElement.classList.contains("item--focus")) {
-                    needUpdate = false;
-                }
-                if (!needUpdate) {
-                    return;
-                }
                 setPanelFocus(this.protyle.model.element.parentElement.parentElement);
                 updatePanelByEditor({
                     protyle: this.protyle,

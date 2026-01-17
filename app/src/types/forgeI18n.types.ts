@@ -8,6 +8,8 @@
 export interface ForgeI18n {
   "测试键": "这是一个测试翻译"
   embedding: "Embeddings"
+  forwardlinks: "正向链接"
+
   forge: {
     appName: "思源锻造版"
     description: "锻造你的思维"
@@ -84,6 +86,7 @@ export interface ForgeI18n {
     pinSearchQuery: "固定查询参数"
     pinEmbedResult: "固定结果到侧边栏"
     pinEmbedQuery: "固定查询到侧边栏"
+    convertToDataset: "转换为嵌入数据集"
   };
 }
 

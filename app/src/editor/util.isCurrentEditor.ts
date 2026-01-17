@@ -4,16 +4,26 @@ import { getInstanceById } from "../layout/util";
 
 
 export const isCurrentEditor = (blockId: string) => {
-    const activeElement = document.querySelector(".layout__wnd--active > .fn__flex > .layout-tab-bar > .item--focus");
-    if(!activeElement){
-        return false; 
+    const activeElements: Element[] = [];
+    const classActiveElement = document.querySelector(".layout__wnd--active > .fn__flex > .layout-tab-bar > .item--focus");
+    if (classActiveElement) {
+        activeElements.push(classActiveElement);
     }
-    const tabDataID = activeElement.getAttribute("data-id");
-    if(!tabDataID){
-        console.error(blockId,activeElement);
-        throw new Error ("ui结构错误,缺少data-id");
+    const wndElement = document.activeElement?.closest('div[data-type="wnd"]');
+    if (wndElement) {
+        const activeTabElement = wndElement.querySelector(".layout-tab-bar > .item--focus");
+        if (activeTabElement && !activeElements.includes(activeTabElement)) {
+            activeElements.push(activeTabElement);
+        }
     }
-    if (activeElement) {
+    if (activeElements.length === 0) {
+        return false;
+    }
+    for (const activeElement of activeElements) {
+        const tabDataID = activeElement.getAttribute("data-id");
+        if (!tabDataID) {
+            continue;
+        }
         const tab = getInstanceById(tabDataID);
         if (tab instanceof Tab && tab.model instanceof Editor) {
             if (tab.model.editor.protyle.block.rootID === blockId ||

@@ -11,8 +11,11 @@ import { Files } from "./dock/Files";
 import { Bookmark } from "./dock/Bookmark";
 import { Tag } from "./dock/Tag";
 import { Custom } from "./dock/Custom";
+import { Forwardlink } from "./dock/Forwardlink";
 import { Protyle } from "../protyle";
 import { Wnd } from "./Wnd";
+
+import { Model } from "./Model";
 import { getSafeSiyuanLayout, getSafeSiyuanConfig, getSiyuanBlockPanels } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getSiyuanDialogs } from "../util/siyuanEnvironments/siyuanDialogs.environment";
 /// #endif
@@ -124,6 +127,10 @@ const pushModel = (models: IModels, model: Tab["model"]) => {
         models.custom.push(model);
         return;
     }
+    if (model instanceof Forwardlink) {
+        models.forwardlink.push(model);
+        return;
+    }
 };
 
 /**  递归遍历布局获取模型 */
@@ -135,6 +142,12 @@ const getTabsForModels = (layout: Layout, models: IModels) => {
     for (const item of children) {
         if (item instanceof Tab) {
             pushModel(models, item.model);
+            continue;
+        }
+        if (item instanceof Wnd) {
+            for (const tab of item.children) {
+                pushModel(models, tab.model);
+            }
             continue;
         }
         if (item instanceof Layout) {
@@ -163,10 +176,18 @@ export const getAllModels = () => {
         bookmark: [],
         tag: [],
         custom: [],
+        forwardlink: [],
     };
     const layout = getSafeSiyuanLayout();
     if (layout?.layout) {
         getTabsForModels(layout.layout, models);
+    }
+    const layoutAny = layout as any;
+    const docks = [layoutAny?.left, layoutAny?.right, layoutAny?.bottom];
+    for (const dock of docks) {
+        if (dock && dock.layout) {
+            getTabsForModels(dock.layout, models);
+        }
     }
     return models;
 };

@@ -24,7 +24,7 @@ import { setSizeForItem } from "./dock.size";
 import { handleClick, handleMouseLeave } from "./dock.events";
 import { executeToggleHide, executeToggleShow, executeUpdatePanelRelations } from "./dock.model";
 
-const TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGraph", "backlink", "embedding_dock", "cronjob"];
+const TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGraph", "backlink", "forwardlink", "embedding_dock", "cronjob"];
 /**
  * @AIDONE 已修复：界面初始化时Tag类型的dock有时消失的bug
  * 原因：各 Dock 实例初始化顺序不确定，使用 DOM 查询去重不可靠
@@ -68,6 +68,13 @@ export class Dock {
         }
     }
 
+    /**
+     * 切换 Dock 的钉住状态
+     * 
+     * 作用：切换 Dock 是否固定显示
+     * 意图：允许用户在自动隐藏和固定显示之间切换
+     * 调用时机：点击 Pin/Unpin 按钮时
+     */
     public togglePin(): void {
         this.pin = !this.pin;
         const hasActive = this.element.querySelector(".dock__item--active");
@@ -78,6 +85,13 @@ export class Dock {
         handlePinModeToggle(this, Boolean(hasActive));
     }
 
+    /**
+     * 重置 Dock 位置和尺寸
+     * 
+     * 作用：根据显示状态设置 Dock 的尺寸和透明度
+     * 意图：在显示/隐藏或模式切换时恢复 Dock 的正确视觉状态
+     * 调用时机：Dock 显示/隐藏动画或状态变更时
+     */
     public resetDockPosition(show: boolean): void {
         const opacity = show ? 1 : 0;
         const isHorizontal = this.position === "Left" || this.position === "Right";
@@ -86,6 +100,13 @@ export class Dock {
         this.layout.element.setAttribute("style", `${prop}:${size}px;opacity:${opacity};`);
     }
 
+    /**
+     * 显示 Dock
+     * 
+     * 作用：显示 Dock 面板
+     * 意图：使用户可以看见和交互 Dock
+     * 调用时机：鼠标悬停、激活 Tab 或收到显示指令时
+     */
     public showDock(reset = false): void {
         if (!reset && shouldSkipShowDock(this)) {
             return;
@@ -104,6 +125,13 @@ export class Dock {
         setDockPosition(this);
     }
 
+    /**
+     * 隐藏 Dock
+     * 
+     * 作用：隐藏 Dock 面板
+     * 意图：在不使用时腾出屏幕空间
+     * 调用时机：鼠标离开、失去焦点或显式隐藏时
+     */
     public hideDock(reset = false): void {
         if (!reset && (this.layout.element.style.opacity === "0" || this.pin)) {
             return;
@@ -132,6 +160,13 @@ export class Dock {
         }
     }
 
+    /**
+     * 切换 Model 的显示/隐藏状态
+     * 
+     * 作用：打开、关闭或切换 Dock 中的具体功能面板
+     * 意图：核心交互逻辑，响应用户点击 Dock Icon
+     * 调用时机：点击 Dock 图标或其他组件请求打开面板时
+     */
     public toggleModel(type: TDock | string, show = false, close = false, hide = false, isSaveLayout = true): void {
         if (!type) {
             return;
@@ -147,7 +182,7 @@ export class Dock {
             target.classList.remove("dock__item--active", "dock__item--activefocus");
         }
         const index = parseInt(target.getAttribute("data-index") || "0", 10);
-        const wndChild = this.layout.children[index];
+        const wndChild = this.layout?.children?.[index];
         if (!isWnd(wndChild)) {
             return;
         }
@@ -167,6 +202,13 @@ export class Dock {
         }
     }
 
+    /**
+     * 添加 Dock Item
+     * 
+     * 作用：将其他位置拖拽来的 Tab 添加到当前 Dock
+     * 意图：支持 Dock 间的拖拽重组
+     * 调用时机：拖拽 Tab 到 Dock 区域释放时
+     */
     public add(index: number, sourceElement: Element, previousType?: string): void {
         sourceElement.setAttribute("data-height", "");
         sourceElement.setAttribute("data-width", "");
@@ -194,6 +236,13 @@ export class Dock {
         setWindowTimeout(() => saveLayout(), Constants.TIMEOUT_TRANSITION);
     }
 
+    /**
+     * 移除 Dock Item
+     * 
+     * 作用：从当前 Dock 移除指定的 Item
+     * 意图：清理不再需要的或被拖走到其他位置的 Item
+     * 调用时机：Item 被关闭或拖出时
+     */
     public remove(key: TDock | string): void {
         if (isTDock(key)) {
             this.toggleModel(key, false, true, true);
@@ -209,6 +258,13 @@ export class Dock {
         delete this.data[key];
     }
 
+    /**
+     * 设置尺寸
+     * 
+     * 作用：更新 Dock 中各激活 Item 的尺寸信息
+     * 意图：确保布局调整后 Item 记录正确的尺寸
+     * 调用时机：Dock 尺寸改变后
+     */
     public setSize(): void {
         const activesElement = this.element.querySelectorAll(".dock__item--active");
         for (const item of Array.from(activesElement)) {
@@ -216,6 +272,13 @@ export class Dock {
         }
     }
 
+    /**
+     * 生成并插入按钮
+     * 
+     * 作用：根据数据生成 Dock 按钮并插入到 DOM
+     * 意图：初始化 Dock 的视觉内容
+     * 调用时机：Dock 初始化时
+     */
     public genButton(data: Config.IUILayoutDockTab[], index: number, tabIndex?: number): void {
         const languages = getSiyuanLanguages();
         const html = generateAllButtonsHTML(data, index, languages?.dockTip || "", tabIndex);
@@ -237,6 +300,13 @@ export class Dock {
         }
     }
 
+    /**
+     * 添加自定义 Item
+     * 
+     * 作用：动态添加自定义列表等类型的 Item
+     * 意图：支持插件或特定功能动态扩展 Dock
+     * 调用时机：用户创建自定义列表或插件注册 Dock 时
+     */
     public addCustomItem(item: Config.IUILayoutDockTab): void {
         // Find correct dock position/index for new item
         // For now, assume adding to the active dock side or default to first available

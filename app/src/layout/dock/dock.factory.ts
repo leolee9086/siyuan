@@ -5,6 +5,7 @@ import { Tag } from "./Tag";
 import { Outline } from "./outline/Outline";
 import { Graph } from "./Graph";
 import { Backlink } from "./Backlink";
+import { Forwardlink } from "./Forwardlink";
 import { Inbox } from "./Inbox";
 import { CustomLists, ICustomList } from "./customBlockLists/CustomLists";
 import { EmbeddingDock } from "./embeddingDock/EmbeddingDock";
@@ -72,6 +73,21 @@ const initBacklink: ModelFactory = (app, tab, editor) => {
     });
 };
 
+/**
+ * 初始化正向链接 Dock
+ * 
+ * 作用：创建正向链接组件实例
+ * 意图：显示当前文档引用的其他文档/块列表
+ */
+const initForwardlink: ModelFactory = (app, tab, editor) => {
+    return new Forwardlink({
+        app,
+        type: "pin",
+        tab,
+        blockId: editor?.protyle?.block?.rootID || "",
+    });
+};
+
 const initInbox: ModelFactory = (app, tab) => {
     return new Inbox(app, tab);
 };
@@ -99,6 +115,7 @@ const MODEL_FACTORIES: Record<string, ModelFactory> = {
     graph: initGraph,
     globalGraph: initGlobalGraph,
     backlink: initBacklink,
+    forwardlink: initForwardlink,
     inbox: initInbox,
     embedding_dock: initEmbeddingDock,
     cronjob: initCronjob,

@@ -5,7 +5,7 @@
 
 import { updateHotkeyTip } from "../../protyle/util/compatibility";
 
-const TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGraph", "backlink", "embedding_dock", "cronjob"];
+const TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGraph", "backlink", "forwardlink", "embedding_dock", "cronjob"];
 
 /**
  * 生成单个按钮的 HTML
@@ -98,6 +98,13 @@ export function insertButtonsToContainer(
     container.innerHTML = html;
 }
 
+/**
+ * 在指定 Tab 索引处插入 HTML
+ * 
+ * 作用：将生成的按钮 HTML 插入到容器的指定位置
+ * 意图：支持精确控制按钮的插入位置，用于恢复布局或插入特定位置的 Dock Item
+ * 调用时机：在 insertButtonsToContainer 中，当提供了 tabIndex 时调用
+ */
 function insertAtTabIndex(
     container: Element,
     html: string,

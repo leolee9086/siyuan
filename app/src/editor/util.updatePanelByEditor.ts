@@ -6,59 +6,72 @@ import { hasClosestByClassName } from "../protyle/util/hasClosest";
 import { resize } from "../protyle/util/resize";
 import { focusByRange, focusBlock } from "../protyle/util/selection";
 import { pushBack } from "../util/backForward";
+import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { updateBacklinkGraph } from "./util.updateBacklinkGraph";
 import { updateOutline } from "./util.updateOutline";
 
-
-export  const updatePanelByEditor = (options: {
+/**
+ * 根据编辑器状态更新面板
+ *
+ * 作用：当编辑器焦点变化、内容加载或操作时，同步更新相关的面板（如大纲、反链、文件树选宠等）。
+ * 意图：保持 UI 组件与当前编辑器状态的一致性。
+ * 调用时机：switchEditor, focusin, onDrop, switchTab 等。
+ *
+ * @param options
+ * @param options.protyle - 编辑器实例
+ * @param options.focus - 是否聚焦到编辑器
+ * @param options.pushBackStack - 是否加入后退栈
+ * @param options.reload - 是否重新加载
+ * @param options.resize - 是否调整大小
+ */
+export const updatePanelByEditor = (options: {
     protyle?: IProtyle,
     focus: boolean,
     pushBackStack: boolean,
     reload: boolean,
     resize: boolean
 }) => {
-    if (options.protyle && options.protyle.path) {
-        // https://ld246.com/article/1637636106054/comment/1641485541929#comments
-        if (options.protyle.element.classList.contains("fn__none") ||
-            (!hasClosestByClassName(options.protyle.element, "layout__wnd--active") &&
-                document.querySelector(".layout__wnd--active")  // https://github.com/siyuan-note/siyuan/issues/4414
-            )
-        ) {
+    const protyle = options.protyle;
+    if (protyle && protyle.path) {
+        if (protyle.element.classList.contains("fn__none")) {
             return;
         }
         if (options.resize) {
-            resize(options.protyle);
+            resize(protyle);
         }
         if (options.focus) {
-            if (options.protyle.toolbar.range) {
-                focusByRange(options.protyle.toolbar.range);
-                countSelectWord(options.protyle.toolbar.range, options.protyle.block.rootID);
-                if (options.pushBackStack && options.protyle.preview.element.classList.contains("fn__none")) {
-                    pushBack(options.protyle, options.protyle.toolbar.range);
+            if (protyle.toolbar.range) {
+                focusByRange(protyle.toolbar.range);
+                countSelectWord(protyle.toolbar.range, protyle.block.rootID);
+                if (options.pushBackStack && protyle.preview.element.classList.contains("fn__none")) {
+                    pushBack(protyle, protyle.toolbar.range);
                 }
             } else {
-                focusBlock(options.protyle.wysiwyg.element.firstElementChild);
-                if (options.pushBackStack && options.protyle.preview.element.classList.contains("fn__none")) {
-                    pushBack(options.protyle, undefined, options.protyle.wysiwyg.element.firstElementChild);
+                const firstElement = protyle.wysiwyg.element.firstElementChild;
+                if (firstElement) {
+                    focusBlock(firstElement);
+                    if (options.pushBackStack && protyle.preview.element.classList.contains("fn__none")) {
+                        pushBack(protyle, undefined, firstElement);
+                    }
                 }
-                countBlockWord([], options.protyle.block.rootID);
+                countBlockWord([], protyle.block.rootID);
             }
         }
-        if (window.siyuan.config.fileTree.alwaysSelectOpenedFile && options.protyle) {
+        if (getSiyuanConfig().fileTree.alwaysSelectOpenedFile) {
             const fileModel = getDockByType("file")?.data.file;
             if (fileModel instanceof Files) {
-                const target = fileModel.element.querySelector(`li[data-path="${options.protyle.path}"]`);
-                if (!target || (target && !target.classList.contains("b3-list-item--focus"))) {
-                    fileModel.selectItem(options.protyle.notebookId, options.protyle.path);
+                const target = fileModel.element.querySelector(`li[data-path="${protyle.path}"]`);
+                if (!target || !target.classList.contains("b3-list-item--focus")) {
+                    fileModel.selectItem(protyle.notebookId, protyle.path);
                 }
             }
         }
-        options.protyle.app.plugins.forEach(item => {
-            item.eventBus.emit("switch-protyle", {protyle: options.protyle});
+        protyle.app.plugins.forEach(item => {
+            item.eventBus.emit("switch-protyle", { protyle });
         });
     }
     // 切换页签或关闭所有页签时，需更新对应的面板
     const models = getAllModels();
-    updateOutline(models, options.protyle, options.reload);
-    updateBacklinkGraph(models, options.protyle);
+    updateOutline(models, protyle, options.reload);
+    updateBacklinkGraph(models, protyle);
 };

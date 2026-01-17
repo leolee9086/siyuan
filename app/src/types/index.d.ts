@@ -827,6 +827,7 @@ interface IModels {
     graph: import("../layout/dock/Graph").Graph[],
     outline: import("../layout/dock/outline/Outline").Outline[]
     backlink: import("../layout/dock/Backlink").Backlink[]
+    forwardlink: import("../layout/dock/Forwardlink").Forwardlink[]
     inbox: import("../layout/dock/Inbox").Inbox[]
     files: import("../layout/dock/Files").Files[]
     bookmark: import("../layout/dock/Bookmark").Bookmark[]

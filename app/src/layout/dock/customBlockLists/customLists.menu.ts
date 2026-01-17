@@ -55,18 +55,18 @@ export const showCustomListMenu = (app: App, customList: CustomLists, event: Mou
         if (customList.listData.type === "dynamic") {
             window.siyuan.menus.menu.append(new MenuItem({
                 iconHTML: "",
-                label: (forgeI18n as any).customList?.savedCriteria || "Saved Criteria",
+                label: forgeI18n.customList?.savedCriteria || "Saved Criteria",
                 type: "submenu",
                 submenu: subMenus
             }).element);
 
 
             window.siyuan.menus.menu.append(new MenuItem({
-                label: (forgeI18n as any).customList?.editSearchConditions || "Edit Search Conditions",
+                label: forgeI18n.customList?.editSearchConditions || "Edit Search Conditions",
                 iconHTML: "",
                 click: () => {
                     const dialog = new Dialog({
-                        title: (forgeI18n as any).customList?.editSearchConditions || "Edit Search Conditions",
+                        title: forgeI18n.customList?.editSearchConditions || "Edit Search Conditions",
                         content: `<div class="b3-dialog__content" style="height: 60vh; display: flex; flex-direction: column; padding: 0;">
                             <div id="searchContainer" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;"></div>
                             <div class="b3-dialog__action">
@@ -129,7 +129,7 @@ export const showCustomListMenu = (app: App, customList: CustomLists, event: Mou
         // 转换为嵌入数据集
         window.siyuan.menus.menu.append(new MenuItem({
             iconHTML: "",
-            label: (forgeI18n as any).customList?.convertToDataset || "转换为嵌入数据集",
+            label: forgeI18n.customList?.convertToDataset || "转换为嵌入数据集",
             icon: "iconDatabase",
             click: () => {
                 showConvertToDatasetDialog(app, customList);
@@ -146,7 +146,7 @@ export const showCustomListMenu = (app: App, customList: CustomLists, event: Mou
 const showConvertToDatasetDialog = (app: App, customList: CustomLists) => {
     const defaultModel = "leolee9086/text2vec-base-chinese";
     const dialog = new Dialog({
-        title: (forgeI18n as any).customList?.convertToDataset || "转换为嵌入数据集",
+        title: forgeI18n.customList?.convertToDataset || "转换为嵌入数据集",
         content: `<div class="b3-dialog__content">
             <div class="b3-label">
                 <span>数据集名称</span>

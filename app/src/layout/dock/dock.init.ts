@@ -186,6 +186,7 @@ export function initDockData(
 
 
     restoreIfMissing(data[1], seenGlobalTypes, "tag", "iconTags", siyuanI18n.tag || "Tags", position);
+    restoreIfMissing(data[1], seenGlobalTypes, "forwardlink", "iconLink", forgeI18n.forwardlinks || "正向链接", position);
     const embeddingTitle = forgeI18n.embedding;
     restoreIfMissing(data[1], seenGlobalTypes, "embedding_dock", "iconDatabase", typeof embeddingTitle === "string" ? embeddingTitle : "Embeddings", position);
     if (position === "Right") {
