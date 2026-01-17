@@ -1,16 +1,17 @@
 /// #if !MOBILE
-import {getDockByType} from "./tabUtil";
-import {hasClosestByClassName} from "../protyle/util/hasClosest";
-import {fetchPost} from "../util/fetch";
-import {mountHelp} from "../util/mount";
+import { getDockByType } from "./tabUtil";
+import { hasClosestByClassName } from "../protyle/util/hasClosest";
+import { fetchPost } from "../util/fetch";
+import { mountHelp } from "../util/mount";
 /// #if !BROWSER
-import {ipcRenderer} from "electron";
+import { ipcRenderer } from "electron";
 /// #endif
 /// #endif
 import { MenuItem } from "../menus/Menu.Item";
-import {Constants} from "../constants";
-import {toggleDockBar} from "./dock/util";
-import {isIPad, updateHotkeyTip} from "../protyle/util/compatibility";
+import { Constants } from "../constants";
+import { toggleDockBar } from "./dock/util";
+import { isIPad, updateHotkeyTip } from "../protyle/util/compatibility";
+import { 渲染所有状态栏按钮 } from "../registry/StatusBarRegistry";
 
 export const initStatus = (isWindow = false) => {
     /// #if !MOBILE
@@ -53,7 +54,7 @@ export const initStatus = (isWindow = false) => {
                     }).element);
                 });
                 const rect = target.getBoundingClientRect();
-                window.siyuan.menus.menu.popup({x: rect.right, y: rect.top, isLeft: true});
+                window.siyuan.menus.menu.popup({ x: rect.right, y: rect.top, isLeft: true });
                 event.stopPropagation();
                 break;
             } else if (target.id === "statusHelp") {
@@ -107,7 +108,7 @@ export const initStatus = (isWindow = false) => {
                     }
                 }).element);
                 const rect = target.getBoundingClientRect();
-                window.siyuan.menus.menu.popup({x: rect.right, y: rect.top, isLeft: true});
+                window.siyuan.menus.menu.popup({ x: rect.right, y: rect.top, isLeft: true });
                 event.stopPropagation();
                 break;
             } else if (target.classList.contains("b3-menu__item")) {
@@ -130,6 +131,8 @@ export const initStatus = (isWindow = false) => {
     if (window.siyuan.config.appearance.hideStatusBar) {
         document.getElementById("status").classList.add("fn__none");
     }
+    // 渲染通过 StatusBarRegistry 注册的按钮
+    渲染所有状态栏按钮();
     /// #endif
 };
 
@@ -144,13 +147,13 @@ export const countSelectWord = (range: Range, rootID?: string) => {
     countTimeout = window.setTimeout(() => {
         const selectText = range.toString();
         if (selectText) {
-            fetchPost("/api/block/getContentWordCount", {"content": range.toString()}, (response) => {
+            fetchPost("/api/block/getContentWordCount", { "content": range.toString() }, (response) => {
                 renderStatusbarCounter(response.data.stat);
             });
             countRootId = "";
         } else if (rootID && rootID !== countRootId) {
             countRootId = rootID;
-            fetchPost("/api/block/getTreeStat", {id: rootID}, (response) => {
+            fetchPost("/api/block/getTreeStat", { id: rootID }, (response) => {
                 renderStatusbarCounter(response.data.stat);
             });
         }
@@ -173,13 +176,13 @@ export const countBlockWord = (ids: string[], rootID?: string, clearCache = fals
             countRootId = "";
         }
         if (ids.length > 0) {
-            fetchPost("/api/block/getBlocksWordCount", {ids}, (response) => {
+            fetchPost("/api/block/getBlocksWordCount", { ids }, (response) => {
                 renderStatusbarCounter(response.data.stat);
             });
             countRootId = "";
         } else if (rootID && rootID !== countRootId) {
             countRootId = rootID;
-            fetchPost("/api/block/getTreeStat", {id: rootID}, (response) => {
+            fetchPost("/api/block/getTreeStat", { id: rootID }, (response) => {
                 renderStatusbarCounter(response.data.stat);
             });
         }

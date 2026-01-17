@@ -179,6 +179,9 @@ class App {
                     // 初始化 S-Forge 扩展功能
                     const { initSForge } = await import("../config/sforge.init");
                     await initSForge({ isMobile: false });
+                    // 初始化智能工具箱状态栏按钮
+                    const { initSmartToolboxStatusButton } = await import("../sforge/panel");
+                    initSmartToolboxStatusButton();
                     window.siyuan.menus = new Menus(this);
                     fetchPost("/api/setting/getCloudUser", {}, userResponse => {
                         window.siyuan.user = userResponse.data;
