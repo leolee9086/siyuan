@@ -23,6 +23,7 @@ export const updateCalloutType = (titleElement: HTMLElement, protyle: IProtyle) 
     if (!blockCalloutElement) {
         return;
     }
+    const range = getSelection().rangeCount > 0 ? getSelection().getRangeAt(0) : null;
 
     const currentSubtype = blockElement.getAttribute("data-subtype") || "";
 

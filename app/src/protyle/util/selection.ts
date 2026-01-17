@@ -583,6 +583,7 @@ export const focusByWbr = (element: Element, range: Range) => {
     range.collapse(true);
     wbrElement.remove();
     focusByRange(range);
+    return range;
 };
 
 export const focusByRange = (range: Range) => {

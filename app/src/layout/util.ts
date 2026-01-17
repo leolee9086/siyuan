@@ -489,13 +489,14 @@ export const JSONToLayout = (app: App, isStart: boolean) => {
             }
         }
     });
+
     const idZoomIn = getIdZoomInByPath();
     if (idZoomIn.id) {
         openFileById({
             app,
             id: idZoomIn.id,
             action: idZoomIn.isZoomIn ? [Constants.CB_GET_ALL, Constants.CB_GET_FOCUS] : [Constants.CB_GET_FOCUS, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL],
-            zoomIn: idZoomIn.isZoomIn
+            zoomIn: idZoomIn.isZoomIn,
         });
     } else {
         let latestTabHeaderElement: HTMLElement;

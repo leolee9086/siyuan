@@ -1,16 +1,16 @@
-import {getAllModels} from "../layout/getAll";
+import { getAllModels } from "../layout/getAll";
 /// #if !BROWSER
-import {ipcRenderer} from "electron";
+import { ipcRenderer } from "electron";
 /// #endif
-import {setInlineStyle} from "../util/assets";
-import {fetchPost} from "../util/fetch";
-import {confirmDialog} from "../dialog/confirmDialog";
-import {reloadProtyle} from "../protyle/util/reload";
-import {updateHotkeyTip} from "../protyle/util/compatibility";
-import {Constants} from "../constants";
-import {resize} from "../protyle/util/resize";
-import {setReadOnly} from "./util/setReadOnly";
-import {Menu} from "../plugin/Menu";
+import { setInlineStyle } from "../util/assets";
+import { fetchPost } from "../util/fetch";
+import { confirmDialog } from "../dialog/confirmDialog";
+import { reloadProtyle } from "../protyle/util/reload";
+import { updateHotkeyTip } from "../protyle/util/compatibility";
+import { Constants } from "../constants";
+import { resize } from "../protyle/util/resize";
+import { setReadOnly } from "./util/setReadOnly";
+import { Menu } from "../plugin/Menu";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const editor = {
@@ -308,6 +308,22 @@ export const editor = {
 </div>
 <label class="fn__flex b3-label">
     <div class="fn__flex-1">
+        ${window.siyuan.languages.allowSVGScript}
+        <div class="b3-label__text">${window.siyuan.languages.allowSVGScriptTip}</div>
+    </div>
+    <span class="fn__space"></span>
+    <input class="b3-switch fn__flex-center" id="allowSVGScript" type="checkbox"${window.siyuan.config.editor.allowSVGScript ? " checked" : ""}/>
+</label>
+<label class="fn__flex b3-label">
+    <div class="fn__flex-1">
+        ${siyuanI18n.allowSVGScript}
+        <div class="b3-label__text">${siyuanI18n.allowSVGScriptTip}</div>
+    </div>
+    <span class="fn__space"></span>
+    <input class="b3-switch fn__flex-center" id="allowSVGScript" type="checkbox"${window.siyuan.config.editor.allowSVGScript ? " checked" : ""}/>
+</label>
+<label class="fn__flex b3-label">
+    <div class="fn__flex-1">
         ${siyuanI18n.allowHTMLBLockScript}
         <div class="b3-label__text">${siyuanI18n.allowHTMLBLockScriptTip}</div>
     </div>
@@ -471,6 +487,7 @@ export const editor = {
                     inlineStrikethrough: (editor.element.querySelector("#editorMarkdownInlineStrikethrough") as HTMLInputElement).checked,
                     inlineMark: (editor.element.querySelector("#editorMarkdownInlineMark") as HTMLInputElement).checked
                 },
+                allowSVGScript: (editor.element.querySelector("#allowSVGScript") as HTMLInputElement).checked,
                 allowHTMLBLockScript: (editor.element.querySelector("#allowHTMLBLockScript") as HTMLInputElement).checked,
                 justify: (editor.element.querySelector("#justify") as HTMLInputElement).checked,
                 rtl: (editor.element.querySelector("#rtl") as HTMLInputElement).checked,
