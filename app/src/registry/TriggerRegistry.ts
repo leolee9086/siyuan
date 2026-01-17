@@ -30,7 +30,8 @@ import {
     设置退出事件监听,
     隐藏系统光标,
     清理光标会话,
-    初始化光标会话
+    初始化光标会话,
+    设置左键点击监听
 } from "./TriggerRegistry.cursor";
 
 // 重新导出类型
@@ -160,6 +161,44 @@ export function 获取激活刷子类型(): string | null {
 }
 
 /**
+ * 创建应用处理器
+ * 
+ * @param registration 触发器注册对象
+ * @param type 触发器类型
+ * @returns 鼠标事件处理器
+ */
+function 创建应用处理器(registration: ITriggerRegistration, type: string): (e: MouseEvent) => void {
+    return (e: MouseEvent) => {
+        const target = e.target;
+        if (!(target instanceof Element)) {
+            return;
+        }
+
+        // 此处只做简单的转发，更复杂的 Context 构建需要由具体的 Brush 自行处理或未来统一
+        // 主要是为了确保 onApply 被调度，逻辑回归统一
+        const 简易Context: IGlobalContext = {
+            protyle: null as unknown as any, // 暂未实现
+            目标块: {
+                id: target.getAttribute("data-node-id") || "",
+                type: target.getAttribute("data-type") || "",
+                element: target as HTMLElement
+            },
+            选区: {
+                text: "",
+                isCollapsed: true,
+                range: null
+            }
+        };
+
+        try {
+            registration.onApply(target, 简易Context, false);
+        } catch (err) {
+            console.error(`[TriggerRegistry] 触发器 ${type} onApply 执行失败:`, err);
+        }
+    };
+}
+
+/**
  * 激活刷子模式
  * 
  * 作用：创建刷子会话并自动设置光标、退出事件等通用功能
@@ -205,6 +244,12 @@ export function 激活刷子(type: string, params: unknown): boolean {
         创建刷子光标(registration.cursorHTML);
         设置光标跟随();
     }
+
+    // 设置左键点击监听，调度 onApply 事件
+    // 设置左键点击监听，调度 onApply 事件
+    const onApplyHandler = 创建应用处理器(registration, type);
+    设置左键点击监听(onApplyHandler);
+
     设置退出事件监听(退出刷子);
     隐藏系统光标();
 

@@ -233,6 +233,37 @@ export function 设置退出事件监听(退出回调: () => void): void {
 }
 
 /**
+ * 创建点击处理器
+ * 
+ * @param 回调 点击回调函数
+ * @returns 鼠标事件处理器
+ */
+function 创建点击处理器(回调: (e: MouseEvent) => void): (e: MouseEvent) => void {
+    return (e: MouseEvent) => {
+        if (e.button === 0) { // 左键
+            回调(e);
+        }
+    };
+}
+
+/**
+ * 设置左键点击监听
+ * 
+ * 作用：监听鼠标左键点击，用于触发刷子应用逻辑
+ * 意图：将交互事件统一由 Registry 管理
+ * 调用时机：刷子激活时
+ * 
+ * @param 回调 点击回调函数
+ */
+export function 设置左键点击监听(回调: (e: MouseEvent) => void): void {
+    const 处理器 = 创建点击处理器(回调);
+
+    // 使用捕获阶段，确保优先处理
+    添加窗口事件监听("click", 处理器, true);
+    注册光标清理函数(() => 移除窗口事件监听("click", 处理器, true));
+}
+
+/**
  * 隐藏系统光标
  * 
  * 作用：将 body 的 cursor 设为 none，并注册恢复函数

@@ -52,7 +52,7 @@ export function 打开智能工具箱(): void {
             },
             data: {},
             eventHandlers: {},
-            template: `<SmartToolboxPanelVue />`
+            template: "<SmartToolboxPanelVue />"
         }),
         dialogOptions: {
             title: "智能工具箱",

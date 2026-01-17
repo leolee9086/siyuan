@@ -103,6 +103,15 @@ export interface ITriggerRegistration {
      */
     category: string;
 
+    /** 图标（SVG id 或完整 SVG 标签） */
+    icon?: string;
+
+    /** 显示名称（UI展示用） */
+    label?: string;
+
+    /** 描述文本（UI展示或Tooltip用） */
+    description?: string;
+
     /**
      * 执行逻辑
      * @param target 目标元素

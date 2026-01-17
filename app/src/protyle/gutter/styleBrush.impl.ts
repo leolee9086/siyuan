@@ -8,18 +8,12 @@
  */
 
 import { fetchPost, fetchSyncPost } from "../../util/fetch";
-import { 添加窗口事件监听, 移除窗口事件监听 } from "../../util/siyuanEnvironments/window.environment";
-import {
-    退出刷子,
-    获取刷子参数,
-    注册刷子清理函数
-} from "../../registry/TriggerRegistry";
-import type { IStyleBrushParameters } from "../../registry/TriggerRegistry.types";
 
 // ============ 常量定义 ============
 
 /** 样式刷子的触发器类型标识 */
-export const 样式刷子类型 = "s-forge-style-brush";
+/** 初始定义的第一个样式刷子被用于清理样式所以它被命名为 "s-forge-style-brush-clean" */
+export const 清理刷子类型名 = "s-forge-style-brush-clean";
 
 /** 样式刷子光标 HTML - 供 TriggerRegistry 使用 */
 export const 样式刷子光标HTML = `
@@ -27,9 +21,6 @@ export const 样式刷子光标HTML = `
         <use xlink:href="#iconFormat"></use>
     </svg>
 `;
-
-/** 鼠标左键代码 */
-const 鼠标左键 = 0;
 
 // ============ 核心业务功能 ============
 
@@ -104,84 +95,4 @@ export async function 应用样式(targetId: string, style: string): Promise<boo
     }
 }
 
-// ============ 样式刷子专用事件处理 ============
 
-/**
- * 处理左键点击 - 应用样式到目标块
- * 
- * 作用：响应用户点击，将源样式应用到目标块
- * 意图：这是样式刷子的核心交互逻辑
- * 调用时机：刷子模式激活期间，用户点击编辑器内的块
- * 
- * @param e 鼠标事件
- */
-function 处理点击应用样式(e: MouseEvent): void {
-    if (e.button !== 鼠标左键) {
-        return;
-    }
-
-    const target = e.target;
-    if (!(target instanceof HTMLElement)) {
-        return;
-    }
-
-    const blockElement = target.closest("[data-node-id]");
-    if (!(blockElement instanceof HTMLElement)) {
-        console.debug("[StyleBrush] 点击位置不是有效块");
-        return;
-    }
-
-    // 检查是否是链接或块引用（这些需要特殊处理）
-    const linkElement = target.closest("[data-type=\"a\"], [data-type=\"block-ref\"]");
-
-    const targetId = blockElement.getAttribute("data-node-id");
-    if (!targetId) {
-        return;
-    }
-
-    const params = 获取刷子参数<IStyleBrushParameters>();
-    if (!params?.sourceStyle) {
-        console.error("[StyleBrush] 无法获取源样式");
-        return;
-    }
-
-    // 阻止默认行为
-    e.preventDefault();
-    e.stopPropagation();
-
-    // 应用样式
-    应用样式(targetId, params.sourceStyle);
-
-    // 如果点击到链接，应用后退出
-    if (linkElement) {
-        退出刷子();
-    }
-}
-
-// ============ 刷子进入/退出回调 ============
-
-/**
- * 样式刷子进入回调
- * 
- * 作用：设置样式刷子特有的事件监听（点击应用样式）
- * 意图：只处理业务逻辑相关的事件，通用事件由 TriggerRegistry 管理
- * 调用时机：TriggerRegistry 激活刷子后调用 onEnter
- */
-export function 样式刷子进入(): void {
-    // 注册点击处理器（样式刷子特有的业务逻辑）
-    添加窗口事件监听("click", 处理点击应用样式, true);
-    注册刷子清理函数(() => 移除窗口事件监听("click", 处理点击应用样式, true));
-
-    console.log("[StyleBrush] 样式刷子已进入");
-}
-
-/**
- * 样式刷子退出回调
- * 
- * 作用：执行样式刷子特有的清理逻辑
- * 意图：业务相关的清理在这里处理，通用清理由 TriggerRegistry 管理
- * 调用时机：TriggerRegistry 退出刷子时调用 onExit
- */
-export function 样式刷子退出(): void {
-    console.log("[StyleBrush] 样式刷子已退出");
-}
