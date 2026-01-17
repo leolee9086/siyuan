@@ -40,12 +40,12 @@
  * 展示所有已注册的触发器，支持搜索和分组。
  */
 
-import { ref, computed, onMounted, reactive } from "vue";
+import { ref, computed, onMounted, onUnmounted, reactive } from "vue";
 import ToolItem from "./ToolItem.vue";
 import type { ITriggerRegistration } from "../../registry/TriggerRegistry.types";
 import type { IToolGroup } from "./SmartToolboxPanel.types";
 import { 加载所有触发器, 筛选触发器, 按分类分组, 初始化展开状态 } from "./SmartToolboxPanel.utils";
-import { 激活刷子 } from "../../registry/TriggerRegistry";
+import { 激活刷子, 监听注册表变更 } from "../../registry/TriggerRegistry";
 
 // Props
 const props = defineProps<{
@@ -120,10 +120,39 @@ const 执行工具 = (trigger: ITriggerRegistration): void => {
     emit("execute", trigger);
 };
 
-// 生命周期
-onMounted(() => {
+/**
+ * 刷新触发器列表
+ */
+const 刷新列表 = () => {
     所有触发器.value = 加载所有触发器();
+    // 保持展开状态，如果是新的分类可能需要初始化，但为了简单起见暂不重置
+};
+
+// 生命周期
+let 取消监听: (() => void) | null = null;
+
+/**
+ * @function 初始化监听
+ * @作用: 初始化注册表变更监听
+ * @调用时机: 组件挂载时
+ */
+const 初始化监听 = () => {
+    // 监听注册表变更
+    取消监听 = 监听注册表变更(() => {
+        刷新列表();
+    });
+};
+
+onMounted(() => {
+    刷新列表();
     Object.assign(展开状态, 初始化展开状态(所有触发器.value));
     searchInputRef.value?.focus();
+    初始化监听();
+});
+
+onUnmounted(() => {
+    if (取消监听) {
+        取消监听();
+    }
 });
 </script>

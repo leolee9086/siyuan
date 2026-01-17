@@ -21,6 +21,7 @@ import {
 } from "../../registry/TriggerRegistry";
 import type { IGlobalContext, IStyleBrushParameters } from "../../registry/TriggerRegistry.types";
 import { isStyleBrushParameters } from "./styleBrush.guard";
+import { 打开智能工具箱 } from "../../sforge/panel/smartToolboxPanelDialog";
 import {
     清理刷子类型名,
     样式刷子光标HTML,
@@ -211,7 +212,6 @@ export function 注册并激活自定义样式刷子(sourceStyle: string, source
             }
 
             // 1. 获取目标块 ID
-            // 1. 获取目标块 ID
             const targetBlock = target.closest("[data-node-id]");
             if (!targetBlock) {
                 return;
@@ -243,7 +243,10 @@ export function 注册并激活自定义样式刷子(sourceStyle: string, source
         }
     });
 
-    // 立即激活
+    // 2. 打开工具箱以显示新添加的工具
+    打开智能工具箱();
+
+    // 3. 激活刷子
     return 激活刷子(type, { sourceStyle, sourceBlockId });
 }
 

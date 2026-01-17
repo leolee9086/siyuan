@@ -81,6 +81,36 @@ function 设置刷子会话(session: IBrushSession | null): void {
     setSForgeState(SForgeSymbols.BRUSH_SESSION, session);
 }
 
+
+// 监听器集合
+const listeners = new Set<() => void>();
+
+/**
+ * 通知所有监听器
+ */
+function notifyListeners() {
+    for (const listener of listeners) {
+        try {
+            listener();
+        } catch (e) {
+            console.error("[TriggerRegistry] 监听器执行失败:", e);
+        }
+    }
+}
+
+/**
+ * 监听注册表变更
+ * 
+ * @param callback 变更回调函数
+ * @returns 取消监听函数
+ */
+export function 监听注册表变更(callback: () => void): () => void {
+    listeners.add(callback);
+    return () => {
+        listeners.delete(callback);
+    };
+}
+
 // ============ 注册 API ============
 
 /**
@@ -99,6 +129,8 @@ export function 注册触发器(registration: ITriggerRegistration): boolean {
 
     注册表.set(registration.type, registration);
     console.log(`[TriggerRegistry] 已注册触发器: ${registration.type} (${registration.mode})`);
+
+    notifyListeners();
     return true;
 }
 
@@ -120,7 +152,11 @@ export function 触发器已注册(type: string): boolean {
  * 注销触发器
  */
 export function 注销触发器(type: string): boolean {
-    return 获取注册表Map().delete(type);
+    const result = 获取注册表Map().delete(type);
+    if (result) {
+        notifyListeners();
+    }
+    return result;
 }
 
 /**
