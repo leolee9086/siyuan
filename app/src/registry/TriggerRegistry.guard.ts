@@ -38,3 +38,10 @@ export function isValidParams<T>(params: unknown): params is T {
 export function isValidTriggerRegistration(target: ITriggerRegistration | null | undefined): target is ITriggerRegistration {
     return target !== null && target !== undefined;
 }
+
+/**
+ * 判断是否为 HTMLElement
+ */
+export function isHTMLElement(target: unknown): target is HTMLElement {
+    return target instanceof HTMLElement;
+}

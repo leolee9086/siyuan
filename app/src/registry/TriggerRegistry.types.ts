@@ -46,7 +46,7 @@ export type TriggerMode = 触发模式;
  */
 export interface IGlobalContext {
     /** 当前激活的编辑器实例 */
-    protyle: IProtyle;
+    protyle: IProtyle | null;
 
     /** 目标块元数据 */
     目标块: {
