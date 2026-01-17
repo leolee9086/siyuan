@@ -62,11 +62,18 @@
     - 若 `e.button === 2` (右键)，立即 `cancelBrush()`。
     - 若 `e.target` 具有 `data-type="a"` 或 `data-type="block-ref"`，视为“上下文切换触发点”，执行动作后退出模式。
 
-## 4. 文件变更预估
-1. `app/src/protyle/gutter/buildGutterCommonMenu.ts`：注入菜单入口。
-2. `app/src/protyle/gutter/buildGutterStyleBrushMenu.ts`：格式刷专用菜单项构建。
-3. `app/src/protyle/gutter/styleBrush.ts`：核心逻辑实现，包含触发器注册。
-4. `app/src/registry/TriggerRegistry.ts`：核心管理类实现。
+## 4. 文件变更清单（已完成）
+| 文件路径 | 用途 | 状态 |
+|---------|------|------|
+| `app/src/protyle/gutter/buildGutterCommonMenu.ts` | 注入菜单入口 | ✅ 已完成 |
+| `app/src/protyle/gutter/buildGutterStyleBrushMenu.ts` | 格式刷专用菜单项构建 | ✅ 已完成 |
+| `app/src/protyle/gutter/styleBrush.ts` | 核心逻辑 - 主模块入口 | ✅ 已完成 |
+| `app/src/protyle/gutter/styleBrush.impl.ts` | 核心逻辑 - 实现细节 | ✅ 已完成 |
+| `app/src/protyle/gutter/styleBrush.guard.ts` | 类型守卫 | ✅ 已完成 |
+| `app/src/registry/TriggerRegistry.ts` | 触发器注册表核心 | ✅ 已完成 |
+| `app/src/registry/TriggerRegistry.types.ts` | 类型定义 | ✅ 已完成 |
+| `app/src/registry/TriggerRegistry.cursor.ts` | 光标管理模块 | ✅ 已完成 |
+| `app/src/registry/TriggerRegistry.guard.ts` | 类型守卫 | ✅ 已完成 |
 
 ---
 
