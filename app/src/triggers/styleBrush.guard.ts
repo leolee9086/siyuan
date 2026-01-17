@@ -1,4 +1,4 @@
-import { IStyleBrushParameters } from "../../registry/TriggerRegistry.types";
+import { IStyleBrushParameters } from "../registry/TriggerRegistry.types";
 
 /**
  * 判断是否为样式刷子参数

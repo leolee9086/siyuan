@@ -2,7 +2,7 @@
  * TriggerRegistry.guard.ts - TriggerRegistry 类型守卫
  */
 
-import type { ITriggerRegistration, IBrushSession } from "./TriggerRegistry.types";
+import type { ITriggerRegistration, IBrushSession, IBrushTriggerRegistration, IToggleTriggerRegistration } from "./TriggerRegistry.types";
 
 /**
  * 判断是否为 Trigger 注册表 Map
@@ -44,4 +44,28 @@ export function isValidTriggerRegistration(target: ITriggerRegistration | null |
  */
 export function isHTMLElement(target: unknown): target is HTMLElement {
     return target instanceof HTMLElement;
+}
+
+/**
+ * 判断触发器是否为刷子模式
+ * 用于收窄 ITriggerRegistration 联合类型，安全访问 brush 模式特有属性
+ */
+export function isBrushTrigger(registration: ITriggerRegistration): registration is IBrushTriggerRegistration {
+    return registration.mode === "brush";
+}
+
+/**
+ * 判断触发器是否为切换模式
+ * 用于收窄 ITriggerRegistration 联合类型，安全访问 toggle 模式特有属性
+ */
+export function isToggleTrigger(registration: ITriggerRegistration): registration is IToggleTriggerRegistration {
+    return registration.mode === "toggle";
+}
+
+/**
+ * 判断触发器是否有 onExit 回调 (brush 或 toggle 模式)
+ * 用于安全调用 onExit 而不需要类型断言
+ */
+export function hasOnExit(registration: ITriggerRegistration): registration is IBrushTriggerRegistration | IToggleTriggerRegistration {
+    return registration.mode === "brush" || registration.mode === "toggle";
 }

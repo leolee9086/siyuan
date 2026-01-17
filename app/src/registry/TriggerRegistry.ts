@@ -21,7 +21,7 @@ import type {
     IGlobalContext,
     刷子状态
 } from "./TriggerRegistry.types";
-import { isTriggerRegistryMap, isBrushSession, isValidParams } from "./TriggerRegistry.guard";
+import { isTriggerRegistryMap, isBrushSession, isValidParams, hasOnExit } from "./TriggerRegistry.guard";
 import {
     创建刷子光标,
     更新刷子光标位置,
@@ -296,8 +296,10 @@ export function 退出刷子(): void {
         }
     }
 
-    // 调用 onExit
-    registration?.onExit?.();
+    // 调用 onExit (仅 brush 和 toggle 模式有此回调)
+    if (registration && hasOnExit(registration)) {
+        registration.onExit?.();
+    }
 
     // 清除会话
     设置刷子会话(null);

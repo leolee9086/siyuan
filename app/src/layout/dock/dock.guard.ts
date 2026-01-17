@@ -160,3 +160,41 @@ export function isErrorPlaceholderData(data: unknown): data is import("./ErrorPl
     const d = data as Record<string, unknown>;
     return typeof d.原始类型 === "string" && typeof d.错误信息 === "string";
 }
+
+/** 有效的 Dock 位置值 */
+const VALID_DOCK_POSITIONS = ["Left", "Right", "Bottom"] as const;
+
+/**
+ * 判断值是否为有效的 TDockPosition。
+ *
+ * 作用：检查字符串是否属于预定义的 Dock 位置枚举值。
+ * 调用时机：由 isDockTypeRegistryMap 内部调用，验证 Map 值的类型。
+ */
+function isTDockPosition(value: unknown): value is TDockPosition {
+    return typeof value === "string" && VALID_DOCK_POSITIONS.includes(value as TDockPosition);
+}
+
+/**
+ * 判断是否为 Dock 类型注册表 Map。
+ * @AIDONE 现在会正确验证 Map 中的每个值都是有效的 TDockPosition
+ * 作用：安全地将 getSForgeState 返回的联合类型收窄为 Map<string, TDockPosition>。
+ * 意图：通过运行时检查 Map 中的每个条目，确保 key 为 string，value 为有效的 TDockPosition。
+ * 调用时机：在 dock.registry.ts 中获取类型注册表时调用。
+ * 注意：对于空 Map 直接返回 true，因为空 Map 是有效的类型注册表初始状态。
+ */
+export function isDockTypeRegistryMap(target: unknown): target is Map<string, TDockPosition> {
+    if (!(target instanceof Map)) {
+        return false;
+    }
+    // 验证 Map 中的每个条目
+    for (const [key, value] of target.entries()) {
+        if (typeof key !== "string") {
+            return false;
+        }
+        if (!isTDockPosition(value)) {
+            return false;
+        }
+    }
+    return true;
+}
+

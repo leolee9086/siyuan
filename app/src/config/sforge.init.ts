@@ -29,7 +29,7 @@ async function 注册桌面端触发器(): Promise<void> {
     console.log("[S-Forge] 开始注册桌面端触发器...");
 
     // 动态导入，避免移动端加载不必要的代码
-    const { 注册样式刷子 } = await import("../protyle/gutter/styleBrush");
+    const { 注册样式刷子 } = await import("../triggers/styleBrush");
 
     // 样式刷子（格式刷）
     注册样式刷子();

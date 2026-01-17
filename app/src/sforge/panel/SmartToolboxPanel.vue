@@ -38,19 +38,30 @@
  * SmartToolboxPanel.vue - 智能工具箱主面板
  * 
  * 展示所有已注册的触发器，支持搜索和分组。
+ * 业务逻辑委托给 SmartToolboxPanel.utils.ts
  */
 
 import { ref, computed, onMounted, onUnmounted, reactive } from "vue";
 import ToolItem from "./ToolItem.vue";
 import type { ITriggerRegistration } from "../../registry/TriggerRegistry.types";
 import type { IToolGroup } from "./SmartToolboxPanel.types";
-import { 加载所有触发器, 筛选触发器, 按分类分组, 初始化展开状态 } from "./SmartToolboxPanel.utils";
-import { 激活刷子, 监听注册表变更 } from "../../registry/TriggerRegistry";
+import {
+    加载所有触发器,
+    筛选触发器,
+    按分类分组,
+    初始化展开状态,
+    utils获取展开图标,
+    utils获取空状态文本,
+    创建防抖搜索处理器,
+    utils执行工具
+} from "./SmartToolboxPanel.utils";
+import { 监听注册表变更 } from "../../registry/TriggerRegistry";
 
-// Props
-const props = defineProps<{
-    onClose?: () => void;
-}>();
+// 响应式状态
+const 搜索关键词 = ref("");
+const 所有触发器 = ref<ITriggerRegistration[]>([]);
+const 展开状态 = reactive<Record<string, boolean>>({});
+const searchInputRef = ref<HTMLInputElement | null>(null);
 
 // Emits
 const emit = defineEmits<{
@@ -58,139 +69,47 @@ const emit = defineEmits<{
     (e: "execute", trigger: ITriggerRegistration): void;
 }>();
 
-// 响应式状态
-const 搜索关键词 = ref("");
-const 所有触发器 = ref<ITriggerRegistration[]>([]);
-const 展开状态 = reactive<Record<string, boolean>>({});
-const searchInputRef = ref<HTMLInputElement | null>(null);
-const contentRef = ref<HTMLElement | null>(null);
-
 // 计算属性
-const 分组后工具列表 = computed<IToolGroup[]>(() => {
-    const 筛选结果 = 筛选触发器(所有触发器.value, 搜索关键词.value);
-    return 按分类分组(筛选结果);
-});
+const 分组后工具列表 = computed<IToolGroup[]>(() => 按分类分组(筛选触发器(所有触发器.value, 搜索关键词.value)));
 
-/** @简洁函数 获取展开/折叠图标 */
-const 获取展开图标 = (category: string): string => {
-    return 展开状态[category] ? "#iconDown" : "#iconRight";
-};
+// 防抖搜索
+const 搜索处理器 = 创建防抖搜索处理器(150);
+const 处理搜索输入 = 搜索处理器.处理;
 
-/** @简洁函数 获取空状态提示文本 */
-const 获取空状态文本 = (): string => {
-    return 搜索关键词.value ? "未找到匹配的工具" : "暂无可用工具";
-};
-
-/**
- * @function 处理搜索输入
- * @作用: 防抖处理搜索输入，触发列表刷新
- * @调用时机: 用户在搜索框输入时
- */
-let filterTimeout: ReturnType<typeof setTimeout> | null = null;
-const 处理搜索输入 = (): void => {
-    if (filterTimeout) {
-        clearTimeout(filterTimeout);
-    }
-    // 通过 computed 自动刷新，这里只做防抖
-    filterTimeout = setTimeout(() => { /* 搜索通过 computed 自动处理 */ }, 150);
-};
-
-/**
- * @function 切换分组展开状态
- * @作用: 切换指定分类的展开/折叠状态
- * @调用时机: 用户点击分组标题时
- */
-const 切换分组展开状态 = (category: string): void => {
+// 模板绑定函数 - 委托给 utils
+/** @简洁函数 获取展开图标 */
+const 获取展开图标 = (category: string) => utils获取展开图标(展开状态, category);
+/** @简洁函数 获取空状态文本 */
+const 获取空状态文本 = () => utils获取空状态文本(搜索关键词.value);
+/** @简洁函数 切换分组展开状态 */
+const 切换分组展开状态 = (category: string) => {
     展开状态[category] = !展开状态[category];
 };
 
-/**
- * @function 执行工具
- * @作用: 根据触发模式执行对应的工具逻辑（不关闭面板）
- * @调用时机: 用户点击工具项时
- */
-/**
- * @function 执行工具
- * @作用: 根据触发模式执行对应的工具逻辑（不关闭面板）
- * @调用时机: 用户点击工具项时
- */
-// 引入 Protyle 查找工具
-import { 查找有选区的Protyle } from "../../registry/TriggerRegistry";
+/** @简洁函数 触发器执行回调 - 用于 utils执行工具 的 onExecute */
+const 触发器执行回调 = (t: ITriggerRegistration) => emit("execute", t);
 
-/**
- * @function 执行工具
- * @作用: 根据触发模式执行对应的工具逻辑（不关闭面板）
- * @调用时机: 用户点击工具项时
- */
-const 执行工具 = (trigger: ITriggerRegistration, event: MouseEvent): void => {
-    // 1. 优先处理 Ctrl+Click (替代交互)
-    if (event.ctrlKey || event.metaKey) {
-        if (trigger.onCtrlClick) {
-            // 显式查找当前激活的 Protyle
-            const activeProtyle = 查找有选区的Protyle();
-            if (!activeProtyle) {
-                console.warn("[SmartToolboxPanel] 无法执行 Ctrl+Click，未找到活跃的 Protyle");
-                return;
-            }
+/** @简洁函数 执行工具 */
+const 执行工具 = (trigger: ITriggerRegistration, event: MouseEvent) =>
+    utils执行工具(trigger, event, { onExecute: 触发器执行回调 });
 
-            // 构造上下文并执行
-            // 注意：这里我们只填充了 protyle，其他字段对于批量应用可能不重要，或者后续需要补全
-            const context: any = {
-                protyle: activeProtyle,
-                // 其他字段留空或按需补充
-                目标块: null,
-                选区: null
-            };
-
-            console.log(`[SmartToolboxPanel] 执行 ${trigger.type} 的 Ctrl+Click 逻辑`);
-            trigger.onCtrlClick(context);
-            return;
-        }
-    }
-
-    // 2. 刷子模式：激活刷子
-    if (trigger.mode === "brush") {
-        激活刷子(trigger.type, {}, { originalEvent: event });
-        return;
-    }
-
-    // 3. immediate 和 toggle 模式：通过事件通知外部处理
-    emit("execute", trigger);
-};
-
-/**
- * 刷新触发器列表
- */
+/** @简洁函数 刷新列表 */
 const 刷新列表 = () => {
     所有触发器.value = 加载所有触发器();
-    // 保持展开状态，如果是新的分类可能需要初始化，但为了简单起见暂不重置
 };
 
 // 生命周期
 let 取消监听: (() => void) | null = null;
 
-/**
- * @function 初始化监听
- * @作用: 初始化注册表变更监听
- * @调用时机: 组件挂载时
- */
-const 初始化监听 = () => {
-    // 监听注册表变更
-    取消监听 = 监听注册表变更(() => {
-        刷新列表();
-    });
-};
-
 onMounted(() => {
     刷新列表();
     Object.assign(展开状态, 初始化展开状态(所有触发器.value));
     searchInputRef.value?.focus();
-    初始化监听();
+    取消监听 = 监听注册表变更(刷新列表);
 });
 
 onUnmounted(() => {
-    if (取消监听) {
-        取消监听();
-    }
+    搜索处理器.清理();
+    取消监听?.();
 });
 </script>

@@ -11,19 +11,22 @@
  */
 
 import { SForgeSymbols, getSForgeState, setSForgeState } from "../../config/sforge";
+import { isDockTypeRegistryMap } from "./dock.guard";
 
 /**
  * 获取全局类型注册表（懒初始化）
  */
 function 获取类型注册表(): Map<string, TDockPosition> {
-    let registry = getSForgeState(SForgeSymbols.DOCK_TYPE_REGISTRY);
+    const registry = getSForgeState(SForgeSymbols.DOCK_TYPE_REGISTRY);
 
-    if (!registry) {
-        registry = new Map<string, TDockPosition>();
-        setSForgeState(SForgeSymbols.DOCK_TYPE_REGISTRY, registry);
+    // 使用类型守卫安全收窄类型
+    if (isDockTypeRegistryMap(registry)) {
+        return registry;
     }
 
-    return registry;
+    const newRegistry = new Map<string, TDockPosition>();
+    setSForgeState(SForgeSymbols.DOCK_TYPE_REGISTRY, newRegistry);
+    return newRegistry;
 }
 
 /**

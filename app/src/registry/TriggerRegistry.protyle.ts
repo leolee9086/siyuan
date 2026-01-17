@@ -85,18 +85,19 @@ export function 获取所有Protyle(): IProtyle[] {
 }
 
 /**
- * 查找当前包含选区的 Protyle 实例
+ * 查找当前包含选区的 Protyle 实例列表
  * 
  * 遍历所有注册的 Protyle，检查是否存在 .protyle-wysiwyg--select 元素
  * 
- * @returns 找到的 Protyle 实例，如果未找到则返回 null
+ * @returns 所有包含选区的 Protyle 实例数组
  */
-export function 查找有选区的Protyle(): IProtyle | null {
+export function 查找有选区的Protyle(): IProtyle[] {
+    const 结果: IProtyle[] = [];
     for (const protyle of protyleRegistry.values()) {
         if (protyle.element && protyle.element.querySelector(".protyle-wysiwyg--select")) {
-            return protyle;
+            结果.push(protyle);
         }
     }
-    return null;
+    return 结果;
 }
 

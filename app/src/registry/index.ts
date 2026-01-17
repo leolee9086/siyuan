@@ -40,8 +40,12 @@ export {
 } from "./TriggerRegistry";
 export type {
     ITriggerRegistration,
+    IBrushTriggerRegistration,
+    IImmediateTriggerRegistration,
+    IToggleTriggerRegistration,
     IBrushSession,
     IGlobalContext,
+    IBatchContext,
     触发模式,
     刷子状态
 } from "./TriggerRegistry.types";

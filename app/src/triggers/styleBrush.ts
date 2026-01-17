@@ -17,10 +17,10 @@ import {
     激活刷子,
     退出刷子,
     刷子是否激活
-} from "../../registry/TriggerRegistry";
-import type { IGlobalContext, IStyleBrushParameters } from "../../registry/TriggerRegistry.types";
+} from "../registry/TriggerRegistry";
+import type { IGlobalContext, IStyleBrushParameters, IBatchContext } from "../registry/TriggerRegistry.types";
 import { isStyleBrushParameters } from "./styleBrush.guard";
-import { 打开智能工具箱 } from "../../sforge/panel/smartToolboxPanelDialog";
+import { 打开智能工具箱 } from "../sforge/panel/smartToolboxPanelDialog";
 import {
     清理刷子类型名,
     样式刷子光标HTML,
@@ -168,15 +168,19 @@ export function 注册并激活自定义样式刷子(
     }
 ): boolean {
 
-    // 优先处理快捷批量操作
-    if (options?.originalEvent instanceof MouseEvent && (options.originalEvent.ctrlKey || options.originalEvent.metaKey)) {
-        if (options.protyle) {
-            console.log("[StyleBrush] 检测到 Ctrl+Click (自定义刷子)，执行直接批量应用");
-            void 批量应用样式到当前选区(options.protyle, sourceStyle);
-            return true;
-        }
+    // 判断是否是 Ctrl+Click 快捷操作
+    const isCtrlClick = options?.originalEvent instanceof MouseEvent && (options.originalEvent.ctrlKey || options.originalEvent.metaKey);
 
-        console.warn("[StyleBrush] Ctrl+Click 缺失 Protyle 上下文");
+    // 卫语句：Ctrl+Click 且有 protyle 上下文时执行直接批量应用
+    if (isCtrlClick && options?.protyle) {
+        console.log("[StyleBrush] 检测到 Ctrl+Click (自定义刷子)，执行直接批量应用");
+        void 批量应用样式到当前选区(options.protyle, sourceStyle);
+        return true;
+    }
+
+    // 卫语句：Ctrl+Click 但缺失 protyle，仅警告后继续正常流程
+    if (isCtrlClick) {
+        console.warn("[StyleBrush] Ctrl+Click 缺失 Protyle 上下文，将进入正常刷子模式");
     }
 
     const type = `style-brush-${sourceBlockId}`;
@@ -193,13 +197,11 @@ export function 注册并激活自定义样式刷子(
 
         // 自定义刷子始终可用
         /**
-         * @简洁函数
          * 用于判断是否匹配上下文，自定义刷子始终匹配
          */
         match: () => true,
 
         /**
-         * @简洁函数
          * 进入刷子模式
          */
         onEnter: () => {
@@ -209,16 +211,14 @@ export function 注册并激活自定义样式刷子(
         /**
          * 显式声明 Ctrl+Click 逻辑
          */
-        onCtrlClick: (context: IGlobalContext) => {
-            if (context.protyle) {
-                void 批量应用样式到当前选区(context.protyle, sourceStyle);
-            } else {
-                console.warn(`[StyleBrush] ${type} onCtrlClick 缺失 protyle`);
+        onCtrlClick: (context: IBatchContext) => {
+            // 遍历所有有选区的 Protyle 执行批量应用
+            for (const protyle of context.protyles) {
+                void 批量应用样式到当前选区(protyle, sourceStyle);
             }
         },
 
         /**
-         * @简洁函数
          * 执行样式应用：从 target 获取 ID 并应用保存的 sourceStyle
          */
         onApply: (target: Element, context: IGlobalContext, applyOptions: { isSecondary: boolean, originalEvent?: MouseEvent | KeyboardEvent }) => {
@@ -227,7 +227,6 @@ export function 注册并激活自定义样式刷子(
         },
 
         /**
-         * @简洁函数
          * 退出刷子
          */
         onExit: () => {

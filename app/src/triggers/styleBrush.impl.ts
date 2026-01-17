@@ -1,6 +1,6 @@
 
-import { IGlobalContext } from "../../registry/TriggerRegistry.types";
-import { fetchPost, fetchSyncPost } from "../../util/fetch";
+import { IGlobalContext } from "../registry/TriggerRegistry.types";
+import { fetchPost, fetchSyncPost } from "../util/fetch";
 
 // ============ 常量定义 ============
 
@@ -88,7 +88,7 @@ export async function 应用样式(targetId: string, style: string): Promise<boo
     }
 }
 
-import { 查找有选区的Protyle } from "../../registry/TriggerRegistry.protyle";
+import { 查找有选区的Protyle } from "../registry/TriggerRegistry.protyle";
 
 /**
  * 批量将样式应用到 Protyle 中的选中块
@@ -96,22 +96,26 @@ import { 查找有选区的Protyle } from "../../registry/TriggerRegistry.protyl
  * 作用：处理 Ctrl+Click 的批量应用逻辑
  * 意图：提取为独立函数以便重用
  * 
- * @param protyle Protyle 实例 (可选)
+ * @param protyle Protyle 实例 (可选，未传入时遍历所有有选区的 Protyle)
  * @param sourceStyle 源样式
  */
 export async function 批量应用样式到当前选区(protyle: IProtyle | undefined, sourceStyle: string): Promise<void> {
-    // 尝试获取目标 Protyle：传入的 > 查找有选区的
-    const targetProtyle = protyle || 查找有选区的Protyle();
+    // 确定要处理的 Protyle 列表
+    const protyles: IProtyle[] = protyle ? [protyle] : 查找有选区的Protyle();
 
-    if (!targetProtyle || !targetProtyle.element) {
+    if (protyles.length === 0) {
         return;
     }
-    const selectElements = targetProtyle.element.querySelectorAll(".protyle-wysiwyg--select");
-    if (selectElements.length > 0) {
+
+    for (const targetProtyle of protyles) {
+        if (!targetProtyle.element) {
+            continue;
+        }
+
+        const selectElements = targetProtyle.element.querySelectorAll(".protyle-wysiwyg--select");
         for (const el of selectElements) {
             const id = el.getAttribute("data-node-id");
             if (id) {
-                // eslint-disable-next-line no-await-in-loop
                 await 应用样式(id, sourceStyle);
             }
         }
