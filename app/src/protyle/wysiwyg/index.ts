@@ -140,7 +140,7 @@ export class WYSIWYG {
     }
 
     public renderCustom(ial: IObject) {
-        renderCustomWithCtx({ ial, wysiwyg: this })
+        renderCustomWithCtx({ ial, wysiwyg: this });
     }
 
 

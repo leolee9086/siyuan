@@ -298,7 +298,7 @@ export class Forwardlink extends Model {
             blocks.forEach((block: any) => {
                 const icon = getIconByType(block.type, block.subType);
                 // CustomLists 使用 mapBlockToTreeData 处理
-                html += `<li data-node-id="${block.id}" data-type="${block.type}" data-subtype="${block.subType || ''}" class="b3-list-item b3-list-item--hide-action">
+                html += `<li data-node-id="${block.id}" data-type="${block.type}" data-subtype="${block.subType || ""}" class="b3-list-item b3-list-item--hide-action">
                     <span class="b3-list-item__toggle"><svg class="b3-list-item__arrow"><use xlink:href="#iconRight"></use></svg></span>
                     <svg class="b3-list-item__graphic"><use xlink:href="#${icon}"></use></svg>
                     <span class="b3-list-item__text">${block.content || "无内容"}</span>
