@@ -16,28 +16,15 @@ import { setPanelFocus } from "../../utils/setPanelFocus";
 import { getDockByType } from "../../tabUtil";
 import { fetchPost } from "../../../util/fetch";
 import { Constants } from "../../../constants";
-import { updateHotkeyAfterTip } from "../../../protyle/util/compatibility";
 import { openFileById } from "../../../editor/utils.openFileById";
 import { Protyle } from "../../../protyle";
-import { MenuItem } from "../../../menus/Menu.Item";
 import { App } from "../../../index";
 import { getIconByType } from "../../../editor/getIcon";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { forgeI18n } from "../../../util/siyuanEnvironments/forgeI18n.getI18n.environment";
-
-/**
- * 正向链接树节点数据
- */
-interface IForwardlinkTreeNode {
-    id: string;
-    name: string;
-    type: string;
-    subType?: string;
-    box: string;
-    hPath: string;
-    count: number;
-    children?: IForwardlinkTreeNode[];
-}
+import { IForwardlinkTreeNode, IForwardlinkStatus } from "./Forwardlink.types";
+import { genForwardlinkHTML } from "./Forwardlink.html";
+import { showSortMenu } from "./Forwardlink.menu";
+import { searchForwardLinks, fetchBlocks } from "./Forwardlink.data";
 
 /**
  * 正向链接 Dock 组件
@@ -51,13 +38,7 @@ export class Forwardlink extends Model {
     public tree: Tree;
     private notebookId: string;
     public editors: Protyle[] = [];
-    public status: {
-        [key: string]: {
-            sort: number,
-            scrollTop: number,
-            forwardlinkOpenIds: string[],
-        }
-    } = {};
+    public status: IForwardlinkStatus = {};
 
     constructor(options: {
         app: App,
@@ -107,31 +88,7 @@ export class Forwardlink extends Model {
         this.element.classList.add("fn__flex-column", "file-tree", "sy__forwardlink");
 
         const defaultSort = "0"; // 默认按文件名升序
-        this.element.innerHTML = `<div class="block__icons">
-    <div class="block__logo">
-        <svg class="block__logoicon"><use xlink:href="#iconLink"></use></svg>${forgeI18n.正向链接 || "正向链接"}
-    </div>
-    <span class="counter listCount" style="margin-left: 0"></span>
-    <span class="fn__flex-1"></span>
-    <span class="fn__space"></span>
-    <input class="b3-text-field search__label fn__none fn__size200" placeholder="${siyuanI18n.filterKeywordEnter}" />
-    <span data-type="search" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.filter}"><svg><use xlink:href='#iconFilter'></use></svg></span>
-    <span class="fn__space"></span>
-    <span data-type="refresh" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.refresh}"><svg><use xlink:href='#iconRefresh'></use></svg></span>
-    <span class="fn__space"></span>
-    <span data-type="sort" data-sort="${defaultSort}" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.sort}"><svg><use xlink:href='#iconSort'></use></svg></span>
-    <span class="fn__space"></span>
-    <span data-type="expand" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.expand}${updateHotkeyAfterTip(window.siyuan.config.keymap.editor.general.expand.custom)}">
-        <svg><use xlink:href="#iconExpand"></use></svg>
-    </span>
-    <span class="fn__space"></span>
-    <span data-type="collapse" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.collapse}${updateHotkeyAfterTip(window.siyuan.config.keymap.editor.general.collapse.custom)}">
-        <svg><use xlink:href="#iconContract"></use></svg>
-    </span>
-    <span class="${this.type === "local" ? "fn__none " : ""}fn__space"></span>
-    <span data-type="min" class="${this.type === "local" ? "fn__none " : ""}block__icon b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.min}${updateHotkeyAfterTip(window.siyuan.config.keymap.general.closeTab.custom)}"><svg><use xlink:href='#iconMin'></use></svg></span>
-</div>
-<div class="forwardlinkList fn__flex-1"></div>`;
+        this.element.innerHTML = genForwardlinkHTML(this.type, defaultSort);
 
         this.inputsElement = this.element.querySelectorAll("input");
         this.inputsElement.forEach((item) => {
@@ -245,8 +202,11 @@ export class Forwardlink extends Model {
                             (target.previousElementSibling as HTMLInputElement).select();
                             break;
                         case "sort":
-                            this.显示排序菜单(target.getAttribute("data-sort") || "0");
-                            window.siyuan.menus.menu.popup({ x: event.clientX, y: event.clientY });
+                            {
+                                const sort = target.getAttribute("data-sort") || "0";
+                                showSortMenu(sort, this.tree.element, () => this.搜索正向链接());
+                                window.siyuan.menus.menu.popup({ x: event.clientX, y: event.clientY });
+                            }
                             event.stopPropagation();
                             break;
                     }
@@ -264,77 +224,6 @@ export class Forwardlink extends Model {
         } else {
             setPanelFocus(this.element);
         }
-    }
-
-    /**
-     * 显示排序菜单
-     */
-    private 显示排序菜单(sort: string) {
-        const clickEvent = (currentSort: string) => {
-            const sortElement = this.tree.element.previousElementSibling?.querySelector('[data-type="sort"]');
-            if (sortElement) {
-                sortElement.setAttribute("data-sort", currentSort);
-            }
-            this.搜索正向链接();
-        };
-        window.siyuan.menus.menu.remove();
-        window.siyuan.menus.menu.append(new MenuItem({
-            icon: sort === "0" ? "iconSelect" : undefined,
-            label: siyuanI18n.fileNameASC,
-            click: () => {
-                clickEvent("0");
-            }
-        }).element);
-        window.siyuan.menus.menu.append(new MenuItem({
-            icon: sort === "1" ? "iconSelect" : undefined,
-            label: siyuanI18n.fileNameDESC,
-            click: () => {
-                clickEvent("1");
-            }
-        }).element);
-        window.siyuan.menus.menu.append(new MenuItem({
-            icon: sort === "4" ? "iconSelect" : undefined,
-            label: siyuanI18n.fileNameNatASC,
-            click: () => {
-                clickEvent("4");
-            }
-        }).element);
-        window.siyuan.menus.menu.append(new MenuItem({
-            icon: sort === "5" ? "iconSelect" : undefined,
-            label: siyuanI18n.fileNameNatDESC,
-            click: () => {
-                clickEvent("5");
-            }
-        }).element);
-        window.siyuan.menus.menu.append(new MenuItem({ type: "separator" }).element);
-        window.siyuan.menus.menu.append(new MenuItem({
-            icon: sort === "9" ? "iconSelect" : undefined,
-            label: siyuanI18n.createdASC,
-            click: () => {
-                clickEvent("9");
-            }
-        }).element);
-        window.siyuan.menus.menu.append(new MenuItem({
-            icon: sort === "10" ? "iconSelect" : undefined,
-            label: siyuanI18n.createdDESC,
-            click: () => {
-                clickEvent("10");
-            }
-        }).element);
-        window.siyuan.menus.menu.append(new MenuItem({
-            icon: sort === "2" ? "iconSelect" : undefined,
-            label: siyuanI18n.modifiedASC,
-            click: () => {
-                clickEvent("2");
-            }
-        }).element);
-        window.siyuan.menus.menu.append(new MenuItem({
-            icon: sort === "3" ? "iconSelect" : undefined,
-            label: siyuanI18n.modifiedDESC,
-            click: () => {
-                clickEvent("3");
-            }
-        }).element);
     }
 
     /**
@@ -393,23 +282,8 @@ export class Forwardlink extends Model {
     }
 
     private fetchAndRenderBlocks(liElement: HTMLElement, docId: string) {
-        const sql = `
-            SELECT 
-                b.id,
-                b.content,
-                b.type,
-                b.subType,
-                b.box
-            FROM refs AS r
-            INNER JOIN blocks AS b ON b.id = r.def_block_id
-            WHERE r.root_id = '${this.rootId}' 
-            AND r.def_block_root_id = '${docId}'
-            ORDER BY b.updated DESC
-            LIMIT 64
-        `;
-
-        fetchPost("/api/query/sql", { stmt: sql }, (response) => {
-            if (!response.data || response.data.length === 0) {
+        fetchBlocks(this.rootId, docId, (blocks) => {
+            if (blocks.length === 0) {
                 return;
             }
 
@@ -421,7 +295,7 @@ export class Forwardlink extends Model {
             ul.className = "b3-list b3-list--background";
 
             let html = "";
-            response.data.forEach((block: any) => {
+            blocks.forEach((block: any) => {
                 const icon = getIconByType(block.type, block.subType);
                 // CustomLists 使用 mapBlockToTreeData 处理
                 html += `<li data-node-id="${block.id}" data-type="${block.type}" data-subtype="${block.subType || ''}" class="b3-list-item b3-list-item--hide-action">
@@ -496,71 +370,11 @@ export class Forwardlink extends Model {
         const keyword = this.inputsElement[0]?.value || "";
         const sortAttr = this.tree.element.previousElementSibling?.querySelector('[data-type="sort"]')?.getAttribute("data-sort") || "0";
 
-        // 构建排序条件
-        let orderBy = "b.hPath ASC";
-        switch (sortAttr) {
-            case "0": orderBy = "b.hPath ASC"; break;
-            case "1": orderBy = "b.hPath DESC"; break;
-            case "2": orderBy = "b.updated ASC"; break;
-            case "3": orderBy = "b.updated DESC"; break;
-            case "4": orderBy = "b.hPath ASC"; break; // 自然排序前端处理
-            case "5": orderBy = "b.hPath DESC"; break;
-            case "9": orderBy = "b.created ASC"; break;
-            case "10": orderBy = "b.created DESC"; break;
-        }
-
-        // 关键词过滤条件
-        const keywordCondition = keyword
-            ? `AND (b.content LIKE '%${keyword.replace(/'/g, "''")}%' OR b.hPath LIKE '%${keyword.replace(/'/g, "''")}%')`
-            : "";
-
-        // SQL 查询：获取当前文档引用的所有目标文档
-        const sql = `
-            SELECT DISTINCT 
-                r.def_block_root_id as id,
-                b.content as name,
-                b.type,
-                b.box,
-                b.hPath,
-                b.ial,
-                COUNT(*) as refCount
-            FROM refs AS r
-            INNER JOIN blocks AS b ON b.id = r.def_block_root_id
-            WHERE r.root_id = '${this.rootId}'
-            ${keywordCondition}
-            GROUP BY r.def_block_root_id
-            ORDER BY ${orderBy}
-            LIMIT 512
-        `;
-
-        fetchPost("/api/query/sql", { stmt: sql }, response => {
+        searchForwardLinks(this.rootId, keyword, sortAttr, (data) => {
             if (!init) {
                 this.保存状态();
             }
-            const data = response.data || [];
-            this.渲染数据({
-                forwardlinks: data.map((item: any) => {
-                    const ial: { [key: string]: string } = {};
-                    if (item.ial) {
-                        item.ial.replace(/\\"/g, '"').replace(/\\\\/g, "\\").replace(Constants.IAL_REGEX, (m: string, k: string, v: string) => {
-                            ial[k] = v;
-                            return m;
-                        });
-                    }
-                    const nodeType = "NodeDocument";
-                    return {
-                        id: item.id,
-                        name: item.name || item.hPath || "无标题",
-                        type: nodeType,
-                        box: item.box,
-                        hPath: item.hPath,
-                        count: item.refCount || 1,
-                        ial,
-                        icon: getIconByType(nodeType)
-                    };
-                }),
-                count: data.length
-            });
+            this.渲染数据(data);
         });
     }
 
