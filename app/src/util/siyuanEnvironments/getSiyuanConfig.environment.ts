@@ -323,3 +323,17 @@ export const setSiyuanUILayout = (layout: Config.IUiLayout) => {
 export const getSiyuanWebSocket = () => {
     return window.siyuan?.ws;
 };
+
+/**
+ * 获取编辑器的通用快捷键配置
+ * @returns 编辑器通用快捷键配置对象，可能为 undefined
+ * 
+ * @example
+ * const generalKeymap = getSiyuanEditorGeneralKeymap();
+ * if (generalKeymap && matchHotKey(generalKeymap.undo.custom, event)) {
+ *     // 处理撤销快捷键
+ * }
+ */
+export const getSiyuanEditorGeneralKeymap = () => {
+    return window.siyuan?.config?.keymap?.editor?.general;
+};
