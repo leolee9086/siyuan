@@ -4,20 +4,36 @@ import { IForwardlinkTreeNode } from "./Forwardlink.types";
 
 const IAL_REGEX = /\s([\w-]+)="([^"]*)"/g;
 
-const buildOrderBy = (sortAttr: string) => {
-    switch (sortAttr) {
-        case "1": return "b.hPath DESC";
-        case "2": return "b.updated ASC";
-        case "3": return "b.updated DESC";
-        case "4": return "b.hPath ASC"; // 自然排序前端处理
-        case "5": return "b.hPath DESC";
-        case "9": return "b.created ASC";
-        case "10": return "b.created DESC";
-        case "0":
-        default: return "b.hPath ASC";
-    }
+const SORT_ORDER_MAP: Record<string, string> = {
+    "1": "b.hPath DESC",
+    "2": "b.updated ASC",
+    "3": "b.updated DESC",
+    "4": "b.hPath ASC", // 自然排序前端处理
+    "5": "b.hPath DESC",
+    "9": "b.created ASC",
+    "10": "b.created DESC",
+    "0": "b.hPath ASC",
 };
 
+/**
+ * 构建 SQL 排序子句
+ *
+ * - 作用：根据传入的排序属性构建 SQL 查询的 ORDER BY 子句
+ * - 意图：将前端的排序选项映射到数据库字段
+ * - 调用时机：在构建反向链接查询 SQL 时调用
+ * - 改进：自然排序目前依赖前端处理，未来可能考虑数据库层支持
+ */
+const buildOrderBy = (sortAttr: string) => {
+    return SORT_ORDER_MAP[sortAttr] || "b.hPath ASC";
+};
+
+/**
+ * 构建 SQL 关键字过滤条件
+ *
+ * - 作用：根据关键字构建 SQL 的 WHERE 子句部分
+ * - 意图：支持对内容和路径的模糊搜索
+ * - 调用时机：在构建反向链接查询 SQL 时调用
+ */
 const buildKeywordCondition = (keyword: string) => {
     if (!keyword) {
         return "";
@@ -26,6 +42,13 @@ const buildKeywordCondition = (keyword: string) => {
     return `AND (b.content LIKE '%${k}%' OR b.hPath LIKE '%${k}%')`;
 };
 
+/**
+ * 解析 IAL 字符串
+ *
+ * - 作用：将 IAL 字符串解析为键值对对象
+ * - 意图：方便获取和操作 IAL 属性
+ * - 调用时机：在处理 SQL 查询结果时，将原始 IAL 字符串转为对象
+ */
 const parseIal = (ialString: string) => {
     const ial: { [key: string]: string } = {};
     if (ialString) {
@@ -39,7 +62,7 @@ const parseIal = (ialString: string) => {
 
 interface ISqlResultItem {
     id: string;
-    // eslint-disable-next-line camelcase
+
     name: string;
     type: string;
     box: string;
@@ -48,6 +71,13 @@ interface ISqlResultItem {
     refCount: number;
 }
 
+/**
+ * 构建反向链接查询 SQL
+ *
+ * - 作用：组装完整的 SQL 查询语句以获取反向链接
+ * - 意图：集中管理 SQL 逻辑，提高可维护性
+ * - 调用时机：在 searchForwardLinks 函数中调用
+ */
 const buildForwardLinksSql = (rootId: string, keywordCondition: string, orderBy: string) => {
     return `
         SELECT DISTINCT 
@@ -68,6 +98,13 @@ const buildForwardLinksSql = (rootId: string, keywordCondition: string, orderBy:
     `;
 };
 
+/**
+ * 搜索反向链接
+ *
+ * - 作用：执行 SQL 查询以获取指定文档的反向链接
+ * - 意图：作为反向链接面板的主要数据获取接口
+ * - 调用时机：反向链接面板加载或刷新时调用
+ */
 export const searchForwardLinks = (
     rootId: string,
     keyword: string,
@@ -114,6 +151,13 @@ interface IBlockResult {
     box: string;
 }
 
+/**
+ * 获取引用块详情
+ *
+ * - 作用：查询特定文档中引用了当前文档的具体块
+ * - 意图：用于展示反向链接的上下文详情
+ * - 调用时机：当用户在 UI 中展开某个反向链接文档节点时调用
+ */
 export const fetchBlocks = (
     rootId: string,
     docId: string,
