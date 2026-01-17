@@ -21,7 +21,7 @@
                 <!-- 工具列表项 -->
                 <div v-show="展开状态[group.category]" class="smart-toolbox-panel__group-items">
                     <ToolItem v-for="trigger in group.triggers" :key="trigger.type" :trigger="trigger"
-                        @click="执行工具(trigger)" />
+                        @click="(e) => 执行工具(trigger, e)" />
                 </div>
             </template>
 
@@ -109,14 +109,52 @@ const 切换分组展开状态 = (category: string): void => {
  * @作用: 根据触发模式执行对应的工具逻辑（不关闭面板）
  * @调用时机: 用户点击工具项时
  */
-const 执行工具 = (trigger: ITriggerRegistration): void => {
-    // 刷子模式：激活刷子
+/**
+ * @function 执行工具
+ * @作用: 根据触发模式执行对应的工具逻辑（不关闭面板）
+ * @调用时机: 用户点击工具项时
+ */
+// 引入 Protyle 查找工具
+import { 查找有选区的Protyle } from "../../registry/TriggerRegistry";
+
+/**
+ * @function 执行工具
+ * @作用: 根据触发模式执行对应的工具逻辑（不关闭面板）
+ * @调用时机: 用户点击工具项时
+ */
+const 执行工具 = (trigger: ITriggerRegistration, event: MouseEvent): void => {
+    // 1. 优先处理 Ctrl+Click (替代交互)
+    if (event.ctrlKey || event.metaKey) {
+        if (trigger.onCtrlClick) {
+            // 显式查找当前激活的 Protyle
+            const activeProtyle = 查找有选区的Protyle();
+            if (!activeProtyle) {
+                console.warn("[SmartToolboxPanel] 无法执行 Ctrl+Click，未找到活跃的 Protyle");
+                return;
+            }
+
+            // 构造上下文并执行
+            // 注意：这里我们只填充了 protyle，其他字段对于批量应用可能不重要，或者后续需要补全
+            const context: any = {
+                protyle: activeProtyle,
+                // 其他字段留空或按需补充
+                目标块: null,
+                选区: null
+            };
+
+            console.log(`[SmartToolboxPanel] 执行 ${trigger.type} 的 Ctrl+Click 逻辑`);
+            trigger.onCtrlClick(context);
+            return;
+        }
+    }
+
+    // 2. 刷子模式：激活刷子
     if (trigger.mode === "brush") {
-        激活刷子(trigger.type, {});
+        激活刷子(trigger.type, {}, { originalEvent: event });
         return;
     }
 
-    // immediate 和 toggle 模式：通过事件通知外部处理
+    // 3. immediate 和 toggle 模式：通过事件通知外部处理
     emit("execute", trigger);
 };
 

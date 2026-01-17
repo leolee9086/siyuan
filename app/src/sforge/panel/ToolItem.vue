@@ -37,7 +37,7 @@ const props = defineProps<{
 
 // Emits
 const emit = defineEmits<{
-    (e: "click"): void;
+    (e: "click", event: MouseEvent): void;
 }>();
 
 // 计算属性
@@ -45,7 +45,7 @@ const 显示名称 = computed(() => 获取显示名称(props.trigger.type));
 const 图标链接 = computed(() => 获取图标链接(props.trigger.type));
 
 /** @简洁函数 转发点击事件 */
-const handleClick = (): void => {
-    emit("click");
+const handleClick = (e: MouseEvent): void => {
+    emit("click", e);
 };
 </script>

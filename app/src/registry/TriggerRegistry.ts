@@ -211,7 +211,14 @@ export function 获取激活刷子类型(): string | null {
  * @param params 传入参数
  * @returns 是否激活成功
  */
-export function 激活刷子(type: string, params: unknown): boolean {
+export function 激活刷子(
+    type: string,
+    params: unknown,
+    options?: {
+        originalEvent?: MouseEvent | KeyboardEvent;
+        protyle?: IProtyle;
+    }
+): boolean {
     // 检查是否已有刷子激活
     if (刷子是否激活()) {
         console.warn("[TriggerRegistry] 已有刷子激活中，请先退出当前刷子");
@@ -256,7 +263,7 @@ export function 激活刷子(type: string, params: unknown): boolean {
     隐藏系统光标();
 
     // 调用 onEnter
-    registration.onEnter?.(params);
+    registration.onEnter?.(params, options);
 
     console.log(`[TriggerRegistry] 刷子已激活: ${type}`);
     return true;
@@ -386,7 +393,9 @@ export const triggerRegistry = {
     matchTriggers: 匹配触发器,
 };
 
+
 // ============ 重新导出光标管理函数 ============
 
 export { 设置刷子光标 };
+export { 查找有选区的Protyle } from "./TriggerRegistry.protyle";
 

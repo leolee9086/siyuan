@@ -77,3 +77,26 @@ function 尝试获取节点Protyle(node: Node): IProtyle | undefined {
     return undefined;
 }
 
+/**
+ * 获取所有已注册的 Protyle 实例
+ */
+export function 获取所有Protyle(): IProtyle[] {
+    return Array.from(protyleRegistry.values());
+}
+
+/**
+ * 查找当前包含选区的 Protyle 实例
+ * 
+ * 遍历所有注册的 Protyle，检查是否存在 .protyle-wysiwyg--select 元素
+ * 
+ * @returns 找到的 Protyle 实例，如果未找到则返回 null
+ */
+export function 查找有选区的Protyle(): IProtyle | null {
+    for (const protyle of protyleRegistry.values()) {
+        if (protyle.element && protyle.element.querySelector(".protyle-wysiwyg--select")) {
+            return protyle;
+        }
+    }
+    return null;
+}
+

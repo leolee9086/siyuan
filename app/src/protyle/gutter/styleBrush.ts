@@ -16,8 +16,7 @@ import {
     注册触发器,
     激活刷子,
     退出刷子,
-    刷子是否激活,
-    获取激活刷子类型
+    刷子是否激活
 } from "../../registry/TriggerRegistry";
 import type { IGlobalContext, IStyleBrushParameters } from "../../registry/TriggerRegistry.types";
 import { isStyleBrushParameters } from "./styleBrush.guard";
@@ -25,6 +24,8 @@ import { 打开智能工具箱 } from "../../sforge/panel/smartToolboxPanelDialo
 import {
     清理刷子类型名,
     样式刷子光标HTML,
+    通用样式应用逻辑,
+    批量应用样式到当前选区,
     提取DOM样式,
     提取块样式,
     应用样式
@@ -32,7 +33,7 @@ import {
 
 // ============ 常量定义 ============
 
-export { 清理刷子类型名 as 样式刷子类型, 提取DOM样式, 提取块样式, 应用样式 } from "./styleBrush.impl";
+export { 清理刷子类型名, 提取DOM样式, 提取块样式, 应用样式 };
 
 // ============ 触发器注册 ============
 
@@ -83,41 +84,10 @@ export function 注册样式刷子(): void {
          * 意图：将暂存的源样式应用到用户点击的目标块上
          * 调用时机：在刷子模式激活期间，用户点击编辑器内的块时
          */
-        onApply: (target: Element, _context: IGlobalContext, isSecondary: boolean) => {
-            if (isSecondary) {
-                退出刷子();
-                return;
-            }
-
-            // 1. 获取目标块 ID
-            const targetBlock = target.closest("[data-node-id]");
-            if (!targetBlock) {
-                return;
-            }
-
-            const targetId = targetBlock.getAttribute("data-node-id");
-            if (!targetId) {
-                return;
-            }
-
-            // 2. 检查是否为链接/块引用 (点击此类元素应退出刷子)
-            const linkElement = target.closest("[data-type=\"a\"], [data-type=\"block-ref\"]");
-
-            // 3. 获取样式参数（这里是清理刷子，通常可能需要从上下文或参数获取，但 registered trigger 没法直接访问本次激活 params，除非 onApply context 包含 params?）
-            // 实际上 TriggerRegistry 的 onApply 还没有把 params 传进来。
-            // 但对于 "清理样式" 这种固定刷子，样式的确应该为空。
-            // 如果是通用样式刷子，params 会存在 Session 中。
-            // 目前 TriggerRegistry 实现中，onApply 没有 params 参数。
-            // 我们暂时假设这就是清理动作，或者后续 TriggerRegistry 会增强 context。
-            // 鉴于 注册样式刷子 用于 "清理样式"，我们固定使用空样式。
-            const sourceStyle = "";
-
-            // 3. 应用样式
-            应用样式(targetId, sourceStyle);
-
-            if (linkElement) {
-                退出刷子();
-            }
+        onApply: (target: Element, context: IGlobalContext, options: { isSecondary: boolean, originalEvent?: MouseEvent | KeyboardEvent }) => {
+            const sourceStyle = ""; // 清理模式
+            // 异步调用无需等待，保持 onApply 返回 void
+            void 通用样式应用逻辑(target, context, sourceStyle, options, 退出刷子);
         },
 
         /**
@@ -142,12 +112,27 @@ export function 注册样式刷子(): void {
  * 
  * @param sourceStyle 源块的样式字符串
  * @param sourceBlockId 源块 ID (可选，用于调试)
- * @returns 是否激活成功
+ * @param options 可选交互选项(protyle, event)
+ * @returns 是否激活成功或执行完成
  */
-export function 激活样式刷子(sourceStyle: string, sourceBlockId?: string): boolean {
+export function 激活样式刷子(
+    sourceStyle: string,
+    sourceBlockId?: string,
+    options?: {
+        protyle: IProtyle;
+        originalEvent: MouseEvent | KeyboardEvent;
+    }
+): boolean {
     if (!sourceStyle) {
         console.warn("[StyleBrush] 源样式为空，无法激活");
         return false;
+    }
+
+    // 支持入口处的 Ctrl+Click 批量应用，不进入刷子模式
+    if (options?.originalEvent instanceof MouseEvent && (options.originalEvent.ctrlKey || options.originalEvent.metaKey)) {
+        console.log("[StyleBrush] 检测到 Ctrl+Click，执行直接批量应用，不进入刷子模式");
+        void 批量应用样式到当前选区(options?.protyle, sourceStyle);
+        return true;
     }
 
     const params: IStyleBrushParameters = {
@@ -167,13 +152,33 @@ export function 激活样式刷子(sourceStyle: string, sourceBlockId?: string):
 /**
  * 注册并激活自定义样式刷子
  * 
- * 作用：动态注册一个新的刷子触发器并立即激活
+ * 作用：动态注册一个新的刷子触发器并激活（或直接执行批量操作）
  * 意图：实现"点击即创建"的刷子生成逻辑
  * 
  * @param sourceStyle 源样式
  * @param sourceBlockId 源块 ID
+ * @param options 可选交互选项(protyle, event)
  */
-export function 注册并激活自定义样式刷子(sourceStyle: string, sourceBlockId: string): boolean {
+export function 注册并激活自定义样式刷子(
+    sourceStyle: string,
+    sourceBlockId: string,
+    options?: {
+        protyle: IProtyle;
+        originalEvent: MouseEvent | KeyboardEvent;
+    }
+): boolean {
+
+    // 优先处理快捷批量操作
+    if (options?.originalEvent instanceof MouseEvent && (options.originalEvent.ctrlKey || options.originalEvent.metaKey)) {
+        if (options.protyle) {
+            console.log("[StyleBrush] 检测到 Ctrl+Click (自定义刷子)，执行直接批量应用");
+            void 批量应用样式到当前选区(options.protyle, sourceStyle);
+            return true;
+        }
+
+        console.warn("[StyleBrush] Ctrl+Click 缺失 Protyle 上下文");
+    }
+
     const type = `style-brush-${sourceBlockId}`;
 
     // 动态注册触发器
@@ -202,36 +207,23 @@ export function 注册并激活自定义样式刷子(sourceStyle: string, source
         },
 
         /**
+         * 显式声明 Ctrl+Click 逻辑
+         */
+        onCtrlClick: (context: IGlobalContext) => {
+            if (context.protyle) {
+                void 批量应用样式到当前选区(context.protyle, sourceStyle);
+            } else {
+                console.warn(`[StyleBrush] ${type} onCtrlClick 缺失 protyle`);
+            }
+        },
+
+        /**
          * @简洁函数
          * 执行样式应用：从 target 获取 ID 并应用保存的 sourceStyle
          */
-        onApply: (target: Element, _context: IGlobalContext, isSecondary: boolean) => {
-            if (isSecondary) {
-                退出刷子();
-                return;
-            }
-
-            // 1. 获取目标块 ID
-            const targetBlock = target.closest("[data-node-id]");
-            if (!targetBlock) {
-                return;
-            }
-
-            const targetId = targetBlock.getAttribute("data-node-id");
-            if (!targetId) {
-                return;
-            }
-
-            // 2. 检查是否为链接/块引用 (点击此类元素应退出刷子)
-            const linkElement = target.closest("[data-type=\"a\"], [data-type=\"block-ref\"]");
-
-            // 3. 应用样式
-            应用样式(targetId, sourceStyle);
-
-            // 4. 如果是链接，或者应用失败?
-            if (linkElement) {
-                退出刷子();
-            }
+        onApply: (target: Element, context: IGlobalContext, applyOptions: { isSecondary: boolean, originalEvent?: MouseEvent | KeyboardEvent }) => {
+            // 异步调用无需等待
+            void 通用样式应用逻辑(target, context, sourceStyle, applyOptions, 退出刷子);
         },
 
         /**

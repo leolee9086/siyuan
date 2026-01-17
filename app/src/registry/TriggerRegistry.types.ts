@@ -116,18 +116,25 @@ export interface ITriggerRegistration {
      * 执行逻辑
      * @param target 目标元素
      * @param context 全局上下文
-     * @param isSecondary 是否为次要动作（通常对应右键点击）
+     * @param options 交互选项（包含是否次要动作及原始事件）
      */
-    onApply: (target: Element, context: IGlobalContext, isSecondary: boolean) => void;
+    onApply: (target: Element, context: IGlobalContext, options: { isSecondary: boolean, originalEvent?: MouseEvent | KeyboardEvent }) => void;
 
     /** 鼠标移动时的回调（用于刷子模式预览） */
     onMove?: (target: Element, context: IGlobalContext) => void;
 
     /** 进入触发器时的回调 */
-    onEnter?: (params: unknown) => void;
+    onEnter?: (params: unknown, options?: { originalEvent?: MouseEvent | KeyboardEvent }) => void;
 
     /** 退出触发器时的回调 */
     onExit?: () => void;
+
+    /** 
+     * Ctrl+点击时的回调 (替代交互)
+     * 用于处理工具箱面板上的 Ctrl+Click，通常用于批量应用或进入设置
+     * 显式声明此处理器，避免与 mode 逻辑混杂
+     */
+    onCtrlClick?: (context: IGlobalContext) => void;
 }
 
 /**

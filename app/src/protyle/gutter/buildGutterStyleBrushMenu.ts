@@ -35,11 +35,14 @@ export function 创建格式刷菜单项(ctx: IGutterCommonMenuContext): IMenu |
          * 意图：异步获取块的精确样式并激活刷子模式
          * 调用时机：用户点击格式刷菜单项时
          */
-        click: async () => {
+        click: async (_element: HTMLElement, event: MouseEvent) => {
             const finalStyle = await 提取块样式(ctx.nodeElement);
             if (finalStyle) {
                 // 使用新函数：注册一个专属刷子并激活
-                注册并激活自定义样式刷子(finalStyle, ctx.id);
+                注册并激活自定义样式刷子(finalStyle, ctx.id, {
+                    protyle: ctx.protyle,
+                    originalEvent: event
+                });
             }
         }
     };
@@ -57,7 +60,3 @@ export function 添加格式刷菜单(ctx: IGutterCommonMenuContext, menuItems: 
         menuItems.push(menuItem);
     }
 }
-
-// 英文别名
-export const createStyleBrushMenuItem = 创建格式刷菜单项;
-export const addStyleBrushMenu = 添加格式刷菜单;

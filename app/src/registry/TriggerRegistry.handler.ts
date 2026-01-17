@@ -36,7 +36,7 @@ export function 创建应用处理器(registration: ITriggerRegistration, type: 
         };
 
         try {
-            registration.onApply(target, 简易Context, false);
+            registration.onApply(target, 简易Context, { isSecondary: false, originalEvent: e });
         } catch (err) {
             console.error(`[TriggerRegistry] 触发器 ${type} onApply 执行失败:`, err);
         }

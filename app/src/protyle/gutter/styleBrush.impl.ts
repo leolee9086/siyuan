@@ -1,12 +1,5 @@
-/**
- * styleBrush.impl.ts - 样式刷子核心实现
- * 
- * 包含样式提取和应用的业务逻辑。
- * 光标管理和通用事件（Esc/右键退出）现由 TriggerRegistry.cursor 统一处理。
- * 
- * @module protyle/gutter/styleBrush.impl
- */
 
+import { IGlobalContext } from "../../registry/TriggerRegistry.types";
 import { fetchPost, fetchSyncPost } from "../../util/fetch";
 
 // ============ 常量定义 ============
@@ -95,4 +88,88 @@ export async function 应用样式(targetId: string, style: string): Promise<boo
     }
 }
 
+import { 查找有选区的Protyle } from "../../registry/TriggerRegistry.protyle";
 
+/**
+ * 批量将样式应用到 Protyle 中的选中块
+ * 
+ * 作用：处理 Ctrl+Click 的批量应用逻辑
+ * 意图：提取为独立函数以便重用
+ * 
+ * @param protyle Protyle 实例 (可选)
+ * @param sourceStyle 源样式
+ */
+export async function 批量应用样式到当前选区(protyle: IProtyle | undefined, sourceStyle: string): Promise<void> {
+    // 尝试获取目标 Protyle：传入的 > 查找有选区的
+    const targetProtyle = protyle || 查找有选区的Protyle();
+
+    if (!targetProtyle || !targetProtyle.element) {
+        return;
+    }
+    const selectElements = targetProtyle.element.querySelectorAll(".protyle-wysiwyg--select");
+    if (selectElements.length > 0) {
+        for (const el of selectElements) {
+            const id = el.getAttribute("data-node-id");
+            if (id) {
+                // eslint-disable-next-line no-await-in-loop
+                await 应用样式(id, sourceStyle);
+            }
+        }
+    }
+}
+
+/**
+ * 通用样式应用逻辑
+ * 
+ * 作用：处理刷子的点击应用逻辑，包括单点应用和批量应用
+ * 意图：将复杂的应用逻辑从注册回调中抽象出来，便于复用和测试
+ * 
+ * @param target 点击的目标元素
+ * @param context 全局上下文
+ * @param sourceStyle 源样式
+ * @param options 交互选项
+ * @param exitBrushFn 退出刷子的回调函数
+ */
+export async function 通用样式应用逻辑(
+    target: Element,
+    context: IGlobalContext,
+    sourceStyle: string,
+    options: { isSecondary: boolean; originalEvent?: MouseEvent | KeyboardEvent },
+    exitBrushFn: () => void
+): Promise<void> {
+    const { isSecondary, originalEvent } = options;
+
+    if (isSecondary) {
+        exitBrushFn();
+        return;
+    }
+
+    // 批量应用逻辑 (Ctrl+Click)
+    if (originalEvent instanceof MouseEvent && (originalEvent.ctrlKey || originalEvent.metaKey) && context.protyle) {
+        await 批量应用样式到当前选区(context.protyle, sourceStyle);
+        // 如果是批量应用，通常也意味着操作结束，或者允许继续？为了与单点一致，如果是点击触发的，是否退出刷子？
+        // 刷子模式下，批量应用后，通常用户期望继续或者结束？
+        // 参考 Excel 格式刷，双击是锁定，单击是一次性。
+        // 这里如果是 Ctrl+Click，可能是临时批量。暂时不如不退出刷子，让用户决定。
+        return;
+    }
+
+    // 单点应用逻辑
+    const targetBlock = target.closest("[data-node-id]");
+    if (!targetBlock) {
+        return;
+    }
+
+    const targetId = targetBlock.getAttribute("data-node-id");
+    if (!targetId) {
+        return;
+    }
+
+    const linkElement = target.closest("[data-type=\"a\"], [data-type=\"block-ref\"]");
+
+    await 应用样式(targetId, sourceStyle);
+
+    if (linkElement) {
+        exitBrushFn();
+    }
+}
