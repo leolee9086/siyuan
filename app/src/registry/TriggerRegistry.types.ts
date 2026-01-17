@@ -191,3 +191,17 @@ export interface IStyleBrushHandlers {
     keydown: ((e: KeyboardEvent) => void) | null;
     mousedown: ((e: MouseEvent) => void) | null;
 }
+
+/**
+ * 光标管理会话 - 存储刷子模式下光标相关的运行时状态
+ * 
+ * 用途：管理刷子光标元素和清理函数
+ * 使用场景：TriggerRegistry.cursor 模块内部使用
+ * 关联类型：IBrushSession
+ */
+export interface 光标管理会话 {
+    /** 光标 DOM 元素 */
+    cursorElement: HTMLElement | null;
+    /** 清理函数列表 */
+    cleanupFns: Array<() => void>;
+}

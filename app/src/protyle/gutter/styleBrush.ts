@@ -5,9 +5,9 @@
  * 
  * 功能流程：
  * 1. 从源块提取 style 属性
- * 2. 激活刷子模式，光标变为画笔图标
+ * 2. 激活刷子模式，光标变为画笔图标（由 TriggerRegistry 管理）
  * 3. 点击目标块时应用样式
- * 4. 按 Esc 或右键退出
+ * 4. 按 Esc 或右键退出（由 TriggerRegistry 统一管理）
  * 
  * @module protyle/gutter/styleBrush
  */
@@ -16,9 +16,6 @@ import {
     注册触发器,
     激活刷子,
     退出刷子,
-    注册刷子清理函数,
-    设置刷子光标,
-    获取刷子参数,
     刷子是否激活,
     获取激活刷子类型
 } from "../../registry/TriggerRegistry";
@@ -26,37 +23,38 @@ import type { IGlobalContext, IStyleBrushParameters } from "../../registry/Trigg
 import { isStyleBrushParameters } from "./styleBrush.guard";
 import {
     样式刷子类型,
+    样式刷子光标HTML,
     提取DOM样式,
     提取块样式,
     应用样式,
-    创建光标元素,
-    设置事件监听,
-    清理事件监听
+    样式刷子进入,
+    样式刷子退出
 } from "./styleBrush.impl";
 
 // ============ 常量定义 ============
 
-export const STYLE_BRUSH_TYPE = 样式刷子类型;
-export { 提取DOM样式, 提取块样式 } from "./styleBrush.impl";
+export { 样式刷子类型, 提取DOM样式, 提取块样式, 应用样式 } from "./styleBrush.impl";
 
 // ============ 触发器注册 ============
 
 /**
  * 注册样式刷子触发器
  * 
- * 应在应用初始化时调用
+ * 作用：向 TriggerRegistry 注册样式刷子的配置
+ * 意图：使样式刷子成为智能工具箱的一部分
+ * 调用时机：应用初始化时（sforge.init.ts）
  */
 export function 注册样式刷子(): void {
     注册触发器({
         type: 样式刷子类型,
         mode: "brush",
         category: "格式",
+        cursorHTML: 样式刷子光标HTML,
 
         /**
          * 作用：判断当前上下文是否支持样式刷子触发
-         * 意图：仅在块包含可提取样式时，才在触发器列表中显示样式刷子选项（如 Gutter 菜单）
-         * 调用时机：TriggerRegistry 进行触发器匹配查找时调用，通常在弹出 Gutter 菜单前
-         * 问题/改进：当前仅通过内联 style 属性进行判断，未来可扩展至 CSS 类名或自定义属性的识别
+         * 意图：仅在块包含可提取样式时，才在触发器列表中显示样式刷子选项
+         * 调用时机：TriggerRegistry 进行触发器匹配查找时调用
          */
         match: async (context: IGlobalContext) => {
             const element = context.目标块?.element;
@@ -68,41 +66,26 @@ export function 注册样式刷子(): void {
 
         /**
          * 作用：初始化并进入刷子模式
-         * 意图：准备样式刷子的运行环境，包括光标替换和事件监听挂载
-         * 调用时机：用户从菜单选择样式刷子或通过快捷键激活刷子模式时
-         * 问题/改进：目前直接操作 document.body.style.cursor，在大屏高度交互时可能与其他插件冲突，考虑使用更隔离的层
+         * 意图：设置样式刷子特有的事件监听（点击应用样式）
+         * 调用时机：TriggerRegistry 激活刷子后调用
+         * 问题/改进：光标创建和通用事件现由 TriggerRegistry 统一管理
          */
         onEnter: (params: unknown) => {
             if (!isStyleBrushParameters(params)) {
                 console.error("[StyleBrush] 参数无效: 必须包含 sourceStyle");
                 return;
             }
-            const brushParams = params;
-            console.log(`[StyleBrush] 进入刷子模式，源样式: ${brushParams.sourceStyle}`);
-
-            // 创建光标
-            const cursor = 创建光标元素();
-            设置刷子光标(cursor);
-
-            // 隐藏系统光标
-            document.body.style.cursor = "none";
-
-            // 设置事件监听
-            设置事件监听(cursor);
-
-            // 注册清理函数
-            注册刷子清理函数(清理事件监听);
+            console.log(`[StyleBrush] 进入刷子模式，源样式: ${params.sourceStyle}`);
+            样式刷子进入();
         },
 
         /**
          * 作用：在目标元素执行刷子应用逻辑
          * 意图：将暂存的源样式应用到用户点击的目标块上
          * 调用时机：在刷子模式激活期间，用户点击编辑器内的块时
-         * 问题/改进：当前是覆盖式的样式应用，未来可以考虑样式的合并（Merge）逻辑
          */
         onApply: (target: Element, _context: IGlobalContext, isSecondary: boolean) => {
             if (isSecondary) {
-                // 右键 = 退出
                 退出刷子();
                 return;
             }
@@ -112,20 +95,17 @@ export function 注册样式刷子(): void {
                 return;
             }
 
-            const params = 获取刷子参数<IStyleBrushParameters>();
-            if (params?.sourceStyle) {
-                应用样式(targetId, params.sourceStyle);
-            }
+            // 注意：实际的样式应用逻辑在 styleBrush.impl 的点击处理器中
+            // 这里的 onApply 用于 TriggerRegistry 的扩展点，暂不使用
         },
 
         /**
          * 作用：执行刷子模式退出时的资源清理
-         * 意图：保证刷子模式退出后，系统状态（如光标、事件监听）完全恢复至初始状态
+         * 意图：保证刷子模式退出后系统状态完全恢复
          * 调用时机：用户手动退出（Esc/右键）或系统强制关闭刷子模式时
-         * 问题/改进：清理逻辑应尽可能幂等，目前依赖于外部注册的清理函数
          */
         onExit: () => {
-            console.log("[StyleBrush] 退出刷子模式");
+            样式刷子退出();
         }
     });
 }
@@ -135,7 +115,9 @@ export function 注册样式刷子(): void {
 /**
  * 激活样式刷子
  * 
- * 从 gutter 菜单调用此函数启动格式刷
+ * 作用：启动格式刷模式
+ * 意图：提供给 Gutter 菜单调用的入口
+ * 调用时机：用户从 Gutter 菜单选择"格式刷"时
  * 
  * @param sourceStyle 源块的样式字符串
  * @param sourceBlockId 源块 ID (可选，用于调试)
@@ -159,29 +141,21 @@ export function 激活样式刷子(sourceStyle: string, sourceBlockId?: string):
 
 /**
  * 检查样式刷子是否激活
- * @AITODO 特定刷子是否激活应该由管理模块统一实现,而不是在这里比对
+ * 
+ * @AIDONE 现在通过 TriggerRegistry 的 刷子是否激活 来判断
  * @returns 是否激活
  */
 export function 样式刷子是否激活(): boolean {
-    return 刷子是否激活() && 获取激活刷子类型() === 样式刷子类型;
+    return 刷子是否激活(样式刷子类型);
 }
 
 /**
  * 退出样式刷子
  * 
- * @AITODO 特定刷子退出应该由管理模块统一实现,而不是在这里比对
+ * @AIDONE 现在通过 TriggerRegistry 统一管理退出
  */
 export function 退出样式刷子(): void {
     if (样式刷子是否激活()) {
         退出刷子();
     }
 }
-
-// 英文别名
-export const extractDOMStyle = 提取DOM样式;
-export const extractBlockStyle = 提取块样式;
-export const applyStyle = 应用样式;
-export const registerStyleBrush = 注册样式刷子;
-export const activateStyleBrush = 激活样式刷子;
-export const isStyleBrushActive = 样式刷子是否激活;
-export const deactivateStyleBrush = 退出样式刷子;

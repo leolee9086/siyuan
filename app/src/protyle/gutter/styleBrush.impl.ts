@@ -1,7 +1,8 @@
 /**
  * styleBrush.impl.ts - 样式刷子核心实现
  * 
- * 包含样式提取、应用逻辑以及刷子模式的 UI 交互处理。
+ * 包含样式提取和应用的业务逻辑。
+ * 光标管理和通用事件（Esc/右键退出）现由 TriggerRegistry.cursor 统一处理。
  * 
  * @module protyle/gutter/styleBrush.impl
  */
@@ -11,50 +12,53 @@ import { 添加窗口事件监听, 移除窗口事件监听 } from "../../util/s
 import {
     退出刷子,
     获取刷子参数,
+    注册刷子清理函数
 } from "../../registry/TriggerRegistry";
-import type { IStyleBrushParameters, IStyleBrushHandlers } from "../../registry/TriggerRegistry.types";
-import { SForgeSymbols } from "../../config/sforge.symbols";
-import { getSForgeState, setSForgeState } from "../../config/sforge.global";
-import { asStyleBrushHandlers } from "../../config/sforge.guard";
+import type { IStyleBrushParameters } from "../../registry/TriggerRegistry.types";
 
 // ============ 常量定义 ============
 
 /** 样式刷子的触发器类型标识 */
 export const 样式刷子类型 = "s-forge-style-brush";
-export const STYLE_BRUSH_TYPE = 样式刷子类型;
 
-/** 画笔光标的 CSS 类名 */
-const 光标类名 = "s-forge-brush-cursor";
+/** 样式刷子光标 HTML - 供 TriggerRegistry 使用 */
+export const 样式刷子光标HTML = `
+    <svg viewBox="0 0 24 24" width="24" height="24">
+        <use xlink:href="#iconFormat"></use>
+    </svg>
+`;
 
 /** 鼠标左键代码 */
-const MOUSE_BUTTON_LEFT = 0;
-/** 鼠标右键代码 */
-const MOUSE_BUTTON_RIGHT = 2;
-/** 光标 Z-Index */
-const CURSOR_Z_INDEX = 99999;
+const 鼠标左键 = 0;
 
-// ============ 核心功能 ============
+// ============ 核心业务功能 ============
 
 /**
  * 同步从 DOM 提取样式 (用于 UI 快速判断)
+ * 
+ * 作用：从元素的 style 属性提取内联样式
+ * 意图：提供快速的样式检测能力，用于判断是否显示格式刷选项
+ * 调用时机：Gutter 菜单弹出时判断是否显示样式刷子选项
+ * 
  * @param element DOM 元素
- * @returns 样式字符串
+ * @returns 样式字符串，无样式时返回 null
  */
 export function 提取DOM样式(element: Element): string | null {
-    // 优先从 style 属性获取
     const styleAttr = element.getAttribute("style");
     if (styleAttr && styleAttr.trim()) {
         return styleAttr;
     }
-
-    // 备选：从 data-node 相关属性提取
-    // 未来可扩展更多样式来源
-
     return null;
 }
 
 /**
  * 从块元素提取可复制的样式
+ * 
+ * 作用：从块的后端属性中获取样式
+ * 意图：确保获取到的是持久化的样式而非临时 DOM 状态
+ * 调用时机：用户选择格式刷时，提取源块的样式
+ * 问题/改进：当前先尝试后端 API，失败时降级到 DOM 提取
+ * 
  * @AIDONE: 块样式应该通过id从后端接口获取
  * @param element 块元素
  * @returns 样式字符串，若无样式则返回 null
@@ -78,7 +82,9 @@ export async function 提取块样式(element: Element): Promise<string | null> 
 /**
  * 应用样式到目标块
  * 
- * 使用思源的 setBlockAttrs API，支持撤销
+ * 作用：调用思源 API 将样式写入目标块
+ * 意图：通过后端 API 修改样式，支持撤销和持久化
+ * 调用时机：用户在刷子模式下点击目标块时
  * 
  * @param targetId 目标块 ID
  * @param style 样式字符串
@@ -98,187 +104,84 @@ export async function 应用样式(targetId: string, style: string): Promise<boo
     }
 }
 
-/**
- * 创建画笔光标元素
- * @returns 光标 HTMLElement
- */
-export function 创建光标元素(): HTMLElement {
-    const cursor = document.createElement("div");
-    cursor.className = 光标类名;
-    cursor.innerHTML = `
-        <svg viewBox="0 0 24 24" width="24" height="24">
-            <use xlink:href="#iconFormat"></use>
-        </svg>
-    `;
-    cursor.style.cssText = `
-        position: fixed;
-        pointer-events: none;
-        z-index: ${CURSOR_Z_INDEX};
-        transform: translate(-50%, -50%);
-        opacity: 0.9;
-        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
-    `;
-    document.body.appendChild(cursor);
-    return cursor;
-}
+// ============ 样式刷子专用事件处理 ============
 
 /**
- * 更新光标位置
- * @param cursor 光标元素
- * @param x X 坐标
- * @param y Y 坐标
+ * 处理左键点击 - 应用样式到目标块
+ * 
+ * 作用：响应用户点击，将源样式应用到目标块
+ * 意图：这是样式刷子的核心交互逻辑
+ * 调用时机：刷子模式激活期间，用户点击编辑器内的块
+ * 
+ * @param e 鼠标事件
  */
-function 更新光标位置(cursor: HTMLElement, x: number, y: number): void {
-    cursor.style.left = `${x}px`;
-    cursor.style.top = `${y}px`;
-}
-
-// ============ 事件处理 ============
-
-// 移除模块级别变量，改用 SForge 全局状态存储
-// let 当前鼠标移动处理器... 
-// 参考: SForgeSymbols.STYLE_BRUSH_HANDLERS
-
-/**
- * 处理鼠标移动 - 更新光标位置
- * @param cursorElement 光标元素
- * @returns 事件处理器
- */
-function 创建鼠标移动处理器(cursorElement: HTMLElement): (e: MouseEvent) => void {
-    return (e: MouseEvent) => {
-        更新光标位置(cursorElement, e.clientX, e.clientY);
-    };
-}
-
-/**
- * 处理左键点击 - 应用样式
- * @returns 事件处理器
- */
-function 创建点击处理器(): (e: MouseEvent) => void {
-    return (e: MouseEvent) => {
-        if (e.button !== MOUSE_BUTTON_LEFT) {
-            return; // 只处理左键
-        }
-
-        const target = e.target;
-        if (!(target instanceof HTMLElement)) {
-            return;
-        }
-
-        const blockElement = target.closest("[data-node-id]");
-        if (!(blockElement instanceof HTMLElement)) {
-            console.debug("[StyleBrush] 点击位置不是有效块");
-            return;
-        }
-
-        // 检查是否是链接或块引用（这些需要特殊处理）
-        const linkElement = target.closest("[data-type=\"a\"], [data-type=\"block-ref\"]");
-
-        const targetId = blockElement.getAttribute("data-node-id");
-        if (!targetId) {
-            return;
-        }
-
-        const params = 获取刷子参数<IStyleBrushParameters>();
-        if (!params?.sourceStyle) {
-            console.error("[StyleBrush] 无法获取源样式");
-            return;
-        }
-
-        // 阻止默认行为
-        e.preventDefault();
-        e.stopPropagation();
-
-        // 应用样式
-        应用样式(targetId, params.sourceStyle);
-
-        // 如果点击到链接，应用后退出
-        if (linkElement) {
-            退出刷子();
-        }
-    };
-}
-
-/**
- * 处理键盘事件 - Esc 退出
- * @returns 事件处理器
- */
-function 创建键盘处理器(): (e: KeyboardEvent) => void {
-    return (e: KeyboardEvent) => {
-        if (e.key === "Escape") {
-            e.preventDefault();
-            e.stopPropagation();
-            退出刷子();
-        }
-    };
-}
-
-/**
- * 处理右键 - 退出
- * @returns 事件处理器
- */
-function 创建右键处理器(): (e: MouseEvent) => void {
-    return (e: MouseEvent) => {
-        if (e.button === MOUSE_BUTTON_RIGHT) {
-            e.preventDefault();
-            退出刷子();
-        }
-    };
-}
-
-/**
- * 设置刷子模式的全局事件监听
- * @param cursorElement 光标元素
- */
-export function 设置事件监听(cursorElement: HTMLElement): void {
-    const mousemoveHandler = 创建鼠标移动处理器(cursorElement);
-    const clickHandler = 创建点击处理器();
-    const keydownHandler = 创建键盘处理器();
-    const mousedownHandler = 创建右键处理器();
-
-    const handlers: IStyleBrushHandlers = {
-        mousemove: mousemoveHandler,
-        click: clickHandler,
-        keydown: keydownHandler,
-        mousedown: mousedownHandler
-    };
-
-    setSForgeState(SForgeSymbols.STYLE_BRUSH_HANDLERS, handlers);
-
-    // 使用 capture 确保优先处理
-    添加窗口事件监听("mousemove", mousemoveHandler);
-    添加窗口事件监听("click", clickHandler, true);
-    添加窗口事件监听("keydown", keydownHandler, true);
-    添加窗口事件监听("mousedown", mousedownHandler, true);
-}
-
-/**
- * 清理事件监听
- */
-export function 清理事件监听(): void {
-    const handlers = asStyleBrushHandlers(getSForgeState(SForgeSymbols.STYLE_BRUSH_HANDLERS));
-
-    if (!handlers) {
-        document.body.style.cursor = "";
+function 处理点击应用样式(e: MouseEvent): void {
+    if (e.button !== 鼠标左键) {
         return;
     }
 
-    if (handlers.mousemove) {
-        移除窗口事件监听("mousemove", handlers.mousemove);
-    }
-    if (handlers.click) {
-        移除窗口事件监听("click", handlers.click, true);
-    }
-    if (handlers.keydown) {
-        移除窗口事件监听("keydown", handlers.keydown, true);
-    }
-    if (handlers.mousedown) {
-        移除窗口事件监听("mousedown", handlers.mousedown, true);
+    const target = e.target;
+    if (!(target instanceof HTMLElement)) {
+        return;
     }
 
-    // 清理全局状态
-    setSForgeState(SForgeSymbols.STYLE_BRUSH_HANDLERS, undefined);
+    const blockElement = target.closest("[data-node-id]");
+    if (!(blockElement instanceof HTMLElement)) {
+        console.debug("[StyleBrush] 点击位置不是有效块");
+        return;
+    }
 
-    // 恢复光标样式
-    document.body.style.cursor = "";
+    // 检查是否是链接或块引用（这些需要特殊处理）
+    const linkElement = target.closest("[data-type=\"a\"], [data-type=\"block-ref\"]");
+
+    const targetId = blockElement.getAttribute("data-node-id");
+    if (!targetId) {
+        return;
+    }
+
+    const params = 获取刷子参数<IStyleBrushParameters>();
+    if (!params?.sourceStyle) {
+        console.error("[StyleBrush] 无法获取源样式");
+        return;
+    }
+
+    // 阻止默认行为
+    e.preventDefault();
+    e.stopPropagation();
+
+    // 应用样式
+    应用样式(targetId, params.sourceStyle);
+
+    // 如果点击到链接，应用后退出
+    if (linkElement) {
+        退出刷子();
+    }
+}
+
+// ============ 刷子进入/退出回调 ============
+
+/**
+ * 样式刷子进入回调
+ * 
+ * 作用：设置样式刷子特有的事件监听（点击应用样式）
+ * 意图：只处理业务逻辑相关的事件，通用事件由 TriggerRegistry 管理
+ * 调用时机：TriggerRegistry 激活刷子后调用 onEnter
+ */
+export function 样式刷子进入(): void {
+    // 注册点击处理器（样式刷子特有的业务逻辑）
+    添加窗口事件监听("click", 处理点击应用样式, true);
+    注册刷子清理函数(() => 移除窗口事件监听("click", 处理点击应用样式, true));
+
+    console.log("[StyleBrush] 样式刷子已进入");
+}
+
+/**
+ * 样式刷子退出回调
+ * 
+ * 作用：执行样式刷子特有的清理逻辑
+ * 意图：业务相关的清理在这里处理，通用清理由 TriggerRegistry 管理
+ * 调用时机：TriggerRegistry 退出刷子时调用 onExit
+ */
+export function 样式刷子退出(): void {
+    console.log("[StyleBrush] 样式刷子已退出");
 }

@@ -3,13 +3,13 @@
  * 
  * 智能工具箱的核心管理类，负责：
  * 1. 注册和管理所有工具触发器
- * 2. 管理刷子模式的生命周期
+ * 2. 管理刷子模式的生命周期（光标管理委托给 TriggerRegistry.cursor）
  * 3. 提供上下文匹配能力
  * 
  * 设计理念：
  * - 仿照 TabRegistry 的注册模式
  * - 支持三种触发模式：immediate/brush/toggle
- * - 为未来的 UI 渲染层预留接口
+ * - 统一管理刷子光标和退出事件，具体刷子只需关注业务逻辑
  * 
  * @module layout/registry/TriggerRegistry
  */
@@ -22,6 +22,16 @@ import type {
     刷子状态
 } from "./TriggerRegistry.types";
 import { isTriggerRegistryMap, isBrushSession, isValidTriggerRegistration, isValidParams } from "./TriggerRegistry.guard";
+import {
+    创建刷子光标,
+    更新刷子光标位置 as 光标管理更新位置,
+    设置刷子光标,
+    设置光标跟随,
+    设置退出事件监听,
+    隐藏系统光标,
+    清理光标会话,
+    初始化光标会话
+} from "./TriggerRegistry.cursor";
 
 // 重新导出类型
 export type {
@@ -152,6 +162,10 @@ export function 获取激活刷子类型(): string | null {
 /**
  * 激活刷子模式
  * 
+ * 作用：创建刷子会话并自动设置光标、退出事件等通用功能
+ * 意图：让具体刷子实现只需关注业务逻辑，不用处理 UI 层面的光标管理
+ * 调用时机：用户选择刷子工具时（如从菜单选择格式刷）
+ * 
  * @param type 触发器类型
  * @param params 传入参数
  * @returns 是否激活成功
@@ -181,8 +195,18 @@ export function 激活刷子(type: string, params: unknown): boolean {
         params,
         cleanupFns: []
     };
-
     设置刷子会话(session);
+
+    // 初始化光标管理会话
+    初始化光标会话();
+
+    // 设置光标和事件（委托给光标管理模块）
+    if (registration.cursorHTML) {
+        创建刷子光标(registration.cursorHTML);
+        设置光标跟随();
+    }
+    设置退出事件监听(退出刷子);
+    隐藏系统光标();
 
     // 调用 onEnter
     registration.onEnter?.(params);
@@ -193,6 +217,10 @@ export function 激活刷子(type: string, params: unknown): boolean {
 
 /**
  * 退出刷子模式
+ * 
+ * 作用：清理刷子会话并恢复系统状态
+ * 意图：确保刷子退出后所有资源被释放
+ * 调用时机：用户按 Esc、右键或手动调用退出时
  */
 export function 退出刷子(): void {
     const session = 获取刷子会话();
@@ -202,7 +230,10 @@ export function 退出刷子(): void {
 
     const registration = 获取触发器(session.triggerType);
 
-    // 执行清理函数
+    // 清理光标管理会话（包括事件监听和光标元素）
+    清理光标会话();
+
+    // 执行刷子会话的清理函数
     for (const fn of session.cleanupFns) {
         try {
             fn();
@@ -210,9 +241,6 @@ export function 退出刷子(): void {
             console.error("[TriggerRegistry] 清理函数执行失败:", e);
         }
     }
-
-    // 移除光标元素
-    session.cursorElement?.remove();
 
     // 调用 onExit
     registration?.onExit?.();
@@ -234,18 +262,6 @@ export function 注册刷子清理函数(cleanupFn: () => void): void {
 }
 
 /**
- * 设置刷子光标元素
- */
-export function 设置刷子光标(element: HTMLElement): void {
-    const session = 获取刷子会话();
-    if (session) {
-        // 移除旧的光标
-        session.cursorElement?.remove();
-        session.cursorElement = element;
-    }
-}
-
-/**
  * 更新刷子状态
  */
 export function 更新刷子状态(状态: 刷子状态): void {
@@ -254,6 +270,11 @@ export function 更新刷子状态(状态: 刷子状态): void {
         session.状态 = 状态;
     }
 }
+
+/**
+ * 更新刷子光标位置（代理到光标管理模块）
+ */
+export const 更新刷子光标位置 = 光标管理更新位置;
 
 /**
  * 获取刷子参数
@@ -355,7 +376,12 @@ export const triggerRegistry = {
     matchTriggers: 匹配触发器,
 };
 
+// ============ 重新导出光标管理函数 ============
+
+export { 设置刷子光标 };
+
 // ============ 英文别名导出 ============
+// 仅保留 index.ts 需要的别名
 
 export const registerTrigger = 注册触发器;
 export const getTrigger = 获取触发器;
@@ -369,6 +395,7 @@ export const activateBrush = 激活刷子;
 export const deactivateBrush = 退出刷子;
 export const registerBrushCleanup = 注册刷子清理函数;
 export const setBrushCursor = 设置刷子光标;
+export const updateBrushCursorPosition = 更新刷子光标位置;
 export const updateBrushState = 更新刷子状态;
 export const getBrushParams = 获取刷子参数;
 
