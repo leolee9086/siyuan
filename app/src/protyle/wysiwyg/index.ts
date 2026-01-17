@@ -107,7 +107,7 @@ import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.envi
 import { updateCalloutType } from "./callout";
 import { nbsp2space, removeZWJ } from "../util/normalizeText";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-
+import { renderCustomWithCtx, escapeInline } from "./utils/rendercustomWithCtx";
 
 export class WYSIWYG {
     public lastHTMLs: { [key: string]: string } = {};
@@ -140,98 +140,9 @@ export class WYSIWYG {
     }
 
     public renderCustom(ial: IObject) {
-        let isFullWidth = ial[Constants.CUSTOM_SY_FULLWIDTH];
-        if (!isFullWidth) {
-            isFullWidth = window.siyuan.config.editor.fullWidth ? "true" : "false";
-        }
-        if (isFullWidth === "true") {
-            this.element.parentElement.setAttribute("data-fullwidth", "true");
-        } else {
-            this.element.parentElement.removeAttribute("data-fullwidth");
-        }
-        const ialKeys = Object.keys(ial);
-        for (let i = 0; i < this.element.attributes.length; i++) {
-            const oldKey = this.element.attributes[i].nodeName;
-            if (!["type", "class", "spellcheck", "contenteditable", "data-doc-type", "style", "data-realwidth", "data-readonly"].includes(oldKey) &&
-                !ialKeys.includes(oldKey)) {
-                this.element.removeAttribute(oldKey);
-                i--;
-            }
-        }
-        ialKeys.forEach((key: string) => {
-            if (!["title-img", "title", "updated", "icon", "id", "type", "class", "spellcheck", "contenteditable", "data-doc-type", "style", "data-realwidth", "data-readonly", "av-names"].includes(key)) {
-                this.element.setAttribute(key, ial[key]);
-            }
-        });
+        renderCustomWithCtx({ ial, wysiwyg: this })
     }
 
-    // text block-ref file-annotation-ref a 结尾处打字应为普通文本
-    private escapeInline(protyle: IProtyle, range: Range, event: InputEvent) {
-        if (!event.data && event.inputType !== "insertLineBreak") {
-            return;
-        }
-
-        const inputData = event.data;
-        protyle.toolbar.range = range;
-        const inlineElement = range.startContainer.parentElement;
-        const currentTypes = protyle.toolbar.getCurrentType();
-
-        // https://github.com/siyuan-note/siyuan/issues/11766
-        if (event.inputType === "insertLineBreak") {
-            if (currentTypes.length > 0 && range.toString() === "" && inlineElement.tagName === "SPAN" &&
-                inlineElement.textContent.startsWith("\n") &&
-                range.startContainer.previousSibling && range.startContainer.previousSibling.textContent === "\n") {
-                inlineElement.before(range.startContainer.previousSibling);
-            }
-            return;
-        }
-
-        let dataLength = inputData.length;
-        if (inputData === "<" || inputData === ">") {
-            // 使用 inlineElement.innerHTML 会出现 https://ld246.com/article/1627185027423 中的第2个问题
-            dataLength = 4;
-        } else if (inputData === "&") {
-            // https://github.com/siyuan-note/siyuan/issues/12239
-            dataLength = 5;
-        }
-        // https://github.com/siyuan-note/siyuan/issues/5924
-        if (currentTypes.length > 0 && range.toString() === "" && range.startOffset === inputData.length &&
-            inlineElement.tagName === "SPAN" &&
-            inlineElement.textContent.replace(Constants.ZWSP, "") !== inputData &&
-            inlineElement.textContent.replace(Constants.ZWSP, "").length >= inputData.length &&
-            !hasPreviousSibling(range.startContainer) && !hasPreviousSibling(inlineElement)) {
-            const html = inlineElement.innerHTML.replace(Constants.ZWSP, "");
-            inlineElement.innerHTML = html.substr(dataLength);
-            const textNode = document.createTextNode(inputData);
-            inlineElement.before(textNode);
-            range.selectNodeContents(textNode);
-            range.collapse(false);
-            return;
-        }
-        if (// 表格行内公式之前无法插入文字 https://github.com/siyuan-note/siyuan/issues/3908
-            inlineElement.tagName === "SPAN" &&
-            inlineElement.textContent !== inputData &&
-            !currentTypes.includes("search-mark") &&    // https://github.com/siyuan-note/siyuan/issues/7586
-            !currentTypes.includes("code") &&   // https://github.com/siyuan-note/siyuan/issues/13871
-            !currentTypes.includes("kbd") &&
-            !currentTypes.includes("tag") &&
-            range.toString() === "" && range.startContainer.nodeType === 3 &&
-            (currentTypes.includes("inline-memo") || currentTypes.includes("block-ref") || currentTypes.includes("file-annotation-ref") || currentTypes.includes("a")) &&
-            !hasNextSibling(range.startContainer) && range.startContainer.textContent.length === range.startOffset &&
-            inlineElement.textContent.length > inputData.length
-        ) {
-            const position = getSelectionOffset(inlineElement, protyle.wysiwyg.element, range);
-            const html = inlineElement.innerHTML;
-            if (position.start === inlineElement.textContent.length) {
-                // 使用 inlineElement.textContent **$a$b** 中数学公式消失
-                inlineElement.innerHTML = html.substr(0, html.length - dataLength);
-                const textNode = document.createTextNode(inputData);
-                inlineElement.after(textNode);
-                range.selectNodeContents(textNode);
-                range.collapse(false);
-            }
-        }
-    }
 
     private setEmptyOutline(protyle: IProtyle, element: HTMLElement) {
         let nodeElement = element;
@@ -2454,7 +2365,7 @@ export class WYSIWYG {
                 return;
             }
             if ("" !== event.data) {
-                this.escapeInline(protyle, range, event);
+                escapeInline(protyle, range, event);
                 // 小鹤音形 ;k 不能使用 setTimeout;
                 // wysiwyg.element contenteditable 为 false 时，连拼 needRender 必须为 false
                 // hr 渲染；任务列表、粗体、数学公示结尾 needRender 必须为 true
@@ -2494,7 +2405,7 @@ export class WYSIWYG {
             ) {
                 return;
             }
-            this.escapeInline(protyle, range, event);
+            escapeInline(protyle, range, event);
 
             if ((/^\d{1}$/.test(event.data) || event.data === "‘" || event.data === "“" ||
                 // 百度输入法中文反双引号 https://github.com/siyuan-note/siyuan/issues/9686
