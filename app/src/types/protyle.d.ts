@@ -546,4 +546,6 @@ interface IProtyle {
     upload?: import("../protyle/upload").Upload;
     undo?: import("../protyle/undo").Undo;
     wysiwyg?: import("../protyle/wysiwyg").WYSIWYG
+    /** 加载动画控制器，用于确定性地取消待执行的 loading 显示 */
+    loadingController?: AbortController | undefined
 }

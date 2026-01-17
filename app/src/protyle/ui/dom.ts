@@ -17,13 +17,16 @@ const 初始化ProtyleContent = (protyle: IProtyle) => {
     // 初始化顶部区域（背景和标题）
     const renderOptions = protyle.options.render;
     const 需要顶部区域 = renderOptions?.background || renderOptions?.title;
+    // 只有在需要背景或标题渲染时才创建顶部区域容器
     if (需要顶部区域) {
         protyle.contentElement.innerHTML = '<div class="protyle-top"></div>';
     }
     const topElement = protyle.contentElement.firstElementChild;
+    // 在顶部区域存在且开启背景渲染时，挂载背景组件
     if (renderOptions?.background && 需要顶部区域 && topElement && protyle.background) {
         topElement.appendChild(protyle.background.element);
     }
+    // 在顶部区域存在且开启标题渲染时，挂载标题组件
     if (renderOptions?.title && 需要顶部区域 && topElement && protyle.title) {
         topElement.appendChild(protyle.title.element);
     }
@@ -31,6 +34,7 @@ const 初始化ProtyleContent = (protyle: IProtyle) => {
     if (protyle.wysiwyg) {
         protyle.contentElement.appendChild(protyle.wysiwyg.element);
     }
+    // 非历史模式下，为 contentElement 绑定滚动事件监听
     if (protyle.options.action && !protyle.options.action.includes(Constants.CB_GET_HISTORY)) {
         scrollEvent(protyle, protyle.contentElement);
     }
@@ -38,7 +42,7 @@ const 初始化ProtyleContent = (protyle: IProtyle) => {
 
 /**
  * 挂载子组件（预览、上传、滚动、Gutter 等）。
- * @AITODO 修改项目的eslint规则定义,要求所有if分支至少有注释说明
+ * @AIDONE 已创建 ESLint 规则 require-if-comment/require-if-comment，要求 if 语句前必须有注释说明
  * @param {IProtyle} protyle - Protyle 实例
  */
 const 挂载子组件 = (protyle: IProtyle) => {
@@ -52,6 +56,7 @@ const 挂载子组件 = (protyle: IProtyle) => {
     if (protyle.upload) {
         parentElement.appendChild(protyle.upload.element);
     }
+    // 滚动组件需要渲染选项开启且有父元素容器时才挂载
     if (protyle.options.render?.scroll && protyle.scroll?.element.parentElement) {
         parentElement.appendChild(protyle.scroll.element.parentElement);
     }
