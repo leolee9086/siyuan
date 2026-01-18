@@ -52,7 +52,8 @@ export const copyAnno = (idPath: string, fileName: string, pdf: IPdfInstance) =>
     }
     const mode = rectElement.getAttribute("data-mode");
     const content = rectElement.getAttribute("data-content");
-    //@AITODO 由于setTimeout会导致不确定的延迟，我们需要修改项目的lint规则,要求每一个setTimeout都必须有注释说明
+    //@AIDONE 已添加 require-timeout-comment lint 规则
+    // 延迟执行复制操作，等待双击事件完成，避免与文本选择操作冲突
     setTimeout(() => {
         执行复制注释({ idPath, fileName, pdf, mode, content });
     }, Constants.TIMEOUT_DBLCLICK);
