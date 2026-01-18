@@ -17,7 +17,7 @@ import { isWnd, isTDock } from "./dock.guard";
 import { hasValidDockType } from "./dock.visibility";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { forgeI18n } from "../../util/siyuanEnvironments/forgeI18n.getI18n.environment";
-import { 注册类型, 类型可用 } from "./dock.registry";
+import { 检查并注册Dock项, restoreIfMissing, fixCronjobIcons } from "./dock.data";
 
 /**
  * 初始化活动元素
@@ -25,6 +25,11 @@ import { 注册类型, 类型可用 } from "./dock.registry";
 export function initActiveElements(dock: Dock, activeElements: Element[]): void {
     for (const item of activeElements) {
         const type = item.getAttribute("data-type");
+        /**
+         * 作用：激活有效的 Dock 模型。
+         * 意图：根据 DOM 元素的 data-type 属性，初始化对应的 Dock 模型。仅针对有效的 Dock 类型执行操作。
+         * 生效场景：Dock 初始化时，存在上次会话保留的激活项。
+         */
         if (isTDock(type)) {
             dock.toggleModel(type, true, false, false, false);
         }
@@ -37,6 +42,11 @@ export function initActiveElements(dock: Dock, activeElements: Element[]): void 
 export function initNoActiveElements(dock: Dock): void {
     dock.resizeElement.classList.add("fn__none");
     const children = dock.layout.children;
+    /**
+     * 作用：检查 Dock 子元素数量。
+     * 意图：如果 Dock 中没有子元素或仅有一个子元素（不需要调整分隔栏），则无需进行后续的隐藏操作。
+     * 生效场景：Dock 布局为空或仅包含单个组件时。
+     */
     if (!children || children.length <= 1) {
         return;
     }
@@ -46,6 +56,11 @@ export function initNoActiveElements(dock: Dock): void {
     }
     const firstChild = children[0];
     const nextSibling = firstChild?.element?.nextElementSibling;
+    /**
+     * 作用：隐藏关联的分隔条。
+     * 意图：当因为子元素不足而隐藏界面时，同步隐藏可能存在的调整手柄，防止视觉残留。
+     * 生效场景：Dock 子元素少于 2 个被自动隐藏时。
+     */
     if (nextSibling) {
         nextSibling.classList.add("fn__none");
     }
@@ -59,6 +74,11 @@ export function findActiveEditor(): Protyle | undefined {
     for (const item of models.editor) {
         const isFocused = item.parent.headElement.classList.contains("item--focus");
         const hasPath = item.editor?.protyle?.path;
+        /**
+         * 作用：判断并返回当前获得焦点的编辑器。
+         * 意图：找到用户当前正在与之交互的、具有有效文档路径的编辑器实例。
+         * 生效场景：当遍历到的编辑器所在的页签（Tab）具有焦点样式且该编辑器关联了具体的文档路径时。
+         */
         if (isFocused && hasPath) {
             return item.editor;
         }
@@ -74,14 +94,32 @@ export function removeSourceTab(
     sourceIndex: number,
     sourceElement: Element
 ): void {
+    // 如果源 Dock 布局尚未初始化或没有子元素，则不执行移除操作
+    /**
+     * 作用：检查源 Dock 布局有效性。
+     * 意图：避免在无效或空的 Dock 布局上执行移除操作，防止空指针异常。
+     * 生效场景：源 Dock 数据未就绪或被清空时。
+     */
     if (!sourceDock?.layout?.children) {
         return;
     }
     const sourceWnd = sourceDock.layout.children[sourceIndex];
+    // 如果指定索引处的子元素不是窗口（Wnd）类型，则停止操作
+    /**
+     * 作用：验证源元素类型。
+     * 意图：确保操作对象是符合预期的窗口（Wnd）类型，避免类型不匹配错误。
+     * 生效场景：源索引指向的元素不是标准的 Wnd 组件时。
+     */
     if (!isWnd(sourceWnd)) {
         return;
     }
     const sourceId = sourceElement.getAttribute("data-id");
+    // 如果源元素没有唯一的 data-id 标识，无法进行移除
+    /**
+     * 作用：检查源元素 ID。
+     * 意图：移除操作依赖唯一的 data-id，缺失该 ID 则无法定位目标 Tab。
+     * 生效场景：DOM 元素属性缺失或异常时。
+     */
     if (!sourceId) {
         return;
     }
@@ -99,14 +137,24 @@ export function insertSourceElement(
     previousType?: string
 ): void {
     sourceElement.setAttribute("data-index", index.toString());
-    if (previousType) {
-        const prev = dock.element.querySelector(`[data-type="${previousType}"]`);
-        if (prev) {
-            prev.after(sourceElement);
-            return;
-        }
+    const prev = previousType ? dock.element.querySelector(`[data-type="${previousType}"]`) : null;
+    // 找到了前置元素，直接插入其后
+    /**
+     * 作用：基于前置锚点插入元素。
+     * 意图：为了保持用户自定义的排序，如果有指定的前置元素类型且在 DOM 中找到，则将新元素插入其后。
+     * 生效场景：布局恢复或拖拽排序时。
+     */
+    if (prev) {
+        prev.after(sourceElement);
+        return;
     }
     const container = index === 0 ? dock.element.firstElementChild : dock.element.lastElementChild;
+    // 如果找不到容器（首尾元素），则无法插入
+    /**
+     * 作用：验证插入容器。
+     * 意图：确保 Dock 中存在可作为参考的容器元素（通常是头部或尾部），否则无法执行插入。
+     * 生效场景：Dock DOM 结构未正确初始化为空时。
+     */
     if (!container) {
         return;
     }
@@ -117,10 +165,22 @@ export function insertSourceElement(
  * 渲染 pin 按钮
  */
 export function renderPinButton(dock: Dock, languages: { unpin?: string, pin?: string } | undefined): void {
+    // 如果没有语言配置，不渲染 Pin 按钮
+    /**
+     * 作用：检查语言包配置。
+     * 意图：Pin 按钮依赖国际化字符串，若未提供语言包则跳过渲染，避免文案缺失。
+     * 生效场景：语言包未加载或传递错误时。
+     */
     if (!languages) {
         return;
     }
     const firstChild = dock.element.firstElementChild;
+    // 确保有第一个子元素作为容器
+    /**
+     * 作用：验证挂载点。
+     * 意图：Pin 按钮需要插入到 Dock 的第一个子容器中，若不存在则无法渲染。
+     * 生效场景：Dock DOM 为空时。
+     */
     if (!firstChild) {
         return;
     }
@@ -132,6 +192,11 @@ export function renderPinButton(dock: Dock, languages: { unpin?: string, pin?: s
  */
 export function initDockFiles(dock: Dock): void {
     for (const item of Array.from(dock.element.querySelectorAll(".dock__item"))) {
+        /**
+         * 作用：初始化文件树 Dock 的状态。
+         * 意图：通过切换文件树的显示状态（先显示再隐藏），强制触发文件树相关的初始化逻辑（如索引更新或视图渲染），确保文件树功能可用。
+         * 生效场景：当存在 "file" 类型的 Dock 项且该项当前未处于激活状态时。
+         */
         if (item.getAttribute("data-type") === "file" && !item.classList.contains("dock__item--active")) {
             dock.toggleModel("file", true, false, false, false);
             dock.toggleModel("file", false, false, false, false);
@@ -152,21 +217,25 @@ export function initDockFloatMode(dock: Dock): void {
 /**
  * 初始化 dock 数据
  */
-
-
-/**
- * 初始化 dock 数据
- */
 export function initDockData(
     dock: Dock,
     data: Config.IUILayoutDockTab[][],
     TYPES: string[],
     getSiyuanLanguagesFn: () => { unpin?: string; pin?: string } | undefined
 ): void {
-    // 1. Defensively ensure data structure exists
+    /**
+     * 作用：确保第一列数据初始化。
+     * 意图：防御性检查，防止访问未定义的列数据。
+     * 生效场景：配置数据不完整（用户配置损坏、版本升级兼容或手动编辑导致结构缺失）。
+     */
     if (!data[0]) {
         data[0] = [];
     }
+    /**
+     * 作用：确保第二列数据初始化。
+     * 意图：防御性检查，防止访问未定义的列数据。
+     * 生效场景：同上，配置数据不完整。
+     */
     if (!data[1]) {
         data[1] = [];
     }
@@ -178,9 +247,11 @@ export function initDockData(
     const position = dock.position;
 
     // Process first column
-    data[0] = uniqueDockItems(data[0], seenGlobalTypes, TYPES, position);
+    const firstColumn = data[0];
+    data[0] = firstColumn.filter(item => 检查并注册Dock项(item, seenGlobalTypes, TYPES, position));
     // Process second column (continuing with same seen set)
-    data[1] = uniqueDockItems(data[1], seenGlobalTypes, TYPES, position);
+    const secondColumn = data[1];
+    data[1] = secondColumn.filter(item => 检查并注册Dock项(item, seenGlobalTypes, TYPES, position));
 
     // 修复旧数据中的 cronjob 图标 (从 iconClock 纠正为 iconHistory)
     fixCronjobIcons(data);
@@ -191,11 +262,21 @@ export function initDockData(
     restoreIfMissing(data[1], seenGlobalTypes, "forwardlink", "iconLink", forgeI18n.forwardlinks || "正向链接", position);
     const embeddingTitle = forgeI18n.embedding;
     restoreIfMissing(data[1], seenGlobalTypes, "embedding_dock", "iconDatabase", typeof embeddingTitle === "string" ? embeddingTitle : "Embeddings", position);
+    /**
+     * 作用：限制定时任务面板的初始化位置。
+     * 意图：维护界面布局规范，确保定时任务面板（Cronjob）默认仅出现在右侧边栏，避免左右两侧同时出现造成混乱。
+     * 生效场景：当前正在初始化右侧 Dock 且数据中缺失定时任务面板时。
+     */
     if (position === "Right") {
         restoreIfMissing(data[1], seenGlobalTypes, "cronjob", "iconHistory", "定时任务", position);
     }
 
     // 4. Final verification
+    /**
+     * 作用：验证 Dock 数据的有效性。
+     * 意图：如果数据中不包含任何有效的 Dock 类型，则视为无效配置，进行默认的隐藏处理。
+     * 生效场景：配置数据经过处理后仍不包含预定义的有效类型时。
+     */
     if (!hasValidDockType(data, TYPES)) {
         renderPinButton(dock, getSiyuanLanguagesFn());
         dock.element.classList.add("fn__none");
@@ -206,9 +287,19 @@ export function initDockData(
 
     const first = data[0];
     const second = data[1];
+    /**
+     * 作用：生成第一列 Dock 按钮。
+     * 意图：遍历数据的第一列，为每个 Dock 项创建对应的 UI 图标并添加到界面。
+     * 生效场景：当 config.data[0] 存在且包含有效数据时。
+     */
     if (first && first.length > 0) {
         dock.genButton(first, 0);
     }
+    /**
+     * 作用：生成第二列 Dock 按钮。
+     * 意图：遍历数据的第二列，为每个 Dock 项创建对应的 UI 图标并添加到界面。
+     * 生效场景：当 config.data[1] 存在且包含有效数据时。
+     */
     if (second && second.length > 0) {
         dock.genButton(second, 1);
     }
@@ -222,126 +313,14 @@ export function initDockData(
  */
 export function initDockActiveState(dock: Dock): void {
     const activeElements = Array.from(dock.element.querySelectorAll(".dock__item--active"));
+    /**
+     * 作用：恢复 Dock 的激活状态。
+     * 意图：如果有 Dock 项在之前被标记为激活（例如从布局恢复），则直接初始化这些项的状态，跳过默认的无激活处理逻辑。
+     * 生效场景：当 DOM 中检测到带有 "dock__item--active" 样式的元素数量大于 0 时。
+     */
     if (activeElements.length > 0) {
         initActiveElements(dock, activeElements);
         return;
     }
     initNoActiveElements(dock);
-}
-
-
-
-/**
- * 去重 dock items，使用全局注册表代替 DOM 查询
- * @param arr dock item 数组
- * @param seen 本次初始化中已看到的类型集合
- * @param standardTypes 标准类型列表
- * @param position 当前 Dock 的位置
- */
-function uniqueDockItems(
-    arr: Config.IUILayoutDockTab[],
-    seen: Set<string>,
-    standardTypes: string[],
-    position: TDockPosition
-): Config.IUILayoutDockTab[] {
-    return arr.filter(item => 检查并注册Dock项(item, seen, standardTypes, position));
-}
-
-/**
- * 检查并注册 Dock 项
- * 提取自 uniqueDockItems 的 filter 回调
- */
-function 检查并注册Dock项(
-    item: Config.IUILayoutDockTab,
-    seen: Set<string>,
-    standardTypes: string[],
-    position: TDockPosition
-): boolean {
-    if (!item || !item.type) {
-        return false;
-    }
-
-    // Normalize type to canonical standard type if it matches case-insensitively
-    const lowerType = item.type.toLowerCase();
-    const matchedStandard = standardTypes.find(t => t.toLowerCase() === lowerType);
-
-    if (matchedStandard) {
-        item.type = matchedStandard;
-    }
-
-    // 已在本 dock 数据中出现过（同一 column 或前一 column）
-    if (seen.has(item.type)) {
-        return false;
-    }
-
-    // 使用全局注册表检查并注册类型
-    // 如果类型已被其他 Dock 占用，则过滤掉
-    if (!注册类型(item.type, position)) {
-        return false;
-    }
-
-    seen.add(item.type);
-    return true;
-}
-
-/**
- * 恢复缺失的标准 panel（自愈机制）
- * 使用全局注册表代替 DOM 查询检查是否已存在
- * @param targetArray 目标数组
- * @param existingTypes 本次初始化中已存在的类型
- * @param type 要恢复的类型
- * @param icon 图标
- * @param title 标题
- * @param position 当前 Dock 的位置
- */
-function restoreIfMissing(
-    targetArray: Config.IUILayoutDockTab[],
-    existingTypes: Set<string>,
-    type: string,
-    icon: string,
-    title: string,
-    position: TDockPosition
-) {
-    // 使用全局注册表检查是否已被其他 Dock 占用
-    if (!类型可用(type)) {
-        return;
-    }
-
-    // 检查当前 dock 的数据中是否已存在
-    if (existingTypes.has(type)) {
-        return;
-    }
-
-    // 尝试注册该类型
-    if (!注册类型(type, position)) {
-        return;
-    }
-
-    const missingTab: Config.IUILayoutDockTab = {
-        type,
-        icon,
-        title,
-        size: { width: 0, height: 0 },
-        show: false,
-        hotkey: "",
-        hotkeyLangId: title
-    };
-    targetArray.push(missingTab);
-    existingTypes.add(type);
-}
-
-/**
- * 修复旧数据中的 cronjob 图标
- */
-function fixCronjobIcons(data: Config.IUILayoutDockTab[][]) {
-    for (const column of data) {
-        if (!column) {
-            continue;
-        }
-        for (const item of column) {
-            if (item.type === "cronjob" && (item.icon === "iconClock" || !item.icon)) {
-                item.icon = "iconHistory";
-            }
-        }
-    }
 }
