@@ -107,6 +107,7 @@ const handleFetchError = (url: string, data: TFetchRequestData | undefined, e: E
         return;
     }
     console.warn("fetch post failed [" + e + "], url [" + url + "]");
+    // 特殊处理事务 API 的网络失败或解析错误，触发内核重传或重启确认。
     if (url === "/api/transactions" && (e.message === "Failed to fetch" || e.message === "Unexpected end of JSON input")) {
         kernelError();
         return;
@@ -116,6 +117,7 @@ const handleFetchError = (url: string, data: TFetchRequestData | undefined, e: E
     const isExitCall = url === "/api/system/exit" || url === "/api/system/setWorkspaceDir" || (
         ["/api/system/setUILayout"].includes(url) && dataErrorExit
     );
+    // 如果请求涉及系统退出或工作空间迁移，则通知 Electron 进程执行退出逻辑。
     if (isExitCall) {
         ipcRenderer.send(Constants.SIYUAN_QUIT, location.port);
     }
@@ -135,6 +137,7 @@ const handleFetchError = (url: string, data: TFetchRequestData | undefined, e: E
  * - **其他**：根据 Content-Type 解析为 JSON 或文本
  */
 const handleFetchResponse = (response: Response) => {
+    // 权限不足（403）或资源不存在（404）时，构造对应的错误响应对象，避免前端流程崩溃。
     if (response.status === 403 || response.status === 404) {
         return {
             data: null,
@@ -143,6 +146,7 @@ const handleFetchResponse = (response: Response) => {
         };
     }
     if (401 == response.status) {
+        // 认证失效时延迟 3 秒重载页面，以便在刷新前保持当前界面状态供用户观察。
         setTimeout(() => {
             reloadLocation();
         }, 3000);
@@ -156,6 +160,7 @@ const handleFetchResponse = (response: Response) => {
         };
     }
     const contentType = response.headers.get("content-type");
+    // 根据 Content-Type 响应头决定解析 JSON 还是纯文本。
     if (contentType && contentType.indexOf("application/json") > -1) {
         return response.json();
     }
@@ -178,11 +183,13 @@ const handleFetchResponse = (response: Response) => {
  */
 const createPostResponseHandler = (url: string, cb?: (response: IWebSocketData) => void) => {
     return (response: IWebSocketData) => {
+        // 如果响应是字符串（非标准 JSON），直接交由业务回调处理。
         if (typeof response === "string") {
             cb?.(response);
             return;
         }
         const currentReqId = getSiyuanReqId(url);
+        // 执行请求竞态检查：如果接收到的响应 reqId 小于最新发送的 reqId，说明是过期的响应，应当丢弃以免覆盖新数据。
         if (需要竞态控制的API列表.includes(url) && response.data?.reqId && currentReqId && currentReqId > response.data.reqId) {
             return;
         }
@@ -190,10 +197,13 @@ const createPostResponseHandler = (url: string, cb?: (response: IWebSocketData) 
             return;
         }
         const isMessage = typeof response === "object" && typeof response.msg === "string" && typeof response.code === "number";
+        // 验证响应是否为标准的后端消息格式，并调用通用消息处理器。
+        // processMessage 如果返回 true，表示该响应已通过校验且不属于拦截型系统消息（如 UI 重载或特定指令），应继续传递给业务回调处理。
         if (isMessage && processMessage(response)) {
             cb(response);
             return;
         }
+        // 如果响应不符合标准消息格式，则作为原始数据透传给业务回调。
         if (!isMessage) {
             cb(response);
         }
@@ -220,6 +230,7 @@ const createPostResponseHandler = (url: string, cb?: (response: IWebSocketData) 
  *
  * // 不需要回调的请求
  * fetchPost("/api/system/exit");
+ * //@AITODO 在不改变对外行为的基础上,此函数自身的实现应该由.then调用改为async await
  */
 export const fetchPost = (
     url: string,
@@ -232,19 +243,21 @@ export const fetchPost = (
         method: "POST",
         body: setupRequestData(url, data),
     };
+    // 如果提供了自定义请求头，则注入到 fetch 的初始化配置中。
     if (headers) {
         init.headers = headers;
     }
     let isGetFile202 = false;
     fetch(url, init)
         .then((response) => {
-            // Check for 202 on getFile
+            // 检查 getFile 接口是否返回 202 状态码（表示文件尚未就绪或需要特殊处理）
             if (response.status === 202 && url === "/api/file/getFile") {
                 isGetFile202 = true;
             }
             return handleFetchResponse(response);
         })
-        .then((response: any) => {
+        .then((response: IWebSocketData) => {
+            // 处理 getFile API 的特殊响应（如内核返回 202 状态码时，直接调用 failCallback）
             if (failCallback && url === "/api/file/getFile" && isGetFile202) {
                 failCallback(response);
                 return;
@@ -279,6 +292,7 @@ export const fetchSyncPost = async (url: string, data?: TFetchRequestData) => {
     };
     const res = await fetch(url, init);
     const jsonResult: unknown = await res.json();
+    // 验证同步请求返回的数据是否符合预期的标准协议格式。
     if (!isWebSocketData(jsonResult)) {
         throw new Error(`fetchSyncPost: 响应格式不符合预期 (url: ${url})`);
     }
