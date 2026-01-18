@@ -12,19 +12,27 @@
 import { Tab } from "../../Tab";
 import { Model } from "../../Model";
 import { Tree } from "../../../util/Tree";
-import { setPanelFocus } from "../../utils/setPanelFocus";
 import { getDockByType } from "../../tabUtil";
 import { fetchPost } from "../../../util/fetch";
 import { Constants } from "../../../constants";
-import { openFileById } from "../../../editor/utils.openFileById";
 import { Protyle } from "../../../protyle";
 import { App } from "../../../index";
-import { getIconByType } from "../../../editor/getIcon";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { IForwardlinkTreeNode, IForwardlinkStatus } from "./Forwardlink.types";
 import { genForwardlinkHTML } from "./Forwardlink.html";
 import { showSortMenu } from "./Forwardlink.menu";
-import { searchForwardLinks, fetchBlocks } from "./Forwardlink.data";
+import {
+    切换列表项展开,
+    执行正向链接搜索,
+    绑定输入框事件,
+    绑定Tree滚动事件,
+    绑定折叠按钮事件,
+    绑定展开按钮事件,
+    绑定主元素点击事件,
+    初始化Tree组件,
+    处理消息回调
+} from "./Forwardlink.helpers";
+import { getSiyuanGlobalMenusMenu } from "../../../util/siyuanEnvironments/getMenu.environment";
 
 /**
  * 正向链接 Dock 组件
@@ -50,34 +58,36 @@ export class Forwardlink extends Model {
         super({
             app: options.app,
             id: options.tab.id,
-            callback() {
-                if (this.type === "local") {
+            /**
+             * 初始化回调
+             * 
+             * 作用：在 Model 基类初始化完成后执行，检查块是否存在
+             * 调用时机：Model 构造函数完成后自动调用
+             */
+            callback(this: Forwardlink) {
+                // 仅对本地类型检查块是否存在，pin 类型是全局共享的
+                // 注意：使用 options.type 而非 this.type，因为此时 super() 还未完成，this.type 尚未赋值
+                if (options.type === "local") {
                     fetchPost("/api/block/checkBlockExist", { id: this.blockId }, existResponse => {
+                        // 块不存在时关闭标签页
                         if (!existResponse.data) {
                             this.parent.parent.removeTab(this.parent.id);
                         }
                     });
                 }
             },
-            msgCallback(data) {
-                if (data && this.type === "local") {
-                    switch (data.cmd) {
-                        case "rename":
-                            if (this.rootId === data.data.id) {
-                                this.parent.updateTitle(data.data.title);
-                            }
-                            break;
-                        case "unmount":
-                            if (this.notebookId === data.data.box && this.type === "local") {
-                                this.parent.parent.removeTab(this.parent.id);
-                            }
-                            break;
-                        case "removeDoc":
-                            if (data.data.ids.includes(this.rootId) && this.type === "local") {
-                                this.parent.parent.removeTab(this.parent.id);
-                            }
-                            break;
-                    }
+            /**
+             * 消息回调处理
+             * 
+             * 作用：响应系统消息事件（如重命名、卸载、删除文档）
+             * 调用时机：Model 基类收到 WebSocket 消息时自动调用
+             */
+            msgCallback(this: Forwardlink, data) {
+                // 仅对本地类型响应消息回调,pin 类型不需要响应这些事件
+                // 因为 pin 类型是全局共享的,不与特定文档绑定
+                // 注意：使用 options.type 而非 this.type，因为此时 super() 还未完成，this.type 尚未赋值
+                if (data && options.type === "local") {
+                    处理消息回调(this, data);
                 }
             }
         });
@@ -91,291 +101,24 @@ export class Forwardlink extends Model {
         this.element.innerHTML = genForwardlinkHTML(this.type, defaultSort);
 
         this.inputsElement = this.element.querySelectorAll("input");
-        this.inputsElement.forEach((item) => {
-            item.addEventListener("blur", (event: KeyboardEvent) => {
-                const inputElement = event.target as HTMLInputElement;
-                inputElement.classList.add("fn__none");
-                const filterIconElement = inputElement.nextElementSibling;
-                if (inputElement.value) {
-                    filterIconElement.classList.add("block__icon--active");
-                    filterIconElement.setAttribute("aria-label", siyuanI18n.filter + " " + inputElement.value);
-                } else {
-                    filterIconElement.classList.remove("block__icon--active");
-                    filterIconElement.setAttribute("aria-label", siyuanI18n.filter);
-                }
-            });
-            item.addEventListener("keydown", (event: KeyboardEvent) => {
-                if (!event.isComposing && event.key === "Enter") {
-                    this.搜索正向链接();
-                }
-            });
-        });
+        绑定输入框事件(this, siyuanI18n);
 
-        this.tree = new Tree({
-            element: this.element.querySelector(".forwardlinkList") as HTMLElement,
-            data: null,
-            click: (element) => {
-                this.toggleItem(element);
-                this.setFocus();
-            },
-            ctrlClick: (element) => {
-                openFileById({
-                    app: options.app,
-                    id: element.getAttribute("data-node-id"),
-                    action: [Constants.CB_GET_CONTEXT]
-                });
-            },
-            altClick(element) {
-                openFileById({
-                    app: options.app,
-                    id: element.getAttribute("data-node-id"),
-                    position: "right",
-                    action: [Constants.CB_GET_FOCUS, Constants.CB_GET_CONTEXT]
-                });
-            },
-            shiftClick(element) {
-                openFileById({
-                    app: options.app,
-                    id: element.getAttribute("data-node-id"),
-                    position: "bottom",
-                    action: [Constants.CB_GET_FOCUS, Constants.CB_GET_CONTEXT]
-                });
-            },
-            toggleClick: (liElement) => {
-                this.toggleItem(liElement);
-                this.setFocus();
-            }
-        });
+        初始化Tree组件(this, options);
+        绑定Tree滚动事件(this);
+        绑定折叠按钮事件(this);
+        绑定展开按钮事件(this);
+        绑定主元素点击事件(this, getDockByType, showSortMenu, getSiyuanGlobalMenusMenu);
 
-        this.tree.element.addEventListener("scroll", () => {
-            this.tree.element.querySelectorAll(".protyle-gutters").forEach(item => {
-                item.classList.add("fn__none");
-                item.innerHTML = "";
-            });
-            this.tree.element.querySelectorAll(".protyle-wysiwyg--hl").forEach((hlItem) => {
-                hlItem.classList.remove("protyle-wysiwyg--hl");
-            });
-        });
-
-        // 为了快捷键的 dispatch
-        const collapseElement = this.element.querySelector('[data-type="collapse"]');
-        if (collapseElement) {
-            collapseElement.addEventListener("click", () => {
-                this.tree.element.querySelectorAll(".protyle").forEach(item => {
-                    item.classList.add("fn__none");
-                });
-                this.tree.element.querySelectorAll(".b3-list-item__arrow").forEach(item => {
-                    item.classList.remove("b3-list-item__arrow--open");
-                });
-            });
-        }
-
-        const expandElement = this.element.querySelector('[data-type="expand"]');
-        if (expandElement) {
-            expandElement.addEventListener("click", () => {
-                const firstChild = this.tree.element.firstElementChild;
-                if (firstChild) {
-                    Array.from(firstChild.children).forEach((item: HTMLElement) => {
-                        if (item.tagName === "LI" && !item.querySelector(".b3-list-item__arrow--open")) {
-                            this.toggleItem(item);
-                        }
-                    });
-                }
-            });
-        }
-
-        this.element.addEventListener("click", (event) => {
-            this.setFocus();
-            let target = event.target as HTMLElement;
-            while (target && !target.isEqualNode(this.element)) {
-                if (target.classList.contains("block__icon") && target.parentElement.parentElement === this.element) {
-                    const type = target.getAttribute("data-type");
-                    switch (type) {
-                        case "refresh":
-                            this.refresh();
-                            break;
-                        case "min":
-                            getDockByType("forwardlink")?.toggleModel("forwardlink", false, true);
-                            break;
-                        case "search":
-                            target.previousElementSibling.classList.remove("fn__none");
-                            (target.previousElementSibling as HTMLInputElement).select();
-                            break;
-                        case "sort":
-                            {
-                                const sort = target.getAttribute("data-sort") || "0";
-                                showSortMenu(sort, this.tree.element, () => this.搜索正向链接());
-                                window.siyuan.menus.menu.popup({ x: event.clientX, y: event.clientY });
-                            }
-                            event.stopPropagation();
-                            break;
-                    }
-                }
-                target = target.parentElement;
-            }
-        });
-
-        this.搜索正向链接(true);
+        执行正向链接搜索(this, true);
     }
 
-    private setFocus() {
-        if (this.type === "local") {
-            setPanelFocus(this.element.parentElement.parentElement);
-        } else {
-            setPanelFocus(this.element);
-        }
-    }
 
-    /**
-     * 展开/折叠列表项
-     */
-    private toggleItem(liElement: HTMLElement) {
-        const svgElement = liElement.firstElementChild?.firstElementChild;
-        if (!svgElement) {
-            return;
-        }
-
-        const type = liElement.getAttribute("data-type");
-        const id = liElement.getAttribute("data-node-id");
-        if (!id) {
-            return;
-        }
-
-        if (svgElement.classList.contains("b3-list-item__arrow--open")) {
-            svgElement.classList.remove("b3-list-item__arrow--open");
-            this.collapseItem(liElement);
-        } else {
-            svgElement.classList.add("b3-list-item__arrow--open");
-            if (type === "NodeDocument") {
-                this.fetchAndRenderBlocks(liElement, id);
-            } else {
-                this.renderBlockProtyle(liElement, id);
-            }
-        }
-    }
-
-    private collapseItem(liElement: HTMLElement) {
-        const nextSibling = liElement.nextElementSibling as HTMLElement;
-        if (nextSibling && nextSibling.getAttribute("data-type") === "wrapper") {
-            const editorElement = nextSibling.querySelector(".protyle") as HTMLElement;
-            if (editorElement) {
-                const index = this.editors.findIndex(e => e.protyle.element === editorElement);
-                if (index > -1) {
-                    this.editors[index]?.destroy();
-                    this.editors.splice(index, 1);
-                }
-            }
-            nextSibling.remove();
-        } else if (nextSibling) {
-            // Fallback for old invalid DOM if present
-            if (nextSibling.tagName === "UL") {
-                nextSibling.remove();
-            } else if (nextSibling.tagName === "DIV") {
-                const index = this.editors.findIndex(e => e.protyle?.element === nextSibling);
-                if (index > -1) {
-                    this.editors[index]?.destroy();
-                    this.editors.splice(index, 1);
-                }
-                nextSibling.remove();
-            }
-        }
-    }
-
-    private fetchAndRenderBlocks(liElement: HTMLElement, docId: string) {
-        fetchBlocks(this.rootId, docId, (blocks) => {
-            if (blocks.length === 0) {
-                return;
-            }
-
-            const wrapper = document.createElement("li");
-            wrapper.setAttribute("data-type", "wrapper");
-            wrapper.style.display = "block";
-
-            const ul = document.createElement("ul");
-            ul.className = "b3-list b3-list--background";
-
-            let html = "";
-            blocks.forEach((block: any) => {
-                const icon = getIconByType(block.type, block.subType);
-                // CustomLists 使用 mapBlockToTreeData 处理
-                html += `<li data-node-id="${block.id}" data-type="${block.type}" data-subtype="${block.subType || ""}" class="b3-list-item b3-list-item--hide-action">
-                    <span class="b3-list-item__toggle"><svg class="b3-list-item__arrow"><use xlink:href="#iconRight"></use></svg></span>
-                    <svg class="b3-list-item__graphic"><use xlink:href="#${icon}"></use></svg>
-                    <span class="b3-list-item__text">${block.content || "无内容"}</span>
-                </li>`;
-            });
-            ul.innerHTML = html;
-            wrapper.appendChild(ul);
-            liElement.after(wrapper);
-        });
-    }
-
-    private renderBlockProtyle(liElement: HTMLElement, blockId: string) {
-        const wrapper = document.createElement("li");
-        wrapper.setAttribute("data-type", "wrapper");
-        wrapper.style.display = "block";
-
-        const editorElement = document.createElement("div");
-        editorElement.style.minHeight = "auto";
-        editorElement.className = "protyle"; // Marker class for collapse search
-
-        wrapper.appendChild(editorElement);
-        liElement.after(wrapper);
-
-        try {
-            const editor = new Protyle(this.app, editorElement, {
-                blockId: blockId,
-                click: {
-                    preventInsetEmptyBlock: true
-                },
-                render: {
-                    background: false,
-                    gutter: true,
-                    scroll: false,
-                    breadcrumb: false,
-                }
-            });
-            this.editors.push(editor);
-        } catch (e) {
-            console.error(e);
-        }
-    }
 
     /**
      * 刷新正向链接数据
      */
     public refresh() {
-        this.搜索正向链接();
-    }
-
-    /**
-     * 搜索正向链接
-     * 
-     * 作用：查询当前文档引用的所有目标块
-     * 使用 SQL API 查询 refs 表，获取 root_id = 当前文档 的所有引用记录
-     */
-    private 搜索正向链接(init = false) {
-        const element = this.element.querySelector('.block__icon[data-type="refresh"] svg');
-        if (element?.classList.contains("fn__rotate")) {
-            return;
-        }
-        element?.classList.add("fn__rotate");
-
-        if (!this.rootId) {
-            element?.classList.remove("fn__rotate");
-            this.渲染数据({ forwardlinks: [], count: 0 });
-            return;
-        }
-
-        const keyword = this.inputsElement[0]?.value || "";
-        const sortAttr = this.tree.element.previousElementSibling?.querySelector('[data-type="sort"]')?.getAttribute("data-sort") || "0";
-
-        searchForwardLinks(this.rootId, keyword, sortAttr, (data) => {
-            if (!init) {
-                this.保存状态();
-            }
-            this.渲染数据(data);
-        });
+        执行正向链接搜索(this);
     }
 
     /**
@@ -383,17 +126,19 @@ export class Forwardlink extends Model {
      */
     public 保存状态() {
         const sortElement = this.tree.element.previousElementSibling?.querySelector('[data-type="sort"]');
-        this.status[this.rootId] = {
+        const forwardlinkOpenIds: string[] = [];
+        const savedStatus = {
             sort: parseInt(sortElement?.getAttribute("data-sort") || "0"),
             scrollTop: this.tree.element.scrollTop,
-            forwardlinkOpenIds: []
+            forwardlinkOpenIds
         };
-        this.tree.element.querySelectorAll(".b3-list-item__arrow--open").forEach(item => {
+        this.status[this.rootId] = savedStatus;
+        for (const item of this.tree.element.querySelectorAll(".b3-list-item__arrow--open")) {
             const nodeId = item.closest("[data-node-id]")?.getAttribute("data-node-id");
             if (nodeId) {
-                this.status[this.rootId].forwardlinkOpenIds.push(nodeId);
+                savedStatus.forwardlinkOpenIds.push(nodeId);
             }
-        });
+        }
     }
 
     /**
@@ -403,9 +148,9 @@ export class Forwardlink extends Model {
         forwardlinks: IForwardlinkTreeNode[],
         count: number
     }) {
-        this.editors.forEach(item => {
-            item.destroy();
-        });
+        for (const editor of this.editors) {
+            editor.destroy();
+        }
         this.editors = [];
 
         const refreshElement = this.element.querySelector('.block__icon[data-type="refresh"] svg');
@@ -429,6 +174,8 @@ export class Forwardlink extends Model {
         // 更新计数显示
         const countElement = this.element.querySelector(".listCount");
         if (countElement) {
+            // 当正向链接数量为 0 时，隐藏计数元素而不是显示"0"
+            // 这样可以避免显示无意义的数字，保持界面整洁
             if (data.count === 0) {
                 countElement.classList.add("fn__none");
             } else {
@@ -437,22 +184,29 @@ export class Forwardlink extends Model {
             }
         }
 
-        // 恢复状态
-        if (this.status[this.rootId]) {
-            this.status[this.rootId].forwardlinkOpenIds.forEach(id => {
-                const liElement = this.tree.element.querySelector(`.b3-list-item[data-node-id="${id}"]`) as HTMLElement;
-                if (liElement) {
-                    this.toggleItem(liElement);
+        // 恢复状态：如果之前保存过当前文档的状态，则恢复展开项、排序和滚动位置
+        const savedStatus = this.status[this.rootId];
+        if (savedStatus) {
+            for (const id of savedStatus.forwardlinkOpenIds) {
+                const liElement = this.tree.element.querySelector(`.b3-list-item[data-node-id="${id}"]`);
+                // 只有当元素存在且是 HTMLElement 类型时才展开
+                // querySelector 可能返回 null，或者不是 HTMLElement 的元素
+                if (liElement instanceof HTMLElement) {
+                    切换列表项展开(this, liElement);
                 }
-            });
+            }
 
             const sortElement = this.tree.element.previousElementSibling?.querySelector('[data-type="sort"]');
             if (sortElement) {
-                sortElement.setAttribute("data-sort", this.status[this.rootId].sort.toString());
+                sortElement.setAttribute("data-sort", savedStatus.sort.toString());
             }
 
             setTimeout(() => {
-                this.tree.element.scrollTop = this.status[this.rootId].scrollTop;
+                // 延迟执行期间 rootId 可能已变化，需要重新检查状态是否存在
+                const currentStatus = this.status[this.rootId];
+                if (currentStatus) {
+                    this.tree.element.scrollTop = currentStatus.scrollTop;
+                }
             }, Constants.TIMEOUT_LOAD);
         }
     }
