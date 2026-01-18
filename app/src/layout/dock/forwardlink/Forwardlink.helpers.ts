@@ -9,7 +9,35 @@ import { Protyle } from "../../../protyle";
 import { getIconByType } from "../../../editor/getIcon";
 import { setPanelFocus } from "../../utils/setPanelFocus";
 import { searchForwardLinks, fetchBlocks } from "./Forwardlink.data";
+import { IForwardlinkTreeNode } from "./Forwardlink.types";
 import type { Forwardlink } from "./Forwardlink";
+
+/**
+ * 销毁指定元素关联的编辑器实例
+ * @param forwardlink - Forwardlink 实例
+ * @param element - 可能包含编辑器或本身就是编辑器的元素
+ */
+function 销毁编辑器实例(forwardlink: Forwardlink, element: HTMLElement): void {
+    // 可能是容器也可能是编辑器本身
+    const editorElement = element.classList.contains("protyle")
+        ? element
+        : element.querySelector(".protyle");
+
+    // 找不到编辑器元素则跳过
+    if (!(editorElement instanceof HTMLElement)) {
+        return;
+    }
+
+    const index = forwardlink.editors.findIndex(e => e.protyle.element === editorElement);
+    // 找不到对应的编辑器实例则跳过
+    if (index === -1) {
+        return;
+    }
+
+    const editor = forwardlink.editors[index];
+    editor?.destroy();
+    forwardlink.editors.splice(index, 1);
+}
 
 /**
  * 设置面板焦点
@@ -20,6 +48,7 @@ export function 设置面板焦点(forwardlink: Forwardlink): void {
     // 需要向上查找两级获取真正的面板容器；而 pin 类型直接挂载在 Dock 根元素上，element 本身即为容器
     const panelElement = forwardlink.element.parentElement?.parentElement;
     // local 类型时，需要向上两级获取面板容器；同时需确保 panelElement 存在以避免空引用
+    // 此外需判断 forwardlink.type 是否为 local 以确定焦点设置逻辑
     if (forwardlink.type === "local" && panelElement) {
         setPanelFocus(panelElement);
         return;
@@ -33,29 +62,30 @@ export function 设置面板焦点(forwardlink: Forwardlink): void {
  * @param liElement - 要折叠的列表项元素
  */
 export function 折叠列表项(forwardlink: Forwardlink, liElement: HTMLElement): void {
-    const nextSibling = liElement.nextElementSibling as HTMLElement;
-    if (nextSibling && nextSibling.getAttribute("data-type") === "wrapper") {
-        const editorElement = nextSibling.querySelector(".protyle") as HTMLElement;
-        if (editorElement) {
-            const index = forwardlink.editors.findIndex(e => e.protyle.element === editorElement);
-            if (index > -1) {
-                forwardlink.editors[index]?.destroy();
-                forwardlink.editors.splice(index, 1);
-            }
-        }
+    const nextSibling = liElement.nextElementSibling;
+    // 如果没有后续节点或者不是 HTMLElement 则无需后续处理
+    if (!(nextSibling instanceof HTMLElement)) {
+        return;
+    }
+
+    // 优先处理标准包装容器
+    if (nextSibling.getAttribute("data-type") === "wrapper") {
+        销毁编辑器实例(forwardlink, nextSibling);
         nextSibling.remove();
-    } else if (nextSibling) {
-        // Fallback for old invalid DOM if present
-        if (nextSibling.tagName === "UL") {
-            nextSibling.remove();
-        } else if (nextSibling.tagName === "DIV") {
-            const index = forwardlink.editors.findIndex(e => e.protyle?.element === nextSibling);
-            if (index > -1) {
-                forwardlink.editors[index]?.destroy();
-                forwardlink.editors.splice(index, 1);
-            }
-            nextSibling.remove();
-        }
+        return;
+    }
+
+    // 处理旧版或者不规范的结构
+    // 情况 1: 旧版 UL 列表直接移除即可
+    if (nextSibling.tagName === "UL") {
+        nextSibling.remove();
+        return;
+    }
+
+    // 情况 2: 旧版 DIV 容器，需要检查并清理可能存在的编辑器
+    if (nextSibling.tagName === "DIV") {
+        销毁编辑器实例(forwardlink, nextSibling);
+        nextSibling.remove();
     }
 }
 
@@ -91,6 +121,7 @@ export async function 获取并渲染块列表(forwardlink: Forwardlink, liEleme
     }
     ul.innerHTML = html;
     wrapper.appendChild(ul);
+    // 在当前列表项之后插入渲染好的块列表内容
     liElement.after(wrapper);
 }
 
@@ -110,6 +141,7 @@ export function 渲染块编辑器(forwardlink: Forwardlink, liElement: HTMLElem
     editorElement.className = "protyle"; // Marker class for collapse search
 
     wrapper.appendChild(editorElement);
+    // 在当前列表项之后插入 Protyle 编辑器容器
     liElement.after(wrapper);
 
     try {
@@ -127,6 +159,7 @@ export function 渲染块编辑器(forwardlink: Forwardlink, liElement: HTMLElem
         });
         forwardlink.editors.push(editor);
     } catch (e) {
+        // @console
         console.error(e);
     }
 }
@@ -164,8 +197,43 @@ export function 切换列表项展开(forwardlink: Forwardlink, liElement: HTMLE
         获取并渲染块列表(forwardlink, liElement, id);
         return;
     }
-    // 其他块类型直接渲染 Protyle 编辑器
+    // 普通块类型直接渲染 Protyle 编辑器
     渲染块编辑器(forwardlink, liElement, id);
+}
+
+/**
+ * 更新计数显示状态
+ * @param countElement - 计数元素
+ * @param count - 链接数量
+ */
+export function 更新计数显示(countElement: Element, count: number): void {
+    // 当链接数量为 0 时，通过添加 fn__none 类来隐藏计数显示
+    if (count === 0) {
+        countElement.classList.add("fn__none");
+        return;
+    }
+    // 数量不为 0 时显式显示并更新文本内容
+    countElement.classList.remove("fn__none");
+    countElement.textContent = count.toString();
+}
+
+/**
+ * 将正向链接数据项转换为树组件所需的数据格式
+ * @param item - 正向链接原始数据项
+ * @returns 适配 Tree 组件的数据项
+ */
+export function 转换项为树节点(item: IForwardlinkTreeNode) {
+    return {
+        id: item.id,
+        name: item.name,
+        type: item.type,
+        subType: item.subType || "",
+        box: item.box,
+        depth: 0,
+        count: item.count,
+        nodeType: item.type,
+        hPath: item.hPath
+    };
 }
 
 /**
@@ -192,8 +260,11 @@ export async function 执行正向链接搜索(forwardlink: Forwardlink, init = 
         return;
     }
 
-    const keyword = forwardlink.inputsElement[0]?.value || "";
-    const sortAttr = forwardlink.tree.element.previousElementSibling?.querySelector('[data-type="sort"]')?.getAttribute("data-sort") || "0";
+    const inputElement = forwardlink.inputsElement[0];
+    const keyword = inputElement?.value || "";
+    // 获取排序属性，需先获取元素再调用 getAttribute 以避免隐式上下文切换
+    const sortElement = forwardlink.tree.element.previousElementSibling?.querySelector('[data-type="sort"]');
+    const sortAttr = sortElement?.getAttribute("data-sort") || "0";
 
     const data = await searchForwardLinks(forwardlink.rootId, keyword, sortAttr);
     // 非初始化时保存当前状态

@@ -21,7 +21,7 @@ import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.enviro
 import { IForwardlinkTreeNode, IForwardlinkStatus } from "./Forwardlink.types";
 import { genForwardlinkHTML } from "./Forwardlink.html";
 import { showSortMenu } from "./Forwardlink.menu";
-import { 切换列表项展开, 执行正向链接搜索 } from "./Forwardlink.helpers";
+import { 切换列表项展开, 执行正向链接搜索, 更新计数显示, 转换项为树节点 } from "./Forwardlink.helpers";
 import {
     绑定输入框事件,
     绑定Tree滚动事件,
@@ -41,8 +41,8 @@ export class Forwardlink extends Model {
     public type: "pin" | "local";
     public blockId: string;
     public rootId: string;
-    public tree: Tree;
-    private notebookId: string;
+    public tree!: Tree;
+    private notebookId: string = "";
     public editors: Protyle[] = [];
     public status: IForwardlinkStatus = {};
 
@@ -155,57 +155,46 @@ export class Forwardlink extends Model {
         refreshElement?.classList.remove("fn__rotate");
 
         // 转换为 Tree 组件需要的数据格式
-        const treeData: IBlockTree[] = data.forwardlinks.map(item => ({
-            id: item.id,
-            name: item.name,
-            type: item.type,
-            subType: item.subType || "",
-            box: item.box,
-            depth: 0,
-            count: item.count,
-            nodeType: item.type,
-            hPath: item.hPath
-        }));
+        const treeData: IBlockTree[] = data.forwardlinks.map(转换项为树节点);
 
         this.tree.updateData(treeData);
 
         // 更新计数显示
         const countElement = this.element.querySelector(".listCount");
+        // 如果计数元素不存在则跳过后续显示逻辑
         if (countElement) {
-            // 当正向链接数量为 0 时，隐藏计数元素而不是显示"0"
-            // 这样可以避免显示无意义的数字，保持界面整洁
-            if (data.count === 0) {
-                countElement.classList.add("fn__none");
-            } else {
-                countElement.classList.remove("fn__none");
-                countElement.textContent = data.count.toString();
-            }
+            更新计数显示(countElement, data.count);
         }
 
         // 恢复状态：如果之前保存过当前文档的状态，则恢复展开项、排序和滚动位置
         const savedStatus = this.status[this.rootId];
-        if (savedStatus) {
-            for (const id of savedStatus.forwardlinkOpenIds) {
-                const liElement = this.tree.element.querySelector(`.b3-list-item[data-node-id="${id}"]`);
-                // 只有当元素存在且是 HTMLElement 类型时才展开
-                // querySelector 可能返回 null，或者不是 HTMLElement 的元素
-                if (liElement instanceof HTMLElement) {
-                    切换列表项展开(this, liElement);
-                }
-            }
-
-            const sortElement = this.tree.element.previousElementSibling?.querySelector('[data-type="sort"]');
-            if (sortElement) {
-                sortElement.setAttribute("data-sort", savedStatus.sort.toString());
-            }
-
-            setTimeout(() => {
-                // 延迟执行期间 rootId 可能已变化，需要重新检查状态是否存在
-                const currentStatus = this.status[this.rootId];
-                if (currentStatus) {
-                    this.tree.element.scrollTop = currentStatus.scrollTop;
-                }
-            }, Constants.TIMEOUT_LOAD);
+        // 无保存状态时无需恢复
+        if (!savedStatus) {
+            return;
         }
+
+        // 恢复列表展开状态
+        for (const id of savedStatus.forwardlinkOpenIds) {
+            const liElement = this.tree.element.querySelector(`.b3-list-item[data-node-id="${id}"]`);
+            // 只有当元素存在且是 HTMLElement 类型时才恢复展开状态
+            if (liElement instanceof HTMLElement) {
+                切换列表项展开(this, liElement);
+            }
+        }
+
+        // 恢复排序状态
+        const sortElement = this.tree.element.previousElementSibling?.querySelector('[data-type="sort"]');
+        if (sortElement) {
+            sortElement.setAttribute("data-sort", savedStatus.sort.toString());
+        }
+
+        // 延迟设置滚动位置，待 Tree 组件数据完成渲染并填充到 DOM 后再调整滚动条
+        setTimeout(() => {
+            // 延迟执行期间 rootId 可能已变化，需要重新检查状态是否存在
+            const currentStatus = this.status[this.rootId];
+            if (currentStatus) {
+                this.tree.element.scrollTop = currentStatus.scrollTop;
+            }
+        }, Constants.TIMEOUT_LOAD);
     }
 }
