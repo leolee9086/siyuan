@@ -3,10 +3,25 @@
  * 用于替代 as 类型断言，提供运行时类型检查
  */
 
+
 import { Wnd } from "../Wnd";
 import type { Layout } from "../index";
+import { ModelConstructor, ModelFactory } from "./dock.types";
+import { ICustomList } from "./customBlockLists/CustomLists";
 
 const DOCK_TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGraph", "backlink", "forwardlink", "embedding_dock", "cronjob"];
+
+/**
+ * 判断是否为 Model 构造函数
+ * 
+ * 作用：检查给定的 factory 是否为类构造函数。
+ * 意图：区分 MODEL_FACTORIES 中的函数式工厂和类式工厂。
+ * 调用时机：在 createModel 中实例化 Model 时调用。
+ */
+export function isModelConstructor(factory: ModelFactory | ModelConstructor): factory is ModelConstructor {
+    return !!factory.prototype;
+}
+
 
 /**
  * 判断布局子元素是否为 Wnd 实例。
@@ -198,3 +213,14 @@ export function isDockTypeRegistryMap(target: unknown): target is Map<string, TD
     return true;
 }
 
+
+/**
+ * 校验数据是否为 ICustomList
+ * 
+ * 作用：类型守卫
+ * 意图：替代 as 断言，确保数据类型安全
+ * 调用时机：initCustomList 中
+ */
+export const isICustomList = (data: unknown): data is ICustomList => {
+    return typeof data === "object" && data !== null && "id" in data;
+};

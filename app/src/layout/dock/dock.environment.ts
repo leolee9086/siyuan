@@ -20,10 +20,17 @@ export const getSiyuanConfig = () => window.siyuan?.config;
  */
 export const getSiyuanLayout = () => window.siyuan?.layout;
 
+
 /**
  * 获取并递增思源 zIndex
  */
 export const incrementSiyuanZIndex = (): number => ++window.siyuan.zIndex;
+
+/**
+ * 获取思源 Storage 对象
+ */
+export const getSiyuanStorage = () => window.siyuan?.storage;
+
 
 // ============ 窗口尺寸 ============
 

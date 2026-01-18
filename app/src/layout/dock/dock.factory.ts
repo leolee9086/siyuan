@@ -7,29 +7,35 @@ import { Graph } from "./Graph";
 import { Backlink } from "./Backlink";
 import { Forwardlink } from "./forwardlink/Forwardlink";
 import { Inbox } from "./Inbox";
-import { CustomLists, ICustomList } from "./customBlockLists/CustomLists";
+import { CustomLists } from "./customBlockLists/CustomLists";
 import { EmbeddingDock } from "./embeddingDock/EmbeddingDock";
 import { Cronjob } from "./Cronjob";
 import { App } from "../../index";
 import { Protyle } from "../../protyle";
 import { Model } from "../Model";
 import { ErrorPlaceholder, ERROR_PLACEHOLDER_TYPE, createErrorPlaceholderFromData } from "./ErrorPlaceholder";
-import { isErrorPlaceholderData } from "./dock.guard";
+import { getSiyuanLanguages, getSiyuanStorage } from "./dock.environment";
+import { isErrorPlaceholderData, isModelConstructor, isICustomList } from "./dock.guard";
+import { ModelFactory, ModelConstructor } from "./dock.types";
 
-type ModelFactory = (app: App, tab: Tab, editor?: Protyle, data?: unknown) => Model | undefined;
-
+/**
+ * 初始化文件树 Dock
+ * 
+ * 作用：创建文件树组件实例
+ * 意图：提供文件系统的可视化展示和操作
+ * 调用时机：加载文件树 Dock 时
+ */
 const initFile: ModelFactory = (app, tab) => {
     return new Files({ tab, app });
 };
 
-const initBookmark: ModelFactory = (app, tab) => {
-    return new Bookmark(app, tab);
-};
-
-const initTag: ModelFactory = (app, tab) => {
-    return new Tag(app, tab);
-};
-
+/**
+ * 初始化大纲 Dock
+ * 
+ * 作用：创建大纲组件实例
+ * 意图：展示文档的标题结构大纲
+ * 调用时机：加载大纲 Dock 时
+ */
 const initOutline: ModelFactory = (app, tab, editor) => {
     const blockId = editor?.protyle?.block?.rootID || "";
     const preview = editor?.protyle?.preview;
@@ -41,12 +47,25 @@ const initOutline: ModelFactory = (app, tab, editor) => {
         blockId,
         isPreview
     });
+    /**
+     * 初始同步文档标题
+     * 
+     * 作用：如果编辑器当前已加载文档（有 rootID），则立即更新大纲面板的标题。
+     * 意图：确保大纲打开时，其标题栏能够正确显示当前文档的名称和图标，而不是空白。
+     */
     if (editor?.protyle?.block?.rootID) {
         outline.updateDocTitle(editor.protyle.background?.ial);
     }
     return outline;
 };
 
+/**
+ * 初始化关系图 Dock
+ * 
+ * 作用：创建局部关系图组件实例
+ * 意图：展示当前文档的相关引用关系
+ * 调用时机：加载关系图 Dock 时
+ */
 const initGraph: ModelFactory = (app, tab, editor) => {
     return new Graph({
         app,
@@ -56,6 +75,13 @@ const initGraph: ModelFactory = (app, tab, editor) => {
     });
 };
 
+/**
+ * 初始化全局关系图 Dock
+ * 
+ * 作用：创建全局关系图组件实例
+ * 意图：展示整个知识库的引用网络
+ * 调用时机：加载全局关系图 Dock 时
+ */
 const initGlobalGraph: ModelFactory = (app, tab) => {
     return new Graph({
         app,
@@ -64,6 +90,13 @@ const initGlobalGraph: ModelFactory = (app, tab) => {
     });
 };
 
+/**
+ * 初始化反向链接 Dock
+ * 
+ * 作用：创建反向链接组件实例
+ * 意图：展示引用当前文档的其他文档列表
+ * 调用时机：加载反向链接 Dock 时
+ */
 const initBacklink: ModelFactory = (app, tab, editor) => {
     return new Backlink({
         app,
@@ -78,6 +111,7 @@ const initBacklink: ModelFactory = (app, tab, editor) => {
  * 
  * 作用：创建正向链接组件实例
  * 意图：显示当前文档引用的其他文档/块列表
+ * 调用时机：加载正向链接 Dock 时
  */
 const initForwardlink: ModelFactory = (app, tab, editor) => {
     return new Forwardlink({
@@ -88,50 +122,92 @@ const initForwardlink: ModelFactory = (app, tab, editor) => {
     });
 };
 
-const initInbox: ModelFactory = (app, tab) => {
-    return new Inbox(app, tab);
-};
-
+/**
+ * 初始化自定义列表 Dock
+ * 
+ * 作用：创建自定义列表组件实例
+ * 意图：支持用户自定义的数据列表展示
+ * 调用时机：加载自定义列表 Dock 时
+ */
 const initCustomList: ModelFactory = (app, tab, editor, data) => {
-    if (!data) {
+    if (!data || !isICustomList(data)) {
         return undefined;
     }
-    return new CustomLists(app, tab, data as ICustomList);
+    return new CustomLists(app, tab, data);
 };
 
-const initEmbeddingDock: ModelFactory = (app, tab) => {
-    return new EmbeddingDock(app, tab);
-};
-
-const initCronjob: ModelFactory = (app, tab) => {
-    return new Cronjob(app, tab);
-};
-
-const MODEL_FACTORIES: Record<string, ModelFactory> = {
+const MODEL_FACTORIES: Record<string, ModelFactory | ModelConstructor> = {
     file: initFile,
-    bookmark: initBookmark,
-    tag: initTag,
+    bookmark: Bookmark,
+    tag: Tag,
     outline: initOutline,
     graph: initGraph,
     globalGraph: initGlobalGraph,
     backlink: initBacklink,
     forwardlink: initForwardlink,
-    inbox: initInbox,
-    embedding_dock: initEmbeddingDock,
-    cronjob: initCronjob,
+    inbox: Inbox,
+    embedding_dock: EmbeddingDock,
+    cronjob: Cronjob,
 };
 
-const initPlugin = (app: App, tab: Tab, type: string) => {
-    let customModel;
+/**
+ * 初始化插件 Dock
+ * 
+ * 作用：查找并初始化插件提供的 Dock
+ * 意图：支持插件扩展 Dock 功能
+ * 调用时机：当 Dock 类型为非内置类型时尝试加载插件
+ */
+const initPlugin = (app: App, tab: Tab, type: string): Model | undefined => {
+    let customModel: Model | undefined;
     for (const item of app.plugins) {
-        if (item.docks[type]) {
-            customModel = item.docks[type].model({ tab });
+        const dock = item.docks[type];
+        if (dock) {
+            customModel = dock.model({ tab });
             break;
         }
     }
     return customModel;
 };
 
+/**
+ * 获取自定义列表数据
+ * 
+ * 作用：解析或从存储中恢复自定义列表数据
+ * 意图：处理 custom_list 类型的特殊数据恢复逻辑
+ * 调用时机：createModel 中遇到 custom_list 类型但没有 data 时
+ */
+const getCustomListData = (type: string): unknown => {
+    const parts = type.split(":");
+    const uuid = parts.length > 2 ? parts[parts.length - 1] : "";
+    if (!uuid) {
+        return undefined;
+    }
+
+    const storage = getSiyuanStorage();
+    const customLists = storage ? storage["local-customlists"] : undefined;
+    // 显式分步获取数据，避免隐式上下文切换 lint 错误
+    let data = customLists ? customLists[uuid] : undefined;
+
+    if (!data) {
+        data = {
+            id: uuid,
+            title: getSiyuanLanguages()?.remove,
+            icon: "iconTrashcan",
+            type: parts[1],
+            target: ""
+        };
+    }
+    return data;
+};
+
+/**
+ * 创建 Dock Model 实例
+ *
+ * 作用：根据传入的 type 创建对应的 Model 实例（如 File, Outline, Graph 等）。
+ * 意图：作为统一的工厂入口，屏蔽不同 Model 的创建细节，支持内置 Model、自定义列表和插件 Model。
+ * 调用时机：在 Dock 初始化、Tab 恢复或插件请求创建 Dock 时调用。
+ * 问题/改进：目前混合了工厂模式和部分业务逻辑（如 custom_list 的数据恢复），未来可将 custom_list 逻辑抽离。
+ */
 export const createModel = (options: {
     app: App,
     tab: Tab,
@@ -146,28 +222,14 @@ export const createModel = (options: {
 
     const factory = MODEL_FACTORIES[options.type];
     if (factory) {
-        return factory(options.app, options.tab, options.editor, options.data);
+        return isModelConstructor(factory)
+            ? new factory(options.app, options.tab, options.editor, options.data)
+            : factory(options.app, options.tab, options.editor, options.data);
     }
 
+    // 检查是否为自定义列表类型，如果是则尝试恢复或初始化数据
     if (options.type.startsWith("custom_list")) {
-        let data = options.data;
-        if (!data) {
-            const parts = options.type.split(":");
-            const uuid = parts.length > 2 ? parts[parts.length - 1] : "";
-            if (uuid) {
-                const storage = window.siyuan.storage["local-customlists"];
-                data = storage ? storage[uuid] : undefined;
-                if (!data) {
-                    data = {
-                        id: uuid,
-                        title: window.siyuan.languages.remove,
-                        icon: "iconTrashcan",
-                        type: parts[1],
-                        target: ""
-                    };
-                }
-            }
-        }
+        const data = options.data || getCustomListData(options.type);
         return initCustomList(options.app, options.tab, options.editor, data);
     }
 
@@ -201,7 +263,7 @@ export const safeCreateModel = (options: {
             tab: options.tab,
             原始类型: options.type,
             错误信息: errorMessage,
-            错误堆栈: errorStack ?? undefined,
+            ...(errorStack ? { 错误堆栈: errorStack } : {}),
         });
     }
 };
@@ -227,8 +289,8 @@ export const createDockTab = (options: {
                 app: options.app,
                 tab,
                 type: options.type,
-                editor: options.editor ?? undefined,
-                data: options.data ?? undefined
+                editor: options.editor,
+                data: options.data
             });
             if (model) {
                 tab.addModel(model);
