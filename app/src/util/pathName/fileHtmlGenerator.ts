@@ -16,11 +16,11 @@ export const generateCountHTML = (item: IFile, flashcard: boolean): string => {
 <span class="counter counter--right b3-tooltips b3-tooltips__w" aria-label="${siyuanI18n.flashcardDueCard}">${item.dueFlashcardCount}</span>
 <span class="counter counter--right b3-tooltips b3-tooltips__w" aria-label="${siyuanI18n.flashcardCard}">${item.flashcardCount}</span>`;
     }
-    
+
     if (item.count && item.count > 0) {
         return `<span class="popover__block counter b3-tooltips b3-tooltips__w" aria-label="${siyuanI18n.ref}">${item.count}</span>`;
     }
-    
+
     return "";
 };
 
@@ -31,6 +31,7 @@ export const generateCountHTML = (item: IFile, flashcard: boolean): string => {
  */
 const generateAriaLabelParts = (item: IFile): string[] => {
     const displayName = getDisplayName(item.name, true, true);
+    // @内联数组 - 数组元素依赖运行时参数 item，无法提取为静态顶层常量
     return [
         `${displayName} <small class='ft__on-surface'>${item.hSize}</small>`,
         item.bookmark ? `<br>${siyuanI18n.bookmark} ${item.bookmark}` : "",
@@ -54,11 +55,11 @@ const generateFileItemHTMLBase = (item: IFile, notebookId: string, flashcard: bo
     const storage = getSiyuanStorage();
     const localImages = storage[Constants.LOCAL_IMAGES];
     const iconPath = item.icon || (item.subFileCount === 0 ? localImages.file : localImages.folder);
-    
+
     const displayName = getDisplayName(item.name, true, true);
     const ariaLabelParts = generateAriaLabelParts(item);
     const countHTML = generateCountHTML(item, flashcard);
-    
+
     return `<li data-box="${notebookId}" class="b3-list-item" data-path="${item.path}">
     <span style="padding-left: ${item.path.split("/").length * 8}px" class="b3-list-item__toggle b3-list-item__toggle--hl${item.subFileCount === 0 ? " fn__hidden" : ""}">
         <svg class="b3-list-item__arrow"><use xlink:href="#iconRight"></use></svg>
@@ -81,6 +82,7 @@ export const generateFileItemHTML = (item: IFile, notebookId: string): string =>
 
 /**
  * 生成闪卡文件项的HTML
+ * @AIDONE 已创建 no-trivial-wrapper 规则来禁止只有一行的包装函数，规则建议使用柯里化或在调用处直接使用原函数
  * @param item 文件项
  * @param notebookId 笔记本ID
  * @returns 闪卡文件项HTML字符串

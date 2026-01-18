@@ -1,4 +1,5 @@
 import { hasClosestByClassName } from "../protyle/util/hasClosest";
+import { isHTMLElement } from "../util/DOM/element.guard";
 import { rectElement } from "./anno";
 import { getCaptureCanvas } from "./anno.getCaptureCanvas";
 import { IPdfInstance } from "./anno.types";
@@ -44,7 +45,12 @@ async function extractRectImageData(pdfObj: IPdfInstance, pageNumber: number, re
     if (!captureCanvasCtx) {
         return null;
     }
-    const rectStyle = (rectElement.firstElementChild as HTMLElement).style;
+    // 类型守卫：确保 firstElementChild 是 HTMLElement 才能访问 style 属性
+    const firstChild = rectElement.firstElementChild;
+    if (!isHTMLElement(firstChild)) {
+        return null;
+    }
+    const rectStyle = firstChild.style;
     const scale = 1.5;
 
     // 确保所有参数都是整数，避免 "Value is not of type 'long'" 错误

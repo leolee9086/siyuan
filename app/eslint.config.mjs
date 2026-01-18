@@ -16,6 +16,7 @@ import { noAliasUsagePlugin } from "./0_lints/no-alias-usage.mjs";
 import { noLargeInlineArrayPlugin } from "./0_lints/no-large-inline-array.mjs";
 import { requireIfCommentPlugin } from "./0_lints/require-if-comment.mjs";
 import { requireTimeoutCommentPlugin } from "./0_lints/require-timeout-comment.mjs";
+import { noTrivialWrapperPlugin } from "./0_lints/no-trivial-wrapper.mjs";
 import { FULL_FIX_REMINDER } from "./0_lints/shared-constants.mjs";
 
 // Defining local constant for backward compatibility and internal usage
@@ -152,6 +153,7 @@ const SHARED_PLUGINS = {
     "no-large-inline-array": noLargeInlineArrayPlugin,
     "require-if-comment": requireIfCommentPlugin,
     "require-timeout-comment": requireTimeoutCommentPlugin,
+    "no-trivial-wrapper": noTrivialWrapperPlugin,
 };
 
 const SHARED_RULES = {
@@ -207,6 +209,7 @@ const SHARED_RULES = {
     "no-large-inline-array/no-large-inline-array": ["error", { "max": 3 }],
     "require-if-comment/require-if-comment": ["error", { "exemptGuardClauses": true, "exemptSimpleConditions": true }],
     "require-timeout-comment/require-timeout-comment": "error",
+    "no-trivial-wrapper/no-trivial-wrapper": "error",
 };
 
 export default [{

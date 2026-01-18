@@ -52,6 +52,9 @@ const updateExistingAnnotation = (color: string, element: HTMLElement, pdf: IPdf
     const rectItems = element.querySelectorAll(`.${AnnoConstants.CSS.PDF_RECT}[${AnnoConstants.ATTR.DATA_NODE_ID}="${id}"]`);
     for (const rectItem of rectItems) {
         for (const item of Array.from(rectItem.children)) {
+            // Element.children 返回 HTMLCollection<Element>，Element 类型没有 style 属性。
+            // 需要通过 instanceof 检查确保元素是 HTMLElement 才能访问和修改其样式。
+            // 实际场景中，注释矩形的子元素都是 div（HTMLElement），此检查主要用于 TypeScript 类型收窄。
             if (item instanceof HTMLElement) {
                 item.style.border = "2px solid " + color;
                 item.style.backgroundColor = annoItem.type === "text" ? color : "transparent";
@@ -89,6 +92,11 @@ const createNewAnnotation = (color: string, pdf: IPdfInstance) => {
     if (coords) {
         for (const [index, item] of coords.entries()) {
             const newElement = showHighlight(item, pdf);
+            // 当选区跨越多行时，会生成多个高亮矩形元素（每行一个）。
+            // 这些矩形共享同一个 nodeId，属于同一个注释。
+            // 只需对第一个矩形执行以下操作：
+            // 1. setRectElement：将其设为当前选中矩形，作为后续编辑操作的目标
+            // 2. copyAnno：复制注释引用到剪贴板，供用户粘贴到笔记中
             if (index === 0) {
                 setRectElement(newElement);
                 copyAnno(`${pdf.appConfig.file.replace(getLocationOrigin(), "").substr(1)}/${newElement.getAttribute(AnnoConstants.ATTR.DATA_NODE_ID)}`,
@@ -157,6 +165,11 @@ const handleColorClick = (target: HTMLElement, element: HTMLElement, pdf: IPdfIn
 const processSelection = (element: HTMLElement) => {
     const selection = getWindowSelection();
     const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+    // 检查是否存在有效的文本选区：
+    // 1. range 存在 - 用户确实有选区范围
+    // 2. range.toString() !== "" - 选区非空，用户选中了实际文本而非只是点击
+    // 3. hasClosestByClassName - 选区的公共祖先容器位于 PDF 查看器内部，确保是在 PDF 中选中的文本
+    // 只有同时满足这三个条件，才说明用户在 PDF 中选中了有效文本，应该显示注释工具栏
     if (range && range.toString() !== "" &&
         hasClosestByClassName(range.commonAncestorContainer, AnnoConstants.CSS.PDF_VIEWER)) {
         showToolbar(element, range);
@@ -165,25 +178,6 @@ const processSelection = (element: HTMLElement) => {
     hideToolbar(element);
 };
 
-/**
- * 异步处理选区事件
- * 
- * 作用:
- * 延迟执行选区处理逻辑,确保选区状态已经稳定。
- * 
- * 意图:
- * 在文本选择操作完成后的下一个事件循环中处理选区,避免在选区变化过程中执行判断。
- * 这是因为浏览器在 mouseup 等事件触发时,选区可能尚未完全确定。
- * 
- * 调用时机:
- * 在 handlePdfClick 函数的默认分支中被调用(第 165 行)。
- * 当用户点击未匹配到其他特定交互元素时,检查是否有新的文本选区。
- * 
- * @param element - 容器元素,传递给 processSelection 函数
- */
-const handleSelection = (element: HTMLElement) => {
-    setTimeout(() => processSelection(element));
-};
 
 /**
  * 执行工具栏操作
@@ -250,20 +244,30 @@ export const handlePdfClick = async (event: MouseEvent | CustomEvent, element: H
     //处理自定义事件
     const ctx = { event, element, pdf };
 
+    // 判断是否需要处理外部自定义事件（如快捷键触发的注释操作）
+    // 生效场景：事件是 CustomEvent 类型且携带了 detail 信息
     if (externalEventClickHandler.guard(ctx)) {
         await externalEventClickHandler.handler(ctx, controller);
     }
+    // 检查外部事件处理器是否已中止后续处理
+    // 生效场景：外部处理器调用 controller.abort() 表示已完全处理事件
     if (signal.aborted) {
         return;
     }
 
     const target = event.target;
+    // 类型守卫：确保事件目标是 HTMLElement
+    // 生效场景：理论上点击事件的 target 都是 Element，但 TypeScript 类型系统要求显式检查
+    // 非 HTMLElement 的情况极少发生（如点击 SVG 内部元素），此时直接忽略
     if (!(target instanceof HTMLElement)) {
         return;
     }
 
     // 1. 处理颜色方块点击
     const colorSquare = target.closest(`.${AnnoConstants.CSS.COLOR_SQUARE}`);
+    // 类型守卫：closest() 返回 Element | null，需要收窄为 HTMLElement
+    // 生效场景：用户点击了颜色选择器方块，需要处理颜色选择以创建新注释或修改现有注释颜色
+    // 实际中点击目标总是 HTMLElement，此检查同时完成空值判断和类型收窄
     if (colorSquare instanceof HTMLElement) {
         handleColorClick(colorSquare, element, pdf);
         event.preventDefault();
@@ -273,6 +277,9 @@ export const handlePdfClick = async (event: MouseEvent | CustomEvent, element: H
 
     // 2. 处理PDF矩形点击（显示工具栏）
     const pdfRect = target.closest(`.${AnnoConstants.CSS.PDF_RECT}`);
+    // 类型守卫：closest() 返回 Element | null，需要收窄为 HTMLElement
+    // 生效场景：用户点击了 PDF 注释矩形，需要显示工具栏供用户编辑注释
+    // 实际中点击目标总是 HTMLElement，此检查主要用于 TypeScript 类型收窄
     if (pdfRect instanceof HTMLElement) {
         showToolbar(element, undefined, pdfRect);
         event.preventDefault();
@@ -293,15 +300,25 @@ export const handlePdfClick = async (event: MouseEvent | CustomEvent, element: H
         return;
     }
 
-    // 4. 处理选择（默认行为检查）
-    // 仅在我们没有匹配到特定交互元素时
-    // 但是等等，原始代码有一个在`pdf__outer`处中断的`while`循环。
-    // 如果我们在`pdf__outer`内部点击了上面未处理的其他内容，我们会继续执行。
-    // 原始代码在循环中还检查了`!target.classList.contains("pdf__outer")`。
-    // 这里`closest`在找不到时自然停止。
+};
 
-    // 然而, 我们需要确保我们不处理PDF区域*外部*的点击（如果这是意图的话），
-    // 但监听器附加到`element`（这可能是容器）。
-
-    handleSelection(element);
+/**
+ * 处理PDF鼠标抬起事件 - 专门用于检测文本选区
+ * 
+ * 作用：
+ * 检测用户是否在PDF中选中了文本，如果是则显示注释工具栏。
+ * 
+ * 意图：
+ * 使用 mouseup 事件而非 click 事件来处理选区，因为：
+ * 1. mouseup 触发时选区已经确定，无需使用 setTimeout 等不确定性方案
+ * 2. 选区操作（拖拽选中文本）的结束点正是 mouseup，语义更明确
+ * 3. 与 click 事件分离，职责更清晰：click 处理交互元素，mouseup 处理选区
+ * 
+ * 调用时机：
+ * 注册为PDF查看器容器的 mouseup 事件监听器。
+ * 
+ * @param element - PDF容器元素
+ */
+export const handlePdfMouseUp = (element: HTMLElement) => {
+    processSelection(element);
 };

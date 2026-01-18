@@ -28,6 +28,7 @@ let dialogInstance: Dialog | null = null;
 
 /**
  * 获取当前活跃的 protyle 编辑器
+ * @AITODO 使用条件编译来处理移动端和桌面端不同的逻辑容易造成代码对弱AI不可读,应该尽可能以程序逻辑处理
  * @description 遍历所有编辑器，找到包含焦点或光标的那个
  */
 const 获取活跃编辑器 = (): IProtyle | null => {

@@ -126,6 +126,9 @@ const updateAnnotationStyle = (element: HTMLElement, id: string, type: string) =
     const rectItems = element.querySelectorAll(`.${AnnoConstants.CSS.PDF_RECT}[${AnnoConstants.ATTR.DATA_NODE_ID}="${id}"]`);
     for (const rectItem of rectItems) {
         for (const item of Array.from(rectItem.children)) {
+            // rectItem.children 返回 Element 类型，只有 HTMLElement 才有 style 属性
+            // 此检查作为类型守卫，确保可以安全访问 item.style
+            // 生效场景：实际上 PDF 注释的子元素都是 HTMLElement，此检查主要为了类型安全
             if (item instanceof HTMLElement) {
                 item.style.backgroundColor = type === "text" ? item.style.border.replace("2px solid ", "") : "";
             }

@@ -2,7 +2,7 @@ import type { RectElementType, IPdfInstance } from "./anno.types";
 import { getConfig } from "./anno.config";
 import { initRectAnnoTool } from "./anno.initRectAnnoTool";
 import { initResizeHandler } from "./anno.resize";
-import { handlePdfClick } from "./anno/click";
+import { handlePdfClick, handlePdfMouseUp } from "./anno/click";
 
 export * from "./anno.copy";
 export * from "./anno.getHighlight";
@@ -45,6 +45,9 @@ export const initAnno = (element: HTMLElement, pdf: IPdfInstance) => {
     initResizeHandler(pdf);
     element.addEventListener("click", (event) => {
         handlePdfClick(event, element, pdf);
+    });
+    element.addEventListener("mouseup", () => {
+        handlePdfMouseUp(element);
     });
     return pdf;
 };

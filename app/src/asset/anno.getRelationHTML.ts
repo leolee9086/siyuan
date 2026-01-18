@@ -1,5 +1,16 @@
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
+/**
+ * @作用: 根据传入的 ID 数组生成关联列表的 HTML 字符串。
+ *        每个 ID 会被渲染为一个列表项，包含 ID 文本和删除按钮。
+ *        如果 ids 为空或 falsy，返回"空内容"提示。
+ * @意图: 将关联列表的 HTML 生成逻辑提取为独立函数，供对话框创建和列表更新时复用。
+ *        避免在多处重复编写相同的 HTML 模板代码。
+ * @调用时机:
+ *        - 在 createRelationDialog 创建关联对话框时，用于初始化列表内容
+ *        - 在 updateRelationListHTML 更新列表时，添加或删除关联后刷新显示
+ * @问题/改进: 无已知问题
+ */
 export const getRelationHTML = (ids: string[]) => {
     if (!ids) {
         return `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;

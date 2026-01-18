@@ -116,6 +116,16 @@ export const getHightlightCoordsByRange = (pdf: IPdfInstance, color: string) => 
     const startSelected = processPageSelection(pdf, startIndex, range);
 
     let endSelected: number[] = [];
+    /**
+     * 意图：处理用户选区跨越多个 PDF 页面的情况。
+     * `startIndex` 是选区起点所在的页码索引，`endIndex` 是选区终点所在的页码索引。
+     * 
+     * 生效场景：
+     * - 当用户在 PDF 中拖选文本，且选区从第 N 页延伸到第 M 页（N < M）时，
+     *   此判断为真，需要调用 `getEndSelected` 获取结束页上的选区坐标。
+     * - 当选区仅在单页内时（startIndex === endIndex），跳过此步骤，
+     *   因为所有坐标已经在 `startSelected` 中处理完毕。
+     */
     if (startIndex !== endIndex) {
         endSelected = getEndSelected(pdf, endIndex, cloneRange);
     }
@@ -135,6 +145,16 @@ const createAnnotationResults = (params: AnnotationResultParams) => {
     }[] = [];
     const results = [];
 
+    /**
+     * 意图：检查起始页是否有有效的选区坐标。
+     * `startSelected` 存储从 `processPageSelection` 返回的起始页坐标数据。
+     * 
+     * 生效场景：
+     * - 当起始页成功获取到选区矩形坐标时，`startSelected.length > 0` 为真，
+     *   需要将起始页的坐标数据添加到 `pages` 和 `results` 中。
+     * - 当获取页面视图失败、canvas 不存在或没有有效选区矩形时，
+     *   `startSelected` 为空数组，跳过起始页的处理。
+     */
     if (startSelected.length > 0) {
         pages.push({
             index: startIndex,
@@ -143,6 +163,16 @@ const createAnnotationResults = (params: AnnotationResultParams) => {
         const pageInfo = getPageViewInfo(pdf, startIndex);
         results.push(createAnnoCoords(pageInfo, startSelected, id, color, content, "text", "text"));
     }
+    /**
+     * 意图：检查结束页是否有有效的选区坐标。
+     * `endSelected` 仅在跨页选择时（startIndex !== endIndex）才会有数据。
+     * 
+     * 生效场景：
+     * - 当用户选区跨越多个页面时，`endSelected` 包含结束页的坐标数据，
+     *   此判断为真，需要将结束页的数据添加到 `pages` 和 `results` 中。
+     * - 当选区仅在单页内，或获取结束页坐标失败时，
+     *   `endSelected` 为空数组，跳过结束页的处理。
+     */
     if (endSelected.length > 0) {
         pages.push({
             index: endIndex,

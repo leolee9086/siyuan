@@ -14,6 +14,8 @@ export function 转换请求头(headersInit?: HeadersInit): Record<string, strin
         return headers;
     }
 
+    // HeadersInit 的第一种形式：二维字符串数组（如 [["Content-Type", "application/json"]]）
+    // 需要遍历每个 [key, value] 对并添加到结果对象中
     if (Array.isArray(headersInit)) {
         for (const [key, value] of headersInit) {
             headers[key] = value;
@@ -21,6 +23,8 @@ export function 转换请求头(headersInit?: HeadersInit): Record<string, strin
         return headers;
     }
 
+    // HeadersInit 的第二种形式：Headers 实例或其他可迭代对象（实现了 Symbol.iterator）
+    // 同样需要遍历每个 [key, value] 对
     if (是可迭代键值对(headersInit)) {
         for (const [key, value] of headersInit) {
             headers[key] = value;
@@ -66,18 +70,18 @@ export function 处理思源代理响应<T>(innerData: unknown): T | undefined {
     if (!检查思源代理响应(innerData)) {
         throw new Error("收到的响应不符合 思源代理响应 结构");
     }
-    const data = innerData;
-    if (data.status < 200 || data.status >= 300) {
-        throw new Error(获取错误信息(data));
+    // 类型守卫已收窄 innerData 类型，直接使用
+    if (innerData.status < 200 || innerData.status >= 300) {
+        throw new Error(获取错误信息(innerData));
     }
 
-    if (!data.body) {
+    if (!innerData.body) {
         return undefined;
     }
 
     // 根据 bodyEncoding 决定如何解码
-    const isTextEncoding = data.bodyEncoding === "text";
-    const bodyContent = isTextEncoding ? data.body : 解码Base64(data.body);
+    const isTextEncoding = innerData.bodyEncoding === "text";
+    const bodyContent = isTextEncoding ? innerData.body : 解码Base64(innerData.body);
 
     try {
         return JSON.parse(bodyContent);
@@ -94,9 +98,4 @@ export function 等待(ms: number): Promise<void> {
     // 用于创建可 await 的延迟，调用者根据需要决定延迟时长和用途（如 API 限流、等待动画等）
     return new Promise(resolve => setTimeout(resolve, ms));
 }
-
-// 英文别名导出
-export const transformHeaders = 转换请求头;
-export const decodeBase64 = 解码Base64;
-export const handleSiyuanResponse = 处理思源代理响应;
 

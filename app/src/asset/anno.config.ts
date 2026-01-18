@@ -62,6 +62,16 @@ export const setConfig = (pdf: IPdfInstance, id: string, data: IPdfAnno): void =
  */
 const handleGetConfigResponse = (response: IWebSocketData, pdf: IPdfInstance) => {
     let config = {};
+    /**
+     * 意图：只在配置文件存在时解析响应数据。
+     *
+     * 根据思源 API 规范：
+     * - code === 0: 成功获取到配置文件
+     * - code === 1: 配置文件不存在（新 PDF 或从未添加过注释）
+     *
+     * 生效场景：当 PDF 有已保存的注释配置时，解析服务器返回的 JSON 数据。
+     * 如果是新 PDF 或无注释历史，则 config 保持为空对象 {}。
+     */
     if (response.code !== 1) {
         config = JSON.parse(response.data.data);
     }

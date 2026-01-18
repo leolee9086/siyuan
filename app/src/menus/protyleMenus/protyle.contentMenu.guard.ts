@@ -1,8 +1,8 @@
 /**
  * 判断节点是否为 HTMLElement 类型
  */
-export const isHTMLElement = (node: Node | null): node is HTMLElement => {
-    return node !== null && node.nodeType === Node.ELEMENT_NODE;
+export const isHTMLElement = (node: Node | null | undefined): node is HTMLElement => {
+    return node != null && node.nodeType === Node.ELEMENT_NODE;
 };
 
 /**
