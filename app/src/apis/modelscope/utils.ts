@@ -91,6 +91,7 @@ export function 处理思源代理响应<T>(innerData: unknown): T | undefined {
  * 等待指定毫秒数
  */
 export function 等待(ms: number): Promise<void> {
+    // 用于创建可 await 的延迟，调用者根据需要决定延迟时长和用途（如 API 限流、等待动画等）
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
@@ -98,4 +99,4 @@ export function 等待(ms: number): Promise<void> {
 export const transformHeaders = 转换请求头;
 export const decodeBase64 = 解码Base64;
 export const handleSiyuanResponse = 处理思源代理响应;
-export const wait = 等待;
+
