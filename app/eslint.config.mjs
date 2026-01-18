@@ -15,6 +15,7 @@ import { vueCustomRulesPlugin } from "./0_lints/vue-custom-rules.mjs";
 import { noAliasUsagePlugin } from "./0_lints/no-alias-usage.mjs";
 import { noLargeInlineArrayPlugin } from "./0_lints/no-large-inline-array.mjs";
 import { requireIfCommentPlugin } from "./0_lints/require-if-comment.mjs";
+import { requireTimeoutCommentPlugin } from "./0_lints/require-timeout-comment.mjs";
 import { FULL_FIX_REMINDER } from "./0_lints/shared-constants.mjs";
 
 // Defining local constant for backward compatibility and internal usage
@@ -150,6 +151,7 @@ const SHARED_PLUGINS = {
     "no-alias-usage": noAliasUsagePlugin,
     "no-large-inline-array": noLargeInlineArrayPlugin,
     "require-if-comment": requireIfCommentPlugin,
+    "require-timeout-comment": requireTimeoutCommentPlugin,
 };
 
 const SHARED_RULES = {
@@ -204,6 +206,7 @@ const SHARED_RULES = {
     "no-alias-usage/no-alias-usage": "error",
     "no-large-inline-array/no-large-inline-array": ["error", { "max": 3 }],
     "require-if-comment/require-if-comment": ["error", { "exemptGuardClauses": true, "exemptSimpleConditions": true }],
+    "require-timeout-comment/require-timeout-comment": "error",
 };
 
 export default [{
