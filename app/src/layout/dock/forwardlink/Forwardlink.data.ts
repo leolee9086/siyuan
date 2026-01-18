@@ -1,6 +1,6 @@
 import { fetchPost } from "../../../util/fetch";
 import { getIconByType } from "../../../editor/getIcon";
-import { IForwardlinkTreeNode } from "./Forwardlink.types";
+import { IForwardlinkTreeNode, ISqlResultItem, IBlockResult } from "./Forwardlink.types";
 
 const IAL_REGEX = /\s([\w-]+)="([^"]*)"/g;
 
@@ -60,16 +60,26 @@ const parseIal = (ialString: string) => {
     return ial;
 };
 
-interface ISqlResultItem {
-    id: string;
-
-    name: string;
-    type: string;
-    box: string;
-    hPath: string;
-    ial: string;
-    refCount: number;
-}
+/**
+ * 将 SQL 查询结果项转换为树节点
+ * 
+ * - 作用：将数据库原始数据转换为 UI 层需要的树节点格式
+ * - 意图：解析 IAL 并添加图标信息
+ */
+const 转换为树节点 = (item: ISqlResultItem): IForwardlinkTreeNode => {
+    const ial = parseIal(item.ial);
+    const nodeType = "NodeDocument";
+    return {
+        id: item.id,
+        name: item.name || item.hPath || "无标题",
+        type: nodeType,
+        box: item.box,
+        hPath: item.hPath,
+        count: item.refCount || 1,
+        ial,
+        icon: getIconByType(nodeType)
+    };
+};
 
 /**
  * 构建反向链接查询 SQL
@@ -104,16 +114,16 @@ const buildForwardLinksSql = (rootId: string, keywordCondition: string, orderBy:
  * - 作用：执行 SQL 查询以获取指定文档的反向链接
  * - 意图：作为反向链接面板的主要数据获取接口
  * - 调用时机：反向链接面板加载或刷新时调用
+ * @returns Promise，解析为包含 forwardlinks 和 count 的对象
  */
 export const searchForwardLinks = (
     rootId: string,
     keyword: string,
-    sortAttr: string,
-    callback: (data: { forwardlinks: IForwardlinkTreeNode[], count: number }) => void
-) => {
+    sortAttr: string
+): Promise<{ forwardlinks: IForwardlinkTreeNode[], count: number }> => {
+    // 无 rootId 时直接返回空结果
     if (!rootId) {
-        callback({ forwardlinks: [], count: 0 });
-        return;
+        return Promise.resolve({ forwardlinks: [], count: 0 });
     }
 
     const orderBy = buildOrderBy(sortAttr);
@@ -121,48 +131,31 @@ export const searchForwardLinks = (
     // SQL 查询：获取当前文档引用的所有目标文档
     const sql = buildForwardLinksSql(rootId, keywordCondition, orderBy);
 
-    fetchPost("/api/query/sql", { stmt: sql }, response => {
-        const data = (response.data || []) as ISqlResultItem[];
-        callback({
-            forwardlinks: data.map((item) => {
-                const ial = parseIal(item.ial);
-                const nodeType = "NodeDocument";
-                return {
-                    id: item.id,
-                    name: item.name || item.hPath || "无标题",
-                    type: nodeType,
-                    box: item.box,
-                    hPath: item.hPath,
-                    count: item.refCount || 1,
-                    ial,
-                    icon: getIconByType(nodeType)
-                };
-            }),
-            count: data.length
+    return new Promise((resolve) => {
+        // @内联回调
+        fetchPost("/api/query/sql", { stmt: sql }, response => {
+            const data = response.data || [];
+            const items = Array.isArray(data) ? data : [];
+            resolve({
+                forwardlinks: items.map(转换为树节点),
+                count: items.length
+            });
         });
     });
 };
-
-interface IBlockResult {
-    id: string;
-    content: string;
-    type: string;
-    subType: string;
-    box: string;
-}
 
 /**
  * 获取引用块详情
  *
  * - 作用：查询特定文档中引用了当前文档的具体块
- * - 意图：用于展示反向链接的上下文详情
- * - 调用时机：当用户在 UI 中展开某个反向链接文档节点时调用
+ * - 意图：用于展示正向链接的上下文详情
+ * - 调用时机：当用户在 UI 中展开某个正向链接文档节点时调用
+ * @returns Promise，解析为块数组
  */
 export const fetchBlocks = (
     rootId: string,
-    docId: string,
-    callback: (blocks: IBlockResult[]) => void
-) => {
+    docId: string
+): Promise<IBlockResult[]> => {
     const sql = `
         SELECT 
             b.id,
@@ -178,11 +171,16 @@ export const fetchBlocks = (
         LIMIT 64
     `;
 
-    fetchPost("/api/query/sql", { stmt: sql }, (response) => {
-        if (!response.data || response.data.length === 0) {
-            callback([]);
-            return;
-        }
-        callback(response.data as IBlockResult[]);
+    return new Promise((resolve) => {
+        // @内联回调
+        fetchPost("/api/query/sql", { stmt: sql }, (response) => {
+            // 无数据或数据为空数组时返回空列表
+            if (!response.data || response.data.length === 0) {
+                resolve([]);
+                return;
+            }
+            // response.data 已经是 fetchPost 解析后的数据，类型可推断
+            resolve(response.data);
+        });
     });
 };

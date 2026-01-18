@@ -9,6 +9,20 @@ import { TFetchRequestData } from "./fetch.types";
 import { getSiyuanReqId, setSiyuanReqId } from "./siyuanEnvironments/getSiyuanConfig.environment";
 import { reloadLocation } from "./siyuanEnvironments/windowLocation.environment";
 
+/**
+ * 需要进行请求竞态控制的特殊 API 列表
+ *
+ * 这些 API 是高频触发的搜索/图谱请求，需要通过 reqId 机制
+ * 确保后发先至的响应不会覆盖最新请求的结果。
+ */
+const 需要竞态控制的API列表: readonly string[] = [
+    "/api/search/searchRefBlock",
+    "/api/graph/getGraph",
+    "/api/graph/getLocalGraph",
+    "/api/block/getRecentUpdatedBlocks",
+    "/api/search/fullTextSearchBlock",
+];
+
 
 /**
  * @file fetch.ts
@@ -55,16 +69,17 @@ const setupRequestData = (url: string, data?: TFetchRequestData) => {
     if (data instanceof FormData) {
         return data;
     }
-    const specialUrls = ["/api/search/searchRefBlock", "/api/graph/getGraph", "/api/graph/getLocalGraph",
-        "/api/block/getRecentUpdatedBlocks", "/api/search/fullTextSearchBlock"];
-    if (specialUrls.includes(url)) {
+    // 对于高频搜索/图谱请求，记录请求时间戳用于后续竞态检查
+    if (需要竞态控制的API列表.includes(url)) {
         setSiyuanReqId(url, new Date().getTime());
     }
     const isNotLocalGraph = data.type !== "local" || url !== "/api/graph/getLocalGraph";
     const reqId = getSiyuanReqId(url);
-    if (specialUrls.includes(url) && isNotLocalGraph && reqId !== undefined) {
+    // 将 reqId 注入请求数据，以便响应时验证（排除 local 类型的本地图谱，因其不需要竞态控制）
+    if (需要竞态控制的API列表.includes(url) && isNotLocalGraph && reqId !== undefined) {
         data.reqId = reqId;
     }
+    // 事务 API 总是需要唯一标识以保证操作顺序
     if (url === "/api/transactions") {
         data.reqId = new Date().getTime();
     }
@@ -81,6 +96,8 @@ const setupRequestData = (url: string, data?: TFetchRequestData) => {
  * @param failCallback - 失败回调
  */
 const handleFetchError = (url: string, data: TFetchRequestData | undefined, e: Error, failCallback?: (response: IWebSocketData) => void) => {
+    // 当 /api/file/getFile 请求失败且提供了 failCallback 时，优先调用 failCallback 让调用者自行处理
+    // 文件获取失败是常见场景（如文件不存在），调用者可能希望静默处理而非触发通用警告日志
     if (failCallback && url === "/api/file/getFile") {
         failCallback({
             data: null,
@@ -165,10 +182,8 @@ const createPostResponseHandler = (url: string, cb?: (response: IWebSocketData) 
             cb?.(response);
             return;
         }
-        const specialUrls = ["/api/search/searchRefBlock", "/api/graph/getGraph", "/api/graph/getLocalGraph",
-            "/api/block/getRecentUpdatedBlocks", "/api/search/fullTextSearchBlock"];
         const currentReqId = getSiyuanReqId(url);
-        if (specialUrls.includes(url) && response.data?.reqId && currentReqId && currentReqId > response.data.reqId) {
+        if (需要竞态控制的API列表.includes(url) && response.data?.reqId && currentReqId && currentReqId > response.data.reqId) {
             return;
         }
         if (!cb) {

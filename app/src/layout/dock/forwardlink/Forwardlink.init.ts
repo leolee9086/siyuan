@@ -110,8 +110,12 @@ export function 初始化Tree组件(forwardlink: Forwardlink, app: App): void {
  */
 export function 处理消息回调(
     forwardlink: Forwardlink,
-    data: { cmd: string; data: { id?: string; box?: string; ids?: string[]; title?: string } }
+    data: IWebSocketData
 ): void {
+    // 如果消息没有 cmd 字段则忽略
+    if (!data.cmd) {
+        return;
+    }
     const 消息处理映射: Record<string, () => void> = {
         /**
          * 文档重命名处理

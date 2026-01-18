@@ -21,17 +21,15 @@ import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.enviro
 import { IForwardlinkTreeNode, IForwardlinkStatus } from "./Forwardlink.types";
 import { genForwardlinkHTML } from "./Forwardlink.html";
 import { showSortMenu } from "./Forwardlink.menu";
+import { 切换列表项展开, 执行正向链接搜索 } from "./Forwardlink.helpers";
 import {
-    切换列表项展开,
-    执行正向链接搜索,
     绑定输入框事件,
     绑定Tree滚动事件,
     绑定折叠按钮事件,
     绑定展开按钮事件,
-    绑定主元素点击事件,
-    初始化Tree组件,
-    处理消息回调
-} from "./Forwardlink.helpers";
+    绑定主元素点击事件
+} from "./Forwardlink.events";
+import { 初始化Tree组件, 处理消息回调 } from "./Forwardlink.init";
 import { getSiyuanGlobalMenusMenu } from "../../../util/siyuanEnvironments/getMenu.environment";
 
 /**
@@ -103,7 +101,7 @@ export class Forwardlink extends Model {
         this.inputsElement = this.element.querySelectorAll("input");
         绑定输入框事件(this, siyuanI18n);
 
-        初始化Tree组件(this, options);
+        初始化Tree组件(this, options.app);
         绑定Tree滚动事件(this);
         绑定折叠按钮事件(this);
         绑定展开按钮事件(this);
