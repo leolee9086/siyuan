@@ -26,26 +26,28 @@ export function handlePanelFocusSwitch(
     let needFocus = false;
     const targetDataId = target.getAttribute("data-id");
 
-    // @内联回调
-    Array.from(tabContainer.children).find(item => {
+    for (const item of Array.from(tabContainer.children)) {
         if (item.getAttribute("data-id") !== targetDataId) {
-            return false;
+            continue;
         }
+
+        /**
+         * 意图：检查当前标签页是否尚未激活。
+         * 生效场景：只有当目标标签页没有 `layout__tab--active` 类时，才需要重新设置焦点。
+         * 如果已经激活，则不需要重复操作，避免不必要的副作用。
+         */
         if (!item.classList.contains("layout__tab--active")) {
             setPanelFocus(item);
             needFocus = true;
         }
-        return true;
-    });
+        break;
+    }
 
     if (!needFocus) {
         return false;
     }
 
-    const activeElement = document.activeElement;
-    if (activeElement instanceof HTMLElement) {
-        activeElement.blur();
-    }
+    blurActiveElement();
     clearBeforeResizeTop();
     dock.showDock();
     return true;
@@ -69,15 +71,16 @@ export function handlePostCloseFocus(isSaveLayout: boolean): void {
         return;
     }
 
+    /// #if !MOBILE
     const dataId = currentElement.getAttribute("data-id");
-    // @内联回调
-    getAllTabs().find(item => {
+    for (const item of getAllTabs()) {
         if (item.id !== dataId) {
-            return false;
+            continue;
         }
         item.parent.switchTab(item.headElement, false, true, false);
-        return true;
-    });
+        break;
+    }
+    /// #endif
 }
 
 /**
@@ -90,6 +93,11 @@ export function handleTabSwitch(wnd: Wnd, targetDataId: string | null): void {
     }
 
     for (const item of Array.from(tabContainer.children)) {
+        /**
+         * 意图：根据 data-id 判断是否为目标面板。
+         * 生效场景：如果当前项的 data-id 与目标 data-id 相同，则显示该面板并设置焦点（通过移除 `fn__none` 类）；
+         * 否则添加 `fn__none` 类隐藏该面板。
+         */
         if (item.getAttribute("data-id") === targetDataId) {
             item.classList.remove("fn__none");
             setPanelFocus(item);
@@ -104,6 +112,10 @@ export function handleTabSwitch(wnd: Wnd, targetDataId: string | null): void {
  */
 export function blurActiveElement(): void {
     const activeElement = document.activeElement;
+    /**
+     * 意图：类型守卫，确保 activeElement 是 HTMLElement 以便安全调用 blur()。
+     * 生效场景：当 document.activeElement 不为空且为 HTMLElement 实例时，移除焦点。
+     */
     if (activeElement instanceof HTMLElement) {
         activeElement.blur();
     }
