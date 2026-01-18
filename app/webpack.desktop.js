@@ -3,10 +3,10 @@ const webpack = require("webpack");
 const pkg = require("./package.json");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
-const {CleanWebpackPlugin} = require("clean-webpack-plugin");
+const { CleanWebpackPlugin } = require("clean-webpack-plugin");
 // const BundleAnalyzerPlugin = require("webpack-bundle-analyzer").BundleAnalyzerPlugin;
-const {EsbuildPlugin} = require("esbuild-loader");
-const {VueLoaderPlugin} = require("vue-loader");
+const { EsbuildPlugin } = require("esbuild-loader");
+const { VueLoaderPlugin } = require("vue-loader");
 const PatchResolverPlugin = require("./webpack.patchResolver");
 
 module.exports = (env, argv) => {
@@ -39,7 +39,7 @@ module.exports = (env, argv) => {
             alias: {
                 "vue": "vue/dist/vue.esm-bundler.js",
             }
-            
+
         },
         module: {
             rules: [
@@ -97,7 +97,7 @@ module.exports = (env, argv) => {
                                 sourcemap: argv.mode !== "production",
                             },
                         },
-                                                {
+                        {
                             loader: "ifdef-loader",
                             options: {
                                 "ifdef-verbose": false,
@@ -109,11 +109,9 @@ module.exports = (env, argv) => {
                 },
                 {
                     test: /\.scss$/,
-                    include: [
-                        path.resolve(__dirname, "src"),
-                    ],
+
                     use: [
-                                                 process.env.NODE_ENV !== "production"
+                        process.env.NODE_ENV !== "production"
                             ? "vue-style-loader"
                             : MiniCssExtractPlugin.loader,
 

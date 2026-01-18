@@ -113,9 +113,7 @@ module.exports = (env, argv) => {
                 },
                 {
                     test: /\.scss$/,
-                    include: [
-                        path.resolve(__dirname, "src"),
-                    ],
+
                     use: [
                         process.env.NODE_ENV !== "production"
                             ? "vue-style-loader"

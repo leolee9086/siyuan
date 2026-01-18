@@ -1,5 +1,6 @@
+/// #if !MOBILE
 import { getAllModels } from "../layout/getAll";
-
+/// #endif
 /**
  * 
  * @param element 

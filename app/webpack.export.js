@@ -2,10 +2,10 @@ const path = require("path");
 const webpack = require("webpack");
 const pkg = require("./package.json");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
-const {CleanWebpackPlugin} = require("clean-webpack-plugin");
+const { CleanWebpackPlugin } = require("clean-webpack-plugin");
 // const BundleAnalyzerPlugin = require("webpack-bundle-analyzer").BundleAnalyzerPlugin;
-const {EsbuildPlugin} = require("esbuild-loader");
-const {VueLoaderPlugin} = require("vue-loader");
+const { EsbuildPlugin } = require("esbuild-loader");
+const { VueLoaderPlugin } = require("vue-loader");
 const PatchResolverPlugin = require("./webpack.patchResolver");
 
 module.exports = (env, argv) => {
@@ -102,9 +102,7 @@ module.exports = (env, argv) => {
                 },
                 {
                     test: /\.scss$/,
-                    include: [
-                        path.resolve(__dirname, "src/assets/scss"),
-                    ],
+
                     use: [
                         MiniCssExtractPlugin.loader,
                         {

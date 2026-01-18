@@ -1,5 +1,7 @@
 import { showMessage } from "../dialog/message";
+/// #if !MOBILE
 import { getAllModels } from "../layout/getAll";
+/// #endif
 import { hasClosestByClassName, hasTopClosestByTag } from "../protyle/util/hasClosest";
 import { getDockByType } from "../layout/tabUtil";
 /// #if !MOBILE
