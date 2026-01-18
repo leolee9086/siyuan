@@ -145,8 +145,9 @@ const handleFetchResponse = (response: Response) => {
             code: -response.status,
         };
     }
+    // 认证失效时延迟 3 秒重载页面，以便在刷新前保持当前界面状态供用户观察。
     if (401 == response.status) {
-        // 认证失效时延迟 3 秒重载页面，以便在刷新前保持当前界面状态供用户观察。
+        // 延迟 3 秒重载页面，以便在刷新前保持当前界面状态供用户观察
         setTimeout(() => {
             reloadLocation();
         }, 3000);
@@ -230,9 +231,9 @@ const createPostResponseHandler = (url: string, cb?: (response: IWebSocketData) 
  *
  * // 不需要回调的请求
  * fetchPost("/api/system/exit");
- * //@AITODO 在不改变对外行为的基础上,此函数自身的实现应该由.then调用改为async await
+ * // @AIDONE 在不改变对外行为的基础上,此函数自身的实现应该由.then调用改为async await
  */
-export const fetchPost = (
+export const fetchPost = async (
     url: string,
     data?: TFetchRequestData,
     cb?: (response: IWebSocketData) => void,
@@ -248,23 +249,24 @@ export const fetchPost = (
         init.headers = headers;
     }
     let isGetFile202 = false;
-    fetch(url, init)
-        .then((response) => {
-            // 检查 getFile 接口是否返回 202 状态码（表示文件尚未就绪或需要特殊处理）
-            if (response.status === 202 && url === "/api/file/getFile") {
-                isGetFile202 = true;
-            }
-            return handleFetchResponse(response);
-        })
-        .then((response: IWebSocketData) => {
-            // 处理 getFile API 的特殊响应（如内核返回 202 状态码时，直接调用 failCallback）
-            if (failCallback && url === "/api/file/getFile" && isGetFile202) {
-                failCallback(response);
-                return;
-            }
-            createPostResponseHandler(url, cb)(response);
-        })
-        .catch((e) => handleFetchError(url, data, e, failCallback));
+    try {
+        const response = await fetch(url, init);
+        // 检查 getFile 接口是否返回 202 状态码（表示文件尚未就绪或需要特殊处理）
+        if (response.status === 202 && url === "/api/file/getFile") {
+            isGetFile202 = true;
+        }
+        const responseData: IWebSocketData = await handleFetchResponse(response);
+
+        // 处理 getFile API 的特殊响应（如内核返回 202 状态码时，直接调用 failCallback）
+        if (failCallback && url === "/api/file/getFile" && isGetFile202) {
+            failCallback(responseData);
+            return;
+        }
+        createPostResponseHandler(url, cb)(responseData);
+    } catch (e) {
+        const error = e instanceof Error ? e : new Error(String(e));
+        handleFetchError(url, data, error, failCallback);
+    }
 };
 
 /**

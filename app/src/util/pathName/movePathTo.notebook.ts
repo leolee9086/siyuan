@@ -3,16 +3,7 @@ import { unicode2Emoji } from "../../emoji";
 import { escapeHtml } from "../escape";
 import { siyuanI18n } from "../siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanStorage } from "../siyuanEnvironments/getSiyuanConfig.environment";
-
-interface NotebookItem {
-    id: string;
-    name: string;
-    icon: string;
-    closed: boolean;
-    newFlashcardCount?: string;
-    dueFlashcardCount?: string;
-    flashcardCount?: string;
-}
+import { NotebookItem } from "./movePathTo.types";
 
 /**
  * 渲染笔记本列表HTML
@@ -21,10 +12,12 @@ export const 渲染笔记本列表HTML = (notebooks: NotebookItem[], flashcard: 
     let html = "";
     const localImages = getSiyuanStorage()[Constants.LOCAL_IMAGES];
     for (const item of notebooks) {
+        // 过滤已关闭的笔记本
         if (item.closed) {
             continue;
         }
         let countHTML = "";
+        // 如果开启了闪卡模式，渲染闪卡计数
         if (flashcard) {
             countHTML = `<span class="counter counter--right b3-tooltips b3-tooltips__w" aria-label="${siyuanI18n.flashcardNewCard}">${item.newFlashcardCount}</span>
 <span class="counter counter--right b3-tooltips b3-tooltips__w" aria-label="${siyuanI18n.flashcardDueCard}">${item.dueFlashcardCount}</span>

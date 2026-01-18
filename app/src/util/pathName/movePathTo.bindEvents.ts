@@ -5,17 +5,11 @@ import { 创建键盘事件处理器 } from "./movePathTo.keydown";
 import { 创建点击事件处理器 } from "./movePathTo.click";
 import { 创建失焦事件处理器 } from "./movePathTo.blur";
 
-export interface MovePathToOptions {
-    cb: (toPath: string[], toNotebook: string[]) => void;
-    paths?: string[];
-    range?: Range;
-    title?: string;
-    flashcard: boolean;
-    rootIDs?: string[];
-}
+import { MovePathToOptions } from "./movePathTo.types";
 
 /**
  * 绑定所有事件监听器到对话框
+ * @param params - 事件绑定所需的 DOM 元素和配置选项
  */
 export const 绑定事件监听器 = (params: {
     inputElement: HTMLInputElement;
