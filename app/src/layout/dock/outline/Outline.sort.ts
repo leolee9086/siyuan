@@ -3,7 +3,9 @@
  * 从 Outline.ts 拆分出来以保持单文件行数限制
  */
 import { hasClosestByClassName } from "../../../protyle/util/hasClosest";
+/// #if !MOBILE
 import { getAllModels } from "../../getAll";
+/// #endif
 import { transaction } from "../../../protyle/wysiwyg/transaction";
 import { dragOverScroll, stopScrollAnimation } from "../../../boot/globalEvent/dragover";
 import type { Outline } from "./Outline";

@@ -1,5 +1,7 @@
 import { Files } from "../layout/dock/Files";
+/// #if !MOBILE
 import { getAllModels } from "../layout/getAll";
+/// #endif
 import { countSelectWord, countBlockWord } from "../layout/status";
 import { getDockByType } from "../layout/tabUtil";
 import { hasClosestByClassName } from "../protyle/util/hasClosest";
@@ -32,6 +34,15 @@ export const updatePanelByEditor = (options: {
     resize: boolean
 }) => {
     const protyle = options.protyle;
+    /**
+     * 意图：确保存在有效的编辑器实例且该编辑器已关联特定的文档路径。
+     * 只有当编辑器加载了具体的文档（拥有 path）时，才进行后续的 UI 更新操作（如调整大小、设置焦点、同步文件树选中状态等）。
+     *
+     * 生效场景：
+     * 1. 传入了 `protyle` 对象。
+     * 2. 该 `protyle` 对象具有非空的 `path` 属性（即关联了实际文档）。
+     * 如果 protyle 为空或未关联文档，则不执行针对特定文档的面板更新逻辑。
+     */
     if (protyle && protyle.path) {
         if (protyle.element.classList.contains("fn__none")) {
             return;
@@ -71,7 +82,9 @@ export const updatePanelByEditor = (options: {
         });
     }
     // 切换页签或关闭所有页签时，需更新对应的面板
+    /// #if !MOBILE
     const models = getAllModels();
     updateOutline(models, protyle, options.reload);
     updateBacklinkGraph(models, protyle);
+    /// #endif
 };

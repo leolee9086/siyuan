@@ -5,7 +5,10 @@
 import { MenuItem } from "../../../menus/Menu.Item";
 import { Constants } from "../../../constants";
 import { fetchPost } from "../../../util/fetch";
+/// #if !MOBILE
 import { getAllModels } from "../../getAll";
+/// #endif
+
 import { transaction, turnsIntoTransaction } from "../../../protyle/wysiwyg/transaction";
 import { genEmptyElement } from "../../../block/util";
 import { focusBlock, focusByWbr } from "../../../protyle/util/selection";

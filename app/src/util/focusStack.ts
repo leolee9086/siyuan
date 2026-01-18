@@ -3,7 +3,9 @@ import { getContenteditableElement, focusByRange } from "../ai/imports";
 import { Constants } from "../constants";
 import { showMessage } from "../dialog/message";
 import { Editor } from "../editor";
+/// #if !MOBILE
 import { getAllModels } from "../layout/getAll";
+/// #endif
 import { Tab } from "../layout/Tab";
 import { getInstanceById, getWndByLayout } from "../layout/util";
 import { Wnd } from "../layout/Wnd";

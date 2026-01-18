@@ -5,7 +5,9 @@ import type { Wnd } from "../Wnd";
 import type { Dock } from "./index";
 import { setPanelFocus } from "../utils/setPanelFocus";
 import { clearBeforeResizeTop } from "../../protyle/util/resize";
+/// #if !MOBILE
 import { getAllTabs } from "../getAll";
+/// #endif
 
 /**
  * 处理已激活面板的焦点切换

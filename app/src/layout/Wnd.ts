@@ -32,7 +32,9 @@ import { openFileById } from "../editor/utils.openFileById";
 import { updatePanelByEditor } from "../editor/util.updatePanelByEditor";
 import { scrollCenter } from "../util/highlightById";
 import { fetchPost } from "../util/fetch";
+/// #if !MOBILE
 import { getAllModels } from "./getAll";
+/// #endif
 import { clearCounter } from "./status";
 import { saveScroll } from "../protyle/scroll/saveScroll";
 import { Asset } from "../asset";

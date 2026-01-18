@@ -8,7 +8,9 @@ import { setStorageVal } from "../../../protyle/util/compatibility";
 import { openFileById } from "../../../editor/utils.openFileById";
 import { Constants } from "../../../constants";
 import { getDockByType } from "../../tabUtil";
+/// #if !MOBILE
 import { getAllModels } from "../../getAll";
+/// #endif
 import { setPanelFocus } from "../../utils/setPanelFocus";
 import { goHome } from "../../../protyle/wysiwyg/commonHotkey/commonHotkey";
 import { Editor } from "../../../editor";

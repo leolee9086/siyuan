@@ -8,7 +8,10 @@ import { Files } from "./dock/Files";
 import { Outline } from "./dock/outline/Outline";
 import { Bookmark } from "./dock/Bookmark";
 import { Tag } from "./dock/Tag";
+/// #if !MOBILE
+
 import { getAllModels, getAllTabs, getAllWnds } from "./getAll";
+/// #endif
 import { Asset } from "../asset";
 import { Search } from "../search";
 import { Dock } from "./dock";

@@ -1,4 +1,6 @@
+/// #if !MOBILE
 import { getAllModels } from "../getAll";
+/// #endif
 import { Tab } from "../Tab";
 import { Graph } from "./Graph";
 import { Outline } from "./outline/Outline";
@@ -19,6 +21,7 @@ export const openBacklink = async (options: {
     title?: string,
     useBlockId?: boolean,
 }) => {
+    /// #if !MOBILE
     const backlink = getAllModels().backlink.find(item => {
         if (item.blockId === options.blockId && item.type === "local") {
             item.parent.parent.removeTab(item.parent.id);
@@ -66,6 +69,7 @@ export const openBacklink = async (options: {
             }));
         }
     }));
+    /// #endif
 };
 
 export const openGraph = async (options: {

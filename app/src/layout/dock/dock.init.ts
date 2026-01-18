@@ -10,7 +10,9 @@
 import type { Dock } from "./index";
 import { getDockByType } from "../tabUtil";
 import { Protyle } from "../../protyle";
+/// #if !MOBILE
 import { getAllModels } from "../getAll";
+/// #endif
 import { isWnd, isTDock } from "./dock.guard";
 import { hasValidDockType } from "./dock.visibility";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";

@@ -2,7 +2,9 @@ import { Tab } from "../layout/Tab";
 import { Editor } from "./index";
 import { Wnd } from "../layout/Wnd";
 import { getInstanceById, getWndByLayout, pdfIsLoading } from "../layout/util";
+/// #if !MOBILE
 import { getAllModels } from "../layout/getAll";
+/// #endif
 import { Constants } from "../constants";
 /// #if !BROWSER
 import { ipcRenderer } from "electron";
