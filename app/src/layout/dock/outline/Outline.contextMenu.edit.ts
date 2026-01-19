@@ -8,18 +8,13 @@ import { fetchPost } from "../../../util/fetch";
 /// #if !MOBILE
 import { getAllModels } from "../../getAll";
 /// #endif
-//@AITODO 增加转换为子文档菜单项,强调无法撤销,注意阅读相关代码,转换之后要留下到子文档的引用
 import { transaction, turnsIntoTransaction } from "../../../protyle/wysiwyg/transaction";
-
 import { focusByWbr } from "../../../protyle/util/selection";
-
-
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanGlobalMenusMenu } from "../../../util/siyuanEnvironments/getMenu.environment";
-
-
+import { confirmDialog } from "../../../dialog/confirmDialog";
 import { isHTMLElement } from "../dock.guard";
-import { 处理标题级别变换响应, genHeadingHTML, 创建插入同级标题后处理器, 创建添加子标题响应处理器 } from "./Outline.contextMenu.edit.util";
+import { 处理标题级别变换响应, genHeadingHTML, 创建插入同级标题后处理器, 创建添加子标题响应处理器, convertBlockToSubDocument } from "./Outline.contextMenu.edit.util";
 import type { Outline } from "./Outline";
 
 /** 获取 Protyle 和块元素 */
@@ -50,14 +45,17 @@ export function getProtyleAndBlockElement(this: Outline, element: HTMLElement) {
      * 生效场景：在 DOM 中未找到对应 ID 的元素，或找到的不是 HTMLElement 时。
      */
     if (!blockElement || !isHTMLElement(blockElement)) {
+        // 确保 element 是 HTML 元素
         return;
     }
     return { protyle, blockElement };
 }
 
-/** 处理标题级别变换的响应 */
-
-
+/**
+ * 作用：根据标题级别获取对应的文案。
+ * 意图：将数字级别转换为可读的本地化字符串。
+ * 调用时机：在生成标题转换菜单项时调用。
+ */
 function 获取标题文案(level: number) {
     const 文案映射: { [key: number]: string } = {
         1: siyuanI18n.heading1,
@@ -192,17 +190,40 @@ export function appendLevelMenuItems(this: Outline, element: HTMLElement, id: st
     }
 }
 
+
+
+
 /**
- * 作用：生成标题块的 HTML 结构。
- * 意图：用于在 DOM 中插入新的标题块时，构建符合 Protyle 规范的 HTML 字符串。
- * 调用时机：在插入新的同级或子级标题时调用。
+ * 作用：添加"转换为子文档"菜单项。
+ * 意图：允许用户将当前块转换为一个新的子文档。
+ * 调用时机：在右键菜单构建时调用。
  */
-
-
-
-
-/** 创建添加子标题的响应处理器 */
-
+export function appendSubDocMenu(this: Outline, element: HTMLElement) {
+    getSiyuanGlobalMenusMenu().append(new MenuItem({
+        label: "转换为子文档",
+        icon: "iconFile",
+        /**
+         * 作用：处理“转换为子文档”菜单项的点击事件。
+         * 意图：执行将当前块转换为子文档的逻辑。
+         * 调用时机：用户点击菜单项时。
+         */
+        click: () => {
+            const data = this.getProtyleAndBlockElement(element);
+            /**
+             * 作用：确保成功获取了 Protyle 实例和块元素。
+             * 意图：执行事务需要依赖有效的 Protyle 上下文和目标元素。
+             * 生效场景：`getProtyleAndBlockElement` 返回有效对象时。
+             */
+            if (!data) {
+                return;
+            }
+            // @内联回调
+            confirmDialog("提示", "⚠️ 此操作无法撤销<br>确认将此块及其内容转换为子文档吗？", () => {
+                convertBlockToSubDocument(data.protyle, data.blockElement);
+            });
+        }
+    }).element);
+}
 
 /** 添加插入标题菜单项 */
 export function appendInsertMenuItems(this: Outline, element: HTMLElement, id: string, currentLevel: number) {

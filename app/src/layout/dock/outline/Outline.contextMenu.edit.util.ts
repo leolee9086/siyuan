@@ -2,6 +2,9 @@ import { Constants } from "../../../constants";
 import { transaction } from "../../../protyle/wysiwyg/transaction";
 import { focusByWbr } from "../../../protyle/util/selection";
 import { mathRender } from "../../../protyle/render/mathRender";
+import { fetchPost } from "../../../util/fetch";
+import { pathPosix } from "../../../util/pathName";
+import { replaceFileName } from "../../../editor/rename";
 import { isOperations, isHTMLElement } from "../dock.guard";
 
 /**
@@ -159,4 +162,97 @@ export const 创建添加子标题响应处理器 = (
         nextEl.scrollIntoView();
         focusByWbr(nextEl, document.createRange());
     }
+};
+
+/**
+ * 作用：将指定块转换为子文档。
+ * 意图：实现"转换为子文档"功能，创建新文档并移动原来的块。
+ * 调用时机：用户在菜单确认后调用。
+ */
+/**
+ * 作用：将指定块转换为子文档。
+ * 意图：实现"转换为子文档"功能，创建新文档并移动原来的块。
+ * 调用时机：用户在菜单确认后调用。
+ */
+/**
+ * 作用：执行子文档创建及块移动的事务操作。
+ * 意图：将核心逻辑提取为独立函数，复用且避免嵌套函数定义。
+ */
+const executeSubDocCreateAndMove = (
+    protyle: IProtyle,
+    ids: string[],
+    newPath: string,
+    name: string,
+    blockElement: HTMLElement
+) => {
+    // @内联回调
+    fetchPost("/api/filetree/createDocWithMd", {
+        notebook: protyle.notebookId,
+        path: newPath, // 已经是完整路径
+        parentID: protyle.block.rootID,
+        markdown: ""
+    }, (response) => {
+        const newDocID = response.data;
+
+        // 3. 构建 Transaction：插入引用 + 移动块
+        const doOperations: IOperation[] = [];
+
+        // 在原位置插入引用
+        // Ref 格式: ((id 'text'))
+        const refHTML = `<div data-node-id="${Lute.NewNodeID()}" data-type="NodeParagraph" class="p"><div contenteditable="true" spellcheck="false"><span>((${newDocID} '${name}'))</span><wbr></div><div class="protyle-attr" contenteditable="false"></div></div>`;
+
+        doOperations.push({
+            action: "insert",
+            data: refHTML,
+            id: Lute.NewNodeID(),
+            previousID: blockElement.previousElementSibling?.getAttribute("data-node-id") || undefined,
+            parentID: blockElement.parentElement?.getAttribute("data-node-id") || protyle.block.parentID
+        });
+
+        // 移动块到新文档
+        for (const itemId of ids) {
+            doOperations.push({
+                action: "move",
+                id: itemId,
+                parentID: newDocID
+            });
+        }
+        transaction(protyle, doOperations);
+    });
+};
+
+/**
+ * 作用：将指定块转换为子文档。
+ * 意图：实现"转换为子文档"功能，创建新文档并移动原来的块。
+ * 调用时机：用户在菜单确认后调用。
+ */
+export const convertBlockToSubDocument = (protyle: IProtyle, blockElement: HTMLElement) => {
+    const id = blockElement.getAttribute("data-node-id");
+    if (!id) {
+        return;
+    }
+
+    const isHeading = blockElement.getAttribute("data-type") === "NodeHeading";
+
+    if (isHeading) {
+        fetchPost("/api/filetree/heading2Doc", {
+            targetNoteBook: protyle.notebookId,
+            srcHeadingID: id,
+            targetPath: protyle.path,
+            pushMode: 0,
+        });
+        return;
+    }
+
+    const name = replaceFileName(blockElement.textContent?.trim()) || "Untitled";
+
+    // 1. 获取当前文档的 HPath
+    fetchPost("/api/filetree/getHPathByPath", {
+        notebook: protyle.notebookId,
+        path: protyle.path
+    }, (response) => {
+        const parentHPath = response.data;
+        const newPath = pathPosix().join(parentHPath, name);
+        executeSubDocCreateAndMove(protyle, [id], newPath, name, blockElement);
+    });
 };

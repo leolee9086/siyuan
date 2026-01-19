@@ -8,7 +8,7 @@ import { checkFold } from "../../../util/noRelyPCFunction";
 import { openFileById } from "../../../editor/utils.openFileById";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import type { Outline } from "./Outline";
-import { appendLevelMenuItems, appendInsertMenuItems, appendClipboardMenuItems } from "./Outline.contextMenu.edit";
+import { appendLevelMenuItems, appendInsertMenuItems, appendClipboardMenuItems, appendSubDocMenu } from "./Outline.contextMenu.edit";
 
 // 重导出编辑模块的函数供 Outline 使用
 export { getProtyleAndBlockElement, genHeadingTransform } from "./Outline.contextMenu.edit";
@@ -28,6 +28,7 @@ export function showContextMenu(this: Outline, element: HTMLElement, event: Mous
     if (!window.siyuan.config.readonly) {
         // 升降级和转换菜单
         appendLevelMenuItems.call(this, element, id, currentLevel);
+        appendSubDocMenu.call(this, element);
 
         // 跳转并聚焦
         checkFold(id, (zoomIn) => {

@@ -108,16 +108,16 @@ export class Outline extends Model {
 
     public setCurrent(nodeElement: HTMLElement) {
         if (!nodeElement) {
-return;
-}
+            return;
+        }
         if (nodeElement.getAttribute("data-type") === "NodeHeading") {
             this.setCurrentById(nodeElement.getAttribute("data-node-id"));
         } else {
             let previousElement = getPreviousBlock(nodeElement);
             while (previousElement) {
                 if (previousElement.getAttribute("data-type") === "NodeHeading") {
-break;
-}
+                    break;
+                }
                 previousElement = getPreviousBlock(previousElement);
             }
             if (previousElement) {
@@ -137,13 +137,13 @@ break;
 
     public setCurrentByPreview(nodeElement: Element) {
         if (!nodeElement) {
-return;
-}
+            return;
+        }
         let previousElement = nodeElement;
         while (previousElement && !previousElement.classList.contains("b3-typography")) {
             if (["H1", "H2", "H3", "H4", "H5", "H6"].includes(previousElement.tagName)) {
-break;
-}
+                break;
+            }
             previousElement = previousElement.previousElementSibling || previousElement.parentElement;
         }
         if (previousElement && previousElement.id) {
@@ -154,6 +154,9 @@ break;
     public setCurrentById(id: string) {
         this.element.querySelectorAll(".b3-list-item.b3-list-item--focus").forEach(item => item.classList.remove("b3-list-item--focus"));
         let currentElement = this.element.querySelector(`.b3-list-item[data-node-id="${id}"]`) as HTMLElement;
+        if (!currentElement) {
+            return;
+        }
         if (window.siyuan.storage[Constants.LOCAL_OUTLINE].keepCurrentExpand) {
             let ulElement = currentElement.parentElement;
             while (ulElement && !ulElement.classList.contains("b3-list") && ulElement.tagName === "UL") {
@@ -178,12 +181,12 @@ break;
         let currentElement = this.element.querySelector(".b3-list-item--focus");
         let currentId;
         if (currentElement) {
-currentId = currentElement.getAttribute("data-node-id");
-}
+            currentId = currentElement.getAttribute("data-node-id");
+        }
         const scrollTop = this.element.scrollTop;
         if (typeof callbackId !== "undefined") {
-this.blockId = callbackId;
-}
+            this.blockId = callbackId;
+        }
         this.tree.updateData(data.data);
         if (this.isPreview) {
             this.tree.element.querySelectorAll(".popover__block").forEach(item => item.classList.remove("popover__block"));
@@ -197,16 +200,16 @@ this.blockId = callbackId;
         if (currentId) {
             currentElement = this.element.querySelector(`[data-node-id="${currentId}"]`);
             if (currentElement) {
-currentElement.classList.add("b3-list-item--focus");
-}
+                currentElement.classList.add("b3-list-item--focus");
+            }
         }
         this.element.removeAttribute("data-loading");
     }
 
     public saveExpendIds() {
         if (window.siyuan.config.readonly || window.siyuan.isPublish) {
-return;
-}
+            return;
+        }
         if (!this.isPreview && this.type === "pin") {
             fetchPost("/api/storage/setOutlineStorage", { docID: this.blockId, val: { expandIds: this.tree.getExpandIds() } });
         }
