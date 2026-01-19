@@ -3,36 +3,52 @@
  * 从 Outline.contextMenu.ts 进一步拆分
  */
 import { MenuItem } from "../../../menus/Menu.Item";
-import { Constants } from "../../../constants";
+
 import { fetchPost } from "../../../util/fetch";
 /// #if !MOBILE
 import { getAllModels } from "../../getAll";
 /// #endif
-
+//@AITODO 增加转换为子文档菜单项,强调无法撤销,注意阅读相关代码,转换之后要留下到子文档的引用
 import { transaction, turnsIntoTransaction } from "../../../protyle/wysiwyg/transaction";
-import { genEmptyElement } from "../../../block/util";
-import { focusBlock, focusByWbr } from "../../../protyle/util/selection";
-import { mathRender } from "../../../protyle/render/mathRender";
-import { isInAndroid, isInHarmony, writeText } from "../../../protyle/util/compatibility";
+
+import { focusByWbr } from "../../../protyle/util/selection";
+
+
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanGlobalMenusMenu } from "../../../util/siyuanEnvironments/getMenu.environment";
-import { getSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { getWindowJSAndroid, getWindowJSHarmony } from "../../../util/siyuanEnvironments/windowNative.environment";
-import { isOperations, isHTMLElement } from "../dock.guard";
+
+
+import { isHTMLElement } from "../dock.guard";
+import { 处理标题级别变换响应, genHeadingHTML, 创建插入同级标题后处理器, 创建添加子标题响应处理器 } from "./Outline.contextMenu.edit.util";
 import type { Outline } from "./Outline";
 
 /** 获取 Protyle 和块元素 */
 export function getProtyleAndBlockElement(this: Outline, element: HTMLElement) {
     const id = element.getAttribute("data-node-id");
     const editItem = getAllModels().editor.find(editItem => editItem.editor.protyle.block.rootID === this.blockId);
+    /**
+     * 作用：确保找到了对应的编辑器实例。
+     * 意图：如果未找到与当前 blockId 关联的编辑器，则无法进行后续操作。
+     * 生效场景：在多编辑器环境下，无法匹配到当前活动的编辑器时。
+     */
     if (!editItem) {
         return;
     }
     const protyle = editItem.editor.protyle;
+    /**
+     * 作用：确保编辑器处于所见即所得 (WYSIWYG) 模式。
+     * 意图：大纲操作依赖于 WYSIWYG 元素，如果非此模式则不处理。
+     * 生效场景：Protyle 实例未初始化 WYSIWYG 组件时。
+     */
     if (!protyle.wysiwyg) {
         return;
     }
     const blockElement = protyle.wysiwyg.element.querySelector(`[data-node-id="${id}"]`);
+    /**
+     * 作用：确保找到了对应的 block 元素且它是 HTMLElement。
+     * 意图：后续操作需要基于 HTMLElement 进行，如果未找到或不是 HTMLElement 则无法继续。
+     * 生效场景：在 DOM 中未找到对应 ID 的元素，或找到的不是 HTMLElement 时。
+     */
     if (!blockElement || !isHTMLElement(blockElement)) {
         return;
     }
@@ -40,41 +56,48 @@ export function getProtyleAndBlockElement(this: Outline, element: HTMLElement) {
 }
 
 /** 处理标题级别变换的响应 */
-const 处理标题级别变换响应 = (protyle: IProtyle, responseData: { doOperations: IOperation[]; undoOperations: IOperation[] }) => {
-    for (const op of responseData.doOperations) {
-        const elements = protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${op.id}"]`);
-        for (const el of elements) {
-            if (isHTMLElement(el)) {
-                el.outerHTML = op.data;
-            }
-        }
-        const newElements = protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${op.id}"]`);
-        for (const el of newElements) {
-            if (isHTMLElement(el)) {
-                mathRender(el);
-            }
-        }
-    }
-    const firstOp = responseData.doOperations[0];
-    if (firstOp) {
-        const focusEl = protyle.wysiwyg.element.querySelector(`[data-node-id="${firstOp.id}"]`);
-        focusEl?.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-    transaction(protyle, responseData.doOperations, responseData.undoOperations);
-};
+
+
+function 获取标题文案(level: number) {
+    const 文案映射: { [key: number]: string } = {
+        1: siyuanI18n.heading1,
+        2: siyuanI18n.heading2,
+        3: siyuanI18n.heading3,
+        4: siyuanI18n.heading4,
+        5: siyuanI18n.heading5,
+        6: siyuanI18n.heading6,
+    };
+    return 文案映射[level] || "";
+}
 
 /** 生成标题级别转换菜单项 */
 export function genHeadingTransform(this: Outline, id: string, level: number) {
     return {
         id: "heading" + level, iconHTML: "", icon: "iconHeading" + level,
-        label: siyuanI18n["heading" + level],
+        label: 获取标题文案(level),
+        /**
+         * 作用：处理标题级别转换菜单项的点击事件。
+         * 意图：当用户选择特定的标题级别时，请求后端获取相应的事务数据，并执行标题级别的转换操作。
+         * 调用时机：用户在外观大纲（Outline）的上下文菜单中点击“标题 x”选项时。
+         * 改进：目前依赖全局模型查找 (getAllModels)，未来可考虑解耦。
+         */
         click: () => {
             const editItem = getAllModels().editor.find(editItem => editItem.editor.protyle.block.rootID === this.blockId);
+            /**
+             * 作用：确保找到了对应的编辑器实例。
+             * 意图：如果未找到与当前 blockId 关联的编辑器，则中止操作。
+             * 生效场景：无法匹配到当前活动的编辑器时。
+             */
             if (!editItem) {
                 return;
             }
             const protyle = editItem.editor.protyle;
             fetchPost("/api/block/getHeadingLevelTransaction", { id, level }, (response) => {
+                /**
+                 * 作用：验证响应数据和 Protyle 实例。
+                 * 意图：确保后端返回了有效数据且编辑器实例仍然存活。
+                 * 生效场景：请求失败、返回空数据或编辑器已被销毁时。
+                 */
                 if (!protyle || !response.data) {
                     return;
                 }
@@ -86,11 +109,26 @@ export function genHeadingTransform(this: Outline, id: string, level: number) {
 
 /** 添加升降级菜单项 */
 export function appendLevelMenuItems(this: Outline, element: HTMLElement, id: string, currentLevel: number) {
+    /**
+     * 作用：仅在标题级别大于 1 时显示“升级”选项。
+     * 意图：一级标题无法再升级，避免显示无用菜单项。
+     * 生效场景：当前标题级别为 h2-h6 时。
+     */
     if (currentLevel > 1) {
         getSiyuanGlobalMenusMenu().append(new MenuItem({
             id: "upgrade", icon: "iconUp", label: siyuanI18n.upgrade,
+            /**
+             * 作用：处理标题升级（减少级别）菜单项的点击事件。
+             * 意图：将当前标题块的级别减少一级。
+             * 调用时机：用户在菜单中点击“升级”选项时。
+             */
             click: () => {
                 const data = this.getProtyleAndBlockElement(element);
+                /**
+                 * 作用：确保成功获取了 Protyle 实例和块元素。
+                 * 意图：执行事务需要依赖有效的 Protyle 上下文和目标元素。
+                 * 生效场景：`getProtyleAndBlockElement` 返回有效对象时。
+                 */
                 if (data) {
                     turnsIntoTransaction({
                         protyle: data.protyle,
@@ -102,11 +140,26 @@ export function appendLevelMenuItems(this: Outline, element: HTMLElement, id: st
             }
         }).element);
     }
+    /**
+     * 作用：仅在标题级别小于 6 时显示“降级”选项。
+     * 意图：六级标题无法再降级，避免显示无用菜单项。
+     * 生效场景：当前标题级别为 h1-h5 时。
+     */
     if (currentLevel < 6) {
         getSiyuanGlobalMenusMenu().append(new MenuItem({
             id: "downgrade", icon: "iconDown", label: siyuanI18n.downgrade,
+            /**
+             * 作用：处理标题降级（增加级别）菜单项的点击事件。
+             * 意图：将当前标题块的级别增加一级。
+             * 调用时机：用户在菜单中点击“降级”选项时。
+             */
             click: () => {
                 const data = this.getProtyleAndBlockElement(element);
+                /**
+                 * 作用：确保成功获取了 Protyle 实例和块元素。
+                 * 意图：执行事务需要依赖有效的 Protyle 上下文和目标元素。
+                 * 生效场景：`getProtyleAndBlockElement` 返回有效对象时。
+                 */
                 if (data) {
                     turnsIntoTransaction({
                         protyle: data.protyle,
@@ -120,87 +173,66 @@ export function appendLevelMenuItems(this: Outline, element: HTMLElement, id: st
     }
     const headingSubMenu = [];
     for (let i = 1; i <= 6; i++) {
+        /**
+         * 作用：排除当前已经是的标题级别。
+         * 意图：在生成“变换标题”菜单时，无需提供转换为当前级别的选项。
+         * 生效场景：当循环生成的级别 `i` 与当前标题级别一致时。
+         */
         if (currentLevel !== i) {
             headingSubMenu.push(this.genHeadingTransform(id, i));
         }
     }
+    /**
+     * 作用：仅当有可用的转换选项时才显示子菜单。
+     * 意图：如果当前级别包含了所有可能的级别（理论上不可能），则隐藏子菜单。
+     * 生效场景：生成的子菜单项数量大于 0 时。
+     */
     if (headingSubMenu.length > 0) {
         getSiyuanGlobalMenusMenu().append(new MenuItem({ id: "tWithSubtitle", type: "submenu", icon: "iconRefresh", label: siyuanI18n.tWithSubtitle, submenu: headingSubMenu }).element);
     }
 }
 
-const genHeadingHTML = (level: number, newId: string) => `<div data-subtype="h${level}" data-node-id="${newId}" data-type="NodeHeading" class="h${level}"><div contenteditable="true" spellcheck="false"><wbr></div><div class="protyle-attr" contenteditable="false">${Constants.ZWSP}</div></div>`;
+/**
+ * 作用：生成标题块的 HTML 结构。
+ * 意图：用于在 DOM 中插入新的标题块时，构建符合 Protyle 规范的 HTML 字符串。
+ * 调用时机：在插入新的同级或子级标题时调用。
+ */
 
-/** 创建插入同级标题后的响应处理器 */
-const 创建插入同级标题后处理器 = (
-    获取Protyle和块元素: () => { protyle: IProtyle; blockElement: HTMLElement } | undefined,
-    currentLevel: number
-) => (response: IWebSocketData) => {
-    const data = 获取Protyle和块元素();
-    if (!data || !response.data || !isOperations(response.data.doOperations)) {
-        return;
-    }
-    const doOps = response.data.doOperations;
-    const lastOp = doOps[doOps.length - 1];
-    const previousID = lastOp.id;
-    const newId = Lute.NewNodeID(), html = genHeadingHTML(currentLevel, newId);
-    transaction(data.protyle, [{ action: "insert", data: html, id: newId, previousID }], [{ action: "delete", id: newId }]);
-    const prevEl = data.protyle.wysiwyg.element.querySelector(`[data-node-id="${previousID}"]`);
-    if (!prevEl) {
-        return;
-    }
-    prevEl.insertAdjacentHTML("afterend", html);
-    const nextEl = prevEl.nextElementSibling;
-    if (nextEl) {
-        nextEl.scrollIntoView();
-        focusByWbr(nextEl, document.createRange());
-    }
-};
+
+
 
 /** 创建添加子标题的响应处理器 */
-const 创建添加子标题响应处理器 = (
-    获取Protyle和块元素: () => { protyle: IProtyle; blockElement: HTMLElement } | undefined,
-    currentLevel: number
-) => (delResp: IWebSocketData) => {
-    let previousID = delResp.data.doOperations[delResp.data.doOperations.length - 1].id;
-    const idx = delResp.data.undoOperations.findIndex((op: IOperation) => {
-        const si = op.data.indexOf(' data-subtype="h');
-        return si > -1 && si < 260 && parseInt(op.data.substring(si + 16, si + 17)) === currentLevel + 1;
-    });
-    if (idx > -1) {
-        previousID = delResp.data.undoOperations[idx - 1].id;
-    }
-    const data = 获取Protyle和块元素();
-    if (!data) {
-        return;
-    }
-    const newId = Lute.NewNodeID(), html = genHeadingHTML(currentLevel + 1, newId);
-    transaction(data.protyle, [{ action: "insert", data: html, id: newId, previousID }], [{ action: "delete", id: newId }]);
-    const prevEl = data.protyle.wysiwyg.element.querySelector(`[data-node-id="${previousID}"]`);
-    if (prevEl) {
-        prevEl.insertAdjacentHTML("afterend", html);
-        const nextEl = prevEl.nextElementSibling;
-        if (nextEl) {
-            nextEl.scrollIntoView();
-            focusByWbr(nextEl, document.createRange());
-        }
-    }
-};
+
 
 /** 添加插入标题菜单项 */
 export function appendInsertMenuItems(this: Outline, element: HTMLElement, id: string, currentLevel: number) {
     getSiyuanGlobalMenusMenu().append(new MenuItem({
         id: "insertSameLevelHeadingBefore", icon: "iconBefore", label: siyuanI18n.insertSameLevelHeadingBefore,
+        /**
+         * 作用：处理在当前标题前插入同级标题的点击事件。
+         * 意图：在当前标题上方创建一个新的空标题块。
+         * 调用时机：用户点击“在上方插入”菜单项时。
+         */
         click: () => {
             const data = this.getProtyleAndBlockElement(element);
+            /**
+             * 作用：处理上下文丢失的情况。
+             * 意图：如果无法获取到操作所需的 Protyle 实例，则中止。
+             * 生效场景：环境异常或元素已失效。
+             */
             if (!data) {
                 return;
             }
             const newId = Lute.NewNodeID(), html = genHeadingHTML(currentLevel, newId);
-            transaction(data.protyle, [{ action: "insert", data: html, id: newId, previousID: data.blockElement.previousElementSibling?.getAttribute("data-node-id") ?? undefined, parentID: data.blockElement.parentElement.getAttribute("data-node-id") || data.protyle.block.parentID }], [{ action: "delete", id: newId }]);
+            transaction(data.protyle, [{ action: "insert", data: html, id: newId, previousID: data.blockElement.previousElementSibling?.getAttribute("data-node-id") ?? undefined, parentID: data.blockElement.parentElement?.getAttribute("data-node-id") || data.protyle.block.parentID }], [{ action: "delete", id: newId }]);
             data.blockElement.insertAdjacentHTML("beforebegin", html);
             const 新插入的元素 = data.blockElement.previousElementSibling;
-            if (新插入的元素 instanceof HTMLElement) {
+            /**
+             * 作用：确保新插入的元素引用且是 HTMLElement。
+             * 意图：调用 scrollIntoView 和 focustByWbr 等 DOM API 需要 HTMLElement 实例。
+             * 生效场景：当成功获取到新插入的前一个兄弟节点且确实为元素时。
+             */
+            if (isHTMLElement(新插入的元素)) {
                 新插入的元素.scrollIntoView();
                 focusByWbr(新插入的元素, document.createRange());
             }
@@ -208,13 +240,28 @@ export function appendInsertMenuItems(this: Outline, element: HTMLElement, id: s
     }).element);
     getSiyuanGlobalMenusMenu().append(new MenuItem({
         id: "insertSameLevelHeadingAfter", icon: "iconAfter", label: siyuanI18n.insertSameLevelHeadingAfter,
+        /**
+         * 作用：处理在当前标题后插入同级标题的点击事件。
+         * 意图：在当前标题下方创建一个新的空标题块。
+         * 调用时机：用户点击“在下方插入”菜单项时。
+         */
         click: () => {
             fetchPost("/api/block/getHeadingDeleteTransaction", { id }, 创建插入同级标题后处理器(() => this.getProtyleAndBlockElement(element), currentLevel));
         }
     }).element);
+    /**
+     * 作用：仅在标题级别小于 6 时显示“添加子标题”选项。
+     * 意图：六级标题不支持子标题（暂无 h7），限制层级深度。
+     * 生效场景：当前标题级别为 h1-h5 时。
+     */
     if (currentLevel < 6) {
         getSiyuanGlobalMenusMenu().append(new MenuItem({
             id: "addChildHeading", icon: "iconAdd", label: siyuanI18n.addChildHeading,
+            /**
+             * 作用：处理添加子标题菜单项的点击事件。
+             * 意图：作为当前标题的子级，插入一个新的空标题块。
+             * 调用时机：用户点击“添加子标题”菜单项时。
+             */
             click: () => {
                 fetchPost("/api/block/getHeadingDeleteTransaction", { id }, 创建添加子标题响应处理器(() => this.getProtyleAndBlockElement(element), currentLevel));
             }
@@ -222,66 +269,4 @@ export function appendInsertMenuItems(this: Outline, element: HTMLElement, id: s
     }
 }
 
-const writeClipboard = (protyle: IProtyle, respData: string) => {
-    if (isInAndroid()) {
-        getWindowJSAndroid()?.writeHTMLClipboard(protyle.lute.BlockDOM2StdMd(respData).trimEnd(), respData + Constants.ZWSP);
-    } else if (isInHarmony()) {
-        getWindowJSHarmony()?.writeHTMLClipboard(protyle.lute.BlockDOM2StdMd(respData).trimEnd(), respData + Constants.ZWSP);
-    } else {
-        writeText(respData + Constants.ZWSP);
-    }
-};
-
-const handleEmptyContent = (protyle: IProtyle, doOps: IOperation[], undoOps: IOperation[]) => {
-    if (protyle.wysiwyg.element.childElementCount === 0) {
-        const newID = Lute.NewNodeID(), emptyEl = genEmptyElement(false, false, newID);
-        protyle.wysiwyg.element.insertAdjacentElement("afterbegin", emptyEl);
-        doOps.push({ action: "insert", data: emptyEl.outerHTML, id: newID, parentID: protyle.block.parentID });
-        undoOps.push({ action: "delete", id: newID });
-        focusBlock(emptyEl);
-    }
-};
-
-/** 添加复制/剪切/删除菜单项 */
-export function appendClipboardMenuItems(this: Outline, element: HTMLElement, id: string) {
-    getSiyuanGlobalMenusMenu().append(new MenuItem({
-        id: "copyHeadings1", icon: "iconCopy", label: `${siyuanI18n.copy} ${siyuanI18n.headings1}`,
-        click: () => {
-            const data = this.getProtyleAndBlockElement(element);
-            fetchPost("/api/block/getHeadingChildrenDOM", { id, removeFoldAttr: data.blockElement.getAttribute("fold") !== "1" }, (resp) => {
-                writeClipboard(data.protyle, resp.data);
-            });
-        }
-    }).element);
-    if (!getSiyuanConfig().readonly) {
-        getSiyuanGlobalMenusMenu().append(new MenuItem({
-            id: "cutHeadings1", icon: "iconCut", label: `${siyuanI18n.cut} ${siyuanI18n.headings1}`,
-            click: () => {
-                const data = this.getProtyleAndBlockElement(element);
-                fetchPost("/api/block/getHeadingChildrenDOM", { id, removeFoldAttr: data.blockElement.getAttribute("fold") !== "1" }, (resp) => {
-                    writeClipboard(data.protyle, resp.data);
-                    fetchPost("/api/block/getHeadingDeleteTransaction", { id }, (delResp) => {
-                        delResp.data.doOperations.forEach((op: IOperation) => {
-                            data.protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${op.id}"]`).forEach((el: HTMLElement) => el.remove());
-                        });
-                        handleEmptyContent(data.protyle, delResp.data.doOperations, delResp.data.undoOperations);
-                        transaction(data.protyle, delResp.data.doOperations, delResp.data.undoOperations);
-                    });
-                });
-            }
-        }).element);
-        getSiyuanGlobalMenusMenu().append(new MenuItem({
-            id: "deleteHeadings1", icon: "iconTrashcan", label: `${siyuanI18n.delete} ${siyuanI18n.headings1}`,
-            click: () => {
-                const data = this.getProtyleAndBlockElement(element);
-                fetchPost("/api/block/getHeadingDeleteTransaction", { id }, (resp) => {
-                    resp.data.doOperations.forEach((op: IOperation) => {
-                        data.protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${op.id}"]`).forEach((el: HTMLElement) => el.remove());
-                    });
-                    handleEmptyContent(data.protyle, resp.data.doOperations, resp.data.undoOperations);
-                    transaction(data.protyle, resp.data.doOperations, resp.data.undoOperations);
-                });
-            }
-        }).element);
-    }
-}
+export { appendClipboardMenuItems } from "./Outline.contextMenu.clipboard";
