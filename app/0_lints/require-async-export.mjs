@@ -65,7 +65,7 @@ export const requireAsyncExportPlugin = {
                     recommended: true
                 },
                 messages: {
-                    missingAsync: "❌ 导出函数必须是异步函数 (async)。\n如果没有异步操作，请添加豁免注释: '/** @同步豁免: 原因 */'。\n" +
+                    missingAsync: "❌ 导出函数必须是异步函数 (async)。\n当且仅当有绝对充足而且无法避免的原因时才能够使用同步函数，此时必须添加详尽的豁免注释,说明为何此处必须使用同步逻辑: '/** @同步豁免: 原因 */'。\n" +
                         "允许的原因: " + ALLOWED_REASONS.join(", ") + "。" + 全量修复提示,
                     invalidReason: "❌ 无效的同步豁免原因: '{{reason}}'。\n" +
                         "允许的原因: " + ALLOWED_REASONS.join(", ") + "。" + 全量修复提示
