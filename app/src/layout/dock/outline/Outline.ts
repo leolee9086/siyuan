@@ -34,7 +34,9 @@ export class Outline extends Model {
     showExpandLevelMenu = showExpandLevelMenu;
     collapseSameLevel = collapseSameLevel;
     collapseChildren = collapseChildren;
-    showContextMenu = showContextMenu;
+    showContextMenu = (element: HTMLElement, event: MouseEvent) => {
+        showContextMenu(this, element, event);
+    };
     genHeadingTransform = genHeadingTransform;
     getProtyleAndBlockElement = getProtyleAndBlockElement;
     initInputEvents = initInputEvents;
@@ -79,11 +81,12 @@ export class Outline extends Model {
                 return;
             }
             if (ial) {
-                let iconHTML = `${unicode2Emoji(ial.icon || window.siyuan.storage[Constants.LOCAL_IMAGES].file, "b3-list-item__graphic", true)}`;
+                let iconHTML = `${unicode2Emoji(ial.icon || window.siyuan?.storage[Constants.LOCAL_IMAGES]?.file, "b3-list-item__graphic", true)}`;
                 if (ial.icon === Constants.ZWSP && docTitleElement.firstElementChild) {
                     iconHTML = docTitleElement.firstElementChild.outerHTML;
                 }
-                docTitleElement.innerHTML = `${iconHTML}<span class="b3-list-item__text">${escapeHtml(ial.title)}</span>${docTitleElement.querySelector(".counter")?.outerHTML || ""}`;
+                const counter = docTitleElement.querySelector(".counter");
+                docTitleElement.innerHTML = `${iconHTML}<span class="b3-list-item__text">${escapeHtml(ial.title)}</span>${counter?.outerHTML || ""}`;
                 docTitleElement.setAttribute("title", ial.title);
                 docTitleElement.classList.remove("fn__none");
             }
@@ -111,7 +114,10 @@ export class Outline extends Model {
             return;
         }
         if (nodeElement.getAttribute("data-type") === "NodeHeading") {
-            this.setCurrentById(nodeElement.getAttribute("data-node-id"));
+            const id = nodeElement.getAttribute("data-node-id");
+            if (id) {
+                this.setCurrentById(id);
+            }
         } else {
             let previousElement = getPreviousBlock(nodeElement);
             while (previousElement) {
@@ -121,7 +127,10 @@ export class Outline extends Model {
                 previousElement = getPreviousBlock(previousElement);
             }
             if (previousElement) {
-                this.setCurrentById(previousElement.getAttribute("data-node-id"));
+                const prevId = previousElement.getAttribute("data-node-id");
+                if (prevId) {
+                    this.setCurrentById(prevId);
+                }
             } else {
                 fetchPost("/api/block/getBlockBreadcrumb", { id: nodeElement.getAttribute("data-node-id"), excludeTypes: [] }, (response) => {
                     response.data.reverse().find((item: IBreadcrumb) => {
@@ -157,16 +166,24 @@ export class Outline extends Model {
         if (!currentElement) {
             return;
         }
-        if (window.siyuan.storage[Constants.LOCAL_OUTLINE].keepCurrentExpand) {
+        /**
+         * 作用：保持当前大纲的展开状态。
+         * 意图：当配置了 keepCurrentExpand 时，自动展开当前高亮节点的所有父级，并显示出来。
+         * 生效场景：`window.siyuan.storage` 中配置了 `keepCurrentExpand` 为 true。
+         */
+        if (window.siyuan?.storage?.[Constants.LOCAL_OUTLINE]?.keepCurrentExpand) {
             let ulElement = currentElement.parentElement;
             while (ulElement && !ulElement.classList.contains("b3-list") && ulElement.tagName === "UL") {
                 ulElement.classList.remove("fn__none");
-                ulElement.previousElementSibling.querySelector(".b3-list-item__arrow").classList.add("b3-list-item__arrow--open");
+                const arrowElement = ulElement.previousElementSibling.querySelector(".b3-list-item__arrow");
+                if (arrowElement) {
+                    arrowElement.classList.add("b3-list-item__arrow--open");
+                }
                 ulElement = ulElement.parentElement;
             }
             this.saveExpendIds();
         } else {
-            while (currentElement && currentElement.clientHeight === 0) {
+            while (currentElement && currentElement.clientHeight === 0 && currentElement.parentElement) {
                 currentElement = currentElement.parentElement.previousElementSibling as HTMLElement;
             }
         }
@@ -207,7 +224,7 @@ export class Outline extends Model {
     }
 
     public saveExpendIds() {
-        if (window.siyuan.config.readonly || window.siyuan.isPublish) {
+        if (window.siyuan?.config?.readonly || window.siyuan?.isPublish) {
             return;
         }
         if (!this.isPreview && this.type === "pin") {

@@ -122,7 +122,7 @@ const 创建剪切标题内层处理器 = (protyle: IProtyle, id: string) => (re
 };
 
 /** 添加复制/剪切/删除菜单项 */
-export function appendClipboardMenuItems(this: Outline, element: HTMLElement, id: string) {
+export function appendClipboardMenuItems(outline: Outline, element: HTMLElement, id: string) {
     getSiyuanGlobalMenusMenu().append(new MenuItem({
         id: "copyHeadings1", icon: "iconCopy", label: `${siyuanI18n.copy} ${siyuanI18n.headings1}`,
         /**
@@ -131,7 +131,7 @@ export function appendClipboardMenuItems(this: Outline, element: HTMLElement, id
          * 调用时机：用户点击"复制"菜单项时触发
          */
         click: () => {
-            const data = getProtyleAndBlockElement.call(this, element);
+            const data = getProtyleAndBlockElement(outline, element);
             if (!data) {
                 return;
             }
@@ -153,7 +153,7 @@ export function appendClipboardMenuItems(this: Outline, element: HTMLElement, id
              * 调用时机：用户点击"剪切"菜单项时触发
              */
             click: () => {
-                const data = getProtyleAndBlockElement.call(this, element);
+                const data = getProtyleAndBlockElement(outline, element);
                 if (!data) {
                     return;
                 }
@@ -169,7 +169,7 @@ export function appendClipboardMenuItems(this: Outline, element: HTMLElement, id
              * 调用时机：用户点击"删除"菜单项时触发
              */
             click: () => {
-                const data = getProtyleAndBlockElement.call(this, element);
+                const data = getProtyleAndBlockElement(outline, element);
                 if (!data) {
                     return;
                 }

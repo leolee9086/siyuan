@@ -18,9 +18,9 @@ import { 处理标题级别变换响应, genHeadingHTML, 创建插入同级标�
 import type { Outline } from "./Outline";
 
 /** 获取 Protyle 和块元素 */
-export function getProtyleAndBlockElement(this: Outline, element: HTMLElement) {
+export function getProtyleAndBlockElement(outline: Outline, element: HTMLElement) {
     const id = element.getAttribute("data-node-id");
-    const editItem = getAllModels().editor.find(editItem => editItem.editor.protyle.block.rootID === this.blockId);
+    const editItem = getAllModels().editor.find(editItem => editItem.editor.protyle.block.rootID === outline.blockId);
     /**
      * 作用：确保找到了对应的编辑器实例。
      * 意图：如果未找到与当前 blockId 关联的编辑器，则无法进行后续操作。
@@ -69,7 +69,7 @@ function 获取标题文案(level: number) {
 }
 
 /** 生成标题级别转换菜单项 */
-export function genHeadingTransform(this: Outline, id: string, level: number) {
+export function genHeadingTransform(outline: Outline, id: string, level: number) {
     return {
         id: "heading" + level, iconHTML: "", icon: "iconHeading" + level,
         label: 获取标题文案(level),
@@ -80,7 +80,7 @@ export function genHeadingTransform(this: Outline, id: string, level: number) {
          * 改进：目前依赖全局模型查找 (getAllModels)，未来可考虑解耦。
          */
         click: () => {
-            const editItem = getAllModels().editor.find(editItem => editItem.editor.protyle.block.rootID === this.blockId);
+            const editItem = getAllModels().editor.find(editItem => editItem.editor.protyle.block.rootID === outline.blockId);
             /**
              * 作用：确保找到了对应的编辑器实例。
              * 意图：如果未找到与当前 blockId 关联的编辑器，则中止操作。
@@ -106,7 +106,7 @@ export function genHeadingTransform(this: Outline, id: string, level: number) {
 }
 
 /** 添加升降级菜单项 */
-export function appendLevelMenuItems(this: Outline, element: HTMLElement, id: string, currentLevel: number) {
+export function appendLevelMenuItems(outline: Outline, element: HTMLElement, id: string, currentLevel: number) {
     /**
      * 作用：仅在标题级别大于 1 时显示“升级”选项。
      * 意图：一级标题无法再升级，避免显示无用菜单项。
@@ -121,7 +121,7 @@ export function appendLevelMenuItems(this: Outline, element: HTMLElement, id: st
              * 调用时机：用户在菜单中点击“升级”选项时。
              */
             click: () => {
-                const data = this.getProtyleAndBlockElement(element);
+                const data = getProtyleAndBlockElement(outline, element);
                 /**
                  * 作用：确保成功获取了 Protyle 实例和块元素。
                  * 意图：执行事务需要依赖有效的 Protyle 上下文和目标元素。
@@ -152,7 +152,7 @@ export function appendLevelMenuItems(this: Outline, element: HTMLElement, id: st
              * 调用时机：用户在菜单中点击“降级”选项时。
              */
             click: () => {
-                const data = this.getProtyleAndBlockElement(element);
+                const data = getProtyleAndBlockElement(outline, element);
                 /**
                  * 作用：确保成功获取了 Protyle 实例和块元素。
                  * 意图：执行事务需要依赖有效的 Protyle 上下文和目标元素。
@@ -177,7 +177,7 @@ export function appendLevelMenuItems(this: Outline, element: HTMLElement, id: st
          * 生效场景：当循环生成的级别 `i` 与当前标题级别一致时。
          */
         if (currentLevel !== i) {
-            headingSubMenu.push(this.genHeadingTransform(id, i));
+            headingSubMenu.push(genHeadingTransform(outline, id, i));
         }
     }
     /**
@@ -198,7 +198,7 @@ export function appendLevelMenuItems(this: Outline, element: HTMLElement, id: st
  * 意图：允许用户将当前块转换为一个新的子文档。
  * 调用时机：在右键菜单构建时调用。
  */
-export function appendSubDocMenu(this: Outline, element: HTMLElement) {
+export function appendSubDocMenu(outline: Outline, element: HTMLElement) {
     getSiyuanGlobalMenusMenu().append(new MenuItem({
         label: "转换为子文档",
         icon: "iconFile",
@@ -208,7 +208,7 @@ export function appendSubDocMenu(this: Outline, element: HTMLElement) {
          * 调用时机：用户点击菜单项时。
          */
         click: () => {
-            const data = this.getProtyleAndBlockElement(element);
+            const data = getProtyleAndBlockElement(outline, element);
             /**
              * 作用：确保成功获取了 Protyle 实例和块元素。
              * 意图：执行事务需要依赖有效的 Protyle 上下文和目标元素。
@@ -226,7 +226,7 @@ export function appendSubDocMenu(this: Outline, element: HTMLElement) {
 }
 
 /** 添加插入标题菜单项 */
-export function appendInsertMenuItems(this: Outline, element: HTMLElement, id: string, currentLevel: number) {
+export function appendInsertMenuItems(outline: Outline, element: HTMLElement, id: string, currentLevel: number) {
     getSiyuanGlobalMenusMenu().append(new MenuItem({
         id: "insertSameLevelHeadingBefore", icon: "iconBefore", label: siyuanI18n.insertSameLevelHeadingBefore,
         /**
@@ -235,7 +235,7 @@ export function appendInsertMenuItems(this: Outline, element: HTMLElement, id: s
          * 调用时机：用户点击“在上方插入”菜单项时。
          */
         click: () => {
-            const data = this.getProtyleAndBlockElement(element);
+            const data = getProtyleAndBlockElement(outline, element);
             /**
              * 作用：处理上下文丢失的情况。
              * 意图：如果无法获取到操作所需的 Protyle 实例，则中止。
@@ -267,7 +267,7 @@ export function appendInsertMenuItems(this: Outline, element: HTMLElement, id: s
          * 调用时机：用户点击“在下方插入”菜单项时。
          */
         click: () => {
-            fetchPost("/api/block/getHeadingDeleteTransaction", { id }, 创建插入同级标题后处理器(() => this.getProtyleAndBlockElement(element), currentLevel));
+            fetchPost("/api/block/getHeadingDeleteTransaction", { id }, 创建插入同级标题后处理器(() => getProtyleAndBlockElement(outline, element), currentLevel));
         }
     }).element);
     /**
@@ -284,7 +284,7 @@ export function appendInsertMenuItems(this: Outline, element: HTMLElement, id: s
              * 调用时机：用户点击“添加子标题”菜单项时。
              */
             click: () => {
-                fetchPost("/api/block/getHeadingDeleteTransaction", { id }, 创建添加子标题响应处理器(() => this.getProtyleAndBlockElement(element), currentLevel));
+                fetchPost("/api/block/getHeadingDeleteTransaction", { id }, 创建添加子标题响应处理器(() => getProtyleAndBlockElement(outline, element), currentLevel));
             }
         }).element);
     }

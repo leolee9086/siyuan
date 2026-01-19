@@ -8,7 +8,7 @@ import type { Outline } from "./Outline";
  * 意图：提供对大纲树节点的展开、折叠操作，包括子标题、同级标题以及全部展开/折叠。
  * 调用时机：在构建大纲右键菜单时调用，通常位于菜单末尾。
  */
-export function appendExpandCollapseMenuItems(this: Outline, element: HTMLElement) {
+export function appendExpandCollapseMenuItems(outline: Outline, element: HTMLElement) {
     // 展开子标题
     getSiyuanGlobalMenusMenu().append(new MenuItem({
         id: "expandChildHeading",
@@ -20,7 +20,7 @@ export function appendExpandCollapseMenuItems(this: Outline, element: HTMLElemen
          * 意图：方便用户快速查看子级内容。
          * 调用时机：用户点击“展开子标题”菜单项时。
          */
-        click: () => this.collapseChildren(element, true)
+        click: () => outline.collapseChildren(element, true)
     }).element);
 
     // 折叠子标题
@@ -34,7 +34,7 @@ export function appendExpandCollapseMenuItems(this: Outline, element: HTMLElemen
          * 意图：方便用户隐藏子级内容，专注当前级别。
          * 调用时机：用户点击“折叠子标题”菜单项时。
          */
-        click: () => this.collapseChildren(element, false)
+        click: () => outline.collapseChildren(element, false)
     }).element);
 
     // 展开同级标题
@@ -48,7 +48,7 @@ export function appendExpandCollapseMenuItems(this: Outline, element: HTMLElemen
          * 意图：方便用户查看同一层级的所有内容。
          * 调用时机：用户点击“展开同级标题”菜单项时。
          */
-        click: () => this.collapseSameLevel(element, true)
+        click: () => outline.collapseSameLevel(element, true)
     }).element);
 
     // 折叠同级标题
@@ -62,7 +62,7 @@ export function appendExpandCollapseMenuItems(this: Outline, element: HTMLElemen
          * 意图：方便用户隐藏同一层级的内容。
          * 调用时机：用户点击“折叠同级标题”菜单项时。
          */
-        click: () => this.collapseSameLevel(element, false)
+        click: () => outline.collapseSameLevel(element, false)
     }).element);
 
     // 全部展开
@@ -76,8 +76,8 @@ export function appendExpandCollapseMenuItems(this: Outline, element: HTMLElemen
          * 调用时机：用户点击“全部展开”菜单项时。
          */
         click: () => {
-            this.tree.expandAll();
-            this.saveExpendIds();
+            outline.tree.expandAll();
+            outline.saveExpendIds();
         }
     }).element);
 
@@ -92,8 +92,8 @@ export function appendExpandCollapseMenuItems(this: Outline, element: HTMLElemen
          * 调用时机：用户点击“全部折叠”菜单项时。
          */
         click: () => {
-            this.tree.collapseAll();
-            this.saveExpendIds();
+            outline.tree.collapseAll();
+            outline.saveExpendIds();
         }
     }).element);
 }

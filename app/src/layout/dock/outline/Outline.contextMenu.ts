@@ -12,7 +12,6 @@ import { getSiyuanGlobalMenusMenu } from "../../../util/siyuanEnvironments/getMe
 import type { Outline } from "./Outline";
 import { appendLevelMenuItems, appendInsertMenuItems, appendClipboardMenuItems, appendSubDocMenu } from "./Outline.contextMenu.edit";
 import { appendExpandCollapseMenuItems } from "./Outline.contextMenu.tree";
-
 // 重导出编辑模块的函数供 Outline 使用
 export { getProtyleAndBlockElement, genHeadingTransform } from "./Outline.contextMenu.edit";
 
@@ -35,17 +34,18 @@ function handleOpenOutlineFile(app: App, id: string, zoomIn: boolean) {
 
 /**
  * 显示右键菜单
+
  */
-export function showContextMenu(this: Outline, element: HTMLElement, event: MouseEvent) {
+export function showContextMenu(outline: Outline, element: HTMLElement, event: MouseEvent) {
     /**
      * 作用：检查大纲是否处于预览模式。
      * 意图：预览模式下主要用于查看，不应提供右键编辑菜单，避免误操作。
-     * 生效场景：当 `this.isPreview` 为 true 时。
+     * 生效场景：当 `outline.isPreview` 为 true 时。
      */
-    if (this.isPreview) {
+    if (outline.isPreview) {
         return; // 预览模式下不显示右键菜单
     }
-    const currentLevel = this.getHeadingLevel(element);
+    const currentLevel = outline.getHeadingLevel(element);
     getSiyuanGlobalMenusMenu().remove();
     getSiyuanGlobalMenusMenu().element.setAttribute("data-name", Constants.MENU_OUTLINE_CONTEXT);
     const id = element.getAttribute("data-node-id");
@@ -60,28 +60,28 @@ export function showContextMenu(this: Outline, element: HTMLElement, event: Mous
      */
     if (!getSiyuanConfig().readonly) {
         // 升降级和转换菜单
-        appendLevelMenuItems.call(this, element, id, currentLevel);
-        appendSubDocMenu.call(this, element);
+        appendLevelMenuItems(outline, element, id, currentLevel);
+        appendSubDocMenu(outline, element);
 
         // 跳转并聚焦
-        checkFold(id, (zoomIn) => handleOpenOutlineFile(this.app, id, zoomIn));
-        this.setCurrentById(id);
+        checkFold(id, (zoomIn) => handleOpenOutlineFile(outline.app, id, zoomIn));
+        outline.setCurrentById(id);
 
         getSiyuanGlobalMenusMenu().append(new MenuItem({ id: "separator_1", type: "separator" }).element);
 
         // 插入标题菜单
-        appendInsertMenuItems.call(this, element, id, currentLevel);
+        appendInsertMenuItems(outline, element, id, currentLevel);
 
         getSiyuanGlobalMenusMenu().append(new MenuItem({ id: "separator_2", type: "separator" }).element);
     }
 
     // 复制/剪切/删除菜单
-    appendClipboardMenuItems.call(this, element, id);
+    appendClipboardMenuItems(outline, element, id);
 
     getSiyuanGlobalMenusMenu().append(new MenuItem({ id: "separator_3", type: "separator" }).element);
 
     // 展开/折叠菜单
-    appendExpandCollapseMenuItems.call(this, element);
+    appendExpandCollapseMenuItems(outline, element);
 
     getSiyuanGlobalMenusMenu().popup({
         x: event.clientX,
