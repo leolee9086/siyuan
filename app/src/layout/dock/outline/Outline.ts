@@ -12,7 +12,7 @@ import { Editor } from "../../../editor";
 import { bindSort } from "./Outline.sort";
 import { setFilter, getHeadingLevel, expandToLevel, showExpandLevelMenu, collapseSameLevel, collapseChildren } from "./Outline.filter";
 import { showContextMenu, genHeadingTransform, getProtyleAndBlockElement } from "./Outline.contextMenu";
-import { initInputEvents, initTree } from "./Outline.init";
+import { initInputEvents, createTreeConfig } from "./Outline.init";
 import { initHeaderEvents } from "./Outline.header";
 import { 生成面板HTML, 创建回调函数, 创建消息回调函数 } from "./Outline.helpers";
 import { isHTMLElement, isHTMLInputElement } from "../../../util/DOM/element.guard";
@@ -50,8 +50,7 @@ export class Outline extends Model {
     };
     genHeadingTransform = genHeadingTransform;
     getProtyleAndBlockElement = getProtyleAndBlockElement;
-    initInputEvents = initInputEvents;
-    initTree = initTree;
+
     initHeaderEvents = initHeaderEvents;
 
     /**
@@ -86,8 +85,8 @@ export class Outline extends Model {
          */
         this.headerElement = isHTMLElement(firstElement) ? firstElement : document.createElement("div");
 
-        this.initInputEvents();
-        this.initTree(options);
+        initInputEvents(this);
+        this.tree = new Tree(createTreeConfig(this, options.app));
         this.initHeaderEvents(options);
         this.bindSort();
 
