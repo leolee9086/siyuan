@@ -337,3 +337,12 @@ export const getSiyuanWebSocket = () => {
 export const getSiyuanEditorGeneralKeymap = () => {
     return window.siyuan?.config?.keymap?.editor?.general;
 };
+
+/**
+ * 获取 window.siyuan.isPublish
+ * @returns 是否为发布模式
+ * @同步豁免: DOM访问
+ */
+export const getSiyuanIsPublish = () => {
+    return window.siyuan?.isPublish;
+};

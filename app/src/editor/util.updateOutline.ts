@@ -4,6 +4,80 @@ import { fetchPost } from "../util/fetch";
 import { isCurrentEditor } from "./util.isCurrentEditor";
 
 /**
+ * 高亮当前大纲项
+ * 
+ * 作用：获取当前选区并高亮对应的大纲项
+ * 意图：当用户在编辑器中移动光标时，大纲应同步高亮
+ * 调用时机：handleOutlineResponse 中调用
+ * 
+ * @param protyle - 编辑器实例
+ * @param item - Outline 实例
+ */
+const highlightCurrentOutlineItem = (protyle: IProtyle, item: Outline) => {
+    const selection = getSelection();
+    /**
+     * 作用：高亮当前大纲项
+     * 意图：如果有选区且在大纲视口范围内，高亮对应项
+     * 生效场景：selection count > 0
+     */
+    if (!selection || selection.rangeCount === 0) {
+        return;
+    }
+    const startContainer = selection.getRangeAt(0).startContainer;
+    /**
+     * 作用：确保选区在编辑器内
+     * 意图：排除大纲或其他面板的选区
+     * 生效场景：wysiwyg 包含 startContainer
+     */
+    if (!protyle.wysiwyg?.element.contains(startContainer)) {
+        return;
+    }
+    const currentElement = hasClosestByAttribute(startContainer, "data-node-id", null);
+    if (currentElement) {
+        item.setCurrent(currentElement);
+    }
+};
+
+/**
+ * 处理 getDocOutline 响应
+ * 
+ * @param response 后端返回的大纲数据
+ * @param item Outline 实例
+ * @param blockId 当前编辑器块 ID
+ * @param isPreview 是否预览模式
+ * @param reload 是否重载
+ * @param protyle 编辑器实例
+ */
+const handleOutlineResponse = (
+    response: IWebSocketData,
+    item: Outline,
+    blockId: string,
+    isPreview: boolean,
+    reload: boolean,
+    protyle: IProtyle | undefined
+) => {
+    if (!reload && (!isCurrentEditor(blockId) || item.blockId === blockId) &&
+        item.isPreview === isPreview) {
+        return;
+    }
+    item.isPreview = isPreview;
+    item.update(response, blockId);
+    if (!protyle) {
+        item.updateDocTitle();
+        return;
+    }
+    /**
+     * 作用：更新文档标题
+     * 意图：当 blockId 有效时，获取当前编辑器背景属性(ial)并更新标题和计数
+     * 生效场景：ial 存在
+     */
+    if (protyle.background?.ial) {
+        item.updateDocTitle(protyle.background.ial, response.data?.length || 0);
+    }
+    highlightCurrentOutlineItem(protyle, item);
+};
+
+/**
  * 更新大纲项
  * 
  * 作用：获取最新的大纲数据并更新指定的大纲面板
@@ -16,12 +90,37 @@ import { isCurrentEditor } from "./util.isCurrentEditor";
  */
 const updateOutlineItem = (item: Outline, protyle: IProtyle | undefined, reload: boolean) => {
     let blockId = "";
+    /**
+     * 作用：获取当前块 ID
+     * 意图：如果编辑器和块存在，使用其 rootID
+     * 生效场景：protyle.block 存在
+     */
     if (protyle && protyle.block) {
-        blockId = protyle.block.rootID;
+        blockId = protyle.block.rootID || "";
     }
     const isPreview = !protyle?.preview?.element.classList.contains("fn__none");
 
-    if (blockId === item.blockId && !reload && item.isPreview !== isPreview) {
+    if (blockId === item.blockId && !reload && item.isPreview === isPreview) {
+        return;
+    }
+
+    /**
+     * 作用：清空大纲内容
+     * 意图：当当前块ID为空但大纲项仍有旧数据时，重置大纲显示
+     * 生效场景：blockId 为空且 item.blockId 有值
+     */
+    if (!blockId && item.blockId) {
+        item.blockId = blockId;
+        const emptyResponse: IWebSocketData = {
+            code: 0,
+            msg: "",
+            data: []
+        };
+        item.update(emptyResponse);
+        item.updateDocTitle();
+    }
+
+    if (!blockId) {
         return;
     }
 
@@ -29,28 +128,7 @@ const updateOutlineItem = (item: Outline, protyle: IProtyle | undefined, reload:
         id: blockId,
         preview: isPreview
     }, response => {
-        if (!reload && (!isCurrentEditor(blockId) || item.blockId === blockId) &&
-            item.isPreview !== isPreview) {
-            return;
-        }
-        item.isPreview = isPreview;
-        item.update(response, blockId);
-        if (protyle) {
-            if (protyle.background?.ial) {
-                item.updateDocTitle(protyle.background.ial, response.data?.length || 0);
-            }
-            if (getSelection().rangeCount > 0) {
-                const startContainer = getSelection().getRangeAt(0).startContainer;
-                if (protyle.wysiwyg?.element.contains(startContainer)) {
-                    const currentElement = hasClosestByAttribute(startContainer, "data-node-id", null);
-                    if (currentElement) {
-                        item.setCurrent(currentElement);
-                    }
-                }
-            }
-        } else {
-            item.updateDocTitle();
-        }
+        handleOutlineResponse(response, item, blockId, isPreview, reload, protyle);
     });
 };
 
@@ -64,10 +142,15 @@ const updateOutlineItem = (item: Outline, protyle: IProtyle | undefined, reload:
  * @param models - 所有模型集合
  * @param protyle - 当前编辑器实例
  * @param reload - 是否强制重载
+ * @同步豁免: UI构建 遍历调用 updateOutlineItem，无异步等待
  */
 export const updateOutline = (models: IModels, protyle: IProtyle | undefined, reload = false) => {
-
     for (const item of models.outline) {
+        /**
+         * 作用：判断是否需要更新当前大纲项
+         * 意图：不仅需要更新对应的 "pin" 面板，也需要过滤掉无关的面板
+         * 生效场景：reload 为 true 或 item 为 pin 类型且状态不一致
+         */
         if (reload ||
             (item.type === "pin" &&
                 (!protyle || item.blockId !== protyle.block?.rootID ||

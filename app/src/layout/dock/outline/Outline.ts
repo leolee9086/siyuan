@@ -5,7 +5,6 @@ import { fetchPost } from "../../../util/fetch";
 import { Constants } from "../../../constants";
 import { escapeHtml } from "../../../util/escape";
 import { unicode2Emoji } from "../../../emoji";
-import { getPreviousBlock } from "../../../protyle/wysiwyg/getBlock";
 import { App } from "../../../index";
 import { Editor } from "../../../editor";
 
@@ -17,11 +16,13 @@ import { initInputEvents, initTree } from "./Outline.init";
 import { initHeaderEvents } from "./Outline.header";
 import { 生成面板HTML, 创建回调函数, 创建消息回调函数 } from "./Outline.helpers";
 import { isHTMLElement, isHTMLInputElement } from "../../../util/DOM/element.guard";
+import { setCurrent, setCurrentById, setCurrentByPreview } from "./Outline.setCurrent";
+import { getSafeSiyuanConfig, getSafeSiyuanStorage, getSiyuanIsPublish } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 
-const 标题标签 = ["H1", "H2", "H3", "H4", "H5", "H6"];
+
 
 export class Outline extends Model {
-    public tree: Tree;
+    public tree!: Tree;
     public element: HTMLElement;
     public headerElement: HTMLElement;
     public type: "pin" | "local";
@@ -93,6 +94,11 @@ export class Outline extends Model {
         // @内联回调
         fetchPost("/api/outline/getDocOutline", { id: this.blockId, preview: this.isPreview }, response => {
             this.update(response);
+            /**
+             * 作用：更新文档标题。
+             * 意图：当 blockId 有效时，获取当前编辑器背景属性(ial)并更新标题和计数。
+             * 生效场景：this.blockId 存在且非空。
+             */
             if (this.blockId) {
                 const ial = (options.tab.model instanceof Editor) ? options.tab.model.editor?.protyle?.background?.ial : undefined;
                 this.updateDocTitle(ial, response.data?.length || 0);
@@ -109,157 +115,65 @@ export class Outline extends Model {
      * @param ial 文档的属性对象（如 icon, title）。
      * @param count 大纲条目数量。
      */
-    public updateDocTitle(ial?: IObject, count?: number) {
+    public updateDocTitle(ial?: IObject, count?: number): void {
         const docTitleElement = this.headerElement.nextElementSibling;
+        /**
+         * 作用：确保标题元素存在。
+         * 意图：如果找不到 docTitleElement，则无法更新标题，直接返回。
+         * 生效场景：docTitleElement 不是有效的 HTML 元素。
+         */
         if (!isHTMLElement(docTitleElement)) {
             return;
         }
-        if (this.type === "pin") {
-            if (!ial && typeof count === "undefined") {
-                docTitleElement.classList.add("fn__none");
-                return;
-            }
-            if (ial) {
-                let iconHTML = `${unicode2Emoji(ial.icon || window.siyuan?.storage?.[Constants.LOCAL_IMAGES]?.file || "", "b3-list-item__graphic", true)}`;
-                if (ial.icon === Constants.ZWSP && docTitleElement.firstElementChild) {
-                    iconHTML = docTitleElement.firstElementChild.outerHTML;
-                }
-                const counter = docTitleElement.querySelector(".counter");
-                docTitleElement.innerHTML = `${iconHTML}<span class="b3-list-item__text">${escapeHtml(ial.title || "")}</span>${counter?.outerHTML || ""}`;
-                docTitleElement.setAttribute("title", ial.title || "");
-                docTitleElement.classList.remove("fn__none");
-            }
-            if (typeof count === "number" && count !== -1) {
-                const counterElement = docTitleElement.querySelector(".counter");
-                if (count > 0) {
-                    /**
-                     * 作用：更新计数器元素的文本内容。
-                     * 意图：当计数器已存在（且为 HTMLElement）时直接更新，否则在 fallback 中创建。
-                     * 生效场景：当 docTitleElement 下已存在 .counter 元素时。
-                     */
-                    if (isHTMLElement(counterElement)) {
-                        counterElement.textContent = count.toString();
-                    } else {
-                        docTitleElement.insertAdjacentHTML("beforeend", `<span class="counter">${count.toString()}</span>`);
-                    }
-                } else {
-                    counterElement?.remove();
-                }
-            }
-        } else {
-            docTitleElement.classList.add("fn__none");
-        }
-    }
-
-
-
-    /**
-     * 作用：根据给定的编辑器节点元素设置大纲高亮。
-     * 意图：在大纲中定位并高亮与编辑器当前焦点对应的标题节点，如果当前节点不是标题则向上查找最近的标题。
-     * 调用时机：编辑器光标位置变更或点击块时。
-     * @param nodeElement 编辑器中的块元素。
-     */
-    public setCurrent(nodeElement: HTMLElement) {
-        if (!nodeElement) {
-            return;
-        }
-        if (nodeElement.getAttribute("data-type") === "NodeHeading") {
-            const id = nodeElement.getAttribute("data-node-id");
-            if (id) {
-                this.setCurrentById(id);
-            }
-        } else {
-            let previousElement = getPreviousBlock(nodeElement);
-            while (previousElement) {
-                if (previousElement.getAttribute("data-type") === "NodeHeading") {
-                    break;
-                }
-                previousElement = getPreviousBlock(previousElement);
-            }
-            if (previousElement) {
-                const prevId = previousElement.getAttribute("data-node-id");
-                if (prevId) {
-                    this.setCurrentById(prevId);
-                }
-            } else {
-                fetchPost("/api/block/getBlockBreadcrumb", { id: nodeElement.getAttribute("data-node-id"), excludeTypes: [] }, (response) => {
-                    response.data.reverse().find((item: IBreadcrumb) => {
-                        if (item.type === "NodeHeading") {
-                            this.setCurrentById(item.id);
-                            return true;
-                        }
-                    });
-                });
-            }
-        }
-    }
-
-    /**
-     * 作用：在预览模式下根据元素设置大纲高亮。
-     * 意图：在预览模式滚动或交互时，同步大纲的高亮状态。
-     * 调用时机：预览视图滚动或交互时。
-     * @param nodeElement 预览视图中的元素。
-     */
-    public setCurrentByPreview(nodeElement: Element) {
-        if (!nodeElement) {
-            return;
-        }
-        let previousElement: Element | null = nodeElement;
-        while (previousElement && !previousElement.classList.contains("b3-typography")) {
-            if (标题标签.includes(previousElement.tagName)) {
-                break;
-            }
-            previousElement = previousElement.previousElementSibling || previousElement.parentElement;
-        }
-        if (previousElement && previousElement.id) {
-            this.setCurrentById(previousElement.id);
-        }
-    }
-
-    /**
-     * 作用：根据 ID 高亮大纲节点并滚动到可视区域。
-     * 意图：实现具体的高亮逻辑，包括移除旧高亮、查找新节点、处理自动展开父级以及计算滚动位置。
-     * 调用时机：内部调用，或明确知道目标 ID 时调用。
-     * @param id 目标大纲节点的 ID。
-     */
-    public setCurrentById(id: string) {
-        const focusElements = this.element.querySelectorAll(".b3-list-item.b3-list-item--focus");
-        focusElements.forEach(item => item.classList.remove("b3-list-item--focus"));
-        let currentElement = this.element.querySelector(`.b3-list-item[data-node-id="${id}"]`);
-        if (!isHTMLElement(currentElement)) {
-            return;
-        }
         /**
-         * 作用：保持当前大纲的展开状态。
-         * 意图：当配置了 keepCurrentExpand 时，自动展开当前高亮节点的所有父级，并显示出来。
-         * 生效场景：`window.siyuan.storage` 中配置了 `keepCurrentExpand` 为 true。
+         * 作用：根据大纲类型判断是否显示文档标题信息。
+         * 意图：仅在 "pin" 模式下显示文档图标和标题；其他模式下隐藏该区域。
+         * 生效场景：this.type 为 "pin" 时处理显示逻辑，否则隐藏。
          */
-        if (window.siyuan?.storage?.[Constants.LOCAL_OUTLINE]?.keepCurrentExpand) {
-            let ulElement = currentElement.parentElement;
-            while (ulElement && !ulElement.classList.contains("b3-list") && ulElement.tagName === "UL") {
-                ulElement.classList.remove("fn__none");
-                const arrowElement = ulElement.previousElementSibling?.querySelector(".b3-list-item__arrow");
-                if (arrowElement) {
-                    arrowElement.classList.add("b3-list-item__arrow--open");
-                }
-                ulElement = ulElement.parentElement;
-            }
-            this.saveExpendIds();
-        } else {
-            while (currentElement && currentElement.clientHeight === 0 && currentElement.parentElement) {
-                const prev: Element | null = currentElement.parentElement.previousElementSibling;
-                if (!isHTMLElement(prev)) {
-                    break;
-                }
-                currentElement = prev;
-            }
+        if (this.type !== "pin") {
+            docTitleElement.classList.add("fn__none");
+            return;
         }
-        if (currentElement) {
-            currentElement.classList.add("b3-list-item--focus");
-            const elementRect = this.element.getBoundingClientRect();
-            this.element.scrollTop = this.element.scrollTop + (currentElement.getBoundingClientRect().top - (elementRect.top + elementRect.height / 2));
+
+        /**
+         * 作用：检查标题更新所需的数据完整性。
+         * 意图：如果 ial 和 count 都缺失，隐藏标题栏以避免显示空白或错误状态。
+         * 生效场景：ial 为假值且 count 为 undefined。
+         */
+        if (!ial && typeof count === "undefined") {
+            docTitleElement.classList.add("fn__none");
+            return;
         }
+        if (ial) {
+            const localImages = getSafeSiyuanStorage()?.[Constants.LOCAL_IMAGES];
+            const iconHTML = (ial.icon === Constants.ZWSP && docTitleElement.firstElementChild) ?
+                docTitleElement.firstElementChild.outerHTML :
+                `${unicode2Emoji(ial.icon || localImages?.file || "", "b3-list-item__graphic", true)}`;
+
+            const counter = docTitleElement.querySelector(".counter");
+            docTitleElement.innerHTML = `${iconHTML}<span class="b3-list-item__text">${escapeHtml(ial.title || "")}</span>${counter?.outerHTML || ""}`;
+            docTitleElement.setAttribute("title", ial.title || "");
+            docTitleElement.classList.remove("fn__none");
+        }
+
+        updateCounter(docTitleElement, count);
     }
+
+
+
+
+
+    setCurrent = (nodeElement: HTMLElement) => {
+        setCurrent(this, nodeElement);
+    };
+
+    setCurrentByPreview = (nodeElement: Element) => {
+        setCurrentByPreview(this, nodeElement);
+    };
+
+    setCurrentById = (id: string) => {
+        setCurrentById(this, id);
+    };
 
     /**
      * 作用：更新大纲树的数据并刷新视图。
@@ -268,53 +182,149 @@ export class Outline extends Model {
      * @param data 包含大纲数据的对象。
      * @param callbackId 可选的回调 ID，用于更新 blockId。
      */
-    public update(data: IWebSocketData, callbackId?: string) {
-        let currentElement = this.element.querySelector(".b3-list-item--focus");
+    public update(data: IWebSocketData, callbackId?: string): void {
+        const currentElement = this.element.querySelector(".b3-list-item--focus");
         let currentId;
+        /**
+         * 作用：获取当前获得焦点的节点 ID。
+         * 意图：记录更新前的焦点状态，以便在数据更新后恢复。
+         * 生效场景：DOM 中存在获得焦点的 .b3-list-item--focus 元素。
+         */
         if (currentElement) {
             currentId = currentElement.getAttribute("data-node-id");
         }
         const scrollTop = this.element.scrollTop;
+        /**
+         * 作用：更新 blockId。
+         * 意图：当回调中提供了新的 ID 时，更新当前大纲绑定的块 ID。
+         * 生效场景：callbackId 非 undefined。
+         */
         if (typeof callbackId !== "undefined") {
             this.blockId = callbackId;
         }
         this.tree.updateData(data.data);
+        /**
+         * 作用：处理预览模式下的特定清理逻辑。
+         * 意图：在更新内容前清理弹出的气泡元素，并保持滚动位置。
+         * 生效场景：当前处于预览模式 (this.isPreview 为 true)。
+         */
         if (this.isPreview) {
             const popoverElements = this.tree.element.querySelectorAll(".popover__block");
-            popoverElements.forEach(item => item.classList.remove("popover__block"));
-            this.element.scrollTop = scrollTop;
-        } else if (this.blockId) {
-            const searchInput = this.headerElement.querySelector("input.b3-text-field.search__label");
-            /**
-             * 作用：在非预览模式下刷新时恢复搜索过滤。
-             * 意图：当搜索框存在（且为 HTMLInputElement）且用户已输入内容时，重新应用过滤。
-             * 生效场景：blockId 存在且搜索框有值时。
-             */
-            if (isHTMLInputElement(searchInput) && searchInput.value) {
-                this.setFilter();
+            for (const item of popoverElements) {
+                item.classList.remove("popover__block");
             }
             this.element.scrollTop = scrollTop;
         }
+
+        /**
+         * 作用：处理非预览模式下的刷新逻辑。
+         * 意图：在普通编辑器模式下，需要恢复搜索状态并保持滚动位置。
+         * 生效场景：当前不是预览模式，且 blockId 有效时。
+         */
+        if (!this.isPreview && this.blockId) {
+            restoreFilter(this);
+            this.element.scrollTop = scrollTop;
+        }
+        /**
+         * 作用：恢复大纲条目的焦点状态。
+         * 意图：根据更新前记录的 ID，重新高亮对应的节点，保持用户视觉焦点。
+         * 生效场景：currentId 存在（之前有选中的节点）。
+         */
         if (currentId) {
-            currentElement = this.element.querySelector(`[data-node-id="${currentId}"]`);
-            if (currentElement) {
-                currentElement.classList.add("b3-list-item--focus");
-            }
+            const node = this.element.querySelector(`[data-node-id="${currentId}"]`);
+            node?.classList.add("b3-list-item--focus");
         }
         this.element.removeAttribute("data-loading");
     }
+
+
 
     /**
      * 作用：持久化保存大纲节点的展开状态。
      * 意图：将当前展开的节点 ID 列表发送给后端保存，以便下次重新加载文档时恢复展开状态。
      * 调用时机：在某些交互操作后或自动展开逻辑完成后调用。
      */
-    public saveExpendIds() {
-        if (window.siyuan?.config?.readonly || window.siyuan?.isPublish) {
+    public saveExpendIds(): void {
+        /**
+         * 作用：只读模式拦截。
+         * 意图：如果是只读或发布模式，禁止保存展开状态以避免副作用。
+         * 生效场景：配置为 readonly 或 isPublish。
+         */
+        if (getSafeSiyuanConfig()?.readonly || getSiyuanIsPublish()) {
             return;
         }
+        /**
+         * 作用：判断是否需要保存展开状态。
+         * 意图：仅在 "pin" 模式且非预览状态下，才持久化保存节点的展开状态。
+         * 生效场景：非预览模式且为 "pin" 类型时。
+         */
         if (!this.isPreview && this.type === "pin") {
             fetchPost("/api/storage/setOutlineStorage", { docID: this.blockId, val: { expandIds: this.tree.getExpandIds() } });
         }
+    }
+}
+
+/**
+ * 作用：更新或移除计数器显示。
+ * 意图：根据 count 值更新、创建或移除计数器元素。
+ * @param docTitleElement 标题元素
+ * @param count 计数
+ */
+const updateCounter = (docTitleElement: Element, count?: number): void => {
+    /**
+     * 作用：参数合法性检查。
+     * 意图：如果 count 不是数字，无法进行计数更新操作，直接返回。
+     * 生效场景：count 参数类型不为 number。
+     */
+    if (typeof count !== "number") {
+        return;
+    }
+
+    const counterElement = docTitleElement.querySelector(".counter");
+
+    /**
+     * 作用：更新现有计数器。
+     * 意图：如果计数器已存在且 count > 0，直接修改文本。
+     * 生效场景：count > 0 && 存在 .counter 元素
+     */
+    if (count > 0 && isHTMLElement(counterElement)) {
+        counterElement.textContent = count.toString();
+        return;
+    }
+
+    /**
+     * 作用：创建新计数器。
+     * 意图：如果计数器不存在且 count > 0，插入新元素。
+     * 生效场景：count > 0 && 不存在 .counter 元素
+     */
+    if (count > 0) {
+        docTitleElement.insertAdjacentHTML("beforeend", `<span class="counter">${count.toString()}</span>`);
+        return;
+    }
+
+    /**
+     * 作用：移除计数器。
+     * 意图：如果计数不为 -1 且不大于 0，移除计数器。
+     * 生效场景：count !== -1 (implicit count <= 0) && 存在 .counter 元素
+     */
+    if (count !== -1 && counterElement) {
+        counterElement.remove();
+    }
+};
+
+/**
+ * 作用：在非预览模式下刷新时恢复搜索过滤。
+ * 意图：当搜索框存在（且为 HTMLInputElement）且用户已输入内容时，重新应用过滤。
+ * @param outline Outline 实例
+ */
+function restoreFilter(outline: Outline): void {
+    const searchInput = outline.headerElement.querySelector("input.b3-text-field.search__label");
+    /**
+     * 作用：检查搜索框是否有值。
+     * 意图：只有当搜索框存在且有输入内容时才恢复过滤。
+     * 生效场景：searchInput 为 HTMLInputElement 且 value 不为空。
+     */
+    if (isHTMLInputElement(searchInput) && searchInput.value) {
+        outline.setFilter();
     }
 }
