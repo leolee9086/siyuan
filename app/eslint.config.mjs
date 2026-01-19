@@ -16,6 +16,7 @@ import { noAliasUsagePlugin } from "./0_lints/no-alias-usage.mjs";
 import { noLargeInlineArrayPlugin } from "./0_lints/no-large-inline-array.mjs";
 import { requireIfCommentPlugin } from "./0_lints/require-if-comment.mjs";
 import { requireTimeoutCommentPlugin } from "./0_lints/require-timeout-comment.mjs";
+import { requireAsyncExportPlugin } from "./0_lints/require-async-export.mjs";
 import { noTrivialWrapperPlugin } from "./0_lints/no-trivial-wrapper.mjs";
 import { FULL_FIX_REMINDER } from "./0_lints/shared-constants.mjs";
 
@@ -161,6 +162,7 @@ const SHARED_PLUGINS = {
     "no-large-inline-array": noLargeInlineArrayPlugin,
     "require-if-comment": requireIfCommentPlugin,
     "require-timeout-comment": requireTimeoutCommentPlugin,
+    "require-async-export": requireAsyncExportPlugin,
     "no-trivial-wrapper": noTrivialWrapperPlugin,
 };
 
@@ -217,6 +219,7 @@ const SHARED_RULES = {
     "no-large-inline-array/no-large-inline-array": ["error", { "max": 3 }],
     "require-if-comment/require-if-comment": ["error", { "exemptGuardClauses": true, "exemptSimpleConditions": true }],
     "require-timeout-comment/require-timeout-comment": "error",
+    "require-async-export/require-async-export": "error",
     "no-trivial-wrapper/no-trivial-wrapper": "error",
 };
 
@@ -330,6 +333,7 @@ export default [{
     // 只有 .guard.ts 允许 is，但依然受 COMMON 限制
     files: ["**/*.guard.ts"],
     rules: {
-        "no-restricted-syntax": ["error", ...COMMON_RESTRICTED_SYNTAX]
+        "no-restricted-syntax": ["error", ...COMMON_RESTRICTED_SYNTAX],
+        "require-async-export/require-async-export": "off"
     }
 }];
