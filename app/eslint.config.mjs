@@ -112,6 +112,14 @@ const COMMON_RESTRICTED_SYNTAX = [
         ].join("\n") + 全量修复提示,
     },
     // 禁止单纯的别名定义 (const A = B) logic moved to no-alias-usage plugin
+    {
+        selector: "FunctionDeclaration ThisExpression",
+        message: "❌ 禁止在独立函数中使用 this。请使用类方法或将 context 作为参数传递。" + 全量修复提示,
+    },
+    {
+        selector: "FunctionExpression:not(MethodDefinition > FunctionExpression) ThisExpression",
+        message: "❌ 禁止在非类方法(如: 对象字面量方法/独立函数表达式)中使用 this。请使用类方法或将 context 作为参数传递。" + 全量修复提示,
+    },
 ];
 
 // 类型断言限制 (仅在非 .guard.ts 文件中生效)
