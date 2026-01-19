@@ -18,6 +18,8 @@ import { initHeaderEvents } from "./Outline.header";
 import { 生成面板HTML, 创建回调函数, 创建消息回调函数 } from "./Outline.helpers";
 import { isHTMLElement, isHTMLInputElement } from "../../../util/DOM/element.guard";
 
+const 标题标签 = ["H1", "H2", "H3", "H4", "H5", "H6"];
+
 export class Outline extends Model {
     public tree: Tree;
     public element: HTMLElement;
@@ -35,6 +37,13 @@ export class Outline extends Model {
     showExpandLevelMenu = showExpandLevelMenu;
     collapseSameLevel = collapseSameLevel;
     collapseChildren = collapseChildren;
+    /**
+     * 作用：显示大纲条目的上下文菜单。
+     * 意图：代理调用外部的 showContextMenu 函数，传入当前实例上下文。
+     * 调用时机：用户右键点击大纲条目时。
+     * @param element 触发菜单的目标元素。
+     * @param event 鼠标事件对象。
+     */
     showContextMenu = (element: HTMLElement, event: MouseEvent) => {
         showContextMenu(this, element, event);
     };
@@ -44,6 +53,11 @@ export class Outline extends Model {
     initTree = initTree;
     initHeaderEvents = initHeaderEvents;
 
+    /**
+     * 作用：创建 Outline 实例。
+     * 意图：初始化大纲面板，绑定事件，并根据类型渲染内容。
+     * @param options 包含应用实例、标签页、块 ID 等配置信息。
+     */
     constructor(options: { app: App, tab: Tab, blockId: string, type: "pin" | "local", isPreview: boolean }) {
         super({
             app: options.app,
@@ -192,7 +206,7 @@ export class Outline extends Model {
         }
         let previousElement: Element | null = nodeElement;
         while (previousElement && !previousElement.classList.contains("b3-typography")) {
-            if (["H1", "H2", "H3", "H4", "H5", "H6"].includes(previousElement.tagName)) {
+            if (标题标签.includes(previousElement.tagName)) {
                 break;
             }
             previousElement = previousElement.previousElementSibling || previousElement.parentElement;

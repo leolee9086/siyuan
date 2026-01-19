@@ -17,7 +17,10 @@ import { isHTMLElement } from "../dock.guard";
 import { 处理标题级别变换响应, genHeadingHTML, 创建插入同级标题后处理器, 创建添加子标题响应处理器, convertBlockToSubDocument } from "./Outline.contextMenu.edit.util";
 import type { Outline } from "./Outline";
 
-/** 获取 Protyle 和块元素 */
+/** 
+ * 获取 Protyle 和块元素 
+ * @同步豁免: DOM访问
+ */
 export function getProtyleAndBlockElement(outline: Outline, element: HTMLElement) {
     const id = element.getAttribute("data-node-id");
     const editItem = getAllModels().editor.find(editItem => editItem.editor.protyle.block.rootID === outline.blockId);
@@ -68,7 +71,10 @@ function 获取标题文案(level: number) {
     return 文案映射[level] || "";
 }
 
-/** 生成标题级别转换菜单项 */
+/** 
+ * 生成标题级别转换菜单项 
+ * @同步豁免: UI构建
+ */
 export function genHeadingTransform(outline: Outline, id: string, level: number) {
     return {
         id: "heading" + level, iconHTML: "", icon: "iconHeading" + level,
@@ -105,7 +111,10 @@ export function genHeadingTransform(outline: Outline, id: string, level: number)
     };
 }
 
-/** 添加升降级菜单项 */
+/** 
+ * 生成标题级别转换菜单项 
+ * @同步豁免: UI构建
+ */
 export function appendLevelMenuItems(outline: Outline, element: HTMLElement, id: string, currentLevel: number) {
     /**
      * 作用：仅在标题级别大于 1 时显示“升级”选项。
@@ -197,6 +206,7 @@ export function appendLevelMenuItems(outline: Outline, element: HTMLElement, id:
  * 作用：添加"转换为子文档"菜单项。
  * 意图：允许用户将当前块转换为一个新的子文档。
  * 调用时机：在右键菜单构建时调用。
+ * @同步豁免: UI构建
  */
 export function appendSubDocMenu(outline: Outline, element: HTMLElement) {
     getSiyuanGlobalMenusMenu().append(new MenuItem({
@@ -224,8 +234,10 @@ export function appendSubDocMenu(outline: Outline, element: HTMLElement) {
         }
     }).element);
 }
-
-/** 添加插入标题菜单项 */
+/** 
+ * 添加插入标题菜单项
+ * @同步豁免: UI构建
+ */
 export function appendInsertMenuItems(outline: Outline, element: HTMLElement, id: string, currentLevel: number) {
     getSiyuanGlobalMenusMenu().append(new MenuItem({
         id: "insertSameLevelHeadingBefore", icon: "iconBefore", label: siyuanI18n.insertSameLevelHeadingBefore,
@@ -244,8 +256,19 @@ export function appendInsertMenuItems(outline: Outline, element: HTMLElement, id
             if (!data) {
                 return;
             }
-            const newId = Lute.NewNodeID(), html = genHeadingHTML(currentLevel, newId);
-            transaction(data.protyle, [{ action: "insert", data: html, id: newId, previousID: data.blockElement.previousElementSibling?.getAttribute("data-node-id") ?? undefined, parentID: data.blockElement.parentElement?.getAttribute("data-node-id") || data.protyle.block.parentID }], [{ action: "delete", id: newId }]);
+            const newId = Lute.NewNodeID();
+            const html = genHeadingHTML(currentLevel, newId);
+            transaction(
+                data.protyle,
+                [{
+                    action: "insert",
+                    data: html,
+                    id: newId,
+                    previousID: data.blockElement.previousElementSibling?.getAttribute("data-node-id") ?? undefined,
+                    parentID: data.blockElement.parentElement?.getAttribute("data-node-id") || data.protyle.block.parentID
+                }],
+                [{ action: "delete", id: newId }]
+            );
             data.blockElement.insertAdjacentHTML("beforebegin", html);
             const 新插入的元素 = data.blockElement.previousElementSibling;
             /**
