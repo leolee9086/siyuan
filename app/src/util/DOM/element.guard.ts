@@ -26,3 +26,8 @@ export const isCustomEvent = <T = unknown>(event: Event): event is CustomEvent<T
 export const isSVGElement = (node: unknown): node is SVGElement => {
     return node instanceof SVGElement;
 };
+
+/** 类型守卫：判断节点是否为 HTMLInputElement */
+export const isHTMLInputElement = (node: unknown): node is HTMLInputElement => {
+    return node instanceof HTMLInputElement;
+};
