@@ -1,210 +1,8 @@
 /**
- * Outline 筛选和层级展开/折叠功能
- * 从 Outline.ts 拆分出来以保持单文件行数限制
+ * Outline 筛选功能
  */
-import { MenuItem } from "../../../menus/Menu.Item";
-import { Constants } from "../../../constants";
-import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { getSiyuanGlobalMenusMenu } from "../../../util/siyuanEnvironments/getMenu.environment";
 import { isHTMLElement, isHTMLInputElement } from "../../../util/DOM/element.guard";
 import type { Outline } from "./Outline";
-
-const HEADING_LABELS = [
-    siyuanI18n.heading1,
-    siyuanI18n.heading2,
-    siyuanI18n.heading3,
-    siyuanI18n.heading4,
-    siyuanI18n.heading5,
-    siyuanI18n.heading6,
-];
-
-
-
-/**
- * 展开到指定标题级别
- * @param targetLevel 目标标题级别，1-6级（H1-H6），6级表示全部展开
- * @同步豁免: DOM访问
- */
-export function expandToLevel(outline: Outline, targetLevel: number) {
-    if (targetLevel >= 6) {
-        // 全部展开
-        outline.tree.expandAll();
-        outline.saveExpendIds();
-        return;
-    }
-
-    // 展开到指定标题级别
-    const items = outline.element.querySelectorAll("li.b3-list-item");
-    for (const item of items) {
-        if (!isHTMLElement(item)) {
-            continue;
-        }
-        const headingLevel = parseInt(item.getAttribute("data-subtype")?.replace("h", "") || "0", 10);
-        const arrowElement = item.querySelector(".b3-list-item__arrow");
-
-        if (!item.nextElementSibling || item.nextElementSibling.tagName !== "UL" || !arrowElement) {
-            continue;
-        }
-
-        if (headingLevel > 0 && headingLevel < targetLevel) {
-            // 当前标题级别大于目标级别，展开
-            arrowElement.classList.add("b3-list-item__arrow--open");
-            item.nextElementSibling.classList.remove("fn__none");
-        }
-
-        if (headingLevel >= targetLevel) {
-            // 当前标题级别小于等于目标级别，折叠
-            arrowElement.classList.remove("b3-list-item__arrow--open");
-            item.nextElementSibling.classList.add("fn__none");
-        }
-    }
-    outline.saveExpendIds();
-}
-
-/**
- * 显示展开层级菜单
- * @同步豁免: UI构建
- */
-export function showExpandLevelMenu(outline: Outline, target: HTMLElement) {
-    const menu = getSiyuanGlobalMenusMenu();
-    menu.remove();
-    menu.element.setAttribute("data-name", Constants.MENU_OUTLINE_EXPAND_LEVEL);
-    for (let i = 1; i <= 6; i++) {
-        menu.append(new MenuItem({
-            id: `heading${i}`,
-            icon: `iconH${i}`,
-            label: HEADING_LABELS[i - 1] || "",
-            /**
-             * 作用：响应菜单项点击，展开到对应的标题层级。
-             * 意图：通过菜单操作快速调整大纲的展开深度。
-             * 调用时机：用户点击“展开到...”菜单下的具体标题级别时。
-             */
-            click: () => expandToLevel(outline, i)
-        }).element);
-    }
-    const rect = target.getBoundingClientRect();
-    menu.popup({
-        x: rect.left,
-        y: rect.bottom,
-        h: rect.height
-    });
-}
-
-/**
- * 切换同层级的所有标题的展开/折叠状态（基于标题级别而不是DOM层级）
- * @同步豁免: DOM访问
- */
-export function collapseSameLevel(outline: Outline, element: HTMLElement, expand?: boolean) {
-    // 获取所有相同标题级别的元素
-    let isExpand = expand;
-    if (typeof isExpand === "undefined") {
-        isExpand = true;
-        const currentArrow = element.querySelector(".b3-list-item__arrow");
-        if (currentArrow) {
-            isExpand = !currentArrow.classList.contains("b3-list-item__arrow--open");
-        }
-    }
-
-    const items = outline.element.querySelectorAll(`li.b3-list-item[data-subtype="${element.getAttribute("data-subtype")}"]`);
-    for (const item of items) {
-        if (!isHTMLElement(item)) {
-            continue;
-        }
-        const arrowElement = item.querySelector(".b3-list-item__arrow");
-        if (!arrowElement) {
-            continue;
-        }
-
-        if (isExpand) {
-            handleExpandItem(item, arrowElement);
-            continue;
-        }
-        handleCollapseItem(item, arrowElement);
-    }
-    outline.saveExpendIds();
-}
-
-/**
- * 作用：处理列表项的展开逻辑。
- * 意图：展开当前项并向上展开所有父级列表，确保路径可见。
- * 调用时机：`collapseSameLevel` 中需要展开时调用。
- */
-function handleExpandItem(item: HTMLElement, arrowElement: Element) {
-    const nextSibling = item.nextElementSibling;
-    /**
-     * 作用：确保下一个兄弟元素是 UL 列表。
-     * 意图：仅当存在子列表时才进行展开操作，移除隐藏类并更新箭头状态。
-     */
-    if (isHTMLElement(nextSibling) && nextSibling.tagName === "UL") {
-        nextSibling.classList.remove("fn__none");
-        arrowElement.classList.add("b3-list-item__arrow--open");
-    }
-    let ulElement = item.parentElement;
-    while (ulElement && !ulElement.classList.contains("b3-list") && ulElement.tagName === "UL") {
-        ulElement.classList.remove("fn__none");
-        const prevSibling = ulElement.previousElementSibling;
-        if (prevSibling) {
-            prevSibling.querySelector(".b3-list-item__arrow")?.classList.add("b3-list-item__arrow--open");
-        }
-        ulElement = ulElement.parentElement;
-    }
-}
-
-/**
- * 作用：处理列表项的折叠逻辑。
- * 意图：仅折叠当前项。
- * 调用时机：`collapseSameLevel` 中需要折叠时调用。
- */
-function handleCollapseItem(item: HTMLElement, arrowElement: Element) {
-    const nextSibling = item.nextElementSibling;
-    /**
-     * 作用：确保下一个兄弟元素是 UL 列表。
-     * 意图：仅当存在子列表时才进行折叠操作，添加隐藏类并更新箭头状态。
-     */
-    if (isHTMLElement(nextSibling) && nextSibling.tagName === "UL") {
-        nextSibling.classList.add("fn__none");
-        arrowElement.classList.remove("b3-list-item__arrow--open");
-    }
-}
-
-/**
- * 展开/折叠子项
- * @同步豁免: DOM访问
- */
-export function collapseChildren(outline: Outline, element: HTMLElement, expand?: boolean) {
-    const nextElement = element.nextElementSibling;
-    if (!nextElement || nextElement.tagName !== "UL") {
-        return;
-    }
-    const arrowElement = element.querySelector(".b3-list-item__arrow");
-    if (!arrowElement) {
-        return;
-    }
-    let isExpand = expand;
-    if (typeof isExpand === "undefined") {
-        isExpand = !arrowElement.classList.contains("b3-list-item__arrow--open");
-    }
-    if (isExpand) {
-        arrowElement.classList.add("b3-list-item__arrow--open");
-        nextElement.classList.remove("fn__none");
-        const inputItems = nextElement.querySelectorAll("ul");
-        for (const item of inputItems) {
-            if (!isHTMLElement(item)) {
-                continue;
-            }
-            const prevSibling = item.previousElementSibling;
-            if (prevSibling) {
-                prevSibling.querySelector(".b3-list-item__arrow")?.classList.add("b3-list-item__arrow--open");
-            }
-            item.classList.remove("fn__none");
-        }
-        outline.saveExpendIds();
-        return;
-    }
-    arrowElement.classList.remove("b3-list-item__arrow--open");
-    nextElement.classList.add("fn__none");
-    outline.saveExpendIds();
-}
 
 /**
  * 应用大纲筛选
@@ -227,7 +25,8 @@ export function setFilter(outline: Outline) {
         if (!isHTMLElement(item)) {
             continue;
         }
-        const toggle = item.previousElementSibling?.querySelector(".b3-list-item__toggle");
+        const prev = item.previousElementSibling;
+        const toggle = prev?.querySelector(".b3-list-item__toggle");
         if (toggle) {
             toggle.classList.remove("fn__hidden");
         }
@@ -239,11 +38,7 @@ export function setFilter(outline: Outline) {
     const keyword = searchInput.value.toLowerCase();
 
     if (!keyword) {
-        // 恢复折叠状态
-        if (outline.preFilterExpandIds) {
-            outline.tree.setExpandIds(outline.preFilterExpandIds);
-        }
-        outline.preFilterExpandIds = null;
+        resetFilter(outline);
         return;
     }
 
@@ -253,6 +48,16 @@ export function setFilter(outline: Outline) {
     }
 
     filterListItems(outline.element.firstElementChild, keyword);
+}
+
+/**
+ * 重置筛选状态，恢复之前的折叠情况
+ */
+function resetFilter(outline: Outline) {
+    if (outline.preFilterExpandIds) {
+        outline.tree.setExpandIds(outline.preFilterExpandIds);
+    }
+    outline.preFilterExpandIds = null;
 }
 
 /**
@@ -295,26 +100,17 @@ function checkListItem(liItem: HTMLElement, keyword: string): { isMatch: boolean
     }
 
     const arrowElement = liItem.querySelector(".b3-list-item__arrow");
-    const textContent = (liItem.querySelector(".b3-list-item__text")?.textContent || "").trim().toLowerCase();
+    const textElement = liItem.querySelector(".b3-list-item__text");
+    const textContent = (textElement?.textContent || "").trim().toLowerCase();
 
+    // 当前标题命中
     if (textContent.includes(keyword)) {
-        // 当前标题命中
-        liItem.style.display = "";
-        if (nextUlElement) {
-            handleNextUlElementOnMatch(nextUlElement, arrowElement, childResult);
-        }
-        return { isMatch: true, hasChildMatch: false };
+        return handleMatch(liItem, nextUlElement, arrowElement, childResult);
     }
 
+    // 当前标题未命中，但子级有命中
     if (childResult.hasMatch || childResult.hasChildMatch) {
-        // 当前标题未命中，但子级有命中
-        liItem.style.display = "";
-
-        if (nextUlElement) {
-            nextUlElement.classList.remove("fn__none");
-            arrowElement?.classList.add("b3-list-item__arrow--open");
-        }
-        return { isMatch: false, hasChildMatch: true };
+        return handleChildMatch(liItem, nextUlElement, arrowElement);
     }
 
     // 当前标题和子级都未命中，隐藏
@@ -323,6 +119,33 @@ function checkListItem(liItem: HTMLElement, keyword: string): { isMatch: boolean
         nextUlElement.classList.add("fn__none");
     }
     return { isMatch: false, hasChildMatch: false };
+}
+
+/**
+ * 作用：处理当前项命中搜索关键字的逻辑。
+ * 意图：显示当前项，并根据子项情况处理子列表显示。
+ * 调用时机：`checkListItem` 中检测到文本包含关键字时。
+ */
+function handleMatch(liItem: HTMLElement, nextUlElement: Element | undefined, arrowElement: Element | null, childResult: { hasMatch: boolean, hasChildMatch: boolean }) {
+    liItem.style.display = "";
+    if (nextUlElement) {
+        handleNextUlElementOnMatch(nextUlElement, arrowElement, childResult);
+    }
+    return { isMatch: true, hasChildMatch: false };
+}
+
+/**
+ * 作用：处理当前项未命中但子项命中的逻辑。
+ * 意图：显示当前项，并展开子列表以显示命中的子项。
+ * 调用时机：`checkListItem` 中检测到子项有命中结果时。
+ */
+function handleChildMatch(liItem: HTMLElement, nextUlElement: Element | undefined, arrowElement: Element | null) {
+    liItem.style.display = "";
+    if (nextUlElement) {
+        nextUlElement.classList.remove("fn__none");
+        arrowElement?.classList.add("b3-list-item__arrow--open");
+    }
+    return { isMatch: false, hasChildMatch: true };
 }
 
 /**
@@ -336,8 +159,8 @@ function checkListItem(liItem: HTMLElement, keyword: string): { isMatch: boolean
 function handleNextUlElementOnMatch(nextUlElement: Element, arrowElement: Element | null, childResult: { hasMatch: boolean, hasChildMatch: boolean }) {
     nextUlElement.classList.remove("fn__none");
 
+    // 子项也有命中
     if (childResult.hasMatch || childResult.hasChildMatch) {
-        // 子项也有命中
         arrowElement?.classList.add("b3-list-item__arrow--open");
         nextUlElement.classList.remove("fn__none");
         return;

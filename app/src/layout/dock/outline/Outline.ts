@@ -10,7 +10,8 @@ import { Editor } from "../../../editor";
 
 // 拆分模块导入
 import { bindSort } from "./Outline.sort";
-import { setFilter, expandToLevel, showExpandLevelMenu, collapseSameLevel, collapseChildren } from "./Outline.filter";
+import { setFilter } from "./Outline.filter";
+import { expandToLevel, showExpandLevelMenu, collapseSameLevel, collapseChildren } from "./Outline.expand";
 import { showContextMenu, genHeadingTransform, getProtyleAndBlockElement } from "./Outline.contextMenu";
 import { initInputEvents, createTreeConfig } from "./Outline.init";
 import { initHeaderEvents } from "./Outline.header";
@@ -87,7 +88,7 @@ export class Outline extends Model {
 
         initInputEvents(this);
         this.tree = new Tree(createTreeConfig(this, options.app));
-        this.initHeaderEvents(options);
+        initHeaderEvents(this, options);
         this.bindSort();
 
         // @内联回调

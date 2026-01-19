@@ -91,14 +91,7 @@ const 删除操作对应元素 = (protyle: IProtyle, operations: IOperation[]) =
     }
 };
 
-/**
- * 创建复制标题响应处理器
- * 作用：处理获取标题子内容后的复制操作
- * 调用时机：点击"复制"菜单项后，API 返回标题内容时调用
- */
-const 创建复制标题响应处理器 = (protyle: IProtyle) => (resp: IWebSocketData) => {
-    writeClipboard(protyle, resp.data);
-};
+
 
 /**
  * 创建删除标题响应处理器
@@ -121,23 +114,61 @@ const 创建剪切标题内层处理器 = (protyle: IProtyle, id: string) => (re
     fetchPost("/api/block/getHeadingDeleteTransaction", { id }, 创建删除标题响应处理器(protyle));
 };
 
+/**
+ * 复制标题及其子内容
+ * 作用：将标题及其所有子块的内容复制到剪贴板
+ * 调用时机：用户点击"复制"菜单项时触发
+ */
+const 处理复制标题点击 = (outline: Outline, element: HTMLElement, id: string) => {
+    const data = getProtyleAndBlockElement(outline, element);
+    if (!data) {
+        return;
+    }
+    const foldAttr = data.blockElement.getAttribute("fold");
+    fetchPost("/api/block/getHeadingChildrenDOM", { id, removeFoldAttr: foldAttr !== "1" }, (resp) => {
+        writeClipboard(data.protyle, resp.data);
+    });
+};
+
+/**
+ * 剪切标题及其子内容
+ * 作用：将标题及其所有子块的内容复制到剪贴板，然后删除这些块
+ * 调用时机：用户点击"剪切"菜单项时触发
+ */
+const 处理剪切标题点击 = (outline: Outline, element: HTMLElement, id: string) => {
+    const data = getProtyleAndBlockElement(outline, element);
+    if (!data) {
+        return;
+    }
+    const foldAttr = data.blockElement.getAttribute("fold");
+    fetchPost("/api/block/getHeadingChildrenDOM", { id, removeFoldAttr: foldAttr !== "1" }, 创建剪切标题内层处理器(data.protyle, id));
+};
+
+/**
+ * 删除标题及其子内容
+ * 作用：删除标题及其所有子块
+ * 调用时机：用户点击"删除"菜单项时触发
+ */
+const 处理删除标题点击 = (outline: Outline, element: HTMLElement, id: string) => {
+    const data = getProtyleAndBlockElement(outline, element);
+    if (!data) {
+        return;
+    }
+    fetchPost("/api/block/getHeadingDeleteTransaction", { id }, 创建删除标题响应处理器(data.protyle));
+};
+
 /** 添加复制/剪切/删除菜单项 */
+/** @同步豁免: UI构建 */
 export function appendClipboardMenuItems(outline: Outline, element: HTMLElement, id: string) {
     getSiyuanGlobalMenusMenu().append(new MenuItem({
         id: "copyHeadings1", icon: "iconCopy", label: `${siyuanI18n.copy} ${siyuanI18n.headings1}`,
         /**
-         * 复制标题及其子内容
-         * 作用：将标题及其所有子块的内容复制到剪贴板
-         * 调用时机：用户点击"复制"菜单项时触发
+         * 响应点击事件
+         * 作用：触发复制标题操作
+         * 意图：作为菜单项的回调函数
+         * 调用时机：点击时
          */
-        click: () => {
-            const data = getProtyleAndBlockElement(outline, element);
-            if (!data) {
-                return;
-            }
-            const foldAttr = data.blockElement.getAttribute("fold");
-            fetchPost("/api/block/getHeadingChildrenDOM", { id, removeFoldAttr: foldAttr !== "1" }, 创建复制标题响应处理器(data.protyle));
-        }
+        click: () => 处理复制标题点击(outline, element, id)
     }).element);
     /**
      * 只读模式检查：只有在非只读模式下才显示"剪切"和"删除"菜单项。
@@ -148,33 +179,22 @@ export function appendClipboardMenuItems(outline: Outline, element: HTMLElement,
         getSiyuanGlobalMenusMenu().append(new MenuItem({
             id: "cutHeadings1", icon: "iconCut", label: `${siyuanI18n.cut} ${siyuanI18n.headings1}`,
             /**
-             * 剪切标题及其子内容
-             * 作用：将标题及其所有子块的内容复制到剪贴板，然后删除这些块
-             * 调用时机：用户点击"剪切"菜单项时触发
+             * 响应点击事件
+             * 作用：触发剪切标题操作
+             * 意图：作为菜单项的回调函数
+             * 调用时机：点击时
              */
-            click: () => {
-                const data = getProtyleAndBlockElement(outline, element);
-                if (!data) {
-                    return;
-                }
-                const foldAttr = data.blockElement.getAttribute("fold");
-                fetchPost("/api/block/getHeadingChildrenDOM", { id, removeFoldAttr: foldAttr !== "1" }, 创建剪切标题内层处理器(data.protyle, id));
-            }
+            click: () => 处理剪切标题点击(outline, element, id)
         }).element);
         getSiyuanGlobalMenusMenu().append(new MenuItem({
             id: "deleteHeadings1", icon: "iconTrashcan", label: `${siyuanI18n.delete} ${siyuanI18n.headings1}`,
             /**
-             * 删除标题及其子内容
-             * 作用：删除标题及其所有子块
-             * 调用时机：用户点击"删除"菜单项时触发
+             * 响应点击事件
+             * 作用：触发删除标题操作
+             * 意图：作为菜单项的回调函数
+             * 调用时机：点击时
              */
-            click: () => {
-                const data = getProtyleAndBlockElement(outline, element);
-                if (!data) {
-                    return;
-                }
-                fetchPost("/api/block/getHeadingDeleteTransaction", { id }, 创建删除标题响应处理器(data.protyle));
-            }
+            click: () => 处理删除标题点击(outline, element, id)
         }).element);
     }
 }

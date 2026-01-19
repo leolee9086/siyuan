@@ -12,9 +12,11 @@ import { isOperations, isHTMLElement } from "../dock.guard";
  * 意图：用于在 DOM 中插入新的标题块时，构建符合 Protyle 规范的 HTML 字符串。
  * 调用时机：在插入新的同级或子级标题时调用。
  */
+/** @同步豁免: UI构建 */
 export const genHeadingHTML = (level: number, newId: string) => `<div data-subtype="h${level}" data-node-id="${newId}" data-type="NodeHeading" class="h${level}"><div contenteditable="true" spellcheck="false"><wbr></div><div class="protyle-attr" contenteditable="false">${Constants.ZWSP}</div></div>`;
 
 /** 处理标题级别变换的响应 */
+/** @同步豁免: DOM访问 */
 export const 处理标题级别变换响应 = (protyle: IProtyle, responseData: { doOperations: IOperation[]; undoOperations: IOperation[] }) => {
     /**
      * 作用：确保编辑器处于所见即所得 (WYSIWYG) 模式。
@@ -62,6 +64,7 @@ export const 处理标题级别变换响应 = (protyle: IProtyle, responseData: 
 };
 
 /** 创建插入同级标题后的响应处理器 */
+/** @同步豁免: UI构建 */
 export const 创建插入同级标题后处理器 = (
     获取Protyle和块元素: () => { protyle: IProtyle; blockElement: HTMLElement } | undefined,
     currentLevel: number
@@ -103,6 +106,7 @@ export const 创建插入同级标题后处理器 = (
 };
 
 /** 创建添加子标题的响应处理器 */
+/** @同步豁免: UI构建 */
 export const 创建添加子标题响应处理器 = (
     获取Protyle和块元素: () => { protyle: IProtyle; blockElement: HTMLElement } | undefined,
     currentLevel: number
@@ -114,7 +118,7 @@ export const 创建添加子标题响应处理器 = (
     const undoOps = delResp.data.undoOperations;
     const idx = undoOps.findIndex((op: IOperation) => {
         const si = op.data.indexOf(' data-subtype="h');
-        return si > -1 && si < 260 && parseInt(op.data.substring(si + 16, si + 17)) === currentLevel + 1;
+        return si > -1 && si < 260 && parseInt(op.data.substring(si + 16, si + 17), 10) === currentLevel + 1;
     });
     /**
      * 作用：调整新标题的插入位置。
@@ -138,16 +142,6 @@ export const 创建添加子标题响应处理器 = (
     const newId = Lute.NewNodeID(), html = genHeadingHTML(currentLevel + 1, newId);
     transaction(data.protyle, [{ action: "insert", data: html, id: newId, previousID }], [{ action: "delete", id: newId }]);
     const prevEl = data.protyle.wysiwyg.element.querySelector(`[data-node-id="${previousID}"]`);
-    /**
-     * 作用：确保参考元素存在。
-     * 意图：找到插入点之前的元素，以便执行 insertAdjacentHTML。
-     * 生效场景：previousID 对应的元素存在于 DOM 中时。
-     */
-    /**
-     * 作用：确保参考元素存在。
-     * 意图：找到插入点之前的元素，以便执行 insertAdjacentHTML。
-     * 生效场景：previousID 对应的元素存在于 DOM 中时。
-     */
     if (!prevEl) {
         return;
     }
@@ -165,15 +159,45 @@ export const 创建添加子标题响应处理器 = (
 };
 
 /**
- * 作用：将指定块转换为子文档。
- * 意图：实现"转换为子文档"功能，创建新文档并移动原来的块。
- * 调用时机：用户在菜单确认后调用。
+ * 作用：处理创建子文档后的响应。
+ * 意图：当 "API createDocWithMd" 成功返回后，构建并执行事务：在原位置插入引用并移动原块到新文档。
+ * 调用时机：在 executeSubDocCreateAndMove 中的 fetchPost 回调中调用。
  */
-/**
- * 作用：将指定块转换为子文档。
- * 意图：实现"转换为子文档"功能，创建新文档并移动原来的块。
- * 调用时机：用户在菜单确认后调用。
- */
+const handleCreateDocWithMdResponse = (
+    protyle: IProtyle,
+    ids: string[],
+    name: string,
+    blockElement: HTMLElement,
+    response: IWebSocketData
+) => {
+    const newDocID = response.data;
+
+    // 3. 构建 Transaction：插入引用 + 移动块
+    const doOperations: IOperation[] = [];
+
+    // 在原位置插入引用
+    // Ref 格式: ((id 'text'))
+    const refHTML = `<div data-node-id="${Lute.NewNodeID()}" data-type="NodeParagraph" class="p"><div contenteditable="true" spellcheck="false"><span>((${newDocID} '${name}'))</span><wbr></div><div class="protyle-attr" contenteditable="false"></div></div>`;
+
+    doOperations.push({
+        action: "insert",
+        data: refHTML,
+        id: Lute.NewNodeID(),
+        previousID: blockElement.previousElementSibling?.getAttribute("data-node-id") || undefined,
+        parentID: blockElement.parentElement?.getAttribute("data-node-id") || protyle.block.parentID
+    });
+
+    // 移动块到新文档
+    for (const itemId of ids) {
+        doOperations.push({
+            action: "move",
+            id: itemId,
+            parentID: newDocID
+        });
+    }
+    transaction(protyle, doOperations);
+};
+
 /**
  * 作用：执行子文档创建及块移动的事务操作。
  * 意图：将核心逻辑提取为独立函数，复用且避免嵌套函数定义。
@@ -185,40 +209,12 @@ const executeSubDocCreateAndMove = (
     name: string,
     blockElement: HTMLElement
 ) => {
-    // @内联回调
     fetchPost("/api/filetree/createDocWithMd", {
         notebook: protyle.notebookId,
         path: newPath, // 已经是完整路径
         parentID: protyle.block.rootID,
         markdown: ""
-    }, (response) => {
-        const newDocID = response.data;
-
-        // 3. 构建 Transaction：插入引用 + 移动块
-        const doOperations: IOperation[] = [];
-
-        // 在原位置插入引用
-        // Ref 格式: ((id 'text'))
-        const refHTML = `<div data-node-id="${Lute.NewNodeID()}" data-type="NodeParagraph" class="p"><div contenteditable="true" spellcheck="false"><span>((${newDocID} '${name}'))</span><wbr></div><div class="protyle-attr" contenteditable="false"></div></div>`;
-
-        doOperations.push({
-            action: "insert",
-            data: refHTML,
-            id: Lute.NewNodeID(),
-            previousID: blockElement.previousElementSibling?.getAttribute("data-node-id") || undefined,
-            parentID: blockElement.parentElement?.getAttribute("data-node-id") || protyle.block.parentID
-        });
-
-        // 移动块到新文档
-        for (const itemId of ids) {
-            doOperations.push({
-                action: "move",
-                id: itemId,
-                parentID: newDocID
-            });
-        }
-        transaction(protyle, doOperations);
-    });
+    }, (response) => handleCreateDocWithMdResponse(protyle, ids, name, blockElement, response));
 };
 
 /**
@@ -226,7 +222,7 @@ const executeSubDocCreateAndMove = (
  * 意图：实现"转换为子文档"功能，创建新文档并移动原来的块。
  * 调用时机：用户在菜单确认后调用。
  */
-export const convertBlockToSubDocument = (protyle: IProtyle, blockElement: HTMLElement) => {
+export const convertBlockToSubDocument = async (protyle: IProtyle, blockElement: HTMLElement) => {
     const id = blockElement.getAttribute("data-node-id");
     if (!id) {
         return;
