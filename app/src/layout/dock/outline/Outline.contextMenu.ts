@@ -34,7 +34,7 @@ function handleOpenOutlineFile(app: App, id: string, zoomIn: boolean) {
 
 /**
  * 显示右键菜单
-
+ * @同步豁免: UI构建
  */
 export function showContextMenu(outline: Outline, element: HTMLElement, event: MouseEvent) {
     /**
@@ -45,7 +45,7 @@ export function showContextMenu(outline: Outline, element: HTMLElement, event: M
     if (outline.isPreview) {
         return; // 预览模式下不显示右键菜单
     }
-    const currentLevel = outline.getHeadingLevel(element);
+    const currentLevel = parseInt(element.getAttribute("data-subtype")?.replace("h", "") || "0", 10);
     getSiyuanGlobalMenusMenu().remove();
     getSiyuanGlobalMenusMenu().element.setAttribute("data-name", Constants.MENU_OUTLINE_CONTEXT);
     const id = element.getAttribute("data-node-id");

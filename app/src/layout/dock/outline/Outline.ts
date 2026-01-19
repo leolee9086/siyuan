@@ -10,7 +10,7 @@ import { Editor } from "../../../editor";
 
 // 拆分模块导入
 import { bindSort } from "./Outline.sort";
-import { setFilter, getHeadingLevel, expandToLevel, showExpandLevelMenu, collapseSameLevel, collapseChildren } from "./Outline.filter";
+import { setFilter, expandToLevel, showExpandLevelMenu, collapseSameLevel, collapseChildren } from "./Outline.filter";
 import { showContextMenu, genHeadingTransform, getProtyleAndBlockElement } from "./Outline.contextMenu";
 import { initInputEvents, createTreeConfig } from "./Outline.init";
 import { initHeaderEvents } from "./Outline.header";
@@ -32,12 +32,12 @@ export class Outline extends Model {
 
     // 绑定拆分模块的方法
     bindSort = bindSort;
-    setFilter = setFilter;
-    getHeadingLevel = getHeadingLevel;
-    expandToLevel = expandToLevel;
-    showExpandLevelMenu = showExpandLevelMenu;
-    collapseSameLevel = collapseSameLevel;
-    collapseChildren = collapseChildren;
+    setFilter = () => setFilter(this);
+
+    expandToLevel = (targetLevel: number) => expandToLevel(this, targetLevel);
+    showExpandLevelMenu = (target: HTMLElement) => showExpandLevelMenu(this, target);
+    collapseSameLevel = (element: HTMLElement, expand?: boolean) => collapseSameLevel(this, element, expand);
+    collapseChildren = (element: HTMLElement, expand?: boolean) => collapseChildren(this, element, expand);
     /**
      * 作用：显示大纲条目的上下文菜单。
      * 意图：代理调用外部的 showContextMenu 函数，传入当前实例上下文。
