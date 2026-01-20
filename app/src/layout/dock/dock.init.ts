@@ -17,7 +17,7 @@ import { isWnd, isTDock } from "./dock.guard";
 import { hasValidDockType } from "./dock.visibility";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { forgeI18n } from "../../util/siyuanEnvironments/forgeI18n.getI18n.environment";
-import { 检查并注册Dock项, restoreIfMissing, fixCronjobIcons } from "./dock.data";
+import { 检查并注册Dock项, 恢复缺失面板, 修复定时任务图标 } from "./dock.data";
 
 /**
  * 初始化活动元素
@@ -254,21 +254,21 @@ export function initDockData(
     data[1] = secondColumn.filter(item => 检查并注册Dock项(item, seenGlobalTypes, TYPES, position));
 
     // 修复旧数据中的 cronjob 图标 (从 iconClock 纠正为 iconHistory)
-    fixCronjobIcons(data);
+    修复定时任务图标(data);
 
 
 
-    restoreIfMissing(data[1], seenGlobalTypes, "tag", "iconTags", siyuanI18n.tag || "Tags", position);
-    restoreIfMissing(data[1], seenGlobalTypes, "forwardlink", "iconLink", forgeI18n.forwardlinks || "正向链接", position);
+    恢复缺失面板(data[1], seenGlobalTypes, "tag", "iconTags", siyuanI18n.tag || "Tags", position);
+    恢复缺失面板(data[1], seenGlobalTypes, "forwardlink", "iconLink", forgeI18n.forwardlinks || "正向链接", position);
     const embeddingTitle = forgeI18n.embedding;
-    restoreIfMissing(data[1], seenGlobalTypes, "embedding_dock", "iconDatabase", typeof embeddingTitle === "string" ? embeddingTitle : "Embeddings", position);
+    恢复缺失面板(data[1], seenGlobalTypes, "embedding_dock", "iconDatabase", typeof embeddingTitle === "string" ? embeddingTitle : "Embeddings", position);
     /**
      * 作用：限制定时任务面板的初始化位置。
      * 意图：维护界面布局规范，确保定时任务面板（Cronjob）默认仅出现在右侧边栏，避免左右两侧同时出现造成混乱。
      * 生效场景：当前正在初始化右侧 Dock 且数据中缺失定时任务面板时。
      */
     if (position === "Right") {
-        restoreIfMissing(data[1], seenGlobalTypes, "cronjob", "iconHistory", "定时任务", position);
+        恢复缺失面板(data[1], seenGlobalTypes, "cronjob", "iconHistory", "定时任务", position);
     }
 
     // 4. Final verification

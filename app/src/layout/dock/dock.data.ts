@@ -1,15 +1,16 @@
 import { 注册类型, 类型可用 } from "./dock.registry";
 
 /**
- * 去重 dock items，使用全局注册表代替 DOM 查询
- * @param arr dock item 数组
+ * 检查并注册 Dock 项
+ * 
+ * 作用：去重 dock items，使用全局注册表代替 DOM 查询
+ * 用于 array.filter 的回调
+ * 
+ * @param item dock item 对象
  * @param seen 本次初始化中已看到的类型集合
  * @param standardTypes 标准类型列表
  * @param position 当前 Dock 的位置
- */
-/**
- * 检查并注册 Dock 项
- * 用于 array.filter 的回调
+ * @同步豁免: UI构建
  */
 export function 检查并注册Dock项(
     item: Config.IUILayoutDockTab,
@@ -53,8 +54,9 @@ export function 检查并注册Dock项(
  * @param icon 图标
  * @param title 标题
  * @param position 当前 Dock 的位置
+ * @同步豁免: UI构建
  */
-export function restoreIfMissing(
+export function 恢复缺失面板(
     targetArray: Config.IUILayoutDockTab[],
     existingTypes: Set<string>,
     type: string,
@@ -90,10 +92,13 @@ export function restoreIfMissing(
     existingTypes.add(type);
 }
 
+
+
 /**
  * 修复旧数据中的 cronjob 图标
+ * @同步豁免: UI构建
  */
-export function fixCronjobIcons(data: Config.IUILayoutDockTab[][]): void {
+export function 修复定时任务图标(data: Config.IUILayoutDockTab[][]): void {
     for (const column of data) {
         if (!column) {
             continue;
@@ -110,3 +115,5 @@ export function fixCronjobIcons(data: Config.IUILayoutDockTab[][]): void {
         }
     }
 }
+
+

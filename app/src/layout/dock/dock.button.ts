@@ -9,6 +9,7 @@ const TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGr
 
 /**
  * 生成单个按钮的 HTML
+ * @同步豁免: UI构建
  */
 export function generateButtonHTML(
     item: Config.IUILayoutDockTab,
@@ -30,6 +31,7 @@ export function generateButtonHTML(
 
 /**
  * 生成所有按钮的 HTML
+ * @同步豁免: UI构建
  */
 export function generateAllButtonsHTML(
     data: Config.IUILayoutDockTab[],
@@ -46,6 +48,7 @@ export function generateAllButtonsHTML(
 
 /**
  * 生成 Pin 按钮的 HTML
+ * @同步豁免: UI构建
  */
 export function generatePinButtonHTML(pinText: string, isPinned: boolean): string {
     return `<span class="dock__item dock__item--pin ariaLabel" aria-label="${pinText}">
@@ -62,6 +65,7 @@ export function generatePinButtonHTML(pinText: string, isPinned: boolean): strin
  * @param isPinned 是否已pin
  * @param isFirstContainer 是否是第一个容器
  * @param append 是否追加模式（默认false为替换模式，用于初始化；true为追加模式，用于动态添加）
+ * @同步豁免: DOM访问
  */
 export function insertButtonsToContainer(
     container: Element | null,
