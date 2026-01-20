@@ -89,14 +89,26 @@ function checkIsTrivialWrapper(bodyNode) {
     if (bodyNode.type === "BlockStatement") {
         const statements = bodyNode.body;
 
-        // 只有一条语句且是 return 语句
-        if (statements.length === 1 && statements[0].type === "ReturnStatement") {
-            const returnArg = statements[0].argument;
+        // 只有一条语句
+        if (statements.length === 1) {
+            const statement = statements[0];
 
-            // 返回的是一个函数调用
-            if (returnArg && returnArg.type === "CallExpression") {
-                const calleeName = getCalleeName(returnArg.callee);
-                return { isTrivial: !!calleeName, calleeName };
+            // return 语句: return foo();
+            if (statement.type === "ReturnStatement") {
+                const returnArg = statement.argument;
+                if (returnArg && returnArg.type === "CallExpression") {
+                    const calleeName = getCalleeName(returnArg.callee);
+                    return { isTrivial: !!calleeName, calleeName };
+                }
+            }
+
+            // 表达式语句: foo(); (无返回值)
+            if (statement.type === "ExpressionStatement") {
+                const expression = statement.expression;
+                if (expression.type === "CallExpression") {
+                    const calleeName = getCalleeName(expression.callee);
+                    return { isTrivial: !!calleeName, calleeName };
+                }
             }
         }
     }
