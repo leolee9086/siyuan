@@ -8,9 +8,11 @@ import type { Outline } from "./Outline";
  * 意图：提供对大纲树节点的展开、折叠操作，包括子标题、同级标题以及全部展开/折叠。
  * 调用时机：在构建大纲右键菜单时调用，通常位于菜单末尾。
  */
-export function appendExpandCollapseMenuItems(outline: Outline, element: HTMLElement) {
+export async function appendExpandCollapseMenuItems(outline: Outline, element: HTMLElement): Promise<void> {
+    const menu = getSiyuanGlobalMenusMenu();
+
     // 展开子标题
-    getSiyuanGlobalMenusMenu().append(new MenuItem({
+    menu.append(new MenuItem({
         id: "expandChildHeading",
         icon: "iconExpand",
         label: siyuanI18n.expandChildHeading,
@@ -24,7 +26,7 @@ export function appendExpandCollapseMenuItems(outline: Outline, element: HTMLEle
     }).element);
 
     // 折叠子标题
-    getSiyuanGlobalMenusMenu().append(new MenuItem({
+    menu.append(new MenuItem({
         id: "foldChildHeading",
         icon: "iconContract",
         label: siyuanI18n.foldChildHeading,
@@ -38,7 +40,7 @@ export function appendExpandCollapseMenuItems(outline: Outline, element: HTMLEle
     }).element);
 
     // 展开同级标题
-    getSiyuanGlobalMenusMenu().append(new MenuItem({
+    menu.append(new MenuItem({
         id: "expandSameLevelHeading",
         icon: "iconExpand",
         label: siyuanI18n.expandSameLevelHeading,
@@ -52,7 +54,7 @@ export function appendExpandCollapseMenuItems(outline: Outline, element: HTMLEle
     }).element);
 
     // 折叠同级标题
-    getSiyuanGlobalMenusMenu().append(new MenuItem({
+    menu.append(new MenuItem({
         id: "foldSameLevelHeading",
         icon: "iconContract",
         label: siyuanI18n.foldSameLevelHeading,
@@ -66,7 +68,7 @@ export function appendExpandCollapseMenuItems(outline: Outline, element: HTMLEle
     }).element);
 
     // 全部展开
-    getSiyuanGlobalMenusMenu().append(new MenuItem({
+    menu.append(new MenuItem({
         id: "expandAll",
         icon: "iconExpand",
         label: siyuanI18n.expandAll,
@@ -82,7 +84,7 @@ export function appendExpandCollapseMenuItems(outline: Outline, element: HTMLEle
     }).element);
 
     // 全部折叠
-    getSiyuanGlobalMenusMenu().append(new MenuItem({
+    menu.append(new MenuItem({
         id: "foldAll",
         icon: "iconContract",
         label: siyuanI18n.foldAll,

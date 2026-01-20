@@ -25,7 +25,10 @@ import { handlePanelIconClick } from "./Outline.header.icon";
 export function initHeaderEvents(outline: Outline, options: { app: App, tab: Tab, blockId: string, type: "pin" | "local", isPreview: boolean }) {
     initCollapseExpandEvents(outline, options);
     initKeepCurrentExpandEvent(outline, options);
-    initPanelClickEvent(outline, options);
+    // 初始化面板点击事件
+    options.tab.panelElement.addEventListener("click", (event: MouseEvent) => {
+        handlePanelClick(outline, options, event);
+    });
 }
 
 /**
@@ -89,16 +92,7 @@ function initKeepCurrentExpandEvent(outline: Outline, options: { tab: Tab }) {
  * 调用时机：用户点击“保持当前展开”按钮时。
  */
 
-/**
- * 作用：初始化面板区域的通用点击事件。
- * 意图：统一处理面板上的图标点击、标题点击等 delegatable 事件。
- * 调用时机：initHeaderEvents 被调用时。
- */
-function initPanelClickEvent(outline: Outline, options: { app: App, tab: Tab }) {
-    options.tab.panelElement.addEventListener("click", (event: MouseEvent) => {
-        handlePanelClick(outline, options, event);
-    });
-}
+
 
 /**
  * 作用：面板点击事件的处理器。
@@ -137,7 +131,19 @@ function handlePanelClick(outline: Outline, options: { app: App, tab: Tab }, eve
          * 生效场景：outline.blockId 存在且点击目标符合选择器。
          */
         if (outline.blockId && (target === outline.headerElement.nextElementSibling || target.classList.contains("block__icons"))) {
-            handleTitleClick(outline, options.app);
+            // 处理标题点击：在编辑器中打开对应的块文档
+            openFileById({
+                app: options.app,
+                id: outline.blockId,
+                /**
+                 * 作用：文件打开后的回调。
+                 * 意图：处理预览模式滚动或普通模式的光标定位。
+                 * 调用时机：文件加载完成后。
+                 */
+                afterOpen: (model?: Model) => {
+                    handleAfterOpen(outline, model);
+                }
+            });
             isFocus = false;
             break;
         }
@@ -185,26 +191,8 @@ function setValidPanelFocus(outline: Outline, panelElement: HTMLElement) {
 }
 
 /**
- * 作用：处理标题点击事件。
- * 意图：点击标题时，在编辑器中打开对应的块文档。
- * 调用时机：handlePanelClick 检测到点击标题时。
- * @AITODO  修改lint规则,禁止这种全部内容就只是调用另一个函数的函数声明
+ * @AIDONE 修改lint规则,禁止这种全部内容就只是调用另一个函数的函数声明 (已完成: 规则已更新, 函数已内联)
  */
-function handleTitleClick(outline: Outline, app: App) {
-    openFileById({
-        app,
-        id: outline.blockId,
-        /**
-         * 作用：文件打开后的回调。
-         * 意图：处理预览模式滚动或普通模式的光标定位。
-         * 调用时机：文件加载完成后。
-         * 问题/改进：无
-         */
-        afterOpen: (model?: Model) => {
-            handleAfterOpen(outline, model);
-        }
-    });
-}
 
 /**
  * 作用：打开文件后的回调处理。

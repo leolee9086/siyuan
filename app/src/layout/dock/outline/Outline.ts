@@ -15,7 +15,7 @@ import { expandToLevel, showExpandLevelMenu, collapseSameLevel, collapseChildren
 import { showContextMenu, genHeadingTransform, getProtyleAndBlockElement } from "./Outline.contextMenu";
 import { initInputEvents, createTreeConfig } from "./Outline.init";
 import { initHeaderEvents } from "./Outline.header";
-import { 生成面板HTML, 创建回调函数, 创建消息回调函数 } from "./Outline.helpers";
+import { 生成面板HTML, 检查本地文档及其Tab存在的逻辑, 分发消息回调逻辑 } from "./Outline.helpers";
 import { isHTMLElement, isHTMLInputElement } from "../../../util/DOM/element.guard";
 import { setCurrent, setCurrentById, setCurrentByPreview } from "./Outline.setCurrent";
 import { getSafeSiyuanConfig, getSafeSiyuanStorage, getSiyuanIsPublish } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
@@ -32,7 +32,7 @@ export class Outline extends Model {
     public preFilterExpandIds: string[] | null = null;
 
     // 绑定拆分模块的方法
-    bindSort = bindSort;
+    bindSort = () => bindSort(this);
     setFilter = () => setFilter(this);
 
     expandToLevel = (targetLevel: number) => expandToLevel(this, targetLevel);
@@ -55,6 +55,25 @@ export class Outline extends Model {
     initHeaderEvents = initHeaderEvents;
 
     /**
+     * 作用：Model 回调代理
+     * 意图：响应 Model 的连接回调，检查大纲有效性
+     * 调用时机：WebSocket 连接建立时
+     */
+    public onModelCallback(): void {
+        检查本地文档及其Tab存在的逻辑(this);
+    }
+
+    /**
+     * 作用：Model 消息回调代理
+     * 意图：分发 WebSocket 消息到大纲处理器
+     * 调用时机：收到 WebSocket 消息时
+     * @param data 消息数据
+     */
+    public onModelMsgCallback(data: IWebSocketData): void {
+        分发消息回调逻辑(this, data);
+    }
+
+    /**
      * 作用：创建 Outline 实例。
      * 意图：初始化大纲面板，绑定事件，并根据类型渲染内容。
      * @param options 包含应用实例、标签页、块 ID 等配置信息。
@@ -63,8 +82,8 @@ export class Outline extends Model {
         super({
             app: options.app,
             id: options.tab.id,
-            callback: 创建回调函数(),
-            msgCallback: 创建消息回调函数(),
+            callback: Outline.prototype.onModelCallback,
+            msgCallback: Outline.prototype.onModelMsgCallback,
         });
         this.isPreview = options.isPreview;
         this.blockId = options.blockId;

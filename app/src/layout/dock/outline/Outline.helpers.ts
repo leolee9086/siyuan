@@ -9,12 +9,14 @@ import { updateHotkeyAfterTip } from "../../../protyle/util/compatibility";
 import { Constants } from "../../../constants";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanStorage, getSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { getWindowSelection } from "../../../util/siyuanEnvironments/windowStandard.environment";
 
 import type { Outline } from "./Outline";
 
 /**
  * 生成 Outline 面板的 HTML 结构
  * @param type - Outline 类型: "pin" | "local"
+ * @同步豁免: UI构建
  */
 export function 生成面板HTML(type: "pin" | "local"): string {
     const outlineStorage = getSiyuanStorage()[Constants.LOCAL_OUTLINE];
@@ -54,8 +56,7 @@ export function 生成面板HTML(type: "pin" | "local"): string {
 <div class="fn__flex-1" style="padding: 3px 0 8px"></div>`;
 }
 
-// 英文别名导出
-export { 生成面板HTML as genPanelHTML };
+
 
 /**
  * 检查操作是否需要触发大纲重载
@@ -64,13 +65,15 @@ export { 生成面板HTML as genPanelHTML };
  * @returns 是否需要重载
  */
 function 检查操作是否需要重载(item: IOperation, outlineElement: Element): boolean {
+    // 意图：处理更新操作。若被更新的块已在大纲中显示（如修改了现有标题的内容），或被更新的块变成了标题（如将普通段落设为标题），则需重载大纲以反映变更。
     if (item.action === "update") {
         const hasExistingItem = outlineElement.querySelector(`.b3-list-item[data-node-id="${item.id}"]`);
-        const isHeading = item.data.indexOf('data-type="NodeHeading"') > -1;
+        const isHeading = item.data.includes('data-type="NodeHeading"');
         return hasExistingItem !== null || isHeading;
     }
+    // 意图：处理插入操作。若插入的新块是标题，则需重载大纲以将其显示出来。
     if (item.action === "insert") {
-        return item.data.indexOf('data-type="NodeHeading"') > -1;
+        return item.data.includes('data-type="NodeHeading"');
     }
     return item.action === "delete" || item.action === "move";
 }
@@ -79,8 +82,10 @@ function 检查操作是否需要重载(item: IOperation, outlineElement: Elemen
  * 处理事务数据，决定是否需要重新加载大纲
  * @param outline - Outline 实例
  * @param data - WebSocket 数据
+ * @同步豁免: 遗留代码
  */
 export function 处理事务(outline: Outline, data: IWebSocketData): void {
+    // 意图：若是其他文档的事务消息，则直接忽略，仅处理当前大纲对应文档的事务。
     if (data.data.rootID !== outline.blockId) {
         return;
     }
@@ -88,34 +93,45 @@ export function 处理事务(outline: Outline, data: IWebSocketData): void {
     let needReload = false;
     const ops = data.data.sources[0];
 
-    ops.doOperations.find((item: IOperation) => {
-        if (检查操作是否需要重载(item, outline.element)) {
-            needReload = true;
-            return true;
-        }
-    });
+    // 检查普通操作是否有涉及大纲结构的变更（如移动、标题更新）
+    if (ops.doOperations.some((item: IOperation) => 检查操作是否需要重载(item, outline.element))) {
+        needReload = true;
+    }
 
-    if (!needReload && ops.undoOperations) {
-        ops.undoOperations.find((item: IOperation) => {
-            if (item.action === "update" && item.data?.indexOf('data-type="NodeHeading"') > -1) {
-                needReload = true;
-                return true;
-            }
-        });
+    // 检查撤销操作中是否有涉及标题的更新，因为撤销大纲变动也会影响结构
+    if (!needReload && ops.undoOperations && ops.undoOperations.some((item: IOperation) => item.action === "update" && item.data?.includes('data-type="NodeHeading"'))) {
+        needReload = true;
     }
 
     if (needReload) {
-        // @内联回调
-        fetchPost("/api/outline/getDocOutline", { id: outline.blockId, preview: outline.isPreview }, response => {
-            处理大纲响应(outline, data, response);
-        });
+        fetchPost("/api/outline/getDocOutline", { id: outline.blockId, preview: outline.isPreview }, 创建获取大纲回调(outline, data));
     }
 }
 
 /**
- * 处理大纲请求的响应
+ * 作用：创建处理 doc outline 请求及其响应的回调
+ * 意图：封装对大纲数据的响应处理，通过闭包捕获保持上下文 (outline, data)
+ * 调用时机：在处理 save doc 事务且检测到需要 reload 时，作为 fetchPost 的回调
+ * @param outline Outline 实例
+ * @param data 原始 WebSocket 数据
+ * @returns 接收 response 的回调函数
+ */
+function 创建获取大纲回调(outline: Outline, data: IWebSocketData) {
+    return (response: IWebSocketData) => {
+        处理大纲响应(outline, data, response);
+    };
+}
+
+/**
+ * 作用：处理 doc outline 请求的响应数据
+ * 意图：更新大纲视图数据、文档标题，并同步当前选中项
+ * 调用时机：fetchPost 请求成功返回后
+ * @param outline - Outline 实例
+ * @param data - 原始的 WebSocket 触发数据
+ * @param response - 接口返回的大纲数据
  */
 function 处理大纲响应(outline: Outline, data: IWebSocketData, response: IWebSocketData): void {
+    // 意图：校验响应数据是否属于当前大纲对应的文档。
     if (data.data.rootID !== outline.blockId) {
         return;
     }
@@ -125,84 +141,97 @@ function 处理大纲响应(outline: Outline, data: IWebSocketData, response: IW
 }
 
 /**
- * 根据当前光标位置同步选中的标题
+ * 作用：高亮当前光标所在的大纲标题
+ * 意图：当用户在编辑器中移动光标时，大纲应自动定位到对应标题
+ * 调用时机：刷新大纲后自动调用
+ * @param outline - Outline 实例
  */
 function 同步当前选中的标题(outline: Outline): void {
-    const selection = getSelection();
+    const selection = getWindowSelection();
+    // 意图：确保当前有选区，否则无法同步。
     if (!selection || selection.rangeCount <= 0) {
         return;
     }
     const blockElement = hasClosestBlock(selection.getRangeAt(0).startContainer);
+    // 意图：仅当光标位于标题块内时才同步大纲高亮。
     if (!blockElement || blockElement.getAttribute("data-type") !== "NodeHeading") {
         return;
     }
     outline.setCurrent(blockElement);
 }
 
-// 英文别名导出
-export { 处理事务 as handleTransaction };
+
 
 /**
- * 创建 Model 的 callback 回调函数
- * 用于检查 local 类型的 Outline 对应的文档是否还存在
+ * 作用：验证本地大纲对应的文档是否存在
+ * 意图：如果文档已被物理删除（由于外部操作等），则自动关闭大纲 Tab
+ * 调用时机：收到相关消息（如 unmount）时调用
+ * @param outline - Outline 实例
+ * @同步豁免: 生命周期
  */
-export function 创建回调函数(): () => void {
-    // 这里使用普通函数，保持 this 绑定
-    return function (this: Outline) {
-        if (this.type !== "local") {
-            return;
+export function 检查本地文档及其Tab存在的逻辑(outline: Outline): void {
+    // 意图：仅Local类型的大纲需要检查文档存在性，Pin类型的大纲常驻不需自动关闭。
+    if (outline.type !== "local") {
+        return;
+    }
+    fetchPost("/api/block/checkBlockExist", { id: outline.blockId }, existResponse => {
+        // 意图：如果后端返回文档不存在，则移除对应的大纲Tab。
+        if (!existResponse.data) {
+            outline.parent.parent.removeTab(outline.parent.id);
         }
-        fetchPost("/api/block/checkBlockExist", { id: this.blockId }, existResponse => {
-            if (!existResponse.data) {
-                this.parent.parent.removeTab(this.parent.id);
-            }
-        });
-    };
+    });
 }
 
+const 消息处理器: Record<string, (outline: Outline, data: IWebSocketData) => void> = {
+    savedoc: 处理事务,
+    /**
+     * 作用：处理 rename 消息
+     * 意图：在文档重命名时更新大纲或 Tab 的标题
+     * 调用时机：收到 rename 消息时
+     */
+    rename: (outline, data) => {
+        // 意图：若是当前Local大纲对应的文档重命名，则直接更新Tab标题。
+        if (outline.type === "local" && outline.blockId === data.data.id) {
+            outline.parent.updateTitle(data.data.title);
+            return;
+        }
+        outline.updateDocTitle({ title: data.data.title, icon: Constants.ZWSP }, -1);
+    },
+    /**
+     * 作用：处理 unmount 消息
+     * 意图：在某些卸载场景下再次确认文档是否存在，不存在则关闭 Tab
+     * 调用时机：收到 unmount 消息时
+     */
+    unmount: (outline) => {
+        检查本地文档及其Tab存在的逻辑(outline);
+    },
+    /**
+     * 作用：处理 removeDoc 消息
+     * 意图：当文档被删除时，关闭关联的本地大纲 Tab
+     * 调用时机：收到 removeDoc 消息时
+     */
+    removeDoc: (outline, data) => {
+        // 意图：判断当前被删除的文档ID列表中是否包含当前大纲的ID，且当前大纲为Local Tab类型
+        // 场景：文档被删除后，清理对应的悬空大纲Tab
+        if (data.data.ids.includes(outline.blockId) && outline.type === "local") {
+            outline.parent.parent.removeTab(outline.parent.id);
+        }
+    },
+};
+
 /**
- * 创建 Model 的 msgCallback 消息回调函数
  * 处理来自 WebSocket 的各种消息
+ * @同步豁免: 生命周期
  */
-export function 创建消息回调函数(): (data: IWebSocketData) => void {
-    // 消息类型到处理函数的映射
-    const 消息处理器: Record<string, (outline: Outline, data: IWebSocketData) => void> = {
-        savedoc: (outline, data) => 处理事务(outline, data),
-        rename: (outline, data) => {
-            if (outline.type === "local" && outline.blockId === data.data.id) {
-                outline.parent.updateTitle(data.data.title);
-                return;
-            }
-            outline.updateDocTitle({ title: data.data.title, icon: Constants.ZWSP }, -1);
-        },
-        unmount: (outline) => {
-            if (outline.type !== "local") {
-                return;
-            }
-            fetchPost("/api/block/checkBlockExist", { id: outline.blockId }, existResponse => {
-                if (!existResponse.data) {
-                    outline.parent.parent.removeTab(outline.parent.id);
-                }
-            });
-        },
-        removeDoc: (outline, data) => {
-            if (data.data.ids.includes(outline.blockId) && outline.type === "local") {
-                outline.parent.parent.removeTab(outline.parent.id);
-            }
-        },
-    };
-
-    return function (this: Outline, data: IWebSocketData) {
-        if (!data?.cmd) {
-            return;
-        }
-        const handler = 消息处理器[data.cmd];
-        if (handler) {
-            handler(this, data);
-        }
-    };
+export function 分发消息回调逻辑(outline: Outline, data: IWebSocketData): void {
+    // 意图：防御性校验，确保消息包含命令指令。
+    if (!data?.cmd) {
+        return;
+    }
+    const handler = 消息处理器[data.cmd];
+    if (handler) {
+        handler(outline, data);
+    }
 }
 
-// 英文别名导出
-export { 创建回调函数 as createCallback };
-export { 创建消息回调函数 as createMsgCallback };
+
