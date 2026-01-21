@@ -1,22 +1,5 @@
 import { z } from "zod";
-
-type IEventDefines = {
-  readonly [key: string]: z.ZodRawShape;
-};
-
-// 简化类型定义，避免复杂的泛型嵌套
-type EventData<T extends IEventDefines, K extends keyof T> = 
-  z.infer<z.ZodObject<T[K]>>;
-
-type EventListener<T extends IEventDefines, K extends keyof T> = 
-  (data: EventData<T, K>) => void;
-
-interface EventEmitterOptions {
-  runtimeCheck?: boolean;
-  validationFailure?: "throw" | "warn" | "silent";
-  revalidateAfterEach?: boolean;
-  onValidationError?: (event: string, error: z.ZodError, data: unknown) => void;
-}
+import { EventEmitterOptions, IEventDefines, EventData, EventListener } from "./eventEmitter.types";
 
 export class SafeEventEmitter<T extends IEventDefines> {
   private events: {
@@ -49,13 +32,13 @@ export class SafeEventEmitter<T extends IEventDefines> {
         }
       }
     };
-    
+
     // 合并用户提供的选项
     this.options = {
       ...defaultOptions,
       ...options
     };
-    
+
     // 如果用户提供了 validationFailure 但没有提供 onValidationError，需要更新错误处理函数
     if (options.validationFailure && !options.onValidationError) {
       this.options.onValidationError = (event: string, error: z.ZodError, data: unknown) => {
@@ -74,12 +57,12 @@ export class SafeEventEmitter<T extends IEventDefines> {
   private compileSchemas(): void {
     for (const key in this.eventDefines) {
       const shape = this.eventDefines[key];
-      this.schemas.set(key, z.object(shape) );
+      this.schemas.set(key, z.object(shape));
     }
   }
 
   private validateEventData<K extends keyof T>(
-    event: K, 
+    event: K,
     data: unknown
   ): data is EventData<T, K> {
     if (!this.options.runtimeCheck) {
@@ -93,7 +76,7 @@ export class SafeEventEmitter<T extends IEventDefines> {
 
     const result = schema.safeParse(data);
     if (!result.success) {
-      this.options.onValidationError(String(event) , result.error, data);
+      this.options.onValidationError(String(event), result.error, data);
       return false;
     }
 
@@ -142,7 +125,7 @@ export class SafeEventEmitter<T extends IEventDefines> {
       // 创建数据的副本，这样监听器的修改不会影响原始数据
       const dataCopy = this.createValidationCopy(data);
       listener(dataCopy);
-      
+
       if (this.options.runtimeCheck && this.options.revalidateAfterEach) {
         // 重新验证数据，如果验证失败会抛出错误
         if (!this.validateEventData(event, dataCopy)) {
@@ -170,7 +153,7 @@ export class SafeEventEmitter<T extends IEventDefines> {
       // 创建数据的副本，这样监听器的修改不会影响原始数据
       const dataCopy = this.createValidationCopy(data);
       await listener(dataCopy);
-      
+
       if (this.options.runtimeCheck && this.options.revalidateAfterEach) {
         // 重新验证数据，如果验证失败会抛出错误
         if (!this.validateEventData(event, dataCopy)) {
@@ -190,13 +173,13 @@ export class SafeEventEmitter<T extends IEventDefines> {
   }
 
   on<K extends keyof T>(
-    event: K, 
+    event: K,
     listener: EventListener<T, K>
   ): this {
     if (!this.events[event]) {
       this.events[event] = [];
     }
-    
+
     this.events[event]!.push({
       listener,
       isOnce: false
@@ -205,13 +188,13 @@ export class SafeEventEmitter<T extends IEventDefines> {
   }
 
   once<K extends keyof T>(
-    event: K, 
+    event: K,
     listener: EventListener<T, K>
   ): this {
     if (!this.events[event]) {
       this.events[event] = [];
     }
-    
+
     this.events[event]!.push({
       listener,
       isOnce: true
@@ -237,10 +220,10 @@ export class SafeEventEmitter<T extends IEventDefines> {
 
     // 创建监听器数组的副本，避免在迭代过程中修改数组
     const listenersCopy = [...listeners];
-    
+
     listenersCopy.forEach(({ listener, isOnce }) => {
       this.executeListenerWithValidation(event, listener, processedResult.data!);
-      
+
       // 如果是一次性监听器，执行后移除
       if (isOnce) {
         this.off(event, listener);
@@ -264,14 +247,14 @@ export class SafeEventEmitter<T extends IEventDefines> {
     if (processedResult.data === null) {
       return false;
     }
-    
+
     // 创建监听器数组的副本，避免在迭代过程中修改数组
     const listenersCopy = [...listeners];
-    
+
     for await (const { listener, isOnce } of listenersCopy) {
       // 直接等待监听器执行完成
       await this.executeListenerWithValidationAsync(event, listener, processedResult.data!);
-      
+
       // 如果是一次性监听器，执行后移除
       if (isOnce) {
         this.off(event, listener);
@@ -282,7 +265,7 @@ export class SafeEventEmitter<T extends IEventDefines> {
   }
 
   off<K extends keyof T>(
-    event: K, 
+    event: K,
     listener: EventListener<T, K>
   ): this {
     const listeners = this.events[event];
@@ -298,13 +281,13 @@ export class SafeEventEmitter<T extends IEventDefines> {
   setOptions(newOptions: Partial<EventEmitterOptions>): this {
     // 保存当前的验证失败模式，用于后续比较
     const currentValidationFailure = this.options.validationFailure;
-    
+
     // 合并选项
     this.options = {
       ...this.options,
       ...newOptions
     };
-    
+
     // 如果提供了新的错误处理函数，直接使用它
     if (newOptions.onValidationError) {
       this.options.onValidationError = newOptions.onValidationError;
@@ -331,7 +314,7 @@ export class SafeEventEmitter<T extends IEventDefines> {
         }
       };
     }
-    
+
     return this;
   }
 

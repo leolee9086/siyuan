@@ -12,7 +12,7 @@ import { isMobile } from "../../util/functions";
 import { MenuItem } from "../Menu.Item";
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { isComposing } from "../../util/events/eventGurds";
+import { isComposing } from "../../util/events/event.guard";
 import { requireRange } from "../../protyle/util/protyleCheckers";
 import { asLuteNodeID, LuteNodeID } from "../../util/noteDatas/id";
 import { Menu } from "../Menu";
