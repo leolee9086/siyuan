@@ -205,3 +205,567 @@ describe("处理器返回值", () => {
             .toBe("普通用户: 李四");
     });
 });
+
+// ============================================================================
+// 复杂场景测试
+// ============================================================================
+
+describe("深层嵌套状态空间", () => {
+    it("应该处理三层嵌套的对象结构", () => {
+        // 模拟复杂的编辑器状态
+        const 编辑器状态 = type({
+            编辑器: {
+                文档: {
+                    类型: "'markdown' | '富文本' | '代码'",
+                    格式: "'普通' | '加密'"
+                },
+                选区: {
+                    类型: "'collapsed' | 'range' | 'cross-block'",
+                    位置: "number"
+                }
+            },
+            快捷键: {
+                组合: "string",
+                修饰符: { ctrl: "boolean", shift: "boolean", alt: "boolean", meta: "boolean" }
+            }
+        });
+
+        const dispatch = calibur.universe(编辑器状态)
+            // Ctrl+S 在加密文档 = 特殊保存
+            .split(
+                type({
+                    编辑器: { 文档: { 格式: "'加密'" } },
+                    快捷键: { 组合: "'s'", 修饰符: { ctrl: "true" } }
+                }),
+                (state) => ({
+                    命令: "加密保存",
+                    文档类型: state.编辑器.文档.类型  // 可以访问未在模式中指定的属性
+                })
+            )
+            // Ctrl+S 普通保存
+            .split(
+                type({
+                    快捷键: { 组合: "'s'", 修饰符: { ctrl: "true" } }
+                }),
+                (state) => ({
+                    命令: "普通保存",
+                    选区位置: state.编辑器.选区.位置
+                })
+            )
+            // 跨块选区时的删除
+            .split(
+                type({
+                    编辑器: { 选区: { 类型: "'cross-block'" } },
+                    快捷键: { 组合: "'Delete'" }
+                }),
+                () => ({ 命令: "跨块删除" })
+            )
+            .remain((state) => ({
+                命令: "无匹配",
+                快捷键: state.快捷键.组合
+            }))
+            .build();
+
+        // 加密文档的Ctrl+S
+        expect(dispatch({
+            编辑器: {
+                文档: { 类型: "markdown", 格式: "加密" },
+                选区: { 类型: "collapsed", 位置: 100 }
+            },
+            快捷键: { 组合: "s", 修饰符: { ctrl: true, shift: false, alt: false, meta: false } }
+        })).toEqual({ 命令: "加密保存", 文档类型: "markdown" });
+
+        // 普通文档的Ctrl+S
+        expect(dispatch({
+            编辑器: {
+                文档: { 类型: "富文本", 格式: "普通" },
+                选区: { 类型: "range", 位置: 200 }
+            },
+            快捷键: { 组合: "s", 修饰符: { ctrl: true, shift: false, alt: false, meta: false } }
+        })).toEqual({ 命令: "普通保存", 选区位置: 200 });
+
+        // 跨块选区时的删除
+        expect(dispatch({
+            编辑器: {
+                文档: { 类型: "代码", 格式: "普通" },
+                选区: { 类型: "cross-block", 位置: 50 }
+            },
+            快捷键: { 组合: "Delete", 修饰符: { ctrl: false, shift: false, alt: false, meta: false } }
+        })).toEqual({ 命令: "跨块删除" });
+
+        // 其他快捷键
+        expect(dispatch({
+            编辑器: {
+                文档: { 类型: "markdown", 格式: "普通" },
+                选区: { 类型: "collapsed", 位置: 0 }
+            },
+            快捷键: { 组合: "a", 修饰符: { ctrl: false, shift: false, alt: false, meta: false } }
+        })).toEqual({ 命令: "无匹配", 快捷键: "a" });
+    });
+});
+
+describe("模拟keydown.ts的复杂分发", () => {
+    it("应该处理编辑器键盘事件的状态空间", () => {
+        // 模拟keydown.ts中的状态空间
+        const 键盘事件状态 = type({
+            按键: "string",
+            键码: "number",
+            修饰符: {
+                ctrl: "boolean",
+                shift: "boolean",
+                alt: "boolean",
+                meta: "boolean"
+            },
+            输入法激活: "boolean",
+            块类型: "string",
+            目标元素: "'protyle-html' | 'input' | 'contenteditable'",
+            选区: {
+                类型: "'collapsed' | 'range'",
+                跨块: "boolean"
+            },
+            编辑器禁用: "boolean",
+            面板: {
+                hint: "boolean",
+                菜单: "boolean",
+                属性视图: "boolean"
+            }
+        });
+
+        const dispatch = calibur.universe(键盘事件状态)
+            // 守卫：输入法激活时跳过处理
+            .split(
+                type({ 输入法激活: "true" }),
+                () => ({ 终止: true, 原因: "输入法处理中" })
+            )
+            // 守卫：编辑器禁用时跳过
+            .split(
+                type({ 编辑器禁用: "true" }),
+                () => ({ 终止: true, 原因: "编辑器已禁用" })
+            )
+            // Hint面板导航
+            .split(
+                type({
+                    按键: "'ArrowUp' | 'ArrowDown'",
+                    面板: { hint: "true" }
+                }),
+                (state) => ({ 命令: "hint导航", 方向: state.按键 })
+            )
+            // 属性视图面板时拦截
+            .split(
+                type({ 面板: { 属性视图: "true" } }),
+                () => ({ 终止: true, 原因: "属性视图面板已打开" })
+            )
+            // Ctrl+Enter
+            .split(
+                type({
+                    按键: "'Enter'",
+                    修饰符: { ctrl: "true" }
+                }),
+                () => ({ 命令: "Ctrl+Enter行为" })
+            )
+            // Shift+Enter = 软换行
+            .split(
+                type({
+                    按键: "'Enter'",
+                    修饰符: { shift: "true" }
+                }),
+                () => ({ 命令: "软换行" })
+            )
+            // Alt+Enter
+            .split(
+                type({
+                    按键: "'Enter'",
+                    修饰符: { alt: "true" }
+                }),
+                () => ({ 命令: "alt回车行为" })
+            )
+            // 普通Enter
+            .split(
+                type({ 按键: "'Enter'" }),
+                () => ({ 命令: "换行" })
+            )
+            // Tab在特定块中
+            .split(
+                type({ 按键: "'Tab'", 块类型: "'NodeList'" }),
+                () => ({ 命令: "列表缩进" })
+            )
+            // Shift+Tab在特定块中
+            .split(
+                type({
+                    按键: "'Tab'",
+                    修饰符: { shift: "true" },
+                    块类型: "'NodeList'"
+                }),
+                () => ({ 命令: "列表减缩进" })
+            )
+            // Delete键
+            .split(
+                type({ 按键: "'Delete'" }),
+                (state) => ({
+                    命令: "删除",
+                    跨块: state.选区.跨块
+                })
+            )
+            // Escape键
+            .split(
+                type({ 按键: "'Escape'" }),
+                () => ({ 命令: "取消" })
+            )
+            .remain((state) => ({
+                命令: "默认按键处理",
+                按键: state.按键,
+                块类型: state.块类型
+            }))
+            .build();
+
+        const 基础状态 = {
+            键码: 13,
+            修饰符: { ctrl: false, shift: false, alt: false, meta: false },
+            输入法激活: false,
+            块类型: "NodeParagraph",
+            目标元素: "contenteditable" as const,
+            选区: { 类型: "collapsed" as const, 跨块: false },
+            编辑器禁用: false,
+            面板: { hint: false, 菜单: false, 属性视图: false }
+        };
+
+        // 输入法激活时
+        expect(dispatch({ ...基础状态, 按键: "a", 输入法激活: true }))
+            .toEqual({ 终止: true, 原因: "输入法处理中" });
+
+        // 编辑器禁用时
+        expect(dispatch({ ...基础状态, 按键: "Enter", 编辑器禁用: true }))
+            .toEqual({ 终止: true, 原因: "编辑器已禁用" });
+
+        // Hint面板导航
+        expect(dispatch({ ...基础状态, 按键: "ArrowDown", 面板: { hint: true, 菜单: false, 属性视图: false } }))
+            .toEqual({ 命令: "hint导航", 方向: "ArrowDown" });
+
+        // Ctrl+Enter
+        expect(dispatch({ ...基础状态, 按键: "Enter", 修饰符: { ...基础状态.修饰符, ctrl: true } }))
+            .toEqual({ 命令: "Ctrl+Enter行为" });
+
+        // Shift+Enter
+        expect(dispatch({ ...基础状态, 按键: "Enter", 修饰符: { ...基础状态.修饰符, shift: true } }))
+            .toEqual({ 命令: "软换行" });
+
+        // 普通Enter
+        expect(dispatch({ ...基础状态, 按键: "Enter" }))
+            .toEqual({ 命令: "换行" });
+
+        // 列表中的Tab
+        expect(dispatch({ ...基础状态, 按键: "Tab", 块类型: "NodeList" }))
+            .toEqual({ 命令: "列表缩进" });
+
+        // Delete键处理
+        expect(dispatch({ ...基础状态, 按键: "Delete", 选区: { 类型: "range", 跨块: true } }))
+            .toEqual({ 命令: "删除", 跨块: true });
+
+        // 普通字符
+        expect(dispatch({ ...基础状态, 按键: "a" }))
+            .toEqual({ 命令: "默认按键处理", 按键: "a", 块类型: "NodeParagraph" });
+    });
+});
+
+describe("类型收窄测试", () => {
+    it("模式中的属性应该在处理器中收窄", () => {
+        const 全集 = type({
+            动作: "'点击' | '悬停' | '拖拽'",
+            目标: { 类型: "'按钮' | '链接' | '图片'", id: "string" },
+            位置: { x: "number", y: "number" }
+        });
+
+        const dispatch = calibur.universe(全集)
+            .split(
+                type({ 动作: "'点击'", 目标: { 类型: "'按钮'" } }),
+                (state) => {
+                    // state.动作 类型应该是 '点击' (收窄了)
+                    // state.目标.类型 类型应该是 '按钮' (收窄了)
+                    // state.位置 仍然是 { x: number, y: number } (保留全集)
+                    return `点击按钮 ${state.目标.id} at (${state.位置.x}, ${state.位置.y})`;
+                }
+            )
+            .split(
+                type({ 动作: "'拖拽'" }),
+                (state) => {
+                    // state.动作 是 '拖拽'
+                    // state.目标 保留全集类型
+                    return `拖拽 ${state.目标.类型}: ${state.目标.id}`;
+                }
+            )
+            .remain((state) => `其他: ${state.动作} on ${state.目标.类型}`)
+            .build();
+
+        expect(dispatch({
+            动作: "点击",
+            目标: { 类型: "按钮", id: "submit-btn" },
+            位置: { x: 100, y: 200 }
+        })).toBe("点击按钮 submit-btn at (100, 200)");
+
+        expect(dispatch({
+            动作: "拖拽",
+            目标: { 类型: "图片", id: "photo-1" },
+            位置: { x: 50, y: 60 }
+        })).toBe("拖拽 图片: photo-1");
+
+        expect(dispatch({
+            动作: "悬停",
+            目标: { 类型: "链接", id: "link-1" },
+            位置: { x: 0, y: 0 }
+        })).toBe("其他: 悬停 on 链接");
+    });
+});
+
+describe("嵌套路由（分层分发）", () => {
+    it("应该支持将另一个calibur分发器作为处理器", () => {
+        // 第一层：按块类型分发
+        // 第二层：每个块类型有自己的按键处理
+
+        // 代码块的按键处理器
+        const 代码块处理器 = calibur.universe(type({
+            按键: "string",
+            修饰符: { ctrl: "boolean", shift: "boolean" }
+        }))
+            .split(
+                type({ 按键: "'Tab'" }),
+                () => ({ 命令: "代码块缩进", 块: "代码块" })
+            )
+            .split(
+                type({ 按键: "'Enter'" }),
+                () => ({ 命令: "代码块换行", 块: "代码块" })
+            )
+            .remain(() => ({ 命令: "代码块默认", 块: "代码块" }))
+            .build();
+
+        // 列表的按键处理器
+        const 列表处理器 = calibur.universe(type({
+            按键: "string",
+            修饰符: { ctrl: "boolean", shift: "boolean" }
+        }))
+            .split(
+                type({ 按键: "'Tab'" }),
+                () => ({ 命令: "列表缩进", 块: "列表" })
+            )
+            .split(
+                type({ 按键: "'Tab'", 修饰符: { shift: "true" } }),
+                () => ({ 命令: "列表减缩进", 块: "列表" })
+            )
+            .split(
+                type({ 按键: "'Enter'" }),
+                () => ({ 命令: "列表新项", 块: "列表" })
+            )
+            .remain(() => ({ 命令: "列表默认", 块: "列表" }))
+            .build();
+
+        // 顶层路由：按块类型分发到子路由
+        const 顶层分发 = calibur.universe(type({
+            块类型: "'代码块' | '列表' | '段落'",
+            按键: "string",
+            修饰符: { ctrl: "boolean", shift: "boolean" }
+        }))
+            .split(
+                type({ 块类型: "'代码块'" }),
+                // 嵌套路由：将状态委托给代码块处理器
+                (state) => 代码块处理器({ 按键: state.按键, 修饰符: state.修饰符 })
+            )
+            .split(
+                type({ 块类型: "'列表'" }),
+                // 嵌套路由：将状态委托给列表处理器
+                (state) => 列表处理器({ 按键: state.按键, 修饰符: state.修饰符 })
+            )
+            .remain(() => ({ 命令: "默认段落处理", 块: "段落" }))
+            .build();
+
+        // 测试代码块中的Tab
+        expect(顶层分发({
+            块类型: "代码块",
+            按键: "Tab",
+            修饰符: { ctrl: false, shift: false }
+        })).toEqual({ 命令: "代码块缩进", 块: "代码块" });
+
+        // 测试代码块中的Enter
+        expect(顶层分发({
+            块类型: "代码块",
+            按键: "Enter",
+            修饰符: { ctrl: false, shift: false }
+        })).toEqual({ 命令: "代码块换行", 块: "代码块" });
+
+        // 测试列表中的Tab
+        expect(顶层分发({
+            块类型: "列表",
+            按键: "Tab",
+            修饰符: { ctrl: false, shift: false }
+        })).toEqual({ 命令: "列表缩进", 块: "列表" });
+
+        // 测试列表中的Enter
+        expect(顶层分发({
+            块类型: "列表",
+            按键: "Enter",
+            修饰符: { ctrl: false, shift: false }
+        })).toEqual({ 命令: "列表新项", 块: "列表" });
+
+        // 测试段落中的任意键（走默认）
+        expect(顶层分发({
+            块类型: "段落",
+            按键: "Enter",
+            修饰符: { ctrl: false, shift: false }
+        })).toEqual({ 命令: "默认段落处理", 块: "段落" });
+    });
+
+    it("应该支持多层嵌套分发", () => {
+        // 三层嵌套：模式 -> 块类型 -> 按键
+
+        // 第三层：具体按键处理
+        const 创建按键处理器 = (模式名: string, 块名: string) =>
+            calibur.universe(type({ 按键: "string" }))
+                .split(
+                    type({ 按键: "'Enter'" }),
+                    () => `${模式名}/${块名}/Enter`
+                )
+                .split(
+                    type({ 按键: "'Tab'" }),
+                    () => `${模式名}/${块名}/Tab`
+                )
+                .remain(() => `${模式名}/${块名}/其他`)
+                .build();
+
+        // 第二层：块类型分发
+        const 创建块处理器 = (模式名: string) =>
+            calibur.universe(type({ 块类型: "'代码' | '文本'", 按键: "string" }))
+                .split(
+                    type({ 块类型: "'代码'" }),
+                    (state) => 创建按键处理器(模式名, "代码")({ 按键: state.按键 })
+                )
+                .split(
+                    type({ 块类型: "'文本'" }),
+                    (state) => 创建按键处理器(模式名, "文本")({ 按键: state.按键 })
+                )
+                .remain(() => `${模式名}/未知块类型`)
+                .build();
+
+        // 第一层：模式分发
+        const 顶层 = calibur.universe(type({
+            模式: "'编辑' | '预览'",
+            块类型: "'代码' | '文本'",
+            按键: "string"
+        }))
+            .split(
+                type({ 模式: "'编辑'" }),
+                (state) => 创建块处理器("编辑")({ 块类型: state.块类型, 按键: state.按键 })
+            )
+            .split(
+                type({ 模式: "'预览'" }),
+                (state) => 创建块处理器("预览")({ 块类型: state.块类型, 按键: state.按键 })
+            )
+            .remain(() => "未知模式")
+            .build();
+
+        // 测试三层嵌套
+        expect(顶层({ 模式: "编辑", 块类型: "代码", 按键: "Enter" }))
+            .toBe("编辑/代码/Enter");
+
+        expect(顶层({ 模式: "编辑", 块类型: "文本", 按键: "Tab" }))
+            .toBe("编辑/文本/Tab");
+
+        expect(顶层({ 模式: "预览", 块类型: "代码", 按键: "a" }))
+            .toBe("预览/代码/其他");
+
+        expect(顶层({ 模式: "预览", 块类型: "文本", 按键: "Enter" }))
+            .toBe("预览/文本/Enter");
+    });
+
+    it("应该在子分发器全集不是模式子集时报错", () => {
+        // 创建一个处理"列表"块类型的分发器
+        const 列表处理器 = calibur.universe(type({
+            块类型: "'列表'",
+            按键: "string"
+        }))
+            .split(type({ 按键: "'Tab'" }), () => "列表缩进")
+            .remain(() => "列表其他")
+            .build();
+
+        // 尝试把列表处理器注册到"段落"模式上应该报错
+        // 因为列表处理器的全集 { 块类型: '列表', ... } 不是 { 块类型: '段落', ... } 的子集
+        expect(() => {
+            calibur.universe(type({
+                块类型: "'段落' | '列表'",
+                按键: "string"
+            }))
+                .split(
+                    type({ 块类型: "'段落'" }),
+                    列表处理器 as any,  // 子分发器
+                    () => "fallback"     // fallback 处理器
+                )
+                .remain(() => "其他")
+                .build();
+        }).toThrow("嵌套分发器的全集不是当前模式的子集");
+    });
+
+    it("应该允许正确的子分发器嵌套", () => {
+        // 创建一个处理"段落"块类型的分发器
+        const 段落处理器 = calibur.universe(type({
+            块类型: "'段落'",
+            按键: "string"
+        }))
+            .split(type({ 按键: "'Enter'" }), () => "段落换行")
+            .remain(() => "段落其他")
+            .build();
+
+        // 段落处理器的全集是 { 块类型: '段落', ... }
+        // 注册到 { 块类型: '段落', ... } 模式上是正确的
+        const 顶层 = calibur.universe(type({
+            块类型: "'段落' | '列表'",
+            按键: "string"
+        }))
+            .split(
+                type({ 块类型: "'段落'" }),
+                段落处理器 as any,
+                () => "段落 fallback"  // fallback（不会被调用因为子分发器有remain）
+            )
+            .remain(() => "其他块类型")
+            .build();
+
+        expect(顶层({ 块类型: "段落", 按键: "Enter" })).toBe("段落换行");
+        expect(顶层({ 块类型: "段落", 按键: "a" })).toBe("段落其他");
+        expect(顶层({ 块类型: "列表", 按键: "Tab" })).toBe("其他块类型");
+    });
+
+    it("应该在分发器作为处理器但没有提供fallback时报错", () => {
+        const 子处理器 = calibur.universe(type({ 按键: "'Enter'" }))
+            .remain(() => "处理")
+            .build();
+
+        expect(() => {
+            calibur.universe(type({ 按键: "string" }))
+                .split(
+                    type({ 按键: "'Enter'" }),
+                    子处理器 as any  // 没有提供 fallback
+                )
+                .remain(() => "其他")
+                .build();
+        }).toThrow("必须提供第三参数 fallback 处理器");
+    });
+
+    it("fallback处理器应该处理子分发器未覆盖的情况", () => {
+        // 子分发器只处理 Enter
+        const 子处理器 = calibur.universe(type({ 按键: "'Enter'" }))
+            .remain(() => "子处理器处理Enter")
+            .build();
+
+        // 父模式包含 Enter 和 Tab
+        const 顶层 = calibur.universe(type({
+            按键: "'Enter' | 'Tab'"
+        }))
+            .split(
+                type({ 按键: "'Enter' | 'Tab'" }),  // 模式匹配两者
+                子处理器 as any,
+                () => "fallback处理Tab"  // 子分发器不处理Tab时调用
+            )
+            .remain(() => "其他")
+            .build();
+
+        expect(顶层({ 按键: "Enter" })).toBe("子处理器处理Enter");
+        expect(顶层({ 按键: "Tab" })).toBe("fallback处理Tab");
+    });
+});
+
