@@ -188,13 +188,13 @@ describe("处理器返回值", () => {
 
         const dispatch = calibur.universe(用户状态)
             .split(
-                // 模式需要包含完整属性以正确推断类型
-                type({ 用户: { 名称: "string", 等级: "number > 10" } }),
-                (state) => `高级用户: ${state.用户.名称}`
+                // 关键：模式只指定部分属性用于匹配筛选
+                // 但处理器仍能访问全集的所有属性
+                type({ 用户: { 等级: "number > 10" } }),
+                (state) => `高级用户: ${state.用户.名称}`  // 可以访问名称，因为处理器接收全集类型
             )
             .remain(
-                // 使用类型断言，因为remain的参数类型在类型层面是剩余集
-                (state: { 用户: { 名称: string; 等级: number } }) => `普通用户: ${state.用户.名称}`
+                (state) => `普通用户: ${state.用户.名称}`
             )
             .build();
 
