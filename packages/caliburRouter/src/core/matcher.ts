@@ -5,7 +5,7 @@
  */
 
 import { Type } from "arktype";
-import { 匹配, 是子集 } from "../utils/setOps.js";
+import { 匹配, 是子集, 有交集 } from "../utils/setOps.js";
 import type {
     匹配器构建器,
     可构建匹配器,
@@ -106,6 +106,18 @@ class 匹配器构建器实现<全集, 剩余集, 结果联合> implements 匹�
         } else {
             // 普通处理器
             实际处理器 = 处理器或分发器 as 处理器<unknown, unknown>;
+        }
+
+        // 检查新模式是否与已注册的模式有交集
+        for (const 已注册 of this.已注册列表) {
+            if (有交集(模式, 已注册.模式)) {
+                throw new Error(
+                    `calibur-router: 模式重叠检测失败。新模式与已注册模式有交集，这会导致新模式永远无法被匹配。` +
+                    `\n  已注册模式: ${JSON.stringify(已注册.模式.json)}` +
+                    `\n  新模式: ${JSON.stringify(模式.json)}` +
+                    `\n  提示: 请确保 split 的模式互不重叠，或者使用嵌套分发器来处理子集关系。`
+                );
+            }
         }
 
         // 创建新的已注册列表（不可变）
