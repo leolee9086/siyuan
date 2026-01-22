@@ -80,26 +80,21 @@ describe("键盘事件分发场景", () => {
             块类型: "'段落' | '代码块' | '列表'"
         });
 
+        // 注意：由于重叠检测，不能先定义 { 按键: 'Tab', 块类型: '列表' }
+        // 然后再定义 { 按键: 'Tab', 修饰符: { shift: true }, 块类型: '列表' }
+        // 正确的做法是在处理器内部根据修饰符判断
         const dispatch = calibur.universe(键盘事件)
-            // Tab在列表中 = 缩进
+            // Tab在列表中，根据shift判断缩进/减缩进
             .split(
                 type({ 按键: "'Tab'", 块类型: "'列表'" }),
-                () => ({ 命令: "列表缩进" })
+                (state) => ({ 命令: state.修饰符.shift ? "列表减缩进" : "列表缩进" })
             )
-            // Shift+Tab在列表中 = 减缩进
-            .split(
-                type({ 按键: "'Tab'", 修饰符: { shift: "true" }, 块类型: "'列表'" }),
-                () => ({ 命令: "列表减缩进" })
-            )
-            // Enter在代码块中 = 换行（不分段）
-            .split(
-                type({ 按键: "'Enter'", 块类型: "'代码块'" }),
-                () => ({ 命令: "代码块换行" })
-            )
-            // 默认Enter = 分段
+            // Enter键（在处理器内部判断块类型）
             .split(
                 type({ 按键: "'Enter'" }),
-                () => ({ 命令: "分段" })
+                (state) => state.块类型 === "代码块"
+                    ? { 命令: "代码块换行" }
+                    : { 命令: "分段" }
             )
             .remain(() => ({ 命令: "无操作" }))
             .build();
@@ -110,6 +105,13 @@ describe("键盘事件分发场景", () => {
             修饰符: { ctrl: false, shift: false, alt: false },
             块类型: "列表"
         })).toEqual({ 命令: "列表缩进" });
+
+        // 列表中Shift+Tab = 减缩进
+        expect(dispatch({
+            按键: "Tab",
+            修饰符: { ctrl: false, shift: true, alt: false },
+            块类型: "列表"
+        })).toEqual({ 命令: "列表减缩进" });
 
         // 代码块中Enter = 换行
         expect(dispatch({
@@ -229,26 +231,14 @@ describe("深层嵌套状态空间", () => {
         });
 
         const dispatch = calibur.universe(编辑器状态)
-            // Ctrl+S 在加密文档 = 特殊保存
-            .split(
-                type({
-                    编辑器: { 文档: { 格式: "'加密'" } },
-                    快捷键: { 组合: "'s'", 修饰符: { ctrl: "true" } }
-                }),
-                (state) => ({
-                    命令: "加密保存",
-                    文档类型: state.编辑器.文档.类型  // 可以访问未在模式中指定的属性
-                })
-            )
-            // Ctrl+S 普通保存
+            // Ctrl+S 保存（在处理器内部判断加密/普通）
             .split(
                 type({
                     快捷键: { 组合: "'s'", 修饰符: { ctrl: "true" } }
                 }),
-                (state) => ({
-                    命令: "普通保存",
-                    选区位置: state.编辑器.选区.位置
-                })
+                (state) => state.编辑器.文档.格式 === "加密"
+                    ? { 命令: "加密保存", 文档类型: state.编辑器.文档.类型 }
+                    : { 命令: "普通保存", 选区位置: state.编辑器.选区.位置 }
             )
             // 跨块选区时的删除
             .split(
@@ -335,70 +325,64 @@ describe("模拟keydown.ts的复杂分发", () => {
                 type({ 输入法激活: "true" }),
                 () => ({ 终止: true, 原因: "输入法处理中" })
             )
-            // 守卫：编辑器禁用时跳过
+            // 守卫：编辑器禁用时跳过（输入法未激活的情况）
             .split(
-                type({ 编辑器禁用: "true" }),
+                type({ 编辑器禁用: "true", 输入法激活: "false" }),
                 () => ({ 终止: true, 原因: "编辑器已禁用" })
             )
-            // Hint面板导航
+            // Hint面板导航（输入法未激活，编辑器未禁用）
             .split(
                 type({
                     按键: "'ArrowUp' | 'ArrowDown'",
-                    面板: { hint: "true" }
+                    面板: { hint: "true" },
+                    输入法激活: "false",
+                    编辑器禁用: "false"
                 }),
                 (state) => ({ 命令: "hint导航", 方向: state.按键 })
             )
-            // 属性视图面板时拦截
+            // 属性视图面板时拦截（输入法未激活，编辑器未禁用，hint面板未开启）
             .split(
-                type({ 面板: { 属性视图: "true" } }),
+                type({
+                    面板: { 属性视图: "true", hint: "false" },
+                    输入法激活: "false",
+                    编辑器禁用: "false"
+                }),
                 () => ({ 终止: true, 原因: "属性视图面板已打开" })
             )
-            // Ctrl+Enter
+            // Enter键处理（在处理器内部根据修饰符判断）
             .split(
                 type({
                     按键: "'Enter'",
-                    修饰符: { ctrl: "true" }
+                    输入法激活: "false",
+                    编辑器禁用: "false",
+                    面板: { 属性视图: "false", hint: "false" }
                 }),
-                () => ({ 命令: "Ctrl+Enter行为" })
+                (state) => {
+                    if (state.修饰符.ctrl) return { 命令: "Ctrl+Enter行为" };
+                    if (state.修饰符.shift) return { 命令: "软换行" };
+                    if (state.修饰符.alt) return { 命令: "alt回车行为" };
+                    return { 命令: "换行" };
+                }
             )
-            // Shift+Enter = 软换行
-            .split(
-                type({
-                    按键: "'Enter'",
-                    修饰符: { shift: "true" }
-                }),
-                () => ({ 命令: "软换行" })
-            )
-            // Alt+Enter
-            .split(
-                type({
-                    按键: "'Enter'",
-                    修饰符: { alt: "true" }
-                }),
-                () => ({ 命令: "alt回车行为" })
-            )
-            // 普通Enter
-            .split(
-                type({ 按键: "'Enter'" }),
-                () => ({ 命令: "换行" })
-            )
-            // Tab在特定块中
-            .split(
-                type({ 按键: "'Tab'", 块类型: "'NodeList'" }),
-                () => ({ 命令: "列表缩进" })
-            )
-            // Shift+Tab在特定块中
+            // Tab在特定块中（在处理器内部根据shift判断缩进/减缩进）
             .split(
                 type({
                     按键: "'Tab'",
-                    修饰符: { shift: "true" },
-                    块类型: "'NodeList'"
+                    块类型: "'NodeList'",
+                    输入法激活: "false",
+                    编辑器禁用: "false",
+                    面板: { 属性视图: "false", hint: "false" }
                 }),
-                () => ({ 命令: "列表减缩进" })
+                (state) => ({ 命令: state.修饰符.shift ? "列表减缩进" : "列表缩进" })
             )
             // Delete键
             .split(
-                type({ 按键: "'Delete'" }),
+                type({
+                    按键: "'Delete'",
+                    输入法激活: "false",
+                    编辑器禁用: "false",
+                    面板: { 属性视图: "false", hint: "false" }
+                }),
                 (state) => ({
                     命令: "删除",
                     跨块: state.选区.跨块
@@ -406,7 +390,12 @@ describe("模拟keydown.ts的复杂分发", () => {
             )
             // Escape键
             .split(
-                type({ 按键: "'Escape'" }),
+                type({
+                    按键: "'Escape'",
+                    输入法激活: "false",
+                    编辑器禁用: "false",
+                    面板: { 属性视图: "false", hint: "false" }
+                }),
                 () => ({ 命令: "取消" })
             )
             .remain((state) => ({
@@ -542,11 +531,8 @@ describe("嵌套路由（分层分发）", () => {
         }))
             .split(
                 type({ 按键: "'Tab'" }),
-                () => ({ 命令: "列表缩进", 块: "列表" })
-            )
-            .split(
-                type({ 按键: "'Tab'", 修饰符: { shift: "true" } }),
-                () => ({ 命令: "列表减缩进", 块: "列表" })
+                // 在处理器内部判断 shift
+                (state) => ({ 命令: state.修饰符.shift ? "列表减缩进" : "列表缩进", 块: "列表" })
             )
             .split(
                 type({ 按键: "'Enter'" }),

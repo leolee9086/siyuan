@@ -100,7 +100,7 @@ const 代码块处理器 = calibur.universe(type({
         () => ({ 命令: "运行代码块" })
     )
     .split(
-        type({ 按键: "'Enter'" }),
+        type({ 按键: "'Enter'", 修饰符: { ctrl: "false" } }),
         () => ({ 命令: "代码换行" })
     )
     // Escape 退出代码块

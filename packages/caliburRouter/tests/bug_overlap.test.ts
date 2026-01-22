@@ -21,6 +21,7 @@ describe("Bug 暴露：模式重叠检测", () => {
         expect(() => {
             calibur.universe(type({ 按键: "string" }))
                 .split(type({ 按键: "'Enter'" }), () => "第一个")
+                // @ts-expect-error
                 .split(type({ 按键: "'Enter'" }), () => "第二个") // 完全重叠！
                 .remain(() => "默认")
                 .build();
@@ -35,6 +36,7 @@ describe("Bug 暴露：模式重叠检测", () => {
         expect(() => {
             calibur.universe(type({ 按键: "string", ctrl: "boolean" }))
                 .split(type({ 按键: "'Enter'" }), () => "宽泛模式")
+                // @ts-expect-error
                 .split(type({ 按键: "'Enter'", ctrl: "true" }), () => "更具体但永远不会匹配") // 子集！
                 .remain(() => "默认")
                 .build();
@@ -51,6 +53,7 @@ describe("Bug 暴露：模式重叠检测", () => {
         expect(() => {
             calibur.universe(type({ 按键: "string" }))
                 .split(type({ 按键: "'Enter' | 'Tab'" }), () => "Enter或Tab")
+                // @ts-expect-error
                 .split(type({ 按键: "'Tab' | 'Space'" }), () => "Tab或Space") // 有交集！
                 .remain(() => "默认")
                 .build();
@@ -82,6 +85,7 @@ describe("Bug 暴露：模式优先级陷阱（已修复）", () => {
         expect(() => {
             calibur.universe(type({ 按键: "string", ctrl: "boolean" }))
                 .split(type({ 按键: "'Enter'" }), () => "宽泛的Enter")
+                // @ts-expect-error
                 .split(type({ 按键: "'Enter'", ctrl: "true" }), () => "具体的Ctrl+Enter")
                 .remain(() => "默认")
                 .build();
