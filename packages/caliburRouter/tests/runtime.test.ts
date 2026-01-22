@@ -24,7 +24,7 @@ describe("calibur.universe 基础功能", () => {
             按键: "string"
         }))
             .split(type({ 按键: "'Enter'" }), () => ({ 命令: "回车" }))
-            .remain(() => ({ 命令: "默认" }))
+            .remain((state) => ({ 命令: "默认" }))
             .build();
 
         expect(dispatch({ 按键: "Enter" })).toEqual({ 命令: "回车" });
@@ -671,10 +671,10 @@ describe("嵌套路由（分层分发）", () => {
                 (state) => 创建块处理器("编辑")({ 块类型: state.块类型, 按键: state.按键 })
             )
             .split(
-                type({ 模式: "'预览'" }),
+                type({ 模式: "'预览'", 块类型: "'文本'" }),
                 (state) => 创建块处理器("预览")({ 块类型: state.块类型, 按键: state.按键 })
             )
-            .remain(() => "未知模式")
+            .remain((state) => "未知模式")
             .build();
 
         // 测试三层嵌套

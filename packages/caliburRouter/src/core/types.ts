@@ -70,12 +70,41 @@ type 包含Never属性<T> = T extends object
     : true
     : false;
 
+/**
+ * 过滤掉包含 never 属性的对象类型
+ * 用于从联合类型中移除不可能的状态
+ */
+export type 过滤无效对象<T> = T extends any
+    ? 包含Never属性<T> extends true ? never : T
+    : never;
+
+/**
+ * 计算两个集合的差集 (T - U)
+ * 
+ * 对于对象类型：
+ * T - U = Union(T where key K is (T[K] - U[K])) for all K in U
+ * 
+ * 原理：(A & B)' = A' U B'
+ * 我们想要 T & Not(U)
+ * Not(U) = Union(Not(U[K]))
+ * 所以 T & Not(U) = Union(T & Not(U[K]))
+ */
+type 原始集合差<T, U> = T extends object
+    ? U extends object
+    ? {
+        [K in keyof U & keyof T]: {
+            [P in keyof T]: P extends K ? Exclude<T[P], U[P & keyof U]> : T[P]
+        }
+    }[keyof U & keyof T]
+    : Exclude<T, U>
+    : Exclude<T, U>;
+
 
 /**
  * 从剩余集中排除已切割的模式
  * 这是类型级别的集合差运算
  */
-export type 切割后剩余<剩余集, 已切割模式> = Exclude<剩余集, 已切割模式>;
+export type 切割后剩余<剩余集, 已切割模式> = 过滤无效对象<原始集合差<剩余集, 已切割模式>>;
 
 /**
  * 检查剩余集是否为空（never）
