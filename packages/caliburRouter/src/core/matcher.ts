@@ -40,7 +40,7 @@ function 处理器是分发器(处理器: unknown): 处理器 is 分发器<unkno
  * 
  * 维护已注册的模式列表，在build时生成分发器
  */
-class 匹配器构建器实现<全集, 剩余集, 结果联合> implements 匹配器构建器<全集, 剩余集, 结果联合> {
+class 匹配器构建器实现<全集, 剩余集, 结果联合> implements 匹配器构建器<全集, 剩余集, 结果联合, any[]> {
     /** 全集模式（用于运行时验证） */
     private readonly 全集模式: Type<全集>;
     /** 已注册的模式-处理器对列表 */
@@ -66,7 +66,7 @@ class 匹配器构建器实现<全集, 剩余集, 结果联合> implements 匹�
         模式: Type<模式定义>,
         处理器或分发器: 处理器<合并类型<全集, 模式定义>, 新结果> | 分发器<unknown, unknown>,
         fallback处理器?: 处理器<合并类型<全集, 模式定义>, unknown>
-    ): 匹配器构建器<全集, Exclude<剩余集, 模式定义>, 结果联合 | 新结果> {
+    ): 匹配器构建器<全集, Exclude<剩余集, 模式定义>, 结果联合 | 新结果, any[]> {
         let 实际处理器: 处理器<unknown, unknown>;
 
         // 检查是否是分发器
@@ -128,7 +128,7 @@ class 匹配器构建器实现<全集, 剩余集, 结果联合> implements 匹�
 
         // 返回新的构建器实例
         return new 匹配器构建器实现(this.全集模式, 新列表) as unknown as
-            匹配器构建器<全集, Exclude<剩余集, 模式定义>, 结果联合 | 新结果>;
+            匹配器构建器<全集, Exclude<剩余集, 模式定义>, 结果联合 | 新结果, any[]>;
     }
 
     /**
@@ -209,8 +209,8 @@ export const calibur = {
      *   .build();
      * ```
      */
-    universe<全集>(全集模式: Type<全集>): 匹配器构建器<全集, 全集, never> {
-        return new 匹配器构建器实现(全集模式) as unknown as 匹配器构建器<全集, 全集, never>;
+    universe<全集>(全集模式: Type<全集>): 匹配器构建器<全集, 全集, never, []> {
+        return new 匹配器构建器实现(全集模式) as unknown as 匹配器构建器<全集, 全集, never, []>;
     }
 };
 

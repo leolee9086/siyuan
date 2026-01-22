@@ -32,18 +32,16 @@ describe("calibur.universe 基础功能", () => {
         expect(dispatch({ 按键: "a" })).toEqual({ 命令: "默认" });
     });
 
-    it("多个split应该按顺序匹配", () => {
+    it("多个split应该正确匹配非重叠模式", () => {
+        // 注意：由于重叠检测，不能先定义 { 按键: 'Enter', ctrl: true }，再定义 { 按键: 'Enter' }
+        // 正确的做法是在处理器内部处理子情况
         const dispatch = calibur.universe(type({
             按键: "string",
             修饰符: { ctrl: "boolean" }
         }))
             .split(
-                type({ 按键: "'Enter'", 修饰符: { ctrl: "true" } }),
-                () => ({ 命令: "Ctrl+回车" })
-            )
-            .split(
                 type({ 按键: "'Enter'" }),
-                () => ({ 命令: "回车" })
+                (state) => ({ 命令: state.修饰符.ctrl ? "Ctrl+回车" : "回车" })
             )
             .split(
                 type({ 按键: "'Tab'" }),
@@ -52,15 +50,15 @@ describe("calibur.universe 基础功能", () => {
             .remain(() => ({ 命令: "默认" }))
             .build();
 
-        // Ctrl+Enter 应该匹配第一个（更具体）
+        // Ctrl+Enter 应该匹配并返回 "Ctrl+回车"
         expect(dispatch({ 按键: "Enter", 修饰符: { ctrl: true } }))
             .toEqual({ 命令: "Ctrl+回车" });
 
-        // 普通Enter应该匹配第二个
+        // 普通Enter应该匹配并返回 "回车"
         expect(dispatch({ 按键: "Enter", 修饰符: { ctrl: false } }))
             .toEqual({ 命令: "回车" });
 
-        // Tab应该匹配第三个
+        // Tab应该匹配第二个
         expect(dispatch({ 按键: "Tab", 修饰符: { ctrl: false } }))
             .toEqual({ 命令: "制表符" });
 
