@@ -66,13 +66,34 @@ export type 切割后剩余<剩余集, 已切割模式> = Exclude<剩余集, 已
 export type 剩余集为空<剩余集> = [剩余集] extends [never] ? true : false;
 
 /**
+ * 检查对象类型中是否包含 never 类型的属性（递归检测）
+ * 
+ * 解决 TypeScript 中 { a: never } extends never 为 false 的问题。
+ * 如果一个对象的某个必需属性是 never，那么这个对象实际上无法实例化（为空集）。
+ */
+type 包含Never属性<T> = T extends object
+    ? {
+        [K in keyof T]-?: [T[K]] extends [never]
+        ? true  // 属性本身是 never
+        : 包含Never属性<T[K]> // 递归检查子属性
+    }[keyof T] extends false
+    ? false
+    : true
+    : false;
+
+/**
  * 检查两个类型的交集是否非空（用于编译期重叠检测）
  * 
- * 使用 TypeScript 交集类型：如果 A & B 不是 never，说明存在同时满足两者的值
- * 
- * 注意：使用 [X] extends [never] 的形式避免分布式条件类型的问题
+ * 逻辑：
+ * 1. 计算交集 A & B
+ * 2. 如果交集本身是 never，返回 false
+ * 3. 如果交集是对象且包含 never 属性（如 { kind: "a" } & { kind: "b" } -> { kind: never }），返回 false
+ * 4. 否则返回 true
  */
-export type 交集非空<A, B> = [A & B] extends [never] ? false : true;
+export type 交集非空<A, B> =
+    [A & B] extends [never] ? false :
+    包含Never属性<A & B> extends true ? false :
+    true;
 
 /**
  * 检查新模式是否与已切割模式列表中的任何一个有交集

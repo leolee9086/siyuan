@@ -51,6 +51,8 @@ const 编辑器状态Schema = type({
         提示: "boolean",
         斜杠命令: "boolean"
     },
+    // 派生状态：当前活跃的面板（用于路由）
+    活跃面板: "'搜索' | '菜单' | '提示' | '斜杠命令' | '无'",
 
     // 编辑模式
     模式: "'编辑' | '只读' | '演示'"
@@ -74,7 +76,7 @@ interface 命令结果 {
 const 代码块处理器 = calibur.universe(type({
     按键: "string",
     修饰符: {
-        ctrl: "boolean",
+        ctrl: "boolean",  // 注意：虽然这里允许boolean，但在使用时会被约束为false
         shift: "boolean",
         alt: "boolean",
         meta: "boolean"
@@ -94,13 +96,9 @@ const 代码块处理器 = calibur.universe(type({
         type({ 按键: "'Tab'", 修饰符: { shift: "true" } }),
         () => ({ 命令: "代码反缩进" })
     )
-    // Enter 键处理
+    // Enter 键处理 (Ctrl+Enter 已移至全局处理器)
     .split(
-        type({ 按键: "'Enter'", 修饰符: { ctrl: "true" } }),
-        () => ({ 命令: "运行代码块" })
-    )
-    .split(
-        type({ 按键: "'Enter'", 修饰符: { ctrl: "false" } }),
+        type({ 按键: "'Enter'" }),
         () => ({ 命令: "代码换行" })
     )
     // Escape 退出代码块
@@ -152,7 +150,7 @@ const 列表处理器 = calibur.universe(type({
     )
     // Enter 键：正常新建列表项
     .split(
-        type({ 按键: "'Enter'" }),
+        type({ 按键: "'Enter'", 选区: { 在行首: "false" } }),
         () => ({ 命令: "新建列表项" })
     )
     // Backspace 行首删除
@@ -221,75 +219,66 @@ const 表格处理器 = calibur.universe(type({
 
 const 面板处理器 = calibur.universe(type({
     按键: "string",
-    面板: {
-        搜索: "boolean",
-        菜单: "boolean",
-        提示: "boolean",
-        斜杠命令: "boolean"
-    }
+    活跃面板: "'搜索' | '菜单' | '提示' | '斜杠命令' | '无'"
 }))
     // 搜索面板
     .split(
-        type({ 面板: { 搜索: "true" }, 按键: "'Escape'" }),
+        type({ 活跃面板: "'搜索'", 按键: "'Escape'" }),
         () => ({ 命令: "关闭搜索" })
     )
     .split(
-        type({ 面板: { 搜索: "true" }, 按键: "'Enter'" }),
+        type({ 活跃面板: "'搜索'", 按键: "'Enter'" }),
         () => ({ 命令: "执行搜索" })
     )
     .split(
-        type({ 面板: { 搜索: "true" }, 按键: "'F3'" }),
+        type({ 活跃面板: "'搜索'", 按键: "'F3'" }),
         () => ({ 命令: "下一个搜索结果" })
     )
     // 菜单面板
     .split(
-        type({ 面板: { 菜单: "true" }, 按键: "'Escape'" }),
+        type({ 活跃面板: "'菜单'", 按键: "'Escape'" }),
         () => ({ 命令: "关闭菜单" })
     )
     .split(
-        type({ 面板: { 菜单: "true" }, 按键: "'ArrowUp'" }),
+        type({ 活跃面板: "'菜单'", 按键: "'ArrowUp'" }),
         () => ({ 命令: "菜单上移" })
     )
     .split(
-        type({ 面板: { 菜单: "true" }, 按键: "'ArrowDown'" }),
+        type({ 活跃面板: "'菜单'", 按键: "'ArrowDown'" }),
         () => ({ 命令: "菜单下移" })
     )
     .split(
-        type({ 面板: { 菜单: "true" }, 按键: "'Enter'" }),
+        type({ 活跃面板: "'菜单'", 按键: "'Enter'" }),
         () => ({ 命令: "执行菜单项" })
     )
     // 提示面板
     .split(
-        type({ 面板: { 提示: "true" }, 按键: "'Escape'" }),
+        type({ 活跃面板: "'提示'", 按键: "'Escape'" }),
         () => ({ 命令: "关闭提示" })
     )
     .split(
-        type({ 面板: { 提示: "true" }, 按键: "'Tab'" }),
+        type({ 活跃面板: "'提示'", 按键: "'Tab'" }),
         () => ({ 命令: "接受提示" })
     )
     // 斜杠命令
     .split(
-        type({ 面板: { 斜杠命令: "true" }, 按键: "'Escape'" }),
+        type({ 活跃面板: "'斜杠命令'", 按键: "'Escape'" }),
         () => ({ 命令: "关闭斜杠命令" })
     )
     .split(
-        type({ 面板: { 斜杠命令: "true" }, 按键: "'Enter'" }),
+        type({ 活跃面板: "'斜杠命令'", 按键: "'Enter'" }),
         () => ({ 命令: "执行斜杠命令" })
     )
     .split(
-        type({ 面板: { 斜杠命令: "true" }, 按键: "'ArrowUp'" }),
+        type({ 活跃面板: "'斜杠命令'", 按键: "'ArrowUp'" }),
         () => ({ 命令: "斜杠命令上移" })
     )
     .split(
-        type({ 面板: { 斜杠命令: "true" }, 按键: "'ArrowDown'" }),
+        type({ 活跃面板: "'斜杠命令'", 按键: "'ArrowDown'" }),
         () => ({ 命令: "斜杠命令下移" })
     )
-    .remain(() => null)  // 没有面板活跃，返回 null 让主处理器继续
+    .remain(() => null)
     .build();
-
-// ============================================================================
-// 全局快捷键处理器
-// ============================================================================
 
 const 全局快捷键处理器 = calibur.universe(type({
     按键: "string",
@@ -298,6 +287,11 @@ const 全局快捷键处理器 = calibur.universe(type({
         shift: "boolean",
         alt: "boolean",
         meta: "boolean"
+    },
+    块: {
+        类型: "string", // 需要感知块类型以处理特定 Ctrl 组合
+        级别: "number",
+        语言: "string | null"
     }
 }))
     // Ctrl+S 保存
@@ -355,82 +349,49 @@ const 全局快捷键处理器 = calibur.universe(type({
         type({ 按键: "'u'", 修饰符: { ctrl: "true" } }),
         () => ({ 命令: "切换下划线" })
     )
-    // Ctrl+Enter 运行代码块
+    // Ctrl+Enter 运行代码块 (此前在代码块处理器中)
     .split(
-        type({ 按键: "'Enter'", 修饰符: { ctrl: "true" } }),
+        type({
+            按键: "'Enter'",
+            修饰符: { ctrl: "true" },
+            块: { 类型: "'代码块'" }
+        }),
         () => ({ 命令: "运行代码块" })
     )
-    .remain(() => null)  // 不是全局快捷键，返回 null
+
+    .remain(() => null)
     .build();
 
 // ============================================================================
-// 主分发器
+// 编辑分发器（子分发器）
 // ============================================================================
 
 /**
- * 构建主编辑器事件分发器
- * 
- * 处理优先级：
- * 1. 只读/演示模式 - 只允许导航
- * 2. 面板处理 - 优先处理打开的面板
- * 3. 全局快捷键 - Ctrl+系列
- * 4. 块类型特定处理 - 代码块/列表/表格各有专门处理器
- * 5. 通用文本处理 - 段落/标题/引用
+ * 处理编辑模式下的所有交互
+ * 前置条件：模式="编辑" 且 活跃面板="无"
  */
-const 编辑器分发器 = calibur.universe(编辑器状态Schema)
-    // 非编辑模式：只允许基本导航
-    .split(
-        type({ 模式: "'只读' | '演示'" }),
-        (state) => {
-            if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "PageUp", "PageDown", "Home", "End"].includes(state.按键)) {
-                return { 命令: "导航", 参数: { 方向: state.按键 } };
-            }
-            if (state.按键 === "Escape") {
-                return { 命令: "退出模式" };
-            }
-            return { 命令: "忽略", 参数: { 原因: "非编辑模式" } };
-        }
-    )
-    // 面板处理（优先级最高）
-    .split(
-        type({ 面板: { 搜索: "true" } }),
-        (state) => {
-            const result = 面板处理器({ 按键: state.按键, 面板: state.面板 });
-            return result ?? { 命令: "面板输入", 参数: { 按键: state.按键 } };
-        }
-    )
-    .split(
-        type({ 面板: { 菜单: "true" } }),
-        (state) => {
-            const result = 面板处理器({ 按键: state.按键, 面板: state.面板 });
-            return result ?? { 命令: "面板输入", 参数: { 按键: state.按键 } };
-        }
-    )
-    .split(
-        type({ 面板: { 提示: "true" } }),
-        (state) => {
-            const result = 面板处理器({ 按键: state.按键, 面板: state.面板 });
-            return result ?? { 命令: "面板输入", 参数: { 按键: state.按键 } };
-        }
-    )
-    .split(
-        type({ 面板: { 斜杠命令: "true" } }),
-        (state) => {
-            const result = 面板处理器({ 按键: state.按键, 面板: state.面板 });
-            return result ?? { 命令: "面板输入", 参数: { 按键: state.按键 } };
-        }
-    )
-    // 全局快捷键
+const 编辑分发器 = calibur.universe(编辑器状态Schema)
+    // 1. 修饰键优先：所有 Ctrl 组合交给全局处理器
     .split(
         type({ 修饰符: { ctrl: "true" } }),
         (state) => {
-            const result = 全局快捷键处理器({ 按键: state.按键, 修饰符: state.修饰符 });
+            // 注意：需要传递块信息以便处理上下文相关的 Ctrl 组合
+            const result = 全局快捷键处理器({
+                按键: state.按键,
+                修饰符: state.修饰符,
+                块: state.块
+            });
+            // 如果全局处理器没处理（例如未定义的 Ctrl 快捷键），返回未知快捷键
             return result ?? { 命令: "未知快捷键", 参数: { 按键: state.按键 } };
         }
     )
+    // 2. 块处理（隐含 constraints: ctrl=false）
     // 代码块专用处理
     .split(
-        type({ 块: { 类型: "'代码块'" } }),
+        type({
+            块: { 类型: "'代码块'" },
+            修饰符: { ctrl: "false" }
+        }),
         (state) => 代码块处理器({
             按键: state.按键,
             修饰符: state.修饰符,
@@ -439,7 +400,10 @@ const 编辑器分发器 = calibur.universe(编辑器状态Schema)
     )
     // 列表专用处理
     .split(
-        type({ 块: { 类型: "'列表'" } }),
+        type({
+            块: { 类型: "'列表'" },
+            修饰符: { ctrl: "false" }
+        }),
         (state) => 列表处理器({
             按键: state.按键,
             修饰符: state.修饰符,
@@ -449,15 +413,23 @@ const 编辑器分发器 = calibur.universe(编辑器状态Schema)
     )
     // 表格专用处理
     .split(
-        type({ 块: { 类型: "'表格'" } }),
+        type({
+            块: { 类型: "'表格'" },
+            修饰符: { ctrl: "false" }
+        }),
         (state) => 表格处理器({
             按键: state.按键,
             修饰符: state.修饰符,
             块: state.块 as { 类型: "表格"; 级别: number; 语言: string | null }
         })
     )
-    // 通用文本块处理（段落/标题/引用）
+    // 通用文本块处理（段落/标题/引用，且 ctrl=false）
     .remain((state) => {
+        // 安全检查：如果 Ctrl=true 进入了这里，说明上述 split 有漏洞
+        if (state.修饰符.ctrl) {
+            return { 命令: "未知快捷键", 参数: { 按键: state.按键 } };
+        }
+
         // Enter 键
         if (state.按键 === "Enter") {
             if (state.修饰符.shift) {
@@ -493,20 +465,79 @@ const 编辑器分发器 = calibur.universe(编辑器状态Schema)
     .build();
 
 // ============================================================================
+// 主分发器
+// ============================================================================
+
+/**
+ * 构建主编辑器事件分发器
+ * 
+ * 处理优先级：
+ * 1. 面板处理 - 活跃面板不为"无"时优先处理
+ * 2. 非编辑模式处理 - 只读/演示模式且无面板时
+ * 3. 编辑模式处理 - 编辑模式且无面板时
+ */
+const 编辑器分发器 = calibur.universe(编辑器状态Schema)
+    // 1. 面板处理（优先级最高）
+    .split(
+        type({ 活跃面板: "'搜索' | '菜单' | '提示' | '斜杠命令'" }),
+        (state) => {
+            const result = 面板处理器({ 按键: state.按键, 活跃面板: state.活跃面板 });
+            return result ?? { 命令: "面板输入", 参数: { 按键: state.按键 } };
+        }
+    )
+    // 2. 非编辑模式：只允许基本导航
+    .split(
+        type({
+            模式: "'只读' | '演示'",
+            活跃面板: "'无'"
+        }),
+        (state) => {
+            if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "PageUp", "PageDown", "Home", "End"].includes(state.按键)) {
+                return { 命令: "导航", 参数: { 方向: state.按键 } };
+            }
+            if (state.按键 === "Escape") {
+                return { 命令: "退出模式" };
+            }
+            return { 命令: "忽略", 参数: { 原因: "非编辑模式" } };
+        }
+    )
+    // 3. 编辑模式：委托给编辑分发器
+    .split(
+        type({
+            模式: "'编辑'",
+            活跃面板: "'无'"
+        }),
+        (state) => 编辑分发器(state)
+    )
+    // 4. 剩余：理论上不可达，或者作为安全兜底
+    .remain(() => ({ 命令: "未知状态", 参数: { 原因: "无法匹配任何模式" } }))
+    .build();
+
+// ============================================================================
 // 测试用例
 // ============================================================================
 
 describe("现实世界用例：富文本编辑器键盘分发", () => {
     // 基础状态工厂
-    const 创建基础状态 = (覆盖: Partial<编辑器状态> = {}): 编辑器状态 => ({
-        按键: "a",
-        修饰符: { ctrl: false, shift: false, alt: false, meta: false },
-        块: { 类型: "段落", 级别: 0, 语言: null },
-        选区: { 类型: "光标", 在行首: false, 在行尾: false },
-        面板: { 搜索: false, 菜单: false, 提示: false, 斜杠命令: false },
-        模式: "编辑",
-        ...覆盖
-    });
+    const 创建基础状态 = (覆盖: Partial<编辑器状态> = {}): 编辑器状态 => {
+        const 面板 = 覆盖.面板 || { 搜索: false, 菜单: false, 提示: false, 斜杠命令: false };
+        let 活跃面板: 编辑器状态["活跃面板"] = "无";
+        if (面板.搜索) 活跃面板 = "搜索";
+        else if (面板.菜单) 活跃面板 = "菜单";
+        else if (面板.提示) 活跃面板 = "提示";
+        else if (面板.斜杠命令) 活跃面板 = "斜杠命令";
+
+        return {
+            按键: "a",
+            修饰符: { ctrl: false, shift: false, alt: false, meta: false },
+            块: { 类型: "段落", 级别: 0, 语言: null },
+            选区: { 类型: "光标", 在行首: false, 在行尾: false },
+            面板: { 搜索: false, 菜单: false, 提示: false, 斜杠命令: false },
+            模式: "编辑",
+            活跃面板,
+            ...覆盖,
+        };
+    };
 
     describe("模式处理", () => {
         it("只读模式应该只允许导航", () => {
