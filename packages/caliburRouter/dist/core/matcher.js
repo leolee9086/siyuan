@@ -3,7 +3,7 @@
  *
  * 基于集合论的类型安全模式匹配引擎
  */
-import { 匹配, 是子集 } from "../utils/setOps.js";
+import { 匹配, 是子集, 有交集 } from "../utils/setOps.js";
 // ============================================================================
 // 辅助函数
 // ============================================================================
@@ -31,9 +31,12 @@ class 匹配器构建器实现 {
     已注册列表;
     /** 剩余处理器（可选） */
     剩余处理器 = null;
-    constructor(全集模式, 已注册列表 = []) {
+    /** 是否已耗尽（运行时标志） */
+    已耗尽;
+    constructor(全集模式, 已注册列表 = [], 已耗尽 = false) {
         this.全集模式 = 全集模式;
         this.已注册列表 = 已注册列表;
+        this.已耗尽 = 已耗尽;
     }
     /**
      * 切割子集并注册处理器
@@ -45,6 +48,11 @@ class 匹配器构建器实现 {
      * 当使用分发器时，必须提供fallback处理器
      */
     split(模式, 处理器或分发器, fallback处理器) {
+        // 1. 运行时耗尽检查
+        if (this.已耗尽) {
+            throw new Error("calibur-router: 当前匹配器已耗尽（所有可能状态已被覆盖），不允许继续调用 split 或 remain。" +
+                "\n  只有 build() 方法是允许的。");
+        }
         let 实际处理器;
         // 检查是否是分发器
         if (处理器是分发器(处理器或分发器)) {
@@ -78,22 +86,48 @@ class 匹配器构建器实现 {
             // 普通处理器
             实际处理器 = 处理器或分发器;
         }
+        // 检查新模式是否与已注册的模式有交集
+        for (const 已注册 of this.已注册列表) {
+            if (有交集(模式, 已注册.模式)) {
+                throw new Error(`calibur-router: 模式重叠检测失败。新模式与已注册模式有交集，这会导致新模式永远无法被匹配。` +
+                    `\n  已注册模式: ${JSON.stringify(已注册.模式.json)}` +
+                    `\n  新模式: ${JSON.stringify(模式.json)}` +
+                    `\n  提示: 请确保 split 的模式互不重叠，或者使用嵌套分发器来处理子集关系。`);
+            }
+        }
         // 创建新的已注册列表（不可变）
         const 新列表 = [
             ...this.已注册列表,
             { 模式: 模式, 处理器: 实际处理器 }
         ];
+        // 2. 计算新的耗尽状态
+        // 聚合所有模式：CurrentUnion = Pattern1 | Pattern2 | ... | NewPattern
+        // 使用 reduce 和 or 方法
+        let 当前覆盖集 = null;
+        if (新列表.length > 0) {
+            当前覆盖集 = 新列表[0].模式;
+            for (let i = 1; i < 新列表.length; i++) {
+                当前覆盖集 = 当前覆盖集.or(新列表[i].模式);
+            }
+        }
+        const 新是否已耗尽 = 当前覆盖集 ? 是子集(this.全集模式, 当前覆盖集) : false;
         // 返回新的构建器实例
-        return new 匹配器构建器实现(this.全集模式, 新列表);
+        return new 匹配器构建器实现(this.全集模式, 新列表, 新是否已耗尽);
     }
     /**
      * 处理剩余模式
      */
     remain(
-    // 处理器接收全集类型
+    // 处理器接收剩余类型
     处理器) {
+        // 1. 运行时耗尽检查
+        if (this.已耗尽) {
+            throw new Error("calibur-router: 剩余集为空（全集已被之前的模式完全覆盖），不允许调用 remain。" +
+                "\n  所有情况都已处理，请直接调用 build()。");
+        }
         // 创建一个新实例并设置剩余处理器
-        const 结果 = new 匹配器构建器实现(this.全集模式, this.已注册列表);
+        const 结果 = new 匹配器构建器实现(this.全集模式, this.已注册列表, true // remain 理论上消耗所有剩余，所以标记为耗尽（虽然 remain 返回的可构建匹配器不再有 split 方法）
+        );
         结果.剩余处理器 = 处理器;
         return 结果;
     }
@@ -116,8 +150,16 @@ class 匹配器构建器实现 {
             if (剩余处理器) {
                 return 剩余处理器(输入);
             }
-            // 理论上不应该到达这里（如果正确使用remain）
-            throw new Error("calibur-router: 未匹配任何模式且未设置剩余处理器");
+            // 如果所有模式都没匹配，且没有剩余处理器
+            // 但如果在编译期保证了全覆盖（Exhausted -> split returned ExhaustedMatcherBuilder -> only build），
+            // 理论上应该匹配上了。
+            // 除非：运行时输入不在全集范围内（ArkType校验可能在边界处），或者逻辑漏洞。
+            // 不过对于 ExhaustedMatcherBuilder，我们没有强制要求必须有 remain。
+            // 如果 build() 被调用且没有 remain，这意味着全集应该被 patterns 覆盖。
+            // 我们可以在这里抛出更有意义的错误。
+            throw new Error("calibur-router: 分发失败。输入未匹配任何模式，且未定义 remain 处理器。" +
+                "\n  输入: " + JSON.stringify(输入) +
+                "\n  请检查是否遗漏了某些情况，或考虑通过 .remain() 提供默认处理。");
         });
         // 挂载全集模式到分发器，用于嵌套验证
         分发函数.__全集模式__ = 全集模式;
@@ -137,20 +179,6 @@ export const calibur = {
      *
      * @param 全集模式 - arktype模式，定义所有可能的输入
      * @returns 匹配器构建器，可链式调用split和remain
-     *
-     * @example
-     * ```ts
-     * const matcher = calibur.universe(type({
-     *   按键: "string",
-     *   修饰符: { ctrl: "boolean", shift: "boolean" }
-     * }));
-     *
-     * matcher
-     *   .split(type({ 按键: "'Enter'" }), () => ({ 命令: "回车" }))
-     *   .split(type({ 按键: "'Tab'" }), () => ({ 命令: "制表符" }))
-     *   .remain(() => ({ 命令: "其他" }))
-     *   .build();
-     * ```
      */
     universe(全集模式) {
         return new 匹配器构建器实现(全集模式);

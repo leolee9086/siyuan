@@ -214,11 +214,11 @@ describe("嵌套路由类型测试", () => {
             .remain(() => "其他块类型" as const)
             .build();
 
-        // 验证返回类型 - 由于使用 as any 转换，返回类型会是 unknown
-        // 这里只验证分发器能正常构建和调用
+        // 验证返回类型 - 应该是所有处理器的返回类型联合
         expectTypeOf(顶层).toBeFunction();
         const result = 顶层({ 块类型: "段落", 按键: "Enter" });
-        expectTypeOf(result).toBeUnknown();
+        type 期望结果 = "段落换行" | "段落其他" | "段落 fallback" | "其他块类型";
+        expectTypeOf(result).toEqualTypeOf<期望结果>();
     });
 
     it("嵌套分发器的fallback处理器应该接收正确的类型", () => {

@@ -183,27 +183,59 @@ describe("处理器返回值", () => {
 
     it("处理器应该接收匹配的状态", () => {
         const 用户状态 = type({
-            用户: { 名称: "string", 等级: "number" }
+            用户: { 名称: "string", 等级: "'VIP' | '普通'" }
         });
 
         const dispatch = calibur.universe(用户状态)
             .split(
                 // 关键：模式只指定部分属性用于匹配筛选
                 // 但处理器仍能访问全集的所有属性
-                type({ 用户: { 等级: "number > 10" } }),
+                type({ 用户: { 等级: "'VIP'" } }),
                 (state) => `高级用户: ${state.用户.名称}`  // 可以访问名称，因为处理器接收全集类型
             )
             .remain(
-                //这里需要禁止split使用"number > 10"这种模式
+                // 此时 TS 能正确推断剩余集为 { 用户: { 等级: '普通', ... } }
                 (state) => `普通用户: ${state.用户.名称}`
             )
             .build();
 
-        expect(dispatch({ 用户: { 名称: "张三", 等级: 15 } }))
+        expect(dispatch({ 用户: { 名称: "张三", 等级: "VIP" } }))
             .toBe("高级用户: 张三");
 
-        expect(dispatch({ 用户: { 名称: "李四", 等级: 5 } }))
+        expect(dispatch({ 用户: { 名称: "李四", 等级: "普通" } }))
             .toBe("普通用户: 李四");
+    });
+});
+
+describe("运行时限制", () => {
+    it("当模式完全覆盖全集时，应该禁止继续调用split", () => {
+        const 全集 = type({ 类型: "'A'" }).or({ 类型: "'B'" });
+
+        // 分两步覆盖全集
+        const builder = calibur.universe(全集)
+            .split(type({ 类型: "'A'" }), () => 1)
+            .split(type({ 类型: "'B'" }), () => 2);
+
+        // 此时 builder 应该已经是 ExhaustedMatcherBuilder
+        // 尝试继续 split 应该抛出错误
+        expect(() => {
+            // @ts-expect-error
+            builder.split(type({ 类型: "'A'" }), (state) => 3);
+        }).toThrow("当前匹配器已耗尽");
+    });
+
+    it("当模式完全覆盖全集时，应该禁止调用remain", () => {
+        const 全集 = type({ 类型: "'A'" }).or({ 类型: "'B'" });
+
+        const builder = calibur.universe(全集)
+            .split(type({ 类型: "'A'" }), () => 1)
+            .split(type({ 类型: "'B'" }), () => 2);
+
+        // 尝试调用 remain 应该抛出错误
+        expect(() => {
+            // @ts-expect-error
+            builder.remain((state) => 3);
+        }).toThrow("剩余集为空");
     });
 });
 
@@ -678,7 +710,8 @@ describe("嵌套路由（分层分发）", () => {
             }))
                 .split(
                     type({ 块类型: "'段落'" }),
-                    列表处理器 as any,  // 子分发器
+                    // @ts-expect-error
+                    列表处理器,  // 子分发器
                     () => "fallback"     // fallback 处理器
                 )
                 .remain(() => "其他")
@@ -704,7 +737,7 @@ describe("嵌套路由（分层分发）", () => {
         }))
             .split(
                 type({ 块类型: "'段落'" }),
-                段落处理器 as any,
+                段落处理器,
                 () => "段落 fallback"  // fallback（不会被调用因为子分发器有remain）
             )
             .remain(() => "其他块类型")
@@ -724,7 +757,8 @@ describe("嵌套路由（分层分发）", () => {
             calibur.universe(type({ 按键: "string" }))
                 .split(
                     type({ 按键: "'Enter'" }),
-                    子处理器 as any  // 没有提供 fallback
+                    // @ts-expect-error
+                    子处理器   // 没有提供 fallback
                 )
                 .remain(() => "其他")
                 .build();
@@ -743,10 +777,9 @@ describe("嵌套路由（分层分发）", () => {
         }))
             .split(
                 type({ 按键: "'Enter' | 'Tab'" }),  // 模式匹配两者
-                子处理器 as any,
+                子处理器,
                 () => "fallback处理Tab"  // 子分发器不处理Tab时调用
             )
-            .remain(() => "其他")
             .build();
 
         expect(顶层({ 按键: "Enter" })).toBe("子处理器处理Enter");

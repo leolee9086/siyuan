@@ -38,7 +38,7 @@ describe("Bug 暴露：模式重叠检测", () => {
                 .split(type({ 按键: "'Enter'" }), () => "宽泛模式")
                 // @ts-expect-error
                 .split(type({ 按键: "'Enter'", ctrl: "true" }), () => "更具体但永远不会匹配") // 子集！
-                .remain(() => "默认")
+                .remain((state) => "默认")
                 .build();
         }).toThrow(/重叠|overlap|子集|subset|unreachable/i);
     });
