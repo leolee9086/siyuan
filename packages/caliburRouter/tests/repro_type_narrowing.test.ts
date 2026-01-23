@@ -1,66 +1,42 @@
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, expectTypeOf } from "vitest";
+import { type } from "arktype";
+import { calibur } from "../src/index.js";
 
-// Proposed fix
-type SetDifference<T, U> = T extends object
-    ? U extends object
-    ? {
-        [K in keyof U & keyof T]: {
-            [P in keyof T]: P extends K ? Exclude<T[P], U[P & keyof U]> : T[P]
-        }
-    }[keyof U & keyof T]
-    : Exclude<T, U>
-    : Exclude<T, U>;
+describe("Type Narrowing Verification", () => {
+    it("should narrow object properties in remain handler", () => {
+        // Define a schema with a union property
+        const schema = type({
+            key: "'A' | 'B'",
+            other: "boolean"
+        });
 
-type CollapseNever<T> = T extends { [K in keyof T]: infer U }
-    ? [U] extends [never] ? never : T // Weak check
-    : never;
+        const dispatch = calibur.universe(schema)
+            .split(
+                type({ key: "'A'" }),
+                () => "Handled A"
+            )
+            .remain((state) => {
+                // Here we verify the type narrowing.
+                // If Exclude works as expected (due to ArkType distribution),
+                // state.key should be 'B'.
 
-// Better test helper
-type Is<T, U> = [T] extends [U] ? [U] extends [T] ? true : false : false;
+                checkType(state);
+                return state.key;
+            })
+            .build();
 
-describe("SetDifference Utility", () => {
-    it("should correctly subtract object types", () => {
-        type Whole = {
-            key: 'A' | 'B';
-            other: boolean;
-        };
-        type Part = {
-            key: 'A';
-        };
-
-        type Remainder = SetDifference<Whole, Part>;
-        // Expected: { key: 'B', other: boolean }
-        // Formula gives: { key: Exclude<'A'|'B', 'A'>, other: boolean } 
-        // = { key: 'B', other: boolean }
-
-        const t1: Remainder = { key: 'B', other: true };
-        // @ts-expect-error
-        const t2: Remainder = { key: 'A', other: true };
+        // Runtime check
+        expect(dispatch({ key: "B", other: true })).toBe("B");
     });
-
-    it("should handle multiple keys", () => {
-        type Whole = { a: 1 | 2; b: 1 | 2 };
-        type Part = { a: 1; b: 1 };
-
-        type Remainder = SetDifference<Whole, Part>;
-        // Term 1 (K='a'): { a: Exclude<1|2, 1>, b: 1|2 } = { a: 2, b: 1|2 }
-        // Term 2 (K='b'): { a: 1|2, b: Exclude<1|2, 1> } = { a: 1|2, b: 2 }
-        // Union: { a: 2, b: 1|2 } | { a: 1|2, b: 2 }
-
-        // (2,2) is in both. (1,2) in Term 2. (2,1) in Term 1.
-        // (1,1) is in neither. Correct.
-
-        const v1: Remainder = { a: 1, b: 2 }; // OK
-        const v2: Remainder = { a: 2, b: 1 }; // OK
-        const v3: Remainder = { a: 2, b: 2 }; // OK
-        // @ts-expect-error
-        const v4: Remainder = { a: 1, b: 1 }; // Should Error
-    });
-
-    it("should handle disjoint keys", () => {
-        // If U specifies a key that doesn't affect T? 
-        // But TS keyof U & keyof T handles intersection.
-    });
-
 });
+
+function checkType(state: { key: "B", other: boolean }) {
+    // This function only accepts the narrowed type.
+    // If 'state' was not narrowed (e.g. key was still 'A' | 'B'), this would be a compile error.
+    // Since we can't easily assert compile errors in runtime tests without tools like tsd,
+    // we rely on the fact that if this compiles, the type is compatible.
+
+    // To be extra sure, we can use expectTypeOf from vitest
+    expectTypeOf(state).toEqualTypeOf<{ key: "B", other: boolean }>();
+}

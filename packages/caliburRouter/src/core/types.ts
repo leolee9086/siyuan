@@ -70,6 +70,8 @@ type 包含Never属性<T> = T extends object
     : true
     : false;
 
+
+
 /**
  * 过滤掉包含 never 属性的对象类型
  * 用于从联合类型中移除不可能的状态
@@ -93,12 +95,11 @@ type 原始集合差<T, U> = T extends object
     ? U extends object
     ? {
         [K in keyof U & keyof T]: {
-            [P in keyof T]: P extends K ? Exclude<T[P], U[P & keyof U]> : T[P]
+            [P in keyof T]: P extends K ? 切割后剩余<T[P], U[P & keyof U]> : T[P]
         }
     }[keyof U & keyof T]
     : Exclude<T, U>
     : Exclude<T, U>;
-
 
 /**
  * 从剩余集中排除已切割的模式

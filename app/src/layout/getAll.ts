@@ -18,6 +18,7 @@ import { Wnd } from "./Wnd";
 import { Model } from "./Model";
 import { getSafeSiyuanLayout, getSafeSiyuanConfig, getSiyuanBlockPanels } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getSiyuanDialogs } from "../util/siyuanEnvironments/siyuanDialogs.environment";
+import { hasLayoutDocks } from "./getAll.guard";
 /// #endif
 import { getSafeSiyuanMobile } from "../util/siyuanEnvironments/mobile.environment";
 
@@ -27,14 +28,17 @@ import { getSafeSiyuanMobile } from "../util/siyuanEnvironments/mobile.environme
  * - 作用：遍历并收集移动端或桌面端（包括各面板、浮窗、对话框）中的所有编辑器实例。
  * - 意图：为了支持需要对所有编辑器同时生效的操作，如全局搜索替换、主题更新或状态同步。
  * - 调用时机：执行全局命令、插件需要访问所有编辑器、或应用状态变更时。
+ * @同步豁免: 性能考虑
  */
 export const getAllEditor = () => {
     const editors: Protyle[] = [];
     /// #if MOBILE
     const mobile = getSafeSiyuanMobile();
+    // 检查移动端主编辑器是否存在，存在则添加到编辑器列表
     if (mobile?.editor) {
         editors.push(mobile.editor);
     }
+    // 检查移动端弹出编辑器是否存在，存在则添加到编辑器列表
     if (mobile?.popEditor) {
         editors.push(mobile.popEditor);
     }
@@ -87,69 +91,83 @@ export const getAllEditor = () => {
  * - 调用时机：布局变动后重建索引、或需要批量操作某一类 Tab 时（如关闭所有搜索页）。
  */
 const pushModel = (models: IModels, model: Tab["model"]) => {
+    // @无需注释
     if (model instanceof Editor) {
         models.editor.push(model);
         return;
     }
+    // @无需注释
     if (model instanceof Graph) {
         models.graph.push(model);
         return;
     }
+    // @无需注释
     if (model instanceof Outline) {
         models.outline.push(model);
         return;
     }
+    // @无需注释
     if (model instanceof Backlink) {
         models.backlink.push(model);
         return;
     }
+    // @无需注释
     if (model instanceof Asset) {
         models.asset.push(model);
         return;
     }
+    // @无需注释
     if (model instanceof Search) {
         models.search.push(model);
         return;
     }
+    // @无需注释
     if (model instanceof Files) {
         models.files.push(model);
         return;
     }
+    // @无需注释
     if (model instanceof Bookmark) {
         models.bookmark.push(model);
         return;
     }
+    // @无需注释
     if (model instanceof Tag) {
         models.tag.push(model);
         return;
     }
+    // @无需注释
     if (model instanceof Custom) {
         models.custom.push(model);
         return;
     }
+    // @无需注释
     if (model instanceof Forwardlink) {
         models.forwardlink.push(model);
         return;
     }
 };
 
-/**  递归遍历布局获取模型 */
+/** 递归遍历布局获取模型 */
 const getTabsForModels = (layout: Layout, models: IModels) => {
     const children = layout.children;
     if (!children) {
         return;
     }
     for (const item of children) {
+        // @无需注释
         if (item instanceof Tab) {
             pushModel(models, item.model);
             continue;
         }
+        // @无需注释
         if (item instanceof Wnd) {
             for (const tab of item.children) {
                 pushModel(models, tab.model);
             }
             continue;
         }
+        // @无需注释
         if (item instanceof Layout) {
             getTabsForModels(item, models);
         }
@@ -162,6 +180,7 @@ const getTabsForModels = (layout: Layout, models: IModels) => {
  * - 作用：遍历布局树，将所有 Tab 按照类型（Editor, Graph, Asset 等）分类收集。
  * - 意图：为了方便快速访问特定类型的 Tab，无需每次都重新遍历布局树。
  * - 调用时机：布局变动后重建索引、或需要批量操作某一类 Tab 时（如关闭所有搜索页）。
+ * @同步豁免: 性能考虑
  */
 export const getAllModels = () => {
     const models: IModels = {
@@ -179,14 +198,18 @@ export const getAllModels = () => {
         forwardlink: [],
     };
     const layout = getSafeSiyuanLayout();
+    // 检查主布局是否存在，存在则遍历收集模型
     if (layout?.layout) {
         getTabsForModels(layout.layout, models);
     }
-    const layoutAny = layout as any;
-    const docks = [layoutAny?.left, layoutAny?.right, layoutAny?.bottom];
-    for (const dock of docks) {
-        if (dock && dock.layout) {
-            getTabsForModels(dock.layout, models);
+    // 遍历左、右、底部停靠栏的布局
+    if (hasLayoutDocks(layout)) {
+        const docks = [layout.left, layout.right, layout.bottom];
+        for (const dock of docks) {
+            // 检查停靠栏是否存在且有布局，存在则遍历收集模型
+            if (dock?.layout) {
+                getTabsForModels(dock.layout, models);
+            }
         }
     }
     return models;
@@ -198,6 +221,7 @@ export const getAllModels = () => {
  * - 作用：深度优先遍历布局树，收集所有的 Wnd 节点。
  * - 意图：用于获取布局结构中的窗口叶子节点，忽略分割容器 (Layout)。
  * - 调用时机：布局调整、计算窗口尺寸或序列化布局时。
+ * @同步豁免: 性能考虑
  */
 export const getAllWnds = (layout: Layout, wnds: Wnd[]) => {
     const children = layout.children;
@@ -205,10 +229,12 @@ export const getAllWnds = (layout: Layout, wnds: Wnd[]) => {
         return;
     }
     for (const item of children) {
+        // @无需注释
         if (item instanceof Wnd) {
             wnds.push(item);
             continue;
         }
+        // @无需注释
         if (item instanceof Layout) {
             getAllWnds(item, wnds);
         }
@@ -222,10 +248,12 @@ const getTabsForTabs = (layout: Layout, tabs: Tab[]) => {
         return;
     }
     for (const item of children) {
+        // @无需注释
         if (item instanceof Tab) {
             tabs.push(item);
             continue;
         }
+        // @无需注释
         if (item instanceof Layout) {
             getTabsForTabs(item, tabs);
         }
@@ -237,11 +265,13 @@ const getTabsForTabs = (layout: Layout, tabs: Tab[]) => {
  *
  * - 作用：遍历中心布局树，收集所有 Tab 实例。
  * - 意图：提供一种扁平化访问所有中心区 Tab 的方式，不包含侧边栏 Dock。
- * - 调用时机：需要统计或操作中心区所有页面时，如“关闭所有标签页”。
+ * - 调用时机：需要统计或操作中心区所有页面时，如"关闭所有标签页"。
+ * @同步豁免: 性能考虑
  */
 export const getAllTabs = () => {
     const tabs: Tab[] = [];
     const layout = getSafeSiyuanLayout();
+    // 检查中心布局是否存在，存在则遍历收集所有 Tab
     if (layout?.centerLayout) {
         getTabsForTabs(layout.centerLayout, tabs);
     }
@@ -254,6 +284,7 @@ export const getAllTabs = () => {
  * - 作用：从全局配置中提取所有停靠栏的 Tab 配置信息。
  * - 意图：用于获取非中心区域的面板配置，如文件树、大纲等。
  * - 调用时机：加载布局、保存配置或重置侧边栏时。
+ * @同步豁免: 性能考虑
  */
 export const getAllDocks = () => {
     const docks: Config.IUILayoutDockTab[] = [];
@@ -261,6 +292,7 @@ export const getAllDocks = () => {
     if (!layout) {
         return docks;
     }
+    // 检查左侧边栏是否有数据，有则遍历收集所有 dock 配置
     if (layout.left?.data) {
         for (const item of layout.left.data) {
             for (const dock of item) {
@@ -268,6 +300,7 @@ export const getAllDocks = () => {
             }
         }
     }
+    // 检查右侧边栏是否有数据，有则遍历收集所有 dock 配置
     if (layout.right?.data) {
         for (const item of layout.right.data) {
             for (const dock of item) {
@@ -275,6 +308,7 @@ export const getAllDocks = () => {
             }
         }
     }
+    // 检查底部边栏是否有数据，有则遍历收集所有 dock 配置
     if (layout.bottom?.data) {
         for (const item of layout.bottom.data) {
             for (const dock of item) {

@@ -174,7 +174,6 @@ describe("处理器返回值", () => {
         const dispatch = calibur.universe(type({ 类型: "'A' | 'B'" }))
             .split(type({ 类型: "'A'" }), () => 42)
             .split(type({ 类型: "'B'" }), () => "hello")
-            .remain(() => null)
             .build();
 
         expect(dispatch({ 类型: "A" })).toBe(42);
@@ -643,7 +642,7 @@ describe("嵌套路由（分层分发）", () => {
                     type({ 按键: "'Tab'" }),
                     () => `${模式名}/${块名}/Tab`
                 )
-                .remain(() => `${模式名}/${块名}/其他`)
+                .remain((state) => `${模式名}/${块名}/其他`)
                 .build();
 
         // 第二层：块类型分发
@@ -657,7 +656,6 @@ describe("嵌套路由（分层分发）", () => {
                     type({ 块类型: "'文本'" }),
                     (state) => 创建按键处理器(模式名, "文本")({ 按键: state.按键 })
                 )
-                .remain(() => `${模式名}/未知块类型`)
                 .build();
 
         // 第一层：模式分发
