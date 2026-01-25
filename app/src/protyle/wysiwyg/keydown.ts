@@ -27,8 +27,12 @@ import { blockRefMiddleware } from "./keydown.blockRef";
 import { foldHotkeyMiddleware } from "./keydown.hotkey.fold";
 import { pasteAsPlainTextMiddleware } from "./keydown.paste";
 import { aiActionsMiddleware, aiWritingMiddleware } from "./keydown.ai";
-import { listCheckToggleMiddleware } from "./keydown.list/index";
-import { listIndentMiddleware, listOutdentMiddleware, listTransformMiddleware } from "./keydown.list";
+import {
+    listCheckToggleMiddleware,
+    listOutdentMiddleware,
+    listIndentMiddleware
+} from "./keydown.list/index";
+import { listTransformMiddleware } from "./keydown.list";
 import { expandSelectMiddleware } from "./keydown.expandSelect";
 import { formatMiddleware } from "./keydown.format";
 import { escapeKeyMiddleware } from "./keydown.escape";

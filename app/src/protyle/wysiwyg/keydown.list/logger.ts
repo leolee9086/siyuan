@@ -4,19 +4,21 @@
  * 本文件提供详细的命令执行日志功能
  * 在 verbose 模式下输出极其详细的执行信息
  */
-
+//@AITODO 这个工具应该是一个公共工具,你应该把它抽离到一个公共模块中,以便其他模块也能使用它
 import * as dayjs from "dayjs";
 import { LogLevel, type ListCommand, type CommandLogParams } from "./types";
 
 /**
  * 全局日志级别配置
  * 默认为 VERBOSE 模式
+ * @AITODO 不要试图使用模块级别变量作为共享变量,查看项目中目前的注册表机制
  */
 let currentLogLevel: LogLevel = LogLevel.VERBOSE;
 
 /**
  * 修饰键常量
  * 用于格式化快捷键组合
+ * @AITODO 这个常量好像没有使用到,考虑移除
  */
 const MODIFIER_KEYS = ["Control", "Alt", "Shift", "Meta"] as const;
 

@@ -23,16 +23,16 @@
 ## 🟢 近期计划 (立即聚焦，撸起袖子干)
 *任务范围清晰，风险低，能立竿见影提升代码质量的任务。*
 
-- [-] **重构 `keydown.list.ts`** (进行中)
-  - **背景**: 目前包含 `listOutdentMiddleware`, `listIndentMiddleware` 等一堆分散的中间件，手动匹配快捷键。
-  - **行动**: 创建一个 `listRouter`（如果逻辑太复杂也可以拆分），统一管理列表相关的按键交互。
-  - **收益**: 消除重复的 `matchHotKey` 检查，列表交互逻辑一目了然。
-  - **进度**: Phase 1 (listCheckToggle) 已完成 ✅，Phase 2-4 (indent/outdent/其他操作) 待继续
+- [ ] **重构 `keydown.list.ts` - Phase 4 (listTransform)** (待继续)
+  - **背景**: 列表类型转换逻辑复杂，涉及多种列表类型（无序、有序、任务、引用）之间的转换。
+  - **行动**: 实现 `transformRouter`，统一管理列表类型转换的路由决策。
+  - **收益**: 简化复杂的转换逻辑，提高可维护性。
+  - **状态**: Phase 1-3 已完成，Phase 4 的状态提取已实现，路由器和执行器待完成。
 
 - [ ] **重构 `keydown.codeBlock.ts`**
   - **背景**: 处理代码块内部的按键事件。
   - **行动**: 实现 `codeBlockRouter`。
-  - **收益**: 清晰隔离“代码块”内的状态处理（例如在代码块里的回车、Tab、Esc 行为）。
+  - **收益**: 清晰隔离"代码块"内的状态处理（例如在代码块里的回车、Tab、Esc 行为）。
 
 - [ ] **重构 `keydown.table.ts`**
   - **背景**: 表格的导航和编辑逻辑。
@@ -73,6 +73,7 @@
 *(完成的项目移动到这里，留下时间的足迹)*
 
 - [x] **试点实现**: `keydown.altEnter.ts` 已重构为使用 `caliburRouter`. (2026-01-26)
+
 - [x] **重构 keydown.list.ts - Phase 1 (listCheckToggle)** (2026-01-25)
   - 使用 CalibURRouter 模式重构任务列表切换功能（Ctrl/Cmd + Enter）
   - 创建了独立的 `checkToggle.ts` 中间件，实现声明式路由匹配
@@ -82,3 +83,26 @@
     - 创建了通用的 [`logger.ts`](app/src/protyle/wysiwyg/keydown.list/logger.ts) 模块
     - 实现了 VERBOSE 和 SIMPLE 两种日志级别
     - 日志包含时间戳、块ID、块类型、快捷键、命令名称、执行结果
+
+- [x] **重构 keydown.list.ts - Phase 2 (listOutdent)** (2026-01-25)
+  - 使用 CalibURRouter 模式重构列表缩出功能（Shift + Tab）
+  - 创建了独立的 [`outdent.ts`](app/src/protyle/wysiwyg/keydown.list/middlewares/outdent.ts) 中间件
+  - 实现了状态提取函数 [`extractOutdentState`](app/src/protyle/wysiwyg/keydown.list/state.ts:174)
+  - 实现了路由器 [`outdentRouter`](app/src/protyle/wysiwyg/keydown.list/router.ts:97)，包含 7 条路由规则
+  - 实现了执行器 [`executeOutdent`](app/src/protyle/wysiwyg/keydown.list/executors.ts:106)
+  - 支持多选和单选两种场景，完全兼容原有行为
+
+- [x] **重构 keydown.list.ts - Phase 3 (listIndent)** (2026-01-25)
+  - 使用 CalibURRouter 模式重构列表缩进功能（Tab）
+  - 创建了独立的 [`indent.ts`](app/src/protyle/wysiwyg/keydown.list/middlewares/indent.ts) 中间件
+  - 实现了状态提取函数 [`extractIndentState`](app/src/protyle/wysiwyg/keydown.list/state.ts:210)
+  - 实现了路由器 [`indentRouter`](app/src/protyle/wysiwyg/keydown.list/router.ts:156)，包含 7 条路由规则
+  - 实现了执行器 [`executeIndent`](app/src/protyle/wysiwyg/keydown.list/executors.ts:171)
+  - 支持多选和单选两种场景，完全兼容原有行为
+  - 已集成到 [`keydown.ts`](app/src/protyle/wysiwyg/keydown.ts:31) 主文件
+
+- [x] **架构优化**: 拆分 transform 状态提取逻辑 (2026-01-25)
+  - 创建独立的 [`state.transform.ts`](app/src/protyle/wysiwyg/keydown.list/state.transform.ts) 模块
+  - 将复杂的 transform 状态提取逻辑从 [`state.ts`](app/src/protyle/wysiwyg/keydown.list/state.ts) 中分离
+  - 避免单文件超过 300 行的限制，提高代码可维护性
+  - 为 Phase 4 的实现奠定基础

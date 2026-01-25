@@ -7,10 +7,11 @@
 
 import { hasClosestByAttribute } from "../../util/hasClosest";
 import { updateTransaction } from "../transaction";
+import { listOutdent, listIndent } from "../list";
 import * as dayjs from "dayjs";
 import { LIST_COMMANDS } from "./commands";
 import type { ListCommand, CommandExecutor } from "./types";
-import { logTaskToggle } from "./logger";
+import { logTaskToggle, logCommandExecution } from "./logger";
 
 /**
  * 切换任务状态的 DOM 操作
@@ -103,6 +104,150 @@ const executeToggleTaskStatus: CommandExecutor = async (
 };
 
 /**
+ * 执行列表缩出命令（Phase 2）
+ *
+ * 用途：减少列表项的缩进层级
+ * 使用场景：当路由器返回 OUTDENT 命令时调用
+ *
+ * 实现逻辑：
+ * 1. 检查是否有多选元素
+ * 2. 如果有多选，使用多选元素执行缩出
+ * 3. 如果无多选，使用当前元素的父列表项执行缩出
+ * 4. 调用现有的 listOutdent 业务逻辑
+ * 5. 记录详细日志
+ * 6. 阻止事件传播并中止后续处理
+ */
+const executeOutdent: CommandExecutor = async (
+    event, protyle, nodeElement, range, controller
+) => {
+    const selectElements = protyle.wysiwyg?.element.querySelectorAll(".protyle-wysiwyg--select");
+    
+    // 场景 1: 有多选元素，使用多选元素执行缩出
+    if (selectElements && selectElements.length > 0) {
+        const elementsArray: HTMLElement[] = [];
+        for (let i = 0; i < selectElements.length; i++) {
+            const element = selectElements[i];
+            // querySelectorAll 返回的是 Element 类型，需要确保是 HTMLElement 才能传递给 listOutdent
+            // 这个检查过滤掉可能的 SVGElement 等非 HTML 元素
+            if (element instanceof HTMLElement) {
+                elementsArray.push(element);
+            }
+        }
+        
+        listOutdent(protyle, elementsArray, range);
+        
+        logCommandExecution({
+            command: LIST_COMMANDS.OUTDENT,
+            event,
+            nodeElement,
+            result: `多选缩出: ${elementsArray.length} 个元素`,
+            context: {
+                selectCount: elementsArray.length
+            }
+        });
+        
+        event.preventDefault();
+        event.stopPropagation();
+        controller.abort("列表缩出操作");
+        return;
+    }
+    
+    // 场景 2: 无多选，使用当前元素的父列表项
+    const parentLi = nodeElement.parentElement;
+    if (!parentLi) {
+        return;
+    }
+    
+    listOutdent(protyle, [parentLi], range);
+    
+    logCommandExecution({
+        command: LIST_COMMANDS.OUTDENT,
+        event,
+        nodeElement,
+        result: "单个元素缩出",
+        context: {
+            parentId: parentLi.getAttribute("data-node-id")
+        }
+    });
+    
+    event.preventDefault();
+    event.stopPropagation();
+    controller.abort("列表缩出操作");
+};
+
+/**
+ * 执行列表缩进命令（Phase 3）
+ *
+ * 用途：增加列表项的缩进层级
+ * 使用场景：当路由器返回 INDENT 命令时调用
+ *
+ * 实现逻辑：
+ * 1. 检查是否有多选元素
+ * 2. 如果有多选，使用多选元素执行缩进
+ * 3. 如果无多选，使用当前元素的父列表项执行缩进
+ * 4. 调用现有的 listIndent 业务逻辑
+ * 5. 记录详细日志
+ * 6. 阻止事件传播并中止后续处理
+ */
+const executeIndent: CommandExecutor = async (
+    event, protyle, nodeElement, range, controller
+) => {
+    const selectElements = protyle.wysiwyg?.element.querySelectorAll(".protyle-wysiwyg--select");
+    
+    // 场景 1: 有多选元素，使用多选元素执行缩进
+    if (selectElements && selectElements.length > 0) {
+        const elementsArray: HTMLElement[] = [];
+        for (let i = 0; i < selectElements.length; i++) {
+            const element = selectElements[i];
+            // querySelectorAll 返回的是 Element 类型，需要确保是 HTMLElement 才能传递给 listIndent
+            // 这个检查过滤掉可能的 SVGElement 等非 HTML 元素
+            if (element instanceof HTMLElement) {
+                elementsArray.push(element);
+            }
+        }
+        
+        listIndent(protyle, elementsArray, range);
+        
+        logCommandExecution({
+            command: LIST_COMMANDS.INDENT,
+            event,
+            nodeElement,
+            result: `多选缩进: ${elementsArray.length} 个元素`,
+            context: {
+                selectCount: elementsArray.length
+            }
+        });
+        
+        event.preventDefault();
+        event.stopPropagation();
+        controller.abort("列表缩进操作");
+        return;
+    }
+    
+    // 场景 2: 无多选，使用当前元素的父列表项
+    const parentLi = nodeElement.parentElement;
+    if (!parentLi) {
+        return;
+    }
+    
+    listIndent(protyle, [parentLi], range);
+    
+    logCommandExecution({
+        command: LIST_COMMANDS.INDENT,
+        event,
+        nodeElement,
+        result: "单个元素缩进",
+        context: {
+            parentId: parentLi.getAttribute("data-node-id")
+        }
+    });
+    
+    event.preventDefault();
+    event.stopPropagation();
+    controller.abort("列表缩进操作");
+};
+
+/**
  * 命令执行器映射表
  *
  * 用途：将命令映射到对应的执行器函数
@@ -117,8 +262,8 @@ const executeToggleTaskStatus: CommandExecutor = async (
  */
 const executorMap: Record<ListCommand, CommandExecutor | null> = {
     [LIST_COMMANDS.CHECK_TOGGLE]: executeToggleTaskStatus,
-    [LIST_COMMANDS.OUTDENT]: null,  // Phase 2 实现
-    [LIST_COMMANDS.INDENT]: null,  // Phase 3 实现
+    [LIST_COMMANDS.OUTDENT]: executeOutdent,  // Phase 2 已实现
+    [LIST_COMMANDS.INDENT]: executeIndent,  // Phase 3 已实现
     [LIST_COMMANDS.TRANSFORM_TO_UL]: null,  // Phase 4 实现
     [LIST_COMMANDS.TRANSFORM_TO_OL]: null,  // Phase 4 实现
     [LIST_COMMANDS.TRANSFORM_TO_TL]: null,  // Phase 4 实现
