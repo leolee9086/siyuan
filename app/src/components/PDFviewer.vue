@@ -428,23 +428,16 @@
             </div>
         </div>
         <div class="pdf__util b3-menu fn__none pdf__util--hide">
-            <div 
-                class="fn__flex" 
-                style="padding: 0 4px;max-width: 300px;overflow-x: scroll;" 
-                                v-on:wheel="(event) => horizontalScroll(event)"
-
-                >
+            <div class="fn__flex" style="padding: 0 4px;max-width: 300px;overflow-x: scroll;"
+                v-on:wheel="(event) => horizontalScroll(event)">
                 <template v-for="(colorValue, colorName) in genThemedColorList()">
-                    <button
-                    @scroll.prevent
-                    class="color__square ariaLabel" 
-                    :aria-label="colorName.toString()||''"
-                    :style="{minWidth: '26px', minHeight: '26px', backgroundColor: 'var(' + colorValue + ')' }">
+                    <button @scroll.prevent class="color__square ariaLabel" :aria-label="colorName.toString() || ''"
+                        :style="{ minWidth: '26px', minHeight: '26px', backgroundColor: 'var(' + colorValue + ')' }">
                     </button>
                 </template>
-         
+
             </div>
-            <div class="b3-menu__separator pdf__util__hide" style="margin-top: 8px"></div>
+            <div class="b3-menu__separator" style="margin-top: 8px"></div>
             <button class="b3-menu__item pdf__util__hide" data-type="toggle">
                 <svg class="b3-menu__icon">
                     <use xlink:href="#iconFilesRoot"></use>
@@ -468,6 +461,12 @@
                     <use xlink:href="#iconDownload"></use>
                 </svg>
                 <span class="b3-menu__label">{{ siyuanI18n.download }}</span>
+            </button>
+            <button class="b3-menu__item" data-type="export-page">
+                <svg class="b3-menu__icon">
+                    <use xlink:href="#iconImage"></use>
+                </svg>
+                <span class="b3-menu__label">导出本页为图片</span>
             </button>
             <button class="b3-menu__item pdf__util__hide" data-type="remove">
                 <svg class="b3-menu__icon">
@@ -562,8 +561,8 @@ onMounted(
         });
         // 初始化完成后需等待页签是否显示设置完成，才可以判断 pdf 是否能进行渲染
         setTimeout(() => {
-            const baseURLElement = document.getElementById("baseURL"); 
-            if(!baseURLElement){
+            const baseURLElement = document.getElementById("baseURL");
+            if (!baseURLElement) {
                 console.error("DOM中缺少baseURL元素，无法加载PDF文件");
                 return;
             }

@@ -159,6 +159,8 @@ export interface IPdfInstance {
         getPageView: (index: number) => IPdfPageView | undefined;
         /** 当前缩放比例 */
         currentScale: number;
+        /** 当前页码 */
+        currentPageNumber: number;
         /** 获取可见页面 */
         _getVisiblePages: () => {
             first: { view: { canvas: HTMLElement } };

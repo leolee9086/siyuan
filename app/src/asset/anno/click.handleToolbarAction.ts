@@ -5,6 +5,7 @@ import { AnnoConstants } from "../anno.constants";
 import { copyAnno } from "../anno.copy";
 import { hideToolbar } from "../anno.hideToolbar";
 import { downloadRectAsPng } from "../anno.getRectImgData";
+import { exportPageAsPng } from "../anno.exportPage";
 import { setRelation } from "../anno.setRelation";
 import type { IPdfInstance, ToolbarActionContext, ToolbarActionHandler, ToolbarActionRegistry } from "../anno.types";
 
@@ -19,6 +20,7 @@ export type { ToolbarActionContext, ToolbarActionHandler } from "../anno.types";
  * @returns 工具栏操作上下文
  */
 export const createToolbarActionContext = (pdf: IPdfInstance, element: HTMLElement): ToolbarActionContext => {
+    /** @同步豁免: 仅进行简单的同步计算和状态提取 */
     const urlPath = pdf.appConfig.file.replace(location.origin, "").substr(1);
     const config = getConfig(pdf);
     const id = rectElement?.getAttribute(AnnoConstants.ATTR.DATA_NODE_ID) || undefined;
@@ -46,7 +48,7 @@ export const createToolbarActionContext = (pdf: IPdfInstance, element: HTMLEleme
  * @param pdf - PDF实例对象
  */
 const handleRemoveAction = (ctx: ToolbarActionContext) => {
-    const { urlPath, config, id, pdf, element } = ctx;
+    const { urlPath, config, id, element } = ctx;
 
     if (id) {
         delete config[id];
@@ -198,6 +200,21 @@ const handleDownloadAction = async (ctx: ToolbarActionContext) => {
 };
 
 /**
+ * 处理导出本页为图片操作
+ *
+ * 将当前PDF页面截图并下载为PNG文件：
+ * 1. 调用导出页面功能
+ * 2. 隐藏工具栏
+ *
+ * @param ctx - 工具栏操作上下文，包含共享数据
+ */
+const handleExportPageAction = async (ctx: ToolbarActionContext) => {
+    const { pdf, element } = ctx;
+    await exportPageAsPng(pdf);
+    hideToolbar(element);
+};
+
+/**
  * 工具栏操作处理器注册表
  *
  * 使用策略模式实现，将操作类型映射到对应的处理函数
@@ -215,5 +232,6 @@ export const toolbarActionRegistry: ToolbarActionRegistry = {
     [AnnoConstants.ACTION.RELATE]: handleRelateAction,
     [AnnoConstants.ACTION.TOGGLE]: handleToggleAction,
     [AnnoConstants.ACTION.DOWNLOAD]: handleDownloadAction,
+    [AnnoConstants.ACTION.EXPORT_PAGE]: handleExportPageAction,
 };
 
