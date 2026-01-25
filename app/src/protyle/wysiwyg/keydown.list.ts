@@ -1,4 +1,4 @@
-import { matchHotKey } from "../util/hotKey";
+womimport { matchHotKey } from "../util/hotKey";
 import { getContenteditableElement } from "./getBlock";
 import { listIndent, listOutdent } from "./list";
 import {
@@ -195,34 +195,39 @@ export const listTransformMiddleware = async (
 };
 
 /**
- * 任务列表切换快捷键中间件
+ * 任务列表切换快捷键中间件（旧实现 - 已废弃）
+ *
+ * @deprecated 此实现已被 keydown.list/middlewares/checkToggle.ts 中的新实现替代
+ * 新实现使用 CalibURRouter 模式，提供更好的可维护性和可测试性
+ * 保留此代码仅供参考，后续将完全移除
+ *
  * 处理任务列表项的完成状态切换
  */
-export const listCheckToggleMiddleware = async (
-    event: KeyboardEvent,
-    protyle: IProtyle,
-    nodeElement: HTMLElement,
-    range: Range,
-    controller: AbortController
-) => {
-    if (matchHotKey(getSiyuanConfig().keymap.editor.list.checkToggle.custom, event)) {
-        const taskItemElement = hasClosestByAttribute(range.startContainer, "data-subtype", "t");
-        if (!taskItemElement) {
-            return;
-        }
-        const html = taskItemElement.outerHTML;
-        if (taskItemElement.classList.contains("protyle-task--done")) {
-            taskItemElement.querySelector("use").setAttribute("xlink:href", "#iconUncheck");
-            taskItemElement.classList.remove("protyle-task--done");
-        } else {
-            taskItemElement.querySelector("use").setAttribute("xlink:href", "#iconCheck");
-            taskItemElement.classList.add("protyle-task--done");
-        }
-        taskItemElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-        updateTransaction(protyle, taskItemElement.getAttribute("data-node-id"), taskItemElement.outerHTML, html);
-        event.preventDefault();
-        event.stopPropagation();
-        controller.abort("任务列表状态切换操作");
-        return;
-    }
-};
+// export const listCheckToggleMiddleware = async (
+//     event: KeyboardEvent,
+//     protyle: IProtyle,
+//     nodeElement: HTMLElement,
+//     range: Range,
+//     controller: AbortController
+// ) => {
+//     if (matchHotKey(getSiyuanConfig().keymap.editor.list.checkToggle.custom, event)) {
+//         const taskItemElement = hasClosestByAttribute(range.startContainer, "data-subtype", "t");
+//         if (!taskItemElement) {
+//             return;
+//         }
+//         const html = taskItemElement.outerHTML;
+//         if (taskItemElement.classList.contains("protyle-task--done")) {
+//             taskItemElement.querySelector("use").setAttribute("xlink:href", "#iconUncheck");
+//             taskItemElement.classList.remove("protyle-task--done");
+//         } else {
+//             taskItemElement.querySelector("use").setAttribute("xlink:href", "#iconCheck");
+//             taskItemElement.classList.add("protyle-task--done");
+//         }
+//         taskItemElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
+//         updateTransaction(protyle, taskItemElement.getAttribute("data-node-id"), taskItemElement.outerHTML, html);
+//         event.preventDefault();
+//         event.stopPropagation();
+//         controller.abort("任务列表状态切换操作");
+//         return;
+//     }
+// };

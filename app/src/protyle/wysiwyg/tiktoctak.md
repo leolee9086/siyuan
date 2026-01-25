@@ -23,10 +23,11 @@
 ## 🟢 近期计划 (立即聚焦，撸起袖子干)
 *任务范围清晰，风险低，能立竿见影提升代码质量的任务。*
 
-- [ ] **重构 `keydown.list.ts`**
+- [-] **重构 `keydown.list.ts`** (进行中)
   - **背景**: 目前包含 `listOutdentMiddleware`, `listIndentMiddleware` 等一堆分散的中间件，手动匹配快捷键。
   - **行动**: 创建一个 `listRouter`（如果逻辑太复杂也可以拆分），统一管理列表相关的按键交互。
   - **收益**: 消除重复的 `matchHotKey` 检查，列表交互逻辑一目了然。
+  - **进度**: Phase 1 (listCheckToggle) 已完成 ✅，Phase 2-4 (indent/outdent/其他操作) 待继续
 
 - [ ] **重构 `keydown.codeBlock.ts`**
   - **背景**: 处理代码块内部的按键事件。
@@ -72,3 +73,8 @@
 *(完成的项目移动到这里，留下时间的足迹)*
 
 - [x] **试点实现**: `keydown.altEnter.ts` 已重构为使用 `caliburRouter`. (2026-01-26)
+- [x] **重构 keydown.list.ts - Phase 1 (listCheckToggle)** (2026-01-25)
+  - 使用 CalibURRouter 模式重构任务列表切换功能（Ctrl/Cmd + Enter）
+  - 创建了独立的 `checkToggle.ts` 中间件，实现声明式路由匹配
+  - 完成了从命令式 `if/else` 到声明式 Router 的迁移
+  - 为后续 Phase 2-4 (indent/outdent/其他列表操作) 奠定了架构基础
