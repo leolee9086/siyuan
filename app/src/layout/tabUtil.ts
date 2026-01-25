@@ -27,6 +27,7 @@ import { openHistory } from "../history/history";
 import { newFile } from "../util/newFile";
 import { mountHelp, newNotebook } from "../util/mount";
 import { Constants } from "../constants";
+import { fetchPost } from "../util/fetch";
 
 export const getActiveTab = (wndActive = true) => {
     const activeTabElement = document.querySelector(".layout__wnd--active .item--focus");
@@ -377,4 +378,44 @@ export const copyTab = (app: App, tab: Tab) => {
     });
 };
 
-
+export const closeTabByType = (tab: Tab, type: "closeOthers" | "closeAll" | "other", tabs?: Tab[]) => {
+    const rootIDs: string[] = [];
+    if (type === "closeOthers") {
+        for (let index = 0; index < tab.parent.children.length; index++) {
+            const item = tab.parent.children[index];
+            if (item.id !== tab.id && !item.headElement.classList.contains("item--pin")) {
+                if (item.model instanceof Editor) {
+                    rootIDs.push(item.model.editor.protyle.block.rootID);
+                }
+                item.parent.removeTab(item.id, true, false);
+                index--;
+            }
+        }
+    } else if (type === "closeAll") {
+        for (let index = 0; index < tab.parent.children.length; index++) {
+            const item = tab.parent.children[index];
+            if (!item.headElement.classList.contains("item--pin")) {
+                if (item.model instanceof Editor) {
+                    rootIDs.push(item.model.editor.protyle.block.rootID);
+                }
+                item.parent.removeTab(item.id, true);
+                index--;
+            }
+        }
+    } else if (tabs.length > 0) {
+        for (let index = 0; index < tabs.length; index++) {
+            if (!tabs[index].headElement.classList.contains("item--pin")) {
+                tabs[index].parent.removeTab(tabs[index].id);
+            }
+        }
+    }
+    // 批量更新文档关闭时间
+    if (rootIDs.length > 0) {
+        fetchPost("/api/storage/batchUpdateRecentDocCloseTime", {rootIDs});
+    }
+    if (tab.headElement.parentElement && !tab.headElement.parentElement.querySelector(".item--focus")) {
+        tab.parent.switchTab(tab.headElement, true);
+    } else if (tab.parent.children.length > 0) {
+        tab.parent.switchTab(tab.parent.children[tab.parent.children.length - 1].headElement, true);
+    }
+};

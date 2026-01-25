@@ -45,6 +45,7 @@ import (
 	"github.com/emirpasic/gods/sets/hashset"
 	"github.com/emirpasic/gods/stacks/linkedliststack"
 	"github.com/imroc/req/v3"
+	shellquote "github.com/kballard/go-shellquote"
 	"github.com/pdfcpu/pdfcpu/pkg/api"
 	"github.com/pdfcpu/pdfcpu/pkg/font"
 	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
@@ -164,6 +165,7 @@ func ExportAv2CSV(avID, blockID string) (zipPath string, err error) {
 		return
 	}
 
+	var assets []string
 	rowNum := 1
 	for _, row := range table.Rows {
 		var rowVal []string
@@ -204,12 +206,18 @@ func ExportAv2CSV(avID, blockID string) (zipPath string, err error) {
 								buf.WriteString("](")
 								buf.WriteString(a.Content)
 								buf.WriteString(") ")
+								if util.IsAssetLinkDest([]byte(a.Content), true) {
+									assets = append(assets, a.Content)
+								}
 							} else if av.AssetTypeFile == a.Type {
 								buf.WriteString("[")
 								buf.WriteString(a.Name)
 								buf.WriteString("](")
 								buf.WriteString(a.Content)
 								buf.WriteString(") ")
+								if util.IsAssetLinkDest([]byte(a.Content), true) {
+									assets = append(assets, a.Content)
+								}
 							} else {
 								buf.WriteString(a.Content)
 								buf.WriteString(" ")
@@ -219,6 +227,37 @@ func ExportAv2CSV(avID, blockID string) (zipPath string, err error) {
 					}
 				} else if av.KeyTypeLineNumber == cell.Value.Type {
 					val = strconv.Itoa(rowNum)
+				} else if av.KeyTypeRollup == cell.Value.Type {
+					for _, content := range cell.Value.Rollup.Contents {
+						if av.KeyTypeMAsset == content.Type {
+							buf := &bytes.Buffer{}
+							for _, a := range content.MAsset {
+								if av.AssetTypeImage == a.Type {
+									buf.WriteString("![")
+									buf.WriteString(a.Name)
+									buf.WriteString("](")
+									buf.WriteString(a.Content)
+									buf.WriteString(") ")
+									if util.IsAssetLinkDest([]byte(a.Content), true) {
+										assets = append(assets, a.Content)
+									}
+								} else if av.AssetTypeFile == a.Type {
+									buf.WriteString("[")
+									buf.WriteString(a.Name)
+									buf.WriteString("](")
+									buf.WriteString(a.Content)
+									buf.WriteString(") ")
+									if util.IsAssetLinkDest([]byte(a.Content), true) {
+										assets = append(assets, a.Content)
+									}
+								} else {
+									buf.WriteString(a.Content)
+									buf.WriteString(" ")
+								}
+							}
+							val = strings.TrimSpace(buf.String())
+						}
+					}
 				}
 
 				if "" == val {
@@ -236,6 +275,18 @@ func ExportAv2CSV(avID, blockID string) (zipPath string, err error) {
 		rowNum++
 	}
 	writer.Flush()
+
+	for _, asset := range assets {
+		srcAbsPath, getErr := GetAssetAbsPath(asset)
+		if getErr != nil {
+			logging.LogWarnf("resolve path of asset [%s] failed: %s", asset, getErr)
+			continue
+		}
+		targetAbsPath := filepath.Join(exportFolder, asset)
+		if copyErr := filelock.Copy(srcAbsPath, targetAbsPath); copyErr != nil {
+			logging.LogWarnf("copy asset from [%s] to [%s] failed: %s", srcAbsPath, targetAbsPath, copyErr)
+		}
+	}
 
 	zipPath = exportFolder + ".db.zip"
 	zip, err := gulu.Zip.Create(zipPath)
@@ -463,9 +514,12 @@ func ExportSYs(ids []string) (zipPath string) {
 	bts := treenode.GetBlockTrees(ids)
 	for _, bt := range bts {
 		docPaths = append(docPaths, bt.Path)
-		docFiles := box.ListFiles(strings.TrimSuffix(bt.Path, ".sy"))
-		for _, docFile := range docFiles {
-			docPaths = append(docPaths, docFile.path)
+
+		if Conf.Export.IncludeSubDocs {
+			docFiles := box.ListFiles(strings.TrimSuffix(bt.Path, ".sy"))
+			for _, docFile := range docFiles {
+				docPaths = append(docPaths, docFile.path)
+			}
 		}
 	}
 	zipPath = exportSYZip(block.BoxID, path.Dir(block.Path), baseFolderName, docPaths)
@@ -721,9 +775,36 @@ func ExportDocx(id, savePath string, removeAssets, merge bool) (fullPath string,
 		"-o", tmpDocxPath,
 	}
 
-	params := util.RemoveInvalid(Conf.Export.PandocParams)
+	params := util.ReplaceNewline(Conf.Export.PandocParams, " ")
 	if "" != params {
-		args = append(args, strings.Split(params, " ")...)
+		customArgs, parseErr := shellquote.Split(params)
+		if nil != parseErr {
+			logging.LogErrorf("parse pandoc custom params [%s] failed: %s", params, parseErr)
+		} else {
+			args = append(args, customArgs...)
+		}
+	}
+
+	hasLuaFilter := false
+	for i := 0; i < len(args)-1; i++ {
+		if "--lua-filter" == args[i] {
+			hasLuaFilter = true
+			break
+		}
+	}
+	if !hasLuaFilter {
+		args = append(args, "--lua-filter", util.PandocColorFilterPath)
+	}
+
+	hasReferenceDoc := false
+	for i := 0; i < len(args)-1; i++ {
+		if "--reference-doc" == args[i] {
+			hasReferenceDoc = true
+			break
+		}
+	}
+	if !hasReferenceDoc {
+		args = append(args, "--reference-doc", util.PandocTemplatePath)
 	}
 
 	pandoc := exec.Command(Conf.Export.PandocBin, args...)
@@ -731,8 +812,9 @@ func ExportDocx(id, savePath string, removeAssets, merge bool) (fullPath string,
 	pandoc.Stdin = bytes.NewBufferString(content)
 	output, err := pandoc.CombinedOutput()
 	if err != nil {
-		logging.LogErrorf("export docx failed: %s", gulu.Str.FromBytes(output))
-		err = errors.New(fmt.Sprintf(Conf.Language(14), gulu.Str.FromBytes(output)))
+		msg := gulu.DecodeCmdOutput(output)
+		logging.LogErrorf("export docx failed: %s", msg)
+		err = errors.New(fmt.Sprintf(Conf.Language(14), msg))
 		return
 	}
 
@@ -887,6 +969,7 @@ func ExportMarkdownHTML(id, savePath string, docx, merge bool) (name, dom string
 
 	if docx {
 		processIFrame(tree)
+		fillThemeStyleVar(tree)
 	}
 
 	luteEngine := NewLute()
@@ -1649,9 +1732,12 @@ func ExportPandocConvertZip(ids []string, pandocTo, ext string) (name, zipPath s
 	bts := treenode.GetBlockTrees(ids)
 	for _, bt := range bts {
 		docPaths = append(docPaths, bt.Path)
-		docFiles := box.ListFiles(strings.TrimSuffix(bt.Path, ".sy"))
-		for _, docFile := range docFiles {
-			docPaths = append(docPaths, docFile.path)
+
+		if Conf.Export.IncludeSubDocs {
+			docFiles := box.ListFiles(strings.TrimSuffix(bt.Path, ".sy"))
+			for _, docFile := range docFiles {
+				docPaths = append(docPaths, docFile.path)
+			}
 		}
 	}
 
@@ -2135,10 +2221,17 @@ func walkRelationAvs(avID string, exportAvIDs *hashset.Set) {
 	}
 }
 
-func ExportMarkdownContent(id string, refMode, embedMode int, addYfm, fillCSSVar, adjustHeadingLv, imgTag bool) (hPath, exportedMd string) {
+func ExportMarkdownContent(id string, refMode, embedMode, addTitleMode int, addYfm, fillCSSVar, adjustHeadingLv, imgTag bool) (hPath, exportedMd string) {
 	bt := treenode.GetBlockTree(id)
 	if nil == bt {
 		return
+	}
+
+	addTitle := Conf.Export.AddTitle
+	if 1 == addTitleMode { // 0：未指定（遵循全局设置 Conf.Export.AddTitle），1：添加标题，2：不添加标题
+		addTitle = true
+	} else if 2 == addTitleMode {
+		addTitle = false
 	}
 
 	tree := prepareExportTree(bt)
@@ -2147,7 +2240,7 @@ func ExportMarkdownContent(id string, refMode, embedMode int, addYfm, fillCSSVar
 		".md", refMode, embedMode, Conf.Export.FileAnnotationRefMode,
 		Conf.Export.TagOpenMarker, Conf.Export.TagCloseMarker,
 		Conf.Export.BlockRefTextLeft, Conf.Export.BlockRefTextRight,
-		Conf.Export.AddTitle, Conf.Export.InlineMemo, nil, true, fillCSSVar, map[string]*parse.Tree{})
+		addTitle, Conf.Export.InlineMemo, nil, true, fillCSSVar, map[string]*parse.Tree{})
 	docIAL := parse.IAL2Map(tree.Root.KramdownIAL)
 	if addYfm {
 		exportedMd = yfm(docIAL) + exportedMd
@@ -2831,10 +2924,14 @@ func exportTree(tree *parse.Tree, wysiwyg, keepFold, avHiddenCol bool,
 									img.AppendChild(&ast.Node{Type: ast.NodeLinkDest, Tokens: []byte(a.Content)})
 									img.AppendChild(&ast.Node{Type: ast.NodeCloseParen})
 									mdTableCell.AppendChild(img)
-									height := "height: 128px;"
-									spanIAL := &ast.Node{Type: ast.NodeKramdownSpanIAL, Tokens: []byte("style=\"" + height + "\"")}
-									mdTableCell.AppendChild(spanIAL)
-									img.SetIALAttr("style", height)
+									img.SetIALAttr("style", "max-height: 128px;")
+
+									width, height := GetAssetImgSize(a.Content)
+									if height > 128 {
+										img.SetIALAttr("height", "128px")
+										newWidth := int(float64(width) * (128.0 / float64(height)))
+										img.SetIALAttr("width", strconv.Itoa(newWidth)+"px")
+									}
 								} else if av.AssetTypeFile == a.Type {
 									linkText := strings.TrimSpace(a.Name)
 									if "" == linkText {
@@ -3332,6 +3429,11 @@ func exportPandocConvertZip(baseFolderName string, docPaths, defBlockIDs []strin
 		name = util.FilterFileName(name)
 		hPath = path.Join(dir, name)
 		p = hPath + ext
+		if 1 == len(docPaths) {
+			// 如果仅导出单个文档则使用文档标题作为文件名，不使用父路径 https://github.com/siyuan-note/siyuan/issues/13635#issuecomment-3794560233
+			p = name + ext
+		}
+
 		writePath := filepath.Join(exportFolder, p)
 		hash := fmt.Sprintf("%x", sha1.Sum([]byte(md)))
 		if gulu.File.IsExist(writePath) && hash != wrotePathHash[writePath] {
@@ -3557,6 +3659,9 @@ func exportRefTrees(tree *parse.Tree, defBlockIDs *[]string, retTrees, treeCache
 			}
 			*defBlockIDs = append(*defBlockIDs, defID)
 
+			if !Conf.Export.IncludeRelatedDocs {
+				return ast.WalkSkipChildren
+			}
 			exportRefTrees(defTree, defBlockIDs, retTrees, treeCache)
 		} else if treenode.IsBlockLink(n) {
 			defID := strings.TrimPrefix(n.TextMarkAHref, "siyuan://blocks/")
@@ -3581,6 +3686,9 @@ func exportRefTrees(tree *parse.Tree, defBlockIDs *[]string, retTrees, treeCache
 			}
 			*defBlockIDs = append(*defBlockIDs, defID)
 
+			if !Conf.Export.IncludeRelatedDocs {
+				return ast.WalkSkipChildren
+			}
 			exportRefTrees(defTree, defBlockIDs, retTrees, treeCache)
 		} else if ast.NodeAttributeView == n.Type {
 			// 导出数据库所在文档时一并导出绑定块所在文档
@@ -3624,6 +3732,9 @@ func exportRefTrees(tree *parse.Tree, defBlockIDs *[]string, retTrees, treeCache
 				}
 				*defBlockIDs = append(*defBlockIDs, val.BlockID)
 
+				if !Conf.Export.IncludeRelatedDocs {
+					return ast.WalkSkipChildren
+				}
 				exportRefTrees(defTree, defBlockIDs, retTrees, treeCache)
 			}
 		}

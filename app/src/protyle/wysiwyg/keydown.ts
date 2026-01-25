@@ -284,8 +284,6 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         }
 
 
-        // 删除，不可使用 isNotCtrl(event)，否则软删除回导致 https://github.com/siyuan-note/siyuan/issues/5607
-        // 不可使用 !event.shiftKey，否则 https://ld246.com/article/1666434796806
         await deleteKeyMiddleware(event, protyle, nodeElement, range, controller);
         if (signal.aborted) {
             return;

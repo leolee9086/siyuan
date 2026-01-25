@@ -104,6 +104,10 @@ const 移除重复消息 = (messagesElement: Element) => {
 };
 
 export const showMessage = (message: string, timeout = 6000, type = "info", messageId?: string) => {
+    if (!message) {
+        return;
+    }
+
     const messagesElement = document.getElementById("message").firstElementChild;
     if (!messagesElement) {
         创建临时消息(message, timeout, type, messageId);

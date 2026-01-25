@@ -52,9 +52,9 @@ declare namespace Config {
          */
         langs: ILang[];
         /**
-         * A list of the IP addresses of the devices on which the kernel resides
+         * A list of the kernel server addresses
          */
-        localIPs: string[];
+        serverAddrs: string[];
         /**
          * Log level
          */
@@ -578,6 +578,14 @@ declare namespace Config {
          * Whether to export the inline memo
          */
         inlineMemo: boolean;
+        /**
+         * Whether to include sub-documents when exporting
+         */
+        includeSubDocs: boolean;
+        /**
+         * Whether to include related documents when exporting
+         */
+        includeRelatedDocs: boolean;
         /**
          * Pandoc executable file path
          */

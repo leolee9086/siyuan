@@ -32,6 +32,14 @@ export const encodeBase64 = (text: string): string => {
 };
 
 export const getTextSiyuanFromTextHTML = (html: string) => {
+    if (html.trimStart().startsWith("<html") &&
+        html.substring(0, html.indexOf(">")).includes('xmlns:x="urn:schemas-microsoft-com:office:excel"')) {
+        // 移除 Microsoft Excel 中的 data-siyuan https://github.com/siyuan-note/siyuan/pull/16338
+        return {
+            textSiyuan: "",
+            textHtml: html.replace(/<!--data-siyuan='[^']+'-->/g, "")
+        };
+    }
     const siyuanMatch = html.match(/<!--data-siyuan='([^']+)'-->/);
     let textSiyuan = "";
     let textHtml = html;
@@ -46,7 +54,7 @@ export const getTextSiyuanFromTextHTML = (html: string) => {
                 textSiyuan = decoder.decode(bytes);
             }
             // 移除注释节点，保持原有的 text/html 内容
-            textHtml = html.replace(/<!--data-siyuan='[^']+'-->/, "");
+            textHtml = html.replace(/<!--data-siyuan='[^']+'-->/g, "");
         } catch (e) {
             console.log("Failed to decode siyuan data from HTML comment:", e);
         }
