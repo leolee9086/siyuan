@@ -23,8 +23,9 @@ import { type, Type } from "arktype";
  */
 export function 匹配<T>(模式: Type<T>, 输入: unknown): T | null {
     const 验证结果 = 模式(输入);
-    // 使用鸭子类型检查错误，避免 npm link 导致的 instanceof 失效问题
-    if (验证结果 instanceof type.errors || (Array.isArray(验证结果) && "summary" in 验证结果)) {
+    // ArkType 2.x 错误检测：检查 ' arkKind' 属性
+    // 验证失败时返回 ArkErrors 对象，它是一个数组且有 ' arkKind': 'errors' 属性
+    if (typeof 验证结果 === "object" && 验证结果 !== null && " arkKind" in 验证结果) {
         return null;
     }
     // arktype验证成功后返回的是validated value，需要断言类型
@@ -69,10 +70,24 @@ export function 有交集(a: Type, b: Type): boolean {
         const 交集 = a.and(b);
         // 如果交集等价于never，则无交集
         return !是子集(交集, type("never"));
-    } catch {
-        // arktype对某些类型组合会抛出"unsatisfiable type"错误
-        // 这通常意味着两个类型没有交集
-        return false;
+    } catch (error) {
+        // 仅捕获预期的 ArkType "unsatisfiable" 错误
+        if (error instanceof Error &&
+            error.message.includes('unsatisfiable')) {
+            // arktype对某些类型组合会抛出"unsatisfiable type"错误
+            // 这通常意味着两个类型没有交集
+            return false;
+        }
+        // 未知错误必须抛出，附带完整上下文信息
+        const 错误消息 = `有交集() 遇到未预期的错误: ${error}\n` +
+            `类型A: ${a}\n` +
+            `类型B: ${b}`;
+        const 新错误 = new Error(错误消息);
+        // 保留原始错误作为 cause（如果运行时支持）
+        if ('cause' in 新错误) {
+            (新错误 as any).cause = error;
+        }
+        throw 新错误;
     }
 }
 

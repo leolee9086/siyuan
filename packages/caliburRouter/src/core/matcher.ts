@@ -21,6 +21,19 @@ import type {
 // ============================================================================
 
 /**
+ * 安全地序列化对象，处理循环引用等边界情况
+ */
+function safeStringify(obj: unknown): string {
+    try {
+        return JSON.stringify(obj);
+    } catch {
+        // 降级策略：提供类型信息
+        const type = Object.prototype.toString.call(obj);
+        return `[${type}] (无法序列化)`;
+    }
+}
+
+/**
  * 检查一个处理器是否为分发器（运行时检测）
  * 通过检查是否存在 __全集模式__ 属性来判断
  */
@@ -94,8 +107,8 @@ class 匹配器构建器实现<全集, 剩余集, 结果联合> implements 匹�
             if (!fallback处理器) {
                 throw new Error(
                     `calibur-router: 使用分发器作为处理器时，必须提供第三参数 fallback 处理器。` +
-                    `\n  当前模式: ${JSON.stringify(模式.json)}` +
-                    `\n  子分发器全集: ${JSON.stringify(子全集模式.json)}`
+                    `\n  当前模式: ${模式.description}` +
+                    `\n  子分发器全集: ${子全集模式.description}`
                 );
             }
 
@@ -103,8 +116,8 @@ class 匹配器构建器实现<全集, 剩余集, 结果联合> implements 匹�
             if (!是子集(子全集模式, 模式)) {
                 throw new Error(
                     `calibur-router: 嵌套分发器的全集不是当前模式的子集。` +
-                    `\n  当前模式: ${JSON.stringify(模式.json)}` +
-                    `\n  子分发器全集: ${JSON.stringify(子全集模式.json)}`
+                    `\n  当前模式: ${模式.description}` +
+                    `\n  子分发器全集: ${子全集模式.description}`
                 );
             }
 
@@ -129,8 +142,8 @@ class 匹配器构建器实现<全集, 剩余集, 结果联合> implements 匹�
             if (有交集(模式, 已注册.模式)) {
                 throw new Error(
                     `calibur-router: 模式重叠检测失败。新模式与已注册模式有交集，这会导致新模式永远无法被匹配。` +
-                    `\n  已注册模式: ${JSON.stringify(已注册.模式.json)}` +
-                    `\n  新模式: ${JSON.stringify(模式.json)}` +
+                    `\n  已注册模式: ${已注册.模式.description}` +
+                    `\n  新模式: ${模式.description}` +
                     `\n  提示: 请确保 split 的模式互不重叠，或者使用嵌套分发器来处理子集关系。`
                 );
             }
@@ -217,7 +230,7 @@ class 匹配器构建器实现<全集, 剩余集, 结果联合> implements 匹�
 
             throw new Error(
                 "calibur-router: 分发失败。输入未匹配任何模式，且未定义 remain 处理器。" +
-                "\n  输入: " + JSON.stringify(输入) +
+                "\n  输入: " + safeStringify(输入) +
                 "\n  请检查是否遗漏了某些情况，或考虑通过 .remain() 提供默认处理。"
             );
         }) as 分发器<全集, 结果联合>;
