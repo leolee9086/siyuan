@@ -1,4 +1,4 @@
-womimport { matchHotKey } from "../util/hotKey";
+import { matchHotKey } from "../util/hotKey";
 import { getContenteditableElement } from "./getBlock";
 import { listIndent, listOutdent } from "./list";
 import {

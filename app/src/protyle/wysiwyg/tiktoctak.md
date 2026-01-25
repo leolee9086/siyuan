@@ -78,3 +78,7 @@
   - 创建了独立的 `checkToggle.ts` 中间件，实现声明式路由匹配
   - 完成了从命令式 `if/else` 到声明式 Router 的迁移
   - 为后续 Phase 2-4 (indent/outdent/其他列表操作) 奠定了架构基础
+  - 增强了日志详细度：在 verbose 模式下显示完整的命令执行上下文
+    - 创建了通用的 [`logger.ts`](app/src/protyle/wysiwyg/keydown.list/logger.ts) 模块
+    - 实现了 VERBOSE 和 SIMPLE 两种日志级别
+    - 日志包含时间戳、块ID、块类型、快捷键、命令名称、执行结果

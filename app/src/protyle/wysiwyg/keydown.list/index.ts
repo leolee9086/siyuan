@@ -41,13 +41,15 @@ export { listCheckToggleMiddleware } from "./middlewares/checkToggle";
  * - 命令类型：ListCommand
  * - 执行器接口：CommandExecutor
  */
-export type { 
+export type {
     CheckToggleState,
     OutdentState,
     IndentState,
     TransformState,
     ListCommand,
-    CommandExecutor
+    CommandExecutor,
+    LogLevel,
+    CommandLogParams
 } from "./types";
 
 // ============================================================================
@@ -56,10 +58,25 @@ export type {
 
 /**
  * 导出路由器实例
- * 
+ *
  * 供测试和调试使用，一般情况下不需要直接使用路由器
  */
 export { checkToggleRouter } from "./router";
+
+// ============================================================================
+// 日志工具导出
+// ============================================================================
+
+/**
+ * 导出日志工具函数
+ *
+ * 供外部使用的日志功能，包括：
+ * - setLogLevel: 设置日志级别
+ * - getLogLevel: 获取当前日志级别
+ * - logCommandExecution: 记录命令执行日志
+ * - logTaskToggle: 记录任务状态切换日志
+ */
+export { setLogLevel, getLogLevel, logCommandExecution, logTaskToggle } from "./logger";
 
 // ============================================================================
 // 命令常量导出（可选）

@@ -10,6 +10,31 @@ import { updateTransaction } from "../transaction";
 import * as dayjs from "dayjs";
 import { LIST_COMMANDS } from "./commands";
 import type { ListCommand, CommandExecutor } from "./types";
+import { logTaskToggle } from "./logger";
+
+/**
+ * 切换任务状态的 DOM 操作
+ *
+ * @param taskItemElement - 任务列表项元素
+ * @param useElement - use 元素（用于显示图标）
+ * @returns 切换后的状态
+ */
+const toggleTaskStatusDOM = (
+    taskItemElement: HTMLElement,
+    useElement: SVGUseElement
+): boolean => {
+    const isDone = taskItemElement.classList.contains("protyle-task--done");
+    
+    if (isDone) {
+        useElement.setAttribute("xlink:href", "#iconUncheck");
+        taskItemElement.classList.remove("protyle-task--done");
+        return false;
+    }
+    
+    useElement.setAttribute("xlink:href", "#iconCheck");
+    taskItemElement.classList.add("protyle-task--done");
+    return true;
+};
 
 /**
  * 执行任务列表切换命令（Phase 1）
@@ -24,7 +49,8 @@ import type { ListCommand, CommandExecutor } from "./types";
  * 4. 更新图标和 CSS 类
  * 5. 更新时间戳
  * 6. 提交事务
- * 7. 阻止事件传播并中止后续处理
+ * 7. 记录详细日志
+ * 8. 阻止事件传播并中止后续处理
  */
 const executeToggleTaskStatus: CommandExecutor = async (
     event, protyle, nodeElement, range, controller
@@ -50,24 +76,25 @@ const executeToggleTaskStatus: CommandExecutor = async (
         return;
     }
     
+    // 记录切换前的状态
+    const oldStatus = taskItemElement.classList.contains("protyle-task--done");
+    
     // 切换任务状态
-    const isDone = taskItemElement.classList.contains("protyle-task--done");
-    if (isDone) {
-        useElement.setAttribute("xlink:href", "#iconUncheck");
-        taskItemElement.classList.remove("protyle-task--done");
-    }
+    const newStatus = toggleTaskStatusDOM(taskItemElement, useElement);
     
-    if (!isDone) {
-        useElement.setAttribute("xlink:href", "#iconCheck");
-        taskItemElement.classList.add("protyle-task--done");
-    }
-    
+    // 更新时间戳并提交事务
     taskItemElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-    updateTransaction(
-        protyle,
-        nodeId,
-        taskItemElement.outerHTML,
-        html
+    updateTransaction(protyle, nodeId, taskItemElement.outerHTML, html);
+    
+    // 记录详细的执行日志
+    logTaskToggle(
+        {
+            command: LIST_COMMANDS.CHECK_TOGGLE,
+            event,
+            nodeElement: taskItemElement,
+        },
+        oldStatus,
+        newStatus
     );
     
     event.preventDefault();
