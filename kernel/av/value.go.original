@@ -17,15 +17,12 @@
 package av
 
 import (
-	"crypto/md5"
-	"encoding/hex"
 	"fmt"
 	"math"
 	"reflect"
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/88250/gulu"
@@ -841,70 +838,9 @@ type ValueRelation struct {
 
 type ValueRollup struct {
 	Contents []*Value `json:"contents"`
-
-	// 缓存相关字段（不序列化到JSON）
-	cachedContents   []*Value     `json:"-"` // 缓存的计算结果
-	cacheFingerprint string       `json:"-"` // 数据指纹，用于判断数据是否变化
-	cacheTimestamp   int64        `json:"-"` // 缓存时间戳（毫秒）
-	cacheMutex       sync.RWMutex `json:"-"` // 并发安全锁
-}
-
-// calculateFingerprint 计算数据指纹，用于判断数据是否变化
-// 指纹基于：关联字段的BlockIDs、目标字段ID、计算类型
-func (r *ValueRollup) calculateFingerprint(relationVal *Value, destKey *Key, calc *RollupCalc) string {
-	if nil == relationVal || nil == relationVal.Relation {
-		return ""
-	}
-
-	// 构建指纹字符串：blockIDs + destKeyID + calcOperator
-	fingerprintData := strings.Join(relationVal.Relation.BlockIDs, ",")
-	fingerprintData += "|" + destKey.ID
-
-	if nil != calc {
-		fingerprintData += "|" + string(calc.Operator)
-	}
-
-	// 使用MD5生成指纹
-	hash := md5.Sum([]byte(fingerprintData))
-	return hex.EncodeToString(hash[:])
-}
-
-// isCacheValid 检查缓存是否有效
-// 缓存有效条件：1) 指纹匹配 2) 未过期（5分钟内）
-func (r *ValueRollup) isCacheValid(fingerprint string) bool {
-	if r.cacheFingerprint != fingerprint {
-		return false
-	}
-
-	// 检查缓存是否过期（5分钟 = 300000毫秒）
-	const cacheExpireTime = 300000
-	now := time.Now().UnixMilli()
-	if now-r.cacheTimestamp > cacheExpireTime {
-		return false
-	}
-
-	return r.cachedContents != nil
 }
 
 func (r *ValueRollup) BuildContents(keyValues []*KeyValues, destKey *Key, relationVal *Value, calc *RollupCalc, furtherCollection Collection) {
-	// 计算数据指纹
-	fingerprint := r.calculateFingerprint(relationVal, destKey, calc)
-
-	// 使用写锁保护所有对r.Contents的访问，确保并发安全
-	r.cacheMutex.Lock()
-	defer r.cacheMutex.Unlock()
-
-	// 检查缓存是否有效
-	if r.isCacheValid(fingerprint) {
-		// 缓存有效，深拷贝缓存结果到Contents，避免外部修改影响缓存
-		r.Contents = make([]*Value, len(r.cachedContents))
-		for i, v := range r.cachedContents {
-			r.Contents[i] = v.Clone()
-		}
-		return
-	}
-
-	// 开始计算
 	r.Contents = nil
 	for _, blockID := range relationVal.Relation.BlockIDs {
 		destVal := GetValue(keyValues, destKey.ID, blockID)
@@ -935,15 +871,6 @@ func (r *ValueRollup) BuildContents(keyValues []*KeyValues, destKey *Key, relati
 	}
 
 	r.calcContents(calc, destKey)
-
-	// 更新缓存
-	// 深拷贝Contents到cachedContents，避免外部修改影响缓存
-	r.cachedContents = make([]*Value, len(r.Contents))
-	for i, v := range r.Contents {
-		r.cachedContents[i] = v.Clone()
-	}
-	r.cacheFingerprint = fingerprint
-	r.cacheTimestamp = time.Now().UnixMilli()
 }
 
 func (r *ValueRollup) calcContents(calc *RollupCalc, destKey *Key) {
