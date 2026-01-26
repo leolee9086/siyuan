@@ -104,28 +104,13 @@ func Filter(viewable Viewable, attrView *AttributeView, rollupFurtherCollections
 		return
 	}
 
-	fields := collection.GetFields()
-	fieldCount := len(fields)
+	// 构建字段索引映射，将 O(m×k) 的查找优化为 O(k + m)
+	keyIndexMap := buildKeyIndexMap(collection.GetFields())
 
 	var colIndexes []int
-
-	// 当字段数量较多时（>10），使用 map 查找更高效
-	// 当字段数量较少时，直接遍历更快（避免 map 创建开销）
-	if fieldCount > 10 {
-		keyIndexMap := buildKeyIndexMap(fields)
-		for _, f := range filters {
-			if index, exists := keyIndexMap[f.Column]; exists {
-				colIndexes = append(colIndexes, index)
-			}
-		}
-	} else {
-		for _, f := range filters {
-			for i, c := range fields {
-				if c.GetID() == f.Column {
-					colIndexes = append(colIndexes, i)
-					break
-				}
-			}
+	for _, f := range filters {
+		if index, exists := keyIndexMap[f.Column]; exists {
+			colIndexes = append(colIndexes, index)
 		}
 	}
 

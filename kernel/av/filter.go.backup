@@ -87,16 +87,6 @@ const (
 	FilterQuantifierNone      FilterQuantifier = "None"
 )
 
-// buildKeyIndexMap 构建字段ID到索引的映射，用于优化字段查找性能
-// 时间复杂度: O(k)，其中 k 为字段数量
-func buildKeyIndexMap(keys []Field) map[string]int {
-	indexMap := make(map[string]int, len(keys))
-	for i, key := range keys {
-		indexMap[key.GetID()] = i
-	}
-	return indexMap
-}
-
 func Filter(viewable Viewable, attrView *AttributeView, rollupFurtherCollections map[string]Collection, cachedAttrViews map[string]*AttributeView) {
 	collection := viewable.(Collection)
 	filters := collection.GetFilters()
@@ -104,27 +94,12 @@ func Filter(viewable Viewable, attrView *AttributeView, rollupFurtherCollections
 		return
 	}
 
-	fields := collection.GetFields()
-	fieldCount := len(fields)
-
 	var colIndexes []int
-
-	// 当字段数量较多时（>10），使用 map 查找更高效
-	// 当字段数量较少时，直接遍历更快（避免 map 创建开销）
-	if fieldCount > 10 {
-		keyIndexMap := buildKeyIndexMap(fields)
-		for _, f := range filters {
-			if index, exists := keyIndexMap[f.Column]; exists {
-				colIndexes = append(colIndexes, index)
-			}
-		}
-	} else {
-		for _, f := range filters {
-			for i, c := range fields {
-				if c.GetID() == f.Column {
-					colIndexes = append(colIndexes, i)
-					break
-				}
+	for _, f := range filters {
+		for i, c := range collection.GetFields() {
+			if c.GetID() == f.Column {
+				colIndexes = append(colIndexes, i)
+				break
 			}
 		}
 	}
