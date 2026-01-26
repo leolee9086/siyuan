@@ -42,14 +42,16 @@ export { listOutdentMiddleware } from "./middlewares/outdent";
 export { listIndentMiddleware } from "./middlewares/indent";
 
 // ============================================================================
-// Phase 4: 其他中间件（预留）
+// Phase 4: 列表转换中间件（已实现）
 // ============================================================================
 
 /**
- * Phase 4: 列表转换中间件（待实现）
+ * 导出 Phase 4 中间件
  *
- * 这些中间件将在后续阶段按照相同的模式实现
+ * listTransformMiddleware: 使用 CalibURRouter 模式的列表转换中间件
+ * 处理列表类型转换操作（无序列表、有序列表、任务列表、引用之间的转换）
  */
+export { listTransformMiddleware } from "./middlewares/transform";
 
 // ============================================================================
 // 类型导出
@@ -84,6 +86,7 @@ export type {
  * 供测试和调试使用，一般情况下不需要直接使用路由器
  */
 export { checkToggleRouter, outdentRouter, indentRouter } from "./router";
+export { transformRouter } from "./router.transform";
 
 // ============================================================================
 // 日志工具导出

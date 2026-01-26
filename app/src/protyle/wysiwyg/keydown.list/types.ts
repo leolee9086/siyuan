@@ -147,7 +147,7 @@ export const TransformStateSchema: Type<{
     isOListKey: boolean;
     isCheckKey: boolean;
     isQuoteKey: boolean;
-    selectCount: number;
+    isSingleSelect: boolean;
     isContinuousSelection: boolean;
     hasListItem: boolean;
     currentType: "NodeParagraph" | "NodeList" | "NodeHeading" | "other";
@@ -161,8 +161,8 @@ export const TransformStateSchema: Type<{
     isCheckKey: "boolean",
     /** 是否按下引用快捷键 */
     isQuoteKey: "boolean",
-    /** 选中元素数量 */
-    selectCount: "number",
+    /** 是否单选（selectCount <= 1） */
+    isSingleSelect: "boolean",
     /** 选中元素是否连续 */
     isContinuousSelection: "boolean",
     /** 选中元素中是否包含列表项 */

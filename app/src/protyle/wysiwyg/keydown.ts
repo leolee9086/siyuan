@@ -30,9 +30,9 @@ import { aiActionsMiddleware, aiWritingMiddleware } from "./keydown.ai";
 import {
     listCheckToggleMiddleware,
     listOutdentMiddleware,
-    listIndentMiddleware
+    listIndentMiddleware,
+    listTransformMiddleware
 } from "./keydown.list/index";
-import { listTransformMiddleware } from "./keydown.list";
 import { expandSelectMiddleware } from "./keydown.expandSelect";
 import { formatMiddleware } from "./keydown.format";
 import { escapeKeyMiddleware } from "./keydown.escape";

@@ -12,6 +12,7 @@ import * as dayjs from "dayjs";
 import { LIST_COMMANDS } from "./commands";
 import type { ListCommand, CommandExecutor } from "./types";
 import { logTaskToggle, logCommandExecution } from "./logger";
+import { transformExecutors } from "./executors.transform";
 
 /**
  * 切换任务状态的 DOM 操作
@@ -253,22 +254,22 @@ const executeIndent: CommandExecutor = async (
  * 用途：将命令映射到对应的执行器函数
  * 使用场景：在 executeCommand 函数中根据命令查找执行器
  *
- * Phase 1 实现：
- * - CHECK_TOGGLE: executeToggleTaskStatus
+ * Phase 1-4 已实现：
+ * - CHECK_TOGGLE: executeToggleTaskStatus (Phase 1)
+ * - OUTDENT: executeOutdent (Phase 2)
+ * - INDENT: executeIndent (Phase 3)
+ * - TRANSFORM_TO_*: transformExecutors (Phase 4)
  * - IGNORE: null（不需要执行器）
- *
- * Phase 2-4 预留：
- * - OUTDENT, INDENT, TRANSFORM_* 命令的执行器将在后续阶段实现
  */
 const executorMap: Record<ListCommand, CommandExecutor | null> = {
     [LIST_COMMANDS.CHECK_TOGGLE]: executeToggleTaskStatus,
-    [LIST_COMMANDS.OUTDENT]: executeOutdent,  // Phase 2 已实现
-    [LIST_COMMANDS.INDENT]: executeIndent,  // Phase 3 已实现
-    [LIST_COMMANDS.TRANSFORM_TO_UL]: null,  // Phase 4 实现
-    [LIST_COMMANDS.TRANSFORM_TO_OL]: null,  // Phase 4 实现
-    [LIST_COMMANDS.TRANSFORM_TO_TL]: null,  // Phase 4 实现
-    [LIST_COMMANDS.TRANSFORM_TO_QUOTE]: null,  // Phase 4 实现
-    [LIST_COMMANDS.IGNORE]: null  // 不需要执行器
+    [LIST_COMMANDS.OUTDENT]: executeOutdent,
+    [LIST_COMMANDS.INDENT]: executeIndent,
+    [LIST_COMMANDS.TRANSFORM_TO_UL]: transformExecutors[LIST_COMMANDS.TRANSFORM_TO_UL],
+    [LIST_COMMANDS.TRANSFORM_TO_OL]: transformExecutors[LIST_COMMANDS.TRANSFORM_TO_OL],
+    [LIST_COMMANDS.TRANSFORM_TO_TL]: transformExecutors[LIST_COMMANDS.TRANSFORM_TO_TL],
+    [LIST_COMMANDS.TRANSFORM_TO_QUOTE]: transformExecutors[LIST_COMMANDS.TRANSFORM_TO_QUOTE],
+    [LIST_COMMANDS.IGNORE]: null
 };
 
 /**

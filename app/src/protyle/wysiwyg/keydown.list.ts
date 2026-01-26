@@ -101,108 +101,117 @@ import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.e
 // };
 
 /**
- * 列表类型转换快捷键中间件
+ * 列表类型转换快捷键中间件（旧实现 - 已废弃）
+ *
+ * @deprecated 此实现已被 keydown.list/middlewares/transform.ts 中的新实现替代
+ * 新实现使用 CalibURRouter 模式，提供更好的可维护性和可测试性
+ *
+ * ⚠️ 警告：此文件中的代码已不再使用！
+ * keydown.ts 现在通过 keydown.list/index.ts 导入新版本的 CalibURRouter 实现
+ *
+ * 保留此代码仅供参考，后续将完全移除
+ *
  * 处理无序列表、有序列表、任务列表和引用之间的转换
  */
-export const listTransformMiddleware = async (
-    event: KeyboardEvent,
-    protyle: IProtyle,
-    nodeElement: HTMLElement,
-    range: Range,
-    controller: AbortController
-) => {
-    const isMatchList = matchHotKey(window.siyuan.config.keymap.editor.insert.list.custom, event);
-    const isMatchCheck = matchHotKey(window.siyuan.config.keymap.editor.insert.check.custom, event);
-    const isMatchOList = matchHotKey(window.siyuan.config.keymap.editor.insert["ordered-list"].custom, event);
-    const isMatchQuote = matchHotKey(window.siyuan.config.keymap.editor.insert.quote.custom, event);
-
-    if (isMatchList || isMatchOList || isMatchCheck || isMatchQuote) {
-        const selectsElement: HTMLElement[] = Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select"));
-        if (selectsElement.length === 0) {
-            selectsElement.push(nodeElement);
-        }
-        if (selectsElement.length === 1) {
-            const subType = selectsElement[0].dataset.subtype;
-            const type = selectsElement[0].dataset.type;
-            if (isMatchQuote) {
-                if (["NodeHeading", "NodeParagraph", "NodeList"].includes(type)) {
-                    turnsIntoOneTransaction({
-                        protyle,
-                        selectsElement,
-                        type: "Blocks2Blockquote"
-                    });
-                } else {
-                    protyle.hint.splitChar = "/";
-                    protyle.hint.lastIndex = -1;
-                    protyle.hint.fill(">" + Lute.Caret, protyle);
-                }
-            } else {
-                if (type === "NodeParagraph") {
-                    turnsIntoOneTransaction({
-                        protyle,
-                        selectsElement,
-                        type: isMatchCheck ? "Blocks2TLs" : (isMatchList ? "Blocks2ULs" : "Blocks2OLs")
-                    });
-                } else if (type === "NodeList") {
-                    const id = selectsElement[0].dataset.nodeId;
-                    if (subType === "o" && (isMatchList || isMatchCheck)) {
-                        turnsOneInto({
-                            protyle,
-                            nodeElement: selectsElement[0],
-                            id,
-                            type: isMatchCheck ? "UL2TL" : "OL2UL",
-                        });
-                    } else if (subType === "t" && (isMatchList || isMatchOList)) {
-                        turnsOneInto({
-                            protyle,
-                            nodeElement: selectsElement[0],
-                            id,
-                            type: isMatchList ? "TL2UL" : "TL2OL",
-                        });
-                    } else if (subType === "u" && (isMatchCheck || isMatchOList)) {
-                        turnsOneInto({
-                            protyle,
-                            nodeElement: selectsElement[0],
-                            id,
-                            type: isMatchCheck ? "OL2TL" : "UL2OL",
-                        });
-                    }
-                } else {
-                    protyle.hint.splitChar = "/";
-                    protyle.hint.lastIndex = -1;
-                    protyle.hint.fill((isMatchCheck ? "- [ ] " : (isMatchList ? "- " : "1. ")) + Lute.Caret, protyle);
-                }
-            }
-        } else {
-            let isList = false;
-            let isContinue = false;
-            selectsElement.find((item, index) => {
-                if (item.classList.contains("li")) {
-                    isList = true;
-                    return true;
-                }
-                if (item.nextElementSibling && selectsElement[index + 1] &&
-                    item.nextElementSibling === selectsElement[index + 1]) {
-                    isContinue = true;
-                } else if (index !== selectsElement.length - 1) {
-                    isContinue = false;
-                    return true;
-                }
-            });
-            if (!isList && isContinue) {
-                turnsIntoOneTransaction({
-                    protyle,
-                    selectsElement,
-                    type: isMatchQuote ? "Blocks2Blockquote" : (isMatchCheck ? "Blocks2TLs" : (isMatchList ? "Blocks2ULs" : "Blocks2OLs"))
-                });
-            }
-        }
-        event.preventDefault();
-        event.stopPropagation();
-        controller.abort("列表类型转换操作");
-        return;
-    }
-};
+// export const listTransformMiddleware = async (
+//     event: KeyboardEvent,
+//     protyle: IProtyle,
+//     nodeElement: HTMLElement,
+//     range: Range,
+//     controller: AbortController
+// ) => {
+//     const isMatchList = matchHotKey(window.siyuan.config.keymap.editor.insert.list.custom, event);
+//     const isMatchCheck = matchHotKey(window.siyuan.config.keymap.editor.insert.check.custom, event);
+//     const isMatchOList = matchHotKey(window.siyuan.config.keymap.editor.insert["ordered-list"].custom, event);
+//     const isMatchQuote = matchHotKey(window.siyuan.config.keymap.editor.insert.quote.custom, event);
+//
+//     if (isMatchList || isMatchOList || isMatchCheck || isMatchQuote) {
+//         const selectsElement: HTMLElement[] = Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select"));
+//         if (selectsElement.length === 0) {
+//             selectsElement.push(nodeElement);
+//         }
+//         if (selectsElement.length === 1) {
+//             const subType = selectsElement[0].dataset.subtype;
+//             const type = selectsElement[0].dataset.type;
+//             if (isMatchQuote) {
+//                 if (["NodeHeading", "NodeParagraph", "NodeList"].includes(type)) {
+//                     turnsIntoOneTransaction({
+//                         protyle,
+//                         selectsElement,
+//                         type: "Blocks2Blockquote"
+//                     });
+//                 } else {
+//                     protyle.hint.splitChar = "/";
+//                     protyle.hint.lastIndex = -1;
+//                     protyle.hint.fill(">" + Lute.Caret, protyle);
+//                 }
+//             } else {
+//                 if (type === "NodeParagraph") {
+//                     turnsIntoOneTransaction({
+//                         protyle,
+//                         selectsElement,
+//                         type: isMatchCheck ? "Blocks2TLs" : (isMatchList ? "Blocks2ULs" : "Blocks2OLs")
+//                     });
+//                 } else if (type === "NodeList") {
+//                     const id = selectsElement[0].dataset.nodeId;
+//                     if (subType === "o" && (isMatchList || isMatchCheck)) {
+//                         turnsOneInto({
+//                             protyle,
+//                             nodeElement: selectsElement[0],
+//                             id,
+//                             type: isMatchCheck ? "UL2TL" : "OL2UL",
+//                         });
+//                     } else if (subType === "t" && (isMatchList || isMatchOList)) {
+//                         turnsOneInto({
+//                             protyle,
+//                             nodeElement: selectsElement[0],
+//                             id,
+//                             type: isMatchList ? "TL2UL" : "TL2OL",
+//                         });
+//                     } else if (subType === "u" && (isMatchCheck || isMatchOList)) {
+//                         turnsOneInto({
+//                             protyle,
+//                             nodeElement: selectsElement[0],
+//                             id,
+//                             type: isMatchCheck ? "OL2TL" : "UL2OL",
+//                         });
+//                     }
+//                 } else {
+//                     protyle.hint.splitChar = "/";
+//                     protyle.hint.lastIndex = -1;
+//                     protyle.hint.fill((isMatchCheck ? "- [ ] " : (isMatchList ? "- " : "1. ")) + Lute.Caret, protyle);
+//                 }
+//             }
+//         } else {
+//             let isList = false;
+//             let isContinue = false;
+//             selectsElement.find((item, index) => {
+//                 if (item.classList.contains("li")) {
+//                     isList = true;
+//                     return true;
+//                 }
+//                 if (item.nextElementSibling && selectsElement[index + 1] &&
+//                     item.nextElementSibling === selectsElement[index + 1]) {
+//                     isContinue = true;
+//                 } else if (index !== selectsElement.length - 1) {
+//                     isContinue = false;
+//                     return true;
+//                 }
+//             });
+//             if (!isList && isContinue) {
+//                 turnsIntoOneTransaction({
+//                     protyle,
+//                     selectsElement,
+//                     type: isMatchQuote ? "Blocks2Blockquote" : (isMatchCheck ? "Blocks2TLs" : (isMatchList ? "Blocks2ULs" : "Blocks2OLs"))
+//                 });
+//             }
+//         }
+//         event.preventDefault();
+//         event.stopPropagation();
+//         controller.abort("列表类型转换操作");
+//         return;
+//     }
+// };
 
 /**
  * 任务列表切换快捷键中间件（旧实现 - 已废弃）

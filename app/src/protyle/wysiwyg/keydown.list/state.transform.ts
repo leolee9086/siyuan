@@ -119,7 +119,7 @@ export const extractTransformState = (
     if (!protyle.wysiwyg) {
         return {
             ...hotKeyStates,
-            selectCount: 0,
+            isSingleSelect: true,
             isContinuousSelection: false,
             hasListItem: false,
             currentType: "other",
@@ -131,8 +131,11 @@ export const extractTransformState = (
     const selectElements = protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select");
     const selectCount = selectElements.length;
     
+    // 判断是否单选（selectCount <= 1）
+    const isSingleSelect = selectCount <= 1;
+    
     // 检查选中元素是否连续
-    const isContinuousSelection = selectCount > 0 
+    const isContinuousSelection = selectCount > 0
         ? checkContinuousSelection(selectElements)
         : false;
     
@@ -149,7 +152,7 @@ export const extractTransformState = (
     
     return {
         ...hotKeyStates,
-        selectCount,
+        isSingleSelect,
         isContinuousSelection,
         hasListItem,
         currentType,

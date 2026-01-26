@@ -18,7 +18,7 @@ let currentLogLevel: LogLevel = LogLevel.VERBOSE;
 /**
  * 修饰键常量
  * 用于格式化快捷键组合
- * @AITODO 这个常量好像没有使用到,考虑移除
+ * @AITODO 这个常量好像没有使用到,考虑移除jin 
  */
 const MODIFIER_KEYS = ["Control", "Alt", "Shift", "Meta"] as const;
 
