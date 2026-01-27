@@ -115,7 +115,7 @@ func execHistoryOp(op *historyDBQueueOperation, tx *sql.Tx, context map[string]i
 		err = deleteOutdatedHistories(tx, op.before, context)
 	default:
 		msg := fmt.Sprintf("unknown history operation [%s]", op.action)
-		logging.LogErrorf(msg)
+		logging.LogErrorf("%s", msg)
 		err = errors.New(msg)
 	}
 	return

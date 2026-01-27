@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"sync"
 	"text/template"
 	"text/template/parse"
 	"time"
@@ -32,6 +33,10 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/filesys"
 	"github.com/siyuan-note/siyuan/kernel/treenode"
 	"github.com/siyuan-note/siyuan/kernel/util"
+)
+
+var (
+	templateCache = sync.Map{} // map[string]*template.Template
 )
 
 func RenderGroupView(attrView *av.AttributeView, view, groupView *av.View, query string) (ret av.Viewable) {
@@ -130,14 +135,21 @@ func renderTemplateField(ial map[string]string, keyValues []*av.KeyValues, tplCo
 		}
 	}
 
-	goTpl := template.New("").Delims(".action{", "}")
-	tplFuncMap := filesys.BuiltInTemplateFuncs()
-	SQLTemplateFuncs(&tplFuncMap)
-	goTpl = goTpl.Funcs(tplFuncMap)
-	tpl, err := goTpl.Parse(tplContent)
-	if err != nil {
-		logging.LogWarnf("parse template [%s] failed: %s", tplContent, err)
-		return
+	var tpl *template.Template
+	if v, ok := templateCache.Load(tplContent); ok {
+		tpl = v.(*template.Template)
+	} else {
+		goTpl := template.New("").Delims(".action{", "}")
+		tplFuncMap := filesys.BuiltInTemplateFuncs()
+		SQLTemplateFuncs(&tplFuncMap)
+		goTpl = goTpl.Funcs(tplFuncMap)
+		var parseErr error
+		tpl, parseErr = goTpl.Parse(tplContent)
+		if parseErr != nil {
+			logging.LogWarnf("parse template [%s] failed: %s", tplContent, parseErr)
+			return
+		}
+		templateCache.Store(tplContent, tpl)
 	}
 
 	buf := &bytes.Buffer{}
