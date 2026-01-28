@@ -1,57 +1,25 @@
 /**
  * listRouter 模块主入口
- * 
+ *
  * 本文件统一导出列表路由系统的所有公共接口
- * 用于渐进式迁移和模块化管理
+ * 已完成统一中间件迁移，所有列表操作由 listUnifiedMiddleware 统一处理
  */
 
 // ============================================================================
-// Phase 1: 任务列表切换（已实现）
+// 统一列表中间件（已完成迁移）
 // ============================================================================
 
 /**
- * 导出 Phase 1 中间件
- * 
- * listCheckToggleMiddleware: 使用 CalibURRouter 模式的任务列表切换中间件
- * 这是试点实现，展示完整的状态驱动路由模式
- */
-export { listCheckToggleMiddleware } from "./middlewares/checkToggle";
-
-// ============================================================================
-// Phase 2: 列表缩出中间件（已实现）
-// ============================================================================
-
-/**
- * 导出 Phase 2 中间件
+ * 导出统一列表中间件
  *
- * listOutdentMiddleware: 使用 CalibURRouter 模式的列表缩出中间件
- * 处理列表项的缩出操作（减少缩进层级）
+ * listUnifiedMiddleware: 统一处理所有列表操作的中间件
+ * 合并了以下功能：
+ * - 任务列表勾选切换
+ * - 列表减少缩进（outdent）
+ * - 列表增加缩进（indent）
+ * - 列表类型转换（无序、有序、任务、引用之间的转换）
  */
-export { listOutdentMiddleware } from "./middlewares/outdent";
-
-// ============================================================================
-// Phase 3: 列表缩进中间件（已实现）
-// ============================================================================
-
-/**
- * 导出 Phase 3 中间件
- *
- * listIndentMiddleware: 使用 CalibURRouter 模式的列表缩进中间件
- * 处理列表项的缩进操作（增加缩进层级）
- */
-export { listIndentMiddleware } from "./middlewares/indent";
-
-// ============================================================================
-// Phase 4: 列表转换中间件（已实现）
-// ============================================================================
-
-/**
- * 导出 Phase 4 中间件
- *
- * listTransformMiddleware: 使用 CalibURRouter 模式的列表转换中间件
- * 处理列表类型转换操作（无序列表、有序列表、任务列表、引用之间的转换）
- */
-export { listTransformMiddleware } from "./middlewares/transform";
+export { listUnifiedMiddleware } from "./unified";
 
 // ============================================================================
 // 类型导出
@@ -81,12 +49,17 @@ export type {
 // ============================================================================
 
 /**
- * 导出路由器实例
+ * 导出统一路由器实例
  *
  * 供测试和调试使用，一般情况下不需要直接使用路由器
  */
-export { checkToggleRouter, outdentRouter, indentRouter } from "./router";
-export { transformRouter } from "./router.transform";
+export {
+    listMasterRouter,
+    checkToggleSubRouter,
+    outdentSubRouter,
+    indentSubRouter,
+    transformSubRouter
+} from "./unified";
 
 // ============================================================================
 // 日志工具导出

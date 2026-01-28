@@ -27,12 +27,7 @@ import { blockRefMiddleware } from "./keydown.blockRef";
 import { foldHotkeyMiddleware } from "./keydown.hotkey.fold";
 import { pasteAsPlainTextMiddleware } from "./keydown.paste";
 import { aiActionsMiddleware, aiWritingMiddleware } from "./keydown.ai";
-import {
-    listCheckToggleMiddleware,
-    listOutdentMiddleware,
-    listIndentMiddleware,
-    listTransformMiddleware
-} from "./keydown.list/index";
+import { listUnifiedMiddleware } from "./keydown.list/unified";
 import { expandSelectMiddleware } from "./keydown.expandSelect";
 import { formatMiddleware } from "./keydown.format";
 import { escapeKeyMiddleware } from "./keydown.escape";
@@ -387,23 +382,12 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         if (signal.aborted) {
             return;
         }
-        await listOutdentMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) {
-            return;
-        }
-        await listIndentMiddleware(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) {
-            return;
-        }
-        await listTransformMiddleware(event, protyle, nodeElement, range, controller);
+        // 列表操作统一中间件：合并处理所有列表操作（缩进、反缩进、类型转换、勾选切换）
+        await listUnifiedMiddleware(event, protyle, nodeElement, range, controller);
         if (signal.aborted) {
             return;
         }
         await handleTableBlockCreation(event, protyle, nodeElement, range, controller);
-        if (signal.aborted) {
-            return;
-        }
-        await listCheckToggleMiddleware(event, protyle, nodeElement, range, controller);
         if (signal.aborted) {
             return;
         }
