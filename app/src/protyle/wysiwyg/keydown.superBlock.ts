@@ -42,13 +42,13 @@ export const handleVLayoutMiddleware = async (
             transaction(protyle, sbData.doOperations, sbData.undoOperations);
             focusByWbr(protyle.wysiwyg.element, range);
         }
-        controller.abort();
+        controller.abort("垂直布局：单个超级块布局切换");
         return;
     }
 
     // 处理多个块合并为超级块
     if (selectsElement.length < 2 || selectsElement[0]?.classList.contains("li")) {
-        controller.abort();
+        controller.abort("垂直布局：选中块不足或包含列表项");
         return;
     }
 
@@ -58,7 +58,7 @@ export const handleVLayoutMiddleware = async (
         type: "BlocksMergeSuperBlock",
         level: "row"
     });
-    controller.abort();
+    controller.abort("垂直布局：合并为超级块");
     return;
 };
 
@@ -106,13 +106,13 @@ export const handleHLayoutMiddleware = async (
             transaction(protyle, sbData.doOperations, sbData.undoOperations);
             focusByWbr(protyle.wysiwyg.element, range);
         }
-        controller.abort();
+        controller.abort("水平布局：单个超级块布局切换");
         return true;
     }
 
     // 处理多个块合并为超级块
     if (selectsElement.length < 2 || selectsElement[0]?.classList.contains("li")) {
-        controller.abort();
+        controller.abort("水平布局：选中块不足或包含列表项");
         return true;
     }
 
@@ -122,7 +122,7 @@ export const handleHLayoutMiddleware = async (
         type: "BlocksMergeSuperBlock",
         level: "col"
     });
-    controller.abort();
+    controller.abort("水平布局：合并为超级块");
 
     return true;
 };

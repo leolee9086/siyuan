@@ -7,6 +7,6 @@ export const fixTableMiddleware = (
     const {protyle,event,range,controller} = ctx;
     if (fixTable(protyle, event, range)) {
         event.preventDefault();
-        controller.abort();
+        controller.abort("表格修复");
     }
 };

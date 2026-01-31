@@ -15,7 +15,7 @@ export const insertBeforeMiddleWare = (
         nodeElement.querySelector(".img--select")?.classList.remove("img--select");
         insertEmptyBlock(protyle, "beforebegin");
         event.preventDefault();
-        controller.abort();
+        controller.abort("在当前块前插入空块");
         return true;
     }
 };
@@ -34,7 +34,7 @@ export const insertAfterMiddleWare = (
         nodeElement.querySelector(".img--select")?.classList.remove("img--select");
         insertEmptyBlock(protyle, "afterend");
         event.preventDefault();
-        controller.abort();
+        controller.abort("在当前块后插入空块");
         return true;
     }
 };

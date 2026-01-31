@@ -110,7 +110,7 @@ export const arrowNavigationMiddleware = async (
                                     focusBlock(previousElement, undefined, false);
                                     event.preventDefault();
                                     event.stopPropagation();
-                                    controller.abort();
+                                    controller.abort("上箭头导航：处理以换行结尾的块");
                                     return;
                                 }
                             }

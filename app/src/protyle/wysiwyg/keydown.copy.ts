@@ -30,7 +30,7 @@ export const copyTextMiddleware = (
         }
         event.preventDefault();
         event.stopPropagation();
-        controller.abort();
+        controller.abort("复制为引用文本");
         return true;
     }
 };

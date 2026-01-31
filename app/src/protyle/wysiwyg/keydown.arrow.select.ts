@@ -342,11 +342,11 @@ export const arrowUpDownMiddleware = (
 
     if (event.key === "ArrowDown") {
         handleArrowDown(selectElements, contentElement, scrollRecord);
-        controller.abort();
+        controller.abort("上下箭头：向下选择块");
         return;
     }
 
     // ArrowUp
     handleArrowUp(event, protyle, range, selectElements, contentElement, scrollRecord);
-    controller.abort();
+    controller.abort("上下箭头：向上选择块");
 };

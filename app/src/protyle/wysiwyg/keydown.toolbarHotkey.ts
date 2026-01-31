@@ -89,7 +89,7 @@ export const toolbarLastUsedMiddleware = (
         fontEvent(protyle, selectElements);
         event.stopPropagation();
         event.preventDefault();
-        controller.abort();
+        controller.abort("最近使用字体快捷键");
         return;
     }
 };

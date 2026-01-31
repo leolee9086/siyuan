@@ -41,7 +41,7 @@ export const attrMiddleware = (
         }
         event.preventDefault();
         event.stopPropagation();
-        controller.abort();
+        controller.abort("打开块属性");
         return true;
     }
 };
@@ -77,7 +77,7 @@ export const renameMiddleware = (
         }
         event.preventDefault();
         event.stopPropagation();
-        controller.abort();
+        controller.abort("重命名文档");
         return;
     }
 };

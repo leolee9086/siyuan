@@ -57,7 +57,7 @@ export const altEnterMiddleware = async (
         addSubList(protyle, nodeElement, range);
         event.stopPropagation();
         event.preventDefault();
-        controller.abort();
+        controller.abort("Alt+Enter 添加子列表");
         return;
     }
 };
@@ -70,6 +70,8 @@ export const altEnterMiddleware = async (
  */
 const getSelectElements = (protyle: IProtyle, nodeElement: HTMLElement) => {
     const selectElements = Array.from(protyle.wysiwyg?.element?.querySelectorAll(".protyle-wysiwyg--select") || []);
+    // 当用户没有通过多选功能选中任何块时，将当前光标所在的块作为默认选中元素
+    // 这样即使用户只是将光标放在单个代码块内按 Alt+Enter，也能触发相应操作
     if (selectElements.length === 0) {
         selectElements.push(nodeElement);
     }
@@ -97,14 +99,16 @@ const getAltEnterCommand = (selectElements: Element[]) => {
  */
 const showCodeLanguage = (protyle: IProtyle, selectElements: Element[], event: KeyboardEvent, controller: AbortController) => {
     const languageElements: HTMLElement[] = [];
-    selectElements.forEach(item => {
+    for (const item of selectElements) {
         const langElement = item.querySelector(".protyle-action__language");
+        // querySelector 返回的是 Element 类型，需要验证是否为 HTMLElement 才能安全操作
+        // 当用户选中代码块时，该选择器会找到语言显示元素，其应为 HTMLElement
         if (langElement instanceof HTMLElement) {
             languageElements.push(langElement);
         }
-    });
+    }
     protyle.toolbar?.showCodeLanguage(protyle, languageElements);
     event.stopPropagation();
     event.preventDefault();
-    controller.abort();
+    controller.abort("Alt+Enter 显示代码语言选择器");
 };

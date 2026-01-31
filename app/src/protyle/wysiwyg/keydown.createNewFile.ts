@@ -50,7 +50,7 @@ export const createNamedNewFileMiddleware = (
         }
         event.preventDefault();
         event.stopPropagation();
-        controller.abort();
+        controller.abort("创建命名新文件");
         return;
     }
 };
@@ -66,7 +66,7 @@ export const createNewFileByContentMiddleware = (
         newFileContentBySelect(protyle);
         event.preventDefault();
         event.stopPropagation();
-        controller.abort();
+        controller.abort("根据内容创建新文件");
 
         return;
     }
