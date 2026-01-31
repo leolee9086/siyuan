@@ -3,7 +3,8 @@ import { onGet } from "../util/onGet";
 import { fetchPost } from "../../util/fetch";
 import { updateHotkeyTip } from "../util/compatibility";
 import { hasClosestByClassName } from "../util/hasClosest";
-import { goEnd, goHome } from "../wysiwyg/commonHotkey/commonHotkey";
+import { goHome } from "../wysiwyg/commonHotkey/commonHotkey";
+import { goEnd } from "../wysiwyg/commonHotkey/goEnd";
 import { showTooltip } from "../../dialog/tooltip";
 
 export class Scroll {
