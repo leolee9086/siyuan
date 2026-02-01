@@ -21,7 +21,9 @@ export const base64ToURL = async (base64SrcList: string[]) => {
     const formData = new FormData();
     base64SrcList.forEach(item => {
         const srcPart = item.split(",");
-        if (srcPart.length !== 2) return;
+        if (srcPart.length !== 2) {
+return;
+}
         // data:image/svg+xml;base64,XXX
         const mimeMatch = srcPart[0].match(/data:([^;]+);/);
         const mime = mimeMatch ? mimeMatch[1] : "application/octet-stream";

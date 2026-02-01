@@ -2,8 +2,6 @@ import { matchHotKey } from "../../util/hotKey";
 import { fetchPost, fetchSyncPost } from "../../../util/fetch";
 import { writeText } from "../../util/compatibility";
 import { focusBlock, } from "../../util/selection";
-import { hideElements } from "../../ui/hideElements";
-import { countBlockWord } from "../../../layout/status";
 import { scrollCenter } from "../../../util/highlightById";
 import { transaction } from "../transaction";
 import { onGet } from "../../util/onGet";
@@ -19,9 +17,6 @@ import { clearBlockElement } from "../../util/clearSelect";
 import {
     handleCopyHotKey,
     handlePluginHotKey} from "./commonHotkeyHelper";
-import {
-    handleSelectDownEmpty
-} from "./commonHotkeySelect";
 import {
     getInitialCloneState,
     createTempElement,
@@ -82,46 +77,6 @@ export const commonHotkey = (protyle: IProtyle, event: KeyboardEvent, nodeElemen
         return true;
     }
     /// #endif
-};
-
-export const downSelect = (options: {
-    protyle: IProtyle,
-    event: KeyboardEvent,
-    nodeElement: HTMLElement,
-    editorElement: HTMLElement,
-    range: Range,
-    cb: (selectElement: NodeListOf<Element>) => void
-}) => {
-    if (!options.protyle.wysiwyg) {
-        return;
-    }
-    const selectElements = options.protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select");
-    if (selectElements.length > 0) {
-        options.event.stopPropagation();
-        options.event.preventDefault();
-    }
-    if (selectElements.length === 0 && handleSelectDownEmpty(options)) {
-        return;
-    }
-    options.range.collapse(false);
-    hideElements(["toolbar"], options.protyle);
-    if (selectElements.length === 0) {
-        options.nodeElement.classList.add("protyle-wysiwyg--select");
-    }
-
-    if (selectElements.length > 0) {
-        options.cb(selectElements);
-    }
-    const ids: string[] = [];
-    for (const item of options.protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select")) {
-        const id = item.getAttribute("data-node-id");
-        if (id) {
-            ids.push(id);
-        }
-    }
-    countBlockWord(ids, options.protyle.block.rootID);
-    options.event.stopPropagation();
-    options.event.preventDefault();
 };
 
 export const getStartEndElement = (selectElements: NodeListOf<Element> | Element[]) => {

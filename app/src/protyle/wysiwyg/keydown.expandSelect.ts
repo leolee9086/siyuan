@@ -2,7 +2,8 @@ import { matchHotKey } from "../util/hotKey";
 import { hideElements } from "../ui/hideElements";
 import { getPreviousBlock, getNextBlock } from "./getBlock";
 import { preventScroll } from "../scroll/preventScroll";
-import { downSelect, getStartEndElement } from "./commonHotkey/commonHotkey";
+import { getStartEndElement } from "./commonHotkey/commonHotkey";
+import { downSelect } from "./commonHotkey/downSelect";
 import { upSelect } from "./commonHotkey/upSelect";
 
 /**
