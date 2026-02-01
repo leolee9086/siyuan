@@ -9,3 +9,9 @@ export const 全量修复提示 = "\n\n📋 注意: 对于少于 300 行实际�
 
 // 英文别名导出
 export const FULL_FIX_REMINDER = 全量修复提示;
+
+// 单文件lint检查提示
+export const 单文件检查提示 = "\n\n💡 提示: 使用 `cd app && pnpm run lint:file -- <文件路径>` 检查单个文件的lint错误。";
+
+// 英文别名导出
+export const SINGLE_FILE_LINT_TIP = 单文件检查提示;

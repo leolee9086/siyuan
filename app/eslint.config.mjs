@@ -232,6 +232,7 @@ export default [{
         "stage",
         "appearance",
         "test",
+        "scripts",
         "**/*.d.ts",
         "webpack*.js",
     ],

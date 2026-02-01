@@ -65,7 +65,7 @@ function showHelp() {
 单文件 ESLint 检查工具
 
 用法:
-  node check-file-lint.js <文件路径> [选项]
+  pnpm lint:file <文件路径> [选项]
 
 选项:
   --json          输出 JSON 格式结果
@@ -73,13 +73,11 @@ function showHelp() {
   --help, -h      显示此帮助信息
 
 示例:
-  node check-file-lint.js src/util/events/eventEmitter.ts
-  node check-file-lint.js src/util/events/eventEmitter.ts --json
-  node check-file-lint.js ../app/src/util/events/eventEmitter.ts --cwd ../app
+  pnpm lint:file src/util/events/eventEmitter.ts
+  pnpm lint:file src/util/events/eventEmitter.ts --json
 
 注意:
-  - 文件路径可以是相对于工作目录的路径
-  - 默认工作目录为 app 目录（ESLint 配置所在位置）
+  - 文件路径可以是相对于 app 目录的路径
   - JSON 输出便于程序化处理结果
 `);
 }
@@ -137,8 +135,8 @@ async function main() {
         process.exit(1);
     }
 
-    // 确定工作目录
-    const cwd = options.cwd || path.join(__dirname, "..", "app");
+    // 确定工作目录 - 脚本现在位于 app/scripts，所以默认 cwd 是 app 目录
+    const cwd = options.cwd || path.join(__dirname, "..");
     
     // 检查工作目录是否存在
     if (!fs.existsSync(cwd)) {

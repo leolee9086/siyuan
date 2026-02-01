@@ -4,7 +4,7 @@
  * 用于检测代码中的 AI 任务标记
  */
 
-import { 全量修复提示 } from "./shared-constants.mjs";
+import { 全量修复提示, 单文件检查提示 } from "./shared-constants.mjs";
 
 /**
  * 提示词字典
@@ -14,7 +14,7 @@ export const PROMPTS = {
         id: 'AI-001: Pending Task',
         mode: 'GENERAL_AGENT',
         reason: "检测到文件包含 @AITODO 任务标记。",
-        action: "请读取注释要求，执行相应任务，完成后将标记改为 @AIDONE。" + 全量修复提示
+        action: "请读取注释要求，执行相应任务，完成后将标记改为 @AIDONE。" + 全量修复提示 + 单文件检查提示
     }
 };
 

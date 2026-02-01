@@ -8,6 +8,7 @@
   "scripts": {
     "lint": "eslint . --fix --cache",
     "lint:report": "eslint . --fix --cache --no-color --output-file lint-report.txt",
+    "lint:file": "node ./scripts/check-file-lint.js",
     "dev": "webpack --mode development",
     "dev:mobile": "webpack --mode development --config webpack.mobile.js",
     "dev:desktop": "webpack --mode development --config webpack.desktop.js",
