@@ -2,7 +2,8 @@ import { matchHotKey } from "../util/hotKey";
 import { hideElements } from "../ui/hideElements";
 import { getPreviousBlock, getNextBlock } from "./getBlock";
 import { preventScroll } from "../scroll/preventScroll";
-import { upSelect, downSelect, getStartEndElement } from "./commonHotkey/commonHotkey";
+import { downSelect, getStartEndElement } from "./commonHotkey/commonHotkey";
+import { upSelect } from "./commonHotkey/upSelect";
 
 /**
  * 处理扩展向上选择的快捷键
