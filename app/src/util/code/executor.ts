@@ -123,13 +123,14 @@ export class SecureModuleCreator {
       this.applyRedirectIfNeeded(magicString, importSpec, importSource, packageName);
     }
 
-    // 如果有未授权导入且策略是 throw，完全替换代码为错误抛出
+    // 如果有未授权导入且策略是 throw，在代码开头添加错误抛出
     if (hasUnauthorizedImports && options.onUnauthorizedImport === "throw") {
       const uniquePackages = Array.from(new Set(unauthorizedPackages));
       const errorMessage = `Package(s) "${uniquePackages.join(", ")}" are not allowed`;
-      // 完全替换代码，只保留错误抛出语句，确保没有任何其他代码执行
+      // 在代码开头添加错误抛出语句，确保没有任何其他代码执行
       console.warn("检测到未授权的导入并已完全阻止代码执行");
-      return `(() => { throw new Error('${errorMessage}') })();`;
+      const errorCode = `// Generated secure module\n(() => { throw new SecurityError('${errorMessage}') })();\n`;
+      return errorCode + magicString.toString();
     }
 
     return magicString.toString();

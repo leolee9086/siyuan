@@ -21,8 +21,28 @@ import type {
     HttpMethodHandler,
 } from "./types";
 
-const HttpError = Errors;
-
+const Errors: HttpErrors = {
+    /**
+     * 创建未实现错误
+     * 作用：生成表示功能未实现的错误对象
+     * 意图：为HTTP路由器提供标准化的未实现错误
+     * 调用时机：当请求的HTTP方法未被实现时调用
+     * 问题/改进：当前返回通用Error，可考虑使用专门的HttpError类型
+     */
+    NotImplemented: () => {
+        return new Error("not implemented");
+    },
+    /**
+     * 创建方法不允许错误
+     * 作用：生成表示HTTP方法不被允许的错误对象
+     * 意图：为HTTP路由器提供标准化的方法不允许错误
+     * 调用时机：当请求的HTTP方法不在允许列表中时调用
+     * 问题/改进：当前返回通用Error，可考虑使用专门的HttpError类型
+     */
+    MethodNotAllowed: () => {
+        return new Error("method not allowed");
+    }
+};
 
 import Layer from "./layer";
 import { LayerLike } from "./layerLike.types";

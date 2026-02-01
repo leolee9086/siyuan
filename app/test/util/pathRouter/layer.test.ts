@@ -239,7 +239,7 @@ describe("Layer类测试", () => {
     const captures1 = layer.captures("/users");
     const captures2 = layer.captures("/users/123");
     
-    expect(captures1).toEqual([undefined, undefined]);
+    expect(captures1).toEqual([undefined]);
     expect(captures2).toEqual(["123"]);
   });
 

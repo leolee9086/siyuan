@@ -3,6 +3,7 @@ import type { ConfigSummary, ModuleRedirectConfig } from "./executor.types";
 /**
  * 判断是否为裸模块
  * 裸模块是指不以 './', '../', '/', 'http://', 'https://' 开头的模块
+ * @同步豁免: 性能考虑 - 字符串前缀检查是纯计算操作，无需异步处理，保持同步可避免不必要的Promise开销
  */
 export function isBareModule(importSource: string): boolean {
   // 移除查询参数和哈希
@@ -184,6 +185,7 @@ export class ConfigManager {
    * 移除包重定向规则
    */
   removePackageRedirect(packageName: string): boolean {
+    // 检查包名是否存在于重定向配置中，只有存在的包才能被移除
     if (packageName in this.moduleRedirectConfig.packageRedirects) {
       delete this.moduleRedirectConfig.packageRedirects[packageName];
       return true;
@@ -198,7 +200,13 @@ export class ConfigManager {
     return this.moduleRedirectConfig.packageRedirects[packageName] || null;
   }
 
-
+  /**
+   * 判断是否为裸模块
+   * 包装模块级别的 isBareModule 函数
+   */
+  isBareModule(importSource: string): boolean {
+    return isBareModule(importSource);
+  }
 
   /**
    * 生成重定向后的模块URL

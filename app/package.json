@@ -26,7 +26,7 @@
     "dist-linux": "ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ electron-builder --linux --config electron-builder-linux.yml --publish=never",
     "dist-linux-arm64": "ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ electron-builder --arm64 --linux --config electron-builder-linux-arm64.yml --publish=never",
     "make:installer": "node ../build.js",
-    "test": "vitest --browser=chrome",
+    "test": "vitest --run --browser=chrome",
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage",
     "longest": "node ./scripts/checker/findLongestFile.js",
