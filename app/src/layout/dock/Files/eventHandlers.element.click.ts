@@ -7,7 +7,7 @@ import { isNotCtrl, isOnlyMeta } from "../../../protyle/util/compatibility";
 import { hasTopClosestByTag } from "../../../protyle/util/hasClosest";
 import { setPanelFocus } from "../../utils/setPanelFocus";
 import { removeSiyuanMenu } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { isEventTargetHTMLElement, clearLastSelectedElement } from "./eventHandlers.guard";
+import { isStylableElement, clearLastSelectedElement, isHTMLLIElement } from "./eventHandlers.guard";
 import {
     handleIconClick,
     handleToggleClick,
@@ -173,13 +173,13 @@ function handleNormalClick(
  */
 function handleLiClick(
     event: MouseEvent,
-    target: HTMLElement,
+    target: Element,
     files: Files,
     app: App,
     notebookId: string
 ): { handled: boolean; needFocus: boolean } {
-    // 检查是否为 LI 元素
-    if (target.tagName !== "LI") {
+    // 使用类型守卫检查是否为 LI 元素
+    if (!isHTMLLIElement(target)) {
         return { handled: false, needFocus: true };
     }
 
@@ -222,11 +222,11 @@ function setFocusIfNeeded(files: Files): void {
  * element 的 click 事件处理函数
  */
 function onElementClick(event: MouseEvent, files: Files, app: App): void {
-    // 使用类型守卫获取事件目标
-    if (!isEventTargetHTMLElement(event.target)) {
+    // 使用类型守卫获取事件目标（支持 SVG 图标元素）
+    if (!isStylableElement(event.target)) {
         return;
     }
-    let target: HTMLElement | null = event.target;
+    let target: HTMLElement | SVGElement | null = event.target;
     const ulElement = hasTopClosestByTag(target, "UL");
     let needFocus = true;
 

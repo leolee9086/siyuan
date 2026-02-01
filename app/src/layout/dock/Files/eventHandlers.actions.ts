@@ -12,7 +12,7 @@ import {
     removeSiyuanMenu,
     setSiyuanStorageValue
 } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { isEventTargetHTMLElement } from "./eventHandlers.guard";
+import { isStylableElement } from "./eventHandlers.guard";
 import { initMoreMenu } from "./moreMenu";
 import type { Files } from "../Files";
 
@@ -165,11 +165,11 @@ function handleMoreClick(
  * @param files - Files 实例
  */
 function onActionsClick(event: MouseEvent, files: Files): void {
-    // 使用类型守卫获取事件目标
-    if (!isEventTargetHTMLElement(event.target)) {
+    // 使用类型守卫获取事件目标（支持 SVG 图标元素）
+    if (!isStylableElement(event.target)) {
         return;
     }
-    let target: HTMLElement | null = event.target;
+    let target: HTMLElement | SVGElement | null = event.target;
 
     while (target && !target.isEqualNode(files.actionsElement)) {
         const type = target.getAttribute("data-type");

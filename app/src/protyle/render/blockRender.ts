@@ -10,7 +10,7 @@ import { Constants } from "../../constants";
 import type { SearchContext, SemanticSearchResultItem } from "./blockRender.types";
 import { getSiyuanConfig, getSafeSiyuanStorage } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { isHTMLElement } from "./blockRender.guard";
+import { isStylableElement } from "../../util/DOM/element.guard";
 
 const getHeadingMode = (item: HTMLElement) => {
     const headingModeAttr = item.getAttribute("custom-heading-mode");
@@ -186,7 +186,7 @@ export const blockRender = (protyle: IProtyle, element: Element, top?: number) =
     }
     // @内联回调
     for (const itemElement of blockElements) {
-        if (!isHTMLElement(itemElement)) {
+        if (!isStylableElement(itemElement)) {
             continue;
         }
         const item = itemElement;
@@ -236,10 +236,14 @@ const renderBlocksAndImproveBreadcrumb = (item: HTMLElement, blocks: { block: IB
     }
     item.firstElementChild.insertAdjacentHTML("afterend", html);
     const firstEmbedElement = item.querySelector(".protyle-wysiwyg__embed");
-    if (!firstEmbedElement || !isHTMLElement(firstEmbedElement)) {
+    if (!firstEmbedElement || !isStylableElement(firstEmbedElement)) {
         return;
     }
-    improveBreadcrumbAppearance(firstEmbedElement);
+    // 类型守卫确保 firstEmbedElement 是 HTMLElement 或 SVGElement
+    // improveBreadcrumbAppearance 需要 HTMLElement，但嵌入块通常是 HTMLElement
+    if (firstEmbedElement instanceof HTMLElement) {
+        improveBreadcrumbAppearance(firstEmbedElement);
+    }
 };
 
 /** 计算嵌入块嵌套深度 */
@@ -268,6 +272,14 @@ const renderNestedEmbeds = (protyle: IProtyle, item: HTMLElement) => {
     }
 };
 
+/**
+ * 渲染嵌入块内容
+ *
+ * 作用：将查询到的块数据渲染到嵌入块容器中，包括处理错误提示、嵌套渲染等
+ * 意图：为嵌入块查询功能提供统一的渲染逻辑，支持面包屑、高亮、AV等各种块类型
+ * 调用时机：当嵌入块查询完成后，需要将结果渲染到DOM中时调用
+ * 问题/改进：需要处理深度嵌套可能导致的性能问题
+ */
 const renderEmbed = (blocks: {
     block: IBlock,
     blockPaths: IBreadcrumb[]
@@ -292,8 +304,9 @@ const renderEmbed = (blocks: {
     processRender(item);
     highlightRender(item);
     avRender(item, protyle);
+    // 当提供了滚动位置参数且编辑器内容元素存在时，恢复滚动位置
+    // 用于前进后退导航时的精确定位 https://ld246.com/article/1667652729995
     if (top && protyle.contentElement) {
-        // 前进后退定位 https://ld246.com/article/1667652729995
         protyle.contentElement.scrollTop = top;
     }
     renderNestedEmbeds(protyle, item);

@@ -17,6 +17,3 @@ export const isHTMLInputElement = (element: Element | null | undefined): element
     形式的按钮元素就会无法响应点击
  * 判断元素是否为 HTMLElement 或 SVGElement
  */
-export const isHTMLOrSVGElement = (element: unknown): element is HTMLElement | SVGElement => {
-    return element instanceof HTMLElement || element instanceof SVGElement;
-};

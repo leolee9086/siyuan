@@ -83,11 +83,11 @@ const getLiElement = (target: HTMLElement, x: number, y: number) => {
 
 export const onDragOver = (files: Files, event: DragEvent) => {
     if (getSiyuanConfig().readonly || event.dataTransfer?.types.includes(Constants.SIYUAN_DROP_TAB)) {
-return;
-}
+        return;
+    }
     if (!(event.target instanceof HTMLElement)) {
-return;
-}
+        return;
+    }
 
     const liElement = getLiElement(event.target, event.clientX, event.clientY);
     if (!liElement || !getSiyuanDragElement()) {
@@ -118,8 +118,8 @@ return;
 
     const notebookElement = hasClosestByAttribute(liElement, "data-sortmode", null);
     if (!notebookElement) {
-return;
-}
+        return;
+    }
 
     handleDragSort(liElement, event, sourceOnlyRoot, targetType, notebookElement.getAttribute("data-sortmode"));
 

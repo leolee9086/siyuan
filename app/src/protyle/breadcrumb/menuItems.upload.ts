@@ -14,12 +14,12 @@ import { ipcRenderer } from "electron";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig, getSiyuanMenus } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import type { 录音器上下文 } from "./breadcrumb.types";
-import { isInputElement } from "./breadcrumb.guard";
+import { isHTMLInputElement } from "./breadcrumb.guard";
 
 // ==================== 上传菜单项 ====================
 
 function 处理上传变更事件(protyle: IProtyle, event: Event): void {
-    if (!isInputElement(event.target)) {
+    if (!isHTMLInputElement(event.target)) {
         return;
     }
     const { files } = event.target;

@@ -4,7 +4,7 @@ import { hasClosestByTag } from "../../../protyle/util/hasClosest";
 import { isTouchDevice } from "../../../util/functions";
 import { getSelection } from "../../../util/DOM/range.global";
 import { setSiyuanDragElement } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { isHTMLOrSVGElement } from "../dock.guard";
+import { isStylableElement } from "../../../util/DOM/element.guard";
 import { Files } from "../Files";
 
 /** 创建拖拽时的预览元素，并收集选中元素的 id 列表 */
@@ -34,7 +34,7 @@ export const onDragStart = (files: Files, event: DragEvent) => {
         return;
     }
     const target = event.target;
-    if (!isHTMLOrSVGElement(target)) {
+    if (!isStylableElement(target)) {
         return;
     }
     getSelection().removeAllRanges();

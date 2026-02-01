@@ -43,7 +43,7 @@ import {
     handleReplaceHistoryBtn,
 } from "./handlers/handleSearchControlClick";
 import { handleListItemClick, handleListToggleClick } from "./handlers/handleListItemClick";
-import { isHTMLOrSVGElement } from "./search.guard";
+import { isStylableElement } from "../../../util/DOM/element.guard";
 import type {
     IClickHandlerUIElements,
     IClickHandlerState,
@@ -188,7 +188,7 @@ function createClickListener(
 ): (event: MouseEvent) => void {
     return (event: MouseEvent) => {
         const eventTarget = event.target;
-        if (!isHTMLOrSVGElement(eventTarget)) {
+        if (!isStylableElement(eventTarget)) {
             return;
         }
         let target: Element | null = eventTarget;

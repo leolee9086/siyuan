@@ -40,11 +40,11 @@ export function isValidTriggerRegistration(target: ITriggerRegistration | null |
 }
 
 /**
- * 判断是否为 HTMLElement
+ * 判断是否为可样式化元素（HTMLElement 或 SVGElement）
+ *
+ * 从统一守卫模块重导出，支持 SVG 元素
  */
-export function isHTMLElement(target: unknown): target is HTMLElement {
-    return target instanceof HTMLElement;
-}
+export { isStylableElement } from "../util/DOM/element.guard";
 
 /**
  * 判断触发器是否为刷子模式

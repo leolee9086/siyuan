@@ -52,7 +52,8 @@ export interface IGlobalContext {
     目标块: {
         id: string;
         type: string;
-        element: HTMLElement;
+        /** 目标元素，支持 HTMLElement 和 SVGElement */
+        element: HTMLElement | SVGElement;
     };
 
     /** 选区状态 */

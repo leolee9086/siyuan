@@ -1,24 +1,23 @@
 /**
  * 对话框模块类型守卫
+ *
+ * @deprecated 请从 '@/util/DOM/element.guard' 导入统一的类型守卫
  */
 
 /**
  * 判断是否为 HTMLElement
+ * @deprecated 请从 '@/util/DOM/element.guard' 导入
  */
-export function isHTMLElement(el: unknown): el is HTMLElement {
-    return el instanceof HTMLElement;
-}
+export { isHTMLElement } from "../util/DOM/element.guard";
 
 /**
  * 判断是否为 SVGElement
+ * @deprecated 请从 '@/util/DOM/element.guard' 导入
  */
-export function isSVGElement(el: unknown): el is SVGElement {
-    return el instanceof SVGElement;
-}
+export { isSVGElement } from "../util/DOM/element.guard";
 
 /**
  * 判断是否为 SVGUseElement
+ * @deprecated 请从 '@/util/DOM/element.guard' 导入
  */
-export function isSVGUseElement(el: unknown): el is SVGUseElement {
-    return el instanceof SVGUseElement;
-}
+export { isSVGUseElement } from "../util/DOM/element.guard";

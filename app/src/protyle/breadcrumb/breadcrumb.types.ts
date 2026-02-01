@@ -21,8 +21,8 @@ export interface 录音器上下文 {
 export interface 面包屑点击上下文 {
     /** 事件对象 */
     event: MouseEvent;
-    /** 当前点击的目标元素 */
-    target: HTMLElement;
+    /** 当前点击的目标元素（支持 HTML 和 SVG 元素） */
+    target: HTMLElement | SVGElement;
     /** Protyle 实例 */
     protyle: IProtyle;
     /** Breadcrumb 实例引用（用于调用实例方法） */

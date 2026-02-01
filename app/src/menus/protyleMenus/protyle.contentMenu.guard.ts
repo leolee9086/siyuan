@@ -1,17 +1,9 @@
 /**
- * 判断节点是否为 HTMLElement 类型
+ * @deprecated 请从 '@/util/DOM/element.guard' 导入 isHTMLElement
  */
-export const isHTMLElement = (node: Node | null | undefined): node is HTMLElement => {
-    return node != null && node.nodeType === Node.ELEMENT_NODE;
-};
+export { isHTMLElement } from "../../util/DOM/element.guard";
 
 /**
- * 判断元素是否为 HTMLTableCellElement（TD 或 TH）
+ * @deprecated 请从 '@/util/DOM/element.guard' 导入 isHTMLTableCellElement
  */
-export const isTableCellElement = (element: Element | false): element is HTMLTableCellElement => {
-    if (element === false) {
-        return false;
-    }
-    const tagName = element.tagName.toUpperCase();
-    return tagName === "TD" || tagName === "TH";
-};
+export { isHTMLTableCellElement } from "../../util/DOM/element.guard";

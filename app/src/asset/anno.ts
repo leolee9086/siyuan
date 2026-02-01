@@ -4,6 +4,7 @@ import { initRectAnnoTool } from "./anno.initRectAnnoTool";
 import { initResizeHandler } from "./anno.resize";
 import { handlePdfClick, handlePdfMouseUp } from "./anno/click";
 import { showToolbar } from "./anno.showToolbar";
+import { isHTMLElement } from "../util/DOM/element.guard";
 
 export * from "./anno.copy";
 export * from "./anno.getHighlight";
@@ -43,11 +44,6 @@ export const setRectElement = (element: RectElementType) => {
     rectElement = element;
 };
 
-/**
- * 判断元素是否为 HTMLElement
- * @同步豁免: 类型守卫 - 必须同步返回结果以支持编译时类型推断
- */
-const isHTMLElement = (el: unknown): el is HTMLElement => el instanceof HTMLElement;
 
 /**
  * 处理PDF容器的点击事件

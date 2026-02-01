@@ -6,11 +6,15 @@
 import type { Layout } from "./index";
 import type { Wnd } from "./Wnd";
 
+// 重导出统一的 DOM 元素守卫函数
+export { isStylableElement } from "../util/DOM/element.guard";
+
 /**
- * 类型守卫：检查元素是否为 HTMLElement
+ * 类型守卫：检查元素是否为可样式化元素（HTMLElement 或 SVGElement）
+ * @deprecated 请从 '../util/DOM/element.guard' 导入 isStylableElement 以支持 SVG 元素
  */
-export function isHTMLElement(element: Element): element is HTMLElement {
-    return element instanceof HTMLElement;
+export function isHTMLElement(element: Element): element is HTMLElement | SVGElement {
+    return element instanceof HTMLElement || element instanceof SVGElement;
 }
 
 /**

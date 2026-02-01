@@ -3,30 +3,17 @@
  * @module eventHandlers.guard
  */
 
-/**
- * 检查元素是否为 HTMLElement
- * @param element - 待检查的元素
- * @returns 是否为 HTMLElement
- */
-export function isHTMLElement(element: unknown): element is HTMLElement {
-    return element instanceof HTMLElement;
-}
+import { isHTMLElement, isStylableElement } from "../../../util/DOM/element.guard";
+
+// 重导出统一守卫
+export { isHTMLElement, isStylableElement };
 
 /**
- * 检查事件目标是否为 HTMLElement
- * @param target - 事件目标
- * @returns 是否为 HTMLElement
- */
-export function isEventTargetHTMLElement(target: EventTarget | null): target is HTMLElement {
-    return target instanceof HTMLElement;
-}
-
-/**
- * 检查元素是否为 LI 元素
+ * 类型守卫：检查元素是否为 HTMLLIElement
  * @param element - 待检查的元素
- * @returns 是否为 LI 元素
+ * @returns 是否为 HTMLLIElement
  */
-export function isLiElement(element: HTMLElement): boolean {
+export function isHTMLLIElement(element: Element): element is HTMLLIElement {
     return element.tagName === "LI";
 }
 

@@ -1,24 +1,35 @@
 /**
  * PDF注释模块的类型守卫函数
+ * @deprecated 请从 '@/util/DOM/element.guard' 导入统一的类型守卫
  */
 
+import {
+    isHTMLElement,
+    isHTMLDivElement
+} from "../util/DOM/element.guard";
+
 /**
- * 检查元素是否为 HTMLElement
+ * 检查元素是否为 HTMLElement（支持null/undefined输入）
  * @param element - 要检查的元素
  * @returns 如果是 HTMLElement 返回 true
+ * @deprecated 请从 '@/util/DOM/element.guard' 导入
  */
-export const isHTMLElement = (element: Element | null | undefined): element is HTMLElement => {
-    return element instanceof HTMLElement;
+export const isHTMLElementSafe = (element: Element | null | undefined): element is HTMLElement => {
+    return element != null && isHTMLElement(element);
 };
 
 /**
- * 检查元素是否为 HTMLDivElement
+ * 检查元素是否为 HTMLDivElement（支持null/undefined输入）
  * @param element - 要检查的元素
  * @returns 如果是 HTMLDivElement 返回 true
+ * @deprecated 请从 '@/util/DOM/element.guard' 导入
  */
-export const isHTMLDivElement = (element: Element | null | undefined): element is HTMLDivElement => {
-    return element instanceof HTMLDivElement;
+export const isHTMLDivElementSafe = (element: Element | null | undefined): element is HTMLDivElement => {
+    return element != null && isHTMLDivElement(element);
 };
+
+// 重导出统一守卫以保持兼容性
+export { isHTMLElement, isHTMLDivElement };
 
 /**
  * 安全地获取或创建具有特定类名的子元素

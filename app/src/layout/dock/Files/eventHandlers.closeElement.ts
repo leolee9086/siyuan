@@ -7,7 +7,7 @@ import { openEmojiPanel } from "../../../emoji";
 import { fetchPost } from "../../../util/fetch";
 import { setPanelFocus } from "../../utils/setPanelFocus";
 import { removeSiyuanMenu } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { isEventTargetHTMLElement } from "./eventHandlers.guard";
+import { isStylableElement } from "./eventHandlers.guard";
 import type { Files } from "../Files";
 
 /**
@@ -18,7 +18,7 @@ import type { Files } from "../Files";
  */
 function handleCloseElementIconClick(
     event: MouseEvent,
-    target: HTMLElement
+    target: Element
 ): boolean {
     // 检查是否点击了笔记本图标
     if (!target.classList.contains("b3-list-item__icon")) {
@@ -83,7 +83,7 @@ function expandCloseElement(files: Files, svgElement: SVGSVGElement): void {
  */
 function handleCloseElementToggleClick(
     event: MouseEvent,
-    target: HTMLElement,
+    target: Element,
     files: Files
 ): boolean {
     const type = target.getAttribute("data-type");
@@ -123,7 +123,7 @@ function handleCloseElementToggleClick(
  */
 function handleCloseElementOpenClick(
     event: MouseEvent,
-    target: HTMLElement
+    target: Element
 ): boolean {
     const type = target.getAttribute("data-type");
     // 检查是否点击了 open 按钮
@@ -152,11 +152,11 @@ function onCloseElementClick(event: MouseEvent, files: Files): void {
         setPanelFocus(parentElement);
     }
 
-    // 使用类型守卫获取事件目标
-    if (!isEventTargetHTMLElement(event.target)) {
+    // 使用类型守卫获取事件目标（支持 SVG 图标元素）
+    if (!isStylableElement(event.target)) {
         return;
     }
-    let target: HTMLElement | null = event.target;
+    let target: HTMLElement | SVGElement | null = event.target;
 
     while (target && !target.isEqualNode(files.closeElement)) {
         // 处理图标点击

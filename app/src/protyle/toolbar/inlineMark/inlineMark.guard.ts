@@ -1,15 +1,19 @@
 /**
  * inlineMark 模块的类型守卫
+ * @deprecated 请从 '../../util/DOM/element.guard' 导入统一的类型守卫
  */
 
-export const isHTMLElement = (node: Node): node is HTMLElement => {
-    return node.nodeType === Node.ELEMENT_NODE;
-};
+/**
+ * @deprecated 请从 '../../../util/DOM/element.guard' 导入 isHTMLElement
+ */
+export { isHTMLElement } from "../../../util/DOM/element.guard";
 
-export const isTextNode = (node: Node): node is Text => {
-    return node.nodeType === Node.TEXT_NODE;
-};
+/**
+ * @deprecated 请从 '../../../util/DOM/element.guard' 导入 isTextNode
+ */
+export { isTextNode } from "../../../util/DOM/element.guard";
 
-export const isChildNode = (node: Node | null): node is ChildNode => {
-    return !!node && typeof (node as unknown as { remove: () => void }).remove === "function";
-};
+/**
+ * @deprecated 请从 '../../../util/DOM/element.guard' 导入 isChildNode
+ */
+export { isChildNode } from "../../../util/DOM/element.guard";

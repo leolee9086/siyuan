@@ -1,5 +1,5 @@
 import { ITriggerRegistration, IGlobalContext } from "./TriggerRegistry.types";
-import { isHTMLElement } from "./TriggerRegistry.guard";
+import { isStylableElement } from "./TriggerRegistry.guard";
 import { 查找Protyle } from "./TriggerRegistry.protyle";
 
 /**
@@ -13,7 +13,7 @@ import { 查找Protyle } from "./TriggerRegistry.protyle";
 export function 创建应用处理器(registration: ITriggerRegistration, type: string): (e: MouseEvent) => void {
     return (e: MouseEvent) => {
         const target = e.target;
-        if (!isHTMLElement(target)) {
+        if (!isStylableElement(target)) {
             return;
         }
 

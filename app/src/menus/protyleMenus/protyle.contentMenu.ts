@@ -15,7 +15,7 @@ import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environme
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getSelection } from "../../util/DOM/range.global";
 import type { IContentMenuContext, IInlineMenuContext } from "./protyle.contentMenu.types";
-import { isHTMLElement, isTableCellElement } from "./protyle.contentMenu.guard";
+import { isHTMLElement, isHTMLTableCellElement } from "./protyle.contentMenu.guard";
 
 
 /**
@@ -291,7 +291,7 @@ const 添加表格菜单 = (detail: {
     const tdElement = hasClosestByTag(range.startContainer, "TD");
     const thElement = hasClosestByTag(range.startContainer, "TH");
     const cellElement = tdElement || thElement;
-    if (!isTableCellElement(cellElement)) {
+    if (!isHTMLTableCellElement(cellElement)) {
         return;
     }
     const tableMenus = tableMenu(protyle, nodeElement, cellElement, range);

@@ -256,10 +256,10 @@ export const handlePdfClick = async (event: MouseEvent | CustomEvent, element: H
     }
 
     const target = event.target;
-    // 类型守卫：确保事件目标是 HTMLElement
-    // 生效场景：理论上点击事件的 target 都是 Element，但 TypeScript 类型系统要求显式检查
-    // 非 HTMLElement 的情况极少发生（如点击 SVG 内部元素），此时直接忽略
-    if (!(target instanceof HTMLElement)) {
+    // 类型守卫：确保事件目标是可样式化元素（HTMLElement 或 SVGElement）
+    // 生效场景：理论上点击事件的 target 都是 Element，支持 HTML 和 SVG 元素的点击处理
+    // 使用统一的类型守卫以支持 SVG 元素交互
+    if (!(target instanceof HTMLElement || target instanceof SVGElement)) {
         return;
     }
 

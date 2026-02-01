@@ -6,7 +6,7 @@
 import { Constants } from "../../../constants";
 import { openFileById } from "../../../editor/utils.openFileById";
 import { getSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { isEventTargetHTMLElement } from "./eventHandlers.guard";
+import { isStylableElement } from "./eventHandlers.guard";
 import type { App } from "../../../index";
 import type { Files } from "../Files";
 
@@ -26,11 +26,11 @@ function onElementMousedown(event: MouseEvent, files: Files, app: App): void {
         return;
     }
 
-    // 使用类型守卫获取事件目标
-    if (!isEventTargetHTMLElement(event.target)) {
+    // 使用类型守卫获取事件目标（支持 SVG 图标元素）
+    if (!isStylableElement(event.target)) {
         return;
     }
-    let target: HTMLElement | null = event.target;
+    let target: HTMLElement | SVGElement | null = event.target;
 
     while (target && !target.isEqualNode(files.element)) {
         // 检查是否为 LI 元素且未在打开中

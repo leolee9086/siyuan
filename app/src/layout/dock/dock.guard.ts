@@ -8,6 +8,7 @@ import { Wnd } from "../Wnd";
 import type { Layout } from "../index";
 import { ModelConstructor, ModelFactory } from "./dock.types";
 import { ICustomList } from "./customBlockLists/CustomLists";
+import { isStylableElement, isHTMLElement } from "../../util/DOM/element.guard";
 
 const DOCK_TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGraph", "backlink", "forwardlink", "embedding_dock", "cronjob"];
 
@@ -139,27 +140,6 @@ export function isBlockTreeArray(data: unknown): data is IBlockTree[] {
     return typeof item.id === "string" || typeof item.name === "string" || typeof item.label === "string";
 }
 
-/**
- * 判断是否为 HTMLElement 或 SVGElement DOM 元素。
- * 
- * 作用：检查给定对象是否是标准的 HTML 元素或 SVG 元素实例。
- * 意图：在 DOM 操作中确保操作对象的类型安全，涵盖了常规元素和矢量图形元素。
- * 调用时机：在处理事件目标、根据坐标获取元素等通用的 DOM 操作场景中调用。
- */
-export function isHTMLOrSVGElement(element: unknown): element is HTMLElement | SVGElement {
-    return element instanceof HTMLElement || element instanceof SVGElement;
-}
-
-/**
- * 判断是否为 HTMLElement DOM 元素。
- * 
- * 作用：检查给定对象是否严格是 HTMLElement 实例（不包括 SVGElement）。
- * 意图：当只需要操作标准 HTML 元素（如获取 offsetWidth 等 SVG 不具备或表现不同的属性）时使用。
- * 调用时机：在布局计算、样式操作等特定于 HTML 元素的场景中调用。
- */
-export function isHTMLElement(element: unknown): element is HTMLElement {
-    return element instanceof HTMLElement;
-}
 
 /**
  * 判断是否为错误占位符数据。

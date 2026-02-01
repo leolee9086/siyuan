@@ -12,7 +12,7 @@ import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environme
 import { getSiyuanConfig, setSiyuanHideBreadcrumb } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { 显示面包屑菜单 } from "./showBreadcrumbMenu";
 import { 处理面包屑点击 } from "./breadcrumb.events";
-import { isHTMLElement } from "./breadcrumb.guard";
+import { isHTMLElement, isStylableElement } from "./breadcrumb.guard";
 import {
     查找焦点块元素,
     获取默认块元素,
@@ -125,10 +125,10 @@ function 创建点击处理器(
 ): (event: MouseEvent) => void {
     return (event) => {
         const target = event.target;
-        if (!isHTMLElement(target)) {
+        if (!isStylableElement(target)) {
             return;
         }
-        let currentElement: HTMLElement = target;
+        let currentElement: HTMLElement | SVGElement = target;
         while (currentElement && !currentElement.isEqualNode(element)) {
             const handled = 处理面包屑点击({
                 event,
@@ -143,7 +143,7 @@ function 创建点击处理器(
                 break;
             }
             const nextTarget = currentElement.parentElement;
-            if (!isHTMLElement(nextTarget)) {
+            if (!isStylableElement(nextTarget)) {
                 break;
             }
             currentElement = nextTarget;

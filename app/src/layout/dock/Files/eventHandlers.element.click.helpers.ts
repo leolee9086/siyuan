@@ -27,8 +27,8 @@ import type { Files } from "../Files";
  */
 function handleFileIconClick(
     event: MouseEvent,
-    target: HTMLElement,
-    parentElement: HTMLElement
+    target: Element,
+    parentElement: Element
 ): void {
     event.preventDefault();
     event.stopPropagation();
@@ -51,8 +51,8 @@ function handleFileIconClick(
  */
 function handleNotebookIconClick(
     event: MouseEvent,
-    target: HTMLElement,
-    grandParent: HTMLElement
+    target: Element,
+    grandParent: Element
 ): void {
     event.preventDefault();
     event.stopPropagation();
@@ -75,7 +75,7 @@ function handleNotebookIconClick(
  */
 function handleIconClick(
     event: MouseEvent,
-    target: HTMLElement
+    target: Element
 ): boolean {
     // 检查是否按下了 Ctrl 键
     if (!isNotCtrl(event)) {
@@ -126,7 +126,7 @@ function handleIconClick(
  */
 function handleToggleClick(
     event: MouseEvent,
-    target: HTMLElement,
+    target: Element,
     files: Files,
     notebookId: string
 ): boolean {
@@ -215,7 +215,7 @@ function handleWritableActions(
  */
 function handleActionClick(
     event: MouseEvent,
-    target: HTMLElement,
+    target: Element,
     app: App,
     notebookId: string,
     element: HTMLElement
