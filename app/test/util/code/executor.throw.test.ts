@@ -39,8 +39,8 @@ describe("SecureModuleCreator - throw策略测试", () => {
     const normalizedPath = result.moduleUrl.replace(/\\/g, "/");
     const secureCode = fs.readFileSync(normalizedPath, "utf8");
     
-    // 验证代码没有被修改（应该包含原始的lodash导入）
-    expect(secureCode).toContain("import { map } from 'lodash';");
+    // 验证代码被正确处理（lodash应该被重定向到esm.sh）
+    expect(secureCode).toContain("import { map } from 'https://esm.sh/lodash';");
     expect(secureCode).toContain("export function test(data)");
     
     result.cleanup();
@@ -67,9 +67,9 @@ describe("SecureModuleCreator - throw策略测试", () => {
     // 验证错误语句在开头
     expect(secureCode).toMatch(/^\/\/ Generated secure module\n\(\(\) => \{ throw new SecurityError\('Package\(s\) "react" are not allowed'\) \}\)\(\);\n/);
     
-    // 验证原始导入语句被保留
+    // 验证原始导入语句被保留（lodash被重定向到esm.sh）
     expect(secureCode).toContain("import { useState } from 'react';");
-    expect(secureCode).toContain("import { map } from 'lodash';");
+    expect(secureCode).toContain("import { map } from 'https://esm.sh/lodash';");
     
     result.cleanup();
   });
@@ -96,10 +96,10 @@ describe("SecureModuleCreator - throw策略测试", () => {
     // 验证错误语句在开头
     expect(secureCode).toMatch(/^\/\/ Generated secure module\n\(\(\) => \{ throw new SecurityError\('Package\(s\) "react, axios" are not allowed'\) \}\)\(\);\n/);
     
-    // 验证原始导入语句被保留
+    // 验证原始导入语句被保留（lodash被重定向到esm.sh）
     expect(secureCode).toContain("import { useState } from 'react';");
     expect(secureCode).toContain("import axios from 'axios';");
-    expect(secureCode).toContain("import { map } from 'lodash';");
+    expect(secureCode).toContain("import { map } from 'https://esm.sh/lodash';");
     
     result.cleanup();
   });
