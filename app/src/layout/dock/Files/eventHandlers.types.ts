@@ -1,0 +1,98 @@
+/**
+ * Files 组件类型定义
+ * @module eventHandlers.types
+ */
+
+import type { App } from "../../../index";
+import type { Files } from "../Files";
+
+// ============================================================================
+// 初始化相关类型
+// ============================================================================
+
+/**
+ * 笔记本HTML生成结果
+ */
+export interface NotebooksHtmlResult {
+    /** 打开的笔记本HTML */
+    openHtml: string;
+    /** 关闭的笔记本HTML */
+    closeHtml: string;
+    /** 关闭的笔记本数量 */
+    closeCounter: number;
+}
+
+/**
+ * selectItem 函数类型定义
+ */
+export type SelectItemFn = (
+    notebookId: string,
+    filePath: string,
+    data?: { files: IFile[]; box: string; path: string },
+    setStorage?: boolean,
+    isSetCurrent?: boolean
+) => Promise<HTMLElement | undefined>;
+
+// ============================================================================
+// 事件处理器相关类型
+// ============================================================================
+
+/**
+ * 事件处理器所需的上下文
+ * 包含 Files 实例和 App 实例的引用
+ */
+export interface FilesEventContext {
+    /** Files 组件实例 */
+    files: Files;
+    /** 应用实例 */
+    app: App;
+}
+
+/**
+ * 点击处理结果
+ * 用于指示点击事件是否被处理以及是否需要设置焦点
+ */
+export interface ClickHandleResult {
+    /** 事件是否已被处理 */
+    handled: boolean;
+    /** 是否需要设置面板焦点 */
+    needFocus: boolean;
+}
+
+/**
+ * Emoji 面板位置信息
+ */
+export interface EmojiPanelRect {
+    x: number;
+    y: number;
+    h: number;
+    w: number;
+}
+
+/**
+ * 文件打开选项
+ */
+export interface FileOpenOptions {
+    /** 应用实例 */
+    app: App;
+    /** 文档 ID */
+    id: string;
+    /** 打开位置 */
+    position?: "right" | "bottom";
+    /** 是否移除当前标签页 */
+    removeCurrentTab?: boolean;
+    /** 打开后的回调 */
+    afterOpen?: () => void;
+}
+
+/**
+ * 初始化面板元素引用结果
+ */
+export interface InitPanelResult {
+    /** 工具栏元素 */
+    actionsElement: HTMLElement;
+    /** 文件树容器元素 */
+    element: HTMLElement;
+    /** 关闭笔记本区域元素 */
+    closeElement: HTMLElement;
+}

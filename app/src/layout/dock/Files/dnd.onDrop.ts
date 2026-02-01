@@ -6,6 +6,7 @@ import { getSiyuanConfig, setSiyuanDragElement } from "../../../util/siyuanEnvir
 import { pathPosix } from "../../../util/pathName";
 import { showMessage } from "../../../dialog/message";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { onLsHTMLHandler } from "./onLsHTML";
 
 export const onDrop = async (files: Files, event: DragEvent) => {
     const newElement = files.element.querySelector(".dragover, .dragover__bottom, .dragover__top");
@@ -288,9 +289,10 @@ const onSortChanged = (files: Files, params: { toURL: string, oldScrollTop: numb
 };
 
 const onListDocs = (files: Files, oldScrollTop: number, response: IWebSocketData) => {
+    // 根目录且无文件时显示空内容提示
     if (response.data.path === "/" && response.data.files.length === 0) {
         showMessage(siyuanI18n.emptyContent);
         return;
     }
-    files.onLsHTML(response.data, oldScrollTop);
+    onLsHTMLHandler(files.element, response.data, oldScrollTop);
 };

@@ -185,6 +185,32 @@ export const getSiyuanMenus = () => {
 };
 
 /**
+ * 移除当前显示的菜单
+ * 封装 window.siyuan.menus.menu.remove() 调用
+ * @同步豁免: 需要绝对同步的DOM访问
+ */
+export const removeSiyuanMenu = () => {
+    window.siyuan?.menus?.menu?.remove();
+};
+
+/**
+ * 设置 window.siyuan.storage 中的指定键值
+ * @param key 存储键
+ * @param value 存储值
+ * @同步豁免: 需要绝对同步的DOM访问
+ */
+export const setSiyuanStorageValue = <K extends keyof typeof window.siyuan.storage>(
+    key: K,
+    value: typeof window.siyuan.storage[K]
+) => {
+    // 首次访问时 reqIds 可能未初始化
+    if (!window.siyuan?.storage) {
+        throw ("[setSiyuanStorageValue] window.siyuan.storage 不存在");
+    }
+    window.siyuan.storage[key] = value;
+};
+
+/**
  * 获取 window.siyuan.zIndex
  * @returns 当前的 zIndex 值
  */
