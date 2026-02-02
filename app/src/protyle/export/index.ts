@@ -637,7 +637,7 @@ ${getIconScript(servePath)}
             };
         };
         actionElement.querySelector('.b3-button--text').addEventListener('click', () => {
-            const {ipcRenderer}  = require("electron");
+            /// #if !BROWSER
             const isPaged = actionElement.querySelector("#paged").checked;
             if (!isPaged) {
                 const getPageSizeDimensions = () => {

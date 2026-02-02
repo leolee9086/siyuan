@@ -12,8 +12,8 @@
     "strict": true,
     "outDir": "./src/types/dist",
     "noImplicitAny": true,
-    "module": "Node16",
-    "moduleResolution": "node16",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "target": "ES2022",
     "typeRoots": [
       "./node_modules/@types"

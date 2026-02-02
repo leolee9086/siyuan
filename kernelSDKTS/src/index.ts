@@ -18,7 +18,7 @@
 
 // 导出客户端工厂和类型工具
 export { 创建客户端, createClient } from './client/factory';
-export type { 客户端配置, ClientOptions, Api定义 } from './client/types';
+export type { 客户端配置, ClientOptions, Api定义, ApiMethods, Api方法映射 } from './client/types';
 
 // 导出所有 API 定义
 export * from './apiDefs/index';
