@@ -66,6 +66,8 @@ import {
 
 /**
  * 合并所有 API 定义
+ *
+ * 注意：运行时使用 readonly Api定义[] 类型，类型推断通过 AllApiDefsType 联合类型实现
  */
 export const allApiDefs: readonly Api定义[] = [
     ...accountApiDefs,

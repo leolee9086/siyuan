@@ -687,6 +687,7 @@ ${getSnippetJS()}
         ipcRenderer.send(Constants.SIYUAN_EXPORT_NEWWINDOW, response.data.url);
     });
 };
+/// #endif
 
 const getExportPath = (option: IExportOptions, removeAssets?: boolean, mergeSubdocs?: boolean) => {
     fetchPost("/api/block/getBlockInfo", {

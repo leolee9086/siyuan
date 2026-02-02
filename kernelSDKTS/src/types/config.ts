@@ -431,6 +431,15 @@ export interface ISDKConfig {
      * 会追加到默认列表中
      */
     raceControlApis?: string[];
+
+    // ========== 响应处理配置 ==========
+
+    /**
+     * 默认响应处理方式
+     * 决定如何解析 HTTP 响应体
+     * @default 'json'
+     */
+    responseHandler?: 'json' | 'blob' | 'text' | 'arrayBuffer' | 'raw';
 }
 
 /** ISDKConfig 的中文别名 */

@@ -1,8 +1,8 @@
 import { Workspace } from "../../data/kernelAPI/defaultWorkspace";
-import { localKernel } from "../../ai/imports";
+import { kernelClient } from "../../data/kernelSDK";
 import { ITag, tagSchema, TagType, isValidTag } from "./assetTags.types";
 
-const localWorkerSpace = new Workspace(localKernel);
+const localWorkerSpace = new Workspace(kernelClient);
 
 export { ITag, tagSchema, TagType };
 

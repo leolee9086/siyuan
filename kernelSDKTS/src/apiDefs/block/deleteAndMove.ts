@@ -90,3 +90,5 @@ export const deleteAndMoveApiDefs = [
         lastVerified: '2025-12-28',
     },
 ] as const satisfies readonly Api定义[];
+
+export type DeleteAndMoveApiDefs = typeof deleteAndMoveApiDefs;

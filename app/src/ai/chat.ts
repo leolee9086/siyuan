@@ -2,7 +2,7 @@ import { Dialog } from "../dialog";
 import { isMobile } from "../util/functions";
 import { createVueComponentInDialog, VueComponentMountConfig } from "../util/vue/mount";
 import AiChatDialog from "../components/panels/aiChatDialog.vue";
-import { localKernel } from "./imports";
+import { kernelClient } from "../data/kernelSDK";
 import { fillContent } from "./actions.fillContent";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 // 创建聊天对话框Vue应用配置
@@ -14,7 +14,7 @@ const createChatDialogVueConfig = (protyle: IProtyle, element: Element, dialog: 
         eventHandlers: {
             handleCancel: dialog.destroy,
             handleConfirm: async (message: string) => {
-                const res = await localKernel.chatGPT({ msg: message });
+                const res = await kernelClient.chatGPT({ msg: message });
                 console.log(res, protyle, element);
                 let msg = message;
                 dialog.destroy();

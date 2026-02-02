@@ -19,7 +19,7 @@ export { default as AiEditDialog } from "../components/aiEditDialog.vue";
 
 // 数据存储相关导入
 export { saveCustomAIAction } from "../data/localStorage";
-export { localKernel } from "../data/kernelAPI/defaultClient";
+export { kernelClient } from "../data/kernelSDK";
 
 // 存储工具相关导入
 export { setStorageVal } from "../protyle/util/compatibility";

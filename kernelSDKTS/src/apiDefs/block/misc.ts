@@ -25,3 +25,5 @@ export const miscApiDefs = [
         lastVerified: '2025-12-28',
     },
 ] as const satisfies readonly Api定义[];
+
+export type MiscApiDefs = typeof miscApiDefs;

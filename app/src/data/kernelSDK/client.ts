@@ -80,8 +80,14 @@ function getBaseUrl(): string {
  *
  * 这个客户端实例包含了所有可用的 API 方法，
  * 并且已经配置了正确的 baseUrl。
+ *
+ * 注意：通过显式指定泛型参数 TResult=KernelClientType，
+ * 确保返回类型包含所有必选方法（非可选）。
  */
-export const kernelClient: KernelClientType = createClient(allApiDefs, {
+export const kernelClient = createClient<
+    typeof allApiDefs,
+    KernelClientType
+>(allApiDefs, {
     baseUrl: getBaseUrl(),
     // 可以根据需要添加其他配置
     // apiToken: '', // 如果需要认证，可以在这里设置

@@ -6,9 +6,9 @@ import {
     VueComponentMountConfig,
     createVueDialog,
     AiCustomDialog,
-    saveCustomAIAction,
-    localKernel
+    saveCustomAIAction
 } from "./imports";
+import { kernelClient } from "../data/kernelSDK";
 
 
 
@@ -44,7 +44,7 @@ const createCustomDialogVueConfig = (
              * 问题/改进：目前在请求发出后立即销毁对话框，如果请求耗时较长用户可能缺乏直观反馈（依赖 fillContent 的后续表现）
              */
             handleUse: async (customAction: string) => {
-                const res = await localKernel.chatGPTWithAction({
+                const res = await kernelClient.chatGPTWithAction({
                     ids,
                     action: customAction,
                 });

@@ -13,6 +13,8 @@ export interface 客户端配置 {
     apiToken?: string;
     /** 自定义 fetch 实现，用于测试或特殊环境 */
     customFetch?: typeof fetch;
+    /** 默认响应处理方式，决定如何解析 HTTP 响应体 @default 'json' */
+    responseHandler?: 'json' | 'blob' | 'text' | 'arrayBuffer' | 'raw';
 }
 
 /** 客户端配置的英文别名 */

@@ -1,4 +1,4 @@
-import { localKernel } from "./defaultClient";
+import { kernelClient } from "../kernelSDK";
 
 /**
  * 根据笔记ID查找该笔记关联的所有标签
@@ -14,12 +14,16 @@ import { localKernel } from "./defaultClient";
  */
 export async function findTagsByNoteID(id: string): Promise<string[]> {
     const sql = `select tag from blocks where id = "${id}" `;
-    const result = await localKernel.SQL({ stmt: sql });
-    const tags = result.data[0].tag.split(" ");
+    const result = await kernelClient.SQL({ stmt: sql });
+    const firstRow = result.data[0];
+    const tags = firstRow.tag.split(" ");
     const cleanedTags = [];
     for (let i = 0; i < tags.length; i++) {
-        const tagLabel = tags[i].replace(/^#|#$/g, "");
-        tagLabel && cleanedTags.push(tagLabel);
+        const tag = tags[i];
+        const tagLabel = tag.replace(/^#|#$/g, "");
+        if (tagLabel) {
+            cleanedTags.push(tagLabel);
+        }
     }
     return cleanedTags;
 }

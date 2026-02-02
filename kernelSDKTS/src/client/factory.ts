@@ -14,6 +14,7 @@ const 默认配置: Required<客户端配置> = {
     baseUrl: 'http://127.0.0.1:6806',
     apiToken: '',
     customFetch: globalThis.fetch,
+    responseHandler: 'json',
 };
 
 /**
@@ -39,10 +40,13 @@ const 默认配置: Required<客户端配置> = {
  * });
  * ```
  */
-export function 创建客户端<TDefs extends readonly Api定义[]>(
+export function 创建客户端<
+    TDefs extends readonly Api定义[],
+    TResult = Api方法映射<TDefs>
+>(
     apiDefs: TDefs,
     options: 客户端配置 = {}
-): Api方法映射<TDefs> {
+): TResult {
     const config = { ...默认配置, ...options };
 
     const client = {} as Record<string, (data?: unknown) => Promise<unknown>>;
@@ -85,12 +89,26 @@ export function 创建客户端<TDefs extends readonly Api定义[]>(
                 );
             }
 
-            return response.json() as Promise<z.infer<typeof def.zodResponseSchema>>;
+            // 根据配置决定如何处理响应（配置优先级高于 API 定义）
+            const handler = config.responseHandler || 'json';
+            switch (handler) {
+                case 'blob':
+                    return response.blob();
+                case 'text':
+                    return response.text();
+                case 'arrayBuffer':
+                    return response.arrayBuffer();
+                case 'raw':
+                    return response;
+                case 'json':
+                default:
+                    return response.json() as Promise<z.infer<typeof def.zodResponseSchema>>;
+            }
         };
     }
 
-    // 类型断言：返回类型由 Api方法映射 保证
-    return client as Api方法映射<TDefs>;
+    // 类型断言：返回类型由 TResult 保证
+    return client as unknown as TResult;
 }
 
 /** 创建客户端的英文别名 */

@@ -78,6 +78,66 @@ export {
 } from './block/index';
 export { avApiDefs } from './av';
 
+// ========== 导出 API 定义类型 ==========
+// 这些类型保留了字面量类型信息，用于 ApiMethods 类型推断
+export type { AccountApiDefs } from './account';
+export type { AiApiDefs } from './ai';
+export type { ArchiveApiDefs } from './archive';
+export type { AttrApiDefs } from './attr';
+export type { BookmarkApiDefs } from './bookmark';
+export type { BroadcastApiDefs } from './broadcast';
+export type { ClipboardApiDefs } from './clipboard';
+export type { CloudApiDefs } from './cloud';
+export type { ConvertApiDefs } from './convert';
+export type { ExtensionApiDefs } from './extension';
+export type { FormatApiDefs } from './format';
+export type { IconApiDefs } from './icon';
+export type { ImportApiDefs } from './import';
+export type { InboxApiDefs } from './inbox';
+export type { LuteApiDefs } from './lute';
+export type { MiscApiDefs } from './misc';
+export type { NetworkApiDefs } from './network';
+export type { NotificationApiDefs } from './notification';
+export type { OutlineApiDefs } from './outline';
+export type { PetalApiDefs } from './petal';
+export type { QueryApiDefs } from './query';
+export type { SnippetApiDefs } from './snippet';
+export type { SqliteApiDefs } from './sqlite';
+export type { TagApiDefs } from './tag';
+export type { TemplateApiDefs } from './template';
+export type { UiApiDefs } from './ui';
+export type { TransactionsApiDefs } from './transactions';
+export type { GraphApiDefs } from './graph';
+export type { RefApiDefs } from './ref';
+export type { FileApiDefs } from './file';
+export type { NotebookApiDefs } from './notebook';
+export type { HistoryApiDefs } from './history';
+export type { StorageApiDefs } from './storage';
+export type { SyncApiDefs } from './sync';
+export type { SearchApiDefs } from './search';
+export type { VectorApiDefs } from './vector';
+export type { EmbeddingApiDefs } from './embedding';
+export type { SystemApiDefs } from './system';
+export type { RiffApiDefs } from './riff';
+export type { RepoApiDefs } from './repo';
+export type { AssetApiDefs } from './asset';
+export type { BazaarApiDefs } from './bazaar';
+export type { SettingApiDefs } from './setting';
+export type { ExportApiDefs } from './export';
+export type { FiletreeApiDefs } from './filetree';
+export type { BlockApiDefs } from './block/index';
+export type { AvApiDefs } from './av';
+// block 子模块类型
+export type {
+    InsertApiDefs as BlockInsertApiDefs,
+    UpdateApiDefs as BlockUpdateApiDefs,
+    DeleteAndMoveApiDefs as BlockDeleteAndMoveApiDefs,
+    QueryApiDefs as BlockQueryApiDefs,
+    RefApiDefs as BlockRefApiDefs,
+    HeadingApiDefs as BlockHeadingApiDefs,
+    MiscApiDefs as BlockMiscApiDefs,
+} from './block/index';
+
 // ========== 统一 API 定义集合 ==========
 // 用于核对脚本等需要遍历所有 API 的场景
 import { accountApiDefs } from './account';
