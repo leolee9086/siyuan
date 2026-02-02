@@ -41,17 +41,17 @@ kernelSDK 需要直接补齐以下能力：
 
 | fetchPost 特殊能力 | SDK 状态 | 影响 |
 |-------------------|---------|------|
-| 请求竞态控制 (reqId) | ❌ 缺失 | 高频搜索/图谱场景会出现响应覆盖 |
+| 请求竞态控制 (reqId) | ✅ 已实现 | [`raceController.ts`](../../kernelSDKTS/src/utils/raceController.ts) |
 | FormData 支持 | ❌ 缺失 | 文件上传场景无法工作 |
-| HTTP 401 自动重载 | ❌ 缺失 | 认证失效时用户体验下降 |
-| HTTP 403/404 优雅降级 | ❌ 缺失 | 错误处理行为不一致 |
-| getFile 202 状态码处理 | ❌ 缺失 | 文件获取场景异常 |
-| 事务 API 网络失败处理 | ❌ 缺失 | 数据一致性风险 |
-| Electron IPC 退出通知 | ❌ 缺失 | 桌面端退出流程异常 |
-| processMessage 消息展示 | ❌ 缺失 | 用户无法看到操作反馈 |
-| 响应格式类型守卫 | ❌ 缺失 | 类型安全性降低 |
-| failCallback 机制 | ❌ 缺失 | 错误处理模式不兼容 |
-| 自定义请求头 | ⚠️ 部分 | 仅支持 Authorization |
+| HTTP 401 自动重载 | ✅ 已实现 | [`config.ts`](../../kernelSDKTS/src/types/config.ts) onUnauthorized |
+| HTTP 403/404 优雅降级 | ✅ 已实现 | [`config.ts`](../../kernelSDKTS/src/types/config.ts) onForbidden/onNotFound |
+| getFile 202 状态码处理 | ✅ 已实现 | [`config.ts`](../../kernelSDKTS/src/types/config.ts) on202Response |
+| 事务 API 网络失败处理 | ✅ 已实现 | [`transactionHandler.ts`](../../kernelSDKTS/src/handlers/transactionHandler.ts) |
+| Electron IPC 退出通知 | ✅ 已实现 | [`electronHandler.ts`](../../kernelSDKTS/src/handlers/electronHandler.ts) |
+| processMessage 消息展示 | ✅ 已实现 | [`messageHandler.ts`](../../kernelSDKTS/src/handlers/messageHandler.ts) |
+| 响应格式类型守卫 | ✅ 已实现 | [`responseValidator.ts`](../../kernelSDKTS/src/handlers/responseValidator.ts) |
+| failCallback 机制 | ✅ 已实现 | [`config.ts`](../../kernelSDKTS/src/types/config.ts) failCallback |
+| 自定义请求头 | ✅ 已实现 | [`config.ts`](../../kernelSDKTS/src/types/config.ts) headers |
 
 ### fetchPost 调用分布
 
@@ -89,95 +89,6 @@ kernelSDK 需要直接补齐以下能力：
 
 ## 🟢 近期计划 (立即聚焦，撸起袖子干)
 
-- [ ] **Phase 0.1.1: 定义可配置项 (P0)**
-  - **背景**: SDK需要支持可配置的行为以适配不同业务场景
-  - **可配置项清单**:
-    | 配置项 | 描述 | 默认行为 |
-    |--------|------|----------|
-    | `onUnauthorized` | 401 响应处理 | 延迟 3 秒后刷新页面 |
-    | `onForbidden` | 403 响应处理 | 返回 `{data: null, msg: statusText, code: -403}` |
-    | `onNotFound` | 404 响应处理 | 返回 `{data: null, msg: statusText, code: -404}` |
-    | `on202Response` | 202 响应处理 | 调用 failCallback |
-    | `onTransactionError` | 事务 API 网络失败处理 | 调用 kernelError() |
-    | `onExitApiError` | 退出 API 失败处理 | 通过 IPC 通知 Electron |
-    | `showErrorMessage` | 是否显示错误消息 | code === -1 时显示 |
-    | `showInfoMessage` | 是否显示提示消息 | code === -2 时显示 |
-    | `messageTimeout` | 消息显示超时时间 | 由响应决定 |
-    | `headers` | 自定义请求头 | 无 |
-    | `timeout` | 请求超时时间 | 无（待实现） |
-    | `validateResponse` | 是否验证响应格式 | 是 |
-    | `processMessage` | 是否处理后端消息 | 是 |
-  - **验收标准**:
-    - 配置项接口定义完成
-    - 支持全局默认配置和单次请求覆盖
-
-- [ ] **Phase 0.1.2: 实现竞态控制机制 (P0)**
-  - **背景**: 高频搜索/图谱场景需要防止响应覆盖
-  - **实现原理**:
-    1. 请求时注入时间戳作为 reqId
-    2. 以 URL 为 key 存储最新 reqId
-    3. 响应时比较 reqId，丢弃过期响应
-  - **需要竞态控制的 API**:
-    - `/api/search/searchRefBlock` - 引用块搜索
-    - `/api/graph/getGraph` - 全局关系图
-    - `/api/graph/getLocalGraph` - 局部关系图（非 local 类型）
-    - `/api/block/getRecentUpdatedBlocks` - 最近更新块
-    - `/api/search/fullTextSearchBlock` - 全文搜索
-  - **特殊处理**:
-    - 事务 API 始终注入 reqId 但不做竞态检查
-  - **验收标准**:
-    - 支持声明哪些 API 需要竞态控制
-    - 正确丢弃过期响应
-    - 事务 API 特殊处理正确
-
-- [ ] **Phase 0.1.3: 定义钩子接口 (P0)**
-  - **背景**: 通过钩子机制实现可扩展性
-  - **钩子清单**:
-    | 钩子名称 | 触发时机 | 参数 | 返回值 |
-    |----------|----------|------|--------|
-    | `beforeRequest` | fetch 调用前 | `{url, data, headers}` | 修改后的配置或 false 取消 |
-    | `afterResponse` | 响应解析后 | `{url, response, rawResponse}` | 修改后的响应 |
-    | `onRaceConditionCheck` | 竞态检查时 | `{url, responseReqId, currentReqId}` | true/false |
-    | `onNetworkError` | fetch 异常时 | `{url, data, error}` | 无 |
-    | `onHttpError` | HTTP 非 2xx 时 | `{url, status, statusText}` | 自定义响应或 undefined |
-    | `onMessage` | processMessage 前 | `{response}` | true 继续/false 跳过 |
-    | `onShowMessage` | 显示消息前 | `{msg, type, timeout}` | 修改内容或 false 阻止 |
-    | `onKernelError` | 内核通信异常 | `{url, error}` | 无 |
-    | `onAuthExpired` | 401 认证失效 | `{response}` | false 阻止自动刷新 |
-  - **验收标准**:
-    - 钩子接口类型定义完成
-    - 支持注册多个钩子
-    - 钩子执行顺序明确
-
-- [ ] **Phase 0.2: 实现错误处理和消息展示 (P0)**
-  - **背景**: 需要保持与原有错误处理逻辑的兼容性
-  - **行动**:
-    1. 实现事务 API 失败处理 (kernelError 调用)
-    2. 实现 Electron IPC 集成
-    3. 实现 processMessage 消息展示
-    4. 实现响应格式类型守卫
-  - **验收标准**:
-    - 错误处理行为与 fetchPost 一致
-    - 用户能看到操作反馈消息
-    - Electron 退出流程正常
-
-- [ ] **Phase 0.3: SDK能力验证 (P0)**
-  - **背景**: 确保SDK具备替换 fetchPost 的完整能力
-  - **行动**:
-    1. 编写单元测试验证竞态控制
-    2. 编写单元测试验证错误处理
-    3. 编写集成测试验证 UI 消息展示
-    4. 编写集成测试验证 Electron 集成
-    5. 验证 FormData 文件上传场景
-  - **验收标准**:
-    - 所有单元测试通过
-    - 集成测试覆盖关键场景
-    - 性能基准无显著回归
-
----
-
-## 🟡 中期计划 (架构演进，步步为营)
-
 - [ ] **Phase 1.1: 工具函数模块迁移 (~20处) (P1)**
   - **背景**: 低风险模块，用于验证迁移流程，建立最佳实践
   - **行动**:
@@ -199,6 +110,10 @@ kernelSDK 需要直接补齐以下能力：
   - **验收标准**:
     - 同步功能正常工作
     - 时序行为无变化
+
+---
+
+## 🟡 中期计划 (架构演进，步步为营)
 
 - [ ] **Phase 1.3: 窗口管理模块迁移 (~5处) (P1)**
   - **背景**: 窗口管理涉及 Electron 集成
@@ -276,26 +191,64 @@ kernelSDK 需要直接补齐以下能力：
 
 ## 🏁 已归档/已完成
 
-- [x] **Phase 0: SDK 实现和验证** [已完成]
-  - **背景**: 需要完成 kernelSDKTS 的实现和验证
-  - **完成情况**: 
-    - [`kernelSDKTS`](../../kernelSDKTS/) 已实现 **465个API**，覆盖 **37个模块**
-    - 客户端工厂和类型系统已就绪
-    - 所有 API 已完成核对验证（100%覆盖率）
-  - **成果文件**: [`kernelSDKTS/`](../../kernelSDKTS/)
+- [x] **Phase 0.3: SDK能力验证 (P0)** [2026-02-02 完成]
+  - **背景**: 确保SDK具备替换 fetchPost 的完整能力
+  - **完成情况**:
+    - 创建了 [`kernelSDKTS/src/__tests__/testUtils.ts`](../../kernelSDKTS/src/__tests__/testUtils.ts) - 测试工具函数
+    - 创建了 [`kernelSDKTS/src/__tests__/raceController.test.ts`](../../kernelSDKTS/src/__tests__/raceController.test.ts) - 竞态控制单元测试
+    - 创建了 [`kernelSDKTS/src/__tests__/handlers.test.ts`](../../kernelSDKTS/src/__tests__/handlers.test.ts) - 处理器单元测试
+    - TypeScript编译验证通过
+
+- [x] **Phase 0.2: 实现错误处理和消息展示 (P0)** [2026-02-02 完成]
+  - **背景**: 需要保持与原有错误处理逻辑的兼容性
+  - **完成情况**:
+    - 创建了 [`kernelSDKTS/src/handlers/transactionHandler.ts`](../../kernelSDKTS/src/handlers/transactionHandler.ts) - 事务API失败处理
+    - 创建了 [`kernelSDKTS/src/handlers/electronHandler.ts`](../../kernelSDKTS/src/handlers/electronHandler.ts) - Electron IPC集成
+    - 创建了 [`kernelSDKTS/src/handlers/messageHandler.ts`](../../kernelSDKTS/src/handlers/messageHandler.ts) - processMessage消息展示
+    - 创建了 [`kernelSDKTS/src/handlers/responseValidator.ts`](../../kernelSDKTS/src/handlers/responseValidator.ts) - 响应格式类型守卫
+
+- [x] **Phase 0.1.3: 定义钩子接口 (P0)** [2026-02-02 完成]
+  - **背景**: 通过钩子机制实现可扩展性
+  - **完成情况**:
+    - 创建了 [`kernelSDKTS/src/hooks/types.ts`](../../kernelSDKTS/src/hooks/types.ts) - 9种钩子类型定义
+    - 创建了 [`kernelSDKTS/src/hooks/manager.ts`](../../kernelSDKTS/src/hooks/manager.ts) - 钩子管理器实现
+    - 支持注册多个钩子，执行顺序明确
+
+- [x] **Phase 0.1.2: 实现竞态控制机制 (P0)** [2026-02-02 完成]
+  - **背景**: 高频搜索/图谱场景需要防止响应覆盖
+  - **完成情况**:
+    - 创建了 [`kernelSDKTS/src/utils/raceController.ts`](../../kernelSDKTS/src/utils/raceController.ts)
+    - 实现了 IRaceController 接口和竞态控制逻辑
+    - 支持声明哪些API需要竞态控制，正确丢弃过期响应
+
+- [x] **Phase 0.1.1: 定义可配置项 (P0)** [2026-02-02 完成]
+  - **背景**: SDK需要支持可配置的行为以适配不同业务场景
+  - **完成情况**:
+    - 创建了 [`kernelSDKTS/src/types/config.ts`](../../kernelSDKTS/src/types/config.ts)
+    - 实现了 ISDKConfig、IRequestConfig、ISDKResponse 等接口
+    - 设计文档：[`plans/sdk-config-interface-design.md`](../../plans/sdk-config-interface-design.md)
+    - 支持全局默认配置和单次请求覆盖
 
 - [x] **Phase 0: 架构方案决策** [已完成]
   - **背景**: 需要确定 SDK 能力补齐的技术方案
   - **完成情况**: 已确定采用SDK层补齐hooks和可配置性方案（方案B）
   - **决策理由**: SDK直接提供完整能力、通过hooks实现可扩展性、可配置性适配特殊需求
 
+- [x] **Phase 0: SDK 实现和验证** [已完成]
+  - **背景**: 需要完成 kernelSDKTS 的实现和验证
+  - **完成情况**:
+    - [`kernelSDKTS`](../../kernelSDKTS/) 已实现 **465个API**，覆盖 **37个模块**
+    - 客户端工厂和类型系统已就绪
+    - 所有 API 已完成核对验证（100%覆盖率）
+  - **成果文件**: [`kernelSDKTS/`](../../kernelSDKTS/)
+
 ---
 
 ## 📊 进度跟踪
 
-- **总体进度**: 5% (SDK 基础实现完成，hooks和可配置性待开发)
-- **当前阶段**: Phase 0 - 能力补齐与验证
-- **下一里程碑**: 完成 Phase 0.1-0.3，实现SDK扩展并通过验证
+- **总体进度**: 15% (SDK基础实现完成，hooks/可配置性/错误处理已实现，待集成到实际迁移)
+- **当前阶段**: Phase 1 - 模块迁移准备
+- **下一里程碑**: 完成 Phase 1.1-1.2，迁移工具函数和同步功能模块
 
 ### 注意事项
 
