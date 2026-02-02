@@ -13,4 +13,8 @@ export type {
     InferResponse,
     Api方法映射,
     ApiMethods,
+    同步Api方法映射,
+    SyncApiMethods,
+    完整客户端,
+    FullClient,
 } from './types';

@@ -5,7 +5,8 @@
         "module": "ESNext",
         "moduleResolution": "bundler",
         "lib": [
-            "ES2022"
+            "ES2022",
+            "DOM"
         ],
         // 输出配置
         "outDir": "./dist",

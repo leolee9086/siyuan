@@ -20,3 +20,18 @@ export {
     defaultRaceController,
     默认竞态控制器,
 } from './raceController';
+
+// 同步请求
+export {
+    // 类型
+    type SyncFetchOptions,
+    type 同步请求配置选项,
+
+    // 错误类
+    SyncFetchError,
+    同步请求错误,
+
+    // 核心函数
+    syncFetch,
+    同步请求,
+} from './syncFetch';

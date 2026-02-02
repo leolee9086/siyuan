@@ -7,6 +7,7 @@
 
 import type {
     ApiMethods,
+    SyncApiMethods,
     // 导入所有 API 定义类型
     AccountApiDefs,
     AiApiDefs,
@@ -133,5 +134,10 @@ export type AllApiDefsType = readonly [
  * 可以用于类型标注和 IDE 智能提示。
  *
  * 所有方法都是必选的（非可选），调用时无需进行 undefined 检查。
+ *
+ * 包含 $sync 属性用于同步调用 API 方法。
  */
-export type KernelClientType = ApiMethods<AllApiDefsType>;
+export type KernelClientType = ApiMethods<AllApiDefsType> & {
+    /** 同步方法访问器 - 通过 .$sync.方法名 进行同步调用 */
+    $sync: SyncApiMethods<AllApiDefsType>;
+};
