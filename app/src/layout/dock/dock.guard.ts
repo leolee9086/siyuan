@@ -9,6 +9,7 @@ import type { Layout } from "../index";
 import { ModelConstructor, ModelFactory } from "./dock.types";
 import { ICustomList } from "./customBlockLists/CustomLists";
 import { isStylableElement, isHTMLElement } from "../../util/DOM/element.guard";
+export { isStylableElement, isHTMLElement };
 
 const DOCK_TYPES = ["file", "outline", "inbox", "bookmark", "tag", "graph", "globalGraph", "backlink", "forwardlink", "embedding_dock", "cronjob"];
 
