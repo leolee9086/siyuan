@@ -18,7 +18,7 @@ import { requireIfCommentPlugin } from "./0_lints/require-if-comment.mjs";
 import { requireTimeoutCommentPlugin } from "./0_lints/require-timeout-comment.mjs";
 import { requireAsyncExportPlugin } from "./0_lints/require-async-export.mjs";
 import { noTrivialWrapperPlugin } from "./0_lints/no-trivial-wrapper.mjs";
-import { FULL_FIX_REMINDER } from "./0_lints/shared-constants.mjs";
+import { FULL_FIX_REMINDER, 单文件检查提示 } from "./0_lints/shared-constants.mjs";
 
 // Defining local constant for backward compatibility and internal usage
 const 全量修复提示 = FULL_FIX_REMINDER;
@@ -76,14 +76,14 @@ const COMMON_RESTRICTED_SYNTAX = [
             "原因 1: forEach 无法等待异步操作。",
             "原因 2: forEach 无法提前中断。",
             "替代方案: for...of / .map() / .filter()"
-        ].join("\n") + 全量修复提示,
+        ].join("\n") + 全量修复提示 + 单文件检查提示,
     },
     {
         selector: "SwitchStatement",
         message: [
             "❌ 禁止使用 switch 语句。",
             "替代方案: Object Literal / Map / Strategy Pattern / Polymorphism"
-        ].join("\n") + 全量修复提示,
+        ].join("\n") + 全量修复提示 + 单文件检查提示,
     },
     // 禁止类的私有方法 (TypeScript private 修饰符)
     {
@@ -92,7 +92,7 @@ const COMMON_RESTRICTED_SYNTAX = [
             "❌ 禁止类的私有方法。",
             "原因: 类应该只作为状态和公开方法的容器,私有方法没有可测试切面。",
             "替代方案: 将私有逻辑提取为模块级辅助函数。"
-        ].join("\n") + 全量修复提示,
+        ].join("\n") + 全量修复提示 + 单文件检查提示,
     },
     // 禁止类的私有方法 (ES2022 # 前缀)
     {
@@ -101,7 +101,7 @@ const COMMON_RESTRICTED_SYNTAX = [
             "❌ 禁止类的私有方法 (# 前缀)。",
             "原因: 类应该只作为状态和公开方法的容器,私有方法没有可测试切面。",
             "替代方案: 将私有逻辑提取为模块级辅助函数。"
-        ].join("\n") + 全量修复提示,
+        ].join("\n") + 全量修复提示 + 单文件检查提示,
     },
     // 禁止类的静态方法
     {
@@ -110,16 +110,16 @@ const COMMON_RESTRICTED_SYNTAX = [
             "❌ 禁止类的静态方法。",
             "原因: 静态方法不依赖实例状态，应该作为独立的模块级函数存在。",
             "替代方案: 将静态方法提取为模块级函数并导出。"
-        ].join("\n") + 全量修复提示,
+        ].join("\n") + 全量修复提示 + 单文件检查提示,
     },
     // 禁止单纯的别名定义 (const A = B) logic moved to no-alias-usage plugin
     {
         selector: "FunctionDeclaration ThisExpression",
-        message: "❌ 禁止在独立函数中使用 this。请使用类方法或将 context 作为参数传递。" + 全量修复提示,
+        message: "❌ 禁止在独立函数中使用 this。请使用类方法或将 context 作为参数传递。" + 全量修复提示 + 单文件检查提示,
     },
     {
         selector: "FunctionExpression:not(MethodDefinition > FunctionExpression) ThisExpression",
-        message: "❌ 禁止在非类方法(如: 对象字面量方法/独立函数表达式)中使用 this。请使用类方法或将 context 作为参数传递。" + 全量修复提示,
+        message: "❌ 禁止在非类方法(如: 对象字面量方法/独立函数表达式)中使用 this。请使用类方法或将 context 作为参数传递。" + 全量修复提示 + 单文件检查提示,
     },
 ];
 
@@ -127,26 +127,26 @@ const COMMON_RESTRICTED_SYNTAX = [
 const TYPE_ASSERTION_RESTRICTIONS = [
     {
         selector: "TSAsExpression:not([typeAnnotation.type='TSTypeReference'][typeAnnotation.typeName.name='const']), TSTypeAssertion",
-        message: "❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。" + 全量修复提示,
+        message: "❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。" + 全量修复提示+ 单文件检查提示,
     },
     {
         selector: "TSTypePredicate",
-        message: "❌ 架构约束：禁止在常规文件使用 'is' 关键字。类型守卫逻辑必须移至 *.guard.ts 文件中。" + 全量修复提示,
+        message: "❌ 架构约束：禁止在常规文件使用 'is' 关键字。类型守卫逻辑必须移至 *.guard.ts 文件中。" + 全量修复提示 + 单文件检查提示,
     },
 ];
 
 const TYPE_DEFINITION_RESTRICTIONS = [
     {
         selector: "TSTypeAliasDeclaration",
-        message: "架构约束：禁止在业务/UI文件定义 Type。请移至 *.types.ts。" + 全量修复提示,
+        message: "架构约束：禁止在业务/UI文件定义 Type。请移至 *.types.ts。" + 全量修复提示+ 单文件检查提示,
     },
     {
         selector: "TSInterfaceDeclaration",
-        message: "架构约束：禁止在业务/UI文件定义 Interface。请移至 *.types.ts。" + 全量修复提示,
+        message: "架构约束：禁止在业务/UI文件定义 Interface。请移至 *.types.ts。" + 全量修复提示+ 单文件检查提示,
     },
     {
         selector: "TSEnumDeclaration",
-        message: "架构约束：禁止在业务/UI文件定义 Enum。请移至 *.types.ts。" + 全量修复提示,
+        message: "架构约束：禁止在业务/UI文件定义 Enum。请移至 *.types.ts。" + 全量修复提示 + 单文件检查提示,
     },
 ];
 
@@ -318,15 +318,15 @@ export default [{
             "error",
             {
                 name: "window",
-                message: "❌ 禁止直接访问 window。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。" + 全量修复提示,
+                message: "❌ 禁止直接访问 window。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。" + 全量修复提示 + 单文件检查提示,
             },
             {
                 name: "global",
-                message: "❌ 禁止直接访问 global。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。" + 全量修复提示,
+                message: "❌ 禁止直接访问 global。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。" + 全量修复提示 + 单文件检查提示,
             },
             {
                 name: "globalThis",
-                message: "❌ 禁止直接访问 globalThis。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。" + 全量修复提示,
+                message: "❌ 禁止直接访问 globalThis。请在 *.environment.ts 或 *.global.ts 文件中封装后使用。" + 全量修复提示 + 单文件检查提示,
             },
         ],
     },

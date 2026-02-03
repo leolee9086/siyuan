@@ -5,7 +5,7 @@
  * 以便添加自定义的错误信息
  */
 
-import { 全量修复提示 } from "./shared-constants.mjs";
+import { 全量修复提示, 单文件检查提示 } from "./shared-constants.mjs";
 
 /**
  * 计算实际代码行数（排除空行和注释）
@@ -129,7 +129,7 @@ export const 代码量限制插件 = {
 
                             context.report({
                                 loc,
-                                message: `❌ 文件超过最大行数限制。当前 ${lines.length} 行，最大允许 ${max} 行。请拆分为更小的模块。${全量修复提示}`
+                                message: `❌ 文件超过最大行数限制。当前 ${lines.length} 行，最大允许 ${max} 行。请拆分为更小的模块。${全量修复提示+ 单文件检查提示}`
                             });
                         }
                     }

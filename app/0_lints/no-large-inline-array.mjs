@@ -5,7 +5,7 @@
  * 这类数组应该提取到模块顶层作为常量定义。
  */
 
-import { 全量修复提示 } from "./shared-constants.mjs";
+import { 全量修复提示, 单文件检查提示 } from "./shared-constants.mjs";
 
 /**
  * 豁免注释标记
@@ -87,7 +87,7 @@ function 生成错误信息(elementCount, maxElements) {
         `当前 ${elementCount} 个元素，最大允许 ${maxElements} 个。`,
         `请将数组提取到模块顶层作为常量定义。`,
         `💡 豁免方式: 在语句前添加 // ${豁免标记} 注释`
-    ].join("\n") + 全量修复提示;
+    ].join("\n") + 全量修复提示+ 单文件检查提示;
 }
 
 /**

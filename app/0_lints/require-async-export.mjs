@@ -5,7 +5,7 @@
  * 豁免注释格式: @同步豁免: 原因
  */
 
-import { 全量修复提示 } from "./shared-constants.mjs";
+import { 全量修复提示, 单文件检查提示 } from "./shared-constants.mjs";
 
 
 const ALLOWED_REASONS = [
@@ -67,9 +67,9 @@ export const requireAsyncExportPlugin = {
                 },
                 messages: {
                     missingAsync: "❌ 导出函数必须是异步函数 (async)。为了架构的灵活性以及遵循在一切可能的情况下优先更普适的实现原则.\n当且仅当有绝对充足而且无法避免的原因时才能够使用同步函数，此时必须添加详尽的豁免注释,不要滥用豁免注释,你往往可以使用signal或者事件机制来代替同步逻辑,记注,同步实际上是异步的特殊情况,仅仅在最必须的地方使用,说明为何此处必须使用同步逻辑: '/** @同步豁免: 原因 */'。\n" +
-                        "允许的原因: " + ALLOWED_REASONS.join(", ") + "。" + 全量修复提示,
+                        "允许的原因: " + ALLOWED_REASONS.join(", ") + "。" + 全量修复提示+ 单文件检查提示,
                     invalidReason: "❌ 无效的同步豁免原因: '{{reason}}'。\n" +
-                        "允许的原因: " + ALLOWED_REASONS.join(", ") + "。" + 全量修复提示
+                        "允许的原因: " + ALLOWED_REASONS.join(", ") + "。" + 全量修复提示+ 单文件检查提示
                 }
             },
             create(context) {
