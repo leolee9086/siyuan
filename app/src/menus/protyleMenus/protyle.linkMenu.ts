@@ -14,7 +14,7 @@ import { hasClosestBlock, hasTopClosestByClassName } from "../../protyle/util/ha
 import { updateTransaction } from "../../protyle/wysiwyg/transaction";
 import { getSiyuanGlobalMenusMenu } from "../../util/siyuanEnvironments/getMenu.environment";
 
-import type { LinkMenuContext } from "./protyle.linkMenu.types";
+import type { LinkMenuContext } from "./protyle.types";
 import { 添加编辑模式菜单项 } from "./protyle.linkMenu.utils";
 import {
     添加复制菜单项,

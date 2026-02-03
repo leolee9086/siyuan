@@ -15,7 +15,7 @@ import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environme
 import { openMenu } from "../commonMenuItem.openMenu";
 import { MenuItem } from "../Menu.Item";
 import { exportAsset } from "../util";
-import type { LinkMenuContext } from "./protyle.linkMenu.types";
+import type { LinkMenuContext } from "./protyle.types";
 
 // ────────────────────────────────────────────────────────────
 // 菜单项创建函数

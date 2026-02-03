@@ -2,7 +2,7 @@
  * protyle.asset 模块类型守卫
  */
 
-import { assetItem } from "./protyle.asset.types";
+import { assetItem } from "./protyle.types";
 
 /**
  * 检查一个值是否符合 assetItem 结构

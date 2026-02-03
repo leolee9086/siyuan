@@ -11,7 +11,7 @@ import { fetchPost } from "../../ai/imports";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";
 import { getWindowOuterWidth } from "../../util/siyuanEnvironments/getWindowGeometry.environment";
-import { assetItem } from "./protyle.asset.types";
+import { assetItem } from "./protyle.types";
 import { isAssetItemArray } from "./protyle.asset.guard";
 
 /** 生成资源列表 HTML */

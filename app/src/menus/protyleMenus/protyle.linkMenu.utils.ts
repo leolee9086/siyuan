@@ -11,10 +11,10 @@ import { isMobile } from "../../util/functions";
 import { getSiyuanGlobalMenusMenu } from "../../util/siyuanEnvironments/getMenu.environment";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { MenuItem } from "../Menu.Item";
-import type { LinkMenuContext } from "./protyle.linkMenu.types";
+import type { LinkMenuContext } from "./protyle.types";
 
 // 重导出类型
-export type { LinkMenuContext } from "./protyle.linkMenu.types";
+export type { LinkMenuContext } from "./protyle.types";
 
 // ────────────────────────────────────────────────────────────
 // HTML 模板生成

@@ -14,7 +14,7 @@ import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.envi
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getSelection } from "../../util/DOM/range.global";
-import type { IContentMenuContext, IInlineMenuContext } from "./protyle.contentMenu.types";
+import type { IContentMenuContext, IInlineMenuContext } from "./protyle.types";
 import { isHTMLElement, isHTMLTableCellElement } from "./protyle.contentMenu.guard";
 
 
