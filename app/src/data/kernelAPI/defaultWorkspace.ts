@@ -2,8 +2,9 @@ import mimes from "./mimeDb";
 import * as path from "path";
 import type { KernelClientType } from "../kernelSDK";
 import { kernelClient } from "../kernelSDK";
-import { createClient, fileApiDefs, type SyncRawResponse } from "@leolee9086/siyuan-kernel-sdk";
+import { createClient, fileApiDefs } from "@leolee9086/siyuan-kernel-sdk";
 import type { LsFile } from "./defaultWorkspace.types";
+import { isTextMime } from "./mimeUtils";
 
 // 重新导出类型供外部使用
 export type { LsFile } from "./defaultWorkspace.types";
@@ -19,38 +20,26 @@ const rawFileClient = createClient(fileApiDefs, {
   responseHandler: "raw",
 });
 
-function isText(mime: string | null): boolean {
-  if (mime && mime.startsWith("text")) {
-    return true;
-  }
-  if (mime == "application/json") {
-    return true;
-  }
-  if (mime == "application/x-javascript") {
-    return true;
-  } else {
-return false;
-}
-}
-
 export class Workspace {
   private kernel: KernelClientType;
   private mimetype: { [key: string]: string } = {};
 
   constructor(kernel: KernelClientType) {
     this.kernel = kernel;
-    Object.getOwnPropertyNames(mimes).forEach((type) => {
+    // 使用 for...of 替代 forEach 以提高可读性和支持提前中断
+    for (const type of Object.getOwnPropertyNames(mimes)) {
       const item = mimes[type];
-      if(!item){
+      if (!item) {
         throw new Error("mimeDb数据错误");
       }
-      const extensions =item["extensions"];
+      const extensions = item["extensions"];
       if (extensions) {
-        extensions.forEach((extension: string) => {
+        // 使用 for...of 替代 forEach
+        for (const extension of extensions) {
           this.mimetype[extension] = type;
-        });
+        }
       }
-    });
+    }
   }
   /**
    * 读取文件内容
@@ -87,7 +76,7 @@ export class Workspace {
     const mime = res.headers.get("Content-Type");
     
     // 文本文件且未强制二进制模式时返回文本
-    if (isText(mime) && !bin) {
+    if (isTextMime(mime) && !bin) {
       return await res.text();
     }
     
@@ -149,7 +138,7 @@ export class Workspace {
     const mime = res.headers.get("Content-Type") ?? null;
 
     // 文本文件直接返回文本内容
-    if (isText(mime)) {
+    if (isTextMime(mime)) {
       return res.text();
     }
     
@@ -163,79 +152,144 @@ export class Workspace {
     return buffer;
   }
 
+  /**
+   * 写入文件内容
+   *
+   * 作用：将字符串、Blob、File 或 Uint8Array 内容写入指定路径的文件
+   * 意图：封装文件写入逻辑，自动处理不同类型内容的转换和 MIME 类型推断
+   * 调用时机：当需要保存数据到工作空间文件系统时调用
+   *
+   * @param path - 目标文件路径（相对于工作空间根目录）
+   * @param content - 要写入的内容，支持 string、Blob、File 或 Uint8Array
+   * @param flag - 特殊标志，为 true 时执行简化写入（仅处理 String 对象）
+   * @returns Promise<void>
+   *
+   * 注意：当 flag 为 true 且 content 不是 String 对象时，操作会被静默忽略
+   */
   async writeFile(path: string, content: string | Blob | File | Uint8Array, flag?: boolean) {
-    if (!flag) {
-      const extension = path.split(".").pop() || "";
-      let blob: Blob;
-      
-      if (content instanceof Uint8Array) {
-        // 对于Uint8Array，创建一个新的ArrayBuffer来避免SharedArrayBuffer问题
-        const arrayBuffer = new ArrayBuffer(content.length);
-        const view = new Uint8Array(arrayBuffer);
-        view.set(content);
-        blob = new Blob([arrayBuffer], {
-          type: this.mimetype[extension] || "text/plain",
-        });
-      } else {
-        // 对于其他类型，直接使用
-        blob = new Blob([content], {
-          type: this.mimetype[extension] || "text/plain",
-        });
-      }
-      
+    // flag 为 true 时仅处理 String 对象（简化写入），否则直接返回
+    if (flag) {
+      return content instanceof String
+        ? await this.writeFileDirectly(path, content + "")
+        : undefined;
+    }
+
+    // flag 为 false 或未指定时，执行标准写入流程
+    const extension = path.split(".").pop() || "";
+    let blob: Blob;
+
+    // 根据内容类型创建对应的 Blob
+    // 对于 Uint8Array，创建新的 ArrayBuffer 避免 SharedArrayBuffer 问题
+    if (content instanceof Uint8Array) {
+      const arrayBuffer = new ArrayBuffer(content.length);
+      const view = new Uint8Array(arrayBuffer);
+      view.set(content);
+      blob = new Blob([arrayBuffer], {
+        type: this.mimetype[extension] || "text/plain",
+      });
       const file = new File([blob], path.split("/").pop() || "", {
         lastModified: Date.now(),
       });
       return await this.writeFileDirectly(path, file);
-    } else {
-      if(content instanceof String){
-          return await this.writeFileDirectly(path, content+"");
-      }
     }
+
+    // 对于其他类型（string、Blob、File），直接使用内容创建 Blob
+    blob = new Blob([content], {
+      type: this.mimetype[extension] || "text/plain",
+    });
+    const file = new File([blob], path.split("/").pop() || "", {
+      lastModified: Date.now(),
+    });
+    return await this.writeFileDirectly(path, file);
   }
 
-  async writeFileDirectly(path: string, file: File | string){
+  /**
+   * 直接通过 FormData 上传文件
+   *
+   * 作用：使用 kernel API 的 putFile 方法直接上传文件
+   * 意图：作为 writeFile 的底层实现，绕过内容转换直接上传已准备好的文件数据
+   * 调用时机：当文件内容已经准备好（File 对象或字符串）需要直接上传时调用
+   *
+   * @param path - 目标文件路径
+   * @param file - File 对象或字符串内容
+   * @returns API 响应结果
+   */
+  async writeFileDirectly(path: string, file: File | string) {
     const data = new FormData();
     data.append("path", path);
     data.append("file", file);
     data.append("isDir", "false");
     data.append("modTime", Date.now().toString());
     const res = await this.kernel.putFile(data);
-    return  res;
+    return res;
   }
 
+  /**
+   * 读取目录内容
+   *
+   * 作用：获取指定目录下的文件和子目录列表
+   * 意图：封装目录读取操作，返回标准化的文件信息数组
+   * 调用时机：需要浏览目录内容或检查文件是否存在时调用
+   *
+   * @param path - 目录路径（相对于工作空间根目录）
+   * @returns 目录项数组，包含文件名、大小、修改时间等信息
+   */
   async readDir(path: string): Promise<LsFile[]> {
     const result = await this.kernel.readDir({ path });
     return result.data;
   }
 
+  /**
+   * 检查文件或目录是否存在
+   *
+   * 作用：判断指定路径的文件或目录是否存在于工作空间中
+   * 意图：提供便捷的存在性检查，同时返回匹配的文件信息以便后续操作
+   * 调用时机：在执行写操作前检查文件是否存在，或在需要获取文件元数据时使用
+   *
+   * @param name - 文件或目录路径
+   * @returns 如果存在返回文件信息对象，否则返回 undefined
+   */
   async exists(name: string): Promise<LsFile | undefined> {
     try {
       const parentDir = path.dirname(name);
-      if (parentDir !== "" && parentDir !== ".") {
-        const files = await this.readDir(parentDir);
-        const result = files.find((file) => {
-          return path.join(parentDir, file.name) == name || path.join(parentDir, file.name) + "/" == name;
-        });
-        return result || undefined;
-      } else if (parentDir === ".") {
+
+      // 处理根目录下的文件（父目录为 "." 表示当前目录，对应根目录）
+      if (parentDir === ".") {
         const files = await this.readDir("/");
-        const result = files.find((file) => {
-          return file.name === name;
-        });
+        const result = files.find((file) => file.name === name);
         return result || undefined;
-      } else {
+      }
+
+      // 处理无效路径（dirname 返回空字符串表示无效路径）
+      if (parentDir === "") {
         console.warn(`无效的路径: ${name}`);
         return undefined;
       }
+
+      // 处理子目录中的文件
+      const files = await this.readDir(parentDir);
+      const result = files.find((file) => {
+        return path.join(parentDir, file.name) === name ||
+               path.join(parentDir, file.name) + "/" === name;
+      });
+      return result || undefined;
     } catch (e) {
       console.warn(`工作空间内容读取错误: ${e}`);
       return undefined;
     }
   }
 
+  /**
+   * 创建目录
+   *
+   * 作用：在工作空间中创建指定路径的目录
+   * 意图：封装目录创建操作，通过 putFile API 发送目录创建请求
+   * 调用时机：需要在文件系统中创建新目录时调用
+   *
+   * @param path - 要创建的目录路径
+   * @returns API 响应结果
+   */
   async mkdir(path: string) {
-
     const data = new FormData();
     data.append("path", path);
     data.append("file", "");
@@ -246,25 +300,55 @@ export class Workspace {
     return await res.data;
   }
 
+  /**
+   * 删除文件或目录
+   *
+   * 作用：删除工作空间中指定路径的文件或目录
+   * 意图：提供文件/目录删除功能，使用 kernel API 执行删除操作
+   * 调用时机：需要清理不再需要的文件或目录时调用
+   *
+   * @param path - 要删除的文件或目录路径
+   */
   async removeFile(path: string): Promise<void> {
     await this.kernel.removeFile({ path: path });
   }
 
+  /**
+   * 复制文件
+   *
+   * 作用：将源路径的文件内容复制到目标路径
+   * 意图：通过读取后写入的方式实现文件复制
+   * 调用时机：需要复制文件到新位置时调用
+   *
+   * @param path1 - 源文件路径
+   * @param path2 - 目标文件路径
+   */
   async copyFile(path1: string, path2: string): Promise<void> {
     const content = await this.readFile(path1);
-    if (content) {
-      await this.writeFile(path2, content);
+    if (!content) {
+      return;
     }
+    await this.writeFile(path2, content);
   }
 
+  /**
+   * 初始化文件
+   *
+   * 作用：如果文件不存在，则创建该文件并可选地写入初始内容
+   * 意图：用于确保配置文件或默认文件存在，避免重复创建
+   * 调用时机：应用启动或模块初始化时，确保必要的文件存在
+   *
+   * @param path - 要初始化的文件路径
+   * @param data - 可选的初始内容，默认为空字符串
+   */
   async initFile(path: string, data?: string): Promise<void> {
-    if (!(await this.exists(path))) {
-      if (data === undefined) {
-        await this.writeFile(path, "");
-      } else {
-        await this.writeFile(path, data);
-      }
+    // 检查文件是否已存在，存在则跳过初始化
+    const fileExists = await this.exists(path);
+    if (fileExists) {
+      return;
     }
+    // 文件不存在，写入初始内容
+    await this.writeFile(path, data ?? "");
   }
 }
-export const localWorkerSpace =new Workspace(kernelClient);
+export const localWorkerSpace = new Workspace(kernelClient);

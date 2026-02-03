@@ -65,9 +65,6 @@ export async function 提取调色板(path: string, colorCount = 8): Promise<调
     return result.data?.palettes ?? [];
 }
 
-/** extractPalette 的英文别名 */
-export const extractPalette = 提取调色板;
-
 /**
  * 批量提取素材调色板
  *
@@ -108,9 +105,6 @@ export async function 批量提取调色板(
     };
 }
 
-/** batchExtractPalettes 的英文别名 */
-export const batchExtractPalettes = 批量提取调色板;
-
 /**
  * 获取素材元数据
  *
@@ -132,9 +126,6 @@ export async function 获取素材元数据(path: string): Promise<素材元数�
 
     return result.data;
 }
-
-/** getAssetMeta 的英文别名 */
-export const getAssetMeta = 获取素材元数据;
 
 /**
  * 设置素材元数据
@@ -164,9 +155,6 @@ export async function 设置素材元数据(params: 设置素材元数据参数)
 
     return result.data;
 }
-
-/** setAssetMeta 的英文别名 */
-export const setAssetMeta = 设置素材元数据;
 
 /**
  * 搜索素材元数据 (高级搜索)
@@ -198,15 +186,13 @@ export async function 搜索素材元数据(params: 搜索素材元数据参数)
     return result.data;
 }
 
-/** searchAssetsAdvanced 的英文别名 */
-export const searchAssetsAdvanced = 搜索素材元数据;
-
 // ============================================================
 // 工具函数
 // ============================================================
 
 /**
  * 将 RGB 颜色转换为十六进制字符串
+ * @同步豁免: 性能考虑 - 纯内存计算函数，无 I/O 操作，异步化会增加不必要的开销
  *
  * @param color RGB 颜色数组 [R, G, B]
  * @returns 十六进制颜色字符串，如 "#FF8040"
@@ -215,35 +201,18 @@ export function rgb转十六进制(color: [number, number, number]): string {
     return `#${color.map(c => c.toString(16).padStart(2, "0")).join("")}`.toUpperCase();
 }
 
-/** rgbToHex 的英文别名 */
-export const rgbToHex = rgb转十六进制;
-
-/**
- * 将调色板数组转换为十六进制颜色数组
- *
- * @param palettes 调色板数组
- * @returns 十六进制颜色字符串数组
- */
-export function 调色板转十六进制数组(palettes: 调色板[]): string[] {
-    return palettes.map(p => rgb转十六进制(p.color));
-}
-
-/** palettesToHexArray 的英文别名 */
-export const palettesToHexArray = 调色板转十六进制数组;
-
 /**
  * 获取调色板中占比最高的主色调
+ * @同步豁免: 性能考虑 - 纯内存计算函数，无 I/O 操作，异步化会增加不必要的开销
  *
  * @param palettes 调色板数组
  * @returns 占比最高的颜色条目，如果数组为空则返回 undefined
  */
 export function 获取主色调(palettes: 调色板[]): 调色板 | undefined {
-    if (palettes.length === 0) {
+    const [first, ...rest] = palettes;
+    if (!first) {
         return undefined;
     }
-    const initialMax = palettes[0];
-    return palettes.reduce((max, p) => (p.ratio > max.ratio ? p : max), initialMax);
+    // 使用解构获取第一个元素，TypeScript 可正确推断类型
+    return rest.reduce((max, p) => (p.ratio > max.ratio ? p : max), first);
 }
-
-/** getDominantColor 的英文别名 */
-export const getDominantColor = 获取主色调;

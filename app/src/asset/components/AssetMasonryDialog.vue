@@ -51,7 +51,7 @@ import { ref, computed, onMounted, watch } from "vue";
 import VirtualMasonryGrid from "../../components/masonry/components/VirtualMasonryGrid.vue";
 import AssetCard from "./AssetCard.vue";
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";
-import { searchAssetsAdvanced, type SearchAssetMetaParams } from "../../data/kernelAPI/sforgeAssetMeta";
+import { 搜索素材元数据, type SearchAssetMetaParams } from "../../data/kernelAPI/sforgeAssetMeta";
 import { pathPosix } from "../../util/pathName";
 
 interface AssetItem {
