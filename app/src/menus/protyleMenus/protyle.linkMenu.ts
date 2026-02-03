@@ -54,6 +54,7 @@ const 更新标题属性 = (ctx: LinkMenuContext): void => {
     if (!标题输入框) {
         return;
     }
+    // 当标题输入框有值时，设置 data-title 属性；否则移除该属性
     if (标题输入框.value) {
         const title = Lute.EscapeHTMLStr(标题输入框.value.replace(/\n|\r\n|\r|\u2028|\u2029/g, ""));
         ctx.linkElement.setAttribute("data-title", title);
@@ -72,6 +73,7 @@ const 更新链接地址 = (ctx: LinkMenuContext): void => {
         return;
     }
     const dataType = ctx.linkElement.getAttribute("data-type") ?? "";
+    // 当元素类型包含 "a"（链接类型）时，设置 data-href 属性；否则移除该属性
     if (dataType.indexOf("a") > -1) {
         const href = Lute.EscapeHTMLStr(链接地址输入框.value.replace(/\n|\r\n|\r|\u2028|\u2029/g, ""));
         ctx.linkElement.setAttribute("data-href", href);
@@ -91,6 +93,7 @@ const 处理空锚文本 = (ctx: LinkMenuContext): void => {
     if (!锚文本输入框 || !链接地址输入框 || !标题输入框) {
         return;
     }
+    // 当锚文本为空但链接地址或标题有值时，使用 "*" 作为占位符防止链接丢失
     if (!锚文本输入框.value && (链接地址输入框.value || 标题输入框.value)) {
         ctx.linkElement.textContent = "*";
     }
@@ -99,10 +102,12 @@ const 处理空锚文本 = (ctx: LinkMenuContext): void => {
 /** 恢复焦点 */
 const 恢复焦点 = (ctx: LinkMenuContext): void => {
     const currentRange = getSelection()?.rangeCount === 0 ? undefined : getSelection()?.getRangeAt(0);
-    if (currentRange && !ctx.protyle.element.contains(currentRange.startContainer)) {
-        ctx.protyle.toolbar.range.selectNodeContents(ctx.linkElement);
-        ctx.protyle.toolbar.range.collapse(false);
-        focusByRange(ctx.protyle.toolbar.range);
+    const toolbarRange = ctx.protyle.toolbar?.range;
+    // 当存在选区但选区不在编辑器内且工具栏 range 存在时，将焦点恢复到链接元素
+    if (currentRange && !ctx.protyle.element.contains(currentRange.startContainer) && toolbarRange) {
+        toolbarRange.selectNodeContents(ctx.linkElement);
+        toolbarRange.collapse(false);
+        focusByRange(toolbarRange);
     }
 };
 
@@ -117,6 +122,7 @@ const 处理空链接删除 = (ctx: LinkMenuContext): boolean => {
     if (!锚文本输入框 || !链接地址输入框 || !标题输入框) {
         return false;
     }
+    // 当锚文本、链接地址、标题都为空时，删除整个链接元素
     if (!锚文本输入框.value && !链接地址输入框.value && !标题输入框.value) {
         ctx.linkElement.remove();
         return true;
@@ -158,7 +164,7 @@ const 设置初始焦点 = (ctx: LinkMenuContext, focusText: boolean): void => {
     }
 
     const shouldFocusAnchor = focusText ||
-        ctx.protyle.lute.GetLinkDest(ctx.linkAddress ?? "") ||
+        ctx.protyle.lute?.GetLinkDest(ctx.linkAddress ?? "") ||
         ctx.linkAddress?.startsWith("assets/");
 
     if (shouldFocusAnchor) {
@@ -185,6 +191,9 @@ const 设置初始焦点 = (ctx: LinkMenuContext, focusText: boolean): void => {
  * @param protyle - Protyle 编辑器实例
  * @param linkElement - 链接元素
  * @param focusText - 是否默认聚焦到锚文本输入框
+ *
+ * @同步豁免: UI构建 - 此函数用于同步构建右键菜单UI，需要在用户右键点击时立即响应并显示菜单。
+ * 菜单项的添加、DOM操作和菜单显示必须同步完成以确保用户交互的即时性。
  */
 export const linkMenu = (protyle: IProtyle, linkElement: HTMLElement, focusText = false) => {
     getSiyuanGlobalMenusMenu().remove();

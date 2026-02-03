@@ -21,8 +21,10 @@ const processWndForTabPosition = async (item: Wnd): Promise<void> => {
     if (!dragElement) {
         return;
     }
-    // 先设置默认值
+    // 先设置默认值：在 Electron 环境下清除拖拽区域标记
     const dragStyle = dragElement.style;
+    // Electron 环境下才有 WebkitAppRegion 属性，用于控制窗口拖拽区域
+    // 此处先重置为空，后续根据窗口位置条件决定是否启用拖拽
     if (isElectronStyle(dragStyle)) {
         dragStyle.WebkitAppRegion = "";
     }
@@ -44,8 +46,9 @@ const processWndForTabPosition = async (item: Wnd): Promise<void> => {
     const isFullScreen = isDarwin && await ipcRenderer.invoke(Constants.SIYUAN_GET, {
         cmd: "isFullScreen",
     });
+    // macOS 非全屏模式下，窗口贴近左上角时需要为系统红绿灯按钮预留空间
     if (isDarwin && rect.top <= 0 && rect.left <= 0 && !isFullScreen) {
-        // 用 marginLeft 左侧底部无线条
+        // 用 paddingLeft 为左侧红绿灯按钮预留空间
         item.headersElement.style.paddingLeft = "var(--b3-toolbar-left-mac)";
     }
 
@@ -56,14 +59,32 @@ const processWndForTabPosition = async (item: Wnd): Promise<void> => {
     // 再根据条件覆盖
     const isWindowRightEdge = rect.top <= 0 && rect.right + 8 >= getWindowInnerWidth();
     const needsDarwinLeftPadding = isDarwin && rect.top <= 0 && rect.left <= 0 && !isFullScreen;
+    // 窗口贴近右边缘时，为系统窗口控制按钮预留空间（macOS 1个按钮宽度，其他系统 4个按钮宽度）
     if (isWindowRightEdge) {
         headersLastElement.style.paddingRight = (42 * (isDarwin ? 1 : 4)) + "px";
     }
+    // macOS 特殊情况：窗口贴近左上角但不贴近右边缘时，仍需为右侧预留少量空间保持视觉平衡
     if (!isWindowRightEdge && needsDarwinLeftPadding) {
         headersLastElement.style.paddingRight = "42px";
     }
 };
 
+/**
+ * 设置独立窗口中标签页头部的位置和样式
+ *
+ * @description
+ * 作用：根据窗口位置动态调整标签页头部的拖拽区域和内边距，
+ *       确保不与系统窗口控制按钮（关闭/最小化/最大化）重叠
+ *
+ * 意图：Electron 独立窗口需要自定义标题栏，当标签页头部贴近窗口边缘时，
+ *       需要为系统按钮预留空间，同时设置可拖拽区域以支持窗口拖动
+ *
+ * 调用时机：
+ * - 窗口初始化时（onGetConfig）
+ * - 布局变化时（layout/util.ts）
+ * - 标签页切换/关闭/移动时（Wnd.ts）
+ * - 窗口大小改变时
+ */
 export const setTabPosition = async () => {
     if (!isWindow()) {
         return;
@@ -112,6 +133,23 @@ const processTabForHash = (tab: Tab): string => {
     return "";
 };
 
+/**
+ * 将当前所有标签页的模型信息同步到 URL hash
+ *
+ * @description
+ * 作用：遍历所有标签页，收集 Editor 和 Asset 类型的标识信息，
+ *       拼接成 hash 字符串并设置到 window.location.hash
+ *
+ * 意图：用于独立窗口状态持久化，使窗口刷新后能恢复之前打开的文档
+ *
+ * 调用时机：
+ * - 标签页切换时（Wnd.ts showHeading）
+ * - 标签页关闭时（Wnd.ts removeTab）
+ * - 编辑器初始化完成时（editor/index.ts）
+ *
+ * @同步豁免: 遗留代码 - 此函数被多处同步调用，改为异步需要修改所有调用点，
+ *           且函数内部仅进行 DOM 属性读取和 hash 设置，无异步操作需求
+ */
 export const setModelsHash = () => {
     if (!isWindow()) {
         return;
