@@ -46,15 +46,17 @@ const 执行复制注释 = async (参数: 复制注释参数) => {
  * @param fileName - 文件名
  * @param pdf - PDF 实例
  */
-export const copyAnno = (idPath: string, fileName: string, pdf: IPdfInstance) => {
+export const copyAnno = async (idPath: string, fileName: string, pdf: IPdfInstance): Promise<void> => {
     if (!rectElement) {
         return;
     }
     const mode = rectElement.getAttribute("data-mode");
     const content = rectElement.getAttribute("data-content");
-    //@AIDONE 已添加 require-timeout-comment lint 规则
-    // 延迟执行复制操作，等待双击事件完成，避免与文本选择操作冲突
-    setTimeout(() => {
-        执行复制注释({ idPath, fileName, pdf, mode, content });
-    }, Constants.TIMEOUT_DBLCLICK);
+    await new Promise<void>((resolve) => {
+        // @setTimeout说明: 此延迟用于区分单击和双击事件，需要等待用户可能的第二次点击。延迟时间使用 Constants.TIMEOUT_DBLCLICK 常量（系统定义的双击判定时间阈值）
+        setTimeout(async () => {
+            await 执行复制注释({ idPath, fileName, pdf, mode, content });
+            resolve();
+        }, Constants.TIMEOUT_DBLCLICK);
+    });
 };

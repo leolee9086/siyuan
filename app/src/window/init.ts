@@ -19,6 +19,8 @@ import { isEmojiArray, isTab } from "./init.guard";
 
 /** 处理获取Emoji配置的响应 */
 const handleEmojiConfResponse = (app: App, response: IWebSocketData) => {
+    // 验证响应数据格式正确性：确保返回的是有效的emoji数组后再设置
+    // 防御性检查，防止服务器返回异常格式导致后续渲染出错
     if (isEmojiArray(response.data)) {
         setSiyuanEmojis(response.data);
     }
@@ -54,9 +56,13 @@ const resize = () => {
     adjustLayout(getSiyuanLayout().centerLayout);
     resizeTabs();
     const selection = getSelection();
+    // 检查是否存在有效的文本选择：仅在用户有选区时才重新定位工具栏
+    // 避免无选区时进行不必要的DOM操作
     if (selection && selection.rangeCount > 0) {
         const range = selection.getRangeAt(0);
         for (const item of getAllEditor()) {
+            // 判断选区是否位于当前编辑器内：找到包含选区的编辑器实例
+            // 确保只更新当前活跃编辑器的工具栏位置
             if (item.protyle.wysiwyg?.element.contains(range.startContainer)) {
                 item.protyle.toolbar?.render(item.protyle, range);
             }
@@ -64,13 +70,35 @@ const resize = () => {
     }
 };
 
-/** 处理窗口resize事件 */
+/**
+ * 处理窗口resize事件
+ *
+ * 使用防抖策略避免resize过程中频繁触发布局计算
+ */
 const handleWindowResize = (resizeTimeoutRef: { value: number }) => {
     clearTimeout(resizeTimeoutRef.value);
+    // setTimeout用于防抖：窗口resize事件会高频触发（每帧多次），
+    // 无法使用确定性方案（如ResizeObserver）因为需要等待用户停止拖拽后再执行布局计算，
+    // 延迟时间Constants.TIMEOUT_RESIZE由项目统一配置，平衡响应速度与性能开销
     resizeTimeoutRef.value = setTimeout(resize, Constants.TIMEOUT_RESIZE);
 };
 
-export const init = (app: App) => {
+/**
+ * 初始化应用窗口
+ *
+ * 作用：完成窗口启动所需的所有初始化工作，包括UI缩放、事件绑定、配置加载等
+ *
+ * 意图：这是应用启动的核心入口，将原本分散的初始化逻辑集中管理，确保启动顺序正确
+ *
+ * 调用时机：在应用启动时，获取到基础配置后调用（通常在onGetConfig之后）
+ *
+ * 问题/改进：
+ * - 目前包含大量同步初始化调用，启动时间较长时可考虑懒加载部分资源
+ * - emoji配置获取是异步的，但其他初始化可能依赖其结果，后续可考虑Promise.all优化
+ *
+ * @param app - 应用实例
+ */
+export const init = async (app: App) => {
     const storage = getSiyuanStorage();
     webFrame.setZoomFactor(storage[Constants.LOCAL_ZOOM]);
     ipcRenderer.send(Constants.SIYUAN_CMD, {
@@ -90,6 +118,21 @@ export const init = (app: App) => {
     windowAddEventListener("resize", () => handleWindowResize(resizeTimeoutRef));
 };
 
+/**
+ * 布局加载完成后执行的后处理操作
+ *
+ * 作用：在布局初始化完成后，激活插件和恢复标签页状态
+ *
+ * 意图：将布局完成后的额外处理逻辑抽离，避免与布局初始化代码耦合
+ *
+ * 调用时机：由handleEmojiConfResponse在布局加载完成后调用
+ *
+ * 问题/改进：
+ * - 当前通过sessionStorage传递布局数据，可改用更明确的状态管理
+ * - plugin激活和tab切换可考虑并行执行优化性能
+ *
+ * @param app - 应用实例
+ */
 const afterLayout = (app: App) => {
     for (const item of app.plugins) {
         afterLoadPlugin(item);
@@ -97,6 +140,8 @@ const afterLayout = (app: App) => {
     const tabHeaders = document.querySelectorAll<HTMLLIElement>('li[data-type="tab-header"][data-init-active="true"]');
     for (const item of tabHeaders) {
         const tab = getInstanceById(item.getAttribute("data-id") || "");
+        // 类型守卫检查：确保获取的实例确实是Tab类型
+        // querySelector返回的是DOM元素，需要通过getInstanceById获取对应的数据模型实例
         if (isTab(tab)) {
             tab.parent.switchTab(item, false, false);
         }

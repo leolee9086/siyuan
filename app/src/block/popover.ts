@@ -18,6 +18,8 @@ import {
     getSiyuanConfig,
 } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { setTimeout } from "../util/siyuanEnvironments/windowTimer.environment";
+import { MouseEventWithPath, asMouseEventWithPath, isMouseEventWithHTMLTarget, MouseEventWithHTMLTarget } from "../util/events/event.guard";
+import { isHTMLElement } from "../util/DOM/element.guard";
 
 // 子模块导入
 import { TooltipInfo, getTooltipInfo, handleTooltipDisplay } from "./popover/tooltip";
@@ -41,6 +43,22 @@ const 是已固定的相同面板 = (refDefs: IRefDefs[]) => (item: BlockPanel) 
     && JSON.stringify(refDefs) === JSON.stringify(item.refDefs);
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 类型守卫辅助函数
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/**
+ * 验证并转换鼠标事件为带有 HTMLElement target 的类型
+ * 用于满足 getTarget 函数的类型要求
+ * @returns 转换后的事件，如果 target 不是 HTMLElement 则返回 undefined
+ */
+function asEventWithHTMLTarget(event: MouseEvent): MouseEventWithHTMLTarget | undefined {
+    if (isMouseEventWithHTMLTarget(event)) {
+        return event;
+    }
+    return undefined;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Mouseover 事件处理辅助函数
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -55,8 +73,8 @@ function 查找Tooltip元素(target: HTMLElement): HTMLElement | false {
 }
 
 /** 处理 tooltip 元素的显示逻辑，返回 true 表示应该停止事件传播 */
-function 处理Tooltip元素(aElement: HTMLElement, event: MouseEvent): boolean {
-    const tooltipInfo = getTooltipInfo(aElement, event.target as HTMLElement);
+function 处理Tooltip元素(aElement: HTMLElement, event: MouseEvent, target: HTMLElement): boolean {
+    const tooltipInfo = getTooltipInfo(aElement, target);
     if (handleTooltipDisplay(aElement, event, tooltipInfo)) {
         return true;
     }
@@ -67,6 +85,7 @@ function 处理Tooltip元素(aElement: HTMLElement, event: MouseEvent): boolean 
 /** 处理非 tooltip 元素，检查是否应该隐藏 tooltip */
 function 处理非Tooltip元素(target: HTMLElement): void {
     const tipElement = hasClosestByAttribute(target, "id", "tooltip", true);
+    // 当不存在 tooltip 元素，或者 tooltip 内容未溢出（不需要滚动查看）时，隐藏 tooltip
     if (!tipElement || (
         tipElement && (tipElement.clientHeight >= tipElement.scrollHeight && tipElement.clientWidth >= tipElement.scrollWidth)
     )) {
@@ -75,27 +94,34 @@ function 处理非Tooltip元素(target: HTMLElement): void {
 }
 
 /** 隐藏 Popover 的 setTimeout 回调 */
-const 创建隐藏Popover回调 = (event: MouseEvent) => () => {
-    hidePopover(event as MouseEvent & { path?: HTMLElement[] });
+const 创建隐藏Popover回调 = (event: MouseEventWithPath) => () => {
+    hidePopover(event);
 };
 
-/** 按键触发模式(模式1)处理，返回 true 表示已处理完毕 */
+/**
+ * 按键触发模式(模式1)处理，返回 true 表示已处理完毕
+ * 当用户配置为按键触发模式或按住 Shift 键时调用
+ */
 const 处理按键触发模式 = (
     app: App,
-    event: MouseEvent,
+    event: MouseEventWithPath,
+    target: HTMLElement,
     aElement: HTMLElement | false,
     clearTimeoutHide: () => void
 ): boolean => {
     clearTimeoutHide();
+    // @setTimeout豁免: 用户感知延迟 - 需要等待用户输入稳定后再隐藏 popover，防止快速移动鼠标时闪烁
     setTimeout(创建隐藏Popover回调(event), Constants.TIMEOUT_INPUT);
 
-    if (!getTarget(event as MouseEvent & { target: HTMLElement }, aElement)) {
+    const eventWithTarget = asEventWithHTMLTarget(event);
+    if (!eventWithTarget || !getTarget(eventWithTarget, aElement)) {
         return true;
     }
 
     // https://github.com/siyuan-note/siyuan/issues/9007
-    const relatedTarget = (event as MouseEvent & { relatedTarget?: Node }).relatedTarget;
-    if (relatedTarget && !document.contains(relatedTarget)) {
+    // 当 relatedTarget 不在 document 中时（如从 iframe 移出），不处理 popover
+    const relatedTarget = event.relatedTarget;
+    if (relatedTarget instanceof Node && !document.contains(relatedTarget)) {
         return true;
     }
 
@@ -115,14 +141,15 @@ const 处理按键触发模式 = (
 
 /** 创建延迟隐藏 Popover 的回调 */
 const 创建延迟隐藏回调 = (
-    event: MouseEvent,
+    event: MouseEventWithPath,
     aElement: HTMLElement | false,
     getTimeout: () => number
 ) => () => {
-    if (!hidePopover(event as MouseEvent & { path?: HTMLElement[] })) {
+    if (!hidePopover(event)) {
         return;
     }
     const popoverTargetElement = getPopoverTargetElement();
+    // 当没有 popover 目标元素且没有链接元素时，清除显示定时器
     if (!popoverTargetElement && !aElement) {
         clearTimeout(getTimeout());
     }
@@ -131,11 +158,13 @@ const 创建延迟隐藏回调 = (
 /** 创建延迟显示 Popover 的回调 */
 const 创建延迟显示回调 = (
     app: App,
-    event: MouseEvent,
+    event: MouseEventWithPath,
+    target: HTMLElement,
     aElement: HTMLElement | false,
     getTimeoutHide: () => number
 ) => () => {
-    if (!getTarget(event as MouseEvent & { target: HTMLElement }, aElement) || isTouchDevice()) {
+    const eventWithTarget = asEventWithHTMLTarget(event);
+    if (!eventWithTarget || !getTarget(eventWithTarget, aElement) || isTouchDevice()) {
         return;
     }
     clearTimeout(getTimeoutHide());
@@ -145,7 +174,8 @@ const 创建延迟显示回调 = (
 /** 延迟触发模式(模式0)处理 */
 const 处理延迟触发模式 = (
     app: App,
-    event: MouseEvent,
+    event: MouseEventWithPath,
+    target: HTMLElement,
     aElement: HTMLElement | false,
     setTimeouts: (t: number, th: number) => void,
     clearTimeouts: () => void
@@ -155,13 +185,15 @@ const 处理延迟触发模式 = (
     // 使用对象包装以避免闭包中的相互引用问题
     const timeoutRefs = { timeout: 0, timeoutHide: 0 };
 
+    // @setTimeout豁免: 用户感知延迟 - 防抖处理，等待用户鼠标移动稳定后再隐藏 popover
     timeoutRefs.timeoutHide = setTimeout(
         创建延迟隐藏回调(event, aElement, () => timeoutRefs.timeout),
         Constants.TIMEOUT_INPUT
     );
 
+    // @setTimeout豁免: 用户感知延迟 - 悬停延迟显示，避免鼠标快速划过时频繁弹出 popover
     timeoutRefs.timeout = setTimeout(
-        创建延迟显示回调(app, event, aElement, () => timeoutRefs.timeoutHide),
+        创建延迟显示回调(app, event, target, aElement, () => timeoutRefs.timeoutHide),
         POPOVER_SHOW_DELAY_MS
     );
 
@@ -183,11 +215,16 @@ const 处理Mouseover事件 = (
         return;
     }
 
-    const target = event.target as HTMLElement;
+    // 使用类型守卫验证 event.target 是 HTMLElement
+    const target = event.target;
+    if (!isHTMLElement(target)) {
+        return;
+    }
+
     const aElement = 查找Tooltip元素(target);
 
     // 处理 tooltip
-    if (aElement && 处理Tooltip元素(aElement, event)) {
+    if (aElement && 处理Tooltip元素(aElement, event, target)) {
         event.stopPropagation();
         return;
     }
@@ -196,14 +233,18 @@ const 处理Mouseover事件 = (
         处理非Tooltip元素(target);
     }
 
+    // 将 MouseEvent 转换为 MouseEventWithPath（MouseEvent 本身就兼容此类型）
+    const eventWithPath = asMouseEventWithPath(event);
+
     // Popover 模式处理
     const keyboardState = getSiyuanKeyboardState();
+    // 当浮窗模式为按键触发(模式1)或用户按住 Shift 键时，使用按键触发模式
     if (getSiyuanConfig().editor.floatWindowMode === 1 || keyboardState.shiftIsPressed) {
-        处理按键触发模式(app, event, aElement, clearTimeoutHide);
+        处理按键触发模式(app, eventWithPath, target, aElement, clearTimeoutHide);
         return;
     }
 
-    处理延迟触发模式(app, event, aElement, setTimeouts, clearTimeouts);
+    处理延迟触发模式(app, eventWithPath, target, aElement, setTimeouts, clearTimeouts);
 };
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -231,6 +272,7 @@ class TimeoutManager {
 /**
  * 初始化块 Popover
  * 用于编辑器内容块引用/backlinks/tag/bookmark/套娃中
+ * @同步豁免: 生命周期 - 此函数在应用初始化时同步调用，用于注册事件监听器，必须同步完成以确保事件处理器在应用启动前就绑定好
  */
 export const initBlockPopover = (app: App) => {
     const timeoutManager = new TimeoutManager();

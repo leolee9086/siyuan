@@ -304,6 +304,7 @@ export const hidePopover = (event: MouseEvent & { path?: HTMLElement[] }): boole
 /**
  * 获取 Popover 目标
  * @returns 是否找到有效目标
+ * @同步豁免: 遗留代码 - 此函数在 mouseover 事件处理链中被同步调用，修改为异步会影响整个事件处理流程
  */
 export const getTarget = (event: MouseEvent & { target: HTMLElement }, aElement: false | HTMLElement): boolean => {
     if (getSiyuanConfig().editor.floatWindowMode === 2 || hasClosestByClassName(event.target, "history__repo", true)) {
