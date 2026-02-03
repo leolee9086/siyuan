@@ -20,8 +20,6 @@ export const SForgeSymbols = {
     GLOBAL_KEY: Symbol.for("sforge.global"),
     /** 样式刷子全局事件处理器 (用于解决模块级变量问题) */
     STYLE_BRUSH_HANDLERS: Symbol.for("sforge.styleBrush.handlers"),
+    /** Popover 目标元素 (用于解决模块级变量缓存不一致问题) */
+    POPOVER_TARGET_ELEMENT: Symbol.for("sforge.popover.targetElement"),
 } as const;
-
-// 中文别名
-export const SForge符号 = SForgeSymbols;
-

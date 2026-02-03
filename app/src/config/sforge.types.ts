@@ -19,6 +19,7 @@ export interface ISForgeGlobalState {
     [SForgeSymbols.TRIGGER_REGISTRY]?: Map<string, ITriggerRegistration>;
     [SForgeSymbols.BRUSH_SESSION]?: IBrushSession | null;
     [SForgeSymbols.STYLE_BRUSH_HANDLERS]?: IStyleBrushHandlers;
+    [SForgeSymbols.POPOVER_TARGET_ELEMENT]?: HTMLElement;
 }
 
 /**
