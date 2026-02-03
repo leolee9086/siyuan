@@ -5,24 +5,19 @@
  */
 
 import { SForgeSymbols } from "./sforge.symbols";
-import type { ISForgeGlobalState, IGlobalWithSForge } from "./sforge.types";
+import type { ISForgeGlobalState } from "./sforge.types";
 import { asGlobalWithSForge } from "./sforge.guard";
-
-/**
- * 获取全局对象（封装 globalThis 访问）
- */
-function 获取全局对象(): IGlobalWithSForge {
-    return asGlobalWithSForge(globalThis);
-}
 
 /**
  * 获取或创建 SForge 全局对象
  * 挂载在 globalThis 上，确保跨模块单例
+ * @同步豁免: 生命周期 - 模块初始化阶段的基础设施，必须在其他模块加载前同步完成初始化
  */
 export function 获取SForge全局对象(): ISForgeGlobalState {
-    const globalObj = 获取全局对象();
+    const globalObj = asGlobalWithSForge(globalThis);
     const key = SForgeSymbols.GLOBAL_KEY;
 
+    // 首次访问时初始化：当全局对象上尚未挂载 SForge 状态时，创建空对象作为初始状态容器
     if (!globalObj[key]) {
         globalObj[key] = {};
     }
@@ -34,6 +29,7 @@ export function 获取SForge全局对象(): ISForgeGlobalState {
  * 获取 SForge 全局状态中的某个值
  * @param symbolKey Symbol 键
  * @returns 对应的值
+ * @同步豁免: 生命周期 - 状态读取是基础设施操作，被模块初始化和同步代码路径依赖
  */
 export function getSForgeState<K extends keyof ISForgeGlobalState>(
     symbolKey: K
@@ -45,6 +41,7 @@ export function getSForgeState<K extends keyof ISForgeGlobalState>(
  * 设置 SForge 全局状态中的某个值
  * @param symbolKey Symbol 键
  * @param value 要设置的值
+ * @同步豁免: 生命周期 - 状态写入是基础设施操作，必须在模块初始化阶段同步完成
  */
 export function setSForgeState<K extends keyof ISForgeGlobalState>(
     symbolKey: K,
@@ -52,7 +49,3 @@ export function setSForgeState<K extends keyof ISForgeGlobalState>(
 ): void {
     获取SForge全局对象()[symbolKey] = value;
 }
-
-// 中文别名
-export const 获取SForge状态 = getSForgeState;
-export const 设置SForge状态 = setSForgeState;
