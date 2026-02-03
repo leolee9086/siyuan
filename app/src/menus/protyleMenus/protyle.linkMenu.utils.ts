@@ -24,6 +24,7 @@ export type { LinkMenuContext } from "./protyle.types";
  * 生成链接编辑区域的 HTML 模板
  * 包含链接地址、锚文本、标题三个输入框
  */
+/** @同步豁免: UI构建 - 该函数仅返回HTML字符串模板，不涉及任何异步操作，是纯粹的同步计算函数 */
 export const 生成链接编辑区域HTML = (): string => {
     const width = isMobile() ? "100%" : "360px";
     return `<div class="fn__flex">
@@ -54,6 +55,7 @@ style="margin:4px 0;width: ${width}" class="b3-text-field"></textarea><div class
 
 /** 处理输入框的通用键盘事件（Enter/Escape关闭菜单） */
 const 处理关闭菜单按键 = (event: KeyboardEvent): boolean => {
+    // 当用户按下 Enter 或 Escape 键且不在输入法组合状态时，关闭菜单
     if ((event.key === "Enter" || event.key === "Escape") && !event.isComposing) {
         event.preventDefault();
         event.stopPropagation();
@@ -71,6 +73,7 @@ const 处理链接输入框按键 = (
     if (处理关闭菜单按键(event)) {
         return;
     }
+    // 当用户按下 Tab 键且不在输入法组合状态时，将焦点移动到下一个输入框
     if (event.key === "Tab" && !event.isComposing) {
         event.preventDefault();
         event.stopPropagation();
@@ -78,17 +81,6 @@ const 处理链接输入框按键 = (
         return;
     }
     electronUndo(event);
-};
-
-/** 绑定链接地址输入框的事件 */
-const 绑定链接输入框事件 = (
-    inputElement: HTMLTextAreaElement,
-    nextInputElement: HTMLTextAreaElement
-): void => {
-    // @内联回调
-    inputElement.addEventListener("keydown", (event) => {
-        处理链接输入框按键(event, nextInputElement);
-    });
 };
 
 /** 处理锚文本输入框键盘事件 */
@@ -100,6 +92,7 @@ const 处理锚文本输入框按键 = (
     if (处理关闭菜单按键(event)) {
         return;
     }
+    // 当用户按下 Tab 键且不在输入法组合状态时，根据 Shift 键状态切换焦点
     if (event.key === "Tab" && !event.isComposing) {
         event.preventDefault();
         event.stopPropagation();
@@ -110,33 +103,6 @@ const 处理锚文本输入框按键 = (
     electronUndo(event);
 };
 
-/** 绑定锚文本输入框的事件 */
-const 绑定锚文本输入框事件 = (
-    inputElement: HTMLTextAreaElement,
-    linkElement: HTMLElement,
-    prevInputElement: HTMLTextAreaElement,
-    nextInputElement: HTMLTextAreaElement
-): void => {
-    // 处理中文输入法完成事件
-    inputElement.addEventListener("compositionend", () => {
-        const value = inputElement.value.replace(/\n|\r\n|\r|\u2028|\u2029/g, "").trim();
-        linkElement.innerHTML = Lute.EscapeHTMLStr(value || "*");
-    });
-
-    // @内联回调
-    inputElement.addEventListener("input", () => {
-        // compositionend 已处理输入法事件，这里只处理非输入法输入
-        const value = inputElement.value.replace(/\n|\r\n|\r|\u2028|\u2029/g, "").trim();
-        linkElement.innerHTML = Lute.EscapeHTMLStr(value) || "*";
-    });
-
-    // 处理键盘事件
-    // @内联回调
-    inputElement.addEventListener("keydown", (event) => {
-        处理锚文本输入框按键(event, prevInputElement, nextInputElement);
-    });
-};
-
 /** 处理标题输入框键盘事件 */
 const 处理标题输入框按键 = (
     event: KeyboardEvent,
@@ -145,6 +111,7 @@ const 处理标题输入框按键 = (
     if (处理关闭菜单按键(event)) {
         return;
     }
+    // 当用户按下 Shift+Tab 且不在输入法组合状态时，将焦点移动到上一个输入框
     if (event.key === "Tab" && event.shiftKey && !event.isComposing) {
         event.preventDefault();
         event.stopPropagation();
@@ -154,21 +121,11 @@ const 处理标题输入框按键 = (
     electronUndo(event);
 };
 
-/** 绑定标题输入框的事件 */
-const 绑定标题输入框事件 = (
-    inputElement: HTMLTextAreaElement,
-    prevInputElement: HTMLTextAreaElement
-): void => {
-    // @内联回调
-    inputElement.addEventListener("keydown", (event) => {
-        处理标题输入框按键(event, prevInputElement);
-    });
-};
-
 /** 处理复制按钮点击 */
 const 处理复制按钮点击 = (event: MouseEvent): void => {
     let target = event.target;
     while (target instanceof HTMLElement) {
+        // 向上查找直到找到带有 copy 动作的按钮元素
         if (target.dataset?.action !== "copy") {
             target = target.parentElement;
             continue;
@@ -191,6 +148,7 @@ const 处理复制按钮点击 = (event: MouseEvent): void => {
  * 设置链接编辑输入区域的绑定逻辑
  * 包括初始化输入框值和绑定所有事件
  */
+/** @同步豁免: 需要绝对同步的DOM访问 - 该函数直接操作DOM元素（设置value、innerHTML、添加事件监听器），必须在同步上下文中执行以确保DOM状态一致性 */
 export const 绑定链接编辑区域 = (
     element: HTMLElement,
     ctx: LinkMenuContext
@@ -207,13 +165,16 @@ export const 绑定链接编辑区域 = (
     }
 
     // 初始化链接地址输入框
-    链接输入框.value = Lute.UnEscapeHTMLStr(ctx.linkAddress) || "";
-    绑定链接输入框事件(链接输入框, 锚文本输入框);
+    链接输入框.value = ctx.linkAddress ? Lute.UnEscapeHTMLStr(ctx.linkAddress) : "";
+    链接输入框.addEventListener("keydown", (event) => {
+        处理链接输入框按键(event, 锚文本输入框);
+    });
 
     // 初始化锚文本输入框
     // https://github.com/siyuan-note/siyuan/issues/6798
     let anchor = ctx.linkElement.textContent?.replace(Constants.ZWSP, "") ?? "";
     const needsDefaultAnchor = !anchor && ctx.linkAddress;
+    // 当锚文本为空且存在链接地址时，使用链接地址作为默认锚文本
     if (needsDefaultAnchor && ctx.linkAddress) {
         anchor = decodeURIComponent(ctx.linkAddress.replace("https://", "").replace("http://", ""));
     }
@@ -225,11 +186,28 @@ export const 绑定链接编辑区域 = (
         ctx.linkElement.innerHTML = Lute.EscapeHTMLStr(anchor);
     }
     锚文本输入框.value = anchor;
-    绑定锚文本输入框事件(锚文本输入框, ctx.linkElement, 链接输入框, 标题输入框);
+
+    // 处理中文输入法完成事件
+    锚文本输入框.addEventListener("compositionend", () => {
+        const value = 锚文本输入框.value.replace(/\n|\r\n|\r|\u2028|\u2029/g, "").trim();
+        ctx.linkElement.innerHTML = Lute.EscapeHTMLStr(value || "*");
+    });
+
+    锚文本输入框.addEventListener("input", () => {
+        // compositionend 已处理输入法事件，这里只处理非输入法输入
+        const value = 锚文本输入框.value.replace(/\n|\r\n|\r|\u2028|\u2029/g, "").trim();
+        ctx.linkElement.innerHTML = Lute.EscapeHTMLStr(value) || "*";
+    });
+
+    锚文本输入框.addEventListener("keydown", (event) => {
+        处理锚文本输入框按键(event, 链接输入框, 标题输入框);
+    });
 
     // 初始化标题输入框
     标题输入框.value = Lute.UnEscapeHTMLStr(ctx.linkElement.getAttribute("data-title") || "");
-    绑定标题输入框事件(标题输入框, 锚文本输入框);
+    标题输入框.addEventListener("keydown", (event) => {
+        处理标题输入框按键(event, 锚文本输入框);
+    });
 
     // 复制按钮点击事件
     element.addEventListener("click", 处理复制按钮点击);
@@ -242,6 +220,7 @@ export const 绑定链接编辑区域 = (
 // ────────────────────────────────────────────────────────────
 
 /** 添加编辑模式下的所有菜单项 */
+/** @同步豁免: UI构建 - 该函数构建菜单UI组件，直接操作DOM并依赖同步的菜单构造流程，需要同步执行以确保菜单正确渲染 */
 export const 添加编辑模式菜单项 = (ctx: LinkMenuContext): void => {
     // 添加链接编辑区域
     let inputElements: NodeListOf<HTMLTextAreaElement> | undefined;

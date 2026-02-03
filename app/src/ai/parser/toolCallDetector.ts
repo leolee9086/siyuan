@@ -30,11 +30,11 @@ function 提取代码块信息(span: Element): {
  * @param conditionCallback 条件判断函数，接收代码块元素和内容，返回是否满足条件
  * @returns 检测到的工具调用代码，如果没有检测到则返回null
  */
-export function 从块DOM提取首个符合条件的特定语言代码块内容(
+export async function 从块DOM提取首个符合条件的特定语言代码块内容(
     domElement: Element,
     language: string,
     conditionCallback?: (codeElement: Element, codeContent: string) => boolean
-): string | null {
+): Promise<string | null> {
     // 获取所有语言标识元素
     const languageSpans = domElement.querySelectorAll(".protyle-action__language");
 
@@ -44,19 +44,19 @@ export function 从块DOM提取首个符合条件的特定语言代码块内容(
 
         // 确保span存在
         if (!span) {
-continue;
-}
+            continue;
+        }
 
         // 检查语言是否匹配，不匹配则继续下一个
         if (span.textContent !== language) {
-continue;
-}
+            continue;
+        }
 
         // 提取代码块信息
         const codeBlockInfo = 提取代码块信息(span);
         if (!codeBlockInfo) {
-continue;
-}
+            continue;
+        }
 
         const { codeElement, codeContent, blockElement } = codeBlockInfo;
 

@@ -30,7 +30,7 @@ const PROMPTS = {
         id: 'FUNC-002: Trivial Wrapper Function',
         mode: 'CODE_REFACTORING_SPECIALIST',
         reason: "检测到只有一行的包装函数，仅调用另一个函数并固定部分参数。",
-        action: "请考虑: 1) 在调用处直接使用原函数 2) 使用 .bind() 柯里化 3) 在调用处即时创建柯里化版本"
+        action: "请考虑: 1) 在调用处直接使用原函数 2) 使用柯里化技巧传入上下文 3) 在调用处即时创建柯里化版本 4)其它更合适的重构方式。"
     }
 };
 
