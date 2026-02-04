@@ -1,0 +1,40 @@
+.asset-masonry-dialog {
+    display: flex;
+    height: 100%;
+    gap: 0;
+
+    &__left {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    &__search {
+        padding: 8px;
+        display: flex;
+        gap: 8px;
+    }
+
+    &__filters {
+        padding: 0 8px 8px 8px;
+        display: flex;
+        gap: 4px;
+    }
+
+    &__grid {
+        flex: 1;
+        overflow: hidden;
+        position: relative;
+    }
+
+    &__loading,
+    &__empty {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100%;
+        color: var(--b3-theme-on-surface-light);
+    }
+}

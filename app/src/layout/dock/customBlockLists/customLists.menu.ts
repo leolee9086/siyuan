@@ -5,12 +5,9 @@ import { forgeI18n } from "../../../util/siyuanEnvironments/forgeI18n.getI18n.en
 import { CustomLists } from "./CustomLists";
 import { updateListTarget } from "./customLists.util";
 
-// @ts-ignore
 import { genSearch } from "../../../search/utils/genSearch";
 import { Dialog } from "../../../dialog";
 import { App } from "../../../index";
-// @ts-ignore
-import { Config } from "../../../types/index";
 
 export const showCustomListMenu = (app: App, customList: CustomLists, event: MouseEvent) => {
     window.siyuan.menus.menu.remove();

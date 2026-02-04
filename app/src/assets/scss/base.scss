@@ -36,5 +36,6 @@
 @use "component/svg" as *;
 @use "main/main" as *;
 @use "business/asset-card" as *;
+@use "business/asset-masonry-dialog" as *;
 @use "business/smartToolbox" as *;
 @use "util/responsive" as *; // 需放置最后，否则 https://github.com/siyuan-note/siyuan/issues/7056
