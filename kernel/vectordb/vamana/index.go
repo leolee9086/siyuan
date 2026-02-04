@@ -20,6 +20,7 @@ import (
 	"errors"
 	"math"
 	"math/rand/v2"
+	"runtime"
 	"sort"
 	"sync"
 )
@@ -310,9 +311,10 @@ func (idx *VamanaIndex) greedySearchFast(scratch *SearchScratch, startIDs []uint
 	return scratch.Best.All()
 }
 
-// greedySearchForBuild 构建专用的无锁贪婪搜索
-// 在并行构建期间使用，避免全局锁竞争
+// greedySearchForBuild 构建专用的贪婪搜索
+// 在并行构建期间使用，直接读取邻居（无锁）
 // 前提：idx.vectors 和 idx.neighbors 的大小在构建期间不变
+// 注意：邻居列表可能被其他goroutine修改，但这是可接受的（最终一致性）
 func (idx *VamanaIndex) greedySearchForBuild(scratch *SearchScratch, startIDs []uint32, query []float32, queryNormSq float32, L int) []Neighbor {
 	scratch.Reset()
 	scratch.Visited.EnsureCapacity(len(idx.vectors))
@@ -328,17 +330,15 @@ func (idx *VamanaIndex) greedySearchForBuild(scratch *SearchScratch, startIDs []
 		scratch.Cmps++
 	}
 
-	// 贪婪搜索（无全局锁）
+	// 贪婪搜索（无锁读取邻居，接受最终一致性）
 	for scratch.Best.HasUnvisited() {
 		closest, ok := scratch.Best.PopClosestUnvisited()
 		if !ok {
 			break
 		}
 
-		// 读取邻居时使用节点锁
-		idx.nodeLocks[closest.ID].RLock()
+		// 直接读取邻居（无锁），可能读到部分更新的数据，但这是可接受的
 		neighbors := idx.neighbors[closest.ID]
-		idx.nodeLocks[closest.ID].RUnlock()
 
 		for _, neighborID := range neighbors {
 			if scratch.Visited.Insert(neighborID) {
@@ -750,40 +750,9 @@ func (idx *VamanaIndex) Search(query []float32, k int, efSearch int) []Neighbor 
 }
 
 // Build 从向量集合批量构建索引
+// 默认使用 CPU 核心数作为并行工作线程数
 func (idx *VamanaIndex) Build(vectors [][]float32) error {
-	if len(vectors) == 0 {
-		return nil
-	}
-
-	// 先添加所有向量
-	idx.mu.Lock()
-	idx.vectors = make([][]float32, len(vectors))
-	copy(idx.vectors, vectors)
-	idx.neighbors = make([][]uint32, len(vectors))
-	idx.nodeLocks = make([]sync.RWMutex, len(vectors))
-	for i := range idx.neighbors {
-		idx.neighbors[i] = make([]uint32, 0, idx.config.R)
-	}
-	// 重置删除位图
-	idx.deleted = NewBitset(len(vectors))
-	idx.nDeleted = 0
-	idx.mu.Unlock()
-
-	// 预计算所有向量的范数平方
-	idx.precomputeNormSquares()
-
-	// 计算质心并选择入口点
-	idx.medoid = idx.findMedoid()
-
-	// 随机打乱插入顺序 (提高图质量)
-	order := rand.Perm(len(vectors))
-
-	// 逐点构建图
-	for _, i := range order {
-		idx.buildNode(uint32(i))
-	}
-
-	return nil
+	return idx.BuildParallel(vectors, runtime.NumCPU())
 }
 
 // BuildParallel 并行构建索引
