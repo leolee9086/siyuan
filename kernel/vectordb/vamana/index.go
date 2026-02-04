@@ -130,22 +130,57 @@ func (idx *VamanaIndex) distanceToQuery(id uint32, query []float32) float32 {
 }
 
 // euclideanDistance 计算欧氏距离的平方 (避免开方以提高性能)
+// 使用4路循环展开优化，减少循环开销
 func euclideanDistance(a, b []float32) float32 {
-	var sum float32
-	for i := range a {
+	n := len(a)
+	var sum0, sum1, sum2, sum3 float32
+
+	// 4路展开主循环
+	i := 0
+	for ; i <= n-4; i += 4 {
+		d0 := a[i] - b[i]
+		d1 := a[i+1] - b[i+1]
+		d2 := a[i+2] - b[i+2]
+		d3 := a[i+3] - b[i+3]
+		sum0 += d0 * d0
+		sum1 += d1 * d1
+		sum2 += d2 * d2
+		sum3 += d3 * d3
+	}
+
+	// 处理剩余元素
+	sum := sum0 + sum1 + sum2 + sum3
+	for ; i < n; i++ {
 		diff := a[i] - b[i]
 		sum += diff * diff
 	}
 	return sum
 }
 
-// computeNormSquare 计算向量的范数平方 ||v||²
-func computeNormSquare(v []float32) float32 {
-	var sum float32
-	for _, x := range v {
-		sum += x * x
+// dotProduct 计算两个向量的点积
+// 使用4路循环展开优化
+func dotProduct(a, b []float32) float32 {
+	n := len(a)
+	var sum0, sum1, sum2, sum3 float32
+
+	i := 0
+	for ; i <= n-4; i += 4 {
+		sum0 += a[i] * b[i]
+		sum1 += a[i+1] * b[i+1]
+		sum2 += a[i+2] * b[i+2]
+		sum3 += a[i+3] * b[i+3]
+	}
+
+	sum := sum0 + sum1 + sum2 + sum3
+	for ; i < n; i++ {
+		sum += a[i] * b[i]
 	}
 	return sum
+}
+
+// computeNormSquare 计算向量的范数平方 ||v||²
+func computeNormSquare(v []float32) float32 {
+	return dotProduct(v, v)
 }
 
 // precomputeNormSquares 预计算所有向量的范数平方
@@ -154,6 +189,19 @@ func (idx *VamanaIndex) precomputeNormSquares() {
 	for i, v := range idx.vectors {
 		idx.normSquares[i] = computeNormSquare(v)
 	}
+}
+
+// fastDistance 使用预计算范数加速两节点间距离计算
+// ||a-b||² = ||a||² + ||b||² - 2<a,b>
+func (idx *VamanaIndex) fastDistance(id1, id2 uint32) float32 {
+	dot := dotProduct(idx.vectors[id1], idx.vectors[id2])
+	return idx.normSquares[id1] + idx.normSquares[id2] - 2*dot
+}
+
+// fastDistanceToQuery 使用预计算范数和查询范数加速查询距离计算
+func (idx *VamanaIndex) fastDistanceToQuery(id uint32, query []float32, queryNormSq float32) float32 {
+	dot := dotProduct(idx.vectors[id], query)
+	return idx.normSquares[id] + queryNormSq - 2*dot
 }
 
 // findMedoid 找到质心最近的点作为入口点
@@ -316,8 +364,9 @@ func (idx *VamanaIndex) robustPrune(nodeID uint32, candidates []Neighbor, maxDeg
 				}
 
 				// 计算候选节点与已选结果节点之间的距离
+				// 使用fastDistance利用预计算范数加速
 				selectedID := candidates[resultIdx].ID
-				distCN := idx.distance(cand.ID, selectedID)
+				distCN := idx.fastDistance(cand.ID, selectedID)
 
 				// 更新遮挡因子（三角不等式剪枝）
 				if distCN < cand.Distance {
