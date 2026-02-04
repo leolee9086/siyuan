@@ -1,0 +1,29 @@
+{
+  "name": "@leolee9086-vamana",
+  "version": "0.1.0",
+  "description": "A Vamana index implementation in TypeScript.",
+  "main": "dist/vamana-index.js",
+  "types": "dist/vamana-index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:run": "vitest run",
+    "test:ui": "vitest --ui"
+  },
+  "keywords": [
+    "vamana",
+    "vector",
+    "index",
+    "ann"
+  ],
+  "author": "leolee9086",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^3.2.4"
+  },
+  "files": [
+    "dist"
+  ]
+}

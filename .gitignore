@@ -45,3 +45,10 @@ node_modules
 #/toread
 # Plan files
 #**.plan.md
+
+# Vector DB Research
+toread/IP-DiskANN/
+toread/DiskANN/
+
+# Test Data (benchmark datasets, large binary files)
+test_data/

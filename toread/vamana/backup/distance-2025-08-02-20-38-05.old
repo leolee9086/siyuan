@@ -1,0 +1,490 @@
+/**
+ * 距离计算模块
+ * 提供高性能的距离计算和缓存功能
+ */
+
+//@织:TODO:我们需要拆分这个文件,让它们的职责更加清晰明确
+// ================ 类型定义 ================
+
+export type DistanceFunction = 'euclidean' | 'cosine' | 'inner_product' | 'custom';
+
+export type CustomDistanceFunction = (a: any, b: any) => number;
+
+export interface DistanceConfig {
+  distanceFunction: DistanceFunction;
+  customDistanceFunction?: CustomDistanceFunction;
+  // 内积距离特殊配置
+  ipPrepared?: boolean; // 是否对内积距离进行预处理
+  paddingId?: number;   // 填充维度ID
+}
+
+// ================ 距离计算函数 ================
+
+/**
+ * 计算欧几里得距离 - 8路循环展开优化版本
+ * 支持使用预计算的范数进行优化
+ */
+export function computeEuclideanDistance(
+  vecA: Float32Array, 
+  vecB: Float32Array, 
+  sqNormA?: number, 
+  sqNormB?: number
+): number {
+  let sum = 0;
+  const len = vecA.length;
+  let i = 0;
+
+  // 8路循环展开处理主要部分
+  for (; i + 7 < len; i += 8) {
+    const diff0 = vecA[i] - vecB[i];
+    const diff1 = vecA[i + 1] - vecB[i + 1];
+    const diff2 = vecA[i + 2] - vecB[i + 2];
+    const diff3 = vecA[i + 3] - vecB[i + 3];
+    const diff4 = vecA[i + 4] - vecB[i + 4];
+    const diff5 = vecA[i + 5] - vecB[i + 5];
+    const diff6 = vecA[i + 6] - vecB[i + 6];
+    const diff7 = vecA[i + 7] - vecB[i + 7];
+    
+    sum += diff0 * diff0 + diff1 * diff1 + diff2 * diff2 + diff3 * diff3 +
+           diff4 * diff4 + diff5 * diff5 + diff6 * diff6 + diff7 * diff7;
+  }
+
+  // 处理剩余元素
+  for (; i < len; i++) {
+    const diff = vecA[i] - vecB[i];
+    sum += diff * diff;
+  }
+
+  return Math.sqrt(sum);
+}
+
+/**
+ * 计算余弦距离 - 8路循环展开优化版本
+ * 支持使用预计算的范数进行优化
+ */
+export function computeCosineDistance(
+  vecA: Float32Array, 
+  vecB: Float32Array, 
+  sqNormA?: number, 
+  sqNormB?: number
+): number {
+  let dotProduct = 0;
+  
+  // 如果提供了预计算的范数，使用它们；否则计算
+  const normA = sqNormA !== undefined ? Math.sqrt(sqNormA) : (() => {
+    let sum = 0;
+    const len = vecA.length;
+    let i = 0;
+
+    // 8路循环展开计算向量A的范数
+    for (; i + 7 < len; i += 8) {
+      sum += vecA[i] * vecA[i] + vecA[i + 1] * vecA[i + 1] + 
+             vecA[i + 2] * vecA[i + 2] + vecA[i + 3] * vecA[i + 3] +
+             vecA[i + 4] * vecA[i + 4] + vecA[i + 5] * vecA[i + 5] + 
+             vecA[i + 6] * vecA[i + 6] + vecA[i + 7] * vecA[i + 7];
+    }
+
+    // 处理剩余元素
+    for (; i < len; i++) {
+      sum += vecA[i] * vecA[i];
+    }
+    return Math.sqrt(sum);
+  })();
+  
+  const normB = sqNormB !== undefined ? Math.sqrt(sqNormB) : (() => {
+    let sum = 0;
+    const len = vecB.length;
+    let i = 0;
+
+    // 8路循环展开计算向量B的范数
+    for (; i + 7 < len; i += 8) {
+      sum += vecB[i] * vecB[i] + vecB[i + 1] * vecB[i + 1] + 
+             vecB[i + 2] * vecB[i + 2] + vecB[i + 3] * vecB[i + 3] +
+             vecB[i + 4] * vecB[i + 4] + vecB[i + 5] * vecB[i + 5] + 
+             vecB[i + 6] * vecB[i + 6] + vecB[i + 7] * vecB[i + 7];
+    }
+
+    // 处理剩余元素
+    for (; i < len; i++) {
+      sum += vecB[i] * vecB[i];
+    }
+    return Math.sqrt(sum);
+  })();
+  
+  // 8路循环展开计算点积
+  const len = vecA.length;
+  let i = 0;
+  for (; i + 7 < len; i += 8) {
+    dotProduct += vecA[i] * vecB[i] + vecA[i + 1] * vecB[i + 1] + 
+                  vecA[i + 2] * vecB[i + 2] + vecA[i + 3] * vecB[i + 3] +
+                  vecA[i + 4] * vecB[i + 4] + vecA[i + 5] * vecB[i + 5] + 
+                  vecA[i + 6] * vecB[i + 6] + vecA[i + 7] * vecB[i + 7];
+  }
+
+  // 处理剩余元素
+  for (; i < len; i++) {
+    dotProduct += vecA[i] * vecB[i];
+  }
+  
+  const normProduct = normA * normB;
+  return normProduct === 0 ? 1 : 1 - (dotProduct / normProduct);
+}
+
+/**
+ * 计算内积距离（返回负值，因为我们要找最小距离）- 8路循环展开优化版本
+ * 支持预处理优化，包括向量归一化和填充维度处理
+ */
+export function computeInnerProductDistance(
+  vecA: Float32Array, 
+  vecB: Float32Array, 
+  config?: DistanceConfig
+): number {
+  let sum = 0;
+  
+  // 如果启用了内积预处理
+  if (config?.ipPrepared && config.paddingId !== undefined) {
+    const paddingId = config.paddingId;
+    const len = vecA.length;
+    let i = 0;
+
+    // 8路循环展开处理填充维度
+    for (; i + 7 < len; i += 8) {
+      // 检查每个位置是否为填充维度
+      sum += (i === paddingId ? vecA[i] * vecB[i] : vecA[i] * vecB[i]) +
+             (i + 1 === paddingId ? vecA[i + 1] * vecB[i + 1] : vecA[i + 1] * vecB[i + 1]) +
+             (i + 2 === paddingId ? vecA[i + 2] * vecB[i + 2] : vecA[i + 2] * vecB[i + 2]) +
+             (i + 3 === paddingId ? vecA[i + 3] * vecB[i + 3] : vecA[i + 3] * vecB[i + 3]) +
+             (i + 4 === paddingId ? vecA[i + 4] * vecB[i + 4] : vecA[i + 4] * vecB[i + 4]) +
+             (i + 5 === paddingId ? vecA[i + 5] * vecB[i + 5] : vecA[i + 5] * vecB[i + 5]) +
+             (i + 6 === paddingId ? vecA[i + 6] * vecB[i + 6] : vecA[i + 6] * vecB[i + 6]) +
+             (i + 7 === paddingId ? vecA[i + 7] * vecB[i + 7] : vecA[i + 7] * vecB[i + 7]);
+    }
+
+    // 处理剩余元素
+    for (; i < len; i++) {
+      sum += vecA[i] * vecB[i];
+    }
+  } else {
+    // 8路循环展开标准内积计算
+    const len = vecA.length;
+    let i = 0;
+    for (; i + 7 < len; i += 8) {
+      sum += vecA[i] * vecB[i] + vecA[i + 1] * vecB[i + 1] + 
+             vecA[i + 2] * vecB[i + 2] + vecA[i + 3] * vecB[i + 3] +
+             vecA[i + 4] * vecB[i + 4] + vecA[i + 5] * vecB[i + 5] + 
+             vecA[i + 6] * vecB[i + 6] + vecA[i + 7] * vecB[i + 7];
+    }
+
+    // 处理剩余元素
+    for (; i < len; i++) {
+      sum += vecA[i] * vecB[i];
+    }
+  }
+  
+  return -sum; // 返回负值，因为我们要找最小距离
+}
+
+/**
+ * 根据配置计算距离
+ */
+export function computeDistance(
+  vecA: Float32Array, 
+  vecB: Float32Array, 
+  config: DistanceConfig,
+  sqNormA?: number,
+  sqNormB?: number
+): number {
+  if (config.distanceFunction === 'custom' && config.customDistanceFunction) {
+    return config.customDistanceFunction(
+      { vector: vecA }, 
+      { vector: vecB }
+    );
+  }
+
+  switch (config.distanceFunction) {
+    case 'euclidean':
+      return computeEuclideanDistance(vecA, vecB, sqNormA, sqNormB);
+    case 'cosine':
+      return computeCosineDistance(vecA, vecB, sqNormA, sqNormB);
+    case 'inner_product':
+      return computeInnerProductDistance(vecA, vecB, config);
+    default:
+      throw new Error(`不支持的距离函数: ${config.distanceFunction}`);
+  }
+}
+
+/**
+ * 基于节点ID计算距离的工具函数
+ * 支持使用预计算的范数进行优化
+ */
+export function computeDistanceFromIds(
+  id1: number, 
+  id2: number, 
+  nodes: any[], 
+  distanceCache: DistanceCache, 
+  distanceConfig: DistanceConfig
+): number {
+  if (id1 === id2) return 0;
+  return distanceCache.getCachedDistance(id1, id2, (a, b) => {
+    const nodeA = nodes[a];
+    const nodeB = nodes[b];
+    return computeDistance(
+      nodeA.vector, 
+      nodeB.vector, 
+      distanceConfig,
+      nodeA.sqNorm,
+      nodeB.sqNorm
+    );
+  }, distanceConfig.distanceFunction);
+}
+
+
+
+// ================ 距离缓存 ================
+
+/**
+ * LRU缓存节点
+ */
+interface LRUNode {
+  key: number;
+  value: number;
+  prev: LRUNode | null;
+  next: LRUNode | null;
+}
+
+/**
+ * 高性能距离缓存 - 使用数字键和LRU淘汰策略
+ */
+export class DistanceCache {
+  private cache = new Map<number, LRUNode>();
+  private head: LRUNode | null = null;
+  private tail: LRUNode | null = null;
+  private maxSize: number;
+  
+  // 统计信息
+  private hits = 0;
+  private misses = 0;
+  private evictions = 0;
+  private distanceFunctionStats = new Map<string, { hits: number; misses: number }>();
+
+  constructor(maxSize: number = 10000) {
+    this.maxSize = maxSize;
+  }
+
+  /**
+   * 生成数字键 - 将两个32位整数编码为一个数字
+   * 使用位运算确保键的唯一性和一致性
+   */
+  private generateKey(id1: number, id2: number): number {
+    // 确保id1 <= id2，保持键的一致性
+    const minId = Math.min(id1, id2);
+    const maxId = Math.max(id1, id2);
+    
+    // 使用位运算将两个32位整数编码为一个数字
+    // 假设ID不会超过2^16，这样可以用32位存储两个ID
+    if (minId < 0 || maxId >= 65536) {
+      // 如果ID超出范围，回退到字符串键的哈希值
+      const strKey = `${minId}-${maxId}`;
+      return this.hashString(strKey);
+    }
+    
+    // 将minId放在高16位，maxId放在低16位
+    return (minId << 16) | maxId;
+  }
+
+  /**
+   * 简单的字符串哈希函数
+   */
+  private hashString(str: string): number {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // 转换为32位整数
+    }
+    return hash;
+  }
+
+  /**
+   * 将节点移到链表头部（最近使用）
+   */
+  private moveToHead(node: LRUNode): void {
+    if (node === this.head) return;
+    
+    // 从当前位置移除
+    if (node.prev) node.prev.next = node.next;
+    if (node.next) node.next.prev = node.prev;
+    if (node === this.tail) this.tail = node.prev;
+    
+    // 移到头部
+    node.prev = null;
+    node.next = this.head;
+    if (this.head) this.head.prev = node;
+    this.head = node;
+    if (!this.tail) this.tail = node;
+  }
+
+  /**
+   * 移除链表尾部节点（最近最少使用）
+   */
+  private removeTail(): LRUNode | null {
+    if (!this.tail) return null;
+    
+    const node = this.tail;
+    this.cache.delete(node.key);
+    this.evictions++;
+    
+    if (this.head === this.tail) {
+      this.head = null;
+      this.tail = null;
+    } else {
+      this.tail = node.prev;
+      if (this.tail) this.tail.next = null;
+    }
+    
+    return node;
+  }
+
+  /**
+   * 添加新节点到链表头部
+   */
+  private addToHead(key: number, value: number): LRUNode {
+    const node: LRUNode = { key, value, prev: null, next: this.head };
+    
+    if (this.head) this.head.prev = node;
+    this.head = node;
+    if (!this.tail) this.tail = node;
+    
+    this.cache.set(key, node);
+    return node;
+  }
+
+  /**
+   * 获取缓存的距离，如果不存在则计算并缓存
+   */
+  getCachedDistance(
+    id1: number, 
+    id2: number, 
+    computeFn: (id1: number, id2: number) => number,
+    distanceFunction?: string
+  ): number {
+    const key = this.generateKey(id1, id2);
+    
+    // 检查缓存
+    const node = this.cache.get(key);
+    if (node) {
+      this.hits++;
+      if (distanceFunction) {
+        const stats = this.distanceFunctionStats.get(distanceFunction) || { hits: 0, misses: 0 };
+        stats.hits++;
+        this.distanceFunctionStats.set(distanceFunction, stats);
+      }
+      this.moveToHead(node);
+      return node.value;
+    }
+    
+    // 缓存未命中，计算距离
+    this.misses++;
+    if (distanceFunction) {
+      const stats = this.distanceFunctionStats.get(distanceFunction) || { hits: 0, misses: 0 };
+      stats.misses++;
+      this.distanceFunctionStats.set(distanceFunction, stats);
+    }
+    
+    const distance = computeFn(id1, id2);
+    
+    // 检查缓存大小，如果超出限制则移除最久未使用的项
+    if (this.cache.size >= this.maxSize) {
+      this.removeTail();
+    }
+    
+    // 添加到缓存
+    this.addToHead(key, distance);
+    
+    return distance;
+  }
+
+  /**
+   * 清空缓存
+   */
+  clear(): void {
+    this.cache.clear();
+    this.head = null;
+    this.tail = null;
+    this.hits = 0;
+    this.misses = 0;
+    this.evictions = 0;
+    this.distanceFunctionStats.clear();
+  }
+
+  /**
+   * 获取缓存统计信息
+   */
+  getStats() {
+    const totalRequests = this.hits + this.misses;
+    const hitRate = totalRequests > 0 ? this.hits / totalRequests : 0;
+    
+    // 按距离函数统计命中率
+    const distanceFunctionHitRates: Record<string, number> = {};
+    for (const [func, stats] of this.distanceFunctionStats) {
+      const total = stats.hits + stats.misses;
+      distanceFunctionHitRates[func] = total > 0 ? stats.hits / total : 0;
+    }
+    
+    return {
+      size: this.cache.size,
+      maxSize: this.maxSize,
+      hits: this.hits,
+      misses: this.misses,
+      evictions: this.evictions,
+      hitRate,
+      distanceFunctionHitRates,
+      memoryUsage: this.cache.size * 8 // 估算内存使用（每个条目约8字节）
+    };
+  }
+
+  /**
+   * 设置最大缓存大小
+   */
+  setMaxSize(maxSize: number): void {
+    this.maxSize = maxSize;
+    
+    // 如果当前大小超过新的最大大小，移除多余的项
+    while (this.cache.size > this.maxSize) {
+      this.removeTail();
+    }
+  }
+
+  /**
+   * 获取缓存大小
+   */
+  getSize(): number {
+    return this.cache.size;
+  }
+
+  /**
+   * 检查缓存是否包含指定键
+   */
+  has(id1: number, id2: number): boolean {
+    const key = this.generateKey(id1, id2);
+    return this.cache.has(key);
+  }
+
+  /**
+   * 手动设置缓存项
+   */
+  set(id1: number, id2: number, distance: number): void {
+    const key = this.generateKey(id1, id2);
+    
+    const existingNode = this.cache.get(key);
+    if (existingNode) {
+      existingNode.value = distance;
+      this.moveToHead(existingNode);
+    } else {
+      if (this.cache.size >= this.maxSize) {
+        this.removeTail();
+      }
+      this.addToHead(key, distance);
+    }
+  }
+} 

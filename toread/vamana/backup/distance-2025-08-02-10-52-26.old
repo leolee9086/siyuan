@@ -1,0 +1,221 @@
+/**
+ * 距离计算模块
+ * 提供高性能的距离计算和缓存功能
+ */
+
+import { Vector } from './common.js';
+
+// ================ 类型定义 ================
+
+export type DistanceFunction = 'euclidean' | 'cosine' | 'inner_product' | 'custom';
+
+export type CustomDistanceFunction = (a: any, b: any) => number;
+
+export interface DistanceConfig {
+  distanceFunction: DistanceFunction;
+  customDistanceFunction?: CustomDistanceFunction;
+  // 内积距离特殊配置
+  ipPrepared?: boolean; // 是否对内积距离进行预处理
+  paddingId?: number;   // 填充维度ID
+}
+
+// ================ 距离计算函数 ================
+
+/**
+ * 计算欧几里得距离
+ * 支持使用预计算的范数进行优化
+ */
+export function computeEuclideanDistance(
+  vecA: Float32Array, 
+  vecB: Float32Array, 
+  sqNormA?: number, 
+  sqNormB?: number
+): number {
+  let sum = 0;
+  for (let i = 0; i < vecA.length; i++) {
+    const diff = vecA[i] - vecB[i];
+    sum += diff * diff;
+  }
+  return Math.sqrt(sum);
+}
+
+/**
+ * 计算余弦距离
+ * 支持使用预计算的范数进行优化
+ */
+export function computeCosineDistance(
+  vecA: Float32Array, 
+  vecB: Float32Array, 
+  sqNormA?: number, 
+  sqNormB?: number
+): number {
+  let dotProduct = 0;
+  
+  // 如果提供了预计算的范数，使用它们；否则计算
+  const normA = sqNormA !== undefined ? Math.sqrt(sqNormA) : (() => {
+    let sum = 0;
+    for (let i = 0; i < vecA.length; i++) {
+      sum += vecA[i] * vecA[i];
+    }
+    return Math.sqrt(sum);
+  })();
+  
+  const normB = sqNormB !== undefined ? Math.sqrt(sqNormB) : (() => {
+    let sum = 0;
+    for (let i = 0; i < vecB.length; i++) {
+      sum += vecB[i] * vecB[i];
+    }
+    return Math.sqrt(sum);
+  })();
+  
+  // 计算点积
+  for (let i = 0; i < vecA.length; i++) {
+    dotProduct += vecA[i] * vecB[i];
+  }
+  
+  const normProduct = normA * normB;
+  return normProduct === 0 ? 1 : 1 - (dotProduct / normProduct);
+}
+
+/**
+ * 计算内积距离（返回负值，因为我们要找最小距离）
+ * 支持预处理优化，包括向量归一化和填充维度处理
+ */
+export function computeInnerProductDistance(
+  vecA: Float32Array, 
+  vecB: Float32Array, 
+  config?: DistanceConfig
+): number {
+  let sum = 0;
+  
+  // 如果启用了内积预处理
+  if (config?.ipPrepared && config.paddingId !== undefined) {
+    const paddingId = config.paddingId;
+    
+    // 处理填充维度
+    for (let i = 0; i < vecA.length; i++) {
+      if (i === paddingId) {
+        // 填充维度使用特殊处理
+        sum += vecA[i] * vecB[i];
+      } else {
+        // 普通维度
+        sum += vecA[i] * vecB[i];
+      }
+    }
+  } else {
+    // 标准内积计算
+    for (let i = 0; i < vecA.length; i++) {
+      sum += vecA[i] * vecB[i];
+    }
+  }
+  
+  return -sum; // 返回负值，因为我们要找最小距离
+}
+
+/**
+ * 根据配置计算距离
+ */
+export function computeDistance(
+  vecA: Float32Array, 
+  vecB: Float32Array, 
+  config: DistanceConfig,
+  sqNormA?: number,
+  sqNormB?: number
+): number {
+  if (config.distanceFunction === 'custom' && config.customDistanceFunction) {
+    return config.customDistanceFunction(
+      { vector: vecA }, 
+      { vector: vecB }
+    );
+  }
+
+  switch (config.distanceFunction) {
+    case 'euclidean':
+      return computeEuclideanDistance(vecA, vecB, sqNormA, sqNormB);
+    case 'cosine':
+      return computeCosineDistance(vecA, vecB, sqNormA, sqNormB);
+    case 'inner_product':
+      return computeInnerProductDistance(vecA, vecB, config);
+    default:
+      throw new Error(`不支持的距离函数: ${config.distanceFunction}`);
+  }
+}
+
+/**
+ * 基于节点ID计算距离的工具函数
+ * 支持使用预计算的范数进行优化
+ */
+export function computeDistanceFromIds(
+  id1: number, 
+  id2: number, 
+  nodes: any[], 
+  distanceCache: DistanceCache, 
+  distanceConfig: DistanceConfig
+): number {
+  if (id1 === id2) return 0;
+  return distanceCache.getCachedDistance(id1, id2, (a, b) => {
+    const nodeA = nodes[a];
+    const nodeB = nodes[b];
+    return computeDistance(
+      nodeA.vector, 
+      nodeB.vector, 
+      distanceConfig,
+      nodeA.sqNorm,
+      nodeB.sqNorm
+    );
+  });
+}
+
+// ================ 距离缓存 ================
+
+/**
+ * 高性能距离缓存 - 使用Map缓存距离计算结果
+ */
+export class DistanceCache {
+  private cache = new Map<string, number>();
+  private hits = 0;
+  private misses = 0;
+
+  /**
+   * 获取缓存的距离，如果不存在则计算并缓存
+   */
+  getCachedDistance(
+    id1: number, 
+    id2: number, 
+    computeFn: (id1: number, id2: number) => number
+  ): number {
+    // 确保一致的键顺序
+    const key = id1 < id2 ? `${id1}-${id2}` : `${id2}-${id1}`;
+    
+    if (this.cache.has(key)) {
+      this.hits++;
+      return this.cache.get(key)!;
+    }
+    
+    const distance = computeFn(id1, id2);
+    this.cache.set(key, distance);
+    this.misses++;
+    return distance;
+  }
+
+  /**
+   * 清空缓存
+   */
+  clear(): void {
+    this.cache.clear();
+    this.hits = 0;
+    this.misses = 0;
+  }
+
+  /**
+   * 获取缓存统计信息
+   */
+  getStats() {
+    return {
+      size: this.cache.size,
+      hits: this.hits,
+      misses: this.misses,
+      hitRate: this.hits / (this.hits + this.misses) || 0
+    };
+  }
+} 

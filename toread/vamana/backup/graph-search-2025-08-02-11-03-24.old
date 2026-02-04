@@ -1,0 +1,233 @@
+/**
+ * 图搜索模块
+ * 提供高性能的图搜索算法
+ */
+
+import { Vector } from './common.js';
+import { DistanceConfig, DistanceCache, computeDistance, computeDistanceFromIds } from './distance.js';
+
+// ================ 类型定义 ================
+
+export interface VamanaNode {
+  vector: Float32Array;
+  id: number;
+  data: any;
+  neighbors: number[]; // 出边邻居列表
+  sqNorm?: number; // 预计算的向量平方范数，用于优化距离计算
+}
+
+export interface SearchCandidate {
+  id: number;
+  distance: number;
+  flag?: boolean; // 用于标记是否需要扩展
+}
+
+export interface SearchResult {
+  candidates: SearchCandidate[];
+  visited: Uint8Array; // 使用Uint8Array替代Set<number>以提高性能
+}
+
+// ================ 辅助函数 ================
+
+/**
+ * 计算向量的平方范数
+ * @param vec 输入向量
+ * @returns 向量的平方范数
+ */
+export function calculateSqNorm(vec: Float32Array): number {
+  let sum = 0;
+  for (let i = 0; i < vec.length; i++) {
+    sum += vec[i] * vec[i];
+  }
+  return sum;
+}
+
+// ================ 图搜索算法 ================
+
+/**
+ * 贪婪图搜索算法 - 支持多起始点搜索
+ * 
+ * 关键特性：
+ * 1. 支持多个起始点，提高图的连通性和搜索质量
+ * 2. 使用flag标记需要扩展的节点
+ * 3. 正确的终止条件：当没有更多节点需要扩展时停止
+ * 4. 高效的候选集管理，避免重复计算
+ * 5. 支持frozen point处理
+ * 6. 使用Uint8Array优化visited集合性能
+ * 7. 优化候选集管理，减少排序频率
+ */
+export function greedySearchMultiStart(
+  queryVector: Float32Array,
+  startNodeIds: number[], // 支持多个起始点
+  beamSize: number,
+  nodes: VamanaNode[],
+  distanceCache: DistanceCache,
+  distanceConfig: DistanceConfig
+): SearchResult {
+  if (nodes.length === 0 || startNodeIds.length === 0) {
+    return { candidates: [], visited: new Uint8Array(0) };
+  }
+
+  // 初始化候选集，大小为beamSize + 1
+  const candidates: SearchCandidate[] = [];
+  const visited = new Uint8Array(nodes.length); // 使用Uint8Array优化性能
+  const insertedIntoPool = new Set<number>();
+  
+  // 初始化候选集，所有距离设为无穷大
+  for (let i = 0; i <= beamSize; i++) {
+    candidates.push({ id: 0, distance: Infinity, flag: false });
+  }
+
+  // 添加所有起始节点
+  let l = 0; // 当前候选集大小
+  for (const startNodeId of startNodeIds) {
+    if (startNodeId >= nodes.length) continue;
+    
+    const initialDistance = computeDistance(queryVector, nodes[startNodeId].vector, distanceConfig);
+    
+    // 插入到正确位置，保持排序
+    let insertPos = l;
+    for (let i = 0; i < l; i++) {
+      if (initialDistance < candidates[i].distance) {
+        insertPos = i;
+        break;
+      }
+    }
+    
+    // 移动元素
+    for (let i = l; i > insertPos; i--) {
+      candidates[i] = candidates[i - 1];
+    }
+    candidates[insertPos] = { id: startNodeId, distance: initialDistance, flag: true };
+    insertedIntoPool.add(startNodeId);
+    
+    if (l < beamSize) {
+      l++;
+    }
+  }
+
+  let k = 0; // 当前处理的索引
+
+  // 主循环：处理需要扩展的节点
+  while (k < l) {
+    let nk = l;
+
+    if (candidates[k].flag) {
+      candidates[k].flag = false;
+      const currentId = candidates[k].id;
+      
+      // 如果当前节点不是frozen point，则记录为已访问
+      if (currentId < nodes.length) {
+        visited[currentId] = 1; // 使用数组索引访问，O(1)性能
+      }
+
+      // 探索当前节点的邻居
+      const currentNode = nodes[currentId];
+      for (const neighborId of currentNode.neighbors) {
+        if (neighborId >= nodes.length) continue;
+        
+        // 检查邻居是否已经在候选集中
+        if (!insertedIntoPool.has(neighborId)) {
+          insertedIntoPool.add(neighborId);
+          
+          const distance = computeDistance(queryVector, nodes[neighborId].vector, distanceConfig);
+          
+          // 如果距离小于当前候选集中的最大距离，则插入
+          if (distance < candidates[l - 1].distance || l < beamSize) {
+            const newCandidate: SearchCandidate = { id: neighborId, distance, flag: true };
+            
+            // 插入到正确位置，保持排序
+            let insertPos = l;
+            for (let i = 0; i < l; i++) {
+              if (distance < candidates[i].distance) {
+                insertPos = i;
+                break;
+              }
+            }
+            
+            // 移动元素
+            for (let i = l; i > insertPos; i--) {
+              candidates[i] = candidates[i - 1];
+            }
+            candidates[insertPos] = newCandidate;
+            
+            if (l < beamSize) {
+              l++;
+            }
+            
+            if (insertPos < nk) {
+              nk = insertPos;
+            }
+          }
+        }
+      }
+    }
+    
+    // 更新处理索引
+    if (nk <= k) {
+      k = nk;
+    } else {
+      k++;
+    }
+  }
+
+  // 过滤掉无效的候选（距离为无穷大的）
+  const validCandidates = candidates.filter(c => c.distance < Infinity);
+  
+  return { 
+    candidates: validCandidates, 
+    visited 
+  };
+}
+
+/**
+ * 贪婪图搜索算法 - 单起始点版本（向后兼容）
+ * 
+ * 关键特性：
+ * 1. 使用flag标记需要扩展的节点
+ * 2. 正确的终止条件：当没有更多节点需要扩展时停止
+ * 3. 高效的候选集管理，避免重复计算
+ * 4. 支持frozen point处理
+ * 5. 使用Uint8Array优化visited集合性能
+ */
+export function greedySearch(
+  queryVector: Float32Array,
+  startNodeId: number,
+  beamSize: number,
+  nodes: VamanaNode[],
+  distanceCache: DistanceCache,
+  distanceConfig: DistanceConfig
+): SearchResult {
+  return greedySearchMultiStart(queryVector, [startNodeId], beamSize, nodes, distanceCache, distanceConfig);
+}
+
+/**
+ * 找到数据集的中位点（medoid）
+ */
+export function findMedoid(
+  nodes: VamanaNode[],
+  distanceCache: DistanceCache,
+  distanceConfig: DistanceConfig
+): number {
+  if (nodes.length === 0) return 0;
+  if (nodes.length === 1) return 0;
+
+  let bestMedoid = 0;
+  let minTotalDistance = Infinity;
+
+  for (let i = 0; i < nodes.length; i++) {
+    let totalDistance = 0;
+    for (let j = 0; j < nodes.length; j++) {
+      if (i !== j) {
+        totalDistance += computeDistanceFromIds(i, j, nodes, distanceCache, distanceConfig);
+      }
+    }
+    
+    if (totalDistance < minTotalDistance) {
+      minTotalDistance = totalDistance;
+      bestMedoid = i;
+    }
+  }
+
+  return bestMedoid;
+}

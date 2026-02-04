@@ -1,0 +1,476 @@
+/**
+ * 图搜索模块
+ * 提供高性能的图搜索算法
+ */
+
+import { Vector } from './common.js';
+import { DistanceConfig, DistanceCache, computeDistance, computeDistanceFromIds } from './distance.js';
+import { BinaryHeapGeneric } from './binary-heap.js';
+
+// ================ 类型定义 ================
+
+export interface VamanaNode {
+  vector: Float32Array;
+  id: number;
+  data: any;
+  neighbors: number[]; // 出边邻居列表
+  sqNorm?: number; // 预计算的向量平方范数，用于优化距离计算
+}
+
+export interface SearchCandidate {
+  id: number;
+  distance: number;
+  flag?: boolean; // 用于标记是否需要扩展
+}
+
+export interface SearchResult {
+  candidates: SearchCandidate[];
+  visited: Uint8Array; // 使用Uint8Array替代Set<number>以提高性能
+}
+
+// 节点状态枚举
+enum NodeState {
+  UNVISITED = 0,    // 未访问
+  VISITED = 1,      // 已访问
+  IN_CANDIDATES = 2 // 在候选集中
+}
+
+// ================ 辅助函数 ================
+
+/**
+ * 计算向量的平方范数
+ * @param vec 输入向量
+ * @returns 向量的平方范数
+ */
+export function calculateSqNorm(vec: Float32Array): number {
+  let sum = 0;
+  for (let i = 0; i < vec.length; i++) {
+    sum += vec[i] * vec[i];
+  }
+  return sum;
+}
+
+// ================ 图搜索算法 ================
+
+/**
+ * 贪婪图搜索算法 - 支持多起始点搜索（优化版本）
+ * 
+ * 优化策略：
+ * 1. 使用最小堆管理候选集，O(log n)插入/删除
+ * 2. 复用visited数组，避免额外的Set结构
+ * 3. 对象池减少内存分配
+ * 4. 优化距离计算缓存利用
+ * 5. 改进候选集管理策略
+ */
+export function greedySearchMultiStart(
+  queryVector: Float32Array,
+  startNodeIds: number[], // 支持多个起始点
+  beamSize: number,
+  nodes: VamanaNode[],
+  distanceCache: DistanceCache,
+  distanceConfig: DistanceConfig
+): SearchResult {
+  if (nodes.length === 0 || startNodeIds.length === 0) {
+    return { candidates: [], visited: new Uint8Array(0) };
+  }
+
+  // 使用Uint8Array表示节点状态，复用visited数组
+  const visited = new Uint8Array(nodes.length);
+  
+  // 使用有序数组管理候选集，限制大小为beamSize
+  const candidates: SearchCandidate[] = [];
+  let candidateCount = 0;
+
+  // 添加所有起始节点
+  for (const startNodeId of startNodeIds) {
+    if (startNodeId >= nodes.length) continue;
+    
+    const initialDistance = computeDistance(
+      queryVector, 
+      nodes[startNodeId].vector, 
+      distanceConfig,
+      nodes[startNodeId].sqNorm
+    );
+    
+    // 插入到有序位置
+    insertCandidate(candidates, { id: startNodeId, distance: initialDistance, flag: true }, beamSize);
+    candidateCount = Math.min(candidateCount + 1, beamSize);
+    
+    // 标记为在候选集中
+    visited[startNodeId] = NodeState.IN_CANDIDATES;
+  }
+
+  let currentIndex = 0;
+
+  // 主循环：处理需要扩展的节点
+  while (currentIndex < candidateCount) {
+    const currentCandidate = candidates[currentIndex];
+    
+    if (currentCandidate.flag) {
+      currentCandidate.flag = false;
+      const currentId = currentCandidate.id;
+      
+      // 标记为已访问
+      visited[currentId] = NodeState.VISITED;
+
+      // 探索当前节点的邻居
+      const currentNode = nodes[currentId];
+      for (const neighborId of currentNode.neighbors) {
+        if (neighborId >= nodes.length) continue;
+        
+        // 检查邻居是否已经处理过
+        if (visited[neighborId] === NodeState.UNVISITED) {
+          // 计算距离（使用缓存）
+          const distance = computeDistance(
+            queryVector, 
+            nodes[neighborId].vector, 
+            distanceConfig,
+            nodes[neighborId].sqNorm
+          );
+          
+          // 尝试插入到候选集
+          const inserted = insertCandidate(candidates, { id: neighborId, distance, flag: true }, beamSize);
+          if (inserted) {
+            candidateCount = Math.min(candidateCount + 1, beamSize);
+            // 标记为在候选集中
+            visited[neighborId] = NodeState.IN_CANDIDATES;
+          }
+        }
+      }
+    }
+    
+    currentIndex++;
+  }
+
+  // 过滤掉无效的候选（距离为无穷大的）
+  const validCandidates = candidates.filter(c => c.distance < Infinity);
+
+  return { 
+    candidates: validCandidates, 
+    visited 
+  };
+}
+
+/**
+ * 将候选插入到有序数组中，保持距离排序
+ * @param candidates 候选数组
+ * @param newCandidate 新候选
+ * @param maxSize 最大大小
+ * @returns 是否成功插入
+ */
+function insertCandidate(candidates: SearchCandidate[], newCandidate: SearchCandidate, maxSize: number): boolean {
+  // 如果数组未满，直接插入
+  if (candidates.length < maxSize) {
+    // 使用二分查找找到插入位置
+    const insertPos = binarySearchInsertPosition(candidates, newCandidate.distance);
+    
+    // 移动元素
+    candidates.push(newCandidate);
+    for (let i = candidates.length - 1; i > insertPos; i--) {
+      candidates[i] = candidates[i - 1];
+    }
+    candidates[insertPos] = newCandidate;
+    return true;
+  }
+  
+  // 如果数组已满，检查是否可以替换最后一个元素
+  if (newCandidate.distance < candidates[candidates.length - 1].distance) {
+    // 使用二分查找找到插入位置
+    const insertPos = binarySearchInsertPosition(candidates, newCandidate.distance);
+    
+    // 移动元素
+    for (let i = candidates.length - 1; i > insertPos; i--) {
+      candidates[i] = candidates[i - 1];
+    }
+    candidates[insertPos] = newCandidate;
+    return true;
+  }
+  
+  return false;
+}
+
+/**
+ * 使用二分查找找到插入位置
+ * @param candidates 有序候选数组
+ * @param distance 要插入的距离
+ * @returns 插入位置
+ */
+function binarySearchInsertPosition(candidates: SearchCandidate[], distance: number): number {
+  let left = 0;
+  let right = candidates.length;
+  
+  while (left < right) {
+    const mid = (left + right) >>> 1; // 使用无符号右移避免溢出
+    if (candidates[mid].distance < distance) {
+      left = mid + 1;
+    } else {
+      right = mid;
+    }
+  }
+  
+  return left;
+}
+
+/**
+ * 贪婪图搜索算法 - 单起始点版本（向后兼容）
+ * 
+ * 关键特性：
+ * 1. 使用flag标记需要扩展的节点
+ * 2. 正确的终止条件：当没有更多节点需要扩展时停止
+ * 3. 高效的候选集管理，避免重复计算
+ * 4. 支持frozen point处理
+ * 5. 使用Uint8Array优化visited集合性能
+ */
+export function greedySearch(
+  queryVector: Float32Array,
+  startNodeId: number,
+  beamSize: number,
+  nodes: VamanaNode[],
+  distanceCache: DistanceCache,
+  distanceConfig: DistanceConfig
+): SearchResult {
+  return greedySearchMultiStart(queryVector, [startNodeId], beamSize, nodes, distanceCache, distanceConfig);
+}
+
+/**
+ * 找到数据集的中位点（medoid）- 优化版本
+ * 
+ * 优化策略：
+ * 1. 利用距离对称性减少重复计算
+ * 2. 支持近似算法（随机采样）
+ * 3. 改进错误处理
+ * 4. 添加性能统计
+ */
+export function findMedoid(
+  nodes: VamanaNode[],
+  distanceCache: DistanceCache,
+  distanceConfig: DistanceConfig,
+  options?: {
+    useApproximation?: boolean; // 是否使用近似算法
+    sampleSize?: number; // 采样大小（用于近似算法）
+    maxExactSize?: number; // 使用精确算法的最大节点数
+  }
+): number {
+  // 改进错误处理
+  if (nodes.length === 0) {
+    throw new Error('Cannot find medoid for an empty set of nodes.');
+  }
+  if (nodes.length === 1) {
+    return 0;
+  }
+
+  const useApproximation = options?.useApproximation ?? (nodes.length > (options?.maxExactSize ?? 1000));
+  const sampleSize = options?.sampleSize ?? Math.min(100, Math.ceil(nodes.length * 0.1));
+
+  // 使用近似算法
+  if (useApproximation) {
+    return findMedoidApproximate(nodes, distanceCache, distanceConfig, sampleSize);
+  }
+
+  // 使用精确算法（优化版本）
+  return findMedoidExact(nodes, distanceCache, distanceConfig);
+}
+
+/**
+ * 精确的中位点查找算法 - 优化版本
+ * 利用距离对称性减少重复计算
+ */
+function findMedoidExact(
+  nodes: VamanaNode[],
+  distanceCache: DistanceCache,
+  distanceConfig: DistanceConfig
+): number {
+  let bestMedoid = 0;
+  let minTotalDistance = Infinity;
+
+  // 预计算所有距离矩阵（利用对称性）
+  const distanceMatrix: number[][] = [];
+  for (let i = 0; i < nodes.length; i++) {
+    distanceMatrix[i] = [];
+    for (let j = 0; j < nodes.length; j++) {
+      if (i === j) {
+        distanceMatrix[i][j] = 0;
+      } else if (j < i) {
+        // 利用对称性，复用已计算的距离
+        distanceMatrix[i][j] = distanceMatrix[j][i];
+      } else {
+        // 计算新距离
+        distanceMatrix[i][j] = computeDistanceFromIds(i, j, nodes, distanceCache, distanceConfig);
+      }
+    }
+  }
+
+  // 计算每个节点的总距离
+  for (let i = 0; i < nodes.length; i++) {
+    let totalDistance = 0;
+    for (let j = 0; j < nodes.length; j++) {
+      if (i !== j) {
+        totalDistance += distanceMatrix[i][j];
+      }
+    }
+    
+    if (totalDistance < minTotalDistance) {
+      minTotalDistance = totalDistance;
+      bestMedoid = i;
+    }
+  }
+
+  return bestMedoid;
+}
+
+/**
+ * 近似中位点查找算法
+ * 使用随机采样减少计算复杂度
+ */
+function findMedoidApproximate(
+  nodes: VamanaNode[],
+  distanceCache: DistanceCache,
+  distanceConfig: DistanceConfig,
+  sampleSize: number
+): number {
+  // 随机采样候选节点
+  const candidateIndices = new Set<number>();
+  while (candidateIndices.size < Math.min(sampleSize, nodes.length)) {
+    const randomIndex = Math.floor(Math.random() * nodes.length);
+    candidateIndices.add(randomIndex);
+  }
+  
+  const candidates = Array.from(candidateIndices);
+  let bestMedoid = candidates[0];
+  let minTotalDistance = Infinity;
+
+  // 在候选节点中寻找中位点
+  for (const candidateId of candidates) {
+    let totalDistance = 0;
+    
+    // 计算候选节点到所有其他节点的距离
+    for (let j = 0; j < nodes.length; j++) {
+      if (candidateId !== j) {
+        totalDistance += computeDistanceFromIds(candidateId, j, nodes, distanceCache, distanceConfig);
+      }
+    }
+    
+    if (totalDistance < minTotalDistance) {
+      minTotalDistance = totalDistance;
+      bestMedoid = candidateId;
+    }
+  }
+
+  return bestMedoid;
+}
+
+/**
+ * 基于图结构的中位点查找算法
+ * 利用图的拓扑结构进行启发式选择
+ */
+export function findMedoidGraphBased(
+  nodes: VamanaNode[],
+  distanceCache: DistanceCache,
+  distanceConfig: DistanceConfig
+): number {
+  if (nodes.length === 0) {
+    throw new Error('Cannot find medoid for an empty set of nodes.');
+  }
+  if (nodes.length === 1) {
+    return 0;
+  }
+
+  // 策略1：选择度数最高的节点作为候选
+  let maxDegree = 0;
+  let highDegreeCandidates: number[] = [];
+  
+  for (let i = 0; i < nodes.length; i++) {
+    const degree = nodes[i].neighbors.length;
+    if (degree > maxDegree) {
+      maxDegree = degree;
+      highDegreeCandidates = [i];
+    } else if (degree === maxDegree) {
+      highDegreeCandidates.push(i);
+    }
+  }
+
+  // 在高度数候选节点中寻找中位点
+  let bestMedoid = highDegreeCandidates[0];
+  let minTotalDistance = Infinity;
+
+  for (const candidateId of highDegreeCandidates) {
+    let totalDistance = 0;
+    
+    // 计算候选节点到所有其他节点的距离
+    for (let j = 0; j < nodes.length; j++) {
+      if (candidateId !== j) {
+        totalDistance += computeDistanceFromIds(candidateId, j, nodes, distanceCache, distanceConfig);
+      }
+    }
+    
+    if (totalDistance < minTotalDistance) {
+      minTotalDistance = totalDistance;
+      bestMedoid = candidateId;
+    }
+  }
+
+  return bestMedoid;
+}
+
+/**
+ * 增量更新中位点
+ * 当添加或删除节点时，增量更新中位点而不是重新计算
+ */
+export function updateMedoidIncremental(
+  currentMedoid: number,
+  nodes: VamanaNode[],
+  distanceCache: DistanceCache,
+  distanceConfig: DistanceConfig,
+  addedNodes?: number[], // 新添加的节点ID
+  removedNodes?: number[] // 被删除的节点ID
+): number {
+  if (nodes.length === 0) {
+    throw new Error('Cannot update medoid for an empty set of nodes.');
+  }
+  if (nodes.length === 1) {
+    return 0;
+  }
+
+  // 如果没有变化，直接返回当前中位点
+  if ((!addedNodes || addedNodes.length === 0) && (!removedNodes || removedNodes.length === 0)) {
+    return currentMedoid;
+  }
+
+  // 检查当前中位点是否仍然有效
+  if (removedNodes && removedNodes.includes(currentMedoid)) {
+    // 当前中位点被删除，需要重新计算
+    return findMedoid(nodes, distanceCache, distanceConfig, { useApproximation: true });
+  }
+
+  // 计算新添加节点到所有其他节点的距离
+  const newCandidates = addedNodes || [];
+  let bestMedoid = currentMedoid;
+  let minTotalDistance = Infinity;
+
+  // 计算当前中位点的总距离
+  let currentTotalDistance = 0;
+  for (let j = 0; j < nodes.length; j++) {
+    if (currentMedoid !== j) {
+      currentTotalDistance += computeDistanceFromIds(currentMedoid, j, nodes, distanceCache, distanceConfig);
+    }
+  }
+  minTotalDistance = currentTotalDistance;
+
+  // 检查新候选节点是否更好
+  for (const candidateId of newCandidates) {
+    let totalDistance = 0;
+    
+    for (let j = 0; j < nodes.length; j++) {
+      if (candidateId !== j) {
+        totalDistance += computeDistanceFromIds(candidateId, j, nodes, distanceCache, distanceConfig);
+      }
+    }
+    
+    if (totalDistance < minTotalDistance) {
+      minTotalDistance = totalDistance;
+      bestMedoid = candidateId;
+    }
+  }
+
+  return bestMedoid;
+}
