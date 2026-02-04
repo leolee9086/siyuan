@@ -603,6 +603,169 @@ func (idx *VamanaIndex) Build(vectors [][]float32) error {
 	return nil
 }
 
+// BuildParallel 并行构建索引
+// numWorkers: 并行工作线程数，建议设置为 CPU 核心数
+// 使用分块并行策略，每个 worker 独立处理一批节点
+func (idx *VamanaIndex) BuildParallel(vectors [][]float32, numWorkers int) error {
+	if len(vectors) == 0 {
+		return nil
+	}
+	if numWorkers <= 0 {
+		numWorkers = 1
+	}
+
+	// 初始化数据结构
+	idx.initializeForBuild(vectors)
+
+	// 预计算所有向量的范数平方
+	idx.precomputeNormSquares()
+
+	// 计算质心并选择入口点
+	idx.medoid = idx.findMedoid()
+
+	// 随机打乱插入顺序 (提高图质量)
+	order := rand.Perm(len(vectors))
+
+	// 分块并行构建
+	chunkSize := 10000
+	for start := 0; start < len(order); start += chunkSize {
+		end := start + chunkSize
+		if end > len(order) {
+			end = len(order)
+		}
+		idx.processChunkParallel(order[start:end], numWorkers)
+	}
+
+	return nil
+}
+
+// initializeForBuild 初始化构建所需的数据结构
+func (idx *VamanaIndex) initializeForBuild(vectors [][]float32) {
+	idx.mu.Lock()
+	defer idx.mu.Unlock()
+
+	n := len(vectors)
+	idx.vectors = make([][]float32, n)
+	copy(idx.vectors, vectors)
+	idx.neighbors = make([][]uint32, n)
+	idx.nodeLocks = make([]sync.RWMutex, n)
+	for i := range idx.neighbors {
+		idx.neighbors[i] = make([]uint32, 0, idx.config.R)
+	}
+	// 重置删除位图
+	idx.deleted = NewBitset(n)
+	idx.nDeleted = 0
+}
+
+// processChunkParallel 并行处理一批节点
+func (idx *VamanaIndex) processChunkParallel(nodeIDs []int, numWorkers int) {
+	if len(nodeIDs) == 0 {
+		return
+	}
+
+	// 如果节点数少于 worker 数，减少 worker
+	if numWorkers > len(nodeIDs) {
+		numWorkers = len(nodeIDs)
+	}
+
+	var wg sync.WaitGroup
+	ch := make(chan int, len(nodeIDs))
+
+	// 将所有节点 ID 放入通道
+	for _, id := range nodeIDs {
+		ch <- id
+	}
+	close(ch)
+
+	// 启动 worker
+	for w := 0; w < numWorkers; w++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			// 每个 worker 独立的 scratch
+			scratch := idx.getScratch()
+			defer idx.putScratch(scratch)
+
+			for id := range ch {
+				idx.buildNodeWithScratch(uint32(id), scratch)
+			}
+		}()
+	}
+
+	wg.Wait()
+}
+
+// buildNodeWithScratch 使用提供的 scratch 为节点构建邻居关系
+// 这是并行构建的核心方法，使用节点级锁而非全局锁
+func (idx *VamanaIndex) buildNodeWithScratch(id uint32, scratch *SearchScratch) {
+	vector := idx.vectors[id]
+
+	// 1. 贪婪搜索找候选
+	startIDs := []uint32{idx.medoid}
+	candidates := idx.greedySearch(scratch, startIDs, vector, idx.config.L)
+
+	// 2. RobustPrune剪枝
+	neighbors := idx.robustPrune(id, candidates, idx.config.R, idx.config.Alpha)
+
+	// 3. 使用节点级锁设置邻居
+	idx.setNeighborsLocked(id, neighbors)
+
+	// 4. 添加反向边
+	maxBackedges := len(neighbors)
+	if maxBackedges > idx.config.MaxBackedges {
+		maxBackedges = idx.config.MaxBackedges
+	}
+	for i := 0; i < maxBackedges; i++ {
+		idx.addEdgeAndPruneLocked(neighbors[i], id)
+	}
+}
+
+// setNeighborsLocked 使用节点级锁设置邻居
+// 注意：idx.neighbors 切片在初始化后不再 resize，因此只需节点锁
+func (idx *VamanaIndex) setNeighborsLocked(id uint32, neighbors []uint32) {
+	idx.nodeLocks[id].Lock()
+	defer idx.nodeLocks[id].Unlock()
+	idx.neighbors[id] = neighbors
+}
+
+// addEdgeAndPruneLocked 添加反向边（使用节点级锁）
+// 注意：idx.neighbors 切片在初始化后不再 resize，因此只需节点锁
+func (idx *VamanaIndex) addEdgeAndPruneLocked(nodeID, newNeighborID uint32) {
+	idx.nodeLocks[nodeID].Lock()
+	defer idx.nodeLocks[nodeID].Unlock()
+
+	currentNeighbors := idx.neighbors[nodeID]
+
+	// 检查是否已存在
+	if containsID(currentNeighbors, newNeighborID) {
+		return
+	}
+
+	// 如果未满，直接添加
+	if len(currentNeighbors) < idx.config.R {
+		idx.neighbors[nodeID] = append(idx.neighbors[nodeID], newNeighborID)
+		return
+	}
+
+	// 需要剪枝：构建候选列表
+	nodeVector := idx.vectors[nodeID]
+	candidates := make([]Neighbor, 0, len(currentNeighbors)+1)
+
+	for _, nid := range currentNeighbors {
+		dist := idx.distanceToQuery(nid, nodeVector)
+		candidates = append(candidates, Neighbor{ID: nid, Distance: dist})
+	}
+
+	// 添加新邻居
+	newDist := idx.distanceToQuery(newNeighborID, nodeVector)
+	candidates = append(candidates, Neighbor{ID: newNeighborID, Distance: newDist})
+
+	// 剪枝
+	newNeighbors := idx.robustPrune(nodeID, candidates, idx.config.R, idx.config.Alpha)
+
+	idx.neighbors[nodeID] = newNeighbors
+}
+
 // buildNode 为已存在的节点构建邻居关系
 func (idx *VamanaIndex) buildNode(id uint32) {
 	vector := idx.vectors[id]

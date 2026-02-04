@@ -769,3 +769,163 @@ func TestRecallVsSearchL(t *testing.T) {
 		t.Logf("%-10d %-15.2f%% %-15.2fµs %-15.2f", searchL, avgRecall*100, avgLatency, qps)
 	}
 }
+
+// ============================================================================
+// 并行构建测试
+// ============================================================================
+
+// TestBuildParallel 测试并行构建功能
+func TestBuildParallel(t *testing.T) {
+	dataPath := getSIFTDataPath()
+	if dataPath == "" {
+		t.Skip("SIFT dataset not found")
+	}
+
+	const numVectors = 10000
+
+	// 加载数据
+	baseVectors, dim, err := loadFvecsPartial(filepath.Join(dataPath, "sift_base.fvecs"), numVectors)
+	if err != nil {
+		t.Fatalf("Failed to load base vectors: %v", err)
+	}
+
+	queryVectors, _, err := loadFvecs(filepath.Join(dataPath, "sift_query.fvecs"))
+	if err != nil {
+		t.Fatalf("Failed to load query vectors: %v", err)
+	}
+
+	// 计算 ground truth
+	numQueries := 100
+	k := 10
+	groundTruth := computeGroundTruth(baseVectors, queryVectors[:numQueries], k)
+
+	config := DefaultConfig()
+	config.R = 32
+	config.L = 50
+	config.Alpha = 1.2
+
+	// 测试不同的 worker 数量
+	workerCounts := []int{1, 2, 4, runtime.NumCPU()}
+
+	t.Logf("=== Parallel Build Test ===")
+	t.Logf("Vectors: %d, Dimension: %d", numVectors, dim)
+	t.Logf("%-10s %-15s %-15s %-15s", "Workers", "Build Time", "Throughput", "Recall@10")
+
+	for _, numWorkers := range workerCounts {
+		idx := New(dim, config)
+
+		buildStart := time.Now()
+		if err := idx.BuildParallel(baseVectors, numWorkers); err != nil {
+			t.Fatalf("BuildParallel failed with %d workers: %v", numWorkers, err)
+		}
+		buildTime := time.Since(buildStart)
+
+		// 验证召回率
+		totalRecall := 0.0
+		for i := 0; i < numQueries; i++ {
+			results := idx.Search(queryVectors[i], k, 50)
+			totalRecall += computeRecallAtK(results, groundTruth[i], k)
+		}
+		avgRecall := totalRecall / float64(numQueries)
+
+		throughput := float64(numVectors) / buildTime.Seconds()
+		t.Logf("%-10d %-15v %-15.0f %-15.2f%%", numWorkers, buildTime, throughput, avgRecall*100)
+
+		// 验证召回率不低于串行构建
+		if avgRecall < 0.90 {
+			t.Errorf("Recall too low with %d workers: %.2f%%, expected >= 90%%", numWorkers, avgRecall*100)
+		}
+	}
+}
+
+// TestBuildParallel100K 测试 100K 规模的并行构建
+func TestBuildParallel100K(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping 100K parallel build test in short mode")
+	}
+
+	dataPath := getSIFTDataPath()
+	if dataPath == "" {
+		t.Skip("SIFT dataset not found")
+	}
+
+	const numVectors = 100000
+
+	// 加载数据
+	baseVectors, dim, err := loadFvecsPartial(filepath.Join(dataPath, "sift_base.fvecs"), numVectors)
+	if err != nil {
+		t.Fatalf("Failed to load base vectors: %v", err)
+	}
+
+	queryVectors, _, err := loadFvecs(filepath.Join(dataPath, "sift_query.fvecs"))
+	if err != nil {
+		t.Fatalf("Failed to load query vectors: %v", err)
+	}
+
+	// 计算 ground truth
+	numQueries := 100
+	k := 10
+	t.Logf("Computing ground truth...")
+	groundTruth := computeGroundTruth(baseVectors, queryVectors[:numQueries], k)
+
+	config := DefaultConfig()
+	config.R = 64
+	config.L = 100
+	config.Alpha = 1.2
+
+	t.Logf("=== Parallel Build 100K Test ===")
+	t.Logf("Vectors: %d, Dimension: %d", numVectors, dim)
+
+	// 只测试并行构建（串行构建在100K规模下太慢）
+	numWorkers := runtime.NumCPU()
+	t.Logf("\n--- Parallel Build (%d workers) ---", numWorkers)
+	idxParallel := New(dim, config)
+	parallelStart := time.Now()
+	if err := idxParallel.BuildParallel(baseVectors, numWorkers); err != nil {
+		t.Fatalf("Parallel build failed: %v", err)
+	}
+	parallelTime := time.Since(parallelStart)
+	parallelThroughput := float64(numVectors) / parallelTime.Seconds()
+	t.Logf("Parallel: %v (%.0f vec/s)", parallelTime, parallelThroughput)
+
+	// 验证召回率
+	t.Logf("\n--- Recall Test ---")
+	parallelRecall := 0.0
+	for i := 0; i < numQueries; i++ {
+		parallelResults := idxParallel.Search(queryVectors[i], k, 100)
+		parallelRecall += computeRecallAtK(parallelResults, groundTruth[i], k)
+	}
+	parallelRecall /= float64(numQueries)
+
+	t.Logf("Parallel Recall@%d: %.2f%%", k, parallelRecall*100)
+
+	// 验证召回率达标
+	if parallelRecall < 0.80 {
+		t.Errorf("Parallel recall (%.2f%%) too low, expected >= 80%%", parallelRecall*100)
+	}
+}
+
+// BenchmarkBuildParallel 基准测试：并行构建
+func BenchmarkBuildParallel(b *testing.B) {
+	dataPath := getSIFTDataPath()
+	if dataPath == "" {
+		b.Skip("SIFT dataset not found")
+	}
+
+	vectors, dim, err := loadFvecsPartial(filepath.Join(dataPath, "sift_base.fvecs"), 10000)
+	if err != nil {
+		b.Fatalf("Failed to load vectors: %v", err)
+	}
+
+	config := DefaultConfig()
+	config.R = 64
+	config.L = 100
+
+	numWorkers := runtime.NumCPU()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		idx := New(dim, config)
+		idx.BuildParallel(vectors, numWorkers)
+	}
+}
