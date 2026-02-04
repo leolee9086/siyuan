@@ -308,15 +308,23 @@ type SearchScratch struct {
 	// 统计信息
 	Cmps uint32 // 距离计算次数
 	Hops uint32 // 跳数
+
+	// robustPrune 复用缓冲区（避免每次调用分配）
+	OccludeFactor []float32 // 遮挡因子
+	LastChecked   []int     // 增量检查位置
+	ResultPos     []int     // 结果位置
 }
 
 // NewSearchScratch 创建新的搜索临时空间
 func NewSearchScratch(capacity int, searchListSize int) *SearchScratch {
 	return &SearchScratch{
-		Visited: NewEpochSet(capacity),
-		Best:    NewNeighborPriorityQueue(searchListSize),
-		Cmps:    0,
-		Hops:    0,
+		Visited:       NewEpochSet(capacity),
+		Best:          NewNeighborPriorityQueue(searchListSize),
+		Cmps:          0,
+		Hops:          0,
+		OccludeFactor: make([]float32, 0, 256),
+		LastChecked:   make([]int, 0, 256),
+		ResultPos:     make([]int, 0, 64),
 	}
 }
 

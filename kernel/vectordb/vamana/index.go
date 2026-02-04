@@ -158,20 +158,26 @@ func euclideanDistance(a, b []float32) float32 {
 }
 
 // dotProduct 计算两个向量的点积
-// 使用4路循环展开优化
+// 使用8路循环展开优化，减少循环开销
 func dotProduct(a, b []float32) float32 {
 	n := len(a)
-	var sum0, sum1, sum2, sum3 float32
+	var s0, s1, s2, s3, s4, s5, s6, s7 float32
 
 	i := 0
-	for ; i <= n-4; i += 4 {
-		sum0 += a[i] * b[i]
-		sum1 += a[i+1] * b[i+1]
-		sum2 += a[i+2] * b[i+2]
-		sum3 += a[i+3] * b[i+3]
+	// 8路展开主循环
+	for ; i <= n-8; i += 8 {
+		s0 += a[i] * b[i]
+		s1 += a[i+1] * b[i+1]
+		s2 += a[i+2] * b[i+2]
+		s3 += a[i+3] * b[i+3]
+		s4 += a[i+4] * b[i+4]
+		s5 += a[i+5] * b[i+5]
+		s6 += a[i+6] * b[i+6]
+		s7 += a[i+7] * b[i+7]
 	}
 
-	sum := sum0 + sum1 + sum2 + sum3
+	// 处理剩余元素（0-7个）
+	sum := s0 + s1 + s2 + s3 + s4 + s5 + s6 + s7
 	for ; i < n; i++ {
 		sum += a[i] * b[i]
 	}
@@ -245,6 +251,14 @@ func (idx *VamanaIndex) findMedoid() uint32 {
 // 返回最近的L个候选节点
 // 优化: 整个搜索期间持有读锁，避免每次循环加解锁的开销
 func (idx *VamanaIndex) greedySearch(scratch *SearchScratch, startIDs []uint32, query []float32, L int) []Neighbor {
+	// 计算查询范数，委托给快速版本
+	queryNormSq := computeNormSquare(query)
+	return idx.greedySearchFast(scratch, startIDs, query, queryNormSq, L)
+}
+
+// greedySearchFast 使用预计算范数的快速贪婪搜索
+// queryNormSq: 预计算的查询向量范数平方
+func (idx *VamanaIndex) greedySearchFast(scratch *SearchScratch, startIDs []uint32, query []float32, queryNormSq float32, L int) []Neighbor {
 	scratch.Reset()
 
 	// 整个搜索期间持有读锁
@@ -263,7 +277,7 @@ func (idx *VamanaIndex) greedySearch(scratch *SearchScratch, startIDs []uint32, 
 			continue
 		}
 		scratch.Visited.Insert(startID)
-		dist := idx.distanceToQuery(startID, query)
+		dist := idx.fastDistanceToQuery(startID, query, queryNormSq)
 		scratch.Best.Insert(Neighbor{ID: startID, Distance: dist})
 		scratch.Cmps++
 	}
@@ -285,7 +299,50 @@ func (idx *VamanaIndex) greedySearch(scratch *SearchScratch, startIDs []uint32, 
 				continue
 			}
 			if scratch.Visited.Insert(neighborID) {
-				dist := idx.distanceToQuery(neighborID, query)
+				dist := idx.fastDistanceToQuery(neighborID, query, queryNormSq)
+				scratch.Best.Insert(Neighbor{ID: neighborID, Distance: dist})
+				scratch.Cmps++
+			}
+		}
+		scratch.Hops++
+	}
+
+	return scratch.Best.All()
+}
+
+// greedySearchForBuild 构建专用的无锁贪婪搜索
+// 在并行构建期间使用，避免全局锁竞争
+// 前提：idx.vectors 和 idx.neighbors 的大小在构建期间不变
+func (idx *VamanaIndex) greedySearchForBuild(scratch *SearchScratch, startIDs []uint32, query []float32, queryNormSq float32, L int) []Neighbor {
+	scratch.Reset()
+	scratch.Visited.EnsureCapacity(len(idx.vectors))
+
+	// 初始化: 从入口点开始
+	for _, startID := range startIDs {
+		if int(startID) >= len(idx.vectors) {
+			continue
+		}
+		scratch.Visited.Insert(startID)
+		dist := idx.fastDistanceToQuery(startID, query, queryNormSq)
+		scratch.Best.Insert(Neighbor{ID: startID, Distance: dist})
+		scratch.Cmps++
+	}
+
+	// 贪婪搜索（无全局锁）
+	for scratch.Best.HasUnvisited() {
+		closest, ok := scratch.Best.PopClosestUnvisited()
+		if !ok {
+			break
+		}
+
+		// 读取邻居时使用节点锁
+		idx.nodeLocks[closest.ID].RLock()
+		neighbors := idx.neighbors[closest.ID]
+		idx.nodeLocks[closest.ID].RUnlock()
+
+		for _, neighborID := range neighbors {
+			if scratch.Visited.Insert(neighborID) {
+				dist := idx.fastDistanceToQuery(neighborID, query, queryNormSq)
 				scratch.Best.Insert(Neighbor{ID: neighborID, Distance: dist})
 				scratch.Cmps++
 			}
@@ -405,6 +462,132 @@ func (idx *VamanaIndex) robustPrune(nodeID uint32, candidates []Neighbor, maxDeg
 	// 将位置索引转换为实际的节点 ID
 	result := make([]uint32, len(resultPos))
 	for i, pos := range resultPos {
+		result[i] = candidates[pos].ID
+	}
+
+	// 饱和填充
+	if idx.config.SaturateAfterPrune && alpha > 1.0 {
+		for _, cand := range candidates {
+			if len(result) >= maxDegree {
+				break
+			}
+			if !containsID(result, cand.ID) && cand.ID != nodeID {
+				result = append(result, cand.ID)
+			}
+		}
+	}
+
+	return result
+}
+
+// robustPruneWithScratch 使用scratch缓冲区的RobustPrune剪枝算法
+// 避免每次调用分配临时数组，减少GC压力
+func (idx *VamanaIndex) robustPruneWithScratch(nodeID uint32, candidates []Neighbor, maxDegree int, alpha float32, scratch *SearchScratch) []uint32 {
+	if len(candidates) == 0 {
+		return nil
+	}
+
+	// 按距离排序
+	sort.Slice(candidates, func(i, j int) bool {
+		return candidates[i].Distance < candidates[j].Distance
+	})
+
+	// 限制候选数量
+	n := len(candidates)
+	if n > idx.config.MaxOcclusionSize {
+		n = idx.config.MaxOcclusionSize
+		candidates = candidates[:n]
+	}
+
+	// 复用scratch缓冲区
+	if cap(scratch.OccludeFactor) < n {
+		scratch.OccludeFactor = make([]float32, n)
+	}
+	scratch.OccludeFactor = scratch.OccludeFactor[:n]
+	for i := range scratch.OccludeFactor {
+		scratch.OccludeFactor[i] = 0
+	}
+
+	if cap(scratch.LastChecked) < n {
+		scratch.LastChecked = make([]int, n)
+	}
+	scratch.LastChecked = scratch.LastChecked[:n]
+	for i := range scratch.LastChecked {
+		scratch.LastChecked[i] = 0
+	}
+
+	if cap(scratch.ResultPos) < maxDegree {
+		scratch.ResultPos = make([]int, 0, maxDegree)
+	}
+	scratch.ResultPos = scratch.ResultPos[:0]
+
+	currentAlpha := float32(1.0)
+	incrementFactor := float32(1.2)
+	if alpha < incrementFactor {
+		incrementFactor = alpha
+	}
+
+	for len(scratch.ResultPos) < maxDegree {
+		for i := 0; i < n; i++ {
+			if len(scratch.ResultPos) >= maxDegree {
+				break
+			}
+
+			if scratch.OccludeFactor[i] > currentAlpha {
+				continue
+			}
+
+			cand := &candidates[i]
+
+			if cand.ID == nodeID {
+				scratch.OccludeFactor[i] = math.MaxFloat32
+				continue
+			}
+
+			skip := false
+			for scratch.LastChecked[i] < len(scratch.ResultPos) {
+				resultIdx := scratch.ResultPos[scratch.LastChecked[i]]
+				scratch.LastChecked[i]++
+
+				if resultIdx >= i {
+					continue
+				}
+
+				selectedID := candidates[resultIdx].ID
+				distCN := idx.fastDistance(cand.ID, selectedID)
+
+				if distCN < cand.Distance {
+					newFactor := cand.Distance / distCN
+					if newFactor > scratch.OccludeFactor[i] {
+						scratch.OccludeFactor[i] = newFactor
+					}
+				}
+
+				if scratch.OccludeFactor[i] > currentAlpha {
+					skip = true
+					break
+				}
+			}
+
+			if !skip && scratch.OccludeFactor[i] <= currentAlpha {
+				scratch.ResultPos = append(scratch.ResultPos, i)
+				scratch.OccludeFactor[i] = math.MaxFloat32
+			}
+		}
+
+		if currentAlpha >= alpha {
+			break
+		}
+
+		currentAlpha = currentAlpha * incrementFactor
+		if currentAlpha > alpha {
+			currentAlpha = alpha
+		}
+	}
+
+	// 将位置索引转换为实际的节点 ID
+	result := make([]uint32, len(scratch.ResultPos))
+	for i, pos := range scratch.ResultPos {
 		result[i] = candidates[pos].ID
 	}
 
@@ -699,13 +882,15 @@ func (idx *VamanaIndex) processChunkParallel(nodeIDs []int, numWorkers int) {
 // 这是并行构建的核心方法，使用节点级锁而非全局锁
 func (idx *VamanaIndex) buildNodeWithScratch(id uint32, scratch *SearchScratch) {
 	vector := idx.vectors[id]
+	// 使用预计算的范数平方（在 precomputeNormSquares 中已计算）
+	queryNormSq := idx.normSquares[id]
 
-	// 1. 贪婪搜索找候选
+	// 1. 贪婪搜索找候选（使用无锁版本，避免全局锁竞争）
 	startIDs := []uint32{idx.medoid}
-	candidates := idx.greedySearch(scratch, startIDs, vector, idx.config.L)
+	candidates := idx.greedySearchForBuild(scratch, startIDs, vector, queryNormSq, idx.config.L)
 
-	// 2. RobustPrune剪枝
-	neighbors := idx.robustPrune(id, candidates, idx.config.R, idx.config.Alpha)
+	// 2. RobustPrune剪枝（使用scratch复用缓冲区）
+	neighbors := idx.robustPruneWithScratch(id, candidates, idx.config.R, idx.config.Alpha, scratch)
 
 	// 3. 使用节点级锁设置邻居
 	idx.setNeighborsLocked(id, neighbors)
@@ -729,7 +914,8 @@ func (idx *VamanaIndex) setNeighborsLocked(id uint32, neighbors []uint32) {
 }
 
 // addEdgeAndPruneLocked 添加反向边（使用节点级锁）
-// 注意：idx.neighbors 切片在初始化后不再 resize，因此只需节点锁
+// 采用C++版本的GRAPH_SLACK_FACTOR策略：允许邻居数量超过R，
+// 只有当超过 GraphSlackFactor * R 时才触发剪枝，大幅减少剪枝次数
 func (idx *VamanaIndex) addEdgeAndPruneLocked(nodeID, newNeighborID uint32) {
 	idx.nodeLocks[nodeID].Lock()
 	defer idx.nodeLocks[nodeID].Unlock()
@@ -741,26 +927,30 @@ func (idx *VamanaIndex) addEdgeAndPruneLocked(nodeID, newNeighborID uint32) {
 		return
 	}
 
-	// 如果未满，直接添加
-	if len(currentNeighbors) < idx.config.R {
+	// 计算松弛后的最大度数
+	maxDegreeWithSlack := int(idx.config.GraphSlackFactor * float32(idx.config.R))
+
+	// 如果未超过松弛阈值，直接添加（不触发剪枝）
+	if len(currentNeighbors) < maxDegreeWithSlack {
 		idx.neighbors[nodeID] = append(idx.neighbors[nodeID], newNeighborID)
 		return
 	}
 
-	// 需要剪枝：构建候选列表
+	// 超过松弛阈值，需要剪枝
 	nodeVector := idx.vectors[nodeID]
+	nodeNormSq := idx.normSquares[nodeID]
 	candidates := make([]Neighbor, 0, len(currentNeighbors)+1)
 
 	for _, nid := range currentNeighbors {
-		dist := idx.distanceToQuery(nid, nodeVector)
+		dist := idx.fastDistanceToQuery(nid, nodeVector, nodeNormSq)
 		candidates = append(candidates, Neighbor{ID: nid, Distance: dist})
 	}
 
 	// 添加新邻居
-	newDist := idx.distanceToQuery(newNeighborID, nodeVector)
+	newDist := idx.fastDistanceToQuery(newNeighborID, nodeVector, nodeNormSq)
 	candidates = append(candidates, Neighbor{ID: newNeighborID, Distance: newDist})
 
-	// 剪枝
+	// 使用完整的robustPrune剪枝，保证图质量
 	newNeighbors := idx.robustPrune(nodeID, candidates, idx.config.R, idx.config.Alpha)
 
 	idx.neighbors[nodeID] = newNeighbors
