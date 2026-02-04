@@ -124,7 +124,7 @@ const searchAssets = async () => {
             keyword: searchKey.value,
         };
 
-        const result = await searchAssetsAdvanced(params);
+        const result = await 搜索素材元数据(params);
 
         assets.value = (result?.assets || []).map(meta => ({
             path: meta.path,
