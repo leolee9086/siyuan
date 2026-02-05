@@ -23,6 +23,8 @@ import (
 	"runtime"
 	"sort"
 	"sync"
+
+	"github.com/siyuan-note/siyuan/kernel/vectordb/bbq"
 )
 
 // 错误定义
@@ -57,20 +59,40 @@ type VamanaIndex struct {
 
 	// 搜索临时空间池
 	scratchPool sync.Pool
+
+	// BBQ 量化数据
+	bbqEnabled       bool      // 是否启用 BBQ (dim >= BBQEnableThreshold 时自动启用)
+	bbqCodes         []uint64  // 紧凑存储的二值编码
+	bbqCompensations []float32 // 补偿因子 (||x||²)
+	bbqCentroid      []float32 // 全局质心向量
+	bbqUint64PerVec  int       // 每个向量占用的 uint64 数量
 }
 
 // New 创建新的Vamana索引
 func New(dimension int, config Config) *VamanaIndex {
 	config.Validate()
+
+	// 判断是否启用 BBQ (dim >= BBQEnableThreshold 时自动启用)
+	bbqEnabled := dimension >= bbq.BBQEnableThreshold
+	bbqUint64PerVec := 0
+	if bbqEnabled {
+		bbqUint64PerVec = (dimension + 63) / 64
+	}
+
 	idx := &VamanaIndex{
-		config:      config,
-		dimension:   dimension,
-		vectors:     make([][]float32, 0),
-		neighbors:   make([][]uint32, 0),
-		medoid:      math.MaxUint32,
-		normSquares: make([]float32, 0),
-		deleted:     NewBitset(1024),
-		nDeleted:    0,
+		config:           config,
+		dimension:        dimension,
+		vectors:          make([][]float32, 0),
+		neighbors:        make([][]uint32, 0),
+		medoid:           math.MaxUint32,
+		normSquares:      make([]float32, 0),
+		deleted:          NewBitset(1024),
+		nDeleted:         0,
+		bbqEnabled:       bbqEnabled,
+		bbqCodes:         nil,
+		bbqCompensations: nil,
+		bbqCentroid:      nil,
+		bbqUint64PerVec:  bbqUint64PerVec,
 	}
 
 	idx.scratchPool = sync.Pool{
@@ -196,6 +218,222 @@ func (idx *VamanaIndex) precomputeNormSquares() {
 	for i, v := range idx.vectors {
 		idx.normSquares[i] = computeNormSquare(v)
 	}
+}
+
+// computeBBQCentroid 计算所有向量的质心（均值向量）
+func (idx *VamanaIndex) computeBBQCentroid() {
+	n := len(idx.vectors)
+	if n == 0 {
+		idx.bbqCentroid = make([]float32, idx.dimension)
+		return
+	}
+
+	centroid := make([]float32, idx.dimension)
+
+	// 累加所有向量
+	for _, vec := range idx.vectors {
+		for j := 0; j < idx.dimension; j++ {
+			centroid[j] += vec[j]
+		}
+	}
+
+	// 计算均值
+	invN := 1.0 / float32(n)
+	for j := 0; j < idx.dimension; j++ {
+		centroid[j] *= invN
+	}
+
+	idx.bbqCentroid = centroid
+}
+
+// computeBBQDataParallel 并行计算所有向量的 BBQ 编码
+func (idx *VamanaIndex) computeBBQDataParallel(numWorkers int) {
+	n := len(idx.vectors)
+	if n == 0 {
+		return
+	}
+
+	// 1. 分配存储空间
+	idx.bbqCodes = make([]uint64, n*idx.bbqUint64PerVec)
+	idx.bbqCompensations = make([]float32, n)
+
+	// 2. 并行量化
+	var wg sync.WaitGroup
+	chunkSize := (n + numWorkers - 1) / numWorkers
+
+	for w := 0; w < numWorkers; w++ {
+		start := w * chunkSize
+		end := start + chunkSize
+		if end > n {
+			end = n
+		}
+		if start >= end {
+			break
+		}
+
+		wg.Add(1)
+		go func(start, end int) {
+			defer wg.Done()
+
+			// 每个 worker 创建自己的量化器和临时缓冲区
+			quantizer := bbq.NewScalarQuantizer(bbq.EuclideanDistance)
+			quantized := make([]byte, idx.dimension)
+
+			for i := start; i < end; i++ {
+				// 量化向量
+				result := quantizer.Quantize(idx.vectors[i], quantized, 1, idx.bbqCentroid)
+
+				// 打包为 uint64
+				packed := bbq.PackBinary(quantized)
+				codes := bbq.BytesToUint64(packed)
+
+				// 存储结果
+				offset := i * idx.bbqUint64PerVec
+				copy(idx.bbqCodes[offset:offset+idx.bbqUint64PerVec], codes)
+				idx.bbqCompensations[i] = result.Correction // ||x||² for 欧氏距离
+			}
+		}(start, end)
+	}
+
+	wg.Wait()
+}
+
+// bbqDistance 计算两个已量化向量之间的近似距离
+// 使用 POPCNT 计算汉明距离，结合补偿因子计算近似欧氏距离
+// 基于 1-bit 量化的距离估计公式
+func (idx *VamanaIndex) bbqDistance(id1, id2 uint32) float32 {
+	if !idx.bbqEnabled {
+		return idx.fastDistance(id1, id2)
+	}
+
+	// 获取两个向量的 BBQ 编码
+	offset1 := int(id1) * idx.bbqUint64PerVec
+	offset2 := int(id2) * idx.bbqUint64PerVec
+	code1 := idx.bbqCodes[offset1 : offset1+idx.bbqUint64PerVec]
+	code2 := idx.bbqCodes[offset2 : offset2+idx.bbqUint64PerVec]
+
+	// 计算点积 (AND + POPCNT)
+	// 对于 1-bit 量化，点积 = 两个向量同为 1 的位数
+	dotProduct := bbq.ComputePackedDotProduct64(code1, code2)
+
+	// 获取补偿因子 (||x||² 和 ||y||²)
+	normSq1 := idx.bbqCompensations[id1]
+	normSq2 := idx.bbqCompensations[id2]
+
+	// 近似欧氏距离公式 (简化版，假设量化区间为 [0, 1]):
+	// ||x - y||² ≈ ||x||² + ||y||² - 2 * dotProduct * scale
+	// 其中 scale = sqrt(||x||² * ||y||²) / dimension
+	dim := float32(idx.dimension)
+	scale := (normSq1 + normSq2) / (2.0 * dim)
+	estimatedDot := float32(dotProduct) * scale
+
+	// 欧氏距离平方
+	distSq := normSq1 + normSq2 - 2.0*estimatedDot
+	if distSq < 0 {
+		distSq = 0
+	}
+	return distSq
+}
+
+// bbqDistanceToQuery 计算查询向量（已量化）到索引中某个向量的近似距离
+// queryCode: 查询向量的 BBQ 编码 (uint64 数组)
+// queryNormSq: 查询向量的范数平方
+func (idx *VamanaIndex) bbqDistanceToQuery(id uint32, queryCode []uint64, queryNormSq float32) float32 {
+	if !idx.bbqEnabled {
+		return 0 // 不应该在未启用 BBQ 时调用
+	}
+
+	// 获取索引向量的 BBQ 编码
+	offset := int(id) * idx.bbqUint64PerVec
+	indexCode := idx.bbqCodes[offset : offset+idx.bbqUint64PerVec]
+
+	// 计算点积 (AND + POPCNT)
+	dotProduct := bbq.ComputePackedDotProduct64(queryCode, indexCode)
+
+	// 获取索引向量的补偿因子
+	indexNormSq := idx.bbqCompensations[id]
+
+	// 近似欧氏距离公式 (简化版):
+	// ||x - y||² ≈ ||x||² + ||y||² - 2 * dotProduct * scale
+	dim := float32(idx.dimension)
+	scale := (queryNormSq + indexNormSq) / (2.0 * dim)
+	estimatedDot := float32(dotProduct) * scale
+
+	distSq := queryNormSq + indexNormSq - 2.0*estimatedDot
+	if distSq < 0 {
+		distSq = 0
+	}
+	return distSq
+}
+
+// greedySearchBBQ 基于 BBQ 的贪婪图搜索
+// 先将查询向量量化（减去质心后量化），使用 bbqDistanceToQuery 进行距离计算
+// 返回 L 个最近邻候选
+func (idx *VamanaIndex) greedySearchBBQ(scratch *SearchScratch, startIDs []uint32, query []float32, L int) []Neighbor {
+	if !idx.bbqEnabled {
+		// 如果未启用 BBQ，回退到精确搜索
+		return idx.greedySearch(scratch, startIDs, query, L)
+	}
+
+	// 1. 量化查询向量
+	quantizer := bbq.NewScalarQuantizer(bbq.EuclideanDistance)
+	quantized := make([]byte, idx.dimension)
+	result := quantizer.Quantize(query, quantized, 1, idx.bbqCentroid)
+
+	// 打包为 uint64
+	packed := bbq.PackBinary(quantized)
+	queryCode := bbq.BytesToUint64(packed)
+	queryNormSq := result.Correction // ||query - centroid||²
+
+	// 2. 执行贪婪搜索
+	scratch.Reset()
+
+	idx.mu.RLock()
+	defer idx.mu.RUnlock()
+
+	scratch.Visited.EnsureCapacity(len(idx.vectors))
+
+	// 初始化: 从入口点开始
+	for _, startID := range startIDs {
+		if int(startID) >= len(idx.vectors) {
+			continue
+		}
+		// 跳过已删除节点
+		if idx.deleted.Test(startID) {
+			continue
+		}
+		scratch.Visited.Insert(startID)
+		dist := idx.bbqDistanceToQuery(startID, queryCode, queryNormSq)
+		scratch.Best.Insert(Neighbor{ID: startID, Distance: dist})
+		scratch.Cmps++
+	}
+
+	// 贪婪搜索
+	for scratch.Best.HasUnvisited() {
+		// 获取最近的未访问节点
+		closest, ok := scratch.Best.PopClosestUnvisited()
+		if !ok {
+			break
+		}
+
+		// 展开邻居
+		neighbors := idx.neighbors[closest.ID]
+
+		for _, neighborID := range neighbors {
+			// 跳过已删除节点
+			if idx.deleted.Test(neighborID) {
+				continue
+			}
+			if scratch.Visited.Insert(neighborID) {
+				dist := idx.bbqDistanceToQuery(neighborID, queryCode, queryNormSq)
+				scratch.Best.Insert(Neighbor{ID: neighborID, Distance: dist})
+				scratch.Cmps++
+			}
+		}
+		scratch.Hops++
+	}
+
+	return scratch.Best.All()
 }
 
 // fastDistance 使用预计算范数加速两节点间距离计算
@@ -807,6 +1045,12 @@ func (idx *VamanaIndex) initializeForBuild(vectors [][]float32) {
 	// 重置删除位图
 	idx.deleted = NewBitset(n)
 	idx.nDeleted = 0
+
+	// BBQ 量化计算
+	if idx.bbqEnabled {
+		idx.computeBBQCentroid()
+		idx.computeBBQDataParallel(runtime.NumCPU())
+	}
 }
 
 // processChunkParallel 并行处理一批节点

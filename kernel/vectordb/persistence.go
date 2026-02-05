@@ -21,6 +21,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/siyuan-note/siyuan/kernel/vectordb/bbq"
 	"github.com/vmihailenco/msgpack/v5"
 )
 
@@ -49,14 +50,14 @@ type SnapshotData struct {
 
 	// 图结构
 	// Neighbors[nodeID][level] -> []DocID
-	Neighbors [][][]DocID `msgpack:"neighbors"`
+	Neighbors [][][]DocID    `msgpack:"neighbors"`
 	Deleted   map[DocID]bool `msgpack:"deleted"`
 
 	// 向量存储
-	Vectors        []float32    `msgpack:"vectors"`
-	BBQQuantized   []byte       `msgpack:"bbqQuantized"`
-	BBQPacked      []byte       `msgpack:"bbqPacked"`
-	BBQCorrections []量化结果   `msgpack:"bbqCorrections"`
+	Vectors        []float32                `msgpack:"vectors"`
+	BBQQuantized   []byte                   `msgpack:"bbqQuantized"`
+	BBQPacked      []byte                   `msgpack:"bbqPacked"`
+	BBQCorrections []bbq.QuantizationResult `msgpack:"bbqCorrections"`
 
 	// 入口点
 	EntryPoint DocID `msgpack:"entryPoint"`
@@ -93,7 +94,7 @@ func SaveCollection(c *Collection, basePath string) error {
 	copy(bbqQuantized, c.Store.bbqQuantized)
 	bbqPacked := make([]byte, len(c.Store.bbqPacked))
 	copy(bbqPacked, c.Store.bbqPacked)
-	bbqCorrections := make([]量化结果, len(c.Store.bbqCorrections))
+	bbqCorrections := make([]bbq.QuantizationResult, len(c.Store.bbqCorrections))
 	copy(bbqCorrections, c.Store.bbqCorrections)
 	c.Store.mu.RUnlock()
 

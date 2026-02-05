@@ -14,36 +14,36 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-package vectordb
+package bbq
 
 // =========================================
 // BBQ (Better Binary Quantization) 常量
 // 基于Lucene的二值量化算法
 // =========================================
 
-// 查询向量量化位数 (1位启用POPCNT优化，速度更快但精度略降)
-const 查询量化位数 = 1
+// QueryQuantizationBits 查询向量量化位数 (1位启用POPCNT优化，速度更快但精度略降)
+const QueryQuantizationBits = 1
 
-// 索引向量量化位数 (1位用于压缩存储)
-const 索引量化位数 = 1
+// IndexQuantizationBits 索引向量量化位数 (1位用于压缩存储)
+const IndexQuantizationBits = 1
 
 // BBQEnableThreshold defines the minimum dimension to enable Binary Quantization
 // Vectors with dimension >= this value will use BBQ optimization
 const BBQEnableThreshold = 33
 
-// 4位量化缩放因子: 将0-15映射到[0,1]
-const 四位缩放因子 = 1.0 / 15.0
+// ScalingFactor4Bit 4位量化缩放因子: 将0-15映射到[0,1]
+const ScalingFactor4Bit = 1.0 / 15.0
 
-// 默认各向异性权重 (平衡方向误差与幅度误差)
-const 默认Lambda = 0.1
+// DefaultLambda 默认各向异性权重 (平衡方向误差与幅度误差)
+const DefaultLambda = 0.1
 
-// 默认优化迭代次数
-const 默认迭代次数 = 5
+// DefaultIterations 默认优化迭代次数
+const DefaultIterations = 5
 
-// 最小MSE网格 - 基于均匀分布的最优量化区间
+// MinMSEGrid 最小MSE网格 - 基于均匀分布的最优量化区间
 // 每个位数的间隔值经过理论推导和数值优化
 // 索引: bits-1, 值: [lower, upper] 相对于标准差的倍数
-var 最小MSE网格 = [8][2]float64{
+var MinMSEGrid = [8][2]float64{
 	{-0.798, 0.798}, // 1位
 	{-1.493, 1.493}, // 2位
 	{-2.051, 2.051}, // 3位
@@ -56,7 +56,7 @@ var 最小MSE网格 = [8][2]float64{
 
 // 数值精度常量
 const (
-	收敛阈值    = 1e-8
-	最小行列式值 = 1e-12
-	浮点精度   = 1e-8
+	ConvergenceThreshold = 1e-8
+	MinDeterminant       = 1e-12
+	FloatPrecision       = 1e-8
 )
