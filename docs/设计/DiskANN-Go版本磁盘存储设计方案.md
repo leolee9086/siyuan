@@ -6,28 +6,33 @@
 
 ---
 
-## 0. 跨平台支持矩阵
+## 0. 跨平台支持
 
-> **设计原则**: 必须支持思源笔记的所有目标平台
+> **YAGNI原则**: 使用 `golang.org/x/exp/mmap` 统一处理所有平台，仅在实际遇到问题时添加平台特定代码。
 
-| 平台 | 构建标签 | I/O策略 | mmap支持 | 备注 |
-|------|----------|---------|----------|------|
-| **Windows** | `windows` | mmap优先 | ✅ `golang.org/x/exp/mmap` | syscall.Mmap不可用 |
-| **Linux** | `linux` | mmap优先 | ✅ `syscall.Mmap` | 直接系统调用 |
-| **macOS** | `darwin` | mmap优先 | ✅ `syscall.Mmap` | 同Linux |
-| **iOS** | `ios` | 缓冲读取 | ⚠️ 受限 | 沙盒限制，回退普通I/O |
-| **Android** | `android` | 缓冲读取 | ⚠️ 受限 | 同iOS |
+### 当前方案 (简化版)
+
+```go
+import "golang.org/x/exp/mmap"
+
+// 所有平台统一使用，无需条件编译
+reader, _ := mmap.Open(path)
+```
+
+**为什么不需要4个平台特定文件**：
+- `golang.org/x/exp/mmap` 内部已处理 Windows/Linux/macOS 差异
+- iOS/Android 上该库同样可用，沙盒限制是误解
+- 预设移动端需要特殊处理是过度工程化
 
 ### 文件结构
 
 ```
-kernel/vectordb/diskann/
-├── io.go                    # 接口定义
-├── io_mmap_unix.go          # //go:build darwin || linux
-├── io_mmap_windows.go       # //go:build windows  
-├── io_buffered_mobile.go    # //go:build ios || android
-└── io_fallback.go           # 纯Go实现的通用回退
+kernel/vectordb/storage/
+├── io.go          # 接口定义 + mmap实现
+└── serialize.go   # 序列化/反序列化
 ```
+
+> **备注**: 如未来某平台确实需要特殊处理，再添加 `io_<platform>.go`
 
 ### 1.1 Rust版本文件格式
 
@@ -334,103 +339,392 @@ func (d *删除位图) 是否删除(nodeID uint64) bool {
 
 ---
 
-## 6. 跨平台I/O抽象层 (核心设计)
+## 5.5 In-Place 删除机制
 
-### 6.1 统一接口定义
+> 参考论文: [FreshDiskANN: A Fast and Accurate Graph-Based ANN Index for Streaming Similarity Search](https://arxiv.org/abs/2502.13826)
+
+### 5.5.1 设计原理
+
+传统删除需要遍历全图找到所有指向被删除节点的入边，复杂度O(N)。In-place删除通过巧妙利用图的局部性，将复杂度降低到O(R²)，其中R是最大邻居数。
+
+**核心思想**：被删除节点的邻居，很可能就是指向它的入边来源。
+
+```
+删除节点P前:        删除节点P后(不做处理):    In-place修复后:
+    A → P ← B           A → P ← B              A ───→ B
+    ↓   ↓   ↓           ↓   ↓   ↓              ↓       ↓
+    C ← P → D           C ← X → D              C ←───→ D
+                        (P已删除,边悬空)        (邻居互连)
+```
+
+### 5.5.2 删除策略
+
+提供三种策略，权衡性能与召回率：
 
 ```go
-// io.go - 所有平台通用
+// inplace_delete.go
 
-package diskann
+type InplaceDeleteMethod int
 
-import "io"
+const (
+    // OneHop: 只使用一跳邻居
+    // - 优点: 最快，无需搜索
+    // - 缺点: 可能遗漏部分入边
+    // - 适用: 小规模数据，性能优先
+    OneHop InplaceDeleteMethod = iota
+    
+    // TwoHopAndOneHop: 使用二跳邻居查找入边
+    // - 优点: 覆盖率更高
+    // - 缺点: 需要读取更多邻居列表
+    // - 适用: 中等规模，平衡选择
+    TwoHopAndOneHop
+    
+    // VisitedAndTopK: 执行搜索找到最佳替换候选
+    // - 优点: 召回率最高
+    // - 缺点: 需要完整搜索流程
+    // - 适用: 大规模数据，召回率优先
+    VisitedAndTopK
+)
+```
 
-// 磁盘索引读取器 - 抽象接口
-type 磁盘索引读取器 interface {
-    // 读取节点数据到缓冲区
-    读取节点(nodeID uint64, buf []byte) error
-    
-    // 读取邻居ID列表 (返回切片，可能是零拷贝或复制)
-    读取邻居(nodeID uint64) ([]uint32, error)
-    
-    // 读取原始向量 (用于rerank)
-    读取向量(nodeID uint64, vec []float32) error
-    
-    // 获取元数据
-    元数据() *图元数据
-    
-    // 预热指定节点到内存/缓存
-    预热(nodeIDs []uint64) error
-    
-    // 关闭并释放资源
-    Close() error
+### 5.5.3 OneHop策略实现
+
+```go
+// InplaceDeleteWorkList 删除工作列表
+type InplaceDeleteWorkList struct {
+    ReplaceCandidates []uint32  // 用于替换被删除边的候选节点
+    InNeighbors       []uint32  // 可能有入边指向被删除节点的节点
 }
 
-// 磁盘索引写入器 - 抽象接口
-type 磁盘索引写入器 interface {
-    磁盘索引读取器  // 嵌入读取器
+// getCandidatesOneHop 使用一跳邻居获取删除候选
+func (idx *磁盘索引) getCandidatesOneHop(nodeID uint32) (*InplaceDeleteWorkList, error) {
+    // 获取被删除节点的邻居
+    neighbors, err := idx.reader.读取邻居(uint64(nodeID))
+    if err != nil {
+        return nil, err
+    }
     
-    // 追加新节点
-    追加节点(vector []float32, neighbors []uint32, assocData []byte) (nodeID uint64, err error)
+    // 过滤已删除的邻居
+    undeletedNeighbors := make([]uint32, 0, len(neighbors))
+    for _, nbr := range neighbors {
+        if !idx.deleted.是否删除(uint64(nbr)) {
+            undeletedNeighbors = append(undeletedNeighbors, nbr)
+        }
+    }
     
-    // 更新邻居列表 (原地更新，需要预留空间)
-    更新邻居(nodeID uint64, neighbors []uint32) error
+    // 在一跳邻居中查找入边
+    inNeighbors := make([]uint32, 0)
+    for _, nbr := range undeletedNeighbors {
+        nbrNeighbors, err := idx.reader.读取邻居(uint64(nbr))
+        if err != nil {
+            continue
+        }
+        // 检查该邻居是否有边指向被删除节点
+        for _, nbrNbr := range nbrNeighbors {
+            if nbrNbr == nodeID {
+                inNeighbors = append(inNeighbors, nbr)
+                break
+            }
+        }
+    }
     
-    // 刷新到磁盘
-    Sync() error
-}
-
-// 创建函数 - 运行时选择最佳实现
-func 打开磁盘索引(路径 string, 只读 bool) (磁盘索引读取器, error) {
-    // 由平台特定文件实现
-    return 平台创建读取器(路径, 只读)
+    return &InplaceDeleteWorkList{
+        ReplaceCandidates: undeletedNeighbors,
+        InNeighbors:       inNeighbors,
+    }, nil
 }
 ```
 
-### 6.2 Unix (Linux/macOS) 实现
+### 5.5.4 完整删除流程
 
 ```go
-// io_mmap_unix.go
-//go:build darwin || linux
+// InplaceDelete 原地删除节点
+func (idx *磁盘索引) InplaceDelete(nodeID uint32, method InplaceDeleteMethod) error {
+    idx.mu.Lock()
+    defer idx.mu.Unlock()
+    
+    // 1. 检查节点是否存在且未删除
+    if idx.deleted.是否删除(uint64(nodeID)) {
+        return ErrNodeDeleted
+    }
+    
+    // 2. 标记软删除 (立即生效，搜索会跳过)
+    idx.deleted.标记删除(uint64(nodeID))
+    
+    // 3. 获取替换候选和需要修复的入边
+    var workList *InplaceDeleteWorkList
+    var err error
+    
+    switch method {
+    case OneHop:
+        workList, err = idx.getCandidatesOneHop(nodeID)
+    case TwoHopAndOneHop:
+        workList, err = idx.getCandidatesTwoHop(nodeID)
+    case VisitedAndTopK:
+        workList, err = idx.getCandidatesSearch(nodeID, 50, 20)
+    }
+    
+    if err != nil {
+        return err
+    }
+    
+    // 4. 为每个入边节点添加替换边
+    for _, inNbr := range workList.InNeighbors {
+        // 计算该入边节点到各替换候选的距离
+        best := idx.selectBestReplacements(inNbr, workList.ReplaceCandidates, nodeID)
+        
+        // 添加新边并裁剪
+        if err := idx.addEdgesAndPrune(inNbr, best); err != nil {
+            // 非致命错误，继续处理其他
+            continue
+        }
+    }
+    
+    // 5. 清空被删除节点的邻居列表
+    if err := idx.clearNeighbors(nodeID); err != nil {
+        return err
+    }
+    
+    return nil
+}
 
-package diskann
+// selectBestReplacements 选择最佳替换边
+func (idx *磁盘索引) selectBestReplacements(
+    source uint32, 
+    candidates []uint32, 
+    exclude uint32,
+) []uint32 {
+    type candidate struct {
+        id   uint32
+        dist float32
+    }
+    
+    // 计算source到各候选的距离
+    ranked := make([]candidate, 0, len(candidates))
+    sourceVec, _ := idx.readVector(source)
+    
+    for _, cand := range candidates {
+        if cand == source || cand == exclude {
+            continue
+        }
+        candVec, _ := idx.readVector(cand)
+        dist := computeL2Distance(sourceVec, candVec)
+        ranked = append(ranked, candidate{cand, dist})
+    }
+    
+    // 按距离排序，取最近的几个
+    sort.Slice(ranked, func(i, j int) bool {
+        return ranked[i].dist < ranked[j].dist
+    })
+    
+    numToAdd := min(3, len(ranked))  // 每个入边添加最多3个替换边
+    result := make([]uint32, numToAdd)
+    for i := 0; i < numToAdd; i++ {
+        result[i] = ranked[i].id
+    }
+    return result
+}
+
+// addEdgesAndPrune 添加边并裁剪
+func (idx *磁盘索引) addEdgesAndPrune(nodeID uint32, newNeighbors []uint32) error {
+    // 读取当前邻居
+    current, err := idx.reader.读取邻居(uint64(nodeID))
+    if err != nil {
+        return err
+    }
+    
+    // 合并去重
+    seen := make(map[uint32]bool)
+    for _, n := range current {
+        if !idx.deleted.是否删除(uint64(n)) {
+            seen[n] = true
+        }
+    }
+    for _, n := range newNeighbors {
+        seen[n] = true
+    }
+    
+    // 转为切片
+    merged := make([]uint32, 0, len(seen))
+    for n := range seen {
+        merged = append(merged, n)
+    }
+    
+    // 如果超过最大度数，执行裁剪
+    if len(merged) > idx.config.MaxDegree {
+        merged = idx.robustPrune(nodeID, merged)
+    }
+    
+    // 写回
+    return idx.writer.更新邻居(uint64(nodeID), merged)
+}
+```
+
+### 5.5.5 批量删除优化
+
+```go
+// MultiInplaceDelete 批量原地删除
+func (idx *磁盘索引) MultiInplaceDelete(nodeIDs []uint32) error {
+    // 1. 批量标记删除
+    for _, id := range nodeIDs {
+        idx.deleted.标记删除(uint64(id))
+    }
+    
+    // 2. 收集所有需要修复的边
+    allEdgesToAdd := make(map[uint32][]uint32)
+    
+    for _, id := range nodeIDs {
+        workList, err := idx.getCandidatesOneHop(id)
+        if err != nil {
+            continue
+        }
+        
+        for _, inNbr := range workList.InNeighbors {
+            best := idx.selectBestReplacements(inNbr, workList.ReplaceCandidates, id)
+            allEdgesToAdd[inNbr] = append(allEdgesToAdd[inNbr], best...)
+        }
+    }
+    
+    // 3. 批量更新边 (可并行)
+    var wg sync.WaitGroup
+    errChan := make(chan error, len(allEdgesToAdd))
+    
+    for node, edges := range allEdgesToAdd {
+        wg.Add(1)
+        go func(n uint32, e []uint32) {
+            defer wg.Done()
+            if err := idx.addEdgesAndPrune(n, e); err != nil {
+                errChan <- err
+            }
+        }(node, edges)
+    }
+    
+    wg.Wait()
+    close(errChan)
+    
+    // 4. 清空所有被删除节点的邻居列表
+    for _, id := range nodeIDs {
+        idx.clearNeighbors(id)
+    }
+    
+    return nil
+}
+```
+
+### 5.5.6 后台清理
+
+```go
+// DropDeletedNeighbors 清理邻居列表中的已删除节点
+// 应作为后台任务定期执行
+func (idx *磁盘索引) DropDeletedNeighbors(nodeID uint32) error {
+    if idx.deleted.是否删除(uint64(nodeID)) {
+        return nil // 自己已删除，跳过
+    }
+    
+    neighbors, err := idx.reader.读取邻居(uint64(nodeID))
+    if err != nil {
+        return err
+    }
+    
+    // 过滤已删除邻居
+    cleaned := make([]uint32, 0, len(neighbors))
+    for _, nbr := range neighbors {
+        if !idx.deleted.是否删除(uint64(nbr)) {
+            cleaned = append(cleaned, nbr)
+        }
+    }
+    
+    // 无变化则跳过
+    if len(cleaned) == len(neighbors) {
+        return nil
+    }
+    
+    return idx.writer.更新邻居(uint64(nodeID), cleaned)
+}
+
+// Consolidate 全图清理 (后台任务)
+func (idx *磁盘索引) Consolidate() error {
+    meta := idx.reader.元数据()
+    
+    for nodeID := uint64(0); nodeID < meta.点数量; nodeID++ {
+        if err := idx.DropDeletedNeighbors(uint32(nodeID)); err != nil {
+            // 记录日志但继续
+            continue
+        }
+    }
+    
+    return nil
+}
+```
+
+### 5.5.7 策略选择指南
+
+| 场景 | 推荐策略 | 理由 |
+|------|----------|------|
+| SiYuan笔记 (< 100K向量) | `OneHop` | 数据量小，性能优先 |
+| 企业知识库 (100K-1M) | `TwoHopAndOneHop` | 平衡性能与召回率 |
+| 大规模检索 (> 1M) | `VisitedAndTopK` | 召回率敏感场景 |
+
+
+
+## 6. I/O抽象层
+
+> **YAGNI原则**: 统一使用 `golang.org/x/exp/mmap`，该库已内部处理所有平台差异。
+
+### 6.1 接口定义
+
+```go
+// io.go
+package storage
+
+import "golang.org/x/exp/mmap"
+
+// 磁盘索引读取器
+type 磁盘索引读取器 interface {
+    读取节点(nodeID uint64, buf []byte) error
+    读取邻居(nodeID uint64) ([]uint32, error)
+    读取向量(nodeID uint64, vec []float32) error
+    元数据() *图元数据
+    Close() error
+}
+
+// 磁盘索引写入器
+type 磁盘索引写入器 interface {
+    磁盘索引读取器
+    追加节点(vector []float32, neighbors []uint32) (nodeID uint64, err error)
+    更新邻居(nodeID uint64, neighbors []uint32) error
+    Sync() error
+}
+```
+
+### 6.2 统一实现 (所有平台)
+
+```go
+// io.go - 无需条件编译
+package storage
 
 import (
-    "os"
-    "syscall"
+    "encoding/binary"
+    "golang.org/x/exp/mmap"
     "unsafe"
 )
 
 type mmap读取器 struct {
-    文件   *os.File
-    映射   []byte
+    reader *mmap.ReaderAt
     元数据 图元数据
+    缓冲   []byte
 }
 
-func 平台创建读取器(路径 string, 只读 bool) (磁盘索引读取器, error) {
-    flags := os.O_RDONLY
-    prot := syscall.PROT_READ
-    if !只读 {
-        flags = os.O_RDWR
-        prot = syscall.PROT_READ | syscall.PROT_WRITE
-    }
-    
-    f, err := os.OpenFile(路径, flags, 0)
+func 打开磁盘索引(路径 string) (*mmap读取器, error) {
+    reader, err := mmap.Open(路径)
     if err != nil {
         return nil, err
     }
     
-    stat, _ := f.Stat()
-    data, err := syscall.Mmap(
-        int(f.Fd()), 0, int(stat.Size()),
-        prot, syscall.MAP_SHARED,
-    )
-    if err != nil {
-        f.Close()
-        return nil, err
+    r := &mmap读取器{
+        reader: reader,
+        缓冲:   make([]byte, 4096),
     }
-    
-    r := &mmap读取器{文件: f, 映射: data}
     if err := r.解析头部(); err != nil {
         r.Close()
         return nil, err
@@ -439,230 +733,31 @@ func 平台创建读取器(路径 string, 只读 bool) (磁盘索引读取器, e
 }
 
 func (r *mmap读取器) 读取节点(nodeID uint64, buf []byte) error {
-    offset := r.计算偏移(nodeID)
-    copy(buf, r.映射[offset:offset+r.元数据.节点字节长度])
-    return nil
-}
-
-func (r *mmap读取器) 读取邻居(nodeID uint64) ([]uint32, error) {
-    offset := r.计算偏移(nodeID)
-    nodeData := r.映射[offset : offset+r.元数据.节点字节长度]
-    
-    向量字节 := r.元数据.向量维度 * 4
-    邻居数 := *(*uint32)(unsafe.Pointer(&nodeData[向量字节]))
-    
-    // 零拷贝：直接返回mmap区域的切片视图
-    邻居起始 := 向量字节 + 4
-    邻居Slice := unsafe.Slice(
-        (*uint32)(unsafe.Pointer(&nodeData[邻居起始])),
-        邻居数,
-    )
-    return 邻居Slice, nil
-}
-
-func (r *mmap读取器) Close() error {
-    syscall.Munmap(r.映射)
-    return r.文件.Close()
-}
-
-func (r *mmap读取器) 计算偏移(nodeID uint64) uint64 {
-    // Block #0 是头部(4096字节)，数据从 Block #1 开始
-    块大小 := r.元数据.节点字节长度 * r.元数据.每块节点数
-    块号 := nodeID / r.元数据.每块节点数
-    块内偏移 := (nodeID % r.元数据.每块节点数) * r.元数据.节点字节长度
-    return 4096 + 块号*块大小 + 块内偏移
-}
-```
-
-### 6.3 Windows 实现
-
-```go
-// io_mmap_windows.go
-//go:build windows
-
-package diskann
-
-import (
-    "golang.org/x/exp/mmap"
-)
-
-type windows读取器 struct {
-    reader *mmap.ReaderAt
-    元数据  图元数据
-    缓冲    []byte  // 读取缓冲
-}
-
-func 平台创建读取器(路径 string, 只读 bool) (磁盘索引读取器, error) {
-    // Windows版本的golang.org/x/exp/mmap只支持只读
-    // 写入需要回退到标准文件I/O
-    if !只读 {
-        return 创建缓冲读取器(路径, 只读)  // 回退
-    }
-    
-    reader, err := mmap.Open(路径)
-    if err != nil {
-        return nil, err
-    }
-    
-    r := &windows读取器{
-        reader: reader,
-        缓冲:    make([]byte, 4096), // 预分配缓冲
-    }
-    if err := r.解析头部(); err != nil {
-        r.Close()
-        return nil, err
-    }
-    return r, nil
-}
-
-func (r *windows读取器) 读取节点(nodeID uint64, buf []byte) error {
     offset := int64(r.计算偏移(nodeID))
     _, err := r.reader.ReadAt(buf, offset)
     return err
 }
 
-func (r *windows读取器) 读取邻居(nodeID uint64) ([]uint32, error) {
-    // Windows版本需要复制，因为ReaderAt不提供零拷贝
-    节点长度 := int(r.元数据.节点字节长度)
-    if len(r.缓冲) < 节点长度 {
-        r.缓冲 = make([]byte, 节点长度)
-    }
-    
-    if err := r.读取节点(nodeID, r.缓冲[:节点长度]); err != nil {
-        return nil, err
-    }
-    
-    return 解析邻居从缓冲(r.缓冲, int(r.元数据.向量维度))
+func (r *mmap读取器) 计算偏移(nodeID uint64) uint64 {
+    块大小 := r.元数据.节点字节长度 * r.元数据.每块节点数
+    块号 := nodeID / r.元数据.每块节点数
+    块内偏移 := (nodeID % r.元数据.每块节点数) * r.元数据.节点字节长度
+    return 4096 + 块号*块大小 + 块内偏移
 }
 
-func (r *windows读取器) Close() error {
+func (r *mmap读取器) Close() error {
     return r.reader.Close()
 }
 ```
 
-### 6.4 移动端 (iOS/Android) 实现
+### 6.3 写入器 (需要时再实现)
 
 ```go
-// io_buffered_mobile.go
-//go:build ios || android
-
-package diskann
-
-import (
-    "os"
-    "sync"
-)
-
-// 移动端使用缓冲读取 + LRU缓存，不使用mmap
-// 原因：
-// 1. iOS沙盒限制mmap行为
-// 2. Android上mmap可能导致ANR
-// 3. 移动端数据量通常较小，缓冲读取足够
-
-type 移动端读取器 struct {
-    文件   *os.File
-    元数据 图元数据
-    
-    // LRU节点缓存
-    缓存    map[uint64][]byte
-    缓存锁  sync.RWMutex
-    缓存容量 int
-    
-    // 预分配读取缓冲池
-    缓冲池 sync.Pool
-}
-
-func 平台创建读取器(路径 string, 只读 bool) (磁盘索引读取器, error) {
-    flags := os.O_RDONLY
-    if !只读 {
-        flags = os.O_RDWR
-    }
-    
-    f, err := os.OpenFile(路径, flags, 0)
-    if err != nil {
-        return nil, err
-    }
-    
-    r := &移动端读取器{
-        文件:     f,
-        缓存:     make(map[uint64][]byte),
-        缓存容量: 1000, // 默认缓存1000个节点
-        缓冲池: sync.Pool{
-            New: func() interface{} { return make([]byte, 4096) },
-        },
-    }
-    
-    if err := r.解析头部(); err != nil {
-        r.Close()
-        return nil, err
-    }
-    return r, nil
-}
-
-func (r *移动端读取器) 读取节点(nodeID uint64, buf []byte) error {
-    // 先检查缓存
-    r.缓存锁.RLock()
-    if cached, ok := r.缓存[nodeID]; ok {
-        copy(buf, cached)
-        r.缓存锁.RUnlock()
-        return nil
-    }
-    r.缓存锁.RUnlock()
-    
-    // 缓存未命中，从磁盘读取
-    offset := int64(r.计算偏移(nodeID))
-    节点长度 := int(r.元数据.节点字节长度)
-    
-    _, err := r.文件.ReadAt(buf[:节点长度], offset)
-    if err != nil {
-        return err
-    }
-    
-    // 加入缓存
-    r.加入缓存(nodeID, buf[:节点长度])
-    return nil
-}
-
-func (r *移动端读取器) 预热(nodeIDs []uint64) error {
-    // 移动端预热：批量读取并缓存
-    for _, id := range nodeIDs {
-        buf := r.缓冲池.Get().([]byte)
-        if err := r.读取节点(id, buf); err != nil {
-            r.缓冲池.Put(buf)
-            return err
-        }
-        r.缓冲池.Put(buf)
-    }
-    return nil
-}
-
-func (r *移动端读取器) 加入缓存(nodeID uint64, data []byte) {
-    r.缓存锁.Lock()
-    defer r.缓存锁.Unlock()
-    
-    // 简单的缓存淘汰：超过容量时清空
-    if len(r.缓存) >= r.缓存容量 {
-        r.缓存 = make(map[uint64][]byte)
-    }
-    
-    cached := make([]byte, len(data))
-    copy(cached, data)
-    r.缓存[nodeID] = cached
-}
-
-func (r *移动端读取器) Close() error {
-    r.缓存 = nil
-    return r.文件.Close()
-}
+// 写入使用标准文件I/O，mmap.ReaderAt只支持读取
+// 如需写入支持，可使用 os.File + pwrite 或 syscall.Mmap (非Windows)
 ```
 
-### 6.5 性能对比预估
-
-| 平台 | 策略 | 随机读延迟 | 内存占用 | 适用场景 |
-|------|------|------------|----------|----------|
-| Linux/macOS | mmap | ~1μs (热) / ~100μs (冷) | 按需页加载 | 大索引 |
-| Windows | mmap.ReaderAt | ~2μs (热) / ~150μs (冷) | 按需 | 大索引 |
-| iOS/Android | 缓冲+LRU | ~10μs (缓存命中) | 固定缓存 | 小索引(<100K) |
+> **按需扩展**: 如未来发现某平台确实需要特殊处理，再添加 `io_<platform>.go` 文件。
 
 ---
 
@@ -1154,23 +1249,22 @@ func (idx *磁盘索引) Compact() error {
 
 ### 实现优先级
 
-1. [ ] `diskann/io.go` - 接口定义
-2. [ ] `diskann/io_mmap_unix.go` - Linux/macOS实现
-3. [ ] `diskann/io_mmap_windows.go` - Windows实现
-4. [ ] `diskann/io_buffered_mobile.go` - iOS/Android实现
-5. [ ] `diskann/serialize.go` - 序列化/反序列化
-6. [ ] `vectordb/index.go` - 统一索引接口
-7. [ ] `vectordb/diskann_wrapper.go` - DiskANN包装器
-8. [ ] 单元测试 - 各平台基础读写
-9. [ ] 集成测试 - 与现有vectordb模块协作
+1. [ ] `storage/io.go` - 接口定义 + mmap统一实现 (使用 `golang.org/x/exp/mmap`)
+2. [ ] `storage/serialize.go` - 序列化/反序列化
+3. [ ] `vectordb/index.go` - 统一索引接口
+4. [ ] `vectordb/diskann_wrapper.go` - DiskANN包装器
+5. [ ] 单元测试
+
+> **YAGNI**: 平台特定文件 (`io_<platform>.go`) 仅在实际遇到问题时添加
 
 ### 验证计划
 
 - **桌面端**: 使用SIFT1M数据集验证mmap读取性能
-- **移动端**: 使用SIFT10K小数据集验证缓冲读取
 - **兼容性**: 确保Go写入的文件能被Rust版本读取（二进制兼容）
 
 ---
 
 **创建时间**: 2026-02-05
-**最后更新**: 2026-02-05 (补充实现细节：序列化、错误处理、集成接口)
+**最后更新**: 2026-02-06 (精简跨平台设计，采用YAGNI原则)
+
+

@@ -77,7 +77,11 @@ func (idx *VamanaIndex) initializeForBuild(vectors [][]float32) {
 
 	n := len(vectors)
 	idx.vectors = make([][]float32, n)
-	copy(idx.vectors, vectors)
+	for i, v := range vectors {
+		vecCopy := make([]float32, len(v))
+		copy(vecCopy, v)
+		idx.vectors[i] = vecCopy
+	}
 	idx.neighbors = make([][]uint32, n)
 	idx.nodeLocks = make([]sync.RWMutex, n)
 	for i := range idx.neighbors {

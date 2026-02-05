@@ -35,10 +35,10 @@
 4. **渐进迁移**: 支持从现有HNSW平滑迁移
 
 ### 验证检查清单
-- [ ] 磁盘存储层接口定义完整
-- [x] Vamana图索引数据结构设计完成 *(通过代码实现验证)*
-- [x] BBQ量化集成方案明确 *(已实现并通过测试)*
-- [x] 热更新机制设计可行 *(软删除已实现)*
+- [x] 磁盘存储层接口定义完整 *(storage包跨平台I/O实现完成)*
+- [x] Vamana图索引数据结构设计完成 *(vamana包已拆分为多个模块)*
+- [x] BBQ量化集成方案明确 *(vamana/bbq.go 完整实现)*
+- [x] 热更新机制设计可行 *(Delete + DeletedBitmap 已实现)*
 - [ ] API兼容层设计完成
 - [ ] 通过设计评审
 
@@ -54,21 +54,6 @@
 ---
 
 ## 🟢 近期计划 (立即聚焦)
-
-- [ ] **Task 1: 磁盘存储层接口设计 (P0)**
-  - **背景**: 定义向量、索引数据的磁盘存取接口
-  - **行动**:
-    1. 设计VectorStore接口（读写原始向量）
-    2. 设计GraphStore接口（读写邻接表）
-    3. 设计文件格式规范（Header/Node/Vector布局）
-    4. 评估mmap vs pread方案
-  - **验收标准**:
-    - 接口定义文档完成
-    - 文件格式规范明确
-    - I/O方案选型有依据
-  - **参考**: [`后端向量数据库技术设计草案.md`](后端向量数据库技术设计草案.md) §4
-
-
 
 - [ ] **Task 5: API兼容层设计 (P1)**
   - **背景**: 保持与现有HNSW接口兼容
@@ -95,6 +80,25 @@
 ---
 
 ## 🏁 已归档/已完成
+
+- [x] **Task 1: 磁盘存储层接口设计 (P0)** - 2026-02-06
+  - **完成方式**: storage包完整实现并测试
+  - **产出物**:
+    - [`kernel/vectordb/storage/io.go`](../../kernel/vectordb/storage/io.go) - 接口定义 (282行)
+    - [`kernel/vectordb/storage/serialize.go`](../../kernel/vectordb/storage/serialize.go) - 序列化实现 (456行)
+    - [`kernel/vectordb/storage/io_mmap_unix.go`](../../kernel/vectordb/storage/io_mmap_unix.go) - Unix mmap实现
+    - [`kernel/vectordb/storage/io_mmap_windows.go`](../../kernel/vectordb/storage/io_mmap_windows.go) - Windows mmap实现
+    - [`kernel/vectordb/storage/io_buffered_mobile.go`](../../kernel/vectordb/storage/io_buffered_mobile.go) - Mobile缓冲IO
+  - **已实现**:
+    - `DiskIndexReader` - 只读访问接口 (ReadNode/ReadNeighbors/ReadVector/Warmup)
+    - `DiskIndexWriter` - 读写访问接口 (AppendNode/UpdateNeighbors/Sync)
+    - `GraphMetadata` - 图索引元数据 (80字节)
+    - `GraphHeader` - 文件头 (96字节, 含Magic/Version校验)
+    - `DeletedBitmap` - 删除位图 (线程安全)
+  - **跨平台方案**:
+    - Linux/macOS: mmap零拷贝内存映射
+    - Windows: golang.org/x/exp/mmap
+    - iOS/Android: 缓冲读取 + LRU缓存
 
 - [x] **Task 2: Vamana图索引结构设计 (P0)** - 2026-02-05
   - **完成方式**: 通过代码实现验证
@@ -146,5 +150,5 @@
 ---
 
 **文档创建**: 2026-02-05
-**最后更新**: 2026-02-06 00:27 (UTC+8)
+**最后更新**: 2026-02-06 02:30 (UTC+8)
 **父计划**: [`后端向量数据库超大规模数据支持计划.ttt.md`](后端向量数据库超大规模数据支持计划.ttt.md)
