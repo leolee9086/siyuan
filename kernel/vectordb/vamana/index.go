@@ -62,10 +62,23 @@ type VamanaIndex struct {
 
 	// BBQ 量化数据
 	bbqEnabled       bool      // 是否启用 BBQ (dim >= BBQEnableThreshold 时自动启用)
-	bbqCodes         []uint64  // 紧凑存储的二值编码
+	bbqCodes         []uint64  // 紧凑存储的二值编码 (用于 1-bit 查询)
+	bbqUnpacked      []byte    // 未打包的 1-bit 量化数据 (用于 4-bit 查询)
 	bbqCompensations []float32 // 补偿因子 (||x||²)
 	bbqCentroid      []float32 // 全局质心向量
 	bbqUint64PerVec  int       // 每个向量占用的 uint64 数量
+
+	// BBQ 量化元数据 (用于精确距离还原)
+	bbqLowerBounds   []float32 // 每个向量的量化区间下界
+	bbqUpperBounds   []float32 // 每个向量的量化区间上界
+	bbqQuantizedSums []float32 // 每个向量的量化分量和
+
+	// BBQ 预创建组件 (性能优化: 避免热路径上的对象分配)
+	bbqScorer    *bbq.QuantizedScorer // 预创建评分器
+	bbqQuantizer *bbq.ScalarQuantizer // 预创建量化器
+
+	// BBQ 搜索临时空间池 (性能优化: 复用 query4Bit 切片)
+	bbqQuery4BitPool sync.Pool
 }
 
 // New 创建新的Vamana索引
@@ -99,6 +112,17 @@ func New(dimension int, config Config) *VamanaIndex {
 		New: func() interface{} {
 			return NewSearchScratch(1024, config.L)
 		},
+	}
+
+	// 预创建 BBQ 组件 (性能优化: 避免热路径上的对象分配)
+	if bbqEnabled {
+		idx.bbqScorer = bbq.NewQuantizedScorer(bbq.CosineSimilarity)
+		idx.bbqQuantizer = bbq.NewScalarQuantizer(bbq.CosineSimilarity)
+		idx.bbqQuery4BitPool = sync.Pool{
+			New: func() interface{} {
+				return make([]byte, dimension)
+			},
+		}
 	}
 
 	return idx
@@ -221,6 +245,7 @@ func (idx *VamanaIndex) precomputeNormSquares() {
 }
 
 // computeBBQCentroid 计算所有向量的质心（均值向量）
+// 用于 BBQ 量化时的中心化处理，提高量化精度
 func (idx *VamanaIndex) computeBBQCentroid() {
 	n := len(idx.vectors)
 	if n == 0 {
@@ -255,7 +280,11 @@ func (idx *VamanaIndex) computeBBQDataParallel(numWorkers int) {
 
 	// 1. 分配存储空间
 	idx.bbqCodes = make([]uint64, n*idx.bbqUint64PerVec)
+	idx.bbqUnpacked = make([]byte, n*idx.dimension) // 未打包数据用于 4-bit 查询
 	idx.bbqCompensations = make([]float32, n)
+	idx.bbqLowerBounds = make([]float32, n)
+	idx.bbqUpperBounds = make([]float32, n)
+	idx.bbqQuantizedSums = make([]float32, n)
 
 	// 2. 并行量化
 	var wg sync.WaitGroup
@@ -276,21 +305,29 @@ func (idx *VamanaIndex) computeBBQDataParallel(numWorkers int) {
 			defer wg.Done()
 
 			// 每个 worker 创建自己的量化器和临时缓冲区
-			quantizer := bbq.NewScalarQuantizer(bbq.EuclideanDistance)
+			// 使用 CosineSimilarity 模式配合均值质心，效果最佳
+			quantizer := bbq.NewScalarQuantizer(bbq.CosineSimilarity)
 			quantized := make([]byte, idx.dimension)
 
 			for i := start; i < end; i++ {
 				// 量化向量
 				result := quantizer.Quantize(idx.vectors[i], quantized, 1, idx.bbqCentroid)
 
-				// 打包为 uint64
+				// 存储未打包数据 (用于 4-bit 查询)
+				unpackedOffset := i * idx.dimension
+				copy(idx.bbqUnpacked[unpackedOffset:unpackedOffset+idx.dimension], quantized)
+
+				// 打包为 uint64 (用于 1-bit 查询)
 				packed := bbq.PackBinary(quantized)
 				codes := bbq.BytesToUint64(packed)
 
-				// 存储结果
+				// 存储打包结果
 				offset := i * idx.bbqUint64PerVec
 				copy(idx.bbqCodes[offset:offset+idx.bbqUint64PerVec], codes)
-				idx.bbqCompensations[i] = result.Correction // ||x||² for 欧氏距离
+				idx.bbqCompensations[i] = result.Correction
+				idx.bbqLowerBounds[i] = result.LowerBound
+				idx.bbqUpperBounds[i] = result.UpperBound
+				idx.bbqQuantizedSums[i] = result.QuantizedSum
 			}
 		}(start, end)
 	}
@@ -336,9 +373,8 @@ func (idx *VamanaIndex) bbqDistance(id1, id2 uint32) float32 {
 }
 
 // bbqDistanceToQuery 计算查询向量（已量化）到索引中某个向量的近似距离
-// queryCode: 查询向量的 BBQ 编码 (uint64 数组)
-// queryNormSq: 查询向量的范数平方
-func (idx *VamanaIndex) bbqDistanceToQuery(id uint32, queryCode []uint64, queryNormSq float32) float32 {
+// 使用 BBQ 评分器计算，与 store.go 中的实现保持一致
+func (idx *VamanaIndex) bbqDistanceToQuery(id uint32, queryCode []uint64, queryCorr bbq.QuantizationResult) float32 {
 	if !idx.bbqEnabled {
 		return 0 // 不应该在未启用 BBQ 时调用
 	}
@@ -350,42 +386,71 @@ func (idx *VamanaIndex) bbqDistanceToQuery(id uint32, queryCode []uint64, queryN
 	// 计算点积 (AND + POPCNT)
 	dotProduct := bbq.ComputePackedDotProduct64(queryCode, indexCode)
 
-	// 获取索引向量的补偿因子
-	indexNormSq := idx.bbqCompensations[id]
-
-	// 近似欧氏距离公式 (简化版):
-	// ||x - y||² ≈ ||x||² + ||y||² - 2 * dotProduct * scale
-	dim := float32(idx.dimension)
-	scale := (queryNormSq + indexNormSq) / (2.0 * dim)
-	estimatedDot := float32(dotProduct) * scale
-
-	distSq := queryNormSq + indexNormSq - 2.0*estimatedDot
-	if distSq < 0 {
-		distSq = 0
+	// 获取索引向量的量化元数据
+	indexCorr := bbq.QuantizationResult{
+		LowerBound:   idx.bbqLowerBounds[id],
+		UpperBound:   idx.bbqUpperBounds[id],
+		Correction:   idx.bbqCompensations[id],
+		QuantizedSum: idx.bbqQuantizedSums[id],
 	}
-	return distSq
+
+	// 使用 BBQ 评分器计算距离
+	// 使用 CosineSimilarity 模式配合均值质心，效果最佳
+	scorer := bbq.NewQuantizedScorer(bbq.CosineSimilarity)
+	return scorer.ComputeQuantizedDistance(dotProduct, queryCorr, indexCorr, idx.dimension, 0, false)
+}
+
+// bbqDistanceToQuery4Bit 使用 4-bit 查询量化计算距离
+// 4-bit 查询与 1-bit 索引的点积计算，精度更高
+// 性能优化: 使用预创建的 scorer，避免热路径上的对象分配
+func (idx *VamanaIndex) bbqDistanceToQuery4Bit(id uint32, query4Bit []byte, queryCorr bbq.QuantizationResult) float32 {
+	if !idx.bbqEnabled {
+		return 0
+	}
+
+	// 获取索引向量的未打包 1-bit 数据
+	unpackedOffset := int(id) * idx.dimension
+	indexUnpacked := idx.bbqUnpacked[unpackedOffset : unpackedOffset+idx.dimension]
+
+	// 计算 4-bit 查询与 1-bit 索引的点积
+	dotProduct := bbq.ComputeNaiveDotProduct(query4Bit, indexUnpacked)
+
+	// 获取索引向量的量化元数据
+	indexCorr := bbq.QuantizationResult{
+		LowerBound:   idx.bbqLowerBounds[id],
+		UpperBound:   idx.bbqUpperBounds[id],
+		Correction:   idx.bbqCompensations[id],
+		QuantizedSum: idx.bbqQuantizedSums[id],
+	}
+
+	// 使用预创建的评分器 (性能优化: 避免每次调用都创建新对象)
+	return idx.bbqScorer.ComputeQuantizedDistance(dotProduct, queryCorr, indexCorr, idx.dimension, 0, true)
 }
 
 // greedySearchBBQ 基于 BBQ 的贪婪图搜索
-// 先将查询向量量化（减去质心后量化），使用 bbqDistanceToQuery 进行距离计算
+// 使用 4-bit 查询量化 + 1-bit 索引量化，提高召回率
 // 返回 L 个最近邻候选
+// 性能优化: 接收预量化的查询参数，避免重复量化
 func (idx *VamanaIndex) greedySearchBBQ(scratch *SearchScratch, startIDs []uint32, query []float32, L int) []Neighbor {
 	if !idx.bbqEnabled {
 		// 如果未启用 BBQ，回退到精确搜索
 		return idx.greedySearch(scratch, startIDs, query, L)
 	}
 
-	// 1. 量化查询向量
-	quantizer := bbq.NewScalarQuantizer(bbq.EuclideanDistance)
-	quantized := make([]byte, idx.dimension)
-	result := quantizer.Quantize(query, quantized, 1, idx.bbqCentroid)
+	// 从对象池获取 query4Bit 切片 (性能优化: 避免每次搜索都分配新切片)
+	query4Bit := idx.bbqQuery4BitPool.Get().([]byte)
+	defer idx.bbqQuery4BitPool.Put(query4Bit)
 
-	// 打包为 uint64
-	packed := bbq.PackBinary(quantized)
-	queryCode := bbq.BytesToUint64(packed)
-	queryNormSq := result.Correction // ||query - centroid||²
+	// 使用预创建的量化器 (性能优化: 避免每次搜索都创建新对象)
+	queryCorr := idx.bbqQuantizer.Quantize(query, query4Bit, 4, idx.bbqCentroid)
 
-	// 2. 执行贪婪搜索
+	// 执行贪婪搜索
+	return idx.greedySearchBBQWithQuantized(scratch, startIDs, query4Bit, queryCorr)
+}
+
+// greedySearchBBQWithQuantized 使用预量化查询执行 BBQ 贪婪搜索
+// 性能优化: 分离量化和搜索逻辑，允许调用者复用量化结果
+func (idx *VamanaIndex) greedySearchBBQWithQuantized(scratch *SearchScratch, startIDs []uint32, query4Bit []byte, queryCorr bbq.QuantizationResult) []Neighbor {
 	scratch.Reset()
 
 	idx.mu.RLock()
@@ -403,7 +468,7 @@ func (idx *VamanaIndex) greedySearchBBQ(scratch *SearchScratch, startIDs []uint3
 			continue
 		}
 		scratch.Visited.Insert(startID)
-		dist := idx.bbqDistanceToQuery(startID, queryCode, queryNormSq)
+		dist := idx.bbqDistanceToQuery4Bit(startID, query4Bit, queryCorr)
 		scratch.Best.Insert(Neighbor{ID: startID, Distance: dist})
 		scratch.Cmps++
 	}
@@ -425,7 +490,7 @@ func (idx *VamanaIndex) greedySearchBBQ(scratch *SearchScratch, startIDs []uint3
 				continue
 			}
 			if scratch.Visited.Insert(neighborID) {
-				dist := idx.bbqDistanceToQuery(neighborID, queryCode, queryNormSq)
+				dist := idx.bbqDistanceToQuery4Bit(neighborID, query4Bit, queryCorr)
 				scratch.Best.Insert(Neighbor{ID: neighborID, Distance: dist})
 				scratch.Cmps++
 			}
@@ -434,6 +499,139 @@ func (idx *VamanaIndex) greedySearchBBQ(scratch *SearchScratch, startIDs []uint3
 	}
 
 	return scratch.Best.All()
+}
+
+// SearchWithBBQ 两阶段搜索：BBQ 粗筛 + 全精度重排
+// 第一阶段使用 BBQ 近似距离快速筛选 k*rerankFactor 个候选
+// 第二阶段使用全精度向量计算真实距离，返回 top-k 结果
+// 性能优化: 使用对象池复用 scratch，使用堆选择 top-k 替代完整排序
+func (idx *VamanaIndex) SearchWithBBQ(query []float32, k int, rerankFactor int) []Neighbor {
+	// 检查 BBQ 是否启用，若未启用则回退到普通 Search
+	if !idx.bbqEnabled {
+		// 使用默认 efSearch = k * rerankFactor
+		return idx.Search(query, k, k*rerankFactor)
+	}
+
+	idx.mu.RLock()
+	if len(idx.vectors) == 0 || idx.medoid == math.MaxUint32 {
+		idx.mu.RUnlock()
+		return nil
+	}
+	vectorCount := len(idx.vectors)
+	idx.mu.RUnlock()
+
+	// 第一阶段：BBQ 粗筛
+	// 获取 k * rerankFactor 个候选
+	candidateCount := k * rerankFactor
+	if candidateCount < k {
+		candidateCount = k
+	}
+
+	// 性能优化: 使用对象池复用 scratch
+	scratch := idx.getScratch()
+	defer idx.putScratch(scratch)
+
+	// 确保 scratch 容量足够
+	scratch.Visited.EnsureCapacity(vectorCount)
+	scratch.Best.SetCapacity(candidateCount)
+
+	startIDs := []uint32{idx.medoid}
+	candidates := idx.greedySearchBBQ(scratch, startIDs, query, candidateCount)
+
+	if len(candidates) == 0 {
+		return nil
+	}
+
+	// 第二阶段：全精度重排
+	// 使用 euclideanDistance 计算真实距离
+	idx.mu.RLock()
+	defer idx.mu.RUnlock()
+
+	// 重新计算每个候选的真实距离
+	for i := range candidates {
+		id := candidates[i].ID
+		if int(id) < len(idx.vectors) {
+			candidates[i].Distance = euclideanDistance(query, idx.vectors[id])
+		}
+	}
+
+	// 性能优化: 使用堆选择 top-k，O(n log k) 替代完整排序 O(n log n)
+	// 当 k 远小于 n 时，堆选择更高效
+	if len(candidates) > k {
+		result := selectTopK(candidates, k)
+		return result
+	}
+
+	// 候选数量不超过 k，直接排序返回
+	sort.Slice(candidates, func(i, j int) bool {
+		return candidates[i].Distance < candidates[j].Distance
+	})
+
+	result := make([]Neighbor, len(candidates))
+	copy(result, candidates)
+	return result
+}
+
+// selectTopK 使用堆选择算法获取 top-k 最小距离的邻居
+// 时间复杂度: O(n log k)，比完整排序 O(n log n) 更高效
+func selectTopK(candidates []Neighbor, k int) []Neighbor {
+	if len(candidates) <= k {
+		result := make([]Neighbor, len(candidates))
+		copy(result, candidates)
+		sort.Slice(result, func(i, j int) bool {
+			return result[i].Distance < result[j].Distance
+		})
+		return result
+	}
+
+	// 使用最大堆维护 k 个最小元素
+	// 堆顶是当前 k 个元素中的最大值
+	heap := make([]Neighbor, k)
+	copy(heap, candidates[:k])
+
+	// 建立最大堆
+	for i := k/2 - 1; i >= 0; i-- {
+		heapifyDown(heap, i, k)
+	}
+
+	// 遍历剩余元素，如果比堆顶小则替换
+	for i := k; i < len(candidates); i++ {
+		if candidates[i].Distance < heap[0].Distance {
+			heap[0] = candidates[i]
+			heapifyDown(heap, 0, k)
+		}
+	}
+
+	// 堆排序得到有序结果
+	for i := k - 1; i > 0; i-- {
+		heap[0], heap[i] = heap[i], heap[0]
+		heapifyDown(heap, 0, i)
+	}
+
+	return heap
+}
+
+// heapifyDown 最大堆下沉操作
+func heapifyDown(heap []Neighbor, i, n int) {
+	for {
+		largest := i
+		left := 2*i + 1
+		right := 2*i + 2
+
+		if left < n && heap[left].Distance > heap[largest].Distance {
+			largest = left
+		}
+		if right < n && heap[right].Distance > heap[largest].Distance {
+			largest = right
+		}
+
+		if largest == i {
+			break
+		}
+
+		heap[i], heap[largest] = heap[largest], heap[i]
+		i = largest
+	}
 }
 
 // fastDistance 使用预计算范数加速两节点间距离计算

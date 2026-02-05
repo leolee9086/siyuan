@@ -190,6 +190,20 @@ func (pq *NeighborPriorityQueue) Reset() {
 	pq.count = 0
 }
 
+// SetCapacity 设置队列容量 (性能优化: 允许复用时调整容量)
+func (pq *NeighborPriorityQueue) SetCapacity(capacity int) {
+	if capacity > len(pq.data) {
+		// 需要扩容
+		newData := make([]Neighbor, capacity)
+		newFlags := make([]bool, capacity)
+		copy(newData, pq.data)
+		copy(newFlags, pq.flags)
+		pq.data = newData
+		pq.flags = newFlags
+	}
+	pq.capacity = capacity
+}
+
 // Len 返回队列长度
 func (pq *NeighborPriorityQueue) Len() int {
 	return pq.count
