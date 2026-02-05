@@ -1,0 +1,200 @@
+// SiYuan - Refactor your thinking
+// Copyright (c) 2020-present, b3log.org
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+package vamana
+
+import "math"
+
+// ============================================================================
+// 搜索算法相关函数
+// ============================================================================
+
+// findMedoid 找到质心最近的点作为入口点
+func (idx *VamanaIndex) findMedoid() uint32 {
+	n := len(idx.vectors)
+	if n == 0 {
+		return math.MaxUint32
+	}
+	if n == 1 {
+		return 0
+	}
+
+	// 计算质心
+	dim := idx.dimension
+	centroid := make([]float32, dim)
+	for _, v := range idx.vectors {
+		for i := range v {
+			centroid[i] += v[i]
+		}
+	}
+	invN := 1.0 / float32(n)
+	for i := range centroid {
+		centroid[i] *= invN
+	}
+
+	// 找到离质心最近的点
+	var minDist float32 = math.MaxFloat32
+	var medoid uint32 = 0
+	for i, v := range idx.vectors {
+		dist := euclideanDistance(v, centroid)
+		if dist < minDist {
+			minDist = dist
+			medoid = uint32(i)
+		}
+	}
+
+	return medoid
+}
+
+// greedySearch 贪婪搜索算法 (内部使用)
+// 返回最近的L个候选节点
+// 优化: 整个搜索期间持有读锁，避免每次循环加解锁的开销
+func (idx *VamanaIndex) greedySearch(scratch *SearchScratch, startIDs []uint32, query []float32, L int) []Neighbor {
+	// 计算查询范数，委托给快速版本
+	queryNormSq := computeNormSquare(query)
+	return idx.greedySearchFast(scratch, startIDs, query, queryNormSq, L)
+}
+
+// greedySearchFast 使用预计算范数的快速贪婪搜索
+// queryNormSq: 预计算的查询向量范数平方
+func (idx *VamanaIndex) greedySearchFast(scratch *SearchScratch, startIDs []uint32, query []float32, queryNormSq float32, L int) []Neighbor {
+	scratch.Reset()
+
+	// 整个搜索期间持有读锁
+	idx.mu.RLock()
+	defer idx.mu.RUnlock()
+
+	scratch.Visited.EnsureCapacity(len(idx.vectors))
+
+	// 初始化: 从入口点开始
+	for _, startID := range startIDs {
+		if int(startID) >= len(idx.vectors) {
+			continue
+		}
+		// 跳过已删除节点
+		if idx.deleted.Test(startID) {
+			continue
+		}
+		scratch.Visited.Insert(startID)
+		dist := idx.fastDistanceToQuery(startID, query, queryNormSq)
+		scratch.Best.Insert(Neighbor{ID: startID, Distance: dist})
+		scratch.Cmps++
+	}
+
+	// 贪婪搜索
+	for scratch.Best.HasUnvisited() {
+		// 获取最近的未访问节点
+		closest, ok := scratch.Best.PopClosestUnvisited()
+		if !ok {
+			break
+		}
+
+		// 展开邻居 (不再需要加锁，已在函数开始时持有读锁)
+		neighbors := idx.neighbors[closest.ID]
+
+		for _, neighborID := range neighbors {
+			// 跳过已删除节点
+			if idx.deleted.Test(neighborID) {
+				continue
+			}
+			if scratch.Visited.Insert(neighborID) {
+				dist := idx.fastDistanceToQuery(neighborID, query, queryNormSq)
+				scratch.Best.Insert(Neighbor{ID: neighborID, Distance: dist})
+				scratch.Cmps++
+			}
+		}
+		scratch.Hops++
+	}
+
+	return scratch.Best.All()
+}
+
+// greedySearchForBuild 构建专用的贪婪搜索
+// 在并行构建期间使用，直接读取邻居（无锁）
+// 前提：idx.vectors 和 idx.neighbors 的大小在构建期间不变
+// 注意：邻居列表可能被其他goroutine修改，但这是可接受的（最终一致性）
+func (idx *VamanaIndex) greedySearchForBuild(scratch *SearchScratch, startIDs []uint32, query []float32, queryNormSq float32, L int) []Neighbor {
+	scratch.Reset()
+	scratch.Visited.EnsureCapacity(len(idx.vectors))
+
+	// 初始化: 从入口点开始
+	for _, startID := range startIDs {
+		if int(startID) >= len(idx.vectors) {
+			continue
+		}
+		scratch.Visited.Insert(startID)
+		dist := idx.fastDistanceToQuery(startID, query, queryNormSq)
+		scratch.Best.Insert(Neighbor{ID: startID, Distance: dist})
+		scratch.Cmps++
+	}
+
+	// 贪婪搜索（无锁读取邻居，接受最终一致性）
+	for scratch.Best.HasUnvisited() {
+		closest, ok := scratch.Best.PopClosestUnvisited()
+		if !ok {
+			break
+		}
+
+		// 直接读取邻居（无锁），可能读到部分更新的数据，但这是可接受的
+		neighbors := idx.neighbors[closest.ID]
+
+		for _, neighborID := range neighbors {
+			// 边界检查：跳过无效的邻居ID
+			if int(neighborID) >= len(idx.vectors) {
+				continue
+			}
+			if scratch.Visited.Insert(neighborID) {
+				dist := idx.fastDistanceToQuery(neighborID, query, queryNormSq)
+				scratch.Best.Insert(Neighbor{ID: neighborID, Distance: dist})
+				scratch.Cmps++
+			}
+		}
+		scratch.Hops++
+	}
+
+	return scratch.Best.All()
+}
+
+// Search 搜索最近的K个邻居
+func (idx *VamanaIndex) Search(query []float32, k int, efSearch int) []Neighbor {
+	idx.mu.RLock()
+	if len(idx.vectors) == 0 || idx.medoid == math.MaxUint32 {
+		idx.mu.RUnlock()
+		return nil
+	}
+	idx.mu.RUnlock()
+
+	scratch := idx.getScratch()
+	defer idx.putScratch(scratch)
+
+	L := efSearch
+	if L < k {
+		L = k
+	}
+
+	// 贪婪搜索
+	startIDs := []uint32{idx.medoid}
+	candidates := idx.greedySearch(scratch, startIDs, query, L)
+
+	// 返回Top-K
+	if len(candidates) > k {
+		candidates = candidates[:k]
+	}
+
+	result := make([]Neighbor, len(candidates))
+	copy(result, candidates)
+	return result
+}
