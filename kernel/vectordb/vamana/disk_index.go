@@ -104,7 +104,6 @@ type DiskVamanaIndex struct {
 	bbqCorrections   []float32              // 校正因子
 	bbqQuantizedSums []float32              // 量化分量和
 	bbqHasMeta       bool                   // 是否有量化元数据
-	neighbors        [][]uint32             // Neighbor lists (fully loaded in memory)
 	deleted          *storage.DeletedBitmap // Deleted node bitmap
 
 	// State
@@ -169,12 +168,6 @@ func Open(path string) (*DiskVamanaIndex, error) {
 		_ = err
 	}
 
-	// Load neighbor lists into memory
-	if err := idx.loadNeighbors(); err != nil {
-		idx.reader.Close()
-		return nil, fmt.Errorf("failed to load neighbors: %w", err)
-	}
-
 	// Load deleted bitmap (creates empty if not exists)
 	deletedPath := path + diskDeletedExt
 	deleted, err := storage.LoadDeletedBitmap(deletedPath)
@@ -221,7 +214,6 @@ func (idx *DiskVamanaIndex) Close() error {
 
 	// Clear memory-resident data
 	idx.bbqCodes = nil
-	idx.neighbors = nil
 	idx.deleted = nil
 
 	return nil
@@ -390,36 +382,6 @@ func (idx *DiskVamanaIndex) loadBBQCodesV2(data []byte) error {
 	return nil
 }
 
-// loadNeighbors loads all neighbor lists from disk into memory.
-//
-// This provides fast access to graph structure during search,
-// at the cost of memory usage proportional to graph size.
-func (idx *DiskVamanaIndex) loadNeighbors() error {
-	numPoints := idx.metadata.NumPoints
-	idx.neighbors = make([][]uint32, numPoints)
-
-	// Allocate buffer for reading nodes
-	nodeLen := int(idx.metadata.NodeLen)
-	buf := make([]byte, nodeLen)
-
-	for i := uint64(0); i < numPoints; i++ {
-		if err := idx.reader.ReadNode(i, buf); err != nil {
-			return fmt.Errorf("failed to read node %d: %w", i, err)
-		}
-
-		neighbors, err := storage.ParseNeighborsFromBuffer(buf, int(idx.metadata.Dims))
-		if err != nil {
-			return fmt.Errorf("failed to parse neighbors for node %d: %w", i, err)
-		}
-
-		// Copy neighbors to avoid referencing buffer
-		idx.neighbors[i] = make([]uint32, len(neighbors))
-		copy(idx.neighbors[i], neighbors)
-	}
-
-	return nil
-}
-
 // ============================================================================
 // Accessor Methods
 // ============================================================================
@@ -486,16 +448,21 @@ func (idx *DiskVamanaIndex) MaxDegree() int {
 
 // GetNeighbors returns the neighbor list for the specified node.
 //
+// Reads neighbors on-demand from disk via idx.reader.ReadNeighbors().
 // Returns nil if the node doesn't exist or the index is closed.
 func (idx *DiskVamanaIndex) GetNeighbors(nodeID uint64) []uint32 {
 	idx.mu.RLock()
 	defer idx.mu.RUnlock()
 
-	if idx.closed || nodeID >= uint64(len(idx.neighbors)) {
+	if idx.closed || nodeID >= idx.metadata.NumPoints {
 		return nil
 	}
 
-	return idx.neighbors[nodeID]
+	neighbors, err := idx.reader.ReadNeighbors(nodeID)
+	if err != nil {
+		return nil
+	}
+	return neighbors
 }
 
 // IsDeleted checks if a node is marked as deleted.

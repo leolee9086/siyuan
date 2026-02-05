@@ -179,8 +179,8 @@ func (idx *DiskVamanaIndex) greedySearchBBQWithMeta(scratch *SearchScratch, medo
 			break
 		}
 
-		// Get neighbors
-		neighbors := idx.neighbors[closest.ID]
+		// Get neighbors from disk on-demand
+		neighbors := idx.GetNeighbors(uint64(closest.ID))
 
 		for _, neighborID := range neighbors {
 			// Skip deleted nodes
@@ -224,8 +224,8 @@ func (idx *DiskVamanaIndex) greedySearchBBQHamming(scratch *SearchScratch, medoi
 			break
 		}
 
-		// Get neighbors
-		neighbors := idx.neighbors[closest.ID]
+		// Get neighbors from disk on-demand
+		neighbors := idx.GetNeighbors(uint64(closest.ID))
 
 		for _, neighborID := range neighbors {
 			// Skip deleted nodes
@@ -333,8 +333,8 @@ func (idx *DiskVamanaIndex) greedySearchDisk(scratch *SearchScratch, medoid uint
 			break
 		}
 
-		// Get neighbors
-		neighbors := idx.neighbors[closest.ID]
+		// Get neighbors from disk on-demand
+		neighbors := idx.GetNeighbors(uint64(closest.ID))
 
 		for _, neighborID := range neighbors {
 			// Skip deleted nodes
