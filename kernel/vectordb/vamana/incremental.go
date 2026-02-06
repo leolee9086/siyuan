@@ -148,7 +148,7 @@ type IncrementalIndex struct {
 // Returns error if base index is nil or closed.
 func NewIncrementalIndex(base *DiskVamanaIndex, config IncrementalConfig) (*IncrementalIndex, error) {
 	if base == nil {
-		return nil, fmt.Errorf("base index cannot be nil")
+		return nil, ErrBaseIndexNil
 	}
 
 	base.mu.RLock()

@@ -174,17 +174,17 @@ type DiskBuildResult struct {
 //	fmt.Printf("Built index with %d points, medoid=%d\n", result.NumPoints, result.Medoid)
 func BuildFromVectors(path string, vectors [][]float32, config DiskBuildConfig) (*DiskBuildResult, error) {
 	if len(vectors) == 0 {
-		return nil, fmt.Errorf("vectors cannot be empty")
+		return nil, ErrVectorsEmpty
 	}
 
-	// Validate dimension consistency
+	// 验证维度一致性
 	dimension := len(vectors[0])
 	if dimension == 0 {
-		return nil, fmt.Errorf("vector dimension cannot be zero")
+		return nil, ErrDimensionZero
 	}
 	for i, v := range vectors {
 		if len(v) != dimension {
-			return nil, fmt.Errorf("inconsistent dimension at vector %d: expected %d, got %d", i, dimension, len(v))
+			return nil, fmt.Errorf("%w at vector %d: expected %d, got %d", ErrDimensionInconsistent, i, dimension, len(v))
 		}
 	}
 

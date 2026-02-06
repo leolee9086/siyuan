@@ -16,6 +16,8 @@
 
 package vamana
 
+import "math/bits"
+
 // MaxDegree 最大出度常量
 const MaxDegree = 128
 
@@ -54,7 +56,13 @@ func (a *AdjacencyList) Get(i int) uint32 {
 	return a.neighbors[i]
 }
 
-// Contains 检查是否包含指定ID
+// Contains 检查是否包含指定ID。
+//
+// 设计决策：此处使用线性扫描 O(n) 而非 map 查找，原因如下：
+//   - AdjacencyList 最大长度为 MaxDegree=128，元素为 uint32（4字节）
+//   - 128 个 uint32 仅占 512 字节，完全在 L1 缓存行内
+//   - 对于小规模连续内存的线性扫描，缓存友好性使其比 map 查找更快
+//   - 避免了 map 的哈希计算开销和额外内存分配
 func (a *AdjacencyList) Contains(id uint32) bool {
 	for i := 0; i < a.length; i++ {
 		if a.neighbors[i] == id {
@@ -407,16 +415,7 @@ func (b *Bitset) grow(newSize int) {
 func (b *Bitset) Count() int {
 	count := 0
 	for _, word := range b.bits {
-		count += popcount64(word)
+		count += bits.OnesCount64(word)
 	}
 	return count
-}
-
-// popcount64 计算64位整数中1的个数
-func popcount64(x uint64) int {
-	// 使用并行位计数算法
-	x = x - ((x >> 1) & 0x5555555555555555)
-	x = (x & 0x3333333333333333) + ((x >> 2) & 0x3333333333333333)
-	x = (x + (x >> 4)) & 0x0f0f0f0f0f0f0f0f
-	return int((x * 0x0101010101010101) >> 56)
 }

@@ -349,79 +349,48 @@ func (idx *VamanaIndex) Insert(vector []float32) (uint32, error) {
 // 剪枝算法相关函数
 // ============================================================================
 
-// robustPrune RobustPrune剪枝算法
-// 选择多样性好的邻居，避免邻居之间过于接近
-// 优化版本：使用 lastChecked 数组实现增量式距离计算，避免 O(n²) 重复计算
-func (idx *VamanaIndex) robustPrune(nodeID uint32, candidates []Neighbor, maxDegree int, alpha float32) []uint32 {
-	if len(candidates) == 0 {
-		return nil
-	}
-
-	// 按距离排序
-	sort.Slice(candidates, func(i, j int) bool {
-		return candidates[i].Distance < candidates[j].Distance
-	})
-
-	// 限制候选数量
-	n := len(candidates)
-	if n > idx.config.MaxOcclusionSize {
-		n = idx.config.MaxOcclusionSize
-		candidates = candidates[:n]
-	}
-
-	// 初始化辅助数组
-	occludeFactor := make([]float32, n)
-	// lastChecked[i] 记录候选节点 i 已经与结果列表中的前多少个节点比较过
-	// 这样在 alpha 递增时，只需要继续比较新添加的结果节点
-	lastChecked := make([]int, n)
-	// resultPos[j] 记录结果列表中第 j 个节点在 candidates 中的位置
-	// 用于快速查找已选节点的距离信息
-	resultPos := make([]int, 0, maxDegree)
-
+// robustPruneCore 是 RobustPrune 剪枝算法的核心实现。
+// 使用 lastChecked 数组实现增量式距离计算，避免 O(n²) 重复计算。
+// 调用者负责提供已初始化（零值）的辅助数组 occludeFactor、lastChecked 和 resultPos。
+func (idx *VamanaIndex) robustPruneCore(
+	nodeID uint32, candidates []Neighbor, n int, maxDegree int, alpha float32,
+	occludeFactor []float32, lastChecked []int, resultPos *[]int,
+) []uint32 {
 	currentAlpha := float32(1.0)
 	incrementFactor := float32(1.2)
 	if alpha < incrementFactor {
 		incrementFactor = alpha
 	}
 
-	for len(resultPos) < maxDegree {
+	for len(*resultPos) < maxDegree {
 		for i := 0; i < n; i++ {
-			if len(resultPos) >= maxDegree {
+			if len(*resultPos) >= maxDegree {
 				break
 			}
 
-			// 如果遮挡因子已经超过当前 alpha，跳过
 			if occludeFactor[i] > currentAlpha {
 				continue
 			}
 
 			cand := &candidates[i]
 
-			// 排除自身
 			if cand.ID == nodeID {
 				occludeFactor[i] = math.MaxFloat32
 				continue
 			}
 
-			// 增量式检查：只计算与新添加的结果节点之间的距离
-			// lastChecked[i] 记录了上次检查到的位置
 			skip := false
-			for lastChecked[i] < len(resultPos) {
-				resultIdx := resultPos[lastChecked[i]]
+			for lastChecked[i] < len(*resultPos) {
+				resultIdx := (*resultPos)[lastChecked[i]]
 				lastChecked[i]++
 
-				// 如果结果节点在候选列表中的位置 >= 当前位置，
-				// 说明结果节点的距离 >= 当前候选节点的距离，不会产生遮挡
 				if resultIdx >= i {
 					continue
 				}
 
-				// 计算候选节点与已选结果节点之间的距离
-				// 使用fastDistance利用预计算范数加速
 				selectedID := candidates[resultIdx].ID
 				distCN := idx.fastDistance(cand.ID, selectedID)
 
-				// 更新遮挡因子（三角不等式剪枝）
 				if distCN < cand.Distance {
 					newFactor := cand.Distance / distCN
 					if newFactor > occludeFactor[i] {
@@ -429,26 +398,22 @@ func (idx *VamanaIndex) robustPrune(nodeID uint32, candidates []Neighbor, maxDeg
 					}
 				}
 
-				// 检查是否超过当前 alpha
 				if occludeFactor[i] > currentAlpha {
 					skip = true
 					break
 				}
 			}
 
-			// 如果通过所有检查，将此候选节点加入结果
 			if !skip && occludeFactor[i] <= currentAlpha {
-				resultPos = append(resultPos, i)
+				*resultPos = append(*resultPos, i)
 				occludeFactor[i] = math.MaxFloat32
 			}
 		}
 
-		// 如果已达到最大 alpha，退出
 		if currentAlpha >= alpha {
 			break
 		}
 
-		// 递增 alpha 进行下一轮
 		currentAlpha = currentAlpha * incrementFactor
 		if currentAlpha > alpha {
 			currentAlpha = alpha
@@ -456,8 +421,8 @@ func (idx *VamanaIndex) robustPrune(nodeID uint32, candidates []Neighbor, maxDeg
 	}
 
 	// 将位置索引转换为实际的节点 ID
-	result := make([]uint32, len(resultPos))
-	for i, pos := range resultPos {
+	result := make([]uint32, len(*resultPos))
+	for i, pos := range *resultPos {
 		result[i] = candidates[pos].ID
 	}
 
@@ -476,6 +441,31 @@ func (idx *VamanaIndex) robustPrune(nodeID uint32, candidates []Neighbor, maxDeg
 	return result
 }
 
+// robustPrune RobustPrune剪枝算法
+// 选择多样性好的邻居，避免邻居之间过于接近
+func (idx *VamanaIndex) robustPrune(nodeID uint32, candidates []Neighbor, maxDegree int, alpha float32) []uint32 {
+	if len(candidates) == 0 {
+		return nil
+	}
+
+	sort.Slice(candidates, func(i, j int) bool {
+		return candidates[i].Distance < candidates[j].Distance
+	})
+
+	n := len(candidates)
+	if n > idx.config.MaxOcclusionSize {
+		n = idx.config.MaxOcclusionSize
+		candidates = candidates[:n]
+	}
+
+	occludeFactor := make([]float32, n)
+	lastChecked := make([]int, n)
+	resultPos := make([]int, 0, maxDegree)
+
+	return idx.robustPruneCore(nodeID, candidates, n, maxDegree, alpha,
+		occludeFactor, lastChecked, &resultPos)
+}
+
 // robustPruneWithScratch 使用scratch缓冲区的RobustPrune剪枝算法
 // 避免每次调用分配临时数组，减少GC压力
 func (idx *VamanaIndex) robustPruneWithScratch(nodeID uint32, candidates []Neighbor, maxDegree int, alpha float32, scratch *SearchScratch) []uint32 {
@@ -483,12 +473,10 @@ func (idx *VamanaIndex) robustPruneWithScratch(nodeID uint32, candidates []Neigh
 		return nil
 	}
 
-	// 按距离排序
 	sort.Slice(candidates, func(i, j int) bool {
 		return candidates[i].Distance < candidates[j].Distance
 	})
 
-	// 限制候选数量
 	n := len(candidates)
 	if n > idx.config.MaxOcclusionSize {
 		n = idx.config.MaxOcclusionSize
@@ -500,104 +488,19 @@ func (idx *VamanaIndex) robustPruneWithScratch(nodeID uint32, candidates []Neigh
 		scratch.OccludeFactor = make([]float32, n)
 	}
 	scratch.OccludeFactor = scratch.OccludeFactor[:n]
-	for i := range scratch.OccludeFactor {
-		scratch.OccludeFactor[i] = 0
-	}
+	clear(scratch.OccludeFactor)
 
 	if cap(scratch.LastChecked) < n {
 		scratch.LastChecked = make([]int, n)
 	}
 	scratch.LastChecked = scratch.LastChecked[:n]
-	for i := range scratch.LastChecked {
-		scratch.LastChecked[i] = 0
-	}
+	clear(scratch.LastChecked)
 
 	if cap(scratch.ResultPos) < maxDegree {
 		scratch.ResultPos = make([]int, 0, maxDegree)
 	}
 	scratch.ResultPos = scratch.ResultPos[:0]
 
-	currentAlpha := float32(1.0)
-	incrementFactor := float32(1.2)
-	if alpha < incrementFactor {
-		incrementFactor = alpha
-	}
-
-	for len(scratch.ResultPos) < maxDegree {
-		for i := 0; i < n; i++ {
-			if len(scratch.ResultPos) >= maxDegree {
-				break
-			}
-
-			if scratch.OccludeFactor[i] > currentAlpha {
-				continue
-			}
-
-			cand := &candidates[i]
-
-			if cand.ID == nodeID {
-				scratch.OccludeFactor[i] = math.MaxFloat32
-				continue
-			}
-
-			skip := false
-			for scratch.LastChecked[i] < len(scratch.ResultPos) {
-				resultIdx := scratch.ResultPos[scratch.LastChecked[i]]
-				scratch.LastChecked[i]++
-
-				if resultIdx >= i {
-					continue
-				}
-
-				selectedID := candidates[resultIdx].ID
-				distCN := idx.fastDistance(cand.ID, selectedID)
-
-				if distCN < cand.Distance {
-					newFactor := cand.Distance / distCN
-					if newFactor > scratch.OccludeFactor[i] {
-						scratch.OccludeFactor[i] = newFactor
-					}
-				}
-
-				if scratch.OccludeFactor[i] > currentAlpha {
-					skip = true
-					break
-				}
-			}
-
-			if !skip && scratch.OccludeFactor[i] <= currentAlpha {
-				scratch.ResultPos = append(scratch.ResultPos, i)
-				scratch.OccludeFactor[i] = math.MaxFloat32
-			}
-		}
-
-		if currentAlpha >= alpha {
-			break
-		}
-
-		currentAlpha = currentAlpha * incrementFactor
-		if currentAlpha > alpha {
-			currentAlpha = alpha
-		}
-	}
-
-	// 将位置索引转换为实际的节点 ID
-	result := make([]uint32, len(scratch.ResultPos))
-	for i, pos := range scratch.ResultPos {
-		result[i] = candidates[pos].ID
-	}
-
-	// 饱和填充
-	if idx.config.SaturateAfterPrune && alpha > 1.0 {
-		for _, cand := range candidates {
-			if len(result) >= maxDegree {
-				break
-			}
-			if !containsID(result, cand.ID) && cand.ID != nodeID {
-				result = append(result, cand.ID)
-			}
-		}
-	}
-
-	return result
+	return idx.robustPruneCore(nodeID, candidates, n, maxDegree, alpha,
+		scratch.OccludeFactor, scratch.LastChecked, &scratch.ResultPos)
 }

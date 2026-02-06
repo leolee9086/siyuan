@@ -29,6 +29,10 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/vectordb/bbq"
 )
 
+// LargeInvalidDistance 用于表示无效或缺失节点的大距离值。
+// 当 BBQ 元数据缺失或向量无法获取时，返回此值以确保该节点在排序中排到最后。
+const LargeInvalidDistance float32 = 1e9
+
 // ============================================================================
 // Search Scratch Pool
 // ============================================================================
@@ -249,7 +253,7 @@ func (idx *DiskVamanaIndex) greedySearchBBQHamming(scratch *SearchScratch, medoi
 func (idx *DiskVamanaIndex) bbqHammingDistance(queryBBQ []byte, nodeID uint64, packedSize int) float32 {
 	nodeBBQ := idx.GetBBQCode(nodeID)
 	if nodeBBQ == nil {
-		return float32(1e9) // Large distance for missing BBQ
+		return LargeInvalidDistance
 	}
 
 	dist := bbq.ComputePackedHammingDistance(queryBBQ, nodeBBQ)
@@ -261,7 +265,7 @@ func (idx *DiskVamanaIndex) bbqHammingDistance(queryBBQ []byte, nodeID uint64, p
 func (idx *DiskVamanaIndex) bbqCorrectedDistance(queryPacked []byte, queryCorr bbq.QuantizationResult, nodeID uint32, scorer *bbq.QuantizedScorer) float32 {
 	nodeBBQ := idx.GetBBQCode(uint64(nodeID))
 	if nodeBBQ == nil {
-		return float32(1e9) // Large distance for missing BBQ
+		return LargeInvalidDistance
 	}
 
 	// 使用 POPCNT 计算点积
@@ -355,7 +359,7 @@ func (idx *DiskVamanaIndex) greedySearchDisk(scratch *SearchScratch, medoid uint
 func (idx *DiskVamanaIndex) computeDistanceUnified(nodeID uint64, query []float32, queryNormSq float32) float32 {
 	vec := idx.getVector(nodeID)
 	if vec == nil {
-		return float32(1e9)
+		return LargeInvalidDistance
 	}
 	return euclideanDistanceWithNorm(vec, query, queryNormSq)
 }
@@ -475,7 +479,7 @@ func (idx *DiskVamanaIndex) fusedBBQDistance(
 	// 无 BBQ 元数据的 append 节点：回退到精确欧氏距离
 	vec := idx.getVector(uint64(nodeID))
 	if vec == nil {
-		return float32(1e9)
+		return LargeInvalidDistance
 	}
 	return euclideanDistance(vec, query)
 }
@@ -533,7 +537,7 @@ func (idx *DiskVamanaIndex) fusedHammingDistance(
 	// Append 节点：回退到精确距离
 	vec := idx.getVector(nodeID)
 	if vec == nil {
-		return float32(1e9)
+		return LargeInvalidDistance
 	}
 	return euclideanDistance(vec, query)
 }
