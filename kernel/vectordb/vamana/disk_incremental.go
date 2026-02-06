@@ -35,10 +35,19 @@ import (
 )
 
 // ============================================================================
-// Delete Algorithm Constants (IP-DiskANN inplace_delete parameters)
+// Incremental Operation Constants
 // ============================================================================
 
 const (
+	// DefaultCompactionThreshold is the default deletion ratio threshold for compaction
+	DefaultCompactionThreshold = 0.3
+
+	// DefaultInsertSearchL is the default search list size during insert
+	DefaultInsertSearchL = 100
+
+	// DefaultInsertAlpha is the default pruning threshold during insert
+	DefaultInsertAlpha = 1.2
+
 	// DefaultDeleteSearchL is the GreedySearch depth during delete (l_d)
 	DefaultDeleteSearchL = 128
 
@@ -48,6 +57,33 @@ const (
 	// DefaultDeleteC is the number of replacement edges per neighbor (c)
 	DefaultDeleteC = 3
 )
+
+// ============================================================================
+// Incremental Operation Errors
+// ============================================================================
+
+var (
+	// ErrVectorDimensionMismatch indicates vector dimension does not match index
+	ErrVectorDimensionMismatch = fmt.Errorf("vector dimension mismatch")
+
+	// ErrNodeAlreadyDeleted indicates the node is already deleted
+	ErrNodeAlreadyDeleted = fmt.Errorf("node already deleted")
+
+	// ErrCompactionInProgress indicates a compaction is already in progress
+	ErrCompactionInProgress = fmt.Errorf("compaction already in progress")
+)
+
+// ============================================================================
+// CompactResult
+// ============================================================================
+
+// CompactResult contains statistics from the compaction process.
+type CompactResult struct {
+	OriginalPoints  uint64 // Points before compaction
+	RemainingPoints uint64 // Points after compaction
+	DeletedPoints   uint64 // Number of deleted points removed
+	NewIndexPath    string // Path to the new compacted index
+}
 
 // ============================================================================
 // Unified Accessor Helpers (internal, no lock — caller must hold mu)
@@ -178,7 +214,7 @@ func (idx *DiskVamanaIndex) Insert(vector []float32) (uint64, error) {
 
 	// Step 2: Prune neighbors using robust pruning
 	R := idx.maxDegree
-	prunedNeighbors := idx.robustPruneForInsert(vector, candidates, R)
+	prunedNeighbors := robustPruneSimple(candidates, R, DefaultInsertAlpha, idx.getVector)
 
 	// Step 3: Add vector to append buffer
 	vectorCopy := make([]float32, len(vector))
@@ -239,14 +275,25 @@ func (idx *DiskVamanaIndex) findNeighborsForInsert(vector []float32) []Neighbor 
 	return scratch.Best.All()
 }
 
-// robustPruneForInsert applies robust pruning to select final neighbors.
+// robustPruneSimple applies robust pruning to select final neighbors.
+//
+// This is a package-level function used by DiskVamanaIndex incremental operations.
+// It uses a getVec callback to retrieve vectors, making it independent of any
+// specific index type.
 //
 // Algorithm:
 //  1. Sort candidates by distance
 //  2. Greedily select neighbors not "occluded" by already selected ones
 //  3. A neighbor is occluded if alpha * dist(selected, candidate) <= dist(query, candidate)
-func (idx *DiskVamanaIndex) robustPruneForInsert(
-	vector []float32, candidates []Neighbor, R int,
+//
+// Parameters:
+//   - candidates: neighbor candidates with precomputed distances to query
+//   - R: maximum number of neighbors to select
+//   - alpha: pruning threshold (typically DefaultInsertAlpha)
+//   - getVec: function to retrieve vector by node ID (returns nil if unavailable)
+func robustPruneSimple(
+	candidates []Neighbor, R int, alpha float32,
+	getVec func(uint64) []float32,
 ) []uint32 {
 	if len(candidates) == 0 {
 		return nil
@@ -256,7 +303,6 @@ func (idx *DiskVamanaIndex) robustPruneForInsert(
 		return candidates[i].Distance < candidates[j].Distance
 	})
 
-	alpha := float32(DefaultInsertAlpha)
 	result := make([]uint32, 0, R)
 	occluded := make([]bool, len(candidates))
 
@@ -268,7 +314,7 @@ func (idx *DiskVamanaIndex) robustPruneForInsert(
 		candidateID := candidates[i].ID
 		result = append(result, candidateID)
 
-		candidateVec := idx.getVector(uint64(candidateID))
+		candidateVec := getVec(uint64(candidateID))
 		if candidateVec == nil {
 			continue
 		}
@@ -277,7 +323,7 @@ func (idx *DiskVamanaIndex) robustPruneForInsert(
 			if occluded[j] {
 				continue
 			}
-			otherVec := idx.getVector(uint64(candidates[j].ID))
+			otherVec := getVec(uint64(candidates[j].ID))
 			if otherVec == nil {
 				continue
 			}
@@ -338,8 +384,8 @@ func (idx *DiskVamanaIndex) addBackEdgesForInsert(newID uint64, neighbors []uint
 						}
 					}
 				}
-				newNeighbors = idx.robustPruneForInsert(
-					neighborVec, candidateNeighbors, R,
+				newNeighbors = robustPruneSimple(
+					candidateNeighbors, R, DefaultInsertAlpha, idx.getVector,
 				)
 			} else {
 				newNeighbors = newNeighbors[:R]
@@ -642,7 +688,7 @@ func (idx *DiskVamanaIndex) pruneAffectedVertices(
 			}
 			nCands = append(nCands, Neighbor{ID: nid, Distance: d})
 		}
-		pruned := idx.robustPruneForInsert(vVec, nCands, R)
+		pruned := robustPruneSimple(nCands, R, DefaultInsertAlpha, idx.getVector)
 		idx.storeNeighbors(uint64(v), pruned)
 	}
 }
