@@ -106,17 +106,6 @@ type DiskVamanaIndex struct {
 	bbqHasMeta       bool                   // 是否有量化元数据
 	deleted          *storage.DeletedBitmap // Deleted node bitmap
 
-	// Incremental operations - Append buffer
-	appendVectors   [][]float32 // 新插入向量的内存缓冲
-	appendNeighbors [][]uint32  // 新插入向量的邻居表
-	appendBBQLower  []float32   // 新增向量 BBQ lower bounds
-	appendBBQUpper  []float32   // 新增向量 BBQ upper bounds
-	appendBBQCorr   []float32   // 新增向量 BBQ correlation (校正因子)
-	appendBBQSumSq  []float32   // 新增向量 BBQ sum of squares (量化分量和)
-
-	// Incremental operations - Modified neighbors
-	modifiedNeighbors map[uint64][]uint32 // 磁盘节点被修改的邻居表
-
 	// State
 	closed bool         // Whether the index is closed
 	mu     sync.RWMutex // Protects closed state and write operations

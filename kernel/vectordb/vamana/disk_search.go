@@ -76,8 +76,8 @@ func (idx *DiskVamanaIndex) Search(query []float32, topK, efSearch int) []Search
 		return nil
 	}
 
-	numPoints := idx.metadata.NumPoints
-	if numPoints == 0 {
+	total := idx.totalPoints()
+	if total == 0 {
 		idx.mu.RUnlock()
 		return nil
 	}
@@ -100,12 +100,14 @@ func (idx *DiskVamanaIndex) Search(query []float32, topK, efSearch int) []Search
 	scratch := getDiskSearchScratch()
 	defer putDiskSearchScratch(scratch)
 
-	// Ensure scratch capacity
-	scratch.Visited.EnsureCapacity(int(numPoints))
+	// Ensure scratch capacity covers disk + append buffer nodes
+	scratch.Visited.EnsureCapacity(int(total))
 	scratch.Best.SetCapacity(efSearch)
 	scratch.Reset()
 
 	// Phase 1: Greedy search with BBQ (if available) or direct disk access
+	// All greedy search variants now use unified getNeighbors()/getVector()
+	// to transparently handle disk nodes, modified neighbors, and append buffer.
 	var candidates []Neighbor
 	if idx.HasBBQ() {
 		candidates = idx.greedySearchBBQ(scratch, medoid, query, efSearch)
@@ -117,7 +119,7 @@ func (idx *DiskVamanaIndex) Search(query []float32, topK, efSearch int) []Search
 		return nil
 	}
 
-	// Phase 2: Rerank with original vectors
+	// Phase 2: Rerank with original vectors (unified via getVector)
 	results := idx.rerankCandidates(candidates, query, topK)
 
 	return results
@@ -148,13 +150,14 @@ func (idx *DiskVamanaIndex) greedySearchBBQ(scratch *SearchScratch, medoid uint6
 	return idx.greedySearchBBQHamming(scratch, medoid, query, L)
 }
 
-// greedySearchBBQWithMeta 使用量化校正的 BBQ 搜索
-// 与内存索引的 bbqDistanceToQuery1Bit 保持一致
+// greedySearchBBQWithMeta 使用量化校正的 BBQ 搜索（融合搜索版本）
+//
+// 同时搜索磁盘节点和 append buffer 中的节点。
+// 磁盘节点使用预计算的 BBQ 元数据，append 节点使用内存中的 BBQ 元数据。
 func (idx *DiskVamanaIndex) greedySearchBBQWithMeta(scratch *SearchScratch, medoid uint64, query []float32, L int) []Neighbor {
 	dimension := int(idx.metadata.Dims)
 
 	// 使用 BBQ 量化器量化查询向量
-	// 注意：必须使用 CosineSimilarity 模式，与内存索引的 BBQ 量化保持一致
 	quantizer := bbq.NewScalarQuantizer(bbq.CosineSimilarity)
 	queryQuantized := make([]byte, dimension)
 	queryCorr := quantizer.Quantize(query, queryQuantized, 1, idx.bbqCentroid)
@@ -162,13 +165,13 @@ func (idx *DiskVamanaIndex) greedySearchBBQWithMeta(scratch *SearchScratch, medo
 	// 打包查询向量为 1-bit 格式
 	queryPacked := bbq.PackBinary(queryQuantized)
 
-	// 创建评分器（使用余弦相似度模式，与内存索引保持一致）
+	// 创建评分器
 	scorer := bbq.NewQuantizedScorer(bbq.CosineSimilarity)
 
 	// Initialize with medoid
 	if !idx.deleted.IsDeleted(medoid) {
 		scratch.Visited.Insert(uint32(medoid))
-		dist := idx.bbqCorrectedDistance(queryPacked, queryCorr, uint32(medoid), scorer)
+		dist := idx.fusedBBQDistance(queryPacked, queryCorr, query, uint32(medoid), scorer)
 		scratch.Best.Insert(Neighbor{ID: uint32(medoid), Distance: dist})
 	}
 
@@ -179,22 +182,19 @@ func (idx *DiskVamanaIndex) greedySearchBBQWithMeta(scratch *SearchScratch, medo
 			break
 		}
 
-		// Get neighbors from disk on-demand
-		neighbors := idx.GetNeighbors(uint64(closest.ID))
+		// 使用统一的 getNeighbors：自动处理 modifiedNeighbors、appendNeighbors、磁盘
+		neighbors := idx.getNeighbors(uint64(closest.ID))
 
 		for _, neighborID := range neighbors {
-			// Skip deleted nodes
 			if idx.deleted.IsDeleted(uint64(neighborID)) {
 				continue
 			}
-
-			// Skip already visited
 			if !scratch.Visited.Insert(neighborID) {
 				continue
 			}
 
-			// Compute BBQ corrected distance
-			dist := idx.bbqCorrectedDistance(queryPacked, queryCorr, neighborID, scorer)
+			// 融合 BBQ 距离：磁盘节点用磁盘 BBQ，append 节点用内存 BBQ
+			dist := idx.fusedBBQDistance(queryPacked, queryCorr, query, neighborID, scorer)
 			scratch.Best.Insert(Neighbor{ID: neighborID, Distance: dist})
 		}
 	}
@@ -202,7 +202,9 @@ func (idx *DiskVamanaIndex) greedySearchBBQWithMeta(scratch *SearchScratch, medo
 	return scratch.Best.All()
 }
 
-// greedySearchBBQHamming 使用简单 Hamming 距离的 BBQ 搜索（向后兼容）
+// greedySearchBBQHamming 使用简单 Hamming 距离的 BBQ 搜索（融合搜索版本，向后兼容）
+//
+// 对于 append 节点（无 BBQ 码），回退到精确欧氏距离计算。
 func (idx *DiskVamanaIndex) greedySearchBBQHamming(scratch *SearchScratch, medoid uint64, query []float32, L int) []Neighbor {
 	dimension := int(idx.metadata.Dims)
 	packedSize := (dimension + 7) / 8
@@ -213,7 +215,7 @@ func (idx *DiskVamanaIndex) greedySearchBBQHamming(scratch *SearchScratch, medoi
 	// Initialize with medoid
 	if !idx.deleted.IsDeleted(medoid) {
 		scratch.Visited.Insert(uint32(medoid))
-		dist := idx.bbqHammingDistance(queryBBQ, medoid, packedSize)
+		dist := idx.fusedHammingDistance(queryBBQ, query, medoid, packedSize)
 		scratch.Best.Insert(Neighbor{ID: uint32(medoid), Distance: dist})
 	}
 
@@ -224,22 +226,18 @@ func (idx *DiskVamanaIndex) greedySearchBBQHamming(scratch *SearchScratch, medoi
 			break
 		}
 
-		// Get neighbors from disk on-demand
-		neighbors := idx.GetNeighbors(uint64(closest.ID))
+		// 使用统一的 getNeighbors
+		neighbors := idx.getNeighbors(uint64(closest.ID))
 
 		for _, neighborID := range neighbors {
-			// Skip deleted nodes
 			if idx.deleted.IsDeleted(uint64(neighborID)) {
 				continue
 			}
-
-			// Skip already visited
 			if !scratch.Visited.Insert(neighborID) {
 				continue
 			}
 
-			// Compute BBQ Hamming distance
-			dist := idx.bbqHammingDistance(queryBBQ, uint64(neighborID), packedSize)
+			dist := idx.fusedHammingDistance(queryBBQ, query, uint64(neighborID), packedSize)
 			scratch.Best.Insert(Neighbor{ID: neighborID, Distance: dist})
 		}
 	}
@@ -305,9 +303,9 @@ func quantizeQueryToBBQ(query []float32) []byte {
 // Disk-based Greedy Search (fallback when no BBQ)
 // ============================================================================
 
-// greedySearchDisk performs greedy search by reading vectors from disk.
+// greedySearchDisk performs greedy search by reading vectors (融合搜索版本).
 //
-// This is slower than BBQ-based search but works when BBQ is not available.
+// Uses unified getVector()/getNeighbors() to handle both disk and append buffer nodes.
 func (idx *DiskVamanaIndex) greedySearchDisk(scratch *SearchScratch, medoid uint64, query []float32, L int) []Neighbor {
 	idx.mu.RLock()
 	defer idx.mu.RUnlock()
@@ -322,7 +320,7 @@ func (idx *DiskVamanaIndex) greedySearchDisk(scratch *SearchScratch, medoid uint
 	// Initialize with medoid
 	if !idx.deleted.IsDeleted(medoid) {
 		scratch.Visited.Insert(uint32(medoid))
-		dist := idx.computeDistanceFromDisk(medoid, query, queryNormSq)
+		dist := idx.computeDistanceUnified(medoid, query, queryNormSq)
 		scratch.Best.Insert(Neighbor{ID: uint32(medoid), Distance: dist})
 	}
 
@@ -333,22 +331,18 @@ func (idx *DiskVamanaIndex) greedySearchDisk(scratch *SearchScratch, medoid uint
 			break
 		}
 
-		// Get neighbors from disk on-demand
-		neighbors := idx.GetNeighbors(uint64(closest.ID))
+		// 使用统一的 getNeighbors
+		neighbors := idx.getNeighbors(uint64(closest.ID))
 
 		for _, neighborID := range neighbors {
-			// Skip deleted nodes
 			if idx.deleted.IsDeleted(uint64(neighborID)) {
 				continue
 			}
-
-			// Skip already visited
 			if !scratch.Visited.Insert(neighborID) {
 				continue
 			}
 
-			// Compute distance from disk
-			dist := idx.computeDistanceFromDisk(uint64(neighborID), query, queryNormSq)
+			dist := idx.computeDistanceUnified(uint64(neighborID), query, queryNormSq)
 			scratch.Best.Insert(Neighbor{ID: neighborID, Distance: dist})
 		}
 	}
@@ -356,13 +350,13 @@ func (idx *DiskVamanaIndex) greedySearchDisk(scratch *SearchScratch, medoid uint
 	return scratch.Best.All()
 }
 
-// computeDistanceFromDisk reads a vector from disk and computes distance to query.
-func (idx *DiskVamanaIndex) computeDistanceFromDisk(nodeID uint64, query []float32, queryNormSq float32) float32 {
-	vec, err := idx.ReadVector(nodeID)
-	if err != nil {
-		return float32(1e9) // Large distance on error
+// computeDistanceUnified reads a vector via getVector() and computes distance to query.
+// Handles both disk nodes and append buffer nodes transparently.
+func (idx *DiskVamanaIndex) computeDistanceUnified(nodeID uint64, query []float32, queryNormSq float32) float32 {
+	vec := idx.getVector(nodeID)
+	if vec == nil {
+		return float32(1e9)
 	}
-
 	return euclideanDistanceWithNorm(vec, query, queryNormSq)
 }
 
@@ -382,9 +376,10 @@ func euclideanDistanceWithNorm(vec, query []float32, queryNormSq float32) float3
 // Reranking
 // ============================================================================
 
-// rerankCandidates reranks candidates using original vectors from disk.
+// rerankCandidates reranks candidates using original vectors (融合搜索版本).
 //
-// Reads vectors from disk and computes exact distances, then returns top-K.
+// Uses unified getVector() to read vectors from disk or append buffer,
+// then computes exact distances and returns top-K.
 func (idx *DiskVamanaIndex) rerankCandidates(candidates []Neighbor, query []float32, topK int) []SearchResult {
 	if len(candidates) == 0 {
 		return nil
@@ -403,18 +398,15 @@ func (idx *DiskVamanaIndex) rerankCandidates(candidates []Neighbor, query []floa
 		return nil
 	}
 
-	// Allocate buffer for reading vectors
-	dimension := int(idx.metadata.Dims)
-	vec := make([]float32, dimension)
-
 	for _, cand := range candidates {
 		// Skip deleted nodes (double check)
 		if idx.deleted.IsDeleted(uint64(cand.ID)) {
 			continue
 		}
 
-		// Read vector from disk into buffer
-		if err := idx.reader.ReadVector(uint64(cand.ID), vec); err != nil {
+		// 使用统一的 getVector：磁盘节点走 mmap，append 节点走内存
+		vec := idx.getVector(uint64(cand.ID))
+		if vec == nil {
 			continue
 		}
 
@@ -448,4 +440,100 @@ func (idx *DiskVamanaIndex) rerankCandidates(candidates []Neighbor, query []floa
 type SearchResult struct {
 	ID       uint64  // Node ID
 	Distance float32 // Distance to query (squared Euclidean)
+}
+
+// ============================================================================
+// Fused Distance Computation (disk + append buffer)
+// ============================================================================
+
+// fusedBBQDistance 计算融合 BBQ 校正距离。
+//
+// 磁盘节点：使用预计算的 BBQ 元数据（bbqCodes/bbqLowerBounds 等）。
+// Append 节点：使用内存中的 appendBBQ* 元数据；若无 BBQ 元数据则回退到精确距离。
+func (idx *DiskVamanaIndex) fusedBBQDistance(
+	queryPacked []byte,
+	queryCorr bbq.QuantizationResult,
+	query []float32,
+	nodeID uint32,
+	scorer *bbq.QuantizedScorer,
+) float32 {
+	diskN := idx.metadata.NumPoints
+
+	if uint64(nodeID) < diskN {
+		// 磁盘节点：使用已有的 bbqCorrectedDistance
+		return idx.bbqCorrectedDistance(queryPacked, queryCorr, nodeID, scorer)
+	}
+
+	// Append 节点：使用内存中的 BBQ 元数据
+	appendIdx := int(uint64(nodeID) - diskN)
+	if appendIdx < len(idx.appendBBQLower) {
+		return idx.appendBBQCorrectedDistance(
+			queryPacked, queryCorr, appendIdx, scorer,
+		)
+	}
+
+	// 无 BBQ 元数据的 append 节点：回退到精确欧氏距离
+	vec := idx.getVector(uint64(nodeID))
+	if vec == nil {
+		return float32(1e9)
+	}
+	return euclideanDistance(vec, query)
+}
+
+// appendBBQCorrectedDistance 计算 append 节点的 BBQ 校正距离。
+//
+// 使用 appendBBQ* 数组中存储的量化元数据。
+// 注意：append 节点没有预计算的 packed BBQ codes，
+// 需要实时量化后计算点积。
+func (idx *DiskVamanaIndex) appendBBQCorrectedDistance(
+	queryPacked []byte,
+	queryCorr bbq.QuantizationResult,
+	appendIdx int,
+	scorer *bbq.QuantizedScorer,
+) float32 {
+	dimension := int(idx.metadata.Dims)
+
+	// 实时量化 append 向量
+	vec := idx.appendVectors[appendIdx]
+	quantizer := bbq.NewScalarQuantizer(bbq.CosineSimilarity)
+	quantized := make([]byte, dimension)
+	quantizer.Quantize(vec, quantized, 1, idx.bbqCentroid)
+	nodePacked := bbq.PackBinary(quantized)
+
+	// 计算点积
+	dotProd := bbq.ComputePackedDotProduct(queryPacked, nodePacked)
+
+	// 使用已存储的元数据
+	indexCorr := bbq.QuantizationResult{
+		LowerBound:   idx.appendBBQLower[appendIdx],
+		UpperBound:   idx.appendBBQUpper[appendIdx],
+		Correction:   idx.appendBBQCorr[appendIdx],
+		QuantizedSum: idx.appendBBQSumSq[appendIdx],
+	}
+
+	return scorer.ComputeQuantizedDistance(
+		dotProd, queryCorr, indexCorr, dimension, 0, false,
+	)
+}
+
+// fusedHammingDistance 计算融合 Hamming 距离（向后兼容模式）。
+//
+// 磁盘节点：使用 BBQ codes 计算 Hamming 距离。
+// Append 节点：回退到精确欧氏距离（无预计算 BBQ codes）。
+func (idx *DiskVamanaIndex) fusedHammingDistance(
+	queryBBQ []byte,
+	query []float32,
+	nodeID uint64,
+	packedSize int,
+) float32 {
+	if nodeID < idx.metadata.NumPoints {
+		return idx.bbqHammingDistance(queryBBQ, nodeID, packedSize)
+	}
+
+	// Append 节点：回退到精确距离
+	vec := idx.getVector(nodeID)
+	if vec == nil {
+		return float32(1e9)
+	}
+	return euclideanDistance(vec, query)
 }
