@@ -40,7 +40,8 @@ kernel/vectordb/
     ├── save.go                  ✅ 索引保存 (含BBQ元数据v2)
     ├── disk_index.go            ✅ 磁盘版索引 (含BBQ元数据加载)
     ├── disk_search.go           ✅ 磁盘版搜索 (含BBQ量化校正)
-    ├── disk_build.go            ❌ 待实现
+    ├── disk_build.go            ✅ 磁盘版构建 (707行, BuildFromVectors)
+    ├── disk_build_test.go       ✅ 构建测试 (3个测试用例通过)
     ├── inplace_delete.go        ❌ 待实现
     └── compact.go               ❌ 待实现
 ```
@@ -74,12 +75,13 @@ kernel/vectordb/
   - [x] BBQ量化校正距离计算 (使用 `QuantizedScorer.ComputeQuantizedDistance`)
   - [x] 编写测试 `disk_search_test.go` / `disk_index_e2e_test.go`
 
-### Phase C: 磁盘构建
-- [ ] **vamana/disk_build.go** - 索引构建
-  - [ ] `BuildFromVectors()` - 从向量集合构建
-  - [ ] 流式写入磁盘
-  - [ ] 计算medoid并写入Header
-  - [ ] 编写测试 `disk_build_test.go`
+### Phase C: 磁盘构建 ✅ 2026-02-06
+- [x] **vamana/disk_build.go** - 索引构建 (707行)
+  - [x] `BuildFromVectors()` - 从向量集合构建
+  - [x] 流式写入磁盘 (4096字节扇区对齐)
+  - [x] 计算medoid并写入Header
+  - [x] 并行图构建 + BBQ量化
+  - [x] 编写测试 `disk_build_test.go` (3个测试用例通过)
 
 ---
 
