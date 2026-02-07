@@ -18,6 +18,64 @@ package vamana
 
 import "math/bits"
 
+// ============================================================================
+// 公共接口
+// ============================================================================
+
+// Index 定义只读向量索引的公共接口。
+//
+// VamanaIndex（内存索引）和 DiskVamanaIndex（磁盘索引）均实现此接口，
+// 使调用者可以面向统一的抽象进行搜索操作。
+type Index interface {
+	// Search 搜索最近的 topK 个邻居。
+	//
+	// 参数：
+	//   - query: 查询向量，维度必须与索引一致
+	//   - topK: 返回的最近邻数量
+	//   - efSearch: 搜索列表大小（越大越精确但越慢）
+	//
+	// 返回按距离升序排列的搜索结果，索引为空或已关闭时返回 nil, nil。
+	Search(query []float32, topK, efSearch int) ([]SearchResult, error)
+
+	// NumPoints 返回索引中的有效点数（不含已删除）。
+	NumPoints() uint64
+
+	// Dimension 返回向量维度。
+	Dimension() int
+
+	// Close 释放索引关联的资源。
+	// 内存索引的 Close 为空操作；磁盘索引释放 mmap 等资源。
+	Close() error
+}
+
+// MutableIndex 定义可变向量索引的公共接口。
+//
+// 在 Index 基础上增加插入和删除操作。
+// 目前仅 DiskVamanaIndex 实现此接口。
+type MutableIndex interface {
+	Index
+
+	// Insert 插入一个新向量，返回分配的节点 ID。
+	Insert(vector []float32) (uint64, error)
+
+	// Delete 软删除指定节点。
+	Delete(id uint64) error
+}
+
+// ============================================================================
+// 搜索结果类型
+// ============================================================================
+
+// SearchResult 表示一条搜索结果，包含节点 ID 和到查询向量的距离。
+type SearchResult struct {
+	ID       uint64  // 节点 ID
+	Distance float32 // 到查询向量的距离（欧氏距离平方）
+}
+
+// ============================================================================
+// 常量
+// ============================================================================
+
 // MaxDegree 最大出度常量
 const MaxDegree = 128
 

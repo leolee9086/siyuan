@@ -73,17 +73,17 @@ func putDiskSearchScratch(s *SearchScratch) {
 // Returns nil if the index is empty or closed.
 //
 // Thread-safety: Safe for concurrent calls.
-func (idx *DiskVamanaIndex) Search(query []float32, topK, efSearch int) []SearchResult {
+func (idx *DiskVamanaIndex) Search(query []float32, topK, efSearch int) ([]SearchResult, error) {
 	idx.mu.RLock()
 	if idx.closed {
 		idx.mu.RUnlock()
-		return nil
+		return nil, ErrDiskIndexClosed
 	}
 
 	total := idx.totalPoints()
 	if total == 0 {
 		idx.mu.RUnlock()
-		return nil
+		return nil, nil
 	}
 
 	medoid := idx.metadata.Medoid
@@ -92,7 +92,7 @@ func (idx *DiskVamanaIndex) Search(query []float32, topK, efSearch int) []Search
 
 	// Validate query dimension
 	if len(query) != dimension {
-		return nil
+		return nil, nil
 	}
 
 	// Ensure efSearch >= topK
@@ -120,13 +120,13 @@ func (idx *DiskVamanaIndex) Search(query []float32, topK, efSearch int) []Search
 	}
 
 	if len(candidates) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	// Phase 2: Rerank with original vectors (unified via getVector)
 	results := idx.rerankCandidates(candidates, query, topK)
 
-	return results
+	return results, nil
 }
 
 // ============================================================================
@@ -324,7 +324,7 @@ func (idx *DiskVamanaIndex) greedySearchDisk(scratch *SearchScratch, medoid uint
 	// Initialize with medoid
 	if !idx.deleted.IsDeleted(medoid) {
 		scratch.Visited.Insert(uint32(medoid))
-		dist := idx.computeDistanceUnified(medoid, query, queryNormSq)
+		dist := idx.computeDistance(medoid, query, queryNormSq)
 		scratch.Best.Insert(Neighbor{ID: uint32(medoid), Distance: dist})
 	}
 
@@ -346,7 +346,7 @@ func (idx *DiskVamanaIndex) greedySearchDisk(scratch *SearchScratch, medoid uint
 				continue
 			}
 
-			dist := idx.computeDistanceUnified(uint64(neighborID), query, queryNormSq)
+			dist := idx.computeDistance(uint64(neighborID), query, queryNormSq)
 			scratch.Best.Insert(Neighbor{ID: neighborID, Distance: dist})
 		}
 	}
@@ -354,26 +354,15 @@ func (idx *DiskVamanaIndex) greedySearchDisk(scratch *SearchScratch, medoid uint
 	return scratch.Best.All()
 }
 
-// computeDistanceUnified reads a vector via getVector() and computes distance to query.
-// Handles both disk nodes and append buffer nodes transparently.
-func (idx *DiskVamanaIndex) computeDistanceUnified(nodeID uint64, query []float32, queryNormSq float32) float32 {
+// computeDistance 读取节点向量并计算与查询向量的精确欧氏距离平方。
+// 统一处理磁盘节点和 append buffer 节点。
+// 当向量无法获取时返回 LargeInvalidDistance 哨兵值。
+func (idx *DiskVamanaIndex) computeDistance(nodeID uint64, query []float32, queryNormSq float32) float32 {
 	vec := idx.getVector(nodeID)
 	if vec == nil {
 		return LargeInvalidDistance
 	}
 	return euclideanDistanceWithNorm(vec, query, queryNormSq)
-}
-
-// euclideanDistanceWithNorm computes squared Euclidean distance using precomputed query norm.
-// ||a - b||² = ||a||² + ||b||² - 2<a,b>
-func euclideanDistanceWithNorm(vec, query []float32, queryNormSq float32) float32 {
-	vecNormSq := computeNormSquare(vec)
-	dot := dotProduct(vec, query)
-	dist := vecNormSq + queryNormSq - 2*dot
-	if dist < 0 {
-		dist = 0
-	}
-	return dist
 }
 
 // ============================================================================
@@ -434,16 +423,6 @@ func (idx *DiskVamanaIndex) rerankCandidates(candidates []Neighbor, query []floa
 	}
 
 	return results
-}
-
-// ============================================================================
-// SearchResult Type
-// ============================================================================
-
-// SearchResult represents a search result with node ID and distance.
-type SearchResult struct {
-	ID       uint64  // Node ID
-	Distance float32 // Distance to query (squared Euclidean)
 }
 
 // ============================================================================

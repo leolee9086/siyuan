@@ -205,7 +205,7 @@ func TestDiskIndex_EndToEnd_SIFT1M(t *testing.T) {
 	queryStart := time.Now()
 	for i := 0; i < numQueries; i++ {
 		start := time.Now()
-		results := diskIdx.Search(queryVectors[i], k, searchL)
+		results, _ := diskIdx.Search(queryVectors[i], k, searchL)
 		latencies[i] = float64(time.Since(start).Microseconds())
 		recalls[i] = computeDiskRecallAtK(results, groundTruth[i], k)
 	}

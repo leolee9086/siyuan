@@ -148,13 +148,11 @@ func (idx *DiskVamanaIndex) isAppendNode(nodeID uint64) bool {
 	return nodeID >= idx.metadata.NumPoints
 }
 
-// computeDistanceToQuery computes distance between a stored node and a query vector.
+// computeDistanceToQuery 计算存储节点与查询向量之间的距离。
+// 内部委托给 computeDistance，自动计算 queryNormSq。
+// 适用于无法预计算查询范数的场景（如增量操作中查询向量频繁变化）。
 func (idx *DiskVamanaIndex) computeDistanceToQuery(nodeID uint64, query []float32) float32 {
-	vec := idx.getVector(nodeID)
-	if vec == nil {
-		return math.MaxFloat32
-	}
-	return euclideanDistance(vec, query)
+	return idx.computeDistance(nodeID, query, computeNormSquare(query))
 }
 
 // storeNeighbors stores a modified neighbor list for a node.

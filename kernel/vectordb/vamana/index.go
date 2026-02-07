@@ -129,11 +129,11 @@ func New(dimension int, config Config) *VamanaIndex {
 // 基础访问器
 // ============================================================================
 
-// NumPoints 返回索引中的点数 (不含已删除)
-func (idx *VamanaIndex) NumPoints() int {
+// NumPoints 返回索引中的有效点数 (不含已删除)
+func (idx *VamanaIndex) NumPoints() uint64 {
 	idx.mu.RLock()
 	defer idx.mu.RUnlock()
-	return len(idx.vectors) - int(idx.nDeleted)
+	return uint64(len(idx.vectors)) - idx.nDeleted
 }
 
 // NumPointsTotal 返回索引中的总点数 (含已删除)
@@ -141,6 +141,12 @@ func (idx *VamanaIndex) NumPointsTotal() int {
 	idx.mu.RLock()
 	defer idx.mu.RUnlock()
 	return len(idx.vectors)
+}
+
+// Close 释放索引关联的资源。
+// 内存索引无需释放外部资源，此方法为空操作，仅用于满足 Index 接口。
+func (idx *VamanaIndex) Close() error {
+	return nil
 }
 
 // NumDeleted 返回已删除的点数
@@ -187,10 +193,7 @@ func (idx *VamanaIndex) distanceToQuery(id uint32, query []float32) float32 {
 
 // precomputeNormSquares 预计算所有向量的范数平方
 func (idx *VamanaIndex) precomputeNormSquares() {
-	idx.normSquares = make([]float32, len(idx.vectors))
-	for i, v := range idx.vectors {
-		idx.normSquares[i] = computeNormSquare(v)
-	}
+	idx.normSquares = precomputeNorms(idx.vectors)
 }
 
 // fastDistance 使用预计算范数加速两节点间距离计算
@@ -244,8 +247,17 @@ func (idx *VamanaIndex) GetNormSquare(id uint32) float32 {
 // 删除操作
 // ============================================================================
 
-// Delete 软删除指定节点
-// 采用懒惰处理策略：不立即更新邻居的邻居列表，搜索时跳过已删除节点
+// Delete 软删除指定节点，并执行完整的 IP-DiskANN 6步边修复算法。
+//
+// 算法步骤（对应 IP-DiskANN src/index.cpp L3130-3303）：
+//  1. 以被删节点向量为 query 执行贪心搜索 → Visited 集合 + Candidates (top-k)
+//  2. 从 Visited 中找近似入邻居 N'_in(p)
+//  3. 修复入边：对每个 z ∈ N'_in(p)，用 candidates 中最近的替代节点替换 p
+//  4. 修复出边：对被删节点的每个出邻居 w，添加替代反向连接
+//  5. 标记删除 + 清空邻居列表
+//  6. 对度数超过 R 的受影响顶点执行 robustPruneSimple
+//
+// 边修复逻辑的具体实现位于 delete.go 中的 inplaceDelete 方法。
 func (idx *VamanaIndex) Delete(id uint32) error {
 	idx.mu.Lock()
 	defer idx.mu.Unlock()
@@ -258,9 +270,7 @@ func (idx *VamanaIndex) Delete(id uint32) error {
 		return ErrAlreadyDeleted
 	}
 
-	idx.deleted.Set(id)
-	idx.nDeleted++
-
+	idx.inplaceDelete(id)
 	return nil
 }
 
@@ -282,3 +292,6 @@ func (idx *VamanaIndex) NeedsCompaction() bool {
 	}
 	return float64(idx.nDeleted)/float64(len(idx.vectors)) > 0.3
 }
+
+// 编译时接口检查
+var _ Index = (*VamanaIndex)(nil)

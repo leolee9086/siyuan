@@ -600,3 +600,6 @@ func openDiskIndexReader(path string) (storage.DiskIndexReader, error) {
 
 	return OpenDiskIndexReader(path, true) // 只读模式
 }
+
+// 编译时接口检查
+var _ MutableIndex = (*DiskVamanaIndex)(nil)

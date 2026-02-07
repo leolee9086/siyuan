@@ -71,7 +71,7 @@ func TestDiskIndex_Insert(t *testing.T) {
 	// Search for each inserted vector — it must appear in top-10
 	missCount := 0
 	for i, vec := range insertedVecs {
-		results := idx.Search(vec, 10, 200)
+		results, _ := idx.Search(vec, 10, 200)
 		if len(results) == 0 {
 			t.Errorf("Search for inserted vector %d returned no results", i)
 			missCount++
@@ -156,7 +156,7 @@ func TestDiskIndex_Delete(t *testing.T) {
 	// Search for deleted vectors — none should appear in results
 	foundDeleted := 0
 	for id, vec := range deletedVecs {
-		results := idx.Search(vec, 10, 200)
+		results, _ := idx.Search(vec, 10, 200)
 		if searchContainsID(results, id) {
 			foundDeleted++
 		}
@@ -255,7 +255,7 @@ func TestDiskIndex_Compact(t *testing.T) {
 
 	noResultCount := 0
 	for i, q := range queries {
-		results := compactIdx.Search(q, 10, 200)
+		results, _ := compactIdx.Search(q, 10, 200)
 		if len(results) == 0 {
 			noResultCount++
 			if noResultCount <= 3 {
@@ -307,7 +307,7 @@ func TestDiskIndex_InsertDeleteCycle(t *testing.T) {
 	// Phase 3: Verify inserted vectors are searchable
 	insertMiss := 0
 	for i, vec := range insertedVecs {
-		results := idx.Search(vec, 10, 200)
+		results, _ := idx.Search(vec, 10, 200)
 		if !searchContainsID(results, insertedIDs[i]) {
 			insertMiss++
 		}
@@ -344,7 +344,7 @@ func TestDiskIndex_InsertDeleteCycle(t *testing.T) {
 		if _, deleted := deleteSet[insertedIDs[i]]; deleted {
 			continue
 		}
-		results := idx.Search(vec, 10, 200)
+		results, _ := idx.Search(vec, 10, 200)
 		if searchContainsID(results, insertedIDs[i]) {
 			insertStillFound++
 		}
@@ -376,7 +376,7 @@ func TestDiskIndex_InsertDeleteCycle(t *testing.T) {
 
 	noResultCount := 0
 	for _, q := range queries {
-		results := compactIdx.Search(q, 10, 200)
+		results, _ := compactIdx.Search(q, 10, 200)
 		if len(results) == 0 {
 			noResultCount++
 		}

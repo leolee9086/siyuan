@@ -59,29 +59,26 @@ const (
 // Build Configuration
 // ============================================================================
 
-// DiskBuildConfig defines configuration for disk-based index building.
+// DiskBuildConfig 磁盘索引构建配置。
+// 通过嵌入 Config 获得图参数 (R, L, Alpha 等)，避免字段重复。
 type DiskBuildConfig struct {
-	// Vamana graph parameters
-	R     int     // Maximum out-degree (default: 64)
-	L     int     // Search list size during build (default: 100)
-	Alpha float32 // Pruning threshold (default: 1.2)
+	Config // 嵌入图参数 (R, L, Alpha, MaxOcclusionSize 等)
 
-	// Build parameters
-	NumWorkers int // Number of parallel workers (default: NumCPU)
-	ChunkSize  int // Nodes per processing chunk (default: 10000)
+	// 构建参数
+	NumWorkers int // 并行工作线程数 (默认: NumCPU)
+	ChunkSize  int // 每批处理节点数 (默认: 10000)
 
-	// Disk parameters
-	BlockSize       int  // Block size for disk alignment (default: 4096)
-	WriteBufferSize int  // Write buffer size (default: 16MB)
-	EnableBBQ       bool // Enable BBQ quantization (default: true for dim >= 64)
+	// 磁盘参数
+	BlockSize       int  // 磁盘对齐块大小 (默认: 4096)
+	WriteBufferSize int  // 写缓冲区大小 (默认: 16MB)
+	EnableBBQ       bool // 启用 BBQ 量化 (默认: dim >= 64 时自动启用)
 }
 
-// DefaultDiskBuildConfig returns default disk build configuration.
+// DefaultDiskBuildConfig 返回磁盘构建的默认配置。
+// 图参数继承自 DefaultConfig()，确保与内存索引使用相同的默认值。
 func DefaultDiskBuildConfig() DiskBuildConfig {
 	return DiskBuildConfig{
-		R:               DefaultR,
-		L:               DefaultL,
-		Alpha:           DefaultAlpha,
+		Config:          DefaultConfig(),
 		NumWorkers:      runtime.NumCPU(),
 		ChunkSize:       10000,
 		BlockSize:       SectorSize,
@@ -90,20 +87,12 @@ func DefaultDiskBuildConfig() DiskBuildConfig {
 	}
 }
 
-// Validate validates and fills default values for the configuration.
+// Validate 验证并填充默认值。
+// 图参数验证委托给嵌入的 Config.Validate()。
 func (c *DiskBuildConfig) Validate(dimension int) {
-	if c.R <= 0 {
-		c.R = DefaultR
-	}
-	if c.L <= 0 {
-		c.L = DefaultL
-	}
-	if c.L < c.R {
-		c.L = c.R
-	}
-	if c.Alpha <= 0 {
-		c.Alpha = DefaultAlpha
-	}
+	// 委托图参数验证给 Config
+	c.Config.Validate()
+
 	if c.NumWorkers <= 0 {
 		c.NumWorkers = runtime.NumCPU()
 	}
@@ -116,7 +105,7 @@ func (c *DiskBuildConfig) Validate(dimension int) {
 	if c.WriteBufferSize <= 0 {
 		c.WriteBufferSize = DefaultWriteBufferSize
 	}
-	// Auto-enable BBQ for high-dimensional vectors
+	// 高维向量自动启用 BBQ 量化
 	if dimension >= bbq.BBQEnableThreshold {
 		c.EnableBBQ = true
 	}
@@ -323,41 +312,28 @@ func (b *diskBuilder) computeMedoid() uint32 {
 	return medoid
 }
 
-// precomputeNormSquares precomputes ||v||² for all vectors.
+// precomputeNormSquares 预计算所有向量的范数平方
 func (b *diskBuilder) precomputeNormSquares() {
-	b.normSquares = make([]float32, len(b.vectors))
-	for i, v := range b.vectors {
-		b.normSquares[i] = computeNormSquare(v)
-	}
+	b.normSquares = precomputeNorms(b.vectors)
 }
 
 // ============================================================================
 // Graph Building
 // ============================================================================
 
-// buildGraph builds the Vamana graph structure in memory.
+// buildGraph 在内存中构建 Vamana 图结构。
+// 直接使用 DiskBuildConfig 嵌入的 Config 图参数，无需手动拷贝。
 func (b *diskBuilder) buildGraph() error {
 	n := len(b.vectors)
 
-	// Initialize neighbor lists
+	// 初始化邻居列表
 	b.neighbors = make([][]uint32, n)
 	for i := range b.neighbors {
 		b.neighbors[i] = make([]uint32, 0, b.config.R)
 	}
 
-	// Create temporary in-memory index for graph construction
-	memConfig := Config{
-		R:                  b.config.R,
-		L:                  b.config.L,
-		Alpha:              b.config.Alpha,
-		MaxOcclusionSize:   750,
-		GraphSlackFactor:   1.3,
-		SaturateAfterPrune: true,
-		MaxBackedges:       b.config.R,
-	}
-
-	// Use the existing VamanaIndex for graph construction
-	idx := New(b.dimension, memConfig)
+	// 直接使用嵌入的 Config 构建内存索引，无需手动拷贝字段
+	idx := New(b.dimension, b.config.Config)
 	if err := idx.BuildParallel(b.vectors, b.config.NumWorkers); err != nil {
 		return err
 	}

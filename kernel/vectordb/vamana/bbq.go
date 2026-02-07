@@ -405,7 +405,7 @@ func (idx *VamanaIndex) SearchWithBBQ(query []float32, k int, rerankFactor int) 
 	// 检查 BBQ 是否启用，若未启用则回退到普通 Search
 	if !idx.bbqEnabled {
 		// 使用默认 efSearch = k * rerankFactor
-		return idx.Search(query, k, k*rerankFactor)
+		return idx.searchNeighbors(query, k, k*rerankFactor)
 	}
 
 	idx.mu.RLock()

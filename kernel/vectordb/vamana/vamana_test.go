@@ -84,7 +84,7 @@ func TestBasicInsertAndSearch(t *testing.T) {
 
 	// 搜索
 	query := vectors[0]
-	results := idx.Search(query, 10, 50)
+	results, _ := idx.Search(query, 10, 50)
 
 	if len(results) == 0 {
 		t.Fatal("Search returned no results")
@@ -109,7 +109,7 @@ func TestBatchBuild(t *testing.T) {
 		t.Fatalf("Build failed: %v", err)
 	}
 
-	if idx.NumPoints() != n {
+	if idx.NumPoints() != uint64(n) {
 		t.Errorf("Expected %d points, got %d", n, idx.NumPoints())
 	}
 
@@ -144,15 +144,15 @@ func TestRecall(t *testing.T) {
 	var totalRecall float64
 	for _, query := range queries {
 		// Vamana搜索
-		results := idx.Search(query, k, 100)
+		results, _ := idx.Search(query, k, 100)
 
 		// 暴力搜索
 		groundTruth := bruteForceKNN(vectors, query, k)
 
 		// 计算召回率
-		gtSet := make(map[uint32]bool)
+		gtSet := make(map[uint64]bool)
 		for _, n := range groundTruth {
-			gtSet[n.ID] = true
+			gtSet[uint64(n.ID)] = true
 		}
 
 		hits := 0
@@ -300,7 +300,7 @@ func TestEmptyIndex(t *testing.T) {
 	}
 
 	query := make([]float32, dim)
-	results := idx.Search(query, 10, 50)
+	results, _ := idx.Search(query, 10, 50)
 	if len(results) != 0 {
 		t.Errorf("Expected 0 results from empty index, got %d", len(results))
 	}
@@ -322,7 +322,7 @@ func TestSinglePoint(t *testing.T) {
 		t.Fatalf("Insert failed: %v", err)
 	}
 
-	results := idx.Search(vector, 1, 10)
+	results, _ := idx.Search(vector, 1, 10)
 	if len(results) != 1 {
 		t.Errorf("Expected 1 result, got %d", len(results))
 	}

@@ -466,7 +466,7 @@ func computeAverageRecall(idx *VamanaIndex, queries [][]float32, groundTruth [][
 	}
 	for i, query := range queries {
 		results := idx.SearchWithBBQ(query, k, rerankFactor)
-		totalRecall += computeRecallAtK(results, groundTruth[i], k)
+		totalRecall += computeRecallAtK(neighborsToSearchResults(results), groundTruth[i], k)
 	}
 	return totalRecall / float64(len(queries))
 }
@@ -475,7 +475,7 @@ func computeAverageRecall(idx *VamanaIndex, queries [][]float32, groundTruth [][
 func computeDiskAverageRecall(idx *DiskVamanaIndex, queries [][]float32, groundTruth [][]int32, k, efSearch int) float64 {
 	totalRecall := 0.0
 	for i, query := range queries {
-		results := idx.Search(query, k, efSearch)
+		results, _ := idx.Search(query, k, efSearch)
 		totalRecall += computeDiskRecallAtK(results, groundTruth[i], k)
 	}
 	return totalRecall / float64(len(queries))

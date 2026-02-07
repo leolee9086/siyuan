@@ -247,8 +247,10 @@ func TestDiskBuildConfig_Validate(t *testing.T) {
 
 func TestDiskBuildConfig_LConstraint(t *testing.T) {
 	config := DiskBuildConfig{
-		R: 100,
-		L: 50, // L < R
+		Config: Config{
+			R: 100,
+			L: 50, // L < R
+		},
 	}
 	config.Validate(64)
 
@@ -334,6 +336,7 @@ func TestComputeBBQData_SIFT(t *testing.T) {
 		vectors:   vectors,
 		dimension: dimension,
 		config: DiskBuildConfig{
+			Config:     DefaultConfig(),
 			NumWorkers: 4,
 			EnableBBQ:  true,
 		},

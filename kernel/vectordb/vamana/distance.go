@@ -22,32 +22,23 @@ import "sort"
 // 距离计算函数
 // ============================================================================
 
+// euclideanDistanceWithNorm 使用预计算的查询范数平方计算欧氏距离平方
+// ||a - b||² = ||a||² + ||b||² - 2<a,b>
+// 当同一查询向量需要与多个向量计算距离时，预计算 queryNormSq 可避免重复计算
+func euclideanDistanceWithNorm(vec, query []float32, queryNormSq float32) float32 {
+	vecNormSq := computeNormSquare(vec)
+	dot := dotProduct(vec, query)
+	dist := vecNormSq + queryNormSq - 2*dot
+	if dist < 0 {
+		dist = 0
+	}
+	return dist
+}
+
 // euclideanDistance 计算欧氏距离的平方 (避免开方以提高性能)
-// 使用4路循环展开优化，减少循环开销
+// 内部委托给 euclideanDistanceWithNorm，自动计算 b 的范数平方
 func euclideanDistance(a, b []float32) float32 {
-	n := len(a)
-	var sum0, sum1, sum2, sum3 float32
-
-	// 4路展开主循环
-	i := 0
-	for ; i <= n-4; i += 4 {
-		d0 := a[i] - b[i]
-		d1 := a[i+1] - b[i+1]
-		d2 := a[i+2] - b[i+2]
-		d3 := a[i+3] - b[i+3]
-		sum0 += d0 * d0
-		sum1 += d1 * d1
-		sum2 += d2 * d2
-		sum3 += d3 * d3
-	}
-
-	// 处理剩余元素
-	sum := sum0 + sum1 + sum2 + sum3
-	for ; i < n; i++ {
-		diff := a[i] - b[i]
-		sum += diff * diff
-	}
-	return sum
+	return euclideanDistanceWithNorm(a, b, computeNormSquare(b))
 }
 
 // dotProduct 计算两个向量的点积
@@ -80,6 +71,16 @@ func dotProduct(a, b []float32) float32 {
 // computeNormSquare 计算向量的范数平方 ||v||²
 func computeNormSquare(v []float32) float32 {
 	return dotProduct(v, v)
+}
+
+// precomputeNorms 批量预计算向量集合的范数平方 ||v||²
+// 返回与输入 vectors 等长的 float32 切片，每个元素为对应向量的范数平方
+func precomputeNorms(vectors [][]float32) []float32 {
+	norms := make([]float32, len(vectors))
+	for i, v := range vectors {
+		norms[i] = computeNormSquare(v)
+	}
+	return norms
 }
 
 // ============================================================================

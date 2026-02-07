@@ -207,7 +207,7 @@ func getSIFTDataPath() string {
 }
 
 // computeRecallAtK 计算 Recall@K
-func computeRecallAtK(results []Neighbor, groundTruth []int32, k int) float64 {
+func computeRecallAtK(results []SearchResult, groundTruth []int32, k int) float64 {
 	if k > len(groundTruth) {
 		k = len(groundTruth)
 	}
@@ -228,6 +228,15 @@ func computeRecallAtK(results []Neighbor, groundTruth []int32, k int) float64 {
 	}
 
 	return float64(hits) / float64(k)
+}
+
+// neighborsToSearchResults 将 []Neighbor 转换为 []SearchResult（供 BBQ 测试使用）
+func neighborsToSearchResults(neighbors []Neighbor) []SearchResult {
+	results := make([]SearchResult, len(neighbors))
+	for i, n := range neighbors {
+		results[i] = SearchResult{ID: uint64(n.ID), Distance: n.Distance}
+	}
+	return results
 }
 
 // computeBruteForceKNN 暴力搜索K近邻 (用于生成 ground truth)
@@ -389,7 +398,7 @@ func TestSIFT10K(t *testing.T) {
 	queryStart := time.Now()
 	for i := 0; i < numQueries; i++ {
 		start := time.Now()
-		results := idx.Search(queryVectors[i], k, searchL)
+		results, _ := idx.Search(queryVectors[i], k, searchL)
 		latencies[i] = float64(time.Since(start).Microseconds())
 
 		// 计算召回率 - 使用暴力搜索作为ground truth (因为只有10K向量)
@@ -495,7 +504,7 @@ func TestSIFT100K(t *testing.T) {
 	queryStart := time.Now()
 	for i := 0; i < numQueries; i++ {
 		start := time.Now()
-		results := idx.Search(queryVectors[i], k, searchL)
+		results, _ := idx.Search(queryVectors[i], k, searchL)
 		latencies[i] = float64(time.Since(start).Microseconds())
 
 		// 计算召回率 (只对前100K向量有效的ground truth)
@@ -611,7 +620,7 @@ func TestSIFT1M(t *testing.T) {
 	queryStart := time.Now()
 	for i := 0; i < numQueries; i++ {
 		start := time.Now()
-		results := idx.Search(queryVectors[i], k, searchL)
+		results, _ := idx.Search(queryVectors[i], k, searchL)
 		latencies[i] = float64(time.Since(start).Microseconds())
 		recalls[i] = computeRecallAtK(results, groundTruth[i], k)
 	}
@@ -750,7 +759,7 @@ func TestRecallVsSearchL(t *testing.T) {
 		start := time.Now()
 		for i := 0; i < numQueries; i++ {
 			qStart := time.Now()
-			results := idx.Search(queries[i], k, searchL)
+			results, _ := idx.Search(queries[i], k, searchL)
 			latencies[i] = float64(time.Since(qStart).Microseconds())
 			recalls[i] = computeRecallAtK(results, groundTruth[i], k)
 		}
@@ -823,7 +832,7 @@ func TestBuildParallel(t *testing.T) {
 		// 验证召回率
 		totalRecall := 0.0
 		for i := 0; i < numQueries; i++ {
-			results := idx.Search(queryVectors[i], k, 50)
+			results, _ := idx.Search(queryVectors[i], k, 50)
 			totalRecall += computeRecallAtK(results, groundTruth[i], k)
 		}
 		avgRecall := totalRecall / float64(numQueries)
@@ -892,7 +901,7 @@ func TestBuildParallel100K(t *testing.T) {
 	t.Logf("\n--- Recall Test ---")
 	parallelRecall := 0.0
 	for i := 0; i < numQueries; i++ {
-		parallelResults := idxParallel.Search(queryVectors[i], k, 100)
+		parallelResults, _ := idxParallel.Search(queryVectors[i], k, 100)
 		parallelRecall += computeRecallAtK(parallelResults, groundTruth[i], k)
 	}
 	parallelRecall /= float64(numQueries)

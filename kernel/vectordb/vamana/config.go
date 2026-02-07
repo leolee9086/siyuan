@@ -23,9 +23,10 @@ const (
 	DefaultAlpha = 1.2 // 剪枝阈值
 )
 
-// Config 索引配置
+// Config Vamana 图索引的完整配置，包含图构建参数和高级调优参数。
+// 同时作为 DiskBuildConfig 的嵌入基础，确保图参数在单一位置定义。
 type Config struct {
-	// 构建参数
+	// 图构建参数
 	R     int     // 最大出度 (默认64)
 	L     int     // 构建时搜索列表大小 (默认100)
 	Alpha float32 // 剪枝阈值 (默认1.2)

@@ -168,15 +168,30 @@ func (idx *VamanaIndex) greedySearchForBuild(scratch *SearchScratch, startIDs []
 	return scratch.Best.All()
 }
 
-// Search 搜索最近的K个邻居
-func (idx *VamanaIndex) Search(query []float32, k int, efSearch int) []Neighbor {
+// Search 搜索最近的K个邻居，返回 SearchResult 切片。
+func (idx *VamanaIndex) Search(query []float32, topK, efSearch int) ([]SearchResult, error) {
 	idx.mu.RLock()
 	if len(idx.vectors) == 0 || idx.medoid == math.MaxUint32 {
 		idx.mu.RUnlock()
-		return nil
+		return nil, nil
 	}
 	idx.mu.RUnlock()
 
+	neighbors := idx.searchNeighbors(query, topK, efSearch)
+
+	// 转换为 SearchResult
+	results := make([]SearchResult, len(neighbors))
+	for i, n := range neighbors {
+		results[i] = SearchResult{
+			ID:       uint64(n.ID),
+			Distance: n.Distance,
+		}
+	}
+	return results, nil
+}
+
+// searchNeighbors 内部搜索方法，返回 Neighbor 切片（供内部和 BBQ 使用）。
+func (idx *VamanaIndex) searchNeighbors(query []float32, k int, efSearch int) []Neighbor {
 	scratch := idx.getScratch()
 	defer idx.putScratch(scratch)
 

@@ -192,7 +192,7 @@ func computeAverageRecallDiskIncr(
 	totalRecall := 0.0
 	for _, query := range queries {
 		gt := bruteForceSearchDiskIndex(idx, query, k)
-		results := idx.Search(query, k, efSearch)
+		results, _ := idx.Search(query, k, efSearch)
 		totalRecall += computeRecallAgainstBruteForce(results, gt, k)
 	}
 	return totalRecall / float64(len(queries))

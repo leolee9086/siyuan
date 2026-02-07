@@ -317,7 +317,7 @@ func TestBBQRecall(t *testing.T) {
 			latency := time.Since(start).Microseconds()
 			totalLatency += float64(latency)
 
-			recall := computeRecallAtK(results, groundTruth[i], k)
+			recall := computeRecallAtK(neighborsToSearchResults(results), groundTruth[i], k)
 			totalRecall += recall
 		}
 
@@ -378,7 +378,7 @@ func TestBBQRecallVsNormalSearch(t *testing.T) {
 	var normalRecall, normalLatency float64
 	for i := 0; i < numQueries; i++ {
 		start := time.Now()
-		results := idx.Search(queryVectors[i], k, 50)
+		results, _ := idx.Search(queryVectors[i], k, 50)
 		normalLatency += float64(time.Since(start).Microseconds())
 		normalRecall += computeRecallAtK(results, groundTruth[i], k)
 	}
@@ -392,7 +392,7 @@ func TestBBQRecallVsNormalSearch(t *testing.T) {
 		start := time.Now()
 		results := idx.SearchWithBBQ(queryVectors[i], k, 20)
 		bbqLatency += float64(time.Since(start).Microseconds())
-		bbqRecall += computeRecallAtK(results, groundTruth[i], k)
+		bbqRecall += computeRecallAtK(neighborsToSearchResults(results), groundTruth[i], k)
 	}
 	bbqRecall /= float64(numQueries)
 	bbqLatency /= float64(numQueries)
@@ -825,7 +825,7 @@ func TestBBQWithRandomData(t *testing.T) {
 	var totalRecall float64
 	for i, query := range queries {
 		results := idx.SearchWithBBQ(query, k, rerankFactor)
-		recall := computeRecallAtK(results, groundTruth[i], k)
+		recall := computeRecallAtK(neighborsToSearchResults(results), groundTruth[i], k)
 		totalRecall += recall
 	}
 	avgRecall := totalRecall / float64(numQueries)
