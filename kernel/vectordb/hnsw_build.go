@@ -415,8 +415,3 @@ func sortNeighborsByDistance(neighbors []NeighborRecord) {
 		neighbors[j+1] = key
 	}
 }
-
-// computeDistance deprecated
-func (c *Collection) computeDistance(a, b *Item, metricType string) float32 {
-	return c.Store.ComputeDistance(a.DocID, b.DocID, metricType)
-}
