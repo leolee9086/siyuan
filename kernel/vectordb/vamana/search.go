@@ -123,9 +123,9 @@ func (idx *VamanaIndex) greedySearchFast(scratch *SearchScratch, startIDs []uint
 }
 
 // greedySearchForBuild 构建专用的贪婪搜索
-// 在并行构建期间使用，直接读取邻居（无锁）
-// 前提：idx.vectors 和 idx.neighbors 的大小在构建期间不变
-// 注意：邻居列表可能被其他goroutine修改，但这是可接受的（最终一致性）
+// 在并行构建期间使用，通过节点级读锁保护邻居 slice header 读取
+// 前提：idx.vectors 和 idx.neighbors 外层切片大小在构建期间不变
+// 同步策略：读取 idx.neighbors[id] 时持 nodeLocks[id].RLock，与写端的 Lock 配对
 func (idx *VamanaIndex) greedySearchForBuild(scratch *SearchScratch, startIDs []uint32, query []float32, queryNormSq float32, L int) []Neighbor {
 	scratch.Reset()
 	scratch.Visited.EnsureCapacity(len(idx.vectors))
@@ -141,15 +141,18 @@ func (idx *VamanaIndex) greedySearchForBuild(scratch *SearchScratch, startIDs []
 		scratch.Cmps++
 	}
 
-	// 贪婪搜索（无锁读取邻居，接受最终一致性）
+	// 贪婪搜索（节点级读锁保护邻居 slice header 读取）
 	for scratch.Best.HasUnvisited() {
 		closest, ok := scratch.Best.PopClosestUnvisited()
 		if !ok {
 			break
 		}
 
-		// 直接读取邻居（无锁），可能读到部分更新的数据，但这是可接受的
+		// 持节点级读锁读取邻居 slice header，防止与写端的 DATA RACE
+		// 写端 (setNeighborsLocked / addEdgeAndPruneLocked) 持 nodeLocks[id].Lock() 写入
+		idx.nodeLocks[closest.ID].RLock()
 		neighbors := idx.neighbors[closest.ID]
+		idx.nodeLocks[closest.ID].RUnlock()
 
 		for _, neighborID := range neighbors {
 			// 边界检查：跳过无效的邻居ID

@@ -525,10 +525,19 @@ func (idx *DiskVamanaIndex) HasBBQMeta() bool {
 // GetBBQCode 返回指定节点的 BBQ 码。
 //
 // BBQ 未启用或节点不存在时返回 nil。
+// 线程安全：自带读锁，可从外部直接调用。
 func (idx *DiskVamanaIndex) GetBBQCode(nodeID uint64) []byte {
 	idx.mu.RLock()
 	defer idx.mu.RUnlock()
 
+	return idx.getBBQCodeUnlocked(nodeID)
+}
+
+// getBBQCodeUnlocked 返回指定节点的 BBQ 码（无锁版本）。
+//
+// 调用方必须已持有 idx.mu 的读锁或写锁。
+// BBQ 未启用或节点不存在时返回 nil。
+func (idx *DiskVamanaIndex) getBBQCodeUnlocked(nodeID uint64) []byte {
 	if idx.closed || idx.bbqCodes == nil {
 		return nil
 	}

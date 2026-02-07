@@ -250,8 +250,10 @@ func (idx *DiskVamanaIndex) greedySearchBBQHamming(scratch *SearchScratch, medoi
 }
 
 // bbqHammingDistance computes Hamming distance between query BBQ code and node's BBQ code.
+//
+// 调用方必须已持有 idx.mu 的读锁。
 func (idx *DiskVamanaIndex) bbqHammingDistance(queryBBQ []byte, nodeID uint64, packedSize int) float32 {
-	nodeBBQ := idx.GetBBQCode(nodeID)
+	nodeBBQ := idx.getBBQCodeUnlocked(nodeID)
 	if nodeBBQ == nil {
 		return LargeInvalidDistance
 	}
@@ -262,8 +264,10 @@ func (idx *DiskVamanaIndex) bbqHammingDistance(queryBBQ []byte, nodeID uint64, p
 
 // bbqCorrectedDistance 计算带量化校正的 BBQ 距离
 // 与内存索引的 bbqDistanceToQuery1Bit 保持一致
+//
+// 调用方必须已持有 idx.mu 的读锁。
 func (idx *DiskVamanaIndex) bbqCorrectedDistance(queryPacked []byte, queryCorr bbq.QuantizationResult, nodeID uint32, scorer *bbq.QuantizedScorer) float32 {
-	nodeBBQ := idx.GetBBQCode(uint64(nodeID))
+	nodeBBQ := idx.getBBQCodeUnlocked(uint64(nodeID))
 	if nodeBBQ == nil {
 		return LargeInvalidDistance
 	}
