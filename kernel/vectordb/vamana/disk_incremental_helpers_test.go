@@ -17,6 +17,7 @@
 package vamana
 
 import (
+	"fmt"
 	"math"
 	"math/rand"
 	"path/filepath"
@@ -233,5 +234,89 @@ func assertMinRecall(t *testing.T, label string, recall, minRecall float64) {
 		t.Errorf("%s: recall %.4f < minimum %.4f", label, recall, minRecall)
 	} else {
 		t.Logf("%s: recall %.4f (min=%.4f) ✓", label, recall, minRecall)
+	}
+}
+
+// ============================================================================
+// Verbose Compare Helpers — improved diagnostics for large-scale comparisons
+// ============================================================================
+
+// verboseCompareFloat32WithTolerance compares two float32 values within a given
+// tolerance. Returns true if they are close enough, false otherwise. On mismatch
+// it reports the label, expected, actual, difference and tolerance via t.Errorf.
+func verboseCompareFloat32WithTolerance(t *testing.T, label string, expected, actual, tolerance float32) bool {
+	t.Helper()
+	diff := expected - actual
+	if diff < 0 {
+		diff = -diff
+	}
+	if diff > tolerance {
+		t.Errorf("%s: value mismatch — expected %v, actual %v (diff %v exceeds tolerance %v)",
+			label, expected, actual, diff, tolerance)
+		return false
+	}
+	return true
+}
+
+// verboseCompareVectors compares two float32 vectors element-by-element and
+// reports the first mismatched dimension with index, expected and actual values.
+// Uses exact equality; callers needing tolerance should use
+// verboseCompareFloat32WithTolerance per-element instead.
+func verboseCompareVectors(t *testing.T, label string, expected, actual []float32) {
+	t.Helper()
+	if len(expected) != len(actual) {
+		t.Errorf("%s: length mismatch — expected %d dimensions, actual %d dimensions",
+			label, len(expected), len(actual))
+		return
+	}
+	for i := range expected {
+		if expected[i] != actual[i] {
+			t.Errorf("%s: first mismatch at dimension [%d] — expected %v, actual %v",
+				label, i, expected[i], actual[i])
+			return
+		}
+	}
+}
+
+// verboseCompareSearchResults compares two SearchResult slices and reports the
+// first difference found. It checks length first, then iterates element-by-element
+// comparing ID and Distance fields.
+func verboseCompareSearchResults(t *testing.T, label string, expected, actual []SearchResult) {
+	t.Helper()
+	if len(expected) != len(actual) {
+		t.Errorf("%s: length mismatch — expected %d results, actual %d results",
+			label, len(expected), len(actual))
+		return
+	}
+	for i := range expected {
+		prefix := fmt.Sprintf("%s[%d]", label, i)
+		if expected[i].ID != actual[i].ID {
+			t.Errorf("%s: ID mismatch — expected %d, actual %d",
+				prefix, expected[i].ID, actual[i].ID)
+			return
+		}
+		if expected[i].Distance != actual[i].Distance {
+			t.Errorf("%s: Distance mismatch — expected %v, actual %v",
+				prefix, expected[i].Distance, actual[i].Distance)
+			return
+		}
+	}
+}
+
+// verboseCompareNeighborLists compares two uint32 neighbor lists and reports the
+// first difference. Checks length first, then element-by-element.
+func verboseCompareNeighborLists(t *testing.T, label string, expected, actual []uint32) {
+	t.Helper()
+	if len(expected) != len(actual) {
+		t.Errorf("%s: length mismatch — expected %d neighbors, actual %d neighbors",
+			label, len(expected), len(actual))
+		return
+	}
+	for i := range expected {
+		if expected[i] != actual[i] {
+			t.Errorf("%s: first mismatch at index [%d] — expected %d, actual %d",
+				label, i, expected[i], actual[i])
+			return
+		}
 	}
 }
