@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 
 	"github.com/siyuan-note/siyuan/kernel/vectordb/bbq"
+	"github.com/siyuan-note/siyuan/kernel/vectordb/hnsw"
 	"github.com/vmihailenco/msgpack/v5"
 )
 
@@ -98,15 +99,23 @@ func SaveCollection(c *Collection, basePath string) error {
 	copy(bbqCorrections, c.Store.bbqCorrections)
 	c.Store.mu.RUnlock()
 
-	// 转换 Neighbors 格式
-	neighbors := make([][][]DocID, len(c.Neighbors))
-	for i, levels := range c.Neighbors {
+	// 从 HNSWIdx 复制图结构
+	c.HNSWIdx.Mu.RLock()
+	neighbors := make([][][]DocID, len(c.HNSWIdx.Neighbors))
+	for i, levels := range c.HNSWIdx.Neighbors {
 		neighbors[i] = make([][]DocID, len(levels))
 		for j, ids := range levels {
 			neighbors[i][j] = make([]DocID, len(ids))
 			copy(neighbors[i][j], ids)
 		}
 	}
+	deleted := make(map[DocID]bool, len(c.HNSWIdx.Deleted))
+	for k, v := range c.HNSWIdx.Deleted {
+		deleted[k] = v
+	}
+	entryPoint := c.HNSWIdx.EntryPoint
+	maxLayer := c.HNSWIdx.MaxLayer
+	c.HNSWIdx.Mu.RUnlock()
 
 	snapshot := SnapshotData{
 		Name:           c.Name,
@@ -117,13 +126,13 @@ func SaveCollection(c *Collection, basePath string) error {
 		IDMap:          c.IDMap,
 		Metas:          c.Metas,
 		Neighbors:      neighbors,
-		Deleted:        c.Deleted,
+		Deleted:        deleted,
 		Vectors:        vectors,
 		BBQQuantized:   bbqQuantized,
 		BBQPacked:      bbqPacked,
 		BBQCorrections: bbqCorrections,
-		EntryPoint:     c.EntryPoint,
-		MaxLayer:       c.MaxLayer,
+		EntryPoint:     entryPoint,
+		MaxLayer:       maxLayer,
 	}
 
 	data, err := msgpack.Marshal(&snapshot)
@@ -178,27 +187,43 @@ func LoadCollection(basePath string, name string) (*Collection, error) {
 		}
 	}
 
-	c = &Collection{
-		Name:       snapshot.Name,
-		Dimension:  snapshot.Dimension,
-		Config:     snapshot.Config,
-		Meta:       snapshot.Meta,
-		IDMap:      snapshot.IDMap,
-		DocMap:     snapshot.DocMap,
-		Store:      store,
-		Metas:      snapshot.Metas,
-		Neighbors:  neighbors,
-		Deleted:    snapshot.Deleted,
-		EntryPoint: snapshot.EntryPoint,
-		MaxLayer:   snapshot.MaxLayer,
+	// 修复空 map
+	deleted := snapshot.Deleted
+	if deleted == nil {
+		deleted = make(map[DocID]bool)
 	}
 
-	// 修复空 map
-	if c.IDMap == nil {
-		c.IDMap = make(map[string]DocID)
+	// 构建 hnsw.Config
+	hnswConfig := hnsw.Config{
+		M:              snapshot.Config.M,
+		EfConstruction: snapshot.Config.EfConstruction,
+		EfSearch:       snapshot.Config.EfSearch,
+		MaxLevel:       snapshot.Config.MaxLevel,
+		MetricType:     snapshot.Config.MetricType,
 	}
-	if c.Deleted == nil {
-		c.Deleted = make(map[DocID]bool)
+
+	// 创建 HNSWIndex 并恢复状态
+	hnswIdx := hnsw.NewHNSWIndex(snapshot.Dimension, hnswConfig, store)
+	hnswIdx.Neighbors = neighbors
+	hnswIdx.Deleted = deleted
+	hnswIdx.EntryPoint = snapshot.EntryPoint
+	hnswIdx.MaxLayer = snapshot.MaxLayer
+
+	idMap := snapshot.IDMap
+	if idMap == nil {
+		idMap = make(map[string]DocID)
+	}
+
+	c = &Collection{
+		Name:      snapshot.Name,
+		Dimension: snapshot.Dimension,
+		Config:    snapshot.Config,
+		Meta:      snapshot.Meta,
+		IDMap:     idMap,
+		DocMap:    snapshot.DocMap,
+		Store:     store,
+		Metas:     snapshot.Metas,
+		HNSWIdx:   hnswIdx,
 	}
 
 	// 重放 WAL

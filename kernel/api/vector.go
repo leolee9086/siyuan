@@ -354,7 +354,7 @@ func vectorState(c *gin.Context) {
 		"name":       col.Name,
 		"dimension":  col.Dimension,
 		"item_count": col.ItemCount(),
-		"max_layer":  col.MaxLayer,
+		"max_layer":  col.HNSWIdx.MaxLayer,
 	}
 }
 
@@ -439,4 +439,3 @@ func vectorDeleteCollection(c *gin.Context) {
 		"collection_name": collectionName,
 	}
 }
-

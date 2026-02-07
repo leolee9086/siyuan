@@ -23,13 +23,15 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/siyuan-note/siyuan/kernel/vectordb/hnsw"
 )
 
 // =========================================
 // 核心类型定义 (v2 API)
 // =========================================
 
-type DocID uint32
+type DocID = uint32
 
 // CollectionConfig 集合配置
 type CollectionConfig struct {
@@ -56,20 +58,21 @@ type NeighborRecord struct {
 // CollectionMeta 集合级别元数据
 // 用于存储集合的全局信息，不依赖于单个向量点
 type CollectionMeta struct {
-	Model     string                 `json:"model" msgpack:"model"`           // 模型名
-	Dataset   string                 `json:"dataset" msgpack:"dataset"`       // 数据集名
-	Type      string                 `json:"type" msgpack:"type"`             // 类型: blocks 或 assets
-	Created   int64                  `json:"created" msgpack:"created"`       // 创建时间戳 (Unix秒)
-	Updated   int64                  `json:"updated" msgpack:"updated"`       // 最后修改时间戳 (Unix秒)
-	Extra     map[string]interface{} `json:"extra,omitempty" msgpack:"extra"` // 扩展字段
+	Model   string                 `json:"model" msgpack:"model"`           // 模型名
+	Dataset string                 `json:"dataset" msgpack:"dataset"`       // 数据集名
+	Type    string                 `json:"type" msgpack:"type"`             // 类型: blocks 或 assets
+	Created int64                  `json:"created" msgpack:"created"`       // 创建时间戳 (Unix秒)
+	Updated int64                  `json:"updated" msgpack:"updated"`       // 最后修改时间戳 (Unix秒)
+	Extra   map[string]interface{} `json:"extra,omitempty" msgpack:"extra"` // 扩展字段
 }
+
 // Collection 向量集合
 // 采用 "Point" 概念，不感知上层模型
 type Collection struct {
 	Name      string
 	Dimension int
 	Config    CollectionConfig
-	Meta      CollectionMeta   // 集合级别元数据
+	Meta      CollectionMeta // 集合级别元数据
 
 	// ID 映射 (External ID <-> Internal DocID)
 	// ID 是任意字符串，DocID 是紧凑的整数索引
@@ -80,17 +83,11 @@ type Collection struct {
 	// Metas 存储原始 JSON bytes，解析由上层负责
 	Metas [][]byte
 
-	// 图结构 (HNSW)
-	// Neighbors[docID][level] -> []neighborDocIDs
-	Neighbors [][][]DocID
-	Deleted   map[DocID]bool
+	// HNSW 图索引（委托给 hnsw 子包）
+	HNSWIdx *hnsw.HNSWIndex
 
 	// 向量存储 (列式存储)
 	Store *VectorStore
-
-	// HNSW 入口点
-	EntryPoint DocID
-	MaxLayer   int
 
 	Mu sync.RWMutex
 }
@@ -118,21 +115,25 @@ func NewCollection(name string, dimension int) *Collection {
 	// 如果是新建，初始化 Store
 	store := NewVectorStore(dimension)
 
+	hnswConfig := hnsw.Config{
+		M:              config.M,
+		EfConstruction: config.EfConstruction,
+		EfSearch:       config.EfSearch,
+		MaxLevel:       config.MaxLevel,
+		MetricType:     config.MetricType,
+	}
+
 	return &Collection{
 		Name:      name,
 		Dimension: dimension,
 		Config:    config,
 
-		IDMap:     make(map[string]DocID),
-		DocMap:    make([]string, 0),
-		Metas:     make([][]byte, 0),
-		Neighbors: make([][][]DocID, 0),
-		Deleted:   make(map[DocID]bool),
+		IDMap:  make(map[string]DocID),
+		DocMap: make([]string, 0),
+		Metas:  make([][]byte, 0),
 
-		Store: store,
-
-		EntryPoint: DocID(0xFFFFFFFF),
-		MaxLayer:   -1,
+		HNSWIdx: hnsw.NewHNSWIndex(dimension, hnswConfig, store),
+		Store:   store,
 	}
 }
 
@@ -180,26 +181,12 @@ func (c *Collection) GetMeta(docID DocID) (json.RawMessage, bool) {
 
 // GetNodeLevel 获取节点最大层级
 func (c *Collection) GetNodeLevel(docID DocID) int {
-	c.Mu.RLock()
-	defer c.Mu.RUnlock()
-
-	if int(docID) >= len(c.Neighbors) || c.Neighbors[docID] == nil {
-		return -1
-	}
-	return len(c.Neighbors[docID]) - 1
+	return c.HNSWIdx.GetItemLevel(docID)
 }
 
 // GetLevelNeighborIDs 获取指定层级的邻居
 func (c *Collection) GetLevelNeighborIDs(docID DocID, level int) []DocID {
-	// 注意：调用方应持有读锁或写锁
-	// 这里为了性能不加锁，由调用方保证安全
-	if int(docID) >= len(c.Neighbors) {
-		return nil
-	}
-	if level < 0 || level >= len(c.Neighbors[docID]) {
-		return nil
-	}
-	return c.Neighbors[docID][level]
+	return c.HNSWIdx.GetLevelNeighborIDs(docID, level)
 }
 
 // ItemCount 返回有效项目数量
@@ -291,7 +278,7 @@ func (db *Database) ListCollections() []CollectionInfo {
 // 兼容性辅助函数 (如果需要)
 // Item struct is minimal now as it's not core anymore
 type Item struct {
-	ID      string
-	DocID   DocID
-	Meta    map[string]interface{}
+	ID    string
+	DocID DocID
+	Meta  map[string]interface{}
 }
