@@ -118,6 +118,9 @@ type DiskVamanaIndex struct {
 	// 增量操作 - 已修改的邻居表
 	modifiedNeighbors map[uint64][]uint32 // 磁盘节点被修改的邻居表
 
+	// 并发控制
+	nodeLocks []sync.RWMutex // 节点级读写锁，大小应等于总点数（或分片数）
+
 	// 状态
 	closed bool         // 索引是否已关闭
 	mu     sync.RWMutex // 保护 closed 状态和写操作
@@ -186,6 +189,11 @@ func Open(path string) (*DiskVamanaIndex, error) {
 		return nil, fmt.Errorf("failed to load deleted bitmap: %w", err)
 	}
 	idx.deleted = deleted
+
+	// 初始化节点锁
+	// 注意：每个节点一把锁，内存开销约为 NumPoints * 24 bytes
+	// 对于 100万 向量，约为 24MB，这是可接受的
+	idx.nodeLocks = make([]sync.RWMutex, idx.metadata.NumPoints)
 
 	return idx, nil
 }

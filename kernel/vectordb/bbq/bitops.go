@@ -55,7 +55,8 @@ func ComputeNaiveDotProduct(query []byte, index []byte) int {
 
 // ComputePackedDotProduct 计算打包位点积 使用POPCNT优化的1-bit点积
 // 输入为打包的二进制向量 (8个维度压缩到1个字节)
-// 内部使用uint64批量处理以利用64位POPCNT指令，无需额外内存分配
+// 使用 binary.BigEndian.Uint64 + OnesCount64 批量处理以利用64位POPCNT指令，
+// 剩余不足8字节的尾部使用逐字节 OnesCount8 处理。
 func ComputePackedDotProduct(query []byte, index []byte) int {
 	if len(query) != len(index) {
 		return 0
@@ -64,15 +65,11 @@ func ComputePackedDotProduct(query []byte, index []byte) int {
 	n := len(query)
 	sum := 0
 	i := 0
-
-	// 每次处理8字节(64位)，利用64位POPCNT指令
 	for ; i <= n-8; i += 8 {
 		q64 := binary.BigEndian.Uint64(query[i : i+8])
 		i64 := binary.BigEndian.Uint64(index[i : i+8])
 		sum += bits.OnesCount64(q64 & i64)
 	}
-
-	// 处理剩余不足8字节的部分
 	for ; i < n; i++ {
 		sum += bits.OnesCount8(query[i] & index[i])
 	}
@@ -80,7 +77,8 @@ func ComputePackedDotProduct(query []byte, index []byte) int {
 }
 
 // ComputePackedHammingDistance 计算打包汉明距离 计算两个打包二进制向量的汉明距离
-// 内部使用uint64批量处理以利用64位POPCNT指令，无需额外内存分配
+// 使用 binary.BigEndian.Uint64 + OnesCount64 批量处理以利用64位POPCNT指令，
+// 剩余不足8字节的尾部使用逐字节 OnesCount8 处理。
 func ComputePackedHammingDistance(a []byte, b []byte) int {
 	if len(a) != len(b) {
 		return 65535
@@ -89,15 +87,11 @@ func ComputePackedHammingDistance(a []byte, b []byte) int {
 	n := len(a)
 	dist := 0
 	i := 0
-
-	// 每次处理8字节(64位)
 	for ; i <= n-8; i += 8 {
 		a64 := binary.BigEndian.Uint64(a[i : i+8])
 		b64 := binary.BigEndian.Uint64(b[i : i+8])
 		dist += bits.OnesCount64(a64 ^ b64)
 	}
-
-	// 处理剩余不足8字节的部分
 	for ; i < n; i++ {
 		dist += bits.OnesCount8(a[i] ^ b[i])
 	}
@@ -145,47 +139,4 @@ func BytesToUint64(data []byte) []uint64 {
 	}
 
 	return result
-}
-
-// BatchDotProductCalculator 批量点积计算器 批量计算点积 (用于HNSW搜索优化)
-type BatchDotProductCalculator struct {
-	Query       []byte             // 量化后的查询向量
-	QueryPacked []byte             // 打包后的查询 (用于1-bit)
-	Correction  QuantizationResult // 查询校正
-	Use4Bit     bool
-}
-
-// NewBatchDotProductCalculator 新建批量点积计算器 创建批量计算器
-func NewBatchDotProductCalculator(queryVec []float32, centroid []float32, use4Bit bool) *BatchDotProductCalculator {
-	quantizer := NewScalarQuantizer(CosineSimilarity)
-
-	var bits int
-	if use4Bit {
-		bits = 4
-	} else {
-		bits = 1
-	}
-
-	quantizedQuery := make([]byte, len(queryVec))
-	correction := quantizer.Quantize(queryVec, quantizedQuery, bits, centroid)
-
-	var packedQuery []byte
-	if !use4Bit {
-		packedQuery = PackBinary(quantizedQuery)
-	}
-
-	return &BatchDotProductCalculator{
-		Query:       quantizedQuery,
-		QueryPacked: packedQuery,
-		Correction:  correction,
-		Use4Bit:     use4Bit,
-	}
-}
-
-// Compute 计算 计算与单个索引向量的点积
-func (b *BatchDotProductCalculator) Compute(indexQuantized []byte, indexPacked []byte) int {
-	if b.Use4Bit {
-		return ComputeNaiveDotProduct(b.Query, indexQuantized)
-	}
-	return ComputePackedDotProduct(b.QueryPacked, indexPacked)
 }
