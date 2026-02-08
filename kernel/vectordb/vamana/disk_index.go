@@ -113,6 +113,8 @@ type DiskVamanaIndex struct {
 	bbqCorrections   []float32              // 校正因子
 	bbqQuantizedSums []float32              // 量化分量和
 	bbqHasMeta       bool                   // 是否有量化元数据
+	bbqQueryBits     int                    // 查询向量量化位数（1 或 4）
+	bbqUnpacked      [][]byte               // 每个节点的 unpacked 1-bit 数据（每维 1 字节，值 0 或 1）
 	deleted          *storage.DeletedBitmap // Deleted node bitmap
 
 	// 增量操作 - 追加缓冲区
@@ -178,6 +180,7 @@ func OpenWithMetric(path string, metric bbq.SimilarityType) (*DiskVamanaIndex, e
 		closed:                 false,
 		distanceMetric:         metric,
 		bbqOverSearchFactor:    DefaultBBQOverSearchFactor,
+		bbqQueryBits:           DefaultBBQQueryBits,
 		deleteC:                DefaultDeleteC,
 		deleteK:                DefaultDeleteK,
 		deletePruneSlackFactor: DefaultDeletePruneSlackFactor,
@@ -277,6 +280,7 @@ func (idx *DiskVamanaIndex) Close() error {
 
 	// 清理内存驻留数据
 	idx.bbqCodes = nil
+	idx.bbqUnpacked = nil
 	idx.deleted = nil
 
 	return nil
@@ -365,6 +369,8 @@ func (idx *DiskVamanaIndex) loadBBQCodesV1(data []byte) error {
 	// 版本 1 没有量化元数据
 	idx.bbqHasMeta = false
 
+	idx.unpackBBQCodes()
+
 	return nil
 }
 
@@ -441,6 +447,8 @@ func (idx *DiskVamanaIndex) loadBBQCodesV2(data []byte) error {
 	}
 
 	idx.bbqHasMeta = true
+
+	idx.unpackBBQCodes()
 
 	return nil
 }
@@ -671,6 +679,70 @@ func openDiskIndexReader(path string) (storage.DiskIndexReader, error) {
 	}
 
 	return OpenDiskIndexReader(path, true) // 只读模式
+}
+
+// ============================================================================
+// BBQ 查询量化配置
+// ============================================================================
+
+// BBQQueryBits 返回查询向量量化位数（1 或 4）。
+func (idx *DiskVamanaIndex) BBQQueryBits() int {
+	return idx.bbqQueryBits
+}
+
+// SetBBQQueryBits 设置查询向量量化位数。
+//
+// 仅接受 1 或 4，其他值将被忽略：
+//   - 1: 使用 1-bit 对称量化 + POPCNT 硬件加速（默认）
+//   - 4: 使用 4-bit 非对称量化（查询 4-bit × 索引 1-bit），精度更高
+func (idx *DiskVamanaIndex) SetBBQQueryBits(bits int) {
+	if bits != 1 && bits != 4 {
+		return
+	}
+	idx.bbqQueryBits = bits
+}
+
+// ============================================================================
+// BBQ Unpacked 数据
+// ============================================================================
+
+// unpackBBQCodes 将打包的 BBQ 码解包为每维 1 字节的格式。
+//
+// 从 idx.bbqCodes（packed 格式，每 8 维 1 字节）解包为 idx.bbqUnpacked（每维 1 字节，值 0 或 1）。
+// 解包后的数据用于 4-bit 非对称量化查询中的 4-bit × 1-bit 点积计算。
+func (idx *DiskVamanaIndex) unpackBBQCodes() {
+	if len(idx.bbqCodes) == 0 {
+		return
+	}
+
+	dim := int(idx.metadata.Dims)
+	packedSize := (dim + 7) / 8
+	n := len(idx.bbqCodes) / packedSize
+
+	idx.bbqUnpacked = make([][]byte, n)
+	for i := 0; i < n; i++ {
+		packed := idx.bbqCodes[i*packedSize : (i+1)*packedSize]
+		unpacked := make([]byte, dim)
+		for d := 0; d < dim; d++ {
+			byteIdx := d / 8
+			bitIdx := uint(7 - (d % 8))
+			if byteIdx < len(packed) && (packed[byteIdx]>>bitIdx)&1 == 1 {
+				unpacked[d] = 1
+			}
+		}
+		idx.bbqUnpacked[i] = unpacked
+	}
+}
+
+// getBBQUnpackedUnlocked 返回指定节点的 unpacked BBQ 数据（无锁版本）。
+//
+// 调用方必须已持有 idx.mu 的读锁或写锁。
+// 节点不存在或 unpacked 数据未生成时返回 nil。
+func (idx *DiskVamanaIndex) getBBQUnpackedUnlocked(nodeID uint32) []byte {
+	if int(nodeID) < len(idx.bbqUnpacked) {
+		return idx.bbqUnpacked[nodeID]
+	}
+	return nil
 }
 
 // 编译时接口检查

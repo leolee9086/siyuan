@@ -1,0 +1,27 @@
+=== RUN   TestBBQ4BitComparison
+    bbq_4bit_comparison_test.go:60: === BBQ 4-bit vs 1-bit Comparison Test (SIFT 100K) ===
+    bbq_4bit_comparison_test.go:61: Loading 100000 base vectors...
+    bbq_4bit_comparison_test.go:67: Loaded 100000 base vectors, dimension=128
+    bbq_4bit_comparison_test.go:77: Computing ground truth for 100 queries (k=10)...
+    bbq_4bit_comparison_test.go:81: Building in-memory index...
+    bbq_4bit_comparison_test.go:92: Build completed in 19.6070541s
+    bbq_4bit_comparison_test.go:98: Saving to disk...
+    bbq_4bit_comparison_test.go:115: Loading disk index...
+    bbq_4bit_comparison_test.go:122: HasBBQ: true, HasBBQMeta: true
+    bbq_4bit_comparison_test.go:137: 
+        Running comparison with searchL=100, k=10, numQueries=100...
+    bbq_4bit_comparison_test.go:164:   1-bit, OSF=5.0 => Recall@10: 91.80%, AvgLatency: 3115 碌s
+    bbq_4bit_comparison_test.go:164:   4-bit, OSF=5.0 => Recall@10: 98.20%, AvgLatency: 4244 碌s
+    bbq_4bit_comparison_test.go:164:   4-bit, OSF=3.0 => Recall@10: 96.10%, AvgLatency: 2973 碌s
+    bbq_4bit_comparison_test.go:164:   4-bit, OSF=2.0 => Recall@10: 92.50%, AvgLatency: 2058 碌s
+    bbq_4bit_comparison_test.go:164:   4-bit, OSF=1.0 => Recall@10: 83.30%, AvgLatency: 1275 碌s
+    bbq_4bit_comparison_test.go:169: 
+        鈺斺晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨暒鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺︹晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?        鈺?Configuration        鈺?Recall@10    鈺?AvgLatency    鈺?        鈺犫晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨暚鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?        鈺?1-bit, OSF=5.0       鈺?     91.80% 鈺?     3115 碌s  鈺?        鈺?4-bit, OSF=5.0       鈺?     98.20% 鈺?     4244 碌s  鈺?        鈺?4-bit, OSF=3.0       鈺?     96.10% 鈺?     2973 碌s  鈺?        鈺?4-bit, OSF=2.0       鈺?     92.50% 鈺?     2058 碌s  鈺?        鈺?4-bit, OSF=1.0       鈺?     83.30% 鈺?     1275 碌s  鈺?        鈺氣晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨暕鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺┾晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?        
+        Baseline: 1-bit, OSF=5.0 (Recall=91.80%)
+          vs 4-bit, OSF=5.0: recall +6.40%, latency 1.36x
+          vs 4-bit, OSF=3.0: recall +4.30%, latency 0.95x
+          vs 4-bit, OSF=2.0: recall +0.70%, latency 0.66x
+          vs 4-bit, OSF=1.0: recall -8.50%, latency 0.41x
+--- PASS: TestBBQ4BitComparison (22.93s)
+PASS
+ok  	github.com/siyuan-note/siyuan/kernel/vectordb/vamana	23.611s

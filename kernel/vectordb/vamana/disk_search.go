@@ -167,25 +167,42 @@ func (idx *DiskVamanaIndex) greedySearchBBQ(scratch *SearchScratch, medoid uint6
 //
 // 同时搜索磁盘节点和 append buffer 中的节点。
 // 磁盘节点使用预计算的 BBQ 元数据，append 节点使用内存中的 BBQ 元数据。
+//
+// 根据 idx.bbqQueryBits 选择量化策略：
+//   - bbqQueryBits == 4: 查询向量量化为 4-bit（16级），与索引 1-bit（unpacked）做非对称点积
+//   - bbqQueryBits == 1: 查询向量量化为 1-bit packed，使用 POPCNT 计算点积（默认）
 func (idx *DiskVamanaIndex) greedySearchBBQWithMeta(scratch *SearchScratch, medoid uint64, query []float32, L int) []Neighbor {
 	dimension := int(idx.metadata.Dims)
 
 	// 使用 BBQ 量化器量化查询向量
 	// 使用配置中的距离度量，与图构建保持一致
 	quantizer := bbq.NewScalarQuantizer(idx.distanceMetric)
-	queryQuantized := make([]byte, dimension)
-	queryCorr := quantizer.Quantize(query, queryQuantized, 1, idx.bbqCentroid)
-
-	// 打包查询向量为 1-bit 格式
-	queryPacked := bbq.PackBinary(queryQuantized)
-
-	// 创建评分器
 	scorer := bbq.NewQuantizedScorer(idx.distanceMetric)
+
+	// 根据 bbqQueryBits 选择量化策略和距离函数
+	var distFn func(nodeID uint32) float32
+
+	if idx.bbqQueryBits == 4 {
+		// 4-bit 非对称量化路径：查询 4-bit × 索引 1-bit（unpacked）
+		query4Bit := make([]byte, dimension)
+		queryCorr := quantizer.Quantize(query, query4Bit, 4, idx.bbqCentroid)
+		distFn = func(nodeID uint32) float32 {
+			return idx.fusedBBQDistance4Bit(query4Bit, queryCorr, query, nodeID, scorer)
+		}
+	} else {
+		// 1-bit POPCNT 路径（默认）：查询 1-bit packed × 索引 1-bit packed
+		queryQuantized := make([]byte, dimension)
+		queryCorr := quantizer.Quantize(query, queryQuantized, 1, idx.bbqCentroid)
+		queryPacked := bbq.PackBinary(queryQuantized)
+		distFn = func(nodeID uint32) float32 {
+			return idx.fusedBBQDistance(queryPacked, queryCorr, query, nodeID, scorer)
+		}
+	}
 
 	// Initialize with medoid
 	if !idx.deleted.IsDeleted(medoid) {
 		scratch.Visited.Insert(uint32(medoid))
-		dist := idx.fusedBBQDistance(queryPacked, queryCorr, query, uint32(medoid), scorer)
+		dist := distFn(uint32(medoid))
 		scratch.Best.Insert(Neighbor{ID: uint32(medoid), Distance: dist})
 	}
 
@@ -208,7 +225,7 @@ func (idx *DiskVamanaIndex) greedySearchBBQWithMeta(scratch *SearchScratch, medo
 			}
 
 			// 融合 BBQ 距离：磁盘节点用磁盘 BBQ，append 节点用内存 BBQ
-			dist := idx.fusedBBQDistance(queryPacked, queryCorr, query, neighborID, scorer)
+			dist := distFn(neighborID)
 			scratch.Best.Insert(Neighbor{ID: neighborID, Distance: dist})
 		}
 	}
@@ -296,6 +313,39 @@ func (idx *DiskVamanaIndex) bbqCorrectedDistance(queryPacked []byte, queryCorr b
 	// 使用 1-bit 评分模式计算距离
 	dimension := int(idx.metadata.Dims)
 	return scorer.ComputeQuantizedDistance(dotProd, queryCorr, indexCorr, dimension, 0, false)
+}
+
+// bbqCorrectedDistance4Bit 计算带 4-bit 非对称量化校正的 BBQ 距离。
+//
+// 查询向量已量化为 4-bit（每维 0-15），索引向量使用 unpacked 1-bit（每维 0 或 1）。
+// 使用 ComputeNaiveDotProduct 计算 4-bit × 1-bit 点积，精度高于 1-bit × 1-bit 的 POPCNT。
+//
+// 调用方必须已持有 idx.mu 的读锁。
+func (idx *DiskVamanaIndex) bbqCorrectedDistance4Bit(
+	query4Bit []byte,
+	queryCorr bbq.QuantizationResult,
+	nodeID uint32,
+	scorer *bbq.QuantizedScorer,
+) float32 {
+	nodeUnpacked := idx.getBBQUnpackedUnlocked(nodeID)
+	if nodeUnpacked == nil {
+		return LargeInvalidDistance
+	}
+
+	// 4-bit 查询 × 1-bit 索引（unpacked）的朴素点积
+	dotProd := bbq.ComputeNaiveDotProduct(query4Bit, nodeUnpacked)
+
+	// 获取索引向量的量化元数据
+	indexCorr := bbq.QuantizationResult{
+		LowerBound:   idx.bbqLowerBounds[nodeID],
+		UpperBound:   idx.bbqUpperBounds[nodeID],
+		Correction:   idx.bbqCorrections[nodeID],
+		QuantizedSum: idx.bbqQuantizedSums[nodeID],
+	}
+
+	// 使用 4-bit 评分模式计算距离
+	dimension := int(idx.metadata.Dims)
+	return scorer.ComputeQuantizedDistance(dotProd, queryCorr, indexCorr, dimension, 0, true)
 }
 
 // quantizeQueryToBBQ quantizes a query vector to BBQ code (1-bit per dimension).
@@ -510,6 +560,75 @@ func (idx *DiskVamanaIndex) appendBBQCorrectedDistance(
 
 	return scorer.ComputeQuantizedDistance(
 		dotProd, queryCorr, indexCorr, dimension, 0, false,
+	)
+}
+
+// fusedBBQDistance4Bit 计算融合 4-bit 非对称 BBQ 校正距离。
+//
+// 磁盘节点：使用 bbqUnpacked（1-bit unpacked）与 4-bit 查询做非对称点积。
+// Append 节点：实时量化为 1-bit unpacked 后与 4-bit 查询做非对称点积。
+// 无 BBQ 元数据的 append 节点：回退到精确欧氏距离。
+func (idx *DiskVamanaIndex) fusedBBQDistance4Bit(
+	query4Bit []byte,
+	queryCorr bbq.QuantizationResult,
+	query []float32,
+	nodeID uint32,
+	scorer *bbq.QuantizedScorer,
+) float32 {
+	diskN := idx.metadata.NumPoints
+
+	if uint64(nodeID) < diskN {
+		// 磁盘节点：使用 4-bit 非对称距离
+		return idx.bbqCorrectedDistance4Bit(query4Bit, queryCorr, nodeID, scorer)
+	}
+
+	// Append 节点：使用内存中的 BBQ 元数据
+	appendIdx := int(uint64(nodeID) - diskN)
+	if appendIdx < len(idx.appendBBQLower) {
+		return idx.appendBBQCorrectedDistance4Bit(
+			query4Bit, queryCorr, appendIdx, scorer,
+		)
+	}
+
+	// 无 BBQ 元数据的 append 节点：回退到精确欧氏距离
+	vec := idx.getVector(uint64(nodeID))
+	if vec == nil {
+		return LargeInvalidDistance
+	}
+	return euclideanDistance(vec, query)
+}
+
+// appendBBQCorrectedDistance4Bit 计算 append 节点的 4-bit 非对称 BBQ 校正距离。
+//
+// 实时将 append 向量量化为 1-bit（unpacked 格式），
+// 然后与 4-bit 查询做非对称点积计算。
+func (idx *DiskVamanaIndex) appendBBQCorrectedDistance4Bit(
+	query4Bit []byte,
+	queryCorr bbq.QuantizationResult,
+	appendIdx int,
+	scorer *bbq.QuantizedScorer,
+) float32 {
+	dimension := int(idx.metadata.Dims)
+
+	// 实时量化 append 向量为 1-bit（unpacked 格式，每维 1 字节，值 0 或 1）
+	vec := idx.appendVectors[appendIdx]
+	quantizer := bbq.NewScalarQuantizer(idx.distanceMetric)
+	nodeUnpacked := make([]byte, dimension)
+	quantizer.Quantize(vec, nodeUnpacked, 1, idx.bbqCentroid)
+
+	// 4-bit 查询 × 1-bit 索引（unpacked）的朴素点积
+	dotProd := bbq.ComputeNaiveDotProduct(query4Bit, nodeUnpacked)
+
+	// 使用已存储的元数据
+	indexCorr := bbq.QuantizationResult{
+		LowerBound:   idx.appendBBQLower[appendIdx],
+		UpperBound:   idx.appendBBQUpper[appendIdx],
+		Correction:   idx.appendBBQCorr[appendIdx],
+		QuantizedSum: idx.appendBBQSumSq[appendIdx],
+	}
+
+	return scorer.ComputeQuantizedDistance(
+		dotProd, queryCorr, indexCorr, dimension, 0, true,
 	)
 }
 

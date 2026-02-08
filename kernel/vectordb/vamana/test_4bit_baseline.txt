@@ -1,0 +1,36 @@
+=== RUN   TestSIFT100K
+    benchmark_test.go:443: === SIFT 100K Benchmark ===
+    benchmark_test.go:444: Loading 100000 vectors from ../../../test_data/sift...
+    benchmark_test.go:451: Loaded 100000 base vectors, dimension=128
+    benchmark_test.go:457: Loaded 10000 query vectors
+    benchmark_test.go:462: Computing ground truth for 100 queries (k=10)...
+    benchmark_test.go:465: Ground truth computed in 1.534628s
+    benchmark_test.go:479: 
+        Building index with R=64, L=100, Alpha=1.2...
+    benchmark_test.go:491: Build completed in 19.2602122s
+    benchmark_test.go:492: Build throughput: 5192 vectors/sec
+    benchmark_test.go:493: Memory used: 68.46 MB
+    benchmark_test.go:494: Memory per vector: 0.70 KB
+    benchmark_test.go:499: 
+        Running 100 queries with k=10, L=100...
+    benchmark_test.go:529: 
+        === Query Results ===
+    benchmark_test.go:530: Total query time: 100.4999ms
+    benchmark_test.go:531: QPS: 995.03
+    benchmark_test.go:532: Latency P50: 1014.00 碌s
+    benchmark_test.go:533: Latency P99: 2296.00 碌s
+    benchmark_test.go:534: Average latency: 1004.56 碌s
+    benchmark_test.go:535: Recall@10: 100.00%
+--- PASS: TestSIFT100K (21.02s)
+=== RUN   TestDiskIndex_EndToEnd_SIFT100K
+    disk_index_e2e_test.go:221: === Disk Index End-to-End Test (SIFT 100K) ===
+    disk_index_e2e_test.go:235: Building index with 100000 vectors...
+    disk_index_e2e_test.go:240: Build completed in 19.6187921s
+    disk_index_e2e_test.go:246: Saving to disk...
+    disk_index_e2e_test.go:251: Save completed in 164.6519ms
+    disk_index_e2e_test.go:262: Loading disk index...
+    disk_index_e2e_test.go:269: Load completed in 61.134ms
+    disk_index_e2e_test.go:297: === SIFT 100K End-to-End Test Passed ===
+--- PASS: TestDiskIndex_EndToEnd_SIFT100K (19.91s)
+PASS
+ok  	github.com/siyuan-note/siyuan/kernel/vectordb/vamana	41.528s

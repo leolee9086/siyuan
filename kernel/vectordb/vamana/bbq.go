@@ -241,23 +241,27 @@ func (idx *VamanaIndex) bbqDistanceToQuery1Bit(id uint32, queryCodes []byte, que
 // ============================================================================
 
 // greedySearchBBQ 基于 BBQ 的贪婪图搜索
-// 性能优化: 根据维度自动选择最优策略
-// - 维度 >= 128: 使用 1-bit + POPCNT 硬件加速 (性能优先)
-// - 维度 < 128: 使用 4-bit 朴素乘法 (精度更高)
+// 根据 idx.bbqQueryBits 配置选择量化策略:
+//   - bbqQueryBits == 4: 始终使用 4-bit 非对称量化路径 (精度更高)
+//   - bbqQueryBits == 1: 使用 1-bit + POPCNT 硬件加速路径 (性能优先)
+//     若维度 < BBQEnableThreshold (128)，1-bit POPCNT 不可用，回退到 4-bit
 func (idx *VamanaIndex) greedySearchBBQ(scratch *SearchScratch, startIDs []uint32, query []float32, L int) []Neighbor {
 	if !idx.bbqEnabled {
 		// 如果未启用 BBQ，回退到精确搜索
 		return idx.greedySearch(scratch, startIDs, query, L)
 	}
 
-	// 根据维度选择量化策略
-	if idx.dimension >= 128 {
-		// 1-bit 策略: 使用 POPCNT 硬件加速，性能更高
-		return idx.greedySearchBBQ1Bit(scratch, startIDs, query, L)
+	// 根据 bbqQueryBits 配置选择量化策略
+	if idx.bbqQueryBits == 4 {
+		return idx.greedySearchBBQ4Bit(scratch, startIDs, query, L)
 	}
 
-	// 4-bit 策略: 精度更高，适用于低维度
-	return idx.greedySearchBBQ4Bit(scratch, startIDs, query, L)
+	// bbqQueryBits == 1: 使用 POPCNT 硬件加速
+	// 但 1-bit POPCNT 在低维度 (< BBQEnableThreshold) 不可用，回退到 4-bit
+	if idx.dimension < bbq.BBQEnableThreshold {
+		return idx.greedySearchBBQ4Bit(scratch, startIDs, query, L)
+	}
+	return idx.greedySearchBBQ1Bit(scratch, startIDs, query, L)
 }
 
 // greedySearchBBQ1Bit 使用 1-bit + POPCNT 策略的 BBQ 搜索

@@ -78,6 +78,9 @@ type VamanaIndex struct {
 
 	// BBQ 搜索临时空间池 (性能优化: 复用 query4Bit 切片)
 	bbqQuery4BitPool sync.Pool
+
+	// BBQ 查询量化位数 (1 或 4)
+	bbqQueryBits int
 }
 
 // New 创建新的Vamana索引
@@ -105,6 +108,7 @@ func New(dimension int, config Config) *VamanaIndex {
 		bbqCompensations: nil,
 		bbqCentroid:      nil,
 		bbqPackedSize:    bbqPackedSize,
+		bbqQueryBits:     DefaultBBQQueryBits,
 	}
 
 	idx.scratchPool = sync.Pool{
@@ -162,6 +166,19 @@ func (idx *VamanaIndex) NumDeleted() uint64 {
 // Dimension 返回向量维度
 func (idx *VamanaIndex) Dimension() int {
 	return idx.dimension
+}
+
+// BBQQueryBits 返回当前 BBQ 查询量化位数
+func (idx *VamanaIndex) BBQQueryBits() int {
+	return idx.bbqQueryBits
+}
+
+// SetBBQQueryBits 设置 BBQ 查询量化位数 (仅接受 1 或 4)
+func (idx *VamanaIndex) SetBBQQueryBits(bits int) {
+	if bits != 1 && bits != 4 {
+		return
+	}
+	idx.bbqQueryBits = bits
 }
 
 // ============================================================================

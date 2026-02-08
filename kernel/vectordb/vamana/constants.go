@@ -105,6 +105,13 @@ const (
 // Search Constants
 // ============================================================================
 
+// DefaultBBQQueryBits 是 BBQ 查询向量的默认量化位数。
+//
+// 取值 1 或 4：
+//   - 1: 使用 1-bit 对称量化 + POPCNT 硬件加速（默认，向后兼容）
+//   - 4: 使用 4-bit 非对称量化（查询 4-bit × 索引 1-bit），精度更高但无 POPCNT 加速
+const DefaultBBQQueryBits = 1
+
 // DefaultBBQOverSearchFactor 是 BBQ 搜索路径的默认过搜索因子。
 //
 // BBQ 1-bit 量化分辨率有限（128维仅129个离散值），导致贪心搜索中
