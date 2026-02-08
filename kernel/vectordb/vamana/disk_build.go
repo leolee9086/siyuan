@@ -41,21 +41,6 @@ import (
 )
 
 // ============================================================================
-// Constants
-// ============================================================================
-
-const (
-	// SectorSize is the default sector size for disk alignment (4KB)
-	SectorSize = 4096
-
-	// IOAlignment is the I/O alignment boundary (512 bytes)
-	IOAlignment = 512
-
-	// DefaultWriteBufferSize is the default buffer size for streaming writes (16MB)
-	DefaultWriteBufferSize = 16 * 1024 * 1024
-)
-
-// ============================================================================
 // Build Configuration
 // ============================================================================
 

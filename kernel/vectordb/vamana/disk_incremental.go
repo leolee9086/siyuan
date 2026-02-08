@@ -35,30 +35,6 @@ import (
 )
 
 // ============================================================================
-// Incremental Operation Constants
-// ============================================================================
-
-const (
-	// DefaultCompactionThreshold is the default deletion ratio threshold for compaction
-	DefaultCompactionThreshold = 0.3
-
-	// DefaultInsertSearchL is the default search list size during insert
-	DefaultInsertSearchL = 100
-
-	// DefaultInsertAlpha is the default pruning threshold during insert
-	DefaultInsertAlpha = 1.2
-
-	// DefaultDeleteSearchL is the GreedySearch depth during delete (l_d)
-	DefaultDeleteSearchL = 128
-
-	// DefaultDeleteK is the number of closest candidates to retain (k)
-	DefaultDeleteK = 50
-
-	// DefaultDeleteC is the number of replacement edges per neighbor (c)
-	DefaultDeleteC = 3
-)
-
-// ============================================================================
 // Incremental Operation Errors
 // ============================================================================
 

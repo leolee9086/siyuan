@@ -76,9 +76,6 @@ type SearchResult struct {
 // 常量
 // ============================================================================
 
-// MaxDegree 最大出度常量
-const MaxDegree = 128
-
 // Neighbor 邻居节点 (带距离)
 type Neighbor struct {
 	ID       uint32

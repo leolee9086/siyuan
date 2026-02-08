@@ -29,10 +29,6 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/vectordb/bbq"
 )
 
-// LargeInvalidDistance 用于表示无效或缺失节点的大距离值。
-// 当 BBQ 元数据缺失或向量无法获取时，返回此值以确保该节点在排序中排到最后。
-const LargeInvalidDistance float32 = 1e9
-
 // ============================================================================
 // Search Scratch Pool
 // ============================================================================

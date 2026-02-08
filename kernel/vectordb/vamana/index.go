@@ -137,10 +137,10 @@ func (idx *VamanaIndex) NumPoints() uint64 {
 }
 
 // NumPointsTotal 返回索引中的总点数 (含已删除)
-func (idx *VamanaIndex) NumPointsTotal() int {
+func (idx *VamanaIndex) NumPointsTotal() uint64 {
 	idx.mu.RLock()
 	defer idx.mu.RUnlock()
-	return len(idx.vectors)
+	return uint64(len(idx.vectors))
 }
 
 // Close 释放索引关联的资源。
