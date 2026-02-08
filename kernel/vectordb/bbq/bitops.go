@@ -17,6 +17,7 @@
 package bbq
 
 import (
+	"encoding/binary"
 	"math/bits"
 )
 
@@ -25,9 +26,6 @@ import (
 // 使用POPCNT优化的二进制向量运算
 // =========================================
 
-// 计算朴素点积 直接计算未打包量化向量的点积
-// 适用于4-bit查询 x 1-bit索引
-// 循环展开4x优化
 // ComputeNaiveDotProduct 计算朴素点积 直接计算未打包量化向量的点积
 // 适用于4-bit查询 x 1-bit索引
 // 循环展开4x优化
@@ -57,27 +55,50 @@ func ComputeNaiveDotProduct(query []byte, index []byte) int {
 
 // ComputePackedDotProduct 计算打包位点积 使用POPCNT优化的1-bit点积
 // 输入为打包的二进制向量 (8个维度压缩到1个字节)
+// 内部使用uint64批量处理以利用64位POPCNT指令，无需额外内存分配
 func ComputePackedDotProduct(query []byte, index []byte) int {
 	if len(query) != len(index) {
 		return 0
 	}
 
-	// 使用AND计算同为1的位数
+	n := len(query)
 	sum := 0
-	for i := 0; i < len(query); i++ {
+	i := 0
+
+	// 每次处理8字节(64位)，利用64位POPCNT指令
+	for ; i <= n-8; i += 8 {
+		q64 := binary.BigEndian.Uint64(query[i : i+8])
+		i64 := binary.BigEndian.Uint64(index[i : i+8])
+		sum += bits.OnesCount64(q64 & i64)
+	}
+
+	// 处理剩余不足8字节的部分
+	for ; i < n; i++ {
 		sum += bits.OnesCount8(query[i] & index[i])
 	}
 	return sum
 }
 
 // ComputePackedHammingDistance 计算打包汉明距离 计算两个打包二进制向量的汉明距离
+// 内部使用uint64批量处理以利用64位POPCNT指令，无需额外内存分配
 func ComputePackedHammingDistance(a []byte, b []byte) int {
 	if len(a) != len(b) {
 		return 65535
 	}
 
+	n := len(a)
 	dist := 0
-	for i := 0; i < len(a); i++ {
+	i := 0
+
+	// 每次处理8字节(64位)
+	for ; i <= n-8; i += 8 {
+		a64 := binary.BigEndian.Uint64(a[i : i+8])
+		b64 := binary.BigEndian.Uint64(b[i : i+8])
+		dist += bits.OnesCount64(a64 ^ b64)
+	}
+
+	// 处理剩余不足8字节的部分
+	for ; i < n; i++ {
 		dist += bits.OnesCount8(a[i] ^ b[i])
 	}
 	return dist
@@ -110,6 +131,9 @@ func ComputePackedDotProduct64(query []uint64, index []uint64) int {
 }
 
 // BytesToUint64 字节转uint64 将字节数组转换为uint64数组
+// 注意: 此函数会分配新的切片。在热路径上应优先使用
+// ComputePackedDotProduct/ComputePackedHammingDistance 的内联uint64处理，
+// 或在存储时直接保持 []uint64 格式以避免转换开销。
 func BytesToUint64(data []byte) []uint64 {
 	length := (len(data) + 7) / 8
 	result := make([]uint64, length)

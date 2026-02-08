@@ -18,6 +18,7 @@ package bbq
 
 import (
 	"math"
+	"sync"
 )
 
 // =========================================
@@ -41,6 +42,31 @@ const (
 	CosineSimilarity
 	MaxInnerProduct
 )
+
+// workVecPool 工作向量缓冲池 用于减少 Quantize 热路径上的内存分配和 GC 压力
+var workVecPool = sync.Pool{
+	New: func() interface{} {
+		// 初始容量为0，实际使用时按需扩容
+		s := make([]float32, 0)
+		return &s
+	},
+}
+
+// getWorkVec 从池中获取工作向量缓冲区，确保容量至少为 n
+func getWorkVec(n int) *[]float32 {
+	p := workVecPool.Get().(*[]float32)
+	if cap(*p) < n {
+		*p = make([]float32, n)
+	} else {
+		*p = (*p)[:n]
+	}
+	return p
+}
+
+// putWorkVec 将工作向量缓冲区归还到池中
+func putWorkVec(p *[]float32) {
+	workVecPool.Put(p)
+}
 
 // ScalarQuantizer 标量量化器 实现BBQ核心算法
 type ScalarQuantizer struct {
@@ -78,7 +104,11 @@ func (q *ScalarQuantizer) Quantize(vector []float32, dest []byte, bits int, cent
 	}
 
 	// 2. 质心中心化并计算统计信息
-	workVec := make([]float32, dimension)
+	// 使用 sync.Pool 复用工作缓冲区，避免每次调用都分配内存
+	workVecPtr := getWorkVec(dimension)
+	workVec := *workVecPtr
+	defer putWorkVec(workVecPtr)
+
 	var minVal float32 = math.MaxFloat32
 	var maxVal float32 = -math.MaxFloat32
 	var sum float32 = 0

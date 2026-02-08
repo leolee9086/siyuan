@@ -59,58 +59,29 @@ func NewVectorStore(dimension int) *VectorStore {
 	}
 }
 
+// growSlice 确保 slice 长度至少为 targetLen，容量不足时以 2x 策略扩容。
+func growSlice[T any](s []T, targetLen int) []T {
+	if cap(s) < targetLen {
+		newS := make([]T, targetLen, targetLen*2)
+		copy(newS, s)
+		return newS
+	}
+	if len(s) < targetLen {
+		return s[:targetLen]
+	}
+	return s
+}
+
 // Grow ensures space for n vectors (DocID from 0 to n-1)
 func (s *VectorStore) Grow(n int) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	// 原始向量存储
-	targetVecLen := n * s.Dimension
-	if cap(s.vectors) < targetVecLen {
-		newVecs := make([]float32, targetVecLen, targetVecLen*2)
-		copy(newVecs, s.vectors)
-		s.vectors = newVecs
-	} else if len(s.vectors) < targetVecLen {
-		s.vectors = s.vectors[:targetVecLen]
-	}
-
-	// BBQ量化存储 (未打包)
-	targetQuantLen := n * s.Dimension
-	if cap(s.bbqQuantized) < targetQuantLen {
-		newQuant := make([]byte, targetQuantLen, targetQuantLen*2)
-		copy(newQuant, s.bbqQuantized)
-		s.bbqQuantized = newQuant
-	} else if len(s.bbqQuantized) < targetQuantLen {
-		s.bbqQuantized = s.bbqQuantized[:targetQuantLen]
-	}
-
-	// BBQ打包存储
-	targetPackedLen := n * s.packedSize
-	if cap(s.bbqPacked) < targetPackedLen {
-		newPacked := make([]byte, targetPackedLen, targetPackedLen*2)
-		copy(newPacked, s.bbqPacked)
-		s.bbqPacked = newPacked
-	} else if len(s.bbqPacked) < targetPackedLen {
-		s.bbqPacked = s.bbqPacked[:targetPackedLen]
-	}
-
-	// BBQ校正因子
-	if cap(s.bbqCorrections) < n {
-		newCorr := make([]bbq.QuantizationResult, n, n*2)
-		copy(newCorr, s.bbqCorrections)
-		s.bbqCorrections = newCorr
-	} else if len(s.bbqCorrections) < n {
-		s.bbqCorrections = s.bbqCorrections[:n]
-	}
-
-	// Visited Epoch (P0优化)
-	if cap(s.visitedEpoch) < n {
-		newVisited := make([]uint32, n, n*2)
-		copy(newVisited, s.visitedEpoch)
-		s.visitedEpoch = newVisited
-	} else if len(s.visitedEpoch) < n {
-		s.visitedEpoch = s.visitedEpoch[:n]
-	}
+	s.vectors = growSlice(s.vectors, n*s.Dimension)
+	s.bbqQuantized = growSlice(s.bbqQuantized, n*s.Dimension)
+	s.bbqPacked = growSlice(s.bbqPacked, n*s.packedSize)
+	s.bbqCorrections = growSlice(s.bbqCorrections, n)
+	s.visitedEpoch = growSlice(s.visitedEpoch, n)
 }
 
 // Set stores a vector at the given DocID
