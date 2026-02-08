@@ -110,9 +110,19 @@ func (s *QuantizedScorer) ComputeScore4Bit(dotProduct int, queryCorr, indexCorr 
 	return 0
 }
 
-// ComputeQuantizedDistance 计算量化距离 将BBQ相似度转换为距离 (用于HNSW)
-// 返回值越小表示越相似
+// ComputeQuantizedDistance 计算量化距离，返回值越小表示越相似。
+//
+// 对于 EuclideanDistance 模式：直接返回原始欧氏距离平方估计值，
+// 保持与图构建使用的 euclideanDistance() 相同的数值尺度，
+// 避免 1/(1+d²) 饱和变换导致的距离区分度丧失。
+//
+// 对于 CosineSimilarity/MaxInnerProduct 模式：返回 1-score（相似度转距离）。
 func (s *QuantizedScorer) ComputeQuantizedDistance(dotProduct int, queryCorr, indexCorr QuantizationResult, dimension int, centroidDot float32, use4Bit bool) float32 {
+	if s.similarity == EuclideanDistance {
+		// 直接计算原始欧氏距离平方估计值，不经过饱和变换
+		return s.computeEuclideanDistanceEstimate(dotProduct, queryCorr, indexCorr, dimension, use4Bit)
+	}
+
 	var score float32
 	if use4Bit {
 		score = s.ComputeScore4Bit(dotProduct, queryCorr, indexCorr, dimension, centroidDot)
@@ -120,8 +130,37 @@ func (s *QuantizedScorer) ComputeQuantizedDistance(dotProduct int, queryCorr, in
 		score = s.ComputeScore1Bit(dotProduct, queryCorr, indexCorr, dimension, centroidDot)
 	}
 	// 相似度转距离: 分数越高距离越小
-	// 对于余弦: 分数在[0,1], 距离=1-分数
 	return 1.0 - score
+}
+
+// computeEuclideanDistanceEstimate 直接计算欧氏距离平方的 BBQ 估计值。
+//
+// 公式: ||q - x||² ≈ ||q||² + ||x||² - 2 * <q_hat, x_hat>
+// 其中 <q_hat, x_hat> 通过量化区间参数还原点积估计。
+// Correction 在 EuclideanDistance 模式下存储的是 normSq（向量范数平方）。
+func (s *QuantizedScorer) computeEuclideanDistanceEstimate(dotProduct int, queryCorr, indexCorr QuantizationResult, dimension int, use4Bit bool) float32 {
+	x1 := indexCorr.QuantizedSum
+	ax := indexCorr.LowerBound
+	lx := indexCorr.UpperBound - ax
+	ay := queryCorr.LowerBound
+	ly := queryCorr.UpperBound - ay
+	if use4Bit {
+		ly *= ScalingFactor4Bit
+	}
+	y1 := queryCorr.QuantizedSum
+
+	// 还原点积估计
+	dotEst := ax*ay*float32(dimension) +
+		ay*lx*x1 +
+		ax*ly*y1 +
+		lx*ly*float32(dotProduct)
+
+	// 原始欧氏距离平方: ||q||² + ||x||² - 2*<q,x>
+	dist := queryCorr.Correction + indexCorr.Correction - 2.0*dotEst
+	if dist < 0 {
+		dist = 0
+	}
+	return dist
 }
 
 // ScaleMaxInnerProductScore 缩放最大内积分数 将内积分数转换为正值

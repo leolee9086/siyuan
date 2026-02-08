@@ -114,9 +114,10 @@ func New(dimension int, config Config) *VamanaIndex {
 	}
 
 	// 预创建 BBQ 组件 (性能优化: 避免热路径上的对象分配)
+	// 使用配置中的距离度量，与图构建保持一致
 	if bbqEnabled {
-		idx.bbqScorer = bbq.NewQuantizedScorer(bbq.CosineSimilarity)
-		idx.bbqQuantizer = bbq.NewScalarQuantizer(bbq.CosineSimilarity)
+		idx.bbqScorer = bbq.NewQuantizedScorer(config.DistanceMetric)
+		idx.bbqQuantizer = bbq.NewScalarQuantizer(config.DistanceMetric)
 		idx.bbqQuery4BitPool = sync.Pool{
 			New: func() interface{} {
 				return make([]byte, dimension)

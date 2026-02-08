@@ -34,6 +34,7 @@ import (
 	"sync"
 
 	"github.com/siyuan-note/logging"
+	"github.com/siyuan-note/siyuan/kernel/vectordb/bbq"
 	"github.com/siyuan-note/siyuan/kernel/vectordb/storage"
 )
 
@@ -90,9 +91,16 @@ var (
 //   - 写操作需要外部同步
 type DiskVamanaIndex struct {
 	// 索引元数据
-	basePath  string                 // 基础路径（不含扩展名）
-	metadata  *storage.GraphMetadata // 磁盘图元数据
-	maxDegree int                    // 最大出度（从元数据计算）
+	basePath            string                 // 基础路径（不含扩展名）
+	metadata            *storage.GraphMetadata // 磁盘图元数据
+	maxDegree           int                    // 最大出度（从元数据计算）
+	distanceMetric      bbq.SimilarityType     // BBQ 量化使用的距离度量
+	bbqOverSearchFactor float64                // BBQ 搜索过搜索因子（internalL = efSearch * factor）
+
+	// 删除修复参数（可通过 SetDeleteParams 配置）
+	deleteC                int     // 每个邻居的替换边数（默认 DefaultDeleteC）
+	deleteK                int     // 候选池大小（默认 DefaultDeleteK）
+	deletePruneSlackFactor float32 // 删除修复后剪枝松弛因子（默认 DefaultDeletePruneSlackFactor）
 
 	// 磁盘 I/O
 	reader storage.DiskIndexReader // 磁盘索引读取器（基于 mmap）
@@ -156,9 +164,23 @@ type DiskVamanaIndex struct {
 //	}
 //	defer idx.Close()
 func Open(path string) (*DiskVamanaIndex, error) {
+	return OpenWithMetric(path, bbq.EuclideanDistance)
+}
+
+// OpenWithMetric 从指定路径打开基于磁盘的 Vamana 索引，并指定 BBQ 距离度量。
+//
+// 参数：
+//   - path: 索引文件的基础路径（不含扩展名）
+//   - metric: BBQ 量化使用的距离度量类型
+func OpenWithMetric(path string, metric bbq.SimilarityType) (*DiskVamanaIndex, error) {
 	idx := &DiskVamanaIndex{
-		basePath: path,
-		closed:   false,
+		basePath:               path,
+		closed:                 false,
+		distanceMetric:         metric,
+		bbqOverSearchFactor:    DefaultBBQOverSearchFactor,
+		deleteC:                DefaultDeleteC,
+		deleteK:                DefaultDeleteK,
+		deletePruneSlackFactor: DefaultDeletePruneSlackFactor,
 	}
 
 	// 打开主索引文件
@@ -199,6 +221,26 @@ func Open(path string) (*DiskVamanaIndex, error) {
 	idx.nodeLocks = make([]sync.RWMutex, idx.metadata.NumPoints)
 
 	return idx, nil
+}
+
+// SetDeleteParams 配置删除修复参数。
+//
+// 参数：
+//   - c: 每个邻居的替换边数（<=0 时使用 DefaultDeleteC）
+//   - k: 候选池大小（<=0 时使用 DefaultDeleteK）
+//   - pruneSlackFactor: 剪枝松弛因子（<=0 时使用 DefaultDeletePruneSlackFactor）
+//
+// 线程安全：必须在索引使用前调用，不支持并发修改。
+func (idx *DiskVamanaIndex) SetDeleteParams(c, k int, pruneSlackFactor float32) {
+	if c > 0 {
+		idx.deleteC = c
+	}
+	if k > 0 {
+		idx.deleteK = k
+	}
+	if pruneSlackFactor > 0 {
+		idx.deletePruneSlackFactor = pruneSlackFactor
+	}
 }
 
 // Close 释放磁盘索引关联的所有资源。
@@ -513,6 +555,34 @@ func (idx *DiskVamanaIndex) HasBBQMeta() bool {
 	defer idx.mu.RUnlock()
 
 	return idx.bbqHasMeta
+}
+
+// BBQOverSearchFactor 返回当前的 BBQ 过搜索因子。
+//
+// 该因子控制 BBQ 搜索路径中贪心搜索的内部 beam 宽度：
+//
+//	internalL = efSearch * bbqOverSearchFactor
+//
+// 更大的值意味着更多的候选被保留用于 rerank，从而提高召回率，但会增加搜索延迟。
+func (idx *DiskVamanaIndex) BBQOverSearchFactor() float64 {
+	idx.mu.RLock()
+	defer idx.mu.RUnlock()
+
+	return idx.bbqOverSearchFactor
+}
+
+// SetBBQOverSearchFactor 设置 BBQ 过搜索因子。
+//
+// factor 必须 >= 1.0，否则将被钳位到 1.0（即不扩大 beam）。
+// 线程安全：内部持有写锁。
+func (idx *DiskVamanaIndex) SetBBQOverSearchFactor(factor float64) {
+	if factor < 1.0 {
+		factor = 1.0
+	}
+
+	idx.mu.Lock()
+	idx.bbqOverSearchFactor = factor
+	idx.mu.Unlock()
 }
 
 // GetBBQCode 返回指定节点的 BBQ 码。

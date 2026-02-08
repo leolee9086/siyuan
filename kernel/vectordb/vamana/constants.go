@@ -84,16 +84,34 @@ const (
 	// DefaultDeleteSearchL is the GreedySearch depth during delete (l_d)
 	DefaultDeleteSearchL = 128
 
-	// DefaultDeleteK is the number of closest candidates to retain (k)
-	DefaultDeleteK = 50
+	// DefaultDeleteK is the number of closest candidates to retain (k).
+	// IP-DiskANN 论文建议候选池应足够大以覆盖删除修复所需的替换边。
+	// R=64 时，k=100 可提供充足的候选覆盖。
+	DefaultDeleteK = 100
 
-	// DefaultDeleteC is the number of replacement edges per neighbor (c)
-	DefaultDeleteC = 3
+	// DefaultDeleteC is the number of replacement edges per neighbor (c).
+	// IP-DiskANN 论文建议 c 值应与图平均度数成比例（约 R/10）。
+	// R=64 时，c=6 提供足够的替换边以维持图连通性。
+	DefaultDeleteC = 6
+
+	// DefaultDeletePruneSlackFactor 是删除修复后剪枝的松弛因子。
+	// 删除修复会临时增加受影响节点的度数，使用松弛因子允许节点度数
+	// 临时超过 R，仅当超过 SlackFactor * R 时才触发剪枝。
+	// 这与构建阶段的 GraphSlackFactor 策略一致（见 config.go）。
+	DefaultDeletePruneSlackFactor float32 = 1.3
 )
 
 // ============================================================================
 // Search Constants
 // ============================================================================
+
+// DefaultBBQOverSearchFactor 是 BBQ 搜索路径的默认过搜索因子。
+//
+// BBQ 1-bit 量化分辨率有限（128维仅129个离散值），导致贪心搜索中
+// 真近邻容易被淘汰。通过扩大内部 beam 宽度（internalL = efSearch * overSearchFactor），
+// 可以在 BBQ 粗筛阶段保留更多候选，再由 rerank 阶段精确选出 topK。
+// 这是 DiskANN 论文的标准做法。
+const DefaultBBQOverSearchFactor = 5.0
 
 // LargeInvalidDistance 用于表示无效或缺失节点的大距离值。
 // 当 BBQ 元数据缺失或向量无法获取时，返回此值以确保该节点在排序中排到最后。

@@ -96,21 +96,34 @@ func (idx *DiskVamanaIndex) Search(query []float32, topK, efSearch int) ([]Searc
 		efSearch = topK
 	}
 
+	// BBQ 搜索路径使用扩大的 beam 宽度以补偿 1-bit 量化的分辨率损失。
+	// internalL = efSearch * bbqOverSearchFactor，确保 internalL >= efSearch。
+	// 非 BBQ 路径不受影响，直接使用 efSearch。
+	useBBQ := idx.HasBBQ()
+	beamWidth := efSearch
+	if useBBQ {
+		internalL := int(float64(efSearch) * idx.BBQOverSearchFactor())
+		if internalL < efSearch {
+			internalL = efSearch
+		}
+		beamWidth = internalL
+	}
+
 	// Get search scratch from pool
 	scratch := getDiskSearchScratch()
 	defer putDiskSearchScratch(scratch)
 
 	// Ensure scratch capacity covers disk + append buffer nodes
 	scratch.Visited.EnsureCapacity(int(total))
-	scratch.Best.SetCapacity(efSearch)
+	scratch.Best.SetCapacity(beamWidth)
 	scratch.Reset()
 
 	// Phase 1: Greedy search with BBQ (if available) or direct disk access
 	// All greedy search variants now use unified getNeighbors()/getVector()
 	// to transparently handle disk nodes, modified neighbors, and append buffer.
 	var candidates []Neighbor
-	if idx.HasBBQ() {
-		candidates = idx.greedySearchBBQ(scratch, medoid, query, efSearch)
+	if useBBQ {
+		candidates = idx.greedySearchBBQ(scratch, medoid, query, beamWidth)
 	} else {
 		candidates = idx.greedySearchDisk(scratch, medoid, query, efSearch)
 	}
@@ -158,7 +171,8 @@ func (idx *DiskVamanaIndex) greedySearchBBQWithMeta(scratch *SearchScratch, medo
 	dimension := int(idx.metadata.Dims)
 
 	// 使用 BBQ 量化器量化查询向量
-	quantizer := bbq.NewScalarQuantizer(bbq.CosineSimilarity)
+	// 使用配置中的距离度量，与图构建保持一致
+	quantizer := bbq.NewScalarQuantizer(idx.distanceMetric)
 	queryQuantized := make([]byte, dimension)
 	queryCorr := quantizer.Quantize(query, queryQuantized, 1, idx.bbqCentroid)
 
@@ -166,7 +180,7 @@ func (idx *DiskVamanaIndex) greedySearchBBQWithMeta(scratch *SearchScratch, medo
 	queryPacked := bbq.PackBinary(queryQuantized)
 
 	// 创建评分器
-	scorer := bbq.NewQuantizedScorer(bbq.CosineSimilarity)
+	scorer := bbq.NewQuantizedScorer(idx.distanceMetric)
 
 	// Initialize with medoid
 	if !idx.deleted.IsDeleted(medoid) {
@@ -478,7 +492,7 @@ func (idx *DiskVamanaIndex) appendBBQCorrectedDistance(
 
 	// 实时量化 append 向量
 	vec := idx.appendVectors[appendIdx]
-	quantizer := bbq.NewScalarQuantizer(bbq.CosineSimilarity)
+	quantizer := bbq.NewScalarQuantizer(idx.distanceMetric)
 	quantized := make([]byte, dimension)
 	quantizer.Quantize(vec, quantized, 1, idx.bbqCentroid)
 	nodePacked := bbq.PackBinary(quantized)

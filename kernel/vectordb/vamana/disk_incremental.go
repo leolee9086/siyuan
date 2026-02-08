@@ -452,7 +452,7 @@ func robustPruneSimpleWithNorm(
 
 // appendBBQForInsert computes and appends BBQ metadata for a newly inserted vector.
 func (idx *DiskVamanaIndex) appendBBQForInsert(vector []float32, dimension int) {
-	quantizer := bbq.NewScalarQuantizer(bbq.CosineSimilarity)
+	quantizer := bbq.NewScalarQuantizer(idx.distanceMetric)
 	quantized := make([]byte, dimension)
 	result := quantizer.Quantize(vector, quantized, 1, idx.bbqCentroid)
 
@@ -718,7 +718,7 @@ func (idx *DiskVamanaIndex) deleteGreedySearch(
 
 	// Collect top-k candidates (Best is already sorted by distance)
 	allCandidates := scratch.Best.All()
-	k := DefaultDeleteK
+	k := idx.deleteK
 	if k > len(allCandidates) {
 		k = len(allCandidates)
 	}
@@ -752,7 +752,7 @@ func (idx *DiskVamanaIndex) repairInEdges(
 	approxIn []uint32, candidates []Neighbor,
 	cache vectorCache, nsCache normSqCache,
 ) {
-	c := DefaultDeleteC
+	c := idx.deleteC
 
 	for _, z := range approxIn {
 		if idx.deleted.IsDeletedUnsafe(uint64(z)) {
@@ -789,7 +789,7 @@ func (idx *DiskVamanaIndex) repairOutEdges(
 	outNeighbors []uint32, candidates []Neighbor,
 	cache vectorCache, nsCache normSqCache,
 ) {
-	c := DefaultDeleteC
+	c := idx.deleteC
 
 	for _, w := range outNeighbors {
 		if idx.deleted.IsDeletedUnsafe(uint64(w)) {
@@ -866,7 +866,11 @@ func (idx *DiskVamanaIndex) closestCFromCandidates(
 	return result
 }
 
-// pruneAffectedVertices implements Step 6: prune vertices exceeding degree R.
+// pruneAffectedVertices implements Step 6: prune vertices exceeding degree threshold.
+//
+// Uses deletePruneSlackFactor to allow nodes to temporarily exceed R after delete repair.
+// Only triggers pruning when degree > SlackFactor * R, and prunes back down to R.
+// This matches the GraphSlackFactor strategy used during build (see config.go).
 //
 // Performance: uses normSq cache to avoid redundant dotProduct calls in both
 // the distance computation loop and the robustPruneSimple occlude loop.
@@ -875,6 +879,11 @@ func (idx *DiskVamanaIndex) pruneAffectedVertices(
 	approxIn []uint32, candidates []Neighbor, R int,
 	cache vectorCache, nsCache normSqCache,
 ) {
+	// 使用松弛因子计算剪枝触发阈值：仅当度数超过 slackR 时才触发剪枝，
+	// 剪枝目标仍为 R。这允许删除修复后的节点临时保留额外边，
+	// 避免过早剪枝抵消修复效果。
+	slackR := int(idx.deletePruneSlackFactor * float32(R))
+
 	// Collect unique affected vertices
 	seen := make(map[uint32]struct{})
 	for _, z := range approxIn {
@@ -896,7 +905,7 @@ func (idx *DiskVamanaIndex) pruneAffectedVertices(
 
 	for v := range seen {
 		neighbors := idx.getNeighbors(uint64(v))
-		if len(neighbors) <= R {
+		if len(neighbors) <= slackR {
 			continue
 		}
 		vVec := idx.getCachedVector(uint64(v), cache)
@@ -1310,7 +1319,7 @@ func (idx *DiskVamanaIndex) writeCompactedBBQFile(
 			if appendIdx < len(idx.appendBBQLower) {
 				// Append node has pre-computed BBQ data; need to quantize for packed codes only
 				if quantizer == nil {
-					quantizer = bbq.NewScalarQuantizer(bbq.CosineSimilarity)
+					quantizer = bbq.NewScalarQuantizer(idx.distanceMetric)
 					quantized = make([]byte, dimension)
 				}
 				idx.mu.RLock()
@@ -1336,7 +1345,7 @@ func (idx *DiskVamanaIndex) writeCompactedBBQFile(
 			} else {
 				// No pre-existing BBQ data; full quantization required
 				if quantizer == nil {
-					quantizer = bbq.NewScalarQuantizer(bbq.CosineSimilarity)
+					quantizer = bbq.NewScalarQuantizer(idx.distanceMetric)
 					quantized = make([]byte, dimension)
 				}
 				idx.mu.RLock()

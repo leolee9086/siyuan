@@ -363,7 +363,8 @@ func (b *diskBuilder) computeBBQData() {
 	b.bbqQuantizedSums = make([]float32, n)
 
 	// Create quantizer
-	quantizer := bbq.NewScalarQuantizer(bbq.CosineSimilarity)
+	// 使用配置中的距离度量，与图构建保持一致
+	quantizer := bbq.NewScalarQuantizer(b.config.DistanceMetric)
 
 	// Parallel BBQ computation
 	numWorkers := b.config.NumWorkers

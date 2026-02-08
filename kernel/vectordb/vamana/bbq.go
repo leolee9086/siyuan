@@ -89,8 +89,8 @@ func (idx *VamanaIndex) computeBBQDataParallel(numWorkers int) {
 			defer wg.Done()
 
 			// 每个 worker 创建自己的量化器和临时缓冲区
-			// 使用 CosineSimilarity 模式配合均值质心，效果最佳
-			quantizer := bbq.NewScalarQuantizer(bbq.CosineSimilarity)
+			// 使用配置中的距离度量，与图构建保持一致
+			quantizer := bbq.NewScalarQuantizer(idx.config.DistanceMetric)
 			quantized := make([]byte, idx.dimension)
 
 			for i := start; i < end; i++ {
@@ -178,8 +178,8 @@ func (idx *VamanaIndex) bbqDistanceToQuery(id uint32, queryCode []byte, queryCor
 	}
 
 	// 使用 BBQ 评分器计算距离
-	// 使用 CosineSimilarity 模式配合均值质心，效果最佳
-	scorer := bbq.NewQuantizedScorer(bbq.CosineSimilarity)
+	// 使用配置中的距离度量，与图构建保持一致
+	scorer := bbq.NewQuantizedScorer(idx.config.DistanceMetric)
 	return scorer.ComputeQuantizedDistance(dotProd, queryCorr, indexCorr, idx.dimension, 0, false)
 }
 

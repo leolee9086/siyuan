@@ -32,9 +32,25 @@ import (
 
 // TestDiskIndex_EndToEnd_SIFT1M 使用完整 SIFT1M 数据集进行磁盘索引端到端测试
 // 验证完整流程：构建内存索引 → 保存到磁盘 → 加载磁盘索引 → 查询并验证召回率
+//
+// 此测试需要约 15 分钟完成，超出 go test 默认 10 分钟超时。
+// 运行方式：VAMANA_SCALE_TEST=1 go test -run TestDiskIndex_EndToEnd_SIFT1M -timeout 30m -v
 func TestDiskIndex_EndToEnd_SIFT1M(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping SIFT1M end-to-end test in short mode")
+	}
+
+	// 1M 规模测试需要显式 opt-in，避免常规 go test 因默认超时而 panic
+	if os.Getenv("VAMANA_SCALE_TEST") == "" {
+		t.Skip("Skipping SIFT1M test: set VAMANA_SCALE_TEST=1 and use -timeout 30m to run")
+	}
+
+	// 检查测试 deadline，若剩余时间不足 12 分钟则跳过
+	if deadline, ok := t.Deadline(); ok {
+		remaining := time.Until(deadline)
+		if remaining < 12*time.Minute {
+			t.Skipf("Skipping SIFT1M test: only %v remaining before deadline, need at least 12m", remaining.Round(time.Second))
+		}
 	}
 
 	dataPath := getSIFTDataPath()

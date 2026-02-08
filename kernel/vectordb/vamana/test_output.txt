@@ -1,0 +1,601 @@
+=== RUN   TestBBQIntegration
+=== RUN   TestBBQIntegration/BBQAutoEnable
+    bbq_test.go:121: BBQ auto-enable test passed:
+    bbq_test.go:122:   - dim=32: bbqEnabled=false (expected false)
+    bbq_test.go:123:   - dim=33: bbqEnabled=true (expected true)
+    bbq_test.go:124:   - dim=128: bbqEnabled=true, bbqPackedSize=16
+=== RUN   TestBBQIntegration/BBQDataStructures
+    bbq_test.go:191: BBQ data structures test passed:
+    bbq_test.go:192:   - bbqPacked: 16000 bytes (15943 non-zero)
+    bbq_test.go:194:   - bbqCompensations: 1000 values (1000 non-zero)
+    bbq_test.go:196:   - bbqCentroid: 128 dimensions
+=== RUN   TestBBQIntegration/BBQSearchReturnsResults
+    bbq_test.go:244: BBQ search test passed:
+    bbq_test.go:245:   - Returned 10 results
+    bbq_test.go:246:   - Distance range: [15.925995, 17.017532]
+--- PASS: TestBBQIntegration (0.10s)
+    --- PASS: TestBBQIntegration/BBQAutoEnable (0.00s)
+    --- PASS: TestBBQIntegration/BBQDataStructures (0.05s)
+    --- PASS: TestBBQIntegration/BBQSearchReturnsResults (0.05s)
+=== RUN   TestBBQRecall
+    bbq_test.go:266: === BBQ Recall Test (SIFT 10K) ===
+    bbq_test.go:273: Loaded 10000 base vectors, dimension=128
+    bbq_test.go:279: Loaded 10000 query vectors
+    bbq_test.go:282: Computing ground truth for 100 queries (k=10)...
+    bbq_test.go:292: Building index with R=32, L=50, Alpha=1.2...
+    bbq_test.go:302: BBQ enabled: true, bbqPackedSize=16
+    bbq_test.go:307: 
+        RerankFactor    Recall@10       Avg Latency    
+    bbq_test.go:308: ------------    ---------       -----------    
+    bbq_test.go:327: 5               77.00          % 94.78          碌s
+    bbq_test.go:327: 10              88.10          % 160.38         碌s
+    bbq_test.go:327: 20              96.10          % 266.41         碌s
+    bbq_test.go:327: 30              98.40          % 385.64         碌s
+    bbq_test.go:327: 50              99.40          % 644.50         碌s
+--- PASS: TestBBQRecall (0.73s)
+=== RUN   TestBBQRecallVsNormalSearch
+    bbq_test.go:373: === BBQ vs Normal Search Comparison ===
+    bbq_test.go:374: Method               Recall@10       Avg Latency    
+    bbq_test.go:375: ------               ---------       -----------    
+    bbq_test.go:387: Normal Search        100.00         % 141.19         碌s
+    bbq_test.go:399: BBQ Search           96.00          % 278.32         碌s
+--- PASS: TestBBQRecallVsNormalSearch (0.61s)
+=== RUN   TestBBQMemoryUsage
+    bbq_test.go:445: === BBQ Memory Usage Test ===
+    bbq_test.go:446: Vectors: 10000, Dimension: 128
+    bbq_test.go:447: 
+    bbq_test.go:448: Original vector storage:
+    bbq_test.go:449:   - Per vector: 512 bytes (128 * 4 bytes)
+    bbq_test.go:450:   - Total: 4.88 MB
+    bbq_test.go:451: 
+    bbq_test.go:452: BBQ encoded storage:
+    bbq_test.go:453:   - bbqPackedSize: 16
+    bbq_test.go:454:   - Per vector: 20 bytes (16 + 4)
+    bbq_test.go:455:   - Total: 195.31 KB
+    bbq_test.go:456: 
+    bbq_test.go:457: Compression ratio: 25.60:1
+    bbq_test.go:473: 
+    bbq_test.go:474: Actual BBQ data structure sizes:
+    bbq_test.go:475:   - bbqPacked: 160000 bytes = 156.25 KB
+    bbq_test.go:476:   - bbqCompensations: 10000 float32 = 39.06 KB
+    bbq_test.go:477:   - bbqCentroid: 128 float32 = 512 B
+--- PASS: TestBBQMemoryUsage (0.58s)
+=== RUN   TestBBQMemoryUsageVariousDimensions
+    bbq_test.go:485: === BBQ Memory Compression Ratio by Dimension ===
+    bbq_test.go:486: Dimension  Original/Vec    BBQ/Vec         Ratio          
+    bbq_test.go:487: ---------  ------------    -------         -----          
+    bbq_test.go:502: 64         256             12              21.33          :1
+    bbq_test.go:502: 128        512             20              25.60          :1
+    bbq_test.go:502: 256        1024            36              28.44          :1
+    bbq_test.go:502: 512        2048            68              30.12          :1
+    bbq_test.go:502: 768        3072            100             30.72          :1
+    bbq_test.go:502: 1024       4096            132             31.03          :1
+--- PASS: TestBBQMemoryUsageVariousDimensions (2.72s)
+=== RUN   TestBBQSearchSpeed
+    bbq_test.go:542: === BBQ Search Speed Test ===
+    bbq_test.go:543: Vectors: 10000, Dimension: 128, Queries: 100
+    bbq_test.go:567: 
+    bbq_test.go:568: Method               Total Time      Avg Latency     QPS            
+    bbq_test.go:569: ------               ----------      -----------     ---            
+    bbq_test.go:570: Normal Search        22.3849ms       223.84         碌s 4467.30        
+    bbq_test.go:573: BBQ Search           27.8707ms       278.70         碌s 3588.00        
+    bbq_test.go:578: 
+    bbq_test.go:579: Speedup: 0.80x
+--- PASS: TestBBQSearchSpeed (0.48s)
+=== RUN   TestBBQBoundaryConditions
+=== RUN   TestBBQBoundaryConditions/LowDimensionNoBBQ
+    bbq_test.go:704: Low dimension test passed: dim=32, bbqEnabled=false, results=10
+=== RUN   TestBBQBoundaryConditions/EmptyIndexBBQ
+    bbq_test.go:723: Empty index test passed: results=0
+=== RUN   TestBBQBoundaryConditions/SingleVectorBBQ
+    bbq_test.go:755: Single vector test passed: results=1
+=== RUN   TestBBQBoundaryConditions/BBQThresholdBoundary
+    bbq_test.go:785: BBQ threshold boundary test passed: threshold=33
+--- PASS: TestBBQBoundaryConditions (0.00s)
+    --- PASS: TestBBQBoundaryConditions/LowDimensionNoBBQ (0.00s)
+    --- PASS: TestBBQBoundaryConditions/EmptyIndexBBQ (0.00s)
+    --- PASS: TestBBQBoundaryConditions/SingleVectorBBQ (0.00s)
+    --- PASS: TestBBQBoundaryConditions/BBQThresholdBoundary (0.00s)
+=== RUN   TestBBQWithRandomData
+    bbq_test.go:833: === BBQ Random Data Test ===
+    bbq_test.go:834: Vectors: 5000, Dimension: 128, Queries: 50
+    bbq_test.go:835: RerankFactor: 30
+    bbq_test.go:836: Average Recall@10: 92.20%
+--- PASS: TestBBQWithRandomData (0.35s)
+=== RUN   TestSIFT10K
+    benchmark_test.go:338: === SIFT 10K Benchmark ===
+    benchmark_test.go:339: Loading 10000 vectors from ../../../test_data/sift...
+    benchmark_test.go:346: Loaded 10000 base vectors, dimension=128
+    benchmark_test.go:352: Loaded 10000 query vectors
+    benchmark_test.go:357: Computing ground truth for 100 queries (k=10)...
+    benchmark_test.go:360: Ground truth computed in 145.7539ms
+    benchmark_test.go:374: 
+        Building index with R=32, L=50, Alpha=1.2...
+    benchmark_test.go:386: Build completed in 362.7081ms
+    benchmark_test.go:387: Build throughput: 27570 vectors/sec
+    benchmark_test.go:388: Memory used: 4.90 MB
+    benchmark_test.go:393: 
+        Running 100 queries with k=10, L=50...
+    benchmark_test.go:423: 
+        === Query Results ===
+    benchmark_test.go:424: Total query time: 13.8961ms
+    benchmark_test.go:425: QPS: 7196.26
+    benchmark_test.go:426: Latency P50: 0.00 碌s
+    benchmark_test.go:427: Latency P99: 562.00 碌s
+    benchmark_test.go:428: Recall@10: 100.00%
+--- PASS: TestSIFT10K (0.55s)
+=== RUN   TestSIFT100K
+    benchmark_test.go:443: === SIFT 100K Benchmark ===
+    benchmark_test.go:444: Loading 100000 vectors from ../../../test_data/sift...
+    benchmark_test.go:451: Loaded 100000 base vectors, dimension=128
+    benchmark_test.go:457: Loaded 10000 query vectors
+    benchmark_test.go:462: Computing ground truth for 100 queries (k=10)...
+    benchmark_test.go:465: Ground truth computed in 1.469936s
+    benchmark_test.go:479: 
+        Building index with R=64, L=100, Alpha=1.2...
+    benchmark_test.go:491: Build completed in 18.9461143s
+    benchmark_test.go:492: Build throughput: 5278 vectors/sec
+    benchmark_test.go:493: Memory used: 68.41 MB
+    benchmark_test.go:494: Memory per vector: 0.70 KB
+    benchmark_test.go:499: 
+        Running 100 queries with k=10, L=100...
+    benchmark_test.go:529: 
+        === Query Results ===
+    benchmark_test.go:530: Total query time: 87.6622ms
+    benchmark_test.go:531: QPS: 1140.74
+    benchmark_test.go:532: Latency P50: 1006.00 碌s
+    benchmark_test.go:533: Latency P99: 2054.00 碌s
+    benchmark_test.go:534: Average latency: 876.25 碌s
+    benchmark_test.go:535: Recall@10: 100.00%
+--- PASS: TestSIFT100K (20.59s)
+=== RUN   TestSIFT1M
+    benchmark_test.go:554: === SIFT 1M Benchmark ===
+    benchmark_test.go:555: Loading full dataset from ../../../test_data/sift...
+    benchmark_test.go:562: Loaded 1000000 base vectors, dimension=128
+    benchmark_test.go:568: Loaded 10000 query vectors
+    benchmark_test.go:574: Loaded 10000 ground truth entries, k=100
+    benchmark_test.go:588: 
+        Building index with R=64, L=100, Alpha=1.2...
+    benchmark_test.go:601: Build completed in 5m31.5484289s
+    benchmark_test.go:602: Build throughput: 3016 vectors/sec
+    benchmark_test.go:603: Memory used: 695.32 MB
+    benchmark_test.go:604: Memory per vector: 0.71 KB
+    benchmark_test.go:615: 
+        Running 1000 queries with k=10, L=100...
+    benchmark_test.go:643: 
+        === Query Results ===
+    benchmark_test.go:644: Total query time: 1.6415321s
+    benchmark_test.go:645: QPS: 609.19
+    benchmark_test.go:646: Latency P50: 1579.00 碌s
+    benchmark_test.go:647: Latency P99: 3022.00 碌s
+    benchmark_test.go:648: Average latency: 1639.50 碌s
+    benchmark_test.go:649: Recall@10: 99.72%
+--- PASS: TestSIFT1M (334.55s)
+=== RUN   TestRecallVsSearchL
+    benchmark_test.go:735: Computing ground truth for 100 queries...
+    benchmark_test.go:751: 
+        === Recall vs SearchL ===
+    benchmark_test.go:752: SearchL    Recall@10       Avg Latency     QPS            
+    benchmark_test.go:753: -------    ---------       -----------     ---            
+    benchmark_test.go:778: 10         100.00         % 938.15         碌s 1065.53        
+    benchmark_test.go:778: 20         100.00         % 940.88         碌s 1062.42        
+    benchmark_test.go:778: 50         100.00         % 929.08         碌s 1075.84        
+    benchmark_test.go:778: 100        100.00         % 960.74         碌s 1040.41        
+    benchmark_test.go:778: 200        100.00         % 936.24         碌s 1061.91        
+    benchmark_test.go:778: 500        100.00         % 926.31         碌s 1079.07        
+--- PASS: TestRecallVsSearchL (19.36s)
+=== RUN   TestBuildParallel
+    benchmark_test.go:819: === Parallel Build Test ===
+    benchmark_test.go:820: Vectors: 10000, Dimension: 128
+    benchmark_test.go:821: Workers    Build Time      Throughput      Recall@10      
+    benchmark_test.go:841: 1          2.3604728s      4236            100.00         %
+    benchmark_test.go:841: 2          1.1427299s      8751            99.90          %
+    benchmark_test.go:841: 4          629.8689ms      15876           100.00         %
+    benchmark_test.go:841: 12         381.1463ms      26237           99.90          %
+--- PASS: TestBuildParallel (4.73s)
+=== RUN   TestBuildParallel100K
+    benchmark_test.go:877: Computing ground truth...
+    benchmark_test.go:885: === Parallel Build 100K Test ===
+    benchmark_test.go:886: Vectors: 100000, Dimension: 128
+    benchmark_test.go:890: 
+        --- Parallel Build (12 workers) ---
+    benchmark_test.go:898: Parallel: 16.8701275s (5928 vec/s)
+    benchmark_test.go:901: 
+        --- Recall Test ---
+    benchmark_test.go:909: Parallel Recall@10: 100.00%
+--- PASS: TestBuildParallel100K (18.67s)
+=== RUN   TestBuildFromVectors_SIFT
+    disk_build_test.go:84: SIFT Build result: NumPoints=1000, Dimension=128, Medoid=594, MaxDegree=41, BBQEnabled=true
+--- PASS: TestBuildFromVectors_SIFT (0.04s)
+=== RUN   TestBuildFromVectors_SIFT_LargeScale
+    disk_build_test.go:126: Large scale SIFT build: NumPoints=10000, Dimension=128, Medoid=3732, BuildTime included in test duration
+--- PASS: TestBuildFromVectors_SIFT_LargeScale (2.01s)
+=== RUN   TestBuildFromVectors_LowDimension
+    disk_build_test.go:167: Low-dim build: NumPoints=50, Dimension=16, BBQEnabled=false
+--- PASS: TestBuildFromVectors_LowDimension (0.00s)
+=== RUN   TestBuildFromVectors_EmptyVectors
+--- PASS: TestBuildFromVectors_EmptyVectors (0.00s)
+=== RUN   TestBuildFromVectors_InconsistentDimension
+--- PASS: TestBuildFromVectors_InconsistentDimension (0.00s)
+=== RUN   TestBuildFromVectors_SingleVector
+--- PASS: TestBuildFromVectors_SingleVector (0.00s)
+=== RUN   TestDiskBuildConfig_Validate
+--- PASS: TestDiskBuildConfig_Validate (0.00s)
+=== RUN   TestDiskBuildConfig_LConstraint
+--- PASS: TestDiskBuildConfig_LConstraint (0.00s)
+=== RUN   TestComputeMedoid
+--- PASS: TestComputeMedoid (0.00s)
+=== RUN   TestComputeMedoid_SingleVector
+--- PASS: TestComputeMedoid_SingleVector (0.00s)
+=== RUN   TestComputeMedoid_EmptyVectors
+--- PASS: TestComputeMedoid_EmptyVectors (0.00s)
+=== RUN   TestComputeBBQData_SIFT
+    disk_build_test.go:389: BBQ data computed with SIFT: packedSize=16, nonZeroBytes=1395/1600
+--- PASS: TestComputeBBQData_SIFT (0.00s)
+=== RUN   TestBuildFromVectors_CompatibleWithDiskIndex_SIFT
+    disk_build_test.go:457: Compatibility test passed: NumPoints=500, Dimension=128, Medoid=75
+--- PASS: TestBuildFromVectors_CompatibleWithDiskIndex_SIFT (0.05s)
+=== RUN   TestBBQEnableThreshold
+--- PASS: TestBBQEnableThreshold (0.02s)
+=== RUN   TestBuildFromVectors_Recall_10K
+    disk_build_test.go:537: === BuildFromVectors Recall Test (SIFT 10K) ===
+    disk_build_test.go:540: Step 1: Loading 10000 base vectors...
+    disk_build_test.go:545:   Loaded 10000 vectors, dimension=128
+    disk_build_test.go:548: Step 2: Loading query vectors...
+    disk_build_test.go:557:   Using 100 query vectors
+    disk_build_test.go:560: Step 3: Computing ground truth (k=10)...
+    disk_build_test.go:564: Step 4: Building disk index with BuildFromVectors...
+    disk_build_test.go:578:   Build completed: NumPoints=10000, Dimension=128, Medoid=3732, BBQEnabled=true
+    disk_build_test.go:582: Step 5: Opening disk index...
+    disk_build_test.go:589:   Index loaded: NumPoints=10000, Dimension=128, HasBBQ=true
+    disk_build_test.go:595: Step 6: Computing recall@10 with L=50, rerankFactor=5 (searchListSize=250)...
+    disk_build_test.go:597:   Recall@10 (L=50, rerankFactor=5): 97.80%
+    disk_build_test.go:604: 
+        === BuildFromVectors Recall Test (10K) Completed ===
+--- PASS: TestBuildFromVectors_Recall_10K (0.92s)
+=== RUN   TestBuildFromVectors_Recall_100K
+    disk_build_test.go:633: === BuildFromVectors Recall Test (SIFT 100K) ===
+    disk_build_test.go:636: Step 1: Loading 100000 base vectors...
+    disk_build_test.go:641:   Loaded 100000 vectors, dimension=128
+    disk_build_test.go:644: Step 2: Loading query vectors...
+    disk_build_test.go:653:   Using 100 query vectors
+    disk_build_test.go:656: Step 3: Computing ground truth (k=10)...
+    disk_build_test.go:660: Step 4: Building disk index with BuildFromVectors...
+    disk_build_test.go:674:   Build completed: NumPoints=100000, Dimension=128, Medoid=34776, BBQEnabled=true
+    disk_build_test.go:678: Step 5: Opening disk index...
+    disk_build_test.go:685:   Index loaded: NumPoints=100000, Dimension=128, HasBBQ=true
+    disk_build_test.go:689: Step 6: Computing recall@10 with searchL=500...
+    disk_build_test.go:691:   Recall@10 (L=500): 91.80%
+    disk_build_test.go:699: 
+          Testing different searchL values:
+    disk_build_test.go:702:     searchL=20: Recall@10 = 38.10%
+    disk_build_test.go:702:     searchL=50: Recall@10 = 55.00%
+    disk_build_test.go:702:     searchL=100: Recall@10 = 68.20%
+    disk_build_test.go:702:     searchL=200: Recall@10 = 78.90%
+    disk_build_test.go:705: 
+        === BuildFromVectors Recall Test Completed ===
+--- PASS: TestBuildFromVectors_Recall_100K (35.71s)
+=== RUN   TestDiskIndex_CheckpointAfterInserts
+    disk_checkpoint_test.go:40: Base index: totalPoints=10000, HasBBQ=true
+    disk_checkpoint_test.go:56: Inserted 80 vectors, totalPoints=10080
+    disk_checkpoint_test.go:64: Checkpoint saved: original=10080, remaining=10080, deleted=0
+    disk_checkpoint_test.go:92: Checkpoint insert self-search: 80/80 found in top-10
+    disk_checkpoint_test.go:102: CheckpointAfterInserts recall@10: recall 0.7800 (min=0.4500) 鉁?    disk_checkpoint_test.go:104: TestDiskIndex_CheckpointAfterInserts passed: checkpoint has 10080 points, recall=0.7800
+--- PASS: TestDiskIndex_CheckpointAfterInserts (2.18s)
+=== RUN   TestDiskIndex_CheckpointAfterDeletes
+    disk_checkpoint_test.go:124: Base index: NumPointsTotal=10000, HasBBQ=true
+    disk_checkpoint_test.go:145: Deleted 300 nodes
+    disk_checkpoint_test.go:153: Checkpoint saved: original=10000, remaining=9700, deleted=300
+    disk_checkpoint_test.go:191: No deleted nodes found in checkpoint search results 鉁?    disk_checkpoint_test.go:198: CheckpointAfterDeletes recall@10: recall 0.7800 (min=0.4000) 鉁?    disk_checkpoint_test.go:200: TestDiskIndex_CheckpointAfterDeletes passed: checkpoint has 9700 points, recall=0.7800
+--- PASS: TestDiskIndex_CheckpointAfterDeletes (4.80s)
+=== RUN   TestDiskIndex_MultipleCheckpoints
+    disk_checkpoint_test.go:223: Base index: totalPoints=10000, HasBBQ=true
+    disk_checkpoint_test.go:226: === Round 1: Insert 鈫?Checkpoint ===
+    disk_checkpoint_test.go:240: Round1: inserted 50 vectors, totalPoints=10050
+    disk_checkpoint_test.go:247: Round1 checkpoint: original=10050, remaining=10050
+    disk_checkpoint_test.go:270: Round1 checkpoint self-search: 50/50 found
+    disk_checkpoint_test.go:277: === Round 2: Delete 鈫?Checkpoint ===
+    disk_checkpoint_test.go:295: Round2: deleted 200 nodes
+    disk_checkpoint_test.go:304: Round2 checkpoint: original=10050, remaining=9850, deleted=200
+    disk_checkpoint_test.go:323: Round2 checkpoint recall@10: recall 0.8000 (min=0.3500) 鉁?    disk_checkpoint_test.go:327: === Round 3: Insert 鈫?Checkpoint ===
+    disk_checkpoint_test.go:348: Round3: inserted 60 vectors, totalPoints=9910
+    disk_checkpoint_test.go:357: Round3 checkpoint: original=9910, remaining=9910
+    disk_checkpoint_test.go:381: Round3 final self-search: 60/60 found
+    disk_checkpoint_test.go:389: Final checkpoint recall@10: recall 0.8167 (min=0.3500) 鉁?    disk_checkpoint_test.go:391: TestDiskIndex_MultipleCheckpoints passed: 3 rounds completed, final points=9910, recall=0.8167
+--- PASS: TestDiskIndex_MultipleCheckpoints (3.99s)
+=== RUN   TestDiskIndex_ConcurrentInsertAndSearch
+    disk_concurrent_test.go:144: ConcurrentInsertAndSearch: NumPointsTotal=5000 (base=5000, inserted up to 50)
+--- PASS: TestDiskIndex_ConcurrentInsertAndSearch (1.16s)
+=== RUN   TestDiskIndex_ConcurrentInsertAndDelete
+    disk_concurrent_test.go:248: ConcurrentInsertAndDelete: 50/50 candidates confirmed deleted
+    disk_concurrent_test.go:255: ConcurrentInsertAndDelete: 50 vectors inserted
+    disk_concurrent_test.go:278: ConcurrentInsertAndDelete: search returned 10 results, index consistent
+--- PASS: TestDiskIndex_ConcurrentInsertAndDelete (1.84s)
+=== RUN   TestDiskIndex_ConcurrentSearches
+    disk_concurrent_test.go:392: ConcurrentSearches: 120 total searches, 0 errors, 0 empty, 0 determinism mismatches
+--- PASS: TestDiskIndex_ConcurrentSearches (0.94s)
+=== RUN   TestDiskIndex_ErrorPath_CorruptedHeader
+=== RUN   TestDiskIndex_ErrorPath_CorruptedHeader/zeroed_magic
+    disk_error_path_test.go:167: Open correctly failed with corrupted header (zeroed_magic): failed to open index file: invalid magic number
+=== RUN   TestDiskIndex_ErrorPath_CorruptedHeader/truncated_header
+    disk_error_path_test.go:167: Open correctly failed with corrupted header (truncated_header): failed to open index file: file corrupted
+=== RUN   TestDiskIndex_ErrorPath_CorruptedHeader/random_garbage
+    disk_error_path_test.go:167: Open correctly failed with corrupted header (random_garbage): failed to open index file: invalid magic number
+--- PASS: TestDiskIndex_ErrorPath_CorruptedHeader (0.04s)
+    --- PASS: TestDiskIndex_ErrorPath_CorruptedHeader/zeroed_magic (0.01s)
+    --- PASS: TestDiskIndex_ErrorPath_CorruptedHeader/truncated_header (0.00s)
+    --- PASS: TestDiskIndex_ErrorPath_CorruptedHeader/random_garbage (0.01s)
+=== RUN   TestDiskIndex_ErrorPath_CorruptedBBQ
+=== RUN   TestDiskIndex_ErrorPath_CorruptedBBQ/zeroed_magic
+W 2026/02/08 19:46:42 disk_index.go:196: 鍔犺浇 BBQ 鐮佸け璐?[path=C:\Users\al765\AppData\Local\Temp\TestDiskIndex_ErrorPath_CorruptedBBQ773759495\001\err_test.bbq]: invalid BBQ file magic number
+    disk_error_path_test.go:246: Open succeeded with corrupted BBQ (zeroed_magic), HasBBQ=false
+=== RUN   TestDiskIndex_ErrorPath_CorruptedBBQ/invalid_version
+W 2026/02/08 19:46:42 disk_index.go:196: 鍔犺浇 BBQ 鐮佸け璐?[path=C:\Users\al765\AppData\Local\Temp\TestDiskIndex_ErrorPath_CorruptedBBQ773759495\001\err_test.bbq]: unsupported BBQ file version
+    disk_error_path_test.go:246: Open succeeded with corrupted BBQ (invalid_version), HasBBQ=false
+=== RUN   TestDiskIndex_ErrorPath_CorruptedBBQ/truncated_file
+W 2026/02/08 19:46:42 disk_index.go:196: 鍔犺浇 BBQ 鐮佸け璐?[path=C:\Users\al765\AppData\Local\Temp\TestDiskIndex_ErrorPath_CorruptedBBQ773759495\001\err_test.bbq]: file corrupted
+    disk_error_path_test.go:246: Open succeeded with corrupted BBQ (truncated_file), HasBBQ=false
+--- PASS: TestDiskIndex_ErrorPath_CorruptedBBQ (0.04s)
+    --- PASS: TestDiskIndex_ErrorPath_CorruptedBBQ/zeroed_magic (0.02s)
+    --- PASS: TestDiskIndex_ErrorPath_CorruptedBBQ/invalid_version (0.00s)
+    --- PASS: TestDiskIndex_ErrorPath_CorruptedBBQ/truncated_file (0.00s)
+=== RUN   TestDiskIndex_ErrorPath_OperationsOnClosedIndex
+=== RUN   TestDiskIndex_ErrorPath_OperationsOnClosedIndex/Search
+=== RUN   TestDiskIndex_ErrorPath_OperationsOnClosedIndex/Insert
+=== RUN   TestDiskIndex_ErrorPath_OperationsOnClosedIndex/Delete
+=== RUN   TestDiskIndex_ErrorPath_OperationsOnClosedIndex/ReadVector
+=== RUN   TestDiskIndex_ErrorPath_OperationsOnClosedIndex/Compact
+=== RUN   TestDiskIndex_ErrorPath_OperationsOnClosedIndex/Accessors
+=== RUN   TestDiskIndex_ErrorPath_OperationsOnClosedIndex/DoubleClose
+--- PASS: TestDiskIndex_ErrorPath_OperationsOnClosedIndex (0.02s)
+    --- PASS: TestDiskIndex_ErrorPath_OperationsOnClosedIndex/Search (0.00s)
+    --- PASS: TestDiskIndex_ErrorPath_OperationsOnClosedIndex/Insert (0.00s)
+    --- PASS: TestDiskIndex_ErrorPath_OperationsOnClosedIndex/Delete (0.00s)
+    --- PASS: TestDiskIndex_ErrorPath_OperationsOnClosedIndex/ReadVector (0.00s)
+    --- PASS: TestDiskIndex_ErrorPath_OperationsOnClosedIndex/Compact (0.00s)
+    --- PASS: TestDiskIndex_ErrorPath_OperationsOnClosedIndex/Accessors (0.00s)
+    --- PASS: TestDiskIndex_ErrorPath_OperationsOnClosedIndex/DoubleClose (0.00s)
+=== RUN   TestDiskIndex_ErrorPath_DimensionMismatch
+=== RUN   TestDiskIndex_ErrorPath_DimensionMismatch/too_short
+=== RUN   TestDiskIndex_ErrorPath_DimensionMismatch/too_long
+=== RUN   TestDiskIndex_ErrorPath_DimensionMismatch/off_by_one_less
+=== RUN   TestDiskIndex_ErrorPath_DimensionMismatch/off_by_one_more
+=== RUN   TestDiskIndex_ErrorPath_DimensionMismatch/single_dim
+--- PASS: TestDiskIndex_ErrorPath_DimensionMismatch (0.02s)
+    --- PASS: TestDiskIndex_ErrorPath_DimensionMismatch/too_short (0.00s)
+    --- PASS: TestDiskIndex_ErrorPath_DimensionMismatch/too_long (0.00s)
+    --- PASS: TestDiskIndex_ErrorPath_DimensionMismatch/off_by_one_less (0.00s)
+    --- PASS: TestDiskIndex_ErrorPath_DimensionMismatch/off_by_one_more (0.00s)
+    --- PASS: TestDiskIndex_ErrorPath_DimensionMismatch/single_dim (0.00s)
+=== RUN   TestDiskIndex_ErrorPath_DeleteNonexistent
+=== RUN   TestDiskIndex_ErrorPath_DeleteNonexistent/just_beyond_total
+=== RUN   TestDiskIndex_ErrorPath_DeleteNonexistent/far_beyond_total
+=== RUN   TestDiskIndex_ErrorPath_DeleteNonexistent/max_uint64
+=== RUN   TestDiskIndex_ErrorPath_DeleteNonexistent/double_delete
+--- PASS: TestDiskIndex_ErrorPath_DeleteNonexistent (0.03s)
+    --- PASS: TestDiskIndex_ErrorPath_DeleteNonexistent/just_beyond_total (0.00s)
+    --- PASS: TestDiskIndex_ErrorPath_DeleteNonexistent/far_beyond_total (0.00s)
+    --- PASS: TestDiskIndex_ErrorPath_DeleteNonexistent/max_uint64 (0.00s)
+    --- PASS: TestDiskIndex_ErrorPath_DeleteNonexistent/double_delete (0.00s)
+=== RUN   TestDiskIndex_ErrorPath_OpenNonexistentPath
+=== RUN   TestDiskIndex_ErrorPath_OpenNonexistentPath/completely_nonexistent
+    disk_error_path_test.go:524: Open correctly failed for nonexistent path (completely_nonexistent): failed to open index file: index file not found
+=== RUN   TestDiskIndex_ErrorPath_OpenNonexistentPath/empty_directory
+    disk_error_path_test.go:524: Open correctly failed for nonexistent path (empty_directory): failed to open index file: index file not found
+=== RUN   TestDiskIndex_ErrorPath_OpenNonexistentPath/nil_reader_factory
+--- PASS: TestDiskIndex_ErrorPath_OpenNonexistentPath (0.00s)
+    --- PASS: TestDiskIndex_ErrorPath_OpenNonexistentPath/completely_nonexistent (0.00s)
+    --- PASS: TestDiskIndex_ErrorPath_OpenNonexistentPath/empty_directory (0.00s)
+    --- PASS: TestDiskIndex_ErrorPath_OpenNonexistentPath/nil_reader_factory (0.00s)
+=== RUN   TestDiskIndex_ErrorPath_SearchWithInvalidParams
+=== RUN   TestDiskIndex_ErrorPath_SearchWithInvalidParams/wrong_dimension_query
+=== RUN   TestDiskIndex_ErrorPath_SearchWithInvalidParams/zero_dimension_query
+=== RUN   TestDiskIndex_ErrorPath_SearchWithInvalidParams/topK_zero
+    disk_error_path_test.go:604: Search with topK=0 returned 0 results
+=== RUN   TestDiskIndex_ErrorPath_SearchWithInvalidParams/negative_efSearch_treated_as_topK
+    disk_error_path_test.go:622: Search with efSearch=0 returned 5 results (efSearch clamped to topK)
+=== RUN   TestDiskIndex_ErrorPath_SearchWithInvalidParams/nil_query
+=== RUN   TestDiskIndex_ErrorPath_SearchWithInvalidParams/very_large_topK
+    disk_error_path_test.go:661: Search with topK=100000 returned 200 results
+--- PASS: TestDiskIndex_ErrorPath_SearchWithInvalidParams (0.02s)
+    --- PASS: TestDiskIndex_ErrorPath_SearchWithInvalidParams/wrong_dimension_query (0.00s)
+    --- PASS: TestDiskIndex_ErrorPath_SearchWithInvalidParams/zero_dimension_query (0.00s)
+    --- PASS: TestDiskIndex_ErrorPath_SearchWithInvalidParams/topK_zero (0.00s)
+    --- PASS: TestDiskIndex_ErrorPath_SearchWithInvalidParams/negative_efSearch_treated_as_topK (0.00s)
+    --- PASS: TestDiskIndex_ErrorPath_SearchWithInvalidParams/nil_query (0.00s)
+    --- PASS: TestDiskIndex_ErrorPath_SearchWithInvalidParams/very_large_topK (0.00s)
+=== RUN   TestDiskIndex_Insert
+    disk_incremental_test.go:40: Base index: totalPoints=10000, maxDegree=83, HasBBQ=true, HasBBQMeta=true
+    disk_incremental_test.go:61: Inserted 100 vectors, IDs range [10000, 10099]
+    disk_incremental_test.go:84: Insert self-search: 100/100 found in top-10
+    disk_incremental_test.go:94: Insert recall@10: recall 0.8080 (min=0.5000) 鉁?    disk_incremental_test.go:102: TestDiskIndex_Insert passed: 100 vectors inserted, recall=0.8080
+--- PASS: TestDiskIndex_Insert (2.26s)
+=== RUN   TestDiskIndex_Delete
+    disk_incremental_test.go:119: Base index: totalPoints=10000, HasBBQ=true
+    disk_incremental_test.go:124: Deleting 500 nodes (medoid=8297 excluded)
+    disk_incremental_test.go:142: Deleted 500 nodes successfully
+    disk_incremental_test.go:167: No deleted nodes found in search results 鉁?    disk_incremental_test.go:174: Delete recall@10: recall 0.7480 (min=0.4000) 鉁?    disk_incremental_test.go:176: TestDiskIndex_Delete passed: 500 nodes deleted, recall=0.7480
+--- PASS: TestDiskIndex_Delete (7.17s)
+=== RUN   TestDiskIndex_Compact
+    disk_incremental_test.go:193: Base index: totalPoints=10000, HasBBQ=true
+    disk_incremental_test.go:203: Inserted 100 vectors, totalPoints=10100
+    disk_incremental_test.go:216: Deleted 500 nodes, totalPoints=10100
+    disk_incremental_test.go:225: Compact: original=10100, remaining=9600, deleted=500
+    disk_incremental_test.go:249: Compacted index: NumPoints=9600, HasBBQ=true, HasBBQMeta=true
+    disk_incremental_test.go:270: TestDiskIndex_Compact passed: 10100 鈫?9600 points
+--- PASS: TestDiskIndex_Compact (7.59s)
+=== RUN   TestDiskIndex_InsertDeleteCycle
+    disk_incremental_test.go:285: Base index: totalPoints=10000, HasBBQ=true
+    disk_incremental_test.go:291: Phase 1 - Baseline recall@10: 0.7767
+    disk_incremental_test.go:305: Phase 2 - Inserted 100 vectors
+    disk_incremental_test.go:315: Phase 3 - Insert self-search: 100/100 found
+    disk_incremental_test.go:332: Phase 4 - Deleted 500 nodes
+    disk_incremental_test.go:352: Phase 5 - Inserted vectors still found: 100
+    disk_incremental_test.go:360: Phase 6 - Compact: original=10100, remaining=9600, deleted=500
+    disk_incremental_test.go:374: Phase 7 - Compacted index: NumPoints=9600, HasBBQ=true
+    disk_incremental_test.go:388: TestDiskIndex_InsertDeleteCycle passed: full cycle verified
+--- PASS: TestDiskIndex_InsertDeleteCycle (6.91s)
+=== RUN   TestDiskIndex_EndToEnd_SIFT10K
+    disk_index_e2e_test.go:42: === Disk Index End-to-End Test (SIFT 10K) ===
+    disk_index_e2e_test.go:45: Step 1: Loading data...
+    disk_index_e2e_test.go:50:   Loaded 10000 base vectors, dimension=128
+    disk_index_e2e_test.go:60:   Computing ground truth for 100 queries (k=10)...
+    disk_index_e2e_test.go:64: 
+        Step 2: Building in-memory index...
+    disk_index_e2e_test.go:76:   Build completed in 395.0045ms (25316 vectors/sec)
+    disk_index_e2e_test.go:80:   In-memory Recall@10: 75.70%
+    disk_index_e2e_test.go:83: 
+        Step 3: Saving to disk...
+    disk_index_e2e_test.go:92:   Save completed in 17.3223ms
+    disk_index_e2e_test.go:97:   Index file size: 6.49 MB
+    disk_index_e2e_test.go:99:   BBQ file size: 313.02 KB
+    disk_index_e2e_test.go:103: 
+        Step 4: Loading disk index...
+    disk_index_e2e_test.go:121:   Load completed in 16.4045ms
+    disk_index_e2e_test.go:124:   Dimension: 128
+    disk_index_e2e_test.go:125:   NumPoints: 10000
+    disk_index_e2e_test.go:126:   Medoid: 3732
+    disk_index_e2e_test.go:127:   MaxDegree: 41
+    disk_index_e2e_test.go:128:   HasBBQ: true
+    disk_index_e2e_test.go:129:   HasBBQMeta: true
+    disk_index_e2e_test.go:139: 
+        Step 5: Verifying vector storage...
+    disk_index_e2e_test.go:157:   Vector verification passed for first 10 nodes
+    disk_index_e2e_test.go:160: 
+        Step 6: Verifying neighbor lists...
+    disk_index_e2e_test.go:179:   Neighbor verification passed for first 10 nodes
+    disk_index_e2e_test.go:182: 
+        Step 7: Verifying disk index search recall...
+    disk_index_e2e_test.go:185:   Disk Index Recall@10 (L=50): 75.70%
+    disk_index_e2e_test.go:186:   In-memory Recall@10 (L=50): 75.70% (reference)
+    disk_index_e2e_test.go:190:   Recall difference: 0.00%
+    disk_index_e2e_test.go:199: 
+          Testing different searchL values:
+    disk_index_e2e_test.go:202:     searchL=20: Recall@10 = 53.90%
+    disk_index_e2e_test.go:202:     searchL=50: Recall@10 = 75.70%
+    disk_index_e2e_test.go:202:     searchL=100: Recall@10 = 87.10%
+    disk_index_e2e_test.go:202:     searchL=200: Recall@10 = 96.20%
+    disk_index_e2e_test.go:205: 
+        === End-to-End Test Completed Successfully ===
+--- PASS: TestDiskIndex_EndToEnd_SIFT10K (0.68s)
+=== RUN   TestDiskIndex_EndToEnd_SIFT100K
+    disk_index_e2e_test.go:221: === Disk Index End-to-End Test (SIFT 100K) ===
+    disk_index_e2e_test.go:235: Building index with 100000 vectors...
+    disk_index_e2e_test.go:240: Build completed in 18.2904585s
+    disk_index_e2e_test.go:246: Saving to disk...
+    disk_index_e2e_test.go:251: Save completed in 138.3647ms
+    disk_index_e2e_test.go:262: Loading disk index...
+    disk_index_e2e_test.go:269: Load completed in 19.5263ms
+    disk_index_e2e_test.go:297: === SIFT 100K End-to-End Test Passed ===
+--- PASS: TestDiskIndex_EndToEnd_SIFT100K (18.51s)
+=== RUN   TestDiskIndex_SaveLoad_WithBBQ
+    disk_index_e2e_test.go:360: HasBBQ: true, HasBBQMeta: true
+--- PASS: TestDiskIndex_SaveLoad_WithBBQ (0.06s)
+=== RUN   TestDiskIndex_SaveLoad_WithDeletion
+--- PASS: TestDiskIndex_SaveLoad_WithDeletion (0.08s)
+=== RUN   TestDiskIndex_OpenClose_WithMockReader
+--- PASS: TestDiskIndex_OpenClose_WithMockReader (0.00s)
+=== RUN   TestDiskIndex_NeighborsLoading
+--- PASS: TestDiskIndex_NeighborsLoading (0.00s)
+=== RUN   TestDiskIndex_BBQLoading
+--- PASS: TestDiskIndex_BBQLoading (0.00s)
+=== RUN   TestDiskIndex_DeletedBitmap
+--- PASS: TestDiskIndex_DeletedBitmap (0.00s)
+=== RUN   TestDiskIndex_ReadVector
+--- PASS: TestDiskIndex_ReadVector (0.00s)
+=== RUN   TestDiskIndex_FileNotFound
+--- PASS: TestDiskIndex_FileNotFound (0.00s)
+=== RUN   TestDiskIndex_NoBBQFile
+--- PASS: TestDiskIndex_NoBBQFile (0.00s)
+=== RUN   TestDiskIndex_MaxDegree
+--- PASS: TestDiskIndex_MaxDegree (0.00s)
+=== RUN   TestDiskIndex_Medoid
+--- PASS: TestDiskIndex_Medoid (0.00s)
+=== RUN   TestDiskIndex_ClosedState
+--- PASS: TestDiskIndex_ClosedState (0.00s)
+=== RUN   TestInsertLockFree_Basic
+--- PASS: TestInsertLockFree_Basic (0.03s)
+=== RUN   TestInsertLockFree_ConcurrentInsertSearch
+--- PASS: TestInsertLockFree_ConcurrentInsertSearch (0.03s)
+=== RUN   TestInsertLockFree_InsertThenDeleteThenCompact
+--- PASS: TestInsertLockFree_InsertThenDeleteThenCompact (0.03s)
+=== RUN   TestInsertLockFree_ConcurrentInsertDelete
+--- PASS: TestInsertLockFree_ConcurrentInsertDelete (0.03s)
+=== RUN   TestDiskIndex_EndToEnd_SIFT1M
+    disk_sift_scale_test.go:45: Skipping SIFT1M test: set VAMANA_SCALE_TEST=1 and use -timeout 30m to run
+--- SKIP: TestDiskIndex_EndToEnd_SIFT1M (0.00s)
+=== RUN   TestDiskIndex_StreamingScenario
+    disk_streaming_test.go:91: Base index: totalPoints=1000, medoid=813
+    disk_streaming_test.go:100: === Round 1/5 ===
+    disk_streaming_test.go:114:   Inserted 100 vectors (IDs 1000..1099)
+    disk_streaming_test.go:141:   Deleted 100 vectors, active window size=1000
+    disk_streaming_test.go:144:   Verify round 1: empty=0/30, deletedInResults=0, activeWindow=1000
+    disk_streaming_test.go:100: === Round 2/5 ===
+    disk_streaming_test.go:114:   Inserted 100 vectors (IDs 1100..1199)
+    disk_streaming_test.go:141:   Deleted 100 vectors, active window size=1000
+    disk_streaming_test.go:144:   Verify round 2: empty=0/30, deletedInResults=0, activeWindow=1000
+    disk_streaming_test.go:100: === Round 3/5 ===
+    disk_streaming_test.go:114:   Inserted 100 vectors (IDs 1200..1299)
+    disk_streaming_test.go:141:   Deleted 100 vectors, active window size=1000
+    disk_streaming_test.go:144:   Verify round 3: empty=0/30, deletedInResults=0, activeWindow=1000
+    disk_streaming_test.go:148:   Compact: original=1300, remaining=1000, deleted=300
+    disk_streaming_test.go:158:   Post-compact: totalPoints=1000, medoid=513
+    disk_streaming_test.go:100: === Round 4/5 ===
+    disk_streaming_test.go:114:   Inserted 100 vectors (IDs 1000..1099)
+    disk_streaming_test.go:141:   Deleted 100 vectors, active window size=1000
+    disk_streaming_test.go:144:   Verify round 4: empty=0/30, deletedInResults=0, activeWindow=1000
+    disk_streaming_test.go:100: === Round 5/5 ===
+    disk_streaming_test.go:114:   Inserted 100 vectors (IDs 1100..1199)
+    disk_streaming_test.go:141:   Deleted 100 vectors, active window size=1000
+    disk_streaming_test.go:144:   Verify round 5: empty=0/30, deletedInResults=0, activeWindow=1000
+    disk_streaming_test.go:164: StreamingScenario final recall: recall 0.9867 (min=0.3000) 鉁?    disk_streaming_test.go:165: TestDiskIndex_StreamingScenario passed: final recall=0.9867
+--- PASS: TestDiskIndex_StreamingScenario (1.35s)
+=== RUN   TestDiskIndex_StreamingWithCompact
+    disk_streaming_test.go:192: StreamingWithCompact: 6 rounds, compact every 2 rounds
+    disk_streaming_test.go:196: === Round 1/6 ===
+    disk_streaming_test.go:232:   Inserted+Deleted 100 each, active=1000
+    disk_streaming_test.go:235:   Verify round 1: empty=0/30, deletedInResults=0, activeWindow=1000
+    disk_streaming_test.go:196: === Round 2/6 ===
+    disk_streaming_test.go:232:   Inserted+Deleted 100 each, active=1000
+    disk_streaming_test.go:235:   Verify round 2: empty=0/30, deletedInResults=0, activeWindow=1000
+    disk_streaming_test.go:239:   Compact: original=1200, remaining=1000, deleted=200
+    disk_streaming_test.go:247:   Compact at round 2: totalPoints=1000
+    disk_streaming_test.go:196: === Round 3/6 ===
+    disk_streaming_test.go:232:   Inserted+Deleted 100 each, active=1000
+    disk_streaming_test.go:235:   Verify round 3: empty=0/30, deletedInResults=0, activeWindow=1000
+    disk_streaming_test.go:196: === Round 4/6 ===
+    disk_streaming_test.go:232:   Inserted+Deleted 100 each, active=1000
+    disk_streaming_test.go:235:   Verify round 4: empty=0/30, deletedInResults=0, activeWindow=1000
+    disk_streaming_test.go:239:   Compact: original=1200, remaining=1000, deleted=200
+    disk_streaming_test.go:247:   Compact at round 4: totalPoints=1000
+    disk_streaming_test.go:196: === Round 5/6 ===
+    disk_streaming_test.go:232:   Inserted+Deleted 100 each, active=1000
+    disk_streaming_test.go:235:   Verify round 5: empty=0/30, deletedInResults=0, activeWindow=1000
+    disk_streaming_test.go:196: === Round 6/6 ===
+    disk_streaming_test.go:232:   Inserted+Deleted 100 each, active=1000
+    disk_streaming_test.go:235:   Verify round 6: empty=0/30, deletedInResults=0, activeWindow=1000
+    disk_streaming_test.go:239:   Compact: original=1200, remaining=1000, deleted=200
+    disk_streaming_test.go:247:   Compact at round 6: totalPoints=1000
+    disk_streaming_test.go:252: StreamingWithCompact final recall: recall 0.9967 (min=0.3000) 鉁?    disk_streaming_test.go:253: TestDiskIndex_StreamingWithCompact passed: final recall=0.9967
+--- PASS: TestDiskIndex_StreamingWithCompact (1.52s)
+=== RUN   TestBasicInsertAndSearch
+--- PASS: TestBasicInsertAndSearch (0.04s)
+=== RUN   TestBatchBuild
+--- PASS: TestBatchBuild (0.02s)
+=== RUN   TestRecall
+    vamana_test.go:170: Average recall@10: 100.00%
+--- PASS: TestRecall (0.05s)
+=== RUN   TestEpochSet
+--- PASS: TestEpochSet (0.00s)
+=== RUN   TestNeighborPriorityQueue
+--- PASS: TestNeighborPriorityQueue (0.00s)
+=== RUN   TestAdjacencyList
+--- PASS: TestAdjacencyList (0.00s)
+=== RUN   TestEmptyIndex
+--- PASS: TestEmptyIndex (0.00s)
+=== RUN   TestSinglePoint
+--- PASS: TestSinglePoint (0.00s)
+=== RUN   TestDistanceCalculation
+--- PASS: TestDistanceCalculation (0.00s)
+PASS
+ok  	github.com/siyuan-note/siyuan/kernel/vectordb/vamana	504.871s

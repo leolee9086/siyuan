@@ -16,6 +16,10 @@
 
 package vamana
 
+import (
+	"github.com/siyuan-note/siyuan/kernel/vectordb/bbq"
+)
+
 // Config Vamana 图索引的完整配置，包含图构建参数和高级调优参数。
 // 同时作为 DiskBuildConfig 的嵌入基础，确保图参数在单一位置定义。
 type Config struct {
@@ -23,6 +27,9 @@ type Config struct {
 	R     int     // 最大出度 (默认64)
 	L     int     // 构建时搜索列表大小 (默认100)
 	Alpha float32 // 剪枝阈值 (默认1.2)
+
+	// 距离度量
+	DistanceMetric bbq.SimilarityType // BBQ 量化使用的距离度量 (默认 bbq.EuclideanDistance)
 
 	// 高级参数
 	MaxOcclusionSize   int     // 最大遮挡计算大小 (默认750)
@@ -37,6 +44,7 @@ func DefaultConfig() Config {
 		R:                  DefaultR,
 		L:                  DefaultL,
 		Alpha:              DefaultAlpha,
+		DistanceMetric:     bbq.EuclideanDistance,
 		MaxOcclusionSize:   750,
 		GraphSlackFactor:   1.3,
 		SaturateAfterPrune: true,
@@ -85,5 +93,11 @@ func (c Config) WithL(l int) Config {
 // WithAlpha 设置剪枝阈值
 func (c Config) WithAlpha(alpha float32) Config {
 	c.Alpha = alpha
+	return c
+}
+
+// WithDistanceMetric 设置 BBQ 量化使用的距离度量
+func (c Config) WithDistanceMetric(metric bbq.SimilarityType) Config {
+	c.DistanceMetric = metric
 	return c
 }
