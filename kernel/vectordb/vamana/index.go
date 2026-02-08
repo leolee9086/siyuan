@@ -61,8 +61,7 @@ type VamanaIndex struct {
 
 	// BBQ 量化数据
 	bbqEnabled       bool      // 是否启用 BBQ (dim >= BBQEnableThreshold 时自动启用)
-	bbqPacked        []byte    // 打包的 1-bit 量化数据 (用于 1-bit 查询, POPCNT 优化)
-	bbqUnpacked      []byte    // 未打包的 1-bit 量化数据 (用于 4-bit 查询)
+	bbqPacked        []byte    // 打包的 1-bit 量化数据 (用于 1-bit 和 4-bit BitTranspose 查询)
 	bbqCompensations []float32 // 补偿因子 (||x||²)
 	bbqCentroid      []float32 // 全局质心向量
 	bbqPackedSize    int       // 每个向量打包后的字节数 = (dimension + 7) / 8

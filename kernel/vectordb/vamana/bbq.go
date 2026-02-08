@@ -63,8 +63,7 @@ func (idx *VamanaIndex) computeBBQDataParallel(numWorkers int) {
 	}
 
 	// 1. 分配存储空间
-	idx.bbqPacked = make([]byte, n*idx.bbqPackedSize) // 打包数据用于 1-bit 查询
-	idx.bbqUnpacked = make([]byte, n*idx.dimension)   // 未打包数据用于 4-bit 查询
+	idx.bbqPacked = make([]byte, n*idx.bbqPackedSize) // 打包数据用于 1-bit 和 4-bit BitTranspose 查询
 	idx.bbqCompensations = make([]float32, n)
 	idx.bbqLowerBounds = make([]float32, n)
 	idx.bbqUpperBounds = make([]float32, n)
@@ -97,11 +96,7 @@ func (idx *VamanaIndex) computeBBQDataParallel(numWorkers int) {
 				// 量化向量
 				result := quantizer.Quantize(idx.vectors[i], quantized, 1, idx.bbqCentroid)
 
-				// 存储未打包数据 (用于 4-bit 查询)
-				unpackedOffset := i * idx.dimension
-				copy(idx.bbqUnpacked[unpackedOffset:unpackedOffset+idx.dimension], quantized)
-
-				// 打包为 []byte (用于 1-bit 查询)
+				// 打包为 []byte (用于 1-bit 和 4-bit BitTranspose 查询)
 				packed := bbq.PackBinary(quantized)
 
 				// 存储打包结果
@@ -183,20 +178,20 @@ func (idx *VamanaIndex) bbqDistanceToQuery(id uint32, queryCode []byte, queryCor
 	return scorer.ComputeQuantizedDistance(dotProd, queryCorr, indexCorr, idx.dimension, 0, false)
 }
 
-// bbqDistanceToQuery4Bit 使用 4-bit 查询量化计算距离
-// 4-bit 查询与 1-bit 索引的点积计算，精度更高
+// bbqDistanceToQuery4Bit 使用 4-bit BitTranspose 查询量化计算距离
+// BitTranspose 查询与 packed 1-bit 索引的 POPCNT 加速点积计算
 // 性能优化: 使用预创建的 scorer，避免热路径上的对象分配
-func (idx *VamanaIndex) bbqDistanceToQuery4Bit(id uint32, query4Bit []byte, queryCorr bbq.QuantizationResult) float32 {
+func (idx *VamanaIndex) bbqDistanceToQuery4Bit(id uint32, queryTransposed []byte, queryCorr bbq.QuantizationResult) float32 {
 	if !idx.bbqEnabled {
 		return 0
 	}
 
-	// 获取索引向量的未打包 1-bit 数据
-	unpackedOffset := int(id) * idx.dimension
-	indexUnpacked := idx.bbqUnpacked[unpackedOffset : unpackedOffset+idx.dimension]
+	// 获取索引向量的 packed 1-bit 数据
+	offset := int(id) * idx.bbqPackedSize
+	indexPacked := idx.bbqPacked[offset : offset+idx.bbqPackedSize]
 
-	// 计算 4-bit 查询与 1-bit 索引的点积
-	dotProd := bbq.ComputeNaiveDotProduct(query4Bit, indexUnpacked)
+	// BitTranspose 4-bit 查询 × packed 1-bit 索引的 POPCNT 加速点积
+	dotProd := bbq.ComputeTransposedDotProduct(queryTransposed, indexPacked)
 
 	// 获取索引向量的量化元数据
 	indexCorr := bbq.QuantizationResult{
@@ -281,8 +276,8 @@ func (idx *VamanaIndex) greedySearchBBQ1Bit(scratch *SearchScratch, startIDs []u
 	return idx.greedySearchBBQ1BitWithQuantized(scratch, startIDs, queryPacked, queryCorr)
 }
 
-// greedySearchBBQ4Bit 使用 4-bit 策略的 BBQ 搜索
-// 适用于低维度向量，精度更高
+// greedySearchBBQ4Bit 使用 4-bit BitTranspose 策略的 BBQ 搜索
+// 查询量化为 4-bit 后转为 BitTranspose 布局，与 packed 1-bit 索引做 POPCNT 加速点积
 func (idx *VamanaIndex) greedySearchBBQ4Bit(scratch *SearchScratch, startIDs []uint32, query []float32, L int) []Neighbor {
 	// 从对象池获取 query4Bit 切片
 	query4Bit := idx.bbqQuery4BitPool.Get().([]byte)
@@ -291,13 +286,16 @@ func (idx *VamanaIndex) greedySearchBBQ4Bit(scratch *SearchScratch, startIDs []u
 	// 使用 4-bit 量化查询向量
 	queryCorr := idx.bbqQuantizer.Quantize(query, query4Bit, 4, idx.bbqCentroid)
 
+	// 一次性将 4-bit 查询转为 BitTranspose 布局，搜索过程中复用
+	queryTransposed := bbq.PackBitTranspose4(query4Bit)
+
 	// 执行搜索
-	return idx.greedySearchBBQWithQuantized(scratch, startIDs, query4Bit, queryCorr)
+	return idx.greedySearchBBQWithQuantized(scratch, startIDs, queryTransposed, queryCorr)
 }
 
-// greedySearchBBQWithQuantized 使用预量化查询执行 BBQ 贪婪搜索 (4-bit 策略)
+// greedySearchBBQWithQuantized 使用预量化查询执行 BBQ 贪婪搜索 (4-bit BitTranspose 策略)
 // 性能优化: 分离量化和搜索逻辑，允许调用者复用量化结果
-func (idx *VamanaIndex) greedySearchBBQWithQuantized(scratch *SearchScratch, startIDs []uint32, query4Bit []byte, queryCorr bbq.QuantizationResult) []Neighbor {
+func (idx *VamanaIndex) greedySearchBBQWithQuantized(scratch *SearchScratch, startIDs []uint32, queryTransposed []byte, queryCorr bbq.QuantizationResult) []Neighbor {
 	scratch.Reset()
 
 	idx.mu.RLock()
@@ -315,7 +313,7 @@ func (idx *VamanaIndex) greedySearchBBQWithQuantized(scratch *SearchScratch, sta
 			continue
 		}
 		scratch.Visited.Insert(startID)
-		dist := idx.bbqDistanceToQuery4Bit(startID, query4Bit, queryCorr)
+		dist := idx.bbqDistanceToQuery4Bit(startID, queryTransposed, queryCorr)
 		scratch.Best.Insert(Neighbor{ID: startID, Distance: dist})
 		scratch.Cmps++
 	}
@@ -337,7 +335,7 @@ func (idx *VamanaIndex) greedySearchBBQWithQuantized(scratch *SearchScratch, sta
 				continue
 			}
 			if scratch.Visited.Insert(neighborID) {
-				dist := idx.bbqDistanceToQuery4Bit(neighborID, query4Bit, queryCorr)
+				dist := idx.bbqDistanceToQuery4Bit(neighborID, queryTransposed, queryCorr)
 				scratch.Best.Insert(Neighbor{ID: neighborID, Distance: dist})
 				scratch.Cmps++
 			}

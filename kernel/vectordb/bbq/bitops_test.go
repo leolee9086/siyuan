@@ -352,6 +352,269 @@ func TestBytesToUint64_DotProductConsistency(t *testing.T) {
 }
 
 // =========================================
+// BitTranspose 布局测试
+// =========================================
+
+func TestPackBitTranspose4_KnownValues(t *testing.T) {
+	// 手动构造：4个维度，值分别为 0, 1, 2, 15
+	// dim=4 → 1个块（对齐到64维），32字节输出
+	data := []byte{0, 1, 2, 15}
+	out := PackBitTranspose4(data)
+
+	if len(out) != 32 {
+		t.Fatalf("输出长度 = %d, 期望 32", len(out))
+	}
+
+	// 验证：逐维度解包，确认与输入一致
+	// 位位置使用 ^7 与 PackBinary 大端位序对齐
+	for i := 0; i < 4; i++ {
+		var val byte
+		bit := uint(i ^ 7) // 大端位序：与 PackBinary 的 bitIdx = 7 - i%8 一致
+		b0 := out[bit/8]
+		b1 := out[8+bit/8]
+		b2 := out[16+bit/8]
+		b3 := out[24+bit/8]
+		val |= ((b0 >> (bit % 8)) & 1) << 0
+		val |= ((b1 >> (bit % 8)) & 1) << 1
+		val |= ((b2 >> (bit % 8)) & 1) << 2
+		val |= ((b3 >> (bit % 8)) & 1) << 3
+		if val != data[i] {
+			t.Errorf("维度 %d: 解包值 = %d, 期望 %d", i, val, data[i])
+		}
+	}
+
+	// 验证填充位为0：维度4-63应该全为0
+	for i := 4; i < 64; i++ {
+		var val byte
+		bit := uint(i ^ 7) // 大端位序
+		b0 := out[bit/8]
+		b1 := out[8+bit/8]
+		b2 := out[16+bit/8]
+		b3 := out[24+bit/8]
+		val |= ((b0 >> (bit % 8)) & 1) << 0
+		val |= ((b1 >> (bit % 8)) & 1) << 1
+		val |= ((b2 >> (bit % 8)) & 1) << 2
+		val |= ((b3 >> (bit % 8)) & 1) << 3
+		if val != 0 {
+			t.Errorf("填充维度 %d: 解包值 = %d, 期望 0", i, val)
+		}
+	}
+}
+
+func TestPackBitTranspose4_AllZero(t *testing.T) {
+	data := make([]byte, 128)
+	out := PackBitTranspose4(data)
+	for i, b := range out {
+		if b != 0 {
+			t.Fatalf("全零输入: 输出字节[%d] = 0x%02X, 期望 0x00", i, b)
+		}
+	}
+}
+
+func TestPackBitTranspose4_AllMax(t *testing.T) {
+	data := make([]byte, 64)
+	for i := range data {
+		data[i] = 15
+	}
+	out := PackBitTranspose4(data)
+	// 1个块，32字节。每个位平面的uint64应该全为1（低64位）
+	if len(out) != 32 {
+		t.Fatalf("输出长度 = %d, 期望 32", len(out))
+	}
+	for p := 0; p < 4; p++ {
+		for byteIdx := 0; byteIdx < 8; byteIdx++ {
+			if out[p*8+byteIdx] != 0xFF {
+				t.Errorf("位平面 %d 字节 %d = 0x%02X, 期望 0xFF", p, byteIdx, out[p*8+byteIdx])
+			}
+		}
+	}
+}
+
+func TestPackBitTranspose4_RoundTrip(t *testing.T) {
+	// 随机数据，验证打包后逐维解包与原始一致
+	rng := rand.New(rand.NewSource(12345))
+	for _, dim := range []int{1, 7, 63, 64, 65, 100, 128, 200, 256, 512} {
+		t.Run("dim_"+itoa(dim), func(t *testing.T) {
+			data := make([]byte, dim)
+			for i := range data {
+				data[i] = byte(rng.Intn(16))
+			}
+			out := PackBitTranspose4(data)
+
+			numBlocks := (dim + 63) / 64
+			if len(out) != numBlocks*32 {
+				t.Fatalf("输出长度 = %d, 期望 %d", len(out), numBlocks*32)
+			}
+
+			// 逐维解包验证（使用 ^7 大端位序，与 PackBinary 一致）
+			for i := 0; i < dim; i++ {
+				block := i / 64
+				bit := uint((i % 64) ^ 7) // 大端位序
+				byteInBlock := bit / 8
+				bitInByte := bit % 8
+				base := block * 32
+
+				var val byte
+				val |= ((out[base+int(byteInBlock)] >> bitInByte) & 1) << 0
+				val |= ((out[base+8+int(byteInBlock)] >> bitInByte) & 1) << 1
+				val |= ((out[base+16+int(byteInBlock)] >> bitInByte) & 1) << 2
+				val |= ((out[base+24+int(byteInBlock)] >> bitInByte) & 1) << 3
+				if val != data[i] {
+					t.Errorf("dim=%d 维度 %d: 解包 = %d, 期望 %d", dim, i, val, data[i])
+				}
+			}
+		})
+	}
+}
+
+// itoa 简单整数转字符串，避免引入 strconv
+func itoa(n int) string {
+	if n == 0 {
+		return "0"
+	}
+	s := ""
+	for n > 0 {
+		s = string(rune('0'+n%10)) + s
+		n /= 10
+	}
+	return s
+}
+
+// =========================================
+// TransposedDotProduct 正确性测试
+// =========================================
+
+// naiveDotProduct4x1 参考实现：逐维计算 4-bit × 1-bit 点积
+// 使用 PackBinary 大端位序：维度 d 在字节 d/8 的第 (7 - d%8) 位
+func naiveDotProduct4x1(query4bit []byte, index1bit []byte) int {
+	dim := len(query4bit)
+	sum := 0
+	for i := 0; i < dim; i++ {
+		byteIdx := i / 8
+		bitIdx := uint(7 - i%8) // 大端位序，与 PackBinary 一致
+		if byteIdx < len(index1bit) {
+			bit := (index1bit[byteIdx] >> bitIdx) & 1
+			sum += int(query4bit[i]) * int(bit)
+		}
+	}
+	return sum
+}
+
+func TestComputeTransposedDotProduct_VsNaive(t *testing.T) {
+	rng := rand.New(rand.NewSource(42))
+	for _, dim := range []int{1, 7, 63, 64, 65, 100, 128, 200, 256, 512} {
+		t.Run("dim_"+itoa(dim), func(t *testing.T) {
+			query := make([]byte, dim)
+			for i := range query {
+				query[i] = byte(rng.Intn(16))
+			}
+			packedBits := (dim + 7) / 8
+			index := make([]byte, packedBits)
+			for i := range index {
+				index[i] = byte(rng.Intn(256))
+			}
+
+			// 清除超出维度的尾部位
+			if dim%8 != 0 {
+				mask := byte((1 << (dim % 8)) - 1)
+				index[len(index)-1] &= mask
+			}
+
+			transposed := PackBitTranspose4(query)
+			got := ComputeTransposedDotProduct(transposed, index)
+			want := naiveDotProduct4x1(query, index)
+
+			if got != want {
+				t.Errorf("dim=%d: Transposed=%d, Naive=%d", dim, got, want)
+			}
+		})
+	}
+}
+
+func TestComputeTransposedDotProduct_AllZeroQuery(t *testing.T) {
+	query := make([]byte, 128)
+	index := make([]byte, 16)
+	for i := range index {
+		index[i] = 0xFF
+	}
+	transposed := PackBitTranspose4(query)
+	got := ComputeTransposedDotProduct(transposed, index)
+	if got != 0 {
+		t.Errorf("全零查询: 点积 = %d, 期望 0", got)
+	}
+}
+
+func TestComputeTransposedDotProduct_AllZeroIndex(t *testing.T) {
+	query := make([]byte, 128)
+	for i := range query {
+		query[i] = 15
+	}
+	index := make([]byte, 16)
+	transposed := PackBitTranspose4(query)
+	got := ComputeTransposedDotProduct(transposed, index)
+	if got != 0 {
+		t.Errorf("全零索引: 点积 = %d, 期望 0", got)
+	}
+}
+
+func TestComputeTransposedDotProduct_AllMax(t *testing.T) {
+	dim := 128
+	query := make([]byte, dim)
+	for i := range query {
+		query[i] = 15
+	}
+	index := make([]byte, dim/8)
+	for i := range index {
+		index[i] = 0xFF
+	}
+	transposed := PackBitTranspose4(query)
+	got := ComputeTransposedDotProduct(transposed, index)
+	// 每维贡献 15*1 = 15，共128维
+	want := 15 * dim
+	if got != want {
+		t.Errorf("全满: 点积 = %d, 期望 %d", got, want)
+	}
+}
+
+// TestComputeTransposedDotProduct_VsComputeNaiveDotProduct 验证与现有 ComputeNaiveDotProduct 一致
+func TestComputeTransposedDotProduct_VsComputeNaiveDotProduct(t *testing.T) {
+	rng := rand.New(rand.NewSource(99))
+	for _, dim := range []int{64, 128, 256, 512} {
+		t.Run("dim_"+itoa(dim), func(t *testing.T) {
+			for trial := 0; trial < 20; trial++ {
+				query4bit := make([]byte, dim)
+				for i := range query4bit {
+					query4bit[i] = byte(rng.Intn(16))
+				}
+				// 生成1-bit packed索引
+				packedLen := dim / 8
+				indexPacked := make([]byte, packedLen)
+				for i := range indexPacked {
+					indexPacked[i] = byte(rng.Intn(256))
+				}
+
+				// 展开1-bit为逐字节（0或1）以供 ComputeNaiveDotProduct 使用
+				// 使用 PackBinary 大端位序：维度 d 在字节 d/8 的第 (7 - d%8) 位
+				indexExpanded := make([]byte, dim)
+				for i := 0; i < dim; i++ {
+					indexExpanded[i] = (indexPacked[i/8] >> uint(7-i%8)) & 1
+				}
+
+				wantNaive := ComputeNaiveDotProduct(query4bit, indexExpanded)
+
+				transposed := PackBitTranspose4(query4bit)
+				gotTransposed := ComputeTransposedDotProduct(transposed, indexPacked)
+
+				if gotTransposed != wantNaive {
+					t.Errorf("dim=%d trial=%d: Transposed=%d, Naive=%d",
+						dim, trial, gotTransposed, wantNaive)
+				}
+			}
+		})
+	}
+}
+
+// =========================================
 // 基准测试
 // =========================================
 
@@ -433,3 +696,58 @@ func BenchmarkComputePackedDotProduct64_768dim(b *testing.B) {
 		ComputePackedDotProduct64(q64, i64)
 	}
 }
+
+// =========================================
+// 4-bit×1-bit 点积: Naive vs Transposed 对比
+// =========================================
+
+// benchNaive4x1 辅助函数：准备 Naive 点积的输入数据
+func benchNaive4x1(b *testing.B, dim int) {
+	rng := rand.New(rand.NewSource(42))
+	query := make([]byte, dim)
+	for i := range query {
+		query[i] = byte(rng.Intn(16))
+	}
+	// 生成packed 1-bit索引并展开为逐字节
+	packedLen := dim / 8
+	indexPacked := make([]byte, packedLen)
+	for i := range indexPacked {
+		indexPacked[i] = byte(rng.Intn(256))
+	}
+	indexExpanded := make([]byte, dim)
+	for i := 0; i < dim; i++ {
+		indexExpanded[i] = (indexPacked[i/8] >> uint(7-i%8)) & 1
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		ComputeNaiveDotProduct(query, indexExpanded)
+	}
+}
+
+// benchTransposed4x1 辅助函数：准备 Transposed 点积的输入数据
+func benchTransposed4x1(b *testing.B, dim int) {
+	rng := rand.New(rand.NewSource(42))
+	query := make([]byte, dim)
+	for i := range query {
+		query[i] = byte(rng.Intn(16))
+	}
+	packedLen := dim / 8
+	indexPacked := make([]byte, packedLen)
+	for i := range indexPacked {
+		indexPacked[i] = byte(rng.Intn(256))
+	}
+	transposed := PackBitTranspose4(query)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		ComputeTransposedDotProduct(transposed, indexPacked)
+	}
+}
+
+func BenchmarkNaiveDotProduct4x1_128dim(b *testing.B)      { benchNaive4x1(b, 128) }
+func BenchmarkNaiveDotProduct4x1_256dim(b *testing.B)      { benchNaive4x1(b, 256) }
+func BenchmarkNaiveDotProduct4x1_512dim(b *testing.B)      { benchNaive4x1(b, 512) }
+func BenchmarkTransposedDotProduct4x1_128dim(b *testing.B) { benchTransposed4x1(b, 128) }
+func BenchmarkTransposedDotProduct4x1_256dim(b *testing.B) { benchTransposed4x1(b, 256) }
+func BenchmarkTransposedDotProduct4x1_512dim(b *testing.B) { benchTransposed4x1(b, 512) }
