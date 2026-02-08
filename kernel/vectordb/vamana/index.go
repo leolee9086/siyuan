@@ -20,6 +20,7 @@ import (
 	"errors"
 	"math"
 	"sync"
+	"sync/atomic"
 
 	"github.com/siyuan-note/siyuan/kernel/vectordb/bbq"
 )
@@ -40,8 +41,9 @@ type VamanaIndex struct {
 	dimension int
 
 	// 图结构
-	neighbors [][]uint32 // neighbors[nodeID] = []neighborIDs
-	medoid    uint32     // 入口点
+	neighbors    [][]uint32                 // neighbors[nodeID] = []neighborIDs
+	neighborPtrs []atomic.Pointer[[]uint32] // 构建专用：无锁原子邻居指针（与 neighbors 同步）
+	medoid       uint32                     // 入口点
 
 	// 预计算数据 (性能优化)
 	normSquares []float32 // 每个向量的 ||v||² 预计算值

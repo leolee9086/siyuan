@@ -29,6 +29,8 @@ import (
 	"math"
 	"os"
 	"sort"
+	"sync"
+	"unsafe"
 
 	"github.com/siyuan-note/siyuan/kernel/vectordb/bbq"
 	"github.com/siyuan-note/siyuan/kernel/vectordb/storage"
@@ -80,22 +82,62 @@ func (idx *DiskVamanaIndex) getVector(nodeID uint64) []float32 {
 		return nil
 	}
 
-	vec := make([]float32, idx.metadata.Dims)
-	if err := idx.reader.ReadVector(nodeID, vec); err != nil {
+	// Zero-copy: ReadVectorRef returns unsafe.Slice into mmap region,
+	// equivalent to C++ _data_store->get_vector() pointer arithmetic.
+	// No allocation, no per-element copy.
+	vec, err := idx.reader.ReadVectorRef(nodeID)
+	if err != nil {
 		return nil
 	}
 	return vec
 }
 
+// vectorCache is a per-operation cache for vectors read during a single Delete operation.
+// It avoids redundant mmap reads and memory allocations when the same vector is accessed
+// multiple times across deleteGreedySearch, repairInEdges, repairOutEdges, and pruneAffectedVertices.
+type vectorCache map[uint64][]float32
+
+// getCachedVector returns the vector for nodeID, using the cache to avoid repeated mmap reads.
+// On cache miss, it delegates to getVector and stores the result (including nil) in the cache.
+func (idx *DiskVamanaIndex) getCachedVector(nodeID uint64, cache vectorCache) []float32 {
+	if vec, ok := cache[nodeID]; ok {
+		return vec
+	}
+	vec := idx.getVector(nodeID)
+	cache[nodeID] = vec
+	return vec
+}
+
+// normSqCache is a per-operation cache for vector norm² values during a single Delete operation.
+// CPU profile shows dotProduct() occupies 63-68% CPU; the root cause is that euclideanDistance(a, b)
+// calls dotProduct 3 times (2× normSq + 1× dot), and robustPruneSimple's O(n²) occlude loop
+// has no normSq caching. This cache reduces dotProduct calls from 3 to 1 per distance computation
+// when both vectors' normSq are cached.
+type normSqCache map[uint64]float32
+
+// getCachedNormSq returns the cached norm² for nodeID. On cache miss, it computes normSq
+// from the provided vector and stores it. The vec parameter must be the vector for nodeID
+// (caller is responsible for providing the correct vector, typically from getCachedVector).
+func getCachedNormSq(nodeID uint64, vec []float32, cache normSqCache) float32 {
+	if ns, ok := cache[nodeID]; ok {
+		return ns
+	}
+	ns := computeNormSquare(vec)
+	cache[nodeID] = ns
+	return ns
+}
+
 // getNeighbors returns the neighbor list for a node.
 //
-// Priority: modifiedNeighbors → appendNeighbors → disk reader.
+// Priority: modifiedNeighbors (sync.Map) → appendNeighbors → disk reader.
+//
+// Caller must hold idx.mu (at least read lock) to protect appendNeighbors access.
+// modifiedNeighbors uses sync.Map for lock-free atomic Load, eliminating the
+// RWMutex overhead that caused timeout under -race in the Delete path.
 func (idx *DiskVamanaIndex) getNeighbors(nodeID uint64) []uint32 {
 	// Check modified neighbors first (covers both disk and append nodes)
-	if idx.modifiedNeighbors != nil {
-		if modified, ok := idx.modifiedNeighbors[nodeID]; ok {
-			return modified
-		}
+	if v, ok := idx.modifiedNeighbors.Load(nodeID); ok {
+		return v.([]uint32)
 	}
 
 	diskN := idx.metadata.NumPoints
@@ -132,32 +174,23 @@ func (idx *DiskVamanaIndex) computeDistanceToQuery(nodeID uint64, query []float3
 }
 
 // storeNeighbors stores a modified neighbor list for a node.
-// Disk nodes go to modifiedNeighbors map; append nodes update appendNeighbors directly.
+// All mutations go through modifiedNeighbors (sync.Map), which provides
+// internally-synchronized Store operations without explicit locking.
 func (idx *DiskVamanaIndex) storeNeighbors(nodeID uint64, neighbors []uint32) {
-	diskN := idx.metadata.NumPoints
-	if nodeID >= diskN {
-		appendIdx := int(nodeID - diskN)
-		if appendIdx < len(idx.appendNeighbors) {
-			idx.appendNeighbors[appendIdx] = neighbors
-		}
-		return
-	}
-
-	if idx.modifiedNeighbors == nil {
-		idx.modifiedNeighbors = make(map[uint64][]uint32)
-	}
-	idx.modifiedNeighbors[nodeID] = neighbors
+	idx.modifiedNeighbors.Store(nodeID, neighbors)
 }
 
 // ============================================================================
 // Insert Operation
 // ============================================================================
 
-// Insert adds a new vector to the index.
+// Insert adds a new vector to the index using a Lock-Snapshot-Unlock pattern.
 //
-// The vector is added to an in-memory append buffer and connected to the graph
-// using greedy search + robust pruning. Back-edges are added to maintain
-// bidirectional connectivity.
+// The operation is split into four phases to minimize global lock hold time:
+//   - Phase 1 (write lock): Validate, allocate ID, append vector, expand nodeLocks
+//   - Phase 2 (read lock):  Greedy search + robust pruning (no write lock held)
+//   - Phase 3 (write lock): Write neighbors and BBQ metadata
+//   - Phase 4 (write lock): Add back-edges (will be refined in Task 3)
 //
 // Parameters:
 //   - vector: The vector to insert (must match index dimension)
@@ -166,48 +199,78 @@ func (idx *DiskVamanaIndex) storeNeighbors(nodeID uint64, neighbors []uint32) {
 //   - Vector dimension doesn't match
 //   - Index is closed
 //
-// Thread-safety: Safe for concurrent calls, but inserts are serialized via write lock.
+// Thread-safety: Safe for concurrent calls. Greedy search runs under read lock,
+// allowing concurrent Search operations to proceed.
 func (idx *DiskVamanaIndex) Insert(vector []float32) (uint64, error) {
+	// ── Phase 1 (write lock): validate, allocate ID, append vector ──
 	idx.mu.Lock()
-	defer idx.mu.Unlock()
 
 	if idx.closed {
+		idx.mu.Unlock()
 		return 0, ErrDiskIndexClosed
 	}
 
 	dimension := int(idx.metadata.Dims)
 	if len(vector) != dimension {
+		idx.mu.Unlock()
 		return 0, ErrVectorDimensionMismatch
 	}
 
-	// Calculate new node ID
+	// Calculate new node ID while holding write lock
 	newID := idx.totalPoints()
 
-	// Step 1: Find neighbors using greedy search
-	candidates := idx.findNeighborsForInsert(vector)
-
-	// Step 2: Prune neighbors using robust pruning
-	R := idx.maxDegree
-	prunedNeighbors := robustPruneSimple(candidates, R, DefaultInsertAlpha, idx.getVector)
-
-	// Step 3: Add vector to append buffer
+	// Add vector to append buffer (must be under write lock because
+	// getVector may concurrently read appendVectors)
 	vectorCopy := make([]float32, len(vector))
 	copy(vectorCopy, vector)
 	idx.appendVectors = append(idx.appendVectors, vectorCopy)
+
+	// Expand nodeLocks for the new node (write lock ensures no concurrent access)
+	if int(newID) >= len(idx.nodeLocks) {
+		newLocks := make([]sync.RWMutex, newID+1)
+		copy(newLocks, idx.nodeLocks)
+		idx.nodeLocks = newLocks
+	}
+
+	// Snapshot immutable values needed for Phase 2
+	R := idx.maxDegree
+
+	idx.mu.Unlock()
+
+	// ── Phase 2 (read lock): greedy search + robust pruning ──
+	// Read lock allows concurrent Search operations to proceed.
+	// getVector/getNeighbors access appendVectors/appendNeighbors/modifiedNeighbors
+	// which require at least a read lock for safe concurrent access.
+	idx.mu.RLock()
+	candidates := idx.findNeighborsForInsert(vector)
+	prunedNeighbors := robustPruneSimple(candidates, R, DefaultInsertAlpha, idx.getVector)
+	idx.mu.RUnlock()
+
+	// ── Phase 3 (write lock): write neighbors + BBQ metadata ──
+	idx.mu.Lock()
+
+	// Write pruned neighbors for the new node into append buffer.
+	// The slot at appendNeighbors[newID - diskN] was not yet allocated in Phase 1
+	// (only appendVectors was extended), so we append it now.
 	idx.appendNeighbors = append(idx.appendNeighbors, prunedNeighbors)
 
-	// Step 4: Compute and store BBQ metadata if enabled
+	// Compute and store BBQ metadata if enabled
 	if idx.bbqHasMeta && idx.bbqCentroid != nil {
 		idx.appendBBQForInsert(vector, dimension)
 	}
 
-	// Step 5: Add back-edges to neighbors
+	idx.mu.Unlock()
+
+	// ── Phase 4 (no global lock): add back-edges with node-level locking ──
+	// addBackEdgesForInsert uses per-node locks (nodeLocks) and sync.Map
+	// internally, so no global write lock is needed here.
 	idx.addBackEdgesForInsert(newID, prunedNeighbors, R)
 
 	return newID, nil
 }
 
 // findNeighborsForInsert finds candidate neighbors for a new vector using greedy search.
+// Caller must hold idx.mu (at least read lock) to protect appendVectors/appendNeighbors/modifiedNeighbors.
 func (idx *DiskVamanaIndex) findNeighborsForInsert(vector []float32) []Neighbor {
 	scratch := getDiskSearchScratch()
 	defer putDiskSearchScratch(scratch)
@@ -312,6 +375,81 @@ func robustPruneSimple(
 	return result
 }
 
+// robustPruneSimpleWithNorm is the normSq-cached variant of robustPruneSimple.
+//
+// The O(n²) occlude loop is the dominant CPU hotspot in Delete operations.
+// Original euclideanDistance(a, b) calls dotProduct 3 times per pair (2× normSq + 1× dot).
+// This variant uses getNormSq callback to retrieve cached normSq values, reducing
+// each distance computation to a single dotProduct call via euclideanDistanceWithNorms.
+//
+// Parameters:
+//   - candidates: neighbor candidates with precomputed distances to query
+//   - R: maximum number of neighbors to select
+//   - alpha: pruning threshold (typically DefaultInsertAlpha)
+//   - getVec: function to retrieve vector by node ID (returns nil if unavailable)
+//   - getNormSq: function to retrieve cached normSq for a node ID + vector pair
+func robustPruneSimpleWithNorm(
+	candidates []Neighbor, R int, alpha float32,
+	getVec func(uint64) []float32,
+	getNormSq func(uint64, []float32) float32,
+) []uint32 {
+	if len(candidates) == 0 {
+		return nil
+	}
+
+	sort.Slice(candidates, func(i, j int) bool {
+		return candidates[i].Distance < candidates[j].Distance
+	})
+
+	n := len(candidates)
+
+	// Pre-fetch all vectors and normSq into local slices before the O(n²) loop.
+	// This reduces map accesses (via getVec/getNormSq closures) from O(n²) to O(n),
+	// which is critical under -race where each map operation has ~10x overhead.
+	vecs := make([][]float32, n)
+	norms := make([]float32, n)
+	for i := 0; i < n; i++ {
+		v := getVec(uint64(candidates[i].ID))
+		vecs[i] = v
+		if v != nil {
+			norms[i] = getNormSq(uint64(candidates[i].ID), v)
+		}
+	}
+
+	result := make([]uint32, 0, R)
+	occluded := make([]bool, n)
+
+	for i := 0; i < n && len(result) < R; i++ {
+		if occluded[i] {
+			continue
+		}
+
+		result = append(result, candidates[i].ID)
+
+		candidateVec := vecs[i]
+		if candidateVec == nil {
+			continue
+		}
+		candidateNormSq := norms[i]
+
+		for j := i + 1; j < n; j++ {
+			if occluded[j] {
+				continue
+			}
+			otherVec := vecs[j]
+			if otherVec == nil {
+				continue
+			}
+			distCandOther := euclideanDistanceWithNorms(candidateVec, otherVec, candidateNormSq, norms[j])
+			if alpha*distCandOther <= candidates[j].Distance {
+				occluded[j] = true
+			}
+		}
+	}
+
+	return result
+}
+
 // appendBBQForInsert computes and appends BBQ metadata for a newly inserted vector.
 func (idx *DiskVamanaIndex) appendBBQForInsert(vector []float32, dimension int) {
 	quantizer := bbq.NewScalarQuantizer(bbq.CosineSimilarity)
@@ -325,49 +463,102 @@ func (idx *DiskVamanaIndex) appendBBQForInsert(vector []float32, dimension int) 
 }
 
 // addBackEdgesForInsert adds back-edges from neighbors to the new node.
+//
+// Uses per-node locking (nodeLocks) instead of global write lock.
+// Lock order: idx.mu (RLock) → idx.nodeLocks[id] (Lock) → storeNeighbors (sync.Map.Store).
+// This allows concurrent Insert operations to proceed on different neighbor nodes.
 func (idx *DiskVamanaIndex) addBackEdgesForInsert(newID uint64, neighbors []uint32, R int) {
 	newIDu32 := uint32(newID)
 
 	for _, neighborID := range neighbors {
-		currentNeighbors := idx.getNeighbors(uint64(neighborID))
+		idx.addBackEdgeForNode(uint64(neighborID), newIDu32, R)
+	}
+}
 
-		if containsID(currentNeighbors, newIDu32) {
-			continue
-		}
+// addBackEdgeForNode adds a back-edge from neighborID to newIDu32, pruning if needed.
+//
+// Lock strategy: lock-copy-unlock-prune-lock-write (IP-DiskANN inter_insert pattern).
+// Avoids holding nodeLocks and idx.mu simultaneously to prevent write-lock starvation
+// when concurrent Insert() calls need idx.mu.Lock() in Phase 1/3.
+//
+//   - Phase 1 (nodeLocks + mu.RLock): quick check + copy neighbor list, then release both
+//   - Phase 2 (mu.RLock only): distance computation + robustPrune (no nodeLocks held)
+//   - Phase 3 (nodeLocks only): write pruned result via storeNeighbors
+func (idx *DiskVamanaIndex) addBackEdgeForNode(neighborID uint64, newIDu32 uint32, R int) {
+	// ── Phase 1 (mu.RLock → nodeLock → read → unlock both): quick check + copy ──
+	// Must acquire mu.RLock first to safely access nodeLocks slice (Insert Phase 1
+	// may reallocate nodeLocks under mu.Lock). Capture the lock pointer to ensure
+	// Lock/Unlock operate on the same mutex instance.
+	idx.mu.RLock()
+	nodeLock := &idx.nodeLocks[neighborID]
+	nodeLock.Lock()
 
-		newNeighbors := make([]uint32, len(currentNeighbors), len(currentNeighbors)+1)
+	currentNeighbors := idx.getNeighbors(neighborID)
+
+	if containsID(currentNeighbors, newIDu32) {
+		nodeLock.Unlock()
+		idx.mu.RUnlock()
+		return
+	}
+
+	needsPrune := len(currentNeighbors) >= R
+
+	if !needsPrune {
+		// Fast path: under capacity, append directly
+		newNeighbors := make([]uint32, len(currentNeighbors)+1)
 		copy(newNeighbors, currentNeighbors)
-		newNeighbors = append(newNeighbors, newIDu32)
+		newNeighbors[len(currentNeighbors)] = newIDu32
+		// storeNeighbors must be called under nodeLock for append nodes
+		idx.storeNeighbors(neighborID, newNeighbors)
+		nodeLock.Unlock()
+		idx.mu.RUnlock()
+		return
+	}
 
-		// If exceeds R, prune
-		if len(newNeighbors) > R {
-			neighborVec := idx.getVector(uint64(neighborID))
-			if neighborVec != nil {
-				candidateNeighbors := make([]Neighbor, len(newNeighbors))
-				for i, nid := range newNeighbors {
-					nVec := idx.getVector(uint64(nid))
-					if nVec != nil {
-						candidateNeighbors[i] = Neighbor{
-							ID:       nid,
-							Distance: euclideanDistance(neighborVec, nVec),
-						}
-					} else {
-						candidateNeighbors[i] = Neighbor{
-							ID:       nid,
-							Distance: math.MaxFloat32,
-						}
-					}
+	// Copy neighbor list for pruning outside locks
+	copyOfNeighbors := make([]uint32, len(currentNeighbors)+1)
+	copy(copyOfNeighbors, currentNeighbors)
+	copyOfNeighbors[len(currentNeighbors)] = newIDu32
+
+	nodeLock.Unlock()
+	idx.mu.RUnlock()
+
+	// ── Phase 2 (mu.RLock only): distance computation + prune ──
+	idx.mu.RLock()
+	neighborVec := idx.getVector(neighborID)
+	var newNeighbors []uint32
+	if neighborVec != nil {
+		candidateNeighbors := make([]Neighbor, len(copyOfNeighbors))
+		for i, nid := range copyOfNeighbors {
+			nVec := idx.getVector(uint64(nid))
+			if nVec != nil {
+				candidateNeighbors[i] = Neighbor{
+					ID:       nid,
+					Distance: euclideanDistance(neighborVec, nVec),
 				}
-				newNeighbors = robustPruneSimple(
-					candidateNeighbors, R, DefaultInsertAlpha, idx.getVector,
-				)
 			} else {
-				newNeighbors = newNeighbors[:R]
+				candidateNeighbors[i] = Neighbor{
+					ID:       nid,
+					Distance: math.MaxFloat32,
+				}
 			}
 		}
-
-		idx.storeNeighbors(uint64(neighborID), newNeighbors)
+		newNeighbors = robustPruneSimple(
+			candidateNeighbors, R, DefaultInsertAlpha, idx.getVector,
+		)
+	} else {
+		newNeighbors = copyOfNeighbors[:R]
 	}
+	idx.mu.RUnlock()
+
+	// ── Phase 3 (mu.RLock → nodeLock): write result ──
+	// Re-acquire mu.RLock to safely access nodeLocks slice, then nodeLock for write.
+	idx.mu.RLock()
+	nodeLock = &idx.nodeLocks[neighborID]
+	nodeLock.Lock()
+	idx.storeNeighbors(neighborID, newNeighbors)
+	nodeLock.Unlock()
+	idx.mu.RUnlock()
 }
 
 // ============================================================================
@@ -418,35 +609,59 @@ func (idx *DiskVamanaIndex) Delete(nodeID uint64) error {
 //
 // Reference: toread/IP-DiskANN/src/index.cpp L3130-3303
 // Caller must hold idx.mu write lock.
+//
+// Performance: creates a per-operation vectorCache to avoid redundant mmap reads
+// across the ~300万 getVector calls in a typical delete. The cache is scoped to
+// this single delete and released when the method returns.
 func (idx *DiskVamanaIndex) inplaceDelete(p uint64) {
-	pVec := idx.getVector(p)
+	// Create per-operation vector cache (typical capacity: visited + candidates + neighbors)
+	cache := make(vectorCache, DefaultDeleteSearchL*3)
+	// Create per-operation normSq cache to eliminate redundant dotProduct calls.
+	// In the original code, euclideanDistance(a, b) calls dotProduct 3 times per invocation.
+	// With normSq caching, robustPruneSimple's O(n²) occlude loop drops to 1 dotProduct per pair.
+	nsCache := make(normSqCache, DefaultDeleteSearchL*3)
+
+	pVec := idx.getCachedVector(p, cache)
 	pu32 := uint32(p)
 	R := idx.maxDegree
 
+	// Precompute query norm² once for the entire delete operation.
+	// This avoids ~300万 redundant computeNormSquare(query) calls in
+	// deleteGreedySearch → computeDistanceToQuery path.
+	queryNormSq := computeNormSquare(pVec)
+	nsCache[p] = queryNormSq
+
 	// Step 1: GreedySearch with x_p as query → Visited + Candidates(top-k)
-	visited, candidates := idx.deleteGreedySearch(pVec)
+	visited, candidates := idx.deleteGreedySearch(pVec, queryNormSq, cache, nsCache)
 
 	// Step 2: Find approximate in-neighbors N'_in(p)
 	approxIn := idx.findApproxInNeighbors(p, visited)
 
 	// Step 3: Repair in-edges
-	idx.repairInEdges(p, pu32, approxIn, candidates)
+	idx.repairInEdges(p, pu32, approxIn, candidates, cache, nsCache)
 
 	// Step 4: Repair out-edges
 	outNeighbors := idx.getNeighbors(p)
-	idx.repairOutEdges(p, pu32, outNeighbors, candidates)
+	idx.repairOutEdges(p, pu32, outNeighbors, candidates, cache, nsCache)
 
 	// Step 5: Mark deleted, clear neighbors
 	idx.deleted.MarkDeleted(p)
 	idx.storeNeighbors(p, nil)
 
 	// Step 6: RobustPrune any vertex exceeding degree R
-	idx.pruneAffectedVertices(pu32, approxIn, candidates, R)
+	idx.pruneAffectedVertices(pu32, approxIn, candidates, R, cache, nsCache)
 }
 
 // deleteGreedySearch runs GreedySearch with the deleted point's vector as query.
 // Returns the visited node list and top-k candidates.
-func (idx *DiskVamanaIndex) deleteGreedySearch(queryVec []float32) ([]uint32, []Neighbor) {
+//
+// Performance: uses precomputed queryNormSq to avoid redundant norm calculations,
+// populates the vectorCache with vectors read during traversal for reuse in
+// subsequent edge repair steps, and warms the normSqCache with normSq values
+// computed during distance calculations (via computeDistance → euclideanDistanceWithNorm).
+func (idx *DiskVamanaIndex) deleteGreedySearch(
+	queryVec []float32, queryNormSq float32, cache vectorCache, nsCache normSqCache,
+) ([]uint32, []Neighbor) {
 	scratch := getDiskSearchScratch()
 	defer putDiskSearchScratch(scratch)
 
@@ -455,16 +670,22 @@ func (idx *DiskVamanaIndex) deleteGreedySearch(queryVec []float32) ([]uint32, []
 	scratch.Best.SetCapacity(DefaultDeleteSearchL)
 	scratch.Reset()
 
-	// Track visited nodes explicitly (EpochSet has no enumeration method)
-	visited := make([]uint32, 0, DefaultDeleteSearchL*2)
+	// Track expanded nodes (nodes popped from Best and whose neighbors were explored).
+	// This corresponds to C++ DiskANN's expanded_nodes/pool(), NOT all discovered nodes.
+	// Only expanded nodes are used for findApproxInNeighbors, keeping the list bounded
+	// by DefaultDeleteSearchL instead of growing to thousands of nodes.
+	expanded := make([]uint32, 0, DefaultDeleteSearchL)
 
 	medoid := idx.metadata.Medoid
 
-	if !idx.deleted.IsDeleted(medoid) {
+	if !idx.deleted.IsDeletedUnsafe(medoid) {
 		scratch.Visited.Insert(uint32(medoid))
-		visited = append(visited, uint32(medoid))
-		dist := idx.computeDistanceToQuery(medoid, queryVec)
-		scratch.Best.Insert(Neighbor{ID: uint32(medoid), Distance: dist})
+		medoidVec := idx.getCachedVector(medoid, cache)
+		if medoidVec != nil {
+			medoidNormSq := getCachedNormSq(medoid, medoidVec, nsCache)
+			dist := euclideanDistanceWithNorms(medoidVec, queryVec, medoidNormSq, queryNormSq)
+			scratch.Best.Insert(Neighbor{ID: uint32(medoid), Distance: dist})
+		}
 	}
 
 	for scratch.Best.HasUnvisited() {
@@ -472,16 +693,25 @@ func (idx *DiskVamanaIndex) deleteGreedySearch(queryVec []float32) ([]uint32, []
 		if !ok {
 			break
 		}
+		// Record expanded node (popped from Best and about to explore neighbors)
+		expanded = append(expanded, closest.ID)
 		neighbors := idx.getNeighbors(uint64(closest.ID))
 		for _, nid := range neighbors {
-			if idx.deleted.IsDeleted(uint64(nid)) {
+			if idx.deleted.IsDeletedUnsafe(uint64(nid)) {
 				continue
 			}
 			if !scratch.Visited.Insert(nid) {
 				continue
 			}
-			visited = append(visited, nid)
-			dist := idx.computeDistanceToQuery(uint64(nid), queryVec)
+			// Use getCachedVector to read the vector once, then compute distance directly.
+			// This eliminates the double-read: computeDistance called getVector (alloc + mmap),
+			// then getCachedVector read the same vector again.
+			nVec := idx.getCachedVector(uint64(nid), cache)
+			if nVec == nil {
+				continue
+			}
+			nNormSq := getCachedNormSq(uint64(nid), nVec, nsCache)
+			dist := euclideanDistanceWithNorms(nVec, queryVec, nNormSq, queryNormSq)
 			scratch.Best.Insert(Neighbor{ID: nid, Distance: dist})
 		}
 	}
@@ -495,7 +725,7 @@ func (idx *DiskVamanaIndex) deleteGreedySearch(queryVec []float32) ([]uint32, []
 	candidates := make([]Neighbor, k)
 	copy(candidates, allCandidates[:k])
 
-	return visited, candidates
+	return expanded, candidates
 }
 
 // findApproxInNeighbors finds approximate in-neighbors of p from the visited set.
@@ -504,7 +734,7 @@ func (idx *DiskVamanaIndex) findApproxInNeighbors(p uint64, visited []uint32) []
 	pu32 := uint32(p)
 	result := make([]uint32, 0, 16)
 	for _, z := range visited {
-		if idx.deleted.IsDeleted(uint64(z)) {
+		if idx.deleted.IsDeletedUnsafe(uint64(z)) {
 			continue
 		}
 		zNeighbors := idx.getNeighbors(uint64(z))
@@ -520,20 +750,21 @@ func (idx *DiskVamanaIndex) findApproxInNeighbors(p uint64, visited []uint32) []
 func (idx *DiskVamanaIndex) repairInEdges(
 	p uint64, pu32 uint32,
 	approxIn []uint32, candidates []Neighbor,
+	cache vectorCache, nsCache normSqCache,
 ) {
 	c := DefaultDeleteC
 
 	for _, z := range approxIn {
-		if idx.deleted.IsDeleted(uint64(z)) {
+		if idx.deleted.IsDeletedUnsafe(uint64(z)) {
 			continue
 		}
-		zVec := idx.getVector(uint64(z))
+		zVec := idx.getCachedVector(uint64(z), cache)
 		if zVec == nil {
 			continue
 		}
 
 		// Find closest-c candidates to x_z (excluding p and z)
-		cz := idx.closestCFromCandidates(zVec, z, pu32, candidates, c)
+		cz := idx.closestCFromCandidates(zVec, z, pu32, candidates, c, cache, nsCache)
 
 		// Update z's neighbors: remove p, add C_z
 		current := idx.getNeighbors(uint64(z))
@@ -556,20 +787,21 @@ func (idx *DiskVamanaIndex) repairInEdges(
 func (idx *DiskVamanaIndex) repairOutEdges(
 	p uint64, pu32 uint32,
 	outNeighbors []uint32, candidates []Neighbor,
+	cache vectorCache, nsCache normSqCache,
 ) {
 	c := DefaultDeleteC
 
 	for _, w := range outNeighbors {
-		if idx.deleted.IsDeleted(uint64(w)) {
+		if idx.deleted.IsDeletedUnsafe(uint64(w)) {
 			continue
 		}
-		wVec := idx.getVector(uint64(w))
+		wVec := idx.getCachedVector(uint64(w), cache)
 		if wVec == nil {
 			continue
 		}
 
 		// Find closest-c candidates to x_w
-		cw := idx.closestCFromCandidates(wVec, w, pu32, candidates, c)
+		cw := idx.closestCFromCandidates(wVec, w, pu32, candidates, c, cache, nsCache)
 
 		// For each y ∈ C_w: add edge y → w
 		for _, y := range cw {
@@ -586,9 +818,14 @@ func (idx *DiskVamanaIndex) repairOutEdges(
 
 // closestCFromCandidates returns the closest c candidate IDs to refVec,
 // excluding excludeP and excludeSelf from the candidate set.
+//
+// Performance: precomputes refNormSq once outside the loop and uses
+// euclideanDistanceWithNorms with cached candidate normSq values,
+// reducing dotProduct calls from 3 to 1 per distance computation.
 func (idx *DiskVamanaIndex) closestCFromCandidates(
 	refVec []float32, selfID uint32, excludeP uint32,
 	candidates []Neighbor, c int,
+	cache vectorCache, nsCache normSqCache,
 ) []uint32 {
 	type scored struct {
 		id   uint32
@@ -596,18 +833,22 @@ func (idx *DiskVamanaIndex) closestCFromCandidates(
 	}
 	scored_ := make([]scored, 0, len(candidates))
 
+	// Precompute refVec normSq once for all candidate distance computations
+	refNormSq := getCachedNormSq(uint64(selfID), refVec, nsCache)
+
 	for _, cand := range candidates {
 		if cand.ID == excludeP || cand.ID == selfID {
 			continue
 		}
-		if idx.deleted.IsDeleted(uint64(cand.ID)) {
+		if idx.deleted.IsDeletedUnsafe(uint64(cand.ID)) {
 			continue
 		}
-		candVec := idx.getVector(uint64(cand.ID))
+		candVec := idx.getCachedVector(uint64(cand.ID), cache)
 		if candVec == nil {
 			continue
 		}
-		d := euclideanDistance(refVec, candVec)
+		candNormSq := getCachedNormSq(uint64(cand.ID), candVec, nsCache)
+		d := euclideanDistanceWithNorms(refVec, candVec, refNormSq, candNormSq)
 		scored_ = append(scored_, scored{id: cand.ID, dist: d})
 	}
 
@@ -626,9 +867,13 @@ func (idx *DiskVamanaIndex) closestCFromCandidates(
 }
 
 // pruneAffectedVertices implements Step 6: prune vertices exceeding degree R.
+//
+// Performance: uses normSq cache to avoid redundant dotProduct calls in both
+// the distance computation loop and the robustPruneSimple occlude loop.
 func (idx *DiskVamanaIndex) pruneAffectedVertices(
 	pu32 uint32,
 	approxIn []uint32, candidates []Neighbor, R int,
+	cache vectorCache, nsCache normSqCache,
 ) {
 	// Collect unique affected vertices
 	seen := make(map[uint32]struct{})
@@ -636,9 +881,17 @@ func (idx *DiskVamanaIndex) pruneAffectedVertices(
 		seen[z] = struct{}{}
 	}
 	for _, cand := range candidates {
-		if cand.ID != pu32 && !idx.deleted.IsDeleted(uint64(cand.ID)) {
+		if cand.ID != pu32 && !idx.deleted.IsDeletedUnsafe(uint64(cand.ID)) {
 			seen[cand.ID] = struct{}{}
 		}
+	}
+
+	// Create cached closures for robustPruneSimple
+	cachedGetVec := func(id uint64) []float32 {
+		return idx.getCachedVector(id, cache)
+	}
+	cachedGetNormSq := func(id uint64, vec []float32) float32 {
+		return getCachedNormSq(id, vec, nsCache)
 	}
 
 	for v := range seen {
@@ -646,23 +899,25 @@ func (idx *DiskVamanaIndex) pruneAffectedVertices(
 		if len(neighbors) <= R {
 			continue
 		}
-		vVec := idx.getVector(uint64(v))
+		vVec := idx.getCachedVector(uint64(v), cache)
 		if vVec == nil {
 			continue
 		}
+		vNormSq := getCachedNormSq(uint64(v), vVec, nsCache)
 		nCands := make([]Neighbor, 0, len(neighbors))
 		for _, nid := range neighbors {
-			if idx.deleted.IsDeleted(uint64(nid)) {
+			if idx.deleted.IsDeletedUnsafe(uint64(nid)) {
 				continue
 			}
-			nVec := idx.getVector(uint64(nid))
+			nVec := idx.getCachedVector(uint64(nid), cache)
 			d := float32(math.MaxFloat32)
 			if nVec != nil {
-				d = euclideanDistance(vVec, nVec)
+				nNormSq := getCachedNormSq(uint64(nid), nVec, nsCache)
+				d = euclideanDistanceWithNorms(vVec, nVec, vNormSq, nNormSq)
 			}
 			nCands = append(nCands, Neighbor{ID: nid, Distance: d})
 		}
-		pruned := robustPruneSimple(nCands, R, DefaultInsertAlpha, idx.getVector)
+		pruned := robustPruneSimpleWithNorm(nCands, R, DefaultInsertAlpha, cachedGetVec, cachedGetNormSq)
 		idx.storeNeighbors(uint64(v), pruned)
 	}
 }
@@ -702,19 +957,32 @@ func (idx *DiskVamanaIndex) Compact(newPath string) (*CompactResult, error) {
 	return idx.doCompact(newPath)
 }
 
+// compactSentinel is the sentinel value in oldToNew slice indicating a deleted node.
+const compactSentinel = math.MaxUint32
+
 // doCompact performs the actual compaction work.
+//
+// Performance optimizations over the naive implementation:
+//   - oldToNew uses []uint32 slice instead of map[uint64]uint32 for O(1) index lookup
+//     (ID space is contiguous [0, totalPts), ~640K lookups benefit from cache-friendly access)
+//   - writeCompactedBBQFile copies existing BBQ metadata instead of re-quantizing all vectors
+//   - serializeNode uses unsafe bulk copy for the vector portion
 func (idx *DiskVamanaIndex) doCompact(newPath string) (*CompactResult, error) {
 	idx.mu.RLock()
 	dimension := int(idx.metadata.Dims)
 	totalPts := idx.totalPoints()
 	idx.mu.RUnlock()
 
-	// Step 1: Build oldID → newID mapping, skipping deleted nodes
-	oldToNew := make(map[uint64]uint32)
+	// Step 1: Build oldID → newID mapping using slice (contiguous ID space [0, totalPts)).
+	// Uses compactSentinel (math.MaxUint32) for deleted nodes.
+	// This replaces map[uint64]uint32 to eliminate ~640K hash lookups during neighbor remapping.
+	oldToNew := make([]uint32, totalPts)
 	var newID uint32
 
 	for oldID := uint64(0); oldID < totalPts; oldID++ {
-		if !idx.deleted.IsDeleted(oldID) {
+		if idx.deleted.IsDeleted(oldID) {
+			oldToNew[oldID] = compactSentinel
+		} else {
 			oldToNew[oldID] = newID
 			newID++
 		}
@@ -738,29 +1006,33 @@ func (idx *DiskVamanaIndex) doCompact(newPath string) (*CompactResult, error) {
 
 	idx.mu.RLock()
 	for oldID := uint64(0); oldID < totalPts; oldID++ {
-		if idx.deleted.IsDeleted(oldID) {
+		mappedID := oldToNew[oldID]
+		if mappedID == compactSentinel {
 			continue
 		}
-		newIdx := oldToNew[oldID]
 
-		vectors[newIdx] = idx.getVector(oldID)
+		vectors[mappedID] = idx.getVector(oldID)
 
 		oldNeighbors := idx.getNeighbors(oldID)
 		remapped := make([]uint32, 0, len(oldNeighbors))
 		for _, oldNID := range oldNeighbors {
-			if mappedID, ok := oldToNew[uint64(oldNID)]; ok {
-				remapped = append(remapped, mappedID)
+			if uint64(oldNID) < totalPts {
+				if nMapped := oldToNew[oldNID]; nMapped != compactSentinel {
+					remapped = append(remapped, nMapped)
+				}
 			}
 		}
-		neighbors[newIdx] = remapped
+		neighbors[mappedID] = remapped
 	}
 	idx.mu.RUnlock()
 
 	// Step 3: Determine new medoid
 	oldMedoid := idx.metadata.Medoid
 	var newMedoid uint32
-	if mapped, ok := oldToNew[oldMedoid]; ok {
-		newMedoid = mapped
+	if oldMedoid < totalPts {
+		if mapped := oldToNew[oldMedoid]; mapped != compactSentinel {
+			newMedoid = mapped
+		}
 	}
 
 	// Step 4: Write compacted index file
@@ -770,10 +1042,11 @@ func (idx *DiskVamanaIndex) doCompact(newPath string) (*CompactResult, error) {
 		return nil, fmt.Errorf("failed to write compacted index: %w", err)
 	}
 
-	// Step 5: Write BBQ file if enabled
+	// Step 5: Write BBQ file if enabled.
+	// Uses optimized path that copies existing BBQ metadata instead of re-quantizing.
 	if idx.bbqHasMeta && idx.bbqCentroid != nil {
 		if err := idx.writeCompactedBBQFile(
-			newPath, vectors, dimension,
+			newPath, oldToNew, totalPts, dimension,
 		); err != nil {
 			return nil, fmt.Errorf("failed to write compacted BBQ: %w", err)
 		}
@@ -893,44 +1166,69 @@ func (idx *DiskVamanaIndex) writeCompactedIndexFile(
 }
 
 // serializeNode serializes a single node (vector + neighbors) into buf.
+//
+// Performance: uses unsafe bulk copy for the vector portion ([]float32 → []byte)
+// instead of per-element binary.LittleEndian.PutUint32, reducing overhead for
+// high-dimensional vectors (e.g., 768-dim saves ~768 function calls per node).
+//
+// Safety: float32 and uint32 are both 4 bytes with identical little-endian layout
+// on all supported platforms (amd64, arm64). The unsafe.Slice conversion is a
+// zero-copy reinterpretation that the Go compiler can verify at build time.
 func serializeNode(
 	vector []float32,
 	neighbors []uint32,
 	buf []byte,
 	maxDegree int,
 ) {
-	offset := 0
-
-	// Write vector
-	for _, v := range vector {
-		binary.LittleEndian.PutUint32(buf[offset:], math.Float32bits(v))
-		offset += 4
+	// Bulk copy vector data: reinterpret []float32 as []byte (zero-copy on LE platforms)
+	vecBytes := len(vector) * 4
+	if len(vector) > 0 {
+		src := unsafe.Slice((*byte)(unsafe.Pointer(&vector[0])), vecBytes)
+		copy(buf[:vecBytes], src)
 	}
+	offset := vecBytes
 
 	// Write neighbor count
 	binary.LittleEndian.PutUint32(buf[offset:], uint32(len(neighbors)))
 	offset += 4
 
-	// Write neighbor IDs
-	for _, n := range neighbors {
-		binary.LittleEndian.PutUint32(buf[offset:], n)
-		offset += 4
+	// Bulk copy neighbor IDs: reinterpret []uint32 as []byte
+	if len(neighbors) > 0 {
+		nBytes := len(neighbors) * 4
+		src := unsafe.Slice((*byte)(unsafe.Pointer(&neighbors[0])), nBytes)
+		copy(buf[offset:offset+nBytes], src)
+		offset += nBytes
 	}
 
-	// Fill unused slots with sentinel
-	for i := len(neighbors); i < maxDegree; i++ {
-		binary.LittleEndian.PutUint32(buf[offset:], 0xFFFFFFFF)
-		offset += 4
+	// Fill unused slots with sentinel (0xFFFFFFFF)
+	unusedSlots := maxDegree - len(neighbors)
+	if unusedSlots > 0 {
+		sentinel := buf[offset : offset+unusedSlots*4]
+		for i := range sentinel {
+			sentinel[i] = 0xFF
+		}
 	}
 }
 
 // writeCompactedBBQFile writes the BBQ file for compacted data.
 //
-// Re-quantizes all vectors using the existing centroid and writes
-// a version 2 BBQ file with full metadata.
+// Performance optimization: copies existing BBQ metadata (packed codes, lower/upper bounds,
+// corrections, quantized sums) directly from memory instead of re-quantizing all vectors.
+//
+// Data sources by node type:
+//   - Disk nodes (oldID < metadata.NumPoints): from idx.bbqCodes, idx.bbqLowerBounds, etc.
+//   - Append buffer nodes (oldID >= metadata.NumPoints): from idx.appendBBQLower, etc.
+//     If append BBQ data is missing, falls back to quantizing the vector via getVector.
+//
+// Parameters:
+//   - path: base path for the new BBQ file (without extension)
+//   - oldToNew: slice mapping old node IDs to new compacted IDs (compactSentinel = deleted)
+//   - totalPts: total number of points before compaction
+//   - dimension: vector dimension
 func (idx *DiskVamanaIndex) writeCompactedBBQFile(
 	path string,
-	vectors [][]float32,
+	oldToNew []uint32,
+	totalPts uint64,
 	dimension int,
 ) error {
 	bbqPath := path + diskBBQExt
@@ -941,10 +1239,18 @@ func (idx *DiskVamanaIndex) writeCompactedBBQFile(
 	}
 	defer f.Close()
 
-	w := bufio.NewWriter(f)
+	w := bufio.NewWriterSize(f, DefaultWriteBufferSize)
 
-	numPoints := uint64(len(vectors))
+	// Count remaining points from oldToNew
+	var numPoints uint64
+	for _, nid := range oldToNew {
+		if nid != compactSentinel {
+			numPoints++
+		}
+	}
+
 	packedSize := (dimension + 7) / 8
+	diskN := idx.metadata.NumPoints
 
 	// Write header (24 bytes for version 2)
 	header := make([]byte, bbqHeaderSizeV2)
@@ -958,70 +1264,116 @@ func (idx *DiskVamanaIndex) writeCompactedBBQFile(
 		return err
 	}
 
-	// Write centroid
+	// Write centroid using bulk copy
 	centroidBuf := make([]byte, dimension*4)
-	for i, v := range idx.bbqCentroid {
-		binary.LittleEndian.PutUint32(
-			centroidBuf[i*4:], math.Float32bits(v),
-		)
+	if len(idx.bbqCentroid) > 0 {
+		src := unsafe.Slice((*byte)(unsafe.Pointer(&idx.bbqCentroid[0])), dimension*4)
+		copy(centroidBuf, src)
 	}
 	if _, err := w.Write(centroidBuf); err != nil {
 		return err
 	}
 
-	// Quantize all vectors and write packed codes
-	quantizer := bbq.NewScalarQuantizer(bbq.CosineSimilarity)
-	quantized := make([]byte, dimension)
+	// Pre-allocate metadata arrays for the compacted output
 	lowerBounds := make([]float32, numPoints)
 	upperBounds := make([]float32, numPoints)
 	corrections := make([]float32, numPoints)
 	quantizedSums := make([]float32, numPoints)
 
-	for i, vec := range vectors {
-		result := quantizer.Quantize(
-			vec, quantized, 1, idx.bbqCentroid,
-		)
-		packed := bbq.PackBinary(quantized)
+	// Lazy-initialized quantizer for append nodes without pre-existing BBQ data
+	var quantizer *bbq.ScalarQuantizer
+	var quantized []byte
 
-		if _, err := w.Write(packed[:packedSize]); err != nil {
-			return err
+	// Write packed codes and collect metadata by iterating old IDs in order
+	for oldID := uint64(0); oldID < totalPts; oldID++ {
+		newIdx := oldToNew[oldID]
+		if newIdx == compactSentinel {
+			continue
 		}
 
-		lowerBounds[i] = result.LowerBound
-		upperBounds[i] = result.UpperBound
-		corrections[i] = result.Correction
-		quantizedSums[i] = result.QuantizedSum
+		if oldID < diskN {
+			// Disk node: copy existing BBQ data directly from memory
+			codeStart := int(oldID) * packedSize
+			codeEnd := codeStart + packedSize
+			if codeEnd <= len(idx.bbqCodes) {
+				if _, err := w.Write(idx.bbqCodes[codeStart:codeEnd]); err != nil {
+					return err
+				}
+			}
+			lowerBounds[newIdx] = idx.bbqLowerBounds[oldID]
+			upperBounds[newIdx] = idx.bbqUpperBounds[oldID]
+			corrections[newIdx] = idx.bbqCorrections[oldID]
+			quantizedSums[newIdx] = idx.bbqQuantizedSums[oldID]
+		} else {
+			// Append buffer node: copy from append BBQ arrays if available
+			appendIdx := int(oldID - diskN)
+			if appendIdx < len(idx.appendBBQLower) {
+				// Append node has pre-computed BBQ data; need to quantize for packed codes only
+				if quantizer == nil {
+					quantizer = bbq.NewScalarQuantizer(bbq.CosineSimilarity)
+					quantized = make([]byte, dimension)
+				}
+				idx.mu.RLock()
+				vec := idx.getVector(oldID)
+				idx.mu.RUnlock()
+				if vec != nil {
+					quantizer.Quantize(vec, quantized, 1, idx.bbqCentroid)
+					packed := bbq.PackBinary(quantized)
+					if _, err := w.Write(packed[:packedSize]); err != nil {
+						return err
+					}
+				} else {
+					// Vector unavailable; write zero-filled packed code
+					zeroPacked := make([]byte, packedSize)
+					if _, err := w.Write(zeroPacked); err != nil {
+						return err
+					}
+				}
+				lowerBounds[newIdx] = idx.appendBBQLower[appendIdx]
+				upperBounds[newIdx] = idx.appendBBQUpper[appendIdx]
+				corrections[newIdx] = idx.appendBBQCorr[appendIdx]
+				quantizedSums[newIdx] = idx.appendBBQSumSq[appendIdx]
+			} else {
+				// No pre-existing BBQ data; full quantization required
+				if quantizer == nil {
+					quantizer = bbq.NewScalarQuantizer(bbq.CosineSimilarity)
+					quantized = make([]byte, dimension)
+				}
+				idx.mu.RLock()
+				vec := idx.getVector(oldID)
+				idx.mu.RUnlock()
+				if vec != nil {
+					result := quantizer.Quantize(vec, quantized, 1, idx.bbqCentroid)
+					packed := bbq.PackBinary(quantized)
+					if _, err := w.Write(packed[:packedSize]); err != nil {
+						return err
+					}
+					lowerBounds[newIdx] = result.LowerBound
+					upperBounds[newIdx] = result.UpperBound
+					corrections[newIdx] = result.Correction
+					quantizedSums[newIdx] = result.QuantizedSum
+				} else {
+					zeroPacked := make([]byte, packedSize)
+					if _, err := w.Write(zeroPacked); err != nil {
+						return err
+					}
+				}
+			}
+		}
 	}
 
-	// Write metadata arrays
-	metaBuf := make([]byte, 4)
-
-	for _, v := range lowerBounds {
-		binary.LittleEndian.PutUint32(metaBuf, math.Float32bits(v))
-		if _, err := w.Write(metaBuf); err != nil {
-			return err
-		}
+	// Write metadata arrays using bulk unsafe copy for float32 slices
+	if err := writeFloat32ArrayBulk(w, lowerBounds); err != nil {
+		return err
 	}
-
-	for _, v := range upperBounds {
-		binary.LittleEndian.PutUint32(metaBuf, math.Float32bits(v))
-		if _, err := w.Write(metaBuf); err != nil {
-			return err
-		}
+	if err := writeFloat32ArrayBulk(w, upperBounds); err != nil {
+		return err
 	}
-
-	for _, v := range corrections {
-		binary.LittleEndian.PutUint32(metaBuf, math.Float32bits(v))
-		if _, err := w.Write(metaBuf); err != nil {
-			return err
-		}
+	if err := writeFloat32ArrayBulk(w, corrections); err != nil {
+		return err
 	}
-
-	for _, v := range quantizedSums {
-		binary.LittleEndian.PutUint32(metaBuf, math.Float32bits(v))
-		if _, err := w.Write(metaBuf); err != nil {
-			return err
-		}
+	if err := writeFloat32ArrayBulk(w, quantizedSums); err != nil {
+		return err
 	}
 
 	if err := w.Flush(); err != nil {
@@ -1029,4 +1381,16 @@ func (idx *DiskVamanaIndex) writeCompactedBBQFile(
 	}
 
 	return f.Sync()
+}
+
+// writeFloat32ArrayBulk writes a []float32 slice to a buffered writer using
+// unsafe bulk copy, avoiding per-element binary.LittleEndian.PutUint32 overhead.
+func writeFloat32ArrayBulk(w *bufio.Writer, data []float32) error {
+	if len(data) == 0 {
+		return nil
+	}
+	byteLen := len(data) * 4
+	src := unsafe.Slice((*byte)(unsafe.Pointer(&data[0])), byteLen)
+	_, err := w.Write(src)
+	return err
 }

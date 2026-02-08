@@ -289,6 +289,35 @@ func (r *mmapReader) ReadVector(nodeID uint64, vec []float32) error {
 	return nil
 }
 
+// ReadVectorRef returns a zero-copy reference to the vector data in mmap region.
+//
+// Uses unsafe.Slice to directly interpret mmap bytes as []float32, avoiding
+// allocation and per-element copy. Caller must not modify the returned slice.
+//
+// Parameters:
+//   - nodeID: node ID
+//
+// Returns vector slice (zero-copy), ErrNodeNotFound if node does not exist.
+func (r *mmapReader) ReadVectorRef(nodeID uint64) ([]float32, error) {
+	// Validate nodeID range
+	if nodeID >= r.meta.NumPoints {
+		return nil, ErrNodeNotFound
+	}
+
+	// Calculate node data offset
+	offset := r.calcOffset(nodeID)
+	vectorBytes := r.meta.Dims * 4
+	if offset+vectorBytes > uint64(len(r.data)) {
+		return nil, ErrCorruptedFile
+	}
+
+	// Zero-copy: interpret mmap bytes directly as float32 slice
+	return unsafe.Slice(
+		(*float32)(unsafe.Pointer(&r.data[offset])),
+		r.meta.Dims,
+	), nil
+}
+
 // Metadata returns graph index metadata.
 //
 // Returned pointer points to internal data, caller should not modify.

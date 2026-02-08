@@ -22,6 +22,7 @@ import (
 	"runtime"
 	"sort"
 	"sync"
+	"sync/atomic"
 )
 
 // ============================================================================
@@ -83,9 +84,12 @@ func (idx *VamanaIndex) initializeForBuild(vectors [][]float32) {
 		idx.vectors[i] = vecCopy
 	}
 	idx.neighbors = make([][]uint32, n)
+	idx.neighborPtrs = make([]atomic.Pointer[[]uint32], n)
 	idx.nodeLocks = make([]sync.RWMutex, n)
 	for i := range idx.neighbors {
-		idx.neighbors[i] = make([]uint32, 0, idx.config.R)
+		initial := make([]uint32, 0, idx.config.R)
+		idx.neighbors[i] = initial
+		idx.neighborPtrs[i].Store(&initial)
 	}
 	// 重置删除位图
 	idx.deleted = NewBitset(n)
@@ -194,23 +198,34 @@ func (idx *VamanaIndex) buildNode(id uint32) {
 
 // setNeighborsLocked 使用节点级锁设置邻居
 // 注意：idx.neighbors 切片在初始化后不再 resize，因此只需节点锁
+// 同时通过 atomic.Store 更新 neighborPtrs，供 greedySearchForBuild 无锁读取
 func (idx *VamanaIndex) setNeighborsLocked(id uint32, neighbors []uint32) {
 	idx.nodeLocks[id].Lock()
 	defer idx.nodeLocks[id].Unlock()
 	idx.neighbors[id] = neighbors
+	if idx.neighborPtrs != nil {
+		idx.neighborPtrs[id].Store(&neighbors)
+	}
 }
 
 // addEdgeAndPruneLocked 添加反向边（使用节点级锁）
-// 采用C++版本的GRAPH_SLACK_FACTOR策略：允许邻居数量超过R，
+// 采用 IP-DiskANN inter_insert 的 lock-copy-unlock-prune-lock-write 模式
+// (参照 IP-DiskANN src/index.cpp L1231-1276)：
+//   - Phase 1 (持锁): 快速检查 + 拷贝邻居列表，决定是否需要剪枝
+//   - Phase 2 (无锁): 在锁外执行昂贵的距离计算和 robustPrune
+//   - Phase 3 (持锁): 写入剪枝结果
+//
+// 采用 GRAPH_SLACK_FACTOR 策略：允许邻居数量超过 R，
 // 只有当超过 GraphSlackFactor * R 时才触发剪枝，大幅减少剪枝次数
 func (idx *VamanaIndex) addEdgeAndPruneLocked(nodeID, newNeighborID uint32) {
+	// ── Phase 1 (持锁): 快速检查 + 拷贝 ──
 	idx.nodeLocks[nodeID].Lock()
-	defer idx.nodeLocks[nodeID].Unlock()
 
 	currentNeighbors := idx.neighbors[nodeID]
 
 	// 检查是否已存在
 	if containsID(currentNeighbors, newNeighborID) {
+		idx.nodeLocks[nodeID].Unlock()
 		return
 	}
 
@@ -219,28 +234,41 @@ func (idx *VamanaIndex) addEdgeAndPruneLocked(nodeID, newNeighborID uint32) {
 
 	// 如果未超过松弛阈值，直接添加（不触发剪枝）
 	if len(currentNeighbors) < maxDegreeWithSlack {
-		idx.neighbors[nodeID] = append(idx.neighbors[nodeID], newNeighborID)
+		updated := append(idx.neighbors[nodeID], newNeighborID)
+		idx.neighbors[nodeID] = updated
+		if idx.neighborPtrs != nil {
+			idx.neighborPtrs[nodeID].Store(&updated)
+		}
+		idx.nodeLocks[nodeID].Unlock()
 		return
 	}
 
-	// 超过松弛阈值，需要剪枝
+	// 需要剪枝：拷贝邻居列表后释放锁
+	copyOfNeighbors := make([]uint32, len(currentNeighbors), len(currentNeighbors)+1)
+	copy(copyOfNeighbors, currentNeighbors)
+	copyOfNeighbors = append(copyOfNeighbors, newNeighborID)
+
+	idx.nodeLocks[nodeID].Unlock()
+
+	// ── Phase 2 (无锁): 距离计算 + robustPrune ──
 	nodeVector := idx.vectors[nodeID]
 	nodeNormSq := idx.normSquares[nodeID]
-	candidates := make([]Neighbor, 0, len(currentNeighbors)+1)
+	candidates := make([]Neighbor, 0, len(copyOfNeighbors))
 
-	for _, nid := range currentNeighbors {
+	for _, nid := range copyOfNeighbors {
 		dist := idx.fastDistanceToQuery(nid, nodeVector, nodeNormSq)
 		candidates = append(candidates, Neighbor{ID: nid, Distance: dist})
 	}
 
-	// 添加新邻居
-	newDist := idx.fastDistanceToQuery(newNeighborID, nodeVector, nodeNormSq)
-	candidates = append(candidates, Neighbor{ID: newNeighborID, Distance: newDist})
-
-	// 使用完整的robustPrune剪枝，保证图质量
 	newNeighbors := idx.robustPrune(nodeID, candidates, idx.config.R, idx.config.Alpha)
 
+	// ── Phase 3 (持锁): 写入剪枝结果 ──
+	idx.nodeLocks[nodeID].Lock()
 	idx.neighbors[nodeID] = newNeighbors
+	if idx.neighborPtrs != nil {
+		idx.neighborPtrs[nodeID].Store(&newNeighbors)
+	}
+	idx.nodeLocks[nodeID].Unlock()
 }
 
 // addEdgeAndPrune 添加反向边，必要时剪枝

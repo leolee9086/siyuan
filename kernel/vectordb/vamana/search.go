@@ -123,9 +123,15 @@ func (idx *VamanaIndex) greedySearchFast(scratch *SearchScratch, startIDs []uint
 }
 
 // greedySearchForBuild 构建专用的贪婪搜索
-// 在并行构建期间使用，通过节点级读锁保护邻居 slice header 读取
-// 前提：idx.vectors 和 idx.neighbors 外层切片大小在构建期间不变
-// 同步策略：读取 idx.neighbors[id] 时持 nodeLocks[id].RLock，与写端的 Lock 配对
+// 在并行构建期间使用，通过 atomic.Pointer 无锁读取邻居快照
+// 前提：idx.vectors 和 idx.neighborPtrs 外层切片大小在构建期间不变
+// 同步策略（参照 IP-DiskANN src/index.cpp L944-948）：
+//   - 写端：nodeLocks[id].Lock() → 修改 neighbors → neighborPtrs[id].Store() → Unlock()
+//   - 读端：neighborPtrs[id].Load() 获取一致快照，零锁开销
+//
+// 读端可能读到旧值或新值，但一定是完整的 slice header。
+// 这与 IP-DiskANN 的 greedy_search 语义等价：读到的可能是旧邻居列表，
+// 对贪婪搜索的正确性没有影响（仅影响搜索质量的微小差异）。
 func (idx *VamanaIndex) greedySearchForBuild(scratch *SearchScratch, startIDs []uint32, query []float32, queryNormSq float32, L int) []Neighbor {
 	scratch.Reset()
 	scratch.Visited.EnsureCapacity(len(idx.vectors))
@@ -141,18 +147,21 @@ func (idx *VamanaIndex) greedySearchForBuild(scratch *SearchScratch, startIDs []
 		scratch.Cmps++
 	}
 
-	// 贪婪搜索（节点级读锁保护邻居 slice header 读取）
+	// 贪婪搜索（atomic.Load 无锁读取邻居快照）
 	for scratch.Best.HasUnvisited() {
 		closest, ok := scratch.Best.PopClosestUnvisited()
 		if !ok {
 			break
 		}
 
-		// 持节点级读锁读取邻居 slice header，防止与写端的 DATA RACE
-		// 写端 (setNeighborsLocked / addEdgeAndPruneLocked) 持 nodeLocks[id].Lock() 写入
-		idx.nodeLocks[closest.ID].RLock()
-		neighbors := idx.neighbors[closest.ID]
-		idx.nodeLocks[closest.ID].RUnlock()
+		// 通过 atomic.Pointer 无锁读取邻居快照
+		// 写端通过 setNeighborsLocked/addEdgeAndPruneLocked 中的 Store 保证一致性
+		neighborsPtr := idx.neighborPtrs[closest.ID].Load()
+		if neighborsPtr == nil {
+			scratch.Hops++
+			continue
+		}
+		neighbors := *neighborsPtr
 
 		for _, neighborID := range neighbors {
 			// 边界检查：跳过无效的邻居ID

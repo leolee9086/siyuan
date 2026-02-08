@@ -379,6 +379,49 @@ func (r *mobileReader) ReadVector(nodeID uint64, vec []float32) error {
 	return nil
 }
 
+// ReadVectorRef returns a vector slice for the specified node.
+//
+// On mobile platforms without mmap, this allocates a new []float32 and copies
+// the vector data from the cached/disk node data. This is functionally equivalent
+// to ReadVector but manages its own buffer.
+//
+// Parameters:
+//   - nodeID: node ID
+//
+// Returns vector slice (allocated copy on mobile), ErrNodeNotFound if node does not exist.
+func (r *mobileReader) ReadVectorRef(nodeID uint64) ([]float32, error) {
+	// Validate nodeID range
+	if nodeID >= r.meta.NumPoints {
+		return nil, ErrNodeNotFound
+	}
+
+	dims := r.meta.Dims
+
+	// Get node data (from cache or disk)
+	var nodeData []byte
+
+	if cached := r.getFromCache(nodeID); cached != nil {
+		nodeData = cached
+	} else {
+		data, err := r.readNodeFromDisk(nodeID)
+		if err != nil {
+			return nil, err
+		}
+		r.addToCache(nodeID, data)
+		nodeData = data
+	}
+
+	// Allocate and copy vector data
+	vec := make([]float32, dims)
+	for i := uint64(0); i < dims; i++ {
+		byteOffset := i * 4
+		bits := binary.LittleEndian.Uint32(nodeData[byteOffset:])
+		vec[i] = math.Float32frombits(bits)
+	}
+
+	return vec, nil
+}
+
 // Metadata returns graph index metadata.
 //
 // Returned pointer points to internal data, caller should not modify.

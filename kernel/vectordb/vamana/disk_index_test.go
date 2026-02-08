@@ -295,6 +295,22 @@ func (r *mockDiskIndexReader) ReadVector(nodeID uint64, vec []float32) error {
 	return nil
 }
 
+func (r *mockDiskIndexReader) ReadVectorRef(nodeID uint64) ([]float32, error) {
+	if r.closed {
+		return nil, storage.ErrIndexClosed
+	}
+	if nodeID >= uint64(len(r.nodes)) {
+		return nil, storage.ErrNodeNotFound
+	}
+
+	data := r.nodes[nodeID]
+	parsed, err := storage.ParseVectorFromBuffer(data, int(r.meta.Dims))
+	if err != nil {
+		return nil, err
+	}
+	return parsed, nil
+}
+
 func (r *mockDiskIndexReader) Metadata() *storage.GraphMetadata {
 	return &r.meta
 }

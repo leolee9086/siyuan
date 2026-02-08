@@ -116,7 +116,10 @@ type DiskVamanaIndex struct {
 	appendBBQSumSq  []float32   // 新增向量 BBQ sum of squares (量化分量和)
 
 	// 增量操作 - 已修改的邻居表
-	modifiedNeighbors map[uint64][]uint32 // 磁盘节点被修改的邻居表
+	// Uses sync.Map for lock-free reads (atomic Load) and internally-synchronized writes (Store).
+	// This eliminates the RWMutex overhead that caused timeout under -race in the Delete path,
+	// where thousands of getNeighbors calls per delete each acquired modifiedMu.RLock/RUnlock.
+	modifiedNeighbors sync.Map // map[uint64][]uint32
 
 	// 并发控制
 	nodeLocks []sync.RWMutex // 节点级读写锁，大小应等于总点数（或分片数）

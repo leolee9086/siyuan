@@ -165,6 +165,21 @@ type DiskIndexReader interface {
 	// Returns ErrNodeNotFound if node does not exist.
 	ReadVector(nodeID uint64, vec []float32) error
 
+	// ReadVectorRef returns a zero-copy reference to the vector data in mmap region.
+	//
+	// Like ReadNeighbors, this uses unsafe.Slice to avoid allocation and copy.
+	// Caller must not modify the returned slice. For buffered (mobile) readers,
+	// this falls back to allocating and copying (same as ReadVector with internal buffer).
+	//
+	// This is the Go equivalent of C++ DiskANN's _data_store->get_vector() which
+	// returns a pointer into the memory-mapped data store.
+	//
+	// Parameters:
+	//   - nodeID: node ID
+	//
+	// Returns vector slice (zero-copy on mmap platforms), ErrNodeNotFound if node does not exist.
+	ReadVectorRef(nodeID uint64) ([]float32, error)
+
 	// Metadata returns graph index metadata.
 	//
 	// Returned pointer points to internal data, caller should not modify.

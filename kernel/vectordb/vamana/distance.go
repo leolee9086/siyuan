@@ -22,6 +22,19 @@ import "sort"
 // 距离计算函数
 // ============================================================================
 
+// euclideanDistanceWithNorms 使用双端预计算范数平方计算欧氏距离平方
+// ||a - b||² = ||a||² + ||b||² - 2<a,b>
+// 当 a 和 b 的 normSq 都已缓存时，仅需 1 次 dotProduct 调用（相比 euclideanDistance 的 3 次）。
+// 这是 Delete 操作中 robustPruneSimple O(n²) occlude 循环的关键优化路径。
+func euclideanDistanceWithNorms(a, b []float32, aNormSq, bNormSq float32) float32 {
+	dot := dotProduct(a, b)
+	dist := aNormSq + bNormSq - 2*dot
+	if dist < 0 {
+		dist = 0
+	}
+	return dist
+}
+
 // euclideanDistanceWithNorm 使用预计算的查询范数平方计算欧氏距离平方
 // ||a - b||² = ||a||² + ||b||² - 2<a,b>
 // 当同一查询向量需要与多个向量计算距离时，预计算 queryNormSq 可避免重复计算

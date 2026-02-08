@@ -300,6 +300,22 @@ func (b *DeletedBitmap) IsDeleted(nodeID uint64) bool {
 	return (b.bits[wordIndex] & (1 << bitIndex)) != 0
 }
 
+// IsDeletedUnsafe checks if a node is marked as deleted without acquiring locks.
+//
+// NOT thread-safe. Caller must ensure exclusive access (e.g., by holding a global write lock).
+// This is the equivalent of C++ DiskANN's _delete_set->find() which is a simple hash lookup
+// without synchronization, used in inplace_delete where the caller holds _update_lock.
+func (b *DeletedBitmap) IsDeletedUnsafe(nodeID uint64) bool {
+	wordIndex := nodeID / 64
+	bitIndex := nodeID % 64
+
+	if wordIndex >= uint64(len(b.bits)) {
+		return false
+	}
+
+	return (b.bits[wordIndex] & (1 << bitIndex)) != 0
+}
+
 // CountDeleted returns the total number of deleted nodes.
 //
 // Thread-safe.

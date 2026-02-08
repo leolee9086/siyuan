@@ -49,6 +49,6 @@ node_modules
 # Vector DB Research
 toread/IP-DiskANN/
 toread/DiskANN/
-
+toread/nanoClaw/
 # Test Data (benchmark datasets, large binary files)
 test_data/
