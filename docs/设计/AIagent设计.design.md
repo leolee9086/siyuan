@@ -432,3 +432,184 @@ Gateway ──→ Agent ──→ LLMClient (core/llm.py)
 - `kernel/cronjob`: 省去 yaegi 沙箱和脚本执行器
 - `kernel/embedding` + `kernel/vectordb`: 省去语义搜索基础设施
 - `kernel/server` (gin): 省去 HTTP 服务和路由框架
+
+## myclaw 调研 (Go 实现参考)
+
+> 调研时间: 2026-02-10 (基于完整源码阅读)
+> 状态: 调研完成
+> 项目地址: `toread/myclaw/` — Go 1.24, 基于 agentsdk-go 的个人 AI 助手
+
+### 七、myclaw 代码概览
+
+#### 7.1 技术栈
+
+- **语言**: Go 1.24
+- **核心依赖**:
+  - `agentsdk-go v0.8.3` — Agent 运行时 SDK (ReAct 循环 + 工具执行)
+  - `go-telegram-bot-api/v5` — Telegram 通道
+  - `robfig/cron/v3` — Cron 调度
+  - `spf13/cobra` — CLI 框架
+- **间接依赖**: `anthropic-sdk-go`, `openai-go`, `modelcontextprotocol/go-sdk` (MCP)
+- **代码量**: 约 2000 行 Go (不含测试)，结构精简
+
+#### 7.2 目录结构与模块职责
+
+```
+myclaw/
+├── cmd/myclaw/          # CLI 入口 (~370 行)
+│   └── main.go          # cobra CLI: agent (单消息/REPL) | gateway | onboard | status
+├── internal/
+│   ├── bus/             # 消息总线 (~50 行)
+│   │   ├── bus.go       # MessageBus: 带缓冲 channel + 订阅者分发
+│   │   └── events.go    # InboundMessage / OutboundMessage 事件定义
+│   ├── channel/         # 通道层 (~860 行)
+│   │   ├── base.go      # Channel 接口 + BaseChannel (白名单过滤)
+│   │   ├── manager.go   # ChannelManager: 多通道注册/启停/订阅
+│   │   ├── telegram.go  # Telegram 长轮询 + HTML 格式转换 + 消息分片
+│   │   ├── feishu.go    # 飞书 webhook + tenant_access_token 缓存
+│   │   └── wecom.go     # 企业微信: AES-CBC 加解密 + response_url 回复 + 重试
+│   ├── config/          # 配置 (~190 行)
+│   │   └── config.go    # JSON 配置 + 环境变量覆盖，多层级优先级
+│   ├── cron/            # 定时任务 (~250 行)
+│   │   ├── types.go     # CronJob 类型: cron/every/at 三种调度模式
+│   │   └── service.go   # robfig/cron 集成 + JSON 持久化 + tickLoop
+│   ├── gateway/         # 网关编排 (~270 行)
+│   │   └── gateway.go   # 组装 bus+runtime+channels+cron+heartbeat
+│   ├── heartbeat/       # 心跳服务 (~90 行)
+│   │   └── service.go   # 定期读取 HEARTBEAT.md 触发 Agent
+│   └── memory/          # 记忆系统 (~140 行)
+│       └── memory.go    # 文件系统记忆: MEMORY.md (长期) + 日期.md (日志)
+└── workspace/           # Agent 人格配置
+    ├── AGENTS.md        # Agent 系统提示词
+    └── SOUL.md          # Agent 人格定义
+```
+
+#### 7.3 核心架构与设计特征
+
+**依赖关系** (基于实际 import 分析):
+
+```
+Gateway ──→ agentsdk-go Runtime (外部依赖)
+  │           │──→ ModelFactory (Anthropic/OpenAI Provider)
+  │           │──→ ProjectRoot (工作空间管理)
+  │           │──→ SystemPrompt (从 AGENTS.md + SOUL.md + Memory 构建)
+  │           └──→ MaxIterations (预算控制)
+  │
+  ├──→ MessageBus ──→ Inbound/Outbound channels
+  ├──→ ChannelManager ──→ Telegram/Feishu/WeCom channels
+  ├──→ CronService ──→ 持久化定时任务
+  ├──→ HeartbeatService ──→ HEARTBEAT.md 定期触发
+  └──→ MemoryStore ──→ 文件系统记忆存储
+```
+
+**关键设计特征**:
+- **外部 SDK 依赖**: 核心 Agent 逻辑完全委托给 `agentsdk-go`，myclaw 仅负责编排和通道
+- **消息总线模式**: 所有通道通过 MessageBus 解耦，支持多通道并发
+- **配置优先级**: JSON 文件 < 环境变量，支持敏感信息外部化
+- **人格文件分离**: AGENTS.md (系统提示) + SOUL.md (人格) + Memory 动态组装
+- **多通道支持**: Telegram/飞书/企业微信三种通道，各自独立实现
+- **定时任务持久化**: JSON 文件存储，支持 cron 表达式和间隔调度
+- **优雅关闭**: 信号处理 + context 取消机制
+
+### 八、myclaw vs nanoClaw 对比分析
+
+#### 8.1 架构模式差异
+
+| 维度 | nanoClaw (Python) | myclaw (Go) |
+|------|------------------|-------------|
+| **核心引擎** | 自建 ReAct 循环 (~543行) | 外部 agentsdk-go SDK |
+| **工具系统** | 装饰器注册 + 自动发现 | 完全委托给 agentsdk-go |
+| **安全沙箱** | 内置多层级沙箱 (~650行) | 依赖 agentsdk-go 内置安全 |
+| **记忆系统** | SQLite + FTS5 (~385行) | 文件系统 (MEMORY.md + 日志) |
+| **LLM 适配** | 多提供商原生适配 (~409行) | agentsdk-go 统一接口 |
+| **通道系统** | Telegram + Console | Telegram + 飞书 + 企业微信 |
+| **配置管理** | Pydantic 模型校验 | Go struct + JSON |
+| **并发模型** | asyncio 单线程事件循环 | Go goroutine + channel |
+
+#### 8.2 复杂度对比
+
+| 模块 | nanoClaw 行数 | myclaw 行数 | 复杂度变化 |
+|------|--------------|-------------|-----------|
+| 核心引擎 | ~900 | ~0 (外部依赖) | **大幅简化** |
+| 安全层 | ~650 | ~0 (外部依赖) | **大幅简化** |
+| 工具层 | ~400 | ~0 (外部依赖) | **大幅简化** |
+| 记忆层 | ~200 | ~140 | 轻微简化 |
+| 通道层 | ~350 | ~860 | **复杂度增加** |
+| 定时任务 | ~150 | ~250 | 复杂度增加 |
+| 配置系统 | ~243 | ~190 | 轻微简化 |
+| **总计** | **~2800** | **~2000** | **整体简化** |
+
+#### 8.3 借鉴价值分析
+
+**🟢 高价值借鉴点**:
+
+1. **消息总线架构** (`internal/bus/`)
+   - 解耦通道与核心逻辑，支持多通道并发
+   - 订阅者模式 + 带缓冲 channel，性能优秀
+   - **建议**: kernel 可采用类似模式替代直接 HTTP 调用
+
+2. **配置优先级机制** (`internal/config/config.go`)
+   - JSON 文件 < 环境变量的多层级覆盖
+   - 敏感信息 (API Key) 外部化最佳实践
+   - **建议**: 扩展 `kernel/conf/` 支持环境变量覆盖
+
+3. **企业级通道支持** (`internal/channel/`)
+   - 飞书/企业微信的完整实现，包含加解密、重试、缓存
+   - 白名单过滤 + 消息去重机制
+   - **建议**: kernel 可选择性集成企业通道
+
+4. **人格文件分离** (`workspace/`)
+   - AGENTS.md (系统提示) + SOUL.md (人格) 的清晰分工
+   - 运行时动态组装，便于人格切换
+   - **建议**: kernel 采用类似的人格管理方式
+
+**🟡 中等价值借鉴点**:
+
+5. **定时任务持久化** (`internal/cron/`)
+   - JSON 文件存储 + robfig/cron 集成
+   - 支持 cron/every/at 三种调度模式
+   - **建议**: 可扩展 `kernel/cronjob/` 支持 Agent 消息触发
+
+6. **心跳机制** (`internal/heartbeat/`)
+   - 定期读取 HEARTBEAT.md 触发 Agent
+   - 简单有效的主动任务触发方式
+   - **建议**: kernel 可集成类似的主动触发机制
+
+**🔴 低价值借鉴点**:
+
+7. **外部 SDK 依赖策略**
+   - myclaw 完全依赖 agentsdk-go，失去核心控制权
+   - 无法深度定制 ReAct 循环和安全策略
+   - **不建议**: kernel 应保持核心引擎自主可控
+
+8. **文件系统记忆**
+   - 简单的 MEMORY.md + 日期文件存储
+   - 缺乏语义搜索和结构化查询能力
+   - **不建议**: kernel 已有更优的 vectordb + FTS5 方案
+
+### 九、对 kernel 实现的建议
+
+基于 myclaw 调研，对原有 nanoClaw 移植计划的补充建议：
+
+#### 9.1 架构决策更新
+
+| 决策项 | 原建议 | myclaw 启发 | 更新建议 |
+|--------|--------|-------------|----------|
+| **通道系统** | HTTP API 为主 | 消息总线 + 多通道 | 采用消息总线架构，支持 HTTP + 企业通道 |
+| **配置管理** | 扩展 kernel/conf | 环境变量优先级 | 增加环境变量覆盖机制 |
+| **人格管理** | Siyuan 笔记集成 | 文件分离模式 | 支持文件模式作为 Siyuan 的补充 |
+| **核心引擎** | 自建 ReAct 循环 | 外部 SDK 依赖 | **坚持自建**，保持核心控制权 |
+
+#### 9.2 新增工作项建议
+
+基于 myclaw 的优秀设计，建议在原有 27 个工作项基础上新增：
+
+| # | 新增工作项 | 参考源 | 复杂度 | 行数估算 |
+|---|-----------|--------|--------|---------|
+| 28 | 消息总线 | `internal/bus/` | 低 | ~100 |
+| 29 | 企业微信通道 | `internal/channel/wecom.go` | 中 | ~300 |
+| 30 | 飞书通道 | `internal/channel/feishu.go` | 中 | ~200 |
+| 31 | 环境变量配置覆盖 | `internal/config/config.go` | 低 | ~50 |
+| 32 | 心跳触发机制 | `internal/heartbeat/` | 低 | ~80 |
+
+**新增工作量**: ~730 行，使总工作量从 ~4300 行增至 ~5030 行
