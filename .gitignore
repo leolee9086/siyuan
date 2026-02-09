@@ -45,8 +45,9 @@ node_modules
 #/toread
 # Plan files
 #**.plan.md
-
+toread/
 # Vector DB Research
+
 toread/IP-DiskANN/
 toread/DiskANN/
 toread/nanoClaw/

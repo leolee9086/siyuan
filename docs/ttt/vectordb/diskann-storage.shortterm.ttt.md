@@ -42,8 +42,8 @@ kernel/vectordb/
     ├── disk_search.go           ✅ 磁盘版搜索 (含BBQ量化校正)
     ├── disk_build.go            ✅ 磁盘版构建 (707行, BuildFromVectors)
     ├── disk_build_test.go       ✅ 构建测试 (3个测试用例通过)
-    ├── inplace_delete.go        ❌ 待实现
-    └── compact.go               ❌ 待实现
+    ├── disk_incremental.go      ✅ 增量操作 (Insert/Delete/Compact, IP-DiskANN 6步算法)
+    └── delete.go                ✅ 内存版删除 (VamanaIndex 统一6步边修复算法)
 ```
 
 ---
@@ -87,17 +87,30 @@ kernel/vectordb/
 
 ## 🟡 中期计划 (P1)
 
-### Phase D: In-Place删除
-- [ ] **vamana/inplace_delete.go**
-  - [ ] `InplaceDelete()` - 单节点删除
-  - [ ] `MultiInplaceDelete()` - 批量删除
-  - [ ] OneHop策略 + 边修复逻辑
+### Phase D: In-Place删除 ✅ 2026-02-07
+- [x] **vamana/disk_incremental.go** — `DiskVamanaIndex.Delete()` + `inplaceDelete()`
+  - [x] IP-DiskANN 完整6步 inplace_delete 算法 (参考 `toread/IP-DiskANN/src/index.cpp` L3130-3303)
+  - [x] Step 1: deleteGreedySearch — 以被删节点向量为 query 执行贪心搜索
+  - [x] Step 2: findApproxInNeighbors — 从 Visited 中找近似入邻居
+  - [x] Step 3: repairInEdges — 修复入边
+  - [x] Step 4: repairOutEdges — 修复出边
+  - [x] Step 5: 标记删除 + 清空邻居列表
+  - [x] Step 6: pruneAffectedVertices — 对度数超过 R 的受影响顶点执行 robustPrune
+  - [x] 性能优化: vectorCache / normSqCache 避免冗余 mmap 读取和 dotProduct 计算
+  - [x] robustPruneSimpleWithNorm — normSq 缓存变体，O(n²) occlude 循环降至 1 dotProduct/pair
+- [x] **vamana/delete.go** — `VamanaIndex.inplaceDelete()` (内存版统一6步算法)
+  - [x] 与 DiskVamanaIndex 一致的边修复逻辑，适配 uint32 ID + 内存切片直接访问
+- [x] **注**: 原计划文件名 `inplace_delete.go` 实际合并至 `disk_incremental.go`（Insert/Delete/Compact 统一文件）
 
-### Phase E: 压缩合并
-- [ ] **vamana/compact.go**
-  - [ ] `NeedsCompaction()` - 检查压缩阈值
-  - [ ] `Compact()` - 执行压缩合并
-  - [ ] 原子文件替换
+### Phase E: 压缩合并 ✅ 2026-02-07
+- [x] **vamana/disk_incremental.go** — `DiskVamanaIndex.Compact()`
+  - [x] 构建 oldID → newID 映射（跳过已删除节点）
+  - [x] 收集向量和重映射邻居
+  - [x] 写入新 .index 文件（含扇区对齐）
+  - [x] 写入 BBQ 文件（优化路径：复制已有 BBQ 元数据而非重新量化）
+  - [x] serializeNode 使用 unsafe 批量拷贝优化
+  - [x] `CompactResult` 返回压缩统计信息
+- [x] **注**: 原计划文件名 `compact.go` 实际合并至 `disk_incremental.go`
 
 ### Phase F: 统一索引接口
 - [ ] **kernel/vectordb/index.go**
@@ -124,8 +137,8 @@ kernel/vectordb/
 - [ ] 100万向量构建 < 10分钟
 - [ ] 搜索延迟 < 10ms (Top-10)
 - [ ] 内存占用 < 50MB (100万向量)
-- [ ] 删除后召回率无明显下降
-- [ ] Compact后文件大小正确缩减
+- [ ] 删除后召回率无明显下降 (Delete 已实现，待性能验证)
+- [ ] Compact后文件大小正确缩减 (Compact 已实现，待性能验证)
 
 ---
 
@@ -159,6 +172,18 @@ kernel/vectordb/
     - `disk_search.go`: 使用 `QuantizedScorer.ComputeQuantizedDistance()` 计算校正距离
     - `disk_index_e2e_test.go`: 使用 `SearchWithBBQ` 进行公平对比
 
+- [x] **Phase D: In-Place删除** ✅ 2026-02-07
+  - `disk_incremental.go` — `Delete()` + `inplaceDelete()`: IP-DiskANN 完整6步算法
+  - `delete.go` — VamanaIndex 内存版统一6步边修复算法
+  - 性能优化: vectorCache / normSqCache / robustPruneSimpleWithNorm
+  - **来源**: 主计划 Phase 5 (增量操作) + Phase 5.5 (架构统一重构)
+
+- [x] **Phase E: 压缩合并** ✅ 2026-02-07
+  - `disk_incremental.go` — `Compact()` + `doCompact()`: 构建 ID 映射 → 收集数据 → 写入新索引
+  - BBQ 文件优化写入（复制已有元数据而非重新量化）
+  - serializeNode / writeFloat32ArrayBulk 使用 unsafe 批量拷贝
+  - **来源**: 主计划 Phase 5 (增量操作)
+
 ---
 
 ## 📚 参考资料
@@ -185,4 +210,4 @@ kernel/vectordb/
 ---
 
 **文档创建**: 2026-02-05
-**最后更新**: 2026-02-06 02:33 (UTC+8)
+**最后更新**: 2026-02-09 22:15 (UTC+8)
