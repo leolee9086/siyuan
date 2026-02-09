@@ -36,7 +36,7 @@
 
 ---
 
-## 🟢 近期计划 (立即聚焦，撸起袖子干)
+## 🟢 近期计划 
 
 - [-] **修复1: Errors未定义问题 (P0)**
   - **背景**: [`app/src/util/pathRouter/core/router.htttpRouter.ts`](../../../app/src/util/pathRouter/core/router.htttpRouter.ts:24) 第24行使用了 `const HttpError = Errors;` 但 `Errors` 未定义，影响18个测试文件
@@ -76,7 +76,7 @@
 
 ---
 
-## 🟡 中期计划 (架构演进，步步为营)
+## 🟡 中期计划 
 
 - [ ] **修复4: Layer测试期望值错误 (P1)**
   - **背景**: [`app/test/util/pathRouter/layer.test.ts`](../../../app/test/util/pathRouter/layer.test.ts:242) 第242行期望 `[undefined, undefined]` 但实际返回 `[undefined]`

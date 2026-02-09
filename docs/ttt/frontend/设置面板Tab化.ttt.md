@@ -35,7 +35,7 @@
 
 ---
 
-## 🟢 近期计划 (立即聚焦,撸起袖子干)
+## 🟢 近期计划 
 
 - [ ] **Phase 1: 创建TabRegistry核心类 (P0)**
   - **背景**: 当前Tab数据分散在各插件的models属性中,查找需遍历所有插件,内部使用必须伪造Plugin。需要建立全局Registry统一管理。
@@ -85,7 +85,7 @@
 
 ---
 
-## 🟡 中期计划 (架构演进,步步为营)
+## 🟡 中期计划 
 
 - [ ] **Phase 4: 重构文档树配置Tab使用新机制 (P1)**
   - **背景**: [`app/src/config/fileTree.ts`](../../app/src/config/fileTree.ts) L190-219使用伪造Plugin的hack方式注册Tab,需要改为直接使用TabRegistry。
@@ -111,7 +111,7 @@
 
 ---
 
-## 🔴 远期计划 (北极星目标,星辰大海)
+## 🔴 远期计划 
 
 - [ ] **Phase 7: 创建DockRegistry统一Dock管理 (P2)**
   - **愿景**: 参考TabRegistry模式,为Dock系统建立统一的Registry,消除Dock注册的分散性。
