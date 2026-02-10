@@ -99,14 +99,17 @@ func SaveCollection(c *Collection, basePath string) error {
 	copy(bbqCorrections, c.Store.bbqCorrections)
 	c.Store.mu.RUnlock()
 
-	// 从 HNSWIdx 复制图结构
+	// 从 HNSWIdx 复制图结构（NeighborRecord → DocID 用于序列化）
 	c.HNSWIdx.Mu.RLock()
 	neighbors := make([][][]DocID, len(c.HNSWIdx.Neighbors))
 	for i, levels := range c.HNSWIdx.Neighbors {
 		neighbors[i] = make([][]DocID, len(levels))
-		for j, ids := range levels {
-			neighbors[i][j] = make([]DocID, len(ids))
-			copy(neighbors[i][j], ids)
+		for j, records := range levels {
+			ids := make([]DocID, len(records))
+			for k, r := range records {
+				ids[k] = r.ID
+			}
+			neighbors[i][j] = ids
 		}
 	}
 	deleted := make(map[DocID]bool, len(c.HNSWIdx.Deleted))
@@ -178,12 +181,16 @@ func LoadCollection(basePath string, name string) (*Collection, error) {
 	store.bbqPacked = snapshot.BBQPacked
 	store.bbqCorrections = snapshot.BBQCorrections
 
-	// 转换 Neighbors 格式
-	neighbors := make([][][]DocID, len(snapshot.Neighbors))
+	// 转换 Neighbors 格式（DocID → NeighborRecord，距离设为 0）
+	hnswNeighbors := make([][][]hnsw.NeighborRecord, len(snapshot.Neighbors))
 	for i, levels := range snapshot.Neighbors {
-		neighbors[i] = make([][]DocID, len(levels))
+		hnswNeighbors[i] = make([][]hnsw.NeighborRecord, len(levels))
 		for j, ids := range levels {
-			neighbors[i][j] = ids
+			records := make([]hnsw.NeighborRecord, len(ids))
+			for k, id := range ids {
+				records[k] = hnsw.NeighborRecord{ID: id, Distance: 0}
+			}
+			hnswNeighbors[i][j] = records
 		}
 	}
 
@@ -204,7 +211,7 @@ func LoadCollection(basePath string, name string) (*Collection, error) {
 
 	// 创建 HNSWIndex 并恢复状态
 	hnswIdx := hnsw.NewHNSWIndex(snapshot.Dimension, hnswConfig, store)
-	hnswIdx.Neighbors = neighbors
+	hnswIdx.Neighbors = hnswNeighbors
 	hnswIdx.Deleted = deleted
 	hnswIdx.EntryPoint = snapshot.EntryPoint
 	hnswIdx.MaxLayer = snapshot.MaxLayer

@@ -72,6 +72,10 @@ func (idx *HNSWIndex) buildHNSWIndex(itemDocID DocID, entryPointID DocID, itemLe
 		currentBestID = idx.greedySearch(itemDocID, currentBestID, level, config.MetricType)
 	}
 
+	// 预分配双向连接维护的缓冲区，在层级循环外分配一次，循环内复用
+	// 最大容量 = 2*M + 1（Level 0 最大邻居数 + 新节点）
+	candidateBuf := make([]NeighborRecord, 0, config.M*2+1)
+
 	// Phase 2: 在每一层构建连接
 	for level := min(entryLevel, itemLevel); level >= 0; level-- {
 		candidates := idx.searchLevel(itemDocID, currentBestID, level, config.EfConstruction, config.MetricType)
@@ -82,32 +86,32 @@ func (idx *HNSWIndex) buildHNSWIndex(itemDocID DocID, entryPointID DocID, itemLe
 		idx.SetLevelNeighbors(itemDocID, level, selected)
 
 		// 添加双向连接
-		for i, neighbor := range selected {
-			neighborNeighbors := idx.GetLevelNeighbors(selected[i].ID, level)
-			if neighborNeighbors == nil {
-				neighborNeighbors = make([]NeighborRecord, 0)
+		// 优化：直接使用邻居列表中缓存的距离，避免 O(M²) 距离重算
+		// 优化：复用预分配的 candidateBuf，避免循环内 make 分配
+		// 优化：松弛因子策略 — 当邻居度数未超过 SlackFactor×M 时直接 append，跳过 heuristic 剪枝
+		slackM := int(config.GraphSlackFactor * float32(M))
+		for _, neighbor := range selected {
+			cachedRecords := idx.GetLevelNeighborRecords(neighbor.ID, level)
+
+			// 松弛因子判断：当前度数 + 1（新节点）<= slackM 时直接添加，跳过 heuristic
+			if len(cachedRecords)+1 <= slackM {
+				idx.SetLevelNeighbors(neighbor.ID, level, append(cachedRecords, NeighborRecord{
+					ID:       itemDocID,
+					Distance: neighbor.Distance,
+				}))
+				continue
 			}
 
-			candidatesForNeighbor := make([]NeighborRecord, len(neighborNeighbors)+1)
-			copy(candidatesForNeighbor, neighborNeighbors)
-
-			// 重新计算现有邻居到 neighbor 的距离
-			useBQForNeighbor := idx.Dimension >= bbq.BBQEnableThreshold
-			for j := 0; j < len(neighborNeighbors); j++ {
-				nID := candidatesForNeighbor[j].ID
-				if useBQForNeighbor {
-					candidatesForNeighbor[j].Distance = idx.Distancer.ComputeBBQDistance(neighbor.ID, nID)
-				} else {
-					candidatesForNeighbor[j].Distance = idx.Distancer.ComputeDistance(neighbor.ID, nID, config.MetricType)
-				}
-			}
-
-			candidatesForNeighbor[len(neighborNeighbors)] = NeighborRecord{
+			// 超过松弛阈值，执行 heuristic 剪枝回到 M
+			// 复用缓冲区：重置长度，保留底层数组
+			candidateBuf = candidateBuf[:0]
+			candidateBuf = append(candidateBuf, cachedRecords...)
+			candidateBuf = append(candidateBuf, NeighborRecord{
 				ID:       itemDocID,
 				Distance: neighbor.Distance,
-			}
+			})
 
-			newNeighbors := idx.selectNeighborsHeuristic(neighbor.ID, candidatesForNeighbor, M, config.MetricType, true, true)
+			newNeighbors := idx.selectNeighborsHeuristic(neighbor.ID, candidateBuf, M, config.MetricType, true, true)
 			idx.SetLevelNeighbors(neighbor.ID, level, newNeighbors)
 		}
 
@@ -132,7 +136,7 @@ func (idx *HNSWIndex) greedySearch(queryID DocID, entryPointID DocID, level int,
 	improved := true
 	for improved {
 		improved = false
-		neighbors := idx.GetLevelNeighbors(currentBestID, level)
+		neighbors := idx.GetLevelNeighborRecords(currentBestID, level)
 		if neighbors == nil {
 			break
 		}
@@ -172,8 +176,8 @@ func (idx *HNSWIndex) searchLevel(queryID DocID, entryPointID DocID, level int, 
 		entryDist = idx.Distancer.ComputeDistance(queryID, entryPointID, metricType)
 	}
 
-	candidates.Push(&HeapItem{ID: entryPointID, Distance: entryDist})
-	results.Push(&HeapItem{ID: entryPointID, Distance: entryDist})
+	candidates.Push(HeapItem{ID: entryPointID, Distance: entryDist})
+	results.Push(HeapItem{ID: entryPointID, Distance: entryDist})
 	idx.Distancer.MarkVisited(entryPointID, epoch)
 
 	for candidates.Len() > 0 {
@@ -183,7 +187,7 @@ func (idx *HNSWIndex) searchLevel(queryID DocID, entryPointID DocID, level int, 
 			break
 		}
 
-		neighbors := idx.GetLevelNeighbors(current.ID, level)
+		neighbors := idx.GetLevelNeighborRecords(current.ID, level)
 		if neighbors == nil {
 			continue
 		}
@@ -202,11 +206,11 @@ func (idx *HNSWIndex) searchLevel(queryID DocID, entryPointID DocID, level int, 
 			}
 
 			if !results.IsFull() {
-				candidates.Push(&HeapItem{ID: neighbor.ID, Distance: dist})
-				results.Push(&HeapItem{ID: neighbor.ID, Distance: dist})
+				candidates.Push(HeapItem{ID: neighbor.ID, Distance: dist})
+				results.Push(HeapItem{ID: neighbor.ID, Distance: dist})
 			} else if dist < results.Peek().Distance {
-				candidates.Push(&HeapItem{ID: neighbor.ID, Distance: dist})
-				results.Replace(&HeapItem{ID: neighbor.ID, Distance: dist})
+				candidates.Push(HeapItem{ID: neighbor.ID, Distance: dist})
+				results.Replace(HeapItem{ID: neighbor.ID, Distance: dist})
 			}
 		}
 	}

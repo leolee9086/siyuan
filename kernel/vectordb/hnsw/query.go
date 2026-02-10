@@ -156,8 +156,8 @@ func (idx *HNSWIndex) searchLevelVec(queryVec []float32, queryQuantized []byte, 
 		entryDist = idx.Distancer.ComputeDistanceFromVector(queryVec, entryPointID, metricType)
 	}
 
-	candidates.Push(&HeapItem{ID: entryPointID, Distance: entryDist})
-	results.Push(&HeapItem{ID: entryPointID, Distance: entryDist})
+	candidates.Push(HeapItem{ID: entryPointID, Distance: entryDist})
+	results.Push(HeapItem{ID: entryPointID, Distance: entryDist})
 	idx.Distancer.MarkVisited(entryPointID, epoch)
 
 	for candidates.Len() > 0 {
@@ -186,11 +186,11 @@ func (idx *HNSWIndex) searchLevelVec(queryVec []float32, queryQuantized []byte, 
 			}
 
 			if !results.IsFull() {
-				candidates.Push(&HeapItem{ID: neighborID, Distance: dist})
-				results.Push(&HeapItem{ID: neighborID, Distance: dist})
+				candidates.Push(HeapItem{ID: neighborID, Distance: dist})
+				results.Push(HeapItem{ID: neighborID, Distance: dist})
 			} else if dist < results.Peek().Distance {
-				candidates.Push(&HeapItem{ID: neighborID, Distance: dist})
-				results.Replace(&HeapItem{ID: neighborID, Distance: dist})
+				candidates.Push(HeapItem{ID: neighborID, Distance: dist})
+				results.Replace(HeapItem{ID: neighborID, Distance: dist})
 			}
 		}
 	}

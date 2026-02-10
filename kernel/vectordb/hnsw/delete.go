@@ -18,6 +18,7 @@ package hnsw
 
 import (
 	"sort"
+	"sync"
 )
 
 // =========================================
@@ -151,7 +152,8 @@ func (idx *HNSWIndex) recomputeNeighbors(docID DocID) {
 // 这个方法清空图结构，由外部负责重新调用 Insert。
 func (idx *HNSWIndex) RebuildIndex(validDocIDs []DocID) {
 	idx.Mu.Lock()
-	idx.Neighbors = make([][][]DocID, 0)
+	idx.Neighbors = make([][][]NeighborRecord, 0)
+	idx.nodeLocks = make([]sync.Mutex, 0)
 	idx.Deleted = make(map[DocID]bool)
 	idx.EntryPoint = InvalidEntryPoint
 	idx.MaxLayer = -1

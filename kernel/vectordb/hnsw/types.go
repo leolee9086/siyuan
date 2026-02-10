@@ -34,21 +34,23 @@ const InvalidEntryPoint DocID = 0xFFFFFFFF
 
 // Config HNSW 索引配置
 type Config struct {
-	M              int    `msgpack:"m"`
-	EfConstruction int    `msgpack:"ef_construction"`
-	EfSearch       int    `msgpack:"ef_search"`
-	MaxLevel       int    `msgpack:"max_level"`
-	MetricType     string `msgpack:"metric"`
+	M                int     `msgpack:"m"`
+	EfConstruction   int     `msgpack:"ef_construction"`
+	EfSearch         int     `msgpack:"ef_search"`
+	MaxLevel         int     `msgpack:"max_level"`
+	MetricType       string  `msgpack:"metric"`
+	GraphSlackFactor float32 `msgpack:"graph_slack_factor"`
 }
 
 // DefaultConfig 返回默认 HNSW 配置
 func DefaultConfig() Config {
 	return Config{
-		M:              16,
-		EfConstruction: 200,
-		EfSearch:       64,
-		MaxLevel:       16,
-		MetricType:     "cosine",
+		M:                16,
+		EfConstruction:   200,
+		EfSearch:         64,
+		MaxLevel:         16,
+		MetricType:       "cosine",
+		GraphSlackFactor: 1.3,
 	}
 }
 
@@ -113,8 +115,9 @@ type HNSWIndex struct {
 	Dimension int
 
 	// 图结构
-	// Neighbors[docID][level] -> []neighborDocIDs
-	Neighbors [][][]DocID
+	// Neighbors[docID][level] -> []NeighborRecord (ID + 缓存距离)
+	// 距离缓存用于避免双向连接维护时的 O(M²) 距离重算
+	Neighbors [][][]NeighborRecord
 	Deleted   map[DocID]bool
 
 	// HNSW 入口点
@@ -124,27 +127,37 @@ type HNSWIndex struct {
 	// 距离计算（由外部注入）
 	Distancer Distancer
 
-	Mu sync.RWMutex
+	// 并发控制
+	// Mu 保护元数据（EntryPoint, MaxLayer, Deleted）和 Neighbors/nodeLocks 切片的扩展
+	// nodeLocks 保护每个节点的邻居列表 Neighbors[docID]
+	Mu        sync.RWMutex
+	nodeLocks []sync.Mutex
 }
 
 // NewHNSWIndex 创建新的 HNSW 索引
 func NewHNSWIndex(dimension int, config Config, distancer Distancer) *HNSWIndex {
+	// 零值兼容：GraphSlackFactor 未设置时使用默认值 1.3
+	if config.GraphSlackFactor <= 0 {
+		config.GraphSlackFactor = 1.3
+	}
 	return &HNSWIndex{
 		Config:     config,
 		Dimension:  dimension,
-		Neighbors:  make([][][]DocID, 0),
+		Neighbors:  make([][][]NeighborRecord, 0),
 		Deleted:    make(map[DocID]bool),
 		EntryPoint: InvalidEntryPoint,
 		MaxLayer:   -1,
 		Distancer:  distancer,
+		nodeLocks:  make([]sync.Mutex, 0),
 	}
 }
 
 // =========================================
 // 堆类型 — 用于 HNSW 搜索中的优先队列
+// 使用值类型 HeapItem 而非指针，避免每次 Push 的堆分配开销
 // =========================================
 
-// HeapItem 堆元素
+// HeapItem 堆元素（值类型，8字节，栈友好）
 type HeapItem struct {
 	ID       DocID
 	Distance float32
@@ -152,13 +165,13 @@ type HeapItem struct {
 
 // MinHeap 最小堆（按距离升序）
 type MinHeap struct {
-	data []*HeapItem
+	data []HeapItem
 }
 
 // NewMinHeap 创建最小堆
 func NewMinHeap() *MinHeap {
 	return &MinHeap{
-		data: make([]*HeapItem, 0, 64),
+		data: make([]HeapItem, 0, 64),
 	}
 }
 
@@ -169,15 +182,15 @@ func (h *MinHeap) Len() int { return len(h.data) }
 func (h *MinHeap) IsEmpty() bool { return len(h.data) == 0 }
 
 // Push 压入元素
-func (h *MinHeap) Push(item *HeapItem) {
+func (h *MinHeap) Push(item HeapItem) {
 	h.data = append(h.data, item)
 	h.upHeap(len(h.data) - 1)
 }
 
 // Pop 弹出最小元素
-func (h *MinHeap) Pop() *HeapItem {
+func (h *MinHeap) Pop() HeapItem {
 	if len(h.data) == 0 {
-		return nil
+		return HeapItem{}
 	}
 
 	top := h.data[0]
@@ -195,9 +208,9 @@ func (h *MinHeap) Pop() *HeapItem {
 }
 
 // Peek 查看最小元素
-func (h *MinHeap) Peek() *HeapItem {
+func (h *MinHeap) Peek() HeapItem {
 	if len(h.data) == 0 {
-		return nil
+		return HeapItem{}
 	}
 	return h.data[0]
 }
@@ -246,14 +259,14 @@ func (h *MinHeap) downHeap(pos int) {
 
 // MaxHeap 最大堆（按距离降序）
 type MaxHeap struct {
-	data     []*HeapItem
+	data     []HeapItem
 	capacity int
 }
 
 // NewMaxHeap 创建最大堆
 func NewMaxHeap(capacity int) *MaxHeap {
 	return &MaxHeap{
-		data:     make([]*HeapItem, 0, capacity),
+		data:     make([]HeapItem, 0, capacity),
 		capacity: capacity,
 	}
 }
@@ -270,7 +283,7 @@ func (h *MaxHeap) IsFull() bool {
 }
 
 // Push 压入元素
-func (h *MaxHeap) Push(item *HeapItem) {
+func (h *MaxHeap) Push(item HeapItem) {
 	if h.IsFull() {
 		return
 	}
@@ -279,9 +292,9 @@ func (h *MaxHeap) Push(item *HeapItem) {
 }
 
 // Pop 弹出最大元素
-func (h *MaxHeap) Pop() *HeapItem {
+func (h *MaxHeap) Pop() HeapItem {
 	if len(h.data) == 0 {
-		return nil
+		return HeapItem{}
 	}
 
 	top := h.data[0]
@@ -299,18 +312,18 @@ func (h *MaxHeap) Pop() *HeapItem {
 }
 
 // Peek 查看最大元素
-func (h *MaxHeap) Peek() *HeapItem {
+func (h *MaxHeap) Peek() HeapItem {
 	if len(h.data) == 0 {
-		return nil
+		return HeapItem{}
 	}
 	return h.data[0]
 }
 
 // Replace 替换堆顶元素（比 Pop + Push 更高效）
-func (h *MaxHeap) Replace(item *HeapItem) *HeapItem {
+func (h *MaxHeap) Replace(item HeapItem) HeapItem {
 	if len(h.data) == 0 {
 		h.Push(item)
-		return nil
+		return HeapItem{}
 	}
 
 	top := h.data[0]
@@ -362,14 +375,14 @@ func (h *MaxHeap) downHeap(pos int) {
 }
 
 // ToSortedArray 转为排序数组（升序）
-func (h *MaxHeap) ToSortedArray() []*HeapItem {
+func (h *MaxHeap) ToSortedArray() []HeapItem {
 	tempHeap := &MaxHeap{
-		data:     make([]*HeapItem, len(h.data)),
+		data:     make([]HeapItem, len(h.data)),
 		capacity: h.capacity,
 	}
 	copy(tempHeap.data, h.data)
 
-	result := make([]*HeapItem, 0, len(h.data))
+	result := make([]HeapItem, 0, len(h.data))
 	for tempHeap.Len() > 0 {
 		result = append(result, tempHeap.Pop())
 	}

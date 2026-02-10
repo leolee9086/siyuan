@@ -68,38 +68,49 @@ func dotProductDistance(a, b []float32) float32 {
 }
 
 type mockDistancer struct {
-	vectors  map[DocID][]float32
-	visited  map[DocID]uint32
+	vectors  [][]float32 // slice 索引即 DocID，避免 map 查找开销
+	visited  []uint32    // slice 索引即 DocID
 	epoch    uint32
 	distFunc metricFunc
 }
 
 func newMockDistancer(fn metricFunc) *mockDistancer {
 	return &mockDistancer{
-		vectors:  make(map[DocID][]float32),
-		visited:  make(map[DocID]uint32),
+		vectors:  make([][]float32, 0),
+		visited:  make([]uint32, 0),
 		distFunc: fn,
 	}
 }
 
 func (d *mockDistancer) AddVector(id DocID, vec []float32) {
+	// 确保 slice 容量足够
+	for int(id) >= len(d.vectors) {
+		d.vectors = append(d.vectors, nil)
+		d.visited = append(d.visited, 0)
+	}
 	cp := make([]float32, len(vec))
 	copy(cp, vec)
 	d.vectors[id] = cp
 }
 
 func (d *mockDistancer) ComputeDistance(a, b DocID, _ string) float32 {
-	va, oka := d.vectors[a]
-	vb, okb := d.vectors[b]
-	if !oka || !okb {
+	if int(a) >= len(d.vectors) || int(b) >= len(d.vectors) {
+		return 1e9
+	}
+	va := d.vectors[a]
+	vb := d.vectors[b]
+	if va == nil || vb == nil {
 		return 1e9
 	}
 	return d.distFunc(va, vb)
 }
 
 func (d *mockDistancer) ComputeDistanceFromVector(query []float32, id DocID, _ string) float32 {
-	v, ok := d.vectors[id]
-	if !ok {
+	if int(id) >= len(d.vectors) {
+		return 1e9
+	}
+	v := d.vectors[id]
+	if v == nil {
 		return 1e9
 	}
 	return d.distFunc(query, v)
@@ -118,8 +129,10 @@ func (d *mockDistancer) QuantizeQuery(_ []float32) ([]byte, bbq.QuantizationResu
 }
 
 func (d *mockDistancer) GetUnsafe(id DocID) ([]float32, bool) {
-	v, ok := d.vectors[id]
-	return v, ok
+	if int(id) >= len(d.vectors) || d.vectors[id] == nil {
+		return nil, false
+	}
+	return d.vectors[id], true
 }
 
 func (d *mockDistancer) NewSearchEpoch() uint32 {
@@ -127,10 +140,16 @@ func (d *mockDistancer) NewSearchEpoch() uint32 {
 }
 
 func (d *mockDistancer) IsVisited(id DocID, epoch uint32) bool {
+	if int(id) >= len(d.visited) {
+		return false
+	}
 	return d.visited[id] == epoch
 }
 
 func (d *mockDistancer) MarkVisited(id DocID, epoch uint32) {
+	for int(id) >= len(d.visited) {
+		d.visited = append(d.visited, 0)
+	}
 	d.visited[id] = epoch
 }
 
@@ -176,14 +195,17 @@ func newTestIndex(dim int, dist *mockDistancer) *HNSWIndex {
 	return NewHNSWIndex(dim, cfg, dist)
 }
 
-func bruteForceKNN(query []float32, vectors map[DocID][]float32, k int, fn metricFunc) []SearchResult {
+func bruteForceKNN(query []float32, vectors [][]float32, k int, fn metricFunc) []SearchResult {
 	type item struct {
 		id   DocID
 		dist float32
 	}
 	items := make([]item, 0, len(vectors))
 	for id, v := range vectors {
-		items = append(items, item{id: id, dist: fn(query, v)})
+		if v == nil {
+			continue
+		}
+		items = append(items, item{id: DocID(id), dist: fn(query, v)})
 	}
 	sort.Slice(items, func(i, j int) bool {
 		return items[i].dist < items[j].dist
@@ -207,7 +229,7 @@ func TestMinHeap_PushPopOrder(t *testing.T) {
 
 	distances := []float32{5.0, 1.0, 3.0, 0.5, 4.0, 2.0}
 	for i, d := range distances {
-		h.Push(&HeapItem{ID: DocID(i), Distance: d})
+		h.Push(HeapItem{ID: DocID(i), Distance: d})
 	}
 
 	if h.Len() != len(distances) {
@@ -226,15 +248,15 @@ func TestMinHeap_PushPopOrder(t *testing.T) {
 
 func TestMinHeap_Peek(t *testing.T) {
 	h := NewMinHeap()
-	if h.Peek() != nil {
-		t.Error("空堆 Peek 应返回 nil")
+	if h.Peek() != (HeapItem{}) {
+		t.Error("空堆 Peek 应返回零值")
 	}
 
-	h.Push(&HeapItem{ID: 1, Distance: 3.0})
-	h.Push(&HeapItem{ID: 2, Distance: 1.0})
+	h.Push(HeapItem{ID: 1, Distance: 3.0})
+	h.Push(HeapItem{ID: 2, Distance: 1.0})
 
 	peeked := h.Peek()
-	if peeked == nil || peeked.Distance != 1.0 {
+	if peeked.Distance != 1.0 {
 		t.Errorf("Peek 应返回最小元素 (1.0)，实际: %v", peeked)
 	}
 	if h.Len() != 2 {
@@ -244,8 +266,8 @@ func TestMinHeap_Peek(t *testing.T) {
 
 func TestMinHeap_EmptyPop(t *testing.T) {
 	h := NewMinHeap()
-	if h.Pop() != nil {
-		t.Error("空堆 Pop 应返回 nil")
+	if h.Pop() != (HeapItem{}) {
+		t.Error("空堆 Pop 应返回零值")
 	}
 	if !h.IsEmpty() {
 		t.Error("空堆 IsEmpty 应返回 true")
@@ -261,7 +283,7 @@ func TestMaxHeap_PushPopOrder(t *testing.T) {
 
 	distances := []float32{5.0, 1.0, 3.0, 0.5, 4.0, 2.0}
 	for i, d := range distances {
-		h.Push(&HeapItem{ID: DocID(i), Distance: d})
+		h.Push(HeapItem{ID: DocID(i), Distance: d})
 	}
 
 	prev := float32(math.MaxFloat32)
@@ -279,7 +301,7 @@ func TestMaxHeap_Capacity(t *testing.T) {
 	h := NewMaxHeap(cap)
 
 	for i := 0; i < 5; i++ {
-		h.Push(&HeapItem{ID: DocID(i), Distance: float32(i)})
+		h.Push(HeapItem{ID: DocID(i), Distance: float32(i)})
 	}
 
 	if h.Len() != cap {
@@ -292,27 +314,27 @@ func TestMaxHeap_Capacity(t *testing.T) {
 
 func TestMaxHeap_Replace(t *testing.T) {
 	h := NewMaxHeap(3)
-	h.Push(&HeapItem{ID: 1, Distance: 10.0})
-	h.Push(&HeapItem{ID: 2, Distance: 20.0})
-	h.Push(&HeapItem{ID: 3, Distance: 30.0})
+	h.Push(HeapItem{ID: 1, Distance: 10.0})
+	h.Push(HeapItem{ID: 2, Distance: 20.0})
+	h.Push(HeapItem{ID: 3, Distance: 30.0})
 
-	old := h.Replace(&HeapItem{ID: 4, Distance: 5.0})
-	if old == nil || old.Distance != 30.0 {
+	old := h.Replace(HeapItem{ID: 4, Distance: 5.0})
+	if old.Distance != 30.0 {
 		t.Errorf("Replace 应返回旧堆顶 (30.0)，实际: %v", old)
 	}
 
 	top := h.Peek()
-	if top == nil || top.Distance != 20.0 {
+	if top.Distance != 20.0 {
 		t.Errorf("Replace 后堆顶应为 20.0，实际: %v", top)
 	}
 }
 
 func TestMaxHeap_ToSortedArray(t *testing.T) {
 	h := NewMaxHeap(10)
-	h.Push(&HeapItem{ID: 1, Distance: 3.0})
-	h.Push(&HeapItem{ID: 2, Distance: 1.0})
-	h.Push(&HeapItem{ID: 3, Distance: 5.0})
-	h.Push(&HeapItem{ID: 4, Distance: 2.0})
+	h.Push(HeapItem{ID: 1, Distance: 3.0})
+	h.Push(HeapItem{ID: 2, Distance: 1.0})
+	h.Push(HeapItem{ID: 3, Distance: 5.0})
+	h.Push(HeapItem{ID: 4, Distance: 2.0})
 
 	sorted := h.ToSortedArray()
 	if len(sorted) != 4 {
@@ -333,9 +355,9 @@ func TestMaxHeap_ToSortedArray(t *testing.T) {
 
 func TestMaxHeap_EmptyReplace(t *testing.T) {
 	h := NewMaxHeap(3)
-	old := h.Replace(&HeapItem{ID: 1, Distance: 1.0})
-	if old != nil {
-		t.Error("空堆 Replace 应返回 nil")
+	old := h.Replace(HeapItem{ID: 1, Distance: 1.0})
+	if old != (HeapItem{}) {
+		t.Error("空堆 Replace 应返回零值")
 	}
 	if h.Len() != 1 {
 		t.Errorf("空堆 Replace 后大小应为 1，实际: %d", h.Len())
