@@ -77,11 +77,15 @@ func (idx *VamanaIndex) initializeForBuild(vectors [][]float32) {
 	defer idx.mu.Unlock()
 
 	n := len(vectors)
+	dim := idx.dimension
+
+	// 分配连续内存块，一次性容纳所有向量数据
+	idx.vectorData = make([]float32, n*dim)
 	idx.vectors = make([][]float32, n)
 	for i, v := range vectors {
-		vecCopy := make([]float32, len(v))
-		copy(vecCopy, v)
-		idx.vectors[i] = vecCopy
+		offset := i * dim
+		copy(idx.vectorData[offset:offset+dim], v)
+		idx.vectors[i] = idx.vectorData[offset : offset+dim : offset+dim]
 	}
 	idx.neighbors = make([][]uint32, n)
 	idx.neighborPtrs = make([]atomic.Pointer[[]uint32], n)
@@ -192,7 +196,7 @@ func (idx *VamanaIndex) buildNode(id uint32) {
 		maxBackedges = idx.config.MaxBackedges
 	}
 	for i := 0; i < maxBackedges; i++ {
-		idx.addEdgeAndPrune(neighbors[i], id)
+		idx.addEdgeAndPrune(neighbors[i], id, scratch)
 	}
 }
 
@@ -255,7 +259,11 @@ func (idx *VamanaIndex) addEdgeAndPruneLocked(nodeID, newNeighborID uint32) {
 	nodeNormSq := idx.normSquares[nodeID]
 	candidates := make([]Neighbor, 0, len(copyOfNeighbors))
 
-	for _, nid := range copyOfNeighbors {
+	for i, nid := range copyOfNeighbors {
+		// 预取下一个邻居的向量数据，与当前距离计算重叠内存延迟
+		if i+1 < len(copyOfNeighbors) {
+			idx.prefetchVector(copyOfNeighbors[i+1])
+		}
 		dist := idx.fastDistanceToQuery(nid, nodeVector, nodeNormSq)
 		candidates = append(candidates, Neighbor{ID: nid, Distance: dist})
 	}
@@ -272,46 +280,69 @@ func (idx *VamanaIndex) addEdgeAndPruneLocked(nodeID, newNeighborID uint32) {
 }
 
 // addEdgeAndPrune 添加反向边，必要时剪枝
-func (idx *VamanaIndex) addEdgeAndPrune(nodeID, newNeighborID uint32) {
-	idx.nodeLocks[nodeID].Lock()
-	defer idx.nodeLocks[nodeID].Unlock()
+// 采用与 addEdgeAndPruneLocked 一致的 lock-copy-unlock-prune-lock-write 模式
+// 和 GraphSlackFactor 松弛策略，大幅减少剪枝次数
+// scratch: 复用的搜索临时空间，用于 robustPruneWithScratch 避免重复分配
+func (idx *VamanaIndex) addEdgeAndPrune(nodeID, newNeighborID uint32, scratch *SearchScratch) {
+	idx.StatsBackedgeCalls.Add(1) // 统计：每次调用计数
 
-	idx.mu.RLock()
+	// ── Phase 1 (持锁): 快速检查 + 拷贝 ──
+	idx.nodeLocks[nodeID].Lock()
+
 	currentNeighbors := idx.neighbors[nodeID]
-	idx.mu.RUnlock()
 
 	// 检查是否已存在
 	if containsID(currentNeighbors, newNeighborID) {
+		idx.nodeLocks[nodeID].Unlock()
 		return
 	}
 
-	// 如果未满，直接添加
-	if len(currentNeighbors) < idx.config.R {
-		idx.mu.Lock()
-		idx.neighbors[nodeID] = append(idx.neighbors[nodeID], newNeighborID)
-		idx.mu.Unlock()
+	// 计算松弛后的最大度数
+	maxDegreeWithSlack := int(idx.config.GraphSlackFactor * float32(idx.config.R))
+
+	// 如果未超过松弛阈值，直接添加（不触发剪枝）
+	if len(currentNeighbors) < maxDegreeWithSlack {
+		updated := append(idx.neighbors[nodeID], newNeighborID)
+		idx.neighbors[nodeID] = updated
+		if idx.neighborPtrs != nil {
+			idx.neighborPtrs[nodeID].Store(&updated)
+		}
+		idx.nodeLocks[nodeID].Unlock()
 		return
 	}
 
-	// 需要剪枝：构建候选列表
+	idx.StatsBackedgePrunes.Add(1) // 统计：实际触发剪枝计数
+
+	// 需要剪枝：拷贝邻居列表后释放锁
+	copyOfNeighbors := make([]uint32, len(currentNeighbors), len(currentNeighbors)+1)
+	copy(copyOfNeighbors, currentNeighbors)
+	copyOfNeighbors = append(copyOfNeighbors, newNeighborID)
+
+	idx.nodeLocks[nodeID].Unlock()
+
+	// ── Phase 2 (无锁): 距离计算 + robustPrune ──
 	nodeVector := idx.vectors[nodeID]
-	candidates := make([]Neighbor, 0, len(currentNeighbors)+1)
+	nodeNormSq := idx.normSquares[nodeID]
+	candidates := make([]Neighbor, 0, len(copyOfNeighbors))
 
-	for _, nid := range currentNeighbors {
-		dist := idx.distanceToQuery(nid, nodeVector)
+	for i, nid := range copyOfNeighbors {
+		// 预取下一个邻居的向量数据，与当前距离计算重叠内存延迟
+		if i+1 < len(copyOfNeighbors) {
+			idx.prefetchVector(copyOfNeighbors[i+1])
+		}
+		dist := idx.fastDistanceToQuery(nid, nodeVector, nodeNormSq)
 		candidates = append(candidates, Neighbor{ID: nid, Distance: dist})
 	}
 
-	// 添加新邻居
-	newDist := idx.distanceToQuery(newNeighborID, nodeVector)
-	candidates = append(candidates, Neighbor{ID: newNeighborID, Distance: newDist})
+	newNeighbors := idx.robustPruneWithScratch(nodeID, candidates, idx.config.R, idx.config.Alpha, scratch)
 
-	// 剪枝
-	newNeighbors := idx.robustPrune(nodeID, candidates, idx.config.R, idx.config.Alpha)
-
-	idx.mu.Lock()
+	// ── Phase 3 (持锁): 写入剪枝结果 ──
+	idx.nodeLocks[nodeID].Lock()
 	idx.neighbors[nodeID] = newNeighbors
-	idx.mu.Unlock()
+	if idx.neighborPtrs != nil {
+		idx.neighborPtrs[nodeID].Store(&newNeighbors)
+	}
+	idx.nodeLocks[nodeID].Unlock()
 }
 
 // Insert 单点插入
@@ -320,17 +351,45 @@ func (idx *VamanaIndex) Insert(vector []float32) (uint32, error) {
 
 	// 分配新ID
 	id := uint32(len(idx.vectors))
+	dim := idx.dimension
 
-	// 添加向量
-	idx.vectors = append(idx.vectors, vector)
+	// 添加向量到连续内存布局
+	requiredLen := (int(id) + 1) * dim
+	if requiredLen > cap(idx.vectorData) {
+		// 容量不足，2x 扩容
+		newCap := cap(idx.vectorData) * 2
+		if newCap < requiredLen {
+			newCap = requiredLen * 2
+		}
+		newData := make([]float32, requiredLen, newCap)
+		copy(newData, idx.vectorData)
+		idx.vectorData = newData
+		// 底层数组地址变了，重建所有 sub-slice 视图
+		idx.rebuildVectorViews()
+	} else {
+		idx.vectorData = idx.vectorData[:requiredLen]
+	}
+
+	// 将新向量数据复制到连续存储
+	offset := int(id) * dim
+	copy(idx.vectorData[offset:offset+dim], vector)
+
+	// 创建 sub-slice 视图
+	idx.vectors = append(idx.vectors, idx.vectorData[offset:offset+dim:offset+dim])
+
 	idx.neighbors = append(idx.neighbors, nil)
 
 	// 预计算范数平方
-	idx.normSquares = append(idx.normSquares, computeNormSquare(vector))
+	queryNormSq := computeNormSquare(vector)
+	idx.normSquares = append(idx.normSquares, queryNormSq)
 
-	// 扩展节点锁
+	// 扩展节点锁（2x 扩容策略，避免每次 Insert 都重建）
 	if int(id) >= len(idx.nodeLocks) {
-		newLocks := make([]sync.RWMutex, id+1)
+		newCap := len(idx.nodeLocks) * 2
+		if newCap < int(id)+1 {
+			newCap = (int(id) + 1) * 2
+		}
+		newLocks := make([]sync.RWMutex, newCap)
 		copy(newLocks, idx.nodeLocks)
 		idx.nodeLocks = newLocks
 	}
@@ -349,12 +408,14 @@ func (idx *VamanaIndex) Insert(vector []float32) (uint32, error) {
 	scratch := idx.getScratch()
 	defer idx.putScratch(scratch)
 
-	// 1. 贪婪搜索找候选
+	// 1. 贪婪搜索找候选（使用预计算的 queryNormSq 避免重复计算）
 	startIDs := []uint32{idx.medoid}
-	candidates := idx.greedySearch(scratch, startIDs, vector, idx.config.L)
+	idx.distPhase.Store(1) // phase 1: greedySearch
+	candidates := idx.greedySearchFast(scratch, startIDs, vector, queryNormSq, idx.config.L)
 
-	// 2. RobustPrune剪枝
-	neighbors := idx.robustPrune(id, candidates, idx.config.R, idx.config.Alpha)
+	// 2. RobustPrune剪枝（复用 scratch 缓冲区避免重复分配）
+	idx.distPhase.Store(2) // phase 2: selfPrune
+	neighbors := idx.robustPruneWithScratch(id, candidates, idx.config.R, idx.config.Alpha, scratch)
 
 	// 3. 设置新节点的邻居
 	idx.mu.Lock()
@@ -362,13 +423,15 @@ func (idx *VamanaIndex) Insert(vector []float32) (uint32, error) {
 	idx.mu.Unlock()
 
 	// 4. 添加反向边
+	idx.distPhase.Store(3) // phase 3: backedge
 	maxBackedges := len(neighbors)
 	if maxBackedges > idx.config.MaxBackedges {
 		maxBackedges = idx.config.MaxBackedges
 	}
 	for i := 0; i < maxBackedges; i++ {
-		idx.addEdgeAndPrune(neighbors[i], id)
+		idx.addEdgeAndPrune(neighbors[i], id, scratch)
 	}
+	idx.distPhase.Store(0) // 结束统计
 
 	return id, nil
 }
@@ -400,7 +463,10 @@ func (idx *VamanaIndex) robustPruneCore(
 				continue
 			}
 
+			// 预取当前候选的向量数据，与 occludeFactor 判断重叠内存延迟
+			// 此处 cand.ID 的向量即将在 fastDistance 中被访问
 			cand := &candidates[i]
+			idx.prefetchVector(cand.ID)
 
 			if cand.ID == nodeID {
 				occludeFactor[i] = math.MaxFloat32

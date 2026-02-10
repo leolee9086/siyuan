@@ -42,6 +42,7 @@
 - [x] Phase 8 距离计算8路展开优化后吞吐量对比 — 318→333 items/s (+5%)，累计+131%
 - [x] Phase 9 ComputeDistance向量预取优化 — 对比测试333→336 items/s (+1%)，独立基准333→485 items/s (+45.6%)，累计+133%
 - [x] Phase 10 全面变量预取+对比测试改用VectorStore distancer — 336→1292 items/s (+285%)，累计+797%，HNSW领先Vamana Insert 5x
+- [x] Phase 11 Vamana Insert addEdgeAndPrune GraphSlackFactor松弛策略 — Vamana 258→517/s (+100%)，HNSW/Vamana差距5x→2.8x，HNSW 1431/s
 
 ## 🟢 近期计划
 

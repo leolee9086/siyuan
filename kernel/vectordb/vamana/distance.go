@@ -22,6 +22,14 @@ import "sort"
 // 距离计算函数
 // ============================================================================
 
+// prefetchVector 触发 CPU 缓存行预取，将指定节点的向量数据加载到 L1/L2 缓存。
+// 通过访问向量数据的首个 float32，利用 CPU 硬件预取器的顺序检测能力，
+// 使后续的 dotProduct 计算能命中缓存而非等待主存延迟（~100ns → ~1ns）。
+// Go 编译器不会消除此访问，因为 slice 边界检查具有可观测副作用。
+func (idx *VamanaIndex) prefetchVector(id uint32) {
+	_ = idx.vectorData[int(id)*idx.dimension]
+}
+
 // euclideanDistanceWithNorms 使用双端预计算范数平方计算欧氏距离平方
 // ||a - b||² = ||a||² + ||b||² - 2<a,b>
 // 当 a 和 b 的 normSq 都已缓存时，仅需 1 次 dotProduct 调用（相比 euclideanDistance 的 3 次）。

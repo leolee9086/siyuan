@@ -105,7 +105,11 @@ func (idx *VamanaIndex) greedySearchFast(scratch *SearchScratch, startIDs []uint
 		// 展开邻居 (不再需要加锁，已在函数开始时持有读锁)
 		neighbors := idx.neighbors[closest.ID]
 
-		for _, neighborID := range neighbors {
+		for i, neighborID := range neighbors {
+			// 预取下一个邻居的向量数据，与当前距离计算重叠内存延迟
+			if i+1 < len(neighbors) {
+				idx.prefetchVector(neighbors[i+1])
+			}
 			// 跳过已删除节点
 			if idx.deleted.Test(neighborID) {
 				continue
@@ -163,7 +167,11 @@ func (idx *VamanaIndex) greedySearchForBuild(scratch *SearchScratch, startIDs []
 		}
 		neighbors := *neighborsPtr
 
-		for _, neighborID := range neighbors {
+		for i, neighborID := range neighbors {
+			// 预取下一个邻居的向量数据，与当前距离计算重叠内存延迟
+			if i+1 < len(neighbors) {
+				idx.prefetchVector(neighbors[i+1])
+			}
 			// 边界检查：跳过无效的邻居ID
 			if int(neighborID) >= len(idx.vectors) {
 				continue

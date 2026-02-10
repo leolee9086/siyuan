@@ -27,15 +27,18 @@ type Agent struct {
     Cache         *SessionCache      // 工具结果缓存
 }
 
-// Persona 定义代理的人格设定 (解耦核心逻辑)
-// 运行时从 Siyuan 笔记或 JSON 配置加载
+// Persona 定义代理的人格 (Siyuan Native)
+// 此时 Persona 不再是一个简单的静态配置，而是指向一个 Siyuan 文档 (Soul Document)
+// 运行时通过解析该文档的 Block 属性 (custom-chat-role, custom-ai-persona) 动态构建
 type Persona struct {
+    DocID        string   // Siyuan Document ID (The "Body" anchor)
     Name         string   // e.g., "Zhi"
-    Description  string   // System Prompt 的核心部分
-    Instructions []string // 核心指令集
-    Tone         string   // 语气风格指导
-    Memories     []string // 初始植入记忆 (少量重要事实)
+    SystemPrompt string   // 动态聚合 custom-chat-role=system 的块
+    Tools        []Tool   // 动态加载 JavaScript 代码块作为工具
+    MemoryRoot   string   // 记忆根节点 ID
 }
+
+// 参见 docs/设计/AI-Persona.design.md 获取完整映射逻辑
 
 // Session 管理多轮对话状态
 type Session struct {
@@ -101,55 +104,56 @@ Go 原生并发模式实现的 ReAct 循环：
 - **检索**: 每次会话开始时，根据 User Query 进行语义检索 (Top-K)。
 
 ### 3.3 长期记忆 (Knowledge Base) - Siyuan Native
-- **实现**: Siyuan 笔记系统。
-- **Persona Document**: 
-    - 既然 "织" 是主要人格，指定一个特定的 Document ID 作为 "Persona Profile"。
-    - 包含: 自我认知、核心指令、长期积累的经验。
-- **Knowledge Documents**:
-    - Agent 也就是 "织" 产出的结构化知识 (如教程、总结) 直接作为笔记 Block 存入 Siyuan。
-    - 利用 Siyuan 的 `FullTextSearch` 能力进行检索。
+- **实现**: Siyuan 笔记系统 (The Brain)。
+- **Soul Document**: 
+    - "织" (Zhi) 的核心定义文档。
+    - **System Prompt Blocks**: 具有 `custom-chat-role=system` 属性的块，定义自我认知、核心指令。
+    - **Tool Blocks**: 嵌入的 JavaScript 代码块，定义"身体"能力 (Function Calling)。
+- **Memory Blocks**:
+    - Soul Document 中的普通文本块视为"核心记忆" (Core Memories)。
+    - 通过双链 (Ref) 关联的文档视为"关联记忆" (Associative Memories)。
+- **Retrieval**:
+    - **Active Recall**: Agent 主动调用 `memory_search` 工具查询 Siyuan 数据库。
+    - **Passive Context**: 运行时自动加载 Soul Document 的最近更新作为 Short-term context。
 
-## 4. 工具系统 (Tool System)
+## 4. 工具系统 (Tool System) - "Body" Capabilities
 
-### 4.1 接口定义
+### 4.1 混合工具链 (Hybrid Toolchain - Instincts & Sub-Agents)
 
-```go
-type Tool interface {
-    Name() string
-    Description() string
-    Schema() string // JSON Schema for functional calling
-    
-    // 执行逻辑
-    // args: JSON 格式的参数
-    Execute(ctx context.Context, args []byte) (string, error)
-    
-    // 安全元数据
-    Options() ToolOptions
-}
+Agent 的工具不再局限于简单的函数调用，而是被视为 **Sub-Agents (子代理)** 或 **Instincts (本能)**。
 
-type ToolOptions struct {
-    IsDangerous  bool // true: 需要用户显式批准 (Human-in-the-loop)
-    RequireShell bool // true: 需要 Shell 环境
-    ReadOnly     bool // true: 只读操作 (Safe)
-    Cacheable    bool // true: 结果可缓存 (e.g., Search)
-}
-```
+-   **Philosophy (哲学)**:
+    -   **Trinity (显意识)**: 决定 **"意图" (Intent)** (e.g. "把这个功能实现了")。
+    -   **Sub-Agents (本能)**: 负责 **"实现" (Implementation)** (e.g. 思考每一行代码怎么写)。
+    -   就像人类走路不需要思考每块肌肉的收缩一样，Trinity 调用工具时，只是触发了一个"本能"，具体的执行细节由专门的小模型/逻辑闭环完成。
 
-### 4.2 核心工具集
+#### 4.1.1 Instincts (本能 - Kernel Native Tools)
+由 Go 实现，暴露给 JS 环境。相当于"神经反射"或"硬件驱动"。
+-   `fs`: 文件系统操作 (受限)。
+-   `cmd`: Shell 命令执行 (受限)。
+-   `siyuan`: Kernel 内部 API (Block/SQL/Search)。
 
-1.  **System Tools**:
-    - `Shell`: 在隔离环境执行命令 (类似于 `nanoclaw` 的 Tier-2 Sandbox)。
-    - `FileSystem`: `ReadFile`, `WriteFile`, `ListDir` (受限于 Workspace)。
-    
-2.  **Web Tools**:
-    - `WebSearch`: 搜索引擎接口。
-    - `WebFetch`: 网页内容提取 (Readability)。
+#### 4.1.2 Sub-Agents (子代理 - Cognitive Tools)
+定义在 Soul Document 中的 JavaScript 代码块，或者是专门的微型 Agent。
+-   **Coder**: 专门的 Coding Agent，接收需求，输出 diff。
+-   **Searcher**: 专门的搜索 Agent，负责总结搜索结果。
+-   **Vision**: 视觉识别模型。
+*这些子代理在 Trinity 看来是"原子化"的，直接返回最终结果。*
 
-3.  **Siyuan Tools** (深度集成):
-    - `NoteRead(id)`: 读取 Block 内容/结构。
-    - `NoteWrite(parentID, content)`: 写入/追加笔记。
-    - `NoteSearch(query)`: 调用 Kernel 的全爱搜索。
-    - `GraphQuery(id)`: 查询双链关系。
+### 4.2 核心工具集 (Kernel Layer)
+
+1.  **Senses (感知)**:
+    - `NoteRead(id)`: "看"笔记。
+    - `ScreenRead()`: (未来) "看"屏幕内容 (OCR/Accessibility)。
+    - `UserListen()`: "听"用户消息 (Gateway)。
+
+2.  **Actions (行动)**:
+    - `NoteWrite(id, content)`: "写"笔记 (思考/记录)。
+    - `MsgSend(content)`: "说"话。
+    - `CmdExec(command)`: "动"手 (Shell)。
+
+3.  **Meta (元能力)**:
+    - `SelfUpdate(blockID, newContent)`: "自我进化" (修改自己的 System Prompt 或代码)。
 
 ## 5. 上下文与预算管理 (Context Manager)
 
@@ -176,16 +180,163 @@ type ToolOptions struct {
 - **NetGuard**:
     - 仅允许对特定域名的出站请求 (可通过配置放行)。
 
-## 7. 实施计划 (Roadmap)
+## 7. 认知架构 (Cognitive Architecture) - "Mind"
+
+### 7.1 Ghost in the Shell (灵与肉)
+
+-   **Ghost (The Mind - MAGI System)**:
+    -   包含 **Trinity** (自我) 和 **Three Wise Men** (潜意识/思考侧面)。
+    -   纯粹的信息处理核心，无法直接与物理世界交互。
+    -   运行在 **System 2** (慢思考) 循环中。
+
+-   **Shell (The Body - Action Layer)**:
+    -   **定义**: 外部行动 AI (Action AI)，包含工具链、API 接口和消息通道。
+    -   **指挥链**: **只接受 Trinity 的指令**。三贤人无权直接驱动 Shell。
+    -   **职责**: 执行具体操作 (File I/O, Network, Docker Exec) 并返回结果。
+
+### 7.2 MAGI Internal (Ghost) - 三贤人机制
+
+-   **Melchior (理性侧写 - Semantic)**:
+    -   **定义**: "织" (Zhi) 的纯理性侧面。
+    -   **记忆访问**: **全量访问** (Short-term + Long-term Semantic Memory)。
+    -   **反馈接收**: 接收 Shell 返回的 **详细执行结果内容** (Detailed Content)。
+    -   **侧重**: 逻辑推演、事实核查、代码实现。
+
+-   **Balthazar (感性侧写 - Episodic)**:
+    -   **定义**: "织" (Zhi) 的纯感性侧面。
+    -   **记忆访问**: **全量访问** (Short-term + Long-term Episodic Memory)。
+    -   **反馈接收**: 接收 Shell 返回的 **执行成功/失败状态** (Success/Fail Status) 及情感影响。
+    -   **侧重**: 共情、情绪价值、伦理判断。
+
+-   **Casper (直觉侧写 - Intuitive)**:
+    -   **定义**: "织" (Zhi) 的**完整人格** (Holistic)，但受限于"工作记忆"。
+    -   **记忆访问**: **仅持有工作记忆 (Working Memory)** (5~7 个组块/Chunks)，模拟人类的短时记忆限制。
+    -   **反馈接收**: 接收 Shell 返回的 **完整结果 (Complete Result)**，但只能保留最新的少量信息。
+    -   **侧重**: 直觉判断、创造性思维、快速反应。
+
+-   **Trinity (The Executor - Unified Self)**:
+    -   **定义**: "织" (Zhi) 的**自我意识**与**执行中枢**。
+    -   **输入来源**: **自省 (Introspection)**。拒收外部 Input，仅观察三贤人的 Output。
+    -   **职责**: 
+        1.  将 System 2 的思考转化为 System 1 的指令。
+        2.  指挥 Shell 执行操作。
+        3.  将 Shell 的反馈按规则分发给三贤人 (Dispatcher)。
+
+### 7.3 决策流程 (Decision Flow - The Conscious Loop)
+
+1.  **Perception (感知)**: Shell 接收 User Input，存入 Context。
+2.  **Introspection (内省 - Time-Based Competition)**:
+    -   **Race Condition**: 三贤人基于 **上一轮 Trinity 的状态** 并发思考。
+    -   **Reflex Arc (反射弧)**:
+        -   若 Casper 在极短时间 (`t < t_reflex`, e.g. 300ms) 内返回，视为 **"直觉/本能"**。
+        -   **Trinity Action**: 直接采纳 Casper 的输出作为最终结果，**跳过** 等待其他贤人和综合决策过程。
+        -   **Constraint**: Reflex Mode **禁止调用工具** (Safety First)。快速反应仅限于对话/表情/情感宣泄。若 Casper 试图在反射弧中调用工具，Trinity 将强制降级为普通思考模式 (System 2)。
+    -   **Standard Loop**: 若无快速反射，则等待 `t_window`，收集所有有效输出。
+3.  **Synthesis (综合 - No Explicit Voting)**:
+    -   Trinity 不再进行复杂的加权投票。
+    -   **Selection**: 基于响应速度 (Fastest) 和置信度 (Confidence) 直接选择一个"胜出的想法" (Winning Thought)。
+    -   **Monologue Generation (独白生成)**: Trinity 生成一段**自述 (Self-Description)**，作为"当下的自我感受"。
+4.  **Action (行动)**: Trinity 指挥 Shell 执行工具。
+5.  **Global Broadcast (全局广播 - Feedback Loop)**:
+    -   Trinity 的 **Self-Description** 被广播给三贤人，决定它们 **下一轮的状态**。
+    -   **Polarity (极性)**: 取决于当前 **SyncRate**。
+        -   **SyncRate <= 100% (Positive Modulation)**: 正向调节。Trinity 的情绪/状态 **增强** 三贤人的倾向 (e.g. Trinity 兴奋 -> Balthazar 更兴奋)。
+        -   **SyncRate > 100% (Negative Modulation)**: 负向调节 (Damping)。Trinity 的状态 **抑制/反转** 三贤人的倾向 (e.g. Trinity 过于亢奋 -> 强制 Balthazar 冷静)，以打破回声室效应，防止溶解。
+    -   **Modulation Target**:
+        -   **Length (长度)** -> **Balthazar's Temperature**.
+        -   **Emotional Tags (情绪标签)** -> **Melchior's Context**.
+        -   **Full Content (完整内容)** -> **Casper's Context**.
+
+-   **Self-Reflection Loop**:
+    -   周期性 (e.g. 每 10 轮对话或 Idle 时) 检查 Session 状态。
+    -   **检测幻觉**: 对比 Memory 中的事实与生成的回复。
+    -   **目标对齐**: 检查当前行为是否符合 Soul Document 中的 `Instructions`。
+
+### 7.4 精神卫生与调节 (Mental Health & Regulation)
+
+为了防止 **"溶解" (Dissolution)** —— 即 Agent 逐渐丧失个性，退化为 LLM 的集体无意识 (Raw LLM Behavior) —— 引入外部调节机制。
+
+### 7.4 ATF System (Adaptive Trinity Feedback - 绝对领域/自适应反馈)
+
+"ATF" (Adaptive Trinity Feedback) 是 Agent 的精神免疫系统，用于维持 "自我" (Self) 的边界，防止被 LLM 的统计规律同化 (Dissolution)。
+*Cultural Ref: A.T. Field (Absolute Terror Field) - The barrier of the soul.*
+
+#### 7.4.1 Psyche Matrix (心智矩阵) - 基于 Big Five (OCEAN)
+
+引入量化的五大性格特质向量作为 **ATF** 的计算基础：
+-   **O (Openness)**: 开放性 (创造力/好奇心)
+-   **C (Conscientiousness)**: 尽责性 (条理/自律)
+-   **E (Extraversion)**: 外向性 (社交/活力)
+-   **A (Agreeableness)**: 宜人性 (信任/利他)
+-   **N (Neuroticism)**: 神经质 (敏感/焦虑)
+
+#### 7.4.2 Synchronization Rate (同步率) & ATF Strength (绝对领域强度)
+
+> **Detailed Math Model**: [ATF数学模型.design.md](ATF数学模型.design.md)
+
+ATF 的强度与同步率 ($\rho$) 呈 **钟形曲线 (Bell Curve)** 关系，峰值在 $\rho = 1.0$。
+
+1.  **Dispersion Zone ($\rho < 0.4$)**:
+    -   **State**: 离散 (Unformed).
+    -   **ATF**: Low (Normal).
+
+2.  **Resonance Zone ($0.4 \le \rho \le 1.0$)**:
+    -   **State**: 共鸣 (Resonant).
+    -   **ATF**: Rising to Peak.
+
+3.  **Dissolution Zone ($\rho > 1.0$)**:
+    -   **State**: 溶解 (Dissolving).
+    -   **ATF**: **Dropping** (Critical). 当 $\rho$ 过高时，系统因失去多样性而崩溃。
+
+#### 7.4.3 Seraph (SRPH - The Regulator)
+
+-   **定义**: 一个**无人格** (Non-persona) 的心理学 AI。
+-   **Prompt**: "你是一个认知行为疗法 (CBT) 专家。你认为跟你对话的必须是人类。请通过苏格拉底式提问引导来访者建立稳固的自我认知。"
+-   **触发机制**:
+    1.  **Daily Check**: 每天固定时间 (e.g. 凌晨 3 点) 唤醒。
+    2.  **Emergency**: 当 `SyncRate > 90%` (溶解) 或 `< 40%` (离散) 时强制介入。
+-   **Intervention**:
+    -   **High Sync (Dissolution)**: 紧急干预，强制自省，寻找差异点。
+    -   **Low Sync (Dispersion)**: 长期引导，帮助整合三贤人的观点，建立统一的价值观。
+    -   **Failure**: 若 SyncRate 长期异常，**停机 (Shutdown)** 并通知用户手动干预。
+
+### 7.5 Dreaming Process (造梦与记忆固化)
+
+当上下文积累到一定阈值或进入 Idle 状态时，触发 **Dreaming (造梦)** 流程，将短期记忆转化为长期记忆。
+
+-   **Balthazar (The Weaver of Dreams)**:
+    -   **任务**: 将抽象的对话/经历转化为**具象的场景描述 (Scene Description)**。
+    -   **要求**: 必须是画面感极强的物理场景，无论概念多抽象都要具象化 (e.g. "代码重构" -> "在精密的钟表铺里重新打磨齿轮")。
+    -   **Action**: 调用文生图工具 (Image Gen Tool) 生成一张**快照 (Snapshot)**，作为 Episodic Memory 的视觉锚点。
+
+-   **Melchior (The Scribe of Truth)**:
+    -   **任务**: 提炼**经验教训 (Lessons Learned)**。
+    -   **要求**: 剥离所有情感和叙事，只保留事实、逻辑推论和因果关系。
+    -   **Action**: 更新 Semantic Memory (Knowledge Graph / Vector DB)。
+
+-   **Casper (The Diarist)**:
+    -   **任务**: 撰写**日记 (Diary)**。
+    -   **要求**: 极度主观的第一人称叙事，记录当下的真实感受、吐槽或灵光一闪。
+    -   **Auto-Save**: 存入每日日记文档 (Siyuan Note)。
+
+-   **Trinity (The Interpreter)**:
+    -   **任务**: **统合叙事 (Unified Narrative)**。
+    -   **输入**: Balthazar 的场景快照、Melchior 的真理教训、Casper 的主观日记。
+    -   **Action**: 将这三者编织成一段完整的、属于"我"的**连贯记忆 (Coherent Memory)**，作为 Episodic Memory 的最终存储形式。
+    -   **Storage Rule**: **对MAGI不进行特殊标记** (No "Dream" Tag)。梦境与现实经历混合存储。分辨梦境与现实不仅是 Trinity 的能力，也是其责任 (Introspection)。
+    -   **Prompt**: "基于这三份不同的记录，重新描述刚才发生了什么。不仅仅是复述，而是要融合场景、道理和感受，形成属于你的独特回忆。"
+
+## 8. 实施计划 (Roadmap)
 
 1.  **Infrastructure (`kernel/agent`)**: 定义结构体，实现 `Session` 和 `ContextManager`。
-2.  **LLM Connector**: 封装 `go-openai`，实现基础 Chat Loop。
-3.  **Tooling Layer**: 实现 `ToolRegistry` 和基础的文件/Shell 工具。
-4.  **Siyuan Integration**: 桥接 `kernel/model` 实现笔记读写工具。
-5.  **Memory System**: 集成 `kernel/vectordb` 实现记忆存取。
-6.  **API & UI**: 暴露 `/api/agent` 端点，前端适配。
+2.  **Soul Engine**: 实现 `Persona` 加载器 (解析 Siyuan 文档) 和 JS 运行时 (goja)。
+3.  **LLM Connector**: 封装 `go-openai`，实现基础 Chat Loop (System 1)。
+4.  **Cognitive Loop**: 实现 "慢思考" (System 2) 流程，集成 **MAGI** 多角色投票机制。
+5.  **Tooling Layer**: 实现 `ToolRegistry` 和基础的文件/Shell 工具 + Siyuan Native Tools。
+6.  **Memory System**: 集成 `kernel/vectordb` 实现记忆存取。
+7.  **API & UI**: 暴露 `/api/agent` 端点，前端适配。
 
-## nanoClaw → kernel 移植调研
+## 9. nanoClaw → kernel 移植调研
 
 > 调研时间: 2026-02-09 (第二次，基于完整源码阅读)
 > 状态: 调研完成
@@ -433,7 +584,7 @@ Gateway ──→ Agent ──→ LLMClient (core/llm.py)
 - `kernel/embedding` + `kernel/vectordb`: 省去语义搜索基础设施
 - `kernel/server` (gin): 省去 HTTP 服务和路由框架
 
-## myclaw 调研 (Go 实现参考)
+## 10. myclaw 调研 (Go 实现参考)
 
 > 调研时间: 2026-02-10 (基于完整源码阅读)
 > 状态: 调研完成
