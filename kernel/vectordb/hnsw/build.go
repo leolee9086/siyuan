@@ -122,17 +122,40 @@ func (idx *HNSWIndex) buildHNSWIndex(itemDocID DocID, entryPointID DocID, itemLe
 }
 
 // greedySearch 在单层执行贪心搜索（节点对节点）
+// 优化：非BBQ路径预取 queryVec，消除每次距离计算中的重复向量查找
 func (idx *HNSWIndex) greedySearch(queryID DocID, entryPointID DocID, level int, metricType string) DocID {
 	currentBestID := entryPointID
 	useBQ := idx.Dimension >= bbq.BBQEnableThreshold
 
-	var currentDist float32
-	if useBQ {
-		currentDist = idx.Distancer.ComputeBBQDistance(queryID, currentBestID)
-	} else {
-		currentDist = idx.Distancer.ComputeDistance(queryID, currentBestID, metricType)
+	if !useBQ {
+		// 预取 queryVec，后续循环中复用，避免每次 ComputeDistance 都查找 queryID 的向量
+		queryVec, ok := idx.Distancer.GetUnsafe(queryID)
+		if !ok {
+			return currentBestID
+		}
+		currentDist := idx.Distancer.ComputeDistanceFromVector(queryVec, currentBestID, metricType)
+
+		improved := true
+		for improved {
+			improved = false
+			neighbors := idx.GetLevelNeighborRecords(currentBestID, level)
+			if neighbors == nil {
+				break
+			}
+			for _, neighbor := range neighbors {
+				dist := idx.Distancer.ComputeDistanceFromVector(queryVec, neighbor.ID, metricType)
+				if dist < currentDist {
+					currentBestID = neighbor.ID
+					currentDist = dist
+					improved = true
+				}
+			}
+		}
+		return currentBestID
 	}
 
+	// BBQ 路径
+	currentDist := idx.Distancer.ComputeBBQDistance(queryID, currentBestID)
 	improved := true
 	for improved {
 		improved = false
@@ -140,15 +163,8 @@ func (idx *HNSWIndex) greedySearch(queryID DocID, entryPointID DocID, level int,
 		if neighbors == nil {
 			break
 		}
-
 		for _, neighbor := range neighbors {
-			var dist float32
-			if useBQ {
-				dist = idx.Distancer.ComputeBBQDistance(queryID, neighbor.ID)
-			} else {
-				dist = idx.Distancer.ComputeDistance(queryID, neighbor.ID, metricType)
-			}
-
+			dist := idx.Distancer.ComputeBBQDistance(queryID, neighbor.ID)
 			if dist < currentDist {
 				currentBestID = neighbor.ID
 				currentDist = dist
@@ -161,6 +177,7 @@ func (idx *HNSWIndex) greedySearch(queryID DocID, entryPointID DocID, level int,
 }
 
 // searchLevel 在指定层搜索 ef 个候选节点（节点对节点）
+// 优化：非BBQ路径预取 queryVec，消除每次距离计算中的重复向量查找
 func (idx *HNSWIndex) searchLevel(queryID DocID, entryPointID DocID, level int, ef int, metricType string) []NeighborRecord {
 	epoch := idx.Distancer.NewSearchEpoch()
 
@@ -169,11 +186,21 @@ func (idx *HNSWIndex) searchLevel(queryID DocID, entryPointID DocID, level int, 
 
 	useBQ := idx.Dimension >= bbq.BBQEnableThreshold
 
+	// 非BBQ路径：预取 queryVec 避免重复查找
+	var queryVec []float32
+	if !useBQ {
+		var ok bool
+		queryVec, ok = idx.Distancer.GetUnsafe(queryID)
+		if !ok {
+			return nil
+		}
+	}
+
 	var entryDist float32
 	if useBQ {
 		entryDist = idx.Distancer.ComputeBBQDistance(queryID, entryPointID)
 	} else {
-		entryDist = idx.Distancer.ComputeDistance(queryID, entryPointID, metricType)
+		entryDist = idx.Distancer.ComputeDistanceFromVector(queryVec, entryPointID, metricType)
 	}
 
 	candidates.Push(HeapItem{ID: entryPointID, Distance: entryDist})
@@ -202,7 +229,7 @@ func (idx *HNSWIndex) searchLevel(queryID DocID, entryPointID DocID, level int, 
 			if useBQ {
 				dist = idx.Distancer.ComputeBBQDistance(queryID, neighbor.ID)
 			} else {
-				dist = idx.Distancer.ComputeDistance(queryID, neighbor.ID, metricType)
+				dist = idx.Distancer.ComputeDistanceFromVector(queryVec, neighbor.ID, metricType)
 			}
 
 			if !results.IsFull() {
@@ -248,17 +275,26 @@ func (idx *HNSWIndex) selectNeighborsHeuristic(itemID DocID, candidates []Neighb
 		}
 
 		isGood := true
-		for _, res := range result {
-			var distToRes float32
-			if useBQ {
-				distToRes = idx.Distancer.ComputeBBQDistance(candidate.ID, res.ID)
-			} else {
-				distToRes = idx.Distancer.ComputeDistance(candidate.ID, res.ID, metricType)
+		if useBQ {
+			for _, res := range result {
+				distToRes := idx.Distancer.ComputeBBQDistance(candidate.ID, res.ID)
+				if distToRes < candidate.Distance {
+					isGood = false
+					break
+				}
 			}
-
-			if distToRes < candidate.Distance {
-				isGood = false
-				break
+		} else {
+			// 预取 candidate 向量，内循环中复用
+			candidateVec, ok := idx.Distancer.GetUnsafe(candidate.ID)
+			if !ok {
+				continue
+			}
+			for _, res := range result {
+				distToRes := idx.Distancer.ComputeDistanceFromVector(candidateVec, res.ID, metricType)
+				if distToRes < candidate.Distance {
+					isGood = false
+					break
+				}
 			}
 		}
 

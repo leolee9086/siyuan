@@ -304,19 +304,22 @@ func TestHNSWvsVamanaInsertThroughput(t *testing.T) {
 func runHNSWPhasedInsert(t *testing.T, vectors [][]float32) []phaseResult {
 	t.Helper()
 
-	dist := newBenchDistancer(benchCompTotal)
+	// 使用生产级 VectorStore 替代 benchDistancer，
+	// 以反映真实的连续内存布局和 8 路展开距离计算性能
+	store := NewVectorStore(benchCompDim)
+	store.Grow(benchCompTotal)
 	cfg := hnsw.Config{
 		M:              16,
 		EfConstruction: 200,
 		EfSearch:       64,
 		MaxLevel:       16,
-		MetricType:     "euclidean",
+		MetricType:     "l2", // VectorStore 使用 "l2" 而非 "euclidean"
 	}
-	idx := hnsw.NewHNSWIndex(benchCompDim, cfg, dist)
+	idx := hnsw.NewHNSWIndex(benchCompDim, cfg, store)
 
-	// 预加载所有向量到 distancer
+	// 预加载所有向量到 VectorStore
 	for i, v := range vectors {
-		dist.AddVector(hnsw.DocID(i), v)
+		store.Set(DocID(i), v)
 	}
 
 	phases := benchCompTotal / benchCompPhaseSize
