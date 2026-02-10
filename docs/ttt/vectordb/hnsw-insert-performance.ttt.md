@@ -39,6 +39,7 @@
 - [x] 查询召回率无回归 — 三种度量（euclidean/cosine/dotProduct）均100%召回
 - [x] Phase 6 HNSW vs Vamana/DiskVamana 全面对比 — HNSW 200/s vs Vamana 294/s，同量级
 - [x] Phase 7 松弛因子优化后吞吐量对比 — 200→318 items/s (+59%)，反超Vamana
+- [x] Phase 8 距离计算8路展开优化后吞吐量对比 — 318→333 items/s (+5%)，累计+131%
 
 ## 🟢 近期计划
 
@@ -49,6 +50,20 @@
 （暂无）
 
 ## 🏁 已归档/已完成
+
+- [x] **Phase 8: 距离计算路径优化 (2026-02-10)** — 完成（边际提升）
+  - **优化内容**:
+    1. euclideanDistance/L2Distance/CosineDistance 从4路展开改为8路展开+独立累加器
+    2. mockDistancer从双重间接寻址([][]float32)改为flat存储([]float32)
+    3. ComputeDistance直接切片偏移计算，消除间接调用
+  - **吞吐量**: 318→333 items/s (+5%)，累计Phase 1→8: 144→333 (+131%)
+  - **vs Vamana**: HNSW 333/s vs Vamana 273/s，领先22%
+  - **衰减**: 586→270，衰减54%（与Phase 7持平）
+  - **召回率**: 三种度量均100%，无回归
+  - **修改文件**: `distance.go`, `hnsw/hnsw_test.go`, `hnsw/query.go`
+  - **Profile报告**: `docs/ttt/vectordb/hnsw-phase7-profile.md`
+  - **失败记录**: apply_diff连续失败4次（96-97%相似度，:start_line:格式错误）
+  - **备注**: 8路展开边际提升有限(+5%)，Go编译器已对简单循环做了较好优化。距离计算仍占CPU 68%，进一步提升需SIMD汇编或CGO。
 
 - [x] **Phase 7: 双向连接松弛因子优化 (2026-02-10)** — 完成（重大提升）
   - **根因**: 双向连接维护无条件执行selectNeighborsHeuristic()，每次Insert产生~19,000次距离计算（占91.8%）

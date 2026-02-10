@@ -33,8 +33,29 @@ import (
 type metricFunc func(a, b []float32) float32
 
 func euclideanDistance(a, b []float32) float32 {
-	var sum float32
-	for i := range a {
+	n := len(a)
+	var s0, s1, s2, s3, s4, s5, s6, s7 float32
+	i := 0
+	for ; i <= n-8; i += 8 {
+		d0 := a[i] - b[i]
+		d1 := a[i+1] - b[i+1]
+		d2 := a[i+2] - b[i+2]
+		d3 := a[i+3] - b[i+3]
+		d4 := a[i+4] - b[i+4]
+		d5 := a[i+5] - b[i+5]
+		d6 := a[i+6] - b[i+6]
+		d7 := a[i+7] - b[i+7]
+		s0 += d0 * d0
+		s1 += d1 * d1
+		s2 += d2 * d2
+		s3 += d3 * d3
+		s4 += d4 * d4
+		s5 += d5 * d5
+		s6 += d6 * d6
+		s7 += d7 * d7
+	}
+	sum := s0 + s1 + s2 + s3 + s4 + s5 + s6 + s7
+	for ; i < n; i++ {
 		d := a[i] - b[i]
 		sum += d * d
 	}
@@ -68,52 +89,69 @@ func dotProductDistance(a, b []float32) float32 {
 }
 
 type mockDistancer struct {
-	vectors  [][]float32 // slice 索引即 DocID，避免 map 查找开销
-	visited  []uint32    // slice 索引即 DocID
-	epoch    uint32
-	distFunc metricFunc
+	flatVectors []float32 // 扁平化存储: flatVectors[docID*dim .. (docID+1)*dim]
+	visited     []uint32  // slice 索引即 DocID
+	dim         int       // 向量维度 (首次 AddVector 时设置)
+	count       int       // 已分配的 DocID 槽位数
+	epoch       uint32
+	distFunc    metricFunc
 }
 
 func newMockDistancer(fn metricFunc) *mockDistancer {
 	return &mockDistancer{
-		vectors:  make([][]float32, 0),
-		visited:  make([]uint32, 0),
-		distFunc: fn,
+		flatVectors: make([]float32, 0),
+		visited:     make([]uint32, 0),
+		distFunc:    fn,
 	}
 }
 
 func (d *mockDistancer) AddVector(id DocID, vec []float32) {
-	// 确保 slice 容量足够
-	for int(id) >= len(d.vectors) {
-		d.vectors = append(d.vectors, nil)
-		d.visited = append(d.visited, 0)
+	if d.dim == 0 {
+		d.dim = len(vec)
 	}
-	cp := make([]float32, len(vec))
-	copy(cp, vec)
-	d.vectors[id] = cp
+	needed := int(id) + 1
+	if needed > d.count {
+		// 扩容 flatVectors 和 visited
+		newLen := needed * d.dim
+		if newLen > len(d.flatVectors) {
+			grown := make([]float32, newLen, newLen*2)
+			copy(grown, d.flatVectors)
+			d.flatVectors = grown
+		}
+		if needed > len(d.visited) {
+			grownV := make([]uint32, needed, needed*2)
+			copy(grownV, d.visited)
+			d.visited = grownV
+		}
+		d.count = needed
+	}
+	offset := int(id) * d.dim
+	copy(d.flatVectors[offset:offset+d.dim], vec)
+}
+
+func (d *mockDistancer) getVec(id DocID) []float32 {
+	if int(id) >= d.count {
+		return nil
+	}
+	off := int(id) * d.dim
+	return d.flatVectors[off : off+d.dim : off+d.dim]
 }
 
 func (d *mockDistancer) ComputeDistance(a, b DocID, _ string) float32 {
-	if int(a) >= len(d.vectors) || int(b) >= len(d.vectors) {
+	if int(a) >= d.count || int(b) >= d.count {
 		return 1e9
 	}
-	va := d.vectors[a]
-	vb := d.vectors[b]
-	if va == nil || vb == nil {
-		return 1e9
-	}
-	return d.distFunc(va, vb)
+	offA := int(a) * d.dim
+	offB := int(b) * d.dim
+	return d.distFunc(d.flatVectors[offA:offA+d.dim:offA+d.dim], d.flatVectors[offB:offB+d.dim:offB+d.dim])
 }
 
 func (d *mockDistancer) ComputeDistanceFromVector(query []float32, id DocID, _ string) float32 {
-	if int(id) >= len(d.vectors) {
+	if int(id) >= d.count {
 		return 1e9
 	}
-	v := d.vectors[id]
-	if v == nil {
-		return 1e9
-	}
-	return d.distFunc(query, v)
+	off := int(id) * d.dim
+	return d.distFunc(query, d.flatVectors[off:off+d.dim:off+d.dim])
 }
 
 func (d *mockDistancer) ComputeBBQDistance(a, b DocID) float32 {
@@ -129,10 +167,11 @@ func (d *mockDistancer) QuantizeQuery(_ []float32) ([]byte, bbq.QuantizationResu
 }
 
 func (d *mockDistancer) GetUnsafe(id DocID) ([]float32, bool) {
-	if int(id) >= len(d.vectors) || d.vectors[id] == nil {
+	if int(id) >= d.count {
 		return nil, false
 	}
-	return d.vectors[id], true
+	off := int(id) * d.dim
+	return d.flatVectors[off : off+d.dim : off+d.dim], true
 }
 
 func (d *mockDistancer) NewSearchEpoch() uint32 {
@@ -195,13 +234,14 @@ func newTestIndex(dim int, dist *mockDistancer) *HNSWIndex {
 	return NewHNSWIndex(dim, cfg, dist)
 }
 
-func bruteForceKNN(query []float32, vectors [][]float32, k int, fn metricFunc) []SearchResult {
+func bruteForceKNN(query []float32, d *mockDistancer, k int, fn metricFunc) []SearchResult {
 	type item struct {
 		id   DocID
 		dist float32
 	}
-	items := make([]item, 0, len(vectors))
-	for id, v := range vectors {
+	items := make([]item, 0, d.count)
+	for id := 0; id < d.count; id++ {
+		v := d.getVec(DocID(id))
 		if v == nil {
 			continue
 		}
@@ -512,7 +552,7 @@ func testInsertAndSearch(t *testing.T, metricName string, fn metricFunc, genVec 
 	}
 
 	// 召回率验证：暴力搜索对比
-	bruteResults := bruteForceKNN(queryVec, dist.vectors, k, fn)
+	bruteResults := bruteForceKNN(queryVec, dist, k, fn)
 	bruteSet := make(map[DocID]bool)
 	for _, r := range bruteResults {
 		bruteSet[r.ID] = true

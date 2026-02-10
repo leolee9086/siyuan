@@ -26,106 +26,150 @@ import (
 
 // CosineDistance 计算余弦距离
 // 返回值范围 [0, 2]，0 表示完全相同，2 表示完全相反
+// 8路展开 + 独立累加器打破数据依赖链
 func CosineDistance(a, b []float32) float32 {
 	if len(a) != len(b) || len(a) == 0 {
 		return 2.0
 	}
-	
-	var dotProduct float32
-	var normA float32
-	var normB float32
-	
-	// 循环展开优化
+
 	n := len(a)
+	var d0, d1, d2, d3, d4, d5, d6, d7 float32 // dot accumulators
+	var a0, a1, a2, a3, a4, a5, a6, a7 float32 // normA accumulators
+	var b0, b1, b2, b3, b4, b5, b6, b7 float32 // normB accumulators
 	i := 0
-	
-	// 每次处理 4 个元素
-	for ; i <= n-4; i += 4 {
-		dotProduct += a[i]*b[i] + a[i+1]*b[i+1] + a[i+2]*b[i+2] + a[i+3]*b[i+3]
-		normA += a[i]*a[i] + a[i+1]*a[i+1] + a[i+2]*a[i+2] + a[i+3]*a[i+3]
-		normB += b[i]*b[i] + b[i+1]*b[i+1] + b[i+2]*b[i+2] + b[i+3]*b[i+3]
+
+	for ; i <= n-8; i += 8 {
+		d0 += a[i] * b[i]
+		d1 += a[i+1] * b[i+1]
+		d2 += a[i+2] * b[i+2]
+		d3 += a[i+3] * b[i+3]
+		d4 += a[i+4] * b[i+4]
+		d5 += a[i+5] * b[i+5]
+		d6 += a[i+6] * b[i+6]
+		d7 += a[i+7] * b[i+7]
+		a0 += a[i] * a[i]
+		a1 += a[i+1] * a[i+1]
+		a2 += a[i+2] * a[i+2]
+		a3 += a[i+3] * a[i+3]
+		a4 += a[i+4] * a[i+4]
+		a5 += a[i+5] * a[i+5]
+		a6 += a[i+6] * a[i+6]
+		a7 += a[i+7] * a[i+7]
+		b0 += b[i] * b[i]
+		b1 += b[i+1] * b[i+1]
+		b2 += b[i+2] * b[i+2]
+		b3 += b[i+3] * b[i+3]
+		b4 += b[i+4] * b[i+4]
+		b5 += b[i+5] * b[i+5]
+		b6 += b[i+6] * b[i+6]
+		b7 += b[i+7] * b[i+7]
 	}
-	
-	// 处理剩余元素
+
+	dotProduct := d0 + d1 + d2 + d3 + d4 + d5 + d6 + d7
+	normA := a0 + a1 + a2 + a3 + a4 + a5 + a6 + a7
+	normB := b0 + b1 + b2 + b3 + b4 + b5 + b6 + b7
+
 	for ; i < n; i++ {
 		dotProduct += a[i] * b[i]
 		normA += a[i] * a[i]
 		normB += b[i] * b[i]
 	}
-	
+
 	if normA == 0 || normB == 0 {
 		return 1.0
 	}
-	
+
 	similarity := dotProduct / (float32(math.Sqrt(float64(normA))) * float32(math.Sqrt(float64(normB))))
 	distance := 1.0 - similarity
-	
+
 	if distance < 0 {
 		distance = 0
 	}
 	if distance > 2 {
 		distance = 2
 	}
-	
+
 	return distance
 }
 
 // CosineDistanceWithNorm 使用预计算范数的余弦距离
+// 8路展开 + 独立累加器
 func CosineDistanceWithNorm(a, b []float32, normA, normB float32) float32 {
 	if len(a) != len(b) || len(a) == 0 {
 		return 2.0
 	}
-	
+
 	if normA == 0 || normB == 0 {
 		return 1.0
 	}
-	
-	var dotProduct float32
+
 	n := len(a)
+	var s0, s1, s2, s3, s4, s5, s6, s7 float32
 	i := 0
-	
-	for ; i <= n-4; i += 4 {
-		dotProduct += a[i]*b[i] + a[i+1]*b[i+1] + a[i+2]*b[i+2] + a[i+3]*b[i+3]
+
+	for ; i <= n-8; i += 8 {
+		s0 += a[i] * b[i]
+		s1 += a[i+1] * b[i+1]
+		s2 += a[i+2] * b[i+2]
+		s3 += a[i+3] * b[i+3]
+		s4 += a[i+4] * b[i+4]
+		s5 += a[i+5] * b[i+5]
+		s6 += a[i+6] * b[i+6]
+		s7 += a[i+7] * b[i+7]
 	}
+	dotProduct := s0 + s1 + s2 + s3 + s4 + s5 + s6 + s7
 	for ; i < n; i++ {
 		dotProduct += a[i] * b[i]
 	}
-	
+
 	similarity := dotProduct / (normA * normB)
 	distance := 1.0 - similarity
-	
+
 	if distance < 0 {
 		distance = 0
 	}
 	if distance > 2 {
 		distance = 2
 	}
-	
+
 	return distance
 }
 
 // L2Distance 计算欧几里得距离的平方
+// 8路展开 + 独立累加器打破数据依赖链
 func L2Distance(a, b []float32) float32 {
 	if len(a) != len(b) || len(a) == 0 {
 		return float32(math.MaxFloat32)
 	}
-	
-	var sum float32
+
 	n := len(a)
+	var s0, s1, s2, s3, s4, s5, s6, s7 float32
 	i := 0
-	
-	for ; i <= n-4; i += 4 {
+
+	for ; i <= n-8; i += 8 {
 		d0 := a[i] - b[i]
 		d1 := a[i+1] - b[i+1]
 		d2 := a[i+2] - b[i+2]
 		d3 := a[i+3] - b[i+3]
-		sum += d0*d0 + d1*d1 + d2*d2 + d3*d3
+		d4 := a[i+4] - b[i+4]
+		d5 := a[i+5] - b[i+5]
+		d6 := a[i+6] - b[i+6]
+		d7 := a[i+7] - b[i+7]
+		s0 += d0 * d0
+		s1 += d1 * d1
+		s2 += d2 * d2
+		s3 += d3 * d3
+		s4 += d4 * d4
+		s5 += d5 * d5
+		s6 += d6 * d6
+		s7 += d7 * d7
 	}
+	sum := s0 + s1 + s2 + s3 + s4 + s5 + s6 + s7
 	for ; i < n; i++ {
 		d := a[i] - b[i]
 		sum += d * d
 	}
-	
+
 	return sum
 }
 
