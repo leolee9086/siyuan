@@ -284,8 +284,6 @@ func (idx *VamanaIndex) addEdgeAndPruneLocked(nodeID, newNeighborID uint32) {
 // 和 GraphSlackFactor 松弛策略，大幅减少剪枝次数
 // scratch: 复用的搜索临时空间，用于 robustPruneWithScratch 避免重复分配
 func (idx *VamanaIndex) addEdgeAndPrune(nodeID, newNeighborID uint32, scratch *SearchScratch) {
-	idx.StatsBackedgeCalls.Add(1) // 统计：每次调用计数
-
 	// ── Phase 1 (持锁): 快速检查 + 拷贝 ──
 	idx.nodeLocks[nodeID].Lock()
 
@@ -310,8 +308,6 @@ func (idx *VamanaIndex) addEdgeAndPrune(nodeID, newNeighborID uint32, scratch *S
 		idx.nodeLocks[nodeID].Unlock()
 		return
 	}
-
-	idx.StatsBackedgePrunes.Add(1) // 统计：实际触发剪枝计数
 
 	// 需要剪枝：拷贝邻居列表后释放锁
 	copyOfNeighbors := make([]uint32, len(currentNeighbors), len(currentNeighbors)+1)
@@ -410,11 +406,9 @@ func (idx *VamanaIndex) Insert(vector []float32) (uint32, error) {
 
 	// 1. 贪婪搜索找候选（使用预计算的 queryNormSq 避免重复计算）
 	startIDs := []uint32{idx.medoid}
-	idx.distPhase.Store(1) // phase 1: greedySearch
 	candidates := idx.greedySearchFast(scratch, startIDs, vector, queryNormSq, idx.config.L)
 
 	// 2. RobustPrune剪枝（复用 scratch 缓冲区避免重复分配）
-	idx.distPhase.Store(2) // phase 2: selfPrune
 	neighbors := idx.robustPruneWithScratch(id, candidates, idx.config.R, idx.config.Alpha, scratch)
 
 	// 3. 设置新节点的邻居
@@ -423,7 +417,6 @@ func (idx *VamanaIndex) Insert(vector []float32) (uint32, error) {
 	idx.mu.Unlock()
 
 	// 4. 添加反向边
-	idx.distPhase.Store(3) // phase 3: backedge
 	maxBackedges := len(neighbors)
 	if maxBackedges > idx.config.MaxBackedges {
 		maxBackedges = idx.config.MaxBackedges
@@ -431,8 +424,6 @@ func (idx *VamanaIndex) Insert(vector []float32) (uint32, error) {
 	for i := 0; i < maxBackedges; i++ {
 		idx.addEdgeAndPrune(neighbors[i], id, scratch)
 	}
-	idx.distPhase.Store(0) // 结束统计
-
 	return id, nil
 }
 
@@ -447,6 +438,15 @@ func (idx *VamanaIndex) robustPruneCore(
 	nodeID uint32, candidates []Neighbor, n int, maxDegree int, alpha float32,
 	occludeFactor []float32, lastChecked []int, resultPos *[]int,
 ) []uint32 {
+	// 候选集截断：将候选数限制为 2×maxDegree（即 2×R），
+	// 丢弃距离最远的候选以大幅减少内循环 O(n×|result|) 的距离计算次数。
+	// 候选集已由调用者按距离升序排列，截断尾部即丢弃最远候选。
+	maxCandidates := 2 * maxDegree
+	if n > maxCandidates {
+		n = maxCandidates
+		candidates = candidates[:n]
+	}
+
 	currentAlpha := float32(1.0)
 	incrementFactor := float32(1.2)
 	if alpha < incrementFactor {

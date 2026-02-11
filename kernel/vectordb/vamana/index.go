@@ -36,16 +36,6 @@ type VamanaIndex struct {
 	// 配置参数
 	config Config
 
-	// ── 统计计数器（仅用于性能调查，不影响正常逻辑）──
-	// distPhase 标识当前距离计算所属阶段：
-	//   0 = 不统计, 1 = greedySearch, 2 = selfPrune, 3 = backedge
-	distPhase           atomic.Int32
-	StatsGreedyDist     atomic.Uint64 // greedySearchFast 中的距离计算次数
-	StatsSelfPruneDist  atomic.Uint64 // robustPrune（新节点自身）中的距离计算次数
-	StatsBackedgeDist   atomic.Uint64 // addEdgeAndPrune 中的总距离计算次数
-	StatsBackedgeCalls  atomic.Uint64 // addEdgeAndPrune 被调用次数
-	StatsBackedgePrunes atomic.Uint64 // addEdgeAndPrune 中实际触发 robustPrune 的次数
-
 	// 向量数据 (内存版本)
 	// vectorData 是连续内存布局的底层存储，所有 float32 数据紧密排列
 	// vectors 是指向 vectorData 的 sub-slice 视图，保证 idx.vectors[id] 访问模式不变
@@ -232,28 +222,12 @@ func (idx *VamanaIndex) precomputeNormSquares() {
 // fastDistance 使用预计算范数加速两节点间距离计算
 // ||a-b||² = ||a||² + ||b||² - 2<a,b>
 func (idx *VamanaIndex) fastDistance(id1, id2 uint32) float32 {
-	// 统计计数器：根据当前 phase 递增对应计数器
-	switch idx.distPhase.Load() {
-	case 2:
-		idx.StatsSelfPruneDist.Add(1)
-	case 3:
-		idx.StatsBackedgeDist.Add(1)
-	}
 	dot := dotProduct(idx.vectors[id1], idx.vectors[id2])
 	return idx.normSquares[id1] + idx.normSquares[id2] - 2*dot
 }
 
 // fastDistanceToQuery 使用预计算范数和查询范数加速查询距离计算
 func (idx *VamanaIndex) fastDistanceToQuery(id uint32, query []float32, queryNormSq float32) float32 {
-	// 统计计数器：根据当前 phase 递增对应计数器
-	switch idx.distPhase.Load() {
-	case 1:
-		idx.StatsGreedyDist.Add(1)
-	case 2:
-		idx.StatsSelfPruneDist.Add(1)
-	case 3:
-		idx.StatsBackedgeDist.Add(1)
-	}
 	dot := dotProduct(idx.vectors[id], query)
 	return idx.normSquares[id] + queryNormSq - 2*dot
 }
@@ -353,16 +327,6 @@ func (idx *VamanaIndex) rebuildVectorViews() {
 		offset := i * dim
 		idx.vectors[i] = idx.vectorData[offset : offset+dim : offset+dim]
 	}
-}
-
-// ResetStats 重置所有统计计数器
-func (idx *VamanaIndex) ResetStats() {
-	idx.distPhase.Store(0)
-	idx.StatsGreedyDist.Store(0)
-	idx.StatsSelfPruneDist.Store(0)
-	idx.StatsBackedgeDist.Store(0)
-	idx.StatsBackedgeCalls.Store(0)
-	idx.StatsBackedgePrunes.Store(0)
 }
 
 // 编译时接口检查

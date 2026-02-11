@@ -70,6 +70,7 @@ func (idx *VamanaIndex) greedySearch(scratch *SearchScratch, startIDs []uint32, 
 
 // greedySearchFast 使用预计算范数的快速贪婪搜索
 // queryNormSq: 预计算的查询向量范数平方
+// 使用有序数组 + flag标记的 NeighborPriorityQueue，O(1) 拒绝路径在大规模下更高效
 func (idx *VamanaIndex) greedySearchFast(scratch *SearchScratch, startIDs []uint32, query []float32, queryNormSq float32, L int) []Neighbor {
 	scratch.Reset()
 
@@ -78,6 +79,7 @@ func (idx *VamanaIndex) greedySearchFast(scratch *SearchScratch, startIDs []uint
 	defer idx.mu.RUnlock()
 
 	scratch.Visited.EnsureCapacity(len(idx.vectors))
+	scratch.Best.SetCapacity(L)
 
 	// 初始化: 从入口点开始
 	for _, startID := range startIDs {
@@ -96,7 +98,7 @@ func (idx *VamanaIndex) greedySearchFast(scratch *SearchScratch, startIDs []uint
 
 	// 贪婪搜索
 	for scratch.Best.HasUnvisited() {
-		// 获取最近的未访问节点
+		// 获取最近的未展开候选（含早停判断）
 		closest, ok := scratch.Best.PopClosestUnvisited()
 		if !ok {
 			break
@@ -139,6 +141,7 @@ func (idx *VamanaIndex) greedySearchFast(scratch *SearchScratch, startIDs []uint
 func (idx *VamanaIndex) greedySearchForBuild(scratch *SearchScratch, startIDs []uint32, query []float32, queryNormSq float32, L int) []Neighbor {
 	scratch.Reset()
 	scratch.Visited.EnsureCapacity(len(idx.vectors))
+	scratch.Best.SetCapacity(L)
 
 	// 初始化: 从入口点开始
 	for _, startID := range startIDs {
