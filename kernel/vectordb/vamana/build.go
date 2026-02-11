@@ -447,19 +447,19 @@ func (idx *VamanaIndex) robustPruneCore(
 		candidates = candidates[:n]
 	}
 
-	currentAlpha := float32(1.0)
-	incrementFactor := float32(1.2)
-	if alpha < incrementFactor {
-		incrementFactor = alpha
-	}
-
-	for len(*resultPos) < maxDegree {
+	// Progressive alpha 多轮扫描：先用 alpha=1.0 选择最近邻，
+	// 再用目标 alpha 放宽遮挡阈值补充多样性邻居。
+	// 参照 IP-DiskANN src/index.cpp 的 robustPrune 实现。
+	for curAlpha := float32(1.0); curAlpha <= alpha+0.01; curAlpha *= 1.2 {
+		if curAlpha > alpha {
+			curAlpha = alpha
+		}
 		for i := 0; i < n; i++ {
 			if len(*resultPos) >= maxDegree {
 				break
 			}
 
-			if occludeFactor[i] > currentAlpha {
+			if occludeFactor[i] > curAlpha {
 				continue
 			}
 
@@ -492,25 +492,16 @@ func (idx *VamanaIndex) robustPruneCore(
 					}
 				}
 
-				if occludeFactor[i] > currentAlpha {
+				if occludeFactor[i] > curAlpha {
 					skip = true
 					break
 				}
 			}
 
-			if !skip && occludeFactor[i] <= currentAlpha {
+			if !skip && occludeFactor[i] <= curAlpha {
 				*resultPos = append(*resultPos, i)
 				occludeFactor[i] = math.MaxFloat32
 			}
-		}
-
-		if currentAlpha >= alpha {
-			break
-		}
-
-		currentAlpha = currentAlpha * incrementFactor
-		if currentAlpha > alpha {
-			currentAlpha = alpha
 		}
 	}
 

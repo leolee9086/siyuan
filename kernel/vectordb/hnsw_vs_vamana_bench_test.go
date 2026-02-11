@@ -367,7 +367,6 @@ func runVamanaPhasedInsert(t *testing.T, vectors [][]float32) []phaseResult {
 	cfg.R = 32 // 匹配 HNSW layer0 的 2*M=32
 	cfg.L = 200
 	cfg.Alpha = 1.2
-	cfg.GraphSlackFactor = 1.5
 	cfg.MaxBackedges = 16
 	idx := vamana.New(benchCompDim, cfg)
 
@@ -418,7 +417,6 @@ func runVamanaBuild1T(t *testing.T, vectors [][]float32) (time.Duration, float64
 	cfg.R = 32
 	cfg.L = 200
 	cfg.Alpha = 1.2
-	cfg.GraphSlackFactor = 1.5
 	cfg.MaxBackedges = 16
 	idx := vamana.New(benchCompDim, cfg)
 
@@ -444,7 +442,6 @@ func runVamanaBuildMT(t *testing.T, vectors [][]float32) (time.Duration, float64
 	cfg.R = 32
 	cfg.L = 200
 	cfg.Alpha = 1.2
-	cfg.GraphSlackFactor = 1.5
 	cfg.MaxBackedges = 16
 	idx := vamana.New(benchCompDim, cfg)
 
