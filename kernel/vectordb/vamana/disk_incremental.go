@@ -237,13 +237,26 @@ func (idx *DiskVamanaIndex) Insert(vector []float32) (uint64, error) {
 
 	idx.mu.Unlock()
 
+	// Create per-insert vector and normSq caches to eliminate redundant mmap reads
+	// and normSq computations across findNeighborsForInsert, robustPrune, and addBackEdges.
+	// Same pattern as inplaceDelete (line 616).
+	cache := make(vectorCache, DefaultInsertSearchL*3)
+	nsCache := make(normSqCache, DefaultInsertSearchL*3)
+
+	// Precompute query normSq once for the entire insert operation.
+	queryNormSq := computeNormSquare(vector)
+
 	// ── Phase 2 (read lock): greedy search + robust pruning ──
 	// Read lock allows concurrent Search operations to proceed.
 	// getVector/getNeighbors access appendVectors/appendNeighbors/modifiedNeighbors
 	// which require at least a read lock for safe concurrent access.
 	idx.mu.RLock()
-	candidates := idx.findNeighborsForInsert(vector)
-	prunedNeighbors := robustPruneSimple(candidates, R, DefaultInsertAlpha, idx.getVector)
+	candidates := idx.findNeighborsForInsert(vector, queryNormSq, cache, nsCache)
+	prunedNeighbors := robustPruneSimpleWithNorm(
+		candidates, R, DefaultInsertAlpha,
+		func(id uint64) []float32 { return idx.getCachedVector(id, cache) },
+		func(id uint64, v []float32) float32 { return getCachedNormSq(id, v, nsCache) },
+	)
 	idx.mu.RUnlock()
 
 	// ── Phase 3 (write lock): write neighbors + BBQ metadata ──
@@ -264,14 +277,18 @@ func (idx *DiskVamanaIndex) Insert(vector []float32) (uint64, error) {
 	// ── Phase 4 (no global lock): add back-edges with node-level locking ──
 	// addBackEdgesForInsert uses per-node locks (nodeLocks) and sync.Map
 	// internally, so no global write lock is needed here.
-	idx.addBackEdgesForInsert(newID, prunedNeighbors, R)
+	idx.addBackEdgesForInsert(newID, prunedNeighbors, R, cache, nsCache)
 
 	return newID, nil
 }
 
 // findNeighborsForInsert finds candidate neighbors for a new vector using greedy search.
+// Uses per-insert vectorCache and normSqCache to avoid redundant mmap reads and normSq computations.
 // Caller must hold idx.mu (at least read lock) to protect appendVectors/appendNeighbors/modifiedNeighbors.
-func (idx *DiskVamanaIndex) findNeighborsForInsert(vector []float32) []Neighbor {
+func (idx *DiskVamanaIndex) findNeighborsForInsert(
+	vector []float32, queryNormSq float32,
+	cache vectorCache, nsCache normSqCache,
+) []Neighbor {
 	scratch := getDiskSearchScratch()
 	defer putDiskSearchScratch(scratch)
 
@@ -285,8 +302,12 @@ func (idx *DiskVamanaIndex) findNeighborsForInsert(vector []float32) []Neighbor 
 	// Initialize with medoid
 	if !idx.deleted.IsDeleted(medoid) {
 		scratch.Visited.Insert(uint32(medoid))
-		dist := idx.computeDistanceToQuery(medoid, vector)
-		scratch.Best.Insert(Neighbor{ID: uint32(medoid), Distance: dist})
+		medoidVec := idx.getCachedVector(medoid, cache)
+		if medoidVec != nil {
+			medoidNormSq := getCachedNormSq(medoid, medoidVec, nsCache)
+			dist := euclideanDistanceWithNorms(medoidVec, vector, medoidNormSq, queryNormSq)
+			scratch.Best.Insert(Neighbor{ID: uint32(medoid), Distance: dist})
+		}
 	}
 
 	// Greedy search
@@ -304,7 +325,12 @@ func (idx *DiskVamanaIndex) findNeighborsForInsert(vector []float32) []Neighbor 
 			if !scratch.Visited.Insert(neighborID) {
 				continue
 			}
-			dist := idx.computeDistanceToQuery(uint64(neighborID), vector)
+			nVec := idx.getCachedVector(uint64(neighborID), cache)
+			if nVec == nil {
+				continue
+			}
+			nNormSq := getCachedNormSq(uint64(neighborID), nVec, nsCache)
+			dist := euclideanDistanceWithNorms(nVec, vector, nNormSq, queryNormSq)
 			scratch.Best.Insert(Neighbor{ID: neighborID, Distance: dist})
 		}
 	}
@@ -318,10 +344,10 @@ func (idx *DiskVamanaIndex) findNeighborsForInsert(vector []float32) []Neighbor 
 // It uses a getVec callback to retrieve vectors, making it independent of any
 // specific index type.
 //
-// Algorithm:
-//  1. Sort candidates by distance
-//  2. Greedily select neighbors not "occluded" by already selected ones
-//  3. A neighbor is occluded if alpha * dist(selected, candidate) <= dist(query, candidate)
+// Algorithm (aligned with robustPruneCore in build.go):
+//  1. Sort candidates by distance, truncate to 2×R
+//  2. Progressive alpha multi-pass: scan from alpha=1.0, multiply by 1.2 each round
+//  3. Incremental occlude factor tracking via lastChecked array
 //
 // Parameters:
 //   - candidates: neighbor candidates with precomputed distances to query
@@ -340,36 +366,85 @@ func robustPruneSimple(
 		return candidates[i].Distance < candidates[j].Distance
 	})
 
-	result := make([]uint32, 0, R)
-	occluded := make([]bool, len(candidates))
+	// Truncate candidates to 2×R (aligned with robustPruneCore)
+	maxCandidates := 2 * R
+	n := len(candidates)
+	if n > maxCandidates {
+		n = maxCandidates
+		candidates = candidates[:n]
+	}
 
-	for i := 0; i < len(candidates) && len(result) < R; i++ {
-		if occluded[i] {
-			continue
+	// Pre-fetch all vectors into local slice to reduce callback overhead
+	vecs := make([][]float32, n)
+	for i := 0; i < n; i++ {
+		vecs[i] = getVec(uint64(candidates[i].ID))
+	}
+
+	// Progressive alpha with incremental occlude factor (aligned with robustPruneCore)
+	occludeFactor := make([]float32, n)
+	lastChecked := make([]int, n)
+	resultPos := make([]int, 0, R)
+
+	for curAlpha := float32(1.0); curAlpha <= alpha+0.01; curAlpha *= 1.2 {
+		if curAlpha > alpha {
+			curAlpha = alpha
 		}
+		for i := 0; i < n; i++ {
+			if len(resultPos) >= R {
+				break
+			}
 
-		candidateID := candidates[i].ID
-		result = append(result, candidateID)
-
-		candidateVec := getVec(uint64(candidateID))
-		if candidateVec == nil {
-			continue
-		}
-
-		for j := i + 1; j < len(candidates); j++ {
-			if occluded[j] {
+			if occludeFactor[i] > curAlpha {
 				continue
 			}
-			otherVec := getVec(uint64(candidates[j].ID))
-			if otherVec == nil {
+
+			cand := &candidates[i]
+			candVec := vecs[i]
+			if candVec == nil {
+				occludeFactor[i] = math.MaxFloat32
 				continue
 			}
-			distCandOther := euclideanDistance(candidateVec, otherVec)
-			distQueryOther := candidates[j].Distance
-			if alpha*distCandOther <= distQueryOther {
-				occluded[j] = true
+
+			skip := false
+			for lastChecked[i] < len(resultPos) {
+				resultIdx := resultPos[lastChecked[i]]
+				lastChecked[i]++
+
+				if resultIdx >= i {
+					continue
+				}
+
+				selectedVec := vecs[resultIdx]
+				if selectedVec == nil {
+					continue
+				}
+
+				distCN := euclideanDistance(candVec, selectedVec)
+
+				if distCN < cand.Distance {
+					newFactor := cand.Distance / distCN
+					if newFactor > occludeFactor[i] {
+						occludeFactor[i] = newFactor
+					}
+				}
+
+				if occludeFactor[i] > curAlpha {
+					skip = true
+					break
+				}
+			}
+
+			if !skip && occludeFactor[i] <= curAlpha {
+				resultPos = append(resultPos, i)
+				occludeFactor[i] = math.MaxFloat32
 			}
 		}
+	}
+
+	// Convert position indices to node IDs
+	result := make([]uint32, len(resultPos))
+	for i, pos := range resultPos {
+		result[i] = candidates[pos].ID
 	}
 
 	return result
@@ -377,10 +452,13 @@ func robustPruneSimple(
 
 // robustPruneSimpleWithNorm is the normSq-cached variant of robustPruneSimple.
 //
-// The O(n²) occlude loop is the dominant CPU hotspot in Delete operations.
-// Original euclideanDistance(a, b) calls dotProduct 3 times per pair (2× normSq + 1× dot).
-// This variant uses getNormSq callback to retrieve cached normSq values, reducing
+// Uses getNormSq callback to retrieve cached normSq values, reducing
 // each distance computation to a single dotProduct call via euclideanDistanceWithNorms.
+//
+// Algorithm (aligned with robustPruneCore in build.go):
+//  1. Sort candidates by distance, truncate to 2×R
+//  2. Progressive alpha multi-pass: scan from alpha=1.0, multiply by 1.2 each round
+//  3. Incremental occlude factor tracking via lastChecked array
 //
 // Parameters:
 //   - candidates: neighbor candidates with precomputed distances to query
@@ -401,9 +479,15 @@ func robustPruneSimpleWithNorm(
 		return candidates[i].Distance < candidates[j].Distance
 	})
 
+	// Truncate candidates to 2×R (aligned with robustPruneCore)
+	maxCandidates := 2 * R
 	n := len(candidates)
+	if n > maxCandidates {
+		n = maxCandidates
+		candidates = candidates[:n]
+	}
 
-	// Pre-fetch all vectors and normSq into local slices before the O(n²) loop.
+	// Pre-fetch all vectors and normSq into local slices before the loop.
 	// This reduces map accesses (via getVec/getNormSq closures) from O(n²) to O(n),
 	// which is critical under -race where each map operation has ~10x overhead.
 	vecs := make([][]float32, n)
@@ -416,35 +500,72 @@ func robustPruneSimpleWithNorm(
 		}
 	}
 
-	result := make([]uint32, 0, R)
-	occluded := make([]bool, n)
+	// Progressive alpha with incremental occlude factor (aligned with robustPruneCore)
+	occludeFactor := make([]float32, n)
+	lastChecked := make([]int, n)
+	resultPos := make([]int, 0, R)
 
-	for i := 0; i < n && len(result) < R; i++ {
-		if occluded[i] {
-			continue
+	for curAlpha := float32(1.0); curAlpha <= alpha+0.01; curAlpha *= 1.2 {
+		if curAlpha > alpha {
+			curAlpha = alpha
 		}
+		for i := 0; i < n; i++ {
+			if len(resultPos) >= R {
+				break
+			}
 
-		result = append(result, candidates[i].ID)
-
-		candidateVec := vecs[i]
-		if candidateVec == nil {
-			continue
-		}
-		candidateNormSq := norms[i]
-
-		for j := i + 1; j < n; j++ {
-			if occluded[j] {
+			if occludeFactor[i] > curAlpha {
 				continue
 			}
-			otherVec := vecs[j]
-			if otherVec == nil {
+
+			cand := &candidates[i]
+			candVec := vecs[i]
+			if candVec == nil {
+				occludeFactor[i] = math.MaxFloat32
 				continue
 			}
-			distCandOther := euclideanDistanceWithNorms(candidateVec, otherVec, candidateNormSq, norms[j])
-			if alpha*distCandOther <= candidates[j].Distance {
-				occluded[j] = true
+			candNormSq := norms[i]
+
+			skip := false
+			for lastChecked[i] < len(resultPos) {
+				resultIdx := resultPos[lastChecked[i]]
+				lastChecked[i]++
+
+				if resultIdx >= i {
+					continue
+				}
+
+				selectedVec := vecs[resultIdx]
+				if selectedVec == nil {
+					continue
+				}
+
+				distCN := euclideanDistanceWithNorms(candVec, selectedVec, candNormSq, norms[resultIdx])
+
+				if distCN < cand.Distance {
+					newFactor := cand.Distance / distCN
+					if newFactor > occludeFactor[i] {
+						occludeFactor[i] = newFactor
+					}
+				}
+
+				if occludeFactor[i] > curAlpha {
+					skip = true
+					break
+				}
+			}
+
+			if !skip && occludeFactor[i] <= curAlpha {
+				resultPos = append(resultPos, i)
+				occludeFactor[i] = math.MaxFloat32
 			}
 		}
+	}
+
+	// Convert position indices to node IDs
+	result := make([]uint32, len(resultPos))
+	for i, pos := range resultPos {
+		result[i] = candidates[pos].ID
 	}
 
 	return result
@@ -467,11 +588,14 @@ func (idx *DiskVamanaIndex) appendBBQForInsert(vector []float32, dimension int) 
 // Uses per-node locking (nodeLocks) instead of global write lock.
 // Lock order: idx.mu (RLock) → idx.nodeLocks[id] (Lock) → storeNeighbors (sync.Map.Store).
 // This allows concurrent Insert operations to proceed on different neighbor nodes.
-func (idx *DiskVamanaIndex) addBackEdgesForInsert(newID uint64, neighbors []uint32, R int) {
+func (idx *DiskVamanaIndex) addBackEdgesForInsert(
+	newID uint64, neighbors []uint32, R int,
+	cache vectorCache, nsCache normSqCache,
+) {
 	newIDu32 := uint32(newID)
 
 	for _, neighborID := range neighbors {
-		idx.addBackEdgeForNode(uint64(neighborID), newIDu32, R)
+		idx.addBackEdgeForNode(uint64(neighborID), newIDu32, R, cache, nsCache)
 	}
 }
 
@@ -484,7 +608,10 @@ func (idx *DiskVamanaIndex) addBackEdgesForInsert(newID uint64, neighbors []uint
 //   - Phase 1 (nodeLocks + mu.RLock): quick check + copy neighbor list, then release both
 //   - Phase 2 (mu.RLock only): distance computation + robustPrune (no nodeLocks held)
 //   - Phase 3 (nodeLocks only): write pruned result via storeNeighbors
-func (idx *DiskVamanaIndex) addBackEdgeForNode(neighborID uint64, newIDu32 uint32, R int) {
+func (idx *DiskVamanaIndex) addBackEdgeForNode(
+	neighborID uint64, newIDu32 uint32, R int,
+	cache vectorCache, nsCache normSqCache,
+) {
 	// ── Phase 1 (mu.RLock → nodeLock → read → unlock both): quick check + copy ──
 	// Must acquire mu.RLock first to safely access nodeLocks slice (Insert Phase 1
 	// may reallocate nodeLocks under mu.Lock). Capture the lock pointer to ensure
@@ -501,7 +628,10 @@ func (idx *DiskVamanaIndex) addBackEdgeForNode(neighborID uint64, newIDu32 uint3
 		return
 	}
 
-	needsPrune := len(currentNeighbors) >= R
+	// 采用 GraphSlackFactor 策略（与内存版 addEdgeAndPruneLocked 一致）：
+	// 允许邻居数量临时超过 R，仅当超过 slackFactor * R 时才触发剪枝
+	slackR := int(idx.insertGraphSlackFactor * float32(R))
+	needsPrune := len(currentNeighbors) >= slackR
 
 	if !needsPrune {
 		// Fast path: under capacity, append directly
@@ -524,17 +654,20 @@ func (idx *DiskVamanaIndex) addBackEdgeForNode(neighborID uint64, newIDu32 uint3
 	idx.mu.RUnlock()
 
 	// ── Phase 2 (mu.RLock only): distance computation + prune ──
+	// Uses per-insert cache to avoid redundant mmap reads across back-edge operations.
 	idx.mu.RLock()
-	neighborVec := idx.getVector(neighborID)
+	neighborVec := idx.getCachedVector(neighborID, cache)
 	var newNeighbors []uint32
 	if neighborVec != nil {
+		neighborNormSq := getCachedNormSq(neighborID, neighborVec, nsCache)
 		candidateNeighbors := make([]Neighbor, len(copyOfNeighbors))
 		for i, nid := range copyOfNeighbors {
-			nVec := idx.getVector(uint64(nid))
+			nVec := idx.getCachedVector(uint64(nid), cache)
 			if nVec != nil {
+				nNormSq := getCachedNormSq(uint64(nid), nVec, nsCache)
 				candidateNeighbors[i] = Neighbor{
 					ID:       nid,
-					Distance: euclideanDistance(neighborVec, nVec),
+					Distance: euclideanDistanceWithNorms(neighborVec, nVec, neighborNormSq, nNormSq),
 				}
 			} else {
 				candidateNeighbors[i] = Neighbor{
@@ -543,8 +676,10 @@ func (idx *DiskVamanaIndex) addBackEdgeForNode(neighborID uint64, newIDu32 uint3
 				}
 			}
 		}
-		newNeighbors = robustPruneSimple(
-			candidateNeighbors, R, DefaultInsertAlpha, idx.getVector,
+		newNeighbors = robustPruneSimpleWithNorm(
+			candidateNeighbors, R, DefaultInsertAlpha,
+			func(id uint64) []float32 { return idx.getCachedVector(id, cache) },
+			func(id uint64, v []float32) float32 { return getCachedNormSq(id, v, nsCache) },
 		)
 	} else {
 		newNeighbors = copyOfNeighbors[:R]

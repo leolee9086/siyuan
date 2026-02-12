@@ -392,6 +392,7 @@ type SearchScratch struct {
 	OccludeFactor []float32 // 遮挡因子
 	LastChecked   []int     // 增量检查位置
 	ResultPos     []int     // 结果位置
+
 }
 
 // NewSearchScratch 创建新的搜索临时空间

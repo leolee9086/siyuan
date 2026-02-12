@@ -3,6 +3,8 @@
 > **目标**: 修复 Vamana Insert 性能严重落后于 HNSW 的问题（258/s vs 1292/s，差距5x）
 >
 > **流程**: 滚动更新的执行路线图。
+>
+> **状态**: ⏸️ 暂停 — 用户指令暂停内存索引优化，转向 DiskIndex 优化
 
 ## 项目背景
 
@@ -39,21 +41,30 @@
 - Insert 用 `addEdgeAndPrune`（三重锁），BuildParallel 用 `addEdgeAndPruneLocked`（单锁）
 - Insert 用 `robustPrune`（每次分配新 scratch），BuildParallel 用 `robustPruneWithScratch`（复用）
 
-## 🟢 近期计划 — Phase 17: 反向边距离缓存
+## ⏸️ 近期计划 — Phase 18: 新方向探索（已暂停）
 
-**基线**: Vamana Insert 728/s, HNSW Insert ~1566/s（Phase 16-V）
-**目标**: 通过缓存邻居距离减少反向边维护时的重复距离计算
+**基线**: Vamana Insert 728/s, HNSW Insert ~1566/s（Phase 16-V 基线，Phase 17 全部失败后恢复）
+**Gap**: 2.15x
+**瓶颈**: 距离计算次数（dotProduct 占 73.67% flat）
 
-### Phase 17 背景
+> ⏸️ **暂停说明**: 用户指令暂停内存索引优化，转向 DiskIndex 优化。当前基线：Vamana Insert 728/s, HNSW Insert ~1566/s, gap 2.15x。后续 DiskIndex 优化跟踪见 `docs/ttt/vectordb/disk-insert-perf-optimization.ttt.md`。
 
-Phase 16-0 调查的第二大差距来源：Vamana `neighbors [][]uint32` 只存 ID，触发剪枝时必须重算所有邻居距离。HNSW `NeighborRecord` 缓存 Distance 字段，反向边维护时松弛范围内零距离计算。
+### 已排除的方向
 
-### Phase 17 优化方向
+- 距离计算实现优化（两者完全一致）
+- 原子计数器（已移除，效果不显著）
+- GSF 增大（使截断失效）
+- alpha 简化（破坏算法正确性）
+- 展开节点候选池（内存开销过大）
+- 反向边距离缓存（收益过低，变更范围过大）
 
-- [ ] **17-1**: 将 Vamana 邻居存储从 `[][]uint32` 改为包含距离的结构（类似 HNSW 的 NeighborRecord）
-- [ ] **17-2**: 在 addEdgeAndPrune 中利用缓存距离避免重复计算
-- [ ] **17-3**: 评估内存开销增加是否可接受
-- [ ] **17-V**: 验证 + 召回率回归测试 + 50K 性能对比
+### Phase 18 可能方向
+
+- [ ] **18-1**: 减少 greedySearch 的 L 参数（L=200→L=100），减少搜索阶段距离计算
+- [ ] **18-2**: 减少反向边维护中的 robustPrune 触发次数（不通过 GSF，而是通过更智能的策略）
+- [ ] **18-3**: 内存布局优化——将邻居列表从 `[][]uint32` 改为连续内存块
+- [ ] **18-4**: SIMD/向量化距离计算（需要 CGo 或汇编）
+- [ ] **18-5**: 接受 2.15x 差距作为算法固有差异（Vamana 的 robustPrune 本质上比 HNSW 的 selectNeighborsHeuristic 更昂贵）
 
 ## 🔵 中期计划
 
@@ -61,6 +72,15 @@ Phase 16-0 调查的第二大差距来源：Vamana `neighbors [][]uint32` 只存
 - [x] ~~Vamana 内存布局优化~~ — 已确认先前迭代中已完成（vectorData + sub-slice 视图）
 
 ## 🏁 已归档/已完成
+
+- [x] **Phase 17: 多方向优化尝试 (2026-02-11)** — 全部失败，恢复 Phase 16 基线（728/s）
+  - **17-0 反向边距离缓存调查**: 收益仅 4.3%（~235次/Insert），变更范围大（~15文件，~30+函数），放弃。重新分析截断后开销分布：反向边维护 58%，自身 robustPrune 27%，greedySearch 15%
+  - **17-1+V GSF 1.5→2.0 + progressive alpha 消除**: 性能回归 -2.5%（728→710/s），已回滚。原因：GSF 2.0 使截断阈值(2×R)等于 GSF×R，截断失效；alpha 简化破坏算法正确性（progressive alpha 是 Vamana 核心设计）
+  - **17-2 IP-DiskANN 源码对比**: 发现候选池来源差异：IP-DiskANN 保留所有展开节点(expanded_nodes)作为 robustPrune 候选池，我们只返回 top-L
+  - **17-3+V2 实现展开节点候选池**: 严重退化 -35.4%（728→470/s），已回滚。原因：每次距离计算都追加到 ExpandedNodes 切片的内存分配和复制开销远超候选池质量提升的收益
+  - **失败记录**: GSF 2.0 使截断失效（2×R = GSF×R = 64）；alpha 简化破坏算法正确性，永久排除此方向；展开节点候选池的内存分配开销（append 到切片）远超预期；反向边距离缓存收益过低不值得实现
+  - **分析文档**: `docs/ttt/vectordb/vamana-neighbor-cache-scope.md`（反向边距离缓存分析）、`docs/ttt/vectordb/vamana-phase17-analysis.md`（Phase 17 开销分析）、`docs/ttt/vectordb/vamana-ipdiskann-comparison.md`（IP-DiskANN 对比分析）
+  - **结论**: Phase 17 三个方向全部失败。当前状态恢复到 Phase 16 基线（728/s，gap 2.15x）
 
 - [x] **Phase 16: robustPrune 候选集截断优化 (2026-02-11)** — 完成（+11.8%）
   - **16-0 距离计算次数对比调查**: robustPrune 是最大差距来源（26倍：~2,600次 vs HNSW ~100次），反向边无距离缓存是第二来源（3.2倍）。总计 HNSW ~1,200次/Insert vs Vamana ~5,500次/Insert。分析文档：`docs/ttt/vectordb/vamana-dist-count-analysis.md`
@@ -126,14 +146,15 @@ Phase 16-0 调查的第二大差距来源：Vamana `neighbors [][]uint32` 只存
 
 ## 性能历史
 
-| Phase | HNSW | Vamana | Gap |
-|-------|------|--------|-----|
-| Phase 11 | 1292/s | 517/s | 2.50x |
-| Phase 12 | ~1460/s | 637/s | 2.31x |
-| Phase 13 | 1460/s | 624-658/s | 2.34x |
-| Phase 14 | 1497/s | 651/s | 2.30x |
-| Phase 15 | ~1329/s | ~529/s | ~2.51x* |
-| Phase 16 | ~1566/s | 728/s | 2.15x |
+| Phase | HNSW | Vamana | Gap | 备注 |
+|-------|------|--------|-----|------|
+| Phase 11 | 1292/s | 517/s | 2.50x | |
+| Phase 12 | ~1460/s | 637/s | 2.31x | |
+| Phase 13 | 1460/s | 624-658/s | 2.34x | |
+| Phase 14 | 1497/s | 651/s | 2.30x | |
+| Phase 15 | ~1329/s | ~529/s | ~2.51x* | |
+| Phase 16 | ~1566/s | 728/s | 2.15x | |
+| Phase 17 | — | — | — | 全部失败，恢复 Phase 16 基线 |
 
 \* Phase 15 测试环境负载高于基线，绝对值不可直接对比，代码变更本身无显著性能影响
 
@@ -145,3 +166,7 @@ Phase 16-0 调查的第二大差距来源：Vamana `neighbors [][]uint32` 只存
 - Phase 15 原子计数器移除未带来可测量性能提升：每次距离计算仅一次 atomic.Add，开销在系统噪声中不可区分，优化方向判断错误
 - Phase 15 DiskVamana 测试超时：63-66 items/s 下 600s timeout 不足以完成测试
 - Phase 16 DiskVamana Insert 测试超时（~65/s），与内存 Vamana 优化无关
+- Phase 17-1+V GSF 2.0 使截断失效（2×R = GSF×R = 64），性能回归 -2.5%，已回滚
+- Phase 17-1+V alpha 简化破坏 Vamana 算法正确性（progressive alpha 是核心设计），永久排除此方向
+- Phase 17-3+V2 展开节点候选池严重退化 -35.4%（728→470/s）：append 到切片的内存分配和复制开销远超候选池质量提升收益，已回滚
+- Phase 17-0 反向边距离缓存收益仅 4.3%（~235次/Insert），变更范围过大（~15文件，~30+函数），不值得实现

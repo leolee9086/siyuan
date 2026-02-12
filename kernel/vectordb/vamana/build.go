@@ -155,7 +155,7 @@ func (idx *VamanaIndex) buildNodeWithScratch(id uint32, scratch *SearchScratch) 
 	startIDs := []uint32{idx.medoid}
 	candidates := idx.greedySearchForBuild(scratch, startIDs, vector, queryNormSq, idx.config.L)
 
-	// 2. RobustPrune剪枝（使用scratch复用缓冲区）
+	// 2. RobustPrune剪枝
 	neighbors := idx.robustPruneWithScratch(id, candidates, idx.config.R, idx.config.Alpha, scratch)
 
 	// 3. 使用节点级锁设置邻居
@@ -408,7 +408,7 @@ func (idx *VamanaIndex) Insert(vector []float32) (uint32, error) {
 	startIDs := []uint32{idx.medoid}
 	candidates := idx.greedySearchFast(scratch, startIDs, vector, queryNormSq, idx.config.L)
 
-	// 2. RobustPrune剪枝（复用 scratch 缓冲区避免重复分配）
+	// 2. RobustPrune剪枝
 	neighbors := idx.robustPruneWithScratch(id, candidates, idx.config.R, idx.config.Alpha, scratch)
 
 	// 3. 设置新节点的邻居

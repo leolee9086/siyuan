@@ -102,6 +102,9 @@ type DiskVamanaIndex struct {
 	deleteK                int     // 候选池大小（默认 DefaultDeleteK）
 	deletePruneSlackFactor float32 // 删除修复后剪枝松弛因子（默认 DefaultDeletePruneSlackFactor）
 
+	// Insert 路径参数
+	insertGraphSlackFactor float32 // Insert 反向边剪枝松弛因子（默认 DefaultInsertGraphSlackFactor）
+
 	// 磁盘 I/O
 	reader storage.DiskIndexReader // 磁盘索引读取器（基于 mmap）
 
@@ -183,6 +186,7 @@ func OpenWithMetric(path string, metric bbq.SimilarityType) (*DiskVamanaIndex, e
 		deleteC:                DefaultDeleteC,
 		deleteK:                DefaultDeleteK,
 		deletePruneSlackFactor: DefaultDeletePruneSlackFactor,
+		insertGraphSlackFactor: DefaultInsertGraphSlackFactor,
 	}
 
 	// 打开主索引文件
@@ -242,6 +246,21 @@ func (idx *DiskVamanaIndex) SetDeleteParams(c, k int, pruneSlackFactor float32) 
 	}
 	if pruneSlackFactor > 0 {
 		idx.deletePruneSlackFactor = pruneSlackFactor
+	}
+}
+
+// SetInsertGraphSlackFactor 设置 Insert 路径反向边添加时的图松弛因子。
+//
+// 与内存版 VamanaIndex 的 GraphSlackFactor 策略一致：允许邻居数量临时超过 R，
+// 仅当超过 slackFactor * R 时才触发 robustPrune，减少不必要的剪枝操作。
+//
+// 参数：
+//   - factor: 松弛因子（<=1.0 时使用 DefaultInsertGraphSlackFactor）
+//
+// 线程安全：必须在索引使用前调用，不支持并发修改。
+func (idx *DiskVamanaIndex) SetInsertGraphSlackFactor(factor float32) {
+	if factor > 1.0 {
+		idx.insertGraphSlackFactor = factor
 	}
 }
 

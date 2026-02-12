@@ -99,6 +99,12 @@ const (
 	// 临时超过 R，仅当超过 SlackFactor * R 时才触发剪枝。
 	// 这与构建阶段的 GraphSlackFactor 策略一致（见 config.go）。
 	DefaultDeletePruneSlackFactor float32 = 1.3
+
+	// DefaultInsertGraphSlackFactor 是 Insert 路径反向边添加时的图松弛因子。
+	// 与内存版 VamanaIndex 的 GraphSlackFactor 策略一致（见 config.go）：
+	// 允许邻居数量临时超过 R，仅当超过 SlackFactor * R 时才触发剪枝，
+	// 大幅减少不必要的剪枝操作，提升 Insert 吞吐量。
+	DefaultInsertGraphSlackFactor float32 = 1.5
 )
 
 // ============================================================================
