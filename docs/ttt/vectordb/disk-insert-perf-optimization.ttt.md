@@ -1,7 +1,7 @@
 # DiskVamana Insert 性能优化
 
 > 创建日期: 2026-02-12
-> 状态: 🟢 Phase A+B 完成
+> 状态: 🟢 Phase C 完成
 > 优先级: P0
 
 ## 问题描述
@@ -44,6 +44,11 @@ DiskVamana Insert 吞吐量 ~50-68 items/s，约为内存 Vamana Insert (680/s) 
 - [x] Phase A: robustPrune 对齐内存版算法
 - [x] Phase B: addBackEdgeForNode 引入 SlackFactor
 - [x] Phase A+B-V: 综合验证
+- [x] Phase C 调研: 缓存友好性分析
+- [x] Phase C-1: slice 缓存替代 map
+- [x] Phase C-2: 邻居预取
+- [x] Phase C-3: robustPrune scratch 复用
+- [x] Phase C-V: 综合验证
 
 ## 执行记录
 
@@ -220,17 +225,94 @@ DiskVamana Insert 吞吐量 ~50-68 items/s，约为内存 Vamana Insert (680/s) 
 | robustPruneSimpleWithNorm | 9.63% | 从主要瓶颈大幅下降 |
 | addBackEdgeForNode | 3.21% | SlackFactor 有效减少不必要剪枝 |
 
+### Phase C 调研: 缓存友好性分析 (2026-02-12)
+
+**分析文档**: docs/ttt/vectordb/disk-insert-cache-analysis.md
+
+**关键发现**:
+- GC 占比 ~12%，主因是 vectorCache/normSqCache 使用 map 结构
+- 无预取机制，贪心搜索中邻居向量访问完全随机
+- append buffer 非连续内存布局
+- robustPrune 无 scratch 复用，每次调用重新分配临时缓冲区
+
+### Phase C-1: slice 缓存替代 map (2026-02-12)
+
+**修改文件**: kernel/vectordb/vamana/disk_incremental.go
+
+**变更内容**:
+- vectorCache: struct 包含 `[][]float32` + `[]bool`，以 nodeID 为索引直接寻址
+- normSqCache: struct 包含 `[]float32`，用 -1 作为未缓存哨兵值
+- 消除 map 写入/查找的 GC 压力和哈希开销
+
+**测试**: 通过
+
+### Phase C-2: 邻居预取 (2026-02-12)
+
+**修改文件**: kernel/vectordb/vamana/disk_incremental.go
+
+**变更内容**:
+- `findNeighborsForInsert` 中引入 lookahead-by-1 模式
+- 处理当前邻居时提前预取下一个邻居的向量和 normSq
+- 利用 CPU cache line 预热减少访问延迟
+
+**测试**: 通过
+
+### Phase C-3: robustPrune scratch 复用 (2026-02-12)
+
+**修改文件**: kernel/vectordb/vamana/disk_incremental.go
+
+**变更内容**:
+- 新增 `pruneScratch` 结构体，包含 6 个可复用缓冲区
+- Insert 和 Delete 路径均复用同一 scratch 实例
+- 消除 robustPrune 每次调用的临时分配
+
+**测试**: 通过
+
+### Phase C-V: 综合验证 (2026-02-12)
+
+**吞吐量** (TestHNSWvsVamanaInsertThroughput, dim=128):
+
+| 阶段 | Phase 0 基线 | Phase A+B | Phase C | 变化 vs 基线 |
+|:---|:---|:---|:---|:---|
+| 总体 | 60 items/s | 425 items/s | 496 items/s | +727% / 8.3x |
+| Phase 0 | 68 | 623 | 792 | +1065% |
+| Phase 1 | 65 | 417 | 515 | +692% |
+| Phase 2 | 50 | 370 | 425 | +750% |
+| Phase 3 | 56 | 340 | 370 | +561% |
+| 衰减比 | 0.83 | 0.55 | 0.47 | 与 HNSW 0.49 / 内存 Vamana 0.47 一致 |
+
+**Recall**: Insert 0.984, Delete 0.966，无退化
+
+**CPU Profile 变化**:
+
+| 指标 | Phase A+B | Phase C | 说明 |
+|:---|:---|:---|:---|
+| mapassign_fast64 | ~12.83% cum | 完全消失 | C-1 slice 缓存生效 |
+| GC 总占比 | ~15% | ~6.67% | GC 压力大幅下降 |
+| dotProduct | 42.25% flat | 60.67% flat | 计算密集型占绝对主导（占比上升因其他开销消除） |
+| robustPruneSimpleWithNorm | 9.63% cum | 12% cum | scratch 复用后略有上升（因总时间缩短） |
+| addBackEdgeForNode | 3.21% cum | 未出现在 top | SlackFactor + scratch 复用生效 |
+
+## 累计优化效果汇总
+
+| Phase | 吞吐量 | 对比原始 |
+|:---|:---|:---|
+| Phase 0（原始） | 60 items/s | — |
+| Phase 1（vectorCache） | 150 items/s | +150% |
+| Phase A+B（算法对齐） | 425 items/s | +608% |
+| Phase C（缓存友好） | 496 items/s | +727% / 8.3x |
+
 ## 失败记录
 
 1. **Phase 2 BBQ 加速**: 严重回退 150→49 items/s (-67%)。根因：`ScalarQuantizer.Quantize` 每次距离计算执行完整迭代优化，开销远超 mmap 节省。已回滚。
 2. **Phase A+B-V 子任务测试函数名不匹配**: 指令写 `TestDiskInsertProfile`，实际为 `TestDiskInsertCPUProfile`。
+3. **Phase C 系列**: 无失败。
 
 ## 后续潜在方向
 
-- GC 压力优化（map 操作 ~15%）
-- `findNeighborsForInsert` 优化（当前 64.71% cum，主要瓶颈）
 - 批量 Insert API
 - 算法进一步统一（磁盘/内存共享更多代码）
+- SIMD 加速 dotProduct（当前 60.67% flat，仍为绝对热点）
 
 ## 关联文档
 

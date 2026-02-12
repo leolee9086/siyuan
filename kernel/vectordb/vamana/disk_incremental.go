@@ -287,6 +287,10 @@ func (idx *DiskVamanaIndex) Insert(vector []float32) (uint64, error) {
 	cache := newVectorCache(cacheSize)
 	nsCache := newNormSqCache(cacheSize)
 
+	// Create per-insert pruneScratch to reuse temporary buffers across all robustPrune calls
+	// (Phase 2 initial prune + Phase 4 back-edge prunes). Capacity hint: 2*R candidates.
+	ps := newPruneScratch(2*R, R)
+
 	// Precompute query normSq once for the entire insert operation.
 	queryNormSq := computeNormSquare(vector)
 
@@ -300,6 +304,7 @@ func (idx *DiskVamanaIndex) Insert(vector []float32) (uint64, error) {
 		candidates, R, DefaultInsertAlpha,
 		func(id uint64) []float32 { return idx.getCachedVector(id, cache) },
 		func(id uint64, v []float32) float32 { return getCachedNormSq(id, v, nsCache) },
+		ps,
 	)
 	idx.mu.RUnlock()
 
@@ -321,7 +326,7 @@ func (idx *DiskVamanaIndex) Insert(vector []float32) (uint64, error) {
 	// ── Phase 4 (no global lock): add back-edges with node-level locking ──
 	// addBackEdgesForInsert uses per-node locks (nodeLocks) and sync.Map
 	// internally, so no global write lock is needed here.
-	idx.addBackEdgesForInsert(newID, prunedNeighbors, R, cache, nsCache)
+	idx.addBackEdgesForInsert(newID, prunedNeighbors, R, cache, nsCache, ps)
 
 	return newID, nil
 }
@@ -394,6 +399,80 @@ func (idx *DiskVamanaIndex) findNeighborsForInsert(
 	return scratch.Best.All()
 }
 
+// pruneScratch holds reusable temporary buffers for robustPrune operations.
+// Created once per Insert/Delete operation and reused across multiple robustPrune calls,
+// eliminating repeated heap allocations for candidates, occludeFactor, lastChecked, etc.
+//
+// Pattern mirrors SearchScratch.OccludeFactor/LastChecked/ResultPos in build.go.
+type pruneScratch struct {
+	vecs          [][]float32 // pre-fetched vectors for candidates
+	norms         []float32   // pre-fetched normSq values (WithNorm variant)
+	occludeFactor []float32   // occlusion factor per candidate
+	lastChecked   []int       // incremental check position per candidate
+	resultPos     []int       // selected result positions
+	result        []uint32    // final neighbor IDs output
+}
+
+// newPruneScratch creates a pruneScratch with initial capacity hints.
+// initialCap is the expected max candidate count (typically 2*R).
+// R is the max degree (result capacity).
+func newPruneScratch(initialCap, R int) *pruneScratch {
+	return &pruneScratch{
+		vecs:          make([][]float32, 0, initialCap),
+		norms:         make([]float32, 0, initialCap),
+		occludeFactor: make([]float32, 0, initialCap),
+		lastChecked:   make([]int, 0, initialCap),
+		resultPos:     make([]int, 0, R),
+		result:        make([]uint32, 0, R),
+	}
+}
+
+// ensureAndReset prepares all scratch slices for n candidates and R max results.
+// Reuses existing backing arrays when capacity is sufficient; allocates only when needed.
+func (ps *pruneScratch) ensureAndReset(n, R int) {
+	// vecs
+	if cap(ps.vecs) < n {
+		ps.vecs = make([][]float32, n)
+	}
+	ps.vecs = ps.vecs[:n]
+	for i := range ps.vecs {
+		ps.vecs[i] = nil
+	}
+
+	// norms
+	if cap(ps.norms) < n {
+		ps.norms = make([]float32, n)
+	}
+	ps.norms = ps.norms[:n]
+	clear(ps.norms)
+
+	// occludeFactor
+	if cap(ps.occludeFactor) < n {
+		ps.occludeFactor = make([]float32, n)
+	}
+	ps.occludeFactor = ps.occludeFactor[:n]
+	clear(ps.occludeFactor)
+
+	// lastChecked
+	if cap(ps.lastChecked) < n {
+		ps.lastChecked = make([]int, n)
+	}
+	ps.lastChecked = ps.lastChecked[:n]
+	clear(ps.lastChecked)
+
+	// resultPos
+	if cap(ps.resultPos) < R {
+		ps.resultPos = make([]int, 0, R)
+	}
+	ps.resultPos = ps.resultPos[:0]
+
+	// result
+	if cap(ps.result) < R {
+		ps.result = make([]uint32, 0, R)
+	}
+	ps.result = ps.result[:0]
+}
+
 // robustPruneSimple applies robust pruning to select final neighbors.
 //
 // This is a package-level function used by DiskVamanaIndex incremental operations.
@@ -410,9 +489,11 @@ func (idx *DiskVamanaIndex) findNeighborsForInsert(
 //   - R: maximum number of neighbors to select
 //   - alpha: pruning threshold (typically DefaultInsertAlpha)
 //   - getVec: function to retrieve vector by node ID (returns nil if unavailable)
+//   - ps: reusable scratch buffers (nil-safe: allocates internally if nil)
 func robustPruneSimple(
 	candidates []Neighbor, R int, alpha float32,
 	getVec func(uint64) []float32,
+	ps *pruneScratch,
 ) []uint32 {
 	if len(candidates) == 0 {
 		return nil
@@ -430,47 +511,48 @@ func robustPruneSimple(
 		candidates = candidates[:n]
 	}
 
-	// Pre-fetch all vectors into local slice to reduce callback overhead
-	vecs := make([][]float32, n)
+	// Prepare scratch buffers (allocate if nil for backward compat)
+	if ps == nil {
+		ps = newPruneScratch(n, R)
+	}
+	ps.ensureAndReset(n, R)
+
+	// Pre-fetch all vectors into scratch slice to reduce callback overhead
 	for i := 0; i < n; i++ {
-		vecs[i] = getVec(uint64(candidates[i].ID))
+		ps.vecs[i] = getVec(uint64(candidates[i].ID))
 	}
 
 	// Progressive alpha with incremental occlude factor (aligned with robustPruneCore)
-	occludeFactor := make([]float32, n)
-	lastChecked := make([]int, n)
-	resultPos := make([]int, 0, R)
-
 	for curAlpha := float32(1.0); curAlpha <= alpha+0.01; curAlpha *= 1.2 {
 		if curAlpha > alpha {
 			curAlpha = alpha
 		}
 		for i := 0; i < n; i++ {
-			if len(resultPos) >= R {
+			if len(ps.resultPos) >= R {
 				break
 			}
 
-			if occludeFactor[i] > curAlpha {
+			if ps.occludeFactor[i] > curAlpha {
 				continue
 			}
 
 			cand := &candidates[i]
-			candVec := vecs[i]
+			candVec := ps.vecs[i]
 			if candVec == nil {
-				occludeFactor[i] = math.MaxFloat32
+				ps.occludeFactor[i] = math.MaxFloat32
 				continue
 			}
 
 			skip := false
-			for lastChecked[i] < len(resultPos) {
-				resultIdx := resultPos[lastChecked[i]]
-				lastChecked[i]++
+			for ps.lastChecked[i] < len(ps.resultPos) {
+				resultIdx := ps.resultPos[ps.lastChecked[i]]
+				ps.lastChecked[i]++
 
 				if resultIdx >= i {
 					continue
 				}
 
-				selectedVec := vecs[resultIdx]
+				selectedVec := ps.vecs[resultIdx]
 				if selectedVec == nil {
 					continue
 				}
@@ -479,31 +561,31 @@ func robustPruneSimple(
 
 				if distCN < cand.Distance {
 					newFactor := cand.Distance / distCN
-					if newFactor > occludeFactor[i] {
-						occludeFactor[i] = newFactor
+					if newFactor > ps.occludeFactor[i] {
+						ps.occludeFactor[i] = newFactor
 					}
 				}
 
-				if occludeFactor[i] > curAlpha {
+				if ps.occludeFactor[i] > curAlpha {
 					skip = true
 					break
 				}
 			}
 
-			if !skip && occludeFactor[i] <= curAlpha {
-				resultPos = append(resultPos, i)
-				occludeFactor[i] = math.MaxFloat32
+			if !skip && ps.occludeFactor[i] <= curAlpha {
+				ps.resultPos = append(ps.resultPos, i)
+				ps.occludeFactor[i] = math.MaxFloat32
 			}
 		}
 	}
 
-	// Convert position indices to node IDs
-	result := make([]uint32, len(resultPos))
-	for i, pos := range resultPos {
-		result[i] = candidates[pos].ID
+	// Convert position indices to node IDs, reusing scratch result slice
+	ps.result = ps.result[:len(ps.resultPos)]
+	for i, pos := range ps.resultPos {
+		ps.result[i] = candidates[pos].ID
 	}
 
-	return result
+	return ps.result
 }
 
 // robustPruneSimpleWithNorm is the normSq-cached variant of robustPruneSimple.
@@ -522,10 +604,12 @@ func robustPruneSimple(
 //   - alpha: pruning threshold (typically DefaultInsertAlpha)
 //   - getVec: function to retrieve vector by node ID (returns nil if unavailable)
 //   - getNormSq: function to retrieve cached normSq for a node ID + vector pair
+//   - ps: reusable scratch buffers (nil-safe: allocates internally if nil)
 func robustPruneSimpleWithNorm(
 	candidates []Neighbor, R int, alpha float32,
 	getVec func(uint64) []float32,
 	getNormSq func(uint64, []float32) float32,
+	ps *pruneScratch,
 ) []uint32 {
 	if len(candidates) == 0 {
 		return nil
@@ -543,88 +627,88 @@ func robustPruneSimpleWithNorm(
 		candidates = candidates[:n]
 	}
 
-	// Pre-fetch all vectors and normSq into local slices before the loop.
+	// Prepare scratch buffers (allocate if nil for backward compat)
+	if ps == nil {
+		ps = newPruneScratch(n, R)
+	}
+	ps.ensureAndReset(n, R)
+
+	// Pre-fetch all vectors and normSq into scratch slices before the loop.
 	// This reduces map accesses (via getVec/getNormSq closures) from O(n²) to O(n),
 	// which is critical under -race where each map operation has ~10x overhead.
-	vecs := make([][]float32, n)
-	norms := make([]float32, n)
 	for i := 0; i < n; i++ {
 		v := getVec(uint64(candidates[i].ID))
-		vecs[i] = v
+		ps.vecs[i] = v
 		if v != nil {
-			norms[i] = getNormSq(uint64(candidates[i].ID), v)
+			ps.norms[i] = getNormSq(uint64(candidates[i].ID), v)
 		}
 	}
 
 	// Progressive alpha with incremental occlude factor (aligned with robustPruneCore)
-	occludeFactor := make([]float32, n)
-	lastChecked := make([]int, n)
-	resultPos := make([]int, 0, R)
-
 	for curAlpha := float32(1.0); curAlpha <= alpha+0.01; curAlpha *= 1.2 {
 		if curAlpha > alpha {
 			curAlpha = alpha
 		}
 		for i := 0; i < n; i++ {
-			if len(resultPos) >= R {
+			if len(ps.resultPos) >= R {
 				break
 			}
 
-			if occludeFactor[i] > curAlpha {
+			if ps.occludeFactor[i] > curAlpha {
 				continue
 			}
 
 			cand := &candidates[i]
-			candVec := vecs[i]
+			candVec := ps.vecs[i]
 			if candVec == nil {
-				occludeFactor[i] = math.MaxFloat32
+				ps.occludeFactor[i] = math.MaxFloat32
 				continue
 			}
-			candNormSq := norms[i]
+			candNormSq := ps.norms[i]
 
 			skip := false
-			for lastChecked[i] < len(resultPos) {
-				resultIdx := resultPos[lastChecked[i]]
-				lastChecked[i]++
+			for ps.lastChecked[i] < len(ps.resultPos) {
+				resultIdx := ps.resultPos[ps.lastChecked[i]]
+				ps.lastChecked[i]++
 
 				if resultIdx >= i {
 					continue
 				}
 
-				selectedVec := vecs[resultIdx]
+				selectedVec := ps.vecs[resultIdx]
 				if selectedVec == nil {
 					continue
 				}
 
-				distCN := euclideanDistanceWithNorms(candVec, selectedVec, candNormSq, norms[resultIdx])
+				distCN := euclideanDistanceWithNorms(candVec, selectedVec, candNormSq, ps.norms[resultIdx])
 
 				if distCN < cand.Distance {
 					newFactor := cand.Distance / distCN
-					if newFactor > occludeFactor[i] {
-						occludeFactor[i] = newFactor
+					if newFactor > ps.occludeFactor[i] {
+						ps.occludeFactor[i] = newFactor
 					}
 				}
 
-				if occludeFactor[i] > curAlpha {
+				if ps.occludeFactor[i] > curAlpha {
 					skip = true
 					break
 				}
 			}
 
-			if !skip && occludeFactor[i] <= curAlpha {
-				resultPos = append(resultPos, i)
-				occludeFactor[i] = math.MaxFloat32
+			if !skip && ps.occludeFactor[i] <= curAlpha {
+				ps.resultPos = append(ps.resultPos, i)
+				ps.occludeFactor[i] = math.MaxFloat32
 			}
 		}
 	}
 
-	// Convert position indices to node IDs
-	result := make([]uint32, len(resultPos))
-	for i, pos := range resultPos {
-		result[i] = candidates[pos].ID
+	// Convert position indices to node IDs, reusing scratch result slice
+	ps.result = ps.result[:len(ps.resultPos)]
+	for i, pos := range ps.resultPos {
+		ps.result[i] = candidates[pos].ID
 	}
 
-	return result
+	return ps.result
 }
 
 // appendBBQForInsert computes and appends BBQ metadata for a newly inserted vector.
@@ -646,12 +730,12 @@ func (idx *DiskVamanaIndex) appendBBQForInsert(vector []float32, dimension int) 
 // This allows concurrent Insert operations to proceed on different neighbor nodes.
 func (idx *DiskVamanaIndex) addBackEdgesForInsert(
 	newID uint64, neighbors []uint32, R int,
-	cache *vectorCache, nsCache *normSqCache,
+	cache *vectorCache, nsCache *normSqCache, ps *pruneScratch,
 ) {
 	newIDu32 := uint32(newID)
 
 	for _, neighborID := range neighbors {
-		idx.addBackEdgeForNode(uint64(neighborID), newIDu32, R, cache, nsCache)
+		idx.addBackEdgeForNode(uint64(neighborID), newIDu32, R, cache, nsCache, ps)
 	}
 }
 
@@ -666,7 +750,7 @@ func (idx *DiskVamanaIndex) addBackEdgesForInsert(
 //   - Phase 3 (nodeLocks only): write pruned result via storeNeighbors
 func (idx *DiskVamanaIndex) addBackEdgeForNode(
 	neighborID uint64, newIDu32 uint32, R int,
-	cache *vectorCache, nsCache *normSqCache,
+	cache *vectorCache, nsCache *normSqCache, ps *pruneScratch,
 ) {
 	// ── Phase 1 (mu.RLock → nodeLock → read → unlock both): quick check + copy ──
 	// Must acquire mu.RLock first to safely access nodeLocks slice (Insert Phase 1
@@ -736,6 +820,7 @@ func (idx *DiskVamanaIndex) addBackEdgeForNode(
 			candidateNeighbors, R, DefaultInsertAlpha,
 			func(id uint64) []float32 { return idx.getCachedVector(id, cache) },
 			func(id uint64, v []float32) float32 { return getCachedNormSq(id, v, nsCache) },
+			ps,
 		)
 	} else {
 		newNeighbors = copyOfNeighbors[:R]
@@ -815,6 +900,10 @@ func (idx *DiskVamanaIndex) inplaceDelete(p uint64) {
 	pu32 := uint32(p)
 	R := idx.maxDegree
 
+	// Create per-delete pruneScratch to reuse temporary buffers across all robustPrune calls
+	// in pruneAffectedVertices (Step 6). Capacity hint: 2*R candidates.
+	ps := newPruneScratch(2*R, R)
+
 	// Precompute query norm² once for the entire delete operation.
 	// This avoids ~300万 redundant computeNormSquare(query) calls in
 	// deleteGreedySearch → computeDistanceToQuery path.
@@ -839,7 +928,7 @@ func (idx *DiskVamanaIndex) inplaceDelete(p uint64) {
 	idx.storeNeighbors(p, nil)
 
 	// Step 6: RobustPrune any vertex exceeding degree R
-	idx.pruneAffectedVertices(pu32, approxIn, candidates, R, cache, nsCache)
+	idx.pruneAffectedVertices(pu32, approxIn, candidates, R, cache, nsCache, ps)
 }
 
 // deleteGreedySearch runs GreedySearch with the deleted point's vector as query.
@@ -1067,7 +1156,7 @@ func (idx *DiskVamanaIndex) closestCFromCandidates(
 func (idx *DiskVamanaIndex) pruneAffectedVertices(
 	pu32 uint32,
 	approxIn []uint32, candidates []Neighbor, R int,
-	cache *vectorCache, nsCache *normSqCache,
+	cache *vectorCache, nsCache *normSqCache, ps *pruneScratch,
 ) {
 	// 使用松弛因子计算剪枝触发阈值：仅当度数超过 slackR 时才触发剪枝，
 	// 剪枝目标仍为 R。这允许删除修复后的节点临时保留额外边，
@@ -1116,7 +1205,7 @@ func (idx *DiskVamanaIndex) pruneAffectedVertices(
 			}
 			nCands = append(nCands, Neighbor{ID: nid, Distance: d})
 		}
-		pruned := robustPruneSimpleWithNorm(nCands, R, DefaultInsertAlpha, cachedGetVec, cachedGetNormSq)
+		pruned := robustPruneSimpleWithNorm(nCands, R, DefaultInsertAlpha, cachedGetVec, cachedGetNormSq, ps)
 		idx.storeNeighbors(uint64(v), pruned)
 	}
 }

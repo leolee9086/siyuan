@@ -292,7 +292,7 @@ func (idx *VamanaIndex) pruneAffectedVertices(
 			d := euclideanDistance(vVec, idx.vectors[nid])
 			nCands = append(nCands, Neighbor{ID: nid, Distance: d})
 		}
-		pruned := robustPruneSimple(nCands, R, DefaultInsertAlpha, getVec)
+		pruned := robustPruneSimple(nCands, R, DefaultInsertAlpha, getVec, nil)
 		idx.neighbors[v] = pruned
 	}
 }
