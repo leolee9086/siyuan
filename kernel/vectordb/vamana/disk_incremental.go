@@ -92,38 +92,81 @@ func (idx *DiskVamanaIndex) getVector(nodeID uint64) []float32 {
 	return vec
 }
 
-// vectorCache is a per-operation cache for vectors read during a single Delete operation.
-// It avoids redundant mmap reads and memory allocations when the same vector is accessed
-// multiple times across deleteGreedySearch, repairInEdges, repairOutEdges, and pruneAffectedVertices.
-type vectorCache map[uint64][]float32
+// vectorCache is a per-operation slice-based cache for vectors, indexed by nodeID.
+// Replaces map[uint64][]float32 to eliminate GC pressure from mapassign_fast64.
+// Uses a parallel []bool to distinguish "not cached" from "cached nil vector".
+// Size is based on totalPoints() at creation time; out-of-range nodeIDs fall through
+// to the uncached path (correct but slower).
+type vectorCache struct {
+	vecs   [][]float32
+	cached []bool
+}
+
+// newVectorCache creates a vectorCache sized for the given number of nodes.
+func newVectorCache(size uint64) *vectorCache {
+	return &vectorCache{
+		vecs:   make([][]float32, size),
+		cached: make([]bool, size),
+	}
+}
 
 // getCachedVector returns the vector for nodeID, using the cache to avoid repeated mmap reads.
 // On cache miss, it delegates to getVector and stores the result (including nil) in the cache.
-func (idx *DiskVamanaIndex) getCachedVector(nodeID uint64, cache vectorCache) []float32 {
-	if vec, ok := cache[nodeID]; ok {
-		return vec
+// Out-of-range nodeIDs bypass the cache entirely (safe for concurrent Insert scenarios).
+func (idx *DiskVamanaIndex) getCachedVector(nodeID uint64, cache *vectorCache) []float32 {
+	if nodeID < uint64(len(cache.cached)) && cache.cached[nodeID] {
+		return cache.vecs[nodeID]
 	}
 	vec := idx.getVector(nodeID)
-	cache[nodeID] = vec
+	if nodeID < uint64(len(cache.cached)) {
+		cache.vecs[nodeID] = vec
+		cache.cached[nodeID] = true
+	}
 	return vec
 }
 
-// normSqCache is a per-operation cache for vector norm² values during a single Delete operation.
-// CPU profile shows dotProduct() occupies 63-68% CPU; the root cause is that euclideanDistance(a, b)
-// calls dotProduct 3 times (2× normSq + 1× dot), and robustPruneSimple's O(n²) occlude loop
-// has no normSq caching. This cache reduces dotProduct calls from 3 to 1 per distance computation
-// when both vectors' normSq are cached.
-type normSqCache map[uint64]float32
+// normSqNotCached is the sentinel value indicating an uncached normSq entry.
+// normSq (‖v‖²) is always ≥ 0 for any real vector, so -1 is safe as sentinel.
+const normSqNotCached = float32(-1.0)
+
+// normSqCache is a per-operation slice-based cache for vector norm² values, indexed by nodeID.
+// Replaces map[uint64]float32 to eliminate GC pressure from mapassign_fast64.
+// Uses normSqNotCached (-1) as sentinel for uncached entries.
+type normSqCache struct {
+	norms []float32
+}
+
+// newNormSqCache creates a normSqCache sized for the given number of nodes,
+// with all entries initialized to normSqNotCached.
+func newNormSqCache(size uint64) *normSqCache {
+	norms := make([]float32, size)
+	for i := range norms {
+		norms[i] = normSqNotCached
+	}
+	return &normSqCache{norms: norms}
+}
+
+// set stores a normSq value for the given nodeID. Out-of-range nodeIDs are ignored.
+func (c *normSqCache) set(nodeID uint64, val float32) {
+	if nodeID < uint64(len(c.norms)) {
+		c.norms[nodeID] = val
+	}
+}
 
 // getCachedNormSq returns the cached norm² for nodeID. On cache miss, it computes normSq
 // from the provided vector and stores it. The vec parameter must be the vector for nodeID
 // (caller is responsible for providing the correct vector, typically from getCachedVector).
-func getCachedNormSq(nodeID uint64, vec []float32, cache normSqCache) float32 {
-	if ns, ok := cache[nodeID]; ok {
-		return ns
+// Out-of-range nodeIDs bypass the cache entirely.
+func getCachedNormSq(nodeID uint64, vec []float32, cache *normSqCache) float32 {
+	if nodeID < uint64(len(cache.norms)) {
+		if ns := cache.norms[nodeID]; ns != normSqNotCached {
+			return ns
+		}
 	}
 	ns := computeNormSquare(vec)
-	cache[nodeID] = ns
+	if nodeID < uint64(len(cache.norms)) {
+		cache.norms[nodeID] = ns
+	}
 	return ns
 }
 
@@ -239,9 +282,10 @@ func (idx *DiskVamanaIndex) Insert(vector []float32) (uint64, error) {
 
 	// Create per-insert vector and normSq caches to eliminate redundant mmap reads
 	// and normSq computations across findNeighborsForInsert, robustPrune, and addBackEdges.
-	// Same pattern as inplaceDelete (line 616).
-	cache := make(vectorCache, DefaultInsertSearchL*3)
-	nsCache := make(normSqCache, DefaultInsertSearchL*3)
+	// Same pattern as inplaceDelete. Sized to newID+1 (covers all existing + new node).
+	cacheSize := newID + 1
+	cache := newVectorCache(cacheSize)
+	nsCache := newNormSqCache(cacheSize)
 
 	// Precompute query normSq once for the entire insert operation.
 	queryNormSq := computeNormSquare(vector)
@@ -287,7 +331,7 @@ func (idx *DiskVamanaIndex) Insert(vector []float32) (uint64, error) {
 // Caller must hold idx.mu (at least read lock) to protect appendVectors/appendNeighbors/modifiedNeighbors.
 func (idx *DiskVamanaIndex) findNeighborsForInsert(
 	vector []float32, queryNormSq float32,
-	cache vectorCache, nsCache normSqCache,
+	cache *vectorCache, nsCache *normSqCache,
 ) []Neighbor {
 	scratch := getDiskSearchScratch()
 	defer putDiskSearchScratch(scratch)
@@ -318,7 +362,19 @@ func (idx *DiskVamanaIndex) findNeighborsForInsert(
 		}
 
 		neighbors := idx.getNeighbors(uint64(closest.ID))
-		for _, neighborID := range neighbors {
+		for i, neighborID := range neighbors {
+			// Prefetch next neighbor's vector into vectorCache while processing current.
+			// Mirrors memory-version prefetchVector pattern (build.go):
+			// pre-loading triggers mmap page fault or append buffer read NOW,
+			// so the next iteration's getCachedVector hits the cache directly.
+			// Also warms normSqCache to benefit downstream robustPrune/addBackEdge.
+			if i+1 < len(neighbors) {
+				nextID := uint64(neighbors[i+1])
+				if pVec := idx.getCachedVector(nextID, cache); pVec != nil {
+					getCachedNormSq(nextID, pVec, nsCache)
+				}
+			}
+
 			if idx.deleted.IsDeleted(uint64(neighborID)) {
 				continue
 			}
@@ -590,7 +646,7 @@ func (idx *DiskVamanaIndex) appendBBQForInsert(vector []float32, dimension int) 
 // This allows concurrent Insert operations to proceed on different neighbor nodes.
 func (idx *DiskVamanaIndex) addBackEdgesForInsert(
 	newID uint64, neighbors []uint32, R int,
-	cache vectorCache, nsCache normSqCache,
+	cache *vectorCache, nsCache *normSqCache,
 ) {
 	newIDu32 := uint32(newID)
 
@@ -610,7 +666,7 @@ func (idx *DiskVamanaIndex) addBackEdgesForInsert(
 //   - Phase 3 (nodeLocks only): write pruned result via storeNeighbors
 func (idx *DiskVamanaIndex) addBackEdgeForNode(
 	neighborID uint64, newIDu32 uint32, R int,
-	cache vectorCache, nsCache normSqCache,
+	cache *vectorCache, nsCache *normSqCache,
 ) {
 	// ── Phase 1 (mu.RLock → nodeLock → read → unlock both): quick check + copy ──
 	// Must acquire mu.RLock first to safely access nodeLocks slice (Insert Phase 1
@@ -749,12 +805,11 @@ func (idx *DiskVamanaIndex) Delete(nodeID uint64) error {
 // across the ~300万 getVector calls in a typical delete. The cache is scoped to
 // this single delete and released when the method returns.
 func (idx *DiskVamanaIndex) inplaceDelete(p uint64) {
-	// Create per-operation vector cache (typical capacity: visited + candidates + neighbors)
-	cache := make(vectorCache, DefaultDeleteSearchL*3)
-	// Create per-operation normSq cache to eliminate redundant dotProduct calls.
-	// In the original code, euclideanDistance(a, b) calls dotProduct 3 times per invocation.
-	// With normSq caching, robustPruneSimple's O(n²) occlude loop drops to 1 dotProduct per pair.
-	nsCache := make(normSqCache, DefaultDeleteSearchL*3)
+	// Create per-operation caches sized to current totalPoints.
+	// Slice-based caches eliminate GC pressure from mapassign_fast64.
+	cacheSize := idx.totalPoints()
+	cache := newVectorCache(cacheSize)
+	nsCache := newNormSqCache(cacheSize)
 
 	pVec := idx.getCachedVector(p, cache)
 	pu32 := uint32(p)
@@ -764,7 +819,7 @@ func (idx *DiskVamanaIndex) inplaceDelete(p uint64) {
 	// This avoids ~300万 redundant computeNormSquare(query) calls in
 	// deleteGreedySearch → computeDistanceToQuery path.
 	queryNormSq := computeNormSquare(pVec)
-	nsCache[p] = queryNormSq
+	nsCache.set(p, queryNormSq)
 
 	// Step 1: GreedySearch with x_p as query → Visited + Candidates(top-k)
 	visited, candidates := idx.deleteGreedySearch(pVec, queryNormSq, cache, nsCache)
@@ -795,7 +850,7 @@ func (idx *DiskVamanaIndex) inplaceDelete(p uint64) {
 // subsequent edge repair steps, and warms the normSqCache with normSq values
 // computed during distance calculations (via computeDistance → euclideanDistanceWithNorm).
 func (idx *DiskVamanaIndex) deleteGreedySearch(
-	queryVec []float32, queryNormSq float32, cache vectorCache, nsCache normSqCache,
+	queryVec []float32, queryNormSq float32, cache *vectorCache, nsCache *normSqCache,
 ) ([]uint32, []Neighbor) {
 	scratch := getDiskSearchScratch()
 	defer putDiskSearchScratch(scratch)
@@ -885,7 +940,7 @@ func (idx *DiskVamanaIndex) findApproxInNeighbors(p uint64, visited []uint32) []
 func (idx *DiskVamanaIndex) repairInEdges(
 	p uint64, pu32 uint32,
 	approxIn []uint32, candidates []Neighbor,
-	cache vectorCache, nsCache normSqCache,
+	cache *vectorCache, nsCache *normSqCache,
 ) {
 	c := idx.deleteC
 
@@ -922,7 +977,7 @@ func (idx *DiskVamanaIndex) repairInEdges(
 func (idx *DiskVamanaIndex) repairOutEdges(
 	p uint64, pu32 uint32,
 	outNeighbors []uint32, candidates []Neighbor,
-	cache vectorCache, nsCache normSqCache,
+	cache *vectorCache, nsCache *normSqCache,
 ) {
 	c := idx.deleteC
 
@@ -960,7 +1015,7 @@ func (idx *DiskVamanaIndex) repairOutEdges(
 func (idx *DiskVamanaIndex) closestCFromCandidates(
 	refVec []float32, selfID uint32, excludeP uint32,
 	candidates []Neighbor, c int,
-	cache vectorCache, nsCache normSqCache,
+	cache *vectorCache, nsCache *normSqCache,
 ) []uint32 {
 	type scored struct {
 		id   uint32
@@ -1012,7 +1067,7 @@ func (idx *DiskVamanaIndex) closestCFromCandidates(
 func (idx *DiskVamanaIndex) pruneAffectedVertices(
 	pu32 uint32,
 	approxIn []uint32, candidates []Neighbor, R int,
-	cache vectorCache, nsCache normSqCache,
+	cache *vectorCache, nsCache *normSqCache,
 ) {
 	// 使用松弛因子计算剪枝触发阈值：仅当度数超过 slackR 时才触发剪枝，
 	// 剪枝目标仍为 R。这允许删除修复后的节点临时保留额外边，
