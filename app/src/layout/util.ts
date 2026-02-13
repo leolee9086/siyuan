@@ -48,6 +48,7 @@ export const resetLayout = (reason?: Error | string): void => {
         return;
     }
     // @内联回调 - 回调逻辑简单，直接内联
+    // S-forge: 本地重构将 saveLayout/getAllLayout/initInternalDock 移至独立模块
     fetchPost("/api/system/setUILayout", { layout: {} }, () => {
         resetFilePositionStorage();
         setStorageVal(Constants.LOCAL_FILEPOSITION, getFilePositionStorage());

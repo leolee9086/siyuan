@@ -1,6 +1,6 @@
 import {popSearch} from "./search";
 import {initAppearance} from "../settings/appearance";
-import {initAssets} from "../settings/assets";
+import {initConfigAssets} from "../settings/assets";
 import {closePanel} from "../util/closePanel";
 import {mountHelp, newDailyNote, newNotebook} from "../../util/mount";
 import {repos} from "../../config/repos";
@@ -31,6 +31,8 @@ import {afterLoadPlugin} from "../../plugin/loader";
 import {commandPanel} from "../../boot/globalEvent/command/panel";
 import {openTopBarMenu} from "../../plugin/openTopBarMenu";
 import {initFileTree} from "../settings/fileTree";
+import {initExport} from "../settings/export";
+// S-forge: 本地i18n封装，替代直接访问 window.siyuan.languages
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const popMenu = () => {
@@ -116,6 +118,9 @@ export const initRightMenu = (app: App) => {
     <div class="b3-menu__item${window.siyuan.config.readonly ? " fn__none" : ""}" id="menuAssets">
         <svg class="b3-menu__icon"><use xlink:href="#iconImage"></use></svg><span class="b3-menu__label">${siyuanI18n.assets}</span>
     </div>
+    <div class="b3-menu__item${window.siyuan.config.readonly ? " fn__none" : ""}" id="menuExport">
+        <svg class="b3-menu__icon"><use xlink:href="#iconUpload"></use></svg><span class="b3-menu__label">${window.siyuan.languages.export}</span>
+    </div>
     <div class="b3-menu__item${window.siyuan.config.readonly ? " fn__none" : ""}" id="menuAppearance">
         <svg class="b3-menu__icon"><use xlink:href="#iconTheme"></use></svg><span class="b3-menu__label">${siyuanI18n.appearance}</span>
     </div>
@@ -175,7 +180,12 @@ export const initRightMenu = (app: App) => {
                 event.stopPropagation();
                 break;
             } else if (target.id === "menuAssets") {
-                initAssets();
+                initConfigAssets(app);
+                event.preventDefault();
+                event.stopPropagation();
+                break;
+            } else if (target.id === "menuExport") {
+                initExport();
                 event.preventDefault();
                 event.stopPropagation();
                 break;

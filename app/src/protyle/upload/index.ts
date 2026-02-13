@@ -1,3 +1,4 @@
+// S-forge: 代码重构 - 保持本地的模块化导入风格，同时添加远程的新导入
 import { insertHTML } from "../util/insertHTML";
 import { hideMessage, showMessage } from "../../dialog/message";
 import { Constants } from "../../constants";
@@ -6,13 +7,15 @@ import { fetchPost } from "../../util/fetch";
 import { getEditorRange } from "../util/selection";
 import { pathPosix } from "../../util/pathName";
 import { genAssetHTML } from "../../asset/renderAssets";
-import { hasClosestBlock } from "../util/hasClosest";
+import { hasClosestBlock, hasClosestByClassName } from "../util/hasClosest";
 import { getContenteditableElement } from "../wysiwyg/getBlock";
 import { getTypeByCellElement, updateCellsValue } from "../render/av/cell";
 import { scrollCenter } from "../../util/highlightById";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { confirmDialog } from "../../dialog/confirmDialog";
 import { filesize } from "filesize";
+import { transaction } from "../wysiwyg/transaction";
+import * as dayjs from "dayjs";
 
 /**
  * 带有路径信息的文件接口
@@ -104,7 +107,7 @@ const handleUploadResult = (protyle: IProtyle, response: any) => {
     return !!errorTip;
 };
 
-const genUploadedLabel = (responseText: string, protyle: IProtyle) => {
+const genUploadedLabel = async (responseText: string, protyle: IProtyle) => {
     const response = JSON.parse(responseText);
     if (handleUploadResult(protyle, response)) {
         return;
@@ -217,12 +220,50 @@ cellElements.push(item);
                 }
             }
         }
-        if (cellElements.length > 0) {
+        if (cellElements.length === 1) {
             updateCellsValue(protyle, nodeElement, avAssets, cellElements);
-            return;
-        } else {
-            return;
+        } else if (cellElements.length > 1) {
+            const doOperations: IOperation[] = [];
+            const undoOperations: IOperation[] = [];
+            let currentRowElement;
+            const colId = cellElements[0].getAttribute("data-col-id");
+            for (let i = 0; i < avAssets.length; i++) {
+                let cellElement = cellElements[i];
+                if (!cellElement) {
+                    if (!currentRowElement) {
+                        currentRowElement = hasClosestByClassName(cellElements[i - 1], "av__row") as HTMLElement;
+                    }
+                    if (currentRowElement) {
+                        currentRowElement = currentRowElement.nextElementSibling;
+                        if (currentRowElement && currentRowElement.classList.contains("av__row")) {
+                            cellElement = currentRowElement.querySelector(`.av__cell[data-col-id="${colId}"]`);
+                        }
+                    }
+                }
+                if (!cellElement) {
+                    break;
+                }
+                const operations = await updateCellsValue(protyle, nodeElement,
+                    [avAssets[i]], [cellElement], null, null, true);
+                doOperations.push(...operations.doOperations);
+                undoOperations.push(...operations.undoOperations);
+            }
+            if (doOperations.length > 0) {
+                const id = nodeElement.dataset.nodeId;
+                doOperations.push({
+                    action: "doUpdateUpdated",
+                    id,
+                    data: dayjs().format("YYYYMMDDHHmmss"),
+                });
+                undoOperations.push({
+                    action: "doUpdateUpdated",
+                    id,
+                    data: nodeElement.getAttribute("updated"),
+                });
+                transaction(protyle, doOperations, undoOperations);
+            }
         }
+        return;
     }
 
     // 避免插入代码块中，其次因为都要独立成块 https://github.com/siyuan-note/siyuan/issues/7607

@@ -7,7 +7,7 @@ import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environme
 import { buildGutterMultipleMenu } from "./buildGutterMultipleMenu";
 import { buildGutterMenu } from "./buildGutterMenu";
 import { renderGutter } from "./renderGutter";
-import { bindEvent, isMatchNode as isMatchNodeHelper } from "./bindEvent";
+import { bindEvent, isMatchNode } from "./bindEvent";
 
 /**
  * 思源笔记编辑器的侧边栏（Gutter）管理类
@@ -73,7 +73,7 @@ export class Gutter {
      * @returns 如果元素匹配当前 Gutter 位置则返回 true，否则返回 false
      */
     public isMatchNode(item: Element) {
-        return isMatchNodeHelper(item, this.element);
+        return isMatchNode(item, this.element);
     }
 
     /**
@@ -102,9 +102,11 @@ export class Gutter {
      * @returns 构建的菜单对象
      */
 
+    // S-forge: 开始 - 代码重构：将菜单构建逻辑拆分到独立模块以提高可维护性
     public renderMenu(protyle: IProtyle, buttonElement: Element) {
         return buildGutterMenu({ protyle, buttonElement });
     }
+    // S-forge: 结束
 
     /**
      * 渲染 Gutter 内容

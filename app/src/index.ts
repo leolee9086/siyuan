@@ -23,9 +23,9 @@ import {
     setTitle,
     transactionError
 } from "./dialog/processSystem";
-import { initMessage } from "./dialog/message";
+import { initMessage, showMessage } from "./dialog/message";
 import { getAllTabs } from "./layout/getAll";
-import { getLocalStorage } from "./protyle/util/compatibility";
+import { getLocalStorage, isChromeBrowser } from "./protyle/util/compatibility";
 import { getSearch } from "./util/functions";
 import { checkPublishServiceClosed } from "./util/processMessage";
 import { hideAllElements } from "./protyle/ui/hideElements";
@@ -228,6 +228,11 @@ export class App {
                         account.onSetaccount();
                         setTitle(siyuanI18n.siyuanNote);
                         initMessage();
+                        /// #if BROWSER && !MOBILE
+                        if (!window.siyuan.config.readonly && !window.siyuan.isPublish && !isChromeBrowser()) {
+                            showMessage(window.siyuan.languages.useChrome, 0, "error");
+                        }
+                        /// #endif
                     });
                 });
             });

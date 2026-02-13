@@ -6,6 +6,7 @@ import {
     hasClosestBlock,
     hasClosestByAttribute,
 } from "../util/hasClosest";
+// S-forge: keydown 逻辑已重构拆分为多个中间件模块
 import { Constants } from "../../constants";
 import { fetchPost } from "../../util/fetch";
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";

@@ -2,7 +2,7 @@
 <html style="height: 100%">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, height=device-height, interactive-widget=resizes-content, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
     <title>{{.l6}}</title>
     <style>
         body {
@@ -574,6 +574,17 @@
         new WebSocket((window.location.protocol === 'https:' ? 'wss' : 'ws') + '://' + window.location.host + '/ws?app=siyuan&id=auth')
     }
     init();
+    window.addEventListener("click", (event) => {
+        if (event.target.tagName === "INPUT" &&
+            ["email", "number", "password", "search", "tel", "text", "url", "", null].includes(event.target.getAttribute("type")) &&
+            event.target.getAttribute("readonly") !== "readonly") {
+            if (window.JSAndroid && window.JSAndroid.showKeyboard) {
+                window.JSAndroid.showKeyboard();
+            } else if (window.JSHarmony && window.JSHarmony.showKeyboard) {
+                window.JSHarmony.showKeyboard();
+            }
+        }
+    })
 </script>
 </body>
 </html>

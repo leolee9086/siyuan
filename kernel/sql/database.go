@@ -98,8 +98,7 @@ func InitDatabase(forceRebuild bool) (err error) {
 	closeDatabase()
 	if gulu.File.IsExist(util.DBPath) {
 		if err = removeDatabaseFile(); err != nil {
-			logging.LogErrorf("remove database file [%s] failed: %s", util.DBPath, err)
-			util.PushClearProgress()
+			logging.LogErrorf("remove database file failed: %s", err)
 			err = nil
 		}
 	}
@@ -144,6 +143,11 @@ func initDBTables() {
 	_, err = db.Exec("CREATE INDEX idx_blocks_root_id ON blocks(root_id)")
 	if err != nil {
 		logging.LogFatalf(logging.ExitCodeUnavailableDatabase, "create index [idx_blocks_root_id] failed: %s", err)
+	}
+
+	_, err = db.Exec("CREATE INDEX idx_blocks_root_id_id_hash ON blocks(root_id, id, hash)")
+	if err != nil {
+		logging.LogFatalf(logging.ExitCodeUnavailableDatabase, "create index [idx_blocks_root_id_id_hash] failed: %s", err)
 	}
 
 	_, err = db.Exec("DROP TABLE IF EXISTS blocks_fts")
@@ -265,6 +269,8 @@ func InitHistoryDatabase(forceRebuild bool) {
 	}
 
 	historyDB.Close()
+	historyDB = nil
+	runtime.GC()
 	if err := os.RemoveAll(util.HistoryDBPath); err != nil {
 		logging.LogErrorf("remove history database file [%s] failed: %s", util.HistoryDBPath, err)
 		return
@@ -277,6 +283,8 @@ func InitHistoryDatabase(forceRebuild bool) {
 func initHistoryDBConnection() {
 	if nil != historyDB {
 		historyDB.Close()
+		historyDB = nil
+		runtime.GC()
 	}
 
 	util.LogDatabaseSize(util.HistoryDBPath)
@@ -321,6 +329,8 @@ func InitAssetContentDatabase(forceRebuild bool) {
 	}
 
 	assetContentDB.Close()
+	assetContentDB = nil
+	runtime.GC()
 	if err := os.RemoveAll(util.AssetContentDBPath); err != nil {
 		logging.LogErrorf("remove assets database file [%s] failed: %s", util.AssetContentDBPath, err)
 		return
@@ -333,6 +343,8 @@ func InitAssetContentDatabase(forceRebuild bool) {
 func initAssetContentDBConnection() {
 	if nil != assetContentDB {
 		assetContentDB.Close()
+		assetContentDB = nil
+		runtime.GC()
 	}
 
 	util.LogDatabaseSize(util.AssetContentDBPath)
@@ -643,16 +655,7 @@ func buildSpanFromNode(n *ast.Node, tree *parse.Tree, rootID, boxID, p string) (
 			title = gulu.Str.FromBytes(titleNode.Tokens)
 		}
 
-		var hash string
-		var hashErr error
-		if lp := assetLocalPath(dest, boxLocalPath, docDirLocalPath); "" != lp {
-			if !gulu.File.IsDir(lp) {
-				hash, hashErr = util.GetEtag(lp)
-				if nil != hashErr {
-					logging.LogErrorf("calc asset [%s] hash failed: %s", lp, hashErr)
-				}
-			}
-		}
+		hash := assetHashByLocalPath(dest, boxLocalPath, docDirLocalPath)
 		name, _ := util.LastID(dest)
 		asset := &Asset{
 			ID:      ast.NewNodeID(),
@@ -694,16 +697,7 @@ func buildSpanFromNode(n *ast.Node, tree *parse.Tree, rootID, boxID, p string) (
 					title = gulu.Str.FromBytes(titleNode.Tokens)
 				}
 
-				var hash string
-				var hashErr error
-				if lp := assetLocalPath(dest, boxLocalPath, docDirLocalPath); "" != lp {
-					if !gulu.File.IsDir(lp) {
-						hash, hashErr = util.GetEtag(lp)
-						if nil != hashErr {
-							logging.LogErrorf("calc asset [%s] hash failed: %s", lp, hashErr)
-						}
-					}
-				}
+				hash := assetHashByLocalPath(dest, boxLocalPath, docDirLocalPath)
 				name, _ := util.LastID(dest)
 				asset := &Asset{
 					ID:      ast.NewNodeID(),
@@ -784,15 +778,7 @@ func buildSpanFromNode(n *ast.Node, tree *parse.Tree, rootID, boxID, p string) (
 		}
 
 		dest := string(src)
-		var hash string
-		var hashErr error
-		if lp := assetLocalPath(dest, boxLocalPath, docDirLocalPath); "" != lp {
-			hash, hashErr = util.GetEtag(lp)
-			if nil != hashErr {
-				logging.LogErrorf("calc asset [%s] hash failed: %s", lp, hashErr)
-			}
-		}
-
+		hash := assetHashByLocalPath(dest, boxLocalPath, docDirLocalPath)
 		parentBlock := treenode.ParentBlock(n)
 		if ast.NodeInlineHTML != n.Type {
 			parentBlock = n
@@ -1302,17 +1288,14 @@ func batchUpdateHPath(tx *sql.Tx, tree *parse.Tree, context map[string]interface
 }
 
 func CloseDatabase() {
-	if err := closeDatabase(); err != nil {
+	if err := db.Close(); err != nil {
 		logging.LogErrorf("close database failed: %s", err)
-		return
 	}
 	if err := historyDB.Close(); err != nil {
 		logging.LogErrorf("close history database failed: %s", err)
-		return
 	}
 	if err := assetContentDB.Close(); err != nil {
 		logging.LogErrorf("close asset content database failed: %s", err)
-		return
 	}
 	treenode.CloseDatabase()
 	logging.LogInfof("closed database")
@@ -1564,14 +1547,15 @@ func removeDatabaseFile() (err error) {
 	return
 }
 
-func closeDatabase() (err error) {
+func closeDatabase() {
 	if nil == db {
 		return
 	}
 
-	err = db.Close()
+	db.Close()
 	debug.FreeOSMemory()
-	runtime.GC() // 没有这句的话文件句柄不会释放，后面就无法删除文件
+	db = nil
+	runtime.GC()
 	return
 }
 

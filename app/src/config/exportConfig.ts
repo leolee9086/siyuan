@@ -3,15 +3,16 @@ import { fetchPost } from "../util/fetch";
 import { afterExport } from "../protyle/export/util";
 import { ipcRenderer } from "electron";
 import * as path from "path";
+import {exportLayout} from "../layout/util";
 /// #endif
+// S-forge: 统一i18n访问层
+import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { isBrowser } from "../util/functions";
 import { showMessage } from "../dialog/message";
 import { useShell } from "../util/pathName";
 import { Constants } from "../constants";
 import { openByMobile } from "../protyle/util/compatibility";
-import { exportLayout } from "../layout/util";
 import { exitSiYuan } from "../dialog/processSystem";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const exportConfig = {
     element: undefined as Element,
@@ -181,7 +182,7 @@ export const exportConfig = {
     </div>
     <input class="b3-text-field fn__flex-center fn__size200" id="pandocParams">
 </div>
-<div class="b3-label config__item">
+<div class="b3-label config__item${isBrowser() ? " fn__none" : ""}">
     ${window.siyuan.languages.export25}
     <div class="b3-label__text">${window.siyuan.languages.export26}</div>
     <div class="fn__hr"></div>
@@ -293,10 +294,14 @@ export const exportConfig = {
                         }
 
                         showMessage(siyuanI18n.imported);
+                        /// #if MOBILE
+                        exitSiYuan();
+                        /// #else
                         exportLayout({
                             errorExit: true,
                             cb: exitSiYuan
                         });
+                        /// #endif
                     });
                 });
             } else {

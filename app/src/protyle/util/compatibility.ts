@@ -8,6 +8,7 @@ import { clipboard, ipcRenderer } from "electron";
 import { processSYLink } from "../../editor/openLink";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 /// #endif
+import {getDefaultType} from "../../search/getDefault";
 
 export const isPhablet = () => {
     return /Android|webOS|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Tablet/i.test(navigator.userAgent) || isIPhone() || isIPad();
@@ -157,6 +158,9 @@ export const readClipboard = async () => {
         const textObj = getTextSiyuanFromTextHTML(text.textHTML);
         text.textHTML = textObj.textHtml;
         text.siyuanHTML = textObj.textSiyuan;
+        if (!text.siyuanHTML) {
+            text.siyuanHTML = window.JSAndroid.readSiYuanHTMLClipboard();
+        }
         return text;
     }
     if (isInHarmony()) {
@@ -165,6 +169,9 @@ export const readClipboard = async () => {
         const textObj = getTextSiyuanFromTextHTML(text.textHTML);
         text.textHTML = textObj.textHtml;
         text.siyuanHTML = textObj.textSiyuan;
+        if (!text.siyuanHTML) {
+            text.siyuanHTML = window.JSHarmony.readSiYuanHTMLClipboard();
+        }
         return text;
     }
     if (typeof navigator.clipboard === "undefined") {
@@ -348,6 +355,32 @@ export const isInHarmony = () => {
     return window.siyuan.config.system.container === "harmony" && window.JSHarmony;
 };
 
+export const isInEdge = () => {
+    const ua = navigator.userAgent;
+    return ua.indexOf("EdgA/") > -1 || ua.indexOf("Edge/") > -1;
+};
+
+export function isChromeBrowser(): boolean {
+    const nav = window.navigator as Navigator & {
+        userAgentData: {
+            brands: {
+                brand: string;
+                version: string;
+            }[]
+        }
+    };
+    if (nav.userAgentData && Array.isArray(nav.userAgentData.brands)) {
+        return nav.userAgentData.brands.some((b: any) => /Chrome|Chromium/i.test(b.brand));
+    }
+    // 回退到 userAgent
+    const ua = nav.userAgent || "";
+    const isChromium = /\bChrome\/\d+/i.test(ua) || /\bChromium\/\d+/i.test(ua);
+    const isEdge = /\bEdg(e|A|iOS)?\/\d+/i.test(ua); // Edge Chromium
+    const isOpera = /\b(OPR|Opera)\/\d+/i.test(ua);
+
+    return isChromium && !isEdge && !isOpera;
+}
+
 export const updateHotkeyAfterTip = (hotkey: string, split = " ") => {
     if (hotkey) {
         return split + updateHotkeyTip(hotkey);
@@ -474,8 +507,10 @@ export const getLocalStorage = (cb: () => void) => {
             currentTab: "emoji"
         };
         defaultStorage[Constants.LOCAL_FONTSTYLES] = [];
+        defaultStorage[Constants.LOCAL_CLOSED_TABS] = [];
         defaultStorage[Constants.LOCAL_FILESPATHS] = [];    // IFilesPath[]
         defaultStorage[Constants.LOCAL_SEARCHDATA] = {
+            removed: true,
             page: 1,
             sort: 0,
             group: 0,
@@ -485,21 +520,7 @@ export const getLocalStorage = (cb: () => void) => {
             idPath: [],
             k: "",
             r: "",
-            types: {
-                document: window.siyuan.config.search.document,
-                heading: window.siyuan.config.search.heading,
-                list: window.siyuan.config.search.list,
-                listItem: window.siyuan.config.search.listItem,
-                codeBlock: window.siyuan.config.search.codeBlock,
-                htmlBlock: window.siyuan.config.search.htmlBlock,
-                mathBlock: window.siyuan.config.search.mathBlock,
-                table: window.siyuan.config.search.table,
-                blockquote: window.siyuan.config.search.blockquote,
-                superBlock: window.siyuan.config.search.superBlock,
-                paragraph: window.siyuan.config.search.paragraph,
-                embedBlock: window.siyuan.config.search.embedBlock,
-                databaseBlock: window.siyuan.config.search.databaseBlock,
-            },
+            types: getDefaultType(),
             replaceTypes: Object.assign({}, Constants.SIYUAN_DEFAULT_REPLACETYPES),
         };
         defaultStorage[Constants.LOCAL_ZOOM] = 1;
@@ -513,13 +534,14 @@ export const getLocalStorage = (cb: () => void) => {
         };
 
         [Constants.LOCAL_EXPORTIMG, Constants.LOCAL_SEARCHKEYS, Constants.LOCAL_PDFTHEME, Constants.LOCAL_BAZAAR,
-        Constants.LOCAL_EXPORTWORD, Constants.LOCAL_EXPORTPDF, Constants.LOCAL_DOCINFO, Constants.LOCAL_FONTSTYLES,
-        Constants.LOCAL_SEARCHDATA, Constants.LOCAL_ZOOM, Constants.LOCAL_LAYOUTS, Constants.LOCAL_AI,
-        Constants.LOCAL_PLUGINTOPUNPIN, Constants.LOCAL_SEARCHASSET, Constants.LOCAL_FLASHCARD,
-        Constants.LOCAL_DIALOGPOSITION, Constants.LOCAL_SEARCHUNREF, Constants.LOCAL_HISTORY,
-        Constants.LOCAL_OUTLINE, Constants.LOCAL_FILEPOSITION, Constants.LOCAL_FILESPATHS, Constants.LOCAL_IMAGES,
-        Constants.LOCAL_PLUGIN_DOCKS, Constants.LOCAL_EMOJIS, Constants.LOCAL_MOVE_PATH, Constants.LOCAL_RECENT_DOCS,
-        Constants.LOCAL_SEMANTIC_SEARCH].forEach((key) => {
+            Constants.LOCAL_EXPORTWORD, Constants.LOCAL_EXPORTPDF, Constants.LOCAL_DOCINFO, Constants.LOCAL_FONTSTYLES,
+            Constants.LOCAL_SEARCHDATA, Constants.LOCAL_ZOOM, Constants.LOCAL_LAYOUTS, Constants.LOCAL_AI,
+            Constants.LOCAL_PLUGINTOPUNPIN, Constants.LOCAL_SEARCHASSET, Constants.LOCAL_FLASHCARD,
+            Constants.LOCAL_DIALOGPOSITION, Constants.LOCAL_SEARCHUNREF, Constants.LOCAL_HISTORY,
+            Constants.LOCAL_OUTLINE, Constants.LOCAL_FILEPOSITION, Constants.LOCAL_FILESPATHS, Constants.LOCAL_IMAGES,
+            Constants.LOCAL_PLUGIN_DOCKS, Constants.LOCAL_EMOJIS, Constants.LOCAL_MOVE_PATH, Constants.LOCAL_RECENT_DOCS,
+            Constants.LOCAL_CLOSED_TABS,
+            Constants.LOCAL_SEMANTIC_SEARCH].forEach((key) => { // S-forge: LOCAL_SEMANTIC_SEARCH 为本地语义搜索功能扩展
             if (typeof response.data[key] === "string") {
                 try {
                     const parseData = JSON.parse(response.data[key]);

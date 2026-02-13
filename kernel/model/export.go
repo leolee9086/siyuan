@@ -812,8 +812,9 @@ func ExportDocx(id, savePath string, removeAssets, merge bool) (fullPath string,
 	pandoc.Stdin = bytes.NewBufferString(content)
 	output, err := pandoc.CombinedOutput()
 	if err != nil {
+		argStr := strings.Join(args, " ")
 		msg := gulu.DecodeCmdOutput(output)
-		logging.LogErrorf("export docx failed: %s", msg)
+		logging.LogErrorf("export docx [%s] failed: %s", argStr, msg)
 		err = errors.New(fmt.Sprintf(Conf.Language(14), msg))
 		return
 	}
@@ -2221,17 +2222,10 @@ func walkRelationAvs(avID string, exportAvIDs *hashset.Set) {
 	}
 }
 
-func ExportMarkdownContent(id string, refMode, embedMode, addTitleMode int, addYfm, fillCSSVar, adjustHeadingLv, imgTag bool) (hPath, exportedMd string) {
+func ExportMarkdownContent(id string, refMode, embedMode int, addYfm, fillCSSVar, adjustHeadingLv, imgTag, addTitle bool) (hPath, exportedMd string) {
 	bt := treenode.GetBlockTree(id)
 	if nil == bt {
 		return
-	}
-
-	addTitle := Conf.Export.AddTitle
-	if 1 == addTitleMode { // 0：未指定（遵循全局设置 Conf.Export.AddTitle），1：添加标题，2：不添加标题
-		addTitle = true
-	} else if 2 == addTitleMode {
-		addTitle = false
 	}
 
 	tree := prepareExportTree(bt)
@@ -2248,10 +2242,10 @@ func ExportMarkdownContent(id string, refMode, embedMode, addTitleMode int, addY
 	return
 }
 
-func exportMarkdownContent(id, ext string, exportRefMode int, defBlockIDs []string, singleFile bool, treeCache map[string]*parse.Tree) (tree *parse.Tree, exportedMd string, isEmpty bool) {
-	tree, err := loadTreeWithCache(id, treeCache)
+func exportMarkdownContent(rootID, ext string, exportRefMode int, defBlockIDs []string, singleFile bool, treeCache map[string]*parse.Tree) (tree *parse.Tree, exportedMd string, isEmpty bool) {
+	tree, err := loadTreeWithCache(rootID, treeCache)
 	if err != nil {
-		logging.LogErrorf("load tree by block id [%s] failed: %s", id, err)
+		logging.LogErrorf("load tree by block id [%s] failed: %s", rootID, err)
 		return
 	}
 
@@ -2270,7 +2264,7 @@ func exportMarkdownContent(id, ext string, exportRefMode int, defBlockIDs []stri
 		}
 	}
 
-	exportedMd = exportMarkdownContent0(id, tree, "", false, false, false,
+	exportedMd = exportMarkdownContent0(rootID, tree, "", false, false, false,
 		ext, exportRefMode, Conf.Export.BlockEmbedMode, Conf.Export.FileAnnotationRefMode,
 		Conf.Export.TagOpenMarker, Conf.Export.TagCloseMarker,
 		Conf.Export.BlockRefTextLeft, Conf.Export.BlockRefTextRight,
@@ -3073,13 +3067,32 @@ func resolveFootnotesDefs(refFootnotes *[]*refAsFootnotes, currentTree *parse.Tr
 
 	footnotesDefBlock = &ast.Node{Type: ast.NodeFootnotesDefBlock}
 	var rendered []string
+
+	var defIDs []string
 	for _, foot := range *refFootnotes {
-		t, err := loadTreeWithCache(foot.defID, treeCache)
+		defIDs = append(defIDs, foot.defID)
+	}
+	defIDs = gulu.Str.RemoveDuplicatedElem(defIDs)
+	bts := treenode.GetBlockTrees(defIDs)
+	for _, foot := range *refFootnotes {
+		bt := bts[foot.defID]
+		if nil == bt {
+			logging.LogWarnf("not found block tree for footnote def [%s] refNum [%s]", foot.defID, foot.refNum)
+			continue
+		}
+
+		t, err := loadTreeWithCache(bt.RootID, treeCache)
 		if nil != err {
-			return
+			logging.LogWarnf("load tree for footnote def [%s] refNum [%s] failed: %s", foot.defID, foot.refNum, err)
+			continue
 		}
 
 		defNode := treenode.GetNodeInTree(t, foot.defID)
+		if nil == defNode {
+			logging.LogErrorf("not found node [%s] in tree for footnote refNum [%s]", foot.defID, foot.refNum)
+			continue
+		}
+
 		docID := util.GetTreeID(defNode.Path)
 		var nodes []*ast.Node
 		if ast.NodeHeading == defNode.Type {
@@ -3418,8 +3431,8 @@ func exportPandocConvertZip(baseFolderName string, docPaths, defBlockIDs []strin
 	assetsOldNew, assetsNewOld := map[string]string{}, map[string]string{}
 	luteEngine := util.NewLute()
 	for i, p := range docPaths {
-		id := util.GetTreeID(p)
-		tree, md, isEmpty := exportMarkdownContent(id, ext, exportRefMode, defBlockIDs, false, treeCache)
+		rootID := util.GetTreeID(p)
+		tree, md, isEmpty := exportMarkdownContent(rootID, ext, exportRefMode, defBlockIDs, false, treeCache)
 		if nil == tree {
 			continue
 		}
@@ -3438,7 +3451,7 @@ func exportPandocConvertZip(baseFolderName string, docPaths, defBlockIDs []strin
 		hash := fmt.Sprintf("%x", sha1.Sum([]byte(md)))
 		if gulu.File.IsExist(writePath) && hash != wrotePathHash[writePath] {
 			// 重名文档加 ID
-			p = hPath + "-" + id + ext
+			p = hPath + "-" + rootID + ext
 			writePath = filepath.Join(exportFolder, p)
 		}
 		writeFolder := filepath.Dir(writePath)
@@ -3744,13 +3757,15 @@ func exportRefTrees(tree *parse.Tree, defBlockIDs *[]string, retTrees, treeCache
 	*defBlockIDs = gulu.Str.RemoveDuplicatedElem(*defBlockIDs)
 }
 
-func loadTreeWithCache(id string, treeCache map[string]*parse.Tree) (tree *parse.Tree, err error) {
-	if tree = treeCache[id]; nil != tree {
+// loadTreeWithCache 加载树时优先从缓存获取，避免重复加载同一棵树
+// 注意传入的 rootID 必须是树的根节点 ID，不能是树中任意节点的 ID，否则会导致缓存失效和重复加载树
+func loadTreeWithCache(rootID string, treeCache map[string]*parse.Tree) (tree *parse.Tree, err error) {
+	if tree = treeCache[rootID]; nil != tree {
 		return
 	}
-	tree, err = LoadTreeByBlockID(id)
+	tree, err = LoadTreeByBlockID(rootID)
 	if nil == err && nil != tree {
-		treeCache[id] = tree
+		treeCache[rootID] = tree
 	}
 	return
 }

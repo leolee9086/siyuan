@@ -64,6 +64,7 @@ export class BlockPanel {
         this.element.addEventListener("dblclick", (event) => this.处理双击事件(event));
         // 点击时更新层级并处理图标操作
         this.element.addEventListener("click", (event) => {
+            // S-forge: 使用封装的全局状态访问函数替代直接访问 window.siyuan
             if (this.element && getSiyuanBlockPanels().length > 1) {
                 this.element.style.zIndex = incrementSiyuanZIndex().toString();
             }

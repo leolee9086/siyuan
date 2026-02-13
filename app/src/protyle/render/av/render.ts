@@ -19,6 +19,9 @@ import {openMenuPanel} from "./openMenuPanel";
 import {getPageSize} from "./groups";
 import {clearSelect} from "../../util/clearSelect";
 import {showMessage} from "../../../dialog/message";
+/// #if MOBILE
+import {activeBlur} from "../../../mobile/util/keyboardToolbar";
+/// #endif
 import {renderKanban} from "./kanban/render";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 
@@ -101,7 +104,7 @@ export const genTabHeaderHTML = (data: IAV, showSearch: boolean, editable: boole
                 <svg><use xlink:href="#iconSearch"></use></svg>
             </button>
             <div style="position: relative" class="fn__flex">
-                <input style="${showSearch ? "width:128px" : "width:0;padding-left: 0;padding-right: 0;"}" data-type="av-search" class="b3-text-field b3-text-field--text" placeholder="${siyuanI18n.search}">
+                <div contenteditable="true" style="${showSearch ? "width:128px" : "width:0;padding-left: 0;padding-right: 0;"}" data-type="av-search" class="b3-text-field b3-text-field--text" placeholder="${siyuanI18n.search}"></div>
             </div>
             <div class="fn__space"></div>
             <span data-type="av-more" aria-label="${siyuanI18n.config}" data-position="8south" class="ariaLabel block__icon">
@@ -258,9 +261,9 @@ export const getGroupTitleHTML = (group: IAVView, counter: number) => {
 };
 
 const renderGroupTable = (options: ITableOptions) => {
-    const searchInputElement = options.blockElement.querySelector('[data-type="av-search"]') as HTMLInputElement;
+    const searchInputElement = options.blockElement.querySelector('[data-type="av-search"]');
     const isSearching = searchInputElement && document.activeElement === searchInputElement;
-    const query = searchInputElement?.value || "";
+    const query = searchInputElement?.textContent || "";
 
     let avBodyHTML = "";
     options.data.view.groups.forEach((group: IAVTable) => {
@@ -297,7 +300,7 @@ const afterRenderTable = (options: ITableOptions) => {
         if (headerTransformElement) {
             headerTransformElement.style.transform = options.resetData.headerTransform.transform;
         }
-    } else {
+    } else if (editRect && !options.protyle.options.action.includes(Constants.CB_GET_HISTORY)) {
         // 需等待渲染完，否则 getBoundingClientRect 错误 https://github.com/siyuan-note/siyuan/issues/13787
         setTimeout(() => {
             stickyRow(options.blockElement, editRect, "top");
@@ -308,7 +311,7 @@ const afterRenderTable = (options: ITableOptions) => {
         if (footerTransformElement) {
             footerTransformElement.style.transform = options.resetData.footerTransform.transform;
         }
-    } else {
+    } else if (editRect && !options.protyle.options.action.includes(Constants.CB_GET_HISTORY)) {
         // 需等待渲染完，否则 getBoundingClientRect 错误 https://github.com/siyuan-note/siyuan/issues/13787
         setTimeout(() => {
             stickyRow(options.blockElement, editRect, "bottom");
@@ -388,8 +391,8 @@ const afterRenderTable = (options: ITableOptions) => {
         return;
     }
     const viewsElement = options.blockElement.querySelector(".av__views") as HTMLElement;
-    const searchInputElement = options.blockElement.querySelector('[data-type="av-search"]') as HTMLInputElement;
-    searchInputElement.value = options.resetData.query || "";
+    const searchInputElement = options.blockElement.querySelector('[data-type="av-search"]') as HTMLElement;
+    searchInputElement.textContent = options.resetData.query || "";
     if (options.resetData.isSearching) {
         searchInputElement.focus();
     }
@@ -407,7 +410,7 @@ const afterRenderTable = (options: ITableOptions) => {
         if (event.isComposing) {
             return;
         }
-        if (searchInputElement.value || document.activeElement === searchInputElement) {
+        if (searchInputElement.textContent || document.activeElement === searchInputElement) {
             viewsElement.classList.add("av__views--show");
         } else {
             viewsElement.classList.remove("av__views--show");
@@ -421,7 +424,7 @@ const afterRenderTable = (options: ITableOptions) => {
         if (event.isComposing) {
             return;
         }
-        if (!searchInputElement.value) {
+        if (!searchInputElement.textContent) {
             viewsElement.classList.remove("av__views--show");
             searchInputElement.style.width = "0";
             searchInputElement.style.paddingLeft = "0";
@@ -440,6 +443,9 @@ const afterRenderTable = (options: ITableOptions) => {
             searchInputElement.style.paddingRight = "0";
             focusBlock(options.blockElement);
             updateSearch(options.blockElement, options.protyle);
+            /// #if MOBILE
+            activeBlur();
+            /// #endif
         }
     });
 };
@@ -533,7 +539,7 @@ export const avRender = async (element: Element, protyle: IProtyle, cb?: (data: 
             selectRowIds,
             dragFillId,
             activeIds,
-            query: searchInputElement?.value || "",
+            query: searchInputElement?.textContent || "",
             pageSizes
         };
         if (e.firstElementChild.innerHTML === "") {
@@ -550,11 +556,11 @@ export const avRender = async (element: Element, protyle: IProtyle, cb?: (data: 
             });
             e.firstElementChild.innerHTML = html;
         }
-        const created = protyle.options.history?.created;
-        const snapshot = protyle.options.history?.snapshot;
         const avPageSize = getPageSize(e);
         let data: IAV;
         if (!avData) {
+            const created = protyle.options.history?.created;
+            const snapshot = protyle.options.history?.snapshot;
             const response = await fetchSyncPost(created ? "/api/av/renderHistoryAttributeView" : (snapshot ? "/api/av/renderSnapshotAttributeView" : "/api/av/renderAttributeView"), {
                 id: e.getAttribute("data-av-id"),
                 created,

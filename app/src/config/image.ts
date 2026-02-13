@@ -1,33 +1,49 @@
-import { escapeHtml } from "../util/escape";
-import { confirmDialog } from "../dialog/confirmDialog";
-import { pathPosix } from "../util/pathName";
-import { isBrowser, isMobile } from "../util/functions";
-import { hasClosestByClassName } from "../protyle/util/hasClosest";
-import { fetchPost } from "../util/fetch";
+// S-forge: 使用格式化的导入风格
+import {escapeHtml} from "../util/escape";
+import {confirmDialog} from "../dialog/confirmDialog";
+// S-forge: pathPosix 用于文件名提取
+import {pathPosix} from "../util/pathName";
+import {isBrowser, isMobile} from "../util/functions";
+import {hasClosestByClassName} from "../protyle/util/hasClosest";
+import {fetchPost} from "../util/fetch";
 /// #if !MOBILE
-import { getAllModels } from "../layout/getAll";
+import {getAllModels} from "../layout/getAll";
+import * as path from "path";
 /// #endif
-import { openBy } from "../editor/utils.openBy";
-import { renderAssetsPreview } from "../asset/renderAssets";
-import { writeText } from "../protyle/util/compatibility";
+// S-forge: openBy 从重构后的模块导入
+import {openBy} from "../editor/utils.openBy";
+import {renderAssetsPreview} from "../asset/renderAssets";
+import {writeText} from "../protyle/util/compatibility";
+import {Constants} from "../constants";
+import {showMessage} from "../dialog/message";
+import {Protyle} from "../protyle";
+import {App} from "../index";
+import {disabledProtyle, onGet} from "../protyle/util/onGet";
+import {removeLoading} from "../protyle/ui/initUI";
 /// #if !MOBILE
-import { openFile } from "../editor/util";
+// S-forge: openFile 用于在新页签中打开
+import {openFile} from "../editor/util";
 /// #endif
-
-import { Custom } from "../layout/dock/Custom";
-import { Plugin } from "../plugin";
-
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
+// S-forge: Plugin 系统支持
+import {Custom} from "../layout/dock/Custom";
+import {Plugin} from "../plugin";
+// S-forge: 统一 i18n 访问
+import {siyuanI18n} from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const image = {
+    element: undefined as Element,
     genHTML: () => {
         const isM = isMobile();
         return `<div class="fn__flex-column" style="height: 100%">
-   
     <div class="layout-tab-bar fn__flex">
         <div class="item item--full item--focus" data-type="remove">
             <span class="fn__flex-1"></span>
             <span class="item__text">${siyuanI18n.unreferencedAssets}</span>
+            <span class="fn__flex-1"></span>
+        </div>
+        <div class="item item--full" data-type="removeAV">
+            <span class="fn__flex-1"></span>
+                <span class="item__text">${window.siyuan.languages.unreferencedAV}</span>
             <span class="fn__flex-1"></span>
         </div>
         <div class="item item--full" data-type="missing">
@@ -45,9 +61,6 @@ export const image = {
                     <svg class="svg"><use xlink:href="#iconTrashcan"></use></svg>
                     ${siyuanI18n.delete}
                 </button>
-                <button class="open-in-new-tab b3-button b3-button--outline fn__flex-center fn__size200" data-type="remove">
-                    <svg><use xlink:href="#iconEdit"></use></svg>${siyuanI18n.openInNewTab}
-                </button>
             </div>
             <div class="fn__hr"></div>
             <ul class="b3-list b3-list--background config-assets__list">
@@ -55,14 +68,22 @@ export const image = {
             </ul>
             <div class="config-assets__preview"></div>
         </div>
-        <div class="fn__none config-assets${isM ? " b3-list--mobile" : ""}" data-type="missing">
-            <div class="fn__hr"></div>
+        <div class="fn__none config-assets${isM ? " b3-list--mobile" : ""}" data-type="removeAV">
+            <div class="fn__hr--b"></div>
             <div class="fn__flex">
                 <div class="fn__space"></div>
-                <button class="open-in-new-tab b3-button b3-button--outline fn__flex-center fn__size200" data-type="missing">
-                    <svg><use xlink:href="#iconEdit"></use></svg>${siyuanI18n.openInNewTab}
+                <button id="removeAVAll" class="b3-button b3-button--outline fn__flex-center fn__size200">
+                    <svg class="svg"><use xlink:href="#iconTrashcan"></use></svg>
+                    ${window.siyuan.languages.delete}
                 </button>
             </div>
+            <div class="fn__hr"></div>
+            <ul class="b3-list b3-list--background config-assets__list">
+                <li class="fn__loading"><img src="/stage/loading-pure.svg"></li>
+            </ul>
+            <div class="config-assets__preview" style="display: block;padding: 8px;"></div>
+        </div>
+        <div class="fn__none config-assets${isM ? " b3-list--mobile" : ""}" data-type="missing">
             <div class="fn__hr"></div>
             <ul class="b3-list b3-list--background config-assets__list">
                 <li class="fn__loading"><img src="/stage/loading-pure.svg"></li>
@@ -72,29 +93,25 @@ export const image = {
     </div>
 </div>`;
     },
-    bindEvent: (element: Element) => {
-        const assetsListElement = element.querySelector(".config-assets__list");
-
-        // 为"在新页签中打开"按钮添加点击事件
-        const openInNewTabButtons = element.querySelectorAll(".open-in-new-tab") as NodeListOf<HTMLButtonElement>;
-        openInNewTabButtons.forEach(button => {
-            button.addEventListener("click", async () => {
-                const type = button.getAttribute("data-type");
-                const title = type === "remove" ? siyuanI18n.unreferencedAssets : siyuanI18n.missingAssets;
-                await openFile({
-                    app: window.siyuan.ws.app,
-                    custom: {
-                        title: title,
-                        icon: "#iconImage",
-                        id: "internal-plugin-image" + "internal-image-" + type
-                    }
-                });
-            });
+    bindEvent: (app: App) => {
+        const assetsListElement = image.element.querySelector('.config-assets[data-type="remove"] .config-assets__list');
+        const avListElement = image.element.querySelector('.config-assets[data-type="removeAV"] .config-assets__list');
+        const editor = new Protyle(app, avListElement.nextElementSibling as HTMLElement, {
+            blockId: "",
+            action: [Constants.CB_GET_HISTORY],
+            render: {
+                background: false,
+                gutter: false,
+                breadcrumb: false,
+                breadcrumbDocName: false,
+            },
+            typewriterMode: false,
         });
-
-        element.addEventListener("click", (event) => {
+        disabledProtyle(editor.protyle);
+        removeLoading(editor.protyle);
+        image.element.addEventListener("click", (event) => {
             let target = event.target as HTMLElement;
-            while (target && !target.isEqualNode(element)) {
+            while (target && !target.isEqualNode(image.element)) {
                 const type = target.getAttribute("data-type");
                 if (target.id === "removeAll") {
                     confirmDialog(siyuanI18n.deleteOpConfirm, `${siyuanI18n.clearAll}`, () => {
@@ -106,29 +123,43 @@ export const image = {
                                 }
                             });
                             /// #endif
-                            if (assetsListElement) {
-                                assetsListElement.innerHTML = `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
-                            }
-                            const previewElement = element.querySelector(".config-assets__preview");
-                            if (previewElement) {
-                                previewElement.innerHTML = "";
-                            }
+                            assetsListElement.innerHTML = `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
+                            assetsListElement.nextElementSibling.innerHTML = "";
                         });
                     }, undefined, true);
+                    event.preventDefault();
+                    event.stopPropagation();
+                    break;
+                } else if (target.id === "removeAVAll") {
+                    confirmDialog(window.siyuan.languages.deleteOpConfirm, `${window.siyuan.languages.clearAllAV}`, () => {
+                        fetchPost("/api/av/removeUnusedAttributeViews", {}, () => {
+                            avListElement.innerHTML = `<li class="b3-list--empty">${window.siyuan.languages.emptyContent}</li>`;
+                            avListElement.nextElementSibling.innerHTML = "";
+                        });
+                    }, undefined, true);
+                    event.preventDefault();
+                    event.stopPropagation();
+                    break;
                 } else if (target.classList.contains("item") && !target.classList.contains("item--focus")) {
-                    const barFocused = element.querySelector(".layout-tab-bar .item--focus");
-                    barFocused && barFocused.classList.remove("item--focus");
+                    image.element.querySelector(".layout-tab-bar .item--focus").classList.remove("item--focus");
                     target.classList.add("item--focus");
-                    element.querySelectorAll(".config-assets").forEach(item => {
+                    image.element.querySelectorAll(".config-assets").forEach(item => {
                         if (type === item.getAttribute("data-type")) {
                             item.classList.remove("fn__none");
-                            if (!item.getAttribute("data-init")) {
-                                fetchPost("/api/asset/getMissingAssets", {}, response => {
-                                    const listElement = item.querySelector(".config-assets__list");
-                                    if (listElement) {
-                                        image._renderList(response.data.missingAssets, listElement, false);
-                                    }
+                            if (type === "remove") {
+                                fetchPost("/api/asset/getUnusedAssets", {}, response => {
+                                    image._renderList(response.data, assetsListElement, "unrefAssets");
                                 });
+                            } else if (!item.getAttribute("data-init")) {
+                                if (type === "removeAV") {
+                                    fetchPost("/api/av/getUnusedAttributeViews", {}, response => {
+                                        image._renderList(response.data, avListElement, "unRefAV");
+                                    });
+                                } else {
+                                    fetchPost("/api/asset/getMissingAssets", {}, response => {
+                                        image._renderList(response.data, item.querySelector(".config-assets__list"), "lostAssets");
+                                    });
+                                }
                                 item.setAttribute("data-init", "true");
                             }
                         } else {
@@ -138,34 +169,73 @@ export const image = {
                     event.preventDefault();
                     event.stopPropagation();
                     break;
+                } else if (target.getAttribute("data-tab-type") === "unRefAV") {
+                    onGet({
+                        data: {
+                            data: {
+                                content: `<div class="av" data-node-id="${Lute.NewNodeID()}" data-av-id="${target.dataset.item}" data-type="NodeAttributeView" data-av-type="table"><div spellcheck="true"></div><div class="protyle-attr" contenteditable="false">${Constants.ZWSP}</div></div>`,
+                                id: Lute.NewNodeID(),
+                                rootID: Lute.NewNodeID(),
+                            },
+                            msg: "",
+                            code: 0
+                        },
+                        protyle: editor.protyle,
+                        action: [Constants.CB_GET_HISTORY, Constants.CB_GET_HTML],
+                    });
+                    event.preventDefault();
+                    event.stopPropagation();
+                    break;
                 } else if (type === "copy") {
-                    const parentElement = target.parentElement;
-                    if (!parentElement) {
-                        return;
+                    if (target.parentElement.getAttribute("data-tab-type") === "unRefAV") {
+                        writeText(`<div class="av" data-node-id="${Lute.NewNodeID()}" data-av-id="${target.parentElement.dataset.item}" data-type="NodeAttributeView" data-av-type="table"></div>`);
+                    } else {
+                        writeText(target.parentElement.querySelector(".b3-list-item__text").textContent.trim());
                     }
-                    const textElement = parentElement.querySelector(".b3-list-item__text");
-                    if (textElement) {
-                        writeText(textElement.textContent.trim().replace("assets/", ""));
-                    }
+                    showMessage(window.siyuan.languages.copied);
+                    event.preventDefault();
+                    event.stopPropagation();
+                    break;
                 } else if (type === "open") {
                     /// #if !BROWSER
-                    const parentElement = target.parentElement;
-                    if (!parentElement) {
-                        return;
+                    if (target.parentElement.getAttribute("data-tab-type") === "unRefAV") {
+                        openBy(path.join(window.siyuan.config.system.dataDir, "storage", "av", target.parentElement.dataset.item) + ".json", "folder");
+                    } else {
+                        openBy(target.parentElement.dataset.item, "folder");
                     }
-                    const dataPath = parentElement.getAttribute("data-path");
-                    dataPath && openBy(dataPath, "folder");
                     /// #endif
+                    event.preventDefault();
+                    event.stopPropagation();
+                    break;
                 } else if (type === "clear") {
-                    const parentElement = target.parentElement;
-                    if (!parentElement) {
-                        return;
-                    }
-                    const pathString = parentElement.getAttribute("data-path");
-                    if (pathString) {
-                        confirmDialog(siyuanI18n.deleteOpConfirm, `${siyuanI18n.delete} <b>${pathPosix().basename(pathString)}</b>`, () => {
+                    const liElement = target.parentElement;
+                    confirmDialog(siyuanI18n.deleteOpConfirm, `${siyuanI18n.delete} <b>${liElement.querySelector(".b3-list-item__text").textContent}</b>`, () => {
+                        if (liElement.getAttribute("data-tab-type") === "unRefAV") {
+                            fetchPost("/api/av/removeUnusedAttributeView", {
+                                id: liElement.getAttribute("data-item"),
+                            }, () => {
+                                if (liElement.parentElement.querySelectorAll("li").length === 1) {
+                                    liElement.parentElement.innerHTML = `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
+                                } else {
+                                    liElement.remove();
+                                }
+                                onGet({
+                                    data: {
+                                        data: {
+                                            content: "",
+                                            id: Lute.NewNodeID(),
+                                            rootID: Lute.NewNodeID(),
+                                        },
+                                        msg: "",
+                                        code: 0
+                                    },
+                                    protyle: editor.protyle,
+                                    action: [Constants.CB_GET_HISTORY, Constants.CB_GET_HTML],
+                                });
+                            });
+                        } else {
                             fetchPost("/api/asset/removeUnusedAsset", {
-                                path: pathString,
+                                path: liElement.getAttribute("data-item"),
                             }, response => {
                                 /// #if !MOBILE
                                 getAllModels().asset.forEach(item => {
@@ -174,74 +244,57 @@ export const image = {
                                     }
                                 });
                                 /// #endif
-                                const liElement = target.parentElement;
-                                if (liElement) {
-                                    const liParent = liElement.parentElement;
-                                    if (liParent) {
-                                        if (liElement.parentElement.querySelectorAll("li").length === 1) {
-                                            liElement.parentElement.innerHTML = `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
-                                        } else {
-                                            liElement.remove();
-                                        }
-                                    }
+                                if (liElement.parentElement.querySelectorAll("li").length === 1) {
+                                    liElement.parentElement.innerHTML = `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
+                                } else {
+                                    liElement.remove();
                                 }
-                                const previewElement = element.querySelector(".config-assets__preview");
-                                previewElement && (previewElement.innerHTML = "");
+                                assetsListElement.nextElementSibling.innerHTML = "";
                             });
-                        }, undefined, true);
-                        event.preventDefault();
-                        event.stopPropagation();
-                        break;
-                    }
+                        }
+                    }, undefined, true);
+                    event.preventDefault();
+                    event.stopPropagation();
+                    break;
                 }
-                const parentElement = target.parentElement;
-                if (!parentElement) {
-                    return;
-                }
-                target = parentElement;
+                target = target.parentElement;
             }
         });
-        if (assetsListElement) {
-            assetsListElement.addEventListener("mouseover", (event) => {
-                const liElement = hasClosestByClassName(event.target as Element, "b3-list-item");
-                const nextElementSibling = assetsListElement.nextElementSibling;
-                if (nextElementSibling) {
-                    if (liElement && liElement.getAttribute("data-path") !== nextElementSibling.getAttribute("data-path")) {
-                        const item = liElement.getAttribute("data-path");
-                        if (item) {
-                            nextElementSibling.setAttribute("data-path", item);
-                            nextElementSibling.innerHTML = renderAssetsPreview(item);
-                        }
-                    }
-                }
-            });
 
-            fetchPost("/api/asset/getUnusedAssets", {}, response => {
-                image._renderList(response.data.unusedAssets, assetsListElement);
-            });
-        }
+        assetsListElement.addEventListener("mouseover", (event) => {
+            const liElement = hasClosestByClassName(event.target as Element, "b3-list-item");
+            if (liElement && liElement.getAttribute("data-item") !== assetsListElement.nextElementSibling.getAttribute("data-item")) {
+                const item = liElement.getAttribute("data-item");
+                assetsListElement.nextElementSibling.setAttribute("data-item", item);
+                assetsListElement.nextElementSibling.innerHTML = renderAssetsPreview(item);
+            }
+        });
+        fetchPost("/api/asset/getUnusedAssets", {}, response => {
+            image._renderList(response.data, assetsListElement, "unrefAssets");
+        });
     },
-    _renderList: (data: string[], element: Element, action = true) => {
+    _renderList: (data: {
+        item: string,
+        name: string
+    }[], element: Element, type: "unRefAV" | "unrefAssets" | "lostAssets") => {
         let html = "";
         let boxOpenHTML = "";
-        if (!isBrowser() && action) {
+        if (!isBrowser() && type !== "lostAssets") {
             boxOpenHTML = `<span data-type="open" class="ariaLabel b3-list-item__action" aria-label="${siyuanI18n.showInFolder}">
     <svg><use xlink:href="#iconFolder"></use></svg>
 </span>`;
         }
         let boxClearHTML = "";
-        if (action) {
+        if (type !== "lostAssets") {
             boxClearHTML = `<span data-type="clear" class="ariaLabel b3-list-item__action" aria-label="${siyuanI18n.delete}">
     <svg><use xlink:href="#iconTrashcan"></use></svg>
 </span>`;
         }
         const isM = isMobile();
         data.forEach((item) => {
-            const idx = item.indexOf("assets/");
-            const dataPath = item.substr(idx);
-            html += `<li data-path="${dataPath}"  class="b3-list-item${isM ? "" : " b3-list-item--hide-action"}">
-    <span class="b3-list-item__text">${escapeHtml(item)}</span>
-    <span data-type="copy" class="ariaLabel b3-list-item__action" aria-label="${siyuanI18n.copy}">
+            html += `<li data-tab-type="${type}" data-item="${item.item}"  class="b3-list-item${isM ? "" : " b3-list-item--hide-action"}">
+    <span class="b3-list-item__text">${escapeHtml(item.name || item.item)}</span>
+    <span data-type="copy" class="ariaLabel b3-list-item__action" aria-label="${window.siyuan.languages[type === "unRefAV" ? "copyMirror" : "copy"]}">
         <svg><use xlink:href="#iconCopy"></use></svg>
     </span>
     ${boxOpenHTML}
@@ -249,10 +302,10 @@ export const image = {
 </li>`;
         });
         element.innerHTML = html || `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
-    },
+    }
 };
 
-
+// S-forge: 独立页签的事件绑定，用于 Plugin 系统中的资源管理页签
 const bindAssetTabEvent = (element: Element, type: string) => {
     const assetsListElement = element.querySelector(".config-assets__list");
 
@@ -363,8 +416,7 @@ const bindAssetTabEvent = (element: Element, type: string) => {
     }
 };
 
-
-
+// S-forge: 独立资源页签的 HTML 生成
 const genAssetTabHTML = (type: string) => {
     return `<div class="fn__flex-column" style="height: 100%">
             <div class="fn__hr--b"></div>
@@ -383,6 +435,7 @@ const genAssetTabHTML = (type: string) => {
         </div>`;
 };
 
+// S-forge: Plugin 系统注册资源管理相关页签
 let plugin: Plugin;
 document.addEventListener(
     "app-ready", () => {
@@ -401,7 +454,8 @@ document.addEventListener(
                     const tab = model.tab;
                     if (tab) {
                         tab.panelElement.innerHTML = image.genHTML();
-                        image.bindEvent(tab.panelElement);
+                        image.element = tab.panelElement;
+                        image.bindEvent(window.siyuan.ws.app);
                     }
                 }
             }

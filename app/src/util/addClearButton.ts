@@ -1,10 +1,15 @@
+// S-forge: 保留 siyuanI18n 封装，同时采用远程的 DIV 支持功能
 import { siyuanI18n } from "./siyuanEnvironments/i18n.getI18n.environment";
 
-const update = (inputElement: HTMLInputElement, clearElement: Element, right?: number) => {
-    if (inputElement.value === "" && typeof right === "number") {
-        inputElement.style.paddingRight = inputElement.dataset.oldPaddingRight || "";
+const update = (inputElement: HTMLElement, clearElement: Element, right?: number) => {
+    let value = "";
+    if (inputElement.tagName === "DIV") {
+        value = inputElement.textContent || "";
+    } else {
+        value = (inputElement as HTMLInputElement).value;
     }
-    if (inputElement.value === "") {
+
+    if (value === "") {
         clearElement.classList.add("fn__none");
         return;
     }
@@ -15,8 +20,13 @@ const update = (inputElement: HTMLInputElement, clearElement: Element, right?: n
     }
 };
 
-const clearInput = (inputElement: HTMLInputElement, clearElement: Element, right?: number, clearCB?: () => void) => {
-    inputElement.value = "";
+// S-forge: 更新 clearInput 以支持 DIV 元素（采用远程的 DIV 支持功能）
+const clearInput = (inputElement: HTMLElement, clearElement: Element, right?: number, clearCB?: () => void) => {
+    if (inputElement.tagName === "DIV") {
+        inputElement.textContent = "";
+    } else {
+        (inputElement as HTMLInputElement).value = "";
+    }
     inputElement.focus();
     update(inputElement, clearElement, right);
     if (clearCB) {
@@ -24,7 +34,7 @@ const clearInput = (inputElement: HTMLInputElement, clearElement: Element, right
     }
 };
 export const addClearButton = (options: {
-    inputElement: HTMLInputElement,
+    inputElement: HTMLElement,
     clearCB?: () => void,
     right?: number,
     width?: string,

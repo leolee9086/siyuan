@@ -31,6 +31,7 @@ import { openTab } from "./api/openTab";
 import { openWindow } from "./api/openWindow";
 
 
+// S-forge: openTab, openWindow, getModelByDockType, expandDocTree 已模块化到 ./api/ 目录
 
 const openAttributePanel = (options: {
     data?: IObject  // 块属性值

@@ -47,7 +47,8 @@ export const genItemPanel = (type: string, containerElement: Element, app: App) 
             break;
         case "image":
             containerElement.innerHTML = image.genHTML();
-            image.bindEvent(containerElement);
+            image.element = containerElement;
+            image.bindEvent(app);
             break;
         case "export":
             containerElement.innerHTML = exportConfig.genHTML();

@@ -28,6 +28,7 @@ import { setModelsHash, setTabPosition } from "../window/setHeader";
 /// #endif
 import { Search } from "../search";
 import { showMessage } from "../dialog/message";
+// S-forge: 本地重构拆分了 openFileById 和 updatePanelByEditor 到独立模块
 import { openFileById } from "../editor/utils.openFileById";
 import { updatePanelByEditor } from "../editor/util.updatePanelByEditor";
 import { scrollCenter } from "../util/highlightById";
@@ -39,6 +40,7 @@ import { clearCounter } from "./status";
 import { saveScroll } from "../protyle/scroll/saveScroll";
 import { Asset } from "../asset";
 import { newFile } from "../util/newFile";
+// S-forge: 本地重构拆分了 MenuItem 到独立模块
 import { MenuItem } from "../menus/Menu.Item";
 import { escapeHtml } from "../util/escape";
 import { getFrontend, isWindow } from "../util/functions";
@@ -55,6 +57,7 @@ import { setPadding } from "../protyle/ui/initUI";
 import { setPosition } from "../util/setPosition";
 import { clearOBG } from "./dock/util";
 import { recordBeforeResizeTop } from "../protyle/util/resize";
+import { setStorageVal } from "../protyle/util/compatibility";
 
 export class Wnd {
     private app: App;
@@ -786,13 +789,15 @@ export class Wnd {
         clearCounter();
         this.children.find((item, index) => {
             if (item.id === id) {
-                if (window.siyuan.closedTabs.length > Constants.SIZE_UNDO) {
-                    window.siyuan.closedTabs.pop();
+                if (window.siyuan.storage[Constants.LOCAL_CLOSED_TABS].length > Constants.SIZE_UNDO) {
+                    window.siyuan.storage[Constants.LOCAL_CLOSED_TABS].pop();
                 }
-                const tabJSON = {};
-                layoutToJSON(item, tabJSON);
-                window.siyuan.closedTabs.push(tabJSON);
-
+                if (item.headElement) {
+                    const tabJSON = {};
+                    layoutToJSON(item, tabJSON);
+                    window.siyuan.storage[Constants.LOCAL_CLOSED_TABS].push(tabJSON);
+                    setStorageVal(Constants.LOCAL_CLOSED_TABS, window.siyuan.storage[Constants.LOCAL_CLOSED_TABS]);
+                }
                 if (item.model instanceof Custom && item.model.beforeDestroy) {
                     item.model.beforeDestroy();
                 }

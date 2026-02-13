@@ -1,6 +1,7 @@
 import { Constants } from "../../constants";
 import { genUUID } from "../../util/genID";
 import { isMac } from "../util/compatibility";
+import { isTouchDevice } from "../../util/functions";
 import { setInlineStyle } from "../../util/assets";
 import { hideMessage, showMessage } from "../../dialog/message";
 import { fetchPost } from "../../util/fetch";
@@ -317,10 +318,12 @@ const 处理高亮移除 = (
 
 /**
  * 处理 gutter 按钮的鼠标悬停高亮
+ * @param isTouch 是否为触摸设备，触摸设备跳过此处理
  */
-const 处理Gutter按钮高亮 = (protyle: IProtyle, target: HTMLElement, event: Event): boolean => {
+const 处理Gutter按钮高亮 = (protyle: IProtyle, target: HTMLElement, event: Event, isTouch: boolean): boolean => {
     const buttonElement = hasClosestByTag(target, "BUTTON");
-    const 不是Gutter按钮 = !buttonElement || !buttonElement.parentElement.classList.contains("protyle-gutters");
+    // 触摸设备或非 gutter 按钮时跳过处理
+    const 不是Gutter按钮 = isTouch || !buttonElement || !buttonElement.parentElement.classList.contains("protyle-gutters");
     if (不是Gutter按钮) {
         return false;
     }
@@ -383,11 +386,15 @@ const 处理面包屑高亮 = (protyle: IProtyle, target: HTMLElement) => {
 
 /**
  * 绑定鼠标悬停事件
+ * 触摸设备使用 touchend 事件，非触摸设备使用 mouseover 事件
+ * @同步豁免: UI构建 - 需要同步绑定 DOM 事件监听器
  */
 export const 绑定悬停事件 = (protyle: IProtyle) => {
     const overAttr = { value: false };
+    const isTouch = isTouchDevice();
 
-    protyle.element.addEventListener("mouseover", (event: KeyboardEvent & { target: HTMLElement }) => {
+    // @内联回调 悬停/触摸事件处理
+    protyle.element.addEventListener(isTouch ? "touchend" : "mouseover", (event: Event & { target: HTMLElement }) => {
         // 1. 处理 attr 高亮
         if (处理Attr高亮(protyle, event.target, overAttr)) {
             return;
@@ -399,8 +406,8 @@ export const 绑定悬停事件 = (protyle: IProtyle) => {
             return;
         }
 
-        // 3. 处理 gutter 按钮高亮
-        if (处理Gutter按钮高亮(protyle, event.target, event)) {
+        // 3. 处理 gutter 按钮高亮（触摸设备跳过）
+        if (处理Gutter按钮高亮(protyle, event.target, event, isTouch)) {
             return;
         }
 

@@ -90,6 +90,11 @@ func initDBTables() {
 	if err != nil {
 		logging.LogFatalf(logging.ExitCodeUnavailableDatabase, "create index [idx_blocktrees_id] failed: %s", err)
 	}
+
+	_, err = db.Exec("CREATE INDEX idx_blocktrees_root_id ON blocktrees(root_id)")
+	if err != nil {
+		logging.LogFatalf(logging.ExitCodeUnavailableDatabase, "create index [idx_blocktrees_root_id] failed: %s", err)
+	}
 }
 
 func initDBConnection() {
@@ -131,7 +136,8 @@ func closeDatabase() {
 		logging.LogErrorf("close database failed: %s", err)
 	}
 	debug.FreeOSMemory()
-	runtime.GC() // 没有这句的话文件句柄不会释放，后面就无法删除文件
+	db = nil
+	runtime.GC()
 	return
 }
 

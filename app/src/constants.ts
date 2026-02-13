@@ -168,7 +168,9 @@ export abstract class Constants {
     public static readonly LOCAL_EMOJIS = "local-emojis";
     public static readonly LOCAL_MOVE_PATH = "local-move-path";
     public static readonly LOCAL_RECENT_DOCS = "local-recent-docs";
+    // S-forge: 语义搜索本地存储键
     public static readonly LOCAL_SEMANTIC_SEARCH = "local-semanticsearch";
+    public static readonly LOCAL_CLOSED_TABS = "local-closed-tabs";
 
     // dialog
     public static readonly DIALOG_CONFIRM = "dialog-confirm";
