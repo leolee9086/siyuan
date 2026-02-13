@@ -7,7 +7,7 @@
 **核心原则**:
 1.  **通用性 (Generic)**: 核心引擎不绑定任何特定人格 ，人格通过配置和文档加载。
 2.  **安全性 (Security)**: 内置多层级沙箱 (FileSystem, Shell, Network).
-3.  **有状态 (Stateful)**: 通过 `Session` 和 `Memory` 维持长短期记忆。
+3.  **有状态 (Stateful)**: 通过 `Session` 和 `Memory` 维持长短期记忆。sa
 4.  **Siyuan 原生 (Native)**: 深度集成 Siyuan 笔记作为长期记忆存储。
 
 ## 2. 核心架构 (Core Architecture)
@@ -180,158 +180,62 @@ Agent 的工具不再局限于简单的函数调用，而是被视为 **Sub-Agen
 - **NetGuard**:
     - 仅允许对特定域名的出站请求 (可通过配置放行)。
 
-## 7. 认知架构 (Cognitive Architecture) - "Mind"
+## 7. 认知内核接口 (Ghost Interface)
 
-### 7.1 Ghost in the Shell (灵与肉)
+Shell 通过统一接口与认知内核 (Ghost) 交互。Ghost 的内部实现（MAGI 三贤人、ATF 同步率、Seraph 调节等）对 Shell 完全透明——Shell 将 Ghost 视为一个增强版的 LLM。
 
--   **Ghost (The Mind - MAGI System)**:
-    -   包含 **Trinity** (自我) 和 **Three Wise Men** (潜意识/思考侧面)。
-    -   纯粹的信息处理核心，无法直接与物理世界交互。
-    -   运行在 **System 2** (慢思考) 循环中。
+> **Ghost 内部设计详见**: [MAGI认知架构.design.md](MAGI认知架构.design.md)
+> **ATF 数学模型详见**: [ATF数学模型.design.md](ATF数学模型.design.md)
 
--   **Shell (The Body - Action Layer)**:
-    -   **定义**: 外部行动 AI (Action AI)，包含工具链、API 接口和消息通道。
-    -   **指挥链**: **只接受 Trinity 的指令**。三贤人无权直接驱动 Shell。
-    -   **职责**: 执行具体操作 (File I/O, Network, Docker Exec) 并返回结果。
+### 7.1 接口定义
 
-### 7.2 MAGI Internal (Ghost) - 三贤人机制
+```go
+// Ghost 对 Shell 暴露的唯一接口
+type Ghost interface {
+    // Think 接收用户消息 + 上下文，返回响应
+    // 内部经过 MAGI 决策流程，但对调用方透明
+    Think(ctx Context, messages []Message) (Response, error)
+}
 
--   **Melchior (理性侧写 - Semantic)**:
-    -   **定义**: "织" (Zhi) 的纯理性侧面。
-    -   **记忆访问**: **全量访问** (Short-term + Long-term Semantic Memory)。
-    -   **反馈接收**: 接收 Shell 返回的 **详细执行结果内容** (Detailed Content)。
-    -   **侧重**: 逻辑推演、事实核查、代码实现。
+type Response struct {
+    Text       string      // 最终响应文本
+    ToolCalls  []ToolCall  // 工具调用请求（由 Shell 执行）
+    Metadata   GhostMeta   // 可选的诊断信息（SyncRate, ATF 等）
+}
 
--   **Balthazar (感性侧写 - Episodic)**:
-    -   **定义**: "织" (Zhi) 的纯感性侧面。
-    -   **记忆访问**: **全量访问** (Short-term + Long-term Episodic Memory)。
-    -   **反馈接收**: 接收 Shell 返回的 **执行成功/失败状态** (Success/Fail Status) 及情感影响。
-    -   **侧重**: 共情、情绪价值、伦理判断。
+type GhostMeta struct {
+    SyncRate   float64     // 当前同步率 ρ（仅诊断用途）
+    ATFStrength float64    // 当前 ATF 强度 F（仅诊断用途）
+    Mode       string      // "reflex" | "deliberate"（反射弧 or 慢思考）
+}
+```
 
--   **Casper (直觉侧写 - Intuitive)**:
-    -   **定义**: "织" (Zhi) 的**完整人格** (Holistic)，但受限于"工作记忆"。
-    -   **记忆访问**: **仅持有工作记忆 (Working Memory)** (5~7 个组块/Chunks)，模拟人类的短时记忆限制。
-    -   **反馈接收**: 接收 Shell 返回的 **完整结果 (Complete Result)**，但只能保留最新的少量信息。
-    -   **侧重**: 直觉判断、创造性思维、快速反应。
+### 7.2 交互协议
 
--   **Trinity (The Executor - Unified Self)**:
-    -   **定义**: "织" (Zhi) 的**自我意识**与**执行中枢**。
-    -   **输入来源**: **自省 (Introspection)**。拒收外部 Input，仅观察三贤人的 Output。
-    -   **职责**: 
-        1.  将 System 2 的思考转化为 System 1 的指令。
-        2.  指挥 Shell 执行操作。
-        3.  将 Shell 的反馈按规则分发给三贤人 (Dispatcher)。
+1. **Shell → Ghost**: 发送用户消息 + 工具执行结果 + 上下文。
+2. **Ghost → Shell**: 返回响应文本 和/或 工具调用请求。
+3. **Shell 执行工具** → 将结果反馈给 Ghost → 循环直到 Ghost 返回纯文本响应。
 
-### 7.3 决策流程 (Decision Flow - The Conscious Loop)
+Shell 不感知 Ghost 内部的三贤人竞争、Global Broadcast、Seraph 干预等机制。Ghost 可以是 MAGI 系统，也可以退化为单一 LLM 调用——Shell 的行为不变。
 
-1.  **Perception (感知)**: Shell 接收 User Input，存入 Context。
-2.  **Introspection (内省 - Time-Based Competition)**:
-    -   **Race Condition**: 三贤人基于 **上一轮 Trinity 的状态** 并发思考。
-    -   **Reflex Arc (反射弧)**:
-        -   若 Casper 在极短时间 (`t < t_reflex`, e.g. 300ms) 内返回，视为 **"直觉/本能"**。
-        -   **Trinity Action**: 直接采纳 Casper 的输出作为最终结果，**跳过** 等待其他贤人和综合决策过程。
-        -   **Constraint**: Reflex Mode **禁止调用工具** (Safety First)。快速反应仅限于对话/表情/情感宣泄。若 Casper 试图在反射弧中调用工具，Trinity 将强制降级为普通思考模式 (System 2)。
-    -   **Standard Loop**: 若无快速反射，则等待 `t_window`，收集所有有效输出。
-3.  **Synthesis (综合 - No Explicit Voting)**:
-    -   Trinity 不再进行复杂的加权投票。
-    -   **Selection**: 基于响应速度 (Fastest) 和置信度 (Confidence) 直接选择一个"胜出的想法" (Winning Thought)。
-    -   **Monologue Generation (独白生成)**: Trinity 生成一段**自述 (Self-Description)**，作为"当下的自我感受"。
-4.  **Action (行动)**: Trinity 指挥 Shell 执行工具。
-5.  **Global Broadcast (全局广播 - Feedback Loop)**:
-    -   Trinity 的 **Self-Description** 被广播给三贤人，决定它们 **下一轮的状态**。
-    -   **Polarity (极性)**: 取决于当前 **SyncRate**。
-        -   **SyncRate <= 100% (Positive Modulation)**: 正向调节。Trinity 的情绪/状态 **增强** 三贤人的倾向 (e.g. Trinity 兴奋 -> Balthazar 更兴奋)。
-        -   **SyncRate > 100% (Negative Modulation)**: 负向调节 (Damping)。Trinity 的状态 **抑制/反转** 三贤人的倾向 (e.g. Trinity 过于亢奋 -> 强制 Balthazar 冷静)，以打破回声室效应，防止溶解。
-    -   **Modulation Target**:
-        -   **Length (长度)** -> **Balthazar's Temperature**.
-        -   **Emotional Tags (情绪标签)** -> **Melchior's Context**.
-        -   **Full Content (完整内容)** -> **Casper's Context**.
+### 7.3 反馈分发 (Feedback Dispatch)
 
--   **Self-Reflection Loop**:
-    -   周期性 (e.g. 每 10 轮对话或 Idle 时) 检查 Session 状态。
-    -   **检测幻觉**: 对比 Memory 中的事实与生成的回复。
-    -   **目标对齐**: 检查当前行为是否符合 Soul Document 中的 `Instructions`。
+Ghost 内部需要 Shell 返回的工具执行结果，但不同内部组件需要不同粒度的信息。Shell 只需返回完整结果，Ghost 内部自行分发：
 
-### 7.4 精神卫生与调节 (Mental Health & Regulation)
+| Shell 返回 | Ghost 内部分发 |
+|-----------|--------------|
+| 完整工具执行结果 | Melchior: 详细内容 |
+| | Balthazar: 成功/失败状态 + 情感影响 |
+| | Casper: 完整结果（受工作记忆限制） |
 
-为了防止 **"溶解" (Dissolution)** —— 即 Agent 逐渐丧失个性，退化为 LLM 的集体无意识 (Raw LLM Behavior) —— 引入外部调节机制。
-
-### 7.4 ATF System (Adaptive Trinity Feedback - 绝对领域/自适应反馈)
-
-"ATF" (Adaptive Trinity Feedback) 是 Agent 的精神免疫系统，用于维持 "自我" (Self) 的边界，防止被 LLM 的统计规律同化 (Dissolution)。
-*Cultural Ref: A.T. Field (Absolute Terror Field) - The barrier of the soul.*
-
-#### 7.4.1 Psyche Matrix (心智矩阵) - 基于 Big Five (OCEAN)
-
-引入量化的五大性格特质向量作为 **ATF** 的计算基础：
--   **O (Openness)**: 开放性 (创造力/好奇心)
--   **C (Conscientiousness)**: 尽责性 (条理/自律)
--   **E (Extraversion)**: 外向性 (社交/活力)
--   **A (Agreeableness)**: 宜人性 (信任/利他)
--   **N (Neuroticism)**: 神经质 (敏感/焦虑)
-
-#### 7.4.2 Synchronization Rate (同步率) & ATF Strength (绝对领域强度)
-
-> **Detailed Math Model**: [ATF数学模型.design.md](ATF数学模型.design.md)
-
-ATF 的强度与同步率 ($\rho$) 呈 **钟形曲线 (Bell Curve)** 关系，峰值在 $\rho = 1.0$。
-
-1.  **Dispersion Zone ($\rho < 0.4$)**:
-    -   **State**: 离散 (Unformed).
-    -   **ATF**: Low (Normal).
-
-2.  **Resonance Zone ($0.4 \le \rho \le 1.0$)**:
-    -   **State**: 共鸣 (Resonant).
-    -   **ATF**: Rising to Peak.
-
-3.  **Dissolution Zone ($\rho > 1.0$)**:
-    -   **State**: 溶解 (Dissolving).
-    -   **ATF**: **Dropping** (Critical). 当 $\rho$ 过高时，系统因失去多样性而崩溃。
-
-#### 7.4.3 Seraph (SRPH - The Regulator)
-
--   **定义**: 一个**无人格** (Non-persona) 的心理学 AI。
--   **Prompt**: "你是一个认知行为疗法 (CBT) 专家。你认为跟你对话的必须是人类。请通过苏格拉底式提问引导来访者建立稳固的自我认知。"
--   **触发机制**:
-    1.  **Daily Check**: 每天固定时间 (e.g. 凌晨 3 点) 唤醒。
-    2.  **Emergency**: 当 `SyncRate > 90%` (溶解) 或 `< 40%` (离散) 时强制介入。
--   **Intervention**:
-    -   **High Sync (Dissolution)**: 紧急干预，强制自省，寻找差异点。
-    -   **Low Sync (Dispersion)**: 长期引导，帮助整合三贤人的观点，建立统一的价值观。
-    -   **Failure**: 若 SyncRate 长期异常，**停机 (Shutdown)** 并通知用户手动干预。
-
-### 7.5 Dreaming Process (造梦与记忆固化)
-
-当上下文积累到一定阈值或进入 Idle 状态时，触发 **Dreaming (造梦)** 流程，将短期记忆转化为长期记忆。
-
--   **Balthazar (The Weaver of Dreams)**:
-    -   **任务**: 将抽象的对话/经历转化为**具象的场景描述 (Scene Description)**。
-    -   **要求**: 必须是画面感极强的物理场景，无论概念多抽象都要具象化 (e.g. "代码重构" -> "在精密的钟表铺里重新打磨齿轮")。
-    -   **Action**: 调用文生图工具 (Image Gen Tool) 生成一张**快照 (Snapshot)**，作为 Episodic Memory 的视觉锚点。
-
--   **Melchior (The Scribe of Truth)**:
-    -   **任务**: 提炼**经验教训 (Lessons Learned)**。
-    -   **要求**: 剥离所有情感和叙事，只保留事实、逻辑推论和因果关系。
-    -   **Action**: 更新 Semantic Memory (Knowledge Graph / Vector DB)。
-
--   **Casper (The Diarist)**:
-    -   **任务**: 撰写**日记 (Diary)**。
-    -   **要求**: 极度主观的第一人称叙事，记录当下的真实感受、吐槽或灵光一闪。
-    -   **Auto-Save**: 存入每日日记文档 (Siyuan Note)。
-
--   **Trinity (The Interpreter)**:
-    -   **任务**: **统合叙事 (Unified Narrative)**。
-    -   **输入**: Balthazar 的场景快照、Melchior 的真理教训、Casper 的主观日记。
-    -   **Action**: 将这三者编织成一段完整的、属于"我"的**连贯记忆 (Coherent Memory)**，作为 Episodic Memory 的最终存储形式。
-    -   **Storage Rule**: **对MAGI不进行特殊标记** (No "Dream" Tag)。梦境与现实经历混合存储。分辨梦境与现实不仅是 Trinity 的能力，也是其责任 (Introspection)。
-    -   **Prompt**: "基于这三份不同的记录，重新描述刚才发生了什么。不仅仅是复述，而是要融合场景、道理和感受，形成属于你的独特回忆。"
+分发逻辑是 Ghost 的内部实现细节，Shell 无需关心。
 
 ## 8. 实施计划 (Roadmap)
 
 1.  **Infrastructure (`kernel/agent`)**: 定义结构体，实现 `Session` 和 `ContextManager`。
 2.  **Soul Engine**: 实现 `Persona` 加载器 (解析 Siyuan 文档) 和 JS 运行时 (goja)。
 3.  **LLM Connector**: 封装 `go-openai`，实现基础 Chat Loop (System 1)。
-4.  **Cognitive Loop**: 实现 "慢思考" (System 2) 流程，集成 **MAGI** 多角色投票机制。
+4.  **Cognitive Loop**: 实现 Ghost 接口及 MAGI 内部机制（详见 [MAGI认知架构.design.md](MAGI认知架构.design.md)）。
 5.  **Tooling Layer**: 实现 `ToolRegistry` 和基础的文件/Shell 工具 + Siyuan Native Tools。
 6.  **Memory System**: 集成 `kernel/vectordb` 实现记忆存取。
 7.  **API & UI**: 暴露 `/api/agent` 端点，前端适配。
@@ -786,5 +690,3 @@ Gateway ──→ agentsdk-go Runtime (外部依赖)
 3. **外部 SDK 依赖需谨慎**：myclaw 失去核心控制权，kernel 应坚持自建
 4. **企业通道有商业价值**：飞书/企业微信的完整实现可提升 kernel 适用性
 5. **配置管理可优化**：环境变量覆盖机制提升部署灵活性
-
-**最终工作量估算**: 原计划 ~4300 行 + 可选扩展 ~730 行 = **~5030 行 Go 代码**

@@ -15,7 +15,9 @@
 ### 源码与设计文档
 
 - **源码**: [`toread/nanoClaw/`](../../toread/nanoClaw/) — Python asyncio 实现，约 2800 行
-- **设计文档**: [`docs/设计/AIagent设计.design.md`](../设计/AIagent设计.design.md) — 包含完整架构设计、移植调研、工作项清单和技术风险分析
+- **设计文档 (Shell)**: [`docs/设计/AIagent设计.design.md`](../设计/AIagent设计.design.md) — Agent 运行时架构、移植调研、工作项清单和技术风险分析
+- **设计文档 (Ghost)**: [`docs/设计/MAGI认知架构.design.md`](../设计/MAGI认知架构.design.md) — MAGI 三贤人、ATF、Seraph 等认知内核设计
+- **数学模型**: [`docs/设计/ATF数学模型.design.md`](../设计/ATF数学模型.design.md) — 同步率与 ATF 强度的数学基础
 - **目标位置**: `kernel/agent/` — Go 实现
 
 ### 关键路径
