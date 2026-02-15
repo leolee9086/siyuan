@@ -25,7 +25,8 @@ import {
 } from "./dialog/processSystem";
 import { initMessage, showMessage } from "./dialog/message";
 import { getAllTabs } from "./layout/getAll";
-import { getLocalStorage, isChromeBrowser } from "./protyle/util/compatibility";
+// S-forge: 添加远程新增的 isInMobileApp 导入
+import { getLocalStorage, isChromeBrowser, isInMobileApp } from "./protyle/util/compatibility";
 import { getSearch } from "./util/functions";
 import { checkPublishServiceClosed } from "./util/processMessage";
 import { hideAllElements } from "./protyle/ui/hideElements";
@@ -229,7 +230,7 @@ export class App {
                         setTitle(siyuanI18n.siyuanNote);
                         initMessage();
                         /// #if BROWSER && !MOBILE
-                        if (!window.siyuan.config.readonly && !window.siyuan.isPublish && !isChromeBrowser()) {
+                        if (!isInMobileApp() && !window.siyuan.config.readonly && !window.siyuan.isPublish && !isChromeBrowser()) {
                             showMessage(window.siyuan.languages.useChrome, 0, "error");
                         }
                         /// #endif

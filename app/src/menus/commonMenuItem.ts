@@ -1,23 +1,42 @@
 /// #if !BROWSER
+import {shell} from "electron";
 /// #endif
+// S-forge: 开始 - 模块化导入改进
 import { confirmDialog } from "../dialog/confirmDialog";
-import { isMobile } from "../util/functions";
-import { moveToPath, pathPosix } from "../util/pathName";
+import { getSearch, isMobile, isValidCustomAttrName } from "../util/functions";
+import { isLocalPath, moveToPath, pathPosix } from "../util/pathName";
 import { movePathTo } from "../util/pathName/movePathTo";
 import { MenuItem } from "./Menu.Item";
 import { onExport, saveExport } from "../protyle/export";
-import { isInAndroid, isInHarmony, isInIOS, openByMobile } from "../protyle/util/compatibility";
+import { isInAndroid, isInHarmony, isInIOS, isInMobileApp, openByMobile, writeText } from "../protyle/util/compatibility";
 import { fetchPost, fetchSyncPost } from "../util/fetch";
 import { hideMessage, showMessage } from "../dialog/message";
 import { Dialog } from "../dialog";
+import { focusBlock, focusByRange, getEditorRange } from "../protyle/util/selection";
+// S-forge: 结束
 /// #if !MOBILE
+import {openAsset, openBy} from "../editor/util";
 /// #endif
 import { rename, replaceFileName } from "../editor/rename";
+import * as dayjs from "dayjs";
 import { Constants } from "../constants";
 import { exportImage } from "../protyle/export/util";
+// S-forge: 开始 - i18n和config环境抽象
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
+// S-forge: 结束
+// S-forge: 开始 - openFileAttr提取到单独文件
 import { openFileAttr } from "./commonMenuItem.openFileAttr";
+// S-forge: 结束
+import {App} from "../index";
+import {renderAVAttribute} from "../protyle/render/av/blockAttr";
+import {openAssetNewWindow} from "../window/openNewWindow";
+import {copyTextByType} from "../protyle/toolbar/util";
+import {hideElements} from "../protyle/ui/hideElements";
+import {Protyle} from "../protyle";
+import {getAllEditor} from "../layout/getAll";
+import {hasClosestByClassName} from "../protyle/util/hasClosest";
+
 export const bindAttrInput = (inputElement: HTMLInputElement, id: string) => {
     inputElement.addEventListener("change", () => {
         fetchPost("/api/attr/setBlockAttrs", {
@@ -27,8 +46,126 @@ export const bindAttrInput = (inputElement: HTMLInputElement, id: string) => {
     });
 };
 
+export const openWechatNotify = (nodeElement: Element) => {
+    const id = nodeElement.getAttribute("data-node-id");
+    const range = getEditorRange(nodeElement);
+    const reminder = nodeElement.getAttribute(Constants.CUSTOM_REMINDER_WECHAT);
+    let reminderFormat = "";
+    if (reminder) {
+        reminderFormat = dayjs(reminder).format("YYYY-MM-DD HH:mm");
+    }
+    const dialog = new Dialog({
+        width: isMobile() ? "92vw" : "50vw",
+        title: siyuanI18n.wechatReminder,
+        content: `<div class="b3-dialog__content custom-attr">
+    <div class="fn__flex">
+        <span class="ft__on-surface fn__flex-center" style="text-align: right;white-space: nowrap;width: 100px">${siyuanI18n.notifyTime}</span>
+        <div class="fn__space"></div>
+        <input class="b3-text-field fn__flex-1" type="datetime-local" max="9999-12-31 23:59" value="${reminderFormat}">
+    </div>
+    <div class="b3-label__text" style="text-align: center">${siyuanI18n.wechatTip}</div>
+</div>
+<div class="b3-dialog__action">
+    <button class="b3-button b3-button--cancel">${siyuanI18n.cancel}</button><div class="fn__space"></div>
+    <button class="b3-button b3-button--text">${siyuanI18n.remove}</button><div class="fn__space"></div>
+    <button class="b3-button b3-button--text">${siyuanI18n.confirm}</button>
+</div>`,
+        destroyCallback() {
+            focusByRange(range);
+        }
+    });
+    dialog.element.setAttribute("data-key", Constants.DIALOG_WECHATREMINDER);
+    const btnsElement = dialog.element.querySelectorAll(".b3-button");
+    btnsElement[0].addEventListener("click", () => {
+        dialog.destroy();
+    });
+    btnsElement[1].addEventListener("click", () => {
+        if (btnsElement[1].getAttribute("disabled")) {
+            return;
+        }
+        btnsElement[1].setAttribute("disabled", "disabled");
+        fetchPost("/api/block/setBlockReminder", {id, timed: "0"}, () => {
+            nodeElement.removeAttribute(Constants.CUSTOM_REMINDER_WECHAT);
+            dialog.destroy();
+        });
+    });
+    btnsElement[2].addEventListener("click", () => {
+        const date = dialog.element.querySelector("input").value;
+        if (date) {
+            if (new Date(date) <= new Date()) {
+                showMessage(siyuanI18n.reminderTip);
+                return;
+            }
+            if (btnsElement[2].getAttribute("disabled")) {
+                return;
+            }
+            btnsElement[2].setAttribute("disabled", "disabled");
+            const timed = dayjs(date).format("YYYYMMDDHHmmss");
+            fetchPost("/api/block/setBlockReminder", {id, timed}, () => {
+                nodeElement.setAttribute(Constants.CUSTOM_REMINDER_WECHAT, timed);
+                dialog.destroy();
+            });
+        } else {
+            showMessage(siyuanI18n.notEmpty);
+        }
+    });
+};
 
-
+export const openFileWechatNotify = (protyle: IProtyle) => {
+    fetchPost("/api/block/getDocInfo", {
+        id: protyle.block.rootID
+    }, (response) => {
+        const reminder = response.data.ial[Constants.CUSTOM_REMINDER_WECHAT];
+        let reminderFormat = "";
+        if (reminder) {
+            reminderFormat = dayjs(reminder).format("YYYY-MM-DD HH:mm");
+        }
+        const dialog = new Dialog({
+            width: isMobile() ? "92vw" : "50vw",
+            title: siyuanI18n.wechatReminder,
+            content: `<div class="b3-dialog__content custom-attr">
+    <div class="fn__flex">
+        <span class="ft__on-surface fn__flex-center" style="text-align: right;white-space: nowrap;width: 100px">${siyuanI18n.notifyTime}</span>
+        <div class="fn__space"></div>
+        <input class="b3-text-field fn__flex-1" type="datetime-local" max="9999-12-31 23:59" value="${reminderFormat}">
+    </div>
+    <div class="b3-label__text" style="text-align: center">${siyuanI18n.wechatTip}</div>
+</div>
+<div class="b3-dialog__action">
+    <button class="b3-button b3-button--cancel">${siyuanI18n.cancel}</button><div class="fn__space"></div>
+    <button class="b3-button b3-button--text">${siyuanI18n.remove}</button><div class="fn__space"></div>
+    <button class="b3-button b3-button--text">${siyuanI18n.confirm}</button>
+</div>`
+        });
+        dialog.element.setAttribute("data-key", Constants.DIALOG_WECHATREMINDER);
+        const btnsElement = dialog.element.querySelectorAll(".b3-button");
+        btnsElement[0].addEventListener("click", () => {
+            dialog.destroy();
+        });
+        btnsElement[1].addEventListener("click", () => {
+            fetchPost("/api/block/setBlockReminder", {id: protyle.block.rootID, timed: "0"}, () => {
+                dialog.destroy();
+            });
+        });
+        btnsElement[2].addEventListener("click", () => {
+            const date = dialog.element.querySelector("input").value;
+            if (date) {
+                if (new Date(date) <= new Date()) {
+                    showMessage(siyuanI18n.reminderTip);
+                    return;
+                }
+                fetchPost("/api/block/setBlockReminder", {
+                    id: protyle.block.rootID,
+                    timed: dayjs(date).format("YYYYMMDDHHmmss")
+                }, () => {
+                    dialog.destroy();
+                });
+            } else {
+                showMessage(siyuanI18n.notEmpty);
+            }
+        });
+    });
+};
 
 export const openAttr = (nodeElement: Element, focusName = "bookmark", protyle: IProtyle) => {
     if (nodeElement.getAttribute("data-type") === "NodeThematicBreak") {
@@ -40,7 +177,9 @@ export const openAttr = (nodeElement: Element, focusName = "bookmark", protyle: 
     });
 };
 
+// S-forge: copySubMenu提取到单独文件
 export { copySubMenu } from "./commonMenuItem.copy";
+
 export const exportMd = (id: string) => {
     if (window.siyuan.isPublish) {
         return;
@@ -305,7 +444,7 @@ export const exportMd = (id: string) => {
             id: "exportPDF",
             label: siyuanI18n.print,
             icon: "iconPDF",
-            ignore: !isInAndroid() && !isInHarmony() && !isInIOS(),
+            ignore: !isInMobileApp(),
             click: () => {
                 const msgId = showMessage(siyuanI18n.exporting);
                 const localData = window.siyuan.storage[Constants.LOCAL_EXPORTPDF];
@@ -348,6 +487,138 @@ export const exportMd = (id: string) => {
             /// #endif
         ]
     }).element;
+};
+
+export const openMenu = (app: App, src: string, onlyMenu: boolean, showAccelerator: boolean) => {
+    const submenu = [];
+    /// #if MOBILE
+    submenu.push({
+        id: isInAndroid() ? "useDefault" : "useBrowserView",
+        label: isInAndroid() ? siyuanI18n.useDefault : siyuanI18n.useBrowserView,
+        accelerator: showAccelerator ? siyuanI18n.click : "",
+        click: () => {
+            openByMobile(src);
+        }
+    });
+    /// #else
+    if (isLocalPath(src)) {
+        if (Constants.SIYUAN_ASSETS_EXTS.includes(pathPosix().extname(src).split("?")[0]) &&
+            (!src.endsWith(".pdf") ||
+                (src.endsWith(".pdf") && !src.startsWith("file://")))
+        ) {
+            submenu.push({
+                id: "insertRight",
+                icon: "iconLayoutRight",
+                label: siyuanI18n.insertRight,
+                accelerator: showAccelerator ? siyuanI18n.click : "",
+                click() {
+                    openAsset(app, src.trim(), parseInt(getSearch("page", src)), "right");
+                }
+            });
+            submenu.push({
+                id: "openBy",
+                label: siyuanI18n.openBy,
+                icon: "iconOpen",
+                accelerator: showAccelerator ? "⌥" + siyuanI18n.click : "",
+                click() {
+                    openAsset(app, src.trim(), parseInt(getSearch("page", src)));
+                }
+            });
+            /// #if !BROWSER
+            submenu.push({
+                id: "openByNewWindow",
+                label: siyuanI18n.openByNewWindow,
+                icon: "iconOpenWindow",
+                click() {
+                    openAssetNewWindow(src.trim());
+                }
+            });
+            submenu.push({
+                id: "showInFolder",
+                icon: "iconFolder",
+                label: siyuanI18n.showInFolder,
+                accelerator: showAccelerator ? "⌘" + siyuanI18n.click : "",
+                click: () => {
+                    openBy(src, "folder");
+                }
+            });
+            submenu.push({
+                id: "useDefault",
+                label: siyuanI18n.useDefault,
+                accelerator: showAccelerator ? "⇧" + siyuanI18n.click : "",
+                click() {
+                    openBy(src, "app");
+                }
+            });
+            /// #endif
+        } else {
+            /// #if !BROWSER
+            submenu.push({
+                id: "useDefault",
+                label: siyuanI18n.useDefault,
+                accelerator: showAccelerator ? siyuanI18n.click : "",
+                click() {
+                    openBy(src, "app");
+                }
+            });
+            submenu.push({
+                id: "showInFolder",
+                icon: "iconFolder",
+                label: siyuanI18n.showInFolder,
+                accelerator: showAccelerator ? "⌘" + siyuanI18n.click : "",
+                click: () => {
+                    openBy(src, "folder");
+                }
+            });
+            /// #else
+            submenu.push({
+                id: isInAndroid() || isInHarmony() ? "useDefault" : "useBrowserView",
+                label: isInAndroid() || isInHarmony() ? siyuanI18n.useDefault : siyuanI18n.useBrowserView,
+                accelerator: showAccelerator ? siyuanI18n.click : "",
+                click: () => {
+                    openByMobile(src);
+                }
+            });
+            /// #endif
+        }
+    } else if (src) {
+        if (0 > src.indexOf(":")) {
+            // 使用 : 判断，不使用 :// 判断 Open external application protocol invalid https://github.com/siyuan-note/siyuan/issues/10075
+            // Support click to open hyperlinks like `www.foo.com` https://github.com/siyuan-note/siyuan/issues/9986
+            src = `https://${src}`;
+        }
+        /// #if !BROWSER
+        submenu.push({
+            id: "useDefault",
+            label: siyuanI18n.useDefault,
+            accelerator: showAccelerator ? siyuanI18n.click : "",
+            click: () => {
+                shell.openExternal(src).catch((e) => {
+                    showMessage(e);
+                });
+            }
+        });
+        /// #else
+        submenu.push({
+            id: isInAndroid() || isInHarmony() ? "useDefault" : "useBrowserView",
+            label: isInAndroid() || isInHarmony() ? siyuanI18n.useDefault : siyuanI18n.useBrowserView,
+            accelerator: showAccelerator ? siyuanI18n.click : "",
+            click: () => {
+                openByMobile(src);
+            }
+        });
+        /// #endif
+    }
+    /// #endif
+    if (onlyMenu) {
+        return submenu;
+    }
+    window.siyuan.menus.menu.append(new MenuItem({
+        id: "openBy",
+        label: siyuanI18n.openBy,
+        icon: "iconOpen",
+        submenu
+    }).element);
 };
 
 export const renameMenu = (options: {

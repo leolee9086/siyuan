@@ -5,6 +5,7 @@ import { addStyle } from "../protyle/util/addStyle";
 import { getAllModels } from "../layout/getAll";
 import { exportLayout } from "../layout/util";
 /// #endif
+// S-forge: 模块化重构 - 使用环境抽象层和资源模块
 import { fetchPost } from "./fetch";
 import { IFetchRequestObject } from "./fetch.types";
 import { getSiyuanConfig, getSiyuanStorage } from "./siyuanEnvironments/getSiyuanConfig.environment";
@@ -267,6 +268,7 @@ export const setMode = (modeElementValue: number) => {
     /// #endif
 };
 
+// S-forge: rgba2hex 和 updateMobileTheme 已提取到 ./assets/mobile 模块
 /** 获取主题模式 */
 export const getThemeMode = () => {
     const OSTheme = windowMatchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";

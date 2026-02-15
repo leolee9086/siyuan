@@ -81,6 +81,7 @@ export const getContentByInlineHTML = (range: Range, cb: (content: string) => vo
 export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
     //@ts-ignore
     editorElement.addEventListener("keydown", async (event: KeyboardEvent & { target: HTMLElement }) => {
+        // S-forge: 开始 - 事件中间件系统，使用AbortController实现可中断的键盘事件处理
         const controller: AbortController = new AbortController();
         const rawAbort = controller.abort;
         controller.abort = (reason: string) => {
@@ -96,6 +97,7 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
             console.error(protyle);
             throw (new Error("protyle结构错误"));
         }
+        // S-forge: 结束
 
         const range = getEditorRange(protyle.wysiwyg.element);
         const nodeElement = hasClosestBlock(range.startContainer);
