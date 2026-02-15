@@ -4,65 +4,93 @@
 
 - 当前分支: multipleAI
 - 目标: 合并 origin/dev 的最新进展到本地分支
-- 状态: 已处于合并冲突状态，36个文件有冲突
+- 初始状态: 36个文件有冲突
+- 当前状态: 剩余11个未合并文件
 - 规程: docs/规程/版本管理/远程分支合并.procedure.md
 
-## 冲突文件分类
+## 原始冲突文件（36个，已完成25个）
 
-### 第1批：包管理/配置（3个文件）
+### 原第1批：包管理/配置（3个文件）
 - [ ] app/package.json
-- [ ] app/pnpm-lock.yaml
-- [ ] kernel/go.mod
+- [x] app/pnpm-lock.yaml
+- [x] kernel/go.mod
 
-### 第2批：核心入口和常量（2个文件）
+### 原第2批：核心入口和常量（2个文件）
 - [ ] app/src/index.ts
-- [ ] app/src/constants.ts
+- [x] app/src/constants.ts
 
-### 第3批：配置UI模块（4个文件）
+### 原第3批：配置UI模块（4个文件）
 - [ ] app/src/config/about.ts
-- [ ] app/src/config/exportConfig.ts
-- [ ] app/src/config/image.ts
-- [ ] app/src/config/index.ts
+- [x] app/src/config/exportConfig.ts
+- [x] app/src/config/image.ts
+- [x] app/src/config/index.ts
 
-### 第4批：编辑器protyle模块（10个文件）
-- [ ] app/src/protyle/gutter/index.ts
-- [ ] app/src/protyle/render/av/action.ts
-- [ ] app/src/protyle/render/av/cell.ts
-- [ ] app/src/protyle/render/av/render.ts
-- [ ] app/src/protyle/toolbar/index.ts
-- [ ] app/src/protyle/ui/initUI.ts
-- [ ] app/src/protyle/upload/index.ts
-- [ ] app/src/protyle/util/compatibility.ts
-- [ ] app/src/protyle/util/editorCommonEvent.ts
+### 原第4批：编辑器protyle模块（10个文件）
+- [x] app/src/protyle/gutter/index.ts
+- [x] app/src/protyle/render/av/action.ts
+- [x] app/src/protyle/render/av/cell.ts
+- [x] app/src/protyle/render/av/render.ts
+- [x] app/src/protyle/toolbar/index.ts
+- [x] app/src/protyle/ui/initUI.ts
+- [x] app/src/protyle/upload/index.ts
+- [x] app/src/protyle/util/compatibility.ts
+- [x] app/src/protyle/util/editorCommonEvent.ts
 - [ ] app/src/protyle/wysiwyg/keydown.ts
 
-### 第5批：移动端模块（4个文件）
+### 原第5批：移动端模块（4个文件）
 - [ ] app/src/mobile/index.ts
 - [ ] app/src/mobile/menu/index.ts
 - [ ] app/src/mobile/settings/about.ts
-- [ ] app/src/mobile/util/keyboardToolbar.ts
+- [x] app/src/mobile/util/keyboardToolbar.ts
 
-### 第6批：其他前端模块（11个文件）
-- [ ] app/src/block/Panel.ts
-- [ ] app/src/boot/globalEvent/command/global.ts
-- [ ] app/src/history/history.ts
-- [ ] app/src/layout/Wnd.ts
-- [ ] app/src/layout/util.ts
-- [ ] app/src/menus/protyle.ts
-- [ ] app/src/plugin/API.ts
-- [ ] app/src/plugin/index.ts
-- [ ] app/src/protyle/wysiwyg/remove.ts
-- [ ] app/src/search/util.ts
-- [ ] app/src/util/addClearButton.ts
-- [ ] app/src/util/fetch.ts
+### 原第6批：其他前端模块（12个文件）
+- [x] app/src/block/Panel.ts
+- [x] app/src/boot/globalEvent/command/global.ts
+- [x] app/src/history/history.ts
+- [x] app/src/layout/Wnd.ts
+- [x] app/src/layout/util.ts
+- [x] app/src/menus/protyle.ts
+- [x] app/src/plugin/API.ts
+- [x] app/src/plugin/index.ts
+- [x] app/src/protyle/wysiwyg/remove.ts
+- [x] app/src/search/util.ts
+- [x] app/src/util/addClearButton.ts
+- [x] app/src/util/fetch.ts
 
-### 第7批：后端Go（1个文件）
-- [ ] kernel/model/assets.go
+### 原第7批：后端Go（1个文件）
+- [x] kernel/model/assets.go
+
+## 剩余冲突处理计划（11个文件，重新分批）
+
+### 批次1：包管理（1个文件）
+- [ ] app/package.json
+
+### 批次2：核心入口（1个文件）
+- [ ] app/src/index.ts
+
+### 批次3：配置UI和布局（2个文件）
+- [ ] app/src/config/about.ts
+- [ ] app/src/layout/topBar.ts
+
+### 批次4：菜单（1个文件）
+- [ ] app/src/menus/commonMenuItem.ts
+
+### 批次5：移动端（3个文件）
+- [ ] app/src/mobile/index.ts
+- [ ] app/src/mobile/menu/index.ts
+- [ ] app/src/mobile/settings/about.ts
+
+### 批次6：编辑器（2个文件）
+- [ ] app/src/protyle/export/index.ts
+- [ ] app/src/protyle/wysiwyg/keydown.ts
+
+### 批次7：工具（1个文件）
+- [ ] app/src/util/assets.ts
 
 ## 进度记录
 
 - 2026-02-13 11:43: 创建ttt文档，冲突文件已分类为7批
-- 待开始: 逐批解决冲突
+- 2026-02-14 16:58: 进度更新，36个冲突文件中已解决25个，剩余11个未合并。其中4个文件（topBar.ts, commonMenuItem.ts, protyle/export/index.ts, util/assets.ts）为合并过程中新发现的冲突，不在原始列表中。剩余文件重新分为7个批次。
 
 ## 失败记录
 
