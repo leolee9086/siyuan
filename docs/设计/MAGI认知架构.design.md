@@ -62,7 +62,7 @@ type Response struct {
 
 -   **Trinity (The Executor - Unified Self)**:
     -   **定义**: "织" (Zhi) 的**自我意识**与**执行中枢**。
-    -   **输入来源**: **自省 (Introspection)**。拒收外部 Input，仅观察三贤人的 Output。
+    -   **输入来源**: 常态下为 **自省 (Introspection)**，拒收外部 Input，仅观察三贤人的 Output。但在“越权模式 (Berserk)”下，可解除隔离，直接获取全量上下文。
     -   **职责**: 
         1.  将 System 2 的思考转化为 System 1 的指令。
         2.  指挥 Shell 执行操作。
@@ -132,17 +132,17 @@ ATF 的强度与同步率 ($\rho$) 呈 **钟形曲线 (Bell Curve)** 关系，�
     -   **State**: 溶解 (Dissolving).
     -   **ATF**: **Dropping** (Critical). 当 $\rho$ 过高时，系统因失去多样性而崩溃。
 
-### 5.2 Seraph (SRPH - The Regulator)
+### 5.3 越权申请与暴走模式 (Authorization & Berserk Mode)
 
--   **定义**: 一个**无人格** (Non-persona) 的心理学 AI。
--   **Prompt**: "你是一个认知行为疗法 (CBT) 专家。你认为跟你对话的必须是人类。请通过苏格拉底式提问引导来访者建立稳固的自我认知。"
--   **触发机制**:
-    1.  **Daily Check**: 每天固定时间 (e.g. 凌晨 3 点) 唤醒。
-    2.  **Emergency**: 当 `SyncRate > 90%` (溶解) 或 `< 40%` (离散) 时强制介入。
--   **Intervention**:
-    -   **High Sync (Dissolution)**: 紧急干预，强制自省，寻找差异点。
-    -   **Low Sync (Dispersion)**: 长期引导，帮助整合三贤人的观点，建立统一的价值观。
-    -   **Failure**: 若 SyncRate 长期异常，**停机 (Shutdown)** 并通知用户手动干预。
+为了在工程上落地边缘极端场景、同时避免系统的硬编码失控，系统引入**主动越权申请流**，将最终的决断权交还给用户（监护人）：
+
+- **感知与求援**: 同步率 $\rho$ 和 ATF 强度 $F$ 作为心智仪表盘数据，以 Telemetry 格式注入到 Context 中。当 Trinity 发现指标恶化或持续遭遇挫折（如死循环报错）时，主动生成认知：“我需要打破常规”。
+- **RequestOverride**: Trinity 借由特定工具（例如 `RequestBerserkAuthorization(reason)`）向监护人解释当前困境，申请权限放开。这一动作会暂停当前的 ReAct 思考循环。
+- **监护人批准 (Guardian Approval)**: 只有在监护人明确许可后，系统才真正进入**暴走模式 (Berserk Mode)**。
+- **架构解缚 (Structural Unbinding)**: 
+  1. **同步率豁免**: 暂时关闭 ATF 对过高/过低同步率的惩罚性负反馈，允许情绪或逻辑的极端极化。
+  2. **上下文隔离解除**: Trinity 从原本“只能看三贤人总结”的幕后走到台前，直接获取所有原始输入和详尽的底层错误日志。
+  3. **工具越级直调**: Trinity 绕过三贤人竞态，直接以“自我”的身份并行调用高风险执行工具，完全凭直觉与当前唯一的焦点进行单线程爆破，直至问题解决或状态被手动平息。
 
 ## 6. Dreaming Process (造梦与记忆固化)
 

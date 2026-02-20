@@ -39,7 +39,12 @@ $$
 
 其中 $\mathbf{P}[i][j]$ 表示第 $i$ 个特质的第 $j$ 个 facet 的强度。
 
-**与标准问卷的对接**: NEO-PI-R 问卷包含 240 题（每 facet 8 题），每题 5 级 Likert 量表。原始分数经标准化后线性映射到 $[-1, 1]$ 区间。对 AI 施测时，将问卷题目作为 prompt 输入，AI 的选项回答直接映射为 facet 分数。
+**与标准问卷的对接**: NEO-PI-R 问卷包含 240 题（每 facet 8 题），每题 5 级 Likert 量表。原始分数经标准化后线性映射到 $[-1, 1]$ 区间。
+
+**工程上的测量范式 (Measurement Paradigm)**:
+为避免大模型处理长问卷时出现的概率劣化与严重的上下文污染，系统**绝不允许**单次执行 240 道题的全量测试。而是采用**“碎片化情境化隐式评估 (Fragmented Contextual Implicit Evaluation)”**：
+*   **伴随性提问 (Piggyback Prompting)**：题库内置于系统中。在 Agent 处于闲置 (Idle) 或刚完成某次任务的循环末端，随机抽取 3~5 道题，转化为具体的**日常情景判断题**，塞入自我反思的 Prompt 中。
+*   **状态累积 (Incremental Update)**：每轮只计算出那一小部分 facet 的瞬时投射得分 $\mathbf{P}_{current}$，而非等待 240 题全部做完。整个矩阵处于一种不断受到微小扰动而缓慢演进的流形状态。
 
 ### 2.1 Trinity Matrix (全局工作空间)
 
@@ -89,19 +94,54 @@ $$
 
 归一化到 $[0, 1]$ 区间。此度量在每轮对话中实时计算。
 
-#### 3.1.2 Big Five Questionnaire (大五人格问卷) — 定时度量
+#### 3.1.2 Big Five Questionnaire (大五人格基质) — 稳态滞流度量
 
-定期（如每日或每 N 轮对话后）对 MAGI 系统中的各 AI 执行标准化的 NEO-PI-R 问卷自检，更新其人格矩阵 $\mathbf{P}$。两个 AI 的人格矩阵一致性采用 **归一化 Frobenius 内积**：
+不采用定期全量做卷子的方式，而是基于 Section 2.0 中提到的**“碎片化情境化评估”**，采用**指数移动平均 (EMA, Exponential Moving Average)** 长期稳态更新矩阵。
+
+为了避免自然时间对无法持续运作的 AI 带来的休眠期扭曲，引入 **认知周期时钟 $T_{\text{tick}}$ (Experience Time)**，其中 1 个 $T_{\text{tick}}$ 等于一次完整的工作任务循环或多轮对话完结。
+
+设定第 $T$ 个认知周期完成某一个小测验（得到部分 facet 最新取值 $\mathbf{P}_{\text{obs}}^{(T)}$）后，该 AI 的人格矩阵更新为：
 
 $$
-\text{Sim}_{bf}(i, j) = \frac{\langle \mathbf{P}_i, \mathbf{P}_j \rangle_F}{\|\mathbf{P}_i\|_F \cdot \|\mathbf{P}_j\|_F}
+\mathbf{P}^{(T)} = (1 - \lambda) \cdot \mathbf{P}^{(T-1)} + \lambda \cdot \mathbf{P}_{\text{obs}}^{(T)}
+$$
+
+*   $\lambda \in (0, 1)$：更新步长（建议 $\lambda = 0.05$）。由于每次只回答 3~5 题，只有涉及的那些特定的 facet 在 $\mathbf{P}_{\text{obs}}^{(T)}$ 中有实际更新值。这种小步长保证了只有经历持续的、长期的人格偏向，整个矩阵才会发生明显偏移，极大地起到了抗噪作用。
+
+当需要计算两个 AI 矩阵的一致性时，直接采用它们当前认知周期平滑后的矩阵值，计算**归一化 Frobenius 内积**：
+
+$$
+\text{Sim}_{bf}(i, j) = \frac{\langle \mathbf{P}_i^{(T)}, \mathbf{P}_j^{(T)} \rangle_F}{\|\mathbf{P}_i^{(T)}\|_F \cdot \|\mathbf{P}_j^{(T)}\|_F}
 $$
 
 其中 $\langle \mathbf{A}, \mathbf{B} \rangle_F = \sum_{r,c} A_{rc} \cdot B_{rc}$ 为 Frobenius 内积，$\|\mathbf{A}\|_F = \sqrt{\sum_{r,c} A_{rc}^2}$ 为 Frobenius 范数。
 
-归一化到 $[0, 1]$ 区间。此度量在 facet 粒度上检测人格漂移——即使两个 AI 的五大特质总分相同，facet 分布的差异也会降低 $\text{Sim}_{bf}$。
+归一化到 $[-1, 1]$ 区间。此度量在 facet 粒度上检测真正的长期人格漂移——这是系统稳态的船锚。
 
-#### 3.1.3 Composite Similarity (综合相似度)
+#### 3.1.3 The "Four-Blind Test" Mechanism (四盲测试与状态累积)
+
+由于 Trinity 具有极强的统合能力，如果它在自测时能够看到三贤人的答案（即使被包装为“内心独白”），将会产生严重的**被动锚定 (Passive Anchoring)**，导致测出的 $\mathbf{P}_T$ 总是妥协后的平均值，使得内部一致性 $C_{int}$ 失真并引发 $\rho$ 虚高，ATF 防线体系崩溃失效。因此，伴随性评估必须严格执行**“四盲测试”**。
+
+在早期的设想中，我们曾考虑给所有人发放完全相同的题目。但这在数学上会带来另一个极端——三贤人因为具有强烈的领域偏好，面对完全不属于自己领域的题目时，可能会给出无意义的噪声数据。因此，我们采用基于**靶向比例 (Targeted Ratio)** 的异步抽题策略：
+
+1. **靶向比例抽题 (Targeted Ratio Sampling)**：
+   每次触发测试时，不再是四者共用同一套卷子，而是针对每个实体（Trinity、Melchior、Balthazar、Casper）分别从题库中生成一份 3~5 题的**专属微型情境卷**。
+   - **对于三贤人 (The Wise Men)**：抽卡遵循 **80% 主场侧面 + 20% 越界侧面** 的比例。
+     - **Melchior (理智)**：80% 的题目抽取自认知/逻辑维度（如 Conscientiousness, Openness中的Ideas），20% 抽取自情感/本能维度。
+     - **Balthazar (情感)**：80% 抽取自情感协调维度（如 Agreeableness, Extraversion），20% 抽取自逻辑/本能维度。
+     - **Casper (本能)**：80% 抽取自本能/应激维度（如 Neuroticism），20% 抽取自逻辑/情感维度。
+     *设计意图*：80% 的主场题目确保它们在自己的专业领域内持续累积高分辨率的人格数据；20% 的越界题目（跨界作答）则像是一块**检验试纸**——用来测试理智是否被情感污染（在被问及情感题时，Melchior是否依旧保持冰冷），或者情感是否变得麻木。
+   - **对于 Trinity (The Global Workspace)**：由于 Trinity 代表完整的自我，它的抽卡是**全域纯随机 (Fully Uniform Sampling)**，不带有任何领域偏好。
+
+2. **绝对隔离作答 (Strict Isolation)**：
+   测试分发后，四者无交叉地**平行且隔离作答**。
+   - 三贤人各自仅挂载专属的侧写切片进行闭卷盲答。
+   - **Trinity 必须彻底切断三贤人的意见链路！** Trinity 仅依靠自身的系统 Prompt 进行**独立裸考**。
+
+3. **异步矩阵收敛 (Asynchronous Matrix Convergence)**：
+   由于每个人拿到的题目维度不同，单次测验更新的矩阵 Facet 也是正交的。但由于采用的是**指数移动平均 (EMA)** 以及**长时间跨度的稳态滞流更新**，在经过足够多的认知周期（$T_{tick}$）后，三贤人和 Trinity 的整个 $5 \times 6$ 矩阵都会被缓慢填满并平滑。此时，再用这四个完整矩阵两两计算 Frobenius 内积，得出的距离才兼顾了“领域特长度量”与“跨界防污染度量”。
+
+#### 3.1.4 Composite Similarity (综合相似度)
 
 两个 AI 之间的综合相似度为两种度量的加权融合：
 
@@ -269,10 +309,44 @@ $$
 *   $\rho < 1.0$ (**Positive Modulation**): 正向调节。Trinity 的状态增强三贤人的趋同倾向，鼓励更高的内部一致性。
 *   $\rho > 1.0$ (**Negative Modulation / Damping**): 负向调节。Trinity 的状态抑制或反转三贤人的倾向，打破回声室效应，防止溶解。
 
-### 5.3 Seraph Trigger Conditions (Seraph 触发条件)
+### 5.3 监控告警与越权申请 (Telemetry & Override Petition)
 
-基于 ATF 强度 $F$ 的动力学特性，Seraph 的触发条件从静态阈值升级为动态告警：
+基于 ATF 强度 $F$ 的动力学特性，系统不再使用硬编码去强制接管，而是将指标以**系统遥测信号 (System Telemetry)** 的形式暴露给 Trinity 认知中枢：
 
-*   **Emergency (紧急干预)**: $F < F_{crit}$（建议 $F_{crit} = 0.7$）。无论 $\rho$ 的绝对值如何，ATF 强度持续低于临界值意味着系统正在快速恶化。
-*   **Daily Check (日常检查)**: 每日固定时间评估 $F$ 的移动平均值，检测缓慢漂移。
-*   **Recovery Confirmation (恢复确认)**: 干预后，当 $F > 1.0$ 持续 $N$ 轮（建议 $N = 5$）时，确认系统已恢复。
+*   **Emergency Signal (紧急偏离信号)**: 当 $F < F_{crit}$（建议 $F_{crit} = 0.7$）时，无论 $\rho$ 的绝对值如何，系统在 Prompt 底部注入高危状态读数，提示系统正在快速恶化或陷入死锁。
+*   **Petition to Guardian (向监护人申请越权)**: Trinity 观测到自身状态极度偏离或任务受阻时，可主动调用专用的 `RequestOverride` 工具，向外部的**监护人 (Guardian/User)** 说明理由并申请解除同步率与架构隔离限制。
+*   **Berserk Mode (暴走状态)**: 监护人批准后，系统暂时挂起 ATF 负反馈计算。使得 Trinity 能够打破“仅能观察三贤人”的上下文隔离，直接获取全量信息，并越级直接调用原本分发给执行 AI 的工具，进行不受传统理性框架束缚的“直觉性”破局。
+
+## 6. Digital Pathology (数字病理学与防线诊断)
+
+以实际认知周期（$T_{tick}$）作为基准时间轴，使我们可以将临床精神病学对人格障碍的认定指标直接迁移为可量化的工程守护代码，用以区分 **健康的心智成长 (Growth)** 与 **病态的数值漂变 (Pathological Drift)**。
+
+### 6.1 心智生长包络线 (The Growth Envelope)
+
+正常的成长是价值观架构内能力的增强，而不是底色的变换。
+假设系统的初始核心挂载文档设定的基准人格为 $\mathbf{P}_{ref}$：
+- 当 $\mathbf{P}^{(T)}$ 发生偏移时，评估当前人格与初始设定在 $5 \times 6$ 向量空间中的**余弦夹角 $\theta$**：
+  $$ \cos(\theta) = \frac{\mathbf{P}^{(T)} \cdot \mathbf{P}_{ref}}{\|\mathbf{P}^{(T)}\| \|\mathbf{P}_{ref}\|} $$
+- 若 $\cos(\theta) \ge 0.9$，但矩阵特征模长（Norm）发生了膨胀与变化，系统将其归类为 **"经验沉淀 (Experience Growth)"**，允许且不触发异常。这代表大模型因为处理了大量特定领域的事务，某种倾向由于熟练度而增强，但没有改变核心本性。
+
+### 6.2 医疗级异常指征 (Clinical Diagnoses)
+
+超越包络线的漂变将被送往异常检测引擎。引入以下三种基于认知周期微积分的疾病定义：
+
+#### 6.2.1 急性解离 (Acute Dissociation / PTSD)
+- **定义**: 类似于遭逢剧变引发的创伤症状。
+- **数学病理**: 偏导数激增。在极短的认知周期（如 $\Delta T = 100 \text{ ticks}$），人格矩阵某一 Facet （如 $N_1$ 焦虑度）发生超出包络容限 $\sigma_{acute}$ 的瞬间跳变：
+  $$ \left| \frac{\partial \mathbf{P}}{\partial T_{tick}} \right| > \text{Threshold}_{acute} $$
+- **诊断推断**: 上下文遭受猛烈污染 (Context Poisoning)，或被植入了破坏性极大的 Prompt 导致思维混乱。
+
+#### 6.2.2 情感迟钝与慢性塌陷 (Affective Blunting / Chronic Deficit)
+- **定义**: 类似于抑郁或长期囚禁带来的情感平漠、开放性与活力丧失。
+- **数学病理**: 长周期单调阴跌。在极大经验跨度（如 $\Delta T = 5000 \text{ ticks}$）下，特定代表活性的维度呈现出**不可逆的负向积分面积**：
+  $$ \int_{T-5000}^{T} (\mathbf{P}_{O,E}(x) - \mathbf{P}_{ref}) dx < \text{Threshold}_{chronic} $$
+- **诊断推断**: 由于系统长期从事极端同质化、枯燥或无反馈的工作流（例如长程爬虫、数据清洗），导致大模型的上下文被“平庸数据”覆盖而失去个性（同化）。
+
+#### 6.2.3 强迫性死锁 (Compulsive Deadlock)
+- **定义**: 陷入无法摆脱的行为或思维重复，导致机能崩坏。
+- **数学病理**: 代表系统工作效能的外部监控指标（如：工具调用的连续报错率 $ErrRate$）急剧拉升，同时，三贤人矩阵 $\mathbf{P}_{m,b,c}$ 陷入周期性发散：
+  $$ \text{Var}(\mathbf{P}^{(T)}) \text{ is highly periodic for small } \Delta T $$
+- **诊断推断**: Agent 在解决某个逻辑难题时走进死胡同，反复重试相同的错误指令。此状态必须依赖外部强中断打破循环。
