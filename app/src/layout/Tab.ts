@@ -9,10 +9,9 @@ import { unicode2Emoji } from "../emoji";
 import { fetchPost } from "../util/fetch";
 import { hideTooltip, showTooltip } from "../dialog/tooltip";
 import { isTouchDevice } from "../util/functions";
-/// #if !BROWSER
+import { isElectron } from "../platform";
 import { openNewWindow } from "../window/openNewWindow";
-import { ipcRenderer } from "electron";
-/// #endif
+import { ipcSend } from "../platform/electron/ipcRenderer";
 import { layoutToJSON, saveLayout } from "./util";
 
 export class Tab {
@@ -99,33 +98,36 @@ export class Tab {
                     tabElement.style.opacity = "0.38";
                     window.siyuan.dragElement = this.headElement;
                 }
-                ipcRenderer.send(Constants.SIYUAN_SEND_WINDOWS, { cmd: "resetTabsStyle", data: "removeRegionStyle" });
+                if (isElectron) {
+                    ipcSend(Constants.SIYUAN_SEND_WINDOWS, { cmd: "resetTabsStyle", data: "removeRegionStyle" });
+                }
             });
             this.headElement.addEventListener("dragend", (event: DragEvent & { target: HTMLElement }) => {
                 const tabElement = hasClosestByTag(event.target, "LI");
                 if (tabElement) {
                     tabElement.style.opacity = "1";
                 }
-                /// #if !BROWSER
-                // 拖拽到屏幕外时打开新窗口
-                // 注意：只有在 dropEffect 为 "none" 时才触发（表示拖拽被取消或未被其他窗口接收）
-                // 如果 dropEffect 为 "move"，说明 tab 已经被其他窗口接收，不应该再打开新窗口
-                setTimeout(() => {
-                    if (event.dataTransfer.dropEffect === "none" &&
-                        document.body.contains(this.panelElement) &&
-                        (event.clientX < 0 || event.clientY < 0 || event.clientX > window.innerWidth || event.clientY > window.innerHeight)) {
-                        openNewWindow(this);
-                    }
-                }, Constants.TIMEOUT_LOAD); // 等待主进程发送关闭消息
-                ipcRenderer.send(Constants.SIYUAN_SEND_WINDOWS, { cmd: "resetTabsStyle", data: "rmDragStyle" });
-                /// #else
-                document.querySelectorAll(".layout-tab-bars--drag").forEach(item => {
-                    item.classList.remove("layout-tab-bars--drag");
-                });
-                document.querySelectorAll(".layout-tab-bar li[data-clone='true']").forEach(tabItem => {
-                    tabItem.remove();
-                });
-                /// #endif
+                if (isElectron) {
+                    // 拖拽到屏幕外时打开新窗口
+                    // 注意：只有在 dropEffect 为 "none" 时才触发（表示拖拽被取消或未被其他窗口接收）
+                    // 如果 dropEffect 为 "move"，说明 tab 已经被其他窗口接收，不应该再打开新窗口
+                    setTimeout(() => {
+                        if (event.dataTransfer.dropEffect === "none" &&
+                            document.body.contains(this.panelElement) &&
+                            (event.clientX < 0 || event.clientY < 0 || event.clientX > window.innerWidth || event.clientY > window.innerHeight)) {
+                            openNewWindow(this);
+                        }
+                    }, Constants.TIMEOUT_LOAD); // 等待主进程发送关闭消息
+                    ipcSend(Constants.SIYUAN_SEND_WINDOWS, { cmd: "resetTabsStyle", data: "rmDragStyle" });
+                }
+                if (!isElectron) {
+                    document.querySelectorAll(".layout-tab-bars--drag").forEach(item => {
+                        item.classList.remove("layout-tab-bars--drag");
+                    });
+                    document.querySelectorAll(".layout-tab-bar li[data-clone='true']").forEach(tabItem => {
+                        tabItem.remove();
+                    });
+                }
                 window.siyuan.dragElement = undefined;
                 if (event.dataTransfer.dropEffect === "none") {
                     // 按 esc 取消的时候应该还原在 dragover 时交换的 tab
@@ -140,7 +142,9 @@ export class Tab {
                         }
                     });
                 }
-                ipcRenderer.send(Constants.SIYUAN_SEND_WINDOWS, { cmd: "resetTabsStyle", data: "addRegionStyle" });
+                if (isElectron) {
+                    ipcSend(Constants.SIYUAN_SEND_WINDOWS, { cmd: "resetTabsStyle", data: "addRegionStyle" });
+                }
             });
         }
 

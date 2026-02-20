@@ -3,9 +3,8 @@
  * 从 Outline.ts 拆分出来以保持单文件行数限制
  */
 import { hasClosestByClassName } from "../../../protyle/util/hasClosest";
-/// #if !MOBILE
 import { getAllModels } from "../../getAll";
-/// #endif
+import { isMobile } from "../../../platform";
 import { transaction } from "../../../protyle/wysiwyg/transaction";
 import { dragOverScroll, stopScrollAnimation } from "../../../boot/globalEvent/dragover";
 import type { Outline } from "./Outline";
@@ -70,17 +69,15 @@ function handleMouseDown(outline: Outline, event: MouseEvent) {
         startY: event.clientY,
     };
 
-    /// #if !MOBILE
     /**
      * 作用：查找对应的编辑器。
      * 意图：确保找到的编辑器的 rootID 与大纲的 blockId 匹配。
-     * 生效场景：遍历所有编辑器模型时。
+     * 生效场景：非移动端时遍历所有编辑器模型。
      */
-    const targetModel = getAllModels().editor.find(editItem => editItem.editor.protyle.block.rootID === outline.blockId);
+    const targetModel = !isMobile ? getAllModels().editor.find(editItem => editItem.editor.protyle.block.rootID === outline.blockId) : undefined;
     if (targetModel) {
         state.editor = targetModel.editor.protyle;
     }
-    /// #endif
 
     document.onmousemove = (moveEvent: MouseEvent) => {
         handleMouseMove(moveEvent, state);

@@ -1,5 +1,6 @@
 import { Constants } from "../constants";
-import { ipcRenderer, webFrame } from "electron";
+import { ipcSend } from "../platform/electron/ipcRenderer";
+import { setZoomFactor } from "../platform/electron/webFrame";
 import { fetchPost } from "../util/fetch";
 import { adjustLayout, getInstanceById, JSONToCenter } from "../layout/util";
 import { resizeTabs } from "../layout/tabUtil";
@@ -17,9 +18,8 @@ import { windowAddEventListener, clearTimeout, setTimeout } from "../util/siyuan
 import { getAllEditor } from "../layout/getAll";
 import { isEmojiArray, isTab } from "./init.guard";
 // S-forge: 采纳远程新增的 initNativeDialogOverride 导入
-/// #if !BROWSER
 import { initNativeDialogOverride } from "../protyle/util/compatibility";
-/// #endif
+import { isElectron } from "../platform";
 
 /** 处理获取Emoji配置的响应 */
 const handleEmojiConfResponse = (app: App, response: IWebSocketData) => {
@@ -104,8 +104,8 @@ const handleWindowResize = (resizeTimeoutRef: { value: number }) => {
  */
 export const init = async (app: App) => {
     const storage = getSiyuanStorage();
-    webFrame.setZoomFactor(storage[Constants.LOCAL_ZOOM]);
-    ipcRenderer.send(Constants.SIYUAN_CMD, {
+    setZoomFactor(storage[Constants.LOCAL_ZOOM]);
+    ipcSend(Constants.SIYUAN_CMD, {
         cmd: "setTrafficLightPosition",
         zoom: storage[Constants.LOCAL_ZOOM],
         position: Constants.SIZE_ZOOM.find((item) => item.zoom === storage[Constants.LOCAL_ZOOM])?.position
@@ -114,10 +114,10 @@ export const init = async (app: App) => {
     fetchPost("/api/system/getEmojiConf", {}, response => handleEmojiConfResponse(app, response));
     initStatus(true);
     initWindow(app);
-    // S-forge: 采纳远程新增的原生对话框覆盖初始化
-    /// #if !BROWSER
-    initNativeDialogOverride();
-    /// #endif
+    // S-forge: 采纳远程新增的原生对话框覆盖初始化，仅桌面端需要覆盖原生对话框
+    if (isElectron) {
+        initNativeDialogOverride();
+    }
     appearance.onSetAppearance(getSiyuanConfig().appearance);
     initAssets();
     setInlineStyle();

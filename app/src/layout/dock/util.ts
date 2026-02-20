@@ -1,6 +1,5 @@
-/// #if !MOBILE
+import { isMobile } from "../../platform";
 import { getAllModels } from "../getAll";
-/// #endif
 import { Tab } from "../Tab";
 import { Graph } from "./Graph";
 import { Outline } from "./outline/Outline";
@@ -21,7 +20,10 @@ export const openBacklink = async (options: {
     title?: string,
     useBlockId?: boolean,
 }) => {
-    /// #if !MOBILE
+    // 移动端不支持反链面板
+    if (isMobile) {
+        return;
+    }
     const backlink = getAllModels().backlink.find(item => {
         if (item.blockId === options.blockId && item.type === "local") {
             item.parent.parent.removeTab(item.parent.id);
@@ -69,7 +71,6 @@ export const openBacklink = async (options: {
             }));
         }
     }));
-    /// #endif
 };
 
 export const openGraph = async (options: {

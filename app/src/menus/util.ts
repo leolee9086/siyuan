@@ -1,9 +1,7 @@
-/// #if !BROWSER
-import {ipcRenderer} from "electron";
-import * as path from "path";
-/// #endif
+import {ipcInvoke} from "../platform/electron/ipcRenderer";
+import {isElectron, isMobile} from "../platform";
 import {fetchPost} from "../util/fetch";
-import {getAssetName, pathPosix, useShell} from "../util/pathName";
+import {getAssetName, originalPath, pathPosix, useShell} from "../util/pathName";
 import { openFileById } from "../editor/utils.openFileById";
 import {Constants} from "../constants";
 import {openNewWindowById} from "../window/openNewWindow";
@@ -20,22 +18,23 @@ export const exportAsset = (src: string) => {
         label: siyuanI18n.export,
         icon: "iconUpload",
         async click() {
-            /// #if BROWSER
-            exportByMobile(src);
-            /// #else
-            const result = await ipcRenderer.invoke(Constants.SIYUAN_GET, {
-                cmd: "showSaveDialog",
-                defaultPath: getAssetName(src) + pathPosix().extname(src),
-                properties: ["showOverwriteConfirmation"],
-            });
-            if (!result.canceled) {
-                fetchPost("/api/file/copyFile", {src, dest: result.filePath}, (response) => {
-                    if (response.code === 0) {
-                        showMessage(window.siyuan.languages.exported);
-                    }
-                });
+            if (!isElectron) {
+                exportByMobile(src);
             }
-            /// #endif
+            if (isElectron) {
+                const result = await ipcInvoke(Constants.SIYUAN_GET, {
+                    cmd: "showSaveDialog",
+                    defaultPath: getAssetName(src) + pathPosix().extname(src),
+                    properties: ["showOverwriteConfirmation"],
+                });
+                if (!result.canceled) {
+                    fetchPost("/api/file/copyFile", {src, dest: result.filePath}, (response) => {
+                        if (response.code === 0) {
+                            showMessage(window.siyuan.languages.exported);
+                        }
+                    });
+                }
+            }
         }
     };
 };
@@ -47,23 +46,24 @@ export const copyAsset = (src: string) => {
         label: window.siyuan.languages.copyFile,
         icon: "iconCopy",
         click: () => {
-            /// #if !BROWSER
-            fetchPost("/api/clipboard/writeFilePath", {path: src}, (response) => {
-                if (response.code === 0) {
-                    showMessage(window.siyuan.languages.copied);
-                } else {
-                    showMessage(response.msg || "", response.data?.closeTimeout ?? 5000, "error");
-                }
-            });
-            /// #else
-            showMessage("Copy as file is only supported in the Windows and macOS desktop app");
-            /// #endif
+            if (isElectron) {
+                fetchPost("/api/clipboard/writeFilePath", {path: src}, (response) => {
+                    if (response.code === 0) {
+                        showMessage(window.siyuan.languages.copied);
+                    } else {
+                        showMessage(response.msg || "", response.data?.closeTimeout ?? 5000, "error");
+                    }
+                });
+            }
+            if (!isElectron) {
+                showMessage("Copy as file is only supported in the Windows and macOS desktop app");
+            }
         }
     };
 };
 
 export const openEditorTab = (app: App, ids: string[], notebookId?: string, pathString?: string, onlyGetMenus = false) => {
-    /// #if !MOBILE
+    if (!isMobile) {
     const openSubmenus: IMenu[] = [{
         id: "insertRight",
         icon: "iconLayoutRight",
@@ -148,16 +148,16 @@ export const openEditorTab = (app: App, ids: string[], notebookId?: string, path
             }
         });
     }
-    /// #if !BROWSER
-    openSubmenus.push({
-        id: "openByNewWindow",
-        label: siyuanI18n.openByNewWindow,
-        icon: "iconOpenWindow",
-        click() {
-            openNewWindowById(ids);
-        }
-    });
-    /// #endif
+    if (isElectron) {
+        openSubmenus.push({
+            id: "openByNewWindow",
+            label: siyuanI18n.openByNewWindow,
+            icon: "iconOpenWindow",
+            click() {
+                openNewWindowById(ids);
+            }
+        });
+    }
     openSubmenus.push({id: "separator_1", type: "separator"});
     openSubmenus.push({
         id: "preview",
@@ -169,25 +169,25 @@ export const openEditorTab = (app: App, ids: string[], notebookId?: string, path
             });
         }
     });
-    /// #if !BROWSER
-    openSubmenus.push({id: "separator_2", type: "separator"});
-    openSubmenus.push({
-        id: "showInFolder",
-        icon: "iconFolder",
-        label: siyuanI18n.showInFolder,
-        click: () => {
-            if (notebookId) {
-                useShell("showItemInFolder", path.join(window.siyuan.config.system.dataDir, notebookId, pathString));
-            } else {
-                ids.forEach((id) => {
-                    fetchPost("/api/block/getBlockInfo", {id}, (response) => {
-                        useShell("showItemInFolder", path.join(window.siyuan.config.system.dataDir, response.data.box, response.data.path));
+    if (isElectron) {
+        openSubmenus.push({id: "separator_2", type: "separator"});
+        openSubmenus.push({
+            id: "showInFolder",
+            icon: "iconFolder",
+            label: siyuanI18n.showInFolder,
+            click: () => {
+                if (notebookId) {
+                    useShell("showItemInFolder", originalPath().join(window.siyuan.config.system.dataDir, notebookId, pathString));
+                } else {
+                    ids.forEach((id) => {
+                        fetchPost("/api/block/getBlockInfo", {id}, (response) => {
+                            useShell("showItemInFolder", originalPath().join(window.siyuan.config.system.dataDir, response.data.box, response.data.path));
+                        });
                     });
-                });
+                }
             }
-        }
-    });
-    /// #endif
+        });
+    }
     if (onlyGetMenus) {
         return openSubmenus;
     }
@@ -197,7 +197,7 @@ export const openEditorTab = (app: App, ids: string[], notebookId?: string, path
         icon: "iconOpen",
         submenu: openSubmenus,
     }).element);
-    /// #endif
+    }
 };
 
 export const copyPNGByLink = (link: string) => {

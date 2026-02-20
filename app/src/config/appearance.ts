@@ -1,7 +1,5 @@
-/// #if !BROWSER
-import * as path from "path";
-/// #endif
 import { Constants } from "../constants";
+import { isElectron } from "../platform";
 import { exportLayout, resetLayout } from "../layout/util";
 import { isBrowser } from "../util/functions";
 import { fetchPost } from "../util/fetch";
@@ -222,17 +220,18 @@ export const appearance = {
                 resetLayout();
             });
         });
-        /// #if !BROWSER
-        appearance.element.querySelector("#appearanceOpenIcon").addEventListener("click", () => {
-            useShell("openPath", path.join(window.siyuan.config.system.confDir, "appearance", "icons"));
-        });
-        appearance.element.querySelector("#appearanceOpenTheme").addEventListener("click", () => {
-            useShell("openPath", path.join(window.siyuan.config.system.confDir, "appearance", "themes"));
-        });
-        appearance.element.querySelector("#appearanceOpenEmoji").addEventListener("click", () => {
-            useShell("openPath", path.join(window.siyuan.config.system.dataDir, "emojis"));
-        });
-        /// #endif
+        if (isElectron) {
+            const path = __non_webpack_require__("path");
+            appearance.element.querySelector("#appearanceOpenIcon").addEventListener("click", () => {
+                useShell("openPath", path.join(window.siyuan.config.system.confDir, "appearance", "icons"));
+            });
+            appearance.element.querySelector("#appearanceOpenTheme").addEventListener("click", () => {
+                useShell("openPath", path.join(window.siyuan.config.system.confDir, "appearance", "themes"));
+            });
+            appearance.element.querySelector("#appearanceOpenEmoji").addEventListener("click", () => {
+                useShell("openPath", path.join(window.siyuan.config.system.dataDir, "emojis"));
+            });
+        }
         appearance.element.querySelectorAll("select").forEach(item => {
             item.addEventListener("change", () => {
                 appearance._send();

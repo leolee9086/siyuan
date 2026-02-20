@@ -1,6 +1,7 @@
 // https://github.com/siyuan-note/siyuan/pull/8012
 import { isServiceWorkerAvailable, getServiceWorkerContainer } from "./siyuanEnvironments/windowStandard.environment";
 import { getWindowWebkit, getWindowJSAndroid, getWindowJSHarmony } from "./siyuanEnvironments/windowNative.environment";
+import { isBrowser } from "../platform";
 
 export const registerServiceWorker = (
     scriptURL: string,
@@ -10,7 +11,9 @@ export const registerServiceWorker = (
         updateViaCache: "all",
     },
 ) => {
-    /// #if BROWSER
+    if (!isBrowser) {
+        return;
+    }
     if (getWindowWebkit()?.messageHandlers || getWindowJSAndroid() || getWindowJSHarmony() ||
         !isServiceWorkerAvailable()
     ) {
@@ -28,5 +31,4 @@ export const registerServiceWorker = (
             console.debug(`Registration failed with ${e}`);
         });
     }
-    /// #endif
 };

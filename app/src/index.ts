@@ -32,11 +32,10 @@ import { checkPublishServiceClosed } from "./util/processMessage";
 import { hideAllElements } from "./protyle/ui/hideElements";
 import { loadPlugins, reloadPlugin } from "./plugin/loader";
 import "./assets/scss/base.scss";
+import { isBrowser, isBrowserDesktop } from "./platform";
 import { reloadEmoji } from "./emoji";
 import { processIOSPurchaseResponse } from "./util/iOSPurchase";
-/// #if BROWSER
 import { setLocalShorthandCount } from "./util/noRelyPCFunction";
-/// #endif
 import { getDockByType } from "./layout/tabUtil";
 import { Tag } from "./layout/dock/Tag";
 import { updateControlAlt } from "./protyle/util/hotKey";
@@ -94,11 +93,12 @@ export class App {
                                     (getDockByType("tag")?.data.tag as Tag).update();
                                 }
                                 break;
-                            /// #if BROWSER
                             case "setLocalShorthandCount":
-                                setLocalShorthandCount();
+                                // 仅浏览器环境需要处理本地速记计数
+                                if (isBrowser) {
+                                    setLocalShorthandCount();
+                                }
                                 break;
-                            /// #endif
                             case "setRefDynamicText":
                                 setRefDynamicText(data.data);
                                 break;
@@ -229,11 +229,10 @@ export class App {
                         account.onSetaccount();
                         setTitle(siyuanI18n.siyuanNote);
                         initMessage();
-                        /// #if BROWSER && !MOBILE
-                        if (!isInMobileApp() && !window.siyuan.config.readonly && !window.siyuan.isPublish && !isChromeBrowser()) {
+                        // 浏览器桌面端检查是否使用 Chrome，非 Chrome 时提示用户
+                        if (isBrowserDesktop && !isInMobileApp() && !window.siyuan.config.readonly && !window.siyuan.isPublish && !isChromeBrowser()) {
                             showMessage(window.siyuan.languages.useChrome, 0, "error");
                         }
-                        /// #endif
                     });
                 });
             });
@@ -260,10 +259,10 @@ window.openFileByURL = (openURL) => {
     return false;
 };
 
-/// #if BROWSER
-window.showKeyboardToolbar = () => {
-    // 防止 Pad 端报错
-};
-window.processIOSPurchaseResponse = processIOSPurchaseResponse;
-/// #endif
+if (isBrowser) {
+    window.showKeyboardToolbar = () => {
+        // 防止 Pad 端报错
+    };
+    window.processIOSPurchaseResponse = processIOSPurchaseResponse;
+}
 console.log(embeddingText("测试"));

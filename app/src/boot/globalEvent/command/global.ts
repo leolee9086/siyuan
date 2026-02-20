@@ -1,12 +1,10 @@
 import { newDailyNote } from "../../../util/mount";
 import { openHistory } from "../../../history/history";
 import { Editor } from "../../../editor";
-/// #if MOBILE
 import { openDock } from "../../../mobile/dock/util";
 import { popMenu } from "../../../mobile/menu";
 import { popSearch } from "../../../mobile/menu/search";
 import { getRecentDocs } from "../../../mobile/menu/getRecentDocs";
-/// #else
 import { openNewWindow } from "../../../window/openNewWindow";
 import { selectOpenTab, openBacklink, openGraph, openOutline, toggleDockBar } from "../../../layout/dock/util";
 import { openGlobalSearch } from "../../../search/util";
@@ -27,10 +25,8 @@ import {
 import { closeTabByType } from "../../../layout/utils/closeTabByType";
 import { openSetting } from "../../../config";
 import { Tab } from "../../../layout/Tab";
-/// #endif
-/// #if !BROWSER
-import { ipcRenderer } from "electron";
-/// #endif
+import { isMobile, isElectron } from "../../../platform";
+import { ipcSend } from "../../../platform/electron/ipcRenderer";
 import { App } from "../../../index";
 import { Constants } from "../../../constants";
 import { setReadOnly } from "../../../config/util/setReadOnly";
@@ -45,7 +41,8 @@ import { fetchPost } from "../../../util/fetch";
 import { setStorageVal } from "../../../protyle/util/compatibility";
 
 export const globalCommand = (command: string, app: App) => {
-    /// #if MOBILE
+    // 移动端命令分发
+    if (isMobile) {
     switch (command) {
         case "fileTree":
             openDock("file");
@@ -69,7 +66,9 @@ export const globalCommand = (command: string, app: App) => {
             getRecentDocs(app);
             return true;
     }
-    /// #else
+    }
+    // 桌面端命令分发
+    if (!isMobile) {
     switch (command) {
         case "fileTree":
             getDockByType("file").toggleModel("file");
@@ -240,10 +239,11 @@ export const globalCommand = (command: string, app: App) => {
             toggleDockBar(document.querySelector("#barDock use"));
             return true;
         case "toggleWin":
-            /// #if !BROWSER
-            ipcRenderer.send(Constants.SIYUAN_CMD, "hide");
-            ipcRenderer.send(Constants.SIYUAN_CMD, "minimize");
-            /// #endif
+            // Electron 桌面端：隐藏并最小化窗口
+            if (isElectron) {
+                ipcSend(Constants.SIYUAN_CMD, "hide");
+                ipcSend(Constants.SIYUAN_CMD, "minimize");
+            }
             return true;
     }
     if (command === "goToEditTabNext" || command === "goToEditTabPrev") {
@@ -419,7 +419,7 @@ export const globalCommand = (command: string, app: App) => {
         }
         return true;
     }
-    /// #endif
+    }
 
     switch (command) {
         case "dailyNote":

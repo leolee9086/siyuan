@@ -1,6 +1,5 @@
-/// #if !MOBILE
 import { getAllEditor, getAllModels, getAllWnds } from "../../layout/getAll";
-/// #endif
+import { isMobile } from "../../platform";
 import { addLoading } from "../ui/initUI";
 import { fetchPost } from "../../util/fetch";
 import { Constants } from "../../constants";
@@ -20,15 +19,15 @@ import {
 } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 const onNet2LocalAssets = (protyle: IProtyle) => {
-    /// #if MOBILE
-    reloadProtyle(protyle, false);
-    /// #else
+    if (isMobile) {
+        reloadProtyle(protyle, false);
+        return;
+    }
     for (const item of getAllEditor()) {
         if (item.protyle.block.rootID === protyle.block.rootID) {
             reloadProtyle(item.protyle, item.protyle.element === protyle.element);
         }
     }
-    /// #endif
 };
 
 export const net2LocalAssets = (protyle: IProtyle, type: "Assets" | "Img") => {
@@ -56,8 +55,10 @@ const updateHeaderDragRegion = (item: Wnd, isFullscreen: boolean) => {
     return false;
 };
 
-/// #if !MOBILE
 const updateLayoutDragRegion = (isFullscreen: boolean) => {
+    if (isMobile) {
+        return;
+    }
     const wndsTemp: Wnd[] = [];
     const layout = getSiyuanLayout()?.layout;
     if (layout) {
@@ -67,6 +68,9 @@ const updateLayoutDragRegion = (isFullscreen: boolean) => {
 };
 
 const updateWindowControlsZIndex = (isFullscreen: boolean) => {
+    if (isMobile) {
+        return;
+    }
     if ("darwin" === getSiyuanConfig()?.system.os || isWindow()) {
         return;
     }
@@ -84,18 +88,16 @@ const updateWindowControlsZIndex = (isFullscreen: boolean) => {
         windowControlsElement.style.zIndex = getSiyuanZIndex().toString();
     }
 };
-/// #endif
 
 const updateWindowUI = (isFullscreen: boolean) => {
-    if (isWindow()) {
-        // 编辑器全屏
-        /// #if !MOBILE
-        updateLayoutDragRegion(isFullscreen);
-        /// #endif
+    if (isMobile) {
+        return;
     }
-    /// #if !MOBILE
+    // 编辑器全屏时更新窗口标题栏拖拽区域
+    if (isWindow()) {
+        updateLayoutDragRegion(isFullscreen);
+    }
     updateWindowControlsZIndex(isFullscreen);
-    /// #endif
 };
 
 const updateButtonAndDock = (element: Element, btnElement: Element, isFullscreen: boolean) => {
@@ -118,7 +120,9 @@ const updateButtonAndDock = (element: Element, btnElement: Element, isFullscreen
 };
 
 const syncEditors = (element: Element, isFullscreen: boolean) => {
-    /// #if !MOBILE
+    if (isMobile) {
+        return;
+    }
     if (element.classList.contains("protyle")) {
         setSiyuanEditorIsFullscreen(!isFullscreen);
     }
@@ -128,7 +132,6 @@ const syncEditors = (element: Element, isFullscreen: boolean) => {
             resize(item.editor.protyle);
         }
     }
-    /// #endif
 };
 
 export const fullscreen = (element: Element, btnElement?: Element) => {

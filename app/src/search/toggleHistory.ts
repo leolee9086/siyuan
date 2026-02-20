@@ -5,13 +5,11 @@ import {escapeHtml} from "../util/escape";
 import {hasClosestByClassName} from "../protyle/util/hasClosest";
 import {Protyle} from "../protyle";
 import {assetInputEvent} from "./assets";
-/// #if MOBILE
 import {updateSearchResult} from "../mobile/menu/search";
-/// #else
 import {inputEvent} from "./util";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig, getSiyuanStorage } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
-/// #endif
+import {isMobile} from "../platform";
 
 export const toggleReplaceHistory = (replaceInputElement: HTMLInputElement) => {
     const list = window.siyuan.storage[Constants.LOCAL_SEARCHKEYS];
@@ -126,11 +124,12 @@ export const toggleSearchHistory = (searchElement: Element, config: Config.IUILa
                         } else {
                             searchInputElement.value = element.textContent;
                             config.page = 1;
-                            /// #if MOBILE
-                            updateSearchResult(config, searchElement, true);
-                            /// #else
-                            inputEvent(searchElement, config, edit, true);
-                            /// #endif
+                            if (isMobile) {
+                                updateSearchResult(config, searchElement, true);
+                            }
+                            if (!isMobile) {
+                                inputEvent(searchElement, config, edit, true);
+                            }
                             window.siyuan.menus.menu.remove();
                         }
                         itemEvent.preventDefault();

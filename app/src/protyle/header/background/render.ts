@@ -1,3 +1,4 @@
+import { isMobile } from "../../../platform";
 import { escapeHtml } from "../../../util/escape";
 import { unicode2Emoji } from "../../../emoji";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
@@ -49,19 +50,21 @@ export const renderIcon = (background: Background, icon: string | undefined) => 
  */
 const renderTitleImg = (background: Background, titleImg: string | undefined) => {
     const imgBtn = background.actionElements[2];
-    if (titleImg) {
-        renderImg(background, titleImg);
-        imgBtn?.classList.add("fn__none");
-        background.imgElement?.parentElement?.classList.remove("fn__none");
-        background.iconElement.style.marginTop = "";
-        /// #if MOBILE
-        background.imgElement?.style.setProperty("height", "200px");
-        /// #endif
+    // 无题头图时显示"添加题头图"按钮
+    if (!titleImg) {
+        background.imgElement?.parentElement?.classList.add("fn__none");
+        imgBtn?.classList.remove("fn__none");
+        background.iconElement.style.marginTop = "8px";
         return;
     }
-    background.imgElement?.parentElement?.classList.add("fn__none");
-    imgBtn?.classList.remove("fn__none");
-    background.iconElement.style.marginTop = "8px";
+    renderImg(background, titleImg);
+    imgBtn?.classList.add("fn__none");
+    background.imgElement?.parentElement?.classList.remove("fn__none");
+    background.iconElement.style.marginTop = "";
+    // 移动端键盘弹起和点击加号需保持滚动高度一致
+    if (isMobile) {
+        background.imgElement?.style.setProperty("height", "200px");
+    }
 };
 
 /**

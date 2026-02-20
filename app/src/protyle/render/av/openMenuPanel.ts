@@ -23,10 +23,9 @@ import { Constants } from "../../../constants";
 import { hideElements } from "../../ui/hideElements";
 import { isLocalPath, pathPosix } from "../../../util/pathName";
 import { openEmojiPanel, unicode2Emoji } from "../../../emoji";
-import { getSearch, isMobile } from "../../../util/functions";
-/// #if !MOBILE
+import { getSearch } from "../../../util/functions";
+import { isMobile } from "../../../platform";
 import { openAsset } from "../../../editor/util.openAsset";
-/// #endif
 import { previewAttrViewImages } from "../../preview/image";
 import { assetMenu } from "../../../menus/protyleMenus/protyle.asset";
 import {
@@ -155,7 +154,7 @@ export const openMenuPanel = (options: {
 
         document.body.insertAdjacentHTML("beforeend", `<div class="av__panel" style="z-index: ${++window.siyuan.zIndex};">
     <div class="b3-dialog__scrim" data-type="close"></div>
-    <div class="b3-menu" ${["select", "date", "asset", "relation", "rollup"].includes(options.type) ? `style="min-width: 200px;${isMobile() ? "max-width: 90vw;" : "max-width: 50vw;"}"` : ""}>${html}</div>
+    <div class="b3-menu" ${["select", "date", "asset", "relation", "rollup"].includes(options.type) ? `style="min-width: 200px;${isMobile ? "max-width: 90vw;" : "max-width: 50vw;"}"` : ""}>${html}</div>
 </div>`);
         avPanelElement = document.querySelector(".av__panel");
         let closeCB: () => void;
@@ -1361,12 +1360,11 @@ export const openMenuPanel = (options: {
                 } else if (type === "openAssetItem") {
                     const assetType = target.parentElement.dataset.type;
                     const assetLink = target.parentElement.dataset.content;
-                    /// #if !MOBILE
                     const suffix = pathPosix().extname(assetLink);
                     if (assetType === "image") {
                         previewAttrViewImages(assetLink, avID, options.blockElement.getAttribute(Constants.CUSTOM_SY_AV_VIEW),
                             options.blockElement.querySelector('[data-type="av-search"]')?.textContent.trim() || "");
-                    } else if (isLocalPath(assetLink) && assetType === "file" && (
+                    } else if (!isMobile && isLocalPath(assetLink) && assetType === "file" && (
                         (suffix === ".pdf" && !assetLink.startsWith("file://")) ||
                         Constants.SIYUAN_ASSETS_AUDIO.concat(Constants.SIYUAN_ASSETS_VIDEO, Constants.SIYUAN_ASSETS_IMAGE).includes(suffix)
                     )) {
@@ -1374,14 +1372,6 @@ export const openMenuPanel = (options: {
                     } else {
                         window.open(assetLink);
                     }
-                    /// #else
-                    if (assetType === "image") {
-                        previewAttrViewImages(assetLink, avID, options.blockElement.getAttribute(Constants.CUSTOM_SY_AV_VIEW),
-                            options.blockElement.querySelector('[data-type="av-search"]')?.textContent.trim() || "");
-                    } else {
-                        window.open(assetLink);
-                    }
-                    /// #endif
                     event.preventDefault();
                     event.stopPropagation();
                     break;

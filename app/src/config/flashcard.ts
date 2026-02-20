@@ -1,5 +1,6 @@
 import {fetchPost} from "../util/fetch";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
+import { isMobile } from "../platform";
 
 export const flashcard = {
     element: undefined as Element,
@@ -56,7 +57,7 @@ export const flashcard = {
       <option value="2" ${window.siyuan.config.flashcard.reviewMode === 2 ? "selected" : ""}>${siyuanI18n.reviewMode2}</option>
     </select>    
 </div>`;
-        /// #if MOBILE
+        if (isMobile) {
         responsiveHTML = `${responsiveHTML}<div class="b3-label">
     ${siyuanI18n.flashcardNewCardLimit}
     <div class="fn__hr"></div>
@@ -87,7 +88,7 @@ export const flashcard = {
     <input class="b3-text-field fn__block" id="weights" value="${window.siyuan.config.flashcard.weights}"/>
     <div class="b3-label__text">${siyuanI18n.flashcardFSRSParamWeightsTip}</div>
 </div>`;
-        /// #else
+        } else {
         responsiveHTML = `${responsiveHTML}<div class="fn__flex b3-label">
     <div class="fn__flex-1">
         ${siyuanI18n.flashcardNewCardLimit}
@@ -128,7 +129,7 @@ export const flashcard = {
         <input class="b3-text-field fn__block" id="weights" value="${window.siyuan.config.flashcard.weights}"/>
     </div>
 </div>`;
-        /// #endif
+        }
         return responsiveHTML;
     },
     bindEvent: () => {

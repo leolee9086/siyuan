@@ -1,7 +1,6 @@
 import { Constants } from "../constants";
-/// #if !BROWSER
-import { ipcRenderer } from "electron";
-/// #endif
+import { ipcSend } from "../platform/electron/ipcRenderer";
+import { isElectron } from "../platform";
 import { processMessage } from "./processMessage";
 import { kernelError } from "../dialog/processSystem";
 import { isWebSocketData } from "./fetch.guard";
@@ -112,16 +111,14 @@ const handleFetchError = (url: string, data: TFetchRequestData | undefined, e: E
         kernelError();
         return;
     }
-    /// #if !BROWSER
     const dataErrorExit = data && !(data instanceof FormData) ? data.errorExit : undefined;
     const isExitCall = url === "/api/system/exit" || url === "/api/system/setWorkspaceDir" || (
         ["/api/system/setUILayout"].includes(url) && dataErrorExit
     );
     // 如果请求涉及系统退出或工作空间迁移，则通知 Electron 进程执行退出逻辑。
-    if (isExitCall) {
-        ipcRenderer.send(Constants.SIYUAN_QUIT, location.port);
+    if (isElectron && isExitCall) {
+        ipcSend(Constants.SIYUAN_QUIT, location.port);
     }
-    /// #endif
 };
 
 /**

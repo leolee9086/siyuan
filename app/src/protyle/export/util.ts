@@ -1,7 +1,4 @@
-/// #if !BROWSER
 import {escapeHtml} from "../../util/escape";
-import * as path from "path";
-/// #endif
 import {hideMessage, showMessage} from "../../dialog/message";
 import {fetchPost} from "../../util/fetch";
 import {Dialog} from "../../dialog";
@@ -13,9 +10,14 @@ import {processRender} from "../util/processCode";
 import {isIPhone, isSafari, openByMobile, setStorageVal} from "../util/compatibility";
 import {useShell} from "../../util/pathName";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { isElectron } from "../../platform";
 
 export const afterExport = (exportPath: string, msgId: string) => {
-    /// #if !BROWSER
+    // 仅 Electron 环境下显示导出成功消息和打开文件夹按钮
+    if (!isElectron) {
+        return;
+    }
+    const path = __non_webpack_require__("path");
     showMessage(`${siyuanI18n.exported} ${escapeHtml(exportPath)}
 <div class="fn__space"></div>
 <button class="b3-button b3-button--white">${siyuanI18n.showInFolder}</button>`, 6000, "info", msgId);
@@ -23,7 +25,6 @@ export const afterExport = (exportPath: string, msgId: string) => {
         useShell("showItemInFolder", path.join(exportPath));
         hideMessage(msgId);
     });
-    /// #endif
 };
 
 export const exportImage = (id: string) => {
@@ -63,9 +64,10 @@ export const exportImage = (id: string) => {
         const msgId = showMessage(siyuanI18n.exporting, 0);
         const containerElement = exportDialog.element.querySelector(".b3-dialog__container") as HTMLElement;
         containerElement.style.height = "";
-        /// #if MOBILE
-        containerElement.style.width = "100vw";
-        /// #endif
+        // 移动端导出图片时将容器宽度设为全屏以确保截图完整
+        if (isMobile()) {
+            containerElement.style.width = "100vw";
+        }
         const contentElement = exportDialog.element.querySelector(".b3-dialog__content") as HTMLElement;
         contentElement.style.overflow = "hidden";
         setStorageVal(Constants.LOCAL_EXPORTIMG, window.siyuan.storage[Constants.LOCAL_EXPORTIMG]);

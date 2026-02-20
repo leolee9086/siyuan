@@ -2,6 +2,7 @@ import * as dayjs from "dayjs";
 import { fetchPost } from "../../ai/imports";
 import { base64ToURL } from "../../util/image";
 import { Constants } from "../../constants";
+import { isElectron, isMobile } from "../../platform";
 import { renameAsset } from "../../editor/rename";
 import { emitOpenMenu } from "../../plugin/EventBus";
 import { hideElements } from "../../protyle/ui/hideElements";
@@ -88,11 +89,10 @@ export const imgMenu = (protyle: IProtyle, range: Range, assetElement: HTMLEleme
     const dataSrc = imgElement.getAttribute("data-src");
     if (dataSrc && dataSrc.startsWith("assets/")) {
         getSiyuanGlobalMenusMenu().append(genExportItem(dataSrc).element);
-        /// #if !BROWSER
-        if (["windows", "darwin"].includes(getSiyuanConfig().system.os)) {
+        // 仅 Electron 桌面端（Windows/macOS）支持复制资源文件到系统剪贴板
+        if (isElectron && ["windows", "darwin"].includes(getSiyuanConfig().system.os)) {
             getSiyuanGlobalMenusMenu().append(genCopyAssetItem(dataSrc).element);
         }
-        /// #endif
     }
 
     if (protyle?.app?.plugins) {
@@ -107,11 +107,14 @@ export const imgMenu = (protyle: IProtyle, range: Range, assetElement: HTMLEleme
         });
     }
 
-    /// #if MOBILE
-    getSiyuanGlobalMenusMenu().fullscreen();
-    /// #else
-    getSiyuanGlobalMenusMenu().popup({ x: position.clientX, y: position.clientY });
-    /// #endif
+    // 移动端使用全屏菜单
+    if (isMobile) {
+        getSiyuanGlobalMenusMenu().fullscreen();
+    }
+    // 非移动端使用弹出菜单
+    if (!isMobile) {
+        getSiyuanGlobalMenusMenu().popup({ x: position.clientX, y: position.clientY });
+    }
 
     const popoverElement = hasTopClosestByClassName(protyle.element, "block__popover", true);
     getSiyuanGlobalMenusMenu().element.setAttribute("data-from", popoverElement ? popoverElement.dataset.level + "popover" : "app");

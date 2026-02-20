@@ -4,14 +4,13 @@ import { isLocalPath, pathPosix } from "../../util/pathName";
 import { previewDocImage } from "./image";
 import { Constants } from "../../constants";
 import { getSearch, isMobile } from "../../util/functions";
-/// #if !BROWSER
-import { shell } from "electron";
-/// #endif
-/// #if !MOBILE
+import { isElectron } from "../../platform";
+import { openExternal } from "../../platform/electron/shell";
+import { openInNewWindow } from "../../util/siyuanEnvironments/window.environment";
+import { getSafeSiyuanMobile } from "../../util/siyuanEnvironments/mobile.environment";
 import { openBy } from "../../editor/utils.openBy";
 import { openAsset } from "../../editor/util.openAsset";
 import { getAllModels } from "../../layout/getAll";
-/// #endif
 import { fetchPost } from "../../util/fetch";
 import { processRender } from "../util/processCode";
 import { highlightRender } from "../render/highlightRender";
@@ -66,23 +65,26 @@ export class Preview {
                     event.stopPropagation();
                     event.preventDefault();
                     if (isLocalPath(linkAddress)) {
-                        /// #if !MOBILE
-                        if (isOnlyMeta(event)) {
-                            openBy(linkAddress, "folder");
-                        } else if (event.shiftKey) {
-                            openBy(linkAddress, "app");
-                        } else if (Constants.SIYUAN_ASSETS_EXTS.includes(pathPosix().extname((linkAddress).split("?")[0]))) {
-                            openAsset(protyle.app, linkAddress.split("?page")[0], parseInt(getSearch("page", linkAddress)));
+                        // 桌面端支持通过修饰键以不同方式打开本地路径
+                        if (!isMobile()) {
+                            if (isOnlyMeta(event)) {
+                                openBy(linkAddress, "folder");
+                            } else if (event.shiftKey) {
+                                openBy(linkAddress, "app");
+                            } else if (Constants.SIYUAN_ASSETS_EXTS.includes(pathPosix().extname((linkAddress).split("?")[0]))) {
+                                openAsset(protyle.app, linkAddress.split("?page")[0], parseInt(getSearch("page", linkAddress)));
+                            }
                         }
-                        /// #endif
                     } else {
-                        /// #if !BROWSER
-                        shell.openExternal(linkAddress).catch((e) => {
-                            showMessage(e);
-                        });
-                        /// #else
-                        window.open(linkAddress);
-                        /// #endif
+                        // 桌面端使用系统浏览器打开外部链接，浏览器端直接新窗口打开
+                        if (isElectron) {
+                            openExternal(linkAddress).catch((e) => {
+                                showMessage(e);
+                            });
+                        }
+                        if (!isElectron) {
+                            openInNewWindow(linkAddress);
+                        }
                     }
                     break;
                 } else if (target.tagName === "IMG") {
@@ -123,17 +125,19 @@ export class Preview {
                     item.classList.remove("selected");
                 });
                 nodeElement.classList.add("selected");
-                /// #if !MOBILE
-                if (protyle.model) {
-                    getAllModels().outline.forEach(item => {
+                // 桌面端通过 model 同步大纲高亮
+                if (!isMobile() && protyle.model) {
+                    for (const item of getAllModels().outline) {
+                        // 仅同步当前文档对应的大纲面板
                         if (item.blockId === protyle.block.rootID) {
                             item.setCurrentByPreview(nodeElement);
                         }
-                    });
+                    }
                 }
-                /// #else
-                window.siyuan.mobile?.docks?.outline?.setCurrentByPreview(nodeElement);
-                /// #endif
+                // 移动端通过全局 docks 同步大纲高亮
+                if (isMobile()) {
+                    getSafeSiyuanMobile()?.docks?.outline?.setCurrentByPreview(nodeElement);
+                }
             }
         });
 

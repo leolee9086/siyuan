@@ -1,7 +1,7 @@
 import { Menu } from "../../../plugin/Menu";
 import { transaction } from "../../wysiwyg/transaction";
 import { updateAttrViewCellAnimation } from "./action";
-import { isMobile } from "../../../util/functions";
+import { isBrowser, isMobile } from "../../../platform";
 import { Constants } from "../../../constants";
 import { uploadFiles } from "../../upload";
 import { pathPosix } from "../../../util/pathName";
@@ -242,7 +242,7 @@ export const editAssetItem = (options: {
         <svg><use xlink:href="#iconCopy"></use></svg>
     </span>   
 </div>
-<textarea rows="1" style="margin:4px 0;width: ${isMobile() ? "100%" : "360px"};resize: vertical;" class="b3-text-field"></textarea>
+<textarea rows="1" style="margin:4px 0;width: ${isMobile ? "100%" : "360px"};resize: vertical;" class="b3-text-field"></textarea>
 <div class="fn__hr"></div>
 <div class="fn__flex">
     <span class="fn__flex-center">${siyuanI18n.title}</span>
@@ -250,7 +250,7 @@ export const editAssetItem = (options: {
     <span data-action="copy" class="block__icon block__icon--show b3-tooltips b3-tooltips__e fn__flex-center" aria-label="${siyuanI18n.copy}">
         <svg><use xlink:href="#iconCopy"></use></svg>
     </span>   
-</div><textarea style="width: ${isMobile() ? "100%" : "360px"};margin: 4px 0;resize: vertical;" rows="1" class="b3-text-field"></textarea>`,
+</div><textarea style="width: ${isMobile ? "100%" : "360px"};margin: 4px 0;resize: vertical;" rows="1" class="b3-text-field"></textarea>`,
             bind(element) {
                 element.addEventListener("click", (event) => {
                     let target = event.target as HTMLElement;
@@ -285,7 +285,7 @@ export const editAssetItem = (options: {
     <span data-action="copy" class="block__icon block__icon--show b3-tooltips b3-tooltips__e fn__flex-center" aria-label="${siyuanI18n.copy}">
         <svg><use xlink:href="#iconCopy"></use></svg>
     </span>   
-</div><textarea rows="1" style="margin:4px 0;width: ${isMobile() ? "100%" : "360px"};resize: vertical;" class="b3-text-field"></textarea>`,
+</div><textarea rows="1" style="margin:4px 0;width: ${isMobile ? "100%" : "360px"};resize: vertical;" class="b3-text-field"></textarea>`,
             bind(element) {
                 element.addEventListener("click", (event) => {
                     let target = event.target as HTMLElement;
@@ -371,23 +371,22 @@ export const editAssetItem = (options: {
     }
     if (linkAddress?.startsWith("assets/")) {
         window.siyuan.menus.menu.append(new MenuItem(exportAsset(linkAddress)).element);
-        /// #if !BROWSER
-        if (["windows", "darwin"].includes(window.siyuan.config.system.os)) {
+        if (!isBrowser && ["windows", "darwin"].includes(window.siyuan.config.system.os)) {
             window.siyuan.menus.menu.append(new MenuItem(copyAsset(linkAddress)).element);
         }
-        /// #endif
     }
     const rect = options.rect;
-    /// #if MOBILE
-    menu.fullscreen();
-    /// #else
-    menu.open({
-        x: rect.right,
-        y: rect.top,
-        w: rect.width,
-        h: rect.height,
-    });
-    /// #endif
+    if (isMobile) {
+        menu.fullscreen();
+    }
+    if (!isMobile) {
+        menu.open({
+            x: rect.right,
+            y: rect.top,
+            w: rect.width,
+            h: rect.height,
+        });
+    }
     const textElements = menu.element.querySelectorAll("textarea");
     textElements[0].value = linkAddress;
     textElements[0].focus();
@@ -421,10 +420,10 @@ export const addAssetLink = (protyle: IProtyle, cellElements: HTMLElement[], tar
         iconHTML: "",
         type: "readonly",
         label: `${siyuanI18n.link}
-<textarea rows="1" style="margin:4px 0;width: ${isMobile() ? "200" : "360"}px;resize: vertical;" class="b3-text-field"></textarea>
+<textarea rows="1" style="margin:4px 0;width: ${isMobile ? "200" : "360"}px;resize: vertical;" class="b3-text-field"></textarea>
 <div class="fn__hr"></div>
 ${siyuanI18n.title}
-<textarea style="width: ${isMobile() ? "200" : "360"}px;margin: 4px 0;resize: vertical;" rows="1" class="b3-text-field"></textarea>`,
+<textarea style="width: ${isMobile ? "200" : "360"}px;margin: 4px 0;resize: vertical;" rows="1" class="b3-text-field"></textarea>`,
     });
     const rect = target.getBoundingClientRect();
     menu.open({

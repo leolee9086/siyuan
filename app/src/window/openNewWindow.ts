@@ -1,7 +1,6 @@
 import { layoutToJSON } from "../layout/util";
-/// #if !BROWSER
-import { ipcRenderer } from "electron";
-/// #endif
+import { ipcSend } from "../platform/electron/ipcRenderer";
+import { isElectron } from "../platform";
 import { Constants } from "../constants";
 import { Tab } from "../layout/Tab";
 import { fetchSyncPost } from "../util/fetch";
@@ -36,15 +35,16 @@ import type { WindowOptions, AssetTabConfig } from "./openNewWindow.types";
 export const openNewWindow = (tab: Tab, options: WindowOptions = {}) => {
     const json = {};
     layoutToJSON(tab, json);
-    /// #if !BROWSER
-    ipcRenderer.send(Constants.SIYUAN_OPEN_WINDOW, {
-        position: options.position,
-        width: options.width,
-        height: options.height,
-        // 需要 encode， 否则 https://github.com/siyuan-note/siyuan/issues/9343
-        url: `${getLocationProtocol()}//${getLocationHost()}/stage/build/app/window.html?v=${Constants.SIYUAN_VERSION}&json=${encodeURIComponent(JSON.stringify([json]))}`
-    });
-    /// #endif
+    // 仅桌面端支持通过IPC创建新窗口
+    if (isElectron) {
+        ipcSend(Constants.SIYUAN_OPEN_WINDOW, {
+            position: options.position,
+            width: options.width,
+            height: options.height,
+            // 需要 encode， 否则 https://github.com/siyuan-note/siyuan/issues/9343
+            url: `${getLocationProtocol()}//${getLocationHost()}/stage/build/app/window.html?v=${Constants.SIYUAN_VERSION}&json=${encodeURIComponent(JSON.stringify([json]))}`
+        });
+    }
     tab.parent.removeTab(tab.id);
 };
 
@@ -96,14 +96,15 @@ export const openNewWindowById = async (id: string | string[], options: WindowOp
             }
         });
     }
-    /// #if !BROWSER
-    ipcRenderer.send(Constants.SIYUAN_OPEN_WINDOW, {
-        position: options.position,
-        width: options.width,
-        height: options.height,
-        url: `${getLocationProtocol()}//${getLocationHost()}/stage/build/app/window.html?v=${Constants.SIYUAN_VERSION}&json=${encodeURIComponent(JSON.stringify(json))}`
-    });
-    /// #endif
+    // 仅桌面端支持通过IPC创建新窗口
+    if (isElectron) {
+        ipcSend(Constants.SIYUAN_OPEN_WINDOW, {
+            position: options.position,
+            width: options.width,
+            height: options.height,
+            url: `${getLocationProtocol()}//${getLocationHost()}/stage/build/app/window.html?v=${Constants.SIYUAN_VERSION}&json=${encodeURIComponent(JSON.stringify(json))}`
+        });
+    }
 };
 
 /**
@@ -148,7 +149,10 @@ const getAssetDocIcon = (suffix: string): string => {
  * @param options - 窗口配置选项，包括位置、宽度、高度等
  */
 export const openAssetNewWindow = (assetPath: string, options: WindowOptions = {}) => {
-    /// #if !BROWSER
+    // 仅桌面端支持通过IPC打开资源新窗口
+    if (!isElectron) {
+        return;
+    }
     const suffix = pathPosix().extname(assetPath).split("?")[0] ?? "";
     // 仅当文件扩展名属于思源支持的资源类型（图片、音视频、PDF）时才打开新窗口
     // 非支持类型的文件静默忽略，避免打开无法渲染的内容
@@ -167,12 +171,11 @@ export const openAssetNewWindow = (assetPath: string, options: WindowOptions = {
                 instance: "Asset",
             }
         }];
-        ipcRenderer.send(Constants.SIYUAN_OPEN_WINDOW, {
+        ipcSend(Constants.SIYUAN_OPEN_WINDOW, {
             position: options.position,
             width: options.width,
             height: options.height,
             url: `${getLocationProtocol()}//${getLocationHost()}/stage/build/app/window.html?v=${Constants.SIYUAN_VERSION}&json=${encodeURIComponent(JSON.stringify(json))}`
         });
     }
-    /// #endif
 };

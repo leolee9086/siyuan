@@ -47,6 +47,20 @@ export function 移除窗口事件监听<K extends keyof WindowEventMap>(
     window.removeEventListener(type, handler, options);
 }
 
+// ============ 导航封装 ============
+
+/**
+ * 在新窗口/标签页中打开指定 URL。
+ *
+ * 作用：封装 window.open，避免直接访问 window 全局对象
+ * 意图：替代散落在各处的 window.open 调用，统一管控
+ * 调用时机：浏览器环境下需要打开外部链接时
+ */
+/** @同步豁免: 需要绝对同步的DOM访问 - window.open 是同步 DOM API */
+export function openInNewWindow(url: string): void {
+    window.open(url);
+}
+
 // ============ 英文别名 (向外导出) ============
 
 export const addWindowEventListener = 添加窗口事件监听;

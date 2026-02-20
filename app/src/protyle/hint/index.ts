@@ -35,13 +35,11 @@ import {
 } from "../../emoji";
 import { blockRender } from "../render/blockRender";
 import { uploadFiles } from "../upload";
-/// #if !MOBILE
 import { openFileById } from "../../editor/utils.openFileById";
-/// #endif
 import { openMobileFileById } from "../../mobile/editor";
 import { processRender } from "../util/processCode";
 import { AIChat } from "../../ai/chat";
-import { isMobile } from "../../util/functions";
+import { isMobile } from "../../platform";
 import { isNotCtrl, isOnlyMeta } from "../util/compatibility";
 import { avRender } from "../render/av/render";
 import { genIconHTML } from "../render/util";
@@ -193,7 +191,7 @@ ${unicode2Emoji(emoji.unicode)}</button>`;
         // https://github.com/siyuan-note/siyuan/issues/5083
         if (this.splitChar === "/" || this.splitChar === "、") {
             clearTimeout(this.timeId);
-            if (this.enableSlash && !isMobile()) {
+            if (this.enableSlash && !isMobile) {
                 this.genHTML(hintSlash(key, protyle), protyle, false, "hint");
             }
             return;
@@ -216,20 +214,22 @@ ${unicode2Emoji(emoji.unicode)}</button>`;
             if (this.source === "av") {
                 const cellElement = hasClosestByClassName(protyle.toolbar.range.startContainer, "av__cell");
                 if (cellElement) {
-                    /// #if !MOBILE
-                    const cellRect = cellElement.getBoundingClientRect();
-                    setPosition(this.element, cellRect.left, cellRect.bottom, cellRect.height);
-                    /// #else
-                    setPosition(this.element, 0, 0);
-                    /// #endif
+                    if (!isMobile) {
+                        const cellRect = cellElement.getBoundingClientRect();
+                        setPosition(this.element, cellRect.left, cellRect.bottom, cellRect.height);
+                    }
+                    if (isMobile) {
+                        setPosition(this.element, 0, 0);
+                    }
                 }
             } else {
-                /// #if !MOBILE
-                const textareaPosition = getSelectionPosition(protyle.wysiwyg.element);
-                setPosition(this.element, textareaPosition.left, textareaPosition.top + 26, 30);
-                /// #else
-                setPosition(this.element, 0, 0);
-                /// #endif
+                if (!isMobile) {
+                    const textareaPosition = getSelectionPosition(protyle.wysiwyg.element);
+                    setPosition(this.element, textareaPosition.left, textareaPosition.top + 26, 30);
+                }
+                if (isMobile) {
+                    setPosition(this.element, 0, 0);
+                }
             }
         } else {
             this.element.insertAdjacentHTML("beforeend", '<div class="fn__loading"><img width="64px" src="/stage/loading-pure.svg"></div>');
@@ -295,19 +295,21 @@ ${unicode2Emoji(emoji.unicode)}</button>`;
             const cellElement = hasClosestByClassName(protyle.toolbar.range.startContainer, "av__cell");
             if (cellElement) {
                 const cellRect = cellElement.getBoundingClientRect();
-                /// #if !MOBILE
-                setPosition(this.element, cellRect.left, cellRect.bottom, cellRect.height);
-                /// #else
-                setPosition(this.element, 0, 0);
-                /// #endif
+                if (!isMobile) {
+                    setPosition(this.element, cellRect.left, cellRect.bottom, cellRect.height);
+                }
+                if (isMobile) {
+                    setPosition(this.element, 0, 0);
+                }
             }
         } else {
             const textareaPosition = getSelectionPosition(protyle.wysiwyg.element);
-            /// #if !MOBILE
-            setPosition(this.element, textareaPosition.left, textareaPosition.top + 26, 30);
-            /// #else
-            setPosition(this.element, 0, 0);
-            /// #endif
+            if (!isMobile) {
+                setPosition(this.element, textareaPosition.left, textareaPosition.top + 26, 30);
+            }
+            if (isMobile) {
+                setPosition(this.element, 0, 0);
+            }
         }
         this.element.scrollTop = 0;
         let currentHintElement = this.element.querySelector(".b3-list-item--focus") as HTMLElement;
@@ -647,7 +649,7 @@ ${genHintItemHTML(item)}
                 }
                 return;
             }
-            insertHTML(protyle.lute.SpinBlockDOM(value), protyle, false, isMobile());
+            insertHTML(protyle.lute.SpinBlockDOM(value), protyle, false, isMobile);
             blockRender(protyle, protyle.wysiwyg.element);
             return;
         } else if (this.splitChar === "/" || this.splitChar === "、") {
@@ -712,15 +714,16 @@ ${genHintItemHTML(item)}
                     md: ""
                 }, () => {
                     insertHTML(`<span data-type="block-ref" data-id="${newSubDocId}" data-subtype="d">${window.siyuan.languages.untitled}</span>`, protyle);
-                    /// #if MOBILE
-                    openMobileFileById(protyle.app, newSubDocId, [Constants.CB_GET_CONTEXT, Constants.CB_GET_OPENNEW]);
-                    /// #else
-                    openFileById({
-                        app: protyle.app,
-                        id: newSubDocId,
-                        action: [Constants.CB_GET_CONTEXT, Constants.CB_GET_OPENNEW]
-                    });
-                    /// #endif
+                    if (isMobile) {
+                        openMobileFileById(protyle.app, newSubDocId, [Constants.CB_GET_CONTEXT, Constants.CB_GET_OPENNEW]);
+                    }
+                    if (!isMobile) {
+                        openFileById({
+                            app: protyle.app,
+                            id: newSubDocId,
+                            action: [Constants.CB_GET_CONTEXT, Constants.CB_GET_OPENNEW]
+                        });
+                    }
                 });
                 return;
             } else if (value === Constants.ZWSP + 5) {

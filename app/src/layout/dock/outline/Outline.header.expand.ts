@@ -3,9 +3,8 @@ import { isHTMLElement } from "../../../util/DOM/element.guard";
 import { hasClosestBlock, hasClosestByClassName } from "../../../protyle/util/hasClosest";
 import { getSafeSiyuanStorage } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { setStorageVal } from "../../../protyle/util/compatibility";
-/// #if !MOBILE
 import { getAllModels } from "../../getAll";
-/// #endif
+import { isMobile } from "../../../platform";
 import { Editor } from "../../../editor";
 import type { Outline } from "./Outline";
 
@@ -61,13 +60,13 @@ export function handleKeepCurrentExpandClick(outline: Outline, event: MouseEvent
  */
 function handleKeepCurrentExpandFocus(outline: Outline) {
     let focusElement: HTMLElement | undefined;
-    /// #if !MOBILE
-    getAllModels().editor.find(editItem => {
-        return findFocusBlockInEditor(outline, editItem, (found) => {
-            focusElement = found;
+    if (!isMobile) {
+        getAllModels().editor.find(editItem => {
+            return findFocusBlockInEditor(outline, editItem, (found) => {
+                focusElement = found;
+            });
         });
-    });
-    /// #endif
+    }
     if (focusElement) {
         outline.setCurrent(focusElement);
     }

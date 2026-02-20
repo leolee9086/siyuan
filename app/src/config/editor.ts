@@ -1,7 +1,6 @@
 import { getAllModels } from "../layout/getAll";
-/// #if !BROWSER
-import { ipcRenderer } from "electron";
-/// #endif
+import { isElectron } from "../platform";
+import { ipcInvoke, ipcSend } from "../platform/electron/ipcRenderer";
 import { setInlineStyle } from "../util/assets";
 import { fetchPost } from "../util/fetch";
 import { confirmDialog } from "../dialog/confirmDialog";
@@ -16,12 +15,10 @@ import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment"
 export const editor = {
     element: undefined as Element,
     genHTML: () => {
-        let spellcheckTip = "";
-        /// #if !BROWSER
-        spellcheckTip = siyuanI18n.spellcheckTip2;
-        /// #else
-        spellcheckTip = siyuanI18n.spellcheckTip;
-        /// #endif
+        let spellcheckTip = siyuanI18n.spellcheckTip;
+        if (isElectron) {
+            spellcheckTip = siyuanI18n.spellcheckTip2;
+        }
         return `<label class="fn__flex b3-label">
     <div class="fn__flex-1">
         ${siyuanI18n.fullWidth}
@@ -396,31 +393,32 @@ export const editor = {
 </label>`;
     },
     bindEvent: async () => {
-        /// #if !BROWSER
-        const languages: string[] = await ipcRenderer.invoke(Constants.SIYUAN_GET, {
-            cmd: "availableSpellCheckerLanguages",
-        });
-        let spellcheckLanguagesHTML = "";
-        languages.forEach(item => {
-            spellcheckLanguagesHTML += `<div class="fn__pointer b3-chip b3-chip--middle${window.siyuan.config.editor.spellcheckLanguages.includes(item) ? " b3-chip--current" : ""}">${item}</div>`;
-        });
-        const spellcheckLanguagesElement = editor.element.querySelector("#spellcheckLanguages");
-        spellcheckLanguagesElement.innerHTML = spellcheckLanguagesHTML;
-        spellcheckLanguagesElement.addEventListener("click", (event) => {
-            const target = event.target as Element;
-            if (target.classList.contains("b3-chip")) {
-                target.classList.toggle("b3-chip--current");
-                ipcRenderer.send(Constants.SIYUAN_CMD, {
-                    cmd: "setSpellCheckerLanguages",
-                    languages: Array.from(spellcheckLanguagesElement.querySelectorAll(".b3-chip--current")).map(item => item.textContent)
-                });
-                setEditor();
+        let spellcheckLanguagesElement: Element | null = null;
+        if (isElectron) {
+            const languages: string[] = await ipcInvoke(Constants.SIYUAN_GET, {
+                cmd: "availableSpellCheckerLanguages",
+            });
+            let spellcheckLanguagesHTML = "";
+            languages.forEach(item => {
+                spellcheckLanguagesHTML += `<div class="fn__pointer b3-chip b3-chip--middle${window.siyuan.config.editor.spellcheckLanguages.includes(item) ? " b3-chip--current" : ""}">${item}</div>`;
+            });
+            spellcheckLanguagesElement = editor.element.querySelector("#spellcheckLanguages");
+            spellcheckLanguagesElement.innerHTML = spellcheckLanguagesHTML;
+            spellcheckLanguagesElement.addEventListener("click", (event) => {
+                const target = event.target as Element;
+                if (target.classList.contains("b3-chip")) {
+                    target.classList.toggle("b3-chip--current");
+                    ipcSend(Constants.SIYUAN_CMD, {
+                        cmd: "setSpellCheckerLanguages",
+                        languages: Array.from(spellcheckLanguagesElement.querySelectorAll(".b3-chip--current")).map(item => item.textContent)
+                    });
+                    setEditor();
+                }
+            });
+            if (window.siyuan.config.editor.spellcheck) {
+                spellcheckLanguagesElement.classList.remove("fn__none");
             }
-        });
-        if (window.siyuan.config.editor.spellcheck) {
-            spellcheckLanguagesElement.classList.remove("fn__none");
         }
-        /// #endif
 
         const fontFamilyElement = editor.element.querySelector("#fontFamily") as HTMLSelectElement;
         fontFamilyElement.addEventListener("click", () => {
@@ -475,6 +473,10 @@ export const editor = {
                 (editor.element.querySelector("#dynamicLoadBlocks") as HTMLInputElement).value = "48";
             }
 
+            let spellcheckLanguagesValue = window.siyuan.config.editor.spellcheckLanguages;
+            if (isElectron && spellcheckLanguagesElement) {
+                spellcheckLanguagesValue = Array.from(spellcheckLanguagesElement.querySelectorAll(".b3-chip--current")).map(item => item.textContent);
+            }
             fetchPost("/api/setting/setEditor", {
                 fullWidth: (editor.element.querySelector("#fullWidth") as HTMLInputElement).checked,
                 markdown: {
@@ -500,12 +502,7 @@ export const editor = {
                 listLogicalOutdent: (editor.element.querySelector("#listLogicalOutdent") as HTMLInputElement).checked,
                 listItemDotNumberClickFocus: (editor.element.querySelector("#listItemDotNumberClickFocus") as HTMLInputElement).checked,
                 spellcheck: (editor.element.querySelector("#spellcheck") as HTMLInputElement).checked,
-                /// #if !BROWSER
-                spellcheckLanguages: Array.from(spellcheckLanguagesElement.querySelectorAll(".b3-chip--current")).map(item => item.textContent),
-                /// #else
-                // @ts-ignore
-                spellcheckLanguages: window.siyuan.config.editor.spellcheckLanguages,
-                /// #endif
+                spellcheckLanguages: spellcheckLanguagesValue,
                 onlySearchForDoc: (editor.element.querySelector("#onlySearchForDoc") as HTMLInputElement).checked,
                 floatWindowMode: parseInt((editor.element.querySelector("#floatWindowMode") as HTMLSelectElement).value),
                 plantUMLServePath: (editor.element.querySelector("#plantUMLServePath") as HTMLInputElement).value,
@@ -534,11 +531,9 @@ export const editor = {
         editor.element.querySelectorAll("input.b3-switch, select.b3-select, input.b3-slider").forEach((item) => {
             item.addEventListener("change", () => {
                 setEditor();
-                /// #if !BROWSER
-                if (item.id === "spellcheck") {
+                if (isElectron && spellcheckLanguagesElement && item.id === "spellcheck") {
                     spellcheckLanguagesElement.classList.toggle("fn__none");
                 }
-                /// #endif
             });
         });
         editor.element.querySelectorAll("textarea.b3-text-field, input.b3-text-field, input.b3-slider").forEach((item) => {

@@ -19,6 +19,7 @@ import { filterAIMenuItems } from "./actions.filterAIMenuItems";
 import { generateBuildingMenuHTML } from "./actions.generateBuildingMenuHTML";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanStorage, getSiyuanMenus } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { isMobile } from "../platform";
 
 /**
  * 生成单个AI菜单项的HTML
@@ -213,12 +214,12 @@ const handleClick = (
  * @param element 菜单元素
  */
 const setupMobileStyles = (element: HTMLElement) => {
-    /// #if MOBILE
-    element.setAttribute("style", "height: 100%;padding: 0 16px;");
-    element.querySelectorAll(".b3-menu__separator").forEach(item => {
-        item.remove();
-    });
-    /// #endif
+    if (isMobile) {
+        element.setAttribute("style", "height: 100%;padding: 0 16px;");
+        element.querySelectorAll(".b3-menu__separator").forEach(item => {
+            item.remove();
+        });
+    }
 };
 
 /**
@@ -315,9 +316,10 @@ export const openAIActionsMenu = (elements: Element[], protyle: IProtyle) => {
 
     const menuItemsElement = menu.element.querySelector(".b3-menu__items");
     menuItemsElement?.setAttribute("style", "overflow: initial");
-    /// #if MOBILE
-    menu.fullscreen();
-    /// #else
+    if (isMobile) {
+        menu.fullscreen();
+        return;
+    }
     const traget = elements[elements.length - 1];
     if (!traget) {
         throw new Error("目标元素不是有效的HTMLElement");
@@ -330,5 +332,4 @@ export const openAIActionsMenu = (elements: Element[], protyle: IProtyle) => {
     });
     const menuInputElement = menu.element.querySelector("input");
     menuInputElement?.focus();
-    /// #endif
 };

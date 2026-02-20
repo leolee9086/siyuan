@@ -1,8 +1,7 @@
 import { openLink } from "../../editor/openLink";
-/// #if !BROWSER
 import { openBy } from "../../editor/utils.openBy";
 import { openFileById } from "../../editor/utils.openFileById";
-///#endif
+import { isElectron } from "../../platform";
 
 import { checkFold } from "../../util/noRelyPCFunction";
 import { isLocalPath } from "../../util/pathName";
@@ -66,7 +65,9 @@ export const openLocalMiddleWare = (
     range: Range,
     controller: AbortController
 ) => {
-    /// #if !BROWSER
+    if (!isElectron) {
+        return;
+    }
     if (matchHotKey(getSiyuanConfig().keymap.editor.general.showInFolder.custom, event)) {
         const aElement = hasClosestByAttribute(range.startContainer, "data-type", "a");
         if (aElement) {
@@ -80,7 +81,6 @@ export const openLocalMiddleWare = (
         }
         return;
     }
-    /// #endif
 };
 
 

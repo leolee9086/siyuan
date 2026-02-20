@@ -7,6 +7,7 @@ import { hasClosestBlock, hasClosestByAttribute } from "../util/hasClosest";
 import { updateBatchTransaction } from "../wysiwyg/transaction";
 import { lineNumberRender } from "../render/highlightRender";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { isMobile } from "../../platform";
 
 export class Font extends ToolbarItem {
     public declare element: HTMLElement;
@@ -23,10 +24,10 @@ export class Font extends ToolbarItem {
             protyle.toolbar.subElement.classList.remove("fn__none");
             protyle.toolbar.subElementCloseCB = undefined;
             focusByRange(protyle.toolbar.range);
-            /// #if !MOBILE
-            const position = getSelectionPosition(protyle.wysiwyg.element, protyle.toolbar.range);
-            setPosition(protyle.toolbar.subElement, position.left, position.top + 18, 26);
-            /// #endif
+            if (!isMobile) {
+                const position = getSelectionPosition(protyle.wysiwyg.element, protyle.toolbar.range);
+                setPosition(protyle.toolbar.subElement, position.left, position.top + 18, 26);
+            }
         });
     }
 }

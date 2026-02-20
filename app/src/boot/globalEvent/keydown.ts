@@ -1,4 +1,4 @@
-import {
+pollyimport {
     isMac,
     isNotCtrl,
     updateHotkeyTip
@@ -23,10 +23,9 @@ import { Dialog } from "../../dialog";
 import { unicode2Emoji } from "../../emoji";
 import { escapeHtml } from "../../util/escape";
 import { syncGuide } from "../../sync/syncGuide";
-/// #if !BROWSER
 import { setZoom } from "../../layout/topBar";
-import { ipcRenderer } from "electron";
-/// #endif
+import { isElectron } from "../../platform";
+import { ipcSend } from "../../platform/electron/ipcRenderer";
 import { openHistory } from "../../history/history";
 import { openCard } from "../../card/openCard";
 import { lockScreen } from "../../dialog/processSystem";
@@ -193,23 +192,22 @@ export const windowKeyDown = (app: App, event: KeyboardEvent) => {
     }
 
     const target = event.target as HTMLElement;
-    /// #if !BROWSER
-    if (matchHotKey("⌘=", event) && !hasClosestByClassName(target, "pdf__outer")) {
+    // Electron 桌面端缩放快捷键：Ctrl+= 放大，Ctrl+0 恢复，Ctrl+- 缩小（PDF 内不拦截加减号）
+    if (isElectron && matchHotKey("⌘=", event) && !hasClosestByClassName(target, "pdf__outer")) {
         setZoom("zoomIn");
         event.preventDefault();
         return;
     }
-    if (matchHotKey("⌘0", event)) {
+    if (isElectron && matchHotKey("⌘0", event)) {
         setZoom("restore");
         event.preventDefault();
         return;
     }
-    if (matchHotKey("⌘-", event) && !hasClosestByClassName(target, "pdf__outer")) {
+    if (isElectron && matchHotKey("⌘-", event) && !hasClosestByClassName(target, "pdf__outer")) {
         setZoom("zoomOut");
         event.preventDefault();
         return;
     }
-    /// #endif
 
     if (!isTabWindow && matchHotKey(window.siyuan.config.keymap.general.syncNow.custom, event)) {
         event.preventDefault();
@@ -620,7 +618,9 @@ export const windowKeyDown = (app: App, event: KeyboardEvent) => {
 };
 
 export const sendGlobalShortcut = (app: App) => {
-    /// #if !BROWSER
+    if (!isElectron) {
+        return;
+    }
     const hotkeys = [window.siyuan.config.keymap.general.toggleWin.custom];
     app.plugins.forEach(plugin => {
         plugin.commands.forEach(command => {
@@ -629,31 +629,31 @@ export const sendGlobalShortcut = (app: App) => {
             }
         });
     });
-    ipcRenderer.send(Constants.SIYUAN_HOTKEY, {
+    ipcSend(Constants.SIYUAN_HOTKEY, {
         //不能够使用siyuanI18n，因为它是一个代理对象，无法被序列化传递
         //凡是涉及到ipc通信的地方都不能使用代理对象
         languages: window.siyuan.languages["_trayMenu"],
         hotkeys
     });
-    /// #endif
 };
 
 
 export const sendUnregisterGlobalShortcut = (app: App) => {
-    /// #if !BROWSER
-    ipcRenderer.send(Constants.SIYUAN_CMD, {
+    if (!isElectron) {
+        return;
+    }
+    ipcSend(Constants.SIYUAN_CMD, {
         cmd: "unregisterGlobalShortcut",
         accelerator: window.siyuan.config.keymap.general.toggleWin.custom
     });
     app.plugins.forEach(plugin => {
         plugin.commands.forEach(command => {
             if (command.globalCallback) {
-                ipcRenderer.send(Constants.SIYUAN_CMD, {
+                ipcSend(Constants.SIYUAN_CMD, {
                     cmd: "unregisterGlobalShortcut",
                     accelerator: command.customHotkey
                 });
             }
         });
     });
-    /// #endif
 };

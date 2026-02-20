@@ -13,6 +13,7 @@ import { openMobileFileById } from "../mobile/editor";
 import { mathRender } from "../protyle/render/mathRender";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { isMobile } from "../platform";
 export const cancelSB = async (protyle: IProtyle, nodeElement: Element, range?: Range) => {
     const doOperations: IOperation[] = [];
     const undoOperations: IOperation[] = [];
@@ -113,15 +114,17 @@ export const jumpToParent = (protyle: IProtyle, nodeElement: Element, type: "par
         if (!targetId) {
             return;
         }
-        /// #if !MOBILE
+        const action = targetId !== protyle.block.rootID && protyle.block.showAll ? [Constants.CB_GET_ALL, Constants.CB_GET_FOCUS] : [Constants.CB_GET_FOCUS];
+        // 移动端使用专用的文件打开函数
+        if (isMobile) {
+            openMobileFileById(protyle.app, targetId, action);
+            return;
+        }
         openFileById({
             app: protyle.app,
             id: targetId,
-            action: targetId !== protyle.block.rootID && protyle.block.showAll ? [Constants.CB_GET_ALL, Constants.CB_GET_FOCUS] : [Constants.CB_GET_FOCUS]
+            action,
         });
-        /// #else
-        openMobileFileById(protyle.app, targetId, targetId !== protyle.block.rootID && protyle.block.showAll ? [Constants.CB_GET_ALL, Constants.CB_GET_FOCUS] : [Constants.CB_GET_FOCUS]);
-        /// #endif
     };
     fetchPost("/api/block/getBlockSiblingID", { id: nodeElement.getAttribute("data-node-id") }, handleResponse);
 };

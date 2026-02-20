@@ -2,10 +2,9 @@ import { App } from "../../index";
 import { Constants } from "../../constants";
 import { Model } from "../../layout/Model";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-/// #if !MOBILE
 import { openFile } from "../../editor/util";
 import { openFileById } from "../../editor/utils.openFileById";
-/// #endif
+import { isMobile } from "../../util/functions";
 
 interface IOpenTabDocOptions {
     id: string;
@@ -142,11 +141,10 @@ const 处理闪卡打开 = (options: IOpenTabOptions) => {
 
 /** 打开Tab页签的主函数 */
 export const openTab = (options: IOpenTabOptions) => {
-    /// #if MOBILE
-    return;
-    // TODO: Mobile
-
-    /// #else
+    // 移动端暂不支持Tab页签打开 TODO: Mobile
+    if (isMobile()) {
+        return;
+    }
     if (options.doc) {
         return 处理文档打开(options);
     }
@@ -165,5 +163,4 @@ export const openTab = (options: IOpenTabOptions) => {
     if (options.custom) {
         return openFile(options);
     }
-    /// #endif
 };

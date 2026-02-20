@@ -1,10 +1,8 @@
 import { fetchPost } from "../util/fetch";
-/// #if !BROWSER
 import { afterExport } from "../protyle/export/util";
-import { ipcRenderer } from "electron";
-import * as path from "path";
 import {exportLayout} from "../layout/util";
-/// #endif
+import { isElectron, isMobile } from "../platform";
+import { ipcInvoke } from "../platform/electron/ipcRenderer";
 // S-forge: 统一i18n访问层
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { isBrowser } from "../util/functions";
@@ -294,14 +292,14 @@ export const exportConfig = {
                         }
 
                         showMessage(siyuanI18n.imported);
-                        /// #if MOBILE
-                        exitSiYuan();
-                        /// #else
+                        if (isMobile) {
+                            exitSiYuan();
+                            return;
+                        }
                         exportLayout({
                             errorExit: true,
                             cb: exitSiYuan
                         });
-                        /// #endif
                     });
                 });
             } else {
@@ -311,12 +309,13 @@ export const exportConfig = {
             }
         });
         exportConfig.element.querySelector("#exportData").addEventListener("click", async () => {
-            /// #if BROWSER
-            fetchPost("/api/export/exportData", {}, response => {
-                openByMobile(response.data.zip);
-            });
-            /// #else
-            const result = await ipcRenderer.invoke(Constants.SIYUAN_GET, {
+            if (!isElectron) {
+                fetchPost("/api/export/exportData", {}, response => {
+                    openByMobile(response.data.zip);
+                });
+                return;
+            }
+            const result = await ipcInvoke(Constants.SIYUAN_GET, {
                 cmd: "showOpenDialog",
                 title: siyuanI18n.export + " " + "Data",
                 properties: ["createDirectory", "openDirectory"],
@@ -324,39 +323,39 @@ export const exportConfig = {
             if (result.canceled || result.filePaths.length === 0) {
                 return;
             }
+            const nodePath = __non_webpack_require__("path");
             const msgId = showMessage(siyuanI18n.exporting, -1);
             fetchPost("/api/export/exportDataInFolder", {
                 folder: result.filePaths[0],
             }, response => {
-                afterExport(path.join(result.filePaths[0], response.data.name), msgId);
+                afterExport(nodePath.join(result.filePaths[0], response.data.name), msgId);
             });
-            /// #endif
         });
         exportConfig.element.querySelector("#exportConf").addEventListener("click", async () => {
             fetchPost("/api/system/exportConf", {}, response => {
                 openByMobile(response.data.zip);
             });
         });
-        /// #if !BROWSER
-        pandocBinPathElement.addEventListener("click", () => {
-            if (window.siyuan.config.export.pandocBin) {
-                useShell("showItemInFolder", window.siyuan.config.export.pandocBin);
-            }
-        });
-        const pandocBinElement = exportConfig.element.querySelector("#pandocBin") as HTMLInputElement;
-        pandocBinElement.addEventListener("click", async () => {
-            const localPath = await ipcRenderer.invoke(Constants.SIYUAN_GET, {
-                cmd: "showOpenDialog",
-                defaultPath: window.siyuan.config.system.homeDir,
-                properties: ["openFile", "showHiddenFiles"],
+        if (isElectron) {
+            pandocBinPathElement.addEventListener("click", () => {
+                if (window.siyuan.config.export.pandocBin) {
+                    useShell("showItemInFolder", window.siyuan.config.export.pandocBin);
+                }
             });
-            if (localPath.filePaths.length === 0) {
-                pandocBinElement.value = window.siyuan.config.export.pandocBin;
-                return;
-            }
-            setexprt(localPath.filePaths[0]);
-        });
-        /// #endif
+            const pandocBinElement = exportConfig.element.querySelector("#pandocBin") as HTMLInputElement;
+            pandocBinElement.addEventListener("click", async () => {
+                const localPath = await ipcInvoke(Constants.SIYUAN_GET, {
+                    cmd: "showOpenDialog",
+                    defaultPath: window.siyuan.config.system.homeDir,
+                    properties: ["openFile", "showHiddenFiles"],
+                });
+                if (localPath.filePaths.length === 0) {
+                    pandocBinElement.value = window.siyuan.config.export.pandocBin;
+                    return;
+                }
+                setexprt(localPath.filePaths[0]);
+            });
+        }
     },
     onSetexport: (data: Config.IExport) => {
         window.siyuan.config.export = data;

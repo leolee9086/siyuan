@@ -1,8 +1,7 @@
-/// #if !MOBILE
+import { isMobile } from "../../platform";
 import { Tab } from "../Tab";
 import { setPanelFocus } from "../utils/setPanelFocus";
 import { getDockByType } from "../tabUtil";
-/// #endif
 import { fetchPost, fetchSyncPost } from "../../util/fetch";
 import { updateHotkeyAfterTip } from "../../protyle/util/compatibility";
 import { Model } from "../Model";
@@ -32,7 +31,7 @@ export class Inbox extends Model {
         } else {
             this.element = tab.panelElement;
         }
-        /// #if MOBILE
+        if (isMobile) {
         this.element.innerHTML = `<div class="toolbar toolbar--border toolbar--dark">
     <div class="fn__space"></div>
     <div class="toolbar__text">
@@ -52,7 +51,8 @@ export class Inbox extends Model {
 </div>
 <div class="fn__flex-1 fn__none inboxDetails fn__flex-column" style="min-height: auto;background-color: var(--b3-theme-background)"></div>
 <div class="fn__flex-1"></div>`;
-        /// #else
+        }
+        if (!isMobile) {
         this.element.classList.add("fn__flex-column", "file-tree", "sy__inbox", "dockPanel");
         this.element.innerHTML = `<div class="block__icons">
     <div class="block__logo">
@@ -76,7 +76,7 @@ export class Inbox extends Model {
 </div>
 <div class="fn__flex-1 fn__none inboxDetails fn__flex-column" style="min-height: auto;background-color: var(--b3-theme-background)"></div>
 <div class="fn__flex-1"></div>`;
-        /// #endif
+        }
         const countElement = this.element.querySelector(".inboxSelectCount");
         const detailsElement = this.element.querySelector(".inboxDetails");
         const selectAllElement = this.element.firstElementChild.querySelector('[data-type="selectall"]');
@@ -87,9 +87,9 @@ export class Inbox extends Model {
             }
         });
         this.element.addEventListener("click", (event: MouseEvent) => {
-            /// #if !MOBILE
-            setPanelFocus(this.element);
-            /// #endif
+            if (!isMobile) {
+                setPanelFocus(this.element);
+            }
             let target = event.target as HTMLElement;
             while (target && !target.isEqualNode(this.element)) {
                 if (target.tagName === "A") {
@@ -188,13 +188,13 @@ export class Inbox extends Model {
 
     private genDetail(data: IInbox) {
         let linkHTML = "";
-        /// #if MOBILE
-        if (data.shorthandURL) {
-            linkHTML = `<a href="${data.shorthandURL}" target="_blank">
+        if (isMobile) {
+            if (data.shorthandURL) {
+                linkHTML = `<a href="${data.shorthandURL}" target="_blank">
         <svg class="toolbar__icon" style="float: left"><use xlink:href="#iconLink"></use></svg>
     </a>`;
-        }
-        return `<div class="toolbar">
+            }
+            return `<div class="toolbar">
     <svg data-type="back" class="toolbar__icon"><use xlink:href="#iconLeft"></use></svg>
     <span data-type="back" class="toolbar__text fn__flex-1">${data.shorthandTitle}</span>
     ${linkHTML}
@@ -202,7 +202,7 @@ export class Inbox extends Model {
 <div class="b3-typography b3-typography--default" style="padding: 0 8px 8px">
 ${data.shorthandContent}
 </div>`;
-        /// #else
+        }
         if (data.shorthandURL) {
             linkHTML = `<span class="fn__space"></span><a href="${data.shorthandURL}" target="_blank" class="block__icon block__icon--show b3-tooltips b3-tooltips__w" aria-label="${window.siyuan.languages.link}">
         <svg><use xlink:href="#iconLink"></use></svg>
@@ -217,7 +217,6 @@ ${data.shorthandContent}
 <div class="b3-typography b3-typography--default" style="padding: 0 8px 8px;user-select: text" data-type="textMenu">
 ${data.shorthandContent}
 </div>`;
-        /// #endif
     }
 
     private genItemHTML(item: IInbox) {

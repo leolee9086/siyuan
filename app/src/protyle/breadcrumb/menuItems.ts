@@ -9,9 +9,8 @@ import { MenuItem } from "../../menus/Menu.Item";
 import { net2LocalAssets } from "./action";
 import { setEditMode } from "../util/setEditMode";
 import { needSubscribe } from "../../util/needSubscribe";
-/// #if !MOBILE
 import { saveLayout } from "../../layout/util";
-/// #endif
+import { isMobile } from "../../platform";
 import { onGet } from "../util/onGet";
 import { confirmDialog } from "../../dialog/confirmDialog";
 import { getCloudURL } from "../../config/util/about";
@@ -114,9 +113,9 @@ export function 添加编辑模式菜单项(
                 }, (response) => {
                     处理所见即所得响应(protyle, response);
                 });
-                /// #if !MOBILE
-                saveLayout();
-                /// #endif
+                if (!isMobile) {
+                    saveLayout();
+                }
             }
         }, {
             id: "preview",
@@ -127,9 +126,9 @@ export function 添加编辑模式菜单项(
             click: () => {
                 setEditMode(protyle, "preview");
                 getSiyuanMenus()?.menu.remove();
-                /// #if !MOBILE
-                saveLayout();
-                /// #endif
+                if (!isMobile) {
+                    saveLayout();
+                }
             }
         }]
     }).element);

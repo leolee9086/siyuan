@@ -14,14 +14,12 @@
  */
 
 import { Dialog } from "../dialog";
-import { isMobile } from "../util/functions";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { hintRenderAssets } from "../protyle/hint/extend";
 import { createVueDialog } from "../util/dialog/createVueDialog";
 import AssetMasonryDialog from "./components/AssetMasonryDialog.vue";
-/// #if !MOBILE
 import { getAllEditor } from "../layout/getAll";
-/// #endif
+import { isMobile } from "../platform";
 
 /** 全局对话框实例 */
 let dialogInstance: Dialog | null = null;
@@ -32,9 +30,9 @@ let dialogInstance: Dialog | null = null;
  * @description 遍历所有编辑器，找到包含焦点或光标的那个
  */
 const 获取活跃编辑器 = (): IProtyle | null => {
-    /// #if MOBILE
-    return window.siyuan.mobile?.editor?.protyle ?? null;
-    /// #else
+    if (isMobile) {
+        return window.siyuan.mobile?.editor?.protyle ?? null;
+    }
     const editors = getAllEditor();
 
     // 优先查找包含焦点的编辑器
@@ -67,7 +65,6 @@ const 获取活跃编辑器 = (): IProtyle | null => {
     }
 
     return null;
-    /// #endif
 };
 
 /**
@@ -115,7 +112,7 @@ export const openAssetDialog = (callback?: (url: string, name: string) => void) 
         }),
         dialogOptions: {
             title: siyuanI18n.insertAsset || "插入素材",
-            width: isMobile() ? "95vw" : "900px",
+            width: isMobile ? "95vw" : "900px",
             height: "75vh",
             disableScrimClose: true,
             closeButtonPosition: "inside",

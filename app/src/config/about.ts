@@ -1,7 +1,7 @@
 import { Constants } from "../constants";
-/// #if !BROWSER
-import { ipcRenderer, shell } from "electron";
-/// #endif
+import { isElectron } from "../platform";
+import { ipcSend, ipcInvoke } from "../platform/electron/ipcRenderer";
+import { openExternal } from "../platform/electron/shell";
 // S-forge: 统一i18n访问层
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { isBrowser } from "../util/functions";
@@ -343,15 +343,15 @@ ${checkUpdateHTML}
         about.element.querySelectorAll('[data-type="open"]').forEach(item => {
             item.addEventListener("click", () => {
                 const url = item.getAttribute("data-url");
-                /// #if !BROWSER
-                if (url.startsWith("http")) {
-                    shell.openExternal(url);
+                if (isElectron) {
+                    if (url.startsWith("http")) {
+                        openExternal(url);
+                    } else {
+                        useShell("openPath", url);
+                    }
                 } else {
-                    useShell("openPath", url);
+                    window.open(url);
                 }
-                /// #else
-                window.open(url);
-                /// #endif
             });
         });
 
@@ -513,19 +513,19 @@ ${checkUpdateHTML}
                 window.siyuan.config.system.downloadInstallPkg = downloadInstallPkgElement.checked;
             });
         });
-        /// #if !BROWSER
-        const autoLaunchElement = about.element.querySelector("#autoLaunch") as HTMLInputElement;
-        autoLaunchElement.addEventListener("change", () => {
-            const autoLaunchMode = parseInt(autoLaunchElement.value);
-            fetchPost("/api/system/setAutoLaunch", { autoLaunch: autoLaunchMode }, () => {
-                window.siyuan.config.system.autoLaunch2 = autoLaunchMode;
-                ipcRenderer.send(Constants.SIYUAN_AUTO_LAUNCH, {
-                    openAtLogin: 0 !== autoLaunchMode,
-                    openAsHidden: 2 === autoLaunchMode
+        if (isElectron) {
+            const autoLaunchElement = about.element.querySelector("#autoLaunch") as HTMLInputElement;
+            autoLaunchElement.addEventListener("change", () => {
+                const autoLaunchMode = parseInt(autoLaunchElement.value);
+                fetchPost("/api/system/setAutoLaunch", { autoLaunch: autoLaunchMode }, () => {
+                    window.siyuan.config.system.autoLaunch2 = autoLaunchMode;
+                    ipcSend(Constants.SIYUAN_AUTO_LAUNCH, {
+                        openAtLogin: 0 !== autoLaunchMode,
+                        openAsHidden: 2 === autoLaunchMode
+                    });
                 });
             });
-        });
-        /// #endif
+        }
         about.element.querySelector("#aboutConfirm").addEventListener("click", () => {
             const scheme = (about.element.querySelector("#aboutScheme") as HTMLInputElement).value as Config.TSystemNetworkProxyScheme;
             const host = (about.element.querySelector("#aboutHost") as HTMLInputElement).value;
@@ -534,19 +534,19 @@ ${checkUpdateHTML}
                 window.siyuan.config.system.networkProxy.scheme = scheme;
                 window.siyuan.config.system.networkProxy.host = host;
                 window.siyuan.config.system.networkProxy.port = port;
-                /// #if !BROWSER
-                ipcRenderer.invoke(Constants.SIYUAN_GET, {
-                    cmd: "setProxy",
-                    proxyURL: `${window.siyuan.config.system.networkProxy.scheme}://${window.siyuan.config.system.networkProxy.host}:${window.siyuan.config.system.networkProxy.port}`,
-                }).then(() => {
-                    exportLayout({
-                        errorExit: false,
-                        cb() {
-                            window.location.reload();
-                        },
+                if (isElectron) {
+                    ipcInvoke(Constants.SIYUAN_GET, {
+                        cmd: "setProxy",
+                        proxyURL: `${window.siyuan.config.system.networkProxy.scheme}://${window.siyuan.config.system.networkProxy.host}:${window.siyuan.config.system.networkProxy.port}`,
+                    }).then(() => {
+                        exportLayout({
+                            errorExit: false,
+                            cb() {
+                                window.location.reload();
+                            },
+                        });
                     });
-                });
-                /// #endif
+                }
             });
         });
     }

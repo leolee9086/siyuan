@@ -1,10 +1,11 @@
 import { fetchPost } from "../util/fetch";
 import { useShell } from "../util/pathName";
-
-
+import { isElectron } from "../platform";
 
 export const openBy = (url: string, type: "folder" | "app") => {
-    /// #if !BROWSER
+    if (!isElectron) {
+        return;
+    }
     if (url.startsWith("assets/")) {
         fetchPost("/api/asset/resolveAssetPath", {path: url.replace(/\.pdf\?page=\d{1,}$/, ".pdf")}, (response) => {
             if (type === "app") {
@@ -36,6 +37,5 @@ export const openBy = (url: string, type: "folder" | "app") => {
         }
         useShell("showItemInFolder", address);
     }
-    /// #endif
 };
 

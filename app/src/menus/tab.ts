@@ -3,9 +3,8 @@ import { MenuItem } from "./Menu.Item";
 import { Editor } from "../editor";
 import { copyTab, resizeTabs } from "../layout/tabUtil";
 import { closeTabByType } from "../layout/utils/closeTabByType";
-/// #if !BROWSER
 import { openNewWindow } from "../window/openNewWindow";
-/// #endif
+import { isElectron } from "../platform";
 import { copySubMenu } from "./commonMenuItem";
 import { App } from "../index";
 import { Layout } from "../layout";
@@ -241,17 +240,17 @@ export const initTabMenu = (app: App, tab: Tab) => {
             }
         }).element);
     }
-    /// #if !BROWSER
-    window.siyuan.menus.menu.append(new MenuItem({
-        id: "tabToWindow",
-        label: siyuanI18n.tabToWindow,
-        accelerator: window.siyuan.config.keymap.general.tabToWindow.custom,
-        icon: "iconOpenWindow",
-        click: () => {
-            openNewWindow(tab);
-        }
-    }).element);
-    /// #endif
+    if (isElectron) {
+        window.siyuan.menus.menu.append(new MenuItem({
+            id: "tabToWindow",
+            label: siyuanI18n.tabToWindow,
+            accelerator: window.siyuan.config.keymap.general.tabToWindow.custom,
+            icon: "iconOpenWindow",
+            click: () => {
+                openNewWindow(tab);
+            }
+        }).element);
+    }
     return window.siyuan.menus.menu;
 };
 

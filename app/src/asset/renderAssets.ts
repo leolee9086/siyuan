@@ -1,7 +1,6 @@
 import { Constants } from "../constants";
-/// #if !MOBILE
 import { getAllModels } from "../layout/getAll";
-/// #endif
+import { isMobile } from "../platform";
 import { pathPosix } from "../util/pathName";
 import * as dayjs from "dayjs";
 
@@ -303,7 +302,9 @@ const escapeHtml = (text: string): string => {
  *   - https://github.com/siyuan-note/siyuan/issues/6890
  */
 export const pdfResize = () => {
-    /// #if !MOBILE
+    if (isMobile) {
+        return;
+    }
     for (const item of getAllModels().asset) {
         const pdfInstance = item.pdfObject;
         if (!pdfInstance) {
@@ -335,7 +336,6 @@ export const pdfResize = () => {
         }
         pdfViewer.update();
     }
-    /// #endif
 };
 
 /**

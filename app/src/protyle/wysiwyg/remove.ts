@@ -226,8 +226,7 @@ export const removeBlock = async (protyle: IProtyle, blockElement: Element, rang
         }
 
         hideElements(["util"], protyle);
-        /// #if !MOBILE
-        if (!sideElement) {
+        if (!isMobile() && !sideElement) {
             const backlinkElement = hasClosestByClassName(protyle.element, "sy__backlink", true);
             if (backlinkElement) {
                 const backLinkTab = getInstanceById(backlinkElement.getAttribute("data-id"), window.siyuan.layout.layout);
@@ -245,7 +244,6 @@ export const removeBlock = async (protyle: IProtyle, blockElement: Element, rang
                 }
             }
         }
-        /// #endif
         // https://github.com/siyuan-note/siyuan/issues/16767
         setTimeout(() => {
             if (!document.contains(protyle.element)) {

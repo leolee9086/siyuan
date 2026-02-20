@@ -5,9 +5,7 @@
 import { MenuItem } from "../../../menus/Menu.Item";
 
 import { fetchPost } from "../../../util/fetch";
-/// #if !MOBILE
 import { getAllModels } from "../../getAll";
-/// #endif
 import { transaction, turnsIntoTransaction } from "../../../protyle/wysiwyg/transaction";
 import { focusByWbr } from "../../../protyle/util/selection";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";

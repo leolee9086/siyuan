@@ -5,7 +5,7 @@ import { Menu } from "../../plugin/Menu";
 import { MenuItem } from "../Menu.Item";
 import { hintRenderAssets } from "../../protyle/hint/extend";
 import { hasClosestByClassName } from "../../protyle/util/hasClosest";
-import { isMobile } from "../../util/functions";
+import { isMobile } from "../../platform";
 import { upDownHint } from "../../util/upDownHint";
 import { fetchPost } from "../../ai/imports";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
@@ -91,11 +91,13 @@ const 更新预览区域 = (previewElement: Element | null, data: assetItem[]) =
 
 /** 弹出菜单 */
 const 弹出菜单 = (position: IPosition) => {
-    /// #if MOBILE
-    getSiyuanGlobalMenus().menu.fullscreen();
-    /// #else
+    // 移动端使用全屏菜单
+    if (isMobile) {
+        getSiyuanGlobalMenus().menu.fullscreen();
+        return;
+    }
+    // 非移动端使用弹出菜单
     getSiyuanGlobalMenus().menu.popup(position);
-    /// #endif
 };
 
 /** 处理搜索资源的响应 */
@@ -403,7 +405,7 @@ const 显示颜色过滤菜单 = (btn: Element) => {
 /** 判断预览区域是否应该隐藏 */
 const 应该隐藏预览区域 = () => {
     const outerWidth = getWindowOuterWidth();
-    return isMobile() || outerWidth < outerWidth / 2 + 260;
+    return isMobile || outerWidth < outerWidth / 2 + 260;
 };
 
 /** 绑定菜单元素事件 */
@@ -470,8 +472,8 @@ const 绑定菜单元素事件 = (
 
 /** 生成菜单 HTML 模板，包含 Type/Size/Rating/Color 过滤按钮 */
 const 生成菜单HTML模板 = () => {
-    const maxHeight = isMobile() ? "80" : "50";
-    const columnStyle = isMobile() ? "width:100%" : "min-width: 280px;max-width:420px";
+    const maxHeight = isMobile ? "80" : "50";
+    const columnStyle = isMobile ? "width:100%" : "min-width: 280px;max-width:420px";
     const previewDisplay = 应该隐藏预览区域() ? "none" : "flex";
 
     return `<div class="fn__flex" style="max-height: ${maxHeight}vh">
@@ -517,21 +519,21 @@ export const assetMenu = (
     callback?: (url: string, name: string) => void,
     exts?: string[]
 ) => {
-    /// #if MOBILE
     // 移动端保持原有 Menu 实现
-    const menu = getSiyuanGlobalMenus().menu;
-    menu.remove();
-    menu.append(new MenuItem({
-        iconHTML: "",
-        type: "readonly",
-        label: 生成菜单HTML模板(),
-        bind(element) {
-            绑定菜单元素事件(element, position, protyle, callback, exts);
-        }
-    }).element);
-    menu.popup(position);
-    /// #else
+    if (isMobile) {
+        const menu = getSiyuanGlobalMenus().menu;
+        menu.remove();
+        menu.append(new MenuItem({
+            iconHTML: "",
+            type: "readonly",
+            label: 生成菜单HTML模板(),
+            bind(element) {
+                绑定菜单元素事件(element, position, protyle, callback, exts);
+            }
+        }).element);
+        menu.popup(position);
+        return;
+    }
     // 桌面端使用全局单例 Dialog
     openAssetDialog(callback);
-    /// #endif
 };

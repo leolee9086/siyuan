@@ -5,11 +5,10 @@ import {fetchPost} from "../util/fetch";
 import {exportLayout} from "../layout/util";
 import {confirmDialog} from "../dialog/confirmDialog";
 import {App} from "../index";
-/// #if !BROWSER
-import {ipcRenderer} from "electron";
 import {sendUnregisterGlobalShortcut} from "../boot/globalEvent/keydown";
-/// #endif
 import {sendGlobalShortcut} from "../boot/globalEvent/keydown";
+import {isElectron} from "../platform";
+import {ipcSend} from "../platform/electron/ipcRenderer";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const keymap = {
@@ -224,14 +223,12 @@ export const keymap = {
                     if (plugin.name === keys[1]) {
                         plugin.commands.forEach(command => {
                             if (command.langKey === keys[2]) {
-                                /// #if !BROWSER
-                                if (command.globalCallback && command.customHotkey && command.customHotkey !== newHotkey) {
-                                    ipcRenderer.send(Constants.SIYUAN_CMD, {
+                                if (isElectron && command.globalCallback && command.customHotkey && command.customHotkey !== newHotkey) {
+                                    ipcSend(Constants.SIYUAN_CMD, {
                                         cmd: "unregisterGlobalShortcut",
                                         accelerator: command.customHotkey
                                     });
                                 }
-                                /// #endif
                                 command.customHotkey = newHotkey;
                             }
                         });
@@ -247,19 +244,19 @@ export const keymap = {
         fetchPost("/api/setting/setKeymap", {
             data
         }, () => {
-            /// #if !BROWSER
-            ipcRenderer.send(Constants.SIYUAN_CMD, {
-                cmd: "writeLog",
-                msg: "user update keymap:" + JSON.stringify(window.siyuan.config.keymap)
-            });
-            if (oldToggleWin !== window.siyuan.config.keymap.general.toggleWin.custom) {
-                ipcRenderer.send(Constants.SIYUAN_CMD, {
-                    cmd: "unregisterGlobalShortcut",
-                    accelerator: oldToggleWin
+            if (isElectron) {
+                ipcSend(Constants.SIYUAN_CMD, {
+                    cmd: "writeLog",
+                    msg: "user update keymap:" + JSON.stringify(window.siyuan.config.keymap)
                 });
+                if (oldToggleWin !== window.siyuan.config.keymap.general.toggleWin.custom) {
+                    ipcSend(Constants.SIYUAN_CMD, {
+                        cmd: "unregisterGlobalShortcut",
+                        accelerator: oldToggleWin
+                    });
+                }
+                sendGlobalShortcut(app);
             }
-            sendGlobalShortcut(app);
-            /// #endif
         });
     },
     search(value: string, keymapString: string) {
@@ -349,11 +346,11 @@ export const keymap = {
             }
             keymap.search(searchElement.value, searchKeymapElement.dataset.keymap);
         });
-        /// #if !BROWSER
-        searchKeymapElement.addEventListener("focus", () => {
-            sendUnregisterGlobalShortcut(app);
-        });
-        /// #endif
+        if (isElectron) {
+            searchKeymapElement.addEventListener("focus", () => {
+                sendUnregisterGlobalShortcut(app);
+            });
+        }
         searchKeymapElement.addEventListener("blur", () => {
             sendGlobalShortcut(app);
         });
@@ -379,19 +376,19 @@ export const keymap = {
                 fetchPost("/api/setting/setKeymap", {
                     data: Constants.SIYUAN_KEYMAP,
                 }, () => {
-                    /// #if !BROWSER
-                    ipcRenderer.send(Constants.SIYUAN_CMD, {
-                        cmd: "writeLog",
-                        msg: "user reset keymap"
-                    });
-                    if (window.siyuan.config.keymap.general.toggleWin.default !== window.siyuan.config.keymap.general.toggleWin.custom) {
-                        ipcRenderer.send(Constants.SIYUAN_CMD, {
-                            cmd: "unregisterGlobalShortcut",
-                            accelerator: window.siyuan.config.keymap.general.toggleWin.custom
+                    if (isElectron) {
+                        ipcSend(Constants.SIYUAN_CMD, {
+                            cmd: "writeLog",
+                            msg: "user reset keymap"
                         });
+                        if (window.siyuan.config.keymap.general.toggleWin.default !== window.siyuan.config.keymap.general.toggleWin.custom) {
+                            ipcSend(Constants.SIYUAN_CMD, {
+                                cmd: "unregisterGlobalShortcut",
+                                accelerator: window.siyuan.config.keymap.general.toggleWin.custom
+                            });
+                        }
+                        sendGlobalShortcut(app);
                     }
-                    sendGlobalShortcut(app);
-                    /// #endif
                     window.location.reload();
                 });
             });
@@ -511,11 +508,11 @@ export const keymap = {
                     this.previousElementSibling.classList.remove("fn__none");
                 }, Constants.TIMEOUT_INPUT);    // 隐藏的话点击删除无法 target 会为 li
             });
-            /// #if !BROWSER
-            item.addEventListener("focus", () => {
-                sendUnregisterGlobalShortcut(app);
-            });
-            /// #endif
+            if (isElectron) {
+                item.addEventListener("focus", () => {
+                    sendUnregisterGlobalShortcut(app);
+                });
+            }
         });
     },
     _getKeymapString(event: KeyboardEvent) {

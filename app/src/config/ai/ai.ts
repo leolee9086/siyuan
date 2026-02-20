@@ -1,6 +1,7 @@
 import { fetchPost } from "../../util/fetch";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { isMobile } from "../../platform";
 // @ts-ignore
 import ModelScopeConfig from "./ModelScopeConfig.vue";
 import { createVueComponentLoader } from "../../util/vue/mount";
@@ -194,11 +195,11 @@ export const ai = {
     element: undefined as Element,
     genHTML: () => {
         let responsiveHTML = "";
-        /// #if MOBILE
+        if (isMobile) {
         responsiveHTML = genMobileHTML();
-        /// #else
+        } else {
         responsiveHTML = genDesktopHTML();
-        /// #endif
+        }
         return `<div class="fn__flex-column" style="height: 100%">
 <div class="layout-tab-bar fn__flex">
     <div data-type="openai" class="item item--full item--focus"><span class="fn__flex-1"></span><span class="item__text">OpenAI</span><span class="fn__flex-1"></span></div>

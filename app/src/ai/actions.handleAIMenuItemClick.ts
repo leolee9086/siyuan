@@ -1,6 +1,5 @@
-///#if !MOBILE
 import { selectRecentDoc } from "./imports";
-///#endif
+import { isMobile } from "../platform";
 import {
     Constants,
     showMessage,
@@ -68,16 +67,17 @@ const handleListItemClick = (
         return;
     }
 
-    // 卫语句1: 处理 recentDocs 类型
-    if (targetElement.dataset.type === "recentDocs") {
-        menu.close();
-        ///#if !MOBILE
+    // 非移动端 recentDocs 类型：调用选择最近文档功能
+    if (targetElement.dataset.type === "recentDocs" && !isMobile) {
         selectRecentDoc().then(
             async (docId) => {
                 console.log(docId);
             }
         );
-        ///#endif
+    }
+    // 卫语句1: 处理 recentDocs 类型的通用逻辑（关闭菜单并返回）
+    if (targetElement.dataset.type === "recentDocs") {
+        menu.close();
         event.stopPropagation();
         event.preventDefault();
         return;

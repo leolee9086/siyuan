@@ -5,6 +5,7 @@ import { checkFold } from "../../util/noRelyPCFunction";
 import { openFileById } from "../../editor/utils.openFileById";
 import { BlockPanel } from "../../block/Panel";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { isMobile } from "../../platform";
 
 /**
  * 块引用处理中间件
@@ -17,7 +18,9 @@ export const blockRefMiddleware = async (
     range: Range,
     controller: AbortController
 ) => {
-    /// #if !MOBILE
+    if (isMobile) {
+        return false;
+    }
     const refElement = hasClosestByAttribute(range.startContainer, "data-type", "block-ref");
     if (refElement) {
         const id = refElement.getAttribute("data-id");
@@ -105,5 +108,4 @@ export const blockRefMiddleware = async (
             return true;
         }
     }
-    /// #endif
 };

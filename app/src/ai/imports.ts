@@ -45,9 +45,7 @@ export { genRandomColor } from "../util/color";
 export { default as AIChatDialog } from "../components/StreamChat.panel.vue";
 
 // 业务逻辑相关导入
-///#if !MOBILE
 export { selectRecentDoc } from "../business/selectRecentDoc";
-///#endif
 
 // 对话框相关导入
 export { showMessage } from "../dialog/message";

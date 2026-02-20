@@ -1,6 +1,7 @@
 import { Constants } from "../../constants";
 import { genUUID } from "../../util/genID";
 import { isMac } from "../util/compatibility";
+import { isMobile } from "../../platform";
 import { isTouchDevice } from "../../util/functions";
 import { setInlineStyle } from "../../util/assets";
 import { hideMessage, showMessage } from "../../dialog/message";
@@ -361,7 +362,10 @@ const 处理Gutter按钮高亮 = (protyle: IProtyle, target: HTMLElement, event:
  * 处理面包屑的鼠标悬停高亮
  */
 const 处理面包屑高亮 = (protyle: IProtyle, target: HTMLElement) => {
-    /// #if !MOBILE
+    // 移动端不处理面包屑悬停高亮
+    if (isMobile) {
+        return;
+    }
     if (!protyle.selectElement.classList.contains("fn__none")) {
         return;
     }
@@ -379,7 +383,6 @@ const 处理面包屑高亮 = (protyle: IProtyle, target: HTMLElement) => {
     if (nodeElement) {
         nodeElement.classList.add("protyle-wysiwyg--hl");
     }
-    /// #endif
 };
 
 /**

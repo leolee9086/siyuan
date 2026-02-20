@@ -1,6 +1,4 @@
-/// #if MOBILE
 import { popMenu } from "../mobile/menu";
-/// #else
 import { editor } from "./editor";
 import { about } from "./about";
 import { appearance } from "./appearance";
@@ -27,7 +25,7 @@ import fileTreeConfigPanel from "../components/panels/fileTreeConfig.panel.vue";
 import { tabRegistry } from "../registry";
 import { createApp } from "vue";
 import type { Custom } from "../layout/dock/Custom";
-/// #endif
+import { isMobile } from "../platform";
 
 export const genItemPanel = (type: string, containerElement: Element, app: App) => {
     switch (type) {
@@ -101,9 +99,10 @@ export const genItemPanel = (type: string, containerElement: Element, app: App) 
 };
 
 export const openSetting = (app: App) => {
-    /// #if MOBILE
-    popMenu();
-    /// #else
+    if (isMobile) {
+        popMenu();
+        return;
+    }
     const exitDialog = window.siyuan.dialogs.find((item) => {
         if (item.element.querySelector(".config__tab-container")) {
             item.destroy();
@@ -193,19 +192,18 @@ export const openSetting = (app: App) => {
     editor.element = dialog.element.querySelector('.config__tab-container[data-name="editor"]');
     editor.bindEvent();
     return dialog;
-    /// #endif
 };
 
-/// #if !MOBILE
 // 立即注册 Tab 类型（不依赖 app-ready 事件，确保新窗口也能正确初始化）
-tabRegistry.register({
-    type: INTERNAL_FILETREE_TAB_TYPE,
-    init: (model: Custom) => {
-        const tab = model.tab;
-        const app = createApp(fileTreeConfigPanel);
-        if (tab) {
-            app.mount(tab.panelElement);
+if (!isMobile) {
+    tabRegistry.register({
+        type: INTERNAL_FILETREE_TAB_TYPE,
+        init: (model: Custom) => {
+            const tab = model.tab;
+            const app = createApp(fileTreeConfigPanel);
+            if (tab) {
+                app.mount(tab.panelElement);
+            }
         }
-    }
-});
-/// #endif
+    });
+}

@@ -5,9 +5,8 @@ import {Dialog} from "../dialog";
 import {confirmDialog} from "../dialog/confirmDialog";
 import {isMobile} from "../util/functions";
 import {processSync} from "../dialog/processSystem";
-/// #if !MOBILE
 import {openSetting} from "../config";
-/// #endif
+import {platform} from "../platform";
 import {App} from "../index";
 import {Constants} from "../constants";
 import {getCloudURL} from "../config/util/about";
@@ -100,8 +99,8 @@ export const getSyncCloudList = (cloudPanelElement: Element, reload = false, cb?
         } else if (response.code !== 1) {
             syncListHTML = '<ul class="b3-list b3-list--background fn__flex-1" style="overflow: auto;">';
             response.data.syncDirs.forEach((item: { hSize: string, cloudName: string, updated: string }) => {
-                /// #if MOBILE
-                syncListHTML += `<li data-type="selectCloud" data-name="${item.cloudName}" class="b3-list-item b3-list-item--two">
+                if (platform === "browser-mobile") {
+                    syncListHTML += `<li data-type="selectCloud" data-name="${item.cloudName}" class="b3-list-item b3-list-item--two">
     <div class="b3-list-item__first" data-name="${item.cloudName}">
         <input type="radio" name="cloudName"${item.cloudName === response.data.checkedSyncDir ? " checked" : ""}/>
         <span class="fn__space"></span>
@@ -117,8 +116,9 @@ export const getSyncCloudList = (cloudPanelElement: Element, reload = false, cb?
         <span>${item.updated}</span>
     </div>
 </li>`;
-                /// #else
-                syncListHTML += `<li data-type="selectCloud" data-name="${item.cloudName}" class="b3-list-item b3-list-item--narrow b3-list-item--hide-action">
+                }
+                if (platform !== "browser-mobile") {
+                    syncListHTML += `<li data-type="selectCloud" data-name="${item.cloudName}" class="b3-list-item b3-list-item--narrow b3-list-item--hide-action">
 <input type="radio" name="cloudName"${item.cloudName === response.data.checkedSyncDir ? " checked" : ""}/>
 <span class="fn__space"></span>
 <span>${item.cloudName}</span>
@@ -129,7 +129,7 @@ export const getSyncCloudList = (cloudPanelElement: Element, reload = false, cb?
 <span data-type="removeCloud" class="b3-tooltips b3-tooltips__w b3-list-item__action${(window.siyuan.config.sync.provider === 2 || window.siyuan.config.sync.provider === 3) ? " fn__none":""}" aria-label="${siyuanI18n.delete}">
     <svg><use xlink:href="#iconTrashcan"></use></svg>
 </span></li>`;
-                /// #endif
+                }
             });
             syncListHTML += `</ul>
 <div class="fn__hr"></div>
@@ -149,34 +149,35 @@ export const syncGuide = (app?: App) => {
     if (window.siyuan.config.readonly) {
         return;
     }
-    /// #if MOBILE
-    if (0 === window.siyuan.config.sync.provider) {
-        if (needSubscribe()) {
+    if (platform === "browser-mobile") {
+        if (0 === window.siyuan.config.sync.provider) {
+            if (needSubscribe()) {
+                return;
+            }
+        } else if (!isPaidUser()) {
+            showMessage(siyuanI18n["_kernel"][214].replaceAll("${accountServer}", getCloudURL("")));
             return;
         }
-    } else if (!isPaidUser()) {
-        showMessage(siyuanI18n["_kernel"][214].replaceAll("${accountServer}", getCloudURL("")));
-        return;
     }
-    /// #else
-    if (document.querySelector("#barSync")?.classList.contains("toolbar__item--active")) {
-        return;
-    }
-    if (0 === window.siyuan.config.sync.provider && needSubscribe("") && app) {
-        const dialogSetting = openSetting(app);
-        if (window.siyuan.user) {
-            dialogSetting.element.querySelector('.b3-tab-bar [data-name="repos"]').dispatchEvent(new CustomEvent("click"));
-        } else {
-            dialogSetting.element.querySelector('.b3-tab-bar [data-name="account"]').dispatchEvent(new CustomEvent("click"));
-            dialogSetting.element.querySelector('.config__tab-container[data-name="account"]').setAttribute("data-action", "go-repos");
+    if (platform !== "browser-mobile") {
+        if (document.querySelector("#barSync")?.classList.contains("toolbar__item--active")) {
+            return;
         }
-        return;
+        if (0 === window.siyuan.config.sync.provider && needSubscribe("") && app) {
+            const dialogSetting = openSetting(app);
+            if (window.siyuan.user) {
+                dialogSetting.element.querySelector('.b3-tab-bar [data-name="repos"]').dispatchEvent(new CustomEvent("click"));
+            } else {
+                dialogSetting.element.querySelector('.b3-tab-bar [data-name="account"]').dispatchEvent(new CustomEvent("click"));
+                dialogSetting.element.querySelector('.config__tab-container[data-name="account"]').setAttribute("data-action", "go-repos");
+            }
+            return;
+        }
+        if (0 !== window.siyuan.config.sync.provider && !isPaidUser() && app) {
+            showMessage(siyuanI18n["_kernel"][214].replaceAll("${accountServer}", getCloudURL("")));
+            return;
+        }
     }
-    if (0 !== window.siyuan.config.sync.provider && !isPaidUser() && app) {
-        showMessage(siyuanI18n["_kernel"][214].replaceAll("${accountServer}", getCloudURL("")));
-        return;
-    }
-    /// #endif
     if (!window.siyuan.config.repo.key) {
         setKey(true);
         return;

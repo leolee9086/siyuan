@@ -1,7 +1,5 @@
 import { Constants } from "../constants";
-/// #if !MOBILE
 import { getAllTabs } from "../layout/getAll";
-/// #endif
 import { objEquals } from "../util/functions";
 import { Tab } from "../layout/Tab";
 import { ITabInitData } from "./types";

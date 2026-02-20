@@ -1,6 +1,7 @@
 import { Constants } from "../../constants";
 import { openFileById } from "../../editor/utils.openFileById";
 import { openMobileFileById } from "../../mobile/editor";
+import { isMobile } from "../../platform";
 import { zoomOut } from "../protyle.zoomOut";
 
 /**
@@ -35,13 +36,15 @@ export const enterBack = (protyle: IProtyle, id: string) => {
     if (!parentId) {
         return;
     }
-    /// #if MOBILE
-    openMobileFileById(protyle.app, parentId, [Constants.CB_GET_FOCUS, Constants.CB_GET_SCROLL]);
-    /// #else
+    // 移动端使用移动端文件打开方式
+    if (isMobile) {
+        openMobileFileById(protyle.app, parentId, [Constants.CB_GET_FOCUS, Constants.CB_GET_SCROLL]);
+        return;
+    }
+    // 桌面端使用标准文件打开方式
     openFileById({
         app: protyle.app,
         id: parentId,
         action: [Constants.CB_GET_FOCUS, Constants.CB_GET_SCROLL]
     });
-    /// #endif
 };

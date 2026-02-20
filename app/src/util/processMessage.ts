@@ -1,6 +1,5 @@
-/// #if !MOBILE
 import { exportLayout } from "../layout/util";
-/// #endif
+import { isMobile } from "../platform";
 import { hideMessage, showMessage } from "../dialog/message";
 import { reloadLocation } from "./siyuanEnvironments/windowLocation.environment";
 import { setStorageVal } from "../protyle/util/compatibility";
@@ -12,9 +11,10 @@ import { isBrowser } from "./functions";
 
 /** 触发 UI 重载 */
 const triggerReload = () => {
-    /// #if MOBILE
-    reloadLocation();
-    /// #else
+    if (isMobile) {
+        reloadLocation();
+        return;
+    }
     exportLayout({
         /** 导出布局后的回调 */
         cb() {
@@ -22,7 +22,6 @@ const triggerReload = () => {
         },
         errorExit: false,
     });
-    /// #endif
 };
 
 /** 处理添加 Windows Defender 排除项的点击事件 */

@@ -8,9 +8,8 @@ import { MenuItem } from "../../menus/Menu.Item";
 import { RecordMedia } from "../util/RecordMedia";
 import { hideMessage, showMessage } from "../../dialog/message";
 import { uploadFiles } from "../upload";
-/// #if !BROWSER
-import { ipcRenderer } from "electron";
-/// #endif
+import { isElectron } from "../../platform";
+import { ipcInvoke } from "../../platform/electron/ipcRenderer";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig, getSiyuanMenus } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import type { 录音器上下文 } from "./breadcrumb.types";
@@ -56,12 +55,15 @@ export function 添加上传菜单项(protyle: IProtyle, menu: Menu): void {
  * @returns true 表示可以继续录音，false 表示权限被拒绝
  */
 async function 检查macOS麦克风权限(os: string | undefined): Promise<boolean> {
-    /// #if !BROWSER
+    if (!isElectron) {
+        return true;
+    }
     if (os !== "darwin") {
         return true;
     }
 
-    const status = await ipcRenderer.invoke(Constants.SIYUAN_GET, { cmd: "getMicrophone" });
+    const status = await ipcInvoke<string>(Constants.SIYUAN_GET, { cmd: "getMicrophone" });
+    // macOS 麦克风权限被拒绝、受限或未知状态时，提示用户
     if (["denied", "restricted", "unknown"].includes(status)) {
         showMessage(siyuanI18n.microphoneDenied);
         return false;
@@ -71,16 +73,12 @@ async function 检查macOS麦克风权限(os: string | undefined): Promise<boole
         return true;
     }
 
-    const isAccess = await ipcRenderer.invoke(Constants.SIYUAN_GET, { cmd: "askMicrophone" });
+    const isAccess = await ipcInvoke<boolean>(Constants.SIYUAN_GET, { cmd: "askMicrophone" });
     if (!isAccess) {
         showMessage(siyuanI18n.microphoneNotAccess);
         return false;
     }
     return true;
-    /// #endif
-    /// #if BROWSER
-    return true;
-    /// #endif
 }
 
 function 初始化新录音器(

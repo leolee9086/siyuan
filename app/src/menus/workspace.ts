@@ -1,7 +1,7 @@
 import { MenuItem } from "./Menu.Item";
-/// #if !BROWSER
-import {ipcRenderer} from "electron";
-/// #endif
+import {ipcSend} from "../platform/electron/ipcRenderer";
+import {ipcInvoke} from "../platform/electron/ipcRenderer";
+import {isElectron} from "../platform";
 import {openHistory} from "../history/history";
 import {getOpenNotebookCount, originalPath, pathPosix, useShell} from "../util/pathName";
 import {fetchNewDailyNote, mountHelp, newDailyNote} from "../util/mount";
@@ -191,13 +191,13 @@ export const workspaceMenu = (app: App, rect: DOMRect) => {
         }).element);
         if (!window.siyuan.config.readonly) {
             let workspaceSubMenu: IMenu[];
-            /// #if !BROWSER
+            if (isElectron) {
             workspaceSubMenu = [{
                 id: "newOrOpenBy",
                 label: `${siyuanI18n.new} / ${siyuanI18n.openBy}`,
                 iconHTML: "",
                 click: async () => {
-                    const localPath = await ipcRenderer.invoke(Constants.SIYUAN_GET, {
+                    const localPath = await ipcInvoke(Constants.SIYUAN_GET, {
                         cmd: "showOpenDialog",
                         defaultPath: window.siyuan.config.system.homeDir,
                         properties: ["openDirectory", "createDirectory"],
@@ -220,7 +220,8 @@ export const workspaceMenu = (app: App, rect: DOMRect) => {
             response.data.forEach((item: IWorkspace) => {
                 workspaceSubMenu.push(workspaceItem(item) as IMenu);
             });
-            /// #else
+            }
+            if (!isElectron) {
             workspaceSubMenu = [{
                 id: "new",
                 label: siyuanI18n.new,
@@ -325,7 +326,7 @@ export const workspaceMenu = (app: App, rect: DOMRect) => {
                     }
                 });
             });
-            /// #endif
+            }
             if (!isBrowser() || isInMobileApp()) {
                 window.siyuan.menus.menu.append(new MenuItem({
                     id: "workspaceList",
@@ -556,16 +557,16 @@ export const workspaceMenu = (app: App, rect: DOMRect) => {
                 }
             }
         }).element);
-        /// #if !BROWSER
-        window.siyuan.menus.menu.append(new MenuItem({
-            id: "debug",
-            label: siyuanI18n.debug,
-            icon: "iconBug",
-            click: () => {
-                ipcRenderer.send(Constants.SIYUAN_CMD, "openDevTools");
-            }
-        }).element);
-        /// #endif
+        if (isElectron) {
+            window.siyuan.menus.menu.append(new MenuItem({
+                id: "debug",
+                label: siyuanI18n.debug,
+                icon: "iconBug",
+                click: () => {
+                    ipcSend(Constants.SIYUAN_CMD, "openDevTools");
+                }
+            }).element);
+        }
         if (isIPad() || isInAndroid() || isInHarmony() || !isBrowser()) {
             window.siyuan.menus.menu.append(new MenuItem({id: "separator_3", type: "separator"}).element);
             window.siyuan.menus.menu.append(new MenuItem({
@@ -586,23 +587,26 @@ export const workspaceMenu = (app: App, rect: DOMRect) => {
 };
 
 const openWorkspace = (workspace: string) => {
-    /// #if !BROWSER
+    if (!isElectron) {
+        return;
+    }
     if (workspace === window.siyuan.config.system.workspaceDir) {
         return;
     }
     fetchPost("/api/system/setWorkspaceDir", {
         path: workspace
     }, () => {
-        ipcRenderer.send(Constants.SIYUAN_OPEN_WORKSPACE, {
+        ipcSend(Constants.SIYUAN_OPEN_WORKSPACE, {
             workspace,
             lang: window.siyuan.config.appearance.lang
         });
     });
-    /// #endif
 };
 
 const workspaceItem = (item: IWorkspace) => {
-    /// #if !BROWSER
+    if (!isElectron) {
+        return;
+    }
     const submenu = [{
         id: "showInFolder",
         icon: "iconFolder",
@@ -651,5 +655,4 @@ const workspaceItem = (item: IWorkspace) => {
             openWorkspace(item.path);
         },
     };
-    /// #endif
 };

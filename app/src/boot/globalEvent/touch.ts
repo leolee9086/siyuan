@@ -14,11 +14,10 @@ import { fileAnnotationRefMenu } from "../../menus/protyleMenus/protyle.fileAnno
 import { App } from "../../index";
 import { Protyle } from "../../protyle";
 import { getCurrentEditor } from "../../mobile/editor";
-/// #if !MOBILE
 import { getInstanceById } from "../../layout/util";
 import { Tab } from "../../layout/Tab";
-/// #endif
 import { Editor } from "../../editor";
+import { isMobile } from "../../platform";
 import { hideTooltip } from "../../dialog/tooltip";
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";
 
@@ -98,20 +97,21 @@ export const globalTouchEnd = (event: TouchEvent, yDiff: number, time: number, a
         }
         // 内元素弹出菜单
         if (target.tagName === "SPAN" && !isInEmbedBlock(target)) {
-            let editor: Protyle;
-            /// #if !MOBILE
-            const tabContainerElement = hasClosestByClassName(target, "protyle", true);
-            if (tabContainerElement) {
-                const tab = getInstanceById(tabContainerElement.dataset.id);
-                if (tab instanceof Tab && tab.model instanceof Editor) {
-                    editor = tab.model.editor;
+            let editor: Protyle | undefined;
+            // 桌面端：从 Tab 布局系统获取编辑器实例
+            if (!isMobile) {
+                const tabContainerElement = hasClosestByClassName(target, "protyle", true);
+                if (tabContainerElement) {
+                    const tab = getInstanceById(tabContainerElement.dataset.id);
+                    if (tab instanceof Tab && tab.model instanceof Editor) {
+                        editor = tab.model.editor;
+                    }
                 }
             }
-            /// #else
-            if (hasClosestByClassName(target, "protyle-wysiwyg", true)) {
+            // 移动端：从全局当前编辑器获取
+            if (isMobile && hasClosestByClassName(target, "protyle-wysiwyg", true)) {
                 editor = getCurrentEditor();
             }
-            /// #endif
             if (!editor) {
                 return false;
             }

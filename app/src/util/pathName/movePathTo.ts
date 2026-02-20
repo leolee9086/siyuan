@@ -4,6 +4,7 @@ import { Dialog } from "../../dialog";
 import { escapeHtml } from "../escape";
 import { fetchPost } from "../fetch";
 import { isMobile } from "../functions";
+import {platform} from "../../platform";
 import { setNoteBook } from "../pathName";
 import { 创建对话框标题HTML, 创建对话框内容HTML } from "./movePathTo.template";
 import { 渲染笔记本列表HTML } from "./movePathTo.notebook";
@@ -93,9 +94,9 @@ export const movePathTo = (options: MovePathToOptions) => {
     }
     const localMovePath = getSiyuanStorage()[Constants.LOCAL_MOVE_PATH];
     inputElement.value = localMovePath?.k || "";
-    /// #if !MOBILE
-    inputElement.select();
-    /// #endif
+    if (platform !== "browser-mobile") {
+        inputElement.select();
+    }
 
     绑定事件监听器({
         inputElement,

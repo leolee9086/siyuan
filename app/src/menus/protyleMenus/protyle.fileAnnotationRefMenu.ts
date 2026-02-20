@@ -8,7 +8,7 @@ import { electronUndo } from "../../protyle/undo";
 import { hasClosestBlock, hasTopClosestByClassName } from "../../protyle/util/hasClosest";
 import { focusByWbr } from "../../protyle/util/selection";
 import { updateTransaction } from "../../protyle/wysiwyg/transaction";
-import { isMobile } from "../../util/functions";
+import { isMobile } from "../../platform";
 import { MenuItem } from "../Menu.Item";
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
@@ -36,7 +36,7 @@ export const fileAnnotationRefMenu = (protyle: IProtyle, refElement: HTMLElement
         id: "idAndAnchor",
         iconHTML: "",
         type: "readonly",
-        label: `<div>ID</div><textarea spellcheck="false" rows="1" style="margin:4px 0;width: ${isMobile() ? "100%" : "360px"}" class="b3-text-field" readonly>${refElement.getAttribute("data-id") || ""}</textarea><div class="fn__hr"></div><div>${siyuanI18n.anchor}</div><textarea rows="1" style="margin:4px 0;width: ${isMobile() ? "100%" : "360px"}" class="b3-text-field"></textarea>`,
+        label: `<div>ID</div><textarea spellcheck="false" rows="1" style="margin:4px 0;width: ${isMobile ? "100%" : "360px"}" class="b3-text-field" readonly>${refElement.getAttribute("data-id") || ""}</textarea><div class="fn__hr"></div><div>${siyuanI18n.anchor}</div><textarea rows="1" style="margin:4px 0;width: ${isMobile ? "100%" : "360px"}" class="b3-text-field"></textarea>`,
         bind(menuItemElement) {
             menuItemElement.style.maxWidth = "none";
             anchorElement = menuItemElement.querySelectorAll(".b3-text-field")[1] as HTMLInputElement;
@@ -128,16 +128,19 @@ export const fileAnnotationRefMenu = (protyle: IProtyle, refElement: HTMLElement
             separatorPosition: "top",
         });
     }
-    /// #if MOBILE
-    menu.fullscreen();
-    /// #else
-    const rect = refElement.getBoundingClientRect();
-    getSiyuanGlobalMenus().menu.popup({
-        x: rect.left,
-        y: rect.top + 26,
-        h: 26
-    });
-    /// #endif
+    // 移动端使用全屏菜单
+    if (isMobile) {
+        menu.fullscreen();
+    }
+    // 非移动端使用弹出菜单
+    if (!isMobile) {
+        const rect = refElement.getBoundingClientRect();
+        getSiyuanGlobalMenus().menu.popup({
+            x: rect.left,
+            y: rect.top + 26,
+            h: 26
+        });
+    }
     const popoverElement = hasTopClosestByClassName(protyle.element, "block__popover", true);
     menu.element.setAttribute("data-from", popoverElement ? popoverElement.dataset.level + "popover" : "app");
     menu.removeCB = () => handleMenuRemoveCleanup(protyle, id, nodeElement, oldHTML, refElement);

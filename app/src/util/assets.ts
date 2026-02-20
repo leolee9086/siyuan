@@ -1,10 +1,9 @@
 import { Constants } from "../constants";
 import { addScript } from "../protyle/util/addScript";
 import { addStyle } from "../protyle/util/addStyle";
-/// #if !MOBILE
 import { getAllModels } from "../layout/getAll";
 import { exportLayout } from "../layout/util";
-/// #endif
+import {isMobile, isBrowser} from "../platform";
 // S-forge: 模块化重构 - 使用环境抽象层和资源模块
 import { fetchPost } from "./fetch";
 import { IFetchRequestObject } from "./fetch.types";
@@ -82,19 +81,19 @@ const loadCustomTheme = (data: Config.IAppearance) => {
 
 /** 更新图表和 PDF 主题 */
 const updateGraphAndPDF = () => {
-    /// #if !MOBILE
-    for (const item of getAllModels().graph) {
-        item.searchGraph(false);
-    }
-    const pdfThemeSettings = getSiyuanStorage()[Constants.LOCAL_PDFTHEME];
-    const pdfTheme = getSiyuanConfig().appearance.mode === 0 ? pdfThemeSettings.light : pdfThemeSettings.dark;
-    for (const item of document.querySelectorAll(".pdf__outer")) {
-        const htmlItem = item;
-        if (htmlItem instanceof HTMLElement) {
-            updatePDFAttributes(htmlItem, pdfTheme === "dark");
+    if (!isMobile) {
+        for (const item of getAllModels().graph) {
+            item.searchGraph(false);
+        }
+        const pdfThemeSettings = getSiyuanStorage()[Constants.LOCAL_PDFTHEME];
+        const pdfTheme = getSiyuanConfig().appearance.mode === 0 ? pdfThemeSettings.light : pdfThemeSettings.dark;
+        for (const item of document.querySelectorAll(".pdf__outer")) {
+            const htmlItem = item;
+            if (htmlItem instanceof HTMLElement) {
+                updatePDFAttributes(htmlItem, pdfTheme === "dark");
+            }
         }
     }
-    /// #endif
 };
 
 /** 更新 PDF 属性 */
@@ -108,12 +107,10 @@ const updatePDFAttributes = (item: HTMLElement, isDark: boolean) => {
 
 /** 更新浏览器 Meta */
 const updateBrowserMeta = () => {
-    /// #if BROWSER
-    if (!getWindowWebkit()?.messageHandlers && !getWindowJSAndroid() && !getWindowJSHarmony() &&
+    if (isBrowser && !getWindowWebkit()?.messageHandlers && !getWindowJSAndroid() && !getWindowJSHarmony() &&
         isServiceWorkerAvailable()) {
         document.head.insertAdjacentHTML("afterbegin", `<meta name="theme-color" content="${getComputedStyle(document.body).getPropertyValue("--b3-toolbar-background").trim()}">`);
     }
-    /// #endif
 };
 
 /** 移除冗余 SVG 图标 */
@@ -199,17 +196,18 @@ const handleAppearanceModeResponse = async (response: IWebSocketData) => {
         return;
     }
     if (!getWindowDestroyTheme()) {
-        /// #if !MOBILE
-        exportLayout({
-            /** 回调函数 */
-            cb() {
-                reloadLocation();
-            },
-            errorExit: false,
-        });
-        /// #else
-        reloadLocation();
-        /// #endif
+        if (!isMobile) {
+            exportLayout({
+                /** 回调函数 */
+                cb() {
+                    reloadLocation();
+                },
+                errorExit: false,
+            });
+        }
+        if (isMobile) {
+            reloadLocation();
+        }
         return;
     }
     try {
@@ -254,7 +252,9 @@ export const initAssets = () => {
 
 /** 设置模式 */
 export const setMode = (modeElementValue: number) => {
-    /// #if !MOBILE
+    if (isMobile) {
+        return;
+    }
     let mode = modeElementValue;
     if (modeElementValue === 2) {
         mode = windowMatchMedia("(prefers-color-scheme: dark)").matches ? 1 : 0;
@@ -265,7 +265,6 @@ export const setMode = (modeElementValue: number) => {
         modeOS: modeElementValue === 2,
     };
     fetchPost("/api/setting/setAppearance", requestData);
-    /// #endif
 };
 
 // S-forge: rgba2hex 和 updateMobileTheme 已提取到 ./assets/mobile 模块

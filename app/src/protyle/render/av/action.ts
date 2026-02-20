@@ -41,6 +41,7 @@ import {removeCompressURL} from "../../../util/image";
 // S-forge: 本地改进 - 使用统一的国际化环境获取方式
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {callMobileAppShowKeyboard} from "../../../mobile/util/mobileAppUtil";
+import {isMobile} from "../../../platform";
 
 let foldTimeout: number;
 export const avClick = (protyle: IProtyle, event: MouseEvent & { target: HTMLElement }) => {
@@ -376,27 +377,27 @@ export const avContextmenu = (protyle: IProtyle, rowElement: HTMLElement, positi
     const keyCellElement = rowElements[0].querySelector('.av__cell[data-dtype="block"]') as HTMLElement;
     const ids = Array.from(rowElements).map(item => item.querySelector('[data-dtype="block"] .av__celltext').getAttribute("data-id"));
     if (rowElements.length === 1 && keyCellElement.getAttribute("data-detached") !== "true") {
-        /// #if !MOBILE
-        const blockId = ids[0];
-        const openSubmenus = openEditorTab(protyle.app, [blockId], undefined, undefined, true);
-        openSubmenus.push({id: "separator_3", type: "separator"});
-        openSubmenus.push({
-            id: "attr",
-            icon: "iconAttr",
-            label: siyuanI18n.attr,
-            click: () => {
-                fetchPost("/api/attr/getBlockAttrs", {id: blockId}, (response) => {
-                    openFileAttr(response.data, "av", protyle);
-                });
-            }
-        });
-        menu.addItem({
-            id: "openBy",
-            label: siyuanI18n.openBy,
-            icon: "iconOpen",
-            submenu: openSubmenus,
-        });
-        /// #endif
+        if (!isMobile) {
+            const blockId = ids[0];
+            const openSubmenus = openEditorTab(protyle.app, [blockId], undefined, undefined, true);
+            openSubmenus.push({id: "separator_3", type: "separator"});
+            openSubmenus.push({
+                id: "attr",
+                icon: "iconAttr",
+                label: siyuanI18n.attr,
+                click: () => {
+                    fetchPost("/api/attr/getBlockAttrs", {id: blockId}, (response) => {
+                        openFileAttr(response.data, "av", protyle);
+                    });
+                }
+            });
+            menu.addItem({
+                id: "openBy",
+                label: siyuanI18n.openBy,
+                icon: "iconOpen",
+                submenu: openSubmenus,
+            });
+        }
     }
     let hasBlock = false;
     rowElements.forEach((item) => {

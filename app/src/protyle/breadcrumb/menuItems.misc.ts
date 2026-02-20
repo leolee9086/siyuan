@@ -1,7 +1,7 @@
 import { MenuItem } from "../../menus/Menu.Item";
 import { Menu } from "../../menus/Menu";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { isMobile } from "../../util/functions";
+import { isMobile } from "../../platform";
 import { reloadProtyle } from "../util/reload";
 import { hideElements } from "../ui/hideElements";
 import { fetchPost } from "../../util/fetch";
@@ -52,7 +52,7 @@ export function 添加刷新菜单项(protyle: IProtyle, menu: Menu) {
         accelerator: getSiyuanConfig().keymap.editor.general.refresh.custom,
         label: siyuanI18n.refresh,
         click: () => {
-            reloadProtyle(protyle, !isMobile());
+            reloadProtyle(protyle, !isMobile);
         }
     }).element);
 }
@@ -75,7 +75,9 @@ export function 添加优化排版菜单项(protyle: IProtyle, menu: Menu) {
 }
 
 export function 添加全屏菜单项(protyle: IProtyle, menu: Menu) {
-    /// #if !MOBILE
+    if (isMobile) {
+        return;
+    }
     menu.append(new MenuItem({
         id: "fullscreen",
         icon: protyle.element.className.includes("fullscreen") ? "iconFullscreenExit" : "iconFullscreen",
@@ -86,7 +88,6 @@ export function 添加全屏菜单项(protyle: IProtyle, menu: Menu) {
             resize(protyle);
         }
     }).element);
-    /// #endif
 }
 //@AIDONE label不应该书写为一行,难以阅读
 export function 添加文档信息菜单项(menu: Menu, response: IWebSocketData) {

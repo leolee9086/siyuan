@@ -5,9 +5,7 @@ import {processRender} from "./processCode";
 import {highlightRender} from "../render/highlightRender";
 import {blockRender} from "../render/blockRender";
 import {bgFade, scrollCenter} from "../../util/highlightById";
-/// #if !MOBILE
 import {pushBack} from "../../util/backForward";
-/// #endif
 import {focusBlock, focusByOffset} from "./selection";
 import {hasClosestByAttribute, hasClosestByClassName} from "./hasClosest";
 import {preventScroll} from "../scroll/preventScroll";
@@ -21,6 +19,7 @@ import {stickyRow} from "../render/av/row";
 import {getContenteditableElement} from "../wysiwyg/getBlock";
 import {activeBlur} from "../../mobile/util/keyboardToolbar";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import * as platform from "../../platform";
 
 export const onGet = (options: {
     data: IWebSocketData,
@@ -207,23 +206,19 @@ const setHTML = (options: {
         protyle.wysiwyg.element.innerHTML = options.content;
     }
 
-    /// #if MOBILE
-    protyle.wysiwyg.element.querySelectorAll("video, audio").forEach(item => {
-        item.addEventListener("playing", () => {
-            activeBlur();
+    if (platform.isMobile) {
+        protyle.wysiwyg.element.querySelectorAll("video, audio").forEach(item => {
+            item.addEventListener("playing", () => {
+                activeBlur();
+            });
         });
-    });
-    /// #endif
+    }
     // https://github.com/siyuan-note/siyuan/issues/10528
     if (!protyle.block.showAll && protyle.wysiwyg.element.childElementCount === 1 && protyle.wysiwyg.element.firstElementChild.classList.contains("p")) {
         const editElement = getContenteditableElement(protyle.wysiwyg.element.firstElementChild);
         if (editElement && editElement.textContent === "") {
             editElement.classList.add("protyle-wysiwyg--empty");
-            /// #if MOBILE
-            editElement.setAttribute("placeholder", siyuanI18n.emptyMobilePlaceholder);
-            /// #else
-            editElement.setAttribute("placeholder", siyuanI18n.emptyPlaceholder);
-            /// #endif
+            editElement.setAttribute("placeholder", platform.isMobile ? siyuanI18n.emptyMobilePlaceholder : siyuanI18n.emptyPlaceholder);
         }
     }
 
@@ -283,11 +278,9 @@ const setHTML = (options: {
         return;
     }
 
-    /// #if MOBILE
-    if (!protyle.disabled && !options.action.includes(Constants.CB_GET_ALL) && protyle.background) {
+    if (platform.isMobile && !protyle.disabled && !options.action.includes(Constants.CB_GET_ALL) && protyle.background) {
         protyle.background.element.classList.add("protyle-background--mobileshow");
     }
-    /// #endif
 
     if (protyle.options.render.breadcrumb) {
         protyle.breadcrumb.toggleExit(!options.action.includes(Constants.CB_GET_ALL));
@@ -347,9 +340,9 @@ export const disabledProtyle = (protyle: IProtyle) => {
         protyle.title.editElement.setAttribute("contenteditable", "false");
         protyle.title.editElement.style.userSelect = "text";
     }
-    /// #if MOBILE
-    document.getElementById("toolbarName").setAttribute("readonly", "readonly");
-    /// #endif
+    if (platform.isMobile) {
+        document.getElementById("toolbarName").setAttribute("readonly", "readonly");
+    }
     if (protyle.background) {
         protyle.background.element.classList.remove("protyle-background--enable");
         protyle.background.element.classList.remove("protyle-background--mobileshow");
@@ -485,11 +478,9 @@ const focusElementById = (protyle: IProtyle, action: string[], scrollAttr?: IScr
             } else {
                 range = focusBlock(focusElement, undefined, !action.includes(Constants.CB_GET_OUTLINE)) as Range;
             }
-            /// #if !MOBILE
-            if (!action.includes(Constants.CB_GET_UNUNDO)) {
+            if (!platform.isMobile && !action.includes(Constants.CB_GET_UNUNDO)) {
                 pushBack(protyle, range, focusElement);
             }
-            /// #endif
         }, focusElement.getAttribute("data-type") === "NodeCodeBlock" ? Constants.TIMEOUT_TRANSITION : 0);
     }
     const hasScrollTop = scrollAttr && typeof scrollAttr.scrollTop === "number";

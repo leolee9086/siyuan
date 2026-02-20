@@ -1,6 +1,5 @@
-/// #if !BROWSER
 import * as path from "path";
-/// #endif
+import {isElectron} from "../../platform";
 import {matchHotKey} from "../../protyle/util/hotKey";
 import {fetchPost} from "../../util/fetch";
 import { openFileById } from "../../editor/utils.openFileById";
@@ -230,9 +229,10 @@ export const searchKeydown = (app: App, event: KeyboardEvent) => {
                 });
             }
         } else {
-            /// #if !BROWSER
-            useShell("showItemInFolder", path.join(window.siyuan.config.system.dataDir, currentList.lastElementChild.getAttribute("aria-label")));
-            /// #endif
+            // Electron 桌面端：在文件管理器中显示资源文件
+            if (isElectron) {
+                useShell("showItemInFolder", path.join(window.siyuan.config.system.dataDir, currentList.lastElementChild.getAttribute("aria-label")));
+            }
         }
         return true;
     }

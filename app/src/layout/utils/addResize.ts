@@ -4,9 +4,7 @@ import { getSiyuanLayout } from "../../util/siyuanEnvironments/getSiyuanConfig.e
 import { hideElements } from "../../protyle/ui/hideElements";
 import { hasClosestByClassName } from "../../protyle/util/hasClosest";
 import { isWindow } from "../../util/functions";
-/// #if !MOBILE
 import { getAllModels } from "../getAll";
-/// #endif
 import { resizeTabs } from "../tabUtil";
 import { adjustLayout } from "../util";
 import { Wnd } from "../Wnd";

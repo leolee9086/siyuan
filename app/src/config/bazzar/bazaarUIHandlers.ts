@@ -7,24 +7,24 @@ import { hasClosestByAttribute, hasClosestByClassName } from "../../protyle/util
 import { getFrontend } from "../../util/functions";
 import { writeText } from "../../protyle/util/compatibility";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-/// #if !BROWSER
-import * as path from "path";
-/// #endif
+import { isElectron } from "../../platform";
 
 import { IBazaar, IBazaarDataObj } from "./types";
 
 export const handleOpen = (dataObj: IBazaarDataObj) => {
-    /// #if !BROWSER
+    if (!isElectron) {
+        return;
+    }
     if (!dataObj.name) {
         return;
     }
+    const nodePath = __non_webpack_require__("path");
     const dirName = dataObj.bazaarType;
     if (dirName === "icons" || dirName === "themes") {
-        useShell("openPath", path.join(getSiyuanConfig().system.confDir, "appearance", dirName, dataObj.name));
+        useShell("openPath", nodePath.join(getSiyuanConfig().system.confDir, "appearance", dirName, dataObj.name));
     } else {
-        useShell("openPath", path.join(getSiyuanConfig().system.dataDir, dirName, dataObj.name));
+        useShell("openPath", nodePath.join(getSiyuanConfig().system.dataDir, dirName, dataObj.name));
     }
-    /// #endif
 };
 
 const initBazaarActions: Record<string, (bazaar: IBazaar) => void> = {

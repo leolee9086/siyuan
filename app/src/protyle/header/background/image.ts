@@ -1,4 +1,5 @@
-import { getRandom, isMobile } from "../../../util/functions";
+import { isMobile } from "../../../platform";
+import { getRandom } from "../../../util/functions";
 import { fetchPost } from "../../../util/fetch";
 import { Dialog } from "../../../dialog";
 import { Constants } from "../../../constants";
@@ -118,8 +119,8 @@ export const clickShowRandom = (background: Background, protyle: IProtyle, event
     const dialog = new Dialog({
         title: siyuanI18n.builtIn,
         content: `<div class="b3-cards">${html}</div>`,
-        width: isMobile() ? "92vw" : "912px",
-        height: isMobile() ? "80vh" : "70vh",
+        width: isMobile ? "92vw" : "912px",
+        height: isMobile ? "80vh" : "70vh",
     });
     dialog.element.setAttribute("data-key", Constants.DIALOG_BACKGROUNDRANDOM);
     dialog.element.addEventListener("click", (event) => {
@@ -159,9 +160,10 @@ const handleAssetSelect = (background: Background, protyle: IProtyle, url: strin
         id: protyle.block.rootID,
         attrs: { "title-img": background.ial["title-img"] }
     });
-    /// #if MOBILE
-    getSiyuanGlobalMenusMenu()?.remove();
-    /// #endif
+    // 移动端选择资源后关闭全屏菜单
+    if (isMobile) {
+        getSiyuanGlobalMenusMenu()?.remove();
+    }
 };
 
 /**
@@ -218,7 +220,7 @@ const handleLinkConfirm = (dialog: Dialog, background: Background, protyle: IPro
 export const clickLink = (background: Background, protyle: IProtyle, event: MouseEvent) => {
     const dialog = new Dialog({
         title: siyuanI18n.link,
-        width: isMobile() ? "92vw" : "520px",
+        width: isMobile ? "92vw" : "520px",
         content: `<div class="b3-dialog__content">
     <input class="b3-text-field fn__block" value="${background.imgElement.src.startsWith("data:") ? "" : background.imgElement.getAttribute("src")}">
 </div>

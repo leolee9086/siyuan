@@ -25,9 +25,8 @@ import { transaction } from "../wysiwyg/transaction";
 import { processClonePHElement } from "../render/util";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";
-/// #if !MOBILE
 import { openFileById } from "../../editor/utils.openFileById";
-/// #endif
+import { isMobile } from "../../platform";
 import { checkFold } from "../../util/noRelyPCFunction";
 import { clearSelect } from "../util/clearSelect";
 import { buildGutterMenu } from "./buildGutterMenu";
@@ -375,14 +374,15 @@ export const bindEvent = (protyle: IProtyle, gutterElement: HTMLElement) => {
             if (!protyle.toolbar.range) {
                 protyle.toolbar.range = getEditorRange(protyle.wysiwyg.element.querySelector(`[data-node-id="${id}"]`) || protyle.wysiwyg.element.firstElementChild);
             }
-            /// #if MOBILE
-            getSiyuanGlobalMenus().menu.fullscreen();
-            /// #else
-            getSiyuanGlobalMenus().menu.popup({ x: gutterRect.left, y: gutterRect.bottom, isLeft: true });
-            const popoverElement = hasTopClosestByClassName(protyle.element, "block__popover", true);
-            getSiyuanGlobalMenus().menu.element.setAttribute("data-from", popoverElement ? popoverElement.dataset.level + "popover" : "app");
-            focusByRange(protyle.toolbar.range);
-            /// #endif
+            if (isMobile) {
+                getSiyuanGlobalMenus().menu.fullscreen();
+            }
+            if (!isMobile) {
+                getSiyuanGlobalMenus().menu.popup({ x: gutterRect.left, y: gutterRect.bottom, isLeft: true });
+                const popoverElement = hasTopClosestByClassName(protyle.element, "block__popover", true);
+                getSiyuanGlobalMenus().menu.element.setAttribute("data-from", popoverElement ? popoverElement.dataset.level + "popover" : "app");
+                focusByRange(protyle.toolbar.range);
+            }
         }
     });
     gutterElement.addEventListener("contextmenu", (event: MouseEvent & { target: HTMLInputElement }) => {
@@ -416,14 +416,15 @@ export const bindEvent = (protyle: IProtyle, gutterElement: HTMLElement) => {
                         protyle.wysiwyg.element.querySelector(`[data-node-id="${buttonElement.getAttribute("data-node-id")}"]`) ||
                         protyle.wysiwyg.element.firstElementChild);
                 }
-                /// #if MOBILE
-                getSiyuanGlobalMenus().menu.fullscreen();
-                /// #else
-                getSiyuanGlobalMenus().menu.popup({ x: gutterRect.left, y: gutterRect.bottom, isLeft: true });
-                const popoverElement = hasTopClosestByClassName(protyle.element, "block__popover", true);
-                getSiyuanGlobalMenus().menu.element.setAttribute("data-from", popoverElement ? popoverElement.dataset.level + "popover" : "app");
-                focusByRange(protyle.toolbar.range);
-                /// #endif
+                if (isMobile) {
+                    getSiyuanGlobalMenus().menu.fullscreen();
+                }
+                if (!isMobile) {
+                    getSiyuanGlobalMenus().menu.popup({ x: gutterRect.left, y: gutterRect.bottom, isLeft: true });
+                    const popoverElement = hasTopClosestByClassName(protyle.element, "block__popover", true);
+                    getSiyuanGlobalMenus().menu.element.setAttribute("data-from", popoverElement ? popoverElement.dataset.level + "popover" : "app");
+                    focusByRange(protyle.toolbar.range);
+                }
             }
         }
         event.preventDefault();

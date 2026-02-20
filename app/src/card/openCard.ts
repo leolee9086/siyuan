@@ -10,12 +10,9 @@ import {isPaidUser, needSubscribe} from "../util/needSubscribe";
 import {fullscreen} from "../protyle/breadcrumb/action";
 import { MenuItem } from "../menus/Menu.Item";
 import {escapeHtml} from "../util/escape";
-/// #if !MOBILE
 import {openFile} from "../editor/util";
-/// #endif
-/// #if !BROWSER
-import {ipcRenderer} from "electron";
-/// #endif
+import {ipcSend} from "../platform/electron/ipcRenderer";
+import {platform, isElectron} from "../platform";
 import * as dayjs from "dayjs";
 import {getDisplayName} from "../util/pathName";
 import { movePathTo } from "../util/pathName/movePathTo";
@@ -60,8 +57,8 @@ export const genCardHTML = (options: {
     isTab: boolean
 }) => {
     let iconsHTML: string;
-    /// #if MOBILE
-    iconsHTML = `<div class="toolbar toolbar--border">
+    if (platform === "browser-mobile") {
+        iconsHTML = `<div class="toolbar toolbar--border">
     <svg class="toolbar__icon"><use xlink:href="#iconRiffCard"></use></svg>
     <span class="fn__flex-1 fn__flex-center toolbar__text">${siyuanI18n.riffCard}</span>
     <div data-type="count" class="${options.cardsData.cards.length === 0 ? "fn__none" : "fn__flex"}">${genCardCount(options.cardsData)}</span></div>
@@ -69,8 +66,9 @@ export const genCardHTML = (options: {
     <svg class="toolbar__icon" data-type="more"><use xlink:href="#iconMore"></use></svg>
     <svg class="toolbar__icon" data-type="close"><use xlink:href="#iconCloseRound"></use></svg>
 </div>`;
-    /// #else
-    iconsHTML = `<div class="block__icons">
+    }
+    if (platform !== "browser-mobile") {
+        iconsHTML = `<div class="block__icons">
         ${options.isTab ? '<div class="fn__flex-1"></div>' : `<div class="block__logo">
             <svg class="block__logoicon"><use xlink:href="#iconRiffCard"></use></svg>${siyuanI18n.riffCard}
         </div>`}
@@ -93,7 +91,7 @@ export const genCardHTML = (options: {
             <svg><use xlink:href="#iconOpen"></use></svg>
         </div>
     </div>`;
-    /// #endif
+    }
     return `<div class="card__main">
     ${iconsHTML}
     <div class="card__block fn__flex-1 ${options.cardsData.cards.length === 0 ? "fn__none" : ""}" data-type="render"></div>
@@ -487,18 +485,19 @@ export const bindCardEvent = async (options: {
     <div>${dayjs(currentCard.lastReview).format("YYYY-MM-DD")}</div>
 </div>`,
                 });
-                /// #if MOBILE
-                menu.fullscreen();
-                /// #else
-                const rect = moreElement.getBoundingClientRect();
-                menu.open({
-                    x: rect.left,
-                    y: rect.bottom
-                });
-                /// #endif
+                if (platform === "browser-mobile") {
+                    menu.fullscreen();
+                }
+                if (platform !== "browser-mobile") {
+                    const rect = moreElement.getBoundingClientRect();
+                    menu.open({
+                        x: rect.left,
+                        y: rect.bottom
+                    });
+                }
                 return;
             }
-            /// #if !MOBILE
+            if (platform !== "browser-mobile") {
             const sticktabElement = hasClosestByAttribute(target, "data-type", "sticktab");
             if (sticktabElement) {
                 const stickMenu = new Menu();
@@ -549,7 +548,7 @@ export const bindCardEvent = async (options: {
                         options.dialog.destroy();
                     }
                 });
-                /// #if !BROWSER
+                if (isElectron) {
                 stickMenu.addItem({
                     id: "openByNewWindow",
                     icon: "iconOpenWindow",
@@ -571,14 +570,14 @@ export const bindCardEvent = async (options: {
                                 }
                             }
                         }];
-                        ipcRenderer.send(Constants.SIYUAN_OPEN_WINDOW, {
+                        ipcSend(Constants.SIYUAN_OPEN_WINDOW, {
                             // 需要 encode， 否则 https://github.com/siyuan-note/siyuan/issues/9343
                             url: `${window.location.protocol}//${window.location.host}/stage/build/app/window.html?v=${Constants.SIYUAN_VERSION}&json=${encodeURIComponent(JSON.stringify(json))}`
                         });
                         options.dialog.destroy();
                     }
                 });
-                /// #endif
+                }
                 const rect = sticktabElement.getBoundingClientRect();
                 stickMenu.open({
                     x: rect.left,
@@ -588,7 +587,7 @@ export const bindCardEvent = async (options: {
                 event.preventDefault();
                 return;
             }
-            /// #endif
+            }
             const closeElement = hasClosestByAttribute(target, "data-type", "close");
             if (closeElement) {
                 if (options.dialog) {
@@ -721,14 +720,12 @@ export const bindCardEvent = async (options: {
                 rating: parseInt(type),
                 reviewedCards: options.cardsData.cards
             }, () => {
-                /// #if MOBILE
-                if (type !== "-3" &&
+                if (platform === "browser-mobile" && type !== "-3" &&
                     ((0 !== window.siyuan.config.sync.provider && isPaidUser()) ||
                         (0 === window.siyuan.config.sync.provider && !needSubscribe(""))) &&
                     window.siyuan.config.repo.key && window.siyuan.config.sync.enabled) {
                     document.getElementById("toolbarSync").classList.remove("fn__none");
                 }
-                /// #endif
                 index++;
                 if (index > options.cardsData.cards.length - 1) {
                     const currentCardType = filterElement.getAttribute("data-cardtype");
@@ -849,14 +846,14 @@ export const openCardByData = async (app: App, cardsData: ICardData, cardType: T
     dialog.editors = {
         card: editor
     };
-    /// #if !MOBILE
-    const focusElement = dialog.element.querySelector(".block__icons button.block__icon") as HTMLElement;
-    focusElement.focus();
-    const range = document.createRange();
-    range.selectNodeContents(focusElement);
-    range.collapse();
-    focusByRange(range);
-    /// #endif
+    if (platform !== "browser-mobile") {
+        const focusElement = dialog.element.querySelector(".block__icons button.block__icon") as HTMLElement;
+        focusElement.focus();
+        const range = document.createRange();
+        range.selectNodeContents(focusElement);
+        range.collapse();
+        focusByRange(range);
+    }
     updateCardHV();
 };
 

@@ -12,9 +12,8 @@ import {processRender} from "../../../util/processCode";
 import {getColIconByType, getColNameByType} from "../col";
 import {getCompressURL} from "../../../../util/image";
 import {getPageSize} from "../groups";
-/// #if MOBILE
 import {activeBlur} from "../../../../mobile/util/keyboardToolbar";
-/// #endif
+import {isMobile} from "../../../../platform";
 import {renderKanban} from "../kanban/render";
 import { siyuanI18n } from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
 
@@ -266,9 +265,9 @@ export const afterRenderGallery = (options: ITableOptions) => {
             searchInputElement.style.paddingRight = "0";
             focusBlock(options.blockElement);
             updateSearch(options.blockElement, options.protyle);
-            /// #if MOBILE
-            activeBlur();
-            /// #endif
+            if (isMobile) {
+                activeBlur();
+            }
         }
     });
 };

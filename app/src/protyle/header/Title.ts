@@ -14,9 +14,8 @@ import { Constants } from "../../constants";
 import { matchHotKey } from "../util/hotKey";
 import { isMac, readText } from "../util/compatibility";
 import * as dayjs from "dayjs";
-/// #if !MOBILE
+import { isMobile } from "../../platform";
 import { openFileById } from "../../editor/utils.openFileById";
-/// #endif
 import { setTitle } from "../../dialog/processSystem";
 import { getContenteditableElement, getNoContainerElement } from "../wysiwyg/getBlock";
 import { commonHotkey } from "../wysiwyg/commonHotkey/commonHotkey";
@@ -123,14 +122,12 @@ export class Title {
                 }
                 if (matchHotKey(window.siyuan.config.keymap.general.enterBack.custom, event)) {
                     const ids = protyle.path.split("/");
-                    if (ids.length > 2) {
-                        /// #if !MOBILE
+                    if (ids.length > 2 && !isMobile) {
                         openFileById({
                             app: protyle.app,
                             id: ids[ids.length - 2],
                             action: [Constants.CB_GET_FOCUS, Constants.CB_GET_SCROLL]
                         });
-                        /// #endif
                     }
                     event.preventDefault();
                     event.stopPropagation();
@@ -341,22 +338,18 @@ export class Title {
     }
 
     public setTitle(title: string) {
-        /// #if MOBILE
-        if (this.editElement) {
-            if (nbsp2space(title) !== nbsp2space(this.editElement.textContent)) {
-                this.editElement.textContent = title === siyuanI18n.untitled ? "" : title;
-            }
-        } else {
+        const normalizedTitle = title === siyuanI18n.untitled ? "" : title;
+        // 移动端可能没有 editElement（使用工具栏输入框代替）
+        if (isMobile && !this.editElement) {
             const inputElement = document.getElementById("toolbarName") as HTMLInputElement;
             if (nbsp2space(title) !== nbsp2space(inputElement.value)) {
-                inputElement.value = title === siyuanI18n.untitled ? "" : title;
+                inputElement.value = normalizedTitle;
             }
+            return;
         }
-        /// #else
         if (nbsp2space(title) !== nbsp2space(this.editElement.textContent)) {
-            this.editElement.textContent = title === siyuanI18n.untitled ? "" : title;
+            this.editElement.textContent = normalizedTitle;
         }
-        /// #endif
     }
 
     public render(protyle: IProtyle, response: IWebSocketData) {

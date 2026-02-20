@@ -1,6 +1,7 @@
 import {Constants} from "../constants";
 import {showMessage} from "../dialog/message";
 import {isMobile} from "./functions";
+import {platform} from "../platform";
 import {fetchPost} from "./fetch";
 import {Dialog} from "../dialog";
 import {getOpenNotebookCount} from "./pathName";
@@ -16,11 +17,11 @@ export const fetchNewDailyNote = (app: App, notebook: string) => {
         notebook,
         app: Constants.SIYUAN_APPID,
     }, (response) => {
-        /// #if MOBILE
-        openMobileFileById(app, response.data.id, [Constants.CB_GET_SCROLL, Constants.CB_GET_FOCUS]);
-        /// #else
+        if (platform === "browser-mobile") {
+            openMobileFileById(app, response.data.id, [Constants.CB_GET_SCROLL, Constants.CB_GET_FOCUS]);
+            return;
+        }
         openFileById({app, id: response.data.id, action: [Constants.CB_GET_SCROLL, Constants.CB_GET_FOCUS]});
-        /// #endif
     });
 };
 

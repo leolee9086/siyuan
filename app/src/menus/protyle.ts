@@ -2,6 +2,7 @@ import {
     hasClosestBlock,
     isInEmbedBlock
 } from "../protyle/util/hasClosest";
+import { isElectron } from "../platform";
 import { focusBlock, focusByRange } from "../protyle/util/selection";
 import {
     deleteColumn,
@@ -122,12 +123,10 @@ export const videoMenu = (protyle: IProtyle, nodeElement: Element, type: string)
     // @无需注释
     if (src && src.startsWith("assets/")) {
         subMenus.push(exportAsset(src));
-        /// #if !BROWSER
-        const os = getSiyuanConfig().system.os;
-        if (["windows", "darwin"].includes(os)) {
+        // 仅 Electron 桌面端（Windows/macOS）支持复制资源文件到系统剪贴板
+        if (isElectron && ["windows", "darwin"].includes(getSiyuanConfig().system.os)) {
             subMenus.push(copyAsset(src));
         }
-        /// #endif
     }
     return subMenus;
 };

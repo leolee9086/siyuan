@@ -2,7 +2,6 @@ import { App } from "../index";
 import { EventBus } from "./EventBus";
 import { fetchPost } from "../util/fetch";
 import { isMobile, isWindow } from "../util/functions";
-/// #if !MOBILE
 import { Custom } from "../layout/dock/Custom";
 import { getAllEditor, getAllModels } from "../layout/getAll";
 import { Tab } from "../layout/Tab";
@@ -10,9 +9,7 @@ import { resizeTopBar } from "../layout/util";
 import { setPanelFocus } from "../layout/utils/setPanelFocus";
 import { getDockByType } from "../layout/tabUtil";
 import { tabRegistry } from "../registry";
-///#else
 import { MobileCustom } from "../mobile/dock/MobileCustom";
-/// #endif
 import { hasClosestByAttribute } from "../protyle/util/hasClosest";
 import { BlockPanel } from "../block/Panel";
 import { Setting } from "./Setting";
@@ -49,18 +46,13 @@ export class Plugin {
     public statusBarIcons: Element[] = [];
     public commands: ICommand[] = [];
     public models: {
-        /// #if !MOBILE
         [key: string]: (options: { tab: Tab, data: any }) => Custom
-        /// #endif
     } = {};
     public docks: {
         [key: string]: {
             config: IPluginDockTab,
-            /// #if !MOBILE
-            model: (options: { tab: Tab }) => Custom
-            /// #else
-            mobileModel: (element: Element) => MobileCustom
-            /// #endif
+            model?: (options: { tab: Tab }) => Custom
+            mobileModel?: (element: Element) => MobileCustom
         }
     } = {};
     private protyleOptionsValue: IProtyleOptions;
@@ -239,7 +231,9 @@ export class Plugin {
         element: HTMLElement,
         position?: "right" | "left",
     }) {
-        /// #if !MOBILE
+        if (isMobile()) {
+            return;
+        }
         options.element.setAttribute("data-location", options.position || "right");
         this.statusBarIcons.push(options.element);
         const statusElement = document.getElementById("status");
@@ -251,7 +245,6 @@ export class Plugin {
             }
         }
         return options.element;
-        /// #endif
     }
 
     public openSetting() {
@@ -341,13 +334,13 @@ export class Plugin {
         modelKeys.forEach(item => {
             tabs[item.replace(this.name, "")] = [];
         });
-        /// #if !MOBILE
-        getAllModels().custom.find(item => {
-            if (modelKeys.includes(item.type)) {
-                tabs[item.type.replace(this.name, "")].push(item);
-            }
-        });
-        /// #endif
+        if (!isMobile()) {
+            getAllModels().custom.find(item => {
+                if (modelKeys.includes(item.type)) {
+                    tabs[item.type.replace(this.name, "")].push(item);
+                }
+            });
+        }
         return tabs;
     }
 
@@ -359,7 +352,9 @@ export class Plugin {
         update?: () => void,
         init: (model: Custom) => void
     }) {
-        /// #if !MOBILE
+        if (isMobile()) {
+            return;
+        }
         const type2 = this.name + options.type;
 
         // 委托给 TabRegistry 注册
@@ -382,7 +377,6 @@ export class Plugin {
             });
         };
         return this.models[type2];
-        /// #endif
     }
 
     public addDock(options: {
@@ -400,7 +394,6 @@ export class Plugin {
         }
         this.docks[type2] = {
             config: options.config,
-            /// #if MOBILE
             mobileModel: (element) => {
                 const customObj = new MobileCustom({
                     element,
@@ -412,7 +405,6 @@ export class Plugin {
                 });
                 return customObj;
             },
-            /// #else
             model: (arg: { tab: Tab }) => {
                 const customObj = new Custom({
                     app: this.app,
@@ -433,7 +425,6 @@ export class Plugin {
                 customObj.element.classList.add("sy__" + type2, "dockPanel");
                 return customObj;
             }
-            /// #endif
         };
         if (!window.siyuan.config.keymap.plugin) {
             window.siyuan.config.keymap.plugin = {};

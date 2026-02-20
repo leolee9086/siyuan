@@ -1,6 +1,7 @@
 import * as dayjs from "dayjs";
 import { focusByRange } from "../ai/imports";
 import { Constants } from "../constants";
+import { isMobile } from "../platform";
 import { popSearch } from "../mobile/menu/search";
 import { emitOpenMenu } from "../plugin/EventBus";
 import { hideElements } from "../protyle/ui/hideElements";
@@ -77,19 +78,20 @@ export const tagMenu = (protyle: IProtyle, tagElement: HTMLElement) => {
         accelerator: siyuanI18n.click,
         icon: "iconSearch",
         click() {
-            /// #if !MOBILE
-            openGlobalSearch(protyle.app, `#${tagElement.textContent}#`, false, { method: 0 });
-            /// #else
-            popSearch(protyle.app, {
-                hasReplace: false,
-                method: 0,
-                hPath: "",
-                idPath: [],
-                k: `#${tagElement.textContent}#`,
-                r: "",
-                page: 1,
-            });
-            /// #endif
+            if (!isMobile) {
+                openGlobalSearch(protyle.app, `#${tagElement.textContent}#`, false, { method: 0 });
+            }
+            if (isMobile) {
+                popSearch(protyle.app, {
+                    hasReplace: false,
+                    method: 0,
+                    hPath: "",
+                    idPath: [],
+                    k: `#${tagElement.textContent}#`,
+                    r: "",
+                    page: 1,
+                });
+            }
         }
     }).element);
     getSiyuanGlobalMenusMenu().append(new MenuItem({
@@ -159,16 +161,17 @@ export const tagMenu = (protyle: IProtyle, tagElement: HTMLElement) => {
         });
     }
 
-    /// #if MOBILE
-    getSiyuanGlobalMenusMenu().fullscreen();
-    /// #else
-    const rect = tagElement.getBoundingClientRect();
-    getSiyuanGlobalMenusMenu().popup({
-        x: rect.left,
-        y: rect.top + 26,
-        h: 26
-    });
-    /// #endif
+    if (isMobile) {
+        getSiyuanGlobalMenusMenu().fullscreen();
+    }
+    if (!isMobile) {
+        const rect = tagElement.getBoundingClientRect();
+        getSiyuanGlobalMenusMenu().popup({
+            x: rect.left,
+            y: rect.top + 26,
+            h: 26
+        });
+    }
     const popoverElement = hasTopClosestByClassName(protyle.element, "block__popover", true);
     getSiyuanGlobalMenusMenu().element.setAttribute("data-from", popoverElement ? popoverElement.dataset.level + "popover" : "app");
     getSiyuanGlobalMenusMenu().element.querySelector("input").select();

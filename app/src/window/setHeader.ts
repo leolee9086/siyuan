@@ -4,7 +4,7 @@ import { getAllTabs, getAllWnds } from "../layout/getAll";
 import { Editor } from "../editor";
 import { Asset } from "../asset";
 import { Constants } from "../constants";
-import { ipcRenderer } from "electron";
+import { ipcInvoke } from "../platform/electron/ipcRenderer";
 import { setLocationHash, getWindowInnerWidth } from "../util/siyuanEnvironments/windowLocation.environment";
 import { getSiyuanLayout, getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { Tab } from "../layout/Tab";
@@ -43,7 +43,7 @@ const processWndForTabPosition = async (item: Wnd): Promise<void> => {
     // 先设置默认值
     item.headersElement.style.paddingLeft = "";
     // 再根据条件覆盖
-    const isFullScreen = isDarwin && await ipcRenderer.invoke(Constants.SIYUAN_GET, {
+    const isFullScreen = isDarwin && await ipcInvoke(Constants.SIYUAN_GET, {
         cmd: "isFullScreen",
     });
     // macOS 非全屏模式下，窗口贴近左上角时需要为系统红绿灯按钮预留空间

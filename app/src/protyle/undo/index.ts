@@ -4,7 +4,8 @@ import { Constants } from "../../constants";
 import { hideElements } from "../ui/hideElements";
 import { scrollCenter } from "../../util/highlightById";
 import { matchHotKey } from "../util/hotKey";
-import { ipcRenderer } from "electron";
+import { isElectron } from "../../platform";
+import { ipcSend } from "../../platform/electron/ipcRenderer";
 import { getSiyuanEditorGeneralKeymap } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import type { IOperations } from "./undo.types";
 
@@ -317,26 +318,29 @@ export class Undo {
  * 此函数仅在非浏览器环境下生效（通过条件编译 `#if !BROWSER`）。
  * 快捷键配置来自用户设置 `window.siyuan.config.keymap.editor.general`。
  */
+/** @同步豁免: 遗留代码 - 键盘事件处理器必须同步返回布尔值以控制事件传播 */
 export const electronUndo = (event: KeyboardEvent) => {
-    /// #if !BROWSER
+    // 仅 Electron 环境下处理撤销/重做快捷键
+    if (!isElectron) {
+        return false;
+    }
     const 快捷键配置 = getSiyuanEditorGeneralKeymap();
     if (!快捷键配置) {
         return false;
     }
     // 检测撤销快捷键（如 Ctrl+Z）
     if (matchHotKey(快捷键配置.undo.custom, event)) {
-        ipcRenderer.send(Constants.SIYUAN_CMD, "undo");
+        ipcSend(Constants.SIYUAN_CMD, "undo");
         event.preventDefault();
         event.stopPropagation();
         return true;
     }
     // 检测重做快捷键（如 Ctrl+Shift+Z / Ctrl+Y）
     if (matchHotKey(快捷键配置.redo.custom, event)) {
-        ipcRenderer.send(Constants.SIYUAN_CMD, "redo");
+        ipcSend(Constants.SIYUAN_CMD, "redo");
         event.preventDefault();
         event.stopPropagation();
         return true;
     }
-    /// #endif
     return false;
 };

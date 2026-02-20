@@ -9,10 +9,9 @@ import { hasClosestBlock, hasClosestByAttribute, hasTopClosestByAttribute, isInE
 import { setFold } from "../../menus/protyle";
 import { zoomOut } from "../../menus/protyle.zoomOut";
 import { disabledProtyle, enableProtyle, onGet } from "../util/onGet";
-/// #if !MOBILE
 import { getAllModels } from "../../layout/getAll";
-/// #endif
 import { avRender, refreshAV } from "../render/av/render";
+import { isMobile } from "../../platform";
 import { removeFoldHeading } from "../util/heading";
 import { cancelSB, genEmptyElement, genSBElement } from "../../block/util";
 import { hideElements } from "../ui/hideElements";
@@ -85,13 +84,11 @@ const promiseTransaction = () => {
         } else {
             promiseTransaction();
         }
-        /// #if MOBILE
-        if (((0 !== window.siyuan.config.sync.provider && isPaidUser()) ||
+        if (isMobile && ((0 !== window.siyuan.config.sync.provider && isPaidUser()) ||
             (0 === window.siyuan.config.sync.provider && !needSubscribe(""))) &&
             window.siyuan.config.repo.key && window.siyuan.config.sync.enabled) {
             document.getElementById("toolbarSync").classList.remove("fn__none");
         }
-        /// #endif
         let range: Range;
         if (getSelection().rangeCount > 0) {
             range = getSelection().getRangeAt(0);
@@ -600,14 +597,12 @@ export const onTransaction = (protyle: IProtyle, operation: IOperation, isUndo: 
             if (data.new.icon !== data.old.icon ||
                 data.new["title-img"] !== data.old["title-img"] ||
                 data.new.tags !== data.old.tags && protyle.background) {
-                /// #if MOBILE
-                protyle = window.siyuan.mobile.editor.protyle;
-                /// #endif
-                protyle.background.ial.icon = data.new.icon;
-                protyle.background.ial.tags = data.new.tags;
-                protyle.background.ial["title-img"] = data.new["title-img"];
-                protyle.background.render(protyle.background.ial, protyle.block.rootID);
-                protyle.model?.parent.setDocIcon(data.new.icon);
+                const bgProtyle = isMobile ? window.siyuan.mobile.editor.protyle : protyle;
+                bgProtyle.background.ial.icon = data.new.icon;
+                bgProtyle.background.ial.tags = data.new.tags;
+                bgProtyle.background.ial["title-img"] = data.new["title-img"];
+                bgProtyle.background.render(bgProtyle.background.ial, bgProtyle.block.rootID);
+                bgProtyle.model?.parent.setDocIcon(data.new.icon);
             }
             return;
         }
@@ -665,8 +660,7 @@ export const onTransaction = (protyle: IProtyle, operation: IOperation, isUndo: 
         if (operation.context?.ignoreProcess === "true") {
             return;
         }
-        /// #if !MOBILE
-        if (updateElements.length === 0) {
+        if (!isMobile && updateElements.length === 0) {
             // 打开两个相同的文档 A、A1，从 A 拖拽块 B 到 A1，在后续 ws 处理中，无法获取到拖拽出去的 B
             getAllModels().editor.forEach(editor => {
                 const updateCloneElement = editor.editor.protyle.wysiwyg.element.querySelector(`[data-node-id="${operation.id}"]`);
@@ -675,7 +669,7 @@ export const onTransaction = (protyle: IProtyle, operation: IOperation, isUndo: 
                 }
             });
         }
-        if (updateElements.length === 0) {
+        if (!isMobile && updateElements.length === 0) {
             // 页签拖入浮窗 https://github.com/siyuan-note/siyuan/issues/6647
             window.siyuan.blockPanels.forEach((item) => {
                 const updateCloneElement = item.element.querySelector(`[data-node-id="${operation.id}"]`);
@@ -684,7 +678,6 @@ export const onTransaction = (protyle: IProtyle, operation: IOperation, isUndo: 
                 }
             });
         }
-        /// #endif
         // 折叠标题移动到横向超级块的第一个块上后撤销
         if (updateElements.length === 0) {
             const tempEl = document.createElement("div");

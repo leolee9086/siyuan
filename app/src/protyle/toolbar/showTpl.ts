@@ -5,6 +5,7 @@
 import { Constants } from "../../constants";
 import { getSelectionPosition } from "../util/selection";
 import { hideElements } from "../ui/hideElements";
+import { isMobile } from "../../platform";
 import { setPosition } from "../../util/setPosition";
 import { fetchPost } from "../../util/fetch";
 import { previewTemplate } from "./util";
@@ -104,17 +105,18 @@ function 显示面板并加载数据(
 }
 
 function 设置面板位置(subElement: HTMLElement, nodeElement: HTMLElement, range: Range): void {
-    /// #if !MOBILE
-    const rangePosition = getSelectionPosition(nodeElement, range);
-    setPosition(subElement, rangePosition.left, rangePosition.top + 18, Constants.SIZE_TOOLBAR_HEIGHT);
-    const firstChild = subElement.firstElementChild;
-    if (firstChild instanceof HTMLElement) {
-        const windowHeight = getWindowInnerHeight();
-        firstChild.style.maxHeight = Math.min(windowHeight * 0.8, windowHeight - subElement.getBoundingClientRect().top) - 16 + "px";
+    if (!isMobile) {
+        const rangePosition = getSelectionPosition(nodeElement, range);
+        setPosition(subElement, rangePosition.left, rangePosition.top + 18, Constants.SIZE_TOOLBAR_HEIGHT);
+        const firstChild = subElement.firstElementChild;
+        if (firstChild instanceof HTMLElement) {
+            const windowHeight = getWindowInnerHeight();
+            firstChild.style.maxHeight = Math.min(windowHeight * 0.8, windowHeight - subElement.getBoundingClientRect().top) - 16 + "px";
+        }
     }
-    /// #else
-    setPosition(subElement, 0, 0);
-    /// #endif
+    if (isMobile) {
+        setPosition(subElement, 0, 0);
+    }
 }
 
 function 处理模板搜索结果(

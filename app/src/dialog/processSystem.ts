@@ -1,14 +1,11 @@
 import {Constants} from "../constants";
 import {fetchPost} from "../util/fetch";
-/// #if !MOBILE
 import {exportLayout} from "../layout/util";
-/// #endif
 import {getAllEditor, getAllModels} from "../layout/getAll";
 import {getDockByType} from "../layout/tabUtil";
 import {Files} from "../layout/dock/Files";
-/// #if !BROWSER
-import {ipcRenderer} from "electron";
-/// #endif
+import {isElectron} from "../platform";
+import {ipcSend} from "../platform/electron/ipcRenderer";
 import {hideMessage, showMessage} from "./message";
 import {Dialog} from "./index";
 import {isMobile} from "../util/functions";
@@ -49,31 +46,32 @@ export const reloadSync = (
     if (hideMsg) {
         hideMessage();
     }
-    /// #if MOBILE
-    if (window.siyuan.mobile.popEditor) {
-        if (data.removeRootIDs.includes(window.siyuan.mobile.popEditor.protyle.block.rootID)) {
-            hideElements(["dialog"]);
-        } else {
-            reloadProtyle(window.siyuan.mobile.popEditor.protyle, false, updateReadonly);
+    if (isMobile()) {
+        if (window.siyuan.mobile.popEditor) {
+            if (data.removeRootIDs.includes(window.siyuan.mobile.popEditor.protyle.block.rootID)) {
+                hideElements(["dialog"]);
+            } else {
+                reloadProtyle(window.siyuan.mobile.popEditor.protyle, false, updateReadonly);
+            }
         }
-    }
-    if (window.siyuan.mobile.editor) {
-        if (data.removeRootIDs.includes(window.siyuan.mobile.editor.protyle.block.rootID)) {
-            setEmpty(app);
-        } else {
-            reloadProtyle(window.siyuan.mobile.editor.protyle, false, updateReadonly);
-            fetchPost("/api/block/getDocInfo", {
-                id: window.siyuan.mobile.editor.protyle.block.rootID
-            }, (response) => {
-                setTitle(response.data.name);
-                window.siyuan.mobile.editor.protyle.title.setTitle(response.data.name);
-            });
+        if (window.siyuan.mobile.editor) {
+            if (data.removeRootIDs.includes(window.siyuan.mobile.editor.protyle.block.rootID)) {
+                setEmpty(app);
+            } else {
+                reloadProtyle(window.siyuan.mobile.editor.protyle, false, updateReadonly);
+                fetchPost("/api/block/getDocInfo", {
+                    id: window.siyuan.mobile.editor.protyle.block.rootID
+                }, (response) => {
+                    setTitle(response.data.name);
+                    window.siyuan.mobile.editor.protyle.title.setTitle(response.data.name);
+                });
+            }
         }
+        setNoteBook(() => {
+            window.siyuan.mobile.docks.file.init(false);
+        });
+        return;
     }
-    setNoteBook(() => {
-        window.siyuan.mobile.docks.file.init(false);
-    });
-    /// #else
     const allModels = getAllModels();
     allModels.editor.forEach(item => {
         if (data.upsertRootIDs.includes(item.editor.protyle.block.rootID)) {
@@ -147,7 +145,6 @@ export const reloadSync = (
             item.update();
         }
     });
-    /// #endif
 };
 
 export const setRefDynamicText = (data: {
@@ -214,11 +211,12 @@ export const setDefRefCount = (data: {
     });
 
     let liElement;
-    /// #if MOBILE
-    liElement = window.siyuan.mobile.docks.file.element.querySelector(`li[data-node-id="${data.rootID}"]`);
-    /// #else
-    liElement = (getDockByType("file").data.file as Files).element.querySelector(`li[data-node-id="${data.rootID}"]`);
-    /// #endif
+    if (isMobile()) {
+        liElement = window.siyuan.mobile.docks.file.element.querySelector(`li[data-node-id="${data.rootID}"]`);
+    }
+    if (!isMobile()) {
+        liElement = (getDockByType("file").data.file as Files).element.querySelector(`li[data-node-id="${data.rootID}"]`);
+    }
     if (liElement) {
         const counterElement = liElement.querySelector(".counter");
         if (counterElement) {
@@ -240,13 +238,13 @@ export const lockScreen = (app: App) => {
     app.plugins.forEach(item => {
         item.eventBus.emit("lock-screen");
     });
-    /// #if BROWSER
-    fetchPost("/api/system/logoutAuth", {}, () => {
-        redirectToCheckAuth();
-    });
-    /// #else
-    ipcRenderer.send(Constants.SIYUAN_SEND_WINDOWS, {cmd: "lockscreen"});
-    /// #endif
+    if (!isElectron) {
+        fetchPost("/api/system/logoutAuth", {}, () => {
+            redirectToCheckAuth();
+        });
+        return;
+    }
+    ipcSend(Constants.SIYUAN_SEND_WINDOWS, {cmd: "lockscreen"});
 };
 
 export const kernelError = () => {
@@ -282,11 +280,10 @@ export const kernelError = () => {
 
 export const exitSiYuan = async (setCurrentWorkspace = true) => {
     hideAllElements(["util"]);
-    /// #if MOBILE
-    if (window.siyuan.mobile.editor) {
+    // 移动端退出前保存滚动位置
+    if (isMobile() && window.siyuan.mobile.editor) {
         await saveScroll(window.siyuan.mobile.editor.protyle);
     }
-    /// #endif
     fetchPost("/api/system/exit", {force: false, setCurrentWorkspace}, (response) => {
         if (response.code === 1) { // 同步执行失败
             const msgId = showMessage(response.msg, response.data.closeTimeout, "error");
@@ -294,9 +291,10 @@ export const exitSiYuan = async (setCurrentWorkspace = true) => {
             if (buttonElement) {
                 buttonElement.addEventListener("click", () => {
                     fetchPost("/api/system/exit", {force: true, setCurrentWorkspace}, () => {
-                        /// #if !BROWSER
-                        ipcRenderer.send(Constants.SIYUAN_QUIT, location.port);
-                        /// #else
+                        if (isElectron) {
+                            ipcSend(Constants.SIYUAN_QUIT, location.port);
+                            return;
+                        }
                         if (isInAndroid()) {
                             window.JSAndroid.exit();
                             return;
@@ -309,7 +307,6 @@ export const exitSiYuan = async (setCurrentWorkspace = true) => {
                             window.JSHarmony.exit();
                             return;
                         }
-                        /// #endif
                     });
                 });
             }
@@ -317,7 +314,7 @@ export const exitSiYuan = async (setCurrentWorkspace = true) => {
             hideMessage();
 
             if ("std" === window.siyuan.config.system.container) {
-                ipcRenderer.send(Constants.SIYUAN_SHOW_WINDOW);
+                ipcSend(Constants.SIYUAN_SHOW_WINDOW);
             }
 
             confirmDialog(window.siyuan.languages.updateVersion, response.msg, () => {
@@ -326,17 +323,17 @@ export const exitSiYuan = async (setCurrentWorkspace = true) => {
                     setCurrentWorkspace,
                     execInstallPkg: 2 //  0：默认检查新版本，1：不执行新版本安装，2：执行新版本安装
                 }, () => {
-                    /// #if !BROWSER
-                    // 桌面端退出拉起更新安装时有时需要重启两次 https://github.com/siyuan-note/siyuan/issues/6544
-                    // 这里先将主界面隐藏
-                    setTimeout(() => {
-                        ipcRenderer.send(Constants.SIYUAN_CMD, "hide");
-                    }, 2000);
-                    // 然后等待一段时间后再退出，避免界面主进程退出以后内核子进程被杀死
-                    setTimeout(() => {
-                        ipcRenderer.send(Constants.SIYUAN_QUIT, location.port);
-                    }, 4000);
-                    /// #endif
+                    if (isElectron) {
+                        // 桌面端退出拉起更新安装时有时需要重启两次 https://github.com/siyuan-note/siyuan/issues/6544
+                        // 这里先将主界面隐藏
+                        setTimeout(() => {
+                            ipcSend(Constants.SIYUAN_CMD, "hide");
+                        }, 2000);
+                        // 然后等待一段时间后再退出，避免界面主进程退出以后内核子进程被杀死
+                        setTimeout(() => {
+                            ipcSend(Constants.SIYUAN_QUIT, location.port);
+                        }, 4000);
+                    }
                 });
             }, () => {
                 fetchPost("/api/system/exit", {
@@ -344,15 +341,16 @@ export const exitSiYuan = async (setCurrentWorkspace = true) => {
                     setCurrentWorkspace,
                     execInstallPkg: 1 //  0：默认检查新版本，1：不执行新版本安装，2：执行新版本安装
                 }, () => {
-                    /// #if !BROWSER
-                    ipcRenderer.send(Constants.SIYUAN_QUIT, location.port);
-                    /// #endif
+                    if (isElectron) {
+                        ipcSend(Constants.SIYUAN_QUIT, location.port);
+                    }
                 });
             });
         } else { // 正常退出
-            /// #if !BROWSER
-            ipcRenderer.send(Constants.SIYUAN_QUIT, location.port);
-            /// #else
+            if (isElectron) {
+                ipcSend(Constants.SIYUAN_QUIT, location.port);
+                return;
+            }
             if (isInAndroid()) {
                 window.JSAndroid.exit();
                 return;
@@ -361,12 +359,10 @@ export const exitSiYuan = async (setCurrentWorkspace = true) => {
                 window.webkit.messageHandlers.exit.postMessage("");
                 return;
             }
-
             if (isInHarmony()) {
                 window.JSHarmony.exit();
                 return;
             }
-            /// #endif
         }
     });
 };
@@ -389,14 +385,14 @@ export const transactionError = () => {
     dialog.element.setAttribute("data-key", Constants.DIALOG_STATEEXCEPTED);
     const btnsElement = dialog.element.querySelectorAll(".b3-button");
     btnsElement[0].addEventListener("click", () => {
-        /// #if MOBILE
-        exitSiYuan();
-        /// #else
+        if (isMobile()) {
+            exitSiYuan();
+            return;
+        }
         exportLayout({
             errorExit: true,
             cb: exitSiYuan
         });
-        /// #endif
     });
     btnsElement[1].addEventListener("click", () => {
         refreshFileTree();
@@ -552,61 +548,63 @@ export const downloadProgress = (data: { id: string, percent: number }) => {
 };
 
 export const processSync = (data?: IWebSocketData, plugins?: Plugin[]) => {
-    /// #if MOBILE
-    const menuSyncUseElement = document.querySelector("#menuSyncNow use");
-    const barSyncUseElement = document.querySelector("#toolbarSync use");
-    if (!data) {
-        if (!window.siyuan.config.sync.enabled || (0 === window.siyuan.config.sync.provider && needSubscribe(""))) {
-            menuSyncUseElement?.setAttribute("xlink:href", "#iconCloudOff");
-            barSyncUseElement.setAttribute("xlink:href", "#iconCloudOff");
-        } else {
-            menuSyncUseElement?.setAttribute("xlink:href", "#iconCloudSucc");
-            barSyncUseElement.setAttribute("xlink:href", "#iconCloudSucc");
+    if (isMobile()) {
+        const menuSyncUseElement = document.querySelector("#menuSyncNow use");
+        const barSyncUseElement = document.querySelector("#toolbarSync use");
+        if (!data) {
+            if (!window.siyuan.config.sync.enabled || (0 === window.siyuan.config.sync.provider && needSubscribe(""))) {
+                menuSyncUseElement?.setAttribute("xlink:href", "#iconCloudOff");
+                barSyncUseElement.setAttribute("xlink:href", "#iconCloudOff");
+            } else {
+                menuSyncUseElement?.setAttribute("xlink:href", "#iconCloudSucc");
+                barSyncUseElement.setAttribute("xlink:href", "#iconCloudSucc");
+            }
         }
-        return;
+        if (data) {
+            menuSyncUseElement?.parentElement.classList.remove("fn__rotate");
+            barSyncUseElement.parentElement.classList.remove("fn__rotate");
+            if (data.code === 0) {  // syncing
+                menuSyncUseElement?.parentElement.classList.add("fn__rotate");
+                barSyncUseElement.parentElement.classList.add("fn__rotate");
+                menuSyncUseElement?.setAttribute("xlink:href", "#iconRefresh");
+                barSyncUseElement.setAttribute("xlink:href", "#iconRefresh");
+            } else if (data.code === 2) {    // error
+                menuSyncUseElement?.setAttribute("xlink:href", "#iconCloudError");
+                barSyncUseElement.setAttribute("xlink:href", "#iconCloudError");
+            } else if (data.code === 1) {   // success
+                menuSyncUseElement?.setAttribute("xlink:href", "#iconCloudSucc");
+                barSyncUseElement.setAttribute("xlink:href", "#iconCloudSucc");
+            }
+        }
     }
-    menuSyncUseElement?.parentElement.classList.remove("fn__rotate");
-    barSyncUseElement.parentElement.classList.remove("fn__rotate");
-    if (data.code === 0) {  // syncing
-        menuSyncUseElement?.parentElement.classList.add("fn__rotate");
-        barSyncUseElement.parentElement.classList.add("fn__rotate");
-        menuSyncUseElement?.setAttribute("xlink:href", "#iconRefresh");
-        barSyncUseElement.setAttribute("xlink:href", "#iconRefresh");
-    } else if (data.code === 2) {    // error
-        menuSyncUseElement?.setAttribute("xlink:href", "#iconCloudError");
-        barSyncUseElement.setAttribute("xlink:href", "#iconCloudError");
-    } else if (data.code === 1) {   // success
-        menuSyncUseElement?.setAttribute("xlink:href", "#iconCloudSucc");
-        barSyncUseElement.setAttribute("xlink:href", "#iconCloudSucc");
-    }
-    /// #else
-    const iconElement = document.querySelector("#barSync");
-    if (!iconElement) {
-        return;
-    }
-    const useElement = iconElement.querySelector("use");
-    if (!data) {
-        iconElement.classList.remove("toolbar__item--active");
-        if (!window.siyuan.config.sync.enabled || (0 === window.siyuan.config.sync.provider && needSubscribe(""))) {
-            useElement.setAttribute("xlink:href", "#iconCloudOff");
-        } else {
+    if (!isMobile()) {
+        const iconElement = document.querySelector("#barSync");
+        if (!iconElement) {
+            return;
+        }
+        const useElement = iconElement.querySelector("use");
+        if (!data) {
+            iconElement.classList.remove("toolbar__item--active");
+            if (!window.siyuan.config.sync.enabled || (0 === window.siyuan.config.sync.provider && needSubscribe(""))) {
+                useElement.setAttribute("xlink:href", "#iconCloudOff");
+            } else {
+                useElement.setAttribute("xlink:href", "#iconCloudSucc");
+            }
+            return;
+        }
+        iconElement.firstElementChild.classList.remove("fn__rotate");
+        if (data.code === 0) {  // syncing
+            iconElement.classList.add("toolbar__item--active");
+            iconElement.firstElementChild.classList.add("fn__rotate");
+            useElement.setAttribute("xlink:href", "#iconRefresh");
+        } else if (data.code === 2) {    // error
+            iconElement.classList.remove("toolbar__item--active");
+            useElement.setAttribute("xlink:href", "#iconCloudError");
+        } else if (data.code === 1) {   // success
+            iconElement.classList.remove("toolbar__item--active");
             useElement.setAttribute("xlink:href", "#iconCloudSucc");
         }
-        return;
     }
-    iconElement.firstElementChild.classList.remove("fn__rotate");
-    if (data.code === 0) {  // syncing
-        iconElement.classList.add("toolbar__item--active");
-        iconElement.firstElementChild.classList.add("fn__rotate");
-        useElement.setAttribute("xlink:href", "#iconRefresh");
-    } else if (data.code === 2) {    // error
-        iconElement.classList.remove("toolbar__item--active");
-        useElement.setAttribute("xlink:href", "#iconCloudError");
-    } else if (data.code === 1) {   // success
-        iconElement.classList.remove("toolbar__item--active");
-        useElement.setAttribute("xlink:href", "#iconCloudSucc");
-    }
-    /// #endif
     plugins.forEach((item) => {
         if (data.code === 0) {
             item.eventBus.emit("sync-start", data);

@@ -1,13 +1,11 @@
 import { focusByRange } from "./selection";
 import { fetchPost, fetchSyncPost } from "../../util/fetch";
 import { Constants } from "../../constants";
-/// #if !BROWSER
-import { clipboard, ipcRenderer } from "electron";
-/// #endif
-/// #if MOBILE
+import { isBrowser, isMobile, isElectron } from "../../platform";
+import { clipboardRead } from "../../platform/electron/clipboard";
+import { ipcSendSync } from "../../platform/electron/ipcRenderer";
 import { processSYLink } from "../../editor/openLink";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-/// #endif
 import {getDefaultType} from "../../search/getDefault";
 
 export const isPhablet = () => {
@@ -70,11 +68,9 @@ export const openByMobile = (uri: string) => {
     if (!uri) {
         return;
     }
-    /// #if MOBILE
-    if (processSYLink(window.siyuan.ws.app, uri)) {
+    if (isMobile && processSYLink(window.siyuan.ws.app, uri)) {
         return;
     }
-    /// #endif
     if (isInIOS()) {
         if (uri.startsWith("assets/")) {
             // iOS 16.7 之前的版本，uri 需要 encodeURIComponent
@@ -129,12 +125,14 @@ export const readText = () => {
     }) || "";
 };
 
-/// #if !BROWSER
-export const getLocalFiles = async () => {
+export const getLocalFiles = async (): Promise<ILocalFiles[]> => {
+    if (isBrowser) {
+        return [];
+    }
     // 不再支持 PC 浏览器 https://github.com/siyuan-note/siyuan/issues/7206
     let localFiles: ILocalFiles[] = [];
     if ("darwin" === window.siyuan.config.system.os) {
-        const xmlString = clipboard.read("NSFilenamesPboardType");
+        const xmlString = clipboardRead("NSFilenamesPboardType");
         const domParser = new DOMParser();
         const xmlDom = domParser.parseFromString(xmlString, "application/xml");
         Array.from(xmlDom.getElementsByTagName("string")).forEach(item => {
@@ -148,7 +146,6 @@ export const getLocalFiles = async () => {
     }
     return localFiles;
 };
-/// #endif
 
 export const readClipboard = async () => {
     const text: IClipboardData = { textPlain: "", textHTML: "", siyuanHTML: "" };
@@ -202,11 +199,9 @@ export const readClipboard = async () => {
                 text.files = [new File([blob], "image.png", { type: "image/png", lastModified: Date.now() })];
             }
         }
-        /// #if !BROWSER
-        if (!text.textHTML && !text.files) {
+        if (isElectron && !text.textHTML && !text.files) {
             text.localFiles = await getLocalFiles();
         }
-        /// #endif
         return text;
     } catch (e) {
         return text;
@@ -589,14 +584,16 @@ export const setStorageVal = (key: string, val: any, cb?: () => void) => {
     });
 };
 
-/// #if !BROWSER
 export const initNativeDialogOverride = () => {
+    if (isBrowser) {
+        return;
+    }
     const originalAlert = window.alert;
     const originalConfirm = window.confirm;
 
     window.alert = function (message: string) {
         try {
-            ipcRenderer.sendSync(Constants.SIYUAN_ALERT_DIALOG, {
+            ipcSendSync(Constants.SIYUAN_ALERT_DIALOG, {
                 title: window.siyuan.languages.siyuanNote,
                 message,
                 buttons: [window.siyuan.languages.confirm],
@@ -610,7 +607,7 @@ export const initNativeDialogOverride = () => {
 
     window.confirm = function (message: string): boolean {
         try {
-            const buttonIndex = ipcRenderer.sendSync(Constants.SIYUAN_CONFIRM_DIALOG, {
+            const buttonIndex = ipcSendSync(Constants.SIYUAN_CONFIRM_DIALOG, {
                 title: window.siyuan?.languages?.siyuanNote || "SiYuan",
                 message,
                 buttons: [window.siyuan?.languages?.cancel || "Cancel", window.siyuan?.languages?.confirm || "OK"],
@@ -624,5 +621,4 @@ export const initNativeDialogOverride = () => {
         }
     };
 };
-/// #endif
 

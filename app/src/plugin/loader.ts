@@ -1,9 +1,7 @@
 import { fetchSyncPost } from "../util/fetch";
 import { App } from "../index";
 import { Plugin } from "./index";
-/// #if !MOBILE
 import { resizeTopBar, saveLayout } from "../layout/util";
-/// #endif
 import { API } from "./API";
 import { getFrontend, isMobile, isWindow } from "../util/functions";
 import { Constants } from "../constants";
@@ -157,25 +155,27 @@ export const afterLoadPlugin = (plugin: Plugin) => {
             }
         });
     }
-    /// #if !MOBILE
-    resizeTopBar();
-    plugin.statusBarIcons.forEach(element => {
-        if (document.contains(element)) {
-            return;
-        }
-        const statusElement = document.getElementById("status");
-        if (element.getAttribute("data-location") === "right") {
-            statusElement.insertAdjacentElement("beforeend", element);
-        } else {
-            statusElement.insertAdjacentElement("afterbegin", element);
-        }
-    });
-    /// #endif
+    if (!isMobile()) {
+        resizeTopBar();
+        plugin.statusBarIcons.forEach(element => {
+            if (document.contains(element)) {
+                return;
+            }
+            const statusElement = document.getElementById("status");
+            if (element.getAttribute("data-location") === "right") {
+                statusElement.insertAdjacentElement("beforeend", element);
+            } else {
+                statusElement.insertAdjacentElement("afterbegin", element);
+            }
+        });
+    }
     if (isWindow()) {
         return;
     }
 
-    /// #if !MOBILE
+    if (isMobile()) {
+        return;
+    }
     getSiyuanConfig().uiLayout.left.data.forEach((dockItem: Config.IUILayoutDockTab[], index: number) => {
         updateDock(dockItem, index, plugin, "Left");
     });
@@ -220,7 +220,6 @@ export const afterLoadPlugin = (plugin: Plugin) => {
             }], dock.config.position === "RightBottom" ? 1 : 0, dock.config.index);
         }
     });
-    /// #endif
 };
 
 export const reloadPlugin = async (app: App, data: {
@@ -260,7 +259,7 @@ export const reloadPlugin = async (app: App, data: {
             }
         }
     });
-    /// #if !MOBILE
-    saveLayout();
-    /// #endif
+    if (!isMobile()) {
+        saveLayout();
+    }
 };

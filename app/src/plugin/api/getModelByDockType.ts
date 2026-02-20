@@ -1,11 +1,10 @@
-/// #if !MOBILE
 import { getDockByType } from "../../layout/tabUtil";
-/// #endif
+import { isMobile } from "../../util/functions";
 
 export const getModelByDockType = (type: TDock | string) => {
-    /// #if MOBILE
-    return window.siyuan.mobile.docks[type];
-    /// #else
+    // 移动端从mobile.docks获取模型，桌面端从dock布局获取
+    if (isMobile()) {
+        return window.siyuan.mobile.docks[type];
+    }
     return getDockByType(type).data[type];
-    /// #endif
 };

@@ -6,6 +6,7 @@ import { hasClosestByClassName } from "../util/hasClosest";
 import { goHome } from "../wysiwyg/commonHotkey/commonHotkey";
 import { goEnd } from "../wysiwyg/commonHotkey/goEnd";
 import { showTooltip } from "../../dialog/tooltip";
+import { isBrowser } from "../../platform";
 
 export class Scroll {
     public element: HTMLElement;
@@ -38,14 +39,15 @@ export class Scroll {
             this.element.setAttribute("aria-label", `Blocks ${this.inputElement.value}/${protyle.block.blockCount}`);
             showTooltip(this.element.getAttribute("aria-label"), this.element);
         });
-        /// #if BROWSER
-        this.inputElement.addEventListener("change", () => {
-            this.setIndex(protyle);
-        });
-        this.inputElement.addEventListener("touchend", () => {
-            this.setIndex(protyle);
-        });
-        /// #endif
+        // 浏览器环境下需要额外监听 change 和 touchend 事件来触发索引跳转
+        if (isBrowser) {
+            this.inputElement.addEventListener("change", () => {
+                this.setIndex(protyle);
+            });
+            this.inputElement.addEventListener("touchend", () => {
+                this.setIndex(protyle);
+            });
+        }
         this.parentElement.addEventListener("click", (event) => {
             const target = event.target as HTMLElement;
             if (hasClosestByClassName(target, "protyle-scroll__up")) {

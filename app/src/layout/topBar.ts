@@ -13,9 +13,9 @@ import {setMode} from "../util/assets";
 import {openSetting} from "../config";
 import {openSearch} from "../search/spread";
 import {App} from "../index";
-/// #if !BROWSER
-import {ipcRenderer, webFrame} from "electron";
-/// #endif
+import {isElectron} from "../platform";
+import {ipcSend} from "../platform/electron/ipcRenderer";
+import {setZoomFactor} from "../platform/electron/webFrame";
 import {Constants} from "../constants";
 import {isBrowser, isWindow} from "../util/functions";
 import {fetchPost} from "../util/fetch";
@@ -269,7 +269,9 @@ export const initBar = (app: App) => {
 };
 
 export const setZoom = (type: "zoomIn" | "zoomOut" | "restore") => {
-    /// #if !BROWSER
+    if (!isElectron) {
+        return;
+    }
     let zoom = 1;
     if (type === "zoomIn") {
         Constants.SIZE_ZOOM.find((item, index) => {
@@ -287,8 +289,8 @@ export const setZoom = (type: "zoomIn" | "zoomOut" | "restore") => {
         });
     }
 
-    webFrame.setZoomFactor(zoom);
-    ipcRenderer.send(Constants.SIYUAN_CMD, {
+    setZoomFactor(zoom);
+    ipcSend(Constants.SIYUAN_CMD, {
         cmd: "setTrafficLightPosition",
         zoom,
         position: Constants.SIZE_ZOOM.find((item) => item.zoom === zoom).position
@@ -308,5 +310,4 @@ export const setZoom = (type: "zoomIn" | "zoomOut" | "restore") => {
             barZoomElement.classList.remove("fn__none");
         }
     }
-    /// #endif
 };

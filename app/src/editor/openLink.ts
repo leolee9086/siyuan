@@ -1,15 +1,13 @@
 import {getIdFromSYProtocol, isLocalPath, isSYProtocol, pathPosix} from "../util/pathName";
-/// #if !BROWSER
-import {shell, ipcRenderer} from "electron";
-/// #endif
 import {getSearch} from "../util/functions";
 import {Constants} from "../constants";
-/// #if !MOBILE
+import {isMobile, isElectron} from "../platform";
+import {openExternal} from "../platform/electron/shell";
+import {ipcSend} from "../platform/electron/ipcRenderer";
 import { openFile} from "./util";
 import { openFileById } from "./utils.openFileById";
 import { openBy } from "./utils.openBy";
 import {openAsset} from "./util.openAsset";
-/// #endif
 import {showMessage} from "../dialog/message";
 import {openByMobile} from "../protyle/util/compatibility";
 import {App} from "../index";
@@ -37,9 +35,8 @@ export const processSYLink = (app: App, url: string) => {
                 // siyuan://plugins/plugin-name/foo?bar=baz
                 plugin.eventBus.emit("open-siyuan-url-plugin", {url});
 
-                /// #if !MOBILE
-                // https://github.com/siyuan-note/siyuan/pull/9256
-                if (pluginNameType.split("/")[0] !== plugin.name) {
+                // 非移动端：通过协议打开自定义插件页签 https://github.com/siyuan-note/siyuan/pull/9256
+                if (!isMobile && pluginNameType.split("/")[0] !== plugin.name) {
                     // siyuan://plugins/plugin-samplecustom_tab?title=自定义页签&icon=iconFace&data={"text": "This is the custom plugin tab I opened via protocol."}
                     let data = urlObj.searchParams.get("data");
                     try {
@@ -57,7 +54,6 @@ export const processSYLink = (app: App, url: string) => {
                         },
                     });
                 }
-                /// #endif
                 return true;
             }
         });
@@ -70,20 +66,18 @@ export const processSYLink = (app: App, url: string) => {
         fetchPost("/api/block/checkBlockExist", {id}, existResponse => {
             if (existResponse.data) {
                 checkFold(id, (zoomIn) => {
-                    /// #if !MOBILE
-                    openFileById({
-                        app,
-                        id,
-                        action: (zoomIn || focus) ? [Constants.CB_GET_FOCUS, Constants.CB_GET_HL, Constants.CB_GET_ALL] : [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL],
-                        zoomIn: zoomIn || focus
-                    });
-                    /// #else
-                    openMobileFileById(app, id, (zoomIn || focus) ? [Constants.CB_GET_FOCUS, Constants.CB_GET_HL, Constants.CB_GET_ALL] : [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL]);
-                    /// #endif
+                    const action = (zoomIn || focus) ? [Constants.CB_GET_FOCUS, Constants.CB_GET_HL, Constants.CB_GET_ALL] : [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL];
+                    if (isMobile) {
+                        openMobileFileById(app, id, action);
+                    }
+                    if (!isMobile) {
+                        openFileById({ app, id, action, zoomIn: zoomIn || focus });
+                    }
                 });
-                /// #if !BROWSER
-                ipcRenderer.send(Constants.SIYUAN_CMD, "show");
-                /// #endif
+                // Electron 环境下将窗口前置
+                if (isElectron) {
+                    ipcSend(Constants.SIYUAN_CMD, "show");
+                }
             }
             app.plugins.forEach(plugin => {
                 plugin.eventBus.emit("open-siyuan-url-block", {
@@ -112,9 +106,10 @@ export const openLink = (protyle: IProtyle, aLink: string, event?: MouseEvent, c
             linkAddress = linkAddress.split("?page")[0];
         }
     }
-    /// #if MOBILE
-    openByMobile(linkAddress);
-    /// #else
+    if (isMobile) {
+        openByMobile(linkAddress);
+        return;
+    }
     if (isLocalPath(linkAddress)) {
         if (Constants.SIYUAN_ASSETS_EXTS.includes(pathPosix().extname(linkAddress)) &&
             (
@@ -126,30 +121,34 @@ export const openLink = (protyle: IProtyle, aLink: string, event?: MouseEvent, c
             if (event && event.altKey) {
                 openAsset(protyle.app, linkAddress, pdfParams);
             } else if (event && event.shiftKey) {
-                /// #if !BROWSER
-                openBy(linkAddress, "app");
-                /// #else
-                openByMobile(linkAddress);
-                /// #endif
+                if (isElectron) {
+                    openBy(linkAddress, "app");
+                }
+                if (!isElectron) {
+                    openByMobile(linkAddress);
+                }
             } else if (ctrlIsPressed) {
-                /// #if !BROWSER
-                openBy(linkAddress, "folder");
-                /// #else
-                openByMobile(linkAddress);
-                /// #endif
+                if (isElectron) {
+                    openBy(linkAddress, "folder");
+                }
+                if (!isElectron) {
+                    openByMobile(linkAddress);
+                }
             } else {
                 openAsset(protyle.app, linkAddress, pdfParams, !window.siyuan.config.fileTree.noSplitScreenWhenOpenTab ? "right" : null);
             }
         } else {
-            /// #if !BROWSER
-            if (ctrlIsPressed) {
-                openBy(linkAddress, "folder");
-            } else {
-                openBy(linkAddress, "app");
+            if (isElectron) {
+                if (ctrlIsPressed) {
+                    openBy(linkAddress, "folder");
+                }
+                if (!ctrlIsPressed) {
+                    openBy(linkAddress, "app");
+                }
             }
-            /// #else
-            openByMobile(linkAddress);
-            /// #endif
+            if (!isElectron) {
+                openByMobile(linkAddress);
+            }
         }
     } else if (linkAddress) {
         if (0 > linkAddress.indexOf(":")) {
@@ -157,13 +156,13 @@ export const openLink = (protyle: IProtyle, aLink: string, event?: MouseEvent, c
             // Support click to open hyperlinks like `www.foo.com` https://github.com/siyuan-note/siyuan/issues/9986
             linkAddress = `https://${linkAddress}`;
         }
-        /// #if !BROWSER
-        shell.openExternal(linkAddress).catch((e) => {
-            showMessage(e);
-        });
-        /// #else
-        openByMobile(linkAddress);
-        /// #endif
+        if (isElectron) {
+            openExternal(linkAddress).catch((e: unknown) => {
+                showMessage(e);
+            });
+        }
+        if (!isElectron) {
+            openByMobile(linkAddress);
+        }
     }
-    /// #endif
 };

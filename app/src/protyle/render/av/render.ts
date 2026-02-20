@@ -12,16 +12,14 @@ import {addClearButton} from "../../../util/addClearButton";
 import {escapeAriaLabel, escapeAttr, escapeHtml} from "../../../util/escape";
 import {electronUndo} from "../../undo";
 import {isInMobileApp} from "../../util/compatibility";
-import {isMobile} from "../../../util/functions";
+import {activeBlur} from "../../../mobile/util/keyboardToolbar";
 import {renderGallery} from "./gallery/render";
 import {getFieldsByData, getViewIcon} from "./view";
 import {openMenuPanel} from "./openMenuPanel";
 import {getPageSize} from "./groups";
 import {clearSelect} from "../../util/clearSelect";
 import {showMessage} from "../../../dialog/message";
-/// #if MOBILE
-import {activeBlur} from "../../../mobile/util/keyboardToolbar";
-/// #endif
+import {isMobile} from "../../../platform";
 import {renderKanban} from "./kanban/render";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 
@@ -443,9 +441,9 @@ const afterRenderTable = (options: ITableOptions) => {
             searchInputElement.style.paddingRight = "0";
             focusBlock(options.blockElement);
             updateSearch(options.blockElement, options.protyle);
-            /// #if MOBILE
-            activeBlur();
-            /// #endif
+            if (isMobile) {
+                activeBlur();
+            }
         }
     });
 };

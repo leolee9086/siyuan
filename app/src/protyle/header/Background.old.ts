@@ -1,15 +1,13 @@
 import { hasClosestByClassName } from "../util/hasClosest";
-import { getRandom, isMobile } from "../../util/functions";
+import { isMobile } from "../../platform";
+import { getRandom } from "../../util/functions";
 import { hideElements } from "../ui/hideElements";
 import { uploadFiles } from "../upload";
 import { fetchPost } from "../../util/fetch";
 import { getRandomEmoji, openEmojiPanel, unicode2Emoji, updateFileTreeEmoji, updateOutlineEmoji } from "../../emoji";
 import { upDownHint } from "../../util/upDownHint";
-/// #if !MOBILE
 import { openGlobalSearch } from "../../search/util";
-/// #else
 import { popSearch } from "../../mobile/menu/search";
-/// #endif
 import { getEventName } from "../util/compatibility";
 import { Dialog } from "../../dialog";
 import { Constants } from "../../constants";
@@ -193,8 +191,8 @@ export class Background {
                     const dialog = new Dialog({
                         title: siyuanI18n.builtIn,
                         content: `<div class="b3-cards">${html}</div>`,
-                        width: isMobile() ? "92vw" : "912px",
-                        height: isMobile() ? "80vh" : "70vh",
+                        width: isMobile ? "92vw" : "912px",
+                        height: isMobile ? "80vh" : "70vh",
                     });
                     dialog.element.setAttribute("data-key", Constants.DIALOG_BACKGROUNDRANDOM);
                     dialog.element.addEventListener("click", (event) => {
@@ -235,9 +233,9 @@ export class Background {
                             id: protyle.block.rootID,
                             attrs: { "title-img": this.ial["title-img"] }
                         });
-                        /// #if MOBILE
-                        window.siyuan.menus.menu.remove();
-                        /// #endif
+                        if (isMobile) {
+                            window.siyuan.menus.menu.remove();
+                        }
                     }, Constants.SIYUAN_ASSETS_IMAGE);
                     event.preventDefault();
                     event.stopPropagation();
@@ -284,7 +282,7 @@ export class Background {
                 } else if (type === "link" && !protyle.disabled) {
                     const dialog = new Dialog({
                         title: siyuanI18n.link,
-                        width: isMobile() ? "92vw" : "520px",
+                        width: isMobile ? "92vw" : "520px",
                         content: `<div class="b3-dialog__content">
         <input class="b3-text-field fn__block" value="${this.imgElement.src.startsWith("data:") ? "" : this.imgElement.getAttribute("src")}">
 </div>
@@ -313,19 +311,20 @@ export class Background {
                     event.stopPropagation();
                     break;
                 } else if (type === "open-search") {
-                    /// #if !MOBILE
-                    openGlobalSearch(protyle.app, `#${target.textContent}#`, !window.siyuan.ctrlIsPressed, { method: 0 });
-                    /// #else
-                    popSearch(protyle.app, {
-                        hasReplace: false,
-                        method: 0,
-                        hPath: "",
-                        idPath: [],
-                        k: `#${target.textContent}#`,
-                        r: "",
-                        page: 1,
-                    });
-                    /// #endif
+                    if (!isMobile) {
+                        openGlobalSearch(protyle.app, `#${target.textContent}#`, !window.siyuan.ctrlIsPressed, { method: 0 });
+                    }
+                    if (isMobile) {
+                        popSearch(protyle.app, {
+                            hasReplace: false,
+                            method: 0,
+                            hPath: "",
+                            idPath: [],
+                            k: `#${target.textContent}#`,
+                            r: "",
+                            page: 1,
+                        });
+                    }
                     event.preventDefault();
                     event.stopPropagation();
                     break;
@@ -412,10 +411,10 @@ export class Background {
             this.actionElements[2].classList.add("fn__none");
             this.imgElement.parentElement.classList.remove("fn__none");
             this.iconElement.style.marginTop = "";
-            /// #if MOBILE
-            // 移动端键盘弹起和点击加号需保持滚动高度一致
-            this.imgElement.style.height = "200px";
-            /// #endif
+            if (isMobile) {
+                // 移动端键盘弹起和点击加号需保持滚动高度一致
+                this.imgElement.style.height = "200px";
+            }
         } else {
             this.imgElement.parentElement.classList.add("fn__none");
             this.actionElements[2].classList.remove("fn__none");
@@ -516,14 +515,15 @@ export class Background {
         });
         const itemsElement = menu.element.querySelector(".b3-menu__items");
         itemsElement.setAttribute("style", "overflow: initial");
-        /// #if MOBILE
-        menu.fullscreen();
-        itemsElement.firstElementChild.setAttribute("style", "padding: 0 8px;height: 100%;");
-        /// #else
-        const rect = target.getBoundingClientRect();
-        menu.open({ x: rect.left, y: rect.top + rect.height });
-        menu.element.querySelector("input").focus();
-        /// #endif
+        if (isMobile) {
+            menu.fullscreen();
+            itemsElement.firstElementChild.setAttribute("style", "padding: 0 8px;height: 100%;");
+        }
+        if (!isMobile) {
+            const rect = target.getBoundingClientRect();
+            menu.open({ x: rect.left, y: rect.top + rect.height });
+            menu.element.querySelector("input").focus();
+        }
     }
 
     private getTags(removeTag?: string) {

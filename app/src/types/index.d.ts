@@ -132,6 +132,13 @@ type TRecentDocsSort = "viewedAt" | "closedAt" | "openAt" | "updated"
 
 declare module "blueimp-md5"
 
+/**
+ * webpack 内置全局函数，绕过 webpack 模块解析。
+ * 输出中保留原始 require() 调用，仅在 Node.js/Electron 环境可用。
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+declare function __non_webpack_require__(id: string): any;
+
 
 
 

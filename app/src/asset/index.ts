@@ -4,7 +4,6 @@ import { Constants } from "../constants";
 import { setPanelFocus } from "../layout/utils/setPanelFocus";
 // @ts-ignore
 import { onPageNumberChanged } from "./pdf/app";
-/// #endif
 import { fetchPost } from "../util/fetch";
 import { App } from "../index";
 import { clearOBG } from "../layout/dock/util";
@@ -12,6 +11,7 @@ import { render } from "./image";
 import { createVueComponentLoader } from "../util/vue/mount";
 import PDFviewer from "../components/PDFviewer.vue";
 import { getDisplayName } from "../util/pathName";
+import { isMobile } from "../platform";
 
 export class Asset extends Model {
   public path: string;
@@ -80,7 +80,9 @@ export class Asset extends Model {
       return;
     }
     this.pdfId = pdfId;
-    /// #if !MOBILE
+    if (isMobile) {
+      return;
+    }
     if (typeof pdfId === "string") {
       this.getPdfId(() => {
         if (this.pdfPage) {
@@ -92,7 +94,6 @@ export class Asset extends Model {
     if (typeof pdfId === "number" && !isNaN(pdfId)) {
       onPageNumberChanged({ value: this.pdfId, pdfInstance: this.pdfObject });
     }
-    /// #endif
   }
 
   private render(_isInit = true) {
@@ -109,8 +110,7 @@ export class Asset extends Model {
       this.element.innerHTML = `<div class="asset"><video controls="controls" src="${this.path.startsWith("file") ? this.path : document.getElementById("baseURL")?.getAttribute("href") + "/" + this.path}"></video></div>`;
       return;
     }
-    if (type === ".pdf") {
-      /// #if !MOBILE
+    if (type === ".pdf" && !isMobile) {
       createVueComponentLoader(
         this.element,
         {
@@ -119,7 +119,6 @@ export class Asset extends Model {
           template: "<PDFviewer :controller=\"controller\" />"
         }
       );
-      /// #endif
     }
   }
 }

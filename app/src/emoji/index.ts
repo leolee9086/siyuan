@@ -2,9 +2,8 @@ import {getRandom, isMobile} from "../util/functions";
 import {fetchPost} from "../util/fetch";
 import {Constants} from "../constants";
 import {Files} from "../layout/dock/Files";
-/// #if !MOBILE
 import {getDockByType} from "../layout/tabUtil";
-/// #endif
+import {platform} from "../platform";
 import {getAllEditor, getAllModels} from "../layout/getAll";
 import {setNoteBook} from "../util/pathName";
 import {Dialog} from "../dialog";
@@ -698,30 +697,33 @@ export const openEmojiPanel = (
 };
 
 export const updateOutlineEmoji = (unicode: string, id: string) => {
-    /// #if !MOBILE
-    getAllModels().outline.forEach(model => {
-        if (model.blockId === id) {
-            model.headerElement.nextElementSibling.firstElementChild.outerHTML = unicode2Emoji(unicode || window.siyuan.storage[Constants.LOCAL_IMAGES].file, "b3-list-item__graphic", true);
-        }
-    });
-    /// #endif
+    if (platform !== "browser-mobile") {
+        getAllModels().outline.forEach(model => {
+            if (model.blockId === id) {
+                model.headerElement.nextElementSibling.firstElementChild.outerHTML = unicode2Emoji(unicode || window.siyuan.storage[Constants.LOCAL_IMAGES].file, "b3-list-item__graphic", true);
+            }
+        });
+    }
 };
 
 export const updateFileTreeEmoji = (unicode: string, id: string, icon = "iconFile") => {
     let emojiElement;
-    /// #if MOBILE
-    emojiElement = document.querySelector(`#sidebar [data-type="sidebar-file"] [data-node-id="${id}"] .b3-list-item__icon`);
-    /// #else
-    const dockFile = getDockByType("file");
-    if (dockFile) {
-        const files = dockFile.data.file as Files;
-        if (icon === "iconFile") {
-            emojiElement = files.element.querySelector(`[data-node-id="${id}"] .b3-list-item__icon`);
-        } else {
-            emojiElement = files.element.querySelector(`[data-node-id="${id}"] .b3-list-item__icon`) || files.element.querySelector(`[data-url="${id}"] .b3-list-item__icon`) || files.closeElement.querySelector(`[data-url="${id}"] .b3-list-item__icon`);
+    // 移动端从侧边栏获取文件树emoji元素
+    if (platform === "browser-mobile") {
+        emojiElement = document.querySelector(`#sidebar [data-type="sidebar-file"] [data-node-id="${id}"] .b3-list-item__icon`);
+    }
+    // 桌面端从dock面板获取文件树emoji元素
+    if (platform !== "browser-mobile") {
+        const dockFile = getDockByType("file");
+        if (dockFile) {
+            const files = dockFile.data.file as Files;
+            if (icon === "iconFile") {
+                emojiElement = files.element.querySelector(`[data-node-id="${id}"] .b3-list-item__icon`);
+            } else {
+                emojiElement = files.element.querySelector(`[data-node-id="${id}"] .b3-list-item__icon`) || files.element.querySelector(`[data-url="${id}"] .b3-list-item__icon`) || files.closeElement.querySelector(`[data-url="${id}"] .b3-list-item__icon`);
+            }
         }
     }
-    /// #endif
     if (emojiElement) {
         emojiElement.innerHTML = unicode2Emoji(unicode || (icon === "iconFile" ? (emojiElement.previousElementSibling.classList.contains("fn__hidden") ? window.siyuan.storage[Constants.LOCAL_IMAGES].file : window.siyuan.storage[Constants.LOCAL_IMAGES].folder) : window.siyuan.storage[Constants.LOCAL_IMAGES].note));
     }

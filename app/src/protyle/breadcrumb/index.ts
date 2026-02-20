@@ -2,7 +2,7 @@ import { fetchPost } from "../../util/fetch";
 import { RecordMedia } from "../util/RecordMedia";
 import { hideMessage, showMessage } from "../../dialog/message";
 import { uploadFiles } from "../upload";
-import { isMobile } from "../../util/functions";
+import { isMobile } from "../../platform";
 import { zoomOut } from "../../menus/protyle.zoomOut";
 import { Menu } from "../../plugin/Menu";
 import { Constants } from "../../constants";
@@ -205,13 +205,13 @@ export class Breadcrumb {
         const clickHandler = 创建点击处理器(element, protyle, (p, pos) => this.showMenu(p, pos));
         element.addEventListener("click", clickHandler);
 
-        /// #if !MOBILE
-        const mouseleaveHandler = 创建鼠标离开处理器(protyle);
-        element.addEventListener("mouseleave", mouseleaveHandler);
-        this.element.addEventListener("wheel", (event) => {
-            this.element.scrollLeft = this.element.scrollLeft + event.deltaY;
-        }, { passive: true });
-        /// #endif
+        if (!isMobile) {
+            const mouseleaveHandler = 创建鼠标离开处理器(protyle);
+            element.addEventListener("mouseleave", mouseleaveHandler);
+            this.element.addEventListener("wheel", (event) => {
+                this.element.scrollLeft = this.element.scrollLeft + event.deltaY;
+            }, { passive: true });
+        }
     }
 
     public toggleExit(hide: boolean) {
@@ -246,7 +246,9 @@ export class Breadcrumb {
     }
 
     public render(protyle: IProtyle, update = false, nodeElement?: Element | false) {
-        /// #if !MOBILE
+        if (isMobile) {
+            return;
+        }
         let blockElement = 确定渲染块元素(protyle, nodeElement);
         if (!blockElement) {
             blockElement = 获取默认块元素(protyle);
@@ -268,11 +270,10 @@ export class Breadcrumb {
         fetchPost("/api/block/getBlockBreadcrumb", { id, excludeTypes }, (response) => {
             处理渲染响应(this.element, protyle, response);
         });
-        /// #endif
     }
 
     public hide() {
-        if (isMobile()) {
+        if (isMobile) {
             return;
         }
         this.element.classList.add("protyle-breadcrumb__bar--hide");

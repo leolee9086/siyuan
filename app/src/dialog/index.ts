@@ -1,8 +1,7 @@
 import { genUUID } from "../util/genID";
-/// #if !MOBILE
 import { moveResize } from "./moveResize";
-/// #endif
 import { Protyle } from "../protyle";
+import { isMobile } from "../util/functions";
 import { Constants } from "../constants";
 import { App } from "vue";
 import { pushSiyuanDialog } from "../util/siyuanEnvironments/siyuanDialogs.environment";
@@ -57,12 +56,11 @@ export class Dialog {
         添加对话框到DOM(this.element, options.disableAnimation);
         this.titleVueApp = 挂载标题Vue组件(this.element, options);
 
-        /// #if !MOBILE
         const containerElement = this.element.querySelector(".b3-dialog__container");
-        if (isHTMLElement(containerElement)) {
+        // 桌面端启用对话框拖拽和缩放功能，querySelector 可能返回 null 需类型守卫
+        if (!isMobile() && isHTMLElement(containerElement)) {
             moveResize(containerElement, options.resizeCallback);
         }
-        /// #endif
     }
 
     /**
@@ -77,6 +75,7 @@ export class Dialog {
         // 中止所有通过 listen 方法添加的事件监听器
         this.abortController.abort();
         this.element.classList.remove("b3-dialog--open");
+        // 等待关闭动画（CSS transition）完成后再执行 DOM 清理，无法使用 transitionend 因为动画目标元素可能不确定
         setTimeout(() => {
             this.titleVueApp = 执行销毁清理(this.element, this.id, this.titleVueApp, this.destroyCallback, options);
         }, Constants.TIMEOUT_DBLCLICK);

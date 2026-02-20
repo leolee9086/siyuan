@@ -22,12 +22,9 @@ import { hideElements } from "../../ui/hideElements";
 import { insertAttrViewBlockAnimation } from "../../render/av/row";
 import { insertGalleryItemAnimation } from "../../render/av/gallery/item";
 import { onGet } from "../onGet";
-/// #if !MOBILE
 import { updatePanelByEditor } from "../../../editor/util.updatePanelByEditor";
-/// #endif
-/// #if !BROWSER
-import { webUtils } from "electron";
-/// #endif
+import { getPathForFile } from "../../../platform/electron/webUtils";
+import { isMobile } from "../../../platform";
 import * as dayjs from "dayjs";
 import { dragSame, dragSb } from "./drag";
 
@@ -501,16 +498,16 @@ export const onDrop = async (protyle: IProtyle, editorElement: HTMLElement, even
                     size: window.siyuan.config.editor.dynamicLoadBlocks,
                 }, getResponse => {
                     onGet({ data: getResponse, protyle });
-                    /// #if !MOBILE
                     // 文档标题互转后，需更新大纲
-                    updatePanelByEditor({
-                        protyle,
-                        focus: false,
-                        pushBackStack: false,
-                        reload: true,
-                        resize: false,
-                    });
-                    /// #endif
+                    if (!isMobile) {
+                        updatePanelByEditor({
+                            protyle,
+                            focus: false,
+                            pushBackStack: false,
+                            reload: true,
+                            resize: false,
+                        });
+                    }
                     // 文档标题互转后，编辑区会跳转到开头 https://github.com/siyuan-note/siyuan/issues/2939
                     setTimeout(() => {
                         protyle.contentElement.scrollTop = scrollTop;
@@ -530,7 +527,7 @@ export const onDrop = async (protyle: IProtyle, editorElement: HTMLElement, even
             if (event.dataTransfer.types[0] === "Files" && !isBrowser()) {
                 const files: string[] = [];
                 for (let i = 0; i < event.dataTransfer.files.length; i++) {
-                    files.push(webUtils.getPathForFile(event.dataTransfer.files[i]));
+                    files.push(getPathForFile(event.dataTransfer.files[i]));
                 }
                 uploadLocalFiles(files, protyle, !event.altKey);
             } else {
@@ -543,7 +540,7 @@ export const onDrop = async (protyle: IProtyle, editorElement: HTMLElement, even
                 if (getTypeByCellElement(cellElement) === "mAsset" && event.dataTransfer.types[0] === "Files" && !isBrowser()) {
                     const files: string[] = [];
                     for (let i = 0; i < event.dataTransfer.files.length; i++) {
-                        files.push(webUtils.getPathForFile(event.dataTransfer.files[i]));
+                        files.push(getPathForFile(event.dataTransfer.files[i]));
                     }
                     dragUpload(files, protyle, cellElement);
                     clearSelect(["cell"], avElement);

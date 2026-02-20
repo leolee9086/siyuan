@@ -10,6 +10,7 @@ import { newFileByName } from "../../../../util/newFile";
 import { renderPreview, renderNextAssetMark } from "../../../assets";
 import { getArticle, openSearchEditor, renderNextSearchMark } from "../../../util";
 import { isHTMLInputElement } from "../search.guard";
+import { isBrowser, isElectron } from "../../../../platform";
 import type { IListItemClickContext } from "../SearchContext.types";
 
 /**
@@ -64,14 +65,13 @@ function processSearchItemClick(
     let isClick = event.detail === 1;
     let isDblClick = event.detail === 2;
 
-    /// #if BROWSER
-    if (isIPad()) {
+    // 浏览器环境下 iPad 的 detail 不可靠，需用时间差判断单双击
+    if (isBrowser && isIPad()) {
         const newDate = new Date().getTime();
         isClick = newDate - lastClickTime > Constants.TIMEOUT_DBLCLICK;
         isDblClick = !isClick;
         lastClickTime = newDate;
     }
-    /// #endif
 
     if (isClick) {
         const altKey = event.altKey;
@@ -185,12 +185,13 @@ function handleDoubleClick(
     ctx: IListItemClickContext
 ): void {
     if (searchType === "asset") {
-        /// #if !BROWSER
-        useShell("showItemInFolder", path.join(
-            window.siyuan.config.system.dataDir,
-            target.lastElementChild?.getAttribute("aria-label") || ""
-        ));
-        /// #endif
+        // Electron 环境下调用系统文件管理器显示资源文件所在目录
+        if (isElectron) {
+            useShell("showItemInFolder", path.join(
+                window.siyuan.config.system.dataDir,
+                target.lastElementChild?.getAttribute("aria-label") || ""
+            ));
+        }
         return;
     }
 

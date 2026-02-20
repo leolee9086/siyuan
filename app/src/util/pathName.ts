@@ -4,9 +4,8 @@ import { fetchPost } from "./fetch";
 import { getSearch } from "./functions";
 import { unicode2Emoji } from "../emoji";
 import { Constants } from "../constants";
-/// #if !BROWSER
-import { ipcRenderer } from "electron";
-/// #endif
+import { ipcSend } from "../platform/electron/ipcRenderer";
+import { isElectron } from "../platform";
 import { showMessage } from "../dialog/message";
 import { isWindows } from "../protyle/util/compatibility";
 import { getLocationHref, getLocationOrigin, getLocationSearch, setLocationHref } from "./siyuanEnvironments/windowLocation.environment";
@@ -16,39 +15,17 @@ import { getWindowJSAndroid } from "./siyuanEnvironments/windowNative.environmen
 import { generateCountHTML, generateFileItemHTML, generateFlashcardFileItemHTML } from "./pathName/fileHtmlGenerator";
 
 export const useShell = (cmd: "showItemInFolder" | "openPath", filePath: string) => {
-    /// #if !BROWSER
-    ipcRenderer.send(Constants.SIYUAN_CMD, {
-        cmd,
-        filePath: filePath
-    });
-    /// #endif
+    if (isElectron) {
+        ipcSend(Constants.SIYUAN_CMD, {
+            cmd,
+            filePath: filePath
+        });
+    }
 };
 
 export const getIdZoomInByPath = () => {
     const searchParams = new URLSearchParams(getLocationSearch());
     const PWAURL = searchParams.get("url");
-    const data = {
-        id: "",
-        isZoomIn: false,
-    };
-    if (/^web\+siyuan:\/\/blocks\/\d{14}-\w{7}/.test(PWAURL)) {
-        // PWA 捕获 web+siyuan://blocks/20221031001313-rk7sd0e?focus=1
-        data.id = PWAURL.substring(20, 20 + 22);
-        data.isZoomIn = getSearch("focus", PWAURL) === "1";
-        window.siyuan.editorIsFullscreen = getSearch("fullscreen", PWAURL) === "1";
-    } else if (window.JSAndroid) {
-        // PAD 通过思源协议打开
-        const SYURL = window.JSAndroid.getBlockURL();
-        data.id = getIdFromSYProtocol(SYURL);
-        data.isZoomIn = getSearch("focus", SYURL) === "1";
-        window.siyuan.editorIsFullscreen = getSearch("fullscreen", SYURL) === "1";
-    } else {
-        // 支持通过 URL 查询字符串参数 `id` 和 `focus` 跳转到 Web 端指定块 https://github.com/siyuan-note/siyuan/pull/7086
-        data.id = searchParams.get("id");
-        data.isZoomIn = searchParams.get("focus") === "1";
-        window.siyuan.editorIsFullscreen = searchParams.get("fullscreen") === "1";
-    }
-    return data;
 
     // PWA 捕获 web+siyuan://blocks/20221031001313-rk7sd0e?focus=1
     if (PWAURL && /^web\+siyuan:\/\/blocks\/\d{14}-\w{7}/.test(PWAURL)) {

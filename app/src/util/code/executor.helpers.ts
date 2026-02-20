@@ -5,6 +5,7 @@
 import { parse } from "es-module-lexer";
 import type MagicString from "magic-string";
 import type { UnauthorizedImportStrategy, ImportSpec, TemporaryModule } from "./executor.types";
+import { isElectron } from "../../platform";
 
 /**
  * 判断是否为外部包
@@ -148,15 +149,17 @@ export async function 创建浏览器临时模块(code: string): Promise<Tempora
     }
 }
 
-///#if !BROWSER
 /**
- * 在 Node.js 环境中创建临时模块
+ * 在 Node.js 环境中创建临时模块（仅 Electron 环境可用）
  */
 export async function 创建NodeJS临时模块(code: string): Promise<TemporaryModule> {
-    const { writeFileSync, mkdirSync } = await import("fs");
-    const { join } = await import("path");
-    const { tmpdir } = await import("os");
-    const { createHash } = await import("crypto");
+    if (!isElectron) {
+        throw new Error("创建NodeJS临时模块 is not available in browser environment");
+    }
+    const { writeFileSync, mkdirSync } = await import(/* webpackIgnore: true */ "fs");
+    const { join } = await import(/* webpackIgnore: true */ "path");
+    const { tmpdir } = await import(/* webpackIgnore: true */ "os");
+    const { createHash } = await import(/* webpackIgnore: true */ "crypto");
 
     // 创建临时目录
     const tempDir = join(tmpdir(), "secure-modules");
@@ -208,7 +211,6 @@ export async function 创建NodeJS临时模块(code: string): Promise<TemporaryM
         };
     }
 }
-///#endif
 
 /** 检查是否为 Node.js 环境（用于环境检测） */
 function 检测NodeJS环境(): boolean {
@@ -230,7 +232,5 @@ export async function 创建临时模块(code: string): Promise<TemporaryModule>
     }
 
     // Node.js 环境下的特殊处理
-    ///#if !BROWSER
     return 创建NodeJS临时模块(code);
-    ///#endif
 }

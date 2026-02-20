@@ -6,6 +6,7 @@ import {renameTag} from "../util/noRelyPCFunction";
 import {getDockByType} from "../layout/tabUtil";
 import {Tag} from "../layout/dock/Tag";
 import {Constants} from "../constants";
+import {isMobile} from "../platform";
 
 export const openTagMenu = (element: HTMLElement, event: MouseEvent, labelName: string) => {
     if (!window.siyuan.menus.menu.element.classList.contains("fn__none") &&
@@ -27,12 +28,14 @@ export const openTagMenu = (element: HTMLElement, event: MouseEvent, labelName: 
         click: () => {
             confirmDialog(window.siyuan.languages.deleteOpConfirm, `${window.siyuan.languages.confirmDelete} <b>${escapeHtml(labelName)}</b>?`, () => {
                 fetchPost("/api/tag/removeTag", {label: labelName}, () => {
-                    /// #if MOBILE
-                    window.siyuan.mobile.docks.tag.update();
-                    /// #else
+                    // 移动端使用移动端标签面板更新
+                    if (isMobile) {
+                        window.siyuan.mobile.docks.tag.update();
+                        return;
+                    }
+                    // 桌面端使用 dock 标签面板更新
                     const dockTag = getDockByType("tag");
                     (dockTag.data.tag as Tag).update();
-                    /// #endif
                 });
             }, undefined, true);
         }

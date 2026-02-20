@@ -5,9 +5,8 @@ import type { Wnd } from "../Wnd";
 import type { Dock } from "./index";
 import { setPanelFocus } from "../utils/setPanelFocus";
 import { clearBeforeResizeTop } from "../../protyle/util/resize";
-/// #if !MOBILE
 import { getAllTabs } from "../getAll";
-/// #endif
+import { isMobile } from "../../platform";
 
 /**
  * 处理已激活面板的焦点切换
@@ -71,7 +70,9 @@ export function handlePostCloseFocus(isSaveLayout: boolean): void {
         return;
     }
 
-    /// #if !MOBILE
+    if (isMobile) {
+        return;
+    }
     const dataId = currentElement.getAttribute("data-id");
     for (const item of getAllTabs()) {
         if (item.id !== dataId) {
@@ -80,7 +81,6 @@ export function handlePostCloseFocus(isSaveLayout: boolean): void {
         item.parent.switchTab(item.headElement, false, true, false);
         break;
     }
-    /// #endif
 }
 
 /**

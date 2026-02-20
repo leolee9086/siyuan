@@ -2,10 +2,9 @@ import { hasClosestBlock } from "../../../protyle/util/hasClosest";
 import { getTopAloneElement } from "../../../protyle/wysiwyg/getBlock";
 import { enterBack } from "../../../menus/protyleMenus/protyle.enterBack";
 import { zoomOut } from "../../../menus/protyle.zoomOut";
-/// #if !MOBILE
 import { openFileById } from "../../../editor/utils.openFileById";
-/// #endif
 import { checkFold } from "../../../util/noRelyPCFunction";
+import { isMobile } from "../../../platform";
 import { updateReadonly } from "../../../protyle/breadcrumb/action";
 import { Constants } from "../../../constants";
 import { fetchPost } from "../../../util/fetch";
@@ -45,16 +44,17 @@ export const onlyProtyleCommand = (options: {
         }
         const id = topNodeElement.getAttribute("data-node-id");
         if (options.protyle.options.backlinkData) {
-            /// #if !MOBILE
-            checkFold(id, (zoomIn, action) => {
-                openFileById({
-                    app: options.protyle.app,
-                    id,
-                    action,
-                    zoomIn
+            // 桌面端：反链面板中进入块时，通过 openFileById 在编辑器中打开
+            if (!isMobile) {
+                checkFold(id, (zoomIn, action) => {
+                    openFileById({
+                        app: options.protyle.app,
+                        id,
+                        action,
+                        zoomIn
+                    });
                 });
-            });
-            /// #endif
+            }
         } else {
             zoomOut({ protyle: options.protyle, id });
         }

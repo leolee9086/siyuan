@@ -1,5 +1,6 @@
 import {showMessage} from "../dialog/message";
 import {fetchPost} from "./fetch";
+import {isMobile} from "../platform";
 import {genUUID} from "./genID";
 import {progressLoading} from "../dialog/processSystem";
 
@@ -9,13 +10,13 @@ export const processIOSPurchaseResponse = (code: number) => {
         msg: ""
     });
     if (code === 0) {
-        /// #if MOBILE
-        document.querySelector("#modelMain").dispatchEvent(new CustomEvent("click", {
-            detail: document.querySelector("#modelMain #refresh")
-        }));
-        /// #else
-        document.querySelector('.config__tab-container[data-name="account"] #refresh').dispatchEvent(new Event("click"));
-        /// #endif
+        if (isMobile) {
+            document.querySelector("#modelMain").dispatchEvent(new CustomEvent("click", {
+                detail: document.querySelector("#modelMain #refresh")
+            }));
+        } else {
+            document.querySelector('.config__tab-container[data-name="account"] #refresh').dispatchEvent(new Event("click"));
+        }
     } else {
         // -1：Invalid cloud region 云端区域无效
         // -2：Server communication failed, need to retry 服务器通讯失败，需要重试

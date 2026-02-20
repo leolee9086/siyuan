@@ -1,11 +1,10 @@
 import {App} from "../index";
 import {Plugin} from "./index";
-/// #if !MOBILE
 import {getAllModels} from "../layout/getAll";
 import {resizeTopBar} from "../layout/util";
-/// #endif
 import {Constants} from "../constants";
 import {setStorageVal} from "../protyle/util/compatibility";
+import {isMobile} from "../util/functions";
 import {getAllEditor} from "../layout/getAll";
 
 export const uninstall = (app: App, name: string, isReload: boolean) => {
@@ -26,20 +25,20 @@ export const uninstall = (app: App, name: string, isReload: boolean) => {
                 setStorageVal(Constants.LOCAL_PLUGIN_DOCKS, window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS]);
             }
             // rm tab
-            /// #if !MOBILE
-            const modelsKeys = Object.keys(plugin.models);
-            getAllModels().custom.forEach(custom => {
-                if (modelsKeys.includes(custom.type)) {
-                    if (isReload) {
-                        if (custom.update) {
-                            custom.update();
+            if (!isMobile()) {
+                const modelsKeys = Object.keys(plugin.models);
+                getAllModels().custom.forEach(custom => {
+                    if (modelsKeys.includes(custom.type)) {
+                        if (isReload) {
+                            if (custom.update) {
+                                custom.update();
+                            }
+                        } else {
+                            custom.parent.parent.removeTab(custom.parent.id);
                         }
-                    } else {
-                        custom.parent.parent.removeTab(custom.parent.id);
                     }
-                }
-            });
-            /// #endif
+                });
+            }
             // rm topBar
             for (let i = 0; i < plugin.topBarIcons.length; i++) {
                 const item = plugin.topBarIcons[i];
@@ -47,28 +46,29 @@ export const uninstall = (app: App, name: string, isReload: boolean) => {
                 plugin.topBarIcons.splice(i, 1);
                 i--;
             }
-            /// #if !MOBILE
-            resizeTopBar();
-            // rm statusBar
-            plugin.statusBarIcons.forEach(item => {
-                item.remove();
-            });
-            // rm dock
-            const docksKeys = Object.keys(plugin.docks);
-            docksKeys.forEach(key => {
-                if (window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS][plugin.name] && window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS][plugin.name][key]) {
-                    window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS][plugin.name][key].show =
-                        !!document.querySelector(`.dock__item[data-type="${key}"]`)?.classList.contains("dock__item--active");
-                }
-                if (Object.keys(window.siyuan.layout.leftDock.data).includes(key)) {
-                    window.siyuan.layout.leftDock.remove(key);
-                } else if (Object.keys(window.siyuan.layout.rightDock.data).includes(key)) {
-                    window.siyuan.layout.rightDock.remove(key);
-                } else if (Object.keys(window.siyuan.layout.bottomDock.data).includes(key)) {
-                    window.siyuan.layout.bottomDock.remove(key);
-                }
-            });
-            /// #endif
+            // 桌面端需要清理状态栏图标、调整顶栏尺寸、移除dock面板
+            if (!isMobile()) {
+                resizeTopBar();
+                // rm statusBar
+                plugin.statusBarIcons.forEach(item => {
+                    item.remove();
+                });
+                // rm dock
+                const docksKeys = Object.keys(plugin.docks);
+                docksKeys.forEach(key => {
+                    if (window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS][plugin.name] && window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS][plugin.name][key]) {
+                        window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS][plugin.name][key].show =
+                            !!document.querySelector(`.dock__item[data-type="${key}"]`)?.classList.contains("dock__item--active");
+                    }
+                    if (Object.keys(window.siyuan.layout.leftDock.data).includes(key)) {
+                        window.siyuan.layout.leftDock.remove(key);
+                    } else if (Object.keys(window.siyuan.layout.rightDock.data).includes(key)) {
+                        window.siyuan.layout.rightDock.remove(key);
+                    } else if (Object.keys(window.siyuan.layout.bottomDock.data).includes(key)) {
+                        window.siyuan.layout.bottomDock.remove(key);
+                    }
+                });
+            }
             // rm listen
             Array.from(document.childNodes).find(item => {
                 if (item.nodeType === 8 && item.textContent === name) {

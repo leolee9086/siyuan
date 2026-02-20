@@ -1,5 +1,6 @@
 import { getSiyuanConfig } from "./siyuanEnvironments/getSiyuanConfig.environment";
 import { getLocationSearch, isTouchDevice as isTouchDeviceEnv } from "./siyuanEnvironments/windowStandard.environment";
+import { platform } from "../platform";
 
 const CONTAINER_BACKEND_SET = new Set(["docker", "ios", "android", "harmony"]);
 const MOBILE_BACKEND_SET = new Set(["ios", "android", "harmony"]);
@@ -29,17 +30,16 @@ export const getBackend = () => {
 
 /** 获取前端类型 "desktop" | "desktop-window" | "mobile" | "browser-desktop" | "browser-mobile" */
 export const getFrontend = () => {
-    /// #if MOBILE
-    if (navigator.userAgent.startsWith("SiYuan/")) {
+    if (platform === "browser-mobile" && navigator.userAgent.startsWith("SiYuan/")) {
         return "mobile";
     }
-    return "browser-mobile";
-    /// #else
+    if (platform === "browser-mobile") {
+        return "browser-mobile";
+    }
     if (!navigator.userAgent.startsWith("SiYuan/")) {
         return "browser-desktop";
     }
     return isWindow() ? "desktop-window" : "desktop";
-    /// #endif
 };
 
 /** 判断是否为窗口模式 */
@@ -73,11 +73,7 @@ export const getSearch = (key: string, link = getLocationSearch()) => {
 
 /** 判断是否在浏览器中 */
 export const isBrowser = () => {
-    /// #if BROWSER
-    return true;
-    /// #else
-    return false;
-    /// #endif
+    return platform !== "electron";
 };
 
 /** 判断是否为动态引用 */

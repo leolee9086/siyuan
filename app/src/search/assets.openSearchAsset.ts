@@ -8,6 +8,7 @@ import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment"
 import { assetInputEvent } from "./assets";
 import { saveAssetKeyList } from "./toggleHistory";
 import { genQueryHTML } from "./util";
+import { isMobile, isElectron } from "../platform";
 
 /** 生成搜索资源的 HTML 模板 */
 const 生成搜索资源HTML = (localSearch: ISearchAssetOption, isStick: boolean, enterTip: string): string => {
@@ -188,7 +189,10 @@ const 选中搜索输入框 = (element: HTMLElement): void => {
 
 /** 打开搜索资源面板 */
 export const 打开搜索资源面板 = (element: HTMLElement, isStick: boolean) => {
-    /// #if !MOBILE
+    // 资源搜索面板仅在桌面端可用，移动端无此功能
+    if (isMobile) {
+        return;
+    }
     getSiyuanGlobalMenus().menu.remove();
     element.previousElementSibling?.classList.add("fn__none");
     element.classList.remove("fn__none");
@@ -201,9 +205,10 @@ export const 打开搜索资源面板 = (element: HTMLElement, isStick: boolean)
     const loadingElement = parent?.querySelector(".fn__loading--top");
     loadingElement?.classList.remove("fn__none");
     let enterTip = "";
-    /// #if !BROWSER
-    enterTip = `<kbd>${siyuanI18n.enterKey}/${siyuanI18n.doubleClick}</kbd> ${siyuanI18n.showInFolder}`;
-    /// #endif
+    // Electron 环境下显示"在文件夹中显示"的快捷键提示
+    if (isElectron) {
+        enterTip = `<kbd>${siyuanI18n.enterKey}/${siyuanI18n.doubleClick}</kbd> ${siyuanI18n.showInFolder}`;
+    }
     element.innerHTML = 生成搜索资源HTML(localSearch, isStick, enterTip);
     const searchAssetListElement = element.querySelector("#searchAssetList");
     if (searchAssetListElement && searchAssetListElement.innerHTML !== "") {
@@ -216,7 +221,6 @@ export const 打开搜索资源面板 = (element: HTMLElement, isStick: boolean)
     设置预览元素布局(previewElement, localSearch);
     初始化搜索输入框(element, localSearch);
     初始化拖拽功能(element, previewElement, localSearch);
-    /// #endif
 };
 
 /** 英文别名导出 */

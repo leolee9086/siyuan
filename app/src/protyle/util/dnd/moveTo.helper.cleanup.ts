@@ -1,9 +1,8 @@
 import { cancelSB, genEmptyElement } from "../../../block/util";
 import { getTopAloneElement } from "../../wysiwyg/getBlock";
-/// #if !MOBILE
 import { getAllEditor } from "../../../layout/getAll";
 import { zoomOut } from "../../../menus/protyle.zoomOut";
-/// #endif
+import { isMobile } from "../../../platform";
 import { IMoveContext } from "./moveTo.types";
 
 export const cleanupSourceElement = async (item: Element, oldSourceParentElement: HTMLElement, context: IMoveContext) => {
@@ -87,7 +86,9 @@ const handleCancelSB = async (element: HTMLElement, context: IMoveContext) => {
         await handleCancelSBSameDoc(element, context);
         return;
     }
-    /// #if !MOBILE
+    if (isMobile) {
+        return;
+    }
     const allEditor = getAllEditor();
     for (const editor of allEditor) {
         if (!editor.protyle.element.contains(element)) {
@@ -108,11 +109,12 @@ const handleCancelSB = async (element: HTMLElement, context: IMoveContext) => {
         editor.protyle.undo?.clear();
         break;
     }
-    /// #endif
 };
 
 const handleEmptyRoot = async (element: HTMLElement, context: IMoveContext) => {
-    /// #if !MOBILE
+    if (isMobile) {
+        return;
+    }
     const allEditor = getAllEditor();
     for (const item of allEditor) {
         if (!item.protyle.element.contains(element)) {
@@ -137,5 +139,4 @@ const handleEmptyRoot = async (element: HTMLElement, context: IMoveContext) => {
         });
         break;
     }
-    /// #endif
 };

@@ -13,10 +13,9 @@ import { openTitleMenu } from "../header/openTitleMenu";
 import { updateReadonly } from "./action";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import type { 面包屑点击上下文, 面包屑点击处理器 } from "./breadcrumb.types";
-/// #if !MOBILE
 import { openFileById } from "../../editor/utils.openFileById";
 import { getSiyuanKeyboardState } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
-/// #endif
+import { isMobile } from "../../platform";
 
 // ============================================================
 // 节点 ID 点击处理 (data-node-id)
@@ -29,7 +28,13 @@ function 处理节点ID点击(ctx: 面包屑点击上下文): boolean {
         return false;
     }
 
-    /// #if !MOBILE
+    // 移动端不处理面包屑节点点击的导航逻辑
+    if (isMobile) {
+        event.preventDefault();
+        return true;
+    }
+
+    // 桌面端：按住 Ctrl 时在新标签页打开文件，否则聚焦到对应块
     const render = protyle.options?.render;
     const shouldOpenFile = render?.breadcrumbDocName && getSiyuanKeyboardState().ctrlIsPressed;
     if (shouldOpenFile) {
@@ -44,7 +49,6 @@ function 处理节点ID点击(ctx: 面包屑点击上下文): boolean {
     if (!shouldOpenFile) {
         zoomOut({ protyle, id });
     }
-    /// #endif
 
     event.preventDefault();
     return true;

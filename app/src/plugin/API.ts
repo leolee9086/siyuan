@@ -3,7 +3,7 @@ import { Plugin } from "./index";
 import { hideMessage, showMessage } from "../dialog/message";
 import { Dialog } from "../dialog";
 import { fetchGet, fetchPost, fetchSyncPost } from "../util/fetch";
-import { getBackend, getFrontend } from "../util/functions";
+import { getBackend, getFrontend, isMobile } from "../util/functions";
 import { updateHotkeyTip } from "../protyle/util/compatibility";
 import * as platformUtils from "../protyle/util/compatibility";
 import { Constants } from "../constants";
@@ -14,9 +14,7 @@ import ProtyleMethod from "../protyle/method";
 import { openMobileFileById } from "../mobile/editor";
 import { lockScreen, exitSiYuan } from "../dialog/processSystem";
 import { getActiveTab } from "../layout/tabUtil";
-/// #if !MOBILE
 import { getAllModels } from "../layout/getAll";
-/// #endif
 import { getAllEditor } from "../layout/getAll";
 import { openSetting } from "../config";
 import { openAttr } from "../menus/commonMenuItem";
@@ -47,23 +45,29 @@ const openAttributePanel = (options: {
 };
 
 const saveLayout = (cb: () => void) => {
-    /// #if MOBILE
-    if (window.siyuan.mobile.editor) {
-        const result = saveScroll(window.siyuan.mobile.editor.protyle);
-        if (cb && result instanceof Promise) {
-            result.then(() => {
-                cb();
-            });
+    if (isMobile()) {
+        if (window.siyuan.mobile.editor) {
+            const result = saveScroll(window.siyuan.mobile.editor.protyle);
+            if (cb && result instanceof Promise) {
+                result.then(() => {
+                    cb();
+                });
+            }
         }
+        return;
     }
-    /// #else
     exportLayout({ cb, errorExit: false });
-    /// #endif
 };
 
 const getActiveEditor = (wndActive = true) => {
     let editor;
-    /// #if !MOBILE
+    if (isMobile()) {
+        editor = window.siyuan.mobile.popEditor || window.siyuan.mobile.editor;
+        if (editor?.protyle.element.classList.contains("fn__none")) {
+            return undefined;
+        }
+        return editor;
+    }
     const range = getSelection().rangeCount > 0 ? getSelection().getRangeAt(0) : null;
     const allEditor = getAllEditor();
     if (range) {
@@ -99,12 +103,6 @@ const getActiveEditor = (wndActive = true) => {
             }
         }
     }
-    /// #else
-    editor = window.siyuan.mobile.popEditor || window.siyuan.mobile.editor;
-    if (editor?.protyle.element.classList.contains("fn__none")) {
-        return undefined;
-    }
-    /// #endif
     return editor;
 };
 
@@ -133,10 +131,8 @@ export const API = {
     Menu,
     Setting,
     getAllEditor,
-    /// #if !MOBILE
     getActiveTab,
     getAllModels,
-    /// #endif
     getActiveEditor,
     platformUtils,
     openSetting,

@@ -1,12 +1,9 @@
-/// #if !MOBILE
 import { getDockByType } from "./tabUtil";
 import { hasClosestByClassName } from "../protyle/util/hasClosest";
 import { fetchPost } from "../util/fetch";
 import { mountHelp } from "../util/mount";
-/// #if !BROWSER
-import { ipcRenderer } from "electron";
-/// #endif
-/// #endif
+import { isMobile, isElectron } from "../platform";
+import { ipcSend } from "../platform/electron/ipcRenderer";
 import { MenuItem } from "../menus/Menu.Item";
 import { Constants } from "../constants";
 import { toggleDockBar } from "./dock/util";
@@ -14,7 +11,9 @@ import { isIPad, updateHotkeyTip } from "../protyle/util/compatibility";
 import { 渲染所有状态栏按钮 } from "../registry/StatusBarRegistry";
 
 export const initStatus = (isWindow = false) => {
-    /// #if !MOBILE
+    if (isMobile) {
+        return;
+    }
     let barDockHTML = "";
     if (!isWindow) {
         barDockHTML = `<div id="barDock" class="toolbar__item ariaLabel${window.siyuan.config.readonly || isWindow ? " fn__none" : ""}" aria-label="${window.siyuan.languages.toggleDock} ${updateHotkeyTip(window.siyuan.config.keymap.general.toggleDock.custom)}">
@@ -84,15 +83,15 @@ export const initStatus = (isWindow = false) => {
                         }
                     }
                 }).element);
-                /// #if !BROWSER
-                window.siyuan.menus.menu.append(new MenuItem({
-                    label: window.siyuan.languages.debug,
-                    icon: "iconBug",
-                    click: () => {
-                        ipcRenderer.send(Constants.SIYUAN_CMD, "openDevTools");
-                    }
-                }).element);
-                /// #endif
+                if (isElectron) {
+                    window.siyuan.menus.menu.append(new MenuItem({
+                        label: window.siyuan.languages.debug,
+                        icon: "iconBug",
+                        click: () => {
+                            ipcSend(Constants.SIYUAN_CMD, "openDevTools");
+                        }
+                    }).element);
+                }
                 window.siyuan.menus.menu.append(new MenuItem({
                     label: window.siyuan.languages["_trayMenu"].officialWebsite,
                     icon: "iconSiYuan",
@@ -133,13 +132,14 @@ export const initStatus = (isWindow = false) => {
     }
     // 渲染通过 StatusBarRegistry 注册的按钮
     渲染所有状态栏按钮();
-    /// #endif
 };
 
 let countRootId: string;
 let countTimeout: number;
 export const countSelectWord = (range: Range, rootID?: string) => {
-    /// #if !MOBILE
+    if (isMobile) {
+        return;
+    }
     if (document.getElementById("status").classList.contains("fn__none")) {
         return;
     }
@@ -158,11 +158,12 @@ export const countSelectWord = (range: Range, rootID?: string) => {
             });
         }
     }, Constants.TIMEOUT_COUNT);
-    /// #endif
 };
 
 export const countBlockWord = (ids: string[], rootID?: string, clearCache = false) => {
-    /// #if !MOBILE
+    if (isMobile) {
+        return;
+    }
     if (document.getElementById("status").classList.contains("fn__none")) {
         return;
     }
@@ -187,7 +188,6 @@ export const countBlockWord = (ids: string[], rootID?: string, clearCache = fals
             });
         }
     }, Constants.TIMEOUT_COUNT);
-    /// #endif
 };
 
 export const clearCounter = () => {

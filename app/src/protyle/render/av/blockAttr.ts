@@ -11,10 +11,8 @@ import {uploadFiles} from "../../upload";
 import {openLink} from "../../../editor/openLink";
 import {dragUpload, editAssetItem} from "./asset";
 import {previewImages} from "../../preview/image";
-/// #if !BROWSER
-import {webUtils} from "electron";
-/// #endif
-import {isBrowser} from "../../../util/functions";
+import {getPathForFile} from "../../../platform/electron/webUtils";
+import {isBrowser} from "../../../platform";
 import {Constants} from "../../../constants";
 import {getCompressURL} from "../../../util/image";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
@@ -275,11 +273,11 @@ class="fn__flex-1 fn__flex${["url", "text", "number", "email", "phone", "block"]
                 } else if (!window.siyuan.dragElement && event.dataTransfer.types[0] === "Files") {
                     const cellElement = element.querySelector(".custom-attr__avvalue--active") as HTMLElement;
                     if (cellElement) {
-                        if (event.dataTransfer.types[0] === "Files" && !isBrowser()) {
+                        if (event.dataTransfer.types[0] === "Files" && !isBrowser) {
                             const files: ILocalFiles[] = [];
                             for (let i = 0; i < event.dataTransfer.files.length; i++) {
                                 files.push({
-                                    path: webUtils.getPathForFile(event.dataTransfer.files[i]),
+                                    path: getPathForFile(event.dataTransfer.files[i]),
                                     size: event.dataTransfer.files[i].size
                                 });
                             }

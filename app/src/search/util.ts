@@ -1,6 +1,4 @@
-/// #if !BROWSER
 import { getAllModels } from "../layout/getAll";
-/// #endif
 import { Constants } from "../constants";
 import { escapeGreat, escapeHtml } from "../util/escape";
 import { fetchPost } from "../util/fetch";

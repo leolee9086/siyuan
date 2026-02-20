@@ -3,9 +3,8 @@ import { Protyle } from "../protyle";
 import { genUUID } from "../util/genID";
 import { hideElements } from "../protyle/ui/hideElements";
 
-/// #if !MOBILE
 import { moveResize } from "../dialog/moveResize";
-/// #endif
+import { isMobile } from "../platform";
 import { App } from "../index";
 import {
     getSiyuanBlockPanels,
@@ -70,15 +69,14 @@ export class BlockPanel {
             }
             this.处理图标点击(event, options);
         });
-        /// #if !MOBILE
-        if (this.element) {
+        // 非移动端启用拖拽调整大小（原 /// #if !MOBILE）
+        if (!isMobile && this.element) {
             moveResize(this.element, () => {
                 if (this.element) {
                     切换固定状态(this.element, true);
                 }
             });
         }
-        /// #endif
         this.render();
     }
 

@@ -7,6 +7,7 @@ import { getSiyuanConfig, incrementSiyuanZIndex } from "../util/siyuanEnvironmen
 import { getWindowInnerHeight } from "../util/siyuanEnvironments/getWindowInnerHeight.environment";
 import { checkClassListContain } from "../util/DOM/fnClasses";
 import { 设置面板位置参数 } from "./Panel.render.types";
+import { isElectron } from "../platform";
 
 /**
  * 构建面板的 HTML 内容
@@ -17,10 +18,11 @@ export function 构建面板HTML(refDefs: IRefDefs[]): string {
     if (refDefs.length === 1) {
         openHTML = `<span data-type="stickTab" class="block__icon block__icon--show b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.openInNewTab}${updateHotkeyAfterTip(config.keymap?.editor?.general?.openInNewTab?.custom || "")}"><svg><use xlink:href="#iconOpen"></use></svg></span>
 <span class="fn__space"></span>`;
-        /// #if !BROWSER
+    }
+    // Electron 环境下追加"在新窗口打开"按钮（原 /// #if !BROWSER）
+    if (refDefs.length === 1 && isElectron) {
         openHTML += `<span data-type="open" class="block__icon block__icon--show b3-tooltips b3-tooltips__sw" aria-label="${siyuanI18n.openByNewWindow}"><svg><use xlink:href="#iconOpenWindow"></use></svg></span>
 <span class="fn__space"></span>`;
-        /// #endif
     }
     let html = `<div class="block__icons block__icons--menu">
     <span class="fn__space fn__flex-1 resize__move"></span>${openHTML}

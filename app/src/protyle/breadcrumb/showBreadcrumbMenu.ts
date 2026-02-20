@@ -3,11 +3,13 @@
  * 从 Breadcrumb 类中提取的 showMenu 方法核心逻辑
  */
 import { fetchPost } from "../../util/fetch";
+import { isMobile } from "../../platform";
 import { Constants } from "../../constants";
 import { hasClosestBlock, hasTopClosestByClassName } from "../util/hasClosest";
 import { getEditorRange } from "../util/selection";
 import { emitOpenMenu } from "../../plugin/EventBus";
 import { getSiyuanConfig, getSiyuanMenus } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { Menu } from "../../menus/Menu";
 import type { 录音器上下文 } from "./breadcrumb.types";
 import {
     添加资源转换菜单项,
@@ -114,11 +116,9 @@ function 构建菜单内容(
     }
 
     // 全宽模式子菜单
-    /// #if !MOBILE
-    if (!protyle.disabled && protyle.wysiwyg) {
+    if (!isMobile && !protyle.disabled && protyle.wysiwyg) {
         添加全宽模式菜单项(protyle, menu);
     }
-    /// #endif
 
     // 插件菜单
     if (protyle.app?.plugins) {
@@ -136,13 +136,23 @@ function 构建菜单内容(
     // 文档信息
     添加文档信息菜单项(menu, response);
 
-    // 显示菜单
-    /// #if MOBILE
-    menu.fullscreen();
-    /// #else
-    menu.popup(position);
-    /// #endif
+    // 显示菜单并设置来源属性
+    显示并标记菜单来源(menu, protyle, position);
+}
 
+/**
+ * 显示菜单并标记其来源（app 或 popover）
+ * @param menu 菜单实例
+ * @param protyle 编辑器实例，用于判断 popover 层级
+ * @param position 桌面端菜单弹出位置
+ */
+function 显示并标记菜单来源(menu: InstanceType<typeof Menu>, protyle: IProtyle, position: IPosition): void {
+    if (isMobile) {
+        menu.fullscreen();
+    }
+    if (!isMobile) {
+        menu.popup(position);
+    }
     const popoverElement = hasTopClosestByClassName(protyle.element, "block__popover", true);
     menu.element.setAttribute("data-from", popoverElement ? popoverElement.dataset.level + "popover" : "app");
 }

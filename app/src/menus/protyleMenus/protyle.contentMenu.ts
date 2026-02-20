@@ -1,6 +1,7 @@
 import * as dayjs from "dayjs";
 import { focusByRange } from "../../ai/imports";
 import { Constants } from "../../constants";
+import { isMobile } from "../../platform";
 import { emitOpenMenu } from "../../plugin/EventBus";
 import { copyPlainText, writeText, readClipboard } from "../../protyle/util/compatibility";
 import { hasClosestByTag } from "../../protyle/util/hasClosest";
@@ -247,9 +248,13 @@ export const contentMenu = (protyle: IProtyle, nodeElement: Element): void => {
     const range = getEditorRange(nodeElement);
     getSiyuanGlobalMenus().menu.remove();
     getSiyuanGlobalMenus().menu.element.setAttribute("data-name", Constants.MENU_INLINE_CONTEXT);
-    /// #if MOBILE
-    getProtyleToolbar(protyle).showContent(protyle, range, nodeElement);
-    /// #else
+    // 移动端：使用工具栏显示内容菜单
+    if (isMobile) {
+        getProtyleToolbar(protyle).showContent(protyle, range, nodeElement);
+        触发插件菜单事件(protyle, nodeElement, range);
+        return;
+    }
+    // 桌面端：构建完整的上下文菜单
     const oldHTML = nodeElement.outerHTML;
     const id = nodeElement.getAttribute("data-node-id");
     if (!id) {
@@ -272,7 +277,6 @@ export const contentMenu = (protyle: IProtyle, nodeElement: Element): void => {
     if (是可编辑表格) {
         添加表格菜单({ protyle, range, element: nodeElement });
     }
-    /// #endif
     触发插件菜单事件(protyle, nodeElement, range);
 };
 

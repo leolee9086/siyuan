@@ -6,6 +6,7 @@
  * @module protyle/gutter/buildGutterCommonMenu
  */
 
+import { isMobile } from "../../platform";
 import * as dayjs from "dayjs";
 import { setFold } from "../../menus/protyle";
 import { enterBack } from "../../menus/protyleMenus/protyle.enterBack";
@@ -28,9 +29,7 @@ import { getSiyuanConfig, incrementSiyuanZIndex } from "../../util/siyuanEnviron
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { buildGutterAlignMenu, buildGutterWidthsMenu } from "./buildGutterStyleMenu";
 import { showMobileAppearance } from "./showMobileAppearance";
-/// #if !MOBILE
 import { openFileById } from "../../editor/utils.openFileById";
-/// #endif
 import { checkFold } from "../../util/noRelyPCFunction";
 import { 添加格式刷菜单 } from "./buildGutterStyleBrushMenu";
 
@@ -82,14 +81,15 @@ const 创建反链打开菜单项 = (ctx: IGutterCommonMenuContext): IMenu => ({
     click: () => {
         // @内联回调
         checkFold(ctx.id, (zoomIn, action) => {
-            /// #if !MOBILE
+            if (isMobile) {
+                return;
+            }
             openFileById({
                 app: ctx.protyle.app,
                 id: ctx.id,
                 action,
                 zoomIn
             });
-            /// #endif
         });
     }
 });
@@ -197,9 +197,10 @@ const 创建外观菜单 = (ctx: IGutterCommonMenuContext): IMenu => ({
     icon: "iconFont",
     accelerator: getSiyuanConfig().keymap.editor.insert.appearance.custom,
     click: () => {
-        /// #if MOBILE
-        showMobileAppearance(ctx.protyle);
-        /// #else
+        if (isMobile) {
+            showMobileAppearance(ctx.protyle);
+            return;
+        }
         ctx.protyle.toolbar.element.classList.add("fn__none");
         ctx.protyle.toolbar.subElement.innerHTML = "";
         ctx.protyle.toolbar.subElement.style.width = "";
@@ -210,7 +211,6 @@ const 创建外观菜单 = (ctx: IGutterCommonMenuContext): IMenu => ({
         ctx.protyle.toolbar.subElementCloseCB = undefined;
         const position = ctx.nodeElement.getBoundingClientRect();
         setPosition(ctx.protyle.toolbar.subElement, position.left, position.top);
-        /// #endif
     }
 });
 
@@ -296,10 +296,8 @@ const 应该显示微信提醒 = (ctx: IGutterCommonMenuContext): boolean => {
  * 添加导航菜单项（进入/返回）
  */
 const 添加导航菜单 = (ctx: IGutterCommonMenuContext, menuItems: IMenu[]): void => {
-    if (ctx.protyle.options.backlinkData) {
-        /// #if !MOBILE
+    if (ctx.protyle.options.backlinkData && !isMobile) {
         menuItems.push(创建反链打开菜单项(ctx));
-        /// #endif
     }
     if (!ctx.protyle.options.backlinkData) {
         menuItems.push(创建进入菜单项(ctx));

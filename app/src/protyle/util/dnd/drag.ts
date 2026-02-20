@@ -3,9 +3,6 @@ import { focusBlock } from "../selection";
 import { moveTo } from "./moveTo";
 import { setFold } from "../../../menus/protyle";
 import { transaction, turnsIntoOneTransaction } from "../../wysiwyg/transaction";
-/// #if !MOBILE
-import { getAllEditor } from "../../../layout/getAll";
-/// #endif
 
 export const dragSb = async (protyle: IProtyle, sourceElements: Element[], targetElement: Element, isBottom: boolean,
     direct: "col" | "row", isCopy: boolean) => {

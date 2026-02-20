@@ -3,11 +3,10 @@ import {fetchPost} from "./fetch";
 import {isMobile} from "./functions";
 import {Constants} from "../constants";
 import {pathPosix} from "./pathName";
-/// #if !MOBILE
 import {getDockByType} from "../layout/tabUtil";
 import {Files} from "../layout/dock/Files";
 import {Tag} from "../layout/dock/Tag";
-/// #endif
+import {platform} from "../platform";
 import {upDownHint} from "./upDownHint";
 import {escapeHtml} from "./escape";
 import {hasClosestByClassName} from "../protyle/util/hasClosest";
@@ -39,12 +38,13 @@ export const renameTag = (labelName: string) => {
     btnsElement[1].addEventListener("click", () => {
         fetchPost("/api/tag/renameTag", {oldLabel: labelName, newLabel: inputElement.value}, () => {
             dialog.destroy();
-            /// #if MOBILE
-            window.siyuan.mobile.docks.tag.update();
-            /// #else
-            const dockTag = getDockByType("tag");
-            (dockTag.data.tag as Tag).update();
-            /// #endif
+            if (platform === "browser-mobile") {
+                window.siyuan.mobile.docks.tag.update();
+            }
+            if (platform !== "browser-mobile") {
+                const dockTag = getDockByType("tag");
+                (dockTag.data.tag as Tag).update();
+            }
         });
     });
     const inputElement = dialog.element.querySelector("input");
@@ -126,15 +126,16 @@ export const checkFold = (id: string, cb: (zoomIn: boolean, action: TProtyleActi
 
 export const setLocalShorthandCount = () => {
     let fileElement;
-    /// #if MOBILE
-    fileElement = window.siyuan.mobile.docks.file.element;
-    /// #else
-    const dockFile = getDockByType("file");
-    if (!dockFile) {
-        return false;
+    if (platform === "browser-mobile") {
+        fileElement = window.siyuan.mobile.docks.file.element;
     }
-    fileElement = (dockFile.data.file as Files).element;
-    /// #endif
+    if (platform !== "browser-mobile") {
+        const dockFile = getDockByType("file");
+        if (!dockFile) {
+            return false;
+        }
+        fileElement = (dockFile.data.file as Files).element;
+    }
     const helpIDs: string[] = [];
     Object.keys(Constants.HELP_PATH).forEach((key) => {
         helpIDs.push(Constants.HELP_PATH[key]);

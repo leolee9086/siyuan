@@ -4,6 +4,7 @@ import { isHTMLElement } from "../DOM/element.guard";
 import { getLeaf } from "../pathName";
 import { siyuanI18n } from "../siyuanEnvironments/i18n.getI18n.environment";
 import { ClickHandlerContext } from "./movePathTo.types";
+import {isMobile} from "../../platform";
 
 /**
  * 创建点击事件处理器
@@ -11,9 +12,9 @@ import { ClickHandlerContext } from "./movePathTo.types";
 export function 创建点击事件处理器(context: ClickHandlerContext) {
     return (event: MouseEvent) => {
         处理点击目标(event, context);
-        /// #if !MOBILE
-        context.inputElement.focus();
-        /// #endif
+        if (!isMobile) {
+            context.inputElement.focus();
+        }
     };
 }
 

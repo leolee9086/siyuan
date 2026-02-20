@@ -1,4 +1,3 @@
-/// #if !MOBILE
 import { getInstanceById } from "../layout/util";
 import { setPanelFocus } from "../layout/utils/setPanelFocus";
 import { Tab } from "../layout/Tab";
@@ -6,10 +5,8 @@ import { initSearchMenu } from "./search";
 import { initDockMenu } from "./dock";
 import { initFileMenu, initNavigationMenu } from "./navigation";
 import { initTabMenu } from "./tab";
-/// #endif
-/// #if !BROWSER
-import { ipcRenderer } from "electron";
-/// #endif
+import { ipcSend } from "../platform/electron/ipcRenderer";
+import { isMobile, isElectron } from "../platform";
 import { Menu } from "./Menu";
 import { hasClosestByClassName, hasTopClosestByTag } from "../protyle/util/hasClosest";
 import { App } from "../index";
@@ -23,7 +20,7 @@ export class Menus {
 
     constructor(app: App) {
         this.menu = new Menu();
-        /// #if !MOBILE
+        if (!isMobile) {
         window.addEventListener("contextmenu", (event) => {
             if (event.shiftKey) {
                 return;
@@ -36,18 +33,18 @@ export class Menus {
                 return;
             }
             if (target.classList.contains("b3-text-field") || (target.tagName === "INPUT" && (target as HTMLInputElement).type === "text")) {
-                /// #if !BROWSER
-                ipcRenderer.send(Constants.SIYUAN_CONTEXT_MENU, {
-                    undo: siyuanI18n.undo,
-                    redo: siyuanI18n.redo,
-                    copy: siyuanI18n.copy,
-                    cut: siyuanI18n.cut,
-                    delete: siyuanI18n.delete,
-                    paste: siyuanI18n.paste,
-                    pasteAsPlainText: siyuanI18n.pasteAsPlainText,
-                    selectAll: siyuanI18n.selectAll,
-                });
-                /// #endif
+                if (isElectron) {
+                    ipcSend(Constants.SIYUAN_CONTEXT_MENU, {
+                        undo: siyuanI18n.undo,
+                        redo: siyuanI18n.redo,
+                        copy: siyuanI18n.copy,
+                        cut: siyuanI18n.cut,
+                        delete: siyuanI18n.delete,
+                        paste: siyuanI18n.paste,
+                        pasteAsPlainText: siyuanI18n.pasteAsPlainText,
+                        selectAll: siyuanI18n.selectAll,
+                    });
+                }
                 event.stopPropagation();
             } else {
                 event.preventDefault();
@@ -96,18 +93,18 @@ export class Menus {
                     event.stopPropagation();
                     break;
                 } else if (dataType === "textMenu") {
-                    /// #if !BROWSER
-                    target && textMenu(target)?.open({ x: event.clientX, y: event.clientY });
-                    event.stopPropagation();
-                    event.preventDefault();
-                    break;
-                    /// #endif
+                    if (isElectron) {
+                        target && textMenu(target)?.open({ x: event.clientX, y: event.clientY });
+                        event.stopPropagation();
+                        event.preventDefault();
+                        break;
+                    }
                 }
 
                 target = target.parentElement;
             }
         }, false);
-        /// #endif
+        }
     }
 
     private getDir(target: HTMLElement) {

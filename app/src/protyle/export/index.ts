@@ -1,11 +1,8 @@
 import { hideMessage, showMessage } from "../../dialog/message";
 import { Constants } from "../../constants";
-/// #if !BROWSER
-import { ipcRenderer } from "electron";
-import * as fs from "fs";
-import * as path from "path";
+import { isBrowser, isElectron } from "../../platform";
+import { ipcInvoke, ipcSend } from "../../platform/electron/ipcRenderer";
 import { afterExport } from "./util";
-/// #endif
 import { confirmDialog } from "../../dialog/confirmDialog";
 import { getThemeMode, setInlineStyle } from "../../util/assets";
 import { fetchPost, fetchSyncPost } from "../../util/fetch";
@@ -33,8 +30,8 @@ const getIconScript = (servePath: string) => {
 };
 
 export const saveExport = (option: IExportOptions) => {
-    /// #if BROWSER
-    if (["html", "htmlmd"].includes(option.type)) {
+    // 浏览器环境仅支持 HTML 导出，通过 API 打包下载
+    if (isBrowser && ["html", "htmlmd"].includes(option.type)) {
         const msgId = showMessage(siyuanI18n.exporting, -1);
         // 浏览器环境：先调用 API 生成资源文件，再在前端生成完整的 HTML
         const url = option.type === "htmlmd" ? "/api/export/exportMdHTML" : "/api/export/exportHTML";
@@ -62,7 +59,6 @@ export const saveExport = (option: IExportOptions) => {
         });
         return;
     }
-    /// #else
     if (option.type === "pdf") {
         if (window.siyuan.config.appearance.mode === 1) {
             confirmDialog(siyuanI18n.pdfTip, siyuanI18n.pdfConfirm, () => {
@@ -113,7 +109,6 @@ export const saveExport = (option: IExportOptions) => {
     } else {
         getExportPath(option, false, true);
     }
-    /// #endif
 };
 
 const getSnippetCSS = () => {
@@ -136,8 +131,10 @@ const getSnippetJS = () => {
     return snippetScript;
 };
 
-/// #if !BROWSER
 const renderPDF = async (id: string) => {
+    if (isBrowser) {
+        return;
+    }
     const localData = window.siyuan.storage[Constants.LOCAL_EXPORTPDF];
     if (typeof localData.paged === "undefined") {
         localData.paged = true;
@@ -149,7 +146,7 @@ const renderPDF = async (id: string) => {
     if (!isDefault) {
         themeStyle = `<link rel="stylesheet" type="text/css" id="themeStyle" href="${servePath}appearance/themes/${window.siyuan.config.appearance.themeLight}/theme.css?${Constants.SIYUAN_VERSION}"/>`;
     }
-    const currentWindowId = await ipcRenderer.invoke(Constants.SIYUAN_GET, {
+    const currentWindowId = await ipcInvoke(Constants.SIYUAN_GET, {
         cmd: "getContentsId",
     });
     // data-theme-mode="light" https://github.com/siyuan-note/siyuan/issues/7379
@@ -638,7 +635,6 @@ ${getIconScript(servePath)}
             };
         };
         actionElement.querySelector('.b3-button--text').addEventListener('click', () => {
-            /// #if !BROWSER
             const isPaged = actionElement.querySelector("#paged").checked;
             if (!isPaged) {
                 const getPageSizeDimensions = () => {
@@ -685,12 +681,14 @@ ${getIconScript(servePath)}
 ${getSnippetJS()}
 </body></html>`;
     fetchPost("/api/export/exportTempContent", { content: html }, (response) => {
-        ipcRenderer.send(Constants.SIYUAN_EXPORT_NEWWINDOW, response.data.url);
+        ipcSend(Constants.SIYUAN_EXPORT_NEWWINDOW, response.data.url);
     });
 };
-/// #endif
 
 const getExportPath = (option: IExportOptions, removeAssets?: boolean, mergeSubdocs?: boolean) => {
+    if (isBrowser) {
+        return;
+    }
     fetchPost("/api/block/getBlockInfo", {
         id: option.id
     }, async (response) => {
@@ -711,7 +709,7 @@ const getExportPath = (option: IExportOptions, removeAssets?: boolean, mergeSubd
                 break;
         }
 
-        const result = await ipcRenderer.invoke(Constants.SIYUAN_GET, {
+        const result = await ipcInvoke<{ canceled: boolean; filePaths: string[] }>(Constants.SIYUAN_GET, {
             cmd: "showOpenDialog",
             title: siyuanI18n.export + " " + exportType,
             properties: ["createDirectory", "openDirectory"],
@@ -726,7 +724,7 @@ const getExportPath = (option: IExportOptions, removeAssets?: boolean, mergeSubd
             }
             let savePath = result.filePaths[0];
             if (option.type !== "word" && !savePath.endsWith(response.data.rootTitle)) {
-                savePath = path.join(savePath, replaceLocalPath(response.data.rootTitle));
+                savePath = __non_webpack_require__("path").join(savePath, replaceLocalPath(response.data.rootTitle));
             }
             savePath = savePath.trim();
             fetchPost(url, {
@@ -750,7 +748,6 @@ const getExportPath = (option: IExportOptions, removeAssets?: boolean, mergeSubd
         }
     });
 };
-/// #endif
 
 export const onExport = async (data: IWebSocketData, filePath: string, servePath: string, exportOption: IExportOptions, msgId?: string) => {
     let themeName = window.siyuan.config.appearance.themeLight;
@@ -840,9 +837,12 @@ ${getSnippetJS()}</body></html>`;
     if (typeof filePath === "undefined") {
         return html;
     }
-    /// #if !BROWSER
-    const htmlPath = path.join(filePath, "index.html");
-    fs.writeFileSync(htmlPath, html);
-    afterExport(htmlPath, msgId);
-    /// #endif
+    // Electron 环境下将 HTML 写入本地文件并触发导出完成提示
+    if (isElectron) {
+        const path = __non_webpack_require__("path");
+        const fs = __non_webpack_require__("fs");
+        const htmlPath = path.join(filePath, "index.html");
+        fs.writeFileSync(htmlPath, html);
+        afterExport(htmlPath, msgId);
+    }
 };

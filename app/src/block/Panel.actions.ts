@@ -3,13 +3,10 @@
  * 从 Panel.ts 中提取，用于减少文件行数
  */
 
-/// #if !BROWSER
 import { openNewWindowById } from "../window/openNewWindow";
-/// #endif
-/// #if !MOBILE
 import { openFileById } from "../editor/utils.openFileById";
-/// #endif
 import { checkFold } from "../util/noRelyPCFunction";
+import { isElectron } from "../platform";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { App } from "../index";
 import { headIconCtx } from "./Panel.types";
@@ -76,10 +73,9 @@ export function 执行图标操作(ctx: headIconCtx): void {
         执行固定操作(target, element);
         return;
     }
-    if (type === "open" && firstRef) {
-        /// #if !BROWSER
+    // Electron 环境下，点击 open 图标时在新窗口打开引用块
+    if (type === "open" && firstRef && isElectron) {
         openNewWindowById(firstRef.refID);
-        /// #endif
         return;
     }
     if (type === "open") {

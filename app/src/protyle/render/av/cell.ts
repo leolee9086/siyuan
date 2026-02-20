@@ -22,6 +22,7 @@ import {getCompressURL, removeCompressURL} from "../../../util/image";
 // S-forge: 本地改进 - 使用统一的国际化环境获取方式
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {callMobileAppShowKeyboard} from "../../../mobile/util/mobileAppUtil";
+import {isMobile} from "../../../platform";
 
 const renderCellURL = (urlContent: string) => {
     let host = urlContent;
@@ -417,61 +418,62 @@ export const cellScrollIntoView = (blockElement: HTMLElement, cellElement: Eleme
             }
         }
     }
-    /// #if MOBILE
-    const contentElement = hasClosestByClassName(blockElement, "protyle-content", true);
-    if (contentElement && cellElement.getAttribute("data-dtype") !== "checkbox") {
-        let keyboardToolbarTop = window.innerHeight / 2 - 48;
-        if (window.siyuan.mobile.size.isLandscape) {
-            if (window.siyuan.mobile.size.landscape.height1 !== window.siyuan.mobile.size.landscape.height2) {
-                keyboardToolbarTop = window.siyuan.mobile.size.landscape.height2 - 48;
-            }
-        } else {
-            if (window.siyuan.mobile.size.portrait.height1 !== window.siyuan.mobile.size.portrait.height2) {
-                keyboardToolbarTop = window.siyuan.mobile.size.portrait.height2 - 48;
-            }
-        }
-        if (cellRect.bottom > keyboardToolbarTop) {
-            contentElement.scrollTop = contentElement.scrollTop + (cellRect.bottom - keyboardToolbarTop);
-        } else if (cellRect.top < 110) {
-            contentElement.scrollTop -= 110 - cellRect.top;
-        }
-    }
-    /// #else
-    if (!blockElement.querySelector(".av__header")) {
-        // 属性面板
-        return;
-    }
-    const bodyElement = hasClosestByClassName(cellElement, "av__body");
-    if (!bodyElement) {
-        return;
-    }
-    const avHeaderRect = bodyElement.querySelector(".av__row--header").getBoundingClientRect();
-    if (avHeaderRect.bottom > cellRect.top) {
+    if (isMobile) {
         const contentElement = hasClosestByClassName(blockElement, "protyle-content", true);
-        if (contentElement) {
-            contentElement.scrollTop = contentElement.scrollTop + cellRect.top - avHeaderRect.bottom;
-        }
-    } else {
-        const footerElement = bodyElement.querySelector(".av__row--footer");
-        if (footerElement?.querySelector(".av__calc--ashow")) {
-            const avFooterRect = footerElement.getBoundingClientRect();
-            if (avFooterRect.top < cellRect.bottom) {
-                const contentElement = hasClosestByClassName(blockElement, "protyle-content", true);
-                if (contentElement) {
-                    contentElement.scrollTop = contentElement.scrollTop + cellRect.bottom - avFooterRect.top;
+        if (contentElement && cellElement.getAttribute("data-dtype") !== "checkbox") {
+            let keyboardToolbarTop = window.innerHeight / 2 - 48;
+            if (window.siyuan.mobile.size.isLandscape) {
+                if (window.siyuan.mobile.size.landscape.height1 !== window.siyuan.mobile.size.landscape.height2) {
+                    keyboardToolbarTop = window.siyuan.mobile.size.landscape.height2 - 48;
+                }
+            } else {
+                if (window.siyuan.mobile.size.portrait.height1 !== window.siyuan.mobile.size.portrait.height2) {
+                    keyboardToolbarTop = window.siyuan.mobile.size.portrait.height2 - 48;
                 }
             }
-        } else {
+            if (cellRect.bottom > keyboardToolbarTop) {
+                contentElement.scrollTop = contentElement.scrollTop + (cellRect.bottom - keyboardToolbarTop);
+            } else if (cellRect.top < 110) {
+                contentElement.scrollTop -= 110 - cellRect.top;
+            }
+        }
+    }
+    if (!isMobile) {
+        if (!blockElement.querySelector(".av__header")) {
+            // 属性面板
+            return;
+        }
+        const bodyElement = hasClosestByClassName(cellElement, "av__body");
+        if (!bodyElement) {
+            return;
+        }
+        const avHeaderRect = bodyElement.querySelector(".av__row--header").getBoundingClientRect();
+        if (avHeaderRect.bottom > cellRect.top) {
             const contentElement = hasClosestByClassName(blockElement, "protyle-content", true);
             if (contentElement) {
-                const contentRect = contentElement.getBoundingClientRect();
-                if (cellRect.bottom > contentRect.bottom) {
-                    contentElement.scrollTop = contentElement.scrollTop + (cellRect.bottom - contentRect.bottom);
+                contentElement.scrollTop = contentElement.scrollTop + cellRect.top - avHeaderRect.bottom;
+            }
+        } else {
+            const footerElement = bodyElement.querySelector(".av__row--footer");
+            if (footerElement?.querySelector(".av__calc--ashow")) {
+                const avFooterRect = footerElement.getBoundingClientRect();
+                if (avFooterRect.top < cellRect.bottom) {
+                    const contentElement = hasClosestByClassName(blockElement, "protyle-content", true);
+                    if (contentElement) {
+                        contentElement.scrollTop = contentElement.scrollTop + cellRect.bottom - avFooterRect.top;
+                    }
+                }
+            } else {
+                const contentElement = hasClosestByClassName(blockElement, "protyle-content", true);
+                if (contentElement) {
+                    const contentRect = contentElement.getBoundingClientRect();
+                    if (cellRect.bottom > contentRect.bottom) {
+                        contentElement.scrollTop = contentElement.scrollTop + (cellRect.bottom - contentRect.bottom);
+                    }
                 }
             }
         }
     }
-    /// #endif
 };
 
 export const getTypeByCellElement = (cellElement: Element) => {

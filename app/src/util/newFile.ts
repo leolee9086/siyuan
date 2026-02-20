@@ -1,13 +1,10 @@
 import { showMessage } from "../dialog/message";
-/// #if !MOBILE
 import { getAllModels } from "../layout/getAll";
-/// #endif
 import { hasClosestByClassName, hasTopClosestByTag } from "../protyle/util/hasClosest";
 import { getDockByType } from "../layout/tabUtil";
-/// #if !MOBILE
 import { Files } from "../layout/dock/Files";
 import { openFileById } from "../editor/utils.openFileById";
-/// #endif
+import {isMobile} from "../platform";
 import { fetchPost } from "./fetch";
 import { getDisplayName, getOpenNotebookCount, pathPosix } from "./pathName";
 import { Constants } from "../constants";
@@ -20,49 +17,50 @@ import { siyuanI18n } from "./siyuanEnvironments/i18n.getI18n.environment";
 export const getNewFilePath = (useSavePath: boolean) => {
     let notebookId = "";
     let currentPath = "";
-    /// #if !MOBILE
-    getAllModels().editor.find((item) => {
-        const currentElement = item.parent.headElement;
-        if (currentElement.classList.contains("item--focus")) {
-            notebookId = item.editor.protyle.notebookId;
-            if (useSavePath) {
-                currentPath = item.editor.protyle.path;
-            } else {
-                currentPath = pathPosix().dirname(item.editor.protyle.path);
-            }
-            if (hasClosestByClassName(currentElement, "layout__wnd--active")) {
-                return true;
-            }
-        }
-    });
-    if (!notebookId) {
-        const fileModel = getDockByType("file").data.file;
-        if (fileModel instanceof Files) {
-            const currentElement = fileModel.element.querySelector(".b3-list-item--focus");
-            if (currentElement) {
-                const topElement = hasTopClosestByTag(currentElement, "UL");
-                if (topElement) {
-                    notebookId = topElement.getAttribute("data-url");
-                }
-                const selectPath = currentElement.getAttribute("data-path");
+    if (!isMobile) {
+        getAllModels().editor.find((item) => {
+            const currentElement = item.parent.headElement;
+            if (currentElement.classList.contains("item--focus")) {
+                notebookId = item.editor.protyle.notebookId;
                 if (useSavePath) {
-                    currentPath = selectPath;
+                    currentPath = item.editor.protyle.path;
                 } else {
-                    currentPath = pathPosix().dirname(selectPath);
+                    currentPath = pathPosix().dirname(item.editor.protyle.path);
+                }
+                if (hasClosestByClassName(currentElement, "layout__wnd--active")) {
+                    return true;
+                }
+            }
+        });
+        if (!notebookId) {
+            const fileModel = getDockByType("file").data.file;
+            if (fileModel instanceof Files) {
+                const currentElement = fileModel.element.querySelector(".b3-list-item--focus");
+                if (currentElement) {
+                    const topElement = hasTopClosestByTag(currentElement, "UL");
+                    if (topElement) {
+                        notebookId = topElement.getAttribute("data-url");
+                    }
+                    const selectPath = currentElement.getAttribute("data-path");
+                    if (useSavePath) {
+                        currentPath = selectPath;
+                    } else {
+                        currentPath = pathPosix().dirname(selectPath);
+                    }
                 }
             }
         }
     }
-    /// #else
-    if (window.siyuan.mobile.editor && document.getElementById("empty").classList.contains("fn__none")) {
-        notebookId = window.siyuan.mobile.editor.protyle.notebookId;
-        if (useSavePath) {
-            currentPath = window.siyuan.mobile.editor.protyle.path;
-        } else {
-            currentPath = pathPosix().dirname(window.siyuan.mobile.editor.protyle.path);
+    if (isMobile) {
+        if (window.siyuan.mobile.editor && document.getElementById("empty").classList.contains("fn__none")) {
+            notebookId = window.siyuan.mobile.editor.protyle.notebookId;
+            if (useSavePath) {
+                currentPath = window.siyuan.mobile.editor.protyle.path;
+            } else {
+                currentPath = pathPosix().dirname(window.siyuan.mobile.editor.protyle.path);
+            }
         }
     }
-    /// #endif
     if (!notebookId) {
         window.siyuan.notebooks.find(item => {
             if (!item.closed) {
@@ -111,15 +109,16 @@ export const newFile = (optios: {
                     if (optios.afterCB) {
                         optios.afterCB(response.data, pathPosix().basename(createPath));
                     }
-                    /// #if !MOBILE
-                    openFileById({
-                        app: optios.app,
-                        id: response.data,
-                        action: [Constants.CB_GET_CONTEXT, Constants.CB_GET_OPENNEW]
-                    });
-                    /// #else
-                    openMobileFileById(optios.app, response.data, [Constants.CB_GET_CONTEXT, Constants.CB_GET_OPENNEW]);
-                    /// #endif
+                    if (!isMobile) {
+                        openFileById({
+                            app: optios.app,
+                            id: response.data,
+                            action: [Constants.CB_GET_CONTEXT, Constants.CB_GET_OPENNEW]
+                        });
+                    }
+                    if (isMobile) {
+                        openMobileFileById(optios.app, response.data, [Constants.CB_GET_CONTEXT, Constants.CB_GET_OPENNEW]);
+                    }
                 });
             } else {
                 fetchPost("/api/filetree/getHPathByPath", {
@@ -137,15 +136,16 @@ export const newFile = (optios: {
                         if (optios.afterCB) {
                             optios.afterCB(response.data, pathPosix().basename(createPath));
                         }
-                        /// #if !MOBILE
-                        openFileById({
-                            app: optios.app,
-                            id: response.data,
-                            action: [Constants.CB_GET_CONTEXT, Constants.CB_GET_OPENNEW]
-                        });
-                        /// #else
-                        openMobileFileById(optios.app, response.data, [Constants.CB_GET_CONTEXT, Constants.CB_GET_OPENNEW]);
-                        /// #endif
+                        if (!isMobile) {
+                            openFileById({
+                                app: optios.app,
+                                id: response.data,
+                                action: [Constants.CB_GET_CONTEXT, Constants.CB_GET_OPENNEW]
+                            });
+                        }
+                        if (isMobile) {
+                            openMobileFileById(optios.app, response.data, [Constants.CB_GET_CONTEXT, Constants.CB_GET_OPENNEW]);
+                        }
                     });
                 });
             }
@@ -165,15 +165,16 @@ export const newFile = (optios: {
                     if (optios.afterCB) {
                         optios.afterCB(response.data, pathPosix().basename(createPath));
                     }
-                    /// #if !MOBILE
-                    openFileById({
-                        app: optios.app,
-                        id: response.data,
-                        action: [Constants.CB_GET_CONTEXT, Constants.CB_GET_OPENNEW]
-                    });
-                    /// #else
-                    openMobileFileById(optios.app, response.data, [Constants.CB_GET_CONTEXT, Constants.CB_GET_OPENNEW]);
-                    /// #endif
+                    if (!isMobile) {
+                        openFileById({
+                            app: optios.app,
+                            id: response.data,
+                            action: [Constants.CB_GET_CONTEXT, Constants.CB_GET_OPENNEW]
+                        });
+                    }
+                    if (isMobile) {
+                        openMobileFileById(optios.app, response.data, [Constants.CB_GET_CONTEXT, Constants.CB_GET_OPENNEW]);
+                    }
                 });
                 return;
             }
@@ -194,11 +195,12 @@ export const newFile = (optios: {
                 if (optios.afterCB) {
                     optios.afterCB(id, title);
                 }
-                /// #if !MOBILE
-                openFileById({ app: optios.app, id, action: [Constants.CB_GET_CONTEXT, Constants.CB_GET_OPENNEW] });
-                /// #else
-                openMobileFileById(optios.app, id, [Constants.CB_GET_CONTEXT, Constants.CB_GET_OPENNEW]);
-                /// #endif
+                if (!isMobile) {
+                    openFileById({ app: optios.app, id, action: [Constants.CB_GET_CONTEXT, Constants.CB_GET_OPENNEW] });
+                }
+                if (isMobile) {
+                    openMobileFileById(optios.app, id, [Constants.CB_GET_CONTEXT, Constants.CB_GET_OPENNEW]);
+                }
             });
         }
     });

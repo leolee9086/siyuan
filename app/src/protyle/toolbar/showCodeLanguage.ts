@@ -6,6 +6,7 @@ import { Constants } from "../../constants";
 import { getEditorRange, focusByRange, getSelectionPosition } from "../util/selection";
 import { hasClosestBlock, hasClosestByClassName } from "../util/hasClosest";
 import { hideElements } from "../ui/hideElements";
+import { isMobile } from "../../platform";
 import { setPosition } from "../../util/setPosition";
 import { upDownHint } from "../../util/upDownHint";
 import { escapeHtml } from "../../util/escape";
@@ -167,12 +168,13 @@ export function 显示代码语言选择(
 
     subElement.style.zIndex = (++window.siyuan.zIndex).toString();
     subElement.classList.remove("fn__none");
-    /// #if !MOBILE
-    const nodeRect = languageElements[0].getBoundingClientRect();
-    setPosition(subElement, nodeRect.left, nodeRect.bottom, nodeRect.height);
-    /// #else
-    setPosition(subElement, 0, 0);
-    /// #endif
+    if (!isMobile) {
+        const nodeRect = languageElements[0].getBoundingClientRect();
+        setPosition(subElement, nodeRect.left, nodeRect.bottom, nodeRect.height);
+    }
+    if (isMobile) {
+        setPosition(subElement, 0, 0);
+    }
     toolbarElement.classList.add("fn__none");
     inputElement.select();
 }

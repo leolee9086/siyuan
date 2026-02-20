@@ -2,6 +2,7 @@
  * 挂件选择面板
  */
 import { fetchPost } from "../../util/fetch";
+import { isMobile } from "../../platform";
 import { setPosition } from "../../util/setPosition";
 import { upDownHint } from "../../util/upDownHint";
 import { Constants } from "../../constants";
@@ -94,11 +95,12 @@ ${item.name}
         if (bgElement) {
             bgElement.innerHTML = html;
         }
-        /// #if !MOBILE
-        const rangePosition = getSelectionPosition(nodeElement, range);
-        setPosition(subElement, rangePosition.left, rangePosition.top + 18, Constants.SIZE_TOOLBAR_HEIGHT);
-        /// #else
-        setPosition(subElement, 0, 0);
-        /// #endif
+        if (!isMobile) {
+            const rangePosition = getSelectionPosition(nodeElement, range);
+            setPosition(subElement, rangePosition.left, rangePosition.top + 18, Constants.SIZE_TOOLBAR_HEIGHT);
+        }
+        if (isMobile) {
+            setPosition(subElement, 0, 0);
+        }
     });
 }

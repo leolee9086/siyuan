@@ -1,16 +1,13 @@
-/// #if !BROWSER
-import { shell } from "electron";
+import { openExternal } from "../platform/electron/shell";
 import { openAssetNewWindow } from "../window/openNewWindow";
-/// #endif
 import { App } from "..";
 import { Constants } from "../constants";
 import { showMessage } from "../dialog/message";
-/// #if !MOBILE
 import { openAsset } from "../editor/util.openAsset";
-/// #endif
 import { openBy } from "../editor/utils.openBy";
+import { isElectron } from "../platform";
 import { isInAndroid, openByMobile, isInHarmony } from "../protyle/util/compatibility";
-import { getSearch } from "../util/functions";
+import { getSearch, isMobile } from "../util/functions";
 import { isLocalPath, pathPosix } from "../util/pathName";
 import { MenuItem } from "./Menu.Item";
 import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu.environment";
@@ -117,10 +114,11 @@ const generateAssetDesktopMenuItems = (src: string, showAccelerator: boolean) =>
 // 本地资源文件菜单项生成函数
 const generateAssetMenuItems = (app: App, src: string, showAccelerator: boolean) => {
     const submenu = generateAssetBaseMenuItems(app, src, showAccelerator);
-    /// #if !BROWSER
-    const desktopSubmenu = generateAssetDesktopMenuItems(src, showAccelerator);
-    submenu.push(...desktopSubmenu);
-    /// #endif
+    // 桌面端追加"新窗口打开"、"在文件夹中显示"、"使用默认应用打开"菜单项
+    if (isElectron) {
+        const desktopSubmenu = generateAssetDesktopMenuItems(src, showAccelerator);
+        submenu.push(...desktopSubmenu);
+    }
     return submenu;
 };
 
@@ -152,12 +150,11 @@ const generateLocalFileDesktopMenuItems = (src: string, showAccelerator: boolean
 
 // 非资源本地文件菜单项生成函数
 const generateLocalFileMenuItems = (src: string, showAccelerator: boolean) => {
-    //尽可能不使用条件编译,避免维护困难
-    if (window.require && window.require("electron")) {
+    // 桌面端提供"使用默认应用打开"和"在文件夹中显示"，移动端使用系统浏览器打开
+    if (isElectron) {
         return generateLocalFileDesktopMenuItems(src, showAccelerator);
-    } else {
-        return generateLocalFileMobileMenuItems(src, showAccelerator);
     }
+    return generateLocalFileMobileMenuItems(src, showAccelerator);
 };
 
 // 外部链接桌面端菜单项生成函数
@@ -168,7 +165,7 @@ const generateExternalLinkDesktopMenuItems = (processedSrc: string, showAccelera
         icon: "",
         accelerator: showAccelerator ? siyuanI18n.click : "",
         click: () => {
-            shell.openExternal(processedSrc).catch((e) => {
+            openExternal(processedSrc).catch((e) => {
                 showMessage(e);
             });
         }
@@ -184,35 +181,35 @@ const generateExternalLinkMenuItems = (src: string, showAccelerator: boolean) =>
         // Support click to open hyperlinks like `www.foo.com` https://github.com/siyuan-note/siyuan/issues/9986
         processedSrc = `https://${src}`;
     }
-    ///尽可能不使用条件编译,避免维护困难
-    if (window.require && window.require("electron")) {
+    // 桌面端使用 electron shell 打开外部链接，移动端使用系统浏览器
+    if (isElectron) {
         return generateExternalLinkDesktopMenuItems(processedSrc, showAccelerator);
-    } else {
-        return generateExternalLinkMobileMenuItems(processedSrc, showAccelerator);
     }
+    return generateExternalLinkMobileMenuItems(processedSrc, showAccelerator);
 };
 
 export const openMenu = (app: App, src: string, onlyMenu: boolean, showAccelerator: boolean) => {
     let submenu = [];
 
-    /// #if MOBILE
-    submenu = generateMobileMenuItems(src, showAccelerator);
-    /// #else
-    if (isLocalPath(src)) {
-        const ext = pathPosix().extname(src).split("?")[0];
-        if (Constants.SIYUAN_ASSETS_EXTS.includes(ext || "") &&
-            (!src.endsWith(".pdf") ||
-                (src.endsWith(".pdf") && !src.startsWith("file://")))) {
-            submenu = generateAssetMenuItems(app, src, showAccelerator);
-        } else {
-            submenu = generateLocalFileMenuItems(src, showAccelerator);
-        }
+    if (isMobile()) {
+        submenu = generateMobileMenuItems(src, showAccelerator);
+    }
+    if (!isMobile()) {
+        if (isLocalPath(src)) {
+            const ext = pathPosix().extname(src).split("?")[0];
+            if (Constants.SIYUAN_ASSETS_EXTS.includes(ext || "") &&
+                (!src.endsWith(".pdf") ||
+                    (src.endsWith(".pdf") && !src.startsWith("file://")))) {
+                submenu = generateAssetMenuItems(app, src, showAccelerator);
+            } else {
+                submenu = generateLocalFileMenuItems(src, showAccelerator);
+            }
 
+        }
+        if (!isLocalPath(src) && src) {
+            submenu = generateExternalLinkMenuItems(src, showAccelerator);
+        }
     }
-    if (!isLocalPath(src) && src) {
-        submenu = generateExternalLinkMenuItems(src, showAccelerator);
-    }
-    /// #endif
 
     if (onlyMenu) {
         return submenu;

@@ -18,6 +18,7 @@ import { clearBlockElement } from "./clearSelect";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { removeZWJ } from "./normalizeText";
 import { base64ToURL } from "../../util/image";
+import { isElectron } from "../../platform";
 
 export const getTextStar = (blockElement: HTMLElement, contentOnly = false) => {
     const dataType = blockElement.dataset.type;
@@ -151,13 +152,13 @@ export const pasteEscaped = async (protyle: IProtyle, nodeElement: Element) => {
 
 export const pasteAsPlainText = async (protyle: IProtyle) => {
     let localFiles: ILocalFiles[] = [];
-    /// #if !BROWSER
-    localFiles = await getLocalFiles();
-    if (localFiles.length > 0) {
-        uploadLocalFiles(localFiles, protyle, false);
-        return;
+    if (isElectron) {
+        localFiles = await getLocalFiles();
+        if (localFiles.length > 0) {
+            uploadLocalFiles(localFiles, protyle, false);
+            return;
+        }
     }
-    /// #endif
     if (localFiles.length === 0) {
         // Inline-level elements support pasted as plain text https://github.com/siyuan-note/siyuan/issues/8010
         let textPlain = await readText() || "";
@@ -283,15 +284,13 @@ export const paste = async (protyle: IProtyle, event: (ClipboardEvent | DragEven
     // Improve the pasting of selected text in PDF rectangular annotation https://github.com/siyuan-note/siyuan/issues/11629
     textPlain = textPlain.replace(/\r\n|\r|\u2028|\u2029/g, "\n");
 
-    /// #if !BROWSER
-    if (!siyuanHTML && !textHTML && !textPlain && ("clipboardData" in event)) {
+    if (isElectron && !siyuanHTML && !textHTML && !textPlain && ("clipboardData" in event)) {
         const localFiles: ILocalFiles[] = await getLocalFiles();
         if (localFiles.length > 0) {
             readLocalFile(protyle, localFiles);
             return;
         }
     }
-    /// #endif
     const originalTextHTML = textHTML;
     // 浏览器地址栏拷贝处理
     if (textHTML.replace(/&amp;/g, "&").replace(/<(|\/)(html|body|meta)[^>]*?>/ig, "").trim() ===

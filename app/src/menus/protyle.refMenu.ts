@@ -14,6 +14,7 @@ import { updateTransaction } from "../protyle/wysiwyg/transaction";
 import { checkFold } from "../util/noRelyPCFunction";
 import { openNewWindowById } from "../window/openNewWindow";
 import { MenuItem } from "./Menu.Item";
+import { isMobile, isElectron } from "../platform";
 import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu.environment";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
@@ -74,7 +75,7 @@ export const refMenu = (protyle: IProtyle, refElement: HTMLElement) => {
         getSiyuanGlobalMenus().menu.append(createAnchorEditorItem(refElement).element);
         getSiyuanGlobalMenus().menu.append(new MenuItem({ id: "separator_1", type: "separator" }).element);
     }
-    /// #if !MOBILE
+    if (!isMobile) {
     getSiyuanGlobalMenus().menu.append(new MenuItem({
         id: "openBy",
         label: siyuanI18n.openBy,
@@ -151,7 +152,7 @@ export const refMenu = (protyle: IProtyle, refElement: HTMLElement) => {
             });
         }
     }).element);
-    /// #if !BROWSER
+    if (isElectron) {
     getSiyuanGlobalMenus().menu.append(new MenuItem({
         id: "openByNewWindow",
         label: siyuanI18n.openByNewWindow,
@@ -160,7 +161,7 @@ export const refMenu = (protyle: IProtyle, refElement: HTMLElement) => {
             openNewWindowById(refBlockId);
         }
     }).element);
-    /// #endif
+    }
     getSiyuanGlobalMenus().menu.append(new MenuItem({ id: "separator_2", type: "separator" }).element);
     getSiyuanGlobalMenus().menu.append(new MenuItem({
         id: "backlinks",
@@ -187,7 +188,7 @@ export const refMenu = (protyle: IProtyle, refElement: HTMLElement) => {
         }
     }).element);
     getSiyuanGlobalMenus().menu.append(new MenuItem({ id: "separator_3", type: "separator" }).element);
-    /// #endif
+    }
     if (!protyle.disabled) {
         let submenu: IMenu[] = [];
         if (refElement.getAttribute("data-subtype") === "s") {
@@ -362,16 +363,17 @@ export const refMenu = (protyle: IProtyle, refElement: HTMLElement) => {
         });
     }
 
-    /// #if MOBILE
-    getSiyuanGlobalMenus().menu.fullscreen();
-    /// #else
-    const rect = refElement.getBoundingClientRect();
-    getSiyuanGlobalMenus().menu.popup({
-        x: rect.left,
-        y: rect.top + 26,
-        h: 26
-    });
-    /// #endif
+    if (isMobile) {
+        getSiyuanGlobalMenus().menu.fullscreen();
+    }
+    if (!isMobile) {
+        const rect = refElement.getBoundingClientRect();
+        getSiyuanGlobalMenus().menu.popup({
+            x: rect.left,
+            y: rect.top + 26,
+            h: 26
+        });
+    }
     const popoverElement = hasTopClosestByClassName(protyle.element, "block__popover", true);
     getSiyuanGlobalMenus().menu.data = refElement;
     getSiyuanGlobalMenus().menu.element.setAttribute("data-from", popoverElement ? popoverElement.dataset.level + "popover" : "app");

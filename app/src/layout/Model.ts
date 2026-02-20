@@ -1,7 +1,5 @@
 import { Constants } from "../constants";
-/// #if !MOBILE
 import { Tab } from "./Tab";
-/// #endif
 import { processMessage } from "../util/processMessage";
 import { kernelError, reloadSync } from "../dialog/processSystem";
 import { App } from "../index";
@@ -9,12 +7,7 @@ import { App } from "../index";
 export class Model {
     public ws: WebSocket;
     public reqId: number;
-    /// #if !MOBILE
     public parent: Tab;
-    /// #else
-    // @ts-ignore
-    public parent: any;
-    /// #endif
     public app: App;
 
     constructor(options: {

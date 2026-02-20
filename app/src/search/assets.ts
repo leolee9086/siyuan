@@ -11,6 +11,7 @@ import { setTimeout } from "../util/siyuanEnvironments/windowTimer.environment";
 import { filterTypesHTML } from "./filterTypesHTML";
 import { createSortMenuItems, createLayoutSubmenu } from "./assetMenuItems";
 import { 生成素材过滤面板HTML, 解析过滤面板值, 初始化过滤面板事件 } from "./assetFilterPanel";
+import { isMobile } from "../platform";
 
 /** 处理资源搜索响应的参数 */
 interface HandleAssetSearchResponseParams {
@@ -224,12 +225,14 @@ export const assetMethodMenu = (target: HTMLElement, cb: () => void) => {
             cb();
         }
     }).element);
-    /// #if MOBILE
-    globalMenu.fullscreen();
-    /// #else
-    const rect = target.getBoundingClientRect();
-    globalMenu.popup({ x: rect.right, y: rect.bottom, isLeft: true });
-    /// #endif
+    // 移动端全屏展示菜单，桌面端以弹出菜单形式定位到按钮下方
+    if (isMobile) {
+        globalMenu.fullscreen();
+    }
+    if (!isMobile) {
+        const rect = target.getBoundingClientRect();
+        globalMenu.popup({ x: rect.right, y: rect.bottom, isLeft: true });
+    }
 };
 
 /**
@@ -327,14 +330,15 @@ export const assetMoreMenu = (target: Element, element: Element, cb: () => void)
         type: "submenu",
         submenu: createSortMenuItems(localData, cb),
     }).element);
-    /// #if !MOBILE
-    globalMenu.append(new MenuItem({
-        iconHTML: "",
-        label: siyuanI18n.layout,
-        type: "submenu",
-        submenu: createLayoutSubmenu(element, localData),
-    }).element);
-    /// #endif
+    // 桌面端显示布局切换子菜单，移动端不需要布局选项
+    if (!isMobile) {
+        globalMenu.append(new MenuItem({
+            iconHTML: "",
+            label: siyuanI18n.layout,
+            type: "submenu",
+            submenu: createLayoutSubmenu(element, localData),
+        }).element);
+    }
     globalMenu.append(new MenuItem({
         iconHTML: "",
         label: siyuanI18n.rebuildIndex,
@@ -346,10 +350,12 @@ export const assetMoreMenu = (target: Element, element: Element, cb: () => void)
             });
         },
     }).element);
-    /// #if MOBILE
-    globalMenu.fullscreen();
-    /// #else
-    const rect = target.getBoundingClientRect();
-    globalMenu.popup({ x: rect.right, y: rect.bottom, isLeft: true });
-    /// #endif
+    // 移动端全屏展示菜单，桌面端以弹出菜单形式定位到按钮下方
+    if (isMobile) {
+        globalMenu.fullscreen();
+    }
+    if (!isMobile) {
+        const rect = target.getBoundingClientRect();
+        globalMenu.popup({ x: rect.right, y: rect.bottom, isLeft: true });
+    }
 };

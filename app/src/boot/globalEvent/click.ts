@@ -1,12 +1,11 @@
-/// #if !MOBILE
 import { getAllModels } from "../../layout/getAll";
-/// #endif
 import { hasClosestByAttribute, hasClosestByClassName, hasTopClosestByClassName } from "../../protyle/util/hasClosest";
 import { hideAllElements } from "../../protyle/ui/hideElements";
 import { isWindow } from "../../util/functions";
 import { writeText } from "../../protyle/util/compatibility";
 import { showMessage } from "../../dialog/message";
 import { cancelDrag } from "./dragover";
+import { isMobile } from "../../platform";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanGlobalMenusMenu } from "../../util/siyuanEnvironments/getMenu.environment";
 import { getSiyuanLayout } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
@@ -68,8 +67,10 @@ const handleCopyClick = (event: MouseEvent & { target: HTMLElement }) => {
     return false;
 };
 
-/// #if !MOBILE
 const handleDockClick = (event: MouseEvent & { target: HTMLElement }) => {
+    if (isMobile) {
+        return;
+    }
     // dock float 时，点击空白处，隐藏 dock。场景：文档树上重命名后
     if (!isWindow() && getSiyuanLayout().leftDock &&
         !hasClosestByClassName(event.target, "b3-dialog--open", true) &&
@@ -86,6 +87,9 @@ const handleDockClick = (event: MouseEvent & { target: HTMLElement }) => {
 };
 
 const handlePDFClick = (event: MouseEvent & { target: HTMLElement }) => {
+    if (isMobile) {
+        return;
+    }
     if (!hasClosestByClassName(event.target, "pdf__outer")) {
         hideAllElements(["pdfutil"]);
     }
@@ -117,7 +121,6 @@ const handlePDFClick = (event: MouseEvent & { target: HTMLElement }) => {
         currentPDFViewerObject.findBar.close();
     }
 };
-/// #endif
 
 export const globalClick = (event: MouseEvent & { target: HTMLElement }) => {
     cancelDrag();
@@ -132,8 +135,6 @@ export const globalClick = (event: MouseEvent & { target: HTMLElement }) => {
         return;
     }
 
-    /// #if !MOBILE
     handleDockClick(event);
     handlePDFClick(event);
-    /// #endif
 };

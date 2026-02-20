@@ -7,6 +7,7 @@
 import * as dayjs from "dayjs";
 import { focusByRange } from "../../ai/imports";
 import { Constants } from "../../constants";
+import { isMobile } from "../../platform";
 import { hideTooltip } from "../../dialog/tooltip";
 import { emitOpenMenu } from "../../plugin/EventBus";
 import { hideElements } from "../../protyle/ui/hideElements";
@@ -29,16 +30,19 @@ import {
 
 /** 显示菜单弹窗 */
 const 显示菜单弹窗 = (linkElement: HTMLElement, protyle: IProtyle): void => {
-    /// #if MOBILE
-    getSiyuanGlobalMenusMenu().fullscreen();
-    /// #else
-    const rect = linkElement.getBoundingClientRect();
-    getSiyuanGlobalMenusMenu().popup({
-        x: rect.left,
-        y: rect.top + 26,
-        h: 26
-    });
-    /// #endif
+    // 移动端使用全屏菜单
+    if (isMobile) {
+        getSiyuanGlobalMenusMenu().fullscreen();
+    }
+    // 非移动端使用弹出菜单
+    if (!isMobile) {
+        const rect = linkElement.getBoundingClientRect();
+        getSiyuanGlobalMenusMenu().popup({
+            x: rect.left,
+            y: rect.top + 26,
+            h: 26
+        });
+    }
 
     const popoverElement = hasTopClosestByClassName(protyle.element, "block__popover", true);
     const fromValue = popoverElement ? popoverElement.dataset.level + "popover" : "app";

@@ -24,6 +24,7 @@ import { initCriteriaMenu, saveCriterion, moreMenu, filterMenu, replaceFilterMen
 import { toggleSearchHistory, toggleAssetHistory, toggleReplaceHistory, saveKeyList } from "../toggleHistory";
 import { openSearchUnRef, unRefMoreMenu, getUnRefList } from "../unRef";
 import { genQueryHTML, updateConfig, replace, openSearchEditor, getArticle, renderNextSearchMark } from "../util";
+import { isBrowser, isElectron } from "../../platform";
 
 // closeCB 不存在为页签搜索
 
@@ -868,14 +869,13 @@ export const genSearch = (app: App, config: Config.IUILayoutTabSearchConfig, ele
                     const searchType = target.dataset.id ? "asset" : (unRefPanelElement.classList.contains("fn__none") ? "doc" : "unRef");
                     let isClick = event.detail === 1;
                     let isDblClick = event.detail === 2;
-                    /// #if BROWSER
-                    if (isIPad()) { // 需要进行 ipad 判断 https://github.com/siyuan-note/siyuan/issues/12704
+                    // 浏览器环境下 iPad 的 detail 不可靠，需用时间差判断单双击
+                    if (isBrowser && isIPad()) {
                         const newDate = new Date().getTime();
                         isClick = newDate - lastClickTime > Constants.TIMEOUT_DBLCLICK;
                         isDblClick = !isClick;
                         lastClickTime = newDate;
                     }
-                    /// #endif
                     if (isClick) {
                         clickTimeout = window.setTimeout(() => {
                             if (searchType === "asset") {
@@ -920,9 +920,10 @@ export const genSearch = (app: App, config: Config.IUILayoutTabSearchConfig, ele
                     } else if (isDblClick && isNotCtrl(event)) {
                         clearTimeout(clickTimeout);
                         if (searchType === "asset") {
-                            /// #if !BROWSER
-                            useShell("showItemInFolder", path.join(window.siyuan.config.system.dataDir, target.lastElementChild.getAttribute("aria-label")));
-                            /// #endif
+                            // Electron 环境下调用系统文件管理器显示资源文件所在目录
+                            if (isElectron) {
+                                useShell("showItemInFolder", path.join(window.siyuan.config.system.dataDir, target.lastElementChild.getAttribute("aria-label")));
+                            }
                         } else {
                             openSearchEditor({
                                 rootId: target.getAttribute("data-root-id"),

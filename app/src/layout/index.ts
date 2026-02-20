@@ -4,10 +4,12 @@ import { fixWndFlex1 } from "./util";
 import { addResize } from "./utils/addResize";
 import { resizeTabs } from "./tabUtil";
 import { isHTMLElement, ensureDirection, ensureSize, ensureType } from "./layout.guard";
-/// #if MOBILE
-// 检测移动端是否引入了桌面端的代码
-console.error("Need remove unused code");
-/// #endif
+import { isMobile } from "../platform";
+
+if (isMobile) {
+    // 检测移动端是否引入了桌面端的代码
+    console.error("Need remove unused code");
+}
 
 /**
  * 处理向右分屏时的动画效果

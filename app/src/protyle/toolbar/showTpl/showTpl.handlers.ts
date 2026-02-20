@@ -11,9 +11,8 @@ import { previewTemplate } from "../util";
 import { hintRenderTemplate } from "../../hint/extend";
 import { 生成模板列表项HTML } from "./showTpl.template";
 import type { ITemplateState, IHandlerContext } from "./showTpl.types";
-/// #if !BROWSER
 import { openBy } from "../../../editor/utils.openBy";
-/// #endif
+import { isElectron } from "../../../platform";
 
 /**
  * 创建悬停事件处理器
@@ -186,13 +185,11 @@ function 处理图标点击(
     event: Event
 ): boolean {
     const iconElement = hasClosestByClassName(target, "b3-list-item__action");
-    /// #if !BROWSER
-    if (iconElement && iconElement.getAttribute("data-type") === "open") {
+    if (isElectron && iconElement && iconElement.getAttribute("data-type") === "open") {
         openBy(iconElement.parentElement?.getAttribute("data-value") ?? "", "folder");
         event.stopPropagation();
         return true;
     }
-    /// #endif
     if (iconElement && iconElement.getAttribute("data-type") === "remove") {
         处理删除操作(iconElement, listElement, previewElement, state, protyle);
         event.stopPropagation();

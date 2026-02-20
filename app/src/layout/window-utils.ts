@@ -4,12 +4,9 @@ import type { Layout } from "./index";
 import { hasClosestBlock } from "../protyle/util/hasClosest";
 import { focusByOffset, getSelectionOffset } from "../protyle/util/selection";
 
-/// #if !BROWSER
+import { isElectron } from "../platform";
 import { setTabPosition } from "../window/setHeader";
-/// #endif
-/// #if !MOBILE
 import { getAllWnds } from "./getAll";
-/// #endif
 import type { IEditorRangeData } from "./window-utils.types";
 import { isEditorTab } from "./window-utils.guard";
 
@@ -240,9 +237,9 @@ export function switchWnd(newWnd: Wnd, targetWnd: Wnd): void {
     swapWindowPositions(newWnd);
 
     // 阶段6：更新标签页位置（仅在非浏览器环境中执行）
-    /// #if !BROWSER
-    setTabPosition();
-    /// #endif
+    if (isElectron) {
+        setTabPosition();
+    }
 }
 
 /**
@@ -291,9 +288,7 @@ function compareWindowActivity(a: Wnd, b: Wnd): number {
 export function getWndByLayout(layout: Layout): Wnd | undefined {
     // 收集布局中所有窗口
     const wndsTemp: Wnd[] = [];
-    /// #if !MOBILE
     getAllWnds(layout, wndsTemp);
-    /// #endif
 
     // 如果没有找到任何窗口，返回undefined
     if (wndsTemp.length === 0) {

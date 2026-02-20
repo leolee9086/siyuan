@@ -2,13 +2,10 @@ import { Tab } from "../layout/Tab";
 import { Editor } from "./index";
 import { Wnd } from "../layout/Wnd";
 import { getInstanceById, getWndByLayout, pdfIsLoading } from "../layout/util";
-/// #if !MOBILE
 import { getAllModels } from "../layout/getAll";
-/// #endif
 import { Constants } from "../constants";
-/// #if !BROWSER
-import { ipcRenderer } from "electron";
-/// #endif
+import { isElectron } from "../platform";
+import { ipcInvoke } from "../platform/electron/ipcRenderer";
 import { Layout } from "../layout";
 import { getUnInitTab } from "./util.getUnInitTab";
 import { switchEditor } from "./util.switchEditor";
@@ -42,19 +39,21 @@ const prepareUI = (options: IOpenFileOptions) => {
 
 /**  在 Electron 中打开 */
 const openInElectron = async (options: IOpenFileOptions) => {
-    /// #if !BROWSER
+    if (!isElectron) {
+        return false;
+    }
     // https://github.com/siyuan-note/siyuan/issues/7491
     if (options.position && !(options.position === "right" && options.assetPath)) {
         return false;
     }
-    let hasMatch = false;
     const optionsClone: IObject = {};
     for (const [key, value] of Object.entries(options)) {
+        // 排除不可序列化的 app 实例和函数类型值
         if (key !== "app" && value && typeof value !== "function") {
             optionsClone[key] = JSON.parse(JSON.stringify(value));
         }
     }
-    hasMatch = await ipcRenderer.invoke(Constants.SIYUAN_GET, {
+    const hasMatch = await ipcInvoke(Constants.SIYUAN_GET, {
         cmd: Constants.SIYUAN_OPEN_FILE,
         options: JSON.stringify(optionsClone),
     });
@@ -62,7 +61,6 @@ const openInElectron = async (options: IOpenFileOptions) => {
         options.afterOpen?.();
         return true;
     }
-    /// #endif
     return false;
 };
 

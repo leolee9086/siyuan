@@ -6,10 +6,8 @@ import {pathPosix} from "../util/pathName";
 import {isBrowser, isMobile} from "../util/functions";
 import {hasClosestByClassName} from "../protyle/util/hasClosest";
 import {fetchPost} from "../util/fetch";
-/// #if !MOBILE
 import {getAllModels} from "../layout/getAll";
-import * as path from "path";
-/// #endif
+import {isElectron} from "../platform";
 // S-forge: openBy 从重构后的模块导入
 import {openBy} from "../editor/utils.openBy";
 import {renderAssetsPreview} from "../asset/renderAssets";
@@ -20,10 +18,8 @@ import {Protyle} from "../protyle";
 import {App} from "../index";
 import {disabledProtyle, onGet} from "../protyle/util/onGet";
 import {removeLoading} from "../protyle/ui/initUI";
-/// #if !MOBILE
 // S-forge: openFile 用于在新页签中打开
 import {openFile} from "../editor/util";
-/// #endif
 // S-forge: Plugin 系统支持
 import {Custom} from "../layout/dock/Custom";
 import {Plugin} from "../plugin";
@@ -116,13 +112,13 @@ export const image = {
                 if (target.id === "removeAll") {
                     confirmDialog(siyuanI18n.deleteOpConfirm, `${siyuanI18n.clearAll}`, () => {
                         fetchPost("/api/asset/removeUnusedAssets", {}, response => {
-                            /// #if !MOBILE
-                            getAllModels().asset.forEach(item => {
-                                if (response.data.paths.includes(item.path)) {
-                                    item.parent.close();
-                                }
-                            });
-                            /// #endif
+                            if (!isMobile()) {
+                                getAllModels().asset.forEach(item => {
+                                    if (response.data.paths.includes(item.path)) {
+                                        item.parent.close();
+                                    }
+                                });
+                            }
                             assetsListElement.innerHTML = `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
                             assetsListElement.nextElementSibling.innerHTML = "";
                         });
@@ -197,13 +193,14 @@ export const image = {
                     event.stopPropagation();
                     break;
                 } else if (type === "open") {
-                    /// #if !BROWSER
-                    if (target.parentElement.getAttribute("data-tab-type") === "unRefAV") {
-                        openBy(path.join(window.siyuan.config.system.dataDir, "storage", "av", target.parentElement.dataset.item) + ".json", "folder");
-                    } else {
-                        openBy(target.parentElement.dataset.item, "folder");
+                    if (isElectron) {
+                        const nodePath = __non_webpack_require__("path");
+                        if (target.parentElement.getAttribute("data-tab-type") === "unRefAV") {
+                            openBy(nodePath.join(window.siyuan.config.system.dataDir, "storage", "av", target.parentElement.dataset.item) + ".json", "folder");
+                        } else {
+                            openBy(target.parentElement.dataset.item, "folder");
+                        }
                     }
-                    /// #endif
                     event.preventDefault();
                     event.stopPropagation();
                     break;
@@ -237,13 +234,13 @@ export const image = {
                             fetchPost("/api/asset/removeUnusedAsset", {
                                 path: liElement.getAttribute("data-item"),
                             }, response => {
-                                /// #if !MOBILE
-                                getAllModels().asset.forEach(item => {
-                                    if (response.data.path === item.path) {
-                                        item.parent.parent.removeTab(item.parent.id);
-                                    }
-                                });
-                                /// #endif
+                                if (!isMobile()) {
+                                    getAllModels().asset.forEach(item => {
+                                        if (response.data.path === item.path) {
+                                            item.parent.parent.removeTab(item.parent.id);
+                                        }
+                                    });
+                                }
                                 if (liElement.parentElement.querySelectorAll("li").length === 1) {
                                     liElement.parentElement.innerHTML = `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
                                 } else {
@@ -316,13 +313,13 @@ const bindAssetTabEvent = (element: Element, type: string) => {
                 const apiEndpoint = type === "remove" ? "/api/asset/removeUnusedAssets" : "/api/asset/removeMissingAssets";
                 confirmDialog(siyuanI18n.deleteOpConfirm, `${siyuanI18n.clearAll}`, () => {
                     fetchPost(apiEndpoint, {}, response => {
-                        /// #if !MOBILE
-                        getAllModels().asset.forEach(item => {
-                            if (response.data.paths.includes(item.path)) {
-                                item.parent.close();
-                            }
-                        });
-                        /// #endif
+                        if (!isMobile()) {
+                            getAllModels().asset.forEach(item => {
+                                if (response.data.paths.includes(item.path)) {
+                                    item.parent.close();
+                                }
+                            });
+                        }
                         const assetsListElement = element.querySelector(".config-assets__list");
                         if (assetsListElement) {
                             assetsListElement.innerHTML = `<li class="b3-list--empty">${siyuanI18n.emptyContent}</li>`;
@@ -342,13 +339,13 @@ const bindAssetTabEvent = (element: Element, type: string) => {
                     }
                 }
             } else if (target.getAttribute("data-type") === "open") {
-                /// #if !BROWSER
-                const parentElement = target.parentElement;
-                if (parentElement) {
-                    const dataPath = parentElement.getAttribute("data-path");
-                    dataPath && openBy(dataPath, "folder");
+                if (isElectron) {
+                    const parentElement = target.parentElement;
+                    if (parentElement) {
+                        const dataPath = parentElement.getAttribute("data-path");
+                        dataPath && openBy(dataPath, "folder");
+                    }
                 }
-                /// #endif
             } else if (target.getAttribute("data-type") === "clear") {
                 const parentElement = target.parentElement;
                 if (parentElement) {
@@ -359,13 +356,13 @@ const bindAssetTabEvent = (element: Element, type: string) => {
                             fetchPost(apiEndpoint, {
                                 path: pathString,
                             }, response => {
-                                /// #if !MOBILE
-                                getAllModels().asset.forEach(item => {
-                                    if (response.data.path === item.path) {
-                                        item.parent.parent.removeTab(item.parent.id);
-                                    }
-                                });
-                                /// #endif
+                                if (!isMobile()) {
+                                    getAllModels().asset.forEach(item => {
+                                        if (response.data.path === item.path) {
+                                            item.parent.parent.removeTab(item.parent.id);
+                                        }
+                                    });
+                                }
                                 const liElement = target.parentElement;
                                 if (liElement) {
                                     const liParent = liElement.parentElement;

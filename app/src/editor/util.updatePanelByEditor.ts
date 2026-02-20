@@ -1,7 +1,6 @@
 import { Files } from "../layout/dock/Files";
-/// #if !MOBILE
 import { getAllModels } from "../layout/getAll";
-/// #endif
+import { isMobile } from "../platform";
 import { countSelectWord, countBlockWord } from "../layout/status";
 import { getDockByType } from "../layout/tabUtil";
 import { resize } from "../protyle/util/resize";
@@ -41,12 +40,12 @@ export const updatePanelByEditor = (options: {
     if (isValid) {
         updateActiveProtyle(protyle, options);
     }
-    // 切换页签或关闭所有页签时，需更新对应的面板
-    /// #if !MOBILE
-    const models = getAllModels();
-    updateOutline(models, protyle, options.reload);
-    updateBacklinkGraph(models, protyle);
-    /// #endif
+    // 切换页签或关闭所有页签时，需更新对应的面板（仅桌面端有大纲和反链面板）
+    if (!isMobile) {
+        const models = getAllModels();
+        updateOutline(models, protyle, options.reload);
+        updateBacklinkGraph(models, protyle);
+    }
 };
 
 /**

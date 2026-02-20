@@ -1,25 +1,25 @@
 import {App} from "../index";
 import {Menu} from "./Menu";
 import {isHuawei, setStorageVal} from "../protyle/util/compatibility";
-/// #if !MOBILE
 import {openSetting} from "../config";
-/// #endif
 import {Constants} from "../constants";
+import {isMobile} from "../util/functions";
 
 export const openTopBarMenu = (app: App, target?: Element) => {
     const menu = new Menu(Constants.MENU_BAR_PLUGIN);
-    /// #if !MOBILE
-    menu.addItem({
-        id: "manage",
-        icon: "iconSettings",
-        label: window.siyuan.languages.manage,
-        ignore: isHuawei() || window.siyuan.config.readonly,
-        click() {
-            openSetting(app).element.querySelector('.b3-tab-bar [data-name="bazaar"]').dispatchEvent(new CustomEvent("click"));
-        }
-    });
-    menu.addSeparator({id: "separator_1", ignore: isHuawei() || window.siyuan.config.readonly});
-    /// #endif
+    // 桌面端添加插件管理入口和分隔线
+    if (!isMobile()) {
+        menu.addItem({
+            id: "manage",
+            icon: "iconSettings",
+            label: window.siyuan.languages.manage,
+            ignore: isHuawei() || window.siyuan.config.readonly,
+            click() {
+                openSetting(app).element.querySelector('.b3-tab-bar [data-name="bazaar"]').dispatchEvent(new CustomEvent("click"));
+            }
+        });
+        menu.addSeparator({id: "separator_1", ignore: isHuawei() || window.siyuan.config.readonly});
+    }
     let hasPlugin = false;
     app.plugins.forEach((plugin) => {
         // @ts-ignore

@@ -9,6 +9,7 @@ import * as dayjs from "dayjs";
 import { fetchPost } from "../util/fetch";
 import { escapeAttr, escapeHtml } from "../util/escape";
 import { isMobile } from "../util/functions";
+import { platform } from "../platform";
 import { showDiff } from "./diff";
 import { setStorageVal } from "../protyle/util/compatibility";
 import { openModel } from "../mobile/menu/model";
@@ -115,7 +116,8 @@ const renderRepoItem = (response: IWebSocketData, element: Element, type: string
         return;
     }
     let actionHTML = "";
-    /// #if MOBILE
+    // 移动端使用带文字标签的操作按钮，提供更大的点击区域
+    if (platform === "browser-mobile") {
     if (type === "getCloudRepoTagSnapshots") {
         actionHTML = `<span class="fn__flex-1"></span>
 <span class="b3-list-item__action" data-type="downloadSnapshot">
@@ -185,7 +187,9 @@ const renderRepoItem = (response: IWebSocketData, element: Element, type: string
 </span>
 <span class="fn__flex-1"></span>`;
     }
-    /// #else
+    }
+    // 桌面端使用带tooltip的紧凑操作按钮
+    if (platform !== "browser-mobile") {
     if (type === "getCloudRepoTagSnapshots") {
         actionHTML = `<span class="b3-list-item__action b3-tooltips b3-tooltips__w" data-type="downloadSnapshot" aria-label="${siyuanI18n.download}"><svg><use xlink:href="#iconDownload"></use></svg></span>
 <span class="b3-list-item__action b3-tooltips b3-tooltips__w" data-type="downloadRollback" aria-label="${siyuanI18n.downloadRollback}"><svg><use xlink:href="#iconUndo"></use></svg></span>
@@ -201,7 +205,7 @@ const renderRepoItem = (response: IWebSocketData, element: Element, type: string
         actionHTML = `<span class="b3-list-item__action b3-tooltips b3-tooltips__w" data-type="genTag" aria-label="${siyuanI18n.tagSnapshot}"><svg><use xlink:href="#iconTags"></use></svg></span>
 <span class="b3-list-item__action b3-tooltips b3-tooltips__w" data-type="rollback" aria-label="${siyuanI18n.rollback}"><svg><use xlink:href="#iconUndo"></use></svg></span>`;
     }
-    /// #endif
+    }
     let repoHTML = "";
     const isPhone = isMobile();
     const selectId: { id: string, time: string }[] = ["getRepoTagSnapshots", "getRepoSnapshots"].includes(type) ?
@@ -243,7 +247,8 @@ ${siyuanI18n.fileCount} ${item.count}<span class="fn__space"></span>`;
 </div>
 ${statHTML}`;
         const hasSelected = selectId.find(subItem => subItem.id === item.id);
-        /// #if MOBILE
+        // 移动端使用展开式布局，包含更多操作按钮和文字标签
+        if (platform === "browser-mobile") {
         repoHTML += `<li class="b3-list-item${hasSelected ? " b3-list-item--focus" : ""}" data-type="repoitem" data-id="${item.id}" data-tag="${item.tag}">
 <div class="fn__flex-1">
     ${infoHTML}
@@ -258,12 +263,14 @@ ${statHTML}`;
     </div>
 </div>
 </li>`;
-        /// #else
+        }
+        // 桌面端使用紧凑布局，操作按钮悬停显示
+        if (platform !== "browser-mobile") {
         repoHTML += `<li class="b3-list-item b3-list-item--hide-action${hasSelected ? " b3-list-item--focus" : ""}" data-type="repoitem" data-id="${item.id}" data-tag="${item.tag}">
 <div class="fn__flex-1">${infoHTML}</div>
 ${actionHTML}
 </li>`;
-        /// #endif
+        }
     });
     element.lastElementChild.innerHTML = `${repoHTML}`;
 };

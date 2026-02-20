@@ -1,14 +1,12 @@
 import { adjustLayout, exportLayout, JSONToLayout, resetLayout, resizeTopBar } from "../layout/util";
 import { resizeTabs } from "../layout/tabUtil";
 import { setStorageVal } from "../protyle/util/compatibility";
-/// #if !BROWSER
-import { ipcRenderer, webFrame } from "electron";
-import * as fs from "fs";
-import * as path from "path";
 import { afterExport } from "../protyle/export/util";
 import { onWindowsMsg } from "../window/onWindowsMsg";
 import { initNativeDialogOverride } from "../protyle/util/compatibility";
-/// #endif
+import { isElectron } from "../platform";
+import { ipcSend, ipcInvoke, ipcOn } from "../platform/electron/ipcRenderer";
+import { setZoomFactor } from "../platform/electron/webFrame";
 import { Constants } from "../constants";
 import { appearance } from "../config/appearance";
 import { fetchPost, fetchSyncPost } from "../util/fetch";
@@ -40,21 +38,22 @@ import { setTimeout, clearTimeout, windowAddEventListener } from "../util/siyuan
  * 初始化 IPC 通信（仅桌面端）
  */
 const 初始化IPC = () => {
-    /// #if !BROWSER
-    ipcRenderer.invoke(Constants.SIYUAN_INIT, {
-        // 注意：这里不能使用 siyuanI18n，因为它是 Proxy 对象，无法通过 IPC 克隆
-        // 使用 getSiyuanLanguages() 获取原始对象
-        languages: getSiyuanLanguages()["_trayMenu"],
-        workspaceDir: getSiyuanConfig().system.workspaceDir,
-        port: location.port
-    });
-    webFrame.setZoomFactor(getSiyuanStorage()[Constants.LOCAL_ZOOM]);
-    ipcRenderer.send(Constants.SIYUAN_CMD, {
-        cmd: "setTrafficLightPosition",
-        zoom: getSiyuanStorage()[Constants.LOCAL_ZOOM],
-        position: Constants.SIZE_ZOOM.find((item) => item.zoom === getSiyuanStorage()[Constants.LOCAL_ZOOM])?.position ?? { x: 8, y: 12 }
-    });
-    /// #endif
+    // 仅桌面端：初始化 IPC 通信、缩放和交通灯位置
+    if (isElectron) {
+        ipcInvoke(Constants.SIYUAN_INIT, {
+            // 注意：这里不能使用 siyuanI18n，因为它是 Proxy 对象，无法通过 IPC 克隆
+            // 使用 getSiyuanLanguages() 获取原始对象
+            languages: getSiyuanLanguages()["_trayMenu"],
+            workspaceDir: getSiyuanConfig().system.workspaceDir,
+            port: location.port
+        });
+        setZoomFactor(getSiyuanStorage()[Constants.LOCAL_ZOOM]);
+        ipcSend(Constants.SIYUAN_CMD, {
+            cmd: "setTrafficLightPosition",
+            zoom: getSiyuanStorage()[Constants.LOCAL_ZOOM],
+            position: Constants.SIZE_ZOOM.find((item) => item.zoom === getSiyuanStorage()[Constants.LOCAL_ZOOM])?.position ?? { x: 8, y: 12 }
+        });
+    }
 };
 
 /**
@@ -113,9 +112,10 @@ const 处理Emoji配置 = (app: App, isStart: boolean, response: IWebSocketData)
         setTimeout(() => {
             adjustLayout();
         }); // 等待 dock 中 !this.pin 的 setTimeout
-        /// #if !BROWSER
-        sendGlobalShortcut(app);
-        /// #endif
+        // 桌面端：注册全局快捷键
+        if (isElectron) {
+            sendGlobalShortcut(app);
+        }
         openChangelog();
     } catch (e) {
         const error = e instanceof Error ? e : new Error(String(e));
@@ -135,9 +135,10 @@ export const onGetConfig = (isStart: boolean, app: App) => {
     initBar(app);
     initStatus();
     initWindow(app);
-    /// #if !BROWSER
-    initNativeDialogOverride();
-    /// #endif
+    // 仅桌面端：覆盖原生对话框
+    if (isElectron) {
+        initNativeDialogOverride();
+    }
     appearance.onSetAppearance(getSiyuanConfig().appearance);
     initAssets();
     setInlineStyle();
@@ -146,17 +147,20 @@ export const onGetConfig = (isStart: boolean, app: App) => {
 };
 
 const winOnMaxRestore = async () => {
-    /// #if !BROWSER
+    // 仅桌面端：根据窗口最大化/全屏状态切换最大化/还原按钮的显示
+    if (!isElectron) {
+        return;
+    }
     const maxBtnElement = document.getElementById("maxWindow");
     const restoreBtnElement = document.getElementById("restoreWindow");
     // 如果按钮元素不存在，则提前返回
     if (!maxBtnElement || !restoreBtnElement) {
         return;
     }
-    const isFullScreen = await ipcRenderer.invoke(Constants.SIYUAN_GET, {
+    const isFullScreen = await ipcInvoke(Constants.SIYUAN_GET, {
         cmd: "isFullScreen",
     });
-    const isMaximized = await ipcRenderer.invoke(Constants.SIYUAN_GET, {
+    const isMaximized = await ipcInvoke(Constants.SIYUAN_GET, {
         cmd: "isMaximized",
     });
     // 默认：显示最大化按钮，隐藏还原按钮
@@ -167,12 +171,22 @@ const winOnMaxRestore = async () => {
         restoreBtnElement.style.display = "flex";
         maxBtnElement.style.display = "none";
     }
-    /// #endif
 };
 
 export const initWindow = async (app: App) => {
-    /// #if !BROWSER
-    ipcRenderer.send(Constants.SIYUAN_CMD, {
+    // 浏览器端：仅添加浏览器工具栏样式
+    if (!isElectron) {
+        // 非独立窗口时添加浏览器工具栏标记
+        if (!isWindow()) {
+            const toolbar = document.querySelector(".toolbar");
+            if (toolbar) {
+                toolbar.classList.add("toolbar--browser");
+            }
+        }
+        return;
+    }
+    // 桌面端：初始化 IPC 事件监听和窗口控件
+    ipcSend(Constants.SIYUAN_CMD, {
         cmd: "setSpellCheckerLanguages",
         languages: window.siyuan.config.editor.spellcheckLanguages
     });
@@ -182,12 +196,12 @@ export const initWindow = async (app: App) => {
                 if (window.siyuan.config.appearance.closeButtonBehavior === 1 && !close) {
                     // 最小化
                     if ("windows" === window.siyuan.config.system.os) {
-                        ipcRenderer.send(Constants.SIYUAN_CONFIG_TRAY, {
+                        ipcSend(Constants.SIYUAN_CONFIG_TRAY, {
                             // 注意：这里不能使用 siyuanI18n，因为它是 Proxy 对象，无法通过 IPC 克隆
                             languages: window.siyuan.languages["_trayMenu"],
                         });
                     } else {
-                        ipcRenderer.send(Constants.SIYUAN_CMD, "closeButtonBehavior");
+                        ipcSend(Constants.SIYUAN_CMD, "closeButtonBehavior");
                     }
                 } else {
                     exitSiYuan();
@@ -197,8 +211,8 @@ export const initWindow = async (app: App) => {
         });
     };
 
-    ipcRenderer.send(Constants.SIYUAN_EVENT);
-    ipcRenderer.on(Constants.SIYUAN_EVENT, (event, cmd) => {
+    ipcSend(Constants.SIYUAN_EVENT);
+    ipcOn(Constants.SIYUAN_EVENT, (event, cmd) => {
         if (cmd === "focus") {
             // 由于 https://github.com/siyuan-note/siyuan/issues/10060 和新版 electron 应用切出再切进会保持光标，故移除 focus
             window.siyuan.altIsPressed = false;
@@ -234,27 +248,27 @@ export const initWindow = async (app: App) => {
         }
     });
     if (!isWindow()) {
-        ipcRenderer.on(Constants.SIYUAN_OPEN_URL, (event, url) => {
+        ipcOn(Constants.SIYUAN_OPEN_URL, (event, url) => {
             processSYLink(app, url);
         });
     }
-    ipcRenderer.on(Constants.SIYUAN_OPEN_FILE, (event, data) => {
+    ipcOn(Constants.SIYUAN_OPEN_FILE, (event, data) => {
         if (!data.app) {
             data.app = app;
         }
         openFile(data);
     });
-    ipcRenderer.on(Constants.SIYUAN_SAVE_CLOSE, (event, close) => {
+    ipcOn(Constants.SIYUAN_SAVE_CLOSE, (event, close) => {
         if (isWindow()) {
             closeWindow(app);
         } else {
             winOnClose(close);
         }
     });
-    ipcRenderer.on(Constants.SIYUAN_SEND_WINDOWS, (e, ipcData: IWebSocketData) => {
+    ipcOn(Constants.SIYUAN_SEND_WINDOWS, (e, ipcData: IWebSocketData) => {
         onWindowsMsg(ipcData);
     });
-    ipcRenderer.on(Constants.SIYUAN_HOTKEY, (e, data) => {
+    ipcOn(Constants.SIYUAN_HOTKEY, (e, data) => {
         let matchCommand = false;
         app.plugins.find(item => {
             item.commands.find(command => {
@@ -269,7 +283,9 @@ export const initWindow = async (app: App) => {
             }
         });
     });
-    ipcRenderer.on(Constants.SIYUAN_EXPORT_PDF, async (e, ipcData) => {
+    ipcOn(Constants.SIYUAN_EXPORT_PDF, async (e, ipcData) => {
+        const fs = __non_webpack_require__("fs") as typeof import("fs");
+        const path = __non_webpack_require__("path") as typeof import("path");
         const msgId = showMessage(siyuanI18n.exporting, -1);
         window.siyuan.storage[Constants.LOCAL_EXPORTPDF] = {
             removeAssets: ipcData.removeAssets,
@@ -296,7 +312,7 @@ export const initWindow = async (app: App) => {
 ${response.data.replace("%pages", "<span class=totalPages></span>").replace("%page", "<span class=pageNumber></span>")}
 </div>`;
             }
-            const pdfData = await ipcRenderer.invoke(Constants.SIYUAN_GET, {
+            const pdfData = await ipcInvoke(Constants.SIYUAN_GET, {
                 cmd: "printToPDF",
                 pdfOptions: ipcData.pdfOptions,
                 webContentsId: ipcData.webContentsId
@@ -313,7 +329,7 @@ ${response.data.replace("%pages", "<span class=totalPages></span>").replace("%pa
                 savePath,
             }, () => {
                 fs.writeFileSync(pdfFilePath, pdfData);
-                ipcRenderer.send(Constants.SIYUAN_CMD, { cmd: "destroy", webContentsId: ipcData.webContentsId });
+                ipcSend(Constants.SIYUAN_CMD, { cmd: "destroy", webContentsId: ipcData.webContentsId });
                 fetchPost("/api/export/processPDF", {
                     id: ipcData.rootId,
                     merge: ipcData.mergeSubdocs,
@@ -355,9 +371,9 @@ ${response.data.replace("%pages", "<span class=totalPages></span>").replace("%pa
         } catch (e) {
             console.error(e);
             showMessage(siyuanI18n.exportPDFLowMemory, 0, "error", msgId);
-            ipcRenderer.send(Constants.SIYUAN_CMD, { cmd: "destroy", webContentsId: ipcData.webContentsId });
+            ipcSend(Constants.SIYUAN_CMD, { cmd: "destroy", webContentsId: ipcData.webContentsId });
         }
-        ipcRenderer.send(Constants.SIYUAN_CMD, { cmd: "hide", webContentsId: ipcData.webContentsId });
+        ipcSend(Constants.SIYUAN_CMD, { cmd: "hide", webContentsId: ipcData.webContentsId });
     });
 
     if (isWindow()) {
@@ -372,11 +388,11 @@ ${response.data.replace("%pages", "<span class=totalPages></span>").replace("%pa
             if (pinElement.getAttribute("aria-label") === siyuanI18n.pin) {
                 pinElement.querySelector("use").setAttribute("xlink:href", "#iconUnpin");
                 pinElement.setAttribute("aria-label", siyuanI18n.unpin);
-                ipcRenderer.send(Constants.SIYUAN_CMD, "setAlwaysOnTopTrue");
+                ipcSend(Constants.SIYUAN_CMD, "setAlwaysOnTopTrue");
             } else {
                 pinElement.querySelector("use").setAttribute("xlink:href", "#iconPin");
                 pinElement.setAttribute("aria-label", siyuanI18n.pin);
-                ipcRenderer.send(Constants.SIYUAN_CMD, "setAlwaysOnTopFalse");
+                ipcSend(Constants.SIYUAN_CMD, "setAlwaysOnTopFalse");
             }
         });
     }
@@ -413,10 +429,10 @@ ${response.data.replace("%pages", "<span class=totalPages></span>").replace("%pa
         const restoreBtnElement = document.getElementById("restoreWindow");
 
         restoreBtnElement.addEventListener("click", () => {
-            ipcRenderer.send(Constants.SIYUAN_CMD, "restore");
+            ipcSend(Constants.SIYUAN_CMD, "restore");
         });
         maxBtnElement.addEventListener("click", () => {
-            ipcRenderer.send(Constants.SIYUAN_CMD, "maximize");
+            ipcSend(Constants.SIYUAN_CMD, "maximize");
         });
 
         winOnMaxRestore();
@@ -426,7 +442,7 @@ ${response.data.replace("%pages", "<span class=totalPages></span>").replace("%pa
             if (minBtnElement.classList.contains("window-controls__item--disabled")) {
                 return;
             }
-            ipcRenderer.send(Constants.SIYUAN_CMD, "minimize");
+            ipcSend(Constants.SIYUAN_CMD, "minimize");
         });
         closeBtnElement.addEventListener("click", () => {
             if (isWindow()) {
@@ -437,16 +453,12 @@ ${response.data.replace("%pages", "<span class=totalPages></span>").replace("%pa
         });
     } else {
         const toolbarElement = document.getElementById("toolbar");
-        const isFullScreen = await ipcRenderer.invoke(Constants.SIYUAN_GET, {
+        const isFullScreen = await ipcInvoke(Constants.SIYUAN_GET, {
             cmd: "isFullScreen",
         });
+        // macOS 全屏时隐藏交通灯区域的 padding
         if (isFullScreen && !isWindow()) {
             toolbarElement.style.paddingLeft = "0";
         }
     }
-    /// #else
-    if (!isWindow()) {
-        document.querySelector(".toolbar").classList.add("toolbar--browser");
-    }
-    /// #endif
 };

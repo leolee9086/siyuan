@@ -436,74 +436,74 @@ export const moreMenu = async (config: Config.IUILayoutTabSearchConfig,
     }
     window.siyuan.menus.menu.remove();
     window.siyuan.menus.menu.element.setAttribute("data-name", Constants.MENU_SEARCH_MORE);
-    /// #if MOBILE
-    window.siyuan.menus.menu.append(new MenuItem({
-        iconHTML: "",
-        label: siyuanI18n.listInvalidRefBlocks,
-        click() {
-            goUnRef();
-        }
-    }).element);
-    window.siyuan.menus.menu.append(new MenuItem({ type: "separator" }).element);
-    window.siyuan.menus.menu.append(new MenuItem({
-        iconHTML: "",
-        label: siyuanI18n.searchType,
-        click() {
-            filterMenu(config, () => {
-                updateSearchResult(config, element, true);
-            });
-        }
-    }).element);
-    window.siyuan.menus.menu.append(new MenuItem({
-        iconHTML: "",
-        label: siyuanI18n.replaceType,
-        click() {
-            replaceFilterMenu(config);
-        }
-    }).element);
-    window.siyuan.menus.menu.append(new MenuItem({
-        iconHTML: "",
-        label: siyuanI18n.searchMethod,
-        type: "submenu",
-        submenu: [{
-            icon: "iconExact",
-            label: siyuanI18n.keyword,
-            current: config.method === 0,
+    if (isMobile()) {
+        window.siyuan.menus.menu.append(new MenuItem({
+            iconHTML: "",
+            label: siyuanI18n.listInvalidRefBlocks,
             click() {
-                config.method = 0;
-                config.page = 1;
-                updateSearchResult(config, element, true);
+                goUnRef();
             }
-        }, {
-            icon: "iconQuote",
-            label: siyuanI18n.querySyntax,
-            current: config.method === 1,
+        }).element);
+        window.siyuan.menus.menu.append(new MenuItem({ type: "separator" }).element);
+        window.siyuan.menus.menu.append(new MenuItem({
+            iconHTML: "",
+            label: siyuanI18n.searchType,
             click() {
-                config.method = 1;
-                config.page = 1;
-                updateSearchResult(config, element, true);
+                filterMenu(config, () => {
+                    updateSearchResult(config, element, true);
+                });
             }
-        }, {
-            icon: "iconDatabase",
-            label: "SQL",
-            current: config.method === 2,
+        }).element);
+        window.siyuan.menus.menu.append(new MenuItem({
+            iconHTML: "",
+            label: siyuanI18n.replaceType,
             click() {
-                config.method = 2;
-                config.page = 1;
-                updateSearchResult(config, element, true);
+                replaceFilterMenu(config);
             }
-        }, {
-            icon: "iconRegex",
-            label: siyuanI18n.regex,
-            current: config.method === 3,
-            click() {
-                config.method = 3;
-                config.page = 1;
-                updateSearchResult(config, element, true);
-            }
-        }]
-    }).element);
-    /// #endif
+        }).element);
+        window.siyuan.menus.menu.append(new MenuItem({
+            iconHTML: "",
+            label: siyuanI18n.searchMethod,
+            type: "submenu",
+            submenu: [{
+                icon: "iconExact",
+                label: siyuanI18n.keyword,
+                current: config.method === 0,
+                click() {
+                    config.method = 0;
+                    config.page = 1;
+                    updateSearchResult(config, element, true);
+                }
+            }, {
+                icon: "iconQuote",
+                label: siyuanI18n.querySyntax,
+                current: config.method === 1,
+                click() {
+                    config.method = 1;
+                    config.page = 1;
+                    updateSearchResult(config, element, true);
+                }
+            }, {
+                icon: "iconDatabase",
+                label: "SQL",
+                current: config.method === 2,
+                click() {
+                    config.method = 2;
+                    config.page = 1;
+                    updateSearchResult(config, element, true);
+                }
+            }, {
+                icon: "iconRegex",
+                label: siyuanI18n.regex,
+                current: config.method === 3,
+                click() {
+                    config.method = 3;
+                    config.page = 1;
+                    updateSearchResult(config, element, true);
+                }
+            }]
+        }).element);
+    }
     const sortMenu = [{
         iconHTML: "",
         label: siyuanI18n.type,
@@ -656,12 +656,15 @@ export const initCriteriaMenu = (element: HTMLElement, data: Config.IUILayoutTab
             }
             html += `<div data-type="set-criteria" class="${isSame ? "b3-chip--current " : ""}b3-chip b3-chip--middle b3-chip--pointer">${escapeHtml(item.name)}<svg class="b3-chip__close" data-type="remove-criteria"><use xlink:href="#iconCloseRound"></use></svg></div>`;
         });
-        /// #if MOBILE
-        element.innerHTML = `<div class="b3-chips${html ? "" : " fn__none"}">
+        // 移动端仅渲染条件筛选标签列表，不显示保存/删除按钮
+        if (isMobile()) {
+            element.innerHTML = `<div class="b3-chips${html ? "" : " fn__none"}">
     ${html}
 </div>`;
-        /// #else
-        element.innerHTML = `<div class="b3-chips${html ? "" : " fn__none"}">
+        }
+        // 桌面端额外渲染保存条件和删除条件按钮
+        if (!isMobile()) {
+            element.innerHTML = `<div class="b3-chips${html ? "" : " fn__none"}">
     ${html}
 </div>
 <span class="fn__flex-1"></span>
@@ -669,7 +672,7 @@ export const initCriteriaMenu = (element: HTMLElement, data: Config.IUILayoutTab
 <span class="fn__space"></span>
 <button data-type="removeCriterion" aria-label="${siyuanI18n.useCriterion}" class="ariaLabel b3-button b3-button--small b3-button--outline fn__flex-center fn__flex-shrink" data-position="9south">${siyuanI18n.removeCriterion}</button>
 <span class="fn__space"></span>`;
-        /// #endif
+        }
     });
 };
 

@@ -8,11 +8,9 @@ import { escapeHtml } from "../../../util/escape";
 import type { Background } from "../Background";
 import { renderBackground } from "./render";
 import { getSiyuanCtrlIsPressed } from "../../../util/siyuanEnvironments/keyboardStatus.environment";
-/// #if !MOBILE
+import { isMobile } from "../../../platform";
 import { openGlobalSearch } from "../../../search/util";
-/// #else
 import { popSearch } from "../../../mobile/menu/search";
-/// #endif
 
 /**
  * 作用：从 DOM 元素中获取标签列表。
@@ -80,9 +78,12 @@ const toggleTag = (background: Background, tag: string, protyle: IProtyle, cb: (
  * 调用时机：用户点击文档属性区域的标签时。
  */
 export const clickOpenSearch = (background: Background, protyle: IProtyle, target: HTMLElement, event: MouseEvent) => {
-    /// #if !MOBILE
-    openGlobalSearch(protyle.app, `#${target.textContent}#`, !getSiyuanCtrlIsPressed(), { method: 0 });
-    /// #else
+    if (!isMobile) {
+        openGlobalSearch(protyle.app, `#${target.textContent}#`, !getSiyuanCtrlIsPressed(), { method: 0 });
+        event.preventDefault();
+        event.stopPropagation();
+        return true;
+    }
     popSearch(protyle.app, {
         hasReplace: false,
         method: 0,
@@ -92,7 +93,6 @@ export const clickOpenSearch = (background: Background, protyle: IProtyle, targe
         r: "",
         page: 1,
     });
-    /// #endif
     event.preventDefault();
     event.stopPropagation();
     return true;
@@ -150,20 +150,18 @@ export const openTag = (background: Background, protyle: IProtyle, target: HTMLE
     if (itemsElement) {
         itemsElement.setAttribute("style", "overflow: initial");
     }
-    /// #if MOBILE
-    menu.fullscreen();
-    const firstChild = itemsElement?.firstElementChild;
-    if (firstChild) {
-        firstChild.setAttribute("style", "padding: 0 8px;height: 100%;");
+    // 移动端使用全屏菜单，桌面端使用弹出菜单
+    if (isMobile) {
+        menu.fullscreen();
+        itemsElement?.firstElementChild?.setAttribute("style", "padding: 0 8px;height: 100%;");
+        return;
     }
-    /// #else
     const rect = target.getBoundingClientRect();
     menu.open({ x: rect.left, y: rect.top + rect.height });
     const input = menu.element.querySelector("input");
     if (input) {
         input.focus();
     }
-    /// #endif
 };
 
 /**

@@ -14,6 +14,7 @@ import { hasTopClosestByClassName } from "../../util/hasClosest";
 import { removeEmbed } from "../removeEmbed";
 import { getSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { clearBlockElement } from "../../util/clearSelect";
+import { isMobile } from "../../../platform";
 import {
     handleCopyHotKey,
     handlePluginHotKey} from "./commonHotkeyHelper";
@@ -72,11 +73,9 @@ export const commonHotkey = (protyle: IProtyle, event: KeyboardEvent, nodeElemen
         return true;
     }
 
-    /// #if !MOBILE
-    if (handlePluginHotKey(protyle, event)) {
+    if (!isMobile && handlePluginHotKey(protyle, event)) {
         return true;
     }
-    /// #endif
 };
 
 export const getStartEndElement = (selectElements: NodeListOf<Element> | Element[]) => {

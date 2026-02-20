@@ -5,17 +5,15 @@ import {updateHotkeyTip} from "../../../protyle/util/compatibility";
 import {isMobile} from "../../../util/functions";
 import {Constants} from "../../../constants";
 import {Editor} from "../../../editor";
-/// #if MOBILE
 import {getCurrentEditor} from "../../../mobile/editor";
 import {popSearch} from "../../../mobile/menu/search";
-/// #else
 import {getActiveTab, getDockByType} from "../../../layout/tabUtil";
 import {Custom} from "../../../layout/dock/Custom";
 import {getAllModels} from "../../../layout/getAll";
 import {Files} from "../../../layout/dock/Files";
 import {Search} from "../../../search";
 import {openSearch} from "../../../search/spread";
-/// #endif
+import {isElectron} from "../../../platform";
 import {addEditorToDatabase, addFilesToDatabase} from "../../../protyle/render/av/addToDatabase";
 import {hasClosestBlock, hasClosestByClassName, hasTopClosestByTag} from "../../../protyle/util/hasClosest";
 import {onlyProtyleCommand} from "./protyle";
@@ -55,11 +53,6 @@ export const commandPanel = (app: App) => {
     let html = "";
     Object.keys(window.siyuan.config.keymap.general).forEach((key) => {
         let keys;
-        /// #if MOBILE
-        keys = ["addToDatabase", "fileTree", "outline", "bookmark", "tag", "dailyNote", "inbox", "backlinks",
-            "dataHistory", "editReadonly", "enter", "enterBack", "globalSearch", "lockScreen", "mainMenu", "move",
-            "newFile", "recentDocs", "replace", "riffCard", "search", "selectOpen1", "syncNow"];
-        /// #else
         keys = ["addToDatabase", "fileTree", "outline", "bookmark", "tag", "dailyNote", "inbox", "backlinks",
             "graphView", "globalGraph", "closeAll", "closeLeft", "closeOthers", "closeRight", "closeTab",
             "closeUnmodified", "config", "dataHistory", "editReadonly", "enter", "enterBack", "globalSearch", "goBack",
@@ -68,10 +61,14 @@ export const commandPanel = (app: App) => {
             "mainMenu", "move", "newFile", "recentDocs", "replace", "riffCard", "search", "selectOpen1", "syncNow",
             "splitLR", "splitMoveB", "splitMoveR", "splitTB", "tabToWindow", "stickSearch", "toggleDock", "unsplitAll",
             "unsplit", "recentClosed"];
-        /// #if !BROWSER
-        keys.push("toggleWin");
-        /// #endif
-        /// #endif
+        if (isElectron) {
+            keys.push("toggleWin");
+        }
+        if (isMobile()) {
+            keys = ["addToDatabase", "fileTree", "outline", "bookmark", "tag", "dailyNote", "inbox", "backlinks",
+                "dataHistory", "editReadonly", "enter", "enterBack", "globalSearch", "lockScreen", "mainMenu", "move",
+                "newFile", "recentDocs", "replace", "riffCard", "search", "selectOpen1", "syncNow"];
+        }
         if (keys.includes(key)) {
             html += `<li class="b3-list-item" data-command="${key}">
     <span class="b3-list-item__text">${siyuanI18n[key]}</span>
@@ -201,12 +198,11 @@ export const execByCommand = async (options: {
     const isFileFocus = document.querySelector(".layout__tab--active")?.classList.contains("sy__file");
 
     let protyle = options.protyle;
-    /// #if MOBILE
-    if (!protyle) {
+    // 移动端：未传入 protyle 时从全局当前编辑器获取
+    if (isMobile() && !protyle) {
         protyle = getCurrentEditor().protyle;
         options.previousRange = protyle.toolbar.range;
     }
-    /// #endif
     const range: Range = options.previousRange || (getSelection().rangeCount > 0 ? getSelection().getRangeAt(0) : document.createRange());
     let fileLiElements = options.fileLiElements;
     if (!isFileFocus && !protyle) {
@@ -312,25 +308,29 @@ export const execByCommand = async (options: {
         (isFileFocus && (!fileLiElements || fileLiElements.length === 0)) ||
         (isMobile() && !document.getElementById("empty").classList.contains("fn__none"))) {
         if (options.command === "replace") {
-            /// #if MOBILE
-            popSearch(options.app, {hasReplace: true, page: 1});
-            /// #else
-            openSearch({
-                app: options.app,
-                hotkey: Constants.DIALOG_REPLACE,
-                key: range.toString()
-            });
-            /// #endif
+            // 移动端使用弹出式搜索，桌面端使用搜索面板
+            if (isMobile()) {
+                popSearch(options.app, {hasReplace: true, page: 1});
+            }
+            if (!isMobile()) {
+                openSearch({
+                    app: options.app,
+                    hotkey: Constants.DIALOG_REPLACE,
+                    key: range.toString()
+                });
+            }
         } else if (options.command === "search") {
-            /// #if MOBILE
-            popSearch(options.app, {hasReplace: false, page: 1});
-            /// #else
-            openSearch({
-                app: options.app,
-                hotkey: Constants.DIALOG_SEARCH,
-                key: range.toString()
-            });
-            /// #endif
+            // 移动端使用弹出式搜索，桌面端使用搜索面板
+            if (isMobile()) {
+                popSearch(options.app, {hasReplace: false, page: 1});
+            }
+            if (!isMobile()) {
+                openSearch({
+                    app: options.app,
+                    hotkey: Constants.DIALOG_SEARCH,
+                    key: range.toString()
+                });
+            }
         }
         return;
     }
@@ -339,98 +339,104 @@ export const execByCommand = async (options: {
     switch (options.command) {
         case "replace":
             if (!isFileFocus) {
-                /// #if MOBILE
-                const response = await fetchSyncPost("/api/filetree/getHPathByPath", {
-                    notebook: protyle.notebookId,
-                    path: protyle.path.endsWith(".sy") ? protyle.path : protyle.path + ".sy"
-                });
-                popSearch(options.app, {
-                    page: 1,
-                    hasReplace: true,
-                    hPath: pathPosix().join(getNotebookName(protyle.notebookId), response.data),
-                    idPath: [pathPosix().join(protyle.notebookId, protyle.path)]
-                });
-                /// #else
-                openSearch({
-                    app: options.app,
-                    hotkey: Constants.DIALOG_REPLACE,
-                    key: range.toString(),
-                    notebookId: protyle.notebookId,
-                    searchPath: protyle.path
-                });
-                /// #endif
+                // 移动端：通过路径获取可读路径后弹出搜索；桌面端：直接打开搜索面板
+                if (isMobile()) {
+                    const response = await fetchSyncPost("/api/filetree/getHPathByPath", {
+                        notebook: protyle.notebookId,
+                        path: protyle.path.endsWith(".sy") ? protyle.path : protyle.path + ".sy"
+                    });
+                    popSearch(options.app, {
+                        page: 1,
+                        hasReplace: true,
+                        hPath: pathPosix().join(getNotebookName(protyle.notebookId), response.data),
+                        idPath: [pathPosix().join(protyle.notebookId, protyle.path)]
+                    });
+                }
+                if (!isMobile()) {
+                    openSearch({
+                        app: options.app,
+                        hotkey: Constants.DIALOG_REPLACE,
+                        key: range.toString(),
+                        notebookId: protyle.notebookId,
+                        searchPath: protyle.path
+                    });
+                }
             } else {
-                /// #if !MOBILE
-                const topULElement = hasTopClosestByTag(fileLiElements[0], "UL");
-                if (!topULElement) {
-                    return false;
+                // 桌面端：从文件树选中项获取笔记本和路径，打开替换面板
+                if (!isMobile()) {
+                    const topULElement = hasTopClosestByTag(fileLiElements[0], "UL");
+                    if (!topULElement) {
+                        return false;
+                    }
+                    const notebookId = topULElement.getAttribute("data-url");
+                    const pathString = fileLiElements[0].getAttribute("data-path");
+                    const isFile = fileLiElements[0].getAttribute("data-type") === "navigation-file";
+                    if (isFile) {
+                        openSearch({
+                            app: options.app,
+                            hotkey: Constants.DIALOG_REPLACE,
+                            notebookId: notebookId,
+                            searchPath: getDisplayName(pathString, false, true)
+                        });
+                    } else {
+                        openSearch({
+                            app: options.app,
+                            hotkey: Constants.DIALOG_REPLACE,
+                            notebookId: notebookId,
+                        });
+                    }
                 }
-                const notebookId = topULElement.getAttribute("data-url");
-                const pathString = fileLiElements[0].getAttribute("data-path");
-                const isFile = fileLiElements[0].getAttribute("data-type") === "navigation-file";
-                if (isFile) {
-                    openSearch({
-                        app: options.app,
-                        hotkey: Constants.DIALOG_REPLACE,
-                        notebookId: notebookId,
-                        searchPath: getDisplayName(pathString, false, true)
-                    });
-                } else {
-                    openSearch({
-                        app: options.app,
-                        hotkey: Constants.DIALOG_REPLACE,
-                        notebookId: notebookId,
-                    });
-                }
-                /// #endif
             }
             break;
         case "search":
             if (!isFileFocus) {
-                /// #if MOBILE
-                const response = await fetchSyncPost("/api/filetree/getHPathByPath", {
-                    notebook: protyle.notebookId,
-                    path: protyle.path.endsWith(".sy") ? protyle.path : protyle.path + ".sy"
-                });
-                popSearch(options.app, {
-                    page: 1,
-                    hasReplace: false,
-                    hPath: pathPosix().join(getNotebookName(protyle.notebookId), response.data),
-                    idPath: [pathPosix().join(protyle.notebookId, protyle.path)]
-                });
-                /// #else
-                openSearch({
-                    app: options.app,
-                    hotkey: Constants.DIALOG_SEARCH,
-                    key: range.toString(),
-                    notebookId: protyle.notebookId,
-                    searchPath: protyle.path
-                });
-                /// #endif
+                // 移动端：通过路径获取可读路径后弹出搜索；桌面端：直接打开搜索面板
+                if (isMobile()) {
+                    const response = await fetchSyncPost("/api/filetree/getHPathByPath", {
+                        notebook: protyle.notebookId,
+                        path: protyle.path.endsWith(".sy") ? protyle.path : protyle.path + ".sy"
+                    });
+                    popSearch(options.app, {
+                        page: 1,
+                        hasReplace: false,
+                        hPath: pathPosix().join(getNotebookName(protyle.notebookId), response.data),
+                        idPath: [pathPosix().join(protyle.notebookId, protyle.path)]
+                    });
+                }
+                if (!isMobile()) {
+                    openSearch({
+                        app: options.app,
+                        hotkey: Constants.DIALOG_SEARCH,
+                        key: range.toString(),
+                        notebookId: protyle.notebookId,
+                        searchPath: protyle.path
+                    });
+                }
             } else {
-                /// #if !MOBILE
-                const topULElement = hasTopClosestByTag(fileLiElements[0], "UL");
-                if (!topULElement) {
-                    return false;
+                // 桌面端：从文件树选中项获取笔记本和路径，打开搜索面板
+                if (!isMobile()) {
+                    const topULElement = hasTopClosestByTag(fileLiElements[0], "UL");
+                    if (!topULElement) {
+                        return false;
+                    }
+                    const notebookId = topULElement.getAttribute("data-url");
+                    const pathString = fileLiElements[0].getAttribute("data-path");
+                    const isFile = fileLiElements[0].getAttribute("data-type") === "navigation-file";
+                    if (isFile) {
+                        openSearch({
+                            app: options.app,
+                            hotkey: Constants.DIALOG_SEARCH,
+                            notebookId: notebookId,
+                            searchPath: getDisplayName(pathString, false, true)
+                        });
+                    } else {
+                        openSearch({
+                            app: options.app,
+                            hotkey: Constants.DIALOG_SEARCH,
+                            notebookId: notebookId,
+                        });
+                    }
                 }
-                const notebookId = topULElement.getAttribute("data-url");
-                const pathString = fileLiElements[0].getAttribute("data-path");
-                const isFile = fileLiElements[0].getAttribute("data-type") === "navigation-file";
-                if (isFile) {
-                    openSearch({
-                        app: options.app,
-                        hotkey: Constants.DIALOG_SEARCH,
-                        notebookId: notebookId,
-                        searchPath: getDisplayName(pathString, false, true)
-                    });
-                } else {
-                    openSearch({
-                        app: options.app,
-                        hotkey: Constants.DIALOG_SEARCH,
-                        notebookId: notebookId,
-                    });
-                }
-                /// #endif
             }
             break;
         case "addToDatabase":

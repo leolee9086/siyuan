@@ -8,9 +8,8 @@ import { Tab } from "./Tab";
 import { openFileById } from "../editor/utils.openFileById";
 import { getIdZoomInByPath } from "../util/pathName";
 import { setPanelFocus } from "./utils/setPanelFocus";
-/// #if !MOBILE
+import { isBrowser } from "../platform";
 import { getAllTabs } from "./getAll";
-/// #endif
 import { getInstanceById } from "./util";
 import { Constants } from "../constants";
 import { tabRegistry } from "../registry";
@@ -26,15 +25,18 @@ import {
     getSiyuanLanguages,
     checkAndMarkFirstLoad,
 } from "./layout-deserialization.environment";
+import { isMobile } from "../platform";
 
 // ============ Tab 移除处理 ============
 
-/// #if !MOBILE
 /**
  * 移除启动时未固定的Tab
  * @同步豁免: UI构建 - 需要同步遍历和移除Tab
  */
 export const removeUnpinnedTabsOnStart = (): void => {
+    if (isMobile) {
+        return;
+    }
     for (const item of getAllTabs()) {
         // 跳过无头元素的Tab
         if (!item.headElement) {
@@ -47,7 +49,6 @@ export const removeUnpinnedTabsOnStart = (): void => {
         item.parent.removeTab(item.id, false, false, false);
     }
 };
-/// #endif
 
 // ============ 插件检查 ============
 
@@ -229,15 +230,15 @@ export const handleCloseTabsOnStart = (isStart: boolean): void => {
     if (!fileTreeConfig?.closeTabsOnStart) {
         return;
     }
-    /// #if BROWSER
     // 浏览器环境：仅首次加载时移除
-    if (checkAndMarkFirstLoad(Constants.LOCAL_SESSION_FIRSTLOAD)) {
+    if (isBrowser && checkAndMarkFirstLoad(Constants.LOCAL_SESSION_FIRSTLOAD)) {
         removeUnpinnedTabsOnStart();
     }
-    /// #else
+    if (isBrowser) {
+        return;
+    }
     // 桌面环境：启动时移除
     if (isStart) {
         removeUnpinnedTabsOnStart();
     }
-    /// #endif
 };

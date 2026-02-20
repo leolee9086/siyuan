@@ -1,6 +1,5 @@
-/// #if !BROWSER
-import {shell} from "electron";
-/// #endif
+import { openExternal } from "../platform/electron/shell";
+import { isElectron } from "../platform";
 // S-forge: 开始 - 模块化导入改进
 import { confirmDialog } from "../dialog/confirmDialog";
 import { getSearch, isMobile, isValidCustomAttrName } from "../util/functions";
@@ -14,12 +13,8 @@ import { hideMessage, showMessage } from "../dialog/message";
 import { Dialog } from "../dialog";
 import { focusBlock, focusByRange, getEditorRange } from "../protyle/util/selection";
 // S-forge: 结束
-/// #if !MOBILE
 import {openAsset} from "../editor/util.openAsset";
-/// #if !BROWSER
 import {openBy} from "../editor/utils.openBy";
-/// #endif
-/// #endif
 import { rename, replaceFileName } from "../editor/rename";
 import * as dayjs from "dayjs";
 import { Constants } from "../constants";
@@ -296,8 +291,7 @@ export const exportMd = (id: string) => {
                 exportImage(id);
             }
         },
-        /// #if !BROWSER
-        {
+        ...(isElectron ? [{
             id: "exportPDF",
             label: "PDF",
             icon: "iconPDF",
@@ -441,9 +435,8 @@ export const exportMd = (id: string) => {
                 }
             },
             ]
-        },
-        /// #else
-        {
+        }] : []),
+        ...(!isElectron ? [{
             id: "exportPDF",
             label: siyuanI18n.print,
             icon: "iconPDF",
@@ -486,24 +479,24 @@ export const exportMd = (id: string) => {
             click: () => {
                 saveExport({ type: "htmlmd", id });
             }
-        },
-            /// #endif
+        }] : []),
         ]
     }).element;
 };
 
 export const openMenu = (app: App, src: string, onlyMenu: boolean, showAccelerator: boolean) => {
     const submenu = [];
-    /// #if MOBILE
-    submenu.push({
-        id: isInAndroid() ? "useDefault" : "useBrowserView",
-        label: isInAndroid() ? siyuanI18n.useDefault : siyuanI18n.useBrowserView,
-        accelerator: showAccelerator ? siyuanI18n.click : "",
-        click: () => {
-            openByMobile(src);
-        }
-    });
-    /// #else
+    if (isMobile()) {
+        submenu.push({
+            id: isInAndroid() ? "useDefault" : "useBrowserView",
+            label: isInAndroid() ? siyuanI18n.useDefault : siyuanI18n.useBrowserView,
+            accelerator: showAccelerator ? siyuanI18n.click : "",
+            click: () => {
+                openByMobile(src);
+            }
+        });
+    }
+    if (!isMobile()) {
     if (isLocalPath(src)) {
         if (Constants.SIYUAN_ASSETS_EXTS.includes(pathPosix().extname(src).split("?")[0]) &&
             (!src.endsWith(".pdf") ||
@@ -527,53 +520,83 @@ export const openMenu = (app: App, src: string, onlyMenu: boolean, showAccelerat
                     openAsset(app, src.trim(), parseInt(getSearch("page", src)));
                 }
             });
-            /// #if !BROWSER
-            submenu.push({
-                id: "openByNewWindow",
-                label: siyuanI18n.openByNewWindow,
-                icon: "iconOpenWindow",
-                click() {
-                    openAssetNewWindow(src.trim());
-                }
-            });
-            submenu.push({
-                id: "showInFolder",
-                icon: "iconFolder",
-                label: siyuanI18n.showInFolder,
-                accelerator: showAccelerator ? "⌘" + siyuanI18n.click : "",
-                click: () => {
-                    openBy(src, "folder");
-                }
-            });
-            submenu.push({
-                id: "useDefault",
-                label: siyuanI18n.useDefault,
-                accelerator: showAccelerator ? "⇧" + siyuanI18n.click : "",
-                click() {
-                    openBy(src, "app");
-                }
-            });
-            /// #endif
+            if (isElectron) {
+                submenu.push({
+                    id: "openByNewWindow",
+                    label: siyuanI18n.openByNewWindow,
+                    icon: "iconOpenWindow",
+                    click() {
+                        openAssetNewWindow(src.trim());
+                    }
+                });
+                submenu.push({
+                    id: "showInFolder",
+                    icon: "iconFolder",
+                    label: siyuanI18n.showInFolder,
+                    accelerator: showAccelerator ? "⌘" + siyuanI18n.click : "",
+                    click: () => {
+                        openBy(src, "folder");
+                    }
+                });
+                submenu.push({
+                    id: "useDefault",
+                    label: siyuanI18n.useDefault,
+                    accelerator: showAccelerator ? "⇧" + siyuanI18n.click : "",
+                    click() {
+                        openBy(src, "app");
+                    }
+                });
+            }
         } else {
-            /// #if !BROWSER
+            if (isElectron) {
+                submenu.push({
+                    id: "useDefault",
+                    label: siyuanI18n.useDefault,
+                    accelerator: showAccelerator ? siyuanI18n.click : "",
+                    click() {
+                        openBy(src, "app");
+                    }
+                });
+                submenu.push({
+                    id: "showInFolder",
+                    icon: "iconFolder",
+                    label: siyuanI18n.showInFolder,
+                    accelerator: showAccelerator ? "⌘" + siyuanI18n.click : "",
+                    click: () => {
+                        openBy(src, "folder");
+                    }
+                });
+            }
+            if (!isElectron) {
+                submenu.push({
+                    id: isInAndroid() || isInHarmony() ? "useDefault" : "useBrowserView",
+                    label: isInAndroid() || isInHarmony() ? siyuanI18n.useDefault : siyuanI18n.useBrowserView,
+                    accelerator: showAccelerator ? siyuanI18n.click : "",
+                    click: () => {
+                        openByMobile(src);
+                    }
+                });
+            }
+        }
+    } else if (src) {
+        if (0 > src.indexOf(":")) {
+            // 使用 : 判断，不使用 :// 判断 Open external application protocol invalid https://github.com/siyuan-note/siyuan/issues/10075
+            // Support click to open hyperlinks like `www.foo.com` https://github.com/siyuan-note/siyuan/issues/9986
+            src = `https://${src}`;
+        }
+        if (isElectron) {
             submenu.push({
                 id: "useDefault",
                 label: siyuanI18n.useDefault,
                 accelerator: showAccelerator ? siyuanI18n.click : "",
-                click() {
-                    openBy(src, "app");
-                }
-            });
-            submenu.push({
-                id: "showInFolder",
-                icon: "iconFolder",
-                label: siyuanI18n.showInFolder,
-                accelerator: showAccelerator ? "⌘" + siyuanI18n.click : "",
                 click: () => {
-                    openBy(src, "folder");
+                    openExternal(src).catch((e) => {
+                        showMessage(e);
+                    });
                 }
             });
-            /// #else
+        }
+        if (!isElectron) {
             submenu.push({
                 id: isInAndroid() || isInHarmony() ? "useDefault" : "useBrowserView",
                 label: isInAndroid() || isInHarmony() ? siyuanI18n.useDefault : siyuanI18n.useBrowserView,
@@ -582,37 +605,9 @@ export const openMenu = (app: App, src: string, onlyMenu: boolean, showAccelerat
                     openByMobile(src);
                 }
             });
-            /// #endif
         }
-    } else if (src) {
-        if (0 > src.indexOf(":")) {
-            // 使用 : 判断，不使用 :// 判断 Open external application protocol invalid https://github.com/siyuan-note/siyuan/issues/10075
-            // Support click to open hyperlinks like `www.foo.com` https://github.com/siyuan-note/siyuan/issues/9986
-            src = `https://${src}`;
-        }
-        /// #if !BROWSER
-        submenu.push({
-            id: "useDefault",
-            label: siyuanI18n.useDefault,
-            accelerator: showAccelerator ? siyuanI18n.click : "",
-            click: () => {
-                shell.openExternal(src).catch((e) => {
-                    showMessage(e);
-                });
-            }
-        });
-        /// #else
-        submenu.push({
-            id: isInAndroid() || isInHarmony() ? "useDefault" : "useBrowserView",
-            label: isInAndroid() || isInHarmony() ? siyuanI18n.useDefault : siyuanI18n.useBrowserView,
-            accelerator: showAccelerator ? siyuanI18n.click : "",
-            click: () => {
-                openByMobile(src);
-            }
-        });
-        /// #endif
     }
-    /// #endif
+    }
     if (onlyMenu) {
         return submenu;
     }

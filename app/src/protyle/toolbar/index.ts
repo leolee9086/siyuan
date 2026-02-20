@@ -11,6 +11,7 @@ import { 显示代码语言选择 } from "./showCodeLanguage";
 import { 显示模板选择 } from "./showTpl";
 import { isMenuItem } from "./index.guard";
 import { getPluginCustomHotkey } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { isMobile } from "../../platform";
 
 /**
  * Toolbar 重构版本
@@ -30,11 +31,12 @@ export class Toolbar {
         element.className = "protyle-toolbar fn__none";
         this.element = element;
         this.subElement = document.createElement("div");
-        /// #if MOBILE
-        this.subElement.className = "protyle-util fn__none protyle-util--mobile";
-        /// #else
-        this.subElement.className = "protyle-util fn__none";
-        /// #endif
+        if (isMobile) {
+            this.subElement.className = "protyle-util fn__none protyle-util--mobile";
+        }
+        if (!isMobile) {
+            this.subElement.className = "protyle-util fn__none";
+        }
         this.toolbarHeight = 29;
         for (const item of protyle.app.plugins) {
             const pluginToolbar = item.updateProtyleToolbar(options.toolbar || []);

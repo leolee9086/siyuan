@@ -3,9 +3,8 @@ import { Constants } from "../../../constants";
 import { showTooltip } from "../../../dialog/tooltip";
 import { hasClosestByClassName } from "../../../protyle/util/hasClosest";
 import { setSiyuanDragElement } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
-/// #if !BROWSER
-import { ipcRenderer } from "electron";
-/// #endif
+import { ipcSend } from "../../../platform/electron/ipcRenderer";
+import { isElectron } from "../../../platform";
 
 export const onDragEnd = (files: Files, event: DragEvent) => {
     files.parent.panelElement.classList.remove("sy__file--disablehover");
@@ -32,12 +31,12 @@ export const onDragEnd = (files: Files, event: DragEvent) => {
         }
     }
     setSiyuanDragElement(undefined);
-    /// #if !BROWSER
-    ipcRenderer.send(Constants.SIYUAN_SEND_WINDOWS, { cmd: "resetTabsStyle", data: "rmDragStyle" });
-    /// #else
+    if (isElectron) {
+        ipcSend(Constants.SIYUAN_SEND_WINDOWS, { cmd: "resetTabsStyle", data: "rmDragStyle" });
+        return;
+    }
     const dragTabs = document.querySelectorAll(".layout-tab-bars--drag");
     for (const item of Array.from(dragTabs)) {
         item.classList.remove("layout-tab-bars--drag");
     }
-    /// #endif
 };

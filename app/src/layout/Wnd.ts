@@ -22,10 +22,10 @@ import {
     isInEmbedBlock
 } from "../protyle/util/hasClosest";
 import { Constants } from "../constants";
-/// #if !BROWSER
-import { ipcRenderer, webFrame } from "electron";
+import { isElectron } from "../platform";
+import { ipcSend } from "../platform/electron/ipcRenderer";
+import { clearWebFrameCache } from "../platform/electron/webFrame";
 import { setModelsHash, setTabPosition } from "../window/setHeader";
-/// #endif
 import { Search } from "../search";
 import { showMessage } from "../dialog/message";
 // S-forge: 本地重构拆分了 openFileById 和 updatePanelByEditor 到独立模块
@@ -33,9 +33,7 @@ import { openFileById } from "../editor/utils.openFileById";
 import { updatePanelByEditor } from "../editor/util.updatePanelByEditor";
 import { scrollCenter } from "../util/highlightById";
 import { fetchPost } from "../util/fetch";
-/// #if !MOBILE
 import { getAllModels } from "./getAll";
-/// #endif
 import { clearCounter } from "./status";
 import { saveScroll } from "../protyle/scroll/saveScroll";
 import { Asset } from "../asset";
@@ -263,18 +261,16 @@ export class Wnd {
             const tabData = JSON.parse(event.dataTransfer.getData(Constants.SIYUAN_DROP_TAB));
             let oldTab = getInstanceById(tabData.id) as Tab;
             const wnd = getInstanceById(it.parentElement.getAttribute("data-id")) as Wnd;
-            /// #if !BROWSER
-            if (!oldTab) { // 从主窗口拖拽到页签新窗口
+            if (isElectron && !oldTab) { // 从主窗口拖拽到页签新窗口
                 if (wnd instanceof Wnd) {
                     JSONToCenter(app, tabData, wnd);
                     oldTab = wnd.children[wnd.children.length - 1];
-                    ipcRenderer.send(Constants.SIYUAN_SEND_WINDOWS, { cmd: "closetab", data: tabData.id });
+                    ipcSend(Constants.SIYUAN_SEND_WINDOWS, { cmd: "closetab", data: tabData.id });
                     it.querySelector("li[data-clone='true']").remove();
                     wnd.switchTab(oldTab.headElement);
-                    ipcRenderer.send(Constants.SIYUAN_CMD, "focus");
+                    ipcSend(Constants.SIYUAN_CMD, "focus");
                 }
             }
-            /// #endif
             if (!oldTab) {
                 return;
             }
@@ -365,8 +361,7 @@ export class Wnd {
             const targetWnd = getInstanceById(targetWndElement.getAttribute("data-id")) as Wnd;
             const tabData = JSON.parse(event.dataTransfer.getData(Constants.SIYUAN_DROP_TAB));
             let oldTab = getInstanceById(tabData.id) as Tab;
-            /// #if !BROWSER
-            if (!oldTab) { // 从主窗口拖拽到页签新窗口
+            if (isElectron && !oldTab) { // 从主窗口拖拽到页签新窗口
                 JSONToCenter(app, tabData, this);
                 this.children.find(item => {
                     if (item.headElement.getAttribute("data-activetime") === tabData.activeTime) {
@@ -374,10 +369,9 @@ export class Wnd {
                         return true;
                     }
                 });
-                ipcRenderer.send(Constants.SIYUAN_SEND_WINDOWS, { cmd: "closetab", data: tabData.id });
-                ipcRenderer.send(Constants.SIYUAN_CMD, "focus");
+                ipcSend(Constants.SIYUAN_SEND_WINDOWS, { cmd: "closetab", data: tabData.id });
+                ipcSend(Constants.SIYUAN_CMD, "focus");
             }
-            /// #endif
             if (!oldTab) {
                 dragElement.removeAttribute("style");
                 return;
@@ -409,9 +403,9 @@ export class Wnd {
                     }
                 }
                 resizeTabs();
-                /// #if !BROWSER
-                setTabPosition();
-                /// #endif
+                if (isElectron) {
+                    setTabPosition();
+                }
                 dragElement.removeAttribute("style");
                 return;
             }
@@ -651,10 +645,10 @@ export class Wnd {
         } else if (this.children.length > window.siyuan.config.fileTree.maxOpenTabCount) {
             this.removeOverCounter(isSaveLayout);
         }
-        /// #if !BROWSER
-        setTabPosition();
-        setModelsHash();
-        /// #endif
+        if (isElectron) {
+            setTabPosition();
+            setModelsHash();
+        }
         if (isSaveLayout) {
             saveLayout();
         }
@@ -877,12 +871,10 @@ export class Wnd {
         if (window.siyuan.layout.centerLayout) {
             const wnd = getWndByLayout(window.siyuan.layout.centerLayout);
             if (!wnd) {
-                /// #if !BROWSER
-                if (isWindow()) {
+                if (isElectron && isWindow()) {
                     closeWindow(this.app);
                     return;
                 }
-                /// #endif
                 const wnd = new Wnd(this.app);
                 window.siyuan.layout.centerLayout.addWnd(wnd);
                 wnd.addTab(newCenterEmptyTab(this.app), false, false);
@@ -892,12 +884,12 @@ export class Wnd {
         if (isSaveLayout) {
             saveLayout();
         }
-        /// #if !BROWSER
-        webFrame.clearCache();
-        ipcRenderer.send(Constants.SIYUAN_CMD, "clearCache");
-        setTabPosition();
-        setModelsHash();
-        /// #endif
+        if (isElectron) {
+            clearWebFrameCache();
+            ipcSend(Constants.SIYUAN_CMD, "clearCache");
+            setTabPosition();
+            setModelsHash();
+        }
     };
 
     public removeTab(id: string, isBatchClose = false, animate = true, isSaveLayout = true) {
@@ -990,9 +982,9 @@ export class Wnd {
 
         tab.parent = this;
         hideAllElements(["toolbar"]);
-        /// #if !BROWSER
-        setTabPosition();
-        /// #endif
+        if (isElectron) {
+            setTabPosition();
+        }
     }
 
     public split(direction: Config.TUILayoutDirection) {

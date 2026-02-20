@@ -3,7 +3,7 @@
  * 从 buildGutterMultipleMenu.ts 拆分而来
  */
 import { MenuItem } from "../../menus/Menu.Item";
-import { isMobile } from "../../util/functions";
+import { isMobile } from "../../platform";
 import { appearanceMenu } from "../toolbar/Font";
 import { setPosition } from "../../util/setPosition";
 import { emitOpenMenu } from "../../plugin/EventBus";
@@ -44,9 +44,10 @@ export const 构建外观菜单 = (protyle: IProtyle, selectsElement: Element[])
         icon: "iconFont",
         accelerator: getSiyuanConfig().keymap.editor.insert.appearance.custom,
         click: () => {
-            /// #if MOBILE
-            showMobileAppearance(protyle);
-            /// #else
+            if (isMobile) {
+                showMobileAppearance(protyle);
+                return;
+            }
             protyle.toolbar.element.classList.add("fn__none");
             protyle.toolbar.subElement.innerHTML = "";
             protyle.toolbar.subElement.style.width = "";
@@ -61,13 +62,12 @@ export const 构建外观菜单 = (protyle: IProtyle, selectsElement: Element[])
             }
             const position = 第一个选中元素.getBoundingClientRect();
             setPosition(protyle.toolbar.subElement, position.left, position.top);
-            /// #endif
         }
     }).element;
 
     getSiyuanGlobalMenus().menu.append(appearanceElement);
 
-    if (!isMobile()) {
+    if (!isMobile) {
         appearanceElement.lastElementChild.classList.add("b3-menu__submenu--row");
     }
 

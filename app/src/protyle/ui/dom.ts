@@ -1,9 +1,8 @@
 import { Constants } from "../../constants";
 import { scrollEvent } from "../scroll/event";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-/// #if !MOBILE
 import { moveResize } from "../../dialog/moveResize";
-/// #endif
+import { isMobile } from "../../platform";
 
 /**
  * 初始化 ContentElement 及其顶部区域。
@@ -83,29 +82,30 @@ const 初始化Toolbar = (protyle: IProtyle) => {
     }
     protyle.element.appendChild(protyle.toolbar.element);
     protyle.element.appendChild(protyle.toolbar.subElement);
-    /// #if !MOBILE
-    // @内联回调 moveResize 的回调函数
-    moveResize(protyle.toolbar.subElement, () => {
-        // 回调是异步执行的，需要再次检查 toolbar 是否存在
-        if (!protyle.toolbar) {
-            return;
-        }
-        const subElement = protyle.toolbar.subElement;
-        const pinElement = subElement.querySelector('.block__icons [data-type="pin"]');
-        if (!pinElement) {
-            return;
-        }
-        const useElement = pinElement.querySelector("svg use");
-        if (useElement) {
-            useElement.setAttribute("xlink:href", "#iconUnpin");
-        }
-        pinElement.setAttribute("aria-label", siyuanI18n.unpin);
-        const firstChild = subElement.firstElementChild;
-        if (firstChild) {
-            firstChild.setAttribute("data-drag", "true");
-        }
-    });
-    /// #endif
+    // 非移动端下启用工具栏子面板的拖拽移动和缩放功能
+    if (!isMobile) {
+        // @内联回调 moveResize 的回调函数
+        moveResize(protyle.toolbar.subElement, () => {
+            // 回调是异步执行的，需要再次检查 toolbar 是否存在
+            if (!protyle.toolbar) {
+                return;
+            }
+            const subElement = protyle.toolbar.subElement;
+            const pinElement = subElement.querySelector('.block__icons [data-type="pin"]');
+            if (!pinElement) {
+                return;
+            }
+            const useElement = pinElement.querySelector("svg use");
+            if (useElement) {
+                useElement.setAttribute("xlink:href", "#iconUnpin");
+            }
+            pinElement.setAttribute("aria-label", siyuanI18n.unpin);
+            const firstChild = subElement.firstElementChild;
+            if (firstChild) {
+                firstChild.setAttribute("data-drag", "true");
+            }
+        });
+    }
 };
 
 /**

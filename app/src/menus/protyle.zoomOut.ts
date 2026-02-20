@@ -2,6 +2,7 @@ import { setStorageVal, fetchPost } from "../ai/imports";
 import { Constants } from "../constants";
 import { updateBacklinkGraph } from "../editor/util.updateBacklinkGraph";
 import { getAllModels } from "../layout/getAll";
+import { isMobile } from "../platform";
 import { pushBack } from "../mobile/util/MobileBackFoward";
 import { hasClosestByClassName } from "../protyle/util/hasClosest";
 import { onGet } from "../protyle/util/onGet";
@@ -138,8 +139,8 @@ export const zoomOut = (options: {
                 options.protyle.wysiwyg.element.classList.remove("protyle-wysiwyg--animate");
             }, 365);
         }
-        /// #if !MOBILE
-        if (options.protyle.model) {
+        // 非移动端：更新大纲高亮和反向链接图
+        if (!isMobile && options.protyle.model) {
             const allModels = getAllModels();
             allModels.outline.forEach(item => {
                 if (item.blockId === options.protyle.block.rootID) {
@@ -148,6 +149,5 @@ export const zoomOut = (options: {
             });
             updateBacklinkGraph(allModels, options.protyle);
         }
-        /// #endif
     });
 };

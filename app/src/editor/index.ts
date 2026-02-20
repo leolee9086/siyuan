@@ -1,9 +1,7 @@
 import { Protyle } from "../protyle";
 import { Model } from "../layout/Model";
 import { setPadding } from "../protyle/ui/initUI";
-/// #if !BROWSER
-import { setModelsHash } from "../window/setHeader";
-/// #endif
+import { isElectron } from "../platform";
 import { countBlockWord } from "../layout/status";
 import { fullscreen } from "../protyle/breadcrumb/action";
 import { fetchPost } from "../util/fetch";
@@ -73,9 +71,10 @@ export class Editor extends Model {
                     setPadding(editor.protyle);
                 }
                 countBlockWord([], editor.protyle.block.rootID);
-                /// #if !BROWSER
-                setModelsHash();
-                /// #endif
+                // Electron 环境下更新窗口 hash 以支持独立窗口状态持久化
+                if (isElectron) {
+                    import("../window/setHeader").then(m => m.setModelsHash());
+                }
                 if (options.afterInitProtyle) {
                     options.afterInitProtyle(editor);
                 }

@@ -59,6 +59,7 @@ import { turnsIntoTransaction, turnsOneInto, updateTransaction } from "./transac
 import { getSiyuanConfig, getSiyuanStorage } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getContenteditableElement } from "./getBlock";
 import { highlightRender } from "../render/highlightRender";
+import { isMobile } from "../../platform";
 
 export const getContentByInlineHTML = (range: Range, cb: (content: string) => void) => {
     let html = "";
@@ -318,12 +319,12 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         if (signal.aborted) {
             return;
         }
-        /// #if !MOBILE
-        await commonHotkeyMiddleware(editorContext);
-        if (signal.aborted) {
-            return;
+        if (!isMobile) {
+            await commonHotkeyMiddleware(editorContext);
+            if (signal.aborted) {
+                return;
+            }
         }
-        /// #endif
         await copyTextMiddleware(event, protyle, nodeElement, range, controller);
         if (signal.aborted) {
             return;
@@ -443,7 +444,7 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         if (signal.aborted) {
             return;
         }
-        /// #if !MOBILE
+        if (!isMobile) {
         const refElement = hasClosestByAttribute(range.startContainer, "data-type", "block-ref");
         if (refElement) {
             const id = refElement.getAttribute("data-id");
@@ -525,17 +526,15 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
                 return true;
             }
         }
-        /// #endif
+        }
         await pasteAsPlainTextMiddleware(event, protyle, nodeElement, range, controller);
         if (signal.aborted) {
             return;
         }
-        /// #if !BROWSER
         await openLocalMiddleWare(event, protyle, nodeElement, range, controller);
         if (signal.aborted) {
             return;
         }
-        /// #endif
         //打开外部链接或者素材链接
         await openByMiddleWare(event, protyle, nodeElement, range, controller);
         if (signal.aborted) {

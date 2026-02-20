@@ -1,4 +1,3 @@
-/// #if !MOBILE
 import { Layout } from "./index";
 import { Tab } from "./Tab";
 import { Editor } from "../editor";
@@ -19,7 +18,7 @@ import { Model } from "./Model";
 import { getSafeSiyuanLayout, getSafeSiyuanConfig, getSiyuanBlockPanels } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getSiyuanDialogs } from "../util/siyuanEnvironments/siyuanDialogs.environment";
 import { hasLayoutDocks } from "./getAll.guard";
-/// #endif
+import { isMobile } from "../platform";
 import { getSafeSiyuanMobile } from "../util/siyuanEnvironments/mobile.environment";
 
 /**
@@ -32,17 +31,18 @@ import { getSafeSiyuanMobile } from "../util/siyuanEnvironments/mobile.environme
  */
 export const getAllEditor = () => {
     const editors: Protyle[] = [];
-    /// #if MOBILE
-    const mobile = getSafeSiyuanMobile();
-    // 检查移动端主编辑器是否存在，存在则添加到编辑器列表
-    if (mobile?.editor) {
-        editors.push(mobile.editor);
+    if (isMobile) {
+        const mobile = getSafeSiyuanMobile();
+        // 检查移动端主编辑器是否存在，存在则添加到编辑器列表
+        if (mobile?.editor) {
+            editors.push(mobile.editor);
+        }
+        // 检查移动端弹出编辑器是否存在，存在则添加到编辑器列表
+        if (mobile?.popEditor) {
+            editors.push(mobile.popEditor);
+        }
+        return editors;
     }
-    // 检查移动端弹出编辑器是否存在，存在则添加到编辑器列表
-    if (mobile?.popEditor) {
-        editors.push(mobile.popEditor);
-    }
-    /// #else
     const models = getAllModels();
     for (const item of models.editor) {
         editors.push(item.editor);
@@ -78,11 +78,9 @@ export const getAllEditor = () => {
             editors.push(editorItem);
         }
     }
-    /// #endif
     return editors;
 };
 
-/// #if !MOBILE
 /**
  * 获取当前桌面端布局中分类好的所有 Tab 模型。
  *
@@ -183,6 +181,13 @@ const getTabsForModels = (layout: Layout, models: IModels) => {
  * @同步豁免: 性能考虑
  */
 export const getAllModels = () => {
+    if (isMobile) {
+        return {
+            editor: [], graph: [], asset: [], outline: [], backlink: [],
+            search: [], inbox: [], files: [], bookmark: [], tag: [],
+            custom: [], forwardlink: [],
+        };
+    }
     const models: IModels = {
         editor: [],
         graph: [],
@@ -224,6 +229,9 @@ export const getAllModels = () => {
  * @同步豁免: 性能考虑
  */
 export const getAllWnds = (layout: Layout, wnds: Wnd[]) => {
+    if (isMobile) {
+        return;
+    }
     const children = layout.children;
     if (!children) {
         return;
@@ -269,6 +277,9 @@ const getTabsForTabs = (layout: Layout, tabs: Tab[]) => {
  * @同步豁免: 性能考虑
  */
 export const getAllTabs = () => {
+    if (isMobile) {
+        return [];
+    }
     const tabs: Tab[] = [];
     const layout = getSafeSiyuanLayout();
     // 检查中心布局是否存在，存在则遍历收集所有 Tab
@@ -287,6 +298,9 @@ export const getAllTabs = () => {
  * @同步豁免: 性能考虑
  */
 export const getAllDocks = () => {
+    if (isMobile) {
+        return [];
+    }
     const docks: Config.IUILayoutDockTab[] = [];
     const layout = getSafeSiyuanConfig()?.uiLayout;
     if (!layout) {
@@ -319,4 +333,3 @@ export const getAllDocks = () => {
     return docks;
 };
 
-/// #endif

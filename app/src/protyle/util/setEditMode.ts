@@ -2,6 +2,7 @@ import {hideElements} from "../ui/hideElements";
 import {getAllModels} from "../../layout/getAll";
 import { updateOutline } from "../../editor/util.updateOutline";
 import {resize} from "./resize";
+import {isMobile} from "../../platform";
 
 export const setEditMode = (protyle: IProtyle, type: TEditorMode) => {
     if (type === "preview") {
@@ -16,9 +17,9 @@ export const setEditMode = (protyle: IProtyle, type: TEditorMode) => {
             protyle.breadcrumb.toggleExit(true);
         }
         protyle.preview.render(protyle);
-        /// #if !MOBILE
-        updateOutline(getAllModels(), protyle, true);
-        /// #endif
+        if (!isMobile) {
+            updateOutline(getAllModels(), protyle, true);
+        }
     } else if (type === "wysiwyg") {
         if (!protyle.contentElement.classList.contains("fn__none")) {
             return;
@@ -32,9 +33,9 @@ export const setEditMode = (protyle: IProtyle, type: TEditorMode) => {
             protyle.breadcrumb?.element.classList.remove("fn__none");
             protyle.breadcrumb.toggleExit(!protyle.block.showAll);
         }
-        /// #if !MOBILE
-        updateOutline(getAllModels(), protyle, true);
-        /// #endif
+        if (!isMobile) {
+            updateOutline(getAllModels(), protyle, true);
+        }
         resize(protyle);
     }
     hideElements(["gutterOnly", "toolbar", "select", "hint", "util"], protyle);

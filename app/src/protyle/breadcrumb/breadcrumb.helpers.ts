@@ -4,7 +4,7 @@
  */
 import { getIconByType } from "../../editor/getIcon";
 import { hasClosestBlock } from "../util/hasClosest";
-import { isMobile } from "../../util/functions";
+import { isMobile, isBrowserDesktop } from "../../platform";
 import { getNoContainerElement } from "../wysiwyg/getBlock";
 import { isInAndroid, isInHarmony, isIPad, isMac, updateHotkeyTip } from "../util/compatibility";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
@@ -161,7 +161,7 @@ export function 生成面包屑模板(siyuanConfig: ReturnType<typeof getSiyuanC
     const mobileButton = `<button class="protyle-breadcrumb__icon" data-type="mobile-menu">${siyuanI18n.breadcrumb}</button>`;
     const desktopBar = '<div class="protyle-breadcrumb__bar"></div>';
 
-    return `${isMobile() ? mobileButton : desktopBar}
+    return `${isMobile ? mobileButton : desktopBar}
 <span class="protyle-breadcrumb__space"></span>
 <button class="protyle-breadcrumb__icon fn__none ariaLabel" aria-label="${updateHotkeyTip(siyuanConfig.keymap.editor.general.exitFocus.custom)}" data-type="exit-focus">${siyuanI18n.exitFocus}</button>
 ${padHTML}
@@ -176,13 +176,14 @@ ${padHTML}
  * @AIDONE 核查此处的条件编译书写方式是否正确
  */
 export function 生成平板按钮HTML(): string {
-    /// #if BROWSER && !MOBILE
+    if (!isBrowserDesktop) {
+        return "";
+    }
     if (isIPad() || isInAndroid() || isInHarmony()) {
         return `<button class="block__icon fn__flex-center ariaLabel" disabled aria-label="${siyuanI18n.undo}" data-type="undo"><svg><use xlink:href="#iconUndo"></use></svg></button>
 <button class="block__icon fn__flex-center ariaLabel" disabled aria-label="${siyuanI18n.redo}" data-type="redo"><svg><use xlink:href="#iconRedo"></use></svg></button>
 <button class="block__icon fn__flex-center ariaLabel" disabled aria-label="${siyuanI18n.outdent}" data-type="outdent"><svg><use xlink:href="#iconOutdent"></use></svg></button>
 <button class="block__icon fn__flex-center ariaLabel" disabled aria-label="${siyuanI18n.indent}" data-type="indent"><svg><use xlink:href="#iconIndent"></use></svg></button>`;
     }
-    /// #endif
     return "";
 }
