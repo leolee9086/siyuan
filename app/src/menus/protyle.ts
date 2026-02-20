@@ -23,9 +23,10 @@ import { lineNumberRender } from "../protyle/render/highlightRender";
 import { clearSelect } from "../protyle/util/clearSelect";
 import { scrollCenter } from "../util/highlightById";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
+import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { renameAsset } from "../editor/rename";
 import { openMenu } from "./commonMenuItem.openMenu";
-import { exportAsset } from "./util";
+import { copyAsset, exportAsset } from "./util";
 
 // ==================== 从拆分文件重新导出 ====================
 
@@ -121,6 +122,12 @@ export const videoMenu = (protyle: IProtyle, nodeElement: Element, type: string)
     // @无需注释
     if (src && src.startsWith("assets/")) {
         subMenus.push(exportAsset(src));
+        /// #if !BROWSER
+        const os = getSiyuanConfig().system.os;
+        if (["windows", "darwin"].includes(os)) {
+            subMenus.push(copyAsset(src));
+        }
+        /// #endif
     }
     return subMenus;
 };

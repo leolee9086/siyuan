@@ -590,35 +590,37 @@ export const setStorageVal = (key: string, val: any, cb?: () => void) => {
 };
 
 /// #if !BROWSER
-export const initFocusFix = () => {
-    if (!isWindows()) {
-        return;
-    }
+export const initNativeDialogOverride = () => {
     const originalAlert = window.alert;
     const originalConfirm = window.confirm;
-    const fixFocusAfterDialog = () => {
-        ipcRenderer.send("siyuan-focus-fix");
-    };
+
     window.alert = function (message: string) {
         try {
-            const result = originalAlert.call(this, message);
-            fixFocusAfterDialog();
-            return result;
-        } catch (error) {
-            console.error("alert error:", error);
-            fixFocusAfterDialog();
+            ipcRenderer.sendSync(Constants.SIYUAN_ALERT_DIALOG, {
+                title: window.siyuan.languages.siyuanNote,
+                message,
+                buttons: [window.siyuan.languages.confirm],
+                noLink: true,
+            });
             return undefined;
+        } catch (error) {
+            return originalAlert.call(this, message);
         }
     };
-    window.confirm = function (message: string) {
+
+    window.confirm = function (message: string): boolean {
         try {
-            const result = originalConfirm.call(this, message);
-            fixFocusAfterDialog();
-            return result;
+            const buttonIndex = ipcRenderer.sendSync(Constants.SIYUAN_CONFIRM_DIALOG, {
+                title: window.siyuan?.languages?.siyuanNote || "SiYuan",
+                message,
+                buttons: [window.siyuan?.languages?.cancel || "Cancel", window.siyuan?.languages?.confirm || "OK"],
+                cancelId: 0,
+                defaultId: 1,
+                noLink: true,
+            });
+            return buttonIndex === 1;
         } catch (error) {
-            console.error("confirm error:", error);
-            fixFocusAfterDialog();
-            return false;
+            return originalConfirm.call(this, message);
         }
     };
 };

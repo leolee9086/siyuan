@@ -16,6 +16,10 @@ import { getSiyuanConfig, getSiyuanLayout, getSiyuanStorage, setSiyuanEmojis, se
 import { windowAddEventListener, clearTimeout, setTimeout } from "../util/siyuanEnvironments/windowTimer.environment";
 import { getAllEditor } from "../layout/getAll";
 import { isEmojiArray, isTab } from "./init.guard";
+// S-forge: 采纳远程新增的 initNativeDialogOverride 导入
+/// #if !BROWSER
+import { initNativeDialogOverride } from "../protyle/util/compatibility";
+/// #endif
 
 /** 处理获取Emoji配置的响应 */
 const handleEmojiConfResponse = (app: App, response: IWebSocketData) => {
@@ -110,6 +114,10 @@ export const init = async (app: App) => {
     fetchPost("/api/system/getEmojiConf", {}, response => handleEmojiConfResponse(app, response));
     initStatus(true);
     initWindow(app);
+    // S-forge: 采纳远程新增的原生对话框覆盖初始化
+    /// #if !BROWSER
+    initNativeDialogOverride();
+    /// #endif
     appearance.onSetAppearance(getSiyuanConfig().appearance);
     initAssets();
     setInlineStyle();

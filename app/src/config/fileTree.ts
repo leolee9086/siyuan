@@ -46,6 +46,14 @@ export const fileTree = {
 </label>
 <label class="fn__flex b3-label">
     <div class="fn__flex-1">
+        ${siyuanI18n.noSplitScreenWhenOpenTab}
+        <div class="b3-label__text">${siyuanI18n.noSplitScreenWhenOpenTabTip}</div>
+    </div>
+    <span class="fn__space"></span>
+    <input class="b3-switch fn__flex-center" id="noSplitScreenWhenOpenTab" type="checkbox"${getSiyuanConfig().fileTree.noSplitScreenWhenOpenTab ? " checked" : ""}/>
+</label>
+<label class="fn__flex b3-label">
+    <div class="fn__flex-1">
         ${siyuanI18n.fileTree18}
         <div class="b3-label__text">${siyuanI18n.fileTree19}</div>
     </div>
@@ -154,6 +162,7 @@ export const fileTree = {
             docCreateSaveBox: (element.querySelector("#docCreateSaveBox") as HTMLInputElement).value,
             openFilesUseCurrentTab: (element.querySelector("#openFilesUseCurrentTab") as HTMLInputElement).checked,
             closeTabsOnStart: (element.querySelector("#closeTabsOnStart") as HTMLInputElement).checked,
+            noSplitScreenWhenOpenTab: (element.querySelector("#noSplitScreenWhenOpenTab") as HTMLInputElement).checked, // S-forge: 采纳远程新增字段，保留本地element参数风格
             allowCreateDeeper: (element.querySelector("#allowCreateDeeper") as HTMLInputElement).checked,
             removeDocWithoutConfirm: (element.querySelector("#removeDocWithoutConfirm") as HTMLInputElement).checked,
             useSingleLineSave: (element.querySelector("#useSingleLineSave") as HTMLInputElement).checked,
@@ -161,7 +170,7 @@ export const fileTree = {
             largeFileWarningSize: parseInt((element.querySelector("#largeFileWarningSize") as HTMLInputElement).value),
             maxListCount: parseInt((element.querySelector("#maxListCount") as HTMLInputElement).value),
             maxOpenTabCount: inputMaxOpenTabCount,
-            recentDocsMaxListCount: parseInt((fileTree.element.querySelector("#recentDocsMaxListCount") as HTMLInputElement).value),
+            recentDocsMaxListCount: parseInt((element.querySelector("#recentDocsMaxListCount") as HTMLInputElement).value),
         }, response => {
             getSiyuanConfig().fileTree = response.data;
         });

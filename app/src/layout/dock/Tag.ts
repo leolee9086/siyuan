@@ -55,7 +55,8 @@ export class Tag extends Model {
     }
 
     private _初始化外观() {
-        this.element.classList.add("fn__flex-column", "file-tree", "sy__tag");
+        // S-forge: 合并远程新增的 "dockPanel" 类
+        this.element.classList.add("fn__flex-column", "file-tree", "sy__tag", "dockPanel");
         this.element.innerHTML = getTagPanelHTML();
     }
 

@@ -78,7 +78,8 @@ export class Bookmark extends Model {
     }
 
     private _初始化外观() {
-        this.element.classList.add("fn__flex-column", "file-tree", "sy__bookmark");
+        // S-forge: 添加 dockPanel 类来自远程分支
+        this.element.classList.add("fn__flex-column", "file-tree", "sy__bookmark", "dockPanel");
         this.element.innerHTML = getBookmarkPanelHTML();
     }
 

@@ -57,7 +57,7 @@ export const openGlobalSearch = (app: App, text: string, replace: boolean, searc
             removed: localData.removed,
             page: 1
         },
-        position: (window.siyuan.layout.centerLayout.children.length > 1 || window.innerWidth > 1024) ? "right" : undefined
+        position: (!window.siyuan.config.fileTree.noSplitScreenWhenOpenTab && (window.siyuan.layout.centerLayout.children.length > 1 || window.innerWidth > 1024)) ? "right" : undefined
     });
 };
 

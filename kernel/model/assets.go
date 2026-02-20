@@ -93,6 +93,9 @@ func HandleAssetsRemoveEvent(assetAbsPath string) {
 	if filelock.IsHidden(assetAbsPath) {
 		return
 	}
+	if strings.HasSuffix(assetAbsPath, ".tmp") {
+		return
+	}
 
 	removeIndexAssetContent(assetAbsPath)
 	removeAssetThumbnail(assetAbsPath)
@@ -117,6 +120,9 @@ func HandleAssetsChangeEvent(assetAbsPath string) {
 		return
 	}
 	if filelock.IsHidden(assetAbsPath) {
+		return
+	}
+	if strings.HasSuffix(assetAbsPath, ".tmp") {
 		return
 	}
 

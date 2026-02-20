@@ -349,8 +349,7 @@ const initMainWindow = () => {
 
     writeLog("window stat [x=" + windowState.x + ", y=" + windowState.y + ", width=" + windowState.width + ", height=" + windowState.height + "], " +
         "default [x=0, y=0, width=" + defaultWidth + ", height=" + defaultHeight + "], " +
-        "old [x=" + oldWindowState.x + ", y=" + oldWindowState.y + ", width=" + oldWindowState.width + ", height=" + oldWindowState.height + "], " +
-        "workArea [width=" + workArea.width + ", height=" + workArea.height + "]");
+        "old [x=" + oldWindowState.x + ", y=" + oldWindowState.y + ", width=" + oldWindowState.width + ", height=" + oldWindowState.height + "]");
 
     let resetToCenter = false;
     let x = windowState.x;
@@ -849,6 +848,13 @@ app.whenReady().then(() => {
         const menu = Menu.buildFromTemplate(template);
         menu.popup({window: BrowserWindow.fromWebContents(event.sender)});
     });
+    ipcMain.on("siyuan-confirm-dialog", (event, options) => {
+        event.returnValue = dialog.showMessageBoxSync(BrowserWindow.fromWebContents(event.sender) || BrowserWindow.getFocusedWindow(), options);
+    });
+    ipcMain.on("siyuan-alert-dialog", (event, options) => {
+        dialog.showMessageBoxSync(BrowserWindow.fromWebContents(event.sender) || BrowserWindow.getFocusedWindow(), options);
+        event.returnValue = undefined;
+    });
     ipcMain.on("siyuan-first-quit", () => {
         app.exit();
     });
@@ -948,13 +954,6 @@ app.whenReady().then(() => {
         currentWindow.on("leave-full-screen", () => {
             event.sender.send("siyuan-event", "leave-full-screen");
         });
-    });
-    ipcMain.on("siyuan-focus-fix", (event) => {
-        const currentWindow = getWindowByContentId(event.sender.id);
-        if (currentWindow && process.platform === "win32") {
-            currentWindow.blur();
-            currentWindow.focus();
-        }
     });
     ipcMain.on("siyuan-cmd", (event, data) => {
         let cmd = data;
