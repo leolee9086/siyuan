@@ -84,15 +84,24 @@ $\mathbf{P}_{ref}$ 代表"未经 MAGI 认知架构加工的原始人格基线"�
 
 一致性的度量采用两种互补的方法：
 
-#### 3.1.1 Semantic Similarity (语义相似度) — 实时度量
+#### 3.1.1 Stylometric Fingerprinting (文体风格指纹) — 实时度量
 
-对 MAGI 系统中各 AI 的 **输出文本** 计算语义相似度。给定两个 AI 在同一轮次的输出文本 $\text{out}_i$ 和 $\text{out}_j$，通过嵌入模型映射到语义空间后计算余弦相似度：
+**核心修正**: 传统的“语义相似度 (Semantic Similarity)”通过 embedding 向量提取的仅仅是“内容/意图”的一致性，而非人格状态的一致性。例如，面对同一困境，Melchior 说“该方案统计学成功率趋近于零”，Casper 说“这绝对行不通，简直是找死！”，两者的**语义**高度一致（都是否定），但**人格风格**截然正交。因此，语义相似度在此场景下存在根基性谬误，它是**任务收敛度**的指标，绝对不能作为**人格共鸣**的代理。
+
+从**司法计算语言学 (Computational Linguistics)** 与**作者身份量化识别 (Authorship Attribution)** 的角度出发，越是原始、平凡的**浅层统计特征 (Shallow Statistical Features)**，越能精准捕获不受伪装影响的潜意识风格。给定输出文本 $\text{out}_i$，我们提取一组表征“说话习惯”而非“说话内容”的量化指纹，构成文体向量 $\vec{S}_{style}(i)$：
+
+*   **词汇丰度/密度 (Lexical Richness)**：Type-Token Ratio (TTR)，反映语言是枯燥匮乏还是华丽多变。
+*   **句法呼吸节奏 (Syntactic Rhythm)**：平均句长、长短句方差（标准差极大代表情绪起伏强烈的本能者，方差极小代表机械理智者）。
+*   **虚词/语气词偏好 (Function Word/Particle Frequencies)**：如“的、了、呢、吧、啊、似乎、必然、倘若”等缺乏实义却极度暴露性格底色的语用留痕。
+*   **副语言标点熵 (Paralinguistic Punctuation Entropy)**：感叹号的滥用率、省略号的迟疑感、破折号的突兀转折，这是情绪波动最直接的物理映射。
+
+两个 AI 当前轮次的实时风格契合度定义为这组纯标量向量结构特征的逆标准化距离（如基于欧氏距离或者马氏距离的转化）：
 
 $$
-\text{Sim}_{sem}(i, j) = \frac{\text{Embed}(\text{out}_i) \cdot \text{Embed}(\text{out}_j)}{\|\text{Embed}(\text{out}_i)\| \cdot \|\text{Embed}(\text{out}_j)\|}
+\text{Sim}_{style}(i, j) = 1 - \frac{d(\vec{S}_{style}(i), \vec{S}_{style}(j))}{D_{max}}
 $$
 
-归一化到 $[0, 1]$ 区间。此度量在每轮对话中实时计算。
+归一化到 $[-1, 1]$ 区间。这种基于标量统计的“平凡算法”，计算开销趋近于零，剥离了高昂的 Embedding 开销，作为系统快思考 (System 1) 的微观脉搏监控，在对话间隙实时执行，精准探测人格外壳是否发生“物理同化”。
 
 #### 3.1.2 Big Five Questionnaire (大五人格基质) — 稳态滞流度量
 
@@ -103,18 +112,18 @@ $$
 设定第 $T$ 个认知周期完成某一个小测验（得到部分 facet 最新取值 $\mathbf{P}_{\text{obs}}^{(T)}$）后，该 AI 的人格矩阵更新为：
 
 $$
-\mathbf{P}^{(T)} = (1 - \lambda) \cdot \mathbf{P}^{(T-1)} + \lambda \cdot \mathbf{P}_{\text{obs}}^{(T)}
+\mathbf{P}^{(T)} = (1 - \lambda(S_{obs})) \cdot \mathbf{P}^{(T-1)} + \lambda(S_{obs}) \cdot \mathbf{P}_{\text{obs}}^{(T)}
 $$
 
-*   $\lambda \in (0, 1)$：更新步长（建议 $\lambda = 0.05$）。由于每次只回答 3~5 题，只有涉及的那些特定的 facet 在 $\mathbf{P}_{\text{obs}}^{(T)}$ 中有实际更新值。这种小步长保证了只有经历持续的、长期的人格偏向，整个矩阵才会发生明显偏移，极大地起到了抗噪作用。
+*   $\lambda(S_{obs}) \in [0, \lambda_{max}]$：**事件显著性加权步长 (Salience-Weighted Update Rate)**。单纯的固定步长会违背神经可塑性 (Neuroplasticity) 理论——连续的枯燥任务会导致病理性的人格同化漂变。因此，步长由输入事件的情境强/情绪张力 $S_{obs}$ 动态调节。对于平庸事件 $S_{obs} \approx 0 \Rightarrow \lambda \approx 0$（左耳进右耳出）；仅当遭遇剧烈认知冲突或高反思判定时，$\lambda$ 门控打开，允许特定经验实质性地重塑人格子矩阵。
 
-当需要计算两个 AI 矩阵的一致性时，直接采用它们当前认知周期平滑后的矩阵值，计算**归一化 Frobenius 内积**：
+当需要计算两个 AI 矩阵的一致性时，直接采用它们当前认知周期平滑后的矩阵值，并引入 **临床诊断权重矩阵 (Clinical Weight Matrix) $\mathbf{W} \in \mathbb{R}^{5 \times 6}$** 来计算**加权 Frobenius 内积 (Weighted Frobenius Inner Product)**：
 
 $$
-\text{Sim}_{bf}(i, j) = \frac{\langle \mathbf{P}_i^{(T)}, \mathbf{P}_j^{(T)} \rangle_F}{\|\mathbf{P}_i^{(T)}\|_F \cdot \|\mathbf{P}_j^{(T)}\|_F}
+\text{Sim}_{bf}(i, j) = \frac{\langle \mathbf{W} \circ \mathbf{P}_i^{(T)}, \mathbf{W} \circ \mathbf{P}_j^{(T)} \rangle_F}{\|\mathbf{W} \circ \mathbf{P}_i^{(T)}\|_F \cdot \|\mathbf{W} \circ \mathbf{P}_j^{(T)}\|_F}
 $$
 
-其中 $\langle \mathbf{A}, \mathbf{B} \rangle_F = \sum_{r,c} A_{rc} \cdot B_{rc}$ 为 Frobenius 内积，$\|\mathbf{A}\|_F = \sqrt{\sum_{r,c} A_{rc}^2}$ 为 Frobenius 范数。
+*   其中 $\circ$ 为 Hadamard 乘积（逐元素乘法）。引入 $\mathbf{W}$ 是因为在精神病理学中，Facet 的偏移危害是不平权的（如“重度抑郁或焦虑”的跳变，比“合群倾向”的跳变更能表征本体解离）。因此，针对底色价值观与情绪稳定性的核心维度将被赋予系统级的高阶惩罚权重，保证底层“人格解体”拥有“一票否决”级的阈值敏锐度。
 
 归一化到 $[-1, 1]$ 区间。此度量在 facet 粒度上检测真正的长期人格漂移——这是系统稳态的船锚。
 
@@ -143,14 +152,14 @@ $$
 
 #### 3.1.4 Composite Similarity (综合相似度)
 
-两个 AI 之间的综合相似度为两种度量的加权融合：
+两个 AI 之间的综合人格相似度为“瞬态文体指纹”与“稳态大五基质”的加权融合：
 
 $$
-\text{Sim}(i, j) = \alpha \cdot \text{Sim}_{sem}(i, j) + (1 - \alpha) \cdot \text{Sim}_{bf}(i, j)
+\text{Sim}(i, j) = \alpha \cdot \text{Sim}_{style}(i, j) + (1 - \alpha) \cdot \text{Sim}_{bf}(i, j)
 $$
 
-*   $\alpha \in [0, 1]$: 语义权重（建议 $\alpha = 0.7$，侧重实时语义信号）。
-*   当问卷数据尚未就绪时，退化为 $\text{Sim} = \text{Sim}_{sem}$。
+*   $\alpha \in [0, 1]$: 浅层文体权重（建议 $\alpha = 0.35$。作为认知中枢，真正的人格底色应以拥有严谨学术背书、且经过事件显著性 $\lambda(S)$ 门控过滤的滞后大五矩阵 $\text{Sim}_{bf}$ 为决定性主导，文体特征 $\text{Sim}_{style}$ 仅作为应对实时突发状况的敏捷调参补位）。
+*   当冷启动阶段大五问卷矩阵尚未完成数次迭代累积时，系统动态上调 $\alpha$ 权重，甚至暂时退化为 $\text{Sim} = \text{Sim}_{style}$ 支撑初期调控。
 
 ### 3.2 Internal Coherence ($C_{int}$) — 内部分量
 
@@ -241,10 +250,10 @@ $$
 首先定义 **恢复速度 (Recovery Velocity)**：
 
 $$
-v_{rec} = -\text{Sign}(\rho - 1) \cdot \dot{\rho}
+v_{rec} = -\text{Sign}(\rho - 1) \cdot \dot{\rho}_{f}
 $$
 
-*   $\dot{\rho} = d\rho/dt$: 同步率的变化率（离散系统中用指数移动平均近似：$\dot{\rho}(t) \approx \text{EMA}(\rho(t) - \rho(t-1))$）。
+*   $\dot{\rho}_{f} = d\rho/dt$: **基于低通滤波的同步率变化率 (Low-pass Filtered Derivative)**。由于 $\rho$ 混杂了 LLM 抽风带来的高频语义白噪声，直接采用相邻两帧差分 $\rho(t) - \rho(t-1)$ 会导致严重的**微分噪声放大 (Derivative Noise Amplification)**。在工程控制论的加持下，我们必须在长度为 $N$ (如 3-5 轮次) 的滑动窗口上提取微分，或者使用二阶平滑低通滤波，来淬取真实的宏观演进趋势。
 *   $v_{rec} > 0$: $\rho$ 正在向 1.0 靠近（恢复中）。
 *   $v_{rec} < 0$: $\rho$ 正在远离 1.0（恶化中）。
 *   $v_{rec} = 0$: $\rho$ 稳定不变。
@@ -292,9 +301,10 @@ ATF 系统通过 **Global Broadcast** 调节三贤人，形成负反馈循环，
 Trinity 向三贤人发出的调节信号 $\Delta S$ 为向量，对每位贤人施加差异化的调节：
 
 $$
-\Delta \vec{S}_i = \text{Sign}(1 - \rho) \cdot F \cdot \vec{w}_i, \quad i \in \{m, b, c\}
+\Delta \vec{S}_i = D(\rho) \cdot \text{Sign}(1 - \rho) \cdot F \cdot \vec{w}_i, \quad i \in \{m, b, c\}
 $$
 
+*   $D(\rho)$: **稳态控制死区 (Cybernetic Deadzone)**。在传统 PID 控制模型中，当系统已落入高度健康的靶向区间（设定如 $\rho \in [0.95, 1.05]$），向 1.0 的轻微越界会导致误差项极性频繁翻转，进而诱发系统算力空耗的“高频震荡 (Hunting Oscillation)”。因此在此微小边界内 $D(\rho)=0$，强制切除碎纸机式的微操干预，允许系统存在被动阻尼的物理容错漫游；跌出包络范围则恢复 $D(\rho)=1$ 重新投入闭环强干预。
 *   $\text{Sign}(1 - \rho)$: 调节方向。$\rho < 1$ 时为正（鼓励趋同），$\rho > 1$ 时为负（引入分歧）。
 *   $F = F_s \cdot F_d$: 调节强度（Section 4.3）。融合了位置与趋势：
     -   当 $F > 1$（系统正在回归）时，调节信号被放大——顺势而为，加速恢复。
