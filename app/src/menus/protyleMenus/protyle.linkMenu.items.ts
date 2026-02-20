@@ -10,11 +10,12 @@ import { removeInlineType } from "../../protyle/toolbar/util";
 import { writeText } from "../../protyle/util/compatibility";
 import { focusByWbr } from "../../protyle/util/selection";
 import { updateTransaction } from "../../protyle/wysiwyg/transaction";
+import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getSiyuanGlobalMenusMenu } from "../../util/siyuanEnvironments/getMenu.environment";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { openMenu } from "../commonMenuItem.openMenu";
 import { MenuItem } from "../Menu.Item";
-import { exportAsset } from "../util";
+import { copyAsset, exportAsset } from "../util";
 import type { LinkMenuContext } from "./protyle.types";
 
 // ────────────────────────────────────────────────────────────
@@ -206,6 +207,11 @@ export const 添加链接操作菜单项 = (ctx: LinkMenuContext): void => {
 
     if (ctx.linkAddress.startsWith("assets/")) {
         getSiyuanGlobalMenusMenu().append(new MenuItem(exportAsset(ctx.linkAddress)).element);
+        /// #if !BROWSER
+        if (["windows", "darwin"].includes(getSiyuanConfig().system.os)) {
+            getSiyuanGlobalMenusMenu().append(new MenuItem(copyAsset(ctx.linkAddress)).element);
+        }
+        /// #endif
     }
 };
 

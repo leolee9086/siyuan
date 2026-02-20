@@ -5,7 +5,7 @@ import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environme
 import { writeText } from "../../protyle/util/compatibility";
 import { updateTransaction } from "../../protyle/wysiwyg/transaction";
 import { focusByWbr, focusBlock } from "../../protyle/util/selection";
-import { copyPNGByLink, exportAsset } from "../util";
+import { copyAsset, copyPNGByLink, exportAsset } from "../util";
 import { alignImgCenter, alignImgLeft } from "../../protyle/wysiwyg/commonHotkey/commonHotkeyAlign";
 import { getSiyuanGlobalMenusMenu } from "../../util/siyuanEnvironments/getMenu.environment";
 
@@ -170,4 +170,14 @@ export const genAlignLeftItem = (protyle: IProtyle, nodeElement: Element, assetE
  */
 export const genExportItem = (dataSrc: string) => {
     return new MenuItem(exportAsset(dataSrc));
+};
+
+/**
+ * @zh-CN
+ * @作用: 生成复制资源文件到剪贴板的菜单项
+ * @意图: 从远程分支合并的新功能，允许用户将资源文件复制到系统剪贴板（仅 Windows/macOS）
+ * @调用时机: imgMenu 中 exportAsset 之后，仅在 assets/ 开头的资源上显示
+ */
+export const genCopyAssetItem = (dataSrc: string) => {
+    return new MenuItem(copyAsset(dataSrc));
 };

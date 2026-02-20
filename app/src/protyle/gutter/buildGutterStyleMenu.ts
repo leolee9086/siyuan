@@ -2,6 +2,8 @@ import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environme
 import { MenuItem } from "../../menus/Menu.Item";
 import { updateBatchTransaction, transaction } from "../wysiwyg/transaction";
 import { focusBlock } from "../util/selection";
+import { chartRender } from "../render/chartRender";
+import { getEchartsInstanceById } from "../../util/siyuanEnvironments/echarts.environment";
 
 const genClick = (nodeElements: Element[], protyle: IProtyle, cb: (e: HTMLElement) => void) => {
     updateBatchTransaction(nodeElements, protyle, cb);
@@ -25,6 +27,14 @@ const updateNodeElements = (nodeElements: Element[], protyle: IProtyle, inputEle
                 id: e.getAttribute("data-node-id"),
                 data: e.outerHTML
             });
+            // 当节点为 echarts 图表时，调整图表尺寸并重新渲染
+            if (e.getAttribute("data-subtype") === "echarts") {
+                const echartsEl = e.querySelector("[_echarts_instance_]");
+                const instanceAttr = echartsEl?.getAttribute("_echarts_instance_") ?? null;
+                const chartInstance = getEchartsInstanceById(instanceAttr);
+                chartInstance?.resize();
+                chartRender(e);
+            }
         });
         transaction(protyle, operations, undoOperations);
         window.siyuan.menus.menu.remove();

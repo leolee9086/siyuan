@@ -15,7 +15,10 @@ import { Dialog } from "../dialog";
 import { focusBlock, focusByRange, getEditorRange } from "../protyle/util/selection";
 // S-forge: 结束
 /// #if !MOBILE
-import {openAsset, openBy} from "../editor/util";
+import {openAsset} from "../editor/util.openAsset";
+/// #if !BROWSER
+import {openBy} from "../editor/utils.openBy";
+/// #endif
 /// #endif
 import { rename, replaceFileName } from "../editor/rename";
 import * as dayjs from "dayjs";

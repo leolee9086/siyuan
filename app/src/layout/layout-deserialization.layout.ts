@@ -8,7 +8,9 @@ import { Tab } from "./Tab";
 import { openFileById } from "../editor/utils.openFileById";
 import { getIdZoomInByPath } from "../util/pathName";
 import { setPanelFocus } from "./utils/setPanelFocus";
+/// #if !MOBILE
 import { getAllTabs } from "./getAll";
+/// #endif
 import { getInstanceById } from "./util";
 import { Constants } from "../constants";
 import { tabRegistry } from "../registry";
@@ -27,6 +29,7 @@ import {
 
 // ============ Tab 移除处理 ============
 
+/// #if !MOBILE
 /**
  * 移除启动时未固定的Tab
  * @同步豁免: UI构建 - 需要同步遍历和移除Tab
@@ -44,6 +47,7 @@ export const removeUnpinnedTabsOnStart = (): void => {
         item.parent.removeTab(item.id, false, false, false);
     }
 };
+/// #endif
 
 // ============ 插件检查 ============
 

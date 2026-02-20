@@ -47,7 +47,7 @@ export function handleSearchOpen(
     openFile({
         app,
         searchData: config,
-        position: (window.siyuan.layout.centerLayout.children.length > 1 || window.innerWidth > 1024) ? "right" : undefined
+        position: (!window.siyuan.config.fileTree.noSplitScreenWhenOpenTab && (window.siyuan.layout.centerLayout.children.length > 1 || window.innerWidth > 1024)) ? "right" : undefined
     });
     if (closeCB) {
         closeCB();

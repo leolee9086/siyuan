@@ -15,7 +15,13 @@ import { bootSync } from "../dialog/processSystem";
 import { initMessage, showMessage } from "../dialog/message";
 import { goBack } from "./util/MobileBackFoward";
 import { activeBlur, hideKeyboardToolbar, showKeyboardToolbar } from "./util/keyboardToolbar";
-import { getLocalStorage, isChromeBrowser, writeText } from "../protyle/util/compatibility";
+// S-forge: 新增 isInMobileApp 导入（来自远程）
+import {
+    getLocalStorage,
+    isChromeBrowser,
+    isInMobileApp,
+    writeText
+} from "../protyle/util/compatibility";
 import { getCurrentEditor, openMobileFileById } from "./editor";
 import { getSearch } from "../util/functions";
 import { checkPublishServiceClosed } from "../util/processMessage";
@@ -76,9 +82,6 @@ class App {
                 }
             })
         };
-        if (isChromeBrowser()) {
-            document.querySelector('meta[name="viewport"]').setAttribute("content", "width=device-width, height=device-height, interactive-widget=resizes-content, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover");
-        }
         // 不能使用 touchstart，否则会被 event.stopImmediatePropagation() 阻塞
         window.addEventListener("click", (event: MouseEvent & { target: HTMLElement }) => {
             if (!window.siyuan.menus.menu.element.contains(event.target) && !hasClosestByAttribute(event.target, "data-menu", "true")) {
@@ -197,6 +200,14 @@ class App {
                     }
                 }
             });
+            // S-forge: 采用远程的 isInMobileApp() 逻辑，修复viewport设置问题
+            if (!isInMobileApp()) {
+                if (isChromeBrowser()) {
+                    document.querySelector('meta[name="viewport"]').setAttribute("content", "width=device-width, height=device-height, interactive-widget=resizes-content, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover");
+                } else if (!window.siyuan.config.readonly && !window.siyuan.isPublish) {
+                    showMessage(window.siyuan.languages.useChrome, 0, "error");
+                }
+            }
         });
     }
 }

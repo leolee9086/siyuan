@@ -1,5 +1,6 @@
 import * as dayjs from "dayjs";
 import { fetchPost } from "../../ai/imports";
+import { base64ToURL } from "../../util/image";
 import { Constants } from "../../constants";
 import { renameAsset } from "../../editor/rename";
 import { emitOpenMenu } from "../../plugin/EventBus";
@@ -7,12 +8,14 @@ import { hideElements } from "../../protyle/ui/hideElements";
 import { hasClosestBlock, hasTopClosestByClassName } from "../../protyle/util/hasClosest";
 import { focusByWbr } from "../../protyle/util/selection";
 import { updateTransaction } from "../../protyle/wysiwyg/transaction";
+import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getSiyuanGlobalMenusMenu } from "../../util/siyuanEnvironments/getMenu.environment";
 import { openMenu } from "../commonMenuItem.openMenu";
 import { MenuItem } from "../Menu.Item";
 import {
     genAlignCenterItem,
     genAlignLeftItem,
+    genCopyAssetItem,
     genCopyAsPNGItem,
     genCopyImageURLItem,
     genCopyItem,
@@ -85,6 +88,11 @@ export const imgMenu = (protyle: IProtyle, range: Range, assetElement: HTMLEleme
     const dataSrc = imgElement.getAttribute("data-src");
     if (dataSrc && dataSrc.startsWith("assets/")) {
         getSiyuanGlobalMenusMenu().append(genExportItem(dataSrc).element);
+        /// #if !BROWSER
+        if (["windows", "darwin"].includes(getSiyuanConfig().system.os)) {
+            getSiyuanGlobalMenusMenu().append(genCopyAssetItem(dataSrc).element);
+        }
+        /// #endif
     }
 
     if (protyle?.app?.plugins) {
@@ -109,32 +117,50 @@ export const imgMenu = (protyle: IProtyle, range: Range, assetElement: HTMLEleme
     getSiyuanGlobalMenusMenu().element.setAttribute("data-from", popoverElement ? popoverElement.dataset.level + "popover" : "app");
 
     if (!protyle.disabled) {
-        bindMenuEvents(protyle, nodeElement, imgElement, id, html);
+        bindMenuEvents(protyle, nodeElement, assetElement, imgElement, id, src, html);
     }
 };
 
-const bindMenuEvents = (protyle: IProtyle, nodeElement: Element, imgElement: HTMLImageElement, id: string, html: string) => {
+/**
+ * @zh-CN
+ * @作用: 绑定图片菜单关闭时的回调事件
+ * @意图: 在菜单关闭时保存用户对图片属性的修改（src、alt、OCR文本），并处理 base64 图片源转换
+ * @调用时机: imgMenu 中菜单弹出后、编辑器未禁用时调用
+ */
+const bindMenuEvents = (protyle: IProtyle, nodeElement: Element, assetElement: HTMLElement, imgElement: HTMLImageElement, id: string, src: string, html: string) => {
     const menu = getSiyuanGlobalMenusMenu();
     const textElements = menu.element.querySelectorAll("textarea");
-    // Focus title or url depending on content
-    if (textElements.length > 1) {
-        if (textElements[0].value) {
-            textElements[1].select();
-        } else {
-            textElements[0].select();
-        }
-    }
+    // 当 URL 输入框已有值时，聚焦标题输入框；否则聚焦 URL 输入框
+    const urlInput = textElements[0];
+    const titleInput = textElements[1];
+    const focusTarget = (urlInput?.value) ? titleInput : urlInput;
+    focusTarget?.select();
 
-    menu.removeCB = () => {
-        const ocrElement = menu.element.querySelector('[data-type="ocr"]') as HTMLTextAreaElement;
-        if (ocrElement && ocrElement.dataset.ocrText !== ocrElement.value) {
+    menu.removeCB = async () => {
+        const srcInput = textElements[0];
+        const newSrc = srcInput?.value;
+        // 当用户将图片源修改为 base64 内联数据时，将其上传转换为资源文件 URL
+        if (newSrc && src !== newSrc && newSrc.startsWith("data:image/")) {
+            const base64Src = await base64ToURL([newSrc]);
+            const convertedSrc = base64Src[0] ?? "";
+            imgElement.setAttribute("src", convertedSrc);
+            imgElement.setAttribute("data-src", convertedSrc);
+            const netIndicator = assetElement.querySelector(".img__net");
+            netIndicator?.remove();
+        }
+
+        const ocrElement = menu.element.querySelector('[data-type="ocr"]');
+        // 当 OCR 文本被用户修改时，同步更新到后端
+        if (ocrElement instanceof HTMLTextAreaElement && ocrElement.dataset.ocrText !== ocrElement.value) {
             fetchPost("/api/asset/setImageOCRText", {
                 path: imgElement.getAttribute("src"),
                 text: ocrElement.value
             });
         }
-        if (textElements.length > 2) {
-            imgElement.setAttribute("alt", textElements[2].value.replace(/\n|\r\n|\r|\u2028|\u2029/g, ""));
+        // 当存在 alt 文本输入框时，更新图片的 alt 属性
+        const altInput = textElements[2];
+        if (altInput) {
+            imgElement.setAttribute("alt", altInput.value.replace(/\n|\r\n|\r|\u2028|\u2029/g, ""));
         }
         nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
         updateTransaction(protyle, id, nodeElement.outerHTML, html);

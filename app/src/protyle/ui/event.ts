@@ -208,14 +208,12 @@ export const 绑定底部点击事件 = (protyle: IProtyle) => {
             return;
         }
 
-        // 选中最后一个块末尾点击底部时，range 会有值，需等待
-        setTimeout(() => {
-            // 选中文本禁止添加空块 https://github.com/siyuan-note/siyuan/issues/13905
-            if (检查是否有选中文本(protyle)) {
-                return;
-            }
-            处理底部点击创建空块(protyle, event);
-        });
+        // https://github.com/siyuan-note/siyuan/issues/14190 最新测试无需 setTimeout，且会影响移动端键盘弹起故移除
+        // 选中文本禁止添加空块 https://github.com/siyuan-note/siyuan/issues/13905
+        if (检查是否有选中文本(protyle)) {
+            return;
+        }
+        处理底部点击创建空块(protyle, event);
     });
 };
 

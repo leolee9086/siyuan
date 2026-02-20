@@ -238,7 +238,7 @@ export function initPanel(
     updateHotkeyTip: (hotkey: string) => string,
     assertElement: (element: Element | null, context: string) => HTMLElement
 ): InitPanelResult {
-    panelElement.classList.add("fn__flex-column", "file-tree", "sy__file");
+    panelElement.classList.add("fn__flex-column", "file-tree", "sy__file", "dockPanel");
     panelElement.innerHTML = generatePanelHtml(i18n, config, updateHotkeyTip);
 
     const actionsElement = assertElement(panelElement.firstElementChild, "initPanel.actionsElement");
