@@ -1,4 +1,4 @@
-pollyimport {
+import {
     isMac,
     isNotCtrl,
     updateHotkeyTip

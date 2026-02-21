@@ -1,4 +1,4 @@
-import { hasClosestBlock } from "../util/hasClosest";
+import { hasClosestBlock, hasClosestByTag } from "../util/hasClosest";
 import { isMobile } from "../../util/functions";
 import { Constants } from "../../constants";
 import { setLastNodeRange, setFirstNodeRange, focusByRange, getSelectionPosition } from "../util/selection";
@@ -14,7 +14,8 @@ export function renderToolbar(
 ): { range: Range, toolbarHeight: number } | undefined {
     let currentRange = range;
     let nodeElement = hasClosestBlock(range.startContainer);
-    if (isMobile() || !nodeElement || protyle.disabled || nodeElement.classList.contains("av")) {
+    if (isMobile() || !nodeElement || protyle.disabled || nodeElement.classList.contains("av") ||
+        hasClosestByTag(range.startContainer, "CAPTION")) {
         element.classList.add("fn__none");
         return;
     }

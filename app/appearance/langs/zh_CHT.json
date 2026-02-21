@@ -1,4 +1,7 @@
 {
+  "position": "位置",
+  "insertColumnLeft1": "在左側插入 ${x} 欄",
+  "insertColumnRight1": "在右側插入 ${x} 欄",
   "noSplitScreenWhenOpenTab": "打開分頁時不分屏",
   "noSplitScreenWhenOpenTabTip": "打開搜尋、PDF 等分頁時不自動分屏",
   "useChrome": "僅支援在基於 Chromium 核心的瀏覽器（例如 Chrome/Edge）中使用，使用其他瀏覽器會遇到無法解決的相容性問題",
@@ -1355,8 +1358,8 @@
   "inline-code": "行內代碼",
   "insertAfter": "下方插入塊",
   "insertBefore": "上方插入塊",
-  "insertColumnLeft": "在左邊插入一欄",
-  "insertColumnRight": "在右邊插入一欄",
+  "insertColumnLeft": "在左側插入一欄",
+  "insertColumnRight": "在右側插入一欄",
   "insertRowAbove": "在上方插入一列",
   "insertRowBelow": "在下方插入一列",
   "italic": "斜體",
