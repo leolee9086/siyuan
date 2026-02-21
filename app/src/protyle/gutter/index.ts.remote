@@ -1627,7 +1627,8 @@ export class Gutter {
             if (!tableElement.contains(range.startContainer)) {
                 range = getEditorRange(tableElement.querySelector("th"));
             }
-            const cellElement = hasClosestByTag(range.startContainer, "TD") || hasClosestByTag(range.startContainer, "TH");
+            const cellElement = hasClosestByTag(range.startContainer, "TD") ||
+                hasClosestByTag(range.startContainer, "TH") || nodeElement.querySelector("th, td");
             if (cellElement) {
                 window.siyuan.menus.menu.append(new MenuItem({id: "separator_table", type: "separator"}).element);
                 window.siyuan.menus.menu.append(new MenuItem({
@@ -2302,7 +2303,7 @@ export class Gutter {
                     data: e.outerHTML
                 });
                 if (e.getAttribute("data-subtype") === "echarts") {
-                    const chartInstance = window.echarts.getInstanceById(e.querySelector('[_echarts_instance_]').getAttribute("_echarts_instance_"));
+                    const chartInstance = window.echarts.getInstanceById(e.querySelector("[_echarts_instance_]").getAttribute("_echarts_instance_"));
                     if (chartInstance) {
                         chartInstance.resize();
                     }
@@ -2346,7 +2347,7 @@ export class Gutter {
                         e.style.width = item;
                         e.style.flex = "none";
                         if (e.getAttribute("data-subtype") === "echarts") {
-                            const chartInstance = window.echarts.getInstanceById(e.querySelector('[_echarts_instance_]').getAttribute("_echarts_instance_"));
+                            const chartInstance = window.echarts.getInstanceById(e.querySelector("[_echarts_instance_]").getAttribute("_echarts_instance_"));
                             if (chartInstance) {
                                 chartInstance.resize();
                             }
@@ -2392,7 +2393,7 @@ export class Gutter {
                             e.style.width = "";
                             e.style.flex = "";
                             if (e.getAttribute("data-subtype") === "echarts") {
-                                const chartInstance = window.echarts.getInstanceById(e.querySelector('[_echarts_instance_]').getAttribute("_echarts_instance_"));
+                                const chartInstance = window.echarts.getInstanceById(e.querySelector("[_echarts_instance_]").getAttribute("_echarts_instance_"));
                                 if (chartInstance) {
                                     chartInstance.resize();
                                 }
