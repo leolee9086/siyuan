@@ -24,7 +24,7 @@ import { isHTMLElement, isHTMLTableCellElement } from "./protyle.contentMenu.gua
  * @returns 如果 protyle.disabled 为 true 则返回 true，表示应该提前退出
  */
 const 添加选区相关菜单 = (ctx: IContentMenuContext): boolean => {
-    const { protyle, nodeElement, oldHTML, id } = ctx;
+    const { protyle, nodeElement, oldHTML, id, captionElement } = ctx;
     getSiyuanGlobalMenus().menu.append(new MenuItem({
         id: "copy",
         icon: "iconCopy",
@@ -44,7 +44,7 @@ const 添加选区相关菜单 = (ctx: IContentMenuContext): boolean => {
             copyPlainText(getSelection().getRangeAt(0).toString());
         }
     }).element);
-    if (protyle.disabled) {
+    if (protyle.disabled || captionElement) {
         return true;
     }
     getSiyuanGlobalMenus().menu.append(new MenuItem({
@@ -152,8 +152,9 @@ const 添加行内元素菜单 = (ctx: IContentMenuContext): void => {
 };
 
 /** 添加粘贴相关菜单项 */
-const 添加粘贴菜单 = (protyle: IProtyle, nodeElement: Element): void => {
-    if (protyle.disabled) {
+const 添加粘贴菜单 = (protyle: IProtyle, nodeElement: Element, captionElement: false | HTMLElement): void => {
+    // 表格caption内或只读模式下不显示粘贴菜单，防止破坏表格标题结构
+    if (protyle.disabled || captionElement) {
         return;
     }
     getSiyuanGlobalMenus().menu.append(new MenuItem({
@@ -196,7 +197,11 @@ const 添加粘贴菜单 = (protyle: IProtyle, nodeElement: Element): void => {
 };
 
 /** 添加全选菜单项 */
-const 添加全选菜单 = (protyle: IProtyle, nodeElement: Element, range: Range): void => {
+const 添加全选菜单 = (protyle: IProtyle, nodeElement: Element, range: Range, captionElement: false | HTMLElement): void => {
+    // 表格caption内不显示全选菜单，避免在表格标题中触发全选操作
+    if (captionElement) {
+        return;
+    }
     getSiyuanGlobalMenus().menu.append(new MenuItem({
         id: "selectAll",
         label: siyuanI18n.selectAll,
@@ -260,7 +265,9 @@ export const contentMenu = (protyle: IProtyle, nodeElement: Element): void => {
     if (!id) {
         throw new Error("块元素缺少id");
     }
-    const ctx: IContentMenuContext = { protyle, nodeElement, range, oldHTML, id };
+    // 检测光标是否在表格caption元素内，用于阻止剪切/删除/粘贴/全选操作
+    const captionElement = hasClosestByTag(range.startContainer, "CAPTION");
+    const ctx: IContentMenuContext = { protyle, nodeElement, range, oldHTML, id, captionElement };
     const 有选区或表情 = 检查有选区或表情(range);
     if (有选区或表情) {
         const shouldReturn = 添加选区相关菜单(ctx);
@@ -271,8 +278,8 @@ export const contentMenu = (protyle: IProtyle, nodeElement: Element): void => {
     if (!有选区或表情) {
         添加行内元素菜单(ctx);
     }
-    添加粘贴菜单(protyle, nodeElement);
-    添加全选菜单(protyle, nodeElement, range);
+    添加粘贴菜单(protyle, nodeElement, captionElement);
+    添加全选菜单(protyle, nodeElement, range, captionElement);
     const 是可编辑表格 = nodeElement.classList.contains("table") && !protyle.disabled;
     if (是可编辑表格) {
         添加表格菜单({ protyle, range, element: nodeElement });

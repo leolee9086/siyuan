@@ -27,6 +27,7 @@ export interface IContentMenuContext {
     range: Range;
     oldHTML: string;
     id: string;
+    captionElement: false | HTMLElement;
 }
 
 /**
