@@ -75,12 +75,6 @@ module.exports = (env, argv) => {
                                 loader: "ts",
                             },
                         },
-                        {
-                            loader: "ifdef-loader", options: {
-                                BROWSER: false,
-                                MOBILE: false,
-                            },
-                        },
                     ],
                 },
                 {

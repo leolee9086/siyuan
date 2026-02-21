@@ -7,7 +7,10 @@
 - 合并HEAD: b01d1cae4
 - 冲突文件: 5个（均为both modified）
 - 已暂存文件: 25个
-- 当前状态: ✅ 冲突全部解决，待提交
+- 当前状态: ✅ 已完成
+- 合并commit: e337f4536 "Merge branch 'dev' of https://github.com/siyuan-note/siyuan into multipleAI"
+- 修复commit: d4d377f9c "feat: 移植上游#17002表格caption守卫到contentMenu子模块"
+- 验证报告: docs/ttt/merge-verification-round3.md
 - 规程: docs/规程/版本管理/远程分支合并.procedure.md
 - 调查报告: docs/ttt/merge-round3-investigation.md
 
@@ -36,8 +39,8 @@
 1. ~~逐个解决5个冲突文件~~ ✅
 2. ~~pnpm-lock.yaml 接受远程后重新生成~~ ✅
 3. ~~源码文件保留本地重构+采纳远程改进~~ ✅
-4. 上游系统性提取验证（待执行）
-5. git commit完成合并（待执行）
+4. ~~上游系统性提取验证~~ ✅
+5. ~~git commit完成合并~~ ✅
 
 ## 进度记录
 
@@ -45,6 +48,9 @@
 - 2026-02-21 ~20:18: 5个冲突文件全部解决
   - 备份文件已创建（4组.backup/.remote）
   - 规程已更新：新增"大规模重构文件的冲突分析策略"章节
+- 2026-02-21 ~21:49: 二次验证通过
+  - 合并commit已存在（e337f4536），无需额外提交
+  - caption守卫修复作为独立commit提交（d4d377f9c）
 
 ## 经验教训
 
@@ -52,6 +58,8 @@
 - 大规模重构文件应使用commit级别分析而非文本diff（已写入规程）
 - menus/protyle.ts的死代码清理需要单独子任务处理（apply_diff无法处理约1941行的大块删除）
 - apply_diff调用冲突标记时需要转义
+- 合并commit可能在冲突解决过程中被自动或手动提交，后续修复需作为独立commit
+- 初始调查的冲突文件清单需要用 `git diff --diff-filter=U` 二次确认（本轮wysiwyg/index.ts误报为冲突文件，实际是menus/protyle.ts）
 
 ## 失败记录
 

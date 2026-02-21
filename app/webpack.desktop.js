@@ -75,14 +75,6 @@ module.exports = (env, argv) => {
                                 loader: "ts",
                             }
                         },
-                        {
-                            loader: "ifdef-loader",
-                            options: {
-                                "ifdef-verbose": false,
-                                BROWSER: true,
-                                MOBILE: false,
-                            },
-                        },
                     ],
                 },
                 {
@@ -97,14 +89,6 @@ module.exports = (env, argv) => {
                                 sourcemap: argv.mode !== "production",
                             },
                         },
-                        {
-                            loader: "ifdef-loader",
-                            options: {
-                                "ifdef-verbose": false,
-                                BROWSER: true,
-                                MOBILE: false,
-                            },
-                        }
                     ],
                 },
                 {

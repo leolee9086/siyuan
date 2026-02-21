@@ -68,14 +68,6 @@ module.exports = (env, argv) => {
                                 loader: "ts",
                             }
                         },
-                        {
-                            loader: "ifdef-loader",
-                            options: {
-                                "ifdef-verbose": false,
-                                BROWSER: true,
-                                MOBILE: true,
-                            },
-                        },
                     ],
                 },
                 {
@@ -88,14 +80,6 @@ module.exports = (env, argv) => {
                             options: {
                                 target: "es2020",
                                 sourcemap: argv.mode !== "production",
-                            },
-                        },
-                        {
-                            loader: "ifdef-loader",
-                            options: {
-                                "ifdef-verbose": false,
-                                BROWSER: true,
-                                MOBILE: false,
                             },
                         },
                     ],
