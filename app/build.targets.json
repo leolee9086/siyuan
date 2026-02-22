@@ -1,0 +1,42 @@
+{
+    "app": {
+        "platform": "electron",
+        "entry": {
+            "main": "./src/index.ts",
+            "window": "./src/window/index.ts"
+        },
+        "outputDir": "stage/build/app",
+        "publicPath": "auto",
+        "html": [
+            { "chunks": ["main"], "filename": "index.html", "template": "src/assets/template/app/index.tpl" },
+            { "chunks": ["window"], "filename": "window.html", "template": "src/assets/template/app/window.tpl" }
+        ],
+        "excludeModules": ["sharp", "onnxruntime-node"]
+    },
+    "desktop": {
+        "platform": "web",
+        "entry": { "main": "./src/index.ts" },
+        "outputDir": "stage/build/desktop",
+        "publicPath": "/stage/build/desktop/",
+        "html": [
+            { "chunks": ["main"], "filename": "index.html", "template": "src/assets/template/desktop/index.tpl" }
+        ]
+    },
+    "mobile": {
+        "platform": "web",
+        "entry": { "main": "./src/mobile/index.ts" },
+        "outputDir": "stage/build/mobile",
+        "publicPath": "/stage/build/mobile/",
+        "html": [
+            { "chunks": ["main"], "filename": "index.html", "template": "src/assets/template/mobile/index.tpl" }
+        ]
+    },
+    "export": {
+        "platform": "web",
+        "entry": { "protyle-method": "./src/protyle/method.ts" },
+        "outputDir": "stage/build/export",
+        "publicPath": "auto",
+        "library": { "name": "Protyle", "format": "umd", "export": "default" },
+        "html": []
+    }
+}
