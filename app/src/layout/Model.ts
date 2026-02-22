@@ -1,8 +1,7 @@
 import { Constants } from "../constants";
-import { Tab } from "./Tab";
-import { processMessage } from "../util/processMessage";
-import { kernelError, reloadSync } from "../dialog/processSystem";
-import { App } from "../index";
+import { getModelHandlers } from "./Model.registry";
+import type { Tab } from "./Tab";
+import type { App } from "../index";
 
 export class Model {
     public ws: WebSocket;
@@ -38,7 +37,7 @@ export class Model {
             const logElement = document.getElementById("errorLog");
             if (logElement) {
                 // 内核中断后无法 catch fetch 请求错误，重连会导致无法执行 transactionsTimeout
-                reloadSync(this.app, { upsertRootIDs: [], removeRootIDs: [] });
+                getModelHandlers().reloadSync(this.app, { upsertRootIDs: [], removeRootIDs: [] });
                 window.siyuan.dialogs.find(item => {
                     if (item.element.id === "errorLog") {
                         item.destroy();
@@ -49,8 +48,10 @@ export class Model {
         };
         ws.onmessage = (event) => {
             if (options.msgCallback) {
-                const data = processMessage(JSON.parse(event.data));
-                options.msgCallback.call(this, data);
+                const data = getModelHandlers().processMessage(JSON.parse(event.data));
+                if (data) {
+                    options.msgCallback.call(this, data);
+                }
             }
         };
         ws.onclose = (ev) => {
@@ -70,8 +71,9 @@ export class Model {
             }
         };
         ws.onerror = (err: Event & { target: { url: string, readyState: number } }) => {
+            // 仅主连接（type=main）且 WebSocket 已关闭（readyState=3）时显示内核错误提示
             if (err.target.url.endsWith("&type=main") && err.target.readyState === 3) {
-                kernelError();
+                getModelHandlers().kernelError();
             }
         };
         this.ws = ws;

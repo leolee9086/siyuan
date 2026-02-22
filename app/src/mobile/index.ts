@@ -11,7 +11,7 @@ import { handleTouchEnd, handleTouchMove, handleTouchStart } from "./util/touch"
 import { fetchGet, fetchPost } from "../util/fetch";
 import { initFramework } from "./util/initFramework";
 import { initAssets, loadAssets } from "../util/assets";
-import { bootSync } from "../dialog/processSystem";
+import { bootSync, kernelError, reloadSync } from "../dialog/processSystem";
 import { initMessage, showMessage } from "../dialog/message";
 import { goBack } from "./util/MobileBackFoward";
 import { activeBlur, hideKeyboardToolbar, showKeyboardToolbar } from "./util/keyboardToolbar";
@@ -24,7 +24,7 @@ import {
 } from "../protyle/util/compatibility";
 import { getCurrentEditor, openMobileFileById } from "./editor";
 import { getSearch } from "../util/functions";
-import { checkPublishServiceClosed } from "../util/processMessage";
+import { checkPublishServiceClosed, processMessage } from "../util/processMessage";
 import { initRightMenu } from "./menu";
 import { openChangelog } from "../boot/openChangelog";
 import { registerServiceWorker } from "../util/serviceWorker";
@@ -39,6 +39,8 @@ import { processIOSPurchaseResponse } from "../util/iOSPurchase";
 import { updateControlAlt } from "../protyle/util/hotKey";
 import { nbsp2space } from "../protyle/util/normalizeText";
 import { callMobileAppShowKeyboard, canInput } from "./util/mobileAppUtil";
+import { setSForgeState } from "../config/sforge.global";
+import { SForgeSymbols } from "../config/sforge.symbols";
 
 class App {
     public plugins: import("../plugin").Plugin[] = [];
@@ -51,6 +53,8 @@ class App {
         registerServiceWorker(`${Constants.SERVICE_WORKER_PATH}?v=${Constants.SIYUAN_VERSION}`);
         addBaseURL();
         this.appId = Constants.SIYUAN_APPID;
+        setSForgeState(SForgeSymbols.MODEL_HANDLERS, { processMessage, kernelError, reloadSync });
+        setSForgeState(SForgeSymbols.OPEN_MOBILE_FILE_BY_ID, openMobileFileById);
         window.siyuan = {
             zIndex: 10,
             notebooks: [],

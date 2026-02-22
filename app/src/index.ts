@@ -13,6 +13,7 @@ import { openFileById } from "./editor/utils.openFileById";
 import {
     bootSync,
     downloadProgress,
+    kernelError,
     processSync,
     progressBackgroundTask,
     progressLoading,
@@ -28,7 +29,7 @@ import { getAllTabs } from "./layout/getAll";
 // S-forge: 添加远程新增的 isInMobileApp 导入
 import { getLocalStorage, isChromeBrowser, isInMobileApp } from "./protyle/util/compatibility";
 import { getSearch } from "./util/functions";
-import { checkPublishServiceClosed } from "./util/processMessage";
+import { checkPublishServiceClosed, processMessage } from "./util/processMessage";
 import { hideAllElements } from "./protyle/ui/hideElements";
 import { loadPlugins, reloadPlugin } from "./plugin/loader";
 import "./assets/scss/base.scss";
@@ -44,9 +45,11 @@ import { siyuanI18n } from "./util/siyuanEnvironments/i18n.getI18n.environment";
 import { updateAppearance } from "./config/util/updateAppearance";
 import { renderSnippet } from "./config/util/snippets";
 import { embeddingText } from "./util/embedding/transformer";
-
+import { setSForgeState } from "./config/sforge.global";
+import { SForgeSymbols } from "./config/sforge.symbols";
+import type { Plugin } from "./plugin";
 export class App {
-    public plugins: import("./plugin").Plugin[] = [];
+    public plugins: Plugin[] = [];
     public appId: string;
     public eventBus: EventBus;
     constructor() {
@@ -55,6 +58,9 @@ export class App {
         }
         registerServiceWorker(`${Constants.SERVICE_WORKER_PATH}?v=${Constants.SIYUAN_VERSION}`);
         addBaseURL();
+
+        // 注册 Model WebSocket 处理器，打断 Model ↔ processSystem/processMessage 循环依赖
+        setSForgeState(SForgeSymbols.MODEL_HANDLERS, { processMessage, kernelError, reloadSync });
 
         this.appId = Constants.SIYUAN_APPID;
         window.siyuan = {

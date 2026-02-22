@@ -22,4 +22,8 @@ export const SForgeSymbols = {
     STYLE_BRUSH_HANDLERS: Symbol.for("sforge.styleBrush.handlers"),
     /** Popover 目标元素 (用于解决模块级变量缓存不一致问题) */
     POPOVER_TARGET_ELEMENT: Symbol.for("sforge.popover.targetElement"),
+    /** Model WebSocket 处理器 (用于打断 Model 循环依赖) */
+    MODEL_HANDLERS: Symbol.for("sforge.model.handlers"),
+    /** openMobileFileById 代理 (用于打断 mobile/editor ↔ plugin/API 循环依赖) */
+    OPEN_MOBILE_FILE_BY_ID: Symbol.for("sforge.mobile.openFileById"),
 } as const;

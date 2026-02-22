@@ -5,6 +5,7 @@
 import { SForgeSymbols } from "./sforge.symbols";
 import type { TabRegistration } from "../registry/TabRegistry.types";
 import type { ITriggerRegistration, IBrushSession, IStyleBrushHandlers } from "../registry/TriggerRegistry.types";
+import type { App } from "../index";
 
 /**
  * SForge 全局状态类型定义
@@ -20,6 +21,28 @@ export interface ISForgeGlobalState {
     [SForgeSymbols.BRUSH_SESSION]?: IBrushSession | null;
     [SForgeSymbols.STYLE_BRUSH_HANDLERS]?: IStyleBrushHandlers;
     [SForgeSymbols.POPOVER_TARGET_ELEMENT]?: HTMLElement;
+    [SForgeSymbols.MODEL_HANDLERS]?: IModelHandlers;
+    [SForgeSymbols.OPEN_MOBILE_FILE_BY_ID]?: TOpenMobileFileById;
+}
+
+/**
+ * openMobileFileById 函数签名
+ *
+ * 用途：通过注册表注入，打断 mobile/editor ↔ plugin/API 循环依赖
+ * 使用场景：plugin/API.ts 中暴露给插件的 openMobileFileById 方法
+ */
+export type TOpenMobileFileById = (app: App, id: string, action?: TProtyleAction[], scrollPosition?: ScrollLogicalPosition) => void;
+
+/**
+ * Model WebSocket 处理器接口
+ *
+ * 用途：通过注册表注入 Model 的运行时依赖，打断 Model ↔ processSystem/processMessage 循环依赖
+ * 使用场景：Model.ts 的 WebSocket 回调中调用这些处理器
+ */
+export interface IModelHandlers {
+    processMessage: (response: IWebSocketData) => IWebSocketData | false;
+    kernelError: () => void;
+    reloadSync: (app: App, data: { upsertRootIDs: string[], removeRootIDs: string[] }) => void;
 }
 
 /**
