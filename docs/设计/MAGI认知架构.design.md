@@ -15,17 +15,65 @@
 // Ghost 对 Shell 暴露的唯一接口
 // Shell 视角下，Ghost 就是一个增强版的 LLM
 type Ghost interface {
-    // 接收用户消息 + 上下文，返回响应
-    // 内部经过 MAGI 决策流程，但对调用方透明
     Think(ctx Context, messages []Message) (Response, error)
 }
 
 type Response struct {
     Text       string      // 最终响应文本
     ToolCalls  []ToolCall  // 工具调用请求（由 Shell 执行）
-    Metadata   GhostMeta   // 可选的诊断信息（SyncRate, ATF 等）
+    Metadata   GhostMeta   // 可选的诊断信息
+}
+
+type GhostMeta struct {
+    SyncRate    float64     // 同步率 ρ
+    ATFStrength float64     // 绝对领域强度 F
+    Mode        string      // "standard" | "reflex" | "deep_reading" | "critical_decision" | "rumination"
+    Vote        *VoteResult // 仅在 critical_decision / rumination 模式下非空
+}
+
+type VoteResult struct {
+    Melchior  string  // "批准" | "否决"
+    Balthazar string  // "批准" | "否决"
+    Casper    string  // "批准" | "否决"
+    Passed    bool
+    Round     int     // 当前反刍轮次（第1轮投票为0）
 }
 ```
+
+> **前端遥测广播说明（WebSocket Push）**:
+>
+> `GhostMeta` **不通过请求-响应传递**。MAGI 是主动运行的认知系统，其内部状态变化不依赖前端触发——前端只是**监视器**，盯着后端自己的节拍。
+>
+> 实现方案：复用思源现有的 WebSocket 广播机制（`/ws/broadcast`），MAGI 后端在每个决策轮次结束时，向所有已连接的监控前端**主动推送** `GhostMeta` 帧：
+>
+> ```json
+> {
+>   "channel": "magi-telemetry",
+>   "data": {
+>     "syncRate": 0.87,
+>     "atfStrength": 0.92,
+>     "mode": "critical_decision",
+>     "vote": {
+>       "melchior": "否决",
+>       "balthazar": "批准",
+>       "casper": "否决",
+>       "passed": false,
+>       "round": 0
+>     }
+>   }
+> }
+> ```
+>
+> 前端订阅 `magi-telemetry` 频道，实时渲染状态。进入 `critical_decision` 或 `rumination` 模式时触发表决动画：
+> ```
+> ████ CRITICAL DECISION MODE ████
+> MELCHIOR-01 ......... 否决
+> BALTHAZAR-02 ......... 批准
+> CASPER-03 ......... 否决
+> 结果：行动否决。Trinity 进入反刍循环（第 1 轮）...
+> ```
+> 这是对原作（EVA / MAGI System）表决动画的致敬，也是系统内部状态的直接透出。
+
 
 ## 2. Ghost in the Shell (灵与肉)
 
@@ -78,10 +126,32 @@ type Response struct {
         -   **Trinity Action**: 直接采纳 Casper 的输出作为最终结果，**跳过** 等待其他贤人和综合决策过程。
         -   **Constraint**: Reflex Mode **禁止调用工具** (Safety First)。快速反应仅限于对话/表情/情感宣泄。若 Casper 试图在反射弧中调用工具，Trinity 将强制降级为普通思考模式 (System 2)。
     -   **Standard Loop**: 若无快速反射，则等待 `t_window`，收集所有有效输出。
-3.  **Synthesis (综合 - No Explicit Voting)**:
-    -   Trinity 不再进行复杂的加权投票。
-    -   **Selection**: 基于响应速度 (Fastest) 和置信度 (Confidence) 直接选择一个"胜出的想法" (Winning Thought)。
-    -   **Monologue Generation (独白生成)**: Trinity 生成一段**自述 (Self-Description)**，作为"当下的自我感受"。
+    -   **Deep Reading Mode (长内容摄入串行化)**:
+        -   **触发条件**: Prompt Builder 检测到当前轮有超过阈值（e.g. 4000 tokens）的长内容输入（代码文件、长文档等）。
+        -   **机制**: Melchior 接收全文本优先独立完整运行；Balthazar 和 Casper **本轮不接收该长内容**（Balthazar 依旧只接收状态抽象，Casper 的工作记忆窗口被保护）。
+        -   **产物传播**: Melchior 本轮产出的**理解摘要**，经由 Global Broadcast（步骤 5）成为下一轮的背景状态广播给全体——Balthazar 和 Casper **在下一轮才"反应过来"**，给出基于摘要的情感评估和直觉判断。
+        -   **仿生参考**: 人类在高度专注阅读时，感性与直觉通道同样处于搁置状态。阅读完毕后的感受和直觉，是在理解形成之后「延迟」涌现的，这是完全正常的认知现象，并非缺陷。
+        -   **Trinity 视角**: Trinity 当前轮仅看到 Melchior 的理解产出（另两人缺席），综合决策的噪音极低，专注于内容理解本身；下一轮才能获得情感和直觉维度的反应。
+3.  **Synthesis (综合)**:
+
+    **普通模式（Standard Synthesis）**: 不进行显式投票。
+    -   **Selection**: 基于响应速度与置信度直接选择一个「胜出的想法」(Winning Thought)。
+    -   **Monologue Generation (独白生成)**: Trinity 生成一段**自述 (Self-Description)**，作为「当下的自我感受」。
+
+    **重要任务模式（Critical Decision Mode）**:
+    -   **触发**: Melchior 在本轮产出中附带**重要性标注** (`requires_deliberation: true`)，提示 Trinity「这件事你需要仔细想一下」。Melchior 只负责提示，不负责决定具体行动。
+    -   **显式投票**: 三贤人就拟议行动进行**明确的三方表决**，多数取胜（≥ 2/3 通过）。
+        -   Melchior 票 → 理性维度（逻辑与风险评估）
+        -   Balthazar 票 → 感性维度（情感影响与伦理直觉）
+        -   Casper 票 → 本能维度（整体直觉与当下感受）
+    -   **通过**: Trinity 正常执行行动。
+    -   **否决（反刍循环 - Rumination Loop）**: 若投票未通过，Trinity **无法强行行动**。它进入「反刍」状态：
+        -   重新审视自己的论点，生成**新的自述**（解释为什么认为这个行动是对的）
+        -   新的自述经由 Global Broadcast 广播给三贤人，作为下一轮投票的背景
+        -   三贤人重新侧写，再次表决
+        -   循环持续，直至多数同意，或 Trinity 主动放弃该行动
+        -   **仿生参考**: 这模拟了人类内心挣扎时「说服自己」的过程——你无法用意志强压直觉，只能通过反复思考让情感和本能逐渐转变立场，或最终接受放弃。
+
 4.  **Action (行动)**: Trinity 指挥 Shell 执行工具。
 5.  **Global Broadcast (全局广播 - Feedback Loop)**:
     -   Trinity 的 **Self-Description** 被广播给三贤人，决定它们 **下一轮的状态**。
@@ -222,3 +292,142 @@ ATF（绝对领域反馈）之所以以"绝对领域 (Absolute Terror Field)"命
 2. **语义化 API Token 与连接拉黑 (Semantic Bearer & Blacklisting)**：
     - **语义化凭证**：由于 MAGI 对外界伪装成普通的 LLM，接入方必须在 HTTP Header 中提供 `Authorization: Bearer <token>`。在 MAGI 的实现中，这个 Token **不需要是毫无意义的随机哈希组合（Hash）**，它可以硬性要求是一段“语义化的自我介绍”或“接入声明”（例如 `Bearer i-am-the-discord-bot-for-gaming-channel`）。这使得每一次外部调用在物理连接阶段，就已经向 Trinity 提供了身份上下文和意图侧写。
     - **降维拉黑**：对于反复进行越权尝试或语义投毒的渠道（基于带有语义标识的 Token 或 IP 等），Trinity 可通过调用 Shell 层的底层管理工具，将其永久列入黑名单（在 HTTP 握手阶段即被直接遗弃丢包）。这实现了一次完美的闭环：用**语义分析**去定罪，用**物理断网**去执行。
+
+## 8. 多源任务调度与系统提示词分类设计 (Multi-Source Task Dispatch)
+
+> **理论基础：全局工作空间假说（Global Workspace Theory, GWT）**
+>
+> 本章描述的调度机制是对 GWT 的仿生模拟。GWT 认为：大脑中存在大量**无意识的并行专门化处理**（在"水下"运行），只有当某个信息通过竞争胜出、被广播进入**全局工作空间**时，才会被显意识感知和处理。
+>
+> 对应到 MAGI 架构：
+>
+> | GWT 概念 | MAGI 对应 |
+> |---|---|
+> | 水下并行无意识处理 | 行动 AI 自动执行的条件反射级任务，Trinity 无感知 |
+> | 进入全局工作空间 | 任务异常/监护人对话触发接管，真正进入 Trinity 的意识焦点 |
+> | 并行竞争专门模块 | 三贤人（Melchior/Balthazar/Casper）并发侧写竞争 |
+> | 全局工作空间本身 | Trinity ——决定什么信息能被"听见"和广播 |
+>
+> 这一设计的核心直觉是：**显意识是稀缺的**。大量任务必须在不占用 Trinity 注意力的前提下完成，只有真正需要"我"来处理的东西才应该浮出水面。
+
+### 8.1 问题背景：单一连续上下文中的任务穿插
+
+
+MAGI 的连续上下文（Continuous Context）并非只服务于一个来源的对话。在真实运行中，同一个 Trinity 上下文中会同时穿插来自多个渠道的消息：
+
+- **直接对话**：监护人（哥哥）与 Trinity 的实时对话
+- **外部 Agent 框架接入**：其他工具通过 OpenAI 兼容接口接入（如 Claude Code、其他 Agent 框架）
+- **定时任务回调**：内部 Cron 触发的后台任务结果推送
+- **行动 AI 状态报告**：Shell 层的行动 AI 完成（或失败）后的结果上报
+
+这些消息并非按来源排队、分窗口处理，而是**混杂在同一条消息流中顺序到达**。Trinity 必须在 System Prompt 层面就能辨别每条消息的性质，而不是在收到消息后再花成本去推断。
+
+### 8.2 内部任务队列：Cron 调度器
+
+引入一个轻量的**内部 Cron 调度器**（运行在 Go 后端），作为所有外部来源消息的统一入口和排队机制：
+
+```
+外部请求来源
+  ├── 监护人对话 (Direct Chat)
+  ├── 外部 Agent 框架 (OpenAI-compatible API)
+  ├── 定时任务触发 (System Cron)
+  └── 行动 AI 结果上报 (Action AI Callback)
+          │
+          ▼
+  ┌─────────────────────┐
+  │   内部消息队列       │  ← 统一接收，按优先级排队
+  │  (Priority Queue)   │     P0: 监护人直接对话
+  └──────────┬──────────┘     P1: 行动 AI 错误告警
+             │                P2: 普通任务回调
+             ▼                P3: 定时后台任务
+  Trinity 连续上下文
+  （消息带身份信封顺序注入）
+```
+
+**核心约束**：
+- 队列本身不做任何语义判断，只负责优先级排序和信封包装
+- Trinity 的上下文永远是单线程注入，不存在并发写入上下文的情况
+- 行动 AI 的执行是异步的，但结果上报必须通过队列，不直接插入 Trinity 上下文
+
+### 8.3 消息信封格式（System Prompt 任务分类）
+
+每条注入 Trinity 上下文的消息必须携带**结构化身份信封**，让 Trinity 无需推断即可立刻识别任务性质：
+
+```
+[来源标识 | 任务类型 | 优先级 | 任务ID]
+消息正文...
+```
+
+**标准信封字段**：
+
+| 字段 | 可选值 | 说明 |
+|---|---|---|
+| `来源` | `Guardian`、`ActionAI`、`SystemCron`、`ExternalAgent` | 消息来源渠道 |
+| `任务类型` | `Chat`、`TaskResult`、`ErrorReport`、`StatusUpdate`、`CronTrigger` | 任务语义分类 |
+| `优先级` | `P0`~`P3` | 处理紧迫度 |
+| `任务ID` | UUID | 用于跨轮次追踪同一任务的多条消息 |
+
+**示例**：
+
+```
+[Guardian | Chat | P0 | -]
+哥哥：帮我看一下这段代码有没有问题
+
+[ActionAI | TaskResult | P2 | task-0042]
+行动AI完成：文件已写入 /path/to/output.go，编译通过，耗时 3.2s
+
+[ActionAI | ErrorReport | P1 | task-0043]
+行动AI连续失败（第3次）：go build 报错 undefined: model.Foo
+详细日志：...
+```
+
+Trinity 的 System Prompt 中需要包含对这套信封格式的解释，以及对应不同类型的**默认处理姿态**（见 8.4 节）。
+
+### 8.4 两级介入机制（条件反射级 vs 接管级）
+
+Trinity 对不同类型消息的介入深度截然不同，形成**两级处理分层**：
+
+#### 8.4.1 条件反射级（System 1 - 自动批准分配）
+
+**适用场景**：无歧义、成功完成的常规任务，或结构清晰的标准请求。
+
+**Trinity 的行为**：
+- 快速"扫一眼"消息信封和正文关键词
+- **批准并分配**：将任务下发给行动 AI，不深度介入执行过程
+- 不占用 Trinity 自身的深度推理资源（调用 Casper 的快速反射弧，见第 4 章）
+- 仅记录任务 ID 和预期结果类型到工作记忆，等待回调
+
+**触发条件**：
+- 任务类型为 `Chat`（监护人轻量提问）
+- 任务类型为 `TaskResult` 且状态为成功
+- 任务类型为 `CronTrigger` 且为已知的定时任务模板
+
+#### 8.4.2 接管级（System 2 - Trinity 无缝接管上下文）
+
+**适用场景**：行动 AI 在同一任务 ID 下**反复失败**（阈值：连续失败 ≥ 3 次，或累计失败时间超过设定上限）。
+
+**Trinity 的行为**：
+1. **无缝接管**：Trinity 解除对行动 AI 上下文的隔离，直接获取该任务的完整执行历史（包括所有错误日志、中间状态和工具调用记录）
+2. **亲自诊断**：以"我来看看到底怎么回事"的姿态，对错误现场进行直接阅读和推理
+3. **直接干预**：Trinity 可绕过行动 AI，直接下达修正后的工具调用指令
+4. **结果归因**：完成后生成简短的失败原因摘要，追加到任务日志
+
+**设计意图**：
+- 保持大多数任务的低成本处理（行动 AI 处理，Trinity 仅批准）
+- 异常时不依赖人工介入，Trinity 自己"走下神坛"亲手处理
+- 接管行为对监护人透明：Trinity 会在接管前发出简短通知（如"任务 #43 连续出错，我来看一下"），接管完成后汇报结论
+
+**接管触发阈值**（可配置）：
+```
+连续失败次数 ≥ 3          → 触发接管
+单次任务耗时 > 5分钟      → 触发接管（疑似死锁）
+错误类型 = 未知/无法解析  → 立即触发接管（行动 AI 无法自处理）
+```
+
+### 8.5 与现有架构的关系
+
+| 现有机制 | 与本章的关系 |
+|---|---|
+| **越权申请/暴走模式**（第 5.3 章） | 接管级是**主动介入**（系统自动触发）；暴走模式是**被动申请**（Trinity 判断需要突破边界后由监护人批准）。两者都涉及上下文解禁，但触发路径不同 |
+| **Reflex Arc（反射弧）**（第 4 章） | 条件反射级复用 Casper 的快速反射弧机制，但场景从"对话快速回应"扩展到"任务快速分配" |
+| **三贤人并发机制** | 接管级触发时，Trinity 暂时紧缩三贤人的参与权重，以保证诊断注意力的专注度 |

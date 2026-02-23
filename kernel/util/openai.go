@@ -27,7 +27,11 @@ import (
 	"github.com/siyuan-note/logging"
 )
 
-func ChatGPT(msg string, contextMsgs []string, c *openai.Client, model string, maxTokens int, temperature float64, timeout int) (ret string, stop bool, err error) {
+func ChatGPT(msg string, contextMsgs []string, c *openai.Client, modelName string, maxTokens int, temperature float64, timeout int, apiProvider, apiKey, apiProxy, apiBaseURL string) (ret string, stop bool, err error) {
+	if apiProvider == "Claude" {
+		return CallClaudeChatCompletion(msg, contextMsgs, modelName, maxTokens, temperature, timeout, apiKey, apiProxy, apiBaseURL)
+	}
+
 	var reqMsgs []openai.ChatCompletionMessage
 
 	for _, ctxMsg := range contextMsgs {
@@ -54,7 +58,7 @@ func ChatGPT(msg string, contextMsgs []string, c *openai.Client, model string, m
 	}
 
 	req := openai.ChatCompletionRequest{
-		Model:               model,
+		Model:               modelName,
 		MaxCompletionTokens: maxTokens,
 		Temperature:         float32(temperature),
 		Messages:            reqMsgs,

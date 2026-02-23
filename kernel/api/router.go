@@ -580,4 +580,8 @@ func ServeAPI(ginServer *gin.Engine) {
 	ginServer.Handle("POST", "/api/cronjob/run", model.CheckAuth, model.CheckAdminRole, runCronjob)
 	ginServer.Handle("POST", "/api/cronjob/compile", model.CheckAuth, model.CheckAdminRole, compileCronjob)
 	ginServer.Handle("POST", "/api/cronjob/logs", model.CheckAuth, getCronjobLogs)
+
+	// S-Forge MAGI 认知接口
+	ginServer.Handle("POST", "/api/s-forge/magi/v1/chat/completions", model.CheckAuth, model.CheckAdminRole, magiChat)
+	ginServer.Handle("GET", "/api/s-forge/magi/v1/models", model.CheckAuth, magiListModels)
 }

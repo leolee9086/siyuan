@@ -176,7 +176,7 @@ declare namespace Config {
     /**
      * API Provider
      */
-    export type TOpenAAPIProvider = "OpenAI" | "Azure";
+    export type TOpenAAPIProvider = "OpenAI" | "Azure" | "Claude";
 
     /**
      * SiYuan API related configuration

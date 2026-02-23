@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 // API 提供商类型
-const apiProviderSchema = z.enum(["OpenAI", "Azure"]);
+const apiProviderSchema = z.enum(["OpenAI", "Azure", "Claude"]);
 
 // API 模型类型
 const apiModelSchema = z.string();

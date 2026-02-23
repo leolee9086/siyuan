@@ -17,6 +17,7 @@ function genMobileHTML() {
         <select id="apiProvider" class="b3-select">
             <option value="OpenAI" ${getSiyuanConfig().ai.openAI.apiProvider === "OpenAI" ? "selected" : ""}>OpenAI</option>
             <option value="Azure" ${getSiyuanConfig().ai.openAI.apiProvider === "Azure" ? "selected" : ""}>Azure</option>
+            <option value="Claude" ${getSiyuanConfig().ai.openAI.apiProvider === "Claude" ? "selected" : ""}>Claude</option>
         </select>
     </div>
 </div>
@@ -100,6 +101,7 @@ function genDesktopHTML() {
     <select id="apiProvider" class="b3-select fn__flex-center fn__size200">
         <option value="OpenAI" ${getSiyuanConfig().ai.openAI.apiProvider === "OpenAI" ? "selected" : ""}>OpenAI</option>
         <option value="Azure" ${getSiyuanConfig().ai.openAI.apiProvider === "Azure" ? "selected" : ""}>Azure</option>
+        <option value="Claude" ${getSiyuanConfig().ai.openAI.apiProvider === "Claude" ? "selected" : ""}>Claude</option>
     </select>
 </div>
 <div class="fn__flex b3-label">
@@ -196,9 +198,9 @@ export const ai = {
     genHTML: () => {
         let responsiveHTML = "";
         if (isMobile) {
-        responsiveHTML = genMobileHTML();
+            responsiveHTML = genMobileHTML();
         } else {
-        responsiveHTML = genDesktopHTML();
+            responsiveHTML = genDesktopHTML();
         }
         return `<div class="fn__flex-column" style="height: 100%">
 <div class="layout-tab-bar fn__flex">
@@ -253,8 +255,8 @@ export const ai = {
             // @内联回调
             togglePassword.addEventListener("click", () => {
                 if (!togglePassword.firstElementChild || !togglePassword.previousElementSibling) {
-return;
-}
+                    return;
+                }
                 const isEye = togglePassword.firstElementChild.getAttribute("xlink:href") === "#iconEye";
                 togglePassword.firstElementChild.setAttribute("xlink:href", isEye ? "#iconEyeoff" : "#iconEye");
                 togglePassword.previousElementSibling.setAttribute("type", isEye ? "text" : "password");
