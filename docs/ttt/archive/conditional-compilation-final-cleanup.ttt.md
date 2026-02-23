@@ -2,7 +2,7 @@
 
 ## 状态: ✅ 已完成
 ## 创建时间: 2026-02-21
-## 完成时间: 2026-02-21
+## 完成时间: 2026-02-22
 ## 关联规程: docs/规程/代码质量/前端条件编译清理.procedure.md
 ## 前置任务: docs/ttt/conditional-compilation-cleanup.ttt.md (已完成)
 
@@ -111,16 +111,21 @@
 - 修改5个文件：4个 webpack 配置（config/desktop/mobile/export）+ `package.json`
 - `ifdef-loader` 在源码中零引用
 
-### 阶段3：构建验证 ✅
+### 阶段3：修复循环依赖 ✅
 
-全部4个构建目标通过：
+- `API.ts` 重构为 lazy getter 模式，解决 `Model.ts` ReferenceError
 
-| 构建目标 | 耗时 | 结果 |
-|----------|------|------|
-| electron desktop | 23.8s | 通过，无警告 |
-| browser desktop | 19.2s | 通过，2个资源大小警告（非错误） |
-| browser mobile | 19.0s | 通过，2个资源大小警告（非错误） |
-| export | 15.1s | 通过，2个资源大小警告（非错误） |
+### 阶段4：webpack 配置统一 ✅
+
+- 新建 `build.targets.json`（构建目标定义）
+- 重写 `webpack.config.js`（统一适配器）
+- 删除 `webpack.desktop.js`、`webpack.mobile.js`、`webpack.export.js`
+- 更新 `package.json` scripts
+- 修复Bug：`.js` 规则重复、desktop 缺少 `@alias`、minimize 不一致
+
+### 阶段5：构建验证 ✅
+
+全部4个构建目标 production 构建通过
 
 ---
 
@@ -129,8 +134,11 @@
 | 日期 | 事项 |
 |------|------|
 | 2026-02-21 | 完成调查，制定清理计划 |
-| 2026-02-21 | 全部阶段执行完毕，任务完成 |
+| 2026-02-21 | 阶段0-2执行完毕 |
+| 2026-02-22 | 阶段3-5执行完毕，全部任务完成 |
 
 ## 失败记录
 
-（无）
+- 首次构建验证仅验证1个目标，被用户否决要求全量验证——任务分派时应明确验证范围
+- 首次循环依赖修复子任务指定了具体修复方案（最小改动），被用户否决要求以最佳实践处理——主任务管理器不应约束实现细节
+- orchestrator 曾违规切换自身到 code 模式，被用户纠正

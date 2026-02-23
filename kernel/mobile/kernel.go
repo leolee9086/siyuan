@@ -1,4 +1,4 @@
-// SiYuan - Refactor your thinking
+bun// SiYuan - Refactor your thinking
 // Copyright (c) 2020-present, b3log.org
 //
 // This program is free software: you can redistribute it and/or modify

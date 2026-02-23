@@ -66,7 +66,7 @@ const selectItem = (type: string, index: number) => {
 // 初始化
 const initializeDocks = () => {
   if (!isWindow()) {
-    /// #if !MOBILE
+    /// yeji !MOBILE
     docks.value = getAllDocks().map(dock => ({
       type: dock.type,
       title: dock.title || "",
