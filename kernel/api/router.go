@@ -63,6 +63,7 @@ func ServeAPI(ginServer *gin.Engine) {
 	ginServer.Handle("POST", "/api/system/getConf", model.CheckAuth, getConf)
 	ginServer.Handle("POST", "/api/system/checkUpdate", model.CheckAuth, model.CheckAdminRole, checkUpdate)
 	ginServer.Handle("POST", "/api/system/exportLog", model.CheckAuth, model.CheckAdminRole, exportLog)
+	ginServer.Handle("POST", "/api/system/getLogs", model.CheckAuth, model.CheckAdminRole, getLogs)
 	ginServer.Handle("POST", "/api/system/getChangelog", model.CheckAuth, getChangelog)
 	ginServer.Handle("POST", "/api/system/getNetwork", model.CheckAuth, model.CheckAdminRole, getNetwork)
 	ginServer.Handle("POST", "/api/system/exportConf", model.CheckAuth, model.CheckAdminRole, exportConf)
@@ -584,4 +585,6 @@ func ServeAPI(ginServer *gin.Engine) {
 	// S-Forge MAGI 认知接口
 	ginServer.Handle("POST", "/api/s-forge/magi/v1/chat/completions", model.CheckAuth, model.CheckAdminRole, magiChat)
 	ginServer.Handle("GET", "/api/s-forge/magi/v1/models", model.CheckAuth, magiListModels)
+	// Claude Messages API 兼容层，支持 claude-code 等工具直接连接
+	ginServer.Handle("POST", "/api/s-forge/magi/v1/messages", model.CheckAuth, model.CheckAdminRole, magiMessages)
 }

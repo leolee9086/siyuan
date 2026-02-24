@@ -286,6 +286,66 @@ func exportLog(c *gin.Context) {
 	}
 }
 
+func getLogs(c *gin.Context) {
+	ret := gulu.Ret.NewResult()
+	defer c.JSON(http.StatusOK, ret)
+
+	arg, ok := util.JsonArg(c, ret)
+	if !ok {
+		return
+	}
+
+	lines := 500
+	if arg["lines"] != nil {
+		lines = int(arg["lines"].(float64))
+	}
+	if lines <= 0 {
+		lines = 500
+	}
+	if lines > 2000 {
+		lines = 2000
+	}
+
+	siyuanLog := filepath.Join(util.TempDir, "siyuan.log")
+	kernelLog := filepath.Join(util.HomeDir, ".config", "siyuan", "kernel.log")
+
+	logPath := kernelLog
+	if !gulu.File.IsExist(logPath) {
+		logPath = siyuanLog
+	}
+	if !gulu.File.IsExist(logPath) {
+		ret.Code = -1
+		ret.Msg = "log file not found"
+		return
+	}
+
+	file, err := os.Open(logPath)
+	if err != nil {
+		ret.Code = -1
+		ret.Msg = err.Error()
+		return
+	}
+	defer file.Close()
+
+	contentBytes, err := io.ReadAll(file)
+	if err != nil {
+		ret.Code = -1
+		ret.Msg = err.Error()
+		return
+	}
+
+	linesSlice := strings.Split(string(contentBytes), "\n")
+	start := len(linesSlice) - lines
+	if start < 0 {
+		start = 0
+	}
+
+	ret.Data = map[string]interface{}{
+		"log":  strings.Join(linesSlice[start:], "\n"),
+		"path": logPath,
+	}
+}
+
 func exportConf(c *gin.Context) {
 	ret := gulu.Ret.NewResult()
 	defer c.JSON(http.StatusOK, ret)

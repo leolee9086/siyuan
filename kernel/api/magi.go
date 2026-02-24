@@ -11,6 +11,7 @@ import (
 	"github.com/gin-contrib/sse"
 	"github.com/gin-gonic/gin"
 	"github.com/sashabaranov/go-openai"
+	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/model"
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
@@ -60,9 +61,12 @@ func magiChat(c *gin.Context) {
 
 	var req openai.ChatCompletionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		logging.LogErrorf("magiChat ShouldBindJSON failed: %s", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	logging.LogInfof("magiChat received request: model=[%s] stream=[%v] msgs_count=[%d]", req.Model, req.Stream, len(req.Messages))
 
 	// 封装信封入队（此处为外部直接 Chat 对话）
 	// TTT 第一阶段需求：封装但暂不在信封处理过深，确保成功排队与唤回
@@ -177,16 +181,36 @@ func magiChatSync(c *gin.Context, msg string, contextMsgs []string, client *open
 }
 
 func magiChatStream(c *gin.Context, msg string, contextMsgs []string, client *openai.Client, req openai.ChatCompletionRequest) {
-	// 暂留：对接 go-openai 的 CreateChatCompletionStream
+	modelName := req.Model
+	if modelName == "" {
+		modelName = model.Conf.AI.OpenAI.APIModel
+	}
+
+	// Claude provider 走原生 go-anthropic/v2 流式接口
+	if model.Conf.AI.OpenAI.APIProvider == "Claude" {
+		logging.LogInfof("magiChatStream dispatching to Claude native stream for model=[%s]", modelName)
+		err := util.CallClaudeChatCompletionStreamMagi(
+			c, req.Messages, req.Tools, modelName,
+			model.Conf.AI.OpenAI.APIMaxTokens,
+			model.Conf.AI.OpenAI.APITemperature,
+			model.Conf.AI.OpenAI.APITimeout,
+			model.Conf.AI.OpenAI.APIKey,
+			model.Conf.AI.OpenAI.APIProxy,
+			model.Conf.AI.OpenAI.APIBaseURL,
+		)
+		if err != nil {
+			logging.LogErrorf("magiChatStream Claude stream failed: %s", err)
+		}
+		return
+	}
+
+	// OpenAI 及其兼容协议走 go-openai 原生流式
 	c.Header("Content-Type", "text/event-stream")
 	c.Header("Cache-Control", "no-cache")
 	c.Header("Connection", "keep-alive")
 	c.Header("Transfer-Encoding", "chunked")
 
-	modelName := req.Model
-	if modelName == "" {
-		modelName = model.Conf.AI.OpenAI.APIModel
-	}
+	// OpenAI 分支的 modelName 已在上方声明，此处无需重复
 
 	// 重新拼装为 OpenAI 标准请求体打给底层，这里复原了刚才拆出来的历史
 	streamReq := openai.ChatCompletionRequest{
@@ -202,18 +226,24 @@ func magiChatStream(c *gin.Context, msg string, contextMsgs []string, client *op
 
 	stream, err := client.CreateChatCompletionStream(ctx, streamReq)
 	if err != nil {
+		logging.LogErrorf("magiChatStream CreateChatCompletionStream failed: %s", err)
 		c.SSEvent("error", err.Error())
 		return
 	}
 	defer stream.Close()
 
+	logging.LogInfof("magiChatStream connection established, starting loop...")
+
+	chunkCount := 0
 	c.Stream(func(w io.Writer) bool {
 		response, err := stream.Recv()
 		if err != nil {
+			logging.LogInfof("magiChatStream stream ended or err: %v. Total parsed chunks: %d", err, chunkCount)
 			// io.EOF or others
 			c.Render(-1, sse.Event{Data: "[DONE]"})
 			return false
 		}
+		chunkCount++
 		c.Render(-1, sse.Event{Data: response})
 		return true // 继续循环
 	})

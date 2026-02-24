@@ -48,6 +48,7 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/klippa-app/go-pdfium v1.17.2
+	github.com/liushuangls/go-anthropic/v2 v2.17.0
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/mitchellh/go-ps v1.0.0
 	github.com/mssola/useragent v1.0.0
@@ -79,7 +80,6 @@ require (
 	github.com/xrash/smetrics v0.0.0-20250705151800-55b8f293f342
 	github.com/xuri/excelize/v2 v2.9.0
 	golang.org/x/image v0.34.0
-	golang.org/x/mobile v0.0.0-20251209145715-2553ed8ce294
 	golang.org/x/mod v0.32.0
 	golang.org/x/net v0.49.0
 	golang.org/x/sync v0.19.0
@@ -158,7 +158,6 @@ require (
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/levigross/exp-html v0.0.0-20120902181939-8df60c69a8f5 // indirect
-	github.com/liushuangls/go-anthropic/v2 v2.17.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20251013123823-9fd1530e3ec3 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.19 // indirect
@@ -194,7 +193,6 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	golang.org/x/arch v0.23.0 // indirect
 	golang.org/x/crypto v0.47.0 // indirect
-	golang.org/x/tools v0.41.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	howett.net/plist v1.0.2-0.20250314012144-ee69052608d9 // indirect
