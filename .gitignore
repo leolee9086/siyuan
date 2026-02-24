@@ -56,3 +56,9 @@ test_data/
 
 # Backup files from refactoring
 *.backup
+
+# Temporary test/debug files
+proxy.js
+test_messages.json
+test_messages_stream.json
+kernel/util/out.txt
