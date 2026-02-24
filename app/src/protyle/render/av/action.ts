@@ -828,7 +828,7 @@ export const updateAVName = (protyle: IProtyle, blockElement: Element) => {
     });
 };
 
-export const updateAttrViewCellAnimation = (cellElement: HTMLElement, value: IAVCellValue, headerValue?: {
+export const updateAttrViewCellAnimation = (cellElement: HTMLElement, value: IAVCellValue | undefined, headerValue?: {
     icon?: string,
     name?: string,
     pin?: boolean,
