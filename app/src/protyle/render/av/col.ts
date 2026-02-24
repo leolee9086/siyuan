@@ -1,24 +1,26 @@
-import {Menu} from "../../../plugin/Menu";
-import {transaction} from "../../wysiwyg/transaction";
-import {fetchPost, fetchSyncPost} from "../../../util/fetch";
-import {getDefaultOperatorByType, setFilter} from "./filter";
-import {genCellValue} from "./cell";
-import {getPropertiesHTML, openMenuPanel} from "./openMenuPanel";
-import {getLabelByNumberFormat} from "./number";
-import {removeAttrViewColAnimation, updateAttrViewCellAnimation} from "./action";
-import {openEmojiPanel, unicode2Emoji} from "../../../emoji";
-import {focusBlock} from "../../util/selection";
-import {toggleUpdateRelationBtn} from "./relation";
-import {bindRollupData, getRollupHTML} from "./rollup";
-import {Constants} from "../../../constants";
+import { Menu } from "../../../plugin/Menu";
+import { transaction } from "../../wysiwyg/transaction";
+import { fetchPost, fetchSyncPost } from "../../../util/fetch";
+import { getDefaultOperatorByType, setFilter } from "./filter";
+import { genCellValue } from "./cell";
+import { getPropertiesHTML, openMenuPanel } from "./openMenuPanel";
+import { getLabelByNumberFormat } from "./number";
+import { removeAttrViewColAnimation, updateAttrViewCellAnimation } from "./action";
+import { openEmojiPanel, unicode2Emoji } from "../../../emoji";
+import { focusBlock } from "../../util/selection";
+import { toggleUpdateRelationBtn } from "./relation";
+import { bindRollupData, getRollupHTML } from "./rollup";
+import { Constants } from "../../../constants";
 import * as dayjs from "dayjs";
-import {setPosition} from "../../../util/setPosition";
-import {duplicateNameAddOne, isMobile} from "../../../util/functions";
-import {Dialog} from "../../../dialog";
-import {escapeAriaLabel, escapeAttr, escapeHtml} from "../../../util/escape";
-import {getFieldsByData} from "./view";
-import {hasClosestByClassName} from "../../util/hasClosest";
+import { setPosition } from "../../../util/setPosition";
+import { duplicateNameAddOne, isMobile } from "../../../util/functions";
+import { Dialog } from "../../../dialog";
+import { escapeAriaLabel, escapeAttr, escapeHtml } from "../../../util/escape";
+import { getFieldsByData } from "./view";
+import { hasClosestByClassName } from "../../util/hasClosest";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { addAttrViewColAnimation } from "./col.addAttrViewColAnimation";
+import { removeColByMenu } from "./col.removeColByMenu";
 
 export const getColId = (element: Element, viewType: TAVView) => {
     if (viewType === "table" || hasClosestByClassName(element, "custom-attr")) {
@@ -176,7 +178,7 @@ export const getEditHTML = (options: {
     <button style="margin: 4px 0 8px;" class="b3-button fn__block" data-type="updateRelation">${siyuanI18n.confirm}</button>
 </div>`;
     } else if (colData.type === "rollup") {
-        html += '<button class="b3-menu__separator" data-id="separator_2"></button>' + getRollupHTML({colData});
+        html += '<button class="b3-menu__separator" data-id="separator_2"></button>' + getRollupHTML({ colData });
     } else if (colData.type === "date") {
         html += `<button class="b3-menu__separator" data-id="separator_2"></button>
 <label class="b3-menu__item">
@@ -274,7 +276,7 @@ export const bindEditEvent = (options: {
             type: colData.type,
         }]);
         colData.name = newValue;
-        updateAttrViewCellAnimation(options.protyle.wysiwyg.element.querySelector(`.av__row--header .av__cell[data-col-id="${colId}"]`), undefined, {name: newValue});
+        updateAttrViewCellAnimation(options.protyle.wysiwyg.element.querySelector(`.av__row--header .av__cell[data-col-id="${colId}"]`), undefined, { name: newValue });
     });
     nameElement.addEventListener("keydown", (event: KeyboardEvent) => {
         if (event.isComposing) {
@@ -390,7 +392,7 @@ export const bindEditEvent = (options: {
             if (colData[colData.type as "updated"]) {
                 colData[colData.type as "updated"].includeTime = includeTimeElement.checked;
             } else {
-                colData[colData.type as "updated"] = {includeTime: includeTimeElement.checked};
+                colData[colData.type as "updated"] = { includeTime: includeTimeElement.checked };
             }
         });
     }
@@ -517,7 +519,7 @@ export const bindEditEvent = (options: {
             toggleUpdateRelationBtn(options.menuElement, avID);
         });
         if (oldValue.avID) {
-            fetchPost("/api/av/getAttributeView", {id: oldValue.avID}, (response) => {
+            fetchPost("/api/av/getAttributeView", { id: oldValue.avID }, (response) => {
                 goSearchElement.querySelector(".b3-menu__accelerator").textContent = oldValue.avID === avID ? siyuanI18n.thisDatabase : (response.data.av.name || siyuanI18n._kernel[267]);
                 response.data.av.keyValues.find((item: { key: { id: string, name: string } }) => {
                     if (item.key.id === oldValue.backKeyID) {
@@ -606,91 +608,6 @@ export const getColIconByType = (type: TAVCol) => {
     }
 };
 
-const addAttrViewColAnimation = (options: {
-    blockElement: Element,
-    protyle: IProtyle,
-    type: TAVCol,
-    name: string,
-    id: string,
-    icon?: string,
-    previousID: string,
-    data?: IAV
-}) => {
-    if (!options.blockElement) {
-        return;
-    }
-    const nodeId = options.blockElement.getAttribute("data-node-id");
-    if (options.blockElement.classList.contains("av")) {
-        options.blockElement.querySelectorAll(".av__row").forEach((item) => {
-            let previousElement;
-            if (options.previousID) {
-                previousElement = item.querySelector(`[data-col-id="${options.previousID}"]`);
-            } else {
-                previousElement = item.querySelector(".av__cell").previousElementSibling;
-            }
-            let html = "";
-            if (item.classList.contains("av__row--header")) {
-                html = `<div class="av__cell av__cell--header" draggable="true" data-icon="${options.icon || ""}" data-col-id="${options.id}" data-dtype="${options.type}" data-wrap="false" style="width: 200px;">
-    ${options.icon ? unicode2Emoji(options.icon, "av__cellheadericon", true) : `<svg class="av__cellheadericon"><use xlink:href="#${getColIconByType(options.type)}"></use></svg>`}
-    <span class="av__celltext fn__flex-1">${options.name}</span>
-    <div class="av__widthdrag"></div>
-</div>`;
-            } else {
-                html = '<div class="av__cell" style="width: 200px"><span class="av__pulse"></span></div>';
-            }
-            previousElement.insertAdjacentHTML("afterend", html);
-        });
-    } else {
-        options.blockElement.querySelector(".fn__hr").insertAdjacentHTML("beforebegin", `<div class="block__icons av__row" data-id="${nodeId}" data-col-id="${options.id}">
-    <div class="block__icon" draggable="true"><svg><use xlink:href="#iconDrag"></use></svg></div>
-    <div class="block__logo ariaLabel fn__pointer" data-type="editCol" data-position="parentW" aria-label="${getColNameByType(options.type)}">
-        <svg class="block__logoicon"><use xlink:href="#${getColIconByType(options.type)}"></use></svg>
-        <span>${getColNameByType(options.type)}</span>
-    </div>
-    <div data-col-id="${options.id}" data-block-id="${nodeId}" data-type="${options.type}" data-options="[]" class="fn__flex-1 fn__flex">
-        <div class="fn__flex-1"></div>
-    </div>
-</div>`);
-    }
-    const menuElement = document.querySelector(".av__panel .b3-menu") as HTMLElement;
-    if (menuElement && options.data && options.blockElement.classList.contains("av")) {
-        menuElement.innerHTML = getEditHTML({
-            protyle: options.protyle,
-            data: options.data,
-            colId: options.id,
-            isCustomAttr: false
-        });
-        bindEditEvent({
-            protyle: options.protyle,
-            data: options.data,
-            menuElement,
-            isCustomAttr: false,
-            blockID: nodeId
-        });
-        const tabRect = options.blockElement.querySelector(".av__views").getBoundingClientRect();
-        if (tabRect) {
-            setPosition(menuElement, tabRect.right - menuElement.clientWidth, tabRect.bottom, tabRect.height);
-        }
-        return;
-    }
-    // https://github.com/siyuan-note/siyuan/issues/14724
-    let colData;
-    if (options.data) {
-        colData = getFieldsByData(options.data).find((item => item.id === options.id));
-    }
-    openMenuPanel({
-        protyle: options.protyle,
-        blockElement: options.blockElement,
-        type: "edit",
-        colId: options.id,
-        editData: {
-            previousID: options.previousID,
-            colData: colData || genColDataByType(options.type, options.id, options.name),
-        }
-    });
-    window.siyuan.menus.menu.remove();
-};
-
 export const showColMenu = (protyle: IProtyle, blockElement: Element, cellElement: HTMLElement) => {
     const type = cellElement.getAttribute("data-dtype") as TAVCol;
     const colId = cellElement.getAttribute("data-col-id");
@@ -715,7 +632,7 @@ export const showColMenu = (protyle: IProtyle, blockElement: Element, cellElemen
                 name: oldValue,
                 type,
             }]);
-            updateAttrViewCellAnimation(blockElement.querySelector(`.av__row--header .av__cell[data-col-id="${colId}"]`), undefined, {name: newValue});
+            updateAttrViewCellAnimation(blockElement.querySelector(`.av__row--header .av__cell[data-col-id="${colId}"]`), undefined, { name: newValue });
         }
         const newDesc = menu.element.querySelector("textarea").value;
         if (newDesc !== oldDesc) {
@@ -777,7 +694,7 @@ export const showColMenu = (protyle: IProtyle, blockElement: Element, cellElemen
                         data: cellElement.dataset.icon,
                     }]);
                     iconElement.innerHTML = unicode ? unicode2Emoji(unicode) : `<svg style="height: 14px;width: 14px"><use xlink:href="#${getColIconByType(type)}"></use></svg>`;
-                    updateAttrViewCellAnimation(blockElement.querySelector(`.av__row--header .av__cell[data-col-id="${colId}"]`), undefined, {icon: unicode});
+                    updateAttrViewCellAnimation(blockElement.querySelector(`.av__row--header .av__cell[data-col-id="${colId}"]`), undefined, { icon: unicode });
                 }, iconElement.querySelector("img"));
                 event.preventDefault();
                 event.stopPropagation();
@@ -835,7 +752,7 @@ export const showColMenu = (protyle: IProtyle, blockElement: Element, cellElemen
             });
         }
     });
-    menu.addSeparator({id: "separator_1"});
+    menu.addSeparator({ id: "separator_1" });
 
     // 行号类型不参与筛选和排序
     if (type !== "lineNumber") {
@@ -946,7 +863,7 @@ export const showColMenu = (protyle: IProtyle, blockElement: Element, cellElemen
                 data: isPin,
                 blockID
             }]);
-            updateAttrViewCellAnimation(blockElement.querySelector(`.av__row--header .av__cell[data-col-id="${colId}"]`), undefined, {pin: !isPin});
+            updateAttrViewCellAnimation(blockElement.querySelector(`.av__row--header .av__cell[data-col-id="${colId}"]`), undefined, { pin: !isPin });
         }
     });
     if (type !== "block") {
@@ -1010,7 +927,7 @@ export const showColMenu = (protyle: IProtyle, blockElement: Element, cellElemen
             });
         }
     });
-    menu.addSeparator({id: "separator_2"});
+    menu.addSeparator({ id: "separator_2" });
     menu.addItem({
         id: "insertColumnLeft",
         icon: "iconInsertLeft",
@@ -1072,21 +989,21 @@ export const showColMenu = (protyle: IProtyle, blockElement: Element, cellElemen
             label: siyuanI18n.delete,
             async click() {
                 if (type === "relation") {
-                    const response = await fetchSyncPost("/api/av/getAttributeView", {id: avID});
+                    const response = await fetchSyncPost("/api/av/getAttributeView", { id: avID });
                     const colData = response.data.av.keyValues.find((item: {
                         key: { id: string }
                     }) => item.key.id === colId);
                     if (colData.key.relation?.isTwoWay) {
-                        const relResponse = await fetchSyncPost("/api/av/getAttributeView", {id: colData.key.relation.avID});
+                        const relResponse = await fetchSyncPost("/api/av/getAttributeView", { id: colData.key.relation.avID });
                         const dialog = new Dialog({
                             title: siyuanI18n.removeColConfirm,
                             content: `<div class="b3-dialog__content">
     ${siyuanI18n.confirmRemoveRelationField
-                                .replace("${x}", colData.key.name || siyuanI18n._kernel[272])
-                                .replace("${y}", relResponse.data.av.name || siyuanI18n._kernel[267])
-                                .replace("${z}", relResponse.data.av.keyValues.find((item: {
-                                    key: { id: string }
-                                }) => item.key.id === colData.key.relation.backKeyID).key.name || siyuanI18n._kernel[272])}
+                                    .replace("${x}", colData.key.name || siyuanI18n._kernel[272])
+                                    .replace("${y}", relResponse.data.av.name || siyuanI18n._kernel[267])
+                                    .replace("${z}", relResponse.data.av.keyValues.find((item: {
+                                        key: { id: string }
+                                    }) => item.key.id === colData.key.relation.backKeyID).key.name || siyuanI18n._kernel[272])}
     <div class="fn__hr--b"></div>
     <button class="fn__block b3-button b3-button--remove" data-action="delete">${siyuanI18n.removeBothRelationField}</button>
     <div class="fn__hr"></div>
@@ -1166,43 +1083,6 @@ export const showColMenu = (protyle: IProtyle, blockElement: Element, cellElemen
         inputElement.select();
         inputElement.focus();
     }
-};
-
-const removeColByMenu = (options: {
-    protyle: IProtyle,
-    colId: string,
-    avID: string,
-    blockID: string,
-    oldValue: string,
-    type: TAVCol,
-    cellElement: HTMLElement,
-    blockElement: Element,
-    removeDest: boolean
-}) => {
-    const newUpdated = dayjs().format("YYYYMMDDHHmmss");
-    transaction(options.protyle, [{
-        action: "removeAttrViewCol",
-        id: options.colId,
-        avID: options.avID,
-        removeDest: options.removeDest
-    }, {
-        action: "doUpdateUpdated",
-        id: options.blockID,
-        data: newUpdated,
-    }], [{
-        action: "addAttrViewCol",
-        name: options.oldValue,
-        avID: options.avID,
-        type: options.type,
-        id: options.colId,
-        previousID: options.cellElement.previousElementSibling?.getAttribute("data-col-id") || "",
-    }, {
-        action: "doUpdateUpdated",
-        id: options.blockID,
-        data: options.blockElement.getAttribute("updated")
-    }]);
-    removeAttrViewColAnimation(options.blockElement, options.colId);
-    options.blockElement.setAttribute("updated", newUpdated);
 };
 
 export const removeCol = (options: {
@@ -1888,7 +1768,7 @@ export const addCol = (protyle: IProtyle, blockElement: Element, previousID?: st
     return menu;
 };
 
-const genColDataByType = (type: TAVCol, id: string, name: string) => {
+export const genColDataByType = (type: TAVCol, id: string, name: string) => {
     const colData: IAVColumn = {
         hidden: false,
         icon: "",
