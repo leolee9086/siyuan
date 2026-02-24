@@ -1,0 +1,135 @@
+import {fetchPost} from "../../util/fetch";
+import {focusBlock, focusByWbr} from "../util/selection";
+import {getContenteditableElement} from "./getBlock";
+import {blockRender} from "../render/blockRender";
+import {hasClosestBlock, hasTopClosestByAttribute, isInEmbedBlock} from "../util/hasClosest";
+import {getAllModels} from "../../layout/getAll";
+import {isMobile} from "../../platform";
+import {processClonePHElement} from "../render/util";
+import {removeTopElement} from "./transaction";
+
+export const handleMove = (operation: IOperation, protyle: IProtyle, updateElements: Element[], isUndo: boolean): void => {
+    if (operation.context?.ignoreProcess === "true") {
+        return;
+    }
+    if (!isMobile && updateElements.length === 0) {
+        // 打开两个相同的文档 A、A1，从 A 拖拽块 B 到 A1，在后续 ws 处理中，无法获取到拖拽出去的 B
+        getAllModels().editor.forEach(editor => {
+            const updateCloneElement = editor.editor.protyle.wysiwyg.element.querySelector(`[data-node-id="${operation.id}"]`);
+            if (updateCloneElement) {
+                updateElements.push(updateCloneElement.cloneNode(true) as Element);
+            }
+        });
+    }
+    if (!isMobile && updateElements.length === 0) {
+        // 页签拖入浮窗 https://github.com/siyuan-note/siyuan/issues/6647
+        window.siyuan.blockPanels.forEach((item) => {
+            const updateCloneElement = item.element.querySelector(`[data-node-id="${operation.id}"]`);
+            if (updateCloneElement) {
+                updateElements.push(updateCloneElement.cloneNode(true) as Element);
+            }
+        });
+    }
+    // 折叠标题移动到横向超级块的第一个块上后撤销
+    if (updateElements.length === 0) {
+        const tempEl = document.createElement("div");
+        tempEl.setAttribute("data-node-id", operation.id);
+        updateElements.push(tempEl);
+        fetchPost("/api/block/getBlockDOM", {
+            id: operation.id,
+        }, (response) => {
+            document.querySelector(`[data-node-id="${operation.id}"]`).outerHTML = response.data.dom;
+        });
+    }
+    let range;
+    if (isUndo && getSelection().rangeCount > 0) {
+        range = getSelection().getRangeAt(0);
+        const rangeBlockElement = hasClosestBlock(range.startContainer);
+        if (rangeBlockElement) {
+            if (getContenteditableElement(rangeBlockElement)) {
+                range.insertNode(document.createElement("wbr"));
+            } else {
+                getContenteditableElement(updateElements[0])?.insertAdjacentHTML("afterbegin", "<wbr>");
+            }
+        }
+    }
+    let hasFind = false;
+    if (operation.previousID && updateElements.length > 0) {
+        const previousElement = protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${operation.previousID}"]`);
+        if (previousElement.length === 0 && protyle.options.backlinkData && isUndo && getSelection().rangeCount > 0) {
+            // 反链面板删除超级块中的最后一个段落块后撤销重做
+            const blockElement = hasTopClosestByAttribute(range.startContainer, "data-node-id", null);
+            if (blockElement) {
+                blockElement.before(processClonePHElement(updateElements[0].cloneNode(true) as Element));
+                hasFind = true;
+            }
+        } else {
+            previousElement.forEach(item => {
+                if (!isInEmbedBlock(item)) {
+                    item.after(processClonePHElement(updateElements[0].cloneNode(true) as Element));
+                    hasFind = true;
+                }
+            });
+        }
+    } else if (updateElements.length > 0) {
+        const parentElement = protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${operation.parentID}"]`);
+        if (!protyle.options.backlinkData && operation.parentID === protyle.block.parentID && !protyle.block.showAll) {
+            protyle.wysiwyg.element.prepend(processClonePHElement(updateElements[0].cloneNode(true) as Element));
+            hasFind = true;
+        } else if (parentElement.length === 0 && protyle.options.backlinkData && isUndo && getSelection().rangeCount > 0) {
+            // 反链面板删除超级块中的段落块后撤销再重做 https://github.com/siyuan-note/siyuan/issues/14496#issuecomment-2771372486
+            const topBlockElement = hasTopClosestByAttribute(getSelection().getRangeAt(0).startContainer, "data-node-id", null);
+            if (topBlockElement) {
+                topBlockElement.before(processClonePHElement(updateElements[0].cloneNode(true) as Element));
+                hasFind = true;
+            }
+        } else {
+            parentElement.forEach(item => {
+                if (!isInEmbedBlock(item)) {
+                    const cloneElement = processClonePHElement(updateElements[0].cloneNode(true) as Element);
+                    // 列表特殊处理
+                    if (item.firstElementChild?.classList.contains("protyle-action")) {
+                        item.firstElementChild.after(cloneElement);
+                    } else if (item.classList.contains("callout")) {
+                        item.querySelector(".callout-content").prepend(cloneElement);
+                    } else {
+                        item.prepend(cloneElement);
+                    }
+                    hasFind = true;
+                }
+            });
+        }
+    }
+    updateElements.forEach(item => {
+        if (hasFind) {
+            item.remove();
+        } else if (!hasFind && item.parentElement) {
+            removeTopElement(item, protyle);
+        }
+    });
+    if (isUndo && range) {
+        if (operation.data === "focus") {
+            // 标记需要 focus，https://ld246.com/article/1650018446988/comment/1650081404993?r=Vanessa#comments
+            Array.from(protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${operation.id}"]`)).find(item => {
+                if (!isInEmbedBlock(item)) {
+                    focusBlock(item);
+                    return true;
+                }
+            });
+            document.querySelectorAll("wbr").forEach(item => {
+                item.remove();
+            });
+        } else {
+            focusByWbr(protyle.wysiwyg.element, range);
+        }
+    }
+    // 更新 ws 嵌入块，undo 会在 transaction 中更新
+    if (!isUndo) {
+        protyle.wysiwyg.element.querySelectorAll('[data-type="NodeBlockQueryEmbed"]').forEach((item) => {
+            if (item.querySelector(`[data-node-id="${operation.id}"],[data-node-id="${operation.parentID}"],[data-node-id="${operation.previousID}"]`)) {
+                item.removeAttribute("data-render");
+                blockRender(protyle, item);
+            }
+        });
+    }
+};
