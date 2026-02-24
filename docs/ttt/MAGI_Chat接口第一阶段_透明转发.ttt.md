@@ -35,32 +35,22 @@
 
 ## 🟢 近期计划
 
-- [-] **Phase 1: 透明转发 (P0)**
-  - **背景**: 建立最小可用的 OpenAI 兼容端点，将外部请求透明转发给思源内部已配置的 LLM（`Conf.AI.OpenAI.*`），本阶段不涉及任何笔记操作
+- [ ] **Phase 1.5: 接口完善阶段 (P1)**
+  - **背景**: 需要增强现有接口的兼容性与协议支持。
   - **行动**:
-    1. 新建 `kernel/api/magi.go`，实现：
-       - `magiChat` — 主入口，根据 `stream` 字段分发
-       - `magiChatSync` — 非流式：解析 messages 数组，调用 `util.ChatGPT`，包装成 OpenAI Response 返回
-       - `magiChatStream` — 流式：创建 go-openai Stream，逐 chunk 写 SSE
-       - `magiListModels` — 返回当前配置的模型名称
-       - `extractMessagesToContext` — 将 messages 数组转为 `(msg, contextMsgs)` 传给底层
-    2. 在 `kernel/api/router.go` S-forge 扩展区块末尾注册路由：
-       - `POST /api/s-forge/magi/v1/chat/completions`
-       - `GET  /api/s-forge/magi/v1/models`
+    1. 要求能够正确处理绝大部分常见 LLM 类型（处理不同模型接口的格式差异）。
+    2. 能够以 Claude 制式对外服务（支持接收 Claude 格式请求，并返回 Claude 格式响应）。
   - **验收标准**:
-    - `go build ./kernel/...` 通过
-    - curl 非流式：`choices[0].message.content` 非空
-    - curl 流式：终端中可见 SSE chunk 流，以 `data: [DONE]` 结束
-    - curl 多轮（传 3 条 messages）：模型能在回复中引用之前轮次的内容
-  - **参考文档**: `kernel/model/ai.go`、`kernel/api/router.go` 第 530 行起
-
----
-
-## 🟡 中期计划
+    - 能够直接使用我们电脑里安装的 `claude` (Claude Code) 命令行工具无缝连接并使用该接口。
+    - 验证多种底层 LLM 接入时均能稳定暴露为 Claude 协议接口。
 
 - [ ] **Phase 2: 上下文注入 (P1)**
   - **背景**: 在转发前将相关笔记内容注入 System Prompt，让 AI 拥有长程记忆
   - **行动**: 实现 Context Builder，搜索相关笔记块，拼装注入 `system` role 消息
+
+---
+
+## 🟡 中期计划
 
 - [ ] **Phase 3: 对话持久化 (P1)**
   - **背景**: 将每轮 User/AI 对话写入思源日记笔记本，实现物理化落盘
@@ -96,4 +86,21 @@
 
 ## 🏁 已归档/已完成
 
-（暂无）
+- [x] **Phase 1: 透明转发 (P0)** (2026-02-23)
+  - **背景**: 建立最小可用的 OpenAI 兼容端点，将外部请求透明转发给思源内部已配置的 LLM（`Conf.AI.OpenAI.*`），本阶段不涉及任何笔记操作
+  - **行动**:
+    1. 新建 `kernel/api/magi.go`，实现：
+       - `magiChat` — 主入口，根据 `stream` 字段分发
+       - `magiChatSync` — 非流式：解析 messages 数组，调用 `util.ChatGPT`，包装成 OpenAI Response 返回
+       - `magiChatStream` — 流式：创建 go-openai Stream，逐 chunk 写 SSE
+       - `magiListModels` — 返回当前配置的模型名称
+       - `extractMessagesToContext` — 将 messages 数组转为 `(msg, contextMsgs)` 传给底层
+    2. 在 `kernel/api/router.go` S-forge 扩展区块末尾注册路由：
+       - `POST /api/s-forge/magi/v1/chat/completions`
+       - `GET  /api/s-forge/magi/v1/models`
+  - **验收标准**:
+    - `go build ./kernel/...` 通过
+    - curl 非流式：`choices[0].message.content` 非空
+    - curl 流式：终端中可见 SSE chunk 流，以 `data: [DONE]` 结束
+    - curl 多轮（传 3 条 messages）：模型能在回复中引用之前轮次的内容
+  - **参考文档**: `kernel/model/ai.go`、`kernel/api/router.go` 第 530 行起
