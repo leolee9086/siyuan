@@ -1,0 +1,420 @@
+/**
+ * MobileOutline 右键菜单相关逻辑
+ * 从 MobileOutline.ts 拆分
+ */
+import {fetchPost} from "../../util/fetch";
+import {
+    isInAndroid,
+    isInHarmony,
+    writeText
+} from "../../protyle/util/compatibility";
+import {Constants} from "../../constants";
+import {MenuItem} from "../../menus/Menu.Item";
+import {transaction, turnsIntoTransaction} from "../../protyle/wysiwyg/transaction";
+import {mathRender} from "../../protyle/render/mathRender";
+import {genEmptyElement} from "../../block/util";
+import {focusBlock, focusByWbr} from "../../protyle/util/selection";
+import {siyuanI18n} from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import {collapseSameLevel, collapseChildren, getHeadingLevel} from "./MobileOutline.expand";
+import type {MobileOutline} from "./MobileOutline";
+
+/**
+ * 获取 Protyle 和块元素
+ */
+export function getProtyleAndBlockElement(outline: MobileOutline, element: HTMLElement) {
+    const id = element.getAttribute("data-node-id");
+    if (!window.siyuan.mobile.editor?.protyle) {
+        return;
+    }
+    const blockElement = window.siyuan.mobile.editor.protyle.wysiwyg.element.querySelector(`[data-node-id="${id}"]`);
+    if (!blockElement) {
+        return;
+    }
+    return {
+        protyle: window.siyuan.mobile.editor.protyle, blockElement
+    };
+}
+
+/**
+ * 生成标题级别转换菜单项
+ */
+export function genHeadingTransform(id: string, level: number) {
+    return {
+        id: "heading" + level,
+        iconHTML: "",
+        icon: "iconHeading" + level,
+        label: siyuanI18n["heading" + level],
+        click: () => {
+            const protyle = window.siyuan.mobile.editor?.protyle;
+            if (!protyle) {
+                return;
+            }
+            fetchPost("/api/block/getHeadingLevelTransaction", {
+                id,
+                level
+            }, (response) => {
+                response.data.doOperations.forEach((operation: any, index: number) => {
+                    protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${operation.id}"]`).forEach((itemElement: HTMLElement) => {
+                        itemElement.outerHTML = operation.data;
+                    });
+                    // 使用 outer 后元素需要重新查询
+                    protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${operation.id}"]`).forEach((itemElement: HTMLElement) => {
+                        mathRender(itemElement);
+                    });
+                    if (index === 0) {
+                        const focusElement = protyle.wysiwyg.element.querySelector(`[data-node-id="${operation.id}"]`);
+                        if (focusElement) {
+                            focusElement.scrollIntoView({behavior: "smooth", block: "center"});
+                        }
+                    }
+                });
+                transaction(protyle, response.data.doOperations, response.data.undoOperations);
+            });
+        }
+    };
+}
+
+/**
+ * 显示右键菜单
+ */
+export function showContextMenu(outline: MobileOutline, element: HTMLElement) {
+    if (outline.isPreview) {
+        return; // 预览模式下不显示右键菜单
+    }
+    const currentLevel = getHeadingLevel(element);
+    window.siyuan.menus.menu.remove();
+    window.siyuan.menus.menu.element.setAttribute("data-name", Constants.MENU_OUTLINE_CONTEXT);
+    const id = element.getAttribute("data-node-id");
+    if (!window.siyuan.config.readonly) {
+        // 升级
+        if (currentLevel > 1) {
+            window.siyuan.menus.menu.append(new MenuItem({
+                id: "upgrade",
+                icon: "iconUp",
+                label: siyuanI18n.upgrade,
+                click: () => {
+                    const data = getProtyleAndBlockElement(outline, element);
+                    if (data) {
+                        turnsIntoTransaction({
+                            protyle: data.protyle,
+                            selectsElement: [data.blockElement],
+                            type: "Blocks2Hs",
+                            level: currentLevel - 1
+                        });
+                    }
+                }
+            }).element);
+        }
+
+        // 降级
+        if (currentLevel < 6) {
+            window.siyuan.menus.menu.append(new MenuItem({
+                id: "downgrade",
+                icon: "iconDown",
+                label: siyuanI18n.downgrade,
+                click: () => {
+                    const data = getProtyleAndBlockElement(outline, element);
+                    if (data) {
+                        turnsIntoTransaction({
+                            protyle: data.protyle,
+                            selectsElement: [data.blockElement],
+                            type: "Blocks2Hs",
+                            level: currentLevel + 1
+                        });
+                    }
+                }
+            }).element);
+        }
+        outline.setCurrentById(id);
+        const headingSubMenu = [];
+        for (let i = 1; i <= 6; i++) {
+            if (i !== currentLevel) {
+                headingSubMenu.push(genHeadingTransform(id, i));
+            }
+        }
+
+        if (headingSubMenu.length > 0) {
+            window.siyuan.menus.menu.append(new MenuItem({
+                id: "tWithSubtitle",
+                type: "submenu",
+                icon: "iconRefresh",
+                label: siyuanI18n.tWithSubtitle,
+                submenu: headingSubMenu
+            }).element);
+        }
+
+        window.siyuan.menus.menu.append(new MenuItem({id: "separator_1", type: "separator"}).element);
+
+        // 在前面插入同级标题
+        window.siyuan.menus.menu.append(new MenuItem({
+            id: "insertSameLevelHeadingBefore",
+            icon: "iconBefore",
+            label: siyuanI18n.insertSameLevelHeadingBefore,
+            click: () => {
+                const data = getProtyleAndBlockElement(outline, element);
+                const newId = Lute.NewNodeID();
+                const html = `<div data-subtype="h${currentLevel}" data-node-id="${newId}" data-type="NodeHeading" class="h${currentLevel}"><div contenteditable="true" spellcheck="false"><wbr></div><div class="protyle-attr" contenteditable="false">${Constants.ZWSP}</div></div>`;
+                transaction(data.protyle, [{
+                    action: "insert",
+                    data: html,
+                    id: newId,
+                    previousID: data.blockElement.previousElementSibling?.getAttribute("data-node-id"),
+                    parentID: data.blockElement.parentElement.getAttribute("data-node-id") || data.protyle.block.parentID,
+                }], [{
+                    action: "delete",
+                    id: newId
+                }]);
+                data.blockElement.insertAdjacentHTML("beforebegin", html);
+                data.blockElement.previousElementSibling.scrollIntoView();
+                focusByWbr(data.blockElement.previousElementSibling, document.createRange());
+            }
+        }).element);
+
+        // 在后面插入同级标题
+        window.siyuan.menus.menu.append(new MenuItem({
+            id: "insertSameLevelHeadingAfter",
+            icon: "iconAfter",
+            label: siyuanI18n.insertSameLevelHeadingAfter,
+            click: () => {
+                fetchPost("/api/block/getHeadingDeleteTransaction", {
+                    id,
+                }, (deleteResponse) => {
+                    const data = getProtyleAndBlockElement(outline, element);
+                    const previousID = deleteResponse.data.doOperations[deleteResponse.data.doOperations.length - 1].id;
+
+                    const newId = Lute.NewNodeID();
+                    const html = `<div data-subtype="h${currentLevel}" data-node-id="${newId}" data-type="NodeHeading" class="h${currentLevel}"><div contenteditable="true" spellcheck="false"><wbr></div><div class="protyle-attr" contenteditable="false">${Constants.ZWSP}</div></div>`;
+                    transaction(data.protyle, [{
+                        action: "insert",
+                        data: html,
+                        id: newId,
+                        previousID,
+                    }], [{
+                        action: "delete",
+                        id: newId
+                    }]);
+                    const previousElement = data.protyle.wysiwyg.element.querySelector(`[data-node-id="${previousID}"]`);
+                    if (previousElement) {
+                        previousElement.insertAdjacentHTML("afterend", html);
+                        previousElement.nextElementSibling.scrollIntoView();
+                        focusByWbr(previousElement.nextElementSibling, document.createRange());
+                    }
+                });
+            }
+        }).element);
+
+        // 添加子标题
+        if (currentLevel < 6) {
+            window.siyuan.menus.menu.append(new MenuItem({
+                id: "addChildHeading",
+                icon: "iconAdd",
+                label: siyuanI18n.addChildHeading,
+                click: () => {
+                    fetchPost("/api/block/getHeadingDeleteTransaction", {
+                        id,
+                    }, (deleteResponse) => {
+                        let previousID = deleteResponse.data.doOperations[deleteResponse.data.doOperations.length - 1].id;
+                        deleteResponse.data.undoOperations.find((operationsItem: IOperation, index: number) => {
+                            const startIndex = operationsItem.data.indexOf(' data-subtype="h');
+                            if (startIndex > -1 && startIndex < 260 && parseInt(operationsItem.data.substring(startIndex + 16, startIndex + 17)) === currentLevel + 1) {
+                                previousID = deleteResponse.data.undoOperations[index - 1].id;
+                                return true;
+                            }
+                        });
+
+                        const data = getProtyleAndBlockElement(outline, element);
+                        const newId = Lute.NewNodeID();
+                        const html = `<div data-subtype="h${currentLevel + 1}" data-node-id="${newId}" data-type="NodeHeading" class="h${currentLevel + 1}"><div contenteditable="true" spellcheck="false"><wbr></div><div class="protyle-attr" contenteditable="false">${Constants.ZWSP}</div></div>`;
+                        transaction(data.protyle, [{
+                            action: "insert",
+                            data: html,
+                            id: newId,
+                            previousID,
+                        }], [{
+                            action: "delete",
+                            id: newId
+                        }]);
+                        const previousElement = data.protyle.wysiwyg.element.querySelector(`[data-node-id="${previousID}"]`);
+                        if (previousElement) {
+                            previousElement.insertAdjacentHTML("afterend", html);
+                            previousElement.nextElementSibling.scrollIntoView();
+                            focusByWbr(previousElement.nextElementSibling, document.createRange());
+                        }
+                    });
+                }
+            }).element);
+        }
+
+        window.siyuan.menus.menu.append(new MenuItem({id: "separator_2", type: "separator"}).element);
+    }
+
+    // 复制带子标题
+    window.siyuan.menus.menu.append(new MenuItem({
+        id: "copyHeadings1",
+        icon: "iconCopy",
+        label: `${siyuanI18n.copy} ${siyuanI18n.headings1}`,
+        click: () => {
+            const data = getProtyleAndBlockElement(outline, element);
+            fetchPost("/api/block/getHeadingChildrenDOM", {
+                id,
+                removeFoldAttr: data.blockElement.getAttribute("fold") !== "1"
+            }, (response) => {
+                if (isInAndroid()) {
+                    window.JSAndroid.writeHTMLClipboard(data.protyle.lute.BlockDOM2StdMd(response.data).trimEnd(), response.data + Constants.ZWSP);
+                } else if (isInHarmony()) {
+                    window.JSHarmony.writeHTMLClipboard(data.protyle.lute.BlockDOM2StdMd(response.data).trimEnd(), response.data + Constants.ZWSP);
+                } else {
+                    writeText(response.data + Constants.ZWSP);
+                }
+            });
+        }
+    }).element);
+
+    if (!window.siyuan.config.readonly) {
+        // 剪切带子标题
+        window.siyuan.menus.menu.append(new MenuItem({
+            id: "cutHeadings1",
+            icon: "iconCut",
+            label: `${siyuanI18n.cut} ${siyuanI18n.headings1}`,
+            click: () => {
+                const data = getProtyleAndBlockElement(outline, element);
+                fetchPost("/api/block/getHeadingChildrenDOM", {
+                    id,
+                    removeFoldAttr: data.blockElement.getAttribute("fold") !== "1"
+                }, (response) => {
+                    if (isInAndroid()) {
+                        window.JSAndroid.writeHTMLClipboard(data.protyle.lute.BlockDOM2StdMd(response.data).trimEnd(), response.data + Constants.ZWSP);
+                    } else if (isInHarmony()) {
+                        window.JSHarmony.writeHTMLClipboard(data.protyle.lute.BlockDOM2StdMd(response.data).trimEnd(), response.data + Constants.ZWSP);
+                    } else {
+                        writeText(response.data + Constants.ZWSP);
+                    }
+                    fetchPost("/api/block/getHeadingDeleteTransaction", {
+                        id,
+                    }, (deleteResponse) => {
+                        deleteResponse.data.doOperations.forEach((operation: IOperation) => {
+                            data.protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${operation.id}"]`).forEach((itemElement: HTMLElement) => {
+                                itemElement.remove();
+                            });
+                        });
+                        if (data.protyle.wysiwyg.element.childElementCount === 0) {
+                            const newID = Lute.NewNodeID();
+                            const emptyElement = genEmptyElement(false, false, newID);
+                            data.protyle.wysiwyg.element.insertAdjacentElement("afterbegin", emptyElement);
+                            deleteResponse.data.doOperations.push({
+                                action: "insert",
+                                data: emptyElement.outerHTML,
+                                id: newID,
+                                parentID: data.protyle.block.parentID
+                            });
+                            deleteResponse.data.undoOperations.push({
+                                action: "delete",
+                                id: newID,
+                            });
+                            focusBlock(emptyElement);
+                        }
+                        transaction(data.protyle, deleteResponse.data.doOperations, deleteResponse.data.undoOperations);
+                    });
+                });
+            }
+        }).element);
+
+        // 删除
+        window.siyuan.menus.menu.append(new MenuItem({
+            id: "deleteHeadings1",
+            icon: "iconTrashcan",
+            label: `${siyuanI18n.delete} ${siyuanI18n.headings1}`,
+            click: () => {
+                const data = getProtyleAndBlockElement(outline, element);
+                fetchPost("/api/block/getHeadingDeleteTransaction", {
+                    id,
+                }, (response) => {
+                    response.data.doOperations.forEach((operation: IOperation) => {
+                        data.protyle.wysiwyg.element.querySelectorAll(`[data-node-id="${operation.id}"]`).forEach((itemElement: HTMLElement) => {
+                            itemElement.remove();
+                        });
+                    });
+                    if (data.protyle.wysiwyg.element.childElementCount === 0) {
+                        const newID = Lute.NewNodeID();
+                        const emptyElement = genEmptyElement(false, false, newID);
+                        data.protyle.wysiwyg.element.insertAdjacentElement("afterbegin", emptyElement);
+                        response.data.doOperations.push({
+                            action: "insert",
+                            data: emptyElement.outerHTML,
+                            id: newID,
+                            parentID: data.protyle.block.parentID
+                        });
+                        response.data.undoOperations.push({
+                            action: "delete",
+                            id: newID,
+                        });
+                        focusBlock(emptyElement);
+                    }
+                    transaction(data.protyle, response.data.doOperations, response.data.undoOperations);
+                });
+            }
+        }).element);
+    }
+    window.siyuan.menus.menu.append(new MenuItem({id: "separator_3", type: "separator"}).element);
+
+    // 展开子标题
+    window.siyuan.menus.menu.append(new MenuItem({
+        id: "expandChildHeading",
+        icon: "iconExpand",
+        label: siyuanI18n.expandChildHeading,
+        accelerator: "⌘" + siyuanI18n.clickArrow,
+        click: () => collapseChildren(outline, element, true)
+    }).element);
+
+    // 折叠子标题
+    window.siyuan.menus.menu.append(new MenuItem({
+        id: "foldChildHeading",
+        icon: "iconContract",
+        label: siyuanI18n.foldChildHeading,
+        accelerator: "⌘" + siyuanI18n.clickArrow,
+        click: () => collapseChildren(outline, element, false)
+    }).element);
+
+    // 展开同级标题
+    window.siyuan.menus.menu.append(new MenuItem({
+        id: "expandSameLevelHeading",
+        icon: "iconExpand",
+        label: siyuanI18n.expandSameLevelHeading,
+        accelerator: "⌥" + siyuanI18n.clickArrow,
+        click: () => collapseSameLevel(outline, element, true)
+    }).element);
+
+    // 折叠同级标题
+    window.siyuan.menus.menu.append(new MenuItem({
+        id: "foldSameLevelHeading",
+        icon: "iconContract",
+        label: siyuanI18n.foldSameLevelHeading,
+        accelerator: "⌥" + siyuanI18n.clickArrow,
+        click: () => collapseSameLevel(outline, element, false)
+    }).element);
+
+    // 全部展开
+    window.siyuan.menus.menu.append(new MenuItem({
+        id: "expandAll",
+        icon: "iconExpand",
+        label: siyuanI18n.expandAll,
+        click: () => {
+            outline.tree.expandAll();
+            outline.saveExpendIds();
+        }
+    }).element);
+
+    // 全部折叠
+    window.siyuan.menus.menu.append(new MenuItem({
+        id: "foldAll",
+        icon: "iconContract",
+        label: siyuanI18n.foldAll,
+        click: () => {
+            outline.tree.collapseAll();
+            outline.saveExpendIds();
+        }
+    }).element);
+
+    window.siyuan.menus.menu.fullscreen("bottom");
+}
+
