@@ -15,7 +15,9 @@ import {
     updateCellsValue,
     updateHeaderCell
 } from "./cell";
-import {addCol, getColIconByType, showColMenu} from "./col";
+import {addCol} from "./col.addCol";
+import {showColMenu} from "./col";
+import {getColIconByType} from "./col.typeUtils";
 import {deleteRow, insertRows, selectRow, setPageSize, updateHeader} from "./row";
 import {emitOpenMenu} from "../../../plugin/EventBus";
 import {openMenuPanel} from "./openMenuPanel";

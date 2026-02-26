@@ -1,6 +1,8 @@
 import { transaction } from "../../wysiwyg/transaction";
 import { setPosition } from "../../../util/setPosition";
-import { addCol, duplicateCol, removeCol, bindEditEvent, getEditHTML } from "./col";
+import { duplicateCol, removeCol } from "./col.operations";
+import { addCol } from "./col.addCol";
+import { bindEditEvent, getEditHTML } from "./col";
 import { Constants } from "../../../constants";
 import { Dialog } from "../../../dialog";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";

@@ -1,6 +1,7 @@
 import { unicode2Emoji } from "../../../emoji";
 import { setPosition } from "../../../util/setPosition";
-import { getColIconByType, getColNameByType, getEditHTML, bindEditEvent, genColDataByType } from "./col";
+import { getEditHTML, bindEditEvent } from "./col";
+import { getColIconByType, getColNameByType, genColDataByType } from "./col.typeUtils";
 import { openMenuPanel } from "./openMenuPanel";
 import { getFieldsByData } from "./view";
 

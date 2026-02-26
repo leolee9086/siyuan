@@ -2,7 +2,7 @@ import {transaction} from "../../../wysiwyg/transaction";
 import {Menu} from "../../../../plugin/Menu";
 import {hasClosestByClassName} from "../../../util/hasClosest";
 import {unicode2Emoji} from "../../../../emoji";
-import {getColIconByType} from "../col";
+import {getColIconByType} from "../col.typeUtils";
 import {avContextmenu} from "../action";
 import {Constants} from "../../../../constants";
 import { siyuanI18n } from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";

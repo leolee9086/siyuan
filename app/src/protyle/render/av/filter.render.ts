@@ -1,4 +1,4 @@
-import {getColIconByType} from "./col";
+import {getColIconByType} from "./col.typeUtils";
 import {unicode2Emoji} from "../../../emoji";
 import * as dayjs from "dayjs";
 import {getFieldsByData} from "./view";

@@ -1,5 +1,5 @@
 import {Menu} from "../../../plugin/Menu";
-import {getColIconByType} from "./col";
+import {getColIconByType} from "./col.typeUtils";
 import {transaction} from "../../wysiwyg/transaction";
 import {setPosition} from "../../../util/setPosition";
 import {unicode2Emoji} from "../../../emoji";
