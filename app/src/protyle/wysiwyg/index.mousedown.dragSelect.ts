@@ -146,7 +146,6 @@ function computeTableSelectRect(
     if (typeof moveTarget === "boolean") {
 return;
 }
-    // @ts-ignore
     tableBlockElement.firstElementChild.style.webkitUserModify = "read-only";
     let width = target.offsetLeft + target.clientWidth - moveTarget.offsetLeft;
     let left = moveTarget.offsetLeft;
@@ -447,7 +446,6 @@ function handleMouseUpTableMenu(
     if (!tableBlockElement) {
 return;
 }
-    // @ts-ignore
     tableBlockElement.firstElementChild.style.webkitUserModify = "";
     const tableSelectElement = tableBlockElement.querySelector(".table__select") as HTMLElement;
     if (tableSelectElement.getAttribute("style")) {
@@ -499,11 +497,11 @@ function handleMouseUpRangeCleanup(
         const selectElement = protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select");
         if (selectElement.length > 0) {
             range.collapse(true);
-            if (range.commonAncestorContainer.nodeType === 1 &&
-                range.startContainer.childNodes[range.startOffset] &&
-                range.startContainer.childNodes[range.startOffset].nodeType === 1 &&
-                (range.commonAncestorContainer as HTMLElement).classList.contains("protyle-wysiwyg")) {
-                focusBlock(range.startContainer.childNodes[range.startOffset] as Element);
+            // 上游 #17092: 修复鼠标框选后焦点位置问题
+            // 使用 hasClosestBlock 获取更准确的结束元素位置
+            const endElement = hasClosestBlock(mouseUpEvent.target as HTMLElement);
+            if (endElement && document.activeElement.classList.contains("protyle-wysiwyg")) {
+                focusBlock(endElement);
             }
             return;
         }

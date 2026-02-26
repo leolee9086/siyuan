@@ -1,6 +1,7 @@
 // S-forge: 保留 siyuanI18n 封装，同时采用远程的 DIV 支持功能
 import { siyuanI18n } from "./siyuanEnvironments/i18n.getI18n.environment";
 
+// S-forge: 移植上游改进 - 支持清空时恢复原始padding，支持contenteditable元素的margin-right
 const update = (inputElement: HTMLElement, clearElement: Element, right?: number) => {
     let value = "";
     if (inputElement.tagName === "DIV") {
@@ -11,12 +12,18 @@ const update = (inputElement: HTMLElement, clearElement: Element, right?: number
 
     if (value === "") {
         clearElement.classList.add("fn__none");
+        // S-forge: 移植上游改进 - 清空时恢复原始padding
+        if (typeof right === "number") {
+            inputElement.style.paddingRight = inputElement.dataset.oldPaddingRight || "";
+        }
         return;
     }
 
     clearElement.classList.remove("fn__none");
     if (typeof right === "number") {
-        inputElement.style.setProperty("padding-right", `${right * 2 + clearElement.clientWidth}px`, "important");
+        // S-forge: 移植上游改进 - 数据库搜索需设置margin-right（contenteditable元素）
+        const styleProperty = inputElement.getAttribute("contenteditable") ? "margin-right" : "padding-right";
+        inputElement.style.setProperty(styleProperty, `${right * 2 + clearElement.clientWidth}px`, "important");
     }
 };
 

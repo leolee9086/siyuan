@@ -35,7 +35,8 @@ export function bindInputEvents(
 ) {
     element.addEventListener("paste", (event: ClipboardEvent & { target: HTMLElement }) => {
         // https://github.com/siyuan-note/siyuan/issues/11241
-        if (event.target.getAttribute("data-type") === "av-search") {
+        // 上游 #17098: 使用 hasClosestByAttribute 替代直接判断
+        if (hasClosestByAttribute(event.target, "data-type", "av-search")) {
             return;
         }
         if (protyle.disabled) {

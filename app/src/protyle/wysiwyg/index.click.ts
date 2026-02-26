@@ -2,6 +2,7 @@ import {
     hasClosestBlock,
     hasClosestByAttribute,
     hasClosestByClassName,
+    hasClosestByTag,
     hasTopClosestByClassName,
     isInEmbedBlock,
 } from "../util/hasClosest";
@@ -27,6 +28,7 @@ import {pushBack} from "../../util/backForward";
 import {isOnlyMeta, isInIOS} from "../util/compatibility";
 import {hasNextSibling} from "./getBlock";
 import {updateTransaction} from "./transaction";
+import {updateTableTitle} from "../util/table";
 import {countSelectWord} from "../../layout/status";
 import {getBacklinkHeadingMore, loadBreadcrumb} from "./renderBacklink";
 import {commonClick} from "./commonClick";
@@ -74,7 +76,7 @@ export function handleClick(
     }
 
     setEmptyOutline(protyle, event.target);
-    cleanTableSelections(wysiwygElement, event);
+    cleanTableSelections(protyle, wysiwygElement, event);
     // 面包屑定位，需至于前，否则 return 的元素就无法进行面包屑定位
     if (protyle.options.render.breadcrumb) {
         protyle.breadcrumb.render(protyle, false, hasClosestBlock(event.target));
@@ -169,7 +171,11 @@ function handleBreadcrumbClick(
 }
 
 /** @同步豁免: 遗留代码 - DOM 操作 */
-function cleanTableSelections(wysiwygElement: HTMLElement, event: MouseEvent & { target: HTMLElement }) {
+function cleanTableSelections(
+    protyle: IProtyle,
+    wysiwygElement: HTMLElement,
+    event: MouseEvent & { target: HTMLElement },
+) {
     const tableElement = hasClosestByClassName(event.target, "table");
     wysiwygElement.querySelectorAll(".table").forEach(item => {
         if (item.tagName !== "DIV") {
@@ -183,6 +189,12 @@ function cleanTableSelections(wysiwygElement: HTMLElement, event: MouseEvent & {
             event.stopPropagation();
         }
     });
+    // 上游 #17002 & #17051: 点击表格标题时弹出编辑对话框
+    // 判断当前点击是否在表格标题(CAPTION)元素内
+    if (tableElement && hasClosestByTag(event.target, "CAPTION")) {
+        updateTableTitle(protyle, tableElement);
+        return;
+    }
 }
 
 /** @同步豁免: 遗留代码 - DOM 事件处理 */

@@ -7,7 +7,7 @@ import {Constants} from "../../constants";
 import {getSelectionPosition} from "../../protyle/util/selection";
 import {getCurrentEditor} from "../editor";
 import {isInAndroid, isInEdge, isInHarmony} from "../../protyle/util/compatibility";
-import {canInput} from "./mobileAppUtil";
+import {callMobileAppShowKeyboard, canInput, keyboardLockUntil} from "./mobileAppUtil";
 import {handleToolbarClick} from "./keyboardToolbar.action";
 
 export {renderTextMenu} from "./keyboardToolbar.menu";
@@ -203,6 +203,12 @@ export const hideKeyboardToolbar = () => {
 };
 
 export const activeBlur = () => {
+    const now = Date.now();
+    if (now < keyboardLockUntil) {
+        console.warn(`activeBlur blocked by lock (remaining: ${keyboardLockUntil - now}ms)`);
+        return;
+    }
+
     if (window.JSAndroid && window.JSAndroid.hideKeyboard) {
         window.JSAndroid.hideKeyboard();
     } else if (window.JSHarmony && window.JSHarmony.hideKeyboard) {

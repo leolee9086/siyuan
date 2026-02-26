@@ -18,11 +18,13 @@ export const insertWbrMiddleware = async (
 ) => {
     // 有可能输入 shift+. ，因此需要使用 event.key 来进行判断
     // 过滤掉特殊键值和功能键
-    if (event.key === "PageUp" || event.key === "PageDown" || 
-        event.key === "Home" || event.key === "End" || 
+    // 上游 #17084: 添加 typeof 检查确保 event.key 是字符串
+    if (typeof event.key !== "string" ||
+        event.key === "PageUp" || event.key === "PageDown" ||
+        event.key === "Home" || event.key === "End" ||
         event.key.indexOf("Arrow") > -1 || event.key === "Escape" ||
-        event.key === "Shift" || event.key === "Meta" || 
-        event.key === "Alt" || event.key === "Control" || 
+        event.key === "Shift" || event.key === "Meta" ||
+        event.key === "Alt" || event.key === "Control" ||
         event.key === "CapsLock" || /^F\d{1,2}$/.test(event.key) ||
         event.key === "Process") {
         return;

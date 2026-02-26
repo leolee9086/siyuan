@@ -43,6 +43,7 @@ const updateNodeElements = (nodeElements: Element[], protyle: IProtyle, inputEle
 };
 
 export const buildGutterAlignMenu = (nodeElements: Element[], protyle: IProtyle): IMenu => {
+    const disabledRTL = nodeElements.some(e => ["NodeAttributeView", "NodeCodeBlock", "NodeMathBlock"].includes(e.getAttribute("data-type")));
     return {
         id: "layout",
         label: siyuanI18n.layout,
@@ -110,27 +111,40 @@ export const buildGutterAlignMenu = (nodeElements: Element[], protyle: IProtyle)
         }, {
             id: "ltr",
             icon: "iconLtr",
+            ignore: disabledRTL,
             label: siyuanI18n.ltr,
             accelerator: window.siyuan.config.keymap.editor.general.ltr.custom,
             click: () => {
                 genClick(nodeElements, protyle, (e: HTMLElement) => {
-                    e.style.direction = "ltr";
+                    if (e.classList.contains("table")) {
+                        e.querySelector("table").style.direction = "ltr";
+                    } else if (e.getAttribute("data-type") === "NodeHTMLBlock") {
+                        (e.querySelector("protyle-html") as HTMLElement).style.direction = "ltr";
+                    } else {
+                        e.style.direction = "ltr";
+                    }
                 });
             }
         }, {
             id: "rtl",
             icon: "iconRtl",
+            ignore: disabledRTL,
             label: siyuanI18n.rtl,
             accelerator: window.siyuan.config.keymap.editor.general.rtl.custom,
             click: () => {
                 genClick(nodeElements, protyle, (e: HTMLElement) => {
-                    if (!e.classList.contains("av")) {
+                    if (e.classList.contains("table")) {
+                        e.querySelector("table").style.direction = "rtl";
+                    } else if (e.getAttribute("data-type") === "NodeHTMLBlock") {
+                        (e.querySelector("protyle-html") as HTMLElement).style.direction = "rtl";
+                    } else {
                         e.style.direction = "rtl";
                     }
                 });
             }
         }, {
             id: "separator_2",
+            ignore: disabledRTL,
             type: "separator"
         }, {
             id: "clearFontStyle",

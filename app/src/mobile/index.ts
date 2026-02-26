@@ -38,7 +38,7 @@ import { correctHotkey } from "../boot/globalEvent/commonHotkey";
 import { processIOSPurchaseResponse } from "../util/iOSPurchase";
 import { updateControlAlt } from "../protyle/util/hotKey";
 import { nbsp2space } from "../protyle/util/normalizeText";
-import { callMobileAppShowKeyboard, canInput } from "./util/mobileAppUtil";
+import { callMobileAppShowKeyboard, canInput, setWebViewFocusable } from "./util/mobileAppUtil";
 import { setSForgeState } from "../config/sforge.global";
 import { SForgeSymbols } from "../config/sforge.symbols";
 
@@ -190,6 +190,9 @@ class App {
                 window.siyuan.ctrlIsPressed = false;
                 window.siyuan.shiftIsPressed = false;
                 window.siyuan.altIsPressed = false;
+            });
+            window.addEventListener("blur", () => {
+                setWebViewFocusable();
             });
             // 移动端删除键 https://github.com/siyuan-note/siyuan/issues/9259
             window.addEventListener("keydown", (event) => {

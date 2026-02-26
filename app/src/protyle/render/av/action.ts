@@ -329,6 +329,7 @@ export const avClick = (protyle: IProtyle, event: MouseEvent & { target: HTMLEle
             searchElement.style.width = "128px";
             searchElement.style.paddingLeft = "";
             searchElement.style.paddingRight = "";
+            searchElement.style.marginRight = "1em";
             const viewsElement = hasClosestByClassName(searchElement, "av__views");
             if (viewsElement) {
                 viewsElement.classList.add("av__views--show");

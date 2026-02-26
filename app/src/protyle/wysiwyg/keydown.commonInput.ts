@@ -10,7 +10,8 @@ export const commonInputMiddleware = (
     controller: AbortController
 
 ) => {
-    if (
+    // 上游 #17084: 添加 typeof 检查确保 event.key 是字符串
+    if (typeof event.key !== "string" ||
         event.key !== "PageUp" &&
         event.key !== "PageDown" &&
         event.key !== "Home" &&

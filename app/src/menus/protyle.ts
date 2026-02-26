@@ -15,7 +15,8 @@ import {
     moveColumnToRight,
     moveRowToDown,
     moveRowToUp,
-    setTableAlign
+    setTableAlign,
+    updateTableTitle
 } from "../protyle/util/table";
 import { transaction } from "../protyle/wysiwyg/transaction";
 import { preventScroll } from "../protyle/scroll/preventScroll";
@@ -260,66 +261,9 @@ export const tableMenu = (protyle: IProtyle, nodeElement: Element, cellElement: 
     otherMenus.push({
         icon: "iconHeadings",
         label: siyuanI18n.title,
+        /** 表格标题设置 */
         click: () => {
-            const captionElement = nodeElement.querySelector("caption");
-            window.siyuan.menus.menu.remove();
-            const dialog = new Dialog({
-                title: siyuanI18n.table,
-                width: isMobile() ? "92vw" : "520px",
-                content: `<div class="b3-dialog__content">
-    <label>
-        <div>${siyuanI18n.title}</div>
-        <div class="fn__hr"></div>
-        <input class="b3-text-field fn__block">
-    </label>
-    <div class="fn__hr--b"></div>
-    <label>
-        <div>${siyuanI18n.position}</div>
-        <div class="fn__hr"></div>
-        <select class="b3-select fn__block">
-            <option value="top">${siyuanI18n.up}</option>
-            <option value="bottom" ${captionElement?.style.captionSide === "bottom" ? "selected" : ""}>${siyuanI18n.down}</option>
-        </select>
-    </label>
-</div>
-<div class="b3-dialog__action">
-    <button class="b3-button b3-button--cancel">${siyuanI18n.cancel}</button><div class="fn__space"></div>
-    <button class="b3-button b3-button--text">${siyuanI18n.confirm}</button>
-</div>
-<div>`,
-            });
-            const html = nodeElement.outerHTML;
-            const inputElement = dialog.element.querySelector(".b3-text-field") as HTMLInputElement;
-            const btnsElement = dialog.element.querySelectorAll(".b3-button");
-            dialog.bindInput(inputElement, () => {
-                (btnsElement[1] as HTMLButtonElement).click();
-            });
-            inputElement.focus();
-            inputElement.value = captionElement?.textContent || "";
-            btnsElement[0].addEventListener("click", () => {
-                dialog.destroy();
-            });
-            btnsElement[1].addEventListener("click", () => {
-                const title = inputElement.value.trim();
-                const location = (dialog.element.querySelector("select") as HTMLSelectElement).value;
-                const { updateTransaction } = require("../protyle/wysiwyg/transaction");
-                if (title) {
-                    const html = `<caption contenteditable="false" ${location === "bottom" ? 'style="caption-side: bottom;"' : ""}>${Lute.EscapeHTMLStr(title)}</caption>`;
-                    if (captionElement) {
-                        captionElement.outerHTML = html;
-                    } else {
-                        nodeElement.querySelector("table").insertAdjacentHTML("afterbegin", html);
-                    }
-                    nodeElement.setAttribute("caption", Lute.EscapeHTMLStr(html));
-                } else {
-                    if (captionElement) {
-                        captionElement.remove();
-                    }
-                    nodeElement.removeAttribute("caption");
-                }
-                updateTransaction(protyle, nodeElement.getAttribute("data-node-id"), nodeElement.outerHTML, html);
-                dialog.destroy();
-            });
+            updateTableTitle(protyle, nodeElement);
         }
     });
     otherMenus.push({ id: "separator_1", type: "separator" });
@@ -468,7 +412,7 @@ export const tableMenu = (protyle: IProtyle, nodeElement: Element, cellElement: 
         id: "insertRowAbove",
         icon: "iconBefore",
         label: `<div class="fn__flex" style="align-items: center;">
-${siyuanI18n.insertRowBefore.replace("${x}", `<span class="fn__space"></span><input style="width:64px" type="number" step="1" min="1" value="1" placeholder="${siyuanI18n.enterKey}" class="b3-text-field"><span class="fn__space"></span>`)}
+${siyuanI18n.insertRowBefore.replace("${x}", `<span class="fn__space"></span><input type="number" step="1" min="1" value="1" placeholder="${siyuanI18n.enterKey}" class="b3-text-field b3-text-field--size"><span class="fn__space"></span>`)}
 </div>`,
         accelerator: window.siyuan?.config?.keymap?.editor?.table?.insertRowAbove?.custom,
         /** 在上方插入行（支持批量） */
@@ -479,7 +423,7 @@ ${siyuanI18n.insertRowBefore.replace("${x}", `<span class="fn__space"></span><in
                 if (document.activeElement === inputElement) {
                     return;
                 }
-                insertRowAbove(protyle, range, cellElement, nodeElement);
+                insertRowAbove(protyle, range, cellElement, nodeElement, parseInt(element.querySelector("input").value));
                 window.siyuan.menus.menu.remove();
             });
             // @内联回调
@@ -497,7 +441,7 @@ ${siyuanI18n.insertRowBefore.replace("${x}", `<span class="fn__space"></span><in
             id: "insertRowBelow",
             icon: "iconAfter",
             label: `<div class="fn__flex" style="align-items: center;">
-${siyuanI18n.insertRowAfter.replace("${x}", `<span class="fn__space"></span><input style="width:64px" type="number" step="1" min="1" value="1" placeholder="${siyuanI18n.enterKey}" class="b3-text-field"><span class="fn__space"></span>`)}
+${siyuanI18n.insertRowAfter.replace("${x}", `<span class="fn__space"></span><input type="number" step="1" min="1" value="1" placeholder="${siyuanI18n.enterKey}" class="b3-text-field b3-text-field--size"><span class="fn__space"></span>`)}
 </div>`,
             accelerator: window.siyuan?.config?.keymap?.editor?.table?.insertRowBelow?.custom,
             /** 在下方插入行（支持批量） */
@@ -508,7 +452,7 @@ ${siyuanI18n.insertRowAfter.replace("${x}", `<span class="fn__space"></span><inp
                     if (document.activeElement === inputElement) {
                         return;
                     }
-                    insertRow(protyle, range, cellElement, nodeElement);
+                    insertRow(protyle, range, cellElement, nodeElement, parseInt(element.querySelector("input").value));
                     window.siyuan.menus.menu.remove();
                 });
                 // @内联回调
@@ -528,7 +472,7 @@ ${siyuanI18n.insertRowAfter.replace("${x}", `<span class="fn__space"></span><inp
             id: "insertColumnLeft",
             icon: "iconInsertLeft",
             label: `<div class="fn__flex" style="align-items: center;">
-${siyuanI18n.insertColumnLeft1.replace("${x}", `<span class="fn__space"></span><input style="width:64px" type="number" step="1" min="1" value="1" placeholder="${siyuanI18n.enterKey}" class="b3-text-field"><span class="fn__space"></span>`)}
+${siyuanI18n.insertColumnLeft1.replace("${x}", `<span class="fn__space"></span><input type="number" step="1" min="1" value="1" placeholder="${siyuanI18n.enterKey}" class="b3-text-field b3-text-field--size"><span class="fn__space"></span>`)}
 </div>`,
             accelerator: window.siyuan?.config?.keymap?.editor?.table?.insertColumnLeft?.custom,
             /** 在左侧插入列（支持批量） */
@@ -539,7 +483,7 @@ ${siyuanI18n.insertColumnLeft1.replace("${x}", `<span class="fn__space"></span><
                     if (document.activeElement === inputElement) {
                         return;
                     }
-                    insertColumn(protyle, nodeElement, cellElement, "beforebegin", range);
+                    insertColumn(protyle, nodeElement, cellElement, "beforebegin", range, parseInt(element.querySelector("input").value));
                     window.siyuan.menus.menu.remove();
                 });
                 // @内联回调
@@ -559,7 +503,7 @@ ${siyuanI18n.insertColumnLeft1.replace("${x}", `<span class="fn__space"></span><
             id: "insertColumnRight",
             icon: "iconInsertRight",
             label: `<div class="fn__flex" style="align-items: center;">
-${siyuanI18n.insertColumnRight1.replace("${x}", `<span class="fn__space"></span><input style="width:64px" type="number" step="1" min="1" value="1" placeholder="${siyuanI18n.enterKey}" class="b3-text-field"><span class="fn__space"></span>`)}
+${siyuanI18n.insertColumnRight1.replace("${x}", `<span class="fn__space"></span><input type="number" step="1" min="1" value="1" placeholder="${siyuanI18n.enterKey}" class="b3-text-field b3-text-field--size"><span class="fn__space"></span>`)}
 </div>`,
             accelerator: window.siyuan?.config?.keymap?.editor?.table?.insertColumnRight?.custom,
             /** 在右侧插入列（支持批量） */
@@ -570,7 +514,7 @@ ${siyuanI18n.insertColumnRight1.replace("${x}", `<span class="fn__space"></span>
                     if (document.activeElement === inputElement) {
                         return;
                     }
-                    insertColumn(protyle, nodeElement, cellElement, "afterend", range);
+                    insertColumn(protyle, nodeElement, cellElement, "afterend", range, parseInt(element.querySelector("input").value));
                     window.siyuan.menus.menu.remove();
                 });
                 // @内联回调

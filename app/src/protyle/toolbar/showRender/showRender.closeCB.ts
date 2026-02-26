@@ -238,11 +238,13 @@ export function 创建关闭回调(
             html
         } = 上下文;
 
-        // 检查是否需要保存
-        const 无需保存 = !renderElement.parentElement ||
-            protyle.disabled ||
-            (旧文本值 === textElement.value && textElement.value);
-        if (无需保存) {
+        // 检查是否需要保存（上游 #17082: 优化无变更时的提前返回逻辑）
+        const 无变更 = !renderElement.parentElement || protyle.disabled ||
+            (textElement.value && 旧文本值 === textElement.value);
+
+        // 光标定位（上游 #17082: 无论是否变更都需要定位光标）
+        if (无变更) {
+            定位光标(renderElement, nodeElement, undefined, range);
             return;
         }
 
@@ -252,14 +254,10 @@ export function 创建关闭回调(
         // 光标定位
         定位光标(renderElement, nodeElement, inlineLastNode, range);
 
-        // 更新节点
-        nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
-
-        // HTML 块特殊检查
-        if (types.includes("NodeHTMLBlock")) {
-            检查HTML块多pre警告(nodeElement, protyle);
+        // 更新节点（上游 #17082: 仅在真正变更时才更新）
+        if (nodeElement.outerHTML !== html) {
+            nodeElement.setAttribute("updated", dayjs().format("YYYYMMDDHHmmss"));
+            updateTransaction(protyle, id, nodeElement.outerHTML, html);
         }
-
-        updateTransaction(protyle, id, nodeElement.outerHTML, html);
     };
 }
