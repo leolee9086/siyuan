@@ -34,6 +34,7 @@
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage",
     "longest": "node ./scripts/checker/findLongestFile.js",
+    "scan:oversized": "node ./scripts/checker/scanOversizedFiles.js",
     "genI18nTypes": "node ./scripts/i18n.generateTypes.js",
     "genI18nTypes:en": "node ./scripts/i18n.generateTypes.js -l en_US -i ./appearance/langs/en_US.json -o ./src/types/i18n.types.ts",
     "genI18nTypes:zh_CN": "node ./scripts/i18n.generateTypes.js -l zh_CN -i ./appearance/langs/zh_CN.json -o ./src/types/i18n.types.ts",
