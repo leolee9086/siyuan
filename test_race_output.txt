@@ -1,1 +1,0 @@
-=== RUN   TestDiskIndex_ConcurrentInsertAndSearch
