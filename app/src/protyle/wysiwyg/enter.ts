@@ -1,5 +1,5 @@
-import {genEmptyElement, genHeadingElement, insertEmptyBlock} from "../../block/util";
-import {focusByRange, focusByWbr, getSelectionOffset, setLastNodeRange} from "../util/selection";
+import { genEmptyElement, genHeadingElement, insertEmptyBlock } from "../../block/util";
+import { focusByRange, focusByWbr, getSelectionOffset, setLastNodeRange } from "../util/selection";
 import {
     getContenteditableElement, getParentBlock,
     getTopEmptyElement,
@@ -7,18 +7,19 @@ import {
     hasPreviousSibling,
     isNotEditBlock
 } from "./getBlock";
-import {transaction, turnsIntoOneTransaction, updateTransaction} from "./transaction";
-import {breakList, genListItemElement, listOutdent, updateListOrder} from "./list";
-import {highlightRender} from "../render/highlightRender";
-import {Constants} from "../../constants";
-import {scrollCenter} from "../../util/highlightById";
-import {hideElements} from "../ui/hideElements";
-import {isIPad, setStorageVal} from "../util/compatibility";
-import {mathRender} from "../render/mathRender";
-import {isMobile} from "../../util/functions";
-import {processRender} from "../util/processCode";
-import {hasClosestByAttribute, hasClosestByClassName} from "../util/hasClosest";
-import {blockRender} from "../render/blockRender";
+import { transaction, turnsIntoOneTransaction, updateTransaction } from "./transaction";
+import { breakList, genListItemElement, listOutdent } from "./list";
+import { updateListOrder } from "./list.updateOrder";
+import { highlightRender } from "../render/highlightRender";
+import { Constants } from "../../constants";
+import { scrollCenter } from "../../util/highlightById";
+import { hideElements } from "../ui/hideElements";
+import { isIPad, setStorageVal } from "../util/compatibility";
+import { mathRender } from "../render/mathRender";
+import { isMobile } from "../../util/functions";
+import { processRender } from "../util/processCode";
+import { hasClosestByAttribute, hasClosestByClassName } from "../util/hasClosest";
+import { blockRender } from "../render/blockRender";
 
 export const enter = (blockElement: HTMLElement, range: Range, protyle: IProtyle) => {
     if (hasClosestByClassName(blockElement, "protyle-wysiwyg__embed")) {
@@ -125,7 +126,7 @@ export const enter = (blockElement: HTMLElement, range: Range, protyle: IProtyle
     // bq || callout
     if (editableElement.textContent.replace(Constants.ZWSP, "").replace("\n", "") === "" &&
         ((blockElement.nextElementSibling && blockElement.nextElementSibling.classList.contains("protyle-attr") &&
-                blockElement.parentElement.getAttribute("data-type") === "NodeBlockquote") ||
+            blockElement.parentElement.getAttribute("data-type") === "NodeBlockquote") ||
             (blockElement.parentElement.classList.contains("callout-content") && !blockElement.nextElementSibling))) {
         range.insertNode(document.createElement("wbr"));
         const topElement = getTopEmptyElement(blockElement);

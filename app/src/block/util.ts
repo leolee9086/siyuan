@@ -1,7 +1,8 @@
 import { focusByWbr, getEditorRange } from "../protyle/util/selection";
 import { hasClosestBlock, hasClosestByClassName } from "../protyle/util/hasClosest";
 import { getContenteditableElement, getParentBlock, getTopAloneElement } from "../protyle/wysiwyg/getBlock";
-import { genListItemElement, updateListOrder } from "../protyle/wysiwyg/list";
+import { genListItemElement } from "../protyle/wysiwyg/list";
+import { updateListOrder } from "../protyle/wysiwyg/list.updateOrder";
 import { transaction, turnsIntoOneTransaction, updateTransaction } from "../protyle/wysiwyg/transaction";
 import { scrollCenter } from "../util/highlightById";
 import { Constants } from "../constants";

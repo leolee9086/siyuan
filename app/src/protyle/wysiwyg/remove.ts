@@ -12,7 +12,7 @@ import {
 } from "./getBlock";
 import { transaction, turnsIntoTransaction, updateTransaction } from "./transaction";
 import { cancelSB, genEmptyElement } from "../../block/util";
-import { updateListOrder } from "./list";
+import { updateListOrder } from "./list.updateOrder";
 import { setFold } from "../../menus/protyle";
 import { zoomOut } from "../../menus/protyle.zoomOut";
 import { preventScroll } from "../scroll/preventScroll";

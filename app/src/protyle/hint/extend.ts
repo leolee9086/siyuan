@@ -12,7 +12,7 @@ import { getContenteditableElement, getTopAloneElement } from "../wysiwyg/getBlo
 import { transaction } from "../wysiwyg/transaction";
 import { getAssetName, getDisplayName, pathPosix } from "../../util/pathName";
 import { genEmptyElement } from "../../block/util";
-import { updateListOrder } from "../wysiwyg/list";
+import { updateListOrder } from "../wysiwyg/list.updateOrder";
 import { escapeHtml } from "../../util/escape";
 import { zoomOut } from "../../menus/protyle.zoomOut";
 import { hideElements } from "../ui/hideElements";

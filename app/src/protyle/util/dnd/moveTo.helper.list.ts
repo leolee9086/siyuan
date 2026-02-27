@@ -1,5 +1,5 @@
 import { Constants } from "../../../constants";
-import { updateListOrder } from "../../wysiwyg/list";
+import { updateListOrder } from "../../wysiwyg/list.updateOrder";
 import { IMoveContext } from "./moveTo.types";
 
 export const handleNewListCreation = (item: Element, context: IMoveContext) => {
