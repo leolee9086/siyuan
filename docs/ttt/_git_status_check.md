@@ -22,24 +22,48 @@
 
 | 序号 | 文件路径 | 冲突类型 | 处理状态 | 备注 |
 |------|----------|----------|----------|------|
-| 4 | [`app/src/menus/protyle.ts`](app/src/menus/protyle.ts) | both modified | ⏳ | 本地已拆分，需按规程分析上游变更 |
+| 4 | [`app/src/menus/protyle.ts`](app/src/menus/protyle.ts) | both modified | ✅ | 本地已拆分，上游变更已移植：#17002表格标题提取、#17051批量插入行列 |
 | 5 | [`app/src/mobile/index.ts`](app/src/mobile/index.ts) | both modified | ✅ | 已移植：setWebViewFocusable导入及blur事件监听 |
 | 6 | [`app/src/mobile/util/keyboardToolbar.ts`](app/src/mobile/util/keyboardToolbar.ts) | both modified | ✅ | 已移植：keyboardLockUntil检查、callMobileAppShowKeyboard导入 |
 | 7 | [`app/src/protyle/gutter/index.ts`](app/src/protyle/gutter/index.ts) | both modified | ✅ | 已移植：disabledRTL逻辑、RTL/LTR对齐改进(#17069) |
 | 8 | [`app/src/protyle/render/av/action.ts`](app/src/protyle/render/av/action.ts) | both modified | ✅ | 已移植：av-search-icon增加marginRight |
 | 9 | [`app/src/protyle/render/av/render.ts`](app/src/protyle/render/av/render.ts) | both modified | ✅ | 已移植：contenteditable="plaintext-only" |
 | 10 | [`app/src/protyle/toolbar/index.ts`](app/src/protyle/toolbar/index.ts) | both modified | ✅ | 已移植：subElementCloseCB逻辑优化(#17082) |
-| 11 | [`app/src/protyle/wysiwyg/index.ts`](app/src/protyle/wysiwyg/index.ts) | both modified | ⏳ | 本地已拆分，需按规程分析上游变更 |
+| 11 | [`app/src/protyle/wysiwyg/index.ts`](app/src/protyle/wysiwyg/index.ts) | both modified | ✅ | 本地已拆分，上游变更已移植：#17092框选焦点修复、#17051表格标题处理、#17002标题编辑功能、#17098粘贴av-search判断优化 |
 | 12 | [`app/src/protyle/wysiwyg/keydown.ts`](app/src/protyle/wysiwyg/keydown.ts) | both modified | ✅ | 已移植：event.key类型检查(#17084)、av-search判断优化(#17098) |
 
 ## 备份文件清单
 
-| 原文件 | .backup版本 | .remote版本 | 创建状态 |
+| 原文件 | .backup版本 | .remote版本 | 状态 |
 |--------|-------------|-------------|----------|
-| app/src/menus/protyle.ts | ✅ | ✅ | 已创建 |
-| app/src/protyle/wysiwyg/index.ts | ✅ | ✅ | 已创建 |
-| app/src/mobile/index.ts | ✅ | ✅ | 已创建 |
-| app/src/mobile/util/keyboardToolbar.ts | ✅ | ✅ | 已创建 |
+| app/package.json | ✅ | ✅ | 已清理 |
+| app/src/config/repos.ts | ✅ | - | 已清理 |
+| app/src/emoji/index.ts | ✅ | - | 已清理 |
+| app/src/history/history.ts | ✅ | - | 已清理 |
+| app/src/layout/Wnd.ts | ✅ | - | 已清理 |
+| app/src/menus/protyle.ts | ✅ | ✅ | 已清理 |
+| app/src/mobile/index.ts | ✅ | - | 已清理 |
+| app/src/mobile/dock/MobileFiles.ts | ✅ | - | 已清理 |
+| app/src/mobile/dock/MobileOutline.ts | ✅ | - | 已清理 |
+| app/src/mobile/menu/search.ts | ✅ | - | 已清理 |
+| app/src/mobile/util/keyboardToolbar.ts | ✅ | - | 已清理 |
+| app/src/protyle/gutter/index.ts | ✅ | ✅ | 已清理 |
+| app/src/protyle/hint/index.ts | ✅ | - | 已清理 |
+| app/src/protyle/render/av/action.ts | ✅ | ✅ | 已清理 |
+| app/src/protyle/render/av/cell.ts | ✅ | - | 已清理 |
+| app/src/protyle/render/av/filter.ts | ✅ | - | 已清理 |
+| app/src/protyle/render/av/openMenuPanel.ts | ✅ | - | 已清理 |
+| app/src/protyle/render/av/render.ts | ✅ | ✅ | 已清理 |
+| app/src/protyle/toolbar/index.ts | ✅ | ✅ | 已清理 |
+| app/src/protyle/util/selection.ts | ✅ | - | 已清理 |
+| app/src/protyle/wysiwyg/index.ts | ✅ | ✅ | 已清理 |
+| app/src/protyle/wysiwyg/keydown.ts | ✅ | ✅ | 已清理 |
+| app/src/protyle/wysiwyg/transaction.ts | ✅ | - | 已清理 |
+| app/src/util/addClearButton.ts | ✅ | - | 已清理 |
+| app/src/util/assets.ts | ✅ | - | 已清理 |
+
+> **清理时间**: 2026-02-26
+> **清理说明**: 全项目范围清理完成，共删除 29 个备份文件（17 个 `.backup` + 8 个 `.remote`）。排除 `node_modules/`、`.git/` 和 `trashed/` 目录。
 
 ## 已暂存的变更
 
@@ -69,9 +93,11 @@
 
 ## 验证清单
 
-- [ ] 无残留冲突标记（使用 `git diff --check` 验证）
-- [ ] 项目可构建
-- [ ] 上游改进完整性验证
+- [x] 无未解决冲突（`git status` 确认: "All conflicts fixed"）
+- [x] 无残留冲突标记（`app/src` 目录正则搜索 `[<]{7}` 返回 0 结果）
+- [x] 12 个冲突文件已全部 `git add`（已暂存待提交）
+- [ ] 项目可构建（用户手动执行）
+- [ ] 上游改进完整性验证（通过代码审查）
 
 ## 记录
 
@@ -86,3 +112,4 @@
 - 2026-02-26: protyle/gutter/index.ts 已解决 - 本地已重构为模块化，上游#17069移植至buildGutterStyleMenu.ts：disabledRTL逻辑、RTL/LTR对齐改进（支持表格和HTML块）
 - 2026-02-26: protyle/toolbar/index.ts 已解决 - 本地已重构为模块化，上游#17082移植至showRender.closeCB.ts：subElementCloseCB逻辑重构、优化变更检测
 - 2026-02-26: protyle/wysiwyg/keydown.ts 已解决 - 本地已重构为中间件架构，上游#17084移植至keydown.wbr.ts/keydown.commonInput.ts（event.key类型检查），上游#17098移植至index.input.ts（av-search使用hasClosestByAttribute）
+- 2026-02-26: menus/protyle.ts 已解决 - 本地已拆分，上游#17002移植：table标题设置逻辑提取至`updateTableTitle`函数；上游#17051移植：表格批量插入行列支持（修改input样式类名`b3-text-field--size`，click事件增加行数参数）

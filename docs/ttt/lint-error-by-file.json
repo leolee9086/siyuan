@@ -1,0 +1,198 @@
+
+> s-forge@3.5.8 lint:top D:\dev\siyuan-note\app
+> node ./scripts/lint-top-errors.js "-n" "30" "--json"
+
+馃攳 姝ｅ湪鎵弿椤圭洰鏂囦欢...
+{
+  "timestamp": "2026-02-26T13:35:12.485Z",
+  "totalFiles": 1156,
+  "filesWithIssues": 904,
+  "topFiles": [
+    {
+      "file": "src\\protyle\\util\\table.ts",
+      "errors": 266,
+      "warnings": 0,
+      "total": 266
+    },
+    {
+      "file": "src\\protyle\\render\\av\\action.ts",
+      "errors": 265,
+      "warnings": 0,
+      "total": 265
+    },
+    {
+      "file": "src\\card\\openCard.ts",
+      "errors": 258,
+      "warnings": 0,
+      "total": 258
+    },
+    {
+      "file": "src\\dialog\\processSystem.ts",
+      "errors": 257,
+      "warnings": 0,
+      "total": 257
+    },
+    {
+      "file": "src\\layout\\dock\\Graph.ts",
+      "errors": 256,
+      "warnings": 0,
+      "total": 256
+    },
+    {
+      "file": "src\\layout\\dock\\Backlink.ts",
+      "errors": 247,
+      "warnings": 0,
+      "total": 247
+    },
+    {
+      "file": "src\\protyle\\util\\paste.ts",
+      "errors": 230,
+      "warnings": 0,
+      "total": 230
+    },
+    {
+      "file": "src\\menus\\workspace.ts",
+      "errors": 218,
+      "warnings": 0,
+      "total": 218
+    },
+    {
+      "file": "src\\protyle\\util\\compatibility.ts",
+      "errors": 211,
+      "warnings": 0,
+      "total": 211
+    },
+    {
+      "file": "src\\boot\\globalEvent\\keydown.ts",
+      "errors": 210,
+      "warnings": 0,
+      "total": 210
+    },
+    {
+      "file": "src\\protyle\\render\\av\\blockAttr.ts",
+      "errors": 202,
+      "warnings": 0,
+      "total": 202
+    },
+    {
+      "file": "src\\config\\keymap.ts",
+      "errors": 188,
+      "warnings": 0,
+      "total": 188
+    },
+    {
+      "file": "src\\mobile\\util\\keyboardToolbar.ts",
+      "errors": 184,
+      "warnings": 1,
+      "total": 185
+    },
+    {
+      "file": "src\\protyle\\render\\av\\select.ts",
+      "errors": 179,
+      "warnings": 0,
+      "total": 179
+    },
+    {
+      "file": "src\\protyle\\wysiwyg\\index.mousedown.dragSelect.ts",
+      "errors": 176,
+      "warnings": 0,
+      "total": 176
+    },
+    {
+      "file": "src\\config\\repos.provider.ts",
+      "errors": 171,
+      "warnings": 0,
+      "total": 171
+    },
+    {
+      "file": "src\\menus\\navigation.ts",
+      "errors": 169,
+      "warnings": 0,
+      "total": 169
+    },
+    {
+      "file": "src\\protyle\\util\\dnd\\onDragOver.ts",
+      "errors": 167,
+      "warnings": 0,
+      "total": 167
+    },
+    {
+      "file": "src\\config\\account.ts",
+      "errors": 166,
+      "warnings": 0,
+      "total": 166
+    },
+    {
+      "file": "src\\protyle\\util\\insertHTML.ts",
+      "errors": 165,
+      "warnings": 0,
+      "total": 165
+    },
+    {
+      "file": "src\\protyle\\util\\onGet.ts",
+      "errors": 161,
+      "warnings": 0,
+      "total": 161
+    },
+    {
+      "file": "src\\config\\about.ts",
+      "errors": 160,
+      "warnings": 0,
+      "total": 160
+    },
+    {
+      "file": "src\\mobile\\settings\\about.ts",
+      "errors": 160,
+      "warnings": 0,
+      "total": 160
+    },
+    {
+      "file": "src\\search\\menu.ts",
+      "errors": 160,
+      "warnings": 0,
+      "total": 160
+    },
+    {
+      "file": "src\\protyle\\render\\av\\relation.ts",
+      "errors": 155,
+      "warnings": 0,
+      "total": 155
+    },
+    {
+      "file": "src\\protyle\\wysiwyg\\list.ts",
+      "errors": 154,
+      "warnings": 1,
+      "total": 155
+    },
+    {
+      "file": "src\\protyle\\render\\av\\cell.value.ts",
+      "errors": 154,
+      "warnings": 0,
+      "total": 154
+    },
+    {
+      "file": "src\\protyle\\render\\av\\render.refresh.ts",
+      "errors": 151,
+      "warnings": 0,
+      "total": 151
+    },
+    {
+      "file": "src\\protyle\\util\\dnd\\onDrop.ts",
+      "errors": 149,
+      "warnings": 2,
+      "total": 151
+    },
+    {
+      "file": "src\\boot\\globalEvent\\keydown\\fileTreeKeydown.ts",
+      "errors": 150,
+      "warnings": 0,
+      "total": 150
+    }
+  ],
+  "summary": {
+    "totalErrors": 28653,
+    "totalWarnings": 254
+  }
+}
+鈥塃LIFECYCLE鈥?Command failed with exit code 1.
+馃搧 鎵弿瀹屾垚, 鍏辨鏌?1156 涓枃浠?
