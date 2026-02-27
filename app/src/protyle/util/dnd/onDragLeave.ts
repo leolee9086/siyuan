@@ -1,4 +1,4 @@
-import { IDndState } from "./onDrop";
+import { IDndState } from "./onDrop.types";
 
 export const onDragLeave = (protyle: IProtyle, editorElement: HTMLElement, event: DragEvent, state: IDndState) => {
     if (protyle.disabled) {

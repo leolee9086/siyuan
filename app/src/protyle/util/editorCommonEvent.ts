@@ -1,6 +1,7 @@
 // S-forge: 拖拽逻辑已重构拆分到 dnd/ 子模块
 import { onDragStart } from "./dnd/onDragStart";
-import { IDndState, onDrop } from "./dnd/onDrop";
+import { IDndState } from "./dnd/onDrop.types";
+import { onDrop } from "./dnd/onDrop";
 import { onDragOver } from "./dnd/onDragOver";
 import { onDragLeave } from "./dnd/onDragLeave";
 

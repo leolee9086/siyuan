@@ -4,7 +4,7 @@ import { hasClosestBlock, hasClosestByAttribute, hasClosestByClassName, hasClose
 import { addDragFill } from "../../render/av/cell";
 import { clearSelect } from "../clearSelect";
 import { addDragover, clearDragoverElement } from "./util";
-import { IDndState } from "./onDrop";
+import { IDndState } from "./onDrop.types";
 
 export const onDragOver = (protyle: IProtyle, editorElement: HTMLElement, event: DragEvent & { target: HTMLElement }, state: IDndState) => {
     if (protyle.disabled || event.dataTransfer.types.includes(Constants.SIYUAN_DROP_EDITOR)) {

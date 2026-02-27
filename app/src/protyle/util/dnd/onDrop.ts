@@ -1,555 +1,227 @@
+/**
+ * 拖拽放置主编排模块
+ *
+ * 作用：处理编辑器内所有拖拽放置事件的入口和路由
+ * 意图：将具体拖拽逻辑委托给各辅助模块，主函数仅负责事件分类和路由
+ * 调用时机：编辑器 drop 事件触发时
+ */
 import { Constants } from "../../../constants";
+import { hasClosestByClassName } from "../hasClosest";
 import {
-    hasClosestBlock,
-    hasClosestByAttribute,
-    hasClosestByClassName,
-    hasClosestByTag,
-    isInEmbedBlock
-} from "../hasClosest";
-import { transaction } from "../../wysiwyg/transaction";
-import { insertEmptyBlock } from "../../../block/util";
-import { focusByRange, getRangeByPoint } from "../selection";
-import { fetchPost, fetchSyncPost } from "../../../util/fetch";
-import { insertHTML } from "../insertHTML";
-import { blockRender } from "../../render/blockRender";
-import { isBrowser } from "../../../util/functions";
-import { uploadLocalFiles } from "../../upload";
-import { paste } from "../paste";
-import { clearSelect } from "../clearSelect";
-import { getTypeByCellElement, addDragFill } from "../../render/av/cell";
-import { dragUpload } from "../../render/av/asset";
-import { hideElements } from "../../ui/hideElements";
-import { insertAttrViewBlockAnimation } from "../../render/av/row";
-import { insertGalleryItemAnimation } from "../../render/av/gallery/item";
-import { onGet } from "../onGet";
-import { updatePanelByEditor } from "../../../editor/util.updatePanelByEditor";
-import { getPathForFile } from "../../../platform/electron/webUtils";
-import { isMobile } from "../../../platform";
-import * as dayjs from "dayjs";
-import { dragSame, dragSb } from "./drag";
+    getDragElement,
+    clearDragElement,
+} from "./onDrop.environment";
+import {
+    handleAvViewTabSort,
+    handleGutterDrop,
+} from "./onDrop.helper.routing";
+import {
+    insertFileTreeAsRef,
+    insertFileTreeToAv,
+    convertDocToHeading,
+    reloadDocAfterConvert,
+} from "./onDrop.helper.fileTree";
+import {
+    handleExternalEditorDrop,
+    handleExternalAvCellDrop,
+} from "./onDrop.helper.external";
+import { IDndState } from "./onDrop.types";
 
-export interface IDndState {
-    dragoverElement: Element | undefined;
-    disabledPosition: string;
-    counter: number;
-}
+export type { IDndState };
 
-export const onDrop = async (protyle: IProtyle, editorElement: HTMLElement, event: DragEvent & { target: HTMLElement }, state: IDndState) => {
+/**
+ * 处理文件树拖拽的完整流程
+ *
+ * 作用：根据修饰键和目标元素类型，路由到引用插入、AV 插入或文档转标题
+ * 意图：文件树拖拽有三种目标场景，需要统一入口管理
+ * 调用时机：dataTransfer 包含 SIYUAN_DROP_FILE 且格式合法时
+ *
+ * @param protyle 编辑器实例
+ * @param event 拖拽事件
+ * @param ids 文件树节点 ID 列表
+ * @param targetElement 拖拽目标元素（可能为 null）
+ */
+const handleFileTreeDrop = async (
+    protyle: IProtyle,
+    event: DragEvent & { target: HTMLElement },
+    ids: string[],
+    targetElement: Element | null,
+): Promise<void> => {
+    const isAvTarget = targetElement
+        && (targetElement.classList.contains("av__row")
+            || targetElement.classList.contains("av__gallery-item")
+            || targetElement.classList.contains("av__gallery-add"));
+
+    // 非 altKey 且目标不是 AV 行/画廊：插入为引用链接
+    if (!event.altKey && !isAvTarget) {
+        await insertFileTreeAsRef(protyle, ids, event);
+        return;
+    }
+    // 目标有 dragover 标记且非反链数据：处理 AV 插入或文档转标题
+    if (!targetElement || protyle.options?.backlinkData
+        || targetElement.className.indexOf("dragover__") === -1) {
+        return;
+    }
+    const scrollTop = protyle.contentElement?.scrollTop ?? 0;
+    const targetClass = targetElement.className.split(" ");
+
+    // 目标是 AV 行/画廊：插入为 AV 块
+    if (isAvTarget) {
+        await insertFileTreeToAv(protyle, ids, targetElement, targetClass);
+    }
+    // 目标是普通块：文档转标题
+    if (!isAvTarget) {
+        const isBottom = targetClass.includes("dragover__bottom");
+        await convertDocToHeading(ids, targetElement, isBottom);
+        await reloadDocAfterConvert(protyle, scrollTop);
+    }
+    targetElement.classList.remove("dragover__bottom", "dragover__top", "dragover__left", "dragover__right");
+};
+
+/**
+ * 处理外部文件/HTML 拖拽
+ *
+ * 作用：根据目标是否在 AV 内，路由到编辑器拖拽或 AV 单元格拖拽
+ * 意图：外部拖拽只有两种目标场景，统一入口简化主函数
+ * 调用时机：无 dragElement 且 dataTransfer 类型为 Files 或 text/html 时
+ *
+ * @param protyle 编辑器实例
+ * @param event 拖拽事件
+ */
+const handleExternalDrop = async (
+    protyle: IProtyle,
+    event: DragEvent & { target: HTMLElement },
+): Promise<void> => {
+    event.preventDefault();
+    const avElement = hasClosestByClassName(event.target, "av");
+    // 目标不在 AV 内：走编辑器拖拽逻辑
+    if (!avElement) {
+        await handleExternalEditorDrop(protyle, event);
+        return;
+    }
+    // 目标在 AV 内：走 AV 单元格拖拽逻辑
+    await handleExternalAvCellDrop(protyle, event, avElement);
+};
+
+/**
+ * 从 dataTransfer 中查找 gutter 类型标识
+ *
+ * 作用：遍历 dataTransfer.items 查找以 SIYUAN_DROP_GUTTER 开头的类型
+ * 意图：gutter 拖拽通过 dataTransfer 的 type 字段传递类型信息
+ * 调用时机：onDrop 主函数中判断拖拽来源时
+ *
+ * @param dataTransfer 拖拽事件的 dataTransfer 对象
+ * @returns gutter 类型字符串，未找到时返回空字符串
+ */
+/** @同步豁免: 需要绝对同步的DOM访问 - 拖拽事件处理中同步读取 dataTransfer */
+const findGutterType = (dataTransfer: DataTransfer): string => {
+    for (const item of dataTransfer.items) {
+        // gutter 类型以特定前缀开头
+        if (item.type.startsWith(Constants.SIYUAN_DROP_GUTTER)) {
+            return item.type;
+        }
+    }
+    return "";
+};
+
+/**
+ * 判断 gutter 类型是否为 AV ViewTab 排序
+ *
+ * 作用：检查 gutterType 是否匹配 ViewTab 排序的前缀模式
+ * 意图：ViewTab 排序需要在清理 dragover 之前单独处理并提前返回
+ * 调用时机：onDrop 主函数中 gutter 类型判断时
+ *
+ * @param gutterType gutter 类型字符串
+ * @returns 是否为 ViewTab 排序类型
+ */
+/** @同步豁免: 需要绝对同步的DOM访问 - 纯字符串比较，无异步需求 */
+const isViewTabSort = (gutterType: string): boolean => {
+    const prefix = `${Constants.SIYUAN_DROP_GUTTER}NodeAttributeView${Constants.ZWSP}ViewTab${Constants.ZWSP}`;
+    return gutterType.startsWith(prefix.toLowerCase());
+};
+
+/**
+ * 清理拖拽目标元素的 dragover 状态
+ *
+ * 作用：移除目标元素上的 dragover 样式类和选区属性
+ * 意图：拖拽结束后需要清理视觉状态，避免残留高亮
+ * 调用时机：onDrop 主函数中 ViewTab 排序判断之后
+ *
+ * @param editorElement 编辑器容器元素
+ * @returns 清理后的目标元素，未找到时返回 null
+ */
+/** @同步豁免: 需要绝对同步的DOM访问 - 拖拽清理必须同步执行 */
+const cleanupDragoverTarget = (editorElement: HTMLElement): Element | null => {
+    const targetElement = editorElement.querySelector(
+        ".dragover__left, .dragover__right, .dragover__bottom, .dragover__top",
+    );
+    if (!targetElement) {
+        return null;
+    }
+    targetElement.classList.remove("dragover");
+    targetElement.removeAttribute("select-start");
+    targetElement.removeAttribute("select-end");
+    return targetElement;
+};
+
+/**
+ * 拖拽放置事件主入口
+ *
+ * 作用：接收编辑器 drop 事件，根据 dataTransfer 类型分发到对应处理函数
+ * 意图：作为唯一入口统一管理所有拖拽场景的路由和清理
+ * 调用时机：编辑器 editorElement 的 drop 事件监听器
+ *
+ * @param protyle 编辑器实例
+ * @param editorElement 编辑器容器元素
+ * @param event 拖拽事件（target 已断言为 HTMLElement）
+ * @param state 拖拽状态（计数器、dragover 元素等）
+ */
+export const onDrop = async (
+    protyle: IProtyle,
+    editorElement: HTMLElement,
+    event: DragEvent & { target: HTMLElement },
+    state: IDndState,
+): Promise<void> => {
     state.counter = 0;
+    // dataTransfer 不存在时无法处理
+    if (!event.dataTransfer) {
+        return;
+    }
+    // 只读模式或编辑器内选中文字拖拽：阻止默认行为后返回
     if (protyle.disabled || event.dataTransfer.getData(Constants.SIYUAN_DROP_EDITOR)) {
-        // 只读模式/编辑器内选中文字拖拽
         event.preventDefault();
         event.stopPropagation();
         return;
     }
-    let gutterType = "";
-    for (const item of event.dataTransfer.items) {
-        if (item.type.startsWith(Constants.SIYUAN_DROP_GUTTER)) {
-            gutterType = item.type;
-        }
-    }
-    if (gutterType.startsWith(`${Constants.SIYUAN_DROP_GUTTER}NodeAttributeView${Constants.ZWSP}ViewTab${Constants.ZWSP}`.toLowerCase())) {
-        const blockElement = hasClosestBlock(window.siyuan.dragElement);
-        if (blockElement) {
-            const avID = blockElement.getAttribute("data-av-id");
-            const blockID = blockElement.getAttribute("data-node-id");
-            const id = window.siyuan.dragElement.getAttribute("data-id");
-            transaction(protyle, [{
-                action: "sortAttrViewView",
-                avID,
-                blockID,
-                id,
-                previousID: window.siyuan.dragElement.previousElementSibling?.getAttribute("data-id"),
-                data: "unRefresh"   // 不需要重新渲染
-            }], [{
-                action: "sortAttrViewView",
-                avID,
-                blockID,
-                id,
-                previousID: gutterType.split(Constants.ZWSP).pop()
-            }]);
-        }
+    const gutterType = findGutterType(event.dataTransfer);
+
+    // AV ViewTab 排序：独立处理后直接返回（原始逻辑不清理 dragElement）
+    if (isViewTabSort(gutterType)) {
+        await handleAvViewTabSort(protyle, gutterType);
         return;
     }
-    const targetElement = editorElement.querySelector(".dragover__left, .dragover__right, .dragover__bottom, .dragover__top");
-    if (targetElement) {
-        targetElement.classList.remove("dragover");
-        targetElement.removeAttribute("select-start");
-        targetElement.removeAttribute("select-end");
-    }
+    const targetElement = cleanupDragoverTarget(editorElement);
+
+    // gutter 拖拽（块拖拽/反链面板拖拽）
     if (gutterType) {
-        // gutter 或反链面板拖拽
-        const sourceElements: Element[] = [];
-        const gutterTypes = gutterType.replace(Constants.SIYUAN_DROP_GUTTER, "").split(Constants.ZWSP);
-        const selectedIds = gutterTypes[2].split(",");
-        if (event.altKey || event.shiftKey) {
-            if (event.y > protyle.wysiwyg.element.lastElementChild.getBoundingClientRect().bottom) {
-                insertEmptyBlock(protyle, "afterend", protyle.wysiwyg.element.lastElementChild.getAttribute("data-node-id"));
-            } else {
-                const range = getRangeByPoint(event.clientX, event.clientY);
-                if (hasClosestByAttribute(range.startContainer, "data-type", "NodeBlockQueryEmbed")) {
-                    return;
-                } else {
-                    focusByRange(range);
-                }
-            }
-        }
-        if (event.altKey) {
-            let html = "";
-            for (let i = 0; i < selectedIds.length; i++) {
-                const response = await fetchSyncPost("/api/block/getRefText", { id: selectedIds[i] });
-                html += protyle.lute.Md2BlockDOM(`((${selectedIds[i]} '${response.data}'))`);
-            }
-            insertHTML(html, protyle);
-        } else if (event.shiftKey) {
-            let html = "";
-            selectedIds.forEach(item => {
-                html += `{{select * from blocks where id='${item}'}}\n`;
-            });
-            insertHTML(protyle.lute.SpinBlockDOM(html), protyle, true);
-            blockRender(protyle, protyle.wysiwyg.element);
-        } else if (targetElement && targetElement.className.indexOf("dragover__") > -1) {
-            let queryClass = "";
-            selectedIds.forEach(item => {
-                queryClass += `[data-node-id="${item}"],`;
-            });
-            if (window.siyuan.dragElement) {
-                window.siyuan.dragElement.querySelectorAll(queryClass.substring(0, queryClass.length - 1)).forEach(elementItem => {
-                    if (!isInEmbedBlock(elementItem)) {
-                        sourceElements.push(elementItem);
-                    }
-                });
-            } else if (window.siyuan.config.system.workspaceDir.toLowerCase() === gutterTypes[3]) {
-                // 跨窗口拖拽
-                // 不能跨工作区域拖拽 https://github.com/siyuan-note/siyuan/issues/13582
-                const targetProtyleElement = document.createElement("template");
-                targetProtyleElement.innerHTML = `<div>${event.dataTransfer.getData(gutterType)}</div>`;
-                targetProtyleElement.content.querySelectorAll(queryClass.substring(0, queryClass.length - 1)).forEach(elementItem => {
-                    if (!isInEmbedBlock(elementItem)) {
-                        sourceElements.push(elementItem);
-                    }
-                });
-            }
-
-            const sourceIds: string[] = [];
-            const srcs: IOperationSrcs[] = [];
-            sourceElements.forEach(item => {
-                item.classList.remove("protyle-wysiwyg--hl");
-                item.removeAttribute("select-start");
-                item.removeAttribute("select-end");
-                // 反链提及有高亮，如果拖拽到正文的话，应移除
-                item.querySelectorAll('[data-type="search-mark"]').forEach(markItem => {
-                    markItem.outerHTML = markItem.innerHTML;
-                });
-                const id = item.getAttribute("data-node-id");
-                sourceIds.push(id);
-                srcs.push({
-                    itemID: Lute.NewNodeID(),
-                    id,
-                    isDetached: false,
-                });
-            });
-
-            hideElements(["gutter"], protyle);
-
-            const targetClass = targetElement.className.split(" ");
-            targetElement.classList.remove("dragover__bottom", "dragover__top", "dragover__left", "dragover__right");
-
-            if (targetElement.classList.contains("av__cell")) {
-                const blockElement = hasClosestBlock(targetElement);
-                if (blockElement) {
-                    const avID = blockElement.getAttribute("data-av-id");
-                    let previousID = "";
-                    if (targetClass.includes("dragover__left")) {
-                        if (targetElement.previousElementSibling) {
-                            if (targetElement.previousElementSibling.classList.contains("av__colsticky")) {
-                                previousID = targetElement.previousElementSibling.lastElementChild.getAttribute("data-col-id");
-                            } else {
-                                previousID = targetElement.previousElementSibling.getAttribute("data-col-id");
-                            }
-                        }
-                    } else {
-                        previousID = targetElement.getAttribute("data-col-id");
-                    }
-                    let oldPreviousID = "";
-                    const rowElement = hasClosestByClassName(targetElement, "av__row");
-                    if (rowElement) {
-                        const oldPreviousElement = rowElement.querySelector(`[data-col-id="${gutterTypes[2]}"`)?.previousElementSibling;
-                        if (oldPreviousElement) {
-                            if (oldPreviousElement.classList.contains("av__colsticky")) {
-                                oldPreviousID = oldPreviousElement.lastElementChild.getAttribute("data-col-id");
-                            } else {
-                                oldPreviousID = oldPreviousElement.getAttribute("data-col-id");
-                            }
-                        }
-                    }
-                    if (previousID !== oldPreviousID && previousID !== gutterTypes[2]) {
-                        transaction(protyle, [{
-                            action: "sortAttrViewCol",
-                            avID,
-                            previousID,
-                            id: gutterTypes[2],
-                            blockID: blockElement.dataset.nodeId,
-                        }], [{
-                            action: "sortAttrViewCol",
-                            avID,
-                            previousID: oldPreviousID,
-                            id: gutterTypes[2],
-                            blockID: blockElement.dataset.nodeId,
-                        }]);
-                    }
-                }
-            } else if (targetElement.classList.contains("av__row")) {
-                // 拖拽到属性视图 table 内
-                const blockElement = hasClosestBlock(targetElement);
-                if (blockElement) {
-                    let previousID = "";
-                    if (targetClass.includes("dragover__bottom")) {
-                        previousID = targetElement.getAttribute("data-id") || "";
-                    } else {
-                        previousID = targetElement.previousElementSibling?.getAttribute("data-id") || "";
-                    }
-                    const avID = blockElement.getAttribute("data-av-id");
-                    if (gutterTypes[0] === "nodeattributeviewrowmenu") {
-                        // 行内拖拽
-                        const doOperations: IOperation[] = [];
-                        const undoOperations: IOperation[] = [];
-                        const targetGroupID = targetElement.parentElement.getAttribute("data-group-id");
-                        selectedIds.reverse().forEach(item => {
-                            const items = item.split("@");
-                            const id = items[0];
-                            const groupID = items[1] || "";
-                            const undoPreviousId = blockElement.querySelector(`.av__body${groupID ? `[data-group-id="${groupID}"]` : ""} .av__row[data-id="${id}"]`).previousElementSibling?.getAttribute("data-id") || "";
-                            if (previousID !== id && undoPreviousId !== previousID || (
-                                (undoPreviousId === "" && previousID === "" && targetGroupID !== groupID)
-                            )) {
-                                doOperations.push({
-                                    action: "sortAttrViewRow",
-                                    avID,
-                                    previousID,
-                                    id,
-                                    blockID: blockElement.dataset.nodeId,
-                                    groupID,
-                                    targetGroupID,
-                                });
-                                undoOperations.push({
-                                    action: "sortAttrViewRow",
-                                    avID,
-                                    previousID: undoPreviousId,
-                                    id,
-                                    blockID: blockElement.dataset.nodeId,
-                                    groupID: targetGroupID,
-                                    targetGroupID: groupID,
-                                });
-                            }
-                        });
-                        transaction(protyle, doOperations, undoOperations);
-                    } else {
-                        const newUpdated = dayjs().format("YYYYMMDDHHmmss");
-                        const bodyElement = hasClosestByClassName(targetElement, "av__body");
-                        const groupID = bodyElement && bodyElement.getAttribute("data-group-id");
-                        transaction(protyle, [{
-                            action: "insertAttrViewBlock",
-                            avID,
-                            previousID,
-                            srcs,
-                            blockID: blockElement.dataset.nodeId,
-                            groupID
-                        }, {
-                            action: "doUpdateUpdated",
-                            id: blockElement.dataset.nodeId,
-                            data: newUpdated,
-                        }], [{
-                            action: "removeAttrViewBlock",
-                            srcIDs: sourceIds,
-                            avID,
-                        }, {
-                            action: "doUpdateUpdated",
-                            id: blockElement.dataset.nodeId,
-                            data: blockElement.getAttribute("updated")
-                        }]);
-                        blockElement.setAttribute("updated", newUpdated);
-                        insertAttrViewBlockAnimation({
-                            protyle,
-                            blockElement,
-                            srcIDs: sourceIds,
-                            previousId: previousID,
-                            groupID
-                        });
-                    }
-                }
-            } else if (targetElement.classList.contains("av__gallery-item") || targetElement.classList.contains("av__gallery-add")) {
-                // 拖拽到属性视图 gallery 内
-                const blockElement = hasClosestBlock(targetElement);
-                if (blockElement) {
-                    let previousID = "";
-                    if (targetClass.includes("dragover__right") || targetClass.includes("dragover__bottom")) {
-                        previousID = targetElement.getAttribute("data-id") || "";
-                    } else if (targetClass.includes("dragover__top") || targetClass.includes("dragover__left")) {
-                        previousID = targetElement.previousElementSibling?.getAttribute("data-id") || "";
-                    }
-                    const avID = blockElement.getAttribute("data-av-id");
-                    if (gutterTypes[1] === "galleryitem" && gutterTypes[0] === "nodeattributeview") {
-                        // gallery item 内部拖拽
-                        const doOperations: IOperation[] = [];
-                        const undoOperations: IOperation[] = [];
-                        const targetGroupID = targetElement.parentElement.parentElement.getAttribute("data-group-id");
-                        selectedIds.reverse().forEach(item => {
-                            const items = item.split("@");
-                            const id = items[0];
-                            const groupID = items[1] || "";
-                            const undoPreviousId = blockElement.querySelector(`.av__body[data-group-id="${groupID}"] .av__gallery-item[data-id="${id}"]`).previousElementSibling?.getAttribute("data-id") || "";
-                            if (previousID !== item && undoPreviousId !== previousID || (
-                                (undoPreviousId === "" && previousID === "" && targetGroupID !== groupID)
-                            )) {
-                                doOperations.push({
-                                    action: "sortAttrViewRow",
-                                    avID,
-                                    previousID,
-                                    id,
-                                    blockID: blockElement.dataset.nodeId,
-                                    groupID,
-                                    targetGroupID,
-                                });
-                                undoOperations.push({
-                                    action: "sortAttrViewRow",
-                                    avID,
-                                    previousID: undoPreviousId,
-                                    id,
-                                    blockID: blockElement.dataset.nodeId,
-                                    groupID: targetGroupID,
-                                    targetGroupID: groupID,
-                                });
-                            }
-                        });
-                        transaction(protyle, doOperations, undoOperations);
-                    } else {
-                        const newUpdated = dayjs().format("YYYYMMDDHHmmss");
-                        const bodyElement = hasClosestByClassName(targetElement, "av__body");
-                        transaction(protyle, [{
-                            action: "insertAttrViewBlock",
-                            avID,
-                            previousID,
-                            srcs,
-                            blockID: blockElement.dataset.nodeId,
-                            groupID: bodyElement && bodyElement.getAttribute("data-group-id")
-                        }, {
-                            action: "doUpdateUpdated",
-                            id: blockElement.dataset.nodeId,
-                            data: newUpdated,
-                        }], [{
-                            action: "removeAttrViewBlock",
-                            srcIDs: sourceIds,
-                            avID,
-                        }, {
-                            action: "doUpdateUpdated",
-                            id: blockElement.dataset.nodeId,
-                            data: blockElement.getAttribute("updated")
-                        }]);
-                        blockElement.setAttribute("updated", newUpdated);
-                        insertGalleryItemAnimation({
-                            protyle,
-                            blockElement,
-                            srcIDs: sourceIds,
-                            previousId: previousID,
-                            groupID: targetElement.parentElement.getAttribute("data-group-id")
-                        });
-                    }
-                }
-            } else if (sourceElements.length > 0) {
-                if (targetElement.parentElement.getAttribute("data-type") === "NodeSuperBlock" &&
-                    targetElement.parentElement.getAttribute("data-sb-layout") === "col") {
-                    if (targetClass.includes("dragover__left") || targetClass.includes("dragover__right")) {
-                        // Mac 上 ⌘ 无法进行拖拽
-                        dragSame(protyle, sourceElements, targetElement, targetClass.includes("dragover__right"), event.ctrlKey);
-                    } else {
-                        dragSb(protyle, sourceElements, targetElement, targetClass.includes("dragover__bottom"), "row", event.ctrlKey);
-                    }
-                } else {
-                    if (targetClass.includes("dragover__left") || targetClass.includes("dragover__right")) {
-                        dragSb(protyle, sourceElements, targetElement, targetClass.includes("dragover__right"), "col", event.ctrlKey);
-                    } else {
-                        dragSame(protyle, sourceElements, targetElement, targetClass.includes("dragover__bottom"), event.ctrlKey);
-                    }
-                }
-
-                // https://github.com/siyuan-note/siyuan/issues/10528#issuecomment-2205165824
-                editorElement.querySelectorAll(".protyle-wysiwyg--empty").forEach(item => {
-                    item.classList.remove("protyle-wysiwyg--empty");
-                });
-
-                // 需重新渲染 https://github.com/siyuan-note/siyuan/issues/7574
-                protyle.wysiwyg.element.querySelectorAll('[data-type="NodeBlockQueryEmbed"]').forEach(item => {
-                    item.removeAttribute("data-render");
-                    blockRender(protyle, item);
-                });
-            }
-            state.dragoverElement = undefined;
-        }
-    } else if (event.dataTransfer.getData(Constants.SIYUAN_DROP_FILE)?.split("-").length > 1) {
-        // 文件树拖拽
-        const ids = event.dataTransfer.getData(Constants.SIYUAN_DROP_FILE).split(",");
-        if (!event.altKey && (!targetElement || (
-            !targetElement.classList.contains("av__row") && !targetElement.classList.contains("av__gallery-item") &&
-            !targetElement.classList.contains("av__gallery-add")
-        ))) {
-            if (event.y > protyle.wysiwyg.element.lastElementChild.getBoundingClientRect().bottom) {
-                insertEmptyBlock(protyle, "afterend", protyle.wysiwyg.element.lastElementChild.getAttribute("data-node-id"));
-            } else {
-                const range = getRangeByPoint(event.clientX, event.clientY);
-                if (hasClosestByAttribute(range.startContainer, "data-type", "NodeBlockQueryEmbed")) {
-                    return;
-                } else {
-                    focusByRange(range);
-                }
-            }
-            let html = "";
-            for (let i = 0; i < ids.length; i++) {
-                if (ids.length > 1) {
-                    html += "- ";
-                }
-                const response = await fetchSyncPost("/api/block/getRefText", { id: ids[i] });
-                html += `((${ids[i]} '${response.data}'))`;
-                if (ids.length > 1 && i !== ids.length - 1) {
-                    html += "\n";
-                }
-            }
-            insertHTML(protyle.lute.Md2BlockDOM(html), protyle);
-        } else if (targetElement && !protyle.options.backlinkData && targetElement.className.indexOf("dragover__") > -1) {
-            const scrollTop = protyle.contentElement.scrollTop;
-            if (targetElement.classList.contains("av__row") ||
-                targetElement.classList.contains("av__gallery-item") ||
-                targetElement.classList.contains("av__gallery-add")) {
-                // 拖拽到属性视图内
-                const blockElement = hasClosestBlock(targetElement);
-                if (blockElement) {
-                    let previousID = "";
-                    if (targetElement.classList.contains("dragover__bottom") || targetElement.classList.contains("dragover__right")) {
-                        previousID = targetElement.getAttribute("data-id") || "";
-                    } else if (targetElement.classList.contains("dragover__top") || targetElement.classList.contains("dragover__left")) {
-                        previousID = targetElement.previousElementSibling?.getAttribute("data-id") || "";
-                    }
-                    const avID = blockElement.getAttribute("data-av-id");
-                    const newUpdated = dayjs().format("YYYYMMDDHHmmss");
-                    const srcs: IOperationSrcs[] = [];
-                    const bodyElement = hasClosestByClassName(targetElement, "av__body");
-                    const groupID = bodyElement && bodyElement.getAttribute("data-group-id");
-                    ids.forEach(id => {
-                        srcs.push({
-                            itemID: Lute.NewNodeID(),
-                            id,
-                            isDetached: false,
-                        });
-                    });
-                    transaction(protyle, [{
-                        action: "insertAttrViewBlock",
-                        avID,
-                        previousID,
-                        srcs,
-                        blockID: blockElement.dataset.nodeId,
-                        groupID
-                    }, {
-                        action: "doUpdateUpdated",
-                        id: blockElement.dataset.nodeId,
-                        data: newUpdated,
-                    }], [{
-                        action: "removeAttrViewBlock",
-                        srcIDs: ids,
-                        avID,
-                    }, {
-                        action: "doUpdateUpdated",
-                        id: blockElement.dataset.nodeId,
-                        data: blockElement.getAttribute("updated")
-                    }]);
-                    insertAttrViewBlockAnimation({
-                        protyle,
-                        blockElement,
-                        srcIDs: ids,
-                        previousId: previousID,
-                        groupID
-                    });
-                    blockElement.setAttribute("updated", newUpdated);
-                }
-            } else {
-                if (targetElement.classList.contains("dragover__bottom")) {
-                    for (let i = ids.length - 1; i > -1; i--) {
-                        if (ids[i]) {
-                            await fetchSyncPost("/api/filetree/doc2Heading", {
-                                srcID: ids[i],
-                                after: true,
-                                targetID: targetElement.getAttribute("data-node-id"),
-                            });
-                        }
-                    }
-                } else {
-                    for (let i = 0; i < ids.length; i++) {
-                        if (ids[i]) {
-                            await fetchSyncPost("/api/filetree/doc2Heading", {
-                                srcID: ids[i],
-                                after: false,
-                                targetID: targetElement.getAttribute("data-node-id"),
-                            });
-                        }
-                    }
-                }
-
-                fetchPost("/api/filetree/getDoc", {
-                    id: protyle.block.id,
-                    size: window.siyuan.config.editor.dynamicLoadBlocks,
-                }, getResponse => {
-                    onGet({ data: getResponse, protyle });
-                    // 文档标题互转后，需更新大纲
-                    if (!isMobile) {
-                        updatePanelByEditor({
-                            protyle,
-                            focus: false,
-                            pushBackStack: false,
-                            reload: true,
-                            resize: false,
-                        });
-                    }
-                    // 文档标题互转后，编辑区会跳转到开头 https://github.com/siyuan-note/siyuan/issues/2939
-                    setTimeout(() => {
-                        protyle.contentElement.scrollTop = scrollTop;
-                        protyle.scroll.lastScrollTop = scrollTop - 1;
-                    }, Constants.TIMEOUT_LOAD);
-                });
-            }
-            targetElement.classList.remove("dragover__bottom", "dragover__top", "dragover__left", "dragover__right");
-        }
-    } else if (!window.siyuan.dragElement && (event.dataTransfer.types[0] === "Files" || event.dataTransfer.types.includes("text/html"))) {
-        event.preventDefault();
-        // 外部文件拖入编辑器中或者编辑器内选中文字拖拽
-        // https://github.com/siyuan-note/siyuan/issues/9544
-        const avElement = hasClosestByClassName(event.target, "av");
-        if (!avElement) {
-            focusByRange(getRangeByPoint(event.clientX, event.clientY));
-            if (event.dataTransfer.types[0] === "Files" && !isBrowser()) {
-                const files: string[] = [];
-                for (let i = 0; i < event.dataTransfer.files.length; i++) {
-                    files.push(getPathForFile(event.dataTransfer.files[i]));
-                }
-                uploadLocalFiles(files, protyle, !event.altKey);
-            } else {
-                paste(protyle, event);
-            }
-            clearSelect(["av", "img"], protyle.wysiwyg.element);
-        } else {
-            const cellElement = hasClosestByClassName(event.target, "av__cell");
-            if (cellElement) {
-                if (getTypeByCellElement(cellElement) === "mAsset" && event.dataTransfer.types[0] === "Files" && !isBrowser()) {
-                    const files: string[] = [];
-                    for (let i = 0; i < event.dataTransfer.files.length; i++) {
-                        files.push(getPathForFile(event.dataTransfer.files[i]));
-                    }
-                    dragUpload(files, protyle, cellElement);
-                    clearSelect(["cell"], avElement);
-                }
-            }
-        }
+        await handleGutterDrop(protyle, editorElement, event, gutterType, targetElement, state);
+        clearDragElement();
+        return;
     }
-    if (window.siyuan.dragElement) {
-        window.siyuan.dragElement.style.opacity = "";
-        window.siyuan.dragElement = undefined;
+    // 文件树拖拽数据：从 dataTransfer 中获取文件 ID 列表
+    const fileData = event.dataTransfer.getData(Constants.SIYUAN_DROP_FILE) ?? "";
+    // 合法的文件树 ID 至少包含一个 '-'（如 "20210808180117-6v0mkxr"），不含 '-' 说明数据无效
+    if (fileData.split("-").length > 1) {
+        const ids = fileData.split(",");
+        await handleFileTreeDrop(protyle, event, ids, targetElement);
+        clearDragElement();
+        return;
     }
+    // 外部文件/HTML 拖拽：无 dragElement 且类型为 Files 或 text/html
+    if (!getDragElement()
+        && (event.dataTransfer.types[0] === "Files"
+            || event.dataTransfer.types.includes("text/html"))) {
+        await handleExternalDrop(protyle, event);
+    }
+    clearDragElement();
 };
