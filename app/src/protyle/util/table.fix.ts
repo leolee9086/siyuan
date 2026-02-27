@@ -83,6 +83,12 @@ export const fixTable = (protyle: IProtyle, event: KeyboardEvent, range: Range):
         return false;
     }
     const controller = new AbortController();
+    const rawAbort = controller.abort.bind(controller);
+    controller.abort = (reason?: string) => {
+        // 打印中止理由，便于调试快捷键匹配
+        console.log(`fixTable中止: ${reason ?? "未知原因"}`);
+        rawAbort.call(controller, reason);
+    };
     const ctx: TableFixContext = {
         protyle,
         event,
