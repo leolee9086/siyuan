@@ -28,11 +28,14 @@ export async function 编译文档(docId: string, docTitle?: string): Promise<�
 
         // 遍历所有块，提取 JavaScript 代码块
         for (const block of blocks) {
-            if (block.type === "c") {  // 代码块类型
-                const codeResult = await 提取代码块内容(block.id);
-                if (codeResult) {
-                    代码片段.push(codeResult);
-                }
+            // 代码块类型("c")才包含需要提取的 JavaScript 脚本,过滤掉段落、列表等非代码块元素
+            if (block.type !== "c") {
+                continue;
+            }
+
+            const codeResult = await 提取代码块内容(block.id);
+            if (codeResult) {
+                代码片段.push(codeResult);
             }
         }
 
@@ -78,7 +81,10 @@ async function 提取代码块内容(blockId: string): Promise<string | null> {
             return null;
         }
 
-        const kramdown = response.data.kramdown as string;
+        const kramdown = response.data.kramdown;
+        if (typeof kramdown !== "string") {
+            return null;
+        }
 
         // 解析代码块语言和内容
         // 格式: ```language\n代码内容\n```
@@ -88,7 +94,8 @@ async function 提取代码块内容(blockId: string): Promise<string | null> {
             return null;
         }
 
-        const lang = match[1].toLowerCase();
+        const langMatch = match[1];
+        const lang = langMatch ? langMatch.toLowerCase() : "";
         const code = match[2];
 
         // 只提取 JavaScript/JS 代码块
@@ -106,6 +113,7 @@ async function 提取代码块内容(blockId: string): Promise<string | null> {
 /**
  * 检查文档是否为插件定义文档
  * @param attrs 文档属性
+ * @同步豁免: 性能考虑，纯同步访问属性不需要引入异步开销
  */
 export function 是插件文档(attrs: Record<string, string>): boolean {
     return attrs["custom-ext-type"] === "plugin";
