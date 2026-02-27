@@ -5,19 +5,22 @@ import {
 import { isElectron } from "../platform";
 import { focusBlock, focusByRange } from "../protyle/util/selection";
 import {
-    deleteColumn,
-    deleteRow,
     getColIndex,
-    insertColumn,
+    setTableAlign} from "../protyle/util/table";
+import {
     insertRow,
     insertRowAbove,
+    deleteRow,
+    moveRowToUp,
+    moveRowToDown,
+} from "../protyle/util/table.row";
+import {
+    insertColumn,
+    deleteColumn,
     moveColumnToLeft,
     moveColumnToRight,
-    moveRowToDown,
-    moveRowToUp,
-    setTableAlign,
-    updateTableTitle
-} from "../protyle/util/table";
+} from "../protyle/util/table.column";
+import { updateTableTitle } from "../protyle/util/table.title.update";
 import { transaction } from "../protyle/wysiwyg/transaction";
 import { preventScroll } from "../protyle/scroll/preventScroll";
 import { removeFoldHeading } from "../protyle/util/heading";
