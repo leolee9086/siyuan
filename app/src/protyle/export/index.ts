@@ -121,6 +121,16 @@ const getSnippetCSS = () => {
     return snippetCSS;
 };
 
+/**
+ * 获取注入的自定义 JavaScript 代码片段。
+ * 
+ * - **作用**：检索当前文档（DOM）中 `id` 属性以 `snippetJS` 开头的所有 `<script>` 标签，并把它们自身的 HTML 也就是外层字符串（包含属性和具体的 JS 代码）全部拼接返回为一个完整的文本。
+ * - **意图**：是为了确保思源笔记导出的 HTML 和 PDF 文件或者外部预览页面，也能够完整继承用户在设置的“代码片段”功能中所配置的自定义 JavaScript 逻辑，保证导出的文档与应用内交互和体验高度统一。
+ * - **调用时机**：在生成用于导出或渲染的 HTML 完整结构骨架字符串的过程中进行调用（即 `renderPDF` 及 `onExport` 函数里的大段拼接 HTML 字符串的地方）。
+ * - **问题/改进**：当前方法通过 `document.querySelectorAll("script")` 直接在当前应用界面的主 DOM 树中抓取元素。这导致了该功能与前端实时渲染状态相耦合。较好的改进空间是：后续应直接通过向后端发出获取最新代码片段配置的请求，或从应用级的状态对象（config）中直接拿到配置数据来生成，避免依赖临时 DOM 的拼装。
+ * 
+ * @returns {string} 包含了各个代码片段 script 标签以及内部 JS 逻辑的 HTML 字符串
+ */
 const getSnippetJS = () => {
     let snippetScript = "";
     document.querySelectorAll("script").forEach((item) => {

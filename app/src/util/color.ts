@@ -30,6 +30,16 @@ const hslToHex = (h: number, s: number, l: number): string => {
     return `#${calculateColorComponent(0, h, a, l)}${calculateColorComponent(8, h, a, l)}${calculateColorComponent(4, h, a, l)}`;
 };
 
+/**
+ * 生成柔和的随机颜色（HSL空间限定饱和度20-50%、亮度70-90%后转hex）
+ *
+ * 作用：生成视觉上柔和、不刺眼的随机颜色，避免纯随机产生过于鲜艳的色值
+ * 意图：AI对话场景中需要为块遮罩和对话框容器分配辨识色，柔和色调不干扰编辑区阅读
+ * 调用时机：AIChat 发起时调用，生成的颜色同时用于 createBlockMasks 和 setDialogContainerColor
+ *
+ * @returns 十六进制颜色值，如 "#b3c8e0"
+ */
+/** @同步豁免: 性能考虑 - 纯数学计算（Math.random + HSL→hex），无任何可await操作，async包装只增加无意义的Promise开销 */
 export const genRandomColor = (): string => {
     // 生成柔和的随机颜色，避免过于鲜艳的颜色
     const hue = Math.floor(Math.random() * 360);

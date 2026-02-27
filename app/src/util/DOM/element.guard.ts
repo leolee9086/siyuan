@@ -61,3 +61,8 @@ export const isChildNode = (node: unknown): node is ChildNode => {
 export const isHTMLTableCellElement = (element: unknown): element is HTMLTableCellElement => {
     return element instanceof HTMLTableCellElement;
 };
+
+/** 类型守卫：判断事件是否为 InputEvent */
+export const isInputEvent = (event: Event): event is InputEvent => {
+    return event instanceof InputEvent;
+};
