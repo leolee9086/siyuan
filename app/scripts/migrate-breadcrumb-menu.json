@@ -1,0 +1,8 @@
+{
+  "moves": [
+    { "from": "src/protyle/breadcrumb/menuItems.ts", "to": "src/protyle/breadcrumb/menu/menuItems.ts" },
+    { "from": "src/protyle/breadcrumb/menuItems.misc.ts", "to": "src/protyle/breadcrumb/menu/menuItems.misc.ts" },
+    { "from": "src/protyle/breadcrumb/menuItems.upload.ts", "to": "src/protyle/breadcrumb/menu/menuItems.upload.ts" },
+    { "from": "src/protyle/breadcrumb/showBreadcrumbMenu.ts", "to": "src/protyle/breadcrumb/menu/showBreadcrumbMenu.ts" }
+  ]
+}

@@ -2,18 +2,18 @@
  * 面包屑菜单项辅助函数 - 上传与录音
  * 从 menuItems.ts 提取的上传和录音相关菜单项创建函数
  */
-import { Constants } from "../../constants";
-import { Menu } from "../../menus/Menu";
-import { MenuItem } from "../../menus/Menu.Item";
-import { RecordMedia } from "../util/RecordMedia";
-import { hideMessage, showMessage } from "../../dialog/message";
-import { uploadFiles } from "../upload";
-import { isElectron } from "../../platform";
-import { ipcInvoke } from "../../platform/electron/ipcRenderer";
-import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { getSiyuanConfig, getSiyuanMenus } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import type { 录音器上下文 } from "./breadcrumb.types";
-import { isHTMLInputElement } from "./breadcrumb.guard";
+import { Constants } from "../../../constants";
+import { Menu } from "../../../menus/Menu";
+import { MenuItem } from "../../../menus/Menu.Item";
+import { RecordMedia } from "../../util/RecordMedia";
+import { hideMessage, showMessage } from "../../../dialog/message";
+import { uploadFiles } from "../../upload";
+import { isElectron } from "../../../platform";
+import { ipcInvoke } from "../../../platform/electron/ipcRenderer";
+import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { getSiyuanConfig, getSiyuanMenus } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import type { 录音器上下文 } from "../breadcrumb.types";
+import { isHTMLInputElement } from "../breadcrumb.guard";
 
 // ==================== 上传菜单项 ====================
 

@@ -10,7 +10,7 @@ import { getIconByType } from "../../editor/getIcon";
 import { improveBreadcrumbAppearance } from "../wysiwyg/renderBacklink";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig, setSiyuanHideBreadcrumb } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { 显示面包屑菜单 } from "./showBreadcrumbMenu";
+import { 显示面包屑菜单 } from "./menu/showBreadcrumbMenu";
 import { 处理面包屑点击 } from "./breadcrumb.events";
 import { isHTMLElement, isStylableElement } from "./breadcrumb.guard";
 import {

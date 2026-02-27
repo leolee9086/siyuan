@@ -2,15 +2,15 @@
  * 面包屑菜单显示逻辑
  * 从 Breadcrumb 类中提取的 showMenu 方法核心逻辑
  */
-import { fetchPost } from "../../util/network/fetch";
-import { isMobile } from "../../platform";
-import { Constants } from "../../constants";
-import { hasClosestBlock, hasTopClosestByClassName } from "../util/hasClosest";
-import { getEditorRange } from "../util/selection";
-import { emitOpenMenu } from "../../plugin/EventBus";
-import { getSiyuanConfig, getSiyuanMenus } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { Menu } from "../../menus/Menu";
-import type { 录音器上下文 } from "./breadcrumb.types";
+import { fetchPost } from "../../../util/network/fetch";
+import { isMobile } from "../../../platform";
+import { Constants } from "../../../constants";
+import { hasClosestBlock, hasTopClosestByClassName } from "../../util/hasClosest";
+import { getEditorRange } from "../../util/selection";
+import { emitOpenMenu } from "../../../plugin/EventBus";
+import { getSiyuanConfig, getSiyuanMenus } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { Menu } from "../../../menus/Menu";
+import type { 录音器上下文 } from "../breadcrumb.types";
 import {
     添加资源转换菜单项,
     添加编辑模式菜单项,

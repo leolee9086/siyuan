@@ -1,15 +1,15 @@
-import { MenuItem } from "../../menus/Menu.Item";
-import { Menu } from "../../menus/Menu";
-import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { isMobile } from "../../platform";
-import { reloadProtyle } from "../util/reload";
-import { hideElements } from "../ui/hideElements";
-import { fetchPost } from "../../util/network/fetch";
-import { fullscreen } from "./action";
-import { resize } from "../util/resize";
-import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { isInAndroid, isInHarmony } from "../util/compatibility";
-import type { 录音器上下文 } from "./breadcrumb.types";
+import { MenuItem } from "../../../menus/Menu.Item";
+import { Menu } from "../../../menus/Menu";
+import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { isMobile } from "../../../platform";
+import { reloadProtyle } from "../../util/reload";
+import { hideElements } from "../../ui/hideElements";
+import { fetchPost } from "../../../util/network/fetch";
+import { fullscreen } from "../action";
+import { resize } from "../../util/resize";
+import { getSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { isInAndroid, isInHarmony } from "../../util/compatibility";
+import type { 录音器上下文 } from "../breadcrumb.types";
 import { 添加上传菜单项, 添加录音菜单项 } from "./menuItems";
 
 export function 添加上传与录音组(
