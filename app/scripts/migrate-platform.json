@@ -1,0 +1,10 @@
+{
+  "moves": [
+    { "from": "src/util/functions.ts", "to": "src/util/platform/functions.ts" },
+    { "from": "src/util/genID.ts", "to": "src/util/platform/genID.ts" },
+    { "from": "src/util/pinyin.ts", "to": "src/util/platform/pinyin.ts" },
+    { "from": "src/util/noRelyPCFunction.ts", "to": "src/util/platform/noRelyPCFunction.ts" },
+    { "from": "src/util/iOSPurchase.ts", "to": "src/util/platform/iOSPurchase.ts" },
+    { "from": "src/util/needSubscribe.ts", "to": "src/util/platform/needSubscribe.ts" }
+  ]
+}

@@ -1,11 +1,11 @@
 import {unicode2Emoji} from "../../../emoji";
 import {getColIconByType} from "./col.typeUtils";
-import {escapeHtml} from "../../../util/escape";
-import {setPosition} from "../../../util/setPosition";
+import {escapeHtml} from "../../../util/DOM/escape";
+import {setPosition} from "../../../util/DOM/setPosition";
 import {getFieldsByData} from "./view";
-import {fetchSyncPost} from "../../../util/fetch";
+import {fetchSyncPost} from "../../../util/network/fetch";
 import {Menu} from "../../../plugin/Menu";
-import {objEquals} from "../../../util/functions";
+import {objEquals} from "../../../util/platform/functions";
 import {Constants} from "../../../constants";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 

@@ -8,20 +8,20 @@ import {
     hasClosestBlock,
     hasClosestByClassName,
 } from "../../protyle/util/hasClosest";
-import { newFile } from "../../util/newFile";
+import { newFile } from "../../util/file/newFile";
 import { Constants } from "../../constants";
 import { openSetting } from "../../config";
 import { getDockByType, switchTabByIndex } from "../../layout/tabUtil";
 import { Editor } from "../../editor";
-import { newDailyNote } from "../../util/mount";
+import { newDailyNote } from "../../util/file/mount";
 import { hideElements } from "../../protyle/ui/hideElements";
-import { goBack, goForward } from "../../util/backForward";
+import { goBack, goForward } from "../../util/navigation/backForward";
 import { getAllDocks, getAllModels, getAllTabs } from "../../layout/getAll";
 import { focusBlock, focusByRange } from "../../protyle/util/selection";
 import { bindMenuKeydown } from "../../menus/Menu.bindMenuKeydown";
 import { Dialog } from "../../dialog";
 import { unicode2Emoji } from "../../emoji";
-import { escapeHtml } from "../../util/escape";
+import { escapeHtml } from "../../util/DOM/escape";
 import { syncGuide } from "../../sync/syncGuide";
 import { setZoom } from "../../layout/topBar";
 import { isElectron } from "../../platform";
@@ -29,7 +29,7 @@ import { ipcSend } from "../../platform/electron/ipcRenderer";
 import { openHistory } from "../../history/history";
 import { openCard } from "../../card/openCard";
 import { lockScreen } from "../../dialog/processSystem";
-import { isWindow } from "../../util/functions";
+import { isWindow } from "../../util/platform/functions";
 import { openRecentDocs } from "../../business/openRecentDocs";
 import { App } from "../../index";
 import { toggleDockBar } from "../../layout/dock/util";

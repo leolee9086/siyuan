@@ -1,4 +1,4 @@
-import { scrollCenter } from "../../util/highlightById";
+import { scrollCenter } from "../../util/DOM/highlightById";
 import { hasNextSibling, hasPreviousSibling } from "../wysiwyg/getBlock";
 import { updateTransaction } from "../wysiwyg/transaction";
 import { isNotCtrl } from "./compatibility";

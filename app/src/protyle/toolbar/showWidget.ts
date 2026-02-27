@@ -1,10 +1,10 @@
 /**
  * 挂件选择面板
  */
-import { fetchPost } from "../../util/fetch";
+import { fetchPost } from "../../util/network/fetch";
 import { isMobile } from "../../platform";
-import { setPosition } from "../../util/setPosition";
-import { upDownHint } from "../../util/upDownHint";
+import { setPosition } from "../../util/DOM/setPosition";
+import { upDownHint } from "../../util/DOM/upDownHint";
 import { Constants } from "../../constants";
 import { focusByRange, getSelectionPosition } from "../util/selection";
 import { hasClosestByClassName } from "../util/hasClosest";

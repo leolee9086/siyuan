@@ -1,14 +1,14 @@
 import { getAllEditor, getAllModels, getAllWnds } from "../../layout/getAll";
 import { isMobile } from "../../platform";
 import { addLoading } from "../ui/initUI";
-import { fetchPost } from "../../util/fetch";
+import { fetchPost } from "../../util/network/fetch";
 import { Constants } from "../../constants";
 import { hideAllElements, hideElements } from "../ui/hideElements";
 import { hasClosestByClassName } from "../util/hasClosest";
 import { reloadProtyle } from "../util/reload";
 import { resize } from "../util/resize";
 import { disabledProtyle, enableProtyle } from "../util/onGet";
-import { isWindow } from "../../util/functions";
+import { isWindow } from "../../util/platform/functions";
 import { Wnd } from "../../layout/Wnd";
 import {
     getSiyuanConfig,

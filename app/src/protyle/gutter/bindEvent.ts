@@ -15,7 +15,7 @@ import { focusByRange, getEditorRange } from "../util/selection";
 import { hideElements } from "../ui/hideElements";
 import { getContenteditableElement } from "../wysiwyg/getBlock";
 import * as dayjs from "dayjs";
-import { fetchPost } from "../../util/fetch";
+import { fetchPost } from "../../util/network/fetch";
 import { genEmptyElement, getLangByType } from "../../block/util";
 import { Constants } from "../../constants";
 import { hideTooltip } from "../../dialog/tooltip";
@@ -27,7 +27,7 @@ import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.e
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";
 import { openFileById } from "../../editor/utils.openFileById";
 import { isMobile } from "../../platform";
-import { checkFold } from "../../util/noRelyPCFunction";
+import { checkFold } from "../../util/platform/noRelyPCFunction";
 import { clearSelect } from "../util/clearSelect";
 import { buildGutterMenu } from "./buildGutterMenu";
 

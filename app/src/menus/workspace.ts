@@ -3,9 +3,9 @@ import {ipcSend} from "../platform/electron/ipcRenderer";
 import {ipcInvoke} from "../platform/electron/ipcRenderer";
 import {isElectron} from "../platform";
 import {openHistory} from "../history/history";
-import {getOpenNotebookCount, originalPath, pathPosix, useShell} from "../util/pathName";
-import {fetchNewDailyNote, mountHelp, newDailyNote} from "../util/mount";
-import {fetchPost} from "../util/fetch";
+import {getOpenNotebookCount, originalPath, pathPosix, useShell} from "../util/file/pathName";
+import {fetchNewDailyNote, mountHelp, newDailyNote} from "../util/file/mount";
+import {fetchPost} from "../util/network/fetch";
 import {Constants} from "../constants";
 import {
     isInAndroid,
@@ -24,16 +24,16 @@ import {exitSiYuan, lockScreen} from "../dialog/processSystem";
 import {showMessage} from "../dialog/message";
 import {unicode2Emoji} from "../emoji";
 import {Dock} from "../layout/dock";
-import {escapeHtml} from "../util/escape";
+import {escapeHtml} from "../util/DOM/escape";
 import {viewCards} from "../card/viewCards";
 import {Dialog} from "../dialog";
 import {hasClosestByClassName} from "../protyle/util/hasClosest";
 import {confirmDialog} from "../dialog/confirmDialog";
 import {App} from "../index";
-import {isBrowser} from "../util/functions";
+import {isBrowser} from "../util/platform/functions";
 import {openRecentDocs} from "../business/openRecentDocs";
 import * as dayjs from "dayjs";
-import {upDownHint} from "../util/upDownHint";
+import {upDownHint} from "../util/DOM/upDownHint";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 const editLayout = (layoutName?: string) => {

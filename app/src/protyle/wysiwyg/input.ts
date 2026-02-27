@@ -9,7 +9,7 @@ import {genEmptyBlock} from "../../block/util";
 import {blockRender} from "../render/blockRender";
 import {hideElements} from "../ui/hideElements";
 import {hasClosestByAttribute, hasClosestByClassName, isInEmbedBlock} from "../util/hasClosest";
-import {fetchPost, fetchSyncPost} from "../../util/fetch";
+import {fetchPost, fetchSyncPost} from "../../util/network/fetch";
 import {headingTurnIntoList, turnIntoTaskList} from "./turnIntoList";
 import {updateAVName} from "../render/av/action";
 import {setFold} from "../../menus/protyle";

@@ -1,8 +1,8 @@
-import {fetchPost, fetchSyncPost} from "../util/fetch";
+import {fetchPost, fetchSyncPost} from "../util/network/fetch";
 import {unicode2Emoji} from "../emoji";
 import {Constants} from "../constants";
-import {escapeHtml} from "../util/escape";
-import {isWindow} from "../util/functions";
+import {escapeHtml} from "../util/DOM/escape";
+import {isWindow} from "../util/platform/functions";
 import {setStorageVal, updateHotkeyTip} from "../protyle/util/compatibility";
 import {getAllDocks} from "../layout/getAll";
 import {Dialog} from "../dialog";

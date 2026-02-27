@@ -4,12 +4,12 @@
  */
 
 import { hasClosestByClassName } from "../../protyle/util/hasClosest";
-import { fetchPost } from "../../util/fetch";
+import { fetchPost } from "../../util/network/fetch";
 import { hideTooltip, showTooltip } from "../../dialog/tooltip";
-import { isLocalPath } from "../../util/pathName";
+import { isLocalPath } from "../../util/file/pathName";
 import { Constants } from "../../constants";
 import { getCellText } from "../../protyle/render/av/cell";
-import { escapeAriaLabel, escapeHtml } from "../../util/escape";
+import { escapeAriaLabel, escapeHtml } from "../../util/DOM/escape";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { TooltipInfo } from "./tooltip.types";
 export type { TooltipInfo };

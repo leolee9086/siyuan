@@ -5,7 +5,7 @@
 
 import { openNewWindowById } from "../window/openNewWindow";
 import { openFileById } from "../editor/utils.openFileById";
-import { checkFold } from "../util/noRelyPCFunction";
+import { checkFold } from "../util/platform/noRelyPCFunction";
 import { isElectron } from "../platform";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { App } from "../index";

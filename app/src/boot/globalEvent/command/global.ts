@@ -1,4 +1,4 @@
-import { newDailyNote } from "../../../util/mount";
+import { newDailyNote } from "../../../util/file/mount";
 import { openHistory } from "../../../history/history";
 import { Editor } from "../../../editor";
 import { openDock } from "../../../mobile/dock/util";
@@ -9,10 +9,10 @@ import { openNewWindow } from "../../../window/openNewWindow";
 import { selectOpenTab, openBacklink, openGraph, openOutline, toggleDockBar } from "../../../layout/dock/util";
 import { openGlobalSearch } from "../../../search/util";
 import { workspaceMenu } from "../../../menus/workspace";
-import { isWindow } from "../../../util/functions";
+import { isWindow } from "../../../util/platform/functions";
 import { openRecentDocs } from "../../../business/openRecentDocs";
 import { openSearch } from "../../../search/spread";
-import { goBack, goForward } from "../../../util/backForward";
+import { goBack, goForward } from "../../../util/navigation/backForward";
 import { getAllTabs, getAllWnds } from "../../../layout/getAll";
 import { getInstanceById } from "../../../layout/util";
 import {
@@ -31,13 +31,13 @@ import { App } from "../../../index";
 import { Constants } from "../../../constants";
 import { setReadOnly } from "../../../config/util/setReadOnly";
 import { lockScreen } from "../../../dialog/processSystem";
-import { newFile } from "../../../util/newFile";
+import { newFile } from "../../../util/file/newFile";
 import { openCard } from "../../../card/openCard";
 import { syncGuide } from "../../../sync/syncGuide";
 import { Wnd } from "../../../layout/Wnd";
 import { unsplitWnd } from "../../../menus/tab";
 import { openFile } from "../../../editor/util";
-import { fetchPost } from "../../../util/fetch";
+import { fetchPost } from "../../../util/network/fetch";
 import { setStorageVal } from "../../../protyle/util/compatibility";
 
 export const globalCommand = (command: string, app: App) => {

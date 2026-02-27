@@ -18,14 +18,14 @@ import { zoomOut } from "../../menus/protyle.zoomOut";
 import { preventScroll } from "../scroll/preventScroll";
 import { hideElements } from "../ui/hideElements";
 import { Constants } from "../../constants";
-import { scrollCenter } from "../../util/highlightById";
-import { isMobile } from "../../util/functions";
+import { scrollCenter } from "../../util/DOM/highlightById";
+import { isMobile } from "../../util/platform/functions";
 import { mathRender } from "../render/mathRender";
 import { hasClosestBlock, hasClosestByClassName } from "../util/hasClosest";
 import { getInstanceById } from "../../layout/util";
 import { Tab } from "../../layout/Tab";
 import { Backlink } from "../../layout/dock/Backlink";
-import { fetchPost, fetchSyncPost } from "../../util/fetch";
+import { fetchPost, fetchSyncPost } from "../../util/network/fetch";
 import { onGet } from "../util/onGet";
 import { removeLi } from "./remove.removeLi";
 

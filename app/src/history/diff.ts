@@ -1,14 +1,14 @@
-import {fetchPost} from "../util/fetch";
+import {fetchPost} from "../util/network/fetch";
 import {Dialog} from "../dialog";
 import {Protyle} from "../protyle";
 import {Constants} from "../constants";
 import {disabledProtyle, onGet} from "../protyle/util/onGet";
 import {hasClosestByClassName} from "../protyle/util/hasClosest";
-import {escapeAttr, escapeHtml} from "../util/escape";
+import {escapeAttr, escapeHtml} from "../util/DOM/escape";
 import * as dayjs from "dayjs";
-import {isMobile} from "../util/functions";
+import {isMobile} from "../util/platform/functions";
 import {App} from "../index";
-import {pathPosix} from "../util/pathName";
+import {pathPosix} from "../util/file/pathName";
 import {renderAssetsPreview} from "../asset/renderAssets";
 import {resizeSide} from "./resizeSide";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";

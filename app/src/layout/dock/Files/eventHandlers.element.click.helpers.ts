@@ -5,8 +5,8 @@
 
 import { openEmojiPanel } from "../../../emoji";
 import { initFileMenu, initNavigationMenu } from "../../../menus/navigation";
-import { newFile } from "../../../util/newFile";
-import { fetchPost } from "../../../util/fetch";
+import { newFile } from "../../../util/file/newFile";
+import { fetchPost } from "../../../util/network/fetch";
 import { isNotCtrl } from "../../../protyle/util/compatibility";
 import {
     getSiyuanConfig,

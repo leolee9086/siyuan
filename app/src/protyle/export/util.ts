@@ -1,14 +1,14 @@
-import {escapeHtml} from "../../util/escape";
+import {escapeHtml} from "../../util/DOM/escape";
 import {hideMessage, showMessage} from "../../dialog/message";
-import {fetchPost} from "../../util/fetch";
+import {fetchPost} from "../../util/network/fetch";
 import {Dialog} from "../../dialog";
 import {addScript} from "../util/addScript";
-import {isMobile} from "../../util/functions";
+import {isMobile} from "../../util/platform/functions";
 import {Constants} from "../../constants";
 import {highlightRender} from "../render/highlightRender";
 import {processRender} from "../util/processCode";
 import {isIPhone, isSafari, openByMobile, setStorageVal} from "../util/compatibility";
-import {useShell} from "../../util/pathName";
+import {useShell} from "../../util/file/pathName";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { isElectron } from "../../platform";
 

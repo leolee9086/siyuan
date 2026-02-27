@@ -1,18 +1,18 @@
 import {getCurrentEditor} from "../editor";
 import {Constants} from "../../constants";
-import {fetchPost} from "../../util/fetch";
+import {fetchPost} from "../../util/network/fetch";
 import {getIconByType} from "../../editor/getIcon";
 import {openModel} from "./model";
-import {getDisplayName, getNotebookName} from "../../util/pathName";
-import {escapeGreat, escapeHtml} from "../../util/escape";
+import {getDisplayName, getNotebookName} from "../../util/file/pathName";
+import {escapeGreat, escapeHtml} from "../../util/DOM/escape";
 import {unicode2Emoji} from "../../emoji";
-import {newFileByName} from "../../util/newFile";
+import {newFileByName} from "../../util/file/newFile";
 import {activeBlur} from "../util/keyboardToolbar";
 import {App} from "../../index";
 import {
     assetInputEvent,
 } from "../../search/assets";
-import {addClearButton} from "../../util/addClearButton";
+import {addClearButton} from "../../util/DOM/addClearButton";
 import {
     saveAssetKeyList,
     toggleSearchHistory,

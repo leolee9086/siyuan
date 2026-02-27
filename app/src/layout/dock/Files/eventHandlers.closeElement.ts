@@ -4,7 +4,7 @@
  */
 
 import { openEmojiPanel } from "../../../emoji";
-import { fetchPost } from "../../../util/fetch";
+import { fetchPost } from "../../../util/network/fetch";
 import { setPanelFocus } from "../../utils/setPanelFocus";
 import { removeSiyuanMenu } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { isStylableElement } from "./eventHandlers.guard";

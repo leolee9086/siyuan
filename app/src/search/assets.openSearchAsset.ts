@@ -1,7 +1,7 @@
 import { setStorageVal } from "../ai/imports";
 import { Constants } from "../constants";
 import { updateHotkeyTip } from "../protyle/util/compatibility";
-import { addClearButton } from "../util/addClearButton";
+import { addClearButton } from "../util/DOM/addClearButton";
 import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu.environment";
 import { getSiyuanStorage } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";

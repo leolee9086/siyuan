@@ -1,5 +1,5 @@
 import { Wnd } from "./Wnd";
-import { genUUID } from "../util/genID";
+import { genUUID } from "../util/platform/genID";
 import { fixWndFlex1 } from "./util";
 import { addResize } from "./utils/addResize";
 import { resizeTabs } from "./tabUtil";

@@ -6,7 +6,7 @@ import { MenuItem } from "../Menu.Item";
 import { hintRenderAssets } from "../../protyle/hint/extend";
 import { hasClosestByClassName } from "../../protyle/util/hasClosest";
 import { isMobile } from "../../platform";
-import { upDownHint } from "../../util/upDownHint";
+import { upDownHint } from "../../util/DOM/upDownHint";
 import { fetchPost } from "../../ai/imports";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";

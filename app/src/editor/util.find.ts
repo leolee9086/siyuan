@@ -1,7 +1,7 @@
 import { getAllModels } from "../layout/getAll";
 import { pdfIsLoading } from "../layout/util";
 import { clearOBG } from "../layout/dock/util";
-import { objEquals } from "../util/functions";
+import { objEquals } from "../util/platform/functions";
 import { hasClosestByClassName } from "../protyle/util/hasClosest";
 import { getUnInitTab } from "./util.getUnInitTab";
 import { switchEditor } from "./util.switchEditor";

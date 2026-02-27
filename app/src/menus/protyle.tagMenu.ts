@@ -10,7 +10,7 @@ import { hasClosestBlock, hasTopClosestByClassName } from "../protyle/util/hasCl
 import { focusByWbr } from "../protyle/util/selection";
 import { updateTransaction } from "../protyle/wysiwyg/transaction";
 import { openGlobalSearch } from "../search/util";
-import { renameTag } from "../util/noRelyPCFunction";
+import { renameTag } from "../util/platform/noRelyPCFunction";
 import { getSiyuanGlobalMenusMenu } from "../util/siyuanEnvironments/getMenu.environment";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { MenuItem } from "./Menu.Item";

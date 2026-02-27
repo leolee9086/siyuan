@@ -1,7 +1,7 @@
 import { App } from "..";
 import { showMessage } from "../dialog/message";
 import { Model } from "../layout/Model";
-import { fetchSyncPost } from "../util/fetch";
+import { fetchSyncPost } from "../util/network/fetch";
 import { openFile } from "./util";
 
 

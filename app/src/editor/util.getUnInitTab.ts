@@ -1,6 +1,6 @@
 import { Constants } from "../constants";
 import { getAllTabs } from "../layout/getAll";
-import { objEquals } from "../util/functions";
+import { objEquals } from "../util/platform/functions";
 import { Tab } from "../layout/Tab";
 import { ITabInitData } from "./types";
 import { isTabInitData } from "./editor.guard";

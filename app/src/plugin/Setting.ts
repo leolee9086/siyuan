@@ -1,4 +1,4 @@
-import {isMobile} from "../util/functions";
+import {isMobile} from "../util/platform/functions";
 import {Dialog} from "../dialog";
 
 export class Setting {

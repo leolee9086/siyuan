@@ -24,7 +24,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { isWindow } from "../../util/functions";
+import { isWindow } from "../../util/platform/functions";
 import { updateHotkeyTip } from "../../protyle/util/compatibility";
 /// #if !MOBILE
 import { getAllDocks } from "../../layout/getAll";

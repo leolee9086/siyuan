@@ -1,6 +1,6 @@
 import {hasClosestBlock, hasClosestByAttribute, hasClosestByClassName, isInEmbedBlock} from "../util/hasClosest";
 import {focusSideBlock, getEditorRange} from "../util/selection";
-import {isMobile} from "../../util/functions";
+import {isMobile} from "../../util/platform/functions";
 import {isNotEditBlock} from "./getBlock";
 import {transaction} from "./transaction";
 import {hideElements} from "../ui/hideElements";

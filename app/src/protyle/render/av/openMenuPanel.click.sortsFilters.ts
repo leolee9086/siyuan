@@ -1,5 +1,5 @@
 import { transaction } from "../../wysiwyg/transaction";
-import { setPosition } from "../../../util/setPosition";
+import { setPosition } from "../../../util/DOM/setPosition";
 import { addFilter, getFiltersHTML, setFilter } from "./filter";
 import { addSort, bindSortsEvent, getSortsHTML } from "./sort";
 import type { IMenuPanelContext } from "./openMenuPanel.types";

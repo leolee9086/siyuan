@@ -1,9 +1,9 @@
-import { fetchSyncPost } from "../util/fetch";
+import { fetchSyncPost } from "../util/network/fetch";
 import { App } from "../index";
 import { Plugin } from "./index";
 import { resizeTopBar, saveLayout } from "../layout/util";
 import { API } from "./API";
-import { getFrontend, isMobile, isWindow } from "../util/functions";
+import { getFrontend, isMobile, isWindow } from "../util/platform/functions";
 import { Constants } from "../constants";
 import { uninstall } from "./uninstall";
 import { setStorageVal } from "../protyle/util/compatibility";

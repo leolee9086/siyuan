@@ -5,7 +5,7 @@ import { Dialog } from "../dialog";
 import { getAllEditor } from "../layout/getAll";
 import { Protyle } from "../protyle";
 import { hideElements } from "../protyle/ui/hideElements";
-import { isMobile } from "../util/functions";
+import { isMobile } from "../util/platform/functions";
 import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { bindAttrInput } from "./commonMenuItem";

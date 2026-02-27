@@ -11,7 +11,7 @@ import {
 } from "../hasClosest";
 import { insertEmptyBlock } from "../../../block/util";
 import { focusByRange, getRangeByPoint } from "../selection";
-import { fetchSyncPost } from "../../../util/fetch";
+import { fetchSyncPost } from "../../../util/network/fetch";
 import { insertHTML } from "../insertHTML";
 import { blockRender } from "../../render/blockRender";
 import { dragSame, dragSb } from "./drag";

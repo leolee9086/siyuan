@@ -3,10 +3,10 @@ import { ipcSend } from "../platform/electron/ipcRenderer";
 import { isElectron } from "../platform";
 import { Constants } from "../constants";
 import { Tab } from "../layout/Tab";
-import { fetchSyncPost } from "../util/fetch";
+import { fetchSyncPost } from "../util/network/fetch";
 import { showMessage } from "../dialog/message";
-import { getDisplayName, pathPosix } from "../util/pathName";
-import { getSearch } from "../util/functions";
+import { getDisplayName, pathPosix } from "../util/file/pathName";
+import { getSearch } from "../util/platform/functions";
 import { getLocationProtocol, getLocationHost } from "../util/siyuanEnvironments/windowLocation.environment";
 import type { WindowOptions, AssetTabConfig } from "./openNewWindow.types";
 

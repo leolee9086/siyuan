@@ -1,7 +1,7 @@
-import {fetchPost} from "../util/fetch";
+import {fetchPost} from "../util/network/fetch";
 import {Dialog} from "../dialog";
 import {highlightRender} from "../protyle/render/highlightRender";
-import {isMobile} from "../util/functions";
+import {isMobile} from "../util/platform/functions";
 import {Constants} from "../constants";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 export const openChangelog = () => {

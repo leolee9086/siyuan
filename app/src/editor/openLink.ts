@@ -1,5 +1,5 @@
-import {getIdFromSYProtocol, isLocalPath, isSYProtocol, pathPosix} from "../util/pathName";
-import {getSearch} from "../util/functions";
+import {getIdFromSYProtocol, isLocalPath, isSYProtocol, pathPosix} from "../util/file/pathName";
+import {getSearch} from "../util/platform/functions";
 import {Constants} from "../constants";
 import {isMobile, isElectron} from "../platform";
 import {openExternal} from "../platform/electron/shell";
@@ -11,8 +11,8 @@ import {openAsset} from "./util.openAsset";
 import {showMessage} from "../dialog/message";
 import {openByMobile} from "../protyle/util/compatibility";
 import {App} from "../index";
-import {fetchPost} from "../util/fetch";
-import {checkFold} from "../util/noRelyPCFunction";
+import {fetchPost} from "../util/network/fetch";
+import {checkFold} from "../util/platform/noRelyPCFunction";
 import {openMobileFileById} from "../mobile/editor";
 
 export const processSYLink = (app: App, url: string) => {

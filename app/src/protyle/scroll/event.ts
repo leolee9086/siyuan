@@ -1,8 +1,8 @@
 import {Constants} from "../../constants";
 import {hideElements} from "../ui/hideElements";
-import {fetchPost} from "../../util/fetch";
+import {fetchPost} from "../../util/network/fetch";
 import {onGet} from "../util/onGet";
-import {isMobile} from "../../util/functions";
+import {isMobile} from "../../util/platform/functions";
 import {hasClosestBlock, hasClosestByClassName} from "../util/hasClosest";
 import {stickyRow} from "../render/av/row";
 

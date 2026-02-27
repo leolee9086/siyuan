@@ -11,9 +11,9 @@
 
 import { Tab } from "../../Tab";
 import { Model } from "../../Model";
-import { Tree } from "../../../util/Tree";
+import { Tree } from "../../../util/file/Tree";
 import { getDockByType } from "../../tabUtil";
-import { fetchPost } from "../../../util/fetch";
+import { fetchPost } from "../../../util/network/fetch";
 import { Constants } from "../../../constants";
 import { Protyle } from "../../../protyle";
 import { App } from "../../../index";

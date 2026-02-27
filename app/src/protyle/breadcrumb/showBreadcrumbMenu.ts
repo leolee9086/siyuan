@@ -2,7 +2,7 @@
  * 面包屑菜单显示逻辑
  * 从 Breadcrumb 类中提取的 showMenu 方法核心逻辑
  */
-import { fetchPost } from "../../util/fetch";
+import { fetchPost } from "../../util/network/fetch";
 import { isMobile } from "../../platform";
 import { Constants } from "../../constants";
 import { hasClosestBlock, hasTopClosestByClassName } from "../util/hasClosest";

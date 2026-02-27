@@ -2,7 +2,7 @@ import { getAllModels } from "../layout/getAll";
 import { isElectron } from "../platform";
 import { ipcInvoke, ipcSend } from "../platform/electron/ipcRenderer";
 import { setInlineStyle } from "../util/assets";
-import { fetchPost } from "../util/fetch";
+import { fetchPost } from "../util/network/fetch";
 import { confirmDialog } from "../dialog/confirmDialog";
 import { reloadProtyle } from "../protyle/util/reload";
 import { updateHotkeyTip } from "../protyle/util/compatibility";

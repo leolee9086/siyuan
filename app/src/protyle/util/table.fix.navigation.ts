@@ -1,5 +1,5 @@
 import { insertEmptyBlock } from "../../block/util";
-import { scrollCenter } from "../../util/highlightById";
+import { scrollCenter } from "../../util/DOM/highlightById";
 import { getSiyuanEditorGeneralKeymap } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { isNotCtrl } from "./compatibility";
 import { matchHotKey } from "./hotKey";

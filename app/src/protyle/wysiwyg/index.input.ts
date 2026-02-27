@@ -1,7 +1,7 @@
 import {hasClosestBlock, hasClosestByAttribute} from "../util/hasClosest";
 import {getEditorRange, getSelectionOffset, setInsertWbrHTML} from "../util/selection";
 import {Constants} from "../../constants";
-import {isMobile} from "../../util/functions";
+import {isMobile} from "../../util/platform/functions";
 import {previewDocImage} from "../preview/image";
 import {paste} from "../util/paste";
 import {getContenteditableElement} from "./getBlock";

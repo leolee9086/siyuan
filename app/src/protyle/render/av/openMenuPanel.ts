@@ -1,6 +1,6 @@
-import { fetchPost } from "../../../util/fetch";
+import { fetchPost } from "../../../util/network/fetch";
 import { bindEditEvent, getColId, getEditHTML } from "./col";
-import { setPosition } from "../../../util/setPosition";
+import { setPosition } from "../../../util/DOM/setPosition";
 import { hasClosestByClassName } from "../../util/hasClosest";
 import { bindSelectEvent, getSelectHTML } from "./select";
 import { getFiltersHTML } from "./filter";

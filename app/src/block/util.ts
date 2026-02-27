@@ -4,11 +4,11 @@ import { getContenteditableElement, getParentBlock, getTopAloneElement } from ".
 import { genListItemElement } from "../protyle/wysiwyg/list";
 import { updateListOrder } from "../protyle/wysiwyg/list.updateOrder";
 import { transaction, turnsIntoOneTransaction, updateTransaction } from "../protyle/wysiwyg/transaction";
-import { scrollCenter } from "../util/highlightById";
+import { scrollCenter } from "../util/DOM/highlightById";
 import { Constants } from "../constants";
 import { hideElements } from "../protyle/ui/hideElements";
 import { blockRender } from "../protyle/render/blockRender";
-import { fetchPost, fetchSyncPost } from "../util/fetch";
+import { fetchPost, fetchSyncPost } from "../util/network/fetch";
 import { openFileById } from "../editor/utils.openFileById";
 import { openMobileFileById } from "../mobile/editor";
 import { mathRender } from "../protyle/render/mathRender";

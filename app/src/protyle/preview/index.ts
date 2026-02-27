@@ -1,9 +1,9 @@
 import { isOnlyMeta, openByMobile } from "../util/compatibility";
 import { showMessage } from "../../dialog/message";
-import { isLocalPath, pathPosix } from "../../util/pathName";
+import { isLocalPath, pathPosix } from "../../util/file/pathName";
 import { previewDocImage } from "./image";
 import { Constants } from "../../constants";
-import { getSearch, isMobile } from "../../util/functions";
+import { getSearch, isMobile } from "../../util/platform/functions";
 import { isElectron } from "../../platform";
 import { openExternal } from "../../platform/electron/shell";
 import { openInNewWindow } from "../../util/siyuanEnvironments/window.environment";
@@ -11,7 +11,7 @@ import { getSafeSiyuanMobile } from "../../util/siyuanEnvironments/mobile.enviro
 import { openBy } from "../../editor/utils.openBy";
 import { openAsset } from "../../editor/util.openAsset";
 import { getAllModels } from "../../layout/getAll";
-import { fetchPost } from "../../util/fetch";
+import { fetchPost } from "../../util/network/fetch";
 import { processRender } from "../util/processCode";
 import { highlightRender } from "../render/highlightRender";
 import { speechRender } from "../render/speechRender";

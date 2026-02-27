@@ -1,14 +1,14 @@
 import {Menu} from "../../../plugin/Menu";
 import {transaction} from "../../wysiwyg/transaction";
-import {fetchPost, fetchSyncPost} from "../../../util/fetch";
+import {fetchPost, fetchSyncPost} from "../../../util/network/fetch";
 import {getDefaultOperatorByType, setFilter} from "./filter";
 import {genCellValue} from "./cell";
 import {openEmojiPanel, unicode2Emoji} from "../../../emoji";
 import {getColIconByType} from "./col.typeUtils";
-import {escapeAriaLabel, escapeAttr, escapeHtml} from "../../../util/escape";
+import {escapeAriaLabel, escapeAttr, escapeHtml} from "../../../util/DOM/escape";
 import {updateAttrViewCellAnimation} from "./action";
 import {Dialog} from "../../../dialog";
-import {isMobile} from "../../../util/functions";
+import {isMobile} from "../../../util/platform/functions";
 import {Constants} from "../../../constants";
 import {removeColByMenu} from "./col.removeColByMenu";
 import {siyuanI18n} from "../../../util/siyuanEnvironments/i18n.getI18n.environment";

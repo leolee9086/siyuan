@@ -1,6 +1,6 @@
 import {getLabelByNumberFormat} from "./number";
 import {getRollupHTML} from "./rollup";
-import {escapeAriaLabel, escapeAttr, escapeHtml} from "../../../util/escape";
+import {escapeAriaLabel, escapeAttr, escapeHtml} from "../../../util/DOM/escape";
 import {getColIconByType, getColNameByType} from "./col.typeUtils";
 import {siyuanI18n} from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 

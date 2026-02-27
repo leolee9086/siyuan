@@ -1,4 +1,4 @@
-import {fetchPost} from "../util/fetch";
+import {fetchPost} from "../util/network/fetch";
 import {showMessage} from "../dialog/message";
 import {bindSyncCloudListEvent, getSyncCloudList} from "../sync/syncGuide";
 import {processSync} from "../dialog/processSystem";

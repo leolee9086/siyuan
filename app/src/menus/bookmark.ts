@@ -1,11 +1,11 @@
 import { MenuItem } from "./Menu.Item";
 import { Dialog } from "../dialog";
-import { fetchPost } from "../util/fetch";
+import { fetchPost } from "../util/network/fetch";
 import { confirmDialog } from "../dialog/confirmDialog";
-import { escapeHtml } from "../util/escape";
+import { escapeHtml } from "../util/DOM/escape";
 import { copySubMenu } from "./commonMenuItem";
 import { Bookmark } from "../layout/dock/Bookmark";
-import { isMobile } from "../util/functions";
+import { isMobile } from "../util/platform/functions";
 import { MobileBookmarks } from "../mobile/dock/MobileBookmarks";
 import { Constants } from "../constants";
 import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu.environment";

@@ -1,7 +1,7 @@
 import { App } from "../index";
 import { EventBus } from "./EventBus";
-import { fetchPost } from "../util/fetch";
-import { isMobile, isWindow } from "../util/functions";
+import { fetchPost } from "../util/network/fetch";
+import { isMobile, isWindow } from "../util/platform/functions";
 import { Custom } from "../layout/dock/Custom";
 import { getAllEditor, getAllModels } from "../layout/getAll";
 import { Tab } from "../layout/Tab";
@@ -17,7 +17,7 @@ import { clearOBG } from "../layout/dock/util";
 import { Constants } from "../constants";
 import { uninstall } from "./uninstall";
 import { afterLoadPlugin, loadPlugins } from "./loader";
-import { normalizeStoragePath } from "../util/pathName";
+import { normalizeStoragePath } from "../util/file/pathName";
 
 export class Plugin {
     private app: App;

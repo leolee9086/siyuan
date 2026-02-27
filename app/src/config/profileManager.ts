@@ -1,5 +1,5 @@
-import { fetchSyncPost, fetchSyncPostRaw } from "../util/fetch";
-import { genUUID } from "../util/genID";
+import { fetchSyncPost, fetchSyncPostRaw } from "../util/network/fetch";
+import { genUUID } from "../util/platform/genID";
 import { Profile, NamespaceState, GetFileResponse } from "./profile.types";
 
 export class ProfileManager {

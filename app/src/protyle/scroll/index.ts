@@ -1,6 +1,6 @@
 import { Constants } from "../../constants";
 import { onGet } from "../util/onGet";
-import { fetchPost } from "../../util/fetch";
+import { fetchPost } from "../../util/network/fetch";
 import { updateHotkeyTip } from "../util/compatibility";
 import { hasClosestByClassName } from "../util/hasClosest";
 import { goHome } from "../wysiwyg/commonHotkey/commonHotkey";

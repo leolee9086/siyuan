@@ -6,7 +6,7 @@
  * @module sforgeAssetMeta
  */
 
-import { fetchSyncPost } from "../../util/fetch";
+import { fetchSyncPost } from "../../util/network/fetch";
 import type {
     调色板,
     素材元数据,

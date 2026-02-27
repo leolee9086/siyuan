@@ -4,9 +4,9 @@
  */
 
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { fetchPost } from "../../util/fetch";
+import { fetchPost } from "../../util/network/fetch";
 import { openByMobile } from "../util/compatibility";
-import { useShell } from "../../util/pathName";
+import { useShell } from "../../util/file/pathName";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import * as path from "path";
 

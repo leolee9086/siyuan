@@ -8,8 +8,8 @@ import { hasClosestByClassName } from "../protyle/util/hasClosest";
 import { onGet } from "../protyle/util/onGet";
 import { focusBlock } from "../protyle/util/selection";
 import { getFirstBlock } from "../protyle/wysiwyg/getBlock";
-import { fetchSyncPost } from "../util/fetch";
-import { scrollCenter } from "../util/highlightById";
+import { fetchSyncPost } from "../util/network/fetch";
+import { scrollCenter } from "../util/DOM/highlightById";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 

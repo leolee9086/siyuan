@@ -4,7 +4,7 @@ import {addDragFill, cellScrollIntoView, popTextCell, updateCellsValue} from "./
 import {avContextmenu} from "./action";
 import {hasClosestByClassName} from "../../util/hasClosest";
 import {Constants} from "../../../constants";
-import {upDownHint} from "../../../util/upDownHint";
+import {upDownHint} from "../../../util/DOM/upDownHint";
 import {clearSelect} from "../../util/clearSelect";
 
 export const avKeydown = (event: KeyboardEvent, nodeElement: HTMLElement, protyle: IProtyle) => {

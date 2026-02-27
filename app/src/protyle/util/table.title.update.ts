@@ -1,5 +1,5 @@
 import { Dialog } from "../../dialog";
-import { isMobile } from "../../util/functions";
+import { isMobile } from "../../util/platform/functions";
 import { getSiyuanLanguages } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getSiyuanGlobalMenusMenu } from "../../util/siyuanEnvironments/getMenu.environment";
 import { updateTransaction } from "../wysiwyg/transaction";

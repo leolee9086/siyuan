@@ -11,7 +11,7 @@ import { updateHotkeyTip, writeText } from "../protyle/util/compatibility";
 import { hasClosestBlock, hasTopClosestByClassName } from "../protyle/util/hasClosest";
 import { focusByWbr } from "../protyle/util/selection";
 import { updateTransaction } from "../protyle/wysiwyg/transaction";
-import { checkFold } from "../util/noRelyPCFunction";
+import { checkFold } from "../util/platform/noRelyPCFunction";
 import { openNewWindowById } from "../window/openNewWindow";
 import { MenuItem } from "./Menu.Item";
 import { isMobile, isElectron } from "../platform";

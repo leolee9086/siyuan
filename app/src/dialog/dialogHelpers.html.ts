@@ -1,4 +1,4 @@
-import { isMobile } from "../util/functions";
+import { isMobile } from "../util/platform/functions";
 import { Constants } from "../constants";
 import { getSiyuanDialogStorage } from "../util/siyuanEnvironments/getDialog.environment";
 import { getSiyuanWindowSize } from "../util/siyuanEnvironments/getWindow.environment";

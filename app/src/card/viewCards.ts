@@ -1,10 +1,10 @@
 import * as dayjs from "dayjs";
 import {Protyle} from "../protyle";
-import {fetchPost} from "../util/fetch";
+import {fetchPost} from "../util/network/fetch";
 import {Dialog} from "../dialog";
-import {isMobile} from "../util/functions";
-import {escapeAttr, escapeHtml} from "../util/escape";
-import {getDisplayName, getNotebookName} from "../util/pathName";
+import {isMobile} from "../util/platform/functions";
+import {escapeAttr, escapeHtml} from "../util/DOM/escape";
+import {getDisplayName, getNotebookName} from "../util/file/pathName";
 import {getIconByType} from "../editor/getIcon";
 import {unicode2Emoji} from "../emoji";
 import {addLoading} from "../protyle/ui/initUI";

@@ -1,14 +1,14 @@
 
 import { showMessage } from "../../dialog/message";
-import { fetchPost } from "../../util/fetch";
+import { fetchPost } from "../../util/network/fetch";
 import { highlightRender } from "../../protyle/render/highlightRender";
 import { Constants } from "../../constants";
-import { getFrontend, isBrowser } from "../../util/functions";
+import { getFrontend, isBrowser } from "../../util/platform/functions";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { bazaarData, extractKeywords, filterPackagesByKeywords } from "./bazaarData";
 import { genCardHTML, genUpdateItemHTML, genFundingHTML, genKeywordsHTML } from "./bazaarHtml";
 import { App } from "../../index";
-import { escapeAttr } from "../../util/escape";
+import { escapeAttr } from "../../util/DOM/escape";
 import { Plugin } from "../../plugin";
 
 export const renderReadme = (element: Element, bazaarType: TBazaarType, data: IBazaarItem, downloaded: boolean) => {

@@ -4,13 +4,13 @@ import { Constants } from "../constants";
 import { setPanelFocus } from "../layout/utils/setPanelFocus";
 // @ts-ignore
 import { onPageNumberChanged } from "./pdf/app";
-import { fetchPost } from "../util/fetch";
+import { fetchPost } from "../util/network/fetch";
 import { App } from "../index";
 import { clearOBG } from "../layout/dock/util";
 import { render } from "./image";
 import { createVueComponentLoader } from "../util/vue/mount";
 import PDFviewer from "../components/PDFviewer.vue";
-import { getDisplayName } from "../util/pathName";
+import { getDisplayName } from "../util/file/pathName";
 import { isMobile } from "../platform";
 
 export class Asset extends Model {

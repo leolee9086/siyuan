@@ -4,7 +4,7 @@ import { Model } from "../../layout/Model";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { openFile } from "../../editor/util";
 import { openFileById } from "../../editor/utils.openFileById";
-import { isMobile } from "../../util/functions";
+import { isMobile } from "../../util/platform/functions";
 
 interface IOpenTabDocOptions {
     id: string;

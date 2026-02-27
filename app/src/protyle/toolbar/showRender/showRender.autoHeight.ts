@@ -1,8 +1,8 @@
 /**
  * showRender 模块 - 自动高度调整
  */
-import { isMobile } from "../../../util/functions";
-import { setPosition } from "../../../util/setPosition";
+import { isMobile } from "../../../util/platform/functions";
+import { setPosition } from "../../../util/DOM/setPosition";
 import { getWindowInnerHeight } from "../../../util/siyuanEnvironments/getWindowInnerHeight.environment";
 import type { 自动高度上下文 } from "./showRender.types";
 

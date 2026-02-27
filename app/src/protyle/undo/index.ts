@@ -2,7 +2,7 @@ import { onTransaction, transaction } from "../wysiwyg/transaction";
 import { preventScroll } from "../scroll/preventScroll";
 import { Constants } from "../../constants";
 import { hideElements } from "../ui/hideElements";
-import { scrollCenter } from "../../util/highlightById";
+import { scrollCenter } from "../../util/DOM/highlightById";
 import { matchHotKey } from "../util/hotKey";
 import { isElectron } from "../../platform";
 import { ipcSend } from "../../platform/electron/ipcRenderer";

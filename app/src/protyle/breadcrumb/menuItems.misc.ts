@@ -4,7 +4,7 @@ import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environme
 import { isMobile } from "../../platform";
 import { reloadProtyle } from "../util/reload";
 import { hideElements } from "../ui/hideElements";
-import { fetchPost } from "../../util/fetch";
+import { fetchPost } from "../../util/network/fetch";
 import { fullscreen } from "./action";
 import { resize } from "../util/resize";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";

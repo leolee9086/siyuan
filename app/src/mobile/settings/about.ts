@@ -1,7 +1,7 @@
 import { Constants } from "../../constants";
 import { setAccessAuthCode } from "../../config/util/about";
 import { Dialog } from "../../dialog";
-import { fetchPost } from "../../util/fetch";
+import { fetchPost } from "../../util/network/fetch";
 import { confirmDialog } from "../../dialog/confirmDialog";
 import { showMessage } from "../../dialog/message";
 import {
@@ -11,10 +11,10 @@ import {
     writeText
 } from "../../protyle/util/compatibility";
 import { exitSiYuan, processSync } from "../../dialog/processSystem";
-import { pathPosix } from "../../util/pathName";
+import { pathPosix } from "../../util/file/pathName";
 import { openModel } from "../menu/model";
 import { setKey } from "../../sync/syncGuide";
-import { isBrowser } from "../../util/functions";
+import { isBrowser } from "../../util/platform/functions";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment"; // S-forge: 本地i18n统一导入
 import {hasClosestByClassName} from "../../protyle/util/hasClosest";
 

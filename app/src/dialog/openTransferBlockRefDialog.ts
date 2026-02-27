@@ -1,7 +1,7 @@
 import { fetchPost } from "../ai/imports";
 import { Constants } from "../constants";
 import { Dialog } from ".";
-import { isMobile } from "../util/functions";
+import { isMobile } from "../util/platform/functions";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const openTransferBlockRefDialog = (id: string) => {

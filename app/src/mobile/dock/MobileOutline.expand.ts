@@ -2,7 +2,7 @@
  * MobileOutline 筛选/展开/折叠/事务相关逻辑
  * 从 MobileOutline.ts 拆分
  */
-import {fetchPost} from "../../util/fetch";
+import {fetchPost} from "../../util/network/fetch";
 import {hasClosestBlock, hasClosestByClassName} from "../../protyle/util/hasClosest";
 import {setStorageVal} from "../../protyle/util/compatibility";
 import {Constants} from "../../constants";

@@ -1,5 +1,5 @@
 import { getRandomEmoji, openEmojiPanel, updateFileTreeEmoji, updateOutlineEmoji } from "../../../emoji";
-import { fetchPost } from "../../../util/fetch";
+import { fetchPost } from "../../../util/network/fetch";
 import type { Background } from "../Background";
 
 /**

@@ -1,4 +1,4 @@
-import { isMobile } from "./util/functions";
+import { isMobile } from "./util/platform/functions";
 
 declare const SIYUAN_VERSION: string;
 declare const NODE_ENV: string;

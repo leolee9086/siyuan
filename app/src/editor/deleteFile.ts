@@ -1,10 +1,10 @@
-import { fetchPost } from "../util/fetch";
-import { getDisplayName, getNotebookName } from "../util/pathName";
+import { fetchPost } from "../util/network/fetch";
+import { getDisplayName, getNotebookName } from "../util/file/pathName";
 import { confirmDialog } from "../dialog/confirmDialog";
 import { hasTopClosestByTag } from "../protyle/util/hasClosest";
 import { Constants } from "../constants";
 import { showMessage } from "../dialog/message";
-import { escapeHtml } from "../util/escape";
+import { escapeHtml } from "../util/DOM/escape";
 
 export const deleteFile = (notebookId: string, pathString: string) => {
     if (window.siyuan.config.fileTree.removeDocWithoutConfirm) {

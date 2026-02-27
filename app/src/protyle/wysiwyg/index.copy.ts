@@ -4,7 +4,7 @@ import {getEditorRange} from "../util/selection";
 import {isEndOfBlock} from "./getBlock";
 import {Constants} from "../../constants";
 import {getEnableHTML, removeEmbed} from "./removeEmbed";
-import {fetchSyncPost} from "../../util/fetch";
+import {fetchSyncPost} from "../../util/network/fetch";
 import {countBlockWord} from "../../layout/status";
 import {encodeBase64} from "../util/compatibility";
 import {isIncludeCell} from "../util/table";

@@ -2,7 +2,7 @@ import { Constants } from "../../constants";
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";
 import { isInEmbedBlock } from "../util/hasClosest";
 import { hideElements } from "../ui/hideElements";
-import { isMobile } from "../../util/functions";
+import { isMobile } from "../../util/platform/functions";
 import { activeBlur } from "../../mobile/util/keyboardToolbar";
 import { countBlockWord } from "../../layout/status";
 import { MenuItem } from "../../menus/Menu.Item";

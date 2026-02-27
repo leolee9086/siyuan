@@ -1,13 +1,13 @@
 import {Constants} from "../../constants";
 import {getCurrentEditor, openMobileFileById} from "../editor";
-import {fetchPost} from "../../util/fetch";
+import {fetchPost} from "../../util/network/fetch";
 import {preventScroll} from "../../protyle/scroll/preventScroll";
-import {getNotebookName, pathPosix} from "../../util/pathName";
-import {movePathTo} from "../../util/pathName/movePathTo";
+import {getNotebookName, pathPosix} from "../../util/file/pathName";
+import {movePathTo} from "../../util/file/movePathTo";
 import {initCriteriaMenu, moreMenu} from "../../search/menu";
 import {setStorageVal} from "../../protyle/util/compatibility";
-import {escapeHtml} from "../../util/escape";
-import {newFileByName} from "../../util/newFile";
+import {escapeHtml} from "../../util/DOM/escape";
+import {newFileByName} from "../../util/file/newFile";
 import {closePanel} from "../util/closePanel";
 import {
     assetFilterMenu,
@@ -17,8 +17,8 @@ import {
     renderNextAssetMark,
     renderPreview,
 } from "../../search/assets";
-import {addClearButton} from "../../util/addClearButton";
-import {checkFold} from "../../util/noRelyPCFunction";
+import {addClearButton} from "../../util/DOM/addClearButton";
+import {checkFold} from "../../util/platform/noRelyPCFunction";
 import {getDefaultType} from "../../search/getDefault";
 import {
     saveKeyList,

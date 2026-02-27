@@ -5,8 +5,8 @@
  * 这些函数从Files.ts中提取出来，以提高代码的可维护性和可测试性。
  */
 
-import { escapeAriaLabel, escapeHtml } from "../../../util/escape";
-import { getDisplayName } from "../../../util/pathName";
+import { escapeAriaLabel, escapeHtml } from "../../../util/DOM/escape";
+import { getDisplayName } from "../../../util/file/pathName";
 import { unicode2Emoji } from "../../../emoji";
 import { Constants } from "../../../constants";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";

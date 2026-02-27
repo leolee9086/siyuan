@@ -6,7 +6,7 @@
 import { App } from "../index";
 import { Tab } from "./Tab";
 import { openFileById } from "../editor/utils.openFileById";
-import { getIdZoomInByPath } from "../util/pathName";
+import { getIdZoomInByPath } from "../util/file/pathName";
 import { setPanelFocus } from "./utils/setPanelFocus";
 import { isBrowser } from "../platform";
 import { getAllTabs } from "./getAll";

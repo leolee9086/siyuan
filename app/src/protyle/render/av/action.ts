@@ -34,12 +34,12 @@ import {isOnlyMeta, writeText} from "../../util/compatibility";
 import {openSearchAV} from "./relation";
 import {Constants} from "../../../constants";
 import {hideElements} from "../../ui/hideElements";
-import {fetchPost, fetchSyncPost} from "../../../util/fetch";
-import {scrollCenter} from "../../../util/highlightById";
-import {escapeHtml} from "../../../util/escape";
+import {fetchPost, fetchSyncPost} from "../../../util/network/fetch";
+import {scrollCenter} from "../../../util/DOM/highlightById";
+import {escapeHtml} from "../../../util/DOM/escape";
 import {editGalleryItem, openGalleryItemMenu} from "./gallery/util";
 import {clearSelect} from "../../util/clearSelect";
-import {removeCompressURL} from "../../../util/image";
+import {removeCompressURL} from "../../../util/assets/image";
 // S-forge: 本地改进 - 使用统一的国际化环境获取方式
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {callMobileAppShowKeyboard} from "../../../mobile/util/mobileAppUtil";

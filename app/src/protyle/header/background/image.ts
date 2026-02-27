@@ -1,11 +1,11 @@
 import { isMobile } from "../../../platform";
-import { getRandom } from "../../../util/functions";
-import { fetchPost } from "../../../util/fetch";
+import { getRandom } from "../../../util/platform/functions";
+import { fetchPost } from "../../../util/network/fetch";
 import { Dialog } from "../../../dialog";
 import { Constants } from "../../../constants";
 import { assetMenu } from "../../../menus/protyleMenus/protyle.asset";
 import { previewImages } from "../../preview/image";
-import { bgs } from "../../../util/css/bgs";
+import { bgs } from "../../../util/assets/bgs";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanGlobalMenusMenu } from "../../../util/siyuanEnvironments/getMenu.environment";
 import type { Background } from "../Background";

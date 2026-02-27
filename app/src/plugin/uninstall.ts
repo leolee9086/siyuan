@@ -4,7 +4,7 @@ import {getAllModels} from "../layout/getAll";
 import {resizeTopBar} from "../layout/util";
 import {Constants} from "../constants";
 import {setStorageVal} from "../protyle/util/compatibility";
-import {isMobile} from "../util/functions";
+import {isMobile} from "../util/platform/functions";
 import {getAllEditor} from "../layout/getAll";
 
 export const uninstall = (app: App, name: string, isReload: boolean) => {

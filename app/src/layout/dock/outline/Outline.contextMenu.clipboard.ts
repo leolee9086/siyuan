@@ -1,6 +1,6 @@
 import { MenuItem } from "../../../menus/Menu.Item";
 import { Constants } from "../../../constants";
-import { fetchPost } from "../../../util/fetch";
+import { fetchPost } from "../../../util/network/fetch";
 import { transaction } from "../../../protyle/wysiwyg/transaction";
 import { genEmptyElement } from "../../../block/util";
 import { focusBlock } from "../../../protyle/util/selection";

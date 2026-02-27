@@ -6,7 +6,7 @@
 import { BlockPanel } from "../Panel";
 import { hasClosestByAttribute, hasClosestByClassName } from "../../protyle/util/hasClosest";
 import { Constants } from "../../constants";
-import { isTouchDevice } from "../../util/functions";
+import { isTouchDevice } from "../../util/platform/functions";
 import { isHTMLElement } from "../../util/DOM/element.guard";
 import { getSiyuanConfig, getSiyuanBlockPanels, getSiyuanMenus, getSiyuanKeyboardState } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { SForgeSymbols, getSForgeState, setSForgeState } from "../../config/sforge";

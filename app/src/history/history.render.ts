@@ -1,8 +1,8 @@
 import {Constants} from "../constants";
 import * as dayjs from "dayjs";
-import {fetchPost} from "../util/fetch";
-import {escapeHtml} from "../util/escape";
-import {isMobile} from "../util/functions";
+import {fetchPost} from "../util/network/fetch";
+import {escapeHtml} from "../util/DOM/escape";
+import {isMobile} from "../util/platform/functions";
 import {platform} from "../platform";
 import {setStorageVal} from "../protyle/util/compatibility";
 import {siyuanI18n} from "../util/siyuanEnvironments/i18n.getI18n.environment";

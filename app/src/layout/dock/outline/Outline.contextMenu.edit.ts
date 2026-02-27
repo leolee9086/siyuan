@@ -4,7 +4,7 @@
  */
 import { MenuItem } from "../../../menus/Menu.Item";
 
-import { fetchPost } from "../../../util/fetch";
+import { fetchPost } from "../../../util/network/fetch";
 import { getAllModels } from "../../getAll";
 import { transaction, turnsIntoTransaction } from "../../../protyle/wysiwyg/transaction";
 import { focusByWbr } from "../../../protyle/util/selection";

@@ -1,8 +1,8 @@
 import { MenuItem } from "./Menu.Item";
-import {fetchPost} from "../util/fetch";
+import {fetchPost} from "../util/network/fetch";
 import {confirmDialog} from "../dialog/confirmDialog";
-import {escapeHtml} from "../util/escape";
-import {renameTag} from "../util/noRelyPCFunction";
+import {escapeHtml} from "../util/DOM/escape";
+import {renameTag} from "../util/platform/noRelyPCFunction";
 import {getDockByType} from "../layout/tabUtil";
 import {Tag} from "../layout/dock/Tag";
 import {Constants} from "../constants";

@@ -1,9 +1,9 @@
 import { Tab } from "../../Tab";
 import { Model } from "../../Model";
-import { Tree } from "../../../util/Tree";
-import { fetchPost } from "../../../util/fetch";
+import { Tree } from "../../../util/file/Tree";
+import { fetchPost } from "../../../util/network/fetch";
 import { Constants } from "../../../constants";
-import { escapeHtml } from "../../../util/escape";
+import { escapeHtml } from "../../../util/DOM/escape";
 import { unicode2Emoji } from "../../../emoji";
 import { App } from "../../../index";
 import { Editor } from "../../../editor";

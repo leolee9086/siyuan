@@ -2,9 +2,9 @@ import { Tab } from "../../Tab";
 import { Model } from "../../Model";
 import { App } from "../../../index";
 
-import { fetchPost } from "../../../util/fetch";
-import { Tree } from "../../../util/Tree";
-import { checkFold } from "../../../util/noRelyPCFunction";
+import { fetchPost } from "../../../util/network/fetch";
+import { Tree } from "../../../util/file/Tree";
+import { checkFold } from "../../../util/platform/noRelyPCFunction";
 import { openFileById } from "../../../editor/utils.openFileById";
 import { Protyle } from "../../../protyle";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
@@ -12,7 +12,7 @@ import { getIconByType } from "../../../editor/getIcon";
 import { getDockByType } from "../../tabUtil";
 import { getCustomListIcon, getTopExtHTML, handleRemoveFromStorage, handleRemoveItemFromList, updateListTarget } from "./customLists.util";
 // Duplicate import removed
-import { fetchPost } from "../../../util/fetch";
+import { fetchPost } from "../../../util/network/fetch";
 import { showCustomListMenu } from "./customLists.menu";
 
 export interface ICustomList {

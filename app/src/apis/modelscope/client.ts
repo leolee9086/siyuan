@@ -4,7 +4,7 @@
  * 通过思源后端的 forwardProxy 正向代理发起请求
  */
 
-import { fetchSyncPost } from "../../util/fetch";
+import { fetchSyncPost } from "../../util/network/fetch";
 import type {
     任务响应,
     任务状态响应,

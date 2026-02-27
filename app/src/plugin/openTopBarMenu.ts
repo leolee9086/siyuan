@@ -3,7 +3,7 @@ import {Menu} from "./Menu";
 import {isHuawei, setStorageVal} from "../protyle/util/compatibility";
 import {openSetting} from "../config";
 import {Constants} from "../constants";
-import {isMobile} from "../util/functions";
+import {isMobile} from "../util/platform/functions";
 
 export const openTopBarMenu = (app: App, target?: Element) => {
     const menu = new Menu(Constants.MENU_BAR_PLUGIN);

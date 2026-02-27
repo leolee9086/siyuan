@@ -1,5 +1,5 @@
 import { Layout } from "./index";
-import { genUUID } from "../util/genID";
+import { genUUID } from "../util/platform/genID";
 import {
     fixWndFlex1,
     pdfIsLoading,
@@ -9,8 +9,8 @@ import { setPanelFocus } from "./utils/setPanelFocus";
 import { Tab } from "./Tab";
 import { Constants } from "../constants";
 import { isElectron } from "../platform";
-import { newFile } from "../util/newFile";
-import { getFrontend } from "../util/functions";
+import { newFile } from "../util/file/newFile";
+import { getFrontend } from "../util/platform/functions";
 import { App } from "../index";
 import { resizeTabs } from "./tabUtil";
 import { recordBeforeResizeTop } from "../protyle/util/resize";

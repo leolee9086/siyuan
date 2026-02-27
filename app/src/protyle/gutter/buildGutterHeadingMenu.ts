@@ -6,7 +6,7 @@
  * @module protyle/gutter/buildGutterHeadingMenu
  */
 
-import { fetchPost } from "../../util/fetch";
+import { fetchPost } from "../../util/network/fetch";
 import { focusBlock } from "../util/selection";
 import { mathRender } from "../render/mathRender";
 import { transaction } from "../wysiwyg/transaction";

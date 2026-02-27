@@ -4,9 +4,9 @@
 
 import { fetchPost } from "../../../../ai/imports";
 import { Protyle } from "../../../../protyle";
-import { escapeHtml, escapeGreat } from "../../../../util/escape";
-import { getNotebookName, pathPosix } from "../../../../util/pathName";
-import { movePathTo } from "../../../../util/pathName/movePathTo";
+import { escapeHtml, escapeGreat } from "../../../../util/DOM/escape";
+import { getNotebookName, pathPosix } from "../../../../util/file/pathName";
+import { movePathTo } from "../../../../util/file/movePathTo";
 import { siyuanI18n } from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { inputEvent } from "../../../inputEvent";
 

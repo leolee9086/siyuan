@@ -1,7 +1,7 @@
 import * as dayjs from "dayjs";
 import {Constants} from "../../../constants";
-import {pathPosix} from "../../../util/pathName";
-import {removeCompressURL} from "../../../util/image";
+import {pathPosix} from "../../../util/file/pathName";
+import {removeCompressURL} from "../../../util/assets/image";
 
 export const genCellValueByElement = (colType: TAVCol, cellElement: HTMLElement) => {
     const cellValue: IAVCellValue = {

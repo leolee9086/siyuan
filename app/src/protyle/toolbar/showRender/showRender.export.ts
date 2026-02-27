@@ -1,7 +1,7 @@
 /**
  * showRender 模块 - 导出图片功能
  */
-import { fetchPost } from "../../../util/fetch";
+import { fetchPost } from "../../../util/network/fetch";
 import { openByMobile } from "../../util/compatibility";
 import { hideMessage, showMessage } from "../../../dialog/message";
 import { addScript } from "../../util/addScript";

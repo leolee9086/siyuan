@@ -6,9 +6,9 @@ import { isInEmbedBlock, hasClosestBlock } from "../protyle/util/hasClosest";
 import { onGet } from "../protyle/util/onGet";
 import { focusBlock, focusByRange } from "../protyle/util/selection";
 import { setEditMode } from "../protyle/util/setEditMode";
-import { pushBack } from "../util/backForward";
-import { fetchPost } from "../util/fetch";
-import { highlightById, scrollCenter } from "../util/highlightById";
+import { pushBack } from "../util/navigation/backForward";
+import { fetchPost } from "../util/network/fetch";
+import { highlightById, scrollCenter } from "../util/DOM/highlightById";
 import { updateBacklinkGraph } from "./util.updateBacklinkGraph";
 
 export const switchEditor = (editor: Editor, options: IOpenFileOptions, allModels: IModels) => {

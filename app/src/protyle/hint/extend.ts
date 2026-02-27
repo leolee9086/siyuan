@@ -1,4 +1,4 @@
-import { fetchPost } from "../../util/fetch";
+import { fetchPost } from "../../util/network/fetch";
 import { insertHTML } from "../util/insertHTML";
 import { getIconByType } from "../../editor/getIcon";
 import { updateHotkeyTip } from "../util/compatibility";
@@ -10,10 +10,10 @@ import { focusBlock, focusByRange, getEditorRange } from "../util/selection";
 import { hasClosestBlock, hasClosestByClassName } from "../util/hasClosest";
 import { getContenteditableElement, getTopAloneElement } from "../wysiwyg/getBlock";
 import { transaction } from "../wysiwyg/transaction";
-import { getAssetName, getDisplayName, pathPosix } from "../../util/pathName";
+import { getAssetName, getDisplayName, pathPosix } from "../../util/file/pathName";
 import { genEmptyElement } from "../../block/util";
 import { updateListOrder } from "../wysiwyg/list.updateOrder";
-import { escapeHtml } from "../../util/escape";
+import { escapeHtml } from "../../util/DOM/escape";
 import { zoomOut } from "../../menus/protyle.zoomOut";
 import { hideElements } from "../ui/hideElements";
 import { genAssetHTML } from "../../asset/renderAssets";

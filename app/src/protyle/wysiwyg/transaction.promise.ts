@@ -1,4 +1,4 @@
-import { fetchPost } from "../../util/fetch";
+import { fetchPost } from "../../util/network/fetch";
 import { focusByWbr } from "../util/selection";
 import { Constants } from "../../constants";
 import { blockRender } from "../render/blockRender";
@@ -10,7 +10,7 @@ import { isMobile } from "../../platform";
 import { genEmptyElement } from "../../block/util";
 import { hideElements } from "../ui/hideElements";
 import { countBlockWord } from "../../layout/status";
-import { isPaidUser, needSubscribe } from "../../util/needSubscribe";
+import { isPaidUser, needSubscribe } from "../../util/platform/needSubscribe";
 import { processClonePHElement } from "../render/util";
 import { getFirstBlock } from "./getBlock";
 import { processFold } from "./transaction.fold";

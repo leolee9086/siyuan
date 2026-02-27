@@ -2,11 +2,11 @@ import {Constants} from "../../constants";
 import {hasClosestBlock, hasClosestByAttribute} from "../util/hasClosest";
 import {getSelectionOffset, getSelectionPosition} from "../util/selection";
 import {genHintItemHTML, hintSlash} from "./extend";
-import {setPosition} from "../../util/setPosition";
+import {setPosition} from "../../util/DOM/setPosition";
 import {hasPreviousSibling} from "../wysiwyg/getBlock";
 import {filterEmoji, getEmojiDesc, getEmojiTitle, lazyLoadEmoji, lazyLoadEmojiImg, unicode2Emoji} from "../../emoji";
 import {isMobile} from "../../platform";
-import {fetchPost} from "../../util/fetch";
+import {fetchPost} from "../../util/network/fetch";
 import type {Hint} from "./index";
 
 /** @同步豁免: 遗留代码 — 从 Hint.render 原样提取的渲染逻辑 */

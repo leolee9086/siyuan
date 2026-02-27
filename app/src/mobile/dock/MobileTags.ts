@@ -1,5 +1,5 @@
-import {Tree} from "../../util/Tree";
-import {fetchPost} from "../../util/fetch";
+import {Tree} from "../../util/file/Tree";
+import {fetchPost} from "../../util/network/fetch";
 import {hasClosestByClassName} from "../../protyle/util/hasClosest";
 import { MenuItem } from "../../menus/Menu.Item";
 import {popSearch} from "../menu/search";

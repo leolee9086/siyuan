@@ -1,13 +1,13 @@
-import {Tree} from "../../util/Tree";
-import {fetchPost} from "../../util/fetch";
+import {Tree} from "../../util/file/Tree";
+import {fetchPost} from "../../util/network/fetch";
 import {hasClosestByClassName} from "../../protyle/util/hasClosest";
 import {Constants} from "../../constants";
 import {getPreviousBlock} from "../../protyle/wysiwyg/getBlock";
 import {App} from "../../index";
-import {checkFold} from "../../util/noRelyPCFunction";
+import {checkFold} from "../../util/platform/noRelyPCFunction";
 import {openMobileFileById} from "../editor";
 import {Model} from "../../layout/Model";
-import {genUUID} from "../../util/genID";
+import {genUUID} from "../../util/platform/genID";
 import {siyuanI18n} from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import {showContextMenu} from "./MobileOutline.contextMenu";
 import {setFilter, showExpandLevelMenu, handleOutlineTransaction, bindKeepCurrentExpandEvent} from "./MobileOutline.expand";

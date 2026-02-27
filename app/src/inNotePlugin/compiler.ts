@@ -2,7 +2,7 @@
  * 笔记内插件编译器
  * 从文档中提取 JavaScript 代码块并编译为可执行代码
  */
-import { fetchSyncPost } from "../util/fetch";
+import { fetchSyncPost } from "../util/network/fetch";
 import type { 编译结果 } from "./types";
 
 /**

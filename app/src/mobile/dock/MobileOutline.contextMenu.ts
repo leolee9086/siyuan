@@ -2,7 +2,7 @@
  * MobileOutline 右键菜单相关逻辑
  * 从 MobileOutline.ts 拆分
  */
-import {fetchPost} from "../../util/fetch";
+import {fetchPost} from "../../util/network/fetch";
 import {
     isInAndroid,
     isInHarmony,

@@ -5,10 +5,10 @@ import { onGetConfig } from "./boot/onGetConfig";
 import { initBlockPopover } from "./block/popover";
 import { account } from "./config/account";
 import { addScript, addScriptSync } from "./protyle/util/addScript";
-import { genUUID } from "./util/genID";
-import { fetchGet, fetchPost } from "./util/fetch";
-import { addBaseURL, getIdFromSYProtocol, isSYProtocol, setNoteBook } from "./util/pathName";
-import { registerServiceWorker } from "./util/serviceWorker";
+import { genUUID } from "./util/platform/genID";
+import { fetchGet, fetchPost } from "./util/network/fetch";
+import { addBaseURL, getIdFromSYProtocol, isSYProtocol, setNoteBook } from "./util/file/pathName";
+import { registerServiceWorker } from "./util/network/serviceWorker";
 import { openFileById } from "./editor/utils.openFileById";
 import {
     bootSync,
@@ -28,15 +28,15 @@ import { initMessage, showMessage } from "./dialog/message";
 import { getAllTabs } from "./layout/getAll";
 // S-forge: 添加远程新增的 isInMobileApp 导入
 import { getLocalStorage, isChromeBrowser, isInMobileApp } from "./protyle/util/compatibility";
-import { getSearch } from "./util/functions";
-import { checkPublishServiceClosed, processMessage } from "./util/processMessage";
+import { getSearch } from "./util/platform/functions";
+import { checkPublishServiceClosed, processMessage } from "./util/network/processMessage";
 import { hideAllElements } from "./protyle/ui/hideElements";
 import { loadPlugins, reloadPlugin } from "./plugin/loader";
 import "./assets/scss/base.scss";
 import { isBrowser, isBrowserDesktop } from "./platform";
 import { reloadEmoji } from "./emoji";
-import { processIOSPurchaseResponse } from "./util/iOSPurchase";
-import { setLocalShorthandCount } from "./util/noRelyPCFunction";
+import { processIOSPurchaseResponse } from "./util/platform/iOSPurchase";
+import { setLocalShorthandCount } from "./util/platform/noRelyPCFunction";
 import { getDockByType } from "./layout/tabUtil";
 import { Tag } from "./layout/dock/Tag";
 import { updateControlAlt } from "./protyle/util/hotKey";

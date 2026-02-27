@@ -1,11 +1,11 @@
-import {Tree} from "../../util/Tree";
-import {fetchPost} from "../../util/fetch";
+import {Tree} from "../../util/file/Tree";
+import {fetchPost} from "../../util/network/fetch";
 import {Constants} from "../../constants";
 import {hasClosestByClassName} from "../../protyle/util/hasClosest";
 import {openMobileFileById} from "../editor";
 import {openBookmarkMenu} from "../../menus/bookmark";
 import {App} from "../../index";
-import {checkFold} from "../../util/noRelyPCFunction";
+import {checkFold} from "../../util/platform/noRelyPCFunction";
 
 export class MobileBookmarks {
     public element: HTMLElement;

@@ -1,7 +1,7 @@
 import { Constants } from "../../constants";
 import { hideElements } from "../../protyle/ui/hideElements";
 import { setEditMode } from "../../protyle/util/setEditMode";
-import { fetchPost } from "../../util/fetch";
+import { fetchPost } from "../../util/network/fetch";
 import { zoomOut } from "../../menus/protyle.zoomOut";
 import { processRender } from "../../protyle/util/processCode";
 import { highlightRender } from "../../protyle/render/highlightRender";

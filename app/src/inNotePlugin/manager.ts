@@ -3,7 +3,7 @@
  * 管理所有笔记内插件的生命周期
  */
 import type { App } from "../index";
-import { fetchSyncPost } from "../util/fetch";
+import { fetchSyncPost } from "../util/network/fetch";
 import { 加载笔记内插件, 卸载笔记内插件 } from "./loader";
 import type { 笔记内插件配置, 笔记内插件运行状态 } from "./types";
 

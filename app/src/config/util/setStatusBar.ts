@@ -1,6 +1,6 @@
 import {Dialog} from "../../dialog";
-import {isMobile, objEquals} from "../../util/functions";
-import {fetchPost} from "../../util/fetch";
+import {isMobile, objEquals} from "../../util/platform/functions";
+import {fetchPost} from "../../util/network/fetch";
 
 export const setStatusBar = (element: HTMLElement) => {
     element.addEventListener("click", () => {

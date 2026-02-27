@@ -1,6 +1,6 @@
 
 import { IGlobalContext } from "../registry/TriggerRegistry.types";
-import { fetchPost, fetchSyncPost } from "../util/fetch";
+import { fetchPost, fetchSyncPost } from "../util/network/fetch";
 
 // ============ 常量定义 ============
 

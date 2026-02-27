@@ -3,7 +3,7 @@
  * 使用处理器映射表模式，符合开闭原则
  */
 import { Constants } from "../../constants";
-import { fetchPost } from "../../util/fetch";
+import { fetchPost } from "../../util/network/fetch";
 import { hasClosestBlock } from "../util/hasClosest";
 import { listIndent, listOutdent } from "../wysiwyg/list";
 import { onGet } from "../util/onGet";

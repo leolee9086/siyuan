@@ -5,11 +5,11 @@ import { ipcInvoke, ipcSend } from "../../platform/electron/ipcRenderer";
 import { afterExport } from "./util";
 import { confirmDialog } from "../../dialog/confirmDialog";
 import { getThemeMode, setInlineStyle } from "../../util/assets";
-import { fetchPost, fetchSyncPost } from "../../util/fetch";
+import { fetchPost, fetchSyncPost } from "../../util/network/fetch";
 import { Dialog } from "../../dialog";
 import { replaceLocalPath } from "../../editor/rename";
 import { getScreenWidth, isInMobileApp, setStorageVal } from "../util/compatibility";
-import { getFrontend } from "../../util/functions";
+import { getFrontend } from "../../util/platform/functions";
 // S-forge: 使用统一的i18n环境抽象
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 

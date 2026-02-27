@@ -1,6 +1,6 @@
 import {getIconByType} from "../../editor/getIcon";
 import {removeLoading} from "../ui/initUI";
-import {fetchPost} from "../../util/fetch";
+import {fetchPost} from "../../util/network/fetch";
 import {Constants} from "../../constants";
 import {processRender} from "../util/processCode";
 import {highlightRender} from "../render/highlightRender";

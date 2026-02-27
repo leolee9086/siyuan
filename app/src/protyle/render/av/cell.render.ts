@@ -1,8 +1,8 @@
 import * as dayjs from "dayjs";
 import {unicode2Emoji} from "../../../emoji";
 import {Constants} from "../../../constants";
-import {escapeAttr, escapeHtml} from "../../../util/escape";
-import {getCompressURL} from "../../../util/image";
+import {escapeAttr, escapeHtml} from "../../../util/DOM/escape";
+import {getCompressURL} from "../../../util/assets/image";
 // S-forge: 本地改进 - 使用统一的国际化环境获取方式
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 

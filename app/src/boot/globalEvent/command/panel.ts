@@ -1,8 +1,8 @@
 import {Dialog} from "../../../dialog";
 import {App} from "../../../index";
-import {upDownHint} from "../../../util/upDownHint";
+import {upDownHint} from "../../../util/DOM/upDownHint";
 import {updateHotkeyTip} from "../../../protyle/util/compatibility";
-import {isMobile} from "../../../util/functions";
+import {isMobile} from "../../../util/platform/functions";
 import {Constants} from "../../../constants";
 import {Editor} from "../../../editor";
 import {getCurrentEditor} from "../../../mobile/editor";
@@ -18,10 +18,10 @@ import {addEditorToDatabase, addFilesToDatabase} from "../../../protyle/render/a
 import {hasClosestBlock, hasClosestByClassName, hasTopClosestByTag} from "../../../protyle/util/hasClosest";
 import {onlyProtyleCommand} from "./protyle";
 import {globalCommand} from "./global";
-import {getDisplayName, getNotebookName, getTopPaths, moveToPath, pathPosix} from "../../../util/pathName";
-import { movePathTo } from "../../../util/pathName/movePathTo";
+import {getDisplayName, getNotebookName, getTopPaths, moveToPath, pathPosix} from "../../../util/file/pathName";
+import { movePathTo } from "../../../util/file/movePathTo";
 import {hintMoveBlock} from "../../../protyle/hint/extend";
-import {fetchSyncPost} from "../../../util/fetch";
+import {fetchSyncPost} from "../../../util/network/fetch";
 import {focusByRange} from "../../../protyle/util/selection";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 export const commandPanel = (app: App) => {

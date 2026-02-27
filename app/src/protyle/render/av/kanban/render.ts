@@ -1,11 +1,11 @@
 import {hasClosestByAttribute, hasClosestByClassName} from "../../../util/hasClosest";
 import {getPageSize} from "../groups";
-import {fetchSyncPost} from "../../../../util/fetch";
+import {fetchSyncPost} from "../../../../util/network/fetch";
 import {Constants} from "../../../../constants";
 import {avRender, genTabHeaderHTML} from "../render";
 import {afterRenderGallery, renderGallery} from "../gallery/render";
-import {escapeAttr, escapeHtml} from "../../../../util/escape";
-import {getCompressURL} from "../../../../util/image";
+import {escapeAttr, escapeHtml} from "../../../../util/DOM/escape";
+import {getCompressURL} from "../../../../util/assets/image";
 import {cellValueIsEmpty, renderCell} from "../cell";
 import {getColIconByType, getColNameByType} from "../col.typeUtils";
 import {unicode2Emoji} from "../../../../emoji";

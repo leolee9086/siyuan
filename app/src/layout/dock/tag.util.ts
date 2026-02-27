@@ -2,11 +2,11 @@ import { updateHotkeyAfterTip } from "../../protyle/util/compatibility";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig, getSiyuanStorage } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { hasSubType } from "./tag.guard";
-import { isMobile } from "../../util/functions";
+import { isMobile } from "../../util/platform/functions";
 import { getIconByType } from "../../editor/getIcon";
 import { unicode2Emoji } from "../../emoji";
 import { Constants } from "../../constants";
-import { escapeAriaLabel } from "../../util/escape";
+import { escapeAriaLabel } from "../../util/DOM/escape";
 
 
 /**

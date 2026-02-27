@@ -1,6 +1,6 @@
-import {mountHelp, newNotebook} from "../../util/mount";
-import {newFile} from "../../util/newFile";
-import {getOpenNotebookCount} from "../../util/pathName";
+import {mountHelp, newNotebook} from "../../util/file/mount";
+import {newFile} from "../../util/file/newFile";
+import {getOpenNotebookCount} from "../../util/file/pathName";
 import {popSearch} from "../menu/search";
 import {getRecentDocs} from "../menu/getRecentDocs";
 import {openHistory} from "../../history/history";

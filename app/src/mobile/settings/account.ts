@@ -1,6 +1,6 @@
 import {openModel} from "../menu/model";
 import {isInIOS} from "../../protyle/util/compatibility";
-import {fetchPost} from "../../util/fetch";
+import {fetchPost} from "../../util/network/fetch";
 import {closePanel} from "../util/closePanel";
 import {processSync} from "../../dialog/processSystem";
 import {confirmDialog} from "../../dialog/confirmDialog";
@@ -10,7 +10,7 @@ import {getCloudURL, getIndexURL} from "../../config/util/about";
 import {Dialog} from "../../dialog";
 import {hideElements} from "../../protyle/ui/hideElements";
 import {Constants} from "../../constants";
-import {iOSPurchase} from "../../util/iOSPurchase";
+import {iOSPurchase} from "../../util/platform/iOSPurchase";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const showAccountInfo = () => {

@@ -106,7 +106,7 @@ export const createCronjobMenuItem = (protyle: IProtyle, isRegistered?: boolean)
              * 注册/更新 cronjob 的点击回调
              */
             click: async () => {
-                const { 注册扩展 } = await import("../../util/cronjobApi");
+                const { 注册扩展 } = await import("../../util/network/cronjobApi");
                 if (!protyle.block.rootID) {
                     return;
                 }
@@ -132,7 +132,7 @@ export const createCronjobMenuItem = (protyle: IProtyle, isRegistered?: boolean)
              * 编译 cronjob 的点击回调
              */
             click: async () => {
-                const { 编译文档 } = await import("../../util/cronjobApi");
+                const { 编译文档 } = await import("../../util/network/cronjobApi");
                 if (!protyle.block.rootID) {
                     return;
                 }

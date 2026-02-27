@@ -17,7 +17,7 @@ import { clearWebFrameCache } from "../platform/electron/webFrame";
 import { hasClosestBlock } from "../protyle/util/hasClosest";
 import { setPanelFocus } from "./utils/setPanelFocus";
 import { updatePanelByEditor } from "../editor/util.updatePanelByEditor";
-import { fetchPost } from "../util/fetch";
+import { fetchPost } from "../util/network/fetch";
 import {
     getInstanceById,
     getWndByLayout,
@@ -28,7 +28,7 @@ import { setModelsHash, setTabPosition } from "../window/setHeader";
 import { getAllModels } from "./getAll";
 import { clearCounter } from "./status";
 import { saveScroll } from "../protyle/scroll/saveScroll";
-import { isWindow } from "../util/functions";
+import { isWindow } from "../util/platform/functions";
 import { hideAllElements } from "../protyle/ui/hideElements";
 import { focusByOffset, getSelectionOffset } from "../protyle/util/selection";
 import { closeWindow } from "../window/closeWin";

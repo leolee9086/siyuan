@@ -1,15 +1,15 @@
 import { Tab } from "../Tab";
 import { Model } from "../Model";
-import { Tree } from "../../util/Tree";
+import { Tree } from "../../util/file/Tree";
 import { setPanelFocus } from "../utils/setPanelFocus";
 import { getDockByType } from "../tabUtil";
-import { fetchPost } from "../../util/fetch";
+import { fetchPost } from "../../util/network/fetch";
 import { openFileById } from "../../editor/utils.openFileById";
 import { hasClosestByClassName } from "../../protyle/util/hasClosest";
 import { openBookmarkMenu } from "../../menus/bookmark";
 import { App } from "../../index";
 import { Constants } from "../../constants";
-import { checkFold } from "../../util/noRelyPCFunction";
+import { checkFold } from "../../util/platform/noRelyPCFunction";
 import { isOperations } from "./dock.guard";
 import { Protyle } from "../../protyle";
 import { getBookmarkPanelHTML, shouldReloadBookmark } from "./bookmark.util";

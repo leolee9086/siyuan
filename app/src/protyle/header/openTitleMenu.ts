@@ -1,4 +1,4 @@
-import { fetchPost, fetchSyncPost } from "../../util/fetch";
+import { fetchPost, fetchSyncPost } from "../../util/network/fetch";
 import { MenuItem } from "../../menus/Menu.Item";
 import { exportMd, } from "../../menus/commonMenuItem";
 import { openFileWechatNotify } from "../../menus/commonMenuItem.openFileWechatNotify";
@@ -11,7 +11,7 @@ import { openMobileFileById } from "../../mobile/editor";
 import { Constants } from "../../constants";
 import { openCardByData } from "../../card/openCard";
 import { viewCards } from "../../card/viewCards";
-import { getDisplayName, getNotebookName, pathPosix, useShell } from "../../util/pathName";
+import { getDisplayName, getNotebookName, pathPosix, useShell } from "../../util/file/pathName";
 import { makeCard, quickMakeCard } from "../../card/makeCard";
 import { emitOpenMenu } from "../../plugin/EventBus";
 import * as dayjs from "dayjs";

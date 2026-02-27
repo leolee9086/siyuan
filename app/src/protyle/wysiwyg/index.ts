@@ -8,7 +8,7 @@ import {
     getEditorRange,
 } from "../util/selection";
 import { Constants } from "../../constants";
-import { isMobile } from "../../util/functions";
+import { isMobile } from "../../util/platform/functions";
 import { dropEvent } from "../util/editorCommonEvent";
 import { hideElements } from "../ui/hideElements";
 import { keydown } from "./keydown";

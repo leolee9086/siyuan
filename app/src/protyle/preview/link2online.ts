@@ -1,5 +1,5 @@
 import { Constants } from "../../constants";
-import { needSubscribe } from "../../util/needSubscribe";
+import { needSubscribe } from "../../util/platform/needSubscribe";
 import { getSiyuanUser } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 export const processWithSiyuanCDN = (copyElement: HTMLElement) => {

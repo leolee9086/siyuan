@@ -1,6 +1,6 @@
 import {hasClosestBlock} from "../util/hasClosest";
 import {getSelectionOffset} from "../util/selection";
-import {fetchPost} from "../../util/fetch";
+import {fetchPost} from "../../util/network/fetch";
 import {onGet} from "../util/onGet";
 import {Constants} from "../../constants";
 import {setStorageVal} from "../util/compatibility";

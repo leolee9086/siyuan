@@ -1,10 +1,10 @@
 import {hasClosestByTag} from "../../protyle/util/hasClosest";
 import {Model} from "../../layout/Model";
 import {Constants} from "../../constants";
-import {pathPosix, setNoteBook} from "../../util/pathName";
-import {fetchPost, fetchSyncPost} from "../../util/fetch";
-import {genUUID} from "../../util/genID";
-import {newFile} from "../../util/newFile";
+import {pathPosix, setNoteBook} from "../../util/file/pathName";
+import {fetchPost, fetchSyncPost} from "../../util/network/fetch";
+import {genUUID} from "../../util/platform/genID";
+import {newFile} from "../../util/file/newFile";
 import {App} from "../../index";
 import {setStorageVal} from "../../protyle/util/compatibility";
 import {genNotebook, updateItemArrow, onMove, onRemove, onRename, onMount} from "./MobileFiles.ws";

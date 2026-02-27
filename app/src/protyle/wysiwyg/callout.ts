@@ -3,7 +3,7 @@ import { updateTransaction } from "./transaction";
 import { focusBlock } from "../util/selection";
 import { Dialog } from "../../dialog";
 import { Menu } from "../../plugin/Menu";
-import { isMobile } from "../../util/functions";
+import { isMobile } from "../../util/platform/functions";
 import { Constants } from "../../constants";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { openEmojiPanel, unicode2Emoji } from "../../emoji";

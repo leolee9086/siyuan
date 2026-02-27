@@ -3,7 +3,7 @@ import {addEmoji, unicode2Emoji} from "../../emoji";
 import {isOnlyMeta} from "../util/compatibility";
 import {insertHTML} from "../util/insertHTML";
 import {hideElements} from "../ui/hideElements";
-import {upDownHint} from "../../util/upDownHint";
+import {upDownHint} from "../../util/DOM/upDownHint";
 import type {Hint} from "./index";
 
 /** @同步豁免: 遗留代码 — 从 Hint.select 原样提取的键盘事件同步处理逻辑，需要即时阻止事件冒泡 */

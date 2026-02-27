@@ -5,7 +5,7 @@ import { countSelectWord, countBlockWord } from "../layout/status";
 import { getDockByType } from "../layout/tabUtil";
 import { resize } from "../protyle/util/resize";
 import { focusByRange, focusBlock } from "../protyle/util/selection";
-import { pushBack } from "../util/backForward";
+import { pushBack } from "../util/navigation/backForward";
 import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { updateBacklinkGraph } from "./util.updateBacklinkGraph";
 import { updateOutline } from "./util.updateOutline";

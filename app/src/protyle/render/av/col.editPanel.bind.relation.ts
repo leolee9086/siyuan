@@ -1,4 +1,4 @@
-import {fetchPost} from "../../../util/fetch";
+import {fetchPost} from "../../../util/network/fetch";
 import {toggleUpdateRelationBtn} from "./relation";
 import {siyuanI18n} from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import type {IBindEditContext} from "./col.editPanel.bind.types";

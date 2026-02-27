@@ -1,7 +1,7 @@
-import { genUUID } from "../util/genID";
+import { genUUID } from "../util/platform/genID";
 import { moveResize } from "./moveResize";
 import { Protyle } from "../protyle";
-import { isMobile } from "../util/functions";
+import { isMobile } from "../util/platform/functions";
 import { Constants } from "../constants";
 import { App } from "vue";
 import { pushSiyuanDialog } from "../util/siyuanEnvironments/siyuanDialogs.environment";

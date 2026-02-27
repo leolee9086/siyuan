@@ -3,8 +3,8 @@ import * as dayjs from "dayjs";
 import {getPropertiesHTML} from "./openMenuPanel";
 import {removeAttrViewColAnimation} from "./action";
 import {addAttrViewColAnimation} from "./col.addAttrViewColAnimation";
-import {duplicateNameAddOne} from "../../../util/functions";
-import {setPosition} from "../../../util/setPosition";
+import {duplicateNameAddOne} from "../../../util/platform/functions";
+import {setPosition} from "../../../util/DOM/setPosition";
 import {getFieldsByData} from "./view";
 
 /**

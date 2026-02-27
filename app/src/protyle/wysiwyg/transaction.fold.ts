@@ -1,4 +1,4 @@
-import {fetchPost} from "../../util/fetch";
+import {fetchPost} from "../../util/network/fetch";
 import {focusBlock} from "../util/selection";
 import {Constants} from "../../constants";
 import {blockRender} from "../render/blockRender";
@@ -7,7 +7,7 @@ import {highlightRender} from "../render/highlightRender";
 import {isInEmbedBlock} from "../util/hasClosest";
 import {disabledProtyle, onGet} from "../util/onGet";
 import {avRender} from "../render/av/render";
-import {scrollCenter} from "../../util/highlightById";
+import {scrollCenter} from "../../util/DOM/highlightById";
 
 export const removeUnfoldRepeatBlock = (html: string, protyle: IProtyle) => {
     const temp = document.createElement("template");

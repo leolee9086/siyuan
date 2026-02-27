@@ -1,7 +1,7 @@
-import { getNotebookName, pathPosix } from "../util/pathName";
+import { getNotebookName, pathPosix } from "../util/file/pathName";
 import { Constants } from "../constants";
 import { Dialog } from "../dialog";
-import { fetchPost, fetchSyncPost } from "../util/fetch";
+import { fetchPost, fetchSyncPost } from "../util/network/fetch";
 import { focusByRange } from "../protyle/util/selection";
 import { updateConfig } from "./util";
 import { genSearch } from "./utils/genSearch";

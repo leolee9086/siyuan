@@ -2,8 +2,8 @@ import { Constants } from "../../../constants";
 import { transaction } from "../../../protyle/wysiwyg/transaction";
 import { focusByWbr } from "../../../protyle/util/selection";
 import { mathRender } from "../../../protyle/render/mathRender";
-import { fetchPost } from "../../../util/fetch";
-import { pathPosix } from "../../../util/pathName";
+import { fetchPost } from "../../../util/network/fetch";
+import { pathPosix } from "../../../util/file/pathName";
 import { replaceFileName } from "../../../editor/rename";
 import { isOperations, isHTMLElement } from "../dock.guard";
 

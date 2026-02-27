@@ -1,6 +1,6 @@
 import * as dayjs from "dayjs";
 import { fetchPost } from "../../ai/imports";
-import { base64ToURL } from "../../util/image";
+import { base64ToURL } from "../../util/assets/image";
 import { Constants } from "../../constants";
 import { isElectron, isMobile } from "../../platform";
 import { renameAsset } from "../../editor/rename";

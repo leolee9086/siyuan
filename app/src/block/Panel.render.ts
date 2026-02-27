@@ -1,5 +1,5 @@
 import { hasClosestByClassName } from "../protyle/util/hasClosest";
-import { setPosition } from "../util/setPosition";
+import { setPosition } from "../util/DOM/setPosition";
 import { Constants } from "../constants";
 import { updateHotkeyAfterTip } from "../protyle/util/compatibility";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";

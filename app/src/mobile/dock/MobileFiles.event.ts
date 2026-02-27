@@ -1,11 +1,11 @@
 import {hasTopClosestByTag} from "../../protyle/util/hasClosest";
 import {initFileMenu, initNavigationMenu, sortMenu} from "../../menus/navigation";
-import {fetchPost} from "../../util/fetch";
-import {setNoteBook} from "../../util/pathName";
+import {fetchPost} from "../../util/network/fetch";
+import {setNoteBook} from "../../util/file/pathName";
 import {openMobileFileById} from "../editor";
 import {Constants} from "../../constants";
-import {mountHelp, newNotebook} from "../../util/mount";
-import {newFile} from "../../util/newFile";
+import {mountHelp, newNotebook} from "../../util/file/mount";
+import {newFile} from "../../util/file/newFile";
 import {MenuItem} from "../../menus/Menu.Item";
 import {App} from "../../index";
 import {refreshFileTree} from "../../dialog/processSystem";

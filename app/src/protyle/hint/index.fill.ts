@@ -1,11 +1,11 @@
 import {Constants} from "../../constants";
 import {hasClosestBlock} from "../util/hasClosest";
 import {focusByRange, focusByWbr} from "../util/selection";
-import {getSavePath} from "../../util/getSavePath";
+import {getSavePath} from "../../util/file/getSavePath";
 import {getContenteditableElement} from "../wysiwyg/getBlock";
 import {insertHTML} from "../util/insertHTML";
-import {fetchPost} from "../../util/fetch";
-import {pathPosix} from "../../util/pathName";
+import {fetchPost} from "../../util/network/fetch";
+import {pathPosix} from "../../util/file/pathName";
 import {addEmoji, unicode2Emoji} from "../../emoji";
 import {blockRender} from "../render/blockRender";
 import {isMobile} from "../../platform";

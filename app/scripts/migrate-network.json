@@ -1,0 +1,13 @@
+{
+  "moves": [
+    { "from": "src/util/fetch.ts", "to": "src/util/network/fetch.ts" },
+    { "from": "src/util/fetch.types.ts", "to": "src/util/network/fetch.types.ts" },
+    { "from": "src/util/fetch.guard.ts", "to": "src/util/network/fetch.guard.ts" },
+    { "from": "src/util/fetchStream.ts", "to": "src/util/network/fetchStream.ts" },
+    { "from": "src/util/serviceWorker.ts", "to": "src/util/network/serviceWorker.ts" },
+    { "from": "src/util/processMessage.ts", "to": "src/util/network/processMessage.ts" },
+    { "from": "src/util/cronjob.types.ts", "to": "src/util/network/cronjob.types.ts" },
+    { "from": "src/util/cronjobApi.ts", "to": "src/util/network/cronjobApi.ts" },
+    { "from": "src/util/cronjobAuth.ts", "to": "src/util/network/cronjobAuth.ts" }
+  ]
+}

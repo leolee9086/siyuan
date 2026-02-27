@@ -1,6 +1,6 @@
 import {Menu} from "../../../plugin/Menu";
 import {transaction} from "../../wysiwyg/transaction";
-import {fetchPost} from "../../../util/fetch";
+import {fetchPost} from "../../../util/network/fetch";
 import {updateAttrViewCellAnimation} from "./action";
 import {focusBlock} from "../../util/selection";
 import {handleDeleteColClick} from "./col.showColMenu";

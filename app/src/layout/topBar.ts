@@ -1,11 +1,11 @@
-import {getWorkspaceName} from "../util/noRelyPCFunction";
+import {getWorkspaceName} from "../util/platform/noRelyPCFunction";
 import {
     isInMobileApp,
     setStorageVal,
     updateHotkeyTip
 } from "../protyle/util/compatibility";
 import {exitSiYuan, processSync} from "../dialog/processSystem";
-import {goBack, goForward} from "../util/backForward";
+import {goBack, goForward} from "../util/navigation/backForward";
 import {syncGuide} from "../sync/syncGuide";
 import {workspaceMenu} from "../menus/workspace";
 import { MenuItem } from "../menus/Menu.Item";
@@ -17,9 +17,9 @@ import {isElectron} from "../platform";
 import {ipcSend} from "../platform/electron/ipcRenderer";
 import {setZoomFactor} from "../platform/electron/webFrame";
 import {Constants} from "../constants";
-import {isBrowser, isWindow} from "../util/functions";
-import {fetchPost} from "../util/fetch";
-import {needSubscribe} from "../util/needSubscribe";
+import {isBrowser, isWindow} from "../util/platform/functions";
+import {fetchPost} from "../util/network/fetch";
+import {needSubscribe} from "../util/platform/needSubscribe";
 import * as dayjs from "dayjs";
 import {exportLayout} from "./util";
 import {commandPanel} from "../boot/globalEvent/command/panel";

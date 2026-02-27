@@ -1,7 +1,7 @@
 import { getAllModels } from "../../layout/getAll";
 import { hasClosestByAttribute, hasClosestByClassName, hasTopClosestByClassName } from "../../protyle/util/hasClosest";
 import { hideAllElements } from "../../protyle/ui/hideElements";
-import { isWindow } from "../../util/functions";
+import { isWindow } from "../../util/platform/functions";
 import { writeText } from "../../protyle/util/compatibility";
 import { showMessage } from "../../dialog/message";
 import { cancelDrag } from "./dragover";

@@ -8,7 +8,7 @@ import {
 } from "../util/hasClosest";
 // S-forge: keydown 逻辑已重构拆分为多个中间件模块
 import { Constants } from "../../constants";
-import { fetchPost } from "../../util/fetch";
+import { fetchPost } from "../../util/network/fetch";
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";
 import { avPanelGuard, htmlBlockGuard, htmlBlockGuardRgistyItem, inputElementGuard, protyleDisabledGuard, protyleHaveSelectedGuard } from "./keydown.guards";
 import { hideProtyleToolbarMiddleware, hideProtyleUtilMiddleware, setProtyleWysiwygPreventKeyupMiddleware } from "./keydown.middlewares";
@@ -52,7 +52,7 @@ import { superBlockSelectMiddleware } from "./keydown.superBlockSelect";
 import { 处理块进入聚焦, 处理块退出聚焦 } from "./keydown.focus";
 import { commonInputMiddleware } from "./keydown.commonInput";
 import { matchHotKey } from "../util/hotKey";
-import { checkFold } from "../../util/noRelyPCFunction";
+import { checkFold } from "../../util/platform/noRelyPCFunction";
 import { openFileById } from "../../editor/utils.openFileById";
 import { BlockPanel } from "../../block/Panel";
 import { turnsIntoTransaction, turnsOneInto, updateTransaction } from "./transaction";

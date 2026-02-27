@@ -2,8 +2,8 @@ import { Constants } from "../../constants";
 import { getIconByType } from "../../editor/getIcon";
 import { unicode2Emoji } from "../../emoji";
 import { Protyle } from "../../protyle";
-import { escapeAriaLabel, escapeGreat, escapeHtml } from "../../util/escape";
-import { getNotebookName, getDisplayName, getNotebookIcon } from "../../util/pathName";
+import { escapeAriaLabel, escapeGreat, escapeHtml } from "../../util/DOM/escape";
+import { getNotebookName, getDisplayName, getNotebookIcon } from "../../util/file/pathName";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getAttr, getArticle } from "../util";
 

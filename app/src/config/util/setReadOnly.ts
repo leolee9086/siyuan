@@ -1,4 +1,4 @@
-import {fetchPost} from "../../util/fetch";
+import {fetchPost} from "../../util/network/fetch";
 
 export const setReadOnly = (readOnly: boolean) => {
     window.siyuan.config.editor.readOnly = readOnly;

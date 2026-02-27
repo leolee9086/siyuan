@@ -1,5 +1,5 @@
 import { focusByRange } from "./selection";
-import { fetchPost, fetchSyncPost } from "../../util/fetch";
+import { fetchPost, fetchSyncPost } from "../../util/network/fetch";
 import { Constants } from "../../constants";
 import { isBrowser, isMobile, isElectron } from "../../platform";
 import { clipboardRead } from "../../platform/electron/clipboard";

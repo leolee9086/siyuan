@@ -1,7 +1,7 @@
 import { Tab } from "../layout/Tab";
 import { Custom } from "../layout/dock/Custom";
 import { bindCardEvent, genCardHTML } from "./openCard";
-import { fetchPost } from "../util/fetch";
+import { fetchPost } from "../util/network/fetch";
 import { Protyle } from "../protyle";
 import { setPanelFocus } from "../layout/utils/setPanelFocus";
 import { App } from "../index";

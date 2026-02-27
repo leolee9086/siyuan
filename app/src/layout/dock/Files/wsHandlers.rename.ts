@@ -4,7 +4,7 @@
  * 本模块包含文件树WebSocket消息处理中重命名操作相关的辅助函数。
  */
 
-import { escapeHtml } from "../../../util/escape";
+import { escapeHtml } from "../../../util/DOM/escape";
 
 /**
  * 处理重命名笔记本的WebSocket消息

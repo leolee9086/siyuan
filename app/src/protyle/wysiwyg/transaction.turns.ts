@@ -1,4 +1,4 @@
-import {fetchPost, fetchSyncPost} from "../../util/fetch";
+import {fetchPost, fetchSyncPost} from "../../util/network/fetch";
 import {focusBlock, focusByWbr, getEditorRange} from "../util/selection";
 import {getContenteditableElement} from "./getBlock";
 import {Constants} from "../../constants";

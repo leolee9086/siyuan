@@ -1,10 +1,10 @@
 import { Dialog } from "../dialog";
-import { isMobile, objEquals } from "../util/functions";
+import { isMobile, objEquals } from "../util/platform/functions";
 import { MenuItem } from "../menus/Menu.Item";
 import { Constants } from "../constants";
 import { showMessage } from "../dialog/message";
-import { fetchPost } from "../util/fetch";
-import { escapeHtml } from "../util/escape";
+import { fetchPost } from "../util/network/fetch";
+import { escapeHtml } from "../util/DOM/escape";
 import { setStorageVal } from "../protyle/util/compatibility";
 import { confirmDialog } from "../dialog/confirmDialog";
 import { goUnRef, updateSearchResult } from "../mobile/menu/search";

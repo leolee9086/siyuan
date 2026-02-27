@@ -7,7 +7,7 @@
  *   2. 避免 Forwardlink.helpers.ts 超过 300 行限制
  */
 
-import { Tree } from "../../../util/Tree";
+import { Tree } from "../../../util/file/Tree";
 import { Constants } from "../../../constants";
 import { openFileById } from "../../../editor/utils.openFileById";
 import { App } from "../../../index";

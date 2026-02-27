@@ -1,7 +1,7 @@
 /**
  * 固定嵌入块到侧边栏的功能
  */
-import { genUUID } from "../../util/genID";
+import { genUUID } from "../../util/platform/genID";
 import { setStorageVal } from "../util/compatibility";
 import { forgeI18n } from "../../util/siyuanEnvironments/forgeI18n.getI18n.environment";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";

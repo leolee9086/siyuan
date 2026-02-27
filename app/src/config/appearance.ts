@@ -1,14 +1,14 @@
 import { Constants } from "../constants";
 import { isElectron } from "../platform";
 import { exportLayout, resetLayout } from "../layout/util";
-import { isBrowser } from "../util/functions";
-import { fetchPost } from "../util/fetch";
-import { genLangOptions, genOptions } from "../util/genOptions";
+import { isBrowser } from "../util/platform/functions";
+import { fetchPost } from "../util/network/fetch";
+import { genLangOptions, genOptions } from "../util/DOM/genOptions";
 import { openSnippets } from "./util/snippets";
 import { loadAssets } from "../util/assets";
 import { resetFloatDockSize } from "../layout/dock/util";
 import { confirmDialog } from "../dialog/confirmDialog";
-import { useShell } from "../util/pathName";
+import { useShell } from "../util/file/pathName";
 import { setStatusBar } from "./util/setStatusBar";
 import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";

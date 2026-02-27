@@ -1,11 +1,11 @@
 // S-forge: 使用格式化的导入风格
-import {escapeHtml} from "../util/escape";
+import {escapeHtml} from "../util/DOM/escape";
 import {confirmDialog} from "../dialog/confirmDialog";
 // S-forge: pathPosix 用于文件名提取
-import {pathPosix} from "../util/pathName";
-import {isBrowser, isMobile} from "../util/functions";
+import {pathPosix} from "../util/file/pathName";
+import {isBrowser, isMobile} from "../util/platform/functions";
 import {hasClosestByClassName} from "../protyle/util/hasClosest";
-import {fetchPost} from "../util/fetch";
+import {fetchPost} from "../util/network/fetch";
 import {getAllModels} from "../layout/getAll";
 import {isElectron} from "../platform";
 // S-forge: openBy 从重构后的模块导入

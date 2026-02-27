@@ -1,0 +1,9 @@
+{
+  "moves": [
+    { "from": "src/util/color.ts", "to": "src/util/assets/color.ts" },
+    { "from": "src/util/image.ts", "to": "src/util/assets/image.ts" },
+    { "from": "src/util/css/bgs.modern.ts", "to": "src/util/assets/bgs.modern.ts" },
+    { "from": "src/util/css/bgs.ts", "to": "src/util/assets/bgs.ts" },
+    { "from": "src/util/css/extractCSSVariables.ts", "to": "src/util/assets/extractCSSVariables.ts" }
+  ]
+}

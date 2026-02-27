@@ -2,19 +2,19 @@ import { isMobile } from "../../platform";
 import { Tab } from "../Tab";
 import { setPanelFocus } from "../utils/setPanelFocus";
 import { getDockByType } from "../tabUtil";
-import { fetchPost, fetchSyncPost } from "../../util/fetch";
+import { fetchPost, fetchSyncPost } from "../../util/network/fetch";
 import { updateHotkeyAfterTip } from "../../protyle/util/compatibility";
 import { Model } from "../Model";
-import { needSubscribe } from "../../util/needSubscribe";
+import { needSubscribe } from "../../util/platform/needSubscribe";
 import { MenuItem } from "../../menus/Menu.Item";
 import { confirmDialog } from "../../dialog/confirmDialog";
 import { replaceFileName } from "../../editor/rename";
-import { getDisplayName, pathPosix } from "../../util/pathName";
-import { movePathTo } from "../../util/pathName/movePathTo";
+import { getDisplayName, pathPosix } from "../../util/file/pathName";
+import { movePathTo } from "../../util/file/movePathTo";
 import { App } from "../../index";
 import { getCloudURL } from "../../config/util/about";
 import { hasClosestByClassName } from "../../protyle/util/hasClosest";
-import { escapeHtml } from "../../util/escape";
+import { escapeHtml } from "../../util/DOM/escape";
 import { emitOpenMenu } from "../../plugin/EventBus";
 
 export class Inbox extends Model {

@@ -4,7 +4,7 @@ import { setPadding } from "../protyle/ui/initUI";
 import { isElectron } from "../platform";
 import { countBlockWord } from "../layout/status";
 import { fullscreen } from "../protyle/breadcrumb/action";
-import { fetchPost } from "../util/fetch";
+import { fetchPost } from "../util/network/fetch";
 import { IEditorOptions } from "./types";
 
 export * from "./types";

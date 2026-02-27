@@ -1,5 +1,5 @@
-import { fetchPost } from "../util/fetch";
-import { useShell } from "../util/pathName";
+import { fetchPost } from "../util/network/fetch";
+import { useShell } from "../util/file/pathName";
 import { isElectron } from "../platform";
 
 export const openBy = (url: string, type: "folder" | "app") => {

@@ -1,14 +1,14 @@
 import { Constants } from "../constants";
 import { ipcSend } from "../platform/electron/ipcRenderer";
 import { setZoomFactor } from "../platform/electron/webFrame";
-import { fetchPost } from "../util/fetch";
+import { fetchPost } from "../util/network/fetch";
 import { adjustLayout, getInstanceById, JSONToCenter } from "../layout/util";
 import { resizeTabs } from "../layout/tabUtil";
 import { initStatus } from "../layout/status";
 import { appearance } from "../config/appearance";
 import { initAssets, setInlineStyle } from "../util/assets";
 import { renderSnippet } from "../config/util/snippets";
-import { getSearch } from "../util/functions";
+import { getSearch } from "../util/platform/functions";
 import { initWindow } from "../boot/onGetConfig";
 import { App } from "../index";
 import { afterLoadPlugin } from "../plugin/loader";

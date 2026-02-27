@@ -1,13 +1,13 @@
-import {getRandom, isMobile} from "../util/functions";
-import {fetchPost} from "../util/fetch";
+import {getRandom, isMobile} from "../util/platform/functions";
+import {fetchPost} from "../util/network/fetch";
 import {Constants} from "../constants";
 import {Files} from "../layout/dock/Files";
 import {getDockByType} from "../layout/tabUtil";
 import {platform} from "../platform";
 import {getAllEditor, getAllModels} from "../layout/getAll";
-import {setNoteBook} from "../util/pathName";
+import {setNoteBook} from "../util/file/pathName";
 import {Dialog} from "../dialog";
-import {setPosition} from "../util/setPosition";
+import {setPosition} from "../util/DOM/setPosition";
 import {setStorageVal} from "../protyle/util/compatibility";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import {parseDynamicState, bindDynamicEvents} from "./emoji.dynamic";

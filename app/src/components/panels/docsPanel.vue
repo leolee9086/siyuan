@@ -28,8 +28,8 @@
 import { ref, computed, nextTick } from "vue";
 import { unicode2Emoji } from "../../emoji";
 import { Constants } from "../../constants";
-import { isWindow } from "../../util/functions";
-import { matchPinyinSearch } from "../../util/pinyin";
+import { isWindow } from "../../util/platform/functions";
+import { matchPinyinSearch } from "../../util/platform/pinyin";
 
 // 定义 props
 const props = defineProps<{

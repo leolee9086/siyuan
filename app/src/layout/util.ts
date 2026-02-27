@@ -7,7 +7,7 @@ import type { Tab } from "./Tab";
 import type { Model } from "./Model";
 import type { Layout } from "./index";
 import type { Wnd } from "./Wnd";
-import { fetchPost } from "../util/fetch";
+import { fetchPost } from "../util/network/fetch";
 import { Constants } from "../constants";
 import { showMessage } from "../dialog/message";
 import { setStorageVal } from "../protyle/util/compatibility";

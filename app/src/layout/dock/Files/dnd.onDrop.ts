@@ -1,9 +1,9 @@
 import { Files } from "../Files";
 import { Constants } from "../../../constants";
 import { hasTopClosestByTag } from "../../../protyle/util/hasClosest";
-import { fetchPost, fetchSyncPost } from "../../../util/fetch";
+import { fetchPost, fetchSyncPost } from "../../../util/network/fetch";
 import { getSiyuanConfig, setSiyuanDragElement } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { pathPosix } from "../../../util/pathName";
+import { pathPosix } from "../../../util/file/pathName";
 import { showMessage } from "../../../dialog/message";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { onLsHTMLHandler } from "./onLsHTML";

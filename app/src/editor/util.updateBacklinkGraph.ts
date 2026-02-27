@@ -1,4 +1,4 @@
-import { fetchPost } from "../util/fetch";
+import { fetchPost } from "../util/network/fetch";
 import { isCurrentEditor } from "./util.isCurrentEditor";
 import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { Graph } from "../layout/dock/Graph";

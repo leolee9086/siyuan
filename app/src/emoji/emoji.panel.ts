@@ -1,4 +1,4 @@
-import {fetchPost} from "../util/fetch";
+import {fetchPost} from "../util/network/fetch";
 import {Dialog} from "../dialog";
 import {Constants} from "../constants";
 import {setStorageVal} from "../protyle/util/compatibility";

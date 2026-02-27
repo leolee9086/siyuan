@@ -1,5 +1,5 @@
-import { setPosition } from "../util/setPosition";
-import { isMobile } from "../util/functions";
+import { setPosition } from "../util/DOM/setPosition";
+import { isMobile } from "../util/platform/functions";
 import {
     resetMenuState,
     positionSubMenu,

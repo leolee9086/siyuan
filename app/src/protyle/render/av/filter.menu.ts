@@ -1,8 +1,8 @@
 import {Menu} from "../../../plugin/Menu";
 import {hasClosestByClassName} from "../../util/hasClosest";
-import {setPosition} from "../../../util/setPosition";
-import {upDownHint} from "../../../util/upDownHint";
-import {fetchPost} from "../../../util/fetch";
+import {setPosition} from "../../../util/DOM/setPosition";
+import {upDownHint} from "../../../util/DOM/upDownHint";
+import {fetchPost} from "../../../util/network/fetch";
 import * as dayjs from "dayjs";
 import {filterSelect} from "./filter.operator";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";

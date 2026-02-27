@@ -9,7 +9,7 @@ import { Options } from "./util/Options";
 import { destroy } from "./util/destroy";
 import { Scroll } from "./scroll";
 import { Model } from "../layout/Model";
-import { genUUID } from "../util/genID";
+import { genUUID } from "../util/platform/genID";
 import { WYSIWYG } from "./wysiwyg";
 import { Toolbar } from "./toolbar";
 import { Gutter } from "./gutter";
@@ -23,7 +23,7 @@ import {
     updateBatchTransaction,
     updateTransaction
 } from "./wysiwyg/transaction";
-import { fetchPost } from "../util/fetch";
+import { fetchPost } from "../util/network/fetch";
 import { updatePanelByEditor } from "../editor/util.updatePanelByEditor";
 import { setPanelFocus } from "../layout/utils/setPanelFocus";
 import { Title } from "./header/Title";

@@ -1,7 +1,7 @@
 import {isMac, updateHotkeyTip} from "../protyle/util/compatibility";
 import {Constants} from "../constants";
 import {hideMessage, showMessage} from "../dialog/message";
-import {fetchPost} from "../util/fetch";
+import {fetchPost} from "../util/network/fetch";
 import {exportLayout} from "../layout/util";
 import {confirmDialog} from "../dialog/confirmDialog";
 import {App} from "../index";

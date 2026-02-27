@@ -1,11 +1,11 @@
 import { Constants } from "../../constants";
-import { genUUID } from "../../util/genID";
+import { genUUID } from "../../util/platform/genID";
 import { isMac } from "../util/compatibility";
 import { isMobile } from "../../platform";
-import { isTouchDevice } from "../../util/functions";
+import { isTouchDevice } from "../../util/platform/functions";
 import { setInlineStyle } from "../../util/assets";
 import { hideMessage, showMessage } from "../../dialog/message";
-import { fetchPost } from "../../util/fetch";
+import { fetchPost } from "../../util/network/fetch";
 import { lineNumberRender } from "../render/highlightRender";
 import { getContenteditableElement, getLastBlock } from "../wysiwyg/getBlock";
 import { transaction } from "../wysiwyg/transaction";

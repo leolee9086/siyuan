@@ -7,7 +7,7 @@
  */
 import { Constants } from "../../../constants";
 import { hasClosestBlock } from "../hasClosest";
-import { fetchPost, fetchSyncPost } from "../../../util/fetch";
+import { fetchPost, fetchSyncPost } from "../../../util/network/fetch";
 import { insertHTML } from "../insertHTML";
 import { onGet } from "../onGet";
 import { updatePanelByEditor } from "../../../editor/util.updatePanelByEditor";

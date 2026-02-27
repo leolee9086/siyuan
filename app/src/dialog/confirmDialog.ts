@@ -1,4 +1,4 @@
-import { isMobile } from "../util/functions";
+import { isMobile } from "../util/platform/functions";
 import { Dialog } from "./index";
 import { Constants } from "../constants";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";

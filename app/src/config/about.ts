@@ -4,8 +4,8 @@ import { ipcSend, ipcInvoke } from "../platform/electron/ipcRenderer";
 import { openExternal } from "../platform/electron/shell";
 // S-forge: 统一i18n访问层
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
-import { isBrowser } from "../util/functions";
-import { fetchPost } from "../util/fetch";
+import { isBrowser } from "../util/platform/functions";
+import { fetchPost } from "../util/network/fetch";
 import { setAccessAuthCode } from "./util/about";
 import { exportLayout } from "../layout/util";
 import { exitSiYuan, processSync } from "../dialog/processSystem";
@@ -14,7 +14,7 @@ import { showMessage } from "../dialog/message";
 import { Dialog } from "../dialog";
 import { confirmDialog } from "../dialog/confirmDialog";
 import { setKey } from "../sync/syncGuide";
-import { useShell } from "../util/pathName";
+import { useShell } from "../util/file/pathName";
 import { hasClosestByClassName } from "../protyle/util/hasClosest";
 
 export const about = {

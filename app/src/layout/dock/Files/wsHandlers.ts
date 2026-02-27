@@ -5,8 +5,8 @@
  * 这些函数从Files.ts中提取出来，以提高代码的可维护性和可测试性。
  */
 
-import { escapeGreat } from "../../../util/escape";
-import { setNoteBook } from "../../../util/pathName";
+import { escapeGreat } from "../../../util/DOM/escape";
+import { setNoteBook } from "../../../util/file/pathName";
 import { Constants } from "../../../constants";
 import { isStringArray, isHTMLElement } from "./wsHandlers.guard";
 import { removeDocumentNode, incrementCounter, decrementCounter } from "./wsHandlers.dom";

@@ -1,5 +1,5 @@
 import { Constants } from "../../../constants";
-import { fetchSyncPost } from "../../../util/fetch";
+import { fetchSyncPost } from "../../../util/network/fetch";
 import { hasTopClosestByClassName } from "../../util/hasClosest";
 import { removeEmbed } from "../removeEmbed";
 import { isHTMLElement } from "../../../util/DOM/element.guard";

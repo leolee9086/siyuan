@@ -1,4 +1,4 @@
-import { fetchPost } from "../../util/fetch";
+import { fetchPost } from "../../util/network/fetch";
 import { Constants } from "../../constants";
 import { blockRender } from "../render/blockRender";
 import { zoomOut } from "../../menus/protyle.zoomOut";

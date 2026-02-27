@@ -4,11 +4,11 @@ import {Constants} from "../constants";
 import {Protyle} from "../protyle";
 import {disabledProtyle, onGet} from "../protyle/util/onGet";
 import * as dayjs from "dayjs";
-import {fetchPost} from "../util/fetch";
-import {isMobile} from "../util/functions";
+import {fetchPost} from "../util/network/fetch";
+import {isMobile} from "../util/platform/functions";
 import {App} from "../index";
 import {resizeSide} from "./resizeSide";
-import {escapeHtml} from "../util/escape";
+import {escapeHtml} from "../util/DOM/escape";
 
 let historyEditor: Protyle;
 let isLoading = false;

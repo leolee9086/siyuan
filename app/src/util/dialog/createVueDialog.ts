@@ -1,5 +1,5 @@
 import { Dialog, IDialogOptions } from "../../dialog";
-import { isMobile } from "../../util/functions";
+import { isMobile } from "../platform/functions";
 import { createVueComponentInDialog, VueComponentMountConfig } from "../vue/mount";
 
 /**

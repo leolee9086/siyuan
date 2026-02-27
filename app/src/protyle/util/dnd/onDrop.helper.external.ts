@@ -7,7 +7,7 @@
  */
 import { hasClosestByClassName } from "../hasClosest";
 import { focusByRange, getRangeByPoint } from "../selection";
-import { isBrowser } from "../../../util/functions";
+import { isBrowser } from "../../../util/platform/functions";
 import { uploadLocalFiles } from "../../upload";
 import { paste } from "../paste";
 import { clearSelect } from "../clearSelect";

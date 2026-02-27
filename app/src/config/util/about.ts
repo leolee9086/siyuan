@@ -1,6 +1,6 @@
 import {Dialog} from "../../dialog";
-import {isMobile} from "../../util/functions";
-import {fetchPost} from "../../util/fetch";
+import {isMobile} from "../../util/platform/functions";
+import {fetchPost} from "../../util/network/fetch";
 import {Constants} from "../../constants";
 
 export const setAccessAuthCode = () => {

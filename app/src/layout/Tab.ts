@@ -1,14 +1,14 @@
 import { Wnd } from "./Wnd";
-import { genUUID } from "../util/genID";
+import { genUUID } from "../util/platform/genID";
 import { Model } from "./Model";
 import { Editor } from "../editor";
 import { hasClosestByTag } from "../protyle/util/hasClosest";
 import { Constants } from "../constants";
-import { escapeGreat, escapeHtml } from "../util/escape";
+import { escapeGreat, escapeHtml } from "../util/DOM/escape";
 import { unicode2Emoji } from "../emoji";
-import { fetchPost } from "../util/fetch";
+import { fetchPost } from "../util/network/fetch";
 import { hideTooltip, showTooltip } from "../dialog/tooltip";
-import { isTouchDevice } from "../util/functions";
+import { isTouchDevice } from "../util/platform/functions";
 import { isElectron } from "../platform";
 import { openNewWindow } from "../window/openNewWindow";
 import { ipcSend } from "../platform/electron/ipcRenderer";

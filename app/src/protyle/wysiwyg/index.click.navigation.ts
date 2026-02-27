@@ -1,19 +1,19 @@
 import {hasClosestBlock, hasClosestByAttribute, hasClosestByClassName, isInEmbedBlock} from "../util/hasClosest";
 import {getEditorRange} from "../util/selection";
-import {isMobile} from "../../util/functions";
+import {isMobile} from "../../util/platform/functions";
 import {Constants} from "../../constants";
 import {hideElements} from "../ui/hideElements";
 import {openFileById} from "../../editor/utils.openFileById";
 import {openMobileFileById} from "../../mobile/editor";
-import {checkFold} from "../../util/noRelyPCFunction";
-import {pushBack} from "../../util/backForward";
+import {checkFold} from "../../util/platform/noRelyPCFunction";
+import {pushBack} from "../../util/navigation/backForward";
 import {activeBlur} from "../../mobile/util/keyboardToolbar";
 import {openLink} from "../../editor/openLink";
 import {openGlobalSearch} from "../../search/util";
 import {popSearch} from "../../mobile/menu/search";
 import {BlockPanel} from "../../block/Panel";
 import {editAssetItem} from "../render/av/asset";
-import {fetchPost} from "../../util/fetch";
+import {fetchPost} from "../../util/network/fetch";
 import {isOnlyMeta} from "../util/compatibility";
 
 /**

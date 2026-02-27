@@ -1,4 +1,4 @@
-import { genUUID } from "../util/genID";
+import { genUUID } from "../util/platform/genID";
 import { Constants } from "../constants";
 
 const 尝试隐藏消息 = (target: HTMLElement) => {

@@ -1,9 +1,9 @@
-import {isPaidUser, needSubscribe} from "../util/needSubscribe";
+import {isPaidUser, needSubscribe} from "../util/platform/needSubscribe";
 import {showMessage} from "../dialog/message";
-import {fetchPost} from "../util/fetch";
+import {fetchPost} from "../util/network/fetch";
 import {Dialog} from "../dialog";
 import {confirmDialog} from "../dialog/confirmDialog";
-import {isMobile} from "../util/functions";
+import {isMobile} from "../util/platform/functions";
 import {processSync} from "../dialog/processSystem";
 import {openSetting} from "../config";
 import {platform} from "../platform";

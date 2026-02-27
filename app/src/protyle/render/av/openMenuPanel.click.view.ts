@@ -1,5 +1,5 @@
 import { transaction } from "../../wysiwyg/transaction";
-import { setPosition } from "../../../util/setPosition";
+import { setPosition } from "../../../util/DOM/setPosition";
 import { openEmojiPanel, unicode2Emoji } from "../../../emoji";
 import { setPageSize } from "./row";
 import { addView, bindViewEvent, getViewHTML, openViewMenu, getFieldsByData } from "./view";

@@ -1,12 +1,12 @@
-import {fetchPost} from "../util/fetch";
+import {fetchPost} from "../util/network/fetch";
 import {Dialog} from "../dialog";
-import {isMobile} from "../util/functions";
+import {isMobile} from "../util/platform/functions";
 import {hideMessage, showMessage} from "../dialog/message";
 import {confirmDialog} from "../dialog/confirmDialog";
 import {hideElements} from "../protyle/ui/hideElements";
 import {viewCards} from "./viewCards";
 import {Constants} from "../constants";
-import {escapeAttr, escapeHtml} from "../util/escape";
+import {escapeAttr, escapeHtml} from "../util/DOM/escape";
 import {transaction} from "../protyle/wysiwyg/transaction";
 import {App} from "../index";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";

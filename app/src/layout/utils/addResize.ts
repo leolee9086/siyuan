@@ -3,7 +3,7 @@ import { focusByRange } from "../../ai/imports";
 import { getSiyuanLayout } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { hideElements } from "../../protyle/ui/hideElements";
 import { hasClosestByClassName } from "../../protyle/util/hasClosest";
-import { isWindow } from "../../util/functions";
+import { isWindow } from "../../util/platform/functions";
 import { getAllModels } from "../getAll";
 import { resizeTabs } from "../tabUtil";
 import { adjustLayout } from "../util";

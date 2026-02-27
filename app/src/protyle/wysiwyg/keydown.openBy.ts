@@ -3,8 +3,8 @@ import { openBy } from "../../editor/utils.openBy";
 import { openFileById } from "../../editor/utils.openFileById";
 import { isElectron } from "../../platform";
 
-import { checkFold } from "../../util/noRelyPCFunction";
-import { isLocalPath } from "../../util/pathName";
+import { checkFold } from "../../util/platform/noRelyPCFunction";
+import { isLocalPath } from "../../util/file/pathName";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { hasClosestByAttribute } from "../util/hasClosest";
 import { matchHotKey } from "../util/hotKey";

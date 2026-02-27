@@ -1,6 +1,6 @@
 import * as dayjs from "dayjs";
 import type { MessageHistory } from "../components/streamChat.types";
-import { universalStreamRequest } from "../util/fetchStream";
+import { universalStreamRequest } from "../util/network/fetchStream";
 import { StreamRequestConfig, OnMessageCallback } from "./requestController.types";
 import { AIConfig } from "./types";
 

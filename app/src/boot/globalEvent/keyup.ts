@@ -1,12 +1,12 @@
-import { fetchPost } from "../../util/fetch";
-import { escapeHtml } from "../../util/escape";
+import { fetchPost } from "../../util/network/fetch";
+import { escapeHtml } from "../../util/DOM/escape";
 import { openCard } from "../../card/openCard";
 import { getDockByType } from "../../layout/tabUtil";
 import { getAllTabs } from "../../layout/getAll";
 import { App } from "../../index";
 import { Constants } from "../../constants";
 import { matchHotKey } from "../../protyle/util/hotKey";
-import { isWindow } from "../../util/functions";
+import { isWindow } from "../../util/platform/functions";
 import { Dialog } from "../../dialog";
 import {
     getSiyuanConfig

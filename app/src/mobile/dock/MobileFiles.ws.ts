@@ -1,6 +1,6 @@
-import {escapeHtml} from "../../util/escape";
+import {escapeHtml} from "../../util/DOM/escape";
 import {Constants} from "../../constants";
-import {pathPosix, setNoteBook} from "../../util/pathName";
+import {pathPosix, setNoteBook} from "../../util/file/pathName";
 import {unicode2Emoji} from "../../emoji";
 import type {MobileFiles} from "./MobileFiles";
 

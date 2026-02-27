@@ -6,8 +6,8 @@
  * 意图：将消息处理逻辑从 Files 类中分离，减少主文件行数
  */
 
-import { escapeHtml } from "../../../util/escape";
-import { setNoteBook } from "../../../util/pathName";
+import { escapeHtml } from "../../../util/DOM/escape";
+import { setNoteBook } from "../../../util/file/pathName";
 import { App } from "../../../index";
 import { handleCreateNotebook, handleUpdateDocInfo, handleRemove, handleMount, handleMove } from "./wsHandlers";
 import { handleRenameNotebook, handleCreate } from "./wsHandlers.rename";

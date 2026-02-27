@@ -1,4 +1,4 @@
-import {fetchPost, fetchSyncPost} from "../../util/fetch";
+import {fetchPost, fetchSyncPost} from "../../util/network/fetch";
 import {Constants} from "../../constants";
 import {focusByRange, focusByWbr} from "../util/selection";
 import {writeText} from "../util/compatibility";

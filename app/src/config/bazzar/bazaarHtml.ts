@@ -2,8 +2,8 @@
  * Generate HTML functions for Bazaar
  */
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { escapeAttr } from "../../util/escape";
-import { isBrowser } from "../../util/functions";
+import { escapeAttr } from "../../util/DOM/escape";
+import { isBrowser } from "../../util/platform/functions";
 import { Constants } from "../../constants";
 import { bazaarData } from "./bazaarData";
 

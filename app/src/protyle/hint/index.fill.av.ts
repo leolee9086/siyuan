@@ -1,9 +1,9 @@
 import {Constants} from "../../constants";
 import {hasClosestBlock, hasClosestByClassName} from "../util/hasClosest";
-import {getSavePath} from "../../util/getSavePath";
+import {getSavePath} from "../../util/file/getSavePath";
 import {transaction} from "../wysiwyg/transaction";
-import {fetchPost} from "../../util/fetch";
-import {pathPosix} from "../../util/pathName";
+import {fetchPost} from "../../util/network/fetch";
+import {pathPosix} from "../../util/file/pathName";
 import {updateAttrViewCellAnimation} from "../render/av/action";
 import {isHTMLElement} from "../../util/DOM/element.guard";
 import type {Hint} from "./index";

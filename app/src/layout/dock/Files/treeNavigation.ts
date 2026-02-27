@@ -5,9 +5,9 @@
  * 这些函数从Files.ts中提取出来，以提高代码的可维护性和可测试性。
  */
 
-import { pathPosix } from "../../../util/pathName";
+import { pathPosix } from "../../../util/file/pathName";
 import { Constants } from "../../../constants";
-import { fetchSyncPost } from "../../../util/fetch";
+import { fetchSyncPost } from "../../../util/network/fetch";
 import { genFileHTML } from "./htmlGenerators";
 import { unicode2Emoji } from "../../../emoji";
 import { getSiyuanStorage } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";

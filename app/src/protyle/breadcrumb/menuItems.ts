@@ -2,13 +2,13 @@
  * 面包屑菜单项辅助函数
  * 从 showBreadcrumbMenu.ts 提取的菜单项创建函数
  */
-import { fetchPost } from "../../util/fetch";
+import { fetchPost } from "../../util/network/fetch";
 import { Constants } from "../../constants";
 import { Menu } from "../../menus/Menu";
 import { MenuItem } from "../../menus/Menu.Item";
 import { net2LocalAssets } from "./action";
 import { setEditMode } from "../util/setEditMode";
-import { needSubscribe } from "../../util/needSubscribe";
+import { needSubscribe } from "../../util/platform/needSubscribe";
 import { saveLayout } from "../../layout/util";
 import { isMobile } from "../../platform";
 import { onGet } from "../util/onGet";

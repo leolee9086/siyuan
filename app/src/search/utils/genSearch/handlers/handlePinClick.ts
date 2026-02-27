@@ -4,7 +4,7 @@
 
 import { setStorageVal } from "../../../../ai/imports";
 import { MenuItem } from "../../../../menus/Menu.Item";
-import { genUUID } from "../../../../util/genID";
+import { genUUID } from "../../../../util/platform/genID";
 import { siyuanI18n } from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 /**

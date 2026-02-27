@@ -1,7 +1,7 @@
-import {fetchPost} from "../../../util/fetch";
+import {fetchPost} from "../../../util/network/fetch";
 import {addCol} from "./col.addCol";
 import {getColIconByType} from "./col.typeUtils";
-import {escapeAriaLabel, escapeAttr, escapeHtml} from "../../../util/escape";
+import {escapeAriaLabel, escapeAttr, escapeHtml} from "../../../util/DOM/escape";
 import * as dayjs from "dayjs";
 import {popTextCell, updateCellsValue} from "./cell";
 import {hasClosestBlock, hasClosestByAttribute, hasClosestByClassName} from "../../util/hasClosest";
@@ -15,7 +15,7 @@ import {previewImages} from "../../preview/image";
 import {getPathForFile} from "../../../platform/electron/webUtils";
 import {isBrowser} from "../../../platform";
 import {Constants} from "../../../constants";
-import {getCompressURL} from "../../../util/image";
+import {getCompressURL} from "../../../util/assets/image";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 const genAVRollupHTML = (value: IAVCellValue) => {

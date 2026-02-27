@@ -1,5 +1,5 @@
 import { updateTransaction } from "../protyle/wysiwyg/transaction";
-import { getSearch } from "../util/functions";
+import { getSearch } from "../util/platform/functions";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { openMenu } from "./commonMenuItem.openMenu";
 

@@ -1,5 +1,5 @@
 import { Constants } from "../../constants";
-import { fetchPost } from "../../util/fetch";
+import { fetchPost } from "../../util/network/fetch";
 import { sendGlobalShortcut } from "./keydown";
 import { isElectron } from "../../platform";
 import { ipcSend } from "../../platform/electron/ipcRenderer";

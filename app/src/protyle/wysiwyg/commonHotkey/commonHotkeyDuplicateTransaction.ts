@@ -1,9 +1,9 @@
-import { fetchSyncPost } from "../../../util/fetch";
+import { fetchSyncPost } from "../../../util/network/fetch";
 import { isHTMLElement } from "../../../util/DOM/element.guard";
 import { clearBlockElement } from "../../util/clearSelect";
 import { transaction } from "../transaction";
 import { focusBlock } from "../../util/selection";
-import { scrollCenter } from "../../../util/highlightById";
+import { scrollCenter } from "../../../util/DOM/highlightById";
 
 /**
  * 更新插入点之后所有兄弟有序列表项的序号。

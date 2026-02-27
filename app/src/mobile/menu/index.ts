@@ -2,7 +2,7 @@ import {popSearch} from "./search";
 import {initAppearance} from "../settings/appearance";
 import {initConfigAssets} from "../settings/assets";
 import {closePanel} from "../util/closePanel";
-import {mountHelp, newDailyNote, newNotebook} from "../../util/mount";
+import {mountHelp, newDailyNote, newNotebook} from "../../util/file/mount";
 import {repos} from "../../config/repos";
 import {publish} from "../../config/publish";
 import {exitSiYuan, lockScreen, processSync} from "../../dialog/processSystem";
@@ -24,7 +24,7 @@ import {
     isInMobileApp,
     isIPhone
 } from "../../protyle/util/compatibility";
-import {newFile} from "../../util/newFile";
+import {newFile} from "../../util/file/newFile";
 import {afterLoadPlugin} from "../../plugin/loader";
 import {commandPanel} from "../../boot/globalEvent/command/panel";
 import {openTopBarMenu} from "../../plugin/openTopBarMenu";

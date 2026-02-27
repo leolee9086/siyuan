@@ -8,7 +8,7 @@
  */
 
 import { Dialog } from "../../dialog";
-import { isMobile } from "../../util/functions";
+import { isMobile } from "../../util/platform/functions";
 import { createVueDialog } from "../../util/dialog/createVueDialog";
 import SmartToolboxPanelVue from "./SmartToolboxPanel.vue";
 

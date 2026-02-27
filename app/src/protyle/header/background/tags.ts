@@ -1,10 +1,10 @@
-import { fetchPost } from "../../../util/fetch";
+import { fetchPost } from "../../../util/network/fetch";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { upDownHint } from "../../../util/upDownHint";
+import { upDownHint } from "../../../util/DOM/upDownHint";
 import { getSiyuanGlobalMenusMenu } from "../../../util/siyuanEnvironments/getMenu.environment";
 import { Menu } from "../../../plugin/Menu";
 import { hasClosestByClassName } from "../../util/hasClosest";
-import { escapeHtml } from "../../../util/escape";
+import { escapeHtml } from "../../../util/DOM/escape";
 import type { Background } from "../Background";
 import { renderBackground } from "./render";
 import { getSiyuanCtrlIsPressed } from "../../../util/siyuanEnvironments/keyboardStatus.environment";

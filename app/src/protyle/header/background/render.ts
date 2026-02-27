@@ -1,5 +1,5 @@
 import { isMobile } from "../../../platform";
-import { escapeHtml } from "../../../util/escape";
+import { escapeHtml } from "../../../util/DOM/escape";
 import { unicode2Emoji } from "../../../emoji";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import type { Background } from "../Background";

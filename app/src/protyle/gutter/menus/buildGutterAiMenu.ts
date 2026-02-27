@@ -16,7 +16,7 @@ import { createApp, App } from "vue";
 import { Dialog } from "../../../dialog";
 import AiImageGenerationProgress from "./AiImageGenerationProgress.vue";
 import { ProfileManager } from "../../../config/profileManager";
-import { fetchPost } from "../../../util/fetch";
+import { fetchPost } from "../../../util/network/fetch";
 import { Constants } from "../../../constants";
 import { genAssetHTML } from "../../../asset/renderAssets";
 import * as dayjs from "dayjs";

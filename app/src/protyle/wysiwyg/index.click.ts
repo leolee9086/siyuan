@@ -15,7 +15,7 @@ import {
     setLastNodeRange,
 } from "../util/selection";
 import {Constants} from "../../constants";
-import {isMobile} from "../../util/functions";
+import {isMobile} from "../../util/platform/functions";
 import {setFold} from "../../menus/protyle";
 import {enterBack} from "../../menus/protyleMenus/protyle.enterBack";
 import {imgMenu} from "../../menus/protyleMenus/protyle.imgMenu";
@@ -24,7 +24,7 @@ import {openAttr} from "../../menus/commonMenuItem";
 import {blockRender} from "../render/blockRender";
 import {hideElements} from "../ui/hideElements";
 import {openFileById} from "../../editor/utils.openFileById";
-import {pushBack} from "../../util/backForward";
+import {pushBack} from "../../util/navigation/backForward";
 import {isOnlyMeta, isInIOS} from "../util/compatibility";
 import {hasNextSibling} from "./getBlock";
 import {updateTransaction} from "./transaction";
@@ -33,7 +33,7 @@ import {countSelectWord} from "../../layout/status";
 import {getBacklinkHeadingMore, loadBreadcrumb} from "./renderBacklink";
 import {commonClick} from "./commonClick";
 import {avClick} from "../render/av/action";
-import {checkFold} from "../../util/noRelyPCFunction";
+import {checkFold} from "../../util/platform/noRelyPCFunction";
 import {openEmojiPanel, unicode2Emoji} from "../../emoji";
 import {globalClickHideMenu} from "../../boot/globalEvent/click";
 import {chartRender} from "../render/chartRender";

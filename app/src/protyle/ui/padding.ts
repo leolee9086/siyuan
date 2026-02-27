@@ -1,5 +1,5 @@
 import { Constants } from "../../constants";
-import { isMobile } from "../../util/functions";
+import { isMobile } from "../../util/platform/functions";
 
 /**
  * 计算非移动端的 padding

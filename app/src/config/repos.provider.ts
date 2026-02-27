@@ -1,5 +1,5 @@
-import {isPaidUser, needSubscribe} from "../util/needSubscribe";
-import {fetchPost} from "../util/fetch";
+import {isPaidUser, needSubscribe} from "../util/platform/needSubscribe";
+import {fetchPost} from "../util/network/fetch";
 import {showMessage} from "../dialog/message";
 import {getCloudURL} from "./util/about";
 

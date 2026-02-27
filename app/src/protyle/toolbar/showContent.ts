@@ -1,7 +1,7 @@
 /**
  * 移动端内容操作面板
  */
-import { setPosition } from "../../util/setPosition";
+import { setPosition } from "../../util/DOM/setPosition";
 import { Constants } from "../../constants";
 import {
     focusByRange,

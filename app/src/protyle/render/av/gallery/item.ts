@@ -1,5 +1,5 @@
 import { genCellValue, getTypeByCellElement, renderCell, renderCellAttr } from "../cell";
-import { fetchPost } from "../../../../util/fetch";
+import { fetchPost } from "../../../../util/network/fetch";
 import { setPage } from "../row";
 import { Constants } from "../../../../constants";
 import { clearSelect } from "../../../util/clearSelect";

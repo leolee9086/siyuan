@@ -1,4 +1,4 @@
-import { fetchPost } from "../../../util/fetch";
+import { fetchPost } from "../../../util/network/fetch";
 import { getIconByType } from "../../../editor/getIcon";
 import { IForwardlinkTreeNode, ISqlResultItem, IBlockResult } from "./Forwardlink.types";
 

@@ -1,5 +1,5 @@
 import { uploadFiles } from "../../upload";
-import { fetchPost } from "../../../util/fetch";
+import { fetchPost } from "../../../util/network/fetch";
 import type { Background } from "../Background";
 import { renderBackground } from "./render";
 

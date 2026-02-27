@@ -1,5 +1,5 @@
 import { transaction } from "../../wysiwyg/transaction";
-import { setPosition } from "../../../util/setPosition";
+import { setPosition } from "../../../util/DOM/setPosition";
 import { hasClosestByClassName } from "../../util/hasClosest";
 import { bindEditEvent, getEditHTML } from "./col";
 import { getColIconByType, getColNameByType } from "./col.typeUtils";

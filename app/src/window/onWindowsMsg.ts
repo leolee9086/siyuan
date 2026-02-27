@@ -1,8 +1,8 @@
 import { exportLayout, getInstanceById } from "../layout/util";
 import { Tab } from "../layout/Tab";
-import { fetchPost } from "../util/fetch";
-import { redirectToCheckAuth } from "../util/pathName";
-import { isWindow } from "../util/functions";
+import { fetchPost } from "../util/network/fetch";
+import { redirectToCheckAuth } from "../util/file/pathName";
+import { isWindow } from "../util/platform/functions";
 import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { isElectronStyle } from "./setHeader.guard";
 

@@ -1,5 +1,5 @@
-import {fetchPost} from "../../util/fetch";
-import {genLangOptions, genOptions} from "../../util/genOptions";
+import {fetchPost} from "../../util/network/fetch";
+import {genLangOptions, genOptions} from "../../util/DOM/genOptions";
 import {openModel} from "../menu/model";
 import {setStatusBar} from "../../config/util/setStatusBar";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";

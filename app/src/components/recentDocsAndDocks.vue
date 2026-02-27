@@ -23,8 +23,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
-import { fetchSyncPost } from "../util/fetch";
-import { escapeHtml } from "../util/escape";
+import { fetchSyncPost } from "../util/network/fetch";
+import { escapeHtml } from "../util/DOM/escape";
 import { hasClosestByClassName } from "../protyle/util/hasClosest";
 import DockPanel from "./panels/dockPanel.vue";
 import DocsPanel from "./panels/docsPanel.vue";

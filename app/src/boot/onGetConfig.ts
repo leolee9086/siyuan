@@ -9,13 +9,13 @@ import { ipcSend, ipcInvoke, ipcOn } from "../platform/electron/ipcRenderer";
 import { setZoomFactor } from "../platform/electron/webFrame";
 import { Constants } from "../constants";
 import { appearance } from "../config/appearance";
-import { fetchPost, fetchSyncPost } from "../util/fetch";
+import { fetchPost, fetchSyncPost } from "../util/network/fetch";
 import { initAssets, setInlineStyle } from "../util/assets";
 import { renderSnippet } from "../config/util/snippets";
 import { openFile } from "../editor/util";
 
 import { exitSiYuan } from "../dialog/processSystem";
-import { isWindow } from "../util/functions";
+import { isWindow } from "../util/platform/functions";
 import { initStatus } from "../layout/status";
 import { showMessage } from "../dialog/message";
 import { replaceLocalPath } from "../editor/rename";

@@ -52,7 +52,7 @@ import VirtualMasonryGrid from "../../components/masonry/components/VirtualMason
 import AssetCard from "./AssetCard.vue";
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";
 import { 搜索素材元数据, type SearchAssetMetaParams } from "../../data/kernelAPI/sforgeAssetMeta";
-import { pathPosix } from "../../util/pathName";
+import { pathPosix } from "../../util/file/pathName";
 
 interface AssetItem {
     hName: string;

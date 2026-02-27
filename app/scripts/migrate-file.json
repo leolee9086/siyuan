@@ -1,0 +1,21 @@
+{
+  "moves": [
+    { "from": "src/util/pathName.ts", "to": "src/util/file/pathName.ts" },
+    { "from": "src/util/newFile.ts", "to": "src/util/file/newFile.ts" },
+    { "from": "src/util/getSavePath.ts", "to": "src/util/file/getSavePath.ts" },
+    { "from": "src/util/mount.ts", "to": "src/util/file/mount.ts" },
+    { "from": "src/util/Tree.ts", "to": "src/util/file/Tree.ts" },
+    { "from": "src/util/pathName/fileHtmlGenerator.ts", "to": "src/util/file/fileHtmlGenerator.ts" },
+    { "from": "src/util/pathName/movePathTo.bindEvents.ts", "to": "src/util/file/movePathTo.bindEvents.ts" },
+    { "from": "src/util/pathName/movePathTo.blur.ts", "to": "src/util/file/movePathTo.blur.ts" },
+    { "from": "src/util/pathName/movePathTo.click.ts", "to": "src/util/file/movePathTo.click.ts" },
+    { "from": "src/util/pathName/movePathTo.guard.ts", "to": "src/util/file/movePathTo.guard.ts" },
+    { "from": "src/util/pathName/movePathTo.inputEvent.ts", "to": "src/util/file/movePathTo.inputEvent.ts" },
+    { "from": "src/util/pathName/movePathTo.keydown.ts", "to": "src/util/file/movePathTo.keydown.ts" },
+    { "from": "src/util/pathName/movePathTo.notebook.ts", "to": "src/util/file/movePathTo.notebook.ts" },
+    { "from": "src/util/pathName/movePathTo.template.ts", "to": "src/util/file/movePathTo.template.ts" },
+    { "from": "src/util/pathName/movePathTo.toggleHistory.ts", "to": "src/util/file/movePathTo.toggleHistory.ts" },
+    { "from": "src/util/pathName/movePathTo.ts", "to": "src/util/file/movePathTo.ts" },
+    { "from": "src/util/pathName/movePathTo.types.ts", "to": "src/util/file/movePathTo.types.ts" }
+  ]
+}

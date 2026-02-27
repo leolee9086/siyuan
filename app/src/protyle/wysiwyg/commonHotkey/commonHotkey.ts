@@ -1,8 +1,8 @@
 import { matchHotKey } from "../../util/hotKey";
-import { fetchPost, fetchSyncPost } from "../../../util/fetch";
+import { fetchPost, fetchSyncPost } from "../../../util/network/fetch";
 import { writeText } from "../../util/compatibility";
 import { focusBlock, } from "../../util/selection";
-import { scrollCenter } from "../../../util/highlightById";
+import { scrollCenter } from "../../../util/DOM/highlightById";
 import { transaction } from "../transaction";
 import { onGet } from "../../util/onGet";
 import { Constants } from "../../../constants";

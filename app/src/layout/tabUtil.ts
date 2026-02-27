@@ -21,10 +21,10 @@ import { isIPad, updateHotkeyTip } from "../protyle/util/compatibility";
 import { openSearch } from "../search/spread";
 import { openRecentDocs } from "../business/openRecentDocs";
 import { openHistory } from "../history/history";
-import { newFile } from "../util/newFile";
-import { mountHelp, newNotebook } from "../util/mount";
+import { newFile } from "../util/file/newFile";
+import { mountHelp, newNotebook } from "../util/file/mount";
 import { Constants } from "../constants";
-import { fetchPost } from "../util/fetch";
+import { fetchPost } from "../util/network/fetch";
 
 export const getActiveTab = (wndActive = true) => {
     const activeTabElement = document.querySelector(".layout__wnd--active .item--focus");

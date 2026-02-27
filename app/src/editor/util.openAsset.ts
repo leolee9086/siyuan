@@ -1,6 +1,6 @@
 import { App } from "..";
 import { Constants } from "../constants";
-import { pathPosix } from "../util/pathName";
+import { pathPosix } from "../util/file/pathName";
 import { openFile } from "./util";
 
 

@@ -7,9 +7,9 @@ import { getEditorRange, focusByRange, getSelectionPosition } from "../util/sele
 import { hasClosestBlock, hasClosestByClassName } from "../util/hasClosest";
 import { hideElements } from "../ui/hideElements";
 import { isMobile } from "../../platform";
-import { setPosition } from "../../util/setPosition";
-import { upDownHint } from "../../util/upDownHint";
-import { escapeHtml } from "../../util/escape";
+import { setPosition } from "../../util/DOM/setPosition";
+import { upDownHint } from "../../util/DOM/upDownHint";
+import { escapeHtml } from "../../util/DOM/escape";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 /**

@@ -5,8 +5,8 @@ import { getAllModels } from "../layout/getAll";
 import { exportLayout } from "../layout/util";
 import {isMobile, isBrowser} from "../platform";
 // S-forge: 模块化重构 - 使用环境抽象层和资源模块
-import { fetchPost } from "./fetch";
-import { IFetchRequestObject } from "./fetch.types";
+import { fetchPost } from "./network/fetch";
+import { IFetchRequestObject } from "./network/fetch.types";
 import { getSiyuanConfig, getSiyuanStorage } from "./siyuanEnvironments/getSiyuanConfig.environment";
 import { getWindowDestroyTheme, setWindowDestroyTheme, windowMatchMedia } from "./siyuanEnvironments/windowAppearance.environment";
 import { reloadLocation } from "./siyuanEnvironments/windowLocation.environment";
@@ -15,7 +15,7 @@ import { isServiceWorkerAvailable } from "./siyuanEnvironments/windowStandard.en
 import { setInlineStyle } from "./assets/setInlineStyle";
 import { setCodeTheme } from "./assets/setCodeTheme";
 import { updateMobileTheme } from "./assets/mobile";
-import { getBackend, getFrontend } from "./functions";
+import { getBackend, getFrontend } from "./platform/functions";
 
 export { setInlineStyle, setCodeTheme };
 
@@ -29,6 +29,8 @@ const updateHTMLAttrs = () => {
     htmlElement.setAttribute("data-light-theme", getSiyuanConfig().appearance.themeLight);
     htmlElement.setAttribute("data-dark-theme", getSiyuanConfig().appearance.themeDark);
     const OSTheme = windowMatchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    // 当启用了跟随系统主题(modeOS)且当前配置的模式与OS实际主题不一致时，同步修正模式
+    // 生效场景：用户在系统层面切换了深色/浅色模式后首次加载页面
     if (getSiyuanConfig().appearance.modeOS && (
         (getSiyuanConfig().appearance.mode === 1 && OSTheme === "light") ||
         (getSiyuanConfig().appearance.mode === 0 && OSTheme === "dark")
@@ -65,6 +67,8 @@ const loadDefaultTheme = (data: Config.IAppearance) => {
 /** 加载自定义主题 */
 const loadCustomTheme = (data: Config.IAppearance) => {
     const styleElement = document.getElementById("themeStyle");
+    // 当前主题为内置默认主题(midnight/daylight)时无需加载自定义样式，移除已有的自定义样式元素
+    // 生效场景：用户从第三方主题切换回内置主题
     if (!((data.mode === 1 && data.themeDark !== "midnight") || (data.mode === 0 && data.themeLight !== "daylight"))) {
         styleElement?.remove();
         return;
@@ -74,6 +78,7 @@ const loadCustomTheme = (data: Config.IAppearance) => {
         addStyle(themeAddress, "themeStyle");
         return;
     }
+    // 样式表地址已变更时更新href，避免重复加载相同资源
     if (!styleElement.getAttribute("href")?.startsWith(themeAddress)) {
         styleElement.setAttribute("href", themeAddress);
     }
@@ -88,9 +93,9 @@ const updateGraphAndPDF = () => {
         const pdfThemeSettings = getSiyuanStorage()[Constants.LOCAL_PDFTHEME];
         const pdfTheme = getSiyuanConfig().appearance.mode === 0 ? pdfThemeSettings.light : pdfThemeSettings.dark;
         for (const item of document.querySelectorAll(".pdf__outer")) {
-            const htmlItem = item;
-            if (htmlItem instanceof HTMLElement) {
-                updatePDFAttributes(htmlItem, pdfTheme === "dark");
+            // querySelectorAll返回Element类型，需类型守卫确认为HTMLElement才能操作classList等属性
+            if (item instanceof HTMLElement) {
+                updatePDFAttributes(item, pdfTheme === "dark");
             }
         }
     }
@@ -107,6 +112,8 @@ const updatePDFAttributes = (item: HTMLElement, isDark: boolean) => {
 
 /** 更新浏览器 Meta */
 const updateBrowserMeta = () => {
+    // 仅在纯浏览器环境(非原生WebView/Android/Harmony)且支持ServiceWorker时注入theme-color meta标签
+    // 生效场景：通过浏览器直接访问思源笔记的Web端
     if (isBrowser && !getWindowWebkit()?.messageHandlers && !getWindowJSAndroid() && !getWindowJSHarmony() &&
         isServiceWorkerAvailable()) {
         document.head.insertAdjacentHTML("afterbegin", `<meta name="theme-color" content="${getComputedStyle(document.body).getPropertyValue("--b3-toolbar-background").trim()}">`);
@@ -116,6 +123,8 @@ const updateBrowserMeta = () => {
 /** 移除冗余 SVG 图标 */
 const 移除冗余SVG图标 = () => {
     for (const [index, item] of Array.from(document.body.children).entries()) {
+        // 移除非首个、无data-name标记且不属于内置图标集(Material/Ant)的SVG元素
+        // 生效场景：图标脚本重复加载后产生的冗余SVG容器
         if (item.tagName === "svg" &&
             index !== 0 &&
             !item.getAttribute("data-name") &&
@@ -160,6 +169,8 @@ const loadIcons = (data: Config.IAppearance) => {
     if (!isBuiltInIcon && iconScriptElement && iconScriptElement.getAttribute("src")?.startsWith(iconThirdURL)) {
         return;
     }
+    // 默认图标脚本已存在但URL不匹配当前配置：移除旧脚本和对应的SVG容器，准备重新加载
+    // 生效场景：用户在ant和material内置图标之间切换
     if (iconDefaultScriptElement && !iconDefaultScriptElement.getAttribute("src")?.startsWith(iconDefaultURL)) {
         iconDefaultScriptElement.remove();
         const 待移除图标ID = data.icon === "ant" ? "#iconsMaterial" : "#iconsAnt";
@@ -176,7 +187,7 @@ const loadIcons = (data: Config.IAppearance) => {
     });
 };
 
-/** 加载所有资源 */
+/** @同步豁免: UI构建 - loadAssets 在主题切换时同步编排多个DOM操作(样式表/脚本/属性)，调用方依赖同步执行顺序确保UI一致性 */
 export const loadAssets = (data: Config.IAppearance) => {
     updateHTMLAttrs();
     loadDefaultTheme(data);
@@ -190,24 +201,27 @@ export const loadAssets = (data: Config.IAppearance) => {
 
 /** 处理外观模式响应 */
 const handleAppearanceModeResponse = async (response: IWebSocketData) => {
+    // 主题未启用JS：无需执行销毁逻辑，直接更新配置并重新加载资源
     if (!getSiyuanConfig().appearance.themeJS) {
         getSiyuanConfig().appearance = response.data.appearance;
         loadAssets(response.data.appearance);
         return;
     }
-    if (!getWindowDestroyTheme()) {
-        if (!isMobile) {
-            exportLayout({
-                /** 回调函数 */
-                cb() {
-                    reloadLocation();
-                },
-                errorExit: false,
-            });
-        }
-        if (isMobile) {
-            reloadLocation();
-        }
+    // 主题JS已启用但未注册destroyTheme回调，桌面端需先保存布局再重载页面以清理主题副作用
+    // 生效场景：第三方主题启用了themeJS但未实现destroyTheme生命周期钩子，且运行在桌面端
+    if (!getWindowDestroyTheme() && !isMobile) {
+        exportLayout({
+            /** 回调函数 */
+            cb() {
+                reloadLocation();
+            },
+            errorExit: false,
+        });
+        return;
+    }
+    // 主题JS已启用但未注册destroyTheme回调，移动端直接重载页面
+    if (!getWindowDestroyTheme() && isMobile) {
+        reloadLocation();
         return;
     }
     try {
@@ -238,10 +252,12 @@ const handlePrefersColorSchemeChange = (event: MediaQueryListEvent) => {
     }, handleAppearanceModeResponse);
 };
 
-/** 初始化资源 */
+/** @同步豁免: 生命周期 - initAssets 在应用启动阶段同步注册事件监听器和移除loading元素，属于初始化生命周期操作 */
 export const initAssets = () => {
     const loadingElement = document.getElementById("loading");
     if (loadingElement) {
+        // 延迟160ms移除loading元素，这是一个用户感知延迟：确保启动画面的淡出动画完成后再移除DOM节点
+        // 160ms对应CSS过渡动画时长，无法通过transitionend监听因为loading元素本身可能无过渡样式
         setTimeout(() => {
             loadingElement.remove();
         }, 160);
@@ -250,12 +266,13 @@ export const initAssets = () => {
     windowMatchMedia("(prefers-color-scheme: dark)").addEventListener("change", handlePrefersColorSchemeChange);
 };
 
-/** 设置模式 */
+/** @同步豁免: UI构建 - setMode 由UI事件处理器直接调用，需要同步读取DOM状态(matchMedia)并构建请求参数 */
 export const setMode = (modeElementValue: number) => {
     if (isMobile) {
         return;
     }
     let mode = modeElementValue;
+    // modeElementValue===2 表示"跟随系统"模式，需要根据当前OS主题偏好推断实际的深色/浅色模式值
     if (modeElementValue === 2) {
         mode = windowMatchMedia("(prefers-color-scheme: dark)").matches ? 1 : 0;
     }
@@ -268,7 +285,7 @@ export const setMode = (modeElementValue: number) => {
 };
 
 // S-forge: rgba2hex 和 updateMobileTheme 已提取到 ./assets/mobile 模块
-/** 获取主题模式 */
+/** @同步豁免: 需要绝对同步的DOM访问 - getThemeMode 被 updateHTMLAttrs 等同步DOM操作内联调用，返回值直接用于 setAttribute，必须同步返回字符串 */
 export const getThemeMode = () => {
     const OSTheme = windowMatchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
     if (getSiyuanConfig().appearance.modeOS) {

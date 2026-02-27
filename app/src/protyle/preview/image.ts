@@ -1,6 +1,6 @@
 import { Constants } from "../../constants";
 import { addScript } from "../util/addScript";
-import { fetchPost } from "../../util/fetch";
+import { fetchPost } from "../../util/network/fetch";
 import { setSiyuanViewer, destroySiyuanViewer, getSiyuanViewer } from "../../util/siyuanEnvironments/viewer.environment";
 
 /**

@@ -3,7 +3,7 @@ import {hasClosestBlock, hasClosestByAttribute, hasClosestByTag, isInEmbedBlock}
 import {focusBlock, focusByWbr, getEditorRange, setInsertWbrHTML} from "../util/selection";
 import {Constants} from "../../constants";
 import {removeEmbed} from "./removeEmbed";
-import {fetchSyncPost} from "../../util/fetch";
+import {fetchSyncPost} from "../../util/network/fetch";
 import {encodeBase64} from "../util/compatibility";
 import {isIncludeCell} from "../util/table";
 import {updateCellsValue} from "../render/av/cell";

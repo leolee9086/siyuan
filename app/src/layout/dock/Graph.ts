@@ -7,12 +7,12 @@ import { Constants } from "../../constants";
 import { addScript } from "../../protyle/util/addScript";
 import { BlockPanel } from "../../block/Panel";
 import { fullscreen } from "../../protyle/breadcrumb/action";
-import { fetchPost } from "../../util/fetch";
+import { fetchPost } from "../../util/network/fetch";
 import { openFileById } from "../../editor/utils.openFileById";
 import { updateHotkeyAfterTip } from "../../protyle/util/compatibility";
 import { openGlobalSearch } from "../../search/util";
 import { App } from "../../index";
-import { checkFold } from "../../util/noRelyPCFunction";
+import { checkFold } from "../../util/platform/noRelyPCFunction";
 import { Editor } from "../../editor";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 

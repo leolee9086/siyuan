@@ -4,8 +4,8 @@
  */
 
 import { hasClosestBlock } from "../../protyle/util/hasClosest";
-import { fetchSyncPost } from "../../util/fetch";
-import { getIdFromSYProtocol } from "../../util/pathName";
+import { fetchSyncPost } from "../../util/network/fetch";
+import { getIdFromSYProtocol } from "../../util/file/pathName";
 import { getPopoverTargetElement } from "./target";
 import { RefDefsResult } from "./refDefs.types";
 

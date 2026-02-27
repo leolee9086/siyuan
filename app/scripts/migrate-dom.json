@@ -1,0 +1,13 @@
+{
+  "moves": [
+    { "from": "src/util/addClearButton.ts", "to": "src/util/DOM/addClearButton.ts" },
+    { "from": "src/util/setPosition.ts", "to": "src/util/DOM/setPosition.ts" },
+    { "from": "src/util/upDownHint.ts", "to": "src/util/DOM/upDownHint.ts" },
+    { "from": "src/util/genOptions.ts", "to": "src/util/DOM/genOptions.ts" },
+    { "from": "src/util/highlightById.ts", "to": "src/util/DOM/highlightById.ts" },
+    { "from": "src/util/escape.ts", "to": "src/util/DOM/escape.ts" },
+    { "from": "src/util/range/range.copyWithResolvedCSS.ts", "to": "src/util/DOM/range.copyWithResolvedCSS.ts" },
+    { "from": "src/util/controFlow/matchCondition.ts", "to": "src/util/DOM/matchCondition.ts" },
+    { "from": "src/util/controFlow/matchIf.ts", "to": "src/util/DOM/matchIf.ts" }
+  ]
+}

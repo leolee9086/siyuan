@@ -4,7 +4,7 @@
  * 支持跨数据集、多模型查询
  */
 
-import { fetchPost } from "../../../util/fetch";
+import { fetchPost } from "../../../util/network/fetch";
 import { embeddingText } from "../../../util/embedding/transformer";
 import type { ISemanticSearchResult, ISemanticSearchConfig, IEmbeddingDataset } from "./embeddingDock.types";
 import { isFrontendModel, FRONTEND_EMBEDDING_MODELS } from "./embeddingDock.types";

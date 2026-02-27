@@ -1,7 +1,7 @@
 /**
  * showRender 模块 HTML 模板生成
  */
-import { isMobile } from "../../../util/functions";
+import { isMobile } from "../../../util/platform/functions";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import type { 渲染面板配置 } from "./showRender.types";
 

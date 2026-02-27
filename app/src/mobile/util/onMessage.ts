@@ -8,7 +8,7 @@ import {
 import {App} from "../../index";
 import {reloadPlugin} from "../../plugin/loader";
 import {reloadEmoji} from "../../emoji";
-import {setLocalShorthandCount} from "../../util/noRelyPCFunction";
+import {setLocalShorthandCount} from "../../util/platform/noRelyPCFunction";
 import {updateControlAlt} from "../../protyle/util/hotKey";
 import {renderSnippet} from "../../config/util/snippets";
 

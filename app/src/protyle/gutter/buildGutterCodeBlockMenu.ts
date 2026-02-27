@@ -6,7 +6,7 @@
  * @module protyle/gutter/buildGutterCodeBlockMenu
  */
 
-import { fetchPost } from "../../util/fetch";
+import { fetchPost } from "../../util/network/fetch";
 import { highlightRender } from "../render/highlightRender";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { showMessage, hideMessage } from "../../dialog/message";

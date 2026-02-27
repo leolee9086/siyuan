@@ -3,7 +3,7 @@ import {focusBlock} from "../../util/selection";
 import {Menu} from "../../../plugin/Menu";
 import {transaction} from "../../wysiwyg/transaction";
 import {genCellValue, genCellValueByElement, getTypeByCellElement, renderCell, renderCellAttr} from "./cell";
-import {fetchPost} from "../../../util/fetch";
+import {fetchPost} from "../../../util/network/fetch";
 import * as dayjs from "dayjs";
 import {Constants} from "../../../constants";
 import {insertGalleryItemAnimation} from "./gallery/item";

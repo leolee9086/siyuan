@@ -3,7 +3,7 @@
  * 将原本的私有方法提取为模块级函数，提高可测试性
  */
 
-import { fetchPost } from "../../../util/fetch";
+import { fetchPost } from "../../../util/network/fetch";
 import { hasClosestBlock } from "../../../protyle/util/hasClosest";
 import { updateHotkeyAfterTip } from "../../../protyle/util/compatibility";
 import { Constants } from "../../../constants";

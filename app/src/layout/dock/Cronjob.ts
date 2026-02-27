@@ -11,15 +11,15 @@ import { setPanelFocus } from "../utils/setPanelFocus";
 import { getDockByType } from "../tabUtil";
 import { hasClosestByClassName } from "../../protyle/util/hasClosest";
 import { showMessage } from "../../dialog/message";
-import { fetchSyncPost } from "../../util/fetch";
+import { fetchSyncPost } from "../../util/network/fetch";
 import {
     列出所有任务,
     启用任务,
     禁用任务,
     立即执行,
     获取日志
-} from "../../util/cronjobApi";
-import { 任务运行时信息 } from "../../util/cronjob.types";
+} from "../../util/network/cronjobApi";
+import { 任务运行时信息 } from "../../util/network/cronjob.types";
 import { 生成面板HTML, 生成任务列表HTML } from "./cronjob.util";
 import { setWindowInterval, clearWindowInterval } from "./dock.environment";
 import { openFileById } from "../../editor/utils.openFileById";

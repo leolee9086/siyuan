@@ -1,4 +1,4 @@
-import {scrollCenter} from "../../util/highlightById";
+import {scrollCenter} from "../../util/DOM/highlightById";
 
 /**
  * 将表格行滚动到视图中可见位置

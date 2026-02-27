@@ -1,11 +1,11 @@
 import {Constants} from "../constants";
-import {fetchPost} from "../util/fetch";
+import {fetchPost} from "../util/network/fetch";
 import {setStorageVal} from "../protyle/util/compatibility";
 import {getArticle, getAttr} from "./util";
-import {escapeAriaLabel, escapeGreat} from "../util/escape";
+import {escapeAriaLabel, escapeGreat} from "../util/DOM/escape";
 import {getIconByType} from "../editor/getIcon";
 import {unicode2Emoji} from "../emoji";
-import {getDisplayName, getNotebookName} from "../util/pathName";
+import {getDisplayName, getNotebookName} from "../util/file/pathName";
 import {Protyle} from "../protyle";
 import {resize} from "../protyle/util/resize";
 import {Menu} from "../plugin/Menu";

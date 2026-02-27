@@ -4,15 +4,15 @@ import { openFileAttr } from "./commonMenuItem.openFileAttr";
 import { ipcInvoke } from "../platform/electron/ipcRenderer";
 import { isElectron, isMobile } from "../platform";
 import { MenuItem } from "./Menu.Item";
-import { getDisplayName, getNotebookName, getTopPaths, useShell, pathPosix, originalPath } from "../util/pathName";
+import { getDisplayName, getNotebookName, getTopPaths, useShell, pathPosix, originalPath } from "../util/file/pathName";
 import { hideMessage, showMessage } from "../dialog/message";
-import { fetchPost, fetchSyncPost } from "../util/fetch";
+import { fetchPost, fetchSyncPost } from "../util/network/fetch";
 import { onGetnotebookconf } from "./onGetnotebookconf";
 import { openSearch } from "../search/spread";
 import { closePanel } from "../mobile/util/closePanel";
 import { popSearch } from "../mobile/menu/search";
 import { Constants } from "../constants";
-import { newFile } from "../util/newFile";
+import { newFile } from "../util/file/newFile";
 import { hasClosestByTag, hasTopClosestByTag } from "../protyle/util/hasClosest";
 import { deleteFiles } from "../editor/deleteFile";
 import { getDockByType } from "../layout/tabUtil";
@@ -568,7 +568,7 @@ export const initFileMenu = (app: App, notebookId: string, pathString: string, l
     })();
     // CronJob 菜单项 - 动态导入并检查注册状态
     (async () => {
-        const { fetchSyncPost } = await import("../util/fetch");
+        const { fetchSyncPost } = await import("../util/network/fetch");
         const taskRes = await fetchSyncPost("/api/cronjob/get", { docId: id });
         const 已注册 = taskRes.code === 0 && taskRes.data != null;
         window.siyuan.menus.menu.append(new MenuItem({
@@ -580,7 +580,7 @@ export const initFileMenu = (app: App, notebookId: string, pathString: string, l
                 id: "registerAsCronjob",
                 label: 已注册 ? "更新 Go 定时任务" : "注册为 Go 定时任务",
                 click: async () => {
-                    const { 注册扩展 } = await import("../util/cronjobApi");
+                    const { 注册扩展 } = await import("../util/network/cronjobApi");
                     const success = await 注册扩展(id, "go", "cronjob");
                     if (!success) {
                         return;
@@ -596,7 +596,7 @@ export const initFileMenu = (app: App, notebookId: string, pathString: string, l
                 id: "compileCronjob",
                 label: "预览编译结果",
                 click: async () => {
-                    const { 编译文档 } = await import("../util/cronjobApi");
+                    const { 编译文档 } = await import("../util/network/cronjobApi");
                     const result = await 编译文档(id, "go");
                     if (result) {
                         const { Dialog } = await import("../dialog");

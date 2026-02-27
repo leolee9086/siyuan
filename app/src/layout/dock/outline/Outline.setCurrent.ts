@@ -1,6 +1,6 @@
 import { Outline } from "./Outline";
 import { getPreviousBlock } from "../../../protyle/wysiwyg/getBlock";
-import { fetchPost } from "../../../util/fetch";
+import { fetchPost } from "../../../util/network/fetch";
 import { Constants } from "../../../constants";
 import { isHTMLElement } from "../../../util/DOM/element.guard";
 import { getSafeSiyuanStorage } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";

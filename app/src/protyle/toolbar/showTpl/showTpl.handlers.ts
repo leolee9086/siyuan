@@ -3,8 +3,8 @@
  */
 import { focusByRange } from "../../util/selection";
 import { hasClosestByClassName, hasClosestByAttribute } from "../../util/hasClosest";
-import { upDownHint } from "../../../util/upDownHint";
-import { fetchPost } from "../../../util/fetch";
+import { upDownHint } from "../../../util/DOM/upDownHint";
+import { fetchPost } from "../../../util/network/fetch";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { confirmDialog } from "../../../dialog/confirmDialog";
 import { previewTemplate } from "../util";

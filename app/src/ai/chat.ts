@@ -1,5 +1,5 @@
 import { Dialog } from "../dialog";
-import { isMobile } from "../util/functions";
+import { isMobile } from "../util/platform/functions";
 import { createVueComponentInDialog, VueComponentMountConfig } from "../util/vue/mount";
 import AiChatDialog from "../components/panels/aiChatDialog.vue";
 import { kernelClient } from "../data/kernelSDK";

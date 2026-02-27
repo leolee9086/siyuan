@@ -1,10 +1,10 @@
 import { showMessage } from "../../dialog/message";
-import { fetchPost } from "../../util/fetch";
+import { fetchPost } from "../../util/network/fetch";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { useShell } from "../../util/pathName";
+import { useShell } from "../../util/file/pathName";
 import { App } from "../../index";
 import { hasClosestByAttribute, hasClosestByClassName } from "../../protyle/util/hasClosest";
-import { getFrontend } from "../../util/functions";
+import { getFrontend } from "../../util/platform/functions";
 import { writeText } from "../../protyle/util/compatibility";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { isElectron } from "../../platform";

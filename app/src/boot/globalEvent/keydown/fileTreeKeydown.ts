@@ -15,7 +15,7 @@ import { matchHotKey } from "../../../protyle/util/hotKey";
 import { getStartEndElement } from "../../../protyle/wysiwyg/commonHotkey/commonHotkey";
 import { getPreviousFileLi, getNextFileLi } from "../../../protyle/wysiwyg/getBlock";
 import { transaction } from "../../../protyle/wysiwyg/transaction";
-import { getDisplayName, getNotebookName } from "../../../util/pathName";
+import { getDisplayName, getNotebookName } from "../../../util/file/pathName";
 import { globalCommand } from "../command/global";
 import { execByCommand } from "../command/panel";
 

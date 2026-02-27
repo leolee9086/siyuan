@@ -8,7 +8,7 @@ import { hasClosestByAttribute, hasClosestByClassName } from "../protyle/util/ha
 import { hideTooltip } from "../dialog/tooltip";
 import { App } from "../index";
 import { Constants } from "../constants";
-import { isTouchDevice } from "../util/functions";
+import { isTouchDevice } from "../util/platform/functions";
 import {
     getSiyuanBlockPanels,
     getSiyuanKeyboardState,

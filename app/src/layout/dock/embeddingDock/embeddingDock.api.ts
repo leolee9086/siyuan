@@ -3,7 +3,7 @@
  * 复用 vectorApi.ts 并扩展数据集相关接口
  */
 
-import { fetchPost } from "../../../util/fetch";
+import { fetchPost } from "../../../util/network/fetch";
 import type { IEmbeddingDataset, IDatasetStatus, IPendingBlock, IBackendDataset, IEmbeddedBlock } from "./embeddingDock.types";
 
 // =========== 数据集配置 API ===========

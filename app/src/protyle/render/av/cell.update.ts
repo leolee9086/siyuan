@@ -1,13 +1,13 @@
 import {transaction} from "../../wysiwyg/transaction";
 import {hasClosestByClassName} from "../../util/hasClosest";
-import {objEquals} from "../../../util/functions";
-import {fetchSyncPost} from "../../../util/fetch";
+import {objEquals} from "../../../util/platform/functions";
+import {fetchSyncPost} from "../../../util/network/fetch";
 import {focusBlock} from "../../util/selection";
 import * as dayjs from "dayjs";
 import {getColId} from "./col";
 import {genAVValueHTML} from "./blockAttr";
 import {updateAttrViewCellAnimation} from "./action";
-import {getAssetName, pathPosix} from "../../../util/pathName";
+import {getAssetName, pathPosix} from "../../../util/file/pathName";
 import {mergeAddOption} from "./select";
 import {getFieldIdByCellElement} from "./row";
 import {getCellText} from "./cell.render";

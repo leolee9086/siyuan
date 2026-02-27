@@ -1,6 +1,6 @@
 import { Outline } from "../layout/dock/outline/Outline";
 import { hasClosestByAttribute } from "../protyle/util/hasClosest";
-import { fetchPost } from "../util/fetch";
+import { fetchPost } from "../util/network/fetch";
 import { isCurrentEditor } from "./util.isCurrentEditor";
 
 /**

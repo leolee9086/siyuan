@@ -4,7 +4,7 @@
 
 import { Constants } from "../../../constants";
 import { updateHotkeyTip } from "../../../protyle/util/compatibility";
-import { escapeAriaLabel, escapeHtml } from "../../../util/escape";
+import { escapeAriaLabel, escapeHtml } from "../../../util/DOM/escape";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { genQueryHTML } from "../../util";
 

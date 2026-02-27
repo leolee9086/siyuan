@@ -37,9 +37,9 @@ export { switchFnNoneByFlag } from "../util/DOM/fnClasses";
 export { createBlockMasks } from "../util/DOM/blockDecorations";
 
 // 工具函数相关导入
-export { isMobile } from "../util/functions";
-export { genUUID } from "../util/genID";
-export { genRandomColor } from "../util/color";
+export { isMobile } from "../util/platform/functions";
+export { genUUID } from "../util/platform/genID";
+export { genRandomColor } from "../util/assets/color";
 
 // 组件相关导入
 export { default as AIChatDialog } from "../components/StreamChat.panel.vue";
@@ -54,10 +54,10 @@ export { showMessage } from "../dialog/message";
 export { Menu } from "../plugin/Menu";
 
 // 网络请求相关导入
-export { fetchPost } from "../util/fetch";
+export { fetchPost } from "../util/network/fetch";
 
 // 编辑器工具相关导入
 export { focusByRange } from "../protyle/util/selection";
-export { escapeAriaLabel, escapeAttr, escapeHtml } from "../util/escape";
-export { upDownHint } from "../util/upDownHint";
+export { escapeAriaLabel, escapeAttr, escapeHtml } from "../util/DOM/escape";
+export { upDownHint } from "../util/DOM/upDownHint";
 export { getElementsBlockId } from "../util/DOM/blockLikeElements";

@@ -1,7 +1,7 @@
 import { Constants } from "../constants";
 import { updateHotkeyTip } from "../protyle/util/compatibility";
 import { hasClosestByClassName } from "../protyle/util/hasClosest";
-import { isMobile } from "../util/functions";
+import { isMobile } from "../util/platform/functions";
 import { MenuItem } from "./Menu.Item";
 
 /**

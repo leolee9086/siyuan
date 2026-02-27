@@ -1,5 +1,5 @@
 import { transaction } from "../../wysiwyg/transaction";
-import { setPosition } from "../../../util/setPosition";
+import { setPosition } from "../../../util/DOM/setPosition";
 import { duplicateCol, removeCol } from "./col.operations";
 import { addCol } from "./col.addCol";
 import { bindEditEvent, getEditHTML } from "./col";

@@ -4,7 +4,7 @@ import {
     focusByWbr,
     focusByRange,
 } from "./selection";
-import {scrollCenter} from "../../util/highlightById";
+import {scrollCenter} from "../../util/DOM/highlightById";
 import {getColIndex} from "./table";
 import {
     buildRowAboveHTML,

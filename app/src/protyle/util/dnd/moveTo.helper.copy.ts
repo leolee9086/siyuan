@@ -1,4 +1,4 @@
-import { fetchSyncPost } from "../../../util/fetch";
+import { fetchSyncPost } from "../../../util/network/fetch";
 import { IMoveContext } from "./moveTo.types";
 
 export const handleCopyOperation = (item: Element, id: string, context: IMoveContext) => {

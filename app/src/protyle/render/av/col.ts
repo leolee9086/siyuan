@@ -3,7 +3,7 @@ import { openMenuPanel } from "./openMenuPanel";
 import { unicode2Emoji } from "../../../emoji";
 import { bindRollupData } from "./rollup";
 import { Constants } from "../../../constants";
-import { escapeAriaLabel, escapeAttr } from "../../../util/escape";
+import { escapeAriaLabel, escapeAttr } from "../../../util/DOM/escape";
 import { getFieldsByData } from "./view";
 import { hasClosestByClassName } from "../../util/hasClosest";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";

@@ -1,4 +1,4 @@
-import { isWindow } from "../util/functions";
+import { isWindow } from "../util/platform/functions";
 import { Wnd } from "../layout/Wnd";
 import { getAllTabs, getAllWnds } from "../layout/getAll";
 import { Editor } from "../editor";

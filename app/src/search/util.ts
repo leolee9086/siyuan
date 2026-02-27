@@ -1,7 +1,7 @@
 import { getAllModels } from "../layout/getAll";
 import { Constants } from "../constants";
-import { escapeGreat, escapeHtml } from "../util/escape";
-import { fetchPost } from "../util/fetch";
+import { escapeGreat, escapeHtml } from "../util/DOM/escape";
+import { fetchPost } from "../util/network/fetch";
 import { openFile } from "../editor/util";
 import { openFileById } from "../editor/utils.openFileById";
 import { showMessage } from "../dialog/message";
@@ -15,10 +15,10 @@ import {
     getKeyByLiElement
 } from "./menu";
 import { App } from "../index";
-import { checkFold } from "../util/noRelyPCFunction";
+import { checkFold } from "../util/platform/noRelyPCFunction";
 import { isSupportCSSHL, searchMarkRender } from "../protyle/render/searchMarkRender";
 import { saveKeyList } from "./toggleHistory";
-import { highlightById } from "../util/highlightById";
+import { highlightById } from "../util/DOM/highlightById";
 import { scrollToCurrent } from "./utils/utils.scrollToCurrent";
 import { getSelectionOffset } from "../protyle/util/selection";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";

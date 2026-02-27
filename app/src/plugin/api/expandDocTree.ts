@@ -1,4 +1,4 @@
-import { fetchSyncPost } from "../../util/fetch";
+import { fetchSyncPost } from "../../util/network/fetch";
 import { Files } from "../../layout/dock/Files";
 import { getModelByDockType } from "./getModelByDockType";
 

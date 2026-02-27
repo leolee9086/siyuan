@@ -81,7 +81,7 @@ export const handleContainerContextMenu = (event: MouseEvent, element: HTMLEleme
      */
     if (isHTMLElement(utilElement)) {
         /** @内联回调 */
-        import("../util/setPosition").then(({ setPosition }) => {
+        import("../util/DOM/setPosition").then(({ setPosition }) => {
             setPosition(utilElement, event.clientX, event.clientY);
         });
     }

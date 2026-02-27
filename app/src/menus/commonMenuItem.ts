@@ -2,13 +2,13 @@ import { openExternal } from "../platform/electron/shell";
 import { isElectron } from "../platform";
 // S-forge: 开始 - 模块化导入改进
 import { confirmDialog } from "../dialog/confirmDialog";
-import { getSearch, isMobile, isValidCustomAttrName } from "../util/functions";
-import { isLocalPath, moveToPath, pathPosix } from "../util/pathName";
-import { movePathTo } from "../util/pathName/movePathTo";
+import { getSearch, isMobile, isValidCustomAttrName } from "../util/platform/functions";
+import { isLocalPath, moveToPath, pathPosix } from "../util/file/pathName";
+import { movePathTo } from "../util/file/movePathTo";
 import { MenuItem } from "./Menu.Item";
 import { onExport, saveExport } from "../protyle/export";
 import { isInAndroid, isInHarmony, isInIOS, isInMobileApp, openByMobile, writeText } from "../protyle/util/compatibility";
-import { fetchPost, fetchSyncPost } from "../util/fetch";
+import { fetchPost, fetchSyncPost } from "../util/network/fetch";
 import { hideMessage, showMessage } from "../dialog/message";
 import { Dialog } from "../dialog";
 import { focusBlock, focusByRange, getEditorRange } from "../protyle/util/selection";

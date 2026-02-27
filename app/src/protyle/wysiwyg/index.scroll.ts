@@ -1,6 +1,6 @@
 import {hasClosestByClassName} from "../util/hasClosest";
 import {Constants} from "../../constants";
-import {fetchPost} from "../../util/fetch";
+import {fetchPost} from "../../util/network/fetch";
 import {onGet} from "../util/onGet";
 import {hideTooltip} from "../../dialog/tooltip";
 

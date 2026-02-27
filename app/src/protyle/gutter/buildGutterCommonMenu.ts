@@ -23,14 +23,14 @@ import { Constants } from "../../constants";
 import { makeCard, quickMakeCard } from "../../card/makeCard";
 import { transferBlockRef } from "../../menus/block";
 import { appearanceMenu } from "../toolbar/Font";
-import { setPosition } from "../../util/setPosition";
+import { setPosition } from "../../util/DOM/setPosition";
 import { emitOpenMenu } from "../../plugin/EventBus";
 import { getSiyuanConfig, incrementSiyuanZIndex } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { buildGutterAlignMenu, buildGutterWidthsMenu } from "./buildGutterStyleMenu";
 import { showMobileAppearance } from "./showMobileAppearance";
 import { openFileById } from "../../editor/utils.openFileById";
-import { checkFold } from "../../util/noRelyPCFunction";
+import { checkFold } from "../../util/platform/noRelyPCFunction";
 import { 添加格式刷菜单 } from "./buildGutterStyleBrushMenu";
 
 /**

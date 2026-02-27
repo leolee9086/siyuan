@@ -1,5 +1,5 @@
 import {addLoading, removeLoading} from "../ui/initUI";
-import {fetchPost} from "../../util/fetch";
+import {fetchPost} from "../../util/network/fetch";
 import {getDocByScroll, saveScroll} from "../scroll/saveScroll";
 import {renderBacklink} from "../wysiwyg/renderBacklink";
 import {hasClosestByClassName} from "./hasClosest";

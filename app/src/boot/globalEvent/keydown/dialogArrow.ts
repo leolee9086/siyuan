@@ -5,7 +5,7 @@ import { Constants } from "../../../constants";
 import { openFileById } from "../../../editor/utils.openFileById";
 import { getDockByType } from "../../../layout/tabUtil";
 import { hideElements } from "../../../protyle/ui/hideElements";
-import { escapeHtml } from "../../../util/escape";
+import { escapeHtml } from "../../../util/DOM/escape";
 
 export const dialogArrow = (app: App, element: HTMLElement, event: KeyboardEvent) => {
     let currentLiElement = element.querySelector(".b3-list-item--focus");

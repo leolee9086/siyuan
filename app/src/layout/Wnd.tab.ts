@@ -14,8 +14,8 @@ import { hasClosestByClassName } from "../protyle/util/hasClosest";
 import { setPanelFocus } from "./utils/setPanelFocus";
 import { openFileById } from "../editor/utils.openFileById";
 import { updatePanelByEditor } from "../editor/util.updatePanelByEditor";
-import { scrollCenter } from "../util/highlightById";
-import { fetchPost } from "../util/fetch";
+import { scrollCenter } from "../util/DOM/highlightById";
+import { fetchPost } from "../util/network/fetch";
 import { newModelByInitData, saveLayout } from "./util";
 import { setModelsHash, setTabPosition } from "../window/setHeader";
 import { resizeTabs } from "./tabUtil";
@@ -23,9 +23,9 @@ import { fullscreen } from "../protyle/breadcrumb/action";
 import { setPadding } from "../protyle/ui/initUI";
 import { clearOBG } from "./dock/util";
 import { MenuItem } from "../menus/Menu.Item";
-import { escapeHtml } from "../util/escape";
+import { escapeHtml } from "../util/DOM/escape";
 import { unicode2Emoji } from "../emoji";
-import { setPosition } from "../util/setPosition";
+import { setPosition } from "../util/DOM/setPosition";
 
 /**
  * 切换标签页

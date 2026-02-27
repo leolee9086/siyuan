@@ -1,4 +1,4 @@
-import { fetchPost } from "../../util/fetch";
+import { fetchPost } from "../../util/network/fetch";
 import { RecordMedia } from "../util/RecordMedia";
 import { hideMessage, showMessage } from "../../dialog/message";
 import { uploadFiles } from "../upload";

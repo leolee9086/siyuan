@@ -1,9 +1,9 @@
 import { hasClosestBlock, hasClosestByTag } from "../util/hasClosest";
-import { isMobile } from "../../util/functions";
+import { isMobile } from "../../util/platform/functions";
 import { Constants } from "../../constants";
 import { setLastNodeRange, setFirstNodeRange, focusByRange, getSelectionPosition } from "../util/selection";
 import { getContenteditableElement } from "../wysiwyg/getBlock";
-import { setPosition } from "../../util/setPosition";
+import { setPosition } from "../../util/DOM/setPosition";
 
 export function renderToolbar(
     protyle: IProtyle,

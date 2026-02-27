@@ -1,6 +1,6 @@
-import { fetchPost } from "../../util/fetch";
+import { fetchPost } from "../../util/network/fetch";
 import { Constants } from "../../constants";
-import { getFrontend } from "../../util/functions";
+import { getFrontend } from "../../util/platform/functions";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { setStorageVal } from "../../protyle/util/compatibility";
 import { hasClosestByClassName } from "../../protyle/util/hasClosest";

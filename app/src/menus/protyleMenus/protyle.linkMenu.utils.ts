@@ -7,7 +7,7 @@ import { Constants } from "../../constants";
 import { showMessage } from "../../dialog/message";
 import { electronUndo } from "../../protyle/undo";
 import { writeText } from "../../protyle/util/compatibility";
-import { isMobile } from "../../util/functions";
+import { isMobile } from "../../util/platform/functions";
 import { getSiyuanGlobalMenusMenu } from "../../util/siyuanEnvironments/getMenu.environment";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { MenuItem } from "../Menu.Item";

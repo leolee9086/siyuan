@@ -1,6 +1,6 @@
 import {transaction} from "../../wysiwyg/transaction";
 import {Constants} from "../../../constants";
-import {fetchSyncPost} from "../../../util/fetch";
+import {fetchSyncPost} from "../../../util/network/fetch";
 import {getCardAspectRatio} from "./gallery/util";
 import {getFieldsByData} from "./view";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";

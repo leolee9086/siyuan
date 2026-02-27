@@ -1,7 +1,7 @@
 import { getDockByType } from "./tabUtil";
 import { hasClosestByClassName } from "../protyle/util/hasClosest";
-import { fetchPost } from "../util/fetch";
-import { mountHelp } from "../util/mount";
+import { fetchPost } from "../util/network/fetch";
+import { mountHelp } from "../util/file/mount";
 import { isMobile, isElectron } from "../platform";
 import { ipcSend } from "../platform/electron/ipcRenderer";
 import { MenuItem } from "../menus/Menu.Item";

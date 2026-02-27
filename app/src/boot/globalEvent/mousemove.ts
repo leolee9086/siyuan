@@ -1,5 +1,5 @@
 import {getAllEditor, getAllModels} from "../../layout/getAll";
-import {isWindow} from "../../util/functions";
+import {isWindow} from "../../util/platform/functions";
 import {hasClosestBlock, hasClosestByClassName, hasClosestByTag} from "../../protyle/util/hasClosest";
 import {getColIndex} from "../../protyle/util/table";
 

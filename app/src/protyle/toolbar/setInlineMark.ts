@@ -2,7 +2,7 @@ import { hasClosestBlock } from "../util/hasClosest";
 import { setLastNodeRange, fixTableRange, focusByRange } from "../util/selection";
 import { getContenteditableElement, hasNextSibling, hasPreviousSibling } from "../wysiwyg/getBlock";
 import { 构建标记上下文, 准备标记内容, 清理内联标记内容, 移除内联标记, 添加内联标记, 合并相邻同类型元素, 整理零宽空格, 显示特殊类型菜单 } from "./inlineMark";
-import { isMobile, isArrayEqual } from "../../util/functions";
+import { isMobile, isArrayEqual } from "../../util/platform/functions";
 import { Constants } from "../../constants";
 import * as dayjs from "dayjs";
 import { updateTransaction } from "../wysiwyg/transaction";

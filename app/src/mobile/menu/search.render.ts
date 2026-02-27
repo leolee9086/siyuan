@@ -1,10 +1,10 @@
 import {Constants} from "../../constants";
-import {fetchPost} from "../../util/fetch";
+import {fetchPost} from "../../util/network/fetch";
 import {getIconByType} from "../../editor/getIcon";
-import {getDisplayName, getNotebookIcon, getNotebookName} from "../../util/pathName";
+import {getDisplayName, getNotebookIcon, getNotebookName} from "../../util/file/pathName";
 import {getKeyByLiElement} from "../../search/menu";
 import {setStorageVal} from "../../protyle/util/compatibility";
-import {escapeGreat, escapeHtml} from "../../util/escape";
+import {escapeGreat, escapeHtml} from "../../util/DOM/escape";
 import {unicode2Emoji} from "../../emoji";
 import {showMessage} from "../../dialog/message";
 import {reloadProtyle} from "../../protyle/util/reload";

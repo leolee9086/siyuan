@@ -1,10 +1,10 @@
 import { Tab } from "../Tab";
 import { Model } from "../Model";
 import { Constants } from "../../constants";
-import { pathPosix } from "../../util/pathName";
-import { fetchPost, fetchSyncPost } from "../../util/fetch";
-import { mountHelp } from "../../util/mount";
-import { newFile } from "../../util/newFile";
+import { pathPosix } from "../../util/file/pathName";
+import { fetchPost, fetchSyncPost } from "../../util/network/fetch";
+import { mountHelp } from "../../util/file/mount";
+import { newFile } from "../../util/file/newFile";
 import { updateHotkeyAfterTip } from "../../protyle/util/compatibility";
 import { App } from "../../index";
 import { initFilesDrag } from "./Files/dnd";

@@ -1,17 +1,17 @@
 import * as md5 from "blueimp-md5";
 import {hideMessage, showMessage} from "../dialog/message";
 import {Constants} from "../constants";
-import {fetchPost} from "../util/fetch";
+import {fetchPost} from "../util/network/fetch";
 import {repos} from "./repos";
 import {confirmDialog} from "../dialog/confirmDialog";
 import {hasClosestByClassName} from "../protyle/util/hasClosest";
 import {getEventName, isInIOS} from "../protyle/util/compatibility";
 import {processSync} from "../dialog/processSystem";
-import {needSubscribe} from "../util/needSubscribe";
+import {needSubscribe} from "../util/platform/needSubscribe";
 import {syncGuide} from "../sync/syncGuide";
 import {hideElements} from "../protyle/ui/hideElements";
 import {getCloudURL, getIndexURL} from "./util/about";
-import {iOSPurchase} from "../util/iOSPurchase";
+import {iOSPurchase} from "../util/platform/iOSPurchase";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
 const genSVGBG = () => {

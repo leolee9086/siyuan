@@ -1,7 +1,7 @@
 import {Menu} from "../../../plugin/Menu";
 import {transaction} from "../../wysiwyg/transaction";
 import {hasClosestBlock, hasClosestByClassName} from "../../util/hasClosest";
-import {fetchSyncPost} from "../../../util/fetch";
+import {fetchSyncPost} from "../../../util/network/fetch";
 import {getFieldsByData} from "./view";
 import {Constants} from "../../../constants";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";

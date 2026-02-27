@@ -1,5 +1,5 @@
-import {Tree} from "../../util/Tree";
-import {fetchPost} from "../../util/fetch";
+import {Tree} from "../../util/file/Tree";
+import {fetchPost} from "../../util/network/fetch";
 import {Constants} from "../../constants";
 import {openMobileFileById} from "../editor";
 import {App} from "../../index";

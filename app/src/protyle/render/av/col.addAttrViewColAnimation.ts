@@ -1,5 +1,5 @@
 import { unicode2Emoji } from "../../../emoji";
-import { setPosition } from "../../../util/setPosition";
+import { setPosition } from "../../../util/DOM/setPosition";
 import { getEditHTML, bindEditEvent } from "./col";
 import { getColIconByType, getColNameByType, genColDataByType } from "./col.typeUtils";
 import { openMenuPanel } from "./openMenuPanel";

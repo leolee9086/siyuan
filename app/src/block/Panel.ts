@@ -1,6 +1,6 @@
 import { hasClosestByClassName } from "../protyle/util/hasClosest";
 import { Protyle } from "../protyle";
-import { genUUID } from "../util/genID";
+import { genUUID } from "../util/platform/genID";
 import { hideElements } from "../protyle/ui/hideElements";
 
 import { moveResize } from "../dialog/moveResize";

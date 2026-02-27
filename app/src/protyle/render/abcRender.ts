@@ -3,7 +3,7 @@ import { Constants } from "../../constants";
 import { genIconHTML } from "./util";
 import { hasClosestByClassName } from "../util/hasClosest";
 import { looseJsonParse } from "../../util/code/looseJsonParse";
-import { genUUID } from "../../util/genID";
+import { genUUID } from "../../util/platform/genID";
 import { addStyle } from "../util/addStyle";
 import { getAbcjsInstance } from "./abcRender.environment";
 import { isAbcRenderParams } from "./abcRender.guard";

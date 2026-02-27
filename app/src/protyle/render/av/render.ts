@@ -1,8 +1,8 @@
-import {fetchSyncPost} from "../../../util/fetch";
+import {fetchSyncPost} from "../../../util/network/fetch";
 import {Constants} from "../../../constants";
 import {unicode2Emoji} from "../../../emoji";
 import {hasClosestByAttribute, hasClosestByClassName} from "../../util/hasClosest";
-import {escapeAriaLabel, escapeHtml} from "../../../util/escape";
+import {escapeAriaLabel, escapeHtml} from "../../../util/DOM/escape";
 import {isMobile} from "../../../platform";
 import {isInMobileApp} from "../../util/compatibility";
 import {renderGallery} from "./gallery/render";

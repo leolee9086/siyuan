@@ -4,7 +4,7 @@
  * 本模块包含文件树WebSocket消息处理中移动操作相关的辅助函数。
  */
 
-import { pathPosix } from "../../../util/pathName";
+import { pathPosix } from "../../../util/file/pathName";
 import { Constants } from "../../../constants";
 import { isHTMLElement } from "./wsHandlers.guard";
 import { updateFolderToFileIcon, updateFileToFolderIcon } from "./wsHandlers.dom";

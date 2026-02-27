@@ -1,6 +1,6 @@
 import { Constants } from "../constants";
-import { fetchPost } from "../util/fetch";
-import { escapeAriaLabel } from "../util/escape";
+import { fetchPost } from "../util/network/fetch";
+import { escapeAriaLabel } from "../util/DOM/escape";
 import { setStorageVal } from "../protyle/util/compatibility";
 import { MenuItem } from "../menus/Menu.Item";
 import { Dialog } from "../dialog";

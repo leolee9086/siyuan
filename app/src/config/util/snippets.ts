@@ -1,6 +1,6 @@
-import {fetchPost} from "../../util/fetch";
+import {fetchPost} from "../../util/network/fetch";
 import {Dialog} from "../../dialog";
-import {objEquals} from "../../util/functions";
+import {objEquals} from "../../util/platform/functions";
 import {confirmDialog} from "../../dialog/confirmDialog";
 import {Constants} from "../../constants";
 

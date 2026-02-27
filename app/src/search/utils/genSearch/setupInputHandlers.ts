@@ -6,7 +6,7 @@ import { setStorageVal } from "../../../ai/imports";
 import { Constants } from "../../../constants";
 import { Protyle } from "../../../protyle";
 import { electronUndo } from "../../../protyle/undo";
-import { addClearButton } from "../../../util/addClearButton";
+import { addClearButton } from "../../../util/DOM/addClearButton";
 import { inputEvent } from "../../inputEvent";
 import { saveKeyList } from "../../toggleHistory";
 

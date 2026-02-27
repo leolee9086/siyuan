@@ -1,14 +1,14 @@
 import {ipcInvoke} from "../platform/electron/ipcRenderer";
 import {isElectron, isMobile} from "../platform";
-import {fetchPost} from "../util/fetch";
-import {getAssetName, originalPath, pathPosix, useShell} from "../util/pathName";
+import {fetchPost} from "../util/network/fetch";
+import {getAssetName, originalPath, pathPosix, useShell} from "../util/file/pathName";
 import { openFileById } from "../editor/utils.openFileById";
 import {Constants} from "../constants";
 import {openNewWindowById} from "../window/openNewWindow";
 import { MenuItem } from "./Menu.Item";
 import {App} from "../index";
 import {exportByMobile, isInAndroid, updateHotkeyTip} from "../protyle/util/compatibility";
-import {checkFold} from "../util/noRelyPCFunction";
+import {checkFold} from "../util/platform/noRelyPCFunction";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import {showMessage} from "../dialog/message";
 

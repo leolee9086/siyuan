@@ -1,8 +1,8 @@
 import { showMessage } from "../../dialog/message";
-import { fetchPost } from "../../util/fetch";
+import { fetchPost } from "../../util/network/fetch";
 import { confirmDialog } from "../../dialog/confirmDialog";
 import { Constants } from "../../constants";
-import { getFrontend } from "../../util/functions";
+import { getFrontend } from "../../util/platform/functions";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { Plugin } from "../../plugin";
 import { App } from "../../index";

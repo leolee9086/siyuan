@@ -12,7 +12,7 @@ import { Wnd } from "../layout/Wnd";
 import { getAllWnds } from "../layout/getAll";
 import { Asset } from "../asset";
 import { writeText } from "../protyle/util/compatibility";
-import { getAssetName, pathPosix } from "../util/pathName";
+import { getAssetName, pathPosix } from "../util/file/pathName";
 import { Constants } from "../constants";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 

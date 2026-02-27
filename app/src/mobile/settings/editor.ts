@@ -1,5 +1,5 @@
 import { openModel } from "../menu/model";
-import { fetchPost } from "../../util/fetch";
+import { fetchPost } from "../../util/network/fetch";
 import { reloadProtyle } from "../../protyle/util/reload";
 import { setInlineStyle } from "../../util/assets";
 import { confirmDialog } from "../../dialog/confirmDialog";

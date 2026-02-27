@@ -3,7 +3,7 @@ import { hasClosestByAttribute } from "../util/hasClosest";
 import { updateListOrder } from "./list.updateOrder";
 import { transaction, updateTransaction } from "./transaction";
 import { preventScroll } from "../scroll/preventScroll";
-import { scrollCenter } from "../../util/highlightById";
+import { scrollCenter } from "../../util/DOM/highlightById";
 import { focusByWbr } from "../util/selection";
 
 export const moveToUp = (protyle: IProtyle, nodeElement: HTMLElement, range: Range) => {

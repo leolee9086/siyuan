@@ -5,7 +5,7 @@
 
 import { Protyle } from "../protyle";
 import { Constants } from "../constants";
-import { fetchPost } from "../util/fetch";
+import { fetchPost } from "../util/network/fetch";
 import { showMessage } from "../dialog/message";
 
 import { getWindowInnerHeight } from "../util/siyuanEnvironments/getWindowInnerHeight.environment";

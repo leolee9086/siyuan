@@ -6,10 +6,10 @@ import { hasClosestBlock, hasClosestByAttribute, hasClosestByClassName } from ".
 import { getEditorRange } from "./selection";
 import { blockRender } from "../render/blockRender";
 import { highlightRender } from "../render/highlightRender";
-import { fetchPost } from "../../util/fetch";
-import { isDynamicRef, isFileAnnotation } from "../../util/functions";
+import { fetchPost } from "../../util/network/fetch";
+import { isDynamicRef, isFileAnnotation } from "../../util/platform/functions";
 import { insertHTML } from "./insertHTML";
-import { scrollCenter } from "../../util/highlightById";
+import { scrollCenter } from "../../util/DOM/highlightById";
 import { hideElements } from "../ui/hideElements";
 import { avRender } from "../render/av/render";
 import { cellScrollIntoView, getCellText } from "../render/av/cell";
@@ -17,7 +17,7 @@ import { getCalloutInfo, getContenteditableElement } from "../wysiwyg/getBlock";
 import { clearBlockElement } from "./clearSelect";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { removeZWJ } from "./normalizeText";
-import { base64ToURL } from "../../util/image";
+import { base64ToURL } from "../../util/assets/image";
 import { isElectron } from "../../platform";
 
 export const getTextStar = (blockElement: HTMLElement, contentOnly = false) => {

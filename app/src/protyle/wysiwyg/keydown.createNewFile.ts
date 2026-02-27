@@ -1,7 +1,7 @@
 import { fetchPost } from "../../ai/imports";
 import { newFileContentBySelect } from "../../editor/rename";
-import { newFileBySelect } from "../../util/newFile";
-import { getSavePath } from "../../util/getSavePath";
+import { newFileBySelect } from "../../util/file/newFile";
+import { getSavePath } from "../../util/file/getSavePath";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { matchHotKey } from "../util/hotKey";
 import { selectAll } from "../util/selection";

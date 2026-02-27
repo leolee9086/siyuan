@@ -8,7 +8,7 @@ import { getDockByType, resizeTabs } from "../tabUtil";
 import { Backlink } from "./Backlink";
 import { App } from "../../index";
 import { Wnd } from "../Wnd";
-import { fetchSyncPost } from "../../util/fetch";
+import { fetchSyncPost } from "../../util/network/fetch";
 import { Files } from "./Files";
 import { Editor } from "../../editor";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";

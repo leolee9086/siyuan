@@ -3,7 +3,7 @@ import { getContenteditableElement, getFirstBlock, getLastBlock, getNextBlock, g
 import { focusBlock, focusByRange, getSelectionOffset, getSelectionPosition, setLastNodeRange } from "../util/selection";
 import { insertEmptyBlock } from "../../block/util";
 import { isNotCtrl } from "../util/compatibility";
-import { scrollCenter } from "../../util/highlightById";
+import { scrollCenter } from "../../util/DOM/highlightById";
 
 export const arrowNavigationMiddleware = async (
     event: KeyboardEvent,

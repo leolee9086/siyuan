@@ -6,7 +6,7 @@ import {
     getEditorRange,
     getSelectionOffset,
 } from "../util/selection";
-import { fetchPost } from "../../util/fetch";
+import { fetchPost } from "../../util/network/fetch";
 import { replaceFileName, validateName } from "../../editor/rename";
 import { MenuItem } from "../../menus/Menu.Item";
 import { openFileAttr } from "../../menus/commonMenuItem.openFileAttr";

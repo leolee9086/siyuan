@@ -1,5 +1,5 @@
 import { hasClosestByAttribute } from "../util/hasClosest";
-import { fetchPost, fetchSyncPost } from "../../util/fetch";
+import { fetchPost, fetchSyncPost } from "../../util/network/fetch";
 import { processRender } from "../util/processCode";
 import { highlightRender } from "./highlightRender";
 import { genBreadcrumb, improveBreadcrumbAppearance } from "../wysiwyg/renderBacklink";

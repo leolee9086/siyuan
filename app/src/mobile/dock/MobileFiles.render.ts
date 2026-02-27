@@ -1,7 +1,7 @@
 import {hasClosestByClassName} from "../../protyle/util/hasClosest";
 import {Constants} from "../../constants";
-import {getDisplayName} from "../../util/pathName";
-import {fetchSyncPost} from "../../util/fetch";
+import {getDisplayName} from "../../util/file/pathName";
+import {fetchSyncPost} from "../../util/network/fetch";
 import {unicode2Emoji} from "../../emoji";
 import type {MobileFiles} from "./MobileFiles";
 

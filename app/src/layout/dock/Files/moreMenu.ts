@@ -9,9 +9,9 @@
 import type { InitMoreMenuDeps } from "./moreMenu.types";
 import { MenuItem } from "../../../menus/Menu.Item";
 import { sortMenu } from "../../../menus/navigation";
-import { fetchPost } from "../../../util/fetch";
-import { newNotebook } from "../../../util/mount";
-import { setNoteBook } from "../../../util/pathName";
+import { fetchPost } from "../../../util/network/fetch";
+import { newNotebook } from "../../../util/file/mount";
+import { setNoteBook } from "../../../util/file/pathName";
 import { refreshFileTree } from "../../../dialog/processSystem";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
