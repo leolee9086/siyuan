@@ -1,8 +1,8 @@
-import {genCellValue, getTypeByCellElement, renderCell, renderCellAttr} from "../cell";
-import {fetchPost} from "../../../../util/fetch";
-import {setPage} from "../row";
-import {Constants} from "../../../../constants";
-import {clearSelect} from "../../../util/clearSelect";
+import { genCellValue, getTypeByCellElement, renderCell, renderCellAttr } from "../cell";
+import { fetchPost } from "../../../../util/fetch";
+import { setPage } from "../row";
+import { Constants } from "../../../../constants";
+import { clearSelect } from "../../../util/clearSelect";
 
 export const insertGalleryItemAnimation = (options: {
     blockElement: HTMLElement;

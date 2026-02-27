@@ -28,7 +28,7 @@ import {pushBack} from "../../util/backForward";
 import {isOnlyMeta, isInIOS} from "../util/compatibility";
 import {hasNextSibling} from "./getBlock";
 import {updateTransaction} from "./transaction";
-import {updateTableTitle} from "../util/table";
+import { updateTableTitle } from "../util/table.title.update";
 import {countSelectWord} from "../../layout/status";
 import {getBacklinkHeadingMore, loadBreadcrumb} from "./renderBacklink";
 import {commonClick} from "./commonClick";

@@ -372,3 +372,4 @@ export const getSiyuanEditorGeneralKeymap = () => {
 export const getSiyuanIsPublish = () => {
     return window.siyuan?.isPublish;
 };
+
