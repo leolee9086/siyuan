@@ -3,216 +3,294 @@ import {genItemPanel} from "./index";
 import {keymap} from "./keymap";
 import {App} from "../index";
 import {isPhablet} from "../protyle/util/compatibility";
+import {isHTMLElement, isHTMLInputElement, isInputEvent} from "./search.guard";
+import {getSiyuanLanguages} from "../util/siyuanEnvironments/getSiyuanConfig.environment";
+import {getActiveElement} from "./search.environment";
+import {
+    EDITOR_KEYS, FILE_TREE_KEYS, FLASHCARD_KEYS, AI_KEYS, EXPORT_KEYS,
+    APPEARANCE_KEYS, SEARCH_KEYS, ACCOUNT_KEYS, CLOUD_KEYS, PUBLISH_KEYS,
+    ABOUT_KEYS, BAZAAR_KEYS, SKIP_PANEL_FILTER_TYPES
+} from "./search.keys";
 
-const getLang = (keys: string[]) => {
+/** 将国际化键名数组转换为对应的语言文本数组 */
+const getLang = (keys: string[]): string[] => {
+    const languages = getSiyuanLanguages();
     const langArray: string[] = [];
-    keys.forEach((key) => {
-        langArray.push(window.siyuan.languages[key]);
-    });
+    for (const key of keys) {
+        langArray.push(languages[key]);
+    }
     return langArray;
 };
 
-export const initConfigSearch = (element: HTMLElement, app: App) => {
-    const configIndex = [
-        // 编辑器
-        getLang(["config", "fullWidth", "md7", "md8", "md37", "md38",
-            "editor", "md2", "md3", "md12", "md16", "md27", "md28", "md29", "md30", "md31", "md32", "md33", "md34",
-            "md39", "md40", "fontSizeTip", "fontSize", "font", "font1", "generateHistory", "generateHistoryInterval",
-            "historyRetentionDays", "historyRetentionDaysTip", "clearHistory", "katexMacros", "katexMacrosTip",
-            "editReadonly", "editReadonlyTip", "embedBlockBreadcrumb", "embedBlockBreadcrumbTip", "outlineOutdentTip",
-            "outdent", "floatWindowMode", "floatWindowModeTip", "justify", "justifyTip", "rtl", "rtlTip", "spellcheck",
-            "spellcheckTip", "backlinkExpand", "backlinkExpandTip", "backmentionExpand", "backmentionExpandTip",
-            "onlySearchForDoc", "onlySearchForDocTip", "dynamicLoadBlocks", "dynamicLoadBlocksTip", "fontSizeScrollZoom", "fontSizeScrollZoomTip",
-            "listItemDotNumberClickFocus", "listItemDotNumberClickFocusTip", "editorMarkdownInlineAsterisk", "editorMarkdownInlineUnderscore",
-            "editorMarkdownInlineSup", "editorMarkdownInlineSupTip", "editorMarkdownInlineSub", "editorMarkdownInlineSubTip",
-            "editorMarkdownInlineTag", "editorMarkdownInlineTagTip", "editorMarkdownInlineMath", "editorMarkdownInlineMathTip",
-            "editorMarkdownInlineStrikethrough", "editorMarkdownInlineStrikethroughTip", "editorMarkdownInlineMark", "editorMarkdownInlineMarkTip",
-            "allowHTMLBLockScript", "allowHTMLBLockScriptTip", "backlinkExpandTip", "backmentionExpandTip",
-            "backlinkContainChildren", "backlinkContainChildrenTip", "allowSVGScript", "allowSVGScriptTip"
-        ]),
+/** 双向子串匹配：检查文本与搜索值是否互相包含 */
+const matchesSearch = (text: string, searchValue: string): boolean => {
+    const lowerText = text.toLowerCase();
+    const lowerSearch = searchValue.toLowerCase();
+    return lowerText.includes(lowerSearch) || lowerSearch.includes(lowerText);
+};
 
-        // 文档树
-        getLang(["selectOpen", "tabLimit", "fileTree", "fileTree2", "fileTree3", "fileTree4", "fileTree5",
-            "fileTree6", "fileTree7", "fileTree8", "fileTree9", "fileTree10", "fileTree12", "fileTree13", "fileTree15",
-            "fileTree16", "fileTree17", "fileTree18", "fileTree19", "fileTree20", "fileTree21", "fileTree22", "fileTree23",
-            "fileTree24", "fileTree25", "recentDocsMaxListCount", "recentDocsMaxListCountTip", "noSplitScreenWhenOpenTab",
-            "noSplitScreenWhenOpenTabTip"]),
-
-        // 闪卡
-        getLang(["riffCard", "flashcardNewCardLimit", "flashcardNewCardLimitTip", "flashcardReviewCardLimit",
-            "flashcardNewCardLimit", "flashcardReviewCardLimitTip", "flashcardMark", "flashcardMarkTip", "flashcardList",
-            "flashcardSuperBlock", "flashcardHeading", "flashcardDeck", "flashcardDeckTip",
-            "flashcardFSRSParamRequestRetention", "flashcardFSRSParamRequestRetentionTip",
-            "flashcardFSRSParamMaximumInterval", "flashcardFSRSParamMaximumIntervalTip", "flashcardFSRSParamWeights",
-            "flashcardFSRSParamWeightsTip", "reviewMode", "reviewModeTip"]),
-
-        // AI
-        ["AI"].concat(getLang(["ai", "apiTimeout", "apiTimeoutTip", "apiMaxTokens", "apiMaxTokensTip", "apiKey",
-            "apiKeyTip", "apiProxy", "apiProxyTip", "apiBaseURL", "apiBaseURLTip", "apiUserAgentTip", "apiVersion", "apiVersionTip",
-            "apiProvider", "apiProviderTip", "apiTemperature", "apiTemperatureTip", "apiMaxContexts", "apiMaxContextsTip"])),
-
-        // 资源
+/** 构建配置搜索索引：将各标签页的国际化键名转换为语言文本数组 */
+const buildConfigIndex = (): string[][] => {
+    const keymapKeys = ["keymap", "keymapTip2"]
+        .concat(Object.keys(Constants.SIYUAN_KEYMAP.general))
+        .concat(Object.keys(Constants.SIYUAN_KEYMAP.editor.general))
+        .concat(Object.keys(Constants.SIYUAN_KEYMAP.editor.heading))
+        .concat(Object.keys(Constants.SIYUAN_KEYMAP.editor.insert))
+        .concat(Object.keys(Constants.SIYUAN_KEYMAP.editor.list))
+        .concat(Object.keys(Constants.SIYUAN_KEYMAP.editor.table));
+    // @内联数组: 索引顺序必须与标签页DOM顺序一致
+    return [
+        getLang(EDITOR_KEYS),
+        getLang(FILE_TREE_KEYS),
+        getLang(FLASHCARD_KEYS),
+        ["AI"].concat(getLang(AI_KEYS)),
         getLang(["assets", "unreferencedAssets", "missingAssets"]),
-
-        // 导出
-        getLang(["paragraphBeginningSpace", "md4", "export", "export1", "export2", "export5", "export11",
-            "export13", "export14", "export15", "export19", "export20", "ref", "blockEmbed", "export17", "export18",
-            "export23", "export24", "export25", "export26", "export27", "export28", "export29", "removeAssetsID", "removeAssetsIDTip",
-            "includeSubDocs", "includeSubDocsTip", "includeRelatedDocs", "includeRelatedDocsTip"]),
-
-        // 外观
-        getLang(["language", "language1", "appearance", "appearance1", "appearance2", "appearance3", "appearance4",
-            "appearance5", "appearance6", "appearance8", "appearance9", "appearance10", "appearance11", "appearance16",
-            "appearance17", "appearance18", "resetLayout", "reset", "icon", "themeLight", "themeDark", "close", "themeOS", "theme",
-            "theme2", "theme11", "theme12", "customEmoji", "customEmojiTip", "refresh"]),
-
-        // 集市
-        getLang(["bazaar", "theme", "template", "icon", "widget"]),
-
-        // 搜索
-        getLang(["search", "searchLimit", "searchLimit1", "memo", "name", "alias", "keywordsLimit",
-            "doc", "headings", "list1", "listItem", "code", "math", "table", "quote", "superBlock", "paragraph",
-            "indexAssetPath", "embedBlock", "database", "searchBackmention", "searchVirtualRef", "searchBlockAttr",
-            "searchBlockType", "searchCaseSensitive"]),
-
-        // 快捷键
-        getLang(["keymap", "keymapTip2"].concat(Object.keys(Constants.SIYUAN_KEYMAP.general))
-            .concat(Object.keys(Constants.SIYUAN_KEYMAP.editor.general))
-            .concat(Object.keys(Constants.SIYUAN_KEYMAP.editor.heading))
-            .concat(Object.keys(Constants.SIYUAN_KEYMAP.editor.insert))
-            .concat(Object.keys(Constants.SIYUAN_KEYMAP.editor.list))
-            .concat(Object.keys(Constants.SIYUAN_KEYMAP.editor.table))),
-
-        // 账号
-        getLang(["accountTip", "accountName", "password", "captcha", "forgetPassword", "login", "register",
-            "twoFactorCaptcha", "account1", "account2", "account5"]),
-
-        // 云端
-        getLang(["cloudStorage", "trafficStat", "sync", "backup", "cdn", "total", "sizeLimit", "cloudBackup",
-            "cloudBackupTip", "updatePath", "cloudSync", "upload", "download", "syncMode", "syncModeTip",
-            "generateConflictDoc", "generateConflictDocTip", "syncProvider", "syncProviderTip",
-            "syncMode1", "syncMode2", "reposTip", "openSyncTip1", "openSyncTip2", "cloudSyncDir", "cloudSyncDirTip", "config"]),
-
-        // 发布
-        getLang(["publishService", "publishServiceTip", "publishServicePort", "publishServicePortTip",
-            "publishServiceAddresses", "publishServiceAddressesTip", "publishServiceAuth", "publishServiceAuthTip",
-            "publishServiceAuthAccounts", "publishServiceAuthAccountsTip"]),
-
-        // 关于
-        getLang(["autoLaunch", "autoLaunchTip", "about", "about1", "about2", "about3", "about4", "about5", "about6",
-            "about7", "about8", "about11", "about12", "about13", "about14", "about17", "config",
-            "dataRepoKey", "dataRepoKeyTip1", "dataRepoKeyTip2", "slogan", "currentVer", "checkUpdate", "updatePath",
-            "systemLog", "importKey", "genKey", "genKeyByPW", "copyKey", "resetRepo", "systemLogTip", "export",
-            "downloadLatestVer", "safeQuit", "directConnection", "siyuanNote", "key", "password", "copied", "resetRepoTip",
-            "autoDownloadUpdatePkg", "autoDownloadUpdatePkgTip", "networkProxy", "keyPlaceholder", "initRepoKeyTip",
-            "dataRepoPurge", "dataRepoPurgeTip", "dataRepoAutoPurgeIndexRetentionDays", "dataRepoAutoPurgeRetentionIndexesDaily",
-            "vacuumDataIndex", "vacuumDataIndexTip", "clearTempFiles", "clearTempFilesTip", "rebuildDataIndex", "rebuildDataIndexTip"]),
+        getLang(EXPORT_KEYS),
+        getLang(APPEARANCE_KEYS),
+        getLang(BAZAAR_KEYS),
+        getLang(SEARCH_KEYS),
+        getLang(keymapKeys),
+        getLang(ACCOUNT_KEYS),
+        getLang(CLOUD_KEYS),
+        getLang(PUBLISH_KEYS),
+        getLang(ABOUT_KEYS),
     ];
-    const inputElement = element.querySelector(".b3-form__icon input") as HTMLInputElement;
+};
+
+/** 根据搜索值在配置索引中查找匹配的标签页索引列表 */
+const buildMatchingIndexList = (configIndex: string[][], inputValue: string): number[] => {
+    const indexList: number[] = [];
+    for (let index = 0; index < configIndex.length; index++) {
+        const item = configIndex[index];
+        // 防御性检查：跳过空索引项
+        if (!item) {
+            continue;
+        }
+        for (const subItem of item) {
+            // 跳过未定义的语言项
+            if (!subItem) {
+                console.warn("Search config miss language: ", item, index);
+                continue;
+            }
+            // 双向匹配：搜索值包含子项或子项包含搜索值
+            if (matchesSearch(subItem, inputValue)) {
+                indexList.push(index);
+                break;
+            }
+        }
+    }
+    return indexList;
+};
+
+/** 快捷键面板搜索过滤：将搜索值同步到快捷键面板的搜索框并触发搜索 */
+const filterKeymapPanel = (inputValue: string): void => {
+    const keymapInputElement = keymap.element.querySelector("#keymapInput");
+    const searchByKeyElement = keymap.element.querySelector("#searchByKey");
+    // 类型安全检查：确保快捷键面板的搜索元素存在且为输入框
+    if (!isHTMLInputElement(keymapInputElement) || !isHTMLInputElement(searchByKeyElement)) {
+        return;
+    }
+    keymapInputElement.value = inputValue;
+    searchByKeyElement.value = "";
+    keymap.search(keymapInputElement.value, searchByKeyElement.value);
+};
+
+/** 搜索面板子项过滤：根据匹配结果显示或隐藏单个子项，返回是否可见 */
+const filterSearchSubItem = (labelItem: Element, inputValue: string, showItemParent: boolean): boolean => {
+    const parentElement = labelItem.parentElement;
+    // 跳过无父元素或已被标记为隐藏的父元素
+    if (!parentElement || parentElement.classList.contains("fn__none")) {
+        return false;
+    }
+    // 类型安全检查：确保父元素可设置style
+    if (!isHTMLElement(parentElement)) {
+        return false;
+    }
+    const text = labelItem.textContent ?? "";
+    // 匹配条件：文本匹配搜索值或父级标题已匹配
+    if (matchesSearch(text, inputValue) || showItemParent) {
+        parentElement.style.display = "";
+        return true;
+    }
+    parentElement.style.display = "none";
+    return false;
+};
+
+/** 搜索面板标签项过滤：检查标签项及其子项的匹配状态并设置可见性 */
+const filterSearchLabelItem = (itemElement: HTMLElement, inputValue: string): void => {
+    // 跳过已被标记为隐藏的元素
+    if (itemElement.classList.contains("fn__none")) {
+        return;
+    }
+    const firstChild = itemElement.firstElementChild;
+    const itemText = firstChild?.textContent ?? "";
+    const showItemParent = matchesSearch(itemText, inputValue);
+    let showItemElement = false;
+    const subItems = itemElement.querySelectorAll(".fn__flex-1");
+    for (const labelItem of subItems) {
+        // 累积子项可见性结果
+        if (filterSearchSubItem(labelItem, inputValue, showItemParent)) {
+            showItemElement = true;
+        }
+    }
+    itemElement.style.display = showItemElement ? "" : "none";
+};
+
+/** 搜索面板过滤：遍历搜索面板中的所有标签项并应用过滤 */
+const filterSearchPanel = (panelElement: Element, type: string, inputValue: string): void => {
+    const selector = `.config__tab-container[data-name="${type}"] .b3-label`;
+    for (const itemElement of panelElement.querySelectorAll(selector)) {
+        // 类型安全检查：确保元素可操作style属性
+        if (!isHTMLElement(itemElement)) {
+            continue;
+        }
+        filterSearchLabelItem(itemElement, inputValue);
+    }
+};
+
+/** 通用面板过滤：根据文本匹配显示或隐藏面板中的标签项 */
+const filterGenericPanel = (panelElement: Element, type: string, inputValue: string): void => {
+    const selector = `.config__tab-container[data-name="${type}"] .b3-label`;
+    for (const itemElement of panelElement.querySelectorAll(selector)) {
+        // 类型安全检查：确保元素可操作style属性
+        if (!isHTMLElement(itemElement)) {
+            continue;
+        }
+        // 跳过已被标记为隐藏的元素
+        if (itemElement.classList.contains("fn__none")) {
+            continue;
+        }
+        const text = itemElement.textContent ?? "";
+        itemElement.style.display = matchesSearch(text, inputValue) ? "" : "none";
+    }
+};
+
+/** 确保面板内容已生成：若面板为空则调用genItemPanel初始化 */
+const ensurePanelContent = (type: string, panelElement: Element, app: App): void => {
+    // 面板内容为空时需要初始化
+    if (panelElement.innerHTML === "") {
+        genItemPanel(type, panelElement, app);
+    }
+};
+
+/** 按类型分发面板过滤逻辑：快捷键/搜索/通用三种过滤策略 */
+const dispatchPanelFilter = (type: string, panelElement: Element, inputValue: string): void => {
+    // 快捷键面板使用专用搜索逻辑
+    if (type === "keymap") {
+        filterKeymapPanel(inputValue);
+        return;
+    }
+    // 搜索面板需要子项级别的精细过滤
+    if (type === "search") {
+        filterSearchPanel(panelElement, type, inputValue);
+        return;
+    }
+    filterGenericPanel(panelElement, type, inputValue);
+};
+
+/** 处理单个匹配的标签项：确保面板内容已生成并应用过滤 */
+const processMatchedTabItem = (
+    item: HTMLElement, element: HTMLElement, app: App, inputValue: string
+): void => {
+    const type = item.getAttribute("data-name") ?? "";
+    item.style.display = "";
+    // 特殊面板类型不需要内容过滤
+    if (SKIP_PANEL_FILTER_TYPES.includes(type)) {
+        return;
+    }
+    const panelElement = element.querySelector(`.config__tab-container[data-name="${type}"]`);
+    // 面板元素不存在时跳过
+    if (!panelElement) {
+        return;
+    }
+    ensurePanelContent(type, panelElement, app);
+    dispatchPanelFilter(type, panelElement, inputValue);
+};
+
+/** 激活匹配的标签页或隐藏所有面板：有匹配时点击第一个匹配标签，无匹配时隐藏全部 */
+const activateMatchedTab = (element: HTMLElement, currentTabElement: HTMLElement | undefined): void => {
+    const tabPanelElements = element.querySelectorAll(".config__tab-container");
+    // 有匹配标签时激活第一个
+    if (currentTabElement) {
+        currentTabElement.click();
+        return;
+    }
+    // 无匹配时隐藏所有面板
+    for (const panel of tabPanelElements) {
+        panel.classList.add("fn__none");
+    }
+};
+
+/** 更新标签页可见性：根据匹配索引列表显示/隐藏标签并触发面板过滤 */
+const updateTab = (
+    element: HTMLElement, configIndex: string[][], inputElement: HTMLInputElement, app: App
+): void => {
+    const inputValue = inputElement.value;
+    const indexList = buildMatchingIndexList(configIndex, inputValue);
+    let currentTabElement: HTMLElement | undefined;
+    const tabItems = element.querySelectorAll(".b3-tab-bar li");
+    for (let index = 0; index < tabItems.length; index++) {
+        const item = tabItems[index];
+        // 类型安全检查：确保标签项为HTMLElement
+        if (!isHTMLElement(item)) {
+            continue;
+        }
+        // 不在匹配列表中的标签项隐藏
+        if (!indexList.includes(index)) {
+            item.style.display = "none";
+            continue;
+        }
+        // 记录第一个匹配的标签项用于后续激活
+        if (!currentTabElement) {
+            currentTabElement = item;
+        }
+        processMatchedTabItem(item, element, app, inputValue);
+    }
+    activateMatchedTab(element, currentTabElement);
+    inputElement.focus();
+};
+
+/** 输入事件处理：非组合输入时触发标签页更新 */
+const handleSearchInput = (
+    event: Event,
+    element: HTMLElement,
+    configIndex: string[][],
+    inputElement: HTMLInputElement,
+    app: App
+): void => {
+    // 组合输入（如中文输入法）期间不触发搜索
+    if (isInputEvent(event) && event.isComposing) {
+        return;
+    }
+    updateTab(element, configIndex, inputElement, app);
+};
+
+/**
+ * 初始化配置搜索功能：构建搜索索引并绑定输入事件
+ * @同步豁免: UI构建
+ */
+export const initConfigSearch = (element: HTMLElement, app: App): void => {
+    const configIndex = buildConfigIndex();
+    const inputElement = element.querySelector(".b3-form__icon input");
+    // 输入框不存在时无法初始化搜索
+    if (!isHTMLInputElement(inputElement)) {
+        return;
+    }
+    // 非平板设备自动聚焦搜索框
     if (!isPhablet()) {
         inputElement.focus();
-    } else {
-        (document.activeElement as HTMLElement)?.blur();
     }
-    const updateTab = () => {
-        const indexList: number[] = [];
-        const inputValue = inputElement.value;
-        configIndex.map((item, index) => {
-            item.map((subItem) => {
-                if (!subItem) {
-                    console.warn("Search config miss language: ", item, index);
-                }
-                if (subItem && (inputValue.toLowerCase().indexOf(subItem.toLowerCase()) > -1 || subItem.toLowerCase().indexOf(inputValue.toLowerCase()) > -1)) {
-                    indexList.push(index);
-                }
-            });
-        });
-
-        let currentTabElement: HTMLElement;
-        element.querySelectorAll(".b3-tab-bar li").forEach((item: HTMLElement, index) => {
-            if (indexList.includes(index)) {
-                if (!currentTabElement) {
-                    currentTabElement = item;
-                }
-                const type = item.getAttribute("data-name");
-                item.style.display = "";
-                if (["image", "bazaar", "account"].includes(type)) {
-                    return;
-                }
-                // 右侧面板过滤
-                const panelElement = element.querySelector(`.config__tab-container[data-name="${type}"]`);
-                if (panelElement.innerHTML === "") {
-                    genItemPanel(type, panelElement, app);
-                }
-                if (type === "keymap") {
-                    const searchElement = keymap.element.querySelector("#keymapInput") as HTMLInputElement;
-                    const searchKeymapElement = keymap.element.querySelector("#searchByKey") as HTMLInputElement;
-                    searchElement.value = inputValue;
-                    searchKeymapElement.value = "";
-                    keymap.search(searchElement.value, searchKeymapElement.value);
-                } else if (type === "search") {
-                    panelElement.querySelectorAll(`.config__tab-container[data-name="${type}"] .b3-label`).forEach((itemElement: HTMLElement) => {
-                        let showItemElement = false;
-                        let showItemParent = false;
-                        const itemText = itemElement.firstElementChild.textContent.toLowerCase();
-                        if (itemText.indexOf(inputValue.toLowerCase()) > -1 || inputValue.toLowerCase().indexOf(itemText) > -1) {
-                            showItemParent = true;
-                        }
-                        itemElement.querySelectorAll(".fn__flex-1").forEach(labelItem => {
-                            if (!labelItem.parentElement.classList.contains("fn__none")) {
-                                const text = labelItem.textContent.toLowerCase();
-                                if (text.indexOf(inputValue.toLowerCase()) > -1 || inputValue.toLowerCase().indexOf(text) > -1 || showItemParent) {
-                                    labelItem.parentElement.style.display = "";
-                                    showItemElement = true;
-                                } else {
-                                    labelItem.parentElement.style.display = "none";
-                                }
-                            }
-                        });
-                        if (!itemElement.classList.contains("fn__none")) {
-                            if (showItemElement) {
-                                itemElement.style.display = "";
-                            } else {
-                                itemElement.style.display = "none";
-                            }
-                        }
-                    });
-                } else {
-                    panelElement.querySelectorAll(`.config__tab-container[data-name="${type}"] .b3-label`).forEach((itemElement: HTMLElement) => {
-                        if (!itemElement.classList.contains("fn__none")) {
-                            const text = itemElement.textContent.toLowerCase();
-                            if (text.indexOf(inputValue.toLowerCase()) > -1 || inputValue.toLowerCase().indexOf(text) > -1) {
-                                itemElement.style.display = "";
-                            } else {
-                                itemElement.style.display = "none";
-                            }
-                        }
-                    });
-                }
-            } else {
-                item.style.display = "none";
-            }
-        });
-
-        const tabPanelElements = element.querySelectorAll(".config__tab-container");
-        if (currentTabElement) {
-            currentTabElement.click();
-        } else {
-            tabPanelElements.forEach((item) => {
-                item.classList.add("fn__none");
-            });
-        }
-
-        inputElement.focus();
-    };
-
+    const activeElement = getActiveElement();
+    // 平板设备主动失焦当前活动元素以避免虚拟键盘弹出
+    if (isPhablet() && isHTMLElement(activeElement)) {
+        activeElement.blur();
+    }
+    // 组合输入结束时触发搜索
     inputElement.addEventListener("compositionend", () => {
-        updateTab();
+        updateTab(element, configIndex, inputElement, app);
     });
-    inputElement.addEventListener("input", (event: InputEvent) => {
-        if (event.isComposing) {
-            return;
-        }
-        updateTab();
+    // 普通输入时触发搜索
+    inputElement.addEventListener("input", (event: Event) => {
+        handleSearchInput(event, element, configIndex, inputElement, app);
     });
 };
