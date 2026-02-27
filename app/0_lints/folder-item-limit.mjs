@@ -22,9 +22,9 @@ const 目录条目数缓存 = new Map();
 const 缓存TTL_MS = 30_000;
 
 /**
- * 读取目录中非隐藏条目的数量（带 TTL 缓存）
+ * 读取目录中非隐藏、非 .md 条目的数量（带 TTL 缓存）
  * @param {string} dirPath - 目录绝对路径
- * @returns {number} 非隐藏条目数量
+ * @returns {number} 非隐藏且非 .md 条目数量
  */
 function 读取目录条目数(dirPath) {
     const cached = 目录条目数缓存.get(dirPath);
@@ -32,7 +32,7 @@ function 读取目录条目数(dirPath) {
         return cached.count;
     }
     const entries = readdirSync(dirPath);
-    const count = entries.filter(name => !name.startsWith(".")).length;
+    const count = entries.filter(name => !name.startsWith(".") && !name.endsWith(".md")).length;
     目录条目数缓存.set(dirPath, { count, expiry: Date.now() + 缓存TTL_MS });
     return count;
 }

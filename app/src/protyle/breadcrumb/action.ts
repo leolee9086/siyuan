@@ -48,7 +48,6 @@ const updateHeaderDragRegion = (item: Wnd, isFullscreen: boolean) => {
     }
     const readonlyElement = headerElement.querySelector(".item--readonly .fn__flex-1");
     if (readonlyElement instanceof HTMLElement) {
-        // @ts-ignore
         readonlyElement.style.WebkitAppRegion = isFullscreen ? "drag" : "";
         return true;
     }
