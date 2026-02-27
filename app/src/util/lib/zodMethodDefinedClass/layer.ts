@@ -1,5 +1,5 @@
-import { MiddlewareFunction, Context } from "./types";
-import { LayerLike } from "./layerLike.types";
+import { MiddlewareFunction, Context } from "../../pathRouter/core/types";
+import { LayerLike } from "../../pathRouter/core/layerLike.types";
 
 // 类型守卫函数
 function hasName(token: Key | string): token is Key {

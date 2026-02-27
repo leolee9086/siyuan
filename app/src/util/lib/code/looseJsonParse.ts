@@ -1,7 +1,7 @@
 // REF https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/eval
 
 import { createSecureTemporaryModule } from "./executor";
-import { confirmDialog } from "../../dialog/confirmDialog";
+import { confirmDialog } from "../../../dialog/confirmDialog";
 import { parse } from "es-module-lexer";
 import { PackagePermissionManager } from "./PackagePermissionManager";
 import type { 确认执行参数 } from "./looseJsonParse.types";

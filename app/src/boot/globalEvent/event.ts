@@ -3,7 +3,7 @@ import {windowMouseMove} from "./mousemove";
 import {windowKeyUp} from "./keyup";
 import {windowKeyDown} from "./keydown";
 import {globalClick} from "./click";
-import {goBack, goForward} from "../../util/navigation/backForward";
+import {goBack, goForward} from "../../util/platform/backForward";
 import {Constants} from "../../constants";
 import {isIPad} from "../../protyle/util/compatibility";
 import {globalTouchEnd, globalTouchStart} from "./touch";

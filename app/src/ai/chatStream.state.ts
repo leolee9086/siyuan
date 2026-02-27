@@ -4,7 +4,7 @@ import {
 import { reactive } from "vue";
 import { fillContent } from "./actions.fillContent";
 import { AssistantResponseState } from "./session/session.types";
-import { createTemporaryModule } from "../util/code/scripts.executor";
+import { createTemporaryModule } from "../util/lib/code/scripts.executor";
 import { buildBlockContentPrompt } from "./prompts/blockContent.builder";
 import { createAIRequestHandlerWithState } from "./createAIRequestHandler";
 

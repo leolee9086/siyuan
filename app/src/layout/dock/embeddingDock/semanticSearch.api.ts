@@ -5,7 +5,7 @@
  */
 
 import { fetchPost } from "../../../util/network/fetch";
-import { embeddingText } from "../../../util/embedding/transformer";
+import { embeddingText } from "../../../util/lib/embedding/transformer";
 import type { ISemanticSearchResult, ISemanticSearchConfig, IEmbeddingDataset } from "./embeddingDock.types";
 import { isFrontendModel, FRONTEND_EMBEDDING_MODELS } from "./embeddingDock.types";
 import { 获取数据集列表, 使用向量查询块 } from "./embeddingDock.api";

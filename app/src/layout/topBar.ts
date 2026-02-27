@@ -5,11 +5,11 @@ import {
     updateHotkeyTip
 } from "../protyle/util/compatibility";
 import {exitSiYuan, processSync} from "../dialog/processSystem";
-import {goBack, goForward} from "../util/navigation/backForward";
+import {goBack, goForward} from "../util/platform/backForward";
 import {syncGuide} from "../sync/syncGuide";
 import {workspaceMenu} from "../menus/workspace";
 import { MenuItem } from "../menus/Menu.Item";
-import {setMode} from "../util/assets";
+import {setMode} from "../util/assets/assets";
 import {openSetting} from "../config";
 import {openSearch} from "../search/spread";
 import {App} from "../index";

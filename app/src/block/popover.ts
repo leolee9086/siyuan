@@ -18,7 +18,7 @@ import {
     getSiyuanConfig,
 } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { setTimeout } from "../util/siyuanEnvironments/windowTimer.environment";
-import { MouseEventWithPath, asMouseEventWithPath, isMouseEventWithHTMLTarget, MouseEventWithHTMLTarget } from "../util/events/event.guard";
+import { MouseEventWithPath, asMouseEventWithPath, isMouseEventWithHTMLTarget, MouseEventWithHTMLTarget } from "../util/lib/events/event.guard";
 import { isHTMLElement } from "../util/DOM/element.guard";
 
 // 子模块导入

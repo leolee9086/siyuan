@@ -8,7 +8,7 @@ import { Model } from "../../Model";
 import { App } from "../../../index";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getDockByType } from "../../tabUtil";
-import { embeddingText } from "../../../util/embedding/transformer";
+import { embeddingText } from "../../../util/lib/embedding/transformer";
 import type { IEmbeddingDataset, IDatasetStatus, IEmbeddingProgress } from "./embeddingDock.types";
 import {
     获取数据集列表,

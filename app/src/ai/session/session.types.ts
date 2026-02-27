@@ -1,5 +1,5 @@
 import { AssistantMessageController } from "./assistantResponse.controller";
-import { TemporaryModule } from "../../util/code/scripts.types";
+import { TemporaryModule } from "../../util/lib/code/scripts.types";
 
 // 工具调用执行回调函数类型
 export type ToolCallExecutionCallback = (toolCode: string) => Promise<void>;

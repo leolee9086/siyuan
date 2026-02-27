@@ -15,7 +15,7 @@ import { getDockByType, switchTabByIndex } from "../../layout/tabUtil";
 import { Editor } from "../../editor";
 import { newDailyNote } from "../../util/file/mount";
 import { hideElements } from "../../protyle/ui/hideElements";
-import { goBack, goForward } from "../../util/navigation/backForward";
+import { goBack, goForward } from "../../util/platform/backForward";
 import { getAllDocks, getAllModels, getAllTabs } from "../../layout/getAll";
 import { focusBlock, focusByRange } from "../../protyle/util/selection";
 import { bindMenuKeydown } from "../../menus/Menu.bindMenuKeydown";

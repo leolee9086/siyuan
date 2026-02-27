@@ -5,7 +5,7 @@ import {processRender} from "./processCode";
 import {highlightRender} from "../render/highlightRender";
 import {blockRender} from "../render/blockRender";
 import {bgFade, scrollCenter} from "../../util/DOM/highlightById";
-import {pushBack} from "../../util/navigation/backForward";
+import {pushBack} from "../../util/platform/backForward";
 import {focusBlock, focusByOffset} from "./selection";
 import {hasClosestByAttribute, hasClosestByClassName} from "./hasClosest";
 import {preventScroll} from "../scroll/preventScroll";

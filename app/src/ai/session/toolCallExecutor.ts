@@ -1,4 +1,4 @@
-import { createTemporaryModule } from "../../util/code/scripts.executor";
+import { createTemporaryModule } from "../../util/lib/code/scripts.executor";
 import type { AssistantResponseState } from "./session.types";
 
 /**

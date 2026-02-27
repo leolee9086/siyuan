@@ -3,7 +3,7 @@ import { genUUID } from "../../util/platform/genID";
 import { isMac } from "../util/compatibility";
 import { isMobile } from "../../platform";
 import { isTouchDevice } from "../../util/platform/functions";
-import { setInlineStyle } from "../../util/assets";
+import { setInlineStyle } from "../../util/assets/assets";
 import { hideMessage, showMessage } from "../../dialog/message";
 import { fetchPost } from "../../util/network/fetch";
 import { lineNumberRender } from "../render/highlightRender";

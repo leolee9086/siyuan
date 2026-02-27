@@ -1,0 +1,5 @@
+{
+  "moves": [
+    { "from": "src/util/noteDatas/id.ts", "to": "src/util/file/id.ts" }
+  ]
+}

@@ -24,7 +24,7 @@ import {openAttr} from "../../menus/commonMenuItem";
 import {blockRender} from "../render/blockRender";
 import {hideElements} from "../ui/hideElements";
 import {openFileById} from "../../editor/utils.openFileById";
-import {pushBack} from "../../util/navigation/backForward";
+import {pushBack} from "../../util/platform/backForward";
 import {isOnlyMeta, isInIOS} from "../util/compatibility";
 import {hasNextSibling} from "./getBlock";
 import {updateTransaction} from "./transaction";

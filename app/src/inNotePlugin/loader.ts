@@ -4,7 +4,7 @@
  */
 import { Plugin } from "../plugin";
 import type { App } from "../index";
-import { SecureModuleCreator } from "../util/code/executor";
+import { SecureModuleCreator } from "../util/lib/code/executor";
 import { getSiyuanApiUrl } from "./siyuanApi";
 import { 编译文档 } from "./compiler";
 import type { 笔记内插件配置, 笔记内插件运行状态 } from "./types";

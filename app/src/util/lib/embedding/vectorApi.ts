@@ -3,7 +3,7 @@
  * 用于调用后端 /api/vector/* 接口
  */
 
-import { fetchPost } from "../network/fetch";
+import { fetchPost } from "../../network/fetch";
 import type { VectorPoint, QueryResult, CollectionState } from "./vectorApi.types";
 import { embeddingText } from "./transformer";
 

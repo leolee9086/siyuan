@@ -2,7 +2,7 @@ import { addScript } from "../util/addScript";
 import { Constants } from "../../constants";
 import { genIconHTML } from "./util";
 import { hasClosestByClassName } from "../util/hasClosest";
-import { looseJsonParse } from "../../util/code/looseJsonParse";
+import { looseJsonParse } from "../../util/lib/code/looseJsonParse";
 import { genUUID } from "../../util/platform/genID";
 import { addStyle } from "../util/addStyle";
 import { getAbcjsInstance } from "./abcRender.environment";

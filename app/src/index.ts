@@ -44,7 +44,7 @@ import { EventBus } from "./plugin/EventBus";
 import { siyuanI18n } from "./util/siyuanEnvironments/i18n.getI18n.environment";
 import { updateAppearance } from "./config/util/updateAppearance";
 import { renderSnippet } from "./config/util/snippets";
-import { embeddingText } from "./util/embedding/transformer";
+import { embeddingText } from "./util/lib/embedding/transformer";
 import { setSForgeState } from "./config/sforge.global";
 import { SForgeSymbols } from "./config/sforge.symbols";
 import type { Plugin } from "./plugin";

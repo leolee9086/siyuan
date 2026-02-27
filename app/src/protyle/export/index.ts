@@ -4,7 +4,7 @@ import { isBrowser, isElectron } from "../../platform";
 import { ipcInvoke, ipcSend } from "../../platform/electron/ipcRenderer";
 import { afterExport } from "./util";
 import { confirmDialog } from "../../dialog/confirmDialog";
-import { getThemeMode, setInlineStyle } from "../../util/assets";
+import { getThemeMode, setInlineStyle } from "../../util/assets/assets";
 import { fetchPost, fetchSyncPost } from "../../util/network/fetch";
 import { Dialog } from "../../dialog";
 import { replaceLocalPath } from "../../editor/rename";

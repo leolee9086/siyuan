@@ -12,7 +12,7 @@ import { workspaceMenu } from "../../../menus/workspace";
 import { isWindow } from "../../../util/platform/functions";
 import { openRecentDocs } from "../../../business/openRecentDocs";
 import { openSearch } from "../../../search/spread";
-import { goBack, goForward } from "../../../util/navigation/backForward";
+import { goBack, goForward } from "../../../util/platform/backForward";
 import { getAllTabs, getAllWnds } from "../../../layout/getAll";
 import { getInstanceById } from "../../../layout/util";
 import {

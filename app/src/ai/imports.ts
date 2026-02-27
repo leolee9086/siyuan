@@ -11,7 +11,7 @@ export { Dialog } from "../dialog";
 
 // Vue工具相关导入
 export type { VueComponentMountConfig } from "../util/vue/mount";
-export { createVueDialog } from "../util/dialog/createVueDialog";
+export { createVueDialog } from "../util/vue/createVueDialog";
 
 // 组件导入
 export { default as AiCustomDialog } from "../components/aiCustomDialog.panel.vue";

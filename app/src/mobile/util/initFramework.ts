@@ -4,7 +4,7 @@ import {openMobileFileById} from "../editor";
 import {validateName} from "../../editor/rename";
 import {getEventName} from "../../protyle/util/compatibility";
 import {fetchPost} from "../../util/network/fetch";
-import {setInlineStyle} from "../../util/assets";
+import {setInlineStyle} from "../../util/assets/assets";
 import {renderSnippet} from "../../config/util/snippets";
 import {setEmpty} from "./setEmpty";
 import {getIdZoomInByPath, getOpenNotebookCount} from "../../util/file/pathName";

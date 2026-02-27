@@ -1,6 +1,6 @@
 import { Dialog, IDialogOptions } from "../../dialog";
 import { isMobile } from "../platform/functions";
-import { createVueComponentInDialog, VueComponentMountConfig } from "../vue/mount";
+import { createVueComponentInDialog, VueComponentMountConfig } from "./mount";
 
 /**
  * Vue对话框配置接口

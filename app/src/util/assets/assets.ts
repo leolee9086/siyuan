@@ -1,21 +1,21 @@
-import { Constants } from "../constants";
-import { addScript } from "../protyle/util/addScript";
-import { addStyle } from "../protyle/util/addStyle";
-import { getAllModels } from "../layout/getAll";
-import { exportLayout } from "../layout/util";
-import {isMobile, isBrowser} from "../platform";
+import { Constants } from "../../constants";
+import { addScript } from "../../protyle/util/addScript";
+import { addStyle } from "../../protyle/util/addStyle";
+import { getAllModels } from "../../layout/getAll";
+import { exportLayout } from "../../layout/util";
+import {isMobile, isBrowser} from "../../platform";
 // S-forge: 模块化重构 - 使用环境抽象层和资源模块
-import { fetchPost } from "./network/fetch";
-import { IFetchRequestObject } from "./network/fetch.types";
-import { getSiyuanConfig, getSiyuanStorage } from "./siyuanEnvironments/getSiyuanConfig.environment";
-import { getWindowDestroyTheme, setWindowDestroyTheme, windowMatchMedia } from "./siyuanEnvironments/windowAppearance.environment";
-import { reloadLocation } from "./siyuanEnvironments/windowLocation.environment";
-import { getWindowJSAndroid, getWindowJSHarmony, getWindowWebkit } from "./siyuanEnvironments/windowNative.environment";
-import { isServiceWorkerAvailable } from "./siyuanEnvironments/windowStandard.environment";
-import { setInlineStyle } from "./assets/setInlineStyle";
-import { setCodeTheme } from "./assets/setCodeTheme";
-import { updateMobileTheme } from "./assets/mobile";
-import { getBackend, getFrontend } from "./platform/functions";
+import { fetchPost } from "../network/fetch";
+import { IFetchRequestObject } from "../network/fetch.types";
+import { getSiyuanConfig, getSiyuanStorage } from "../siyuanEnvironments/getSiyuanConfig.environment";
+import { getWindowDestroyTheme, setWindowDestroyTheme, windowMatchMedia } from "../siyuanEnvironments/windowAppearance.environment";
+import { reloadLocation } from "../siyuanEnvironments/windowLocation.environment";
+import { getWindowJSAndroid, getWindowJSHarmony, getWindowWebkit } from "../siyuanEnvironments/windowNative.environment";
+import { isServiceWorkerAvailable } from "../siyuanEnvironments/windowStandard.environment";
+import { setInlineStyle } from "./setInlineStyle";
+import { setCodeTheme } from "./setCodeTheme";
+import { updateMobileTheme } from "./mobile";
+import { getBackend, getFrontend } from "../platform/functions";
 
 export { setInlineStyle, setCodeTheme };
 

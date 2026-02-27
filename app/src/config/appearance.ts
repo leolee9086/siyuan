@@ -5,7 +5,7 @@ import { isBrowser } from "../util/platform/functions";
 import { fetchPost } from "../util/network/fetch";
 import { genLangOptions, genOptions } from "../util/DOM/genOptions";
 import { openSnippets } from "./util/snippets";
-import { loadAssets } from "../util/assets";
+import { loadAssets } from "../util/assets/assets";
 import { resetFloatDockSize } from "../layout/dock/util";
 import { confirmDialog } from "../dialog/confirmDialog";
 import { useShell } from "../util/file/pathName";

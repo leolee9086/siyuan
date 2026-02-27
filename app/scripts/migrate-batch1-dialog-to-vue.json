@@ -1,0 +1,5 @@
+{
+  "moves": [
+    { "from": "src/util/dialog/createVueDialog.ts", "to": "src/util/vue/createVueDialog.ts" }
+  ]
+}

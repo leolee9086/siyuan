@@ -9,7 +9,7 @@
 
 import { Dialog } from "../../dialog";
 import { isMobile } from "../../util/platform/functions";
-import { createVueDialog } from "../../util/dialog/createVueDialog";
+import { createVueDialog } from "../../util/vue/createVueDialog";
 import SmartToolboxPanelVue from "./SmartToolboxPanel.vue";
 
 // ============ 全局状态 ============

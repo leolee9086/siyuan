@@ -15,7 +15,7 @@
 
 import { Dialog } from "../dialog";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
-import { createVueDialog } from "../util/dialog/createVueDialog";
+import { createVueDialog } from "../util/vue/createVueDialog";
 import AssetMasonryDialog from "./components/AssetMasonryDialog.vue";
 import { isMobile } from "../platform";
 

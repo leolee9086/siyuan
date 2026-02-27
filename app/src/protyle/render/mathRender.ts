@@ -1,7 +1,7 @@
 import {addScript} from "../util/addScript";
 import {addStyle} from "../util/addStyle";
 import {Constants} from "../../constants";
-import {looseJsonParse} from "../../util/code/looseJsonParse";
+import {looseJsonParse} from "../../util/lib/code/looseJsonParse";
 import {getKatexRenderer, getKatexMacrosString} from "./mathRender.environment";
 import {isHTMLElement, isIObject} from "./mathRender.guard";
 import {

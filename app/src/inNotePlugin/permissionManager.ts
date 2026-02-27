@@ -2,7 +2,7 @@
  * 持久化权限管理器
  * 扩展现有的 PackagePermissionManager，添加 localStorage 持久化功能
  */
-import { PackagePermissionManager } from "../util/code/PackagePermissionManager";
+import { PackagePermissionManager } from "../util/lib/code/PackagePermissionManager";
 
 const PERMISSION_KEY = "in-note-plugin-allowed-packages";
 

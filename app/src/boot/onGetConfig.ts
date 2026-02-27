@@ -10,7 +10,7 @@ import { setZoomFactor } from "../platform/electron/webFrame";
 import { Constants } from "../constants";
 import { appearance } from "../config/appearance";
 import { fetchPost, fetchSyncPost } from "../util/network/fetch";
-import { initAssets, setInlineStyle } from "../util/assets";
+import { initAssets, setInlineStyle } from "../util/assets/assets";
 import { renderSnippet } from "../config/util/snippets";
 import { openFile } from "../editor/util";
 

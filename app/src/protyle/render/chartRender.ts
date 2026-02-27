@@ -1,12 +1,12 @@
 import { addScript } from "../util/addScript";
 import { Constants } from "../../constants";
 import { hasClosestByClassName } from "../util/hasClosest";
-import { looseJsonParse } from "../../util/code/looseJsonParse";
+import { looseJsonParse } from "../../util/lib/code/looseJsonParse";
 import { genIconHTML } from "./util";
 import { getEchartsInstanceById, initEcharts, disposeEcharts } from "../../util/siyuanEnvironments/echarts.environment";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { isHTMLDivElement } from "../../util/DOM/element.guard";
-import { isSeriesArray, isRecord } from "../../util/code/object.guard";
+import { isSeriesArray, isRecord } from "../../util/lib/code/object.guard";
 
 /** 计算编辑器宽度 */
 const calcEditorWidth = (

@@ -5,7 +5,7 @@
 import { parse } from "es-module-lexer";
 import type MagicString from "magic-string";
 import type { UnauthorizedImportStrategy, ImportSpec, TemporaryModule } from "./executor.types";
-import { isElectron } from "../../platform";
+import { isElectron } from "../../../platform";
 
 /**
  * 判断是否为外部包

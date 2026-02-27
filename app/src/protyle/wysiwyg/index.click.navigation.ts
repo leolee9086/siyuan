@@ -6,7 +6,7 @@ import {hideElements} from "../ui/hideElements";
 import {openFileById} from "../../editor/utils.openFileById";
 import {openMobileFileById} from "../../mobile/editor";
 import {checkFold} from "../../util/platform/noRelyPCFunction";
-import {pushBack} from "../../util/navigation/backForward";
+import {pushBack} from "../../util/platform/backForward";
 import {activeBlur} from "../../mobile/util/keyboardToolbar";
 import {openLink} from "../../editor/openLink";
 import {openGlobalSearch} from "../../search/util";

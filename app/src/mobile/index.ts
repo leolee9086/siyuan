@@ -10,7 +10,7 @@ import { addBaseURL, getIdFromSYProtocol, isSYProtocol, setNoteBook } from "../u
 import { handleTouchEnd, handleTouchMove, handleTouchStart } from "./util/touch";
 import { fetchGet, fetchPost } from "../util/network/fetch";
 import { initFramework } from "./util/initFramework";
-import { initAssets, loadAssets } from "../util/assets";
+import { initAssets, loadAssets } from "../util/assets/assets";
 import { bootSync, kernelError, reloadSync } from "../dialog/processSystem";
 import { initMessage, showMessage } from "../dialog/message";
 import { goBack } from "./util/MobileBackFoward";

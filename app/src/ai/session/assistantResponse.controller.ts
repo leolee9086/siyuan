@@ -1,5 +1,5 @@
 import { AssistantResponseState, ToolCallExecutionCallback } from "./session.types";
-import { SafeEventEmitter } from "../../util/events/eventEmitter";
+import { SafeEventEmitter } from "../../util/lib/events/eventEmitter";
 import { AIRequestController } from "../requestController.impl";
 import { getAIConfigFromSiyuan } from "../utils.config";
 import { handleOpenAILikeStreamResponse } from "../handleOpenAILikeStreamResponse";

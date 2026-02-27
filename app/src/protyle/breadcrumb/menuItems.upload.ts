@@ -17,6 +17,13 @@ import { isHTMLInputElement } from "./breadcrumb.guard";
 
 // ==================== 上传菜单项 ====================
 
+/**
+ * 处理文件上传 input 的 change 事件
+ *
+ * 作用：从 change 事件中提取用户选择的文件列表，调用 uploadFiles 上传到 protyle，并关闭菜单
+ * 意图：将上传 input 的事件处理逻辑封装为独立函数，便于在菜单项中绑定事件监听
+ * 调用时机：由 添加上传菜单项 中创建的 file input 元素的 change 事件触发
+ */
 function 处理上传变更事件(protyle: IProtyle, event: Event): void {
     if (!isHTMLInputElement(event.target)) {
         return;
@@ -29,6 +36,16 @@ function 处理上传变更事件(protyle: IProtyle, event: Event): void {
     getSiyuanMenus()?.menu.remove();
 }
 
+/**
+ * 向面包屑菜单添加"插入资源"上传菜单项
+ *
+ * 作用：创建包含 file input 的菜单项，用户点击后可选择文件上传到当前文档
+ * 意图：将上传菜单项的构建逻辑从 showBreadcrumbMenu 中解耦，保持单一职责
+ * 调用时机：由 menuItems.misc.ts 的 添加上传与录音组 在构建面包屑右键菜单时调用
+ *
+ * @同步豁免: UI构建 - 函数职责是同步构建 MenuItem DOM 元素并 append 到菜单，
+ *   调用方 添加上传与录音组 按顺序同步组装菜单，无法使用异步
+ */
 export function 添加上传菜单项(protyle: IProtyle, menu: Menu): void {
     const accept = protyle.options?.upload?.accept;
     const acceptAttr = accept ? ` accept="${accept}"` : "";
@@ -81,6 +98,14 @@ async function 检查macOS麦克风权限(os: string | undefined): Promise<boole
     return true;
 }
 
+/**
+ * 请求麦克风权限并创建新的录音器实例
+ *
+ * 作用：通过 getUserMedia 获取音频流，创建 RecordMedia 实例并注册音频处理回调，
+ *   然后通过 setMediaRecorder 保存实例并调用 startRecord 开始录音
+ * 意图：将录音器初始化逻辑从菜单点击回调中抽离，保持 添加录音菜单项 的 click 回调简洁
+ * 调用时机：在 添加录音菜单项 的 click 回调中，当 mediaRecorder 不存在（首次录音）时调用
+ */
 function 初始化新录音器(
     protyle: IProtyle,
     setMediaRecorder: 录音器上下文["setMediaRecorder"],
@@ -104,6 +129,13 @@ function 初始化新录音器(
     });
 }
 
+/**
+ * 停止当前录音并将录音文件上传到文档
+ *
+ * 作用：停止 RecordMedia 录音，隐藏录音提示消息，将录音数据构建为 WAV 文件并通过 uploadFiles 上传
+ * 意图：封装"停止录音 → 构建文件 → 上传"的完整流程，避免在菜单点击回调中堆积逻辑
+ * 调用时机：在 添加录音菜单项 的 click 回调中，当 mediaRecorder 正在录音时调用
+ */
 function 停止录音并上传(protyle: IProtyle, mediaRecorder: RecordMedia, messageId: string): void {
     mediaRecorder.stopRecording();
     hideMessage(messageId);
@@ -115,6 +147,18 @@ function 停止录音并上传(protyle: IProtyle, mediaRecorder: RecordMedia, me
     uploadFiles(protyle, [file]);
 }
 
+/**
+ * 向面包屑菜单添加"开始/停止录音"菜单项
+ *
+ * 作用：根据当前录音状态创建对应的录音菜单项（开始录音 / 结束录音），
+ *   点击后检查麦克风权限，然后执行录音初始化、开始或停止操作
+ * 意图：将录音菜单项的构建逻辑从 showBreadcrumbMenu 中解耦，保持单一职责
+ * 调用时机：由 menuItems.misc.ts 的 添加上传与录音组 在构建面包屑右键菜单时调用
+ *
+ * @同步豁免: UI构建 - 函数职责是同步构建 MenuItem DOM 元素并 append 到菜单，
+ *   调用方 添加上传与录音组 按顺序同步组装菜单，无法使用异步；
+ *   内部的异步逻辑（权限检查）已委托给 click 回调处理
+ */
 export function 添加录音菜单项(
     protyle: IProtyle,
     menu: Menu,
@@ -129,6 +173,7 @@ export function 添加录音菜单项(
         current: isRecording,
         icon: "iconRecord",
         label: isRecording ? siyuanI18n.endRecord : siyuanI18n.startRecord,
+        /** 录音菜单项点击回调：检查麦克风权限后，根据录音状态执行初始化/开始/停止录音操作 */
         click: async () => {
             const hasPermission = await 检查macOS麦克风权限(siyuanConfig.system?.os);
             if (!hasPermission) {

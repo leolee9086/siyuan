@@ -1,0 +1,6 @@
+{
+  "moves": [
+    { "from": "src/util/navigation/backForward.ts", "to": "src/util/platform/backForward.ts" },
+    { "from": "src/util/navigation/focusStack.ts", "to": "src/util/platform/focusStack.ts" }
+  ]
+}

@@ -6,7 +6,7 @@ import { adjustLayout, getInstanceById, JSONToCenter } from "../layout/util";
 import { resizeTabs } from "../layout/tabUtil";
 import { initStatus } from "../layout/status";
 import { appearance } from "../config/appearance";
-import { initAssets, setInlineStyle } from "../util/assets";
+import { initAssets, setInlineStyle } from "../util/assets/assets";
 import { renderSnippet } from "../config/util/snippets";
 import { getSearch } from "../util/platform/functions";
 import { initWindow } from "../boot/onGetConfig";

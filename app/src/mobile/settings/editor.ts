@@ -1,7 +1,7 @@
 import { openModel } from "../menu/model";
 import { fetchPost } from "../../util/network/fetch";
 import { reloadProtyle } from "../../protyle/util/reload";
-import { setInlineStyle } from "../../util/assets";
+import { setInlineStyle } from "../../util/assets/assets";
 import { confirmDialog } from "../../dialog/confirmDialog";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
