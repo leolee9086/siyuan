@@ -2,108 +2,252 @@ import {addScript} from "../util/addScript";
 import {Constants} from "../../constants";
 import {hasClosestByAttribute, hasClosestByClassName} from "../util/hasClosest";
 import {genIconHTML} from "./util";
+import {getMermaidInstance, getZenumlModule, isDarkMode} from "./mermaidRender.environment";
+import {isHTMLElement} from "./mathRender.guard";
+import {MermaidConfig} from "./mermaidRender.types";
 
-export const mermaidRender = (element: Element, cdn = Constants.PROTYLE_CDN) => {
-    let mermaidElements: Element[] = [];
+/**
+ * 收集需要渲染的 Mermaid 图表元素
+ *
+ * 作用：从容器元素中提取所有 data-subtype="mermaid" 的元素
+ * 意图：将元素收集逻辑从主函数中分离，保持主函数简洁
+ * 调用时机：mermaidRender 入口处调用
+ */
+/** @同步豁免: 需要绝对同步的DOM访问 */
+function collectMermaidElements(element: Element): Element[] {
+    // 当元素本身就是 mermaid 代码块时（编辑器内代码块编辑渲染场景），直接返回
     if (element.getAttribute("data-subtype") === "mermaid") {
-        // 编辑器内代码块编辑渲染
-        mermaidElements = [element];
-    } else {
-        mermaidElements = Array.from(element.querySelectorAll('[data-subtype="mermaid"]'));
+        return [element];
     }
+    return Array.from(element.querySelectorAll('[data-subtype="mermaid"]'));
+}
+
+/**
+ * 构建 Mermaid 初始化配置
+ *
+ * 作用：根据当前主题模式生成 Mermaid 的初始化配置对象
+ * 意图：将配置构建逻辑独立，便于维护和测试
+ * 调用时机：Mermaid 脚本加载完成后、initialize 调用前
+ */
+/** @同步豁免: UI构建 - 纯数据构造，无异步需求 */
+function buildMermaidConfig(): MermaidConfig {
+    const config: MermaidConfig = {
+        securityLevel: "loose", // 升级后无 https://github.com/siyuan-note/siyuan/issues/3587，可使用该选项
+        altFontFamily: "sans-serif",
+        fontFamily: "sans-serif",
+        startOnLoad: false,
+        flowchart: {
+            htmlLabels: true,
+            useMaxWidth: true
+        },
+        sequence: {
+            useMaxWidth: true,
+            diagramMarginX: 8,
+            diagramMarginY: 8,
+            boxMargin: 8,
+            // Mermaid 时序图增加序号 https://github.com/siyuan-note/siyuan/pull/6992
+            // https://mermaid.js.org/syntax/sequenceDiagram.html#sequencenumbers
+            showSequenceNumbers: true
+        },
+        gantt: {
+            leftPadding: 75,
+            rightPadding: 20
+        }
+    };
+    // 暗色主题下切换 Mermaid 为 dark 主题，使图表配色与编辑器一致
+    if (isDarkMode()) {
+        config.theme = "dark";
+    }
+    return config;
+}
+
+/**
+ * 将 Mermaid 元素按可见性分为隐藏组和可见组
+ *
+ * 作用：检测每个元素的首子元素宽度，宽度为 0 表示元素处于折叠/隐藏状态
+ * 意图：隐藏元素无法正确渲染 SVG，需要延迟到可见时再渲染
+ * 调用时机：Mermaid 初始化完成后、实际渲染前调用
+ */
+/** @同步豁免: 需要绝对同步的DOM访问 - 读取 clientWidth 判断可见性 */
+function partitionByVisibility(elements: Element[]): { hidden: Element[]; visible: Element[] } {
+    const hidden: Element[] = [];
+    const visible: Element[] = [];
+    for (const item of elements) {
+        // clientWidth === 0 说明元素处于折叠块或隐藏容器中，无法正确渲染
+        if (item.firstElementChild && item.firstElementChild.clientWidth === 0) {
+            hidden.push(item);
+            continue;
+        }
+        visible.push(item);
+    }
+    return {hidden, visible};
+}
+
+/**
+ * 为隐藏的 Mermaid 元素设置 MutationObserver 监听
+ *
+ * 作用：监听折叠块展开或闪卡容器 class 变化，触发延迟渲染
+ * 意图：折叠/隐藏状态下 Mermaid 无法正确计算 SVG 尺寸，
+ *       需要等到容器可见后再渲染
+ * 调用时机：partitionByVisibility 发现存在隐藏元素时调用
+ */
+/** @同步豁免: 需要绝对同步的DOM访问 - 设置 MutationObserver 监听 DOM 属性变化 */
+function observeHiddenElements(hiddenElements: Element[]): void {
+    const observer = new MutationObserver(() => {
+        initMermaid(hiddenElements);
+        observer.disconnect();
+    });
+    for (const item of hiddenElements) {
+        // 优先检查是否在折叠块内（fold="1"），折叠块展开时 fold 属性会变化
+        const foldAncestor = hasClosestByAttribute(item, "fold", "1");
+        if (foldAncestor) {
+            observer.observe(foldAncestor, {attributeFilter: ["fold"]});
+            continue;
+        }
+        // 其次检查是否在闪卡容器内，闪卡翻转时 class 会变化
+        const cardAncestor = hasClosestByClassName(item, "card__block", true);
+        if (cardAncestor) {
+            observer.observe(cardAncestor, {attributeFilter: ["class"]});
+        }
+    }
+}
+
+/**
+ * 渲染单个 Mermaid 图表元素
+ *
+ * 作用：调用 mermaid.render 将 data-content 中的文本渲染为 SVG 并插入 DOM
+ * 意图：将单个元素的渲染逻辑封装，供 initMermaid 循环调用
+ * 调用时机：initMermaid 遍历每个元素时调用
+ */
+async function renderSingleMermaidElement(
+    item: HTMLElement, wysiswgElement: false | HTMLElement
+): Promise<void> {
+    // 已渲染的元素跳过，避免重复渲染
+    if (item.getAttribute("data-render") === "true") {
+        return;
+    }
+    // 首次渲染时元素尚未插入工具栏图标，需要补充插入
+    if (!item.firstElementChild?.classList.contains("protyle-icons")) {
+        item.insertAdjacentHTML("afterbegin", genIconHTML(wysiswgElement));
+    }
+    const renderElement = item.firstElementChild?.nextElementSibling;
+    // renderElement 可能因 DOM 结构异常而不存在，或不是 HTMLElement
+    if (!renderElement || !isHTMLElement(renderElement)) {
+        return;
+    }
+    const dataContent = item.getAttribute("data-content");
+    // 无内容时仅插入占位符
+    if (!dataContent) {
+        renderElement.innerHTML = `<span style="position: absolute;left:0;top:0;width: 1px;">${Constants.ZWSP}</span>`;
+        return;
+    }
+    const id = "mermaid" + Lute.NewNodeID();
+    try {
+        renderElement.innerHTML = `<span style="position: absolute;left:0;top:0;width: 1px;">${Constants.ZWSP}</span><div contenteditable="false"><span id="${id}"></span></div>`;
+        const mermaidData = await getMermaidInstance().render(id, Lute.UnEscapeHTMLStr(dataContent));
+        // renderElement.lastElementChild 是刚插入的 div[contenteditable="false"]
+        if (renderElement.lastElementChild) {
+            renderElement.lastElementChild.innerHTML = mermaidData.svg;
+        }
+    } catch (e: unknown) {
+        const errorElement = document.querySelector("#" + id);
+        const message = e instanceof Error ? e.message.replace(/\n/, "<br>") : String(e);
+        // errorElement 是 mermaid 渲染失败时残留的 span，需要移除并显示错误信息
+        if (renderElement.lastElementChild && errorElement) {
+            renderElement.lastElementChild.innerHTML = `${errorElement.outerHTML}<div class="fn__hr"></div><div class="ft__error">${message}</div>`;
+            errorElement.parentElement?.remove();
+        }
+    }
+    item.setAttribute("data-render", "true");
+}
+
+/**
+ * 批量渲染 Mermaid 图表元素
+ *
+ * 作用：遍历元素列表，逐个调用 renderSingleMermaidElement 完成渲染
+ * 意图：将批量渲染逻辑封装，供主入口和 MutationObserver 回调复用
+ * 调用时机：
+ *   - mermaidRender 初始化完成后，对可见元素调用
+ *   - MutationObserver 检测到隐藏元素变为可见时回调调用
+ */
+async function initMermaid(mermaidElements: Element[]): Promise<void> {
+    const firstElement = mermaidElements[0];
+    // 空数组时直接返回
+    if (!firstElement) {
+        return;
+    }
+    const wysiswgElement = hasClosestByClassName(firstElement, "protyle-wysiwyg", true);
+    for (const item of mermaidElements) {
+        // querySelectorAll 返回 Element，需要确认为 HTMLElement 才能操作 DOM 属性
+        if (!isHTMLElement(item)) {
+            continue;
+        }
+        await renderSingleMermaidElement(item, wysiswgElement);
+    }
+}
+
+/**
+ * 加载 Mermaid 图标包的 JSON 数据
+ *
+ * 作用：从 CDN 获取 Mermaid 图标包定义
+ * 意图：将 fetch 逻辑提取为命名函数，避免内联回调超长
+ * 调用时机：Mermaid registerIconPacks 内部按需调用
+ */
+function createIconLoader(cdn: string): () => Promise<Response> {
+    return () => fetch(`${cdn}/js/mermaid/icons.json?v=11.11.0`).then((res) => res.json());
+}
+
+/**
+ * 加载 Mermaid 及 ZenUML 脚本并注册外部图表和图标包
+ *
+ * 作用：按顺序加载 mermaid.min.js 和 mermaid-zenuml.min.js，
+ *       注册 ZenUML 外部图表和图标包
+ * 意图：将脚本加载和注册逻辑从主入口分离，降低主函数复杂度
+ * 调用时机：mermaidRender 确认存在待渲染元素后调用
+ */
+async function loadAndInitMermaid(cdn: string): Promise<void> {
+    await addScript(`${cdn}/js/mermaid/mermaid.min.js?v=11.12.0`, "protyleMermaidScript");
+    await addScript(`${cdn}/js/mermaid/mermaid-zenuml.min.js?v=0.2.2`, "protyleMermaidZenumlScript");
+
+    const mermaid = getMermaidInstance();
+    await mermaid.registerExternalDiagrams([getZenumlModule()]);
+    mermaid.registerIconPacks([
+        {
+            name: "logos",
+            loader: createIconLoader(cdn),
+        },
+    ]);
+
+    const config = buildMermaidConfig();
+    mermaid.initialize(config);
+}
+
+/**
+ * 渲染容器内所有 Mermaid 图表元素
+ *
+ * 作用：加载 Mermaid 依赖脚本，初始化配置，然后分批渲染可见/隐藏元素
+ * 意图：作为 Mermaid 图表渲染的统一入口，管理依赖加载、配置初始化和批量渲染
+ * 调用时机：
+ *   - 编辑器内容变更后（输入、粘贴、撤销等触发 processCode）
+ *   - 块渲染/刷新时
+ *   - PDF/HTML 导出预览时
+ *   - 通过 Protyle.mermaidRender 静态方法外部调用
+ */
+export const mermaidRender = async (
+    element: Element, cdn = Constants.PROTYLE_CDN
+): Promise<void> => {
+    const mermaidElements = collectMermaidElements(element);
+    // 无 mermaid 元素时直接返回，避免不必要的脚本加载
     if (mermaidElements.length === 0) {
         return;
     }
-    addScript(`${cdn}/js/mermaid/mermaid.min.js?v=11.12.0`, "protyleMermaidScript").then(() => {
-        addScript(`${cdn}/js/mermaid/mermaid-zenuml.min.js?v=0.2.2`, "protyleMermaidZenumlScript").then(async () => {
-            await window.mermaid.registerExternalDiagrams([window.zenuml]);
-            window.mermaid.registerIconPacks([
-                {
-                    name: "logos",
-                    loader: () =>
-                        fetch(`${cdn}/js/mermaid/icons.json?v=11.11.0`).then((res) => res.json()),
-                },
-            ]);
-            const config: any = {
-                securityLevel: "loose", // 升级后无 https://github.com/siyuan-note/siyuan/issues/3587，可使用该选项
-                altFontFamily: "sans-serif",
-                fontFamily: "sans-serif",
-                startOnLoad: false,
-                flowchart: {
-                    htmlLabels: true,
-                    useMaxWidth: !0
-                },
-                sequence: {
-                    useMaxWidth: true,
-                    diagramMarginX: 8,
-                    diagramMarginY: 8,
-                    boxMargin: 8,
-                    showSequenceNumbers: true // Mermaid 时序图增加序号 https://github.com/siyuan-note/siyuan/pull/6992 https://mermaid.js.org/syntax/sequenceDiagram.html#sequencenumbers
-                },
-                gantt: {
-                    leftPadding: 75,
-                    rightPadding: 20
-                }
-            };
-            if (window.siyuan.config.appearance.mode === 1) {
-                config.theme = "dark";
-            }
-            window.mermaid.initialize(config);
-            const hideElements: Element[] = [];
-            const normalElements: Element[] = [];
-            mermaidElements.forEach(item => {
-                if (item.firstElementChild.clientWidth === 0) {
-                    hideElements.push(item);
-                } else {
-                    normalElements.push(item);
-                }
-            });
-            if (hideElements.length > 0) {
-                const observer = new MutationObserver(() => {
-                    initMermaid(hideElements);
-                    observer.disconnect();
-                });
-                hideElements.forEach(item => {
-                    const hideElement = hasClosestByAttribute(item, "fold", "1");
-                    if (hideElement) {
-                        observer.observe(hideElement, {attributeFilter: ["fold"]});
-                    } else {
-                        const cardElement = hasClosestByClassName(item, "card__block", true);
-                        if (cardElement) {
-                            observer.observe(cardElement, {attributeFilter: ["class"]});
-                        }
-                    }
-                });
-            }
-            initMermaid(normalElements);
-        });
-    });
-};
 
-const initMermaid = (mermaidElements: Element[]) => {
-    const wysiswgElement = hasClosestByClassName(mermaidElements[0], "protyle-wysiwyg", true);
-    mermaidElements.forEach(async (item: HTMLElement) => {
-        if (item.getAttribute("data-render") === "true") {
-            return;
-        }
-        if (!item.firstElementChild.classList.contains("protyle-icons")) {
-            item.insertAdjacentHTML("afterbegin", genIconHTML(wysiswgElement));
-        }
-        const renderElement = item.firstElementChild.nextElementSibling as HTMLElement;
-        if (!item.getAttribute("data-content")) {
-            renderElement.innerHTML = `<span style="position: absolute;left:0;top:0;width: 1px;">${Constants.ZWSP}</span>`;
-            return;
-        }
-        const id = "mermaid" + Lute.NewNodeID();
-        try {
-            renderElement.innerHTML = `<span style="position: absolute;left:0;top:0;width: 1px;">${Constants.ZWSP}</span><div contenteditable="false"><span id="${id}"></span></div>`;
-            const mermaidData = await window.mermaid.render(id, Lute.UnEscapeHTMLStr(item.getAttribute("data-content")));
-            renderElement.lastElementChild.innerHTML = mermaidData.svg;
-        } catch (e) {
-            const errorElement = document.querySelector("#" + id);
-            renderElement.lastElementChild.innerHTML = `${errorElement.outerHTML}<div class="fn__hr"></div><div class="ft__error">${e.message.replace(/\n/, "<br>")}</div>`;
-            errorElement.parentElement.remove();
-        }
-        item.setAttribute("data-render", "true");
-    });
+    await loadAndInitMermaid(cdn);
+
+    const {hidden, visible} = partitionByVisibility(mermaidElements);
+    // 存在隐藏元素时设置 MutationObserver 延迟渲染
+    if (hidden.length > 0) {
+        observeHiddenElements(hidden);
+    }
+    await initMermaid(visible);
 };
