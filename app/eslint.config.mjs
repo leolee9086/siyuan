@@ -18,6 +18,8 @@ import { requireIfCommentPlugin } from "./0_lints/require-if-comment.mjs";
 import { requireTimeoutCommentPlugin } from "./0_lints/require-timeout-comment.mjs";
 import { requireAsyncExportPlugin } from "./0_lints/require-async-export.mjs";
 import { noTrivialWrapperPlugin } from "./0_lints/no-trivial-wrapper.mjs";
+import { noExtendsPlugin } from "./0_lints/no-extends.mjs";
+import { noExportForwardingPlugin } from "./0_lints/no-export-forwarding.mjs";
 import { FULL_FIX_REMINDER, 单文件检查提示 } from "./0_lints/shared-constants.mjs";
 
 // Defining local constant for backward compatibility and internal usage
@@ -127,7 +129,7 @@ const COMMON_RESTRICTED_SYNTAX = [
 const TYPE_ASSERTION_RESTRICTIONS = [
     {
         selector: "TSAsExpression:not([typeAnnotation.type='TSTypeReference'][typeAnnotation.typeName.name='const']), TSTypeAssertion",
-        message: "❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。" + 全量修复提示+ 单文件检查提示,
+        message: "❌ 禁止使用 'as' 断言。请在 .guard.ts 中使用类型守卫，或依赖自动推断。" + 全量修复提示 + 单文件检查提示,
     },
     {
         selector: "TSTypePredicate",
@@ -138,11 +140,11 @@ const TYPE_ASSERTION_RESTRICTIONS = [
 const TYPE_DEFINITION_RESTRICTIONS = [
     {
         selector: "TSTypeAliasDeclaration",
-        message: "架构约束：禁止在业务/UI文件定义 Type。请移至 *.types.ts。" + 全量修复提示+ 单文件检查提示,
+        message: "架构约束：禁止在业务/UI文件定义 Type。请移至 *.types.ts。" + 全量修复提示 + 单文件检查提示,
     },
     {
         selector: "TSInterfaceDeclaration",
-        message: "架构约束：禁止在业务/UI文件定义 Interface。请移至 *.types.ts。" + 全量修复提示+ 单文件检查提示,
+        message: "架构约束：禁止在业务/UI文件定义 Interface。请移至 *.types.ts。" + 全量修复提示 + 单文件检查提示,
     },
     {
         selector: "TSEnumDeclaration",
@@ -164,6 +166,8 @@ const SHARED_PLUGINS = {
     "require-timeout-comment": requireTimeoutCommentPlugin,
     "require-async-export": requireAsyncExportPlugin,
     "no-trivial-wrapper": noTrivialWrapperPlugin,
+    "no-extends": noExtendsPlugin,
+    "no-export-forwarding": noExportForwardingPlugin,
 };
 
 const SHARED_RULES = {
@@ -221,6 +225,10 @@ const SHARED_RULES = {
     "require-timeout-comment/require-timeout-comment": "error",
     "require-async-export/require-async-export": "error",
     "no-trivial-wrapper/no-trivial-wrapper": "error",
+    "no-extends/no-extends": "error",
+    "no-export-forwarding/no-export-forwarding": ["error", {
+        "message": "❌ [架构约束] 禁止使用导出转发 (Export Forwarding)。\n直接在声明的原始文件中导入需要的标识符，而不是通过中间文件 (Barrel) 进行聚合。\n原因：多层导出转出会导致意外的依赖循环产生、并影响编辑器基于文件的语义与依赖查找链。" + FULL_FIX_REMINDER + 单文件检查提示
+    }],
 };
 
 export default [{
@@ -235,6 +243,8 @@ export default [{
         "scripts",
         "**/*.d.ts",
         "webpack*.js",
+        "**/*.backup.ts",
+        "**/*.old.ts",
     ],
 }, ...compat.extends("eslint:recommended", "plugin:@typescript-eslint/recommended"), ...pluginVue.configs["flat/essential"],
 {
