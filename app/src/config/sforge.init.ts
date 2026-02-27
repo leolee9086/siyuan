@@ -12,6 +12,8 @@
  * @module config/sforge.init
  */
 
+import type { ISForgeInitOptions } from "./sforge.types";
+
 // ============ 初始化状态 ============
 
 let 已初始化 = false;
@@ -55,14 +57,6 @@ function 注册通用功能(): void {
 // ============ 主初始化函数 ============
 
 /**
- * S-Forge 初始化选项
- */
-interface ISForgeInitOptions {
-    /** 是否为移动端平台 */
-    isMobile?: boolean;
-}
-
-/**
  * 初始化 S-Forge
  * 
  * 作用：启动所有 S-Forge 扩展功能
@@ -74,6 +68,7 @@ interface ISForgeInitOptions {
  * @param options 初始化选项
  */
 export async function initSForge(options?: ISForgeInitOptions): Promise<void> {
+    // 幂等性守卫：initSForge 可能被多个入口重复调用，此处确保实际初始化逻辑只执行一次
     if (已初始化) {
         console.debug("[S-Forge] 已经初始化过，跳过");
         return;
@@ -105,13 +100,7 @@ export async function initSForge(options?: ISForgeInitOptions): Promise<void> {
     }
 }
 
-/**
- * 检查 S-Forge 是否已初始化
- */
+/** @同步豁免: 性能考虑 */
 export function isSForgeInitialized(): boolean {
     return 已初始化;
 }
-
-// 中文别名
-export const 初始化SForge = initSForge;
-export const SForge是否已初始化 = isSForgeInitialized;

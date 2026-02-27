@@ -55,3 +55,14 @@ export interface IGlobalWithSForge {
     [key: symbol]: ISForgeGlobalState;
 }
 
+/**
+ * S-Forge 初始化选项
+ *
+ * 用途：定义 initSForge 的配置参数
+ * 使用场景：在 sforge.init.ts 中控制初始化行为
+ */
+export interface ISForgeInitOptions {
+    /** 是否为移动端平台 */
+    isMobile?: boolean;
+}
+
