@@ -156,6 +156,13 @@ interface CSSStyleDeclarationElectron extends CSSStyleDeclaration {
     WebkitAppRegion: string;
 }
 
+/**
+ * abcjs renderAbc 返回的可视化对象，用于音频合成和播放控制
+ */
+interface ABCVisualObject {
+    [key: string]: unknown;
+}
+
 interface Window {
     DOMPurify: {
         sanitize(dirty: string): string;
@@ -170,7 +177,18 @@ interface Window {
     ABCJS: {
         renderAbc(element: Element, text: string, options: {
             responsive: string
-        }): void;
+        }): ABCVisualObject[];
+        synth: {
+            supportsAudio(): boolean;
+            SynthController: new () => {
+                load(selector: string, cursorControl: null, options: object): void;
+                disable(isDisabled: boolean): void;
+                setTune(visualObj: ABCVisualObject, userAction: boolean): Promise<void>;
+            };
+            CreateSynth: new () => {
+                init(options: { visualObj: ABCVisualObject; options: object }): Promise<void>;
+            };
+        };
     };
     MathJax: {
         svg: {
@@ -205,8 +223,8 @@ interface Window {
     zenuml: object,
     mermaid: {
         initialize(options: any): void,
-        render(id: string, text: string): { svg: string },
-        registerExternalDiagrams(ex: object[]): void,
+        render(id: string, text: string): Promise<{ svg: string }>,
+        registerExternalDiagrams(ex: object[]): Promise<void>,
         registerIconPacks(options: {
             name: string,
             loader(): Promise<Response>
