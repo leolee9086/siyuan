@@ -1,0 +1,139 @@
+import {Constants} from "../../constants";
+import {hasClosestBlock, hasClosestByClassName} from "../util/hasClosest";
+import {getSavePath} from "../../util/getSavePath";
+import {transaction} from "../wysiwyg/transaction";
+import {fetchPost} from "../../util/fetch";
+import {pathPosix} from "../../util/pathName";
+import {updateAttrViewCellAnimation} from "../render/av/action";
+import {isHTMLElement} from "../../util/DOM/element.guard";
+import type {Hint} from "./index";
+
+/**
+ * 处理 fill 方法中属性视图（av）源的填充逻辑。
+ * 当 hint 的 source 为 "av" 时，处理新建文档或替换已有块的操作。
+ * @returns true 表示已处理（调用方应 return），false 表示未命中 av 源
+ * @同步豁免: 遗留代码 — 需要同步操作 DOM 和事务
+ */
+export function handleFillAv(hint: Hint, value: string, protyle: IProtyle, source: string): boolean {
+    if (source !== "av") {
+        return false;
+    }
+    const range = protyle.toolbar?.range;
+    if (!range) {
+        return true;
+    }
+    const nodeElement = hasClosestBlock(range.startContainer);
+    if (!nodeElement) {
+        return true;
+    }
+    const cellElement = findAvCell(range, nodeElement);
+    if (!cellElement) {
+        return true;
+    }
+    const rowElement = hasClosestByClassName(cellElement, nodeElement.getAttribute("data-av-type") === "table" ? "av__row" : "av__gallery-item");
+    if (!rowElement) {
+        return true;
+    }
+    const previousID = rowElement.dataset.id ?? "";
+    const avID = nodeElement.getAttribute("data-av-id") ?? "";
+    const wrapper = document.createElement("div");
+    wrapper.innerHTML = value.replace(/<mark>/g, "").replace(/<\/mark>/g, "");
+    const tempElement = wrapper.firstElementChild;
+    if (!tempElement || !isHTMLElement(tempElement)) {
+        return true;
+    }
+    // value 匹配 newFile 模式时走新建文档分支，否则走已有块替换
+    if (value.startsWith("((newFile ") && value.endsWith(`${Lute.Caret}'))`)) {
+        handleFillAvNewFile(protyle, value, rowElement, previousID, avID, cellElement);
+        return true;
+    }
+    handleFillAvExisting(protyle, rowElement, previousID, avID, cellElement, tempElement);
+    return true;
+}
+
+/** 查找当前 range 所在的 av 单元格，优先直接命中，回退到选中态单元格 */
+function findAvCell(range: Range, nodeElement: HTMLElement): HTMLElement | false {
+    const cellElement = hasClosestByClassName(range.startContainer, "av__cell");
+    if (cellElement) {
+        return cellElement;
+    }
+    const selected = nodeElement.querySelector(".av__cell--select");
+    if (selected && isHTMLElement(selected)) {
+        return selected;
+    }
+    return false;
+}
+
+/** @同步豁免: 遗留代码 — av 新建文档填充 */
+function handleFillAvNewFile(
+    protyle: IProtyle, value: string, rowElement: HTMLElement,
+    previousID: string, avID: string, cellElement: HTMLElement
+) {
+    const fileNames = value.substring(11, value.length - 4).split(`"${Constants.ZWSP}'`);
+    const realFileName = fileNames.length === 1 ? fileNames[0] : (fileNames[1] ?? fileNames[0]);
+    const newID = Lute.NewNodeID();
+    rowElement.dataset.id = newID;
+    // @内联回调 — getSavePath/fetchPost 回调需要闭包访问 protyle、avID、previousID、newID 等多个局部变量
+    getSavePath(protyle.path ?? "", protyle.notebookId ?? "", (pathString, targetNotebookId) => {
+        // @内联回调 — fetchPost 回调需要闭包访问 transaction 参数
+        fetchPost("/api/filetree/createDocWithMd", {
+            notebook: targetNotebookId,
+            path: pathPosix().join(pathString, realFileName ?? ""),
+            parentID: protyle.notebookId === targetNotebookId ? protyle.block.rootID : "",
+            markdown: "",
+            id: newID,
+        }, () => {
+            transaction(protyle, [{
+                action: "replaceAttrViewBlock",
+                avID,
+                previousID,
+                nextID: newID,
+                isDetached: false,
+            }], [{
+                action: "replaceAttrViewBlock",
+                avID,
+                previousID: newID,
+                nextID: previousID,
+                isDetached: true,
+            }]);
+        });
+    });
+    updateAttrViewCellAnimation(cellElement, {
+        type: "block",
+        isDetached: false,
+        block: {content: realFileName ?? "", id: newID}
+    });
+}
+
+/** @同步豁免: 遗留代码 — av 已有块替换填充 */
+function handleFillAvExisting(
+    protyle: IProtyle, rowElement: HTMLElement,
+    previousID: string, avID: string, cellElement: HTMLElement, tempElement: HTMLElement
+) {
+    const sourceId = tempElement.getAttribute("data-id");
+    if (!sourceId) {
+        return;
+    }
+    rowElement.dataset.id = sourceId;
+    transaction(protyle, [{
+        action: "replaceAttrViewBlock",
+        avID,
+        previousID,
+        nextID: sourceId,
+        isDetached: false,
+    }], [{
+        action: "replaceAttrViewBlock",
+        avID,
+        previousID: sourceId,
+        nextID: previousID,
+        isDetached: true,
+    }]);
+    updateAttrViewCellAnimation(cellElement, {
+        type: "block",
+        isDetached: false,
+        block: {
+            content: tempElement.textContent,
+            id: sourceId
+        }
+    });
+}
