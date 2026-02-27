@@ -379,7 +379,7 @@ const 显示评分过滤菜单 = (btn: Element) => {
         ratingMenu.addItem({
             label: rating,
             click: () => {
-                // TODO: 实现评分过滤
+                // @AITODO: 实现评分过滤
             }
         });
     }
@@ -534,6 +534,8 @@ export const assetMenu = (
         menu.popup(position);
         return;
     }
-    // 桌面端使用全局单例 Dialog
-    openAssetDialog(callback);
+    // 桌面端使用全局单例 Dialog，由发起方通过 callback 控制插入行为
+    openAssetDialog(callback ?? ((url: string) => {
+        hintRenderAssets(url, protyle);
+    }));
 };

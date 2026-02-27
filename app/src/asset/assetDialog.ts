@@ -1,79 +1,37 @@
 /**
  * 全局资源选择对话框
- * @description 单例模式实现的资源选择器，使用瀑布流布局展示素材
+ * @description 单例模式实现的纯资源选择器，使用瀑布流布局展示素材
  *
  * 功能特性：
  * - 桌面端全局单例，避免重复创建
  * - 瀑布流布局展示素材，支持虚拟滚动
- * - 根据当前活跃编辑器决定插入位置
+ * - 纯选择器，选中后的行为由调用方通过 callback 控制
  * - 支持搜索、类型过滤、预览
  *
  * 使用方式：
- * - 调用 openAssetDialog() 打开对话框
- * - 可传入 callback 自定义插入行为
+ * - 调用 openAssetDialog(callback) 打开对话框
+ * - 必须传入 callback 处理选中后的行为
  */
 
 import { Dialog } from "../dialog";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
-import { hintRenderAssets } from "../protyle/hint/extend";
 import { createVueDialog } from "../util/dialog/createVueDialog";
 import AssetMasonryDialog from "./components/AssetMasonryDialog.vue";
-import { getAllEditor } from "../layout/getAll";
 import { isMobile } from "../platform";
 
 /** 全局对话框实例 */
 let dialogInstance: Dialog | null = null;
 
 /**
- * 获取当前活跃的 protyle 编辑器
- * @AITODO 使用条件编译来处理移动端和桌面端不同的逻辑容易造成代码对弱AI不可读,应该尽可能以程序逻辑处理
- * @description 遍历所有编辑器，找到包含焦点或光标的那个
- */
-const 获取活跃编辑器 = (): IProtyle | null => {
-    if (isMobile) {
-        return window.siyuan.mobile?.editor?.protyle ?? null;
-    }
-    const editors = getAllEditor();
-
-    // 优先查找包含焦点的编辑器
-    for (const editor of editors) {
-        const protyle = editor.protyle;
-        if (!protyle?.wysiwyg?.element) {
-            continue;
-        }
-
-        // 检查是否包含焦点
-        if (protyle.wysiwyg.element.contains(document.activeElement)) {
-            return protyle;
-        }
-
-        // 检查是否有选区
-        const selection = window.getSelection();
-        if (selection && selection.rangeCount > 0) {
-            const range = selection.getRangeAt(0);
-            if (protyle.wysiwyg.element.contains(range.commonAncestorContainer)) {
-                return protyle;
-            }
-        }
-    }
-
-    // 如果没有活跃编辑器，返回第一个可用的
-    for (const editor of editors) {
-        if (editor.protyle?.wysiwyg?.element) {
-            return editor.protyle;
-        }
-    }
-
-    return null;
-};
-
-/**
  * 打开资源选择对话框
- * @description 全局单例模式，桌面端只会有一个实例，使用瀑布流布局
- * @param callback 可选的回调函数，选中资源时调用。如不传入则插入到当前活跃编辑器
+ * @作用 纯资源选择器，选中后通过 callback 通知调用方
+ * @意图 将选择行为与插入行为解耦，由调用方决定选中后的处理逻辑
+ * @调用时机 由 assetMenu 等发起方调用，传入处理选中资源的 callback
+ * @param callback 必需的回调函数，用户选中资源时调用
+ * @同步豁免: UI构建 — 创建对话框实例并管理单例生命周期，需要同步操作 DOM
  */
-export const openAssetDialog = (callback?: (url: string, name: string) => void) => {
-    // 如果已存在实例，聚焦到它
+export const openAssetDialog = (callback: (url: string, name: string) => void) => {
+    // 单例模式：已存在实例时聚焦到输入框
     if (dialogInstance) {
         const inputElement = dialogInstance.element.querySelector("input");
         inputElement?.focus();
@@ -82,27 +40,20 @@ export const openAssetDialog = (callback?: (url: string, name: string) => void) 
 
     dialogInstance = createVueDialog({
         dataKey: "dialog-asset-masonry",
+        /** 创建 Vue 组件配置，绑定 select/cancel 事件到对话框生命周期管理 */
         vueConfigFactory: (dialog: Dialog) => ({
             components: {
                 AssetMasonryDialog
             },
             data: {},
             eventHandlers: {
+                /** 用户选中资源时：销毁对话框并通过 callback 通知调用方 */
                 handleSelect: (url: string, name: string) => {
                     dialog.destroy();
                     dialogInstance = null;
-
-                    if (callback) {
-                        callback(url, name);
-                        return;
-                    }
-
-                    // 获取当前活跃编辑器并插入
-                    const protyle = 获取活跃编辑器();
-                    if (protyle) {
-                        hintRenderAssets(url, protyle);
-                    }
+                    callback(url, name);
                 },
+                /** 用户取消选择时：仅销毁对话框 */
                 handleCancel: () => {
                     dialog.destroy();
                     dialogInstance = null;
@@ -116,6 +67,7 @@ export const openAssetDialog = (callback?: (url: string, name: string) => void) 
             height: "75vh",
             disableScrimClose: true,
             closeButtonPosition: "inside",
+            /** 对话框被外部销毁时（如按 Esc），清理单例引用 */
             destroyCallback: () => {
                 dialogInstance = null;
             }
@@ -125,6 +77,7 @@ export const openAssetDialog = (callback?: (url: string, name: string) => void) 
 
 /**
  * 关闭资源选择对话框
+ * @同步豁免: UI构建 — 销毁对话框实例并清理单例引用，需要同步操作 DOM
  */
 export const closeAssetDialog = () => {
     if (dialogInstance) {
