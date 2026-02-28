@@ -1,0 +1,95 @@
+# S-Forge 笔记内插件开发指南
+
+S-Forge 提供了一种独特的“笔记内插件 (In-Note Plugin)”机制。借助这一机制，你可以直接在特定的文档页面中按需加载并执行自定义的 JavaScript 交互逻辑，而无需编写并打包一个全局插件。
+
+## 原理概述
+
+笔记内插件位于 `app/src/inNotePlugin` 模块，它的核心是通过特定的沙盒环境（`SecureModuleCreator`）读取笔记中指定的代码块病安全地运行。
+在插件加载时，S-Forge 会动态生成并注入思源核心 API（例如 `Plugin`, `fetchPost`, `showMessage` 等），以供 ESM 模块直接导入使用。
+
+## 编写第一个笔记内插件
+
+要编写一个笔记内插件，你需要在一篇笔记（文档）中创建一个指定语言（如 `javascript` 或 `typescript`）的代码块，并导出一个继承自 `Plugin` 的默认类。
+
+### 基础模板
+
+```javascript
+// 从动态注入的 siyuan 环境中导入需要的核心组件
+import { Plugin, fetchPost, showMessage } from "siyuan";
+
+export default class MyInNotePlugin extends Plugin {
+    // 插件被加载时调用
+    async onload() {
+        console.log("笔记内插件已启动!");
+        showMessage("插件加载成功");
+    }
+
+    // 插件界面准备就绪时调用
+    onLayoutReady() {
+        console.log("布局已就绪");
+    }
+
+    // 插件被卸载时调用
+    async onunload() {
+        console.log("笔记内插件已卸载!");
+    }
+}
+```
+
+## 实战示例：为当前块或特定块调用“优化排版”
+
+利用思源内核 API `/api/format/autoSpace`，我们可以非常方便地在笔记内插件中为特定内容进行排版优化。
+
+### 示例代码
+
+以下代码演示了如何在笔记内插件中注册一个命令或直接在加载时，对指定的块 ID 进行排版优化：
+
+```javascript
+import { Plugin, fetchPost, showMessage } from "siyuan";
+
+export default class TypographyOptimizerPlugin extends Plugin {
+    async onload() {
+        // 假设我们要在插件加载完成后，优化当前文档的排版
+        // 你可以通过 this.app，或者传入特定的 blockId
+        
+        // 示例：这里硬编码一个块 ID。在实际应用中，你可以通过获取当前光标所在块等方式动态获取
+        const targetBlockId = "20240228xxxxxx-xxxxxxx"; 
+        
+        this.addCommand({
+            langKey: "optimizeCurrentBlock", // 命令标识
+            hotkey: "⇧⌘F", // 快捷键 (可选)
+            callback: () => {
+                this.optimizeTypography(targetBlockId);
+            }
+        });
+        
+        showMessage("优化排版插件已加载，可通过快捷键触发");
+    }
+
+    /**
+     * 调用内核排版优化 API
+     * @param {string} blockId - 需要优化排版的块 ID
+     */
+    async optimizeTypography(blockId) {
+        try {
+            // 调用内核的格式化接口
+            const response = await fetchPost("/api/format/autoSpace", {
+                id: blockId
+            });
+            
+            console.log("优化排版请求成功", response);
+            showMessage("块排版已优化");
+            
+        } catch (error) {
+            console.error("优化排版请求失败", error);
+            showMessage("排版优化失败，请查看控制台");
+        }
+    }
+}
+```
+
+## 注意事项
+
+1. **API 模块重定向**：虽然在代码中你写的是 `import { ... } from "siyuan"`，但这并非真正的 NPM 模块，S-Forge 插件加载器会在运行时将它重定向到动态生成的对象。因此你可以安全地使用该模块内导出的 `Plugin`、`fetchPost` 等工具。
+2. **安全性与权限**：笔记内插件在带有权限限制的（白名单机制）的安全模块中运行，如果试图请求未经允许的外部资源，可能会在沙盒拦截层抛出异常。
+3. **数据竞态**：排版优化是在思源内核直接修改数据的操作，修改完成后客户端会自动通过 WebSocket 收到更新广播并重绘界面。请避免在调用排版优化的同时用其他 API 修应该文档，防止数据写入冲突。
