@@ -77,6 +77,7 @@ export const taskCheckerPlugin = {
                                     const relPath = path.relative(process.cwd(), taskFilePath);
                                     context.report({
                                         node,
+                                        loc: { line: 1, column: 0 },
                                         message: `🎯 [Mission Control] 此文件已经满足基础代码规范！但${relPath}中存在未完成的任务,除非你正在其它任务执行过程中，否则立刻查看此文件领取其中一个任务并开始执行.绝对禁止以"非代码问题""非代码质量问题"等绕过此要求`,
                                     });
                                     break;
