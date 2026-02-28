@@ -3,7 +3,7 @@ import { focusByRange } from "../util/selection";
 import { hasClosestBlock } from "../util/hasClosest";
 import { highlightRender } from "../render/highlightRender";
 import { getContenteditableElement } from "../wysiwyg/getBlock";
-import { processRender } from "../util/processCode";
+import { contentRendererRegistry } from "../../registry/contentRenderer/ContentRendererRegistry";
 import { transaction } from "../wysiwyg/transaction";
 import { setStorageVal } from "../util/compatibility";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
@@ -48,7 +48,7 @@ export function updateLanguage(
                 nodeElement.dataset.subtype = currentLang;
                 nodeElement.className = "render-node";
                 nodeElement.innerHTML = `<div spin="1"></div><div class="protyle-attr" contenteditable="false">${Constants.ZWSP}</div>`;
-                processRender(nodeElement);
+                contentRendererRegistry.renderElement(nodeElement);
             } else {
                 (editElement as HTMLElement).textContent = editElement.textContent;
                 editElement.parentElement.removeAttribute("data-render");

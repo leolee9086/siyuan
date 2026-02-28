@@ -57,8 +57,7 @@ export {
     获取渲染器,
     渲染器已注册,
     注销渲染器,
-    批量渲染,
-    渲染单元素,
+    分发渲染,
 } from "./contentRenderer/ContentRendererRegistry";
 export type {
     ContentRendererFn,

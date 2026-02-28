@@ -3,7 +3,7 @@ import { hideElements } from "../../protyle/ui/hideElements";
 import { setEditMode } from "../../protyle/util/setEditMode";
 import { fetchPost } from "../../util/network/fetch";
 import { zoomOut } from "../../menus/protyle.zoomOut";
-import { processRender } from "../../protyle/util/processCode";
+import { contentRendererRegistry } from "../../registry/contentRenderer/ContentRendererRegistry";
 import { highlightRender } from "../../protyle/render/highlightRender";
 import { blockRender } from "../../protyle/render/blockRender";
 import { disabledForeverProtyle, setReadonlyByConfig } from "../../protyle/util/onGet";
@@ -89,7 +89,7 @@ const focusStack = (backStack: IBackStack) => {
         protyle.block.action = backStack.callback;
         protyle.wysiwyg.element.setAttribute("data-doc-type", getResponse.data.type);
         protyle.wysiwyg.element.innerHTML = getResponse.data.content;
-        processRender(protyle.wysiwyg.element);
+        contentRendererRegistry.renderBatch(protyle.wysiwyg.element);
         highlightRender(protyle.wysiwyg.element);
         avRender(protyle.wysiwyg.element, protyle);
         blockRender(protyle, protyle.wysiwyg.element, backStack.scrollTop);

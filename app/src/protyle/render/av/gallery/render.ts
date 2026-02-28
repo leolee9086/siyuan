@@ -8,7 +8,7 @@ import {focusBlock} from "../../../util/selection";
 import {electronUndo} from "../../../undo";
 import {addClearButton} from "../../../../util/DOM/addClearButton";
 import {avRender, genTabHeaderHTML, getGroupTitleHTML, updateSearch} from "../render";
-import {processRender} from "../../../util/processCode";
+import {contentRendererRegistry} from "../../../../registry/contentRenderer/ContentRendererRegistry";
 import {getColIconByType, getColNameByType} from "../col.typeUtils";
 import {getCompressURL} from "../../../../util/assets/image";
 import {getPageSize} from "../groups";
@@ -154,7 +154,7 @@ const renderGroupGallery = (options: ITableOptions) => {
 export const afterRenderGallery = (options: ITableOptions) => {
     const view = options.data.view as IAVGallery;
     if (view.coverFrom === 1 || view.coverFrom === 3) {
-        processRender(options.blockElement);
+        contentRendererRegistry.renderBatch(options.blockElement);
     }
     if (typeof options.resetData.oldOffset === "number") {
         options.protyle.contentElement.scrollTop = options.resetData.oldOffset;

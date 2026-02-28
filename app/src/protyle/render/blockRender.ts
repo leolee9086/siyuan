@@ -1,6 +1,6 @@
 import { hasClosestByAttribute } from "../util/hasClosest";
 import { fetchPost, fetchSyncPost } from "../../util/network/fetch";
-import { processRender } from "../util/processCode";
+import { contentRendererRegistry } from "../../registry/contentRenderer/ContentRendererRegistry";
 import { highlightRender } from "./highlightRender";
 import { genBreadcrumb, improveBreadcrumbAppearance } from "../wysiwyg/renderBacklink";
 import { avRender } from "./av/render";
@@ -301,7 +301,7 @@ const renderEmbed = (blocks: {
         renderBlocksAndImproveBreadcrumb(item, blocks);
     }
 
-    processRender(item);
+    contentRendererRegistry.renderBatch(item);
     highlightRender(item);
     avRender(item, protyle);
     // 当提供了滚动位置参数且编辑器内容元素存在时，恢复滚动位置

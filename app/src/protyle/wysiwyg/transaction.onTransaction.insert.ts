@@ -1,6 +1,6 @@
 import {focusBlock, focusByWbr, getEditorRange} from "../util/selection";
 import {blockRender} from "../render/blockRender";
-import {processRender} from "../util/processCode";
+import {contentRendererRegistry} from "../../registry/contentRenderer/ContentRendererRegistry";
 import {highlightRender} from "../render/highlightRender";
 import {hasClosestBlock, isInEmbedBlock} from "../util/hasClosest";
 import {avRender} from "../render/av/render";
@@ -96,7 +96,7 @@ export const handleInsert = (operation: IOperation, protyle: IProtyle, isUndo: b
                 item.removeAttribute(attr);
             }
         });
-        processRender(item);
+        contentRendererRegistry.renderBatch(item);
         highlightRender(item);
         avRender(item, protyle);
         blockRender(protyle, item);

@@ -6,7 +6,7 @@ import {addScript} from "../util/addScript";
 import {isMobile} from "../../util/platform/functions";
 import {Constants} from "../../constants";
 import {highlightRender} from "../render/highlightRender";
-import {processRender} from "../util/processCode";
+import {contentRendererRegistry} from "../../registry/contentRenderer/ContentRendererRegistry";
 import {isIPhone, isSafari, openByMobile, setStorageVal} from "../util/compatibility";
 import {useShell} from "../../util/file/pathName";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
@@ -158,7 +158,7 @@ export const exportImage = (id: string) => {
         previewElement.querySelectorAll(".code-block").forEach(item => {
             item.setAttribute("linewrap", "true");
         });
-        processRender(previewElement);
+        contentRendererRegistry.renderBatch(previewElement);
         highlightRender(previewElement);
         previewElement.querySelectorAll("table").forEach((item: HTMLElement) => {
             if (item.clientWidth > item.parentElement.clientWidth) {

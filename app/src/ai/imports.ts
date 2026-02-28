@@ -28,7 +28,7 @@ export { setStorageVal } from "../protyle/util/compatibility";
 export { blockRender } from "../protyle/render/blockRender";
 export { highlightRender } from "../protyle/render/highlightRender";
 export { insertHTML } from "../protyle/util/insertHTML";
-export { processRender } from "../protyle/util/processCode";
+export { contentRendererRegistry } from "../registry/contentRenderer/ContentRendererRegistry";
 export { setLastNodeRange } from "../protyle/util/selection";
 export { getContenteditableElement } from "../protyle/wysiwyg/getBlock";
 

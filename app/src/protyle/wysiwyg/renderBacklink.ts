@@ -2,7 +2,7 @@ import {getIconByType} from "../../editor/getIcon";
 import {removeLoading} from "../ui/initUI";
 import {fetchPost} from "../../util/network/fetch";
 import {Constants} from "../../constants";
-import {processRender} from "../util/processCode";
+import {contentRendererRegistry} from "../../registry/contentRenderer/ContentRendererRegistry";
 import {highlightRender} from "../render/highlightRender";
 import {blockRender} from "../render/blockRender";
 import {disabledForeverProtyle, disabledProtyle} from "../util/onGet";
@@ -21,7 +21,7 @@ export const renderBacklink = (protyle: IProtyle, backlinkData: {
     });
     protyle.wysiwyg.element.innerHTML = html;
     improveBreadcrumbAppearance(protyle.wysiwyg.element);
-    processRender(protyle.wysiwyg.element);
+    contentRendererRegistry.renderBatch(protyle.wysiwyg.element);
     highlightRender(protyle.wysiwyg.element);
     avRender(protyle.wysiwyg.element, protyle);
     blockRender(protyle, protyle.wysiwyg.element);
@@ -76,7 +76,7 @@ export const loadBreadcrumb = (protyle: IProtyle, element: HTMLElement) => {
             tempElement.remove();
         }
         element.parentElement.insertAdjacentHTML("afterend", setBacklinkFold(getResponse.data.content, true));
-        processRender(element.parentElement.parentElement);
+        contentRendererRegistry.renderBatch(element.parentElement.parentElement);
         avRender(element.parentElement.parentElement, protyle);
         blockRender(protyle, element.parentElement.parentElement);
         if (getResponse.data.isSyncing) {

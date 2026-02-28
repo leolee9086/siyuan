@@ -4,7 +4,7 @@
 import * as dayjs from "dayjs";
 import { focusBlock, focusByRange, focusByWbr } from "../../util/selection";
 import { hasClosestByClassName } from "../../util/hasClosest";
-import { processRender } from "../../util/processCode";
+import { contentRendererRegistry } from "../../../registry/contentRenderer/ContentRendererRegistry";
 import { blockRender } from "../../render/blockRender";
 import { updateTransaction } from "../../wysiwyg/transaction";
 import { showMessage } from "../../../dialog/message";
@@ -91,7 +91,7 @@ function 处理行内数学公式保存(renderElement: Element, value: string): 
     if (value) {
         renderElement.setAttribute("data-content", Lute.EscapeHTMLStr(value));
         renderElement.removeAttribute("data-render");
-        processRender(renderElement);
+        contentRendererRegistry.renderElement(renderElement);
         return undefined;
     }
     // 清空时移除元素
@@ -110,7 +110,7 @@ function 处理通用渲染保存(
     renderElement.removeAttribute("data-render");
 
     if (!types.includes("NodeBlockQueryEmbed")) {
-        processRender(renderElement);
+        contentRendererRegistry.renderElement(renderElement);
         return;
     }
 

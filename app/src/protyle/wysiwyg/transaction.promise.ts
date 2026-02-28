@@ -2,7 +2,7 @@ import { fetchPost } from "../../util/network/fetch";
 import { focusByWbr } from "../util/selection";
 import { Constants } from "../../constants";
 import { blockRender } from "../render/blockRender";
-import { processRender } from "../util/processCode";
+import { contentRendererRegistry } from "../../registry/contentRenderer/ContentRendererRegistry";
 import { highlightRender } from "../render/highlightRender";
 import { hasClosestByAttribute, hasTopClosestByAttribute, isInEmbedBlock } from "../util/hasClosest";
 import { avRender } from "../render/av/render";
@@ -67,7 +67,7 @@ export const promiseTransaction = () => {
                             }
                         }
                     });
-                    processRender(protyle.wysiwyg.element);
+                    contentRendererRegistry.renderBatch(protyle.wysiwyg.element);
                     highlightRender(protyle.wysiwyg.element);
                     avRender(protyle.wysiwyg.element, protyle);
                     blockRender(protyle, protyle.wysiwyg.element);
@@ -187,7 +187,7 @@ export const promiseTransaction = () => {
                         }
                     });
                     cursorElements.forEach(item => {
-                        processRender(item);
+                        contentRendererRegistry.renderBatch(item);
                         highlightRender(item);
                         avRender(item, protyle);
                         blockRender(protyle, item);
@@ -267,7 +267,7 @@ export const updateEmbed = (protyle: IProtyle, operation: IOperation) => {
         }
     });
     if (updatedEmbed) {
-        processRender(protyle.wysiwyg.element);
+        contentRendererRegistry.renderBatch(protyle.wysiwyg.element);
         highlightRender(protyle.wysiwyg.element);
         avRender(protyle.wysiwyg.element, protyle);
     }

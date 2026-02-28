@@ -5,6 +5,7 @@
 import { SForgeSymbols } from "./sforge.symbols";
 import type { TabRegistration } from "../registry/TabRegistry.types";
 import type { ITriggerRegistration, IBrushSession, IStyleBrushHandlers } from "../registry/TriggerRegistry.types";
+import type { ContentRendererRegistration } from "../registry/contentRenderer/ContentRendererRegistry.types";
 import type { App } from "../index";
 
 /**
@@ -23,6 +24,7 @@ export interface ISForgeGlobalState {
     [SForgeSymbols.POPOVER_TARGET_ELEMENT]?: HTMLElement;
     [SForgeSymbols.MODEL_HANDLERS]?: IModelHandlers;
     [SForgeSymbols.OPEN_MOBILE_FILE_BY_ID]?: TOpenMobileFileById;
+    [SForgeSymbols.CONTENT_RENDERER_REGISTRY]?: Map<string, ContentRendererRegistration>;
 }
 
 /**

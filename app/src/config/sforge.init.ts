@@ -45,13 +45,14 @@ async function 注册桌面端触发器(): Promise<void> {
 
 /**
  * 注册通用功能
- * 
+ *
  * 作用：注册桌面端和移动端共用的功能
  * 调用时机：所有平台 S-Forge 初始化时
  */
-function 注册通用功能(): void {
-    // 目前没有通用触发器，预留扩展点
-    // 未来可以添加如：智能提示、AI 辅助等
+async function 注册通用功能(): Promise<void> {
+    // 注册内置内容渲染器（9 个子渲染器）
+    const { registerBuiltinRenderers } = await import("../registry/contentRenderer/registerBuiltinRenderers");
+    await registerBuiltinRenderers();
 }
 
 // ============ 主初始化函数 ============
@@ -79,8 +80,8 @@ export async function initSForge(options?: ISForgeInitOptions): Promise<void> {
     const startTime = Date.now();
 
     try {
-        // 1. 注册通用功能
-        注册通用功能();
+        // 1. 注册通用功能（含内置渲染器注册）
+        await 注册通用功能();
 
         // 2. 仅桌面端注册刷子等功能
         if (!isMobile) {

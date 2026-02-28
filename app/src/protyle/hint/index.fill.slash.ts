@@ -17,7 +17,7 @@ import {getDisplayName, pathPosix} from "../../util/file/pathName";
 import {blockRender} from "../render/blockRender";
 import {openFileById} from "../../editor/utils.openFileById";
 import {openMobileFileById} from "../../mobile/editor";
-import {processRender} from "../util/processCode";
+import {contentRendererRegistry} from "../../registry/contentRenderer/ContentRendererRegistry";
 import {AIChat} from "../../ai/chat";
 import {isMobile} from "../../platform";
 import {avRender} from "../render/av/render";
@@ -346,7 +346,7 @@ function handlePostInsert(protyle: IProtyle, value: string, initialNodeElement: 
     const nodeElement = protyle.wysiwyg.element.querySelector(`[data-node-id="${initialNodeElement.getAttribute("data-node-id")}"]`) as HTMLElement || initialNodeElement;
     if (value === "<div>" || value === "$$" || (value.indexOf("```") > -1 && (value.length > 3 || nodeElement.classList.contains("render-node")))) {
         protyle.toolbar.showRender(protyle, nodeElement);
-        processRender(nodeElement);
+        contentRendererRegistry.renderBatch(nodeElement);
     } else if (value.startsWith("```")) {
         highlightRender(nodeElement);
     } else if (value.startsWith("<iframe") || value.startsWith("<video") || value.startsWith("<audio")) {

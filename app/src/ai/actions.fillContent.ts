@@ -2,7 +2,7 @@ import {
     blockRender,
     highlightRender,
     insertHTML,
-    processRender,
+    contentRendererRegistry,
     setLastNodeRange,
     getContenteditableElement
 } from "./imports";
@@ -73,7 +73,7 @@ export const fillContent = (protyle: IProtyle, rawContent: string, blockElements
         blockRender(protyle, protyle.wysiwyg.element);
 
         // 处理代码块等特殊元素的渲染
-        processRender(protyle.wysiwyg.element);
+        contentRendererRegistry.renderBatch(protyle.wysiwyg.element);
 
         // 渲染代码高亮
         highlightRender(protyle.wysiwyg.element);

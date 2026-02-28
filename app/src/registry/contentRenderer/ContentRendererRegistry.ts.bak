@@ -1,0 +1,138 @@
+/**
+ * ContentRendererRegistry.ts - 内容块渲染器注册表
+ *
+ * 解决问题：processRender 使用硬编码 if-else 分发渲染器，
+ * 耦合度高且不可扩展。
+ *
+ * 解决方案：提供全局渲染器注册表，
+ * 各渲染器自注册，消费方通过注册表统一分发。
+ */
+
+import { SForgeSymbols, getSForgeState, setSForgeState } from "../../config/sforge";
+import type { ContentRendererFn, ContentRendererRegistration } from "./ContentRendererRegistry.types";
+import { isContentRendererRegistryMap } from "./ContentRendererRegistry.guard";
+
+// 重新导出类型
+export type { ContentRendererFn, ContentRendererRegistration } from "./ContentRendererRegistry.types";
+
+/**
+ * 获取注册表存储（模块级辅助函数）
+ *
+ * 作用：获取或初始化全局内容渲染器注册表
+ * 意图：使用 SForge 全局状态存储，避免模块级变量问题
+ */
+function 获取注册表Map(): Map<string, ContentRendererRegistration> {
+    const existing = getSForgeState(SForgeSymbols.CONTENT_RENDERER_REGISTRY);
+
+    if (isContentRendererRegistryMap(existing)) {
+        return existing;
+    }
+
+    const newRegistry = new Map<string, ContentRendererRegistration>();
+    setSForgeState(SForgeSymbols.CONTENT_RENDERER_REGISTRY, newRegistry);
+    return newRegistry;
+}
+
+/**
+ * 注册内容渲染器
+ *
+ * 作用：将渲染器注册到全局注册表
+ * 意图：支持各渲染器模块自注册
+ * 调用时机：应用初始化时，各渲染器模块加载时
+ *
+ * @param subtype data-subtype 值
+ * @param renderer 渲染函数
+ * @returns 是否注册成功
+ * @同步豁免: 生命周期 - 注册表写入是基础设施操作，在模块初始化阶段被同步调用，Map.set 本身是同步操作
+ */
+export function 注册渲染器(subtype: string, renderer: ContentRendererFn): boolean {
+    const 注册表 = 获取注册表Map();
+
+    // 防止重复注册：同一 subtype 只允许注册一次，重复注册说明存在初始化逻辑错误
+    if (注册表.has(subtype)) {
+        console.warn(`[ContentRendererRegistry] 渲染器已存在: ${subtype}`);
+        return false;
+    }
+
+    注册表.set(subtype, { subtype, render: renderer });
+    return true;
+}
+
+/**
+ * 获取渲染器注册信息
+ *
+ * @param subtype data-subtype 值
+ * @同步豁免: 生命周期 - 注册表读取是基础设施操作，被渲染分发等同步代码路径依赖
+ */
+export function 获取渲染器(subtype: string): ContentRendererRegistration | undefined {
+    return 获取注册表Map().get(subtype);
+}
+
+/**
+ * 检查渲染器是否已注册
+ *
+ * @param subtype data-subtype 值
+ * @同步豁免: 生命周期 - 注册表查询是基础设施操作，Map.has 本身是同步操作
+ */
+export function 渲染器已注册(subtype: string): boolean {
+    return 获取注册表Map().has(subtype);
+}
+
+/**
+ * 注销渲染器
+ *
+ * @param subtype data-subtype 值
+ * @同步豁免: 生命周期 - 注册表删除是基础设施操作，Map.delete 本身是同步操作
+ */
+export function 注销渲染器(subtype: string): boolean {
+    return 获取注册表Map().delete(subtype);
+}
+
+/**
+ * 分发渲染：遍历 element 下所有 [data-subtype] 元素，查表分发到对应渲染器
+ *
+ * 作用：替代 processRender 的分发逻辑
+ * 意图：根据 data-subtype 属性自动查找并调用对应渲染器
+ * 调用时机：需要渲染内容块时
+ *
+ * @param element 包含待渲染内容块的容器元素
+ * @param cdn 可选的 CDN 路径前缀
+ */
+export async function 分发渲染(element: Element, cdn?: string): Promise<void> {
+    const 注册表 = 获取注册表Map();
+    const elementsToRender = Array.from(element.querySelectorAll("[data-subtype]"));
+    //如果element本身具有data-subtype属性，也需要进行渲染
+    if(element instanceof HTMLElement && element.hasAttribute("data-subtype")) {
+        //如果element本身具有data-subtype属性，也需要进行渲染
+        elementsToRender.push(element);    
+    }
+    for (const el of elementsToRender) {
+        const subtype = el.getAttribute("data-subtype");
+        // 跳过无 data-subtype 值的元素（属性存在但值为空的边界情况）
+        if (!subtype) {
+            continue;
+        }
+
+        const registration = 注册表.get(subtype);
+        if (registration) {
+            await registration.render(el, cdn);
+        }
+    }
+}
+
+// 兼容对象形式 API
+export const contentRendererRegistry = {
+    register: 注册渲染器,
+    get: 获取渲染器,
+    has: 渲染器已注册,
+    unregister: 注销渲染器,
+    render: 分发渲染,
+    /**
+     * 获取所有已注册渲染器类型
+     *
+     * 作用：返回当前注册表中所有 subtype 键
+     * 意图：用于调试和诊断，确认哪些渲染器已注册
+     * 调用时机：调试时或需要枚举已注册渲染器时
+     */
+    getAllTypes: (): string[] => Array.from(获取注册表Map().keys()),
+};

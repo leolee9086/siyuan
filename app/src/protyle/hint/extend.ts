@@ -4,7 +4,7 @@ import { getIconByType } from "../../editor/getIcon";
 import { updateHotkeyTip } from "../util/compatibility";
 import { blockRender } from "../render/blockRender";
 import { Constants } from "../../constants";
-import { processRender } from "../util/processCode";
+import { contentRendererRegistry } from "../../registry/contentRenderer/ContentRendererRegistry";
 import { highlightRender } from "../render/highlightRender";
 import { focusBlock, focusByRange, getEditorRange } from "../util/selection";
 import { hasClosestBlock, hasClosestByClassName } from "../util/hasClosest";
@@ -521,7 +521,7 @@ export const hintRenderTemplate = (value: string, protyle: IProtyle, nodeElement
             item.remove();
         });
         blockRender(protyle, protyle.wysiwyg.element);
-        processRender(protyle.wysiwyg.element);
+        contentRendererRegistry.renderBatch(protyle.wysiwyg.element);
         highlightRender(protyle.wysiwyg.element);
         avRender(protyle.wysiwyg.element, protyle);
         hideElements(["util"], protyle);

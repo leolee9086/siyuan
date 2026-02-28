@@ -1,7 +1,7 @@
 import {Constants} from "../../constants";
 import {hideElements} from "../ui/hideElements";
 import {fetchPost} from "../../util/network/fetch";
-import {processRender} from "./processCode";
+import {contentRendererRegistry} from "../../registry/contentRenderer/ContentRendererRegistry";
 import {highlightRender} from "../render/highlightRender";
 import {blockRender} from "../render/blockRender";
 import {bgFade, scrollCenter} from "../../util/DOM/highlightById";
@@ -225,7 +225,7 @@ const setHTML = (options: {
     if (options.action.includes(Constants.CB_GET_BACKLINK)) {
         foldPassiveType(options.expand, protyle.wysiwyg.element);
     }
-    processRender(protyle.wysiwyg.element);
+    contentRendererRegistry.renderBatch(protyle.wysiwyg.element);
     highlightRender(protyle.wysiwyg.element);
     avRender(protyle.wysiwyg.element, protyle);
     blockRender(protyle, protyle.wysiwyg.element);

@@ -6,7 +6,7 @@ import { hideElements } from "../../ui/hideElements";
 import { insertEmptyBlock } from "../../../block/util";
 import { matchHotKey } from "../../util/hotKey";
 import { electronUndo } from "../../undo";
-import { processRender } from "../../util/processCode";
+import { contentRendererRegistry } from "../../../registry/contentRenderer/ContentRendererRegistry";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getDOMPurify } from "../../../util/siyuanEnvironments/getDOMPurify.environment";
@@ -158,7 +158,7 @@ export function 处理文本输入(
 
     const 需要渲染 = !types.includes("NodeBlockQueryEmbed") || !types.includes("NodeHTMLBlock") || !是否行内备注;
     if (需要渲染) {
-        processRender(renderElement);
+        contentRendererRegistry.renderElement(renderElement);
     }
 
     event.stopPropagation();

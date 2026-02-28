@@ -14,7 +14,7 @@
 import { ref, watch, nextTick, onUnmounted } from "vue";
 import { AssistantResponseState } from "../ai/session/session.types";
 import type { PropType } from "vue";
-import { contentRendererRegistry } from "../registry/contentRenderer/ContentRendererRegistry";
+import { processRender } from "../protyle/util/processCode";
 
 // 定义组件属性
 const props = defineProps({
@@ -76,7 +76,7 @@ return;
 }
         
         // 直接对整个响应内容容器进行处理
-        contentRendererRegistry.renderBatch(responseContentRef.value);
+        processRender(responseContentRef.value);
         
         // 给浏览器一些时间处理渲染
         await new Promise(resolve => setTimeout(resolve, 0));

@@ -2,7 +2,7 @@ import {fetchPost} from "../../util/network/fetch";
 import {focusBlock} from "../util/selection";
 import {Constants} from "../../constants";
 import {blockRender} from "../render/blockRender";
-import {processRender} from "../util/processCode";
+import {contentRendererRegistry} from "../../registry/contentRenderer/ContentRendererRegistry";
 import {highlightRender} from "../render/highlightRender";
 import {isInEmbedBlock} from "../util/hasClosest";
 import {disabledProtyle, onGet} from "../util/onGet";
@@ -49,7 +49,7 @@ export const processFold = (operation: IOperation, protyle: IProtyle) => {
             if (protyle.disabled) {
                 disabledProtyle(protyle);
             }
-            processRender(protyle.wysiwyg.element);
+            contentRendererRegistry.renderBatch(protyle.wysiwyg.element);
             highlightRender(protyle.wysiwyg.element);
             avRender(protyle.wysiwyg.element, protyle);
             blockRender(protyle, protyle.wysiwyg.element);

@@ -26,4 +26,6 @@ export const SForgeSymbols = {
     MODEL_HANDLERS: Symbol.for("sforge.model.handlers"),
     /** openMobileFileById 代理 (用于打断 mobile/editor ↔ plugin/API 循环依赖) */
     OPEN_MOBILE_FILE_BY_ID: Symbol.for("sforge.mobile.openFileById"),
+    /** 内容块渲染器注册表 */
+    CONTENT_RENDERER_REGISTRY: Symbol.for("sforge.contentRenderer.registry"),
 } as const;

@@ -1,14 +1,3 @@
-import { abcRender } from "../render/abcRender";
-import { chartRender } from "../render/chartRender";
-import { graphvizRender } from "../render/graphvizRender";
-import { mathRender } from "../render/mathRender";
-import { mermaidRender } from "../render/mermaidRender";
-import { mindmapRender } from "../render/mindmapRender";
-import { flowchartRender } from "../render/flowchartRender";
-import { plantumlRender } from "../render/plantumlRender";
-import { Constants } from "../../constants";
-import { htmlRender } from "../render/htmlRender";
-
 export const processPasteCode = (html: string, text: string, originalTextHTML: string, protyle: IProtyle) => {
     const tempElement = document.createElement("div");
     tempElement.innerHTML = html;
@@ -44,37 +33,3 @@ export const processPasteCode = (html: string, text: string, originalTextHTML: s
     return false;
 };
 
-export const processRender = (previewPanel: Element) => {
-    const language = previewPanel.getAttribute("data-subtype") || "";
-    if (!Constants.SIYUAN_RENDER_CODE_LANGUAGES.includes(language) || previewPanel.getAttribute("data-type") !== "NodeHTMLBlock") {
-        abcRender(previewPanel);
-        htmlRender(previewPanel);
-        plantumlRender(previewPanel);
-        mermaidRender(previewPanel);
-        flowchartRender(previewPanel);
-        chartRender(previewPanel);
-        mindmapRender(previewPanel);
-        graphvizRender(previewPanel);
-        mathRender(previewPanel);
-        return;
-    }
-    if (language === "abc") {
-        abcRender(previewPanel);
-    } else if (language === "plantuml") {
-        plantumlRender(previewPanel);
-    } else if (language === "mermaid") {
-        mermaidRender(previewPanel);
-    } else if (language === "flowchart") {
-        flowchartRender(previewPanel);
-    } else if (language === "echarts") {
-        chartRender(previewPanel);
-    } else if (language === "mindmap") {
-        mindmapRender(previewPanel);
-    } else if (language === "graphviz") {
-        graphvizRender(previewPanel);
-    } else if (language === "math") {
-        mathRender(previewPanel);
-    } else if (previewPanel.getAttribute("data-type") === "NodeHTMLBlock") {
-        htmlRender(previewPanel);
-    }
-};

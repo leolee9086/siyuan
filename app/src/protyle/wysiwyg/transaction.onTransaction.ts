@@ -1,6 +1,6 @@
 import { focusBlock, focusByWbr, focusSideBlock, getEditorRange } from "../util/selection";
 import { blockRender } from "../render/blockRender";
-import { processRender } from "../util/processCode";
+import { contentRendererRegistry } from "../../registry/contentRenderer/ContentRendererRegistry";
 import { highlightRender } from "../render/highlightRender";
 import { isInEmbedBlock } from "../util/hasClosest";
 import { zoomOut } from "../../menus/protyle.zoomOut";
@@ -69,7 +69,7 @@ const updateBlock = (updateElements: Element[], protyle: IProtyle, operation: IO
     } else if (wbrElement) {
         wbrElement.remove();
     }
-    processRender(updateElements.length === 1 ? updateElements[0] : protyle.wysiwyg.element);
+    contentRendererRegistry.renderBatch(updateElements.length === 1 ? updateElements[0] : protyle.wysiwyg.element);
     highlightRender(updateElements.length === 1 ? updateElements[0] : protyle.wysiwyg.element);
     avRender(updateElements.length === 1 ? updateElements[0] : protyle.wysiwyg.element, protyle);
     blockRender(protyle, updateElements.length === 1 ? updateElements[0] : protyle.wysiwyg.element);
@@ -121,7 +121,7 @@ export const onTransaction = (protyle: IProtyle, operation: IOperation, isUndo: 
             if (protyle.disabled) {
                 disabledProtyle(protyle);
             }
-            processRender(protyle.wysiwyg.element);
+            contentRendererRegistry.renderBatch(protyle.wysiwyg.element);
             highlightRender(protyle.wysiwyg.element);
             avRender(protyle.wysiwyg.element, protyle);
             blockRender(protyle, protyle.wysiwyg.element);

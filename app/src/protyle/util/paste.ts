@@ -1,6 +1,7 @@
 import { Constants } from "../../constants";
 import { uploadFiles, uploadLocalFiles } from "../upload";
-import { processPasteCode, processRender } from "./processCode";
+import { processPasteCode } from "./processCode";
+import { contentRendererRegistry } from "../../registry/contentRenderer/ContentRendererRegistry";
 import { getLocalFiles, getTextSiyuanFromTextHTML, readText } from "./compatibility";
 import { hasClosestBlock, hasClosestByAttribute, hasClosestByClassName } from "./hasClosest";
 import { getEditorRange } from "./selection";
@@ -452,7 +453,7 @@ export const paste = async (protyle: IProtyle, event: (ClipboardEvent | DragEven
             insertHTML(tempInnerHTML, protyle, isBlock, false, true);
         }
         blockRender(protyle, protyle.wysiwyg.element);
-        processRender(protyle.wysiwyg.element);
+        contentRendererRegistry.renderBatch(protyle.wysiwyg.element);
         highlightRender(protyle.wysiwyg.element);
         avRender(protyle.wysiwyg.element, protyle);
     } else if (code) {
@@ -554,7 +555,7 @@ export const paste = async (protyle: IProtyle, event: (ClipboardEvent | DragEven
                     }
                 });
                 blockRender(protyle, protyle.wysiwyg.element);
-                processRender(protyle.wysiwyg.element);
+                contentRendererRegistry.renderBatch(protyle.wysiwyg.element);
                 highlightRender(protyle.wysiwyg.element);
                 avRender(protyle.wysiwyg.element, protyle);
                 scrollCenter(protyle, undefined, "nearest", "smooth");
@@ -616,7 +617,7 @@ export const paste = async (protyle: IProtyle, event: (ClipboardEvent | DragEven
             insertHTML(textPlainDom, protyle, false, false, true);
         }
         blockRender(protyle, protyle.wysiwyg.element);
-        processRender(protyle.wysiwyg.element);
+        contentRendererRegistry.renderBatch(protyle.wysiwyg.element);
         highlightRender(protyle.wysiwyg.element);
         avRender(protyle.wysiwyg.element, protyle);
     }

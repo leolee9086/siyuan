@@ -8,7 +8,7 @@
 
 import { Custom } from "../layout/dock/Custom";
 import { fetchPost } from "../util/network/fetch";
-import { processRender } from "../protyle/util/processCode";
+import { contentRendererRegistry } from "../registry/contentRenderer/ContentRendererRegistry";
 import { highlightRender } from "../protyle/render/highlightRender";
 import { speechRender } from "../protyle/render/speechRender";
 import { previewDocImage } from "../protyle/preview/image";
@@ -342,7 +342,7 @@ function applyPreviewResponse(
 ): void {
     const oldScrollTop = previewElement.scrollTop;
     previewElement.innerHTML = response.data?.html || "";
-    processRender(previewElement);
+    contentRendererRegistry.renderBatch(previewElement);
     highlightRender(previewElement);
     const lang = getSafeSiyuanConfig()?.appearance?.lang || "zh_CN";
     speechRender(previewElement, lang);

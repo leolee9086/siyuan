@@ -3,7 +3,7 @@ import {focusBlock, focusByWbr, getEditorRange} from "../util/selection";
 import {getContenteditableElement} from "./getBlock";
 import {Constants} from "../../constants";
 import {blockRender} from "../render/blockRender";
-import {processRender} from "../util/processCode";
+import {contentRendererRegistry} from "../../registry/contentRenderer/ContentRendererRegistry";
 import {highlightRender} from "../render/highlightRender";
 import {setFold} from "../../menus/protyle";
 import {avRender} from "../render/av/render";
@@ -303,7 +303,7 @@ export const turnsIntoTransaction = (options: {
         }
     });
     transaction(options.protyle, doOperations, undoOperations);
-    processRender(options.protyle.wysiwyg.element);
+    contentRendererRegistry.renderBatch(options.protyle.wysiwyg.element);
     highlightRender(options.protyle.wysiwyg.element);
     avRender(options.protyle.wysiwyg.element, options.protyle);
     blockRender(options.protyle, options.protyle.wysiwyg.element);
@@ -407,7 +407,7 @@ export const turnsOneInto = async (options: {
         }
     });
     blockRender(options.protyle, options.protyle.wysiwyg.element);
-    processRender(options.protyle.wysiwyg.element);
+    contentRendererRegistry.renderBatch(options.protyle.wysiwyg.element);
     highlightRender(options.protyle.wysiwyg.element);
     avRender(options.protyle.wysiwyg.element, options.protyle);
 };
