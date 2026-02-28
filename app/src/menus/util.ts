@@ -3,6 +3,8 @@ import {isElectron, isMobile} from "../platform";
 import {fetchPost} from "../util/network/fetch";
 import {getAssetName, originalPath, pathPosix, useShell} from "../util/file/pathName";
 import { openFileById } from "../editor/utils.openFileById";
+import { openFile } from "../editor/util";
+import { EXPORT_PREVIEW_TAB_TYPE } from "../export-preview/constants";
 import {Constants} from "../constants";
 import {openNewWindowById} from "../window/openNewWindow";
 import { MenuItem } from "./Menu.Item";
@@ -164,9 +166,17 @@ export const openEditorTab = (app: App, ids: string[], notebookId?: string, path
         icon: "iconPreview",
         label: siyuanI18n.preview,
         click: () => {
-            ids.forEach((id) => {
-                openFileById({app, id, mode: "preview"});
-            });
+            for (const id of ids) {
+                openFile({
+                    app,
+                    custom: {
+                        title: siyuanI18n.preview,
+                        icon: "iconPreview",
+                        id: EXPORT_PREVIEW_TAB_TYPE,
+                        data: { blockId: id },
+                    },
+                });
+            }
         }
     });
     if (isElectron) {

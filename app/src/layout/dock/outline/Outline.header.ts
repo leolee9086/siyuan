@@ -204,15 +204,6 @@ function handleAfterOpen(outline: Outline, model?: Model) {
         return;
     }
 
-    /**
-     * 作用：预览模式下的滚动处理。
-     * 意图：预览模式打开时，重置滚动条到顶部。
-     * 生效场景：outline.isPreview 为 true 且预览元素存在。
-     */
-    if (outline.isPreview && isHTMLElement(model.editor.protyle.preview?.element)) {
-        resetPreviewScroll(model.editor.protyle.preview.element);
-        return;
-    }
 
     // 非预览模式，定位到开头
     goHome(model.editor.protyle);

@@ -13,11 +13,6 @@ export const reloadProtyle = (protyle: IProtyle, focus: boolean, updateReadonly?
     if (isMobile) {
         hideKeyboardToolbar();
     }
-    if (!protyle.preview.element.classList.contains("fn__none")) {
-        protyle.preview.render(protyle);
-        removeLoading(protyle);
-        return;
-    }
     if (window.siyuan.config.editor.displayBookmarkIcon) {
         protyle.wysiwyg.element.classList.add("protyle-wysiwyg--attr");
     } else {

@@ -98,7 +98,7 @@ const updateOutlineItem = (item: Outline, protyle: IProtyle | undefined, reload:
     if (protyle && protyle.block) {
         blockId = protyle.block.rootID || "";
     }
-    const isPreview = !protyle?.preview?.element.classList.contains("fn__none");
+    const isPreview = false;
 
     if (blockId === item.blockId && !reload && item.isPreview === isPreview) {
         return;
@@ -154,7 +154,7 @@ export const updateOutline = (models: IModels, protyle: IProtyle | undefined, re
         if (reload ||
             (item.type === "pin" &&
                 (!protyle || item.blockId !== protyle.block?.rootID ||
-                    item.isPreview === !protyle.preview?.element.classList.contains("fn__none"))
+                    item.isPreview)
             )
         ) {
             updateOutlineItem(item, protyle, reload);

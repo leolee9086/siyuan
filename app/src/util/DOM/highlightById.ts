@@ -11,16 +11,6 @@ export const bgFade = (element: Element) => {
 export const highlightById = (protyle: IProtyle, id: string, position: ScrollLogicalPosition = "nearest") => {
     let nodeElement: HTMLElement;
     const protyleElement = protyle.wysiwyg.element;
-    if (!protyle.preview.element.classList.contains("fn__none")) {
-        // 预览定位
-        nodeElement = document.getElementById(id);
-        if (nodeElement) {
-            protyle.preview.element.scrollTop = nodeElement.offsetTop;
-            bgFade(nodeElement);
-        }
-        return undefined;
-    }
-
     Array.from(protyleElement.querySelectorAll(`[data-node-id="${id}"]`)).find((item: HTMLElement) => {
         if (!isInEmbedBlock(item)) {
             nodeElement = item;

@@ -41,6 +41,8 @@ const layoutTabEditorSchema = z.object({
     action: z.string(),
     blockId: z.string(),
     instance: z.literal("Editor"),
+    // @backward-compat: schema保留"preview"以兼容旧版已保存的布局配置。
+    // 反序列化时isValidEditorMode会将"preview"过滤为undefined，回退到"wysiwyg"。
     mode: z.union([z.literal("wysiwyg"), z.literal("preview")]),
     notebookId: z.string(),
     rootId: z.string()

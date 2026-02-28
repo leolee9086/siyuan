@@ -163,7 +163,7 @@ function handlePreviewClick(outline: Outline, app: App, id: string) {
     const headElement = document.getElementById(id);
     // 如果找不到对应的 DOM 元素（即使在预览模式下也可能因为未渲染等原因找不到），则直接打开文件
     if (!headElement) {
-        openFileById({ app, id: outline.blockId, mode: "preview" });
+        openFileById({ app, id: outline.blockId });
         return;
     }
     const tabElement = hasTopClosestByClassName(headElement, "protyle");

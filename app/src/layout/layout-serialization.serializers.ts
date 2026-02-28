@@ -118,8 +118,7 @@ export const serializeEditorInstance = (
     json.notebookId = layout.editor.protyle.notebookId;
     json.blockId = layout.editor.protyle.block.id;
     json.rootId = layout.editor.protyle.block.rootID;
-    const isPreviewHidden = layout.editor.protyle.preview?.element.classList.contains("fn__none");
-    json.mode = isPreviewHidden ? "wysiwyg" : "preview";
+    json.mode = "wysiwyg";
     const showAll = layout.editor.protyle.block.showAll;
     const isNotRoot = layout.editor.protyle.block.id !== layout.editor.protyle.block.rootID;
     json.action = (showAll && isNotRoot) ? Constants.CB_GET_ALL : Constants.CB_GET_SCROLL;

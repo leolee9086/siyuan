@@ -1,4 +1,6 @@
 import { App } from "../../..";
+import { openFile } from "../../../editor/util";
+import { EXPORT_PREVIEW_TAB_TYPE } from "../../../export-preview/constants";
 import { fetchPost } from "../../../ai/imports";
 import { quickMakeCard } from "../../../card/makeCard";
 import { openCardByData } from "../../../card/openCard";
@@ -302,7 +304,7 @@ export const editKeydown = (app: App, event: KeyboardEvent) => {
             app,
             rootId: protyle.block.rootID,
             title: protyle.options.render.title ? (protyle.title.editElement.textContent || siyuanI18n.untitled) : "",
-            isPreview: !protyle.preview.element.classList.contains("fn__none")
+            isPreview: false
         });
         // switchWnd 后，range会被清空，需要重新设置
         focusByOffset(target, offset.start, offset.end);
@@ -349,16 +351,24 @@ export const editKeydown = (app: App, event: KeyboardEvent) => {
         event.preventDefault();
         return true;
     }
-    if (matchHotKey(window.siyuan.config.keymap.editor.general.preview.custom, event)) {
-        setEditMode(protyle, "preview");
-        saveLayout();
-        event.preventDefault();
-        return true;
-    }
     if (matchHotKey(window.siyuan.config.keymap.editor.general.wysiwyg.custom, event) && !protyle.options.backlinkData) {
         setEditMode(protyle, "wysiwyg");
         reloadProtyle(protyle, true);
         saveLayout();
+        event.preventDefault();
+        return true;
+    }
+    // preview 快捷键：打开当前文档的导出预览页签
+    if (matchHotKey(window.siyuan.config.keymap.editor.general.preview.custom, event)) {
+        openFile({
+            app,
+            custom: {
+                title: siyuanI18n.preview,
+                icon: "iconPreview",
+                id: EXPORT_PREVIEW_TAB_TYPE,
+                data: { blockId: protyle.block.rootID },
+            },
+        });
         event.preventDefault();
         return true;
     }

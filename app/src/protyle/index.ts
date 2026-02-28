@@ -1,7 +1,6 @@
 import { Constants } from "../constants";
 import { Hint } from "./hint";
 import { setLute } from "./render/setLute";
-import { Preview } from "./preview";
 import { addLoading, initUI, removeLoading } from "./ui/initUI";
 import { Undo } from "./undo";
 import { Upload } from "./upload";
@@ -199,10 +198,6 @@ export class Protyle {
                                 if (this.protyle.background) {
                                     this.protyle.background.ial.title = data.data.title;
                                 }
-                                if (window.siyuan.config.export.addTitle &&
-                                    !this.protyle.preview.element.classList.contains("fn__none")) {
-                                    this.protyle.preview.render(this.protyle);
-                                }
                             }
                             if (this.protyle.options.render.title && this.protyle.block.parentID === data.data.id) {
                                 if (!document.body.classList.contains("body--blur") && getSelection().rangeCount > 0 &&
@@ -264,8 +259,7 @@ export class Protyle {
                 return;
             }
 
-            if (this.protyle.options.mode !== "preview" &&
-                options.rootId && window.siyuan.storage[Constants.LOCAL_FILEPOSITION][options.rootId] &&
+            if (options.rootId && window.siyuan.storage[Constants.LOCAL_FILEPOSITION][options.rootId] &&
                 (
                     mergedOptions.action.includes(Constants.CB_GET_SCROLL) ||
                     (mergedOptions.action.includes(Constants.CB_GET_ROOTSCROLL) && options.rootId === options.blockId)
@@ -287,11 +281,6 @@ export class Protyle {
     }
 
     private onTransaction(data: IWebSocketData) {
-        if (!this.protyle.preview.element.classList.contains("fn__none") &&
-            data.context?.rootIDs?.includes(this.protyle.block.rootID)) {
-            this.protyle.preview.render(this.protyle);
-            return;
-        }
         let needCreateAction = "";
         data.data[0].doOperations.find((item: IOperation) => {
             if (this.protyle.options.backlinkData && ["delete", "move"].includes(item.action)) {
@@ -409,8 +398,6 @@ export class Protyle {
             paragraphBeginningSpace: this.protyle.options.preview.markdown.paragraphBeginningSpace,
             sanitize: this.protyle.options.preview.markdown.sanitize,
         });
-
-        this.protyle.preview = new Preview(this.protyle);
 
         initUI(this.protyle);
     }

@@ -13,7 +13,7 @@ import { Menu } from "../../../menus/Menu";
 import type { 录音器上下文 } from "../breadcrumb.types";
 import {
     添加资源转换菜单项,
-    添加编辑模式菜单项,
+    添加导出预览菜单项,
     添加只读模式菜单项,
     添加全宽模式菜单项
 } from "./menuItems";
@@ -107,8 +107,8 @@ function 构建菜单内容(
     // 全屏
     添加全屏菜单项(protyle, menu);
 
-    // 编辑模式子菜单
-    添加编辑模式菜单项(protyle, menu, siyuanConfig);
+    // 打开导出预览页签
+    添加导出预览菜单项(protyle, menu, siyuanConfig);
 
     // 只读模式子菜单
     if (!siyuanConfig.editor.readOnly && !siyuanConfig.readonly && protyle.wysiwyg) {

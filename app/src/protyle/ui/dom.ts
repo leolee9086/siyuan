@@ -49,9 +49,6 @@ const 挂载子组件 = (protyle: IProtyle) => {
     if (protyle.contentElement) {
         parentElement.append(protyle.contentElement);
     }
-    if (protyle.preview) {
-        parentElement.appendChild(protyle.preview.element);
-    }
     if (protyle.upload) {
         parentElement.appendChild(protyle.upload.element);
     }

@@ -42,7 +42,7 @@ const appendDesktopOnlyMenuItemGroup = (protyle: IProtyle) => {
                     app: protyle.app,
                     rootId: protyle.block.rootID,
                     title: protyle.options.render.title ? (protyle.title.editElement.textContent || siyuanI18n.untitled) : "",
-                    isPreview: !protyle.preview.element.classList.contains("fn__none")
+                    isPreview: false
                 }
             );
         }

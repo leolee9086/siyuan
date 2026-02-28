@@ -18,7 +18,7 @@ type TTurnIntoOneSub = "row" | "col"
 
 type TTurnInto = "Blocks2Ps" | "Blocks2Hs"
 
-type TEditorMode = "preview" | "wysiwyg"
+type TEditorMode = "wysiwyg"
 
 type ILuteRenderCallback = (node: ILuteNode, entering: boolean) => [string, number];
 
@@ -541,7 +541,6 @@ interface IProtyle {
     options: IProtyleOptions;
     lute?: Lute;
     toolbar?: import("../protyle/toolbar").Toolbar,
-    preview?: import("../protyle/preview").Preview;
     hint?: import("../protyle/hint").Hint;
     upload?: import("../protyle/upload").Upload;
     undo?: import("../protyle/undo").Undo;

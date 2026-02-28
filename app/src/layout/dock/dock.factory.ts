@@ -38,8 +38,7 @@ const initFile: ModelFactory = (app, tab) => {
  */
 const initOutline: ModelFactory = (app, tab, editor) => {
     const blockId = editor?.protyle?.block?.rootID || "";
-    const preview = editor?.protyle?.preview;
-    const isPreview = preview ? !preview.element.classList.contains("fn__none") : false;
+    const isPreview = false;
     const outline = new Outline({
         app,
         type: "pin",

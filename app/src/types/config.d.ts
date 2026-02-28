@@ -2020,7 +2020,7 @@ declare namespace Config {
         /**
          * (Editor) Editor mode
          * - `wysiwyg`: WYSIWYG mode
-         * - `preview`: Export preview mode
+         * @breaking-change preview模式已剥离为独立的export-preview页签，TEditorMode现在仅包含"wysiwyg"
          */
         mode: TEditorMode;
         /**
@@ -2091,7 +2091,9 @@ declare namespace Config {
          */
         instance: "Outline";
         /**
-         * (Outline) Whether the associated editor is in preview mode
+         * (Outline) Whether the outline is associated with an export preview view
+         * @breaking-change preview模式已从protyle剥离，此字段在新代码中始终为false。
+         * 保留用于反序列化旧布局配置的向后兼容。
          */
         isPreview: boolean;
         /**

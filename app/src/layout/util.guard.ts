@@ -87,7 +87,7 @@ export const isCardModelData = (data: unknown): data is {
  * @returns 是否为有效的编辑器模式
  */
 export const isValidEditorMode = (mode: unknown): mode is TEditorMode => {
-    return mode === "wysiwyg" || mode === "preview" || mode === undefined;
+    return mode === "wysiwyg" || mode === undefined;
 };
 
 /**

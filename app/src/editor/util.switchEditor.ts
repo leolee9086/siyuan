@@ -18,10 +18,6 @@ export const switchEditor = (editor: Editor, options: IOpenFileOptions, allModel
     }
     editor.parent.parent.switchTab(editor.parent.headElement);
     editor.parent.parent.showHeading();
-    if (options.mode !== "preview" && !editor.editor.protyle.preview.element.classList.contains("fn__none")) {
-        // TODO https://github.com/siyuan-note/siyuan/issues/3059
-        return true;
-    }
     if (options.zoomIn) {
         zoomOut({ protyle: editor.editor.protyle, id: options.id });
         return true;

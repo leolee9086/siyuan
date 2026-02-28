@@ -10,7 +10,7 @@ import { resize } from "../../util/resize";
 import { getSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { isInAndroid, isInHarmony } from "../../util/compatibility";
 import type { 录音器上下文 } from "../breadcrumb.types";
-import { 添加上传菜单项, 添加录音菜单项 } from "./menuItems";
+import { 添加上传菜单项, 添加录音菜单项 } from "./menuItems.upload";
 
 export function 添加上传与录音组(
     protyle: IProtyle,

@@ -134,10 +134,6 @@ const restoreFocus = (protyle: IProtyle) => {
  * 意图：在编辑模式下，将当前光标位置或第一个块的位置加入后退栈。
  */
 const recordPushBack = (protyle: IProtyle) => {
-    // 意图：确保不在预览模式。
-    if (!protyle.preview?.element.classList.contains("fn__none")) {
-        return;
-    }
 
     const range = protyle.toolbar?.range;
     // 意图：若有选中范围，将其加入后退栈。

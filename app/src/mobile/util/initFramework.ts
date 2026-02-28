@@ -99,12 +99,12 @@ export const initFramework = (app: App, isStart: boolean) => {
                         window.siyuan.mobile.docks.outline = new MobileOutline({
                             app,
                             blockId: window.siyuan.mobile.editor?.protyle.block.rootID,
-                            isPreview: window.siyuan.mobile.editor ? !window.siyuan.mobile.editor.protyle.preview.element.classList.contains("fn__none") : false
+                            isPreview: false
                         });
                     } else {
                         fetchPost("/api/outline/getDocOutline", {
                             id: window.siyuan.mobile.editor.protyle.block.rootID,
-                            preview: window.siyuan.mobile.editor.protyle.preview.element.classList.contains("fn__none")
+                            preview: false
                         }, response => {
                             window.siyuan.mobile.docks.outline.update(response);
                         });
@@ -153,7 +153,7 @@ export const initFramework = (app: App, isStart: boolean) => {
         if (type === "sidebar-outline-tab") {
             fetchPost("/api/outline/getDocOutline", {
                 id: window.siyuan.mobile.editor.protyle.block.rootID,
-                preview: window.siyuan.mobile.editor.protyle.preview.element.classList.contains("fn__none")
+                preview: false
             }, response => {
                 window.siyuan.mobile.docks.outline.update(response);
             });

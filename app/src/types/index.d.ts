@@ -86,6 +86,7 @@ type TEventBus = "ws-main" | "sync-start" | "sync-end" | "sync-fail" |
     "paste" |
     "input-search" |
     "loaded-protyle-dynamic" | "loaded-protyle-static" |
+    /** @breaking-change switch-protyle-mode 现在仅在wysiwyg初始化时触发，preview模式已剥离为独立的export-preview页签 */
     "switch-protyle" | "switch-protyle-mode" |
     "destroy-protyle" |
     "lock-screen" |
