@@ -10,7 +10,7 @@ import {fileAnnotationRefMenu} from "../../menus/protyleMenus/protyle.fileAnnota
 import {tagMenu} from "../../menus/protyle.tagMenu";
 import {linkMenu} from "../../menus/protyleMenus/protyle.linkMenu";
 import {inlineMathMenu} from "../../menus/protyle.inlineMathMenu";
-import {imgMenu} from "../../menus/protyleMenus/protyle.imgMenu";
+import {imgMenu} from "../../menus/protyleMenus/imageMenu/protyle.imgMenu";
 import {contentMenu} from "../../menus/protyleMenus/protyle.contentMenu";
 import {avContextmenu} from "../render/av/action";
 import {showColMenu} from "../render/av/col";

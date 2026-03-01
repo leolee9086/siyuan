@@ -51,7 +51,7 @@ export { assetMenu, renderAssetList } from "./protyleMenus/protyle.asset";
 export { contentMenu } from "./protyleMenus/protyle.contentMenu";
 export { enterBack } from "./protyleMenus/protyle.enterBack";
 export { fileAnnotationRefMenu } from "./protyleMenus/protyle.fileAnnotationRefMenu";
-export { imgMenu } from "./protyleMenus/protyle.imgMenu";
+export { imgMenu } from "./protyleMenus/imageMenu/protyle.imgMenu";
 export { linkMenu } from "./protyleMenus/protyle.linkMenu";
 
 // ==================== 未拆分函数的实现 ====================

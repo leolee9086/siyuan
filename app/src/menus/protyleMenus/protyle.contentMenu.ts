@@ -10,13 +10,13 @@ import { getEditorRange, focusByWbr, selectAll } from "../../protyle/util/select
 import { getProtyleToolbar, getProtyleLute } from "../../protyle/util/props.pick";
 import { updateTransaction } from "../../protyle/wysiwyg/transaction";
 import { MenuItem } from "../Menu.Item";
-import { tableMenu } from "../protyle";
 import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getSelection } from "../../util/DOM/range.global";
 import type { IContentMenuContext, IInlineMenuContext } from "./protyle.types";
-import { isHTMLElement, isHTMLTableCellElement } from "./protyle.contentMenu.guard";
+import { isHTMLElement } from "../../util/DOM/element.guard";
+import { 添加表格菜单 } from "./protyle.tableMenu";
 
 
 /**
@@ -30,6 +30,7 @@ const 添加选区相关菜单 = (ctx: IContentMenuContext): boolean => {
         icon: "iconCopy",
         accelerator: "⌘C",
         label: siyuanI18n.copy,
+        /** 复制选中内容到剪贴板 */
         click() {
             focusByRange(getEditorRange(nodeElement));
             document.execCommand("copy");
@@ -39,6 +40,7 @@ const 添加选区相关菜单 = (ctx: IContentMenuContext): boolean => {
         id: "copyPlainText",
         label: siyuanI18n.copyPlainText,
         accelerator: getSiyuanConfig().keymap.editor.general.copyPlainText.custom,
+        /** 复制选中内容为纯文本（去除格式） */
         click() {
             focusByRange(getEditorRange(nodeElement));
             copyPlainText(getSelection().getRangeAt(0).toString());
@@ -52,6 +54,7 @@ const 添加选区相关菜单 = (ctx: IContentMenuContext): boolean => {
         icon: "iconCut",
         accelerator: "⌘X",
         label: siyuanI18n.cut,
+        /** 剪切选中内容 */
         click() {
             focusByRange(getEditorRange(nodeElement));
             document.execCommand("cut");
@@ -62,6 +65,7 @@ const 添加选区相关菜单 = (ctx: IContentMenuContext): boolean => {
         icon: "iconTrashcan",
         accelerator: "⌫",
         label: siyuanI18n.delete,
+        /** 删除选中内容并更新事务 */
         click() {
             const currentRange = getEditorRange(nodeElement);
             currentRange.insertNode(document.createElement("wbr"));
@@ -80,6 +84,7 @@ const 添加行内复制菜单 = (protyle: IProtyle, inlineElement: HTMLSpanElem
         id: "copy",
         label: siyuanI18n.copy,
         icon: "iconCopy",
+        /** 将行内元素内容转换为 Markdown 并复制 */
         click() {
             writeText(getProtyleLute(protyle).BlockDOM2StdMd(inlineElement.outerHTML));
         }
@@ -87,6 +92,7 @@ const 添加行内复制菜单 = (protyle: IProtyle, inlineElement: HTMLSpanElem
     getSiyuanGlobalMenus().menu.append(new MenuItem({
         id: "copyPlainText",
         label: siyuanI18n.copyPlainText,
+        /** 复制行内元素纯文本内容 */
         click() {
             copyPlainText(inlineElement.textContent);
         }
@@ -104,6 +110,7 @@ const 添加行内编辑菜单 = (ctx: IInlineMenuContext): void => {
         id: "cut",
         icon: "iconCut",
         label: siyuanI18n.cut,
+        /** 将行内元素转为 Markdown 后剪切，并更新事务 */
         click() {
             writeText(getProtyleLute(protyle).BlockDOM2StdMd(inlineElement.outerHTML));
             inlineElement.insertAdjacentHTML("afterend", "<wbr>");
@@ -117,6 +124,7 @@ const 添加行内编辑菜单 = (ctx: IInlineMenuContext): void => {
         id: "remove",
         icon: "iconTrashcan",
         label: siyuanI18n.remove,
+        /** 删除行内元素并更新事务 */
         click() {
             inlineElement.insertAdjacentHTML("afterend", "<wbr>");
             inlineElement.remove();
@@ -162,16 +170,20 @@ const 添加粘贴菜单 = (protyle: IProtyle, nodeElement: Element, captionElem
         label: siyuanI18n.paste,
         icon: "iconPaste",
         accelerator: "⌘V",
+        /** 粘贴剪贴板内容，优先使用浏览器原生 execCommand，降级为手动读取剪贴板 */
         async click() {
             focusByRange(getEditorRange(nodeElement));
+            // 部分浏览器/环境支持原生 paste 命令，此时直接调用，避免权限申请
             if (document.queryCommandSupported("paste")) {
                 document.execCommand("paste");
                 return;
             }
             try {
                 const text = await readClipboard();
-                const target = nodeElement as HTMLElement;
-                paste(protyle, Object.assign(text, { target }));
+                if (!isHTMLElement(nodeElement)) {
+                    return;
+                }
+                paste(protyle, Object.assign(text, { target: nodeElement }));
             } catch (e) {
                 console.log(e);
             }
@@ -181,6 +193,7 @@ const 添加粘贴菜单 = (protyle: IProtyle, nodeElement: Element, captionElem
         id: "pasteAsPlainText",
         label: siyuanI18n.pasteAsPlainText,
         accelerator: "⇧⌘V",
+        /** 以纯文本形式粘贴，去除富文本格式 */
         click() {
             focusByRange(getEditorRange(nodeElement));
             pasteAsPlainText(protyle);
@@ -189,6 +202,7 @@ const 添加粘贴菜单 = (protyle: IProtyle, nodeElement: Element, captionElem
     getSiyuanGlobalMenus().menu.append(new MenuItem({
         id: "pasteEscaped",
         label: siyuanI18n.pasteEscaped,
+        /** 粘贴并自动转义 Markdown 特殊字符，避免影响文档结构 */
         click() {
             focusByRange(getEditorRange(nodeElement));
             pasteEscaped(protyle, nodeElement);
@@ -207,6 +221,7 @@ const 添加全选菜单 = (protyle: IProtyle, nodeElement: Element, range: Rang
         label: siyuanI18n.selectAll,
         icon: "iconSelect",
         accelerator: "⌘A",
+        /** 全选当前块的内容 */
         click() {
             selectAll(protyle, nodeElement, range);
         }
@@ -244,11 +259,12 @@ const 检查有选区或表情 = (range: Range): boolean => {
 
 /**
  * 构建 Protyle 内容区域的右键菜单
- * 
+ *
  * 作用：根据当前选区状态和元素类型，构建相应的上下文菜单
- * 
+ * 意图：集中管理编辑器内容区右键菜单的构建入口，使各子菜单逻辑保持内聚
  * 调用时机：用户在编辑器内容区域右键点击时
  */
+/** @同步豁免: UI构建 — 右键菜单需要在同步调用栈中同步组装所有菜单项，否则菜单将出现闪烁或排序错乱 */
 export const contentMenu = (protyle: IProtyle, nodeElement: Element): void => {
     const range = getEditorRange(nodeElement);
     getSiyuanGlobalMenus().menu.remove();
@@ -269,70 +285,20 @@ export const contentMenu = (protyle: IProtyle, nodeElement: Element): void => {
     const captionElement = hasClosestByTag(range.startContainer, "CAPTION");
     const ctx: IContentMenuContext = { protyle, nodeElement, range, oldHTML, id, captionElement };
     const 有选区或表情 = 检查有选区或表情(range);
-    if (有选区或表情) {
-        const shouldReturn = 添加选区相关菜单(ctx);
-        if (shouldReturn) {
-            return;
-        }
+    // 有选区时展示复制/剪切/删除菜单；选区包含表情时也走此分支，若禁用状态则提前退出
+    if (有选区或表情 && 添加选区相关菜单(ctx)) {
+        return;
     }
+    // 无选区时检测行内元素（code/kbd），显示行内专属菜单
     if (!有选区或表情) {
         添加行内元素菜单(ctx);
     }
     添加粘贴菜单(protyle, nodeElement, captionElement);
     添加全选菜单(protyle, nodeElement, range, captionElement);
+    // 仅对可编辑的表格块追加表格操作菜单
     const 是可编辑表格 = nodeElement.classList.contains("table") && !protyle.disabled;
     if (是可编辑表格) {
         添加表格菜单({ protyle, range, element: nodeElement });
     }
     触发插件菜单事件(protyle, nodeElement, range);
-};
-
-
-/**
- * 添加表格相关菜单项
- * 
- * 作用：当右键点击表格单元格时，添加表格操作相关的菜单项
- */
-const 添加表格菜单 = (detail: {
-    protyle: IProtyle,
-    range: Range,
-    element: Element
-}): void => {
-    const { protyle, range, element: nodeElement } = detail;
-    const tdElement = hasClosestByTag(range.startContainer, "TD");
-    const thElement = hasClosestByTag(range.startContainer, "TH");
-    const cellElement = tdElement || thElement;
-    if (!isHTMLTableCellElement(cellElement)) {
-        return;
-    }
-    const tableMenus = tableMenu(protyle, nodeElement, cellElement, range);
-    if (tableMenus.insertMenus.length > 0) {
-        getSiyuanGlobalMenus().menu.append(new MenuItem({
-            id: "separator_1",
-            type: "separator",
-        }).element);
-        tableMenus.insertMenus.forEach((menuItem) => {
-            getSiyuanGlobalMenus().menu.append(new MenuItem(menuItem).element);
-        });
-    }
-    if (tableMenus.removeMenus.length > 0) {
-        getSiyuanGlobalMenus().menu.append(new MenuItem({
-            id: "separator_2",
-            type: "separator",
-        }).element);
-        tableMenus.removeMenus.forEach((menuItem) => {
-            getSiyuanGlobalMenus().menu.append(new MenuItem(menuItem).element);
-        });
-    }
-    getSiyuanGlobalMenus().menu.append(new MenuItem({
-        id: "separator_3",
-        type: "separator",
-    }).element);
-    getSiyuanGlobalMenus().menu.append(new MenuItem({
-        id: "more",
-        type: "submenu",
-        icon: "iconMore",
-        label: siyuanI18n.more,
-        submenu: tableMenus.otherMenus.concat(tableMenus.other2Menus)
-    }).element);
 };

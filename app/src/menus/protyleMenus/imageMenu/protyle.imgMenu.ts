@@ -1,18 +1,18 @@
 import * as dayjs from "dayjs";
-import { fetchPost } from "../../ai/imports";
-import { base64ToURL } from "../../util/assets/image";
-import { Constants } from "../../constants";
-import { isElectron, isMobile } from "../../platform";
-import { renameAsset } from "../../editor/rename";
-import { emitOpenMenu } from "../../plugin/EventBus";
-import { hideElements } from "../../protyle/ui/hideElements";
-import { hasClosestBlock, hasTopClosestByClassName } from "../../protyle/util/hasClosest";
-import { focusByWbr } from "../../protyle/util/selection";
-import { updateTransaction } from "../../protyle/wysiwyg/transaction";
-import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { getSiyuanGlobalMenusMenu } from "../../util/siyuanEnvironments/getMenu.environment";
-import { openMenu } from "../commonMenuItem.openMenu";
-import { MenuItem } from "../Menu.Item";
+import { fetchPost } from "../../../ai/imports";
+import { base64ToURL } from "../../../util/assets/image";
+import { Constants } from "../../../constants";
+import { isElectron, isMobile } from "../../../platform";
+import { renameAsset } from "../../../editor/rename";
+import { emitOpenMenu } from "../../../plugin/EventBus";
+import { hideElements } from "../../../protyle/ui/hideElements";
+import { hasClosestBlock, hasTopClosestByClassName } from "../../../protyle/util/hasClosest";
+import { focusByWbr } from "../../../protyle/util/selection";
+import { updateTransaction } from "../../../protyle/wysiwyg/transaction";
+import { getSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { getSiyuanGlobalMenusMenu } from "../../../util/siyuanEnvironments/getMenu.environment";
+import { openMenu } from "../../commonMenuItem.openMenu";
+import { MenuItem } from "../../Menu.Item";
 import {
     genAlignCenterItem,
     genAlignLeftItem,
