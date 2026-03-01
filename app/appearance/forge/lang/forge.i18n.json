@@ -3,6 +3,14 @@
         "zh_CN": "这是一个测试翻译",
         "en_US": "This is a test translation"
     },
+    "embedding": {
+        "zh_CN": "Embeddings",
+        "en_US": "Embeddings"
+    },
+    "forwardlinks": {
+        "zh_CN": "正向链接",
+        "en_US": "Forward Links"
+    },
     "forge": {
         "appName": {
             "zh_CN": "思源锻造版",
@@ -187,6 +195,142 @@
                 "zh_CN": "图片生成失败",
                 "en_US": "Image generation failed"
             }
+        },
+        "聊天": {
+            "输入占位": {
+                "zh_CN": "请输入内容",
+                "en_US": "Enter your message"
+            },
+            "取消": {
+                "zh_CN": "取消",
+                "en_US": "Cancel"
+            },
+            "追加到笔记": {
+                "zh_CN": "追加到笔记",
+                "en_US": "Append to note"
+            },
+            "响应中点击终止": {
+                "zh_CN": "响应中...点击终止",
+                "en_US": "Responding... Click to stop"
+            },
+            "正在生成回复": {
+                "zh_CN": "正在生成回复...",
+                "en_US": "Generating response..."
+            },
+            "生成完成": {
+                "zh_CN": "生成完成",
+                "en_US": "Generation completed"
+            },
+            "已终止响应": {
+                "zh_CN": "已终止响应",
+                "en_US": "Response stopped"
+            },
+            "生成失败前缀": {
+                "zh_CN": "生成失败",
+                "en_US": "Generation failed"
+            },
+            "响应超时保留内容": {
+                "zh_CN": "响应超时，但已保留已有内容",
+                "en_US": "Request timed out, content retained"
+            },
+            "请求过程发生错误": {
+                "zh_CN": "请求过程中发生错误",
+                "en_US": "Error occurred during request"
+            }
+        },
+        "magi": {
+            "适格者录入": {
+                "zh_CN": "适格者 PERSONA 录入",
+                "en_US": "Persona Candidate Entry"
+            },
+            "同步率": {
+                "zh_CN": "同步率",
+                "en_US": "Sync Rate"
+            },
+            "实时流前缀": {
+                "zh_CN": "实时流",
+                "en_US": "Realtime Stream"
+            },
+            "进度前缀": {
+                "zh_CN": "进度",
+                "en_US": "Progress"
+            },
+            "投票状态前缀": {
+                "zh_CN": "投票状态",
+                "en_US": "Voting Status"
+            },
+            "权重": {
+                "zh_CN": "权重",
+                "en_US": "Weight"
+            },
+            "思考过程": {
+                "zh_CN": "思考过程",
+                "en_US": "Reasoning"
+            },
+            "初始化神经连接": {
+                "zh_CN": "初始化神经连接...",
+                "en_US": "Initializing neural link..."
+            },
+            "提示词生成后缀": {
+                "zh_CN": "提示词生成",
+                "en_US": "Prompt Generation"
+            },
+            "重新生成": {
+                "zh_CN": "重新生成",
+                "en_US": "Regenerate"
+            },
+            "开始生成": {
+                "zh_CN": "开始生成",
+                "en_US": "Start Generation"
+            },
+            "生成中": {
+                "zh_CN": "生成中...",
+                "en_US": "Generating..."
+            },
+            "开始生成提示词提示": {
+                "zh_CN": "点击\"开始生成\"按钮生成提示词",
+                "en_US": "Click \"Start Generation\" to generate prompt"
+            },
+            "生成错误前缀": {
+                "zh_CN": "生成错误",
+                "en_US": "Generation Error"
+            },
+            "处理中": {
+                "zh_CN": "处理中...",
+                "en_US": "Processing..."
+            },
+            "待定": {
+                "zh_CN": "待定",
+                "en_US": "Pending"
+            },
+            "综合评分": {
+                "zh_CN": "综合评分",
+                "en_US": "Composite Score"
+            },
+            "系统初始化完成": {
+                "zh_CN": "MAGI系统初始化完成",
+                "en_US": "MAGI system initialized"
+            },
+            "系统初始化失败前缀": {
+                "zh_CN": "系统初始化失败",
+                "en_US": "System initialization failed"
+            },
+            "响应生成失败": {
+                "zh_CN": "响应生成失败",
+                "en_US": "Response generation failed"
+            },
+            "完成评估": {
+                "zh_CN": "完成评估",
+                "en_US": "Evaluation completed"
+            },
+            "评估失败": {
+                "zh_CN": "评估失败",
+                "en_US": "Evaluation failed"
+            },
+            "未达成共识": {
+                "zh_CN": "未达成共识",
+                "en_US": "No consensus reached"
+            }
         }
     },
     "profileManager": {
@@ -243,6 +387,10 @@
         "pinEmbedQuery": {
             "zh_CN": "固定查询到侧边栏",
             "en_US": "Pin Query to Sidebar"
+        },
+        "convertToDataset": {
+            "zh_CN": "转换为嵌入数据集",
+            "en_US": "Convert to Embedding Dataset"
         }
     }
 }
