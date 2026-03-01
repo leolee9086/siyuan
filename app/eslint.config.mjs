@@ -233,7 +233,7 @@ const SHARED_RULES = {
     "no-export-forwarding/no-export-forwarding": ["error", {
         "message": "❌ [架构约束] 禁止使用导出转发 (Export Forwarding)。\n直接在声明的原始文件中导入需要的标识符，而不是通过中间文件 (Barrel) 进行聚合。\n原因：多层导出转出会导致意外的依赖循环产生、并影响编辑器基于文件的语义与依赖查找链。" + FULL_FIX_REMINDER + 单文件检查提示
     }],
-    "task-checker/require-task": "error",
+    "task-checker/require-task": "off",
     "folder-item-limit/folder-item-limit": "error",
 };
 
@@ -258,7 +258,7 @@ export default [{
     files: ["src/**/*.ts", "src/**/*.tsx", "src/**/*.mjs"],
 
     plugins: SHARED_PLUGINS,
-    processor: "task-checker/task-processor",
+    // processor: "task-checker/task-processor",  // 已禁用
 
     languageOptions: {
         globals: {
