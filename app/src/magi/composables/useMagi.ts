@@ -7,11 +7,13 @@
 
 // [TASK] T2.2 迁移composables和工具函数 - useMagi
 
-import { ref, reactive, watch } from "vue";
+import { ref, reactive } from "vue";
 import type { ConnectionStatus, WrappedSeel, UseMagiReturn } from "./useMagi.types";
 import type { MockWISE实例 } from "../core/wise/wise.types";
+import type { MockMessage } from "../core/core.types";
 import type { MagiMessage } from "../utils/messageFactory.types";
 import { initMagi } from "../core/wise/mockWise.subclass";
+import { getMagiI18nText } from "../utils/magiI18n";
 
 /** 清空响应式数组内容（保持引用不变） */
 async function clearReactiveArrays(
@@ -20,6 +22,59 @@ async function clearReactiveArrays(
 ): Promise<void> {
     seels.splice(0, seels.length);
     messages.splice(0, messages.length);
+}
+
+/** 将底层 MockMessage 规范化为 UI 所需的 MagiMessage */
+async function toMagiMessage(
+    message: MockMessage,
+    index: number,
+): Promise<MagiMessage> {
+    const normalizedMessage: MagiMessage = {
+        id: `${message.type}-${message.timestamp}-${index}`,
+        type: message.type,
+        content: message.content ?? "",
+        status: message.status ?? "success",
+        timestamp: message.timestamp,
+        ...(message.meta ? { meta: message.meta } : {}),
+    };
+    return normalizedMessage;
+}
+
+/** 同步原始实例状态到响应式包装对象，避免状态双轨 */
+async function syncWrappedSeelState(
+    wrapped: WrappedSeel,
+    ai: MockWISE实例,
+): Promise<void> {
+    wrapped.loading = ai.loading;
+    wrapped.connected = ai.connected;
+
+    const latestMessages = await Promise.all(
+        ai.messages.map((message, index) => toMagiMessage(message, index)),
+    );
+    wrapped.messages.splice(0, wrapped.messages.length, ...latestMessages);
+}
+
+/**
+ * 创建带状态同步的流式结果，确保每个 chunk 都驱动 UI 更新
+ *
+ * 作用：包装原始 AsyncGenerator，在每次 yield 前后同步 wrapped 状态
+ * 意图：消除“底层状态变了但 UI 不刷新”的双轨状态问题
+ * 调用时机：wrapped.reply 收到 SSE 流式返回值后立即调用
+ */
+async function* createSyncedStreamGenerator(
+    wrapped: WrappedSeel,
+    ai: MockWISE实例,
+    stream: AsyncGenerator<string>,
+): AsyncGenerator<string> {
+    try {
+        // @内联回调
+        for await (const chunk of stream) {
+            await syncWrappedSeelState(wrapped, ai);
+            yield chunk;
+        }
+    } finally {
+        await syncWrappedSeelState(wrapped, ai);
+    }
 }
 
 /**
@@ -45,22 +100,29 @@ async function wrapSeelInstance(ai: MockWISE实例): Promise<WrappedSeel> {
         },
         messages,
         loading: false,
-        connected: true,
-        /** 代理到原始AI实例的reply方法 */
+        connected: false,
+        /** 代理到原始AI实例的reply方法，并同步状态到UI */
         async reply(userInput, options) {
-            return ai.reply(userInput, options);
+            await syncWrappedSeelState(wrapped, ai);
+            const replyResult = await ai.reply(userInput, options);
+            await syncWrappedSeelState(wrapped, ai);
+
+            if (typeof replyResult === "string") {
+                await syncWrappedSeelState(wrapped, ai);
+                return replyResult;
+            }
+
+            return createSyncedStreamGenerator(wrapped, ai, replyResult);
         },
-        /** 代理到原始AI实例的voteFor方法 */
+        /** 代理到原始AI实例的voteFor方法，并同步状态到UI */
         async voteFor(responses) {
-            return ai.voteFor(responses);
+            const result = await ai.voteFor(responses);
+            await syncWrappedSeelState(wrapped, ai);
+            return result;
         },
     };
 
-    // 深度监听消息列表变更，同步回原始AI实例
-    watch(() => wrapped.messages, () => {
-        // 保持原始实例的消息引用同步
-    }, { deep: true });
-
+    await syncWrappedSeelState(wrapped, ai);
     return wrapped;
 }
 
@@ -129,7 +191,7 @@ async function reinitializeMAGI(
         connectionStatus.value = "connected";
         consensusMessages.push({
             type: "system",
-            content: "MAGI系统初始化完成",
+            content: getMagiI18nText("systemInitCompleted"),
         });
     } catch (error) {
         connectionStatus.value = "error";
@@ -138,7 +200,7 @@ async function reinitializeMAGI(
             : String(error);
         consensusMessages.push({
             type: "error",
-            content: "系统初始化失败：" + message,
+            content: `${getMagiI18nText("systemInitFailedPrefix")}: ${message}`,
         });
     }
 }

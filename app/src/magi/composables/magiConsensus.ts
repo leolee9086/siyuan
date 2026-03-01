@@ -12,6 +12,7 @@ import type { WrappedSeel } from "./useMagi.types";
 import { createMessage } from "../utils/messageFactory";
 import { processStreamResponse } from "../utils/streamProcessor";
 import { isSageResponse } from "./magiConsensus.guard";
+import { getMagiI18nText } from "../utils/magiI18n";
 
 // ────────────────────────────────────────────────────────────────────────────
 // 内部辅助函数
@@ -161,7 +162,7 @@ export async function handleTrinitySummary(
         return success ? content : null;
     } catch {
         trinity.loading = false;
-        const errMsg = await createMessage("error", "响应生成失败");
+        const errMsg = await createMessage("error", getMagiI18nText("responseGenerationFailed"));
         trinity.messages.push(errMsg);
         return null;
     }
@@ -219,14 +220,14 @@ async function collectSingleVote(
 ): Promise<VoteResult | null> {
     try {
         const voteResult = await seel.voteFor(responseContents);
-        const voteMsg = await createMessage("vote", "完成评估", {
+        const voteMsg = await createMessage("vote", getMagiI18nText("evaluationCompleted"), {
             ...(voteResult ?? { scores: [], conclusion: "error" }),
         });
         voteMsg.status = "success";
         seel.messages.push(voteMsg);
         return voteResult;
     } catch {
-        const errMsg = await createMessage("error", "评估失败");
+        const errMsg = await createMessage("error", getMagiI18nText("evaluationFailed"));
         errMsg.status = "error";
         seel.messages.push(errMsg);
         return null;
@@ -260,7 +261,7 @@ export async function generateConsensusReply(
     );
 
     const topResult = weightedResults[0];
-    const topContent = topResult?.content ?? "未达成共识";
+    const topContent = topResult?.content ?? getMagiI18nText("noConsensus");
 
     return {
         type: "consensus",

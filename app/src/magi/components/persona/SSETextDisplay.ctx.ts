@@ -9,6 +9,7 @@ import { ref, nextTick, type Ref } from "vue";
 import { universalStreamRequest } from "../../../util/network/fetchStream";
 import type { SSETextDisplayProps, SSETextDisplayEmits, SSEApiConfig } from "./SSETextDisplay.types";
 import { isSSEChunkPayload } from "./SSETextDisplay.guard";
+import { getMagiI18nText } from "../../utils/magiI18n";
 
 /**
  * 构建OpenAI兼容的SSE请求配置
@@ -118,7 +119,7 @@ async function executeGeneration(
         onDone: () => { /* noop — 由外层 finally 处理状态重置 */ },
         /** onError: 流异常时写入错误信息 */
         onError: (err: Error) => {
-            error.value = `生成错误: ${err.message}`;
+            error.value = `${getMagiI18nText("generationErrorPrefix")}: ${err.message}`;
         },
     });
 }
@@ -161,7 +162,7 @@ async function handleGenerate(
     } catch (err) {
         // 网络层未捕获的异常
         if (err instanceof Error) {
-            error.value = `生成错误: ${err.message}`;
+            error.value = `${getMagiI18nText("generationErrorPrefix")}: ${err.message}`;
         }
     } finally {
         isGenerating.value = false;

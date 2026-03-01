@@ -29,8 +29,6 @@ export const parseAndValidateStreamData = (dataStr: string) => {
         // 使用zod验证数据格式
         const parseResult = chatResponseDataSchema.safeParse(rawData);
         if (!parseResult.success) {
-            console.error("数据格式验证失败:", parseResult.error);
-            console.warn("原始数据:", rawData);
             return null;
         }
 
@@ -38,14 +36,11 @@ export const parseAndValidateStreamData = (dataStr: string) => {
 
         // 处理错误
         if (data.error) {
-            console.error("API Error:", data.error);
             return null;
         }
 
         return data;
-    } catch (error) {
-        console.error("解析SSE数据时发生错误:", error);
-        console.warn("原始数据字符串:", dataStr);
+    } catch {
         return null;
     }
 };

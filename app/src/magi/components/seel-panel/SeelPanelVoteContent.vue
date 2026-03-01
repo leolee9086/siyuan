@@ -1,7 +1,7 @@
 <template>
     <div class="vote-content">
         <div class="vote-header">
-            <span class="vote-timestamp">VOTE FOR {{ formattedTime }}</span>
+            <span class="vote-timestamp">{{ votePrefixText }} {{ formattedTime }}</span>
             <span class="vote-conclusion" :class="conclusionClass">
                 {{ displayConclusion }}
             </span>
@@ -29,7 +29,7 @@
                     <span class="score-value">{{ score.score }}</span>
                 </div>
                 <span class="decision" :class="getDecisionClass(score.decision)">
-                    {{ score.decision || "待定" }}
+                    {{ score.decision || pendingText }}
                 </span>
             </div>
         </div>
@@ -39,6 +39,7 @@
 <script setup lang="ts">
 import type { VoteMeta, SeelData } from "./SeelPanel.types";
 import { useVoteContentCtx } from "./SeelPanelVoteContent.ctx";
+import { getMagiI18nText } from "../../utils/magiI18n";
 
 const props = defineProps<{
     /** 投票元数据 */
@@ -58,4 +59,6 @@ const {
     getSeelRole,
     getDecisionClass,
 } = await useVoteContentCtx(props);
+const pendingText = getMagiI18nText("pending");
+const votePrefixText = getMagiI18nText("voteStatusPrefix");
 </script>

@@ -22,7 +22,7 @@
       </div>
     </div>
     <div v-if="allAnswered" class="score-display">
-      <div class="score-label">综合评分：</div>
+      <div class="score-label">{{ compositeScoreText }}：</div>
       <div class="score-value">{{ currentScore }}%</div>
     </div>
   </div>
@@ -31,10 +31,12 @@
 <script setup lang="ts">
 import type { CompositeRatingProps, CompositeRatingEmits } from "./CompositeRating.types";
 import { useCompositeRatingCtx } from "./CompositeRating.ctx";
+import { getMagiI18nText } from "../../utils/magiI18n";
 import "./CompositeRating.css";
 
 const props = defineProps<CompositeRatingProps>();
 const emit = defineEmits<CompositeRatingEmits>();
+const compositeScoreText = getMagiI18nText("compositeScore");
 
 const { selections, currentScore, allAnswered, selectOption } =
     await useCompositeRatingCtx(props, emit);

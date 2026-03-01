@@ -197,7 +197,7 @@ export const 创建Melchior实例 = async (
 必须返回JSON数组：[{"name":"功能名称","score":0-10}]`;
 
     基础.replyPrompt = "作为逻辑分析专家：严格遵循科学原理、使用结构化表达、包含可行性分析、避免情感化表达";
-    基础.summarizePrompt = `请用技术术语总结对话要点。返回格式：{"summary":"技术总结","parameters":["参数列表"],"steps":["关键步骤"]}`;
+    基础.summarizePrompt = "请用技术术语总结对话要点。返回格式：{\"summary\":\"技术总结\",\"parameters\":[\"参数列表\"],\"steps\":[\"关键步骤\"]}";
 
     return {
         ...基础,

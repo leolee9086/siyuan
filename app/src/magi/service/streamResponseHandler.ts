@@ -62,13 +62,11 @@ export const handleOpenAILikeStreamResponse = (
 
     // 处理非字符串内容的情况
     if (content !== undefined && content !== null && content !== "") {
-        console.warn("接收到非字符串内容:", content);
         return { content: String(content), isFinished: false };
     }
 
     // 处理非字符串推理内容的情况
     if (reasoningContent !== undefined && reasoningContent !== null && reasoningContent !== "") {
-        console.warn("接收到非字符串推理内容:", reasoningContent);
         return { content: String(reasoningContent), isFinished: false };
     }
 

@@ -5,6 +5,7 @@
  */
 
 import { computed } from "vue";
+import { getMagiI18nText } from "../../utils/magiI18n";
 import type { VoteMeta, VoteScore, SeelData } from "./SeelPanel.types";
 
 /**
@@ -17,11 +18,11 @@ import type { VoteMeta, VoteScore, SeelData } from "./SeelPanel.types";
 function resolveConclusion(raw: string): string {
     // pending状态翻译为进行中
     if (raw === "pending") {
-        return "评估进行中";
+        return getMagiI18nText("processing");
     }
     // error状态显示异常提示
     if (raw === "error") {
-        return "评估异常";
+        return getMagiI18nText("evaluationFailed");
     }
     return raw;
 }
@@ -96,7 +97,7 @@ export async function useVoteContentCtx(props: {
     seels: SeelData[];
 }) {
     const scores = computed((): VoteScore[] => props.meta.scores ?? []);
-    const conclusion = computed(() => props.meta.conclusion ?? "评估未完成");
+    const conclusion = computed(() => props.meta.conclusion ?? getMagiI18nText("pending"));
     const displayConclusion = computed(() => resolveConclusion(conclusion.value));
 
     const conclusionClass = computed(() => ({

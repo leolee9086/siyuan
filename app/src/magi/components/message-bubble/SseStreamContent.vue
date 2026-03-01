@@ -3,7 +3,7 @@
     <div v-show="hasThinkContent" class="think-section">
       <div class="think-header" @click="$emit('toggle-think')">
         <span class="think-icon">{{ isThinkExpanded ? '▼' : '▶' }}</span>
-        <span class="think-title">思考过程</span>
+        <span class="think-title">{{ thinkingProcessText }}</span>
       </div>
       <div
         class="think-content"
@@ -14,7 +14,7 @@
       </div>
     </div>
     <div class="stream-content">
-      {{ normalContent || msg?.content || '初始化神经连接...' }}
+      {{ normalContent || msg?.content || initializingNeuralLinkText }}
     </div>
     <span
       v-if="msg?.status === 'loading'"
@@ -25,6 +25,7 @@
 
 <script setup lang="ts">
 import type { MagiMessage } from "../../utils/messageFactory.types";
+import { getMagiI18nText } from "../../utils/magiI18n";
 
 defineProps<{
     /** 思考内容文本 */
@@ -45,4 +46,6 @@ defineEmits<{
 
 /** 思考内容DOM引用，由父组件通过ref获取 */
 const thinkContentRef = defineModel<HTMLElement | null>("thinkContentRef");
+const thinkingProcessText = getMagiI18nText("thinkingProcess");
+const initializingNeuralLinkText = getMagiI18nText("initializingNeuralLink");
 </script>

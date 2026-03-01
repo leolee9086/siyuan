@@ -63,7 +63,6 @@ const createAIStreamChatDialogVueConfig = (
         data.onPauseClick = newPauseHandler;
         data.onResumeClick = newResumeHandler;
         taskStates.push(newState);
-        console.log(taskStates);
 
         // 执行新任务
         await newConfirmHandler(data.inputHistory);

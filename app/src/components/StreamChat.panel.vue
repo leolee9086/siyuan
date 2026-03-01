@@ -23,9 +23,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import type { PropType } from "vue";
-import { useStreamChatUI, getI18nText } from "./streamChat.ui";
+import { useStreamChatUI, getStreamChatI18nText } from "./streamChat.ui";
 import TextField from "./common/TextField.vue";
 import AIResponseDisplay from "./AIResponseDisplay.vue";
 import { AssistantResponseState } from "../ai/session/session.types";
@@ -70,13 +70,13 @@ const {
 } = useStreamChatUI();
 
 // 获取国际化文本
-const aiWritingText = getI18nText("aiWriting");
-const cancelText = getI18nText("cancel");
-const confirmText = getI18nText("追加到笔记");
+const aiWritingText = getStreamChatI18nText("inputPlaceholder");
+const cancelText = getStreamChatI18nText("cancel");
+const confirmText = getStreamChatI18nText("appendToNote");
 
 const confirmButtonText = computed(() => {
     if (isStreaming.value) {
-return "响应中...点击终止";
+return getStreamChatI18nText("respondingClickStop");
 }
     if (props.controller.taskStates.every(state => state.isDone)) {
 return confirmText;
@@ -88,20 +88,39 @@ const confirmButtonColor = computed(() => {
     return isStreaming.value ? "var(--b3-theme-error)" : "";
 });
 
-// 当UI函数准备好时，通知父组件
-const emit = defineEmits(["ui-functions-ready", "pauseClick", "resumeClick"]);
+watch(() => props.controller.taskStates.map(state => ({
+    isStreaming: state.isStreaming,
+    isDone: state.isDone,
+    errorCount: state.errorCount
+})), (states) => {
+    if (states.length === 0) {
+        return;
+    }
+
+    const hasStreamingTask = states.some(state => state.isStreaming);
+    if (hasStreamingTask) {
+        showResponse();
+        return;
+    }
+
+    const hasError = states.some(state => state.errorCount > 0);
+    if (hasError) {
+        setErrorStatus(new Error(getStreamChatI18nText("requestError")));
+        return;
+    }
+
+    const allDone = states.every(state => state.isDone);
+    if (allDone) {
+        setCompleteStatus();
+        return;
+    }
+
+    setAbortStatus();
+}, { deep: true, immediate: true });
+
 onMounted(() => {
     if (textFieldRef.value) {
         textFieldRef.value.focus();
     }
-
-    // 通知父组件UI函数已准备好
-    emit("ui-functions-ready", {
-        showResponse,
-        setCompleteStatus,
-        setErrorStatus,
-        setAbortStatus,
-        getResponseContentRef: () => aiResponseDisplayRefs.value[0]?.responseContentRef
-    });
 });
 </script>
