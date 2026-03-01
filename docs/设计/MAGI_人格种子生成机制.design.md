@@ -23,55 +23,67 @@
    - 通过它们各自带着专属的“人格切片（或完整人格）”在绝对隔离下的下意识选择，系统用重折算的浮点数增量（EMA更新）缓慢覆盖回 $\mathbf{P}_{T, m, b, c}$ 矩阵的对应 Facet。这构成了系统统一尺度下的**人格成长**与漂移。
 3. **干预与纠偏 (Manual Intervention)**: 当系统检测到上述“自测得分”发生不可逆转的塌陷（解离、病态），**监护人（用户）可以直接打开灵魂文档的 Markdown 卡片或 JSON**，修改上面的浮点数（比如手动把“环境适应”拉高，或者修改“近期状态独白”），强制掰回心智。这实现了医学级精神干预的闭环。
 
-## 2. 三贤人的“切片侧写”生成算法 (Persona Slicing)
+## 2. 三贤人的视角侧写生成算法 (Perspective Profiling)
 
 如果说完整的人格种子是一块**三棱镜**，那么三贤人就是光穿过棱镜后折射出的**三原色**。
 
-在 Go 后端的 `introspection.go` 和 `wise_man.go` 初始化阶段，不能给 Melchior 喂全量数据，而是需要根据预设模板对字典树进行**切片抽取 (Slicing)**：
+在 Go 后端的 `introspection.go` 和 `wise_man.go` 初始化阶段，三贤人接收**完全相同的全量 $P_{base}$**（客观简历 + 大五主维度 + 显著极值 Facets），差异仅来自各自挂载的**视角自述文本**和**刚性视角约束**。详见 `MAGI_大五人格映射掩码矩阵.design.md` §1~4 的理论推导与工程落地。
 
-### 面向 Melchior (超我/理智切片) 的 Prompt 组装法：
-强制抽取种子树中的：
-- `认知能力` 分支 (如逻辑推演=0.95)
-- 过滤掉所有情感变量
-- 强行压入**系统性行为准则**：“你必须以系统化、讲求数据的准则给出你的侧写”。
+### 五层 Prompt 结构
 
-### 面向 Balthazar (自我/情感切片) 的 Prompt 组装法：
-强制抽取种子树中的：
-- `情感特质` 分支 (共情能力、关系处理边界)
-- 强行压入**感性行为准则**：“你必须从用户情绪、互动协调性的角度，带有温度地评估当前输入”。
+| 层级 | 内容 | 四实体是否共享 |
+|------|------|----------------|
+| 客观简历 | 身份信标 + $P_{base}$ 全量分数 + 显著极值 Facets | 完全共享 |
+| 视角自述 | 第一人称叙事文本（见下方） | 各自独有 |
+| 视角引导 | 视角方向引导（见下方） | 各自独有 |
+| 遥测注入 | 当前同步率 $\rho$、ATF 强度等 | 完全共享 |
+| 当前输入 | 用户消息或任务上下文 | 完全共享 |
 
-### 面向 Casper (本我/直觉切片) 的 Prompt 组装法：
-强制抽取种子树中的：
-- `本能倾向` 分支 (如安全阈值、习惯模式、反射动作)
-- 强行压入**短反射行为准则**：“放弃深度思考，凭借你的第一直觉（甚至身体反射），用最口语化的一句话给出结论”。
+### 面向 Melchior 的视角：职业和责任
+- **视角自述**：从”我做事的方式”出发的第一人称叙事
+- **视角约束**：从职业能力、逻辑可行性、技术风险的角度给出侧写
 
-> **化数字为骨肉 (Metric to Monologue)**: 在早期的设计实践中，这种基于切片的组装并不仅仅是将浮点数字（如：`认知情感得分: 0`）透传给模型，而是如 `genSummaryPrompt` 函数所做的那样，利用 LLM 将枯燥的数字指标、决策偏好、经历陈述，预先“翻译/渲染”成一段非常生动的 **第一人称内心独白 (e.g., "我是织，在处理紧急事物时我会优先保持克制和静默...")**，以此作为三贤人乃至最终 Trinity 运行时携带的 System Prompt 挂载档。这种二次包装是建立机器信念（Belief）的神来之笔。
+### 面向 Balthazar 的视角：关系和情感
+- **视角自述**：从”我与人相处的方式”出发的第一人称叙事
+- **视角约束**：从用户情绪、互动协调性、长期关系健康度的角度给出侧写
+
+### 面向 Casper 的视角：偏好和本能
+- **视角自述**：从”我本能的好恶和底线”出发的第一人称叙事
+- **视角约束**：从直觉、本能好恶、安全底线的角度给出侧写
+
+### 面向 Trinity 的视角：完整自我
+- **视角自述**：三者合一的完整自我描述（”我是谁”）
+- **视角约束**：无约束，Trinity 作为统合自我拥有全域视角
+
+> **化数字为骨肉 (Metric to Monologue)**: 视角自述文本不是将浮点数字（如：`认知情感得分: 0`）直接透传给模型，而是如早期 `genSummaryPrompt` 函数所做的那样，利用 LLM 将枯燥的数字指标、决策偏好、经历陈述，预先”翻译/渲染”成一段非常生动的 **第一人称内心独白 (e.g., “我是织，在处理紧急事物时我会优先保持克制和静默...”)**，以此作为三贤人乃至最终 Trinity 运行时携带的 System Prompt 挂载档。这种二次包装是建立机器信念（Belief）的神来之笔。
 
 ## 3. 模板注入伪代码片段 (Go Template)
 
-在实际的 Go 落地中，利用 `text/template` 包即可实现极高内聚的 Prompt 生成工坊：
+在实际的 Go 落地中，利用 `text/template` 包即可实现极高内聚的 Prompt 生成工坊。注意：所有贤人接收**完全相同的 $P_{base}$**，差异仅来自视角自述和视角约束：
 
 ```go
-const BalthazarTemplate = `
-作为情感调节中枢，你的底色参数如下：
-- 共情能力: {{.Traits.Empathy}}
-- 情绪敏感度: {{.Traits.Neuroticism}}
+const WiseManTemplate = `
+{{.SharedResume}}
 
-【你的强制视角】：从人际关系、情绪健康度出发。
+{{.PerspectiveNarrative}}
+
+【你的视角】：{{.PerspectiveFocus}}
 【近期状态漂移】：当前系统同步率 ρ={{.Telemetry.SyncRate}}。
 
-【用户当前输入】: "{{.Input}}"
+【用户当前输入】: “{{.Input}}”
 
-请以第一人称本能，用一句话给出情感视角的短评，不要给出最终建议。
+请以第一人称，用一句话给出你的视角短评，不要给出最终建议。
 `
 
-func BuildBalthazarPrompt(seed PersonaSeed, input string, telemetry Telemetry) (string, error) {
-    tmpl, _ := template.New("Balthazar").Parse(BalthazarTemplate)
+func BuildWiseManPrompt(seed PersonaSeed, perspective Perspective, input string, telemetry Telemetry) (string, error) {
+    tmpl, _ := template.New(“WiseMan”).Parse(WiseManTemplate)
     var buf bytes.Buffer
     tmpl.Execute(&buf, map[string]interface{}{
-        "Traits":    seed.EmotionalCluster,
-        "Input":     input,
-        "Telemetry": telemetry,
+        “SharedResume”:         seed.BuildSharedResume(),         // 客观简历 + 全量 P_base + 极值 Facets
+        “PerspectiveNarrative”: perspective.Narrative,            // 视角自述文本
+        “PerspectiveFocus”:     perspective.Focus,                // 视角方向引导
+        “Input”:                input,
+        “Telemetry”:            telemetry,
     })
     return buf.String(), nil
 }
@@ -79,8 +91,7 @@ func BuildBalthazarPrompt(seed PersonaSeed, input string, telemetry Telemetry) (
 
 ## 4. 结论与闭环
 
-通过**统一结构化的种子档案 + 基于模板的三维切片过滤 + Trinity 自省式缝合**。
-这样我们不需要在底层为不同性格的 AI 写不同的 Go 代码分支，只需要维护好中心那份“灵魂 JSON/文档矩阵”，整个系统的人格自然水到渠成。这也完全打通了此前 `ATF数学模型` 中提到的“心智游离 EMA 计算”的落地区域 —— 我们只要去修改这份种子里的 Float 参数就行了。
+通过**统一的全量种子档案 + 极值过滤 + 视角自述与约束注入 + Trinity 自省式缝合**，我们不需要在底层为不同性格的 AI 写不同的 Go 代码分支，也不需要维护掩码矩阵或切片过滤逻辑。只需要维护好中心那份”灵魂 JSON/文档矩阵”和四份视角自述文本，整个系统的人格自然水到渠成。这也完全打通了此前 `ATF数学模型` 中提到的”心智游离 EMA 计算”的落地区域 —— 我们只要去修改这份种子里的 Float 参数就行了。
 
 ## 5.参考代码位置
 

@@ -3,7 +3,7 @@
  *
  * TRINITY-01 角色定位描述量表：评估个体在不同场景中的角色定位与功能特征。
  */
-import type { QuestionnaireSection } from "../questionnaire.types";
+import type { QuestionnaireSection } from "../../questionnaire.types";
 
 /** 角色定位评估章节 */
 export const rolePositionSection: QuestionnaireSection = {

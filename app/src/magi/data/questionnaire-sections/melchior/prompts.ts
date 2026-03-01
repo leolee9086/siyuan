@@ -3,7 +3,7 @@
  *
  * 根据问卷评估数据生成Melchior认知控制特征的第一人称自我介绍提示词。
  */
-import type { MelchiorSummaryData } from "../questionnaire.types";
+import type { MelchiorSummaryData } from "../../questionnaire.types";
 
 /** 认知能力评估维度：[标签, 数据字段名] */
 const cognitiveTraitPairs: ReadonlyArray<[string, keyof MelchiorSummaryData]> = [

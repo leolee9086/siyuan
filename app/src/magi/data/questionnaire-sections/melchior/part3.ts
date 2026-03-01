@@ -3,7 +3,7 @@
  *
  * 分析深度、决策平衡、理性-情感整合、系统思维、系统整合评估。
  */
-import type { CompositeRatingQuestion } from "../questionnaire.types";
+import type { CompositeRatingQuestion } from "../../questionnaire.types";
 
 /** 分析深度倾向评估 */
 export const analysisDepthQuestion: CompositeRatingQuestion = {

@@ -3,7 +3,7 @@
  *
  * 用于构建个体基础特征档案和角色定位评估。
  */
-import type { QuestionnaireSection } from "../questionnaire.types";
+import type { QuestionnaireSection } from "../../questionnaire.types";
 
 /** 标识信息章节 */
 export const identitySection: QuestionnaireSection = {

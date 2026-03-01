@@ -3,7 +3,7 @@
  *
  * 根据问卷评估数据生成Trinity人格整合的第一人称自我介绍提示词。
  */
-import type { TrinitySummaryData } from "../questionnaire.types";
+import type { TrinitySummaryData } from "../../questionnaire.types";
 
 /** 整合特征维度：[标签, 数据字段名] */
 const traitPairs: ReadonlyArray<[string, keyof TrinitySummaryData]> = [

@@ -3,7 +3,7 @@
  *
  * 理性决策、认知适应性、专业决策、时间压力、团队协作等评估维度。
  */
-import type { CompositeRatingQuestion } from "../questionnaire.types";
+import type { CompositeRatingQuestion } from "../../questionnaire.types";
 
 /** 理性决策特征评估 */
 export const rationalDecisionQuestion: CompositeRatingQuestion = {

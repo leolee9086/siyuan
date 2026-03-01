@@ -3,7 +3,7 @@
  *
  * MELCHIOR-01 理性决策与认知控制特征量表：逻辑分析、决策执行、元认知、认知控制模式。
  */
-import type { CompositeRatingQuestion } from "../questionnaire.types";
+import type { CompositeRatingQuestion } from "../../questionnaire.types";
 
 /** 逻辑分析倾向评估 */
 export const logicAnalysisQuestion: CompositeRatingQuestion = {

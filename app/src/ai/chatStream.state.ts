@@ -3,198 +3,138 @@ import {
 } from "./imports";
 import { reactive } from "vue";
 import { fillContent } from "./actions.fillContent";
-import { AssistantResponseState } from "./session/session.types";
-import { createTemporaryModule } from "../util/lib/code/scripts.executor";
+import type { AssistantResponseState, RequestContext } from "./session/session.types";
+import type { MessageHistory } from "../magi/types/session.types";
 import { buildBlockContentPrompt } from "./prompts/blockContent.builder";
-import { createAIRequestHandlerWithState } from "./createAIRequestHandler";
+import { pauseResponse } from "./session/assistantResponse.streaming";
+import { initializeRequestController, buildToolCallExecutorConfig } from "./session/assistantResponse.requestInit";
+import { executeSyncToolCall, executeAsyncToolCallFn } from "./session/toolCallExecutor";
 
+/**
+ * 发起 AI 请求的统一入口（模块级函数）
+ *
+ * 作用：初始化或复用请求控制器，绑定取消函数，发起流式请求
+ * 意图：从 createState 闭包中提取为模块级函数以满足 lint 规则
+ * 调用时机：首次发送消息、工具调用后恢复、暂停后恢复
+ */
+async function doStartAIRequest(
+    ctx: RequestContext,
+    messages: MessageHistory
+): Promise<void> {
+    ctx.controllerRef.value = initializeRequestController(
+        ctx.state, ctx.startTimeRef, ctx.controllerRef.value, ctx.protyle
+    );
+    ctx.state.abortFunction = () => ctx.controllerRef.value?.cancelRequest();
+    await ctx.controllerRef.value.startRequest(messages);
+}
 
-export const createState = (
+/**
+ * 创建单次 AI 对话任务的响应式状态和事件处理函数
+ *
+ * 作用：初始化 AssistantResponseState 并绑定取消/暂停/恢复/确认/工具调用等操作
+ * 意图：作为 chatStream.ts 入口的状态工厂，每次用户发起新对话时创建一组独立的状态和处理器
+ * 调用时机：chatStream.ts 中 onCtrlEnterClick 每次触发时调用
+ *
+ * @param protyle - 编辑器实例，用于 lute 渲染和块内容提取
+ * @param element - 目标块元素
+ * @param selectedElements - 用户选中的块元素数组
+ * @param dialog - 对话框实例，用于取消时销毁
+ * @同步豁免: UI构建 - 工厂函数返回同步对象供 Vue reactive 绑定
+ */
+export function createState(
     protyle: IProtyle,
     element: Element,
     selectedElements: Element[],
     dialog: Dialog
-) => {
-    // 创建聊天状态
-    const state: AssistantResponseState = reactive({
-        responseContentStr: "",
-        isStreaming: false,
-        isDone: false,
-        abortFunction: null,
-        blockDOMContent: "",
-        onWaitToolCallDetected: async () => { },
-        onAsyncToolCallDetected: async () => { },
-        isPaused: false,
-        savedMessages: [],
-        asyncToolResults: [],
-        errorCount: 0,
-        syncToolCallCount: 0,
-        asyncToolCallCount: 0
-    });
+) {
+    // 请求上下文：打包闭包状态供模块级函数使用
+    const ctx: RequestContext = {
+        state: reactive({
+            responseContentStr: "",
+            isStreaming: false,
+            isDone: false,
+            abortFunction: null,
+            blockDOMContent: "",
+            /** @简洁函数 同步工具调用检测回调占位，由下方 toolCallConfig 绑定覆盖 */
+            onWaitToolCallDetected: async () => { },
+            /** @简洁函数 异步工具调用检测回调占位，由下方 toolCallConfig 绑定覆盖 */
+            onAsyncToolCallDetected: async () => { },
+            isPaused: false,
+            savedMessages: [],
+            asyncToolResults: [],
+            errorCount: 0,
+            syncToolCallCount: 0,
+            asyncToolCallCount: 0
+        }),
+        startTimeRef: { value: 0 },
+        controllerRef: { value: null },
+        protyle
+    };
+
+    const { state } = ctx;
+    const syncToolLimitNotified = { value: false };
+    const asyncToolLimitNotified = { value: false };
+
+    // 构建工具调用配置，绑定请求入口
+    const toolCallConfig = buildToolCallExecutorConfig(
+        state, ctx.startTimeRef,
+        (messages) => doStartAIRequest(ctx, messages)
+    );
+
+    // 绑定工具调用回调到状态
+    state.onWaitToolCallDetected = async (toolCode: string) => {
+        await executeSyncToolCall(toolCode, toolCallConfig, syncToolLimitNotified);
+    };
+    state.onAsyncToolCallDetected = async (toolCode: string) => {
+        await executeAsyncToolCallFn(toolCode, toolCallConfig, asyncToolLimitNotified);
+    };
 
     // 创建事件处理函数
     const cancelHandler = createCancelHandler(state, dialog);
     const pauseHandler = createPauseHandler(state);
-    const resumeHandler = createResumeHandler(state, protyle);
-    const confirmHandler = createConfirmHandler(state, protyle, selectedElements, element, dialog);
-    // 创建工具调用处理函数
-    state.onWaitToolCallDetected = createWaitToolCallHandler(state, resumeHandler);
-    state.onAsyncToolCallDetected = createAsyncToolCallHandler(state);
+    const resumeHandler = createResumeHandler(state, ctx);
+    const confirmHandler = createConfirmHandler(
+        state, protyle, selectedElements, element, dialog, ctx
+    );
+
     return { state, cancelHandler, pauseHandler, confirmHandler, resumeHandler };
-};
-
-
-// 创建等待工具调用处理函数
-const createWaitToolCallHandler = (
-    state: AssistantResponseState,
-    resumeHandler: () => Promise<void>
-) => {
-    return async (toolCode: string) => {
-        // 检查同步工具调用次数限制
-        if (state.syncToolCallCount >= 10) {
-            console.error("同步工具调用次数已达上限(10次)");
-            state.savedMessages.push({
-                role: "user",
-                content: "system:同步工具调用次数已达上限(10次)，无法继续执行工具调用",
-                timestamp: Date.now()
-            });
-            // 不执行工具调用，直接恢复对话
-            await resumeHandler();
-            return;
-        }
-
-        // 确保在正确的状态下执行工具调用
-        // 如果正在流式响应中，需要先暂停
-        console.log(state.isStreaming, state.isPaused);
-        if (state.isStreaming && !state.isPaused) {
-            state.isPaused = true;
-            state.abortFunction?.();
-            // 保存当前消息内容
-            state.savedMessages.push({
-                role: "assistant",
-                content: state.responseContentStr,
-                timestamp: Date.now()
-            });
-        }
-
-        // 确保状态已正确设置
-        state.isStreaming = false;
-
-        try {
-            // 增加同步工具调用计数
-            state.syncToolCallCount += 1;
-            console.log(`同步工具调用次数: ${state.syncToolCallCount}/10`);
-
-            // 执行工具调用
-            const result = await createTemporaryModule(toolCode);
-            console.log("工具调用执行结果:", result);
-            if (!result.moduleExport.default) {
-                throw new Error("必须使用default导出你需要查看的结果");
-            }
-            // 将工具执行结果添加到消息历史中
-            state.savedMessages.push({
-                role: "user",
-                content: `Tool execution result: ${JSON.stringify(await result.moduleExport.default)}`,
-                timestamp: Date.now()
-            });
-        } catch (error) {
-            console.error("工具调用执行失败:", error);
-            // 将错误信息添加到消息历史中
-            state.errorCount += 1;
-            if (error instanceof Error) {
-state.savedMessages.push({
-                    role: "user",
-                    content: `system:工具调用执行失败: ${error.message},\n你必须使用标准esm语法并且以default导出你需要的结果`,
-                    timestamp: Date.now()
-                });
 }
-        } finally {
-            // 恢复对话
-            console.log(state.errorCount);
-            if (state.errorCount <= 3) {
-                await resumeHandler();
-            }
-        }
-    };
-};
 
-// 创建异步工具调用处理函数
-const createAsyncToolCallHandler = (
-    state: AssistantResponseState
-) => {
-    return async (toolCode: string) => {
-        // 检查异步工具调用次数限制
-        if (state.asyncToolCallCount >= 10) {
-            console.error("异步工具调用次数已达上限(10次)");
-            // 不执行工具调用，直接返回错误结果
-            state.asyncToolResults.push({ error: "异步工具调用次数已达上限(10次)，无法继续执行工具调用" });
-            return;
-        }
-
-        let toolPromise: Promise<any> | null = null;
-        try {
-            // 增加异步工具调用计数
-            state.asyncToolCallCount += 1;
-            console.log(`异步工具调用次数: ${state.asyncToolCallCount}/10`);
-
-            // 创建异步工具调用Promise并添加到结果堆栈
-            toolPromise = createTemporaryModule(toolCode);
-            state.asyncToolResults.push(toolPromise);
-
-            // 等待工具调用完成
-            const result = await toolPromise;
-            console.log("异步工具调用执行结果:", result);
-
-            // 将结果替换到asyncToolResults中，而不是添加到消息历史
-            const index = state.asyncToolResults.indexOf(toolPromise);
-            if (index !== -1) {
-                state.asyncToolResults[index] = result;
-            }
-        } catch (error) {
-            // 将错误信息替换到asyncToolResults中
-            const index = toolPromise ? state.asyncToolResults.indexOf(toolPromise) : -1;
-            if (error instanceof Error && index !== -1) {
-                state.asyncToolResults[index] = { error: error.message };
-            }
-        }
-    };
-};
-
-// 创建取消处理函数
-const createCancelHandler = (
+/**
+ * 创建取消处理函数
+ * @同步豁免: UI构建 - 按钮点击回调必须同步执行
+ */
+function createCancelHandler(
     state: AssistantResponseState,
     dialog: Dialog
-) => {
+) {
     return () => {
         state.abortFunction?.();
         dialog.destroy();
     };
-};
+}
 
-// 创建暂停处理函数
-const createPauseHandler = (
-    state: AssistantResponseState
-) => {
+/**
+ * 创建暂停处理函数（委托 streaming 模块）
+ * @同步豁免: UI构建 - 按钮点击回调必须同步执行
+ * @AITODO 这个函数仅仅是一个毫无意义的代理,必须消除
+ */
+function createPauseHandler(state: AssistantResponseState) {
     return () => {
-        if (state.isStreaming && !state.isPaused) {
-            // 暂停请求
-            state.isPaused = true;
-            state.abortFunction?.();
-            // 保存当前消息内容
-            state.savedMessages.push({
-                role: "assistant",
-                content: state.responseContentStr,
-                timestamp: Date.now()
-            });
-        }
+        pauseResponse(state);
     };
-};
+}
 
-// 创建恢复处理函数
-const createResumeHandler = (
+/**
+ * 创建恢复处理函数
+ *
+ * 作用：从暂停状态恢复，重建消息历史并重新发起请求
+ * 意图：暂停后工具调用完成，需要将工具结果作为上下文继续对话
+ */
+function createResumeHandler(
     state: AssistantResponseState,
-    protyle: IProtyle,
-) => {
+    ctx: RequestContext
+) {
     return async () => {
         if (!state.isPaused) {
             throw new Error("状态管理错误,在非暂停状态下调用恢复回调");
@@ -204,38 +144,40 @@ const createResumeHandler = (
         state.isStreaming = true;
         state.isDone = false;
 
-        // 重新构建消息历史，但不包含系统继续消息
-        const messages: Array<{ role: "user" | "assistant"; content: string; timestamp: number }> = state.savedMessages.map(msg => ({
-            role: msg.role,
-            content: msg.content,
-            timestamp: msg.timestamp
-        }));
+        // 重新构建消息历史，附加系统继续消息
+        const messages: MessageHistory = [
+            ...state.savedMessages.map(msg => ({
+                role: msg.role,
+                content: msg.content,
+                timestamp: msg.timestamp
+            })),
+            { role: "user", content: "system:continue", timestamp: Date.now() }
+        ];
 
-        // 临时添加系统继续消息到请求中，但不保存到历史
-        messages.push({
-            role: "user",
-            content: "system:continue",
-            timestamp: Date.now()
-        });
-
-        // 使用新的请求控制器发送请求
         try {
-            await createAIRequestHandlerWithState(state, protyle, messages);
+            await doStartAIRequest(ctx, messages);
         } catch (e) {
             console.error(e);
         }
-
     };
-};
+}
 
-// 创建确认处理函数
-const createConfirmHandler = (
+/**
+ * 创建确认处理函数
+ *
+ * 作用：处理用户点击确认按钮的三种场景：
+ *   1. 正在流式响应中 → 中止当前请求
+ *   2. 响应已完成 → 将内容填充到编辑器
+ *   3. 空闲状态 → 构建提示词并发起新请求
+ */
+function createConfirmHandler(
     state: AssistantResponseState,
     protyle: IProtyle,
     selectedBlockElements: Element[],
     targetElement: Element,
-    dialog: Dialog
-) => {
+    dialog: Dialog,
+    ctx: RequestContext
+) {
     return async (inputValue: Array<{
         role: "user" | "assistant";
         content: string;
@@ -246,35 +188,32 @@ const createConfirmHandler = (
             return;
         }
         if (state.isDone) {
-            const targetElements = selectedBlockElements.length > 0 ? selectedBlockElements : [targetElement];
+            const targetElements = selectedBlockElements.length > 0
+                ? selectedBlockElements
+                : [targetElement];
             fillContent(protyle, state.responseContentStr, targetElements, state.blockDOMContent);
             dialog.destroy();
             return;
         }
+
         const blockContents: string[] = [];
+        // 仅在用户选中了块元素时提取其 Markdown 内容作为上下文
         if (selectedBlockElements.length > 0) {
-            selectedBlockElements.forEach(blockElement => {
-                // 使用 BlockDOM2StdMd 方法获取标准 Markdown 格式内容
+            for (const blockElement of selectedBlockElements) {
                 const markdownContent = protyle.lute?.BlockDOM2StdMd(blockElement.outerHTML);
                 if (markdownContent) {
                     blockContents.push(markdownContent.trim());
                 }
-            });
+            }
         }
         const promptContent = buildBlockContentPrompt(blockContents);
 
-        // 清空之前的内容
+        // 清空之前的内容并发起请求
         state.responseContentStr = "";
-        // 使用新的请求控制器发送请求
-        await createAIRequestHandlerWithState(
-            state,
-            protyle,
-            [
-                {
-                    role: "system", content: promptContent, timestamp: Date.now()
-                },
-                ...inputValue
-            ]
-        );
+        const messages: MessageHistory = [
+            { role: "system", content: promptContent, timestamp: Date.now() },
+            ...inputValue
+        ];
+        await doStartAIRequest(ctx, messages);
     };
-};
+}

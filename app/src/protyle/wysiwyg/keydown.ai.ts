@@ -1,6 +1,6 @@
 import { matchHotKey } from "../util/hotKey";
 import { openAIActionsMenu } from "../../ai/actions";
-import { AIChat } from "../../ai/chat";
+import { AIChat } from "../../ai/chatStream";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 /**

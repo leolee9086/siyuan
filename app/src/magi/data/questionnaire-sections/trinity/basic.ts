@@ -3,8 +3,8 @@
  *
  * TRINITY-00 基础信息采集 + 整合特征倾向量表 + 标识信息 + 角色定位
  */
-import type { QuestionnaireSection, QuestionnaireQuestion } from "../questionnaire.types";
-import { isTextQuestionWithPath } from "./questionnaire.guard";
+import type { QuestionnaireSection, QuestionnaireQuestion } from "../../questionnaire.types";
+import { isTextQuestionWithPath } from "../questionnaire.guard";
 
 /** 性别→姓名默认值映射 */
 const genderNameMap: Record<string, { value: string; placeholder: string }> = {

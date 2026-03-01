@@ -3,7 +3,7 @@
  *
  * TRINITY-00 整合特征倾向量表：评估认知、情感与行为三维度的整合平衡倾向。
  */
-import type { QuestionnaireSection } from "../questionnaire.types";
+import type { QuestionnaireSection } from "../../questionnaire.types";
 
 /** 整合特征评估章节 */
 export const integrationAssessmentSection: QuestionnaireSection = {

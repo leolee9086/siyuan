@@ -1,0 +1,13 @@
+{
+  "moves": [
+    { "from": "src/magi/data/questionnaire-sections/trinity.basic.ts", "to": "src/magi/data/questionnaire-sections/trinity/basic.ts" },
+    { "from": "src/magi/data/questionnaire-sections/trinity.assessment.ts", "to": "src/magi/data/questionnaire-sections/trinity/assessment.ts" },
+    { "from": "src/magi/data/questionnaire-sections/trinity.identity.ts", "to": "src/magi/data/questionnaire-sections/trinity/identity.ts" },
+    { "from": "src/magi/data/questionnaire-sections/trinity.roles.ts", "to": "src/magi/data/questionnaire-sections/trinity/roles.ts" },
+    { "from": "src/magi/data/questionnaire-sections/trinity.prompts.ts", "to": "src/magi/data/questionnaire-sections/trinity/prompts.ts" },
+    { "from": "src/magi/data/questionnaire-sections/melchior.part1.ts", "to": "src/magi/data/questionnaire-sections/melchior/part1.ts" },
+    { "from": "src/magi/data/questionnaire-sections/melchior.part2.ts", "to": "src/magi/data/questionnaire-sections/melchior/part2.ts" },
+    { "from": "src/magi/data/questionnaire-sections/melchior.part3.ts", "to": "src/magi/data/questionnaire-sections/melchior/part3.ts" },
+    { "from": "src/magi/data/questionnaire-sections/melchior.prompts.ts", "to": "src/magi/data/questionnaire-sections/melchior/prompts.ts" }
+  ]
+}

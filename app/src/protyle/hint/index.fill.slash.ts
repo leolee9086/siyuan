@@ -18,7 +18,7 @@ import {blockRender} from "../render/blockRender";
 import {openFileById} from "../../editor/utils.openFileById";
 import {openMobileFileById} from "../../mobile/editor";
 import {contentRendererRegistry} from "../../registry/contentRenderer/ContentRendererRegistry";
-import {AIChat} from "../../ai/chat";
+import {AIChat} from "../../ai/chatStream";
 import {isMobile} from "../../platform";
 import {avRender} from "../render/av/render";
 import {genIconHTML} from "../render/util";

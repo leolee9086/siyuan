@@ -1,11 +1,11 @@
 import * as dayjs from "dayjs";
-import type { MessageHistory } from "../components/streamChat.types";
-import { universalStreamRequest } from "../util/network/fetchStream";
-import { StreamRequestConfig, OnMessageCallback } from "./requestController.types";
-import { AIConfig } from "./types";
+import type { MessageHistory } from "../types/session.types";
+import { universalStreamRequest } from "../../util/network/fetchStream";
+import type { StreamRequestConfig, OnMessageCallback } from "../types/request.types";
+import type { AIConfig } from "../../ai/types";
 
 /**
- * AI请求控制器实现
+ * AI请求控制器
  * 负责管理AI请求的生命周期，分离状态管理和请求逻辑
  * 只控制网络请求本身，不介入解析等逻辑
  */
@@ -69,6 +69,7 @@ export class AIRequestController {
             await universalStreamRequest(this.currentRequestConfig, streamHandlers);
 
         } catch (error) {
+            // 仅转发非中止类错误：AbortError 由 cancelRequest/pauseRequest 主动触发，属于正常流程不应作为错误上报
             if (error instanceof Error && error.name !== "AbortError") {
                 this.events.onError?.(error);
             }
@@ -77,6 +78,7 @@ export class AIRequestController {
 
     /**
      * 取消当前请求
+     * @同步豁免: 性能考虑 - 中止操作必须同步执行以立即取消网络请求
      */
     cancelRequest(): void {
         if (this.abortController) {
@@ -87,6 +89,7 @@ export class AIRequestController {
 
     /**
      * 暂停当前请求
+     * @同步豁免: 性能考虑 - 暂停操作必须同步执行以立即中止网络请求
      */
     pauseRequest(): void {
         if (this.abortController) {
@@ -104,19 +107,21 @@ export class AIRequestController {
 
     /**
      * 获取请求状态
+     * @同步豁免: 性能考虑 - 状态查询必须同步返回以供UI即时读取
      */
     getRequestState() {
         return {
             isStreaming: this.abortController !== null && !this.abortController.signal.aborted,
-            isPaused: false, // 这个状态由外部管理
-            isDone: false,  // 这个状态由外部管理
-            hasError: false, // 这个状态由外部管理
-            errorMessage: "" // 这个状态由外部管理
+            isPaused: false,
+            isDone: false,
+            hasError: false,
+            errorMessage: ""
         };
     }
 
     /**
      * 销毁控制器，清理资源
+     * @同步豁免: 生命周期 - 销毁操作必须同步执行以确保资源立即释放
      */
     destroy(): void {
         this.isDestroyed = true;
@@ -130,14 +135,15 @@ export class AIRequestController {
 
 /**
  * 创建流处理器
- * 
+ *
  * 作用：创建包含消息/完成/错误/中断回调的处理器对象
  * 意图：将事件回调封装成统一的处理器对象，以便传递给 universalStreamRequest
  * 调用时机：在 AIRequestController.startRequest 中调用
- * 
+ *
  * @param events - 事件回调配置
  * @param isRequestInvalid - 判断请求是否已失效的函数（用于防止过期响应被处理）
  * @returns 流处理器对象
+ * @同步豁免: 性能考虑 - 工厂函数创建同步回调对象，回调本身必须同步以保证SSE消息顺序
  */
 const createStreamHandlers = (
     events: {
@@ -185,26 +191,34 @@ const createStreamHandlers = (
 
 /**
  * 准备请求配置
- * 
+ *
  * 作用：将消息历史和AI配置转换为流式请求配置对象
  * 意图：封装请求配置的构建逻辑，使请求控制器专注于请求管理
  * 调用时机：每次发起AI请求时由 AIRequestController.startRequest 调用
- * 
- * @param messages - 消息历史
+ *
+ * 修复：不再向消息content追加时间戳（原实现会污染消息内容），
+ * 时间戳作为独立元数据字段传递，由请求体的顶层字段携带
+ *
+ * @param messages - 消息历史（只读，不会修改原始数据）
  * @param signal - 请求中断信号
- * @param aiConfig - AI配置（已由 getAIConfigFromSiyuan 处理过的配置，超时时间已转换为毫秒）
+ * @param aiConfig - AI配置
  * @returns 流式请求配置对象
+ * @同步豁免: 性能考虑 - 请求配置构建必须同步完成以保证请求发起的原子性
  */
-const createStreamRequestConfig = (messages: MessageHistory, signal: AbortSignal, aiConfig: AIConfig): StreamRequestConfig => {
-    // 验证配置存在
+const createStreamRequestConfig = (
+    messages: Readonly<MessageHistory>,
+    signal: AbortSignal,
+    aiConfig: AIConfig
+): StreamRequestConfig => {
     if (!aiConfig) {
         throw new Error("未找到思源AI配置，请检查配置文件");
     }
 
-    // 构建消息历史
+    // 构建消息历史：防御性拷贝，不修改原始消息内容
     const requestMessages = messages.map(msg => ({
         role: msg.role,
-        content: msg.content + `\n发送时间:${dayjs(msg.timestamp).toDate()}`
+        content: msg.content,
+        timestamp: dayjs(msg.timestamp).toISOString()
     }));
 
     // 构建请求体
@@ -220,9 +234,8 @@ const createStreamRequestConfig = (messages: MessageHistory, signal: AbortSignal
     const headers: Record<string, string> = {
         "Content-Type": "application/json",
         "User-Agent": aiConfig.apiUserAgent,
+        "Authorization": `Bearer ${aiConfig.apiKey}`,
     };
-    headers["Authorization"] = `Bearer ${aiConfig.apiKey}`;
-
 
     // 如果有API版本，添加版本头
     if (aiConfig.apiVersion) {
@@ -238,4 +251,3 @@ const createStreamRequestConfig = (messages: MessageHistory, signal: AbortSignal
         signal
     };
 };
-

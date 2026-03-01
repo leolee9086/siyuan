@@ -105,42 +105,82 @@ type ToolResult struct {
 
 ---
 
-## 3. Trinity 的指挥机制
+## 3. 工具调用机制：发起、表决与合理化
 
-### 3.1 指令格式
+### 3.1 发起：Melchior 拟定 Action
 
-Trinity 通过 Ghost 接口向 Shell 下发指令，格式为**结构化 Action**：
+Melchior 作为当前场景的全量观察者，是唯一有足够上下文精确构造工具调用参数的实体（Trinity 不持有原始输入，无法构造精确参数）。当任务推进需要工具介入时，**Melchior 拟定并发起**结构化 Action：
 
 ```go
 type Action struct {
     Type        ActionType     // "tool_call" | "message" | "request_override"
-    Tool        string         // 工具名称（当 Type == tool_call 时）
+    Tool        string         // 工具名称
     Params      map[string]any // 工具参数
+    Initiator   string         // 固定为 "melchior"
     RepeatLimit int            // 最大重试次数（0 = 不限）
     Timeout     time.Duration
 }
 ```
 
-Trinity **不直接调用工具**，只下发 Action。Shell 的反馈收集器负责把结果送回来。
+Melchior 的发起本身视为**已投赞成票**。这不是"提案等待批准"，而是"决定已经做出，等待是否被拦截"。
 
-### 3.2 指挥链约束
+### 3.2 表决：Balthazar 与 Casper 的通过/否决
 
-- **三贤人无指挥权**：三贤人只有侧写和建议内容，没有向 Shell 下发 Action 的权限。这条约束在工程上必须硬编码，不能依赖 Prompt 控制。
-- **Trinity 是唯一指挥官**：所有 Action 必须经过 Trinity 的认知综合流程后才能发出
-- **暴走模式例外**：Guardian 批准后，Trinity 可绕过 NERV 层直接调用高风险工具。**这之所以危险且昂贵，是因为 NERV 作为信息隔离器被旁路——Trinity 必须亲自消化原始工具输出的全量 token，上下文暴涨，成本急剧上升。** 因此暴走模式必须是短暂的紧急状态，不得常态化。（参见 ATF 暴走模式设计）
+Melchior 发起 Action 后，Balthazar 和 Casper 各自从自身视角进行快速表决：
+
+- **Balthazar（关系和情感视角）**：基于跨任务情景记忆判断——"上次类似操作的代价如何？当前心智状态是否适合执行？"
+- **Casper（偏好和本能视角）**：基于极短工作记忆和直觉判断——"这个操作感觉对不对？有没有触发本能警觉？"
+
+表决结果只有两种可能：
+
+#### 路径 A：多数通过（Melchior + 至少一方同意）
+
+Action 直接下发给 Shell 执行。这是**常态路径**。
+
+Trinity 事后收到的是**既成事实**——"这件事已经发生了"，附带执行结果和三方的视角短评。Trinity 的工作是将这个行动及其结果编织进连贯的自我叙事：*"我刚才读了这个文件，因为我需要确认接口签名是否匹配……"*
+
+#### 路径 B：多数否决（Balthazar 和 Casper 同时否决）
+
+Action 被拦截，**不执行**。这意味着情感经验和本能直觉同时亮红灯——这是一个很强的信号。
+
+Trinity 收到的是**未遂事件**——Melchior 的拟定 Action、Balthazar 的否决理由、Casper 的否决理由。Trinity 需要合理化这个中止：*"虽然逻辑上应该这样做，但上次类似操作翻车了，而且直觉上也觉得不对味，先停一下重新想想。"*
+
+> **为什么必须两票否决**：单方否决不足以阻止行动。Casper 因极短工作记忆可能产生误判，Balthazar 因历史包袱可能过度保守。只有两者同时否决，才构成足够强的拦截信号。这确保了系统不会因单一视角的偏见而频繁中断执行流。
+
+### 3.3 合理化：Trinity 的事后叙事与间接影响
+
+Trinity 在工具调用场景下**不是决策者，而是事后合理化者**——这符合人类认知的实际运作方式（Libet 实验：大脑运动准备电位在意识觉察到"我决定了"之前就已经发射）。
+
+Trinity 对后续决策的影响通过**叙事塑形 (Narrative Shaping)** 实现：
+
+**关键机制：三贤人看不到自己上一轮的原始输出，只能看到 Trinity 整合后的叙事。**
+
+Melchior 在第 N+1 轮做决策时，它的上下文里装的是 Trinity 在第 N 轮讲的"故事"——这个故事已经被 Balthazar 的情感色彩和 Casper 的直觉判断染过了。Trinity 通过改变叙事的侧重和措辞，潜移默化地改变 Melchior 下一轮的决策倾向。
+
+这不是命令，而是**认知框架的重塑**——与认知行为疗法的原理一致：你改变不了潜意识的直接运作，但可以通过改变意识层面的叙事框架来间接影响它。
+
+### 3.4 主动内省：Trinity 的特殊工具调用
+
+Trinity 作为统合自我，可以发起一种特殊的工具调用：**内省查询 (Introspection Query)**——回溯查看某一轮三贤人的原始输出，理解"我当时到底在想什么"。
+
+这是被动叙事塑形之外的**主动影响通道**，使 Trinity 能够在需要时跳出自己编织的叙事，直面原始的认知过程。
+
+### 3.5 暴走模式例外
+
+Guardian 批准后，Trinity 可绕过表决机制直接调用高风险工具。**这之所以危险且昂贵，是因为 NERV 作为信息隔离器被旁路——Trinity 必须亲自消化原始工具输出的全量 token，上下文暴涨，成本急剧上升。** 因此暴走模式必须是短暂的紧急状态，不得常态化。（参见 ATF 暴走模式设计）
 
 ---
 
 ## 4. 反馈分发机制
 
-Shell 执行完成后，反馈收集器按固定规则分发给三贤人，**不由 Trinity 决定分发方式**（防止 Trinity 通过控制信息流来影响三贤人的侧写结果）：
+Shell 执行完成后，反馈收集器按固定规则分发给三贤人，**不由 Trinity 决定分发方式**（防止 Trinity 通过控制信息流来影响三贤人的判断）：
 
 | 接收方 | 收到什么 | 设计意图 |
 |--------|----------|----------|
-| **Melchior** | 完整执行结果内容（Detailed Content） | 让理性侧面分析技术细节、错误原因、可改进点 |
-| **Balthazar** | 仅成功/失败状态 + 任务情感标签 | 让感性侧面评估"这次经历感觉怎么样"，不被技术细节干扰 |
-| **Casper** | 完整结果，但只保留最近 N 条（工作记忆限制） | 让直觉侧面基于当下最新状态给出本能判断 |
-| **Trinity** | 不直接收到 Shell 反馈，经由 NERV 摘要后由三贤人侧写间接感知 | 保证 Trinity 处理的永远是经过压缩的精炼信息，而非原始 token；这也是暴走模式代价高昂的根本原因 |
+| **Melchior** | 完整执行结果内容（Detailed Content） | 全量观察当前场景，为下一轮工具调用决策提供依据 |
+| **Balthazar** | 仅成功/失败状态 + 任务情感标签 | 评估"这次经历感觉怎么样"，不被技术细节干扰 |
+| **Casper** | 完整结果，但只保留最近 N 条（工作记忆限制） | 基于当下最新状态给出本能判断 |
+| **Trinity** | 不直接收到 Shell 反馈；收到的是三贤人经 `introspection.go` 重新包装的第一人称内心独白 | Trinity 处理的永远是经过压缩的精炼信息，而非原始 token。这也是暴走模式代价高昂的根本原因 |
 
 > **注意**：这和 MAGI认知架构.design.md 第 3 节中的分发规则保持一致，此处只是在 Shell 层明确实现责任。
 
@@ -148,30 +188,30 @@ Shell 执行完成后，反馈收集器按固定规则分发给三贤人，**不
 
 ## 5. 长期主义的几个关键守护原则
 
-1. **Shell 永远不能"理解意图"**：如果 Shell 开始解释 Trinity 的意思，架构就出问题了
+1. **Shell 永远不能"理解意图"**：如果 Shell 开始解释 Action 的意思，架构就出问题了
 
 2. **工具结果不进行 LLM 后处理**：工具返回什么就是什么，语义解读留给 Ghost 层的三贤人
 
 3. **反馈分发规则硬编码**：分发方式不由 Prompt 控制，否则 Trinity 可以通过操纵分发来影响三贤人（破坏四盲测试的隔离性）
 
-4. **Action 是原子的**：每个 Action 应该对应一个明确的工具调用，不允许 Shell 内部自行决定"先做 A 再做 B"，这种编排应该在 Trinity 层完成
+4. **Action 是原子的**：每个 Action 应该对应一个明确的工具调用，不允许 Shell 内部自行决定"先做 A 再做 B"，这种多步编排应该在 Melchior 层通过连续发起多个 Action 完成
 
-5. **Shell 的失败模式是返回错误，不是尝试修复**：遇到错误，Shell 原样返回给 Ghost，由 Trinity 决定下一步，不在 Shell 层自行重试或变通
+5. **Shell 的失败模式是返回错误，不是尝试修复**：遇到错误，Shell 原样返回给 Ghost，由 Melchior 决定下一步工具调用，不在 Shell 层自行重试或变通
 
 ---
 
 ## 6. 与现有系统的接驳
 
 ```go
-// Shell 对外暴露的唯一接口（Ghost 调用）
+// Shell 对外暴露的唯一接口（由 Melchior 发起的 Action 经表决通过后调用）
 type Shell interface {
     Execute(ctx context.Context, action Action) (ShellResult, error)
     // 不暴露任何工具列表或执行细节给 Ghost
 }
 
 type ShellResult struct {
-    ForMelchior  string       // 详细内容
-    ForBalthazar FeedbackMeta // 状态 + 情感标签
+    ForMelchior  string       // 完整执行结果，供下一轮决策
+    ForBalthazar FeedbackMeta // 状态 + 情感标签，供表决参考
     ForCasper    string       // 完整内容（Shell 不做截断，由 Casper 自身的记忆机制处理）
     Duration     time.Duration
 }
