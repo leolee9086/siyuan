@@ -139,8 +139,8 @@ export interface MockWISE实例 {
     ) => AsyncGenerator<string>;
     /** 回复用户输入（支持SSE和普通模式） */
     reply: (userInput: string, options?: ReplyOptions) => Promise<string | AsyncGenerator<string>>;
-    /** 对响应列表进行投票评分 */
-    voteFor: (responses: string[]) => Promise<VoteForResult>;
+    /** 对拟议行动进行二元表决 */
+    voteFor: (proposedAction: string) => Promise<VoteForResult>;
     /** 更新配置 */
     updateConfig: (newConfig: Partial<MockWISEConfig>) => void;
 }

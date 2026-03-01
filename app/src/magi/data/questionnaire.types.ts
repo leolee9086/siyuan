@@ -79,128 +79,95 @@ export interface QuestionnaireSection {
     readonly questions: readonly QuestionnaireQuestion[];
 }
 
-/** Trinity总结提示词数据 */
-export interface TrinitySummaryData {
-    readonly 姓名?: string;
-    readonly 年龄?: string;
-    readonly 性别?: string;
-    readonly 所属组织?: string;
-    readonly 职责定位?: string;
-    readonly 关键经历?: readonly string[];
-    readonly 决策模式得分?: number;
-    readonly 思维倾向特征?: string;
-    readonly 处理倾向特征?: string;
-    readonly 认知情感得分?: number;
-    readonly 互动倾向特征?: string;
-    readonly 本能理性得分?: number;
-    readonly 应急倾向特征?: string;
-    readonly 压力应对特征?: string;
-    readonly 适应性得分?: number;
-    readonly 环境适应特征?: string;
-    readonly 角色转换特征?: string;
-    readonly 发展整合得分?: number;
-    readonly 方向选择特征?: string;
-    readonly 学习方式特征?: string;
+/** 统一人格基底（P_base） */
+export interface PersonaBase {
+    readonly traits: Readonly<Record<"O" | "C" | "E" | "A" | "N", number>>;
+    readonly facets: Readonly<Record<string, number>>;
 }
 
-/** Melchior总结提示词数据 */
-export interface MelchiorSummaryData {
-    readonly 姓名?: string;
-    readonly 年龄?: string;
-    readonly 性别?: string;
-    readonly 所属组织?: string;
-    readonly 职责定位?: string;
-    readonly 逻辑分析得分?: number;
-    readonly 逻辑推理表现?: string;
-    readonly 数据处理表现?: string;
-    readonly 模式识别表现?: string;
-    readonly 决策执行得分?: number;
-    readonly 风险评估表现?: string;
-    readonly 抑制能力表现?: string;
-    readonly 任务切换表现?: string;
-    readonly 认知资源得分?: number;
-    readonly 工作记忆表现?: string;
-    readonly 自我监控表现?: string;
-    readonly 错误检测表现?: string;
-    readonly 思维结构化倾向?: string;
-    readonly 逻辑一致性特征?: string;
-    readonly 决策优先级模式?: string;
-    readonly 风险应对风格?: string;
-    readonly 元认知特征?: string;
-    readonly 专业决策表现?: string;
-    readonly 时间压力应对?: string;
-    readonly 团队协作特征?: string;
-    readonly 成本效益意识?: string;
+/**
+ * 统一总结输入：以 PersonaBase 为基底，允许附加展示层字段。
+ *
+ * 说明：旧的四贤者 SummaryData 已移除，调用链统一收敛到 PersonaBase。
+ */
+export type SummaryPromptPersonaData = PersonaBase &
+    Readonly<Record<string, string | number | readonly string[] | undefined>>;
+
+/** 视角类型 */
+export type MagiPerspective = "trinity" | "melchior" | "balthazar" | "casper";
+
+/** IPIP 输出中的被试信息 */
+export interface IpipSubjectProfile {
+    readonly id: string;
+    readonly name: string;
+    readonly age?: number;
+    readonly gender?: string;
+    readonly organization?: string;
+    readonly role?: string;
 }
 
-/** Balthazar总结提示词数据 */
-export interface BalthazarSummaryData {
-    readonly 姓名?: string;
-    readonly 年龄?: string;
-    readonly 性别?: string;
-    readonly 所属组织?: string;
-    readonly 职责定位?: string;
-    readonly 情绪识别倾向得分?: number;
-    readonly 自我觉察特征?: string;
-    readonly 他人关注特征?: string;
-    readonly 氛围感知特征?: string;
-    readonly 情感调节倾向得分?: number;
-    readonly 强度管理特征?: string;
-    readonly 持续应对特征?: string;
-    readonly 转换适应特征?: string;
-    readonly 伦理决策倾向得分?: number;
-    readonly 思考模式特征?: string;
-    readonly 价值权衡特征?: string;
-    readonly 人际互动倾向得分?: number;
-    readonly 互动模式特征?: string;
-    readonly 关系维护特征?: string;
-    readonly 情感共鸣倾向得分?: number;
-    readonly 共情深度特征?: string;
-    readonly 复杂情感处理?: string;
-    readonly 专业伦理倾向得分?: number;
-    readonly 伦理决策模式?: string;
-    readonly 价值观稳定性?: string;
-    readonly 团队情感管理得分?: number;
-    readonly 氛围营造特征?: string;
-    readonly 冲突调解特征?: string;
+/** IPIP-NEO-120 原始答案条目（前端提交载荷） */
+export interface IpipNeo120RawAnswer {
+    readonly q: number;
+    readonly text: string;
+    readonly score: 1 | 2 | 3 | 4 | 5;
 }
 
-/** Casper总结提示词数据 */
-export interface CasperSummaryData {
-    readonly 姓名?: string;
-    readonly 年龄?: string;
-    readonly 性别?: string;
-    readonly 所属组织?: string;
-    readonly 职责定位?: string;
-    readonly 警觉性得分?: number;
-    readonly 应激反应得分?: number;
-    readonly 生存本能得分?: number;
-    readonly 动机系统得分?: number;
-    readonly 直觉判断得分?: number;
-    readonly 社会本能得分?: number;
-    readonly 竞争本能得分?: number;
-    readonly 预警系统得分?: number;
-    readonly 环境意识表现?: string;
-    readonly 变化感知表现?: string;
-    readonly 情绪敏感表现?: string;
-    readonly 紧急处理表现?: string;
-    readonly 压力决策表现?: string;
-    readonly 风险防范表现?: string;
-    readonly 自我维护表现?: string;
-    readonly 目标导向表现?: string;
-    readonly 韧性表现?: string;
-    readonly 直觉决策特征?: string;
-    readonly 复杂应对特征?: string;
-    readonly 群体互动特征?: string;
-    readonly 边界意识特征?: string;
-    readonly 资源获取特征?: string;
-    readonly 合作倾向特征?: string;
-    readonly 威胁感知特征?: string;
-    readonly 不确定性应对?: string;
+/** IPIP-NEO-120 被试元信息（与设计文档 schema 对齐） */
+export interface IpipNeo120SubjectMeta {
+    readonly id: string;
+    readonly name: string;
+    readonly type: "human" | "ai_agent";
+}
+
+/** IPIP-NEO-120 原始答案提交载荷（前端仅收集，不做计分） */
+export interface IpipNeo120SubmissionPayload {
+    readonly schema_version: "IPIP-NEO-120-v1";
+    readonly subject: IpipNeo120SubjectMeta;
+    readonly date: string;
+    readonly answers: readonly IpipNeo120RawAnswer[];
+}
+
+/** 基于 IPIP-NEO-120 的人格档案输入 */
+export interface IpipPersonaProfile {
+    readonly schemaVersion: "IPIP-NEO-120-v1";
+    readonly subject: IpipSubjectProfile;
+    readonly personaBase: PersonaBase;
+    readonly generatedAt: string;
+}
+
+/** 极值过滤后的子维度条目 */
+export interface ExtremeFacetItem {
+    readonly key: string;
+    readonly score: number;
+    readonly polarity: "high" | "low";
+}
+
+/** 自述侧面标签定义 */
+export interface SideLabelDescriptor {
+    readonly perspective: Exclude<MagiPerspective, "trinity"> | "trinity";
+    readonly label: string;
+    readonly fileName: string;
+}
+
+/** 统一五层 Prompt 结构 */
+export interface FiveLayerPrompt {
+    readonly sharedResume: string;
+    readonly perspectiveNarrative: string;
+    readonly perspectiveGuide: string;
+    readonly telemetry: string;
+    readonly currentInput: string;
+}
+
+/** Phase 3 统一 Prompt 输入 */
+export interface SummaryPromptInput {
+    readonly profile: IpipPersonaProfile;
+    readonly currentInput: string;
+    readonly telemetry: string;
 }
 
 /** 总结提示词生成函数签名 */
-export type SummaryPromptGenerator<T> = (data: T) => string;
+export type SummaryPromptGenerator<T> = (data: T) => string | Promise<string>;
 
 /** 决策模板上下文 */
 export interface DecisionContext {

@@ -3,10 +3,10 @@
  *
  * 根据问卷评估数据生成Trinity人格整合的第一人称自我介绍提示词。
  */
-import type { TrinitySummaryData } from "../../questionnaire.types";
+import type { SummaryPromptPersonaData } from "../../../questionnaire.types";
 
 /** 整合特征维度：[标签, 数据字段名] */
-const traitPairs: ReadonlyArray<[string, keyof TrinitySummaryData]> = [
+const traitPairs: ReadonlyArray<[string, string]> = [
     ["思维倾向", "思维倾向特征"],
     ["处理倾向", "处理倾向特征"],
     ["互动倾向", "互动倾向特征"],
@@ -19,7 +19,7 @@ const traitPairs: ReadonlyArray<[string, keyof TrinitySummaryData]> = [
 ];
 
 /** 构建整合特征评估段落 */
-const buildTraitsBlock = (data: TrinitySummaryData): string =>
+const buildTraitsBlock = (data: SummaryPromptPersonaData): string =>
     traitPairs
         .map(([label, key]) => `   - ${label}：${data[key] ?? ""}`)
         .join("\n");
@@ -49,10 +49,11 @@ const trinityRequirements = `自我介绍要求：
  * @param data - Trinity评估数据
  * @returns 用于AI生成人格整合自我介绍的提示词
  */
-export async function genTrinitySummaryPrompt(data: TrinitySummaryData): Promise<string> {
+export async function genTrinitySummaryPrompt(data: SummaryPromptPersonaData): Promise<string> {
     const 姓名 = data.姓名 ?? "";
-    const 经历列表 = (data.关键经历 ?? [])
-        .map((exp, index) => `${index + 1}. ${exp}`)
+    const 关键经历 = Array.isArray(data.关键经历) ? data.关键经历 : [];
+    const 经历列表 = 关键经历
+        .map((exp: string, index: number) => `${index + 1}. ${exp}`)
         .join("\n");
 
     return `请根据以下资料，以侧写模拟的形式,生成候选者 ${姓名} 的第一人称陈述,由于模拟其完整人格特质：

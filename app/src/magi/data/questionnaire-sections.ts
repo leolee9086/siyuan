@@ -1,30 +1,49 @@
 /**
- * 问卷章节主聚合器
+ * MAGI 问卷数据聚合导出（Phase 1：切换到 IPIP-NEO-120）。
  *
- * 组合四个MAGI贤者的问卷章节和总结提示词生成器。
+ * 说明：旧的 `questionnaire-sections/` 已归档至 `_backup/`，这里改为统一导出标准题库模块。
  */
-import type { QuestionnaireSection } from "./questionnaire.types";
-import { trinitySections } from "./questionnaire-sections/trinity/index";
-import { melchiorSection } from "./questionnaire-sections/melchior/index";
-import { balthazarSection } from "./questionnaire-sections/balthazar/index";
-import { casperSection } from "./questionnaire-sections/casper/index";
-import { genTrinitySummaryPrompt } from "./questionnaire-sections/trinity/prompts";
-import { genMelchiorSummaryPrompt } from "./questionnaire-sections/melchior/prompts";
-import { genBalthazarSummaryPrompt } from "./questionnaire-sections/balthazar/prompts";
-import { genCasperSummaryPrompt } from "./questionnaire-sections/casper/prompts";
+import {
+    ipipNeo120DistributionReport,
+    ipipNeo120QuestionBank,
+} from "./ipip-neo-120";
+import type {
+    IpipNeo120DistributionReport,
+    IpipNeo120Domain,
+    IpipNeo120Facet,
+    IpipNeo120Item,
+    IpipNeo120Keyed,
+} from "./ipip-neo-120.types";
+import {
+    buildFiveLayerPrompt,
+    buildPerspectiveNarrative,
+    buildSharedResume,
+    buildSideLabelDescriptors,
+    filterExtremeFacets,
+    serializeFiveLayerPrompt,
+    summaryPrompts,
+    validateSharedResumeConsistency,
+} from "../prompts/personaPromptBuilder";
 
-/** 全部问卷章节（按MAGI贤者顺序排列） */
-export const questionnaireSections: readonly QuestionnaireSection[] = [
-    ...trinitySections,
-    melchiorSection,
-    balthazarSection,
-    casperSection,
-];
-
-/** 各贤者的总结提示词生成器 */
-export const summaryPrompts = {
-    trinity: genTrinitySummaryPrompt,
-    melchior: genMelchiorSummaryPrompt,
-    balthazar: genBalthazarSummaryPrompt,
-    casper: genCasperSummaryPrompt,
+export {
+    ipipNeo120DistributionReport,
+    ipipNeo120QuestionBank,
+    summaryPrompts,
+    filterExtremeFacets,
+    buildSharedResume,
+    buildPerspectiveNarrative,
+    buildSideLabelDescriptors,
+    buildFiveLayerPrompt,
+    serializeFiveLayerPrompt,
+    validateSharedResumeConsistency,
 };
+
+export type {
+    IpipNeo120DistributionReport,
+    IpipNeo120Domain,
+    IpipNeo120Facet,
+    IpipNeo120Item,
+    IpipNeo120Keyed,
+};
+
+

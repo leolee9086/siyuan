@@ -66,30 +66,14 @@ export interface SeelPanelProps {
 }
 
 /**
- * 投票评分项
- *
- * 用途：表示投票消息中对某个贤者的评分
- * 使用场景：SeelPanel 投票消息渲染
- */
-export interface VoteScore {
-    /** 目标贤者索引 */
-    targetIndex: number;
-    /** 评分（0-10） */
-    score: number;
-    /** 决策结论 */
-    decision?: string | undefined;
-}
-
-/**
  * 投票消息元数据
  *
- * 用途：承载投票消息的评分列表和结论
+ * 用途：承载投票消息的单贤者结论和轮次
  * 使用场景：SeelPanel 中投票类型消息的渲染
- * 关联类型：VoteScore 用于 scores 数组
  */
 export interface VoteMeta {
-    /** 各贤者评分 */
-    scores?: VoteScore[] | undefined;
-    /** 总结论 */
-    conclusion?: string | undefined;
+    /** 当前贤者投票结论 */
+    decision?: "批准" | "否决" | undefined;
+    /** 反刍轮次 */
+    round?: number | undefined;
 }

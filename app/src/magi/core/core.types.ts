@@ -220,13 +220,11 @@ export interface ReplyOptions {
 export interface VoteForResult {
     error?: boolean;
     message?: string;
-    scores?: Array<{
-        targetIndex: number;
-        score: number;
-        decision: string;
-        comment: string;
-    }>;
-    conclusion: string;
+    melchior: "批准" | "否决";
+    balthazar: "批准" | "否决";
+    casper: "批准" | "否决";
+    passed: boolean;
+    round: number;
 }
 
 /** 文件系统抽象接口 */

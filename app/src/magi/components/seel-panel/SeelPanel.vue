@@ -13,7 +13,7 @@
         <div
           v-show="showMessages"
           ref="messageContainer"
-          class="message-container secondary-output"
+          class="seel-message-container secondary-output"
         >
           <MessageBubble
             v-for="msg in ai.messages"
@@ -28,7 +28,6 @@
               v-if="msg.type === 'vote'"
               :meta="msg.meta ?? {}"
               :timestamp="msg.timestamp"
-              :seels="seels"
             />
             <template v-else-if="msg.type === 'sse_stream'">
               <SeelSseInline :msg="msg" :color="ai.config.color" />
@@ -54,13 +53,14 @@ import SeelPanelVoteContent from "./SeelPanelVoteContent.vue";
 import SeelSseInline from "./SeelSseInline.vue";
 import MessageBubble from "../message-bubble/MessageBubble.vue";
 import { ref } from "vue";
+import "./SeelPanel.css";
 
 const props = withDefaults(defineProps<SeelPanelProps>(), { showMessages: true });
 const colorValue = ref(await getColor(props.ai.config.color));
 
 const {
     panelContainer, messageContainer, containerHeight,
-    statusClass, statusText, rootStyle, seels,
+    statusClass, statusText, rootStyle,
 } = await useSeelPanelCtx(props);
 
 await setupResizeObserver(panelContainer, containerHeight);

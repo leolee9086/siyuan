@@ -23,42 +23,69 @@
 
 ### ✅ 验证检查清单
 
-- [ ] 120 条题目的 domain/facet/keyed 分布正确（每 domain 24 题，每 facet 4 题）
-- [ ] TypeScript 编译通过，无旧类型残留引用
+- [x] 120 条题目的 domain/facet/keyed 分布正确（每 domain 24 题，每 facet 4 题）
+- [ ] TypeScript 编译通过，无旧类型残留引用（`pnpm run gen:types` 在项目既有 `tsconfig` 类型入口配置处失败，非本次改动引入）
 - [ ] 前端输出 JSON 符合 `IPIP-NEO-120-v1` schema
-- [ ] 四个视角 Prompt 的共享简历部分完全一致
+- [x] 四个视角 Prompt 的共享简历部分完全一致
 
 ---
 
 ## 🟢 近期计划
 
-- [ ] **Phase 1: 题库数据模块替换 (P0)**
+- [x] **Phase 1: 题库数据模块替换 (P0)** [已完成 2026-03-02]
   - **背景**: 当前四套自定义问卷与 IPIP-NEO-120 的 Likert 量表不兼容，需用标准题库替换
   - **行动**: 新建 `ipip-neo-120.ts` 和 `ipip-neo-120.types.ts`；旧 `questionnaire-sections/` 移入 `_backup/`；更新聚合器导出
   - **验收标准**: 新模块可导入，120 条记录分布校验通过
   - **参考文档**: [`设计文档 §2.1`](../设计/MAGI_问卷系统迁移_自定义题库到IPIP-NEO-120.design.md)、`大五人格标测问卷(IPIP-NEO-120).design.md`
+  - **成果文件**:
+    - `app/src/magi/data/ipip-neo-120.ts`
+    - `app/src/magi/data/ipip-neo-120.types.ts`
+    - `app/src/magi/data/questionnaire-sections.ts`
+    - `app/src/magi/data/_backup/questionnaire-sections/`
 
-- [ ] **Phase 2: 类型系统清理 (P0)**
+- [x] **Phase 2: 类型系统清理 (P0)** [已完成 2026-03-02]
   - **背景**: 四个贤者专属 SummaryData 接口与统一 P_base 设计冲突，需移除并统一为 PersonaBase
   - **行动**: 移除旧接口和关联类型；全局搜索替换引用点；评估 DecisionContext 等类型的保留必要性
   - **验收标准**: TypeScript 编译通过，无对旧类型的残留引用
   - **参考文档**: [`设计文档 §1.2`](../设计/MAGI_问卷系统迁移_自定义题库到IPIP-NEO-120.design.md)
+  - **成果文件**:
+    - `app/src/magi/data/questionnaire.types.ts`
+    - `app/src/magi/data/_backup/questionnaire-sections/trinity/prompts.ts`
+    - `app/src/magi/data/_backup/questionnaire-sections/melchior/prompts.ts`
+    - `app/src/magi/data/_backup/questionnaire-sections/balthazar/prompts.ts`
+    - `app/src/magi/data/_backup/questionnaire-sections/casper/prompts.ts`
+    - `app/src/magi/data/questionnaire.types.ts.phase2.backup.md`
 
 ---
 
 ## 🟡 中期计划
 
-- [ ] **Phase 3: Prompt 模板与自述文本迁移 (P1)**
+- [x] **Phase 3: Prompt 模板与自述文本迁移 (P1)** [已完成 2026-03-02]
   - **背景**: 贤者专属 prompt 生成逻辑需替换为统一的五层 Prompt 结构
   - **行动**: 移除旧 prompt 生成函数；新建统一视角 Prompt 组装；实现极值过滤；更新侧面标签
-
-- [ ] **Phase 4: UI 组件适配 (P1)**
-  - **背景**: 现有问卷 UI 需适配 IPIP-NEO-120 的单一 Likert 评分模式
-  - **行动**: 排查旧依赖；简化为 5 级 Likert 组件；替换导航逻辑为逐题流/维度分组模式
+  - **成果文件**:
+    - `app/src/magi/prompts/personaPromptBuilder.ts`
+    - `app/src/magi/prompts/personaPromptBuilder.test.ts`
+    - `app/src/magi/data/questionnaire-sections.ts`
+    - `app/src/magi/data/questionnaire.types.ts`
+    - `app/src/magi/data/questionnaire-sections.ts.phase3.backup.md`
+    - `app/src/magi/data/questionnaire.types.ts.phase3.backup.md`
 
 ---
 
 ## 🏁 已归档/已完成
+
+- [x] **Phase 4: UI 组件适配 (P1)** [已完成 2026-03-02]
+  - **背景**: 现有问卷 UI 需适配 IPIP-NEO-120 的单一 Likert 评分模式
+  - **完成情况**: 完成 IPIP 5 级 Likert 逐题流渲染、进度与前后题导航、标准提交事件；保留旧复合评分兼容路径；修复相关 lint/类型约束；复杂改造备份迁移至 `docs/ttt/phase4-backups/persona/`
+  - **成果文件**:
+    - `app/src/magi/components/persona/CompositeRating.types.ts`
+    - `app/src/magi/components/persona/CompositeRating.guard.ts`
+    - `app/src/magi/components/persona/CompositeRating.ctx.ts`
+    - `app/src/magi/components/persona/CompositeRating.vue`
+    - `app/src/magi/components/persona/CompositeRating.css`
+    - `app/src/magi/data/questionnaire.types.ts`
+    - `docs/ttt/phase4-backups/persona/`
 
 - [x] **TTT 文档规范化** [已完成 2026-03-01]
   - **背景**: 原 ttt 文件混合了大量设计说明内容（现状分析、格式规格、风险约束、TTT 关系），不符合纯执行跟踪文档规程

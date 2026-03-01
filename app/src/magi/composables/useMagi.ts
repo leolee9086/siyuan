@@ -7,18 +7,22 @@
 
 // [TASK] T2.2 迁移composables和工具函数 - useMagi
 
-import { ref, reactive } from "vue";
+import { ref, reactive, computed } from "vue";
 import type { ConnectionStatus, WrappedSeel, UseMagiReturn } from "./useMagi.types";
 import type { MockWISE实例 } from "../core/wise/wise.types";
 import type { MockMessage } from "../core/core.types";
 import type { MagiMessage } from "../utils/messageFactory.types";
 import { initMagi } from "../core/wise/mockWise.subclass";
 import { getMagiI18nText } from "../utils/magiI18n";
+import {
+    appendConsensusMessage,
+    sendUserMessageWithConsensus,
+} from "./useMagi.consensus";
 
 /** 清空响应式数组内容（保持引用不变） */
 async function clearReactiveArrays(
     seels: WrappedSeel[],
-    messages: Array<{ type: string; content: string }>,
+    messages: MagiMessage[],
 ): Promise<void> {
     seels.splice(0, seels.length);
     messages.splice(0, messages.length);
@@ -67,7 +71,6 @@ async function* createSyncedStreamGenerator(
     stream: AsyncGenerator<string>,
 ): AsyncGenerator<string> {
     try {
-        // @内联回调
         for await (const chunk of stream) {
             await syncWrappedSeelState(wrapped, ai);
             yield chunk;
@@ -75,6 +78,25 @@ async function* createSyncedStreamGenerator(
     } finally {
         await syncWrappedSeelState(wrapped, ai);
     }
+}
+
+
+/** 初始化并写入 wrapped seels */
+async function initializeWrappedSeels(
+    seels: WrappedSeel[],
+    connectionStatus: { value: ConnectionStatus },
+): Promise<void> {
+    const rawSeels = await initMagi({
+        delay: 800,
+        autoConnect: true,
+        memorySize: 7,
+    });
+
+    const wrappedSeels = await Promise.all(
+        rawSeels.map((ai) => wrapSeelInstance(ai)),
+    );
+    seels.push(...wrappedSeels);
+    connectionStatus.value = "connected";
 }
 
 /**
@@ -101,7 +123,11 @@ async function wrapSeelInstance(ai: MockWISE实例): Promise<WrappedSeel> {
         messages,
         loading: false,
         connected: false,
-        /** 代理到原始AI实例的reply方法，并同步状态到UI */
+        /**
+         * 作用：代理底层 `reply` 并在前后同步 wrapped 状态。
+         * 意图：确保消息流与 loading 状态对 Vue 响应式可见。
+         * 调用时机：`sendUserMessageInternal` 与共识模块发起回复时。
+         */
         async reply(userInput, options) {
             await syncWrappedSeelState(wrapped, ai);
             const replyResult = await ai.reply(userInput, options);
@@ -114,9 +140,13 @@ async function wrapSeelInstance(ai: MockWISE实例): Promise<WrappedSeel> {
 
             return createSyncedStreamGenerator(wrapped, ai, replyResult);
         },
-        /** 代理到原始AI实例的voteFor方法，并同步状态到UI */
-        async voteFor(responses) {
-            const result = await ai.voteFor(responses);
+        /**
+         * 作用：代理底层 `voteFor` 并同步投票后的消息/状态。
+         * 意图：让投票消息可立即反映到 UI，不破坏原有面板显示。
+         * 调用时机：共识链路命中审慎决策分支时。
+         */
+        async voteFor(proposedAction) {
+            const result = await ai.voteFor(proposedAction);
             await syncWrappedSeelState(wrapped, ai);
             return result;
         },
@@ -125,6 +155,7 @@ async function wrapSeelInstance(ai: MockWISE实例): Promise<WrappedSeel> {
     await syncWrappedSeelState(wrapped, ai);
     return wrapped;
 }
+
 
 /**
  * MAGI系统状态管理composable
@@ -136,25 +167,32 @@ async function wrapSeelInstance(ai: MockWISE实例): Promise<WrappedSeel> {
 export async function useMagi(): Promise<UseMagiReturn> {
     const seels: WrappedSeel[] = reactive([]);
     const connectionStatus = ref<ConnectionStatus>("disconnected");
-    const consensusMessages: Array<{ type: string; content: string }> = reactive([]);
+    const consensusMessages: MagiMessage[] = reactive([]);
+    const isAnySeelLoading = computed(() => seels.some((seel) => seel.loading));
 
-    const rawSeels = await initMagi({
-        delay: 800,
-        autoConnect: true,
-        memorySize: 7,
-    });
-
-    const wrappedSeels = await Promise.all(
-        rawSeels.map((ai) => wrapSeelInstance(ai)),
-    );
-    seels.push(...wrappedSeels);
-    connectionStatus.value = "connected";
+    await initializeWrappedSeels(seels, connectionStatus);
 
     return {
         seels,
         connectionStatus,
         consensusMessages,
-        /** 重新初始化MAGI系统（清空现有实例后重建） */
+        isAnySeelLoading,
+        /**
+         * 作用：把 UI 输入文本接入完整共识链路。
+         * 意图：对外暴露稳定入口，避免上层组件感知内部实现细节。
+         * 调用时机：`MagiMainPanel` 的 `submit-input` 事件上抛到容器后调用。
+         */
+        sendUserMessage: (text: string) => sendUserMessageWithConsensus(
+            text,
+            connectionStatus,
+            consensusMessages,
+            seels,
+        ),
+        /**
+         * 作用：重新初始化 MAGI 实例并清空消息。
+         * 意图：支持连接恢复与状态重建。
+         * 调用时机：用户主动触发重连或上层容器请求重置时。
+         */
         initializeMAGI: async () => {
             await reinitializeMAGI(seels, connectionStatus, consensusMessages);
         },
@@ -171,36 +209,27 @@ export async function useMagi(): Promise<UseMagiReturn> {
 async function reinitializeMAGI(
     seels: WrappedSeel[],
     connectionStatus: { value: ConnectionStatus },
-    consensusMessages: Array<{ type: string; content: string }>,
+    consensusMessages: MagiMessage[],
 ): Promise<void> {
     try {
         connectionStatus.value = "connecting";
         await clearReactiveArrays(seels, consensusMessages);
 
-        const rawSeels = await initMagi({
-            delay: 800,
-            autoConnect: true,
-            memorySize: 7,
-        });
-
-        const wrappedSeels = await Promise.all(
-            rawSeels.map((ai) => wrapSeelInstance(ai)),
+        await initializeWrappedSeels(seels, connectionStatus);
+        await appendConsensusMessage(
+            consensusMessages,
+            "system",
+            getMagiI18nText("systemInitCompleted"),
         );
-        seels.push(...wrappedSeels);
-
-        connectionStatus.value = "connected";
-        consensusMessages.push({
-            type: "system",
-            content: getMagiI18nText("systemInitCompleted"),
-        });
     } catch (error) {
         connectionStatus.value = "error";
         const message = error instanceof Error
             ? error.message
             : String(error);
-        consensusMessages.push({
-            type: "error",
-            content: `${getMagiI18nText("systemInitFailedPrefix")}: ${message}`,
-        });
+        await appendConsensusMessage(
+            consensusMessages,
+            "error",
+            `${getMagiI18nText("systemInitFailedPrefix")}: ${message}`,
+        );
     }
 }

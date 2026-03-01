@@ -229,6 +229,9 @@ export class App {
                     // 初始化智能工具箱状态栏按钮
                     const { initSmartToolboxStatusButton } = await import("./sforge/panel");
                     initSmartToolboxStatusButton();
+                    // 初始化 MAGI 状态栏按钮
+                    const { initMagiStatusButton } = await import("./magi/panel/magiStatusButton");
+                    initMagiStatusButton();
                     window.siyuan.menus = new Menus(this);
                     bootSync();
                     fetchPost("/api/setting/getCloudUser", {}, userResponse => {

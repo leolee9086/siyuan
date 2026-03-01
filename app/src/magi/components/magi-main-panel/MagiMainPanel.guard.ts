@@ -13,15 +13,14 @@ import type { MagiMessage } from "../../utils/messageFactory.types";
  */
 export function isVoteDetail(
     obj: unknown
-): obj is { name: string; weight: number; conclusion: string } {
+): obj is { name: string; decision: string } {
     if (typeof obj !== "object" || obj === null) {
         return false;
     }
     const o = obj as Record<string, unknown>;
     return (
         typeof o.name === "string" &&
-        typeof o.weight === "number" &&
-        typeof o.conclusion === "string"
+        typeof o.decision === "string"
     );
 }
 
@@ -33,7 +32,7 @@ export function isVoteStatusMeta(
 ): meta is {
     type: "vote-status";
     progress?: number;
-    details?: Array<{ name: string; weight: number; conclusion: string }>;
+    details?: Array<{ name: string; decision: string }>;
 } {
     if (typeof meta !== "object" || meta === null) {
         return false;
@@ -115,7 +114,7 @@ export function getVoteStatusMeta(
 ): {
     type: "vote-status";
     progress?: number;
-    details?: Array<{ name: string; weight: number; conclusion: string }>;
+    details?: Array<{ name: string; decision: string }>;
 } | null {
     const meta = msg.meta;
     if (isVoteStatusMeta(meta)) {

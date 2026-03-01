@@ -37,9 +37,10 @@ const TYPE_LABEL_MAP: Record<string, string> = {
 
 /** 投票结论到图标的映射 */
 const VOTE_STATUS_ICON_MAP: Record<string, string> = {
+    批准: "✓",
+    否决: "✕",
     通过: "✓",
     复议: "⚠",
-    否决: "✕",
     弃权: "➖",
     超时: "⌛",
     异常: "❗",
@@ -109,7 +110,7 @@ function formatSseStreamContent(msg: MagiMessage, texts: MagiMainPanelTexts, pro
 function formatVoteStatusContent(
     texts: MagiMainPanelTexts,
     progress: number,
-    details?: Array<{ name: string; weight: number; conclusion: string }>
+    details?: Array<{ name: string; decision: string }>
 ): string {
     const lines = [`[${texts.voteStatusPrefixText}] ${texts.progressPrefixText}: ${progress}%`];
 
@@ -117,8 +118,8 @@ function formatVoteStatusContent(
     if (details && details.length > 0) {
         lines.push(
             ...details.map((detail) => {
-                const statusIcon = VOTE_STATUS_ICON_MAP[detail.conclusion] ?? "❓";
-                return `${detail.name} ${statusIcon} | ${texts.weightText} ${detail.weight} | ${detail.conclusion}`;
+                const statusIcon = VOTE_STATUS_ICON_MAP[detail.decision] ?? "❓";
+                return `${detail.name} ${statusIcon} | ${detail.decision}`;
             })
         );
     }

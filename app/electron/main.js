@@ -46,6 +46,8 @@ let firstOpen = false;
 let workspaces = []; // workspaceDir, id, browserWindow, tray, hideShortcut
 let kernelPort = 6806;
 let resetWindowStateOnRestart = false;
+let isAppQuitting = false;
+const magiWindows = new Map();
 
 remote.initialize();
 
@@ -87,6 +89,9 @@ const windowNavigate = (currentWindow, windowType) => {
                     return;
                 }
                 if (pathname === "/stage/build/app/window.html" && windowType === "window") {
+                    return;
+                }
+                if (pathname === "/stage/build/magi-app/" && windowType === "magi") {
                     return;
                 }
                 if (pathname.startsWith("/export/temp/") && windowType === "export") {
@@ -500,6 +505,7 @@ const initMainWindow = () => {
         if (bootWindow && !bootWindow.isDestroyed()) {
             bootWindow.destroy();
         }
+        createOrShowMagiWindow(currentWindow);
     });
 
     // 菜单
@@ -544,6 +550,80 @@ const showWindow = (wnd) => {
         wnd.restore();
     }
     wnd.show();
+};
+
+const buildMagiURL = (mainWindow) => {
+    try {
+        const currentURL = new URL(mainWindow.getURL());
+        return getServer(currentURL.port) + "/stage/build/magi-app/?v=" + new Date().getTime();
+    } catch (e) {
+        return getServer() + "/stage/build/magi-app/?v=" + new Date().getTime();
+    }
+};
+
+const getMagiWindow = (mainWindowId) => {
+    const win = magiWindows.get(mainWindowId);
+    if (!win || win.isDestroyed()) {
+        magiWindows.delete(mainWindowId);
+        return null;
+    }
+    return win;
+};
+
+const createOrShowMagiWindow = (mainWindow) => {
+    if (!mainWindow || mainWindow.isDestroyed()) {
+        return;
+    }
+    const existing = getMagiWindow(mainWindow.id);
+    if (existing) {
+        if (existing.isMinimized()) {
+            existing.restore();
+        }
+        existing.show();
+        existing.focus();
+        return;
+    }
+
+    const mainBounds = mainWindow.getBounds();
+    const mainScreen = screen.getDisplayNearestPoint({x: mainBounds.x, y: mainBounds.y});
+    const magiWindow = new BrowserWindow({
+        show: true,
+        trafficLightPosition: {x: 8, y: 13},
+        width: Math.floor(mainScreen.size.width * 0.55),
+        height: Math.floor(mainScreen.size.height * 0.82),
+        minWidth: 560,
+        minHeight: 420,
+        fullscreenable: true,
+        transparent: "darwin" === process.platform,
+        frame: "darwin" === process.platform,
+        icon: path.join(appDir, "stage", "icon-large.png"),
+        titleBarStyle: "hidden",
+        webPreferences: {
+            contextIsolation: false,
+            nodeIntegration: true,
+            webviewTag: true,
+            webSecurity: false,
+            autoplayPolicy: "user-gesture-required"
+        },
+    });
+
+    remote.enable(magiWindow.webContents);
+    magiWindow.center();
+    magiWindow.webContents.userAgent = "SiYuan/" + appVer + " https://b3log.org/siyuan Electron " + magiWindow.webContents.userAgent;
+    magiWindow.webContents.session.setSpellCheckerLanguages(["en-US"]);
+    magiWindow.loadURL(buildMagiURL(mainWindow));
+    windowNavigate(magiWindow, "magi");
+    magiWindow.on("close", (event) => {
+        if (isAppQuitting || magiWindow.isDestroyed()) {
+            return;
+        }
+        event.preventDefault();
+        magiWindow.hide();
+    });
+    magiWindow.on("closed", () => {
+        magiWindows.delete(mainWindow.id);
+    });
+    magiWindows.set(mainWindow.id, magiWindow);
 };
 
 const initKernel = (workspace, port, lang) => {
@@ -1142,6 +1222,13 @@ app.whenReady().then(() => {
         }
         mainWindow.show();
     });
+    ipcMain.on("siyuan-open-magi", (event) => {
+        const mainWindow = getWindowByContentId(event.sender.id);
+        if (!mainWindow || mainWindow.isDestroyed()) {
+            return;
+        }
+        createOrShowMagiWindow(mainWindow);
+    });
     ipcMain.on("siyuan-open-window", (event, data) => {
         const mainWindow = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
         const mainBounds = mainWindow.getBounds();
@@ -1529,6 +1616,7 @@ app.on("web-contents-created", (webContentsCreatedEvent, contents) => {
 });
 
 app.on("before-quit", (event) => {
+    isAppQuitting = true;
     workspaces.forEach(item => {
         if (item.browserWindow && !item.browserWindow.isDestroyed()) {
             event.preventDefault();

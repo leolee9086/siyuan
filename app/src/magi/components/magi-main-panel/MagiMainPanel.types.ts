@@ -28,6 +28,10 @@ export interface MagiMainPanelProps {
     showSeels?: boolean;
     /** 是否显示 Trinity 面板 */
     showTrinity?: boolean;
+    /** 面板层输入框绑定值（v-model） */
+    inputValue?: string;
+    /** 外部汇总的任一贤者加载态（可选，未传时回退本地计算） */
+    isAnySeelLoading?: boolean;
 }
 
 /**
@@ -45,6 +49,12 @@ export interface MagiMainPanelEmits {
     (e: "toggle-trinity"): void;
     /** 显示适格者问卷 */
     (e: "show-questionnaire"): void;
+    /** 输入框绑定值更新 */
+    (e: "update:inputValue", value: string): void;
+    /** 输入栏提交 */
+    (e: "submit-input", value: string): void;
+    /** 输入栏停止 */
+    (e: "stop-input"): void;
 }
 
 /**
@@ -122,7 +132,6 @@ export interface FormatMessageOptions {
     /** 投票详情 */
     voteDetails?: Array<{
         name: string;
-        weight: number;
-        conclusion: string;
+        decision: string;
     }>;
 }

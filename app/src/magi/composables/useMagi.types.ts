@@ -50,8 +50,8 @@ export interface WrappedSeel {
         userInput: string,
         options?: { context?: { responses?: SageResponse[] } },
     ) => Promise<string | AsyncGenerator<string>>;
-    /** 投票评分 */
-    voteFor: (responses: string[]) => Promise<VoteResult | null>;
+    /** 对拟议行动进行二元表决 */
+    voteFor: (proposedAction: string) => Promise<VoteResult | null>;
 }
 
 /**
@@ -66,7 +66,11 @@ export interface UseMagiReturn {
     /** 连接状态 */
     connectionStatus: Ref<ConnectionStatus>;
     /** 共识消息列表 */
-    consensusMessages: Array<{ type: string; content: string }>;
+    consensusMessages: MagiMessage[];
+    /** 是否存在任一贤者正在响应 */
+    isAnySeelLoading: Ref<boolean>;
+    /** 发送用户消息并触发三贤者并行响应 */
+    sendUserMessage: (text: string) => Promise<void>;
     /** 初始化MAGI系统 */
     initializeMAGI: () => Promise<void>;
 }

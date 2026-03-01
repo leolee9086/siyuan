@@ -112,6 +112,15 @@ function buildRules(t, isProd, isLibrary) {
                 { loader: "sass-loader", options: { sourceMap: !isProd } },
             ],
         },
+        {
+            test: /\.css$/,
+            use: [
+                isLibrary
+                    ? MiniCssExtractPlugin.loader
+                    : (process.env.NODE_ENV !== "production" ? "vue-style-loader" : MiniCssExtractPlugin.loader),
+                { loader: "css-loader", options: { sourceMap: !isProd } },
+            ],
+        },
     ];
 
     if (t.html.length > 0) {

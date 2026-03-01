@@ -6,8 +6,8 @@
 
 // [TASK] T3.1 迁移基础UI组件 - SeelPanel逻辑提取
 
-import { computed, ref, onMounted, onUnmounted, nextTick, inject, type Ref } from "vue";
-import type { SeelPanelProps, SeelData } from "./SeelPanel.types";
+import { computed, ref, onMounted, onUnmounted, nextTick, type Ref } from "vue";
+import type { SeelPanelProps } from "./SeelPanel.types";
 
 /** 颜色名称到CSS颜色值的映射 */
 const COLOR_MAP: Readonly<Record<string, string>> = {
@@ -93,8 +93,6 @@ export async function useSeelPanelCtx(
         "--content-height": `${contentHeight.value}px`,
     }));
 
-    const seels = inject<SeelData[]>("magi-system", []);
-
     return {
         panelContainer,
         messageContainer,
@@ -103,7 +101,6 @@ export async function useSeelPanelCtx(
         statusText,
         headerHeight,
         rootStyle,
-        seels,
     };
 }
 
@@ -156,30 +153,3 @@ export async function scrollToBottom(
     }
 }
 
-/**
- * 获取指定索引贤者的显示名称
- *
- * 作用：投票消息中显示被评分贤者的名称
- * 调用时机：投票消息渲染时
- */
-export async function getSeelName(
-    seels: SeelData[],
-    index: number,
-): Promise<string> {
-    const seel = seels[index];
-    return seel?.config.displayName ?? `MAGI-${index + 1}`;
-}
-
-/**
- * 获取指定索引贤者的人格描述
- *
- * 作用：投票消息中显示被评分贤者的角色
- * 调用时机：投票消息渲染时
- */
-export async function getSeelRole(
-    seels: SeelData[],
-    index: number,
-): Promise<string> {
-    const seel = seels[index];
-    return seel?.config.persona ?? "UNKNOWN PROTOCOL";
-}

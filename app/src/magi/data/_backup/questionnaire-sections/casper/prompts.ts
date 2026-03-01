@@ -3,10 +3,10 @@
  *
  * 根据问卷评估数据生成Casper本能反应特征的第一人称自我介绍提示词。
  */
-import type { CasperSummaryData } from "../../questionnaire.types";
+import type { SummaryPromptPersonaData } from "../../../questionnaire.types";
 
 /** 核心评估维度：[标签, 得分字段名] */
-const coreDimensions: ReadonlyArray<[string, keyof CasperSummaryData]> = [
+const coreDimensions: ReadonlyArray<[string, string]> = [
     ["警觉性", "警觉性得分"],
     ["应激反应", "应激反应得分"],
     ["生存本能", "生存本能得分"],
@@ -18,7 +18,7 @@ const coreDimensions: ReadonlyArray<[string, keyof CasperSummaryData]> = [
 ];
 
 /** 行为特征维度：[标签, 特征字段名] */
-const behaviorTraits: ReadonlyArray<[string, keyof CasperSummaryData]> = [
+const behaviorTraits: ReadonlyArray<[string, string]> = [
     ["环境", "环境意识表现"],
     ["变化", "变化感知表现"],
     ["情绪", "情绪敏感表现"],
@@ -31,7 +31,7 @@ const behaviorTraits: ReadonlyArray<[string, keyof CasperSummaryData]> = [
 ];
 
 /** 扩展行为特征维度 */
-const extendedTraits: ReadonlyArray<[string, keyof CasperSummaryData]> = [
+const extendedTraits: ReadonlyArray<[string, string]> = [
     ["直觉", "直觉决策特征"],
     ["应对", "复杂应对特征"],
     ["群体", "群体互动特征"],
@@ -44,15 +44,15 @@ const extendedTraits: ReadonlyArray<[string, keyof CasperSummaryData]> = [
 
 /** 构建维度列表 */
 const buildList = (
-    data: CasperSummaryData,
-    pairs: ReadonlyArray<[string, keyof CasperSummaryData]>
+    data: SummaryPromptPersonaData,
+    pairs: ReadonlyArray<[string, string]>
 ): string =>
     pairs.map(([label, key]) => `${label}：${data[key] ?? ""}`).join("\n");
 
 /**
  * 生成Casper总结提示词
  */
-export async function genCasperSummaryPrompt(data: CasperSummaryData): Promise<string> {
+export async function genCasperSummaryPrompt(data: SummaryPromptPersonaData): Promise<string> {
     const 姓名 = data.姓名 ?? "";
 
     const coreBlock = coreDimensions

@@ -3,10 +3,10 @@
  *
  * 根据问卷评估数据生成Melchior认知控制特征的第一人称自我介绍提示词。
  */
-import type { MelchiorSummaryData } from "../../questionnaire.types";
+import type { SummaryPromptPersonaData } from "../../../questionnaire.types";
 
 /** 认知能力评估维度：[标签, 数据字段名] */
-const cognitiveTraitPairs: ReadonlyArray<[string, keyof MelchiorSummaryData]> = [
+const cognitiveTraitPairs: ReadonlyArray<[string, string]> = [
     ["逻辑推理", "逻辑推理表现"],
     ["数据处理", "数据处理表现"],
     ["模式识别", "模式识别表现"],
@@ -19,7 +19,7 @@ const cognitiveTraitPairs: ReadonlyArray<[string, keyof MelchiorSummaryData]> = 
 ];
 
 /** 思维特征维度 */
-const thinkingTraitPairs: ReadonlyArray<[string, keyof MelchiorSummaryData]> = [
+const thinkingTraitPairs: ReadonlyArray<[string, string]> = [
     ["系统化程度", "思维结构化倾向"],
     ["逻辑严谨性", "逻辑一致性特征"],
     ["元认知模式", "元认知特征"],
@@ -33,15 +33,15 @@ const thinkingTraitPairs: ReadonlyArray<[string, keyof MelchiorSummaryData]> = [
 
 /** 构建维度列表文本 */
 const buildDimensionList = (
-    data: MelchiorSummaryData,
-    pairs: ReadonlyArray<[string, keyof MelchiorSummaryData]>
+    data: SummaryPromptPersonaData,
+    pairs: ReadonlyArray<[string, string]>
 ): string =>
     pairs.map(([label, key]) => `- ${label}：${data[key] ?? ""}`).join("\n");
 
 /**
  * 生成Melchior总结提示词
  */
-export async function genMelchiorSummaryPrompt(data: MelchiorSummaryData): Promise<string> {
+export async function genMelchiorSummaryPrompt(data: SummaryPromptPersonaData): Promise<string> {
     const 姓名 = data.姓名 ?? "";
 
     return `   - 以"我是 ${姓名} ,MAGI的MELCHIOR单元,我将负责以最符合${姓名}档案的方式模拟${姓名}的逻辑与理性决策偏好特质"开始，介绍自己的身份

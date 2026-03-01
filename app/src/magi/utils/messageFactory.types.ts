@@ -90,12 +90,12 @@ export interface ConsensusMessage {
     status: string;
     /** 共识元数据 */
     meta: {
-        /** 来源（trinity直接总结 或 加权投票） */
-        source: "trinity" | "weighted";
-        /** 各响应的权重 */
-        weights: number[];
-        /** 加权排序后的详情 */
-        details: Array<{ content: SageResponse; weight: number }>;
+        /** 共识模式（普通统合/重要任务） */
+        mode: "standard" | "critical";
+        /** 来源（统合结果/反刍入口） */
+        source: "trinity-synthesis" | "rumination-entry";
+        /** 重要任务模式下的三方表决结果 */
+        vote?: VoteResult;
     };
     /** 时间戳 */
     timestamp: number;
@@ -108,8 +108,14 @@ export interface ConsensusMessage {
  * 使用场景：processVoting 收集各贤者投票，传入 生成共识聊天回复
  */
 export interface VoteResult {
-    /** 各响应的评分（投票失败时可能缺失） */
-    scores?: Array<{ score: number; comment?: string }>;
-    /** 结论 */
-    conclusion: string;
+    /** Melchior（理性维度）投票 */
+    melchior: "批准" | "否决";
+    /** Balthazar（感性维度）投票 */
+    balthazar: "批准" | "否决";
+    /** Casper（本能维度）投票 */
+    casper: "批准" | "否决";
+    /** 是否通过（>= 2/3 批准） */
+    passed: boolean;
+    /** 当前反刍轮次 */
+    round: number;
 }

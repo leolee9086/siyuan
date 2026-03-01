@@ -53,9 +53,9 @@ export const 合并MockWISE配置 = async (
 
     // 完整的 openAIConfig 对象（按优先级：用户输入 > 预设 > 全局配置 > 硬编码后备）
     const finalOpenAIConfig: OpenAICompatConfig = {
-        apiKey: userOpenAI.apiKey ?? globalAI?.apiKey ?? "default_key",
+        apiKey: userOpenAI.apiKey ?? globalAI?.apiKey ?? "",
         model: userOpenAI.model ?? globalAI?.apiModel ?? "gpt-4",
-        base_url: userOpenAI.base_url ?? globalAI?.apiBaseURL ?? "https://api.your-ai-service.com/v1",
+        base_url: userOpenAI.base_url ?? globalAI?.apiBaseURL ?? "",
         temperature: userOpenAI.temperature ?? globalAI?.apiTemperature ?? 0.7,
         max_tokens: userOpenAI.max_tokens ?? globalAI?.apiMaxTokens ?? 500,
     };
@@ -256,12 +256,12 @@ const 构建实例方法 = (内部状态: MockWISE内部状态): Omit<MockWISE�
     },
 
     /**
-     * voteFor——对响应列表进行模拟评分投票
-     * 作用：模拟贤人审议过程，为 MAGI 共识机制提供投票数据
-     * 调用时机：由 MagiSystem 在多贤人并行响应后调用
+     * voteFor——对拟议行动执行模拟二元表决
+     * 作用：模拟贤人审议过程，为 MAGI 共识机制提供批准/否决结果
+     * 调用时机：由共识流程在 Critical Decision 模式下调用
      */
-    async voteFor(responses: string[]) {
-        return 执行投票操作(内部状态, 内部状态.config.name, responses);
+    async voteFor(proposedAction: string) {
+        return 执行投票操作(内部状态, 内部状态.config.name, proposedAction);
     },
 
     /**

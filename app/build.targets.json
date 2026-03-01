@@ -31,6 +31,34 @@
             { "chunks": ["main"], "filename": "index.html", "template": "src/assets/template/mobile/index.tpl" }
         ]
     },
+    "magi-app": {
+        "platform": "electron",
+        "entry": { "main": "./src/magi/entry/index.ts" },
+        "outputDir": "stage/build/magi-app",
+        "publicPath": "auto",
+        "html": [
+            { "chunks": ["main"], "filename": "index.html", "template": "src/assets/template/magi/app/index.tpl" }
+        ],
+        "excludeModules": ["sharp", "onnxruntime-node"]
+    },
+    "magi-desktop": {
+        "platform": "web",
+        "entry": { "main": "./src/magi/entry/index.ts" },
+        "outputDir": "stage/build/magi-desktop",
+        "publicPath": "/stage/build/magi-desktop/",
+        "html": [
+            { "chunks": ["main"], "filename": "index.html", "template": "src/assets/template/magi/desktop/index.tpl" }
+        ]
+    },
+    "magi-mobile": {
+        "platform": "web",
+        "entry": { "main": "./src/magi/entry/mobile.ts" },
+        "outputDir": "stage/build/magi-mobile",
+        "publicPath": "/stage/build/magi-mobile/",
+        "html": [
+            { "chunks": ["main"], "filename": "index.html", "template": "src/assets/template/magi/mobile/index.tpl" }
+        ]
+    },
     "export": {
         "platform": "web",
         "entry": { "protyle-method": "./src/protyle/method.ts" },

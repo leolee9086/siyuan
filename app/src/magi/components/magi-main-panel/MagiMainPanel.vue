@@ -14,7 +14,7 @@
       @toggle-trinity="emit('toggle-trinity')"
     />
 
-    <div ref="container" class="message-container">
+    <div ref="container" class="main-message-container">
       <MessageBubble
         v-for="(msg, i) in messages"
         :key="`consensus-${i}`"
@@ -36,6 +36,16 @@
         </template>
       </MessageBubble>
     </div>
+
+    <div class="main-panel-input">
+      <MagiInputBar
+        :model-value="inputValue ?? ''"
+        :is-loading="isAnySeelLoading ?? seels.some((seel) => seel.loading)"
+        @update:model-value="emit('update:inputValue', $event)"
+        @submit="emit('submit-input', $event)"
+        @stop="emit('stop-input')"
+      />
+    </div>
   </div>
 </template>
 
@@ -43,6 +53,7 @@
 import { ref, toRef } from "vue";
 import { getMagiI18nText } from "../../utils/magiI18n";
 import MessageBubble from "../message-bubble/MessageBubble.vue";
+import MagiInputBar from "./MagiInputBar.vue";
 import MagiMainPanelHeader from "./MagiMainPanelHeader.vue";
 import { useMagiMainPanelContext } from "./MagiMainPanel.ctx";
 import type { MagiMainPanelEmits, MagiMainPanelProps } from "./MagiMainPanel.types";
@@ -78,4 +89,5 @@ const {
     weightText: getMagiI18nText("weight"),
   },
 });
+
 </script>

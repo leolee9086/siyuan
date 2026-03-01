@@ -1,93 +1,253 @@
 /**
  * CompositeRating 组件逻辑上下文
- *
- * 从 CompositeRating.vue 提取的评分计算和选项选择逻辑。
  */
 
-import { ref, computed } from "vue";
-import type { CompositeRatingProps, CompositeRatingEmits, SelectionMap } from "./CompositeRating.types";
-import type { ScoreAnswer } from "../../data/questionnaire.types";
+import { computed, ref } from "vue";
+import type {
+    IpipNeo120RawAnswer,
+    IpipNeo120SubmissionPayload,
+    ScoreAnswer,
+} from "../../data/questionnaire.types";
+import { isLikertScore } from "./CompositeRating.guard";
+import type {
+    CompositeRatingEmits,
+    CompositeRatingProps,
+    LikertSelectionMap,
+    SelectionMap,
+} from "./CompositeRating.types";
 
-/**
- * 根据当前选中状态计算加权综合评分
- *
- * 作用：收集所有已选答案，调用问题自带的评分函数或使用默认加权算法
- * 意图：支持自定义评分逻辑（通过 question.calculateScore），同时提供合理的默认实现
- * 调用时机：每次 selectOption 后调用
- */
-async function calculateScore(
-    props: CompositeRatingProps,
-    selections: Map<number, number>,
-    currentScore: { value: number },
-    emit: CompositeRatingEmits,
-): Promise<void> {
+/** @同步豁免: 生命周期 */
+function normalizeDate(date: Date): string {
+    const year = date.getFullYear();
+    const month = `${date.getMonth() + 1}`.padStart(2, "0");
+    const day = `${date.getDate()}`.padStart(2, "0");
+    return `${year}-${month}-${day}`;
+}
+
+/** @同步豁免: 生命周期 */
+function getCurrentIpipQuestion(props: CompositeRatingProps, index: number) {
+    if (!props.questionBank || index < 0 || index >= props.questionBank.length) {
+        return undefined;
+    }
+    return props.questionBank[index];
+}
+
+/** @同步豁免: 生命周期 */
+function collectLegacyAnswers(props: CompositeRatingProps, selections: SelectionMap): ScoreAnswer[] {
+    if (!props.question) {
+        return [];
+    }
+
     const answers: ScoreAnswer[] = [];
-    for (const [i, optIdx] of selections.entries()) {
-        const sub = props.question.subQuestions[i];
-        if (sub) {
-            answers.push({ selectedOptionIndex: optIdx, weight: sub.weight ?? 1 });
+    for (const [subIndex, optionIndex] of selections.entries()) {
+        const subQuestion = props.question.subQuestions[subIndex];
+        if (!subQuestion) {
+            continue;
         }
+        answers.push({ selectedOptionIndex: optionIndex, weight: subQuestion.weight ?? 1 });
     }
-    if (answers.length === 0) {
-        return;
-    }
-    // 优先使用问题自带的评分函数（支持异步），否则使用默认加权百分比算法
-    if (props.question.calculateScore) {
-        currentScore.value = await props.question.calculateScore(answers);
-        emit("update:score", currentScore.value);
-        return;
-    }
-    const totalWeight = answers.reduce((s, a) => s + (a.weight ?? 1), 0);
-    const weightedSum = answers.reduce(
-        (s, a) => s + a.selectedOptionIndex * (a.weight ?? 1), 0,
-    );
-    currentScore.value = Math.round((weightedSum / (totalWeight * 4)) * 100);
-    emit("update:score", currentScore.value);
+    return answers;
 }
 
 /**
- * 处理子问题选项点击
- *
- * 作用：记录用户选择并触发评分重算
- * 意图：将选项选中状态与评分计算解耦，选中后立即通知父组件
- * 调用时机：用户点击某个子问题的选项时由模板 @click 触发
+ * 计算旧问卷模式分数。
  */
-async function selectOption(
-    subIndex: number,
-    optIndex: number,
+async function calculateLegacyScore(props: CompositeRatingProps, answers: ScoreAnswer[]): Promise<number> {
+    if (!props.question || answers.length === 0) {
+        return 0;
+    }
+
+    if (props.question.calculateScore) {
+        return props.question.calculateScore(answers);
+    }
+
+    const totalWeight = answers.reduce((sum, answer) => sum + (answer.weight ?? 1), 0);
+    const weightedSum = answers.reduce((sum, answer) => sum + answer.selectedOptionIndex * (answer.weight ?? 1), 0);
+    return Math.round((weightedSum / (totalWeight * 4)) * 100);
+}
+
+/**
+ * 处理旧问卷选项点击。
+ */
+async function selectLegacyOption(
     props: CompositeRatingProps,
     selections: SelectionMap,
     currentScore: { value: number },
     emit: CompositeRatingEmits,
+    subIndex: number,
+    optionIndex: number,
 ): Promise<void> {
-    selections.set(subIndex, optIndex);
+    if (!props.question) {
+        return;
+    }
+
+    selections.set(subIndex, optionIndex);
     emit("update:question", props.question);
-    await calculateScore(props, selections, currentScore, emit);
+
+    const answers = collectLegacyAnswers(props, selections);
+    if (answers.length === 0) {
+        return;
+    }
+
+    currentScore.value = await calculateLegacyScore(props, answers);
+    emit("update:score", currentScore.value);
+}
+
+/** @同步豁免: 生命周期 */
+function buildOrderedIpipAnswers(
+    props: CompositeRatingProps,
+    answers: ReadonlyMap<number, number>,
+): readonly IpipNeo120RawAnswer[] {
+    if (!props.questionBank) {
+        return [];
+    }
+
+    const ordered: IpipNeo120RawAnswer[] = [];
+    for (const item of props.questionBank) {
+        const score = answers.get(item.q);
+        if (score === undefined || !isLikertScore(score)) {
+            continue;
+        }
+        ordered.push({ q: item.q, text: item.text, score });
+    }
+    return ordered;
+}
+
+/** @同步豁免: 生命周期 */
+function buildIpipSubmissionPayload(
+    props: CompositeRatingProps,
+    answers: ReadonlyMap<number, number>,
+): IpipNeo120SubmissionPayload | null {
+    if (!props.subject || !props.questionBank) {
+        return null;
+    }
+
+    return {
+        schema_version: "IPIP-NEO-120-v1",
+        subject: props.subject,
+        date: normalizeDate(new Date()),
+        answers: buildOrderedIpipAnswers(props, answers),
+    };
+}
+
+/** @同步豁免: 生命周期 */
+function selectLikertOption(
+    props: CompositeRatingProps,
+    currentQuestionIndex: { value: number },
+    likertSelections: { value: LikertSelectionMap },
+    emit: CompositeRatingEmits,
+    score: number,
+): void {
+    const current = getCurrentIpipQuestion(props, currentQuestionIndex.value);
+    if (!current || !isLikertScore(score)) {
+        return;
+    }
+
+    likertSelections.value.set(current.q, score);
+    emit("update:ipip-answer", { q: current.q, score });
+}
+
+/** @同步豁免: 生命周期 */
+function goPrevQuestion(currentQuestionIndex: { value: number }): void {
+    // 仅当当前不是首题时才允许回退，避免索引进入负数区间。
+    if (currentQuestionIndex.value > 0) {
+        currentQuestionIndex.value -= 1;
+    }
+}
+
+/** @同步豁免: 生命周期 */
+function goNextQuestion(currentQuestionIndex: { value: number }, totalQuestions: { value: number }): void {
+    // 仅当未到末题时才前进，防止索引越过题库上界。
+    if (currentQuestionIndex.value < totalQuestions.value - 1) {
+        currentQuestionIndex.value += 1;
+    }
+}
+
+/** @同步豁免: 生命周期 */
+function submitIpipAnswers(
+    props: CompositeRatingProps,
+    likertSelections: { value: LikertSelectionMap },
+    allLikertAnswered: { value: boolean },
+    emit: CompositeRatingEmits,
+): void {
+    if (!allLikertAnswered.value) {
+        return;
+    }
+
+    const payload = buildIpipSubmissionPayload(props, likertSelections.value);
+    if (payload) {
+        emit("submit:ipip", payload);
+    }
+}
+
+/** @同步豁免: 生命周期 */
+function createComputedState(
+    props: CompositeRatingProps,
+    currentQuestionIndex: { value: number },
+    likertSelections: { value: LikertSelectionMap },
+    selections: { value: SelectionMap },
+) {
+    const totalQuestions = computed(() => props.questionBank?.length ?? 0);
+    const isIpipMode = computed(() => totalQuestions.value > 0);
+    const currentIpipQuestion = computed(() => getCurrentIpipQuestion(props, currentQuestionIndex.value));
+    const answeredCount = computed(() => likertSelections.value.size);
+    const progressPercent = computed(() => (totalQuestions.value === 0 ? 0 : Math.round((answeredCount.value / totalQuestions.value) * 100)));
+    const canGoPrev = computed(() => currentQuestionIndex.value > 0);
+    const canGoNext = computed(() => currentQuestionIndex.value < totalQuestions.value - 1);
+    const currentLikertScore = computed(() => {
+        const current = currentIpipQuestion.value;
+        return current ? likertSelections.value.get(current.q) : undefined;
+    });
+    const hasAnsweredCurrent = computed(() => currentLikertScore.value !== undefined);
+    const allLikertAnswered = computed(() => totalQuestions.value > 0 && answeredCount.value === totalQuestions.value);
+    const allAnswered = computed(() => (isIpipMode.value
+        ? allLikertAnswered.value
+        : !!props.question && props.question.subQuestions.every((_, index) => selections.value.has(index))));
+
+    return {
+        totalQuestions,
+        isIpipMode,
+        currentIpipQuestion,
+        answeredCount,
+        progressPercent,
+        canGoPrev,
+        canGoNext,
+        currentLikertScore,
+        hasAnsweredCurrent,
+        allLikertAnswered,
+        allAnswered,
+    };
 }
 
 /**
- * 初始化 CompositeRating 的全部响应式状态
- *
- * 作用：管理子问题选中状态和综合评分计算
- * 调用时机：CompositeRating.vue 的 setup 阶段调用一次
+ * 初始化 CompositeRating 上下文。
  */
-export async function useCompositeRatingCtx(
-    props: CompositeRatingProps,
-    emit: CompositeRatingEmits,
-) {
+export async function useCompositeRatingCtx(props: CompositeRatingProps, emit: CompositeRatingEmits) {
     const selections = ref<SelectionMap>(new Map());
     const currentScore = ref(0);
-
-    const allAnswered = computed(() =>
-        props.question.subQuestions.every((_, i) => selections.value.has(i)),
-    );
+    const currentQuestionIndex = ref(0);
+    const likertSelections = ref<LikertSelectionMap>(new Map());
+    const computedState = createComputedState(props, currentQuestionIndex, likertSelections, selections);
 
     return {
         selections,
         currentScore,
-        allAnswered,
-        /** 模板绑定的选项点击处理器，委托给顶层 selectOption 并注入闭包依赖 */
-        selectOption: (subIndex: number, optIndex: number) =>
-            selectOption(subIndex, optIndex, props, selections.value, currentScore, emit),
+        allAnswered: computedState.allAnswered,
+        isIpipMode: computedState.isIpipMode,
+        currentQuestionIndex,
+        totalQuestions: computedState.totalQuestions,
+        currentIpipQuestion: computedState.currentIpipQuestion,
+        answeredCount: computedState.answeredCount,
+        progressPercent: computedState.progressPercent,
+        canGoPrev: computedState.canGoPrev,
+        canGoNext: computedState.canGoNext,
+        currentLikertScore: computedState.currentLikertScore,
+        hasAnsweredCurrent: computedState.hasAnsweredCurrent,
+        allLikertAnswered: computedState.allLikertAnswered,
+        selectOption: selectLegacyOption.bind(null, props, selections.value, currentScore, emit),
+        selectLikertOption: selectLikertOption.bind(null, props, currentQuestionIndex, likertSelections, emit),
+        goPrevQuestion: goPrevQuestion.bind(null, currentQuestionIndex),
+        goNextQuestion: goNextQuestion.bind(null, currentQuestionIndex, computedState.totalQuestions),
+        submitIpipAnswers: submitIpipAnswers.bind(null, props, likertSelections, computedState.allLikertAnswered, emit),
     };
 }

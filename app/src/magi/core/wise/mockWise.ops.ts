@@ -18,6 +18,43 @@ import type {
     SSE桥接状态,
 } from "./wise.types";
 
+const PLACEHOLDER_ENDPOINT = "api.your-ai-service.com";
+
+/**
+ * 提取连接失败响应中的详细错误文本
+ *
+ * 作用：优先读取 JSON 错误对象，其次回退到文本响应。
+ * 意图：把后端返回的真实错误透传到 UI，避免只看到泛化失败文案。
+ * 调用时机：执行连接操作遇到 `response.ok === false` 时调用。
+ */
+const 提取错误响应文本 = async (response: Response): Promise<string> => {
+    try {
+        const data: unknown = await response.json();
+        if (data && typeof data === "object") {
+            const errorObj = Reflect.get(data, "error");
+            if (errorObj && typeof errorObj === "object") {
+                const nestedMessage = Reflect.get(errorObj, "message");
+                if (typeof nestedMessage === "string") {
+                    return nestedMessage;
+                }
+            }
+            const message = Reflect.get(data, "message");
+            if (typeof message === "string") {
+                return message;
+            }
+        }
+    } catch {
+        // 非 JSON 响应时继续尝试读取 text
+    }
+
+    try {
+        const text = await response.text();
+        return text.trim() || `HTTP ${response.status}`;
+    } catch {
+        return `HTTP ${response.status}`;
+    }
+};
+
 // ────────────────────────────────────────────────────────────────────────────
 // SSE 桥接状态操作辅助（顶层函数，避免在 generator 内定义命名函数）
 // ────────────────────────────────────────────────────────────────────────────
@@ -145,60 +182,13 @@ export async function* 创建流式响应Generator(
 // 投票操作（外部化）
 // ────────────────────────────────────────────────────────────────────────────
 
-/** Melchior 投票评语库（模块顶层常量，避免内联数组超限） */
-const MELCHIOR评语列表 = ["逻辑严谨", "需要更多数据支持", "符合协议", "模式验证通过", "需补充神学依据"];
-/** Balthazar 投票评语库 */
-const BALTHAZAR评语列表 = ["情感共鸣", "人性化不足", "富有创意", "引发深层思考", "触及心灵"];
-/** Casper 投票评语库 */
-const CASPER评语列表 = ["实用性强", "缺乏创新", "成本过高", "效率优先", "符合实战需求"];
-/** 未知贤人评语库 */
-const DEFAULT评语列表 = ["评估完成", "方案可行", "需要复核", "数据不足", "基准测试通过"];
+/** 随机生成二元投票结果 */
+const 生成二元表决 = (): "批准" | "否决" =>
+    (Math.random() > 0.5 ? "批准" : "否决");
 
-/** 评语库索引映射（贤人名称→评语列表） */
-const 评语库映射: Record<string, string[]> = {
-    MELCHIOR: MELCHIOR评语列表,
-    BALTHAZAR: BALTHAZAR评语列表,
-    CASPER: CASPER评语列表,
-    DEFAULT: DEFAULT评语列表,
-};
-
-/**
- * 根据AI名称获取风格化投票评语
- *
- * 作用：按贤人身份从各自的评语库中随机选择评语
- * 意图：模拟不同贤人的投票风格，使评语具有角色特征
- * 调用时机：在 执行投票操作 方法中生成每条 scores 时调用
- */
-const 获取评语 = (aiName: string, content: string): string => {
-    const 候选 = 评语库映射[aiName] ?? DEFAULT评语列表;
-    const 随机序号 = Math.floor(Math.random() * 候选.length);
-    const 随机评语 = 候选[随机序号] ?? "评估完成";
-    return `${随机评语} (${content.slice(0, 15)}...)`;
-};
-
-/**
- * 将单条响应转换为投票评分条目
- *
- * 作用：组合随机分数、决定和评语，生成单条投票记录
- * 意图：提取 map 回调逻辑，避免内联回调超5行的 lint 限制
- * 调用时机：在 执行投票操作 的 responses.map 中调用
- */
-const 生成投票条目 = (aiName: string) =>
-    (content: string, i: number): {
-        targetIndex: number;
-        score: number;
-        decision: "通过" | "否决" | "复议";
-        comment: string;
-    } => {
-        const 决定列表 = ["通过", "否决", "复议"] as const;
-        const 随机决定 = 决定列表[Math.floor(Math.random() * 3)] ?? "通过";
-        return {
-            targetIndex: i,
-            score: Math.floor(Math.random() * 3 + 7),
-            decision: 随机决定,
-            comment: 获取评语(aiName, content),
-        };
-    };
+/** 计算是否通过（>= 2/3 批准） */
+const 计算通过状态 = (votes: Array<"批准" | "否决">): boolean =>
+    votes.filter((vote) => vote === "批准").length >= 2;
 
 /**
  * 执行投票操作
@@ -213,23 +203,31 @@ const 生成投票条目 = (aiName: string) =>
  */
 export const 执行投票操作 = async (
     内部状态: MockWISE内部状态,
-    configName: string,
-    responses: string[]
+    _configName: string,
+    proposedAction: string
 ): Promise<VoteForResult> => {
-    if (!Array.isArray(responses)) {
+    if (typeof proposedAction !== "string") {
         throw new Error("无效的投票输入");
     }
-    const 有效响应 = responses.filter(
-        (r) => r && typeof r === "string" && r.trim().length > 0
-    );
-    if (有效响应.length === 0) {
-        return { error: true, message: "无可评估方案", conclusion: "弃权" };
+    if (!proposedAction.trim()) {
+        return {
+            error: true,
+            message: "无可评估行动",
+            melchior: "否决",
+            balthazar: "否决",
+            casper: "否决",
+            passed: false,
+            round: 1,
+        };
     }
     const 投票消息: MockMessage = {
         type: "vote",
         status: "loading",
         timestamp: Date.now(),
-        meta: {},
+        meta: {
+            type: "binary-vote",
+            action: proposedAction,
+        },
     };
     内部状态.messages.push(投票消息);
     // 模拟贤人审议延迟（用户感知延迟，模拟真实审议体验）：无法用确定性信号替代
@@ -237,11 +235,16 @@ export const 执行投票操作 = async (
         setTimeout(resolve, 1000 + Math.random() * 500)
     );
     投票消息.status = "success";
-    const 名称分段 = (configName ?? "").split("-");
-    const aiName = (名称分段[0] ?? "").toUpperCase();
+    const melchior = 生成二元表决();
+    const balthazar = 生成二元表决();
+    const casper = 生成二元表决();
+    const passed = 计算通过状态([melchior, balthazar, casper]);
     return {
-        scores: responses.map(生成投票条目(aiName)),
-        conclusion: "综合评估完成",
+        melchior,
+        balthazar,
+        casper,
+        passed,
+        round: 1,
     };
 };
 
@@ -307,14 +310,27 @@ export const 执行连接操作 = async (
     内部状态.loading = true;
     try {
         const { openAIConfig } = 内部状态.config;
-        const testUrl = `${openAIConfig.base_url.replace(/\/$/, "")}/chat/completions`;
+        const normalizedBaseURL = String(openAIConfig.base_url ?? "").trim();
+        const normalizedApiKey = String(openAIConfig.apiKey ?? "").trim();
+
+        if (!normalizedBaseURL) {
+            throw new Error("AI 接口地址为空，请先在后端配置 ai.openAI.apiBaseURL");
+        }
+        if (normalizedBaseURL.includes(PLACEHOLDER_ENDPOINT)) {
+            throw new Error(`检测到占位符接口地址: ${normalizedBaseURL}，请改为后端真实配置`);
+        }
+        if (!normalizedApiKey) {
+            throw new Error("AI API Key 为空，请先在后端配置 ai.openAI.apiKey");
+        }
+
+        const testUrl = `${normalizedBaseURL.replace(/\/$/, "")}/chat/completions`;
 
         // 探测请求：max_tokens 设为极小值以快速响应
         const response = await fetch(testUrl, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "Authorization": `Bearer ${openAIConfig.apiKey}`,
+                "Authorization": `Bearer ${normalizedApiKey}`,
             },
             body: JSON.stringify({
                 model: openAIConfig.model,
@@ -324,7 +340,8 @@ export const 执行连接操作 = async (
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP Error: ${response.status}`);
+            const detail = await 提取错误响应文本(response);
+            throw new Error(`HTTP ${response.status} (${testUrl}) | ${detail}`);
         }
 
         内部状态.connected = true;

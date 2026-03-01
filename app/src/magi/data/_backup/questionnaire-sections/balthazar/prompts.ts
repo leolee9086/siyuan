@@ -3,10 +3,10 @@
  *
  * 根据问卷评估数据生成Balthazar情感与伦理倾向特征的第一人称自我介绍提示词。
  */
-import type { BalthazarSummaryData } from "../../questionnaire.types";
+import type { SummaryPromptPersonaData } from "../../../questionnaire.types";
 
 /** 情感特征评估维度：[标签, 得分字段, 子维度对] */
-const emotionSections: ReadonlyArray<[string, keyof BalthazarSummaryData, ReadonlyArray<[string, keyof BalthazarSummaryData]>]> = [
+const emotionSections: ReadonlyArray<[string, string, ReadonlyArray<[string, string]>]> = [
     ["情绪识别倾向", "情绪识别倾向得分", [
         ["自我觉察", "自我觉察特征"],
         ["他人关注", "他人关注特征"],
@@ -40,7 +40,7 @@ const emotionSections: ReadonlyArray<[string, keyof BalthazarSummaryData, Readon
 ];
 
 /** 构建情感特征评估文本块 */
-const buildEmotionBlock = (data: BalthazarSummaryData): string =>
+const buildEmotionBlock = (data: SummaryPromptPersonaData): string =>
     emotionSections.map(([label, scoreKey, traits], i) => {
         const score = data[scoreKey] ?? 0;
         const lines = traits.map(([tLabel, tKey]) => `   - ${tLabel}：${data[tKey] ?? ""}`).join("\n");
@@ -50,7 +50,7 @@ const buildEmotionBlock = (data: BalthazarSummaryData): string =>
 /**
  * 生成Balthazar总结提示词
  */
-export async function genBalthazarSummaryPrompt(data: BalthazarSummaryData): Promise<string> {
+export async function genBalthazarSummaryPrompt(data: SummaryPromptPersonaData): Promise<string> {
     const 姓名 = data.姓名 ?? "";
 
     return `请根据以下资料，以侧写方式,生成候选者 ${姓名} 的第一人称陈述,用于模拟其人格的伦理与情感倾向侧面：
