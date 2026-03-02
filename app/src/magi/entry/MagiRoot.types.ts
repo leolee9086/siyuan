@@ -1,4 +1,4 @@
-import type { ComputedRef, Ref } from "vue";
+import type { ComputedRef, InjectionKey, Ref } from "vue";
 import type { WrappedSeel, UseMagiReturn } from "../composables/useMagi.types";
 import type { MagiMessage } from "../utils/messageFactory.types";
 
@@ -31,3 +31,6 @@ export interface MagiRootContext {
     onStopInput: () => void;
     magiState: Ref<UseMagiReturn | null>;
 }
+
+/** provide/inject key for MagiRoot context */
+export const MAGI_ROOT_CTX_KEY: InjectionKey<MagiRootContext> = Symbol("MagiRootContext");

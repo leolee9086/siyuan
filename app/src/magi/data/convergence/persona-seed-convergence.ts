@@ -232,7 +232,7 @@ export function countSuggestionsByStatus(
  * 问题/改进：后续可保留历史版本用于审计。
  */
 export function applySuggestionToAnswers(
-    answers: readonly Array<{ q: number; score: LikertScore }>,
+    answers: ReadonlyArray<{ q: number; score: LikertScore }>,
     suggestion: PersonaConvergenceSuggestion,
 ): Array<{ q: number; score: LikertScore }> {
     // 非问卷建议时直接返回原答案副本。

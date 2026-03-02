@@ -24,15 +24,43 @@ export interface CompositeRatingProps {
     /** 兼容旧复合评分模式（旧问卷结构） */
     question?: CompositeRatingQuestion | undefined;
     /** 新 IPIP-NEO-120 题库（逐题 5 级 Likert） */
-    questionBank?: readonly IpipNeo120Item[] | undefined;
+    questionBank?: ReadonlyArray<IpipNeo120Item> | undefined;
     /** 新 IPIP-NEO-120 被试信息 */
     subject?: IpipNeo120SubjectMeta | undefined;
     /** 父层当前已作答结果（用于同步进度与高亮） */
-    ipipAnswers?: readonly Array<{ q: number; score: LikertScore }> | undefined;
+    ipipAnswers?: ReadonlyArray<{ q: number; score: LikertScore }> | undefined;
     /** 父层请求定位的目标题号（用于“查看建议”跳转） */
     focusQuestionQ?: number | null | undefined;
     /** 父层请求定位序号（用于强制触发重复定位同一题号） */
     focusQuestionRequestId?: number | undefined;
+    /** 父层传入的“待确认建议”题号集合（用于网格变色） */
+    pendingSuggestionQuestionQs?: ReadonlyArray<number> | undefined;
+}
+
+/**
+ * CompositeRating 对外暴露方法。
+ *
+ * 用途：允许父组件直接触发题号跳转，作为 props-watch 之外的兜底通道。
+ * 使用场景：建议列表点击“查看”时强制定位到指定题目。
+ */
+export interface CompositeRatingExpose {
+    jumpToQuestionByQ: (q: number) => void;
+}
+
+/**
+ * IPIP 题号网格单元状态。
+ *
+ * 用途：描述 120 题状态格的渲染信息。
+ * 使用场景：CompositeRating 顶部状态网格渲染（当前题/已作答/有建议）。
+ * 关联类型：`CompositeRatingProps`、`LikertScore`。
+ * 问题/改进：当前仅包含展示状态，后续可扩展冲突等级或置信度。
+ */
+export interface IpipQuestionGridCell {
+    q: number;
+    isCurrent: boolean;
+    isAnswered: boolean;
+    hasSuggestion: boolean;
+    title: string;
 }
 
 /**

@@ -1,7 +1,26 @@
 <template>
   <div class="composite-rating">
     <template v-if="isIpipMode">
-      <div class="ipip-header"><div class="ipip-progress-text">{{ answeredCount }}/{{ totalQuestions }}</div><div class="ipip-progress-track"><div class="ipip-progress-fill" :style="{ width: `${progressPercent}%` }"></div></div></div>
+      <div class="ipip-header">
+        <div class="ipip-progress-text">{{ answeredCount }}/{{ totalQuestions }}</div>
+        <div class="ipip-progress-track"><div class="ipip-progress-fill" :style="{ width: `${progressPercent}%` }"></div></div>
+        <div class="ipip-question-grid">
+          <button
+            v-for="cell in questionGridCells"
+            :key="cell.q"
+            type="button"
+            class="ipip-question-cell"
+            :class="{
+              current: cell.isCurrent,
+              answered: cell.isAnswered,
+              suggested: cell.hasSuggestion,
+              'answered-suggested': cell.isAnswered && cell.hasSuggestion,
+            }"
+            :title="cell.title"
+            @click="jumpToQuestionByQ(cell.q)"
+          />
+        </div>
+      </div>
       <div v-if="currentIpipQuestion" class="ipip-question">
         <p class="ipip-question-index">Q{{ currentQuestionIndex + 1 }}</p><p class="ipip-question-text">{{ currentIpipQuestion.text }}</p>
         <div class="likert-options"><button v-for="score in likertScores" :key="score" class="likert-option" :class="{ selected: currentLikertScore === score }" type="button" @click="selectLikertOption(score)">{{ score }}</button></div>
@@ -22,7 +41,7 @@
 </template>
 
 <script setup lang="ts">
-import type { CompositeRatingProps, CompositeRatingEmits } from "./CompositeRating.types";
+import type { CompositeRatingProps, CompositeRatingEmits, CompositeRatingExpose } from "./CompositeRating.types";
 import { useCompositeRatingCtx } from "./CompositeRating.ctx";
 import { getMagiI18nText } from "../../utils/magiI18n";
 import "./CompositeRating.css";
@@ -48,9 +67,15 @@ const {
     currentLikertScore,
     answeredCount,
     allLikertAnswered,
+    questionGridCells,
     selectLikertOption,
     goPrevQuestion,
     goNextQuestion,
     submitIpipAnswers,
-} = await useCompositeRatingCtx(props, emit);
+    jumpToQuestionByQ,
+} = useCompositeRatingCtx(props, emit);
+
+defineExpose<CompositeRatingExpose>({
+    jumpToQuestionByQ,
+});
 </script>

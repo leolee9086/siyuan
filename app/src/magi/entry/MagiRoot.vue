@@ -22,50 +22,10 @@
 
     <Suspense v-else>
       <template #default>
-        <div
-          class="magi-workspace"
-          :class="{ 'with-trinity': showTrinity && !!trinitySeel }"
-        >
-          <div v-if="showSeels" class="magi-seels">
-            <SeelPanel
-              v-for="seel in sageSeels"
-              :key="seel.config.name"
-              :ai="seel"
-              :show-messages="showMessages"
-            />
-          </div>
-
-          <div v-if="showTrinity && trinitySeel" class="magi-trinity">
-            <SeelPanel
-              :key="trinitySeel.config.name"
-              :ai="trinitySeel"
-              :show-messages="showMessages"
-            />
-          </div>
-
-          <MagiMainPanel
-            :messages="displayMessages"
-            :seels="seels"
-            :show-messages="showMessages"
-            :show-seels="showSeels"
-            :show-trinity="showTrinity"
-            :input-value="inputValue"
-            :is-any-seel-loading="isAnySeelLoading"
-            @toggle-messages="showMessages = !showMessages"
-            @toggle-seels="showSeels = !showSeels"
-            @toggle-trinity="showTrinity = !showTrinity"
-            @show-questionnaire="onShowQuestionnaire"
-            @update:inputValue="inputValue = $event"
-            @submit-input="onSubmitInput"
-            @stop-input="onStopInput"
-          />
-        </div>
+        <MagiWorkspace />
       </template>
-
       <template #fallback>
-        <div class="magi-loading">
-          LOADING PANELS...
-        </div>
+        <div class="magi-loading">LOADING PANELS...</div>
       </template>
     </Suspense>
 
@@ -78,31 +38,23 @@
 </template>
 
 <script setup lang="ts">
-import MagiMainPanel from "../components/magi-main-panel/MagiMainPanel.vue";
-import PersonaSeedPanel from "./PersonaSeedPanel.vue";
-import SeelPanel from "../components/seel-panel/SeelPanel.vue";
+import { provide } from "vue";
+import MagiWorkspace from "./MagiWorkspace.vue";
+import PersonaSeedPanel from "./persona-seed-panel/PersonaSeedPanel.vue";
 import { useMagiRootContext } from "./MagiRoot.ctx";
+import { MAGI_ROOT_CTX_KEY } from "./MagiRoot.types";
 import "./MagiRoot.css";
+
+const ctx = useMagiRootContext();
+provide(MAGI_ROOT_CTX_KEY, ctx);
 
 const {
     ready,
     bootError,
-    inputValue,
-    showMessages,
-    showSeels,
-    showTrinity,
     showQuestionnairePanel,
-    seels,
-    sageSeels,
-    trinitySeel,
-    displayMessages,
-    isAnySeelLoading,
-    onSubmitInput,
-    onShowQuestionnaire,
     onCloseQuestionnaire,
     onQuestionnaireSaved,
     onReconnect,
     onOpenConsole,
-    onStopInput,
-} = useMagiRootContext();
+} = ctx;
 </script>

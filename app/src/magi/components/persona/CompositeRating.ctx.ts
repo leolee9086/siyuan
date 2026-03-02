@@ -12,6 +12,7 @@ import { isLikertScore } from "./CompositeRating.guard";
 import type {
     CompositeRatingEmits,
     CompositeRatingProps,
+    IpipQuestionGridCell,
     LikertSelectionMap,
     LikertScore,
     SelectionMap,
@@ -98,7 +99,7 @@ async function selectLegacyOption(
 function buildOrderedIpipAnswers(
     props: CompositeRatingProps,
     answers: ReadonlyMap<number, number>,
-): readonly IpipNeo120RawAnswer[] {
+): ReadonlyArray<IpipNeo120RawAnswer> {
     if (!props.questionBank) {
         return [];
     }
@@ -170,7 +171,11 @@ function resolveQuestionIndexByQ(
     if (!questionBank || q === undefined || q === null) {
         return -1;
     }
-    return questionBank.findIndex((item) => item.q === q);
+    const normalizedQ = Number(q);
+    if (!Number.isInteger(normalizedQ)) {
+        return -1;
+    }
+    return questionBank.findIndex((item) => item.q === normalizedQ);
 }
 
 /** @同步豁免: 生命周期 */
@@ -184,6 +189,91 @@ function focusQuestionByQ(
         return;
     }
     currentQuestionIndex.value = targetIndex;
+}
+
+/** @同步豁免: 生命周期 */
+function createQuestionNumberSet(values: ReadonlyArray<number> | undefined): ReadonlySet<number> {
+    const set = new Set<number>();
+    if (!values) {
+        return set;
+    }
+    for (const value of values) {
+        if (!Number.isInteger(value)) {
+            continue;
+        }
+        set.add(value);
+    }
+    return set;
+}
+
+/** @同步豁免: 生命周期 */
+function createAnsweredQuestionSet(
+    answers: ReadonlyArray<{ q: number; score: LikertScore }> | undefined,
+): ReadonlySet<number> {
+    const set = new Set<number>();
+    if (!answers) {
+        return set;
+    }
+    for (const answer of answers) {
+        if (!Number.isInteger(answer.q)) {
+            continue;
+        }
+        set.add(answer.q);
+    }
+    return set;
+}
+
+/** @同步豁免: 生命周期 */
+function buildQuestionCellTitle(isCurrent: boolean, isAnswered: boolean, hasSuggestion: boolean, q: number): string {
+    if (isCurrent) {
+        return `Q${q} 当前题`;
+    }
+    if (isAnswered && hasSuggestion) {
+        return `Q${q} 已作答 + 有建议`;
+    }
+    if (isAnswered) {
+        return `Q${q} 已作答`;
+    }
+    if (hasSuggestion) {
+        return `Q${q} 有建议`;
+    }
+    return `Q${q} 未作答`;
+}
+
+/** @同步豁免: 生命周期 */
+function buildQuestionGridCells(
+    props: CompositeRatingProps,
+    currentQ: number | null,
+): ReadonlyArray<IpipQuestionGridCell> {
+    const questionBank = props.questionBank;
+    if (!questionBank) {
+        return [];
+    }
+    const answeredSet = createAnsweredQuestionSet(props.ipipAnswers);
+    const suggestionSet = createQuestionNumberSet(props.pendingSuggestionQuestionQs);
+    const cells: IpipQuestionGridCell[] = [];
+    for (const item of questionBank) {
+        const isCurrent = currentQ === item.q;
+        const isAnswered = answeredSet.has(item.q);
+        const hasSuggestion = suggestionSet.has(item.q);
+        cells.push({
+            q: item.q,
+            isCurrent,
+            isAnswered,
+            hasSuggestion,
+            title: buildQuestionCellTitle(isCurrent, isAnswered, hasSuggestion, item.q),
+        });
+    }
+    return cells;
+}
+
+/** @同步豁免: 生命周期 */
+function jumpToQuestionByQ(
+    props: CompositeRatingProps,
+    currentQuestionIndex: { value: number },
+    q: number,
+): void {
+    focusQuestionByQ(props, currentQuestionIndex, q);
 }
 
 /** @同步豁免: 生命周期 */
@@ -256,6 +346,7 @@ function createComputedState(
     });
     const hasAnsweredCurrent = computed(() => currentLikertScore.value !== undefined);
     const allLikertAnswered = computed(() => totalQuestions.value > 0 && answeredCount.value === totalQuestions.value);
+    const questionGridCells = computed(() => buildQuestionGridCells(props, currentIpipQuestion.value?.q ?? null));
     const allAnswered = computed(() => (isIpipMode.value
         ? allLikertAnswered.value
         : !!props.question && props.question.subQuestions.every((_, index) => selections.value.has(index))));
@@ -271,6 +362,7 @@ function createComputedState(
         currentLikertScore,
         hasAnsweredCurrent,
         allLikertAnswered,
+        questionGridCells,
         allAnswered,
     };
 }
@@ -278,7 +370,7 @@ function createComputedState(
 /**
  * 初始化 CompositeRating 上下文。
  */
-export async function useCompositeRatingCtx(props: CompositeRatingProps, emit: CompositeRatingEmits) {
+export function useCompositeRatingCtx(props: CompositeRatingProps, emit: CompositeRatingEmits) {
     const selections = ref<SelectionMap>(new Map());
     const currentScore = ref(0);
     const currentQuestionIndex = ref(0);
@@ -310,10 +402,12 @@ export async function useCompositeRatingCtx(props: CompositeRatingProps, emit: C
         currentLikertScore: computedState.currentLikertScore,
         hasAnsweredCurrent: computedState.hasAnsweredCurrent,
         allLikertAnswered: computedState.allLikertAnswered,
+        questionGridCells: computedState.questionGridCells,
         selectOption: selectLegacyOption.bind(null, props, selections.value, currentScore, emit),
         selectLikertOption: selectLikertOption.bind(null, props, currentQuestionIndex, likertSelections, emit),
         goPrevQuestion: goPrevQuestion.bind(null, currentQuestionIndex),
         goNextQuestion: goNextQuestion.bind(null, currentQuestionIndex, computedState.totalQuestions),
         submitIpipAnswers: submitIpipAnswers.bind(null, props, likertSelections, computedState.allLikertAnswered, emit),
+        jumpToQuestionByQ: jumpToQuestionByQ.bind(null, props, currentQuestionIndex),
     };
 }
