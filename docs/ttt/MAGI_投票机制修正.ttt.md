@@ -171,11 +171,6 @@ interface VoteResult {
 
 ## 🟡 中期计划
 
-- [ ] **Phase 5: 投票触发条件落地 (P1)**
-  - **背景**: 设计中投票仅在 Melchior 标注 `requires_deliberation: true` 时触发，当前 Mock 阶段无此标注
-  - **行动**: 在 Melchior 的响应解析中增加 `requires_deliberation` 检测；普通模式走 Standard Synthesis（Trinity 统合三方视角形成自我判断）
-  - **参考文档**: [`MAGI认知架构.design.md` §4.3](../设计/MAGI认知架构.design.md)
-
 - [ ] **Phase 6: 反刍循环实现 (P2)**
   - **背景**: 设计中否决后 Trinity 进入反刍循环，当前仅预留接口
   - **行动**: 实现 `startRuminationLoop`：Trinity 生成新自述 → 广播给三贤人 → 重新表决 → 循环直至通过或放弃
@@ -188,6 +183,7 @@ interface VoteResult {
 - [x] 2026-03-02 Phase 2: Mock 投票适配（`mockWise.ops.ts`、`mockWise.ts`、`wise.types.ts` 已改为三方二元表决结构）
 - [x] 2026-03-02 Phase 3: 共识流程与 Trinity 统合重构（`magiConsensus.ts`、`mockWise.subclass.ts`、`useMagi` 共识链路已适配）
 - [x] 2026-03-02 Phase 4: lint 与类型检查（修改文件 `lint:file` 全通过；`tsc --noEmit` 仍受项目既有 TS2688 阻断）
+- [x] 2026-03-02 Phase 5: 投票触发条件落地（`magiConsensus.ts` 改为解析 Melchior `requires_deliberation` 标注触发；`promptTemplates/Melchior.ts` 增加元标记输出协议；普通模式默认走 Standard Synthesis）
 
 ---
 
@@ -198,3 +194,4 @@ interface VoteResult {
 | 2026-03-02 | 创建 ttt | ✅ | 发现 magiConsensus.ts 投票实现与设计文档存在四重偏差（语义/时机/角色/输入格式） |
 | 2026-03-02 | 修正设计文档 | ✅ | 修正 MAGI认知架构.design.md §4.3：Selection→Synthesis，补充Trinity输入格式说明 |
 | 2026-03-02 | Phase 1-4 执行完成 | ✅ | 完成二元表决重构、Trinity内心独白输入、sendUserMessage Step B 适配；`lint:file` 通过，`tsc --noEmit` 受既有 TS2688 阻断 |
+| 2026-03-02 | Phase 5 执行完成 | ✅ | 增加 Melchior 审慎标注协议与解析逻辑，移除关键词启发式触发，投票仅由 `requires_deliberation` 驱动 |

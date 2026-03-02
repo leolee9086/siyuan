@@ -213,6 +213,8 @@ export interface ContextMessage {
 export interface ReplyOptions {
     context?: {
         responses?: Array<{ seel: string; content: string }>;
+        introspection?: string;
+        overrideMessages?: ContextMessage[];
     };
 }
 

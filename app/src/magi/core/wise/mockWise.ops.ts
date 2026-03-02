@@ -12,6 +12,7 @@ import { 构建SSE请求配置, 创建SSE桥接回调 } from "./mockWise";
 import type {
     MockMessage,
     ContextMessage,
+    ReplyOptions,
     VoteForResult,
     MockWISE内部状态,
     MockWISE完整配置,
@@ -260,7 +261,8 @@ export const 执行投票操作 = async (
  */
 export const 执行回复操作 = async (
     内部状态: MockWISE内部状态,
-    userInput: string
+    userInput: string,
+    options?: ReplyOptions,
 ): Promise<string | AsyncGenerator<string>> => {
     内部状态.loading = true;
     try {
@@ -270,7 +272,12 @@ export const 执行回复操作 = async (
             timestamp: Date.now(),
         });
         内部状态.messages = [{ type: "user", content: userInput, timestamp: Date.now() }];
-        const context = 内部状态.contextMessages.slice(-内部状态.config.memorySize);
+        const overrideMessages = options?.context?.overrideMessages;
+        const hasOverrideMessages = Array.isArray(overrideMessages) && overrideMessages.length > 0;
+        // 当调用方显式提供角色编排后的消息序列时（如 Trinity 角色 hack），优先使用覆盖上下文。
+        const context = hasOverrideMessages
+            ? overrideMessages
+            : 内部状态.contextMessages.slice(-内部状态.config.memorySize);
         // SSE 模式返回 AsyncGenerator，调用方通过 for await 消费
         if (内部状态.config.responseType === "sse") {
             return 创建流式响应Generator(

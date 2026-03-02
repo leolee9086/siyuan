@@ -1,6 +1,6 @@
 <template>
   <div class="panel-header consensus-header">
-    <h3 class="neon-text">REI</h3>
+    <h3 class="neon-text">ZHI</h3>
     <div class="controls">
       <button class="persona-button" @click="emit('show-questionnaire')">
         {{ personaEntryText }}

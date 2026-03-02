@@ -3,12 +3,17 @@ import type { MagiMessage, SageResponse, VoteResult } from "../utils/messageFact
 import { createMessage } from "../utils/messageFactory";
 import { getMagiI18nText } from "../utils/magiI18n";
 import {
-    generateConsensusReply,
     handleTrinitySummary,
     processSagesResponses,
     processVoting,
     需要审慎决策,
 } from "./magiConsensus";
+import { generateConsensusReply } from "./magiConsensus.reply";
+import {
+    handleTrinityPostActionSummary,
+    执行梅基奥尔主导行动,
+    生成梅基奥尔行动提案,
+} from "./magiConsensus.deliberation";
 
 /** 追加消息到主消息流并统一状态字段。 */
 export async function appendConsensusMessage(
@@ -57,23 +62,26 @@ async function appendSageResponses(
     }
 }
 
-/** 执行可选投票链路并返回决策结果。 */
+/** 执行审慎决策投票链路并返回决策结果。 */
 async function resolveVoteResult(
     consensusMessages: MagiMessage[],
     sages: WrappedSeel[],
-    userMessage: string,
-    trinityResult: string | null,
     validResponses: SageResponse[],
-): Promise<{ deliberationRequired: boolean; voteResult: VoteResult | null }> {
-    const deliberationRequired = await 需要审慎决策(userMessage, validResponses);
+    userMessage: string,
+): Promise<{ deliberationRequired: boolean; voteResult: VoteResult | null; proposedAction: string | null }> {
+    const deliberationRequired = await 需要审慎决策(validResponses);
     if (!deliberationRequired) {
-        return { deliberationRequired, voteResult: null };
+        return { deliberationRequired, voteResult: null, proposedAction: null };
     }
 
+    const proposedAction = await 生成梅基奥尔行动提案(sages, validResponses, userMessage);
+    const melchiorConclusion =
+        validResponses.find((response) => response.seel.includes("MELCHIOR"))?.content ?? "无附加判断";
     await appendVoteStatusMessage(consensusMessages, 0);
     const voteResult = await processVoting(
         sages,
-        trinityResult ?? userMessage,
+        proposedAction,
+        { userMessage, melchiorConclusion },
         (progress) => {
             void appendVoteStatusMessage(consensusMessages, progress);
         },
@@ -83,7 +91,95 @@ async function resolveVoteResult(
         await appendVoteStatusMessage(consensusMessages, 100, voteResult);
     }
 
-    return { deliberationRequired, voteResult };
+    return { deliberationRequired, voteResult, proposedAction };
+}
+
+/** 收集并落盘贤者响应；若全部无效则写入错误并返回 null。 */
+async function collectValidResponses(
+    consensusMessages: MagiMessage[],
+    sages: WrappedSeel[],
+    userMessage: string,
+): Promise<SageResponse[] | null> {
+    const validResponses = await processSagesResponses(sages, userMessage);
+    await appendSageResponses(consensusMessages, validResponses);
+
+    // 三贤者全部失败或返回空内容时，终止本轮并给出可见错误，避免继续进入 Trinity/投票产生误导结果。
+    if (validResponses.length === 0) {
+        await appendConsensusMessage(consensusMessages, "error", getMagiI18nText("noConsensus"));
+        return null;
+    }
+    return validResponses;
+}
+
+/** 根据分支条件生成本轮 Trinity 输出文本。 */
+async function resolveTrinityResult(
+    deliberationRequired: boolean,
+    voteResult: VoteResult | null,
+    proposedAction: string | null,
+    userMessage: string,
+    sages: WrappedSeel[],
+    trinity: WrappedSeel | null,
+    validResponses: SageResponse[],
+): Promise<string | null> {
+    if (!deliberationRequired && !trinity) {
+        return validResponses.map((response) => response.content).join("\n");
+    }
+    if (!deliberationRequired) {
+        return handleTrinitySummary(validResponses, trinity);
+    }
+    if (!voteResult?.passed) {
+        // 审慎决策未通过时，不进入主导执行分支，交由后续反刍入口处理。
+        return null;
+    }
+
+    const action = proposedAction ?? userMessage;
+    const melchiorActionResult = await 执行梅基奥尔主导行动(sages, userMessage, action);
+    const safeActionResult = melchiorActionResult ?? "已进入执行阶段，但暂未产生可见输出。";
+    if (!trinity) {
+        return safeActionResult;
+    }
+    return handleTrinityPostActionSummary(
+        validResponses,
+        trinity,
+        action,
+        voteResult,
+        safeActionResult,
+    );
+}
+
+/** 执行单轮完整共识计算并写入消息流。 */
+async function runConsensusRound(
+    consensusMessages: MagiMessage[],
+    sages: WrappedSeel[],
+    trinity: WrappedSeel | null,
+    userMessage: string,
+): Promise<void> {
+    const validResponses = await collectValidResponses(consensusMessages, sages, userMessage);
+    if (!validResponses) {
+        return;
+    }
+    const { deliberationRequired, voteResult, proposedAction } = await resolveVoteResult(
+        consensusMessages,
+        sages,
+        validResponses,
+        userMessage,
+    );
+    const trinityResult = await resolveTrinityResult(
+        deliberationRequired,
+        voteResult,
+        proposedAction,
+        userMessage,
+        sages,
+        trinity,
+        validResponses,
+    );
+    await appendFinalConsensus(
+        consensusMessages,
+        trinityResult,
+        voteResult,
+        deliberationRequired,
+        userMessage,
+    );
 }
 
 /** 生成最终共识消息并写入主消息流。 */
@@ -125,44 +221,16 @@ export async function sendUserMessageWithConsensus(
     if (!userMessage || connectionStatus.value !== "connected") {
         return;
     }
-
     await appendConsensusMessage(consensusMessages, "user", userMessage);
     const sages = seels.filter((seel) => seel.config.name !== "TRINITY-00");
     const trinity = seels.find((seel) => seel.config.name === "TRINITY-00") ?? null;
-
     // 三贤者为空时后续流程无法成立，必须提前兜底退出。
     if (sages.length === 0) {
         await appendConsensusMessage(consensusMessages, "error", "未找到可用贤者，无法完成共识流程");
         return;
     }
-
     try {
-        const validResponses = await processSagesResponses(sages, userMessage);
-        await appendSageResponses(consensusMessages, validResponses);
-
-        // 三贤者全部失败或返回空内容时，终止本轮并给出可见错误，避免继续进入 Trinity/投票产生误导结果。
-        if (validResponses.length === 0) {
-            await appendConsensusMessage(consensusMessages, "error", getMagiI18nText("noConsensus"));
-            return;
-        }
-
-        const trinityResult = trinity
-            ? await handleTrinitySummary(validResponses, trinity, userMessage)
-            : validResponses.map((response) => response.content).join("\n");
-        const { deliberationRequired, voteResult } = await resolveVoteResult(
-            consensusMessages,
-            sages,
-            userMessage,
-            trinityResult,
-            validResponses,
-        );
-        await appendFinalConsensus(
-            consensusMessages,
-            trinityResult,
-            voteResult,
-            deliberationRequired,
-            userMessage,
-        );
+        await runConsensusRound(consensusMessages, sages, trinity, userMessage);
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         await appendConsensusMessage(

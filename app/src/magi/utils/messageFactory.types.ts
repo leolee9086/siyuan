@@ -73,6 +73,8 @@ export interface SageResponse {
     seel: string;
     /** 贤者显示名称 */
     displayName: string;
+    /** 是否要求进入审慎决策模式（由 Melchior 标注） */
+    requiresDeliberation?: boolean;
 }
 
 /**

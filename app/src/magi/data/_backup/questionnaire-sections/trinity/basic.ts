@@ -8,7 +8,7 @@ import { isTextQuestionWithPath } from "../questionnaire.guard";
 
 /** 性别→姓名默认值映射 */
 const genderNameMap: Record<string, { value: string; placeholder: string }> = {
-    "女": { value: "REI", placeholder: "REI" },
+    "女": { value: "ZHI", placeholder: "ZHI" },
     "男": { value: "KAWORU", placeholder: "KAWORU" },
 };
 
@@ -45,7 +45,7 @@ const basicInfoSection: QuestionnaireSection = {
         {
             text: "姓名",
             type: "text",
-            value: "REI",
+            value: "ZHI",
             placeholder: "请输入姓名",
             path: "TRINITY.基础信息.姓名",
             hint: "输入适格者的标识名称，可以是代号或真实姓名",

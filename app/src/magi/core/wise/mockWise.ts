@@ -61,7 +61,7 @@ export const 合并MockWISE配置 = async (
     };
 
     const merged: MockWISE完整配置 = {
-        magiInstanceName: "rei",
+        magiInstanceName: "zhi",
         name: "",
         displayName: "",
         color: "",
@@ -251,8 +251,8 @@ const 构建实例方法 = (内部状态: MockWISE内部状态): Omit<MockWISE�
      * 作用：管理对话上下文，根据 responseType 选择流式或普通回复模式
      * 调用时机：由 UI 层（Vue composable 或直接测试）发起对话时调用
      */
-    async reply(userInput: string) {
-        return 执行回复操作(内部状态, userInput);
+    async reply(userInput: string, options) {
+        return 执行回复操作(内部状态, userInput, options);
     },
 
     /**

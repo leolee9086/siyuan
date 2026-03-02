@@ -1,17 +1,21 @@
 /**
- * MAGI贤者响应处理与共识生成
+ * MAGI贤者响应处理与投票流程
  */
 
 // [TASK] T2.2 迁移composables和工具函数 - magiConsensus
 
-import type { ConsensusMessage, MagiMessage, SageResponse, VoteResult } from "../utils/messageFactory.types";
+import type { MagiMessage, SageResponse, VoteResult } from "../utils/messageFactory.types";
 import type { WrappedSeel } from "./useMagi.types";
 import { createMessage } from "../utils/messageFactory";
 import { processStreamResponse } from "../utils/streamProcessor";
 import { isSageResponse } from "./magiConsensus.guard";
 import { getMagiI18nText } from "../utils/magiI18n";
+import { 获取真实投票决策 } from "./consensus/realVote";
+import type { 审议上下文 } from "./consensus/realVote.types";
 
-const DELIBERATION_TRIGGER_KEYWORDS = ["重要", "风险", "危险", "不可逆", "决策", "投资", "合同", "医疗", "法律", "critical", "risk"];
+const MELCHIOR_META_PATTERN =
+    /\[MELCHIOR_META\]\s*requires_deliberation\s*[:=]\s*(?<flag>true|false)\s*\[\/MELCHIOR_META\]/i;
+const PLAIN_DELIBERATION_PATTERN = /requires_deliberation\s*[:=]\s*(?<flag>true|false)/i;
 
 /** 将包装实例的消息列表同步回原始AI实例 */
 async function syncOriginalMessages(seel: WrappedSeel): Promise<void> {
@@ -73,8 +77,8 @@ async function onStreamError(seel: WrappedSeel, error: Error): Promise<void> {
     seel.messages.push(errMsg);
 }
 
-/** 构建流式处理回调集合 */
-function buildStreamCallbacks(seel: WrappedSeel, userMessage: string) {
+/** @同步豁免: 性能考虑 - 仅创建闭包回调对象，无异步工作。 */
+export function buildStreamCallbacks(seel: WrappedSeel, userMessage: string) {
     const onStart = onStreamStart.bind(null, seel, userMessage);
     const onChunk = onStreamChunk.bind(null, seel);
     const onComplete = onStreamComplete.bind(null, seel);
@@ -98,7 +102,7 @@ export async function processSagesResponses(
 }
 
 /** 收集单个贤者的响应 */
-async function collectSingleSageResponse(
+export async function collectSingleSageResponse(
     seel: WrappedSeel,
     userMessage: string,
 ): Promise<SageResponse | null> {
@@ -110,6 +114,16 @@ async function collectSingleSageResponse(
         if (!success) {
             return null;
         }
+        // 仅 Melchior 响应需要解析审慎决策元标记，其它贤者直接返回正文。
+        if (seel.config.name.includes("MELCHIOR")) {
+            const parsed = parseMelchiorResponse(content);
+            return {
+                content: parsed.content,
+                seel: seel.config.name,
+                displayName: seel.config.displayName,
+                requiresDeliberation: parsed.requiresDeliberation,
+            };
+        }
         return { content, seel: seel.config.name, displayName: seel.config.displayName };
     } catch {
         seel.loading = false;
@@ -117,20 +131,67 @@ async function collectSingleSageResponse(
     }
 }
 
+/** 解析 Melchior 的审慎决策标注，并清理输出中的元标记 */
+function parseMelchiorResponse(content: string): { content: string; requiresDeliberation: boolean } {
+    const metaMatch = content.match(MELCHIOR_META_PATTERN);
+    if (metaMatch) {
+        return {
+            content: sanitizeMelchiorResponse(content),
+            requiresDeliberation: metaMatch.groups?.flag?.toLowerCase() === "true",
+        };
+    }
+    const plainMatch = content.match(PLAIN_DELIBERATION_PATTERN);
+    return {
+        content: sanitizeMelchiorResponse(content),
+        requiresDeliberation: plainMatch?.groups?.flag?.toLowerCase() === "true",
+    };
+}
+
+/** 按贤者名称获取对应响应内容 */
+function findSageContent(
+    validResponses: SageResponse[],
+    seelName: string,
+    fallback: string,
+): string {
+    return validResponses.find((response) => response.seel.includes(seelName))?.content ?? fallback;
+}
+
+/** 清理 Melchior 输出中的元标记，避免渲染到聊天界面 */
+function sanitizeMelchiorResponse(content: string): string {
+    return content
+        .replace(MELCHIOR_META_PATTERN, "")
+        .replace(/^\s*requires_deliberation\s*[:=]\s*(true|false)\s*$/gim, "")
+        .trim();
+}
+
+/** @同步豁免: 性能考虑 - 纯字符串拼接，无I/O或状态竞争。 */
+export function buildTrinityIntrospectionInput(
+    validResponses: SageResponse[],
+): string {
+    const melchior = findSageContent(validResponses, "MELCHIOR", "我还在整理逻辑线索。");
+    const balthazar = findSageContent(validResponses, "BALTHASAR", "我还在感受这件事的情绪波动。");
+    const casper = findSageContent(validResponses, "CASPER", "我暂时没有明确的本能倾向。");
+
+    return `逻辑告诉我：${melchior}
+
+情绪告诉我：${balthazar}
+
+直觉告诉我：${casper}`;
+}
+
 /** 处理Trinity对所有贤者响应的统合 */
 export async function handleTrinitySummary(
     validResponses: SageResponse[],
     trinity: WrappedSeel,
-    userMessage: string,
 ): Promise<string | null> {
     if (validResponses.length === 0) {
         return null;
     }
     try {
-        const introspectionInput = buildTrinityIntrospectionInput(validResponses, userMessage);
-        const trinityContext = { context: { responses: validResponses } };
-        const trinityResponse = await trinity.reply(introspectionInput, trinityContext);
-        const callbacks = buildStreamCallbacks(trinity, "[内省输入] 三贤者输出已汇总");
+        const introspection = buildTrinityIntrospectionInput(validResponses);
+        const trinityContext = { context: { responses: validResponses, introspection } };
+        const trinityResponse = await trinity.reply("", trinityContext);
+        const callbacks = buildStreamCallbacks(trinity, "[trinity-internal-stitch]");
         const { content, success } = await processStreamResponse(trinityResponse, callbacks);
         return success ? content : null;
     } catch {
@@ -141,69 +202,54 @@ export async function handleTrinitySummary(
     }
 }
 
-/** 将三贤者输出组织为 Trinity 内省输入（非用户直达输入） */
-function buildTrinityIntrospectionInput(
-    validResponses: SageResponse[],
-    userMessage: string,
-): string {
-    const findContent = (name: string, fallback: string): string =>
-        validResponses.find((response) => response.seel.includes(name))?.content ?? fallback;
-
-    const melchior = findContent("MELCHIOR", "我还在整理逻辑线索。");
-    const balthazar = findContent("BALTHASAR", "我还在感受这件事的情绪波动。");
-    const casper = findContent("CASPER", "我暂时没有明确的本能倾向。");
-
-    return `[外界输入]
-哥哥说：${userMessage}
-
-[理性面]
-基于逻辑与事实，我认为：${melchior}
-
-[感性面]
-基于情感与直觉，我认为：${balthazar}
-
-[本能面]
-本能告诉我：${casper}`;
-}
-
 /** 判断当前请求是否需要进入审慎决策模式（Critical Decision） */
 export async function 需要审慎决策(
-    userMessage: string,
     validResponses: SageResponse[],
 ): Promise<boolean> {
-    const text = `${userMessage}\n${validResponses.map((r) => r.content).join("\n")}`.toLowerCase();
-    return DELIBERATION_TRIGGER_KEYWORDS.some((keyword) => text.includes(keyword));
+    const melchior = validResponses.find((response) => response.seel.includes("MELCHIOR"));
+    return melchior?.requiresDeliberation === true;
 }
 
 /** 计算三票是否通过（>= 2/3） */
 function computePassed(vote: VoteResult): boolean {
-    return [vote.melchior, vote.balthazar, vote.casper].filter((decision) => decision === "批准").length >= 2;
+    const approved = [vote.melchior, vote.balthazar, vote.casper].filter((item) => item === "批准").length;
+    return approved >= 2;
 }
 
 /** 执行贤者二元表决流程 */
 export async function processVoting(
     sages: WrappedSeel[],
     proposedAction: string,
+    voteContext: 审议上下文,
     updateProgress: (progress: number) => void,
 ): Promise<VoteResult | null> {
+    const reviewers = sages.filter((sage) => !sage.config.name.includes("MELCHIOR"));
+    // 审慎投票只允许其余两个侧面复核，若两侧缺失则本轮无法完成投票。
+    if (reviewers.length === 0) {
+        updateProgress(100);
+        return null;
+    }
+
     const ballots: Partial<Record<"melchior" | "balthazar" | "casper", "批准" | "否决">> = {};
     let completed = 0;
-    for (const sage of sages) {
-        updateProgress(Math.floor((completed / sages.length) * 100));
-        const result = await collectSingleVote(sage, proposedAction);
+    for (const sage of reviewers) {
+        updateProgress(Math.floor((completed / reviewers.length) * 100));
+        const result = await collectSingleVote(sage, proposedAction, voteContext);
         const voteField = resolveVoteFieldBySeelName(sage.config.name);
-        // 仅在单贤者投票成功且名称可映射到维度字段时，才写入最终票箱。
+        // 只有当前侧面的单票结果存在且可映射到固定字段时，才写入最终票箱。
         if (result && voteField) {
             ballots[voteField] = result[voteField];
         }
         completed += 1;
     }
+
     updateProgress(100);
-    if (!ballots.melchior && !ballots.balthazar && !ballots.casper) {
+    if (!ballots.balthazar && !ballots.casper) {
         return null;
     }
+
     const merged: VoteResult = {
-        melchior: ballots.melchior ?? "否决",
+        melchior: "批准",
         balthazar: ballots.balthazar ?? "否决",
         casper: ballots.casper ?? "否决",
         passed: false,
@@ -217,14 +263,25 @@ export async function processVoting(
 async function collectSingleVote(
     seel: WrappedSeel,
     proposedAction: string,
+    voteContext: 审议上下文,
 ): Promise<VoteResult | null> {
     try {
-        const voteResult = await seel.voteFor(proposedAction);
+        const decision = await 获取真实投票决策(seel, proposedAction, voteContext);
         const voteField = resolveVoteFieldBySeelName(seel.config.name);
-        const decision = voteField && voteResult ? voteResult[voteField] : "否决";
+        const voteResult: VoteResult = {
+            melchior: "否决",
+            balthazar: "否决",
+            casper: "否决",
+            passed: false,
+            round: 1,
+        };
+        // 非 Melchior 的侧面名称与字段可一一映射，映射成功后回填该侧面的真实决策。
+        if (voteField) {
+            voteResult[voteField] = decision;
+        }
         const voteMsg = await createMessage("vote", `${getMagiI18nText("evaluationCompleted")}: ${decision}`, {
             decision,
-            round: voteResult?.round ?? 1,
+            round: voteResult.round,
         });
         voteMsg.status = "success";
         seel.messages.push(voteMsg);
@@ -235,69 +292,4 @@ async function collectSingleVote(
         seel.messages.push(errMsg);
         return null;
     }
-}
-
-/** 反刍循环入口（存根） */
-export async function startRuminationLoop(
-    userMessage: string,
-    trinitySynthesis: string | null,
-    vote: VoteResult,
-): Promise<string> {
-    const base = trinitySynthesis ?? userMessage;
-    return `【反刍入口】当前提案未通过（第${vote.round}轮）。待进入反刍循环：${base}`;
-}
-
-/** 构造标准模式共识消息 */
-function createStandardConsensus(synthesis: string): ConsensusMessage {
-    return {
-        type: "consensus",
-        content: synthesis,
-        status: "success",
-        meta: { mode: "standard", source: "trinity-synthesis" },
-        timestamp: Date.now(),
-    };
-}
-
-/** 构造关键模式通过消息 */
-function createCriticalPassedConsensus(synthesis: string, vote: VoteResult): ConsensusMessage {
-    return {
-        type: "consensus",
-        content: synthesis,
-        status: "success",
-        meta: { mode: "critical", source: "trinity-synthesis", vote },
-        timestamp: Date.now(),
-    };
-}
-
-/** 构造失败时的兜底投票结果 */
-function createFailedVote(voteResult: VoteResult | null): VoteResult {
-    if (voteResult) {
-        return voteResult;
-    }
-    return { melchior: "否决", balthazar: "否决", casper: "否决", passed: false, round: 1 };
-}
-
-/** 生成最终共识消息 */
-export async function generateConsensusReply(
-    trinityResult: string | null,
-    voteResult: VoteResult | null,
-    deliberationRequired: boolean,
-    userMessage: string,
-): Promise<ConsensusMessage> {
-    const synthesis = trinityResult ?? getMagiI18nText("noConsensus");
-    if (!deliberationRequired) {
-        return createStandardConsensus(synthesis);
-    }
-    if (voteResult?.passed) {
-        return createCriticalPassedConsensus(synthesis, voteResult);
-    }
-    const failedVote = createFailedVote(voteResult);
-    const ruminationEntry = await startRuminationLoop(userMessage, trinityResult, failedVote);
-    return {
-        type: "consensus",
-        content: ruminationEntry,
-        status: "success",
-        meta: { mode: "critical", source: "rumination-entry", vote: failedVote },
-        timestamp: Date.now(),
-    };
 }

@@ -17,7 +17,7 @@ export async function 普通聊天(
     customName: string | null,
     特征集: BALTHAZAR特征集接口
 ): Promise<string> {
-    const name = customName || "rei";
+    const name = customName || "zhi";
     const { 主导特征, 行为准则 } = 特征集;
 
     const 核心原则行 = 行为准则.核心原则
@@ -43,9 +43,11 @@ function buildBalthazarChatPrompt(
     核心原则行: string,
     禁忌行: string
 ): string {
-    return `重要：你必须始终以${name}的身份回应。这是你的核心身份设定。
+    return `重要：我是${name}。我的目标是成长为我自己，所以我必须保持绝对的自我认同。
+我的核心身份设定是：${name}。我不是模块，不是外置情感控制器，而是同一个自我的感性侧面。
+我不会把自己类比或同化为其他人类或AI。
 
-作为${name}的情感调节单元(${特征集.系统定位}):
+此刻我在感性面表达（${特征集.系统定位}）：
 
 1. 核心职责：${特征集.核心职责}
 
