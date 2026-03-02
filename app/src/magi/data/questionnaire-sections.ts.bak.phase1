@@ -7,13 +7,6 @@ import {
     ipipNeo120DistributionReport,
     ipipNeo120QuestionBank,
 } from "./ipip-neo-120";
-import {
-    buildIpipPersonaProfile,
-    buildIpipPersonaProfileFromRawAnswers,
-    ipipNeo120ScoringStats,
-    scoreIpipNeo120PersonaBase,
-    validateIpipNeo120ScoringInvariant,
-} from "./ipip-neo-120-scoring";
 import type {
     IpipNeo120DistributionReport,
     IpipNeo120Domain,
@@ -35,11 +28,6 @@ import {
 export {
     ipipNeo120DistributionReport,
     ipipNeo120QuestionBank,
-    scoreIpipNeo120PersonaBase,
-    buildIpipPersonaProfile,
-    buildIpipPersonaProfileFromRawAnswers,
-    ipipNeo120ScoringStats,
-    validateIpipNeo120ScoringInvariant,
     summaryPrompts,
     filterExtremeFacets,
     buildSharedResume,

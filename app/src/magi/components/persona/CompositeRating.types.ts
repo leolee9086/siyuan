@@ -27,6 +27,12 @@ export interface CompositeRatingProps {
     questionBank?: readonly IpipNeo120Item[] | undefined;
     /** 新 IPIP-NEO-120 被试信息 */
     subject?: IpipNeo120SubjectMeta | undefined;
+    /** 父层当前已作答结果（用于同步进度与高亮） */
+    ipipAnswers?: readonly Array<{ q: number; score: LikertScore }> | undefined;
+    /** 父层请求定位的目标题号（用于“查看建议”跳转） */
+    focusQuestionQ?: number | null | undefined;
+    /** 父层请求定位序号（用于强制触发重复定位同一题号） */
+    focusQuestionRequestId?: number | undefined;
 }
 
 /**

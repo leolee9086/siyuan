@@ -2,7 +2,7 @@
  * CompositeRating 组件逻辑上下文
  */
 
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import type {
     IpipNeo120RawAnswer,
     IpipNeo120SubmissionPayload,
@@ -13,6 +13,7 @@ import type {
     CompositeRatingEmits,
     CompositeRatingProps,
     LikertSelectionMap,
+    LikertScore,
     SelectionMap,
 } from "./CompositeRating.types";
 
@@ -126,8 +127,63 @@ function buildIpipSubmissionPayload(
         schema_version: "IPIP-NEO-120-v1",
         subject: props.subject,
         date: normalizeDate(new Date()),
+        descriptions: {
+            professionalDescription: "",
+            lifeDescription: "",
+            instinctNeedsDescription: "",
+            integratedDescription: "",
+        },
         answers: buildOrderedIpipAnswers(props, answers),
     };
+}
+
+/** @同步豁免: 生命周期 */
+function createLikertSelectionsFromAnswers(
+    answers: ReadonlyArray<{ q: number; score: LikertScore }> | undefined,
+): LikertSelectionMap {
+    const selections: LikertSelectionMap = new Map();
+    if (!answers) {
+        return selections;
+    }
+    for (const answer of answers) {
+        if (!isLikertScore(answer.score)) {
+            continue;
+        }
+        selections.set(answer.q, answer.score);
+    }
+    return selections;
+}
+
+/** @同步豁免: 生命周期 */
+function syncLikertSelectionsFromAnswers(
+    likertSelections: { value: LikertSelectionMap },
+    answers: ReadonlyArray<{ q: number; score: LikertScore }> | undefined,
+): void {
+    likertSelections.value = createLikertSelectionsFromAnswers(answers);
+}
+
+/** @同步豁免: 生命周期 */
+function resolveQuestionIndexByQ(
+    questionBank: ReadonlyArray<{ q: number }> | undefined,
+    q: number | null | undefined,
+): number {
+    if (!questionBank || q === undefined || q === null) {
+        return -1;
+    }
+    return questionBank.findIndex((item) => item.q === q);
+}
+
+/** @同步豁免: 生命周期 */
+function focusQuestionByQ(
+    props: CompositeRatingProps,
+    currentQuestionIndex: { value: number },
+    q: number | null | undefined,
+): void {
+    const targetIndex = resolveQuestionIndexByQ(props.questionBank, q);
+    if (targetIndex < 0) {
+        return;
+    }
+    currentQuestionIndex.value = targetIndex;
 }
 
 /** @同步豁免: 生命周期 */
@@ -226,8 +282,18 @@ export async function useCompositeRatingCtx(props: CompositeRatingProps, emit: C
     const selections = ref<SelectionMap>(new Map());
     const currentScore = ref(0);
     const currentQuestionIndex = ref(0);
-    const likertSelections = ref<LikertSelectionMap>(new Map());
+    const likertSelections = ref<LikertSelectionMap>(createLikertSelectionsFromAnswers(props.ipipAnswers));
     const computedState = createComputedState(props, currentQuestionIndex, likertSelections, selections);
+
+    watch(
+        () => props.ipipAnswers,
+        (answers) => syncLikertSelectionsFromAnswers(likertSelections, answers),
+        { deep: true },
+    );
+    watch(
+        () => [props.focusQuestionQ, props.focusQuestionRequestId] as const,
+        ([q]) => focusQuestionByQ(props, currentQuestionIndex, q),
+    );
 
     return {
         selections,

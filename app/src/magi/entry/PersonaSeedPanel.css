@@ -63,6 +63,130 @@
   padding: 0 10px;
 }
 
+.persona-seed-descriptions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.persona-seed-descriptions label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: #83e8ee;
+}
+
+.persona-seed-descriptions textarea {
+  border: 1px solid rgba(0, 255, 255, 0.55);
+  background: rgba(0, 24, 28, 0.8);
+  color: #b2ffff;
+  padding: 8px 10px;
+  resize: vertical;
+  min-height: 96px;
+}
+
+.persona-seed-convergence {
+  border: 1px solid rgba(0, 255, 255, 0.35);
+  background: rgba(0, 18, 24, 0.6);
+  padding: 10px;
+  margin-bottom: 12px;
+}
+
+.persona-seed-convergence-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #92f7ff;
+  font-size: 12px;
+}
+
+.persona-seed-convergence-state {
+  color: #71f3d6;
+}
+
+.persona-seed-convergence-controls {
+  margin-top: 8px;
+}
+
+.persona-seed-convergence-generate {
+  height: 30px;
+  border: 1px solid rgba(0, 255, 255, 0.5);
+  background: rgba(0, 44, 52, 0.65);
+  color: #98f7ff;
+  padding: 0 12px;
+  cursor: pointer;
+}
+
+.persona-seed-convergence-generate:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.persona-seed-convergence-hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #7ec7cb;
+}
+
+.persona-seed-convergence-progress {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #84f0dc;
+}
+
+.persona-seed-suggestion-list {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.persona-seed-suggestion-item {
+  border: 1px solid rgba(0, 255, 255, 0.25);
+  background: rgba(0, 20, 24, 0.66);
+  padding: 8px;
+}
+
+.persona-seed-suggestion-meta {
+  display: flex;
+  justify-content: space-between;
+  color: #8ef3ff;
+  font-size: 12px;
+}
+
+.persona-seed-suggestion-reason {
+  margin: 6px 0;
+  color: #93d3d7;
+  font-size: 12px;
+}
+
+.persona-seed-suggestion-preview {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #9cf9e4;
+}
+
+.persona-seed-suggestion-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.persona-seed-suggestion-actions button {
+  height: 28px;
+  border: 1px solid rgba(0, 255, 255, 0.45);
+  background: rgba(0, 38, 45, 0.58);
+  color: #9ef4f7;
+  cursor: pointer;
+}
+
+.persona-seed-suggestion-view {
+  border-color: rgba(132, 245, 195, 0.55);
+  color: #a8ffe4;
+}
+
 .persona-seed-footer {
   margin-top: 10px;
   min-height: 20px;
@@ -84,6 +208,10 @@
 
 @media (max-width: 900px) {
   .persona-seed-subject {
+    grid-template-columns: 1fr;
+  }
+
+  .persona-seed-descriptions {
     grid-template-columns: 1fr;
   }
 }

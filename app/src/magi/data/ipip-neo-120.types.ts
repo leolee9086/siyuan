@@ -166,3 +166,11 @@ export const validateIpipNeo120Distribution = (
         errors,
     };
 };
+
+/** 计分累加中间结果（供 ipip-neo-120-scoring 内部使用） */
+export type ScoringAccumulation = {
+    readonly domainSum: Record<IpipNeo120Domain, number>;
+    readonly domainCount: Record<IpipNeo120Domain, number>;
+    readonly facetSum: Record<string, number>;
+    readonly facetCount: Record<string, number>;
+};

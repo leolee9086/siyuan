@@ -104,6 +104,7 @@ export interface IpipSubjectProfile {
     readonly gender?: string;
     readonly organization?: string;
     readonly role?: string;
+    readonly careerGoal?: string;
 }
 
 /** IPIP-NEO-120 原始答案条目（前端提交载荷） */
@@ -118,6 +119,17 @@ export interface IpipNeo120SubjectMeta {
     readonly id: string;
     readonly name: string;
     readonly type: "human" | "ai_agent";
+    readonly organization: string;
+    readonly role: string;
+    readonly careerGoal: string;
+}
+
+/** IPIP-NEO-120 人格种子四轨描述 */
+export interface IpipPersonaSeedDescriptions {
+    readonly professionalDescription: string;
+    readonly lifeDescription: string;
+    readonly instinctNeedsDescription: string;
+    readonly integratedDescription: string;
 }
 
 /** IPIP-NEO-120 原始答案提交载荷（前端仅收集，不做计分） */
@@ -125,6 +137,7 @@ export interface IpipNeo120SubmissionPayload {
     readonly schema_version: "IPIP-NEO-120-v1";
     readonly subject: IpipNeo120SubjectMeta;
     readonly date: string;
+    readonly descriptions: IpipPersonaSeedDescriptions;
     readonly answers: readonly IpipNeo120RawAnswer[];
 }
 
