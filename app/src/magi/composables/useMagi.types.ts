@@ -8,7 +8,7 @@
 
 import type { Ref } from "vue";
 import type { MagiMessage, SageResponse, VoteResult } from "../utils/messageFactory.types";
-import type { MockWISE实例 } from "../core/wise/wise.types";
+import type { MockWISE实例, MagiPromptSet } from "../core/wise/wise.types";
 
 /**
  * 连接状态
@@ -17,6 +17,66 @@ import type { MockWISE实例 } from "../core/wise/wise.types";
  * 使用场景：UI层根据状态显示连接指示器、禁用/启用输入框
  */
 export type ConnectionStatus = "disconnected" | "connecting" | "connected" | "error";
+
+/** MAGI 会话导出模式 */
+export type MagiSessionExportMode = "raw" | "sanitized";
+
+/** MAGI 导出轮次中的贤者响应 */
+export interface MagiSessionExportSageResponse {
+    seel: string;
+    displayName: string;
+    content: string;
+    requiresDeliberation?: boolean;
+    timestamp: number;
+}
+
+/** MAGI 导出轮次中的投票状态节点 */
+export interface MagiSessionExportVoteStatus {
+    progress: number;
+    details: Array<{ name: string; decision: string }>;
+    proposedAction?: string;
+    timestamp: number;
+}
+
+/** MAGI 导出轮次 */
+export interface MagiSessionExportRound {
+    roundId: string;
+    startedAt: number;
+    endedAt: number;
+    durationMs: number;
+    userInput: string;
+    sageResponses: MagiSessionExportSageResponse[];
+    voteStatuses: MagiSessionExportVoteStatus[];
+    finalConsensus: MagiMessage | null;
+    errors: MagiMessage[];
+    messages: MagiMessage[];
+}
+
+/** MAGI 人格重载事件 */
+export interface MagiSessionExportPersonaReloadEvent {
+    status: "loaded" | "failed_load" | "failed_reload" | "skipped";
+    profilePath?: string;
+    message: string;
+    timestamp: number;
+}
+
+/** MAGI 会话导出记录 */
+export interface MagiSessionExportRecord {
+    schemaVersion: "MAGI-SESSION-EXPORT-v1";
+    exportedAt: string;
+    mode: MagiSessionExportMode;
+    sessionId: string;
+    summary: {
+        totalMessages: number;
+        totalRounds: number;
+        totalErrors: number;
+        connectionStatus: ConnectionStatus;
+    };
+    rounds: MagiSessionExportRound[];
+    personaReloadEvents: MagiSessionExportPersonaReloadEvent[];
+    timeline: MagiMessage[];
+    seelLogs: Array<{ seelName: string; displayName: string; messages: MagiMessage[] }>;
+}
 
 /**
  * 包装后的SEEL实例（带Vue响应式消息列表）
@@ -72,5 +132,10 @@ export interface UseMagiReturn {
     /** 发送用户消息并触发三贤者并行响应 */
     sendUserMessage: (text: string) => Promise<void>;
     /** 初始化MAGI系统 */
-    initializeMAGI: () => Promise<void>;
+    initializeMAGI: (options?: {
+        /** 在基础提示词后追加的人格注入文本 */
+        promptInjections?: MagiPromptSet;
+        /** 是否保留既有共识消息 */
+        preserveConsensusMessages?: boolean;
+    }) => Promise<void>;
 }

@@ -192,7 +192,11 @@ export async function handleTrinitySummary(
         const trinityContext = { context: { responses: validResponses, introspection } };
         const trinityResponse = await trinity.reply("", trinityContext);
         const callbacks = buildStreamCallbacks(trinity, "[trinity-internal-stitch]");
-        const { content, success } = await processStreamResponse(trinityResponse, callbacks);
+        const { content, success } = await processStreamResponse(
+            trinityResponse,
+            callbacks,
+            { mode: "trinity-speak-tool" },
+        );
         return success ? content : null;
     } catch {
         trinity.loading = false;

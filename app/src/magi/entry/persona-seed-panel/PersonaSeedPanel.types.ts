@@ -36,3 +36,16 @@ export interface PanelState {
     readonly pendingSuggestionCount: ComputedRef<number>;
     readonly descriptionProgressText: ComputedRef<string>;
 }
+
+/**
+ * PersonaSeedPanel 保存事件载荷。
+ *
+ * 用途：向上层传递问卷样本路径与人格档案路径。
+ */
+export interface PersonaSeedSavedPayload {
+    readonly samplePath: string;
+    readonly profilePath?: string;
+}
+
+/** PersonaSeedPanel `saved` 事件联合类型（兼容旧版字符串载荷）。 */
+export type PersonaSeedSavedEvent = string | PersonaSeedSavedPayload;

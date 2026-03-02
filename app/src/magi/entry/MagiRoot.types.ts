@@ -1,6 +1,7 @@
 import type { ComputedRef, InjectionKey, Ref } from "vue";
 import type { WrappedSeel, UseMagiReturn } from "../composables/useMagi.types";
 import type { MagiMessage } from "../utils/messageFactory.types";
+import type { PersonaSeedSavedEvent } from "./persona-seed-panel/PersonaSeedPanel.types";
 
 /**
  * MagiRoot 上下文返回值
@@ -25,8 +26,9 @@ export interface MagiRootContext {
     onSubmitInput: (value: string) => Promise<void>;
     onShowQuestionnaire: () => Promise<void>;
     onCloseQuestionnaire: () => void;
-    onQuestionnaireSaved: (filePath: string) => Promise<void>;
+    onQuestionnaireSaved: (saved: PersonaSeedSavedEvent) => Promise<void>;
     onReconnect: () => Promise<void>;
+    onExportSessionRecord: () => Promise<void>;
     onOpenConsole: () => Promise<void>;
     onStopInput: () => void;
     magiState: Ref<UseMagiReturn | null>;

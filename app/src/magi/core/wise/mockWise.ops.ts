@@ -10,14 +10,16 @@
 import { universalStreamRequest } from "../../../util/network/fetchStream";
 import { 构建SSE请求配置, 创建SSE桥接回调 } from "./mockWise";
 import type {
-    MockMessage,
-    ContextMessage,
-    ReplyOptions,
-    VoteForResult,
     MockWISE内部状态,
     MockWISE完整配置,
     SSE桥接状态,
 } from "./wise.types";
+import type {
+    MockMessage,
+    ContextMessage,
+    ReplyOptions,
+    VoteForResult,
+} from "../core.types";
 
 const PLACEHOLDER_ENDPOINT = "api.your-ai-service.com";
 
@@ -31,18 +33,24 @@ const PLACEHOLDER_ENDPOINT = "api.your-ai-service.com";
 const 提取错误响应文本 = async (response: Response): Promise<string> => {
     try {
         const data: unknown = await response.json();
-        if (data && typeof data === "object") {
-            const errorObj = Reflect.get(data, "error");
-            if (errorObj && typeof errorObj === "object") {
-                const nestedMessage = Reflect.get(errorObj, "message");
-                if (typeof nestedMessage === "string") {
-                    return nestedMessage;
-                }
-            }
-            const message = Reflect.get(data, "message");
-            if (typeof message === "string") {
-                return message;
-            }
+        // 仅在 JSON 解析结果是对象时，才允许按字段读取错误信息，避免对 null/原始值做属性访问。
+        if (!data || typeof data !== "object") {
+            return `HTTP ${response.status}`;
+        }
+
+        const errorObj = Reflect.get(data, "error");
+        // 后端常将错误包装为 { error: { message } }，这里先读取嵌套 message 以保留最精确报错。
+        const nestedMessage =
+            errorObj && typeof errorObj === "object"
+                ? Reflect.get(errorObj, "message")
+                : null;
+        if (typeof nestedMessage === "string") {
+            return nestedMessage;
+        }
+
+        const message = Reflect.get(data, "message");
+        if (typeof message === "string") {
+            return message;
         }
     } catch {
         // 非 JSON 响应时继续尝试读取 text
@@ -76,18 +84,6 @@ const 创建通知函数 = (桥接状态: SSE桥接状态): () => void =>
         }
     };
 
-/**
- * 创建SSE等待数据函数
- *
- * 作用：返回一个 Promise，仅在有新数据（通知resolve被调用时）才 resolve
- * 意图：将 generator 内的等待逻辑提取到顶层，避免在 generator 内定义命名函数
- * 调用时机：仅在 消费SSE桥接缓冲 的主循环中当缓冲为空时调用
- */
-const 创建等待数据函数 = (桥接状态: SSE桥接状态): () => Promise<void> =>
-    () =>
-        new Promise<void>((resolve) => {
-            桥接状态.通知resolve = resolve;
-        });
 
 // ────────────────────────────────────────────────────────────────────────────
 // SSE 流式响应（需要外部化以减少工厂函数体积）
@@ -142,7 +138,8 @@ export async function* 创建流式响应Generator(
     systemPromptForChat: string | null,
     context: ContextMessage[],
     config: MockWISE完整配置,
-    contextMessages: ContextMessage[]
+    contextMessages: ContextMessage[],
+    toolOptions?: Pick<ReplyOptions, "tools" | "toolChoice">,
 ): AsyncGenerator<string> {
     const abortController = new AbortController();
     const 桥接状态: SSE桥接状态 = {
@@ -154,13 +151,12 @@ export async function* 创建流式响应Generator(
     };
 
     const 通知有新数据 = 创建通知函数(桥接状态);
-    const 等待数据 = 创建等待数据函数(桥接状态);
-
     const 请求配置 = await 构建SSE请求配置(
         config.openAIConfig,
         context,
         systemPromptForChat ?? config.systemPromptForChat,
-        abortController.signal
+        abortController.signal,
+        toolOptions,
     );
 
     const 回调 = await 创建SSE桥接回调(桥接状态, 通知有新数据);
@@ -170,7 +166,9 @@ export async function* 创建流式响应Generator(
         通知有新数据();
     });
 
-    yield* 消费SSE桥接缓冲(桥接状态, 等待数据, abortController);
+    yield* 消费SSE桥接缓冲(桥接状态, () => new Promise<void>((resolve) => {
+        桥接状态.通知resolve = resolve;
+    }), abortController);
 
     contextMessages.push({
         role: "assistant",
@@ -275,14 +273,13 @@ export const 执行回复操作 = async (
         const overrideMessages = options?.context?.overrideMessages;
         const hasOverrideMessages = Array.isArray(overrideMessages) && overrideMessages.length > 0;
         // 当调用方显式提供角色编排后的消息序列时（如 Trinity 角色 hack），优先使用覆盖上下文。
-        const context = hasOverrideMessages
-            ? overrideMessages
-            : 内部状态.contextMessages.slice(-内部状态.config.memorySize);
+        const context = hasOverrideMessages ? overrideMessages : 内部状态.contextMessages.slice(-内部状态.config.memorySize);
         // SSE 模式返回 AsyncGenerator，调用方通过 for await 消费
         if (内部状态.config.responseType === "sse") {
-            return 创建流式响应Generator(
-                userInput, null, context, 内部状态.config, 内部状态.contextMessages
-            );
+            return 创建流式响应Generator(userInput, null, context, 内部状态.config, 内部状态.contextMessages, {
+                ...(Array.isArray(options?.tools) ? { tools: options?.tools } : {}),
+                ...(options?.toolChoice ? { toolChoice: options.toolChoice } : {}),
+            });
         }
         const 响应内容 = "[非SSE模式响应]";
         内部状态.contextMessages.push({

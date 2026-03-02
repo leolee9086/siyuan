@@ -46,6 +46,7 @@ node_modules
 # Plan files
 #**.plan.md
 toread/
+trashed/
 # Vector DB Research
 
 toread/IP-DiskANN/

@@ -1,6 +1,6 @@
 /**
  * @fileoverview WISE处理器公共类型定义
- * @description wise目录内所有接口集中于此，供 baseWise/seelWise/mockWise 引用
+ * @description wise目录内所有接口集中于此，供 baseWise/mockWise 引用
  */
 
 // [TASK] T2.1 迁移MAGI核心系统 - wise/wise.types
@@ -67,6 +67,20 @@ export interface WISE基础实例 {
     /** 总结专用提示词（可写，由子工厂函数赋值） */
     summarizePrompt: string;
 }
+
+/**
+ * WISE基础实例内部提示词状态
+ *
+ * 作用：统一承载 vote/reply/summarize 三类提示词的内部可变值。
+ * 使用场景：由 baseWise.ts 中的 创建WISE基础实例 通过闭包持有，并由 getter/setter 与业务方法共享。
+ * 关联类型：与 WISE基础实例 的 votePrompt/replyPrompt/summarizePrompt 字段一一对应。
+ * 问题/改进：当前仅驻留内存，未来如需跨会话恢复可扩展为可序列化状态结构。
+ */
+export type WISE提示词状态 = {
+    votePrompt: string;
+    replyPrompt: string;
+    summarizePrompt: string;
+};
 
 // ────────────────────────────────────────────────────────────────────────────
 // MockWISE类型
@@ -146,18 +160,8 @@ export interface MockWISE实例 {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// seelWise 业务数据类型（AI返回的JSON结果类型）
+// wise 子模块业务数据类型（AI返回的JSON结果类型）
 // ────────────────────────────────────────────────────────────────────────────
-
-/** AI 返回的技术可行性评估结果（Melchior专用） */
-export interface TechnicalAssessment {
-    /** 实现难度（1-5级） */
-    difficulty: number;
-    /** 所需技术依赖列表 */
-    dependencies: string[];
-    /** 资源消耗指数（1-10） */
-    resourceCost: number;
-}
 
 /** AI 模块的标准响应格式（OpenAI-compatible） */
 export interface WISEApiResponse {
@@ -173,64 +177,6 @@ export interface WISEApiResponse {
     model?: string;
     created?: number;
 }
-
-/** AI 返回的情感分析结果（Balthazar专用） */
-export interface EmotionProfile {
-    /** 主要情绪类别（愤怒/快乐/悲伤/惊讶等） */
-    emotion: string;
-    /** 情绪强度（0-10） */
-    intensity: number;
-    /** 潜在心理需求列表 */
-    needs: string[];
-}
-
-/** AI 返回的内容合规性检查结果（Casper专用） */
-export interface ComplianceResult {
-    /** 是否符合法律法规 */
-    legal: boolean;
-    /** 是否符合社会道德 */
-    ethical: boolean;
-    /** 识别出的风险列表 */
-    risks: string[];
-}
-
-/** 风险矩阵单条（Casper专用） */
-export interface RiskMatrixItem {
-    /** 发生概率（1-5） */
-    probability: number;
-    /** 影响程度（1-5） */
-    impact: number;
-}
-
-// ────────────────────────────────────────────────────────────────────────────
-// seelWise 扩展类型（从 seelWise.ts 移入，满足「type 必须在 .types.ts」规则）
-// ────────────────────────────────────────────────────────────────────────────
-
-/** Melchior实例扩展类型（在基础WISE能力上增加逻辑分析专项方法） */
-export type Melchior实例类型 = WISE基础实例 & {
-    voteFor: (
-        functions: Array<{ name: string; action: { toString: () => string } }>,
-        descriptions: string[],
-        inputs: unknown[],
-        goal: string
-    ) => Promise<VoteScore[]>;
-    技术可行性评估: (func: unknown) => Promise<TechnicalAssessment>;
-    多方案对比: (solutions: unknown[]) => Promise<TechnicalAssessment[]>;
-};
-
-/** Balthazar实例扩展类型（在基础WISE能力上增加情感分析专项方法） */
-export type Balthazar实例类型 = WISE基础实例 & {
-    reply: (userInput: string) => Promise<unknown>;
-    情感分析: (response: WISEApiResponse) => Promise<EmotionProfile>;
-    生成共情回应: (情感轮廓: EmotionProfile) => Promise<WISEApiResponse>;
-};
-
-/** Casper实例扩展类型（在基础WISE能力上增加合规检查专项方法） */
-export type Casper实例类型 = WISE基础实例 & {
-    summarize: (conversation: Array<{ role: string; content: string }>) => Promise<unknown>;
-    合规性检查: (input: unknown) => Promise<ComplianceResult>;
-    风险矩阵评估: (risks: Array<{ name: string }>) => Promise<RiskMatrixItem[]>;
-};
 
 // ────────────────────────────────────────────────────────────────────────────
 // MockWISE 内部状态类型（供 mockWise.ts 拆分的外部命名函数使用）
@@ -251,14 +197,19 @@ export interface MockWISE内部状态 {
 }
 
 /** initMagi 初始化配置 */
+export interface MagiPromptSet {
+    melchior?: string;
+    balthazar?: string;
+    casper?: string;
+    trinity?: string;
+}
+
+/** initMagi 初始化配置 */
 export interface InitMagiOptions {
     /** 自定义系统提示词（各贤人） */
-    prompts?: {
-        melchior?: string;
-        balthazar?: string;
-        casper?: string;
-        trinity?: string;
-    };
+    prompts?: MagiPromptSet;
+    /** 在原提示词后追加的人格注入文本（各贤人） */
+    promptInjections?: MagiPromptSet;
     /** 响应延迟（毫秒） */
     delay?: number;
     /** 记忆长度 */

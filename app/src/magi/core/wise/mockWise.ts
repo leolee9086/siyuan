@@ -12,7 +12,13 @@
 import { getSafeSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import type { StreamCallbacks, StreamRequestConfig } from "../../../util/network/fetchStream.types";
 import { 是AI响应Chunk } from "./wise.guard";
-import type { MockWISEConfig, ContextMessage, OpenAICompatConfig } from "../core.types";
+import { 提取桥接Chunk数据, 构建桥接SSE行 } from "./mockWise.streamBridge";
+import type {
+    MockWISEConfig,
+    ContextMessage,
+    OpenAICompatConfig,
+    ReplyOptions,
+} from "../core.types";
 import type {
     MockWISE完整配置,
     MockWISE实例,
@@ -99,7 +105,11 @@ export const 构建SSE请求配置 = async (
     openAIConfig: OpenAICompatConfig,
     messages: ContextMessage[],
     systemPrompt: string,
-    abortSignal: AbortSignal
+    abortSignal: AbortSignal,
+    toolOptions?: {
+        tools?: ReplyOptions["tools"];
+        toolChoice?: ReplyOptions["toolChoice"];
+    },
 ): Promise<StreamRequestConfig> => ({
     url: `${openAIConfig.base_url.replace(/\/$/, "")}/chat/completions`,
     method: "POST",
@@ -116,6 +126,10 @@ export const 构建SSE请求配置 = async (
             { role: "system", content: systemPrompt },
             ...messages.map((m) => ({ role: m.role, content: m.content })),
         ],
+        ...(Array.isArray(toolOptions?.tools) && toolOptions.tools.length > 0
+            ? { tools: toolOptions.tools }
+            : {}),
+        ...(toolOptions?.toolChoice ? { tool_choice: toolOptions.toolChoice } : {}),
     }),
     signal: abortSignal,
     timeout: 30000,
@@ -144,19 +158,23 @@ const 处理SSE消息数据 = (
         return;
     }
     const 首个选择 = parsed.choices?.[0];
-    const 内容片段 = 首个选择?.delta?.content ?? "";
-    // 只有存在内容片段时才写入缓冲队列，心跳包等空消息直接忽略
-    if (!内容片段) {
+    // choices 为空时说明当前 chunk 不含有效增量，直接跳过。
+    if (!首个选择) {
         return;
     }
-    状态.累积响应内容 += 内容片段;
-    const SSE行 = `data: ${JSON.stringify({
-        id: parsed.id,
-        object: "chat.completion.chunk",
-        created: parsed.created,
-        model: parsed.model,
-        choices: [{ delta: { content: 内容片段 }, index: 0, finish_reason: null }],
-    })}\n\n`;
+    const bridgedChoice = 提取桥接Chunk数据(首个选择);
+    // 无内容、无工具调用且无显式 finish_reason 时视为心跳包，不写入缓冲。
+    if (!bridgedChoice.hasPayload) {
+        return;
+    }
+    // 仅把可见文本片段累积到上下文记忆，工具参数解析由上层流处理器完成。
+    if (bridgedChoice.content) {
+        状态.累积响应内容 += bridgedChoice.content;
+    }
+    const SSE行 = 构建桥接SSE行(
+        { id: parsed.id, created: parsed.created, model: parsed.model },
+        bridgedChoice,
+    );
     状态.缓冲队列.push(SSE行);
     通知有新数据();
 };

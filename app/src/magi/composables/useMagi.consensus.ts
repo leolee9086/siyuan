@@ -32,6 +32,7 @@ async function appendVoteStatusMessage(
     consensusMessages: MagiMessage[],
     progress: number,
     vote?: VoteResult,
+    proposedAction?: string,
 ): Promise<void> {
     const details = vote
         ? [
@@ -40,11 +41,17 @@ async function appendVoteStatusMessage(
             { name: "CASPER", decision: vote.casper },
         ]
         : [];
+    const meta: Record<string, unknown> = {
+        type: "vote-status",
+        progress,
+        details,
+        ...(proposedAction ? { proposedAction } : {}),
+    };
     await appendConsensusMessage(
         consensusMessages,
         "system",
         getMagiI18nText("evaluationCompleted"),
-        { type: "vote-status", progress, details },
+        meta,
     );
 }
 
@@ -58,6 +65,14 @@ async function appendSageResponses(
             consensusMessages,
             "consensus",
             `${response.displayName}: ${response.content}`,
+            {
+                type: "sage-response",
+                seel: response.seel,
+                displayName: response.displayName,
+                ...(typeof response.requiresDeliberation === "boolean"
+                    ? { requiresDeliberation: response.requiresDeliberation }
+                    : {}),
+            },
         );
     }
 }
@@ -77,18 +92,18 @@ async function resolveVoteResult(
     const proposedAction = await 生成梅基奥尔行动提案(sages, validResponses, userMessage);
     const melchiorConclusion =
         validResponses.find((response) => response.seel.includes("MELCHIOR"))?.content ?? "无附加判断";
-    await appendVoteStatusMessage(consensusMessages, 0);
+    await appendVoteStatusMessage(consensusMessages, 0, undefined, proposedAction);
     const voteResult = await processVoting(
         sages,
         proposedAction,
         { userMessage, melchiorConclusion },
         (progress) => {
-            void appendVoteStatusMessage(consensusMessages, progress);
+            void appendVoteStatusMessage(consensusMessages, progress, undefined, proposedAction);
         },
     );
 
     if (voteResult !== null) {
-        await appendVoteStatusMessage(consensusMessages, 100, voteResult);
+        await appendVoteStatusMessage(consensusMessages, 100, voteResult, proposedAction);
     }
 
     return { deliberationRequired, voteResult, proposedAction };
@@ -221,7 +236,12 @@ export async function sendUserMessageWithConsensus(
     if (!userMessage || connectionStatus.value !== "connected") {
         return;
     }
-    await appendConsensusMessage(consensusMessages, "user", userMessage);
+    await appendConsensusMessage(
+        consensusMessages,
+        "user",
+        userMessage,
+        { type: "round-input" },
+    );
     const sages = seels.filter((seel) => seel.config.name !== "TRINITY-00");
     const trinity = seels.find((seel) => seel.config.name === "TRINITY-00") ?? null;
     // 三贤者为空时后续流程无法成立，必须提前兜底退出。

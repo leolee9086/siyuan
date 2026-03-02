@@ -9,7 +9,7 @@
 
 import { ref, reactive, computed } from "vue";
 import type { ConnectionStatus, WrappedSeel, UseMagiReturn } from "./useMagi.types";
-import type { MockWISE实例 } from "../core/wise/wise.types";
+import type { MockWISE实例, MagiPromptSet } from "../core/wise/wise.types";
 import type { MockMessage } from "../core/core.types";
 import type { MagiMessage } from "../utils/messageFactory.types";
 import { initMagi } from "../core/wise/mockWise.subclass";
@@ -23,9 +23,13 @@ import {
 async function clearReactiveArrays(
     seels: WrappedSeel[],
     messages: MagiMessage[],
+    clearMessages = true,
 ): Promise<void> {
     seels.splice(0, seels.length);
-    messages.splice(0, messages.length);
+    // 需要保留对话消息时仅重置贤者实例，不清空消息数组。
+    if (clearMessages) {
+        messages.splice(0, messages.length);
+    }
 }
 
 /** 将底层 MockMessage 规范化为 UI 所需的 MagiMessage */
@@ -85,11 +89,13 @@ async function* createSyncedStreamGenerator(
 async function initializeWrappedSeels(
     seels: WrappedSeel[],
     connectionStatus: { value: ConnectionStatus },
+    promptInjections?: MagiPromptSet,
 ): Promise<void> {
     const rawSeels = await initMagi({
         delay: 800,
         autoConnect: true,
         memorySize: 7,
+        ...(promptInjections ? { promptInjections } : {}),
     });
 
     const wrappedSeels = await Promise.all(
@@ -193,8 +199,8 @@ export async function useMagi(): Promise<UseMagiReturn> {
          * 意图：支持连接恢复与状态重建。
          * 调用时机：用户主动触发重连或上层容器请求重置时。
          */
-        initializeMAGI: async () => {
-            await reinitializeMAGI(seels, connectionStatus, consensusMessages);
+        initializeMAGI: async (options) => {
+            await reinitializeMAGI(seels, connectionStatus, consensusMessages, options);
         },
     };
 }
@@ -210,12 +216,17 @@ async function reinitializeMAGI(
     seels: WrappedSeel[],
     connectionStatus: { value: ConnectionStatus },
     consensusMessages: MagiMessage[],
+    options?: {
+        promptInjections?: MagiPromptSet;
+        preserveConsensusMessages?: boolean;
+    },
 ): Promise<void> {
     try {
         connectionStatus.value = "connecting";
-        await clearReactiveArrays(seels, consensusMessages);
+        const shouldClearMessages = !options?.preserveConsensusMessages;
+        await clearReactiveArrays(seels, consensusMessages, shouldClearMessages);
 
-        await initializeWrappedSeels(seels, connectionStatus);
+        await initializeWrappedSeels(seels, connectionStatus, options?.promptInjections);
         await appendConsensusMessage(
             consensusMessages,
             "system",

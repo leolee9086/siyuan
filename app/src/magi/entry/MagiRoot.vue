@@ -9,6 +9,9 @@
         <button type="button" class="magi-control-button" @click="onReconnect">
           RECONNECT
         </button>
+        <button type="button" class="magi-control-button" @click="onExportSessionRecord">
+          EXPORT LOG
+        </button>
       </div>
     </div>
 
@@ -55,6 +58,7 @@ const {
     onCloseQuestionnaire,
     onQuestionnaireSaved,
     onReconnect,
+    onExportSessionRecord,
     onOpenConsole,
 } = ctx;
 </script>

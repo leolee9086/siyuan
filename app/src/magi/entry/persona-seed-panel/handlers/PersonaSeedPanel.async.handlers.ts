@@ -8,7 +8,7 @@ import { generateDescriptionToQuestionnaireSuggestions } from "../../../data/con
 import { generateQuestionnaireToDescriptionSuggestions } from "../../../data/convergence/q2d/persona-seed-convergence-q2d-llm";
 import type { PersonaDescriptionField } from "../../../data/convergence/q2d/persona-seed-convergence-q2d-llm.types";
 import type { IpipNeo120SubmissionPayload } from "../../../data/questionnaire.types";
-import type { PanelState } from "../PersonaSeedPanel.types";
+import type { PanelState, PersonaSeedSavedPayload } from "../PersonaSeedPanel.types";
 import {
     canGenerateTrinityDescriptionSuggestion,
     collectMissingFields,
@@ -128,7 +128,7 @@ async function handleGenerateQuestionnaireToDescription(
 async function handleSubmitIpip(
     s: PanelState,
     saveDraft: () => void,
-    emitSaved: (filePath: string) => void,
+    emitSaved: (payload: PersonaSeedSavedPayload) => void,
     payload: IpipNeo120SubmissionPayload,
 ): Promise<void> {
     const missingFields = collectMissingFields(
@@ -149,7 +149,7 @@ async function handleSubmitIpip(
         const { samplePath, profilePath } = await saveSubmissionPayload(enrichedPayload);
         saveDraft();
         s.statusMessage.value = `问卷已保存: ${samplePath}; 人格档案已保存: ${profilePath}`;
-        emitSaved(samplePath);
+        emitSaved({ samplePath, profilePath });
     } catch (error) {
         s.statusMessage.value = `保存失败: ${error instanceof Error ? error.message : String(error)}`;
     }
@@ -190,7 +190,7 @@ export function createGenerateQuestionnaireToDescriptionHandler(
 export function createSubmitHandler(
     s: PanelState,
     saveDraft: () => void,
-    emitSaved: (filePath: string) => void,
+    emitSaved: (payload: PersonaSeedSavedPayload) => void,
 ): (payload: IpipNeo120SubmissionPayload) => Promise<void> {
     return (payload) => handleSubmitIpip(s, saveDraft, emitSaved, payload);
 }

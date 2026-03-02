@@ -216,6 +216,8 @@ export interface ReplyOptions {
         introspection?: string;
         overrideMessages?: ContextMessage[];
     };
+    tools?: Array<Record<string, unknown>>;
+    toolChoice?: "none" | "auto" | "required" | Record<string, unknown>;
 }
 
 /** 投票结果 */

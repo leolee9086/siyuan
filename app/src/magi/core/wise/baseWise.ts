@@ -14,9 +14,8 @@ import type {
     MardukValidatedConfig,
     VoteScore,
     FunctionInfoEntry,
-    WISE事件回调,
-    WISE基础实例,
-} from "./wise.types";
+} from "../core.types";
+import type { WISE事件回调, WISE基础实例, WISE提示词状态 } from "./wise.types";
 
 // ────────────────────────────────────────────────────────────────────────────
 // 纯函数工具（无副作用，便于测试）
@@ -149,13 +148,124 @@ const 执行总结请求 = async (
 // ────────────────────────────────────────────────────────────────────────────
 
 /**
+ * 创建投票方法
+ *
+ * 作用：生成绑定当前 api/config/persona/状态 的投票函数。
+ * 意图：把投票请求与错误处理从工厂主函数拆出，降低主函数实际代码行数。
+ * 调用时机：在 创建WISE基础实例 构建返回对象时调用一次。
+ */
+const 创建投票方法 = (
+    api: WISEApi,
+    config: MardukValidatedConfig,
+    persona: WISEPersona,
+    状态: WISE提示词状态,
+    回调?: WISE事件回调
+): WISE基础实例["voteFor"] => async (functions, descriptions, inputs, goal) => {
+    try {
+        return await 执行投票请求(
+            api,
+            config,
+            状态.votePrompt,
+            functions,
+            descriptions,
+            inputs,
+            goal,
+            persona.name,
+            回调
+        );
+    } catch (error) {
+        console.error(`${persona.name}投票失败:`, error);
+        // 仅 Error 实例满足回调签名，避免将 unknown 误传入 onError。
+        if (error instanceof Error) {
+            回调?.onError?.(error);
+        }
+        return [];
+    }
+};
+
+/**
+ * 创建回复方法
+ *
+ * 作用：生成绑定当前 api/config/persona/状态 的回复函数。
+ * 意图：复用统一错误处理与回调触发逻辑，避免工厂内重复样板代码。
+ * 调用时机：在 创建WISE基础实例 构建返回对象时调用一次。
+ */
+const 创建回复方法 = (
+    api: WISEApi,
+    config: MardukValidatedConfig,
+    persona: WISEPersona,
+    状态: WISE提示词状态,
+    回调?: WISE事件回调
+): WISE基础实例["reply"] => async (userInput) => {
+    try {
+        const response = await api.post({
+            model: config.model,
+            messages: [
+                { role: "system", content: 状态.replyPrompt },
+                { role: "user", content: JSON.stringify(userInput) },
+            ],
+        });
+        回调?.onResponse?.(response);
+        return response;
+    } catch (error) {
+        console.error(`${persona.name}回复失败:`, error);
+        // 仅 Error 实例满足回调签名，避免将 unknown 误传入 onError。
+        if (error instanceof Error) {
+            回调?.onError?.(error);
+        }
+        return null;
+    }
+};
+
+/**
+ * 创建总结方法
+ *
+ * 作用：生成绑定当前 api/config/persona/状态 的总结函数。
+ * 意图：将 summarize 的 I/O 与异常处理逻辑从工厂主函数剥离。
+ * 调用时机：在 创建WISE基础实例 构建返回对象时调用一次。
+ */
+const 创建总结方法 = (
+    api: WISEApi,
+    config: MardukValidatedConfig,
+    persona: WISEPersona,
+    状态: WISE提示词状态
+): WISE基础实例["summarize"] => async (conversation) => {
+    try {
+        return await 执行总结请求(api, config, 状态.summarizePrompt, conversation, persona.name);
+    } catch (error) {
+        console.error(`${persona.name}总结失败:`, error);
+        return [];
+    }
+};
+
+/**
+ * 创建同步检查方法
+ *
+ * 作用：生成绑定 api/persona 的同步率检查函数。
+ * 意图：把阈值计算逻辑独立成可复用单元，简化工厂主函数。
+ * 调用时机：在 创建WISE基础实例 构建返回对象时调用一次。
+ */
+const 创建同步检查方法 = (
+    api: WISEApi,
+    persona: WISEPersona
+): WISE基础实例["checkSync"] => (getSEELConfig) => {
+    const { baseWeight } = getSEELConfig(persona.name.toLowerCase());
+    const 当前同步率 = 计算同步率(api);
+    return {
+        status: 当前同步率 >= baseWeight * 0.8 ? "synced" : "desynced",
+        ratio: 当前同步率,
+        threshold: baseWeight * 0.8,
+    };
+};
+
+/**
  * 创建WISE基础实例
  *
  * 作用：提供三贤人共用的 voteFor/reply/summarize/checkSync 基础能力
  * 意图：替代 class WISE extends EventEmitter（lint 禁止 extends）。
  *   所有状态通过闭包封装，事件通过回调参数替代 emit。
- *   子工厂函数（Melchior/Balthazar/Casper）通过对象展开+覆盖方法的方式在此基础上扩展。
- * 调用时机：在 seelWise.ts 中的 创建Melchior实例 等函数内调用，作为基础层
+ *   子工厂函数通过对象展开+覆盖方法的方式在此基础上扩展。
+ * 调用时机：在 wise 子工厂函数内调用，作为基础层
  *
  * @param api - WISE API接口（封装了与AI服务的通信）
  * @param config - 经Marduk验证的配置
@@ -168,7 +278,7 @@ export const 创建WISE基础实例 = async (
     persona: WISEPersona,
     回调?: WISE事件回调
 ): Promise<WISE基础实例> => {
-    const 状态 = {
+    const 状态: WISE提示词状态 = {
         votePrompt: "",
         replyPrompt: "",
         summarizePrompt: "",
@@ -211,85 +321,9 @@ export const 创建WISE基础实例 = async (
         set summarizePrompt(v: string) {
             状态.summarizePrompt = v;
         },
-
-        /**
-         * 投票评分——对给定函数集进行逻辑/情感/常识多维度评分
-         * 作用：向 API 发送投票请求，使用类型守卫解析并返回评分列表
-         * 调用时机：由 magiSystem 在并行获取各贤人评分时调用
-         */
-        async voteFor(functions, descriptions, inputs, goal) {
-            try {
-                return await 执行投票请求(
-                    api, config, 状态.votePrompt,
-                    functions, descriptions, inputs, goal,
-                    persona.name, 回调
-                );
-            } catch (error) {
-                console.error(`${persona.name}投票失败:`, error);
-                // 仅 Error 实例才有 message，确保类型安全后触发回调
-                if (error instanceof Error) {
-                    回调?.onError?.(error);
-                }
-                return [];
-            }
-        },
-
-        /**
-         * 回复用户输入——调用 AI API 并通过回调通知完成
-         * 作用：向 API 发送对话请求，通过 onResponse 回调通知调用方
-         * 调用时机：由 magiSystem 或 UI 层在用户发送消息时调用
-         */
-        async reply(userInput) {
-            try {
-                const response = await api.post({
-                    model: config.model,
-                    messages: [
-                        { role: "system", content: 状态.replyPrompt },
-                        { role: "user", content: JSON.stringify(userInput) },
-                    ],
-                });
-                回调?.onResponse?.(response);
-                return response;
-            } catch (error) {
-                console.error(`${persona.name}回复失败:`, error);
-                // 仅 Error 实例才有 message，确保类型安全后触发回调
-                if (error instanceof Error) {
-                    回调?.onError?.(error);
-                }
-                return null;
-            }
-        },
-
-        /**
-         * 对话总结——将对话历史压缩为结构化摘要
-         * 作用：向 API 发送总结请求，返回按贤人角色定制的摘要格式
-         * 调用时机：由 magiSystem 在对话轮次结束或上下文即将超限时调用
-         */
-        async summarize(conversation) {
-            try {
-                return await 执行总结请求(
-                    api, config, 状态.summarizePrompt, conversation, persona.name
-                );
-            } catch (error) {
-                console.error(`${persona.name}总结失败:`, error);
-                return [];
-            }
-        },
-
-        /**
-         * 检查同步率——判断该 WISE 单元是否达到 Marduk 的同步阈值
-         * 作用：计算当前 API 成功率和延迟的综合同步率，与 baseWeight×0.8 对比
-         * 意图：让 Marduk 决策层知道某个 WISE 单元是否可信任
-         * 调用时机：由 Marduk 协调层在每次决策前调用
-         */
-        checkSync(getSEELConfig) {
-            const { baseWeight } = getSEELConfig(persona.name.toLowerCase());
-            const 当前同步率 = 计算同步率(api);
-            return {
-                status: 当前同步率 >= baseWeight * 0.8 ? "synced" : "desynced",
-                ratio: 当前同步率,
-                threshold: baseWeight * 0.8,
-            };
-        },
+        voteFor: 创建投票方法(api, config, persona, 状态, 回调),
+        reply: 创建回复方法(api, config, persona, 状态, 回调),
+        summarize: 创建总结方法(api, config, persona, 状态),
+        checkSync: 创建同步检查方法(api, persona),
     };
 };

@@ -1,12 +1,37 @@
 import { computed, ref } from "vue";
 import { useMagi } from "../composables/useMagi";
 import { appendConsensusMessage } from "../composables/useMagi.consensus";
+import { exportMagiSessionRecord } from "../composables/useMagi.export";
 import type { UseMagiReturn } from "../composables/useMagi.types";
 import type { MagiMessage } from "../utils/messageFactory.types";
 import type { MagiRootContext } from "./MagiRoot.types";
+import type { PersonaSeedSavedEvent } from "./persona-seed-panel/PersonaSeedPanel.types";
 import { isElectron } from "../../platform";
 import { ipcSend } from "../../platform/electron/ipcRenderer";
 import { Constants } from "../../constants";
+import { loadPromptInjectionsByProfilePath } from "../prompts/personaRuntimePromptBuilder";
+
+/** @同步豁免: 纯数据归一化，无异步依赖 */
+/**
+ * 作用：将 PersonaSeedPanel `saved` 事件统一归一化为路径对象。
+ * 意图：兼容旧版仅传字符串 samplePath 的事件契约。
+ * 调用时机：MagiRoot 接收 `saved` 事件后调用。
+ */
+function normalizeSavedPaths(
+    saved: PersonaSeedSavedEvent,
+): { readonly samplePath: string; readonly profilePath: string | null } {
+    // 兼容旧版：仅传 samplePath 字符串
+    if (typeof saved === "string") {
+        return {
+            samplePath: saved,
+            profilePath: null,
+        };
+    }
+    return {
+        samplePath: saved.samplePath,
+        profilePath: saved.profilePath?.trim() || null,
+    };
+}
 
 /**
  * 处理输入栏提交事件
@@ -57,6 +82,37 @@ async function handleReconnect(
 }
 
 /**
+ * 导出 MAGI 会话详细记录（含决策链路）。
+ */
+async function handleExportSessionRecord(
+    magiState: { value: UseMagiReturn | null },
+): Promise<void> {
+    if (!magiState.value) {
+        return;
+    }
+    try {
+        const { filePath } = await exportMagiSessionRecord({
+            seels: magiState.value.seels,
+            consensusMessages: magiState.value.consensusMessages,
+            connectionStatus: magiState.value.connectionStatus.value,
+            mode: "sanitized",
+        });
+        await appendConsensusMessage(
+            magiState.value.consensusMessages,
+            "system",
+            `MAGI详细记录已导出: ${filePath}`,
+        );
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        await appendConsensusMessage(
+            magiState.value.consensusMessages,
+            "error",
+            `MAGI详细记录导出失败: ${message}`,
+        );
+    }
+}
+
+/**
  * 创建输入提交事件处理器
  *
  * 作用：将组件事件参数转发到 `handleSubmitInput`。
@@ -95,16 +151,54 @@ function createCloseQuestionnaireHandler(
 /** 创建问卷保存成功处理器 */
 function createQuestionnaireSavedHandler(
     magiState: { value: UseMagiReturn | null },
-): (filePath: string) => Promise<void> {
-    return async (filePath: string) => {
+): (saved: PersonaSeedSavedEvent) => Promise<void> {
+    return async (saved: PersonaSeedSavedEvent) => {
         if (!magiState.value) {
             return;
         }
+        const savedPaths = normalizeSavedPaths(saved);
         await appendConsensusMessage(
             magiState.value.consensusMessages,
             "system",
-            `人格采样问卷已保存: ${filePath}`,
+            `人格采样问卷已保存: ${savedPaths.samplePath}`,
         );
+        // 旧版事件不包含 profilePath 时保持兼容：仅提示保存成功，不触发重载。
+        if (!savedPaths.profilePath) {
+            await appendConsensusMessage(
+                magiState.value.consensusMessages,
+                "system",
+                "未提供人格档案路径，已跳过人格重载。",
+            );
+            return;
+        }
+        try {
+            const promptInjections = await loadPromptInjectionsByProfilePath(savedPaths.profilePath);
+            // 人格档案读取或校验失败时保留当前运行态，不中断会话。
+            if (!promptInjections) {
+                await appendConsensusMessage(
+                    magiState.value.consensusMessages,
+                    "error",
+                    `人格档案读取失败，继续使用当前配置: ${savedPaths.profilePath}`,
+                );
+                return;
+            }
+            await magiState.value.initializeMAGI({
+                promptInjections,
+                preserveConsensusMessages: true,
+            });
+            await appendConsensusMessage(
+                magiState.value.consensusMessages,
+                "system",
+                `已加载人格档案并完成重建: ${savedPaths.profilePath}`,
+            );
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            await appendConsensusMessage(
+                magiState.value.consensusMessages,
+                "error",
+                `人格重载失败，继续使用当前配置: ${message}`,
+            );
+        }
     };
 }
 
@@ -119,6 +213,13 @@ function createReconnectHandler(
     magiState: { value: UseMagiReturn | null },
 ): () => Promise<void> {
     return async () => handleReconnect(magiState);
+}
+
+/** 创建详细记录导出处理器 */
+function createExportSessionRecordHandler(
+    magiState: { value: UseMagiReturn | null },
+): () => Promise<void> {
+    return async () => handleExportSessionRecord(magiState);
 }
 
 /**
@@ -162,23 +263,35 @@ async function bootstrapMagiState(
     }
 }
 
+/** @同步豁免: UI构建 — setup 阶段需同步初始化响应式状态容器 */
 /**
- * 构建 MagiRoot 组件上下文
- *
- * 作用：集中创建响应式状态、计算属性和 UI 事件处理函数。
- * 意图：满足 Fat Script 约束，让 `.vue` 文件仅保留装配层代码。
- * 调用时机：`MagiRoot.vue` setup 阶段调用一次。
+ * 作用：创建 MagiRoot 基础响应式状态。
+ * 意图：将状态创建从主 composable 中拆分，降低函数体积。
+ * 调用时机：`useMagiRootContext` 调用开始时。
  */
-export function useMagiRootContext(): MagiRootContext {
-    const ready = ref(false);
-    const bootError = ref<string | null>(null);
-    const inputValue = ref("");
-    const showMessages = ref(true);
-    const showSeels = ref(true);
-    const showTrinity = ref(false);
-    const showQuestionnairePanel = ref(false);
-    const magiState = ref<UseMagiReturn | null>(null);
+function createMagiRootState() {
+    return {
+        ready: ref(false),
+        bootError: ref<string | null>(null),
+        inputValue: ref(""),
+        showMessages: ref(true),
+        showSeels: ref(true),
+        showTrinity: ref(false),
+        showQuestionnairePanel: ref(false),
+        magiState: ref<UseMagiReturn | null>(null),
+    };
+}
 
+/** @同步豁免: UI构建 — setup 阶段需同步返回计算属性 */
+/**
+ * 作用：创建 MagiRoot 视图层计算属性。
+ * 意图：将计算属性装配逻辑从主 composable 中拆分，控制函数复杂度。
+ * 调用时机：`useMagiRootContext` 内部调用。
+ */
+function createMagiRootComputed(
+    magiState: { value: UseMagiReturn | null },
+    showMessages: { value: boolean },
+) {
     const seels = computed(() => magiState.value?.seels ?? []);
     const consensusMessages = computed(() => magiState.value?.consensusMessages ?? []);
     const sageSeels = computed(() =>
@@ -193,44 +306,79 @@ export function useMagiRootContext(): MagiRootContext {
     const displayMessages = computed<MagiMessage[]>(
         () => (showMessages.value ? consensusMessages.value : []),
     );
+    return { seels, sageSeels, trinitySeel, isAnySeelLoading, displayMessages };
+}
 
-    const onSubmitInput = createSubmitInputHandler(magiState, inputValue);
-    const onShowQuestionnaire = createShowQuestionnaireHandler(showQuestionnairePanel);
-    const onCloseQuestionnaire = createCloseQuestionnaireHandler(showQuestionnairePanel);
-    const onQuestionnaireSaved = createQuestionnaireSavedHandler(magiState);
-    const onReconnect = createReconnectHandler(magiState);
-    const onOpenConsole = createOpenConsoleHandler();
+/** @同步豁免: UI构建 — setup 阶段需同步返回事件处理器 */
+/**
+ * 作用：创建 MagiRoot 事件处理器集合。
+ * 意图：将 handler 装配逻辑从主 composable 中拆分，降低主函数行数。
+ * 调用时机：`useMagiRootContext` 内部调用。
+ */
+function createMagiRootHandlers(
+    magiState: { value: UseMagiReturn | null },
+    inputValue: { value: string },
+    showQuestionnairePanel: { value: boolean },
+) {
+    return {
+        onSubmitInput: createSubmitInputHandler(magiState, inputValue),
+        onShowQuestionnaire: createShowQuestionnaireHandler(showQuestionnairePanel),
+        onCloseQuestionnaire: createCloseQuestionnaireHandler(showQuestionnairePanel),
+        onQuestionnaireSaved: createQuestionnaireSavedHandler(magiState),
+        onReconnect: createReconnectHandler(magiState),
+        onExportSessionRecord: createExportSessionRecordHandler(magiState),
+        onOpenConsole: createOpenConsoleHandler(),
+    };
+}
 
-    void bootstrapMagiState(magiState, ready, bootError);
+/** @同步豁免: UI构建 — 事件占位符需同步提供给模板绑定 */
+function createStopInputHandler(): () => void {
+    return () => {
+        // no-op
+    };
+}
+
+/**
+ * 构建 MagiRoot 组件上下文
+ *
+ * 作用：集中创建响应式状态、计算属性和 UI 事件处理函数。
+ * 意图：满足 Fat Script 约束，让 `.vue` 文件仅保留装配层代码。
+ * 调用时机：`MagiRoot.vue` setup 阶段调用一次。
+ */
+/** @同步豁免: UI构建 — Vue setup 必须同步返回可用上下文 */
+export function useMagiRootContext(): MagiRootContext {
+    const state = createMagiRootState();
+    const computedState = createMagiRootComputed(state.magiState, state.showMessages);
+    const handlers = createMagiRootHandlers(
+        state.magiState,
+        state.inputValue,
+        state.showQuestionnairePanel,
+    );
+
+    void bootstrapMagiState(state.magiState, state.ready, state.bootError);
 
     const ctx: MagiRootContext = {
-        ready,
-        bootError,
-        inputValue,
-        showMessages,
-        showSeels,
-        showTrinity,
-        showQuestionnairePanel,
-        seels,
-        sageSeels,
-        trinitySeel,
-        displayMessages,
-        isAnySeelLoading,
-        onSubmitInput,
-        onShowQuestionnaire,
-        onCloseQuestionnaire,
-        onQuestionnaireSaved,
-        onReconnect,
-        onOpenConsole,
-        /**
-         * 作用：预留停止响应入口。
-         * 意图：后续接入统一请求中断控制器时无需修改组件接口。
-         * 调用时机：MagiMainPanel 输入栏触发 `stop-input` 事件时调用。
-         */
-        onStopInput: () => {
-            // no-op
-        },
-        magiState,
+        ready: state.ready,
+        bootError: state.bootError,
+        inputValue: state.inputValue,
+        showMessages: state.showMessages,
+        showSeels: state.showSeels,
+        showTrinity: state.showTrinity,
+        showQuestionnairePanel: state.showQuestionnairePanel,
+        seels: computedState.seels,
+        sageSeels: computedState.sageSeels,
+        trinitySeel: computedState.trinitySeel,
+        displayMessages: computedState.displayMessages,
+        isAnySeelLoading: computedState.isAnySeelLoading,
+        onSubmitInput: handlers.onSubmitInput,
+        onShowQuestionnaire: handlers.onShowQuestionnaire,
+        onCloseQuestionnaire: handlers.onCloseQuestionnaire,
+        onQuestionnaireSaved: handlers.onQuestionnaireSaved,
+        onReconnect: handlers.onReconnect,
+        onExportSessionRecord: handlers.onExportSessionRecord,
+        onOpenConsole: handlers.onOpenConsole,
+        onStopInput: createStopInputHandler(),
+        magiState: state.magiState,
     };
     return ctx;
 }

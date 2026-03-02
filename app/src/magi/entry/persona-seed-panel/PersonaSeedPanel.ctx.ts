@@ -6,7 +6,7 @@ import type { IpipPersonaSeedDescriptions } from "../../data/questionnaire.types
 import type { LikertScore } from "../../components/persona/CompositeRating.types";
 import { createLineDiffEngine } from "../../../util/diff/diff.engine";
 import type { DiffModel } from "../../../util/diff/diff.types";
-import type { PanelState } from "./PersonaSeedPanel.types";
+import type { PanelState, PersonaSeedSavedPayload } from "./PersonaSeedPanel.types";
 import {
     canGenerateTrinityDescriptionSuggestion,
     findAnswerScore,
@@ -121,7 +121,7 @@ function wireAutoSave(s: PanelState, saveDraft: () => void, loadDraft: (id: stri
  */
 export function usePersonaSeedPanelContext(emit: {
     (e: "close"): void;
-    (e: "saved", filePath: string): void;
+    (e: "saved", payload: PersonaSeedSavedPayload): void;
 }) {
     const s = createPanelState();
     const saveDraft = createSaveDraftHandler(s);
@@ -155,7 +155,7 @@ export function usePersonaSeedPanelContext(emit: {
         viewSuggestion: createViewSuggestionHandler(s),
         generateDescriptionToQuestionnaire: createGenerateHandler(s, saveDraft),
         generateQuestionnaireToDescription: createGenerateQuestionnaireToDescriptionHandler(s, saveDraft),
-        onSubmitIpip: createSubmitHandler(s, saveDraft, (fp) => emit("saved", fp)),
+        onSubmitIpip: createSubmitHandler(s, saveDraft, (payload) => emit("saved", payload)),
         saveDraft,
         loadDraft,
     };

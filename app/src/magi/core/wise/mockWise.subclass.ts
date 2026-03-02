@@ -14,11 +14,13 @@ import {
     构建Casper提示词,
     构建Trinity提示词,
     构建TrinityRoleHack消息,
+    应用人格提示词注入,
     创建贤者回复函数,
 } from "./mockWise.prompts";
 import type { MockWISE实例, ReplyOptions, InitMagiOptions } from "./wise.types";
 import { MELCHIOR特征集 } from "../dummySys/zhi";
 import * as MELCHIOR提示词模板集 from "./promptTemplates/Melchior";
+import { buildTrinityToolReplyOptions } from "./trinity.toolset";
 
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -55,13 +57,13 @@ const 创建Trinity回复函数 = (
         基础实例.updateConfig({ systemPromptForChat: 动态提示词 });
         try {
             // 通过覆盖上下文实现多段内部拼接，不使用 user 触发语强行拉取输出。
-            const nextOptions: ReplyOptions = {
+            const nextOptions: ReplyOptions = buildTrinityToolReplyOptions({
                 ...options,
                 context: {
                     ...(options.context ?? {}),
                     overrideMessages: roleHackMessages,
                 },
-            };
+            });
             return 原始回复函数("", nextOptions);
         } finally {
             基础实例.updateConfig({ systemPromptForChat: 原始提示词 });
@@ -239,12 +241,16 @@ export const 创建MockTrinity实例 = async (
  * 意图：从 initMagi 中提取配置应用逻辑，使 initMagi 保持简洁
  * 调用时机：仅在 initMagi 的批量实例初始化过程中调用
  */
-const 应用全局配置到实例 = (实例: MockWISE实例, options: InitMagiOptions): void => {
+const 应用全局配置到实例 = async (
+    实例: MockWISE实例,
+    options: InitMagiOptions,
+): Promise<void> => {
     实例.responseDelay = options.delay ?? 500;
     实例.updateConfig({
         memorySize: options.memorySize ?? 7,
         ...(options.openAIConfig ? { openAIConfig: options.openAIConfig } : {}),
     });
+    await 应用人格提示词注入(实例, options.promptInjections);
 };
 
 /**
@@ -263,7 +269,7 @@ export const initMagi = async (options: InitMagiOptions = {}): Promise<MockWISE�
 
     // 使用 for...of 代替 forEach（forEach 无法等待异步操作且无法中断）
     for (const 实例 of 实例列表) {
-        应用全局配置到实例(实例, options);
+        await 应用全局配置到实例(实例, options);
     }
 
     if (options.autoConnect) {

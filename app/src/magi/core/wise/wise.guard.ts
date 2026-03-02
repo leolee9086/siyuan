@@ -6,14 +6,8 @@
 
 // [TASK] T2.1 迁移MAGI核心系统 - wise/wise.guard
 
-import type {
-    TechnicalAssessment,
-    WISEApiResponse,
-    EmotionProfile,
-    ComplianceResult,
-    RiskMatrixItem,
-    VoteScore,
-} from "./wise.types";
+import type { WISEApiResponse } from "./wise.types";
+import type { VoteScore } from "../core.types";
 
 // ────────────────────────────────────────────────────────────────────────────
 // JSON 解析辅助
@@ -38,19 +32,6 @@ const 解析AI返回JSON = (content: string): unknown => {
 // ────────────────────────────────────────────────────────────────────────────
 
 /**
- * 守卫：判断 unknown 是否为 TechnicalAssessment
- *
- * 作用：结构检查 AI 返回的技术可行性评估 JSON
- * 意图：替代 `JSON.parse(...) as TechnicalAssessment`，提供运行时类型安全
- * 调用时机：在 seelWise.ts 的技术可行性评估函数中调用
- */
-const 是TechnicalAssessment = (value: unknown): value is TechnicalAssessment =>
-    typeof value === "object"
-    && value !== null
-    && "difficulty" in value
-    && typeof (value as TechnicalAssessment).difficulty === "number";
-
-/**
  * 守卫：判断 unknown 是否为 VoteScore 数组
  *
  * 作用：结构检查 AI 返回的投票分数 JSON 数组
@@ -64,60 +45,9 @@ const 是VoteScore数组 = (value: unknown): value is VoteScore[] =>
             && value[0] !== null
             && "score" in value[0]));
 
-/**
- * 守卫：判断 unknown 是否为 EmotionProfile
- *
- * 作用：结构检查 AI 返回的情感分析 JSON
- * 意图：替代 `JSON.parse(...) as EmotionProfile`，提供运行时类型安全
- * 调用时机：在 seelWise.ts 的情感分析函数中调用
- */
-const 是EmotionProfile = (value: unknown): value is EmotionProfile =>
-    typeof value === "object"
-    && value !== null
-    && "emotion" in value
-    && "intensity" in value;
-
-/**
- * 守卫：判断 unknown 是否为 ComplianceResult
- *
- * 作用：结构检查 AI 返回的合规检查 JSON
- * 意图：替代 `JSON.parse(...) as ComplianceResult`，提供运行时类型安全
- * 调用时机：在 seelWise.ts 的合规检查函数中调用
- */
-const 是ComplianceResult = (value: unknown): value is ComplianceResult =>
-    typeof value === "object"
-    && value !== null
-    && "legal" in value
-    && "ethical" in value;
-
-/**
- * 守卫：判断 unknown 是否为 RiskMatrixItem
- *
- * 作用：结构检查 AI 返回的风险矩阵单条 JSON
- * 意图：替代 `JSON.parse(...) as RiskMatrixItem`，提供运行时类型安全
- * 调用时机：在 seelWise.ts 的风险矩阵评估函数中调用
- */
-const 是RiskMatrixItem = (value: unknown): value is RiskMatrixItem =>
-    typeof value === "object"
-    && value !== null
-    && "probability" in value
-    && "impact" in value;
-
 // ────────────────────────────────────────────────────────────────────────────
-// 解析并守卫的组合函数（供 seelWise.ts 直接调用）
+// 解析并守卫的组合函数（供 wise 子模块调用）
 // ────────────────────────────────────────────────────────────────────────────
-
-/**
- * 解析 AI 返回 JSON 并验证为 TechnicalAssessment
- *
- * 作用：将解析和类型验证合二为一，在验证失败时返回 null
- * 意图：避免调用方同时处理解析和验证两个步骤
- * 调用时机：在 seelWise.ts 的技术可行性评估中调用
- */
-export const 解析技术评估 = (content: string): TechnicalAssessment | null => {
-    const parsed = 解析AI返回JSON(content);
-    return 是TechnicalAssessment(parsed) ? parsed : null;
-};
 
 /**
  * 解析 AI 返回 JSON 并验证为 VoteScore 数组
@@ -132,50 +62,13 @@ export const 解析投票结果 = (content: string): VoteScore[] | null => {
 };
 
 /**
- * 解析 AI 返回 JSON 并验证为 EmotionProfile
- *
- * 作用：将解析和类型验证合二为一，在验证失败时返回 null
- * 意图：避免调用方同时处理解析和验证两个步骤
- * 调用时机：在 seelWise.ts 的情感分析中调用
- */
-export const 解析情感轮廓 = (content: string): EmotionProfile | null => {
-    const parsed = 解析AI返回JSON(content);
-    return 是EmotionProfile(parsed) ? parsed : null;
-};
-
-/**
- * 解析 AI 返回 JSON 并验证为 ComplianceResult
- *
- * 作用：将解析和类型验证合二为一，在验证失败时返回 null
- * 意图：避免调用方同时处理解析和验证两个步骤
- * 调用时机：在 seelWise.ts 的合规检查中调用
- */
-export const 解析合规结果 = (content: string): ComplianceResult | null => {
-    const parsed = 解析AI返回JSON(content);
-    return 是ComplianceResult(parsed) ? parsed : null;
-};
-
-/**
- * 解析 AI 返回 JSON 并验证为 RiskMatrixItem
- *
- * 作用：将解析和类型验证合二为一，在验证失败时返回 null
- * 意图：避免调用方同时处理解析和验证两个步骤
- * 调用时机：在 seelWise.ts 的风险矩阵评估中调用
- */
-export const 解析风险矩阵项 = (content: string): RiskMatrixItem | null => {
-    const parsed = 解析AI返回JSON(content);
-    return 是RiskMatrixItem(parsed) ? parsed : null;
-};
-
-
-/**
  * 判断 WISEApi 返回值是否为 WISEApiResponse
  *
  * 作用：安全地检查 api.post() 的返回值是否具有 choices 字段
  * 意图：替代所有 `response as WISEApiResponse` 断言。
  *   注意：此守卫只做结构存在性检查（choices 数组），不验证每个 choice 的完整字段。
  *   由于 AI 响应在运行时通常会包含完整字段，此处适度放宽以避免过度严格的检查。
- * 调用时机：在 seelWise.ts、baseWise.ts 中取 choices[0] 前调用
+ * 调用时机：在 baseWise.ts 等处理 API 响应并取 choices[0] 前调用
  */
 export const 是WISEApiResponse = (value: unknown): value is WISEApiResponse =>
     typeof value === "object"
@@ -190,10 +83,34 @@ export const 是WISEApiResponse = (value: unknown): value is WISEApiResponse =>
  * 作用：类型安全地过滤掉数组中的 null/undefined 元素
  * 意图：让 filter(是非空) 代替 filter((r): r is T => r !== null)，
  *   确保 is 关键字的 type predicate 只在 guard 文件中出现
- * 调用时机：在 seelWise.ts、mockWise.ops.ts 的并发评估结果过滤中使用
+ * 调用时机：在 mockWise.ops.ts 的并发评估结果过滤中使用
  */
 export const 是非空 = <T>(value: T | null | undefined): value is T =>
     value !== null && value !== undefined;
+
+/**
+ * 守卫：判断单个 choices 项是否满足 AI响应Chunk 最小结构
+ *
+ * 作用：校验每个 choice 是否包含 delta/index，并约束 content 为 string 或 undefined。
+ * 意图：将每项校验逻辑从 是AI响应Chunk 中拆出，避免内联回调过长并提升可读性。
+ * 调用时机：仅在 是AI响应Chunk 校验 choices 数组时通过 every 调用。
+ * 问题/改进：当前仅覆盖最小必要字段，若后续需要更严格校验可补充 finish_reason 等字段。
+ */
+const 是合法ChunkChoice = (项: unknown): boolean => {
+    if (typeof 项 !== "object" || 项 === null || !("delta" in 项) || !("index" in 项)) {
+        return false;
+    }
+    const delta = (项 as { delta: unknown }).delta;
+    const index = (项 as { index: unknown }).index;
+    if (typeof delta !== "object" || delta === null || typeof index !== "number") {
+        return false;
+    }
+    if (!("content" in delta)) {
+        return true;
+    }
+    const content = (delta as { content: unknown }).content;
+    return content === undefined || typeof content === "string";
+};
 
 /**
  * 守卫：判断 unknown 是否为 AI响应Chunk 结构（具有 choices 数组）
@@ -201,7 +118,7 @@ export const 是非空 = <T>(value: T | null | undefined): value is T =>
  * 作用：替代 mockWise.ts 创建SSE桥接回调中 `JSON.parse(...) as AI响应Chunk`
  * 意图：提供运行时检查，避免 as 断言在非 guard 文件出现
  * 调用时机：在 创建SSE桥接回调 的 onMessage 回调中解析 SSE chunk 时调用
- * @AITODO 守卫函数没有实际检查类型,必须修复
+ * @AIDONE 已补全结构校验：要求对象，且 error/choices 若存在需满足最小字段约束
  */
 export const 是AI响应Chunk = (value: unknown): value is {
     id?: string;
@@ -209,6 +126,27 @@ export const 是AI响应Chunk = (value: unknown): value is {
     model?: string;
     error?: { code: string; message: string };
     choices?: Array<{ delta: { content?: string }; index: number }>;
-} =>
-    typeof value === "object" && value !== null;
+} => {
+    if (typeof value !== "object" || value === null) {
+        return false;
+    }
+
+    const 候选 = value as {
+        error?: unknown;
+        choices?: unknown;
+    };
+
+    const error合法 = 候选.error === undefined
+        || (typeof 候选.error === "object"
+            && 候选.error !== null
+            && "code" in 候选.error
+            && "message" in 候选.error
+            && typeof (候选.error as { code: unknown }).code === "string"
+            && typeof (候选.error as { message: unknown }).message === "string");
+
+    const choices合法 = 候选.choices === undefined
+        || (Array.isArray(候选.choices) && 候选.choices.every(是合法ChunkChoice));
+
+    return error合法 && choices合法;
+};
 

@@ -52,11 +52,12 @@ import PersonaSeedSubjectForm from "./components/PersonaSeedSubjectForm.vue";
 import PersonaSeedDescriptionsForm from "./components/PersonaSeedDescriptionsForm.vue";
 import PersonaSeedConvergencePanel from "./components/PersonaSeedConvergencePanel.vue";
 import { usePersonaSeedPanelContext } from "./PersonaSeedPanel.ctx";
+import type { PersonaSeedSavedPayload } from "./PersonaSeedPanel.types";
 import "./PersonaSeedPanel.css";
 
 const emit = defineEmits<{
   (e: "close"): void;
-  (e: "saved", filePath: string): void;
+  (e: "saved", payload: PersonaSeedSavedPayload): void;
 }>();
 
 const {
