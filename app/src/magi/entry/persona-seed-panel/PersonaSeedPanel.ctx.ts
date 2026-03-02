@@ -1,20 +1,28 @@
 import { computed, watch } from "vue";
 import { ipipNeo120QuestionBank } from "../../data/ipip-neo-120";
-import { countSuggestionsByStatus } from "../../data/convergence/persona-seed-convergence";
+import { applySuggestionToDescriptions, countSuggestionsByStatus } from "../../data/convergence/persona-seed-convergence";
 import type { PersonaConvergenceSuggestion } from "../../data/convergence/persona-seed-convergence.types";
+import type { IpipPersonaSeedDescriptions } from "../../data/questionnaire.types";
 import type { LikertScore } from "../../components/persona/CompositeRating.types";
+import { createLineDiffEngine } from "../../../util/diff/diff.engine";
+import type { DiffModel } from "../../../util/diff/diff.types";
 import type { PanelState } from "./PersonaSeedPanel.types";
-import { findAnswerScore, getSuggestionById } from "./PersonaSeedPanel.utils";
+import { findAnswerScore, getDescriptionFieldLabel, getSuggestionById } from "./PersonaSeedPanel.utils";
 import { createSaveDraftHandler, createLoadDraftHandler, createAssignDescriptionsHandler } from "./PersonaSeedPanel.draft";
 import {
     createViewSuggestionHandler,
     createAnswerUpdatedHandler,
     createAcceptSuggestionHandler,
     createRejectSuggestionHandler,
+} from "./handlers/PersonaSeedPanel.handlers";
+import {
     createGenerateHandler,
+    createGenerateQuestionnaireToDescriptionHandler,
     createSubmitHandler,
-} from "./PersonaSeedPanel.handlers";
+} from "./handlers/PersonaSeedPanel.async.handlers";
 import { createPanelState } from "./PersonaSeedPanel.state";
+
+const lineDiffEngine = createLineDiffEngine();
 
 /**
  * 作用：计算当前正在查看的建议摘要信息。
@@ -36,6 +44,42 @@ function computeViewingSuggestionSummary(
         q: suggestion.payload.q,
         currentScoreText: currentScore === null ? "未作答" : String(currentScore),
         suggestedScore: suggestion.payload.score,
+    };
+}
+
+/**
+ * 作用：计算当前正在查看的描述建议差异模型。
+ * 意图：供描述建议查看面板展示“当前文本 vs 建议应用后文本”。
+ * 调用时机：viewingDescriptionDiff computed 求值时调用。
+ */
+function computeViewingDescriptionDiff(
+    suggestions: readonly PersonaConvergenceSuggestion[],
+    viewingId: string,
+    descriptions: IpipPersonaSeedDescriptions,
+): { field: keyof IpipPersonaSeedDescriptions; fieldLabel: string; model: DiffModel } | null {
+    const suggestion = getSuggestionById(suggestions, viewingId);
+    // 仅当建议存在、为描述类型且处于待确认状态时才显示差异预览
+    if (!suggestion || suggestion.payload.kind !== "description_append" || suggestion.status !== "pending") {
+        return null;
+    }
+    const field = suggestion.payload.field;
+    const oldText = descriptions[field];
+    const nextDescriptions = applySuggestionToDescriptions(descriptions, suggestion);
+    const newText = nextDescriptions[field];
+    // 应用后无变化时不展示差异视图
+    if (oldText === newText) {
+        return null;
+    }
+    return {
+        field,
+        fieldLabel: getDescriptionFieldLabel(field),
+        model: lineDiffEngine.build({
+            oldText,
+            newText,
+            fileName: field,
+            contextLines: 2,
+            granularity: "line",
+        }),
     };
 }
 
@@ -90,11 +134,17 @@ export function usePersonaSeedPanelContext(emit: {
         rejectedSuggestionCount: computed(() => countSuggestionsByStatus(s.convergenceSession.value, "rejected")),
         pendingSuggestions: computed(() => s.convergenceSession.value.suggestions.filter((x: PersonaConvergenceSuggestion) => x.status === "pending")),
         viewingSuggestionSummary: computed(() => computeViewingSuggestionSummary(s.convergenceSession.value.suggestions, s.viewingSuggestionId.value, s.answers.value)),
+        viewingDescriptionDiff: computed(() => computeViewingDescriptionDiff(
+            s.convergenceSession.value.suggestions,
+            s.viewingSuggestionId.value,
+            s.seedDescriptions.value,
+        )),
         onAnswerUpdated: createAnswerUpdatedHandler(s, saveDraft),
         acceptSuggestion: createAcceptSuggestionHandler(s, saveDraft, assignDescriptions),
         rejectSuggestion: createRejectSuggestionHandler(s, saveDraft),
         viewSuggestion: createViewSuggestionHandler(s),
         generateDescriptionToQuestionnaire: createGenerateHandler(s, saveDraft),
+        generateQuestionnaireToDescription: createGenerateQuestionnaireToDescriptionHandler(s, saveDraft),
         onSubmitIpip: createSubmitHandler(s, saveDraft, (fp) => emit("saved", fp)),
         saveDraft,
         loadDraft,

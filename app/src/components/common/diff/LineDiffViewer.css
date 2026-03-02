@@ -1,0 +1,93 @@
+.line-diff-viewer {
+  border: 1px solid rgba(120, 255, 230, 0.4);
+  background: rgba(0, 15, 20, 0.7);
+  font-family: "Consolas", "Courier New", monospace;
+}
+
+.line-diff-viewer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  border-bottom: 1px solid rgba(120, 255, 230, 0.25);
+  color: #a8fff3;
+  font-size: 12px;
+}
+
+.line-diff-viewer-summary {
+  color: #89f9de;
+}
+
+.line-diff-viewer-empty {
+  padding: 10px;
+  color: #8fb9bc;
+  font-size: 12px;
+}
+
+.line-diff-viewer-body {
+  max-height: 280px;
+  overflow: auto;
+}
+
+.line-diff-hunk + .line-diff-hunk {
+  border-top: 1px solid rgba(120, 255, 230, 0.18);
+}
+
+.line-diff-hunk-header {
+  padding: 4px 8px;
+  color: #7fcfd3;
+  font-size: 12px;
+  background: rgba(0, 28, 35, 0.55);
+}
+
+.line-diff-row {
+  display: grid;
+  grid-template-columns: 48px 48px 18px 1fr;
+  align-items: start;
+  min-height: 20px;
+}
+
+.line-diff-row.is-context {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.line-diff-row.is-added {
+  background: rgba(18, 92, 68, 0.32);
+}
+
+.line-diff-row.is-removed {
+  background: rgba(116, 35, 45, 0.32);
+}
+
+.line-diff-no {
+  display: inline-flex;
+  justify-content: flex-end;
+  padding: 2px 6px;
+  color: #84a8ab;
+  user-select: none;
+  border-right: 1px solid rgba(120, 255, 230, 0.18);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.line-diff-marker {
+  display: inline-flex;
+  justify-content: center;
+  padding: 2px 0;
+  color: #9dece1;
+  user-select: none;
+  border-right: 1px solid rgba(120, 255, 230, 0.18);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.line-diff-text {
+  margin: 0;
+  padding: 2px 8px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #b7f7ff;
+  font-size: 12px;
+  line-height: 16px;
+}
+

@@ -35,6 +35,9 @@ importers:
       calibur-router:
         specifier: link:../packages/caliburRouter
         version: link:../packages/caliburRouter
+      diff:
+        specifier: ^8.0.3
+        version: 8.0.3
       es-module-lexer:
         specifier: ^1.7.0
         version: 1.7.0
@@ -126,9 +129,6 @@ importers:
       iconv-lite:
         specifier: ^0.6.3
         version: 0.6.3
-      ifdef-loader:
-        specifier: ^2.3.2
-        version: 2.3.2
       mini-css-extract-plugin:
         specifier: 2.9.2
         version: 2.9.2(webpack@5.104.1)
@@ -2377,6 +2377,10 @@ packages:
     resolution: {integrity: sha512-EjePK1srD3P08o2j4f0ExnylqRs5B9tJjcp9t1krH2qRi8CCdsYfwe9JgSLurFBWwq4uOlipzfk5fHNvwFKr8Q==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
 
+  diff@8.0.3:
+    resolution: {integrity: sha512-qejHi7bcSD4hQAZE0tNAawRK1ZtafHDmMTMkrrIGgSLl7hTnQHmKCeB45xAcbfTqK2zowkM3j3bHt/4b/ARbYQ==}
+    engines: {node: '>=0.3.1'}
+
   dir-compare@4.2.0:
     resolution: {integrity: sha512-2xMCmOoMrdQIPHdsTawECdNPwlVFB9zGcz3kuhmBO6U3oU+UQjsue0i8ayLKpgBcm+hcXPMVSGUN9d+pvJ6+VQ==}
 
@@ -3063,9 +3067,6 @@ packages:
 
   ieee754@1.2.1:
     resolution: {integrity: sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA==}
-
-  ifdef-loader@2.3.2:
-    resolution: {integrity: sha512-kH9bHPrfIFxLpq3XEruJqSlHXch2nOljKIDRS/6MU5LDZTyHeaSWVf04wNYX+8RT+NDmeS8Vm5HwZ7akkXo8ig==}
 
   ignore@5.3.2:
     resolution: {integrity: sha512-hsBTNUqQTDwkWtcdYI2i06Y/nUBEsNEDJKjWdigLvegy8kDuJAS8uRlpkkcQpyEXL0Z/pjDy5HBmMjRCJ2gq+g==}
@@ -7160,6 +7161,8 @@ snapshots:
 
   diff-sequences@29.6.3: {}
 
+  diff@8.0.3: {}
+
   dir-compare@4.2.0:
     dependencies:
       minimatch: 3.1.2
@@ -8054,10 +8057,6 @@ snapshots:
       postcss: 8.5.6
 
   ieee754@1.2.1: {}
-
-  ifdef-loader@2.3.2:
-    dependencies:
-      loader-utils: 1.4.2
 
   ignore@5.3.2: {}
 

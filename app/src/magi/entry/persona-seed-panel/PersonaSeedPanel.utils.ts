@@ -9,6 +9,13 @@ import type {
 import type { LikertScore } from "../../components/persona/CompositeRating.types";
 import type { PersonaConvergenceSuggestion } from "../../data/convergence/persona-seed-convergence.types";
 
+const DESCRIPTION_FIELD_LABELS: Readonly<Record<keyof IpipPersonaSeedDescriptions, string>> = {
+    professionalDescription: "职业描述",
+    lifeDescription: "生活描述",
+    instinctNeedsDescription: "本能需求描述",
+    integratedDescription: "综合描述",
+};
+
 /** @同步豁免: UI构建 — Vue computed 同步求值路径使用的纯字符串拼接 */
 /**
  * 作用：生成 localStorage 草稿存储 key。
@@ -54,6 +61,16 @@ export const getSuggestionById = (
     }
     return null;
 };
+
+/** @同步豁免: UI构建 — 字段标签映射为同步查表 */
+/**
+ * 作用：把描述字段 key 转换为可读标签。
+ * 意图：供状态提示和建议预览统一展示文案。
+ * 调用时机：查看/应用描述建议时调用。
+ */
+export const getDescriptionFieldLabel = (field: keyof IpipPersonaSeedDescriptions): string => (
+    DESCRIPTION_FIELD_LABELS[field]
+);
 
 /** @同步豁免: UI构建 — 生成建议前的同步前置校验 */
 /**

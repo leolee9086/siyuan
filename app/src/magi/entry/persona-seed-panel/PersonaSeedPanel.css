@@ -108,6 +108,9 @@
 
 .persona-seed-convergence-controls {
   margin-top: 8px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .persona-seed-convergence-generate {

@@ -25,6 +25,7 @@ export interface PanelState {
     readonly answers: Ref<Array<{ q: number; score: LikertScore }>>;
     readonly convergenceSession: Ref<PersonaConvergenceSession>;
     readonly isGeneratingDescriptionToQuestionnaire: Ref<boolean>;
+    readonly isGeneratingQuestionnaireToDescription: Ref<boolean>;
     readonly focusQuestionQ: Ref<number | null>;
     readonly focusQuestionRequestId: Ref<number>;
     readonly viewingSuggestionId: Ref<string>;

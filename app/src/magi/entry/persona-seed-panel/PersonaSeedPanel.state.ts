@@ -105,6 +105,7 @@ export function createPanelState(): PanelState {
     const answers = ref<Array<{ q: number; score: LikertScore }>>([]);
     const convergenceSession = ref<PersonaConvergenceSession>(createEmptyConvergenceSession());
     const isGeneratingDescriptionToQuestionnaire = ref(false);
+    const isGeneratingQuestionnaireToDescription = ref(false);
     const focusQuestionQ = ref<number | null>(null);
     const focusQuestionRequestId = ref(0);
     const viewingSuggestionId = ref("");
@@ -128,6 +129,7 @@ export function createPanelState(): PanelState {
         answers,
         convergenceSession,
         isGeneratingDescriptionToQuestionnaire,
+        isGeneratingQuestionnaireToDescription,
         focusQuestionQ,
         focusQuestionRequestId,
         viewingSuggestionId,

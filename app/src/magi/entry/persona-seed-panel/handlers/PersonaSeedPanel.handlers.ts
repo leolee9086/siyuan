@@ -1,17 +1,18 @@
-import { ipipNeo120QuestionBank } from "../../data/ipip-neo-120";
 import {
     applySuggestionToAnswers,
     applySuggestionToDescriptions,
     countSuggestionsByStatus,
-    setConvergenceSuggestions,
     transitionConvergenceState,
     updateSuggestionStatus,
-} from "../../data/convergence/persona-seed-convergence";
-import { generateDescriptionToQuestionnaireSuggestions } from "../../data/convergence/persona-seed-convergence-llm";
-import type { IpipNeo120SubmissionPayload, IpipPersonaSeedDescriptions } from "../../data/questionnaire.types";
-import type { LikertScore } from "../../components/persona/CompositeRating.types";
-import type { PanelState } from "./PersonaSeedPanel.types";
-import { collectMissingFields, findAnswerScore, getSuggestionById, hasAnyDescriptionText, saveSubmissionPayload } from "./PersonaSeedPanel.utils";
+} from "../../../data/convergence/persona-seed-convergence";
+import type { IpipPersonaSeedDescriptions } from "../../../data/questionnaire.types";
+import type { LikertScore } from "../../../components/persona/CompositeRating.types";
+import type { PanelState } from "../PersonaSeedPanel.types";
+import {
+    findAnswerScore,
+    getDescriptionFieldLabel,
+    getSuggestionById,
+} from "../PersonaSeedPanel.utils";
 
 /**
  * 作用：当指定题号的建议被解决时，清除正在查看的建议 id。
@@ -33,6 +34,18 @@ function clearViewingSuggestionWhenResolved(s: PanelState, q: number): void {
     if (suggestion.payload.q === q) {
         s.viewingSuggestionId.value = "";
     }
+}
+
+/**
+ * 作用：当建议被接受/拒绝后，按建议 id 清理查看状态。
+ * 意图：避免描述类建议在状态变更后仍显示旧预览。
+ * 调用时机：accept/reject 建议后调用。
+ */
+function clearViewingSuggestionById(s: PanelState, id: string): void {
+    if (s.viewingSuggestionId.value !== id) {
+        return;
+    }
+    s.viewingSuggestionId.value = "";
 }
 
 /**
@@ -74,16 +87,23 @@ function dismissPendingSuggestionsForQuestion(s: PanelState, q: number): number 
  */
 function handleViewSuggestion(s: PanelState, id: string): void {
     const suggestion = getSuggestionById(s.convergenceSession.value.suggestions, id);
-    // 仅对待确认的问卷类型建议生效
-    if (!suggestion || suggestion.payload.kind !== "questionnaire_answer" || suggestion.status !== "pending") {
+    // 仅对待确认建议生效
+    if (!suggestion || suggestion.status !== "pending") {
         return;
     }
     s.viewingSuggestionId.value = id;
-    s.focusQuestionQ.value = suggestion.payload.q;
-    s.focusQuestionRequestId.value += 1;
-    const currentScore = findAnswerScore(s.answers.value, suggestion.payload.q);
-    const currentScoreText = currentScore === null ? "未作答" : String(currentScore);
-    s.statusMessage.value = `已定位 Q${suggestion.payload.q}，当前 ${currentScoreText}，建议 ${suggestion.payload.score}。选择任意分值将注销该建议。`;
+    // 问卷建议沿用“定位到题目”流程，描述建议走差异预览流程。
+    if (suggestion.payload.kind === "questionnaire_answer") {
+        s.focusQuestionQ.value = suggestion.payload.q;
+        s.focusQuestionRequestId.value += 1;
+        const currentScore = findAnswerScore(s.answers.value, suggestion.payload.q);
+        const currentScoreText = currentScore === null ? "未作答" : String(currentScore);
+        s.statusMessage.value = `已定位 Q${suggestion.payload.q}，当前 ${currentScoreText}，建议 ${suggestion.payload.score}。选择任意分值将注销该建议。`;
+        return;
+    }
+    s.focusQuestionQ.value = null;
+    const fieldLabel = getDescriptionFieldLabel(suggestion.payload.field);
+    s.statusMessage.value = `已打开${fieldLabel}建议差异预览。`;
 }
 
 /**
@@ -127,6 +147,7 @@ function handleAcceptSuggestion(
     s.convergenceSession.value = updateSuggestionStatus(applyingSession, id, "accepted");
     s.answers.value = applySuggestionToAnswers(s.answers.value, suggestion);
     assignDescriptions(applySuggestionToDescriptions(s.seedDescriptions.value, suggestion));
+    clearViewingSuggestionById(s, id);
     // 问卷类型建议被接受后清除查看状态
     if (suggestion.payload.kind === "questionnaire_answer") {
         clearViewingSuggestionWhenResolved(s, suggestion.payload.q);
@@ -150,6 +171,7 @@ function handleRejectSuggestion(s: PanelState, saveDraft: () => void, id: string
     }
     const applyingSession = transitionConvergenceState(s.convergenceSession.value, "applying");
     s.convergenceSession.value = updateSuggestionStatus(applyingSession, id, "rejected");
+    clearViewingSuggestionById(s, id);
     // 问卷类型建议被拒绝后清除查看状态
     if (suggestion.payload.kind === "questionnaire_answer") {
         clearViewingSuggestionWhenResolved(s, suggestion.payload.q);
@@ -158,87 +180,6 @@ function handleRejectSuggestion(s: PanelState, saveDraft: () => void, id: string
     s.convergenceSession.value = transitionConvergenceState(s.convergenceSession.value, nextState);
     s.statusMessage.value = `已拒绝建议，描述进度 ${s.descriptionProgressText.value}，剩余待确认 ${s.pendingSuggestionCount.value} 条。`;
     saveDraft();
-}
-
-/**
- * 作用：基于四轨描述调用 LLM 生成问卷建议。
- * 意图：实现描述->问卷的双向收敛。
- * 调用时机：用户点击"描述->问卷建议"按钮时调用。
- */
-async function handleGenerateDescriptionToQuestionnaire(s: PanelState, saveDraft: () => void): Promise<void> {
-    // 防止重复触发
-    if (s.isGeneratingDescriptionToQuestionnaire.value) {
-        return;
-    }
-    // 至少需要一项描述才能生成建议
-    if (!hasAnyDescriptionText(s.seedDescriptions.value)) {
-        s.statusMessage.value = "请先填写至少一项描述，再生成问卷建议。";
-        return;
-    }
-    s.isGeneratingDescriptionToQuestionnaire.value = true;
-    s.convergenceSession.value = transitionConvergenceState(s.convergenceSession.value, "generating");
-    s.statusMessage.value = "正在基于描述生成问卷建议...";
-    try {
-        const suggestions = await generateDescriptionToQuestionnaireSuggestions({
-            subjectId: s.subjectId.value || "zhi",
-            subjectName: s.subjectName.value || "zhi",
-            descriptions: s.seedDescriptions.value,
-            answers: s.answers.value,
-            questionBank: ipipNeo120QuestionBank,
-        });
-        s.convergenceSession.value = setConvergenceSuggestions(s.convergenceSession.value, suggestions);
-        const generatedCount = countSuggestionsByStatus(s.convergenceSession.value, "pending");
-        // 有建议生成时提示数量
-        if (generatedCount > 0) {
-            s.statusMessage.value = `已生成 ${generatedCount} 条待确认建议。`;
-        }
-        // 无建议生成时提示补充描述
-        if (generatedCount === 0) {
-            s.statusMessage.value = "未生成可用建议，请补充描述后重试。";
-        }
-        saveDraft();
-    } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        s.convergenceSession.value = transitionConvergenceState(s.convergenceSession.value, "error", message);
-        s.statusMessage.value = `建议生成失败: ${message}`;
-    } finally {
-        s.isGeneratingDescriptionToQuestionnaire.value = false;
-    }
-}
-
-/**
- * 作用：提交问卷并保存人格档案。
- * 意图：将完整的问卷数据和计算后的人格档案持久化。
- * 调用时机：CompositeRating 触发 submit:ipip 事件时调用。
- */
-async function handleSubmitIpip(
-    s: PanelState,
-    saveDraft: () => void,
-    emitSaved: (filePath: string) => void,
-    payload: IpipNeo120SubmissionPayload,
-): Promise<void> {
-    const missingFields = collectMissingFields(
-        s.organization.value, s.role.value, s.careerGoal.value, s.seedDescriptions.value,
-    );
-    // 存在未填写字段时阻止提交并提示
-    if (missingFields.length > 0) {
-        s.statusMessage.value = `请先补全字段: ${missingFields.join(" / ")}`;
-        return;
-    }
-    const enrichedPayload: IpipNeo120SubmissionPayload = {
-        ...payload,
-        subject: s.subjectMeta.value,
-        descriptions: s.seedDescriptions.value,
-    };
-    try {
-        s.statusMessage.value = "正在保存问卷与人格档案...";
-        const { samplePath, profilePath } = await saveSubmissionPayload(enrichedPayload);
-        saveDraft();
-        s.statusMessage.value = `问卷已保存: ${samplePath}; 人格档案已保存: ${profilePath}`;
-        emitSaved(samplePath);
-    } catch (error) {
-        s.statusMessage.value = `保存失败: ${error instanceof Error ? error.message : String(error)}`;
-    }
 }
 
 /** @同步豁免: UI构建 — 创建查看建议处理器供模板事件绑定 */
@@ -291,29 +232,3 @@ export function createRejectSuggestionHandler(
     return (id: string) => handleRejectSuggestion(s, saveDraft, id);
 }
 
-/** @同步豁免: UI构建 — 工厂函数，同步返回异步处理器闭包 */
-/**
- * 作用：创建描述->问卷建议生成处理器。
- * 意图：将 PanelState 和 saveDraft 闭包绑定。
- * 调用时机：usePersonaSeedPanelContext 构造时调用一次。
- */
-export function createGenerateHandler(
-    s: PanelState,
-    saveDraft: () => void,
-): () => Promise<void> {
-    return () => handleGenerateDescriptionToQuestionnaire(s, saveDraft);
-}
-
-/** @同步豁免: UI构建 — 工厂函数，同步返回异步处理器闭包 */
-/**
- * 作用：创建问卷提交处理器。
- * 意图：将 PanelState、saveDraft、emit 闭包绑定。
- * 调用时机：usePersonaSeedPanelContext 构造时调用一次。
- */
-export function createSubmitHandler(
-    s: PanelState,
-    saveDraft: () => void,
-    emitSaved: (filePath: string) => void,
-): (payload: IpipNeo120SubmissionPayload) => Promise<void> {
-    return (payload) => handleSubmitIpip(s, saveDraft, emitSaved, payload);
-}

@@ -16,7 +16,6 @@
         <button
           type="button"
           class="persona-seed-suggestion-view"
-          :disabled="s.payload.kind !== 'questionnaire_answer'"
           @click="$emit('view', s.id)"
         >
           查看

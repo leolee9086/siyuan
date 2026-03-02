@@ -5,29 +5,30 @@
         <h3>适格者 PERSONA 录入</h3>
         <button type="button" class="persona-seed-close" @click="emit('close')">CLOSE</button>
       </header>
-
       <PersonaSeedSubjectForm
         v-model:subject-id="subjectId" v-model:subject-name="subjectName"
         v-model:subject-type="subjectType" v-model:organization="organization"
         v-model:role="role" v-model:career-goal="careerGoal"
       />
-
       <PersonaSeedDescriptionsForm
         v-model:professional="professionalDescription"
         v-model:life="lifeDescription"
         v-model:instinct="instinctNeedsDescription"
         v-model:integrated="integratedDescription"
       />
-
       <PersonaSeedConvergencePanel
         :state="convergenceSession.state" :pending-count="pendingSuggestionCount"
         :accepted-count="acceptedSuggestionCount" :rejected-count="rejectedSuggestionCount"
-        :progress-text="descriptionProgressText" :generating="isGeneratingDescriptionToQuestionnaire"
+        :progress-text="descriptionProgressText"
+        :generating-description-to-questionnaire="isGeneratingDescriptionToQuestionnaire"
+        :generating-questionnaire-to-description="isGeneratingQuestionnaireToDescription"
         :suggestions="pendingSuggestions" :summary="viewingSuggestionSummary"
-        @generate="generateDescriptionToQuestionnaire" @accept="acceptSuggestion"
+        :description-diff="viewingDescriptionDiff"
+        @generate-description-to-questionnaire="generateDescriptionToQuestionnaire"
+        @generate-questionnaire-to-description="generateQuestionnaireToDescription"
+        @accept="acceptSuggestion"
         @reject="rejectSuggestion" @view="viewSuggestion"
       />
-
       <Suspense>
         <template #default>
           <CompositeRating
@@ -41,7 +42,6 @@
           <div class="persona-seed-loading">问卷加载中...</div>
         </template>
       </Suspense>
-
       <div class="persona-seed-footer">
         <span v-if="statusMessage" class="persona-seed-status">{{ statusMessage }}</span>
       </div>
@@ -65,12 +65,13 @@ const emit = defineEmits<{
 const {
   subjectId, subjectName, subjectType, organization, role, careerGoal,
   professionalDescription, lifeDescription, instinctNeedsDescription, integratedDescription,
-  answers, convergenceSession, isGeneratingDescriptionToQuestionnaire,
+  answers, convergenceSession,
+  isGeneratingDescriptionToQuestionnaire, isGeneratingQuestionnaireToDescription,
   focusQuestionQ, focusQuestionRequestId, statusMessage,
   ratingKey, questionBank, subjectMeta,
   pendingSuggestionCount, acceptedSuggestionCount, rejectedSuggestionCount,
-  descriptionProgressText, pendingSuggestions, viewingSuggestionSummary,
+  descriptionProgressText, pendingSuggestions, viewingSuggestionSummary, viewingDescriptionDiff,
   onAnswerUpdated, acceptSuggestion, rejectSuggestion, viewSuggestion,
-  generateDescriptionToQuestionnaire, onSubmitIpip,
+  generateDescriptionToQuestionnaire, generateQuestionnaireToDescription, onSubmitIpip,
 } = usePersonaSeedPanelContext(emit);
 </script>
