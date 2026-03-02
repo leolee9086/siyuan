@@ -70,7 +70,10 @@ function toFieldLabel(field: string): string {
     if (field === "lifeDescription") {
         return "生活描述";
     }
-    return "本能需求描述";
+    if (field === "instinctNeedsDescription") {
+        return "本能需求描述";
+    }
+    return "综合描述";
 }
 
 /**
@@ -79,11 +82,22 @@ function toFieldLabel(field: string): string {
  * 调用时机：JSON 校验通过后调用。
  * 问题/改进：后续若支持批量可新增数组版本解析器。
  */
-function convertSuggestion(parsed: unknown): readonly PersonaConvergenceSuggestion[] {
+function convertSuggestion(
+    parsed: unknown,
+    input: QuestionnaireToDescriptionSuggestionInput,
+): readonly PersonaConvergenceSuggestion[] {
     if (!isQuestionnaireToDescriptionLLMResponse(parsed)) {
         return [];
     }
     const field = parsed.suggestion.field;
+    // 综合描述仅在允许条件达成时可进入建议流。
+    if (field === "integratedDescription" && !input.allowIntegratedSuggestion) {
+        return [];
+    }
+    // 指定维度生成时，拒绝任何非目标维度输出。
+    if (input.preferredField && field !== input.preferredField) {
+        return [];
+    }
     const text = parsed.suggestion.text.trim();
     // 空建议文本不进入确认流，避免污染手写描述。
     if (!text) {
@@ -115,9 +129,7 @@ export async function parseQuestionnaireToDescriptionSuggestionContent(
     content: string,
     input: QuestionnaireToDescriptionSuggestionInput,
 ): Promise<readonly PersonaConvergenceSuggestion[]> {
-    // 当前版本解析不依赖 input 细节，但保留入参以稳定调用协议。
-    void input;
     const normalized = stripMarkdownFence(content);
     const parsed = parseJSONSafely(normalized);
-    return convertSuggestion(parsed);
+    return convertSuggestion(parsed, input);
 }

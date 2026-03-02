@@ -2,8 +2,12 @@ import type { IpipNeo120Item } from "../../ipip-neo-120.types";
 import { getSafeSiyuanConfig } from "../../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { isRecord } from "../persona-seed-convergence-llm.guard";
 import { parseQuestionnaireToDescriptionSuggestionContent } from "./persona-seed-convergence-q2d-llm-parser";
+import {
+    resolveShortestSideDescriptionField,
+    toSideDescriptionSnapshot,
+} from "./persona-seed-convergence-q2d-policy";
 import type {
-    PersonaSideDescriptionField,
+    PersonaDescriptionField,
     QuestionnaireToDescriptionSuggestionInput,
 } from "./persona-seed-convergence-q2d-llm.types";
 import type { PersonaConvergenceSuggestion } from "../persona-seed-convergence.types";
@@ -11,11 +15,6 @@ import type { PersonaConvergenceSuggestion } from "../persona-seed-convergence.t
 const COMPLETION_TEMPERATURE = 0.3;
 const COMPLETION_MAX_TOKENS = 1200;
 const MAX_RETRY = 2;
-const SIDE_FIELDS: readonly PersonaSideDescriptionField[] = [
-    "professionalDescription",
-    "lifeDescription",
-    "instinctNeedsDescription",
-];
 
 /**
  * 作用：读取运行时 OpenAI 兼容配置。
@@ -48,39 +47,6 @@ function createQuestionIndex(questionBank: readonly IpipNeo120Item[]): Readonly<
 }
 
 /**
- * 作用：统计描述文本有效长度（去除首尾空白）。
- * 意图：用于比较三侧描述完整度，决定优先补充侧面。
- * 调用时机：计算最短侧字段时调用。
- * 问题/改进：当前按字符长度，后续可按句子信息密度优化。
- */
-function countDescriptionLength(text: string): number {
-    return text.trim().length;
-}
-
-/**
- * 作用：计算当前应优先更新的最短侧字段。
- * 意图：落实“描述建议优先更新当前最短侧”规则。
- * 调用时机：每次发起问卷->描述建议生成前调用。
- * 问题/改进：并列时按字段顺序稳定选择，后续可加入用户手动偏好。
- */
-/** @同步豁免: UI构建 — 纯文本长度比较用于提示词参数计算，无异步必要。 */
-export function resolveShortestSideDescriptionField(
-    sideDescriptions: Readonly<Record<PersonaSideDescriptionField, string>>,
-): PersonaSideDescriptionField {
-    let shortestField = SIDE_FIELDS[0];
-    let shortestLength = Number.POSITIVE_INFINITY;
-    for (const field of SIDE_FIELDS) {
-        const length = countDescriptionLength(sideDescriptions[field]);
-        // 更短时更新优先字段，并列保持先出现字段稳定性。
-        if (length < shortestLength) {
-            shortestLength = length;
-            shortestField = field;
-        }
-    }
-    return shortestField;
-}
-
-/**
  * 作用：格式化问卷作答明细文本。
  * 意图：把“问卷内容”完整传入模型，满足建议生成上下文要求。
  * 调用时机：构建用户提示词时调用。
@@ -108,50 +74,35 @@ function buildAnswerDetailsText(input: QuestionnaireToDescriptionSuggestionInput
 }
 
 /**
- * 作用：将侧面字段列表格式化为可读文本。
- * 意图：提示模型一次只允许命中一个目标字段。
- * 调用时机：系统提示词组装时调用。
- * 问题/改进：后续可与 schema 常量统一维护。
- */
-function buildAllowedFieldText(preferredField: PersonaSideDescriptionField): string {
-    const orderedFields: PersonaSideDescriptionField[] = [preferredField];
-    for (const field of SIDE_FIELDS) {
-        // 避免重复写入优先字段。
-        if (field === preferredField) {
-            continue;
-        }
-        orderedFields.push(field);
-    }
-    return orderedFields.join(" | ");
-}
-
-/**
  * 作用：构建问卷->描述建议任务的系统提示词。
- * 意图：明确“简历辅助”语气与非角色扮演边界，约束单建议 JSON 输出。
+ * 意图：明确“简历辅助”语气与目标字段约束，避免角色扮演输出。
  * 调用时机：请求 chat/completions 时调用。
  * 问题/改进：后续可按模型能力拆分更细粒度模板。
  */
-function buildSystemPrompt(preferredField: PersonaSideDescriptionField): string {
+function buildSystemPrompt(
+    preferredField: PersonaDescriptionField,
+    allowedFields: readonly PersonaDescriptionField[],
+): string {
     return `你是专业的简历内容辅助写作顾问。
 任务：基于问卷作答，生成“一个侧面描述”的补充建议，用于提升职业画像表达清晰度。
 你必须遵守：
 1. 输出只允许一个 suggestion，不得同时更新多个侧面描述。
-2. field 只允许：${buildAllowedFieldText(preferredField)}。必须优先选择第一项 ${preferredField}（当前最短描述）。
+2. field 只允许：${allowedFields.join(" | ")}。必须命中 ${preferredField}。
 3. text 必须是可直接追加到原描述中的专业叙述，不得角色扮演，不得使用“作为某人格/我是某角色”等暗示。
 4. 不得虚构经历，不得输出与输入冲突的夸张结论。
 输出必须是严格 JSON：
-{"suggestion":{"field":"professionalDescription|lifeDescription|instinctNeedsDescription","text":"补充段落","confidence":0-1,"reason":"不超过30字"}}`;
+{"suggestion":{"field":"professionalDescription|lifeDescription|instinctNeedsDescription|integratedDescription","text":"补充段落","confidence":0-1,"reason":"不超过30字"}}`;
 }
 
 /**
  * 作用：构建问卷->描述建议任务的用户提示词。
- * 意图：把基础资料、旧三侧描述、问卷答案完整注入模型。
+ * 意图：把基础资料、旧描述和问卷答案完整注入模型。
  * 调用时机：每次请求 LLM 前调用。
  * 问题/改进：当前为文本 prompt，后续可升级为结构化 JSON prompt。
  */
 function buildUserPrompt(
     input: QuestionnaireToDescriptionSuggestionInput,
-    preferredField: PersonaSideDescriptionField,
+    preferredField: PersonaDescriptionField,
 ): string {
     return `基础资料:
 id: ${input.subject.id}
@@ -163,21 +114,20 @@ careerGoal: ${input.subject.careerGoal}
 
 旧的三侧描述:
 professionalDescription:
-${input.sideDescriptions.professionalDescription || "(空)"}
+${input.descriptions.professionalDescription || "(空)"}
 lifeDescription:
-${input.sideDescriptions.lifeDescription || "(空)"}
+${input.descriptions.lifeDescription || "(空)"}
 instinctNeedsDescription:
-${input.sideDescriptions.instinctNeedsDescription || "(空)"}
+${input.descriptions.instinctNeedsDescription || "(空)"}
 
-当前侧面描述长度:
-professionalDescription: ${countDescriptionLength(input.sideDescriptions.professionalDescription)}
-lifeDescription: ${countDescriptionLength(input.sideDescriptions.lifeDescription)}
-instinctNeedsDescription: ${countDescriptionLength(input.sideDescriptions.instinctNeedsDescription)}
-优先补充字段: ${preferredField}
+综合描述(Trinity):
+integratedDescription:
+${input.descriptions.integratedDescription || "(空)"}
 
 问卷作答内容:
 ${buildAnswerDetailsText(input)}
 
+本轮必须更新字段: ${preferredField}
 请基于以上信息返回一条最优先补充建议。`;
 }
 
@@ -215,7 +165,8 @@ function readMessageContent(raw: unknown): string {
  */
 async function requestSuggestionCompletion(
     input: QuestionnaireToDescriptionSuggestionInput,
-    preferredField: PersonaSideDescriptionField,
+    preferredField: PersonaDescriptionField,
+    allowedFields: readonly PersonaDescriptionField[],
 ): Promise<string> {
     const openAI = readOpenAIConfig();
     // 缺失关键配置时直接失败，提示先完成环境配置。
@@ -234,7 +185,7 @@ async function requestSuggestionCompletion(
             temperature: COMPLETION_TEMPERATURE,
             max_tokens: COMPLETION_MAX_TOKENS,
             messages: [
-                { role: "system", content: buildSystemPrompt(preferredField) },
+                { role: "system", content: buildSystemPrompt(preferredField, allowedFields) },
                 { role: "user", content: buildUserPrompt(input, preferredField) },
             ],
         }),
@@ -252,9 +203,25 @@ async function requestSuggestionCompletion(
     return content;
 }
 
+/** @同步豁免: UI构建 — 纯字段选择为同步分支逻辑。 */
+/**
+ * 作用：确定本轮建议应命中的目标描述字段。
+ * 意图：支持“指定维度更新”与“默认最短侧更新”两种入口。
+ * 调用时机：发起问卷->描述建议生成前调用。
+ * 问题/改进：后续可引入用户偏好权重。
+ */
+function resolvePreferredField(input: QuestionnaireToDescriptionSuggestionInput): PersonaDescriptionField {
+    // 指定维度模式下直接采用传入目标。
+    if (input.preferredField) {
+        return input.preferredField;
+    }
+    const sideDescriptions = toSideDescriptionSnapshot(input.descriptions);
+    return resolveShortestSideDescriptionField(sideDescriptions);
+}
+
 /**
  * 作用：基于问卷答案生成“问卷 -> 描述”单条补充建议。
- * 意图：实现逆向收敛入口，且严格限制“一次仅更新一个侧面描述”。
+ * 意图：实现逆向收敛入口，并支持按维度定向更新。
  * 调用时机：用户点击“问卷 -> 描述建议”按钮时调用。
  * 问题/改进：当前固定返回最多 1 条建议，后续可按产品策略开放批量模式。
  */
@@ -265,23 +232,20 @@ export async function generateQuestionnaireToDescriptionSuggestions(
     if (input.answers.length === 0) {
         return [];
     }
-    const preferredField = resolveShortestSideDescriptionField(input.sideDescriptions);
+    const preferredField = resolvePreferredField(input);
+    // 综合描述建议仅在显式允许时可生成。
+    if (preferredField === "integratedDescription" && !input.allowIntegratedSuggestion) {
+        return [];
+    }
+    const allowedFields: readonly PersonaDescriptionField[] = [preferredField];
     let lastErrorMessage = "LLM 未返回合法建议";
     for (let attempt = 1; attempt <= MAX_RETRY; attempt += 1) {
         try {
-            const content = await requestSuggestionCompletion(input, preferredField);
-            const suggestions = await parseQuestionnaireToDescriptionSuggestionContent(content, input);
-            const firstSuggestion = suggestions[0];
-            const mismatchPreferredField = Boolean(
-                firstSuggestion
-                && firstSuggestion.payload.kind === "description_append"
-                && firstSuggestion.payload.field !== preferredField,
-            );
-            // 未命中最短侧时继续重试，确保优先策略稳定生效。
-            if (mismatchPreferredField) {
-                lastErrorMessage = `LLM 未命中最短侧字段 ${preferredField}`;
-                continue;
-            }
+            const content = await requestSuggestionCompletion(input, preferredField, allowedFields);
+            const suggestions = await parseQuestionnaireToDescriptionSuggestionContent(content, {
+                ...input,
+                preferredField,
+            });
             // 解析到可用建议时直接返回。
             if (suggestions.length > 0) {
                 return suggestions;

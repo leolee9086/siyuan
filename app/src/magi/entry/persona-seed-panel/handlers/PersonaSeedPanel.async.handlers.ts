@@ -6,30 +6,16 @@ import {
 } from "../../../data/convergence/persona-seed-convergence";
 import { generateDescriptionToQuestionnaireSuggestions } from "../../../data/convergence/persona-seed-convergence-llm";
 import { generateQuestionnaireToDescriptionSuggestions } from "../../../data/convergence/q2d/persona-seed-convergence-q2d-llm";
-import type { IpipNeo120SubmissionPayload, IpipPersonaSeedDescriptions } from "../../../data/questionnaire.types";
+import type { PersonaDescriptionField } from "../../../data/convergence/q2d/persona-seed-convergence-q2d-llm.types";
+import type { IpipNeo120SubmissionPayload } from "../../../data/questionnaire.types";
 import type { PanelState } from "../PersonaSeedPanel.types";
 import {
+    canGenerateTrinityDescriptionSuggestion,
     collectMissingFields,
+    getDescriptionFieldLabel,
     hasAnyDescriptionText,
     saveSubmissionPayload,
 } from "../PersonaSeedPanel.utils";
-
-/**
- * 作用：从四轨描述中提取“问卷->描述”所需的三侧旧描述。
- * 意图：避免把综合描述混入单侧更新输入，遵循一次只更新一个侧面。
- * 调用时机：问卷->描述建议生成前调用。
- */
-function extractSideDescriptions(descriptions: IpipPersonaSeedDescriptions): {
-    professionalDescription: string;
-    lifeDescription: string;
-    instinctNeedsDescription: string;
-} {
-    return {
-        professionalDescription: descriptions.professionalDescription,
-        lifeDescription: descriptions.lifeDescription,
-        instinctNeedsDescription: descriptions.instinctNeedsDescription,
-    };
-}
 
 /**
  * 作用：基于四轨描述调用 LLM 生成问卷建议。
@@ -82,7 +68,11 @@ async function handleGenerateDescriptionToQuestionnaire(s: PanelState, saveDraft
  * 意图：实现问卷->描述方向收敛，且一次只更新一个侧面描述。
  * 调用时机：用户点击"问卷 -> 描述建议"按钮时调用。
  */
-async function handleGenerateQuestionnaireToDescription(s: PanelState, saveDraft: () => void): Promise<void> {
+async function handleGenerateQuestionnaireToDescription(
+    s: PanelState,
+    saveDraft: () => void,
+    targetField?: PersonaDescriptionField,
+): Promise<void> {
     // 防止重复触发或双向并发生成
     if (s.isGeneratingQuestionnaireToDescription.value || s.isGeneratingDescriptionToQuestionnaire.value) {
         return;
@@ -92,26 +82,34 @@ async function handleGenerateQuestionnaireToDescription(s: PanelState, saveDraft
         s.statusMessage.value = "请先完成至少一题问卷作答，再生成描述建议。";
         return;
     }
+    const allowIntegratedSuggestion = canGenerateTrinityDescriptionSuggestion(
+        s.seedDescriptions.value,
+        s.answers.value.length,
+        ipipNeo120QuestionBank.length,
+    );
+    // 指定 Trinity 目标时，先在 UI 层拦截门槛不满足场景。
+    if (targetField === "integratedDescription" && !allowIntegratedSuggestion) {
+        s.statusMessage.value = "Trinity 建议需先完成三侧描述，且问卷进度超过 1/3。";
+        return;
+    }
     s.isGeneratingQuestionnaireToDescription.value = true;
     s.convergenceSession.value = transitionConvergenceState(s.convergenceSession.value, "generating");
-    s.statusMessage.value = "正在基于问卷作答生成描述建议...";
+    const targetLabel = targetField ? getDescriptionFieldLabel(targetField) : "最短侧描述";
+    s.statusMessage.value = `正在基于问卷作答生成${targetLabel}建议...`;
     try {
         const suggestions = await generateQuestionnaireToDescriptionSuggestions({
             subject: s.subjectMeta.value,
-            sideDescriptions: extractSideDescriptions(s.seedDescriptions.value),
+            descriptions: s.seedDescriptions.value,
+            preferredField: targetField,
+            allowIntegratedSuggestion,
             answers: s.answers.value,
             questionBank: ipipNeo120QuestionBank,
         });
         s.convergenceSession.value = setConvergenceSuggestions(s.convergenceSession.value, suggestions);
         const generatedCount = countSuggestionsByStatus(s.convergenceSession.value, "pending");
-        // 问卷->描述当前设计为单条建议，仍按数量展示统一反馈
-        if (generatedCount > 0) {
-            s.statusMessage.value = `已生成 ${generatedCount} 条描述补充建议。`;
-        }
-        // 无建议时提示补充问卷上下文
-        if (generatedCount === 0) {
-            s.statusMessage.value = "未生成可用描述建议，请补充问卷作答后重试。";
-        }
+        s.statusMessage.value = generatedCount > 0
+            ? `已生成 ${generatedCount} 条描述补充建议。`
+            : "未生成可用描述建议，请补充问卷作答后重试。";
         saveDraft();
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
@@ -179,8 +177,8 @@ export function createGenerateHandler(
 export function createGenerateQuestionnaireToDescriptionHandler(
     s: PanelState,
     saveDraft: () => void,
-): () => Promise<void> {
-    return () => handleGenerateQuestionnaireToDescription(s, saveDraft);
+): (targetField?: PersonaDescriptionField) => Promise<void> {
+    return (targetField) => handleGenerateQuestionnaireToDescription(s, saveDraft, targetField);
 }
 
 /** @同步豁免: UI构建 — 工厂函数，同步返回异步处理器闭包 */

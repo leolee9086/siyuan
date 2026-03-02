@@ -7,7 +7,12 @@ import type { LikertScore } from "../../components/persona/CompositeRating.types
 import { createLineDiffEngine } from "../../../util/diff/diff.engine";
 import type { DiffModel } from "../../../util/diff/diff.types";
 import type { PanelState } from "./PersonaSeedPanel.types";
-import { findAnswerScore, getDescriptionFieldLabel, getSuggestionById } from "./PersonaSeedPanel.utils";
+import {
+    canGenerateTrinityDescriptionSuggestion,
+    findAnswerScore,
+    getDescriptionFieldLabel,
+    getSuggestionById,
+} from "./PersonaSeedPanel.utils";
 import { createSaveDraftHandler, createLoadDraftHandler, createAssignDescriptionsHandler } from "./PersonaSeedPanel.draft";
 import {
     createViewSuggestionHandler,
@@ -133,6 +138,11 @@ export function usePersonaSeedPanelContext(emit: {
         acceptedSuggestionCount: computed(() => countSuggestionsByStatus(s.convergenceSession.value, "accepted")),
         rejectedSuggestionCount: computed(() => countSuggestionsByStatus(s.convergenceSession.value, "rejected")),
         pendingSuggestions: computed(() => s.convergenceSession.value.suggestions.filter((x: PersonaConvergenceSuggestion) => x.status === "pending")),
+        canGenerateTrinitySuggestion: computed(() => canGenerateTrinityDescriptionSuggestion(
+            s.seedDescriptions.value,
+            s.answers.value.length,
+            ipipNeo120QuestionBank.length,
+        )),
         viewingSuggestionSummary: computed(() => computeViewingSuggestionSummary(s.convergenceSession.value.suggestions, s.viewingSuggestionId.value, s.answers.value)),
         viewingDescriptionDiff: computed(() => computeViewingDescriptionDiff(
             s.convergenceSession.value.suggestions,

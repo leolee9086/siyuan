@@ -1,28 +1,29 @@
 import { isRecord } from "../persona-seed-convergence-llm.guard";
 import type {
-    PersonaSideDescriptionField,
+    PersonaDescriptionField,
     QuestionnaireToDescriptionLLMItem,
     QuestionnaireToDescriptionLLMResponse,
 } from "./persona-seed-convergence-q2d-llm.types";
 
-const SIDE_DESCRIPTION_FIELDS: readonly PersonaSideDescriptionField[] = [
+const DESCRIPTION_FIELDS: readonly PersonaDescriptionField[] = [
     "professionalDescription",
     "lifeDescription",
     "instinctNeedsDescription",
+    "integratedDescription",
 ];
 
 /**
- * 作用：校验是否为三侧描述字段。
- * 意图：限制模型输出只更新一个“侧面描述”，避免越界到综合描述。
+ * 作用：校验是否为合法描述字段。
+ * 意图：限制模型输出只能命中四轨描述字段。
  * 调用时机：校验 LLM suggestion.field 时调用。
  * 问题/改进：后续若扩展字段需同步常量列表。
  */
-export function isPersonaSideDescriptionField(value: unknown): value is PersonaSideDescriptionField {
+export function isPersonaDescriptionField(value: unknown): value is PersonaDescriptionField {
     if (typeof value !== "string") {
         return false;
     }
-    for (const field of SIDE_DESCRIPTION_FIELDS) {
-        // 命中三侧字段之一即视为合法。
+    for (const field of DESCRIPTION_FIELDS) {
+        // 命中合法字段之一即视为通过。
         if (field === value) {
             return true;
         }
@@ -45,7 +46,7 @@ export function isQuestionnaireToDescriptionLLMItem(value: unknown): value is Qu
     const confidence = Reflect.get(value, "confidence");
     const reason = Reflect.get(value, "reason");
     return (
-        isPersonaSideDescriptionField(field)
+        isPersonaDescriptionField(field)
         && typeof text === "string"
         && typeof confidence === "number"
         && Number.isFinite(confidence)

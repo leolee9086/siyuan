@@ -25,16 +25,16 @@
 
 **验收检查清单**:
 - [x] 支持“描述 -> 问卷建议分值”生成，且不强覆盖已答题
-- [ ] 支持“问卷 -> 四轨描述补充建议”生成，且不强覆盖手写原文
-- [ ] 支持“问卷 -> 描述建议”按钮触发与 pending 入列（`questionnaire_to_description`）
+- [x] 支持“问卷 -> 四轨描述补充建议”生成，且不强覆盖手写原文
+- [x] 支持“问卷 -> 描述建议”按钮触发与 pending 入列（`questionnaire_to_description`）
 - [x] 每条建议具备 `pending/accepted/rejected` 状态
 - [x] 用户可逐条确认或拒绝建议，并即时回写 UI
 - [x] 建议列表支持“查看”入口，展示当前答案与建议答案
 - [x] 用户在目标题点击任意分值后，自动注销该题对应待确认建议
-- [ ] 确认后的建议可持久化到草稿与落盘文件
+- [x] 确认后的建议可持久化到草稿与落盘文件
 - [x] LLM 输出走 JSON schema 校验，异常有重试和失败提示
 - [x] 新增单测覆盖映射逻辑、状态机与回写行为
-- [ ] `magi-mobile` 开发模式编译通过（当前 `CompositeRating` 模板链路存在 `readonly` 解析阻塞）
+- [ ] `magi-mobile` 开发模式编译通过（生产构建已通过，开发构建需继续做稳定复核）
 
 ---
 
@@ -68,23 +68,25 @@
   - **验收标准**: `pnpm run dev:magi-mobile` 编译通过且不再出现该错误。
   - **参考文件**: `app/src/magi/components/persona/CompositeRating.vue`、`app/src/magi/components/persona/CompositeRating.ctx.ts`、`app/src/magi/components/persona/CompositeRating.types.ts`
 
-- [ ] **Phase C: 问卷 -> 描述补充建议 (P0)**
+- [x] **Phase C: 问卷 -> 描述补充建议 (P0)** [已完成 2026-03-02]
   - **背景**: 仅有分值时文本表达不足，需要结构化补充建议。
   - **行动**:
-    1. 在收敛 LLM 层新增 `问卷 -> 描述` 入口，输入为 `subject + answers + personaBase + 四轨当前文本`。
+    1. 在收敛 LLM 层新增 `问卷 -> 描述` 入口，输入为 `subject + answers + 四轨当前文本 + 题库上下文`。
     2. 定义并落地 JSON schema：按四轨字段返回补充建议（`field/text/reason/confidence`）。
     3. 将输出解析为 `PersonaConvergenceSuggestion`（`source=questionnaire_to_description`，`payload.kind=description_append`）。
     4. 在 `PersonaSeedConvergencePanel` 增加触发按钮，建议以 `pending` 进入现有建议列表。
-    5. 复用当前确认流：接受时追加到目标描述，拒绝时仅改状态，不覆盖手写原文。
-    6. 完成草稿恢复与失败提示接线，保证刷新后建议状态一致。
-  - **当前进度**: 已启动，等待实现 `LLM types/guard/parser` 与 `panel handlers` 的第一版接线。
+    5. 在描述表单新增“按维度生成”按钮，支持职业/生活/本能/Trinity 四维定向更新。
+    6. 对 Trinity 增加门槛：仅当三侧描述齐备且问卷作答进度 > 1/3 时允许生成。
+    7. 复用当前确认流：接受时追加到目标描述，拒绝时仅改状态，不覆盖手写原文。
+    8. 完成草稿恢复与失败提示接线，保证刷新后建议状态一致。
+  - **当前进度**: 已完成，可触发四轨建议、逐条确认回写，并通过门槛控制 Trinity 生成时机。
   - **验收标准**: 四轨建议均可生成和逐条确认；确认后回写对应文本框。
   - **参考文件**:
-    - `app/src/magi/data/convergence/persona-seed-convergence-llm.types.ts`
-    - `app/src/magi/data/convergence/persona-seed-convergence-llm.guard.ts`
-    - `app/src/magi/data/convergence/persona-seed-convergence-llm-parser.ts`
-    - `app/src/magi/data/convergence/persona-seed-convergence-llm.ts`
-    - `app/src/magi/entry/persona-seed-panel/PersonaSeedPanel.handlers.ts`
+    - `app/src/magi/data/convergence/q2d/persona-seed-convergence-q2d-llm.types.ts`
+    - `app/src/magi/data/convergence/q2d/persona-seed-convergence-q2d-llm.guard.ts`
+    - `app/src/magi/data/convergence/q2d/persona-seed-convergence-q2d-llm-parser.ts`
+    - `app/src/magi/data/convergence/q2d/persona-seed-convergence-q2d-llm.ts`
+    - `app/src/magi/entry/persona-seed-panel/handlers/PersonaSeedPanel.async.handlers.ts`
     - `app/src/magi/entry/persona-seed-panel/components/PersonaSeedConvergencePanel.vue`
 
 - [ ] **Phase D: LLM 调用通道与容错 (P0)**
@@ -126,3 +128,5 @@
 | 2026-03-02 | Phase B v1.1 交互增强 | ✅ | 新增查看/定位、接受拒绝即时反馈、作答自动注销建议 |
 | 2026-03-02 | Phase B1 编译阻塞排查 | 🔄 | `magi-mobile` dev 链路 `CompositeRating` 模板解析 `readonly` 报错，作为当前最高优先级阻塞 |
 | 2026-03-02 | Phase C 启动：问卷 -> 描述接线 | 🔄 | 已冻结实现路径与接线文件，开始实现 `questionnaire_to_description` 生成与回写 |
+| 2026-03-02 | Phase C 完成：问卷 -> 四轨描述接线 | ✅ | 已接通 q2d LLM 链路，支持四轨字段与确认回写 |
+| 2026-03-02 | Trinity 门槛与按维度按钮接线 | ✅ | Trinity 仅在“三侧齐备 + 问卷进度>1/3”可触发；每个描述框可单独触发生成 |

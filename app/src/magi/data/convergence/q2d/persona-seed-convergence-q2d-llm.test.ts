@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseQuestionnaireToDescriptionSuggestionContent } from "./persona-seed-convergence-q2d-llm-parser";
-import { resolveShortestSideDescriptionField } from "./persona-seed-convergence-q2d-llm";
+import { resolveShortestSideDescriptionField } from "./persona-seed-convergence-q2d-policy";
 import type { QuestionnaireToDescriptionSuggestionInput } from "./persona-seed-convergence-q2d-llm.types";
 
 const INPUT_TEMPLATE: QuestionnaireToDescriptionSuggestionInput = {
@@ -12,11 +12,13 @@ const INPUT_TEMPLATE: QuestionnaireToDescriptionSuggestionInput = {
         role: "system architect",
         careerGoal: "构建稳定的人机协作系统",
     },
-    sideDescriptions: {
+    descriptions: {
         professionalDescription: "擅长结构化拆解与方案推进。",
         lifeDescription: "重视长期稳定与可信关系。",
         instinctNeedsDescription: "需要清晰边界和可预期反馈。",
+        integratedDescription: "我是一个追求长期稳定成长的人。",
     },
+    allowIntegratedSuggestion: true,
     answers: [{ q: 2, score: 4 }],
     questionBank: [
         { q: 1, text: "杞人忧天", domain: "N", facet: 1, keyed: "plus" },
@@ -77,7 +79,7 @@ async function shouldParseFencedJSONSuggestion(): Promise<void> {
 async function shouldRejectInvalidFieldSuggestion(): Promise<void> {
     const content = JSON.stringify({
         suggestion: {
-            field: "integratedDescription",
+            field: "unknownDescription",
             text: "不应通过解析",
             confidence: 0.9,
             reason: "非法字段",
@@ -107,6 +109,46 @@ async function shouldRejectBlankTextSuggestion(): Promise<void> {
 }
 
 /**
+ * 作用：验证未允许时会拒绝 Trinity 目标建议。
+ * 意图：保证综合描述建议受门槛规则约束。
+ * 调用时机：q2d 解析门槛回归测试。
+ * 问题/改进：后续可补充更多门槛组合场景。
+ */
+async function shouldRejectIntegratedSuggestionWhenNotAllowed(): Promise<void> {
+    const content = JSON.stringify({
+        suggestion: {
+            field: "integratedDescription",
+            text: "可补充统一叙述。", confidence: 0.65, reason: "测试",
+        },
+    });
+    const suggestions = await parseQuestionnaireToDescriptionSuggestionContent(content, {
+        ...INPUT_TEMPLATE,
+        allowIntegratedSuggestion: false,
+    });
+    expect(suggestions).toHaveLength(0);
+}
+
+/**
+ * 作用：验证指定目标字段时会拒绝非目标输出。
+ * 意图：保证“指定维度更新”按钮行为可预测。
+ * 调用时机：q2d 指定维度回归测试。
+ * 问题/改进：后续可补充全部四轨字段遍历测试。
+ */
+async function shouldRejectSuggestionWhenFieldNotPreferred(): Promise<void> {
+    const content = JSON.stringify({
+        suggestion: {
+            field: "lifeDescription",
+            text: "不应命中非目标字段。", confidence: 0.6, reason: "测试",
+        },
+    });
+    const suggestions = await parseQuestionnaireToDescriptionSuggestionContent(content, {
+        ...INPUT_TEMPLATE,
+        preferredField: "professionalDescription",
+    });
+    expect(suggestions).toHaveLength(0);
+}
+
+/**
  * 作用：验证优先字段选择会命中当前最短描述侧面。
  * 意图：确保问卷->描述建议遵循“优先补最短板”策略。
  * 调用时机：q2d 优先策略回归测试。
@@ -129,9 +171,7 @@ function shouldSelectShortestDescriptionField(): void {
  */
 function shouldKeepStableOrderWhenLengthsTie(): void {
     const field = resolveShortestSideDescriptionField({
-        professionalDescription: "",
-        lifeDescription: "",
-        instinctNeedsDescription: "",
+        professionalDescription: "", lifeDescription: "", instinctNeedsDescription: "",
     });
     expect(field).toBe("professionalDescription");
 }
@@ -147,6 +187,8 @@ function runQuestionnaireToDescriptionLLMSuite(): void {
     it("应解析 markdown fenced JSON", shouldParseFencedJSONSuggestion);
     it("应拒绝三侧之外字段", shouldRejectInvalidFieldSuggestion);
     it("应拒绝空白建议文本", shouldRejectBlankTextSuggestion);
+    it("未允许时应拒绝综合描述建议", shouldRejectIntegratedSuggestionWhenNotAllowed);
+    it("指定目标字段时应拒绝非目标建议", shouldRejectSuggestionWhenFieldNotPreferred);
     it("应优先命中最短描述侧", shouldSelectShortestDescriptionField);
     it("并列最短时应保持稳定字段顺序", shouldKeepStableOrderWhenLengthsTie);
 }

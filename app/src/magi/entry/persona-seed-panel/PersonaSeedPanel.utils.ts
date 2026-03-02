@@ -95,6 +95,53 @@ export const hasAnyDescriptionText = (descriptions: IpipPersonaSeedDescriptions)
     return Boolean(descriptions.integratedDescription.trim());
 };
 
+/** @同步豁免: UI构建 — 提示态计算为同步文本校验 */
+/**
+ * 作用：检查三侧描述是否都已填写。
+ * 意图：约束 Trinity 建议生成前置条件之一。
+ * 调用时机：问卷->Trinity 建议按钮可用性判断时调用。
+ */
+export const hasAllSideDescriptions = (descriptions: IpipPersonaSeedDescriptions): boolean => {
+    if (!descriptions.professionalDescription.trim()) {
+        return false;
+    }
+    if (!descriptions.lifeDescription.trim()) {
+        return false;
+    }
+    return Boolean(descriptions.instinctNeedsDescription.trim());
+};
+
+/** @同步豁免: UI构建 — 进度阈值判断为纯数值比较 */
+/**
+ * 作用：判断问卷进度是否超过三分之一。
+ * 意图：限制 Trinity 建议只在有效问卷覆盖度下触发。
+ * 调用时机：Trinity 建议门槛校验时调用。
+ */
+export const isQuestionnaireProgressAboveOneThird = (
+    answerCount: number,
+    totalQuestionCount: number,
+): boolean => {
+    if (totalQuestionCount <= 0) {
+        return false;
+    }
+    return answerCount > totalQuestionCount / 3;
+};
+
+/** @同步豁免: UI构建 — 门槛组合判断为同步布尔运算 */
+/**
+ * 作用：判断是否允许生成 Trinity（综合描述）建议。
+ * 意图：统一复用“子侧全填 + 问卷超过三分之一”门槛。
+ * 调用时机：按钮可用性和生成前置校验时调用。
+ */
+export const canGenerateTrinityDescriptionSuggestion = (
+    descriptions: IpipPersonaSeedDescriptions,
+    answerCount: number,
+    totalQuestionCount: number,
+): boolean => (
+    hasAllSideDescriptions(descriptions)
+    && isQuestionnaireProgressAboveOneThird(answerCount, totalQuestionCount)
+);
+
 /** @同步豁免: UI构建 — 提交前同步校验必填字段完整性 */
 /**
  * 作用：收集提交前未填写的必填字段名称列表。

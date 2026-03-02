@@ -1,6 +1,16 @@
 import type { IpipNeo120Item } from "../../ipip-neo-120.types";
-import type { IpipNeo120SubjectMeta } from "../../questionnaire.types";
+import type { IpipNeo120SubjectMeta, IpipPersonaSeedDescriptions } from "../../questionnaire.types";
 import type { PersonaSeedAnswerScore } from "../persona-seed-convergence-llm.types";
+
+/**
+ * 描述字段（四轨）。
+ *
+ * 用途：约束问卷->描述建议可命中的目标字段集合。
+ * 使用场景：LLM 输出校验、目标字段选择、建议 payload 构造。
+ * 关联类型：`QuestionnaireToDescriptionLLMItem`。
+ * 问题/改进：后续若新增字段需同步影响 UI 与守卫。
+ */
+export type PersonaDescriptionField = keyof IpipPersonaSeedDescriptions;
 
 /**
  * 侧面描述字段（仅三侧）。
@@ -8,7 +18,7 @@ import type { PersonaSeedAnswerScore } from "../persona-seed-convergence-llm.typ
  * 用途：约束“问卷 -> 描述建议”一次只能命中一个侧面描述。
  * 使用场景：LLM 输出校验、建议 payload 构造。
  * 关联类型：`QuestionnaireToDescriptionLLMItem`。
- * 问题/改进：当前不包含 integratedDescription，后续可按产品策略扩展。
+ * 问题/改进：当前已覆盖四轨，后续可按产品策略增加权重配置。
  */
 export type PersonaSideDescriptionField =
     | "professionalDescription"
@@ -25,7 +35,9 @@ export type PersonaSideDescriptionField =
  */
 export interface QuestionnaireToDescriptionSuggestionInput {
     readonly subject: IpipNeo120SubjectMeta;
-    readonly sideDescriptions: Readonly<Record<PersonaSideDescriptionField, string>>;
+    readonly descriptions: IpipPersonaSeedDescriptions;
+    readonly preferredField?: PersonaDescriptionField;
+    readonly allowIntegratedSuggestion: boolean;
     readonly answers: readonly PersonaSeedAnswerScore[];
     readonly questionBank: readonly IpipNeo120Item[];
 }
@@ -39,7 +51,7 @@ export interface QuestionnaireToDescriptionSuggestionInput {
  * 问题/改进：目前 text 为纯文本追加段，后续可扩展结构化片段。
  */
 export interface QuestionnaireToDescriptionLLMItem {
-    readonly field: PersonaSideDescriptionField;
+    readonly field: PersonaDescriptionField;
     readonly text: string;
     readonly confidence: number;
     readonly reason: string;

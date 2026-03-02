@@ -5,17 +5,14 @@
         <h3>适格者 PERSONA 录入</h3>
         <button type="button" class="persona-seed-close" @click="emit('close')">CLOSE</button>
       </header>
-      <PersonaSeedSubjectForm
-        v-model:subject-id="subjectId" v-model:subject-name="subjectName"
+      <PersonaSeedSubjectForm v-model:subject-id="subjectId" v-model:subject-name="subjectName"
         v-model:subject-type="subjectType" v-model:organization="organization"
-        v-model:role="role" v-model:career-goal="careerGoal"
-      />
-      <PersonaSeedDescriptionsForm
-        v-model:professional="professionalDescription"
-        v-model:life="lifeDescription"
-        v-model:instinct="instinctNeedsDescription"
-        v-model:integrated="integratedDescription"
-      />
+        v-model:role="role" v-model:career-goal="careerGoal" />
+      <PersonaSeedDescriptionsForm v-model:professional="professionalDescription" v-model:life="lifeDescription"
+        v-model:instinct="instinctNeedsDescription" v-model:integrated="integratedDescription"
+        :generating-questionnaire-to-description="isGeneratingQuestionnaireToDescription"
+        :can-generate-trinity-suggestion="canGenerateTrinitySuggestion"
+        @generate-questionnaire-to-description="generateQuestionnaireToDescription" />
       <PersonaSeedConvergencePanel
         :state="convergenceSession.state" :pending-count="pendingSuggestionCount"
         :accepted-count="acceptedSuggestionCount" :rejected-count="rejectedSuggestionCount"
@@ -71,6 +68,7 @@ const {
   ratingKey, questionBank, subjectMeta,
   pendingSuggestionCount, acceptedSuggestionCount, rejectedSuggestionCount,
   descriptionProgressText, pendingSuggestions, viewingSuggestionSummary, viewingDescriptionDiff,
+  canGenerateTrinitySuggestion,
   onAnswerUpdated, acceptSuggestion, rejectSuggestion, viewSuggestion,
   generateDescriptionToQuestionnaire, generateQuestionnaireToDescription, onSubmitIpip,
 } = usePersonaSeedPanelContext(emit);
