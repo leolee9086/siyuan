@@ -14,9 +14,9 @@ import {
     构建Casper提示词,
     构建Trinity提示词,
     构建TrinityRoleHack消息,
-    应用人格提示词注入,
     创建贤者回复函数,
 } from "./mockWise.prompts";
+import { 应用人格提示词注入 } from "./promptTemplates/promptInjection";
 import type { MockWISE实例, ReplyOptions, InitMagiOptions } from "./wise.types";
 import { MELCHIOR特征集 } from "../dummySys/zhi";
 import * as MELCHIOR提示词模板集 from "./promptTemplates/Melchior";

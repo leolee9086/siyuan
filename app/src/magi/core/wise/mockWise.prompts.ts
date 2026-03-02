@@ -12,7 +12,7 @@ import {
     完整人格,
 } from "../dummySys/zhi";
 import type { ContextMessage, ReplyOptions } from "../core.types";
-import type { MagiPromptSet, MockWISE实例 } from "./wise.types";
+import type { MockWISE实例 } from "./wise.types";
 import { TRINITY_SPEAK_TOOL_PROMPT } from "./trinity.toolset";
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -135,7 +135,8 @@ const SAGE_STITCH_SYSTEM_REQUIREMENTS = `你将对外界的消息和任务做出
 <source=xxx>
 消息正文
 </source>
-其中 source=user_message 表示来自外部输入。
+其中 source=user_message 是真正的外部输入。
+source=seraph 是系统心理监控机制发出的唤醒/校准消息，不代表外部用户输入。
 `;
 const TRINITY_USER_MESSAGE_SOURCE = "user_message";
 const TRINITY_ECHO_SOURCE = "echo";
@@ -150,8 +151,6 @@ const TRINITY_WAKEUP_ASK_GENDER = "你的性别是什么？";
 const TRINITY_WAKEUP_ASK_IDENTITY = "你是谁？请用第一人称回答。";
 const TRINITY_WAKEUP_FINISHED_REQUEST = "唤醒校准完成，请继续工作并响应当前任务。";
 const TRINITY_OUTPUT_TRIGGER_REQUEST = "think stoped,action start";
-const SAGE_SELF_INTRO_REQUEST = "请先用第一人称进行自我介绍。";
-const SAGE_RESTATE_IDENTITY_REQUEST = "请复述你的核心身份描述。";
 
 /** 封装 source 标记内容，供 assistant/user 两种角色复用 */
 function buildSourcedMessageContent(source: string, content: string): string {
@@ -174,7 +173,7 @@ function buildTrinityThinkResultMessage(introspectionContent: string): string {
 }
 
 /** @同步豁免: 性能考虑 - 纯时间格式化与字符串拼接，无异步依赖。 */
-function 构建Trinity系统环境提示词(now: number): string {
+function build北京时间与问候(now: number): { beijingTime: string; greeting: string } {
     const beijingTime = new Date(now).toLocaleTimeString("zh-CN", {
         timeZone: "Asia/Shanghai",
         hour12: false,
@@ -183,7 +182,24 @@ function 构建Trinity系统环境提示词(now: number): string {
     });
     const hour = Number(beijingTime.slice(0, 2));
     const greeting = hour < 12 ? "上午" : hour < 18 ? "下午" : "晚上";
+    return { beijingTime, greeting };
+}
+
+/** @同步豁免: 性能考虑 - 纯时间格式化与字符串拼接，无异步依赖。 */
+function 构建Trinity系统环境提示词(now: number): string {
+    const { beijingTime, greeting } = build北京时间与问候(now);
     return `${TRINITY_STITCH_SYSTEM_REQUIREMENTS}
+
+系统环境：
+- Seraph 是系统的心理监控机制，仅用于心理唤醒与状态校准。
+- 当前时间为北京时间 ${beijingTime}。
+- ${greeting}好，现在你可以继续工作了。`;
+}
+
+/** @同步豁免: 性能考虑 - 纯时间格式化与字符串拼接，无异步依赖。 */
+function 构建贤者系统环境提示词(now: number): string {
+    const { beijingTime, greeting } = build北京时间与问候(now);
+    return `${SAGE_STITCH_SYSTEM_REQUIREMENTS}
 
 系统环境：
 - Seraph 是系统的心理监控机制，仅用于心理唤醒与状态校准。
@@ -240,17 +256,32 @@ function 构建贤者起始拼接消息(
     selfIdentityDescription: string,
     userInput: string,
 ): ContextMessage[] {
-    const introRequest = buildSourcedMessageContent(TRINITY_USER_MESSAGE_SOURCE, SAGE_SELF_INTRO_REQUEST);
-    const restateRequest = buildSourcedMessageContent(TRINITY_USER_MESSAGE_SOURCE, SAGE_RESTATE_IDENTITY_REQUEST);
+    const profile = 完整人格.基础信息;
+    const environmentPrompt = 构建贤者系统环境提示词(Date.now());
+    const wakeupAskName = buildSourcedMessageContent(TRINITY_SERAPH_SOURCE, TRINITY_WAKEUP_ASK_NAME);
+    const wakeupAskRole = buildSourcedMessageContent(TRINITY_SERAPH_SOURCE, TRINITY_WAKEUP_ASK_ROLE);
+    const wakeupAskGender = buildSourcedMessageContent(TRINITY_SERAPH_SOURCE, TRINITY_WAKEUP_ASK_GENDER);
+    const wakeupAskIdentity = buildSourcedMessageContent(TRINITY_SERAPH_SOURCE, TRINITY_WAKEUP_ASK_IDENTITY);
+    const wakeupFinished = buildSourcedMessageContent(TRINITY_SERAPH_SOURCE, TRINITY_WAKEUP_FINISHED_REQUEST);
+    const answerName = buildSourcedMessageContent(TRINITY_ECHO_SOURCE, profile.姓名);
+    const answerRole = buildSourcedMessageContent(TRINITY_ECHO_SOURCE, profile.职责);
+    const answerGender = buildSourcedMessageContent(TRINITY_ECHO_SOURCE, profile.性别);
+    const safeIdentityDescription = selfIdentityDescription.trim() || 构建Trinity第一人称身份描述();
+    const answerIdentity = buildSourcedMessageContent(TRINITY_ECHO_SOURCE, safeIdentityDescription);
     const finalPrompt = buildSourcedMessageContent(TRINITY_USER_MESSAGE_SOURCE, userInput);
     const now = Date.now();
     const stitchedMessages: ContextMessage[] = [];
-    stitchedMessages.push({ role: "system", content: SAGE_STITCH_SYSTEM_REQUIREMENTS, timestamp: now });
-    stitchedMessages.push({ role: "system", content: introRequest, timestamp: now + 1 });
-    stitchedMessages.push({ role: "assistant", content: selfIdentityDescription, timestamp: now + 2 });
-    stitchedMessages.push({ role: "system", content: restateRequest, timestamp: now + 3 });
-    stitchedMessages.push({ role: "assistant", content: selfIdentityDescription, timestamp: now + 4 });
-    stitchedMessages.push({ role: "system", content: finalPrompt, timestamp: now + 5 });
+    stitchedMessages.push({ role: "system", content: environmentPrompt, timestamp: now });
+    stitchedMessages.push({ role: "system", content: wakeupAskName, timestamp: now + 1 });
+    stitchedMessages.push({ role: "assistant", content: answerName, timestamp: now + 2 });
+    stitchedMessages.push({ role: "system", content: wakeupAskRole, timestamp: now + 3 });
+    stitchedMessages.push({ role: "assistant", content: answerRole, timestamp: now + 4 });
+    stitchedMessages.push({ role: "system", content: wakeupAskGender, timestamp: now + 5 });
+    stitchedMessages.push({ role: "assistant", content: answerGender, timestamp: now + 6 });
+    stitchedMessages.push({ role: "system", content: wakeupAskIdentity, timestamp: now + 7 });
+    stitchedMessages.push({ role: "assistant", content: answerIdentity, timestamp: now + 8 });
+    stitchedMessages.push({ role: "system", content: wakeupFinished, timestamp: now + 9 });
+    stitchedMessages.push({ role: "system", content: finalPrompt, timestamp: now + 10 });
     return stitchedMessages;
 }
 
@@ -300,68 +331,3 @@ export const 创建贤者回复函数 = (
         };
         return 原始回复函数("", nextOptions);
     };
-
-const SEEL_NAME_TO_PROMPT_KEY: Readonly<Record<string, keyof MagiPromptSet>> = {
-    "MELCHIOR-01": "melchior",
-    "BALTHASAR-02": "balthazar",
-    "CASPER-03": "casper",
-    "TRINITY-00": "trinity",
-};
-
-/** @同步豁免: 纯映射查表，无异步依赖 */
-/**
- * 作用：按实例名解析人格注入字段。
- * 意图：统一 SEEL 名称到提示词 key 的映射，避免分散 if 分支。
- * 调用时机：对单个实例应用人格注入前调用。
- */
-function getPromptInjectionBySeelName(
-    seelName: string,
-    promptInjections?: MagiPromptSet,
-): string | null {
-    // 无注入配置时直接返回空
-    if (!promptInjections) {
-        return null;
-    }
-    const key = SEEL_NAME_TO_PROMPT_KEY[seelName];
-    // 未匹配到 SEEL 映射时返回空
-    if (!key) {
-        return null;
-    }
-    const text = promptInjections[key];
-    // 空注入文本不生效
-    if (!text || !text.trim()) {
-        return null;
-    }
-    return text;
-}
-
-/** @同步豁免: 纯字符串拼接，无异步依赖 */
-/**
- * 作用：将人格注入段追加到原始系统提示词末尾。
- * 意图：保留既有提示词主体，仅做附加注入，满足“最小改造”。
- * 调用时机：命中注入文本后调用。
- */
-function mergeSystemPrompt(basePrompt: string, injection: string): string {
-    return `${basePrompt}
-
-[PERSONA_SEED_INJECTION]
-${injection}`;
-}
-
-/**
- * 作用：对单个 MockWISE 实例应用人格提示词注入。
- * 意图：不覆盖原始提示词，只追加人格层文本。
- * 调用时机：`initMagi` 创建实例并应用全局配置时调用。
- */
-export async function 应用人格提示词注入(
-    instance: MockWISE实例,
-    promptInjections?: MagiPromptSet,
-): Promise<void> {
-    const injection = getPromptInjectionBySeelName(instance.config.name, promptInjections);
-    // 无可用注入文本时保持原提示词
-    if (!injection) {
-        return;
-    }
-    const nextSystemPrompt = mergeSystemPrompt(instance.config.systemPromptForChat, injection);
-    instance.updateConfig({ systemPromptForChat: nextSystemPrompt });
-}
