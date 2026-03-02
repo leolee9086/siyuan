@@ -47,12 +47,13 @@ const 创建Trinity回复函数 = (
     ): Promise<string | AsyncGenerator<string>> => {
         const 原始提示词 = 基础实例.config.systemPromptForChat;
         const introspection = options.context?.introspection?.trim() ?? "";
+        const trinityUserInput = (options.context?.userInput ?? _userInput).trim() || "请继续当前任务。";
         const 动态提示词 = `
-        input:${_userInput}
+        input:${trinityUserInput}
         ${原始提示词}
 
 `;
-        const roleHackMessages = 构建TrinityRoleHack消息(原始提示词, introspection);
+        const roleHackMessages = 构建TrinityRoleHack消息(原始提示词, introspection, trinityUserInput);
 
         基础实例.updateConfig({ systemPromptForChat: 动态提示词 });
         try {

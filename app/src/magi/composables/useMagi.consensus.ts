@@ -140,7 +140,7 @@ async function resolveTrinityResult(
         return validResponses.map((response) => response.content).join("\n");
     }
     if (!deliberationRequired) {
-        return handleTrinitySummary(validResponses, trinity);
+        return handleTrinitySummary(validResponses, trinity, userMessage);
     }
     if (!voteResult?.passed) {
         // 审慎决策未通过时，不进入主导执行分支，交由后续反刍入口处理。
@@ -159,6 +159,7 @@ async function resolveTrinityResult(
         action,
         voteResult,
         safeActionResult,
+        userMessage,
     );
 }
 

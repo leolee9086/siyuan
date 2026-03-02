@@ -99,6 +99,7 @@ export async function handleTrinityPostActionSummary(
     proposedAction: string,
     vote: VoteResult,
     melchiorActionResult: string,
+    userInput: string,
 ): Promise<string | null> {
     if (validResponses.length === 0) {
         return null;
@@ -110,7 +111,8 @@ export async function handleTrinityPostActionSummary(
             vote,
             melchiorActionResult,
         );
-        const trinityContext = { context: { responses: validResponses, introspection } };
+        const safeUserInput = userInput.trim() || "请继续当前任务。";
+        const trinityContext = { context: { userInput: safeUserInput, responses: validResponses, introspection } };
         const trinityResponse = await trinity.reply("", trinityContext);
         const callbacks = buildStreamCallbacks(trinity, "[trinity-post-action-stitch]");
         const { content, success } = await processStreamResponse(

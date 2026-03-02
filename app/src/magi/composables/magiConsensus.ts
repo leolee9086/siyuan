@@ -183,13 +183,15 @@ export function buildTrinityIntrospectionInput(
 export async function handleTrinitySummary(
     validResponses: SageResponse[],
     trinity: WrappedSeel,
+    userInput: string,
 ): Promise<string | null> {
     if (validResponses.length === 0) {
         return null;
     }
     try {
         const introspection = buildTrinityIntrospectionInput(validResponses);
-        const trinityContext = { context: { responses: validResponses, introspection } };
+        const safeUserInput = userInput.trim() || "请继续当前任务。";
+        const trinityContext = { context: { userInput: safeUserInput, responses: validResponses, introspection } };
         const trinityResponse = await trinity.reply("", trinityContext);
         const callbacks = buildStreamCallbacks(trinity, "[trinity-internal-stitch]");
         const { content, success } = await processStreamResponse(

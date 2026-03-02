@@ -212,6 +212,7 @@ export interface ContextMessage {
 /** 回复选项 */
 export interface ReplyOptions {
     context?: {
+        userInput?: string;
         responses?: Array<{ seel: string; content: string }>;
         introspection?: string;
         overrideMessages?: ContextMessage[];

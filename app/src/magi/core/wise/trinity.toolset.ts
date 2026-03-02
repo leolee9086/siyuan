@@ -19,7 +19,9 @@ export const TRINITY_SPEAK_TOOL_PROMPT = `你必须通过工具函数 speak 输�
 调用规则：
 1. 必须调用 speak 一次且仅一次。
 2. speak 参数必须是 JSON，且包含 content 字段（string）。
-3. 除工具调用外，不要输出任何面向用户的正文。`;
+3. think_about 是遇到输入时用于思考的内部工具消息，消息格式为 <think_about>{"input":"..."}</think_about>。
+4. <think_result>...</think_result> 是 think_about 的内部结果，不是最终对外回复。
+5. 除工具调用外，不要输出任何面向用户的正文。`;
 
 const TRINITY_SPEAK_TOOL_SCHEMA: Record<string, unknown> = {
     type: "function",

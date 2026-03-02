@@ -122,7 +122,10 @@ const TRINITY_STITCH_SYSTEM_REQUIREMENTS = `你将对外界的消息和任务做
 source=seraph 是系统心理监控机制发出的唤醒/校准消息，不代表外部用户输入。
 source=trigger 仅仅是你的思考系统的内部消息和杂念,不必回应它们。
 assistant 可能出现 source=echo，用于回显内部材料，不代表外部用户输入。
-<think_hidden>标签内的内容是你的内在思考，不会直接暴露给外界,所以即使你已经思考得非常清楚,你也把自己的想法用语言直接表达出来。;
+assistant 还可能出现内部思考链消息：
+1. <think_about>{"input":"..."}</think_about> 表示你接收到输入后启动思考。
+2. <think_result>...</think_result> 表示 think_about 的思考结果。
+这些是内部思考材料，不是对用户的最终输出。;
 
 ${TRINITY_SPEAK_TOOL_PROMPT}
 
@@ -138,6 +141,9 @@ const TRINITY_USER_MESSAGE_SOURCE = "user_message";
 const TRINITY_ECHO_SOURCE = "echo";
 const TRINITY_SERAPH_SOURCE = "seraph";
 const TRINITY_TRIGGER_SOURCE = "trigger";
+const TRINITY_THINK_ABOUT_TAG = "think_about";
+const TRINITY_THINK_RESULT_TAG = "think_result";
+const TRINITY_THINK_INPUT_KEY = "input";
 const TRINITY_WAKEUP_ASK_NAME = "你的姓名是什么？";
 const TRINITY_WAKEUP_ASK_ROLE = "你的职业是什么？";
 const TRINITY_WAKEUP_ASK_GENDER = "你的性别是什么？";
@@ -152,6 +158,19 @@ function buildSourcedMessageContent(source: string, content: string): string {
     return `<source=${source}>
 ${content}
 </source>`;
+}
+
+/** 构建 Trinity 内部 think_about 伪工具调用消息 */
+/** @同步豁免: 性能考虑 - 纯字符串拼接与 JSON 序列化，无异步依赖。 */
+function buildTrinityThinkAboutMessage(userInput: string): string {
+    const payload = JSON.stringify({ [TRINITY_THINK_INPUT_KEY]: userInput });
+    return `<${TRINITY_THINK_ABOUT_TAG}>${payload}</${TRINITY_THINK_ABOUT_TAG}>`;
+}
+
+/** 构建 Trinity 内部 think_result 伪工具结果消息 */
+/** @同步豁免: 性能考虑 - 纯字符串拼接，无异步依赖。 */
+function buildTrinityThinkResultMessage(introspectionContent: string): string {
+    return `<${TRINITY_THINK_RESULT_TAG}>${introspectionContent}</${TRINITY_THINK_RESULT_TAG}>`;
 }
 
 /** @同步豁免: 性能考虑 - 纯时间格式化与字符串拼接，无异步依赖。 */
@@ -182,6 +201,7 @@ function 构建Trinity第一人称身份描述(): string {
 function 构建Trinity起始拼接消息(
     _selfIdentityDescription: string,
     introspectionContent: string,
+    userInput: string,
 ): ContextMessage[] {
     const profile = 完整人格.基础信息;
     const environmentPrompt = 构建Trinity系统环境提示词(Date.now());
@@ -194,21 +214,24 @@ function 构建Trinity起始拼接消息(
     const answerRole = buildSourcedMessageContent(TRINITY_ECHO_SOURCE, profile.职责);
     const answerGender = buildSourcedMessageContent(TRINITY_ECHO_SOURCE, profile.性别);
     const answerIdentity = buildSourcedMessageContent(TRINITY_ECHO_SOURCE, 构建Trinity第一人称身份描述());
+    const thinkAboutMessage = buildTrinityThinkAboutMessage(userInput);
+    const thinkResultMessage = buildTrinityThinkResultMessage(introspectionContent);
     const outputTrigger = buildSourcedMessageContent(TRINITY_TRIGGER_SOURCE, TRINITY_OUTPUT_TRIGGER_REQUEST);
     const now = Date.now();
     const stitchedMessages: ContextMessage[] = [];
     stitchedMessages.push({ role: "system", content: environmentPrompt, timestamp: now });
-    stitchedMessages.push({ role: "user", content: wakeupAskName, timestamp: now + 1 });
+    stitchedMessages.push({ role: "system", content: wakeupAskName, timestamp: now + 1 });
     stitchedMessages.push({ role: "assistant", content: answerName, timestamp: now + 2 });
-    stitchedMessages.push({ role: "user", content: wakeupAskRole, timestamp: now + 3 });
+    stitchedMessages.push({ role: "system", content: wakeupAskRole, timestamp: now + 3 });
     stitchedMessages.push({ role: "assistant", content: answerRole, timestamp: now + 4 });
-    stitchedMessages.push({ role: "user", content: wakeupAskGender, timestamp: now + 5 });
+    stitchedMessages.push({ role: "system", content: wakeupAskGender, timestamp: now + 5 });
     stitchedMessages.push({ role: "assistant", content: answerGender, timestamp: now + 6 });
-    stitchedMessages.push({ role: "user", content: wakeupAskIdentity, timestamp: now + 7 });
+    stitchedMessages.push({ role: "system", content: wakeupAskIdentity, timestamp: now + 7 });
     stitchedMessages.push({ role: "assistant", content: answerIdentity, timestamp: now + 8 });
-    stitchedMessages.push({ role: "user", content: wakeupFinished, timestamp: now + 9 });
-    stitchedMessages.push({ role: "assistant", content: `<think_hidden>${introspectionContent}</think_hidden>`, timestamp: now + 10 });
-    stitchedMessages.push({ role: "system", content: outputTrigger, timestamp: now + 11 });
+    stitchedMessages.push({ role: "system", content: wakeupFinished, timestamp: now + 9 });
+    stitchedMessages.push({ role: "assistant", content: thinkAboutMessage, timestamp: now + 10 });
+    stitchedMessages.push({ role: "assistant", content: thinkResultMessage, timestamp: now + 11 });
+    stitchedMessages.push({ role: "system", content: outputTrigger, timestamp: now + 12 });
     return stitchedMessages;
 }
 
@@ -223,11 +246,11 @@ function 构建贤者起始拼接消息(
     const now = Date.now();
     const stitchedMessages: ContextMessage[] = [];
     stitchedMessages.push({ role: "system", content: SAGE_STITCH_SYSTEM_REQUIREMENTS, timestamp: now });
-    stitchedMessages.push({ role: "user", content: introRequest, timestamp: now + 1 });
+    stitchedMessages.push({ role: "system", content: introRequest, timestamp: now + 1 });
     stitchedMessages.push({ role: "assistant", content: selfIdentityDescription, timestamp: now + 2 });
-    stitchedMessages.push({ role: "user", content: restateRequest, timestamp: now + 3 });
+    stitchedMessages.push({ role: "system", content: restateRequest, timestamp: now + 3 });
     stitchedMessages.push({ role: "assistant", content: selfIdentityDescription, timestamp: now + 4 });
-    stitchedMessages.push({ role: "user", content: finalPrompt, timestamp: now + 5 });
+    stitchedMessages.push({ role: "system", content: finalPrompt, timestamp: now + 5 });
     return stitchedMessages;
 }
 
@@ -242,9 +265,11 @@ function 构建贤者起始拼接消息(
 export function 构建TrinityRoleHack消息(
     selfIdentityDescription: string,
     introspection: string,
+    userInput: string,
 ): ContextMessage[] {
     const safeIntrospection = introspection.trim() || "我还在整理自己的想法。";
-    return 构建Trinity起始拼接消息(selfIdentityDescription, safeIntrospection);
+    const safeUserInput = userInput.trim() || "请继续当前任务。";
+    return 构建Trinity起始拼接消息(selfIdentityDescription, safeIntrospection, safeUserInput);
 }
 
 /**
