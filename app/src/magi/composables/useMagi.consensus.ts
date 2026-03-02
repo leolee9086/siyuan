@@ -72,9 +72,41 @@ async function appendSageResponses(
                 ...(typeof response.requiresDeliberation === "boolean"
                     ? { requiresDeliberation: response.requiresDeliberation }
                     : {}),
+                ...(typeof response.usedToolCall === "boolean"
+                    ? { usedToolCall: response.usedToolCall }
+                    : {}),
             },
         );
     }
+}
+
+/** 获取上一轮可用的 Trinity 综合输出，作为下一轮三贤者历史输入。 */
+function getLatestEligibleTrinityHistory(consensusMessages: MagiMessage[]): string {
+    for (let index = consensusMessages.length - 1; index >= 0; index -= 1) {
+        const message = consensusMessages[index];
+        if (message.type !== "consensus") {
+            continue;
+        }
+        const mode = Reflect.get(message.meta ?? {}, "mode");
+        const source = Reflect.get(message.meta ?? {}, "source");
+        const eligible = Reflect.get(message.meta ?? {}, "trinityHistoryEligible");
+        const isConsensusFinal = (mode === "standard" || mode === "critical") && source === "trinity-synthesis";
+        // 只读取上一轮最终 Trinity 输出，且必须显式标记为可复用历史。
+        if (isConsensusFinal && eligible === true) {
+            return message.content.trim();
+        }
+        // 命中上一轮最终共识但不可用时，立即终止，避免回溯到更早轮次。
+        if (isConsensusFinal) {
+            return "";
+        }
+    }
+    return "";
+}
+
+/** 从本轮贤者响应中提取 Melchior 是否发起工具调用（实测值）。 */
+function resolveMelchiorUsedToolCall(validResponses: SageResponse[]): boolean {
+    const melchior = validResponses.find((response) => response.seel.includes("MELCHIOR"));
+    return melchior?.usedToolCall === true;
 }
 
 /** 执行审慎决策投票链路并返回决策结果。 */
@@ -114,8 +146,9 @@ async function collectValidResponses(
     consensusMessages: MagiMessage[],
     sages: WrappedSeel[],
     userMessage: string,
+    trinityHistory: string,
 ): Promise<SageResponse[] | null> {
-    const validResponses = await processSagesResponses(sages, userMessage);
+    const validResponses = await processSagesResponses(sages, userMessage, trinityHistory);
     await appendSageResponses(consensusMessages, validResponses);
 
     // 三贤者全部失败或返回空内容时，终止本轮并给出可见错误，避免继续进入 Trinity/投票产生误导结果。
@@ -170,10 +203,12 @@ async function runConsensusRound(
     trinity: WrappedSeel | null,
     userMessage: string,
 ): Promise<void> {
-    const validResponses = await collectValidResponses(consensusMessages, sages, userMessage);
+    const trinityHistory = getLatestEligibleTrinityHistory(consensusMessages);
+    const validResponses = await collectValidResponses(consensusMessages, sages, userMessage, trinityHistory);
     if (!validResponses) {
         return;
     }
+    const melchiorUsedToolCall = resolveMelchiorUsedToolCall(validResponses);
     const { deliberationRequired, voteResult, proposedAction } = await resolveVoteResult(
         consensusMessages,
         sages,
@@ -195,6 +230,7 @@ async function runConsensusRound(
         voteResult,
         deliberationRequired,
         userMessage,
+        melchiorUsedToolCall,
     );
 }
 
@@ -205,12 +241,14 @@ async function appendFinalConsensus(
     voteResult: VoteResult | null,
     deliberationRequired: boolean,
     userMessage: string,
+    melchiorUsedToolCall: boolean,
 ): Promise<void> {
     const consensusReply = await generateConsensusReply(
         trinityResult,
         voteResult,
         deliberationRequired,
         userMessage,
+        melchiorUsedToolCall,
     );
     const finalMessage = await createMessage(
         consensusReply.type,

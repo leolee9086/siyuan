@@ -53,7 +53,7 @@ async function handleStringResponse(
     // Trinity 工具模式下禁止直接文本输出，必须走 speak tool。
     if (options.mode === "trinity-speak-tool") {
         callbacks.onError?.(new Error("Trinity 输出必须通过 speak 工具调用产生，检测到直接文本输出。"));
-        return { content: "", success: false };
+        return { content: "", success: false, hasToolCalls: false, toolCallNames: [] };
     }
     const message = await createMessage("ai", content);
     message.status = "success";
@@ -62,7 +62,7 @@ async function handleStringResponse(
     callbacks.onChunk?.(message);
     callbacks.onComplete?.(message);
 
-    return { content, success: true };
+    return { content, success: true, hasToolCalls: false, toolCallNames: [] };
 }
 
 /** 处理 AsyncGenerator 流式响应 */
@@ -74,18 +74,25 @@ async function handleAsyncGeneratorResponse(
     const message = await createStreamMessage();
     const toolState = createToolCallState();
     const shouldUseSpeakToolMode = options.mode === "trinity-speak-tool";
+    const shouldCaptureToolCalls = options.captureToolCalls === true || shouldUseSpeakToolMode;
+    const observedToolCallNames = new Set<string>();
+    let hasAnyToolCall = false;
     let accumulated = "";
 
     callbacks.onStart?.(message);
 
     try {
-        accumulated = await consumeStream(
+        const consumed = await consumeStream(
             generator,
             message,
             callbacks,
             shouldUseSpeakToolMode,
             toolState,
+            shouldCaptureToolCalls,
+            observedToolCallNames,
         );
+        accumulated = consumed.accumulated;
+        hasAnyToolCall = consumed.hasAnyToolCall;
         // speak-tool 模式下必须检测到 speak 调用且解析出最终正文。
         if (shouldUseSpeakToolMode && (!toolState.hasSpeakToolCall || !toolState.spokenContent.trim())) {
             throw new Error("Trinity 未调用 speak 工具或 speak.content 为空。");
@@ -97,15 +104,38 @@ async function handleAsyncGeneratorResponse(
     } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));
         callbacks.onError?.(err);
-        return { content: accumulated, success: false };
+        return buildToolAwareResult(accumulated, false, hasAnyToolCall, observedToolCallNames);
     }
 
-    message.content = accumulated;
+    finalizeStreamMessage(message, accumulated, callbacks);
+    return buildToolAwareResult(accumulated, true, hasAnyToolCall, observedToolCallNames);
+}
+
+/** 构建包含工具调用观测信息的统一返回结构 */
+function buildToolAwareResult(
+    content: string,
+    success: boolean,
+    hasToolCalls: boolean,
+    toolCallNames: Set<string>,
+): StreamResult {
+    return {
+        content,
+        success,
+        hasToolCalls,
+        toolCallNames: Array.from(toolCallNames),
+    };
+}
+
+/** 收尾流式消息状态并触发完成回调 */
+function finalizeStreamMessage(
+    message: MagiMessage,
+    content: string,
+    callbacks: StreamCallbacks,
+): void {
+    message.content = content;
     message.status = "success";
     message.type = "ai";
     callbacks.onComplete?.(message);
-
-    return { content: accumulated, success: true };
 }
 
 /** 逐块消费 AsyncGenerator 并更新消息 */
@@ -115,12 +145,24 @@ async function consumeStream(
     callbacks: StreamCallbacks,
     shouldUseSpeakToolMode: boolean,
     toolState: ToolCallState,
-): Promise<string> {
+    shouldCaptureToolCalls: boolean,
+    observedToolCallNames: Set<string>,
+): Promise<{ accumulated: string; hasAnyToolCall: boolean }> {
     let accumulated = "";
     let lastSpoken = "";
+    let hasAnyToolCall = false;
 
     for await (const chunk of generator) {
         const parsedChunk = await extractChunkDataFromChunk(chunk);
+        const toolCallNames = collectToolCallNames(parsedChunk.toolCalls);
+        const hasToolCalls = parsedChunk.toolCalls.length > 0 || toolCallNames.length > 0;
+        // 默认模式下也可按需捕获工具调用，用于上层做精确分支判断。
+        if (shouldCaptureToolCalls && hasToolCalls) {
+            hasAnyToolCall = true;
+            for (const name of toolCallNames) {
+                observedToolCallNames.add(name);
+            }
+        }
         const shouldEmitPlainText = !shouldUseSpeakToolMode && Boolean(parsedChunk.content);
         // 默认模式下，只在存在文本增量时刷新流式内容。
         if (shouldEmitPlainText) {
@@ -144,7 +186,7 @@ async function consumeStream(
         }
     }
 
-    return accumulated;
+    return { accumulated, hasAnyToolCall };
 }
 
 /** 从SSE chunk中提取文本/工具调用增量 */
@@ -305,4 +347,16 @@ function resolveSpeakContent(state: ToolCallState): string {
         }
     }
     return "";
+}
+
+/** 提取当前 chunk 中出现的工具名称（去空值，不去重） */
+function collectToolCallNames(toolCalls: StreamToolCallDelta[]): string[] {
+    const names: string[] = [];
+    for (const toolCall of toolCalls) {
+        const name = toolCall.name.trim();
+        if (name) {
+            names.push(name);
+        }
+    }
+    return names;
 }

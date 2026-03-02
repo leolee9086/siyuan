@@ -255,6 +255,7 @@ function 构建Trinity起始拼接消息(
 function 构建贤者起始拼接消息(
     selfIdentityDescription: string,
     userInput: string,
+    trinityHistory: string,
 ): ContextMessage[] {
     const profile = 完整人格.基础信息;
     const environmentPrompt = 构建贤者系统环境提示词(Date.now());
@@ -268,6 +269,10 @@ function 构建贤者起始拼接消息(
     const answerGender = buildSourcedMessageContent(TRINITY_ECHO_SOURCE, profile.性别);
     const safeIdentityDescription = selfIdentityDescription.trim() || 构建Trinity第一人称身份描述();
     const answerIdentity = buildSourcedMessageContent(TRINITY_ECHO_SOURCE, safeIdentityDescription);
+    const safeTrinityHistory = trinityHistory.trim();
+    const historyEcho = safeTrinityHistory
+        ? buildSourcedMessageContent(TRINITY_ECHO_SOURCE, `上一轮Trinity综合输出：${safeTrinityHistory}`)
+        : "";
     const finalPrompt = buildSourcedMessageContent(TRINITY_USER_MESSAGE_SOURCE, userInput);
     const now = Date.now();
     const stitchedMessages: ContextMessage[] = [];
@@ -281,6 +286,11 @@ function 构建贤者起始拼接消息(
     stitchedMessages.push({ role: "system", content: wakeupAskIdentity, timestamp: now + 7 });
     stitchedMessages.push({ role: "assistant", content: answerIdentity, timestamp: now + 8 });
     stitchedMessages.push({ role: "system", content: wakeupFinished, timestamp: now + 9 });
+    if (historyEcho) {
+        stitchedMessages.push({ role: "assistant", content: historyEcho, timestamp: now + 10 });
+        stitchedMessages.push({ role: "system", content: finalPrompt, timestamp: now + 11 });
+        return stitchedMessages;
+    }
     stitchedMessages.push({ role: "system", content: finalPrompt, timestamp: now + 10 });
     return stitchedMessages;
 }
@@ -321,7 +331,8 @@ export const 创建贤者回复函数 = (
     ): Promise<string | AsyncGenerator<string>> => {
         const 原始提示词 = 基础实例.config.systemPromptForChat;
         const safeUserInput = userInput.trim() || "请继续当前对话。";
-        const roleHackMessages = 构建贤者起始拼接消息(原始提示词, safeUserInput);
+        const trinityHistory = options.context?.trinityHistory?.trim() ?? "";
+        const roleHackMessages = 构建贤者起始拼接消息(原始提示词, safeUserInput, trinityHistory);
         const nextOptions: ReplyOptions = {
             ...options,
             context: {

@@ -213,6 +213,7 @@ export interface ContextMessage {
 export interface ReplyOptions {
     context?: {
         userInput?: string;
+        trinityHistory?: string;
         responses?: Array<{ seel: string; content: string }>;
         introspection?: string;
         overrideMessages?: ContextMessage[];

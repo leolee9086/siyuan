@@ -95,8 +95,9 @@ export function buildStreamCallbacks(seel: WrappedSeel, userMessage: string) {
 export async function processSagesResponses(
     sages: WrappedSeel[],
     userMessage: string,
+    trinityHistory: string,
 ): Promise<SageResponse[]> {
-    const responsePromises = sages.map((seel) => collectSingleSageResponse(seel, userMessage));
+    const responsePromises = sages.map((seel) => collectSingleSageResponse(seel, userMessage, trinityHistory));
     const results = await Promise.all(responsePromises);
     return results.filter(isSageResponse);
 }
@@ -105,23 +106,34 @@ export async function processSagesResponses(
 export async function collectSingleSageResponse(
     seel: WrappedSeel,
     userMessage: string,
+    trinityHistory: string,
 ): Promise<SageResponse | null> {
     try {
         await syncOriginalMessages(seel);
-        const response = await seel.reply(userMessage);
+        const isMelchior = seel.config.name.includes("MELCHIOR");
+        const response = await seel.reply(userMessage, {
+            context: {
+                trinityHistory,
+            },
+        });
         const callbacks = buildStreamCallbacks(seel, userMessage);
-        const { content, success } = await processStreamResponse(response, callbacks);
+        const { content, success, hasToolCalls } = await processStreamResponse(
+            response,
+            callbacks,
+            isMelchior ? { captureToolCalls: true } : {},
+        );
         if (!success) {
             return null;
         }
         // 仅 Melchior 响应需要解析审慎决策元标记，其它贤者直接返回正文。
-        if (seel.config.name.includes("MELCHIOR")) {
+        if (isMelchior) {
             const parsed = parseMelchiorResponse(content);
             return {
                 content: parsed.content,
                 seel: seel.config.name,
                 displayName: seel.config.displayName,
                 requiresDeliberation: parsed.requiresDeliberation,
+                usedToolCall: hasToolCalls === true,
             };
         }
         return { content, seel: seel.config.name, displayName: seel.config.displayName };

@@ -57,6 +57,10 @@ export interface StreamResult {
     content: string;
     /** 是否成功完成 */
     success: boolean;
+    /** 本轮流式响应是否观测到工具调用 */
+    hasToolCalls?: boolean;
+    /** 本轮观测到的工具名称（去重） */
+    toolCallNames?: string[];
 }
 
 /**
@@ -75,6 +79,8 @@ export interface SageResponse {
     displayName: string;
     /** 是否要求进入审慎决策模式（由 Melchior 标注） */
     requiresDeliberation?: boolean;
+    /** 是否发生过工具调用（由流解析实测） */
+    usedToolCall?: boolean;
 }
 
 /**
@@ -98,6 +104,10 @@ export interface ConsensusMessage {
         source: "trinity-synthesis" | "rumination-entry";
         /** 重要任务模式下的三方表决结果 */
         vote?: VoteResult;
+        /** Melchior 在该轮是否发起工具调用（实测） */
+        melchiorUsedToolCall?: boolean;
+        /** 当前轮次 Trinity 输出是否可作为下一轮三贤者历史 */
+        trinityHistoryEligible?: boolean;
     };
     /** 时间戳 */
     timestamp: number;

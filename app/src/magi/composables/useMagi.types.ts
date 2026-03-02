@@ -7,8 +7,9 @@
 // [TASK] T2.2 迁移composables和工具函数 - useMagi.types
 
 import type { Ref } from "vue";
-import type { MagiMessage, SageResponse, VoteResult } from "../utils/messageFactory.types";
+import type { MagiMessage, VoteResult } from "../utils/messageFactory.types";
 import type { MockWISE实例, MagiPromptSet } from "../core/wise/wise.types";
+import type { ReplyOptions } from "../core/core.types";
 
 /**
  * 连接状态
@@ -108,7 +109,7 @@ export interface WrappedSeel {
     /** 回复用户输入 */
     reply: (
         userInput: string,
-        options?: { context?: { responses?: SageResponse[] } },
+        options?: ReplyOptions,
     ) => Promise<string | AsyncGenerator<string>>;
     /** 对拟议行动进行二元表决 */
     voteFor: (proposedAction: string) => Promise<VoteResult | null>;

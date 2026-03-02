@@ -12,23 +12,38 @@ async function startRuminationLoop(
 }
 
 /** 构造标准模式共识消息 */
-function createStandardConsensus(synthesis: string): ConsensusMessage {
+function createStandardConsensus(synthesis: string, melchiorUsedToolCall: boolean): ConsensusMessage {
     return {
         type: "consensus",
         content: synthesis,
         status: "success",
-        meta: { mode: "standard", source: "trinity-synthesis" },
+        meta: {
+            mode: "standard",
+            source: "trinity-synthesis",
+            melchiorUsedToolCall,
+            trinityHistoryEligible: !melchiorUsedToolCall,
+        },
         timestamp: Date.now(),
     };
 }
 
 /** 构造关键模式通过消息 */
-function createCriticalPassedConsensus(synthesis: string, vote: VoteResult): ConsensusMessage {
+function createCriticalPassedConsensus(
+    synthesis: string,
+    vote: VoteResult,
+    melchiorUsedToolCall: boolean,
+): ConsensusMessage {
     return {
         type: "consensus",
         content: synthesis,
         status: "success",
-        meta: { mode: "critical", source: "trinity-synthesis", vote },
+        meta: {
+            mode: "critical",
+            source: "trinity-synthesis",
+            vote,
+            melchiorUsedToolCall,
+            trinityHistoryEligible: !melchiorUsedToolCall,
+        },
         timestamp: Date.now(),
     };
 }
@@ -47,13 +62,14 @@ export async function generateConsensusReply(
     voteResult: VoteResult | null,
     deliberationRequired: boolean,
     userMessage: string,
+    melchiorUsedToolCall: boolean,
 ): Promise<ConsensusMessage> {
     const synthesis = trinityResult ?? getMagiI18nText("noConsensus");
     if (!deliberationRequired) {
-        return createStandardConsensus(synthesis);
+        return createStandardConsensus(synthesis, melchiorUsedToolCall);
     }
     if (voteResult?.passed) {
-        return createCriticalPassedConsensus(synthesis, voteResult);
+        return createCriticalPassedConsensus(synthesis, voteResult, melchiorUsedToolCall);
     }
     const failedVote = createFailedVote(voteResult);
     const ruminationEntry = await startRuminationLoop(userMessage, trinityResult, failedVote);
@@ -61,7 +77,13 @@ export async function generateConsensusReply(
         type: "consensus",
         content: ruminationEntry,
         status: "success",
-        meta: { mode: "critical", source: "rumination-entry", vote: failedVote },
+        meta: {
+            mode: "critical",
+            source: "rumination-entry",
+            vote: failedVote,
+            melchiorUsedToolCall,
+            trinityHistoryEligible: false,
+        },
         timestamp: Date.now(),
     };
 }

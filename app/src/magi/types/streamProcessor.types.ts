@@ -22,6 +22,7 @@ export type StreamProcessMode = "default" | "trinity-speak-tool";
  */
 export interface StreamProcessOptions {
     mode?: StreamProcessMode;
+    captureToolCalls?: boolean;
 }
 
 /**
@@ -62,4 +63,3 @@ export interface ToolCallState {
     hasSpeakToolCall: boolean;
     spokenContent: string;
 }
-
