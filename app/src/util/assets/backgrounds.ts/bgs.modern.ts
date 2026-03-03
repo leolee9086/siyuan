@@ -1,23 +1,31 @@
 import { z } from "zod";
+import type { ColorNode, GradientConfig, GradientDirection } from "./bgs.modern.types";
 
-// 颜色节点类型定义
-export type ColorNode = {
-  color: string;
-  position: number;
-};
+// 预定义的渐变方向选项
+const GRADIENT_DIRECTIONS: readonly GradientDirection[] = [
+  "to top", "to right", "to bottom", "to left",
+  "0deg", "45deg", "90deg", "135deg", "180deg", "225deg", "270deg", "315deg"
+] as const;
 
-// 渐变方向类型定义
-export type GradientDirection =
-  | "to top"
-  | "to right"
-  | "to bottom"
-  | "to left"
-  | `${number}deg`;
-
-// 渐变配置类型定义
-export type GradientConfig = {
-  direction: GradientDirection;
-  colorNodes: ColorNode[];
+/**
+ * 创建线性同余随机数生成器
+ *
+ * 作用：基于种子值生成可预测的伪随机数序列
+ * 意图：用于生成可复现的随机渐变配置，便于测试和调试
+ * 调用时机：在 generateRandomGradientConfig 中需要基于种子生成随机数时
+ *
+ * @param initialSeed 初始种子值
+ * @returns 返回一个生成 0-1 之间随机数的函数
+ */
+const createSeededRandom = (initialSeed: number) => {
+  let seed = initialSeed;
+  return () => {
+    const a = 1664525;
+    const c = 1013904223;
+    const m = Math.pow(2, 32);
+    seed = (a * seed + c) % m;
+    return seed / m;
+  };
 };
 
 // Zod 验证模式
@@ -41,6 +49,7 @@ const gradientConfigSchema = z.object({
  * 生成线性渐变背景样式
  * @param config 渐变配置
  * @returns CSS背景样式字符串
+ * @同步豁免: 性能考虑 - 纯字符串拼接计算，无IO操作，必须同步返回以供样式直接使用
  */
 export const generateLinearGradient = (config: GradientConfig): string => {
   // 验证配置
@@ -60,26 +69,14 @@ export const generateLinearGradient = (config: GradientConfig): string => {
  * @param seed 随机种子
  * @param colorCount 颜色节点数量 (默认2-5之间)
  * @returns 渐变配置
+ * @同步豁免: 性能考虑 - 纯数学计算生成配置对象，无IO操作，用于初始化时批量生成背景
  */
 export const generateRandomGradientConfig = (seed?: number, colorCount?: number): GradientConfig => {
-  // 使用种子或当前时间作为随机数生成器的种子
-  const random = seed ?
-    () => {
-      // 简单的线性同余生成器
-      const a = 1664525;
-      const c = 1013904223;
-      const m = Math.pow(2, 32);
-      seed = (a * seed + c) % m;
-      return seed / m;
-    } :
-    Math.random;
+  const random = seed !== undefined ? createSeededRandom(seed) : Math.random;
   
   // 随机选择方向
-  const directions: GradientDirection[] = [
-    "to top", "to right", "to bottom", "to left",
-    "0deg", "45deg", "90deg", "135deg", "180deg", "225deg", "270deg", "315deg"
-  ];
-  const direction = directions[Math.floor(random() * directions.length)];
+  const directionIndex = Math.floor(random() * GRADIENT_DIRECTIONS.length);
+  const direction: GradientDirection = GRADIENT_DIRECTIONS[directionIndex] ?? "to top";
   
   // 确定颜色节点数量
   const nodeCount = colorCount || Math.floor(random() * 4) + 2; // 2-5个节点
