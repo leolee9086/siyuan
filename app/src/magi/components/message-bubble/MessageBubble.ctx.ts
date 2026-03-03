@@ -71,13 +71,13 @@ async function applyThinkHeight(
  * 作用：监听消息内容变化解析思考标签，监听状态转换重新解析
  * 调用时机：useMessageBubbleCtx 中调用一次
  */
-async function setupContentWatchers(
+function setupContentWatchers(
     props: MessageBubbleProps,
     emit: (event: "cursor-update") => void,
     thinkContent: Ref<string>,
     normalContent: Ref<string>,
     hasThinkContent: Ref<boolean>,
-): Promise<void> {
+): void {
     // 消息内容变化时重新解析思考标签
     watch(
         () => props.msg?.content,
@@ -112,11 +112,11 @@ async function setupContentWatchers(
  * 作用：当思考内容出现或展开状态变化时更新DOM高度
  * 调用时机：useMessageBubbleCtx 中调用一次
  */
-async function setupThinkAnimationWatchers(
+function setupThinkAnimationWatchers(
     thinkContentRef: Ref<HTMLElement | null>,
     isThinkExpanded: Ref<boolean>,
     hasThinkContent: Ref<boolean>,
-): Promise<void> {
+): void {
     watch(
         () => hasThinkContent.value,
         async (v) => {
@@ -158,8 +158,8 @@ export async function useMessageBubbleCtx(
         { immediate: true },
     );
 
-    await setupContentWatchers(props, emit, thinkContent, normalContent, hasThinkContent);
-    await setupThinkAnimationWatchers(thinkContentRef, isThinkExpanded, hasThinkContent);
+    setupContentWatchers(props, emit, thinkContent, normalContent, hasThinkContent);
+    setupThinkAnimationWatchers(thinkContentRef, isThinkExpanded, hasThinkContent);
 
     // @内联回调
     onMounted(async () => {

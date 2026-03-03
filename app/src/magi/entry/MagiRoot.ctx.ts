@@ -241,6 +241,7 @@ function createMagiRootState() {
 function createMagiRootComputed(
     magiState: { value: UseMagiReturn | null },
     showMessages: { value: boolean },
+    showSeels: { value: boolean },
 ) {
     const seels = computed(() => magiState.value?.seels ?? []);
     const consensusMessages = computed(() => magiState.value?.consensusMessages ?? []);
@@ -253,9 +254,11 @@ function createMagiRootComputed(
     const isAnySeelLoading = computed(
         () => magiState.value?.isAnySeelLoading.value ?? false,
     );
-    const displayMessages = computed<MagiMessage[]>(
-        () => (showMessages.value ? consensusMessages.value : []),
-    );
+    const displayMessages = computed<MagiMessage[]>(() => !showMessages.value
+        ? []
+        : showSeels.value
+            ? consensusMessages.value.filter((message) => !(message.type === "consensus" && Reflect.get(message.meta ?? {}, "type") === "sage-response"))
+            : consensusMessages.value);
     return { seels, sageSeels, trinitySeel, isAnySeelLoading, displayMessages };
 }
 
@@ -301,7 +304,7 @@ function createStopInputHandler(): () => void {
 /** @同步豁免: UI构建 — Vue setup 必须同步返回可用上下文 */
 export function useMagiRootContext(): MagiRootContext {
     const state = createMagiRootState();
-    const computedState = createMagiRootComputed(state.magiState, state.showMessages);
+    const computedState = createMagiRootComputed(state.magiState, state.showMessages, state.showSeels);
     const handlers = createMagiRootHandlers(
         state.magiState,
         state.inputValue,
