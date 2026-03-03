@@ -5,6 +5,9 @@
         <h3>适格者 PERSONA 录入</h3>
         <button type="button" class="persona-seed-close" @click="emit('close')">CLOSE</button>
       </header>
+      <p class="persona-seed-policy-tip">
+        规则说明：工作空间主管AI一旦完成构建，不可删除，仅可持续调整。
+      </p>
       <PersonaSeedSubjectForm v-model:subject-id="subjectId" v-model:subject-name="subjectName"
         v-model:subject-type="subjectType" v-model:organization="organization"
         v-model:role="role" v-model:career-goal="careerGoal" />

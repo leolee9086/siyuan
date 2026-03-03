@@ -18,6 +18,7 @@ import {
     appendConsensusMessage,
     sendUserMessageWithConsensus,
 } from "./useMagi.consensus";
+import { resolveStartupPromptInjectionsByActiveSeed } from "../prompts/personaRuntimePromptBuilder";
 
 /** 清空响应式数组内容（保持引用不变） */
 async function clearReactiveArrays(
@@ -105,6 +106,17 @@ async function initializeWrappedSeels(
     connectionStatus.value = "connected";
 }
 
+/** 启动/重连时解析应使用的人格注入（显式参数优先，其次工作空间 active seed）。 */
+async function resolvePromptInjectionsForInit(
+    explicitPromptInjections?: MagiPromptSet,
+): Promise<MagiPromptSet | undefined> {
+    if (explicitPromptInjections) {
+        return explicitPromptInjections;
+    }
+    const activeSeed = await resolveStartupPromptInjectionsByActiveSeed();
+    return activeSeed?.promptInjections;
+}
+
 /**
  * 将MockWISE实例包装为Vue响应式的WrappedSeel
  *
@@ -188,13 +200,14 @@ async function wrapSeelInstance(ai: MockWISE实例): Promise<WrappedSeel> {
  * 意图：为Vue组件提供响应式的MAGI系统接口
  * 调用时机：MagiMainPanel组件setup阶段调用
  */
-export async function useMagi(): Promise<UseMagiReturn> {
+export async function useMagi(options?: { promptInjections?: MagiPromptSet }): Promise<UseMagiReturn> {
     const seels: WrappedSeel[] = reactive([]);
     const connectionStatus = ref<ConnectionStatus>("disconnected");
     const consensusMessages: MagiMessage[] = reactive([]);
     const isAnySeelLoading = computed(() => seels.some((seel) => seel.loading));
 
-    await initializeWrappedSeels(seels, connectionStatus);
+    const startupPromptInjections = await resolvePromptInjectionsForInit(options?.promptInjections);
+    await initializeWrappedSeels(seels, connectionStatus, startupPromptInjections);
 
     return {
         seels,
@@ -243,8 +256,8 @@ async function reinitializeMAGI(
         connectionStatus.value = "connecting";
         const shouldClearMessages = !options?.preserveConsensusMessages;
         await clearReactiveArrays(seels, consensusMessages, shouldClearMessages);
-
-        await initializeWrappedSeels(seels, connectionStatus, options?.promptInjections);
+        const resolvedPromptInjections = await resolvePromptInjectionsForInit(options?.promptInjections);
+        await initializeWrappedSeels(seels, connectionStatus, resolvedPromptInjections);
         await appendConsensusMessage(
             consensusMessages,
             "system",

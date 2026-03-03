@@ -8,6 +8,7 @@ import type {
 } from "../../data/questionnaire.types";
 import type { LikertScore } from "../../components/persona/CompositeRating.types";
 import type { PersonaConvergenceSuggestion } from "../../data/convergence/persona-seed-convergence.types";
+import { persistActiveSeedProfilePath } from "../../prompts/personaRuntimePromptBuilder";
 
 const DESCRIPTION_FIELD_LABELS: Readonly<Record<keyof IpipPersonaSeedDescriptions, string>> = {
     professionalDescription: "职业描述",
@@ -280,5 +281,6 @@ export const saveSubmissionPayload = async (
     });
     await writeJsonFile(samplePath, payload);
     await writeJsonFile(profilePath, profile);
+    await persistActiveSeedProfilePath(profilePath);
     return { samplePath, profilePath };
 };

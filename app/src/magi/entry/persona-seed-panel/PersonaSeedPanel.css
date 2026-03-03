@@ -31,6 +31,15 @@
   color: #88f9ff;
 }
 
+.persona-seed-policy-tip {
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 186, 117, 0.5);
+  background: rgba(56, 34, 0, 0.32);
+  color: #ffd4a1;
+  font-size: 12px;
+}
+
 .persona-seed-close {
   height: 30px;
   border: 1px solid rgba(0, 255, 255, 0.6);
