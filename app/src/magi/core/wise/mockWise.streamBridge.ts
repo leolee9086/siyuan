@@ -3,6 +3,9 @@
  * @description 负责从 OpenAI chunk 中提取可桥接字段，并构造统一的 SSE 行。
  */
 
+import type { ContextMessage } from "../core.types";
+import type { MockWISE内部状态 } from "./wise.types";
+
 /** @同步豁免: 性能考虑 - SSE chunk 桥接仅做同步内存解析，无I/O。 */
 export const 提取桥接Chunk数据 = (
     choice: unknown,
@@ -67,4 +70,43 @@ export const 构建桥接SSE行 = (
             finish_reason: bridgedChoice.finishReason,
         }],
     })}\n\n`;
+};
+
+/** @同步豁免: 性能考虑 - 仅内存数组追加，无异步依赖。 */
+export const 执行追加上下文消息 = (
+    内部状态: MockWISE内部状态,
+    messages: ContextMessage[],
+): void => {
+    if (!Array.isArray(messages) || messages.length === 0) {
+        return;
+    }
+    内部状态.contextMessages.push(...messages);
+};
+
+/** @同步豁免: 性能考虑 - 仅内存数组尾向扫描与单点替换，无异步依赖。 */
+export const 执行替换最近Assistant上下文消息 = (
+    内部状态: MockWISE内部状态,
+    content: string,
+): void => {
+    const normalized = typeof content === "string" ? content.trim() : "";
+    if (!normalized) {
+        return;
+    }
+    for (let index = 内部状态.contextMessages.length - 1; index >= 0; index -= 1) {
+        const message = 内部状态.contextMessages[index];
+        if (message.role !== "assistant") {
+            continue;
+        }
+        内部状态.contextMessages[index] = {
+            ...message,
+            content: normalized,
+            timestamp: Date.now(),
+        };
+        return;
+    }
+    内部状态.contextMessages.push({
+        role: "assistant",
+        content: normalized,
+        timestamp: Date.now(),
+    });
 };

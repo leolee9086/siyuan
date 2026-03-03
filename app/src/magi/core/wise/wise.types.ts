@@ -157,6 +157,10 @@ export interface MockWISE实例 {
     voteFor: (proposedAction: string) => Promise<VoteForResult>;
     /** 更新配置 */
     updateConfig: (newConfig: Partial<MockWISEConfig>) => void;
+    /** 由外部向上下文历史栈追加消息（用于跨角色历史注入） */
+    appendContextMessages: (messages: ContextMessage[]) => void;
+    /** 用指定文本替换最近一条 assistant 历史消息（用于跨角色共享历史覆盖） */
+    replaceLatestAssistantContextMessage: (content: string) => void;
 }
 
 // ────────────────────────────────────────────────────────────────────────────

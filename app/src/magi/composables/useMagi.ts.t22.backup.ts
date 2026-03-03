@@ -10,7 +10,7 @@
 import { ref, reactive, computed } from "vue";
 import type { ConnectionStatus, WrappedSeel, UseMagiReturn } from "./useMagi.types";
 import type { MockWISE实例 } from "../core/wise/wise.types";
-import type { MockMessage } from "../core/core.types";
+import type { ContextMessage, MockMessage } from "../core/core.types";
 import type { MagiMessage } from "../utils/messageFactory.types";
 import { initMagi } from "../core/wise/mockWise.subclass";
 import { getMagiI18nText } from "../utils/magiI18n";
@@ -234,6 +234,16 @@ async function wrapSeelInstance(ai: MockWISE实例): Promise<WrappedSeel> {
             const result = await ai.voteFor(responses);
             await syncWrappedSeelState(wrapped, ai);
             return result;
+        },
+        /** 由共识层追加外部上下文历史 */
+        async appendContextMessages(messages: ContextMessage[]) {
+            ai.appendContextMessages(messages);
+            await syncWrappedSeelState(wrapped, ai);
+        },
+        /** 由共识层替换最近一条 assistant 历史消息 */
+        async replaceLatestAssistantContextMessage(content: string) {
+            ai.replaceLatestAssistantContextMessage(content);
+            await syncWrappedSeelState(wrapped, ai);
         },
     };
 

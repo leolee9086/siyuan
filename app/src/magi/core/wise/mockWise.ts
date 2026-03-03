@@ -7,24 +7,12 @@
  */
 
 // [TASK] T2.1 迁移MAGI核心系统 - wise/mockWise
-
-
 import { getSafeSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import type { StreamCallbacks, StreamRequestConfig } from "../../../util/network/fetchStream.types";
 import { 是AI响应Chunk } from "./wise.guard";
-import { 提取桥接Chunk数据, 构建桥接SSE行 } from "./mockWise.streamBridge";
-import type {
-    MockWISEConfig,
-    ContextMessage,
-    OpenAICompatConfig,
-    ReplyOptions,
-} from "../core.types";
-import type {
-    MockWISE完整配置,
-    MockWISE实例,
-    SSE桥接状态,
-    MockWISE内部状态,
-} from "./wise.types";
+import { 提取桥接Chunk数据, 构建桥接SSE行, 执行追加上下文消息, 执行替换最近Assistant上下文消息 } from "./mockWise.streamBridge";
+import type { MockWISEConfig, ContextMessage, OpenAICompatConfig, ReplyOptions } from "../core.types";
+import type { MockWISE完整配置, MockWISE实例, SSE桥接状态, MockWISE内部状态 } from "./wise.types";
 import {
     执行投票操作,
     执行回复操作,
@@ -300,6 +288,14 @@ const 构建实例方法 = (内部状态: MockWISE内部状态): Omit<MockWISE�
                 ...(newConfig.openAIConfig ?? {}),
             },
         };
+    },
+    /** @同步豁免: 性能考虑 - 仅内存数组追加，无异步依赖。 */
+    appendContextMessages(messages) {
+        执行追加上下文消息(内部状态, messages);
+    },
+    /** @同步豁免: 性能考虑 - 仅内存数组尾向扫描与单点替换，无异步依赖。 */
+    replaceLatestAssistantContextMessage(content) {
+        执行替换最近Assistant上下文消息(内部状态, content);
     },
 });
 

@@ -138,7 +138,6 @@ const SAGE_STITCH_SYSTEM_REQUIREMENTS = `你将对外界的消息和任务做出
 其中 source=user_message 是真正的外部输入。
 source=seraph 是系统心理监控机制发出的唤醒/校准消息，不代表外部用户输入。
 `;
-const TRINITY_USER_MESSAGE_SOURCE = "user_message";
 const TRINITY_ECHO_SOURCE = "echo";
 const TRINITY_SERAPH_SOURCE = "seraph";
 const TRINITY_TRIGGER_SOURCE = "trigger";
@@ -251,11 +250,9 @@ function 构建Trinity起始拼接消息(
     return stitchedMessages;
 }
 
-/** 构建三贤人起始拼接消息骨架（system -> assistant* -> user） */
+/** 构建三贤人唤醒消息骨架（system -> assistant*） */
 function 构建贤者起始拼接消息(
     selfIdentityDescription: string,
-    userInput: string,
-    trinityHistory: string,
 ): ContextMessage[] {
     const profile = 完整人格.基础信息;
     const environmentPrompt = 构建贤者系统环境提示词(Date.now());
@@ -269,11 +266,6 @@ function 构建贤者起始拼接消息(
     const answerGender = buildSourcedMessageContent(TRINITY_ECHO_SOURCE, profile.性别);
     const safeIdentityDescription = selfIdentityDescription.trim() || 构建Trinity第一人称身份描述();
     const answerIdentity = buildSourcedMessageContent(TRINITY_ECHO_SOURCE, safeIdentityDescription);
-    const safeTrinityHistory = trinityHistory.trim();
-    const historyEcho = safeTrinityHistory
-        ? buildSourcedMessageContent(TRINITY_ECHO_SOURCE, `上一轮Trinity综合输出：${safeTrinityHistory}`)
-        : "";
-    const finalPrompt = buildSourcedMessageContent(TRINITY_USER_MESSAGE_SOURCE, userInput);
     const now = Date.now();
     const stitchedMessages: ContextMessage[] = [];
     stitchedMessages.push({ role: "system", content: environmentPrompt, timestamp: now });
@@ -286,12 +278,6 @@ function 构建贤者起始拼接消息(
     stitchedMessages.push({ role: "system", content: wakeupAskIdentity, timestamp: now + 7 });
     stitchedMessages.push({ role: "assistant", content: answerIdentity, timestamp: now + 8 });
     stitchedMessages.push({ role: "system", content: wakeupFinished, timestamp: now + 9 });
-    if (historyEcho) {
-        stitchedMessages.push({ role: "assistant", content: historyEcho, timestamp: now + 10 });
-        stitchedMessages.push({ role: "system", content: finalPrompt, timestamp: now + 11 });
-        return stitchedMessages;
-    }
-    stitchedMessages.push({ role: "system", content: finalPrompt, timestamp: now + 10 });
     return stitchedMessages;
 }
 
@@ -325,20 +311,21 @@ export const 创建贤者回复函数 = (
     基础实例: MockWISE实例,
     原始回复函数: MockWISE实例["reply"],
 ) =>
-    async (
-        userInput: string,
-        options: ReplyOptions = {},
-    ): Promise<string | AsyncGenerator<string>> => {
-        const 原始提示词 = 基础实例.config.systemPromptForChat;
-        const safeUserInput = userInput.trim() || "请继续当前对话。";
-        const trinityHistory = options.context?.trinityHistory?.trim() ?? "";
-        const roleHackMessages = 构建贤者起始拼接消息(原始提示词, safeUserInput, trinityHistory);
-        const nextOptions: ReplyOptions = {
-            ...options,
-            context: {
-                ...(options.context ?? {}),
-                overrideMessages: roleHackMessages,
-            },
+    // 每个贤者实例只在冷启动时注入一次 seraph 唤醒序列，后续轮次走真实历史栈。
+    (() => {
+        let 唤醒已注入 = false;
+        return async (
+            userInput: string,
+            options: ReplyOptions = {},
+        ): Promise<string | AsyncGenerator<string>> => {
+            const 原始提示词 = 基础实例.config.systemPromptForChat;
+            const safeUserInput = userInput.trim() || "请继续当前对话。";
+            // 冷启动时注入一次唤醒序列，后续轮次不再重复注入，避免覆盖真实历史堆栈。
+            if (!唤醒已注入) {
+                const wakeupMessages = 构建贤者起始拼接消息(原始提示词);
+                基础实例.appendContextMessages(wakeupMessages);
+                唤醒已注入 = true;
+            }
+            return 原始回复函数(safeUserInput, options);
         };
-        return 原始回复函数("", nextOptions);
-    };
+    })();

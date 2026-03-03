@@ -10,7 +10,7 @@
 import { ref, reactive, computed } from "vue";
 import type { ConnectionStatus, WrappedSeel, UseMagiReturn } from "./useMagi.types";
 import type { MockWISE实例, MagiPromptSet } from "../core/wise/wise.types";
-import type { MockMessage } from "../core/core.types";
+import type { ContextMessage, MockMessage } from "../core/core.types";
 import type { MagiMessage } from "../utils/messageFactory.types";
 import { initMagi } from "../core/wise/mockWise.subclass";
 import { getMagiI18nText } from "../utils/magiI18n";
@@ -155,6 +155,24 @@ async function wrapSeelInstance(ai: MockWISE实例): Promise<WrappedSeel> {
             const result = await ai.voteFor(proposedAction);
             await syncWrappedSeelState(wrapped, ai);
             return result;
+        },
+        /**
+         * 作用：将外部生成的历史消息写入底层贤者上下文栈并同步到响应式包装对象。
+         * 意图：让共识层可把 Trinity 结果注入三贤人各自历史，而不走临时 override 拼接。
+         * 调用时机：每轮最终共识生成后，命中“可复用 Trinity 历史”分支时调用。
+         */
+        async appendContextMessages(messages: ContextMessage[]) {
+            ai.appendContextMessages(messages);
+            await syncWrappedSeelState(wrapped, ai);
+        },
+        /**
+         * 作用：将该贤者最近一条 assistant 历史替换为指定文本并同步包装状态。
+         * 意图：在共享 Trinity 历史时覆盖“贤者上一轮自答”，让下一轮上下文优先看到 Trinity。
+         * 调用时机：每轮最终共识判定可注入 Trinity 历史时。
+         */
+        async replaceLatestAssistantContextMessage(content: string) {
+            ai.replaceLatestAssistantContextMessage(content);
+            await syncWrappedSeelState(wrapped, ai);
         },
     };
 

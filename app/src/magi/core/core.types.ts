@@ -200,6 +200,8 @@ export interface MockWISEInstance {
         context?: ContextMessage[]
     ) => AsyncGenerator<string>;
     updateConfig: (newConfig: Partial<MockWISEConfig>) => void;
+    appendContextMessages: (messages: ContextMessage[]) => void;
+    replaceLatestAssistantContextMessage: (content: string) => void;
 }
 
 /** 上下文消息 */
@@ -213,7 +215,6 @@ export interface ContextMessage {
 export interface ReplyOptions {
     context?: {
         userInput?: string;
-        trinityHistory?: string;
         responses?: Array<{ seel: string; content: string }>;
         introspection?: string;
         overrideMessages?: ContextMessage[];

@@ -95,9 +95,8 @@ export function buildStreamCallbacks(seel: WrappedSeel, userMessage: string) {
 export async function processSagesResponses(
     sages: WrappedSeel[],
     userMessage: string,
-    trinityHistory: string,
 ): Promise<SageResponse[]> {
-    const responsePromises = sages.map((seel) => collectSingleSageResponse(seel, userMessage, trinityHistory));
+    const responsePromises = sages.map((seel) => collectSingleSageResponse(seel, userMessage));
     const results = await Promise.all(responsePromises);
     return results.filter(isSageResponse);
 }
@@ -106,16 +105,11 @@ export async function processSagesResponses(
 export async function collectSingleSageResponse(
     seel: WrappedSeel,
     userMessage: string,
-    trinityHistory: string,
 ): Promise<SageResponse | null> {
     try {
         await syncOriginalMessages(seel);
         const isMelchior = seel.config.name.includes("MELCHIOR");
-        const response = await seel.reply(userMessage, {
-            context: {
-                trinityHistory,
-            },
-        });
+        const response = await seel.reply(userMessage);
         const callbacks = buildStreamCallbacks(seel, userMessage);
         const { content, success, hasToolCalls } = await processStreamResponse(
             response,

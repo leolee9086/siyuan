@@ -40,7 +40,7 @@ ${userMessage}
 
 你当前的关键判断：
 ${melchiorBase}`;
-    const followUpResponse = await collectSingleSageResponse(melchior, followUpPrompt, "");
+    const followUpResponse = await collectSingleSageResponse(melchior, followUpPrompt);
     const proposal = followUpResponse?.content?.trim();
     if (!proposal) {
         return userMessage;
@@ -66,7 +66,7 @@ ${userMessage}
 
 已通过提案：
 ${proposedAction}`;
-    const executionResponse = await collectSingleSageResponse(melchior, executePrompt, "");
+    const executionResponse = await collectSingleSageResponse(melchior, executePrompt);
     return executionResponse?.content?.trim() || null;
 }
 

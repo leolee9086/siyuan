@@ -80,33 +80,24 @@ async function appendSageResponses(
     }
 }
 
-/** 获取上一轮可用的 Trinity 综合输出，作为下一轮三贤者历史输入。 */
-function getLatestEligibleTrinityHistory(consensusMessages: MagiMessage[]): string {
-    for (let index = consensusMessages.length - 1; index >= 0; index -= 1) {
-        const message = consensusMessages[index];
-        if (message.type !== "consensus") {
-            continue;
-        }
-        const mode = Reflect.get(message.meta ?? {}, "mode");
-        const source = Reflect.get(message.meta ?? {}, "source");
-        const eligible = Reflect.get(message.meta ?? {}, "trinityHistoryEligible");
-        const isConsensusFinal = (mode === "standard" || mode === "critical") && source === "trinity-synthesis";
-        // 只读取上一轮最终 Trinity 输出，且必须显式标记为可复用历史。
-        if (isConsensusFinal && eligible === true) {
-            return message.content.trim();
-        }
-        // 命中上一轮最终共识但不可用时，立即终止，避免回溯到更早轮次。
-        if (isConsensusFinal) {
-            return "";
-        }
-    }
-    return "";
-}
-
 /** 从本轮贤者响应中提取 Melchior 是否发起工具调用（实测值）。 */
 function resolveMelchiorUsedToolCall(validResponses: SageResponse[]): boolean {
     const melchior = validResponses.find((response) => response.seel.includes("MELCHIOR"));
     return melchior?.usedToolCall === true;
+}
+
+/** 将 Trinity 原文输出写入三贤人各自历史栈，作为下一轮可见历史。 */
+async function appendTrinityHistoryToSages(
+    sages: WrappedSeel[],
+    trinityContent: string,
+): Promise<void> {
+    const history = trinityContent.trim();
+    if (!history) {
+        return;
+    }
+    for (const sage of sages) {
+        await sage.replaceLatestAssistantContextMessage(history);
+    }
 }
 
 /** 执行审慎决策投票链路并返回决策结果。 */
@@ -146,9 +137,8 @@ async function collectValidResponses(
     consensusMessages: MagiMessage[],
     sages: WrappedSeel[],
     userMessage: string,
-    trinityHistory: string,
 ): Promise<SageResponse[] | null> {
-    const validResponses = await processSagesResponses(sages, userMessage, trinityHistory);
+    const validResponses = await processSagesResponses(sages, userMessage);
     await appendSageResponses(consensusMessages, validResponses);
 
     // 三贤者全部失败或返回空内容时，终止本轮并给出可见错误，避免继续进入 Trinity/投票产生误导结果。
@@ -203,8 +193,7 @@ async function runConsensusRound(
     trinity: WrappedSeel | null,
     userMessage: string,
 ): Promise<void> {
-    const trinityHistory = getLatestEligibleTrinityHistory(consensusMessages);
-    const validResponses = await collectValidResponses(consensusMessages, sages, userMessage, trinityHistory);
+    const validResponses = await collectValidResponses(consensusMessages, sages, userMessage);
     if (!validResponses) {
         return;
     }
@@ -231,6 +220,8 @@ async function runConsensusRound(
         deliberationRequired,
         userMessage,
         melchiorUsedToolCall,
+        sages,
+        trinity !== null,
     );
 }
 
@@ -242,6 +233,8 @@ async function appendFinalConsensus(
     deliberationRequired: boolean,
     userMessage: string,
     melchiorUsedToolCall: boolean,
+    sages: WrappedSeel[],
+    hasTrinity: boolean,
 ): Promise<void> {
     const consensusReply = await generateConsensusReply(
         trinityResult,
@@ -258,6 +251,14 @@ async function appendFinalConsensus(
     finalMessage.status = consensusReply.status;
     finalMessage.timestamp = consensusReply.timestamp;
     consensusMessages.push(finalMessage);
+
+    const source = Reflect.get(finalMessage.meta ?? {}, "source");
+    const eligible = Reflect.get(finalMessage.meta ?? {}, "trinityHistoryEligible");
+    const rawTrinityOutput = typeof trinityResult === "string" ? trinityResult.trim() : "";
+    // 仅在本轮明确可复用且来源为 Trinity 综合输出时写入三贤人历史栈。
+    if (hasTrinity && source === "trinity-synthesis" && eligible === true && rawTrinityOutput) {
+        await appendTrinityHistoryToSages(sages, rawTrinityOutput);
+    }
 }
 
 /**

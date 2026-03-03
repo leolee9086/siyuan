@@ -9,7 +9,7 @@
 import type { Ref } from "vue";
 import type { MagiMessage, VoteResult } from "../utils/messageFactory.types";
 import type { MockWISE实例, MagiPromptSet } from "../core/wise/wise.types";
-import type { ReplyOptions } from "../core/core.types";
+import type { ContextMessage, ReplyOptions } from "../core/core.types";
 
 /**
  * 连接状态
@@ -113,6 +113,10 @@ export interface WrappedSeel {
     ) => Promise<string | AsyncGenerator<string>>;
     /** 对拟议行动进行二元表决 */
     voteFor: (proposedAction: string) => Promise<VoteResult | null>;
+    /** 由共识层向该贤者注入外部上下文历史 */
+    appendContextMessages: (messages: ContextMessage[]) => Promise<void>;
+    /** 由共识层替换该贤者最近 assistant 历史消息 */
+    replaceLatestAssistantContextMessage: (content: string) => Promise<void>;
 }
 
 /**
