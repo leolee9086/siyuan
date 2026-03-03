@@ -4,7 +4,7 @@
  */
 
 import { getContenteditableElement } from "../../ai/imports";
-import { extractCSSVariables, replaceCSSVariables } from "../assets/extractCSSVariables";
+import { extractCSSVariables, replaceCSSVariables } from "../assets/css/extractCSSVariables";
 import { getSelection } from "./range.global";
 import { isSecureContext } from "../siyuanEnvironments/windowStandard.environment";
 
