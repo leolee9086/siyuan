@@ -34,6 +34,8 @@ body,
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
+  -webkit-app-region: drag;
+  user-select: none;
 }
 
 .magi-title {
@@ -42,10 +44,18 @@ body,
   color: #66f7ff;
 }
 
+.magi-titlebar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  -webkit-app-region: no-drag;
+}
+
 .magi-titlebar-controls {
   display: flex;
   align-items: center;
   gap: 8px;
+  -webkit-app-region: no-drag;
 }
 
 .magi-control-button {
@@ -55,6 +65,46 @@ body,
   color: #9deff2;
   background: rgba(0, 60, 60, 0.25);
   cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+
+.magi-control-button:hover {
+  border-color: rgba(126, 255, 255, 0.75);
+  background: rgba(0, 88, 88, 0.28);
+}
+
+.magi-window-controls {
+  display: flex;
+  align-items: center;
+  border: 1px solid rgba(0, 255, 255, 0.45);
+  background: rgba(0, 30, 42, 0.72);
+  overflow: hidden;
+  -webkit-app-region: no-drag;
+}
+
+.magi-window-control-button {
+  width: 36px;
+  height: 32px;
+  border: 0;
+  border-left: 1px solid rgba(0, 255, 255, 0.3);
+  background: transparent;
+  color: #c2f7ff;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  -webkit-app-region: no-drag;
+}
+
+.magi-window-control-button:first-child {
+  border-left: 0;
+}
+
+.magi-window-control-button:hover {
+  background: rgba(0, 119, 167, 0.35);
+}
+
+.magi-window-control-button--close:hover {
+  background: rgba(255, 72, 108, 0.55);
 }
 
 .magi-loading,

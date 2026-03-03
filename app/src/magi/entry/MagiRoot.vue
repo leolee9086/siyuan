@@ -2,16 +2,29 @@
   <div class="magi-root">
     <div class="magi-titlebar">
       <div class="magi-title">MAGI MONITOR</div>
-      <div class="magi-titlebar-controls">
-        <button type="button" class="magi-control-button" @click="onOpenConsole">
-          CONSOLE
-        </button>
-        <button type="button" class="magi-control-button" @click="onReconnect">
-          RECONNECT
-        </button>
-        <button type="button" class="magi-control-button" @click="onExportSessionRecord">
-          EXPORT LOG
-        </button>
+      <div class="magi-titlebar-actions">
+        <div class="magi-titlebar-controls">
+          <button type="button" class="magi-control-button" @click="onOpenConsole">
+            CONSOLE
+          </button>
+          <button type="button" class="magi-control-button" @click="onReconnect">
+            RECONNECT
+          </button>
+          <button type="button" class="magi-control-button" @click="onExportSessionRecord">
+            EXPORT LOG
+          </button>
+        </div>
+        <div v-if="showWindowControls" class="magi-window-controls">
+          <button type="button" class="magi-window-control-button" aria-label="Minimize" @click="onMinimizeWindow">
+            ─
+          </button>
+          <button type="button" class="magi-window-control-button" aria-label="Maximize" @click="onToggleMaximizeWindow">
+            □
+          </button>
+          <button type="button" class="magi-window-control-button magi-window-control-button--close" aria-label="Close" @click="onCloseWindow">
+            ✕
+          </button>
+        </div>
       </div>
     </div>
 
@@ -55,10 +68,14 @@ const {
     ready,
     bootError,
     showQuestionnairePanel,
+    showWindowControls,
     onCloseQuestionnaire,
     onQuestionnaireSaved,
     onReconnect,
     onExportSessionRecord,
     onOpenConsole,
+    onMinimizeWindow,
+    onToggleMaximizeWindow,
+    onCloseWindow,
 } = ctx;
 </script>

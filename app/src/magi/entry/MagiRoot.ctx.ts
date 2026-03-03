@@ -5,33 +5,10 @@ import { exportMagiSessionRecord } from "../composables/useMagi.export";
 import type { UseMagiReturn } from "../composables/useMagi.types";
 import type { MagiMessage } from "../utils/messageFactory.types";
 import type { MagiRootContext } from "./MagiRoot.types";
-import type { PersonaSeedSavedEvent } from "./persona-seed-panel/PersonaSeedPanel.types";
-import { isElectron } from "../../platform";
-import { ipcSend } from "../../platform/electron/ipcRenderer";
+import { isElectron, isMobile } from "../../platform";
+import { ipcSend, ipcInvoke } from "../../platform/electron/ipcRenderer";
 import { Constants } from "../../constants";
-import { loadPromptInjectionsByProfilePath } from "../prompts/personaRuntimePromptBuilder";
-
-/** @同步豁免: 纯数据归一化，无异步依赖 */
-/**
- * 作用：将 PersonaSeedPanel `saved` 事件统一归一化为路径对象。
- * 意图：兼容旧版仅传字符串 samplePath 的事件契约。
- * 调用时机：MagiRoot 接收 `saved` 事件后调用。
- */
-function normalizeSavedPaths(
-    saved: PersonaSeedSavedEvent,
-): { readonly samplePath: string; readonly profilePath: string | null } {
-    // 兼容旧版：仅传 samplePath 字符串
-    if (typeof saved === "string") {
-        return {
-            samplePath: saved,
-            profilePath: null,
-        };
-    }
-    return {
-        samplePath: saved.samplePath,
-        profilePath: saved.profilePath?.trim() || null,
-    };
-}
+import { createQuestionnaireSavedHandler } from "../composables/root/MagiRoot.questionnaire";
 
 /**
  * 处理输入栏提交事件
@@ -148,60 +125,6 @@ function createCloseQuestionnaireHandler(
     };
 }
 
-/** 创建问卷保存成功处理器 */
-function createQuestionnaireSavedHandler(
-    magiState: { value: UseMagiReturn | null },
-): (saved: PersonaSeedSavedEvent) => Promise<void> {
-    return async (saved: PersonaSeedSavedEvent) => {
-        if (!magiState.value) {
-            return;
-        }
-        const savedPaths = normalizeSavedPaths(saved);
-        await appendConsensusMessage(
-            magiState.value.consensusMessages,
-            "system",
-            `人格采样问卷已保存: ${savedPaths.samplePath}`,
-        );
-        // 旧版事件不包含 profilePath 时保持兼容：仅提示保存成功，不触发重载。
-        if (!savedPaths.profilePath) {
-            await appendConsensusMessage(
-                magiState.value.consensusMessages,
-                "system",
-                "未提供人格档案路径，已跳过人格重载。",
-            );
-            return;
-        }
-        try {
-            const promptInjections = await loadPromptInjectionsByProfilePath(savedPaths.profilePath);
-            // 人格档案读取或校验失败时保留当前运行态，不中断会话。
-            if (!promptInjections) {
-                await appendConsensusMessage(
-                    magiState.value.consensusMessages,
-                    "error",
-                    `人格档案读取失败，继续使用当前配置: ${savedPaths.profilePath}`,
-                );
-                return;
-            }
-            await magiState.value.initializeMAGI({
-                promptInjections,
-                preserveConsensusMessages: true,
-            });
-            await appendConsensusMessage(
-                magiState.value.consensusMessages,
-                "system",
-                `已加载人格档案并完成重建: ${savedPaths.profilePath}`,
-            );
-        } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
-            await appendConsensusMessage(
-                magiState.value.consensusMessages,
-                "error",
-                `人格重载失败，继续使用当前配置: ${message}`,
-            );
-        }
-    };
-}
-
 /**
  * 创建重连事件处理器
  *
@@ -222,19 +145,46 @@ function createExportSessionRecordHandler(
     return async () => handleExportSessionRecord(magiState);
 }
 
-/**
- * 创建控制台按钮事件处理器
- *
- * 作用：在 Electron 环境触发主进程打开 DevTools。
- * 意图：为 MAGI 独立窗口提供调试入口，并保持和主界面帮助菜单行为一致。
- * 调用时机：MagiRoot 标题栏控制台按钮点击时调用。
- */
+/** @同步豁免: UI构建 — setup 阶段需同步返回事件处理器 */
 function createOpenConsoleHandler(): () => Promise<void> {
     return async () => {
         if (!isElectron) {
             return;
         }
         ipcSend(Constants.SIYUAN_CMD, "openDevTools");
+    };
+}
+
+/** @同步豁免: UI构建 — setup 阶段需同步返回事件处理器 */
+function createMinimizeWindowHandler(): () => void {
+    return () => {
+        if (!isElectron) {
+            return;
+        }
+        ipcSend(Constants.SIYUAN_CMD, "minimize");
+    };
+}
+
+/** @同步豁免: UI构建 — setup 阶段需同步返回事件处理器 */
+function createToggleMaximizeWindowHandler(): () => Promise<void> {
+    return async () => {
+        if (!isElectron) {
+            return;
+        }
+        const isMaximized = await ipcInvoke<boolean>(Constants.SIYUAN_GET, {
+            cmd: "isMaximized",
+        });
+        ipcSend(Constants.SIYUAN_CMD, isMaximized ? "restore" : "maximize");
+    };
+}
+
+/** @同步豁免: UI构建 — setup 阶段需同步返回事件处理器 */
+function createCloseWindowHandler(): () => void {
+    return () => {
+        if (!isElectron) {
+            return;
+        }
+        ipcSend(Constants.SIYUAN_CMD, "closeButtonBehavior");
     };
 }
 
@@ -328,6 +278,9 @@ function createMagiRootHandlers(
         onReconnect: createReconnectHandler(magiState),
         onExportSessionRecord: createExportSessionRecordHandler(magiState),
         onOpenConsole: createOpenConsoleHandler(),
+        onMinimizeWindow: createMinimizeWindowHandler(),
+        onToggleMaximizeWindow: createToggleMaximizeWindowHandler(),
+        onCloseWindow: createCloseWindowHandler(),
     };
 }
 
@@ -357,7 +310,7 @@ export function useMagiRootContext(): MagiRootContext {
 
     void bootstrapMagiState(state.magiState, state.ready, state.bootError);
 
-    const ctx: MagiRootContext = {
+    return {
         ready: state.ready,
         bootError: state.bootError,
         inputValue: state.inputValue,
@@ -370,6 +323,7 @@ export function useMagiRootContext(): MagiRootContext {
         trinitySeel: computedState.trinitySeel,
         displayMessages: computedState.displayMessages,
         isAnySeelLoading: computedState.isAnySeelLoading,
+        showWindowControls: computed(() => isElectron && !isMobile),
         onSubmitInput: handlers.onSubmitInput,
         onShowQuestionnaire: handlers.onShowQuestionnaire,
         onCloseQuestionnaire: handlers.onCloseQuestionnaire,
@@ -377,8 +331,10 @@ export function useMagiRootContext(): MagiRootContext {
         onReconnect: handlers.onReconnect,
         onExportSessionRecord: handlers.onExportSessionRecord,
         onOpenConsole: handlers.onOpenConsole,
+        onMinimizeWindow: handlers.onMinimizeWindow,
+        onToggleMaximizeWindow: handlers.onToggleMaximizeWindow,
+        onCloseWindow: handlers.onCloseWindow,
         onStopInput: createStopInputHandler(),
         magiState: state.magiState,
     };
-    return ctx;
 }

@@ -596,6 +596,7 @@ const createOrShowMagiWindow = (mainWindow) => {
         fullscreenable: true,
         transparent: "darwin" === process.platform,
         frame: "darwin" === process.platform,
+        autoHideMenuBar: true,
         icon: path.join(appDir, "stage", "icon-large.png"),
         titleBarStyle: "hidden",
         webPreferences: {
@@ -608,6 +609,7 @@ const createOrShowMagiWindow = (mainWindow) => {
     });
 
     remote.enable(magiWindow.webContents);
+    magiWindow.setMenuBarVisibility(false);
     magiWindow.center();
     magiWindow.webContents.userAgent = "SiYuan/" + appVer + " https://b3log.org/siyuan Electron " + magiWindow.webContents.userAgent;
     magiWindow.webContents.session.setSpellCheckerLanguages(["en-US"]);

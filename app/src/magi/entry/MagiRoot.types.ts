@@ -18,6 +18,7 @@ export interface MagiRootContext {
     showSeels: Ref<boolean>;
     showTrinity: Ref<boolean>;
     showQuestionnairePanel: Ref<boolean>;
+    showWindowControls: ComputedRef<boolean>;
     seels: ComputedRef<WrappedSeel[]>;
     sageSeels: ComputedRef<WrappedSeel[]>;
     trinitySeel: ComputedRef<WrappedSeel | null>;
@@ -30,6 +31,9 @@ export interface MagiRootContext {
     onReconnect: () => Promise<void>;
     onExportSessionRecord: () => Promise<void>;
     onOpenConsole: () => Promise<void>;
+    onMinimizeWindow: () => void;
+    onToggleMaximizeWindow: () => Promise<void>;
+    onCloseWindow: () => void;
     onStopInput: () => void;
     magiState: Ref<UseMagiReturn | null>;
 }
