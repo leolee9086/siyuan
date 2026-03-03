@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach,vi } from "vitest";
 import { z } from "zod";
-import { SafeEventEmitter } from "../../../src/util/events/eventEmitter";
+import { SafeEventEmitter } from "../../../src/util/lib/events/eventEmitter";
 
 // 定义测试用的事件类型
 const testEventDefines = {
@@ -32,6 +32,43 @@ describe("SafeEventEmitter - 基本功能测试", () => {
     emitter.on("userLogin", listener);
     
     expect(emitter.listenerCount("userLogin")).toBe(1);
+  });
+
+  it("subscribe 应该返回取消订阅函数", () => {
+    const listener = vi.fn();
+    const unsubscribe = emitter.subscribe("userLogin", listener);
+
+    const userData = {
+      userId: "user123",
+      username: "testuser",
+      timestamp: Date.now(),
+    };
+
+    emitter.emit("userLogin", userData);
+    expect(listener).toHaveBeenCalledTimes(1);
+
+    unsubscribe();
+    emitter.emit("userLogin", userData);
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it("subscribeOnce 应该只响应一次并支持提前取消", () => {
+    const listener = vi.fn();
+    const unsubscribe = emitter.subscribeOnce("userLogin", listener);
+
+    const userData = {
+      userId: "user123",
+      username: "testuser",
+      timestamp: Date.now(),
+    };
+
+    emitter.emit("userLogin", userData);
+    emitter.emit("userLogin", userData);
+    expect(listener).toHaveBeenCalledTimes(1);
+
+    unsubscribe();
+    emitter.emit("userLogin", userData);
+    expect(listener).toHaveBeenCalledTimes(1);
   });
 
   it("应该能够触发事件并调用监听器", () => {
@@ -127,6 +164,36 @@ describe("SafeEventEmitter - 基本功能测试", () => {
     expect(result).toBe(emitter);
     expect(emitter.listenerCount("userLogin")).toBe(1);
     expect(emitter.listenerCount("messageReceived")).toBe(1);
+  });
+
+  it("emitWithMeta 应该校验 eventId 和 seq 并触发监听器", () => {
+    const listener = vi.fn();
+    emitter.on("userLogin", listener);
+
+    const result = emitter.emitWithMeta("userLogin", {
+      userId: "user123",
+      username: "testuser",
+      timestamp: Date.now(),
+      eventId: "evt-001",
+      seq: 1,
+    });
+
+    expect(result).toBe(true);
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it("emitWithMeta 缺失元字段时应该抛错", () => {
+    emitter.on("userLogin", vi.fn());
+
+    expect(() => {
+      emitter.emitWithMeta("userLogin", {
+        userId: "user123",
+        username: "testuser",
+        timestamp: Date.now(),
+        eventId: "",
+        seq: -1,
+      } as any);
+    }).toThrow();
   });
 
   it("应该能够获取事件的schema", () => {

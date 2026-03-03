@@ -9,6 +9,7 @@ SafeEventEmitter是一个基于Zod的类型安全事件发射器，提供了运�
 - **灵活的错误处理**: 支持抛出错误、输出警告或静默处理验证失败
 - **监听器保护**: 自动捕获监听器中的错误，防止一个监听器的错误影响其他监听器
 - **数据完整性**: 可选的监听器执行后数据重新验证，确保数据不被意外修改
+- **生命周期友好**: 支持 `subscribe` 返回取消订阅函数，便于组件卸载清理
 
 ## 基本用法
 
@@ -55,6 +56,19 @@ emitter.on('userLogin', (data) => {
   console.log(`用户 ${data.username} 登录了`);
 });
 
+// 推荐：订阅并拿到取消订阅函数
+const unsubscribe = emitter.subscribe('userLogin', (data) => {
+  console.log('订阅式监听', data.userId);
+});
+// 后续不需要时可直接调用
+unsubscribe();
+
+// 一次性订阅并可主动清理
+const unsubscribeOnce = emitter.subscribeOnce('userLogin', (data) => {
+  console.log('只处理首次登录', data.userId);
+});
+unsubscribeOnce();
+
 // 添加一次性监听器
 emitter.once('userLogin', (data) => {
   console.log('这是第一次监听到用户登录');
@@ -65,6 +79,15 @@ emitter.emit('userLogin', {
   userId: 'user123',
   username: '张三',
   timestamp: Date.now()
+});
+
+// 触发带元字段约束事件（用于幂等/顺序控制）
+emitter.emitWithMeta('userLogin', {
+  userId: 'user123',
+  username: '张三',
+  timestamp: Date.now(),
+  eventId: 'evt-001',
+  seq: 1
 });
 ```
 
@@ -232,10 +255,14 @@ stateManager.on('stateChanged', (data) => {
 ### 方法
 
 - **on(event, listener)**: 添加事件监听器
+- **subscribe(event, listener)**: 添加监听器并返回取消订阅函数
+- **subscribeOnce(event, listener)**: 添加一次性监听器并返回取消订阅函数
 - **once(event, listener)**: 添加一次性事件监听器
 - **off(event, listener)**: 移除事件监听器
 - **emit(event, data)**: 同步触发事件
+- **emitWithMeta(event, data)**: 同步触发带 `eventId/seq` 约束的事件
 - **emitAsync(event, data)**: 异步触发事件
+- **emitAsyncWithMeta(event, data)**: 异步触发带 `eventId/seq` 约束的事件
 - **setOptions(options)**: 更新配置选项
 - **enableRuntimeCheck()**: 启用运行时验证
 - **disableRuntimeCheck()**: 禁用运行时验证

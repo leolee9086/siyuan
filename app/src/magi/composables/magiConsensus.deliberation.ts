@@ -5,9 +5,9 @@ import { processStreamResponse } from "../utils/streamProcessor";
 import { getMagiI18nText } from "../utils/magiI18n";
 import {
     buildStreamCallbacks,
-    buildTrinityIntrospectionInput,
     collectSingleSageResponse,
 } from "./magiConsensus";
+import { buildTrinityIntrospectionInput } from "./consensus/magiConsensus.content";
 
 const MELCHIOR_ACTION_PROPOSAL_REQUEST = `你已发起审慎决策流程。请仅用一句话简要说明建议行动的目的与内容。
 要求：

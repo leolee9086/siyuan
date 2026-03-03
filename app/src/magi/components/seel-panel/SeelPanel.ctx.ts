@@ -26,7 +26,8 @@ const DEFAULT_COLOR = "#33ccff";
  * 作用：将贤者配置中的颜色标识转换为实际CSS颜色
  * 调用时机：SVG渲染时获取描边和填充颜色
  */
-export async function getColor(colorName: string): Promise<string> {
+/** @同步豁免: 性能考虑 - 纯映射函数不涉及异步依赖，保持同步可避免不必要 await。 */
+export function getColor(colorName: string): string {
     return COLOR_MAP[colorName] ?? DEFAULT_COLOR;
 }
 
@@ -75,7 +76,8 @@ function resolveStatusText(ai: SeelPanelProps["ai"]): string {
  * 作用：管理面板容器尺寸、header/content高度计算、消息滚动
  * 调用时机：SeelPanel.vue 的 setup 阶段调用一次
  */
-export async function useSeelPanelCtx(
+/** @同步豁免: 生命周期 - 需要在 setup 同步阶段返回容器引用供后续生命周期注册使用。 */
+export function useSeelPanelCtx(
     props: SeelPanelProps,
 ) {
     const panelContainer = ref<HTMLElement | null>(null);
@@ -110,10 +112,11 @@ export async function useSeelPanelCtx(
  * 作用：监听容器尺寸变化以更新SVG坐标到像素的映射
  * 调用时机：onMounted 中调用
  */
-export async function setupResizeObserver(
+/** @同步豁免: 生命周期 - 必须在组件 setup 同步阶段注册 onMounted/onUnmounted。 */
+export function setupResizeObserver(
     panelContainer: Ref<HTMLElement | null>,
     containerHeight: Ref<number>,
-): Promise<ResizeObserver> {
+): ResizeObserver {
     const observer = new ResizeObserver((entries) => {
         // 仅在有有效观察条目时更新容器高度
         const entry = entries[0];

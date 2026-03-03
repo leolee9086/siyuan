@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { z } from "zod";
-import { SafeEventEmitter } from "../../../src/util/events/eventEmitter";
+import { SafeEventEmitter } from "../../../src/util/lib/events/eventEmitter";
 
 // 定义测试用的事件类型
 const testEventDefines = {

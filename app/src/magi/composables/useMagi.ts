@@ -19,6 +19,8 @@ import {
     sendUserMessageWithConsensus,
 } from "./useMagi.consensus";
 import { resolveStartupPromptInjectionsByActiveSeed } from "../prompts/personaRuntimePromptBuilder";
+import { createMagiEventBus } from "../events/magiEventBus";
+import { bindMagiProjector } from "../events/magiProjector";
 
 /** 清空响应式数组内容（保持引用不变） */
 async function clearReactiveArrays(
@@ -64,24 +66,26 @@ async function syncWrappedSeelState(
 }
 
 /**
- * 创建带状态同步的流式结果，确保每个 chunk 都驱动 UI 更新
+ * 创建流式 TTT 代理，避免 chunk 周期覆写消息数组
  *
- * 作用：包装原始 AsyncGenerator，在每次 yield 前后同步 wrapped 状态
- * 意图：消除“底层状态变了但 UI 不刷新”的双轨状态问题
+ * 作用：包装原始 AsyncGenerator，仅同步连接态并转发流事件
+ * 意图：让消息更新由流事件回调驱动，贴近后续 websocket 监听模型
  * 调用时机：wrapped.reply 收到 SSE 流式返回值后立即调用
  */
-async function* createSyncedStreamGenerator(
+async function* createTTTStreamProxy(
     wrapped: WrappedSeel,
     ai: MockWISE实例,
     stream: AsyncGenerator<string>,
 ): AsyncGenerator<string> {
     try {
         for await (const chunk of stream) {
-            await syncWrappedSeelState(wrapped, ai);
+            // TTT 过渡层：仅转发流式事件，不在 chunk 周期覆写消息数组。
+            wrapped.connected = ai.connected;
             yield chunk;
         }
     } finally {
-        await syncWrappedSeelState(wrapped, ai);
+        wrapped.connected = ai.connected;
+        wrapped.loading = ai.loading;
     }
 }
 
@@ -156,7 +160,7 @@ async function wrapSeelInstance(ai: MockWISE实例): Promise<WrappedSeel> {
                 return replyResult;
             }
 
-            return createSyncedStreamGenerator(wrapped, ai, replyResult);
+            return createTTTStreamProxy(wrapped, ai, replyResult);
         },
         /**
          * 作用：代理底层 `voteFor` 并同步投票后的消息/状态。
@@ -205,6 +209,12 @@ export async function useMagi(options?: { promptInjections?: MagiPromptSet }): P
     const connectionStatus = ref<ConnectionStatus>("disconnected");
     const consensusMessages: MagiMessage[] = reactive([]);
     const isAnySeelLoading = computed(() => seels.some((seel) => seel.loading));
+    const eventBus = await createMagiEventBus();
+    const stopProjector = await bindMagiProjector(eventBus, {
+        seels,
+        consensusMessages,
+    });
+    void stopProjector;
 
     const startupPromptInjections = await resolvePromptInjectionsForInit(options?.promptInjections);
     await initializeWrappedSeels(seels, connectionStatus, startupPromptInjections);
@@ -224,6 +234,7 @@ export async function useMagi(options?: { promptInjections?: MagiPromptSet }): P
             connectionStatus,
             consensusMessages,
             seels,
+            eventBus,
         ),
         /**
          * 作用：重新初始化 MAGI 实例并清空消息。

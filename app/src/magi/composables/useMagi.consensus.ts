@@ -1,5 +1,6 @@
 import type { ConnectionStatus, WrappedSeel } from "./useMagi.types";
 import type { MagiMessage, SageResponse, VoteResult } from "../utils/messageFactory.types";
+import type { MagiEventBus } from "../events/magiEventBus.types";
 import { createMessage } from "../utils/messageFactory";
 import { getMagiI18nText } from "../utils/magiI18n";
 import {
@@ -14,6 +15,14 @@ import {
     执行梅基奥尔主导行动,
     生成梅基奥尔行动提案,
 } from "./magiConsensus.deliberation";
+import {
+    activateMagiRoundEventContext,
+    deactivateMagiRoundEventContext,
+    publishRoundFailed,
+    publishConsensusMessage,
+    publishTrinitySynthesis,
+    publishVoteProgress,
+} from "./consensus/magiRoundEvents";
 
 /** 追加消息到主消息流并统一状态字段。 */
 export async function appendConsensusMessage(
@@ -24,6 +33,9 @@ export async function appendConsensusMessage(
 ): Promise<void> {
     const msg = await createMessage(type, content, meta);
     msg.status = type === "error" ? "error" : "success";
+    if (await publishConsensusMessage(msg)) {
+        return;
+    }
     consensusMessages.push(msg);
 }
 
@@ -41,6 +53,9 @@ async function appendVoteStatusMessage(
             { name: "CASPER", decision: vote.casper },
         ]
         : [];
+    if (await publishVoteProgress(progress, details, proposedAction)) {
+        return;
+    }
     const meta: Record<string, unknown> = {
         type: "vote-status",
         progress,
@@ -250,7 +265,10 @@ async function appendFinalConsensus(
     );
     finalMessage.status = consensusReply.status;
     finalMessage.timestamp = consensusReply.timestamp;
-    consensusMessages.push(finalMessage);
+    // 事件桥接不可用时回退到原始数组写入，保证离线模式仍可用。
+    if (!await publishConsensusMessage(finalMessage)) {
+        consensusMessages.push(finalMessage);
+    }
 
     const source = Reflect.get(finalMessage.meta ?? {}, "source");
     const eligible = Reflect.get(finalMessage.meta ?? {}, "trinityHistoryEligible");
@@ -258,6 +276,9 @@ async function appendFinalConsensus(
     // 仅在本轮明确可复用且来源为 Trinity 综合输出时写入三贤人历史栈。
     if (hasTrinity && source === "trinity-synthesis" && eligible === true && rawTrinityOutput) {
         await appendTrinityHistoryToSages(sages, rawTrinityOutput);
+    }
+    if (rawTrinityOutput) {
+        void publishTrinitySynthesis(rawTrinityOutput, finalMessage.timestamp);
     }
 }
 
@@ -271,32 +292,38 @@ export async function sendUserMessageWithConsensus(
     connectionStatus: { value: ConnectionStatus },
     consensusMessages: MagiMessage[],
     seels: WrappedSeel[],
+    eventBus?: MagiEventBus,
 ): Promise<void> {
     const userMessage = text.trim();
     if (!userMessage || connectionStatus.value !== "connected") {
         return;
     }
-    await appendConsensusMessage(
-        consensusMessages,
-        "user",
-        userMessage,
-        { type: "round-input" },
-    );
-    const sages = seels.filter((seel) => seel.config.name !== "TRINITY-00");
-    const trinity = seels.find((seel) => seel.config.name === "TRINITY-00") ?? null;
-    // 三贤者为空时后续流程无法成立，必须提前兜底退出。
-    if (sages.length === 0) {
-        await appendConsensusMessage(consensusMessages, "error", "未找到可用贤者，无法完成共识流程");
-        return;
-    }
+    await activateMagiRoundEventContext(eventBus, userMessage);
     try {
+        await appendConsensusMessage(
+            consensusMessages,
+            "user",
+            userMessage,
+            { type: "round-input" },
+        );
+        const sages = seels.filter((seel) => seel.config.name !== "TRINITY-00");
+        const trinity = seels.find((seel) => seel.config.name === "TRINITY-00") ?? null;
+        // 三贤者为空时后续流程无法成立，必须提前兜底退出。
+        if (sages.length === 0) {
+            void publishRoundFailed("未找到可用贤者，无法完成共识流程");
+            await appendConsensusMessage(consensusMessages, "error", "未找到可用贤者，无法完成共识流程");
+            return;
+        }
         await runConsensusRound(consensusMessages, sages, trinity, userMessage);
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
+        void publishRoundFailed(message);
         await appendConsensusMessage(
             consensusMessages,
             "error",
             `共识链路异常，已执行兜底并结束本轮: ${message}`,
         );
+    } finally {
+        await deactivateMagiRoundEventContext();
     }
 }

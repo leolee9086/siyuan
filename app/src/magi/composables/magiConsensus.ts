@@ -12,10 +12,18 @@ import { isSageResponse } from "./magiConsensus.guard";
 import { getMagiI18nText } from "../utils/magiI18n";
 import { 获取真实投票决策 } from "./consensus/realVote";
 import type { 审议上下文 } from "./consensus/realVote.types";
-
-const MELCHIOR_META_PATTERN =
-    /\[MELCHIOR_META\]\s*requires_deliberation\s*[:=]\s*(?<flag>true|false)\s*\[\/MELCHIOR_META\]/i;
-const PLAIN_DELIBERATION_PATTERN = /requires_deliberation\s*[:=]\s*(?<flag>true|false)/i;
+import {
+    parseMelchiorResponseContent,
+    buildTrinityIntrospectionInput,
+} from "./consensus/magiConsensus.content";
+import {
+    publishSeelReplyStarted,
+    publishSeelReplyChunk,
+    publishSeelReplyCompleted,
+    publishSeelReplyFailed,
+    publishSeelVoteDecision,
+    publishSeelVoteError,
+} from "./consensus/magiRoundEvents";
 
 /** 将包装实例的消息列表同步回原始AI实例 */
 async function syncOriginalMessages(seel: WrappedSeel): Promise<void> {
@@ -55,23 +63,41 @@ function resolveVoteFieldBySeelName(seelName: string): "melchior" | "balthazar" 
 }
 
 /** 流开始时：标记加载并写入用户消息 */
-function onStreamStart(seel: WrappedSeel, userMessage: string): void {
+async function onStreamStart(seel: WrappedSeel, userMessage: string, message: MagiMessage): Promise<void> {
+    const published = await publishSeelReplyStarted(seel, userMessage, message);
+    if (published) {
+        return;
+    }
     seel.loading = true;
     void appendUserMessage(seel, userMessage);
+    void upsertMessage(seel, message);
 }
 
 /** 每个 chunk 到达时：更新同 ID 消息内容 */
-function onStreamChunk(seel: WrappedSeel, msg: MagiMessage): void {
+async function onStreamChunk(seel: WrappedSeel, msg: MagiMessage): Promise<void> {
+    const published = await publishSeelReplyChunk(seel, msg);
+    if (published) {
+        return;
+    }
     void upsertMessage(seel, msg);
 }
 
 /** 流结束时：清理加载态 */
-function onStreamComplete(seel: WrappedSeel): void {
+async function onStreamComplete(seel: WrappedSeel, msg: MagiMessage): Promise<void> {
+    const published = await publishSeelReplyCompleted(seel, msg);
+    if (published) {
+        return;
+    }
     seel.loading = false;
+    void upsertMessage(seel, msg);
 }
 
 /** 流异常时：写入错误消息并清理加载态 */
 async function onStreamError(seel: WrappedSeel, error: Error): Promise<void> {
+    const published = await publishSeelReplyFailed(seel, error.message);
+    if (published) {
+        return;
+    }
     seel.loading = false;
     const errMsg = await createMessage("error", error.message);
     seel.messages.push(errMsg);
@@ -121,7 +147,7 @@ export async function collectSingleSageResponse(
         }
         // 仅 Melchior 响应需要解析审慎决策元标记，其它贤者直接返回正文。
         if (isMelchior) {
-            const parsed = parseMelchiorResponse(content);
+            const parsed = parseMelchiorResponseContent(content);
             return {
                 content: parsed.content,
                 seel: seel.config.name,
@@ -131,58 +157,15 @@ export async function collectSingleSageResponse(
             };
         }
         return { content, seel: seel.config.name, displayName: seel.config.displayName };
-    } catch {
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        const published = await publishSeelReplyFailed(seel, message);
+        if (published) {
+            return null;
+        }
         seel.loading = false;
         return null;
     }
-}
-
-/** 解析 Melchior 的审慎决策标注，并清理输出中的元标记 */
-function parseMelchiorResponse(content: string): { content: string; requiresDeliberation: boolean } {
-    const metaMatch = content.match(MELCHIOR_META_PATTERN);
-    if (metaMatch) {
-        return {
-            content: sanitizeMelchiorResponse(content),
-            requiresDeliberation: metaMatch.groups?.flag?.toLowerCase() === "true",
-        };
-    }
-    const plainMatch = content.match(PLAIN_DELIBERATION_PATTERN);
-    return {
-        content: sanitizeMelchiorResponse(content),
-        requiresDeliberation: plainMatch?.groups?.flag?.toLowerCase() === "true",
-    };
-}
-
-/** 按贤者名称获取对应响应内容 */
-function findSageContent(
-    validResponses: SageResponse[],
-    seelName: string,
-    fallback: string,
-): string {
-    return validResponses.find((response) => response.seel.includes(seelName))?.content ?? fallback;
-}
-
-/** 清理 Melchior 输出中的元标记，避免渲染到聊天界面 */
-function sanitizeMelchiorResponse(content: string): string {
-    return content
-        .replace(MELCHIOR_META_PATTERN, "")
-        .replace(/^\s*requires_deliberation\s*[:=]\s*(true|false)\s*$/gim, "")
-        .trim();
-}
-
-/** @同步豁免: 性能考虑 - 纯字符串拼接，无I/O或状态竞争。 */
-export function buildTrinityIntrospectionInput(
-    validResponses: SageResponse[],
-): string {
-    const melchior = findSageContent(validResponses, "MELCHIOR", "我还在整理逻辑线索。");
-    const balthazar = findSageContent(validResponses, "BALTHASAR", "我还在感受这件事的情绪波动。");
-    const casper = findSageContent(validResponses, "CASPER", "我暂时没有明确的本能倾向。");
-
-    return `逻辑告诉我：${melchior}
-
-情绪告诉我：${balthazar}
-
-直觉告诉我：${casper}`;
 }
 
 /** 处理Trinity对所有贤者响应的统合 */
@@ -207,6 +190,10 @@ export async function handleTrinitySummary(
         );
         return success ? content : null;
     } catch {
+        const published = await publishSeelReplyFailed(trinity, getMagiI18nText("responseGenerationFailed"));
+        if (published) {
+            return null;
+        }
         trinity.loading = false;
         const errMsg = await createMessage("error", getMagiI18nText("responseGenerationFailed"));
         trinity.messages.push(errMsg);
@@ -291,6 +278,10 @@ async function collectSingleVote(
         if (voteField) {
             voteResult[voteField] = decision;
         }
+        const published = await publishSeelVoteDecision(seel, decision, voteResult.round);
+        if (published) {
+            return voteResult;
+        }
         const voteMsg = await createMessage("vote", `${getMagiI18nText("evaluationCompleted")}: ${decision}`, {
             decision,
             round: voteResult.round,
@@ -299,6 +290,10 @@ async function collectSingleVote(
         seel.messages.push(voteMsg);
         return voteResult;
     } catch {
+        const published = await publishSeelVoteError(seel, getMagiI18nText("evaluationFailed"));
+        if (published) {
+            return null;
+        }
         const errMsg = await createMessage("error", getMagiI18nText("evaluationFailed"));
         errMsg.status = "error";
         seel.messages.push(errMsg);

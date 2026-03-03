@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { z } from "zod";
-import { SafeEventEmitter } from "../../../src/util/events/eventEmitter";
+import { SafeEventEmitter } from "../../../src/util/lib/events/eventEmitter";
 
 // 定义测试用的事件类型
 const testEventDefines = {
@@ -245,5 +245,21 @@ describe("SafeEventEmitter - 异步事件触发测试", () => {
     await emitter.emitAsync("dataProcessing", data);
     
     expect(listener).toHaveBeenCalledWith(data);
+  });
+
+  it("emitAsyncWithMeta 应该校验元字段并异步触发", async () => {
+    const listener = vi.fn();
+    emitter.on("userLogin", listener);
+
+    const result = await emitter.emitAsyncWithMeta("userLogin", {
+      userId: "user123",
+      username: "testuser",
+      timestamp: Date.now(),
+      eventId: "evt-async-001",
+      seq: 2,
+    });
+
+    expect(result).toBe(true);
+    expect(listener).toHaveBeenCalledTimes(1);
   });
 });

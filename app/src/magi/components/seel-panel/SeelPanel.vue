@@ -56,14 +56,14 @@ import { ref } from "vue";
 import "./SeelPanel.css";
 
 const props = withDefaults(defineProps<SeelPanelProps>(), { showMessages: true });
-const colorValue = ref(await getColor(props.ai.config.color));
 
 const {
     panelContainer, messageContainer, containerHeight,
     statusClass, statusText, rootStyle,
-} = await useSeelPanelCtx(props);
+} = useSeelPanelCtx(props);
 
-await setupResizeObserver(panelContainer, containerHeight);
+setupResizeObserver(panelContainer, containerHeight);
+const colorValue = ref(getColor(props.ai.config.color));
 
 /** 流式消息更新时滚动到底部 */
 async function handleCursorUpdate() {

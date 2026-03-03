@@ -21,9 +21,38 @@ export type EventData<T extends IEventDefines, K extends keyof T> =
  * 事件监听器函数类型
  * 
  * 定义监听特定事件时的回调函数签名，接收该事件对应的数据类型。
+ * 允许同步监听器和返回 Promise 的异步监听器共存。
  */
 export type EventListener<T extends IEventDefines, K extends keyof T> =
-    (data: EventData<T, K>) => void;
+    (data: EventData<T, K>) => void | Promise<void>;
+
+/**
+ * 取消订阅函数类型
+ *
+ * 用于表示一次订阅对应的释放函数，调用后应移除已注册监听器。
+ */
+export type EventUnsubscribe = () => void;
+
+/**
+ * 事件元字段
+ *
+ * 用于约束跨进程/跨端事件链路的统一标识字段。
+ * 其中 `eventId` 用于幂等与追踪，`seq` 用于顺序判断。
+ */
+export interface EventMeta {
+    /** 事件唯一标识 */
+    eventId: string;
+    /** 事件序号（单调递增） */
+    seq: number;
+}
+
+/**
+ * 带元字段的事件载荷类型
+ *
+ * 在原始事件数据上叠加 `eventId/seq` 约束。
+ */
+export type EventDataWithMeta<T extends IEventDefines, K extends keyof T> =
+    EventData<T, K> & EventMeta;
 
 /**
  * SafeEventEmitter 的配置选项接口

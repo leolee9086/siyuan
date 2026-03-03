@@ -138,7 +138,8 @@ function setupThinkAnimationWatchers(
  * 意图：将 Vue 组件的 script 逻辑提取为可测试的纯函数
  * 调用时机：MessageBubble.vue 的 setup 阶段调用一次
  */
-export async function useMessageBubbleCtx(
+/** @同步豁免: 生命周期 - 必须在 setup 同步阶段注册 onMounted。 */
+export function useMessageBubbleCtx(
     props: MessageBubbleProps,
     emit: (event: "cursor-update") => void,
 ) {
@@ -150,17 +151,6 @@ export async function useMessageBubbleCtx(
     const hasThinkContent = ref(false);
     const thinkContentRef = ref<HTMLElement | null>(null);
 
-    watch(
-        () => props.timestamp,
-        async (ts) => {
-            formattedTime.value = await formatTimestamp(ts);
-        },
-        { immediate: true },
-    );
-
-    setupContentWatchers(props, emit, thinkContent, normalContent, hasThinkContent);
-    setupThinkAnimationWatchers(thinkContentRef, isThinkExpanded, hasThinkContent);
-
     // @内联回调
     onMounted(async () => {
         if (!props.msg) {
@@ -171,6 +161,17 @@ export async function useMessageBubbleCtx(
             emit("cursor-update");
         }
     });
+
+    watch(
+        () => props.timestamp,
+        async (ts) => {
+            formattedTime.value = await formatTimestamp(ts);
+        },
+        { immediate: true },
+    );
+
+    setupContentWatchers(props, emit, thinkContent, normalContent, hasThinkContent);
+    setupThinkAnimationWatchers(thinkContentRef, isThinkExpanded, hasThinkContent);
 
     return {
         typeClass,

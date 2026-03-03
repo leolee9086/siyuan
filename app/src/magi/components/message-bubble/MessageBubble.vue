@@ -70,5 +70,5 @@ const {
     normalContent,
     hasThinkContent,
     toggleThink,
-} = await useMessageBubbleCtx(props, emit);
+} = useMessageBubbleCtx(props, emit);
 </script>
