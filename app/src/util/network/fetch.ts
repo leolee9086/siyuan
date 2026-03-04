@@ -4,7 +4,7 @@ import { isElectron } from "../../platform";
 import { processMessage } from "./processMessage";
 import { kernelError } from "../../dialog/processSystem";
 import { isWebSocketData } from "./fetch.guard";
-import { TFetchRequestData } from "./fetch.types";
+import { TFetchRequestData, FetchContext, FetchMiddleware } from "./fetch.types";
 import { getSiyuanReqId, setSiyuanReqId } from "../siyuanEnvironments/getSiyuanConfig.environment";
 import { reloadLocation } from "../siyuanEnvironments/windowLocation.environment";
 
@@ -44,15 +44,7 @@ const 需要竞态控制的API列表: readonly string[] = [
  */
 
 /**
- * 准备 POST 请求的 body 数据
- *
- * 此函数承担两个职责：
- * 1. 将请求对象序列化为 JSON（FormData 则直接透传）
- * 2. 为特定 API 注入 reqId 以支持请求竞态控制
- *
- * @param url - 请求的 API 路径
- * @param data - 请求数据，可以是普通对象或 FormData
- * @returns 序列化后的 JSON 字符串、原始 FormData 或 null
+ * 中间件：为请求数据注入 reqId 以支持竞态控制
  *
  * @remarks
  * **reqId 竞态控制机制**：
@@ -60,29 +52,44 @@ const 需要竞态控制的API列表: readonly string[] = [
  * 由于网络延迟，后发的请求可能先返回，导致旧数据覆盖新数据。
  * 通过在请求中注入时间戳作为 reqId，响应处理时可对比丢弃过期响应。
  */
-const setupRequestData = (url: string, data?: TFetchRequestData) => {
-    if (!data) {
-        return null;
+const injectReqIdMiddleware: FetchMiddleware = (ctx) => {
+    if (!ctx.data || ctx.data instanceof FormData) {
+        return;
     }
-    // 先检查 FormData，后续代码可以安全地访问对象属性
-    if (data instanceof FormData) {
-        return data;
-    }
+    
     // 对于高频搜索/图谱请求，记录请求时间戳用于后续竞态检查
-    if (需要竞态控制的API列表.includes(url)) {
-        setSiyuanReqId(url, new Date().getTime());
+    if (需要竞态控制的API列表.includes(ctx.url)) {
+        setSiyuanReqId(ctx.url, new Date().getTime());
     }
-    const isNotLocalGraph = data.type !== "local" || url !== "/api/graph/getLocalGraph";
-    const reqId = getSiyuanReqId(url);
+    
+    const isNotLocalGraph = ctx.data.type !== "local" || ctx.url !== "/api/graph/getLocalGraph";
+    const reqId = getSiyuanReqId(ctx.url);
+    
     // 将 reqId 注入请求数据，以便响应时验证（排除 local 类型的本地图谱，因其不需要竞态控制）
-    if (需要竞态控制的API列表.includes(url) && isNotLocalGraph && reqId !== undefined) {
-        data.reqId = reqId;
+    if (需要竞态控制的API列表.includes(ctx.url) && isNotLocalGraph && reqId !== undefined) {
+        ctx.data.reqId = reqId;
     }
+    
     // 事务 API 总是需要唯一标识以保证操作顺序
-    if (url === "/api/transactions") {
-        data.reqId = new Date().getTime();
+    if (ctx.url === "/api/transactions") {
+        ctx.data.reqId = new Date().getTime();
     }
-    return JSON.stringify(data);
+};
+
+/**
+ * 中间件：序列化请求数据为 HTTP body
+ */
+const serializeRequestDataMiddleware: FetchMiddleware = (ctx) => {
+    if (!ctx.data) {
+        ctx.serializedBody = null;
+        return;
+    }
+    // FormData 直接透传，不需要序列化
+    if (ctx.data instanceof FormData) {
+        ctx.serializedBody = ctx.data;
+        return;
+    }
+    ctx.serializedBody = JSON.stringify(ctx.data);
 };
 
 
@@ -237,11 +244,17 @@ export const fetchPost = async (
     headers?: IObject,
     failCallback?: (response: IWebSocketData) => void
 ) => {
+    // 创建请求上下文
+    const ctx: FetchContext = { url, data, serializedBody: null };
+    // 中间件1: 注入 reqId 用于竞态控制
+    injectReqIdMiddleware(ctx);
+    // 中间件2: 序列化请求数据
+    serializeRequestDataMiddleware(ctx);
+    
     const init: RequestInit = {
         method: "POST",
-        body: setupRequestData(url, data),
+        body: ctx.serializedBody,
     };
-    // 如果提供了自定义请求头，则注入到 fetch 的初始化配置中。
     if (headers) {
         init.headers = headers;
     }
@@ -253,7 +266,6 @@ export const fetchPost = async (
             isGetFile202 = true;
         }
         const responseData: IWebSocketData = await handleFetchResponse(response);
-
         // 处理 getFile API 的特殊响应（如内核返回 202 状态码时，直接调用 failCallback）
         if (failCallback && url === "/api/file/getFile" && isGetFile202) {
             failCallback(responseData);
@@ -285,13 +297,16 @@ export const fetchPost = async (
  * }
  */
 export const fetchSyncPost = async (url: string, data?: TFetchRequestData) => {
+    const ctx: FetchContext = { url, data, serializedBody: null };
+    injectReqIdMiddleware(ctx);
+    serializeRequestDataMiddleware(ctx);
+    
     const init: RequestInit = {
         method: "POST",
-        body: setupRequestData(url, data),
+        body: ctx.serializedBody,
     };
     const res = await fetch(url, init);
     const jsonResult: unknown = await res.json();
-    // 验证同步请求返回的数据是否符合预期的标准协议格式。
     if (!isWebSocketData(jsonResult)) {
         throw new Error(`fetchSyncPost: 响应格式不符合预期 (url: ${url})`);
     }
@@ -304,19 +319,15 @@ export const fetchSyncPost = async (url: string, data?: TFetchRequestData) => {
  *
  * 专门用于 /api/file/getFile 等返回非标准格式的 API。
  * 这些 API 直接返回文件内容，而非包装在 {code, msg, data} 结构中。
- *
- * @param url - API 路径
- * @param data - 请求数据
- * @returns Promise，resolve 为 JSON 解析后的原始响应
- *
- * @example
- * // 获取文件内容
- * const content = await fetchSyncPostRaw("/api/file/getFile", { path: "/data/storage/file.json" });
  */
 export const fetchSyncPostRaw = async <T = unknown>(url: string, data?: TFetchRequestData): Promise<T> => {
+    const ctx: FetchContext = { url, data, serializedBody: null };
+    injectReqIdMiddleware(ctx);
+    serializeRequestDataMiddleware(ctx);
+    
     const init: RequestInit = {
         method: "POST",
-        body: setupRequestData(url, data),
+        body: ctx.serializedBody,
     };
     const res = await fetch(url, init);
     return await res.json();
@@ -327,14 +338,7 @@ export const fetchSyncPostRaw = async <T = unknown>(url: string, data?: TFetchRe
  *
  * 主要用于获取静态资源，如语言文件、主题配置等。
  * 不进行 reqId 竞态控制，不调用 processMessage。
- *
- * @param url - 请求 URL（可包含查询参数）
- * @param cb - 响应回调，参数类型取决于响应的 Content-Type
- *
- * @example
- * fetchGet(`/appearance/langs/zh_CN.json?v=${version}`, (languages) => {
- *     window.siyuan.languages = languages;
- * });
+ * @同步豁免: 遗留代码 - 回调风格的 API，保持向后兼容
  */
 export const fetchGet = (url: string, cb: (response: IWebSocketData | IObject | string) => void) => {
     fetch(url)
