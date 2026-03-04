@@ -48,7 +48,7 @@ function 构建错误信息(importSource, detail) {
         "注释必须说明：",
         "  - 用途：为什么需要这个导入",
         "  - 使用范围：在哪些模块/流程中使用，边界是什么",
-        "  - 解耦评估：是否可改为依赖注入、参数传递或其它方式降低耦合",
+        "  - 解耦评估：补充评估结论（只要求存在该行，不校验行内关键词）",
         FULL_FIX_REMINDER,
         SINGLE_FILE_LINT_TIP
     ].join("\n");
@@ -63,9 +63,8 @@ function 是否包含范围(text) {
 }
 
 function 是否包含解耦评估(text) {
-    const hasDecoupleKeyword = /(依赖注入|参数传递|解耦|注入|传参)/.test(text);
-    const hasWhether = /是否/.test(text);
-    return hasDecoupleKeyword && hasWhether;
+    // 仅要求出现“解耦评估:”标签，不校验行内关键词
+    return /解耦评估\s*[:：]/.test(text);
 }
 
 /**
@@ -129,7 +128,7 @@ export const 要求导入注释插件 = {
                         if (!是否包含解耦评估(text)) {
                             context.report({
                                 node,
-                                message: 构建错误信息(importSource, "未说明“是否可通过依赖注入/参数传递等方式解耦”")
+                                message: 构建错误信息(importSource, "缺少“解耦评估:”说明行")
                             });
                         }
                     }
@@ -141,4 +140,3 @@ export const 要求导入注释插件 = {
 
 // 英文别名导出
 export const requireImportCommentPlugin = 要求导入注释插件;
-

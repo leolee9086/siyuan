@@ -416,7 +416,10 @@ export default [{
                 ...r,
             })),
             ...IMPORTS_GATEWAY_RESTRICTIONS
-        ]
+        ],
+        "no-export-forwarding/no-export-forwarding": ["error", {
+            "message": "❌ [imports.ts 约束] 禁止在 imports.ts 中使用 export ... from / export * from 转发。\n目的：鼓励你在 imports.ts 中按业务领域重新组织依赖，而不是做机械转发。\n要求：先 import，再基于领域语义分组后 export。\n示例：\n  // ❌ 错误\n  export { foo } from \"some-lib\"\n  // ✅ 正确\n  import { foo } from \"some-lib\"\n  export { foo }\n说明：这样可以在 imports.ts 内显式表达依赖边界与领域归属，降低后续重构成本。" + FULL_FIX_REMINDER + 单文件检查提示
+        }]
     }
 }, {
     // 只有 .guard.ts 允许 is，但依然受 COMMON 限制
