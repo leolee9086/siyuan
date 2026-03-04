@@ -17,6 +17,7 @@ import { noLargeInlineArrayPlugin } from "./0_lints/no-large-inline-array.mjs";
 import { requireIfCommentPlugin } from "./0_lints/require-if-comment.mjs";
 import { requireTimeoutCommentPlugin } from "./0_lints/require-timeout-comment.mjs";
 import { requireAsyncExportPlugin } from "./0_lints/require-async-export.mjs";
+import { requireImportCommentPlugin } from "./0_lints/require-import-comment.mjs";
 import { noTrivialWrapperPlugin } from "./0_lints/no-trivial-wrapper.mjs";
 import { noExtendsPlugin } from "./0_lints/no-extends.mjs";
 import { noExportForwardingPlugin } from "./0_lints/no-export-forwarding.mjs";
@@ -125,6 +126,58 @@ const COMMON_RESTRICTED_SYNTAX = [
         selector: "FunctionExpression:not(MethodDefinition > FunctionExpression) ThisExpression",
         message: "❌ 禁止在非类方法(如: 对象字面量方法/独立函数表达式)中使用 this。请使用类方法或将 context 作为参数传递。" + 全量修复提示 + 单文件检查提示,
     },
+    {
+        selector: "ImportDeclaration[source.value=/^\\u002E\\u002E\\u002F/]",
+        message: "禁止从父级目录导入 (../)。必须通过本目录同层级的 ./imports.ts 转发。" + 全量修复提示 + 单文件检查提示,
+    },
+    {
+        selector: "ExportNamedDeclaration[source.value=/^\\u002E\\u002E\\u002F/]",
+        message: "禁止从父级目录重导出 (../)。" + 全量修复提示 + 单文件检查提示,
+    },
+    {
+        selector: "ExportAllDeclaration[source.value=/^\\u002E\\u002E\\u002F/]",
+        message: "禁止从父级目录全量重导出 (../)。" + 全量修复提示 + 单文件检查提示,
+    },
+    {
+        selector: "ImportDeclaration[source.value=/^[^.]/]",
+        message: "禁止直接导入第三方包或别名。必须通过本目录同层级 ./imports.ts 转发。" + 全量修复提示 + 单文件检查提示,
+    },
+    {
+        selector: "ExportNamedDeclaration[source.value=/^[^.]/]",
+        message: "禁止直接重导出第三方包或别名。" + 全量修复提示 + 单文件检查提示,
+    },
+    {
+        selector: "ExportAllDeclaration[source.value=/^[^.]/]",
+        message: "禁止直接全量重导出第三方包或别名。" + 全量修复提示 + 单文件检查提示,
+    },
+];
+
+const STRICT_IMPORT_SELECTORS = new Set([
+    "ImportDeclaration[source.value=/^\\u002E\\u002E\\u002F/]",
+    "ExportNamedDeclaration[source.value=/^\\u002E\\u002E\\u002F/]",
+    "ExportAllDeclaration[source.value=/^\\u002E\\u002E\\u002F/]",
+    "ImportDeclaration[source.value=/^[^.]/]",
+    "ExportNamedDeclaration[source.value=/^[^.]/]",
+    "ExportAllDeclaration[source.value=/^[^.]/]",
+]);
+
+const IMPORTS_COMMON_RESTRICTED_SYNTAX = COMMON_RESTRICTED_SYNTAX.filter(
+    (rule) => !STRICT_IMPORT_SELECTORS.has(rule.selector)
+);
+
+const IMPORTS_GATEWAY_RESTRICTIONS = [
+    {
+        selector: "ImportDeclaration[source.value=/^\\.\\u002F/]",
+        message: "架构约束：imports.ts 仅用于引入外部依赖。" + 全量修复提示 + 单文件检查提示,
+    },
+    {
+        selector: "ExportNamedDeclaration[source.value=/^\\.\\u002F/]",
+        message: "架构约束：imports.ts 仅用于引入外部依赖。" + 全量修复提示 + 单文件检查提示,
+    },
+    {
+        selector: "ExportAllDeclaration[source.value=/^\\.\\u002F/]",
+        message: "架构约束：imports.ts 禁止全量重导出内部文件。" + 全量修复提示 + 单文件检查提示,
+    },
 ];
 
 // 类型断言限制 (仅在非 .guard.ts 文件中生效)
@@ -167,6 +220,7 @@ const SHARED_PLUGINS = {
     "require-if-comment": requireIfCommentPlugin,
     "require-timeout-comment": requireTimeoutCommentPlugin,
     "require-async-export": requireAsyncExportPlugin,
+    "require-import-comment": requireImportCommentPlugin,
     "no-trivial-wrapper": noTrivialWrapperPlugin,
     "no-extends": noExtendsPlugin,
     "no-export-forwarding": noExportForwardingPlugin,
@@ -228,6 +282,7 @@ const SHARED_RULES = {
     "require-if-comment/require-if-comment": ["error", { "exemptGuardClauses": true, "exemptSimpleConditions": true }],
     "require-timeout-comment/require-timeout-comment": "error",
     "require-async-export/require-async-export": "error",
+    "require-import-comment/require-import-comment": "error",
     "no-trivial-wrapper/no-trivial-wrapper": "error",
     "no-extends/no-extends": "error",
     "no-export-forwarding/no-export-forwarding": ["error", {
@@ -347,6 +402,22 @@ export default [{
             },
         ],
     },
+}, {
+    // imports.ts 网关层：覆盖 strict-import，仅允许外部依赖入口
+    files: ["src/**/imports.ts"],
+    rules: {
+        "no-restricted-syntax": [
+            "error",
+            ...IMPORTS_COMMON_RESTRICTED_SYNTAX,
+            ...TYPE_DEFINITION_RESTRICTIONS.map(r => ({
+                ...r,
+            })),
+            ...TYPE_ASSERTION_RESTRICTIONS.map(r => ({
+                ...r,
+            })),
+            ...IMPORTS_GATEWAY_RESTRICTIONS
+        ]
+    }
 }, {
     // 只有 .guard.ts 允许 is，但依然受 COMMON 限制
     files: ["**/*.guard.ts"],
