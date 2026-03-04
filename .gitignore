@@ -57,6 +57,7 @@ test_data/
 
 # Backup files from refactoring
 *.backup
+*.remote
 *.bak
 # Temporary test/debug files
 proxy.js
