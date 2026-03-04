@@ -1,13 +1,28 @@
-import { layoutToJSON } from "../layout/util";
-import { ipcSend } from "../platform/electron/ipcRenderer";
-import { isElectron } from "../platform";
-import { Constants } from "../constants";
-import { Tab } from "../layout/Tab";
-import { fetchSyncPost } from "../util/network/fetch";
-import { showMessage } from "../dialog/message";
-import { getDisplayName, pathPosix } from "../util/file/pathName";
-import { getSearch } from "../util/platform/functions";
-import { getLocationProtocol, getLocationHost } from "../util/siyuanEnvironments/windowLocation.environment";
+/**
+ * 用途：从统一导入文件转发所有父目录依赖，避免直接使用 ../ 导入
+ * 使用范围：本文件所有需要父目录模块的地方
+ * 解耦评估：通过 imports.ts 集中管理外部依赖，便于追踪和重构
+ */
+import { 
+    layoutToJSON, 
+    ipcSend, 
+    isElectron, 
+    Constants, 
+    Tab, 
+    fetchSyncPost, 
+    showMessage, 
+    getDisplayName, 
+    pathPosix, 
+    getSearch, 
+    getLocationProtocol, 
+    getLocationHost 
+} from "./imports";
+
+/**
+ * 用途：导入本模块的类型定义，包括窗口配置选项和资源标签页配置
+ * 使用范围：本文件所有导出函数的参数类型和内部变量类型声明
+ * 解耦评估：类型定义文件，仅用于类型检查，无运行时依赖
+ */
 import type { WindowOptions, AssetTabConfig } from "./openNewWindow.types";
 
 /**

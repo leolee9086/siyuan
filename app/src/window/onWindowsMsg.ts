@@ -1,10 +1,39 @@
-import { getInstanceById } from "../layout/util";
-import { Tab } from "../layout/Tab";
-import { isWindow } from "../util/platform/functions";
-import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { lockScreen } from "../dialog/processSystem";
+/**
+ * 用途：从统一转发模块导入布局相关功能，用于标签页查找和操作
+ * 使用范围：closeTab 函数中用于根据ID获取标签页实例并执行关闭操作
+ * 解耦评估：依赖布局系统核心功能，当前无法解耦
+ */
+import { getInstanceById, Tab } from "./imports";
+
+/**
+ * 用途：从统一转发模块导入平台检测和配置访问功能
+ * 使用范围：handleResetTabsStyle 和 lockScreenByMode 函数中用于平台判断和配置读取
+ * 解耦评估：依赖平台工具和环境配置系统，当前无法解耦
+ */
+import { isWindow, getSiyuanConfig } from "./imports";
+
+/**
+ * 用途：从统一转发模块导入锁屏功能
+ * 使用范围：lockScreenByMode 和 onWindowsMsg 函数中用于执行锁屏操作
+ * 解耦评估：@AITODO 锁屏功能显然可以通过事件等方式解耦,
+ * 直接依赖锁频实现没有任何必要,
+ * 发射一个应用级锁屏发起事件并且全局事件监听器监听这个事件或者将锁屏实现通过参数传递都是可以接受的
+ */
+import { lockScreen } from "./imports";
+
+/**
+ * 用途：导入 Electron 样式类型守卫，用于判断元素样式是否支持 WebkitAppRegion
+ * 使用范围：handleResetTabsStyle 函数中用于类型安全的样式操作
+ * 解耦评估：同目录模块，无需解耦
+ */
 import { isElectronStyle } from "./setHeader.guard";
-import type { App } from "../index";
+
+/**
+ * 用途：从统一转发模块导入应用主类型定义
+ * 使用范围：onWindowsMsg 和 lockScreenByMode 函数参数类型，用于访问应用实例
+ * 解耦评估：App 是核心依赖，当前无法解耦
+ */
+import type { App } from "./imports";
 
 /**
  * 关闭指定的标签页

@@ -177,7 +177,7 @@ export function removeTabAction(
         const centerWnd = getWndByLayout(window.siyuan.layout.centerLayout);
         if (!centerWnd) {
             if (isElectron && isWindow()) {
-                closeWindow(wnd["app"]);
+                closeWindow(wnd["app"], ipcSend);
                 return;
             }
             const newWnd = new (wnd.constructor as typeof Wnd)(wnd["app"]);
