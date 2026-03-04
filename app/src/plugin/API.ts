@@ -32,6 +32,7 @@ import { getModelByDockType } from "./api/getModelByDockType";
 import { expandDocTree } from "./api/expandDocTree";
 import { openTab } from "./api/openTab";
 import { openWindow } from "./api/openWindow";
+import { openEmojiPanel } from "../emoji";
 
 
 // S-forge: openTab, openWindow, getModelByDockType, expandDocTree 已模块化到 ./api/ 目录
@@ -209,6 +210,19 @@ const openMobileFileByIdProxy: TOpenMobileFileById = (...args) => {
     }
 };
 
+const openEmoji = (options: {
+    position: IPosition,
+    selectedCB?: (emoji: string) => void,
+    dynamicIconURL?: string
+}) => {
+    let dynamicImgElement: HTMLImageElement;
+    if (options.dynamicIconURL) {
+        dynamicImgElement = document.createElement("img");
+        dynamicImgElement.src = options.dynamicIconURL;
+    }
+    openEmojiPanel("", "av", options.position, options.selectedCB, dynamicImgElement);
+};
+
 /**
  * 插件 API 聚合对象
  *
@@ -221,6 +235,7 @@ const openMobileFileByIdProxy: TOpenMobileFileById = (...args) => {
  */
 export const API: Record<string, unknown> = {
     openMobileFileById: openMobileFileByIdProxy,
+    openEmoji,
     getActiveEditor,
     openAttributePanel,
     saveLayout,

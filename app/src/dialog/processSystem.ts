@@ -13,7 +13,7 @@ import {confirmDialog} from "./confirmDialog";
 import {escapeHtml} from "../util/DOM/escape";
 import {getWorkspaceName} from "../util/platform/noRelyPCFunction";
 import {needSubscribe} from "../util/platform/needSubscribe";
-import {redirectToCheckAuth, setNoteBook} from "../util/file/pathName";
+import {setNoteBook} from "../util/file/pathName";
 import {reloadProtyle} from "../protyle/util/reload";
 import {Tab} from "../layout/Tab";
 import {setEmpty} from "../mobile/util/setEmpty";
@@ -231,20 +231,26 @@ export const setDefRefCount = (data: {
     }
 };
 
-export const lockScreen = (app: App) => {
-    if (window.siyuan.config.readonly) {
+export const lockScreen = async (app: App) => {
+    if (window.siyuan.config.readonly || window.siyuan.isPublish) {
         return;
     }
     app.plugins.forEach(item => {
         item.eventBus.emit("lock-screen");
     });
-    if (!isElectron) {
-        fetchPost("/api/system/logoutAuth", {}, () => {
-            redirectToCheckAuth();
-        });
-        return;
+    /// #if !MOBILE
+    exportLayout({
+        errorExit: false,
+        cb() {
+            fetchPost("/api/system/logoutAuth");
+        }
+    });
+    /// #else
+    if (window.siyuan.mobile.editor) {
+        await saveScroll(window.siyuan.mobile.editor.protyle);
+        fetchPost("/api/system/logoutAuth");
     }
-    ipcSend(Constants.SIYUAN_SEND_WINDOWS, {cmd: "lockscreen"});
+    /// #endif
 };
 
 export const kernelError = () => {

@@ -5,7 +5,7 @@ import {platform} from "../../platform";
 import {fetchPost} from "../network/fetch";
 import {Dialog} from "../../dialog";
 import {getOpenNotebookCount} from "./pathName";
-import {validateName} from "../../editor/rename";
+import {replaceFileName, validateName} from "../../editor/rename";
 import {setStorageVal} from "../../protyle/util/compatibility";
 import { openFileById } from "../../editor/utils.openFileById";
 import {openMobileFileById} from "../../mobile/editor";
@@ -125,10 +125,11 @@ export const newNotebook = () => {
         dialog.destroy();
     });
     btnsElement[1].addEventListener("click", () => {
-        const name = dialog.element.querySelector("input").value;
+        let name = dialog.element.querySelector("input").value;
         if (!validateName(name)) {
             return false;
         }
+        name = replaceFileName(name);
         fetchPost("/api/notebook/createNotebook", {
             name
         });

@@ -35,6 +35,7 @@ export function initSearchEditors(
     const edit = new Protyle(app, searchPreviewElement, {
         blockId: "",
         render: {
+            background: true,
             gutter: true,
             breadcrumbDocName: true,
             title: true

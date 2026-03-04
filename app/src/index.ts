@@ -7,7 +7,7 @@ import { account } from "./config/account";
 import { addScript, addScriptSync } from "./protyle/util/addScript";
 import { genUUID } from "./util/platform/genID";
 import { fetchGet, fetchPost } from "./util/network/fetch";
-import { addBaseURL, getIdFromSYProtocol, isSYProtocol, setNoteBook } from "./util/file/pathName";
+import { addBaseURL, getIdFromSYProtocol, isSYProtocol, redirectToCheckAuth, setNoteBook } from "./util/file/pathName";
 import { registerServiceWorker } from "./util/network/serviceWorker";
 import { openFileById } from "./editor/utils.openFileById";
 import {
@@ -86,6 +86,9 @@ export class App {
                     });
                     if (data) {
                         switch (data.cmd) {
+                            case "logoutAuth":
+                                redirectToCheckAuth();
+                                break;
                             case "setAppearance":
                                 updateAppearance(data.data);
                                 break;
@@ -200,6 +203,10 @@ export class App {
                             case "openFileById":
                                 openFileById({ app: this, id: data.data.id, action: [Constants.CB_GET_FOCUS] });
                                 break;
+                            case "exit":
+                                if (isBrowser) {
+                                    window.location.href = "about:blank";
+                                }
                         }
                     }
                 }

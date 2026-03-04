@@ -61,7 +61,11 @@ export const getIdFromSYProtocol = (url: string) => {
 };
 
 /* redirect to auth page */
-export const redirectToCheckAuth = (to: string = getLocationHref()) => {
+export const redirectToCheckAuth = async (to: string = getLocationHref()) => {
+    if (window.siyuan.config.readonly || window.siyuan.isPublish) {
+        return;
+    }
+
     const url = new URL(getLocationOrigin());
     url.pathname = "/check-auth";
     url.searchParams.set("to", to);

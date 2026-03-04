@@ -1,4 +1,3 @@
-import { getEventName } from "../../util/compatibility";
 import { hideElements } from "../../ui/hideElements";
 import type { Background } from "../Background";
 import { clickImg, clickPosition, clickConfirmCancel, clickShowRandom, clickRandom, clickAsset, clickRemove, clickLink } from "./image";
@@ -95,7 +94,7 @@ const handleBackgroundClick = (event: Event, background: Background, protyle: IP
  * 调用时机：组件初始化时调用。
  */
 export const bindClickEvent = (background: Background, protyle: IProtyle) => {
-    background.element.addEventListener(getEventName(), (event) => {
+    background.element.addEventListener("click", (event) => {
         handleBackgroundClick(event, background, protyle);
     });
 };

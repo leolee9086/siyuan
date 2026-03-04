@@ -6,7 +6,7 @@ import { initBlockPopover } from "../block/popover";
 import { addScript, addScriptSync } from "../protyle/util/addScript";
 import { genUUID } from "../util/platform/genID";
 import { fetchGet, fetchPost } from "../util/network/fetch";
-import { addBaseURL, setNoteBook } from "../util/file/pathName";
+import { addBaseURL, redirectToCheckAuth, setNoteBook } from "../util/file/pathName";
 import { openFileById } from "../editor/utils.openFileById";
 import {
     processSync,
@@ -58,6 +58,9 @@ class App {
                     });
                     if (data) {
                         switch (data.cmd) {
+                            case "logoutAuth":
+                                redirectToCheckAuth();
+                                break;
                             case "setAppearance":
                                 updateAppearance(data.data);
                                 break;

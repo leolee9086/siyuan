@@ -257,7 +257,19 @@ export const editor = {
       <option value="0" ${window.siyuan.config.editor.floatWindowMode === 0 ? "selected" : ""}>${siyuanI18n.floatWindowMode0}</option>
       <option value="1" ${window.siyuan.config.editor.floatWindowMode === 1 ? "selected" : ""}>${siyuanI18n.floatWindowMode1.replace("${hotkey}", updateHotkeyTip("⌘"))}</option>
       <option value="2" ${window.siyuan.config.editor.floatWindowMode === 2 ? "selected" : ""}>${siyuanI18n.floatWindowMode2}</option>
-    </select>    
+    </select>
+</div>
+<div class="fn__flex b3-label config__item${window.siyuan.config.editor.floatWindowMode !== 0 ? " fn__none" : ""}" id="floatWindowDelayWrap">
+    <div class="fn__flex-1">
+        ${siyuanI18n.floatWindowDelay}
+        <div class="b3-label__text">${siyuanI18n.floatWindowDelayTip}</div>
+    </div>
+    <span class="fn__space"></span>
+    <div class="fn__size200 fn__flex-center fn__flex">
+        <input class="b3-text-field fn__flex-1" id="floatWindowDelay" type="number" min="0" max="2000" value="${window.siyuan.config.editor.floatWindowDelay}"/>
+        <span class="fn__space"></span>
+        <span class="ft__on-surface fn__flex-center">ms</span>
+    </div>
 </div>
 <div class="fn__flex b3-label config__item">
     <div class="fn__flex-1">
@@ -477,6 +489,20 @@ export const editor = {
             if (isElectron && spellcheckLanguagesElement) {
                 spellcheckLanguagesValue = Array.from(spellcheckLanguagesElement.querySelectorAll(".b3-chip--current")).map(item => item.textContent);
             }
+
+            const floatWindowDelayElement = editor.element.querySelector("#floatWindowDelay") as HTMLInputElement;
+            const floatWindowMode = parseInt((editor.element.querySelector("#floatWindowMode") as HTMLSelectElement).value);
+            editor.element.querySelector("#floatWindowDelayWrap").classList.toggle("fn__none", floatWindowMode !== 0);
+
+            let floatWindowDelay = parseInt(floatWindowDelayElement.value);
+            if (isNaN(floatWindowDelay)) {
+                floatWindowDelay = 620;
+            } else if (floatWindowDelay < 0) {
+                floatWindowDelay = 0;
+            } else if (floatWindowDelay > 2000) {
+                floatWindowDelay = 2000;
+            }
+            floatWindowDelayElement.value = floatWindowDelay.toString();
             fetchPost("/api/setting/setEditor", {
                 fullWidth: (editor.element.querySelector("#fullWidth") as HTMLInputElement).checked,
                 markdown: {
@@ -504,7 +530,8 @@ export const editor = {
                 spellcheck: (editor.element.querySelector("#spellcheck") as HTMLInputElement).checked,
                 spellcheckLanguages: spellcheckLanguagesValue,
                 onlySearchForDoc: (editor.element.querySelector("#onlySearchForDoc") as HTMLInputElement).checked,
-                floatWindowMode: parseInt((editor.element.querySelector("#floatWindowMode") as HTMLSelectElement).value),
+                floatWindowMode,
+                floatWindowDelay,
                 plantUMLServePath: (editor.element.querySelector("#plantUMLServePath") as HTMLInputElement).value,
                 katexMacros: (editor.element.querySelector("#katexMacros") as HTMLTextAreaElement).value,
                 codeLineWrap: (editor.element.querySelector("#codeLineWrap") as HTMLInputElement).checked,

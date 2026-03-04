@@ -10,7 +10,7 @@ export const EDITOR_KEYS = ["config", "fullWidth", "md7", "md8", "md37", "md38",
     "editorMarkdownInlineSup", "editorMarkdownInlineSupTip", "editorMarkdownInlineSub", "editorMarkdownInlineSubTip",
     "editorMarkdownInlineTag", "editorMarkdownInlineTagTip", "editorMarkdownInlineMath", "editorMarkdownInlineMathTip",
     "editorMarkdownInlineStrikethrough", "editorMarkdownInlineStrikethroughTip", "editorMarkdownInlineMark", "editorMarkdownInlineMarkTip",
-    "allowHTMLBLockScript", "allowHTMLBLockScriptTip",
+    "allowHTMLBLockScript", "allowHTMLBLockScriptTip", "floatWindowDelay", "floatWindowDelayTip",
     "backlinkContainChildren", "backlinkContainChildrenTip", "allowSVGScript", "allowSVGScriptTip"
 ];
 

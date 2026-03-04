@@ -33,9 +33,6 @@ export type { TooltipInfo };
 // 常量定义
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-/** Popover 显示延迟时间（毫秒） */
-const POPOVER_SHOW_DELAY_MS = 620;
-
 /** 检查面板是否已固定且内容相同 */
 const 是已固定的相同面板 = (refDefs: IRefDefs[]) => (item: BlockPanel) =>
     (item.targetElement || typeof item.x === "number")
@@ -194,7 +191,7 @@ const 处理延迟触发模式 = (
     // @setTimeout豁免: 用户感知延迟 - 悬停延迟显示，避免鼠标快速划过时频繁弹出 popover
     timeoutRefs.timeout = setTimeout(
         创建延迟显示回调(app, event, target, aElement, () => timeoutRefs.timeoutHide),
-        POPOVER_SHOW_DELAY_MS
+        getSiyuanConfig().editor.floatWindowDelay
     );
 
     setTimeouts(timeoutRefs.timeout, timeoutRefs.timeoutHide);
