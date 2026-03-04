@@ -4,7 +4,7 @@ import { isElectron } from "../../platform";
 import { processMessage } from "./processMessage";
 import { kernelError } from "../../dialog/processSystem";
 import { isWebSocketData } from "./fetch.guard";
-import { TFetchRequestData, FetchContext, FetchMiddleware } from "./fetch.types";
+import { TFetchRequestData, FetchContext, FetchMiddleware } from "./types";
 import { getSiyuanReqId, setSiyuanReqId } from "../siyuanEnvironments/getSiyuanConfig.environment";
 import { reloadLocation } from "../siyuanEnvironments/windowLocation.environment";
 

@@ -6,6 +6,7 @@ import { setStorageVal } from "../../protyle/util/compatibility";
 import { Constants } from "../../constants";
 import { fetchPost } from "./fetch";
 import { getSiyuanStorage } from "../siyuanEnvironments/getSiyuanConfig.environment";
+import { confirmDialog, getSiyuanWebSocket } from "./imports";
 import { handleCronjobAuthRequest } from "./cronjobAuth";
 import { isBrowser } from "../platform/functions";
 
@@ -70,6 +71,33 @@ const handleReloadUI = (response: IWebSocketData) => {
     triggerReload();
 };
 
+/**
+ * CronJob 鉴权响应发送端口实现
+ *
+ * 作用：将用户授权结果通过现有 WebSocket 连接发送给内核。
+ * 意图：把连接获取与发送细节封装在调用侧，避免业务模块耦合全局资源。
+ */
+const sendCronjobAuthResponse = (reqId: string, allow: boolean): void => {
+    const siyuanWs = getSiyuanWebSocket();
+    const ws = siyuanWs?.ws;
+    if (!ws) {
+        return;
+    }
+    ws.send(JSON.stringify({
+        cmd: "cronjob_auth_response",
+        reqId: Date.now(),
+        param: {
+            reqId,
+            allow
+        }
+    }));
+};
+
+const cronjobAuthDependencies = {
+    confirmDialog,
+    sendAuthResponse: sendCronjobAuthResponse
+};
+
 /** @同步豁免: 遗留代码 - 返回值在 fetch.ts 中被同步用于条件判断 `if (processMessage(response))`，改为 async 会导致 Promise 始终为 truthy 从而破坏分发逻辑 */
 export const processMessage = (response: IWebSocketData) => {
     // 服务端推送消息通知，展示消息并绑定可能的操作按钮（如 Defender 排除项）
@@ -96,7 +124,7 @@ export const processMessage = (response: IWebSocketData) => {
     // 处理 CronJob 鉴权请求
     if ("cronjob_auth_request" === response.cmd) {
         console.log("[CronJob Auth] 收到鉴权请求:", response.data);
-        handleCronjobAuthRequest(response.data);
+        handleCronjobAuthRequest(response.data, cronjobAuthDependencies);
         return false;
     }
     // 服务端通知发布服务已关闭，在浏览器环境下保存关闭信息并重载页面

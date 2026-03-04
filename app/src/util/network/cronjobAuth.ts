@@ -6,20 +6,25 @@
  * 调用时机：由 processMessage.ts 在收到 cronjob_auth_request WebSocket 消息时调用
  */
 
-import { confirmDialog } from "../../dialog/confirmDialog";
-import { getSiyuanWebSocket } from "../siyuanEnvironments/getSiyuanConfig.environment";
-import type { ICronjobAuthRequest } from "./cronjob.types";
+/**
+ * 用途：导入 CronJob 鉴权请求的类型定义，用于约束 handleCronjobAuthRequest 函数的参数结构
+ * 使用范围：仅在本模块的 handleCronjobAuthRequest 函数参数类型声明中使用，边界为本文件内的类型约束
+ * 解耦评估：无法通过依赖注入或参数传递替代，类型导入必须直接导入以提供编译时类型检查
+ */
+import type { ICronjobAuthDependencies, ICronjobAuthRequest } from "./types";
 
 /**
  * 处理 CronJob 鉴权请求
- * 
+ *
  * 作用：显示确认对话框，让用户决定是否授权任务执行
  * 意图：提供安全的交互式鉴权机制，防止未授权的 API 调用
  * 调用时机：由 processMessage.ts 在收到 cronjob_auth_request 消息时调用
- * 
+ *
+ * @同步豁免: UI构建 - 必须同步调用 confirmDialog 以立即显示对话框，异步会导致用户交互延迟
  * @param data - 鉴权请求数据，包含 reqId、docId、taskName 和 reason
+ * @param deps - 必须注入的依赖端口（confirmDialog + sendAuthResponse）
  */
-export const handleCronjobAuthRequest = (data: ICronjobAuthRequest): void => {
+export const handleCronjobAuthRequest = (data: ICronjobAuthRequest, deps: ICronjobAuthDependencies): void => {
     const { reqId, docId, taskName, reason } = data;
 
     const dialogContent = `
@@ -45,43 +50,18 @@ export const handleCronjobAuthRequest = (data: ICronjobAuthRequest): void => {
         </div>
     `;
 
-    confirmDialog(
+    deps.confirmDialog(
         "定时任务授权",
         dialogContent,
         () => {
             // 用户点击允许
-            sendAuthResponse(reqId, true);
+            deps.sendAuthResponse(reqId, true);
         },
         () => {
             // 用户点击拒绝
-            sendAuthResponse(reqId, false);
+            deps.sendAuthResponse(reqId, false);
         }
     );
-};
-
-/**
- * 发送鉴权响应到后端
- * 
- * 作用：通过 WebSocket 向内核发送用户的授权决定
- * 意图：将用户的允许/拒绝决定传回内核，以便内核继续或中止任务
- * 调用时机：在确认对话框的回调函数中调用
- * 
- * @param reqId - 请求唯一标识，用于匹配后端的等待通道
- * @param allow - 用户是否允许授权
- */
-const sendAuthResponse = (reqId: string, allow: boolean): void => {
-    const siyuanWs = getSiyuanWebSocket();
-    const ws = siyuanWs?.ws;
-    if (ws) {
-        ws.send(JSON.stringify({
-            cmd: "cronjob_auth_response",
-            reqId: Date.now(),
-            param: {
-                reqId,
-                allow
-            }
-        }));
-    }
 };
 
 /**

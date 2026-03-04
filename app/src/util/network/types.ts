@@ -1,0 +1,258 @@
+/**
+ * network 模块的类型定义集合
+ * 包含 fetch、fetchStream 和 cronjob 相关的所有类型定义
+ */
+
+// ============================================================================
+// fetch 相关类型
+// ============================================================================
+
+/**
+ * 通用的请求数据对象接口
+ * 包含已知的可选属性，同时允许扩展其他属性
+ */
+export interface IFetchRequestObject {
+    /** 请求 ID，用于请求追踪 */
+    reqId?: number;
+    /** 类型标识 */
+    type?: string;
+    /** 错误时是否退出 */
+    errorExit?: boolean;
+    /** 允许其他任意属性 */
+    [key: string]: unknown;
+}
+
+/**
+ * fetch 请求数据类型联合
+ *
+ * 用途：表示 fetchPost 等函数接受的请求数据
+ * 使用场景：所有 HTTP POST 请求的 body 数据
+ * 关联类型：IFetchRequestObject（普通对象）、FormData（文件上传）
+ */
+export type TFetchRequestData = IFetchRequestObject | FormData;
+
+/**
+ * 请求上下文对象，用于在中间件之间传递和修改请求数据
+ *
+ * 用途：在请求发送前的中间件管道中传递状态
+ * 使用场景：injectReqIdMiddleware、serializeRequestDataMiddleware 等中间件
+ */
+export interface FetchContext {
+    url: string;
+    data: TFetchRequestData | undefined;
+    serializedBody: string | FormData | null;
+}
+
+/**
+ * 中间件函数签名
+ *
+ * 用途：定义请求前处理中间件的统一接口
+ * 使用场景：所有需要在请求发送前修改上下文的中间件函数
+ */
+export type FetchMiddleware = (ctx: FetchContext) => void;
+
+// ============================================================================
+// fetchStream 相关类型
+// ============================================================================
+
+/**
+ * 流式请求配置接口
+ *
+ * 用途：定义流式 HTTP 请求所需的全部参数配置
+ * 使用场景：作为 {@link universalStreamRequest} 的第一个参数，配置请求的 URL、方法、请求头、请求体、超时及中止信号
+ * 关联类型：与 {@link StreamCallbacks} 配合使用，共同构成流式请求的完整参数
+ */
+export interface StreamRequestConfig {
+    /** 请求目标 URL */
+    url: string;
+    /** HTTP 方法，默认 POST */
+    method?: "GET" | "POST" | "PUT" | "DELETE";
+    /** 自定义请求头，会与默认 Content-Type 合并 */
+    headers?: Record<string, string>;
+    /** 请求体，对象会被自动 JSON 序列化 */
+    body?: unknown;
+    /** 超时时间（毫秒），默认 10000 */
+    timeout?: number;
+    /** 外部传入的 AbortSignal，用于取消请求 */
+    signal: AbortSignal;
+}
+
+/**
+ * 流式请求回调函数集合
+ *
+ * 用途：定义流式请求生命周期中各阶段的回调处理函数
+ * 使用场景：作为 {@link universalStreamRequest} 的第二个参数，处理消息接收、完成、错误和中止事件
+ * 关联类型：与 {@link StreamRequestConfig} 配合使用，共同构成流式请求的完整参数
+ */
+export interface StreamCallbacks {
+    /** 收到流数据时触发，content 为单条 SSE data 字段的原始字符串 */
+    onMessage: (content: string) => void;
+    /** 流正常结束（收到 [DONE] 或读取完毕）时触发 */
+    onDone: () => void;
+    /** 发生错误（网络异常、超时等）时触发 */
+    onError: (error: Error) => void;
+    /** 请求被外部 AbortSignal 中止后触发（可选） */
+    onAbort?: () => void;
+}
+
+/**
+ * 流数据处理上下文
+ *
+ * 用途：封装流式数据读取与处理过程中所需的读取器、解码器及回调引用
+ * 使用场景：在 {@link processStreamData} 和 {@link processResponse} 内部传递，
+ *   将流读取逻辑与业务回调解耦
+ * 关联类型：由 {@link StreamCallbacks} 中的 onMessage / onDone 回调和内部 resetTimeout 组合而成
+ */
+export interface StreamProcessContext {
+    /** 从 Response.body 获取的可读流读取器 */
+    reader: ReadableStreamDefaultReader<Uint8Array>;
+    /** UTF-8 文本解码器，用于将二进制块转为字符串 */
+    decoder: TextDecoder;
+    /** 收到消息时的回调，透传自 {@link StreamCallbacks.onMessage} */
+    onMessage: (content: string) => void;
+    /** 流结束时的回调，透传自 {@link StreamCallbacks.onDone} */
+    onDone: () => void;
+    /** 重置超时计时器，每次收到有效数据时调用 */
+    resetTimeout: () => void;
+}
+
+// ============================================================================
+// cronjob 相关类型
+// ============================================================================
+
+/**
+ * 任务状态类型
+ * - idle: 未运行
+ * - running: 运行中
+ * - paused: 已暂停
+ * - error: 出错
+ */
+export type 任务状态类型 = "idle" | "running" | "paused" | "error";
+
+/**
+ * 任务运行时信息
+ * 描述一个定时任务的当前状态和配置
+ */
+export interface 任务运行时信息 {
+    /** 文档ID */
+    docId: string;
+    /** 任务名称 */
+    name: string;
+    /** 调度表达式 (cron 格式) */
+    schedule: string;
+    /** 任务描述 */
+    description: string;
+    /** 当前状态 */
+    status: 任务状态类型;
+    /** 上次运行时间戳 (秒) */
+    lastRun: number;
+    /** 下次运行时间戳 (秒) */
+    nextRun: number;
+    /** 上次错误信息 */
+    lastError: string;
+    /** 累计运行次数 */
+    runCount: number;
+}
+
+/**
+ * 执行日志条目
+ * 记录任务执行的日志信息
+ */
+export interface 执行日志 {
+    /** 时间戳 */
+    time: number;
+    /** 日志内容 */
+    message: string;
+    /** 日志级别 */
+    level: "info" | "error" | "warn";
+}
+
+/**
+ * 编译结果
+ * 文档编译后的结果信息
+ */
+export interface 编译结果 {
+    /** 编译后的代码 */
+    code: string;
+    /** 文档ID */
+    docId: string;
+    /** 输出文件路径 */
+    output: string;
+}
+
+// 英文别名导出
+
+/** 任务状态类型的英文别名，用于英文接口和代码中使用 */
+export type TaskStatusType = 任务状态类型;
+
+/** 任务运行时信息的英文别名，用于英文接口和代码中使用 */
+export type TaskRuntimeInfo = 任务运行时信息;
+
+/** 执行日志的英文别名，用于英文接口和代码中使用 */
+export type ExecutionLog = 执行日志;
+
+/** 编译结果的英文别名，用于英文接口和代码中使用 */
+export type CompileResult = 编译结果;
+
+/**
+ * CronJob 鉴权请求数据结构
+ * 由后端通过 WebSocket 发送给前端
+ */
+export interface ICronjobAuthRequest {
+    /** 请求唯一标识 */
+    reqId: string;
+    /** 任务所属文档ID */
+    docId: string;
+    /** 任务名称 */
+    taskName: string;
+    /** 请求原因描述 */
+    reason: string;
+}
+
+/**
+ * CronJob 鉴权响应消息结构
+ * 由前端通过 WebSocket 发送给后端
+ */
+export interface ICronjobAuthResponseMessage {
+    cmd: "cronjob_auth_response";
+    reqId: number;
+    param: {
+        reqId: string;
+        allow: boolean;
+    };
+}
+
+/**
+ * CronJob 鉴权确认对话框端口
+ *
+ * 用途：抽象 UI 确认交互，避免业务逻辑直接依赖具体 dialog 实现。
+ * 使用场景：注入到 handleCronjobAuthRequest 中作为确认交互能力。
+ * 关联类型：ICronjobAuthDependencies。
+ */
+export type ConfirmDialogPort = (
+    title: string,
+    text: string,
+    confirm?: (...args: unknown[]) => void,
+    cancel?: (...args: unknown[]) => void
+) => void;
+
+/**
+ * CronJob 鉴权响应发送端口
+ *
+ * 用途：抽象“把授权结果发回后端”的行为接口。
+ * 使用场景：注入到 handleCronjobAuthRequest 中作为响应发送能力。
+ * 关联类型：ICronjobAuthDependencies。
+ */
+export type SendAuthResponsePort = (reqId: string, allow: boolean) => void;
+
+/**
+ * CronJob 鉴权依赖集合（必须注入）
+ *
+ * 用途：定义 handleCronjobAuthRequest 所需的外部能力。
+ * 使用场景：由调用方（如 processMessage）显式构造并传入。
+ * 关联类型：ConfirmDialogPort、SendAuthResponsePort。
+ */
+export interface ICronjobAuthDependencies {
+    confirmDialog: ConfirmDialogPort;
+    sendAuthResponse: SendAuthResponsePort;
+}

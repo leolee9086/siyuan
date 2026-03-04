@@ -1,11 +1,21 @@
 /**
  * cronjobApi.ts - CronJob 定时任务 API 封装
- * 
+ *
  * 封装与后端 /api/cronjob/* 端点的通信
  */
 
+/**
+ * 用途：调用后端API的统一fetch封装
+ * 使用范围：本模块所有API调用，用于与后端/api/cronjob/*端点通信
+ * 解耦评估：是否可依赖注入？不适合。作为网络层基础设施，依赖注入会增加不必要的复杂度且无实际收益
+ */
 import { fetchSyncPost } from "./fetch";
-import { 任务运行时信息, 执行日志, 编译结果 } from "./cronjob.types";
+/**
+ * 用途：定时任务相关的TypeScript类型定义
+ * 使用范围：本模块函数签名和返回值类型声明
+ * 解耦评估：是否可依赖注入？不适用。类型导入仅编译时依赖，无运行时耦合
+ */
+import { 任务运行时信息, 执行日志, 编译结果 } from "./types";
 
 // 重新导出类型供外部使用
 export type { 任务运行时信息, 执行日志, 编译结果, 任务状态类型 } from "./cronjob.types.ts";
@@ -107,15 +117,3 @@ export const 获取日志 = async (docId: string, count?: number): Promise<执�
     const res = await fetchSyncPost("/api/cronjob/logs", { docId, count });
     return res.data?.logs ?? [];
 };
-
-// ============== 英文别名导出 ==============
-
-export const listCronjobs = 列出所有任务;
-export const getCronjob = 获取任务详情;
-export const registerCronjob = 注册扩展;
-export const unregisterCronjob = 注销扩展;
-export const enableCronjob = 启用任务;
-export const disableCronjob = 禁用任务;
-export const runCronjob = 立即执行;
-export const compileCronjob = 编译文档;
-export const getCronjobLogs = 获取日志;

@@ -6,6 +6,15 @@ import { lockScreen } from "../dialog/processSystem";
 import { isElectronStyle } from "./setHeader.guard";
 import type { App } from "../index";
 
+/**
+ * 关闭指定的标签页
+ *
+ * 作用：根据IPC消息中的标签页ID关闭对应的标签页
+ * 意图：响应来自Electron主进程或其他窗口的关闭标签页请求
+ * 调用时机：当接收到cmd为"closetab"的IPC消息时调用（见onWindowsMsg函数）
+ *
+ * @param ipcData - IPC消息数据，其中data字段包含要关闭的标签页ID
+ */
 const closeTab = (ipcData: IWebSocketData) => {
     const tab = getInstanceById(ipcData.data);
     if (!tab || !(tab instanceof Tab)) {
@@ -14,7 +23,17 @@ const closeTab = (ipcData: IWebSocketData) => {
     tab.parent.removeTab(ipcData.data);
 };
 
+/**
+ * 重置标签页样式
+ *
+ * 作用：根据不同的命令重置标签页的拖拽样式或Electron窗口拖拽区域
+ * 意图：处理标签页拖拽操作结束后的样式清理，以及Electron窗口标题栏拖拽区域的动态调整
+ * 调用时机：当接收到cmd为"resetTabsStyle"的IPC消息时调用
+ *
+ * @param ipcData - IPC消息数据，data字段可能为"rmDragStyle"、"addRegionStyle"或"removeRegionStyle"
+ */
 const handleResetTabsStyle = (ipcData: IWebSocketData) => {
+    // 移除拖拽样式：清理标签页拖拽操作产生的临时样式和克隆元素
     if (ipcData.data === "rmDragStyle") {
         for (const item of document.querySelectorAll(".layout-tab-bars--drag")) {
             item.classList.remove("layout-tab-bars--drag");
@@ -34,34 +53,70 @@ const handleResetTabsStyle = (ipcData: IWebSocketData) => {
         if (!isTopMost || !isElectronStyle(item.style)) {
             continue;
         }
+        // 添加拖拽区域：将标签栏区域设置为可拖拽窗口的区域（Electron特性）
         if (ipcData.data === "addRegionStyle") {
             item.style.WebkitAppRegion = "drag";
         }
+        // 移除拖拽区域：取消标签栏区域的窗口拖拽功能
         if (ipcData.data === "removeRegionStyle") {
             item.style.WebkitAppRegion = "";
         }
     }
 };
 
+/**
+ * 根据配置的锁屏模式决定是否锁屏
+ *
+ * 作用：检查系统配置的锁屏模式，仅在模式为1时执行锁屏
+ * 意图：提供条件锁屏功能，允许用户通过配置控制锁屏行为
+ * 调用时机：当接收到cmd为"lockscreenByMode"的IPC消息时调用
+ *
+ * @param app - 应用实例，用于执行锁屏操作
+ */
+const lockScreenByMode = (app: App) => {
+    // 检查锁屏模式：仅当系统配置的锁屏模式为1时才执行锁屏操作
+    if (getSiyuanConfig().system.lockScreenMode === 1) {
+        lockScreen(app);
+    }
+};
+
+/**
+ * 处理窗口相关的IPC消息
+ *
+ * 作用：根据IPC消息的命令类型分发到对应的处理函数
+ * 意图：作为窗口消息的统一入口，处理来自Electron主进程或其他窗口的各类窗口操作请求
+ * 调用时机：当接收到窗口相关的WebSocket/IPC消息时调用
+ *
+ * @同步豁免: 需要绝对同步的DOM访问 - IPC消息处理需要立即响应，涉及DOM操作和窗口状态同步更新
+ *
+ * @param ipcData - IPC消息数据，包含cmd命令和data数据
+ * @param app - 应用实例，用于访问应用级别的功能
+ */
 export const onWindowsMsg = (ipcData: IWebSocketData, app: App) => {
     if (!ipcData.cmd) {
         return;
     }
 
-    switch (ipcData.cmd) {
-        case "closetab":
-            closeTab(ipcData);
-            break;
-        case "resetTabsStyle":
-            handleResetTabsStyle(ipcData);
-            break;
-        case "lockscreen":
-            lockScreen(app);
-            break;
-        case "lockscreenByMode":
-            if (getSiyuanConfig().system.lockScreenMode === 1) {
-                lockScreen(app);
-            }
-            break;
+    // 关闭标签页命令：处理来自其他窗口或主进程的关闭标签页请求
+    if (ipcData.cmd === "closetab") {
+        closeTab(ipcData);
+        return;
+    }
+    
+    // 重置标签页样式命令：处理标签页拖拽样式清理或窗口拖拽区域调整
+    if (ipcData.cmd === "resetTabsStyle") {
+        handleResetTabsStyle(ipcData);
+        return;
+    }
+    
+    // 锁屏命令：立即执行锁屏操作
+    if (ipcData.cmd === "lockscreen") {
+        lockScreen(app);
+        return;
+    }
+    
+    // 条件锁屏命令：根据系统配置决定是否锁屏
+    if (ipcData.cmd === "lockscreenByMode") {
+        lockScreenByMode(app);
     }
 };

@@ -1,5 +1,5 @@
 
-import type { StreamCallbacks, StreamProcessContext, StreamRequestConfig } from "./fetchStream.types";
+import type { StreamCallbacks, StreamProcessContext, StreamRequestConfig } from "./types";
 
 
 
