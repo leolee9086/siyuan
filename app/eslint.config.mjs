@@ -24,6 +24,7 @@ import { noExtendsPlugin } from "./0_lints/no-extends.mjs";
 import { noExportForwardingPlugin } from "./0_lints/no-export-forwarding.mjs";
 import { taskCheckerPlugin } from "./0_lints/task-checker.mjs";
 import { folderItemLimitPlugin } from "./0_lints/folder-item-limit.mjs";
+import { noLongSingleLineCommentPlugin } from "./0_lints/no-long-single-line-comment.mjs";
 import { FULL_FIX_REMINDER, 单文件检查提示 } from "./0_lints/shared-constants.mjs";
 
 // Defining local constant for backward compatibility and internal usage
@@ -233,6 +234,7 @@ const SHARED_PLUGINS = {
     "no-export-forwarding": noExportForwardingPlugin,
     "task-checker": taskCheckerPlugin,
     "folder-item-limit": folderItemLimitPlugin,
+    "comment-style": noLongSingleLineCommentPlugin,
 };
 
 const SHARED_RULES = {
@@ -259,6 +261,8 @@ const SHARED_RULES = {
     "curly": ["error", "all"],
     // 强制大括号换行风格 (1tbs = one true brace style，但要求换行)
     "brace-style": ["error", "1tbs", { "allowSingleLine": false }],
+    // 禁止超过 100 字符的单行注释，超长时必须改用多行注释
+    "comment-style/no-long-single-line-comment": ["error", { "max": 100 }],
     // 禁止一行内写多条语句 (用分号分隔)
     "max-statements-per-line": ["error", { "max": 1 }],
     "@typescript-eslint/no-unused-vars": ["warn", { caughtErrors: "none" }],
