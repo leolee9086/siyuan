@@ -15,6 +15,8 @@ import { isElectron } from "../platform";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 // 用途：App 类型定义；使用范围：Panel.actions.ts 中函数参数类型标注；解耦评估：核心类型定义，作为类型导入不影响运行时
 import type { App } from "../index";
+// 用途：Protyle 编辑器类型定义；使用范围：Panel.observer.types.ts 中观察器参数类型标注；解耦评估：核心类型定义，作为类型导入不影响运行时
+import type { Protyle } from "../protyle";
 
 // 窗口管理工具导出
 export { openNewWindowById };
@@ -28,3 +30,5 @@ export { isElectron };
 export { siyuanI18n };
 // 类型导出
 export type { App };
+// Protyle 编辑器类型导出
+export type { Protyle };
