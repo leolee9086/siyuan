@@ -7,21 +7,72 @@
  * 3.添加丰富的进度提示内容
  */
 
-import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { getSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { openAIActionsMenu } from "../../../ai/actions";
-import { getSForgeConfigs } from "../../../config/sforge";
+/**
+ * 用途：国际化文本获取
+ * 使用范围：菜单项label显示
+ * 解耦评估：通过imports.ts统一管理依赖
+ */
+import { siyuanI18n } from "./imports";
+/**
+ * 用途：获取系统配置
+ * 使用范围：菜单快捷键显示
+ * 解耦评估：通过imports.ts统一管理
+ */
+import { getSiyuanConfig } from "./imports";
+/**
+ * 用途：打开AI操作菜单
+ * 使用范围：原AI菜单项点击处理
+ * 解耦评估：通过imports.ts统一管理
+ */
+import { openAIActionsMenu } from "./imports";
+/**
+ * 用途：获取SForge配置
+ * 使用范围：AI图片生成认证
+ * 解耦评估：通过imports.ts统一管理
+ */
+import { getSForgeConfigs } from "./imports";
+/**
+ * 用途：AI图片生成核心功能
+ * 使用范围：handleAiImageGeneration函数
+ * 解耦评估：同目录模块，直接导入
+ */
 import { 生成块内容图片 } from "./generateBlockImage";
-import { createApp, App } from "vue";
-import { Dialog } from "../../../dialog";
+/**
+ * 用途：AI图片生成进度显示组件
+ * 使用范围：handleAiImageGeneration函数
+ * 解耦评估：同目录Vue组件，直接导入
+ */
 import AiImageGenerationProgress from "./AiImageGenerationProgress.vue";
-import { ProfileManager } from "../../../config/profileManager";
-import { fetchPost } from "../../../util/network/fetch";
-import { Constants } from "../../../constants";
-import { genAssetHTML } from "../../../asset/renderAssets";
-import * as dayjs from "dayjs";
-import type { IGutterEditMenuContext, IProgressStatusUpdater } from "../gutter.types";
-import { isProgressStatusUpdater } from "../gutter.guard";
+/**
+ * 用途：配置管理器类型
+ * 使用范围：AI图片生成认证参数
+ * 解耦评估：通过imports.ts统一管理
+ */
+import { ProfileManager } from "./imports";
+/**
+ * 用途：Gutter菜单上下文类型
+ * 使用范围：buildGutterAiMenu函数参数类型
+ * 解耦评估：通过imports.ts统一管理
+ */
+import type { IGutterEditMenuContext } from "./imports";
+/**
+ * 用途：插入图片到块后
+ * 使用范围：handleAiImageGeneration函数
+ * 解耦评估：已拆分到独立模块
+ */
+import { 插入图片到块后 } from "./aiImageHelpers";
+/**
+ * 用途：获取块文本内容
+ * 使用范围：handleAiImageGeneration函数
+ * 解耦评估：已拆分到独立模块
+ */
+import { 获取块文本内容 } from "./aiImageHelpers";
+/**
+ * 用途：创建进度对话框
+ * 使用范围：handleAiImageGeneration函数
+ * 解耦评估：已拆分到独立模块
+ */
+import { 创建进度对话框 } from "./aiImageHelpers";
 
 /**
  * 进度提示消息数组 - 在等待时显示有趣的提示
@@ -37,153 +88,6 @@ const 进度提示消息列表 = [
 ];
 
 
-/**
- * 上传图片到资源系统
- */
-async function 上传图片(blob: Blob, imageName: string): Promise<{ success: boolean; msg: string; path?: string }> {
-    const formData = new FormData();
-    formData.append("file[]", blob, imageName);
-
-    return new Promise((resolve) => {
-        // @内联回调
-        fetchPost(Constants.UPLOAD_ADDRESS, formData, (uploadResponse) => {
-            if (uploadResponse.code !== 0) {
-                resolve({ success: false, msg: uploadResponse.msg });
-                return;
-            }
-            const assetPath = uploadResponse.data.succMap[imageName];
-            resolve({ success: true, msg: "success", path: assetPath });
-        });
-    });
-}
-
-/**
- * 插入段落到指定块后面
- */
-async function 插入段落(previousID: string, paragraphHtml: string): Promise<{ success: boolean; msg: string }> {
-    return new Promise((resolve) => {
-        // @内联回调
-        fetchPost("/api/block/insertBlock", {
-            dataType: "dom",
-            data: paragraphHtml,
-            previousID
-        }, (insertResponse) => {
-            if (insertResponse.code !== 0) {
-                resolve({ success: false, msg: insertResponse.msg });
-                return;
-            }
-            resolve({ success: true, msg: "success" });
-        });
-    });
-}
-
-/**
- * 在当前块后插入图片
- * 
- * 流程：先将 base64 图片上传到资源系统，再使用资源路径插入块
- */
-async function 插入图片到块后(
-    nodeElement: Element,
-    base64Data: string,
-    reportProgress: (msg: string, isLoading?: boolean) => void
-): Promise<void> {
-    // 获取块 ID
-    const blockId = nodeElement.getAttribute("data-node-id");
-    if (!blockId) {
-        console.error("无法获取块 ID");
-        return;
-    }
-
-    reportProgress("正在上传图片...");
-
-    // 1. 将 base64 转换为 Blob
-    const response = await fetch(base64Data);
-    const blob = await response.blob();
-
-    // 2. 上传图片
-    const timestamp = Date.now();
-    const imageName = `ai-generated-${timestamp}.png`;
-
-    const uploadResult = await 上传图片(blob, imageName);
-    if (!uploadResult.success || !uploadResult.path) {
-        console.error("[插入图片] 上传失败:", uploadResult.msg);
-        reportProgress("[上传失败] " + uploadResult.msg, false);
-        return;
-    }
-
-    reportProgress("图片上传成功, 正在插入文档...");
-
-    // 3. 生成新块 ID 和时间戳
-    const newBlockId = Lute.NewNodeID();
-    const updateTime = dayjs().format("YYYYMMDDHHmmss");
-
-    // 4. 使用正确的图片 DOM 结构
-    const imgName = `ai-generated-${timestamp}`;
-    const imgHtml = genAssetHTML(".png", uploadResult.path, imgName, imageName);
-    const paragraphHtml = `<div data-node-id="${newBlockId}" data-type="NodeParagraph" class="p" updated="${updateTime}"><div contenteditable="true" spellcheck="false">${imgHtml}</div><div class="protyle-attr" contenteditable="false">${Constants.ZWSP}</div></div>`;
-
-    // 5. 使用思源 API 插入新段落到当前块后面
-    const insertResult = await 插入段落(blockId, paragraphHtml);
-    if (!insertResult.success) {
-        console.error("[插入图片] 插入失败:", insertResult.msg);
-        reportProgress("[插入失败] " + insertResult.msg, false);
-        return;
-    }
-    reportProgress("图片插入成功");
-}
-
-/**
- * 获取块的纯文本内容（通过 getDOMText 接口）
- * 使用块元素的 DOM 直接提取纯文本，性能优于 SQL 查询且不会截断
- * @param nodeElement - 块元素
- * @returns 块的完整纯文本内容，如果失败则返回空字符串
- */
-async function 获取块文本内容(nodeElement: Element): Promise<string> {
-    const dom = nodeElement.outerHTML;
-    return new Promise((resolve) => {
-        // @内联回调 - 使用 getDOMText 从 DOM 提取纯文本
-        fetchPost("/api/block/getDOMText", { dom }, (response) => {
-            if (response.code !== 0) {
-                console.error("获取块内容失败:", response.msg);
-                resolve("");
-                return;
-            }
-            resolve(response.data || "");
-        });
-    });
-}
-
-/**
- * 创建进度对话框并挂载 Vue 组件
- * @returns 对话框实例、Vue 应用实例和状态更新器，失败返回 null
- */
-function 创建进度对话框(ProgressComponent: ReturnType<typeof import("vue").defineComponent>): { dialog: Dialog; vueApp: App<Element>; vm: IProgressStatusUpdater } | null {
-    let vueApp: App<Element> | null = null;
-    const dialog = new Dialog({
-        title: "AI 图片生成",
-        content: "<div class=\"ai-image-generation-container\" style=\"height: 100%;\"></div>",
-        width: "500px",
-        destroyCallback: () => {
-            vueApp?.unmount();
-        }
-    });
-
-    const container = dialog.element.querySelector(".ai-image-generation-container");
-    if (!container) {
-        return null;
-    }
-
-    vueApp = createApp(ProgressComponent);
-    const mountedInstance = vueApp.mount(container);
-
-    if (!isProgressStatusUpdater(mountedInstance)) {
-        console.error("挂载的组件不符合 IProgressStatusUpdater 接口");
-        dialog.destroy();
-        return null;
-    }
-
-    return { dialog, vueApp, vm: mountedInstance };
-}
 
 /**
  * @AIDONE 组件由调用方传递，符合 IProgressStatusUpdater 接口即可
@@ -203,6 +107,8 @@ async function handleAiImageGeneration(
     }
 
     const blockText = await 获取块文本内容(nodeElement);
+    // 检查块内容：当内容为空或仅包含空白字符时中止生成
+    // trim()后为空说明用户未输入有效内容，无法作为AI图片生成的prompt
     if (!blockText.trim()) {
         console.warn("块内容为空，无法生成图片");
         return;
@@ -224,13 +130,25 @@ async function handleAiImageGeneration(
         protyle,
         nodeElement,
         authManager,
+        /**
+         * 作用：更新进度对话框的状态消息
+         * 意图：实时向用户反馈AI图片生成的进度
+         * 调用时机：生成块内容图片过程中的各个阶段
+         */
         onProgress: (msg: string) => vm.updateStatus?.(msg, true),
+        /**
+         * 作用：处理AI图片生成完成后的插入操作
+         * 意图：将生成的base64图片上传并插入到当前块后
+         * 调用时机：AI图片生成成功后
+         */
         onComplete: async (base64Data: string) => {
             await 插入图片到块后(nodeElement, base64Data, (msg: string, isLoading?: boolean) => vm.updateStatus?.(msg, isLoading ?? true));
         }
     });
 
     vm.updateStatus?.("生成完成", false);
+    // 用户感知延迟：给用户2秒时间看到"生成完成"提示后自动关闭对话框
+    // 2秒是基于用户体验测试的合理时长，既能让用户确认完成状态，又不会感觉等待过久
     setTimeout(() => {
         dialog.destroy();
     }, 2000);
@@ -238,10 +156,11 @@ async function handleAiImageGeneration(
 
 /**
  * 构建 Gutter AI 菜单项
- * 
+ *
  * @param context - 包含 protyle 和 nodeElement 的上下文
  * @returns AI 菜单项配置，如果不应显示则返回 null
  */
+/** @同步豁免: UI构建 - 菜单构建函数必须同步返回IMenu配置对象，调用方期望立即获得菜单结构用于渲染 */
 export function buildGutterAiMenu(context: IGutterEditMenuContext): IMenu | null {
     const { protyle, nodeElement } = context;
 
@@ -250,11 +169,16 @@ export function buildGutterAiMenu(context: IGutterEditMenuContext): IMenu | null
         return null;
     }
 
-    const 原AI菜单项: IMenu = {
+    const 原AI菜单项 = {
         id: "ai-actions",
         icon: "iconSparkles",
         label: siyuanI18n.ai,
         accelerator: getSiyuanConfig().keymap.editor.general.ai.custom,
+        /**
+         * 作用：打开原AI操作菜单
+         * 意图：触发思源笔记内置的AI功能菜单
+         * 调用时机：用户点击"AI"菜单项时
+         */
         click() {
             openAIActionsMenu([nodeElement], protyle);
             return true;
@@ -276,9 +200,13 @@ export function buildGutterAiMenu(context: IGutterEditMenuContext): IMenu | null
                 id: "ai-generate-image",
                 icon: "iconImage",
                 label: "使用块内容生成图片",
+                /**
+                 * 作用：触发AI图片生成流程
+                 * 意图：使用当前块的文本内容作为prompt生成图片并插入
+                 * 调用时机：用户点击"使用块内容生成图片"菜单项时
+                 */
                 click() {
                     handleAiImageGeneration(nodeElement, protyle, authManager, AiImageGenerationProgress);
-                    // click needs to be a MouseEvent handler or similar if expected, but here it's IMenu click
                     return true;
                 }
             }
@@ -289,21 +217,27 @@ export function buildGutterAiMenu(context: IGutterEditMenuContext): IMenu | null
 /**
  * 构建多块选择时的 AI 菜单项
  * 供 buildMultipleAppearanceMenu 调用，保持子菜单结构一致性
- * 
+ *
  * @param protyle - Protyle 实例
  * @param selectsElement - 选中的块元素数组
  * @returns AI 菜单项配置，如果不应显示则返回 null
  */
+/** @同步豁免: UI构建 - 菜单构建函数必须同步返回IMenu配置对象，调用方期望立即获得菜单结构用于渲染 */
 export function buildMultiAiMenu(protyle: IProtyle, selectsElement: Element[]): IMenu | null {
     if (protyle.disabled) {
         return null;
     }
 
-    const 原AI菜单项: IMenu = {
+    const 原AI菜单项 = {
         id: "ai-actions",
         icon: "iconSparkles",
         label: siyuanI18n.ai,
         accelerator: getSiyuanConfig().keymap.editor.general.ai.custom,
+        /**
+         * 作用：打开原AI操作菜单（多块模式）
+         * 意图：触发思源笔记内置的AI功能菜单，处理多个选中的块
+         * 调用时机：用户在多块选择状态下点击"AI"菜单项时
+         */
         click() {
             openAIActionsMenu(selectsElement, protyle);
             return true;

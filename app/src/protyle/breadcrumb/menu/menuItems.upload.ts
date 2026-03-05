@@ -13,7 +13,7 @@ import { ipcInvoke } from "../../../platform/electron/ipcRenderer";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig, getSiyuanMenus } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import type { 录音器上下文 } from "../breadcrumb.types";
-import { isHTMLInputElement } from "../breadcrumb.guard";
+import { isHTMLInputElement } from "../imports";
 
 // ==================== 上传菜单项 ====================
 

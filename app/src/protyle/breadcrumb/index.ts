@@ -12,7 +12,7 @@ import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environme
 import { getSiyuanConfig, setSiyuanHideBreadcrumb } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { 显示面包屑菜单 } from "./menu/showBreadcrumbMenu";
 import { 处理面包屑点击 } from "./breadcrumb.events";
-import { isHTMLElement, isStylableElement } from "./breadcrumb.guard";
+import { isHTMLElement, isStylableElement } from "./imports";
 import {
     查找焦点块元素,
     获取默认块元素,
