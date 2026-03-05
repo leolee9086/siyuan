@@ -14,7 +14,7 @@ import { Tab } from "../layout/Tab";
  * 使用范围：setHeader 模块中需要设置窗口拖拽区域的逻辑
  * 解耦评估：依赖 Electron 平台特定类型，桌面端无法解耦
  */
-import { isElectronStyle } from "./setHeader.guard";
+import { isElectronStyle } from "./init.guard";
 
 /**
  * 用途：提供 HTML 元素类型守卫，用于运行时判断元素类型

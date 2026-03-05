@@ -1,4 +1,17 @@
-import { Tab } from "../layout/Tab";
+/**
+ * 用途：提供 Tab 类型定义，用于 isTab 类型守卫函数的运行时类型检查
+ * 使用范围：本文件的 isTab 函数，用于判断实例是否为 Tab 类
+ * 解耦评估：依赖布局系统核心类型，当前无法解耦
+ */
+import { Tab } from "./imports";
+
+/**
+ * 类型守卫函数，用于判断 CSSStyleDeclaration 是否支持 WebkitAppRegion 属性
+ * 在 Electron 环境中，style 对象会扩展 CSSStyleDeclarationElectron 接口
+ */
+export const isElectronStyle = (style: CSSStyleDeclaration): style is CSSStyleDeclarationElectron => {
+    return "WebkitAppRegion" in style;
+};
 
 /**
  * 类型守卫函数，用于判断单个对象是否为 IEmojiItem

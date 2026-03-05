@@ -26,7 +26,7 @@ import { lockScreen } from "./imports";
  * 使用范围：handleResetTabsStyle 函数中用于类型安全的样式操作
  * 解耦评估：同目录模块，无需解耦
  */
-import { isElectronStyle } from "./setHeader.guard";
+import { isElectronStyle } from "./init.guard";
 
 /**
  * 用途：从统一转发模块导入应用主类型定义
