@@ -3,7 +3,7 @@
  * @使用范围: openTopBarMenu 函数参数
  * @解耦评估: 通过参数传递，已解耦
  */
-import {App} from "./imports";
+import type {App} from "./imports";
 
 /**
  * @导入用途: 菜单类，用于创建和操作菜单

@@ -9,7 +9,7 @@
  * @使用范围: 所有需要访问应用实例的插件相关功能
  * @解耦评估: 核心类型依赖，插件系统必须依赖应用实例，无法通过依赖注入解耦
  */
-import {App} from "../index";
+import type {App} from "../index";
 
 /**
  * @导入用途: 同步请求封装，用于向内核请求插件加载数据
@@ -131,7 +131,7 @@ import {getSiyuanLayout} from "../util/siyuanEnvironments/getSiyuanConfig.enviro
 import {getPluginCustomHotkey} from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 /** @导出说明: 应用实例类型 */
-export {App};
+export type {App};
 
 /** @导出说明: 同步请求封装 */
 export {fetchSyncPost};

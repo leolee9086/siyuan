@@ -2,7 +2,7 @@
 /** @导入用途: 拉取插件清单接口 @使用范围: loadPlugins/reloadPlugin @解耦评估: 通过 imports 网关转发，避免父级路径耦合 */
 import {fetchSyncPost} from "./imports";
 /** @导入用途: 应用实例类型 @使用范围: 导出函数参数标注 @解耦评估: 插件加载器核心上下文，无法解耦 */
-import {App} from "./imports";
+import type {App} from "./imports";
 /** @导入用途: 插件基类 @使用范围: loadPluginJS 继承校验 @解耦评估: 插件协议核心依赖，无法解耦 */
 import {Plugin} from "./index";
 /** @导入用途: 布局持久化 @使用范围: loadPlugin/reloadPlugin 完成后保存布局 @解耦评估: 事件化可行但当前直接调用更可控 */
