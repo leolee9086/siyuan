@@ -1,29 +1,126 @@
 /**
- * 用途：从统一导入文件转发所有父目录依赖，避免直接使用 ../ 导入
- * 使用范围：本文件所有需要父目录模块的地方
- * 解耦评估：通过 imports.ts 集中管理外部依赖，便于追踪和重构
+ * 用途：提供布局序列化功能，用于将标签页布局转换为JSON格式
+ * 使用范围：openNewWindow 函数中序列化标签页状态
+ * 解耦评估：依赖布局系统核心功能，当前无法解耦
  */
-import { 
-    layoutToJSON, 
-    ipcSend, 
-    isElectron, 
-    Constants, 
-    Tab, 
-    fetchSyncPost, 
-    showMessage, 
-    getDisplayName, 
-    pathPosix, 
-    getSearch, 
-    getLocationProtocol, 
-    getLocationHost 
-} from "./imports";
+import { layoutToJSON } from "./imports";
+/**
+ * 用途：提供 IPC 通信函数，用于向 Electron 主进程发送消息
+ * 使用范围：默认窗口创建函数中封装使用
+ * 解耦评估：@AIDONE 已通过外观模式和参数注入解耦，调用方可通过 WindowOptions.windowCreator 自定义实现
+ */
+import { ipcSend } from "./imports";
+/**
+ * 用途：提供平台检测功能，用于判断是否在 Electron 环境中运行
+ * 使用范围：所有导出函数中判断是否支持新窗口功能
+ * 解耦评估：依赖平台检测工具函数，当前无法解耦
+ */
+import { isElectron } from "./imports";
+/**
+ * 用途：提供全局常量定义，用于 IPC 通信和资源类型判断
+ * 使用范围：所有导出函数中使用常量
+ * 解耦评估：Constants 是全局常量集合，当前无法解耦
+ */
+import { Constants } from "./imports";
+/**
+ * 用途：提供标签页类型定义，用于标签页操作和类型检查
+ * 使用范围：openNewWindow 函数的参数类型
+ * 解耦评估：Tab 是布局系统核心类型，当前无法解耦
+ */
+import { Tab } from "./imports";
+/**
+ * 用途：提供网络请求功能，用于与后端API通信
+ * 使用范围：openNewWindowById 函数中获取块信息
+ * 解耦评估：依赖网络层实现，当前无法解耦
+ */
+import { fetchSyncPost } from "./imports";
+/**
+ * 用途：提供消息提示功能，用于向用户显示提示信息
+ * 使用范围：openNewWindowById 函数中显示错误消息
+ * 解耦评估：依赖对话框系统，当前无法解耦
+ */
+import { showMessage } from "./imports";
+/**
+ * 用途：提供文件路径处理功能，用于获取文件显示名称
+ * 使用范围：openAssetNewWindow 函数中获取资源文件显示名称
+ * 解耦评估：依赖文件系统工具函数，当前无法解耦
+ */
+import { getDisplayName } from "./imports";
+/**
+ * 用途：提供文件路径处理功能，用于路径操作
+ * 使用范围：openAssetNewWindow 函数中提取文件扩展名
+ * 解耦评估：依赖文件系统工具函数，当前无法解耦
+ */
+import { pathPosix } from "./imports";
+/**
+ * 用途：提供URL查询参数解析功能，用于从URL中提取参数
+ * 使用范围：openAssetNewWindow 函数中解析页码参数
+ * 解耦评估：依赖平台工具函数，当前无法解耦
+ */
+import { getSearch } from "./imports";
+/**
+ * 用途：提供窗口位置信息获取功能，用于构建新窗口URL协议部分
+ * 使用范围：所有导出函数中构建新窗口URL
+ * 解耦评估：依赖环境配置系统，当前无法解耦
+ */
+import { getLocationProtocol } from "./imports";
+/**
+ * 用途：提供窗口位置信息获取功能，用于构建新窗口URL主机部分
+ * 使用范围：所有导出函数中构建新窗口URL
+ * 解耦评估：依赖环境配置系统，当前无法解耦
+ */
+import { getLocationHost } from "./imports";
 
 /**
- * 用途：导入本模块的类型定义，包括窗口配置选项和资源标签页配置
- * 使用范围：本文件所有导出函数的参数类型和内部变量类型声明
+ * 用途：导入窗口配置选项类型定义
+ * 使用范围：所有导出函数的参数类型声明
  * 解耦评估：类型定义文件，仅用于类型检查，无运行时依赖
  */
-import type { WindowOptions, AssetTabConfig } from "./openNewWindow.types";
+import type { WindowOptions } from "./openNewWindow.types";
+/**
+ * 用途：导入窗口创建参数类型定义
+ * 使用范围：默认窗口创建函数的参数类型声明
+ * 解耦评估：类型定义文件，仅用于类型检查，无运行时依赖
+ */
+import type { WindowCreationParams } from "./openNewWindow.types";
+/**
+ * 用途：导入资源标签页配置类型定义
+ * 使用范围：openAssetNewWindow 函数中构建资源标签页配置
+ * 解耦评估：类型定义文件，仅用于类型检查，无运行时依赖
+ */
+import type { AssetTabConfig } from "./openNewWindow.types";
+
+/**
+ * 默认窗口创建函数（外观模式）
+ * 封装 Electron IPC 通信实现，提供统一的窗口创建接口
+ */
+const defaultWindowCreator = (params: WindowCreationParams): void => {
+    // 仅在 Electron 环境中发送 IPC，避免 Web 环境误调用平台能力。
+    if (isElectron) {
+        ipcSend(Constants.SIYUAN_OPEN_WINDOW, params);
+    }
+};
+
+/**
+ * 构建窗口创建参数
+ * 仅在字段显式提供时写入，避免 exactOptionalPropertyTypes 下将 undefined 传入可选字段
+ */
+const buildWindowCreationParams = (options: WindowOptions, url: string): WindowCreationParams => {
+    const params: WindowCreationParams = { url };
+    // 仅当调用方显式提供窗口位置时才写入，保持参数语义与类型约束一致。
+    if (options.position !== undefined) {
+        params.position = options.position;
+    }
+    // 仅当调用方显式提供窗口宽度时才写入，避免把 undefined 作为已定义属性值传递。
+    if (options.width !== undefined) {
+        params.width = options.width;
+    }
+    // 仅当调用方显式提供窗口高度时才写入，避免违反 exactOptionalPropertyTypes 约束。
+    if (options.height !== undefined) {
+        params.height = options.height;
+    }
+    return params;
+};
 
 /**
  * 将已存在的标签页移动到新窗口中打开
@@ -50,16 +147,9 @@ import type { WindowOptions, AssetTabConfig } from "./openNewWindow.types";
 export const openNewWindow = (tab: Tab, options: WindowOptions = {}) => {
     const json = {};
     layoutToJSON(tab, json);
-    // 仅桌面端支持通过IPC创建新窗口
-    if (isElectron) {
-        ipcSend(Constants.SIYUAN_OPEN_WINDOW, {
-            position: options.position,
-            width: options.width,
-            height: options.height,
-            // 需要 encode， 否则 https://github.com/siyuan-note/siyuan/issues/9343
-            url: `${getLocationProtocol()}//${getLocationHost()}/stage/build/app/window.html?v=${Constants.SIYUAN_VERSION}&json=${encodeURIComponent(JSON.stringify([json]))}`
-        });
-    }
+    const windowCreator = options.windowCreator ?? defaultWindowCreator;
+    const url = `${getLocationProtocol()}//${getLocationHost()}/stage/build/app/window.html?v=${Constants.SIYUAN_VERSION}&json=${encodeURIComponent(JSON.stringify([json]))}`;
+    windowCreator(buildWindowCreationParams(options, url));
     tab.parent.removeTab(tab.id);
 };
 
@@ -111,15 +201,9 @@ export const openNewWindowById = async (id: string | string[], options: WindowOp
             }
         });
     }
-    // 仅桌面端支持通过IPC创建新窗口
-    if (isElectron) {
-        ipcSend(Constants.SIYUAN_OPEN_WINDOW, {
-            position: options.position,
-            width: options.width,
-            height: options.height,
-            url: `${getLocationProtocol()}//${getLocationHost()}/stage/build/app/window.html?v=${Constants.SIYUAN_VERSION}&json=${encodeURIComponent(JSON.stringify(json))}`
-        });
-    }
+    const windowCreator = options.windowCreator ?? defaultWindowCreator;
+    const url = `${getLocationProtocol()}//${getLocationHost()}/stage/build/app/window.html?v=${Constants.SIYUAN_VERSION}&json=${encodeURIComponent(JSON.stringify(json))}`;
+    windowCreator(buildWindowCreationParams(options, url));
 };
 
 /**
@@ -186,11 +270,8 @@ export const openAssetNewWindow = (assetPath: string, options: WindowOptions = {
                 instance: "Asset",
             }
         }];
-        ipcSend(Constants.SIYUAN_OPEN_WINDOW, {
-            position: options.position,
-            width: options.width,
-            height: options.height,
-            url: `${getLocationProtocol()}//${getLocationHost()}/stage/build/app/window.html?v=${Constants.SIYUAN_VERSION}&json=${encodeURIComponent(JSON.stringify(json))}`
-        });
+        const windowCreator = options.windowCreator ?? defaultWindowCreator;
+        const url = `${getLocationProtocol()}//${getLocationHost()}/stage/build/app/window.html?v=${Constants.SIYUAN_VERSION}&json=${encodeURIComponent(JSON.stringify(json))}`;
+        windowCreator(buildWindowCreationParams(options, url));
     }
 };

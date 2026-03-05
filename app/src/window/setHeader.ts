@@ -8,7 +8,20 @@ import { ipcInvoke } from "../platform/electron/ipcRenderer";
 import { setLocationHash, getWindowInnerWidth } from "../util/siyuanEnvironments/windowLocation.environment";
 import { getSiyuanLayout, getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { Tab } from "../layout/Tab";
-import { isElectronStyle, isHTMLElement } from "./setHeader.guard";
+
+/**
+ * 用途：提供 Electron 样式类型守卫，用于判断 CSSStyleDeclaration 是否支持 WebkitAppRegion
+ * 使用范围：setHeader 模块中需要设置窗口拖拽区域的逻辑
+ * 解耦评估：依赖 Electron 平台特定类型，桌面端无法解耦
+ */
+import { isElectronStyle } from "./setHeader.guard";
+
+/**
+ * 用途：提供 HTML 元素类型守卫，用于运行时判断元素类型
+ * 使用范围：setHeader 模块中需要进行元素类型检查的逻辑
+ * 解耦评估：依赖 DOM 工具函数，当前无法解耦
+ */
+import { isHTMLElement } from "./imports";
 
 /** 处理单个窗口的标签页位置设置 */
 const processWndForTabPosition = async (item: Wnd): Promise<void> => {

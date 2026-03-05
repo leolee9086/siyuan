@@ -1,4 +1,20 @@
 /**
+ * 窗口创建参数
+ */
+export interface WindowCreationParams {
+    position?: { x: number; y: number };
+    width?: number;
+    height?: number;
+    url: string;
+}
+
+/**
+ * 窗口创建函数类型
+ * 用于解耦平台特定的窗口创建实现
+ */
+export type WindowCreator = (params: WindowCreationParams) => void;
+
+/**
  * 新窗口打开选项
  */
 export interface WindowOptions {
@@ -7,7 +23,12 @@ export interface WindowOptions {
         y: number,
     },
     width?: number,
-    height?: number
+    height?: number,
+    /**
+     * 自定义窗口创建函数，用于替代默认的 IPC 实现
+     * 如果不提供，将使用默认的 Electron IPC 通信
+     */
+    windowCreator?: WindowCreator;
 }
 
 /**

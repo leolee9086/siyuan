@@ -109,5 +109,99 @@ import { getSearch } from "../util/platform/functions";
  */
 import { getLocationProtocol, getLocationHost } from "../util/siyuanEnvironments/windowLocation.environment";
 
+/**
+ * 用途：提供 HTML 元素类型守卫函数，用于运行时类型检查
+ * 使用范围：setHeader.guard.ts 等需要判断元素类型的模块
+ * 解耦评估：依赖 DOM 工具函数，当前无法解耦
+ */
+import { isHTMLElement } from "../util/DOM/element.guard";
+
+/**
+ * 导出 App 类型定义
+ */
 export type { App };
-export { Constants, ipcSend, getInstanceById, Tab, isWindow, getSiyuanConfig, lockScreen, layoutToJSON, isElectron, fetchSyncPost, showMessage, getDisplayName, pathPosix, getSearch, getLocationProtocol, getLocationHost };
+
+/**
+ * 导出全局常量定义
+ */
+export { Constants };
+
+/**
+ * 导出 IPC 通信函数
+ */
+export { ipcSend };
+
+/**
+ * 导出布局实例查找功能
+ */
+export { getInstanceById };
+
+/**
+ * 导出标签页类型定义
+ */
+export { Tab };
+
+/**
+ * 导出窗口环境检测功能
+ */
+export { isWindow };
+
+/**
+ * 导出思源配置访问功能
+ */
+export { getSiyuanConfig };
+
+/**
+ * 导出锁屏功能
+ */
+export { lockScreen };
+
+/**
+ * 导出布局序列化功能
+ */
+export { layoutToJSON };
+
+/**
+ * 导出 Electron 环境检测功能
+ */
+export { isElectron };
+
+/**
+ * 导出网络请求功能
+ */
+export { fetchSyncPost };
+
+/**
+ * 导出消息提示功能
+ */
+export { showMessage };
+
+/**
+ * 导出文件显示名称获取功能
+ */
+export { getDisplayName };
+
+/**
+ * 导出路径处理功能
+ */
+export { pathPosix };
+
+/**
+ * 导出 URL 查询参数解析功能
+ */
+export { getSearch };
+
+/**
+ * 导出窗口协议获取功能
+ */
+export { getLocationProtocol };
+
+/**
+ * 导出窗口主机地址获取功能
+ */
+export { getLocationHost };
+
+/**
+ * 导出 HTML 元素类型守卫功能
+ */
+export { isHTMLElement };
