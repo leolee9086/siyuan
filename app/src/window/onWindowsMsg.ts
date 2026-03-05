@@ -1,16 +1,30 @@
 /**
- * 用途：从统一转发模块导入布局相关功能，用于标签页查找和操作
- * 使用范围：closeTab 函数中用于根据ID获取标签页实例并执行关闭操作
+ * 用途：从统一转发模块导入标签页实例查找功能
+ * 使用范围：closeTab 函数中用于根据ID获取标签页实例
  * 解耦评估：依赖布局系统核心功能，当前无法解耦
  */
-import { getInstanceById, Tab } from "./imports";
+import { getInstanceById } from "./imports";
 
 /**
- * 用途：从统一转发模块导入平台检测和配置访问功能
- * 使用范围：handleResetTabsStyle 和 lockScreenByMode 函数中用于平台判断和配置读取
- * 解耦评估：依赖平台工具和环境配置系统，当前无法解耦
+ * 用途：从统一转发模块导入标签页类型定义
+ * 使用范围：closeTab 函数中用于类型检查和操作
+ * 解耦评估：依赖布局系统核心类型，当前无法解耦
  */
-import { isWindow, getSiyuanConfig } from "./imports";
+import { Tab } from "./imports";
+
+/**
+ * 用途：从统一转发模块导入平台检测功能
+ * 使用范围：handleResetTabsStyle 函数中用于判断是否为桌面端
+ * 解耦评估：依赖平台工具，当前无法解耦
+ */
+import { isWindow } from "./imports";
+
+/**
+ * 用途：从统一转发模块导入配置访问功能
+ * 使用范围：lockScreenByMode 函数中用于读取锁屏模式配置
+ * 解耦评估：依赖环境配置系统，当前无法解耦
+ */
+import { getSiyuanConfig } from "./imports";
 
 /**
  * 用途：从统一转发模块导入锁屏功能

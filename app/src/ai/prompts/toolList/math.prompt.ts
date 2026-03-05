@@ -2,7 +2,6 @@
  * 说明数学公式渲染的提示词
  * @returns 
  */
-
 export function getMathSection(): string {
 	return `## 数学公式渲染
 

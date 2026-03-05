@@ -2,7 +2,6 @@
  * 说明流程图创建的提示词
  * @returns 
  */
-
 export function getFlowchartSection(): string {
 	return `## 流程图创建
 
