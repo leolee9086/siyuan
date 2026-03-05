@@ -235,10 +235,11 @@ const appendDockButton = (dockKey: string, plugin: Plugin) => {
     const button = [{
         type: dockKey,
         size: dock.config.size,
-        show: dock.config.show,
+        show: dock.config.show ?? false,
         icon: dock.config.icon,
         title: dock.config.title,
-        hotkey
+        hotkey: hotkey ?? "",
+        hotkeyLangId: ""
     }];
     const layout = getSiyuanLayout();
     const leftDock = layout.leftDock;
