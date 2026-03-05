@@ -42,7 +42,7 @@ import type { ModelScopeAuthData } from "./imports";
 /**
  * 用途：生成块内容图片的参数类型
  * 使用范围：主函数参数类型约束
- * 解耦评估：类型定义，从父级类型文件导入
+ * 解耦评估：类型定义，通过imports.ts转发
  */
 import type { 生成块内容图片参数 } from "./imports";
 
