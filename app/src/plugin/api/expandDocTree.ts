@@ -1,43 +1,185 @@
-import { fetchSyncPost } from "../../util/network/fetch";
-import { Files } from "../../layout/dock/Files";
+/**
+ * 用途：网络请求工具，用于调用后端API
+ * 使用范围：本文件中调用getBlockInfo接口
+ * 解耦评估：通过imports.ts转发
+ */
+import { fetchSyncPost } from "./imports";
+/**
+ * 用途：文件树管理类，用于操作文件树UI
+ * 使用范围：本文件中操作文件树节点
+ * 解耦评估：通过imports.ts转发
+ */
+import { Files } from "./imports";
+/**
+ * 用途：获取指定类型的模型实例
+ * 使用范围：本文件中获取文件树模型
+ * 解耦评估：同目录直接导入
+ */
 import { getModelByDockType } from "./getModelByDockType";
+/**
+ * 用途：安全访问全局笔记本列表
+ * 使用范围：本文件中判断ID是否为笔记本
+ * 解耦评估：通过imports.ts转发
+ */
+import { getSiyuanNotebooks } from "./imports";
 
-export const expandDocTree = async (options: {
-    id: string,
-    isSetCurrent?: boolean
-}) => {
-    let isNotebook = false;
-    window.siyuan.notebooks.find(item => {
-        if (options.id === item.id) {
-            isNotebook = true;
-            return true;
-        }
-    });
-    let liElement: HTMLElement;
-    let notebookId = options.id;
-    const file = getModelByDockType("file") as Files;
-    if (typeof options.isSetCurrent === "undefined") {
-        options.isSetCurrent = true;
+/**
+ * 检查给定ID是否为笔记本ID
+ *
+ * 作用：判断ID是否存在于笔记本列表中
+ * 意图：区分笔记本和文档块，以便采用不同的定位策略
+ * 调用时机：在展开文档树前需要判断目标类型时
+ *
+ * @param id - 要检查的ID
+ * @returns 如果是笔记本ID返回true，否则返回false
+ */
+const isNotebookId = (id: string): boolean => {
+    const notebooks = getSiyuanNotebooks();
+    return notebooks.some(item => item.id === id);
+};
+
+/**
+ * 获取笔记本节点信息
+ *
+ * 作用：在文件树中查找指定笔记本的DOM节点并封装为统一格式
+ * 意图：为笔记本类型的展开操作提供目标元素和笔记本ID
+ * 调用时机：当确认目标为笔记本时调用
+ *
+ * @param file - 文件树管理实例
+ * @param notebookId - 笔记本ID
+ * @returns 包含节点元素和笔记本ID的对象，未找到返回null
+ */
+const getNotebookElementInfo = (
+    file: Files,
+    notebookId: string
+): { element: HTMLElement; notebookId: string } | null => {
+    const listElement = file.element.querySelector(`.b3-list[data-url="${notebookId}"]`);
+    if (!listElement) {
+        return null;
     }
-    if (isNotebook) {
-        liElement = file.element.querySelector(`.b3-list[data-url="${options.id}"]`)?.firstElementChild as HTMLElement;
-    } else {
-        const response = await fetchSyncPost("api/block/getBlockInfo", { id: options.id });
-        if (response.code === -1) {
-            return;
-        }
-        notebookId = response.data.box;
-        liElement = await file.selectItem(response.data.box, response.data.path, undefined, undefined, options.isSetCurrent);
+    const firstChild = listElement.firstElementChild;
+    if (!(firstChild instanceof HTMLElement)) {
+        return null;
     }
-    if (!liElement) {
+    return { element: firstChild, notebookId };
+};
+
+/**
+ * 获取文档块节点的DOM元素
+ *
+ * 作用：通过API获取块信息后在文件树中定位文档节点
+ * 意图：为文档块类型的展开操作提供目标元素
+ * 调用时机：当确认目标为文档块时调用
+ *
+ * @param file - 文件树管理实例
+ * @param blockId - 文档块ID
+ * @param isSetCurrent - 是否设置为当前选中项
+ * @returns 包含文档节点元素和笔记本ID的对象，失败返回null
+ */
+const getDocumentElement = async (
+    file: Files,
+    blockId: string,
+    isSetCurrent: boolean
+): Promise<{ element: HTMLElement; notebookId: string } | null> => {
+    const response = await fetchSyncPost("api/block/getBlockInfo", { id: blockId });
+    // API调用失败时返回null
+    if (response.code === -1) {
+        return null;
+    }
+    const element = await file.selectItem(
+        response.data.box,
+        response.data.path,
+        undefined,
+        undefined,
+        isSetCurrent
+    );
+    if (!element) {
+        return null;
+    }
+    return { element, notebookId: response.data.box };
+};
+
+/**
+ * 展开文档树节点
+ *
+ * 作用：展开指定的文档树节点（如果尚未展开）
+ * 意图：确保目标节点的子节点可见
+ * 调用时机：在定位到目标节点后需要展开其子节点时
+ *
+ * @param liElement - 目标节点元素
+ * @param file - 文件树管理实例
+ * @param notebookId - 笔记本ID
+ */
+const expandTreeNode = (liElement: HTMLElement, file: Files, notebookId: string): void => {
+    const toggleElement = liElement.querySelector(".b3-list-item__arrow");
+    if (!toggleElement) {
         return;
     }
-    if (options.isSetCurrent || typeof options.isSetCurrent === "undefined") {
-        file.setCurrent(liElement);
-    }
-    const toggleElement = liElement.querySelector(".b3-list-item__arrow");
+    // 如果节点已经展开，无需重复操作
     if (toggleElement.classList.contains("b3-list-item__arrow--open")) {
         return;
     }
     file.getLeaf(liElement, notebookId);
+};
+
+/**
+ * 获取目标节点信息（笔记本或文档）
+ *
+ * 作用：根据ID类型获取对应的节点元素和笔记本ID
+ * 意图：统一处理笔记本和文档两种类型的节点获取逻辑
+ * 调用时机：在展开文档树时需要定位目标节点
+ *
+ * @param file - 文件树管理实例
+ * @param id - 目标ID（笔记本或文档块）
+ * @param isSetCurrent - 是否设置为当前选中项
+ * @returns 包含节点元素和笔记本ID的对象，失败返回null
+ */
+const getTargetNodeInfo = async (
+    file: Files,
+    id: string,
+    isSetCurrent: boolean
+): Promise<{ element: HTMLElement; notebookId: string } | null> => {
+    // 如果是笔记本ID，直接查找笔记本节点
+    if (isNotebookId(id)) {
+        return getNotebookElementInfo(file, id);
+    }
+    // 如果是文档块ID，通过API获取文档节点
+    return await getDocumentElement(file, id, isSetCurrent);
+};
+
+/**
+ * 展开文档树到指定节点
+ *
+ * 作用：在文件树中定位并展开到指定的文档或笔记本节点
+ * 意图：为插件提供程序化控制文档树展开状态的能力，支持快速导航到特定文档
+ * 调用时机：
+ *   - 插件需要在文件树中高亮显示特定文档时
+ *   - 用户通过搜索或链接跳转到文档时需要在侧边栏展开对应节点
+ *   - 需要程序化展开文档树结构时
+ *
+ * @param options.id - 要展开的文档块 ID 或笔记本 ID
+ * @param options.isSetCurrent - 是否将目标节点设置为当前选中项，默认为 true
+ */
+export const expandDocTree = async (options: {
+    id: string,
+    isSetCurrent?: boolean
+}) => {
+    const file = getModelByDockType("file");
+    if (!file || !(file instanceof Files)) {
+        return;
+    }
+
+    const isSetCurrent = options.isSetCurrent ?? true;
+
+    const nodeInfo = await getTargetNodeInfo(file, options.id, isSetCurrent);
+    if (!nodeInfo) {
+        return;
+    }
+
+    // 根据参数决定是否将节点设置为当前选中项
+    if (isSetCurrent) {
+        file.setCurrent(nodeInfo.element);
+    }
+
+    expandTreeNode(nodeInfo.element, file, nodeInfo.notebookId);
 };

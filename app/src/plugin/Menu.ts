@@ -1,11 +1,11 @@
-import {Menu as SiyuanMenu} from "../menus/Menu";
+import { Menu as SiyuanMenu } from "../menus/Menu";
 
 interface PendingMenuItem {
     option: IMenu | Promise<IMenu>;
     resolve: (value: HTMLElement | undefined) => void;
     reject: (reason?: any) => void;
     index: number;
-    timeoutId?:number| NodeJS.Timeout;
+    timeoutId?: number | NodeJS.Timeout;
 }
 
 export class Menu {
@@ -55,7 +55,7 @@ export class Menu {
                 reject,
                 index: this.nextIndex++
             };
-            
+
             // 设置超时
             const timeoutId = setTimeout(() => {
                 const index = this.pendingItems.indexOf(pendingItem);
@@ -64,10 +64,10 @@ export class Menu {
                     reject(new Error("异步菜单项超时"));
                 }
             }, timeout);
-            
+
             // 保存 timeoutId 以便清理
             pendingItem.timeoutId = timeoutId;
-            
+
             this.pendingItems.push(pendingItem);
             this.processQueue();
         });
@@ -75,23 +75,23 @@ export class Menu {
 
     private async processQueue() {
         if (this.processingQueue) {
-return;
-}
+            return;
+        }
         this.processingQueue = true;
-        
+
         // 创建队列的快照，避免处理过程中添加新项目
         const queueSnapshot = [...this.pendingItems];
         this.pendingItems = [];
-        
+
         while (queueSnapshot.length > 0) {
             const item = queueSnapshot.shift();
             if (!item) {
-continue;
-}
-            
+                continue;
+            }
+
             try {
                 const resolvedOption = await this.resolveOption(item);
-                
+
                 // 即使菜单已关闭，也继续处理
                 if (!this.isOpen) {
                     const element = this.menu.addItem(resolvedOption);
@@ -110,9 +110,9 @@ continue;
                 }
             }
         }
-        
+
         this.processingQueue = false;
-        
+
         // 如果在处理过程中有新项目添加，再次处理
         if (this.pendingItems.length > 0) {
             this.processQueue();
@@ -139,7 +139,7 @@ continue;
         if (ignore || this.isOpen) {
             return;
         }
-        return this.menu.addItem({id, type: "separator", index});
+        return this.menu.addItem({ id, type: "separator", index });
     }
 
     open(options: IPosition) {
