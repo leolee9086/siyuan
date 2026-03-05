@@ -117,6 +117,17 @@ body,
   color: #ff8f8f;
 }
 
+.magi-workspace-shell {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  overflow: hidden;
+}
+
 .magi-workspace {
   flex: 1;
   min-height: 0;
@@ -124,7 +135,6 @@ body,
   display: grid;
   grid-template-columns: minmax(320px, 42%) 1fr;
   gap: 10px;
-  padding: 10px;
   overflow: hidden;
 }
 

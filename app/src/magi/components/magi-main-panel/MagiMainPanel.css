@@ -10,7 +10,8 @@
   overflow: hidden;
 }
 
-.main-output .consensus-header {
+.main-output .consensus-header,
+.magi-workspace-shell .consensus-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -27,7 +28,8 @@
   border-bottom: 1px solid rgba(0, 255, 0, 0.3);
 }
 
-.main-output .global-status {
+.main-output .global-status,
+.magi-workspace-shell .global-status {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -39,41 +41,48 @@
   flex-shrink: 0;
 }
 
-.main-output .status-item {
+.main-output .status-item,
+.magi-workspace-shell .status-item {
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
-.main-output .status-name {
+.main-output .status-name,
+.magi-workspace-shell .status-name {
   font-size: 0.8em;
   color: #0f0;
 }
 
-.main-output .status-led {
+.main-output .status-led,
+.magi-workspace-shell .status-led {
   width: 8px;
   height: 8px;
   border-radius: 50%;
 }
 
-.main-output .status-led.connected {
+.main-output .status-led.connected,
+.magi-workspace-shell .status-led.connected {
   background: #0f0;
   box-shadow: 0 0 5px #0f0;
   animation: pulse 1.5s infinite;
 }
 
-.main-output .status-led.loading {
+.main-output .status-led.loading,
+.magi-workspace-shell .status-led.loading {
   background: #ff0;
   box-shadow: 0 0 5px #ff0;
   animation: pulse 0.8s infinite;
 }
 
-.main-output .status-led.disconnected {
+.main-output .status-led.disconnected,
+.magi-workspace-shell .status-led.disconnected {
   background: #f00;
   box-shadow: 0 0 5px #f00;
 }
 
-.main-output .sync-rate {
+.main-output .sync-rate,
+.magi-workspace-shell .sync-rate {
   font-family: "MS Gothic", monospace;
   color: #0f0;
   text-shadow: 0 0 5px #0f0;
@@ -90,7 +99,8 @@
   }
 }
 
-.main-output .controls {
+.main-output .controls,
+.magi-workspace-shell .controls {
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -99,7 +109,8 @@
   gap: 0.85rem 1.2rem;
 }
 
-.main-output .toggle-text {
+.main-output .toggle-text,
+.magi-workspace-shell .toggle-text {
   color: #0ff;
   font-family: "MS Gothic", monospace;
   font-size: 0.8em;
@@ -110,17 +121,20 @@
   white-space: nowrap;
 }
 
-.main-output .toggle-text:hover {
+.main-output .toggle-text:hover,
+.magi-workspace-shell .toggle-text:hover {
   opacity: 1;
   text-shadow: 0 0 5px #0ff;
 }
 
-.main-output .toggle-text.active {
+.main-output .toggle-text.active,
+.magi-workspace-shell .toggle-text.active {
   opacity: 1;
   text-shadow: 0 0 5px #0ff;
 }
 
-.main-output .neon-text {
+.main-output .neon-text,
+.magi-workspace-shell .neon-text {
   color: #0f0;
   text-shadow: 0 0 10px #0f0;
   font-size: 1.5em;
@@ -129,7 +143,8 @@
   letter-spacing: 0.2em;
 }
 
-.main-output .consensus-status {
+.main-output .consensus-status,
+.magi-workspace-shell .consensus-status {
   font-family: "MS Gothic", monospace;
 }
 
@@ -182,7 +197,8 @@
   font-size: 0.8em;
 }
 
-.main-output .persona-button {
+.main-output .persona-button,
+.magi-workspace-shell .persona-button {
   background: rgba(0, 255, 0, 0.1);
   border: 1px solid #0f0;
   color: #0f0;
@@ -194,7 +210,8 @@
   transition: all 0.3s ease;
 }
 
-.main-output .persona-button:hover {
+.main-output .persona-button:hover,
+.magi-workspace-shell .persona-button:hover {
   background: rgba(0, 255, 0, 0.2);
   text-shadow: 0 0 5px #0f0;
   box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);

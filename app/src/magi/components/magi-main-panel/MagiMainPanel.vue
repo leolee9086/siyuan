@@ -1,19 +1,5 @@
 <template>
   <div class="main-output border-green">
-    <MagiMainPanelHeader
-      :show-messages="showMessages"
-      :show-seels="showSeels"
-      :show-trinity="showTrinity"
-      :persona-entry-text="personaEntryText"
-      :sync-rate-text="syncRateText"
-      :sync-rate="syncRate"
-      :connection-statuses="connectionStatuses"
-      @show-questionnaire="emit('show-questionnaire')"
-      @toggle-messages="emit('toggle-messages')"
-      @toggle-seels="emit('toggle-seels')"
-      @toggle-trinity="emit('toggle-trinity')"
-    />
-
     <div ref="container" class="main-message-container">
       <MessageBubble
         v-for="(msg, i) in messages"
@@ -54,7 +40,6 @@ import { ref, toRef } from "vue";
 import { getMagiI18nText } from "../../utils/magiI18n";
 import MessageBubble from "../message-bubble/MessageBubble.vue";
 import MagiInputBar from "./MagiInputBar.vue";
-import MagiMainPanelHeader from "./MagiMainPanelHeader.vue";
 import { useMagiMainPanelContext } from "./MagiMainPanel.ctx";
 import type { MagiMainPanelEmits, MagiMainPanelProps } from "./MagiMainPanel.types";
 import "./MagiMainPanel.css";
@@ -66,13 +51,9 @@ const props = withDefaults(defineProps<MagiMainPanelProps>(), {
 });
 
 const emit = defineEmits<MagiMainPanelEmits>();
-const personaEntryText = getMagiI18nText("personaEntry");
-const syncRateText = getMagiI18nText("syncRate");
 const container = ref<HTMLElement | null>(null);
 
 const {
-  connectionStatuses,
-  syncRate,
   getMessageAlign,
   getTypeLabel,
   formatContent,
