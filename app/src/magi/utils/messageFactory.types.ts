@@ -63,6 +63,8 @@ export interface StreamResult {
     toolCallNames?: string[];
     /** speak(channel=internal) 的内部消息 */
     internalToolMessages?: string[];
+    /** 观测到的工具参数（按工具名聚合） */
+    toolArgumentsByName?: Record<string, string[]>;
 }
 
 /**

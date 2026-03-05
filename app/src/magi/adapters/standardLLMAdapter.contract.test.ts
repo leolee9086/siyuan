@@ -6,11 +6,13 @@ import type { WrappedSeel } from "../composables/useMagi.types";
 import type { MagiMessage } from "../utils/messageFactory.types";
 
 const mockedSendUserMessageWithConsensus = vi.hoisted(() => vi.fn());
+const mockedAppendConsensusMessage = vi.hoisted(() => vi.fn());
 const mockedGetAIConfigFromSiyuan = vi.hoisted(() => vi.fn());
 const mockedUniversalStreamRequest = vi.hoisted(() => vi.fn());
 
 vi.mock("../composables/useMagi.consensus", () => ({
     sendUserMessageWithConsensus: mockedSendUserMessageWithConsensus,
+    appendConsensusMessage: mockedAppendConsensusMessage,
 }));
 
 vi.mock("../../ai/utils.config", () => ({
@@ -62,9 +64,22 @@ function createSeel(name: string): WrappedSeel {
 }
 
 function createRequest(content: string): ChatRequestParams {
+    const sourcePayload = JSON.stringify({
+        requestId: "req-contract-1",
+        callerId: "contract-test",
+        source: "guardian",
+        trustBase: "high",
+        riskLevel: "low",
+        profileId: "profile-contract",
+        profileLabel: "Contract Test",
+        sourceChannel: "guardian",
+    });
     return {
         model: "test-model",
-        messages: [{ role: "user", content }],
+        messages: [
+            { role: "system", content: `<magi_request_source>${sourcePayload}</magi_request_source>` },
+            { role: "user", content },
+        ],
         stream: false,
     };
 }
@@ -72,6 +87,7 @@ function createRequest(content: string): ChatRequestParams {
 describe("standard-llm-adapter contract", () => {
     beforeEach(() => {
         mockedSendUserMessageWithConsensus.mockReset();
+        mockedAppendConsensusMessage.mockReset();
         mockedGetAIConfigFromSiyuan.mockReset();
         mockedUniversalStreamRequest.mockReset();
         vi.restoreAllMocks();
@@ -207,4 +223,3 @@ describe("standard-llm-adapter contract", () => {
         expect(done).toBe(true);
     });
 });
-

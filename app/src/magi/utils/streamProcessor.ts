@@ -78,6 +78,7 @@ async function handleAsyncGeneratorResponse(
     const observedToolCallNames = new Set<string>();
     let hasAnyToolCall = false;
     let accumulated = "";
+    let toolArgumentsByName: Record<string, string[]> = {};
 
     callbacks.onStart?.(message);
 
@@ -93,6 +94,7 @@ async function handleAsyncGeneratorResponse(
         );
         accumulated = consumed.accumulated;
         hasAnyToolCall = consumed.hasAnyToolCall;
+        toolArgumentsByName = resolveToolArgumentsByName(toolState, observedToolCallNames);
         // speak-tool 模式下必须检测到 speak 调用且解析出 public 通道正文。
         if (shouldUseSpeakToolMode && (!toolState.hasSpeakToolCall || !toolState.hasPublicSpeakToolCall || !toolState.publicSpokenContent.trim())) {
             throw new Error("Trinity 未调用公开通道 speak 或公开正文为空。");
@@ -110,6 +112,7 @@ async function handleAsyncGeneratorResponse(
             hasAnyToolCall,
             observedToolCallNames,
             toolState.internalSpokenMessages,
+            toolArgumentsByName,
         );
     }
 
@@ -120,6 +123,7 @@ async function handleAsyncGeneratorResponse(
         hasAnyToolCall,
         observedToolCallNames,
         toolState.internalSpokenMessages,
+        toolArgumentsByName,
     );
 }
 
@@ -130,6 +134,7 @@ function buildToolAwareResult(
     hasToolCalls: boolean,
     toolCallNames: Set<string>,
     internalToolMessages: string[],
+    toolArgumentsByName: Record<string, string[]>,
 ): StreamResult {
     return {
         content,
@@ -137,6 +142,7 @@ function buildToolAwareResult(
         hasToolCalls,
         toolCallNames: Array.from(toolCallNames),
         internalToolMessages,
+        toolArgumentsByName,
     };
 }
 
@@ -176,6 +182,8 @@ async function consumeStream(
             for (const name of toolCallNames) {
                 observedToolCallNames.add(name);
             }
+            // 启用工具捕获时，无论是否为 speak 模式都聚合 arguments 分片，供上层解析。
+            mergeToolCalls(toolState, parsedChunk.toolCalls);
         }
         const shouldEmitPlainText = !shouldUseSpeakToolMode && Boolean(parsedChunk.content);
         // 默认模式下，只在存在文本增量时刷新流式内容。
@@ -189,7 +197,6 @@ async function consumeStream(
             continue;
         }
         // speak-tool 模式优先消费 tool_calls，并忽略直接文本内容。
-        mergeToolCalls(toolState, parsedChunk.toolCalls);
         const spoken = resolveSpeakChannels(toolState);
         const shouldEmitSpoken = Boolean(spoken && spoken !== lastSpoken);
         // 仅当解析出的可见文本发生变化时刷新流式显示。
@@ -372,6 +379,30 @@ function resolveSpeakChannels(state: ToolCallState): string {
     state.publicSpokenContent = publicContent;
     state.internalSpokenMessages = internalMessages;
     return publicContent;
+}
+
+/** 将聚合后的工具参数按工具名归档，供上层解析元工具调用载荷。 */
+function resolveToolArgumentsByName(
+    state: ToolCallState,
+    observedToolCallNames: Set<string>,
+): Record<string, string[]> {
+    const indexes = Object.keys(state.namesByIndex)
+        .map((key) => Number(key))
+        .filter((key) => Number.isInteger(key))
+        .sort((a, b) => a - b);
+    const grouped: Record<string, string[]> = {};
+    for (const index of indexes) {
+        const name = state.namesByIndex[index];
+        if (!name || !observedToolCallNames.has(name)) {
+            continue;
+        }
+        const args = state.argsByIndex[index] ?? "";
+        if (!grouped[name]) {
+            grouped[name] = [];
+        }
+        grouped[name].push(args);
+    }
+    return grouped;
 }
 
 /** 提取当前 chunk 中出现的工具名称（去空值，不去重） */

@@ -13,6 +13,8 @@ function buildOpenAIRequestBody(
         messages: request.messages,
         temperature: request.temperature,
         max_tokens: request.max_tokens,
+        ...(Array.isArray(request.tools) ? { tools: request.tools } : {}),
+        ...(request.tool_choice !== undefined ? { tool_choice: request.tool_choice } : {}),
         stream,
     };
 }
@@ -86,4 +88,3 @@ export async function createRawOpenAIStandardLLMAdapter(): Promise<StandardLLMAd
         },
     };
 }
-

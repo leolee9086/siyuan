@@ -1,4 +1,5 @@
 import type { ChatRequestParams, ChatResponseData } from "../../ai/types";
+import { createAvatarRuntime } from "../core/nerv/avatar.runtime";
 import type {
     ConnectionStatus,
     SourceSimulationContext,
@@ -16,12 +17,15 @@ import type {
     StandardLLMStreamChunk,
 } from "../types/llmAdapter.types";
 import type { MagiMessage } from "../utils/messageFactory.types";
+import type { AvatarRuntime } from "../core/nerv/avatar.runtime.types";
+import type { ReplyOptions } from "../core/core.types";
 
 const SOURCE_SIMULATION_TAG = "magi_request_source";
 const SOURCE_SIMULATION_OPEN = `<${SOURCE_SIMULATION_TAG}>`;
 const SOURCE_SIMULATION_CLOSE = `</${SOURCE_SIMULATION_TAG}>`;
 const BLOCKED_RESPONSE_CONTENT = "Request blocked by MAGI ingress policy.";
 const BLOCKED_ALERT_CONTENT = "Ingress blocked: external source connection attempt denied.";
+const INTERNAL_SERVER_ERROR_CONTENT = "Internal Server Error";
 
 interface IngressRuleDecision {
     allowed: boolean;
@@ -64,12 +68,17 @@ export async function createMagiStandardLLMAdapter(params: {
     eventBus?: MagiEventBus;
 }): Promise<StandardLLMAdapter> {
     const model = params.model ?? "magi-trinity";
+    const avatarRuntime = createAvatarRuntime({
+        seels: params.seels,
+        consensusMessages: params.consensusMessages,
+        connectionStatus: params.connectionStatus,
+    });
 
     return {
         createChatCompletion: async (request) =>
-            createMagiChatCompletion(params, request, model),
+            createMagiChatCompletion(params, request, model, avatarRuntime),
         streamChatCompletion: async (request, callbacks) =>
-            streamMagiChatCompletion(params, request, callbacks, model),
+            streamMagiChatCompletion(params, request, callbacks, model, avatarRuntime),
     };
 }
 
@@ -85,6 +94,20 @@ function extractLatestUserInput(messages: ChatRequestParams["messages"]): string
 
 function buildRequestId(): string {
     return `req-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function buildAvatarToolOptions(
+    request: ChatRequestParams,
+): Pick<ReplyOptions, "tools" | "toolChoice"> | undefined {
+    const hasTools = Array.isArray(request.tools) && request.tools.length > 0;
+    const hasToolChoice = request.tool_choice !== undefined;
+    if (!hasTools && !hasToolChoice) {
+        return undefined;
+    }
+    return {
+        ...(hasTools ? { tools: request.tools } : {}),
+        ...(hasToolChoice ? { toolChoice: request.tool_choice } : {}),
+    };
 }
 
 function parseSourceSimulationFromSystemMessages(
@@ -265,6 +288,39 @@ function buildOpenAICompatibleResponse(
     };
 }
 
+function buildInternalServerErrorResponse(model: string): ChatResponseData {
+    return {
+        id: `chatcmpl-magi-${Date.now()}`,
+        created: Math.floor(Date.now() / 1000),
+        model,
+        choices: [
+            {
+                index: 0,
+                message: {
+                    role: "assistant",
+                    content: INTERNAL_SERVER_ERROR_CONTENT,
+                },
+                finish_reason: "error",
+            },
+        ],
+        error: {
+            message: INTERNAL_SERVER_ERROR_CONTENT,
+            type: "server_error",
+            code: "500",
+        },
+    };
+}
+
+function isAbsoluteTrustedSource(requestContext: ConsensusRequestContext): boolean {
+    const source = requestContext.sourceSimulation;
+    if (!source) {
+        return false;
+    }
+    return source.trustBase === "high"
+        && source.riskLevel === "low"
+        && source.source === "guardian";
+}
+
 async function createMagiChatCompletion(
     params: {
         connectionStatus: { value: ConnectionStatus };
@@ -274,12 +330,15 @@ async function createMagiChatCompletion(
     },
     request: ChatRequestParams,
     model: string,
+    avatarRuntime: AvatarRuntime,
 ): Promise<ChatResponseData> {
     const userInput = extractLatestUserInput(request.messages);
     if (!userInput) {
         return buildOpenAICompatibleResponse("", request.model ?? model, "stop");
     }
     const requestContext = buildConsensusRequestContext(request.messages);
+    const absoluteTrusted = isAbsoluteTrustedSource(requestContext);
+    const requireAvatarOnly = !absoluteTrusted;
     const ingressDecision = evaluateIngressRule(requestContext);
     if (!ingressDecision.allowed) {
         await reportBlockedConnectionAttempt(
@@ -292,6 +351,35 @@ async function createMagiChatCompletion(
             request.model ?? model,
             "error",
         );
+    }
+    const avatarResult = await avatarRuntime.tryDispatch({
+        userInput,
+        requestContext,
+        requestId: requestContext.requestId ?? buildRequestId(),
+        mode: requireAvatarOnly ? "force-avatar" : "auto",
+        toolOptions: buildAvatarToolOptions(request),
+    });
+    if (avatarResult.handled) {
+        return buildOpenAICompatibleResponse(
+            avatarResult.content,
+            request.model ?? model,
+            "stop",
+        );
+    }
+    if (requireAvatarOnly || avatarResult.reason === "avatar-creation-rejected-by-sages") {
+        await appendConsensusMessage(
+            params.consensusMessages,
+            "system",
+            "Avatar dispatch rejected under avatar-only policy.",
+            {
+                type: "avatar-dispatch-rejected",
+                channel: "internal",
+                internalOnly: true,
+                requestId: requestContext.requestId,
+                reason: avatarResult.reason ?? "unknown",
+            },
+        );
+        return buildInternalServerErrorResponse(request.model ?? model);
     }
 
     const beforeLength = params.consensusMessages.length;
@@ -362,10 +450,11 @@ async function streamMagiChatCompletion(
     request: ChatRequestParams,
     callbacks: StandardLLMStreamCallbacks,
     model: string,
+    avatarRuntime: AvatarRuntime,
 ): Promise<void> {
     callbacks.onStart?.();
     try {
-        const response = await createMagiChatCompletion(params, request, model);
+        const response = await createMagiChatCompletion(params, request, model, avatarRuntime);
         const content = response.choices?.[0]?.message?.content ?? "";
         callbacks.onChunk?.(buildFullContentChunk(content, response.model ?? model));
         callbacks.onChunk?.(buildFinishChunk(response.model ?? model));

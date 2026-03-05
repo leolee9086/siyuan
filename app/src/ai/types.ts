@@ -47,6 +47,8 @@ export interface ChatRequestParams {
     temperature?: number;
     max_tokens?: number;
     stream?: boolean;
+    tools?: Array<Record<string, unknown>>;
+    tool_choice?: "none" | "auto" | "required" | Record<string, unknown>;
 }
 
 /**
