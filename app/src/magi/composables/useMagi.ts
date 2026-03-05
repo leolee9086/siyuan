@@ -8,7 +8,13 @@
 // [TASK] T2.2 迁移composables和工具函数 - useMagi
 
 import { ref, reactive, computed } from "vue";
-import type { ConnectionStatus, WrappedSeel, UseMagiOptions, UseMagiReturn } from "./useMagi.types";
+import type {
+    ConnectionStatus,
+    SendUserMessageOptions,
+    WrappedSeel,
+    UseMagiOptions,
+    UseMagiReturn,
+} from "./useMagi.types";
 import type { MockWISE实例, MagiPromptSet } from "../core/wise/wise.types";
 import type { ContextMessage, MockMessage } from "../core/core.types";
 import type { MagiMessage } from "../utils/messageFactory.types";
@@ -22,6 +28,23 @@ import { createMagiEventBus } from "../events/magiEventBus";
 import { bindMagiProjector } from "../events/magiProjector";
 import { createStandardLLMAdapter } from "../adapters/standardLLMAdapterFactory";
 import type { ChatRequestParams } from "../../ai/types";
+
+const SOURCE_SIMULATION_TAG = "magi_request_source";
+
+/** 将来源模拟上下文编码为标准 system 消息（保持 OpenAI-compatible 外观）。 */
+function buildSourceSimulationSystemMessage(
+    options?: SendUserMessageOptions,
+): ChatRequestParams["messages"][number] | null {
+    const sourceSimulation = options?.sourceSimulation;
+    if (!sourceSimulation) {
+        return null;
+    }
+    const payload = JSON.stringify(sourceSimulation);
+    return {
+        role: "system",
+        content: `<${SOURCE_SIMULATION_TAG}>${payload}</${SOURCE_SIMULATION_TAG}>`,
+    };
+}
 
 /** 清空响应式数组内容（保持引用不变） */
 async function clearReactiveArrays(
@@ -238,17 +261,24 @@ export async function useMagi(options?: UseMagiOptions): Promise<UseMagiReturn> 
          * 意图：对外暴露稳定入口，避免上层组件感知内部实现细节。
          * 调用时机：`MagiMainPanel` 的 `submit-input` 事件上抛到容器后调用。
          */
-        sendUserMessage: async (text: string) => {
+        sendUserMessage: async (text: string, options?: SendUserMessageOptions) => {
             const userInput = text.trim();
             if (!userInput) {
-                return;
+                return "";
             }
+            const sourceSystemMessage = buildSourceSimulationSystemMessage(options);
+            const messages: ChatRequestParams["messages"] = [];
+            if (sourceSystemMessage) {
+                messages.push(sourceSystemMessage);
+            }
+            messages.push({ role: "user", content: userInput });
             const request: ChatRequestParams = {
                 model: "magi-trinity",
-                messages: [{ role: "user", content: userInput }],
+                messages,
                 stream: false,
             };
-            await llmAdapter.createChatCompletion(request);
+            const response = await llmAdapter.createChatCompletion(request);
+            return response.choices?.[0]?.message?.content ?? "";
         },
         /**
          * 作用：重新初始化 MAGI 实例并清空消息。

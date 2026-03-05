@@ -136,7 +136,7 @@ export interface UseMagiReturn {
     /** 是否存在任一贤者正在响应 */
     isAnySeelLoading: Ref<boolean>;
     /** 发送用户消息并触发三贤者并行响应 */
-    sendUserMessage: (text: string) => Promise<void>;
+    sendUserMessage: (text: string, options?: SendUserMessageOptions) => Promise<string>;
     /** 初始化MAGI系统 */
     initializeMAGI: (options?: {
         /** 在基础提示词后追加的人格注入文本 */
@@ -157,4 +157,26 @@ export interface UseMagiOptions {
     promptInjections?: MagiPromptSet;
     /** 标准 LLM 适配器模式 */
     llmAdapterMode?: StandardLLMAdapterMode;
+}
+
+/** 来源模拟的可信度等级 */
+export type SourceTrustBase = "low" | "medium" | "high";
+
+/** 来源模拟的风险等级 */
+export type SourceRiskLevel = "low" | "medium" | "high";
+
+/** 单次消息发送的来源模拟上下文 */
+export interface SourceSimulationContext {
+    requestId: string;
+    callerId: string;
+    source: "guardian" | "external-agent" | "system-cron" | "unknown";
+    trustBase: SourceTrustBase;
+    riskLevel: SourceRiskLevel;
+    profileId: string;
+    profileLabel: string;
+}
+
+/** sendUserMessage 可选扩展参数 */
+export interface SendUserMessageOptions {
+    sourceSimulation?: SourceSimulationContext;
 }

@@ -35,15 +35,27 @@
         />
       </div>
 
-      <MagiMainPanel
-        :messages="displayMessages"
-        :seels="mainPanelSeels"
-        :input-value="inputValue"
-        :is-any-seel-loading="isAnySeelLoading"
-        @update:inputValue="inputValue = $event"
-        @submit-input="onSubmitInput"
-        @stop-input="onStopInput"
-      />
+      <div class="magi-main-stack">
+        <SourceSimulationPanels
+          :panels="sourceSimulationPanels"
+          :profiles="sourceSimulationProfiles"
+          @create-panel="onCreateSourceSimulationPanel"
+          @remove-panel="onRemoveSourceSimulationPanel"
+          @update-input="onUpdateSourceSimulationInput"
+          @update-profile="onUpdateSourceSimulationProfile"
+          @submit-panel="onSubmitSourceSimulationPanel"
+        />
+
+        <MagiMainPanel
+          :messages="displayMessages"
+          :seels="mainPanelSeels"
+          :input-value="inputValue"
+          :is-any-seel-loading="isAnySeelLoading"
+          @update:inputValue="inputValue = $event"
+          @submit-input="onSubmitInput"
+          @stop-input="onStopInput"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -52,6 +64,7 @@
 import { computed, inject } from "vue";
 import MagiMainPanel from "../components/magi-main-panel/MagiMainPanel.vue";
 import MagiMainPanelHeader from "../components/magi-main-panel/MagiMainPanelHeader.vue";
+import SourceSimulationPanels from "../components/source-sim-panels/SourceSimulationPanels.vue";
 import SeelPanel from "../components/seel-panel/SeelPanel.vue";
 import type { ConnectionStatusItem } from "../components/magi-main-panel/MagiMainPanel.types";
 import { getMagiI18nText } from "../utils/magiI18n";
@@ -66,6 +79,8 @@ const {
     showMessages,
     showSeels,
     showTrinity,
+    sourceSimulationProfiles,
+    sourceSimulationPanels,
     mainPanelSeels,
     sageSeelViews,
     trinitySeelView,
@@ -74,6 +89,11 @@ const {
     onSubmitInput,
     onShowQuestionnaire,
     onStopInput,
+    onCreateSourceSimulationPanel,
+    onRemoveSourceSimulationPanel,
+    onUpdateSourceSimulationInput,
+    onUpdateSourceSimulationProfile,
+    onSubmitSourceSimulationPanel,
 } = ctx;
 
 const personaEntryText = getMagiI18nText("personaEntry");

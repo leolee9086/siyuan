@@ -164,6 +164,15 @@ body,
   max-height: none;
 }
 
+.magi-main-stack {
+  min-height: 0;
+  min-width: 0;
+  display: grid;
+  grid-template-rows: minmax(220px, 38%) minmax(260px, 1fr);
+  gap: 10px;
+  overflow: hidden;
+}
+
 @media (max-width: 980px) {
   .magi-workspace {
     grid-template-columns: 1fr;
@@ -175,5 +184,9 @@ body,
 
   .magi-trinity .seel-panel {
     height: clamp(240px, 35vh, 360px);
+  }
+
+  .magi-main-stack {
+    grid-template-rows: minmax(180px, 42%) minmax(260px, 1fr);
   }
 }

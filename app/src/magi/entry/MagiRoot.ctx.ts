@@ -2,18 +2,122 @@ import { computed, ref } from "vue";
 import { useMagi } from "../composables/useMagi";
 import { appendConsensusMessage } from "../composables/useMagi.consensus";
 import { exportMagiSessionRecord } from "../composables/useMagi.export";
-import type { UseMagiReturn, WrappedSeel } from "../composables/useMagi.types";
+import type {
+    SourceSimulationContext,
+    UseMagiReturn,
+    WrappedSeel,
+} from "../composables/useMagi.types";
 import type { StandardLLMAdapterMode } from "../types/llmAdapter.types";
 import type {
     MagiMainPanelMessageView,
     MagiMainPanelSeelView,
     MagiSeelPanelView,
 } from "./magiView.types";
-import type { MagiRootContext } from "./MagiRoot.types";
+import type {
+    MagiRootContext,
+    SourceSimulationPanelMessageView,
+    SourceSimulationPanelView,
+    SourceSimulationProfileView,
+} from "./MagiRoot.types";
 import { isElectron, isMobile } from "../../platform";
 import { ipcSend, ipcInvoke } from "../../platform/electron/ipcRenderer";
 import { Constants } from "../../constants";
 import { createQuestionnaireSavedHandler } from "../composables/root/MagiRoot.questionnaire";
+
+const DEFAULT_SOURCE_SIMULATION_PROFILES: SourceSimulationProfileView[] = [
+    {
+        id: "guardian-trusted",
+        label: "Guardian Trusted",
+        source: "guardian",
+        trustBase: "high",
+        riskLevel: "low",
+        callerId: "guardian-main",
+    },
+    {
+        id: "external-neutral",
+        label: "External Neutral",
+        source: "external-agent",
+        trustBase: "medium",
+        riskLevel: "medium",
+        callerId: "external-neutral",
+    },
+    {
+        id: "external-untrusted",
+        label: "External Untrusted",
+        source: "external-agent",
+        trustBase: "low",
+        riskLevel: "high",
+        callerId: "external-untrusted",
+    },
+    {
+        id: "unknown-probe",
+        label: "Unknown Probe",
+        source: "unknown",
+        trustBase: "low",
+        riskLevel: "high",
+        callerId: "unknown-probe",
+    },
+];
+
+function createSourceSimulationProfileOptions(): SourceSimulationProfileView[] {
+    return DEFAULT_SOURCE_SIMULATION_PROFILES.map((profile) => ({ ...profile }));
+}
+
+function createSourcePanelId(): string {
+    return `source-panel-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function createSourcePanelMessage(
+    role: SourceSimulationPanelMessageView["role"],
+    content: string,
+    status: SourceSimulationPanelMessageView["status"],
+): SourceSimulationPanelMessageView {
+    return {
+        id: `${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        role,
+        content,
+        timestamp: Date.now(),
+        status,
+    };
+}
+
+function createSourcePanelTitle(index: number): string {
+    return `SOURCE-${String(index).padStart(2, "0")}`;
+}
+
+function createSourceSimulationPanel(
+    index: number,
+    profileId: string,
+): SourceSimulationPanelView {
+    return {
+        id: createSourcePanelId(),
+        title: createSourcePanelTitle(index),
+        selectedProfileId: profileId,
+        inputValue: "",
+        loading: false,
+        messages: [
+            createSourcePanelMessage(
+                "system",
+                "Source simulation panel ready. Select profile and send request.",
+                "success",
+            ),
+        ],
+    };
+}
+
+function buildSourceSimulationContext(
+    profile: SourceSimulationProfileView,
+): SourceSimulationContext {
+    return {
+        requestId: `req-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        callerId: profile.callerId,
+        source: profile.source,
+        trustBase: profile.trustBase,
+        riskLevel: profile.riskLevel,
+        profileId: profile.id,
+        profileLabel: profile.label,
+    };
+}
 
 /**
  * 处理输入栏提交事件
@@ -94,6 +198,116 @@ async function handleExportSessionRecord(
     }
 }
 
+function findSourcePanel(
+    sourceSimulationPanels: { value: SourceSimulationPanelView[] },
+    panelId: string,
+): SourceSimulationPanelView | null {
+    return sourceSimulationPanels.value.find((panel) => panel.id === panelId) ?? null;
+}
+
+function findSourceProfile(
+    sourceSimulationProfiles: { value: SourceSimulationProfileView[] },
+    profileId: string,
+): SourceSimulationProfileView | null {
+    return sourceSimulationProfiles.value.find((profile) => profile.id === profileId) ?? null;
+}
+
+function handleCreateSourceSimulationPanel(
+    sourceSimulationPanels: { value: SourceSimulationPanelView[] },
+    sourceSimulationProfiles: { value: SourceSimulationProfileView[] },
+): void {
+    const defaultProfileId = sourceSimulationProfiles.value[0]?.id ?? "unknown-probe";
+    const nextIndex = sourceSimulationPanels.value.length + 1;
+    sourceSimulationPanels.value.push(
+        createSourceSimulationPanel(nextIndex, defaultProfileId),
+    );
+}
+
+function handleRemoveSourceSimulationPanel(
+    sourceSimulationPanels: { value: SourceSimulationPanelView[] },
+    panelId: string,
+): void {
+    const nextPanels = sourceSimulationPanels.value.filter((panel) => panel.id !== panelId);
+    sourceSimulationPanels.value = nextPanels;
+}
+
+function handleUpdateSourceSimulationInput(
+    sourceSimulationPanels: { value: SourceSimulationPanelView[] },
+    panelId: string,
+    value: string,
+): void {
+    const panel = findSourcePanel(sourceSimulationPanels, panelId);
+    if (!panel) {
+        return;
+    }
+    panel.inputValue = value;
+}
+
+function handleUpdateSourceSimulationProfile(
+    sourceSimulationPanels: { value: SourceSimulationPanelView[] },
+    sourceSimulationProfiles: { value: SourceSimulationProfileView[] },
+    panelId: string,
+    profileId: string,
+): void {
+    const panel = findSourcePanel(sourceSimulationPanels, panelId);
+    if (!panel) {
+        return;
+    }
+    const profile = findSourceProfile(sourceSimulationProfiles, profileId);
+    if (!profile) {
+        return;
+    }
+    panel.selectedProfileId = profile.id;
+}
+
+async function handleSubmitSourceSimulationPanel(
+    magiState: { value: UseMagiReturn | null },
+    sourceSimulationPanels: { value: SourceSimulationPanelView[] },
+    sourceSimulationProfiles: { value: SourceSimulationProfileView[] },
+    panelId: string,
+): Promise<void> {
+    const panel = findSourcePanel(sourceSimulationPanels, panelId);
+    if (!panel || panel.loading) {
+        return;
+    }
+    const rawInput = panel.inputValue.trim();
+    if (!rawInput) {
+        return;
+    }
+    const profile = findSourceProfile(sourceSimulationProfiles, panel.selectedProfileId);
+    if (!profile) {
+        panel.messages.push(createSourcePanelMessage("error", "Invalid source profile.", "error"));
+        return;
+    }
+    if (!magiState.value) {
+        panel.messages.push(createSourcePanelMessage("error", "MAGI runtime not ready.", "error"));
+        return;
+    }
+
+    const sourceContext = buildSourceSimulationContext(profile);
+    panel.messages.push(createSourcePanelMessage("user", rawInput, "success"));
+    const pendingAssistant = createSourcePanelMessage("assistant", "Waiting response...", "pending");
+    panel.messages.push(pendingAssistant);
+    panel.loading = true;
+    panel.inputValue = "";
+    try {
+        const reply = await magiState.value.sendUserMessage(rawInput, {
+            sourceSimulation: sourceContext,
+        });
+        pendingAssistant.content = reply || "[empty response]";
+        pendingAssistant.status = "success";
+        pendingAssistant.timestamp = Date.now();
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        pendingAssistant.content = message;
+        pendingAssistant.status = "error";
+        pendingAssistant.role = "error";
+        pendingAssistant.timestamp = Date.now();
+    } finally {
+        panel.loading = false;
+    }
+}
+
 /**
  * 创建输入提交事件处理器
  *
@@ -148,6 +362,60 @@ function createExportSessionRecordHandler(
     magiState: { value: UseMagiReturn | null },
 ): () => Promise<void> {
     return async () => handleExportSessionRecord(magiState);
+}
+
+function createSourceSimulationPanelCreateHandler(
+    sourceSimulationPanels: { value: SourceSimulationPanelView[] },
+    sourceSimulationProfiles: { value: SourceSimulationProfileView[] },
+): () => void {
+    return () => {
+        handleCreateSourceSimulationPanel(sourceSimulationPanels, sourceSimulationProfiles);
+    };
+}
+
+function createSourceSimulationPanelRemoveHandler(
+    sourceSimulationPanels: { value: SourceSimulationPanelView[] },
+): (panelId: string) => void {
+    return (panelId: string) => {
+        handleRemoveSourceSimulationPanel(sourceSimulationPanels, panelId);
+    };
+}
+
+function createSourceSimulationInputUpdateHandler(
+    sourceSimulationPanels: { value: SourceSimulationPanelView[] },
+): (panelId: string, value: string) => void {
+    return (panelId: string, value: string) => {
+        handleUpdateSourceSimulationInput(sourceSimulationPanels, panelId, value);
+    };
+}
+
+function createSourceSimulationProfileUpdateHandler(
+    sourceSimulationPanels: { value: SourceSimulationPanelView[] },
+    sourceSimulationProfiles: { value: SourceSimulationProfileView[] },
+): (panelId: string, profileId: string) => void {
+    return (panelId: string, profileId: string) => {
+        handleUpdateSourceSimulationProfile(
+            sourceSimulationPanels,
+            sourceSimulationProfiles,
+            panelId,
+            profileId,
+        );
+    };
+}
+
+function createSourceSimulationSubmitHandler(
+    magiState: { value: UseMagiReturn | null },
+    sourceSimulationPanels: { value: SourceSimulationPanelView[] },
+    sourceSimulationProfiles: { value: SourceSimulationProfileView[] },
+): (panelId: string) => Promise<void> {
+    return async (panelId: string) => {
+        await handleSubmitSourceSimulationPanel(
+            magiState,
+            sourceSimulationPanels,
+            sourceSimulationProfiles,
+            panelId,
+        );
+    };
 }
 
 /** @同步豁免: UI构建 — setup 阶段需同步返回事件处理器 */
@@ -281,6 +549,11 @@ async function bootstrapMagiState(
  * 调用时机：`useMagiRootContext` 调用开始时。
  */
 function createMagiRootState() {
+    const sourceSimulationProfiles = ref<SourceSimulationProfileView[]>(
+        createSourceSimulationProfileOptions(),
+    );
+    const sourceSimulationPanels = ref<SourceSimulationPanelView[]>([]);
+    handleCreateSourceSimulationPanel(sourceSimulationPanels, sourceSimulationProfiles);
     return {
         ready: ref(false),
         bootError: ref<string | null>(null),
@@ -289,6 +562,8 @@ function createMagiRootState() {
         showSeels: ref(true),
         showTrinity: ref(false),
         showQuestionnairePanel: ref(false),
+        sourceSimulationProfiles,
+        sourceSimulationPanels,
         magiState: ref<UseMagiReturn | null>(null),
     };
 }
@@ -358,6 +633,8 @@ function createMagiRootHandlers(
     magiState: { value: UseMagiReturn | null },
     inputValue: { value: string },
     showQuestionnairePanel: { value: boolean },
+    sourceSimulationPanels: { value: SourceSimulationPanelView[] },
+    sourceSimulationProfiles: { value: SourceSimulationProfileView[] },
 ) {
     return {
         onSubmitInput: createSubmitInputHandler(magiState, inputValue),
@@ -370,6 +647,25 @@ function createMagiRootHandlers(
         onMinimizeWindow: createMinimizeWindowHandler(),
         onToggleMaximizeWindow: createToggleMaximizeWindowHandler(),
         onCloseWindow: createCloseWindowHandler(),
+        onCreateSourceSimulationPanel: createSourceSimulationPanelCreateHandler(
+            sourceSimulationPanels,
+            sourceSimulationProfiles,
+        ),
+        onRemoveSourceSimulationPanel: createSourceSimulationPanelRemoveHandler(
+            sourceSimulationPanels,
+        ),
+        onUpdateSourceSimulationInput: createSourceSimulationInputUpdateHandler(
+            sourceSimulationPanels,
+        ),
+        onUpdateSourceSimulationProfile: createSourceSimulationProfileUpdateHandler(
+            sourceSimulationPanels,
+            sourceSimulationProfiles,
+        ),
+        onSubmitSourceSimulationPanel: createSourceSimulationSubmitHandler(
+            magiState,
+            sourceSimulationPanels,
+            sourceSimulationProfiles,
+        ),
     };
 }
 
@@ -395,6 +691,8 @@ export function useMagiRootContext(): MagiRootContext {
         state.magiState,
         state.inputValue,
         state.showQuestionnairePanel,
+        state.sourceSimulationPanels,
+        state.sourceSimulationProfiles,
     );
 
     void bootstrapMagiState(state.magiState, state.ready, state.bootError);
@@ -407,6 +705,8 @@ export function useMagiRootContext(): MagiRootContext {
         showSeels: state.showSeels,
         showTrinity: state.showTrinity,
         showQuestionnairePanel: state.showQuestionnairePanel,
+        sourceSimulationProfiles: state.sourceSimulationProfiles,
+        sourceSimulationPanels: state.sourceSimulationPanels,
         seels: computedState.seels,
         mainPanelSeels: computedState.mainPanelSeels,
         sageSeels: computedState.sageSeels,
@@ -426,6 +726,11 @@ export function useMagiRootContext(): MagiRootContext {
         onMinimizeWindow: handlers.onMinimizeWindow,
         onToggleMaximizeWindow: handlers.onToggleMaximizeWindow,
         onCloseWindow: handlers.onCloseWindow,
+        onCreateSourceSimulationPanel: handlers.onCreateSourceSimulationPanel,
+        onRemoveSourceSimulationPanel: handlers.onRemoveSourceSimulationPanel,
+        onUpdateSourceSimulationInput: handlers.onUpdateSourceSimulationInput,
+        onUpdateSourceSimulationProfile: handlers.onUpdateSourceSimulationProfile,
+        onSubmitSourceSimulationPanel: handlers.onSubmitSourceSimulationPanel,
         onStopInput: createStopInputHandler(),
         magiState: state.magiState,
     };

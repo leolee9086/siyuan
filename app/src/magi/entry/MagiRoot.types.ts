@@ -23,6 +23,8 @@ export interface MagiRootContext {
     showTrinity: Ref<boolean>;
     showQuestionnairePanel: Ref<boolean>;
     showWindowControls: ComputedRef<boolean>;
+    sourceSimulationProfiles: Ref<SourceSimulationProfileView[]>;
+    sourceSimulationPanels: Ref<SourceSimulationPanelView[]>;
     seels: ComputedRef<WrappedSeel[]>;
     mainPanelSeels: ComputedRef<MagiMainPanelSeelView[]>;
     sageSeels: ComputedRef<WrappedSeel[]>;
@@ -41,8 +43,42 @@ export interface MagiRootContext {
     onMinimizeWindow: () => void;
     onToggleMaximizeWindow: () => Promise<void>;
     onCloseWindow: () => void;
+    onCreateSourceSimulationPanel: () => void;
+    onRemoveSourceSimulationPanel: (panelId: string) => void;
+    onUpdateSourceSimulationInput: (panelId: string, value: string) => void;
+    onUpdateSourceSimulationProfile: (panelId: string, profileId: string) => void;
+    onSubmitSourceSimulationPanel: (panelId: string) => Promise<void>;
     onStopInput: () => void;
     magiState: Ref<UseMagiReturn | null>;
+}
+
+/** 来源模拟画像视图 */
+export interface SourceSimulationProfileView {
+    id: string;
+    label: string;
+    source: "guardian" | "external-agent" | "system-cron" | "unknown";
+    trustBase: "low" | "medium" | "high";
+    riskLevel: "low" | "medium" | "high";
+    callerId: string;
+}
+
+/** 来源模拟面板消息 */
+export interface SourceSimulationPanelMessageView {
+    id: string;
+    role: "user" | "assistant" | "system" | "error";
+    content: string;
+    timestamp: number;
+    status: "pending" | "success" | "error";
+}
+
+/** 来源模拟面板视图 */
+export interface SourceSimulationPanelView {
+    id: string;
+    title: string;
+    selectedProfileId: string;
+    inputValue: string;
+    loading: boolean;
+    messages: SourceSimulationPanelMessageView[];
 }
 
 /** provide/inject key for MagiRoot context */

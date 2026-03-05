@@ -1,4 +1,8 @@
-import type { ConnectionStatus, WrappedSeel } from "./useMagi.types";
+import type {
+    ConnectionStatus,
+    SourceSimulationContext,
+    WrappedSeel,
+} from "./useMagi.types";
 import type { MagiMessage, SageResponse, VoteResult } from "../utils/messageFactory.types";
 import type { MagiEventBus } from "../events/magiEventBus.types";
 import { createMessage } from "../utils/messageFactory";
@@ -23,6 +27,36 @@ import {
     publishTrinitySynthesis,
     publishVoteProgress,
 } from "./consensus/magiRoundEvents";
+
+/** 单次共识轮次的请求上下文（用于来源模拟与并发关联）。 */
+export interface ConsensusRequestContext {
+    requestId?: string;
+    sourceSimulation?: SourceSimulationContext;
+}
+
+/** 从请求上下文提取可持久化的消息元数据。 */
+function buildRequestContextMeta(
+    requestContext?: ConsensusRequestContext,
+): Record<string, unknown> {
+    if (!requestContext) {
+        return {};
+    }
+    const source = requestContext.sourceSimulation;
+    return {
+        ...(requestContext.requestId ? { requestId: requestContext.requestId } : {}),
+        ...(source
+            ? {
+                requestSource: source.source,
+                callerId: source.callerId,
+                trustBase: source.trustBase,
+                riskLevel: source.riskLevel,
+                sourceProfileId: source.profileId,
+                sourceProfileLabel: source.profileLabel,
+                sourceSimulated: true,
+            }
+            : {}),
+    };
+}
 
 /** 追加消息到主消息流并统一状态字段。 */
 export async function appendConsensusMessage(
@@ -207,6 +241,7 @@ async function runConsensusRound(
     sages: WrappedSeel[],
     trinity: WrappedSeel | null,
     userMessage: string,
+    requestContext?: ConsensusRequestContext,
 ): Promise<void> {
     const validResponses = await collectValidResponses(consensusMessages, sages, userMessage);
     if (!validResponses) {
@@ -237,6 +272,7 @@ async function runConsensusRound(
         melchiorUsedToolCall,
         sages,
         trinity !== null,
+        requestContext,
     );
 }
 
@@ -250,6 +286,7 @@ async function appendFinalConsensus(
     melchiorUsedToolCall: boolean,
     sages: WrappedSeel[],
     hasTrinity: boolean,
+    requestContext?: ConsensusRequestContext,
 ): Promise<void> {
     const consensusReply = await generateConsensusReply(
         trinityResult,
@@ -265,6 +302,13 @@ async function appendFinalConsensus(
     );
     finalMessage.status = consensusReply.status;
     finalMessage.timestamp = consensusReply.timestamp;
+    const requestMeta = buildRequestContextMeta(requestContext);
+    if (Object.keys(requestMeta).length > 0) {
+        finalMessage.meta = {
+            ...(finalMessage.meta ?? {}),
+            ...requestMeta,
+        };
+    }
     // 事件桥接不可用时回退到原始数组写入，保证离线模式仍可用。
     if (!await publishConsensusMessage(finalMessage)) {
         consensusMessages.push(finalMessage);
@@ -293,6 +337,7 @@ export async function sendUserMessageWithConsensus(
     consensusMessages: MagiMessage[],
     seels: WrappedSeel[],
     eventBus?: MagiEventBus,
+    requestContext?: ConsensusRequestContext,
 ): Promise<void> {
     const userMessage = text.trim();
     if (!userMessage || connectionStatus.value !== "connected") {
@@ -300,11 +345,15 @@ export async function sendUserMessageWithConsensus(
     }
     await activateMagiRoundEventContext(eventBus, userMessage);
     try {
+        const inputMeta: Record<string, unknown> = {
+            type: "round-input",
+            ...buildRequestContextMeta(requestContext),
+        };
         await appendConsensusMessage(
             consensusMessages,
             "user",
             userMessage,
-            { type: "round-input" },
+            inputMeta,
         );
         const sages = seels.filter((seel) => seel.config.name !== "TRINITY-00");
         const trinity = seels.find((seel) => seel.config.name === "TRINITY-00") ?? null;
@@ -314,7 +363,13 @@ export async function sendUserMessageWithConsensus(
             await appendConsensusMessage(consensusMessages, "error", "未找到可用贤者，无法完成共识流程");
             return;
         }
-        await runConsensusRound(consensusMessages, sages, trinity, userMessage);
+        await runConsensusRound(
+            consensusMessages,
+            sages,
+            trinity,
+            userMessage,
+            requestContext,
+        );
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         void publishRoundFailed(message);

@@ -1,7 +1,7 @@
 # MAGI Shell 行动层设计草稿
 
 > **状态**: 草稿 (Draft)
-> **关联**: `MAGI认知架构.design.md`（Ghost层）、`MAGI_Go后端落实工程设计.design.md`
+> **关联**: `MAGI认知架构.design.md`（Ghost层）、`MAGI_Go后端落实工程设计.design.md`、`MAGI_NERV_Avatar池化与内外工具隔离.design.md`
 >
 > Shell 是 MAGI 的"肉身"，Ghost（NERV/Trinity/三贤人）是"灵魂"。Shell 只执行，不决策。
 
