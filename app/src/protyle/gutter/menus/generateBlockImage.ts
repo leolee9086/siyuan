@@ -1,21 +1,60 @@
 /**
  * 使用块内容生成图片
- * 
+ *
  * 基于 ModelScope 文生图 API 实现
  */
 
-import {
-    提交生成任务,
-    轮询任务直到完成,
-    获取图片,
-    提取图片URL
-} from "../../../apis/modelscope/client";
-import type { ModelScopeAuthData } from "../../../apis/modelscope/types";
-import type { 生成块内容图片参数 } from "../gutter.types";
-import { showMessage } from "../../../dialog/message";
+/**
+ * 用途：提交ModelScope文生图任务
+ * 使用范围：生成块内容图片流程的第一步
+ * 解耦评估：通过imports.ts转发，已实现模块边界隔离
+ */
+import { 提交生成任务 } from "./imports";
+
+/**
+ * 用途：轮询ModelScope任务状态直到完成
+ * 使用范围：生成块内容图片流程的第二步
+ * 解耦评估：通过imports.ts转发，已实现模块边界隔离
+ */
+import { 轮询任务直到完成 } from "./imports";
+
+/**
+ * 用途：获取生成的图片数据
+ * 使用范围：生成块内容图片流程的第三步
+ * 解耦评估：通过imports.ts转发，已实现模块边界隔离
+ */
+import { 获取图片 } from "./imports";
+
+/**
+ * 用途：从ModelScope响应中提取图片URL
+ * 使用范围：生成块内容图片流程的结果解析
+ * 解耦评估：通过imports.ts转发，已实现模块边界隔离
+ */
+import { 提取图片URL } from "./imports";
+
+/**
+ * 用途：ModelScope认证数据类型
+ * 使用范围：函数内部获取API Token的类型约束
+ * 解耦评估：类型定义，通过imports.ts转发
+ */
+import type { ModelScopeAuthData } from "./imports";
+
+/**
+ * 用途：生成块内容图片的参数类型
+ * 使用范围：主函数参数类型约束
+ * 解耦评估：类型定义，从父级类型文件导入
+ */
+import type { 生成块内容图片参数 } from "./imports";
+
+/**
+ * 用途：显示错误提示消息
+ * 使用范围：未配置API Token时的用户提示
+ * 解耦评估：通过imports.ts转发，已实现模块边界隔离
+ */
+import { showMessage } from "./imports";
 
 // 导出类型供外部使用
-export type { 生成块内容图片参数 } from "../gutter.types";
+export type { 生成块内容图片参数 };
 
 /**
  * 创建进度报告器
@@ -26,8 +65,8 @@ export type { 生成块内容图片参数 } from "../gutter.types";
 function 创建进度报告器(onProgress?: (msg: string) => void): (msg: string) => void {
     return (msg: string) => {
         if (onProgress) {
-onProgress(msg);
-}
+            onProgress(msg);
+        }
         console.log(`[生成块内容图片] ${msg}`);
     };
 }
@@ -51,6 +90,7 @@ export async function 生成块内容图片(params: 生成块内容图片参数)
         }
 
         const profile = await authManager.loadProfile<ModelScopeAuthData>(activeId);
+        // 验证配置有效性：profile为null表示配置文件损坏，data?.apiToken为空表示用户未填写Token
         if (!profile || !profile.data?.apiToken) {
             console.error("配置无效或缺少 API Token");
             return;
@@ -73,6 +113,7 @@ export async function 生成块内容图片(params: 生成块内容图片参数)
             taskId
         });
 
+        // 检查任务是否成功：ModelScope API返回的task_status为"SUCCEED"表示成功，其他状态（如FAILED、TIMEOUT）表示失败
         if (status.task_status !== "SUCCEED") {
             console.error("[生成块内容图片] 任务失败:", status.error);
             reportProgress("[任务失败] " + status.error);

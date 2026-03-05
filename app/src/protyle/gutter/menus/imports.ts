@@ -142,6 +142,15 @@ import type { IProgressStatusUpdater } from "../gutter.types";
 export type { IProgressStatusUpdater };
 
 /**
+ * 用途：生成块内容图片的参数类型
+ * 使用范围：AI图片生成函数的参数类型约束
+ * 解耦评估：类型定义，无需解耦
+ */
+import type { 生成块内容图片参数 } from "../gutter.types";
+// 导出生成块内容图片参数类型
+export type { 生成块内容图片参数 };
+
+/**
  * 用途：类型守卫函数，验证组件是否实现IProgressStatusUpdater接口
  * 使用范围：进度对话框创建后的类型检查
  * 解耦评估：类型守卫，无需解耦
@@ -149,3 +158,61 @@ export type { IProgressStatusUpdater };
 import { isProgressStatusUpdater } from "../gutter.guard";
 // 导出类型守卫函数
 export { isProgressStatusUpdater };
+
+// ============ ModelScope API ============
+
+/**
+ * 用途：ModelScope文生图API客户端函数
+ * 使用范围：AI图片生成流程的任务提交、轮询、图片获取
+ * 解耦评估：可通过依赖注入解耦，但需要重构整个AI图片生成流程
+ */
+import { 提交生成任务 } from "../../../apis/modelscope/client";
+// 导出ModelScope任务提交函数
+export { 提交生成任务 };
+
+/**
+ * 用途：ModelScope任务轮询函数
+ * 使用范围：AI图片生成流程的任务状态查询
+ * 解耦评估：可通过依赖注入解耦，但需要重构整个AI图片生成流程
+ */
+import { 轮询任务直到完成 } from "../../../apis/modelscope/client";
+// 导出ModelScope任务轮询函数
+export { 轮询任务直到完成 };
+
+/**
+ * 用途：ModelScope图片获取函数
+ * 使用范围：AI图片生成完成后下载图片数据
+ * 解耦评估：可通过依赖注入解耦，但需要重构整个AI图片生成流程
+ */
+import { 获取图片 } from "../../../apis/modelscope/client";
+// 导出ModelScope图片获取函数
+export { 获取图片 };
+
+/**
+ * 用途：从ModelScope响应中提取图片URL
+ * 使用范围：AI图片生成流程的结果解析
+ * 解耦评估：可通过依赖注入解耦，但需要重构整个AI图片生成流程
+ */
+import { 提取图片URL } from "../../../apis/modelscope/client";
+// 导出ModelScope图片URL提取函数
+export { 提取图片URL };
+
+/**
+ * 用途：ModelScope认证数据类型
+ * 使用范围：AI图片生成的认证参数类型约束
+ * 解耦评估：类型定义，无需解耦
+ */
+import type { ModelScopeAuthData } from "../../../apis/modelscope/types";
+// 导出ModelScope认证数据类型
+export type { ModelScopeAuthData };
+
+// ============ 消息提示 ============
+
+/**
+ * 用途：显示用户提示消息
+ * 使用范围：AI图片生成失败时的错误提示
+ * 解耦评估：可通过事件发射解耦，但当前架构中直接调用更简洁
+ */
+import { showMessage } from "../../../dialog/message";
+// 导出消息提示函数
+export { showMessage };

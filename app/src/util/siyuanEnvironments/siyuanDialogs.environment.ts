@@ -1,4 +1,4 @@
-import { Dialog } from "../../dialog";
+import type { Dialog } from "../../dialog";
 
 /**
  * 获取当前 window.siyuan.zIndex
