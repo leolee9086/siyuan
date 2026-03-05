@@ -61,5 +61,7 @@ export interface ToolCallState {
     namesByIndex: Record<number, string>;
     argsByIndex: Record<number, string>;
     hasSpeakToolCall: boolean;
-    spokenContent: string;
+    hasPublicSpeakToolCall: boolean;
+    publicSpokenContent: string;
+    internalSpokenMessages: string[];
 }

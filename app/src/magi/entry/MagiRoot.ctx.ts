@@ -85,6 +85,15 @@ function createSourcePanelTitle(index: number): string {
     return `SOURCE-${String(index).padStart(2, "0")}`;
 }
 
+function resolveSourceMessageChannel(
+    source: SourceSimulationProfileView["source"],
+): "guardian" | "external-agent" | "system-cron" | "unknown" {
+    if (source === "guardian" || source === "external-agent" || source === "system-cron") {
+        return source;
+    }
+    return "unknown";
+}
+
 function createSourceSimulationPanel(
     index: number,
     profileId: string,
@@ -107,15 +116,19 @@ function createSourceSimulationPanel(
 
 function buildSourceSimulationContext(
     profile: SourceSimulationProfileView,
+    panel: SourceSimulationPanelView,
 ): SourceSimulationContext {
     return {
         requestId: `req-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        callerId: profile.callerId,
+        callerId: `${profile.callerId}:${panel.id}`,
         source: profile.source,
         trustBase: profile.trustBase,
         riskLevel: profile.riskLevel,
         profileId: profile.id,
         profileLabel: profile.label,
+        sourceChannel: resolveSourceMessageChannel(profile.source),
+        sourcePanelId: panel.id,
+        sourcePanelTitle: panel.title,
     };
 }
 
@@ -284,7 +297,7 @@ async function handleSubmitSourceSimulationPanel(
         return;
     }
 
-    const sourceContext = buildSourceSimulationContext(profile);
+    const sourceContext = buildSourceSimulationContext(profile, panel);
     panel.messages.push(createSourcePanelMessage("user", rawInput, "success"));
     const pendingAssistant = createSourcePanelMessage("assistant", "Waiting response...", "pending");
     panel.messages.push(pendingAssistant);

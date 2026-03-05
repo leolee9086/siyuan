@@ -34,6 +34,88 @@ export interface ConsensusRequestContext {
     sourceSimulation?: SourceSimulationContext;
 }
 
+interface TrinityResolutionResult {
+    publicOutput: string | null;
+    internalReports: string[];
+}
+
+type SafeSourceChannel = "guardian" | "external-agent" | "system-cron" | "unknown";
+
+interface SafeSourceSignal {
+    channel: SafeSourceChannel;
+    source: SourceSimulationContext["source"];
+    trustBase: SourceSimulationContext["trustBase"];
+    riskLevel: SourceSimulationContext["riskLevel"];
+}
+
+function isSafeSourceChannel(value: unknown): value is SafeSourceChannel {
+    return value === "guardian"
+        || value === "external-agent"
+        || value === "system-cron"
+        || value === "unknown";
+}
+
+/** 将外部来源通道归一化为安全白名单，避免把任意字符串喂入贤者输入。 */
+function normalizeSafeSourceChannel(
+    source: SourceSimulationContext,
+): SafeSourceChannel {
+    const rawChannel = source.sourceChannel;
+    if (isSafeSourceChannel(rawChannel)) {
+        return rawChannel;
+    }
+    if (isSafeSourceChannel(source.source)) {
+        return source.source;
+    }
+    return "unknown";
+}
+
+/** 解析安全来源信号；缺失来源时回退 unknown/medium/medium。 */
+function resolveSafeSourceSignal(
+    requestContext?: ConsensusRequestContext,
+): SafeSourceSignal {
+    const source = requestContext?.sourceSimulation;
+    if (!source) {
+        return {
+            channel: "unknown",
+            source: "unknown",
+            trustBase: "medium",
+            riskLevel: "medium",
+        };
+    }
+    return {
+        channel: normalizeSafeSourceChannel(source),
+        source: source.source,
+        trustBase: source.trustBase,
+        riskLevel: source.riskLevel,
+    };
+}
+
+/** 构建给贤者的来源信封（仅使用枚举字段，避免语义注入）。 */
+function buildSageSourceEnvelope(
+    requestContext?: ConsensusRequestContext,
+): string {
+    const safeSource = resolveSafeSourceSignal(requestContext);
+    const payload = JSON.stringify({
+        channel: safeSource.channel,
+        source: safeSource.source,
+        trustBase: safeSource.trustBase,
+        riskLevel: safeSource.riskLevel,
+    });
+    return `<request_source>${payload}</request_source>`;
+}
+
+/** 构建贤者输入：来源信封 + 标准 user_message 包裹。 */
+function buildSourceAwareSageInput(
+    userMessage: string,
+    requestContext?: ConsensusRequestContext,
+): string {
+    const sourceEnvelope = buildSageSourceEnvelope(requestContext);
+    return `${sourceEnvelope}
+<source=user_message>
+${userMessage}
+</source>`;
+}
+
 /** 从请求上下文提取可持久化的消息元数据。 */
 function buildRequestContextMeta(
     requestContext?: ConsensusRequestContext,
@@ -52,10 +134,26 @@ function buildRequestContextMeta(
                 riskLevel: source.riskLevel,
                 sourceProfileId: source.profileId,
                 sourceProfileLabel: source.profileLabel,
+                ...(source.sourceChannel ? { sourceChannel: source.sourceChannel } : {}),
+                ...(source.sourcePanelId ? { sourcePanelId: source.sourcePanelId } : {}),
+                ...(source.sourcePanelTitle ? { sourcePanelTitle: source.sourcePanelTitle } : {}),
                 sourceSimulated: true,
             }
             : {}),
     };
+}
+
+/** 构建传递给 Trinity 的来源摘要，确保来源信息真正进入综合输入。 */
+function buildRequestSourceBrief(requestContext?: ConsensusRequestContext): string {
+    const safeSource = resolveSafeSourceSignal(requestContext);
+    const lines = [
+        "请求来源情报：",
+        `- channel=${safeSource.channel}`,
+        `- source=${safeSource.source}`,
+        `- trustBase=${safeSource.trustBase}`,
+        `- riskLevel=${safeSource.riskLevel}`,
+    ];
+    return lines.join("\n");
 }
 
 /** 追加消息到主消息流并统一状态字段。 */
@@ -186,8 +284,12 @@ async function collectValidResponses(
     consensusMessages: MagiMessage[],
     sages: WrappedSeel[],
     userMessage: string,
+    requestContext?: ConsensusRequestContext,
 ): Promise<SageResponse[] | null> {
-    const validResponses = await processSagesResponses(sages, userMessage);
+    const sourceAwareInput = buildSourceAwareSageInput(userMessage, requestContext);
+    const validResponses = await processSagesResponses(sages, userMessage, {
+        modelInput: sourceAwareInput,
+    });
     await appendSageResponses(consensusMessages, validResponses);
 
     // 三贤者全部失败或返回空内容时，终止本轮并给出可见错误，避免继续进入 Trinity/投票产生误导结果。
@@ -207,32 +309,57 @@ async function resolveTrinityResult(
     sages: WrappedSeel[],
     trinity: WrappedSeel | null,
     validResponses: SageResponse[],
-): Promise<string | null> {
+    requestContext?: ConsensusRequestContext,
+): Promise<TrinityResolutionResult> {
+    const requestSourceBrief = buildRequestSourceBrief(requestContext);
     if (!deliberationRequired && !trinity) {
-        return validResponses.map((response) => response.content).join("\n");
+        return {
+            publicOutput: validResponses.map((response) => response.content).join("\n"),
+            internalReports: [],
+        };
     }
     if (!deliberationRequired) {
-        return handleTrinitySummary(validResponses, trinity, userMessage);
+        const summary = await handleTrinitySummary(
+            validResponses,
+            trinity,
+            userMessage,
+            requestSourceBrief,
+        );
+        return {
+            publicOutput: summary.content,
+            internalReports: summary.internalToolMessages,
+        };
     }
     if (!voteResult?.passed) {
         // 审慎决策未通过时，不进入主导执行分支，交由后续反刍入口处理。
-        return null;
+        return {
+            publicOutput: null,
+            internalReports: [],
+        };
     }
 
     const action = proposedAction ?? userMessage;
     const melchiorActionResult = await 执行梅基奥尔主导行动(sages, userMessage, action);
     const safeActionResult = melchiorActionResult ?? "已进入执行阶段，但暂未产生可见输出。";
     if (!trinity) {
-        return safeActionResult;
+        return {
+            publicOutput: safeActionResult,
+            internalReports: [],
+        };
     }
-    return handleTrinityPostActionSummary(
+    const summary = await handleTrinityPostActionSummary(
         validResponses,
         trinity,
         action,
         voteResult,
         safeActionResult,
         userMessage,
+        requestSourceBrief,
     );
+    return {
+        publicOutput: summary.content,
+        internalReports: summary.internalToolMessages,
+    };
 }
 
 /** 执行单轮完整共识计算并写入消息流。 */
@@ -243,7 +370,12 @@ async function runConsensusRound(
     userMessage: string,
     requestContext?: ConsensusRequestContext,
 ): Promise<void> {
-    const validResponses = await collectValidResponses(consensusMessages, sages, userMessage);
+    const validResponses = await collectValidResponses(
+        consensusMessages,
+        sages,
+        userMessage,
+        requestContext,
+    );
     if (!validResponses) {
         return;
     }
@@ -262,16 +394,18 @@ async function runConsensusRound(
         sages,
         trinity,
         validResponses,
+        requestContext,
     );
     await appendFinalConsensus(
         consensusMessages,
-        trinityResult,
+        trinityResult.publicOutput,
         voteResult,
         deliberationRequired,
         userMessage,
         melchiorUsedToolCall,
         sages,
         trinity !== null,
+        trinityResult.internalReports,
         requestContext,
     );
 }
@@ -286,6 +420,7 @@ async function appendFinalConsensus(
     melchiorUsedToolCall: boolean,
     sages: WrappedSeel[],
     hasTrinity: boolean,
+    internalReports: string[],
     requestContext?: ConsensusRequestContext,
 ): Promise<void> {
     const consensusReply = await generateConsensusReply(
@@ -323,6 +458,21 @@ async function appendFinalConsensus(
     }
     if (rawTrinityOutput) {
         void publishTrinitySynthesis(rawTrinityOutput, finalMessage.timestamp);
+    }
+    if (internalReports.length > 0) {
+        for (const report of internalReports) {
+            await appendConsensusMessage(
+                consensusMessages,
+                "system",
+                report,
+                {
+                    type: "trinity-channel-report",
+                    channel: "internal",
+                    internalOnly: true,
+                    ...requestMeta,
+                },
+            );
+        }
     }
 }
 

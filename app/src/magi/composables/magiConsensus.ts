@@ -25,6 +25,15 @@ import {
     publishSeelVoteError,
 } from "./consensus/magiRoundEvents";
 
+export interface TrinitySummaryResult {
+    content: string | null;
+    internalToolMessages: string[];
+}
+
+interface SageResponseCollectOptions {
+    modelInput?: string;
+}
+
 /** 将包装实例的消息列表同步回原始AI实例 */
 async function syncOriginalMessages(seel: WrappedSeel): Promise<void> {
     if (seel._originalAI) {
@@ -121,8 +130,10 @@ export function buildStreamCallbacks(seel: WrappedSeel, userMessage: string) {
 export async function processSagesResponses(
     sages: WrappedSeel[],
     userMessage: string,
+    options: SageResponseCollectOptions = {},
 ): Promise<SageResponse[]> {
-    const responsePromises = sages.map((seel) => collectSingleSageResponse(seel, userMessage));
+    const responsePromises = sages.map((seel) =>
+        collectSingleSageResponse(seel, userMessage, options));
     const results = await Promise.all(responsePromises);
     return results.filter(isSageResponse);
 }
@@ -131,11 +142,13 @@ export async function processSagesResponses(
 export async function collectSingleSageResponse(
     seel: WrappedSeel,
     userMessage: string,
+    options: SageResponseCollectOptions = {},
 ): Promise<SageResponse | null> {
     try {
         await syncOriginalMessages(seel);
         const isMelchior = seel.config.name.includes("MELCHIOR");
-        const response = await seel.reply(userMessage);
+        const modelInput = options.modelInput?.trim() || userMessage;
+        const response = await seel.reply(modelInput);
         const callbacks = buildStreamCallbacks(seel, userMessage);
         const { content, success, hasToolCalls } = await processStreamResponse(
             response,
@@ -173,31 +186,38 @@ export async function handleTrinitySummary(
     validResponses: SageResponse[],
     trinity: WrappedSeel,
     userInput: string,
-): Promise<string | null> {
+    requestSourceBrief: string = "",
+): Promise<TrinitySummaryResult> {
     if (validResponses.length === 0) {
-        return null;
+        return { content: null, internalToolMessages: [] };
     }
     try {
-        const introspection = buildTrinityIntrospectionInput(validResponses);
+        const introspection = buildTrinityIntrospectionInput(
+            validResponses,
+            requestSourceBrief,
+        );
         const safeUserInput = userInput.trim() || "请继续当前任务。";
         const trinityContext = { context: { userInput: safeUserInput, responses: validResponses, introspection } };
         const trinityResponse = await trinity.reply("", trinityContext);
         const callbacks = buildStreamCallbacks(trinity, "[trinity-internal-stitch]");
-        const { content, success } = await processStreamResponse(
+        const { content, success, internalToolMessages } = await processStreamResponse(
             trinityResponse,
             callbacks,
             { mode: "trinity-speak-tool" },
         );
-        return success ? content : null;
+        return {
+            content: success ? content : null,
+            internalToolMessages: Array.isArray(internalToolMessages) ? internalToolMessages : [],
+        };
     } catch {
         const published = await publishSeelReplyFailed(trinity, getMagiI18nText("responseGenerationFailed"));
         if (published) {
-            return null;
+            return { content: null, internalToolMessages: [] };
         }
         trinity.loading = false;
         const errMsg = await createMessage("error", getMagiI18nText("responseGenerationFailed"));
         trinity.messages.push(errMsg);
-        return null;
+        return { content: null, internalToolMessages: [] };
     }
 }
 

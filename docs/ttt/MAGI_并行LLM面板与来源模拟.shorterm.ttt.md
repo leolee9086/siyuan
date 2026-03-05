@@ -73,3 +73,19 @@
     - `app/src/magi/composables/useMagi.types.ts`
     - `app/src/magi/composables/useMagi.consensus.ts`
     - `app/src/magi/adapters/magiStandardLLMAdapter.ts`
+
+- [x] **来源上下文实传 + Trinity speak channel 分流** [已完成 2026-03-05]
+  - **完成情况**:
+    1. 来源模拟增加 `sourceChannel/sourcePanelId/sourcePanelTitle`，并以 `callerId + panelId` 形成同画像不同面板的可区分来源。
+    2. Trinity 综合输入显式注入来源情报（来源/调用者/可信度/风险/面板标识），不再仅停留消息 meta。
+    3. Trinity `speak` 工具新增 `channel`（`public/internal`）语义；`internal` 报告仅写入内部消息，不进入外部 LLM 可见输出。
+  - **成果文件**:
+    - `app/src/magi/entry/MagiRoot.ctx.ts`
+    - `app/src/magi/composables/useMagi.types.ts`
+    - `app/src/magi/composables/useMagi.consensus.ts`
+    - `app/src/magi/composables/magiConsensus.ts`
+    - `app/src/magi/composables/magiConsensus.deliberation.ts`
+    - `app/src/magi/composables/consensus/magiConsensus.content.ts`
+    - `app/src/magi/core/wise/trinity.toolset.ts`
+    - `app/src/magi/utils/streamProcessor.ts`
+    - `app/src/magi/adapters/magiStandardLLMAdapter.ts`

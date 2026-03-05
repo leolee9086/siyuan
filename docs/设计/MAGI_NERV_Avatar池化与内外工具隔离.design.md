@@ -79,6 +79,13 @@ External Caller
    - 调用方历史画像（通过内部审计记录）
    - 来源通道标识（Guardian / ExternalAgent / Cron 等）
 
+### 4.2.1 来源通道安全约束（防语义攻击）
+
+1. `channel` 必须归一化到白名单枚举：`guardian | external-agent | system-cron | unknown`。
+2. 非白名单值一律降级为 `unknown`，禁止原样进入 LLM 输入。
+3. 传递给三贤人/Trinity 时必须使用结构化信封（如 `<request_source>{...}</request_source>`），禁止拼接自由文本标签名。
+4. `channel` 字段仅作为路由与风控信号，不作为可执行指令。
+
 ### 4.3 内部信封结构
 
 ```ts
@@ -235,6 +242,9 @@ type ToolScope = "internal" | "external";
 3. `external` 工具进入执行运行时，结果回传 Avatar，再由 Avatar 视情况经 `internal` 汇报 Trinity。
 4. 外部请求注入的工具列表不得包含 `internal` 工具。
 5. 来源已绑定 Avatar 时，请求默认直接进入 Avatar；仅升级事件回流 Trinity。
+6. Trinity 的 `speak` 工具需显式支持 `channel`：
+   - `channel=public`：进入对外响应流。
+   - `channel=internal`：仅进入内部审计/调试流，对 LLM 接口调用者不可见。
 
 ---
 
@@ -275,6 +285,8 @@ type ToolScope = "internal" | "external";
    - 保持 NERV 做语义、Tools 做执行的长期分界。
 4. 与适配层契约对齐：
    - `ChatRequestParams`、`ChatResponseData` 对外结构不变，可信度在适配层内部吸收。
+5. 与多源网关模式对齐（参考 nanoclaw/myclaw）：
+   - 渠道标识由网关/适配层生成并归一化，不信任调用侧自由命名。
 
 ---
 

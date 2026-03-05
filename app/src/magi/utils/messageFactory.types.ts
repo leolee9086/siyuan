@@ -61,6 +61,8 @@ export interface StreamResult {
     hasToolCalls?: boolean;
     /** 本轮观测到的工具名称（去重） */
     toolCallNames?: string[];
+    /** speak(channel=internal) 的内部消息 */
+    internalToolMessages?: string[];
 }
 
 /**

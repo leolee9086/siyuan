@@ -28,6 +28,28 @@ interface IngressRuleDecision {
     reason: string;
 }
 
+type SafeSourceChannel = "guardian" | "external-agent" | "system-cron" | "unknown";
+
+function isSafeSourceChannel(value: unknown): value is SafeSourceChannel {
+    return value === "guardian"
+        || value === "external-agent"
+        || value === "system-cron"
+        || value === "unknown";
+}
+
+function normalizeSourceChannel(
+    rawSourceChannel: unknown,
+    source: SourceSimulationContext["source"],
+): SafeSourceChannel {
+    if (isSafeSourceChannel(rawSourceChannel)) {
+        return rawSourceChannel;
+    }
+    if (isSafeSourceChannel(source)) {
+        return source;
+    }
+    return "unknown";
+}
+
 /**
  * 创建 MAGI 标准 LLM 适配器
  *
@@ -97,6 +119,9 @@ function parseSourceSimulationFromSystemMessages(
             const riskLevel = Reflect.get(parsed, "riskLevel");
             const profileId = Reflect.get(parsed, "profileId");
             const profileLabel = Reflect.get(parsed, "profileLabel");
+            const rawSourceChannel = Reflect.get(parsed, "sourceChannel");
+            const sourcePanelId = Reflect.get(parsed, "sourcePanelId");
+            const sourcePanelTitle = Reflect.get(parsed, "sourcePanelTitle");
             const isValid = typeof requestId === "string"
                 && typeof callerId === "string"
                 && (source === "guardian" || source === "external-agent" || source === "system-cron" || source === "unknown")
@@ -115,6 +140,9 @@ function parseSourceSimulationFromSystemMessages(
                 riskLevel,
                 profileId,
                 profileLabel,
+                sourceChannel: normalizeSourceChannel(rawSourceChannel, source),
+                ...(typeof sourcePanelId === "string" ? { sourcePanelId } : {}),
+                ...(typeof sourcePanelTitle === "string" ? { sourcePanelTitle } : {}),
             };
         } catch {
             // 非法 payload 直接忽略，回退常规路径。
@@ -167,6 +195,9 @@ function buildBlockedAlertMeta(
                 riskLevel: source.riskLevel,
                 sourceProfileId: source.profileId,
                 sourceProfileLabel: source.profileLabel,
+                ...(source.sourceChannel ? { sourceChannel: source.sourceChannel } : {}),
+                ...(source.sourcePanelId ? { sourcePanelId: source.sourcePanelId } : {}),
+                ...(source.sourcePanelTitle ? { sourcePanelTitle: source.sourcePanelTitle } : {}),
             }
             : {}),
     };

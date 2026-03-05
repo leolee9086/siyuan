@@ -6,6 +6,7 @@ import { getMagiI18nText } from "../utils/magiI18n";
 import {
     buildStreamCallbacks,
     collectSingleSageResponse,
+    type TrinitySummaryResult,
 } from "./magiConsensus";
 import { buildTrinityIntrospectionInput } from "./consensus/magiConsensus.content";
 
@@ -76,8 +77,12 @@ function buildPostActionIntrospection(
     proposedAction: string,
     vote: VoteResult,
     melchiorActionResult: string,
+    requestSourceBrief: string,
 ): string {
-    const initialIntrospection = buildTrinityIntrospectionInput(validResponses);
+    const initialIntrospection = buildTrinityIntrospectionInput(
+        validResponses,
+        requestSourceBrief,
+    );
     return `${initialIntrospection}
 
 本轮审慎决策提案：
@@ -100,9 +105,10 @@ export async function handleTrinityPostActionSummary(
     vote: VoteResult,
     melchiorActionResult: string,
     userInput: string,
-): Promise<string | null> {
+    requestSourceBrief: string = "",
+): Promise<TrinitySummaryResult> {
     if (validResponses.length === 0) {
-        return null;
+        return { content: null, internalToolMessages: [] };
     }
     try {
         const introspection = buildPostActionIntrospection(
@@ -110,21 +116,25 @@ export async function handleTrinityPostActionSummary(
             proposedAction,
             vote,
             melchiorActionResult,
+            requestSourceBrief,
         );
         const safeUserInput = userInput.trim() || "请继续当前任务。";
         const trinityContext = { context: { userInput: safeUserInput, responses: validResponses, introspection } };
         const trinityResponse = await trinity.reply("", trinityContext);
         const callbacks = buildStreamCallbacks(trinity, "[trinity-post-action-stitch]");
-        const { content, success } = await processStreamResponse(
+        const { content, success, internalToolMessages } = await processStreamResponse(
             trinityResponse,
             callbacks,
             { mode: "trinity-speak-tool" },
         );
-        return success ? content : null;
+        return {
+            content: success ? content : null,
+            internalToolMessages: Array.isArray(internalToolMessages) ? internalToolMessages : [],
+        };
     } catch {
         trinity.loading = false;
         const errMsg = await createMessage("error", getMagiI18nText("responseGenerationFailed"));
         trinity.messages.push(errMsg);
-        return null;
+        return { content: null, internalToolMessages: [] };
     }
 }

@@ -41,7 +41,10 @@ function findSageContent(
 }
 
 /** @同步豁免: 性能考虑 - 纯字符串拼接，无I/O或状态竞争。 */
-export function buildTrinityIntrospectionInput(validResponses: SageResponse[]): string {
+export function buildTrinityIntrospectionInput(
+    validResponses: SageResponse[],
+    requestSourceBrief: string = "",
+): string {
     const melchior = findSageContent(validResponses, "MELCHIOR", "我还在整理逻辑线索。");
     const balthazar = findSageContent(validResponses, "BALTHASAR", "我还在感受这件事的情绪波动。");
     const casper = findSageContent(validResponses, "CASPER", "我暂时没有明确的本能倾向。");
@@ -50,5 +53,6 @@ export function buildTrinityIntrospectionInput(validResponses: SageResponse[]): 
 
 情绪告诉我：${balthazar}
 
-直觉告诉我：${casper}`;
+直觉告诉我：${casper}
+${requestSourceBrief ? `\n\n${requestSourceBrief}` : ""}`;
 }

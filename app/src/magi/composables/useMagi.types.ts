@@ -165,6 +165,9 @@ export type SourceTrustBase = "low" | "medium" | "high";
 /** 来源模拟的风险等级 */
 export type SourceRiskLevel = "low" | "medium" | "high";
 
+/** 来源消息通道（白名单枚举，禁止任意字符串注入到策略层）。 */
+export type SourceMessageChannel = "guardian" | "external-agent" | "system-cron" | "unknown";
+
 /** 单次消息发送的来源模拟上下文 */
 export interface SourceSimulationContext {
     requestId: string;
@@ -174,6 +177,9 @@ export interface SourceSimulationContext {
     riskLevel: SourceRiskLevel;
     profileId: string;
     profileLabel: string;
+    sourceChannel?: SourceMessageChannel;
+    sourcePanelId?: string;
+    sourcePanelTitle?: string;
 }
 
 /** sendUserMessage 可选扩展参数 */

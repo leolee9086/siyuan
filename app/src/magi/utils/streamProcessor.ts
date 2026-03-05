@@ -18,7 +18,7 @@ import { createMessage, createStreamMessage } from "./messageFactory";
 import { isChunkPayload, extractDeltaContent } from "./streamProcessor.guard";
 import {
     TRINITY_SPEAK_TOOL_NAME,
-    extractSpeakContentFromArguments,
+    extractSpeakPayloadFromArguments,
 } from "../core/wise/trinity.toolset";
 
 /**
@@ -93,22 +93,34 @@ async function handleAsyncGeneratorResponse(
         );
         accumulated = consumed.accumulated;
         hasAnyToolCall = consumed.hasAnyToolCall;
-        // speak-tool 模式下必须检测到 speak 调用且解析出最终正文。
-        if (shouldUseSpeakToolMode && (!toolState.hasSpeakToolCall || !toolState.spokenContent.trim())) {
-            throw new Error("Trinity 未调用 speak 工具或 speak.content 为空。");
+        // speak-tool 模式下必须检测到 speak 调用且解析出 public 通道正文。
+        if (shouldUseSpeakToolMode && (!toolState.hasSpeakToolCall || !toolState.hasPublicSpeakToolCall || !toolState.publicSpokenContent.trim())) {
+            throw new Error("Trinity 未调用公开通道 speak 或公开正文为空。");
         }
         // 工具模式最终输出取 speak.content，而不是 assistant 直接文本。
         if (shouldUseSpeakToolMode) {
-            accumulated = toolState.spokenContent;
+            accumulated = toolState.publicSpokenContent;
         }
     } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));
         callbacks.onError?.(err);
-        return buildToolAwareResult(accumulated, false, hasAnyToolCall, observedToolCallNames);
+        return buildToolAwareResult(
+            accumulated,
+            false,
+            hasAnyToolCall,
+            observedToolCallNames,
+            toolState.internalSpokenMessages,
+        );
     }
 
     finalizeStreamMessage(message, accumulated, callbacks);
-    return buildToolAwareResult(accumulated, true, hasAnyToolCall, observedToolCallNames);
+    return buildToolAwareResult(
+        accumulated,
+        true,
+        hasAnyToolCall,
+        observedToolCallNames,
+        toolState.internalSpokenMessages,
+    );
 }
 
 /** 构建包含工具调用观测信息的统一返回结构 */
@@ -117,12 +129,14 @@ function buildToolAwareResult(
     success: boolean,
     hasToolCalls: boolean,
     toolCallNames: Set<string>,
+    internalToolMessages: string[],
 ): StreamResult {
     return {
         content,
         success,
         hasToolCalls,
         toolCallNames: Array.from(toolCallNames),
+        internalToolMessages,
     };
 }
 
@@ -176,7 +190,7 @@ async function consumeStream(
         }
         // speak-tool 模式优先消费 tool_calls，并忽略直接文本内容。
         mergeToolCalls(toolState, parsedChunk.toolCalls);
-        const spoken = resolveSpeakContent(toolState);
+        const spoken = resolveSpeakChannels(toolState);
         const shouldEmitSpoken = Boolean(spoken && spoken !== lastSpoken);
         // 仅当解析出的可见文本发生变化时刷新流式显示。
         if (shouldEmitSpoken) {
@@ -302,7 +316,9 @@ function createToolCallState(): ToolCallState {
         namesByIndex: {},
         argsByIndex: {},
         hasSpeakToolCall: false,
-        spokenContent: "",
+        hasPublicSpeakToolCall: false,
+        publicSpokenContent: "",
+        internalSpokenMessages: [],
     };
 }
 
@@ -315,9 +331,8 @@ function mergeToolCalls(state: ToolCallState, toolCalls: StreamToolCallDelta[]):
         if (hasName) {
             state.namesByIndex[index] = toolCall.name;
         }
-        const isSpeakName = hasName && toolCall.name === TRINITY_SPEAK_TOOL_NAME;
-        // 一旦出现 speak 名称，即标记已发生 speak 工具调用。
-        if (isSpeakName) {
+        // 一旦识别出 speak 工具，即标记已发生 speak 调用。
+        if (state.namesByIndex[index] === TRINITY_SPEAK_TOOL_NAME) {
             state.hasSpeakToolCall = true;
         }
         const hasArguments = Boolean(toolCall.argumentsChunk);
@@ -329,24 +344,34 @@ function mergeToolCalls(state: ToolCallState, toolCalls: StreamToolCallDelta[]):
     }
 }
 
-/** 从聚合后的工具调用状态中解析 speak.content */
-function resolveSpeakContent(state: ToolCallState): string {
+/** 从聚合后的工具调用状态中解析 speak(channel) 输出。 */
+function resolveSpeakChannels(state: ToolCallState): string {
     const indexes = Object.keys(state.namesByIndex)
         .map((key) => Number(key))
         .filter((key) => Number.isInteger(key))
         .sort((a, b) => a - b);
+    const internalMessages: string[] = [];
+    let publicContent = "";
+    let hasPublicSpeak = false;
     for (const index of indexes) {
         if (state.namesByIndex[index] !== TRINITY_SPEAK_TOOL_NAME) {
             continue;
         }
         const rawArgs = state.argsByIndex[index] ?? "";
-        const parsed = extractSpeakContentFromArguments(rawArgs);
+        const parsed = extractSpeakPayloadFromArguments(rawArgs);
         if (parsed) {
-            state.spokenContent = parsed;
-            return parsed;
+            if (parsed.channel === "internal") {
+                internalMessages.push(parsed.content);
+                continue;
+            }
+            publicContent = parsed.content;
+            hasPublicSpeak = true;
         }
     }
-    return "";
+    state.hasPublicSpeakToolCall = hasPublicSpeak;
+    state.publicSpokenContent = publicContent;
+    state.internalSpokenMessages = internalMessages;
+    return publicContent;
 }
 
 /** 提取当前 chunk 中出现的工具名称（去空值，不去重） */
