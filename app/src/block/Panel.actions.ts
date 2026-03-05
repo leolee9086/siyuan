@@ -1,21 +1,25 @@
-/**
- * BlockPanel 的图标操作相关方法
- * 从 Panel.ts 中提取，用于减少文件行数
- */
-
-import { openNewWindowById } from "../window/openNewWindow";
-import { openFileById } from "../editor/utils.openFileById";
-import { checkFold } from "../util/platform/noRelyPCFunction";
-import { isElectron } from "../platform";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
-import { App } from "../index";
-import { headIconCtx } from "./Panel.types";
+//@AIDONE 检查App等导入被用作值还是类型,如果仅用作类型则改为 type 导入以优化性能
+// 用途：在新窗口中打开指定块；使用范围：Electron 环境下打开引用块；解耦评估：通过imports.ts统一管理外部依赖
+import { openNewWindowById } from "./imports";
+// 用途：在编辑器中打开指定文件；使用范围：粘贴标签页操作时打开文件；解耦评估：通过imports.ts统一管理外部依赖
+import { openFileById } from "./imports";
+// 用途：检查块是否折叠并执行回调；使用范围：粘贴标签页前检查折叠状态；解耦评估：通过imports.ts统一管理外部依赖
+import { checkFold } from "./imports";
+// 用途：判断当前是否为 Electron 环境；使用范围：判断是否支持新窗口打开；解耦评估：通过imports.ts统一管理外部依赖
+import { isElectron } from "./imports";
+// 用途：获取国际化文本；使用范围：设置固定按钮的 aria-label；解耦评估：通过imports.ts统一管理外部依赖
+import { siyuanI18n } from "./imports";
+// 用途：App 类型定义；使用范围：函数参数类型标注；解耦评估：核心类型定义，作为类型导入不影响运行时
+import type { App } from "./imports";
+// 用途：面板头部图标上下文类型；使用范围：执行图标操作函数的参数类型；解耦评估：本地类型定义，作为类型导入不影响运行时
+import type { headIconCtx } from "./Panel.types";
 
 /**
  * 切换面板的固定状态
  * 作用：查找面板内的固定按钮并更新其状态（图标及 aria-label）和面板容器的 data-pin 属性
  * 意图：供外部调用，强制设定面板的固定/未固定视觉状态
  * 调用时机：通常在面板初始化或需要重置状态时调用
+ * @同步豁免: 需要绝对同步的DOM访问 - 必须立即更新DOM状态以保证UI一致性
  */
 export function 切换固定状态(element: HTMLElement, 固定: boolean): void {
     const pinSelector = '[data-type="pin"]';
@@ -43,6 +47,7 @@ function 应用固定状态(
     element: HTMLElement,
     固定: boolean
 ): void {
+    // 判断是否需要固定面板：当固定参数为true时，设置为固定状态（显示取消固定图标）；否则设置为未固定状态（显示固定图标）
     if (固定) {
         pinElement.setAttribute("aria-label", siyuanI18n.unpin);
         useElement.setAttribute("xlink:href", "#iconUnpin");
@@ -60,15 +65,18 @@ function 应用固定状态(
  * 作用：根据传入的上下文（headIconCtx）中的 type 字段分发不同的处理逻辑（关闭、固定、打开、粘贴标签页）
  * 意图：统一处理面板头部各种功能图标的点击事件
  * 调用时机：面板头部图标被点击时调用
+ * @同步豁免: UI构建 - 事件处理器必须同步响应用户点击，立即执行对应操作
  */
 export function 执行图标操作(ctx: headIconCtx): void {
     const { type, target, element, refDefs, app, onDestroy } = ctx;
     const firstRef = refDefs[0];
 
+    // 判断是否为关闭操作：当用户点击关闭图标时，调用销毁回调关闭面板
     if (type === "close") {
         onDestroy();
         return;
     }
+    // 判断是否为固定操作：当用户点击固定图标时，切换面板的固定状态
     if (type === "pin") {
         执行固定操作(target, element);
         return;
@@ -81,6 +89,7 @@ export function 执行图标操作(ctx: headIconCtx): void {
     if (type === "open") {
         return;
     }
+    // 判断是否为粘贴标签页操作：当用户点击粘贴标签页图标时，在编辑器中打开引用块并关闭浮窗
     if (type === "stickTab") {
         执行粘贴标签页操作(refDefs, app, onDestroy);
     }

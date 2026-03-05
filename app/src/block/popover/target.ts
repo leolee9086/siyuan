@@ -3,13 +3,32 @@
  * 从 popover.ts 拆分出来，处理目标元素检测和 BlockPanel 清理逻辑
  */
 
-import { BlockPanel } from "../Panel";
-import { hasClosestByAttribute, hasClosestByClassName } from "../../protyle/util/hasClosest";
-import { Constants } from "../../constants";
-import { isTouchDevice } from "../../util/platform/functions";
-import { isHTMLElement } from "../../util/DOM/element.guard";
-import { getSiyuanConfig, getSiyuanBlockPanels, getSiyuanMenus, getSiyuanKeyboardState } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { SForgeSymbols, getSForgeState, setSForgeState } from "../../config/sforge";
+// 用途：块面板类，用于创建和管理浮窗面板；使用范围：target.ts 中进行类型检查和面板清理操作；解耦评估：核心业务类，可通过接口抽象解耦，但作为模块核心依赖直接导入更合理
+import { BlockPanel } from "./imports";
+// 用途：判断元素是否包含指定属性的祖先元素；使用范围：target.ts 中查找块引用和链接元素；解耦评估：DOM查询工具函数，通过参数传递即可使用，已充分解耦
+import { hasClosestByAttribute } from "./imports";
+// 用途：判断元素是否包含指定类名的祖先元素；使用范围：target.ts 中查找特定类名的父元素；解耦评估：DOM查询工具函数，通过参数传递即可使用，已充分解耦
+import { hasClosestByClassName } from "./imports";
+// 用途：提供全局常量配置；使用范围：target.ts 中使用菜单名称等常量；解耦评估：全局配置，可通过配置注入解耦，但作为全局常量直接导入更合理
+import { Constants } from "./imports";
+// 用途：判断当前设备是否为触摸设备；使用范围：target.ts 中根据设备类型选择不同的事件目标获取方式；解耦评估：平台检测工具函数，通过参数传递即可使用，已充分解耦
+import { isTouchDevice } from "./imports";
+// 用途：类型守卫函数，判断元素是否为HTMLElement；使用范围：target.ts 中进行类型检查确保DOM操作安全；解耦评估：类型守卫工具函数，通过参数传递即可使用，已充分解耦
+import { isHTMLElement } from "./imports";
+// 用途：获取思源全局配置；使用范围：target.ts 中检查编辑器浮窗模式配置；解耦评估：全局配置访问器，可通过依赖注入解耦，但作为全局基础设施直接导入更合理
+import { getSiyuanConfig } from "./imports";
+// 用途：获取当前所有块面板实例；使用范围：target.ts 中遍历块面板进行层级检查和清理操作；解耦评估：全局状态访问器，可通过依赖注入解耦，但作为全局基础设施直接导入更合理
+import { getSiyuanBlockPanels } from "./imports";
+// 用途：获取当前菜单实例；使用范围：target.ts 中检查菜单层级和数据状态；解耦评估：全局状态访问器，可通过依赖注入解耦，但作为全局基础设施直接导入更合理
+import { getSiyuanMenus } from "./imports";
+// 用途：获取键盘按键状态；使用范围：target.ts 中检查Alt和Ctrl键是否按下以控制popover显示；解耦评估：全局状态访问器，可通过依赖注入解耦，但作为全局基础设施直接导入更合理
+import { getSiyuanKeyboardState } from "./imports";
+// 用途：SForge全局状态符号常量；使用范围：target.ts 中访问popover目标元素状态；解耦评估：全局状态管理基础设施，可通过依赖注入解耦，但作为全局基础设施直接导入更合理
+import { SForgeSymbols } from "./imports";
+// 用途：获取SForge全局状态；使用范围：target.ts 中读取popover目标元素状态；解耦评估：全局状态管理基础设施，可通过依赖注入解耦，但作为全局基础设施直接导入更合理
+import { getSForgeState } from "./imports";
+// 用途：设置SForge全局状态；使用范围：target.ts 中更新popover目标元素状态；解耦评估：全局状态管理基础设施，可通过依赖注入解耦，但作为全局基础设施直接导入更合理
+import { setSForgeState } from "./imports";
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 模块状态

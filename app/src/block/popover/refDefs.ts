@@ -12,7 +12,7 @@ import { getIdFromSYProtocol } from "./imports";
 // 用途：获取当前 popover 的目标元素；使用范围：本文件所有需要访问触发 popover 的 DOM 元素的场景；解耦评估：可通过参数传递解耦，但作为模块内共享状态，直接导入更合理
 import { getPopoverTargetElement } from "./target";
 // 用途：定义 RefDefs 相关的类型；使用范围：本文件所有函数的返回值类型；解耦评估：类型定义，无需解耦
-import { RefDefsResult } from "./refDefs.types";
+import { RefDefsResult } from "./types";
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // RefDefs 获取函数
