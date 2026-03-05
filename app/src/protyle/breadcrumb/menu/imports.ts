@@ -82,6 +82,48 @@ import { getSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfi
  * 解耦评估：用户状态检查函数，可通过依赖注入解耦，但作为全局用户状态直接导入更合理
  */
 import { hasSiyuanUser } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
+/*
+ * 用途：判断当前是否为移动端环境
+ * 使用范围：面包屑菜单显示逻辑中判断是否使用全屏模式和popup模式
+ * 解耦评估：平台检测函数，可通过依赖注入解耦，但作为全局平台判断直接导入更合理
+ */
+import { isMobile } from "../../../platform";
+/*
+ * 用途：查找最近的块级元素
+ * 使用范围：面包屑菜单显示时获取当前光标所在块的ID
+ * 解耦评估：DOM工具函数，可通过参数传递解耦，但作为protyle核心工具直接导入更合理
+ */
+import { hasClosestBlock } from "../../util/hasClosest";
+/*
+ * 用途：查找最近的指定类名的祖先元素
+ * 使用范围：面包屑菜单显示时判断是否在popover中，用于设置菜单来源属性
+ * 解耦评估：DOM工具函数，可通过参数传递解耦，但作为protyle核心工具直接导入更合理
+ */
+import { hasTopClosestByClassName } from "../../util/hasClosest";
+/*
+ * 用途：获取编辑器当前选区范围
+ * 使用范围：面包屑菜单显示时获取光标位置以确定当前块ID
+ * 解耦评估：编辑器工具函数，可通过参数传递解耦，但作为protyle核心工具直接导入更合理
+ */
+import { getEditorRange } from "../../util/selection";
+/*
+ * 用途：触发插件菜单打开事件
+ * 使用范围：面包屑菜单构建时通知插件系统添加自定义菜单项
+ * 解耦评估：事件发射函数，已经是解耦的事件机制实现，直接导入合理
+ */
+import { emitOpenMenu } from "../../../plugin/EventBus";
+/*
+ * 用途：获取思源菜单系统实例
+ * 使用范围：面包屑菜单显示和构建时获取全局Menu实例
+ * 解耦评估：全局菜单系统访问器，可通过依赖注入解耦，但作为全局基础设施直接导入更合理
+ */
+import { getSiyuanMenus } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
+/*
+ * 用途：录音器上下文类型定义
+ * 使用范围：面包屑菜单显示函数的参数类型标注
+ * 解耦评估：类型定义，无需解耦
+ */
+import type { 录音器上下文 } from "../breadcrumb.types";
 
 // 网络请求工具导出
 export { fetchPost };
@@ -109,3 +151,17 @@ export { siyuanI18n };
 export { getSiyuanConfig };
 // 环境状态访问器导出
 export { hasSiyuanUser };
+// 平台检测导出
+export { isMobile };
+// DOM工具 - 查找最近块级元素
+export { hasClosestBlock };
+// DOM工具 - 查找最近指定类名祖先元素
+export { hasTopClosestByClassName };
+// 编辑器工具 - 获取选区范围
+export { getEditorRange };
+// 插件事件 - 触发菜单打开事件
+export { emitOpenMenu };
+// 菜单系统访问器
+export { getSiyuanMenus };
+// 类型导出 - 录音器上下文
+export type { 录音器上下文 };

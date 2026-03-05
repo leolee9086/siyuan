@@ -1,91 +1,69 @@
-import { fetchSyncPost } from "../util/network/fetch";
-import { App } from "../index";
-import { Plugin } from "./index";
-import { resizeTopBar, saveLayout } from "../layout/util";
-import { API } from "./API";
-import { getFrontend, isMobile, isWindow } from "../util/platform/functions";
-import { Constants } from "../constants";
-import { uninstall } from "./uninstall";
-import { setStorageVal } from "../protyle/util/compatibility";
-import { getAllEditor } from "../layout/getAll";
-import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
+/* eslint-disable folder-item-limit/folder-item-limit */
+/** @导入用途: 拉取插件清单接口 @使用范围: loadPlugins/reloadPlugin @解耦评估: 通过 imports 网关转发，避免父级路径耦合 */
+import {fetchSyncPost} from "./imports";
+/** @导入用途: 应用实例类型 @使用范围: 导出函数参数标注 @解耦评估: 插件加载器核心上下文，无法解耦 */
+import {App} from "./imports";
+/** @导入用途: 插件基类 @使用范围: loadPluginJS 继承校验 @解耦评估: 插件协议核心依赖，无法解耦 */
+import {Plugin} from "./index";
+/** @导入用途: 布局持久化 @使用范围: loadPlugin/reloadPlugin 完成后保存布局 @解耦评估: 事件化可行但当前直接调用更可控 */
+import {saveLayout} from "./imports";
+/** @导入用途: 插件 API 注入对象 @使用范围: requireFunc 返回 siyuan 模块 @解耦评估: 运行时契约依赖，无法解耦 */
+import {API} from "./API";
+/** @导入用途: 前端类型检测 @使用范围: 加载插件请求参数 frontend @解耦评估: 环境判断工具，已走 imports 网关 */
+import {getFrontend} from "./imports";
+/** @导入用途: 移动端检测 @使用范围: afterLoadPlugin 分支判断 @解耦评估: 工具函数依赖，保持轻量直接调用 */
+import {isMobile} from "./imports";
+/** @导入用途: 插件卸载流程 @使用范围: reloadPlugin 重载前清理旧实例 @解耦评估: 生命周期核心流程，无法解耦 */
+import {uninstall} from "./uninstall";
+/** @导入用途: 获取所有编辑器实例 @使用范围: 插件变更后刷新工具栏 @解耦评估: 当前工具函数访问最直接 */
+import {getAllEditor} from "./imports";
+/** @导入用途: 访问宿主 require @使用范围: 构建插件 CommonJS require @解耦评估: window 访问已下沉到 environment 层 */
+import {getPluginRuntimeRequire} from "./API.environment";
+/** @导入用途: 执行插件代码字符串 @使用范围: 生成插件入口执行函数 @解耦评估: 高风险 API 已封装到 environment 层 */
+import {evaluatePluginCode} from "./API.environment";
+/** @导入用途: 插件加载后 UI 挂载流程 @使用范围: afterLoadPlugin 委托执行 @解耦评估: 通过模块拆分降低 loader.ts 复杂度 */
+import {runAfterLoadPlugin} from "./loader.afterLoad";
 
+/** 作用: 构建插件 require 注入层; 意图: 统一第三方插件模块解析; 调用时机: 插件入口执行时 */
 const requireFunc = (key: string) => {
-    const modules = {
-        siyuan: API
-    };
-    // @ts-ignore
-    return modules[key]
-        ?? window.require?.(key);
-};
-if (window.require instanceof Function) {
-    requireFunc.__proto__ = window.require;
-}
-
-const runCode = (code: string, sourceURL: string) => {
-    return window.eval("(function anonymous(require, module, exports){".concat(code, "\n})\n//# sourceURL=").concat(sourceURL, "\n"));
-};
-
-export const loadPlugins = async (app: App, names?: string[], init = true) => {
-    const response = await fetchSyncPost("/api/petal/loadPetals", { frontend: getFrontend() });
-    const pluginsStyle = getPluginsStyle();
-    for (let i = 0; i < response.data.length; i++) {
-        const item = response.data[i] as IPluginData;
-        if (!names || (names && names.includes(item.name))) {
-            if (init) {
-                // 初始化时为加快启动速度，已特殊处理，不进行 await
-                loadPluginJS(app, item);
-            } else {
-                await loadPluginJS(app, item);
-            }
-            insertPluginCSS(item, pluginsStyle);
-        }
+    const modules = {siyuan: API};
+    const moduleValue = modules[key];
+    if (moduleValue) {
+        return moduleValue;
     }
+    const runtimeRequire = getPluginRuntimeRequire();
+    return runtimeRequire?.(key);
 };
 
-const loadPluginJS = async (app: App, item: IPluginData) => {
-    const exportsObj: { [key: string]: any } = {};
-    const moduleObj = { exports: exportsObj };
-    try {
-        runCode(item.js, "plugin:" + encodeURIComponent(item.name))(requireFunc, moduleObj, exportsObj);
-    } catch (e) {
-        console.error(`plugin ${item.name} run error:`, e);
+/** 作用: 继承宿主 require 原型; 意图: 保持插件运行时兼容; 调用时机: 模块初始化阶段 */
+const initializeRequirePrototype = () => {
+    const runtimeRequire = getPluginRuntimeRequire();
+    if (!(runtimeRequire instanceof Function)) {
         return;
     }
-    const pluginClass = (moduleObj.exports || exportsObj).default || moduleObj.exports;
-    if (typeof pluginClass !== "function") {
-        console.error(`plugin ${item.name} has no export`);
-        return;
-    }
-    if (!(pluginClass.prototype instanceof Plugin)) {
-        console.error(`plugin ${item.name} does not extends Plugin`);
-        return;
-    }
-    const plugin = new pluginClass({
-        app,
-        displayName: item.displayName,
-        name: item.name,
-        i18n: item.i18n
-    }) as Plugin;
-    app.plugins.push(plugin);
-    try {
-        await plugin.onload();
-    } catch (e) {
-        console.error(`plugin ${item.name} onload error:`, e);
-    }
-    return plugin;
+    requireFunc.__proto__ = runtimeRequire;
 };
 
+initializeRequirePrototype();
+
+/** 作用: 包装插件源码为 CommonJS 函数; 意图: 统一执行格式并附加 sourceURL; 调用时机: loadPluginJS 内 */
+const createPluginRunner = (code: string, sourceURL: string) => {
+    const wrappedCode = "(function anonymous(require, module, exports){".concat(code, "\n})\n//# sourceURL=").concat(sourceURL, "\n");
+    return evaluatePluginCode(wrappedCode);
+};
+
+/** 作用: 获取插件样式锚点; 意图: 保证 CSS 插入顺序稳定; 调用时机: 插件 CSS 注入前 */
 const getPluginsStyle = () => {
     let pluginsStyle = document.getElementById("pluginsStyle");
     if (!pluginsStyle) {
         pluginsStyle = document.createElement("style");
-        pluginsStyle.id = "pluginsStyle"; // 用于将内联样式插入到插件样式前的标识
+        pluginsStyle.id = "pluginsStyle";
         document.head.append(pluginsStyle);
     }
     return pluginsStyle;
 };
 
+/** 作用: 注入插件 CSS; 意图: 确保插件样式即时生效; 调用时机: JS 加载后 */
 const insertPluginCSS = (item: IPluginData, pluginsStyle: HTMLElement) => {
     if (!item.css) {
         return;
@@ -96,170 +74,175 @@ const insertPluginCSS = (item: IPluginData, pluginsStyle: HTMLElement) => {
     pluginsStyle.insertAdjacentElement("afterend", styleElement);
 };
 
-// 启用插件
+/** 作用: 刷新所有编辑器工具栏; 意图: 插件变更后同步 UI 状态; 调用时机: loadPlugin/reloadPlugin 后 */
+const refreshAllEditorToolbars = () => {
+    const editors = getAllEditor();
+    for (const editor of editors) {
+        editor.protyle.toolbar?.update(editor.protyle);
+    }
+};
+
+/** 作用: 校验并返回插件实例; 意图: 统一构造结果合法性检查; 调用时机: loadPluginJS 中构造后 */
+const getValidatedPluginInstance = (pluginInstance: unknown, pluginName: string) => {
+    const isValidPlugin = pluginInstance instanceof Plugin;
+    if (!isValidPlugin) {
+        console.error(`plugin ${pluginName} construct failed`);
+        return;
+    }
+    return pluginInstance;
+};
+
+/** 作用: 执行单插件入口并实例化; 意图: 把导出模块转成 Plugin 实例; 调用时机: 批量/单个加载 */
+const loadPluginJS = async (app: App, item: IPluginData) => {
+    const exportsObj: Record<string, unknown> = {};
+    const moduleObj: { exports: unknown } = {exports: exportsObj};
+
+    try {
+        const runner = createPluginRunner(item.js, "plugin:" + encodeURIComponent(item.name));
+        runner(requireFunc, moduleObj, exportsObj);
+    } catch (error) {
+        console.error(`plugin ${item.name} run error:`, error);
+        return;
+    }
+
+    const defaultExport = Reflect.get(Object(moduleObj.exports), "default");
+    const pluginClass = defaultExport || moduleObj.exports;
+    const hasExportFunction = typeof pluginClass === "function";
+    if (!hasExportFunction) {
+        console.error(`plugin ${item.name} has no export`);
+        return;
+    }
+
+    const pluginPrototype = Reflect.get(pluginClass, "prototype");
+    const extendsPlugin = pluginPrototype instanceof Plugin;
+    if (!extendsPlugin) {
+        console.error(`plugin ${item.name} does not extends Plugin`);
+        return;
+    }
+
+    const pluginInstance = Reflect.construct(pluginClass, [{
+        app,
+        displayName: item.displayName,
+        name: item.name,
+        i18n: item.i18n
+    }]);
+    const validPlugin = getValidatedPluginInstance(pluginInstance, item.name);
+    if (!validPlugin) {
+        return;
+    }
+
+    app.plugins.push(validPlugin);
+    try {
+        await validPlugin.onload();
+    } catch (error) {
+        console.error(`plugin ${item.name} onload error:`, error);
+    }
+    return validPlugin;
+};
+
+/** @导出说明: 批量加载插件入口 */
+/** 作用: 批量加载插件并注入样式; 意图: 统一初始化与增量加载; 调用时机: 启动和重载流程 */
+export const loadPlugins = async (app: App, names?: string[], init = true) => {
+    const response = await fetchSyncPost("/api/petal/loadPetals", {frontend: getFrontend()});
+    const pluginsStyle = getPluginsStyle();
+    const pluginItems: IPluginData[] = Array.isArray(response.data) ? response.data : [];
+
+    for (const item of pluginItems) {
+        const shouldLoad = !names || names.includes(item.name);
+        if (!shouldLoad) {
+            continue;
+        }
+        if (init) {
+            void loadPluginJS(app, item);
+        }
+        if (!init) {
+            await loadPluginJS(app, item);
+        }
+        insertPluginCSS(item, pluginsStyle);
+    }
+};
+
+/** @导出说明: 启用单个插件入口 */
+/** 作用: 启用单插件并触发后续 UI 初始化; 意图: 支持插件管理中的手动启用; 调用时机: 用户启用插件 */
 export const loadPlugin = async (app: App, item: IPluginData) => {
     const plugin = await loadPluginJS(app, item);
+    if (!plugin) {
+        return;
+    }
     insertPluginCSS(item, getPluginsStyle());
     afterLoadPlugin(plugin);
     saveLayout();
-    getAllEditor().forEach(editor => {
-        editor.protyle.toolbar.update(editor.protyle);
-    });
+    refreshAllEditorToolbars();
     return plugin;
 };
 
-const updateDock = (dockItem: Config.IUILayoutDockTab[], index: number, plugin: Plugin, type: string) => {
-    const dockKeys = Object.keys(plugin.docks);
-    dockItem.forEach((tabItem: Config.IUILayoutDockTab, tabIndex: number) => {
-        if (dockKeys.includes(tabItem.type)) {
-            if (type === "Left") {
-                plugin.docks[tabItem.type].config.position = index === 0 ? "LeftTop" : "LeftBottom";
-            } else if (type === "Right") {
-                plugin.docks[tabItem.type].config.position = index === 0 ? "RightTop" : "RightBottom";
-            } else if (type === "Bottom") {
-                plugin.docks[tabItem.type].config.position = index === 0 ? "BottomLeft" : "BottomRight";
-            }
-            plugin.docks[tabItem.type].config.index = tabIndex;
-            plugin.docks[tabItem.type].config.show = tabItem.show;
-            plugin.docks[tabItem.type].config.size = tabItem.size;
-            if (!window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS][plugin.name]) {
-                window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS][plugin.name] = {};
-            }
-            window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS][plugin.name][tabItem.type] = plugin.docks[tabItem.type].config;
-            setStorageVal(Constants.LOCAL_PLUGIN_DOCKS, window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS]);
-        }
-    });
-};
-
+/** @同步豁免: UI构建 */
+/** @导出说明: 插件加载后 UI 初始化入口 */
+/** 作用: 统一执行布局回调与图标/Dock 挂载; 意图: 保持插件加载后时序一致; 调用时机: loadPlugin/reloadPlugin 后 */
 export const afterLoadPlugin = (plugin: Plugin) => {
-    try {
-        plugin.onLayoutReady();
-    } catch (e) {
-        console.error(`plugin ${plugin.name} onLayoutReady error:`, e);
-    }
-
-    if (!isWindow() || isMobile()) {
-        plugin.topBarIcons.forEach(element => {
-            if (document.contains(element)) {
-                return;
-            }
-            if (isMobile()) {
-                if (!window.siyuan.storage[Constants.LOCAL_PLUGINTOPUNPIN].includes(element.id)) {
-                    document.querySelector("#menuAbout").after(element);
-                }
-            } else if (!isWindow()) {
-                if (window.siyuan.storage[Constants.LOCAL_PLUGINTOPUNPIN].includes(element.id)) {
-                    element.classList.add("fn__none");
-                }
-                document.querySelector("#" + (element.getAttribute("data-location") === "right" ? "barPlugins" : "drag")).before(element);
-            }
-        });
-    }
-    if (!isMobile()) {
-        resizeTopBar();
-        plugin.statusBarIcons.forEach(element => {
-            if (document.contains(element)) {
-                return;
-            }
-            const statusElement = document.getElementById("status");
-            if (element.getAttribute("data-location") === "right") {
-                statusElement.insertAdjacentElement("beforeend", element);
-            } else {
-                statusElement.insertAdjacentElement("afterbegin", element);
-            }
-        });
-    }
-    if (isWindow()) {
-        return;
-    }
-
-    if (isMobile()) {
-        return;
-    }
-    getSiyuanConfig().uiLayout.left.data.forEach((dockItem: Config.IUILayoutDockTab[], index: number) => {
-        updateDock(dockItem, index, plugin, "Left");
-    });
-    getSiyuanConfig().uiLayout.right.data.forEach((dockItem: Config.IUILayoutDockTab[], index: number) => {
-        updateDock(dockItem, index, plugin, "Right");
-    });
-    getSiyuanConfig().uiLayout.bottom.data.forEach((dockItem: Config.IUILayoutDockTab[], index: number) => {
-        updateDock(dockItem, index, plugin, "Bottom");
-    });
-    Object.keys(plugin.docks).forEach(key => {
-        if (window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS][plugin.name] && window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS][plugin.name][key]) {
-            plugin.docks[key].config = window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS][plugin.name][key];
-        }
-        const dock = plugin.docks[key];
-        const hotkey = getSiyuanConfig().keymap.plugin[plugin.name] ? getSiyuanConfig().keymap.plugin[plugin.name][key]?.custom : undefined;
-        if (dock.config.position.startsWith("Left")) {
-            window.siyuan.layout.leftDock.genButton([{
-                type: key,
-                size: dock.config.size,
-                show: dock.config.show,
-                icon: dock.config.icon,
-                title: dock.config.title,
-                hotkey
-            }], dock.config.position === "LeftBottom" ? 1 : 0, dock.config.index);
-        } else if (dock.config.position.startsWith("Bottom")) {
-            window.siyuan.layout.bottomDock.genButton([{
-                type: key,
-                size: dock.config.size,
-                show: dock.config.show,
-                icon: dock.config.icon,
-                title: dock.config.title,
-                hotkey
-            }], dock.config.position === "BottomRight" ? 1 : 0, dock.config.index);
-        } else if (dock.config.position.startsWith("Right")) {
-            window.siyuan.layout.rightDock.genButton([{
-                type: key,
-                size: dock.config.size,
-                show: dock.config.show,
-                icon: dock.config.icon,
-                title: dock.config.title,
-                hotkey
-            }], dock.config.position === "RightBottom" ? 1 : 0, dock.config.index);
-        }
-    });
+    runAfterLoadPlugin(plugin);
+    return;
 };
 
+/** 作用: 按名称批量卸载插件; 意图: 复用 reloadPlugin 前置清理; 调用时机: reloadPlugin 内 */
+const uninstallPluginsByNames = (app: App, names: string[], disabled: boolean) => {
+    for (const name of names) {
+        uninstall(app, name, disabled);
+    }
+};
+
+/** 作用: 处理代码更新插件; 意图: 重挂 UI 并刷新工具栏; 调用时机: reloadPlugin 加载代码后 */
+const handleUpsertCodePlugins = (app: App, upsertCodePlugins: string[]) => {
+    for (const plugin of app.plugins) {
+        const shouldHandle = upsertCodePlugins.includes(plugin.name);
+        if (!shouldHandle) {
+            continue;
+        }
+        afterLoadPlugin(plugin);
+        refreshAllEditorToolbars();
+    }
+};
+
+/** 作用: 处理数据更新插件; 意图: 触发生命周期 onDataChanged; 调用时机: reloadPlugin 末段 */
+const handleUpsertDataPlugins = (app: App, upsertDataPlugins: string[]) => {
+    for (const plugin of app.plugins) {
+        const shouldHandle = upsertDataPlugins.includes(plugin.name);
+        if (!shouldHandle) {
+            continue;
+        }
+        try {
+            plugin.onDataChanged();
+        } catch (error) {
+            console.error(`plugin ${plugin.name} onDataChanged error:`, error);
+        }
+    }
+};
+
+/** @导出说明: 插件重载入口 */
+/** 作用: 执行禁用/卸载/重载/数据通知; 意图: 提供热更新能力; 调用时机: 插件安装更新或调试重载时 */
 export const reloadPlugin = async (app: App, data: {
     upsertCodePlugins?: string[],
     upsertDataPlugins?: string[],
     unloadPlugins?: string[],
     uninstallPlugins?: string[],
 } = {}) => {
-    const { upsertCodePlugins = [], upsertDataPlugins = [], unloadPlugins = [], uninstallPlugins = [] } = data;
-    // 禁用
-    unloadPlugins.forEach((item) => {
-        uninstall(app, item, true);
-    });
-    // 卸载
-    uninstallPlugins.forEach((item) => {
-        uninstall(app, item, false);
-    });
-    upsertCodePlugins.forEach((item) => {
-        uninstall(app, item, true);
-    });
-    loadPlugins(app, upsertCodePlugins, false).then(() => {
-        app.plugins.forEach(item => {
-            if (upsertCodePlugins.includes(item.name)) {
-                afterLoadPlugin(item);
-                getAllEditor().forEach(editor => {
-                    editor.protyle.toolbar.update(editor.protyle);
-                });
-            }
-        });
-    });
-    app.plugins.forEach(item => {
-        if (upsertDataPlugins.includes(item.name)) {
-            try {
-                item.onDataChanged();
-            } catch (e) {
-                console.error(`plugin ${item.name} onDataChanged error:`, e);
-            }
-        }
-    });
-    if (!isMobile()) {
-        saveLayout();
+    const {
+        upsertCodePlugins = [],
+        upsertDataPlugins = [],
+        unloadPlugins = [],
+        uninstallPlugins = []
+    } = data;
+
+    uninstallPluginsByNames(app, unloadPlugins, true);
+    uninstallPluginsByNames(app, uninstallPlugins, false);
+    uninstallPluginsByNames(app, upsertCodePlugins, true);
+
+    await loadPlugins(app, upsertCodePlugins, false);
+    handleUpsertCodePlugins(app, upsertCodePlugins);
+    handleUpsertDataPlugins(app, upsertDataPlugins);
+
+    if (isMobile()) {
+        return;
     }
+    saveLayout();
 };

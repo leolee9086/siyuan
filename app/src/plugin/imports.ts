@@ -12,6 +12,34 @@
 import {App} from "../index";
 
 /**
+ * @导入用途: 同步请求封装，用于向内核请求插件加载数据
+ * @使用范围: loader.ts 中的插件批量加载流程
+ * @解耦评估: 网络调用可注入，但当前由 imports 网关统一转发可降低调用点耦合
+ */
+import {fetchSyncPost} from "../util/network/fetch";
+
+/**
+ * @导入用途: 顶部栏尺寸重算函数
+ * @使用范围: loader.ts 在插件状态栏图标挂载后刷新布局
+ * @解耦评估: UI 工具函数可抽象事件触发，但当前直接调用更清晰
+ */
+import {resizeTopBar} from "../layout/util";
+
+/**
+ * @导入用途: 布局持久化函数
+ * @使用范围: loader.ts 在插件启停或重载后保存布局
+ * @解耦评估: 可改为事件驱动，但当前直接调用能确保时序可控
+ */
+import {saveLayout} from "../layout/util";
+
+/**
+ * @导入用途: 编辑器集合获取函数
+ * @使用范围: loader.ts 在插件变更后刷新所有编辑器工具栏
+ * @解耦评估: 可通过编辑器服务注入，但当前工具函数调用更直接
+ */
+import {getAllEditor} from "../layout/getAll";
+
+/**
  * @导入用途: 华为设备检测功能
  * @使用范围: 插件菜单中的设备兼容性判断
  * @解耦评估: 可通过依赖注入解耦，但当前为工具函数，重构成本较高
@@ -74,8 +102,48 @@ import {getSiyuanStorage} from "../util/siyuanEnvironments/getSiyuanConfig.envir
  */
 import {isMobile} from "../util/platform/functions";
 
+/**
+ * @导入用途: 前端类型检测
+ * @使用范围: loader.ts 在请求插件列表时携带 frontend 参数
+ * @解耦评估: 环境判断函数可注入，但当前工具函数调用更轻量
+ */
+import {getFrontend} from "../util/platform/functions";
+
+/**
+ * @导入用途: 独立窗口检测
+ * @使用范围: loader.ts 在顶栏和 Dock 渲染分支中判断运行形态
+ * @解耦评估: 环境判断函数可注入，但当前共享工具函数更稳定
+ */
+import {isWindow} from "../util/platform/functions";
+
+/**
+ * @导入用途: 读取全局布局对象
+ * @使用范围: loader.ts 在插件 Dock 按钮生成阶段访问布局容器
+ * @解耦评估: 可通过参数注入布局对象，但当前读取全局布局是既有约定
+ */
+import {getSiyuanLayout} from "../util/siyuanEnvironments/getSiyuanConfig.environment";
+
+/**
+ * @导入用途: 读取插件自定义快捷键
+ * @使用范围: loader.ts 在生成 Dock 按钮时附加快捷键提示
+ * @解耦评估: 可在调用链上层传入，但当前集中在环境层读取更一致
+ */
+import {getPluginCustomHotkey} from "../util/siyuanEnvironments/getSiyuanConfig.environment";
+
 /** @导出说明: 应用实例类型 */
 export {App};
+
+/** @导出说明: 同步请求封装 */
+export {fetchSyncPost};
+
+/** @导出说明: 顶部栏尺寸重算 */
+export {resizeTopBar};
+
+/** @导出说明: 布局持久化函数 */
+export {saveLayout};
+
+/** @导出说明: 编辑器集合获取函数 */
+export {getAllEditor};
 
 /** @导出说明: 华为设备检测 */
 export {isHuawei};
@@ -103,6 +171,58 @@ export {getSiyuanStorage};
 
 /** @导出说明: 移动端检测 */
 export {isMobile};
+
+/** @导出说明: 前端类型检测 */
+export {getFrontend};
+
+/** @导出说明: 独立窗口检测 */
+export {isWindow};
+
+/** @导出说明: 读取全局布局对象 */
+export {getSiyuanLayout};
+
+/** @导出说明: 读取插件自定义快捷键 */
+export {getPluginCustomHotkey};
+
+/**
+ * @导入用途: 菜单项构建类
+ * @使用范围: 插件事件总线中构建菜单项和分隔符
+ * @解耦评估: 核心UI组件，菜单系统必须依赖，无法解耦
+ */
+import {MenuItem} from "../menus/Menu.Item";
+
+/**
+ * @导入用途: 子菜单容器类
+ * @使用范围: 插件事件总线中收集插件注册的菜单项
+ * @解耦评估: 核心UI组件，菜单系统必须依赖，无法解耦
+ */
+import {subMenu} from "../menus/Menu.subMenu";
+
+/**
+ * @导入用途: 获取全局菜单实例
+ * @使用范围: 插件事件总线中向全局菜单添加插件子菜单
+ * @解耦评估: 可通过依赖注入解耦，但当前全局访问更简洁
+ */
+import {getSiyuanGlobalMenus} from "../util/siyuanEnvironments/getMenu.environment";
+
+/**
+ * @导入用途: 获取国际化文本
+ * @使用范围: 插件事件总线中显示"插件"菜单标签
+ * @解耦评估: 可通过参数传递解耦，但当前全局访问更符合国际化模式
+ */
+import {siyuanI18n} from "../util/siyuanEnvironments/i18n.getI18n.environment";
+
+/** @导出说明: 菜单项构建类 */
+export {MenuItem};
+
+/** @导出说明: 子菜单容器类 */
+export {subMenu};
+
+/** @导出说明: 获取全局菜单实例 */
+export {getSiyuanGlobalMenus};
+
+/** @导出说明: 获取国际化文本 */
+export {siyuanI18n};
 
 /**
  * @导入用途: Graphviz 图形渲染功能
