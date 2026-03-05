@@ -26,7 +26,7 @@ import {runAfterLoadPlugin} from "./loader.afterLoad";
 
 /** 作用: 构建插件 require 注入层; 意图: 统一第三方插件模块解析; 调用时机: 插件入口执行时 */
 const requireFunc = (key: string) => {
-    const modules = {siyuan: API};
+    const modules: Record<string, unknown> = {siyuan: API};
     const moduleValue = modules[key];
     if (moduleValue) {
         return moduleValue;
@@ -41,7 +41,7 @@ const initializeRequirePrototype = () => {
     if (!(runtimeRequire instanceof Function)) {
         return;
     }
-    requireFunc.__proto__ = runtimeRequire;
+    Object.setPrototypeOf(requireFunc, runtimeRequire);
 };
 
 initializeRequirePrototype();

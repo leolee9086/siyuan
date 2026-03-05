@@ -49,12 +49,18 @@ const updateDock = (dockItems: Config.IUILayoutDockTab[], index: number, plugin:
 
     for (let tabIndex = 0; tabIndex < dockItems.length; tabIndex++) {
         const tabItem = dockItems[tabIndex];
+        if (!tabItem) {
+            continue;
+        }
         const dockType = tabItem.type;
         const hasDock = dockKeys.includes(dockType);
         if (!hasDock) {
             continue;
         }
         const dock = docks[dockType];
+        if(!dock){
+            return;
+        }
         const dockConfig = dock.config;
         dockConfig.position = resolveDockPosition(type, index);
         dockConfig.index = tabIndex;
@@ -172,15 +178,27 @@ const syncDockConfigFromLayout = (plugin: Plugin) => {
     const uiLayout = getSiyuanConfig().uiLayout;
     const leftData = uiLayout.left.data;
     for (let index = 0; index < leftData.length; index++) {
-        updateDock(leftData[index], index, plugin, "Left");
+        const data = leftData[index];
+        if (!data) {
+            continue;
+        }
+        updateDock(data, index, plugin, "Left");
     }
     const rightData = uiLayout.right.data;
     for (let index = 0; index < rightData.length; index++) {
-        updateDock(rightData[index], index, plugin, "Right");
+        const data = rightData[index];
+        if (!data) {
+            continue;
+        }
+        updateDock(data, index, plugin, "Right");
     }
     const bottomData = uiLayout.bottom.data;
     for (let index = 0; index < bottomData.length; index++) {
-        updateDock(bottomData[index], index, plugin, "Bottom");
+        const data = bottomData[index];
+        if (!data) {
+            continue;
+        }
+        updateDock(data, index, plugin, "Bottom");
     }
 };
 
@@ -200,12 +218,18 @@ const applyStoredDockConfig = (plugin: Plugin, dockKey: string) => {
         return;
     }
     const dock = plugin.docks[dockKey];
+    if (!dock) {
+        return;
+    }
     dock.config = storedConfig;
 };
 
 /** 作用: 生成并挂载单个 Dock 按钮; 意图: 将插件 dock 渲染到对应容器; 调用时机: mountPluginDocks 遍历中 */
 const appendDockButton = (dockKey: string, plugin: Plugin) => {
     const dock = plugin.docks[dockKey];
+    if (!dock) {
+        return;
+    }
     const position = dock.config.position;
     const hotkey = getPluginCustomHotkey(plugin.name, dockKey);
     const button = [{
@@ -217,16 +241,19 @@ const appendDockButton = (dockKey: string, plugin: Plugin) => {
         hotkey
     }];
     const layout = getSiyuanLayout();
-    if (position.startsWith("Left")) {
-        return layout.leftDock.genButton(button, position === "LeftBottom" ? 1 : 0, dock.config.index);
+    const leftDock = layout.leftDock;
+    const bottomDock = layout.bottomDock;
+    const rightDock = layout.rightDock;
+    if (position.startsWith("Left")&& leftDock) {
+        return leftDock.genButton(button, position === "LeftBottom" ? 1 : 0, dock.config.index);
     }
-    if (position.startsWith("Bottom")) {
-        return layout.bottomDock.genButton(button, position === "BottomRight" ? 1 : 0, dock.config.index);
+    if (position.startsWith("Bottom")&& bottomDock) {
+        return bottomDock.genButton(button, position === "BottomRight" ? 1 : 0, dock.config.index);
     }
-    if (!position.startsWith("Right")) {
+    if (!position.startsWith("Right")|| !rightDock) {
         return;
     }
-    layout.rightDock.genButton(button, position === "RightBottom" ? 1 : 0, dock.config.index);
+    rightDock.genButton(button, position === "RightBottom" ? 1 : 0, dock.config.index);
 };
 
 /** 作用: 挂载插件 Dock; 意图: 仅在非窗口且非移动端恢复 Dock; 调用时机: runAfterLoadPlugin */
