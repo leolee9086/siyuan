@@ -18,6 +18,7 @@ import { requireIfCommentPlugin } from "./0_lints/require-if-comment.mjs";
 import { requireTimeoutCommentPlugin } from "./0_lints/require-timeout-comment.mjs";
 import { requireAsyncExportPlugin } from "./0_lints/require-async-export.mjs";
 import { requireImportCommentPlugin } from "./0_lints/require-import-comment.mjs";
+import { requireExportCommentPlugin } from "./0_lints/require-export-comment.mjs";
 import { noTrivialWrapperPlugin } from "./0_lints/no-trivial-wrapper.mjs";
 import { noExtendsPlugin } from "./0_lints/no-extends.mjs";
 import { noExportForwardingPlugin } from "./0_lints/no-export-forwarding.mjs";
@@ -226,6 +227,7 @@ const SHARED_PLUGINS = {
     "require-timeout-comment": requireTimeoutCommentPlugin,
     "require-async-export": requireAsyncExportPlugin,
     "require-import-comment": requireImportCommentPlugin,
+    "require-export-comment": requireExportCommentPlugin,
     "no-trivial-wrapper": noTrivialWrapperPlugin,
     "no-extends": noExtendsPlugin,
     "no-export-forwarding": noExportForwardingPlugin,
@@ -288,6 +290,7 @@ const SHARED_RULES = {
     "require-timeout-comment/require-timeout-comment": "error",
     "require-async-export/require-async-export": "error",
     "require-import-comment/require-import-comment": "error",
+    "require-export-comment/require-export-comment": "error",
     "no-trivial-wrapper/no-trivial-wrapper": "error",
     "no-extends/no-extends": "error",
     "no-export-forwarding/no-export-forwarding": ["error", {
@@ -420,7 +423,11 @@ export default [{
             ...TYPE_ASSERTION_RESTRICTIONS.map(r => ({
                 ...r,
             })),
-            ...IMPORTS_GATEWAY_RESTRICTIONS
+            ...IMPORTS_GATEWAY_RESTRICTIONS,
+            {
+                selector: "ExportNamedDeclaration[specifiers.length>1]",
+                message: "架构约束：imports.ts 禁止在单条 export 语句中批量导出多个项目。请拆分为每条 export 仅导出一个项目，并分别添加注释说明。" + 全量修复提示 + 单文件检查提示
+            }
         ],
         "no-export-forwarding/no-export-forwarding": ["error", {
             "message": "❌ [imports.ts 约束] 禁止在 imports.ts 中使用 export ... from / export * from 转发。\n目的：鼓励你在 imports.ts 中按业务领域重新组织依赖，而不是做机械转发。\n要求：先 import，再基于领域语义分组后 export。\n示例：\n  // ❌ 错误\n  export { foo } from \"some-lib\"\n  // ✅ 正确\n  import { foo } from \"some-lib\"\n  export { foo }\n说明：这样可以在 imports.ts 内显式表达依赖边界与领域归属，降低后续重构成本。" + FULL_FIX_REMINDER + 单文件检查提示
