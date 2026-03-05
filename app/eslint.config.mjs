@@ -150,6 +150,10 @@ const COMMON_RESTRICTED_SYNTAX = [
         selector: "ExportAllDeclaration[source.value=/^[^.]/]",
         message: "禁止直接全量重导出第三方包或别名。" + 全量修复提示 + 单文件检查提示,
     },
+    {
+        selector: "ImportDeclaration[specifiers.length>1]",
+        message: "架构约束：非 imports.ts 文件中每条 import 语句只允许一个导入项目。请拆分为多条 import，避免集中导入掩盖依赖边界。" + 全量修复提示 + 单文件检查提示,
+    },
 ];
 
 const STRICT_IMPORT_SELECTORS = new Set([
@@ -159,6 +163,7 @@ const STRICT_IMPORT_SELECTORS = new Set([
     "ImportDeclaration[source.value=/^[^.]/]",
     "ExportNamedDeclaration[source.value=/^[^.]/]",
     "ExportAllDeclaration[source.value=/^[^.]/]",
+    "ImportDeclaration[specifiers.length>1]",
 ]);
 
 const IMPORTS_COMMON_RESTRICTED_SYNTAX = COMMON_RESTRICTED_SYNTAX.filter(
