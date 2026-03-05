@@ -6,7 +6,7 @@
 
 // [TASK] T3.1 迁移基础UI组件 - MessageBubble类型
 
-import type { MagiMessage } from "../../utils/messageFactory.types";
+import type { MagiMessageView } from "../../entry/magiView.types";
 
 /**
  * 消息附加元数据
@@ -29,7 +29,7 @@ export interface MessageMeta {
  *
  * 用途：定义消息气泡组件的全部输入属性
  * 使用场景：SeelPanel 和 MagiChat 中渲染消息列表
- * 关联类型：MessageMeta 用于 meta 属性，MagiMessage 用于 msg 属性
+ * 关联类型：MessageMeta 用于 meta 属性，MagiMessageView 用于 msg 属性
  */
 export interface MessageBubbleProps {
     /** 消息类型（ai/user/system/vote/error等） */
@@ -51,7 +51,7 @@ export interface MessageBubbleProps {
     /** 是否流式消息 */
     streaming?: boolean | undefined;
     /** 完整消息对象 */
-    msg?: MagiMessage | undefined;
+    msg?: MagiMessageView | undefined;
 }
 
 /**

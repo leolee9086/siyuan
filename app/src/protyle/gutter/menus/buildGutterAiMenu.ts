@@ -34,9 +34,9 @@ import { getSForgeConfigs } from "./imports";
 /**
  * 用途：AI图片生成核心功能
  * 使用范围：handleAiImageGeneration函数
- * 解耦评估：同目录模块，直接导入
+ * 解耦评估：通过imports.ts统一管理
  */
-import { 生成块内容图片 } from "./generateBlockImage";
+import { 生成块内容图片 } from "./imports";
 /**
  * 用途：AI图片生成进度显示组件
  * 使用范围：handleAiImageGeneration函数

@@ -24,7 +24,7 @@
 </template>
 
 <script setup lang="ts">
-import type { MagiMessage } from "../../utils/messageFactory.types";
+import type { MagiMessageView } from "../../entry/magiView.types";
 import { getMagiI18nText } from "../../utils/magiI18n";
 
 defineProps<{
@@ -37,7 +37,7 @@ defineProps<{
     /** 思考内容是否展开 */
     isThinkExpanded: boolean;
     /** 完整消息对象 */
-    msg?: MagiMessage;
+    msg?: MagiMessageView;
 }>();
 
 defineEmits<{

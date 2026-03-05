@@ -8,7 +8,7 @@
 // [TASK] T2.2 迁移composables和工具函数 - useMagi
 
 import { ref, reactive, computed } from "vue";
-import type { ConnectionStatus, WrappedSeel, UseMagiReturn } from "./useMagi.types";
+import type { ConnectionStatus, WrappedSeel, UseMagiOptions, UseMagiReturn } from "./useMagi.types";
 import type { MockWISE实例, MagiPromptSet } from "../core/wise/wise.types";
 import type { ContextMessage, MockMessage } from "../core/core.types";
 import type { MagiMessage } from "../utils/messageFactory.types";
@@ -16,11 +16,12 @@ import { initMagi } from "../core/wise/mockWise.subclass";
 import { getMagiI18nText } from "../utils/magiI18n";
 import {
     appendConsensusMessage,
-    sendUserMessageWithConsensus,
 } from "./useMagi.consensus";
 import { resolveStartupPromptInjectionsByActiveSeed } from "../prompts/personaRuntimePromptBuilder";
 import { createMagiEventBus } from "../events/magiEventBus";
 import { bindMagiProjector } from "../events/magiProjector";
+import { createStandardLLMAdapter } from "../adapters/standardLLMAdapterFactory";
+import type { ChatRequestParams } from "../../ai/types";
 
 /** 清空响应式数组内容（保持引用不变） */
 async function clearReactiveArrays(
@@ -204,7 +205,7 @@ async function wrapSeelInstance(ai: MockWISE实例): Promise<WrappedSeel> {
  * 意图：为Vue组件提供响应式的MAGI系统接口
  * 调用时机：MagiMainPanel组件setup阶段调用
  */
-export async function useMagi(options?: { promptInjections?: MagiPromptSet }): Promise<UseMagiReturn> {
+export async function useMagi(options?: UseMagiOptions): Promise<UseMagiReturn> {
     const seels: WrappedSeel[] = reactive([]);
     const connectionStatus = ref<ConnectionStatus>("disconnected");
     const consensusMessages: MagiMessage[] = reactive([]);
@@ -218,6 +219,14 @@ export async function useMagi(options?: { promptInjections?: MagiPromptSet }): P
 
     const startupPromptInjections = await resolvePromptInjectionsForInit(options?.promptInjections);
     await initializeWrappedSeels(seels, connectionStatus, startupPromptInjections);
+    const llmAdapter = await createStandardLLMAdapter({
+        mode: options?.llmAdapterMode ?? "magi",
+        model: "magi-trinity",
+        connectionStatus,
+        consensusMessages,
+        seels,
+        eventBus,
+    });
 
     return {
         seels,
@@ -229,13 +238,18 @@ export async function useMagi(options?: { promptInjections?: MagiPromptSet }): P
          * 意图：对外暴露稳定入口，避免上层组件感知内部实现细节。
          * 调用时机：`MagiMainPanel` 的 `submit-input` 事件上抛到容器后调用。
          */
-        sendUserMessage: (text: string) => sendUserMessageWithConsensus(
-            text,
-            connectionStatus,
-            consensusMessages,
-            seels,
-            eventBus,
-        ),
+        sendUserMessage: async (text: string) => {
+            const userInput = text.trim();
+            if (!userInput) {
+                return;
+            }
+            const request: ChatRequestParams = {
+                model: "magi-trinity",
+                messages: [{ role: "user", content: userInput }],
+                stream: false,
+            };
+            await llmAdapter.createChatCompletion(request);
+        },
         /**
          * 作用：重新初始化 MAGI 实例并清空消息。
          * 意图：支持连接恢复与状态重建。

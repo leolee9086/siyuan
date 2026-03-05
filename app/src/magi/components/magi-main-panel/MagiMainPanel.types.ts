@@ -7,21 +7,23 @@
 // [TASK] T3.2 迁移主面板组件 - MagiMainPanel类型
 
 import type { ComputedRef, Ref } from "vue";
-import type { WrappedSeel } from "../../composables/useMagi.types";
-import type { MagiMessage } from "../../utils/messageFactory.types";
+import type {
+    MagiMainPanelMessageView,
+    MagiMainPanelSeelView,
+} from "../../entry/magiView.types";
 
 /**
  * MagiMainPanel 组件 Props
  *
  * 用途：定义主面板组件的全部输入属性
  * 使用场景：上层容器（如 MagiChat）传入贤者列表和消息
- * 关联类型：WrappedSeel 用于 seels 属性，MagiMessage 用于 messages 属性
+ * 关联类型：MagiMainPanelSeelView 用于 seels 属性，MagiMainPanelMessageView 用于 messages 属性
  */
 export interface MagiMainPanelProps {
     /** 共识消息列表 */
-    messages: MagiMessage[];
+    messages: MagiMainPanelMessageView[];
     /** 所有贤者实例列表 */
-    seels: WrappedSeel[];
+    seels: MagiMainPanelSeelView[];
     /** 是否显示消息面板 */
     showMessages?: boolean;
     /** 是否显示贤者面板 */
@@ -79,8 +81,8 @@ export interface MagiMainPanelTexts {
  * useMagiMainPanelContext 参数
  */
 export interface UseMagiMainPanelContextParams {
-    seels: Ref<WrappedSeel[]>;
-    messages: Ref<MagiMessage[]>;
+    seels: Ref<MagiMainPanelSeelView[]>;
+    messages: Ref<MagiMainPanelMessageView[]>;
     container: Ref<HTMLElement | null>;
     texts: MagiMainPanelTexts;
 }
@@ -93,9 +95,9 @@ export interface MagiMainPanelContext {
     syncRate: ComputedRef<number>;
     getMessageAlign: (type: string) => string;
     getTypeLabel: (type: string) => string;
-    formatContent: (msg: MagiMessage) => string;
-    hasSystemProgress: (msg: MagiMessage) => boolean;
-    getSystemProgress: (msg: MagiMessage) => number;
+    formatContent: (msg: MagiMainPanelMessageView) => string;
+    hasSystemProgress: (msg: MagiMainPanelMessageView) => boolean;
+    getSystemProgress: (msg: MagiMainPanelMessageView) => number;
 }
 
 /**

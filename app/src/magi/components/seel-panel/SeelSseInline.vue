@@ -14,12 +14,12 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import type { MagiMessage } from "../../utils/messageFactory.types";
+import type { MagiMessageView } from "../../entry/magiView.types";
 import { getMagiI18nText } from "../../utils/magiI18n";
 
 const props = defineProps<{
     /** 消息对象 */
-    msg: MagiMessage;
+    msg: MagiMessageView;
     /** 贤者颜色标识（red/blue/yellow） */
     color: string;
 }>();

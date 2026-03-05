@@ -74,3 +74,15 @@ export { path };
 
 /** 导出移动端兼容性工具 */
 export { openByMobile };
+
+// ============ AI功能 ============
+
+/**
+ * 用途：生成块内容图片
+ * 使用范围：AI图片生成菜单功能
+ * 解耦评估：通过imports.ts统一管理AI模块依赖
+ */
+import { 生成块内容图片 } from "../../ai/imageGeneration";
+
+/** 导出生成块内容图片函数 */
+export { 生成块内容图片 };

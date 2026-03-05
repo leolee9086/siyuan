@@ -61,3 +61,57 @@ export { focusByRange } from "../protyle/util/selection";
 export { escapeAriaLabel, escapeAttr, escapeHtml } from "../util/DOM/escape";
 export { upDownHint } from "../util/DOM/upDownHint";
 export { getElementsBlockId } from "../util/DOM/blockLikeElements";
+
+/**
+ * 用途：提交ModelScope文生图任务
+ * 使用范围：AI图片生成功能
+ * 解耦评估：直接使用API客户端，无需解耦
+ */
+import { 提交生成任务 } from "../apis/modelscope/client";
+// 导出ModelScope任务提交函数
+export { 提交生成任务 };
+
+/**
+ * 用途：轮询ModelScope任务状态
+ * 使用范围：AI图片生成功能
+ * 解耦评估：直接使用API客户端，无需解耦
+ */
+import { 轮询任务直到完成 } from "../apis/modelscope/client";
+// 导出ModelScope任务轮询函数
+export { 轮询任务直到完成 };
+
+/**
+ * 用途：获取ModelScope生成的图片
+ * 使用范围：AI图片生成功能
+ * 解耦评估：直接使用API客户端，无需解耦
+ */
+import { 获取图片 } from "../apis/modelscope/client";
+// 导出ModelScope图片获取函数
+export { 获取图片 };
+
+/**
+ * 用途：从ModelScope响应提取图片URL
+ * 使用范围：AI图片生成功能
+ * 解耦评估：直接使用API客户端，无需解耦
+ */
+import { 提取图片URL } from "../apis/modelscope/client";
+// 导出ModelScope图片URL提取函数
+export { 提取图片URL };
+
+/**
+ * 用途：ModelScope认证数据类型
+ * 使用范围：AI图片生成的认证参数
+ * 解耦评估：类型定义，无需解耦
+ */
+import type { ModelScopeAuthData } from "../apis/modelscope/types";
+// 导出ModelScope认证数据类型
+export type { ModelScopeAuthData };
+
+/**
+ * 用途：生成块内容图片的参数类型
+ * 使用范围：AI图片生成函数参数
+ * 解耦评估：类型定义，从调用方模块导入
+ */
+import type { 生成块内容图片参数 } from "../protyle/gutter/gutter.types";
+// 导出生成块内容图片参数类型
+export type { 生成块内容图片参数 };

@@ -2,8 +2,13 @@ import { computed, ref } from "vue";
 import { useMagi } from "../composables/useMagi";
 import { appendConsensusMessage } from "../composables/useMagi.consensus";
 import { exportMagiSessionRecord } from "../composables/useMagi.export";
-import type { UseMagiReturn } from "../composables/useMagi.types";
-import type { MagiMessage } from "../utils/messageFactory.types";
+import type { UseMagiReturn, WrappedSeel } from "../composables/useMagi.types";
+import type { StandardLLMAdapterMode } from "../types/llmAdapter.types";
+import type {
+    MagiMainPanelMessageView,
+    MagiMainPanelSeelView,
+    MagiSeelPanelView,
+} from "./magiView.types";
 import type { MagiRootContext } from "./MagiRoot.types";
 import { isElectron, isMobile } from "../../platform";
 import { ipcSend, ipcInvoke } from "../../platform/electron/ipcRenderer";
@@ -193,6 +198,60 @@ function isTrinitySeel(name: string): boolean {
     return name === "TRINITY-00";
 }
 
+/** 适配器模式类型守卫 */
+function isStandardLLMAdapterMode(value: unknown): value is StandardLLMAdapterMode {
+    return value === "magi" || value === "raw-openai";
+}
+
+/** 从运行时解析 LLM 适配器模式（URL 参数优先，其次 window.siyuan.magi）。 */
+function resolveRuntimeLLMAdapterMode(): StandardLLMAdapterMode {
+    if (typeof location !== "undefined") {
+        const fromQuery = new URLSearchParams(location.search).get("llmAdapter");
+        if (isStandardLLMAdapterMode(fromQuery)) {
+            return fromQuery;
+        }
+    }
+
+    const siyuan = Reflect.get(globalThis as Record<string, unknown>, "siyuan");
+    if (typeof siyuan !== "object" || siyuan === null) {
+        return "magi";
+    }
+    const magi = Reflect.get(siyuan, "magi");
+    if (typeof magi !== "object" || magi === null) {
+        return "magi";
+    }
+    const mode = Reflect.get(magi, "llmAdapterMode");
+    if (isStandardLLMAdapterMode(mode)) {
+        return mode;
+    }
+    return "magi";
+}
+
+/** 将运行时贤者包装对象映射为 UI 专用 SeelPanel 视图 */
+function mapWrappedSeelToPanelView(seel: WrappedSeel): MagiSeelPanelView {
+    return {
+        config: {
+            name: seel.config.name,
+            displayName: seel.config.displayName,
+            color: seel.config.color,
+            icon: seel.config.icon,
+            persona: seel.config.persona,
+            responseType: seel.config.responseType,
+            memorySize: seel.config.memorySize,
+        },
+        messages: seel.messages.map((message) => ({
+            id: message.id,
+            type: message.type,
+            content: message.content,
+            status: message.status,
+            timestamp: message.timestamp,
+            ...(message.meta ? { meta: message.meta } : {}),
+        })),
+        loading: seel.loading,
+        connected: seel.connected,
+    };
+}
+
 /**
  * 初始化 MAGI 运行时状态
  *
@@ -206,7 +265,9 @@ async function bootstrapMagiState(
     bootError: { value: string | null },
 ): Promise<void> {
     try {
-        magiState.value = await useMagi();
+        magiState.value = await useMagi({
+            llmAdapterMode: resolveRuntimeLLMAdapterMode(),
+        });
         ready.value = true;
     } catch (error) {
         bootError.value = error instanceof Error ? error.message : String(error);
@@ -244,22 +305,47 @@ function createMagiRootComputed(
     showSeels: { value: boolean },
 ) {
     const seels = computed(() => magiState.value?.seels ?? []);
+    const mainPanelSeels = computed<MagiMainPanelSeelView[]>(() =>
+        seels.value.map((seel) => ({
+            config: {
+                name: seel.config.name,
+                displayName: seel.config.displayName,
+            },
+            loading: seel.loading,
+            connected: seel.connected,
+        })),
+    );
     const consensusMessages = computed(() => magiState.value?.consensusMessages ?? []);
     const sageSeels = computed(() =>
         seels.value.filter((seel) => !isTrinitySeel(seel.config.name)),
     );
+    const sageSeelViews = computed<MagiSeelPanelView[]>(() =>
+        sageSeels.value.map((seel) => mapWrappedSeelToPanelView(seel)),
+    );
     const trinitySeel = computed(
         () => seels.value.find((seel) => isTrinitySeel(seel.config.name)) ?? null,
+    );
+    const trinitySeelView = computed<MagiSeelPanelView | null>(() =>
+        trinitySeel.value ? mapWrappedSeelToPanelView(trinitySeel.value) : null,
     );
     const isAnySeelLoading = computed(
         () => magiState.value?.isAnySeelLoading.value ?? false,
     );
-    const displayMessages = computed<MagiMessage[]>(() => !showMessages.value
+    const displayMessages = computed<MagiMainPanelMessageView[]>(() => !showMessages.value
         ? []
         : showSeels.value
             ? consensusMessages.value.filter((message) => !(message.type === "consensus" && Reflect.get(message.meta ?? {}, "type") === "sage-response"))
             : consensusMessages.value);
-    return { seels, sageSeels, trinitySeel, isAnySeelLoading, displayMessages };
+    return {
+        seels,
+        mainPanelSeels,
+        sageSeels,
+        trinitySeel,
+        sageSeelViews,
+        trinitySeelView,
+        isAnySeelLoading,
+        displayMessages,
+    };
 }
 
 /** @同步豁免: UI构建 — setup 阶段需同步返回事件处理器 */
@@ -322,8 +408,11 @@ export function useMagiRootContext(): MagiRootContext {
         showTrinity: state.showTrinity,
         showQuestionnairePanel: state.showQuestionnairePanel,
         seels: computedState.seels,
+        mainPanelSeels: computedState.mainPanelSeels,
         sageSeels: computedState.sageSeels,
         trinitySeel: computedState.trinitySeel,
+        sageSeelViews: computedState.sageSeelViews,
+        trinitySeelView: computedState.trinitySeelView,
         displayMessages: computedState.displayMessages,
         isAnySeelLoading: computedState.isAnySeelLoading,
         showWindowControls: computed(() => isElectron && !isMobile),

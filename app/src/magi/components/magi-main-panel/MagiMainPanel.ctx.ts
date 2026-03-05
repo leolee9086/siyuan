@@ -7,7 +7,7 @@
 // [TASK] T3.2 迁移主面板组件 - MagiMainPanel上下文
 
 import { computed, nextTick, watch } from "vue";
-import type { MagiMessage } from "../../utils/messageFactory.types";
+import type { MagiMainPanelMessageView } from "../../entry/magiView.types";
 import type {
     ConnectionStatusItem,
     MagiMainPanelContext,
@@ -89,7 +89,7 @@ function getTypeLabel(type: string): string {
  * 意图：让流式输出在一行中保持信息完整且可读。
  * 调用时机：formatContent 识别为 sse_stream 时调用。
  */
-function formatSseStreamContent(msg: MagiMessage, texts: MagiMainPanelTexts, progress?: number): string {
+function formatSseStreamContent(msg: MagiMainPanelMessageView, texts: MagiMainPanelTexts, progress?: number): string {
     const parts = [`[${texts.realtimePrefixText}] ${msg.content}`];
 
     // 当流消息包含进度时，附加百分比，便于用户观察处理进展。
@@ -134,7 +134,7 @@ function formatVoteStatusContent(
  * 意图：把复杂分支从组件脚本中抽离，满足 Fat Script 约束并提升可测试性。
  * 调用时机：模板渲染消息内容时调用。
  */
-function formatContent(texts: MagiMainPanelTexts, msg: MagiMessage): string {
+function formatContent(texts: MagiMainPanelTexts, msg: MagiMainPanelMessageView): string {
     // SSE 消息需要实时前缀，并在进度可用时追加进度信息。
     if (isSseStreamMessage(msg)) {
         return formatSseStreamContent(msg, texts, getSseStreamProgress(msg));
@@ -157,7 +157,7 @@ function formatContent(texts: MagiMainPanelTexts, msg: MagiMessage): string {
  * 意图：替代 any/断言访问，避免运行时类型错误。
  * 调用时机：MessageBubble 插槽分支判断时调用。
  */
-function hasSystemProgress(msg: MagiMessage): boolean {
+function hasSystemProgress(msg: MagiMainPanelMessageView): boolean {
     if (msg.type !== "system") {
         return false;
     }
@@ -171,7 +171,7 @@ function hasSystemProgress(msg: MagiMessage): boolean {
  * 意图：为模板提供稳定数值，避免 undefined 进入样式表达式。
  * 调用时机：hasSystemProgress 为 true 的分支内调用。
  */
-function getSystemProgress(msg: MagiMessage): number {
+function getSystemProgress(msg: MagiMainPanelMessageView): number {
     if (msg.type !== "system") {
         return 0;
     }

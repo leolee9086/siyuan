@@ -6,7 +6,7 @@
 
 // [TASK] T3.2 迁移主面板组件 - MagiMainPanel守卫
 
-import type { MagiMessage } from "../../utils/messageFactory.types";
+import type { MagiMainPanelMessageView } from "../../entry/magiView.types";
 
 /**
  * 投票详情项类型守卫
@@ -101,8 +101,8 @@ export function getNumericProgressMeta(
  * 消息是否为流式消息
  */
 export function isSseStreamMessage(
-    msg: MagiMessage
-): msg is MagiMessage & { type: "sse_stream"; meta?: { progress?: number } } {
+    msg: MagiMainPanelMessageView
+): msg is MagiMainPanelMessageView & { type: "sse_stream"; meta?: { progress?: number } } {
     return msg.type === "sse_stream";
 }
 
@@ -110,7 +110,7 @@ export function isSseStreamMessage(
  * 获取安全的投票状态元数据
  */
 export function getVoteStatusMeta(
-    msg: MagiMessage
+    msg: MagiMainPanelMessageView
 ): {
     type: "vote-status";
     progress?: number;
@@ -127,7 +127,7 @@ export function getVoteStatusMeta(
  * 获取安全的 SSE 流消息进度
  */
 export function getSseStreamProgress(
-    msg: MagiMessage
+    msg: MagiMainPanelMessageView
 ): number | undefined {
     if (isSseStreamMessage(msg) && isSseStreamMeta(msg.meta)) {
         return msg.meta.progress;

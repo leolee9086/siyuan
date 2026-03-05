@@ -1,6 +1,10 @@
 import type { ComputedRef, InjectionKey, Ref } from "vue";
 import type { WrappedSeel, UseMagiReturn } from "../composables/useMagi.types";
-import type { MagiMessage } from "../utils/messageFactory.types";
+import type {
+    MagiMainPanelMessageView,
+    MagiMainPanelSeelView,
+    MagiSeelPanelView,
+} from "./magiView.types";
 import type { PersonaSeedSavedEvent } from "./persona-seed-panel/PersonaSeedPanel.types";
 
 /**
@@ -8,7 +12,7 @@ import type { PersonaSeedSavedEvent } from "./persona-seed-panel/PersonaSeedPane
  *
  * 用途：定义 `MagiRoot.vue` 模板所需的状态与交互方法。
  * 使用场景：`useMagiRootContext` 返回对象的类型约束。
- * 关联类型：`UseMagiReturn`、`WrappedSeel`、`MagiMessage`。
+ * 关联类型：`UseMagiReturn`、`WrappedSeel`、`MagiMainPanelMessageView`。
  */
 export interface MagiRootContext {
     ready: Ref<boolean>;
@@ -20,9 +24,12 @@ export interface MagiRootContext {
     showQuestionnairePanel: Ref<boolean>;
     showWindowControls: ComputedRef<boolean>;
     seels: ComputedRef<WrappedSeel[]>;
+    mainPanelSeels: ComputedRef<MagiMainPanelSeelView[]>;
     sageSeels: ComputedRef<WrappedSeel[]>;
     trinitySeel: ComputedRef<WrappedSeel | null>;
-    displayMessages: ComputedRef<MagiMessage[]>;
+    sageSeelViews: ComputedRef<MagiSeelPanelView[]>;
+    trinitySeelView: ComputedRef<MagiSeelPanelView | null>;
+    displayMessages: ComputedRef<MagiMainPanelMessageView[]>;
     isAnySeelLoading: ComputedRef<boolean>;
     onSubmitInput: (value: string) => Promise<void>;
     onShowQuestionnaire: () => Promise<void>;

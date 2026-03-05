@@ -216,3 +216,12 @@ export type { ModelScopeAuthData };
 import { showMessage } from "../../../dialog/message";
 // 导出消息提示函数
 export { showMessage };
+
+/**
+ * 用途：生成块内容图片核心函数
+ * 使用范围：AI图片生成菜单功能
+ * 解耦评估：通过父级imports.ts转发
+ */
+import { 生成块内容图片 } from "../imports";
+// 导出生成块内容图片函数
+export { 生成块内容图片 };

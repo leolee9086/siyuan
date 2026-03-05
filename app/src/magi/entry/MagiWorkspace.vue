@@ -1,28 +1,28 @@
 <template>
   <div
     class="magi-workspace"
-    :class="{ 'with-trinity': showTrinity && !!trinitySeel }"
+    :class="{ 'with-trinity': showTrinity && !!trinitySeelView }"
   >
     <div v-if="showSeels" class="magi-seels">
       <SeelPanel
-        v-for="seel in sageSeels"
+        v-for="seel in sageSeelViews"
         :key="seel.config.name"
         :ai="seel"
         :show-messages="showMessages"
       />
     </div>
 
-    <div v-if="showTrinity && trinitySeel" class="magi-trinity">
+    <div v-if="showTrinity && trinitySeelView" class="magi-trinity">
       <SeelPanel
-        :key="trinitySeel.config.name"
-        :ai="trinitySeel"
+        :key="trinitySeelView.config.name"
+        :ai="trinitySeelView"
         :show-messages="showMessages"
       />
     </div>
 
     <MagiMainPanel
       :messages="displayMessages"
-      :seels="seels"
+      :seels="mainPanelSeels"
       :show-messages="showMessages"
       :show-seels="showSeels"
       :show-trinity="showTrinity"
@@ -54,9 +54,9 @@ const {
     showMessages,
     showSeels,
     showTrinity,
-    seels,
-    sageSeels,
-    trinitySeel,
+    mainPanelSeels,
+    sageSeelViews,
+    trinitySeelView,
     displayMessages,
     isAnySeelLoading,
     onSubmitInput,

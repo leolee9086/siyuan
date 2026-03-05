@@ -10,6 +10,7 @@ import type { Ref } from "vue";
 import type { MagiMessage, VoteResult } from "../utils/messageFactory.types";
 import type { MockWISE实例, MagiPromptSet } from "../core/wise/wise.types";
 import type { ContextMessage, ReplyOptions } from "../core/core.types";
+import type { StandardLLMAdapterMode } from "../types/llmAdapter.types";
 
 /**
  * 连接状态
@@ -143,4 +144,17 @@ export interface UseMagiReturn {
         /** 是否保留既有共识消息 */
         preserveConsensusMessages?: boolean;
     }) => Promise<void>;
+}
+
+/**
+ * useMagi 初始化选项
+ *
+ * 用途：定义会话初始化时可配置的行为。
+ * 使用场景：MagiRoot 初始化 useMagi 时传入。
+ */
+export interface UseMagiOptions {
+    /** 显式覆盖人格注入文本 */
+    promptInjections?: MagiPromptSet;
+    /** 标准 LLM 适配器模式 */
+    llmAdapterMode?: StandardLLMAdapterMode;
 }
