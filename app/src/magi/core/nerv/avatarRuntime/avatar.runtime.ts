@@ -1,12 +1,11 @@
-import type { SourceSimulationContext } from "../../composables/useMagi.types";
-import type { ConsensusRequestContext } from "../../composables/useMagi.consensus";
-import { appendConsensusMessage } from "../../composables/useMagi.consensus";
-import type { StreamResult } from "../../utils/messageFactory.types";
-import type { OpenAICompatConfig } from "../core.types";
-import { processStreamResponse } from "../../utils/streamProcessor";
-import { 创建MockWISE实例 } from "../wise/mockWise";
+import type { SourceSimulationContext } from "../../../composables/useMagi.types";
+import type { ConsensusRequestContext } from "../../../composables/useMagi.consensus";
+import { appendConsensusMessage } from "../../../composables/useMagi.consensus";
+import type { StreamResult } from "../../../utils/messageFactory.types";
+import type { OpenAICompatConfig } from "../../core.types";
+import { processStreamResponse } from "../../../utils/streamProcessor";
+import { 创建MockWISE实例 } from "../../wise/mockWise";
 import {
-    AVATAR_META_TOOL_PROMPT,
     AVATAR_REPORT_TOOL_NAME,
     buildAvatarMetaToolReplyOptions,
     extractAvatarReportPayloadsFromToolArguments,
@@ -33,6 +32,7 @@ interface AvatarCreationProposal {
     decision: AvatarCreateDecision;
     reason: string;
     systemPromptProposal: string;
+    requirements: string;
 }
 
 function isAvatarChannel(value: unknown): value is AvatarChannel {
@@ -162,22 +162,26 @@ function buildCorePersonaRewrite(
 }
 
 function buildAvatarSystemPrompt(
+    magiInstanceName: string,
     avatarNumber: number,
     channel: AvatarChannel,
     rewrite: string,
     memorySeed: string,
 ): string {
-    return `你是 Avatar-${String(avatarNumber).padStart(2, "0")}。
-你的身份：你是当前任务通道的执行分身。
+    const avatarId = `${magiInstanceName}-${String(avatarNumber).padStart(2, "0")}`;
+    return `你是 ${avatarId}。
 你的编号信息：avatar_number=${avatarNumber}。
 你的绑定通道：channel=${channel}。你必须持续负责该通道请求。
-你的核心人格改写包如下（可含脱敏/扭曲策略）：
+你的身份：
 ${rewrite}
 
-你仅可见的记忆种子：
+你必须牢记的要求：
 ${memorySeed}
 
-${AVATAR_META_TOOL_PROMPT}
+工具使用约束：
+1. 你必须使用 report_to_core 向主系统汇报进度/风险/心跳。
+2. 当系统要求心跳时，本轮必须调用 report_to_core(type="heartbeat")。
+3. report_to_core 的参数必须为 JSON，且至少包含 type/content。
 
 执行约束：
 1. 你可调用当前执行环境可用的外部工具；需要同步状态时调用 report_to_core。
@@ -244,6 +248,7 @@ function parseAvatarCreationProposal(
         decision: "rejected",
         reason: "invalid-proposal-format",
         systemPromptProposal: "",
+        requirements: "",
     };
     const jsonText = extractFirstJsonObject(rawText);
     if (!jsonText) {
@@ -257,6 +262,7 @@ function parseAvatarCreationProposal(
         const decision = normalizeAvatarCreateDecision(Reflect.get(parsed, "decision"));
         const reasonValue = Reflect.get(parsed, "reason");
         const promptValue = Reflect.get(parsed, "systemPromptProposal");
+        const requirementsValue = Reflect.get(parsed, "requirements");
         return {
             sageName: fallbackSageName,
             displayName: fallbackDisplayName,
@@ -265,6 +271,7 @@ function parseAvatarCreationProposal(
                 ? reasonValue.trim()
                 : "no-reason",
             systemPromptProposal: typeof promptValue === "string" ? promptValue.trim() : "",
+            requirements: typeof requirementsValue === "string" ? requirementsValue.trim() : "",
         };
     } catch {
         return fallback;
@@ -275,6 +282,7 @@ interface MelchiorCreationInitiation {
     initiate: boolean;
     reason: string;
     systemPromptProposal: string;
+    requirements: string;
 }
 
 function buildBindingSummary(bindings: Record<AvatarChannel, string | null>): string {
@@ -347,6 +355,7 @@ function parseMelchiorCreationInitiation(rawText: string): MelchiorCreationIniti
             initiate: false,
             reason: "invalid-initiation-format",
             systemPromptProposal: "",
+            requirements: "",
         };
     }
     try {
@@ -356,6 +365,7 @@ function parseMelchiorCreationInitiation(rawText: string): MelchiorCreationIniti
                 initiate: false,
                 reason: "invalid-initiation-payload",
                 systemPromptProposal: "",
+                requirements: "",
             };
         }
         const initiateValue = Reflect.get(parsed, "initiate");
@@ -370,18 +380,21 @@ function parseMelchiorCreationInitiation(rawText: string): MelchiorCreationIniti
             || createValue === "approved";
         const reasonValue = Reflect.get(parsed, "reason");
         const promptValue = Reflect.get(parsed, "systemPromptProposal");
+        const requirementsValue = Reflect.get(parsed, "requirements");
         return {
             initiate: normalizedInitiate,
             reason: typeof reasonValue === "string" && reasonValue.trim()
                 ? reasonValue.trim()
                 : "no-reason",
             systemPromptProposal: typeof promptValue === "string" ? promptValue.trim() : "",
+            requirements: typeof requirementsValue === "string" ? requirementsValue.trim() : "",
         };
     } catch {
         return {
             initiate: false,
             reason: "initiation-json-parse-failed",
             systemPromptProposal: "",
+            requirements: "",
         };
     }
 }
@@ -394,11 +407,12 @@ function buildMelchiorCreationInitiationTask(
 ${knowledgeBase}
 
 你必须仅输出 JSON：
-{"initiate":true|false,"reason":"一句话","systemPromptProposal":"你的 Avatar 系统提示词提案"}
+{"initiate":true|false,"reason":"一句话","systemPromptProposal":"你的 Avatar 系统提示词提案","requirements":"Avatar 必须牢记的要求"}
 约束：
 1. initiate=true 代表你正式发起 Avatar 新建流程。
 2. systemPromptProposal 必须包含 avatar_number 与 channel，且写出 report_to_core 与心跳约束。
-3. 不要输出 JSON 以外任何文本。`;
+3. requirements 字段用于指定 Avatar 需要知道的信息和守则，以便完成任务。这些内容将作为 Avatar 的核心约束。
+4. 不要输出 JSON 以外任何文本。`;
 }
 
 function buildReviewerCreationVoteTask(
@@ -414,13 +428,15 @@ ${knowledgeBase}
 - initiate=${melchiorInitiation.initiate ? "true" : "false"}
 - reason=${melchiorInitiation.reason}
 - systemPromptProposal=${melchiorInitiation.systemPromptProposal}
+- requirements=${melchiorInitiation.requirements}
 
 你必须仅输出 JSON：
-{"decision":"approved|rejected","reason":"一句话","systemPromptProposal":"你的 Avatar 系统提示词提案"}
+{"decision":"approved|rejected","reason":"一句话","systemPromptProposal":"你的 Avatar 系统提示词提案","requirements":"Avatar 必须牢记的要求"}
 约束：
 1. decision 只能是 approved 或 rejected。
 2. systemPromptProposal 必须包含 avatar_number 与 channel，且写出 report_to_core 与心跳约束。
-3. 不要输出 JSON 以外任何文本。`;
+3. requirements 字段用于指定 Avatar 需要知道的信息和守则，以便完成任务。你可以补充或修改 Melchior 提供的 requirements。
+4. 不要输出 JSON 以外任何文本。`;
 }
 
 async function collectSingleAvatarCreationProposal(
@@ -438,6 +454,7 @@ async function collectSingleAvatarCreationProposal(
             decision: "rejected",
             reason: "proposal-runtime-error",
             systemPromptProposal: "",
+            requirements: "",
         };
     }
 }
@@ -467,6 +484,7 @@ async function collectMelchiorCreationInitiation(
                 initiate: false,
                 reason: "melchior-initiation-runtime-error",
                 systemPromptProposal: "",
+                requirements: "",
             },
         };
     }
@@ -683,6 +701,7 @@ async function createAvatar(
             decision: "approved",
             reason: melchiorInitiation.reason,
             systemPromptProposal: melchiorInitiation.systemPromptProposal,
+            requirements: melchiorInitiation.requirements || "",
         },
         ...reviewerProposals,
     ];
@@ -725,11 +744,20 @@ async function createAvatar(
             reason: "avatar-creation-rejected-by-sages",
         };
     }
+    const approvedProposals = proposals.filter((p) => p.decision === "approved");
+    const sageRequirements = approvedProposals
+        .map((p) => p.requirements)
+        .filter((r) => r && r.trim())
+        .join("\n\n");
+    const requirements = sageRequirements || personaRewrite.memorySeed;
+    const firstSeel = deps.seels[0];
+    const magiInstanceName = firstSeel?._originalAI?.config?.magiInstanceName ?? "zhi";
     const fallbackPrompt = buildAvatarSystemPrompt(
+        magiInstanceName,
         avatarNumber,
         channel,
         personaRewrite.rewrite,
-        personaRewrite.memorySeed,
+        requirements,
     );
     const systemPrompt = await designAvatarPromptByTrinity(
         deps,
@@ -737,7 +765,7 @@ async function createAvatar(
         avatarNumber,
         channel,
         personaRewrite.rewrite,
-        personaRewrite.memorySeed,
+        requirements,
         personaRewrite.exposureMode,
         source,
         proposals,

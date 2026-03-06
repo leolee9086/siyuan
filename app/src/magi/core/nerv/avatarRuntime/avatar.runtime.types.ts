@@ -1,8 +1,8 @@
-import type { ConnectionStatus, WrappedSeel } from "../../composables/useMagi.types";
-import type { ConsensusRequestContext } from "../../composables/useMagi.consensus";
-import type { MagiMessage } from "../../utils/messageFactory.types";
-import type { ReplyOptions } from "../core.types";
-import type { MockWISE实例 } from "../wise/wise.types";
+import type { ConnectionStatus, WrappedSeel } from "../../../composables/useMagi.types";
+import type { ConsensusRequestContext } from "../../../composables/useMagi.consensus";
+import type { MagiMessage } from "../../../utils/messageFactory.types";
+import type { ReplyOptions } from "../../core.types";
+import type { MockWISE实例 } from "../../wise/wise.types";
 
 /** Avatar 通道白名单（与来源信封保持一致） */
 export type AvatarChannel = "guardian" | "external-agent" | "system-cron" | "unknown";

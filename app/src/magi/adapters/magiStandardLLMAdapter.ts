@@ -1,5 +1,5 @@
 import type { ChatRequestParams, ChatResponseData } from "../../ai/types";
-import { createAvatarRuntime } from "../core/nerv/avatar.runtime";
+import { createAvatarRuntime } from "../core/nerv/avatarRuntime/avatar.runtime";
 import type {
     ConnectionStatus,
     SourceSimulationContext,
@@ -17,7 +17,7 @@ import type {
     StandardLLMStreamChunk,
 } from "../types/llmAdapter.types";
 import type { MagiMessage } from "../utils/messageFactory.types";
-import type { AvatarRuntime } from "../core/nerv/avatar.runtime.types";
+import type { AvatarRuntime } from "../core/nerv/avatarRuntime/avatar.runtime.types";
 import type { ReplyOptions } from "../core/core.types";
 
 const SOURCE_SIMULATION_TAG = "magi_request_source";

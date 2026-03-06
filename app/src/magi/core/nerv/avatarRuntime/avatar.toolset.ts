@@ -1,4 +1,4 @@
-import type { ReplyOptions } from "../core.types";
+import type { ReplyOptions } from "../../core.types";
 
 export const AVATAR_REPORT_TOOL_NAME = "report_to_core";
 
@@ -10,12 +10,6 @@ export interface AvatarMetaReportPayload {
     content: string;
     urgency: AvatarReportUrgency;
 }
-
-export const AVATAR_META_TOOL_PROMPT = `你是 Avatar。你必须牢记：
-1. 你是当前通道的执行分身，只负责完成该通道任务。
-2. 你必须使用 report_to_core 向主系统汇报进度/风险/心跳。
-3. 当系统要求心跳时，本轮必须调用 report_to_core(type="heartbeat")。
-4. report_to_core 的参数必须为 JSON，且至少包含 type/content。`;
 
 const AVATAR_REPORT_TOOL_SCHEMA: Record<string, unknown> = {
     type: "function",
