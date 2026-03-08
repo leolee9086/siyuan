@@ -1,8 +1,7 @@
 import type { ConnectionStatus, WrappedSeel } from "../composables/useMagi.types";
 import { createMagiStandardLLMAdapter } from "./magiStandardLLMAdapter";
-import { createRawOpenAIStandardLLMAdapter } from "./rawOpenAIStandardLLMAdapter";
 import type { MagiEventBus } from "../events/magiEventBus.types";
-import type { StandardLLMAdapter, StandardLLMAdapterMode } from "../types/llmAdapter.types";
+import type { StandardLLMAdapter } from "../types/llmAdapter.types";
 import type { MagiMessage } from "../utils/messageFactory.types";
 
 /**
@@ -12,7 +11,6 @@ import type { MagiMessage } from "../utils/messageFactory.types";
  * 使用场景：useMagi 初始化阶段调用工厂创建会话适配器。
  */
 export interface StandardLLMAdapterFactoryParams {
-    mode: StandardLLMAdapterMode;
     model?: string;
     connectionStatus: { value: ConnectionStatus };
     consensusMessages: MagiMessage[];
@@ -23,16 +21,13 @@ export interface StandardLLMAdapterFactoryParams {
 /**
  * 创建标准 LLM 适配器
  *
- * 作用：根据模式返回 `magi` 或 `raw-openai` 适配器实现。
- * 意图：让上层调用仅依赖统一接口，隔离底层实现差异。
+ * 作用：创建后端 MAGI 统一适配器实现。
+ * 意图：确保 MAGI 前端始终经由后端决策链路，不保留本地/调试切换入口。
  * 调用时机：会话初始化时创建一次并复用。
  */
 export async function createStandardLLMAdapter(
     params: StandardLLMAdapterFactoryParams,
 ): Promise<StandardLLMAdapter> {
-    if (params.mode === "raw-openai") {
-        return createRawOpenAIStandardLLMAdapter();
-    }
     return createMagiStandardLLMAdapter({
         model: params.model,
         connectionStatus: params.connectionStatus,
@@ -41,4 +36,3 @@ export async function createStandardLLMAdapter(
         eventBus: params.eventBus,
     });
 }
-

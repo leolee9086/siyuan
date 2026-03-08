@@ -10,7 +10,6 @@ import type { Ref } from "vue";
 import type { MagiMessage, VoteResult } from "../utils/messageFactory.types";
 import type { MockWISE实例, MagiPromptSet } from "../core/wise/wise.types";
 import type { ContextMessage, ReplyOptions } from "../core/core.types";
-import type { StandardLLMAdapterMode } from "../types/llmAdapter.types";
 
 /**
  * 连接状态
@@ -155,8 +154,6 @@ export interface UseMagiReturn {
 export interface UseMagiOptions {
     /** 显式覆盖人格注入文本 */
     promptInjections?: MagiPromptSet;
-    /** 标准 LLM 适配器模式 */
-    llmAdapterMode?: StandardLLMAdapterMode;
 }
 
 /** 来源模拟的可信度等级 */

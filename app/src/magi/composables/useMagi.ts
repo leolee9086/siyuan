@@ -243,7 +243,6 @@ export async function useMagi(options?: UseMagiOptions): Promise<UseMagiReturn> 
     const startupPromptInjections = await resolvePromptInjectionsForInit(options?.promptInjections);
     await initializeWrappedSeels(seels, connectionStatus, startupPromptInjections);
     const llmAdapter = await createStandardLLMAdapter({
-        mode: options?.llmAdapterMode ?? "magi",
         model: "magi-trinity",
         connectionStatus,
         consensusMessages,

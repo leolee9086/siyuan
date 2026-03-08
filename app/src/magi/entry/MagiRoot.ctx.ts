@@ -7,7 +7,6 @@ import type {
     UseMagiReturn,
     WrappedSeel,
 } from "../composables/useMagi.types";
-import type { StandardLLMAdapterMode } from "../types/llmAdapter.types";
 import type {
     MagiMainPanelMessageView,
     MagiMainPanelSeelView,
@@ -479,35 +478,6 @@ function isTrinitySeel(name: string): boolean {
     return name === "TRINITY-00";
 }
 
-/** 适配器模式类型守卫 */
-function isStandardLLMAdapterMode(value: unknown): value is StandardLLMAdapterMode {
-    return value === "magi" || value === "raw-openai";
-}
-
-/** 从运行时解析 LLM 适配器模式（URL 参数优先，其次 window.siyuan.magi）。 */
-function resolveRuntimeLLMAdapterMode(): StandardLLMAdapterMode {
-    if (typeof location !== "undefined") {
-        const fromQuery = new URLSearchParams(location.search).get("llmAdapter");
-        if (isStandardLLMAdapterMode(fromQuery)) {
-            return fromQuery;
-        }
-    }
-
-    const siyuan = Reflect.get(globalThis as Record<string, unknown>, "siyuan");
-    if (typeof siyuan !== "object" || siyuan === null) {
-        return "magi";
-    }
-    const magi = Reflect.get(siyuan, "magi");
-    if (typeof magi !== "object" || magi === null) {
-        return "magi";
-    }
-    const mode = Reflect.get(magi, "llmAdapterMode");
-    if (isStandardLLMAdapterMode(mode)) {
-        return mode;
-    }
-    return "magi";
-}
-
 /** 将运行时贤者包装对象映射为 UI 专用 SeelPanel 视图 */
 function mapWrappedSeelToPanelView(seel: WrappedSeel): MagiSeelPanelView {
     return {
@@ -546,9 +516,7 @@ async function bootstrapMagiState(
     bootError: { value: string | null },
 ): Promise<void> {
     try {
-        magiState.value = await useMagi({
-            llmAdapterMode: resolveRuntimeLLMAdapterMode(),
-        });
+        magiState.value = await useMagi();
         ready.value = true;
     } catch (error) {
         bootError.value = error instanceof Error ? error.message : String(error);

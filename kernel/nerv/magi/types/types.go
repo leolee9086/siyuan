@@ -1,0 +1,231 @@
+// Package types 定义MAGI系统的核心数据类型
+package types
+
+// MessageRole 消息角色类型
+type MessageRole string
+
+const (
+	RoleUser      MessageRole = "user"
+	RoleAssistant MessageRole = "assistant"
+	RoleSystem    MessageRole = "system"
+	RoleTool      MessageRole = "tool"
+)
+
+// MessageType 消息类型
+type MessageType string
+
+const (
+	TypeUser      MessageType = "user"
+	TypeAI        MessageType = "ai"
+	TypeMelchior  MessageType = "melchior"
+	TypeBalthazar MessageType = "balthazar"
+	TypeCasper    MessageType = "casper"
+	TypeConsensus MessageType = "consensus"
+	TypeVote      MessageType = "vote"
+	TypeError     MessageType = "error"
+	TypeSystem    MessageType = "system"
+)
+
+// MessageStatus 消息状态
+type MessageStatus string
+
+const (
+	StatusStreaming MessageStatus = "streaming"
+	StatusSuccess   MessageStatus = "success"
+	StatusError     MessageStatus = "error"
+	StatusPending   MessageStatus = "pending"
+)
+
+// Message MAGI消息结构（对应前端MagiMessage）
+type Message struct {
+	ID        string                 `json:"id"`
+	Type      MessageType            `json:"type"`
+	Content   string                 `json:"content"`
+	Status    MessageStatus          `json:"status"`
+	Timestamp int64                  `json:"timestamp"` // Unix毫秒
+	Meta      map[string]interface{} `json:"meta,omitempty"`
+}
+
+// ContextMessage 上下文消息（对应前端ContextMessage）
+type ContextMessage struct {
+	Role      MessageRole            `json:"role"`
+	Content   string                 `json:"content"`
+	ToolCalls []ToolCall             `json:"tool_calls,omitempty"`
+	ToolID    string                 `json:"tool_call_id,omitempty"`
+	Meta      map[string]interface{} `json:"meta,omitempty"`
+}
+
+// ToolCall 工具调用结构
+type ToolCall struct {
+	ID       string           `json:"id,omitempty"`
+	Type     string           `json:"type"` // "function"
+	Function ToolCallFunction `json:"function"`
+	Index    int              `json:"index,omitempty"`
+}
+
+// ToolCallFunction 工具调用函数
+type ToolCallFunction struct {
+	Name      string `json:"name"`
+	Arguments string `json:"arguments"` // JSON字符串
+}
+
+// SageResponse 贤者响应结果（对应前端SageResponse）
+type SageResponse struct {
+	Content              string              `json:"content"`
+	Seel                 string              `json:"seel"`                           // melchior/balthazar/casper
+	DisplayName          string              `json:"displayName"`                    // Melchior/Balthazar/Casper
+	RequiresDeliberation bool                `json:"requiresDeliberation,omitempty"` // Melchior专用
+	UsedToolCall         bool                `json:"usedToolCall,omitempty"`         // 是否使用了工具调用
+	DeliberationReason   string              `json:"deliberationReason,omitempty"`   // 审慎决策原因
+	ToolCallNames        []string            `json:"toolCallNames,omitempty"`        // 工具名称列表
+	ToolArgumentsByName  map[string][]string `json:"toolArgumentsByName,omitempty"`  // 按工具名聚合参数
+}
+
+// VoteDecision 投票决定
+type VoteDecision string
+
+const (
+	VoteApprove VoteDecision = "批准"
+	VoteReject  VoteDecision = "否决"
+)
+
+// VoteResult 投票结果（对应前端VoteResult）
+type VoteResult struct {
+	Melchior  VoteDecision `json:"melchior"`
+	Balthazar VoteDecision `json:"balthazar"`
+	Casper    VoteDecision `json:"casper"`
+	Passed    bool         `json:"passed"`
+	Round     int          `json:"round"`
+}
+
+// ConsensusMode 共识模式
+type ConsensusMode string
+
+const (
+	ConsensusModeStandard ConsensusMode = "standard"
+	ConsensusModeCritical ConsensusMode = "critical"
+)
+
+// ConsensusSource 共识来源
+type ConsensusSource string
+
+const (
+	ConsensusSourceTrinitySynthesis ConsensusSource = "trinity-synthesis"
+	ConsensusSourceRuminationEntry  ConsensusSource = "rumination-entry"
+)
+
+// ConsensusMeta 共识元数据
+type ConsensusMeta struct {
+	Mode                   ConsensusMode   `json:"mode"`
+	Source                 ConsensusSource `json:"source"`
+	Vote                   *VoteResult     `json:"vote,omitempty"`
+	MelchiorUsedToolCall   bool            `json:"melchiorUsedToolCall,omitempty"`
+	TrinityHistoryEligible bool            `json:"trinityHistoryEligible,omitempty"`
+}
+
+// StreamChunk SSE流式chunk（OpenAI兼容格式）
+type StreamChunk struct {
+	ID      string        `json:"id,omitempty"`
+	Object  string        `json:"object,omitempty"` // "chat.completion.chunk"
+	Created int64         `json:"created,omitempty"`
+	Model   string        `json:"model,omitempty"`
+	Choices []ChunkChoice `json:"choices,omitempty"`
+}
+
+// ChunkChoice chunk选择项
+type ChunkChoice struct {
+	Index        int             `json:"index"`
+	Delta        ChunkDelta      `json:"delta"`
+	FinishReason *string         `json:"finish_reason"`
+	ToolCalls    []ToolCallDelta `json:"tool_calls,omitempty"`
+}
+
+// ChunkDelta chunk增量数据
+type ChunkDelta struct {
+	Role             string          `json:"role,omitempty"`
+	Content          string          `json:"content,omitempty"`
+	ReasoningContent string          `json:"reasoning_content,omitempty"`
+	ToolCalls        []ToolCallDelta `json:"tool_calls,omitempty"`
+}
+
+// ToolCallDelta 工具调用增量
+type ToolCallDelta struct {
+	Index    int                    `json:"index"`
+	ID       string                 `json:"id,omitempty"`
+	Type     string                 `json:"type,omitempty"`
+	Function *ToolCallFunctionDelta `json:"function,omitempty"`
+}
+
+// ToolCallFunctionDelta 工具调用函数增量
+type ToolCallFunctionDelta struct {
+	Name      string `json:"name,omitempty"`
+	Arguments string `json:"arguments,omitempty"`
+}
+
+// StreamResult 流式处理结果
+type StreamResult struct {
+	Content              string              `json:"content"`
+	Success              bool                `json:"success"`
+	HasToolCalls         bool                `json:"hasToolCalls,omitempty"`
+	ToolCallNames        []string            `json:"toolCallNames,omitempty"`
+	InternalToolMessages []string            `json:"internalToolMessages,omitempty"`
+	ToolArgumentsByName  map[string][]string `json:"toolArgumentsByName,omitempty"`
+}
+
+// DeliberationSignal 审慎决策信号（Melchior工具调用）
+type DeliberationSignal struct {
+	RequiresDeliberation bool   `json:"requires_deliberation"`
+	Reason               string `json:"reason"`
+}
+
+// TrinitySpeakTool Trinity speak工具参数
+type TrinitySpeakTool struct {
+	Content string `json:"content"`
+	Channel string `json:"channel,omitempty"` // "public" | "internal"
+}
+
+// SourceChannel 请求来源通道
+type SourceChannel string
+
+const (
+	SourceChannelGuardian      SourceChannel = "guardian"
+	SourceChannelExternalAgent SourceChannel = "external-agent"
+	SourceChannelSystemCron    SourceChannel = "system-cron"
+	SourceChannelUnknown       SourceChannel = "unknown"
+)
+
+// TrustLevel 信任等级
+type TrustLevel string
+
+const (
+	TrustLevelLow    TrustLevel = "low"
+	TrustLevelMedium TrustLevel = "medium"
+	TrustLevelHigh   TrustLevel = "high"
+)
+
+// AuthStrength 鉴权强度
+type AuthStrength string
+
+const (
+	AuthStrengthWeak   AuthStrength = "weak"
+	AuthStrengthMedium AuthStrength = "medium"
+	AuthStrengthStrong AuthStrength = "strong"
+)
+
+// RequestSourceContext API层解析后下传的请求来源上下文
+type RequestSourceContext struct {
+	RequestID             string            `json:"requestId"`
+	Channel               SourceChannel     `json:"channel"` // guardian|external-agent|system-cron|unknown
+	PrincipalID           string            `json:"principalId"`
+	InterfaceID           string            `json:"interfaceId"`
+	InterfaceKind         string            `json:"interfaceKind"` // magi-main-ui|siyuan-note-upstream|...
+	ConversationID        string            `json:"conversationId,omitempty"`
+	SourceSessionKey      string            `json:"sourceSessionKey"`
+	DirectResponseAllowed bool              `json:"directResponseAllowed"`
+	CallerID              string            `json:"callerId,omitempty"`
+	TrustBase             TrustLevel        `json:"trustBase"` // low|medium|high
+	RiskLevel             TrustLevel        `json:"riskLevel"` // low|medium|high
+	AuthStrength          AuthStrength      `json:"authStrength"`
+	ModelIntent           string            `json:"modelIntent,omitempty"`
+	RawAttributes         map[string]string `json:"rawAttributes,omitempty"`
+}

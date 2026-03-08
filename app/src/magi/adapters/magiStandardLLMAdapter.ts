@@ -1,4 +1,5 @@
 import type { ChatRequestParams, ChatResponseData } from "../../ai/types";
+import { getAIConfigFromSiyuan } from "../../ai/utils.config";
 import { createAvatarRuntime } from "../core/nerv/avatarRuntime/avatar.runtime";
 import type {
     ConnectionStatus,
@@ -19,6 +20,7 @@ import type {
 import type { MagiMessage } from "../utils/messageFactory.types";
 import type { AvatarRuntime } from "../core/nerv/avatarRuntime/avatar.runtime.types";
 import type { ReplyOptions } from "../core/core.types";
+import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 const SOURCE_SIMULATION_TAG = "magi_request_source";
 const SOURCE_SIMULATION_OPEN = `<${SOURCE_SIMULATION_TAG}>`;
@@ -26,10 +28,24 @@ const SOURCE_SIMULATION_CLOSE = `</${SOURCE_SIMULATION_TAG}>`;
 const BLOCKED_RESPONSE_CONTENT = "Request blocked by MAGI ingress policy.";
 const BLOCKED_ALERT_CONTENT = "Ingress blocked: external source connection attempt denied.";
 const INTERNAL_SERVER_ERROR_CONTENT = "Internal Server Error";
+const SOURCE_SIMULATION_BACKEND_ENDPOINT_PATH = "/api/s-forge/magi/v1/chat/completions";
 
 interface IngressRuleDecision {
     allowed: boolean;
     reason: string;
+}
+
+interface BackendForwardResult {
+    response: ChatResponseData | null;
+    reason: string;
+}
+
+interface MagiInterfaceIdentity {
+    principalId: string;
+    interfaceId: string;
+    interfaceKind: "magi-main-ui" | "magi-source-panel";
+    interfaceLabel: string;
+    conversationId: string;
 }
 
 type SafeSourceChannel = "guardian" | "external-agent" | "system-cron" | "unknown";
@@ -68,17 +84,18 @@ export async function createMagiStandardLLMAdapter(params: {
     eventBus?: MagiEventBus;
 }): Promise<StandardLLMAdapter> {
     const model = params.model ?? "magi-trinity";
-    const avatarRuntime = createAvatarRuntime({
-        seels: params.seels,
-        consensusMessages: params.consensusMessages,
-        connectionStatus: params.connectionStatus,
-    });
+    const runtimeMainInterfaceIdentity = buildRuntimeMainInterfaceIdentity();
 
     return {
         createChatCompletion: async (request) =>
-            createMagiChatCompletion(params, request, model, avatarRuntime),
+            createMagiChatCompletion(request, model, runtimeMainInterfaceIdentity),
         streamChatCompletion: async (request, callbacks) =>
-            streamMagiChatCompletion(params, request, callbacks, model, avatarRuntime),
+            streamMagiChatCompletion(
+                request,
+                callbacks,
+                model,
+                runtimeMainInterfaceIdentity,
+            ),
     };
 }
 
@@ -311,6 +328,186 @@ function buildInternalServerErrorResponse(model: string): ChatResponseData {
     };
 }
 
+function buildRandomIdentitySegment(): string {
+    return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function resolveMagiTargetLabel(): string {
+    try {
+        const target = Reflect.get(getSiyuanConfig()?.magi ?? {}, "target");
+        const targetLabel = typeof target === "string" ? target.trim() : "";
+        if (targetLabel) {
+            return targetLabel;
+        }
+    } catch {
+        // ignore
+    }
+    return "magi";
+}
+
+function buildRuntimeMainInterfaceIdentity(): MagiInterfaceIdentity {
+    const suffix = buildRandomIdentitySegment();
+    return {
+        principalId: "workspace-admin",
+        interfaceId: `main-${suffix}`,
+        interfaceKind: "magi-main-ui",
+        interfaceLabel: resolveMagiTargetLabel(),
+        conversationId: `main-conv-${suffix}`,
+    };
+}
+
+function resolveRuntimeOrigin(): string {
+    if (typeof location === "undefined") {
+        return "";
+    }
+    return String(location.origin ?? "").trim();
+}
+
+function buildSourceSimulationBackendEndpoint(apiBaseURL: string): string {
+    const runtimeOrigin = resolveRuntimeOrigin();
+    if (runtimeOrigin) {
+        return `${runtimeOrigin}${SOURCE_SIMULATION_BACKEND_ENDPOINT_PATH}`;
+    }
+    const normalizedBaseURL = String(apiBaseURL ?? "").trim();
+    if (!normalizedBaseURL) {
+        return SOURCE_SIMULATION_BACKEND_ENDPOINT_PATH;
+    }
+    try {
+        const parsed = new URL(normalizedBaseURL);
+        return `${parsed.origin}${SOURCE_SIMULATION_BACKEND_ENDPOINT_PATH}`;
+    } catch {
+        return SOURCE_SIMULATION_BACKEND_ENDPOINT_PATH;
+    }
+}
+
+function resolveWorkspaceAPIToken(): string {
+    try {
+        const token = getSiyuanConfig()?.api?.token;
+        return String(token ?? "").trim();
+    } catch {
+        return "";
+    }
+}
+
+function resolveMagiSourceKey(requestContext: ConsensusRequestContext): string {
+    const workspaceToken = resolveWorkspaceAPIToken();
+    if (workspaceToken) {
+        return workspaceToken;
+    }
+    if (!requestContext.sourceSimulation) {
+        return "";
+    }
+    try {
+        const aiConfig = getAIConfigFromSiyuan();
+        return String(aiConfig.apiKey ?? "").trim();
+    } catch {
+        return "";
+    }
+}
+
+function buildRequestInterfaceIdentity(
+    requestContext: ConsensusRequestContext,
+    mainIdentity: MagiInterfaceIdentity,
+): MagiInterfaceIdentity {
+    const source = requestContext.sourceSimulation;
+    if (!source) {
+        return mainIdentity;
+    }
+    const panelId = String(source.sourcePanelId ?? "").trim();
+    const panelTitle = String(source.sourcePanelTitle ?? source.profileLabel ?? "").trim();
+    const conversationSeed = panelId || String(source.requestId ?? "").trim();
+    return {
+        principalId: String(source.callerId ?? "").trim() || mainIdentity.principalId,
+        interfaceId: panelId || `source-panel-${buildRandomIdentitySegment()}`,
+        interfaceKind: "magi-source-panel",
+        interfaceLabel: panelTitle || "source-panel",
+        conversationId: conversationSeed || `source-conv-${buildRandomIdentitySegment()}`,
+    };
+}
+
+function buildRequestIdentityUserField(identity: MagiInterfaceIdentity): string {
+    return JSON.stringify({
+        principal: identity.principalId,
+        interface: identity.interfaceId,
+        kind: identity.interfaceKind,
+        conversation: identity.conversationId,
+        interfaceLabel: identity.interfaceLabel,
+    });
+}
+
+function buildMagiBackendRequestBody(
+    request: ChatRequestParams,
+    fallbackModel: string,
+    identity: MagiInterfaceIdentity,
+): Record<string, unknown> {
+    return {
+        model: request.model ?? fallbackModel,
+        messages: request.messages,
+        user: buildRequestIdentityUserField(identity),
+        temperature: request.temperature,
+        max_tokens: request.max_tokens,
+        ...(Array.isArray(request.tools) ? { tools: request.tools } : {}),
+        ...(request.tool_choice !== undefined ? { tool_choice: request.tool_choice } : {}),
+        stream: false,
+    };
+}
+
+function buildMagiBackendHeaders(
+    sourceKey: string,
+    identity: MagiInterfaceIdentity,
+): Record<string, string> {
+    return {
+        "Content-Type": "application/json",
+        "X-MAGI-Source-Key": sourceKey,
+        "X-MAGI-Principal-ID": identity.principalId,
+        "X-MAGI-Interface-ID": identity.interfaceId,
+        "X-MAGI-Interface-Kind": identity.interfaceKind,
+        "X-MAGI-Conversation-ID": identity.conversationId,
+        "X-MAGI-Interface-Label": identity.interfaceLabel,
+    };
+}
+
+async function tryForwardMagiRequestToBackend(
+    request: ChatRequestParams,
+    fallbackModel: string,
+    requestContext: ConsensusRequestContext,
+    mainIdentity: MagiInterfaceIdentity,
+): Promise<BackendForwardResult> {
+    const sourceKey = resolveMagiSourceKey(requestContext);
+    if (!sourceKey) {
+        return { response: null, reason: "source-key-missing" };
+    }
+
+    let apiBaseURL = "";
+    try {
+        apiBaseURL = String(getAIConfigFromSiyuan().apiBaseURL ?? "").trim();
+    } catch {
+        // baseURL 缺失时回退到相对路径，仍可在同源场景命中后端。
+    }
+    const endpoint = buildSourceSimulationBackendEndpoint(apiBaseURL);
+    const identity = buildRequestInterfaceIdentity(requestContext, mainIdentity);
+    const requestBody = buildMagiBackendRequestBody(request, fallbackModel, identity);
+
+    try {
+        const response = await fetch(endpoint, {
+            method: "POST",
+            credentials: "include",
+            headers: buildMagiBackendHeaders(sourceKey, identity),
+            body: JSON.stringify(requestBody),
+        });
+        if (!response.ok) {
+            return { response: null, reason: `backend-http-${response.status}` };
+        }
+        const data = await response.json() as ChatResponseData;
+        return { response: data, reason: "backend-forwarded" };
+    } catch (error) {
+        return {
+            response: null,
+            reason: error instanceof Error ? error.message : String(error),
+        };
+    }
+}
+
 function isAbsoluteTrustedSource(requestContext: ConsensusRequestContext): boolean {
     const source = requestContext.sourceSimulation;
     if (!source) {
@@ -322,87 +519,25 @@ function isAbsoluteTrustedSource(requestContext: ConsensusRequestContext): boole
 }
 
 async function createMagiChatCompletion(
-    params: {
-        connectionStatus: { value: ConnectionStatus };
-        consensusMessages: MagiMessage[];
-        seels: WrappedSeel[];
-        eventBus?: MagiEventBus;
-    },
     request: ChatRequestParams,
     model: string,
-    avatarRuntime: AvatarRuntime,
+    runtimeMainInterfaceIdentity: MagiInterfaceIdentity,
 ): Promise<ChatResponseData> {
     const userInput = extractLatestUserInput(request.messages);
     if (!userInput) {
         return buildOpenAICompatibleResponse("", request.model ?? model, "stop");
     }
     const requestContext = buildConsensusRequestContext(request.messages);
-    const absoluteTrusted = isAbsoluteTrustedSource(requestContext);
-    const requireAvatarOnly = !absoluteTrusted;
-    const ingressDecision = evaluateIngressRule(requestContext);
-    if (!ingressDecision.allowed) {
-        await reportBlockedConnectionAttempt(
-            params.consensusMessages,
-            requestContext,
-            ingressDecision,
-        );
-        return buildOpenAICompatibleResponse(
-            BLOCKED_RESPONSE_CONTENT,
-            request.model ?? model,
-            "error",
-        );
-    }
-    const avatarResult = await avatarRuntime.tryDispatch({
-        userInput,
-        requestContext,
-        requestId: requestContext.requestId ?? buildRequestId(),
-        mode: requireAvatarOnly ? "force-avatar" : "auto",
-        toolOptions: buildAvatarToolOptions(request),
-    });
-    if (avatarResult.handled) {
-        return buildOpenAICompatibleResponse(
-            avatarResult.content,
-            request.model ?? model,
-            "stop",
-        );
-    }
-    if (requireAvatarOnly || avatarResult.reason === "avatar-creation-rejected-by-sages") {
-        await appendConsensusMessage(
-            params.consensusMessages,
-            "system",
-            "Avatar dispatch rejected under avatar-only policy.",
-            {
-                type: "avatar-dispatch-rejected",
-                channel: "internal",
-                internalOnly: true,
-                requestId: requestContext.requestId,
-                reason: avatarResult.reason ?? "unknown",
-            },
-        );
-        return buildInternalServerErrorResponse(request.model ?? model);
-    }
-
-    const beforeLength = params.consensusMessages.length;
-    await sendUserMessageWithConsensus(
-        userInput,
-        params.connectionStatus,
-        params.consensusMessages,
-        params.seels,
-        params.eventBus,
-        requestContext,
-    );
-
-    const latestMessage =
-        getLatestMessageByRequestId(params.consensusMessages, requestContext.requestId ?? "")
-        ?? params.consensusMessages[params.consensusMessages.length - 1]
-        ?? params.consensusMessages[beforeLength]
-        ?? getLatestAssistantLikeMessage(params.consensusMessages);
-
-    return buildOpenAICompatibleResponse(
-        latestMessage?.content ?? "",
+    const backendResult = await tryForwardMagiRequestToBackend(
+        request,
         request.model ?? model,
-        latestMessage?.status === "error" ? "error" : "stop",
+        requestContext,
+        runtimeMainInterfaceIdentity,
     );
+    if (backendResult.response) {
+        return backendResult.response;
+    }
+    throw new Error(`MAGI backend request failed: ${backendResult.reason}`);
 }
 
 function buildFullContentChunk(content: string, model: string): StandardLLMStreamChunk {
@@ -441,20 +576,18 @@ function buildFinishChunk(model: string): StandardLLMStreamChunk {
 }
 
 async function streamMagiChatCompletion(
-    params: {
-        connectionStatus: { value: ConnectionStatus };
-        consensusMessages: MagiMessage[];
-        seels: WrappedSeel[];
-        eventBus?: MagiEventBus;
-    },
     request: ChatRequestParams,
     callbacks: StandardLLMStreamCallbacks,
     model: string,
-    avatarRuntime: AvatarRuntime,
+    runtimeMainInterfaceIdentity: MagiInterfaceIdentity,
 ): Promise<void> {
     callbacks.onStart?.();
     try {
-        const response = await createMagiChatCompletion(params, request, model, avatarRuntime);
+        const response = await createMagiChatCompletion(
+            request,
+            model,
+            runtimeMainInterfaceIdentity,
+        );
         const content = response.choices?.[0]?.message?.content ?? "";
         callbacks.onChunk?.(buildFullContentChunk(content, response.model ?? model));
         callbacks.onChunk?.(buildFinishChunk(response.model ?? model));

@@ -1,0 +1,151 @@
+// SiYuan - Refactor your thinking
+// Copyright (c) 2020-present, b3log.org
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+package websocket
+
+import (
+	"testing"
+
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
+)
+
+func TestPushRoundStarted(t *testing.T) {
+	err := PushRoundStarted("test-session", "round-1", "测试输入")
+	if err != nil {
+		t.Errorf("PushRoundStarted() error = %v", err)
+	}
+}
+
+func TestPushSeelReplyStarted(t *testing.T) {
+	msg := &types.Message{
+		ID:        "melchior-123",
+		Type:      types.TypeMelchior,
+		Content:   "",
+		Status:    types.StatusStreaming,
+		Timestamp: 1234567890,
+	}
+	err := PushSeelReplyStarted("test-session", "round-1", "melchior", "Melchior", "测试输入", msg)
+	if err != nil {
+		t.Errorf("PushSeelReplyStarted() error = %v", err)
+	}
+}
+
+func TestPushSeelReplyChunk(t *testing.T) {
+	msg := &types.Message{
+		ID:        "melchior-123",
+		Type:      types.TypeMelchior,
+		Content:   "部分内容",
+		Status:    types.StatusStreaming,
+		Timestamp: 1234567890,
+	}
+	err := PushSeelReplyChunk("test-session", "round-1", "melchior", "Melchior", msg)
+	if err != nil {
+		t.Errorf("PushSeelReplyChunk() error = %v", err)
+	}
+}
+
+func TestPushSeelReplyCompleted(t *testing.T) {
+	msg := &types.Message{
+		ID:        "melchior-123",
+		Type:      types.TypeMelchior,
+		Content:   "完整内容",
+		Status:    types.StatusSuccess,
+		Timestamp: 1234567890,
+		Meta: map[string]interface{}{
+			"requiresDeliberation": true,
+			"reason":               "需要审慎决策",
+		},
+	}
+	err := PushSeelReplyCompleted("test-session", "round-1", "melchior", "Melchior", msg)
+	if err != nil {
+		t.Errorf("PushSeelReplyCompleted() error = %v", err)
+	}
+}
+
+func TestPushSeelReplyFailed(t *testing.T) {
+	err := PushSeelReplyFailed("test-session", "round-1", "balthazar", "Balthazar", "请求超时")
+	if err != nil {
+		t.Errorf("PushSeelReplyFailed() error = %v", err)
+	}
+}
+
+func TestPushVotingStart(t *testing.T) {
+	err := PushVotingStart("test-session", "round-1", "提议的行动方案", 1)
+	if err != nil {
+		t.Errorf("PushVotingStart() error = %v", err)
+	}
+}
+
+func TestPushVotingProgress(t *testing.T) {
+	err := PushVotingProgress("test-session", "round-1", "balthazar", "Balthazar", types.VoteApprove, 50)
+	if err != nil {
+		t.Errorf("PushVotingProgress() error = %v", err)
+	}
+}
+
+func TestPushVotingResult(t *testing.T) {
+	details := []VoteDetail{
+		{Name: "Balthazar", Decision: "批准"},
+		{Name: "Casper", Decision: "批准"},
+	}
+	err := PushVotingResult("test-session", "round-1", details)
+	if err != nil {
+		t.Errorf("PushVotingResult() error = %v", err)
+	}
+}
+
+func TestPushVotingFailed(t *testing.T) {
+	err := PushVotingFailed("test-session", "round-1", "投票超时", 50)
+	if err != nil {
+		t.Errorf("PushVotingFailed() error = %v", err)
+	}
+}
+
+func TestPushTrinitySynthesisCompleted(t *testing.T) {
+	err := PushTrinitySynthesisCompleted("test-session", "round-1", "Trinity统合内容")
+	if err != nil {
+		t.Errorf("PushTrinitySynthesisCompleted() error = %v", err)
+	}
+}
+
+func TestPushConsensusEmitted(t *testing.T) {
+	msg := &types.Message{
+		ID:        "consensus-123",
+		Type:      types.TypeConsensus,
+		Content:   "最终共识",
+		Status:    types.StatusSuccess,
+		Timestamp: 1234567890,
+	}
+	err := PushConsensusEmitted("test-session", "round-1", msg)
+	if err != nil {
+		t.Errorf("PushConsensusEmitted() error = %v", err)
+	}
+}
+
+func TestPushRoundFailed(t *testing.T) {
+	err := PushRoundFailed("test-session", "round-1", "决策流程失败")
+	if err != nil {
+		t.Errorf("PushRoundFailed() error = %v", err)
+	}
+}
+
+func TestEventIDGeneration(t *testing.T) {
+	id1 := generateEventID()
+	id2 := generateEventID()
+	if id1 == id2 {
+		t.Error("generateEventID() should generate unique IDs")
+	}
+}

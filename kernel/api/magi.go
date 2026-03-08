@@ -2,7 +2,7 @@ package api
 
 import (
 	"context"
-	"io"
+	"errors"
 	"net/http"
 	"sync"
 	"time"
@@ -13,14 +13,26 @@ import (
 	"github.com/sashabaranov/go-openai"
 	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/model"
-	"github.com/siyuan-note/siyuan/kernel/util"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/coordinator"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/llm"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/session"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
 )
 
 // MagiRequest 代表一个入队的任务请求
 type MagiRequest struct {
-	Ctx      *gin.Context
-	Req      openai.ChatCompletionRequest
-	DoneChan chan struct{}
+	Req        openai.ChatCompletionRequest
+	SessionID  string
+	SourceCtx  *types.RequestSourceContext
+	ResultChan chan MagiTaskResult
+}
+
+// MagiTaskResult 队列任务处理结果
+type MagiTaskResult struct {
+	ConsensusMsg *types.Message
+	Err          error
 }
 
 const (
@@ -30,14 +42,66 @@ const (
 )
 
 var (
-	magiQueue = make(chan *MagiRequest, 100) // 简易缓冲区，后续按需演进为优先级队列
-	onceMagi  sync.Once
+	magiQueue       = make(chan *MagiRequest, 100) // 简易缓冲区，后续按需演进为优先级队列
+	onceMagi        sync.Once
+	magiSessionMgr  *session.SessionManager
+	magiSourceSID   sync.Map // sourceSessionKey -> sessionID
+	magiCoordinator *coordinator.Coordinator
+	magiConfigMgr   *config.ConfigManager
+	magiMelchior    *sages.Sage
+	magiBalthazar   *sages.Sage
+	magiCasper      *sages.Sage
+	magiTrinity     *sages.Sage
+	magiInitErr     error
 )
 
 func initMagiCron() {
 	onceMagi.Do(func() {
+		// 初始化 MAGI 组件
+		if err := initMagiComponents(); err != nil {
+			logging.LogErrorf("初始化MAGI组件失败: %v", err)
+			magiInitErr = err
+		}
 		go magiDispatcher()
 	})
+}
+
+// initMagiComponents 初始化MAGI核心组件
+func initMagiComponents() error {
+	// 创建配置管理器（使用默认配置）
+	magiConfigMgr = config.NewConfigManager("")
+
+	// 创建 LLM 客户端（从全局配置）
+	llmClient := llm.NewClientFromConf(model.Conf.AI.OpenAI)
+
+	// 创建四个 Sage 实例
+	var err error
+	magiMelchior, err = sages.NewMelchior(magiConfigMgr, llmClient)
+	if err != nil {
+		return err
+	}
+	magiBalthazar, err = sages.NewBalthazar(magiConfigMgr, llmClient)
+	if err != nil {
+		return err
+	}
+	magiCasper, err = sages.NewCasper(magiConfigMgr, llmClient)
+	if err != nil {
+		return err
+	}
+	magiTrinity, err = sages.NewTrinity(magiConfigMgr, llmClient)
+	if err != nil {
+		return err
+	}
+
+	// 创建 SessionManager（30分钟超时）
+	magiSessionMgr = session.NewSessionManager(30 * time.Minute)
+	magiSessionMgr.StartCleanup(5 * time.Minute)
+
+	// 创建 Coordinator（30秒收集超时）
+	magiCoordinator = coordinator.NewCoordinator(30 * time.Second)
+
+	logging.LogInfof("MAGI组件初始化完成")
+	return nil
 }
 
 // magiDispatcher 扮演内部单线程 Cron 调度器的雏形。
@@ -45,7 +109,9 @@ func initMagiCron() {
 func magiDispatcher() {
 	for reqTask := range magiQueue {
 		// 取出任务后，转交实际处理逻辑（此处为同步阻塞执行该任务）
-		handleMagiTask(reqTask)
+		result := handleMagiTask(reqTask)
+		reqTask.ResultChan <- result
+		close(reqTask.ResultChan)
 	}
 }
 
@@ -65,101 +131,180 @@ func magiChat(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	if req.Model == "" {
+		req.Model = model.Conf.AI.OpenAI.APIModel
+	}
+
+	sourceCtx, authErr := resolveOpenAISourceContext(c, &req)
+	if authErr != nil {
+		writeMagiSourceAuthError(c, authErr)
+		return
+	}
 
 	logging.LogInfof("magiChat received request: model=[%s] stream=[%v] msgs_count=[%d]", req.Model, req.Stream, len(req.Messages))
 
-	// 封装信封入队（此处为外部直接 Chat 对话）
-	// TTT 第一阶段需求：封装但暂不在信封处理过深，确保成功排队与唤回
+	consensusMsg, err := submitMagiTask(c, req, sourceCtx)
+	if err != nil {
+		writeMagiTaskError(c, err)
+		return
+	}
+
+	modelName := req.Model
+
+	if req.Stream {
+		sendStreamResponse(c, consensusMsg, modelName)
+	} else {
+		sendSyncResponse(c, consensusMsg, modelName)
+	}
+}
+
+func submitMagiTask(c *gin.Context, req openai.ChatCompletionRequest, sourceCtx *types.RequestSourceContext) (*types.Message, error) {
 	task := &MagiRequest{
-		Ctx:      c,
-		Req:      req,
-		DoneChan: make(chan struct{}),
+		Req:        req,
+		SessionID:  getOrCreateSession(c, sourceCtx),
+		SourceCtx:  sourceCtx,
+		ResultChan: make(chan MagiTaskResult, 1),
 	}
 
 	select {
 	case magiQueue <- task:
-		// 等待调度器消费完本任务
-		<-task.DoneChan
 	case <-c.Request.Context().Done():
-		// 客户端断开连接
-		return
+		return nil, c.Request.Context().Err()
 	case <-time.After(30 * time.Second): // 简易排队超时防卡死
-		c.JSON(http.StatusTooManyRequests, gin.H{"error": "Magi queue is full or processing too slow"})
+		return nil, errors.New("magi queue is full or processing too slow")
+	}
+
+	select {
+	case result := <-task.ResultChan:
+		return result.ConsensusMsg, result.Err
+	case <-c.Request.Context().Done():
+		return nil, c.Request.Context().Err()
+	case <-time.After(120 * time.Second):
+		return nil, errors.New("magi task wait timeout")
 	}
 }
 
-func handleMagiTask(task *MagiRequest) {
-	defer close(task.DoneChan)
+func writeMagiTaskError(c *gin.Context, err error) {
+	if err == nil {
+		return
+	}
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return
+	}
+	if coordinator.IsAvatarUnavailable(err) {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+	if coordinator.IsAvatarDispatchRequired(err) {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": err.Error()})
+		return
+	}
+	if err.Error() == "no user message found" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if err.Error() == "magi queue is full or processing too slow" {
+		c.JSON(http.StatusTooManyRequests, gin.H{"error": err.Error()})
+		return
+	}
+	if err.Error() == "magi task wait timeout" {
+		c.JSON(http.StatusGatewayTimeout, gin.H{"error": err.Error()})
+		return
+	}
+	logging.LogErrorf("MAGI任务处理失败: %v", err)
+	c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+}
 
+func handleMagiTask(task *MagiRequest) MagiTaskResult {
 	req := task.Req
-	c := task.Ctx
 
-	// 抽出 messages 到 msg 和 contextMsgs
-	msg, contextMsgs := extractMessagesToContext(req.Messages)
-
-	// 获取思源已配置的 OpenAI Client
-	client := util.NewOpenAIClient(
-		model.Conf.AI.OpenAI.APIKey,
-		model.Conf.AI.OpenAI.APIProxy,
-		model.Conf.AI.OpenAI.APIBaseURL,
-		model.Conf.AI.OpenAI.APIUserAgent,
-		model.Conf.AI.OpenAI.APIVersion,
-		model.Conf.AI.OpenAI.APIProvider,
-	)
-
-	// 根据是否 Stream 分发
-	if req.Stream {
-		magiChatStream(c, msg, contextMsgs, client, req)
-	} else {
-		magiChatSync(c, msg, contextMsgs, client, req)
-	}
-}
-
-func extractMessagesToContext(messages []openai.ChatCompletionMessage) (msg string, contextMsgs []string) {
-	if len(messages) == 0 {
-		return "", nil
+	// 检查初始化错误
+	if magiInitErr != nil {
+		return MagiTaskResult{Err: errors.New("MAGI system not initialized: " + magiInitErr.Error())}
 	}
 
-	// 取最后一条 role=user 的作为 msg
-	for i := len(messages) - 1; i >= 0; i-- {
-		if messages[i].Role == openai.ChatMessageRoleUser {
-			msg = messages[i].Content
-			// 将之前的转为 context
-			for j := 0; j < i; j++ {
-				// 组装格式以兼容 util.ChatGPT 预期（奇数为 user，偶数为 assistant）
-				contextMsgs = append(contextMsgs, messages[j].Content)
-			}
-			return
-		}
+	// 提取用户消息
+	userMessage := extractUserMessage(req.Messages)
+	if userMessage == "" {
+		return MagiTaskResult{Err: errors.New("no user message found")}
 	}
 
-	// 兜底：如果没找到 user，把最后一条内容本身当作输入
-	msg = messages[len(messages)-1].Content
-	return
-}
+	// 调用 Coordinator 执行决策
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
 
-func magiChatSync(c *gin.Context, msg string, contextMsgs []string, client *openai.Client, req openai.ChatCompletionRequest) {
-	// 调用现成 util (对应 `model.OpenAIGPT.chat`)
-	modelName := req.Model
-	if modelName == "" {
-		modelName = model.Conf.AI.OpenAI.APIModel
-	}
-
-	partRet, stop, err := util.ChatGPT(
-		msg, contextMsgs, client, modelName,
-		model.Conf.AI.OpenAI.APIMaxTokens, model.Conf.AI.OpenAI.APITemperature, model.Conf.AI.OpenAI.APITimeout,
-		model.Conf.AI.OpenAI.APIProvider, model.Conf.AI.OpenAI.APIKey, model.Conf.AI.OpenAI.APIProxy, model.Conf.AI.OpenAI.APIBaseURL,
+	consensusMsg, err := magiCoordinator.CoordinateDecision(
+		ctx,
+		task.SessionID,
+		magiMelchior,
+		magiBalthazar,
+		magiCasper,
+		magiTrinity,
+		userMessage,
+		task.SourceCtx,
 	)
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+		return MagiTaskResult{Err: err}
+	}
+	return MagiTaskResult{ConsensusMsg: consensusMsg}
+}
+
+// extractUserMessage 从消息列表中提取用户消息
+func extractUserMessage(messages []openai.ChatCompletionMessage) string {
+	if len(messages) == 0 {
+		return ""
 	}
 
-	if stop {
-		// 被阻断
+	// 取最后一条 role=user 的消息
+	for i := len(messages) - 1; i >= 0; i-- {
+		if messages[i].Role == openai.ChatMessageRoleUser {
+			return messages[i].Content
+		}
 	}
 
+	// 兜底：返回最后一条消息内容
+	return messages[len(messages)-1].Content
+}
+
+// getOrCreateSession 获取或创建会话ID
+func getOrCreateSession(c *gin.Context, sourceCtx *types.RequestSourceContext) string {
+	// 尝试从请求头获取 session ID
+	sessionID := c.GetHeader("X-MAGI-Session-ID")
+	if sessionID != "" {
+		if _, ok := magiSessionMgr.GetSession(sessionID); ok {
+			magiSessionMgr.UpdateActivity(sessionID)
+			return sessionID
+		}
+	}
+
+	// 尝试从来源会话键恢复固定会话
+	if sourceCtx != nil && sourceCtx.SourceSessionKey != "" {
+		if mappedID, ok := magiSourceSID.Load(sourceCtx.SourceSessionKey); ok {
+			if existingID, castOK := mappedID.(string); castOK {
+				if _, sessionOK := magiSessionMgr.GetSession(existingID); sessionOK {
+					magiSessionMgr.UpdateActivity(existingID)
+					return existingID
+				}
+			}
+			magiSourceSID.Delete(sourceCtx.SourceSessionKey)
+		}
+	}
+
+	// 创建新会话
+	userID := "default-user"
+	if sourceCtx != nil && sourceCtx.PrincipalID != "" {
+		userID = sourceCtx.PrincipalID
+	}
+	session := magiSessionMgr.CreateSession(userID)
+	if sourceCtx != nil && sourceCtx.SourceSessionKey != "" {
+		magiSourceSID.Store(sourceCtx.SourceSessionKey, session.ID)
+	}
+	return session.ID
+}
+
+// sendSyncResponse 发送同步响应
+func sendSyncResponse(c *gin.Context, msg *types.Message, modelName string) {
 	resp := openai.ChatCompletionResponse{
 		ID:      "chatcmpl-magi-" + gulu.Rand.String(12),
 		Object:  "chat.completion",
@@ -170,7 +315,7 @@ func magiChatSync(c *gin.Context, msg string, contextMsgs []string, client *open
 				Index: 0,
 				Message: openai.ChatCompletionMessage{
 					Role:    openai.ChatMessageRoleAssistant,
-					Content: partRet,
+					Content: msg.Content,
 				},
 				FinishReason: "stop",
 			},
@@ -180,73 +325,60 @@ func magiChatSync(c *gin.Context, msg string, contextMsgs []string, client *open
 	c.JSON(http.StatusOK, resp)
 }
 
-func magiChatStream(c *gin.Context, msg string, contextMsgs []string, client *openai.Client, req openai.ChatCompletionRequest) {
-	modelName := req.Model
-	if modelName == "" {
-		modelName = model.Conf.AI.OpenAI.APIModel
-	}
-
-	// Claude provider 走原生 go-anthropic/v2 流式接口
-	if model.Conf.AI.OpenAI.APIProvider == "Claude" {
-		logging.LogInfof("magiChatStream dispatching to Claude native stream for model=[%s]", modelName)
-		err := util.CallClaudeChatCompletionStreamMagi(
-			c, req.Messages, req.Tools, modelName,
-			model.Conf.AI.OpenAI.APIMaxTokens,
-			model.Conf.AI.OpenAI.APITemperature,
-			model.Conf.AI.OpenAI.APITimeout,
-			model.Conf.AI.OpenAI.APIKey,
-			model.Conf.AI.OpenAI.APIProxy,
-			model.Conf.AI.OpenAI.APIBaseURL,
-		)
-		if err != nil {
-			logging.LogErrorf("magiChatStream Claude stream failed: %s", err)
-		}
-		return
-	}
-
-	// OpenAI 及其兼容协议走 go-openai 原生流式
+// sendStreamResponse 发送流式响应
+func sendStreamResponse(c *gin.Context, msg *types.Message, modelName string) {
 	c.Header("Content-Type", "text/event-stream")
 	c.Header("Cache-Control", "no-cache")
 	c.Header("Connection", "keep-alive")
 	c.Header("Transfer-Encoding", "chunked")
 
-	// OpenAI 分支的 modelName 已在上方声明，此处无需重复
+	// 分块发送内容
+	content := msg.Content
+	chunkSize := 10 // 每次发送10个字符
+	chunkID := "chatcmpl-magi-" + gulu.Rand.String(12)
 
-	// 重新拼装为 OpenAI 标准请求体打给底层，这里复原了刚才拆出来的历史
-	streamReq := openai.ChatCompletionRequest{
-		Model:       modelName,
-		Messages:    req.Messages, // 透传原始 messages 下去
-		MaxTokens:   model.Conf.AI.OpenAI.APIMaxTokens,
-		Temperature: float32(model.Conf.AI.OpenAI.APITemperature),
-		Stream:      true,
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(model.Conf.AI.OpenAI.APITimeout)*time.Second)
-	defer cancel()
-
-	stream, err := client.CreateChatCompletionStream(ctx, streamReq)
-	if err != nil {
-		logging.LogErrorf("magiChatStream CreateChatCompletionStream failed: %s", err)
-		c.SSEvent("error", err.Error())
-		return
-	}
-	defer stream.Close()
-
-	logging.LogInfof("magiChatStream connection established, starting loop...")
-
-	chunkCount := 0
-	c.Stream(func(w io.Writer) bool {
-		response, err := stream.Recv()
-		if err != nil {
-			logging.LogInfof("magiChatStream stream ended or err: %v. Total parsed chunks: %d", err, chunkCount)
-			// io.EOF or others
-			c.Render(-1, sse.Event{Data: "[DONE]"})
-			return false
+	for i := 0; i < len(content); i += chunkSize {
+		end := i + chunkSize
+		if end > len(content) {
+			end = len(content)
 		}
-		chunkCount++
-		c.Render(-1, sse.Event{Data: response})
-		return true // 继续循环
-	})
+
+		chunk := openai.ChatCompletionStreamResponse{
+			ID:      chunkID,
+			Object:  "chat.completion.chunk",
+			Created: time.Now().Unix(),
+			Model:   modelName,
+			Choices: []openai.ChatCompletionStreamChoice{
+				{
+					Index: 0,
+					Delta: openai.ChatCompletionStreamChoiceDelta{
+						Content: content[i:end],
+					},
+				},
+			},
+		}
+
+		c.Render(-1, sse.Event{Data: chunk})
+		c.Writer.Flush()
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	// 发送结束标记
+	finalChunk := openai.ChatCompletionStreamResponse{
+		ID:      chunkID,
+		Object:  "chat.completion.chunk",
+		Created: time.Now().Unix(),
+		Model:   modelName,
+		Choices: []openai.ChatCompletionStreamChoice{
+			{
+				Index:        0,
+				Delta:        openai.ChatCompletionStreamChoiceDelta{},
+				FinishReason: "stop",
+			},
+		},
+	}
+	c.Render(-1, sse.Event{Data: finalChunk})
+	c.Render(-1, sse.Event{Data: "[DONE]"})
 }
 
 func magiListModels(c *gin.Context) {
