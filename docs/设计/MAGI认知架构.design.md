@@ -179,7 +179,7 @@ type VoteResult struct {
 4.  **Action (行动)**: Trinity 指挥 Shell 执行工具。
 5.  **Global Broadcast (全局广播 - Feedback Loop)**:
     -   Trinity 的 **Self-Description** 被广播给三贤人，决定它们 **下一轮的状态**。
-    -   **Polarity (极性)**: 取决于当前 **SyncRate**。
+    -   **Polarity (极性)**: 取决于当前 **SyncRate**（该阈值用于调节方向，不等同于健康分区阈值）。
         -   **SyncRate <= 100% (Positive Modulation)**: 正向调节。Trinity 的情绪/状态 **增强** 三贤人的倾向 (e.g. Trinity 兴奋 -> Balthazar 更兴奋)。
         -   **SyncRate > 100% (Negative Modulation)**: 负向调节 (Damping)。Trinity 的状态 **抑制/反转** 三贤人的倾向 (e.g. Trinity 过于亢奋 -> 强制 Balthazar 冷静)，以打破回声室效应，防止溶解。
     -   **Modulation Target**:
@@ -211,20 +211,21 @@ type VoteResult struct {
 #### 5.1.2 Synchronization Rate (同步率) & ATF Strength (绝对领域强度)
 
 > **Detailed Math Model**: [ATF数学模型.design.md](ATF数学模型.design.md)
+> **口径统一**: 同步率健康分区阈值以 `ATF数学模型.design.md` §3.5 为准（`0.7 / 1.3`）。
 
 ATF 的强度与同步率 ($\rho$) 呈 **钟形曲线 (Bell Curve)** 关系，峰值在 $\rho = 1.0$。
 
-1.  **Dispersion Zone ($\rho < 0.4$)**:
-    -   **State**: 离散 (Unformed).
-    -   **ATF**: Low (Normal).
+1.  **Dispersion Zone ($\rho < 0.7$)**:
+    -   **State**: 离散/漂移 (Dispersion/Drift).
+    -   **ATF**: 偏低，系统整合不足，边界变薄。
 
-2.  **Resonance Zone ($0.4 \le \rho \le 1.0$)**:
+2.  **Resonance Zone ($0.7 \le \rho \le 1.3$)**:
     -   **State**: 共鸣 (Resonant).
-    -   **ATF**: Rising to Peak.
+    -   **ATF**: 健康区间，$\rho = 1.0$ 附近达到峰值。
 
-3.  **Dissolution Zone ($\rho > 1.0$)**:
+3.  **Dissolution Zone ($\rho > 1.3$)**:
     -   **State**: 溶解 (Dissolving).
-    -   **ATF**: **Dropping** (Critical). 当 $\rho$ 过高时，系统因失去多样性而崩溃。
+    -   **ATF**: **Dropping** (Critical). 过度一致性导致多样性丧失并加速溶解。
 
 ### 5.3 越权申请与暴走模式 (Authorization & Berserk Mode)
 

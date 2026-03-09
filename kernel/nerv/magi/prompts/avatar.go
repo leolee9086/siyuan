@@ -34,7 +34,8 @@ func BuildAvatarCreationKnowledgeBase(
 
 // BuildMelchiorBuildAvatarTask 构建 Melchior 的 buildAvatar 工具任务输入。
 func BuildMelchiorBuildAvatarTask(knowledgeBase string) string {
-	return fmt.Sprintf(`你是 Avatar 创建发起者。
+	return fmt.Sprintf(`现在有一个avatar需要被创建,你需要起草一个系统提示词来指导这个avatar的行为。
+你可以根据传入的信息,判断化身所需要的能力和特征,并将这些内容整合到系统提示词中,以确保化身能够正确地理解和执行它的任务。
 你必须调用工具 buildAvatar，禁止输出普通文本。
 
 %s

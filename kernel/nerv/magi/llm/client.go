@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"time"
 
 	"github.com/sashabaranov/go-openai"
@@ -103,6 +104,18 @@ func (c *openaiClient) SendChatRequest(ctx context.Context, messages []types.Con
 		for {
 			response, err := stream.Recv()
 			if err != nil {
+				if err == io.EOF {
+					return
+				}
+				// 将流错误显式透传给上游，避免静默吞掉失败。
+				select {
+				case chunkChan <- types.StreamChunk{
+					ID:     err.Error(),
+					Object: "error",
+					Model:  c.config.APIModel,
+				}:
+				case <-ctx.Done():
+				}
 				return
 			}
 

@@ -11,6 +11,8 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/llm"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/prompts"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
+	"github.com/siyuan-note/siyuan/kernel/nerv/marduk"
+	"github.com/siyuan-note/siyuan/kernel/util"
 )
 
 // ContextManager 上下文管理器接口
@@ -31,6 +33,7 @@ type Sage struct {
 	contextManager ContextManager
 	systemPrompt   string
 	tools          []openai.Tool
+	profile        *marduk.IpipPersonaProfile
 }
 
 // NewSage 创建贤者实例
@@ -149,7 +152,7 @@ func (s *Sage) buildRequestMessages(history []types.ContextMessage) []types.Cont
 	if !prompts.IsCoreSage(s.name) {
 		return history
 	}
-	wakeup := prompts.BuildWakeupSequence(s.name)
+	wakeup := prompts.BuildWakeupSequence(util.DataDir, s.name, s.profile)
 	if len(wakeup) == 0 {
 		return history
 	}
@@ -233,7 +236,9 @@ func NewMelchior(cfgManager *config.ConfigManager, client llm.Client) (*Sage, er
 	}
 
 	strategy := cfgManager.GetContextStrategy("melchior")
-	return NewSage("melchior", cfg, client, strategy), nil
+	sage := NewSage("melchior", cfg, client, strategy)
+	sage.profile = getPersonaProfileFromConfigManager(cfgManager)
+	return sage, nil
 }
 
 // NewBalthazar 创建Balthazar实例
@@ -244,7 +249,9 @@ func NewBalthazar(cfgManager *config.ConfigManager, client llm.Client) (*Sage, e
 	}
 
 	strategy := cfgManager.GetContextStrategy("balthazar")
-	return NewSage("balthazar", cfg, client, strategy), nil
+	sage := NewSage("balthazar", cfg, client, strategy)
+	sage.profile = getPersonaProfileFromConfigManager(cfgManager)
+	return sage, nil
 }
 
 // NewCasper 创建Casper实例
@@ -255,7 +262,9 @@ func NewCasper(cfgManager *config.ConfigManager, client llm.Client) (*Sage, erro
 	}
 
 	strategy := cfgManager.GetContextStrategy("casper")
-	return NewSage("casper", cfg, client, strategy), nil
+	sage := NewSage("casper", cfg, client, strategy)
+	sage.profile = getPersonaProfileFromConfigManager(cfgManager)
+	return sage, nil
 }
 
 // NewTrinity 创建Trinity实例
@@ -266,5 +275,19 @@ func NewTrinity(cfgManager *config.ConfigManager, client llm.Client) (*Sage, err
 	}
 
 	strategy := cfgManager.GetContextStrategy("trinity")
-	return NewSage("trinity", cfg, client, strategy), nil
+	sage := NewSage("trinity", cfg, client, strategy)
+	sage.profile = getPersonaProfileFromConfigManager(cfgManager)
+	return sage, nil
+}
+
+func getPersonaProfileFromConfigManager(cfgManager *config.ConfigManager) *marduk.IpipPersonaProfile {
+	if cfgManager == nil {
+		return nil
+	}
+
+	raw := cfgManager.GetPersonaProfile()
+	if profile, ok := raw.(*marduk.IpipPersonaProfile); ok {
+		return profile
+	}
+	return nil
 }

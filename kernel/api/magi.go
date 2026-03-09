@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -19,6 +20,8 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/session"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
+	"github.com/siyuan-note/siyuan/kernel/nerv/marduk"
+	"github.com/siyuan-note/siyuan/kernel/util"
 )
 
 // MagiRequest 代表一个入队的任务请求
@@ -71,11 +74,28 @@ func initMagiComponents() error {
 	// 创建配置管理器（使用默认配置）
 	magiConfigMgr = config.NewConfigManager("")
 
+	// 从Marduk加载人格档案
+	profile, isComplete, presetName, err := marduk.InitializeMAGIWithPersona()
+	if err != nil {
+		logging.LogWarnf("加载Marduk人格档案失败: %v，MAGI将使用默认配置", err)
+	} else {
+		// 将人格档案传递给ConfigManager
+		magiConfigMgr.SetPersonaProfile(profile)
+
+		if !isComplete && presetName != "" {
+			// 使用了预设人格，推送WebSocket通知
+			msg := fmt.Sprintf("人格档案不完整，当前由预设人格 %s 负责回答，请完善人格档案", presetName)
+			util.PushMsg(msg, 7000)
+			logging.LogInfof("MAGI使用预设人格: %s", presetName)
+		} else if isComplete {
+			logging.LogInfof("MAGI已加载完整人格档案")
+		}
+	}
+
 	// 创建 LLM 客户端（从全局配置）
 	llmClient := llm.NewClientFromConf(model.Conf.AI.OpenAI)
 
 	// 创建四个 Sage 实例
-	var err error
 	magiMelchior, err = sages.NewMelchior(magiConfigMgr, llmClient)
 	if err != nil {
 		return err

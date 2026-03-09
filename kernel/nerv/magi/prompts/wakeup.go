@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
+	"github.com/siyuan-note/siyuan/kernel/nerv/marduk"
 )
 
 const (
@@ -17,13 +18,13 @@ const (
 	wakeupAskIdentity          = "你是谁？请用第一人称回答。"
 	wakeupFinishedRequest      = "唤醒校准完成，请继续工作并响应当前任务。"
 	wakeupOutputTriggerRequest = "think stoped,action start"
-	wakeupProfileName          = "织"
-	wakeupProfileRole          = "当个好妹妹，努力赚钱"
-	wakeupProfileGender        = "女"
-	wakeupFirstPersonIdentity  = "我是织，女，当前职责是当个好妹妹，努力赚钱。我会以第一人称持续完成当前任务。"
+	wakeupDefaultName          = "丽"
+	wakeupDefaultGender        = "未说明"
+	wakeupDefaultRole          = "助手"
+	wakeupDefaultCareerGoal    = "完成当前任务"
 )
 
-// IsCoreSage 判断是否为 MAGI 核心四贤者。
+// 判断是否属于侧写角色或者trinity
 func IsCoreSage(name string) bool {
 	switch strings.ToLower(strings.TrimSpace(name)) {
 	case "melchior", "balthazar", "casper", "trinity":
@@ -34,7 +35,9 @@ func IsCoreSage(name string) bool {
 }
 
 // BuildWakeupSequence 构建固定唤醒序列。
-func BuildWakeupSequence(name string) []types.ContextMessage {
+func BuildWakeupSequence(dataDir, name string, profile *marduk.IpipPersonaProfile) []types.ContextMessage {
+	fields := resolveWakeupProfileFields(profile)
+	descriptions := marduk.ResolvePersonaSeedDescriptions(dataDir, profile)
 	seq := []types.ContextMessage{
 		{
 			Role:    types.RoleSystem,
@@ -42,7 +45,7 @@ func BuildWakeupSequence(name string) []types.ContextMessage {
 		},
 		{
 			Role:    types.RoleAssistant,
-			Content: BuildSourcedMessageContent(wakeupEchoSource, wakeupProfileName),
+			Content: BuildSourcedMessageContent(wakeupEchoSource, fields.Name),
 		},
 		{
 			Role:    types.RoleSystem,
@@ -50,7 +53,7 @@ func BuildWakeupSequence(name string) []types.ContextMessage {
 		},
 		{
 			Role:    types.RoleAssistant,
-			Content: BuildSourcedMessageContent(wakeupEchoSource, wakeupProfileRole),
+			Content: BuildSourcedMessageContent(wakeupEchoSource, buildWakeupRole(fields.Role, fields.CareerGoal)),
 		},
 		{
 			Role:    types.RoleSystem,
@@ -58,7 +61,7 @@ func BuildWakeupSequence(name string) []types.ContextMessage {
 		},
 		{
 			Role:    types.RoleAssistant,
-			Content: BuildSourcedMessageContent(wakeupEchoSource, wakeupProfileGender),
+			Content: BuildSourcedMessageContent(wakeupEchoSource, fields.Gender),
 		},
 		{
 			Role:    types.RoleSystem,
@@ -66,7 +69,7 @@ func BuildWakeupSequence(name string) []types.ContextMessage {
 		},
 		{
 			Role:    types.RoleAssistant,
-			Content: BuildSourcedMessageContent(wakeupEchoSource, wakeupFirstPersonIdentity),
+			Content: BuildSourcedMessageContent(wakeupEchoSource, buildWakeupIdentity(name, fields, descriptions)),
 		},
 		{
 			Role:    types.RoleSystem,
@@ -85,4 +88,104 @@ func BuildWakeupSequence(name string) []types.ContextMessage {
 // BuildSourcedMessageContent 构建 source 标签包装消息。
 func BuildSourcedMessageContent(source, content string) string {
 	return fmt.Sprintf("<source=%s>\n%s\n</source>", source, content)
+}
+
+type wakeupProfileFields struct {
+	Name       string
+	Gender     string
+	Role       string
+	CareerGoal string
+}
+
+func resolveWakeupProfileFields(profile *marduk.IpipPersonaProfile) wakeupProfileFields {
+	resolved := wakeupProfileFields{
+		Name:       wakeupDefaultName,
+		Gender:     wakeupDefaultGender,
+		Role:       wakeupDefaultRole,
+		CareerGoal: wakeupDefaultCareerGoal,
+	}
+
+	if profile == nil {
+		profile = marduk.GetReiPreset()
+	}
+	if profile == nil {
+		return resolved
+	}
+
+	if name := strings.TrimSpace(profile.Subject.Name); name != "" {
+		resolved.Name = name
+	}
+	if profile.Subject.Gender != nil {
+		if gender := strings.TrimSpace(*profile.Subject.Gender); gender != "" {
+			resolved.Gender = gender
+		}
+	}
+	if profile.Subject.Role != nil {
+		if role := strings.TrimSpace(*profile.Subject.Role); role != "" {
+			resolved.Role = role
+		}
+	}
+	if profile.Subject.CareerGoal != nil {
+		if careerGoal := strings.TrimSpace(*profile.Subject.CareerGoal); careerGoal != "" {
+			resolved.CareerGoal = careerGoal
+		}
+	}
+	return resolved
+}
+
+func buildWakeupRole(role, careerGoal string) string {
+	role = strings.TrimSpace(role)
+	careerGoal = strings.TrimSpace(careerGoal)
+	switch {
+	case role != "" && careerGoal != "":
+		return fmt.Sprintf("%s；我的目标是%s", role, careerGoal)
+	case role != "":
+		return role
+	case careerGoal != "":
+		return fmt.Sprintf("我的目标是%s", careerGoal)
+	default:
+		return wakeupDefaultRole
+	}
+}
+
+func buildWakeupIdentity(sageName string, fields wakeupProfileFields, descriptions marduk.IpipPersonaSeedDescriptions) string {
+	if desc := strings.TrimSpace(selectWakeupDescriptionBySage(sageName, descriptions)); desc != "" {
+		return desc
+	}
+	// 描述为空，返回简单介绍
+	return fmt.Sprintf("我是%s，%s", fields.Name, fields.Gender)
+}
+
+func selectWakeupDescriptionBySage(sageName string, descriptions marduk.IpipPersonaSeedDescriptions) string {
+	lowerName := strings.ToLower(strings.TrimSpace(sageName))
+	switch lowerName {
+	case "melchior":
+		return descriptions.ProfessionalDescription
+	case "balthazar":
+		return descriptions.InstinctNeedsDescription
+	case "casper":
+		return descriptions.LifeDescription
+	case "trinity":
+		// Trinity包含整合描述和三个侧面描述
+		var parts []string
+		if desc := strings.TrimSpace(descriptions.IntegratedDescription); desc != "" {
+			parts = append(parts, desc)
+		}
+		if desc := strings.TrimSpace(descriptions.ProfessionalDescription); desc != "" {
+			parts = append(parts, desc)
+		}
+		if desc := strings.TrimSpace(descriptions.InstinctNeedsDescription); desc != "" {
+			parts = append(parts, desc)
+		}
+		if desc := strings.TrimSpace(descriptions.LifeDescription); desc != "" {
+			parts = append(parts, desc)
+		}
+		if len(parts) > 0 {
+			return strings.Join(parts, "\n\n")
+		}
+		return ""
+	default:
+		// 只有三贤人和trinity，其他情况报错
+		panic(fmt.Sprintf("invalid sage name: %s", sageName))
+	}
 }

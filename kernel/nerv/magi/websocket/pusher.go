@@ -17,6 +17,8 @@
 package websocket
 
 import (
+	"encoding/json"
+
 	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
@@ -53,6 +55,10 @@ func (p *Pusher) Push(sessionId string, eventType string, data map[string]interf
 	event.Data = payload
 	util.PushEvent(event)
 
-	logging.LogInfof("MAGI WebSocket push: sessionId=%s, eventType=%s", sessionId, eventType)
+	if payloadJSON, err := json.Marshal(payload); err == nil {
+		logging.LogInfof("MAGI WebSocket push payload=%s", payloadJSON)
+	} else {
+		logging.LogInfof("MAGI WebSocket push: sessionId=%s, eventType=%s", sessionId, eventType)
+	}
 	return nil
 }

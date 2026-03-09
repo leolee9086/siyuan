@@ -32,6 +32,7 @@ type ConfigManager struct {
 	contextStrategy map[string]*ContextStrategy
 	timeoutConfig   *TimeoutConfig
 	configPath      string
+	personaProfile  interface{} // 存储人格档案（类型为*marduk.IpipPersonaProfile，避免循环依赖）
 }
 
 // NewConfigManager 创建配置管理器
@@ -273,4 +274,18 @@ func ensureToolRegistered(agent *AgentConfig, tool ToolDef) {
 		}
 	}
 	agent.Tools = append(agent.Tools, tool)
+}
+
+// SetPersonaProfile 设置人格档案（由Marduk调用）
+func (cm *ConfigManager) SetPersonaProfile(profile interface{}) {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+	cm.personaProfile = profile
+}
+
+// GetPersonaProfile 获取人格档案
+func (cm *ConfigManager) GetPersonaProfile() interface{} {
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
+	return cm.personaProfile
 }

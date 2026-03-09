@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/siyuan-note/filelock"
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
 
@@ -24,9 +25,9 @@ func NewStorage(dataDir string) *Storage {
 
 // LoadSubmissionPayload 加载问卷提交载荷
 func (s *Storage) LoadSubmissionPayload(filePath string) (*IpipNeo120SubmissionPayload, error) {
-	fullPath := s.resolveFullPath(filePath)
+	fullPath := filepath.Clean(s.resolveFullPath(filePath))
 
-	data, err := os.ReadFile(fullPath)
+	data, err := filelock.ReadFile(fullPath)
 	if err != nil {
 		return nil, fmt.Errorf("读取文件失败: %w", err)
 	}
@@ -46,9 +47,9 @@ func (s *Storage) LoadSubmissionPayload(filePath string) (*IpipNeo120SubmissionP
 
 // LoadPersonaProfile 加载人格档案
 func (s *Storage) LoadPersonaProfile(filePath string) (*IpipPersonaProfile, error) {
-	fullPath := s.resolveFullPath(filePath)
+	fullPath := filepath.Clean(s.resolveFullPath(filePath))
 
-	data, err := os.ReadFile(fullPath)
+	data, err := filelock.ReadFile(fullPath)
 	if err != nil {
 		return nil, fmt.Errorf("读取文件失败: %w", err)
 	}
@@ -98,7 +99,9 @@ func (s *Storage) ListPersonaProfiles(subjectID string) ([]string, error) {
 func (s *Storage) resolveFullPath(relativePath string) string {
 	// 移除开头的 /data/
 	trimmed := strings.TrimPrefix(relativePath, "/data/")
-	return filepath.Join(s.dataDir, trimmed)
+	trimmed = strings.TrimLeft(trimmed, "/\\")
+	trimmed = filepath.FromSlash(trimmed)
+	return filepath.Clean(filepath.Join(s.dataDir, trimmed))
 }
 
 // GetDefaultStorage 获取默认存储实例（使用思源笔记的数据目录）

@@ -11,6 +11,7 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
+	"github.com/siyuan-note/siyuan/kernel/util"
 )
 
 type mockAvatarPipelineClient struct {
@@ -393,12 +394,54 @@ func TestBuildSourceAwareUserInput(t *testing.T) {
 		RiskLevel:     types.TrustLevelLow,
 	}
 
-	got := c.buildSourceAwareUserInput("你好", sourceCtx)
+	got := c.buildSourceAwareUserInput("session-source-aware", "你好", sourceCtx)
 	if got == "你好" {
 		t.Fatal("source-aware input should include request_source envelope")
 	}
 	if len(got) == 0 {
 		t.Fatal("source-aware input should not be empty")
+	}
+	if !strings.Contains(got, "<runtime_clock>") {
+		t.Fatal("source-aware input should include runtime_clock envelope")
+	}
+	if !strings.Contains(got, "<request_source>") {
+		t.Fatal("source-aware input should include request_source envelope")
+	}
+}
+
+func TestBuildSourceAwareUserInputInjectsWorkspaceSnapshotEveryNrounds(t *testing.T) {
+	c := NewCoordinator(30 * time.Second)
+	originalWorkspaceDir := util.WorkspaceDir
+	originalWorkspaceName := util.WorkspaceName
+	t.Cleanup(func() {
+		util.WorkspaceDir = originalWorkspaceDir
+		util.WorkspaceName = originalWorkspaceName
+	})
+
+	util.WorkspaceDir = t.TempDir()
+	util.WorkspaceName = "test-workspace"
+
+	sourceCtx := &types.RequestSourceContext{
+		Channel:       types.SourceChannelGuardian,
+		PrincipalID:   "principal-a",
+		InterfaceID:   "main-ui",
+		InterfaceKind: "magi-main-ui",
+		TrustBase:     types.TrustLevelHigh,
+		RiskLevel:     types.TrustLevelLow,
+	}
+
+	for i := 1; i <= int(defaultWorkspaceSnapshotInterval); i++ {
+		got := c.buildSourceAwareUserInput("session-workspace", "你好", sourceCtx)
+		hasWorkspace := strings.Contains(got, "<workspace_snapshot>")
+		if i == int(defaultWorkspaceSnapshotInterval) {
+			if !hasWorkspace {
+				t.Fatalf("round %d expected workspace_snapshot envelope", i)
+			}
+			continue
+		}
+		if hasWorkspace {
+			t.Fatalf("round %d should not include workspace_snapshot envelope", i)
+		}
 	}
 }
 

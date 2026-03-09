@@ -5,6 +5,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/siyuan-note/logging"
@@ -17,6 +21,8 @@ import (
 
 var ErrAvatarDispatchRequired = errors.New("source requires avatar dispatch and direct MAGI response is disabled")
 
+const defaultWorkspaceSnapshotInterval uint64 = 5
+
 // IsAvatarDispatchRequired 判断错误是否为“仅允许Avatar路径”的路由阻断。
 func IsAvatarDispatchRequired(err error) bool {
 	return errors.Is(err, ErrAvatarDispatchRequired)
@@ -27,6 +33,10 @@ type Coordinator struct {
 	collector *ResponseCollector
 	trinity   *TrinityCoordinator
 	avatar    *AvatarRuntime
+
+	runtimeMu                 sync.Mutex
+	roundBySession            map[string]uint64
+	workspaceSnapshotInterval uint64
 }
 
 // NewCoordinator 创建决策协调器
@@ -35,6 +45,9 @@ func NewCoordinator(collectionTimeout time.Duration) *Coordinator {
 		collector: NewResponseCollector(collectionTimeout),
 		trinity:   NewTrinityCoordinator(),
 		avatar:    NewAvatarRuntime(),
+
+		roundBySession:            map[string]uint64{},
+		workspaceSnapshotInterval: defaultWorkspaceSnapshotInterval,
 	}
 }
 
@@ -59,7 +72,7 @@ func (c *Coordinator) CoordinateDecision(
 		logging.LogWarnf("推送轮次开始失败: %v", err)
 	}
 
-	sourceAwareUserInput := c.buildSourceAwareUserInput(userMessage, sourceCtx)
+	sourceAwareUserInput := c.buildSourceAwareUserInput(sessionId, userMessage, sourceCtx)
 
 	// 非绝对可信来源优先走 Avatar 路径：若无绑定则创建，有绑定则复用直答。
 	if sourceCtx != nil && !sourceCtx.DirectResponseAllowed {
@@ -206,6 +219,7 @@ func (c *Coordinator) executeVoting(
 // buildRejectionMessage 构建否决消息
 func (c *Coordinator) buildRejectionMessage() *types.Message {
 	return &types.Message{
+		ID:        "consensus-" + util.RandString(12),
 		Type:      types.TypeConsensus,
 		Content:   "经过审慎决策，该提案未获得通过。",
 		Status:    types.StatusSuccess,
@@ -263,6 +277,7 @@ func (c *Coordinator) buildConsensusMessage(
 	}
 
 	return &types.Message{
+		ID:        "consensus-" + util.RandString(12),
 		Type:      types.TypeConsensus,
 		Content:   trinityResult.Content,
 		Status:    types.StatusSuccess,
@@ -271,10 +286,12 @@ func (c *Coordinator) buildConsensusMessage(
 	}
 }
 
-func (c *Coordinator) buildSourceAwareUserInput(userMessage string, sourceCtx *types.RequestSourceContext) string {
+func (c *Coordinator) buildSourceAwareUserInput(sessionID, userMessage string, sourceCtx *types.RequestSourceContext) string {
 	if sourceCtx == nil {
 		return userMessage
 	}
+
+	roundOrdinal := c.nextRoundOrdinal(sessionID)
 
 	payload := map[string]interface{}{
 		"channel":       sourceCtx.Channel,
@@ -285,5 +302,92 @@ func (c *Coordinator) buildSourceAwareUserInput(userMessage string, sourceCtx *t
 		"interface":     sourceCtx.InterfaceID,
 		"interfaceKind": sourceCtx.InterfaceKind,
 	}
-	return prompts.BuildSourceAwareUserInput(userMessage, payload)
+
+	runtimeClock := c.buildRuntimeClockPayload(roundOrdinal)
+	workspaceSnapshot := c.buildWorkspaceSnapshotPayload(roundOrdinal, sourceCtx)
+	return prompts.BuildSourceAwareUserInputWithRuntime(userMessage, payload, runtimeClock, workspaceSnapshot)
+}
+
+func (c *Coordinator) nextRoundOrdinal(sessionID string) uint64 {
+	key := strings.TrimSpace(sessionID)
+	if key == "" {
+		key = "__magi_anonymous_session__"
+	}
+
+	c.runtimeMu.Lock()
+	defer c.runtimeMu.Unlock()
+
+	next := c.roundBySession[key] + 1
+	c.roundBySession[key] = next
+	return next
+}
+
+func (c *Coordinator) buildRuntimeClockPayload(roundOrdinal uint64) map[string]interface{} {
+	serverMillis := util.CurrentTimeMillis()
+	now := util.Millisecond2Time(serverMillis)
+	return map[string]interface{}{
+		"serverTimeMillis": serverMillis,
+		"now":              now.Format(time.RFC3339),
+		"today":            now.Format("2006-01-02"),
+		"timezone":         now.Location().String(),
+		"round":            roundOrdinal,
+	}
+}
+
+func (c *Coordinator) buildWorkspaceSnapshotPayload(roundOrdinal uint64, sourceCtx *types.RequestSourceContext) map[string]interface{} {
+	if sourceCtx == nil {
+		return nil
+	}
+	if sourceCtx.TrustBase != types.TrustLevelHigh {
+		return nil
+	}
+	if c.workspaceSnapshotInterval == 0 || roundOrdinal%c.workspaceSnapshotInterval != 0 {
+		return nil
+	}
+
+	workspaceDir := strings.TrimSpace(util.WorkspaceDir)
+	if workspaceDir == "" {
+		return nil
+	}
+
+	workspaceDir = filepath.Clean(workspaceDir)
+	workspaceName := strings.TrimSpace(util.WorkspaceName)
+	if workspaceName == "" {
+		workspaceName = filepath.Base(workspaceDir)
+	}
+
+	snapshot := map[string]interface{}{
+		"name":      workspaceName,
+		"pathHint":  compactWorkspacePathHint(workspaceDir),
+		"readOnly":  util.ReadOnly,
+		"container": util.Container,
+	}
+
+	if stat, err := os.Stat(workspaceDir); err == nil {
+		snapshot["exists"] = stat.IsDir()
+		if stat.IsDir() {
+			if entries, readErr := os.ReadDir(workspaceDir); readErr == nil {
+				snapshot["topLevelEntries"] = len(entries)
+			}
+		}
+	}
+	return snapshot
+}
+
+func compactWorkspacePathHint(absPath string) string {
+	segments := strings.FieldsFunc(absPath, func(r rune) bool {
+		return r == '/' || r == '\\'
+	})
+	if len(segments) == 0 {
+		return ""
+	}
+	if len(segments) == 1 {
+		return segments[0]
+	}
+	return ".../" + segments[len(segments)-2] + "/" + segments[len(segments)-1]
+}
+
+// GetTrinityCoordinator 暴露Trinity协调器（用于ATF等特殊场景）
+func (c *Coordinator) GetTrinityCoordinator() *TrinityCoordinator {
+	return c.trinity
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -160,10 +161,23 @@ func (a *AvatarDescriptor) ProcessMessage(ctx context.Context, userMessage strin
 	})
 
 	// Call LLM with current context
-	// Note: llmClient.SendMessage is a placeholder - actual implementation needed
-	result := &types.StreamResult{
-		Content: "mock response",
-		Success: true,
+	messages := a.GetContext()
+	chunkChan, err := a.llmClient.SendChatRequest(ctx, messages, nil)
+	if err != nil {
+		return nil, fmt.Errorf("avatar llm call failed: %w", err)
+	}
+	result, err := llm.ProcessStreamResponse(ctx, chunkChan)
+	if err != nil {
+		return nil, fmt.Errorf("avatar stream processing failed: %w", err)
+	}
+	if result == nil {
+		return nil, fmt.Errorf("avatar llm returned nil result")
+	}
+	if !result.Success {
+		return nil, fmt.Errorf("avatar llm returned unsuccessful result")
+	}
+	if strings.TrimSpace(result.Content) == "" && !result.HasToolCalls {
+		return nil, fmt.Errorf("avatar llm returned empty content")
 	}
 
 	// Add assistant response to context

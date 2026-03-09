@@ -114,6 +114,31 @@ func (m *mockTrinitySpeakClient) SendChatRequestSync(ctx context.Context, messag
 	return "", nil
 }
 
+type mockTrinityPlainTextClient struct {
+	content string
+}
+
+func (m *mockTrinityPlainTextClient) SendChatRequest(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool) (<-chan types.StreamChunk, error) {
+	ch := make(chan types.StreamChunk, 1)
+	go func() {
+		defer close(ch)
+		ch <- types.StreamChunk{
+			Choices: []types.ChunkChoice{
+				{
+					Delta: types.ChunkDelta{
+						Content: m.content,
+					},
+				},
+			},
+		}
+	}()
+	return ch, nil
+}
+
+func (m *mockTrinityPlainTextClient) SendChatRequestSync(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool) (string, error) {
+	return m.content, nil
+}
+
 func createMockTrinity(publicContent string, internalMsgs []string, shouldFail bool, failUntilRetry int) *sages.Sage {
 	cfg := &config.AgentConfig{
 		SEELConfig: config.SEELConfig{
@@ -301,5 +326,37 @@ func TestInjectIntrospection(t *testing.T) {
 	// 检查工具结果消息
 	if context[1].Role != types.RoleTool {
 		t.Errorf("期望第2条消息角色为tool，实际为%s", context[1].Role)
+	}
+}
+
+func TestHandleTrinitySummaryPlainTextFallback(t *testing.T) {
+	tc := NewTrinityCoordinator()
+	cfg := &config.AgentConfig{
+		SEELConfig: config.SEELConfig{
+			Name: "Trinity",
+		},
+	}
+	strategy := &config.ContextStrategy{
+		Type:  "message_count",
+		Count: 3,
+	}
+	trinity := sages.NewSage("trinity", cfg, &mockTrinityPlainTextClient{content: "这是Trinity直接文本统合结论。"}, strategy)
+
+	responses := []types.SageResponse{
+		{Seel: "melchior", Content: "逻辑分析"},
+		{Seel: "balthazar", Content: "情绪感知"},
+		{Seel: "casper", Content: "直觉判断"},
+	}
+
+	ctx := context.Background()
+	result, err := tc.HandleTrinitySummary(ctx, "test-session", "test-round", trinity, responses, "test user message")
+	if err != nil {
+		t.Fatalf("期望直接文本回退成功，实际失败: %v", err)
+	}
+	if !result.Success {
+		t.Fatal("期望Success为true")
+	}
+	if result.Content != "这是Trinity直接文本统合结论。" {
+		t.Fatalf("期望回退到直接文本输出，实际为: %s", result.Content)
 	}
 }

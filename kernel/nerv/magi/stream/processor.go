@@ -210,8 +210,7 @@ func extractChunkData(chunk string) (*ParsedChunkData, error) {
 func parseChunkJSON(jsonStr string) (*ParsedChunkData, error) {
 	var streamChunk types.StreamChunk
 	if err := json.Unmarshal([]byte(jsonStr), &streamChunk); err != nil {
-		// JSON解析失败，返回原始字符串
-		return &ParsedChunkData{Content: jsonStr, ToolCalls: []types.ToolCallDelta{}}, nil
+		return nil, err
 	}
 
 	// 提取第一个choice的delta

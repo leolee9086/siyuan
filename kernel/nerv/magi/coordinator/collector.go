@@ -55,8 +55,9 @@ func (rc *ResponseCollector) CollectResponses(
 	// Melchior
 	go func() {
 		defer wg.Done()
+		streamMessage := buildSeelStreamMessage(roundId, melchior)
 		// 推送贤者开始响应
-		if err := websocket.PushSeelReplyStarted(sessionId, roundId, melchior.GetName(), melchior.GetDisplayName(), userMessage, nil); err != nil {
+		if err := websocket.PushSeelReplyStarted(sessionId, roundId, melchior.GetName(), melchior.GetDisplayName(), userMessage, streamMessage); err != nil {
 			logging.LogWarnf("推送Melchior开始响应失败: %v", err)
 		}
 		resp, err := rc.collectSingleSageResponse(timeoutCtx, sessionId, roundId, melchior, modelInput)
@@ -66,8 +67,9 @@ func (rc *ResponseCollector) CollectResponses(
 	// Balthazar
 	go func() {
 		defer wg.Done()
+		streamMessage := buildSeelStreamMessage(roundId, balthazar)
 		// 推送贤者开始响应
-		if err := websocket.PushSeelReplyStarted(sessionId, roundId, balthazar.GetName(), balthazar.GetDisplayName(), userMessage, nil); err != nil {
+		if err := websocket.PushSeelReplyStarted(sessionId, roundId, balthazar.GetName(), balthazar.GetDisplayName(), userMessage, streamMessage); err != nil {
 			logging.LogWarnf("推送Balthazar开始响应失败: %v", err)
 		}
 		resp, err := rc.collectSingleSageResponse(timeoutCtx, sessionId, roundId, balthazar, modelInput)
@@ -77,8 +79,9 @@ func (rc *ResponseCollector) CollectResponses(
 	// Casper
 	go func() {
 		defer wg.Done()
+		streamMessage := buildSeelStreamMessage(roundId, casper)
 		// 推送贤者开始响应
-		if err := websocket.PushSeelReplyStarted(sessionId, roundId, casper.GetName(), casper.GetDisplayName(), userMessage, nil); err != nil {
+		if err := websocket.PushSeelReplyStarted(sessionId, roundId, casper.GetName(), casper.GetDisplayName(), userMessage, streamMessage); err != nil {
 			logging.LogWarnf("推送Casper开始响应失败: %v", err)
 		}
 		resp, err := rc.collectSingleSageResponse(timeoutCtx, sessionId, roundId, casper, modelInput)
@@ -111,6 +114,16 @@ func (rc *ResponseCollector) CollectResponses(
 	}
 
 	return responses, nil
+}
+
+func buildSeelStreamMessage(roundId string, sage *sages.Sage) *types.Message {
+	return &types.Message{
+		ID:        fmt.Sprintf("%s-%s-stream", roundId, sage.GetName()),
+		Type:      types.TypeAI,
+		Content:   "",
+		Status:    types.StatusStreaming,
+		Timestamp: time.Now().UnixMilli(),
+	}
 }
 
 // collectSingleSageResponse 收集单个贤者的响应
@@ -157,9 +170,11 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 
 				// 推送完成事件
 				msg := &types.Message{
-					Type:    types.TypeAI,
-					Content: response.Content,
-					Status:  types.StatusSuccess,
+					ID:        streamMessageID,
+					Type:      types.TypeAI,
+					Content:   response.Content,
+					Status:    types.StatusSuccess,
+					Timestamp: time.Now().UnixMilli(),
 				}
 				if pushErr := websocket.PushSeelReplyCompleted(sessionId, roundId, sage.GetName(), sage.GetDisplayName(), msg); pushErr != nil {
 					logging.LogWarnf("推送%s响应完成失败: %v", sage.GetDisplayName(), pushErr)
@@ -167,18 +182,32 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 
 				return response, nil
 			}
+			if chunk.Object == "error" {
+				err := fmt.Errorf("流式响应错误: %s", chunk.ID)
+				if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, sage.GetName(), sage.GetDisplayName(), err.Error()); pushErr != nil {
+					logging.LogWarnf("推送%s响应失败事件失败: %v", sage.GetDisplayName(), pushErr)
+				}
+				return nil, err
+			}
 
 			// 处理chunk - 将完整chunk序列化为SSE格式以保留ToolCalls
 			chunkJSON, err := json.Marshal(chunk)
 			if err != nil {
-				logging.LogWarnf("序列化chunk失败: %v", err)
-				continue
+				wrapped := fmt.Errorf("序列化chunk失败: %w", err)
+				if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, sage.GetName(), sage.GetDisplayName(), wrapped.Error()); pushErr != nil {
+					logging.LogWarnf("推送%s响应失败事件失败: %v", sage.GetDisplayName(), pushErr)
+				}
+				return nil, wrapped
 			}
 			sseChunk := "data: " + string(chunkJSON)
 
 			parsed, err := processor.ProcessChunk(sseChunk)
 			if err != nil {
-				continue
+				wrapped := fmt.Errorf("解析流式chunk失败: %w", err)
+				if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, sage.GetName(), sage.GetDisplayName(), wrapped.Error()); pushErr != nil {
+					logging.LogWarnf("推送%s响应失败事件失败: %v", sage.GetDisplayName(), pushErr)
+				}
+				return nil, wrapped
 			}
 
 			// 累积内容

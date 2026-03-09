@@ -10,8 +10,8 @@ import { 是二元决策, 是记录 } from "./realVote.guard";
  * 调用时机：`获取真实投票决策` 发起请求前调用。
  */
 function 创建评审系统提示词(displayName: string): string {
-    return `你是 ${displayName}，正在参与审慎决策复核。
-任务：根据“用户原始输入 + Melchior判断 + 当前提案”给出二元投票。
+    return `你现在需要参与审慎决策复核。
+任务：根据“用户原始输入 + 初始判断 + 当前提案”给出二元投票。
 输出要求（必须遵守）：
 1. 仅输出 JSON：{"decision":"批准|否决","reason":"一句话理由"}
 2. decision 只能是 批准 或 否决
