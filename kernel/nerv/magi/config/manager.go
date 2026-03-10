@@ -219,7 +219,7 @@ func defaultTrinityConfig() AgentConfig {
 		MardukConfig: MardukConfig{},
 		MemorySize:   3,
 		SystemPrompt: buildTrinitySystemPrompt(),
-		Tools:        []ToolDef{BuildAvatarSynthesizeToolDef()},
+		Tools:        []ToolDef{BuildSpeakToolDef(), BuildAvatarSynthesizeToolDef()},
 	}
 }
 
@@ -261,6 +261,7 @@ func applyRequiredAvatarTools(cfg *MAGIConfig) {
 	ensureToolRegistered(&cfg.Melchior, BuildAvatarBuildToolDef())
 	ensureToolRegistered(&cfg.Balthazar, BuildAvatarModifyToolDef())
 	ensureToolRegistered(&cfg.Casper, BuildAvatarModifyToolDef())
+	ensureToolRegistered(&cfg.Trinity, BuildSpeakToolDef())
 	ensureToolRegistered(&cfg.Trinity, BuildAvatarSynthesizeToolDef())
 }
 

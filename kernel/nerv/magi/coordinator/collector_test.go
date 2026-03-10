@@ -81,6 +81,10 @@ func (m *mockLLMClient) SendChatRequestSync(ctx context.Context, messages []type
 	return m.responseContent, nil
 }
 
+func (m *mockLLMClient) GetModel() string {
+	return "gpt-4"
+}
+
 func createMockSage(name, displayName, content string, shouldFail bool, delay time.Duration) *sages.Sage {
 	cfg := &config.AgentConfig{
 		SEELConfig: config.SEELConfig{

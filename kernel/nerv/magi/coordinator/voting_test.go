@@ -38,6 +38,10 @@ func (m *mockVoteClient) SendChatRequestSync(ctx context.Context, messages []typ
 	return m.response, nil
 }
 
+func (m *mockVoteClient) GetModel() string {
+	return "gpt-4"
+}
+
 func createVoteMockSage(name string, client *mockVoteClient) *sages.Sage {
 	cfg := &config.AgentConfig{
 		SEELConfig: config.SEELConfig{

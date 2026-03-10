@@ -61,6 +61,8 @@ const (
 	AvatarModifyToolName = "modifyAvatar"
 	// AvatarSynthesizeToolName Avatar 原型综合工具名。
 	AvatarSynthesizeToolName = "synthesizeAvatar"
+	// SpeakToolName Trinity 输出工具名。
+	SpeakToolName = "speak"
 )
 
 // BuildAvatarBuildToolDef 构建 Avatar 创建工具定义。
@@ -137,6 +139,32 @@ func BuildAvatarSynthesizeToolDef() ToolDef {
 					},
 				},
 				"required": []string{"finalSystemPrompt"},
+			},
+		},
+	}
+}
+
+// BuildSpeakToolDef 构建 Trinity speak 工具定义。
+func BuildSpeakToolDef() ToolDef {
+	return ToolDef{
+		Type: "function",
+		Function: ToolFunctionDef{
+			Name:        SpeakToolName,
+			Description: "输出最终响应内容给用户。",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"content": map[string]interface{}{
+						"type":        "string",
+						"description": "要输出的响应内容",
+					},
+					"channel": map[string]interface{}{
+						"type":        "string",
+						"description": "输出渠道：public（对外）或 internal（内部报告）",
+						"enum":        []string{"public", "internal"},
+					},
+				},
+				"required": []string{"content"},
 			},
 		},
 	}

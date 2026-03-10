@@ -134,7 +134,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 	modelInput string,
 ) (*types.SageResponse, error) {
 	// 发送消息并获取流式响应
-	streamCh, err := sage.SendMessage(ctx, modelInput)
+	streamCh, err := sage.SendMessage(ctx, sessionId, roundId, modelInput)
 	if err != nil {
 		// 推送失败事件
 		if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, sage.GetName(), sage.GetDisplayName(), err.Error()); pushErr != nil {

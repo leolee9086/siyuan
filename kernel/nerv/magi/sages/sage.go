@@ -11,6 +11,7 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/llm"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/prompts"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
+	"github.com/siyuan-note/siyuan/kernel/nerv/magi/websocket"
 	"github.com/siyuan-note/siyuan/kernel/nerv/marduk"
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
@@ -65,7 +66,7 @@ func NewSage(name string, cfg *config.AgentConfig, client llm.Client, strategy *
 }
 
 // SendMessage 发送消息并返回流式响应
-func (s *Sage) SendMessage(ctx context.Context, userInput string) (<-chan types.StreamChunk, error) {
+func (s *Sage) SendMessage(ctx context.Context, sessionId, roundId, userInput string) (<-chan types.StreamChunk, error) {
 	s.mu.Lock()
 
 	// 添加系统提示词（如果上下文为空）
@@ -86,6 +87,13 @@ func (s *Sage) SendMessage(ctx context.Context, userInput string) (<-chan types.
 	messages = s.contextManager.GetMessages()
 	requestMessages := s.buildRequestMessages(messages)
 	s.mu.Unlock()
+
+	// 推送LLM请求事件
+	if sessionId != "" && roundId != "" {
+		model := s.llmClient.GetModel()
+		toolCount := len(s.tools)
+		_ = websocket.PushLLMRequestSent(sessionId, roundId, s.name, s.displayName, model, requestMessages, toolCount)
+	}
 
 	// 发送请求
 	return s.llmClient.SendChatRequest(ctx, requestMessages, s.tools)
@@ -132,6 +140,13 @@ func (s *Sage) GetSystemPrompt() string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.systemPrompt
+}
+
+// GetTools 获取工具列表
+func (s *Sage) GetTools() []openai.Tool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.tools
 }
 
 // PrependToContext 在上下文开头插入消息

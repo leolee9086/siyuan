@@ -114,6 +114,10 @@ func (m *mockTrinitySpeakClient) SendChatRequestSync(ctx context.Context, messag
 	return "", nil
 }
 
+func (m *mockTrinitySpeakClient) GetModel() string {
+	return "gpt-4"
+}
+
 type mockTrinityPlainTextClient struct {
 	content string
 }
@@ -137,6 +141,10 @@ func (m *mockTrinityPlainTextClient) SendChatRequest(ctx context.Context, messag
 
 func (m *mockTrinityPlainTextClient) SendChatRequestSync(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool) (string, error) {
 	return m.content, nil
+}
+
+func (m *mockTrinityPlainTextClient) GetModel() string {
+	return "gpt-4"
 }
 
 func createMockTrinity(publicContent string, internalMsgs []string, shouldFail bool, failUntilRetry int) *sages.Sage {

@@ -35,6 +35,10 @@ func (m *baselineMockLLMClient) SendChatRequestSync(ctx context.Context, message
 	return m.response, nil
 }
 
+func (m *baselineMockLLMClient) GetModel() string {
+	return "gpt-4"
+}
+
 func TestATFBaselineAvatar_AnswerQuestionnaireCallsLLM(t *testing.T) {
 	client := &baselineMockLLMClient{
 		response: "  {\"answers\":[{\"q\":1,\"score\":4}],\"reflection\":\"ok\"}  ",
@@ -113,4 +117,3 @@ func TestATFBaselineAvatar_AnswerQuestionnaireEmptyContent(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
-

@@ -26,6 +26,7 @@ import (
 // 事件类型常量
 const (
 	EventRoundStarted              = "ROUND_STARTED"
+	EventLLMRequestSent            = "LLM_REQUEST_SENT"
 	EventSeelReplyStarted          = "SEEL_REPLY_STARTED"
 	EventSeelReplyChunk            = "SEEL_REPLY_CHUNK"
 	EventSeelReplyCompleted        = "SEEL_REPLY_COMPLETED"
@@ -57,6 +58,22 @@ func PushRoundStarted(sessionId, roundId, userInput string) error {
 		"userInput": userInput,
 	}
 	return globalPusher.Push(sessionId, EventRoundStarted, data)
+}
+
+// PushLLMRequestSent 推送LLM请求发送事件
+func PushLLMRequestSent(sessionId, roundId, seelName, displayName, model string, messages []types.ContextMessage, toolCount int) error {
+	data := map[string]interface{}{
+		"eventId":     generateEventID(),
+		"seq":         globalSeq,
+		"roundId":     roundId,
+		"timestamp":   time.Now().UnixMilli(),
+		"seelName":    seelName,
+		"displayName": displayName,
+		"model":       model,
+		"messages":    messages,
+		"toolCount":   toolCount,
+	}
+	return globalPusher.Push(sessionId, EventLLMRequestSent, data)
 }
 
 // PushSeelReplyStarted 推送贤者开始响应事件

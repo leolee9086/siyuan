@@ -535,8 +535,8 @@ func runSageToolCall(
 	if sage == nil {
 		return "", fmt.Errorf("sage is nil for tool %s", expectedToolName)
 	}
-
-	streamCh, err := sage.SendMessage(ctx, userInput)
+	//@todo avatar同样需要支持sessionId和roundId以便推送事件，目前Trinity调用时没有，后续可以改造为可选参数
+	streamCh, err := sage.SendMessage(ctx, "", "", userInput)
 	if err != nil {
 		return "", fmt.Errorf("send tool call request failed for %s: %w", sage.GetName(), err)
 	}

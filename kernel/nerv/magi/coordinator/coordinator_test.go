@@ -107,6 +107,10 @@ func (m *mockAvatarPipelineClient) SendChatRequestSync(
 	return m.defaultContent, nil
 }
 
+func (m *mockAvatarPipelineClient) GetModel() string {
+	return "gpt-4"
+}
+
 func createAvatarPipelineSage(
 	name,
 	displayName,

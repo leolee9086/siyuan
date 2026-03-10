@@ -21,6 +21,10 @@ func (m *mockLLMClient) SendChatRequestSync(ctx context.Context, messages []type
 	return "mock response", nil
 }
 
+func (m *mockLLMClient) GetModel() string {
+	return "gpt-4"
+}
+
 func TestNewAvatar(t *testing.T) {
 	client := &mockLLMClient{}
 

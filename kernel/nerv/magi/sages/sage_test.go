@@ -12,6 +12,7 @@ import (
 
 // mockLLMClient 模拟LLM客户端
 type mockLLMClient struct {
+	model                   string
 	sendChatRequestFunc     func(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool) (<-chan types.StreamChunk, error)
 	sendChatRequestSyncFunc func(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool) (string, error)
 }
@@ -30,6 +31,13 @@ func (m *mockLLMClient) SendChatRequestSync(ctx context.Context, messages []type
 		return m.sendChatRequestSyncFunc(ctx, messages, tools)
 	}
 	return "mock response", nil
+}
+
+func (m *mockLLMClient) GetModel() string {
+	if m.model != "" {
+		return m.model
+	}
+	return "gpt-4"
 }
 
 // TestNewSage 测试创建贤者实例
@@ -189,7 +197,7 @@ func TestSageSendMessage(t *testing.T) {
 
 	sage := NewSage("test", cfg, client, strategy)
 
-	_, err := sage.SendMessage(context.Background(), "Hello")
+	_, err := sage.SendMessage(context.Background(), "", "", "Hello")
 	if err != nil {
 		t.Fatalf("SendMessage failed: %v", err)
 	}
@@ -236,7 +244,7 @@ func TestSageSendMessageInjectsWakeupSequenceForCoreSage(t *testing.T) {
 	}
 
 	sage := NewSage("melchior", cfg, client, strategy)
-	if _, err := sage.SendMessage(context.Background(), "hello"); err != nil {
+	if _, err := sage.SendMessage(context.Background(), "", "", "hello"); err != nil {
 		t.Fatalf("SendMessage failed: %v", err)
 	}
 
@@ -289,7 +297,7 @@ func TestSageSendMessageInjectsTriggerForTrinity(t *testing.T) {
 	}
 
 	sage := NewSage("trinity", cfg, client, strategy)
-	if _, err := sage.SendMessage(context.Background(), "hello"); err != nil {
+	if _, err := sage.SendMessage(context.Background(), "", "", "hello"); err != nil {
 		t.Fatalf("SendMessage failed: %v", err)
 	}
 

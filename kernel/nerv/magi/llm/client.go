@@ -21,6 +21,9 @@ type Client interface {
 
 	// SendChatRequestSync 发送聊天请求（同步）
 	SendChatRequestSync(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool) (string, error)
+
+	// GetModel 获取模型名称
+	GetModel() string
 }
 
 // Config LLM客户端配置
@@ -201,6 +204,10 @@ func (c *openaiClient) SendChatRequestSync(ctx context.Context, messages []types
 	return resp.Choices[0].Message.Content, nil
 }
 
+func (c *openaiClient) GetModel() string {
+	return c.config.APIModel
+}
+
 // claudeClient Claude客户端实现
 type claudeClient struct {
 	config *Config
@@ -225,6 +232,10 @@ func (c *claudeClient) SendChatRequestSync(ctx context.Context, messages []types
 	)
 
 	return ret, err
+}
+
+func (c *claudeClient) GetModel() string {
+	return c.config.APIModel
 }
 
 // convertToOpenAIMessages 转换MAGI消息为OpenAI格式

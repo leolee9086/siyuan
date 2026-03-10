@@ -191,7 +191,7 @@ func (tc *TrinityCoordinator) callTrinity(
 	}
 
 	// 发送空消息（上下文已包含内省输入）
-	streamCh, err := trinity.SendMessage(ctx, " ")
+	streamCh, err := trinity.SendMessage(ctx, sessionId, roundId, " ")
 	if err != nil {
 		if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, trinity.GetName(), trinity.GetDisplayName(), err.Error()); pushErr != nil {
 			logging.LogWarnf("推送Trinity失败事件失败: %v", pushErr)
