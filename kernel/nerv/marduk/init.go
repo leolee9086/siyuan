@@ -14,8 +14,9 @@ func InitializeMAGIWithPersona() (*IpipPersonaProfile, bool, string, error) {
 	// 加载人格档案（根据性别选择预设）
 	profile, isComplete, presetName, err := LoadPersonaProfileWithGenderFallback(util.DataDir)
 	if err != nil {
-		logging.LogWarnf("加载人格档案失败，使用默认预设（丽）: %v", err)
-		return GetReiPreset(), false, "丽", nil
+		profile, name := getRandomPreset()
+		logging.LogWarnf("加载人格档案失败，随机使用预设（%s）: %v", name, err)
+		return profile, false, name, nil
 	}
 
 	// 如果使用了预设，记录日志

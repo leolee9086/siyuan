@@ -5,15 +5,37 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/siyuan-note/filelock"
 )
 
+// PresetPersona 预设人格定义
+type PresetPersona struct {
+	Name    string
+	GetFunc func() *IpipPersonaProfile
+}
+
+// availablePresets 可用的预设人格列表
+var availablePresets = []PresetPersona{
+	{Name: "丽", GetFunc: GetReiPreset},
+	{Name: "薰", GetFunc: GetKaoruPreset},
+	{Name: "Jarvis", GetFunc: GetJarvisPreset},
+}
+
+// getRandomPreset 从可用预设中随机选择一个
+func getRandomPreset() (*IpipPersonaProfile, string) {
+	rand.Seed(time.Now().UnixNano())
+	preset := availablePresets[rand.Intn(len(availablePresets))]
+	return preset.GetFunc(), preset.Name
+}
+
 // LoadPersonaProfile 加载人格档案
-// 优先级：用户档案 > 性别匹配预设 > 默认预设（丽）
+// 优先级：用户档案 > 随机预设
 func LoadPersonaProfile(dataDir string) (*IpipPersonaProfile, bool, error) {
 	// 尝试加载用户档案
 	userProfile, err := loadUserProfile(dataDir)
@@ -22,12 +44,14 @@ func LoadPersonaProfile(dataDir string) (*IpipPersonaProfile, bool, error) {
 			// 有完整性别信息，档案完整
 			return userProfile, true, nil
 		}
-		// 有档案但缺少性别信息，使用默认预设
-		return GetReiPreset(), false, nil
+		// 有档案但缺少性别信息，随机选择预设
+		profile, _ := getRandomPreset()
+		return profile, false, nil
 	}
 
-	// 没有用户档案，使用默认预设
-	return GetReiPreset(), false, nil
+	// 没有用户档案，随机选择预设
+	profile, _ := getRandomPreset()
+	return profile, false, nil
 }
 
 // LoadPersonaProfileWithGenderFallback 根据性别加载人格档案
@@ -51,12 +75,14 @@ func LoadPersonaProfileWithGenderFallback(dataDir string) (*IpipPersonaProfile, 
 			return GetReiPreset(), false, "丽", nil
 		}
 
-		// 连性别都没有，使用默认预设（丽）
-		return GetReiPreset(), false, "丽", nil
+		// 连性别都没有，随机选择预设
+		profile, name := getRandomPreset()
+		return profile, false, name, nil
 	}
 
-	// 没有用户档案，使用默认预设（丽）
-	return GetReiPreset(), false, "丽", nil
+	// 没有用户档案，随机选择预设
+	profile, name := getRandomPreset()
+	return profile, false, name, nil
 }
 
 // loadUserProfile 从数据目录加载用户人格档案
