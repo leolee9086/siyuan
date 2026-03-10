@@ -21,7 +21,7 @@ type mockTrinitySpeakClient struct {
 	currentAttempt int
 }
 
-func (m *mockTrinitySpeakClient) SendChatRequest(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool) (<-chan types.StreamChunk, error) {
+func (m *mockTrinitySpeakClient) SendChatRequest(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (<-chan types.StreamChunk, error) {
 	ch := make(chan types.StreamChunk, 10)
 
 	go func() {
@@ -110,7 +110,7 @@ func (m *mockTrinitySpeakClient) SendChatRequest(ctx context.Context, messages [
 	return ch, nil
 }
 
-func (m *mockTrinitySpeakClient) SendChatRequestSync(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool) (string, error) {
+func (m *mockTrinitySpeakClient) SendChatRequestSync(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (string, error) {
 	return "", nil
 }
 
@@ -122,7 +122,7 @@ type mockTrinityPlainTextClient struct {
 	content string
 }
 
-func (m *mockTrinityPlainTextClient) SendChatRequest(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool) (<-chan types.StreamChunk, error) {
+func (m *mockTrinityPlainTextClient) SendChatRequest(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (<-chan types.StreamChunk, error) {
 	ch := make(chan types.StreamChunk, 1)
 	go func() {
 		defer close(ch)
@@ -139,7 +139,7 @@ func (m *mockTrinityPlainTextClient) SendChatRequest(ctx context.Context, messag
 	return ch, nil
 }
 
-func (m *mockTrinityPlainTextClient) SendChatRequestSync(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool) (string, error) {
+func (m *mockTrinityPlainTextClient) SendChatRequestSync(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (string, error) {
 	return m.content, nil
 }
 

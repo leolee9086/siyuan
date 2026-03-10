@@ -39,6 +39,10 @@ type AgentConfig struct {
 	ContextPercent float64      `json:"contextPercent"` // 上下文token占用百分比（Melchior/Balthazar）
 	SystemPrompt   string       `json:"systemPrompt"`
 	Tools          []ToolDef    `json:"tools,omitempty"`
+	// ToolChoice 控制模型的工具调用行为。
+	// 可选值：nil(默认auto)、"required"(强制调用某个工具)、"none"(禁止调用工具)、
+	// 或指定具体工具（参见 OpenAI tool_choice 文档）。
+	ToolChoice any `json:"toolChoice,omitempty"`
 }
 
 // ToolDef 工具定义

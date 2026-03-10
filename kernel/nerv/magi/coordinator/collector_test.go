@@ -20,7 +20,7 @@ type mockLLMClient struct {
 	toolCallArgs    string
 }
 
-func (m *mockLLMClient) SendChatRequest(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool) (<-chan types.StreamChunk, error) {
+func (m *mockLLMClient) SendChatRequest(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (<-chan types.StreamChunk, error) {
 	ch := make(chan types.StreamChunk, 10)
 
 	go func() {
@@ -77,7 +77,7 @@ func (m *mockLLMClient) SendChatRequest(ctx context.Context, messages []types.Co
 	return ch, nil
 }
 
-func (m *mockLLMClient) SendChatRequestSync(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool) (string, error) {
+func (m *mockLLMClient) SendChatRequestSync(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (string, error) {
 	return m.responseContent, nil
 }
 

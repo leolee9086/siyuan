@@ -144,7 +144,7 @@ func getRealVote(
 	}
 
 	// 发送同步请求
-	content, err := sage.GetLLMClient().SendChatRequestSync(timeoutCtx, messages, nil)
+	content, err := sage.GetLLMClient().SendChatRequestSync(timeoutCtx, messages, nil, nil)
 	if err != nil {
 		// D-005: 失败视为否决票
 		return voteReject

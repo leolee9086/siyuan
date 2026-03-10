@@ -50,7 +50,7 @@ func (a *ATFBaselineAvatar) AnswerQuestionnaire(ctx context.Context, questionPro
 		{Role: types.RoleUser, Content: questionPrompt},
 	}
 
-	content, err := a.llmClient.SendChatRequestSync(ctx, messages, nil)
+	content, err := a.llmClient.SendChatRequestSync(ctx, messages, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("baseline avatar llm call failed: %w", err)
 	}

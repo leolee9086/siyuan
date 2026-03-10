@@ -23,6 +23,7 @@ func (m *mockAvatarPipelineClient) SendChatRequest(
 	ctx context.Context,
 	messages []types.ContextMessage,
 	tools []openai.Tool,
+	toolChoice any,
 ) (<-chan types.StreamChunk, error) {
 	ch := make(chan types.StreamChunk, 4)
 	go func() {
@@ -103,6 +104,7 @@ func (m *mockAvatarPipelineClient) SendChatRequestSync(
 	ctx context.Context,
 	messages []types.ContextMessage,
 	tools []openai.Tool,
+	toolChoice any,
 ) (string, error) {
 	return m.defaultContent, nil
 }

@@ -17,7 +17,9 @@ type mockLLMClient struct {
 	sendChatRequestSyncFunc func(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool) (string, error)
 }
 
-func (m *mockLLMClient) SendChatRequest(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool) (<-chan types.StreamChunk, error) {
+// 注意：函数类型保持不变（不含toolChoice），mock内部不使用该参数。
+
+func (m *mockLLMClient) SendChatRequest(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (<-chan types.StreamChunk, error) {
 	if m.sendChatRequestFunc != nil {
 		return m.sendChatRequestFunc(ctx, messages, tools)
 	}
@@ -26,7 +28,7 @@ func (m *mockLLMClient) SendChatRequest(ctx context.Context, messages []types.Co
 	return ch, nil
 }
 
-func (m *mockLLMClient) SendChatRequestSync(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool) (string, error) {
+func (m *mockLLMClient) SendChatRequestSync(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (string, error) {
 	if m.sendChatRequestSyncFunc != nil {
 		return m.sendChatRequestSyncFunc(ctx, messages, tools)
 	}

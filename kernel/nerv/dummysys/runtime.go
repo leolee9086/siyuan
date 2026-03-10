@@ -162,7 +162,7 @@ func (a *AvatarDescriptor) ProcessMessage(ctx context.Context, userMessage strin
 
 	// Call LLM with current context
 	messages := a.GetContext()
-	chunkChan, err := a.llmClient.SendChatRequest(ctx, messages, nil)
+	chunkChan, err := a.llmClient.SendChatRequest(ctx, messages, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("avatar llm call failed: %w", err)
 	}

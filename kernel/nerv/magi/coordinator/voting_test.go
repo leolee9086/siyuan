@@ -18,11 +18,11 @@ type mockVoteClient struct {
 	delay      time.Duration
 }
 
-func (m *mockVoteClient) SendChatRequest(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool) (<-chan types.StreamChunk, error) {
+func (m *mockVoteClient) SendChatRequest(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (<-chan types.StreamChunk, error) {
 	return nil, nil
 }
 
-func (m *mockVoteClient) SendChatRequestSync(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool) (string, error) {
+func (m *mockVoteClient) SendChatRequestSync(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (string, error) {
 	if m.delay > 0 {
 		select {
 		case <-time.After(m.delay):

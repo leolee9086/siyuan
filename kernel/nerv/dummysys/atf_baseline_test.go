@@ -19,13 +19,13 @@ type baselineMockLLMClient struct {
 	tools     []openai.Tool
 }
 
-func (m *baselineMockLLMClient) SendChatRequest(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool) (<-chan types.StreamChunk, error) {
+func (m *baselineMockLLMClient) SendChatRequest(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (<-chan types.StreamChunk, error) {
 	ch := make(chan types.StreamChunk)
 	close(ch)
 	return ch, nil
 }
 
-func (m *baselineMockLLMClient) SendChatRequestSync(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool) (string, error) {
+func (m *baselineMockLLMClient) SendChatRequestSync(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (string, error) {
 	m.syncCalls++
 	m.messages = append([]types.ContextMessage(nil), messages...)
 	m.tools = append([]openai.Tool(nil), tools...)

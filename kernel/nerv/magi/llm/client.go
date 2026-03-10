@@ -17,10 +17,12 @@ import (
 // Client MAGI LLM客户端接口
 type Client interface {
 	// SendChatRequest 发送聊天请求（流式）
-	SendChatRequest(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool) (<-chan types.StreamChunk, error)
+	// toolChoice 控制模型的工具调用行为，可选值：nil(默认auto)、"required"、"none"、
+	// 或 openai.ToolChoice{Type:"function", Function:openai.ToolFunction{Name:"xxx"}} 强制指定工具。
+	SendChatRequest(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (<-chan types.StreamChunk, error)
 
 	// SendChatRequestSync 发送聊天请求（同步）
-	SendChatRequestSync(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool) (string, error)
+	SendChatRequestSync(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (string, error)
 
 	// GetModel 获取模型名称
 	GetModel() string
@@ -81,7 +83,7 @@ type openaiClient struct {
 	client *openai.Client
 }
 
-func (c *openaiClient) SendChatRequest(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool) (<-chan types.StreamChunk, error) {
+func (c *openaiClient) SendChatRequest(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (<-chan types.StreamChunk, error) {
 	reqMsgs := convertToOpenAIMessages(messages)
 
 	req := openai.ChatCompletionRequest{
@@ -90,6 +92,7 @@ func (c *openaiClient) SendChatRequest(ctx context.Context, messages []types.Con
 		MaxCompletionTokens: c.config.MaxTokens,
 		Temperature:         float32(c.config.Temperature),
 		Tools:               tools,
+		ToolChoice:          toolChoice,
 		Stream:              true,
 	}
 
@@ -181,7 +184,7 @@ func (c *openaiClient) SendChatRequest(ctx context.Context, messages []types.Con
 	return chunkChan, nil
 }
 
-func (c *openaiClient) SendChatRequestSync(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool) (string, error) {
+func (c *openaiClient) SendChatRequestSync(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (string, error) {
 	reqMsgs := convertToOpenAIMessages(messages)
 
 	req := openai.ChatCompletionRequest{
@@ -213,11 +216,11 @@ type claudeClient struct {
 	config *Config
 }
 
-func (c *claudeClient) SendChatRequest(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool) (<-chan types.StreamChunk, error) {
+func (c *claudeClient) SendChatRequest(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (<-chan types.StreamChunk, error) {
 	return nil, fmt.Errorf("claude streaming not implemented yet")
 }
 
-func (c *claudeClient) SendChatRequestSync(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool) (string, error) {
+func (c *claudeClient) SendChatRequestSync(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (string, error) {
 	reqMsgs := convertToOpenAIMessages(messages)
 
 	ret, _, err := util.CallClaudeChatCompletionMagi(

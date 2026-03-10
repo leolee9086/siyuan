@@ -34,6 +34,7 @@ type Sage struct {
 	contextManager ContextManager
 	systemPrompt   string
 	tools          []openai.Tool
+	toolChoice     any
 	profile        *marduk.IpipPersonaProfile
 }
 
@@ -62,6 +63,7 @@ func NewSage(name string, cfg *config.AgentConfig, client llm.Client, strategy *
 		contextManager: cm,
 		systemPrompt:   cfg.SystemPrompt,
 		tools:          tools,
+		toolChoice:     cfg.ToolChoice,
 	}
 }
 
@@ -96,7 +98,7 @@ func (s *Sage) SendMessage(ctx context.Context, sessionId, roundId, userInput st
 	}
 
 	// 发送请求
-	return s.llmClient.SendChatRequest(ctx, requestMessages, s.tools)
+	return s.llmClient.SendChatRequest(ctx, requestMessages, s.tools, s.toolChoice)
 }
 
 // AddToContext 添加消息到上下文

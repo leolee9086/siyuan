@@ -220,6 +220,7 @@ func defaultTrinityConfig() AgentConfig {
 		MemorySize:   3,
 		SystemPrompt: buildTrinitySystemPrompt(),
 		Tools:        []ToolDef{BuildSpeakToolDef(), BuildAvatarSynthesizeToolDef()},
+		ToolChoice:   "required",
 	}
 }
 
