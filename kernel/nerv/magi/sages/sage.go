@@ -22,6 +22,10 @@ type ContextManager interface {
 	GetMessages() []types.ContextMessage
 	Clear()
 	ApplyStrategy(strategy *config.ContextStrategy)
+	// 会话感知方法
+	AddMessageWithSession(sessionId string, msg types.ContextMessage)
+	GetMessagesForSession(sessionId string) []types.ContextMessage
+	ClearSession(sessionId string)
 }
 
 // Sage 贤者实例
@@ -72,21 +76,21 @@ func (s *Sage) SendMessage(ctx context.Context, sessionId, roundId, userInput st
 	s.mu.Lock()
 
 	// 添加系统提示词（如果上下文为空）
-	messages := s.contextManager.GetMessages()
+	messages := s.contextManager.GetMessagesForSession(sessionId)
 	if len(messages) == 0 && s.systemPrompt != "" {
-		s.contextManager.AddMessage(types.ContextMessage{
+		s.contextManager.AddMessageWithSession(sessionId, types.ContextMessage{
 			Role:    types.RoleSystem,
 			Content: s.systemPrompt,
 		})
 	}
 
 	// 添加用户消息
-	s.contextManager.AddMessage(types.ContextMessage{
+	s.contextManager.AddMessageWithSession(sessionId, types.ContextMessage{
 		Role:    types.RoleUser,
 		Content: userInput,
 	})
 
-	messages = s.contextManager.GetMessages()
+	messages = s.contextManager.GetMessagesForSession(sessionId)
 	requestMessages := s.buildRequestMessages(messages)
 	s.mu.Unlock()
 
@@ -101,18 +105,32 @@ func (s *Sage) SendMessage(ctx context.Context, sessionId, roundId, userInput st
 	return s.llmClient.SendChatRequest(ctx, requestMessages, s.tools, s.toolChoice)
 }
 
-// AddToContext 添加消息到上下文
+// AddToContext 添加消息到上下文（向后兼容，使用空sessionId）
 func (s *Sage) AddToContext(msg types.ContextMessage) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.contextManager.AddMessage(msg)
 }
 
-// GetContext 获取当前上下文
+// AddToContextWithSession 添加消息到指定会话的上下文
+func (s *Sage) AddToContextWithSession(sessionId string, msg types.ContextMessage) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.contextManager.AddMessageWithSession(sessionId, msg)
+}
+
+// GetContext 获取当前上下文（向后兼容，使用空sessionId）
 func (s *Sage) GetContext() []types.ContextMessage {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.contextManager.GetMessages()
+}
+
+// GetContextForSession 获取指定会话的上下文
+func (s *Sage) GetContextForSession(sessionId string) []types.ContextMessage {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.contextManager.GetMessagesForSession(sessionId)
 }
 
 // ClearContext 清空上下文
@@ -243,9 +261,100 @@ func (cm *contextManagerImpl) applyStrategyLocked() {
 	// token_percent策略暂不实现，需要token计数功能
 }
 
+// 会话感知方法实现（单一历史版本忽略sessionId）
+func (cm *contextManagerImpl) AddMessageWithSession(sessionId string, msg types.ContextMessage) {
+	cm.AddMessage(msg)
+}
+
+func (cm *contextManagerImpl) GetMessagesForSession(sessionId string) []types.ContextMessage {
+	return cm.GetMessages()
+}
+
+func (cm *contextManagerImpl) ClearSession(sessionId string) {
+	cm.Clear()
+}
+
+// multiSessionContextManager 多会话上下文管理器（用于Melchior）
+type multiSessionContextManager struct {
+	mu       sync.RWMutex
+	sessions map[string][]types.ContextMessage
+	strategy *config.ContextStrategy
+}
+
+func newMultiSessionContextManager(strategy *config.ContextStrategy) *multiSessionContextManager {
+	return &multiSessionContextManager{
+		sessions: make(map[string][]types.ContextMessage),
+		strategy: strategy,
+	}
+}
+
+func (mscm *multiSessionContextManager) AddMessageWithSession(sessionId string, msg types.ContextMessage) {
+	mscm.mu.Lock()
+	defer mscm.mu.Unlock()
+	if mscm.sessions[sessionId] == nil {
+		mscm.sessions[sessionId] = make([]types.ContextMessage, 0)
+	}
+	mscm.sessions[sessionId] = append(mscm.sessions[sessionId], msg)
+	mscm.applyStrategyForSessionLocked(sessionId)
+}
+
+func (mscm *multiSessionContextManager) GetMessagesForSession(sessionId string) []types.ContextMessage {
+	mscm.mu.RLock()
+	defer mscm.mu.RUnlock()
+	messages := mscm.sessions[sessionId]
+	if messages == nil {
+		return []types.ContextMessage{}
+	}
+	result := make([]types.ContextMessage, len(messages))
+	copy(result, messages)
+	return result
+}
+
+func (mscm *multiSessionContextManager) ClearSession(sessionId string) {
+	mscm.mu.Lock()
+	defer mscm.mu.Unlock()
+	delete(mscm.sessions, sessionId)
+}
+
+func (mscm *multiSessionContextManager) applyStrategyForSessionLocked(sessionId string) {
+	if mscm.strategy == nil {
+		return
+	}
+	messages := mscm.sessions[sessionId]
+	if mscm.strategy.Type == "message_count" && mscm.strategy.Count > 0 {
+		if len(messages) > mscm.strategy.Count {
+			mscm.sessions[sessionId] = messages[len(messages)-mscm.strategy.Count:]
+		}
+	}
+}
+
+// 向后兼容方法（使用空sessionId）
+func (mscm *multiSessionContextManager) AddMessage(msg types.ContextMessage) {
+	mscm.AddMessageWithSession("", msg)
+}
+
+func (mscm *multiSessionContextManager) GetMessages() []types.ContextMessage {
+	return mscm.GetMessagesForSession("")
+}
+
+func (mscm *multiSessionContextManager) Clear() {
+	mscm.mu.Lock()
+	defer mscm.mu.Unlock()
+	mscm.sessions = make(map[string][]types.ContextMessage)
+}
+
+func (mscm *multiSessionContextManager) ApplyStrategy(strategy *config.ContextStrategy) {
+	mscm.mu.Lock()
+	defer mscm.mu.Unlock()
+	mscm.strategy = strategy
+	for sessionId := range mscm.sessions {
+		mscm.applyStrategyForSessionLocked(sessionId)
+	}
+}
+
 // 工厂方法
 
-// NewMelchior 创建Melchior实例
+// NewMelchior 创建Melchior实例（使用多会话历史管理）
 func NewMelchior(cfgManager *config.ConfigManager, client llm.Client) (*Sage, error) {
 	cfg, ok := cfgManager.GetAgentConfig("melchior")
 	if !ok {
@@ -253,7 +362,33 @@ func NewMelchior(cfgManager *config.ConfigManager, client llm.Client) (*Sage, er
 	}
 
 	strategy := cfgManager.GetContextStrategy("melchior")
-	sage := NewSage("melchior", cfg, client, strategy)
+
+	// Melchior使用多会话ContextManager
+	cm := newMultiSessionContextManager(strategy)
+
+	// 转换工具定义
+	var tools []openai.Tool
+	for _, toolDef := range cfg.Tools {
+		tools = append(tools, openai.Tool{
+			Type: openai.ToolType(toolDef.Type),
+			Function: &openai.FunctionDefinition{
+				Name:        toolDef.Function.Name,
+				Description: toolDef.Function.Description,
+				Parameters:  toolDef.Function.Parameters,
+			},
+		})
+	}
+
+	sage := &Sage{
+		name:           "melchior",
+		displayName:    cfg.SEELConfig.Name,
+		config:         cfg,
+		llmClient:      client,
+		contextManager: cm,
+		systemPrompt:   cfg.SystemPrompt,
+		tools:          tools,
+		toolChoice:     cfg.ToolChoice,
+	}
 	sage.profile = getPersonaProfileFromConfigManager(cfgManager)
 	return sage, nil
 }

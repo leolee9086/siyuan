@@ -54,10 +54,10 @@ func (tc *TrinityCoordinator) HandleTrinitySummary(
 	introspection := tc.buildIntrospectionInput(validResponses)
 
 	// 确保system prompt在上下文中（修复问题4：防止system prompt被绕过）
-	tc.ensureSystemPrompt(trinity)
+	tc.ensureSystemPrompt(sessionId, trinity)
 
 	// 保存初始上下文快照（用于重试恢复）
-	initialContext := trinity.GetContext()
+	initialContext := trinity.GetContextForSession(sessionId)
 
 	// 指数退避重试调用Trinity
 	var lastErr error
@@ -66,9 +66,9 @@ func (tc *TrinityCoordinator) HandleTrinitySummary(
 	for attempt := 1; attempt <= tc.maxRetries; attempt++ {
 		// 每次尝试前恢复初始上下文并重新注入内省输入
 		if attempt > 1 {
-			tc.restoreContext(trinity, initialContext)
+			tc.restoreContext(sessionId, trinity, initialContext)
 		}
-		tc.injectIntrospection(trinity, introspection, userMessage)
+		tc.injectIntrospection(sessionId, trinity, introspection, userMessage)
 
 		result, err := tc.callTrinity(ctx, sessionId, roundId, trinity, userMessage, attempt)
 		if err == nil && result.Success {
@@ -115,8 +115,8 @@ func (tc *TrinityCoordinator) findSageContent(responses []types.SageResponse, na
 
 // ensureSystemPrompt 确保system prompt在上下文中
 // 修复问题4：防止在注入上下文后system prompt被绕过
-func (tc *TrinityCoordinator) ensureSystemPrompt(trinity *sages.Sage) {
-	messages := trinity.GetContext()
+func (tc *TrinityCoordinator) ensureSystemPrompt(sessionId string, trinity *sages.Sage) {
+	messages := trinity.GetContextForSession(sessionId)
 	// 如果上下文为空或第一条消息不是system，则需要添加system prompt
 	if len(messages) == 0 || messages[0].Role != types.RoleSystem {
 		// 获取system prompt并添加到上下文开头
@@ -133,16 +133,16 @@ func (tc *TrinityCoordinator) ensureSystemPrompt(trinity *sages.Sage) {
 }
 
 // restoreContext 恢复Trinity上下文到指定快照
-func (tc *TrinityCoordinator) restoreContext(trinity *sages.Sage, snapshot []types.ContextMessage) {
+func (tc *TrinityCoordinator) restoreContext(sessionId string, trinity *sages.Sage, snapshot []types.ContextMessage) {
 	trinity.ClearContext()
 	for _, msg := range snapshot {
-		trinity.AddToContext(msg)
+		trinity.AddToContextWithSession(sessionId, msg)
 	}
 }
 
 // injectIntrospection 注入内省输入到Trinity上下文
 // 对齐前端语义分配：think_about包含用户输入，think_result包含完整的三贤人观点
-func (tc *TrinityCoordinator) injectIntrospection(trinity *sages.Sage, introspection string, userInput string) {
+func (tc *TrinityCoordinator) injectIntrospection(sessionId string, trinity *sages.Sage, introspection string, userInput string) {
 	// 构造工具调用消息（think_about包含用户原始输入）
 	toolCallMsg := types.ContextMessage{
 		Role:    types.RoleAssistant,
@@ -166,8 +166,8 @@ func (tc *TrinityCoordinator) injectIntrospection(trinity *sages.Sage, introspec
 		ToolID:  "introspection_call",
 	}
 
-	trinity.AddToContext(toolCallMsg)
-	trinity.AddToContext(toolResultMsg)
+	trinity.AddToContextWithSession(sessionId, toolCallMsg)
+	trinity.AddToContextWithSession(sessionId, toolResultMsg)
 }
 
 // callTrinity 调用Trinity并解析响应
@@ -212,7 +212,7 @@ func (tc *TrinityCoordinator) callTrinity(
 		case chunk, ok := <-streamCh:
 			if !ok {
 				// 流结束，解析speak工具
-				result, parseErr := tc.parseTrinitySpeakResult(trinity, processor)
+				result, parseErr := tc.parseTrinitySpeakResult(sessionId, trinity, processor)
 				if parseErr != nil {
 					if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, trinity.GetName(), trinity.GetDisplayName(), parseErr.Error()); pushErr != nil {
 						logging.LogWarnf("推送Trinity失败事件失败: %v", pushErr)
@@ -270,10 +270,11 @@ func (tc *TrinityCoordinator) callTrinity(
 
 // parseTrinitySpeakResult 解析Trinity speak工具结果
 func (tc *TrinityCoordinator) parseTrinitySpeakResult(
+	sessionId string,
 	trinity *sages.Sage,
 	processor *stream.Processor,
 ) (*TrinityResult, error) {
-	// 先获取完整结果，兼容“无工具调用，直接文本输出”的模型行为。
+	// 先获取完整结果，兼容”无工具调用，直接文本输出”的模型行为。
 	result := processor.GetResult(true)
 
 	// 解析speak工具的channel输出
@@ -317,7 +318,7 @@ func (tc *TrinityCoordinator) parseTrinitySpeakResult(
 		assistantMsg.ToolCalls = toolCalls
 	}
 
-	trinity.AddToContext(assistantMsg)
+	trinity.AddToContextWithSession(sessionId, assistantMsg)
 
 	return &TrinityResult{
 		Content:              publicContent,

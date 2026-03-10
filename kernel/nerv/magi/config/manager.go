@@ -164,6 +164,7 @@ func defaultMelchiorConfig() AgentConfig {
 }
 
 // defaultBalthazarConfig 返回Balthazar默认配置
+// 注意：认知结构的保持将由上下文工程（prompt设计、记忆检索等）而非上下文长度来保证
 func defaultBalthazarConfig() AgentConfig {
 	return AgentConfig{
 		Name: "balthazar",
@@ -175,13 +176,14 @@ func defaultBalthazarConfig() AgentConfig {
 			BaseWeight:   1.0,
 		},
 		MardukConfig:   MardukConfig{},
-		ContextPercent: 0.4,
+		ContextPercent: 0.8,
 		SystemPrompt:   prompts.BalthazarSystemPrompt,
 		Tools:          []ToolDef{BuildAvatarModifyToolDef()},
 	}
 }
 
 // defaultCasperConfig 返回Casper默认配置
+// 注意：认知结构的保持将由上下文工程（prompt设计、记忆检索等）而非上下文长度来保证
 func defaultCasperConfig() AgentConfig {
 	return AgentConfig{
 		Name: "casper",
@@ -192,10 +194,10 @@ func defaultCasperConfig() AgentConfig {
 			ResponseType: "humanistic",
 			BaseWeight:   1.0,
 		},
-		MardukConfig: MardukConfig{},
-		MemorySize:   7,
-		SystemPrompt: prompts.CasperSystemPrompt,
-		Tools:        []ToolDef{BuildAvatarModifyToolDef()},
+		MardukConfig:   MardukConfig{},
+		ContextPercent: 0.8,
+		SystemPrompt:   prompts.CasperSystemPrompt,
+		Tools:          []ToolDef{BuildAvatarModifyToolDef()},
 	}
 }
 
@@ -225,6 +227,7 @@ func defaultTrinityConfig() AgentConfig {
 }
 
 // defaultContextStrategy 返回默认上下文策略
+// 注意：三贤人统一使用80%上下文，认知结构的保持将由上下文工程（prompt设计、记忆检索等）而非上下文长度来保证
 func defaultContextStrategy() map[string]*ContextStrategy {
 	return map[string]*ContextStrategy{
 		"melchior": {
@@ -233,11 +236,11 @@ func defaultContextStrategy() map[string]*ContextStrategy {
 		},
 		"balthazar": {
 			Type:    "token_percent",
-			Percent: 0.4,
+			Percent: 0.8,
 		},
 		"casper": {
-			Type:  "message_count",
-			Count: 7,
+			Type:    "token_percent",
+			Percent: 0.8,
 		},
 		"trinity": {
 			Type:  "message_count",

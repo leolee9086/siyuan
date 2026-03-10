@@ -159,7 +159,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 			if !ok {
 				// 流结束
 				result := processor.GetResult(true)
-				response, err := rc.buildSageResponse(sage, result)
+				response, err := rc.buildSageResponse(sessionId, sage, result)
 				if err != nil {
 					// 推送失败事件
 					if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, sage.GetName(), sage.GetDisplayName(), err.Error()); pushErr != nil {
@@ -236,7 +236,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 }
 
 // buildSageResponse 构建SageResponse
-func (rc *ResponseCollector) buildSageResponse(sage *sages.Sage, result *types.StreamResult) (*types.SageResponse, error) {
+func (rc *ResponseCollector) buildSageResponse(sessionId string, sage *sages.Sage, result *types.StreamResult) (*types.SageResponse, error) {
 	// 检查是否有有效内容
 	if result.Content == "" && !result.HasToolCalls {
 		return nil, fmt.Errorf("贤者响应为空")
@@ -267,7 +267,7 @@ func (rc *ResponseCollector) buildSageResponse(sage *sages.Sage, result *types.S
 		Role:    types.RoleAssistant,
 		Content: result.Content,
 	}
-	sage.AddToContext(assistantMsg)
+	sage.AddToContextWithSession(sessionId, assistantMsg)
 
 	return response, nil
 }
