@@ -40,8 +40,56 @@ function upsertMessage(messages: MagiMessage[], incoming: MagiMessage): void {
 }
 
 /** 按内部名称查找贤者实例。 */
-function findSeelByName(seels: WrappedSeel[], seelName: string): WrappedSeel | null {
-    const target = seels.find((seel) => seel.config.name === seelName);
+function normalizeSeelIdentity(value: unknown): string {
+    if (typeof value !== "string") {
+        return "";
+    }
+    const normalized = value.trim().toUpperCase();
+    if (!normalized) {
+        return "";
+    }
+
+    if (normalized.includes("MELCHIOR")) {
+        return "MELCHIOR";
+    }
+    // 后端可能使用 BALTHAZAR，前端配置使用 BALTHASAR。
+    if (normalized.includes("BALTHASAR") || normalized.includes("BALTHAZAR")) {
+        return "BALTHASAR";
+    }
+    if (normalized.includes("CASPER")) {
+        return "CASPER";
+    }
+    if (normalized.includes("TRINITY")) {
+        return "TRINITY";
+    }
+
+    return normalized.replace(/[^A-Z0-9]/g, "");
+}
+
+function findSeelByName(
+    seels: WrappedSeel[],
+    seelName: unknown,
+    displayName?: unknown,
+): WrappedSeel | null {
+    if (typeof seelName === "string" && seelName) {
+        const exact = seels.find((seel) => seel.config.name === seelName);
+        if (exact) {
+            return exact;
+        }
+    }
+
+    const candidates = [seelName, displayName]
+        .map((candidate) => normalizeSeelIdentity(candidate))
+        .filter((candidate) => candidate.length > 0);
+    if (candidates.length === 0) {
+        return null;
+    }
+
+    const target = seels.find((seel) => {
+        const nameKey = normalizeSeelIdentity(seel.config.name);
+        const displayKey = normalizeSeelIdentity(seel.config.displayName);
+        return candidates.includes(nameKey) || candidates.includes(displayKey);
+    });
     return target ?? null;
 }
 
@@ -81,7 +129,7 @@ function projectSeelReplyStarted(
     if (!shouldProcessEvent(state, event.eventId, event.seq)) {
         return;
     }
-    const seel = findSeelByName(state.target.seels, event.seelName);
+    const seel = findSeelByName(state.target.seels, event.seelName, event.displayName);
     if (!seel) {
         return;
     }
@@ -105,7 +153,7 @@ function projectSeelReplyChunk(
     if (!shouldProcessEvent(state, event.eventId, event.seq)) {
         return;
     }
-    const seel = findSeelByName(state.target.seels, event.seelName);
+    const seel = findSeelByName(state.target.seels, event.seelName, event.displayName);
     if (!seel) {
         return;
     }
@@ -120,7 +168,7 @@ function projectSeelReplyCompleted(
     if (!shouldProcessEvent(state, event.eventId, event.seq)) {
         return;
     }
-    const seel = findSeelByName(state.target.seels, event.seelName);
+    const seel = findSeelByName(state.target.seels, event.seelName, event.displayName);
     if (!seel) {
         return;
     }
@@ -136,7 +184,7 @@ function projectSeelReplyFailed(
     if (!shouldProcessEvent(state, event.eventId, event.seq)) {
         return;
     }
-    const seel = findSeelByName(state.target.seels, event.seelName);
+    const seel = findSeelByName(state.target.seels, event.seelName, event.displayName);
     if (!seel) {
         return;
     }
@@ -185,7 +233,7 @@ function projectVoteDecision(
     if (!seelName || !event.decision) {
         return;
     }
-    const seel = findSeelByName(state.target.seels, seelName);
+    const seel = findSeelByName(state.target.seels, seelName, event.displayName);
     if (!seel) {
         return;
     }
@@ -213,7 +261,7 @@ function projectVoteError(
     if (!seelName || !errorText) {
         return;
     }
-    const seel = findSeelByName(state.target.seels, seelName);
+    const seel = findSeelByName(state.target.seels, seelName, event.displayName);
     if (!seel) {
         return;
     }

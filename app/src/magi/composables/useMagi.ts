@@ -26,6 +26,10 @@ import {
 import { resolveStartupPromptInjectionsByActiveSeed } from "../prompts/personaRuntimePromptBuilder";
 import { createMagiEventBus } from "../events/magiEventBus";
 import { bindMagiProjector } from "../events/magiProjector";
+import {
+    createMagiWebSocketSessionId,
+} from "../events/magiWebSocketBridge";
+import { bindMagiWebSocketEventBridge } from "../events/bindMagiWebSocketEventBridge";
 import { createStandardLLMAdapter } from "../adapters/standardLLMAdapterFactory";
 import type { ChatRequestParams } from "../../ai/types";
 
@@ -234,11 +238,14 @@ export async function useMagi(options?: UseMagiOptions): Promise<UseMagiReturn> 
     const consensusMessages: MagiMessage[] = reactive([]);
     const isAnySeelLoading = computed(() => seels.some((seel) => seel.loading));
     const eventBus = await createMagiEventBus();
+    const sessionId = createMagiWebSocketSessionId();
     const stopProjector = await bindMagiProjector(eventBus, {
         seels,
         consensusMessages,
     });
+    const stopWebSocketBridge = bindMagiWebSocketEventBridge(eventBus, { sessionId });
     void stopProjector;
+    void stopWebSocketBridge;
 
     const startupPromptInjections = await resolvePromptInjectionsForInit(options?.promptInjections);
     await initializeWrappedSeels(seels, connectionStatus, startupPromptInjections);
@@ -248,6 +255,7 @@ export async function useMagi(options?: UseMagiOptions): Promise<UseMagiReturn> 
         consensusMessages,
         seels,
         eventBus,
+        sessionId,
     });
 
     return {

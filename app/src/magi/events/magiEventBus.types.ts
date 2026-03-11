@@ -111,9 +111,17 @@ export interface MagiEventBus {
         event: K,
         payload: MagiEventMetaStrippedPayload<K>,
     ): boolean;
+    emitWithMeta<K extends MagiEventName>(
+        event: K,
+        payload: MagiEventPayloadMap[K],
+    ): boolean;
     emitAsync<K extends MagiEventName>(
         event: K,
         payload: MagiEventMetaStrippedPayload<K>,
+    ): Promise<boolean>;
+    emitAsyncWithMeta<K extends MagiEventName>(
+        event: K,
+        payload: MagiEventPayloadMap[K],
     ): Promise<boolean>;
     subscribe<K extends MagiEventName>(
         event: K,

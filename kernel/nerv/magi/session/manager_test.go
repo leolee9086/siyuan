@@ -132,3 +132,21 @@ func TestGenerateSessionID(t *testing.T) {
 		t.Errorf("会话ID应以magi-开头，实际: %s", id1)
 	}
 }
+
+func TestCreateSessionWithID(t *testing.T) {
+	sm := NewSessionManager(30 * time.Minute)
+	defer sm.Stop()
+
+	session := sm.CreateSessionWithID("magi-ui-fixed-001", "user123")
+	if session.ID != "magi-ui-fixed-001" {
+		t.Fatalf("期望会话ID=magi-ui-fixed-001，实际: %s", session.ID)
+	}
+
+	retrieved, ok := sm.GetSession("magi-ui-fixed-001")
+	if !ok {
+		t.Fatal("应能通过固定会话ID检索会话")
+	}
+	if retrieved.UserID != "user123" {
+		t.Fatalf("期望UserID=user123，实际: %s", retrieved.UserID)
+	}
+}

@@ -145,6 +145,54 @@ describe("MAGI Event Bridge - 事件投影", () => {
         stop();
     });
 
+    it("应兼容后端小写贤者名称并映射到前端编号卡片", async () => {
+        const bus = await createMagiEventBus();
+        const melchior = createWrappedSeel("MELCHIOR-01", "MELCHIOR");
+        const balthasar = createWrappedSeel("BALTHASAR-02", "BALTHASAR");
+        const consensusMessages: MagiMessage[] = [];
+        const stop = await bindMagiProjector(bus, {
+            seels: [melchior, balthasar],
+            consensusMessages,
+        });
+
+        bus.emitWithMeta("SEEL_REPLY_CHUNK", {
+            eventId: "event-lowercase-1",
+            seq: 101,
+            roundId: "round-lowercase-1",
+            timestamp: Date.now(),
+            seelName: "melchior",
+            displayName: "Melchior",
+            message: {
+                id: "melchior-stream-1",
+                type: "melchior",
+                content: "melchior chunk",
+                status: "streaming",
+                timestamp: Date.now(),
+            },
+        });
+
+        bus.emitWithMeta("SEEL_REPLY_COMPLETED", {
+            eventId: "event-lowercase-2",
+            seq: 102,
+            roundId: "round-lowercase-1",
+            timestamp: Date.now(),
+            seelName: "balthazar",
+            displayName: "Balthazar",
+            message: {
+                id: "balthazar-completed-1",
+                type: "balthazar",
+                content: "balthazar completed",
+                status: "success",
+                timestamp: Date.now(),
+            },
+        });
+
+        expect(melchior.messages.find((message) => message.id === "melchior-stream-1")?.content).toBe("melchior chunk");
+        expect(balthasar.messages.find((message) => message.id === "balthazar-completed-1")?.content).toBe("balthazar completed");
+
+        stop();
+    });
+
     it("应将侧面投票结果与错误投影到对应贤者卡片", async () => {
         const bus = await createMagiEventBus();
         const seel = createWrappedSeel("CASPER-03", "CASPER");

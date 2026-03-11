@@ -82,19 +82,22 @@ export async function createMagiStandardLLMAdapter(params: {
     consensusMessages: MagiMessage[];
     seels: WrappedSeel[];
     eventBus?: MagiEventBus;
+    sessionId?: string;
 }): Promise<StandardLLMAdapter> {
     const model = params.model ?? "magi-trinity";
     const runtimeMainInterfaceIdentity = buildRuntimeMainInterfaceIdentity();
+    const sessionId = typeof params.sessionId === "string" ? params.sessionId.trim() : "";
 
     return {
         createChatCompletion: async (request) =>
-            createMagiChatCompletion(request, model, runtimeMainInterfaceIdentity),
+            createMagiChatCompletion(request, model, runtimeMainInterfaceIdentity, sessionId),
         streamChatCompletion: async (request, callbacks) =>
             streamMagiChatCompletion(
                 request,
                 callbacks,
                 model,
                 runtimeMainInterfaceIdentity,
+                sessionId,
             ),
     };
 }
@@ -455,10 +458,12 @@ function buildMagiBackendRequestBody(
 function buildMagiBackendHeaders(
     sourceKey: string,
     identity: MagiInterfaceIdentity,
+    sessionId: string,
 ): Record<string, string> {
     return {
         "Content-Type": "application/json",
         "X-MAGI-Source-Key": sourceKey,
+        ...(sessionId ? { "X-MAGI-Session-ID": sessionId } : {}),
         "X-MAGI-Principal-ID": identity.principalId,
         "X-MAGI-Interface-ID": identity.interfaceId,
         "X-MAGI-Interface-Kind": identity.interfaceKind,
@@ -472,6 +477,7 @@ async function tryForwardMagiRequestToBackend(
     fallbackModel: string,
     requestContext: ConsensusRequestContext,
     mainIdentity: MagiInterfaceIdentity,
+    sessionId: string,
 ): Promise<BackendForwardResult> {
     const sourceKey = resolveMagiSourceKey(requestContext);
     if (!sourceKey) {
@@ -492,7 +498,7 @@ async function tryForwardMagiRequestToBackend(
         const response = await fetch(endpoint, {
             method: "POST",
             credentials: "include",
-            headers: buildMagiBackendHeaders(sourceKey, identity),
+            headers: buildMagiBackendHeaders(sourceKey, identity, sessionId),
             body: JSON.stringify(requestBody),
         });
         if (!response.ok) {
@@ -522,6 +528,7 @@ async function createMagiChatCompletion(
     request: ChatRequestParams,
     model: string,
     runtimeMainInterfaceIdentity: MagiInterfaceIdentity,
+    sessionId: string,
 ): Promise<ChatResponseData> {
     const userInput = extractLatestUserInput(request.messages);
     if (!userInput) {
@@ -533,6 +540,7 @@ async function createMagiChatCompletion(
         request.model ?? model,
         requestContext,
         runtimeMainInterfaceIdentity,
+        sessionId,
     );
     if (backendResult.response) {
         return backendResult.response;
@@ -580,6 +588,7 @@ async function streamMagiChatCompletion(
     callbacks: StandardLLMStreamCallbacks,
     model: string,
     runtimeMainInterfaceIdentity: MagiInterfaceIdentity,
+    sessionId: string,
 ): Promise<void> {
     callbacks.onStart?.();
     try {
@@ -587,6 +596,7 @@ async function streamMagiChatCompletion(
             request,
             model,
             runtimeMainInterfaceIdentity,
+            sessionId,
         );
         const content = response.choices?.[0]?.message?.content ?? "";
         callbacks.onChunk?.(buildFullContentChunk(content, response.model ?? model));

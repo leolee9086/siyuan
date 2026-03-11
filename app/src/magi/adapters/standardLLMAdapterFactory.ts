@@ -16,6 +16,7 @@ export interface StandardLLMAdapterFactoryParams {
     consensusMessages: MagiMessage[];
     seels: WrappedSeel[];
     eventBus?: MagiEventBus;
+    sessionId?: string;
 }
 
 /**
@@ -34,5 +35,6 @@ export async function createStandardLLMAdapter(
         consensusMessages: params.consensusMessages,
         seels: params.seels,
         eventBus: params.eventBus,
+        sessionId: params.sessionId,
     });
 }

@@ -50,8 +50,13 @@ func NewSessionManager(timeout time.Duration) *SessionManager {
 
 // CreateSession 创建新会话
 func (sm *SessionManager) CreateSession(userID string) *Session {
+	return sm.CreateSessionWithID(generateSessionID(), userID)
+}
+
+// CreateSessionWithID 使用指定ID创建新会话。
+func (sm *SessionManager) CreateSessionWithID(sessionID string, userID string) *Session {
 	session := &Session{
-		ID:           generateSessionID(),
+		ID:           sessionID,
 		CreatedAt:    time.Now(),
 		LastActiveAt: time.Now(),
 		UserID:       userID,

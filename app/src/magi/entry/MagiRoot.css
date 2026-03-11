@@ -27,35 +27,179 @@ body,
 }
 
 .magi-titlebar {
-  height: 52px;
-  padding: 0 12px;
+  min-height: 52px;
+  padding: 8px 12px;
   border-bottom: 1px solid rgba(0, 255, 255, 0.25);
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 12px;
   flex-shrink: 0;
   -webkit-app-region: drag;
   user-select: none;
+  overflow: hidden;
 }
 
 .magi-title {
   font-family: "MS Gothic", monospace;
   letter-spacing: 0.18em;
   color: #66f7ff;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.magi-titlebar-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-app-region: no-drag;
+}
+
+.magi-titlebar-content::-webkit-scrollbar {
+  height: 4px;
+}
+
+.magi-titlebar-content::-webkit-scrollbar-thumb {
+  background: rgba(0, 210, 210, 0.45);
+}
+
+.magi-status-strip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.magi-status-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.magi-status-name {
+  color: #19f16e;
+  font-family: "MS Gothic", monospace;
+  font-size: 12px;
+}
+
+.magi-status-led {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.magi-status-led.connected {
+  background: #15ff56;
+  box-shadow: 0 0 6px #15ff56;
+  animation: magi-status-pulse 1.5s infinite;
+}
+
+.magi-status-led.loading {
+  background: #ffe76e;
+  box-shadow: 0 0 6px #ffe76e;
+  animation: magi-status-pulse 0.8s infinite;
+}
+
+.magi-status-led.disconnected {
+  background: #ff5775;
+  box-shadow: 0 0 6px #ff5775;
+}
+
+@keyframes magi-status-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+.magi-sync-rate {
+  color: #15ff56;
+  font-family: "MS Gothic", monospace;
+  letter-spacing: 0.05em;
+}
+
+.magi-runtime-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.magi-runtime-button,
+.magi-runtime-toggle {
+  height: 30px;
+  border: 1px solid rgba(0, 255, 255, 0.45);
+  background: rgba(0, 44, 44, 0.32);
+  color: #9deff2;
+  font-family: "MS Gothic", monospace;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.magi-runtime-button {
+  padding: 0 10px;
+}
+
+.magi-runtime-toggle {
+  padding: 0 8px;
+}
+
+.magi-runtime-button--persona {
+  border-color: rgba(21, 255, 86, 0.62);
+  color: #15ff56;
+  background: rgba(0, 64, 22, 0.4);
+}
+
+.magi-runtime-button:hover,
+.magi-runtime-toggle:hover {
+  border-color: rgba(126, 255, 255, 0.75);
+  background: rgba(0, 88, 88, 0.28);
+}
+
+.magi-runtime-toggle.active {
+  color: #6ffbff;
+  text-shadow: 0 0 6px rgba(111, 251, 255, 0.7);
+}
+
+.magi-security-level {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #9deff2;
+  font-family: "MS Gothic", monospace;
+  white-space: nowrap;
+}
+
+.magi-security-level-label {
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.magi-security-level-code {
+  color: #85f8ff;
 }
 
 .magi-titlebar-actions {
   display: flex;
   align-items: center;
   gap: 10px;
-  -webkit-app-region: no-drag;
+  flex-shrink: 0;
 }
 
 .magi-titlebar-controls {
   display: flex;
   align-items: center;
   gap: 8px;
-  -webkit-app-region: no-drag;
 }
 
 .magi-control-button {

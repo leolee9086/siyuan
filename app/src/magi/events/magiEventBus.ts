@@ -130,6 +130,24 @@ async function emitAsyncInternal<K extends MagiEventName>(
     return emitter.emitAsyncWithMeta(event, eventData);
 }
 
+/** 同步发射包含元字段的事件。 */
+function emitWithMetaInternal<K extends MagiEventName>(
+    emitter: SafeEventEmitter<typeof magiEventDefines>,
+    event: K,
+    payload: MagiEventPayloadMap[K],
+): boolean {
+    return emitter.emitWithMeta(event, payload);
+}
+
+/** 异步发射包含元字段的事件。 */
+async function emitAsyncWithMetaInternal<K extends MagiEventName>(
+    emitter: SafeEventEmitter<typeof magiEventDefines>,
+    event: K,
+    payload: MagiEventPayloadMap[K],
+): Promise<boolean> {
+    return emitter.emitAsyncWithMeta(event, payload);
+}
+
 /**
  * 订阅事件并把业务监听器转换为底层监听器签名。
  *
@@ -169,7 +187,9 @@ export async function createMagiEventBus(): Promise<MagiEventBus> {
 
     return {
         emit: emitInternal.bind(null, emitter, nextMeta),
+        emitWithMeta: emitWithMetaInternal.bind(null, emitter),
         emitAsync: emitAsyncInternal.bind(null, emitter, nextMeta),
+        emitAsyncWithMeta: emitAsyncWithMetaInternal.bind(null, emitter),
         subscribe: subscribeInternal.bind(null, emitter),
         subscribeOnce: subscribeOnceInternal.bind(null, emitter),
     };
