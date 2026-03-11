@@ -7,6 +7,13 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/util/stream"
 )
 
+const (
+	// TrinitySpeakToolName Trinity speak工具名称（对齐前端 trinity.toolset.ts:10）
+	TrinitySpeakToolName = "speak"
+	// DeliberationSignalToolName 审慎决策信号工具名称
+	DeliberationSignalToolName = "deliberation_signal"
+)
+
 // SpeakToolHandler speak 工具处理器
 type SpeakToolHandler struct {
 	toolCallsByIndex   map[int]*toolCallState
