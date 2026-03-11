@@ -42,10 +42,14 @@ import (
 	"github.com/siyuan-note/logging"
 )
 
-// var Mode = "dev"
-var Mode = "prod"
+// var Mode = ModeDev
+var Mode = ModeProd
 
 const (
+	ModeProd  = "prod"
+	ModeDev   = "dev"
+	ModeForge = "forge"
+
 	Ver       = "3.5.9"
 	IsInsider = false
 )
@@ -54,6 +58,18 @@ var (
 	RunInContainer             = false // 是否运行在容器中
 	SiYuanAccessAuthCodeBypass = false // 是否跳过空访问授权码检查
 )
+
+func IsDevMode() bool {
+	return ModeDev == Mode
+}
+
+func IsForgeMode() bool {
+	return ModeForge == Mode
+}
+
+func IsDevOrForgeMode() bool {
+	return IsDevMode() || IsForgeMode()
+}
 
 func initEnvVars() {
 	RunInContainer = isRunningInDockerContainer()
@@ -97,7 +113,7 @@ func Boot() {
 	accessAuthCode := flag.String("accessAuthCode", "", "access auth code")
 	ssl := flag.Bool("ssl", false, "for https and wss")
 	lang := flag.String("lang", "", "ar_SA/de_DE/en_US/es_ES/fr_FR/he_IL/it_IT/ja_JP/ko_KR/pl_PL/pt_BR/ru_RU/sk_SK/tr_TR/zh_CHT/zh_CN")
-	mode := flag.String("mode", "prod", "dev/prod")
+	mode := flag.String("mode", ModeProd, "dev/prod/forge")
 	flag.Parse()
 
 	// Fallback to env vars if commandline args are not set
@@ -159,7 +175,7 @@ func Boot() {
 	tryLockWorkspace()
 
 	AppearancePath = filepath.Join(ConfDir, "appearance")
-	if "dev" == Mode {
+	if IsDevOrForgeMode() {
 		ThemesPath = filepath.Join(WorkingDir, "appearance", "themes")
 		IconsPath = filepath.Join(WorkingDir, "appearance", "icons")
 	} else {

@@ -706,8 +706,8 @@ const initKernel = (workspace, port, lang) => {
             return;
         }
         const cmds = ["--port", kernelPort, "--wd", appDir];
-        if (isDevEnv && workspaces.length === 0) {
-            cmds.push("--mode", "dev");
+        if (isDevEnv) {
+            cmds.push("--mode", "forge");
         }
         if (workspace && "" !== workspace) {
             cmds.push("--workspace", workspace);

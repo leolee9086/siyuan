@@ -121,7 +121,7 @@ func isUsingMicrosoftDefender() bool {
 
 func getElevatorBin() string {
 	elevator := filepath.Join(util.WorkingDir, "kernel", "elevator.exe")
-	if "dev" == util.Mode || !gulu.File.IsExist(elevator) {
+	if util.IsDevOrForgeMode() || !gulu.File.IsExist(elevator) {
 		elevator = filepath.Join(util.WorkingDir, "elevator", "elevator-"+runtime.GOARCH+".exe")
 	}
 	return elevator

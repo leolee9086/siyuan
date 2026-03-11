@@ -202,7 +202,7 @@ func LoadTreeByBlockIDWithReindex(id string) (ret *parse.Tree, err error) {
 		err = indexTreeInFilesystem(id)
 		bt = treenode.GetBlockTree(id)
 		if nil == bt {
-			if "dev" == util.Mode {
+			if util.IsDevOrForgeMode() {
 				logging.LogWarnf("block tree not found [id=%s], stack: [%s]", id, logging.ShortStack())
 			}
 			return
@@ -230,7 +230,7 @@ func LoadTreeByBlockID(id string) (ret *parse.Tree, err error) {
 
 		stack := logging.ShortStack()
 		if !strings.Contains(stack, "BuildBlockBreadcrumb") {
-			if "dev" == util.Mode {
+			if util.IsDevOrForgeMode() {
 				logging.LogWarnf("block tree not found [id=%s], stack: [%s]", id, stack)
 			}
 		}

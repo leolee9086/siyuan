@@ -486,7 +486,7 @@ func serveAppearance(ginServer *gin.Engine) {
 	})
 
 	appearancePath := util.AppearancePath
-	if "dev" == util.Mode {
+	if util.IsDevOrForgeMode() {
 		appearancePath = filepath.Join(util.WorkingDir, "appearance")
 	}
 	siyuan.GET("/appearance/*filepath", func(c *gin.Context) {

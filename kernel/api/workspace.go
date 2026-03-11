@@ -285,9 +285,9 @@ func setWorkspaceDir(c *gin.Context) {
 		return
 	}
 
-	if gulu.OS.IsWindows() && "dev" != util.Mode {
+	if gulu.OS.IsWindows() && !util.IsForgeMode() {
 		// 改进判断工作空间路径实现 https://github.com/siyuan-note/siyuan/issues/7569
-		// 工坊模式（dev）下允许工作空间位于开发目录内
+		// 仅工坊模式（forge）允许工作空间位于开发目录内
 		installDirLower := strings.ToLower(filepath.Dir(util.WorkingDir))
 		pathLower := strings.ToLower(path)
 		if strings.HasPrefix(pathLower, installDirLower) && (util.IsSubPath(installDirLower, pathLower) || filepath.Clean(installDirLower) == filepath.Clean(pathLower)) {
@@ -343,7 +343,7 @@ func isInvalidWorkspacePath(absPath string) bool {
 	if "" == name {
 		return true
 	}
-	if strings.HasPrefix(name, ".") {
+	if strings.HasPrefix(name, ".") && !util.IsForgeMode() {
 		return true
 	}
 	if !gulu.File.IsValidFilename(name) {
