@@ -310,7 +310,8 @@ func TestInjectIntrospection(t *testing.T) {
 
 	introspection := "测试内省输入"
 	userInput := "测试用户输入"
-	tc.injectIntrospection(trinity, introspection, userInput)
+	sessionId := "test-session-id"
+	tc.injectIntrospection(sessionId, trinity, introspection, userInput)
 
 	context := trinity.GetContext()
 

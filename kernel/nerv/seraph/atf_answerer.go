@@ -10,9 +10,9 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/nerv/dummysys"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/coordinator"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
-	"github.com/siyuan-note/siyuan/kernel/nerv/magi/stream"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
 	"github.com/siyuan-note/siyuan/kernel/util"
+	"github.com/siyuan-note/siyuan/kernel/util/stream"
 )
 
 // ThreeBlindAnswerer 三盲测试答卷器抽象。

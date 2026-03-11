@@ -15,9 +15,9 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/llm"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/prompts"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
-	"github.com/siyuan-note/siyuan/kernel/nerv/magi/stream"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/websocket"
+	utilstream "github.com/siyuan-note/siyuan/kernel/util/stream"
 )
 
 var ErrAvatarUnavailable = errors.New("avatar unavailable while rebuilding")
@@ -541,7 +541,7 @@ func runSageToolCall(
 		return "", fmt.Errorf("send tool call request failed for %s: %w", sage.GetName(), err)
 	}
 
-	processor := stream.NewProcessor()
+	processor := utilstream.NewProcessor()
 	for {
 		select {
 		case <-ctx.Done():
@@ -567,10 +567,30 @@ func runSageToolCall(
 				processor.AccumulateContent(delta.Content)
 			}
 			if len(delta.ToolCalls) > 0 {
-				processor.MergeToolCalls(delta.ToolCalls)
+				utilToolCalls := convertToolCallDeltasForAvatar(delta.ToolCalls)
+				processor.MergeToolCalls(utilToolCalls)
 			}
 		}
 	}
+}
+
+// convertToolCallDeltasForAvatar 转换工具调用增量类型（avatar专用）
+func convertToolCallDeltasForAvatar(magiCalls []types.ToolCallDelta) []utilstream.ToolCallDelta {
+	result := make([]utilstream.ToolCallDelta, len(magiCalls))
+	for i, tc := range magiCalls {
+		result[i] = utilstream.ToolCallDelta{
+			Index: tc.Index,
+			ID:    tc.ID,
+			Type:  tc.Type,
+		}
+		if tc.Function != nil {
+			result[i].Function = &utilstream.ToolCallFunctionDelta{
+				Name:      tc.Function.Name,
+				Arguments: tc.Function.Arguments,
+			}
+		}
+	}
+	return result
 }
 
 func parseMelchiorBuildAvatar(rawArgs string) (*melchiorBuildAvatar, error) {

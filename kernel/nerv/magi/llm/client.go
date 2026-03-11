@@ -12,6 +12,7 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/conf"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
 	"github.com/siyuan-note/siyuan/kernel/util"
+	"github.com/siyuan-note/siyuan/kernel/util/stream"
 )
 
 // Client MAGI LLM客户端接口
@@ -313,21 +314,18 @@ func (s *SessionContext) Limit(maxMessages int) {
 }
 
 // ProcessStreamResponse 处理流式响应并收集完整结果
+// Deprecated: 建议直接使用 util/stream.Processor 以获得更好的灵活性
 func ProcessStreamResponse(ctx context.Context, chunkChan <-chan types.StreamChunk) (*types.StreamResult, error) {
-	result := &types.StreamResult{
-		Success:             true,
-		ToolArgumentsByName: make(map[string][]string),
-	}
-
-	var contentBuilder string
-	toolCallsMap := make(map[int]*types.ToolCall)
+	// 使用通用处理器
+	processor := stream.NewProcessor()
 
 	for {
 		select {
 		case chunk, ok := <-chunkChan:
 			if !ok {
-				result.Content = contentBuilder
-				return result, nil
+				// 转换结果类型
+				utilResult := processor.GetResult(true)
+				return convertStreamResult(utilResult), nil
 			}
 
 			if len(chunk.Choices) == 0 {
@@ -336,45 +334,49 @@ func ProcessStreamResponse(ctx context.Context, chunkChan <-chan types.StreamChu
 
 			choice := chunk.Choices[0]
 
-			// 收集文本内容
-			if choice.Delta.Content != "" {
-				contentBuilder += choice.Delta.Content
-			}
+			// 累积内容
+			processor.AccumulateContent(choice.Delta.Content)
 
-			// 收集tool_calls
-			for _, tcDelta := range choice.Delta.ToolCalls {
-				tc, exists := toolCallsMap[tcDelta.Index]
-				if !exists {
-					tc = &types.ToolCall{
-						ID:    tcDelta.ID,
-						Type:  tcDelta.Type,
-						Index: tcDelta.Index,
-						Function: types.ToolCallFunction{
-							Name:      "",
-							Arguments: "",
-						},
-					}
-					toolCallsMap[tcDelta.Index] = tc
-				}
-
-				if tcDelta.Function != nil {
-					if tcDelta.Function.Name != "" {
-						tc.Function.Name = tcDelta.Function.Name
-					}
-					if tcDelta.Function.Arguments != "" {
-						tc.Function.Arguments += tcDelta.Function.Arguments
-					}
-				}
-			}
-
-			// 检查finish_reason
-			if choice.FinishReason != nil && *choice.FinishReason == "tool_calls" {
-				result.HasToolCalls = true
+			// 转换并合并工具调用
+			if len(choice.Delta.ToolCalls) > 0 {
+				utilToolCalls := convertToolCallDeltas(choice.Delta.ToolCalls)
+				processor.MergeToolCalls(utilToolCalls)
 			}
 
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		}
+	}
+}
+
+// convertToolCallDeltas 转换工具调用增量类型
+func convertToolCallDeltas(magiCalls []types.ToolCallDelta) []stream.ToolCallDelta {
+	result := make([]stream.ToolCallDelta, len(magiCalls))
+	for i, tc := range magiCalls {
+		result[i] = stream.ToolCallDelta{
+			Index: tc.Index,
+			ID:    tc.ID,
+			Type:  tc.Type,
+		}
+		if tc.Function != nil {
+			result[i].Function = &stream.ToolCallFunctionDelta{
+				Name:      tc.Function.Name,
+				Arguments: tc.Function.Arguments,
+			}
+		}
+	}
+	return result
+}
+
+// convertStreamResult 转换流式结果类型
+func convertStreamResult(utilResult *stream.StreamResult) *types.StreamResult {
+	return &types.StreamResult{
+		Content:              utilResult.Content,
+		Success:              utilResult.Success,
+		HasToolCalls:         utilResult.HasToolCalls,
+		ToolCallNames:        utilResult.ToolCallNames,
+		ToolArgumentsByName:  utilResult.ToolArgumentsByName,
+		InternalToolMessages: utilResult.InternalToolMessages,
 	}
 }
 

@@ -3,7 +3,7 @@
 > **目标**: 解决 `llm.ProcessStreamResponse` 与 `stream.Processor` 职责重叠导致的行为不一致与维护成本问题，在不破坏现有业务的前提下完成流式处理能力统一。  
 > **量化指标**:  
 > 1. 流式核心处理实现从 2 套收敛为 1 套（重复实现归零）。  
-> 2. 完成 5 处调用方迁移（`dummysys` 1 处 + `magi/seraph` 4 处）。  
+> 2. 完成 5 处调用方迁移（`dummysys` 1 处 + `seraph` 1 处 + `magi/coordinator` 3 处）。
 > 3. `tool_calls` 合并、`finish_reason`、`ToolArgumentsByName` 行为一致性用例覆盖率达到 100%（以新增回归用例集合计）。  
 > 4. `go test` 在 `kernel/nerv/magi/...`、`kernel/nerv/seraph/...`、`kernel/nerv/dummysys/...`、`kernel/util/...` 通过。  
 >
@@ -42,43 +42,7 @@
 
 ## 🟢 近期计划
 
-- [ ] **Phase 1: 建立通用流式处理核心 (`kernel/util/stream`) (P0)**
-  - **背景**: 先把重复的基础能力收敛到单一实现，消除双轨维护的根源。
-  - **行动**:
-    1. 新建 `kernel/util/stream`，实现通用 `Processor`（内容累积、tool_calls 合并、结果生成）。
-    2. 定义可注入 handler 接口，支持 `OnContent` / `OnToolCall` / `OnComplete`。
-    3. 补齐单元测试：文本累积、tool_calls 增量拼装、`finish_reason` 处理、`ToolArgumentsByName` 生成。
-  - **验收标准**:
-    - `kernel/util/stream` 包测试通过。
-    - 通用处理器可在不依赖 `magi` 的情况下独立编译和运行。
-    - 与调研样例对应的基础行为回归用例通过。
-  - **参考文档**: `docs/调研/流式响应处理器职责重叠分析.md`
-
-- [ ] **Phase 2: 提取 MAGI 业务处理器 (`kernel/nerv/magi/stream/handlers`) (P1)**
-  - **背景**: 业务逻辑与通用逻辑解耦，避免 util 层侵入 MAGI 语义。
-  - **行动**:
-    1. 将 `speak` channel 解析迁移为 `SpeakToolHandler`。
-    2. 将 `deliberation_signal` 解析迁移为 `DeliberationHandler`。
-    3. 增加 handler 级单元测试，验证公开/内部 channel 分离和 deliberation 标记提取。
-  - **验收标准**:
-    - MAGI 业务解析能力不再依赖旧 `magi/stream/processor.go` 内部状态实现。
-    - handler 测试覆盖 `speak` 与 `deliberation_signal` 的正常与异常输入。
-  - **参考文档**: `kernel/nerv/magi/coordinator/trinity.go`、`kernel/nerv/magi/coordinator/avatar_runtime.go`
-
-- [ ] **Phase 3: 迁移调用方并提供兼容层 (P1)**
-  - **背景**: 调用方分布在 dummysys、seraph、magi 多个入口，迁移需要一次性收口避免长期分叉。
-  - **行动**:
-    1. 迁移 `kernel/nerv/dummysys/runtime.go` 到通用处理器路径。
-    2. 迁移 `kernel/nerv/seraph/atf_answerer.go` 到通用处理器或轻量封装。
-    3. 迁移 `kernel/nerv/magi/coordinator/{collector.go,trinity.go,avatar_runtime.go}` 到“通用处理器 + handler”模式。
-    4. 将 `llm.ProcessStreamResponse` 改为对新实现的兼容包装并标记 deprecated。
-  - **验收标准**:
-    - 5 处调用点全部切换到统一实现链路。
-    - 旧 API 仍可调用，且行为与迁移前一致。
-    - 相关包编译和核心测试通过。
-  - **参考文档**: `docs/调研/流式响应处理器职责重叠分析.md`
-
-- [ ] **Phase 4: 行为一致性回归与旧实现下线 (P1)**
+- [ ] **Phase 4: 行为一致性回归与旧实现下线 (P1)** [下一步]
   - **背景**: 迁移完成后必须消除历史实现，避免未来再次分叉。
   - **行动**:
     1. 建立迁移前后对照用例（重点覆盖 tool_calls 合并、finish_reason、工具参数提取）。
@@ -117,4 +81,28 @@
 
 ## 🏁 已归档/已完成
 
-*(暂无)*
+- [x] **Phase 1: 建立通用流式处理核心 (`kernel/util/stream`) (P0)** - 2026-03-11
+  - ✅ 创建 `kernel/util/stream` 包，实现通用 `Processor`
+  - ✅ 定义 `ChunkHandler` 接口支持依赖注入
+  - ✅ 实现文本累积、tool_calls 合并、结果生成
+  - ✅ 补齐单元测试（8个测试用例全部通过）
+  - ✅ 验证独立编译和运行
+  - **成果**: `kernel/util/stream/{types.go, processor.go, processor_test.go}`
+
+- [x] **Phase 2: 提取 MAGI 业务处理器 (`kernel/nerv/magi/stream/handlers`) (P1)** - 2026-03-11
+  - ✅ 创建 `SpeakToolHandler` 处理 speak 工具的 public/internal channel 解析
+  - ✅ 创建 `DeliberationHandler` 处理 deliberation_signal 解析
+  - ✅ 补齐 handler 级单元测试（8个测试用例全部通过）
+  - ✅ 验证业务逻辑与通用逻辑解耦
+  - **成果**: `kernel/nerv/magi/stream/{handlers.go, handlers_test.go}`
+
+- [x] **Phase 3: 迁移调用方并提供兼容层 (P1)** - 2026-03-11
+  - ✅ 迁移 `kernel/nerv/dummysys/runtime.go` 到直接使用 `util/stream.Processor`
+  - ✅ 迁移 `kernel/nerv/seraph/atf_answerer.go` 到 `util/stream.Processor`
+  - ✅ 迁移 `kernel/nerv/magi/coordinator/trinity.go` 到 `util/stream.Processor + SpeakToolHandler`
+  - ✅ 迁移 `kernel/nerv/magi/coordinator/collector.go` 到 `util/stream.Processor`
+  - ✅ 迁移 `kernel/nerv/magi/coordinator/avatar_runtime.go` 到 `util/stream.Processor`
+  - ✅ `llm.ProcessStreamResponse` 已标记 Deprecated 并内部使用 `util/stream.Processor`
+  - ✅ 编译测试通过：`go build ./kernel/...` 成功
+  - ✅ 单元测试通过：`util/stream` 和 `magi/stream` 测试全部通过
+  - **成果**: 5处调用点全部迁移到统一实现，旧API保持兼容

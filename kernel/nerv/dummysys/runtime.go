@@ -10,6 +10,7 @@ import (
 
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/llm"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
+	"github.com/siyuan-note/siyuan/kernel/util/stream"
 )
 
 // AvatarState represents the state of an Avatar
@@ -161,6 +162,102 @@ func (a *AvatarDescriptor) ProcessMessage(ctx context.Context, userMessage strin
 	})
 
 	// Call LLM with current context
+	messages := a.GetContext()
+	chunkChan, err := a.llmClient.SendChatRequest(ctx, messages, nil, nil)
+	if err != nil {
+		return nil, fmt.Errorf("avatar llm call failed: %w", err)
+	}
+
+	// 使用通用流式处理器
+	processor := stream.NewProcessor()
+	for {
+		select {
+		case chunk, ok := <-chunkChan:
+			if !ok {
+				// 流结束，获取结果
+				utilResult := processor.GetResult(true)
+				result := convertToMagiStreamResult(utilResult)
+
+				if result == nil {
+					return nil, fmt.Errorf("avatar llm returned nil result")
+				}
+				if !result.Success {
+					return nil, fmt.Errorf("avatar llm returned unsuccessful result")
+				}
+				if strings.TrimSpace(result.Content) == "" && !result.HasToolCalls {
+					return nil, fmt.Errorf("avatar llm returned empty content")
+				}
+
+				// Add assistant response to context
+				if result.Content != "" {
+					a.AddToContext(types.ContextMessage{
+						Role:    "assistant",
+						Content: result.Content,
+					})
+				}
+
+				// Parse tool calls to detect heartbeat
+				if result.HasToolCalls {
+					a.parseToolCallsForHeartbeat(result)
+				}
+
+				return result, nil
+			}
+
+			if len(chunk.Choices) == 0 {
+				continue
+			}
+
+			choice := chunk.Choices[0]
+
+			// 累积内容
+			processor.AccumulateContent(choice.Delta.Content)
+
+			// 转换并合并工具调用
+			if len(choice.Delta.ToolCalls) > 0 {
+				utilToolCalls := convertToolCallDeltas(choice.Delta.ToolCalls)
+				processor.MergeToolCalls(utilToolCalls)
+			}
+
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+	}
+}
+
+// convertToolCallDeltas 转换工具调用增量类型
+func convertToolCallDeltas(magiCalls []types.ToolCallDelta) []stream.ToolCallDelta {
+	result := make([]stream.ToolCallDelta, len(magiCalls))
+	for i, tc := range magiCalls {
+		result[i] = stream.ToolCallDelta{
+			Index: tc.Index,
+			ID:    tc.ID,
+			Type:  tc.Type,
+		}
+		if tc.Function != nil {
+			result[i].Function = &stream.ToolCallFunctionDelta{
+				Name:      tc.Function.Name,
+				Arguments: tc.Function.Arguments,
+			}
+		}
+	}
+	return result
+}
+
+// convertToMagiStreamResult 转换流式结果类型
+func convertToMagiStreamResult(utilResult *stream.StreamResult) *types.StreamResult {
+	return &types.StreamResult{
+		Content:              utilResult.Content,
+		Success:              utilResult.Success,
+		HasToolCalls:         utilResult.HasToolCalls,
+		ToolCallNames:        utilResult.ToolCallNames,
+		ToolArgumentsByName:  utilResult.ToolArgumentsByName,
+		InternalToolMessages: utilResult.InternalToolMessages,
+	}
+}
+
+func (a *AvatarDescriptor) processMessageOld(ctx context.Context) (*types.StreamResult, error) {
+	// 旧实现保留用于参考
 	messages := a.GetContext()
 	chunkChan, err := a.llmClient.SendChatRequest(ctx, messages, nil, nil)
 	if err != nil {

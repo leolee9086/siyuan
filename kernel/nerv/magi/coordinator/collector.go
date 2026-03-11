@@ -10,9 +10,9 @@ import (
 
 	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
-	"github.com/siyuan-note/siyuan/kernel/nerv/magi/stream"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/websocket"
+	utilstream "github.com/siyuan-note/siyuan/kernel/util/stream"
 )
 
 // ResponseCollector 响应收集器
@@ -143,8 +143,8 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 		return nil, fmt.Errorf("发送消息失败: %w", err)
 	}
 
-	// 处理流式响应
-	processor := stream.NewProcessor()
+	// 处理流式响应 - 使用通用处理器
+	processor := utilstream.NewProcessor()
 	streamMessageID := fmt.Sprintf("%s-%s-stream", roundId, sage.GetName())
 
 	for {
@@ -190,36 +190,26 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 				return nil, err
 			}
 
-			// 处理chunk - 将完整chunk序列化为SSE格式以保留ToolCalls
-			chunkJSON, err := json.Marshal(chunk)
-			if err != nil {
-				wrapped := fmt.Errorf("序列化chunk失败: %w", err)
-				if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, sage.GetName(), sage.GetDisplayName(), wrapped.Error()); pushErr != nil {
-					logging.LogWarnf("推送%s响应失败事件失败: %v", sage.GetDisplayName(), pushErr)
-				}
-				return nil, wrapped
+			// 检查chunk是否有效
+			if len(chunk.Choices) == 0 {
+				continue
 			}
-			sseChunk := "data: " + string(chunkJSON)
 
-			parsed, err := processor.ProcessChunk(sseChunk)
-			if err != nil {
-				wrapped := fmt.Errorf("解析流式chunk失败: %w", err)
-				if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, sage.GetName(), sage.GetDisplayName(), wrapped.Error()); pushErr != nil {
-					logging.LogWarnf("推送%s响应失败事件失败: %v", sage.GetDisplayName(), pushErr)
-				}
-				return nil, wrapped
-			}
+			choice := chunk.Choices[0]
 
 			// 累积内容
-			processor.AccumulateContent(parsed.Content)
+			if choice.Delta.Content != "" {
+				processor.AccumulateContent(choice.Delta.Content)
+			}
 
-			// 合并工具调用
-			if len(parsed.ToolCalls) > 0 {
-				processor.MergeToolCalls(parsed.ToolCalls)
+			// 转换并合并工具调用
+			if len(choice.Delta.ToolCalls) > 0 {
+				utilToolCalls := convertToolCallDeltasForCollector(choice.Delta.ToolCalls)
+				processor.MergeToolCalls(utilToolCalls)
 			}
 
 			// 推送流式chunk事件（仅在有文本增量时推送，内容为当前累积文本）
-			if parsed.Content != "" {
+			if choice.Delta.Content != "" {
 				msg := &types.Message{
 					ID:        streamMessageID,
 					Type:      types.TypeAI,
@@ -236,7 +226,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 }
 
 // buildSageResponse 构建SageResponse
-func (rc *ResponseCollector) buildSageResponse(sessionId string, sage *sages.Sage, result *types.StreamResult) (*types.SageResponse, error) {
+func (rc *ResponseCollector) buildSageResponse(sessionId string, sage *sages.Sage, result *utilstream.StreamResult) (*types.SageResponse, error) {
 	// 检查是否有有效内容
 	if result.Content == "" && !result.HasToolCalls {
 		return nil, fmt.Errorf("贤者响应为空")
@@ -270,4 +260,23 @@ func (rc *ResponseCollector) buildSageResponse(sessionId string, sage *sages.Sag
 	sage.AddToContextWithSession(sessionId, assistantMsg)
 
 	return response, nil
+}
+
+// convertToolCallDeltas 转换工具调用增量类型（collector专用）
+func convertToolCallDeltasForCollector(magiCalls []types.ToolCallDelta) []utilstream.ToolCallDelta {
+	result := make([]utilstream.ToolCallDelta, len(magiCalls))
+	for i, tc := range magiCalls {
+		result[i] = utilstream.ToolCallDelta{
+			Index: tc.Index,
+			ID:    tc.ID,
+			Type:  tc.Type,
+		}
+		if tc.Function != nil {
+			result[i].Function = &utilstream.ToolCallFunctionDelta{
+				Name:      tc.Function.Name,
+				Arguments: tc.Function.Arguments,
+			}
+		}
+	}
+	return result
 }

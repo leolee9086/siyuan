@@ -14,6 +14,7 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/stream"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/websocket"
+	utilstream "github.com/siyuan-note/siyuan/kernel/util/stream"
 )
 
 // TrinityResult Trinity统合结果
@@ -199,8 +200,9 @@ func (tc *TrinityCoordinator) callTrinity(
 		return nil, fmt.Errorf("发送Trinity消息失败: %w", err)
 	}
 
-	// 处理流式响应
-	processor := stream.NewProcessor()
+	// 处理流式响应 - 使用通用处理器 + speak handler
+	speakHandler := stream.NewSpeakToolHandler()
+	processor := utilstream.NewProcessor(speakHandler)
 
 	for {
 		select {
@@ -212,7 +214,7 @@ func (tc *TrinityCoordinator) callTrinity(
 		case chunk, ok := <-streamCh:
 			if !ok {
 				// 流结束，解析speak工具
-				result, parseErr := tc.parseTrinitySpeakResult(sessionId, trinity, processor)
+				result, parseErr := tc.parseTrinitySpeakResult(sessionId, trinity, processor, speakHandler)
 				if parseErr != nil {
 					if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, trinity.GetName(), trinity.GetDisplayName(), parseErr.Error()); pushErr != nil {
 						logging.LogWarnf("推送Trinity失败事件失败: %v", pushErr)
@@ -245,9 +247,11 @@ func (tc *TrinityCoordinator) callTrinity(
 				continue
 			}
 
+			choice := chunk.Choices[0]
+
 			// 累积内容
-			if chunk.Choices[0].Delta.Content != "" {
-				processor.AccumulateContent(chunk.Choices[0].Delta.Content)
+			if choice.Delta.Content != "" {
+				processor.AccumulateContent(choice.Delta.Content)
 				chunkMessage := &types.Message{
 					ID:        streamMessageID,
 					Type:      types.TypeAI,
@@ -260,9 +264,10 @@ func (tc *TrinityCoordinator) callTrinity(
 				}
 			}
 
-			// 合并工具调用
-			if len(chunk.Choices[0].Delta.ToolCalls) > 0 {
-				processor.MergeToolCalls(chunk.Choices[0].Delta.ToolCalls)
+			// 转换并合并工具调用
+			if len(choice.Delta.ToolCalls) > 0 {
+				utilToolCalls := convertToolCallDeltas(choice.Delta.ToolCalls)
+				processor.MergeToolCalls(utilToolCalls)
 			}
 		}
 	}
@@ -272,17 +277,18 @@ func (tc *TrinityCoordinator) callTrinity(
 func (tc *TrinityCoordinator) parseTrinitySpeakResult(
 	sessionId string,
 	trinity *sages.Sage,
-	processor *stream.Processor,
+	processor *utilstream.Processor,
+	speakHandler *stream.SpeakToolHandler,
 ) (*TrinityResult, error) {
-	// 先获取完整结果，兼容”无工具调用，直接文本输出”的模型行为。
+	// 先获取完整结果
 	result := processor.GetResult(true)
 
-	// 解析speak工具的channel输出
-	publicContent := strings.TrimSpace(processor.ResolveSpeakChannels())
-	toolState := processor.GetToolState()
+	// 从 handler 获取解析结果
+	publicContent := strings.TrimSpace(speakHandler.GetPublicContent())
+	internalMessages := speakHandler.GetInternalMessages()
 
 	// Trinity必须通过speak工具输出，不允许降级到纯文本
-	if !toolState.HasPublicSpeakToolCall {
+	if !speakHandler.HasPublicSpeakCall() {
 		return &TrinityResult{
 			Success: false,
 		}, fmt.Errorf("Trinity未调用speak工具，原始输出: %s", result.Content)
@@ -322,9 +328,28 @@ func (tc *TrinityCoordinator) parseTrinitySpeakResult(
 
 	return &TrinityResult{
 		Content:              publicContent,
-		InternalToolMessages: toolState.InternalSpokenMessages,
+		InternalToolMessages: internalMessages,
 		Success:              true,
 	}, nil
+}
+
+// convertToolCallDeltas 转换工具调用增量类型
+func convertToolCallDeltas(magiCalls []types.ToolCallDelta) []utilstream.ToolCallDelta {
+	result := make([]utilstream.ToolCallDelta, len(magiCalls))
+	for i, tc := range magiCalls {
+		result[i] = utilstream.ToolCallDelta{
+			Index: tc.Index,
+			ID:    tc.ID,
+			Type:  tc.Type,
+		}
+		if tc.Function != nil {
+			result[i].Function = &utilstream.ToolCallFunctionDelta{
+				Name:      tc.Function.Name,
+				Arguments: tc.Function.Arguments,
+			}
+		}
+	}
+	return result
 }
 
 // escapeJSON 转义JSON字符串
