@@ -286,35 +286,53 @@ func initWorkspaceDir(workspaceArg string) {
 		}
 	}
 
-	var workspacePaths []string
-	if !gulu.File.IsExist(workspaceConf) {
-		WorkspaceDir = defaultWorkspaceDir
-	} else {
-		workspacePaths, _ = ReadWorkspacePaths()
-		if 0 < len(workspacePaths) {
-			WorkspaceDir = workspacePaths[len(workspacePaths)-1]
+	// forge 模式使用独立的工作空间管理，不读写全局 workspace.json
+	if "forge" == Mode {
+		if "" != workspaceArg {
+			WorkspaceDir = workspaceArg
 		} else {
+			// forge 模式默认使用项目根目录下的 .dev-workspace
+			WorkspaceDir = filepath.Join(WorkingDir, ".dev-workspace")
+		}
+
+		// 确保 forge 工作空间目录存在
+		if !gulu.File.IsDir(WorkspaceDir) {
+			if err := os.MkdirAll(WorkspaceDir, 0755); err != nil && !os.IsExist(err) {
+				logging.LogErrorf("create forge workspace folder [%s] failed: %s", WorkspaceDir, err)
+				os.Exit(logging.ExitCodeInitWorkspaceErr)
+			}
+		}
+	} else {
+		var workspacePaths []string
+		if !gulu.File.IsExist(workspaceConf) {
+			WorkspaceDir = defaultWorkspaceDir
+		} else {
+			workspacePaths, _ = ReadWorkspacePaths()
+			if 0 < len(workspacePaths) {
+				WorkspaceDir = workspacePaths[len(workspacePaths)-1]
+			} else {
+				WorkspaceDir = defaultWorkspaceDir
+			}
+		}
+
+		if "" != workspaceArg {
+			WorkspaceDir = workspaceArg
+		}
+
+		if !gulu.File.IsDir(WorkspaceDir) {
+			logging.LogWarnf("use the default workspace [%s] since the specified workspace [%s] is not a dir", defaultWorkspaceDir, WorkspaceDir)
+			if err := os.MkdirAll(defaultWorkspaceDir, 0755); err != nil && !os.IsExist(err) {
+				logging.LogErrorf("create default workspace folder [%s] failed: %s", defaultWorkspaceDir, err)
+				os.Exit(logging.ExitCodeInitWorkspaceErr)
+			}
 			WorkspaceDir = defaultWorkspaceDir
 		}
-	}
+		workspacePaths = append(workspacePaths, WorkspaceDir)
 
-	if "" != workspaceArg {
-		WorkspaceDir = workspaceArg
-	}
-
-	if !gulu.File.IsDir(WorkspaceDir) {
-		logging.LogWarnf("use the default workspace [%s] since the specified workspace [%s] is not a dir", defaultWorkspaceDir, WorkspaceDir)
-		if err := os.MkdirAll(defaultWorkspaceDir, 0755); err != nil && !os.IsExist(err) {
-			logging.LogErrorf("create default workspace folder [%s] failed: %s", defaultWorkspaceDir, err)
+		if err := WriteWorkspacePaths(workspacePaths); err != nil {
+			logging.LogErrorf("write workspace conf [%s] failed: %s", workspaceConf, err)
 			os.Exit(logging.ExitCodeInitWorkspaceErr)
 		}
-		WorkspaceDir = defaultWorkspaceDir
-	}
-	workspacePaths = append(workspacePaths, WorkspaceDir)
-
-	if err := WriteWorkspacePaths(workspacePaths); err != nil {
-		logging.LogErrorf("write workspace conf [%s] failed: %s", workspaceConf, err)
-		os.Exit(logging.ExitCodeInitWorkspaceErr)
 	}
 
 	WorkspaceName = filepath.Base(WorkspaceDir)
