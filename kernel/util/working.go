@@ -25,6 +25,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -84,6 +85,7 @@ var (
 	bootDetails  string           // 启动细节描述
 	HttpServer   *http.Server     // HTTP 伺服器实例
 	HttpServing  = false          // 是否 HTTP 伺服已经可用
+	NoBrowser    = false          // 是否禁用自动打开浏览器（forge 模式）
 )
 
 // If a commandline parameter is empty, fallback to the env var.
@@ -114,6 +116,7 @@ func Boot() {
 	ssl := flag.Bool("ssl", false, "for https and wss")
 	lang := flag.String("lang", "", "ar_SA/de_DE/en_US/es_ES/fr_FR/he_IL/it_IT/ja_JP/ko_KR/pl_PL/pt_BR/ru_RU/sk_SK/tr_TR/zh_CHT/zh_CN")
 	mode := flag.String("mode", ModeProd, "dev/prod/forge")
+	noBrowser := flag.Bool("no-browser", false, "disable auto-open browser in forge mode")
 	flag.Parse()
 
 	// Fallback to env vars if commandline args are not set
@@ -132,6 +135,7 @@ func Boot() {
 	Mode = *mode
 	ServerPort = *port
 	ReadOnly, _ = strconv.ParseBool(*readOnly)
+	NoBrowser = *noBrowser
 	AccessAuthCode = *accessAuthCode
 	AccessAuthCode = strings.TrimSpace(AccessAuthCode)
 	AccessAuthCode = RemoveInvalid(AccessAuthCode)
@@ -574,4 +578,18 @@ func LogDatabaseSize(dbPath string) {
 
 	dbSize := humanize.BytesCustomCeil(uint64(dbFile.Size()), 2)
 	logging.LogInfof("database [%s] size [%s]", dbPath, dbSize)
+}
+
+// OpenBrowser 在默认浏览器中打开指定 URL
+func OpenBrowser(url string) error {
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "windows":
+		cmd = exec.Command("cmd", "/c", "start", url)
+	case "darwin":
+		cmd = exec.Command("open", url)
+	default: // linux, freebsd, openbsd, netbsd
+		cmd = exec.Command("xdg-open", url)
+	}
+	return cmd.Start()
 }

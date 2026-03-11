@@ -12,6 +12,7 @@
     "lint:top": "node ./scripts/lint-top-errors.js",
     "lint:rules": "node ./scripts/lint-rule-stats.js",
     "lint:imports-gateway": "node ./scripts/check-imports-gateway-usage.js",
+    "forge": "node ./scripts/forge-start.js",
     "dev": "webpack --mode development",
     "dev:app": "webpack --mode development --env target=app",
     "dev:desktop": "webpack --mode development --env target=desktop",

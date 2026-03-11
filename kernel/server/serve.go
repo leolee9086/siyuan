@@ -293,6 +293,29 @@ func Serve(fastMode bool, cookieKey string) {
 		// 反代服务器启动失败不影响核心服务器启动
 	}()
 
+	// forge 模式下自动打开浏览器
+	if util.IsForgeMode() && !util.NoBrowser {
+		go func() {
+			time.Sleep(2 * time.Second) // 等待服务器完全启动
+			// 打开笔记界面
+			url := fmt.Sprintf("http://127.0.0.1:%s/", port)
+			if err := util.OpenBrowser(url); err != nil {
+				logging.LogWarnf("failed to open browser: %s", err)
+			} else {
+				logging.LogInfof("opened browser at %s", url)
+			}
+
+			// 打开 magi 界面
+			time.Sleep(500 * time.Millisecond) // 稍微延迟避免同时打开
+			magiURL := fmt.Sprintf("http://127.0.0.1:%s/stage/build/magi-desktop/", port)
+			if err := util.OpenBrowser(magiURL); err != nil {
+				logging.LogWarnf("failed to open magi browser: %s", err)
+			} else {
+				logging.LogInfof("opened magi browser at %s", magiURL)
+			}
+		}()
+	}
+
 	util.HttpServer = &http.Server{
 		Handler: ginServer,
 	}
