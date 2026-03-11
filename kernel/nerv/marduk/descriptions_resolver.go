@@ -10,7 +10,7 @@ const sampleFileMarker = "_ipip120_sample_"
 
 // ResolvePersonaSeedDescriptions 解析人格种子四轨描述。
 // 描述源与人格档案分离：优先从原始问卷样本文件中加载描述。
-// 对于预设人格（丽/薰），返回预设描述；对于非预设人格，尝试加载对应的样本文件。
+// 对于预设人格（丽/薰/式波/Jarvis），返回预设描述；对于非预设人格，尝试加载对应的样本文件。
 func ResolvePersonaSeedDescriptions(dataDir string, profile *IpipPersonaProfile) IpipPersonaSeedDescriptions {
 	if profile == nil {
 		return GetReiSubmissionPayload().Descriptions
@@ -26,6 +26,12 @@ func ResolvePersonaSeedDescriptions(dataDir string, profile *IpipPersonaProfile)
 	}
 	if lowerID == "kaoru" || name == "薰" {
 		return GetKaoruSubmissionPayload().Descriptions
+	}
+	if lowerID == "shikinami" || name == "式波" || name == "式波明日香" {
+		return GetShikinamiSubmissionPayload().Descriptions
+	}
+	if lowerID == "jarvis" || strings.EqualFold(name, "jarvis") || name == "贾维斯" {
+		return GetJarvisSubmissionPayload().Descriptions
 	}
 
 	storage := NewStorage(dataDir)

@@ -18,6 +18,28 @@ func TestResolvePersonaSeedDescriptionsForPreset(t *testing.T) {
 	}
 }
 
+func TestResolvePersonaSeedDescriptionsForShikinamiPreset(t *testing.T) {
+	profile := GetShikinamiPreset()
+	descriptions := ResolvePersonaSeedDescriptions(t.TempDir(), profile)
+	if descriptions.ProfessionalDescription == "" {
+		t.Fatal("expected professionalDescription for shikinami preset")
+	}
+	if descriptions.IntegratedDescription == "" {
+		t.Fatal("expected integratedDescription for shikinami preset")
+	}
+}
+
+func TestResolvePersonaSeedDescriptionsForJarvisPreset(t *testing.T) {
+	profile := GetJarvisPreset()
+	descriptions := ResolvePersonaSeedDescriptions(t.TempDir(), profile)
+	if descriptions.ProfessionalDescription == "" {
+		t.Fatal("expected professionalDescription for jarvis preset")
+	}
+	if descriptions.IntegratedDescription == "" {
+		t.Fatal("expected integratedDescription for jarvis preset")
+	}
+}
+
 func TestResolvePersonaSeedDescriptionsForUnknownProfile(t *testing.T) {
 	profile := &IpipPersonaProfile{
 		Subject: IpipSubjectProfile{

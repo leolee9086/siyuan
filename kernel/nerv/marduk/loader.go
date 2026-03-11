@@ -20,11 +20,52 @@ type PresetPersona struct {
 	GetFunc func() *IpipPersonaProfile
 }
 
+// TestPersonaPresetEnvKey 测试专用：强制指定预设人格（仅 go test 进程生效）。
+const TestPersonaPresetEnvKey = "MAGI_TEST_PERSONA_PRESET"
+
 // availablePresets 可用的预设人格列表
 var availablePresets = []PresetPersona{
 	{Name: "丽", GetFunc: GetReiPreset},
 	{Name: "薰", GetFunc: GetKaoruPreset},
 	{Name: "Jarvis", GetFunc: GetJarvisPreset},
+}
+
+// GetPresetByName 根据名称/别名解析预设人格。
+func GetPresetByName(name string) (*IpipPersonaProfile, string, bool) {
+	normalized := strings.ToLower(strings.TrimSpace(name))
+	normalized = strings.ReplaceAll(normalized, "_", "")
+	normalized = strings.ReplaceAll(normalized, "-", "")
+	normalized = strings.ReplaceAll(normalized, " ", "")
+
+	switch normalized {
+	case "丽", "rei", "ayanami", "绫波", "绫波丽":
+		return GetReiPreset(), "丽", true
+	case "薰", "kaoru", "nagisa", "渚薰":
+		return GetKaoruPreset(), "薰", true
+	case "jarvis", "贾维斯":
+		return GetJarvisPreset(), "Jarvis", true
+	case "式波", "式波明日香", "asuka", "shikinami", "asukashikinami", "明日香":
+		return GetShikinamiPreset(), "式波", true
+	default:
+		return nil, "", false
+	}
+}
+
+func loadTestPresetOverride() (*IpipPersonaProfile, string, bool) {
+	if !isGoTestProcess() {
+		return nil, "", false
+	}
+
+	rawPreset := strings.TrimSpace(os.Getenv(TestPersonaPresetEnvKey))
+	if rawPreset == "" {
+		return nil, "", false
+	}
+	return GetPresetByName(rawPreset)
+}
+
+func isGoTestProcess() bool {
+	binName := strings.ToLower(strings.TrimSpace(filepath.Base(os.Args[0])))
+	return strings.Contains(binName, ".test")
 }
 
 // getRandomPreset 从可用预设中随机选择一个
@@ -37,6 +78,11 @@ func getRandomPreset() (*IpipPersonaProfile, string) {
 // LoadPersonaProfile 加载人格档案
 // 优先级：用户档案 > 随机预设
 func LoadPersonaProfile(dataDir string) (*IpipPersonaProfile, bool, error) {
+	// 测试专用：允许强制指定预设人格。
+	if profile, _, ok := loadTestPresetOverride(); ok {
+		return profile, false, nil
+	}
+
 	// 尝试加载用户档案
 	userProfile, err := loadUserProfile(dataDir)
 	if err == nil && userProfile != nil {
@@ -57,6 +103,11 @@ func LoadPersonaProfile(dataDir string) (*IpipPersonaProfile, bool, error) {
 // LoadPersonaProfileWithGenderFallback 根据性别加载人格档案
 // 如果用户档案不完整，根据性别选择预设（女->丽，男->薰）
 func LoadPersonaProfileWithGenderFallback(dataDir string) (*IpipPersonaProfile, bool, string, error) {
+	// 测试专用：允许强制指定预设人格。
+	if profile, presetName, ok := loadTestPresetOverride(); ok {
+		return profile, false, presetName, nil
+	}
+
 	// 尝试加载用户档案
 	userProfile, err := loadUserProfile(dataDir)
 	if err == nil && userProfile != nil {

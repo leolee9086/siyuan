@@ -24,11 +24,22 @@ func GetShikinamiSubmissionPayload() *IpipNeo120SubmissionPayload {
 
 // GetShikinamiPreset 返回式波的预设人格档案
 func GetShikinamiPreset() *IpipPersonaProfile {
+	age := 14
+	gender := "女"
+	organization := "Research Institute"
+	role := "Specialist"
+	careerGoal := "证明自我价值"
+
 	return &IpipPersonaProfile{
 		SchemaVersion: "IPIP-NEO-120-v1",
 		Subject: IpipSubjectProfile{
-			ID:   "shikinami",
-			Name: "式波",
+			ID:           "shikinami",
+			Name:         "式波",
+			Age:          &age,
+			Gender:       &gender,
+			Organization: &organization,
+			Role:         &role,
+			CareerGoal:   &careerGoal,
 		},
 		PersonaBase: PersonaBase{
 			Traits: map[string]float64{

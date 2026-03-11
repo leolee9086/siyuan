@@ -34,6 +34,7 @@ func TestMagiLiveDeepSeekRound(t *testing.T) {
 	if modelName == "" {
 		modelName = "deepseek-chat"
 	}
+	_ = setupMagiPersonaPresetForAPITests(t)
 
 	oldConf := model.Conf
 	defer func() {

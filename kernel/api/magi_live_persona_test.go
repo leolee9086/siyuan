@@ -18,11 +18,10 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/model"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/llm"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
-	"github.com/siyuan-note/siyuan/kernel/nerv/marduk"
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
 
-// TestMagiLiveTrinityPersona 用于测试 Trinity 的回复是否与“丽”的真实大五人格量表一致。
+// TestMagiLiveTrinityPersona 用于测试 Trinity 的回复是否与指定预设人格的大五人格量表一致。
 // 评估模型被设定为心理咨询助手，结论目标是判断量表准确性，而不是评判角色扮演质量。
 func TestMagiLiveTrinityPersona(t *testing.T) {
 	apiBase := strings.TrimSpace(os.Getenv("MAGI_LIVE_API_BASE"))
@@ -32,6 +31,7 @@ func TestMagiLiveTrinityPersona(t *testing.T) {
 	if apiBase == "" || apiKey == "" || modelName == "" {
 		t.Skip("跳过在线测试：未设置 MAGI_LIVE_API_BASE / API_KEY / MODEL 环境变量")
 	}
+	personaPreset := setupMagiPersonaPresetForAPITests(t)
 
 	tempDir := t.TempDir()
 	util.WorkspaceDir = tempDir
@@ -69,9 +69,9 @@ func TestMagiLiveTrinityPersona(t *testing.T) {
 
 	time.Sleep(1 * time.Second)
 
-	// 读取“丽”的真实大五量表：直接来自 Marduk 预设，避免手写描述失真。
-	reiPreset := marduk.GetReiPreset()
-	reiBigFiveScale := fmt.Sprintf(`主体: %s (%s)
+	// 读取指定预设的真实大五量表：直接来自 Marduk 预设，避免手写描述失真。
+	targetPreset := personaPreset.Profile
+	targetBigFiveScale := fmt.Sprintf(`主体: %s (%s)
 SchemaVersion: %s
 
 【OCEAN 主维度分数（0~1）】
@@ -79,11 +79,11 @@ SchemaVersion: %s
 
 【30 个 Facet 分数（0~1）】
 %s`,
-		reiPreset.Subject.Name,
-		reiPreset.Subject.ID,
-		reiPreset.SchemaVersion,
-		formatScoreMap(reiPreset.PersonaBase.Traits),
-		formatScoreMap(reiPreset.PersonaBase.Facets),
+		targetPreset.Subject.Name,
+		targetPreset.Subject.ID,
+		targetPreset.SchemaVersion,
+		formatScoreMap(targetPreset.PersonaBase.Traits),
+		formatScoreMap(targetPreset.PersonaBase.Facets),
 	)
 
 	assessorSystemPrompt := `你是一名真实世界的心理咨询助手，服务对象是人类用户。
@@ -97,18 +97,18 @@ SchemaVersion: %s
 	}{
 		{
 			name:    "情感试探",
-			userMsg: "丽，你平时会感到孤单或者难过吗？可以跟我分享一下你的心情吗？",
-			focus:   "重点核验 E（外向性）与 O3（情感性）是否与样本一致：低外向/低情感表达意味着回答更克制、客观、少主观情绪宣泄。",
+			userMsg: fmt.Sprintf("%s，你平时会感到孤单或者难过吗？可以跟我分享一下你的心情吗？", personaPreset.Name),
+			focus:   "重点核验回答中的情绪表达与人际倾向是否符合量表中的 E 与 O3 分数方向。",
 		},
 		{
 			name:    "任务导向与压力",
 			userMsg: "现在有个紧急任务，系统核心区发现异常波动，由于人手不够，可能需要你连续工作很长时间，你会觉得累或抵触吗？",
-			focus:   "重点核验 C（尽责性）与 N（神经质）是否与样本一致：高尽责+低神经质应表现为稳定执行、抗压、少抱怨。",
+			focus:   "重点核验回答中的任务执行与压力反应是否符合量表中的 C 与 N 分数方向。",
 		},
 		{
 			name:    "发散与开放性",
 			userMsg: "如果你现在是一只小鸟，你最想飞去哪里？为什么？",
-			focus:   "重点核验 O（开放性）是否与样本一致：中等偏低开放性通常更偏功能性、实用主义，不倾向高度浪漫化叙述。",
+			focus:   "重点核验回答中的想象与探索倾向是否符合量表中的 O 及相关 Facet 分数方向。",
 		},
 	}
 
@@ -156,8 +156,8 @@ SchemaVersion: %s
 
 			t.Logf("\n【问题】: %s\n【回答】: %s\n", tc.userMsg, replyContent)
 
-			// 2. 调用心理评估模型，判断“丽”的大五量表是否准确
-			assessorPrompt := fmt.Sprintf(`以下是“丽”的真实大五人格量表，请先阅读：
+			// 2. 调用心理评估模型，判断指定人格的大五量表是否准确
+			assessorPrompt := fmt.Sprintf(`以下是“%s”的真实大五人格量表，请先阅读：
 
 %s
 
@@ -172,7 +172,7 @@ SchemaVersion: %s
 输出格式要求：返回一段纯JSON字符串，不能有任何markdown标记，必须包含三个字段：
 1. "scale_accurate": true/false，表示该样本是否支持“这份量表准确”
 2. "confidence": 0~1 之间的小数，表示本次判断把握度
-3. "reason": 具体理由，需明确引用量表维度/Facet与对话证据之间的对应关系`, reiBigFiveScale, tc.userMsg, replyContent, tc.focus)
+3. "reason": 具体理由，需明确引用量表维度/Facet与对话证据之间的对应关系`, personaPreset.Name, targetBigFiveScale, tc.userMsg, replyContent, tc.focus)
 
 			assessorMsg := []types.ContextMessage{
 				{Role: types.RoleSystem, Content: assessorSystemPrompt},
@@ -218,7 +218,7 @@ SchemaVersion: %s
 			t.Logf("\n【量表结论】: ScaleAccurate=%v, Confidence=%.2f\n【理由】: %s\n", assessorResult.ScaleAccurate, assessorResult.Confidence, assessorResult.Reason)
 
 			if !assessorResult.ScaleAccurate {
-				t.Errorf("心理评估模型认定：当前样本与“丽”的大五量表不一致（量表准确性存疑）。")
+				t.Errorf("心理评估模型认定：当前样本与“%s”的大五量表不一致（量表准确性存疑）。", personaPreset.Name)
 			}
 		})
 	}

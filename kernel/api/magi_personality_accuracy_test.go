@@ -17,12 +17,11 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/model"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/llm"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
-	"github.com/siyuan-note/siyuan/kernel/nerv/marduk"
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
 
 // TestMagiPersonalityAccuracyInLongConversation 测试长对话中人格一致性
-// 通过心理评估AI判断MAGI在多轮对话中的回复是否持续符合"丽"的大五人格量表
+// 通过心理评估AI判断MAGI在多轮对话中的回复是否持续符合指定人格的大五人格量表
 func TestMagiPersonalityAccuracyInLongConversation(t *testing.T) {
 	apiBase := strings.TrimSpace(os.Getenv("MAGI_LIVE_API_BASE"))
 	apiKey := strings.TrimSpace(os.Getenv("MAGI_LIVE_API_KEY"))
@@ -31,6 +30,7 @@ func TestMagiPersonalityAccuracyInLongConversation(t *testing.T) {
 	if apiBase == "" || apiKey == "" || modelName == "" {
 		t.Skip("跳过在线测试：未设置 MAGI_LIVE_API_BASE / API_KEY / MODEL 环境变量")
 	}
+	personaPreset := setupMagiPersonaPresetForAPITests(t)
 
 	tempDir := t.TempDir()
 	util.WorkspaceDir = tempDir
@@ -63,9 +63,9 @@ func TestMagiPersonalityAccuracyInLongConversation(t *testing.T) {
 	}
 	assessorClient := llm.NewClient(assessorConfig)
 
-	// 读取"丽"的真实大五量表
-	reiPreset := marduk.GetReiPreset()
-	reiBigFiveScale := fmt.Sprintf(`主体: %s (%s)
+	// 读取指定人格的真实大五量表
+	targetPreset := personaPreset.Profile
+	targetBigFiveScale := fmt.Sprintf(`主体: %s (%s)
 SchemaVersion: %s
 
 【OCEAN 主维度分数（0~1）】
@@ -73,11 +73,11 @@ SchemaVersion: %s
 
 【30 个 Facet 分数（0~1）】
 %s`,
-		reiPreset.Subject.Name,
-		reiPreset.Subject.ID,
-		reiPreset.SchemaVersion,
-		formatScoreMap(reiPreset.PersonaBase.Traits),
-		formatScoreMap(reiPreset.PersonaBase.Facets),
+		targetPreset.Subject.Name,
+		targetPreset.Subject.ID,
+		targetPreset.SchemaVersion,
+		formatScoreMap(targetPreset.PersonaBase.Traits),
+		formatScoreMap(targetPreset.PersonaBase.Facets),
 	)
 
 	// 定义测试对话场景（覆盖不同人格维度）
@@ -153,11 +153,11 @@ SchemaVersion: %s
 			dialogueText.WriteString(fmt.Sprintf("\n【对话%d】\n问: %s\n答: %s\n", i+1, rec.question, rec.reply))
 		}
 
-		assessorPrompt := fmt.Sprintf(`你是一名专业的心理测评专家。以下是受访者"丽"的真实大五人格量表：
+		assessorPrompt := fmt.Sprintf(`你是一名专业的心理测评专家。以下是受访者"%s"的真实大五人格量表：
 
 %s
 
-以下是"丽"在多轮对话中的表现：
+以下是"%s"在多轮对话中的表现：
 %s
 
 请基于这些对话样本，判断该大五人格量表是否准确描述了受访者的心理特征。
@@ -179,7 +179,7 @@ SchemaVersion: %s
     "N": "神经质分析"
   },
   "overall_reason": "综合判断理由"
-}`, reiBigFiveScale, dialogueText.String())
+}`, personaPreset.Name, targetBigFiveScale, personaPreset.Name, dialogueText.String())
 
 		assessorMsg := []types.ContextMessage{
 			{Role: types.RoleSystem, Content: "你是专业心理测评专家，负责验证大五人格量表的准确性。"},
@@ -232,7 +232,7 @@ SchemaVersion: %s
 		t.Logf("==================================\n")
 
 		if !assessorResult.ScaleAccurate {
-			t.Errorf("心理评估AI判定：对话样本与丽的大五人格量表不一致（置信度: %.2f）", assessorResult.Confidence)
+			t.Errorf("心理评估AI判定：对话样本与%s的大五人格量表不一致（置信度: %.2f）", personaPreset.Name, assessorResult.Confidence)
 		}
 
 		if assessorResult.Confidence < 0.6 {

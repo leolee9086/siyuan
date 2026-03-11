@@ -28,6 +28,7 @@ func TestMagiMultiUserSessionIsolation(t *testing.T) {
 	if apiBase == "" || apiKey == "" || modelName == "" {
 		t.Skip("跳过在线测试：未设置 MAGI_LIVE_API_BASE / API_KEY / MODEL 环境变量")
 	}
+	_ = setupMagiPersonaPresetForAPITests(t)
 
 	tempDir := t.TempDir()
 	util.WorkspaceDir = tempDir

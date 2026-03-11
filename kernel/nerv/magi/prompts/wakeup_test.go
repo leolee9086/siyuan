@@ -87,3 +87,22 @@ func TestBuildWakeupIdentityUsesDifferentFacetBySage(t *testing.T) {
 		t.Fatalf("trinity should use IntegratedDescription, got: %s", trinity[7].Content)
 	}
 }
+
+func TestBuildWakeupSequenceUsesShikinamiPresetMetadataAndDescription(t *testing.T) {
+	dataDir := t.TempDir()
+	profile := marduk.GetShikinamiPreset()
+
+	seq := BuildWakeupSequence(dataDir, "trinity", profile)
+	if len(seq) < 8 {
+		t.Fatalf("unexpected wakeup sequence length: %d", len(seq))
+	}
+	if !strings.Contains(seq[5].Content, "女") {
+		t.Fatalf("expected shikinami gender in wakeup sequence, got: %s", seq[5].Content)
+	}
+	if !strings.Contains(seq[3].Content, "Specialist；我的目标是证明自我价值") {
+		t.Fatalf("expected shikinami role/careerGoal in wakeup sequence, got: %s", seq[3].Content)
+	}
+	if !strings.Contains(seq[7].Content, "我是一个复杂的矛盾体") {
+		t.Fatalf("expected trinity identity use shikinami IntegratedDescription, got: %s", seq[7].Content)
+	}
+}
