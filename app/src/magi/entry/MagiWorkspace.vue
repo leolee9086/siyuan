@@ -49,12 +49,10 @@
             </div>
           </foreignObject>
 
-          <circle
-            :cx="circleConnection.cx"
-            :cy="circleConnection.cy"
-            :r="circleConnection.r"
+          <path
+            :d="connectionPath"
             stroke="rgba(255, 110, 58, 0.9)"
-            stroke-width="6.2"
+            stroke-width="2"
             fill="none"
             filter="url(#magi-seel-stage-glow)"
           />
@@ -97,11 +95,15 @@ import { MAGI_ROOT_CTX_KEY } from "./MagiRoot.types";
  * 作用：定义 MAGI Seel 集群的 SVG 布局配置。
  * 意图：集中管理所有节点的位置和尺寸，避免硬编码重复。
  */
+const SAGE_CARD_WIDTH = 330;
+const SAGE_CARD_HEIGHT = 420;
+
 const LAYOUT_CONFIG = {
-    balthasar: { x: 320, y: 20, width: 360, height: 260, key: "balthasar" },
-    trinity: { x: 340, y: 350, width: 320, height: 310, key: "trinity" },
-    casper: { x: 0, y: 480, width: 330, height: 520, key: "casper" },
-    melchior: { x: 670, y: 480, width: 330, height: 520, key: "melchior" },
+    // 外围三贤人使用统一尺寸，避免视觉不一致。
+    balthasar: { x: 335, y: 20, width: SAGE_CARD_WIDTH, height: SAGE_CARD_HEIGHT, key: "balthasar" },
+    trinity: { x: 340, y: 430, width: 320, height: 260, key: "trinity" },
+    casper: { x: 0, y: 580, width: SAGE_CARD_WIDTH, height: SAGE_CARD_HEIGHT, key: "casper" },
+    melchior: { x: 670, y: 580, width: SAGE_CARD_WIDTH, height: SAGE_CARD_HEIGHT, key: "melchior" },
 } as const;
 
 /**
@@ -196,6 +198,111 @@ const circleConnection = computed(() => {
     
     return { cx: centroidX, cy: centroidY, r: radius };
 });
+
+// @内联回调
+const connectionPath = computed(() => {
+    const { cx, cy, r } = circleConnection.value;
+    const rects = [balthasarLayout, casperLayout, melchiorLayout];
+    const allPoints: Array<{ x: number; y: number; angle: number }> = [];
+    
+    for (const rect of rects) {
+        // @内联数组
+        const edges = [
+            { x1: rect.x, y1: rect.y, x2: rect.x + rect.width, y2: rect.y },
+            { x1: rect.x + rect.width, y1: rect.y, x2: rect.x + rect.width, y2: rect.y + rect.height },
+            { x1: rect.x + rect.width, y1: rect.y + rect.height, x2: rect.x, y2: rect.y + rect.height },
+            { x1: rect.x, y1: rect.y + rect.height, x2: rect.x, y2: rect.y },
+        ];
+        
+        for (const edge of edges) {
+            const points = getCircleLineIntersections(cx, cy, r, edge.x1, edge.y1, edge.x2, edge.y2);
+            for (const p of points) {
+                const angle = Math.atan2(p.y - cy, p.x - cx);
+                allPoints.push({ ...p, angle });
+            }
+        }
+    }
+    
+    allPoints.sort((a, b) => a.angle - b.angle);
+    
+    if (allPoints.length === 0) {
+        return "";
+    }
+    
+    const pathSegments: string[] = [];
+    for (let i = 0; i < allPoints.length; i++) {
+        const p1 = allPoints[i];
+        const p2 = allPoints[(i + 1) % allPoints.length];
+        if (!p1 || !p2) {
+            continue;
+        }
+        
+        const midX = (p1.x + p2.x) / 2;
+        const midY = (p1.y + p2.y) / 2;
+        
+        // 检查线段中点是否在矩形内部，跳过穿过矩形的线段
+        if (isPointInRect(midX, midY, rects)) {
+            continue;
+        }
+        
+        pathSegments.push(`M${p1.x},${p1.y}`);
+        pathSegments.push(`L${p2.x},${p2.y}`);
+    }
+    
+    return pathSegments.join(" ");
+});
+
+/**
+ * 作用：检查点是否在任意矩形内部。
+ * 意图：用于过滤掉穿过矩形内部的连接线段，只保留圆上不被遮挡的部分。
+ * 调用时机：在 connectionPath 计算属性中，对每条候选线段的中点进行检查。
+ * 问题/改进：当前使用简单的矩形包含判断，未考虑边界情况。
+ */
+function isPointInRect(x: number, y: number, rects: Array<{ x: number; y: number; width: number; height: number }>) {
+    for (const rect of rects) {
+        if (x >= rect.x && x <= rect.x + rect.width && y >= rect.y && y <= rect.y + rect.height) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * 作用：计算圆与线段的交点。
+ * 意图：用于确定圆形与矩形边框的相交位置，以便绘制连接线段。
+ * 调用时机：在 connectionPath 计算属性中，对每个矩形的每条边调用。
+ * 问题/改进：使用标准的圆与线段相交算法，基于参数方程求解二次方程。
+ */
+function getCircleLineIntersections(cx: number, cy: number, r: number, x1: number, y1: number, x2: number, y2: number) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const fx = x1 - cx;
+    const fy = y1 - cy;
+    
+    const a = dx * dx + dy * dy;
+    const b = 2 * (fx * dx + fy * dy);
+    const c = fx * fx + fy * fy - r * r;
+    
+    const discriminant = b * b - 4 * a * c;
+    if (discriminant < 0) {
+        return [];
+    }
+    
+    const t1 = (-b - Math.sqrt(discriminant)) / (2 * a);
+    const t2 = (-b + Math.sqrt(discriminant)) / (2 * a);
+    
+    const points = [];
+    // 检查第一个交点是否在线段范围内（参数t在[0,1]之间）
+    if (t1 >= 0 && t1 <= 1) {
+        points.push({ x: x1 + t1 * dx, y: y1 + t1 * dy });
+    }
+    // 检查第二个交点是否在线段范围内且与第一个交点不重合
+    if (t2 >= 0 && t2 <= 1 && Math.abs(t2 - t1) > 0.001) {
+        points.push({ x: x1 + t2 * dx, y: y1 + t2 * dy });
+    }
+    
+    return points;
+}
 
 /**
  * 作用：根据关键字在贤者列表中查找匹配的贤者。
