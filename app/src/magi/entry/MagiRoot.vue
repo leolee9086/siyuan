@@ -21,9 +21,6 @@
           <button type="button" class="magi-runtime-toggle" :class="{ active: showSeels }" @click="showSeels = !showSeels">
             {{ showSeels ? "HIDE SEELS" : "SHOW SEELS" }}
           </button>
-          <button type="button" class="magi-runtime-toggle" :class="{ active: showTrinity }" @click="showTrinity = !showTrinity">
-            {{ showTrinity ? "HIDE TRINITY" : "SHOW TRINITY" }}
-          </button>
           <div class="magi-security-level">
             <span class="magi-security-level-label">SECURITY LEVEL:</span>
             <span class="magi-security-level-code">███</span>
@@ -100,7 +97,6 @@ const {
     bootError,
     showMessages,
     showSeels,
-    showTrinity,
     showQuestionnairePanel,
     showWindowControls,
     mainPanelSeels,

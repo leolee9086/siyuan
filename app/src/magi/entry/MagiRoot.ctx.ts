@@ -541,7 +541,7 @@ function createMagiRootState() {
         inputValue: ref(""),
         showMessages: ref(true),
         showSeels: ref(true),
-        showTrinity: ref(false),
+        showTrinity: ref(true),
         showQuestionnairePanel: ref(false),
         sourceSimulationProfiles,
         sourceSimulationPanels,
