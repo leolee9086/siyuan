@@ -1,5 +1,5 @@
 <template>
-    <svg class="panel-frame" viewBox="0 0 100 100" preserveAspectRatio="none">
+    <svg v-if="showFrame" class="panel-frame" viewBox="0 0 100 100" preserveAspectRatio="none">
         <defs>
             <pattern
                 :id="`grid-${configName}`"
@@ -51,10 +51,14 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{
+withDefaults(defineProps<{
     /** 贤者配置名称，用于SVG元素ID去重 */
     configName: string;
     /** CSS颜色值 */
     color: string;
-}>();
+    /** 是否显示边框 */
+    showFrame?: boolean;
+}>(), {
+    showFrame: true,
+});
 </script>

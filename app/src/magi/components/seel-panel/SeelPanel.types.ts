@@ -21,6 +21,8 @@ export interface SeelPanelProps {
     ai: MagiSeelPanelView;
     /** 是否显示消息列表 */
     showMessages?: boolean | undefined;
+    /** 是否显示边框 */
+    showFrame?: boolean | undefined;
 }
 
 /**

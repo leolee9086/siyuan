@@ -1,6 +1,6 @@
 <template>
   <div ref="panelContainer" class="seel-panel" :style="rootStyle">
-    <SeelPanelSvgFrame :config-name="ai.config.name" :color="colorValue" />
+    <SeelPanelSvgFrame :config-name="ai.config.name" :color="colorValue" :show-frame="showFrame" />
     <SeelPanelHeader
       :icon="ai.config.icon"
       :config-name="ai.config.name"
@@ -52,10 +52,25 @@ import SeelPanelHeader from "./SeelPanelHeader.vue";
 import SeelPanelVoteContent from "./SeelPanelVoteContent.vue";
 import SeelSseInline from "./SeelSseInline.vue";
 import MessageBubble from "../message-bubble/MessageBubble.vue";
-import { ref } from "vue";
+import { computed, ref, type PropType } from "vue";
 import "./SeelPanel.css";
 
-const props = withDefaults(defineProps<SeelPanelProps>(), { showMessages: true });
+const props = defineProps({
+    ai: {
+        type: Object as PropType<SeelPanelProps["ai"]>,
+        required: true,
+    },
+    showMessages: {
+        type: Boolean,
+        default: true,
+    },
+    showFrame: {
+        type: Boolean,
+        default: true,
+    },
+});
+
+const showFrame = computed<boolean>(() => props.showFrame !== false);
 
 const {
     panelContainer, messageContainer, containerHeight,

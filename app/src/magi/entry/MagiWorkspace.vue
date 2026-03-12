@@ -31,69 +31,20 @@
           </defs>
 
           <foreignObject
-            v-if="balthasarSeelView"
-            class="magi-seel-node magi-seel-node--balthasar"
-            x="320"
-            y="20"
-            width="360"
-            height="260"
+            v-for="node in svgNodes"
+            :key="node.key"
+            :class="['magi-seel-node', `magi-seel-node--${node.key}`]"
+            :x="node.layout.x"
+            :y="node.layout.y"
+            :width="node.layout.width"
+            :height="node.layout.height"
           >
             <div xmlns="http://www.w3.org/1999/xhtml" class="magi-seel-node-content">
               <SeelPanel
-                :key="balthasarSeelView.config.name"
-                :ai="balthasarSeelView"
+                :key="node.seel.config.name"
+                :ai="node.seel"
                 :show-messages="showMessages"
-              />
-            </div>
-          </foreignObject>
-
-          <foreignObject
-            v-if="trinitySeelView"
-            class="magi-seel-node magi-seel-node--trinity"
-            x="340"
-            y="350"
-            width="320"
-            height="310"
-          >
-            <div xmlns="http://www.w3.org/1999/xhtml" class="magi-seel-node-content">
-              <SeelPanel
-                :key="trinitySeelView.config.name"
-                :ai="trinitySeelView"
-                :show-messages="showMessages"
-              />
-            </div>
-          </foreignObject>
-
-          <foreignObject
-            v-if="casperSeelView"
-            class="magi-seel-node magi-seel-node--casper"
-            x="0"
-            y="480"
-            width="330"
-            height="520"
-          >
-            <div xmlns="http://www.w3.org/1999/xhtml" class="magi-seel-node-content">
-              <SeelPanel
-                :key="casperSeelView.config.name"
-                :ai="casperSeelView"
-                :show-messages="showMessages"
-              />
-            </div>
-          </foreignObject>
-
-          <foreignObject
-            v-if="melchiorSeelView"
-            class="magi-seel-node magi-seel-node--melchior"
-            x="670"
-            y="480"
-            width="330"
-            height="520"
-          >
-            <div xmlns="http://www.w3.org/1999/xhtml" class="magi-seel-node-content">
-              <SeelPanel
-                :key="melchiorSeelView.config.name"
-                :ai="melchiorSeelView"
-                :show-messages="showMessages"
+                :show-frame="node.key !== 'trinity'"
               />
             </div>
           </foreignObject>
@@ -182,14 +133,16 @@
             <SeelPanel
               :ai="seel"
               :show-messages="showMessages"
+              :show-frame="true"
             />
           </div>
 
           <div v-if="trinitySeelView" class="magi-trinity">
             <SeelPanel
-              :key="trinitySeelView.config.name"
+              :key="`${trinitySeelView.config.name}:frameless`"
               :ai="trinitySeelView"
               :show-messages="showMessages"
+              :show-frame="false"
             />
           </div>
         </template>
@@ -227,6 +180,25 @@ import SourceSimulationPanels from "../components/source-sim-panels/SourceSimula
 import SeelPanel from "../components/seel-panel/SeelPanel.vue";
 import { MAGI_ROOT_CTX_KEY } from "./MagiRoot.types";
 
+/**
+ * 作用：定义 MAGI Seel 集群的 SVG 布局配置。
+ * 意图：集中管理所有节点的位置和尺寸，避免硬编码重复。
+ */
+const LAYOUT_CONFIG = {
+    balthasar: { x: 320, y: 20, width: 360, height: 260, key: "balthasar" },
+    trinity: { x: 340, y: 350, width: 320, height: 310, key: "trinity" },
+    casper: { x: 0, y: 480, width: 330, height: 520, key: "casper" },
+    melchior: { x: 670, y: 480, width: 330, height: 520, key: "melchior" },
+} as const;
+
+/**
+ * 作用：计算矩形区域的中心点坐标。
+ * 意图：为三角形连接线计算提供统一的中心点计算逻辑。
+ */
+function getCenter(rect: { x: number; y: number; width: number; height: number }) {
+    return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+}
+
 const ctx = inject(MAGI_ROOT_CTX_KEY);
 if (!ctx) {
     throw new Error("MagiWorkspace must be used inside MagiRoot");
@@ -262,6 +234,11 @@ const showConnectorOverlay = computed<boolean>(() =>
     && sageSeelViews.value.length >= 3,
 );
 
+const balthasarLayout = LAYOUT_CONFIG.balthasar;
+const trinityLayout = LAYOUT_CONFIG.trinity;
+const casperLayout = LAYOUT_CONFIG.casper;
+const melchiorLayout = LAYOUT_CONFIG.melchior;
+
 const balthasarSeelView = computed(() =>
     findSageByKeywords(["BALTHASAR", "BALTHAZAR"]),
 );
@@ -272,6 +249,23 @@ const melchiorSeelView = computed(() =>
     findSageByKeywords(["MELCHIOR"]),
 );
 
+const svgNodes = computed(() => {
+    const nodes = [];
+    if (balthasarSeelView.value) {
+        nodes.push({ key: "balthasar", seel: balthasarSeelView.value, layout: balthasarLayout });
+    }
+    if (trinitySeelView.value) {
+        nodes.push({ key: "trinity", seel: trinitySeelView.value, layout: trinityLayout });
+    }
+    if (casperSeelView.value) {
+        nodes.push({ key: "casper", seel: casperSeelView.value, layout: casperLayout });
+    }
+    if (melchiorSeelView.value) {
+        nodes.push({ key: "melchior", seel: melchiorSeelView.value, layout: melchiorLayout });
+    }
+    return nodes;
+});
+
 const useSvgClusterLayout = computed<boolean>(() =>
     !!trinitySeelView.value
     && !!balthasarSeelView.value
@@ -281,9 +275,9 @@ const useSvgClusterLayout = computed<boolean>(() =>
 );
 
 const triangleConnections = computed(() => {
-    const balthasarCenter = { x: 320 + 360 / 2, y: 20 + 260 / 2 };
-    const casperCenter = { x: 0 + 330 / 2, y: 480 + 520 / 2 };
-    const melchiorCenter = { x: 670 + 330 / 2, y: 480 + 520 / 2 };
+    const balthasarCenter = getCenter(balthasarLayout);
+    const casperCenter = getCenter(casperLayout);
+    const melchiorCenter = getCenter(melchiorLayout);
     
     const centroidX = (balthasarCenter.x + casperCenter.x + melchiorCenter.x) / 3;
     const centroidY = (balthasarCenter.y + casperCenter.y + melchiorCenter.y) / 3;
