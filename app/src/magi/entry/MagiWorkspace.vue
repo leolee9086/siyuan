@@ -49,103 +49,16 @@
             </div>
           </foreignObject>
 
-          <line
-            v-for="(conn, idx) in triangleConnections"
-            :key="idx"
-            :x1="conn.x1"
-            :y1="conn.y1"
-            :x2="conn.x2"
-            :y2="conn.y2"
+          <circle
+            :cx="circleConnection.cx"
+            :cy="circleConnection.cy"
+            :r="circleConnection.r"
             stroke="rgba(255, 110, 58, 0.9)"
             stroke-width="6.2"
-            :filter="Math.abs(conn.y1 - conn.y2) < 1 ? 'none' : 'url(#magi-seel-stage-glow)'"
+            fill="none"
+            filter="url(#magi-seel-stage-glow)"
           />
         </svg>
-
-        <template v-else>
-          <svg
-            v-if="showConnectorOverlay"
-            class="magi-seel-cluster-connectors"
-            viewBox="0 0 100 100"
-            preserveAspectRatio="none"
-            aria-hidden="true"
-          >
-            <defs>
-              <filter id="magi-seel-cluster-glow" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="0.5" result="magi-seel-cluster-glow-blur" />
-                <feMerge>
-                  <feMergeNode in="magi-seel-cluster-glow-blur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
-            </defs>
-            <path
-              d="M39 27.5 L44.5 34 L55.5 34 L61 27.5"
-              fill="none"
-              stroke="rgba(255, 110, 58, 0.86)"
-              stroke-width="0.58"
-              filter="url(#magi-seel-cluster-glow)"
-            />
-            <line
-              x1="44.5"
-              y1="34"
-              x2="31"
-              y2="47"
-              stroke="rgba(255, 110, 58, 0.86)"
-              stroke-width="0.58"
-              filter="url(#magi-seel-cluster-glow)"
-            />
-            <line
-              x1="55.5"
-              y1="34"
-              x2="69"
-              y2="47"
-              stroke="rgba(255, 110, 58, 0.86)"
-              stroke-width="0.58"
-              filter="url(#magi-seel-cluster-glow)"
-            />
-            <line
-              x1="31"
-              y1="82"
-              x2="44.5"
-              y2="82"
-              stroke="rgba(255, 110, 58, 0.86)"
-              stroke-width="0.58"
-              filter="url(#magi-seel-cluster-glow)"
-            />
-            <line
-              x1="55.5"
-              y1="82"
-              x2="69"
-              y2="82"
-              stroke="rgba(255, 110, 58, 0.86)"
-              stroke-width="0.58"
-              filter="url(#magi-seel-cluster-glow)"
-            />
-          </svg>
-
-          <div
-            v-for="seel in showSeels ? sageSeelViews : []"
-            :key="seel.config.name"
-            class="magi-seel-slot"
-            :class="resolveSageSlotClass(seel.config.name)"
-          >
-            <SeelPanel
-              :ai="seel"
-              :show-messages="showMessages"
-              :show-frame="true"
-            />
-          </div>
-
-          <div v-if="trinitySeelView" class="magi-trinity">
-            <SeelPanel
-              :key="`${trinitySeelView.config.name}:frameless`"
-              :ai="trinitySeelView"
-              :show-messages="showMessages"
-              :show-frame="false"
-            />
-          </div>
-        </template>
       </div>
 
       <div class="magi-main-stack">
@@ -228,12 +141,6 @@ const hasSeelCluster = computed<boolean>(() =>
     || !!trinitySeelView.value,
 );
 
-const showConnectorOverlay = computed<boolean>(() =>
-    showSeels.value
-    && !!trinitySeelView.value
-    && sageSeelViews.value.length >= 3,
-);
-
 const balthasarLayout = LAYOUT_CONFIG.balthasar;
 const trinityLayout = LAYOUT_CONFIG.trinity;
 const casperLayout = LAYOUT_CONFIG.casper;
@@ -274,7 +181,8 @@ const useSvgClusterLayout = computed<boolean>(() =>
     && showSeels.value,
 );
 
-const triangleConnections = computed(() => {
+// @内联回调
+const circleConnection = computed(() => {
     const balthasarCenter = getCenter(balthasarLayout);
     const casperCenter = getCenter(casperLayout);
     const melchiorCenter = getCenter(melchiorLayout);
@@ -286,45 +194,19 @@ const triangleConnections = computed(() => {
         Math.pow(balthasarCenter.x - centroidX, 2) + Math.pow(balthasarCenter.y - centroidY, 2),
     );
     
-    const angle1 = Math.atan2(balthasarCenter.y - centroidY, balthasarCenter.x - centroidX);
-    const angle2 = angle1 + (2 * Math.PI / 3);
-    const angle3 = angle1 + (4 * Math.PI / 3);
-    
-    const vertex1 = { x: centroidX + radius * Math.cos(angle1), y: centroidY + radius * Math.sin(angle1) };
-    const vertex2 = { x: centroidX + radius * Math.cos(angle2), y: centroidY + radius * Math.sin(angle2) };
-    const vertex3 = { x: centroidX + radius * Math.cos(angle3), y: centroidY + radius * Math.sin(angle3) };
-    
-    return [
-        { x1: vertex1.x, y1: vertex1.y, x2: vertex2.x, y2: vertex2.y },
-        { x1: vertex2.x, y1: vertex2.y, x2: vertex3.x, y2: vertex3.y },
-        { x1: vertex3.x, y1: vertex3.y, x2: vertex1.x, y2: vertex1.y },
-    ];
+    return { cx: centroidX, cy: centroidY, r: radius };
 });
 
+/**
+ * 作用：根据关键字在贤者列表中查找匹配的贤者。
+ * 意图：通过名称关键字定位特定贤者（BALTHASAR/CASPER/MELCHIOR）。
+ * 调用时机：计算属性中用于识别特定贤者视图。
+ * 问题/改进：当前按名称关键字匹配，若后续更名可改为由后端直接提供标识信息。
+ */
 function findSageByKeywords(keywords: readonly string[]) {
     return sageSeelViews.value.find((seel) => {
         const normalized = seel.config.name.toUpperCase();
         return keywords.some((keyword) => normalized.includes(keyword));
     }) ?? null;
-}
-
-/**
- * 作用：根据贤者配置名返回布局槽位类名。
- * 意图：将 MELCHIOR/BALTHASAR/CASPER 固定到图2所需的三角布局位置。
- * 调用时机：模板 `v-for` 渲染每个贤者卡片时调用。
- * 问题/改进：当前按名称关键字匹配，若后续更名可改为由后端直接提供布局位置信息。
- */
-function resolveSageSlotClass(name: string): string {
-    const normalized = name.toUpperCase();
-    if (normalized.includes("BALTHASAR") || normalized.includes("BALTHAZAR")) {
-        return "magi-seel-slot--balthasar";
-    }
-    if (normalized.includes("CASPER")) {
-        return "magi-seel-slot--casper";
-    }
-    if (normalized.includes("MELCHIOR")) {
-        return "magi-seel-slot--melchior";
-    }
-    return "magi-seel-slot--generic";
 }
 </script>
