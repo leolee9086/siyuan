@@ -1,11 +1,11 @@
 <template>
     <div class="header-overlay">
         <div class="header-content">
-            <div class="header-top">
-                <div class="ai-id">
-                    <span class="ai-icon">{{ icon }}</span>
-                    <span class="ai-name">{{ nameParts[0] }}</span>
-                    <span class="ai-number">-{{ nameParts[1] }}</span>
+            <div class="header-top" :class="{ 'header-top-trinity': isTrinity }">
+                <div class="ai-id" :class="{ 'ai-id-trinity': isTrinity }">
+                    <span v-if="!isTrinity" class="ai-icon">{{ icon }}</span>
+                    <span class="ai-name" :class="{ 'ai-name-trinity': isTrinity }">{{ displayName }}</span>
+                    <span v-if="displayNumber" class="ai-number">-{{ displayNumber }}</span>
                 </div>
                 <div class="status-indicator">
                     <span class="status-led" :class="statusClass" />
@@ -35,6 +35,19 @@ const props = defineProps<{
     statusText: string;
 }>();
 
-/** 将 "NAME-NUMBER" 拆分为 [名称, 编号] */
-const nameParts = computed(() => props.configName.split("-"));
+const isTrinity = computed(() => props.configName.toUpperCase().includes("TRINITY"));
+
+const displayName = computed(() => {
+    if (isTrinity.value) {
+        return "MAGI";
+    }
+    return props.configName.split("-")[0] ?? props.configName;
+});
+
+const displayNumber = computed(() => {
+    if (isTrinity.value) {
+        return "";
+    }
+    return props.configName.split("-")[1] ?? "";
+});
 </script>

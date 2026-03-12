@@ -45,13 +45,14 @@
                 :ai="node.seel"
                 :show-messages="showMessages"
                 :show-frame="node.key !== 'trinity'"
+                :frame-color="clusterAccentColor"
               />
             </div>
           </foreignObject>
 
           <path
             :d="connectionPath"
-            stroke="rgba(255, 110, 58, 0.9)"
+            :stroke="clusterAccentColor"
             stroke-width="2"
             fill="none"
             filter="url(#magi-seel-stage-glow)"
@@ -124,6 +125,7 @@ import MagiIdentityPanel from "../components/magi-identity-panel/MagiIdentityPan
 import MagiMainPanel from "../components/magi-main-panel/MagiMainPanel.vue";
 import SourceSimulationPanels from "../components/source-sim-panels/SourceSimulationPanels.vue";
 import SeelPanel from "../components/seel-panel/SeelPanel.vue";
+import { getColor } from "../components/seel-panel/SeelPanel.ctx";
 import { MAGI_IDENTITY_REQUIRED_EVENT } from "../service/magiIdentitySession";
 import { MAGI_ROOT_CTX_KEY } from "./MagiRoot.types";
 
@@ -225,6 +227,14 @@ const casperSeelView = computed(() =>
 );
 const melchiorSeelView = computed(() =>
     findSageByKeywords(["MELCHIOR"]),
+);
+
+/**
+ * 作用：统一集群视觉主色。
+ * 意图：所有卡片边框与连接线使用 BALTHASAR 当前颜色，保证配色一致。
+ */
+const clusterAccentColor = computed<string>(() =>
+    getColor(balthasarSeelView.value?.config.color ?? "blue"),
 );
 
 const svgNodes = computed(() => {

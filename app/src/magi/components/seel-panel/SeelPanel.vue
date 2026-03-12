@@ -52,7 +52,7 @@ import SeelPanelHeader from "./SeelPanelHeader.vue";
 import SeelPanelVoteContent from "./SeelPanelVoteContent.vue";
 import SeelSseInline from "./SeelSseInline.vue";
 import MessageBubble from "../message-bubble/MessageBubble.vue";
-import { computed, ref, type PropType } from "vue";
+import { computed, type PropType } from "vue";
 import "./SeelPanel.css";
 
 const props = defineProps({
@@ -68,6 +68,10 @@ const props = defineProps({
         type: Boolean,
         default: true,
     },
+    frameColor: {
+        type: String,
+        default: "",
+    },
 });
 
 const showFrame = computed<boolean>(() => props.showFrame !== false);
@@ -78,7 +82,7 @@ const {
 } = useSeelPanelCtx(props);
 
 setupResizeObserver(panelContainer, containerHeight);
-const colorValue = ref(getColor(props.ai.config.color));
+const colorValue = computed<string>(() => props.frameColor || getColor(props.ai.config.color));
 
 /** 流式消息更新时滚动到底部 */
 async function handleCursorUpdate() {

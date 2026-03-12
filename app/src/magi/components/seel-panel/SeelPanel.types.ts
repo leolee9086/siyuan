@@ -23,6 +23,8 @@ export interface SeelPanelProps {
     showMessages?: boolean | undefined;
     /** 是否显示边框 */
     showFrame?: boolean | undefined;
+    /** 可选：覆盖边框颜色（CSS颜色值） */
+    frameColor?: string | undefined;
 }
 
 /**

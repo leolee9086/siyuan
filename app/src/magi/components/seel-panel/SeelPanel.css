@@ -37,6 +37,11 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  position: relative;
+}
+
+.header-top-trinity {
+  justify-content: flex-end;
 }
 
 .ai-id {
@@ -44,6 +49,13 @@
   align-items: baseline;
   gap: 4px;
   min-width: 0;
+}
+
+.ai-id-trinity {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  gap: 0;
 }
 
 .ai-icon {
@@ -60,6 +72,11 @@
 
 .ai-name {
   font-weight: 700;
+}
+
+.ai-name-trinity {
+  font-size: 1.12rem;
+  letter-spacing: 0.04em;
 }
 
 .ai-role {
