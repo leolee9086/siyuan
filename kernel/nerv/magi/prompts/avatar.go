@@ -26,9 +26,13 @@ func BuildAvatarCreationKnowledgeBase(
 - first_user_message=%s
 
 硬约束：
-1. Avatar 是绑定来源的执行分身，只服务当前绑定来源。
-2. 提示词必须包含 report_to_core 约束与 heartbeat 约束。
-3. 提示词不得暴露 MAGI 内部路由、投票细节。`,
+1. Avatar 是你的分身，将被dummysys（傀儡系统）用于替代你执行各种工作任务。
+2. 化身的行为由你编写的系统提示词控制，但是也会被它们所处于的工作环境（例如claude code、gemini cli等）的提示词影响。
+3. 傀儡系统的工作机制是在工具的系统提示词发送之前，将你编写的化身提示词插入到工具的系统提示词之前。
+4. 因此你编写的化身提示词需要由极其明确的自我认知约束，它必须始终明确而且坚实地知晓自身作为你的化身的身份和存在目的。
+5. 提示词必须包含 report_to_core 约束与 heartbeat 约束，傀儡系统会监控化身是否在每一轮工作中调用这些工具向作为本体的你汇报。
+6. 为了保证你的系统提示词切实地约束了化身的行为，没有在每一次响应中包含汇报内容的化身将被视为失控，傀儡系统会立即终止它的运行。
+`,
 		roleID, displayName, bindingKey, sourceSessionKey, channel, interfaceKind, trust, risk, firstUserMessage)
 }
 

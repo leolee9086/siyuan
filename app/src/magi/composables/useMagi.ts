@@ -32,6 +32,7 @@ import {
 import { bindMagiWebSocketEventBridge } from "../events/bindMagiWebSocketEventBridge";
 import { createStandardLLMAdapter } from "../adapters/standardLLMAdapterFactory";
 import type { ChatRequestParams } from "../../ai/types";
+import { fetchMagiPersonaStatus } from "../service/magiPersonaStatus";
 
 const SOURCE_SIMULATION_TAG = "magi_request_source";
 
@@ -123,12 +124,14 @@ async function initializeWrappedSeels(
     seels: WrappedSeel[],
     connectionStatus: { value: ConnectionStatus },
     promptInjections?: MagiPromptSet,
+    personaName?: string,
 ): Promise<void> {
     const rawSeels = await initMagi({
         delay: 800,
         autoConnect: true,
         memorySize: 7,
         ...(promptInjections ? { promptInjections } : {}),
+        ...(personaName ? { personaName } : {}),
     });
 
     const wrappedSeels = await Promise.all(
@@ -147,6 +150,15 @@ async function resolvePromptInjectionsForInit(
     }
     const activeSeed = await resolveStartupPromptInjectionsByActiveSeed();
     return activeSeed?.promptInjections;
+}
+
+async function resolvePersonaNameForInit(): Promise<string | undefined> {
+    const status = await fetchMagiPersonaStatus();
+    if (!status) {
+        return undefined;
+    }
+    const subjectName = status.subjectName.trim();
+    return subjectName || undefined;
 }
 
 /**
@@ -248,7 +260,8 @@ export async function useMagi(options?: UseMagiOptions): Promise<UseMagiReturn> 
     void stopWebSocketBridge;
 
     const startupPromptInjections = await resolvePromptInjectionsForInit(options?.promptInjections);
-    await initializeWrappedSeels(seels, connectionStatus, startupPromptInjections);
+    const runtimePersonaName = await resolvePersonaNameForInit();
+    await initializeWrappedSeels(seels, connectionStatus, startupPromptInjections, runtimePersonaName);
     const llmAdapter = await createStandardLLMAdapter({
         model: "magi-trinity",
         connectionStatus,
@@ -319,7 +332,13 @@ async function reinitializeMAGI(
         const shouldClearMessages = !options?.preserveConsensusMessages;
         await clearReactiveArrays(seels, consensusMessages, shouldClearMessages);
         const resolvedPromptInjections = await resolvePromptInjectionsForInit(options?.promptInjections);
-        await initializeWrappedSeels(seels, connectionStatus, resolvedPromptInjections);
+        const runtimePersonaName = await resolvePersonaNameForInit();
+        await initializeWrappedSeels(
+            seels,
+            connectionStatus,
+            resolvedPromptInjections,
+            runtimePersonaName,
+        );
         await appendConsensusMessage(
             consensusMessages,
             "system",

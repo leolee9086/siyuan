@@ -39,6 +39,14 @@ type MagiTaskResult struct {
 	Err          error
 }
 
+type magiPersonaRuntimeStatus struct {
+	SubjectName string
+	SubjectID   string
+	IsComplete  bool
+	UsingPreset bool
+	PresetName  string
+}
+
 const (
 	MagiTaskSourceGuardian = "Guardian"
 	MagiTaskTypeChat       = "Chat"
@@ -57,7 +65,46 @@ var (
 	magiCasper      *sages.Sage
 	magiTrinity     *sages.Sage
 	magiInitErr     error
+	magiPersonaMu   sync.RWMutex
+	magiPersonaInfo = magiPersonaRuntimeStatus{
+		SubjectName: "ZHI",
+	}
 )
+
+func setMagiPersonaRuntimeStatus(profile *marduk.IpipPersonaProfile, isComplete bool, presetName string) {
+	subjectName := ""
+	subjectID := ""
+	if profile != nil {
+		subjectName = strings.TrimSpace(profile.Subject.Name)
+		subjectID = strings.TrimSpace(profile.Subject.ID)
+	}
+
+	normalizedPreset := strings.TrimSpace(presetName)
+	usingPreset := !isComplete && normalizedPreset != ""
+	if subjectName == "" {
+		if normalizedPreset != "" {
+			subjectName = normalizedPreset
+		} else {
+			subjectName = "ZHI"
+		}
+	}
+
+	magiPersonaMu.Lock()
+	defer magiPersonaMu.Unlock()
+	magiPersonaInfo = magiPersonaRuntimeStatus{
+		SubjectName: subjectName,
+		SubjectID:   subjectID,
+		IsComplete:  isComplete,
+		UsingPreset: usingPreset,
+		PresetName:  normalizedPreset,
+	}
+}
+
+func getMagiPersonaRuntimeStatus() magiPersonaRuntimeStatus {
+	magiPersonaMu.RLock()
+	defer magiPersonaMu.RUnlock()
+	return magiPersonaInfo
+}
 
 func initMagiCron() {
 	onceMagi.Do(func() {
@@ -92,6 +139,7 @@ func initMagiComponents() error {
 			logging.LogInfof("MAGI已加载完整人格档案")
 		}
 	}
+	setMagiPersonaRuntimeStatus(profile, isComplete, presetName)
 
 	// 创建 LLM 客户端（从全局配置）
 	llmClient := llm.NewClientFromConf(model.Conf.AI.OpenAI)
@@ -123,6 +171,22 @@ func initMagiComponents() error {
 
 	logging.LogInfof("MAGI组件初始化完成")
 	return nil
+}
+
+func magiPersonaStatus(c *gin.Context) {
+	if authErr := requireMagiMainUIAccess(c); authErr != nil {
+		writeMagiSourceAuthError(c, authErr)
+		return
+	}
+	initMagiCron()
+	info := getMagiPersonaRuntimeStatus()
+	c.JSON(http.StatusOK, gin.H{
+		"subject_name": info.SubjectName,
+		"subject_id":   info.SubjectID,
+		"is_complete":  info.IsComplete,
+		"using_preset": info.UsingPreset,
+		"preset_name":  info.PresetName,
+	})
 }
 
 // magiDispatcher 扮演内部单线程 Cron 调度器的雏形。

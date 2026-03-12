@@ -27,6 +27,7 @@ const TestPersonaPresetEnvKey = "MAGI_TEST_PERSONA_PRESET"
 var availablePresets = []PresetPersona{
 	{Name: "丽", GetFunc: GetReiPreset},
 	{Name: "薰", GetFunc: GetKaoruPreset},
+	{Name: "式波", GetFunc: GetShikinamiPreset},
 	{Name: "Jarvis", GetFunc: GetJarvisPreset},
 }
 
@@ -75,6 +76,20 @@ func getRandomPreset() (*IpipPersonaProfile, string) {
 	return preset.GetFunc(), preset.Name
 }
 
+func resolvePresetFromProfileHint(profile *IpipPersonaProfile) (*IpipPersonaProfile, string, bool) {
+	if profile == nil {
+		return nil, "", false
+	}
+
+	if hintedPreset, presetName, ok := GetPresetByName(profile.Subject.ID); ok {
+		return hintedPreset, presetName, true
+	}
+	if hintedPreset, presetName, ok := GetPresetByName(profile.Subject.Name); ok {
+		return hintedPreset, presetName, true
+	}
+	return nil, "", false
+}
+
 // LoadPersonaProfile 加载人格档案
 // 优先级：用户档案 > 随机预设
 func LoadPersonaProfile(dataDir string) (*IpipPersonaProfile, bool, error) {
@@ -90,6 +105,10 @@ func LoadPersonaProfile(dataDir string) (*IpipPersonaProfile, bool, error) {
 			// 有完整性别信息，档案完整
 			return userProfile, true, nil
 		}
+		// 缺少性别信息时，优先按档案中的预设提示字段（ID/姓名）匹配。
+		if hintedPreset, _, ok := resolvePresetFromProfileHint(userProfile); ok {
+			return hintedPreset, false, nil
+		}
 		// 有档案但缺少性别信息，随机选择预设
 		profile, _ := getRandomPreset()
 		return profile, false, nil
@@ -100,8 +119,9 @@ func LoadPersonaProfile(dataDir string) (*IpipPersonaProfile, bool, error) {
 	return profile, false, nil
 }
 
-// LoadPersonaProfileWithGenderFallback 根据性别加载人格档案
-// 如果用户档案不完整，根据性别选择预设（女->丽，男->薰）
+// LoadPersonaProfileWithGenderFallback 根据档案信息加载人格档案
+// 如果用户档案不完整，优先按档案中的预设提示字段（ID/姓名）匹配；
+// 若无提示字段，再根据性别选择预设（女->丽，男->薰）。
 func LoadPersonaProfileWithGenderFallback(dataDir string) (*IpipPersonaProfile, bool, string, error) {
 	// 测试专用：允许强制指定预设人格。
 	if profile, presetName, ok := loadTestPresetOverride(); ok {
@@ -115,6 +135,11 @@ func LoadPersonaProfileWithGenderFallback(dataDir string) (*IpipPersonaProfile, 
 		isComplete := isProfileComplete(userProfile)
 		if isComplete {
 			return userProfile, true, "", nil
+		}
+
+		// 档案不完整时，优先按档案中的预设提示字段（ID/姓名）匹配预设。
+		if hintedPreset, presetName, ok := resolvePresetFromProfileHint(userProfile); ok {
+			return hintedPreset, false, presetName, nil
 		}
 
 		// 档案不完整，根据性别选择预设

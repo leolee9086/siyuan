@@ -588,6 +588,7 @@ func ServeAPI(ginServer *gin.Engine) {
 	ginServer.Handle("POST", "/api/s-forge/magi/v1/identity/upsert", model.CheckAuth, magiIdentityUpsert)
 	ginServer.Handle("POST", "/api/s-forge/magi/v1/identity/remove", model.CheckAuth, magiIdentityRemove)
 	ginServer.Handle("POST", "/api/s-forge/magi/v1/identity/login", model.CheckAuth, magiIdentityLogin)
+	ginServer.Handle("POST", "/api/s-forge/magi/v1/persona/status", model.CheckAuth, magiPersonaStatus)
 	ginServer.Handle("POST", "/api/s-forge/magi/v1/chat/completions", magiChat)
 	ginServer.Handle("GET", "/api/s-forge/magi/v1/models", model.CheckAuth, magiListModels)
 	// Claude Messages API 兼容层，支持 claude-code 等工具直接连接

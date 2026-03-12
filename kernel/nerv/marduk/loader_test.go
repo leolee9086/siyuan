@@ -127,6 +127,65 @@ func TestLoadPersonaProfileWithGenderFallbackIgnoresInvalidTestPreset(t *testing
 	}
 }
 
+func TestAvailablePresetsIncludeShikinami(t *testing.T) {
+	want := map[string]bool{
+		"丽":      true,
+		"薰":      true,
+		"式波":     true,
+		"Jarvis": true,
+	}
+
+	if len(availablePresets) != len(want) {
+		t.Fatalf("available presets count = %d, want %d", len(availablePresets), len(want))
+	}
+
+	for _, preset := range availablePresets {
+		if !want[preset.Name] {
+			t.Fatalf("unexpected preset name: %q", preset.Name)
+		}
+	}
+}
+
+func TestLoadPersonaProfileWithGenderFallbackUsesPresetHintFromSubjectID(t *testing.T) {
+	dataDir := t.TempDir()
+	if err := writeLegacyActiveProfile(dataDir, &IpipPersonaProfile{
+		SchemaVersion: "IPIP-NEO-120-v1",
+		Subject: IpipSubjectProfile{
+			ID:     "shikinami",
+			Name:   "任意名字",
+			Gender: stringPtr("女"),
+		},
+		PersonaBase: PersonaBase{
+			Traits: map[string]float64{
+				// 缺少必要维度，故意制造“不完整档案”。
+				"O": 0.5,
+				"C": 0.6,
+			},
+		},
+		GeneratedAt: time.Now(),
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	profile, isComplete, presetName, err := LoadPersonaProfileWithGenderFallback(dataDir)
+	if err != nil {
+		t.Fatalf("LoadPersonaProfileWithGenderFallback() error = %v", err)
+	}
+	if isComplete {
+		t.Fatal("incomplete profile should use preset fallback")
+	}
+	if presetName != "式波" {
+		t.Fatalf("presetName = %q, want %q", presetName, "式波")
+	}
+	if profile == nil || profile.Subject.ID != "shikinami" {
+		gotID := ""
+		if profile != nil {
+			gotID = profile.Subject.ID
+		}
+		t.Fatalf("subject ID = %q, want %q", gotID, "shikinami")
+	}
+}
+
 func writeLegacyActiveProfile(dataDir string, profile *IpipPersonaProfile) error {
 	personaDir := filepath.Join(dataDir, "petal", "persona")
 	if err := os.MkdirAll(personaDir, 0755); err != nil {

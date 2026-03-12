@@ -71,6 +71,14 @@ const 创建Trinity回复函数 = (
         }
     };
 
+function 构建人格标识(name: string): string {
+    const normalized = name.trim();
+    if (!normalized) {
+        return "ZHI";
+    }
+    return normalized.toUpperCase();
+}
+
 /**
  * 构建 Trinity 角色编排消息序列
  *
@@ -97,6 +105,7 @@ export const 创建MockMelchior实例 = async (
     customPrompt: string | null = null
 ): Promise<MockWISE实例> => {
     const name = customName ?? "zhi";
+    const personaName = 构建人格标识(name);
     const 实例 = await 创建MockWISE实例({
         magiInstanceName: name,
         name: "MELCHIOR-01",
@@ -104,7 +113,7 @@ export const 创建MockMelchior实例 = async (
         color: "red",
         icon: "✝",
         responseType: "sse",
-        persona: "ZHI AS SUPEREGO",
+        persona: `${personaName} AS SUPEREGO`,
         sseConfig: { eventTypes: ["theo_init", "scripture", "benediction"], chunkInterval: 200 },
         openAIConfig: {
             temperature: 0.3,
@@ -137,6 +146,7 @@ export const 创建MockBalthazar实例 = async (
     customPrompt: string | null = null
 ): Promise<MockWISE实例> => {
     const name = customName ?? "zhi";
+    const personaName = 构建人格标识(name);
     const 实例 = await 创建MockWISE实例({
         magiInstanceName: name,
         name: "BALTHASAR-02",
@@ -144,7 +154,7 @@ export const 创建MockBalthazar实例 = async (
         color: "blue",
         icon: "☪",
         responseType: "sse",
-        persona: "ZHI AS EGO",
+        persona: `${personaName} AS EGO`,
         sseConfig: { eventTypes: ["quantum_start", "analysis", "complete"], chunkInterval: 150 },
         openAIConfig: {
             temperature: 0.7,
@@ -172,6 +182,7 @@ export const 创建MockCasper实例 = async (
     customPrompt: string | null = null
 ): Promise<MockWISE实例> => {
     const name = customName ?? "zhi";
+    const personaName = 构建人格标识(name);
     const 实例 = await 创建MockWISE实例({
         magiInstanceName: name,
         name: "CASPER-03",
@@ -179,7 +190,7 @@ export const 创建MockCasper实例 = async (
         color: "yellow",
         icon: "🌙",
         responseType: "sse",
-        persona: "ZHI AS SELF",
+        persona: `${personaName} AS SELF`,
         sseConfig: { eventTypes: ["natural_start", "response", "complete"], chunkInterval: 200 },
         openAIConfig: {
             temperature: 0.7,
@@ -208,6 +219,7 @@ export const 创建MockTrinity实例 = async (
     customPrompt: string | null = null
 ): Promise<MockWISE实例> => {
     const name = customName ?? "zhi";
+    const personaName = 构建人格标识(name);
     const 基础实例 = await 创建MockWISE实例({
         magiInstanceName: name,
         name: "TRINITY-00",
@@ -215,7 +227,7 @@ export const 创建MockTrinity实例 = async (
         color: "purple",
         icon: "⚕",
         responseType: "sse",
-        persona: "ZHI AS WHOLE",
+        persona: `${personaName} AS WHOLE`,
         sseConfig: { eventTypes: ["sync_init", "synthesis", "complete"], chunkInterval: 250 },
         openAIConfig: {
             temperature: 0.5,
@@ -264,8 +276,9 @@ const 应用全局配置到实例 = async (
  * @param options - 初始化选项（提示词/延迟/记忆大小/AI配置/是否自动连接）
  */
 export const initMagi = async (options: InitMagiOptions = {}): Promise<MockWISE实例[]> => {
+    const personaName = 获取实例人格名称(options);
     const 实例列表 = await Promise.all(
-        默认实例创建器.map((factory, index) => factory(null, 获取实例提示词(options, index))),
+        默认实例创建器.map((factory, index) => factory(personaName, 获取实例提示词(options, index))),
     );
 
     // 使用 for...of 代替 forEach（forEach 无法等待异步操作且无法中断）
@@ -292,6 +305,13 @@ function 获取实例提示词(options: InitMagiOptions, index: number): string 
         return options.prompts?.casper ?? null;
     }
     return options.prompts?.trinity ?? null;
+}
+
+function 获取实例人格名称(options: InitMagiOptions): string | null {
+    const rawName = typeof options.personaName === "string"
+        ? options.personaName.trim()
+        : "";
+    return rawName || null;
 }
 
 const 默认实例创建器 = [

@@ -210,6 +210,8 @@ export interface MagiPromptSet {
 
 /** initMagi 初始化配置 */
 export interface InitMagiOptions {
+    /** 人格显示名称（用于 `X AS EGO/SELF/SUPEREGO/WHOLE`） */
+    personaName?: string;
     /** 自定义系统提示词（各贤人） */
     prompts?: MagiPromptSet;
     /** 在原提示词后追加的人格注入文本（各贤人） */
