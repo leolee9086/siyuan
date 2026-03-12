@@ -181,6 +181,14 @@ func buildRequestSourceContext(
 	if principalID == "" {
 		principalID = "unknown-principal"
 	}
+	identityID := strings.TrimSpace(claims.Sub)
+	if identityID == "" {
+		identityID = principalID
+	}
+	nickname := strings.TrimSpace(claims.Nck)
+	if nickname == "" {
+		nickname = identityID
+	}
 
 	interfaceID := firstNonEmpty(
 		identity.InterfaceID,
@@ -220,7 +228,8 @@ func buildRequestSourceContext(
 		"userAgent":        strings.TrimSpace(c.GetHeader("User-Agent")),
 		"interfaceKindRaw": interfaceKind,
 		"requestChannel":   claims.Chn,
-		"nickname":         claims.Nck,
+		"identityId":       identityID,
+		"nickname":         nickname,
 		"routeClass":       claims.Rtc,
 	}
 	if callerID != "" {
@@ -242,6 +251,8 @@ func buildRequestSourceContext(
 		RequestID:             requestID,
 		Channel:               channel,
 		PrincipalID:           principalID,
+		IdentityID:            identityID,
+		Nickname:              nickname,
 		InterfaceID:           interfaceID,
 		InterfaceKind:         interfaceKind,
 		ConversationID:        conversationID,

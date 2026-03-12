@@ -6,6 +6,8 @@ import "fmt"
 func BuildAvatarCreationKnowledgeBase(
 	roleID,
 	displayName,
+	identityID,
+	nickname,
 	bindingKey,
 	sourceSessionKey,
 	channel,
@@ -17,6 +19,8 @@ func BuildAvatarCreationKnowledgeBase(
 	return fmt.Sprintf(`Avatar创建知识库：
 - avatar_role_id=%s
 - avatar_display_name=%s
+- source_identity_id=%s
+- source_nickname=%s
 - avatar_binding_key=%s
 - source_session_key=%s
 - channel=%s
@@ -33,7 +37,7 @@ func BuildAvatarCreationKnowledgeBase(
 5. 提示词必须包含 report_to_core 约束与 heartbeat 约束，傀儡系统会监控化身是否在每一轮工作中调用这些工具向作为本体的你汇报。
 6. 为了保证你的系统提示词切实地约束了化身的行为，没有在每一次响应中包含汇报内容的化身将被视为失控，傀儡系统会立即终止它的运行。
 `,
-		roleID, displayName, bindingKey, sourceSessionKey, channel, interfaceKind, trust, risk, firstUserMessage)
+		roleID, displayName, identityID, nickname, bindingKey, sourceSessionKey, channel, interfaceKind, trust, risk, firstUserMessage)
 }
 
 // BuildMelchiorBuildAvatarTask 构建 Melchior 的 buildAvatar 工具任务输入。

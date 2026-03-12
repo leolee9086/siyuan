@@ -44,6 +44,12 @@ func TestResolveOpenAISourceContext_DirectAllowed(t *testing.T) {
 	if sourceCtx.Channel != "guardian" {
 		t.Fatalf("unexpected channel: %s", sourceCtx.Channel)
 	}
+	if sourceCtx.IdentityID != "guardian-main" {
+		t.Fatalf("unexpected identityID: %s", sourceCtx.IdentityID)
+	}
+	if sourceCtx.Nickname != "tester" {
+		t.Fatalf("unexpected nickname: %s", sourceCtx.Nickname)
+	}
 }
 
 func TestResolveOpenAISourceContext_NonMainChannelNoDirect(t *testing.T) {

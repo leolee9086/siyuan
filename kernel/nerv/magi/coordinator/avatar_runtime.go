@@ -192,10 +192,20 @@ func (r *AvatarRuntime) DispatchForSource(
 		meta["avatarReports"] = reports
 	}
 	if sourceCtx != nil {
+		identityID := strings.TrimSpace(sourceCtx.IdentityID)
+		if identityID == "" {
+			identityID = strings.TrimSpace(sourceCtx.PrincipalID)
+		}
+		nickname := strings.TrimSpace(sourceCtx.Nickname)
+		if nickname == "" {
+			nickname = identityID
+		}
 		meta["requestSource"] = map[string]interface{}{
 			"requestId":             sourceCtx.RequestID,
 			"channel":               sourceCtx.Channel,
 			"principalId":           sourceCtx.PrincipalID,
+			"identityId":            identityID,
+			"nickname":              nickname,
 			"interfaceId":           sourceCtx.InterfaceID,
 			"interfaceKind":         sourceCtx.InterfaceKind,
 			"sourceSessionKey":      sourceCtx.SourceSessionKey,
@@ -382,6 +392,8 @@ func requestAvatarPrototypeByMAGI(
 	interfaceKind := "unknown-interface"
 	trust := "medium"
 	risk := "medium"
+	identityID := "unknown-principal"
+	nickname := identityID
 	sourceSessionKey := "unknown-session"
 	if sourceCtx != nil {
 		if sourceCtx.Channel != "" {
@@ -396,14 +408,32 @@ func requestAvatarPrototypeByMAGI(
 		if sourceCtx.RiskLevel != "" {
 			risk = string(sourceCtx.RiskLevel)
 		}
+		if sourceCtx.IdentityID != "" {
+			identityID = strings.TrimSpace(sourceCtx.IdentityID)
+		} else if sourceCtx.PrincipalID != "" {
+			identityID = strings.TrimSpace(sourceCtx.PrincipalID)
+		}
+		if sourceCtx.Nickname != "" {
+			nickname = strings.TrimSpace(sourceCtx.Nickname)
+		} else {
+			nickname = identityID
+		}
 		if sourceCtx.SourceSessionKey != "" {
 			sourceSessionKey = sourceCtx.SourceSessionKey
 		}
+	}
+	if identityID == "" {
+		identityID = "unknown-principal"
+	}
+	if nickname == "" {
+		nickname = identityID
 	}
 
 	knowledgeBase := prompts.BuildAvatarCreationKnowledgeBase(
 		roleID,
 		displayName,
+		identityID,
+		nickname,
 		bindingKey,
 		sourceSessionKey,
 		channel,

@@ -394,6 +394,8 @@ func TestBuildSourceAwareUserInput(t *testing.T) {
 	sourceCtx := &types.RequestSourceContext{
 		Channel:       types.SourceChannelGuardian,
 		PrincipalID:   "principal-a",
+		IdentityID:    "principal-a",
+		Nickname:      "alice",
 		InterfaceID:   "main-ui",
 		InterfaceKind: "magi-main-ui",
 		TrustBase:     types.TrustLevelHigh,
@@ -412,6 +414,12 @@ func TestBuildSourceAwareUserInput(t *testing.T) {
 	}
 	if !strings.Contains(got, "<request_source>") {
 		t.Fatal("source-aware input should include request_source envelope")
+	}
+	if !strings.Contains(got, `"identityId":"principal-a"`) {
+		t.Fatalf("source-aware input should include identityId, got: %s", got)
+	}
+	if !strings.Contains(got, `"nickname":"alice"`) {
+		t.Fatalf("source-aware input should include nickname, got: %s", got)
 	}
 }
 

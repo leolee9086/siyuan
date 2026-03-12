@@ -261,10 +261,20 @@ func (c *Coordinator) buildConsensusMessage(
 	}
 
 	if sourceCtx != nil {
+		identityID := strings.TrimSpace(sourceCtx.IdentityID)
+		if identityID == "" {
+			identityID = strings.TrimSpace(sourceCtx.PrincipalID)
+		}
+		nickname := strings.TrimSpace(sourceCtx.Nickname)
+		if nickname == "" {
+			nickname = identityID
+		}
 		meta["requestSource"] = map[string]interface{}{
 			"requestId":             sourceCtx.RequestID,
 			"channel":               sourceCtx.Channel,
 			"principalId":           sourceCtx.PrincipalID,
+			"identityId":            identityID,
+			"nickname":              nickname,
 			"interfaceId":           sourceCtx.InterfaceID,
 			"interfaceKind":         sourceCtx.InterfaceKind,
 			"sourceSessionKey":      sourceCtx.SourceSessionKey,
@@ -292,6 +302,14 @@ func (c *Coordinator) buildSourceAwareUserInput(sessionID, userMessage string, s
 	}
 
 	roundOrdinal := c.nextRoundOrdinal(sessionID)
+	identityID := strings.TrimSpace(sourceCtx.IdentityID)
+	if identityID == "" {
+		identityID = strings.TrimSpace(sourceCtx.PrincipalID)
+	}
+	nickname := strings.TrimSpace(sourceCtx.Nickname)
+	if nickname == "" {
+		nickname = identityID
+	}
 
 	payload := map[string]interface{}{
 		"channel":       sourceCtx.Channel,
@@ -299,6 +317,8 @@ func (c *Coordinator) buildSourceAwareUserInput(sessionID, userMessage string, s
 		"trustBase":     sourceCtx.TrustBase,
 		"riskLevel":     sourceCtx.RiskLevel,
 		"principal":     sourceCtx.PrincipalID,
+		"identityId":    identityID,
+		"nickname":      nickname,
 		"interface":     sourceCtx.InterfaceID,
 		"interfaceKind": sourceCtx.InterfaceKind,
 	}

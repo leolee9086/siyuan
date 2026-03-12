@@ -217,6 +217,8 @@ type RequestSourceContext struct {
 	RequestID             string            `json:"requestId"`
 	Channel               SourceChannel     `json:"channel"` // guardian|external-agent|system-cron|unknown
 	PrincipalID           string            `json:"principalId"`
+	IdentityID            string            `json:"identityId,omitempty"`
+	Nickname              string            `json:"nickname,omitempty"`
 	InterfaceID           string            `json:"interfaceId"`
 	InterfaceKind         string            `json:"interfaceKind"` // magi-main-ui|siyuan-note-upstream|...
 	ConversationID        string            `json:"conversationId,omitempty"`
