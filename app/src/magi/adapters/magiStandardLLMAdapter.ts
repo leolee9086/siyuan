@@ -21,6 +21,10 @@ import type { MagiMessage } from "../utils/messageFactory.types";
 import type { AvatarRuntime } from "../core/nerv/avatarRuntime/avatar.runtime.types";
 import type { ReplyOptions } from "../core/core.types";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import {
+    getActiveMagiArmorToken,
+    MAGI_IDENTITY_REQUIRED_EVENT,
+} from "../service/magiIdentitySession";
 
 const SOURCE_SIMULATION_TAG = "magi_request_source";
 const SOURCE_SIMULATION_OPEN = `<${SOURCE_SIMULATION_TAG}>`;
@@ -383,29 +387,17 @@ function buildSourceSimulationBackendEndpoint(apiBaseURL: string): string {
     }
 }
 
-function resolveWorkspaceAPIToken(): string {
-    try {
-        const token = getSiyuanConfig()?.api?.token;
-        return String(token ?? "").trim();
-    } catch {
-        return "";
-    }
+function resolveActiveMagiArmorToken(): string {
+    return getActiveMagiArmorToken();
 }
 
-function resolveMagiSourceKey(requestContext: ConsensusRequestContext): string {
-    const workspaceToken = resolveWorkspaceAPIToken();
-    if (workspaceToken) {
-        return workspaceToken;
+function emitMagiIdentityRequired(reason: string): void {
+    if (typeof window === "undefined") {
+        return;
     }
-    if (!requestContext.sourceSimulation) {
-        return "";
-    }
-    try {
-        const aiConfig = getAIConfigFromSiyuan();
-        return String(aiConfig.apiKey ?? "").trim();
-    } catch {
-        return "";
-    }
+    window.dispatchEvent(new CustomEvent(MAGI_IDENTITY_REQUIRED_EVENT, {
+        detail: { reason },
+    }));
 }
 
 function buildRequestInterfaceIdentity(
@@ -441,12 +433,11 @@ function buildRequestIdentityUserField(identity: MagiInterfaceIdentity): string 
 function buildMagiBackendRequestBody(
     request: ChatRequestParams,
     fallbackModel: string,
-    identity: MagiInterfaceIdentity,
+    _identity: MagiInterfaceIdentity,
 ): Record<string, unknown> {
     return {
         model: request.model ?? fallbackModel,
         messages: request.messages,
-        user: buildRequestIdentityUserField(identity),
         temperature: request.temperature,
         max_tokens: request.max_tokens,
         ...(Array.isArray(request.tools) ? { tools: request.tools } : {}),
@@ -455,20 +446,11 @@ function buildMagiBackendRequestBody(
     };
 }
 
-function buildMagiBackendHeaders(
-    sourceKey: string,
-    identity: MagiInterfaceIdentity,
-    sessionId: string,
-): Record<string, string> {
+function buildMagiBackendHeaders(armorToken: string, sessionId: string): Record<string, string> {
     return {
         "Content-Type": "application/json",
-        "X-MAGI-Source-Key": sourceKey,
+        Authorization: `Bearer ${armorToken}`,
         ...(sessionId ? { "X-MAGI-Session-ID": sessionId } : {}),
-        "X-MAGI-Principal-ID": identity.principalId,
-        "X-MAGI-Interface-ID": identity.interfaceId,
-        "X-MAGI-Interface-Kind": identity.interfaceKind,
-        "X-MAGI-Conversation-ID": identity.conversationId,
-        "X-MAGI-Interface-Label": identity.interfaceLabel,
     };
 }
 
@@ -479,9 +461,9 @@ async function tryForwardMagiRequestToBackend(
     mainIdentity: MagiInterfaceIdentity,
     sessionId: string,
 ): Promise<BackendForwardResult> {
-    const sourceKey = resolveMagiSourceKey(requestContext);
-    if (!sourceKey) {
-        return { response: null, reason: "source-key-missing" };
+    const armorToken = resolveActiveMagiArmorToken();
+    if (!armorToken) {
+        return { response: null, reason: "magi-armor-token-missing" };
     }
 
     let apiBaseURL = "";
@@ -498,7 +480,7 @@ async function tryForwardMagiRequestToBackend(
         const response = await fetch(endpoint, {
             method: "POST",
             credentials: "include",
-            headers: buildMagiBackendHeaders(sourceKey, identity, sessionId),
+            headers: buildMagiBackendHeaders(armorToken, sessionId),
             body: JSON.stringify(requestBody),
         });
         if (!response.ok) {
@@ -544,6 +526,10 @@ async function createMagiChatCompletion(
     );
     if (backendResult.response) {
         return backendResult.response;
+    }
+    if (backendResult.reason === "magi-armor-token-missing") {
+        emitMagiIdentityRequired("main-chat-missing-armor-session");
+        throw new Error("MAGI identity session missing. Please login in Identity Access Control panel.");
     }
     throw new Error(`MAGI backend request failed: ${backendResult.reason}`);
 }

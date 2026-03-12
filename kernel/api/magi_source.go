@@ -99,52 +99,84 @@ func buildRequestSourceContext(
 	modelName, identityRaw string,
 	sourcePayload map[string]string,
 ) (*types.RequestSourceContext, *magiSourceAuthError) {
+	if sourcePayload == nil {
+		sourcePayload = map[string]string{}
+	}
+
 	modelName = strings.TrimSpace(modelName)
 	if modelName == "" {
 		modelName = strings.TrimSpace(defaultMagiModelName())
 	}
 	if modelName == "" {
-		return nil, &magiSourceAuthError{
-			StatusCode: http.StatusForbidden,
-			Code:       "magi_model_required",
-			Message:    "model is required for source authentication",
-		}
+		modelName = "magi-default"
 	}
 
-	sourceKey := extractMagiSourceKey(c)
-	if sourceKey == "" {
-		return nil, &magiSourceAuthError{
-			StatusCode: http.StatusUnauthorized,
-			Code:       "magi_source_key_missing",
-			Message:    "missing MAGI source key",
-		}
-	}
-
-	profile, authErr := resolveSourceKeyProfile(sourceKey)
+	claims, authErr := extractMagiArmorClaimsFromContext(c)
 	if authErr != nil {
 		return nil, authErr
 	}
 
-	if !isModelAllowed(profile, modelName) {
-		return nil, &magiSourceAuthError{
-			StatusCode: http.StatusForbidden,
-			Code:       "magi_model_not_allowed",
-			Message:    fmt.Sprintf("model [%s] is not allowed by source key policy", modelName),
-		}
+	identityRecord, authErr := ensureMagiArmorIdentityConsistency(claims)
+	if authErr != nil {
+		return nil, authErr
 	}
 
+	profile := buildArmorSourceProfile(claims, identityRecord)
 	channel, authErr := resolveSourceChannel(profile, sourcePayload)
 	if authErr != nil {
 		return nil, authErr
 	}
+	expectedChannel := mapRequestChannelToSourceChannel(claims.Chn, claims.Rtc)
+	if channel != expectedChannel {
+		return nil, &magiSourceAuthError{
+			StatusCode: http.StatusForbidden,
+			Code:       "magi_channel_mismatch",
+			Message:    "request channel payload does not match MAGI armor channel",
+		}
+	}
+
+	if sourcePayloadPrincipal := firstNonEmpty(sourcePayload["principalId"], sourcePayload["principal_id"]); sourcePayloadPrincipal != "" &&
+		sourcePayloadPrincipal != claims.Sub {
+		return nil, &magiSourceAuthError{
+			StatusCode: http.StatusForbidden,
+			Code:       "magi_identity_mismatch",
+			Message:    "request principal does not match MAGI armor identity",
+		}
+	}
 
 	identity := parseInterfaceIdentity(identityRaw)
+	if identity.PrincipalID != "" && identity.PrincipalID != claims.Sub {
+		return nil, &magiSourceAuthError{
+			StatusCode: http.StatusForbidden,
+			Code:       "magi_identity_mismatch",
+			Message:    "request user principal does not match MAGI armor identity",
+		}
+	}
+
+	expectedInterfaceKind := defaultInterfaceKindForRequestChannel(claims.Chn)
+	interfaceKindMirror := firstNonEmpty(
+		identity.InterfaceKind,
+		sourcePayload["interfaceKind"],
+		sourcePayload["interface_kind"],
+	)
+	if interfaceKindMirror != "" && expectedInterfaceKind != "" && interfaceKindMirror != expectedInterfaceKind {
+		return nil, &magiSourceAuthError{
+			StatusCode: http.StatusForbidden,
+			Code:       "magi_channel_mismatch",
+			Message:    "request interface kind does not match MAGI armor channel",
+		}
+	}
+
+	interfaceKind := firstNonEmpty(
+		interfaceKindMirror,
+		deriveInterfaceKindFromSourcePayload(sourcePayload),
+		expectedInterfaceKind,
+		"sdk-client",
+	)
+
 	principalID := firstNonEmpty(
+		claims.Sub,
 		identity.PrincipalID,
-		strings.TrimSpace(c.GetHeader("X-MAGI-Principal-ID")),
-		sourcePayload["principalId"],
-		sourcePayload["principal_id"],
-		profile.PrincipalID,
 	)
 	if principalID == "" {
 		principalID = "unknown-principal"
@@ -152,29 +184,14 @@ func buildRequestSourceContext(
 
 	interfaceID := firstNonEmpty(
 		identity.InterfaceID,
-		strings.TrimSpace(c.GetHeader("X-MAGI-Interface-ID")),
 		sourcePayload["interfaceId"],
 		sourcePayload["interface_id"],
 		sourcePayload["sourcePanelId"],
 		"default-interface",
 	)
 
-	defaultKind := profile.DefaultInterfaceKind
-	if defaultKind == "" {
-		defaultKind = "sdk-client"
-	}
-	interfaceKind := firstNonEmpty(
-		identity.InterfaceKind,
-		strings.TrimSpace(c.GetHeader("X-MAGI-Interface-Kind")),
-		sourcePayload["interfaceKind"],
-		sourcePayload["interface_kind"],
-		deriveInterfaceKindFromSourcePayload(sourcePayload),
-		defaultKind,
-	)
-
 	conversationID := firstNonEmpty(
 		identity.ConversationID,
-		strings.TrimSpace(c.GetHeader("X-MAGI-Conversation-ID")),
 		sourcePayload["conversationId"],
 		sourcePayload["conversation_id"],
 	)
@@ -184,23 +201,17 @@ func buildRequestSourceContext(
 		sourcePayload["requestId"],
 		sourcePayload["request_id"],
 		strings.TrimSpace(c.GetHeader("X-Request-ID")),
+		strings.TrimSpace(c.GetHeader("X-Request-Id")),
 		"req-"+gulu.Rand.String(12),
 	)
 
 	trustBase, trustConflict := resolveTrustLevel(profile.TrustBase, sourcePayload, "trustBase", "trust_base")
 	riskLevel, riskConflict := resolveTrustLevel(profile.RiskLevel, sourcePayload, "riskLevel", "risk_level")
 	sourceSessionKey := buildSourceSessionKey(channel, principalID, interfaceID, conversationID)
-	isSourceSimulation := isSourceSimulationPayload(sourcePayload)
 	directResponseAllowed := channel == types.SourceChannelGuardian &&
 		interfaceKind == "magi-main-ui" &&
-		trustBase == types.TrustLevelHigh
-	if interfaceKind == "magi-main-ui" && !isSourceSimulation && !directResponseAllowed {
-		return nil, &magiSourceAuthError{
-			StatusCode: http.StatusForbidden,
-			Code:       "magi_main_ui_direct_required",
-			Message:    "magi-main-ui request must satisfy direct-main policy (guardian + high trust)",
-		}
-	}
+		trustBase == types.TrustLevelHigh &&
+		claims.Chn == magiRequestChannelMainUI
 
 	rawAttributes := map[string]string{
 		"model":            modelName,
@@ -208,6 +219,9 @@ func buildRequestSourceContext(
 		"clientIP":         c.ClientIP(),
 		"userAgent":        strings.TrimSpace(c.GetHeader("User-Agent")),
 		"interfaceKindRaw": interfaceKind,
+		"requestChannel":   claims.Chn,
+		"nickname":         claims.Nck,
+		"routeClass":       claims.Rtc,
 	}
 	if callerID != "" {
 		rawAttributes["callerId"] = callerID
@@ -242,6 +256,41 @@ func buildRequestSourceContext(
 	}, nil
 }
 
+func buildArmorSourceProfile(claims *magiArmorClaimsV1, identityRecord *magiIdentityRecord) *sourceKeyProfile {
+	defaultTrust := types.TrustLevelMedium
+	defaultRisk := types.TrustLevelMedium
+	if identityRecord != nil && identityRecord.RouteClass == magiRouteClassGuardian {
+		defaultTrust = types.TrustLevelHigh
+		defaultRisk = types.TrustLevelLow
+	}
+
+	defaultChannel := mapRequestChannelToSourceChannel(claims.Chn, claims.Rtc)
+	allowedChannels := map[types.SourceChannel]struct{}{
+		types.SourceChannelExternalAgent: {},
+	}
+	if defaultChannel == types.SourceChannelSystemCron {
+		allowedChannels = map[types.SourceChannel]struct{}{
+			types.SourceChannelSystemCron: {},
+		}
+	}
+	if claims.Rtc == magiRouteClassGuardian {
+		allowedChannels[types.SourceChannelGuardian] = struct{}{}
+	}
+	allowedChannels[types.SourceChannelUnknown] = struct{}{}
+
+	return &sourceKeyProfile{
+		KeyID:                shortKeyHash(claims.Jti + ":" + claims.Sub),
+		PrincipalID:          claims.Sub,
+		AllowedChannels:      allowedChannels,
+		DefaultChannel:       defaultChannel,
+		AllowedModelPrefixes: []string{"*"},
+		DefaultInterfaceKind: defaultInterfaceKindForRequestChannel(claims.Chn),
+		TrustBase:            defaultTrust,
+		RiskLevel:            defaultRisk,
+		AuthStrength:         types.AuthStrengthStrong,
+	}
+}
+
 func extractMagiSourceKey(c *gin.Context) string {
 	headerCandidates := []string{
 		"X-MAGI-Source-Key",
@@ -252,30 +301,7 @@ func extractMagiSourceKey(c *gin.Context) string {
 			return value
 		}
 	}
-
-	if authHeader := strings.TrimSpace(c.GetHeader("Authorization")); authHeader != "" {
-		if token := extractToken(authHeader); token != "" {
-			return token
-		}
-	}
-
-	if queryValue := strings.TrimSpace(c.Query("magi_source_key")); queryValue != "" {
-		return queryValue
-	}
 	return ""
-}
-
-func extractToken(value string) string {
-	value = strings.TrimSpace(value)
-	if value == "" {
-		return ""
-	}
-	for _, prefix := range []string{"Bearer ", "bearer ", "Token ", "token "} {
-		if strings.HasPrefix(value, prefix) {
-			return strings.TrimSpace(strings.TrimPrefix(value, prefix))
-		}
-	}
-	return value
 }
 
 func resolveSourceKeyProfile(sourceKey string) (*sourceKeyProfile, *magiSourceAuthError) {
@@ -858,6 +884,39 @@ func isSourceSimulationPayload(sourcePayload map[string]string) bool {
 	return false
 }
 
+func mapRequestChannelToSourceChannel(requestChannel, routeClass string) types.SourceChannel {
+	switch requestChannel {
+	case magiRequestChannelSystemCron:
+		return types.SourceChannelSystemCron
+	case magiRequestChannelMainUI:
+		if routeClass == magiRouteClassGuardian {
+			return types.SourceChannelGuardian
+		}
+		return types.SourceChannelExternalAgent
+	default:
+		return types.SourceChannelExternalAgent
+	}
+}
+
+func defaultInterfaceKindForRequestChannel(requestChannel string) string {
+	switch requestChannel {
+	case magiRequestChannelMainUI:
+		return "magi-main-ui"
+	case magiRequestChannelToolClaude:
+		return "tool-claude-code"
+	case magiRequestChannelToolOpenAI:
+		return "tool-openai-sdk"
+	case magiRequestChannelToolAnthropic:
+		return "tool-claude-sdk"
+	case magiRequestChannelSystemCron:
+		return "system-cron-job"
+	case magiRequestChannelToolCustom:
+		return "tool-custom"
+	default:
+		return "sdk-client"
+	}
+}
+
 func buildSourceSessionKey(channel types.SourceChannel, principalID, interfaceID, conversationID string) string {
 	builder := strings.Builder{}
 	builder.WriteString(string(channel))
@@ -875,11 +934,15 @@ func buildSourceSessionKey(channel types.SourceChannel, principalID, interfaceID
 func resolveModelIntent(modelName string) string {
 	normalized := strings.ToLower(strings.TrimSpace(modelName))
 	switch {
+	case strings.Contains(normalized, "magi-coding"):
+		return "coding"
+	case strings.Contains(normalized, "magi-review"):
+		return "review"
 	case strings.Contains(normalized, "avatar"):
 		return "avatar"
 	case strings.Contains(normalized, "cron"):
 		return "system-cron"
-	case strings.Contains(normalized, "magi"), strings.Contains(normalized, "trinity"):
+	case strings.Contains(normalized, "magi"), strings.Contains(normalized, "trinity"), normalized == "":
 		return "magi-trinity"
 	default:
 		return "general"

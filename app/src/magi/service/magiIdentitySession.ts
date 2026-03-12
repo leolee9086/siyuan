@@ -1,0 +1,286 @@
+import { reactive, readonly } from "vue";
+import { getSafeSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
+
+const MAGI_IDENTITY_API_ROOT = "/api/s-forge/magi/v1/identity";
+export const MAGI_IDENTITY_REQUIRED_EVENT = "magi:identity-required";
+
+export type MagiRouteClass = "guardian" | "avatar-only";
+export type MagiRequestChannel =
+    | "magi-main-ui"
+    | "tool-claude-code"
+    | "tool-openai-sdk"
+    | "tool-claude-sdk"
+    | "tool-custom"
+    | "system-cron";
+
+export interface MagiIdentityView {
+    identityId: string;
+    displayName: string;
+    routeClass: MagiRouteClass;
+    enabled: boolean;
+    createdAt: number;
+    updatedAt: number;
+}
+
+export interface MagiArmorSession {
+    armorToken: string;
+    expiresAt: number;
+    identityId: string;
+    displayName: string;
+    routeClass: MagiRouteClass;
+    channel: MagiRequestChannel;
+    nickname: string;
+}
+
+interface MagiIdentitySessionState {
+    identities: MagiIdentityView[];
+    loading: boolean;
+    activeSession: MagiArmorSession | null;
+    lastError: string | null;
+}
+
+const magiIdentitySessionState = reactive<MagiIdentitySessionState>({
+    identities: [],
+    loading: false,
+    activeSession: null,
+    lastError: null,
+});
+
+function resolveWorkspaceAPIToken(): string {
+    try {
+        const token = getSafeSiyuanConfig()?.api?.token;
+        return String(token ?? "").trim();
+    } catch {
+        return "";
+    }
+}
+
+function buildIdentityRequestHeaders(withJsonBody: boolean): Record<string, string> {
+    const token = resolveWorkspaceAPIToken();
+    const headers: Record<string, string> = {};
+    if (withJsonBody) {
+        headers["Content-Type"] = "application/json";
+    }
+    if (token) {
+        headers.Authorization = `Bearer ${token}`;
+    }
+    return headers;
+}
+
+function ensureIdentityResponseOK(
+    response: Response,
+    payload: unknown,
+): void {
+    if (response.ok) {
+        return;
+    }
+    const errorText = typeof payload === "object" && payload !== null
+        ? String(Reflect.get(payload, "error") ?? Reflect.get(payload, "msg") ?? `HTTP ${response.status}`)
+        : `HTTP ${response.status}`;
+    throw new Error(errorText);
+}
+
+function normalizeIdentityView(raw: unknown): MagiIdentityView | null {
+    if (!raw || typeof raw !== "object") {
+        return null;
+    }
+    const identityId = String(Reflect.get(raw, "identityId") ?? "").trim();
+    const displayName = String(Reflect.get(raw, "displayName") ?? identityId).trim();
+    const routeClass = String(Reflect.get(raw, "routeClass") ?? "").trim();
+    const enabled = Boolean(Reflect.get(raw, "enabled"));
+    const createdAt = Number(Reflect.get(raw, "createdAt") ?? 0);
+    const updatedAt = Number(Reflect.get(raw, "updatedAt") ?? 0);
+    if (!identityId || (routeClass !== "guardian" && routeClass !== "avatar-only")) {
+        return null;
+    }
+    return {
+        identityId,
+        displayName: displayName || identityId,
+        routeClass,
+        enabled,
+        createdAt,
+        updatedAt,
+    };
+}
+
+function normalizeLoginSession(raw: unknown): MagiArmorSession {
+    const identityObj = typeof raw === "object" && raw !== null
+        ? Reflect.get(raw, "identity")
+        : null;
+    const identityId = String(
+        (typeof identityObj === "object" && identityObj !== null
+            ? Reflect.get(identityObj, "identity_id")
+            : "") ?? "",
+    ).trim();
+    const displayName = String(
+        (typeof identityObj === "object" && identityObj !== null
+            ? Reflect.get(identityObj, "display_name")
+            : identityId) ?? identityId,
+    ).trim();
+    const routeClass = String(
+        (typeof identityObj === "object" && identityObj !== null
+            ? Reflect.get(identityObj, "route_class")
+            : "") ?? "",
+    ).trim();
+    const armorToken = String(
+        (typeof raw === "object" && raw !== null
+            ? Reflect.get(raw, "armor_token")
+            : "") ?? "",
+    ).trim();
+    const channel = String(
+        (typeof raw === "object" && raw !== null
+            ? Reflect.get(raw, "channel")
+            : "") ?? "",
+    ).trim();
+    const nickname = String(
+        (typeof raw === "object" && raw !== null
+            ? Reflect.get(raw, "nickname")
+            : "") ?? "",
+    ).trim();
+    const expiresAt = Number(
+        (typeof raw === "object" && raw !== null
+            ? Reflect.get(raw, "expires_at")
+            : 0) ?? 0,
+    );
+
+    if (!identityId || !armorToken || !channel || !nickname || !expiresAt) {
+        throw new Error("invalid MAGI login response");
+    }
+    if (routeClass !== "guardian" && routeClass !== "avatar-only") {
+        throw new Error("invalid route class in MAGI login response");
+    }
+    return {
+        armorToken,
+        expiresAt,
+        identityId,
+        displayName: displayName || identityId,
+        routeClass,
+        channel: channel as MagiRequestChannel,
+        nickname,
+    };
+}
+
+export async function listMagiIdentities(): Promise<MagiIdentityView[]> {
+    const response = await fetch(`${MAGI_IDENTITY_API_ROOT}/list`, {
+        method: "POST",
+        credentials: "include",
+        headers: buildIdentityRequestHeaders(false),
+    });
+    const payload = await response.json().catch(() => ({}));
+    ensureIdentityResponseOK(response, payload);
+    const rawList = Array.isArray(Reflect.get(payload, "identities"))
+        ? Reflect.get(payload, "identities") as unknown[]
+        : [];
+    const identities: MagiIdentityView[] = [];
+    for (const raw of rawList) {
+        const identity = normalizeIdentityView(raw);
+        if (identity) {
+            identities.push(identity);
+        }
+    }
+    identities.sort((a, b) => a.identityId.localeCompare(b.identityId));
+    return identities;
+}
+
+export async function refreshMagiIdentities(): Promise<void> {
+    magiIdentitySessionState.loading = true;
+    magiIdentitySessionState.lastError = null;
+    try {
+        magiIdentitySessionState.identities = await listMagiIdentities();
+    } catch (error) {
+        magiIdentitySessionState.lastError = error instanceof Error ? error.message : String(error);
+        throw error;
+    } finally {
+        magiIdentitySessionState.loading = false;
+    }
+}
+
+export async function upsertMagiIdentity(input: {
+    identityId: string;
+    displayName: string;
+    password?: string;
+    routeClass: MagiRouteClass;
+    enabled: boolean;
+}): Promise<void> {
+    const response = await fetch(`${MAGI_IDENTITY_API_ROOT}/upsert`, {
+        method: "POST",
+        credentials: "include",
+        headers: buildIdentityRequestHeaders(true),
+        body: JSON.stringify({
+            identity_id: input.identityId,
+            display_name: input.displayName,
+            password: input.password ?? "",
+            route_class: input.routeClass,
+            enabled: input.enabled,
+        }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    ensureIdentityResponseOK(response, payload);
+    await refreshMagiIdentities();
+}
+
+export async function removeMagiIdentity(identityId: string): Promise<void> {
+    const response = await fetch(`${MAGI_IDENTITY_API_ROOT}/remove`, {
+        method: "POST",
+        credentials: "include",
+        headers: buildIdentityRequestHeaders(true),
+        body: JSON.stringify({ identity_id: identityId }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    ensureIdentityResponseOK(response, payload);
+    await refreshMagiIdentities();
+    if (magiIdentitySessionState.activeSession?.identityId === identityId) {
+        magiIdentitySessionState.activeSession = null;
+    }
+}
+
+export async function loginMagiIdentity(input: {
+    identityId: string;
+    password: string;
+    nickname: string;
+    channel: MagiRequestChannel;
+    activate?: boolean;
+}): Promise<MagiArmorSession> {
+    const response = await fetch(`${MAGI_IDENTITY_API_ROOT}/login`, {
+        method: "POST",
+        credentials: "include",
+        headers: buildIdentityRequestHeaders(true),
+        body: JSON.stringify({
+            identity_id: input.identityId,
+            password: input.password,
+            nickname: input.nickname,
+            channel: input.channel,
+        }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    ensureIdentityResponseOK(response, payload);
+    const session = normalizeLoginSession(payload);
+    if (input.activate !== false) {
+        magiIdentitySessionState.activeSession = session;
+    }
+    return session;
+}
+
+export function setActiveMagiArmorSession(session: MagiArmorSession | null): void {
+    magiIdentitySessionState.activeSession = session;
+}
+
+export function clearActiveMagiArmorSession(): void {
+    magiIdentitySessionState.activeSession = null;
+}
+
+export function getActiveMagiArmorToken(): string {
+    const activeSession = magiIdentitySessionState.activeSession;
+    if (!activeSession) {
+        return "";
+    }
+    if (activeSession.expiresAt <= Date.now()) {
+        magiIdentitySessionState.activeSession = null;
+        return "";
+    }
+    return activeSession.armorToken;
+}
+
+export function useMagiIdentitySessionState() {
+    return readonly(magiIdentitySessionState);
+}

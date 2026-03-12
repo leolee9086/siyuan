@@ -84,12 +84,27 @@
   color: #89dce7;
 }
 
+.source-sim-grid-compact {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
 .source-sim-select {
   width: 100%;
   min-height: 28px;
   background: rgba(0, 37, 47, 0.65);
   border: 1px solid rgba(0, 255, 255, 0.25);
   color: #c8f9ff;
+}
+
+.source-sim-input-inline {
+  width: 100%;
+  min-height: 28px;
+  background: rgba(0, 37, 47, 0.65);
+  border: 1px solid rgba(0, 255, 255, 0.25);
+  color: #c8f9ff;
+  padding: 4px 6px;
 }
 
 .source-sim-message-list {
@@ -164,4 +179,3 @@
   opacity: 0.55;
   cursor: not-allowed;
 }
-

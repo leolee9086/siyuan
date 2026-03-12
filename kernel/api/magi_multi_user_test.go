@@ -33,6 +33,9 @@ func TestMagiMultiUserSessionIsolation(t *testing.T) {
 	tempDir := t.TempDir()
 	util.WorkspaceDir = tempDir
 	util.WorkspaceName = "testMagiMultiUser"
+	oldConfDir := util.ConfDir
+	util.ConfDir = tempDir
+	defer func() { util.ConfDir = oldConfDir }()
 
 	oldConf := model.Conf
 	defer func() { model.Conf = oldConf }()
@@ -47,6 +50,34 @@ func TestMagiMultiUserSessionIsolation(t *testing.T) {
 	model.Conf.AI.OpenAI.APITimeout = 120
 	model.Conf.AI.OpenAI.APIMaxTokens = 1024
 	model.Conf.AI.OpenAI.APITemperature = 0.4
+	globalMagiIdentityStore = &magiIdentityStore{}
+	_, _ = globalMagiIdentityStore.upsert("alice", "alice", "alice-pass", magiRouteClassGuardian, true)
+	_, _ = globalMagiIdentityStore.upsert("bob", "bob", "bob-pass", magiRouteClassGuardian, true)
+	now := time.Now().Unix()
+	aliceArmor, _ := signMagiArmorToken(magiArmorClaimsV1{
+		Sub: "alice",
+		Chn: magiRequestChannelMainUI,
+		Ws:  magiWorkspaceBinding(),
+		Rtc: magiRouteClassGuardian,
+		Nck: "alice",
+		Iat: now,
+		Exp: now + 1200,
+		Jti: "live-alice",
+	})
+	bobArmor, _ := signMagiArmorToken(magiArmorClaimsV1{
+		Sub: "bob",
+		Chn: magiRequestChannelMainUI,
+		Ws:  magiWorkspaceBinding(),
+		Rtc: magiRouteClassGuardian,
+		Nck: "bob",
+		Iat: now,
+		Exp: now + 1200,
+		Jti: "live-bob",
+	})
+	armorByUser := map[string]string{
+		"alice": aliceArmor,
+		"bob":   bobArmor,
+	}
 
 	gin.SetMode(gin.TestMode)
 
@@ -83,7 +114,7 @@ func TestMagiMultiUserSessionIsolation(t *testing.T) {
 
 			req := httptest.NewRequest(http.MethodPost, "/api/s-forge/magi/v1/chat/completions", bytes.NewReader(body)).WithContext(ctx)
 			req.Header.Set("Content-Type", "application/json")
-			req.Header.Set("Authorization", "Bearer workspace-token")
+			req.Header.Set("Authorization", "Bearer "+armorByUser[msg.userID])
 			c.Request = req
 
 			magiChat(c)

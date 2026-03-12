@@ -1,28 +1,31 @@
 package api
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/liushuangls/go-anthropic/v2"
 	"github.com/sashabaranov/go-openai"
 	"github.com/siyuan-note/siyuan/kernel/conf"
 	"github.com/siyuan-note/siyuan/kernel/model"
+	"github.com/siyuan-note/siyuan/kernel/util"
 )
 
 func TestResolveOpenAISourceContext_DirectAllowed(t *testing.T) {
-	restore := setupMagiSourceTestConf()
+	restore := setupMagiSourceTestConf(t)
 	defer restore()
 
+	token := issueTestArmorToken(t, "guardian-main", magiRouteClassGuardian, magiRequestChannelMainUI)
+
 	c := newTestGinContext()
-	c.Request.Header.Set("Authorization", "Bearer workspace-token")
+	c.Request.Header.Set("Authorization", "Bearer "+token)
 
 	req := openai.ChatCompletionRequest{
-		Model: "magi-trinity",
-		User:  "principal:alice;interface:desktop-main;kind:magi-main-ui;conversation:conv-1",
+		Model: "magi-default",
+		User:  "principal:guardian-main;interface:desktop-main;kind:magi-main-ui;conversation:conv-1",
 		Messages: []openai.ChatCompletionMessage{
 			{Role: openai.ChatMessageRoleUser, Content: "hello"},
 		},
@@ -43,16 +46,18 @@ func TestResolveOpenAISourceContext_DirectAllowed(t *testing.T) {
 	}
 }
 
-func TestResolveOpenAISourceContext_NonMainInterface(t *testing.T) {
-	restore := setupMagiSourceTestConf()
+func TestResolveOpenAISourceContext_NonMainChannelNoDirect(t *testing.T) {
+	restore := setupMagiSourceTestConf(t)
 	defer restore()
 
+	token := issueTestArmorToken(t, "guardian-main", magiRouteClassGuardian, magiRequestChannelToolClaude)
+
 	c := newTestGinContext()
-	c.Request.Header.Set("Authorization", "Bearer workspace-token")
+	c.Request.Header.Set("Authorization", "Bearer "+token)
 
 	req := openai.ChatCompletionRequest{
-		Model: "magi-trinity",
-		User:  "principal:alice;interface:note-main;kind:siyuan-note-upstream",
+		Model: "magi-coding",
+		User:  "principal:guardian-main;interface:note-main;kind:tool-claude-code",
 		Messages: []openai.ChatCompletionMessage{
 			{Role: openai.ChatMessageRoleUser, Content: "hello"},
 		},
@@ -63,19 +68,22 @@ func TestResolveOpenAISourceContext_NonMainInterface(t *testing.T) {
 		t.Fatalf("unexpected auth error: %v", authErr)
 	}
 	if sourceCtx.DirectResponseAllowed {
-		t.Fatal("siyuan-note-upstream should not allow direct response")
+		t.Fatal("non-main channel should not allow direct response")
+	}
+	if sourceCtx.Channel != "external-agent" {
+		t.Fatalf("unexpected channel: %s", sourceCtx.Channel)
 	}
 }
 
-func TestResolveOpenAISourceContext_InvalidKey(t *testing.T) {
-	restore := setupMagiSourceTestConf()
+func TestResolveOpenAISourceContext_InvalidArmor(t *testing.T) {
+	restore := setupMagiSourceTestConf(t)
 	defer restore()
 
 	c := newTestGinContext()
-	c.Request.Header.Set("Authorization", "Bearer wrong-key")
+	c.Request.Header.Set("Authorization", "Bearer wrong-token")
 
 	req := openai.ChatCompletionRequest{
-		Model: "magi-trinity",
+		Model: "magi-default",
 		Messages: []openai.ChatCompletionMessage{
 			{Role: openai.ChatMessageRoleUser, Content: "hello"},
 		},
@@ -83,32 +91,48 @@ func TestResolveOpenAISourceContext_InvalidKey(t *testing.T) {
 
 	_, authErr := resolveOpenAISourceContext(c, &req)
 	if authErr == nil {
-		t.Fatal("expected auth error for invalid source key")
+		t.Fatal("expected auth error for invalid armor token")
 	}
-	if authErr.Code != "magi_source_key_invalid" {
+	if authErr.Code != "magi_armor_invalid" {
 		t.Fatalf("unexpected error code: %s", authErr.Code)
 	}
 }
 
-func TestResolveOpenAISourceContext_ChannelForbidden(t *testing.T) {
-	restore := setupMagiSourceTestConf()
+func TestResolveOpenAISourceContext_LegacySourceHeaderNoLongerWorks(t *testing.T) {
+	restore := setupMagiSourceTestConf(t)
 	defer restore()
 
-	claims := sourceKeyClaimsV1{
-		Principal:     "external-bot",
-		Channels:      []string{"external-agent"},
-		Models:        []string{"magi-"},
-		InterfaceKind: "siyuan-note-upstream",
-	}
-	rawClaims, _ := json.Marshal(claims)
-	key := "magi_sk_v1_" + base64.RawURLEncoding.EncodeToString(rawClaims)
-
 	c := newTestGinContext()
-	c.Request.Header.Set("X-MAGI-Source-Key", key)
+	c.Request.Header.Set("X-MAGI-Source-Key", "workspace-token")
 
 	req := openai.ChatCompletionRequest{
-		Model: "magi-trinity",
-		User:  "principal:external-bot;interface:panel-1;kind:siyuan-note-upstream",
+		Model: "magi-default",
+		Messages: []openai.ChatCompletionMessage{
+			{Role: openai.ChatMessageRoleUser, Content: "hello"},
+		},
+	}
+
+	_, authErr := resolveOpenAISourceContext(c, &req)
+	if authErr == nil {
+		t.Fatal("expected auth error when armor token is missing")
+	}
+	if authErr.Code != "magi_armor_missing" {
+		t.Fatalf("unexpected error code: %s", authErr.Code)
+	}
+}
+
+func TestResolveOpenAISourceContext_ChannelForbiddenByClaims(t *testing.T) {
+	restore := setupMagiSourceTestConf(t)
+	defer restore()
+
+	token := issueTestArmorToken(t, "family-user", magiRouteClassGuardian, magiRequestChannelToolCustom)
+
+	c := newTestGinContext()
+	c.Request.Header.Set("Authorization", "Bearer "+token)
+
+	req := openai.ChatCompletionRequest{
+		Model: "magi-default",
+		User:  "principal:family-user;interface:panel-1;kind:tool-custom",
 		Messages: []openai.ChatCompletionMessage{
 			{
 				Role:    openai.ChatMessageRoleSystem,
@@ -122,58 +146,51 @@ func TestResolveOpenAISourceContext_ChannelForbidden(t *testing.T) {
 	if authErr == nil {
 		t.Fatal("expected channel forbidden error")
 	}
-	if authErr.Code != "magi_source_channel_forbidden" {
+	if authErr.Code != "magi_channel_mismatch" {
 		t.Fatalf("unexpected error code: %s", authErr.Code)
 	}
 }
 
-func TestResolveOpenAISourceContext_MainUIRequiresDirectPolicy(t *testing.T) {
-	restore := setupMagiSourceTestConf()
+func TestResolveOpenAISourceContext_MainUIAvatarOnlyAllowedButNoDirect(t *testing.T) {
+	restore := setupMagiSourceTestConf(t)
 	defer restore()
 
-	claims := sourceKeyClaimsV1{
-		Principal:     "main-ui-user",
-		Channels:      []string{"guardian"},
-		Models:        []string{"magi-"},
-		InterfaceKind: "magi-main-ui",
-		TrustBase:     "medium",
-		RiskLevel:     "medium",
-	}
-	rawClaims, _ := json.Marshal(claims)
-	key := "magi_sk_v1_" + base64.RawURLEncoding.EncodeToString(rawClaims)
+	token := issueTestArmorToken(t, "family-user", magiRouteClassAvatarOnly, magiRequestChannelMainUI)
 
 	c := newTestGinContext()
-	c.Request.Header.Set("X-MAGI-Source-Key", key)
+	c.Request.Header.Set("Authorization", "Bearer "+token)
 
 	req := openai.ChatCompletionRequest{
-		Model: "magi-trinity",
-		User:  "principal:main-ui-user;interface:desktop-main;kind:magi-main-ui;conversation:conv-main",
+		Model: "magi-default",
+		User:  "principal:family-user;interface:desktop-main;kind:magi-main-ui;conversation:conv-main",
 		Messages: []openai.ChatCompletionMessage{
 			{Role: openai.ChatMessageRoleUser, Content: "hello"},
 		},
 	}
 
-	_, authErr := resolveOpenAISourceContext(c, &req)
-	if authErr == nil {
-		t.Fatal("expected main ui direct policy error")
+	sourceCtx, authErr := resolveOpenAISourceContext(c, &req)
+	if authErr != nil {
+		t.Fatalf("unexpected auth error: %v", authErr)
 	}
-	if authErr.Code != "magi_main_ui_direct_required" {
-		t.Fatalf("unexpected error code: %s", authErr.Code)
+	if sourceCtx.DirectResponseAllowed {
+		t.Fatal("avatar-only main-ui request must not allow direct response")
 	}
 }
 
-func TestResolveClaudeSourceContext(t *testing.T) {
-	restore := setupMagiSourceTestConf()
+func TestResolveClaudeSourceContext_WithArmor(t *testing.T) {
+	restore := setupMagiSourceTestConf(t)
 	defer restore()
 
+	token := issueTestArmorToken(t, "tool-user", magiRouteClassAvatarOnly, magiRequestChannelToolClaude)
+
 	c := newTestGinContext()
-	c.Request.Header.Set("X-MAGI-Source-Key", "magi.external-agent.avatar-a.siyuan-note-upstream")
+	c.Request.Header.Set("Authorization", "Bearer "+token)
 
 	body := []byte(`{
-		"model":"magi-trinity",
+		"model":"magi-review",
 		"max_tokens":256,
 		"system":"<request_source>{\"source\":\"external-agent\",\"callerId\":\"ext-1\"}</request_source>",
-		"metadata":{"user_id":"principal:avatar-a;interface:panel-1;kind:siyuan-note-upstream"},
+		"metadata":{"user_id":"principal:tool-user;interface:panel-1;kind:tool-claude-code"},
 		"messages":[{"role":"user","content":[{"type":"text","text":"hello"}]}]
 	}`)
 
@@ -190,22 +207,70 @@ func TestResolveClaudeSourceContext(t *testing.T) {
 		t.Fatalf("unexpected channel: %s", sourceCtx.Channel)
 	}
 	if sourceCtx.DirectResponseAllowed {
-		t.Fatal("external-agent request should not allow direct response")
+		t.Fatal("tool request should not allow direct response")
 	}
 	if sourceCtx.CallerID != "ext-1" {
 		t.Fatalf("unexpected callerID: %s", sourceCtx.CallerID)
 	}
 }
 
-func setupMagiSourceTestConf() func() {
+func setupMagiSourceTestConf(t *testing.T) func() {
+	t.Helper()
+
 	oldConf := model.Conf
+	oldConfDir := util.ConfDir
+	oldStore := globalMagiIdentityStore
+
+	tempDir := t.TempDir()
+	util.ConfDir = tempDir
+
 	model.Conf = model.NewAppConf()
 	model.Conf.Api = &conf.API{Token: "workspace-token"}
 	model.Conf.AI = conf.NewAI()
-	model.Conf.AI.OpenAI.APIModel = "magi-trinity"
+	model.Conf.AI.OpenAI.APIModel = "magi-default"
+
+	globalMagiIdentityStore = &magiIdentityStore{}
+
 	return func() {
+		globalMagiIdentityStore = oldStore
+		util.ConfDir = oldConfDir
 		model.Conf = oldConf
 	}
+}
+
+func issueTestArmorToken(
+	t *testing.T,
+	identityID string,
+	routeClass string,
+	channel string,
+) string {
+	t.Helper()
+
+	_, err := globalMagiIdentityStore.upsert(
+		identityID,
+		identityID,
+		"pass123456",
+		routeClass,
+		true,
+	)
+	if err != nil {
+		t.Fatalf("failed to upsert identity: %v", err)
+	}
+	now := time.Now().Unix()
+	token, signErr := signMagiArmorToken(magiArmorClaimsV1{
+		Sub: identityID,
+		Chn: channel,
+		Ws:  magiWorkspaceBinding(),
+		Rtc: routeClass,
+		Nck: "tester",
+		Iat: now,
+		Exp: now + 600,
+		Jti: "test-jti-" + identityID,
+	})
+	if signErr != nil {
+		t.Fatalf("failed to issue token: %v", signErr)
+	}
+	return token
 }
 
 func newTestGinContext() *gin.Context {

@@ -7,6 +7,7 @@ import type {
     UseMagiReturn,
     WrappedSeel,
 } from "../composables/useMagi.types";
+import { loginMagiIdentity, type MagiRequestChannel } from "../service/magiIdentitySession";
 import type {
     MagiMainPanelMessageView,
     MagiMainPanelSeelView,
@@ -101,6 +102,11 @@ function createSourceSimulationPanel(
         id: createSourcePanelId(),
         title: createSourcePanelTitle(index),
         selectedProfileId: profileId,
+        identityId: "",
+        password: "",
+        nickname: "",
+        channel: "tool-custom",
+        requestModel: "magi-default",
         inputValue: "",
         loading: false,
         messages: [
@@ -146,8 +152,21 @@ async function handleSubmitInput(
     if (!magiState.value) {
         return;
     }
-    await magiState.value.sendUserMessage(value);
-    inputValue.value = "";
+    try {
+        await magiState.value.sendUserMessage(value);
+        inputValue.value = "";
+    } catch (error) {
+        const rawMessage = error instanceof Error ? error.message : String(error);
+        const isIdentityMissing = rawMessage.toLowerCase().includes("identity session missing");
+        const message = isIdentityMissing
+            ? "MAGI 身份会话缺失，请在 Identity Access Control 面板登录后重试。"
+            : `请求失败: ${rawMessage}`;
+        await appendConsensusMessage(
+            magiState.value.consensusMessages,
+            "error",
+            message,
+        );
+    }
 }
 
 /**
@@ -272,8 +291,75 @@ function handleUpdateSourceSimulationProfile(
     panel.selectedProfileId = profile.id;
 }
 
+function handleUpdateSourceSimulationRequestField(
+    sourceSimulationPanels: { value: SourceSimulationPanelView[] },
+    panelId: string,
+    field: "identityId" | "password" | "nickname" | "channel" | "requestModel",
+    value: string,
+): void {
+    const panel = findSourcePanel(sourceSimulationPanels, panelId);
+    if (!panel) {
+        return;
+    }
+    if (field === "channel") {
+        panel.channel = value as SourceSimulationPanelView["channel"];
+        return;
+    }
+    panel[field] = value;
+}
+
+function buildSourceSimulationIdentityMirror(
+    panel: SourceSimulationPanelView,
+    identityId: string,
+    requestId: string,
+): string {
+    const kind = panel.channel === "magi-main-ui" ? "magi-main-ui" : panel.channel;
+    return JSON.stringify({
+        principal: identityId,
+        interface: panel.id,
+        kind,
+        conversation: requestId,
+    });
+}
+
+async function sendSourceSimulationRequest(
+    armorToken: string,
+    body: Record<string, unknown>,
+): Promise<string> {
+    const response = await fetch("/api/s-forge/magi/v1/chat/completions", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${armorToken}`,
+        },
+        body: JSON.stringify(body),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+        const errorText = typeof payload === "object" && payload !== null
+            ? String(Reflect.get(payload, "error") ?? Reflect.get(payload, "msg") ?? `HTTP ${response.status}`)
+            : `HTTP ${response.status}`;
+        throw new Error(errorText);
+    }
+    const choices = typeof payload === "object" && payload !== null
+        ? Reflect.get(payload, "choices")
+        : null;
+    if (!Array.isArray(choices) || choices.length === 0) {
+        return "";
+    }
+    const firstChoice = choices[0];
+    if (!firstChoice || typeof firstChoice !== "object") {
+        return "";
+    }
+    const message = Reflect.get(firstChoice, "message");
+    if (!message || typeof message !== "object") {
+        return "";
+    }
+    return String(Reflect.get(message, "content") ?? "").trim();
+}
+
 async function handleSubmitSourceSimulationPanel(
-    magiState: { value: UseMagiReturn | null },
     sourceSimulationPanels: { value: SourceSimulationPanelView[] },
     sourceSimulationProfiles: { value: SourceSimulationProfileView[] },
     panelId: string,
@@ -291,20 +377,40 @@ async function handleSubmitSourceSimulationPanel(
         panel.messages.push(createSourcePanelMessage("error", "Invalid source profile.", "error"));
         return;
     }
-    if (!magiState.value) {
-        panel.messages.push(createSourcePanelMessage("error", "MAGI runtime not ready.", "error"));
+    const sourceContext = buildSourceSimulationContext(profile, panel);
+    const identityId = panel.identityId.trim();
+    const password = panel.password.trim();
+    const nickname = panel.nickname.trim() || identityId;
+    const modelName = panel.requestModel.trim() || "magi-default";
+    const requestChannel = panel.channel as MagiRequestChannel;
+
+    if (!identityId || !password) {
+        panel.messages.push(createSourcePanelMessage("error", "identity/password required for simulation.", "error"));
         return;
     }
-
-    const sourceContext = buildSourceSimulationContext(profile, panel);
     panel.messages.push(createSourcePanelMessage("user", rawInput, "success"));
     const pendingAssistant = createSourcePanelMessage("assistant", "Waiting response...", "pending");
     panel.messages.push(pendingAssistant);
     panel.loading = true;
     panel.inputValue = "";
     try {
-        const reply = await magiState.value.sendUserMessage(rawInput, {
-            sourceSimulation: sourceContext,
+        const loginSession = await loginMagiIdentity({
+            identityId,
+            password,
+            nickname,
+            channel: requestChannel,
+            activate: false,
+        });
+        const sourcePayload = `<magi_request_source>${JSON.stringify(sourceContext)}</magi_request_source>`;
+        const mirrorUser = buildSourceSimulationIdentityMirror(panel, loginSession.identityId, sourceContext.requestId);
+        const reply = await sendSourceSimulationRequest(loginSession.armorToken, {
+            model: modelName,
+            stream: false,
+            user: mirrorUser,
+            messages: [
+                { role: "system", content: sourcePayload },
+                { role: "user", content: rawInput },
+            ],
         });
         pendingAssistant.content = reply || "[empty response]";
         pendingAssistant.status = "success";
@@ -415,14 +521,28 @@ function createSourceSimulationProfileUpdateHandler(
     };
 }
 
+function createSourceSimulationRequestFieldUpdateHandler(
+    sourceSimulationPanels: { value: SourceSimulationPanelView[] },
+): (
+    panelId: string,
+    field: "identityId" | "password" | "nickname" | "channel" | "requestModel",
+    value: string,
+) => void {
+    return (
+        panelId: string,
+        field: "identityId" | "password" | "nickname" | "channel" | "requestModel",
+        value: string,
+    ) => {
+        handleUpdateSourceSimulationRequestField(sourceSimulationPanels, panelId, field, value);
+    };
+}
+
 function createSourceSimulationSubmitHandler(
-    magiState: { value: UseMagiReturn | null },
     sourceSimulationPanels: { value: SourceSimulationPanelView[] },
     sourceSimulationProfiles: { value: SourceSimulationProfileView[] },
 ): (panelId: string) => Promise<void> {
     return async (panelId: string) => {
         await handleSubmitSourceSimulationPanel(
-            magiState,
             sourceSimulationPanels,
             sourceSimulationProfiles,
             panelId,
@@ -642,8 +762,10 @@ function createMagiRootHandlers(
             sourceSimulationPanels,
             sourceSimulationProfiles,
         ),
+        onUpdateSourceSimulationRequestField: createSourceSimulationRequestFieldUpdateHandler(
+            sourceSimulationPanels,
+        ),
         onSubmitSourceSimulationPanel: createSourceSimulationSubmitHandler(
-            magiState,
             sourceSimulationPanels,
             sourceSimulationProfiles,
         ),
@@ -711,6 +833,7 @@ export function useMagiRootContext(): MagiRootContext {
         onRemoveSourceSimulationPanel: handlers.onRemoveSourceSimulationPanel,
         onUpdateSourceSimulationInput: handlers.onUpdateSourceSimulationInput,
         onUpdateSourceSimulationProfile: handlers.onUpdateSourceSimulationProfile,
+        onUpdateSourceSimulationRequestField: handlers.onUpdateSourceSimulationRequestField,
         onSubmitSourceSimulationPanel: handlers.onSubmitSourceSimulationPanel,
         onStopInput: createStopInputHandler(),
         magiState: state.magiState,

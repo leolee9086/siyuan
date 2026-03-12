@@ -454,10 +454,79 @@ body,
 .magi-main-stack {
   min-height: 0;
   min-width: 0;
-  display: grid;
-  grid-template-rows: minmax(220px, 38%) minmax(260px, 1fr);
+  display: flex;
+  flex-direction: column;
   gap: 10px;
   overflow: hidden;
+}
+
+.magi-main-modebar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 6px;
+  border: 1px solid rgba(0, 255, 255, 0.24);
+  background: rgba(0, 25, 33, 0.56);
+  flex-shrink: 0;
+}
+
+.magi-main-mode-button {
+  height: 30px;
+  border: 1px solid rgba(84, 229, 255, 0.38);
+  background: rgba(0, 62, 80, 0.32);
+  color: #b9f6ff;
+  padding: 0 10px;
+  font-family: "MS Gothic", monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.magi-main-mode-button:hover {
+  border-color: rgba(132, 241, 255, 0.78);
+  background: rgba(0, 85, 108, 0.36);
+}
+
+.magi-main-mode-button.active {
+  border-color: rgba(47, 255, 148, 0.68);
+  color: #95ffbe;
+  background: rgba(0, 80, 38, 0.42);
+  box-shadow: inset 0 0 10px rgba(47, 255, 148, 0.16);
+}
+
+.magi-main-mode-content {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  background: rgba(0, 14, 20, 0.55);
+  overflow: hidden;
+  display: flex;
+}
+
+.magi-main-pane {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  overflow: hidden;
+}
+
+.magi-main-pane--identity {
+  align-items: flex-start;
+  overflow: auto;
+  padding: 8px;
+}
+
+.magi-main-pane--identity .magi-identity-panel {
+  width: 100%;
+  min-width: 0;
+}
+
+.magi-main-pane--source .source-sim-container,
+.magi-main-pane--chat .main-output {
+  flex: 1;
+  min-height: 0;
 }
 
 @media (max-width: 980px) {
@@ -498,7 +567,20 @@ body,
     height: clamp(240px, 35vh, 360px);
   }
 
-  .magi-main-stack {
-    grid-template-rows: minmax(180px, 42%) minmax(260px, 1fr);
+  .magi-main-modebar {
+    padding: 4px;
+    gap: 6px;
+  }
+
+  .magi-main-mode-button {
+    flex: 1 1 calc(33.333% - 6px);
+    min-width: 0;
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    padding: 0 6px;
+  }
+
+  .magi-main-pane--identity {
+    padding: 6px;
   }
 }

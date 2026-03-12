@@ -8,6 +8,7 @@ const mockedSendUserMessageWithConsensus = vi.hoisted(() => vi.fn());
 const mockedAppendConsensusMessage = vi.hoisted(() => vi.fn());
 const mockedGetAIConfigFromSiyuan = vi.hoisted(() => vi.fn());
 const mockedUniversalStreamRequest = vi.hoisted(() => vi.fn());
+const mockedGetActiveMagiArmorToken = vi.hoisted(() => vi.fn());
 
 vi.mock("../composables/useMagi.consensus", () => ({
     sendUserMessageWithConsensus: mockedSendUserMessageWithConsensus,
@@ -16,6 +17,10 @@ vi.mock("../composables/useMagi.consensus", () => ({
 
 vi.mock("../../ai/utils.config", () => ({
     getAIConfigFromSiyuan: mockedGetAIConfigFromSiyuan,
+}));
+
+vi.mock("../service/magiIdentitySession", () => ({
+    getActiveMagiArmorToken: mockedGetActiveMagiArmorToken,
 }));
 
 vi.mock("../../util/network/fetchStream", () => ({
@@ -97,8 +102,10 @@ describe("standard-llm-adapter contract", () => {
         mockedAppendConsensusMessage.mockReset();
         mockedGetAIConfigFromSiyuan.mockReset();
         mockedUniversalStreamRequest.mockReset();
+        mockedGetActiveMagiArmorToken.mockReset();
         vi.restoreAllMocks();
         vi.unstubAllGlobals();
+        mockedGetActiveMagiArmorToken.mockReturnValue("magi_ak_v1_test-token");
     });
 
     it("magi adapter should return OpenAI-compatible sync response", async () => {
@@ -219,10 +226,7 @@ describe("standard-llm-adapter contract", () => {
         const call = fetchMock.mock.calls[0] as [string, RequestInit];
         const requestInit = call[1];
         const headers = requestInit.headers as Record<string, string>;
-        expect(headers["X-MAGI-Source-Key"]).toBe("workspace-token");
-        expect(headers["X-MAGI-Interface-Kind"]).toBe("magi-main-ui");
-        const requestBody = JSON.parse(String(requestInit.body ?? "{}")) as { user?: string };
-        expect(String(requestBody.user ?? "")).toContain("\"kind\":\"magi-main-ui\"");
+        expect(headers.Authorization).toBe("Bearer magi_ak_v1_test-token");
         expect(mockedSendUserMessageWithConsensus).not.toHaveBeenCalled();
     });
 

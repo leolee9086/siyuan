@@ -60,35 +60,71 @@
       </div>
 
       <div class="magi-main-stack">
-        <SourceSimulationPanels
-          :panels="sourceSimulationPanels"
-          :profiles="sourceSimulationProfiles"
-          @create-panel="onCreateSourceSimulationPanel"
-          @remove-panel="onRemoveSourceSimulationPanel"
-          @update-input="onUpdateSourceSimulationInput"
-          @update-profile="onUpdateSourceSimulationProfile"
-          @submit-panel="onSubmitSourceSimulationPanel"
-        />
+        <div class="magi-main-modebar">
+          <button
+            v-for="mode in magiMainModes"
+            :key="mode.id"
+            type="button"
+            class="magi-main-mode-button"
+            :class="{ active: activeMainMode === mode.id }"
+            :aria-pressed="activeMainMode === mode.id"
+            @click="setMainMode(mode.id)"
+          >
+            {{ mode.label }}
+          </button>
+        </div>
 
-        <MagiMainPanel
-          :messages="displayMessages"
-          :seels="mainPanelSeels"
-          :input-value="inputValue"
-          :is-any-seel-loading="isAnySeelLoading"
-          @update:inputValue="inputValue = $event"
-          @submit-input="onSubmitInput"
-          @stop-input="onStopInput"
-        />
+        <div class="magi-main-mode-content">
+          <div
+            v-show="activeMainMode === 'identity'"
+            class="magi-main-pane magi-main-pane--identity"
+          >
+            <MagiIdentityPanel />
+          </div>
+
+          <div
+            v-show="activeMainMode === 'source'"
+            class="magi-main-pane magi-main-pane--source"
+          >
+            <SourceSimulationPanels
+              :panels="sourceSimulationPanels"
+              :profiles="sourceSimulationProfiles"
+              @create-panel="onCreateSourceSimulationPanel"
+              @remove-panel="onRemoveSourceSimulationPanel"
+              @update-input="onUpdateSourceSimulationInput"
+              @update-profile="onUpdateSourceSimulationProfile"
+              @update-request-field="onUpdateSourceSimulationRequestField"
+              @submit-panel="onSubmitSourceSimulationPanel"
+            />
+          </div>
+
+          <div
+            v-show="activeMainMode === 'chat'"
+            class="magi-main-pane magi-main-pane--chat"
+          >
+            <MagiMainPanel
+              :messages="displayMessages"
+              :seels="mainPanelSeels"
+              :input-value="inputValue"
+              :is-any-seel-loading="isAnySeelLoading"
+              @update:inputValue="inputValue = $event"
+              @submit-input="onSubmitInput"
+              @stop-input="onStopInput"
+            />
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, inject } from "vue";
+import { computed, inject, onBeforeUnmount, onMounted, ref } from "vue";
+import MagiIdentityPanel from "../components/magi-identity-panel/MagiIdentityPanel.vue";
 import MagiMainPanel from "../components/magi-main-panel/MagiMainPanel.vue";
 import SourceSimulationPanels from "../components/source-sim-panels/SourceSimulationPanels.vue";
 import SeelPanel from "../components/seel-panel/SeelPanel.vue";
+import { MAGI_IDENTITY_REQUIRED_EVENT } from "../service/magiIdentitySession";
 import { MAGI_ROOT_CTX_KEY } from "./MagiRoot.types";
 
 /**
@@ -135,8 +171,41 @@ const {
     onRemoveSourceSimulationPanel,
     onUpdateSourceSimulationInput,
     onUpdateSourceSimulationProfile,
+    onUpdateSourceSimulationRequestField,
     onSubmitSourceSimulationPanel,
 } = ctx;
+
+type MagiMainMode = "chat" | "source" | "identity";
+
+const magiMainModes: Array<{ id: MagiMainMode; label: string }> = [
+    { id: "chat", label: "MAIN CHAT" },
+    { id: "source", label: "SOURCE SIMULATION" },
+    { id: "identity", label: "IDENTITY ACCESS" },
+];
+
+const activeMainMode = ref<MagiMainMode>("chat");
+
+function setMainMode(mode: MagiMainMode): void {
+    activeMainMode.value = mode;
+}
+
+function handleIdentityRequiredEvent(): void {
+    activeMainMode.value = "identity";
+}
+
+onMounted(() => {
+    if (typeof window === "undefined") {
+        return;
+    }
+    window.addEventListener(MAGI_IDENTITY_REQUIRED_EVENT, handleIdentityRequiredEvent);
+});
+
+onBeforeUnmount(() => {
+    if (typeof window === "undefined") {
+        return;
+    }
+    window.removeEventListener(MAGI_IDENTITY_REQUIRED_EVENT, handleIdentityRequiredEvent);
+});
 
 const hasSeelCluster = computed<boolean>(() =>
     (showSeels.value && sageSeelViews.value.length > 0)

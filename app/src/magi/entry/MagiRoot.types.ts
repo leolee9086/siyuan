@@ -47,6 +47,11 @@ export interface MagiRootContext {
     onRemoveSourceSimulationPanel: (panelId: string) => void;
     onUpdateSourceSimulationInput: (panelId: string, value: string) => void;
     onUpdateSourceSimulationProfile: (panelId: string, profileId: string) => void;
+    onUpdateSourceSimulationRequestField: (
+        panelId: string,
+        field: "identityId" | "password" | "nickname" | "channel" | "requestModel",
+        value: string,
+    ) => void;
     onSubmitSourceSimulationPanel: (panelId: string) => Promise<void>;
     onStopInput: () => void;
     magiState: Ref<UseMagiReturn | null>;
@@ -76,6 +81,11 @@ export interface SourceSimulationPanelView {
     id: string;
     title: string;
     selectedProfileId: string;
+    identityId: string;
+    password: string;
+    nickname: string;
+    channel: "magi-main-ui" | "tool-claude-code" | "tool-openai-sdk" | "tool-claude-sdk" | "tool-custom" | "system-cron";
+    requestModel: string;
     inputValue: string;
     loading: boolean;
     messages: SourceSimulationPanelMessageView[];

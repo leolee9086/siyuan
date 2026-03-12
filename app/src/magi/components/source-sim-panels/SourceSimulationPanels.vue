@@ -46,6 +46,70 @@
           </select>
         </label>
 
+        <div class="source-sim-grid-compact">
+          <label class="source-sim-label">
+            IDENTITY
+            <input
+              class="source-sim-input-inline"
+              :value="panel.identityId"
+              :disabled="panel.loading"
+              placeholder="identity_id"
+              @input="onRequestFieldChange(panel.id, 'identityId', $event)"
+            />
+          </label>
+
+          <label class="source-sim-label">
+            PASSWORD
+            <input
+              class="source-sim-input-inline"
+              type="password"
+              :value="panel.password"
+              :disabled="panel.loading"
+              placeholder="password"
+              @input="onRequestFieldChange(panel.id, 'password', $event)"
+            />
+          </label>
+
+          <label class="source-sim-label">
+            NICKNAME
+            <input
+              class="source-sim-input-inline"
+              :value="panel.nickname"
+              :disabled="panel.loading"
+              placeholder="nickname"
+              @input="onRequestFieldChange(panel.id, 'nickname', $event)"
+            />
+          </label>
+
+          <label class="source-sim-label">
+            CHANNEL
+            <select
+              class="source-sim-select"
+              :value="panel.channel"
+              :disabled="panel.loading"
+              @change="onRequestFieldChange(panel.id, 'channel', $event)"
+            >
+              <option value="magi-main-ui">magi-main-ui</option>
+              <option value="tool-claude-code">tool-claude-code</option>
+              <option value="tool-openai-sdk">tool-openai-sdk</option>
+              <option value="tool-claude-sdk">tool-claude-sdk</option>
+              <option value="tool-custom">tool-custom</option>
+              <option value="system-cron">system-cron</option>
+            </select>
+          </label>
+
+          <label class="source-sim-label">
+            MODEL
+            <input
+              class="source-sim-input-inline"
+              :value="panel.requestModel"
+              :disabled="panel.loading"
+              placeholder="magi-default"
+              @input="onRequestFieldChange(panel.id, 'requestModel', $event)"
+            />
+          </label>
+        </div>
+
         <div class="source-sim-message-list">
           <div
             v-for="message in panel.messages"
@@ -99,6 +163,7 @@ interface SourceSimulationPanelsEmits {
     (e: "remove-panel", panelId: string): void;
     (e: "update-input", panelId: string, value: string): void;
     (e: "update-profile", panelId: string, profileId: string): void;
+    (e: "update-request-field", panelId: string, field: "identityId" | "password" | "nickname" | "channel" | "requestModel", value: string): void;
     (e: "submit-panel", panelId: string): void;
 }
 
@@ -132,5 +197,17 @@ function onInputChange(panelId: string, event: Event): void {
         return;
     }
     emit("update-input", panelId, target.value);
+}
+
+function onRequestFieldChange(
+    panelId: string,
+    field: "identityId" | "password" | "nickname" | "channel" | "requestModel",
+    event: Event,
+): void {
+    const target = event.target;
+    if (!(target instanceof HTMLInputElement) && !(target instanceof HTMLSelectElement)) {
+        return;
+    }
+    emit("update-request-field", panelId, field, target.value);
 }
 </script>
