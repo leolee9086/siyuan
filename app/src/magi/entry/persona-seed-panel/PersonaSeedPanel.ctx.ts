@@ -23,6 +23,7 @@ import {
 import {
     createGenerateHandler,
     createGenerateQuestionnaireToDescriptionHandler,
+    createImportProfileHandler,
     createSubmitHandler,
 } from "./handlers/PersonaSeedPanel.async.handlers";
 import { createPanelState } from "./PersonaSeedPanel.state";
@@ -156,6 +157,7 @@ export function usePersonaSeedPanelContext(emit: {
         generateDescriptionToQuestionnaire: createGenerateHandler(s, saveDraft),
         generateQuestionnaireToDescription: createGenerateQuestionnaireToDescriptionHandler(s, saveDraft),
         onSubmitIpip: createSubmitHandler(s, saveDraft, (payload) => emit("saved", payload)),
+        importPersonaProfile: createImportProfileHandler(s, saveDraft, (payload) => emit("saved", payload)),
         saveDraft,
         loadDraft,
     };

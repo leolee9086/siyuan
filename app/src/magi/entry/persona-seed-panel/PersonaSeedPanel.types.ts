@@ -43,6 +43,7 @@ export interface PanelState {
  * 用途：向上层传递问卷样本路径与人格档案路径。
  */
 export interface PersonaSeedSavedPayload {
+    readonly source?: "submission" | "import";
     readonly samplePath: string;
     readonly profilePath?: string;
 }

@@ -3,8 +3,20 @@
     <section class="persona-seed-panel">
       <header class="persona-seed-header">
         <h3>适格者 PERSONA 录入</h3>
-        <button type="button" class="persona-seed-close" @click="emit('close')">CLOSE</button>
+        <div class="persona-seed-header-actions">
+          <button type="button" class="persona-seed-import" @click="triggerImportProfile">
+            IMPORT PROFILE
+          </button>
+          <button type="button" class="persona-seed-close" @click="emit('close')">CLOSE</button>
+        </div>
       </header>
+      <input
+        ref="importInputRef"
+        class="persona-seed-import-input"
+        type="file"
+        accept="application/json,.json"
+        @change="onImportProfileSelected"
+      >
       <p class="persona-seed-policy-tip">
         规则说明：工作空间主管AI一旦完成构建，不可删除，仅可持续调整。
       </p>
@@ -50,6 +62,7 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from "vue";
 import CompositeRating from "../../components/persona/CompositeRating.vue";
 import PersonaSeedSubjectForm from "./components/PersonaSeedSubjectForm.vue";
 import PersonaSeedDescriptionsForm from "./components/PersonaSeedDescriptionsForm.vue";
@@ -75,5 +88,31 @@ const {
   canGenerateTrinitySuggestion,
   onAnswerUpdated, acceptSuggestion, rejectSuggestion, viewSuggestion,
   generateDescriptionToQuestionnaire, generateQuestionnaireToDescription, onSubmitIpip,
+  importPersonaProfile,
 } = usePersonaSeedPanelContext(emit);
+
+const importInputRef = ref<HTMLInputElement | null>(null);
+
+function triggerImportProfile(): void {
+  importInputRef.value?.click();
+}
+
+function isFileInputElement(target: EventTarget | null): target is HTMLInputElement {
+  return target instanceof HTMLInputElement;
+}
+
+async function onImportProfileSelected(event: Event): Promise<void> {
+  if (!isFileInputElement(event.target)) {
+    return;
+  }
+  const input = event.target;
+  const file = input.files?.[0] ?? null;
+  if (!file) {
+    return;
+  }
+  await importPersonaProfile(file);
+  if (input) {
+    input.value = "";
+  }
+}
 </script>

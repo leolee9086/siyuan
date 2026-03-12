@@ -14,6 +14,7 @@ import {
     collectMissingFields,
     getDescriptionFieldLabel,
     hasAnyDescriptionText,
+    importPersonaProfileArchive,
     saveSubmissionPayload,
 } from "../PersonaSeedPanel.utils";
 
@@ -149,9 +150,54 @@ async function handleSubmitIpip(
         const { samplePath, profilePath } = await saveSubmissionPayload(enrichedPayload);
         saveDraft();
         s.statusMessage.value = `问卷已保存: ${samplePath}; 人格档案已保存: ${profilePath}`;
-        emitSaved({ samplePath, profilePath });
+        emitSaved({ source: "submission", samplePath, profilePath });
     } catch (error) {
         s.statusMessage.value = `保存失败: ${error instanceof Error ? error.message : String(error)}`;
+    }
+}
+
+/**
+ * 作用：导入外部人格档案并切换为当前 active seed。
+ * 意图：在不提交问卷的情况下直接启用现有人格档案。
+ * 调用时机：PersonaSeedPanel 点击“导入人格档案”并选择文件后调用。
+ */
+async function handleImportPersonaProfile(
+    s: PanelState,
+    saveDraft: () => void,
+    emitSaved: (payload: PersonaSeedSavedPayload) => void,
+    file: File,
+): Promise<void> {
+    s.statusMessage.value = "正在导入人格档案...";
+    try {
+        const imported = await importPersonaProfileArchive(file);
+        s.subjectId.value = imported.subjectId || s.subjectId.value;
+        s.subjectName.value = imported.subjectName || s.subjectName.value;
+        s.organization.value = imported.organization;
+        s.role.value = imported.role;
+        s.careerGoal.value = imported.careerGoal;
+        if (imported.descriptions) {
+            s.professionalDescription.value = imported.descriptions.professionalDescription;
+            s.lifeDescription.value = imported.descriptions.lifeDescription;
+            s.instinctNeedsDescription.value = imported.descriptions.instinctNeedsDescription;
+            s.integratedDescription.value = imported.descriptions.integratedDescription;
+        }
+        if (imported.answers) {
+            s.answers.value = imported.answers.map((answer) => ({
+                q: answer.q,
+                score: answer.score,
+            }));
+        }
+        saveDraft();
+        s.statusMessage.value = imported.source === "submission"
+            ? `问卷样本已导入: ${imported.samplePath}; 人格档案已生成: ${imported.profilePath}`
+            : `人格档案已导入: ${imported.profilePath}`;
+        emitSaved({
+            source: "import",
+            samplePath: imported.samplePath,
+            profilePath: imported.profilePath,
+        });
+    } catch (error) {
+        s.statusMessage.value = `导入失败: ${error instanceof Error ? error.message : String(error)}`;
     }
 }
 
@@ -193,4 +239,18 @@ export function createSubmitHandler(
     emitSaved: (payload: PersonaSeedSavedPayload) => void,
 ): (payload: IpipNeo120SubmissionPayload) => Promise<void> {
     return (payload) => handleSubmitIpip(s, saveDraft, emitSaved, payload);
+}
+
+/** @同步豁免: UI构建 — 工厂函数，同步返回异步处理器闭包 */
+/**
+ * 作用：创建人格档案导入处理器。
+ * 意图：将 PanelState、saveDraft、emit 闭包绑定。
+ * 调用时机：usePersonaSeedPanelContext 构造时调用一次。
+ */
+export function createImportProfileHandler(
+    s: PanelState,
+    saveDraft: () => void,
+    emitSaved: (payload: PersonaSeedSavedPayload) => void,
+): (file: File) => Promise<void> {
+    return (file) => handleImportPersonaProfile(s, saveDraft, emitSaved, file);
 }

@@ -2,13 +2,16 @@ import { fetchSyncPost } from "../../../util/network/fetch";
 import { ipipNeo120QuestionBank } from "../../data/ipip-neo-120";
 import { buildIpipPersonaProfileFromRawAnswers } from "../../data/ipip-neo-120-scoring";
 import type {
+    IpipNeo120RawAnswer,
     IpipNeo120SubmissionPayload,
+    IpipPersonaProfile,
     IpipSubjectProfile,
     IpipPersonaSeedDescriptions,
 } from "../../data/questionnaire.types";
 import type { LikertScore } from "../../components/persona/CompositeRating.types";
 import type { PersonaConvergenceSuggestion } from "../../data/convergence/persona-seed-convergence.types";
 import { persistActiveSeedProfilePath } from "../../prompts/personaRuntimePromptBuilder";
+import { isIpipPersonaProfile } from "../../prompts/personaRuntimePromptBuilder.guard";
 
 const DESCRIPTION_FIELD_LABELS: Readonly<Record<keyof IpipPersonaSeedDescriptions, string>> = {
     professionalDescription: "职业描述",
@@ -16,6 +19,7 @@ const DESCRIPTION_FIELD_LABELS: Readonly<Record<keyof IpipPersonaSeedDescription
     instinctNeedsDescription: "本能需求描述",
     integratedDescription: "综合描述",
 };
+const IPIP_SCHEMA_VERSION = "IPIP-NEO-120-v1";
 
 /** @同步豁免: UI构建 — Vue computed 同步求值路径使用的纯字符串拼接 */
 /**
@@ -283,4 +287,262 @@ export const saveSubmissionPayload = async (
     await writeJsonFile(profilePath, profile);
     await persistActiveSeedProfilePath(profilePath);
     return { samplePath, profilePath };
+};
+
+/** @同步豁免: 纯字符串处理，无异步依赖 */
+function sanitizeSubjectId(raw: string): string {
+    const normalized = raw.trim().replace(/[^a-zA-Z0-9._-]+/g, "_");
+    const compacted = normalized.replace(/_+/g, "_").replace(/^_+|_+$/g, "");
+    return compacted || "zhi";
+}
+
+/** @同步豁免: 纯文件名处理，无异步依赖 */
+function resolveImportFileSuffix(fileName: string): string {
+    const dotIndex = fileName.lastIndexOf(".");
+    const stem = dotIndex >= 0 ? fileName.substring(0, dotIndex) : fileName;
+    const normalized = stem.trim().toLowerCase().replace(/[^a-z0-9._-]+/g, "_");
+    const compacted = normalized.replace(/_+/g, "_").replace(/^_+|_+$/g, "");
+    return compacted || "import";
+}
+
+/** @同步豁免: 纯字符串 JSON 解析，无异步依赖 */
+function parseJsonText(raw: string): unknown {
+    try {
+        return JSON.parse(raw);
+    } catch {
+        throw new Error("导入失败：文件不是有效的 JSON。");
+    }
+}
+
+/** @同步豁免: 纯对象结构判断，无异步依赖 */
+function isRecordObject(value: unknown): value is Record<string, unknown> {
+    if (!value || typeof value !== "object") {
+        return false;
+    }
+    return !Array.isArray(value);
+}
+
+/** @同步豁免: 纯字符串判断，无异步依赖 */
+function isStringValue(value: unknown): value is string {
+    return typeof value === "string";
+}
+
+/** @同步豁免: 纯分值边界判断，无异步依赖 */
+function isLikertScore(value: unknown): value is IpipNeo120RawAnswer["score"] {
+    if (typeof value !== "number" || !Number.isInteger(value)) {
+        return false;
+    }
+    if (value < 1) {
+        return false;
+    }
+    return value <= 5;
+}
+
+/** @同步豁免: 纯结构校验，无异步依赖 */
+function hasSubmissionSubject(value: unknown): value is IpipNeo120SubmissionPayload["subject"] {
+    if (!isRecordObject(value)) {
+        return false;
+    }
+    if (!isStringValue(value.id)) {
+        return false;
+    }
+    if (!isStringValue(value.name)) {
+        return false;
+    }
+    if (value.type !== "human" && value.type !== "ai_agent") {
+        return false;
+    }
+    if (!isStringValue(value.organization)) {
+        return false;
+    }
+    if (!isStringValue(value.role)) {
+        return false;
+    }
+    return isStringValue(value.careerGoal);
+}
+
+/** @同步豁免: 纯结构校验，无异步依赖 */
+function hasSubmissionDescriptions(value: unknown): value is IpipPersonaSeedDescriptions {
+    if (!isRecordObject(value)) {
+        return false;
+    }
+    if (!isStringValue(value.professionalDescription)) {
+        return false;
+    }
+    if (!isStringValue(value.lifeDescription)) {
+        return false;
+    }
+    if (!isStringValue(value.instinctNeedsDescription)) {
+        return false;
+    }
+    return isStringValue(value.integratedDescription);
+}
+
+/** @同步豁免: 纯数组结构校验，无异步依赖 */
+function hasSubmissionAnswers(value: unknown): value is readonly IpipNeo120RawAnswer[] {
+    if (!Array.isArray(value)) {
+        return false;
+    }
+    for (const answer of value) {
+        if (!isRecordObject(answer)) {
+            return false;
+        }
+        if (typeof answer.q !== "number" || !Number.isInteger(answer.q)) {
+            return false;
+        }
+        if (!isStringValue(answer.text)) {
+            return false;
+        }
+        if (!isLikertScore(answer.score)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/** @同步豁免: 类型守卫需同步返回结果，无异步依赖 */
+function isIpipNeo120SubmissionArchive(value: unknown): value is IpipNeo120SubmissionPayload {
+    if (!isRecordObject(value)) {
+        return false;
+    }
+    if (value.schema_version !== IPIP_SCHEMA_VERSION) {
+        return false;
+    }
+    if (!hasSubmissionSubject(value.subject)) {
+        return false;
+    }
+    if (!isStringValue(value.date)) {
+        return false;
+    }
+    if (!hasSubmissionDescriptions(value.descriptions)) {
+        return false;
+    }
+    return hasSubmissionAnswers(value.answers);
+}
+
+export interface ImportedPersonaProfileResult {
+    readonly source: "profile" | "submission";
+    readonly samplePath: string;
+    readonly profilePath: string;
+    readonly subjectId: string;
+    readonly subjectName: string;
+    readonly organization: string;
+    readonly role: string;
+    readonly careerGoal: string;
+    readonly descriptions: IpipPersonaSeedDescriptions | null;
+    readonly answers: ReadonlyArray<{ q: number; score: LikertScore }> | null;
+}
+
+/** @同步豁免: 纯路径拼接，无异步依赖 */
+function resolveImportedPaths(
+    subjectId: string,
+    fileName: string,
+): { samplePath: string; profilePath: string } {
+    const importSuffix = resolveImportFileSuffix(fileName);
+    const timestamp = Date.now();
+    return {
+        samplePath: `/data/private/${subjectId}_ipip120_sample_import_${importSuffix}_${timestamp}.json`,
+        profilePath: `/data/private/${subjectId}_persona_profile_import_${importSuffix}_${timestamp}.json`,
+    };
+}
+
+/**
+ * 作用：导入人格档案文件并写入工作空间私有目录。
+ * 意图：兼容外部 profile JSON，直接切换 active seed。
+ * 调用时机：importPersonaProfileArchive 识别为 profile 文件后调用。
+ */
+async function importPersonaProfileFile(
+    file: File,
+    profile: IpipPersonaProfile,
+): Promise<ImportedPersonaProfileResult> {
+    const subjectId = sanitizeSubjectId(profile.subject.id);
+    const { profilePath } = resolveImportedPaths(subjectId, file.name);
+    await ensurePrivateDir();
+    await writeJsonFile(profilePath, profile);
+    await persistActiveSeedProfilePath(profilePath);
+    return {
+        source: "profile",
+        samplePath: profilePath,
+        profilePath,
+        subjectId,
+        subjectName: profile.subject.name.trim(),
+        organization: (profile.subject.organization || "").trim(),
+        role: (profile.subject.role || "").trim(),
+        careerGoal: (profile.subject.careerGoal || "").trim(),
+        descriptions: null,
+        answers: null,
+    };
+}
+
+/**
+ * 作用：导入问卷样本文件并生成人格档案后写入工作空间私有目录。
+ * 意图：支持直接导入 `*_ipip120_sample_*.json` 历史样本。
+ * 调用时机：importPersonaProfileArchive 识别为 submission 文件后调用。
+ */
+async function importSubmissionArchiveFile(
+    file: File,
+    submission: IpipNeo120SubmissionPayload,
+): Promise<ImportedPersonaProfileResult> {
+    const subjectId = sanitizeSubjectId(submission.subject.id);
+    const paths = resolveImportedPaths(subjectId, file.name);
+    let profile: IpipPersonaProfile;
+    try {
+        profile = buildIpipPersonaProfileFromRawAnswers({
+            subject: {
+                id: submission.subject.id,
+                name: submission.subject.name,
+                organization: submission.subject.organization,
+                role: submission.subject.role,
+                careerGoal: submission.subject.careerGoal,
+            },
+            answers: submission.answers,
+            items: ipipNeo120QuestionBank,
+        });
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`导入失败：问卷样本无法生成人格档案（${message}）。`);
+    }
+    await ensurePrivateDir();
+    await writeJsonFile(paths.samplePath, submission);
+    await writeJsonFile(paths.profilePath, profile);
+    await persistActiveSeedProfilePath(paths.profilePath);
+    return {
+        source: "submission",
+        samplePath: paths.samplePath,
+        profilePath: paths.profilePath,
+        subjectId,
+        subjectName: submission.subject.name.trim(),
+        organization: submission.subject.organization.trim(),
+        role: submission.subject.role.trim(),
+        careerGoal: submission.subject.careerGoal.trim(),
+        descriptions: {
+            professionalDescription: submission.descriptions.professionalDescription,
+            lifeDescription: submission.descriptions.lifeDescription,
+            instinctNeedsDescription: submission.descriptions.instinctNeedsDescription,
+            integratedDescription: submission.descriptions.integratedDescription,
+        },
+        answers: submission.answers.map((answer) => ({
+            q: answer.q,
+            score: answer.score,
+        })),
+    };
+}
+
+/**
+ * 作用：导入外部人格档案（IPIP persona profile）并写入工作空间私有目录。
+ * 意图：支持用户直接加载已存在的人格档案，而无需重新填写问卷。
+ * 调用时机：PersonaSeedPanel 点击“导入人格档案”后调用。
+ */
+export const importPersonaProfileArchive = async (
+    file: File,
+): Promise<ImportedPersonaProfileResult> => {
+    const rawText = await file.text();
+    const parsed = parseJsonText(rawText);
+    if (!isIpipPersonaProfile(parsed)) {
+        if (isIpipNeo120SubmissionArchive(parsed)) {
+            return importSubmissionArchiveFile(file, parsed);
+        }
+        throw new Error("导入失败：仅支持 IPIP-NEO-120 人格档案或问卷样本 JSON。");
+    }
+    return importPersonaProfileFile(file, parsed);
 };

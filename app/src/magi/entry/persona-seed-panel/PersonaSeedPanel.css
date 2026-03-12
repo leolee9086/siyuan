@@ -31,6 +31,12 @@
   color: #88f9ff;
 }
 
+.persona-seed-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .persona-seed-policy-tip {
   margin: 0 0 12px;
   padding: 8px 10px;
@@ -46,6 +52,18 @@
   color: #9deff2;
   background: rgba(0, 40, 45, 0.55);
   cursor: pointer;
+}
+
+.persona-seed-import {
+  height: 30px;
+  border: 1px solid rgba(132, 245, 195, 0.62);
+  color: #a8ffe4;
+  background: rgba(0, 52, 50, 0.55);
+  cursor: pointer;
+}
+
+.persona-seed-import-input {
+  display: none;
 }
 
 .persona-seed-subject {
