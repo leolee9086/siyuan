@@ -183,7 +183,8 @@ export function removeTabAction(
             const newWnd = new (wnd.constructor as typeof Wnd)(wnd["app"]);
             window.siyuan.layout.centerLayout.addWnd(newWnd);
             newWnd.addTab(newCenterEmptyTab(wnd["app"]), false, false);
-            setTitle(window.siyuan.languages.siyuanNote);
+            // S-forge: 上游改进 - 支持设置空文档标题 (#17110)
+            setTitle("", true);
         }
     }
     if (isSaveLayout) {

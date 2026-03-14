@@ -60,7 +60,7 @@ export function 显示挂件选择(
             k: inputElement.value,
         }, (response) => {
             let searchHTML = "";
-            response.data.blocks.forEach((item: { path: string, content: string, name: string }, index: number) => {
+            response.data.widgets.forEach((item: { path: string, content: string, name: string }, index: number) => {
                 searchHTML += `<div data-value="${item.path}" data-content="${item.content}" class="b3-list-item${index === 0 ? " b3-list-item--focus" : ""}">
     ${item.name}
     <span class="b3-list-item__meta">${item.content}</span>
@@ -85,7 +85,7 @@ export function 显示挂件选择(
         k: "",
     }, (response) => {
         let html = "";
-        response.data.blocks.forEach((item: { content: string, name: string }, index: number) => {
+        response.data.widgets.forEach((item: { content: string, name: string }, index: number) => {
             html += `<div class="b3-list-item${index === 0 ? " b3-list-item--focus" : ""}" data-content="${item.content}">
 ${item.name}
 <span class="b3-list-item__meta">${item.content}</span>

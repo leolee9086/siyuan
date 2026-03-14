@@ -109,23 +109,50 @@ export const resetMenuState = (menuElement: HTMLElement): void => {
  * Position submenu to ensure it's visible within viewport
  * @param {HTMLElement} subMenuElement - Submenu element to position
  */
-export const positionSubMenu = (subMenuElement: HTMLElement): void => {
+export const positionSubMenu = (subMenuElement: HTMLElement | null): void => {
+    if (!subMenuElement) {
+        return;
+    }
+    const itemsMenuElement = subMenuElement.lastElementChild as HTMLElement;
+    if (itemsMenuElement) {
+        itemsMenuElement.style.maxHeight = "";
+    }
     const itemRect = subMenuElement.parentElement.getBoundingClientRect();
-    subMenuElement.style.top = (itemRect.top - 8) + "px";
-    subMenuElement.style.left = (itemRect.right + 8) + "px";
-    subMenuElement.style.bottom = "auto";
-    const rect = subMenuElement.getBoundingClientRect();
-    if (rect.right > window.innerWidth) {
-        if (itemRect.left - 8 > rect.width) {
-            subMenuElement.style.left = (itemRect.left - 8 - rect.width) + "px";
-        } else {
-            subMenuElement.style.left = (window.innerWidth - rect.width) + "px";
-        }
+    const subMenuRect = subMenuElement.getBoundingClientRect();
+
+    // 垂直方向位置调整
+    // 减 9px 是为了尽量对齐菜单选项（b3-menu__submenu 的默认 padding-top 加上子菜单首个 b3-menu__item 的默认 margin-top）
+    // 减 1px 是为了避免在特定情况下渲染出不应存在的滚动条而做的兼容处理
+    const top = Math.min(itemRect.top - 9, window.innerHeight - subMenuRect.height - 1);
+    subMenuElement.style.top = Math.max(Constants.SIZE_TOOLBAR_HEIGHT, top) + "px";
+
+    // 水平方向位置调整
+    if (window.innerWidth - itemRect.right - 8 >= subMenuRect.width) {
+        // 8px 是 b3-menu__items 的默认 padding-right
+        subMenuElement.style.left = (itemRect.right + 8) + "px";
+    } else if (itemRect.left - 8 >= subMenuRect.width) {
+        subMenuElement.style.left = (itemRect.left - 8 - subMenuRect.width) + "px";
+    } else {
+        subMenuElement.style.left = Math.max(0, window.innerWidth - subMenuRect.width) + "px";
     }
-    if (rect.bottom > window.innerHeight) {
-        subMenuElement.style.top = "auto";
-        subMenuElement.style.bottom = "8px";
+
+    updateMaxHeight(subMenuElement, itemsMenuElement);
+};
+
+/**
+ * Update max height of menu items to prevent overflow
+ * @param {HTMLElement} menuElement - Menu element
+ * @param {HTMLElement} itemsMenuElement - Items container element
+ */
+export const updateMaxHeight = (menuElement: HTMLElement, itemsMenuElement: HTMLElement): void => {
+    if (!menuElement || !itemsMenuElement) {
+        return;
     }
+    const menuRect = menuElement.getBoundingClientRect();
+    const itemsMenuRect = itemsMenuElement.getBoundingClientRect();
+    // 加 1px 是为了避免在特定情况下渲染出不应存在的滚动条而做的兼容处理
+    const availableHeight = (window.innerHeight - menuRect.top) - (menuRect.height - itemsMenuRect.height) + 1;
+    itemsMenuElement.style.maxHeight = Math.max(availableHeight, 0) + "px";
 };
 
 /**

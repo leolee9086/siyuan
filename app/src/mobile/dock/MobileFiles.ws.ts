@@ -2,6 +2,7 @@ import {escapeHtml} from "../../util/DOM/escape";
 import {Constants} from "../../constants";
 import {pathPosix, setNoteBook} from "../../util/file/pathName";
 import {unicode2Emoji} from "../../emoji";
+import {getPublishAccessOptionByLevel} from "../../protyle/util/publishAccess";
 import type {MobileFiles} from "./MobileFiles";
 
 /**
@@ -12,13 +13,16 @@ import type {MobileFiles} from "./MobileFiles";
  */
 export function genNotebook(item: INotebook) {
     const localImages = window.siyuan.storage[Constants.LOCAL_IMAGES];
-    const emojiHTML = `<span class="b3-list-item__icon b3-tooltips b3-tooltips__e" aria-label="${window.siyuan.languages.changeIcon}">${unicode2Emoji(item.icon || localImages.note)}</span>`;
+    const editingPublishAccess = document.querySelector('[data-type="publish-access"]')?.classList.contains("block__icon--active") || false;
+    const emojiHTML = `<span class="b3-list-item__icon b3-tooltips b3-tooltips__e${editingPublishAccess ? " fn__none" : ""}" aria-label="${window.siyuan.languages.changeIcon}">${unicode2Emoji(item.icon || localImages.note)}</span>`;
+    const switchHTML = `<span class="b3-list-item__switch b3-tooltips b3-tooltips__e${editingPublishAccess ? "" : " fn__none"}" aria-label="${window.siyuan.languages.publishAccess}">${getPublishAccessOptionByLevel("public").iconHTML}</span>`;
     if (item.closed) {
         return `<li data-url="${item.id}" class="b3-list-item">
     <span class="b3-list-item__toggle fn__hidden">
         <svg class="b3-list-item__arrow"><use xlink:href="#iconRight"></use></svg>
     </span>
     ${emojiHTML}
+    ${switchHTML}
     <span class="b3-list-item__text">${escapeHtml(item.name)}</span>
     <span data-type="open" data-url="${item.id}" class="b3-list-item__action${(window.siyuan.config.readonly) ? " fn__none" : ""}">
         <svg><use xlink:href="#iconOpen"></use></svg>
@@ -31,6 +35,7 @@ export function genNotebook(item: INotebook) {
         <svg class="b3-list-item__arrow"><use xlink:href="#iconRight"></use></svg>
     </span>
     ${emojiHTML}
+    ${switchHTML}
     <span class="b3-list-item__text${item.closed ? " ft__on-surface" : ""}">${escapeHtml(item.name)}</span>
     <span data-type="more-root" class="b3-list-item__action${(window.siyuan.config.readonly || item.closed) ? " fn__none" : ""}">
         <svg><use xlink:href="#iconMore"></use></svg>

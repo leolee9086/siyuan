@@ -5,6 +5,7 @@ import { matchHotKey } from "../util/hotKey";
 import { getTopAloneElement } from "./getBlock";
 import { getContentByInlineHTML } from "./keydown";
 import { updateTransaction } from "./transaction";
+import { Constants } from "../../constants";
 
 export const attrMiddleware = (
     event: KeyboardEvent,
@@ -64,6 +65,7 @@ export const renameMiddleware = (
                     notebookId: protyle.notebookId,
                     path: protyle.path,
                     name: response.data.ial.title,
+                    empty: response.data.ial[Constants.CUSTOM_SY_TITLE_EMPTY] === "true",
                     range,
                     type: "file",
                 });

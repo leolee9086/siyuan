@@ -607,6 +607,12 @@ func getConf(c *gin.Context) {
 		model.HideConfSecret(maskedConf)
 	}
 
+	if model.IsReadOnlyRoleContext(c) {
+		publishAccess := model.GetPublishAccess()
+		publishIgnore := model.GetInvisiblePublishAccess(publishAccess)
+		maskedConf = model.FilterConfByPublishIgnore(publishIgnore, maskedConf)
+	}
+
 	ret.Data = map[string]interface{}{
 		"conf":      maskedConf,
 		"start":     !util.IsUILoaded,
@@ -892,7 +898,7 @@ func importTLSCABundle(c *gin.Context) {
 	file, err := c.FormFile("file")
 	if err != nil {
 		ret.Code = -1
-		ret.Msg = "file is required: " + err.Error()
+		ret.Msg = "[file] is required: " + err.Error()
 		return
 	}
 

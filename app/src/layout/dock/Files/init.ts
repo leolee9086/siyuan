@@ -200,7 +200,7 @@ export function generatePanelHtml(
     <span class="fn__space"></span>
     <span data-type="min" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${i18n.min}${updateHotkeyTip(config.keymap.general.closeTab.custom)}"><svg><use xlink:href='#iconMin'></use></svg></span>
 </div>
-<div class="fn__flex-1" style="padding-top: 2px;"></div>
+<div class="fn__flex-1" style="padding-top: 2px;" data-tooltips-delay="200"></div>
 <ul class="b3-list fn__flex-column" style="min-height: auto;height:30px;transition: height  .2s cubic-bezier(0, 0, .2, 1) 0ms">
     <li class="b3-list-item" data-type="toggle">
         <span class="b3-list-item__toggle">

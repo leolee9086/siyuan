@@ -18,11 +18,13 @@ const {
     net,
     app,
     BrowserWindow,
+    Notification,
     shell,
     Menu,
     MenuItem,
     screen,
     ipcMain,
+    clipboard,
     globalShortcut,
     Tray,
     dialog,
@@ -55,8 +57,8 @@ app.setPath("userData", app.getPath("userData") + "-Electron"); // `~/.config` �
 fs.rmSync(app.getPath("appData") + "/" + app.name, {recursive: true}); // 删除自动创建的应用目录 https://github.com/siyuan-note/siyuan/issues/13150
 
 if (process.platform === "win32") {
-    // Windows 需要设置 AppUserModelId 才能正确显示应用名称 https://github.com/siyuan-note/siyuan/issues/17022
-    app.setAppUserModelId(app.name);
+    // Windows 需要设置 AppUserModelId 才能正确显示应用名称和应用图标 https://github.com/siyuan-note/siyuan/issues/17022
+    app.setAppUserModelId("org.b3log.siyuan");
 }
 
 if (!app.requestSingleInstanceLock()) {
@@ -65,6 +67,11 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 if (process.platform === "linux") {
+    // S-forge: 上游Wayland IME支持
+    app.commandLine.appendSwitch("enable-wayland-ime");
+    app.commandLine.appendSwitch("wayland-text-input-version", "3");
+    
+    // S-forge: 本地保留的中文OS X11兼容性处理
     const desktop = (process.env.XDG_CURRENT_DESKTOP || "").toUpperCase();
     const isChineseOS = [
         "DDE",      // 统信
@@ -959,6 +966,9 @@ app.whenReady().then(() => {
         app.exit();
     });
     ipcMain.handle("siyuan-get", (event, data) => {
+        if (data.cmd === "clipboardRead") {
+            return clipboard.read(data.format);
+        }
         if (data.cmd === "showOpenDialog") {
             return dialog.showOpenDialog(data);
         }

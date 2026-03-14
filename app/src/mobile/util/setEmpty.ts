@@ -10,7 +10,7 @@ import {isIPhone} from "../../protyle/util/compatibility";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 export const setEmpty = (app: App) => {
-    setTitle(siyuanI18n.siyuanNote);
+    setTitle("", true);
     document.getElementById("toolbarName").classList.add("fn__hidden");
     document.getElementById("editor").classList.add("fn__none");
     const emptyElement = document.getElementById("empty");

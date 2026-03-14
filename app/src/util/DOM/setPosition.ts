@@ -31,39 +31,26 @@ interface 位置计算结果 {
     left?: string;
 }
 
-/** 计算调整后的垂直位置（纯计算，不访问DOM） */
-const 计算垂直位置 = (
-    y: number,
-    rectHeight: number,
-    targetHeight: number,
-    视口高度: number
-): string => {
-    const top = y - rectHeight - targetHeight;
-
-    // 上部有足够空间
-    if (top > Constants.SIZE_TOOLBAR_HEIGHT && (top + rectHeight) < 视口高度) {
-        return top + "px";
-    }
-
-    // 位置超越到屏幕上方外时，需移动到屏幕顶部
-    // eg：光标在第一个块，然后滚动到上方看不见的位置，按 ctrl+a
-    if (top <= Constants.SIZE_TOOLBAR_HEIGHT) {
-        return Constants.SIZE_TOOLBAR_HEIGHT + "px";
-    }
-
-    // 依旧展现在下部，只是位置上移
-    return Math.max(Constants.SIZE_TOOLBAR_HEIGHT, 视口高度 - rectHeight) + "px";
-};
-
 /** 计算元素的最终位置（纯计算，不访问DOM） */
 const 计算位置 = (输入: 位置计算输入): 位置计算结果 => {
     const 结果: 位置计算结果 = {};
     const { y, 元素宽度, 元素高度, 元素顶部, 元素底部, 元素左边, 元素右边, 目标高度, 目标左偏移, 视口 } = 输入;
 
-    // 上下超出屏幕
-    const 需要调整垂直位置 = 元素底部 > 视口.高度 || 元素顶部 < Constants.SIZE_TOOLBAR_HEIGHT;
-    if (需要调整垂直位置) {
-        结果.top = 计算垂直位置(y, 元素高度, 目标高度, 视口.高度);
+    // S-forge: 上游改进 (#15401) - 优化垂直位置调整逻辑顺序
+    // 先检查顶部接触，再检查底部超出
+    if (元素顶部 < Constants.SIZE_TOOLBAR_HEIGHT) {
+        // 如果元素接触顶栏，向下移
+        结果.top = Constants.SIZE_TOOLBAR_HEIGHT + "px";
+    } else if (元素底部 > 视口.高度) {
+        // 如果元素底部超出窗口（下方空间不够），尝试向上移
+        const 向上移动后的top = y - 元素高度 - 目标高度;
+        if (向上移动后的top > Constants.SIZE_TOOLBAR_HEIGHT && (向上移动后的top + 元素高度) < 视口.高度) {
+            // 向上移动后有足够空间
+            结果.top = 向上移动后的top + "px";
+        } else {
+            // 如果上下空间都不够，向上移，但尽量靠底部
+            结果.top = Math.max(Constants.SIZE_TOOLBAR_HEIGHT, 视口.高度 - 元素高度) + "px";
+        }
     }
 
     // 右边超出视口，展现在左侧

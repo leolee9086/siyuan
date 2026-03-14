@@ -1,8 +1,10 @@
 import { getSiyuanGlobalMenusMenu } from "../util/siyuanEnvironments/getMenu.environment";
 import { MenuItem } from "./Menu.Item";
+import { Constants } from "../constants";
 
 const moveMenuItem = (label: string, target: Element) => {
     return new MenuItem({
+        id: label,
         label: window.siyuan.languages[label],
         icon: label.replace("moveTo", "icon"),
         click: () => {
@@ -23,6 +25,7 @@ const moveMenuItem = (label: string, target: Element) => {
 
 export const initDockMenu = (target: Element) => {
     getSiyuanGlobalMenusMenu().remove();
+    getSiyuanGlobalMenusMenu().element.setAttribute("data-name", Constants.MENU_DOCK);
     getSiyuanGlobalMenusMenu().append(moveMenuItem("moveToLeftTop", target).element);
     getSiyuanGlobalMenusMenu().append(moveMenuItem("moveToLeftBottom", target).element);
     getSiyuanGlobalMenusMenu().append(moveMenuItem("moveToRightTop", target).element);

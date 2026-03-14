@@ -18,6 +18,7 @@ import {
     hasClosestByTag,
     isInEmbedBlock
 } from "../util/hasClosest";
+import { hideElements } from "./hideElements";
 
 /**
  * 处理字体大小增减
@@ -200,6 +201,7 @@ const 检查是否有选中文本 = (protyle: IProtyle): boolean => {
  */
 export const 绑定底部点击事件 = (protyle: IProtyle) => {
     protyle.contentElement.addEventListener("click", (event: MouseEvent & { target: HTMLElement }) => {
+        hideElements(["hint", "util"], protyle);
         // 禁止添加空块的条件检查
         const 禁止添加 = protyle.disabled ||
             protyle.contentElement.querySelector(".protyle-wysiwyg--select") ||

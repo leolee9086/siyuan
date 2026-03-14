@@ -204,7 +204,8 @@ export class App {
                                 openFileById({ app: this, id: data.data.id, action: [Constants.CB_GET_FOCUS] });
                                 break;
                             case "exit":
-                                if (isBrowser) {
+                                // S-forge: 上游添加 !isInMobileApp() 检查
+                                if (isBrowser && !isInMobileApp()) {
                                     window.location.href = "about:blank";
                                 }
                         }
@@ -245,7 +246,8 @@ export class App {
                         window.siyuan.user = userResponse.data;
                         onGetConfig(response.data.start, this);
                         account.onSetaccount();
-                        setTitle(siyuanI18n.siyuanNote);
+                        // S-forge: 上游改进 - 支持设置空文档标题 (#17110)
+                        setTitle("", true);
                         initMessage();
                         // 浏览器桌面端检查是否使用 Chrome，非 Chrome 时提示用户
                         if (isBrowserDesktop && !isInMobileApp() && !window.siyuan.config.readonly && !window.siyuan.isPublish && !isChromeBrowser()) {

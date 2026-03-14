@@ -5,15 +5,16 @@
  * 意图：从 onDrop 主函数中提取外部拖拽逻辑，降低主函数复杂度
  * 调用时机：当 dataTransfer 类型为 Files 或 text/html 且无 dragElement 时
  */
-import { hasClosestByClassName } from "../hasClosest";
+import { hasClosestByClassName, hasClosestBlock } from "../hasClosest";
 import { focusByRange, getRangeByPoint } from "../selection";
 import { isBrowser } from "../../../util/platform/functions";
-import { uploadLocalFiles } from "../../upload";
+import { uploadLocalFiles, uploadFiles } from "../../upload";
 import { paste } from "../paste";
 import { clearSelect } from "../clearSelect";
 import { getTypeByCellElement } from "../../render/av/cell";
 import { dragUpload } from "../../render/av/asset";
 import { getPathForFile } from "../../../platform/electron/webUtils";
+import { focusBlock } from "../selection.focus";
 
 /**
  * 从 dataTransfer 中收集本地文件路径列表
@@ -103,15 +104,25 @@ export const handleExternalAvCellDrop = async (
         return;
     }
     const firstType = event.dataTransfer.types[0] ?? "";
-    // 仅处理 mAsset 类型单元格的本地文件拖入
+    // 仅处理 mAsset 类型单元格的文件拖入
     if (getTypeByCellElement(cellElement) !== "mAsset") {
         return;
     }
-    // 非本地文件或浏览器环境，忽略
-    if (firstType !== "Files" || isBrowser()) {
+    // 非文件类型，忽略
+    if (firstType !== "Files") {
         return;
     }
-    const files = collectFilePaths(event.dataTransfer);
-    dragUpload(files, protyle, cellElement);
-    clearSelect(["cell"], avElement);
+    // Electron 环境：使用 dragUpload
+    if (!isBrowser()) {
+        const files = collectFilePaths(event.dataTransfer);
+        dragUpload(files, protyle, cellElement);
+    }
+    // 浏览器环境：简化处理，直接上传文件（上游改进：移除复杂的 updateAssetCell 逻辑）
+    if (isBrowser()) {
+        const blockElement = hasClosestBlock(cellElement);
+        if (blockElement) {
+            focusBlock(blockElement as HTMLElement);
+            uploadFiles(protyle, event.dataTransfer.files, undefined);
+        }
+    }
 };

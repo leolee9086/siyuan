@@ -171,6 +171,9 @@ export class Wnd {
         wndRenderTabList(this, target);
     }
 
+    // S-forge: 本地重构 - removeOverCounter、destroyModel、removeTabAction 等方法已拆分到 Wnd.tabAction.ts
+    // S-forge: 上游改进 - 空标题支持已应用到重构后的文件中
+
     public removeTab(id: string, isBatchClose = false, animate = true, isSaveLayout = true) {
         wndRemoveTab(this, id, isBatchClose, animate, isSaveLayout);
     }

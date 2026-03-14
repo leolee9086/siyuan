@@ -130,8 +130,8 @@ function 处理模板搜索结果(
     parentID: string | undefined
 ): void {
     const bgElement = subElement.querySelector(".b3-list--background");
-    if (bgElement && response.data?.blocks) {
-        bgElement.innerHTML = 生成模板列表项HTML(response.data.blocks);
+    if (bgElement && response.data?.templates) {
+        bgElement.innerHTML = 生成模板列表项HTML(response.data.templates);
     }
     设置面板位置(subElement, nodeElement, range);
     state.previewPath = listElement.firstElementChild?.getAttribute("data-value") ?? "";

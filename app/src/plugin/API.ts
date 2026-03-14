@@ -5,7 +5,7 @@ import { Dialog } from "../dialog";
 import { fetchGet, fetchPost, fetchSyncPost } from "../util/network/fetch";
 import { getBackend, getFrontend, isMobile } from "../util/platform/functions";
 import { updateHotkeyTip } from "../protyle/util/compatibility";
-import * as platformUtils from "../protyle/util/compatibility";
+import * as platformUtils from "./platformUtils";
 import { Constants } from "../constants";
 import { Setting } from "./Setting";
 import { Menu } from "./Menu";
@@ -19,7 +19,7 @@ import { getMobileEditor, getMobilePopEditor } from "./API.environment";
 import { isHTMLElement } from "../util/DOM/element.guard";
 import { lockScreen, exitSiYuan } from "../dialog/processSystem";
 import { getActiveTab } from "../layout/tabUtil";
-import { getAllModels } from "../layout/getAll";
+import { getAllModels, getAllTabs } from "../layout/getAll";
 import { getAllEditor } from "../layout/getAll";
 import { openSetting } from "../config";
 import { openAttr } from "../menus/commonMenuItem";
@@ -214,13 +214,15 @@ const openEmoji = (options: {
     position: IPosition,
     selectedCB?: (emoji: string) => void,
     dynamicIconURL?: string
+    hideDynamicIcon?: boolean
+    hideCustomIcon?: boolean
 }) => {
-    let dynamicImgElement: HTMLImageElement;
+    let dynamicImgElement: HTMLImageElement | undefined;
     if (options.dynamicIconURL) {
         dynamicImgElement = document.createElement("img");
         dynamicImgElement.src = options.dynamicIconURL;
     }
-    openEmojiPanel("", "av", options.position, options.selectedCB, dynamicImgElement);
+    openEmojiPanel("", "av", options.position, options.selectedCB, dynamicImgElement, {dynamic: options.hideDynamicIcon, custom: options.hideCustomIcon});
 };
 
 /**
@@ -279,6 +281,7 @@ registerLazyBindings(API, [
     ["getAllEditor", () => getAllEditor],
     ["getActiveTab", () => getActiveTab],
     ["getAllModels", () => getAllModels],
+    ["getAllTabs", () => getAllTabs],
     ["platformUtils", () => platformUtils],
     ["openSetting", () => openSetting],
     ["globalCommand", () => globalCommand],

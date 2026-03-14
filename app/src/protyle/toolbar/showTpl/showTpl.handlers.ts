@@ -123,8 +123,8 @@ export function 设置输入事件(
         fetchPost("/api/search/searchTemplate", {
             k: inputElement.value,
         }, (response) => {
-            listElement.innerHTML = 生成模板列表项HTML(response.data.blocks);
-            const currentPath = response.data.blocks[0]?.path;
+            listElement.innerHTML = 生成模板列表项HTML(response.data.templates);
+            const currentPath = response.data.templates[0]?.path;
             if (state.previewPath !== currentPath) {
                 state.previewPath = currentPath ?? "";
                 previewTemplate(state.previewPath, previewElement, protyle.block.parentID);

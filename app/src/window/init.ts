@@ -59,6 +59,8 @@ const handleEmojiConfResponse = (app: App, response: IWebSocketData) => {
 const resize = () => {
     adjustLayout(getSiyuanLayout().centerLayout);
     resizeTabs();
+    // S-forge: 上游改进 - 防止菜单超出窗口边界 (#15400)
+    window.siyuan.menus.menu.resetPosition();
     const selection = getSelection();
     // 检查是否存在有效的文本选择：仅在用户有选区时才重新定位工具栏
     // 避免无选区时进行不必要的DOM操作
@@ -122,6 +124,8 @@ export const init = async (app: App) => {
     initAssets();
     setInlineStyle();
     renderSnippet();
+    // S-forge: 本地重构 - 使用独立函数处理resize事件
+    // S-forge: 上游改进 - 已应用菜单位置重置到重构后的resize函数中
     const resizeTimeoutRef = { value: 0 };
     windowAddEventListener("resize", () => handleWindowResize(resizeTimeoutRef));
 };

@@ -10,6 +10,10 @@ import {setStorageVal} from "../../protyle/util/compatibility";
 import {genNotebook, updateItemArrow, onMove, onRemove, onRename, onMount} from "./MobileFiles.ws";
 import {bindClickEvent} from "./MobileFiles.event";
 import {onLsHTML, onLsSelect} from "./MobileFiles.render";
+import {
+    getPublishAccessLevel,
+    getPublishAccessOptionByLevel
+} from "../../protyle/util/publishAccess";
 
 export class MobileFiles extends Model {
     public element: HTMLElement;
@@ -133,6 +137,7 @@ export class MobileFiles extends Model {
                 this.selectItem(item.notebookId, openPath, undefined, false, false);
             });
         });
+        this.refreshPublishAccessSwitch();
         if (!init) {
             return;
         }
@@ -271,6 +276,25 @@ export class MobileFiles extends Model {
         });
         window.siyuan.storage[Constants.LOCAL_FILESPATHS] = filesPaths;
         setStorageVal(Constants.LOCAL_FILESPATHS, filesPaths);
+    }
+
+    public refreshPublishAccessSwitch() {
+        if (window.siyuan.config.readonly || window.siyuan.isPublish) {
+            return;
+        }
+        const ids: string[] = [];
+        this.element.querySelectorAll("[data-url]").forEach((element: HTMLElement) => ids.push(element.getAttribute("data-url")));
+        this.element.querySelectorAll("[data-node-id]").forEach((element: HTMLElement) => ids.push(element.getAttribute("data-node-id")));
+        fetchPost("/api/filetree/getPublishAccess", {
+            ids
+        }, response => {
+            response.data.publishAccess.forEach((item: IPublishAccessItem) => {
+                const element = this.element.querySelector(`[data-url="${item.id}"] .b3-list-item__switch`) || this.element.querySelector(`[data-node-id="${item.id}"] .b3-list-item__switch`);
+                if (element) {
+                    element.innerHTML = getPublishAccessOptionByLevel(getPublishAccessLevel(item.visible, item.password, item.disable)).iconHTML;
+                }
+            });
+        });
     }
 
 }

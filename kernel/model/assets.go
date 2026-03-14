@@ -90,6 +90,7 @@ func HandleAssetsRemoveEvent(assetAbsPath string) {
 	if gulu.File.IsDir(assetAbsPath) {
 		return
 	}
+	// 跳过隐藏文件，如 WPS 的临时文件、Mac 的 .DS_Store
 	if filelock.IsHidden(assetAbsPath) {
 		return
 	}
@@ -1176,7 +1177,7 @@ func UnusedAssets(sorted bool) (ret []*UnusedItem) {
 		if strings.HasPrefix(p, "/") {
 			p = p[1:]
 		}
-		name := util.RemoveID(path.Base(p))
+		name := path.Base(p)
 
 		var modTime time.Time
 		if sorted {
@@ -1269,11 +1270,11 @@ func MissingAssets() (ret []*UnusedItem) {
 				if strings.HasPrefix(dest, "assets/.") {
 					// Assets starting with `.` should not be considered missing assets https://github.com/siyuan-note/siyuan/issues/8821
 					if !filelock.IsExist(filepath.Join(util.DataDir, dest)) {
-						name := util.RemoveID(path.Base(dest))
+						name := path.Base(dest)
 						ret = append(ret, &UnusedItem{Item: dest, Name: name})
 					}
 				} else {
-					name := util.RemoveID(path.Base(dest))
+					name := path.Base(dest)
 					ret = append(ret, &UnusedItem{Item: dest, Name: name})
 				}
 				continue

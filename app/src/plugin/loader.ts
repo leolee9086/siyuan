@@ -221,25 +221,25 @@ const handleUpsertDataPlugins = (app: App, upsertDataPlugins: string[]) => {
 /** @导出说明: 插件重载入口 */
 /** 作用: 执行禁用/卸载/重载/数据通知; 意图: 提供热更新能力; 调用时机: 插件安装更新或调试重载时 */
 export const reloadPlugin = async (app: App, data: {
-    upsertCodePlugins?: string[],
-    upsertDataPlugins?: string[],
-    unloadPlugins?: string[],
-    uninstallPlugins?: string[],
+    uninstallPlugins?: string[],  // 插件卸载
+    unloadPlugins?: string[],     // 插件禁用
+    reloadPlugins?: string[],     // 插件启用，或插件代码变更
+    dataChangePlugins?: string[], // 插件存储数据变更
 } = {}) => {
     const {
-        upsertCodePlugins = [],
-        upsertDataPlugins = [],
+        uninstallPlugins = [],
         unloadPlugins = [],
-        uninstallPlugins = []
+        reloadPlugins = [],
+        dataChangePlugins = []
     } = data;
 
     uninstallPluginsByNames(app, unloadPlugins, true);
     uninstallPluginsByNames(app, uninstallPlugins, false);
-    uninstallPluginsByNames(app, upsertCodePlugins, true);
+    uninstallPluginsByNames(app, reloadPlugins, true);
 
-    await loadPlugins(app, upsertCodePlugins, false);
-    handleUpsertCodePlugins(app, upsertCodePlugins);
-    handleUpsertDataPlugins(app, upsertDataPlugins);
+    await loadPlugins(app, reloadPlugins, false);
+    handleUpsertCodePlugins(app, reloadPlugins);
+    handleUpsertDataPlugins(app, dataChangePlugins);
 
     if (isMobile()) {
         return;

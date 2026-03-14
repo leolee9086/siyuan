@@ -51,6 +51,8 @@ var (
 	db             *sql.DB
 	historyDB      *sql.DB
 	assetContentDB *sql.DB
+
+	initDatabaseLock = sync.RWMutex{}
 )
 
 func init() {
@@ -66,12 +68,14 @@ func init() {
 	})
 }
 
-var initDatabaseLock = sync.Mutex{}
-
-func InitDatabase(forceRebuild bool) (err error) {
+func InitDatabase(forceRebuild bool) {
 	initDatabaseLock.Lock()
 	defer initDatabaseLock.Unlock()
 
+	initDatabase(forceRebuild)
+}
+
+func initDatabase(forceRebuild bool) {
 	ClearCache()
 	disableCache()
 	defer enableCache()
@@ -95,19 +99,10 @@ func InitDatabase(forceRebuild bool) (err error) {
 
 	// 不存在库或者版本不一致都会走到这里
 
-	closeDatabase()
-	if gulu.File.IsExist(util.DBPath) {
-		if err = removeDatabaseFile(); err != nil {
-			logging.LogErrorf("remove database file failed: %s", err)
-			err = nil
-		}
-	}
-
-	initDBConnection()
 	initDBTables()
+	vacuum()
 
 	logging.LogInfof("reinitialized database [%s]", util.DBPath)
-	return
 }
 
 func initDBTables() {
@@ -231,9 +226,7 @@ func initDBTables() {
 }
 
 func initDBConnection() {
-	if nil != db {
-		closeDatabase()
-	}
+	closeDatabase()
 
 	util.LogDatabaseSize(util.DBPath)
 	dsn := util.DBPath + "?_journal_mode=WAL" +
@@ -383,6 +376,11 @@ var (
 
 func SetCaseSensitive(b bool) {
 	caseSensitive = b
+
+	if nil == db {
+		return
+	}
+
 	if b {
 		db.Exec("PRAGMA case_sensitive_like = ON;")
 	} else {
@@ -1307,10 +1305,23 @@ func queryRow(query string, args ...interface{}) *sql.Row {
 		logging.LogErrorf("statement is empty")
 		return nil
 	}
+
 	if nil == db {
 		return nil
 	}
 	return db.QueryRow(query, args...)
+}
+
+func queryTx(tx *sql.Tx, query string, args ...interface{}) (*sql.Rows, error) {
+	query = strings.TrimSpace(query)
+	if "" == query {
+		return nil, errors.New("statement is empty")
+	}
+
+	if nil == db {
+		return nil, errors.New("database is nil")
+	}
+	return tx.Query(query, args...)
 }
 
 func query(query string, args ...interface{}) (*sql.Rows, error) {
@@ -1318,6 +1329,7 @@ func query(query string, args ...interface{}) (*sql.Rows, error) {
 	if "" == query {
 		return nil, errors.New("statement is empty")
 	}
+
 	if nil == db {
 		return nil, errors.New("database is nil")
 	}
@@ -1458,13 +1470,14 @@ func prepareExecInsertTx(tx *sql.Tx, stmtSQL string, args []interface{}) (err er
 	}
 
 	if _, err = stmt.Exec(args...); err != nil {
-		if strings.Contains(err.Error(), "database disk image is malformed") {
-			tx.Rollback()
-			closeDatabase()
-			removeDatabaseFile()
-			logging.LogFatalf(logging.ExitCodeUnavailableDatabase, "database disk image [%s] is malformed, please restart SiYuan kernel to rebuild it", util.DBPath)
-		}
+		tx.Rollback()
 		logging.LogErrorf("exec database stmt [%s] failed: %s\n  %s", stmtSQL, err, logging.ShortStack())
+
+		if strings.Contains(err.Error(), "database disk image is malformed") {
+			util.RemoveDatabaseFile(util.DBPath)
+			initDatabase(true)
+			logging.LogFatalf(logging.ExitCodeUnavailableDatabase, "database disk image [%s] is malformed, please restart SiYuan kernel to rebuild it\n\t%s\n\t%v", util.DBPath, stmtSQL, args)
+		}
 		return
 	}
 	return
@@ -1472,13 +1485,13 @@ func prepareExecInsertTx(tx *sql.Tx, stmtSQL string, args []interface{}) (err er
 
 func execStmtTx(tx *sql.Tx, stmt string, args ...interface{}) (err error) {
 	if _, err = tx.Exec(stmt, args...); err != nil {
-		if strings.Contains(err.Error(), "database disk image is malformed") {
-			tx.Rollback()
-			closeDatabase()
-			removeDatabaseFile()
-			logging.LogFatalf(logging.ExitCodeUnavailableDatabase, "database disk image [%s] is malformed, please restart SiYuan kernel to rebuild it", util.DBPath)
-		}
+		tx.Rollback()
 		logging.LogErrorf("exec database stmt [%s] failed: %s\n  %s", stmt, err, logging.ShortStack())
+
+		if strings.Contains(err.Error(), "database disk image is malformed") {
+			initDatabase(true)
+			logging.LogFatalf(logging.ExitCodeUnavailableDatabase, "database disk image [%s] is malformed, please restart SiYuan kernel to rebuild it\n\t%s\n\t%v", util.DBPath, stmt, args)
+		}
 		return
 	}
 	return
@@ -1531,22 +1544,6 @@ func ialAttr(ial, name string) (ret string) {
 	return
 }
 
-func removeDatabaseFile() (err error) {
-	err = os.RemoveAll(util.DBPath)
-	if err != nil {
-		return
-	}
-	err = os.RemoveAll(util.DBPath + "-shm")
-	if err != nil {
-		return
-	}
-	err = os.RemoveAll(util.DBPath + "-wal")
-	if err != nil {
-		return
-	}
-	return
-}
-
 func closeDatabase() {
 	if nil == db {
 		return
@@ -1592,6 +1589,13 @@ func SQLTemplateFuncs(templateFuncMap *template.FuncMap) {
 }
 
 func Vacuum() {
+	initDatabaseLock.Lock()
+	defer initDatabaseLock.Unlock()
+
+	vacuum()
+}
+
+func vacuum() {
 	if nil != db {
 		if _, err := db.Exec("VACUUM"); nil != err {
 			logging.LogErrorf("vacuum database failed: %s", err)
@@ -1607,5 +1611,4 @@ func Vacuum() {
 			logging.LogErrorf("vacuum asset content database failed: %s", err)
 		}
 	}
-	return
 }

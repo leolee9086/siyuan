@@ -15,7 +15,7 @@ import {previewImages} from "../../preview/image";
 import {getPathForFile} from "../../../platform/electron/webUtils";
 import {isBrowser} from "../../../platform";
 import {Constants} from "../../../constants";
-import {getCompressURL} from "../../../util/assets/image";
+import {getCompressURL, removeCompressURL} from "../../../util/assets/image";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 const genAVRollupHTML = (value: IAVCellValue) => {
@@ -502,7 +502,7 @@ const openEdit = (protyle: IProtyle, element: HTMLElement, event: MouseEvent) =>
                 });
             } else {
                 if (target.tagName === "IMG") {
-                    previewImages([target.getAttribute("src")]);
+                    previewImages([removeCompressURL(target.getAttribute("src"))]);
                 } else {
                     openLink(protyle, target.dataset.url, event, event.ctrlKey || event.metaKey);
                 }

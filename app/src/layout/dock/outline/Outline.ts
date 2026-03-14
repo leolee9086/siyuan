@@ -7,6 +7,7 @@ import { escapeHtml } from "../../../util/DOM/escape";
 import { unicode2Emoji } from "../../../emoji";
 import { App } from "../../../index";
 import { Editor } from "../../../editor";
+import { hasClosestBlock } from "../../../protyle/util/hasClosest";
 
 // 拆分模块导入
 import { bindSort } from "./Outline.sort";
@@ -280,6 +281,40 @@ export class Outline extends Model {
         if (!this.isPreview && this.type === "pin") {
             fetchPost("/api/storage/setOutlineStorage", { docID: this.blockId, val: { expandIds: this.tree.getExpandIds() } });
         }
+    }
+
+    /**
+     * S-forge: 上游新增 - 重新加载大纲数据 (#16041)
+     * 作用：重新从服务器获取大纲数据并更新UI
+     * 意图：支持发布访问控制等场景下的大纲刷新
+     * 调用时机：需要强制刷新大纲内容时
+     * @param blockId 可选的块ID，默认使用当前blockId
+     */
+    public reload(blockId?: string): void {
+        if (!blockId) {
+            blockId = this.blockId;
+        }
+        // @内联回调 - 回调逻辑简单，处理大纲数据更新
+        fetchPost("/api/outline/getDocOutline", {
+            id: blockId,
+            preview: this.isPreview
+        }, response => {
+            // 文档切换后不再更新原有推送 https://github.com/siyuan-note/siyuan/issues/13409
+            if (blockId !== this.blockId) {
+                return;
+            }
+            this.update(response);
+            // https://github.com/siyuan-note/siyuan/issues/8372
+            const selection = getSelection();
+            // 检查选区是否存在且有效
+            if (selection && selection.rangeCount > 0) {
+                const result = this.getProtyleAndBlockElement(selection.getRangeAt(0).startContainer);
+                // 如果当前选中的是标题块，则设置为当前项
+                if (result?.blockElement?.getAttribute("data-type") === "NodeHeading") {
+                    this.setCurrent(result.blockElement);
+                }
+            }
+        });
     }
 }
 

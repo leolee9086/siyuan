@@ -98,6 +98,16 @@ export function bindClickEvent(
                 event.preventDefault();
                 event.stopPropagation();
                 break;
+            } else if (type === "publish-access") {
+                target.classList.toggle("block__icon--active");
+                const editingPublishAccess = target.classList.contains("block__icon--active");
+                files.element.querySelectorAll(".b3-list-item__icon").forEach(item => {
+                    item.classList.toggle("fn__none", editingPublishAccess);
+                    item.nextElementSibling.classList.toggle("fn__none", !editingPublishAccess);
+                });
+                event.preventDefault();
+                event.stopPropagation();
+                break;
             } else if (target.classList.contains("b3-list-item__toggle") && !target.classList.contains("fn__hidden") && target.parentElement.getAttribute("data-type") !== "toggle") {
                 const ulElement = hasTopClosestByTag(target, "UL");
                 if (ulElement) {

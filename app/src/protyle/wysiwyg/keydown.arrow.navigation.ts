@@ -26,7 +26,7 @@ export const arrowNavigationMiddleware = async (
 
         const selectText = range.toString();
 
-        // 需使用 innerText 否则表格内 br 无法传唤为 /n
+        // 需使用 innerText 否则表格内 br 无法转换为 /n
         if (event.key === "ArrowDown" && nodeEditableElement?.innerText.trimRight().substr(position.start).indexOf("\n") === -1 && (
             (tdElement && tdElement.parentElement && !tdElement.parentElement.nextElementSibling && nodeElement.getAttribute("data-type") === "NodeTable" && !getNextBlock(nodeElement)) ||
             (nodeElement.getAttribute("data-type") === "NodeCodeBlock" && !getNextBlock(nodeElement)) ||

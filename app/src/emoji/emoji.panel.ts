@@ -31,12 +31,12 @@ const renderEmojiContent = (previousIndex: string, previousContentElement: Eleme
     previousContentElement.removeAttribute("style");
 };
 
-export const buildDialogHTML = (dynamicURL: string, dynamicCurrentObj: IObject, id: string) => {
+export const buildDialogHTML = (dynamicURL: string, dynamicCurrentObj: IObject, id: string, hide?: { dynamic: boolean, custom: boolean }) => {
     return `<div class="emojis">
     <div class="emojis__tabheader">
         <div data-type="tab-emoji" class="ariaLabel block__icon block__icon--show" aria-label="${siyuanI18n.emoji}"><svg><use xlink:href="#iconEmoji"></use></svg></div>
         <div class="fn__space"></div>
-        <div data-type="tab-dynamic" class="ariaLabel block__icon block__icon--show" aria-label="${siyuanI18n.dynamicIcon}"><svg><use xlink:href="#iconCalendar"></use></svg></div>
+        <div data-type="tab-dynamic" class="ariaLabel block__icon block__icon--show${hide?.dynamic ? " fn__none" : ""}" aria-label="${siyuanI18n.dynamicIcon}"><svg><use xlink:href="#iconCalendar"></use></svg></div>
         <div class="fn__flex-1"></div>
         <span class="block__icon block__icon--show fn__flex-center ariaLabel" data-action="remove" aria-label="${siyuanI18n.remove}"><svg><use xlink:href="#iconTrashcan"></use></svg></span>
     </div>
@@ -53,7 +53,7 @@ export const buildDialogHTML = (dynamicURL: string, dynamicCurrentObj: IObject, 
                 <span class="block__icon block__icon--show fn__flex-center ariaLabel" data-action="random" aria-label="${siyuanI18n.random}"><svg><use xlink:href="#iconRefresh"></use></svg></span>
                 <span class="fn__space"></span>
             </div>
-            <div class="emojis__panel">${filterEmoji()}</div>
+            <div class="emojis__panel">${filterEmoji("", undefined, hide?.custom)}</div>
             <div class="fn__flex">
                 ${[
             ["2b50", siyuanI18n.recentEmoji],
@@ -66,9 +66,12 @@ export const buildDialogHTML = (dynamicURL: string, dynamicCurrentObj: IObject, 
             ["1f52e", getEmojiTitle(6)],
             ["267e-fe0f", getEmojiTitle(7)],
             ["1f6a9", getEmojiTitle(8)],
-        ].map(([unicode, title], index) =>
-            `<div data-type="${index}" class="emojis__type ariaLabel" aria-label="${title}">${unicode2Emoji(unicode)}</div>`
-        ).join("")}
+        ].map(([unicode, title], index) => {
+            if (hide?.custom && index === 1) {
+                return "";
+            }
+            return `<div data-type="${index}" class="emojis__type ariaLabel" aria-label="${title}">${unicode2Emoji(unicode)}</div>`;
+        }).join("")}
             </div>
         </div>
         <div class="fn__none" data-type="tab-dynamic">
@@ -89,9 +92,10 @@ export const bindEmojiPanelEvents = (
     dynamicTextElements?: NodeListOf<HTMLInputElement>,
     dynamicDateElement?: HTMLInputElement,
     dynamicURL?: string,
+    hide?: { dynamic: boolean, custom: boolean }
 ) => {
     emojiSearchInputElement.addEventListener("compositionend", () => {
-        emojisContentElement.innerHTML = filterEmoji(emojiSearchInputElement.value);
+        emojisContentElement.innerHTML = filterEmoji(emojiSearchInputElement.value, undefined, hide?.custom);
         if (emojiSearchInputElement.value) {
             emojisContentElement.nextElementSibling.classList.add("fn__none");
         } else {
@@ -108,7 +112,7 @@ export const bindEmojiPanelEvents = (
         if (event.isComposing) {
             return;
         }
-        emojisContentElement.innerHTML = filterEmoji(emojiSearchInputElement.value);
+        emojisContentElement.innerHTML = filterEmoji(emojiSearchInputElement.value, undefined, hide?.custom);
         if (emojiSearchInputElement.value) {
             emojisContentElement.nextElementSibling.classList.add("fn__none");
         } else {

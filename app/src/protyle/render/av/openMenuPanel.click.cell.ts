@@ -6,10 +6,9 @@ import { openCalcMenu } from "./calc";
 import { getColId } from "./col";
 import { updateCellsValue } from "./cell";
 import { Constants } from "../../../constants";
-import { isLocalPath, pathPosix } from "../../../util/file/pathName";
-import { getSearch } from "../../../util/platform/functions";
+import { pathPosix } from "../../../util/file/pathName";
 import { isMobile } from "../../../platform";
-import { openAsset } from "../../../editor/util.openAsset";
+import { openLink } from "../../../editor/openLink";
 import { previewAttrViewImages } from "../../preview/image";
 import { assetMenu } from "../../../menus/protyleMenus/protyle.asset";
 import { escapeAttr } from "../../../util/DOM/escape";
@@ -166,14 +165,12 @@ const handleAddAssetExist = (ctx: IMenuPanelContext, target: HTMLElement, event:
     event.stopPropagation();
 };
 
-/** 打开资源项（图片预览/本地文件/外部链接） @同步豁免: UI构建 */
+/** 打开资源项（图片预览/链接打开） @同步豁免: UI构建 */
 const handleOpenAssetItem = (ctx: IMenuPanelContext, target: HTMLElement, event: MouseEvent): void => {
     const parentData = target.parentElement?.dataset;
-    const assetType = parentData?.type ?? "";
     const assetLink = parentData?.content ?? "";
-    const suffix = pathPosix().extname(assetLink);
     // 图片类型：预览
-    if (assetType === "image") {
+    if (parentData?.type === "image") {
         const viewId = ctx.options.blockElement.getAttribute(Constants.CUSTOM_SY_AV_VIEW) ?? "";
         const searchEl = ctx.options.blockElement.querySelector('[data-type="av-search"]');
         previewAttrViewImages(assetLink, ctx.avID, viewId, searchEl?.textContent?.trim() || "");
@@ -181,17 +178,8 @@ const handleOpenAssetItem = (ctx: IMenuPanelContext, target: HTMLElement, event:
         event.stopPropagation();
         return;
     }
-    const isPreviewable = (suffix === ".pdf" && !assetLink.startsWith("file://"))
-        || Constants.SIYUAN_ASSETS_AUDIO.concat(Constants.SIYUAN_ASSETS_VIDEO, Constants.SIYUAN_ASSETS_IMAGE).includes(suffix);
-    // 非移动端 + 本地路径 + 文件类型 + 可预览后缀时，在编辑器内打开资源
-    if (!isMobile && isLocalPath(assetLink) && assetType === "file" && isPreviewable) {
-        openAsset(ctx.options.protyle.app, assetLink.trim(), parseInt(getSearch("page", assetLink) ?? "0"), "right");
-        event.preventDefault();
-        event.stopPropagation();
-        return;
-    }
-    // 其他：浏览器打开
-    openInNewWindow(assetLink);
+    // 其他类型：使用统一的链接打开逻辑
+    openLink(ctx.options.protyle, assetLink, event, event.ctrlKey || event.metaKey);
     event.preventDefault();
     event.stopPropagation();
 };

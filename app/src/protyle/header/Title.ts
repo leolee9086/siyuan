@@ -337,8 +337,8 @@ export class Title {
         }, Constants.TIMEOUT_INPUT);
     }
 
-    public setTitle(title: string) {
-        const normalizedTitle = title === siyuanI18n.untitled ? "" : title;
+    public setTitle(title: string, empty = false) {
+        const normalizedTitle = empty ? "" : title;
         // 移动端可能没有 editElement（使用工具栏输入框代替）
         if (isMobile && !this.editElement) {
             const inputElement = document.getElementById("toolbarName") as HTMLInputElement;
@@ -377,7 +377,7 @@ export class Title {
         protyle.background?.render(response.data.ial, protyle.block.rootID);
         protyle.wysiwyg.renderCustom(response.data.ial);
         this.element.setAttribute("data-render", "true");
-        this.setTitle(response.data.ial.title);
+        this.setTitle(response.data.ial.title, response.data.ial[Constants.CUSTOM_SY_TITLE_EMPTY] === "true");
         let nodeAttrHTML = "";
         if (response.data.ial.bookmark) {
             nodeAttrHTML += `<div class="protyle-attr--bookmark">${Lute.EscapeHTMLStr(response.data.ial.bookmark)}</div>`;

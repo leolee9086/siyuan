@@ -213,6 +213,16 @@ func getFile(c *gin.Context) {
 		}
 	}
 
+	if model.IsReadOnlyRoleContext(c) {
+		publishAccess := model.GetPublishAccess()
+		if !model.CheckAbsPathAccessableByPublishAccess(c, fileAbsPath, publishAccess) {
+			ret.Code = http.StatusForbidden
+			ret.Msg = http.StatusText(http.StatusForbidden)
+			c.JSON(http.StatusAccepted, ret)
+			return
+		}
+	}
+
 	data, err := filelock.ReadFile(fileAbsPath)
 	if err != nil {
 		logging.LogErrorf("read file [%s] failed: %s", fileAbsPath, err)
@@ -264,6 +274,25 @@ func refuseToAccess(c *gin.Context, fileAbsPath string, ret *gulu.Result) bool {
 		c.JSON(http.StatusAccepted, ret)
 		return true
 	}
+
+	// 禁止访问 data/.siyuan/publishAccess.json
+	publishAccessPath := normalizeAndResolve(filepath.Join(util.DataDir, ".siyuan", "publishAccess.json"))
+	if fileNorm == publishAccessPath {
+		ret.Code = http.StatusForbidden
+		ret.Msg = http.StatusText(http.StatusForbidden)
+		c.JSON(http.StatusAccepted, ret)
+		return true
+	}
+
+	// 禁止访问 无发布访问权限的文件
+	publishAccess := model.GetPublishAccess()
+	if !model.CheckAbsPathAccessableByPublishAccess(c, fileAbsPath, publishAccess) {
+		ret.Code = http.StatusForbidden
+		ret.Msg = http.StatusText(http.StatusForbidden)
+		c.JSON(http.StatusAccepted, ret)
+		return true
+	}
+
 	return false
 }
 

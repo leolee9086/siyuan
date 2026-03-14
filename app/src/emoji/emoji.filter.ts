@@ -1,7 +1,7 @@
 import {unicode2Emoji, getEmojiDesc, getEmojiTitle} from "./index";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 
-export const filterEmoji = (key = "", max?: number) => {
+export const filterEmoji = (key = "", max?: number, hideCustom = false) => {
     let html = "";
     const recentEmojis: IEmojiItem[] = [];
     if (key) {
@@ -11,6 +11,9 @@ export const filterEmoji = (key = "", max?: number) => {
     let keyHTML = "";
     const customStore: IEmojiItem[] = [];
     window.siyuan.emojis.forEach((category, index) => {
+        if (hideCustom && category.id === "custom") {
+            return;
+        }
         if (!key) {
             html += `<div class="emojis__title" data-type="${index + 1}">${getEmojiTitle(index)}</div><div style="min-height:${index === 0 ? "30px" : "300px"}" class="emojis__content"${index > 1 ? ' data-index="' + index + '"' : ""}>`;
         }

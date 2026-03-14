@@ -78,6 +78,8 @@ const 延迟执行布局调整 = (状态: { resizeTimeout: number; firstResize: 
     adjustLayout();
     resizeTabs();
     resizeTopBar();
+    // S-forge: 上游改进 - 防止菜单超出窗口边界 (#15400)
+    window.siyuan.menus.menu.resetPosition();
     状态.firstResize = true;
     更新编辑器工具栏();
 };
@@ -143,35 +145,12 @@ export const onGetConfig = (isStart: boolean, app: App) => {
     initAssets();
     setInlineStyle();
     renderSnippet();
+    // S-forge: 本地重构 - 使用独立函数初始化 resize 处理器
+    // S-forge: 上游改进 - 已应用菜单位置重置到重构后的函数中
     初始化ResizeHandler();
 };
 
-const winOnMaxRestore = async () => {
-    // 仅桌面端：根据窗口最大化/全屏状态切换最大化/还原按钮的显示
-    if (!isElectron) {
-        return;
-    }
-    const maxBtnElement = document.getElementById("maxWindow");
-    const restoreBtnElement = document.getElementById("restoreWindow");
-    // 如果按钮元素不存在，则提前返回
-    if (!maxBtnElement || !restoreBtnElement) {
-        return;
-    }
-    const isFullScreen = await ipcInvoke(Constants.SIYUAN_GET, {
-        cmd: "isFullScreen",
-    });
-    const isMaximized = await ipcInvoke(Constants.SIYUAN_GET, {
-        cmd: "isMaximized",
-    });
-    // 默认：显示最大化按钮，隐藏还原按钮
-    restoreBtnElement.style.display = "none";
-    maxBtnElement.style.display = "flex";
-    // 如果已最大化或全屏，则反转显示状态
-    if (isMaximized || isFullScreen) {
-        restoreBtnElement.style.display = "flex";
-        maxBtnElement.style.display = "none";
-    }
-};
+// S-forge: 上游改进 - 删除 winOnMaxRestore 函数，改用 CSS 类管理窗口状态 (#16811)
 
 export const initWindow = async (app: App) => {
     // 浏览器端：仅添加浏览器工具栏样式
@@ -222,29 +201,23 @@ export const initWindow = async (app: App) => {
         } else if (cmd === "blur") {
             document.body.classList.add("body--blur");
         } else if (cmd === "enter-full-screen") {
+            document.body.classList.add("body--fullscreen");
             if ("darwin" === window.siyuan.config.system.os) {
                 if (isWindow()) {
                     setTabPosition();
-                } else {
-                    document.getElementById("toolbar").style.paddingLeft = "0";
                 }
-            } else {
-                winOnMaxRestore();
             }
         } else if (cmd === "leave-full-screen") {
+            document.body.classList.remove("body--fullscreen");
             if ("darwin" === window.siyuan.config.system.os) {
                 if (isWindow()) {
                     setTabPosition();
-                } else {
-                    document.getElementById("toolbar").setAttribute("style", "");
                 }
-            } else {
-                winOnMaxRestore();
             }
         } else if (cmd === "maximize") {
-            winOnMaxRestore();
+            document.body.classList.add("body--maximize");
         } else if (cmd === "unmaximize") {
-            winOnMaxRestore();
+            document.body.classList.remove("body--maximize");
         }
     });
     if (!isWindow()) {
@@ -396,6 +369,20 @@ ${response.data.replace("%pages", "<span class=totalPages></span>").replace("%pa
             }
         });
     }
+
+    const isFullScreen = await ipcRenderer.invoke(Constants.SIYUAN_GET, {
+        cmd: "isFullScreen",
+    });
+    if (isFullScreen) {
+        document.body.classList.add("body--fullscreen");
+    }
+    const isMaximized = await ipcRenderer.invoke(Constants.SIYUAN_GET, {
+        cmd: "isMaximized",
+    });
+    if (isMaximized) {
+        document.body.classList.add("body--maximize");
+    }
+
     if ("darwin" !== window.siyuan.config.system.os) {
         document.body.classList.add("body--win32");
 
@@ -435,7 +422,6 @@ ${response.data.replace("%pages", "<span class=totalPages></span>").replace("%pa
             ipcSend(Constants.SIYUAN_CMD, "maximize");
         });
 
-        winOnMaxRestore();
         const minBtnElement = document.getElementById("minWindow");
         const closeBtnElement = document.getElementById("closeWindow");
         minBtnElement.addEventListener("click", () => {
@@ -451,14 +437,6 @@ ${response.data.replace("%pages", "<span class=totalPages></span>").replace("%pa
                 winOnClose();
             }
         });
-    } else {
-        const toolbarElement = document.getElementById("toolbar");
-        const isFullScreen = await ipcInvoke(Constants.SIYUAN_GET, {
-            cmd: "isFullScreen",
-        });
-        // macOS 全屏时隐藏交通灯区域的 padding
-        if (isFullScreen && !isWindow()) {
-            toolbarElement.style.paddingLeft = "0";
-        }
+        // S-forge: 上游改进 - 删除 macOS toolbar padding 处理，改用 CSS 管理 (#16811)
     }
 };

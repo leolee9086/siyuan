@@ -1063,7 +1063,7 @@ func (tx *Transaction) syncDelete2Block(node *ast.Node, nodeTree *parse.Tree) (c
 			avNames := getAvNames(toChangNode.IALAttr(av.NodeAttrNameAvs))
 			oldAttrs := parse.IAL2Map(toChangNode.KramdownIAL)
 			toChangNode.SetIALAttr(av.NodeAttrViewNames, avNames)
-			pushBroadcastAttrTransactions(oldAttrs, toChangNode)
+			pushBlockAttrs(oldAttrs, toChangNode)
 		}
 
 		for _, tree := range trees {
@@ -1237,6 +1237,9 @@ func (tx *Transaction) doInsert0(operation *Operation, tree *parse.Tree) (ret *T
 			insertedNode = insertedNode.FirstChild
 		}
 		node.InsertBefore(insertedNode)
+		for _, remain := range remains {
+			node.InsertBefore(remain)
+		}
 	} else if "" != previousID {
 		node = treenode.GetNodeInTree(tree, previousID)
 		if nil == node {
@@ -1545,7 +1548,7 @@ func (tx *Transaction) doUpdate(operation *Operation) (ret *TxErr) {
 			time.Sleep(200 * time.Millisecond)
 			oldAttrs := parse.IAL2Map(updatedNode.KramdownIAL)
 			updatedNode.SetIALAttr(av.NodeAttrViewNames, avNames)
-			pushBroadcastAttrTransactions(oldAttrs, updatedNode)
+			pushBlockAttrs(oldAttrs, updatedNode)
 		}()
 	}
 
@@ -1819,6 +1822,7 @@ type Operation struct {
 	Action     string      `json:"action"`
 	Data       interface{} `json:"data"`
 	ID         string      `json:"id"`
+	RootID     string      `json:"rootID"` // 思源内部暂时没有用到 https://github.com/siyuan-note/siyuan/issues/17179#issuecomment-4051604916
 	ParentID   string      `json:"parentID"`
 	PreviousID string      `json:"previousID"`
 	NextID     string      `json:"nextID"`

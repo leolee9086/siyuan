@@ -4,7 +4,6 @@ import { getAllTabs, getAllWnds } from "../layout/getAll";
 import { Editor } from "../editor";
 import { Asset } from "../asset";
 import { Constants } from "../constants";
-import { ipcInvoke } from "../platform/electron/ipcRenderer";
 import { setLocationHash, getWindowInnerWidth } from "../util/siyuanEnvironments/windowLocation.environment";
 import { getSiyuanLayout, getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { Tab } from "../layout/Tab";
@@ -24,7 +23,7 @@ import { isElectronStyle } from "./init.guard";
 import { isHTMLElement } from "./imports";
 
 /** 处理单个窗口的标签页位置设置 */
-const processWndForTabPosition = async (item: Wnd): Promise<void> => {
+const processWndForTabPosition = (item: Wnd): void => {
     const headerElement = item.headersElement.parentElement;
     if (!headerElement) {
         return;
@@ -56,9 +55,8 @@ const processWndForTabPosition = async (item: Wnd): Promise<void> => {
     // 先设置默认值
     item.headersElement.style.paddingLeft = "";
     // 再根据条件覆盖
-    const isFullScreen = isDarwin && await ipcInvoke(Constants.SIYUAN_GET, {
-        cmd: "isFullScreen",
-    });
+    // S-forge: 上游改进 (#16811) - 使用CSS类名判断全屏状态，替代异步IPC调用
+    const isFullScreen = document.body.classList.contains("body--fullscreen");
     // macOS 非全屏模式下，窗口贴近左上角时需要为系统红绿灯按钮预留空间
     if (isDarwin && rect.top <= 0 && rect.left <= 0 && !isFullScreen) {
         // 用 paddingLeft 为左侧红绿灯按钮预留空间
@@ -97,8 +95,11 @@ const processWndForTabPosition = async (item: Wnd): Promise<void> => {
  * - 布局变化时（layout/util.ts）
  * - 标签页切换/关闭/移动时（Wnd.ts）
  * - 窗口大小改变时
+ *
+ * @同步豁免: 遗留代码 - 此函数被多处同步调用，上游改进(#16811)将全屏状态判断
+ *           从异步IPC调用改为同步CSS类名读取，无需异步
  */
-export const setTabPosition = async () => {
+export const setTabPosition = () => {
     if (!isWindow()) {
         return;
     }
@@ -110,7 +111,7 @@ export const setTabPosition = async () => {
     getAllWnds(layout, wndsTemp);
 
     for (const item of wndsTemp) {
-        await processWndForTabPosition(item);
+        processWndForTabPosition(item);
     }
 };
 

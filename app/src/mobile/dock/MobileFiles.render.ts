@@ -3,6 +3,7 @@ import {Constants} from "../../constants";
 import {getDisplayName} from "../../util/file/pathName";
 import {fetchSyncPost} from "../../util/network/fetch";
 import {unicode2Emoji} from "../../emoji";
+import {getPublishAccessOptionByLevel} from "../../protyle/util/publishAccess";
 import type {MobileFiles} from "./MobileFiles";
 
 /**
@@ -11,17 +12,18 @@ import type {MobileFiles} from "./MobileFiles";
  * 调用时机：onLsHTML、onLsSelect 渲染文件列表时。
  * @同步豁免: UI构建
  */
-export function genFileHTML(item: IFile) {
+export function genFileHTML(item: IFile, editingPublishAccess: boolean) {
     let countHTML = "";
     if (item.count && item.count > 0) {
         countHTML = `<span class="counter">${item.count}</span>`;
     }
-    return `<li data-node-id="${item.id}" data-name="${Lute.EscapeHTMLStr(item.name)}" data-type="navigation-file" 
+    return `<li data-node-id="${item.id}" data-name="${Lute.EscapeHTMLStr(item.name)}" data-type="navigation-file"
 class="b3-list-item" data-path="${item.path}">
     <span style="padding-left: ${(item.path.split("/").length - 1) * 20}px" class="b3-list-item__toggle${item.subFileCount === 0 ? " fn__hidden" : ""}">
         <svg class="b3-list-item__arrow"><use xlink:href="#iconRight"></use></svg>
     </span>
-    <span class="b3-list-item__icon">${unicode2Emoji(item.icon || (item.subFileCount === 0 ? window.siyuan.storage[Constants.LOCAL_IMAGES].file : window.siyuan.storage[Constants.LOCAL_IMAGES].folder))}</span>
+    <span class="b3-list-item__icon"${editingPublishAccess ? " fn__none" : ""}>${unicode2Emoji(item.icon || (item.subFileCount === 0 ? window.siyuan.storage[Constants.LOCAL_IMAGES].file : window.siyuan.storage[Constants.LOCAL_IMAGES].folder))}</span>
+    <span class="b3-list-item__switch${editingPublishAccess ? "" : " fn__none"}">${getPublishAccessOptionByLevel("public").iconHTML}</span>
     <span class="b3-list-item__text">${getDisplayName(item.name, true, true)}</span>
     <span data-type="more-file" class="b3-list-item__action b3-tooltips b3-tooltips__nw" aria-label="${window.siyuan.languages.more}">
         <svg><use xlink:href="#iconMore"></use></svg>
@@ -47,9 +49,10 @@ export function onLsHTML(files: MobileFiles, data: { files: IFile[], box: string
     if (!liElement) {
         return;
     }
+    const editingPublishAccess = files.actionsElement.querySelector('[data-type="publish-access"]').classList.contains("block__icon--active");
     let fileHTML = "";
     data.files.forEach((item: IFile) => {
-        fileHTML += genFileHTML(item);
+        fileHTML += genFileHTML(item, editingPublishAccess);
     });
     let nextElement = liElement.nextElementSibling;
     if (nextElement && nextElement.tagName === "UL") {
@@ -66,6 +69,7 @@ export function onLsHTML(files: MobileFiles, data: { files: IFile[], box: string
             }
         });
         nextElement.innerHTML = tempElement.innerHTML;
+        files.refreshPublishAccessSwitch();
         return;
     }
     liElement.querySelector(".b3-list-item__arrow").classList.add("b3-list-item__arrow--open");
@@ -80,6 +84,7 @@ export function onLsHTML(files: MobileFiles, data: { files: IFile[], box: string
             });
         }, 120);
     }, 2);
+    files.refreshPublishAccessSwitch();
 }
 
 /**
@@ -92,9 +97,10 @@ export async function onLsSelect(files: MobileFiles, data: {
     box: string,
     path: string
 }, filePath: string, setStorage: boolean, isSetCurrent: boolean) {
+    const editingPublishAccess = files.actionsElement.querySelector('[data-type="publish-access"]').classList.contains("block__icon--active");
     let fileHTML = "";
     data.files.forEach((item: IFile) => {
-        fileHTML += genFileHTML(item);
+        fileHTML += genFileHTML(item, editingPublishAccess);
     });
     if (fileHTML === "") {
         return;
@@ -129,5 +135,6 @@ export async function onLsSelect(files: MobileFiles, data: {
     if (isSetCurrent) {
         files.setCurrent(newLiElement);
     }
+    files.refreshPublishAccessSwitch();
     return newLiElement;
 }

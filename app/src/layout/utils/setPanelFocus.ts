@@ -50,10 +50,9 @@ const updateWndTitle = (element: Element) => {
     if (element.getAttribute("data-type") !== "wnd") {
         return;
     }
-    const focusedHeader = element.querySelector('.layout-tab-bar .item--focus[data-type="tab-header"] .item__text');
-    if (focusedHeader) {
-        setTitle(focusedHeader.textContent || siyuanI18n.siyuanNote);
-    }
+    // S-forge: 上游改进 - 支持设置空文档标题 (#17110)
+    const title = element.querySelector('.layout-tab-bar .item--focus[data-type="tab-header"] .item__text')?.textContent || "";
+    setTitle(title, title ? false : true);
 };
 
 /**

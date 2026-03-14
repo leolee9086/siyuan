@@ -51,7 +51,7 @@ const (
 	ModeDev   = "dev"
 	ModeForge = "forge"
 
-	Ver       = "3.5.9"
+	Ver       = "3.6.0"
 	IsInsider = false
 )
 
@@ -610,4 +610,31 @@ func OpenBrowser(url string) error {
 		cmd = exec.Command("xdg-open", url)
 	}
 	return cmd.Start()
+}
+
+func RemoveDatabaseFile(dbPath string) {
+	if gulu.File.IsExist(dbPath) {
+		err := os.RemoveAll(dbPath)
+		if err != nil {
+			logging.LogErrorf("remove database file [%s] failed: %s", dbPath, err)
+			return
+		}
+	}
+
+	if gulu.File.IsExist(dbPath + "-shm") {
+		err := os.RemoveAll(dbPath + "-shm")
+		if err != nil {
+			logging.LogErrorf("remove database file [%s] failed: %s", dbPath+"-shm", err)
+			return
+		}
+	}
+
+	if gulu.File.IsExist(dbPath + "-wal") {
+		err := os.RemoveAll(dbPath + "-wal")
+		if err != nil {
+			logging.LogErrorf("remove database file [%s] failed: %s", dbPath+"-wal", err)
+			return
+		}
+	}
+	return
 }

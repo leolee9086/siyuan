@@ -93,7 +93,7 @@ export const handleArrowRightNavigation = (ctx: TableFixContext) => {
         return;
     }
     // 光标必须在单元格文本末尾
-    if (getSelectionOffset(cellElement, protyle.wysiwyg.element, range).start !== cellElement.textContent?.length) {
+    if (getSelectionOffset(cellElement, protyle.wysiwyg.element, range).start !== cellElement.innerText.length) {
         return;
     }
     event.preventDefault();
