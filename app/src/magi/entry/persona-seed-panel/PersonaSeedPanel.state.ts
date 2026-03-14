@@ -39,6 +39,8 @@ function buildSeedDescriptions(s: {
 function buildSubjectMeta(s: {
     readonly subjectId: { readonly value: string };
     readonly subjectName: { readonly value: string };
+    readonly gender: { readonly value: string };
+    readonly age: { readonly value: number };
     readonly subjectType: { readonly value: SubjectType };
     readonly organization: { readonly value: string };
     readonly role: { readonly value: string };
@@ -47,6 +49,8 @@ function buildSubjectMeta(s: {
     return {
         id: s.subjectId.value || "zhi",
         name: s.subjectName.value || "zhi",
+        gender: s.gender.value.trim(),
+        age: Number.isInteger(s.age.value) ? s.age.value : 0,
         type: s.subjectType.value,
         organization: s.organization.value,
         role: s.role.value,
@@ -94,6 +98,8 @@ function formatDescriptionProgress(s: {
 export function createPanelState(): PanelState {
     const subjectId = ref("zhi");
     const subjectName = ref("ZHI");
+    const gender = ref("");
+    const age = ref(0);
     const subjectType = ref<SubjectType>("ai_agent");
     const organization = ref("");
     const role = ref("");
@@ -113,7 +119,7 @@ export function createPanelState(): PanelState {
     const statusMessage = ref("");
 
     const refs = {
-        subjectId, subjectName, subjectType,
+        subjectId, subjectName, gender, age, subjectType,
         organization, role, careerGoal,
         professionalDescription, lifeDescription,
         instinctNeedsDescription, integratedDescription,

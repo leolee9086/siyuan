@@ -23,6 +23,8 @@ export type SubjectType = "human" | "ai_agent";
 export interface QuestionnaireDraftSubject {
     readonly id: string;
     readonly name: string;
+    readonly gender: string;
+    readonly age: number;
     readonly type: SubjectType;
     readonly organization: string;
     readonly role: string;

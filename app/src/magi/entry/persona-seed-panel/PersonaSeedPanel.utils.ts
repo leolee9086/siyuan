@@ -154,12 +154,17 @@ export const canGenerateTrinityDescriptionSuggestion = (
  * 调用时机：onSubmitIpip 提交前调用。
  */
 export const collectMissingFields = (
+    gender: string,
     organization: string,
     role: string,
     careerGoal: string,
     descriptions: IpipPersonaSeedDescriptions,
 ): string[] => {
     const missing: string[] = [];
+    // 性别字段为空时加入缺失列表
+    if (!gender.trim()) {
+        missing.push("Gender");
+    }
     // 组织字段为空时加入缺失列表
     if (!organization.trim()) {
         missing.push("Organization");
@@ -200,6 +205,8 @@ export const collectMissingFields = (
 export const toProfileSubject = (payload: IpipNeo120SubmissionPayload): IpipSubjectProfile => ({
     id: payload.subject.id,
     name: payload.subject.name,
+    age: payload.subject.age,
+    gender: payload.subject.gender?.trim() || undefined,
     organization: payload.subject.organization,
     role: payload.subject.role,
     careerGoal: payload.subject.careerGoal,
@@ -358,7 +365,18 @@ function hasSubmissionSubject(value: unknown): value is IpipNeo120SubmissionPayl
     if (!isStringValue(value.role)) {
         return false;
     }
-    return isStringValue(value.careerGoal);
+    if (!isStringValue(value.careerGoal)) {
+        return false;
+    }
+    if (value.gender !== undefined && !isStringValue(value.gender)) {
+        return false;
+    }
+    if (value.age !== undefined) {
+        if (typeof value.age !== "number" || !Number.isFinite(value.age) || !Number.isInteger(value.age)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 /** @同步豁免: 纯结构校验，无异步依赖 */
@@ -426,6 +444,8 @@ export interface ImportedPersonaProfileResult {
     readonly profilePath: string;
     readonly subjectId: string;
     readonly subjectName: string;
+    readonly gender: string;
+    readonly age: number;
     readonly organization: string;
     readonly role: string;
     readonly careerGoal: string;
@@ -466,6 +486,8 @@ async function importPersonaProfileFile(
         profilePath,
         subjectId,
         subjectName: profile.subject.name.trim(),
+        gender: (profile.subject.gender || "").trim(),
+        age: Number.isInteger(profile.subject.age) ? profile.subject.age : 0,
         organization: (profile.subject.organization || "").trim(),
         role: (profile.subject.role || "").trim(),
         careerGoal: (profile.subject.careerGoal || "").trim(),
@@ -491,6 +513,8 @@ async function importSubmissionArchiveFile(
             subject: {
                 id: submission.subject.id,
                 name: submission.subject.name,
+                age: Number.isInteger(submission.subject.age) ? submission.subject.age : undefined,
+                gender: submission.subject.gender?.trim() || undefined,
                 organization: submission.subject.organization,
                 role: submission.subject.role,
                 careerGoal: submission.subject.careerGoal,
@@ -512,6 +536,8 @@ async function importSubmissionArchiveFile(
         profilePath: paths.profilePath,
         subjectId,
         subjectName: submission.subject.name.trim(),
+        gender: (submission.subject.gender || "").trim(),
+        age: Number.isInteger(submission.subject.age) ? submission.subject.age : 0,
         organization: submission.subject.organization.trim(),
         role: submission.subject.role.trim(),
         careerGoal: submission.subject.careerGoal.trim(),

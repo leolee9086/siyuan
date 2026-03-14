@@ -3,6 +3,15 @@ import type { QuestionnaireDraftSubject } from "../../data/convergence/persona-s
 import type { IpipPersonaSeedDescriptions } from "../../data/questionnaire.types";
 import type { LikertScore } from "../../components/persona/CompositeRating.types";
 
+/** @同步豁免: 草稿解析同步路径中的纯字段读取 */
+function readOptionalNumber(record: Record<string, unknown>, key: string): number | undefined {
+    const value = Reflect.get(record, key);
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+        return undefined;
+    }
+    return Number.isInteger(value) ? value : Math.trunc(value);
+}
+
 /**
  * 从 localStorage 解析出的草稿中间结构。
  *
@@ -43,6 +52,8 @@ export function parseQuestionnaireDraft(value: unknown): ParsedQuestionnaireDraf
         subject: {
             id: readOptionalString(subject, "id") ?? "",
             name: readOptionalString(subject, "name") ?? "",
+            gender: readOptionalString(subject, "gender") ?? "",
+            age: readOptionalNumber(subject, "age") ?? 0,
             type,
             organization: readOptionalString(subject, "organization") ?? "",
             role: readOptionalString(subject, "role") ?? "",

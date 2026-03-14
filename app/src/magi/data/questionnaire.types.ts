@@ -118,6 +118,8 @@ export interface IpipNeo120RawAnswer {
 export interface IpipNeo120SubjectMeta {
     readonly id: string;
     readonly name: string;
+    readonly gender?: string;
+    readonly age?: number;
     readonly type: "human" | "ai_agent";
     readonly organization: string;
     readonly role: string;

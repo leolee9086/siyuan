@@ -14,6 +14,8 @@ import type { LikertScore } from "../../components/persona/CompositeRating.types
 export interface PanelState {
     readonly subjectId: Ref<string>;
     readonly subjectName: Ref<string>;
+    readonly gender: Ref<string>;
+    readonly age: Ref<number>;
     readonly subjectType: Ref<SubjectType>;
     readonly organization: Ref<string>;
     readonly role: Ref<string>;

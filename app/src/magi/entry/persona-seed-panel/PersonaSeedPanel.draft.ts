@@ -34,6 +34,8 @@ function assignDescriptions(s: PanelState, d: IpipPersonaSeedDescriptions): void
  */
 function resetPanelState(s: PanelState): void {
     s.answers.value = [];
+    s.gender.value = "";
+    s.age.value = 0;
     s.organization.value = "";
     s.role.value = "";
     s.careerGoal.value = "";
@@ -52,6 +54,8 @@ function saveDraft(s: PanelState): void {
         subject: {
             id: s.subjectId.value || "zhi",
             name: s.subjectName.value || "zhi",
+            gender: s.gender.value,
+            age: s.age.value,
             type: s.subjectType.value,
             organization: s.organization.value,
             role: s.role.value,
@@ -83,6 +87,8 @@ function loadDraft(s: PanelState, id: string): void {
         return;
     }
     s.subjectName.value = draft.subject.name || s.subjectName.value;
+    s.gender.value = draft.subject.gender;
+    s.age.value = draft.subject.age;
     s.subjectType.value = draft.subject.type || s.subjectType.value;
     s.organization.value = draft.subject.organization;
     s.role.value = draft.subject.role;

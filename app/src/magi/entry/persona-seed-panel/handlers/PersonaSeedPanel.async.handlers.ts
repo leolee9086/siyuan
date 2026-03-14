@@ -133,6 +133,7 @@ async function handleSubmitIpip(
     payload: IpipNeo120SubmissionPayload,
 ): Promise<void> {
     const missingFields = collectMissingFields(
+        s.gender.value,
         s.organization.value, s.role.value, s.careerGoal.value, s.seedDescriptions.value,
     );
     // 存在未填写字段时阻止提交并提示
@@ -172,6 +173,8 @@ async function handleImportPersonaProfile(
         const imported = await importPersonaProfileArchive(file);
         s.subjectId.value = imported.subjectId || s.subjectId.value;
         s.subjectName.value = imported.subjectName || s.subjectName.value;
+        s.gender.value = imported.gender;
+        s.age.value = imported.age;
         s.organization.value = imported.organization;
         s.role.value = imported.role;
         s.careerGoal.value = imported.careerGoal;
