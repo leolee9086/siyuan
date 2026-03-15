@@ -159,7 +159,7 @@ func defaultMelchiorConfig() AgentConfig {
 		MardukConfig:   MardukConfig{},
 		ContextPercent: 0.8,
 		SystemPrompt:   prompts.MelchiorSystemPrompt,
-		Tools:          []ToolDef{BuildAvatarBuildToolDef()},
+		Tools:          []ToolDef{BuildAvatarBuildToolDef(), BuildDeliberationSignalToolDef()},
 	}
 }
 
@@ -263,6 +263,7 @@ func applyRequiredAvatarTools(cfg *MAGIConfig) {
 		return
 	}
 	ensureToolRegistered(&cfg.Melchior, BuildAvatarBuildToolDef())
+	ensureToolRegistered(&cfg.Melchior, BuildDeliberationSignalToolDef())
 	ensureToolRegistered(&cfg.Balthazar, BuildAvatarModifyToolDef())
 	ensureToolRegistered(&cfg.Casper, BuildAvatarModifyToolDef())
 	ensureToolRegistered(&cfg.Trinity, BuildSpeakToolDef())

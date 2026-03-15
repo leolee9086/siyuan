@@ -37,6 +37,8 @@ export interface MagiSessionExportVoteStatus {
     details: Array<{ name: string; decision: string }>;
     proposedAction?: string;
     timestamp: number;
+    deliberationInitiator?: string;
+    deliberationReason?: string;
 }
 
 /** MAGI 导出轮次 */

@@ -101,7 +101,7 @@ func TestPushVotingResult(t *testing.T) {
 		{Name: "Balthazar", Decision: "批准"},
 		{Name: "Casper", Decision: "批准"},
 	}
-	err := PushVotingResult("test-session", "round-1", details)
+	err := PushVotingResult("test-session", "round-1", details, "", "")
 	if err != nil {
 		t.Errorf("PushVotingResult() error = %v", err)
 	}

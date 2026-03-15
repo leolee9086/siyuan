@@ -115,6 +115,31 @@ function isRoundFailedPayload(payload: Record<string, unknown>): boolean {
 }
 
 /**
+ * 验证 TOOL_CALL_DETECTED 事件的特定字段。
+ */
+function isToolCallDetectedPayload(payload: Record<string, unknown>): boolean {
+    return (
+        typeof payload.seelName === "string" &&
+        typeof payload.displayName === "string" &&
+        typeof payload.toolName === "string" &&
+        typeof payload.arguments === "object" &&
+        payload.arguments !== null
+    );
+}
+
+/**
+ * 验证 DELIBERATION_SIGNAL_RAISED 事件的特定字段。
+ */
+function isDeliberationSignalRaisedPayload(payload: Record<string, unknown>): boolean {
+    return (
+        typeof payload.initiator === "string" &&
+        typeof payload.displayName === "string" &&
+        typeof payload.reason === "string" &&
+        typeof payload.requiresDeliberation === "boolean"
+    );
+}
+
+/**
  * 事件类型到验证函数的映射表。
  */
 const eventValidators: Record<MagiEventName, (payload: Record<string, unknown>) => boolean> = {
@@ -127,6 +152,8 @@ const eventValidators: Record<MagiEventName, (payload: Record<string, unknown>) 
     TRINITY_SYNTHESIS_COMPLETED: isTrinitySynthesisCompletedPayload,
     CONSENSUS_EMITTED: isConsensusEmittedPayload,
     ROUND_FAILED: isRoundFailedPayload,
+    TOOL_CALL_DETECTED: isToolCallDetectedPayload,
+    DELIBERATION_SIGNAL_RAISED: isDeliberationSignalRaisedPayload,
 };
 
 /**

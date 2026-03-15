@@ -110,11 +110,17 @@ function formatSseStreamContent(msg: MagiMainPanelMessageView, texts: MagiMainPa
 function formatVoteStatusContent(
     texts: MagiMainPanelTexts,
     progress: number,
-    details?: Array<{ name: string; decision: string }>
+    details?: Array<{ name: string; decision: string }>,
+    deliberationInitiator?: string,
+    deliberationReason?: string
 ): string {
     const lines = [`[${texts.voteStatusPrefixText}] ${texts.progressPrefixText}: ${progress}%`];
 
-    // details 存在且非空时追加明细，避免输出空占位行。
+    if (deliberationInitiator && deliberationReason) {
+        lines.push(`🔔 审慎决策 | 发起者: ${deliberationInitiator}`);
+        lines.push(`原因: ${deliberationReason}`);
+    }
+
     if (details && details.length > 0) {
         lines.push(
             ...details.map((detail) => {
@@ -144,7 +150,13 @@ function formatContent(texts: MagiMainPanelTexts, msg: MagiMainPanelMessageView)
 
     // vote-status 消息改为多行展示，包含总进度和每位贤者投票结果。
     if (voteMeta) {
-        return formatVoteStatusContent(texts, voteMeta.progress ?? 0, voteMeta.details);
+        return formatVoteStatusContent(
+            texts,
+            voteMeta.progress ?? 0,
+            voteMeta.details,
+            voteMeta.deliberationInitiator,
+            voteMeta.deliberationReason
+        );
     }
 
     return msg.content;

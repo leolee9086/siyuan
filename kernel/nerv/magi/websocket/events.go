@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
 )
 
@@ -35,6 +36,8 @@ const (
 	EventTrinitySynthesisCompleted = "TRINITY_SYNTHESIS_COMPLETED"
 	EventConsensusEmitted          = "CONSENSUS_EMITTED"
 	EventRoundFailed               = "ROUND_FAILED"
+	EventToolCallDetected          = "TOOL_CALL_DETECTED"
+	EventDeliberationSignalRaised  = "DELIBERATION_SIGNAL_RAISED"
 )
 
 var (
@@ -169,7 +172,7 @@ type VoteDetail struct {
 }
 
 // PushVotingResult 推送投票结果汇总事件
-func PushVotingResult(sessionId, roundId string, details []VoteDetail) error {
+func PushVotingResult(sessionId, roundId string, details []VoteDetail, deliberationInitiator, deliberationReason string) error {
 	data := map[string]interface{}{
 		"eventId":   generateEventID(),
 		"seq":       globalSeq,
@@ -177,6 +180,14 @@ func PushVotingResult(sessionId, roundId string, details []VoteDetail) error {
 		"timestamp": time.Now().UnixMilli(),
 		"progress":  100,
 		"details":   details,
+	}
+	if deliberationInitiator != "" {
+		data["deliberationInitiator"] = deliberationInitiator
+		logging.LogInfof("PushVotingResult: 包含审慎决策发起者=%s", deliberationInitiator)
+	}
+	if deliberationReason != "" {
+		data["deliberationReason"] = deliberationReason
+		logging.LogInfof("PushVotingResult: 包含审慎决策原因=%s", deliberationReason)
 	}
 	return globalPusher.Push(sessionId, EventSeelVoteUpdated, data)
 }
@@ -228,4 +239,34 @@ func PushRoundFailed(sessionId, roundId, errorMsg string) error {
 		"error":     errorMsg,
 	}
 	return globalPusher.Push(sessionId, EventRoundFailed, data)
+}
+
+// PushToolCallDetected 推送通用工具调用检测事件
+func PushToolCallDetected(sessionId, roundId, seelName, displayName, toolName string, arguments map[string]interface{}) error {
+	data := map[string]interface{}{
+		"eventId":     generateEventID(),
+		"seq":         globalSeq,
+		"roundId":     roundId,
+		"timestamp":   time.Now().UnixMilli(),
+		"seelName":    seelName,
+		"displayName": displayName,
+		"toolName":    toolName,
+		"arguments":   arguments,
+	}
+	return globalPusher.Push(sessionId, EventToolCallDetected, data)
+}
+
+// PushDeliberationSignalRaised 推送审慎决策信号事件
+func PushDeliberationSignalRaised(sessionId, roundId, initiator, displayName, reason string, requiresDeliberation bool) error {
+	data := map[string]interface{}{
+		"eventId":              generateEventID(),
+		"seq":                  globalSeq,
+		"roundId":              roundId,
+		"timestamp":            time.Now().UnixMilli(),
+		"initiator":            initiator,
+		"displayName":          displayName,
+		"reason":               reason,
+		"requiresDeliberation": requiresDeliberation,
+	}
+	return globalPusher.Push(sessionId, EventDeliberationSignalRaised, data)
 }

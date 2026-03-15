@@ -50,6 +50,7 @@ func ProcessVoting(
 	casper *sages.Sage,
 	proposedAction string,
 	voteCtx VoteContext,
+	deliberationInitiator, deliberationReason string,
 ) (*VoteResult, error) {
 	// 推送投票开始
 	if err := websocket.PushVotingStart(sessionId, roundId, proposedAction, 1); err != nil {
@@ -114,7 +115,7 @@ func ProcessVoting(
 		{Name: "balthazar", Decision: result.Balthazar},
 		{Name: "casper", Decision: result.Casper},
 	}
-	if err := websocket.PushVotingResult(sessionId, roundId, details); err != nil {
+	if err := websocket.PushVotingResult(sessionId, roundId, details, deliberationInitiator, deliberationReason); err != nil {
 		logging.LogWarnf("推送投票结果失败: %v", err)
 	}
 

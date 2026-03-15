@@ -214,3 +214,83 @@ func TestCollectSingleSageResponse_WithToolCalls(t *testing.T) {
 		t.Fatalf("期望DeliberationReason为'测试原因'，得到 '%s'", response.DeliberationReason)
 	}
 }
+
+// TestCollectSingleSageResponse_WithInvalidToolArgs 测试工具调用参数非法
+func TestCollectSingleSageResponse_WithInvalidToolArgs(t *testing.T) {
+	collector := NewResponseCollector(5 * time.Second)
+
+	cfg := &config.AgentConfig{
+		SEELConfig: config.SEELConfig{
+			Name: "Melchior",
+		},
+	}
+	strategy := &config.ContextStrategy{
+		Type:  "message_count",
+		Count: 7,
+	}
+	client := &mockLLMClient{
+		responseContent: "分析内容",
+		hasToolCall:     true,
+		toolCallArgs:    `{invalid json}`, // 非法JSON
+	}
+	melchior := sages.NewSage("melchior", cfg, client, strategy)
+
+	ctx := context.Background()
+	response, err := collector.collectSingleSageResponse(ctx, "test-session", "test-round", melchior, "测试消息")
+
+	if err != nil {
+		t.Fatalf("期望成功（解析失败不应导致整体失败），但得到错误: %v", err)
+	}
+
+	if !response.UsedToolCall {
+		t.Fatal("期望UsedToolCall为true（检测到工具调用），但为false")
+	}
+
+	// 非法JSON应该导致审慎决策字段保持默认值
+	if response.RequiresDeliberation {
+		t.Fatal("期望RequiresDeliberation为false（解析失败），但为true")
+	}
+
+	if response.DeliberationReason != "" {
+		t.Fatalf("期望DeliberationReason为空（解析失败），得到 '%s'", response.DeliberationReason)
+	}
+}
+
+// TestCollectSingleSageResponse_WithoutToolCalls 测试未调用工具
+func TestCollectSingleSageResponse_WithoutToolCalls(t *testing.T) {
+	collector := NewResponseCollector(5 * time.Second)
+
+	cfg := &config.AgentConfig{
+		SEELConfig: config.SEELConfig{
+			Name: "Melchior",
+		},
+	}
+	strategy := &config.ContextStrategy{
+		Type:  "message_count",
+		Count: 7,
+	}
+	client := &mockLLMClient{
+		responseContent: "直接分析内容",
+		hasToolCall:     false, // 未调用工具
+	}
+	melchior := sages.NewSage("melchior", cfg, client, strategy)
+
+	ctx := context.Background()
+	response, err := collector.collectSingleSageResponse(ctx, "test-session", "test-round", melchior, "测试消息")
+
+	if err != nil {
+		t.Fatalf("期望成功，但得到错误: %v", err)
+	}
+
+	if response.UsedToolCall {
+		t.Fatal("期望UsedToolCall为false（未调用工具），但为true")
+	}
+
+	if response.RequiresDeliberation {
+		t.Fatal("期望RequiresDeliberation为false（未调用工具），但为true")
+	}
+
+	if response.DeliberationReason != "" {
+		t.Fatalf("期望DeliberationReason为空（未调用工具），得到 '%s'", response.DeliberationReason)
+	}
+}

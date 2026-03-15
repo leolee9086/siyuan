@@ -1,12 +1,14 @@
 import type { EventUnsubscribe } from "../../util/lib/events/eventEmitter.types";
 import type {
     MagiConsensusEmittedEvent,
+    MagiDeliberationSignalRaisedEvent,
     MagiEventBus,
     MagiSeelReplyChunkEvent,
     MagiSeelReplyCompletedEvent,
     MagiSeelReplyFailedEvent,
     MagiSeelReplyStartedEvent,
     MagiSeelVoteUpdatedEvent,
+    MagiToolCallDetectedEvent,
 } from "./magiEventBus.types";
 import type {
     MagiProjectorRuntimeState,
@@ -208,6 +210,15 @@ function projectVoteProgress(
     if (typeof event.progress !== "number") {
         return;
     }
+    
+    if (event.progress === 100) {
+        console.log("[DEBUG] projectVoteProgress creating final message:", {
+            deliberationInitiator: event.deliberationInitiator,
+            deliberationReason: event.deliberationReason,
+            messageId: buildProjectedMessageId(event.eventId, "vote-status")
+        });
+    }
+    
     const voteStatus: MagiMessage = {
         id: buildProjectedMessageId(event.eventId, "vote-status"),
         type: "system",
@@ -219,8 +230,15 @@ function projectVoteProgress(
             progress: event.progress,
             details: event.details ?? [],
             ...(event.proposedAction ? { proposedAction: event.proposedAction } : {}),
+            ...(event.deliberationInitiator ? { deliberationInitiator: event.deliberationInitiator } : {}),
+            ...(event.deliberationReason ? { deliberationReason: event.deliberationReason } : {}),
         },
     };
+    
+    if (event.progress === 100) {
+        console.log("[DEBUG] Final message meta:", voteStatus.meta);
+    }
+    
     upsertMessage(state.target.consensusMessages, voteStatus);
 }
 
@@ -288,6 +306,43 @@ function projectVoteUpdated(
     projectVoteError(state, event);
 }
 
+/** 投影审慎决策信号到投票状态。 */
+function projectDeliberationSignal(
+    state: MagiProjectorRuntimeState,
+    event: MagiDeliberationSignalRaisedEvent,
+): void {
+    if (!shouldProcessEvent(state, event.eventId, event.seq)) {
+        return;
+    }
+    const voteStatusMsg = state.target.consensusMessages.find((msg) => msg.meta?.type === "vote-status");
+    if (voteStatusMsg?.meta) {
+        voteStatusMsg.meta.deliberationInitiator = event.initiator;
+        voteStatusMsg.meta.deliberationReason = event.reason;
+    }
+}
+
+/** 投影工具调用到贤者面板。 */
+function projectToolCall(
+    state: MagiProjectorRuntimeState,
+    event: MagiToolCallDetectedEvent,
+): void {
+    if (!shouldProcessEvent(state, event.eventId, event.seq)) {
+        return;
+    }
+    const seel = findSeelByName(state.target.seels, event.seelName, event.displayName);
+    if (!seel) {
+        return;
+    }
+    const toolCallMsg: MagiMessage = {
+        id: buildProjectedMessageId(event.eventId, "tool-call"),
+        type: "system",
+        content: `🔧 调用工具: ${event.toolName}`,
+        status: "success",
+        timestamp: event.timestamp,
+    };
+    upsertMessage(seel.messages, toolCallMsg);
+}
+
 /** 投影主消息流事件。 */
 function projectConsensusMessage(
     state: MagiProjectorRuntimeState,
@@ -310,6 +365,8 @@ function registerSeelSubscriptions(
     subscriptions.push(eventBus.subscribe("SEEL_REPLY_COMPLETED", projectSeelReplyCompleted.bind(null, state)));
     subscriptions.push(eventBus.subscribe("SEEL_REPLY_FAILED", projectSeelReplyFailed.bind(null, state)));
     subscriptions.push(eventBus.subscribe("SEEL_VOTE_UPDATED", projectVoteUpdated.bind(null, state)));
+    subscriptions.push(eventBus.subscribe("DELIBERATION_SIGNAL_RAISED", projectDeliberationSignal.bind(null, state)));
+    subscriptions.push(eventBus.subscribe("TOOL_CALL_DETECTED", projectToolCall.bind(null, state)));
 }
 
 /** 构造统一取消订阅函数。 */

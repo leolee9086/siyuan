@@ -33,6 +33,8 @@ export function isVoteStatusMeta(
     type: "vote-status";
     progress?: number;
     details?: Array<{ name: string; decision: string }>;
+    deliberationInitiator?: string;
+    deliberationReason?: string;
 } {
     if (typeof meta !== "object" || meta === null) {
         return false;
@@ -44,13 +46,18 @@ export function isVoteStatusMeta(
     if (m.progress !== undefined && typeof m.progress !== "number") {
         return false;
     }
-    // 检查 details 字段是否为数组且每个元素符合投票详情格式
     if (m.details !== undefined && Array.isArray(m.details)) {
         for (const item of m.details) {
             if (!isVoteDetail(item)) {
                 return false;
             }
         }
+    }
+    if (m.deliberationInitiator !== undefined && typeof m.deliberationInitiator !== "string") {
+        return false;
+    }
+    if (m.deliberationReason !== undefined && typeof m.deliberationReason !== "string") {
+        return false;
     }
     return true;
 }

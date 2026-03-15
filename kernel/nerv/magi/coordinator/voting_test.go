@@ -67,6 +67,7 @@ func TestProcessVoting_BothApprove(t *testing.T) {
 		casper,
 		"测试提案",
 		VoteContext{UserMessage: "用户输入", MelchiorConclusion: "Melchior判断"},
+		"", "",
 	)
 
 	if err != nil {
@@ -103,6 +104,7 @@ func TestProcessVoting_PartialApprove(t *testing.T) {
 		casper,
 		"测试提案",
 		VoteContext{UserMessage: "用户输入", MelchiorConclusion: "Melchior判断"},
+		"", "",
 	)
 
 	if err != nil {
@@ -136,6 +138,7 @@ func TestProcessVoting_BothReject(t *testing.T) {
 		casper,
 		"测试提案",
 		VoteContext{UserMessage: "用户输入", MelchiorConclusion: "Melchior判断"},
+		"", "",
 	)
 
 	if err != nil {
@@ -169,6 +172,7 @@ func TestProcessVoting_Timeout(t *testing.T) {
 		casper,
 		"测试提案",
 		VoteContext{UserMessage: "用户输入", MelchiorConclusion: "Melchior判断"},
+		"", "",
 	)
 
 	if err != nil {
@@ -299,6 +303,7 @@ func TestProcessVoting_Failure(t *testing.T) {
 		casper,
 		"测试提案",
 		VoteContext{UserMessage: "用户输入", MelchiorConclusion: "Melchior判断"},
+		"", "",
 	)
 
 	if err != nil {

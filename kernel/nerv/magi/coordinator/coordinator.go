@@ -197,11 +197,18 @@ func (c *Coordinator) executeVoting(
 	responses []types.SageResponse,
 	userMessage string,
 ) (*VoteResult, error) {
-	// 提取Melchior的结论作为提案
+	// 提取Melchior的结论和审慎决策信息
 	var melchiorConclusion string
+	var deliberationInitiator string
+	var deliberationReason string
 	for _, resp := range responses {
 		if resp.Seel == "melchior" {
 			melchiorConclusion = resp.Content
+			if resp.RequiresDeliberation {
+				deliberationInitiator = resp.Seel
+				deliberationReason = resp.DeliberationReason
+				logging.LogInfof("executeVoting: 检测到审慎决策 - 发起者=%s, 原因=%s", deliberationInitiator, deliberationReason)
+			}
 			break
 		}
 	}
@@ -213,7 +220,7 @@ func (c *Coordinator) executeVoting(
 	}
 
 	// 执行投票
-	return ProcessVoting(ctx, sessionId, roundId, balthazar, casper, melchiorConclusion, voteCtx)
+	return ProcessVoting(ctx, sessionId, roundId, balthazar, casper, melchiorConclusion, voteCtx, deliberationInitiator, deliberationReason)
 }
 
 // buildRejectionMessage 构建否决消息

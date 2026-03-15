@@ -14,6 +14,8 @@ const MAGI_EVENT_NAMES: MagiEventName[] = [
     "TRINITY_SYNTHESIS_COMPLETED",
     "CONSENSUS_EMITTED",
     "ROUND_FAILED",
+    "TOOL_CALL_DETECTED",
+    "DELIBERATION_SIGNAL_RAISED",
 ];
 
 interface MagiEventEnvelope {

@@ -159,7 +159,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 			if !ok {
 				// 流结束
 				result := processor.GetResult(true)
-				response, err := rc.buildSageResponse(sessionId, sage, result)
+				response, err := rc.buildSageResponse(sessionId, roundId, sage, result)
 				if err != nil {
 					// 推送失败事件
 					if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, sage.GetName(), sage.GetDisplayName(), err.Error()); pushErr != nil {
@@ -226,7 +226,7 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 }
 
 // buildSageResponse 构建SageResponse
-func (rc *ResponseCollector) buildSageResponse(sessionId string, sage *sages.Sage, result *utilstream.StreamResult) (*types.SageResponse, error) {
+func (rc *ResponseCollector) buildSageResponse(sessionId, roundId string, sage *sages.Sage, result *utilstream.StreamResult) (*types.SageResponse, error) {
 	// 检查是否有有效内容
 	if result.Content == "" && !result.HasToolCalls {
 		return nil, fmt.Errorf("贤者响应为空")
@@ -241,6 +241,20 @@ func (rc *ResponseCollector) buildSageResponse(sessionId string, sage *sages.Sag
 		ToolArgumentsByName: result.ToolArgumentsByName,
 	}
 
+	// 推送通用工具调用检测事件
+	if result.HasToolCalls {
+		for toolName, argsArray := range result.ToolArgumentsByName {
+			if len(argsArray) > 0 {
+				var argsMap map[string]interface{}
+				if err := json.Unmarshal([]byte(argsArray[0]), &argsMap); err == nil {
+					if err := websocket.PushToolCallDetected(sessionId, roundId, sage.GetName(), sage.GetDisplayName(), toolName, argsMap); err != nil {
+						logging.LogWarnf("推送工具调用检测事件失败: %v", err)
+					}
+				}
+			}
+		}
+	}
+
 	// 检查是否有deliberation_signal工具调用（仅Melchior）
 	if sage.GetName() == "melchior" && result.HasToolCalls {
 		if args, ok := result.ToolArgumentsByName["deliberation_signal"]; ok && len(args) > 0 {
@@ -248,6 +262,18 @@ func (rc *ResponseCollector) buildSageResponse(sessionId string, sage *sages.Sag
 			if err := json.Unmarshal([]byte(args[0]), &signal); err == nil {
 				response.RequiresDeliberation = signal.RequiresDeliberation
 				response.DeliberationReason = signal.Reason
+
+				logging.LogInfof("审慎决策信号已提取: RequiresDeliberation=%v, Reason=%s", signal.RequiresDeliberation, signal.Reason)
+
+				// 推送审慎决策信号专用事件
+				if err := websocket.PushDeliberationSignalRaised(
+					sessionId, roundId, sage.GetName(), sage.GetDisplayName(),
+					signal.Reason, signal.RequiresDeliberation,
+				); err != nil {
+					logging.LogWarnf("推送审慎决策信号事件失败: %v", err)
+				}
+			} else {
+				logging.LogWarnf("解析deliberation_signal参数失败: %v, args=%s", err, args[0])
 			}
 		}
 	}

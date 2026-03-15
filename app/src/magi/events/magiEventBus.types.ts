@@ -11,7 +11,9 @@ export type MagiEventName =
     | "SEEL_VOTE_UPDATED"
     | "TRINITY_SYNTHESIS_COMPLETED"
     | "CONSENSUS_EMITTED"
-    | "ROUND_FAILED";
+    | "ROUND_FAILED"
+    | "TOOL_CALL_DETECTED"
+    | "DELIBERATION_SIGNAL_RAISED";
 
 /** 事件公共字段。 */
 export interface MagiEventBase {
@@ -65,6 +67,8 @@ export interface MagiSeelVoteUpdatedEvent extends MagiEventBase {
     decision?: "批准" | "否决";
     round?: number;
     error?: string;
+    deliberationInitiator?: string;
+    deliberationReason?: string;
 }
 
 /** Trinity 统合完成事件。 */
@@ -82,6 +86,22 @@ export interface MagiRoundFailedEvent extends MagiEventBase {
     error: string;
 }
 
+/** 通用工具调用检测事件。 */
+export interface MagiToolCallDetectedEvent extends MagiEventBase {
+    seelName: string;
+    displayName: string;
+    toolName: string;
+    arguments: Record<string, unknown>;
+}
+
+/** 审慎决策信号事件。 */
+export interface MagiDeliberationSignalRaisedEvent extends MagiEventBase {
+    initiator: string;
+    displayName: string;
+    reason: string;
+    requiresDeliberation: boolean;
+}
+
 /** MAGI 事件载荷映射。 */
 export interface MagiEventPayloadMap {
     ROUND_STARTED: MagiRoundStartedEvent;
@@ -93,6 +113,8 @@ export interface MagiEventPayloadMap {
     TRINITY_SYNTHESIS_COMPLETED: MagiTrinitySynthesisCompletedEvent;
     CONSENSUS_EMITTED: MagiConsensusEmittedEvent;
     ROUND_FAILED: MagiRoundFailedEvent;
+    TOOL_CALL_DETECTED: MagiToolCallDetectedEvent;
+    DELIBERATION_SIGNAL_RAISED: MagiDeliberationSignalRaisedEvent;
 }
 
 /**

@@ -67,6 +67,8 @@ const (
 	AvatarSynthesizeToolName = "synthesizeAvatar"
 	// SpeakToolName Trinity 输出工具名。
 	SpeakToolName = "speak"
+	// DeliberationSignalToolName Melchior 审慎决策信号工具名。
+	DeliberationSignalToolName = "deliberation_signal"
 )
 
 // BuildAvatarBuildToolDef 构建 Avatar 创建工具定义。
@@ -169,6 +171,31 @@ func BuildSpeakToolDef() ToolDef {
 					},
 				},
 				"required": []string{"content"},
+			},
+		},
+	}
+}
+
+// BuildDeliberationSignalToolDef 构建 Melchior 审慎决策信号工具定义。
+func BuildDeliberationSignalToolDef() ToolDef {
+	return ToolDef{
+		Type: "function",
+		Function: ToolFunctionDef{
+			Name:        DeliberationSignalToolName,
+			Description: "发出审慎决策信号，表明当前决策需要慎重考虑。",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"requires_deliberation": map[string]interface{}{
+						"type":        "boolean",
+						"description": "是否需要审慎决策",
+					},
+					"reason": map[string]interface{}{
+						"type":        "string",
+						"description": "需要审慎决策的原因",
+					},
+				},
+				"required": []string{"requires_deliberation", "reason"},
 			},
 		},
 	}
