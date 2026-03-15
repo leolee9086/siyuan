@@ -22,6 +22,7 @@ import {checkFold} from "../../util/platform/noRelyPCFunction";
 import {hideAllElements} from "../../protyle/ui/hideElements";
 import {dragOverScroll, stopScrollAnimation} from "./dragover";
 import {setWebViewFocusable} from "../../mobile/util/mobileAppUtil";
+import {isBrowser} from "../../platform";
 
 export const initWindowEvent = (app: App) => {
     document.body.addEventListener("mouseleave", () => {
@@ -126,9 +127,9 @@ export const initWindowEvent = (app: App) => {
         window.siyuan.ctrlIsPressed = false;
         window.siyuan.shiftIsPressed = false;
         window.siyuan.altIsPressed = false;
-        /// #if BROWSER
-        setWebViewFocusable();
-        /// #endif
+        if (isBrowser) {
+            setWebViewFocusable();
+        }
     });
 
     window.addEventListener("click", (event: MouseEvent & { target: HTMLElement }) => {

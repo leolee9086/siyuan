@@ -106,3 +106,28 @@ func formatUpdated(updated string) (ret string) {
 	}
 	return
 }
+
+// Plugins 返回插件列表
+func Plugins(frontend string) []*Package {
+	return GetBazaarPackages("plugins", frontend)
+}
+
+// Icons 返回图标列表
+func Icons() []*Package {
+	return GetBazaarPackages("icons", "")
+}
+
+// Templates 返回模板列表
+func Templates() []*Package {
+	return GetBazaarPackages("templates", "")
+}
+
+// Widgets 返回小组件列表
+func Widgets() []*Package {
+	return GetBazaarPackages("widgets", "")
+}
+
+// Themes 返回主题列表
+func Themes() []*Package {
+	return GetBazaarPackages("themes", "")
+}

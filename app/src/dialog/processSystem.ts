@@ -238,19 +238,20 @@ export const lockScreen = async (app: App) => {
     app.plugins.forEach(item => {
         item.eventBus.emit("lock-screen");
     });
-    /// #if !MOBILE
+    if (isMobile()) {
+        if (!window.siyuan.mobile.editor) {
+            return;
+        }
+        await saveScroll(window.siyuan.mobile.editor.protyle);
+        fetchPost("/api/system/logoutAuth");
+        return;
+    }
     exportLayout({
         errorExit: false,
         cb() {
             fetchPost("/api/system/logoutAuth");
         }
     });
-    /// #else
-    if (window.siyuan.mobile.editor) {
-        await saveScroll(window.siyuan.mobile.editor.protyle);
-        fetchPost("/api/system/logoutAuth");
-    }
-    /// #endif
 };
 
 export const kernelError = () => {

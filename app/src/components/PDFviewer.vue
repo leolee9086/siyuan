@@ -499,16 +499,13 @@
 </template>
 <script setup lang="ts">
 import { Constants } from "../constants";
+import { isElectron } from "../platform";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig, getSiyuanStorage } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { setStorageVal } from "../protyle/util/compatibility";
-/// #if !MOBILE
 //@ts-ignore
 import { webViewerLoad } from "../asset/pdf/viewer";
-/// #endif
-/// #if !BROWSER
 import { setModelsHash } from "../window/setHeader";
-/// #endif
 
 import { updateHotkeyTip } from "../protyle/util/compatibility";
 import { onMounted, ref } from "vue";
@@ -580,9 +577,9 @@ onMounted(
                     controller.element, controller.pdfPage, controller.pdfId);
                 controller.element.setAttribute("data-loading", "true");
             }
-            /// #if !BROWSER
-            setModelsHash();
-            /// #endif
+            if (isElectron) {
+                setModelsHash();
+            }
 
 
         }, Constants.TIMEOUT_LOAD);

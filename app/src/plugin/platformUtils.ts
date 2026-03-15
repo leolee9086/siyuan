@@ -1,8 +1,7 @@
 import * as compatibility from "../protyle/util/compatibility";
-/// #if !BROWSER
-import {ipcRenderer} from "electron";
 import {Constants} from "../constants";
-/// #endif
+import {isElectron} from "../platform";
+import {ipcSend} from "../platform/electron/ipcRenderer";
 export const openByMobile = compatibility.openByMobile;
 export const readText = compatibility.readText;
 export const writeText = compatibility.writeText;
@@ -37,36 +36,38 @@ export const sendNotification = (options: {
             return;
         }
 
-        /// #if BROWSER
-        const channel = options.channel || "SiYuan Notifications";
-        if (window.JSAndroid && window.JSAndroid.sendNotification) {
-            const id = window.JSAndroid.sendNotification(channel, title, body, delayInSeconds);
-            resolve(id);
-        } else if (window.JSHarmony && window.JSHarmony.sendNotification) {
-            const id = window.JSHarmony.sendNotification(channel, title, body, delayInSeconds);
-            resolve(id);
-        } else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.sendNotification) {
-            const callbackId = "cb_" + Date.now();
-            // 定义临时回调
-            if (!window.webkit.nativeCallbacks) {
-                window.webkit.nativeCallbacks = {};
-            }
-            window.webkit.nativeCallbacks[callbackId] = (id: number) => {
-                delete window.webkit.nativeCallbacks[callbackId];
+        if (!isElectron) {
+            const channel = options.channel || "SiYuan Notifications";
+            if (window.JSAndroid && window.JSAndroid.sendNotification) {
+                const id = window.JSAndroid.sendNotification(channel, title, body, delayInSeconds);
                 resolve(id);
-            };
-            window.webkit.messageHandlers.sendNotification.postMessage({
-                title,
-                body,
-                delay: delayInSeconds,
-                callback: `window.webkit.nativeCallbacks.${callbackId}`
-            });
-        } else {
-            resolve(-1);
+            } else if (window.JSHarmony && window.JSHarmony.sendNotification) {
+                const id = window.JSHarmony.sendNotification(channel, title, body, delayInSeconds);
+                resolve(id);
+            } else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.sendNotification) {
+                const callbackId = "cb_" + Date.now();
+                // 定义临时回调
+                if (!window.webkit.nativeCallbacks) {
+                    window.webkit.nativeCallbacks = {};
+                }
+                window.webkit.nativeCallbacks[callbackId] = (id: number) => {
+                    delete window.webkit.nativeCallbacks[callbackId];
+                    resolve(id);
+                };
+                window.webkit.messageHandlers.sendNotification.postMessage({
+                    title,
+                    body,
+                    delay: delayInSeconds,
+                    callback: `window.webkit.nativeCallbacks.${callbackId}`
+                });
+            } else {
+                resolve(-1);
+            }
+            return;
         }
-        /// #else
+
         const timeoutId = window.setTimeout(() => {
-            ipcRenderer.send(Constants.SIYUAN_CMD, {
+            ipcSend(Constants.SIYUAN_CMD, {
                 cmd: "notification",
                 title,
                 body,
@@ -74,7 +75,6 @@ export const sendNotification = (options: {
             });
         }, delayInSeconds * 1000);
         resolve(timeoutId);
-        /// #endif
     });
 };
 
@@ -82,15 +82,17 @@ export const cancelNotification = (id: number) => {
     if (id < 0) {
         return;
     }
-    /// #if BROWSER
-    if (window.JSAndroid && window.JSAndroid.cancelNotification) {
-        window.JSAndroid.cancelNotification(id);
-    } else if (window.JSHarmony && window.JSHarmony.cancelNotification) {
-        window.JSHarmony.cancelNotification(id);
-    } else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.cancelNotification) {
-        window.webkit.messageHandlers.cancelNotification.postMessage(id);
+
+    if (!isElectron) {
+        if (window.JSAndroid && window.JSAndroid.cancelNotification) {
+            window.JSAndroid.cancelNotification(id);
+        } else if (window.JSHarmony && window.JSHarmony.cancelNotification) {
+            window.JSHarmony.cancelNotification(id);
+        } else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.cancelNotification) {
+            window.webkit.messageHandlers.cancelNotification.postMessage(id);
+        }
+        return;
     }
-    /// else
+
     clearTimeout(id);
-    /// #endif
 };

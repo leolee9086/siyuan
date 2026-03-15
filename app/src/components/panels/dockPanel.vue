@@ -26,9 +26,7 @@
 import { ref, computed } from "vue";
 import { isWindow } from "../../util/platform/functions";
 import { updateHotkeyTip } from "../../protyle/util/compatibility";
-/// #if !MOBILE
 import { getAllDocks } from "../../layout/getAll";
-/// #endif
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 // 定义 props
@@ -66,14 +64,12 @@ const selectItem = (type: string, index: number) => {
 // 初始化
 const initializeDocks = () => {
   if (!isWindow()) {
-    /// yeji !MOBILE
     docks.value = getAllDocks().map(dock => ({
       type: dock.type,
       title: dock.title || "",
       icon: dock.icon,
       hotkey: dock.hotkey || ""
     }));
-    /// #endif
   }
 };
 
