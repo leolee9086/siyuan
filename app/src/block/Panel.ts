@@ -1,42 +1,146 @@
-import { hasClosestByClassName } from "../protyle/util/hasClosest";
-import { Protyle } from "../protyle";
-import { genUUID } from "../util/platform/genID";
-import { hideElements } from "../protyle/ui/hideElements";
+// 用途：Protyle编辑器类型；使用范围：编辑器实例数组类型标注；解耦评估：核心类型定义，已通过imports.ts转发
+import type { Protyle } from "./imports";
+// 用途：生成唯一ID；使用范围：为浮窗实例生成唯一标识；解耦评估：工具函数，已通过imports.ts转发
+import { genUUID } from "./imports";
+// 用途：隐藏编辑器工具栏元素；使用范围：销毁编辑器时隐藏工具栏；解耦评估：编辑器UI操作，已通过imports.ts转发
+import { hideElements } from "./imports";
+// 用途：启用对话框拖拽和调整大小功能；使用范围：为浮窗添加拖拽调整大小能力；解耦评估：UI交互功能，已通过imports.ts转发
+import { moveResize } from "./imports";
+// 用途：判断是否为移动端；使用范围：判断是否启用拖拽调整大小功能；解耦评估：平台检测工具，已通过imports.ts转发
+import { isMobile } from "./imports";
+// 用途：App类型定义；使用范围：构造函数参数和实例属性类型标注；解耦评估：核心类型定义，已通过imports.ts转发
+import type { App } from "./imports";
+// 用途：获取全局浮窗面板列表；使用范围：管理浮窗层级和清理；解耦评估：全局状态访问，已通过imports.ts转发
+import { getSiyuanBlockPanels } from "./imports";
+// 用途：获取全局菜单实例；使用范围：销毁浮窗时清理关联菜单；解耦评估：全局状态访问，已通过imports.ts转发
+import { getSiyuanMenus } from "./imports";
+// 用途：递增并获取全局z-index；使用范围：点击浮窗时提升层级；解耦评估：全局状态访问，已通过imports.ts转发
+import { incrementSiyuanZIndex } from "./imports";
+// 用途：构建面板HTML结构；使用范围：render函数中生成浮窗内容；解耦评估：渲染逻辑已分离到Panel.render模块
+import { 构建面板HTML } from "./Panel.render";
+// 用途：设置面板位置；使用范围：首个编辑器加载完成后定位浮窗；解耦评估：定位逻辑已分离到Panel.render模块
+import { 设置面板位置 } from "./Panel.render";
+// 用途：切换浮窗固定状态；使用范围：拖拽调整大小时切换固定；解耦评估：状态切换逻辑已分离到Panel.actions模块
+import { 切换固定状态 } from "./Panel.actions";
+// 用途：设置观察器；使用范围：render函数中设置ResizeObserver和IntersectionObserver；解耦评估：观察器逻辑已分离到Panel.observer模块
+import { 设置观察器 } from "./Panel.observer";
+// 用途：绑定滚动事件；使用范围：render函数中为编辑器绑定滚动同步；解耦评估：滚动事件逻辑已分离到Panel.observer模块
+import { 绑定滚动事件 } from "./Panel.observer";
+// 用途：初始化Protyle编辑器；使用范围：render函数中为每个引用块创建编辑器；解耦评估：编辑器初始化逻辑已分离到Panel.editor模块
+import { 初始化Protyle编辑器 } from "./Panel.editor";
+// 用途：编辑器初始化上下文类型；使用范围：构建编辑器初始化参数；解耦评估：类型定义已分离到Panel.editor.types模块
+import type { EditorInitContext } from "./Panel.editor.types";
+// 用途：初始化浮窗层级；使用范围：构造函数中设置层级关系；解耦评估：层级管理逻辑已分离到Panel.helpers模块
+import { 初始化层级 } from "./Panel.helpers";
+// 用途：清理同级浮窗；使用范围：初始化层级时清理旧浮窗；解耦评估：清理逻辑已分离到Panel.helpers模块
+import { 清理同级浮窗 } from "./Panel.helpers";
+// 用途：处理双击事件；使用范围：双击图标区域切换固定状态；解耦评估：事件处理逻辑已分离到Panel.helpers模块
+import { 处理双击事件 } from "./Panel.helpers";
+// 用途：处理图标点击；使用范围：点击工具栏图标执行操作；解耦评估：事件处理逻辑已分离到Panel.helpers模块
+import { 处理图标点击 } from "./Panel.helpers";
 
-import { moveResize } from "../dialog/moveResize";
-import { isMobile } from "../platform";
-import { App } from "../index";
-import {
-    getSiyuanBlockPanels,
-    getSiyuanMenus,
-    incrementSiyuanZIndex
-} from "../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { 构建面板HTML, 设置面板位置 } from "./Panel.render";
-import { 切换固定状态, 执行图标操作 } from "./Panel.actions";
-import { 设置观察器, 绑定滚动事件 } from "./Panel.observer";
-import { 初始化Protyle编辑器, EditorInitContext } from "./Panel.editor";
+/**
+ * 作用：构建编辑器初始化所需的上下文对象
+ * 意图：集中管理编辑器初始化参数，避免参数传递混乱
+ * 调用时机：render函数中初始化编辑器前调用
+ * @同步豁免: UI构建 - 仅构建数据对象，无异步操作
+ */
+function 获取编辑器上下文(panel: BlockPanel): EditorInitContext {
+    return {
+        app: panel.app,
+        refDefs: panel.refDefs,
+        isBacklink: panel.isBacklink,
+        originalRefBlockIDs: panel.originalRefBlockIDs,
+        targetElement: panel.targetElement,
+        x: panel.x,
+        y: panel.y,
+        editors: panel.editors,
+    };
+}
 
+/**
+ * 作用：渲染浮窗内容并初始化编辑器
+ * 意图：将引用块内容展示在浮窗中，支持懒加载优化性能
+ * 调用时机：BlockPanel构造函数末尾和需要刷新内容时调用
+ * @同步豁免: UI构建 - 需要立即同步渲染DOM结构
+ */
+function render(panel: BlockPanel): void {
+    // 元素不存在或已从DOM移除时销毁实例
+    if (!panel.element || !document.body.contains(panel.element)) {
+        panel.destroy();
+        return;
+    }
+    panel.element.innerHTML = 构建面板HTML(panel.refDefs);
+    const 上下文 = 获取编辑器上下文(panel);
+    //柯里化初始化函数，为每个编辑器实例提供相同的上下文参数
+    const initProtyle = (el: HTMLElement, cb?: () => void) => 初始化Protyle编辑器(el, 上下文, cb);
+    const observers = 设置观察器({
+        element: panel.element,
+        editors: panel.editors,
+        initProtyle,
+    });
+    panel.observerResize = observers.observerResize;
+    panel.observerLoad = observers.observerLoad;
+    const editElements = panel.element.querySelectorAll(".block__edit");
+    let index = 0;
+    for (const item of editElements) {
+        // 超过5个编辑器时使用懒加载，避免初始渲染卡顿
+        if (index >= 5) {
+            panel.observerLoad.observe(item);
+            index++;
+            continue;
+        }
+        const 首个编辑器回调 = index === 0 ? () => {
+            if (panel.element) {
+                设置面板位置({
+                    element: panel.element,
+                    targetElement: panel.targetElement,
+                    x: panel.x,
+                    y: panel.y,
+                });
+            }
+        } : undefined;
+        // querySelectorAll返回的是Element类型，需要类型守卫确保是HTMLElement
+        if (item instanceof HTMLElement) {
+            初始化Protyle编辑器(item, 上下文, 首个编辑器回调);
+        }
+        index++;
+    }
+    if (panel.targetElement) {
+        panel.targetElement.style.cursor = "";
+    }
+    绑定滚动事件({
+        element: panel.element,
+        editors: panel.editors,
+    });
+}
+
+// 块引用浮窗面板类，用于展示引用块内容
 export class BlockPanel {
     public element: HTMLElement | undefined;
     public targetElement: HTMLElement | undefined;
     public refDefs: IRefDefs[];
     public id: string;
-    private app: App;
+    public app: App;
     public x: number | undefined;
     public y: number | undefined;
-    private isBacklink: boolean;
+    public isBacklink: boolean;
     public editors: Protyle[] = [];
-    private observerResize: ResizeObserver | undefined;
-    private observerLoad: IntersectionObserver | undefined;
-    private originalRefBlockIDs: IObject | undefined;
+    public observerResize: ResizeObserver | undefined;
+    public observerLoad: IntersectionObserver | undefined;
+    public originalRefBlockIDs: IObject | undefined;
 
-    // x,y 和 targetElement 二选一必传
+    /**
+     * 作用：创建块引用浮窗实例
+     * 意图：在用户点击引用或反向链接时展示相关块内容
+     * 调用时机：用户触发引用浮窗显示时（如点击引用、悬停等）
+     */
     constructor(options: {
         app: App,
         targetElement?: HTMLElement,
         refDefs: IRefDefs[]
         isBacklink: boolean,
-        originalRefBlockIDs?: IObject,  // isBacklink 为 true 时有效
+        originalRefBlockIDs?: IObject,
         x?: number,
         y?: number,
     }) {
@@ -48,28 +152,30 @@ export class BlockPanel {
         this.y = options.y;
         this.isBacklink = options.isBacklink;
         this.originalRefBlockIDs = options.originalRefBlockIDs;
-
         this.element = document.createElement("div");
         this.element.classList.add("block__popover");
-        this.初始化层级();
+        初始化层级(this.element, this.targetElement, this.refDefs, 清理同级浮窗);
         document.body.insertAdjacentElement("beforeend", this.element);
-
         if (this.targetElement) {
             this.targetElement.style.cursor = "wait";
         }
-
         this.element.setAttribute("data-pin", "false");
-        // 双击切换固定状态
-        this.element.addEventListener("dblclick", (event) => this.处理双击事件(event));
-        // 点击时更新层级并处理图标操作
+        this.element.addEventListener("dblclick", (event) => {
+            if (this.element) {
+                处理双击事件(event, this.element);
+            }
+        });
+        // @内联回调
         this.element.addEventListener("click", (event) => {
-            // S-forge: 使用封装的全局状态访问函数替代直接访问 window.siyuan
+            // 多个浮窗存在时，点击当前浮窗提升其层级到最前
             if (this.element && getSiyuanBlockPanels().length > 1) {
                 this.element.style.zIndex = incrementSiyuanZIndex().toString();
             }
-            this.处理图标点击(event, options);
+            if (this.element) {
+                处理图标点击(event, this.element, this.refDefs, options.app, () => this.destroy());
+            }
         });
-        // 非移动端启用拖拽调整大小（原 /// #if !MOBILE）
+        // 非移动端启用拖拽调整大小功能
         if (!isMobile && this.element) {
             moveResize(this.element, () => {
                 if (this.element) {
@@ -77,111 +183,20 @@ export class BlockPanel {
                 }
             });
         }
-        this.render();
+        render(this);
     }
 
-    private 初始化层级(): void {
-        if (!this.element) {
-            return;
-        }
-        const parentElement = this.targetElement ? hasClosestByClassName(this.targetElement, "block__popover", true) : false;
-        let level = 1;
-        const firstRefDef = this.refDefs[0];
-        if (!parentElement && firstRefDef) {
-            this.element.setAttribute("data-oid", firstRefDef.refID);
-        }
-        const oid = parentElement ? parentElement.getAttribute("data-oid") : null;
-        if (parentElement && oid) {
-            this.element.setAttribute("data-oid", oid);
-        }
-        if (parentElement) {
-            level = parseInt(parentElement.getAttribute("data-level") ?? "0") + 1;
-        }
-        // 移除同层级其他更高级的 block popover
-        this.element.setAttribute("data-level", level.toString());
-        this.清理同级浮窗(level);
-    }
-
-    private 清理同级浮窗(level: number): void {
-        const blockPanels = getSiyuanBlockPanels();
-        for (let i = 0; i < blockPanels.length; i++) {
-            const item = blockPanels[i];
-            if (!item || !item.element) {
-                continue;
-            }
-            const itemLevel = parseInt(item.element.getAttribute("data-level") ?? "0");
-            if (item.element.getAttribute("data-pin") === "false" &&
-                item.targetElement && itemLevel >= level) {
-                item.destroy();
-                i--;
-            }
-        }
-    }
-
-    private 处理双击事件(event: MouseEvent): void {
-        if (!this.element) {
-            return;
-        }
-        const target = event.target as HTMLElement;
-        const iconsElement = hasClosestByClassName(target, "block__icons");
-        if (!iconsElement) {
-            return;
-        }
-        const 当前固定 = this.element.getAttribute("data-pin") === "true";
-        切换固定状态(this.element, !当前固定);
-        event.preventDefault();
-        event.stopPropagation();
-    }
-
-    private 处理图标点击(event: MouseEvent, options: { app: App }): void {
-        if (!this.element) {
-            return;
-        }
-        let target = event.target as HTMLElement;
-        const panelElement = this.element;
-        while (target && !target.isEqualNode(panelElement)) {
-            const isIconOrLogo = target.classList.contains("block__icon") || target.classList.contains("block__logo");
-            const parentElement = target.parentElement;
-            if (!isIconOrLogo && parentElement) {
-                target = parentElement;
-                continue;
-            }
-            if (!isIconOrLogo) {
-                break;
-            }
-            const type = target.getAttribute("data-type");
-            执行图标操作({
-                type,
-                target,
-                element: panelElement,
-                refDefs: this.refDefs,
-                app: options.app,
-                onDestroy: () => this.destroy()
-            });
-            event.preventDefault();
-            event.stopPropagation();
-            break;
-        }
-    }
-
-    private 获取编辑器上下文(): EditorInitContext {
-        return {
-            app: this.app,
-            refDefs: this.refDefs,
-            isBacklink: this.isBacklink,
-            originalRefBlockIDs: this.originalRefBlockIDs,
-            targetElement: this.targetElement,
-            x: this.x,
-            y: this.y,
-            editors: this.editors,
-        };
-    }
-
+    /**
+     * 作用：销毁浮窗实例并清理资源
+     * 意图：释放内存、移除DOM元素、断开观察器
+     * 调用时机：浮窗关闭或被清理时调用
+     */
     public destroy() {
         this.observerResize?.disconnect();
         this.observerLoad?.disconnect();
         const blockPanels = getSiyuanBlockPanels();
         const foundIndex = blockPanels.findIndex((item) => item.id === this.id);
+        // 从全局面板列表中移除当前实例
         if (foundIndex !== -1) {
             blockPanels.splice(foundIndex, 1);
         }
@@ -194,61 +209,11 @@ export class BlockPanel {
         this.element?.remove();
         this.element = undefined;
         this.targetElement = undefined;
-        // 移除弹出上使用右键菜单
         const menus = getSiyuanMenus();
         const menuLevel = parseInt(menus?.menu.element.dataset.from ?? "");
+        // 清理与当前浮窗关联的右键菜单
         if (menuLevel && menuLevel >= level && menus?.menu.element.dataset.from?.includes("popover")) {
             menus.menu.remove();
         }
-    }
-
-    private render() {
-        if (!this.element || !document.body.contains(this.element)) {
-            this.destroy();
-            return;
-        }
-        const panelElement = this.element;
-        panelElement.innerHTML = 构建面板HTML(this.refDefs);
-
-        // 设置观察器
-        const 上下文 = this.获取编辑器上下文();
-        const observers = 设置观察器({
-            element: panelElement,
-            editors: this.editors,
-            initProtyle: (el, cb) => 初始化Protyle编辑器(el, 上下文, cb),
-        });
-        this.observerResize = observers.observerResize;
-        this.observerLoad = observers.observerLoad;
-
-        // 初始化编辑器
-        const editElements = panelElement.querySelectorAll(".block__edit");
-        let index = 0;
-        for (const item of editElements) {
-            if (index >= 5) {
-                this.observerLoad.observe(item);
-                index++;
-                continue;
-            }
-            const 首个编辑器回调 = index === 0 ? () => {
-                设置面板位置({
-                    element: panelElement,
-                    targetElement: this.targetElement,
-                    x: this.x,
-                    y: this.y,
-                });
-            } : undefined;
-            初始化Protyle编辑器(item as HTMLElement, 上下文, 首个编辑器回调);
-            index++;
-        }
-
-        if (this.targetElement) {
-            this.targetElement.style.cursor = "";
-        }
-
-        // 绑定滚动事件
-        绑定滚动事件({
-            element: panelElement,
-            editors: this.editors,
-        });
     }
 }
