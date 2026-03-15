@@ -72,7 +72,7 @@ function render(panel: BlockPanel): void {
     }
     panel.element.innerHTML = 构建面板HTML(panel.refDefs);
     const 上下文 = 获取编辑器上下文(panel);
-    //柯里化初始化函数，为每个编辑器实例提供相同的上下文参数
+    // @柯里化: 预绑定上下文参数，避免在多处调用时重复传递
     const initProtyle = (el: HTMLElement, cb?: () => void) => 初始化Protyle编辑器(el, 上下文, cb);
     const observers = 设置观察器({
         element: panel.element,

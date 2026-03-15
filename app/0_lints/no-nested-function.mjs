@@ -51,7 +51,7 @@ export const noNestedFunctionPlugin = {
 
                     context.report({
                         node,
-                        message: "❌ 禁止在函数内部定义命名函数。请将函数提取到模块顶层，或使用匿名箭头函数。" + 
+                        message: "❌ 禁止在函数内部定义命名函数。请将函数提取到模块顶层，或使用匿名箭头函数。\n💡 如果是合理的柯里化场景（需要闭包捕获上下文），可以在前面添加 // @柯里化 注释豁免此检查。" +
                                  FULL_FIX_REMINDER + 单文件检查提示
                     });
                 }
