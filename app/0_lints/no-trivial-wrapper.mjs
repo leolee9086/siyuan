@@ -1,7 +1,9 @@
-import { FULL_FIX_REMINDER } from "./shared-constants.mjs";
+import { FULL_FIX_REMINDER, 检查柯里化豁免 } from "./shared-constants.mjs";
 
 /**
  * ESLint 规则: 禁止只有一行的无意义包装函数
+ *
+ * 豁免: 如果是合理的柯里化场景（需要闭包捕获上下文），可以在前面添加 // @柯里化 注释
  * 
  * 目的: 检测并禁止那些只有一行代码、仅仅是调用另一个函数并固定部分参数的"包装函数"。
  * 这种函数没有实际的逻辑价值，应该：
@@ -153,6 +155,8 @@ export const noTrivialWrapperPlugin = {
                 schema: [],
             },
             create(context) {
+                const sourceCode = context.getSourceCode();
+                
                 const 处理函数 = (node) => {
                     const functionName = getFunctionName(node);
                     const bodyNode = node.body;
@@ -165,6 +169,11 @@ export const noTrivialWrapperPlugin = {
 
                     // 不报告匿名函数（通常是回调）
                     if (functionName === "(匿名函数)") {
+                        return;
+                    }
+
+                    // 检查柯里化豁免注释
+                    if (检查柯里化豁免(node, sourceCode)) {
                         return;
                     }
 

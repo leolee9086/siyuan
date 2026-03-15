@@ -1,6 +1,6 @@
 /**
  * 共享常量文件
- * 
+ *
  * 用于避免循环依赖，存放需要在多个 lint 规则文件中共享的常量
  */
 
@@ -19,3 +19,44 @@ export const 单文件检查提示 = "\n\n💡 提示: 使用 `cd app && pnpm ru
 
 // 英文别名导出
 export const SINGLE_FILE_LINT_TIP = 单文件检查提示;
+
+// 柯里化豁免注释标记
+export const 柯里化豁免注释 = "@柯里化";
+export const CURRYING_EXEMPT_COMMENT = 柯里化豁免注释;
+
+/**
+ * 检查节点前面的注释是否包含柯里化豁免标记
+ * @param {object} node - AST节点
+ * @param {object} sourceCode - ESLint sourceCode对象
+ * @returns {boolean} 是否包含豁免标记
+ */
+export function 检查柯里化豁免(node, sourceCode) {
+    // 检查节点本身前的注释
+    const comments = sourceCode.getCommentsBefore(node);
+    if (comments.some((comment) => comment.value.includes(柯里化豁免注释))) {
+        return true;
+    }
+
+    // 对于 VariableDeclarator 中的函数，检查 VariableDeclaration 前的注释
+    if (node.parent && node.parent.type === "VariableDeclarator") {
+        const declarator = node.parent;
+        const declaratorComments = sourceCode.getCommentsBefore(declarator);
+        if (declaratorComments.some((comment) => comment.value.includes(柯里化豁免注释))) {
+            return true;
+        }
+
+        // 检查 VariableDeclaration 前的注释
+        if (declarator.parent && declarator.parent.type === "VariableDeclaration") {
+            const declaration = declarator.parent;
+            const declarationComments = sourceCode.getCommentsBefore(declaration);
+            if (declarationComments.some((comment) => comment.value.includes(柯里化豁免注释))) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+// 英文别名导出
+export const checkCurryingExempt = 检查柯里化豁免;

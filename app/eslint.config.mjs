@@ -25,6 +25,7 @@ import { noExportForwardingPlugin } from "./0_lints/no-export-forwarding.mjs";
 import { taskCheckerPlugin } from "./0_lints/task-checker.mjs";
 import { folderItemLimitPlugin } from "./0_lints/folder-item-limit.mjs";
 import { noLongSingleLineCommentPlugin } from "./0_lints/no-long-single-line-comment.mjs";
+import { noNestedFunctionPlugin } from "./0_lints/no-nested-function.mjs";
 import { FULL_FIX_REMINDER, 单文件检查提示 } from "./0_lints/shared-constants.mjs";
 
 // Defining local constant for backward compatibility and internal usage
@@ -55,19 +56,7 @@ const COMMON_RESTRICTED_SYNTAX = [
         selector: "IfStatement > IfStatement",
         message: "❌ 禁止嵌套 If。请合并逻辑。" + 全量修复提示,
     },
-    // 禁止在函数内部定义命名函数（闭包）
-    {
-        selector: ":function BlockStatement > FunctionDeclaration",
-        message: "❌ 禁止在函数内部定义命名函数。请将函数提取到模块顶层，或使用匿名箭头函数。" + 全量修复提示,
-    },
-    {
-        selector: ":function BlockStatement VariableDeclarator > FunctionExpression",
-        message: "❌ 禁止在函数内部定义命名函数。请将函数提取到模块顶层，或使用匿名箭头函数。" + 全量修复提示,
-    },
-    {
-        selector: ":function BlockStatement VariableDeclarator > ArrowFunctionExpression",
-        message: "❌ 禁止在函数内部定义命名函数。请将函数提取到模块顶层，或使用匿名箭头函数。" + 全量修复提示,
-    },
+    // 禁止在函数内部定义命名函数的规则已移至自定义规则 no-nested-function（支持柯里化豁免）
     {
         selector: "MemberExpression[object.type='CallExpression'][object.callee.property.name=/^(querySelector|querySelectorAll|getElementById|getElementsByClassName|getElementsByTagName)$/]",
         message: "❌ 禁止隐式上下文切换：在 DOM 获取接口 (querySelector, getElementById 等) 返回的对象上直接链式调用。请务必先声明变量再使用。" + 全量修复提示,
@@ -235,6 +224,7 @@ const SHARED_PLUGINS = {
     "task-checker": taskCheckerPlugin,
     "folder-item-limit": folderItemLimitPlugin,
     "comment-style": noLongSingleLineCommentPlugin,
+    "no-nested-function": noNestedFunctionPlugin,
 };
 
 const SHARED_RULES = {
@@ -302,6 +292,7 @@ const SHARED_RULES = {
     }],
     "task-checker/require-task": "off",
     "folder-item-limit/folder-item-limit": "error",
+    "no-nested-function/no-nested-function": "error",
 };
 
 export default [{

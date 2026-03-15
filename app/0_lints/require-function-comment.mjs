@@ -16,7 +16,7 @@
  * - 存在的问题或改进空间（如果有的话）
  */
 
-import { 全量修复提示, 单文件检查提示 } from "./shared-constants.mjs";
+import { 全量修复提示, 单文件检查提示, 检查柯里化豁免 } from "./shared-constants.mjs";
 
 /**
  * 检查节点前面是否有注释
@@ -89,19 +89,25 @@ function 计算函数实际行数(node, sourceCode) {
 /**
  * 检查函数前面的注释是否包含豁免标记
  * 同时检查函数本身和其父节点（如 export 声明、变量声明）的注释
- * 
- * 重要：只有极短的函数（少于 MIN_LINES_FOR_EXEMPTION 行）才能使用豁免
+ *
+ * 重要：只有极短的函数（少于 MIN_LINES_FOR_EXEMPTION 行）才能使用 @简洁函数 豁免
+ * 柯里化豁免 (@柯里化) 不受行数限制
  */
 function 检查是否豁免(node, sourceCode) {
-    // 首先计算函数的实际行数
+    // 首先检查柯里化豁免（不受行数限制）
+    if (检查柯里化豁免(node, sourceCode)) {
+        return true;
+    }
+
+    // 计算函数的实际行数
     const 实际行数 = 计算函数实际行数(node, sourceCode);
 
-    // 如果函数行数 >= MIN_LINES_FOR_EXEMPTION，不允许豁免
+    // 如果函数行数 >= MIN_LINES_FOR_EXEMPTION，不允许 @简洁函数 豁免
     if (实际行数 >= MIN_LINES_FOR_EXEMPTION) {
         return false;
     }
 
-    // 只有极短的函数才检查豁免标记
+    // 只有极短的函数才检查 @简洁函数 豁免标记
     // 检查函数本身前的注释
     const comments = sourceCode.getCommentsBefore(node);
     if (comments.some((comment) => comment.value.includes(EXEMPT_COMMENT))) {
