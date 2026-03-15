@@ -1,7 +1,7 @@
 import {Dialog} from "../../dialog";
-import {isMobile} from "../../util/functions";
-import {setPosition} from "../../util/setPosition";
-import {fetchPost} from "../../util/fetch";
+import {isMobile} from "../../util/platform/functions";
+import {setPosition} from "../../util/DOM/setPosition";
+import {fetchPost} from "../../util/network/fetch";
 
 export const getPublishAccessOptionByLevel = (level: TPublishAccessLevel) => {
     if (level == "protected") {

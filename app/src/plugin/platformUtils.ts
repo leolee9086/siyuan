@@ -1,23 +1,24 @@
-import * as compatibility from "../protyle/util/compatibility";
 import {Constants} from "../constants";
 import {isElectron} from "../platform";
 import {ipcSend} from "../platform/electron/ipcRenderer";
-export const openByMobile = compatibility.openByMobile;
-export const readText = compatibility.readText;
-export const writeText = compatibility.writeText;
-export const copyPlainText = compatibility.copyPlainText;
-export const getEventName = compatibility.getEventName;
-export const isOnlyMeta = compatibility.isOnlyMeta;
-export const isNotCtrl = compatibility.isNotCtrl;
-export const isHuawei = compatibility.isHuawei;
-export const isIPhone = compatibility.isIPhone;
-export const isIPad = compatibility.isIPad;
-export const isMac = compatibility.isMac;
-export const isInAndroid = compatibility.isInAndroid;
-export const isInIOS = compatibility.isInIOS;
-export const updateHotkeyTip = compatibility.updateHotkeyTip;
-export const getLocalStorage = compatibility.getLocalStorage;
-export const setStorageVal = compatibility.setStorageVal;
+export {
+    openByMobile,
+    readText,
+    writeText,
+    copyPlainText,
+    getEventName,
+    isOnlyMeta,
+    isNotCtrl,
+    isHuawei,
+    isIPhone,
+    isIPad,
+    isMac,
+    isInAndroid,
+    isInIOS,
+    updateHotkeyTip,
+    getLocalStorage,
+    setStorageVal,
+} from "../protyle/util/compatibility";
 
 export const sendNotification = (options: {
     channel?: string,
