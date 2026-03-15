@@ -95,6 +95,35 @@ function findSeelByName(
     return target ?? null;
 }
 
+/** 读取非空字符串，空值返回 undefined。 */
+function readNonEmptyString(value: unknown): string | undefined {
+    if (typeof value !== "string") {
+        return undefined;
+    }
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+}
+
+/** 读取布尔值，非布尔时返回 undefined。 */
+function readBoolean(value: unknown): boolean | undefined {
+    return typeof value === "boolean" ? value : undefined;
+}
+
+/** 从工具参数中提取审慎信号的理由与开关。 */
+function extractDeliberationSignalMeta(argumentsPayload: Record<string, unknown>): {
+    reason?: string;
+    requiresDeliberation?: boolean;
+} {
+    const reason = readNonEmptyString(Reflect.get(argumentsPayload, "reason"));
+    const requiresDeliberation =
+        readBoolean(Reflect.get(argumentsPayload, "requires_deliberation"))
+        ?? readBoolean(Reflect.get(argumentsPayload, "requiresDeliberation"));
+    return {
+        ...(reason ? { reason } : {}),
+        ...(requiresDeliberation !== undefined ? { requiresDeliberation } : {}),
+    };
+}
+
 /** 创建投影运行时状态。 */
 function createRuntimeState(target: MagiProjectorTarget): MagiProjectorRuntimeState {
     return {
@@ -210,14 +239,9 @@ function projectVoteProgress(
     if (typeof event.progress !== "number") {
         return;
     }
-    
-    if (event.progress === 100) {
-        console.log("[DEBUG] projectVoteProgress creating final message:", {
-            deliberationInitiator: event.deliberationInitiator,
-            deliberationReason: event.deliberationReason,
-            messageId: buildProjectedMessageId(event.eventId, "vote-status")
-        });
-    }
+
+    const deliberationInitiator = readNonEmptyString(event.deliberationInitiator);
+    const deliberationReason = readNonEmptyString(event.deliberationReason);
     
     const voteStatus: MagiMessage = {
         id: buildProjectedMessageId(event.eventId, "vote-status"),
@@ -227,18 +251,15 @@ function projectVoteProgress(
         timestamp: event.timestamp,
         meta: {
             type: "vote-status",
+            roundId: event.roundId,
             progress: event.progress,
             details: event.details ?? [],
             ...(event.proposedAction ? { proposedAction: event.proposedAction } : {}),
-            ...(event.deliberationInitiator ? { deliberationInitiator: event.deliberationInitiator } : {}),
-            ...(event.deliberationReason ? { deliberationReason: event.deliberationReason } : {}),
+            ...(deliberationInitiator ? { deliberationInitiator } : {}),
+            ...(deliberationReason ? { deliberationReason } : {}),
         },
     };
-    
-    if (event.progress === 100) {
-        console.log("[DEBUG] Final message meta:", voteStatus.meta);
-    }
-    
+
     upsertMessage(state.target.consensusMessages, voteStatus);
 }
 
@@ -255,15 +276,21 @@ function projectVoteDecision(
     if (!seel) {
         return;
     }
+    const voteReason = readNonEmptyString(event.decisionReason)
+        ?? readNonEmptyString(event.reason);
+
     const voteMessage: MagiMessage = {
         id: buildProjectedMessageId(event.eventId, "vote"),
         type: "vote",
-        content: `评估完成: ${event.decision}`,
+        content: voteReason
+            ? `评估完成: ${event.decision} | 理由: ${voteReason}`
+            : `评估完成: ${event.decision}`,
         status: "success",
         timestamp: event.timestamp,
         meta: {
             decision: event.decision,
             ...(typeof event.round === "number" ? { round: event.round } : {}),
+            ...(voteReason ? { reason: voteReason } : {}),
         },
     };
     upsertMessage(seel.messages, voteMessage);
@@ -314,11 +341,48 @@ function projectDeliberationSignal(
     if (!shouldProcessEvent(state, event.eventId, event.seq)) {
         return;
     }
-    const voteStatusMsg = state.target.consensusMessages.find((msg) => msg.meta?.type === "vote-status");
-    if (voteStatusMsg?.meta) {
-        voteStatusMsg.meta.deliberationInitiator = event.initiator;
-        voteStatusMsg.meta.deliberationReason = event.reason;
+    const initiator = readNonEmptyString(event.initiator);
+    const reason = readNonEmptyString(event.reason);
+    const signalContent = [
+        "🔔 审慎信号已发起",
+        ...(initiator ? [`发起者: ${initiator}`] : []),
+        ...(reason ? [`理由: ${reason}`] : []),
+    ].join(" | ");
+
+    const consensusSignalMsg: MagiMessage = {
+        id: buildProjectedMessageId(event.eventId, "deliberation-signal-consensus"),
+        type: "system",
+        content: signalContent,
+        status: "success",
+        timestamp: event.timestamp,
+        meta: {
+            type: "deliberation-signal",
+            roundId: event.roundId,
+            ...(initiator ? { initiator } : {}),
+            ...(reason ? { reason } : {}),
+            requiresDeliberation: event.requiresDeliberation,
+        },
+    };
+    upsertMessage(state.target.consensusMessages, consensusSignalMsg);
+
+    const seel = findSeelByName(state.target.seels, event.initiator, event.displayName);
+    if (!seel) {
+        return;
     }
+    const seelSignalMsg: MagiMessage = {
+        id: buildProjectedMessageId(event.eventId, "deliberation-signal-seel"),
+        type: "system",
+        content: signalContent,
+        status: "success",
+        timestamp: event.timestamp,
+        meta: {
+            type: "deliberation-signal",
+            ...(initiator ? { initiator } : {}),
+            ...(reason ? { reason } : {}),
+            requiresDeliberation: event.requiresDeliberation,
+        },
+    };
+    upsertMessage(seel.messages, seelSignalMsg);
 }
 
 /** 投影工具调用到贤者面板。 */
@@ -333,12 +397,31 @@ function projectToolCall(
     if (!seel) {
         return;
     }
+    const deliberationMeta = extractDeliberationSignalMeta(event.arguments);
+
+    const contentParts = [`🔧 调用工具: ${event.toolName}`];
+    if (deliberationMeta.reason) {
+        contentParts.push(`理由: ${deliberationMeta.reason}`);
+    }
+    if (deliberationMeta.requiresDeliberation !== undefined) {
+        contentParts.push(`需要审慎: ${deliberationMeta.requiresDeliberation ? "是" : "否"}`);
+    }
+
     const toolCallMsg: MagiMessage = {
         id: buildProjectedMessageId(event.eventId, "tool-call"),
         type: "system",
-        content: `🔧 调用工具: ${event.toolName}`,
+        content: contentParts.join(" | "),
         status: "success",
         timestamp: event.timestamp,
+        meta: {
+            type: "tool-call",
+            toolName: event.toolName,
+            arguments: event.arguments,
+            ...(deliberationMeta.reason ? { reason: deliberationMeta.reason } : {}),
+            ...(deliberationMeta.requiresDeliberation !== undefined
+                ? { requiresDeliberation: deliberationMeta.requiresDeliberation }
+                : {}),
+        },
     };
     upsertMessage(seel.messages, toolCallMsg);
 }

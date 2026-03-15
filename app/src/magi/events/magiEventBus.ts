@@ -21,6 +21,7 @@ const baseEventShape = {
 const voteDetailSchema = z.object({
     name: z.string(),
     decision: z.string(),
+    reason: z.string().optional(),
 });
 
 const magiMessageSchema = z.custom<MagiEventPayloadMap["CONSENSUS_EMITTED"]["message"]>();
@@ -63,8 +64,12 @@ export const magiEventDefines = {
         seelName: z.string().optional(),
         displayName: z.string().optional(),
         decision: z.enum(["批准", "否决"]).optional(),
+        decisionReason: z.string().optional(),
+        reason: z.string().optional(),
         round: z.number().int().positive().optional(),
         error: z.string().optional(),
+        deliberationInitiator: z.string().optional(),
+        deliberationReason: z.string().optional(),
     },
     TRINITY_SYNTHESIS_COMPLETED: {
         ...baseEventShape,
@@ -77,6 +82,20 @@ export const magiEventDefines = {
     ROUND_FAILED: {
         ...baseEventShape,
         error: z.string(),
+    },
+    TOOL_CALL_DETECTED: {
+        ...baseEventShape,
+        seelName: z.string(),
+        displayName: z.string(),
+        toolName: z.string(),
+        arguments: z.record(z.string(), z.unknown()),
+    },
+    DELIBERATION_SIGNAL_RAISED: {
+        ...baseEventShape,
+        initiator: z.string(),
+        displayName: z.string(),
+        reason: z.string(),
+        requiresDeliberation: z.boolean(),
     },
 } as const;
 

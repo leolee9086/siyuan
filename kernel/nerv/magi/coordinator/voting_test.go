@@ -194,23 +194,33 @@ func TestProcessVoting_Timeout(t *testing.T) {
 // TestParseDecision_JSONFormat 测试JSON格式解析
 func TestParseDecision_JSONFormat(t *testing.T) {
 	tests := []struct {
-		name     string
-		content  string
-		expected string
+		name        string
+		content     string
+		expected    string
+		shouldError bool
 	}{
-		{"批准JSON", `{"decision":"批准","reason":"测试"}`, voteApprove},
-		{"否决JSON", `{"decision":"否决","reason":"测试"}`, voteReject},
-		{"文本批准", "我认为应该批准这个提案", voteApprove},
-		{"文本否决", "我认为应该否决这个提案", voteReject},
-		{"无关键词", "这是一个测试", voteReject},
-		{"空字符串", "", voteReject},
+		{"批准JSON", `{"decision":"批准","reason":"测试"}`, voteApprove, false},
+		{"否决JSON", `{"decision":"否决","reason":"测试"}`, voteReject, false},
+		{"文本批准", "我认为应该批准这个提案", voteApprove, false},
+		{"文本否决", "我认为应该否决这个提案", voteReject, false},
+		{"无关键词", "这是一个测试", "", true},
+		{"空字符串", "", "", true},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := parseDecision(tt.content)
-			if result != tt.expected {
-				t.Errorf("parseDecision(%q) = %q, 期望 %q", tt.content, result, tt.expected)
+			result, err := parseDecision(tt.content)
+			if tt.shouldError {
+				if err == nil {
+					t.Errorf("parseDecision(%q) 应该返回错误但没有", tt.content)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("parseDecision(%q) 返回错误: %v", tt.content, err)
+				}
+				if result != tt.expected {
+					t.Errorf("parseDecision(%q) = %q, 期望 %q", tt.content, result, tt.expected)
+				}
 			}
 		})
 	}

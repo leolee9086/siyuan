@@ -135,5 +135,6 @@ export interface FormatMessageOptions {
     voteDetails?: Array<{
         name: string;
         decision: string;
+        reason?: string;
     }>;
 }

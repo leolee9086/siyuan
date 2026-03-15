@@ -4,7 +4,7 @@ package coordinator
 import (
 	"context"
 	"encoding/json"
-	"strings"
+	"fmt"
 	"sync"
 	"time"
 
@@ -60,6 +60,7 @@ func ProcessVoting(
 	// 并行调用Balthazar和Casper
 	var wg sync.WaitGroup
 	var balthazarVote, casperVote string
+	var balthazarErr, casperErr error
 	var mu sync.Mutex
 	progress := 0
 
@@ -68,36 +69,51 @@ func ProcessVoting(
 	// Balthazar投票
 	go func() {
 		defer wg.Done()
-		balthazarVote = getRealVote(ctx, balthazar, proposedAction, voteCtx)
+		balthazarVote, balthazarErr = getRealVote(ctx, balthazar, proposedAction, voteCtx)
 
 		mu.Lock()
 		progress += 50
 		mu.Unlock()
 
 		// 推送投票进度
-		decision := types.VoteDecision(balthazarVote)
-		if err := websocket.PushVotingProgress(sessionId, roundId, balthazar.GetName(), balthazar.GetDisplayName(), decision, progress); err != nil {
-			logging.LogWarnf("推送Balthazar投票进度失败: %v", err)
+		if balthazarErr == nil {
+			decision := types.VoteDecision(balthazarVote)
+			if err := websocket.PushVotingProgress(sessionId, roundId, balthazar.GetName(), balthazar.GetDisplayName(), decision, progress); err != nil {
+				logging.LogWarnf("推送Balthazar投票进度失败: %v", err)
+			}
 		}
 	}()
 
 	// Casper投票
 	go func() {
 		defer wg.Done()
-		casperVote = getRealVote(ctx, casper, proposedAction, voteCtx)
+		casperVote, casperErr = getRealVote(ctx, casper, proposedAction, voteCtx)
 
 		mu.Lock()
 		progress += 50
 		mu.Unlock()
 
 		// 推送投票进度
-		decision := types.VoteDecision(casperVote)
-		if err := websocket.PushVotingProgress(sessionId, roundId, casper.GetName(), casper.GetDisplayName(), decision, progress); err != nil {
-			logging.LogWarnf("推送Casper投票进度失败: %v", err)
+		if casperErr == nil {
+			decision := types.VoteDecision(casperVote)
+			if err := websocket.PushVotingProgress(sessionId, roundId, casper.GetName(), casper.GetDisplayName(), decision, progress); err != nil {
+				logging.LogWarnf("推送Casper投票进度失败: %v", err)
+			}
 		}
 	}()
 
 	wg.Wait()
+
+	// 检查投票错误
+	if balthazarErr != nil && casperErr != nil {
+		return nil, fmt.Errorf("投票失败: Balthazar错误=%v, Casper错误=%v", balthazarErr, casperErr)
+	}
+	if balthazarErr != nil {
+		return nil, fmt.Errorf("Balthazar投票失败: %w", balthazarErr)
+	}
+	if casperErr != nil {
+		return nil, fmt.Errorf("Casper投票失败: %w", casperErr)
+	}
 
 	// 构建投票结果
 	result := &VoteResult{
@@ -129,7 +145,7 @@ func getRealVote(
 	sage *sages.Sage,
 	proposedAction string,
 	voteCtx VoteContext,
-) string {
+) (string, error) {
 	// 创建超时上下文（D-005: 30秒）
 	timeoutCtx, cancel := context.WithTimeout(ctx, voteTimeout)
 	defer cancel()
@@ -147,12 +163,16 @@ func getRealVote(
 	// 发送同步请求
 	content, err := sage.GetLLMClient().SendChatRequestSync(timeoutCtx, messages, nil, nil)
 	if err != nil {
-		// D-005: 失败视为否决票
-		return voteReject
+		return "", fmt.Errorf("[%s] LLM请求失败: %w", sage.GetDisplayName(), err)
 	}
 
 	// 解析决策
-	return parseDecision(content)
+	decision, parseErr := parseDecision(content)
+	if parseErr != nil {
+		return "", fmt.Errorf("[%s] 投票决策解析失败: %w | 原始内容: %s", sage.GetDisplayName(), parseErr, content)
+	}
+
+	return decision, nil
 }
 
 // buildVoteSystemPrompt 创建评审系统提示词
@@ -166,25 +186,19 @@ func buildVoteUserInput(proposedAction string, voteCtx VoteContext) string {
 }
 
 // parseDecision 解析二元决策
-func parseDecision(content string) string {
-	// 优先尝试JSON解析
+func parseDecision(content string) (string, error) {
+	// 尝试JSON解析
 	var decision voteDecision
-	if err := json.Unmarshal([]byte(content), &decision); err == nil {
-		if decision.Decision == voteApprove || decision.Decision == voteReject {
-			return decision.Decision
-		}
+	if err := json.Unmarshal([]byte(content), &decision); err != nil {
+		return "", fmt.Errorf("JSON解析失败: %w | 原始内容: %s", err, content)
 	}
 
-	// 回退到文本关键词匹配
-	if strings.Contains(content, voteApprove) {
-		return voteApprove
-	}
-	if strings.Contains(content, voteReject) {
-		return voteReject
+	// 验证decision字段值
+	if decision.Decision != voteApprove && decision.Decision != voteReject {
+		return "", fmt.Errorf("decision字段值无效: %s (期望'批准'或'否决') | 原始内容: %s", decision.Decision, content)
 	}
 
-	// 保守否决
-	return voteReject
+	return decision.Decision, nil
 }
 
 // computePassed 计算是否通过（≥2/3）

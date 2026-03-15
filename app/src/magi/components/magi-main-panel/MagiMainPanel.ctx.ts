@@ -110,14 +110,16 @@ function formatSseStreamContent(msg: MagiMainPanelMessageView, texts: MagiMainPa
 function formatVoteStatusContent(
     texts: MagiMainPanelTexts,
     progress: number,
-    details?: Array<{ name: string; decision: string }>,
+    details?: Array<{ name: string; decision: string; reason?: string }>,
     deliberationInitiator?: string,
     deliberationReason?: string
 ): string {
     const lines = [`[${texts.voteStatusPrefixText}] ${texts.progressPrefixText}: ${progress}%`];
 
-    if (deliberationInitiator && deliberationReason) {
-        lines.push(`🔔 审慎决策 | 发起者: ${deliberationInitiator}`);
+    if (deliberationInitiator || deliberationReason) {
+        lines.push(`🔔 审慎决策${deliberationInitiator ? ` | 发起者: ${deliberationInitiator}` : ""}`);
+    }
+    if (deliberationReason) {
         lines.push(`原因: ${deliberationReason}`);
     }
 
@@ -125,7 +127,10 @@ function formatVoteStatusContent(
         lines.push(
             ...details.map((detail) => {
                 const statusIcon = VOTE_STATUS_ICON_MAP[detail.decision] ?? "❓";
-                return `${detail.name} ${statusIcon} | ${detail.decision}`;
+                const reasonText = typeof detail.reason === "string" && detail.reason.trim().length > 0
+                    ? ` | 理由: ${detail.reason.trim()}`
+                    : "";
+                return `${detail.name} ${statusIcon} | ${detail.decision}${reasonText}`;
             })
         );
     }

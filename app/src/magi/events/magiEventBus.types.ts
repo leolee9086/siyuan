@@ -60,11 +60,13 @@ export interface MagiSeelReplyFailedEvent extends MagiEventBase {
 /** 投票进度/结果更新事件。 */
 export interface MagiSeelVoteUpdatedEvent extends MagiEventBase {
     progress?: number;
-    details?: Array<{ name: string; decision: string }>;
+    details?: Array<{ name: string; decision: string; reason?: string }>;
     proposedAction?: string;
     seelName?: string;
     displayName?: string;
     decision?: "批准" | "否决";
+    decisionReason?: string;
+    reason?: string;
     round?: number;
     error?: string;
     deliberationInitiator?: string;

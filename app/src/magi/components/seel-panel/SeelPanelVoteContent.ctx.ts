@@ -17,6 +17,14 @@ export async function formatVoteTime(ts: number): Promise<string> {
     return `${h}:${m}:${s}`;
 }
 
+/** 提取可展示的投票理由。 */
+function resolveVoteReason(meta: VoteMeta): string {
+    if (typeof meta.reason === "string" && meta.reason.trim().length > 0) {
+        return meta.reason.trim();
+    }
+    return "";
+}
+
 /** 初始化投票内容组件的响应式状态 */
 export async function useVoteContentCtx(props: {
     meta: VoteMeta;
@@ -29,12 +37,16 @@ export async function useVoteContentCtx(props: {
         "conclusion-reject": decision.value === "否决",
         "conclusion-pending": !props.meta.decision,
     }));
+    const reasonText = computed(() => resolveVoteReason(props.meta));
+    const hasReason = computed(() => reasonText.value.length > 0);
     const initialTime = await formatVoteTime(props.timestamp);
     const formattedTime = computed(() => initialTime);
     return {
         decision,
         round,
         conclusionClass,
+        reasonText,
+        hasReason,
         formattedTime,
     };
 }

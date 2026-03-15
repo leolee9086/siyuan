@@ -13,15 +13,21 @@ import type { MagiMainPanelMessageView } from "../../entry/magiView.types";
  */
 export function isVoteDetail(
     obj: unknown
-): obj is { name: string; decision: string } {
+): obj is { name: string; decision: string; reason?: string } {
     if (typeof obj !== "object" || obj === null) {
         return false;
     }
     const o = obj as Record<string, unknown>;
-    return (
+    if (
         typeof o.name === "string" &&
         typeof o.decision === "string"
-    );
+    ) {
+        if (o.reason !== undefined && typeof o.reason !== "string") {
+            return false;
+        }
+        return true;
+    }
+    return false;
 }
 
 /**
@@ -32,7 +38,8 @@ export function isVoteStatusMeta(
 ): meta is {
     type: "vote-status";
     progress?: number;
-    details?: Array<{ name: string; decision: string }>;
+    details?: Array<{ name: string; decision: string; reason?: string }>;
+    roundId?: string;
     deliberationInitiator?: string;
     deliberationReason?: string;
 } {
@@ -52,6 +59,9 @@ export function isVoteStatusMeta(
                 return false;
             }
         }
+    }
+    if (m.roundId !== undefined && typeof m.roundId !== "string") {
+        return false;
     }
     if (m.deliberationInitiator !== undefined && typeof m.deliberationInitiator !== "string") {
         return false;
@@ -121,7 +131,10 @@ export function getVoteStatusMeta(
 ): {
     type: "vote-status";
     progress?: number;
-    details?: Array<{ name: string; decision: string }>;
+    details?: Array<{ name: string; decision: string; reason?: string }>;
+    roundId?: string;
+    deliberationInitiator?: string;
+    deliberationReason?: string;
 } | null {
     const meta = msg.meta;
     if (isVoteStatusMeta(meta)) {

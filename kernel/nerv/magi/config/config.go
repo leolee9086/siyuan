@@ -194,8 +194,12 @@ func BuildDeliberationSignalToolDef() ToolDef {
 						"type":        "string",
 						"description": "需要审慎决策的原因",
 					},
+					"proposed_action": map[string]interface{}{
+						"type":        "string",
+						"description": "建议的行动提案，用一句话说明要做什么以及为什么",
+					},
 				},
-				"required": []string{"requires_deliberation", "reason"},
+				"required": []string{"requires_deliberation", "reason", "proposed_action"},
 			},
 		},
 	}

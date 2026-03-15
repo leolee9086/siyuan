@@ -77,6 +77,7 @@ type SageResponse struct {
 	RequiresDeliberation bool                `json:"requiresDeliberation,omitempty"` // Melchior专用
 	UsedToolCall         bool                `json:"usedToolCall,omitempty"`         // 是否使用了工具调用
 	DeliberationReason   string              `json:"deliberationReason,omitempty"`   // 审慎决策原因
+	ProposedAction       string              `json:"proposedAction,omitempty"`       // 建议的行动提案
 	ToolCallNames        []string            `json:"toolCallNames,omitempty"`        // 工具名称列表
 	ToolArgumentsByName  map[string][]string `json:"toolArgumentsByName,omitempty"`  // 按工具名聚合参数
 }
@@ -176,6 +177,7 @@ type StreamResult struct {
 type DeliberationSignal struct {
 	RequiresDeliberation bool   `json:"requires_deliberation"`
 	Reason               string `json:"reason"`
+	ProposedAction       string `json:"proposed_action"`
 }
 
 // TrinitySpeakTool Trinity speak工具参数

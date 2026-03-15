@@ -38,4 +38,10 @@ export interface VoteMeta {
     decision?: "批准" | "否决" | undefined;
     /** 反刍轮次 */
     round?: number | undefined;
+    /** 投票理由（优先展示） */
+    reason?: string | undefined;
+    /** 审慎决策发起者 */
+    deliberationInitiator?: string | undefined;
+    /** 审慎决策理由 */
+    deliberationReason?: string | undefined;
 }

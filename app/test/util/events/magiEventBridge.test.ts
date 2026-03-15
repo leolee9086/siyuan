@@ -206,6 +206,7 @@ describe("MAGI Event Bridge - 事件投影", () => {
             displayName: "CASPER",
             decision: "批准",
             round: 1,
+            reason: "证据充分，可执行",
         });
 
         bus.emit("SEEL_VOTE_UPDATED", {
@@ -219,7 +220,57 @@ describe("MAGI Event Bridge - 事件投影", () => {
         const voteMessage = seel.messages.find((message) => message.type === "vote");
         const errorMessage = seel.messages.find((message) => message.type === "error");
         expect(voteMessage?.meta?.decision).toBe("批准");
+        expect(voteMessage?.meta?.reason).toBe("证据充分，可执行");
         expect(errorMessage?.content).toBe("评估失败");
+
+        stop();
+    });
+
+    it("应在工具调用消息中投影 deliberation_signal 理由", async () => {
+        const bus = await createMagiEventBus();
+        const seel = createWrappedSeel("MELCHIOR-01", "MELCHIOR");
+        const consensusMessages: MagiMessage[] = [];
+        const stop = await bindMagiProjector(bus, { seels: [seel], consensusMessages });
+
+        bus.emit("TOOL_CALL_DETECTED", {
+            roundId: "round-4",
+            timestamp: Date.now(),
+            seelName: "MELCHIOR-01",
+            displayName: "MELCHIOR",
+            toolName: "deliberation_signal",
+            arguments: {
+                requires_deliberation: true,
+                reason: "需要复核外部风险",
+            },
+        });
+
+        const toolCallMessage = seel.messages.find((message) => message.meta?.type === "tool-call");
+        expect(toolCallMessage?.content).toContain("需要复核外部风险");
+        expect(toolCallMessage?.meta?.reason).toBe("需要复核外部风险");
+        expect(toolCallMessage?.meta?.requiresDeliberation).toBe(true);
+
+        stop();
+    });
+
+    it("应将审慎信号投影为独立状态消息", async () => {
+        const bus = await createMagiEventBus();
+        const seel = createWrappedSeel("MELCHIOR-01", "MELCHIOR");
+        const consensusMessages: MagiMessage[] = [];
+        const stop = await bindMagiProjector(bus, { seels: [seel], consensusMessages });
+
+        bus.emit("DELIBERATION_SIGNAL_RAISED", {
+            roundId: "round-5",
+            timestamp: Date.now(),
+            initiator: "MELCHIOR-01",
+            displayName: "MELCHIOR",
+            reason: "该决策影响范围较大，需要审慎评估",
+            requiresDeliberation: true,
+        });
+
+        const consensusSignal = consensusMessages.find((message) => message.meta?.type === "deliberation-signal");
+        const seelSignal = seel.messages.find((message) => message.meta?.type === "deliberation-signal");
+        expect(consensusSignal?.content).toContain("需要审慎评估");
+        expect(seelSignal?.content).toContain("需要审慎评估");
 
         stop();
     });

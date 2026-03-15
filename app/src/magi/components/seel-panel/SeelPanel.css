@@ -206,6 +206,14 @@
   opacity: 0.86;
 }
 
+.vote-reason {
+  font-family: "MS Gothic", monospace;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: rgba(157, 239, 242, 0.9);
+  word-break: break-word;
+}
+
 .vote-conclusion {
   font-family: "MS Gothic", monospace;
   font-size: 0.76rem;

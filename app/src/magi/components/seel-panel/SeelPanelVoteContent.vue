@@ -7,6 +7,7 @@
             </span>
         </div>
         <div class="vote-meta">Round {{ round }}</div>
+        <div v-if="hasReason" class="vote-reason">理由: {{ reasonText }}</div>
     </div>
 </template>
 
@@ -26,6 +27,8 @@ const {
     decision,
     round,
     conclusionClass,
+    reasonText,
+    hasReason,
     formattedTime,
 } = await useVoteContentCtx(props);
 const votePrefixText = getMagiI18nText("voteStatusPrefix");

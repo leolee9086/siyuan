@@ -262,8 +262,10 @@ func (rc *ResponseCollector) buildSageResponse(sessionId, roundId string, sage *
 			if err := json.Unmarshal([]byte(args[0]), &signal); err == nil {
 				response.RequiresDeliberation = signal.RequiresDeliberation
 				response.DeliberationReason = signal.Reason
+				response.ProposedAction = signal.ProposedAction
 
-				logging.LogInfof("审慎决策信号已提取: RequiresDeliberation=%v, Reason=%s", signal.RequiresDeliberation, signal.Reason)
+				logging.LogInfof("审慎决策信号已提取: RequiresDeliberation=%v, Reason=%s, ProposedAction=%s",
+					signal.RequiresDeliberation, signal.Reason, signal.ProposedAction)
 
 				// 推送审慎决策信号专用事件
 				if err := websocket.PushDeliberationSignalRaised(
