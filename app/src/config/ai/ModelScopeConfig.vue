@@ -175,12 +175,33 @@ import { forgeI18n, loadForgeI18n } from "../../util/siyuanEnvironments/forgeI18
 import { getSForgeConfigs } from "../sforge";
 import { Profile } from "../profile.types";
 import { confirmDialog } from "../../dialog/confirmDialog";
-import {
-    提交生成任务,
-    轮询任务直到完成,
-    获取图片,
-    提取图片URL
-} from "../../apis/modelscope";
+/**
+ * 用途：ModelScope API函数，用于测试生成功能
+ * 使用范围：测试生成按钮点击处理函数
+ * 解耦评估：必须保留。配置界面需要调用API验证配置正确性
+ */
+import { 提交生成任务 } from "./imports";
+
+/**
+ * 用途：轮询任务状态函数
+ * 使用范围：测试生成流程中等待任务完成
+ * 解耦评估：必须保留。配置界面需要等待任务完成以展示结果
+ */
+import { 轮询任务直到完成 } from "./imports";
+
+/**
+ * 用途：获取生成的图片
+ * 使用范围：测试生成流程中获取最终图片
+ * 解耦评估：必须保留。配置界面需要获取图片以展示给用户
+ */
+import { 获取图片 } from "./imports";
+
+/**
+ * 用途：提取图片URL
+ * 使用范围：测试生成流程中从任务状态提取URL
+ * 解耦评估：必须保留。配置界面需要提取URL以获取图片
+ */
+import { 提取图片URL } from "./imports";
 
 // 使用 shallowRef 包裹 forgeI18n，在组件挂载时会触发更新
 const i18n = shallowRef(forgeI18n);

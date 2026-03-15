@@ -4,31 +4,144 @@
  * 通过思源后端的 forwardProxy 正向代理发起请求
  */
 
-import { fetchSyncPost } from "../../util/network/fetch";
-import type {
-    任务响应,
-    任务状态响应,
-    提交生成任务参数,
-    获取任务状态参数,
-    轮询任务参数,
-    获取图片参数,
-    生成参数
-} from "./types";
-import {
-    魔搭API基础URL,
-    请求头,
-    内容类型JSON,
-    任务类型图片生成,
-    默认模型,
-    端点,
-    默认参数,
-    思源代理端点
-} from "./constants";
-import {
-    转换请求头,
-    处理思源代理响应,
-    等待
-} from "./utils";
+/**
+ * 用途：网络请求工具，用于通过思源代理发起HTTP请求
+ * 使用范围：本文件中所有需要发起网络请求的函数
+ * 解耦评估：必须保留。fetchSyncPost是核心网络层抽象，作为API客户端必须依赖网络层
+ */
+import { fetchSyncPost } from "./imports";
+
+/**
+ * 用途：任务响应类型定义
+ * 使用范围：提交生成任务函数的返回值类型
+ * 解耦评估：类型定义无需解耦，是接口契约的一部分
+ */
+import type { 任务响应 } from "./types";
+
+/**
+ * 用途：任务状态响应类型定义
+ * 使用范围：获取任务状态、轮询任务等函数的返回值类型
+ * 解耦评估：类型定义无需解耦，是接口契约的一部分
+ */
+import type { 任务状态响应 } from "./types";
+
+/**
+ * 用途：提交生成任务参数类型定义
+ * 使用范围：提交生成任务函数的参数类型
+ * 解耦评估：类型定义无需解耦，是接口契约的一部分
+ */
+import type { 提交生成任务参数 } from "./types";
+
+/**
+ * 用途：获取任务状态参数类型定义
+ * 使用范围：获取任务状态函数的参数类型
+ * 解耦评估：类型定义无需解耦，是接口契约的一部分
+ */
+import type { 获取任务状态参数 } from "./types";
+
+/**
+ * 用途：轮询任务参数类型定义
+ * 使用范围：轮询任务函数的参数类型
+ * 解耦评估：类型定义无需解耦，是接口契约的一部分
+ */
+import type { 轮询任务参数 } from "./types";
+
+/**
+ * 用途：获取图片参数类型定义
+ * 使用范围：获取图片函数的参数类型
+ * 解耦评估：类型定义无需解耦，是接口契约的一部分
+ */
+import type { 获取图片参数 } from "./types";
+
+/**
+ * 用途：生成参数类型定义
+ * 使用范围：构建请求体时使用
+ * 解耦评估：类型定义无需解耦，是接口契约的一部分
+ */
+import type { 生成参数 } from "./types";
+
+/**
+ * 用途：魔搭API基础URL常量
+ * 使用范围：构建完整API端点URL
+ * 解耦评估：配置常量，可通过配置文件或环境变量注入，但当前作为模块常量合理
+ */
+import { 魔搭API基础URL } from "./constants";
+
+/**
+ * 用途：HTTP请求头常量定义
+ * 使用范围：构建请求头时使用
+ * 解耦评估：协议常量，无需解耦
+ */
+import { 请求头 } from "./constants";
+
+/**
+ * 用途：JSON内容类型常量
+ * 使用范围：设置请求Content-Type
+ * 解耦评估：协议常量，无需解耦
+ */
+import { 内容类型JSON } from "./constants";
+
+/**
+ * 用途：任务类型常量
+ * 使用范围：获取任务状态时指定任务类型
+ * 解耦评估：业务常量，无需解耦
+ */
+import { 任务类型图片生成 } from "./constants";
+
+/**
+ * 用途：默认模型常量
+ * 使用范围：未指定模型时使用的默认值
+ * 解耦评估：配置常量，可通过参数传递，但提供默认值合理
+ */
+import { 默认模型 } from "./constants";
+
+/**
+ * 用途：API端点路径常量
+ * 使用范围：构建完整API URL
+ * 解耦评估：配置常量，无需解耦
+ */
+import { 端点 } from "./constants";
+
+/**
+ * 用途：默认参数配置（超时、重试次数等）
+ * 使用范围：各函数的默认参数值
+ * 解耦评估：配置常量，可通过参数传递，但提供默认值合理
+ */
+import { 默认参数 } from "./constants";
+
+/**
+ * 用途：思源代理端点路径
+ * 使用范围：所有通过思源代理的请求
+ * 解耦评估：配置常量，可通过依赖注入，但当前作为模块常量合理
+ */
+import { 思源代理端点 } from "./constants";
+
+/**
+ * 用途：转换请求头格式工具函数
+ * 使用范围：通过思源代理请求函数中转换请求头
+ * 解耦评估：工具函数，可通过参数传递，但作为同模块工具函数合理
+ */
+import { 转换请求头 } from "./utils";
+
+/**
+ * 用途：处理思源代理响应工具函数
+ * 使用范围：通过思源代理请求函数中解析响应
+ * 解耦评估：工具函数，可通过参数传递，但作为同模块工具函数合理
+ */
+import { 处理思源代理响应 } from "./utils";
+
+/**
+ * 用途：异步等待工具函数
+ * 使用范围：轮询和重试逻辑中的延迟
+ * 解耦评估：通用工具函数，可使用标准Promise，但封装后更清晰
+ */
+import { 等待 } from "./utils";
+
+/**
+ * 用途：类型守卫函数，验证思源代理响应格式
+ * 使用范围：通过思源代理请求函数中验证响应
+ * 解耦评估：类型守卫，与类型定义紧密相关，无需解耦
+ */
 import { 断言思源代理请求响应 } from "./client.guard";
 
 /**
@@ -235,13 +348,6 @@ export async function 获取图片(params: 获取图片参数): Promise<string> 
 /**
  * 从任务状态响应中提取第一个图片 URL
  */
-export function 提取图片URL(status: 任务状态响应): string | undefined {
+export async function 提取图片URL(status: 任务状态响应): Promise<string | undefined> {
     return status.output_images?.[0];
 }
-
-// 英文别名导出
-export const submitGenerationTask = 提交生成任务;
-export const getTaskStatus = 获取任务状态;
-export const pollTaskUntilComplete = 轮询任务直到完成;
-export const fetchImage = 获取图片;
-export const extractImageUrl = 提取图片URL;

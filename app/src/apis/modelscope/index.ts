@@ -52,11 +52,5 @@ export {
     获取任务状态,
     轮询任务直到完成,
     获取图片,
-    提取图片URL,
-    // 英文别名
-    submitGenerationTask,
-    getTaskStatus,
-    pollTaskUntilComplete,
-    fetchImage,
-    extractImageUrl
+    提取图片URL
 } from "./client";
