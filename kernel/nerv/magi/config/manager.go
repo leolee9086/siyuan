@@ -159,7 +159,11 @@ func defaultMelchiorConfig() AgentConfig {
 		MardukConfig:   MardukConfig{},
 		ContextPercent: 0.8,
 		SystemPrompt:   prompts.MelchiorSystemPrompt,
-		Tools:          []ToolDef{BuildAvatarBuildToolDef(), BuildDeliberationSignalToolDef()},
+		Tools: []ToolDef{
+			BuildWannaSpeakStartToolDef(),
+			BuildWannaSpeakContinueToolDef(),
+			BuildWannaSpeakStopToolDef(),
+		},
 	}
 }
 
@@ -178,7 +182,11 @@ func defaultBalthazarConfig() AgentConfig {
 		MardukConfig:   MardukConfig{},
 		ContextPercent: 0.8,
 		SystemPrompt:   prompts.BalthazarSystemPrompt,
-		Tools:          []ToolDef{BuildAvatarModifyToolDef()},
+		Tools: []ToolDef{
+			BuildWannaSpeakStartToolDef(),
+			BuildWannaSpeakContinueToolDef(),
+			BuildWannaSpeakStopToolDef(),
+		},
 	}
 }
 
@@ -197,7 +205,11 @@ func defaultCasperConfig() AgentConfig {
 		MardukConfig:   MardukConfig{},
 		ContextPercent: 0.8,
 		SystemPrompt:   prompts.CasperSystemPrompt,
-		Tools:          []ToolDef{BuildAvatarModifyToolDef()},
+		Tools: []ToolDef{
+			BuildWannaSpeakStartToolDef(),
+			BuildWannaSpeakContinueToolDef(),
+			BuildWannaSpeakStopToolDef(),
+		},
 	}
 }
 
@@ -221,8 +233,14 @@ func defaultTrinityConfig() AgentConfig {
 		MardukConfig: MardukConfig{},
 		MemorySize:   3,
 		SystemPrompt: buildTrinitySystemPrompt(),
-		Tools:        []ToolDef{BuildSpeakToolDef(), BuildAvatarSynthesizeToolDef()},
-		ToolChoice:   "required",
+		Tools: []ToolDef{
+			BuildSpeakStartToolDef(),
+			BuildSpeakContinueToolDef(),
+			BuildSpeakStopToolDef(),
+			BuildSpeakInternalStartToolDef(),
+			BuildSpeakInternalContinueToolDef(),
+			BuildSpeakInternalStopToolDef(),
+		},
 	}
 }
 
@@ -243,8 +261,8 @@ func defaultContextStrategy() map[string]*ContextStrategy {
 			Percent: 0.8,
 		},
 		"trinity": {
-			Type:  "message_count",
-			Count: 3,
+			Type:    "token_percent",
+			Percent: 0.8,
 		},
 	}
 }
@@ -262,24 +280,66 @@ func applyRequiredAvatarTools(cfg *MAGIConfig) {
 	if cfg == nil {
 		return
 	}
-	ensureToolRegistered(&cfg.Melchior, BuildAvatarBuildToolDef())
-	ensureToolRegistered(&cfg.Melchior, BuildDeliberationSignalToolDef())
-	ensureToolRegistered(&cfg.Balthazar, BuildAvatarModifyToolDef())
-	ensureToolRegistered(&cfg.Casper, BuildAvatarModifyToolDef())
-	ensureToolRegistered(&cfg.Trinity, BuildSpeakToolDef())
-	ensureToolRegistered(&cfg.Trinity, BuildAvatarSynthesizeToolDef())
+
+	// 当前阶段三贤人与 Trinity 均使用 start/continue/stop 状态转移工具。
+	cfg.Melchior.Tools = ensureExclusiveTools(
+		cfg.Melchior.Tools,
+		BuildWannaSpeakStartToolDef(),
+		BuildWannaSpeakContinueToolDef(),
+		BuildWannaSpeakStopToolDef(),
+	)
+	cfg.Balthazar.Tools = ensureExclusiveTools(
+		cfg.Balthazar.Tools,
+		BuildWannaSpeakStartToolDef(),
+		BuildWannaSpeakContinueToolDef(),
+		BuildWannaSpeakStopToolDef(),
+	)
+	cfg.Casper.Tools = ensureExclusiveTools(
+		cfg.Casper.Tools,
+		BuildWannaSpeakStartToolDef(),
+		BuildWannaSpeakContinueToolDef(),
+		BuildWannaSpeakStopToolDef(),
+	)
+	cfg.Trinity.Tools = ensureExclusiveTools(
+		cfg.Trinity.Tools,
+		BuildSpeakStartToolDef(),
+		BuildSpeakContinueToolDef(),
+		BuildSpeakStopToolDef(),
+		BuildSpeakInternalStartToolDef(),
+		BuildSpeakInternalContinueToolDef(),
+		BuildSpeakInternalStopToolDef(),
+	)
+
+	// 通过 continue 工具承载正文后，可强制工具调用，避免纯文本旁路。
+	cfg.Melchior.ToolChoice = "required"
+	cfg.Balthazar.ToolChoice = "required"
+	cfg.Casper.ToolChoice = "required"
+	cfg.Trinity.ToolChoice = "required"
 }
 
-func ensureToolRegistered(agent *AgentConfig, tool ToolDef) {
-	if agent == nil {
-		return
+func ensureExclusiveTools(existing []ToolDef, required ...ToolDef) []ToolDef {
+	if len(required) == 0 {
+		return []ToolDef{}
 	}
-	for _, existing := range agent.Tools {
-		if existing.Function.Name == tool.Function.Name {
-			return
+
+	byName := make(map[string]ToolDef, len(existing))
+	for _, tool := range existing {
+		name := tool.Function.Name
+		if name == "" {
+			continue
 		}
+		byName[name] = tool
 	}
-	agent.Tools = append(agent.Tools, tool)
+
+	normalized := make([]ToolDef, 0, len(required))
+	for _, tool := range required {
+		if preserved, ok := byName[tool.Function.Name]; ok {
+			normalized = append(normalized, preserved)
+			continue
+		}
+		normalized = append(normalized, tool)
+	}
+	return normalized
 }
 
 // SetPersonaProfile 设置人格档案（由Marduk调用）

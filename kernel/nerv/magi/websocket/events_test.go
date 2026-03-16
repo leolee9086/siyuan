@@ -142,6 +142,24 @@ func TestPushRoundFailed(t *testing.T) {
 	}
 }
 
+func TestPushContextHistoryTrimmed(t *testing.T) {
+	err := PushContextHistoryTrimmed(
+		"test-session",
+		"round-1",
+		"trinity",
+		"Trinity",
+		8,
+		6,
+		2,
+		"message_count",
+		6,
+		0,
+	)
+	if err != nil {
+		t.Errorf("PushContextHistoryTrimmed() error = %v", err)
+	}
+}
+
 func TestEventIDGeneration(t *testing.T) {
 	id1 := generateEventID()
 	id2 := generateEventID()

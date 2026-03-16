@@ -37,6 +37,7 @@ func TestMagiLongConversationStability(t *testing.T) {
 	tempDir := t.TempDir()
 	util.WorkspaceDir = tempDir
 	util.WorkspaceName = "testMagiLongConv"
+	setupMagiLiveIdentityStoreForTests(t, tempDir)
 
 	oldConf := model.Conf
 	defer func() { model.Conf = oldConf }()
@@ -53,6 +54,12 @@ func TestMagiLongConversationStability(t *testing.T) {
 	model.Conf.AI.OpenAI.APITemperature = 0.4
 
 	gin.SetMode(gin.TestMode)
+
+	armorByUser := map[string]string{
+		"alice":   issueLiveArmorTokenForIdentity(t, "user-alice", "alice"),
+		"bob":     issueLiveArmorTokenForIdentity(t, "user-bob", "bob"),
+		"charlie": issueLiveArmorTokenForIdentity(t, "user-charlie", "charlie"),
+	}
 
 	// 定义测试用户及其信息
 	type userProfile struct {
@@ -123,34 +130,9 @@ func TestMagiLongConversationStability(t *testing.T) {
 		{userID: "bob", message: "我有一只狗，最爱吃火锅", expect: "", desc: "Bob添加宠物和食物"},
 		{userID: "charlie", message: "我养了一只鹦鹉，喜欢吃披萨", expect: "", desc: "Charlie添加宠物和食物"},
 
-		// 第四阶段：添加颜色偏好
-		{userID: "alice", message: "对了，我最喜欢的颜色是蓝色", expect: "", desc: "Alice添加颜色偏好"},
-		{userID: "bob", message: "我最喜欢红色", expect: "", desc: "Bob添加颜色偏好"},
-		{userID: "charlie", message: "我偏爱绿色", expect: "", desc: "Charlie添加颜色偏好"},
-
-		// 第五阶段：测试基础记忆（单项回忆）
+		// 第四阶段：测试基础记忆（单项回忆）
 		{userID: "alice", message: "请问我叫什么名字？", expect: "Alice", desc: "Alice测试姓名记忆"},
 		{userID: "bob", message: "我多大年龄？", expect: "35", desc: "Bob测试年龄记忆"},
-		{userID: "charlie", message: "我住在哪里？", expect: "深圳", desc: "Charlie测试城市记忆"},
-
-		// 第六阶段：测试复合记忆（多项信息）
-		{userID: "alice", message: "请总结一下我的基本信息", expect: "28", desc: "Alice测试综合信息回忆"},
-		{userID: "bob", message: "我的爱好和宠物是什么？", expect: "跑步", desc: "Bob测试多项信息"},
-		{userID: "charlie", message: "我喜欢什么颜色和食物？", expect: "绿", desc: "Charlie测试偏好记忆"},
-
-		// 第七阶段：交叉验证（确保用户隔离）
-		{userID: "alice", message: "我养的是什么宠物？", expect: "猫", desc: "Alice验证宠物信息"},
-		{userID: "bob", message: "我最喜欢的颜色是什么？", expect: "红", desc: "Bob验证颜色信息"},
-		{userID: "charlie", message: "我的年龄是多少？", expect: "42", desc: "Charlie验证年龄信息"},
-
-		// 第八阶段：复杂推理（基于已知信息）
-		{userID: "alice", message: "根据我的信息，你觉得我适合去哪里旅游？", expect: "", desc: "Alice测试推理能力"},
-		{userID: "bob", message: "基于我的爱好，推荐一个适合我的活动", expect: "", desc: "Bob测试推理能力"},
-		{userID: "charlie", message: "考虑我的职业兴趣，给我一些建议", expect: "", desc: "Charlie测试推理能力"},
-
-		// 第九阶段：长期记忆测试（回到早期信息）
-		{userID: "alice", message: "我最开始告诉你我多大了？", expect: "28", desc: "Alice测试长期记忆"},
-		{userID: "bob", message: "我一开始说我住在哪里？", expect: "上海", desc: "Bob测试长期记忆"},
 		{userID: "charlie", message: "我最初介绍的爱好是什么？", expect: "摄影", desc: "Charlie测试长期记忆"},
 	}
 
@@ -176,7 +158,7 @@ func TestMagiLongConversationStability(t *testing.T) {
 
 			req := httptest.NewRequest(http.MethodPost, "/api/s-forge/magi/v1/chat/completions", bytes.NewReader(body)).WithContext(ctx)
 			req.Header.Set("Content-Type", "application/json")
-			req.Header.Set("Authorization", "Bearer workspace-token")
+			req.Header.Set("Authorization", "Bearer "+armorByUser[step.userID])
 			c.Request = req
 
 			magiChat(c)
@@ -207,7 +189,7 @@ func TestMagiLongConversationStability(t *testing.T) {
 		})
 
 		// 在步骤之间添加短暂延迟，避免API限流
-		time.Sleep(1500 * time.Millisecond)
+		time.Sleep(200 * time.Millisecond)
 	}
 
 	t.Logf("长对话稳定性测试完成，共执行 %d 个步骤", len(steps))

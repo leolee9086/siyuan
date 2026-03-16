@@ -59,17 +59,109 @@ type ToolFunctionDef struct {
 }
 
 const (
+	// WannaSpeakToolName 三贤人内部表达工具名（兼容旧版，逐步废弃）。
+	WannaSpeakToolName = "wanna_speak"
+	// WannaSpeakStartToolName 三贤人表达状态开始工具名。
+	WannaSpeakStartToolName = "wanna_speak_start"
+	// WannaSpeakContinueToolName 三贤人表达状态续写工具名。
+	WannaSpeakContinueToolName = "wanna_speak_continue"
+	// WannaSpeakStopToolName 三贤人表达状态结束工具名。
+	WannaSpeakStopToolName = "wanna_speak_stop"
 	// AvatarBuildToolName Avatar 原型创建工具名。
 	AvatarBuildToolName = "buildAvatar"
 	// AvatarModifyToolName Avatar 原型修改工具名。
 	AvatarModifyToolName = "modifyAvatar"
 	// AvatarSynthesizeToolName Avatar 原型综合工具名。
 	AvatarSynthesizeToolName = "synthesizeAvatar"
-	// SpeakToolName Trinity 输出工具名。
+	// SpeakToolName Trinity 输出工具名（兼容旧版，逐步废弃）。
 	SpeakToolName = "speak"
+	// SpeakStartToolName Trinity 对外表达状态开始工具名。
+	SpeakStartToolName = "speak_start"
+	// SpeakContinueToolName Trinity 对外表达状态续写工具名。
+	SpeakContinueToolName = "speak_continue"
+	// SpeakStopToolName Trinity 对外表达状态结束工具名。
+	SpeakStopToolName = "speak_stop"
+	// SpeakInternalStartToolName Trinity 内部表达状态开始工具名。
+	SpeakInternalStartToolName = "speak_internal_start"
+	// SpeakInternalContinueToolName Trinity 内部表达状态续写工具名。
+	SpeakInternalContinueToolName = "speak_internal_continue"
+	// SpeakInternalStopToolName Trinity 内部表达状态结束工具名。
+	SpeakInternalStopToolName = "speak_internal_stop"
 	// DeliberationSignalToolName Melchior 审慎决策信号工具名。
 	DeliberationSignalToolName = "deliberation_signal"
 )
+
+// BuildWannaSpeakToolDef 构建三贤人 wanna_speak 工具定义。
+func BuildWannaSpeakToolDef() ToolDef {
+	return ToolDef{
+		Type: "function",
+		Function: ToolFunctionDef{
+			Name:        WannaSpeakToolName,
+			Description: "提交本贤者希望对 Trinity 表达的观点内容。",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"content": map[string]interface{}{
+						"type":        "string",
+						"description": "希望表达给 Trinity 的观点内容",
+					},
+				},
+				"required": []string{"content"},
+			},
+		},
+	}
+}
+
+// BuildWannaSpeakStartToolDef 构建三贤人 wanna_speak_start 工具定义。
+func BuildWannaSpeakStartToolDef() ToolDef {
+	return ToolDef{
+		Type: "function",
+		Function: ToolFunctionDef{
+			Name:        WannaSpeakStartToolName,
+			Description: "进入表达状态。进入后通过 wanna_speak_continue 追加正文，结束时调用 wanna_speak_stop。",
+			Parameters: map[string]interface{}{
+				"type":       "object",
+				"properties": map[string]interface{}{},
+			},
+		},
+	}
+}
+
+// BuildWannaSpeakContinueToolDef 构建三贤人 wanna_speak_continue 工具定义。
+func BuildWannaSpeakContinueToolDef() ToolDef {
+	return ToolDef{
+		Type: "function",
+		Function: ToolFunctionDef{
+			Name:        WannaSpeakContinueToolName,
+			Description: "在表达状态中追加一段正文。可多次调用。",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"content": map[string]interface{}{
+						"type":        "string",
+						"description": "本次追加的正文片段",
+					},
+				},
+				"required": []string{"content"},
+			},
+		},
+	}
+}
+
+// BuildWannaSpeakStopToolDef 构建三贤人 wanna_speak_stop 工具定义。
+func BuildWannaSpeakStopToolDef() ToolDef {
+	return ToolDef{
+		Type: "function",
+		Function: ToolFunctionDef{
+			Name:        WannaSpeakStopToolName,
+			Description: "结束表达状态。wanna_speak_start 与 wanna_speak_stop 必须成对出现。",
+			Parameters: map[string]interface{}{
+				"type":       "object",
+				"properties": map[string]interface{}{},
+			},
+		},
+	}
+}
 
 // BuildAvatarBuildToolDef 构建 Avatar 创建工具定义。
 func BuildAvatarBuildToolDef() ToolDef {
@@ -171,6 +263,108 @@ func BuildSpeakToolDef() ToolDef {
 					},
 				},
 				"required": []string{"content"},
+			},
+		},
+	}
+}
+
+// BuildSpeakStartToolDef 构建 Trinity speak_start 工具定义。
+func BuildSpeakStartToolDef() ToolDef {
+	return ToolDef{
+		Type: "function",
+		Function: ToolFunctionDef{
+			Name:        SpeakStartToolName,
+			Description: "进入对外表达状态。进入后通过 speak_continue 追加正文，结束时调用 speak_stop。",
+			Parameters: map[string]interface{}{
+				"type":       "object",
+				"properties": map[string]interface{}{},
+			},
+		},
+	}
+}
+
+// BuildSpeakContinueToolDef 构建 Trinity speak_continue 工具定义。
+func BuildSpeakContinueToolDef() ToolDef {
+	return ToolDef{
+		Type: "function",
+		Function: ToolFunctionDef{
+			Name:        SpeakContinueToolName,
+			Description: "在对外表达状态中追加一段正文。可多次调用。",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"content": map[string]interface{}{
+						"type":        "string",
+						"description": "本次追加的对外正文片段",
+					},
+				},
+				"required": []string{"content"},
+			},
+		},
+	}
+}
+
+// BuildSpeakStopToolDef 构建 Trinity speak_stop 工具定义。
+func BuildSpeakStopToolDef() ToolDef {
+	return ToolDef{
+		Type: "function",
+		Function: ToolFunctionDef{
+			Name:        SpeakStopToolName,
+			Description: "结束对外表达状态。speak_start 与 speak_stop 必须成对出现。",
+			Parameters: map[string]interface{}{
+				"type":       "object",
+				"properties": map[string]interface{}{},
+			},
+		},
+	}
+}
+
+// BuildSpeakInternalStartToolDef 构建 Trinity speak_internal_start 工具定义。
+func BuildSpeakInternalStartToolDef() ToolDef {
+	return ToolDef{
+		Type: "function",
+		Function: ToolFunctionDef{
+			Name:        SpeakInternalStartToolName,
+			Description: "进入内部报告表达状态。进入后通过 speak_internal_continue 追加内容，结束时必须调用 speak_internal_stop。",
+			Parameters: map[string]interface{}{
+				"type":       "object",
+				"properties": map[string]interface{}{},
+			},
+		},
+	}
+}
+
+// BuildSpeakInternalContinueToolDef 构建 Trinity speak_internal_continue 工具定义。
+func BuildSpeakInternalContinueToolDef() ToolDef {
+	return ToolDef{
+		Type: "function",
+		Function: ToolFunctionDef{
+			Name:        SpeakInternalContinueToolName,
+			Description: "在内部报告表达状态中追加一段内容。可多次调用。",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"content": map[string]interface{}{
+						"type":        "string",
+						"description": "本次追加的内部报告内容片段",
+					},
+				},
+				"required": []string{"content"},
+			},
+		},
+	}
+}
+
+// BuildSpeakInternalStopToolDef 构建 Trinity speak_internal_stop 工具定义。
+func BuildSpeakInternalStopToolDef() ToolDef {
+	return ToolDef{
+		Type: "function",
+		Function: ToolFunctionDef{
+			Name:        SpeakInternalStopToolName,
+			Description: "结束内部报告表达状态。speak_internal_start 与 speak_internal_stop 必须成对出现。",
+			Parameters: map[string]interface{}{
+				"type":       "object",
+				"properties": map[string]interface{}{},
 			},
 		},
 	}

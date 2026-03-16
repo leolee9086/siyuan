@@ -97,21 +97,21 @@ func (tc *TrinityCoordinator) HandleTrinitySummary(
 // buildIntrospectionInput 构建内省输入
 // 使用固定模板（D-007）
 func (tc *TrinityCoordinator) buildIntrospectionInput(responses []types.SageResponse) string {
-	melchior := tc.findSageContent(responses, "melchior", prompts.TrinityFallbackMelchior)
-	balthazar := tc.findSageContent(responses, "balthazar", prompts.TrinityFallbackBalthazar)
-	casper := tc.findSageContent(responses, "casper", prompts.TrinityFallbackCasper)
+	melchior := tc.findSageContent(responses, "melchior")
+	balthazar := tc.findSageContent(responses, "balthazar")
+	casper := tc.findSageContent(responses, "casper")
 
 	return prompts.BuildTrinityIntrospectionInput(melchior, balthazar, casper)
 }
 
-// findSageContent 按贤者名称查找响应内容
-func (tc *TrinityCoordinator) findSageContent(responses []types.SageResponse, name, fallback string) string {
+// findSageContent 按贤者名称查找响应内容，未找到时返回空字符串
+func (tc *TrinityCoordinator) findSageContent(responses []types.SageResponse, name string) string {
 	for _, resp := range responses {
 		if resp.Seel == name {
 			return resp.Content
 		}
 	}
-	return fallback
+	return ""
 }
 
 // ensureSystemPrompt 确保system prompt在上下文中
@@ -179,6 +179,11 @@ func (tc *TrinityCoordinator) callTrinity(
 	userMessage string,
 	attempt int,
 ) (*TrinityResult, error) {
+	const (
+		toolIndexStride               = 1000
+		maxConsecutiveTransitionRetry = 10
+	)
+
 	streamMessageID := fmt.Sprintf("%s-%s-stream-%d", roundId, trinity.GetName(), attempt)
 	streamMessage := &types.Message{
 		ID:        streamMessageID,
@@ -191,84 +196,138 @@ func (tc *TrinityCoordinator) callTrinity(
 		logging.LogWarnf("推送Trinity开始响应失败: %v", err)
 	}
 
-	// 发送空消息（上下文已包含内省输入）
-	streamCh, err := trinity.SendMessage(ctx, sessionId, roundId, " ")
-	if err != nil {
-		if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, trinity.GetName(), trinity.GetDisplayName(), err.Error()); pushErr != nil {
-			logging.LogWarnf("推送Trinity失败事件失败: %v", pushErr)
-		}
-		return nil, fmt.Errorf("发送Trinity消息失败: %w", err)
-	}
-
-	// 处理流式响应 - 使用通用处理器 + speak handler
 	speakHandler := stream.NewSpeakToolHandler()
 	processor := utilstream.NewProcessor(speakHandler)
+	indexOffset := 0
+	consecutiveTransitionFailures := 0
 
-	for {
-		select {
-		case <-ctx.Done():
-			if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, trinity.GetName(), trinity.GetDisplayName(), ctx.Err().Error()); pushErr != nil {
+	for turn := 0; ; turn++ {
+		prevStats := speakHandler.TransitionStats()
+
+		var (
+			streamCh <-chan types.StreamChunk
+			err      error
+		)
+		// 注意：第一轮也使用 SendContinuation，因为 injectIntrospection 已经添加了完整的上下文
+		// 不需要额外的 user 消息（用户输入已包含在 think_about 工具调用参数中）
+		streamCh, err = trinity.SendContinuation(ctx, sessionId, roundId)
+		if err != nil {
+			if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, trinity.GetName(), trinity.GetDisplayName(), err.Error()); pushErr != nil {
 				logging.LogWarnf("推送Trinity失败事件失败: %v", pushErr)
 			}
-			return nil, ctx.Err()
-		case chunk, ok := <-streamCh:
-			if !ok {
-				// 流结束，解析speak工具
-				result, parseErr := tc.parseTrinitySpeakResult(sessionId, trinity, processor, speakHandler)
-				if parseErr != nil {
-					if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, trinity.GetName(), trinity.GetDisplayName(), parseErr.Error()); pushErr != nil {
-						logging.LogWarnf("推送Trinity失败事件失败: %v", pushErr)
-					}
-					return nil, parseErr
-				}
-				completedMessage := &types.Message{
-					ID:        streamMessageID,
-					Type:      types.TypeAI,
-					Content:   result.Content,
-					Status:    types.StatusSuccess,
-					Timestamp: time.Now().UnixMilli(),
-				}
-				if pushErr := websocket.PushSeelReplyCompleted(sessionId, roundId, trinity.GetName(), trinity.GetDisplayName(), completedMessage); pushErr != nil {
-					logging.LogWarnf("推送Trinity完成事件失败: %v", pushErr)
-				}
-				return result, nil
-			}
+			return nil, fmt.Errorf("发送Trinity消息失败: %w", err)
+		}
 
-			if chunk.Object == "error" {
-				err = fmt.Errorf("Trinity流式响应错误: %s", chunk.ID)
-				if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, trinity.GetName(), trinity.GetDisplayName(), err.Error()); pushErr != nil {
+		turnCollector := newStreamedToolCallCollector()
+		turnContent := strings.Builder{}
+
+		for {
+			select {
+			case <-ctx.Done():
+				if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, trinity.GetName(), trinity.GetDisplayName(), ctx.Err().Error()); pushErr != nil {
 					logging.LogWarnf("推送Trinity失败事件失败: %v", pushErr)
 				}
-				return nil, err
-			}
-
-			// 检查chunk是否有效
-			if len(chunk.Choices) == 0 {
-				continue
-			}
-
-			choice := chunk.Choices[0]
-
-			// 累积内容
-			if choice.Delta.Content != "" {
-				processor.AccumulateContent(choice.Delta.Content)
-				chunkMessage := &types.Message{
-					ID:        streamMessageID,
-					Type:      types.TypeAI,
-					Content:   processor.GetAccumulated(),
-					Status:    types.StatusStreaming,
-					Timestamp: time.Now().UnixMilli(),
+				return nil, ctx.Err()
+			case chunk, ok := <-streamCh:
+				if !ok {
+					goto TurnComplete
 				}
-				if pushErr := websocket.PushSeelReplyChunk(sessionId, roundId, trinity.GetName(), trinity.GetDisplayName(), chunkMessage); pushErr != nil {
-					logging.LogWarnf("推送Trinity流式chunk失败: %v", pushErr)
+				if chunk.Object == "error" {
+					streamErr := fmt.Errorf("Trinity流式响应错误: %s", chunk.ID)
+					if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, trinity.GetName(), trinity.GetDisplayName(), streamErr.Error()); pushErr != nil {
+						logging.LogWarnf("推送Trinity失败事件失败: %v", pushErr)
+					}
+					return nil, streamErr
+				}
+				if len(chunk.Choices) == 0 {
+					continue
+				}
+
+				choice := chunk.Choices[0]
+				if choice.Delta.Content != "" {
+					processor.AccumulateContent(choice.Delta.Content)
+					turnContent.WriteString(choice.Delta.Content)
+					chunkMessage := &types.Message{
+						ID:        streamMessageID,
+						Type:      types.TypeAI,
+						Content:   processor.GetAccumulated(),
+						Status:    types.StatusStreaming,
+						Timestamp: time.Now().UnixMilli(),
+					}
+					if pushErr := websocket.PushSeelReplyChunk(sessionId, roundId, trinity.GetName(), trinity.GetDisplayName(), chunkMessage); pushErr != nil {
+						logging.LogWarnf("推送Trinity流式chunk失败: %v", pushErr)
+					}
+				}
+				if len(choice.Delta.ToolCalls) > 0 {
+					turnCollector.Merge(choice.Delta.ToolCalls)
+					shifted := withToolCallIndexOffset(choice.Delta.ToolCalls, indexOffset)
+					utilToolCalls := convertToolCallDeltas(shifted)
+					processor.MergeToolCalls(utilToolCalls)
 				}
 			}
+		}
 
-			// 转换并合并工具调用
-			if len(choice.Delta.ToolCalls) > 0 {
-				utilToolCalls := convertToolCallDeltas(choice.Delta.ToolCalls)
-				processor.MergeToolCalls(utilToolCalls)
+	TurnComplete:
+		indexOffset += toolIndexStride
+		turnToolCalls := turnCollector.BuildSorted()
+
+		if speakHandler.IsPublicPairCompleted() {
+			if len(turnToolCalls) > 0 {
+				appendTurnToolCallsToContext(sessionId, trinity, turnContent.String(), turnToolCalls, buildTrinitySpeakToolAck)
 			}
+			result, parseErr := tc.parseTrinitySpeakResult(sessionId, trinity, processor, speakHandler)
+			if parseErr != nil {
+				if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, trinity.GetName(), trinity.GetDisplayName(), parseErr.Error()); pushErr != nil {
+					logging.LogWarnf("推送Trinity失败事件失败: %v", pushErr)
+				}
+				return nil, parseErr
+			}
+			completedMessage := &types.Message{
+				ID:        streamMessageID,
+				Type:      types.TypeAI,
+				Content:   result.Content,
+				Status:    types.StatusSuccess,
+				Timestamp: time.Now().UnixMilli(),
+			}
+			if pushErr := websocket.PushSeelReplyCompleted(sessionId, roundId, trinity.GetName(), trinity.GetDisplayName(), completedMessage); pushErr != nil {
+				logging.LogWarnf("推送Trinity完成事件失败: %v", pushErr)
+			}
+			return result, nil
+		}
+
+		if len(turnToolCalls) > 0 {
+			appendTurnToolCallsToContext(sessionId, trinity, turnContent.String(), turnToolCalls, buildTrinitySpeakToolAck)
+		} else if strings.TrimSpace(turnContent.String()) != "" {
+			trinity.AddToContextWithSession(sessionId, types.ContextMessage{
+				Role:    types.RoleAssistant,
+				Content: turnContent.String(),
+			})
+		}
+		trinity.AddToContextWithSession(sessionId, types.ContextMessage{
+			Role:    types.RoleSystem,
+			Content: speakHandler.BuildContinuationPrompt(),
+		})
+
+		currStats := speakHandler.TransitionStats()
+		madeProgress := currStats.PublicStarts > prevStats.PublicStarts ||
+			currStats.PublicContinues > prevStats.PublicContinues ||
+			currStats.PublicStops > prevStats.PublicStops ||
+			currStats.InternalStarts > prevStats.InternalStarts ||
+			currStats.InternalContinues > prevStats.InternalContinues ||
+			currStats.InternalStops > prevStats.InternalStops
+		hasNewTransitionError := currStats.StateErrorCount > prevStats.StateErrorCount
+		transitionFailed := !madeProgress || hasNewTransitionError
+		if transitionFailed {
+			consecutiveTransitionFailures++
+		} else {
+			consecutiveTransitionFailures = 0
+		}
+		if consecutiveTransitionFailures >= maxConsecutiveTransitionRetry {
+			err := fmt.Errorf("Trinity工具状态转移连续失败次数达到上限(%d)", maxConsecutiveTransitionRetry)
+			if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, trinity.GetName(), trinity.GetDisplayName(), err.Error()); pushErr != nil {
+				logging.LogWarnf("推送Trinity失败事件失败: %v", pushErr)
+			}
+			return nil, err
 		}
 	}
 }
@@ -287,6 +346,12 @@ func (tc *TrinityCoordinator) parseTrinitySpeakResult(
 	publicContent := strings.TrimSpace(speakHandler.GetPublicContent())
 	internalMessages := speakHandler.GetInternalMessages()
 
+	if err := speakHandler.ValidatePairedState(); err != nil {
+		return &TrinityResult{
+			Success: false,
+		}, fmt.Errorf("Trinity speak状态转移不完整: %w", err)
+	}
+
 	// Trinity必须通过speak工具输出，不允许降级到纯文本
 	if !speakHandler.HasPublicSpeakCall() {
 		return &TrinityResult{
@@ -300,31 +365,8 @@ func (tc *TrinityCoordinator) parseTrinitySpeakResult(
 		}, fmt.Errorf("Trinity的speak工具返回空内容")
 	}
 
-	// 构建assistant响应并添加到上下文
-	assistantMsg := types.ContextMessage{
-		Role:    types.RoleAssistant,
-		Content: result.Content,
-	}
-
-	// 如果有工具调用，需要添加工具调用信息
-	if result.HasToolCalls {
-		var toolCalls []types.ToolCall
-		for name, argsList := range result.ToolArgumentsByName {
-			for i, args := range argsList {
-				toolCalls = append(toolCalls, types.ToolCall{
-					ID:   fmt.Sprintf("call_%s_%d", name, i),
-					Type: "function",
-					Function: types.ToolCallFunction{
-						Name:      name,
-						Arguments: args,
-					},
-				})
-			}
-		}
-		assistantMsg.ToolCalls = toolCalls
-	}
-
-	trinity.AddToContextWithSession(sessionId, assistantMsg)
+	// 注意：不需要在这里添加消息到上下文
+	// appendTurnToolCallsToContext 已经在调用此函数之前添加了完整的消息序列（assistant + tool responses）
 
 	return &TrinityResult{
 		Content:              publicContent,
@@ -357,4 +399,31 @@ func escapeJSON(s string) string {
 	escaped, _ := json.Marshal(s)
 	// 去掉首尾的引号
 	return string(escaped[1 : len(escaped)-1])
+}
+
+func buildTrinitySpeakToolAck(toolName string) string {
+	switch strings.TrimSpace(toolName) {
+	case stream.TrinitySpeakStartToolName:
+		return fmt.Sprintf(
+			`{"ok":true,"scope":"public","instruction":"继续调用 %s 追加正文，结束时调用 %s"}`,
+			stream.TrinitySpeakContinueToolName,
+			stream.TrinitySpeakStopToolName,
+		)
+	case stream.TrinitySpeakContinueToolName:
+		return `{"ok":true,"scope":"public","state":"continuing"}`
+	case stream.TrinitySpeakStopToolName:
+		return `{"ok":true,"scope":"public","state":"stopped"}`
+	case stream.TrinitySpeakInternalStartToolName:
+		return fmt.Sprintf(
+			`{"ok":true,"scope":"internal","instruction":"继续调用 %s 追加内部报告，结束时调用 %s"}`,
+			stream.TrinitySpeakInternalContinueToolName,
+			stream.TrinitySpeakInternalStopToolName,
+		)
+	case stream.TrinitySpeakInternalContinueToolName:
+		return `{"ok":true,"scope":"internal","state":"continuing"}`
+	case stream.TrinitySpeakInternalStopToolName:
+		return `{"ok":true,"scope":"internal","state":"stopped"}`
+	default:
+		return `{"ok":true}`
+	}
 }

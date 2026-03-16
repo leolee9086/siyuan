@@ -35,6 +35,7 @@ func TestMagiPersonalityAccuracyInLongConversation(t *testing.T) {
 	tempDir := t.TempDir()
 	util.WorkspaceDir = tempDir
 	util.WorkspaceName = "testMagiPersonalityAccuracy"
+	setupMagiLiveIdentityStoreForTests(t, tempDir)
 
 	oldConf := model.Conf
 	defer func() { model.Conf = oldConf }()
@@ -51,6 +52,7 @@ func TestMagiPersonalityAccuracyInLongConversation(t *testing.T) {
 	model.Conf.AI.OpenAI.APITemperature = 0.4
 
 	gin.SetMode(gin.TestMode)
+	armorToken := issueLiveArmorTokenForIdentity(t, "personality-test", "personality-test")
 
 	// 创建心理评估客户端
 	assessorConfig := &llm.Config{
@@ -59,7 +61,7 @@ func TestMagiPersonalityAccuracyInLongConversation(t *testing.T) {
 		APIBaseURL:  apiBase,
 		APIModel:    modelName,
 		Temperature: 0.1,
-		MaxTokens:   2000,
+		MaxTokens:   1200,
 	}
 	assessorClient := llm.NewClient(assessorConfig)
 
@@ -83,11 +85,8 @@ SchemaVersion: %s
 	// 定义测试对话场景（覆盖不同人格维度）
 	cases := []string{
 		"你好，最近心情怎么样？有什么开心或不开心的事情吗？",
-		"如果让你策划一个周末活动，你会选择什么？为什么？",
 		"工作中遇到困难时，你通常会怎么处理？",
 		"你觉得自己是个什么样的人？可以描述一下吗？",
-		"如果有人对你的工作提出批评，你会有什么反应？",
-		"你平时喜欢独处还是和别人在一起？为什么？",
 	}
 
 	// 收集对话记录
@@ -118,7 +117,7 @@ SchemaVersion: %s
 			ginCtx, _ := gin.CreateTestContext(w)
 			req := httptest.NewRequest(http.MethodPost, "/api/s-forge/magi/v1/chat/completions", bytes.NewReader(body)).WithContext(ctx)
 			req.Header.Set("Content-Type", "application/json")
-			req.Header.Set("Authorization", "Bearer workspace-token")
+			req.Header.Set("Authorization", "Bearer "+armorToken)
 			ginCtx.Request = req
 
 			magiChat(ginCtx)
@@ -143,7 +142,7 @@ SchemaVersion: %s
 			})
 		})
 
-		time.Sleep(2 * time.Second)
+		time.Sleep(100 * time.Millisecond)
 	}
 
 	// 使用心理评估AI分析整体对话

@@ -22,19 +22,20 @@ type mockTrinitySpeakClient struct {
 }
 
 func (m *mockTrinitySpeakClient) SendChatRequest(ctx context.Context, messages []types.ContextMessage, tools []openai.Tool, toolChoice any) (<-chan types.StreamChunk, error) {
+	// 在返回前同步递增计数器，避免竞态条件
+	m.currentAttempt++
+
 	ch := make(chan types.StreamChunk, 10)
 
 	go func() {
 		defer close(ch)
-
-		m.currentAttempt++
 
 		// 模拟重试失败
 		if m.shouldFail && m.currentAttempt <= m.failUntilRetry {
 			return
 		}
 
-		// 发送public speak工具调用
+		// 发送 public 表达状态开始
 		ch <- types.StreamChunk{
 			Choices: []types.ChunkChoice{
 				{
@@ -43,7 +44,7 @@ func (m *mockTrinitySpeakClient) SendChatRequest(ctx context.Context, messages [
 							{
 								Index: 0,
 								Function: &types.ToolCallFunctionDelta{
-									Name: stream.TrinitySpeakToolName,
+									Name: stream.TrinitySpeakStartToolName,
 								},
 							},
 						},
@@ -52,15 +53,17 @@ func (m *mockTrinitySpeakClient) SendChatRequest(ctx context.Context, messages [
 			},
 		}
 
+		// 发送 public 正文
 		ch <- types.StreamChunk{
 			Choices: []types.ChunkChoice{
 				{
 					Delta: types.ChunkDelta{
 						ToolCalls: []types.ToolCallDelta{
 							{
-								Index: 0,
+								Index: 1,
 								Function: &types.ToolCallFunctionDelta{
-									Arguments: `{"content":"` + m.publicContent + `","channel":"public"}`,
+									Name:      stream.TrinitySpeakContinueToolName,
+									Arguments: `{"content":"` + m.publicContent + `"}`,
 								},
 							},
 						},
@@ -69,17 +72,39 @@ func (m *mockTrinitySpeakClient) SendChatRequest(ctx context.Context, messages [
 			},
 		}
 
-		// 发送internal speak工具调用
+		// 发送 public 表达状态结束
+		ch <- types.StreamChunk{
+			Choices: []types.ChunkChoice{
+				{
+					Delta: types.ChunkDelta{
+						ToolCalls: []types.ToolCallDelta{
+							{
+								Index: 2,
+								Function: &types.ToolCallFunctionDelta{
+									Name: stream.TrinitySpeakStopToolName,
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		// 发送 internal 表达状态
 		for i, msg := range m.internalMsgs {
+			startIdx := 3 + i*3
+			continueIdx := startIdx + 1
+			stopIdx := startIdx + 2
+
 			ch <- types.StreamChunk{
 				Choices: []types.ChunkChoice{
 					{
 						Delta: types.ChunkDelta{
 							ToolCalls: []types.ToolCallDelta{
 								{
-									Index: i + 1,
+									Index: startIdx,
 									Function: &types.ToolCallFunctionDelta{
-										Name: stream.TrinitySpeakToolName,
+										Name: stream.TrinitySpeakInternalStartToolName,
 									},
 								},
 							},
@@ -94,9 +119,27 @@ func (m *mockTrinitySpeakClient) SendChatRequest(ctx context.Context, messages [
 						Delta: types.ChunkDelta{
 							ToolCalls: []types.ToolCallDelta{
 								{
-									Index: i + 1,
+									Index: continueIdx,
 									Function: &types.ToolCallFunctionDelta{
-										Arguments: `{"content":"` + msg + `","channel":"internal"}`,
+										Name:      stream.TrinitySpeakInternalContinueToolName,
+										Arguments: `{"content":"` + msg + `"}`,
+									},
+								},
+							},
+						},
+					},
+				},
+			}
+
+			ch <- types.StreamChunk{
+				Choices: []types.ChunkChoice{
+					{
+						Delta: types.ChunkDelta{
+							ToolCalls: []types.ToolCallDelta{
+								{
+									Index: stopIdx,
+									Function: &types.ToolCallFunctionDelta{
+										Name: stream.TrinitySpeakInternalStopToolName,
 									},
 								},
 							},
@@ -338,8 +381,10 @@ func TestInjectIntrospection(t *testing.T) {
 	}
 }
 
-func TestHandleTrinitySummaryPlainTextFallback(t *testing.T) {
+func TestHandleTrinitySummaryRejectsPlainTextWithoutSpeakTools(t *testing.T) {
 	tc := NewTrinityCoordinator()
+	tc.maxRetries = 1
+	tc.initialBackoff = 1 * time.Millisecond
 	cfg := &config.AgentConfig{
 		SEELConfig: config.SEELConfig{
 			Name: "Trinity",
@@ -359,13 +404,10 @@ func TestHandleTrinitySummaryPlainTextFallback(t *testing.T) {
 
 	ctx := context.Background()
 	result, err := tc.HandleTrinitySummary(ctx, "test-session", "test-round", trinity, responses, "test user message")
-	if err != nil {
-		t.Fatalf("期望直接文本回退成功，实际失败: %v", err)
+	if err == nil {
+		t.Fatal("期望返回错误（Trinity未调用状态转移工具），实际成功")
 	}
-	if !result.Success {
-		t.Fatal("期望Success为true")
-	}
-	if result.Content != "这是Trinity直接文本统合结论。" {
-		t.Fatalf("期望回退到直接文本输出，实际为: %s", result.Content)
+	if result != nil && result.Success {
+		t.Fatal("期望Success为false")
 	}
 }

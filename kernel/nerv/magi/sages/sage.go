@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/sashabaranov/go-openai"
+	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/config"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/llm"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/prompts"
@@ -30,16 +31,17 @@ type ContextManager interface {
 
 // Sage 贤者实例
 type Sage struct {
-	mu             sync.RWMutex
-	name           string
-	displayName    string
-	config         *config.AgentConfig
-	llmClient      llm.Client
-	contextManager ContextManager
-	systemPrompt   string
-	tools          []openai.Tool
-	toolChoice     any
-	profile        *marduk.IpipPersonaProfile
+	mu              sync.RWMutex
+	name            string
+	displayName     string
+	config          *config.AgentConfig
+	llmClient       llm.Client
+	contextManager  ContextManager
+	systemPrompt    string
+	tools           []openai.Tool
+	toolChoice      any
+	contextStrategy *config.ContextStrategy
+	profile         *marduk.IpipPersonaProfile
 }
 
 // NewSage 创建贤者实例
@@ -60,35 +62,51 @@ func NewSage(name string, cfg *config.AgentConfig, client llm.Client, strategy *
 	}
 
 	return &Sage{
-		name:           name,
-		displayName:    cfg.SEELConfig.Name,
-		config:         cfg,
-		llmClient:      client,
-		contextManager: cm,
-		systemPrompt:   cfg.SystemPrompt,
-		tools:          tools,
-		toolChoice:     cfg.ToolChoice,
+		name:            name,
+		displayName:     cfg.SEELConfig.Name,
+		config:          cfg,
+		llmClient:       client,
+		contextManager:  cm,
+		systemPrompt:    cfg.SystemPrompt,
+		tools:           tools,
+		toolChoice:      cfg.ToolChoice,
+		contextStrategy: strategy,
 	}
 }
 
 // SendMessage 发送消息并返回流式响应
 func (s *Sage) SendMessage(ctx context.Context, sessionId, roundId, userInput string) (<-chan types.StreamChunk, error) {
+	return s.sendMessageInternal(ctx, sessionId, roundId, userInput, true)
+}
+
+// SendContinuation 基于当前上下文继续对话（不追加新的 user 消息）。
+func (s *Sage) SendContinuation(ctx context.Context, sessionId, roundId string) (<-chan types.StreamChunk, error) {
+	return s.sendMessageInternal(ctx, sessionId, roundId, "", false)
+}
+
+func (s *Sage) sendMessageInternal(
+	ctx context.Context,
+	sessionId, roundId, userInput string,
+	appendUserInput bool,
+) (<-chan types.StreamChunk, error) {
 	s.mu.Lock()
 
 	// 添加系统提示词（如果上下文为空）
 	messages := s.contextManager.GetMessagesForSession(sessionId)
 	if len(messages) == 0 && s.systemPrompt != "" {
-		s.contextManager.AddMessageWithSession(sessionId, types.ContextMessage{
+		s.addMessageWithSessionLocked(sessionId, roundId, types.ContextMessage{
 			Role:    types.RoleSystem,
 			Content: s.systemPrompt,
 		})
 	}
 
 	// 添加用户消息
-	s.contextManager.AddMessageWithSession(sessionId, types.ContextMessage{
-		Role:    types.RoleUser,
-		Content: userInput,
-	})
+	if appendUserInput {
+		s.addMessageWithSessionLocked(sessionId, roundId, types.ContextMessage{
+			Role:    types.RoleUser,
+			Content: userInput,
+		})
+	}
 
 	messages = s.contextManager.GetMessagesForSession(sessionId)
 	requestMessages := s.buildRequestMessages(messages)
@@ -109,14 +127,14 @@ func (s *Sage) SendMessage(ctx context.Context, sessionId, roundId, userInput st
 func (s *Sage) AddToContext(msg types.ContextMessage) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.contextManager.AddMessage(msg)
+	s.addMessageWithSessionLocked("", "", msg)
 }
 
 // AddToContextWithSession 添加消息到指定会话的上下文
 func (s *Sage) AddToContextWithSession(sessionId string, msg types.ContextMessage) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.contextManager.AddMessageWithSession(sessionId, msg)
+	s.addMessageWithSessionLocked(sessionId, "", msg)
 }
 
 // GetContext 获取当前上下文（向后兼容，使用空sessionId）
@@ -203,6 +221,44 @@ func (s *Sage) buildRequestMessages(history []types.ContextMessage) []types.Cont
 	request = append(request, wakeup...)
 	request = append(request, history...)
 	return request
+}
+
+func (s *Sage) addMessageWithSessionLocked(sessionId, roundId string, msg types.ContextMessage) {
+	beforeCount := len(s.contextManager.GetMessagesForSession(sessionId))
+	s.contextManager.AddMessageWithSession(sessionId, msg)
+	afterCount := len(s.contextManager.GetMessagesForSession(sessionId))
+
+	droppedCount := beforeCount + 1 - afterCount
+	if droppedCount <= 0 {
+		return
+	}
+	if sessionId == "" {
+		return
+	}
+
+	strategyType := ""
+	strategyCount := 0
+	strategyPercent := 0.0
+	if s.contextStrategy != nil {
+		strategyType = s.contextStrategy.Type
+		strategyCount = s.contextStrategy.Count
+		strategyPercent = s.contextStrategy.Percent
+	}
+
+	if err := websocket.PushContextHistoryTrimmed(
+		sessionId,
+		roundId,
+		s.name,
+		s.displayName,
+		beforeCount,
+		afterCount,
+		droppedCount,
+		strategyType,
+		strategyCount,
+		strategyPercent,
+	); err != nil {
+		logging.LogWarnf("推送上下文裁剪事件失败: %v", err)
+	}
 }
 
 // contextManagerImpl 上下文管理器实现
@@ -380,14 +436,15 @@ func NewMelchior(cfgManager *config.ConfigManager, client llm.Client) (*Sage, er
 	}
 
 	sage := &Sage{
-		name:           "melchior",
-		displayName:    cfg.SEELConfig.Name,
-		config:         cfg,
-		llmClient:      client,
-		contextManager: cm,
-		systemPrompt:   cfg.SystemPrompt,
-		tools:          tools,
-		toolChoice:     cfg.ToolChoice,
+		name:            "melchior",
+		displayName:     cfg.SEELConfig.Name,
+		config:          cfg,
+		llmClient:       client,
+		contextManager:  cm,
+		systemPrompt:    cfg.SystemPrompt,
+		tools:           tools,
+		toolChoice:      cfg.ToolChoice,
+		contextStrategy: strategy,
 	}
 	sage.profile = getPersonaProfileFromConfigManager(cfgManager)
 	return sage, nil

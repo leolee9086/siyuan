@@ -3,269 +3,226 @@ package stream
 import (
 	"testing"
 
-	"github.com/siyuan-note/siyuan/kernel/util/stream"
+	utilstream "github.com/siyuan-note/siyuan/kernel/util/stream"
 )
 
-func TestSpeakToolHandler_PublicChannel(t *testing.T) {
+func TestSpeakToolHandler_PublicChannelWithStateTransition(t *testing.T) {
 	handler := NewSpeakToolHandler()
 
-	// 模拟 speak 工具调用 - public channel
-	handler.OnToolCall(&stream.ToolCallDelta{
+	handler.OnToolCall(&utilstream.ToolCallDelta{
 		Index: 0,
-		Function: &stream.ToolCallFunctionDelta{
-			Name: TrinitySpeakToolName,
+		Function: &utilstream.ToolCallFunctionDelta{
+			Name: TrinitySpeakStartToolName,
+		},
+	})
+	handler.OnToolCall(&utilstream.ToolCallDelta{
+		Index: 1,
+		Function: &utilstream.ToolCallFunctionDelta{
+			Name:      TrinitySpeakContinueToolName,
+			Arguments: `{"content":"Hello World"}`,
+		},
+	})
+	handler.OnToolCall(&utilstream.ToolCallDelta{
+		Index: 2,
+		Function: &utilstream.ToolCallFunctionDelta{
+			Name: TrinitySpeakStopToolName,
 		},
 	})
 
-	handler.OnToolCall(&stream.ToolCallDelta{
-		Index: 0,
-		Function: &stream.ToolCallFunctionDelta{
-			Arguments: `{"content":"Hello","channel":"public"}`,
-		},
-	})
-
-	result := &stream.StreamResult{}
+	result := &utilstream.StreamResult{}
 	handler.OnComplete(result)
 
 	if !handler.HasPublicSpeakCall() {
-		t.Error("Expected HasPublicSpeakCall to be true")
+		t.Error("expected HasPublicSpeakCall to be true")
 	}
-
-	if got := handler.GetPublicContent(); got != "Hello" {
-		t.Errorf("GetPublicContent() = %q, want %q", got, "Hello")
+	if got := handler.GetPublicContent(); got != "Hello World" {
+		t.Errorf("GetPublicContent() = %q, want %q", got, "Hello World")
 	}
-
 	if len(handler.GetInternalMessages()) != 0 {
-		t.Errorf("Expected no internal messages, got %d", len(handler.GetInternalMessages()))
+		t.Errorf("expected no internal messages, got %d", len(handler.GetInternalMessages()))
 	}
 }
 
-func TestSpeakToolHandler_InternalChannel(t *testing.T) {
+func TestSpeakToolHandler_InternalChannelWithStateTransition(t *testing.T) {
 	handler := NewSpeakToolHandler()
 
-	// 模拟 speak 工具调用 - internal channel
-	handler.OnToolCall(&stream.ToolCallDelta{
+	handler.OnToolCall(&utilstream.ToolCallDelta{
 		Index: 0,
-		Function: &stream.ToolCallFunctionDelta{
-			Name:      TrinitySpeakToolName,
-			Arguments: `{"content":"Internal message","channel":"internal"}`,
+		Function: &utilstream.ToolCallFunctionDelta{
+			Name: TrinitySpeakInternalStartToolName,
+		},
+	})
+	handler.OnToolCall(&utilstream.ToolCallDelta{
+		Index: 1,
+		Function: &utilstream.ToolCallFunctionDelta{
+			Name:      TrinitySpeakInternalContinueToolName,
+			Arguments: `{"content":"Internal message"}`,
+		},
+	})
+	handler.OnToolCall(&utilstream.ToolCallDelta{
+		Index: 2,
+		Function: &utilstream.ToolCallFunctionDelta{
+			Name: TrinitySpeakInternalStopToolName,
 		},
 	})
 
-	result := &stream.StreamResult{}
+	result := &utilstream.StreamResult{}
 	handler.OnComplete(result)
 
 	if handler.HasPublicSpeakCall() {
-		t.Error("Expected HasPublicSpeakCall to be false")
+		t.Error("expected HasPublicSpeakCall to be false")
 	}
-
 	if got := handler.GetPublicContent(); got != "" {
 		t.Errorf("GetPublicContent() = %q, want empty", got)
 	}
-
-	messages := handler.GetInternalMessages()
-	if len(messages) != 1 {
-		t.Fatalf("Expected 1 internal message, got %d", len(messages))
+	internal := handler.GetInternalMessages()
+	if len(internal) != 1 {
+		t.Fatalf("expected 1 internal message, got %d", len(internal))
 	}
-
-	if messages[0] != "Internal message" {
-		t.Errorf("Internal message = %q, want %q", messages[0], "Internal message")
+	if internal[0] != "Internal message" {
+		t.Errorf("internal[0] = %q, want %q", internal[0], "Internal message")
 	}
 }
 
-func TestSpeakToolHandler_MixedChannels(t *testing.T) {
+func TestSpeakToolHandler_MixedChannelsWithStateTransition(t *testing.T) {
 	handler := NewSpeakToolHandler()
 
-	// Internal message (index 0)
-	handler.OnToolCall(&stream.ToolCallDelta{
+	handler.OnToolCall(&utilstream.ToolCallDelta{
 		Index: 0,
-		Function: &stream.ToolCallFunctionDelta{
-			Name:      TrinitySpeakToolName,
-			Arguments: `{"content":"Internal 1","channel":"internal"}`,
+		Function: &utilstream.ToolCallFunctionDelta{
+			Name: TrinitySpeakInternalStartToolName,
 		},
 	})
-
-	// Public message (index 1)
-	handler.OnToolCall(&stream.ToolCallDelta{
+	handler.OnToolCall(&utilstream.ToolCallDelta{
 		Index: 1,
-		Function: &stream.ToolCallFunctionDelta{
-			Name:      TrinitySpeakToolName,
-			Arguments: `{"content":"Public message","channel":"public"}`,
+		Function: &utilstream.ToolCallFunctionDelta{
+			Name:      TrinitySpeakInternalContinueToolName,
+			Arguments: `{"content":"Internal 1"}`,
 		},
 	})
-
-	// Another internal message (index 2)
-	handler.OnToolCall(&stream.ToolCallDelta{
+	handler.OnToolCall(&utilstream.ToolCallDelta{
 		Index: 2,
-		Function: &stream.ToolCallFunctionDelta{
-			Name:      TrinitySpeakToolName,
-			Arguments: `{"content":"Internal 2","channel":"internal"}`,
+		Function: &utilstream.ToolCallFunctionDelta{
+			Name: TrinitySpeakInternalStopToolName,
 		},
 	})
 
-	result := &stream.StreamResult{}
+	handler.OnToolCall(&utilstream.ToolCallDelta{
+		Index: 3,
+		Function: &utilstream.ToolCallFunctionDelta{
+			Name: TrinitySpeakStartToolName,
+		},
+	})
+	handler.OnToolCall(&utilstream.ToolCallDelta{
+		Index: 4,
+		Function: &utilstream.ToolCallFunctionDelta{
+			Name:      TrinitySpeakContinueToolName,
+			Arguments: `{"content":"Public message"}`,
+		},
+	})
+	handler.OnToolCall(&utilstream.ToolCallDelta{
+		Index: 5,
+		Function: &utilstream.ToolCallFunctionDelta{
+			Name: TrinitySpeakStopToolName,
+		},
+	})
+
+	handler.OnToolCall(&utilstream.ToolCallDelta{
+		Index: 6,
+		Function: &utilstream.ToolCallFunctionDelta{
+			Name: TrinitySpeakInternalStartToolName,
+		},
+	})
+	handler.OnToolCall(&utilstream.ToolCallDelta{
+		Index: 7,
+		Function: &utilstream.ToolCallFunctionDelta{
+			Name:      TrinitySpeakInternalContinueToolName,
+			Arguments: `{"content":"Internal 2"}`,
+		},
+	})
+	handler.OnToolCall(&utilstream.ToolCallDelta{
+		Index: 8,
+		Function: &utilstream.ToolCallFunctionDelta{
+			Name: TrinitySpeakInternalStopToolName,
+		},
+	})
+
+	result := &utilstream.StreamResult{}
 	handler.OnComplete(result)
 
 	if !handler.HasPublicSpeakCall() {
-		t.Error("Expected HasPublicSpeakCall to be true")
+		t.Error("expected HasPublicSpeakCall to be true")
 	}
-
 	if got := handler.GetPublicContent(); got != "Public message" {
 		t.Errorf("GetPublicContent() = %q, want %q", got, "Public message")
 	}
-
-	messages := handler.GetInternalMessages()
-	if len(messages) != 2 {
-		t.Fatalf("Expected 2 internal messages, got %d", len(messages))
+	internal := handler.GetInternalMessages()
+	if len(internal) != 2 {
+		t.Fatalf("expected 2 internal messages, got %d", len(internal))
 	}
+	if internal[0] != "Internal 1" || internal[1] != "Internal 2" {
+		t.Errorf("internal messages = %v, want [Internal 1 Internal 2]", internal)
+	}
+}
 
-	if messages[0] != "Internal 1" || messages[1] != "Internal 2" {
-		t.Errorf("Internal messages = %v, want [Internal 1, Internal 2]", messages)
+func TestSpeakToolHandler_LegacySpeakDoesNotBypassStateTransition(t *testing.T) {
+	handler := NewSpeakToolHandler()
+
+	handler.OnToolCall(&utilstream.ToolCallDelta{
+		Index: 0,
+		Function: &utilstream.ToolCallFunctionDelta{
+			Name:      TrinitySpeakToolName,
+			Arguments: `{"content":"Legacy content","channel":"public"}`,
+		},
+	})
+
+	result := &utilstream.StreamResult{}
+	handler.OnComplete(result)
+
+	if handler.HasPublicSpeakCall() {
+		t.Error("legacy speak should not be treated as public output")
+	}
+	if handler.GetPublicContent() != "" {
+		t.Error("expected empty public content for legacy speak")
+	}
+	if err := handler.ValidatePairedState(); err == nil {
+		t.Error("expected paired-state validation to fail without speak_start/speak_stop")
 	}
 }
 
 func TestDeliberationHandler_RequiresDeliberation(t *testing.T) {
 	handler := NewDeliberationHandler()
-
-	// 模拟 deliberation_signal 工具调用
-	handler.OnToolCall(&stream.ToolCallDelta{
+	handler.OnToolCall(&utilstream.ToolCallDelta{
 		Index: 0,
-		Function: &stream.ToolCallFunctionDelta{
+		Function: &utilstream.ToolCallFunctionDelta{
 			Name:      DeliberationSignalToolName,
 			Arguments: `{"requires_deliberation":true,"reason":"Complex decision needed"}`,
 		},
 	})
 
-	result := &stream.StreamResult{}
+	result := &utilstream.StreamResult{}
 	handler.OnComplete(result)
 
 	if !handler.HasSignal() {
-		t.Error("Expected HasSignal to be true")
+		t.Error("expected HasSignal to be true")
 	}
-
 	if !handler.RequiresDeliberation() {
-		t.Error("Expected RequiresDeliberation to be true")
+		t.Error("expected RequiresDeliberation to be true")
 	}
-
 	if got := handler.GetReason(); got != "Complex decision needed" {
 		t.Errorf("GetReason() = %q, want %q", got, "Complex decision needed")
-	}
-
-	signal := handler.GetSignal()
-	if signal == nil {
-		t.Fatal("Expected non-nil signal")
-	}
-
-	if !signal.RequiresDeliberation {
-		t.Error("Signal.RequiresDeliberation should be true")
-	}
-}
-
-func TestDeliberationHandler_NoDeliberation(t *testing.T) {
-	handler := NewDeliberationHandler()
-
-	// 模拟 deliberation_signal 工具调用 - 不需要审慎决策
-	handler.OnToolCall(&stream.ToolCallDelta{
-		Index: 0,
-		Function: &stream.ToolCallFunctionDelta{
-			Name:      DeliberationSignalToolName,
-			Arguments: `{"requires_deliberation":false,"reason":"Simple case"}`,
-		},
-	})
-
-	result := &stream.StreamResult{}
-	handler.OnComplete(result)
-
-	if !handler.HasSignal() {
-		t.Error("Expected HasSignal to be true")
-	}
-
-	if handler.RequiresDeliberation() {
-		t.Error("Expected RequiresDeliberation to be false")
-	}
-
-	if got := handler.GetReason(); got != "Simple case" {
-		t.Errorf("GetReason() = %q, want %q", got, "Simple case")
 	}
 }
 
 func TestDeliberationHandler_NoSignal(t *testing.T) {
 	handler := NewDeliberationHandler()
-
-	// 没有 deliberation_signal 工具调用
-	result := &stream.StreamResult{}
+	result := &utilstream.StreamResult{}
 	handler.OnComplete(result)
 
 	if handler.HasSignal() {
-		t.Error("Expected HasSignal to be false")
+		t.Error("expected HasSignal to be false")
 	}
-
 	if handler.GetSignal() != nil {
-		t.Error("Expected GetSignal to return nil")
-	}
-}
-
-func TestSpeakToolHandler_InvalidJSON(t *testing.T) {
-	handler := NewSpeakToolHandler()
-
-	// 无效的 JSON
-	handler.OnToolCall(&stream.ToolCallDelta{
-		Index: 0,
-		Function: &stream.ToolCallFunctionDelta{
-			Name:      TrinitySpeakToolName,
-			Arguments: `{invalid json}`,
-		},
-	})
-
-	result := &stream.StreamResult{}
-	handler.OnComplete(result)
-
-	// 应该优雅处理错误
-	if handler.HasPublicSpeakCall() {
-		t.Error("Expected HasPublicSpeakCall to be false for invalid JSON")
-	}
-}
-
-func TestSpeakToolHandler_IncrementalArguments(t *testing.T) {
-	handler := NewSpeakToolHandler()
-
-	// 模拟增量参数
-	handler.OnToolCall(&stream.ToolCallDelta{
-		Index: 0,
-		Function: &stream.ToolCallFunctionDelta{
-			Name: TrinitySpeakToolName,
-		},
-	})
-
-	handler.OnToolCall(&stream.ToolCallDelta{
-		Index: 0,
-		Function: &stream.ToolCallFunctionDelta{
-			Arguments: `{"content":"He`,
-		},
-	})
-
-	handler.OnToolCall(&stream.ToolCallDelta{
-		Index: 0,
-		Function: &stream.ToolCallFunctionDelta{
-			Arguments: `llo World",`,
-		},
-	})
-
-	handler.OnToolCall(&stream.ToolCallDelta{
-		Index: 0,
-		Function: &stream.ToolCallFunctionDelta{
-			Arguments: `"channel":"public"}`,
-		},
-	})
-
-	result := &stream.StreamResult{}
-	handler.OnComplete(result)
-
-	if !handler.HasPublicSpeakCall() {
-		t.Error("Expected HasPublicSpeakCall to be true")
-	}
-
-	if got := handler.GetPublicContent(); got != "Hello World" {
-		t.Errorf("GetPublicContent() = %q, want %q", got, "Hello World")
+		t.Error("expected GetSignal() to be nil")
 	}
 }

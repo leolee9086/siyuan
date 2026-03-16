@@ -33,9 +33,7 @@ func TestMagiMultiUserSessionIsolation(t *testing.T) {
 	tempDir := t.TempDir()
 	util.WorkspaceDir = tempDir
 	util.WorkspaceName = "testMagiMultiUser"
-	oldConfDir := util.ConfDir
-	util.ConfDir = tempDir
-	defer func() { util.ConfDir = oldConfDir }()
+	setupMagiLiveIdentityStoreForTests(t, tempDir)
 
 	oldConf := model.Conf
 	defer func() { model.Conf = oldConf }()
@@ -50,33 +48,9 @@ func TestMagiMultiUserSessionIsolation(t *testing.T) {
 	model.Conf.AI.OpenAI.APITimeout = 120
 	model.Conf.AI.OpenAI.APIMaxTokens = 1024
 	model.Conf.AI.OpenAI.APITemperature = 0.4
-	globalMagiIdentityStore = &magiIdentityStore{}
-	_, _ = globalMagiIdentityStore.upsert("alice", "alice", "alice-pass", magiRouteClassGuardian, true)
-	_, _ = globalMagiIdentityStore.upsert("bob", "bob", "bob-pass", magiRouteClassGuardian, true)
-	now := time.Now().Unix()
-	aliceArmor, _ := signMagiArmorToken(magiArmorClaimsV1{
-		Sub: "alice",
-		Chn: magiRequestChannelMainUI,
-		Ws:  magiWorkspaceBinding(),
-		Rtc: magiRouteClassGuardian,
-		Nck: "alice",
-		Iat: now,
-		Exp: now + 1200,
-		Jti: "live-alice",
-	})
-	bobArmor, _ := signMagiArmorToken(magiArmorClaimsV1{
-		Sub: "bob",
-		Chn: magiRequestChannelMainUI,
-		Ws:  magiWorkspaceBinding(),
-		Rtc: magiRouteClassGuardian,
-		Nck: "bob",
-		Iat: now,
-		Exp: now + 1200,
-		Jti: "live-bob",
-	})
 	armorByUser := map[string]string{
-		"alice": aliceArmor,
-		"bob":   bobArmor,
+		"alice": issueLiveArmorTokenForIdentity(t, "alice", "alice"),
+		"bob":   issueLiveArmorTokenForIdentity(t, "bob", "bob"),
 	}
 
 	gin.SetMode(gin.TestMode)
@@ -100,7 +74,7 @@ func TestMagiMultiUserSessionIsolation(t *testing.T) {
 			payload := map[string]interface{}{
 				"model":  modelName,
 				"stream": false,
-				"user":   fmt.Sprintf("principal:user-%s;interface:test-runner;kind:magi-main-ui;conversation:session-%s", msg.userID, msg.userID),
+				"user":   fmt.Sprintf("principal:%s;interface:test-runner;kind:magi-main-ui;conversation:session-%s", msg.userID, msg.userID),
 				"messages": []map[string]string{
 					{"role": "user", "content": msg.message},
 				},
@@ -138,6 +112,6 @@ func TestMagiMultiUserSessionIsolation(t *testing.T) {
 			}
 		})
 
-		time.Sleep(2 * time.Second)
+		time.Sleep(300 * time.Millisecond)
 	}
 }

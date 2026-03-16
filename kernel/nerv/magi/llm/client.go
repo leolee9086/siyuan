@@ -99,6 +99,11 @@ func (c *openaiClient) SendChatRequest(ctx context.Context, messages []types.Con
 
 	stream, err := c.client.CreateChatCompletionStream(ctx, req)
 	if err != nil {
+		// 失败时打印完整消息序列用于诊断
+		if debugJSON, jsonErr := json.MarshalIndent(reqMsgs, "", "  "); jsonErr == nil {
+			fmt.Printf("\n[LLM Client Error] API request failed: %v\n", err)
+			fmt.Printf("[LLM Client Debug] Messages sent to API:\n%s\n\n", string(debugJSON))
+		}
 		return nil, fmt.Errorf("create stream failed: %w", err)
 	}
 

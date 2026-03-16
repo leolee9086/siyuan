@@ -15,6 +15,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/siyuan-note/siyuan/kernel/conf"
 	"github.com/siyuan-note/siyuan/kernel/model"
+	"github.com/siyuan-note/siyuan/kernel/util"
 )
 
 // TestMagiLiveDeepSeekRound 真实联调多轮测试（默认跳过）。
@@ -36,6 +37,11 @@ func TestMagiLiveDeepSeekRound(t *testing.T) {
 	}
 	_ = setupMagiPersonaPresetForAPITests(t)
 
+	tempDir := t.TempDir()
+	util.WorkspaceDir = tempDir
+	util.WorkspaceName = "testMagiLiveRound"
+	setupMagiLiveIdentityStoreForTests(t, tempDir)
+
 	oldConf := model.Conf
 	defer func() {
 		model.Conf = oldConf
@@ -53,6 +59,7 @@ func TestMagiLiveDeepSeekRound(t *testing.T) {
 	model.Conf.AI.OpenAI.APITemperature = 0.4
 
 	gin.SetMode(gin.TestMode)
+	armorToken := issueLiveArmorTokenForIdentity(t, "live-test", "live-test")
 
 	// 多轮对话历史
 	messages := []map[string]string{}
@@ -63,7 +70,7 @@ func TestMagiLiveDeepSeekRound(t *testing.T) {
 		"role":    "user",
 		"content": "请你用一句中文完成自我介绍，并给出今天的日期（YYYY-MM-DD）。",
 	})
-	reply1 := sendMagiRequest(t, modelName, messages)
+	reply1 := sendMagiRequest(t, modelName, messages, armorToken)
 	t.Logf("Round 1 reply: %s", reply1)
 	messages = append(messages, map[string]string{
 		"role":    "assistant",
@@ -76,7 +83,7 @@ func TestMagiLiveDeepSeekRound(t *testing.T) {
 		"role":    "user",
 		"content": "你刚才说的日期是哪一天？请直接回答日期，不要重复介绍。",
 	})
-	reply2 := sendMagiRequest(t, modelName, messages)
+	reply2 := sendMagiRequest(t, modelName, messages, armorToken)
 	t.Logf("Round 2 reply: %s", reply2)
 	messages = append(messages, map[string]string{
 		"role":    "assistant",
@@ -89,7 +96,7 @@ func TestMagiLiveDeepSeekRound(t *testing.T) {
 		"role":    "user",
 		"content": "123 + 456 等于多少？只回答数字。",
 	})
-	reply3 := sendMagiRequest(t, modelName, messages)
+	reply3 := sendMagiRequest(t, modelName, messages, armorToken)
 	t.Logf("Round 3 reply: %s", reply3)
 	messages = append(messages, map[string]string{
 		"role":    "assistant",
@@ -102,14 +109,14 @@ func TestMagiLiveDeepSeekRound(t *testing.T) {
 		"role":    "user",
 		"content": "我们一共进行了几轮对话？（包括这一轮）",
 	})
-	reply4 := sendMagiRequest(t, modelName, messages)
+	reply4 := sendMagiRequest(t, modelName, messages, armorToken)
 	t.Logf("Round 4 reply: %s", reply4)
 
 	t.Log("=== 多轮测试完成 ===")
 }
 
 // sendMagiRequest 发送单次MAGI请求并返回回复内容
-func sendMagiRequest(t *testing.T, modelName string, messages []map[string]string) string {
+func sendMagiRequest(t *testing.T, modelName string, messages []map[string]string, armorToken string) string {
 	payload := map[string]interface{}{
 		"model":    modelName,
 		"stream":   false,
@@ -129,7 +136,7 @@ func sendMagiRequest(t *testing.T, modelName string, messages []map[string]strin
 
 	req := httptest.NewRequest(http.MethodPost, "/api/s-forge/magi/v1/chat/completions", bytes.NewReader(body)).WithContext(ctx)
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer workspace-token")
+	req.Header.Set("Authorization", "Bearer "+armorToken)
 	c.Request = req
 
 	started := time.Now()

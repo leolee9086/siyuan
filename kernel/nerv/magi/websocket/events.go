@@ -38,6 +38,7 @@ const (
 	EventRoundFailed               = "ROUND_FAILED"
 	EventToolCallDetected          = "TOOL_CALL_DETECTED"
 	EventDeliberationSignalRaised  = "DELIBERATION_SIGNAL_RAISED"
+	EventContextHistoryTrimmed     = "CONTEXT_HISTORY_TRIMMED"
 )
 
 var (
@@ -269,4 +270,35 @@ func PushDeliberationSignalRaised(sessionId, roundId, initiator, displayName, re
 		"requiresDeliberation": requiresDeliberation,
 	}
 	return globalPusher.Push(sessionId, EventDeliberationSignalRaised, data)
+}
+
+// PushContextHistoryTrimmed 推送上下文历史裁剪事件
+func PushContextHistoryTrimmed(
+	sessionId, roundId, seelName, displayName string,
+	beforeCount, afterCount, droppedCount int,
+	strategyType string,
+	strategyCount int,
+	strategyPercent float64,
+) error {
+	data := map[string]interface{}{
+		"eventId":      generateEventID(),
+		"seq":          globalSeq,
+		"roundId":      roundId,
+		"timestamp":    time.Now().UnixMilli(),
+		"seelName":     seelName,
+		"displayName":  displayName,
+		"beforeCount":  beforeCount,
+		"afterCount":   afterCount,
+		"droppedCount": droppedCount,
+	}
+	if strategyType != "" {
+		data["strategyType"] = strategyType
+	}
+	if strategyCount > 0 {
+		data["strategyCount"] = strategyCount
+	}
+	if strategyPercent > 0 {
+		data["strategyPercent"] = strategyPercent
+	}
+	return globalPusher.Push(sessionId, EventContextHistoryTrimmed, data)
 }

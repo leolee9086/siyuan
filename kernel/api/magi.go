@@ -85,7 +85,7 @@ func setMagiPersonaRuntimeStatus(profile *marduk.IpipPersonaProfile, isComplete 
 		if normalizedPreset != "" {
 			subjectName = normalizedPreset
 		} else {
-			subjectName = "ZHI"
+			subjectName = "未配置"
 		}
 	}
 
@@ -125,20 +125,21 @@ func initMagiComponents() error {
 	// 从Marduk加载人格档案
 	profile, isComplete, presetName, err := marduk.InitializeMAGIWithPersona()
 	if err != nil {
-		logging.LogWarnf("加载Marduk人格档案失败: %v，MAGI将使用默认配置", err)
-	} else {
-		// 将人格档案传递给ConfigManager
-		magiConfigMgr.SetPersonaProfile(profile)
-
-		if !isComplete && presetName != "" {
-			// 使用了预设人格，推送WebSocket通知
-			msg := fmt.Sprintf("人格档案不完整，当前由预设人格 %s 负责回答，请完善人格档案", presetName)
-			util.PushMsg(msg, 7000)
-			logging.LogInfof("MAGI使用预设人格: %s", presetName)
-		} else if isComplete {
-			logging.LogInfof("MAGI已加载完整人格档案")
-		}
+		return fmt.Errorf("加载Marduk人格档案失败: %w", err)
 	}
+
+	// 将人格档案传递给ConfigManager
+	magiConfigMgr.SetPersonaProfile(profile)
+
+	if !isComplete && presetName != "" {
+		// 使用了预设人格，推送WebSocket通知
+		msg := fmt.Sprintf("人格档案不完整，当前由预设人格 %s 负责回答，请完善人格档案", presetName)
+		util.PushMsg(msg, 7000)
+		logging.LogInfof("MAGI使用预设人格: %s", presetName)
+	} else if isComplete {
+		logging.LogInfof("MAGI已加载完整人格档案")
+	}
+
 	setMagiPersonaRuntimeStatus(profile, isComplete, presetName)
 
 	// 创建 LLM 客户端（从全局配置）
@@ -348,8 +349,8 @@ func extractUserMessage(messages []openai.ChatCompletionMessage) string {
 		}
 	}
 
-	// 兜底：返回最后一条消息内容
-	return messages[len(messages)-1].Content
+	// 没有找到用户消息，返回空字符串让上层报错
+	return ""
 }
 
 // getOrCreateSession 获取或创建会话ID
@@ -500,7 +501,8 @@ func sendStreamResponse(c *gin.Context, msg *types.Message, modelName string) {
 func magiListModels(c *gin.Context) {
 	modelName := model.Conf.AI.OpenAI.APIModel
 	if modelName == "" {
-		modelName = "gpt-4o" // fallback
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "模型名称未配置"})
+		return
 	}
 
 	// 模拟 /v1/models 响应

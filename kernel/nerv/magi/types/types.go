@@ -180,6 +180,11 @@ type DeliberationSignal struct {
 	ProposedAction       string `json:"proposed_action"`
 }
 
+// WannaSpeakTool 三贤人 wanna_speak 工具参数
+type WannaSpeakTool struct {
+	Content string `json:"content"`
+}
+
 // TrinitySpeakTool Trinity speak工具参数
 type TrinitySpeakTool struct {
 	Content string `json:"content"`
