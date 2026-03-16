@@ -241,6 +241,7 @@ func defaultTrinityConfig() AgentConfig {
 			BuildSpeakInternalContinueToolDef(),
 			BuildSpeakInternalStopToolDef(),
 		},
+		ToolChoice: "required", // 强制调用工具，确保行为可控
 	}
 }
 

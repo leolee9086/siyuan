@@ -29,15 +29,8 @@ import {
 const SOURCE_SIMULATION_TAG = "magi_request_source";
 const SOURCE_SIMULATION_OPEN = `<${SOURCE_SIMULATION_TAG}>`;
 const SOURCE_SIMULATION_CLOSE = `</${SOURCE_SIMULATION_TAG}>`;
-const BLOCKED_RESPONSE_CONTENT = "Request blocked by MAGI ingress policy.";
-const BLOCKED_ALERT_CONTENT = "Ingress blocked: external source connection attempt denied.";
-const INTERNAL_SERVER_ERROR_CONTENT = "Internal Server Error";
 const SOURCE_SIMULATION_BACKEND_ENDPOINT_PATH = "/api/s-forge/magi/v1/chat/completions";
 
-interface IngressRuleDecision {
-    allowed: boolean;
-    reason: string;
-}
 
 interface BackendForwardResult {
     response: ChatResponseData | null;
@@ -120,19 +113,6 @@ function buildRequestId(): string {
     return `req-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function buildAvatarToolOptions(
-    request: ChatRequestParams,
-): Pick<ReplyOptions, "tools" | "toolChoice"> | undefined {
-    const hasTools = Array.isArray(request.tools) && request.tools.length > 0;
-    const hasToolChoice = request.tool_choice !== undefined;
-    if (!hasTools && !hasToolChoice) {
-        return undefined;
-    }
-    return {
-        ...(hasTools ? { tools: request.tools } : {}),
-        ...(hasToolChoice ? { toolChoice: request.tool_choice } : {}),
-    };
-}
 
 function parseSourceSimulationFromSystemMessages(
     messages: ChatRequestParams["messages"],
@@ -208,88 +188,6 @@ function buildConsensusRequestContext(
     };
 }
 
-function evaluateIngressRule(
-    requestContext: ConsensusRequestContext,
-): IngressRuleDecision {
-    const sourceSimulation = requestContext.sourceSimulation;
-    if (!sourceSimulation) {
-        return { allowed: true, reason: "no-source-simulation" };
-    }
-    if (sourceSimulation.source === "unknown" && sourceSimulation.riskLevel === "high") {
-        return { allowed: false, reason: "unknown-high-risk-source" };
-    }
-    if (sourceSimulation.trustBase === "low" && sourceSimulation.riskLevel !== "low") {
-        return { allowed: false, reason: "low-trust-risk-not-low" };
-    }
-    return { allowed: true, reason: "passed" };
-}
-
-function buildBlockedAlertMeta(
-    requestContext: ConsensusRequestContext,
-    decision: IngressRuleDecision,
-): Record<string, unknown> {
-    const source = requestContext.sourceSimulation;
-    return {
-        type: "connection-attempt-blocked",
-        internalOnly: true,
-        reason: decision.reason,
-        ...(requestContext.requestId ? { requestId: requestContext.requestId } : {}),
-        ...(source
-            ? {
-                source: source.source,
-                callerId: source.callerId,
-                trustBase: source.trustBase,
-                riskLevel: source.riskLevel,
-                sourceProfileId: source.profileId,
-                sourceProfileLabel: source.profileLabel,
-                ...(source.sourceChannel ? { sourceChannel: source.sourceChannel } : {}),
-                ...(source.sourcePanelId ? { sourcePanelId: source.sourcePanelId } : {}),
-                ...(source.sourcePanelTitle ? { sourcePanelTitle: source.sourcePanelTitle } : {}),
-            }
-            : {}),
-    };
-}
-
-async function reportBlockedConnectionAttempt(
-    consensusMessages: MagiMessage[],
-    requestContext: ConsensusRequestContext,
-    decision: IngressRuleDecision,
-): Promise<void> {
-    await appendConsensusMessage(
-        consensusMessages,
-        "system",
-        BLOCKED_ALERT_CONTENT,
-        buildBlockedAlertMeta(requestContext, decision),
-    );
-}
-
-function getLatestAssistantLikeMessage(consensusMessages: MagiMessage[]): MagiMessage | null {
-    for (let i = consensusMessages.length - 1; i >= 0; i -= 1) {
-        const message = consensusMessages[i];
-        if (message.type === "consensus" || message.type === "error") {
-            return message;
-        }
-    }
-    return null;
-}
-
-function getLatestMessageByRequestId(
-    consensusMessages: MagiMessage[],
-    requestId: string,
-): MagiMessage | null {
-    for (let i = consensusMessages.length - 1; i >= 0; i -= 1) {
-        const message = consensusMessages[i];
-        const metaRequestId = Reflect.get(message.meta ?? {}, "requestId");
-        if (metaRequestId !== requestId) {
-            continue;
-        }
-        if (message.type === "consensus" || message.type === "error") {
-            return message;
-        }
-    }
-    return null;
-}
-
 function buildOpenAICompatibleResponse(
     content: string,
     model: string,
@@ -312,28 +210,6 @@ function buildOpenAICompatibleResponse(
     };
 }
 
-function buildInternalServerErrorResponse(model: string): ChatResponseData {
-    return {
-        id: `chatcmpl-magi-${Date.now()}`,
-        created: Math.floor(Date.now() / 1000),
-        model,
-        choices: [
-            {
-                index: 0,
-                message: {
-                    role: "assistant",
-                    content: INTERNAL_SERVER_ERROR_CONTENT,
-                },
-                finish_reason: "error",
-            },
-        ],
-        error: {
-            message: INTERNAL_SERVER_ERROR_CONTENT,
-            type: "server_error",
-            code: "500",
-        },
-    };
-}
 
 function buildRandomIdentitySegment(): string {
     return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -420,15 +296,6 @@ function buildRequestInterfaceIdentity(
     };
 }
 
-function buildRequestIdentityUserField(identity: MagiInterfaceIdentity): string {
-    return JSON.stringify({
-        principal: identity.principalId,
-        interface: identity.interfaceId,
-        kind: identity.interfaceKind,
-        conversation: identity.conversationId,
-        interfaceLabel: identity.interfaceLabel,
-    });
-}
 
 function buildMagiBackendRequestBody(
     request: ChatRequestParams,
@@ -496,15 +363,7 @@ async function tryForwardMagiRequestToBackend(
     }
 }
 
-function isAbsoluteTrustedSource(requestContext: ConsensusRequestContext): boolean {
-    const source = requestContext.sourceSimulation;
-    if (!source) {
-        return false;
-    }
-    return source.trustBase === "high"
-        && source.riskLevel === "low"
-        && source.source === "guardian";
-}
+
 
 async function createMagiChatCompletion(
     request: ChatRequestParams,
