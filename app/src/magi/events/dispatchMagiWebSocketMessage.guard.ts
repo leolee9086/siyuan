@@ -128,15 +128,19 @@ function isRoundFailedPayload(payload: Record<string, unknown>): boolean {
 }
 
 /**
- * 验证 TOOL_CALL_DETECTED 事件的特定字段。
+ * 验证 TOOL_CALL_DETECTED 事件的特定字段（支持增量参数）。
  */
 function isToolCallDetectedPayload(payload: Record<string, unknown>): boolean {
     return (
         typeof payload.seelName === "string" &&
         typeof payload.displayName === "string" &&
         typeof payload.toolName === "string" &&
-        typeof payload.arguments === "object" &&
-        payload.arguments !== null
+        typeof payload.toolCallIndex === "number" &&
+        typeof payload.toolCallId === "string" &&
+        typeof payload.rawArguments === "string" &&
+        typeof payload.argumentsComplete === "boolean" &&
+        (payload.arguments === undefined ||
+         (typeof payload.arguments === "object" && payload.arguments !== null))
     );
 }
 

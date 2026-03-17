@@ -538,7 +538,7 @@ function projectDeliberationSignal(
     upsertMessage(seel.messages, seelSignalMsg);
 }
 
-/** 投影工具调用到贤者面板。 */
+/** 投影工具调用到贤者面板（支持增量更新）。 */
 function projectToolCall(
     state: MagiProjectorRuntimeState,
     event: MagiToolCallDetectedEvent,
@@ -553,26 +553,35 @@ function projectToolCall(
     if (!seel) {
         return;
     }
-    const deliberationMeta = extractDeliberationSignalMeta(event.arguments);
+    
+    const stableId = `${event.roundId}-${event.seelName}-tool-${event.toolCallId || event.toolCallIndex}`;
+    const deliberationMeta = extractDeliberationSignalMeta(event.arguments || {});
 
     const contentParts = [`🔧 调用工具: ${event.toolName}`];
+    const statusText = event.argumentsComplete ? "(参数完整)" : "(构建中...)";
+    contentParts.push(statusText);
     if (deliberationMeta.reason) {
         contentParts.push(`理由: ${deliberationMeta.reason}`);
     }
+    // 如果工具参数中包含审慎标记，则在卡片中显示是否需要审慎
     if (deliberationMeta.requiresDeliberation !== undefined) {
         contentParts.push(`需要审慎: ${deliberationMeta.requiresDeliberation ? "是" : "否"}`);
     }
 
     const toolCallMsg: MagiMessage = {
-        id: buildProjectedMessageId(event.eventId, "tool-call"),
+        id: stableId,
         type: "system",
         content: contentParts.join(" | "),
-        status: "success",
+        status: event.argumentsComplete ? "success" : "streaming",
         timestamp: event.timestamp,
         meta: {
             type: "tool-call",
             toolName: event.toolName,
-            arguments: event.arguments,
+            toolCallIndex: event.toolCallIndex,
+            toolCallId: event.toolCallId,
+            rawArguments: event.rawArguments,
+            argumentsComplete: event.argumentsComplete,
+            ...(event.arguments ? { arguments: event.arguments } : {}),
             ...(deliberationMeta.reason ? { reason: deliberationMeta.reason } : {}),
             ...(deliberationMeta.requiresDeliberation !== undefined
                 ? { requiresDeliberation: deliberationMeta.requiresDeliberation }

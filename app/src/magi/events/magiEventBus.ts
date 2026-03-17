@@ -96,7 +96,11 @@ export const magiEventDefines = {
         seelName: z.string(),
         displayName: z.string(),
         toolName: z.string(),
-        arguments: z.record(z.string(), z.unknown()),
+        toolCallIndex: z.number().int().nonnegative(),
+        toolCallId: z.string(),
+        rawArguments: z.string(),
+        argumentsComplete: z.boolean(),
+        arguments: z.record(z.string(), z.unknown()).optional(),
     },
     DELIBERATION_SIGNAL_RAISED: {
         ...baseEventShape,

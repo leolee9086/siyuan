@@ -32,6 +32,19 @@
             <template v-else-if="msg.type === 'sse_stream'">
               <SeelSseInline :msg="msg" :color="ai.config.color" />
             </template>
+            <template v-else-if="msg.meta?.type === 'tool-call'">
+              <div class="tool-call-block">
+                <div class="tool-call-header">{{ msg.content }}</div>
+                <details class="tool-call-args">
+                  <summary class="tool-call-args-summary">
+                    <span>参数</span>
+                    <span v-if="msg.meta.argumentsComplete" class="args-status complete">✓ 完整</span>
+                    <span v-else class="args-status building">⋯ 构建中</span>
+                  </summary>
+                  <pre class="tool-call-args-content">{{ formatToolCallArgs(msg.meta) }}</pre>
+                </details>
+              </div>
+            </template>
             <template v-else-if="rawEventMessage(msg)">
               <details class="seel-event-block">
                 <summary class="seel-event-summary" :title="eventSummaryTitle(msg)">
@@ -168,6 +181,24 @@ function formatRawEventPayload(message: SeelPanelProps["ai"]["messages"][number]
         const fallback = error instanceof Error ? error.message : String(error);
         return `{"error":"payload stringify failed","detail":"${fallback}"}`;
     }
+}
+
+/**
+ * 格式化工具调用参数为可读的JSON字符串
+ * 作用：将工具参数转换为格式化的JSON或原始字符串
+ * 意图：在UI中展示工具调用的参数内容
+ * 调用时机：渲染tool-call类型消息时
+ */
+function formatToolCallArgs(meta: Record<string, unknown>): string {
+    // 如果参数已完整且已解析，则格式化显示JSON
+    if (meta.argumentsComplete && meta.arguments) {
+        try {
+            return JSON.stringify(meta.arguments, null, 2);
+        } catch {
+            return String(meta.rawArguments || "");
+        }
+    }
+    return String(meta.rawArguments || "");
 }
 
 function eventSummaryTitle(message: SeelPanelProps["ai"]["messages"][number]): string {

@@ -11,12 +11,19 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
 )
 
-type ToolCallEventCallback func(toolName string, arguments map[string]interface{}, detectedTime int64)
+type ToolCallEventCallback func(
+	toolCallIndex int,
+	toolCallId string,
+	toolName string,
+	rawArguments string,
+	arguments map[string]interface{},
+	isComplete bool,
+	detectedTime int64,
+)
 
 type streamedToolCallCollector struct {
 	byIndex           map[int]*types.ToolCall
 	firstDetectedTime map[int]int64
-	emittedTools      map[int]bool
 	onToolDetected    ToolCallEventCallback
 }
 
@@ -24,7 +31,6 @@ func newStreamedToolCallCollector() *streamedToolCallCollector {
 	return &streamedToolCallCollector{
 		byIndex:           make(map[int]*types.ToolCall),
 		firstDetectedTime: make(map[int]int64),
-		emittedTools:      make(map[int]bool),
 	}
 }
 
@@ -48,6 +54,8 @@ func (c *streamedToolCallCollector) Merge(deltas []types.ToolCallDelta) {
 			c.byIndex[delta.Index] = call
 			c.firstDetectedTime[delta.Index] = now
 		}
+
+		argumentsChanged := false
 		if delta.ID != "" {
 			call.ID = delta.ID
 		}
@@ -60,18 +68,26 @@ func (c *streamedToolCallCollector) Merge(deltas []types.ToolCallDelta) {
 			}
 			if delta.Function.Arguments != "" {
 				call.Function.Arguments += delta.Function.Arguments
+				argumentsChanged = true
 			}
 		}
 
-		if c.onToolDetected != nil && !c.emittedTools[delta.Index] {
-			if call.Function.Name != "" && call.Function.Arguments != "" {
-				var argsMap map[string]interface{}
-				if err := json.Unmarshal([]byte(call.Function.Arguments), &argsMap); err == nil {
-					c.emittedTools[delta.Index] = true
-					detectedTime := c.firstDetectedTime[delta.Index]
-					c.onToolDetected(call.Function.Name, argsMap, detectedTime)
-				}
+		if c.onToolDetected != nil && argumentsChanged && call.Function.Name != "" {
+			detectedTime := c.firstDetectedTime[delta.Index]
+			var argsMap map[string]interface{}
+			isComplete := false
+			if err := json.Unmarshal([]byte(call.Function.Arguments), &argsMap); err == nil {
+				isComplete = true
 			}
+			c.onToolDetected(
+				delta.Index,
+				call.ID,
+				call.Function.Name,
+				call.Function.Arguments,
+				argsMap,
+				isComplete,
+				detectedTime,
+			)
 		}
 	}
 }

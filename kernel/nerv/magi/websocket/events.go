@@ -257,18 +257,33 @@ func PushRoundFailed(sessionId, roundId, errorMsg string) error {
 	return globalPusher.Push(sessionId, EventRoundFailed, data)
 }
 
-// PushToolCallDetected 推送通用工具调用检测事件
-func PushToolCallDetected(sessionId, roundId, seelName, displayName, toolName string, arguments map[string]interface{}, detectedTimestamp int64) error {
+// PushToolCallDetected 推送通用工具调用检测事件（支持增量参数）
+func PushToolCallDetected(
+	sessionId, roundId, seelName, displayName string,
+	toolCallIndex int,
+	toolCallId string,
+	toolName string,
+	rawArguments string,
+	arguments map[string]interface{},
+	argumentsComplete bool,
+	detectedTimestamp int64,
+) error {
 	eventId, seq := generateEventID()
 	data := map[string]interface{}{
-		"eventId":     eventId,
-		"seq":         seq,
-		"roundId":     roundId,
-		"timestamp":   detectedTimestamp,
-		"seelName":    seelName,
-		"displayName": displayName,
-		"toolName":    toolName,
-		"arguments":   arguments,
+		"eventId":           eventId,
+		"seq":               seq,
+		"roundId":           roundId,
+		"timestamp":         detectedTimestamp,
+		"seelName":          seelName,
+		"displayName":       displayName,
+		"toolName":          toolName,
+		"toolCallIndex":     toolCallIndex,
+		"toolCallId":        toolCallId,
+		"rawArguments":      rawArguments,
+		"argumentsComplete": argumentsComplete,
+	}
+	if argumentsComplete && arguments != nil {
+		data["arguments"] = arguments
 	}
 	return globalPusher.Push(sessionId, EventToolCallDetected, data)
 }

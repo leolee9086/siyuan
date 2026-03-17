@@ -99,12 +99,16 @@ export interface MagiRoundFailedEvent extends MagiEventBase {
     error: string;
 }
 
-/** 通用工具调用检测事件。 */
+/** 通用工具调用检测事件（支持增量参数）。 */
 export interface MagiToolCallDetectedEvent extends MagiEventBase {
     seelName: string;
     displayName: string;
     toolName: string;
-    arguments: Record<string, unknown>;
+    toolCallIndex: number;
+    toolCallId: string;
+    rawArguments: string;
+    argumentsComplete: boolean;
+    arguments?: Record<string, unknown>;
 }
 
 /** 审慎决策信号事件。 */

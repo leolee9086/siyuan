@@ -165,8 +165,19 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 		}
 
 		turnCollector := newStreamedToolCallCollector()
-		turnCollector.SetCallback(func(toolName string, arguments map[string]interface{}, detectedTime int64) {
-			if err := websocket.PushToolCallDetected(sessionId, roundId, sage.GetName(), sage.GetDisplayName(), toolName, arguments, detectedTime); err != nil {
+		turnCollector.SetCallback(func(
+			toolCallIndex int,
+			toolCallId string,
+			toolName string,
+			rawArguments string,
+			arguments map[string]interface{},
+			isComplete bool,
+			detectedTime int64,
+		) {
+			if err := websocket.PushToolCallDetected(
+				sessionId, roundId, sage.GetName(), sage.GetDisplayName(),
+				toolCallIndex, toolCallId, toolName, rawArguments, arguments, isComplete, detectedTime,
+			); err != nil {
 				logging.LogWarnf("推送工具调用检测事件失败: %v", err)
 			}
 		})

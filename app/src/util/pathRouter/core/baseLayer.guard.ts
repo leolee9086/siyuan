@@ -1,3 +1,9 @@
+/**
+ * 用途：导入path-to-regexp库的Key类型定义
+ * 使用范围：仅在类型守卫函数isNamedKey中使用，用于判断路径参数token是否为具名参数Key对象
+ * 解耦评估：无法解耦。Key是path-to-regexp库的核心类型，BaseLayer依赖该库解析路由路径，
+ *           类型守卫必须使用该类型进行类型收窄。这是纯类型导入，不产生运行时依赖
+ */
 import type { Key } from "path-to-regexp";
 
 /**
