@@ -1,16 +1,34 @@
 // https://github.com/siyuan-note/siyuan/pull/8012
 /**
- * 用途：获取标准浏览器环境的 Service Worker API 访问器，用于检测和注册 Service Worker
- * 使用范围：仅在 registerServiceWorker 函数中使用，用于判断 Service Worker 是否可用并获取注册容器
- * 解耦评估：这些是浏览器标准 API 的封装访问器，通过 imports.ts 转发符合项目导入规范
+ * 用途：检测浏览器是否支持 Service Worker API
+ * 使用范围：仅在 registerServiceWorker 函数中使用，作为注册前的可用性检查
+ * 解耦评估：这是浏览器标准 API 的封装访问器，通过 imports.ts 转发符合项目导入规范
  */
-import { isServiceWorkerAvailable, getServiceWorkerContainer } from "./imports";
+import { isServiceWorkerAvailable } from "./imports";
 /**
- * 用途：获取原生客户端环境检测工具，用于判断是否在原生环境中运行
- * 使用范围：仅在 registerServiceWorker 函数中使用，原生环境下跳过 Service Worker 注册
- * 解耦评估：这些是原生环境检测的封装访问器，通过 imports.ts 转发符合项目导入规范
+ * 用途：获取 Service Worker 注册容器对象
+ * 使用范围：仅在 registerServiceWorker 函数中使用，用于执行 Service Worker 注册操作
+ * 解耦评估：这是浏览器标准 API 的封装访问器，通过 imports.ts 转发符合项目导入规范
  */
-import { getWindowWebkit, getWindowJSAndroid, getWindowJSHarmony } from "./imports";
+import { getServiceWorkerContainer } from "./imports";
+/**
+ * 用途：获取 WebKit 原生客户端环境检测对象
+ * 使用范围：仅在 registerServiceWorker 函数中使用，WebKit 原生环境下跳过 Service Worker 注册
+ * 解耦评估：这是原生环境检测的封装访问器，通过 imports.ts 转发符合项目导入规范
+ */
+import { getWindowWebkit } from "./imports";
+/**
+ * 用途：获取 Android 原生客户端环境检测对象
+ * 使用范围：仅在 registerServiceWorker 函数中使用，Android 原生环境下跳过 Service Worker 注册
+ * 解耦评估：这是原生环境检测的封装访问器，通过 imports.ts 转发符合项目导入规范
+ */
+import { getWindowJSAndroid } from "./imports";
+/**
+ * 用途：获取 Harmony 原生客户端环境检测对象
+ * 使用范围：仅在 registerServiceWorker 函数中使用，Harmony 原生环境下跳过 Service Worker 注册
+ * 解耦评估：这是原生环境检测的封装访问器，通过 imports.ts 转发符合项目导入规范
+ */
+import { getWindowJSHarmony } from "./imports";
 /**
  * 用途：判断当前是否运行在浏览器环境，用于决定是否注册 Service Worker
  * 使用范围：仅在 registerServiceWorker 函数中使用，作为环境检测的前置条件

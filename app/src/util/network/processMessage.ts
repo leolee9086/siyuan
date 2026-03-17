@@ -1,14 +1,81 @@
-import { exportLayout } from "../../layout/util";
-import { isMobile } from "../../platform";
-import { hideMessage, showMessage } from "../../dialog/message";
-import { reloadLocation } from "../siyuanEnvironments/windowLocation.environment";
-import { setStorageVal } from "../../protyle/util/compatibility";
-import { Constants } from "../../constants";
+/**
+ * 用途：从 imports 转发布局导出工具，用于在 UI 重载前保存布局状态
+ * 使用范围：仅在 triggerReload 函数中使用，用于在桌面端重载前导出布局配置
+ * 解耦评估：无法通过依赖注入或参数传递替代，布局导出是应用状态管理的基础设施，必须直接导入
+ */
+import { exportLayout } from "./imports";
+/**
+ * 用途：从 imports 转发移动端判断工具，用于判断是否在移动端环境
+ * 使用范围：仅在 triggerReload 函数中使用，用于判断是否在移动端执行不同的重载逻辑
+ * 解耦评估：平台判断是基础设施能力，无法通过依赖注入替代
+ */
+import { isMobile } from "./imports";
+/**
+ * 用途：从 imports 转发消息隐藏工具，用于隐藏指定的消息提示
+ * 使用范围：在 handleMessageCommand 和 createIgnoreDefenderExclusionHandler 中使用，用于关闭消息通知
+ * 解耦评估：无法通过依赖注入或参数传递替代，消息对话框是 UI 基础设施，必须直接导入
+ */
+import { hideMessage } from "./imports";
+/**
+ * 用途：从 imports 转发消息显示工具，用于显示服务端推送的消息通知
+ * 使用范围：在 handleMessageCommand 和 processMessage 中使用，用于展示各类提示和错误信息
+ * 解耦评估：无法通过依赖注入或参数传递替代，消息对话框是 UI 基础设施，必须直接导入
+ */
+import { showMessage } from "./imports";
+/**
+ * 用途：从 imports 转发页面重载工具，用于在特定场景下刷新页面
+ * 使用范围：在 triggerReload 和 handlePublishServiceClosed 中使用，用于重新加载应用
+ * 解耦评估：页面重载是浏览器基础设施能力，无法通过依赖注入替代
+ */
+import { reloadLocation } from "./imports";
+/**
+ * 用途：从 imports 转发存储值设置工具，用于持久化配置到 localStorage
+ * 使用范围：仅在 handleReloadUI 中使用，用于在重置滚动位置时保存文件位置记录
+ * 解耦评估：无法通过依赖注入或参数传递替代，存储工具是应用状态持久化的基础设施，必须直接导入
+ */
+import { setStorageVal } from "./imports";
+/**
+ * 用途：从 imports 转发全局常量对象，用于访问应用配置常量
+ * 使用范围：仅在 handleReloadUI 中使用，用于访问 LOCAL_FILEPOSITION 常量标识
+ * 解耦评估：全局常量是基础设施配置，无法通过依赖注入替代
+ */
+import { Constants } from "./imports";
+/**
+ * 用途：从同目录导入 fetchPost 网络请求工具，用于向后端发送 POST 请求
+ * 使用范围：在 createAddDefenderExclusionHandler 和 createIgnoreDefenderExclusionHandler 中使用，用于处理 Windows Defender 排除项相关请求
+ * 解耦评估：可以通过依赖注入方式解耦，将 fetchPost 作为参数传入相关函数，但考虑到 fetchPost 是网络模块的核心基础设施且在同目录下，当前直接导入方式合理
+ */
 import { fetchPost } from "./fetch";
-import { getSiyuanStorage } from "../siyuanEnvironments/getSiyuanConfig.environment";
-import { confirmDialog, getSiyuanWebSocket } from "./imports";
+/**
+ * 用途：从 imports 转发全局存储访问器，用于读写 window.siyuan.storage
+ * 使用范围：仅在 handleReloadUI 中使用，用于在重置滚动位置时清空文件位置记录
+ * 解耦评估：无法通过依赖注入或参数传递替代，全局存储是应用状态管理的基础设施，必须直接导入
+ */
+import { getSiyuanStorage } from "./imports";
+/**
+ * 用途：从 imports 转发确认对话框工具，用于 CronJob 鉴权时显示用户确认界面
+ * 使用范围：仅在 cronjobAuthDependencies 依赖注入适配层中使用，传递给 handleCronjobAuthRequest
+ * 解耦评估：已通过依赖注入方式解耦，confirmDialog 作为依赖对象传入 handleCronjobAuthRequest，当前导入仅用于构建依赖对象
+ */
+import { confirmDialog } from "./imports";
+/**
+ * 用途：从 imports 转发 WebSocket 连接获取器，用于向内核发送鉴权响应
+ * 使用范围：仅在 sendCronjobAuthResponse 中使用，用于获取 WebSocket 连接并发送鉴权响应消息
+ * 解耦评估：无法通过依赖注入或参数传递替代，WebSocket 连接是全局单例资源，必须直接导入
+ */
+import { getSiyuanWebSocket } from "./imports";
+/**
+ * 用途：从同目录导入 CronJob 鉴权请求处理器，用于处理服务端的鉴权请求
+ * 使用范围：仅在 processMessage 的 cronjob_auth_request 命令分支中使用，用于处理 CronJob 鉴权流程
+ * 解耦评估：无法通过依赖注入或参数传递替代，这是业务逻辑的核心处理函数，必须直接导入
+ */
 import { handleCronjobAuthRequest } from "./cronjobAuth";
-import { isBrowser } from "../platform/functions";
+/**
+ * 用途：从 imports 转发浏览器环境判断工具，用于判断是否在浏览器环境
+ * 使用范围：在 handlePublishServiceClosed 和 checkPublishServiceClosed 中使用，用于判断是否在浏览器环境执行发布服务关闭逻辑
+ * 解耦评估：平台判断是基础设施能力，无法通过依赖注入替代
+ */
+import { isBrowser } from "./imports";
 
 /** 触发 UI 重载 */
 const triggerReload = () => {
