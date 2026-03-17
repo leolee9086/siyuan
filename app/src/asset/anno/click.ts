@@ -13,7 +13,7 @@ import { rectElement, setRectElement } from "../anno";
 import { AnnoConstants } from "../anno.constants";
 import type { IPdfInstance } from "../anno.types";
 import { createToolbarActionContext, toolbarActionRegistry } from "./click.handleToolbarAction";
-import { externalEventClickHandler } from "./click.handleExternalEvent";
+import { externalEventClickHandler } from "./click/handleExternalEvent";
 import { getLocationOrigin, getWindowSelection } from "../../util/siyuanEnvironments/windowStandard.environment";
 
 /**
@@ -146,23 +146,23 @@ const handleColorClick = (target: HTMLElement, element: HTMLElement, pdf: IPdfIn
 
 /**
  * 处理文本选区
- * 
+ *
  * 作用:
  * 检查当前是否有有效的文本选区,并决定是否显示工具栏。包括:
  * 1. 获取当前选区和范围
  * 2. 验证选区是否非空且在PDF查看器内
  * 3. 显示或隐藏工具栏
- * 
+ *
  * 意图:
  * 确保工具栏只在有效选区时显示,避免在无效场景下干扰用户。
- * 
+ *
  * 调用时机:
- * 在 handleSelection 函数中通过 setTimeout 异步调用(第 91 行)。
- * 延迟执行是为了确保选区状态已稳定,避免在选区变化过程中进行判断。
- * 
+ * 在 mouseup 事件监听器中调用，用于检测PDF中的文本选区。
+ *
  * @param element - 容器元素,用于工具栏的显示和隐藏操作
  */
-const processSelection = (element: HTMLElement) => {
+/** @同步豁免: 需要绝对同步的DOM访问 - 必须立即读取selection状态，异步会导致选区状态丢失 */
+export const processSelection = (element: HTMLElement) => {
     const selection = getWindowSelection();
     const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
     // 检查是否存在有效的文本选区：
@@ -302,23 +302,3 @@ export const handlePdfClick = async (event: MouseEvent | CustomEvent, element: H
 
 };
 
-/**
- * 处理PDF鼠标抬起事件 - 专门用于检测文本选区
- * 
- * 作用：
- * 检测用户是否在PDF中选中了文本，如果是则显示注释工具栏。
- * 
- * 意图：
- * 使用 mouseup 事件而非 click 事件来处理选区，因为：
- * 1. mouseup 触发时选区已经确定，无需使用 setTimeout 等不确定性方案
- * 2. 选区操作（拖拽选中文本）的结束点正是 mouseup，语义更明确
- * 3. 与 click 事件分离，职责更清晰：click 处理交互元素，mouseup 处理选区
- * 
- * 调用时机：
- * 注册为PDF查看器容器的 mouseup 事件监听器。
- * 
- * @param element - PDF容器元素
- */
-export const handlePdfMouseUp = (element: HTMLElement) => {
-    processSelection(element);
-};

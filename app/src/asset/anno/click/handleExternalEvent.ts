@@ -1,13 +1,13 @@
-import { Constants, setStorageVal } from "../../ai/imports";
-import { getSiyuanStorage } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { setRectElement } from "../anno";
-import { AnnoConstants } from "../anno.constants";
-import { copyAnno } from "../anno.copy";
-import { getHightlightCoordsByRange } from "../anno.getHightlightCoordsByRange";
-import { hideToolbar } from "../anno.hideToolbar";
-import { showHighlight } from "../anno.showHighlight";
-import { IPdfInstance } from "../anno.types";
-import { isExternalEventContext, ICustomEventContext } from "./click.guard";
+import { Constants, setStorageVal } from "../../../ai/imports";
+import { getSiyuanStorage } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { setRectElement } from "../../anno";
+import { AnnoConstants } from "../../anno.constants";
+import { copyAnno } from "../../anno.copy";
+import { getHightlightCoordsByRange } from "../../anno.getHightlightCoordsByRange";
+import { hideToolbar } from "../../anno.hideToolbar";
+import { showHighlight } from "../../anno.showHighlight";
+import { IPdfInstance } from "../../anno.types";
+import { isExternalEventContext, ICustomEventContext } from "./guard";
 
 /**
  * @作用: 处理外部自定义事件，用于响应 PDF 标注颜色选择。

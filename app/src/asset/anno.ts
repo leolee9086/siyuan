@@ -2,7 +2,7 @@ import type { RectElementType, IPdfInstance } from "./anno.types";
 import { getConfig } from "./anno.config";
 import { initRectAnnoTool } from "./anno.initRectAnnoTool";
 import { initResizeHandler } from "./anno.resize";
-import { handlePdfClick, handlePdfMouseUp } from "./anno/click";
+import { handlePdfClick, processSelection } from "./anno/click";
 import { showToolbar } from "./anno.showToolbar";
 import { isHTMLElement } from "../util/DOM/element.guard";
 
@@ -98,7 +98,7 @@ export const handleContainerContextMenu = (event: MouseEvent, element: HTMLEleme
  */
 export const handleContainerMouseUp = (element: HTMLElement) => {
     /** @同步豁免: 简单逻辑转发，无耗时操作 */
-    handlePdfMouseUp(element);
+    processSelection(element);
 };
 
 /**
