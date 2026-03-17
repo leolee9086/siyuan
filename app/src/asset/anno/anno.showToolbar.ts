@@ -1,5 +1,5 @@
 import { setPosition } from "../../util/DOM/setPosition";
-import { clearRectElement, setRectElement } from "./anno";
+import { clearRectElement, setRectElement } from ".";
 
 /**
  * 处理文本选区范围的工具栏定位

@@ -6,11 +6,6 @@ import { handlePdfClick, processSelection } from "./click";
 import { showToolbar } from "./anno.showToolbar";
 import { isHTMLElement } from "../../util/DOM/element.guard";
 
-export * from "./anno.copy";
-export * from "./anno.getHighlight";
-export * from "./anno.hlPDFRect";
-export * from "./anno.getPdfInstance";
-export * from "./anno.showToolbar";
 
 /**
  * 全局变量，存储当前选中的矩形注释元素

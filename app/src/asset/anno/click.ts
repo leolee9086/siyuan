@@ -9,7 +9,7 @@ import { getConfig } from "./config";
 import { fetchPost } from "../../util/network/fetch";
 import { showToolbar } from "./anno.showToolbar";
 import { hasClosestByClassName } from "../../protyle/util/hasClosest";
-import { rectElement, setRectElement } from "./anno";
+import { rectElement, setRectElement } from ".";
 import { AnnoConstants } from "./constants";
 import type { IPdfInstance } from "./anno.types";
 import { createToolbarActionContext, toolbarActionRegistry } from "./click.handleToolbarAction";
