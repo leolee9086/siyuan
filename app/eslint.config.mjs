@@ -118,7 +118,7 @@ const COMMON_RESTRICTED_SYNTAX = [
         message: "❌ 禁止在非类方法(如: 对象字面量方法/独立函数表达式)中使用 this。请使用类方法或将 context 作为参数传递。" + 全量修复提示 + 单文件检查提示,
     },
     {
-        selector: "ImportDeclaration[source.value=/^\\u002E\\u002E\\u002F/]",
+        selector: "ImportDeclaration[source.value=/^\\u002E\\u002E\\u002F/][importKind!='type']",
         message: "禁止从父级目录导入 (../)。必须通过本目录同层级的 ./imports.ts 转发。" + 全量修复提示 + 单文件检查提示,
     },
     {
@@ -130,7 +130,7 @@ const COMMON_RESTRICTED_SYNTAX = [
         message: "禁止从父级目录全量重导出 (../)。" + 全量修复提示 + 单文件检查提示,
     },
     {
-        selector: "ImportDeclaration[source.value=/^[^.]/]",
+        selector: "ImportDeclaration[source.value=/^[^.]/][importKind!='type']",
         message: "禁止直接导入第三方包或别名。必须通过本目录同层级 ./imports.ts 转发。" + 全量修复提示 + 单文件检查提示,
     },
     {

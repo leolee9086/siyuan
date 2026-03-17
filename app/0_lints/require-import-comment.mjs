@@ -125,10 +125,12 @@ export const 要求导入注释插件 = {
                             return;
                         }
 
-                        if (!是否包含解耦评估(text)) {
+                        // 类型导入不需要解耦评估
+                        const isTypeImport = node.importKind === "type";
+                        if (!isTypeImport && !是否包含解耦评估(text)) {
                             context.report({
                                 node,
-                                message: 构建错误信息(importSource, "缺少“解耦评估:”说明行")
+                                message: 构建错误信息(importSource, "缺少\"解耦评估:\"说明行")
                             });
                         }
                     }
