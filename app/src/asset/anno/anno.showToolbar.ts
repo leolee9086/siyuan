@@ -1,4 +1,4 @@
-import { setPosition } from "../util/DOM/setPosition";
+import { setPosition } from "../../util/DOM/setPosition";
 import { clearRectElement, setRectElement } from "./anno";
 
 /**

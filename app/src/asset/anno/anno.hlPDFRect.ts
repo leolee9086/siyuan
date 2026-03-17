@@ -1,4 +1,4 @@
-import { hasClosestByAttribute } from "../protyle/util/hasClosest";
+import { hasClosestByAttribute } from "../../protyle/util/hasClosest";
 
 
 export const hlPDFRect = (element: HTMLElement, id: string) => {

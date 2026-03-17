@@ -1,5 +1,5 @@
-import { hasClosestByClassName } from "../protyle/util/hasClosest";
-import { setConfig } from "./anno.config";
+import { hasClosestByClassName } from "../../protyle/util/hasClosest";
+import { setConfig } from "./config";
 import { generateRectContent, createAnnoCoords } from "./anno.content";
 import { getPageViewInfo } from "./anno.page";
 import type { IPdfInstance, IPdfViewport, IStartPageInfo, IPageListItem } from "./anno.types";

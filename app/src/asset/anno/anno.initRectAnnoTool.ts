@@ -1,5 +1,5 @@
 import { hideToolbar } from "./anno.hideToolbar";
-import { getWindowSelection } from "../util/siyuanEnvironments/windowStandard.environment";
+import { getWindowSelection } from "../../util/siyuanEnvironments/windowStandard.environment";
 
 const deactivateRectAnnotation = (rectAnnoElement: HTMLElement, mainContainer: HTMLElement) => {
     rectAnnoElement.classList.remove("toggled");

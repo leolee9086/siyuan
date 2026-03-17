@@ -1,4 +1,4 @@
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 /**
  * @作用: 根据传入的 ID 数组生成关联列表的 HTML 字符串。

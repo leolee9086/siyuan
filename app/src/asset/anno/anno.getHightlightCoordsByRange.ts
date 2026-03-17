@@ -1,11 +1,11 @@
-import { focusByRange } from "../ai/imports";
-import { hasClosestByClassName } from "../protyle/util/hasClosest";
-import { getWindowSelection } from "../util/siyuanEnvironments/windowStandard.environment";
+import { focusByRange } from "../../ai/imports";
+import { hasClosestByClassName } from "../../protyle/util/hasClosest";
+import { getWindowSelection } from "../../util/siyuanEnvironments/windowStandard.environment";
 import { getTextNode } from "./anno";
-import { setConfig } from "./anno.config";
+import { setConfig } from "./config";
 import { createAnnoCoords } from "./anno.content";
-import { mergeRects } from "../util/DOM/mergeRects";
-import { processRangeContents } from "../util/DOM/rangeOperations";
+import { mergeRects } from "../../util/DOM/mergeRects";
+import { processRangeContents } from "../../util/DOM/rangeOperations";
 import { getPageViewInfo } from "./anno.page";
 import type { AnnotationResultParams, IPdfInstance, IRectBounds } from "./anno.types";
 

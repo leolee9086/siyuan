@@ -6,7 +6,7 @@
 import {
     isHTMLElement,
     isHTMLDivElement
-} from "../util/DOM/element.guard";
+} from "../../util/DOM/element.guard";
 
 /**
  * 检查元素是否为 HTMLElement（支持null/undefined输入）

@@ -1,4 +1,4 @@
-import { fetchPost } from "../util/network/fetch";
+import { fetchPost } from "../../util/network/fetch";
 import type { IPdfInstance, IPdfAnno } from "./anno.types";
 
 /**

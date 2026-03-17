@@ -1,5 +1,5 @@
 import type { IPdfInstance, IPDF页面渲染参数 } from "./anno.types";
-import { getPdfToCssUnits } from "../util/siyuanEnvironments/pdfjsLib.environment";
+import { getPdfToCssUnits } from "../../util/siyuanEnvironments/pdfjsLib.environment";
 
 /**
  * 获取PDF页面渲染参数

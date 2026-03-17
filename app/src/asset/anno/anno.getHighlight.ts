@@ -1,4 +1,4 @@
-import { getConfig } from "./anno.config";
+import { getConfig } from "./config";
 import { getPdfInstance } from "./anno.getPdfInstance";
 import { showHighlight } from "./anno.showHighlight";
 import type { IPdfInstance } from "./anno.types";

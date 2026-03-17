@@ -1,12 +1,12 @@
 import { Constants, setStorageVal } from "../../../ai/imports";
 import { getSiyuanStorage } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { setRectElement } from "../../anno";
-import { AnnoConstants } from "../../anno.constants";
-import { copyAnno } from "../../anno.copy";
-import { getHightlightCoordsByRange } from "../../anno.getHightlightCoordsByRange";
-import { hideToolbar } from "../../anno.hideToolbar";
-import { showHighlight } from "../../anno.showHighlight";
-import { IPdfInstance } from "../../anno.types";
+import { setRectElement } from "../anno";
+import { AnnoConstants } from "../constants";
+import { copyAnno } from "../anno.copy";
+import { getHightlightCoordsByRange } from "../anno.getHightlightCoordsByRange";
+import { hideToolbar } from "../anno.hideToolbar";
+import { showHighlight } from "../anno.showHighlight";
+import { IPdfInstance } from "../anno.types";
 import { isExternalEventContext, ICustomEventContext } from "./guard";
 
 /**

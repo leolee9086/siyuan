@@ -1,4 +1,4 @@
-import { getAllModels } from "../layout/getAll";
+import { getAllModels } from "../../layout/getAll";
 /**
  * 
  * @param element 

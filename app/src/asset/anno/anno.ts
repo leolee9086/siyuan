@@ -1,10 +1,10 @@
 import type { RectElementType, IPdfInstance } from "./anno.types";
-import { getConfig } from "./anno.config";
+import { getConfig } from "./config";
 import { initRectAnnoTool } from "./anno.initRectAnnoTool";
 import { initResizeHandler } from "./anno.resize";
-import { handlePdfClick, processSelection } from "./anno/click";
+import { handlePdfClick, processSelection } from "./click";
 import { showToolbar } from "./anno.showToolbar";
-import { isHTMLElement } from "../util/DOM/element.guard";
+import { isHTMLElement } from "../../util/DOM/element.guard";
 
 export * from "./anno.copy";
 export * from "./anno.getHighlight";
@@ -81,7 +81,7 @@ export const handleContainerContextMenu = (event: MouseEvent, element: HTMLEleme
      */
     if (isHTMLElement(utilElement)) {
         /** @内联回调 */
-        import("../util/DOM/setPosition").then(({ setPosition }) => {
+        import("../../util/DOM/setPosition").then(({ setPosition }) => {
             setPosition(utilElement, event.clientX, event.clientY);
         });
     }

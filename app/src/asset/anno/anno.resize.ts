@@ -1,9 +1,9 @@
-import { Constants } from "../constants";
+import { Constants } from "../../constants";
 import { getHightlightCoordsByRect } from "./anno.getHightlightCoordsByRect";
 import { showHighlight } from "./anno.showHighlight";
 import { copyAnno } from "./anno.copy";
 import { setRectElement } from "./anno";
-import { getSafeSiyuanStorage } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { getSafeSiyuanStorage } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import type { IAnnoCoords, IPdfInstance, IPdfConfig } from "./anno.types";
 
 /** 计算选区矩形的样式 */

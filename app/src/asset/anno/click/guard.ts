@@ -1,5 +1,5 @@
 import { isCustomEvent } from "../../../util/DOM/element.guard";
-import { IPdfInstance } from "../../anno.types";
+import { IPdfInstance } from "../anno.types";
 
 /** 事件上下文类型（通用） */
 export interface IEventContext {

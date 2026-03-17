@@ -1,5 +1,5 @@
-import { hasClosestByClassName } from "../protyle/util/hasClosest";
-import { isHTMLElement } from "../util/DOM/element.guard";
+import { hasClosestByClassName } from "../../protyle/util/hasClosest";
+import { isHTMLElement } from "../../util/DOM/element.guard";
 import { rectElement } from "./anno";
 import { getCaptureCanvas } from "./anno.getCaptureCanvas";
 import { IPdfInstance } from "./anno.types";
