@@ -38,10 +38,6 @@ func (rc *ResponseCollector) CollectResponses(
 	userMessage string,
 	modelInput string,
 ) ([]types.SageResponse, error) {
-	// 创建超时上下文
-	timeoutCtx, cancel := context.WithTimeout(ctx, rc.timeout)
-	defer cancel()
-
 	// 结果channel
 	type result struct {
 		response *types.SageResponse
@@ -62,7 +58,7 @@ func (rc *ResponseCollector) CollectResponses(
 		if err := websocket.PushSeelReplyStarted(sessionId, roundId, melchior.GetName(), melchior.GetDisplayName(), userMessage, streamMessage); err != nil {
 			logging.LogWarnf("推送Melchior开始响应失败: %v", err)
 		}
-		resp, err := rc.collectSingleSageResponse(timeoutCtx, sessionId, roundId, melchior, modelInput)
+		resp, err := rc.collectSingleSageResponse(ctx, sessionId, roundId, melchior, modelInput)
 		resultCh <- result{response: resp, err: err, sageName: "melchior"}
 	}()
 
@@ -74,7 +70,7 @@ func (rc *ResponseCollector) CollectResponses(
 		if err := websocket.PushSeelReplyStarted(sessionId, roundId, balthazar.GetName(), balthazar.GetDisplayName(), userMessage, streamMessage); err != nil {
 			logging.LogWarnf("推送Balthazar开始响应失败: %v", err)
 		}
-		resp, err := rc.collectSingleSageResponse(timeoutCtx, sessionId, roundId, balthazar, modelInput)
+		resp, err := rc.collectSingleSageResponse(ctx, sessionId, roundId, balthazar, modelInput)
 		resultCh <- result{response: resp, err: err, sageName: "balthazar"}
 	}()
 
@@ -86,7 +82,7 @@ func (rc *ResponseCollector) CollectResponses(
 		if err := websocket.PushSeelReplyStarted(sessionId, roundId, casper.GetName(), casper.GetDisplayName(), userMessage, streamMessage); err != nil {
 			logging.LogWarnf("推送Casper开始响应失败: %v", err)
 		}
-		resp, err := rc.collectSingleSageResponse(timeoutCtx, sessionId, roundId, casper, modelInput)
+		resp, err := rc.collectSingleSageResponse(ctx, sessionId, roundId, casper, modelInput)
 		resultCh <- result{response: resp, err: err, sageName: "casper"}
 	}()
 
@@ -171,17 +167,38 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 		turnCollector := newStreamedToolCallCollector()
 		turnContent := strings.Builder{}
 
+		// 创建空闲超时定时器：30秒内没有收到chunk则超时
+		idleTimer := time.NewTimer(rc.timeout)
+
 		for {
 			select {
-			case <-ctx.Done():
-				if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, sage.GetName(), sage.GetDisplayName(), "上下文超时或取消"); pushErr != nil {
+			case <-idleTimer.C:
+				errMsg := fmt.Sprintf("贤者 %s 空闲超时（%v 内未收到响应chunk）[会话:%s 轮次:%s]",
+					sage.GetDisplayName(), rc.timeout, sessionId, roundId)
+				if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, sage.GetName(), sage.GetDisplayName(), errMsg); pushErr != nil {
 					logging.LogWarnf("推送%s响应失败事件失败: %v", sage.GetDisplayName(), pushErr)
 				}
-				return nil, fmt.Errorf("上下文超时或取消")
+				return nil, fmt.Errorf(errMsg)
+			case <-ctx.Done():
+				errMsg := fmt.Sprintf("贤者 %s 上下文已取消: %v [会话:%s 轮次:%s]",
+					sage.GetDisplayName(), ctx.Err(), sessionId, roundId)
+				if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, sage.GetName(), sage.GetDisplayName(), errMsg); pushErr != nil {
+					logging.LogWarnf("推送%s响应失败事件失败: %v", sage.GetDisplayName(), pushErr)
+				}
+				return nil, fmt.Errorf(errMsg)
 			case chunk, ok := <-streamCh:
 				if !ok {
 					goto TurnComplete
 				}
+				// 收到chunk，重置空闲超时定时器
+				if !idleTimer.Stop() {
+					select {
+					case <-idleTimer.C:
+					default:
+					}
+				}
+				idleTimer.Reset(rc.timeout)
+
 				if chunk.Object == "error" {
 					streamErr := fmt.Errorf("流式响应错误: %s", chunk.ID)
 					if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, sage.GetName(), sage.GetDisplayName(), streamErr.Error()); pushErr != nil {
@@ -222,6 +239,13 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 		}
 
 	TurnComplete:
+		// turn完成，停止空闲超时定时器
+		if !idleTimer.Stop() {
+			select {
+			case <-idleTimer.C:
+			default:
+			}
+		}
 		indexOffset += toolIndexStride
 		turnToolCalls := turnCollector.BuildSorted()
 
@@ -245,6 +269,21 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 			}
 
 			result := processor.GetResult(true)
+
+			// 立即发射工具调用检测事件（逻辑发生=事件发射）
+			if result.HasToolCalls {
+				for toolName, argsArray := range result.ToolArgumentsByName {
+					if len(argsArray) > 0 {
+						var argsMap map[string]interface{}
+						if err := json.Unmarshal([]byte(argsArray[0]), &argsMap); err == nil {
+							if err := websocket.PushToolCallDetected(sessionId, roundId, sage.GetName(), sage.GetDisplayName(), toolName, argsMap); err != nil {
+								logging.LogWarnf("推送工具调用检测事件失败: %v", err)
+							}
+						}
+					}
+				}
+			}
+
 			response, buildErr := rc.buildSageResponse(sessionId, roundId, sage, result, wannaSpeakTracker)
 			if buildErr != nil {
 				if pushErr := websocket.PushSeelReplyFailed(sessionId, roundId, sage.GetName(), sage.GetDisplayName(), buildErr.Error()); pushErr != nil {
@@ -337,20 +376,6 @@ func (rc *ResponseCollector) buildSageResponse(
 		}
 		if hasWannaSpeak {
 			response.Content = wannaSpeakContent
-		}
-	}
-
-	// 推送通用工具调用检测事件
-	if result.HasToolCalls {
-		for toolName, argsArray := range result.ToolArgumentsByName {
-			if len(argsArray) > 0 {
-				var argsMap map[string]interface{}
-				if err := json.Unmarshal([]byte(argsArray[0]), &argsMap); err == nil {
-					if err := websocket.PushToolCallDetected(sessionId, roundId, sage.GetName(), sage.GetDisplayName(), toolName, argsMap); err != nil {
-						logging.LogWarnf("推送工具调用检测事件失败: %v", err)
-					}
-				}
-			}
 		}
 	}
 
