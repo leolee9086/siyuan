@@ -52,6 +52,15 @@ export function 检查柯里化豁免(node, sourceCode) {
             if (declarationComments.some((comment) => comment.value.includes(柯里化豁免注释))) {
                 return true;
             }
+
+            // 检查 ExportNamedDeclaration 前的注释
+            if (declaration.parent && declaration.parent.type === "ExportNamedDeclaration") {
+                const exportDeclaration = declaration.parent;
+                const exportComments = sourceCode.getCommentsBefore(exportDeclaration);
+                if (exportComments.some((comment) => comment.value.includes(柯里化豁免注释))) {
+                    return true;
+                }
+            }
         }
     }
 
