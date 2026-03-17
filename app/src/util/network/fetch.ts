@@ -1,12 +1,27 @@
-import { Constants } from "../../constants";
-import { ipcSend } from "../../platform/electron/ipcRenderer";
-import { isElectron } from "../../platform";
+/** 用途：IPC 通信常量标识 | 使用范围：handleFetchError 中 Electron 退出消息 | 解耦评估：基础设施配置，无法解耦 */
+import { Constants } from "./imports";
+/** 用途：Electron 主进程通信 | 使用范围：handleFetchError 中系统退出/工作空间切换通知 | 解耦评估：Electron 基础设施，无法解耦 */
+import { ipcSend } from "./imports";
+/** 用途：判断 Electron 环境 | 使用范围：handleFetchError 中判断是否执行 Electron 退出逻辑 | 解耦评估：平台判断基础设施，无法解耦 */
+import { isElectron } from "./imports";
+/** 用途：处理后端通知/错误消息 | 使用范围：createPostResponseHandler 和 fetchSyncPost 中展示消息 | 解耦评估：网络模块基础功能，可考虑依赖注入但当前直接导入符合实际场景 */
 import { processMessage } from "./processMessage";
-import { kernelError } from "../../dialog/processSystem";
+/** 用途：内核通信失败错误处理 | 使用范围：handleFetchError 中事务 API 失败时触发重连/重启 | 解耦评估：UI 基础设施，无法解耦 */
+import { kernelError } from "./imports";
+/** 用途：验证响应数据结构 | 使用范围：fetchSyncPost 中验证 IWebSocketData 格式 | 解耦评估：工具函数，直接导入符合模块化设计 */
 import { isWebSocketData } from "./fetch.guard";
-import { TFetchRequestData, FetchContext, FetchMiddleware } from "./types";
-import { getSiyuanReqId, setSiyuanReqId } from "../siyuanEnvironments/getSiyuanConfig.environment";
-import { reloadLocation } from "../siyuanEnvironments/windowLocation.environment";
+/** 用途：请求数据类型 | 使用范围：所有 fetch 函数参数类型 | 解耦评估：类型定义，直接导入符合设计 */
+import { TFetchRequestData } from "./types";
+/** 用途：请求上下文类型 | 使用范围：中间件和 fetch 函数内部传递上下文 | 解耦评估：类型定义，直接导入符合设计 */
+import { FetchContext } from "./types";
+/** 用途：中间件类型 | 使用范围：中间件函数类型声明 | 解耦评估：类型定义，直接导入符合设计 */
+import { FetchMiddleware } from "./types";
+/** 用途：获取请求 ID 用于竞态控制 | 使用范围：injectReqIdMiddleware 和 createPostResponseHandler 中竞态检查 | 解耦评估：全局状态管理，无法解耦 */
+import { getSiyuanReqId } from "./imports";
+/** 用途：设置请求 ID 用于竞态控制 | 使用范围：injectReqIdMiddleware 中记录请求时间戳 | 解耦评估：全局状态管理，无法解耦 */
+import { setSiyuanReqId } from "./imports";
+/** 用途：认证失效时重载页面 | 使用范围：handleFetchResponse 中 401 错误处理 | 解耦评估：浏览器基础设施，无法解耦 */
+import { reloadLocation } from "./imports";
 
 /**
  * 需要进行请求竞态控制的特殊 API 列表
