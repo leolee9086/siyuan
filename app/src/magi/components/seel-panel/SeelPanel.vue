@@ -66,7 +66,7 @@ import SeelPanelHeader from "./SeelPanelHeader.vue";
 import SeelPanelVoteContent from "./SeelPanelVoteContent.vue";
 import SeelSseInline from "./SeelSseInline.vue";
 import MessageBubble from "../message-bubble/MessageBubble.vue";
-import { computed, type PropType } from "vue";
+import { computed, watch, type PropType } from "vue";
 import "./SeelPanel.css";
 
 const props = defineProps({
@@ -102,6 +102,18 @@ const colorValue = computed<string>(() => props.frameColor || getColor(props.ai.
 async function handleCursorUpdate() {
     await scrollToBottom(messageContainer);
 }
+
+/** 新消息（尤其是事件投影）进入时，始终跟随到最新一条。 */
+watch(
+    () => [props.showMessages, props.ai.messages.length],
+    ([showMessages]) => {
+        if (!showMessages) {
+            return;
+        }
+        void scrollToBottom(messageContainer);
+    },
+    { immediate: true },
+);
 
 function asRecord(value: unknown): Record<string, unknown> | null {
     return typeof value === "object" && value !== null

@@ -7,11 +7,18 @@
  */
 
 /**
- * 用途：导入 CronJob 鉴权请求的类型定义，用于约束 handleCronjobAuthRequest 函数的参数结构
- * 使用范围：仅在本模块的 handleCronjobAuthRequest 函数参数类型声明中使用，边界为本文件内的类型约束
+ * 用途：导入依赖注入接口类型，用于约束 handleCronjobAuthRequest 函数的 deps 参数结构
+ * 使用范围：仅在本模块的 handleCronjobAuthRequest 函数的 deps 参数类型声明中使用，边界为本文件内的类型约束
  * 解耦评估：无法通过依赖注入或参数传递替代，类型导入必须直接导入以提供编译时类型检查
  */
-import type { ICronjobAuthDependencies, ICronjobAuthRequest } from "./types";
+import type { ICronjobAuthDependencies } from "./types";
+
+/**
+ * 用途：导入鉴权请求数据类型，用于约束 handleCronjobAuthRequest 函数的 data 参数结构
+ * 使用范围：仅在本模块的 handleCronjobAuthRequest 函数的 data 参数类型声明中使用，边界为本文件内的类型约束
+ * 解耦评估：无法通过依赖注入或参数传递替代，类型导入必须直接导入以提供编译时类型检查
+ */
+import type { ICronjobAuthRequest } from "./types";
 
 /**
  * 处理 CronJob 鉴权请求
