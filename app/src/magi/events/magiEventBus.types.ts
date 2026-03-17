@@ -4,6 +4,7 @@ import type { MagiMessage } from "../utils/messageFactory.types";
 /** MAGI 事件名称字典。 */
 export type MagiEventName =
     | "ROUND_STARTED"
+    | "LLM_REQUEST_SENT"
     | "SEEL_REPLY_STARTED"
     | "SEEL_REPLY_CHUNK"
     | "SEEL_REPLY_COMPLETED"
@@ -13,7 +14,8 @@ export type MagiEventName =
     | "CONSENSUS_EMITTED"
     | "ROUND_FAILED"
     | "TOOL_CALL_DETECTED"
-    | "DELIBERATION_SIGNAL_RAISED";
+    | "DELIBERATION_SIGNAL_RAISED"
+    | "CONTEXT_HISTORY_TRIMMED";
 
 /** 事件公共字段。 */
 export interface MagiEventBase {
@@ -34,6 +36,15 @@ export interface MagiSeelReplyStartedEvent extends MagiEventBase {
     displayName: string;
     userInput: string;
     streamMessage: MagiMessage;
+}
+
+/** LLM 请求发送事件。 */
+export interface MagiLLMRequestSentEvent extends MagiEventBase {
+    seelName: string;
+    displayName: string;
+    model: string;
+    messages: unknown[];
+    toolCount: number;
 }
 
 /** 贤者流式增量事件。 */
@@ -104,9 +115,22 @@ export interface MagiDeliberationSignalRaisedEvent extends MagiEventBase {
     requiresDeliberation: boolean;
 }
 
+/** 上下文历史裁剪事件。 */
+export interface MagiContextHistoryTrimmedEvent extends MagiEventBase {
+    seelName: string;
+    displayName: string;
+    beforeCount: number;
+    afterCount: number;
+    droppedCount: number;
+    strategyType?: string;
+    strategyCount?: number;
+    strategyPercent?: number;
+}
+
 /** MAGI 事件载荷映射。 */
 export interface MagiEventPayloadMap {
     ROUND_STARTED: MagiRoundStartedEvent;
+    LLM_REQUEST_SENT: MagiLLMRequestSentEvent;
     SEEL_REPLY_STARTED: MagiSeelReplyStartedEvent;
     SEEL_REPLY_CHUNK: MagiSeelReplyChunkEvent;
     SEEL_REPLY_COMPLETED: MagiSeelReplyCompletedEvent;
@@ -117,6 +141,7 @@ export interface MagiEventPayloadMap {
     ROUND_FAILED: MagiRoundFailedEvent;
     TOOL_CALL_DETECTED: MagiToolCallDetectedEvent;
     DELIBERATION_SIGNAL_RAISED: MagiDeliberationSignalRaisedEvent;
+    CONTEXT_HISTORY_TRIMMED: MagiContextHistoryTrimmedEvent;
 }
 
 /**

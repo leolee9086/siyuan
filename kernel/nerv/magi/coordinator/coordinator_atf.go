@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
@@ -53,7 +54,14 @@ func (c *Coordinator) CoordinateWithDifferentInputs(
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := websocket.PushSeelReplyStarted(sessionId, roundId, melchior.GetName(), melchior.GetDisplayName(), inputs.MelchiorInput, nil); err != nil {
+		streamMessage := &types.Message{
+			ID:        "",
+			Type:      types.TypeAI,
+			Content:   "",
+			Status:    types.StatusStreaming,
+			Timestamp: time.Now().UnixMilli(),
+		}
+		if err := websocket.PushSeelReplyStarted(sessionId, roundId, melchior.GetName(), melchior.GetDisplayName(), inputs.MelchiorInput, streamMessage); err != nil {
 			logging.LogWarnf("推送Melchior开始响应失败: %v", err)
 		}
 		msg, err := c.collector.collectSingleSageResponse(ctx, sessionId, roundId, melchior, inputs.MelchiorInput)
@@ -70,7 +78,14 @@ func (c *Coordinator) CoordinateWithDifferentInputs(
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := websocket.PushSeelReplyStarted(sessionId, roundId, balthazar.GetName(), balthazar.GetDisplayName(), inputs.BalthazarInput, nil); err != nil {
+		streamMessage := &types.Message{
+			ID:        "",
+			Type:      types.TypeAI,
+			Content:   "",
+			Status:    types.StatusStreaming,
+			Timestamp: time.Now().UnixMilli(),
+		}
+		if err := websocket.PushSeelReplyStarted(sessionId, roundId, balthazar.GetName(), balthazar.GetDisplayName(), inputs.BalthazarInput, streamMessage); err != nil {
 			logging.LogWarnf("推送Balthazar开始响应失败: %v", err)
 		}
 		msg, err := c.collector.collectSingleSageResponse(ctx, sessionId, roundId, balthazar, inputs.BalthazarInput)
@@ -87,7 +102,14 @@ func (c *Coordinator) CoordinateWithDifferentInputs(
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := websocket.PushSeelReplyStarted(sessionId, roundId, casper.GetName(), casper.GetDisplayName(), inputs.CasperInput, nil); err != nil {
+		streamMessage := &types.Message{
+			ID:        "",
+			Type:      types.TypeAI,
+			Content:   "",
+			Status:    types.StatusStreaming,
+			Timestamp: time.Now().UnixMilli(),
+		}
+		if err := websocket.PushSeelReplyStarted(sessionId, roundId, casper.GetName(), casper.GetDisplayName(), inputs.CasperInput, streamMessage); err != nil {
 			logging.LogWarnf("推送Casper开始响应失败: %v", err)
 		}
 		msg, err := c.collector.collectSingleSageResponse(ctx, sessionId, roundId, casper, inputs.CasperInput)

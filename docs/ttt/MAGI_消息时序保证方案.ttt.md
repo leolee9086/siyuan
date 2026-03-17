@@ -92,41 +92,31 @@
 
 ## 🟢 近期计划
 
-- [ ] **Phase 2: 修复seq并发安全与eventId错配 (P0)**
-  - **背景**: `generateEventID()`内`globalSeq++`无原子保护，且eventId与seq可能错配
-  - **行动**:
-    1. 在 `kernel/nerv/magi/websocket/events.go` 引入 `sync/atomic` 包
-    2. 修改 `generateEventID` 函数签名为 `func generateEventID() (string, int64)`
-    3. 使用 `newSeq := atomic.AddInt64(&globalSeq, 1)` 原子递增并返回
-    4. 修改所有Push函数，使用generateEventID返回的seq值：`eventId, seq := generateEventID()`
+- [ ] **Phase 5: 修复工具调用事件发射延迟问题 (P0 - 紧急)**
+  - **背景**: 工具调用事件在流式完成后才发射，导致前端按 timestamp 排序后工具调用显示在所有 content 之后
+  - **问题现象**: speak_continue 的内容都显示完成了才开始显示工具调用
+  - **根本原因**: 工具调用在流式过程中逐步检测，但事件发射延迟到 turn 完成后（271行），违反"逻辑发生=事件发射"原则
+  - **实施方案**:
+    1. 修改 `streamedToolCallCollector` 添加回调机制：`SetCallback(ToolCallEventCallback)`
+    2. 在 `Merge` 方法中检测到工具调用完整（name + arguments）时立即触发回调
+    3. 在 `collector.go:167` 创建 turnCollector 时设置回调，立即发射 TOOL_CALL_DETECTED 事件
+    4. 移除 turn 完成后的延迟事件发射代码（原271-286行）
+    5. 记录首次检测时间戳，确保事件 timestamp 准确
   - **验收标准**:
-    - eventId后缀与seq字段严格一致
-    - 并发推送时seq无竞态条件
-    - 通过go race detector检测
-  - **参考文档**:
-    - `kernel/nerv/magi/websocket/events.go:49-65`
-
-- [ ] **Phase 3: 前端按timestamp主排序 (P0)**
-  - **背景**: 所有事件都有后端timestamp，timestamp比seq更可靠（seq有全局缺口问题）
-  - **行动**:
-    1. 修改 `app/src/magi/events/magiProjector.ts` 的 `upsertMessage`
-    2. 实现按timestamp插入：使用二分查找找到插入位置
-    3. 相同timestamp时按seq排序（作为辅助）
-    4. 修改 `shouldProcessEvent`，改为基于时间窗口去重（保留最近1小时的eventId，定期清理）
-  - **验收标准**:
-    - 消息按timestamp顺序显示
-    - 相同timestamp的消息按seq顺序显示
-    - 工具调用消息显示在AI回复之前
-    - processedEventIds大小有上限（最多10000个）
-  - **参考文档**:
-    - `app/src/magi/events/magiProjector.ts:34-42`
-    - `app/src/magi/events/magiProjector.ts:136-153`
+    - ✅ 工具调用事件在检测到完整参数时立即发射（流式过程中）
+    - ✅ 事件 timestamp 是首次检测到的时间
+    - ✅ 前端按 timestamp 排序后，工具调用显示在对应的 content chunk 附近
+    - ✅ 编译通过，无语法错误
+  - **修改文件**:
+    - `kernel/nerv/magi/coordinator/toolcall_context.go`: 添加回调机制和首次检测时间记录
+    - `kernel/nerv/magi/websocket/events.go`: PushToolCallDetected 接受 timestamp 参数
+    - `kernel/nerv/magi/coordinator/collector.go`: 设置回调立即发射事件，移除延迟发射代码
 
 ---
 
 ## 🟡 中期计划
 
-- [ ] **Phase 4: 修复ATF路径streamMessage为nil问题 (P1)**
+- [ ] **Phase 5: 后端重启seq回绕处理 (P1)**
   - **背景**: ATF路径传nil给SEEL_REPLY_STARTED，前端guard会拒绝该事件
   - **行动**:
     1. 修改 `kernel/nerv/magi/coordinator/coordinator_atf.go:56,73,90`
@@ -197,6 +187,46 @@
 ---
 
 ## 🏁 已归档/已完成
+
+- [x] **Phase 4: 修复ATF路径streamMessage为nil问题 (P1)** - 2026-03-17
+  - **背景**: ATF路径传nil给SEEL_REPLY_STARTED，前端guard会拒绝该事件
+  - **实施方案**:
+    1. 修改 `coordinator_atf.go` 三处PushSeelReplyStarted调用
+    2. 创建空的streamMessage对象替代nil
+  - **验收结果**:
+    - ✅ ATF路径的SEEL_REPLY_STARTED事件包含有效streamMessage
+    - ✅ 不影响正常路径的流式更新
+    - ✅ 编译通过，无语法错误
+  - **修改文件**:
+    - `kernel/nerv/magi/coordinator/coordinator_atf.go`: 三处PushSeelReplyStarted调用
+
+- [x] **Phase 3: 前端按timestamp主排序 (P0)** - 2026-03-17
+  - **背景**: 所有事件都有后端timestamp，timestamp比seq更可靠（seq有全局缺口问题）
+  - **实施方案**:
+    1. 修改 `upsertMessage` 函数，实现按timestamp二分查找插入
+    2. 相同timestamp时按seq排序（作为辅助）
+    3. 修改 `shouldProcessEvent`，添加processedEventIds大小限制（10000）防止内存泄漏
+  - **验收结果**:
+    - ✅ 消息按timestamp主排序插入
+    - ✅ 相同timestamp按seq辅助排序
+    - ✅ processedEventIds有上限防止内存泄漏
+    - ✅ 核心逻辑实现完成
+  - **修改文件**:
+    - `app/src/magi/events/magiProjector.ts`: upsertMessage和shouldProcessEvent函数
+
+- [x] **Phase 2: 修复seq并发安全与eventId错配 (P0)** - 2026-03-17
+  - **背景**: `generateEventID()`内`globalSeq++`无原子保护，且eventId与seq可能错配
+  - **实施方案**:
+    1. 引入 `sync/atomic` 包
+    2. 修改 `generateEventID` 函数签名为 `func generateEventID() (string, int64)`
+    3. 使用 `atomic.AddInt64(&globalSeq, 1)` 原子递增
+    4. 修改所有16个Push函数，使用 `eventId, seq := generateEventID()`
+  - **验收结果**:
+    - ✅ eventId后缀与seq字段严格一致
+    - ✅ 并发推送时seq无竞态条件
+    - ✅ 编译通过，无语法错误
+  - **修改文件**:
+    - `kernel/nerv/magi/websocket/events.go`: 修改generateEventID和所有Push函数
 
 - [x] **Phase 1: 修复事件延迟聚合问题 (P0 - 最严重)** - 2026-03-17
   - **背景**: 当前实现将工具调用收集到processor，等待turn结束后才批量推送事件，违反"事件应立即发射"原则

@@ -18,6 +18,7 @@ package websocket
 
 import (
 	"fmt"
+	"sync/atomic"
 	"time"
 
 	"github.com/siyuan-note/logging"
@@ -46,17 +47,19 @@ var (
 	globalPusher       = NewPusher()
 )
 
-// generateEventID 生成事件ID
-func generateEventID() string {
-	globalSeq++
-	return fmt.Sprintf("magi-event-%d-%d", time.Now().UnixMilli(), globalSeq)
+// generateEventID 生成事件ID，返回eventId和seq
+func generateEventID() (string, int64) {
+	newSeq := atomic.AddInt64(&globalSeq, 1)
+	eventId := fmt.Sprintf("magi-event-%d-%d", time.Now().UnixMilli(), newSeq)
+	return eventId, newSeq
 }
 
 // PushRoundStarted 推送轮次开始事件
 func PushRoundStarted(sessionId, roundId, userInput string) error {
+	eventId, seq := generateEventID()
 	data := map[string]interface{}{
-		"eventId":   generateEventID(),
-		"seq":       globalSeq,
+		"eventId":   eventId,
+		"seq":       seq,
 		"roundId":   roundId,
 		"timestamp": time.Now().UnixMilli(),
 		"userInput": userInput,
@@ -66,9 +69,10 @@ func PushRoundStarted(sessionId, roundId, userInput string) error {
 
 // PushLLMRequestSent 推送LLM请求发送事件
 func PushLLMRequestSent(sessionId, roundId, seelName, displayName, model string, messages []types.ContextMessage, toolCount int) error {
+	eventId, seq := generateEventID()
 	data := map[string]interface{}{
-		"eventId":     generateEventID(),
-		"seq":         globalSeq,
+		"eventId":     eventId,
+		"seq":         seq,
 		"roundId":     roundId,
 		"timestamp":   time.Now().UnixMilli(),
 		"seelName":    seelName,
@@ -82,9 +86,10 @@ func PushLLMRequestSent(sessionId, roundId, seelName, displayName, model string,
 
 // PushSeelReplyStarted 推送贤者开始响应事件
 func PushSeelReplyStarted(sessionId, roundId, seelName, displayName, userInput string, streamMessage *types.Message) error {
+	eventId, seq := generateEventID()
 	data := map[string]interface{}{
-		"eventId":       generateEventID(),
-		"seq":           globalSeq,
+		"eventId":       eventId,
+		"seq":           seq,
 		"roundId":       roundId,
 		"timestamp":     time.Now().UnixMilli(),
 		"seelName":      seelName,
@@ -97,9 +102,10 @@ func PushSeelReplyStarted(sessionId, roundId, seelName, displayName, userInput s
 
 // PushSeelReplyChunk 推送贤者流式chunk事件
 func PushSeelReplyChunk(sessionId, roundId, seelName, displayName string, message *types.Message) error {
+	eventId, seq := generateEventID()
 	data := map[string]interface{}{
-		"eventId":     generateEventID(),
-		"seq":         globalSeq,
+		"eventId":     eventId,
+		"seq":         seq,
 		"roundId":     roundId,
 		"timestamp":   time.Now().UnixMilli(),
 		"seelName":    seelName,
@@ -111,9 +117,10 @@ func PushSeelReplyChunk(sessionId, roundId, seelName, displayName string, messag
 
 // PushSeelReplyCompleted 推送贤者响应完成事件
 func PushSeelReplyCompleted(sessionId, roundId, seelName, displayName string, message *types.Message) error {
+	eventId, seq := generateEventID()
 	data := map[string]interface{}{
-		"eventId":     generateEventID(),
-		"seq":         globalSeq,
+		"eventId":     eventId,
+		"seq":         seq,
 		"roundId":     roundId,
 		"timestamp":   time.Now().UnixMilli(),
 		"seelName":    seelName,
@@ -125,9 +132,10 @@ func PushSeelReplyCompleted(sessionId, roundId, seelName, displayName string, me
 
 // PushSeelReplyFailed 推送贤者响应失败事件
 func PushSeelReplyFailed(sessionId, roundId, seelName, displayName, errorMsg string) error {
+	eventId, seq := generateEventID()
 	data := map[string]interface{}{
-		"eventId":     generateEventID(),
-		"seq":         globalSeq,
+		"eventId":     eventId,
+		"seq":         seq,
 		"roundId":     roundId,
 		"timestamp":   time.Now().UnixMilli(),
 		"seelName":    seelName,
@@ -139,9 +147,10 @@ func PushSeelReplyFailed(sessionId, roundId, seelName, displayName, errorMsg str
 
 // PushVotingStart 推送投票开始事件
 func PushVotingStart(sessionId, roundId, proposedAction string, round int) error {
+	eventId, seq := generateEventID()
 	data := map[string]interface{}{
-		"eventId":        generateEventID(),
-		"seq":            globalSeq,
+		"eventId":        eventId,
+		"seq":            seq,
 		"roundId":        roundId,
 		"timestamp":      time.Now().UnixMilli(),
 		"progress":       0,
@@ -153,9 +162,10 @@ func PushVotingStart(sessionId, roundId, proposedAction string, round int) error
 
 // PushVotingProgress 推送单个贤者投票完成事件
 func PushVotingProgress(sessionId, roundId, seelName, displayName string, decision types.VoteDecision, progress int) error {
+	eventId, seq := generateEventID()
 	data := map[string]interface{}{
-		"eventId":     generateEventID(),
-		"seq":         globalSeq,
+		"eventId":     eventId,
+		"seq":         seq,
 		"roundId":     roundId,
 		"timestamp":   time.Now().UnixMilli(),
 		"seelName":    seelName,
@@ -174,9 +184,10 @@ type VoteDetail struct {
 
 // PushVotingResult 推送投票结果汇总事件
 func PushVotingResult(sessionId, roundId string, details []VoteDetail, deliberationInitiator, deliberationReason string) error {
+	eventId, seq := generateEventID()
 	data := map[string]interface{}{
-		"eventId":   generateEventID(),
-		"seq":       globalSeq,
+		"eventId":   eventId,
+		"seq":       seq,
 		"roundId":   roundId,
 		"timestamp": time.Now().UnixMilli(),
 		"progress":  100,
@@ -195,9 +206,10 @@ func PushVotingResult(sessionId, roundId string, details []VoteDetail, deliberat
 
 // PushVotingFailed 推送投票失败事件
 func PushVotingFailed(sessionId, roundId, errorMsg string, progress int) error {
+	eventId, seq := generateEventID()
 	data := map[string]interface{}{
-		"eventId":   generateEventID(),
-		"seq":       globalSeq,
+		"eventId":   eventId,
+		"seq":       seq,
 		"roundId":   roundId,
 		"timestamp": time.Now().UnixMilli(),
 		"error":     errorMsg,
@@ -208,9 +220,10 @@ func PushVotingFailed(sessionId, roundId, errorMsg string, progress int) error {
 
 // PushTrinitySynthesisCompleted 推送Trinity统合完成事件
 func PushTrinitySynthesisCompleted(sessionId, roundId, content string) error {
+	eventId, seq := generateEventID()
 	data := map[string]interface{}{
-		"eventId":   generateEventID(),
-		"seq":       globalSeq,
+		"eventId":   eventId,
+		"seq":       seq,
 		"roundId":   roundId,
 		"timestamp": time.Now().UnixMilli(),
 		"content":   content,
@@ -220,9 +233,10 @@ func PushTrinitySynthesisCompleted(sessionId, roundId, content string) error {
 
 // PushConsensusEmitted 推送共识消息发出事件
 func PushConsensusEmitted(sessionId, roundId string, message *types.Message) error {
+	eventId, seq := generateEventID()
 	data := map[string]interface{}{
-		"eventId":   generateEventID(),
-		"seq":       globalSeq,
+		"eventId":   eventId,
+		"seq":       seq,
 		"roundId":   roundId,
 		"timestamp": time.Now().UnixMilli(),
 		"message":   message,
@@ -232,9 +246,10 @@ func PushConsensusEmitted(sessionId, roundId string, message *types.Message) err
 
 // PushRoundFailed 推送轮次失败事件
 func PushRoundFailed(sessionId, roundId, errorMsg string) error {
+	eventId, seq := generateEventID()
 	data := map[string]interface{}{
-		"eventId":   generateEventID(),
-		"seq":       globalSeq,
+		"eventId":   eventId,
+		"seq":       seq,
 		"roundId":   roundId,
 		"timestamp": time.Now().UnixMilli(),
 		"error":     errorMsg,
@@ -243,12 +258,13 @@ func PushRoundFailed(sessionId, roundId, errorMsg string) error {
 }
 
 // PushToolCallDetected 推送通用工具调用检测事件
-func PushToolCallDetected(sessionId, roundId, seelName, displayName, toolName string, arguments map[string]interface{}) error {
+func PushToolCallDetected(sessionId, roundId, seelName, displayName, toolName string, arguments map[string]interface{}, detectedTimestamp int64) error {
+	eventId, seq := generateEventID()
 	data := map[string]interface{}{
-		"eventId":     generateEventID(),
-		"seq":         globalSeq,
+		"eventId":     eventId,
+		"seq":         seq,
 		"roundId":     roundId,
-		"timestamp":   time.Now().UnixMilli(),
+		"timestamp":   detectedTimestamp,
 		"seelName":    seelName,
 		"displayName": displayName,
 		"toolName":    toolName,
@@ -259,9 +275,10 @@ func PushToolCallDetected(sessionId, roundId, seelName, displayName, toolName st
 
 // PushDeliberationSignalRaised 推送审慎决策信号事件
 func PushDeliberationSignalRaised(sessionId, roundId, initiator, displayName, reason string, requiresDeliberation bool) error {
+	eventId, seq := generateEventID()
 	data := map[string]interface{}{
-		"eventId":              generateEventID(),
-		"seq":                  globalSeq,
+		"eventId":              eventId,
+		"seq":                  seq,
 		"roundId":              roundId,
 		"timestamp":            time.Now().UnixMilli(),
 		"initiator":            initiator,
@@ -280,9 +297,10 @@ func PushContextHistoryTrimmed(
 	strategyCount int,
 	strategyPercent float64,
 ) error {
+	eventId, seq := generateEventID()
 	data := map[string]interface{}{
-		"eventId":      generateEventID(),
-		"seq":          globalSeq,
+		"eventId":      eventId,
+		"seq":          seq,
 		"roundId":      roundId,
 		"timestamp":    time.Now().UnixMilli(),
 		"seelName":     seelName,

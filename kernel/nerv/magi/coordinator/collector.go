@@ -165,6 +165,11 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 		}
 
 		turnCollector := newStreamedToolCallCollector()
+		turnCollector.SetCallback(func(toolName string, arguments map[string]interface{}, detectedTime int64) {
+			if err := websocket.PushToolCallDetected(sessionId, roundId, sage.GetName(), sage.GetDisplayName(), toolName, arguments, detectedTime); err != nil {
+				logging.LogWarnf("推送工具调用检测事件失败: %v", err)
+			}
+		})
 		turnContent := strings.Builder{}
 
 		// 创建空闲超时定时器：30秒内没有收到chunk则超时
@@ -269,20 +274,6 @@ func (rc *ResponseCollector) collectSingleSageResponse(
 			}
 
 			result := processor.GetResult(true)
-
-			// 立即发射工具调用检测事件（逻辑发生=事件发射）
-			if result.HasToolCalls {
-				for toolName, argsArray := range result.ToolArgumentsByName {
-					if len(argsArray) > 0 {
-						var argsMap map[string]interface{}
-						if err := json.Unmarshal([]byte(argsArray[0]), &argsMap); err == nil {
-							if err := websocket.PushToolCallDetected(sessionId, roundId, sage.GetName(), sage.GetDisplayName(), toolName, argsMap); err != nil {
-								logging.LogWarnf("推送工具调用检测事件失败: %v", err)
-							}
-						}
-					}
-				}
-			}
 
 			response, buildErr := rc.buildSageResponse(sessionId, roundId, sage, result, wannaSpeakTracker)
 			if buildErr != nil {

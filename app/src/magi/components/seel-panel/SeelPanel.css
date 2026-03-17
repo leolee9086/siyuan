@@ -242,3 +242,70 @@
 .panel-slide-leave-to {
   opacity: 0;
 }
+
+.seel-event-block {
+  margin: 0;
+  border: 1px solid rgba(77, 225, 255, 0.32);
+  background: rgba(0, 24, 32, 0.55);
+  border-radius: 4px;
+  padding: 4px 6px;
+}
+
+.seel-event-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  list-style: none;
+  font-family: "MS Gothic", monospace;
+  font-size: 0.72rem;
+  color: rgba(166, 241, 245, 0.96);
+}
+
+.seel-event-summary::-webkit-details-marker {
+  display: none;
+}
+
+.seel-event-kind {
+  border: 1px solid rgba(0, 255, 255, 0.42);
+  color: rgba(77, 242, 255, 0.95);
+  padding: 0 4px;
+  font-size: 0.66rem;
+  letter-spacing: 0.05em;
+}
+
+.seel-event-name {
+  color: rgba(169, 255, 199, 0.95);
+  max-width: 100%;
+  word-break: break-all;
+}
+
+.seel-event-seq {
+  margin-left: auto;
+  color: rgba(253, 225, 138, 0.95);
+}
+
+.seel-event-meta {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: "MS Gothic", monospace;
+  font-size: 0.67rem;
+  color: rgba(149, 231, 237, 0.82);
+}
+
+.seel-event-payload {
+  margin: 6px 0 0;
+  max-height: 220px;
+  overflow: auto;
+  border: 1px solid rgba(0, 255, 255, 0.18);
+  background: rgba(0, 9, 15, 0.72);
+  padding: 6px;
+  font-family: "Consolas", "MS Gothic", monospace;
+  font-size: 0.67rem;
+  line-height: 1.28;
+  color: rgba(185, 249, 255, 0.95);
+  white-space: pre-wrap;
+  word-break: break-word;
+}

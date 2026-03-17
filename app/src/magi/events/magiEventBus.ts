@@ -31,6 +31,14 @@ export const magiEventDefines = {
         ...baseEventShape,
         userInput: z.string(),
     },
+    LLM_REQUEST_SENT: {
+        ...baseEventShape,
+        seelName: z.string(),
+        displayName: z.string(),
+        model: z.string(),
+        messages: z.array(z.unknown()),
+        toolCount: z.number().int().nonnegative(),
+    },
     SEEL_REPLY_STARTED: {
         ...baseEventShape,
         seelName: z.string(),
@@ -96,6 +104,17 @@ export const magiEventDefines = {
         displayName: z.string(),
         reason: z.string(),
         requiresDeliberation: z.boolean(),
+    },
+    CONTEXT_HISTORY_TRIMMED: {
+        ...baseEventShape,
+        seelName: z.string(),
+        displayName: z.string(),
+        beforeCount: z.number().int().nonnegative(),
+        afterCount: z.number().int().nonnegative(),
+        droppedCount: z.number().int().nonnegative(),
+        strategyType: z.string().optional(),
+        strategyCount: z.number().int().nonnegative().optional(),
+        strategyPercent: z.number().nonnegative().optional(),
     },
 } as const;
 

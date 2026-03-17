@@ -31,6 +31,19 @@ function isRoundStartedPayload(payload: Record<string, unknown>): boolean {
 }
 
 /**
+ * 验证 LLM_REQUEST_SENT 事件的特定字段。
+ */
+function isLlmRequestSentPayload(payload: Record<string, unknown>): boolean {
+    return (
+        typeof payload.seelName === "string" &&
+        typeof payload.displayName === "string" &&
+        typeof payload.model === "string" &&
+        Array.isArray(payload.messages) &&
+        typeof payload.toolCount === "number"
+    );
+}
+
+/**
  * 验证 SEEL_REPLY_STARTED 事件的特定字段。
  */
 function isSeelReplyStartedPayload(payload: Record<string, unknown>): boolean {
@@ -140,10 +153,24 @@ function isDeliberationSignalRaisedPayload(payload: Record<string, unknown>): bo
 }
 
 /**
+ * 验证 CONTEXT_HISTORY_TRIMMED 事件的特定字段。
+ */
+function isContextHistoryTrimmedPayload(payload: Record<string, unknown>): boolean {
+    return (
+        typeof payload.seelName === "string" &&
+        typeof payload.displayName === "string" &&
+        typeof payload.beforeCount === "number" &&
+        typeof payload.afterCount === "number" &&
+        typeof payload.droppedCount === "number"
+    );
+}
+
+/**
  * 事件类型到验证函数的映射表。
  */
 const eventValidators: Record<MagiEventName, (payload: Record<string, unknown>) => boolean> = {
     ROUND_STARTED: isRoundStartedPayload,
+    LLM_REQUEST_SENT: isLlmRequestSentPayload,
     SEEL_REPLY_STARTED: isSeelReplyStartedPayload,
     SEEL_REPLY_CHUNK: isSeelReplyChunkPayload,
     SEEL_REPLY_COMPLETED: isSeelReplyCompletedPayload,
@@ -154,6 +181,7 @@ const eventValidators: Record<MagiEventName, (payload: Record<string, unknown>) 
     ROUND_FAILED: isRoundFailedPayload,
     TOOL_CALL_DETECTED: isToolCallDetectedPayload,
     DELIBERATION_SIGNAL_RAISED: isDeliberationSignalRaisedPayload,
+    CONTEXT_HISTORY_TRIMMED: isContextHistoryTrimmedPayload,
 };
 
 /**

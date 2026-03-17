@@ -1,25 +1,39 @@
 package coordinator
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/sashabaranov/go-openai"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/sages"
 	"github.com/siyuan-note/siyuan/kernel/nerv/magi/types"
 )
 
+type ToolCallEventCallback func(toolName string, arguments map[string]interface{}, detectedTime int64)
+
 type streamedToolCallCollector struct {
-	byIndex map[int]*types.ToolCall
+	byIndex           map[int]*types.ToolCall
+	firstDetectedTime map[int]int64
+	emittedTools      map[int]bool
+	onToolDetected    ToolCallEventCallback
 }
 
 func newStreamedToolCallCollector() *streamedToolCallCollector {
 	return &streamedToolCallCollector{
-		byIndex: make(map[int]*types.ToolCall),
+		byIndex:           make(map[int]*types.ToolCall),
+		firstDetectedTime: make(map[int]int64),
+		emittedTools:      make(map[int]bool),
 	}
 }
 
+func (c *streamedToolCallCollector) SetCallback(callback ToolCallEventCallback) {
+	c.onToolDetected = callback
+}
+
 func (c *streamedToolCallCollector) Merge(deltas []types.ToolCallDelta) {
+	now := time.Now().UnixMilli()
 	for _, delta := range deltas {
 		call, ok := c.byIndex[delta.Index]
 		if !ok {
@@ -32,6 +46,7 @@ func (c *streamedToolCallCollector) Merge(deltas []types.ToolCallDelta) {
 				},
 			}
 			c.byIndex[delta.Index] = call
+			c.firstDetectedTime[delta.Index] = now
 		}
 		if delta.ID != "" {
 			call.ID = delta.ID
@@ -47,7 +62,29 @@ func (c *streamedToolCallCollector) Merge(deltas []types.ToolCallDelta) {
 				call.Function.Arguments += delta.Function.Arguments
 			}
 		}
+
+		if c.onToolDetected != nil && !c.emittedTools[delta.Index] {
+			if call.Function.Name != "" && call.Function.Arguments != "" {
+				var argsMap map[string]interface{}
+				if err := json.Unmarshal([]byte(call.Function.Arguments), &argsMap); err == nil {
+					c.emittedTools[delta.Index] = true
+					detectedTime := c.firstDetectedTime[delta.Index]
+					c.onToolDetected(call.Function.Name, argsMap, detectedTime)
+				}
+			}
+		}
 	}
+}
+
+func (c *streamedToolCallCollector) GetFirstDetectedTime(toolName string) int64 {
+	for idx, call := range c.byIndex {
+		if call.Function.Name == toolName {
+			if ts, ok := c.firstDetectedTime[idx]; ok {
+				return ts
+			}
+		}
+	}
+	return time.Now().UnixMilli()
 }
 
 func (c *streamedToolCallCollector) BuildSorted() []types.ToolCall {

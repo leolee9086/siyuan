@@ -6,6 +6,7 @@ export const DEFAULT_MAX_RECONNECT_DELAY_MS = 10000;
 
 const MAGI_EVENT_NAMES: MagiEventName[] = [
     "ROUND_STARTED",
+    "LLM_REQUEST_SENT",
     "SEEL_REPLY_STARTED",
     "SEEL_REPLY_CHUNK",
     "SEEL_REPLY_COMPLETED",
@@ -16,6 +17,7 @@ const MAGI_EVENT_NAMES: MagiEventName[] = [
     "ROUND_FAILED",
     "TOOL_CALL_DETECTED",
     "DELIBERATION_SIGNAL_RAISED",
+    "CONTEXT_HISTORY_TRIMMED",
 ];
 
 interface MagiEventEnvelope {
@@ -100,4 +102,3 @@ export function buildMagiWebSocketURL(sessionId: string): string {
     const encodedSessionId = encodeURIComponent(sessionId);
     return `${protocol}://${location.host}/ws?app=${MAGI_WS_APP}&id=${encodedSessionId}&type=main`;
 }
-

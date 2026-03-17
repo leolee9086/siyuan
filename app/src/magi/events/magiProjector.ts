@@ -1,13 +1,19 @@
 import type { EventUnsubscribe } from "../../util/lib/events/eventEmitter.types";
 import type {
     MagiConsensusEmittedEvent,
+    MagiContextHistoryTrimmedEvent,
     MagiDeliberationSignalRaisedEvent,
     MagiEventBus,
+    MagiEventBase,
+    MagiLLMRequestSentEvent,
+    MagiRoundFailedEvent,
+    MagiRoundStartedEvent,
     MagiSeelReplyChunkEvent,
     MagiSeelReplyCompletedEvent,
     MagiSeelReplyFailedEvent,
     MagiSeelReplyStartedEvent,
     MagiSeelVoteUpdatedEvent,
+    MagiTrinitySynthesisCompletedEvent,
     MagiToolCallDetectedEvent,
 } from "./magiEventBus.types";
 import type {
@@ -30,7 +36,27 @@ function cloneMessage(message: MagiMessage): MagiMessage {
     };
 }
 
-/** 按 ID 更新或插入消息。 */
+const SAGE_SEEL_NAMES = new Set(["MELCHIOR", "BALTHASAR", "CASPER"]);
+
+/** 返回三贤人（排除 TRINITY）。 */
+function listSageSeels(seels: WrappedSeel[]): WrappedSeel[] {
+    return seels.filter((seel) => SAGE_SEEL_NAMES.has(normalizeSeelIdentity(seel.config.name)));
+}
+
+/** 深拷贝事件载荷，确保消息元数据可稳定序列化。 */
+function cloneEventPayloadForMeta(event: MagiEventBase): Record<string, unknown> {
+    try {
+        const cloned = JSON.parse(JSON.stringify(event));
+        if (typeof cloned === "object" && cloned !== null) {
+            return cloned as Record<string, unknown>;
+        }
+    } catch (error) {
+        console.warn("[magi-projector] clone event payload failed", error);
+    }
+    return {};
+}
+
+/** 按 ID 更新或插入消息，按timestamp排序。 */
 function upsertMessage(messages: MagiMessage[], incoming: MagiMessage): void {
     const index = messages.findIndex((message) => message.id === incoming.id);
     // 命中同 ID 时覆盖该消息，保持流式更新位置稳定。
@@ -38,7 +64,49 @@ function upsertMessage(messages: MagiMessage[], incoming: MagiMessage): void {
         messages.splice(index, 1, cloneMessage(incoming));
         return;
     }
-    messages.push(cloneMessage(incoming));
+    
+    // 二分查找插入位置（按timestamp主排序，seq辅助排序）
+    const incomingTimestamp = incoming.timestamp;
+    const incomingMeta = incoming.meta;
+    const incomingSeq = incomingMeta && typeof incomingMeta.seq === "number" ? incomingMeta.seq : undefined;
+    
+    let left = 0;
+    let right = messages.length;
+    while (left < right) {
+        const mid = Math.floor((left + right) / 2);
+        const midMessage = messages[mid];
+        // 数组访问后必须检查是否存在
+        if (!midMessage) {
+            break;
+        }
+        const midTimestamp = midMessage.timestamp;
+        const midMeta = midMessage.meta;
+        const midSeq = midMeta && typeof midMeta.seq === "number" ? midMeta.seq : undefined;
+        
+        const timestampCompare = midTimestamp - incomingTimestamp;
+        // 中间消息的timestamp更早，插入位置在右半部分
+        if (timestampCompare < 0) {
+            left = mid + 1;
+            continue;
+        }
+        // 中间消息的timestamp更晚，插入位置在左半部分
+        if (timestampCompare > 0) {
+            right = mid;
+            continue;
+        }
+        
+        // timestamp相同时按seq排序
+        const bothSeqDefined = midSeq !== undefined && incomingSeq !== undefined;
+        const seqCompare = bothSeqDefined && midSeq < incomingSeq;
+        // 中间消息的seq更小，插入位置在右半部分
+        if (seqCompare) {
+            left = mid + 1;
+            continue;
+        }
+        right = mid;
+    }
+    
+    messages.splice(left, 0, cloneMessage(incoming));
 }
 
 /** 按内部名称查找贤者实例。 */
@@ -95,6 +163,63 @@ function findSeelByName(
     return target ?? null;
 }
 
+type RawEventSeelHint = {
+    seelName?: unknown;
+    displayName?: unknown;
+};
+
+/** 根据事件提示解析三贤人目标；无匹配时回退广播到全部三贤人。 */
+function resolveRawEventTargetSeels(
+    state: MagiProjectorRuntimeState,
+    hints: RawEventSeelHint[],
+): WrappedSeel[] {
+    const resolved: WrappedSeel[] = [];
+    for (const hint of hints) {
+        const seel = findSeelByName(state.target.seels, hint.seelName, hint.displayName);
+        if (!seel) {
+            continue;
+        }
+        if (SAGE_SEEL_NAMES.has(normalizeSeelIdentity(seel.config.name)) && !resolved.includes(seel)) {
+            resolved.push(seel);
+        }
+    }
+    if (resolved.length > 0) {
+        return resolved;
+    }
+    return listSageSeels(state.target.seels);
+}
+
+/** 将原始事件完整投影到三贤人卡片。 */
+function projectRawEventToSeelCards(
+    state: MagiProjectorRuntimeState,
+    eventType: string,
+    event: MagiEventBase,
+    hints: RawEventSeelHint[],
+): void {
+    const payload = cloneEventPayloadForMeta(event);
+    const targets = resolveRawEventTargetSeels(state, hints);
+    for (const target of targets) {
+        const seelKey = normalizeSeelIdentity(target.config.name) || target.config.name;
+        const eventMessage: MagiMessage = {
+            id: buildProjectedMessageId(event.eventId, `event-${eventType}-${seelKey}`),
+            type: "event",
+            content: eventType,
+            status: "success",
+            timestamp: event.timestamp,
+            meta: {
+                type: "raw-event",
+                eventType,
+                eventPayload: payload,
+                eventId: event.eventId,
+                seq: event.seq,
+                roundId: event.roundId,
+                targetSeel: target.config.name,
+            },
+        };
+        upsertMessage(target.messages, eventMessage);
+    }
+}
+
 /** 读取非空字符串，空值返回 undefined。 */
 function readNonEmptyString(value: unknown): string | undefined {
     if (typeof value !== "string") {
@@ -149,6 +274,15 @@ function shouldProcessEvent(
     }
     state.latestSeq = seq;
     state.processedEventIds.add(eventId);
+    
+    const maxEventIds = 10000;
+    // 防止内存泄漏：processedEventIds超过10000时清空
+    // 触发场景：长时间运行会话中Set持续增长
+    // 清空后可能短暂重复处理事件，但避免无限内存增长
+    if (state.processedEventIds.size > maxEventIds) {
+        state.processedEventIds.clear();
+    }
+    
     return true;
 }
 
@@ -160,6 +294,9 @@ function projectSeelReplyStarted(
     if (!shouldProcessEvent(state, event.eventId, event.seq)) {
         return;
     }
+    projectRawEventToSeelCards(state, "SEEL_REPLY_STARTED", event, [
+        { seelName: event.seelName, displayName: event.displayName },
+    ]);
     const seel = findSeelByName(state.target.seels, event.seelName, event.displayName);
     if (!seel) {
         return;
@@ -184,6 +321,9 @@ function projectSeelReplyChunk(
     if (!shouldProcessEvent(state, event.eventId, event.seq)) {
         return;
     }
+    projectRawEventToSeelCards(state, "SEEL_REPLY_CHUNK", event, [
+        { seelName: event.seelName, displayName: event.displayName },
+    ]);
     const seel = findSeelByName(state.target.seels, event.seelName, event.displayName);
     if (!seel) {
         return;
@@ -199,6 +339,9 @@ function projectSeelReplyCompleted(
     if (!shouldProcessEvent(state, event.eventId, event.seq)) {
         return;
     }
+    projectRawEventToSeelCards(state, "SEEL_REPLY_COMPLETED", event, [
+        { seelName: event.seelName, displayName: event.displayName },
+    ]);
     const seel = findSeelByName(state.target.seels, event.seelName, event.displayName);
     if (!seel) {
         return;
@@ -215,6 +358,9 @@ function projectSeelReplyFailed(
     if (!shouldProcessEvent(state, event.eventId, event.seq)) {
         return;
     }
+    projectRawEventToSeelCards(state, "SEEL_REPLY_FAILED", event, [
+        { seelName: event.seelName, displayName: event.displayName },
+    ]);
     const seel = findSeelByName(state.target.seels, event.seelName, event.displayName);
     if (!seel) {
         return;
@@ -328,6 +474,10 @@ function projectVoteUpdated(
     if (!shouldProcessEvent(state, event.eventId, event.seq)) {
         return;
     }
+    projectRawEventToSeelCards(state, "SEEL_VOTE_UPDATED", event, [
+        { seelName: event.seelName, displayName: event.displayName },
+        { seelName: event.deliberationInitiator, displayName: event.deliberationInitiator },
+    ]);
     projectVoteProgress(state, event);
     projectVoteDecision(state, event);
     projectVoteError(state, event);
@@ -341,6 +491,9 @@ function projectDeliberationSignal(
     if (!shouldProcessEvent(state, event.eventId, event.seq)) {
         return;
     }
+    projectRawEventToSeelCards(state, "DELIBERATION_SIGNAL_RAISED", event, [
+        { seelName: event.initiator, displayName: event.displayName },
+    ]);
     const initiator = readNonEmptyString(event.initiator);
     const reason = readNonEmptyString(event.reason);
     const signalContent = [
@@ -393,6 +546,9 @@ function projectToolCall(
     if (!shouldProcessEvent(state, event.eventId, event.seq)) {
         return;
     }
+    projectRawEventToSeelCards(state, "TOOL_CALL_DETECTED", event, [
+        { seelName: event.seelName, displayName: event.displayName },
+    ]);
     const seel = findSeelByName(state.target.seels, event.seelName, event.displayName);
     if (!seel) {
         return;
@@ -434,7 +590,67 @@ function projectConsensusMessage(
     if (!shouldProcessEvent(state, event.eventId, event.seq)) {
         return;
     }
+    projectRawEventToSeelCards(state, "CONSENSUS_EMITTED", event, []);
     upsertMessage(state.target.consensusMessages, event.message);
+}
+
+/** 投影轮次开始事件到三贤人卡片。 */
+function projectRoundStarted(
+    state: MagiProjectorRuntimeState,
+    event: MagiRoundStartedEvent,
+): void {
+    if (!shouldProcessEvent(state, event.eventId, event.seq)) {
+        return;
+    }
+    projectRawEventToSeelCards(state, "ROUND_STARTED", event, []);
+}
+
+/** 投影 LLM 请求发送事件到对应贤者卡片。 */
+function projectLLMRequestSent(
+    state: MagiProjectorRuntimeState,
+    event: MagiLLMRequestSentEvent,
+): void {
+    if (!shouldProcessEvent(state, event.eventId, event.seq)) {
+        return;
+    }
+    projectRawEventToSeelCards(state, "LLM_REQUEST_SENT", event, [
+        { seelName: event.seelName, displayName: event.displayName },
+    ]);
+}
+
+/** 投影 TRINITY 统合事件到三贤人卡片。 */
+function projectTrinitySynthesisCompleted(
+    state: MagiProjectorRuntimeState,
+    event: MagiTrinitySynthesisCompletedEvent,
+): void {
+    if (!shouldProcessEvent(state, event.eventId, event.seq)) {
+        return;
+    }
+    projectRawEventToSeelCards(state, "TRINITY_SYNTHESIS_COMPLETED", event, []);
+}
+
+/** 投影轮次失败事件到三贤人卡片。 */
+function projectRoundFailed(
+    state: MagiProjectorRuntimeState,
+    event: MagiRoundFailedEvent,
+): void {
+    if (!shouldProcessEvent(state, event.eventId, event.seq)) {
+        return;
+    }
+    projectRawEventToSeelCards(state, "ROUND_FAILED", event, []);
+}
+
+/** 投影上下文裁剪事件到对应贤者卡片。 */
+function projectContextHistoryTrimmed(
+    state: MagiProjectorRuntimeState,
+    event: MagiContextHistoryTrimmedEvent,
+): void {
+    if (!shouldProcessEvent(state, event.eventId, event.seq)) {
+        return;
+    }
+    projectRawEventToSeelCards(state, "CONTEXT_HISTORY_TRIMMED", event, [
+        { seelName: event.seelName, displayName: event.displayName },
+    ]);
 }
 
 /** 注册贤者事件订阅。 */
@@ -443,13 +659,18 @@ function registerSeelSubscriptions(
     state: MagiProjectorRuntimeState,
     subscriptions: EventUnsubscribe[],
 ): void {
+    subscriptions.push(eventBus.subscribe("ROUND_STARTED", projectRoundStarted.bind(null, state)));
+    subscriptions.push(eventBus.subscribe("LLM_REQUEST_SENT", projectLLMRequestSent.bind(null, state)));
     subscriptions.push(eventBus.subscribe("SEEL_REPLY_STARTED", projectSeelReplyStarted.bind(null, state)));
     subscriptions.push(eventBus.subscribe("SEEL_REPLY_CHUNK", projectSeelReplyChunk.bind(null, state)));
     subscriptions.push(eventBus.subscribe("SEEL_REPLY_COMPLETED", projectSeelReplyCompleted.bind(null, state)));
     subscriptions.push(eventBus.subscribe("SEEL_REPLY_FAILED", projectSeelReplyFailed.bind(null, state)));
     subscriptions.push(eventBus.subscribe("SEEL_VOTE_UPDATED", projectVoteUpdated.bind(null, state)));
+    subscriptions.push(eventBus.subscribe("TRINITY_SYNTHESIS_COMPLETED", projectTrinitySynthesisCompleted.bind(null, state)));
+    subscriptions.push(eventBus.subscribe("ROUND_FAILED", projectRoundFailed.bind(null, state)));
     subscriptions.push(eventBus.subscribe("DELIBERATION_SIGNAL_RAISED", projectDeliberationSignal.bind(null, state)));
     subscriptions.push(eventBus.subscribe("TOOL_CALL_DETECTED", projectToolCall.bind(null, state)));
+    subscriptions.push(eventBus.subscribe("CONTEXT_HISTORY_TRIMMED", projectContextHistoryTrimmed.bind(null, state)));
 }
 
 /** 构造统一取消订阅函数。 */
