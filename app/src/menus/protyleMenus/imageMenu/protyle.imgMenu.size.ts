@@ -5,8 +5,8 @@ import { updateTransaction } from "../../../protyle/wysiwyg/transaction";
 import { getSiyuanGlobalMenusMenu } from "../../../util/siyuanEnvironments/getMenu.environment";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { MenuItem } from "../../Menu.Item";
-import { genImageHeightMenu } from "../protyle.genImageHeightMenu";
-import { genImageWidthMenu } from "../protyle.genImageWidthMenu";
+import { genImageHeightMenu } from "./protyle.genImageHeightMenu";
+import { genImageWidthMenu } from "./protyle.genImageWidthMenu";
 
 /**
  * Generate the Width menu item.

@@ -1,7 +1,27 @@
-import { updateTransaction } from "../../../protyle/wysiwyg/transaction";
-import { getSearch } from "../../../util/platform/functions";
-import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { openMenu } from "../../commonMenuItem/openMenu";
+/**
+ * 用途：记录 iframe src 修改的编辑器事务
+ * 使用范围：handleIframeSrcChange 函数
+ * 解耦评估：通过 imports.ts 转发，已实现模块级解耦
+ */
+import { updateTransaction } from "./imports";
+/**
+ * 用途：解析 URL 查询参数
+ * 使用范围：updateIframeAttributes 函数中解析 Bilibili 链接参数
+ * 解耦评估：通过 imports.ts 转发，已实现模块级解耦
+ */
+import { getSearch } from "./imports";
+/**
+ * 用途：获取国际化文本
+ * 使用范围：iframeMenu 函数中显示占位符文本
+ * 解耦评估：通过 imports.ts 转发，已实现模块级解耦
+ */
+import { siyuanI18n } from "./imports";
+/**
+ * 用途：生成打开方式子菜单
+ * 使用范围：iframeMenu 函数中追加打开选项
+ * 解耦评估：通过 imports.ts 转发，已实现模块级解耦
+ */
+import { openMenu } from "./imports";
 
 /**
  * 为 iframe 块生成菜单。
@@ -10,6 +30,8 @@ import { openMenu } from "../../commonMenuItem/openMenu";
  * - 意图：提供对 iframe 内容的交互式控制，特别是 Bilibili 视频链接的专门处理。
  * - 调用时机：当用户在 Protyle 编辑器中与 iframe 块交互（如打开菜单）时调用。
  * - 问题/改进：Bilibili URL 的处理逻辑目前硬编码在事件监听器中，建议后续重构以提高可维护性。
+ *
+ * @同步豁免: UI构建 — 菜单构建函数需要在同步调用栈中返回完整的菜单项数组，供父级菜单系统同步组装，异步化会导致菜单渲染时序问题
  */
 export const iframeMenu = (protyle: IProtyle, nodeElement: Element) => {
     const id = nodeElement.getAttribute("data-node-id");
@@ -65,6 +87,7 @@ export const iframeMenu = (protyle: IProtyle, nodeElement: Element) => {
  */
 const updateIframeAttributes = (iframeElement: HTMLIFrameElement, value: string) => {
     const biliMatch = value.match(/(?:www\.|\/\/)bilibili\.com\/video\/(\w+)/);
+    // 非 Bilibili 链接或无法提取视频 ID 时，直接设置 src 不做特殊处理
     if (!value.includes("bilibili.com") || (!value.includes("bvid=") && (!biliMatch || !biliMatch[1]))) {
         iframeElement.setAttribute("src", value);
         return;
@@ -86,10 +109,12 @@ const updateIframeAttributes = (iframeElement: HTMLIFrameElement, value: string)
         if (!item) {
             continue;
         }
+        // 第一个参数前有 `?` 符号，需要去掉
         if (index === 0) {
             item = item.substring(1);
         }
         const keyValue = item.split("=");
+        // 确保键名存在才添加到参数对象，避免空键污染
         if (keyValue[0]) {
             params[keyValue[0]] = keyValue[1] || "";
         }
@@ -102,6 +127,7 @@ const updateIframeAttributes = (iframeElement: HTMLIFrameElement, value: string)
             continue;
         }
         src += `${key}=${params[key]}`;
+        // 最后一个参数后不添加 `&` 分隔符
         if (index < keys.length - 1) {
             src += "&";
         }
@@ -109,9 +135,11 @@ const updateIframeAttributes = (iframeElement: HTMLIFrameElement, value: string)
     iframeElement.setAttribute("src", src);
     iframeElement.setAttribute("sandbox",
         "allow-top-navigation-by-user-activation allow-same-origin allow-forms allow-scripts allow-popups");
+    // 未设置高度时，使用 Bilibili 播放器默认高度
     if (!iframeElement.style.height) {
         iframeElement.style.height = "360px";
     }
+    // 未设置宽度时，使用 Bilibili 播放器默认宽度
     if (!iframeElement.style.width) {
         iframeElement.style.width = "640px";
     }

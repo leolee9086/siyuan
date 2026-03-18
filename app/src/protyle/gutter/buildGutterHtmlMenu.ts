@@ -4,7 +4,7 @@
  */
 
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { videoMenu } from "../../menus/protyle";
+import { videoMenu } from "../../menus/protyle.videoMenu";
 import { iframeMenu } from "../../menus/protyleMenus/iframeMenu/iframeMenu";
 
 /**
