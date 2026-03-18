@@ -1,0 +1,21 @@
+{
+  "entry": [
+    "src/index.ts",
+    "src/magi/entry/index.ts",
+    "src/magi/entry/mobile.ts",
+    "src/mobile/index.ts",
+    "src/protyle/method.ts",
+    "src/window/index.ts"
+  ],
+  "project": [
+    "src/**/*.{ts,tsx,js,jsx,vue,scss,css}"
+  ],
+  "ignore": [
+    "src/**/*.d.ts",
+    "src/types/**",
+    "src/asset/pdf/**"
+  ],
+  "ignoreDependencies": [
+    "-"
+  ]
+}

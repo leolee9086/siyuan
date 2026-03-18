@@ -68,8 +68,8 @@ function findLongestFile(srcPath) {
         // 统一转换为正斜杠格式进行比较
         const normalizedPath = relativePath.replace(/\\/g, "/");
 
-        // 忽略 .js, .remote.ts, .backup.ts, .ts.backup 文件
-        if (filePath.endsWith(".js") || filePath.endsWith(".remote.ts") || filePath.endsWith(".backup.ts") || filePath.endsWith(".ts.backup")) {
+        // 忽略 .js, .remote.ts, .ts.remote, .backup.ts, .ts.backup 文件
+        if (filePath.endsWith(".js") || filePath.endsWith(".remote.ts") || filePath.endsWith(".ts.remote") || filePath.endsWith(".backup.ts") || filePath.endsWith(".ts.backup")) {
             return false;
         }
 
