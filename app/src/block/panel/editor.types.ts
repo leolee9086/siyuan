@@ -1,5 +1,5 @@
-import { App } from "../index";
-import { Protyle } from "../protyle";
+import { App } from "../../index";
+import { Protyle } from "../../protyle";
 
 /**
  * 初始化编辑器的上下文参数

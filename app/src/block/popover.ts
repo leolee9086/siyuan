@@ -3,7 +3,7 @@
  * 用于编辑器内容块引用/backlinks/tag/bookmark/套娃中的悬浮面板
  */
 
-import { BlockPanel } from "./Panel";
+import { BlockPanel } from "./panel/Panel";
 import { hasClosestByAttribute, hasClosestByClassName } from "../protyle/util/hasClosest";
 import { hideTooltip } from "../dialog/tooltip";
 import { App } from "../index";

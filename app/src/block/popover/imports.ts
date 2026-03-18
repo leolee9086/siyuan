@@ -4,7 +4,7 @@
  */
 
 // 用途：块面板类，用于创建和管理浮窗面板；使用范围：target.ts 中进行类型检查和面板清理操作；解耦评估：核心业务类，可通过接口抽象解耦，但作为模块核心依赖直接导入更合理
-import { BlockPanel } from "../Panel";
+import { BlockPanel } from "../panel/Panel";
 // 用途：判断元素是否在块级元素内；使用范围：refDefs.ts 中获取虚拟块引用时需要找到最近的块元素；解耦评估：工具函数，通过参数传递元素即可使用，已充分解耦
 import { hasClosestBlock } from "../../protyle/util/hasClosest";
 // 用途：判断元素是否包含指定属性的祖先元素；使用范围：target.ts 中查找块引用和链接元素；解耦评估：DOM查询工具函数，通过参数传递即可使用，已充分解耦

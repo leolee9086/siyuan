@@ -11,7 +11,7 @@ import { getDockByType } from "../layout/tabUtil";
 import { tabRegistry } from "../registry";
 import { MobileCustom } from "../mobile/dock/MobileCustom";
 import { hasClosestByAttribute } from "../protyle/util/hasClosest";
-import { BlockPanel } from "../block/Panel";
+import { BlockPanel } from "../block/panel/Panel";
 import { Setting } from "./Setting";
 import { clearOBG } from "../layout/dock/util";
 import { Constants } from "../constants";

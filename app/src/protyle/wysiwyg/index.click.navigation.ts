@@ -1,20 +1,20 @@
-import {hasClosestBlock, hasClosestByAttribute, hasClosestByClassName, isInEmbedBlock} from "../util/hasClosest";
-import {getEditorRange} from "../util/selection";
-import {isMobile} from "../../util/platform/functions";
-import {Constants} from "../../constants";
-import {hideElements} from "../ui/hideElements";
-import {openFileById} from "../../editor/utils.openFileById";
-import {openMobileFileById} from "../../mobile/editor";
-import {checkFold} from "../../util/platform/noRelyPCFunction";
-import {pushBack} from "../../util/platform/backForward";
-import {activeBlur} from "../../mobile/util/keyboardToolbar";
-import {openLink} from "../../editor/openLink";
-import {openGlobalSearch} from "../../search/util";
-import {popSearch} from "../../mobile/menu/search";
-import {BlockPanel} from "../../block/Panel";
-import {editAssetItem} from "../render/av/asset";
-import {fetchPost} from "../../util/network/fetch";
-import {isOnlyMeta} from "../util/compatibility";
+import { hasClosestBlock, hasClosestByAttribute, hasClosestByClassName, isInEmbedBlock } from "../util/hasClosest";
+import { getEditorRange } from "../util/selection";
+import { isMobile } from "../../util/platform/functions";
+import { Constants } from "../../constants";
+import { hideElements } from "../ui/hideElements";
+import { openFileById } from "../../editor/utils.openFileById";
+import { openMobileFileById } from "../../mobile/editor";
+import { checkFold } from "../../util/platform/noRelyPCFunction";
+import { pushBack } from "../../util/platform/backForward";
+import { activeBlur } from "../../mobile/util/keyboardToolbar";
+import { openLink } from "../../editor/openLink";
+import { openGlobalSearch } from "../../search/util";
+import { popSearch } from "../../mobile/menu/search";
+import { BlockPanel } from "../../block/panel/Panel";
+import { editAssetItem } from "../render/av/asset";
+import { fetchPost } from "../../util/network/fetch";
+import { isOnlyMeta } from "../util/compatibility";
 
 /**
  * 处理 click 事件中的导航类逻辑：块引用跳转、链接打开、标签搜索、嵌入块点击等。

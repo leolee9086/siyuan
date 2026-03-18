@@ -1,6 +1,6 @@
 
 // 用途：Protyle 编辑器类型定义；使用范围：观察器参数中标注编辑器实例数组类型；解耦评估：核心类型定义，作为类型导入不影响运行时
-import type { Protyle } from "./imports";
+import type { Protyle } from "../imports";
 
 /**
  * 设置观察器的参数

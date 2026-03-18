@@ -5,7 +5,7 @@ import { getDockByType } from "../tabUtil";
 import { Model } from "../Model";
 import { Constants } from "../../constants";
 import { addScript } from "../../protyle/util/addScript";
-import { BlockPanel } from "../../block/Panel";
+import { BlockPanel } from "../../block/panel/Panel";
 import { fullscreen } from "../../protyle/breadcrumb/action";
 import { fetchPost } from "../../util/network/fetch";
 import { openFileById } from "../../editor/utils.openFileById";

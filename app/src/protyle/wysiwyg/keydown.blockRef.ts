@@ -3,7 +3,7 @@ import { matchHotKey } from "../util/hotKey";
 import { Constants } from "../../constants";
 import { checkFold } from "../../util/platform/noRelyPCFunction";
 import { openFileById } from "../../editor/utils.openFileById";
-import { BlockPanel } from "../../block/Panel";
+import { BlockPanel } from "../../block/panel/Panel";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { isMobile } from "../../platform";
 

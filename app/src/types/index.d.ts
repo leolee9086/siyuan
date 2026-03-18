@@ -616,7 +616,7 @@ interface ISiyuan {
         [key: string]: any;
     }
     bookmarkLabel?: string[]
-    blockPanels: import("../block/Panel").BlockPanel[],
+    blockPanels: import("../block/panel/Panel").BlockPanel[],
     dialogs: import("../dialog").Dialog[],
     viewer?: Viewer,
     /**

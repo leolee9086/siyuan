@@ -54,7 +54,7 @@ import { commonInputMiddleware } from "./keydown.commonInput";
 import { matchHotKey } from "../util/hotKey";
 import { checkFold } from "../../util/platform/noRelyPCFunction";
 import { openFileById } from "../../editor/utils.openFileById";
-import { BlockPanel } from "../../block/Panel";
+import { BlockPanel } from "../../block/panel/Panel";
 import { turnsIntoTransaction, turnsOneInto, updateTransaction } from "./transaction";
 import { getSiyuanConfig, getSiyuanStorage } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getContenteditableElement } from "./getBlock";
@@ -445,87 +445,87 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
             return;
         }
         if (!isMobile) {
-        const refElement = hasClosestByAttribute(range.startContainer, "data-type", "block-ref");
-        if (refElement) {
-            const id = refElement.getAttribute("data-id");
-            if (matchHotKey(getSiyuanConfig().keymap.editor.general.openBy.custom, event) && id) {
-                checkFold(id, (zoomIn, action, isRoot) => {
-                    if (!isRoot) {
-                        action.push(Constants.CB_GET_HL);
-                    }
-                    openFileById({
-                        app: protyle.app,
-                        id,
-                        action,
-                        zoomIn,
-                        scrollPosition: "start"
+            const refElement = hasClosestByAttribute(range.startContainer, "data-type", "block-ref");
+            if (refElement) {
+                const id = refElement.getAttribute("data-id");
+                if (matchHotKey(getSiyuanConfig().keymap.editor.general.openBy.custom, event) && id) {
+                    checkFold(id, (zoomIn, action, isRoot) => {
+                        if (!isRoot) {
+                            action.push(Constants.CB_GET_HL);
+                        }
+                        openFileById({
+                            app: protyle.app,
+                            id,
+                            action,
+                            zoomIn,
+                            scrollPosition: "start"
+                        });
                     });
-                });
-                event.preventDefault();
-                event.stopPropagation();
-                return true;
-            } else if (matchHotKey(getSiyuanConfig().keymap.editor.general.refTab.custom, event) && id) {
-                // 打开块引和编辑器中引用、反链、书签中点击事件需保持一致，都加载上下文
-                checkFold(id, (zoomIn) => {
-                    openFileById({
-                        app: protyle.app,
-                        id,
-                        action: zoomIn ? [Constants.CB_GET_HL, Constants.CB_GET_ALL] : [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL],
-                        keepCursor: true,
-                        zoomIn,
-                        scrollPosition: "start"
+                    event.preventDefault();
+                    event.stopPropagation();
+                    return true;
+                } else if (matchHotKey(getSiyuanConfig().keymap.editor.general.refTab.custom, event) && id) {
+                    // 打开块引和编辑器中引用、反链、书签中点击事件需保持一致，都加载上下文
+                    checkFold(id, (zoomIn) => {
+                        openFileById({
+                            app: protyle.app,
+                            id,
+                            action: zoomIn ? [Constants.CB_GET_HL, Constants.CB_GET_ALL] : [Constants.CB_GET_HL, Constants.CB_GET_CONTEXT, Constants.CB_GET_ROOTSCROLL],
+                            keepCursor: true,
+                            zoomIn,
+                            scrollPosition: "start"
+                        });
                     });
-                });
-                event.preventDefault();
-                event.stopPropagation();
-                return true;
-            } else if (matchHotKey(getSiyuanConfig().keymap.editor.general.insertRight.custom, event) && id) {
-                checkFold(id, (zoomIn, action, isRoot) => {
-                    if (!isRoot) {
-                        action.push(Constants.CB_GET_HL);
-                    }
-                    openFileById({
-                        app: protyle.app,
-                        id,
-                        position: "right",
-                        action,
-                        zoomIn,
-                        scrollPosition: "start"
+                    event.preventDefault();
+                    event.stopPropagation();
+                    return true;
+                } else if (matchHotKey(getSiyuanConfig().keymap.editor.general.insertRight.custom, event) && id) {
+                    checkFold(id, (zoomIn, action, isRoot) => {
+                        if (!isRoot) {
+                            action.push(Constants.CB_GET_HL);
+                        }
+                        openFileById({
+                            app: protyle.app,
+                            id,
+                            position: "right",
+                            action,
+                            zoomIn,
+                            scrollPosition: "start"
+                        });
                     });
-                });
-                event.preventDefault();
-                event.stopPropagation();
-                return true;
-            } else if (matchHotKey(getSiyuanConfig().keymap.editor.general.insertBottom.custom, event) && id) {
-                checkFold(id, (zoomIn, action, isRoot) => {
-                    if (!isRoot) {
-                        action.push(Constants.CB_GET_HL);
-                    }
-                    openFileById({
-                        app: protyle.app,
-                        id,
-                        position: "bottom",
-                        action,
-                        zoomIn,
-                        scrollPosition: "start"
+                    event.preventDefault();
+                    event.stopPropagation();
+                    return true;
+                } else if (matchHotKey(getSiyuanConfig().keymap.editor.general.insertBottom.custom, event) && id) {
+                    checkFold(id, (zoomIn, action, isRoot) => {
+                        if (!isRoot) {
+                            action.push(Constants.CB_GET_HL);
+                        }
+                        openFileById({
+                            app: protyle.app,
+                            id,
+                            position: "bottom",
+                            action,
+                            zoomIn,
+                            scrollPosition: "start"
+                        });
                     });
-                });
-                event.preventDefault();
-                event.stopPropagation();
-                return true;
-            } else if (matchHotKey(getSiyuanConfig().keymap.editor.general.refPopover.custom, event) && id) {
-                // open popover
-                window.siyuan.blockPanels.push(new BlockPanel({
-                    app: protyle.app,
-                    isBacklink: false,
-                    targetElement: refElement,
-                    refDefs: [{ refID: id }]
-                }));
-                event.preventDefault();
-                event.stopPropagation();
-                return true;
+                    event.preventDefault();
+                    event.stopPropagation();
+                    return true;
+                } else if (matchHotKey(getSiyuanConfig().keymap.editor.general.refPopover.custom, event) && id) {
+                    // open popover
+                    window.siyuan.blockPanels.push(new BlockPanel({
+                        app: protyle.app,
+                        isBacklink: false,
+                        targetElement: refElement,
+                        refDefs: [{ refID: id }]
+                    }));
+                    event.preventDefault();
+                    event.stopPropagation();
+                    return true;
+                }
             }
-        }
         }
         await pasteAsPlainTextMiddleware(event, protyle, nodeElement, range, controller);
         if (signal.aborted) {

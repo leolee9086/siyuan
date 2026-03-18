@@ -1,13 +1,13 @@
-import { hasClosestByClassName } from "../protyle/util/hasClosest";
-import { setPosition } from "../util/DOM/setPosition";
-import { Constants } from "../constants";
-import { updateHotkeyAfterTip } from "../protyle/util/compatibility";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
-import { getSiyuanConfig, incrementSiyuanZIndex } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { getWindowInnerHeight } from "../util/siyuanEnvironments/getWindowInnerHeight.environment";
-import { checkClassListContain } from "../util/DOM/fnClasses";
+import { hasClosestByClassName } from "../../protyle/util/hasClosest";
+import { setPosition } from "../../util/DOM/setPosition";
+import { Constants } from "../../constants";
+import { updateHotkeyAfterTip } from "../../protyle/util/compatibility";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { getSiyuanConfig, incrementSiyuanZIndex } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { getWindowInnerHeight } from "../../util/siyuanEnvironments/getWindowInnerHeight.environment";
+import { checkClassListContain } from "../../util/DOM/fnClasses";
 import { 设置面板位置参数 } from "./Panel.render.types";
-import { isElectron } from "../platform";
+import { isElectron } from "../../platform";
 
 /**
  * 构建面板的 HTML 内容

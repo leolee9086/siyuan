@@ -3,15 +3,15 @@
  * 从 Panel.ts 中提取，用于减少文件行数
  */
 
-import { Constants } from "../constants";
-import { hideElements } from "../protyle/ui/hideElements";
-import { resize } from "../protyle/util/resize";
-import { isHTMLElement } from "../util/DOM/element.guard";
+import { Constants } from "../../constants";
+import { hideElements } from "../../protyle/ui/hideElements";
+import { resize } from "../../protyle/util/resize";
+import { isHTMLElement } from "../../util/DOM/element.guard";
 
 import {
     setTimeout,
     clearTimeout
-} from "../util/siyuanEnvironments/windowTimer.environment";
+} from "../../util/siyuanEnvironments/windowTimer.environment";
 
 import {
     设置观察器参数,

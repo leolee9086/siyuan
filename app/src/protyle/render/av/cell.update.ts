@@ -10,7 +10,7 @@ import {updateAttrViewCellAnimation} from "./action";
 import {getAssetName, pathPosix} from "../../../util/file/pathName";
 import {mergeAddOption} from "./select";
 import {getFieldIdByCellElement} from "./row";
-import {getCellText} from "./cell.render";
+import {getCellText} from "./cell/render";
 import {genCellValueByElement, transformCellValue, genCellValue} from "./cell.value";
 import {getTypeByCellElement} from "./cell/position";
 

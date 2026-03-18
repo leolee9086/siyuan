@@ -1,18 +1,18 @@
 //@AIDONE 检查App等导入被用作值还是类型,如果仅用作类型则改为 type 导入以优化性能
 // 用途：在新窗口中打开指定块；使用范围：Electron 环境下打开引用块；解耦评估：通过imports.ts统一管理外部依赖
-import { openNewWindowById } from "./imports";
+import { openNewWindowById } from "../imports";
 // 用途：在编辑器中打开指定文件；使用范围：粘贴标签页操作时打开文件；解耦评估：通过imports.ts统一管理外部依赖
-import { openFileById } from "./imports";
+import { openFileById } from "../imports";
 // 用途：检查块是否折叠并执行回调；使用范围：粘贴标签页前检查折叠状态；解耦评估：通过imports.ts统一管理外部依赖
-import { checkFold } from "./imports";
+import { checkFold } from "../imports";
 // 用途：判断当前是否为 Electron 环境；使用范围：判断是否支持新窗口打开；解耦评估：通过imports.ts统一管理外部依赖
-import { isElectron } from "./imports";
+import { isElectron } from "../imports";
 // 用途：获取国际化文本；使用范围：设置固定按钮的 aria-label；解耦评估：通过imports.ts统一管理外部依赖
-import { siyuanI18n } from "./imports";
+import { siyuanI18n } from "../imports";
 // 用途：App 类型定义；使用范围：函数参数类型标注；解耦评估：核心类型定义，作为类型导入不影响运行时
-import type { App } from "./imports";
+import type { App } from "../imports";
 // 用途：面板头部图标上下文类型；使用范围：执行图标操作函数的参数类型；解耦评估：本地类型定义，作为类型导入不影响运行时
-import type { headIconCtx } from "./Panel.types";
+import type { headIconCtx } from "../Panel.types";
 
 /**
  * 切换面板的固定状态

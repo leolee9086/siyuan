@@ -111,6 +111,23 @@ export class Menu {
         setPosition(this.element, options.x - (options.isLeft ? this.element.clientWidth : 0), options.y, options.h, options.w);
     }
 
+    /**
+     * 重新调整菜单位置以防止超出窗口边界
+     *
+     * 作用：在窗口尺寸变化后，重新计算并调整菜单位置，确保菜单完全显示在视口内
+     * 意图：防止窗口 resize 后菜单超出边界导致部分内容不可见
+     * 调用时机：窗口 resize 事件的防抖回调中（见 boot/onGetConfig.ts）
+     */
+    public resetPosition() {
+        // 如果菜单未显示，无需调整
+        if (this.element.classList.contains("fn__none")) {
+            return;
+        }
+        // 重新调整菜单位置以防止超出窗口边界
+        const rect = this.element.getBoundingClientRect();
+        setPosition(this.element, rect.left, rect.top);
+    }
+
     public fullscreen(position: "bottom" | "all" = "all") {
         if (this.element.lastElementChild.innerHTML === "") {
             return;

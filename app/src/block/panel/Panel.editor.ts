@@ -3,13 +3,13 @@
  * 从 Panel.ts 中提取，用于管理 Protyle 编辑器的创建和配置
  */
 
-import { Protyle } from "../protyle";
-import { Constants } from "../constants";
-import { fetchPost } from "../util/network/fetch";
-import { showMessage } from "../dialog/message";
+import { Protyle } from "../../protyle";
+import { Constants } from "../../constants";
+import { fetchPost } from "../../util/network/fetch";
+import { showMessage } from "../../dialog/message";
 
-import { getWindowInnerHeight } from "../util/siyuanEnvironments/getWindowInnerHeight.environment";
-import { EditorInitContext } from "./Panel.editor.types";
+import { getWindowInnerHeight } from "../../util/siyuanEnvironments/getWindowInnerHeight.environment";
+import { EditorInitContext } from "./editor.types";
 
 /**
  * 初始化单个 Protyle 编辑器
