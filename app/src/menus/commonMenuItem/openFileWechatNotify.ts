@@ -1,10 +1,10 @@
 import * as dayjs from "dayjs";
-import { fetchPost } from "../ai/imports";
-import { Constants } from "../constants";
-import { Dialog } from "../dialog";
-import { showMessage } from "../dialog/message";
-import { isMobile } from "../util/platform/functions";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
+import { fetchPost } from "../../ai/imports";
+import { Constants } from "../../constants";
+import { Dialog } from "../../dialog";
+import { showMessage } from "../../dialog/message";
+import { isMobile } from "../../util/platform/functions";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 
 export const openFileWechatNotify = (protyle: IProtyle) => {

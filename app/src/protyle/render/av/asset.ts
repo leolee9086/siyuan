@@ -5,7 +5,7 @@ import { isBrowser, isMobile } from "../../../platform";
 import { Constants } from "../../../constants";
 import { uploadFiles } from "../../upload";
 import { pathPosix } from "../../../util/file/pathName";
-import { openMenu } from "../../../menus/commonMenuItem.openMenu";
+import { openMenu } from "../../../menus/commonMenuItem/openMenu";
 import { MenuItem } from "../../../menus/Menu.Item";
 import { copyAsset, copyPNGByLink, exportAsset } from "../../../menus/util";
 import { setPosition } from "../../../util/DOM/setPosition";

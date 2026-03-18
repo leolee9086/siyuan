@@ -30,7 +30,7 @@ import { scrollCenter } from "../util/DOM/highlightById";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { renameAsset } from "../editor/rename";
-import { openMenu } from "./commonMenuItem.openMenu";
+import { openMenu } from "./commonMenuItem/openMenu";
 import { copyAsset, exportAsset } from "./util";
 import { isMobile } from "../util/platform/functions";
 import { Dialog } from "../dialog";

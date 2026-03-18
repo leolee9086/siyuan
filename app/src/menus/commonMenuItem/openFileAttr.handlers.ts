@@ -1,14 +1,14 @@
-import { Constants } from "../constants";
-import { Dialog } from "../dialog";
-import { showMessage } from "../dialog/message";
-import { Protyle } from "../protyle";
-import { renderAVAttribute } from "../protyle/render/av/blockAttr";
-import { escapeHtml } from "../util/DOM/escape";
-import { isMobile, isValidCustomAttrName } from "../util/platform/functions";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
-import { bindAttrInput } from "./commonMenuItem";
-import { MenuItem } from "./Menu.Item";
-import { fetchPost } from "../ai/imports";
+import { Constants } from "../../constants";
+import { Dialog } from "../../dialog";
+import { showMessage } from "../../dialog/message";
+import { Protyle } from "../../protyle";
+import { renderAVAttribute } from "../../protyle/render/av/blockAttr";
+import { escapeHtml } from "../../util/DOM/escape";
+import { isMobile, isValidCustomAttrName } from "../../util/platform/functions";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { bindAttrInput } from ".";
+import { MenuItem } from "../Menu.Item";
+import { fetchPost } from "../../ai/imports";
 
 
 export const handleTabSwitch = (target: HTMLElement, dialog: Dialog, attrs: IObject, protyle?: IProtyle, ghostProtyle?: Protyle) => {

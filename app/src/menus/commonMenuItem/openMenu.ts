@@ -1,17 +1,17 @@
-import { openExternal } from "../platform/electron/shell";
-import { openAssetNewWindow } from "../window/openNewWindow";
-import { App } from "..";
-import { Constants } from "../constants";
-import { showMessage } from "../dialog/message";
-import { openAsset } from "../editor/util.openAsset";
-import { openBy } from "../editor/utils.openBy";
-import { isElectron } from "../platform";
-import { isInAndroid, openByMobile, isInHarmony } from "../protyle/util/compatibility";
-import { getSearch, isMobile } from "../util/platform/functions";
-import { isLocalPath, pathPosix } from "../util/file/pathName";
-import { MenuItem } from "./Menu.Item";
-import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu.environment";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
+import { openExternal } from "../../platform/electron/shell";
+import { openAssetNewWindow } from "../../window/openNewWindow";
+import { App } from "../..";
+import { Constants } from "../../constants";
+import { showMessage } from "../../dialog/message";
+import { openAsset } from "../../editor/util.openAsset";
+import { openBy } from "../../editor/utils.openBy";
+import { isElectron } from "../../platform";
+import { isInAndroid, openByMobile, isInHarmony } from "../../protyle/util/compatibility";
+import { getSearch, isMobile } from "../../util/platform/functions";
+import { isLocalPath, pathPosix } from "../../util/file/pathName";
+import { MenuItem } from "../Menu.Item";
+import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 
 // 移动端菜单项生成函数

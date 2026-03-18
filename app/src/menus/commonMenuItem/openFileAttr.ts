@@ -1,15 +1,15 @@
 import * as dayjs from "dayjs";
-import { focusByRange } from "../ai/imports";
-import { Constants } from "../constants";
-import { Dialog } from "../dialog";
-import { getAllEditor } from "../layout/getAll";
-import { Protyle } from "../protyle";
-import { hideElements } from "../protyle/ui/hideElements";
-import { isMobile } from "../util/platform/functions";
-import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
-import { bindAttrInput } from "./commonMenuItem";
-import { handleTabSwitch, handleRemoveAction, handleBookmarkAction, handleAddCustomAction } from "./commonMenuItem.openFileAttr.handlers";
+import { focusByRange } from "../../ai/imports";
+import { Constants } from "../../constants";
+import { Dialog } from "../../dialog";
+import { getAllEditor } from "../../layout/getAll";
+import { Protyle } from "../../protyle";
+import { hideElements } from "../../protyle/ui/hideElements";
+import { isMobile } from "../../util/platform/functions";
+import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { bindAttrInput } from ".";
+import { handleTabSwitch, handleRemoveAction, handleBookmarkAction, handleAddCustomAction } from "./openFileAttr.handlers";
 
 
 

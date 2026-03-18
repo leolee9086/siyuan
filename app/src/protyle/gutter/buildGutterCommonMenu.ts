@@ -12,7 +12,7 @@ import { setFold } from "../../menus/protyle";
 import { enterBack } from "../../menus/protyleMenus/protyle.enterBack";
 import { zoomOut } from "../../menus/protyle.zoomOut";
 import { openAttr } from "../../menus/commonMenuItem";
-import { openWechatNotify } from "../../menus/commonMenuItem.openWechatNotify";
+import { openWechatNotify } from "../../menus/commonMenuItem/commonMenuItem.openWechatNotify";
 import { updateHotkeyAfterTip, updateHotkeyTip } from "../util/compatibility";
 import { focusBlock } from "../util/selection";
 import { hideElements } from "../ui/hideElements";

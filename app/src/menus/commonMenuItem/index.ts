@@ -1,39 +1,39 @@
-import { openExternal } from "../platform/electron/shell";
-import { isElectron } from "../platform";
+import { openExternal } from "../../platform/electron/shell";
+import { isElectron } from "../../platform";
 // S-forge: 开始 - 模块化导入改进
-import { confirmDialog } from "../dialog/confirmDialog";
-import { getSearch, isMobile, isValidCustomAttrName } from "../util/platform/functions";
-import { isLocalPath, moveToPath, pathPosix } from "../util/file/pathName";
-import { movePathTo } from "../util/file/movePathTo";
-import { MenuItem } from "./Menu.Item";
-import { onExport, saveExport } from "../protyle/export";
-import { isInAndroid, isInHarmony, isInIOS, isInMobileApp, openByMobile, writeText } from "../protyle/util/compatibility";
-import { fetchPost, fetchSyncPost } from "../util/network/fetch";
-import { hideMessage, showMessage } from "../dialog/message";
-import { Dialog } from "../dialog";
-import { focusBlock, focusByRange, getEditorRange } from "../protyle/util/selection";
+import { confirmDialog } from "../../dialog/confirmDialog";
+import { getSearch, isMobile, isValidCustomAttrName } from "../../util/platform/functions";
+import { isLocalPath, moveToPath, pathPosix } from "../../util/file/pathName";
+import { movePathTo } from "../../util/file/movePathTo";
+import { MenuItem } from "../Menu.Item";
+import { onExport, saveExport } from "../../protyle/export";
+import { isInAndroid, isInHarmony, isInIOS, isInMobileApp, openByMobile, writeText } from "../../protyle/util/compatibility";
+import { fetchPost, fetchSyncPost } from "../../util/network/fetch";
+import { hideMessage, showMessage } from "../../dialog/message";
+import { Dialog } from "../../dialog";
+import { focusBlock, focusByRange, getEditorRange } from "../../protyle/util/selection";
 // S-forge: 结束
-import {openAsset} from "../editor/util.openAsset";
-import {openBy} from "../editor/utils.openBy";
-import { rename, replaceFileName } from "../editor/rename";
+import {openAsset} from "../../editor/util.openAsset";
+import {openBy} from "../../editor/utils.openBy";
+import { rename, replaceFileName } from "../../editor/rename";
 import * as dayjs from "dayjs";
-import { Constants } from "../constants";
-import { exportImage } from "../protyle/export/util";
+import { Constants } from "../../constants";
+import { exportImage } from "../../protyle/export/util";
 // S-forge: 开始 - i18n和config环境抽象
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
-import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 // S-forge: 结束
 // S-forge: 开始 - openFileAttr提取到单独文件
-import { openFileAttr } from "./commonMenuItem.openFileAttr";
+import { openFileAttr } from "./openFileAttr";
 // S-forge: 结束
-import {App} from "../index";
-import {renderAVAttribute} from "../protyle/render/av/blockAttr";
-import {openAssetNewWindow} from "../window/openNewWindow";
-import {copyTextByType} from "../protyle/toolbar/util";
-import {hideElements} from "../protyle/ui/hideElements";
-import {Protyle} from "../protyle";
-import {getAllEditor} from "../layout/getAll";
-import {hasClosestByClassName} from "../protyle/util/hasClosest";
+import {App} from "../../index";
+import {renderAVAttribute} from "../../protyle/render/av/blockAttr";
+import {openAssetNewWindow} from "../../window/openNewWindow";
+import {copyTextByType} from "../../protyle/toolbar/util";
+import {hideElements} from "../../protyle/ui/hideElements";
+import {Protyle} from "../../protyle";
+import {getAllEditor} from "../../layout/getAll";
+import {hasClosestByClassName} from "../../protyle/util/hasClosest";
 
 export const bindAttrInput = (inputElement: HTMLInputElement, id: string) => {
     inputElement.addEventListener("change", () => {
@@ -176,7 +176,7 @@ export const openAttr = (nodeElement: Element, focusName = "bookmark", protyle: 
 };
 
 // S-forge: copySubMenu提取到单独文件
-export { copySubMenu } from "./commonMenuItem.copy";
+export { copySubMenu } from "./copy";
 
 export const exportMd = (id: string) => {
     if (window.siyuan.isPublish) {

@@ -9,7 +9,7 @@ import {
 import { setFold } from "../../menus/protyle";
 import { zoomOut } from "../../menus/protyle.zoomOut";
 import { openAttr } from "../../menus/commonMenuItem";
-import { openFileAttr } from "../../menus/commonMenuItem.openFileAttr";
+import { openFileAttr } from "../../menus/commonMenuItem/openFileAttr";
 import { isOnlyMeta } from "../util/compatibility";
 import { focusByRange, getEditorRange } from "../util/selection";
 import { hideElements } from "../ui/hideElements";

@@ -14,7 +14,7 @@ import { isElectron } from "../../platform";
 import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getSiyuanGlobalMenusMenu } from "../../util/siyuanEnvironments/getMenu.environment";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { openMenu } from "../commonMenuItem.openMenu";
+import { openMenu } from "../commonMenuItem/openMenu";
 import { MenuItem } from "../Menu.Item";
 import { copyAsset, exportAsset } from "../util";
 import type { LinkMenuContext } from "./protyle.types";

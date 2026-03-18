@@ -11,7 +11,7 @@ import { focusByWbr } from "../../../protyle/util/selection";
 import { updateTransaction } from "../../../protyle/wysiwyg/transaction";
 import { getSiyuanConfig } from "../../../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { getSiyuanGlobalMenusMenu } from "../../../util/siyuanEnvironments/getMenu.environment";
-import { openMenu } from "../../commonMenuItem.openMenu";
+import { openMenu } from "../../commonMenuItem/openMenu";
 import { MenuItem } from "../../Menu.Item";
 import {
     genAlignCenterItem,
