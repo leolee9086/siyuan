@@ -148,10 +148,10 @@ const COMMON_RESTRICTED_SYNTAX = [
 ];
 
 const STRICT_IMPORT_SELECTORS = new Set([
-    "ImportDeclaration[source.value=/^\\u002E\\u002E\\u002F/]",
+    "ImportDeclaration[source.value=/^\\u002E\\u002E\\u002F/][importKind!='type']",
     "ExportNamedDeclaration[source.value=/^\\u002E\\u002E\\u002F/]",
     "ExportAllDeclaration[source.value=/^\\u002E\\u002E\\u002F/]",
-    "ImportDeclaration[source.value=/^[^.]/]",
+    "ImportDeclaration[source.value=/^[^.]/][importKind!='type']",
     "ExportNamedDeclaration[source.value=/^[^.]/]",
     "ExportAllDeclaration[source.value=/^[^.]/]",
     "ImportDeclaration[specifiers.length>1]",
