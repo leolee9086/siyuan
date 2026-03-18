@@ -1,5 +1,10 @@
 <template>
-  <div ref="panelContainer" class="seel-panel" :style="rootStyle">
+  <div
+    ref="panelContainer"
+    class="seel-panel"
+    :class="{ 'seel-panel-event-active': isEventActive }"
+    :style="rootStyle"
+  >
     <SeelPanelSvgFrame :config-name="ai.config.name" :color="colorValue" :show-frame="showFrame" />
     <SeelPanelHeader
       :icon="ai.config.icon"
@@ -79,7 +84,7 @@ import SeelPanelHeader from "./SeelPanelHeader.vue";
 import SeelPanelVoteContent from "./SeelPanelVoteContent.vue";
 import SeelSseInline from "./SeelSseInline.vue";
 import MessageBubble from "../message-bubble/MessageBubble.vue";
-import { computed, watch, type PropType } from "vue";
+import { computed, onUnmounted, ref, watch, type PropType } from "vue";
 import "./SeelPanel.css";
 
 const props = defineProps({
@@ -108,6 +113,12 @@ const {
     statusClass, statusText, rootStyle,
 } = useSeelPanelCtx(props);
 
+const EVENT_PULSE_DURATION_MS = 780;
+
+const isEventActive = ref(false);
+let eventPulseTimer: ReturnType<typeof setTimeout> | null = null;
+let eventPulseDeadline = 0;
+
 setupResizeObserver(panelContainer, containerHeight);
 const colorValue = computed<string>(() => props.frameColor || getColor(props.ai.config.color));
 
@@ -128,10 +139,99 @@ watch(
     { immediate: true },
 );
 
+watch(
+    () => resolveLatestActivityToken(props.ai.messages),
+    (token, previousToken) => {
+        if (!token || token === previousToken) {
+            return;
+        }
+        triggerEventPulse();
+    },
+);
+
+onUnmounted(() => {
+    clearEventPulseTimer();
+});
+
 function asRecord(value: unknown): Record<string, unknown> | null {
     return typeof value === "object" && value !== null
         ? value as Record<string, unknown>
         : null;
+}
+
+function clearEventPulseTimer(): void {
+    if (!eventPulseTimer) {
+        return;
+    }
+    clearTimeout(eventPulseTimer);
+    eventPulseTimer = null;
+}
+
+function scheduleEventPulseReset(): void {
+    clearEventPulseTimer();
+    const delay = Math.max(0, eventPulseDeadline - Date.now());
+    eventPulseTimer = setTimeout(() => {
+        if (Date.now() + 16 < eventPulseDeadline) {
+            scheduleEventPulseReset();
+            return;
+        }
+        isEventActive.value = false;
+        clearEventPulseTimer();
+    }, delay);
+}
+
+function triggerEventPulse(): void {
+    eventPulseDeadline = Date.now() + EVENT_PULSE_DURATION_MS;
+    if (!isEventActive.value) {
+        isEventActive.value = true;
+    }
+    scheduleEventPulseReset();
+}
+
+function resolveLatestActivityToken(messages: SeelPanelProps["ai"]["messages"]): string {
+    let latestTimestamp = -1;
+    let latestToken = "";
+    for (const message of messages) {
+        const meta = asRecord(message.meta);
+        const isRawEvent = message.type === "event" && meta?.type === "raw-event";
+        const isToolCall = meta?.type === "tool-call";
+        if (!isRawEvent && !isToolCall) {
+            continue;
+        }
+        if (!meta) {
+            continue;
+        }
+
+        const timestamp = typeof message.timestamp === "number" ? message.timestamp : 0;
+        if (timestamp < latestTimestamp) {
+            continue;
+        }
+        latestTimestamp = timestamp;
+
+        if (isRawEvent) {
+            const eventId = Reflect.get(meta, "eventId");
+            const seq = Reflect.get(meta, "seq");
+            latestToken = [
+                "event",
+                typeof eventId === "string" && eventId.trim() ? eventId : message.id,
+                typeof seq === "number" ? String(seq) : "?",
+                String(timestamp),
+            ].join(":");
+            continue;
+        }
+
+        const rawArguments = Reflect.get(meta, "rawArguments");
+        const argumentsComplete = Reflect.get(meta, "argumentsComplete") === true ? "1" : "0";
+        const rawArgsLength = typeof rawArguments === "string" ? rawArguments.length : 0;
+        latestToken = [
+            "tool",
+            message.id,
+            argumentsComplete,
+            String(rawArgsLength),
+            String(timestamp),
+        ].join(":");
+    }
+    return latestToken;
 }
 
 function rawEventMessage(message: SeelPanelProps["ai"]["messages"][number]): boolean {

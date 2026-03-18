@@ -5,6 +5,36 @@
   min-width: 0;
   overflow: hidden;
   color: #9deff2;
+  --seel-frame-cut: 5%;
+}
+
+.seel-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(43, 194, 114, 0.34), rgba(11, 80, 49, 0.62));
+  clip-path: polygon(
+    var(--seel-frame-cut) 0%,
+    calc(100% - var(--seel-frame-cut)) 0%,
+    100% var(--seel-frame-cut),
+    100% calc(100% - var(--seel-frame-cut)),
+    calc(100% - var(--seel-frame-cut)) 100%,
+    var(--seel-frame-cut) 100%,
+    0% calc(100% - var(--seel-frame-cut)),
+    0% var(--seel-frame-cut)
+  );
+  opacity: 0;
+  transition: opacity 0.24s ease;
+}
+
+.seel-panel.seel-panel-event-active::before {
+  opacity: 1;
+}
+
+.seel-panel.seel-panel-event-active .panel-frame {
+  filter: drop-shadow(0 0 8px rgba(88, 255, 154, 0.38));
 }
 
 .panel-frame {
@@ -14,6 +44,7 @@
   height: 100%;
   pointer-events: none;
   z-index: 0;
+  transition: filter 0.24s ease;
 }
 
 .header-overlay {
