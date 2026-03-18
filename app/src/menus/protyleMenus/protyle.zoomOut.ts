@@ -1,16 +1,16 @@
-import { setStorageVal, fetchPost } from "../ai/imports";
-import { Constants } from "../constants";
-import { updateBacklinkGraph } from "../editor/util.updateBacklinkGraph";
-import { getAllModels } from "../layout/getAll";
-import { isMobile } from "../platform";
-import { pushBack } from "../mobile/util/MobileBackFoward";
-import { hasClosestByClassName } from "../protyle/util/hasClosest";
-import { onGet } from "../protyle/util/onGet";
-import { focusBlock } from "../protyle/util/selection";
-import { getFirstBlock } from "../protyle/wysiwyg/getBlock";
-import { fetchSyncPost } from "../util/network/fetch";
-import { scrollCenter } from "../util/DOM/highlightById";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
+import { setStorageVal, fetchPost } from "../../ai/imports";
+import { Constants } from "../../constants";
+import { updateBacklinkGraph } from "../../editor/util.updateBacklinkGraph";
+import { getAllModels } from "../../layout/getAll";
+import { isMobile } from "../../platform";
+import { pushBack } from "../../mobile/util/MobileBackFoward";
+import { hasClosestByClassName } from "../../protyle/util/hasClosest";
+import { onGet } from "../../protyle/util/onGet";
+import { focusBlock } from "../../protyle/util/selection";
+import { getFirstBlock } from "../../protyle/wysiwyg/getBlock";
+import { fetchSyncPost } from "../../util/network/fetch";
+import { scrollCenter } from "../../util/DOM/highlightById";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 
 export const zoomOut = (options: {

@@ -39,7 +39,7 @@ export { inlineMathMenu } from "./protyleMenus/protyle.inlineMathMenu";
 export { genImageWidthMenu } from "./protyleMenus/imageMenu/protyle.genImageWidthMenu";
 export { genImageHeightMenu } from "./protyleMenus/imageMenu/protyle.genImageHeightMenu";
 export { iframeMenu } from "./protyleMenus/iframeMenu/iframeMenu";
-export { zoomOut } from "./protyle.zoomOut";
+export { zoomOut } from "./protyleMenus/protyle.zoomOut";
 
 // 从 protyleMenus/ 子目录导出
 export { assetMenu, renderAssetList } from "./protyleMenus/protyle.asset";

@@ -44,7 +44,7 @@ import { getAllModels } from "../layout/getAll";
 import { isSupportCSSHL } from "./render/searchMarkRender";
 import { renderAVAttribute } from "./render/av/blockAttr";
 import { setFoldById } from "../menus/protyle";
-import { zoomOut } from "../menus/protyle.zoomOut";
+import { zoomOut } from "../menus/protyleMenus/protyle.zoomOut";
 import { isMobile } from "../platform";
 
 export class Protyle {

@@ -7,7 +7,7 @@ import { getAllModels } from "../../layout/getAll";
 import { Tab } from "../../layout/Tab";
 import { getInstanceById, getWndByLayout } from "../../layout/util";
 import { Wnd } from "../../layout/Wnd";
-import { zoomOut } from "../../menus/protyle.zoomOut";
+import { zoomOut } from "../../menus/protyleMenus/protyle.zoomOut";
 import { saveScroll } from "../../protyle/scroll/saveScroll";
 import { hideElements } from "../../protyle/ui/hideElements";
 import { isInEmbedBlock } from "../../protyle/util/hasClosest";

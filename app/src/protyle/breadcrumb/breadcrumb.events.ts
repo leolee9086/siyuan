@@ -7,7 +7,7 @@ import { fetchPost } from "../../util/network/fetch";
 import { hasClosestBlock } from "../util/hasClosest";
 import { listIndent, listOutdent } from "../wysiwyg/list";
 import { onGet } from "../util/onGet";
-import { zoomOut } from "../../menus/protyle.zoomOut";
+import { zoomOut } from "../../menus/protyleMenus/protyle.zoomOut";
 import { openFileAttr } from "../../menus/commonMenuItem/openFileAttr";
 import { openTitleMenu } from "../header/openTitleMenu";
 import { updateReadonly } from "./action";

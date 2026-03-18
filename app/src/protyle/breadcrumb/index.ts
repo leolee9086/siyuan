@@ -3,7 +3,7 @@ import { RecordMedia } from "../util/RecordMedia";
 import { hideMessage, showMessage } from "../../dialog/message";
 import { uploadFiles } from "../upload";
 import { isMobile } from "../../platform";
-import { zoomOut } from "../../menus/protyle.zoomOut";
+import { zoomOut } from "../../menus/protyleMenus/protyle.zoomOut";
 import { Menu } from "../../plugin/Menu";
 import { Constants } from "../../constants";
 import { getIconByType } from "../../editor/getIcon";

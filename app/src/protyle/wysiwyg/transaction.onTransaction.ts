@@ -3,7 +3,7 @@ import { blockRender } from "../render/blockRender";
 import { contentRendererRegistry } from "../../registry/contentRenderer/ContentRendererRegistry";
 import { highlightRender } from "../render/highlightRender";
 import { isInEmbedBlock } from "../util/hasClosest";
-import { zoomOut } from "../../menus/protyle.zoomOut";
+import { zoomOut } from "../../menus/protyleMenus/protyle.zoomOut";
 import { disabledProtyle } from "../util/onGet";
 import { avRender, refreshAV } from "../render/av/render";
 import { removeFoldHeading } from "../util/heading";

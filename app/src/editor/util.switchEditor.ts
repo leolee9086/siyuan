@@ -1,6 +1,6 @@
 import { Editor } from ".";
 import { Constants } from "../constants";
-import { zoomOut } from "../menus/protyle.zoomOut";
+import { zoomOut } from "../menus/protyleMenus/protyle.zoomOut";
 import { preventScroll } from "../protyle/scroll/preventScroll";
 import { isInEmbedBlock, hasClosestBlock } from "../protyle/util/hasClosest";
 import { onGet } from "../protyle/util/onGet";

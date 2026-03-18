@@ -2,7 +2,7 @@ import { Constants } from "../../constants";
 import { openFileById } from "../../editor/utils.openFileById";
 import { openMobileFileById } from "../../mobile/editor";
 import { isMobile } from "../../platform";
-import { zoomOut } from "../protyle.zoomOut";
+import { zoomOut } from "./protyle.zoomOut";
 
 /**
  * @AIDONE 每一个分支都应该添加注释说明

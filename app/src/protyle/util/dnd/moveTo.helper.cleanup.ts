@@ -1,7 +1,7 @@
 import { cancelSB, genEmptyElement } from "../../../block/util";
 import { getTopAloneElement } from "../../wysiwyg/getBlock";
 import { getAllEditor } from "../../../layout/getAll";
-import { zoomOut } from "../../../menus/protyle.zoomOut";
+import { zoomOut } from "../../../menus/protyleMenus/protyle.zoomOut";
 import { isMobile } from "../../../platform";
 import { IMoveContext } from "./moveTo.types";
 

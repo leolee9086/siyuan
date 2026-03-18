@@ -1,7 +1,7 @@
 import { hasClosestBlock } from "../../../protyle/util/hasClosest";
 import { getTopAloneElement } from "../../../protyle/wysiwyg/getBlock";
 import { enterBack } from "../../../menus/protyleMenus/protyle.enterBack";
-import { zoomOut } from "../../../menus/protyle.zoomOut";
+import { zoomOut } from "../../../menus/protyleMenus/protyle.zoomOut";
 import { openFileById } from "../../../editor/utils.openFileById";
 import { checkFold } from "../../../util/platform/noRelyPCFunction";
 import { isMobile } from "../../../platform";
