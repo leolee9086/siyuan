@@ -1,17 +1,21 @@
-import { ToolbarItem } from "./ToolbarItem";
+import { createToolbarItemElement } from "./ToolbarItem";
 import { hasClosestBlock, hasClosestByAttribute } from "../util/hasClosest";
 import { hasNextSibling, hasPreviousSibling } from "../wysiwyg/getBlock";
 
-export class InlineMath extends ToolbarItem {
-    public declare element: HTMLElement;
-
-    constructor(protyle: IProtyle, menuItem: IMenuItem) {
-        super(protyle, menuItem);
-        this.element.addEventListener("click", (event) => {
-            处理点击(protyle, event);
-        });
-    }
-}
+/**
+ * 创建行内数学公式工具栏项
+ *
+ * 作用：渲染行内数学按钮并绑定点击行为
+ * 意图：使用函数式渲染替代类继承实现
+ * 调用时机：ToolbarItemFactory 在识别到 inline-math 时调用
+ */
+export const createInlineMathToolbarItem = (protyle: IProtyle, menuItem: IMenuItem): HTMLElement => {
+    const element = createToolbarItemElement(protyle, menuItem);
+    element.addEventListener("click", (event) => {
+        处理点击(protyle, event);
+    });
+    return element;
+};
 
 function 处理点击(protyle: IProtyle, event: MouseEvent) {
     if (!protyle.toolbar) {

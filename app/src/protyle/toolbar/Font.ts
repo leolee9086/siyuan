@@ -1,5 +1,5 @@
 import { setStorageVal, updateHotkeyTip } from "../util/compatibility";
-import { ToolbarItem } from "./ToolbarItem";
+import { createToolbarItemElement } from "./ToolbarItem";
 import { setPosition } from "../../util/DOM/setPosition";
 import { focusByRange, getSelectionPosition } from "../util/selection";
 import { Constants } from "../../constants";
@@ -9,28 +9,32 @@ import { lineNumberRender } from "../render/highlightRender";
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { isMobile } from "../../platform";
 
-export class Font extends ToolbarItem {
-    public declare element: HTMLElement;
-
-    constructor(protyle: IProtyle, menuItem: IMenuItem) {
-        super(protyle, menuItem);
-        this.element.addEventListener("click", () => {
-            protyle.toolbar.element.classList.add("fn__none");
-            protyle.toolbar.subElement.innerHTML = "";
-            protyle.toolbar.subElement.style.width = "";
-            protyle.toolbar.subElement.style.padding = "";
-            protyle.toolbar.subElement.append(appearanceMenu(protyle, getFontNodeElements(protyle)));
-            protyle.toolbar.subElement.style.zIndex = (++window.siyuan.zIndex).toString();
-            protyle.toolbar.subElement.classList.remove("fn__none");
-            protyle.toolbar.subElementCloseCB = undefined;
-            focusByRange(protyle.toolbar.range);
-            if (!isMobile) {
-                const position = getSelectionPosition(protyle.wysiwyg.element, protyle.toolbar.range);
-                setPosition(protyle.toolbar.subElement, position.left, position.top + 18, 26);
-            }
-        });
-    }
-}
+/**
+ * 创建字体样式工具栏项
+ *
+ * 作用：渲染字体按钮并绑定点击行为
+ * 意图：使用函数式渲染替代类继承实现
+ * 调用时机：ToolbarItemFactory 在识别到 text 时调用
+ */
+export const createFontToolbarItem = (protyle: IProtyle, menuItem: IMenuItem): HTMLElement => {
+    const element = createToolbarItemElement(protyle, menuItem);
+    element.addEventListener("click", () => {
+        protyle.toolbar.element.classList.add("fn__none");
+        protyle.toolbar.subElement.innerHTML = "";
+        protyle.toolbar.subElement.style.width = "";
+        protyle.toolbar.subElement.style.padding = "";
+        protyle.toolbar.subElement.append(appearanceMenu(protyle, getFontNodeElements(protyle)));
+        protyle.toolbar.subElement.style.zIndex = (++window.siyuan.zIndex).toString();
+        protyle.toolbar.subElement.classList.remove("fn__none");
+        protyle.toolbar.subElementCloseCB = undefined;
+        focusByRange(protyle.toolbar.range);
+        if (!isMobile) {
+            const position = getSelectionPosition(protyle.wysiwyg.element, protyle.toolbar.range);
+            setPosition(protyle.toolbar.subElement, position.left, position.top + 18, 26);
+        }
+    });
+    return element;
+};
 
 export const appearanceMenu = (protyle: IProtyle, nodeElements?: Element[]) => {
     let colorHTML = "";
