@@ -1,23 +1,23 @@
 import * as dayjs from "dayjs";
-import { fetchPost, focusByRange, blockRender } from "../ai/imports";
-import { Constants } from "../constants";
-import { openFileById } from "../editor/utils.openFileById";
-import { openBacklink, openGraph } from "../layout/dock/util";
-import { emitOpenMenu } from "../plugin/EventBus";
-import { removeInlineType } from "../protyle/toolbar/util";
-import { hideElements } from "../protyle/ui/hideElements";
-import { electronUndo } from "../protyle/undo";
-import { updateHotkeyTip, writeText } from "../protyle/util/compatibility";
-import { hasClosestBlock, hasTopClosestByClassName } from "../protyle/util/hasClosest";
-import { focusByWbr } from "../protyle/util/selection";
-import { updateTransaction } from "../protyle/wysiwyg/transaction";
-import { checkFold } from "../util/platform/noRelyPCFunction";
-import { openNewWindowById } from "../window/openNewWindow";
-import { MenuItem } from "./Menu.Item";
-import { isMobile, isElectron } from "../platform";
-import { getSiyuanGlobalMenus } from "../util/siyuanEnvironments/getMenu.environment";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
-import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { fetchPost, focusByRange, blockRender } from "../../ai/imports";
+import { Constants } from "../../constants";
+import { openFileById } from "../../editor/utils.openFileById";
+import { openBacklink, openGraph } from "../../layout/dock/util";
+import { emitOpenMenu } from "../../plugin/EventBus";
+import { removeInlineType } from "../../protyle/toolbar/util";
+import { hideElements } from "../../protyle/ui/hideElements";
+import { electronUndo } from "../../protyle/undo";
+import { updateHotkeyTip, writeText } from "../../protyle/util/compatibility";
+import { hasClosestBlock, hasTopClosestByClassName } from "../../protyle/util/hasClosest";
+import { focusByWbr } from "../../protyle/util/selection";
+import { updateTransaction } from "../../protyle/wysiwyg/transaction";
+import { checkFold } from "../../util/platform/noRelyPCFunction";
+import { openNewWindowById } from "../../window/openNewWindow";
+import { MenuItem } from "../Menu.Item";
+import { isMobile, isElectron } from "../../platform";
+import { getSiyuanGlobalMenus } from "../../util/siyuanEnvironments/getMenu.environment";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 const createAnchorEditorItem = (refElement: HTMLSpanElement) => {
     return new MenuItem({
         id: "anchor",

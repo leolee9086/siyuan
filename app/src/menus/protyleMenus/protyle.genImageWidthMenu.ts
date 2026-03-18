@@ -1,8 +1,8 @@
 import * as dayjs from "dayjs";
-import { img3115 } from "../boot/compatibleVersion";
-import { focusBlock } from "../protyle/util/selection";
-import { updateTransaction } from "../protyle/wysiwyg/transaction";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
+import { img3115 } from "../../boot/compatibleVersion";
+import { focusBlock } from "../../protyle/util/selection";
+import { updateTransaction } from "../../protyle/wysiwyg/transaction";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 
 export const genImageWidthMenu = (label: string, imgElement: HTMLElement, protyle: IProtyle, id: string, nodeElement: HTMLElement, html: string) => {

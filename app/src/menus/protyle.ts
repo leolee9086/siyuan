@@ -38,12 +38,12 @@ import { Dialog } from "../dialog";
 // ==================== 从拆分文件重新导出 ====================
 
 // 从根目录拆分文件导出
-export { refMenu } from "./protyle.refMenu";
-export { tagMenu } from "./protyle.tagMenu";
-export { inlineMathMenu } from "./protyle.inlineMathMenu";
-export { genImageWidthMenu } from "./protyle.genImageWidthMenu";
-export { genImageHeightMenu } from "./protyle.genImageHeightMenu";
-export { iframeMenu } from "./protyle.iframeMenu";
+export { refMenu } from "./protyleMenus/protyle.refMenu";
+export { tagMenu } from "./protyleMenus/protyle.tagMenu";
+export { inlineMathMenu } from "./protyleMenus/protyle.inlineMathMenu";
+export { genImageWidthMenu } from "./protyleMenus/protyle.genImageWidthMenu";
+export { genImageHeightMenu } from "./protyleMenus/protyle.genImageHeightMenu";
+export { iframeMenu } from "./protyleMenus/iframeMenu/iframeMenu";
 export { zoomOut } from "./protyle.zoomOut";
 
 // 从 protyleMenus/ 子目录导出

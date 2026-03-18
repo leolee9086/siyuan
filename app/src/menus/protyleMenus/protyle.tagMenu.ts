@@ -1,19 +1,19 @@
 import * as dayjs from "dayjs";
-import { focusByRange } from "../ai/imports";
-import { Constants } from "../constants";
-import { isMobile } from "../platform";
-import { popSearch } from "../mobile/menu/search";
-import { emitOpenMenu } from "../plugin/EventBus";
-import { hideElements } from "../protyle/ui/hideElements";
-import { electronUndo } from "../protyle/undo";
-import { hasClosestBlock, hasTopClosestByClassName } from "../protyle/util/hasClosest";
-import { focusByWbr } from "../protyle/util/selection";
-import { updateTransaction } from "../protyle/wysiwyg/transaction";
-import { openGlobalSearch } from "../search/util";
-import { renameTag } from "../util/platform/noRelyPCFunction";
-import { getSiyuanGlobalMenusMenu } from "../util/siyuanEnvironments/getMenu.environment";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
-import { MenuItem } from "./Menu.Item";
+import { focusByRange } from "../../ai/imports";
+import { Constants } from "../../constants";
+import { isMobile } from "../../platform";
+import { popSearch } from "../../mobile/menu/search";
+import { emitOpenMenu } from "../../plugin/EventBus";
+import { hideElements } from "../../protyle/ui/hideElements";
+import { electronUndo } from "../../protyle/undo";
+import { hasClosestBlock, hasTopClosestByClassName } from "../../protyle/util/hasClosest";
+import { focusByWbr } from "../../protyle/util/selection";
+import { updateTransaction } from "../../protyle/wysiwyg/transaction";
+import { openGlobalSearch } from "../../search/util";
+import { renameTag } from "../../util/platform/noRelyPCFunction";
+import { getSiyuanGlobalMenusMenu } from "../../util/siyuanEnvironments/getMenu.environment";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { MenuItem } from "../Menu.Item";
 
 
 export const tagMenu = (protyle: IProtyle, tagElement: HTMLElement) => {

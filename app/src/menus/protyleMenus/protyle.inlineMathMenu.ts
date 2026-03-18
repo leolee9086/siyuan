@@ -1,12 +1,12 @@
 import * as dayjs from "dayjs";
-import { focusByRange } from "../ai/imports";
-import { Constants } from "../constants";
-import { hasClosestBlock } from "../protyle/util/hasClosest";
-import { focusByWbr } from "../protyle/util/selection";
-import { updateTransaction } from "../protyle/wysiwyg/transaction";
-import { getSiyuanGlobalMenusMenu } from "../util/siyuanEnvironments/getMenu.environment";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
-import { MenuItem } from "./Menu.Item";
+import { focusByRange } from "../../ai/imports";
+import { Constants } from "../../constants";
+import { hasClosestBlock } from "../../protyle/util/hasClosest";
+import { focusByWbr } from "../../protyle/util/selection";
+import { updateTransaction } from "../../protyle/wysiwyg/transaction";
+import { getSiyuanGlobalMenusMenu } from "../../util/siyuanEnvironments/getMenu.environment";
+import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { MenuItem } from "../Menu.Item";
 
 
 export const inlineMathMenu = (protyle: IProtyle, element: Element) => {

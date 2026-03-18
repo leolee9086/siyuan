@@ -1,7 +1,7 @@
-import { updateTransaction } from "../protyle/wysiwyg/transaction";
-import { getSearch } from "../util/platform/functions";
-import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
-import { openMenu } from "./commonMenuItem/openMenu";
+import { updateTransaction } from "../../../protyle/wysiwyg/transaction";
+import { getSearch } from "../../../util/platform/functions";
+import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
+import { openMenu } from "../../commonMenuItem/openMenu";
 
 /**
  * 为 iframe 块生成菜单。

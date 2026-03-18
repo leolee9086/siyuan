@@ -5,7 +5,7 @@
 
 import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
 import { videoMenu } from "../../menus/protyle";
-import { iframeMenu } from "../../menus/protyle.iframeMenu";
+import { iframeMenu } from "../../menus/protyleMenus/iframeMenu/iframeMenu";
 
 /**
  * 构建 HTML/Media 相关菜单
