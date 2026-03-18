@@ -1,13 +1,13 @@
-import {transaction} from "../../wysiwyg/transaction";
-import {hasClosestByClassName} from "../../util/hasClosest";
-import {focusBlock} from "../../util/selection";
-import {unicode2Emoji} from "../../../emoji";
-import {getColIconByType} from "./col.typeUtils";
-import {renderCell, renderCellAttr} from "./cell.render";
-import {genCellValueByElement} from "./cell.value";
+import {transaction} from "../../../wysiwyg/transaction";
+import {hasClosestByClassName} from "../../../util/hasClosest";
+import {focusBlock} from "../../../util/selection";
+import {unicode2Emoji} from "../../../../emoji";
+import {getColIconByType} from "../col/col.typeUtils";
+import {renderCell, renderCellAttr} from "../cell.render";
+import {genCellValueByElement} from "../cell.value";
 // S-forge: 本地改进 - 使用统一的国际化环境获取方式
-import {siyuanI18n} from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
-import {isMobile} from "../../../platform";
+import {siyuanI18n} from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
+import {isMobile} from "../../../../platform";
 
 export const cellScrollIntoView = (blockElement: HTMLElement, cellElement: Element, onlyHeight = true) => {
     const cellRect = cellElement.getBoundingClientRect();

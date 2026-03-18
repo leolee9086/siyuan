@@ -1,4 +1,4 @@
-import { Dialog } from "../dialog";
+import { Dialog } from "../../dialog";
 
 /**
  * 为对话框设置背景色

@@ -7,7 +7,7 @@ import {afterRenderGallery, renderGallery} from "../gallery/render";
 import {escapeAttr, escapeHtml} from "../../../../util/DOM/escape";
 import {getCompressURL} from "../../../../util/assets/image";
 import {cellValueIsEmpty, renderCell} from "../cell";
-import {getColIconByType, getColNameByType} from "../col.typeUtils";
+import {getColIconByType, getColNameByType} from "../col/col.typeUtils";
 import {unicode2Emoji} from "../../../../emoji";
 import { siyuanI18n } from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
 

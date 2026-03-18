@@ -1,5 +1,5 @@
-import { type AIConfig, validateAIConfig } from "./types";
-import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
+import { type AIConfig, validateAIConfig } from "../types";
+import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
 
 /**
  * 从思源配置中获取AI配置

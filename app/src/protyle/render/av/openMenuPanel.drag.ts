@@ -1,6 +1,6 @@
 import { transaction } from "../../wysiwyg/transaction";
 import { hasClosestByAttribute } from "../../util/hasClosest";
-import { getColId, getEditHTML, bindEditEvent } from "./col";
+import { getColId, getEditHTML, bindEditEvent } from "./col/col";
 import { getSelectHTML, bindSelectEvent } from "./select";
 import { getFiltersHTML } from "./filter";
 import { getSortsHTML, bindSortsEvent } from "./sort";

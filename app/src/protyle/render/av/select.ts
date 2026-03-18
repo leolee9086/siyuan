@@ -3,7 +3,7 @@ import { transaction } from "../../wysiwyg/transaction";
 import { hasClosestBlock, hasClosestByClassName } from "../../util/hasClosest";
 import { confirmDialog } from "../../../dialog/confirmDialog";
 import { upDownHint } from "../../../util/DOM/upDownHint";
-import { bindEditEvent, getColId, getEditHTML } from "./col";
+import { bindEditEvent, getColId, getEditHTML } from "./col/col";
 import { updateAttrViewCellAnimation } from "./action";
 import { genAVValueHTML, isCustomAttr } from "./blockAttr";
 import { escapeAriaLabel, escapeAttr, escapeHtml } from "../../../util/DOM/escape";

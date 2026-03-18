@@ -19,7 +19,7 @@ import { writeText } from "../../util/compatibility";
 import { escapeAttr } from "../../../util/DOM/escape";
 import { renameAsset } from "../../../editor/rename";
 import * as dayjs from "dayjs";
-import { getColId } from "./col";
+import { getColId } from "./col/col";
 import { getFieldIdByCellElement } from "./row";
 import { base64ToURL, getCompressURL, removeCompressURL } from "../../../util/assets/image";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";

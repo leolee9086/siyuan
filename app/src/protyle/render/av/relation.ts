@@ -10,7 +10,7 @@ import {focusBlock} from "../../util/selection";
 import {setPosition} from "../../../util/DOM/setPosition";
 import * as dayjs from "dayjs";
 import {getFieldsByData, getViewName} from "./view";
-import {getColId} from "./col";
+import {getColId} from "./col/col";
 import {getFieldIdByCellElement} from "./row";
 import {isMobile} from "../../../util/platform/functions";
 import {showMessage} from "../../../dialog/message";

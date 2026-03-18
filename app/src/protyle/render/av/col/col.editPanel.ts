@@ -1,8 +1,8 @@
-import {getLabelByNumberFormat} from "./number";
-import {getRollupHTML} from "./rollup";
-import {escapeAriaLabel, escapeAttr, escapeHtml} from "../../../util/DOM/escape";
+import {getLabelByNumberFormat} from "../number";
+import {getRollupHTML} from "../rollup";
+import {escapeAriaLabel, escapeAttr, escapeHtml} from "../../../../util/DOM/escape";
 import {getColIconByType, getColNameByType} from "./col.typeUtils";
-import {siyuanI18n} from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
+import {siyuanI18n} from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 /**
  * 生成列类型切换菜单中的单个类型选项 HTML

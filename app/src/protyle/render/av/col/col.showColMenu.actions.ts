@@ -1,11 +1,11 @@
-import {Menu} from "../../../plugin/Menu";
-import {transaction} from "../../wysiwyg/transaction";
-import {fetchPost} from "../../../util/network/fetch";
-import {updateAttrViewCellAnimation} from "./action";
+import {Menu} from "../../../../plugin/Menu";
+import {transaction} from "../../../wysiwyg/transaction";
+import {fetchPost} from "../../../../util/network/fetch";
+import {updateAttrViewCellAnimation} from "../action";
 import {handleFilterClick, handleSortClick, handleDeleteColClick} from "./col.showColMenu";
-import {addCol} from "./col.addCol";
+import {addCol} from "./addCol";
 import {duplicateCol} from "./col.operations";
-import {siyuanI18n} from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
+import {siyuanI18n} from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import type {IShowColMenuContext} from "./col.showColMenu.types";
 
 /**

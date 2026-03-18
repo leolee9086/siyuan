@@ -1,4 +1,4 @@
-import { getColIconByType } from "./col.typeUtils";
+import { getColIconByType } from "./col/col.typeUtils";
 import { unicode2Emoji } from "../../../emoji";
 import { escapeHtml } from "../../../util/DOM/escape";
 import { siyuanI18n } from "../../../util/siyuanEnvironments/i18n.getI18n.environment";

@@ -1,5 +1,5 @@
 import {unicode2Emoji} from "../../../emoji";
-import {getColIconByType} from "./col.typeUtils";
+import {getColIconByType} from "./col/col.typeUtils";
 import {escapeHtml} from "../../../util/DOM/escape";
 import {setPosition} from "../../../util/DOM/setPosition";
 import {getFieldsByData} from "./view";

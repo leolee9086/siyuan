@@ -4,7 +4,7 @@ import {objEquals} from "../../../util/platform/functions";
 import {fetchSyncPost} from "../../../util/network/fetch";
 import {focusBlock} from "../../util/selection";
 import * as dayjs from "dayjs";
-import {getColId} from "./col";
+import {getColId} from "./col/col";
 import {genAVValueHTML} from "./blockAttr";
 import {updateAttrViewCellAnimation} from "./action";
 import {getAssetName, pathPosix} from "../../../util/file/pathName";
@@ -12,7 +12,7 @@ import {mergeAddOption} from "./select";
 import {getFieldIdByCellElement} from "./row";
 import {getCellText} from "./cell.render";
 import {genCellValueByElement, transformCellValue, genCellValue} from "./cell.value";
-import {getTypeByCellElement} from "./cell.position";
+import {getTypeByCellElement} from "./cell/position";
 
 export const updateCellsValue = async (protyle: IProtyle, nodeElement: HTMLElement, value?: any,
                                        cElements?: HTMLElement[], columns?: IAVColumn[], html?: string, getOperations = false) => {

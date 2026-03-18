@@ -1,7 +1,7 @@
-import {transaction} from "../../wysiwyg/transaction";
-import {updateAttrViewCellAnimation} from "./action";
-import {escapeHtml} from "../../../util/DOM/escape";
-import {siyuanI18n} from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
+import {transaction} from "../../../wysiwyg/transaction";
+import {updateAttrViewCellAnimation} from "../action";
+import {escapeHtml} from "../../../../util/DOM/escape";
+import {siyuanI18n} from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import type {IBindEditContext} from "./col.editPanel.bind.types";
 
 /** @同步豁免: UI构建 — 绑定列名称输入框的 blur/keydown/keyup 事件 */

@@ -13,7 +13,7 @@ import {inlineMathMenu} from "../../menus/protyle.inlineMathMenu";
 import {imgMenu} from "../../menus/protyleMenus/imageMenu/protyle.imgMenu";
 import {contentMenu} from "../../menus/protyleMenus/protyle.contentMenu";
 import {avContextmenu} from "../render/av/action";
-import {showColMenu} from "../render/av/col";
+import {showColMenu} from "../render/av/col/col";
 import {openViewMenu} from "../render/av/view";
 import {getTypeByCellElement} from "../render/av/cell";
 import {editAssetItem} from "../render/av/asset";

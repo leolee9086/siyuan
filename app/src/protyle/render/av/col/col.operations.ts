@@ -1,11 +1,11 @@
-import {transaction} from "../../wysiwyg/transaction";
+import {transaction} from "../../../wysiwyg/transaction";
 import * as dayjs from "dayjs";
-import {getPropertiesHTML} from "./openMenuPanel";
-import {removeAttrViewColAnimation} from "./action";
-import {addAttrViewColAnimation} from "./col/col.addAttrViewColAnimation";
-import {duplicateNameAddOne} from "../../../util/platform/functions";
-import {setPosition} from "../../../util/DOM/setPosition";
-import {getFieldsByData} from "./view";
+import {getPropertiesHTML} from "../openMenuPanel";
+import {removeAttrViewColAnimation} from "../action";
+import {addAttrViewColAnimation} from "./col.addAttrViewColAnimation";
+import {duplicateNameAddOne} from "../../../../util/platform/functions";
+import {setPosition} from "../../../../util/DOM/setPosition";
+import {getFieldsByData} from "../view";
 
 /**
  * 在字段列表中查找并移除指定列，返回列数据和前一列 ID

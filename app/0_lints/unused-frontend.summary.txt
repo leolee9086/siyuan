@@ -1,5 +1,5 @@
 Frontend Unused Code Report
-Generated At: 2026-03-18T05:01:48.780Z
+Generated At: 2026-03-18T09:27:22.151Z
 
 Entry Files:
 - src/config/configSchemas/fileTree.ts
@@ -25,10 +25,10 @@ Entry Files:
 Unused Files: 135
 Unused Dependencies: 8
 Unused DevDependencies: 6
-Unused Exports: 579
+Unused Exports: 591
 
 Dynamic Import Scan:
-- Scanned Source Files: 1442
+- Scanned Source Files: 1447
 - import() Literals Found: 41
 - Resolved Dynamic Entries: 27
 
@@ -446,9 +446,21 @@ Unused Exports List:
 - src/magi/utils/messageFormat.ts:27:14 -> validStatusTypes
 - src/magi/utils/messageFormat.ts:37:14 -> validAlignments
 - src/magi/utils/messageFormat.ts:70:23 -> getMessageStyleClasses
-- src/menus/commonMenuItem.ts:47:14 -> openWechatNotify
-- src/menus/commonMenuItem.ts:112:14 -> openFileWechatNotify
-- src/menus/commonMenuItem.ts:487:14 -> openMenu
+- src/menus/commonMenuItem/export/moreFormats.ts:48:14 -> createReStructuredTextExportMenuItem
+- src/menus/commonMenuItem/export/moreFormats.ts:72:14 -> createAsciiDocExportMenuItem
+- src/menus/commonMenuItem/export/moreFormats.ts:96:14 -> createTextileExportMenuItem
+- src/menus/commonMenuItem/export/moreFormats.ts:120:14 -> createOPMLExportMenuItem
+- src/menus/commonMenuItem/export/moreFormats.ts:144:14 -> createOrgModeExportMenuItem
+- src/menus/commonMenuItem/export/moreFormats.ts:168:14 -> createMediaWikiExportMenuItem
+- src/menus/commonMenuItem/export/moreFormats.ts:192:14 -> createODTExportMenuItem
+- src/menus/commonMenuItem/export/moreFormats.ts:216:14 -> createRTFExportMenuItem
+- src/menus/commonMenuItem/export/moreFormats.ts:240:14 -> createEPUBExportMenuItem
+- src/menus/commonMenuItem/imports.ts:15:10 -> openExternal
+- src/menus/commonMenuItem/imports.ts:88:10 -> writeText
+- src/menus/commonMenuItem/imports.ts:163:10 -> isLocalPath
+- src/menus/commonMenuItem/imports.ts:228:10 -> openAsset
+- src/menus/commonMenuItem/imports.ts:237:10 -> openBy
+- src/menus/commonMenuItem/imports.ts:265:10 -> dayjs
 - src/menus/Menu.uills.ts:147:14 -> updateMaxHeight
 - src/menus/navigation.ts:634:14 -> genImportMenu
 - src/menus/protyle.ts:41:10 -> refMenu

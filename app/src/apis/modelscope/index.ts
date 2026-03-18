@@ -34,16 +34,7 @@ export {
     默认模型,
     端点,
     默认参数,
-    思源代理端点,
-    // 英文别名
-    MODEL_SCOPE_BASE_URL,
-    HEADERS,
-    CONTENT_TYPE_JSON,
-    TASK_TYPE_IMAGE_GENERATION,
-    DEFAULT_MODEL,
-    ENDPOINTS,
-    DEFAULT_PARAMS,
-    SIYUAN_PROXY_ENDPOINT
+    思源代理端点
 } from "./constants";
 
 // 导出 API 函数

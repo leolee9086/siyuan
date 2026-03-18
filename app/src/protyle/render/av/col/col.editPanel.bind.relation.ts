@@ -1,6 +1,6 @@
-import {fetchPost} from "../../../util/network/fetch";
-import {toggleUpdateRelationBtn} from "./relation";
-import {siyuanI18n} from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
+import {fetchPost} from "../../../../util/network/fetch";
+import {toggleUpdateRelationBtn} from "../relation";
+import {siyuanI18n} from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
 import type {IBindEditContext} from "./col.editPanel.bind.types";
 
 /** @同步豁免: UI构建 — 绑定关联列的 backRelation 开关和搜索事件 */

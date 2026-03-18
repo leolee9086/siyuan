@@ -1,7 +1,7 @@
 import type { AssistantResponseState } from "./session.types";
 import type { ToolCallExecutorConfig } from "./toolCallExecutor";
 import { AIRequestController } from "../../magi/service/requestController";
-import { getAIConfigFromSiyuan } from "../utils.config";
+import { getAIConfigFromSiyuan } from "../utils/utils.config";
 import { handleOpenAILikeStreamResponse } from "../../magi/service/streamResponseHandler";
 import { processBlockDOMContent } from "../chatStream.utils";
 import { setLute } from "../../protyle/render/setLute";

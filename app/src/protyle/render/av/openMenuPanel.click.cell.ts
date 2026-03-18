@@ -3,7 +3,7 @@ import { addAssetLink, editAssetItem, updateAssetCell } from "./asset";
 import { openSearchAV, setRelationCell, updateRelation } from "./relation";
 import { goSearchRollupCol } from "./rollup";
 import { openCalcMenu } from "./calc";
-import { getColId } from "./col";
+import { getColId } from "./col/col";
 import { updateCellsValue } from "./cell";
 import { Constants } from "../../../constants";
 import { pathPosix } from "../../../util/file/pathName";

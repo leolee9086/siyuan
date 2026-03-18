@@ -38,13 +38,3 @@ export const 默认参数 = {
 
 /** 思源代理端点 */
 export const 思源代理端点 = "/api/network/forwardProxy";
-
-// 英文别名导出
-export const MODEL_SCOPE_BASE_URL = 魔搭API基础URL;
-export const HEADERS = 请求头;
-export const CONTENT_TYPE_JSON = 内容类型JSON;
-export const TASK_TYPE_IMAGE_GENERATION = 任务类型图片生成;
-export const DEFAULT_MODEL = 默认模型;
-export const ENDPOINTS = 端点;
-export const DEFAULT_PARAMS = 默认参数;
-export const SIYUAN_PROXY_ENDPOINT = 思源代理端点;

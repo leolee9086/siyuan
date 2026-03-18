@@ -1,6 +1,6 @@
 import * as dayjs from "dayjs";
-import { transaction } from "../../wysiwyg/transaction";
-import { removeAttrViewColAnimation } from "./action";
+import { transaction } from "../../../wysiwyg/transaction";
+import { removeAttrViewColAnimation } from "../action";
 
 export const removeColByMenu = (options: {
     protyle: IProtyle;

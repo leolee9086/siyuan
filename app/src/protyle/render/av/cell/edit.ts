@@ -1,19 +1,19 @@
-import {transaction} from "../../wysiwyg/transaction";
-import {hasClosestBlock, hasClosestByClassName} from "../../util/hasClosest";
-import {openMenuPanel} from "./openMenuPanel";
-import {isNotCtrl} from "../../util/compatibility";
-import {isDynamicRef} from "../../../util/platform/functions";
-import {fetchPost} from "../../../util/network/fetch";
-import {focusBlock, focusByRange} from "../../util/selection";
-import {getColId} from "./col";
-import {Constants} from "../../../constants";
-import {hintRef} from "../../hint/extend.hintRef";
-import {electronUndo} from "../../undo";
-import {getFieldIdByCellElement} from "./row";
-import {getFieldsByData} from "./view";
-import {callMobileAppShowKeyboard} from "../../../mobile/util/mobileAppUtil";
-import {cellScrollIntoView, getTypeByCellElement, addDragFill} from "./cell.position";
-import {updateCellsValue} from "./cell.update";
+import {transaction} from "../../../wysiwyg/transaction";
+import {hasClosestBlock, hasClosestByClassName} from "../../../util/hasClosest";
+import {openMenuPanel} from "../openMenuPanel";
+import {isNotCtrl} from "../../../util/compatibility";
+import {isDynamicRef} from "../../../../util/platform/functions";
+import {fetchPost} from "../../../../util/network/fetch";
+import {focusBlock, focusByRange} from "../../../util/selection";
+import {getColId} from "../col/col";
+import {Constants} from "../../../../constants";
+import {hintRef} from "../../../hint/extend.hintRef";
+import {electronUndo} from "../../../undo";
+import {getFieldIdByCellElement} from "../row";
+import {getFieldsByData} from "../view";
+import {callMobileAppShowKeyboard} from "../../../../mobile/util/mobileAppUtil";
+import {cellScrollIntoView, getTypeByCellElement, addDragFill} from "./position";
+import {updateCellsValue} from "../cell.update";
 
 export const popTextCell = (protyle: IProtyle, cellElements: HTMLElement[], type?: TAVCol) => {
     if (cellElements.length === 0 || (cellElements.length === 1 && !cellElements[0])) {

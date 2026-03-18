@@ -9,7 +9,7 @@ import {electronUndo} from "../../../undo";
 import {addClearButton} from "../../../../util/DOM/addClearButton";
 import {avRender, genTabHeaderHTML, getGroupTitleHTML, updateSearch} from "../render";
 import {contentRendererRegistry} from "../../../../registry/contentRenderer/ContentRendererRegistry";
-import {getColIconByType, getColNameByType} from "../col.typeUtils";
+import {getColIconByType, getColNameByType} from "../col/col.typeUtils";
 import {getCompressURL} from "../../../../util/assets/image";
 import {getPageSize} from "../groups";
 import {activeBlur} from "../../../../mobile/util/keyboardToolbar";

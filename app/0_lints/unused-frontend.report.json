@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-03-18T05:01:48.780Z",
+  "generatedAt": "2026-03-18T09:27:22.151Z",
   "entryFiles": [
     "src/config/configSchemas/fileTree.ts",
     "src/dialog/index.ts",
@@ -25,7 +25,7 @@
     "files": 135,
     "dependencies": 8,
     "devDependencies": 6,
-    "exports": 579
+    "exports": 591
   },
   "files": [
     "src/ai/deps.ts",
@@ -1788,22 +1788,94 @@
       "col": 23
     },
     {
-      "file": "src/menus/commonMenuItem.ts",
-      "name": "openWechatNotify",
-      "line": 47,
+      "file": "src/menus/commonMenuItem/export/moreFormats.ts",
+      "name": "createReStructuredTextExportMenuItem",
+      "line": 48,
       "col": 14
     },
     {
-      "file": "src/menus/commonMenuItem.ts",
-      "name": "openFileWechatNotify",
-      "line": 112,
+      "file": "src/menus/commonMenuItem/export/moreFormats.ts",
+      "name": "createAsciiDocExportMenuItem",
+      "line": 72,
       "col": 14
     },
     {
-      "file": "src/menus/commonMenuItem.ts",
-      "name": "openMenu",
-      "line": 487,
+      "file": "src/menus/commonMenuItem/export/moreFormats.ts",
+      "name": "createTextileExportMenuItem",
+      "line": 96,
       "col": 14
+    },
+    {
+      "file": "src/menus/commonMenuItem/export/moreFormats.ts",
+      "name": "createOPMLExportMenuItem",
+      "line": 120,
+      "col": 14
+    },
+    {
+      "file": "src/menus/commonMenuItem/export/moreFormats.ts",
+      "name": "createOrgModeExportMenuItem",
+      "line": 144,
+      "col": 14
+    },
+    {
+      "file": "src/menus/commonMenuItem/export/moreFormats.ts",
+      "name": "createMediaWikiExportMenuItem",
+      "line": 168,
+      "col": 14
+    },
+    {
+      "file": "src/menus/commonMenuItem/export/moreFormats.ts",
+      "name": "createODTExportMenuItem",
+      "line": 192,
+      "col": 14
+    },
+    {
+      "file": "src/menus/commonMenuItem/export/moreFormats.ts",
+      "name": "createRTFExportMenuItem",
+      "line": 216,
+      "col": 14
+    },
+    {
+      "file": "src/menus/commonMenuItem/export/moreFormats.ts",
+      "name": "createEPUBExportMenuItem",
+      "line": 240,
+      "col": 14
+    },
+    {
+      "file": "src/menus/commonMenuItem/imports.ts",
+      "name": "openExternal",
+      "line": 15,
+      "col": 10
+    },
+    {
+      "file": "src/menus/commonMenuItem/imports.ts",
+      "name": "writeText",
+      "line": 88,
+      "col": 10
+    },
+    {
+      "file": "src/menus/commonMenuItem/imports.ts",
+      "name": "isLocalPath",
+      "line": 163,
+      "col": 10
+    },
+    {
+      "file": "src/menus/commonMenuItem/imports.ts",
+      "name": "openAsset",
+      "line": 228,
+      "col": 10
+    },
+    {
+      "file": "src/menus/commonMenuItem/imports.ts",
+      "name": "openBy",
+      "line": 237,
+      "col": 10
+    },
+    {
+      "file": "src/menus/commonMenuItem/imports.ts",
+      "name": "dayjs",
+      "line": 265,
+      "col": 10
     },
     {
       "file": "src/menus/Menu.uills.ts",

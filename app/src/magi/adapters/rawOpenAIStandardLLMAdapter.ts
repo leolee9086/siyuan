@@ -1,5 +1,5 @@
 import type { ChatRequestParams, ChatResponseData } from "../../ai/types";
-import { getAIConfigFromSiyuan } from "../../ai/utils.config";
+import { getAIConfigFromSiyuan } from "../../ai/utils/utils.config";
 import { universalStreamRequest } from "../../util/network/fetchStream";
 import type { StandardLLMAdapter, StandardLLMStreamCallbacks } from "../types/llmAdapter.types";
 

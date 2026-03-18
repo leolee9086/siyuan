@@ -1,13 +1,13 @@
-import {Menu} from "../../../plugin/Menu";
-import {transaction} from "../../wysiwyg/transaction";
-import {fetchPost} from "../../../util/network/fetch";
-import {updateAttrViewCellAnimation} from "./action";
-import {focusBlock} from "../../util/selection";
+import {Menu} from "../../../../plugin/Menu";
+import {transaction} from "../../../wysiwyg/transaction";
+import {fetchPost} from "../../../../util/network/fetch";
+import {updateAttrViewCellAnimation} from "../action";
+import {focusBlock} from "../../../util/selection";
 import {handleDeleteColClick} from "./col.showColMenu";
-import {addCol} from "./col.addCol";
+import {addCol} from "./addCol";
 import {duplicateCol} from "./col.operations";
-import {siyuanI18n} from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
-import {isHTMLInputElement} from "../../../util/DOM/element.guard";
+import {siyuanI18n} from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
+import {isHTMLInputElement} from "../../../../util/DOM/element.guard";
 import type {IShowColMenuContext} from "./col.showColMenu.types";
 
 /** @同步豁免: UI构建 — 菜单关闭时保存名称变更 */

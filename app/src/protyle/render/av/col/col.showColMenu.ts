@@ -1,18 +1,18 @@
-import {Menu} from "../../../plugin/Menu";
-import {transaction} from "../../wysiwyg/transaction";
-import {fetchPost, fetchSyncPost} from "../../../util/network/fetch";
-import {getDefaultOperatorByType, setFilter} from "./filter";
-import {genCellValue} from "./cell";
-import {openEmojiPanel, unicode2Emoji} from "../../../emoji";
+import {Menu} from "../../../../plugin/Menu";
+import {transaction} from "../../../wysiwyg/transaction";
+import {fetchPost, fetchSyncPost} from "../../../../util/network/fetch";
+import {getDefaultOperatorByType, setFilter} from "../filter";
+import {genCellValue} from "../cell";
+import {openEmojiPanel, unicode2Emoji} from "../../../../emoji";
 import {getColIconByType} from "./col.typeUtils";
-import {escapeAriaLabel, escapeAttr, escapeHtml} from "../../../util/DOM/escape";
-import {updateAttrViewCellAnimation} from "./action";
-import {Dialog} from "../../../dialog";
-import {isMobile} from "../../../util/platform/functions";
-import {Constants} from "../../../constants";
+import {escapeAriaLabel, escapeAttr, escapeHtml} from "../../../../util/DOM/escape";
+import {updateAttrViewCellAnimation} from "../action";
+import {Dialog} from "../../../../dialog";
+import {isMobile} from "../../../../util/platform/functions";
+import {Constants} from "../../../../constants";
 import {removeColByMenu} from "./col.removeColByMenu";
-import {siyuanI18n} from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
-import {isHTMLElement, isCustomEvent} from "../../../util/DOM/element.guard";
+import {siyuanI18n} from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
+import {isHTMLElement, isCustomEvent} from "../../../../util/DOM/element.guard";
 import type {IShowColMenuContext} from "./col.showColMenu.types";
 
 /** 生成列菜单表头项 HTML（图标+名称输入框+描述文本域），由 showColMenu 调用 @同步豁免: UI构建 */

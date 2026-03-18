@@ -1,171 +1,181 @@
-import { openExternal } from "../../platform/electron/shell";
-import { isElectron } from "../../platform";
-// S-forge: 开始 - 模块化导入改进
-import { confirmDialog } from "../../dialog/confirmDialog";
-import { getSearch, isMobile, isValidCustomAttrName } from "../../util/platform/functions";
-import { isLocalPath, moveToPath, pathPosix } from "../../util/file/pathName";
-import { movePathTo } from "../../util/file/movePathTo";
-import { MenuItem } from "../Menu.Item";
-import { onExport, saveExport } from "../../protyle/export";
-import { isInAndroid, isInHarmony, isInIOS, isInMobileApp, openByMobile, writeText } from "../../protyle/util/compatibility";
-import { fetchPost, fetchSyncPost } from "../../util/network/fetch";
-import { hideMessage, showMessage } from "../../dialog/message";
-import { Dialog } from "../../dialog";
-import { focusBlock, focusByRange, getEditorRange } from "../../protyle/util/selection";
-// S-forge: 结束
-import {openAsset} from "../../editor/util.openAsset";
-import {openBy} from "../../editor/utils.openBy";
-import { rename, replaceFileName } from "../../editor/rename";
-import * as dayjs from "dayjs";
-import { Constants } from "../../constants";
-import { exportImage } from "../../protyle/export/util";
-// S-forge: 开始 - i18n和config环境抽象
-import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { getSiyuanConfig } from "../../util/siyuanEnvironments/getSiyuanConfig.environment";
-// S-forge: 结束
-// S-forge: 开始 - openFileAttr提取到单独文件
+/**
+ * 用途：全局常量定义
+ * 使用范围：renameMenu 函数
+ * 解耦评估：通过 imports.ts 统一管理
+ */
+import { Constants } from "./imports";
+/**
+ * 用途：发送异步 POST 请求
+ * 使用范围：bindAttrInput、openAttr、renameMenu 函数
+ * 解耦评估：通过 imports.ts 统一管理
+ */
+import { fetchPost } from "./imports";
+/**
+ * 用途：获取思源配置
+ * 使用范围：renameMenu 和 movePathToMenu 函数
+ * 解耦评估：通过 imports.ts 统一管理
+ */
+import { getSiyuanConfig } from "./imports";
+/**
+ * 用途：检测 Electron 环境
+ * 使用范围：exportMd 函数
+ * 解耦评估：通过 imports.ts 统一管理
+ */
+import { isElectron } from "./imports";
+/**
+ * 用途：菜单项类
+ * 使用范围：exportMd、renameMenu、movePathToMenu 函数
+ * 解耦评估：通过 imports.ts 统一管理
+ */
+import { MenuItem } from "./imports";
+/**
+ * 用途：移动文件路径
+ * 使用范围：movePathToMenu 函数
+ * 解耦评估：通过 imports.ts 统一管理
+ */
+import { movePathTo } from "./imports";
+/**
+ * 用途：移动文件到指定路径
+ * 使用范围：movePathToMenu 函数
+ * 解耦评估：通过 imports.ts 统一管理
+ */
+import { moveToPath } from "./imports";
+/**
+ * 用途：POSIX 路径处理
+ * 使用范围：movePathToMenu 函数
+ * 解耦评估：通过 imports.ts 统一管理
+ */
+import { pathPosix } from "./imports";
+/**
+ * 用途：执行重命名操作
+ * 使用范围：renameMenu 函数
+ * 解耦评估：通过 imports.ts 统一管理
+ */
+import { rename } from "./imports";
+/**
+ * 用途：国际化文本
+ * 使用范围：exportMd、renameMenu、movePathToMenu 函数
+ * 解耦评估：通过 imports.ts 统一管理
+ */
+import { siyuanI18n } from "./imports";
+/**
+ * 用途：获取发布模式状态
+ * 使用范围：exportMd 函数
+ * 解耦评估：通过 imports.ts 统一管理
+ */
+import { getSiyuanIsPublish } from "./imports";
+/**
+ * 用途：打开文件属性对话框
+ * 使用范围：openAttr 函数
+ * 解耦评估：已提取到独立文件
+ */
 import { openFileAttr } from "./openFileAttr";
-// S-forge: 结束
-import {App} from "../../index";
-import {renderAVAttribute} from "../../protyle/render/av/blockAttr";
-import {openAssetNewWindow} from "../../window/openNewWindow";
-import {copyTextByType} from "../../protyle/toolbar/util";
-import {hideElements} from "../../protyle/ui/hideElements";
-import {Protyle} from "../../protyle";
-import {getAllEditor} from "../../layout/getAll";
-import {hasClosestByClassName} from "../../protyle/util/hasClosest";
-
+/**
+ * 用途：创建模板导出菜单项
+ * 使用范围：exportMd 函数
+ * 解耦评估：已提取到独立文件
+ */
+import { createTemplateExportMenuItem } from "./export/template";
+/**
+ * 用途：创建 SiYuan 格式导出菜单项
+ * 使用范围：exportMd 函数
+ * 解耦评估：已提取到独立文件
+ */
+import { createSiYuanZipExportMenuItem } from "./export/menuItems";
+/**
+ * 用途：创建 Markdown 导出菜单项
+ * 使用范围：exportMd 函数
+ * 解耦评估：已提取到独立文件
+ */
+import { createMarkdownZipExportMenuItem } from "./export/menuItems";
+/**
+ * 用途：创建图片导出菜单项
+ * 使用范围：exportMd 函数
+ * 解耦评估：已提取到独立文件
+ */
+import { createImageExportMenuItem } from "./export/menuItems";
+/**
+ * 用途：创建 PDF 导出菜单项
+ * 使用范围：exportMd 函数
+ * 解耦评估：已提取到独立文件
+ */
+import { createPDFExportMenuItem } from "./export/menuItems";
+/**
+ * 用途：创建 HTML (SiYuan) 导出菜单项
+ * 使用范围：exportMd 函数
+ * 解耦评估：已提取到独立文件
+ */
+import { createHTMLSiYuanExportMenuItem } from "./export/menuItems";
+/**
+ * 用途：创建 HTML (Markdown) 导出菜单项
+ * 使用范围：exportMd 函数
+ * 解耦评估：已提取到独立文件
+ */
+import { createHTMLMarkdownExportMenuItem } from "./export/menuItems";
+/**
+ * 用途：创建 Word 导出菜单项
+ * 使用范围：exportMd 函数
+ * 解耦评估：已提取到独立文件
+ */
+import { createWordExportMenuItem } from "./export/menuItems";
+/**
+ * 用途：创建更多导出格式菜单项
+ * 使用范围：exportMd 函数
+ * 解耦评估：已提取到独立文件
+ */
+import { createMoreFormatsMenuItem } from "./export/moreFormats";
+/**
+ * 用途：创建移动端 PDF 菜单项
+ * 使用范围：exportMd 函数
+ * 解耦评估：已提取到独立文件
+ */
+import { createMobilePDFMenuItem } from "./export/mobile";
+/**
+ * 用途：创建移动端 HTML (SiYuan) 菜单项
+ * 使用范围：exportMd 函数
+ * 解耦评估：已提取到独立文件
+ */
+import { createMobileHTMLSiYuanMenuItem } from "./export/mobile";
+/**
+ * 用途：创建移动端 HTML (Markdown) 菜单项
+ * 使用范围：exportMd 函数
+ * 解耦评估：已提取到独立文件
+ */
+import { createMobileHTMLMarkdownMenuItem } from "./export/mobile";
+/**
+ * 用途：复制子菜单
+ * 使用范围：多个菜单模块
+ * 解耦评估：已提取到独立文件，此处重新导出以保持 API 兼容性
+ */
+import { copySubMenu } from "./copy";
+// @柯里化
+/**
+ * 用途：绑定属性输入框的变更事件
+ * 作用：当输入框值改变时自动保存到块属性
+ * 意图：简化属性输入框的事件绑定代码
+ * 调用时机：创建属性输入框时
+ * @同步豁免: 需要绝对同步的DOM访问 - 事件监听器绑定必须同步
+ */
 export const bindAttrInput = (inputElement: HTMLInputElement, id: string) => {
+    // @内联回调 @柯里化
     inputElement.addEventListener("change", () => {
+        const attrName = inputElement.dataset.name || "";
         fetchPost("/api/attr/setBlockAttrs", {
             id,
-            attrs: { [inputElement.dataset.name]: inputElement.value }
+            attrs: { [attrName]: inputElement.value }
         });
     });
 };
 
-export const openWechatNotify = (nodeElement: Element) => {
-    const id = nodeElement.getAttribute("data-node-id");
-    const range = getEditorRange(nodeElement);
-    const reminder = nodeElement.getAttribute(Constants.CUSTOM_REMINDER_WECHAT);
-    let reminderFormat = "";
-    if (reminder) {
-        reminderFormat = dayjs(reminder).format("YYYY-MM-DD HH:mm");
-    }
-    const dialog = new Dialog({
-        width: isMobile() ? "92vw" : "50vw",
-        title: siyuanI18n.wechatReminder,
-        content: `<div class="b3-dialog__content custom-attr">
-    <div class="fn__flex">
-        <span class="ft__on-surface fn__flex-center" style="text-align: right;white-space: nowrap;width: 100px">${siyuanI18n.notifyTime}</span>
-        <div class="fn__space"></div>
-        <input class="b3-text-field fn__flex-1" type="datetime-local" max="9999-12-31 23:59" value="${reminderFormat}">
-    </div>
-    <div class="b3-label__text" style="text-align: center">${siyuanI18n.wechatTip}</div>
-</div>
-<div class="b3-dialog__action">
-    <button class="b3-button b3-button--cancel">${siyuanI18n.cancel}</button><div class="fn__space"></div>
-    <button class="b3-button b3-button--text">${siyuanI18n.remove}</button><div class="fn__space"></div>
-    <button class="b3-button b3-button--text">${siyuanI18n.confirm}</button>
-</div>`,
-        destroyCallback() {
-            focusByRange(range);
-        }
-    });
-    dialog.element.setAttribute("data-key", Constants.DIALOG_WECHATREMINDER);
-    const btnsElement = dialog.element.querySelectorAll(".b3-button");
-    btnsElement[0].addEventListener("click", () => {
-        dialog.destroy();
-    });
-    btnsElement[1].addEventListener("click", () => {
-        if (btnsElement[1].getAttribute("disabled")) {
-            return;
-        }
-        btnsElement[1].setAttribute("disabled", "disabled");
-        fetchPost("/api/block/setBlockReminder", {id, timed: "0"}, () => {
-            nodeElement.removeAttribute(Constants.CUSTOM_REMINDER_WECHAT);
-            dialog.destroy();
-        });
-    });
-    btnsElement[2].addEventListener("click", () => {
-        const date = dialog.element.querySelector("input").value;
-        if (date) {
-            if (new Date(date) <= new Date()) {
-                showMessage(siyuanI18n.reminderTip);
-                return;
-            }
-            if (btnsElement[2].getAttribute("disabled")) {
-                return;
-            }
-            btnsElement[2].setAttribute("disabled", "disabled");
-            const timed = dayjs(date).format("YYYYMMDDHHmmss");
-            fetchPost("/api/block/setBlockReminder", {id, timed}, () => {
-                nodeElement.setAttribute(Constants.CUSTOM_REMINDER_WECHAT, timed);
-                dialog.destroy();
-            });
-        } else {
-            showMessage(siyuanI18n.notEmpty);
-        }
-    });
-};
-
-export const openFileWechatNotify = (protyle: IProtyle) => {
-    fetchPost("/api/block/getDocInfo", {
-        id: protyle.block.rootID
-    }, (response) => {
-        const reminder = response.data.ial[Constants.CUSTOM_REMINDER_WECHAT];
-        let reminderFormat = "";
-        if (reminder) {
-            reminderFormat = dayjs(reminder).format("YYYY-MM-DD HH:mm");
-        }
-        const dialog = new Dialog({
-            width: isMobile() ? "92vw" : "50vw",
-            title: siyuanI18n.wechatReminder,
-            content: `<div class="b3-dialog__content custom-attr">
-    <div class="fn__flex">
-        <span class="ft__on-surface fn__flex-center" style="text-align: right;white-space: nowrap;width: 100px">${siyuanI18n.notifyTime}</span>
-        <div class="fn__space"></div>
-        <input class="b3-text-field fn__flex-1" type="datetime-local" max="9999-12-31 23:59" value="${reminderFormat}">
-    </div>
-    <div class="b3-label__text" style="text-align: center">${siyuanI18n.wechatTip}</div>
-</div>
-<div class="b3-dialog__action">
-    <button class="b3-button b3-button--cancel">${siyuanI18n.cancel}</button><div class="fn__space"></div>
-    <button class="b3-button b3-button--text">${siyuanI18n.remove}</button><div class="fn__space"></div>
-    <button class="b3-button b3-button--text">${siyuanI18n.confirm}</button>
-</div>`
-        });
-        dialog.element.setAttribute("data-key", Constants.DIALOG_WECHATREMINDER);
-        const btnsElement = dialog.element.querySelectorAll(".b3-button");
-        btnsElement[0].addEventListener("click", () => {
-            dialog.destroy();
-        });
-        btnsElement[1].addEventListener("click", () => {
-            fetchPost("/api/block/setBlockReminder", {id: protyle.block.rootID, timed: "0"}, () => {
-                dialog.destroy();
-            });
-        });
-        btnsElement[2].addEventListener("click", () => {
-            const date = dialog.element.querySelector("input").value;
-            if (date) {
-                if (new Date(date) <= new Date()) {
-                    showMessage(siyuanI18n.reminderTip);
-                    return;
-                }
-                fetchPost("/api/block/setBlockReminder", {
-                    id: protyle.block.rootID,
-                    timed: dayjs(date).format("YYYYMMDDHHmmss")
-                }, () => {
-                    dialog.destroy();
-                });
-            } else {
-                showMessage(siyuanI18n.notEmpty);
-            }
-        });
-    });
-};
-
+/**
+ * 用途：打开块属性对话框
+ * 作用：获取块属性并显示属性编辑对话框
+ * 意图：为用户提供编辑块属性的界面
+ * 调用时机：用户点击块的属性菜单项时
+ * @同步豁免: UI构建 - 菜单项创建需要同步返回
+ */
 export const openAttr = (nodeElement: Element, focusName = "bookmark", protyle: IProtyle) => {
+    // 判断是否为分隔线块，分隔线块不支持属性编辑
     if (nodeElement.getAttribute("data-type") === "NodeThematicBreak") {
         return;
     }
@@ -175,450 +185,56 @@ export const openAttr = (nodeElement: Element, focusName = "bookmark", protyle: 
     });
 };
 
-// S-forge: copySubMenu提取到单独文件
-export { copySubMenu } from "./copy";
-
+/**
+ * 用途：创建导出菜单
+ * 作用：构建包含多种导出格式的菜单项
+ * 意图：为用户提供统一的导出入口
+ * 调用时机：在文档或块的右键菜单中显示导出选项时
+ * @同步豁免: UI构建 - 菜单项创建需要同步返回 DOM 元素
+ */
 export const exportMd = (id: string) => {
-    if (window.siyuan.isPublish) {
+    // 判断是否为发布模式，发布模式下不显示导出菜单
+    if (getSiyuanIsPublish()) {
         return;
     }
+    // @内联数组
+    const baseMenuItems = [
+        createTemplateExportMenuItem(id),
+        createSiYuanZipExportMenuItem(id),
+        createMarkdownZipExportMenuItem(id),
+        createImageExportMenuItem(id),
+    ];
+    // @内联数组
+    const electronMenuItems = isElectron ? [
+        createPDFExportMenuItem(id),
+        createHTMLSiYuanExportMenuItem(id),
+        createHTMLMarkdownExportMenuItem(id),
+        createWordExportMenuItem(id),
+        createMoreFormatsMenuItem(id),
+    ] : [];
+    // @内联数组
+    const mobileMenuItems = !isElectron ? [
+        createMobilePDFMenuItem(id),
+        createMobileHTMLSiYuanMenuItem(id),
+        createMobileHTMLMarkdownMenuItem(id),
+    ] : [];
+    
     return new MenuItem({
         id: "export",
         label: siyuanI18n.export,
         type: "submenu",
         icon: "iconUpload",
-        submenu: [{
-            id: "exportTemplate",
-            label: siyuanI18n.template,
-            iconClass: "ft__error",
-            icon: "iconMarkdown",
-            click: async () => {
-                const result = await fetchSyncPost("/api/block/getRefText", { id: id });
-
-                const dialog = new Dialog({
-                    title: siyuanI18n.fileName,
-                    content: `<div class="b3-dialog__content"><input class="b3-text-field fn__block" value=""></div>
-<div class="b3-dialog__action">
-    <button class="b3-button b3-button--cancel">${siyuanI18n.cancel}</button><div class="fn__space"></div>
-    <button class="b3-button b3-button--text">${siyuanI18n.confirm}</button>
-</div>`,
-                    width: isMobile() ? "92vw" : "520px",
-                });
-                dialog.element.setAttribute("data-key", Constants.DIALOG_EXPORTTEMPLATE);
-                const inputElement = dialog.element.querySelector("input") as HTMLInputElement;
-                const btnsElement = dialog.element.querySelectorAll(".b3-button");
-                dialog.bindInput(inputElement, () => {
-                    (btnsElement[1] as HTMLButtonElement).click();
-                });
-                let name = replaceFileName(result.data);
-                const maxNameLen = 32;
-                if (name.length > maxNameLen) {
-                    name = name.substring(0, maxNameLen);
-                }
-                inputElement.value = name;
-                inputElement.focus();
-                inputElement.select();
-                btnsElement[0].addEventListener("click", () => {
-                    dialog.destroy();
-                });
-                btnsElement[1].addEventListener("click", () => {
-                    if (inputElement.value.trim() === "") {
-                        inputElement.value = siyuanI18n.untitled;
-                    } else {
-                        inputElement.value = replaceFileName(inputElement.value);
-                    }
-
-                    if (name.length > maxNameLen) {
-                        name = name.substring(0, maxNameLen);
-                    }
-
-                    fetchPost("/api/template/docSaveAsTemplate", {
-                        id,
-                        name: inputElement.value,
-                        overwrite: false
-                    }, response => {
-                        if (response.code === 1) {
-                            // 重名
-                            confirmDialog(siyuanI18n.export, siyuanI18n.exportTplTip, () => {
-                                fetchPost("/api/template/docSaveAsTemplate", {
-                                    id,
-                                    name: inputElement.value,
-                                    overwrite: true
-                                }, resp => {
-                                    if (resp.code === 0) {
-                                        showMessage(siyuanI18n.exportTplSucc);
-                                    }
-                                });
-                            });
-                            return;
-                        }
-                        showMessage(siyuanI18n.exportTplSucc);
-                    });
-                    dialog.destroy();
-                });
-            }
-        }, {
-            id: "exportSiYuanZip",
-            label: "SiYuan .sy.zip",
-            icon: "iconSiYuan",
-            click: () => {
-                const msgId = showMessage(siyuanI18n.exporting, -1);
-                fetchPost("/api/export/exportSY", {
-                    id,
-                }, response => {
-                    hideMessage(msgId);
-                    openByMobile(response.data.zip);
-                });
-            }
-        }, {
-            id: "exportMarkdown",
-            label: "Markdown .zip",
-            icon: "iconMarkdown",
-            click: () => {
-                const msgId = showMessage(siyuanI18n.exporting, -1);
-                fetchPost("/api/export/exportMd", {
-                    id,
-                }, response => {
-                    hideMessage(msgId);
-                    openByMobile(response.data.zip);
-                });
-            }
-        }, {
-            id: "exportImage",
-            label: siyuanI18n.image,
-            icon: "iconImage",
-            click: () => {
-                exportImage(id);
-            }
-        },
-        ...(isElectron ? [{
-            id: "exportPDF",
-            label: "PDF",
-            icon: "iconPDF",
-            click: () => {
-                saveExport({ type: "pdf", id });
-            }
-        }, {
-            id: "exportHTML_SiYuan",
-            label: "HTML (SiYuan)",
-            iconClass: "ft__error",
-            icon: "iconHTML5",
-            click: () => {
-                saveExport({ type: "html", id });
-            }
-        }, {
-            id: "exportHTML_Markdown",
-            label: "HTML (Markdown)",
-            icon: "iconHTML5",
-            click: () => {
-                saveExport({ type: "htmlmd", id });
-            }
-        }, {
-            id: "exportWord",
-            label: "Word .docx",
-            icon: "iconExact",
-            click: () => {
-                saveExport({ type: "word", id });
-            }
-        }, {
-            id: "exportMore",
-            label: siyuanI18n.more,
-            icon: "iconMore",
-            type: "submenu",
-            submenu: [{
-                id: "exportReStructuredText",
-                label: "reStructuredText",
-                click: () => {
-                    const msgId = showMessage(siyuanI18n.exporting, -1);
-                    fetchPost("/api/export/exportReStructuredText", {
-                        id,
-                    }, response => {
-                        hideMessage(msgId);
-                        openByMobile(response.data.zip);
-                    });
-                }
-            }, {
-                id: "exportAsciiDoc",
-                label: "AsciiDoc",
-                click: () => {
-                    const msgId = showMessage(siyuanI18n.exporting, -1);
-                    fetchPost("/api/export/exportAsciiDoc", {
-                        id,
-                    }, response => {
-                        hideMessage(msgId);
-                        openByMobile(response.data.zip);
-                    });
-                }
-            }, {
-                id: "exportTextile",
-                label: "Textile",
-                click: () => {
-                    const msgId = showMessage(siyuanI18n.exporting, -1);
-                    fetchPost("/api/export/exportTextile", {
-                        id,
-                    }, response => {
-                        hideMessage(msgId);
-                        openByMobile(response.data.zip);
-                    });
-                }
-            }, {
-                id: "exportOPML",
-                label: "OPML",
-                click: () => {
-                    const msgId = showMessage(siyuanI18n.exporting, -1);
-                    fetchPost("/api/export/exportOPML", {
-                        id,
-                    }, response => {
-                        hideMessage(msgId);
-                        openByMobile(response.data.zip);
-                    });
-                }
-            }, {
-                id: "exportOrgMode",
-                label: "Org-Mode",
-                click: () => {
-                    const msgId = showMessage(siyuanI18n.exporting, -1);
-                    fetchPost("/api/export/exportOrgMode", {
-                        id,
-                    }, response => {
-                        hideMessage(msgId);
-                        openByMobile(response.data.zip);
-                    });
-                }
-            }, {
-                id: "exportMediaWiki",
-                label: "MediaWiki",
-                click: () => {
-                    const msgId = showMessage(siyuanI18n.exporting, -1);
-                    fetchPost("/api/export/exportMediaWiki", {
-                        id,
-                    }, response => {
-                        hideMessage(msgId);
-                        openByMobile(response.data.zip);
-                    });
-                }
-            }, {
-                id: "exportODT",
-                label: "ODT",
-                click: () => {
-                    const msgId = showMessage(siyuanI18n.exporting, -1);
-                    fetchPost("/api/export/exportODT", {
-                        id,
-                    }, response => {
-                        hideMessage(msgId);
-                        openByMobile(response.data.zip);
-                    });
-                }
-            }, {
-                id: "exportRTF",
-                label: "RTF",
-                click: () => {
-                    const msgId = showMessage(siyuanI18n.exporting, -1);
-                    fetchPost("/api/export/exportRTF", {
-                        id,
-                    }, response => {
-                        hideMessage(msgId);
-                        openByMobile(response.data.zip);
-                    });
-                }
-            }, {
-                id: "exportEPUB",
-                label: "EPUB",
-                click: () => {
-                    const msgId = showMessage(siyuanI18n.exporting, -1);
-                    fetchPost("/api/export/exportEPUB", {
-                        id,
-                    }, response => {
-                        hideMessage(msgId);
-                        openByMobile(response.data.zip);
-                    });
-                }
-            },
-            ]
-        }] : []),
-        ...(!isElectron ? [{
-            id: "exportPDF",
-            label: siyuanI18n.print,
-            icon: "iconPDF",
-            ignore: !isInMobileApp(),
-            click: () => {
-                const msgId = showMessage(siyuanI18n.exporting);
-                const localData = window.siyuan.storage[Constants.LOCAL_EXPORTPDF];
-                fetchPost("/api/export/exportPreviewHTML", {
-                    id,
-                    keepFold: localData.keepFold,
-                    merge: localData.mergeSubdocs,
-                }, async response => {
-                    const servePath = window.location.protocol + "//" + window.location.host + "/";
-                    const html = await onExport(response, undefined, servePath, { type: "pdf", id });
-                    if (isInAndroid()) {
-                        window.JSAndroid.print(response.data.name, html);
-                    } else if (isInHarmony()) {
-                        window.JSHarmony.print(response.data.name, html);
-                    } else if (isInIOS()) {
-                        window.webkit.messageHandlers.print.postMessage(response.data.name + Constants.ZWSP + html);
-                    }
-
-                    setTimeout(() => {
-                        hideMessage(msgId);
-                    }, 3000);
-                });
-            }
-        }, {
-            id: "exportHTML_SiYuan",
-            label: "HTML (SiYuan)",
-            iconClass: "ft__error",
-            icon: "iconHTML5",
-            click: () => {
-                saveExport({ type: "html", id });
-            }
-        }, {
-            id: "exportHTML_Markdown",
-            label: "HTML (Markdown)",
-            icon: "iconHTML5",
-            click: () => {
-                saveExport({ type: "htmlmd", id });
-            }
-        }] : []),
-        ]
+        submenu: [...baseMenuItems, ...electronMenuItems, ...mobileMenuItems]
     }).element;
 };
 
-export const openMenu = (app: App, src: string, onlyMenu: boolean, showAccelerator: boolean) => {
-    const submenu = [];
-    if (isMobile()) {
-        submenu.push({
-            id: isInAndroid() ? "useDefault" : "useBrowserView",
-            label: isInAndroid() ? siyuanI18n.useDefault : siyuanI18n.useBrowserView,
-            accelerator: showAccelerator ? siyuanI18n.click : "",
-            click: () => {
-                openByMobile(src);
-            }
-        });
-    }
-    if (!isMobile()) {
-    if (isLocalPath(src)) {
-        if (Constants.SIYUAN_ASSETS_EXTS.includes(pathPosix().extname(src).split("?")[0]) &&
-            (!src.endsWith(".pdf") ||
-                (src.endsWith(".pdf") && !src.startsWith("file://")))
-        ) {
-            submenu.push({
-                id: "insertRight",
-                icon: "iconLayoutRight",
-                label: siyuanI18n.insertRight,
-                accelerator: showAccelerator ? siyuanI18n.click : "",
-                click() {
-                    openAsset(app, src.trim(), parseInt(getSearch("page", src)), "right");
-                }
-            });
-            submenu.push({
-                id: "openBy",
-                label: siyuanI18n.openBy,
-                icon: "iconOpen",
-                accelerator: showAccelerator ? "⌥" + siyuanI18n.click : "",
-                click() {
-                    openAsset(app, src.trim(), parseInt(getSearch("page", src)));
-                }
-            });
-            if (isElectron) {
-                submenu.push({
-                    id: "openByNewWindow",
-                    label: siyuanI18n.openByNewWindow,
-                    icon: "iconOpenWindow",
-                    click() {
-                        openAssetNewWindow(src.trim());
-                    }
-                });
-                submenu.push({
-                    id: "showInFolder",
-                    icon: "iconFolder",
-                    label: siyuanI18n.showInFolder,
-                    accelerator: showAccelerator ? "⌘" + siyuanI18n.click : "",
-                    click: () => {
-                        openBy(src, "folder");
-                    }
-                });
-                submenu.push({
-                    id: "useDefault",
-                    label: siyuanI18n.useDefault,
-                    accelerator: showAccelerator ? "⇧" + siyuanI18n.click : "",
-                    click() {
-                        openBy(src, "app");
-                    }
-                });
-            }
-        } else {
-            if (isElectron) {
-                submenu.push({
-                    id: "useDefault",
-                    label: siyuanI18n.useDefault,
-                    accelerator: showAccelerator ? siyuanI18n.click : "",
-                    click() {
-                        openBy(src, "app");
-                    }
-                });
-                submenu.push({
-                    id: "showInFolder",
-                    icon: "iconFolder",
-                    label: siyuanI18n.showInFolder,
-                    accelerator: showAccelerator ? "⌘" + siyuanI18n.click : "",
-                    click: () => {
-                        openBy(src, "folder");
-                    }
-                });
-            }
-            if (!isElectron) {
-                submenu.push({
-                    id: isInAndroid() || isInHarmony() ? "useDefault" : "useBrowserView",
-                    label: isInAndroid() || isInHarmony() ? siyuanI18n.useDefault : siyuanI18n.useBrowserView,
-                    accelerator: showAccelerator ? siyuanI18n.click : "",
-                    click: () => {
-                        openByMobile(src);
-                    }
-                });
-            }
-        }
-    } else if (src) {
-        if (0 > src.indexOf(":")) {
-            // 使用 : 判断，不使用 :// 判断 Open external application protocol invalid https://github.com/siyuan-note/siyuan/issues/10075
-            // Support click to open hyperlinks like `www.foo.com` https://github.com/siyuan-note/siyuan/issues/9986
-            src = `https://${src}`;
-        }
-        if (isElectron) {
-            submenu.push({
-                id: "useDefault",
-                label: siyuanI18n.useDefault,
-                accelerator: showAccelerator ? siyuanI18n.click : "",
-                click: () => {
-                    openExternal(src).catch((e) => {
-                        showMessage(e);
-                    });
-                }
-            });
-        }
-        if (!isElectron) {
-            submenu.push({
-                id: isInAndroid() || isInHarmony() ? "useDefault" : "useBrowserView",
-                label: isInAndroid() || isInHarmony() ? siyuanI18n.useDefault : siyuanI18n.useBrowserView,
-                accelerator: showAccelerator ? siyuanI18n.click : "",
-                click: () => {
-                    openByMobile(src);
-                }
-            });
-        }
-    }
-    }
-    if (onlyMenu) {
-        return submenu;
-    }
-    window.siyuan.menus.menu.append(new MenuItem({
-        id: "openBy",
-        label: siyuanI18n.openBy,
-        icon: "iconOpen",
-        submenu
-    }).element);
-};
-
+/**
+ * 用途：创建重命名菜单项
+ * 作用：构建文件或笔记本的重命名菜单项
+ * 意图：为用户提供重命名功能入口
+ * 调用时机：在文件或笔记本的右键菜单中显示重命名选项时
+ * @同步豁免: UI构建 - 菜单项创建需要同步返回 DOM 元素
+ */
 export const renameMenu = (options: {
     path: string
     notebookId: string
@@ -631,38 +247,75 @@ export const renameMenu = (options: {
         accelerator: getSiyuanConfig().keymap.editor.general.rename.custom,
         icon: "iconEdit",
         label: siyuanI18n.rename,
+        /**
+         * 用途：触发重命名操作
+         * 意图：根据类型获取文档信息或直接重命名
+         * 调用时机：用户点击重命名菜单项时
+         */
         click: () => {
-            if (options.type === "file" && options.docId) {
-                fetchPost("/api/block/getDocInfo", {
-                    id: options.docId
-                }, (response) => {
-                    rename({
-                        ...options,
-                        name: response.data.ial.title,
-                        empty: response.data.ial[Constants.CUSTOM_SY_TITLE_EMPTY] === "true",
-                    });
-                });
-            } else {
+            // 判断是否为文件类型且有文档 ID，需要先获取文档信息
+            if (options.type !== "file" || !options.docId) {
                 rename(options);
+                return;
             }
+            // @内联回调
+            fetchPost("/api/block/getDocInfo", {
+                id: options.docId
+            }, (response) => {
+                rename({
+                    ...options,
+                    name: response.data.ial.title,
+                    empty: response.data.ial[Constants.CUSTOM_SY_TITLE_EMPTY] === "true",
+                });
+            });
         }
     }).element;
 };
 
+/**
+ * 用途：导出复制子菜单函数
+ * 作用：保持 API 兼容性，供其他模块使用
+ * 意图：避免破坏现有导入路径
+ */
+export { copySubMenu };
+
+/**
+ * 用途：创建移动路径菜单项
+ * 作用：构建文件移动功能的菜单项
+ * 意图：为用户提供文件移动功能入口
+ * 调用时机：在文件的右键菜单中显示移动选项时
+ * @同步豁免: UI构建 - 菜单项创建需要同步返回 DOM 元素
+ */
 export const movePathToMenu = (paths: string[]) => {
     return new MenuItem({
         id: "move",
         label: siyuanI18n.move,
         icon: "iconMove",
         accelerator: getSiyuanConfig().keymap.general.move.custom,
+        /**
+         * 用途：触发移动路径对话框
+         * 意图：打开文件移动选择器
+         * 调用时机：用户点击移动菜单项时
+         */
         click() {
             const rootIDs: string[] = [];
-            paths.forEach(item => {
+            for (const item of paths) {
                 rootIDs.push(pathPosix().basename(item).replace(".sy", ""));
-            });
+            }
+            
             movePathTo({
+                /**
+                 * 用途：移动完成后的回调
+                 * 意图：执行实际的文件移动操作
+                 * 调用时机：用户选择目标路径后
+                 */
                 cb: (toPath, toNotebook) => {
-                    moveToPath(paths, toNotebook[0], toPath[0]);
+                    const toPathStr = toPath[0] ;
+                    const toNotebookStr = toNotebook[0] ;
+                    if(!toPathStr || !toNotebookStr) {
+                        return;
+                    }
+                    moveToPath(paths, toNotebookStr, toPathStr);
                 },
                 paths,
                 flashcard: false,

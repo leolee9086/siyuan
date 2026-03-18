@@ -1,5 +1,5 @@
 import { switchFnNoneByFlag } from "./imports";
-import { selectAllThenEach } from "./utils.selectors";
+import { selectAllThenEach } from "./utils/utils.selectors";
 import { CSS_CLASSES, createSelector } from "./constants";
 
 /**

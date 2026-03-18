@@ -19,7 +19,7 @@ import type { ChatResponseData } from "../../ai/types";
  * 使用范围：在构建后端请求时需要获取apiBaseURL配置
  * 解耦评估：可通过依赖注入解耦，但当前实现为全局配置读取，重构成本较高
  */
-import { getAIConfigFromSiyuan } from "../../ai/utils.config";
+import { getAIConfigFromSiyuan } from "../../ai/utils/utils.config";
 
 // ============================================================================
 // 思源环境配置 - 用于读取思源笔记的全局配置

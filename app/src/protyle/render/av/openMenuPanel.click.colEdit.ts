@@ -1,8 +1,8 @@
 import { transaction } from "../../wysiwyg/transaction";
 import { setPosition } from "../../../util/DOM/setPosition";
 import { hasClosestByClassName } from "../../util/hasClosest";
-import { bindEditEvent, getEditHTML } from "./col";
-import { getColIconByType, getColNameByType } from "./col.typeUtils";
+import { bindEditEvent, getEditHTML } from "./col/col";
+import { getColIconByType, getColNameByType } from "./col/col.typeUtils";
 import { formatNumber } from "./number";
 import { openEmojiPanel, unicode2Emoji } from "../../../emoji";
 import { updateAttrViewCellAnimation } from "./action";

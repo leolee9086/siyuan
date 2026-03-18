@@ -1,6 +1,6 @@
 import {fetchPost} from "../../../util/network/fetch";
-import {addCol} from "./col.addCol";
-import {getColIconByType} from "./col.typeUtils";
+import {addCol} from "./col/addCol";
+import {getColIconByType} from "./col/col.typeUtils";
 import {escapeAriaLabel, escapeAttr, escapeHtml} from "../../../util/DOM/escape";
 import * as dayjs from "dayjs";
 import {popTextCell, updateCellsValue} from "./cell";

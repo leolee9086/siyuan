@@ -1,4 +1,4 @@
-import {siyuanI18n} from "../../../util/siyuanEnvironments/i18n.getI18n.environment";
+import {siyuanI18n} from "../../../../util/siyuanEnvironments/i18n.getI18n.environment";
 
 /**
  * 根据列类型获取本地化的列类型显示名称

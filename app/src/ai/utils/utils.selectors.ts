@@ -1,7 +1,7 @@
 
 
 
-import { SelectorOperationConfig } from "./types";
+import { SelectorOperationConfig } from "../types";
 
 /**
  * 1.选择一个元素中所有符合的元素
