@@ -2,7 +2,7 @@ import {transaction} from "../../wysiwyg/transaction";
 import * as dayjs from "dayjs";
 import {getPropertiesHTML} from "./openMenuPanel";
 import {removeAttrViewColAnimation} from "./action";
-import {addAttrViewColAnimation} from "./col.addAttrViewColAnimation";
+import {addAttrViewColAnimation} from "./col/col.addAttrViewColAnimation";
 import {duplicateNameAddOne} from "../../../util/platform/functions";
 import {setPosition} from "../../../util/DOM/setPosition";
 import {getFieldsByData} from "./view";
