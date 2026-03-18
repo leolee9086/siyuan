@@ -12,9 +12,11 @@
 const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
+const ts = require("typescript");
 
 const ROOT_DIR = path.resolve(__dirname, "../..");
 const TARGETS_PATH = path.join(ROOT_DIR, "build.targets.json");
+const SRC_DIR = path.join(ROOT_DIR, "src");
 const OUTPUT_DIR = path.join(ROOT_DIR, "0_lints");
 
 const GENERATED_CONFIG_PATH = path.join(OUTPUT_DIR, "unused-frontend.knip.config.json");
@@ -24,6 +26,50 @@ const SUMMARY_PATH = path.join(OUTPUT_DIR, "unused-frontend.summary.txt");
 
 const STRICT_MODE = process.argv.includes("--strict");
 const PRODUCTION_MODE = process.argv.includes("--production");
+
+const CODE_FILE_EXTENSIONS = new Set([
+    ".ts",
+    ".tsx",
+    ".js",
+    ".jsx",
+    ".mjs",
+    ".cjs",
+    ".vue",
+]);
+
+const MODULE_RESOLVE_EXTENSIONS = [
+    ".ts",
+    ".tsx",
+    ".js",
+    ".jsx",
+    ".vue",
+    ".mjs",
+    ".cjs",
+];
+
+const SPECIAL_SUFFIX_GLOBS = [
+    "**/*.remote.ts",
+    "**/*.backup.ts",
+    "**/*.old.ts",
+    "**/*.bak.ts",
+    "**/*.ts.backup",
+    "**/*.ts.old",
+    "**/*.ts.bak",
+    "**/*.old",
+    "**/*.bak",
+];
+
+const SPECIAL_SUFFIX_PATTERNS = [
+    /\.remote\.ts$/i,
+    /\.backup\.(ts|tsx|js|jsx|mjs|cjs)$/i,
+    /\.old\.(ts|tsx|js|jsx|mjs|cjs)$/i,
+    /\.bak\.(ts|tsx|js|jsx|mjs|cjs)$/i,
+    /\.ts\.backup$/i,
+    /\.ts\.old$/i,
+    /\.ts\.bak$/i,
+    /\.old$/i,
+    /\.bak$/i,
+];
 
 function log(message) {
     console.log(`[scan:unused:frontend] ${message}`);
@@ -50,7 +96,7 @@ function readBuildTargets() {
     }
 }
 
-function collectEntryFiles(targets) {
+function collectBuildEntryFiles(targets) {
     const entrySet = new Set();
     for (const target of Object.values(targets)) {
         const entries = target && typeof target === "object" ? target.entry : undefined;
@@ -68,16 +114,229 @@ function collectEntryFiles(targets) {
     return entryFiles;
 }
 
+function isSpecialSuffixPath(filePath) {
+    const normalized = toPosix(filePath);
+    return SPECIAL_SUFFIX_PATTERNS.some(pattern => pattern.test(normalized));
+}
+
+function listFilesRecursively(dirPath, list = []) {
+    const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+    for (const entry of entries) {
+        const fullPath = path.join(dirPath, entry.name);
+        if (entry.isDirectory()) {
+            listFilesRecursively(fullPath, list);
+            continue;
+        }
+        list.push(fullPath);
+    }
+    return list;
+}
+
+function extractVueScriptBlocks(content) {
+    const blocks = [];
+    const regex = /<script\b[^>]*>([\s\S]*?)<\/script>/gi;
+    let match = regex.exec(content);
+    while (match) {
+        blocks.push(match[1] || "");
+        match = regex.exec(content);
+    }
+    return blocks;
+}
+
+function extractDynamicImportSpecifiers(code, virtualFileName) {
+    const sourceFile = ts.createSourceFile(
+        virtualFileName,
+        code,
+        ts.ScriptTarget.Latest,
+        true,
+        ts.ScriptKind.TSX,
+    );
+
+    const specifiers = [];
+
+    function visit(node) {
+        if (
+            ts.isCallExpression(node)
+            && node.expression.kind === ts.SyntaxKind.ImportKeyword
+            && node.arguments.length === 1
+        ) {
+            const arg = node.arguments[0];
+            if (ts.isStringLiteral(arg) || ts.isNoSubstitutionTemplateLiteral(arg)) {
+                const specifier = arg.text.trim();
+                if (specifier) {
+                    specifiers.push(specifier);
+                }
+            }
+        }
+        ts.forEachChild(node, visit);
+    }
+
+    visit(sourceFile);
+    return specifiers;
+}
+
+function stripQueryAndHash(specifier) {
+    const index = specifier.search(/[?#]/);
+    if (index === -1) return specifier;
+    return specifier.slice(0, index);
+}
+
+function tryResolveFile(absBasePath) {
+    const checked = new Set();
+    const candidates = [];
+
+    function addCandidate(candidate) {
+        const normalized = path.normalize(candidate);
+        if (!checked.has(normalized)) {
+            checked.add(normalized);
+            candidates.push(normalized);
+        }
+    }
+
+    addCandidate(absBasePath);
+
+    const ext = path.extname(absBasePath).toLowerCase();
+    if (!ext) {
+        for (const candidateExt of MODULE_RESOLVE_EXTENSIONS) {
+            addCandidate(`${absBasePath}${candidateExt}`);
+        }
+        for (const candidateExt of MODULE_RESOLVE_EXTENSIONS) {
+            addCandidate(path.join(absBasePath, `index${candidateExt}`));
+        }
+    } else if (ext === ".js" || ext === ".jsx" || ext === ".mjs" || ext === ".cjs") {
+        const baseWithoutExt = absBasePath.slice(0, -ext.length);
+        for (const candidateExt of MODULE_RESOLVE_EXTENSIONS) {
+            addCandidate(`${baseWithoutExt}${candidateExt}`);
+        }
+    }
+
+    for (const candidate of candidates) {
+        try {
+            if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
+                return candidate;
+            }
+        } catch (error) {
+            // Ignore file system races/permission issues and keep resolving candidates.
+        }
+    }
+
+    return null;
+}
+
+function resolveLocalModulePath(specifier, importerAbsPath) {
+    const cleanedSpecifier = stripQueryAndHash(specifier.trim());
+    if (!cleanedSpecifier) return null;
+
+    let candidateBasePath = null;
+
+    if (cleanedSpecifier.startsWith("./") || cleanedSpecifier.startsWith("../")) {
+        candidateBasePath = path.resolve(path.dirname(importerAbsPath), cleanedSpecifier);
+    } else if (cleanedSpecifier.startsWith("@/")) {
+        candidateBasePath = path.join(SRC_DIR, cleanedSpecifier.slice(2));
+    } else if (cleanedSpecifier.startsWith("src/")) {
+        candidateBasePath = path.join(ROOT_DIR, cleanedSpecifier);
+    } else if (cleanedSpecifier.startsWith("/src/")) {
+        candidateBasePath = path.join(ROOT_DIR, cleanedSpecifier.slice(1));
+    } else {
+        return null;
+    }
+
+    const resolvedPath = tryResolveFile(candidateBasePath);
+    if (!resolvedPath) return null;
+
+    const relative = toPosix(path.relative(ROOT_DIR, resolvedPath));
+    if (!relative.startsWith("src/")) return null;
+    if (relative.endsWith(".d.ts")) return null;
+    if (isSpecialSuffixPath(relative)) return null;
+    return relative;
+}
+
+function shouldSkipDynamicImportScan(relativePath) {
+    const normalized = toPosix(relativePath);
+    if (!normalized.startsWith("src/")) return true;
+    if (normalized.includes("/asset/pdf/")) return true;
+    if (normalized.endsWith(".d.ts")) return true;
+    if (isSpecialSuffixPath(normalized)) return true;
+    return false;
+}
+
+function collectDynamicImportEntryFiles() {
+    const files = listFilesRecursively(SRC_DIR);
+    const dynamicEntrySet = new Set();
+
+    let scannedFiles = 0;
+    let dynamicLiteralCount = 0;
+    let resolvedCount = 0;
+
+    for (const absPath of files) {
+        const ext = path.extname(absPath).toLowerCase();
+        if (!CODE_FILE_EXTENSIONS.has(ext)) continue;
+
+        const relative = toPosix(path.relative(ROOT_DIR, absPath));
+        if (shouldSkipDynamicImportScan(relative)) continue;
+
+        let rawContent = "";
+        try {
+            rawContent = fs.readFileSync(absPath, "utf8");
+        } catch (error) {
+            continue;
+        }
+
+        const codeBlocks = ext === ".vue" ? extractVueScriptBlocks(rawContent) : [rawContent];
+        if (codeBlocks.length === 0) continue;
+
+        scannedFiles++;
+
+        for (const block of codeBlocks) {
+            const specifiers = extractDynamicImportSpecifiers(block, relative);
+            dynamicLiteralCount += specifiers.length;
+            for (const specifier of specifiers) {
+                const resolved = resolveLocalModulePath(specifier, absPath);
+                if (resolved) {
+                    dynamicEntrySet.add(resolved);
+                    resolvedCount++;
+                }
+            }
+        }
+    }
+
+    return {
+        entryFiles: Array.from(dynamicEntrySet).sort(),
+        stats: {
+            scannedFiles,
+            dynamicLiteralCount,
+            resolvedCount,
+        },
+    };
+}
+
 function createKnipConfig(entryFiles) {
     return {
         entry: entryFiles,
         project: [
             "src/**/*.{ts,tsx,js,jsx,vue,scss,css}",
         ],
+        // Explicitly enable Vue/Webpack plugins to improve SFC and bundler graph coverage.
+        vue: true,
+        webpack: {
+            config: [
+                "./webpack.config.js",
+            ],
+        },
+        // Keep alias resolution aligned with project conventions.
+        paths: {
+            "@": [
+                "./src",
+            ],
+            "@/*": [
+                "./src/*",
+            ],
+        },
         ignore: [
             "src/**/*.d.ts",
             "src/types/**",
             "src/asset/pdf/**",
+            ...SPECIAL_SUFFIX_GLOBS,
         ],
         ignoreDependencies: [
             "-",
@@ -182,7 +441,7 @@ function normalizeReport(knipRaw, entryFiles) {
     };
 }
 
-function buildSummary(report) {
+function buildSummary(report, dynamicImportStats) {
     const lines = [];
     lines.push("Frontend Unused Code Report");
     lines.push(`Generated At: ${report.generatedAt}`);
@@ -196,6 +455,11 @@ function buildSummary(report) {
     lines.push(`Unused Dependencies: ${report.totals.dependencies}`);
     lines.push(`Unused DevDependencies: ${report.totals.devDependencies}`);
     lines.push(`Unused Exports: ${report.totals.exports}`);
+    lines.push("");
+    lines.push("Dynamic Import Scan:");
+    lines.push(`- Scanned Source Files: ${dynamicImportStats.scannedFiles}`);
+    lines.push(`- import() Literals Found: ${dynamicImportStats.dynamicLiteralCount}`);
+    lines.push(`- Resolved Dynamic Entries: ${dynamicImportStats.resolvedCount}`);
     lines.push("");
 
     lines.push("Unused Files List:");
@@ -238,11 +502,21 @@ function main() {
     ensureOutputDir();
 
     const targets = readBuildTargets();
-    const entryFiles = collectEntryFiles(targets);
+    const buildEntryFiles = collectBuildEntryFiles(targets);
+    const dynamicImportResult = collectDynamicImportEntryFiles();
+
+    const mergedEntries = new Set([
+        ...buildEntryFiles,
+        ...dynamicImportResult.entryFiles,
+    ]);
+    const entryFiles = Array.from(mergedEntries).sort();
+
     const knipConfig = createKnipConfig(entryFiles);
     fs.writeFileSync(GENERATED_CONFIG_PATH, JSON.stringify(knipConfig, null, 2) + "\n", "utf8");
 
-    log(`Using ${entryFiles.length} entry files from build.targets.json`);
+    log(`Build target entries: ${buildEntryFiles.length}`);
+    log(`Dynamic import entries: ${dynamicImportResult.entryFiles.length}`);
+    log(`Total merged entries: ${entryFiles.length}`);
 
     const result = runKnip(GENERATED_CONFIG_PATH);
     if (result.error) {
@@ -260,7 +534,7 @@ function main() {
     }
 
     const report = normalizeReport(knipRaw, entryFiles);
-    const summary = buildSummary(report);
+    const summary = buildSummary(report, dynamicImportResult.stats);
 
     fs.writeFileSync(REPORT_PATH, JSON.stringify(report, null, 2) + "\n", "utf8");
     fs.writeFileSync(SUMMARY_PATH, summary + "\n", "utf8");
@@ -273,6 +547,7 @@ function main() {
     log(`Unused dependencies: ${report.totals.dependencies}`);
     log(`Unused devDependencies: ${report.totals.devDependencies}`);
     log(`Unused exports: ${report.totals.exports}`);
+    log(`Dynamic imports resolved: ${dynamicImportResult.stats.resolvedCount}`);
 
     if (result.status !== 0 && STRICT_MODE) {
         process.exitCode = result.status;

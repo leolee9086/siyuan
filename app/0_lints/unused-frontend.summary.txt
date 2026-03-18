@@ -1,18 +1,36 @@
 Frontend Unused Code Report
-Generated At: 2026-03-18T02:54:37.339Z
+Generated At: 2026-03-18T05:01:48.780Z
 
 Entry Files:
+- src/config/configSchemas/fileTree.ts
+- src/dialog/index.ts
+- src/dialog/message.ts
+- src/inNotePlugin/index.ts
 - src/index.ts
+- src/layout/tabUtil.ts
 - src/magi/entry/index.ts
 - src/magi/entry/mobile.ts
+- src/magi/panel/magiStatusButton.ts
 - src/mobile/index.ts
 - src/protyle/method.ts
+- src/registry/contentRenderer/registerBuiltinRenderers.ts
+- src/sforge/panel/index.ts
+- src/triggers/styleBrush.ts
+- src/util/DOM/setPosition.ts
+- src/util/network/cronjobApi.ts
+- src/util/network/fetch.ts
 - src/window/index.ts
+- src/window/setHeader.ts
 
-Unused Files: 138
+Unused Files: 135
 Unused Dependencies: 8
 Unused DevDependencies: 6
-Unused Exports: 605
+Unused Exports: 579
+
+Dynamic Import Scan:
+- Scanned Source Files: 1442
+- import() Literals Found: 41
+- Resolved Dynamic Entries: 27
 
 Unused Files List:
 - src/ai/deps.ts
@@ -22,7 +40,6 @@ Unused Files List:
 - src/asset/imports.ts
 - src/asset/tags/assetTags.ts
 - src/asset/tags/assetTags.types.ts
-- src/business/openRecentDocs.remote.ts
 - src/components/composables/useDragable.ts
 - src/components/masonry/components/SelectionBox.vue
 - src/components/masonry/components/SelectionWrapper.vue
@@ -71,7 +88,6 @@ Unused Files List:
 - src/layout/dock/Forwardlink.types.ts
 - src/layout/dock/embeddingDock/embeddingDock.util.ts
 - src/layout/dock/embeddingDock/index.ts
-- src/layout/dock/index.backup.ts
 - src/layout/layout-deserialization.types.ts
 - src/magi/adapters/rawOpenAIStandardLLMAdapter.ts
 - src/magi/components/magi-main-panel/MagiMainPanelHeader.vue
@@ -132,7 +148,6 @@ Unused Files List:
 - src/protyle/wysiwyg/keydown.list/index.ts
 - src/search/utils/genSearch/handlers/index.ts
 - src/search/utils/genSearch/index.ts
-- src/search/utils/onSearch.old.ts
 - src/util/DOM/matchCondition.ts
 - src/util/DOM/matchIf.ts
 - src/util/DOM/range.copyWithResolvedCSS.ts
@@ -231,18 +246,7 @@ Unused Exports List:
 - src/dialog/dialogHelpers.ts:27:17 -> 设置ResizeHandles显示状态
 - src/emoji/emoji.dynamic.ts:29:14 -> genWeekdayOptions
 - src/history/history.render.ts:99:14 -> renderRepoItem
-- src/inNotePlugin/compiler.ts:118:17 -> 是插件文档
-- src/inNotePlugin/compiler.ts:126:23 -> 获取文档属性
-- src/inNotePlugin/index.ts:18:5 -> 编译文档
-- src/inNotePlugin/index.ts:19:5 -> 是插件文档
-- src/inNotePlugin/index.ts:20:5 -> 获取文档属性
-- src/inNotePlugin/index.ts:26:5 -> 加载笔记内插件
-- src/inNotePlugin/index.ts:27:5 -> 卸载笔记内插件
-- src/inNotePlugin/index.ts:31:10 -> persistentPermissionManager
-- src/inNotePlugin/index.ts:34:10 -> getSiyuanApiUrl
-- src/inNotePlugin/index.ts:34:27 -> cleanupSiyuanApiUrl
 - src/inNotePlugin/permissionManager.ts:13:14 -> PersistentPermissionManager
-- src/inNotePlugin/siyuanApi.ts:79:17 -> cleanupSiyuanApiUrl
 - src/layout/dock-utils.ts:104:14 -> initInternalDock
 - src/layout/dock/cronjob.util.ts:30:14 -> 获取状态图标
 - src/layout/dock/cronjob.util.ts:46:14 -> 获取状态文本
@@ -372,7 +376,6 @@ Unused Exports List:
 - src/layout/layout.guard.ts:10:10 -> isStylableElement
 - src/layout/layout.guard.ts:30:17 -> isWnd
 - src/layout/status.ts:199:14 -> renderStatusbarCounter
-- src/layout/tabUtil.ts:396:14 -> closeTabByType
 - src/layout/ui-utils.environment.ts:15:14 -> getWindowInnerHeight
 - src/layout/ui-utils.environment.ts:52:14 -> hasSiyuanLayout
 - src/layout/util.environment.ts:14:14 -> getSiyuanLayout
@@ -433,8 +436,6 @@ Unused Exports List:
 - src/magi/entry/persona-seed-panel/PersonaSeedPanel.utils.ts:234:14 -> resolveNextSampleIndex
 - src/magi/entry/persona-seed-panel/PersonaSeedPanel.utils.ts:263:14 -> writeJsonFile
 - src/magi/events/magiEventBus.ts:29:14 -> magiEventDefines
-- src/magi/panel/magiStatusButton.ts:13:17 -> 打开MAGI
-- src/magi/panel/magiStatusButton.ts:28:17 -> 初始化MAGI状态栏按钮
 - src/magi/prompts/personaPromptBuilder.ts:96:17 -> buildSharedResume
 - src/magi/prompts/personaPromptBuilder.ts:136:17 -> buildPerspectiveNarrative
 - src/magi/prompts/personaRuntimePromptBuilder.ts:131:23 -> resolveActiveSeedProfilePath
@@ -661,19 +662,9 @@ Unused Exports List:
 - src/search/assetFilterPanel.ts:354:14 -> parseFilterPanelValues
 - src/search/assetFilterPanel.ts:355:14 -> initFilterPanelEvents
 - src/search/assets.openSearchAsset.ts:191:14 -> 打开搜索资源面板
-- src/sforge/panel/index.ts:11:5 -> 打开智能工具箱
-- src/sforge/panel/index.ts:12:5 -> 关闭智能工具箱
-- src/sforge/panel/index.ts:13:5 -> 工具箱是否打开
-- src/sforge/panel/index.ts:18:5 -> 初始化工具箱状态栏按钮
 - src/sforge/panel/smartToolboxPanelDialog.ts:102:14 -> openSmartToolbox
-- src/sforge/panel/smartToolboxStatusButton.ts:23:17 -> 初始化工具箱状态栏按钮
 - src/sforge/panel/smartToolboxStatusButton.ts:43:17 -> 切换工具箱
 - src/sync/syncGuide.ts:15:14 -> addCloudName
-- src/triggers/styleBrush.ts:36:10 -> 清理刷子类型名
-- src/triggers/styleBrush.ts:36:35 -> 应用样式
-- src/triggers/styleBrush.ts:118:17 -> 激活样式刷子
-- src/triggers/styleBrush.ts:250:17 -> 样式刷子是否激活
-- src/triggers/styleBrush.ts:259:17 -> 退出样式刷子
 - src/util/assets/assets.ts:20:26 -> setCodeTheme
 - src/util/assets/backgrounds.ts/bgs.modern.ts:54:14 -> generateLinearGradient
 - src/util/assets/backgrounds.ts/bgs.modern.ts:74:14 -> generateRandomGradientConfig
@@ -723,8 +714,6 @@ Unused Exports List:
 - src/util/lib/logger/index.ts:16:5 -> getTaskStatusDescription
 - src/util/lib/logger/index.ts:21:5 -> setLogLevel
 - src/util/lib/logger/index.ts:22:5 -> getLogLevel
-- src/util/network/cronjobApi.ts:51:14 -> 获取任务详情
-- src/util/network/cronjobApi.ts:73:14 -> 注销扩展
 - src/util/network/processMessage.ts:213:14 -> handlePublishServiceClosed
 - src/util/pathRouter/core/layerLike.types.ts:46:14 -> layerLikeSchema
 - src/util/pathRouter/core/types.ts:75:14 -> createRequestLikeSchema

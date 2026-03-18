@@ -1,18 +1,31 @@
 {
-  "generatedAt": "2026-03-18T02:54:37.339Z",
+  "generatedAt": "2026-03-18T05:01:48.780Z",
   "entryFiles": [
+    "src/config/configSchemas/fileTree.ts",
+    "src/dialog/index.ts",
+    "src/dialog/message.ts",
+    "src/inNotePlugin/index.ts",
     "src/index.ts",
+    "src/layout/tabUtil.ts",
     "src/magi/entry/index.ts",
     "src/magi/entry/mobile.ts",
+    "src/magi/panel/magiStatusButton.ts",
     "src/mobile/index.ts",
     "src/protyle/method.ts",
-    "src/window/index.ts"
+    "src/registry/contentRenderer/registerBuiltinRenderers.ts",
+    "src/sforge/panel/index.ts",
+    "src/triggers/styleBrush.ts",
+    "src/util/DOM/setPosition.ts",
+    "src/util/network/cronjobApi.ts",
+    "src/util/network/fetch.ts",
+    "src/window/index.ts",
+    "src/window/setHeader.ts"
   ],
   "totals": {
-    "files": 138,
+    "files": 135,
     "dependencies": 8,
     "devDependencies": 6,
-    "exports": 605
+    "exports": 579
   },
   "files": [
     "src/ai/deps.ts",
@@ -22,7 +35,6 @@
     "src/asset/imports.ts",
     "src/asset/tags/assetTags.ts",
     "src/asset/tags/assetTags.types.ts",
-    "src/business/openRecentDocs.remote.ts",
     "src/components/composables/useDragable.ts",
     "src/components/masonry/components/SelectionBox.vue",
     "src/components/masonry/components/SelectionWrapper.vue",
@@ -71,7 +83,6 @@
     "src/layout/dock/Forwardlink.types.ts",
     "src/layout/dock/embeddingDock/embeddingDock.util.ts",
     "src/layout/dock/embeddingDock/index.ts",
-    "src/layout/dock/index.backup.ts",
     "src/layout/layout-deserialization.types.ts",
     "src/magi/adapters/rawOpenAIStandardLLMAdapter.ts",
     "src/magi/components/magi-main-panel/MagiMainPanelHeader.vue",
@@ -132,7 +143,6 @@
     "src/protyle/wysiwyg/keydown.list/index.ts",
     "src/search/utils/genSearch/handlers/index.ts",
     "src/search/utils/genSearch/index.ts",
-    "src/search/utils/onSearch.old.ts",
     "src/util/DOM/matchCondition.ts",
     "src/util/DOM/matchIf.ts",
     "src/util/DOM/range.copyWithResolvedCSS.ts",
@@ -578,76 +588,10 @@
       "col": 14
     },
     {
-      "file": "src/inNotePlugin/compiler.ts",
-      "name": "是插件文档",
-      "line": 118,
-      "col": 17
-    },
-    {
-      "file": "src/inNotePlugin/compiler.ts",
-      "name": "获取文档属性",
-      "line": 126,
-      "col": 23
-    },
-    {
-      "file": "src/inNotePlugin/index.ts",
-      "name": "编译文档",
-      "line": 18,
-      "col": 5
-    },
-    {
-      "file": "src/inNotePlugin/index.ts",
-      "name": "是插件文档",
-      "line": 19,
-      "col": 5
-    },
-    {
-      "file": "src/inNotePlugin/index.ts",
-      "name": "获取文档属性",
-      "line": 20,
-      "col": 5
-    },
-    {
-      "file": "src/inNotePlugin/index.ts",
-      "name": "加载笔记内插件",
-      "line": 26,
-      "col": 5
-    },
-    {
-      "file": "src/inNotePlugin/index.ts",
-      "name": "卸载笔记内插件",
-      "line": 27,
-      "col": 5
-    },
-    {
-      "file": "src/inNotePlugin/index.ts",
-      "name": "persistentPermissionManager",
-      "line": 31,
-      "col": 10
-    },
-    {
-      "file": "src/inNotePlugin/index.ts",
-      "name": "getSiyuanApiUrl",
-      "line": 34,
-      "col": 10
-    },
-    {
-      "file": "src/inNotePlugin/index.ts",
-      "name": "cleanupSiyuanApiUrl",
-      "line": 34,
-      "col": 27
-    },
-    {
       "file": "src/inNotePlugin/permissionManager.ts",
       "name": "PersistentPermissionManager",
       "line": 13,
       "col": 14
-    },
-    {
-      "file": "src/inNotePlugin/siyuanApi.ts",
-      "name": "cleanupSiyuanApiUrl",
-      "line": 79,
-      "col": 17
     },
     {
       "file": "src/layout/dock-utils.ts",
@@ -1424,12 +1368,6 @@
       "col": 14
     },
     {
-      "file": "src/layout/tabUtil.ts",
-      "name": "closeTabByType",
-      "line": 396,
-      "col": 14
-    },
-    {
       "file": "src/layout/ui-utils.environment.ts",
       "name": "getWindowInnerHeight",
       "line": 15,
@@ -1788,18 +1726,6 @@
       "name": "magiEventDefines",
       "line": 29,
       "col": 14
-    },
-    {
-      "file": "src/magi/panel/magiStatusButton.ts",
-      "name": "打开MAGI",
-      "line": 13,
-      "col": 17
-    },
-    {
-      "file": "src/magi/panel/magiStatusButton.ts",
-      "name": "初始化MAGI状态栏按钮",
-      "line": 28,
-      "col": 17
     },
     {
       "file": "src/magi/prompts/personaPromptBuilder.ts",
@@ -3158,40 +3084,10 @@
       "col": 14
     },
     {
-      "file": "src/sforge/panel/index.ts",
-      "name": "打开智能工具箱",
-      "line": 11,
-      "col": 5
-    },
-    {
-      "file": "src/sforge/panel/index.ts",
-      "name": "关闭智能工具箱",
-      "line": 12,
-      "col": 5
-    },
-    {
-      "file": "src/sforge/panel/index.ts",
-      "name": "工具箱是否打开",
-      "line": 13,
-      "col": 5
-    },
-    {
-      "file": "src/sforge/panel/index.ts",
-      "name": "初始化工具箱状态栏按钮",
-      "line": 18,
-      "col": 5
-    },
-    {
       "file": "src/sforge/panel/smartToolboxPanelDialog.ts",
       "name": "openSmartToolbox",
       "line": 102,
       "col": 14
-    },
-    {
-      "file": "src/sforge/panel/smartToolboxStatusButton.ts",
-      "name": "初始化工具箱状态栏按钮",
-      "line": 23,
-      "col": 17
     },
     {
       "file": "src/sforge/panel/smartToolboxStatusButton.ts",
@@ -3204,36 +3100,6 @@
       "name": "addCloudName",
       "line": 15,
       "col": 14
-    },
-    {
-      "file": "src/triggers/styleBrush.ts",
-      "name": "清理刷子类型名",
-      "line": 36,
-      "col": 10
-    },
-    {
-      "file": "src/triggers/styleBrush.ts",
-      "name": "应用样式",
-      "line": 36,
-      "col": 35
-    },
-    {
-      "file": "src/triggers/styleBrush.ts",
-      "name": "激活样式刷子",
-      "line": 118,
-      "col": 17
-    },
-    {
-      "file": "src/triggers/styleBrush.ts",
-      "name": "样式刷子是否激活",
-      "line": 250,
-      "col": 17
-    },
-    {
-      "file": "src/triggers/styleBrush.ts",
-      "name": "退出样式刷子",
-      "line": 259,
-      "col": 17
     },
     {
       "file": "src/util/assets/assets.ts",
@@ -3528,18 +3394,6 @@
       "name": "getLogLevel",
       "line": 22,
       "col": 5
-    },
-    {
-      "file": "src/util/network/cronjobApi.ts",
-      "name": "获取任务详情",
-      "line": 51,
-      "col": 14
-    },
-    {
-      "file": "src/util/network/cronjobApi.ts",
-      "name": "注销扩展",
-      "line": 73,
-      "col": 14
     },
     {
       "file": "src/util/network/processMessage.ts",

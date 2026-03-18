@@ -1,19 +1,55 @@
 {
   "entry": [
+    "src/config/configSchemas/fileTree.ts",
+    "src/dialog/index.ts",
+    "src/dialog/message.ts",
+    "src/inNotePlugin/index.ts",
     "src/index.ts",
+    "src/layout/tabUtil.ts",
     "src/magi/entry/index.ts",
     "src/magi/entry/mobile.ts",
+    "src/magi/panel/magiStatusButton.ts",
     "src/mobile/index.ts",
     "src/protyle/method.ts",
-    "src/window/index.ts"
+    "src/registry/contentRenderer/registerBuiltinRenderers.ts",
+    "src/sforge/panel/index.ts",
+    "src/triggers/styleBrush.ts",
+    "src/util/DOM/setPosition.ts",
+    "src/util/network/cronjobApi.ts",
+    "src/util/network/fetch.ts",
+    "src/window/index.ts",
+    "src/window/setHeader.ts"
   ],
   "project": [
     "src/**/*.{ts,tsx,js,jsx,vue,scss,css}"
   ],
+  "vue": true,
+  "webpack": {
+    "config": [
+      "./webpack.config.js"
+    ]
+  },
+  "paths": {
+    "@": [
+      "./src"
+    ],
+    "@/*": [
+      "./src/*"
+    ]
+  },
   "ignore": [
     "src/**/*.d.ts",
     "src/types/**",
-    "src/asset/pdf/**"
+    "src/asset/pdf/**",
+    "**/*.remote.ts",
+    "**/*.backup.ts",
+    "**/*.old.ts",
+    "**/*.bak.ts",
+    "**/*.ts.backup",
+    "**/*.ts.old",
+    "**/*.ts.bak",
+    "**/*.old",
+    "**/*.bak"
   ],
   "ignoreDependencies": [
     "-"
