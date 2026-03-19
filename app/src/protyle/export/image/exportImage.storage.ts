@@ -64,7 +64,7 @@ export const getExportImageStorage = async (): Promise<IExportImageStorage> => {
     const normalizedStorage: IExportImageStorage = {
         keepFold: normalizeBoolean(keepFold, defaultStorage.keepFold),
         watermark: normalizeBoolean(watermark, defaultStorage.watermark),
-        ratio: normalizeExportImageRatio(ratio, defaultStorage.ratio),
+        ratio: await normalizeExportImageRatio(ratio, defaultStorage.ratio),
     };
     storage[Constants.LOCAL_EXPORTIMG] = normalizedStorage;
     return normalizedStorage;

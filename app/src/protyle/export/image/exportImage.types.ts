@@ -34,3 +34,35 @@ export interface IExportImageContext {
     cancelButton: HTMLButtonElement;
     confirmButton: HTMLButtonElement;
 }
+
+/**
+ * 用途：导出图片比例选项的数据结构。
+ * 使用场景：约束比例下拉选项列表中的 value 与 label 字段。
+ * 关联模块：`exportImage.ratio.ts` 中的比例常量与模板构建逻辑。
+ * 问题/改进：后续若需支持图标或分组显示，可继续扩展附加字段。
+ */
+export interface IExportImageRatioOption {
+    value: string;
+    label: string;
+}
+
+/**
+ * 用途：导出图片文件描述。
+ * 使用场景：按比例分页截图后返回多张图片及各自文件名。
+ * 关联函数：`exportImageBlobsByRatio`。
+ * 问题/改进：当前仅关注 Blob 与文件名，后续可扩展 MIME 与尺寸信息。
+ */
+export interface IExportImageBlobFile {
+    blob: Blob;
+    fileName: string;
+}
+
+/**
+ * 用途：html-to-image 最小能力约束。
+ * 使用场景：比例分页导出时仅依赖 `toBlob` 能力完成截图。
+ * 关联模块：导出确认流程会把运行时 html-to-image 对象注入到比例模块。
+ * 问题/改进：若未来切换截图实现，可继续维持最小接口解耦。
+ */
+export interface IExportImageBlobGenerator {
+    toBlob: (element: Element) => Promise<Blob | null | undefined>;
+}

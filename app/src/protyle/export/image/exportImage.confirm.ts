@@ -23,7 +23,7 @@ import {showMessage} from "./imports";
 /** 用途：国际化文案；使用范围：导出消息文本；解耦评估：全局 i18n 服务直接依赖符合项目约束。 */
 import {siyuanI18n} from "./imports";
 /** 用途：比例分页导出；使用范围：选择具体比例时生成多张图片；解耦评估：截图分页逻辑独立模块更利于后续扩展。 */
-import {exportImageBlobsByRatio} from "./exportImage.ratio";
+import {exportImageBlobsByRatio} from "./exportImage.ratio.export";
 /** 用途：导出图片上下文类型；使用范围：确认导出流程参数；解耦评估：类型依赖无运行时耦合。 */
 import type {IExportImageContext} from "./exportImage.types";
 
@@ -109,14 +109,18 @@ export const handleConfirmExport = async (ctx: IExportImageContext): Promise<voi
     }
 
     const ratioFiles = await exportImageBlobsByRatio(ctx, htmlToImage);
+    // 选择了具体比例且内容被分页时，优先上传分页结果，避免再回退到整图导出。
     if (0 < ratioFiles.length) {
         for (const file of ratioFiles) {
             await uploadExportImageBlob(file.blob, file.fileName);
         }
-    } else {
-        const blob = await htmlToImage.toBlob(ctx.contentElement);
-        await uploadExportImageBlob(blob, ctx.confirmButton.getAttribute("data-title") || `${ctx.id}.png`);
+        hideMessage(msgId);
+        ctx.dialog.destroy();
+        return;
     }
+
+    const blob = await htmlToImage.toBlob(ctx.contentElement);
+    await uploadExportImageBlob(blob, ctx.confirmButton.getAttribute("data-title") || `${ctx.id}.png`);
 
     hideMessage(msgId);
     ctx.dialog.destroy();

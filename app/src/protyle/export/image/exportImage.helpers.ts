@@ -41,7 +41,7 @@ const handleWatermarkChange = async (ctx: IExportImageContext): Promise<void> =>
  */
 const handleRatioChange = async (ctx: IExportImageContext): Promise<void> => {
     ctx.storage.ratio = ctx.ratioElement.value;
-    applyExportImageRatioPreview(ctx);
+    await applyExportImageRatioPreview(ctx);
     await updateExportImageWatermark(ctx);
 };
 

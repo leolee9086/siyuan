@@ -20,9 +20,10 @@ import type {IExportImageContext} from "./exportImage.types";
 import type {IExportImageStorage} from "./exportImage.types";
 
 /** 作用：构建导出图片弹窗 HTML；意图：将模板拼装从流程中剥离；调用时机：创建 Dialog 时；问题/改进：后续可改为组件模板。 */
-const buildDialogContent = (storage: IExportImageStorage): string => {
+const buildDialogContent = async (storage: IExportImageStorage): Promise<string> => {
     const displayBookmarkIcon = getSiyuanConfig()?.editor?.displayBookmarkIcon ?? false;
     const previewClassName = `protyle-wysiwyg${displayBookmarkIcon ? " protyle-wysiwyg--attr" : ""}`;
+    const ratioOptionsHtml = await buildExportImageRatioOptionsHtml(storage.ratio);
     return `<div class="b3-dialog__content" style="${isMobile() ? "padding:8px;" : ""};background-color: var(--b3-theme-background)">
     <div style="${isMobile() ? "margin: 8px 0" : "padding: 48px;margin: 8px 0"}" class="export-img">
         <div ${isMobile() ? 'style="padding:8px"' : ""} class="${previewClassName}"></div>
@@ -42,7 +43,7 @@ const buildDialogContent = (storage: IExportImageStorage): string => {
     </label>
     <span class="fn__flex-1 export-img__space"></span>
     <select id="ratio" class="b3-select fn__flex-center fn__size200" aria-label="导出比例" title="导出比例">
-        ${buildExportImageRatioOptionsHtml(storage.ratio)}
+        ${ratioOptionsHtml}
     </select>
     <div class="fn__space"></div>
     <button disabled class="b3-button b3-button--cancel">${siyuanI18n.cancel}</button><div class="fn__space"></div>
@@ -60,9 +61,10 @@ const buildDialogContent = (storage: IExportImageStorage): string => {
 // 导出语句注释：导出图片上下文创建入口。
 export const createExportImageContext = async (id: string, dialogKey: string): Promise<IExportImageContext | undefined> => {
     const storage = await getExportImageStorage();
+    const dialogContent = await buildDialogContent(storage);
     const dialog = new Dialog({
         title: siyuanI18n.exportAsImage,
-        content: buildDialogContent(storage),
+        content: dialogContent,
         width: isMobile() ? "92vw" : "990px",
         height: "70vh"
     });

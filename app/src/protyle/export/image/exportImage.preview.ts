@@ -78,7 +78,7 @@ const renderPreview = async (ctx: IExportImageContext, response: IWebSocketData)
     contentRendererRegistry.renderBatch(ctx.previewElement);
     highlightRender(ctx.previewElement);
     scaleWideTables(ctx.previewElement);
-    applyExportImageRatioPreview(ctx);
+    await applyExportImageRatioPreview(ctx);
     await updateExportImageWatermark(ctx);
 };
 
