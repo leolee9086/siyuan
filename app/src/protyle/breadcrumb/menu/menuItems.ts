@@ -52,23 +52,17 @@ import { confirmDialog } from "./imports";
  */
 import { getCloudURL } from "./imports";
 /*
- * 用途：在编辑器中打开文件
- * 使用范围：导出预览菜单项中打开预览页签
- * 解耦评估：编辑器核心功能，可通过依赖注入解耦，但作为全局编辑器操作直接导入更合理
- */
-import { openFile } from "./imports";
-/*
- * 用途：导出预览页签类型常量
- * 使用范围：导出预览菜单项中指定页签类型
- * 解耦评估：常量定义，无需解耦
- */
-import { EXPORT_PREVIEW_TAB_TYPE } from "./imports";
-/*
  * 用途：获取国际化文本
  * 使用范围：所有菜单项的标签和提示信息本地化
  * 解耦评估：全局i18n服务，可通过依赖注入解耦，但作为全局基础设施直接导入更合理
  */
 import { siyuanI18n } from "./imports";
+/*
+ * 用途：统一打开导出预览页签
+ * 使用范围：面包屑菜单项中打开预览页签
+ * 解耦评估：将预览页签的复用与类型切换收敛到单点，优于散落的 openFile 调用
+ */
+import { openExportPreviewTab } from "../../../export-preview/open";
 /*
  * 用途：获取思源全局配置
  * 使用范围：菜单项辅助函数中获取快捷键配置
@@ -168,14 +162,9 @@ export function 添加导出预览菜单项(
         accelerator: siyuanConfig.keymap.editor.general.preview.custom,
         /** 作用：打开导出预览页签 | 调用时机：用户点击菜单项时 */
         async click() {
-            await openFile({
+            await openExportPreviewTab({
                 app: protyle.app,
-                custom: {
-                    title: siyuanI18n.preview,
-                    icon: "iconPreview",
-                    id: EXPORT_PREVIEW_TAB_TYPE,
-                    data: { blockId: protyle.block.rootID },
-                },
+                blockId: protyle.block.rootID,
             });
         }
     });

@@ -5,12 +5,6 @@
  */
 
 /**
- * 用途：执行图片导出功能
- * 使用范围：图片导出菜单项点击处理
- * 解耦评估：导出功能是业务逻辑，可以通过依赖注入解耦，但当前架构未实现
- */
-import { exportImage } from "../imports";
-/**
  * 用途：发送异步 POST 请求到后端 API
  * 使用范围：所有导出菜单项的后端通信
  * 解耦评估：网络请求是基础设施层，无法解耦，必须直接导入
@@ -46,6 +40,12 @@ import { showMessage } from "../imports";
  * 解耦评估：国际化是全局配置，无法解耦，必须直接导入
  */
 import { siyuanI18n } from "../imports";
+/**
+ * 用途：统一打开导出预览页签
+ * 使用范围：笔记级图片导出入口切换到图片导出预览 tab
+ * 解耦评估：导出预览 tab 的复用与类型切换收敛到单点，更便于兼容已有预览页签
+ */
+import { openExportPreviewTab } from "../../../export-preview/open";
 
 /**
  * 作用：创建 SiYuan .sy.zip 导出菜单项
@@ -117,11 +117,14 @@ export const createImageExportMenuItem = (id: string): IMenu => ({
     icon: "iconImage",
     /**
      * 作用：处理图片导出点击事件
-     * 意图：调用图片导出功能
+     * 意图：笔记级导出改为直接打开导出预览 tab，并进入图片预览类型
      * 调用时机：用户点击菜单项时
      */
     click: () => {
-        exportImage(id);
+        void openExportPreviewTab({
+            blockId: id,
+            previewType: "image",
+        });
     }
 });
 

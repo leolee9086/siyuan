@@ -2,54 +2,26 @@
 import {Dialog} from "./imports";
 /** 用途：导出流程常量；使用范围：设置弹窗 data-key；解耦评估：集中常量依赖，禁止硬编码替代。 */
 import {Constants} from "./imports";
-/** 用途：读取全局配置；使用范围：控制预览区书签图标显示；解耦评估：通过 environment 层访问，已与 window 解耦。 */
-import {getSiyuanConfig} from "./imports";
 /** 用途：移动端判断；使用范围：弹窗布局与样式分支；解耦评估：平台工具函数复用即可。 */
 import {isMobile} from "./imports";
-/** 用途：展示错误消息；使用范围：关键 DOM 缺失时告警；解耦评估：UI 基础能力，直接调用成本最低。 */
-import {showMessage} from "./imports";
 /** 用途：国际化文案；使用范围：弹窗标题与文案内容；解耦评估：全局 i18n 服务直接依赖符合项目约定。 */
 import {siyuanI18n} from "./imports";
 /** 用途：导出图片配置读取；使用范围：初始化 keepFold/watermark 默认状态；解耦评估：配置读取职责已独立模块化。 */
 import {getExportImageStorage} from "./exportImage.storage";
-/** 用途：导出比例选项 HTML；使用范围：弹窗模板渲染；解耦评估：比例配置集中维护优于模板内硬编码。 */
-import {buildExportImageRatioOptionsHtml} from "./exportImage.ratio";
+/** 用途：共享 panel HTML 与上下文解析；使用范围：在 dialog/tab 两种宿主中复用同一套导出图片界面。 */
+import {buildExportImagePanelHtml} from "./exportImage.panel";
+/** 用途：共享 panel 上下文解析器；使用范围：将宿主根节点解析为统一的导出图片上下文。 */
+import {createExportImagePanelContext} from "./exportImage.panel";
 /** 用途：导出图片上下文类型；使用范围：上下文创建返回值约束；解耦评估：类型依赖不引入运行时耦合。 */
 import type {IExportImageContext} from "./exportImage.types";
+/** 用途：导出图片面板回调类型；使用范围：tab 宿主中注入取消/完成行为。 */
+import type {IExportImagePanelCallbacks} from "./exportImage.types";
 /** 用途：导出图片存储类型；使用范围：模板构建参数；解耦评估：类型依赖不引入运行时耦合。 */
 import type {IExportImageStorage} from "./exportImage.types";
 
-/** 作用：构建导出图片弹窗 HTML；意图：将模板拼装从流程中剥离；调用时机：创建 Dialog 时；问题/改进：后续可改为组件模板。 */
-const buildDialogContent = async (storage: IExportImageStorage): Promise<string> => {
-    const displayBookmarkIcon = getSiyuanConfig()?.editor?.displayBookmarkIcon ?? false;
-    const previewClassName = `protyle-wysiwyg${displayBookmarkIcon ? " protyle-wysiwyg--attr" : ""}`;
-    const ratioOptionsHtml = await buildExportImageRatioOptionsHtml(storage.ratio);
-    return `<div class="b3-dialog__content" style="${isMobile() ? "padding:8px;" : ""};background-color: var(--b3-theme-background)">
-    <div style="${isMobile() ? "margin: 8px 0" : "padding: 48px;margin: 8px 0"}" class="export-img">
-        <div ${isMobile() ? 'style="padding:8px"' : ""} class="${previewClassName}"></div>
-        <div class="export-img__watermark"></div>
-    </div>
-</div>
-<div class="b3-dialog__action">
-    <label class="fn__flex">
-        ${siyuanI18n.exportPDF5}
-        <span class="fn__space"></span>
-        <input id="keepFold" class="b3-switch fn__flex-center" type="checkbox" ${storage.keepFold ? "checked" : ""}>
-    </label>
-    <label class="fn__flex" style="margin-left: 24px">
-        ${siyuanI18n.export30}
-        <span class="fn__space"></span>
-        <input id="watermark" class="b3-switch fn__flex-center" type="checkbox" ${storage.watermark ? "checked" : ""}>
-    </label>
-    <span class="fn__flex-1 export-img__space"></span>
-    <select id="ratio" class="b3-select fn__flex-center fn__size200" aria-label="导出比例" title="导出比例">
-        ${ratioOptionsHtml}
-    </select>
-    <div class="fn__space"></div>
-    <button disabled class="b3-button b3-button--cancel">${siyuanI18n.cancel}</button><div class="fn__space"></div>
-    <button disabled class="b3-button b3-button--text">${siyuanI18n.confirm}</button>
-</div>
-<div class="fn__loading"><img height="128px" width="128px" src="stage/loading-pure.svg"></div>`;
+/** 作用：读取并复用导出图片配置。意图：将 storage 获取保持为单点，避免 dialog/tab 两边重复读取。调用时机：创建共享 panel 前。 */
+const loadExportImageStorage = async (): Promise<IExportImageStorage> => {
+    return getExportImageStorage();
 };
 
 /**
@@ -60,8 +32,8 @@ const buildDialogContent = async (storage: IExportImageStorage): Promise<string>
  */
 // 导出语句注释：导出图片上下文创建入口。
 export const createExportImageContext = async (id: string, dialogKey: string): Promise<IExportImageContext | undefined> => {
-    const storage = await getExportImageStorage();
-    const dialogContent = await buildDialogContent(storage);
+    const storage = await loadExportImageStorage();
+    const dialogContent = await buildExportImagePanelHtml(storage, "dialog");
     const dialog = new Dialog({
         title: siyuanI18n.exportAsImage,
         content: dialogContent,
@@ -69,39 +41,33 @@ export const createExportImageContext = async (id: string, dialogKey: string): P
         height: "70vh"
     });
     dialog.element.setAttribute("data-key", dialogKey || Constants.DIALOG_EXPORTIMAGE);
-
-    const previewElement = dialog.element.querySelector<HTMLElement>(".protyle-wysiwyg");
-    const contentElement = dialog.element.querySelector<HTMLElement>(".b3-dialog__content");
-    const containerElement = dialog.element.querySelector<HTMLElement>(".b3-dialog__container");
-    const exportImageElement = dialog.element.querySelector<HTMLElement>(".export-img");
-    const watermarkPreviewElement = dialog.element.querySelector<HTMLElement>(".export-img__watermark");
-    const keepFoldElement = dialog.element.querySelector<HTMLInputElement>("#keepFold");
-    const watermarkElement = dialog.element.querySelector<HTMLInputElement>("#watermark");
-    const ratioElement = dialog.element.querySelector<HTMLSelectElement>("#ratio");
-    const buttons = dialog.element.querySelectorAll<HTMLButtonElement>(".b3-button");
-    const cancelButton = buttons.item(0);
-    const confirmButton = buttons.item(1);
-
-    // 关键节点缺失时流程无法安全继续，必须中止并提示失败。
-    if (!previewElement || !contentElement || !containerElement || !exportImageElement || !watermarkPreviewElement || !keepFoldElement || !watermarkElement || !ratioElement || !cancelButton || !confirmButton) {
+    const ctx = createExportImagePanelContext(id, dialog.element, storage, "dialog", {
+        onCancel: () => {
+            dialog.destroy();
+        },
+        onExported: () => {
+            dialog.destroy();
+        },
+    });
+    if (!ctx) {
         dialog.destroy();
-        showMessage(siyuanI18n._kernel[14], 3000, "error");
         return;
     }
+    return ctx;
+};
 
-    return {
-        id,
-        dialog,
-        storage,
-        previewElement,
-        contentElement,
-        containerElement,
-        exportImageElement,
-        watermarkPreviewElement,
-        keepFoldElement,
-        watermarkElement,
-        ratioElement,
-        cancelButton,
-        confirmButton,
-    };
+/**
+ * 作用：在 tab 宿主中挂载共享导出图片 panel 并返回上下文。
+ * 意图：让导出图片界面与行为可以在 dialog 与导出预览 tab 中复用同一套实现。
+ * 调用时机：导出预览 tab 切换到图片预览类型时。
+ * 问题/改进：当前回调仅覆盖取消/完成行为，后续如需宿主级状态同步可继续扩展。
+ */
+export const createExportImageTabContext = async (
+    id: string,
+    rootElement: HTMLElement,
+    callbacks?: IExportImagePanelCallbacks,
+): Promise<IExportImageContext | undefined> => {
+    const storage = await loadExportImageStorage();
+    rootElement.innerHTML = await buildExportImagePanelHtml(storage, "tab");
+    return createExportImagePanelContext(id, rootElement, storage, "tab", callbacks);
 };

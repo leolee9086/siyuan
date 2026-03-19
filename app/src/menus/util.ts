@@ -3,8 +3,6 @@ import {isElectron, isMobile} from "../platform";
 import {fetchPost} from "../util/network/fetch";
 import {getAssetName, originalPath, pathPosix, useShell} from "../util/file/pathName";
 import { openFileById } from "../editor/utils.openFileById";
-import { openFile } from "../editor/util";
-import { EXPORT_PREVIEW_TAB_TYPE } from "../export-preview/constants";
 import {Constants} from "../constants";
 import {openNewWindowById} from "../window/openNewWindow";
 import { MenuItem } from "./Menu.Item";
@@ -13,6 +11,7 @@ import {exportByMobile, isInAndroid, updateHotkeyTip} from "../protyle/util/comp
 import {checkFold} from "../util/platform/noRelyPCFunction";
 import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment";
 import {showMessage} from "../dialog/message";
+import { openExportPreviewTab } from "../export-preview/open";
 
 export const exportAsset = (src: string) => {
     return {
@@ -167,14 +166,9 @@ export const openEditorTab = (app: App, ids: string[], notebookId?: string, path
         label: siyuanI18n.preview,
         click: () => {
             for (const id of ids) {
-                openFile({
+                void openExportPreviewTab({
                     app,
-                    custom: {
-                        title: siyuanI18n.preview,
-                        icon: "iconPreview",
-                        id: EXPORT_PREVIEW_TAB_TYPE,
-                        data: { blockId: id },
-                    },
+                    blockId: id,
                 });
             }
         }

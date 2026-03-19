@@ -1,6 +1,3 @@
-/** 用途：Dialog 类型；使用范围：导出图片上下文中的 `dialog` 字段；解耦评估：仅用于类型标注，通过 imports 网关降低路径耦合。 */
-import type {Dialog} from "./imports";
-
 /**
  * 用途：导出图片开关配置的数据结构。
  * 使用场景：读取/更新 `Constants.LOCAL_EXPORTIMG` 本地存储时使用。
@@ -14,6 +11,23 @@ export interface IExportImageStorage {
 }
 
 /**
+ * 用途：导出图片面板的宿主模式。
+ * 使用场景：区分当前面板挂载在 dialog 还是 tab 中，以便复用同一套界面结构。
+ * 关联模块：`exportImage.panel.ts`。
+ */
+export type TExportImagePanelMode = "dialog" | "tab";
+
+/**
+ * 用途：导出图片面板宿主回调。
+ * 使用场景：让共享 panel 在不同宿主下执行不同的取消/完成行为，同时保持实现兼容。
+ * 关联模块：`exportImage.helpers.ts`、`exportImage.confirm.ts`。
+ */
+export interface IExportImagePanelCallbacks {
+    onCancel?: () => void;
+    onExported?: () => void;
+}
+
+/**
  * 用途：导出图片对话框的运行时上下文。
  * 使用场景：在预览刷新、水印更新、最终导出流程中共享 DOM 与状态。
  * 关联类型：依赖 `IExportImageStorage` 保存用户开关配置。
@@ -21,7 +35,10 @@ export interface IExportImageStorage {
  */
 export interface IExportImageContext {
     id: string;
-    dialog: Dialog;
+    rootElement: HTMLElement;
+    mode: TExportImagePanelMode;
+    cancel: () => void;
+    finish: () => void;
     storage: IExportImageStorage;
     previewElement: HTMLElement;
     contentElement: HTMLElement;

@@ -13,7 +13,7 @@ import type {IExportImageContext} from "./exportImage.types";
 
 /** 作用：设置导出弹窗的加载状态。意图：统一按钮禁用与 loading 显示逻辑。调用时机：请求预览前后。 */
 const setPreviewLoadingState = (ctx: IExportImageContext, loading: boolean): void => {
-    const loadingElement = ctx.dialog.element.querySelector(".fn__loading");
+    const loadingElement = ctx.rootElement.querySelector(".fn__loading");
 
     if (loading) {
         ctx.cancelButton.setAttribute("disabled", "disabled");

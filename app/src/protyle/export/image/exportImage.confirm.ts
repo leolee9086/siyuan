@@ -115,7 +115,7 @@ export const handleConfirmExport = async (ctx: IExportImageContext): Promise<voi
             await uploadExportImageBlob(file.blob, file.fileName);
         }
         hideMessage(msgId);
-        ctx.dialog.destroy();
+        ctx.finish();
         return;
     }
 
@@ -123,5 +123,5 @@ export const handleConfirmExport = async (ctx: IExportImageContext): Promise<voi
     await uploadExportImageBlob(blob, ctx.confirmButton.getAttribute("data-title") || `${ctx.id}.png`);
 
     hideMessage(msgId);
-    ctx.dialog.destroy();
+    ctx.finish();
 };

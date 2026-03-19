@@ -51,15 +51,10 @@ const handleRatioChange = async (ctx: IExportImageContext): Promise<void> => {
  * 调用时机：`exportImage` 入口函数调用时。
  * 问题/改进：目前依赖回调式接口，后续可统一为 Promise 数据流。
  */
-// 导出语句注释：导出图片主流程编排入口。
-export const runExportImageFlow = async (id: string, dialogKey: string): Promise<void> => {
-    const ctx = await createExportImageContext(id, dialogKey);
-    if (!ctx) {
-        return;
-    }
-
+// 导出语句注释：导出图片共享 panel 初始化入口。
+export const initializeExportImagePanel = async (ctx: IExportImageContext): Promise<void> => {
     ctx.cancelButton.addEventListener("click", () => {
-        ctx.dialog.destroy();
+        ctx.cancel();
     });
     ctx.confirmButton.addEventListener("click", () => {
          handleConfirmExport(ctx);
@@ -77,4 +72,19 @@ export const runExportImageFlow = async (id: string, dialogKey: string): Promise
     await requestExportImagePreview(ctx, (response) => {
         ctx.confirmButton.setAttribute("data-title", `${response.data.name}.png`);
     });
+};
+
+/**
+ * 作用：执行“导出为图片”完整流程。
+ * 意图：保持现有 dialog 入口兼容，同时把真正的 panel 初始化逻辑复用给 tab 宿主。
+ * 调用时机：`exportImage` 入口函数调用时。
+ * 问题/改进：后续如果还有更多宿主，可继续直接复用 `initializeExportImagePanel`。
+ */
+// 导出语句注释：导出图片主流程编排入口。
+export const runExportImageFlow = async (id: string, dialogKey: string): Promise<void> => {
+    const ctx = await createExportImageContext(id, dialogKey);
+    if (!ctx) {
+        return;
+    }
+    await initializeExportImagePanel(ctx);
 };

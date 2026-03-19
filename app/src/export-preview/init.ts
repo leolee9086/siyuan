@@ -2,7 +2,7 @@
  * 导出预览页签初始化
  *
  * 作用：作为 TabRegistry 的 init 回调，构建导出预览页签的 DOM 和交互逻辑
- * 意图：将原 protyle Preview 类的渲染与交互逻辑迁移到独立页签，不依赖 protyle 实例
+ * 意图：将普通导出预览与图片导出预览统一挂载到同一个页签宿主中
  * 调用时机：通过 openFile({ custom: { id: 'export-preview', data: { blockId } } }) 打开时
  */
 
@@ -29,9 +29,16 @@ import { getAllModels } from "../layout/getAll";
 import { hasClosestByAttribute } from "../protyle/util/hasClosest";
 import { showMessage } from "../dialog/message";
 import { isHTMLElement } from "../util/DOM/element.guard";
+import { createExportImageTabContext } from "../protyle/export/image/exportImage.context";
+import { initializeExportImagePanel } from "../protyle/export/image/exportImage.helpers";
 import { isExportPreviewData } from "./init.guard";
-import { DEFAULT_ACTIONS } from "./constants";
-import type { IExportPreviewData } from "./init.types";
+import {
+    DEFAULT_ACTIONS,
+    EXPORT_PREVIEW_DEFAULT_TYPE,
+    EXPORT_PREVIEW_IMAGE_TYPE,
+    EXPORT_PREVIEW_SET_TYPE_EVENT,
+} from "./constants";
+import type { IExportPreviewData, TExportPreviewType } from "./init.types";
 
 /** 设备宽度预设配置 */
 const DEVICE_WIDTH_CONFIG: Record<string, { width: string; padding: string }> = {
@@ -40,6 +47,12 @@ const DEVICE_WIDTH_CONFIG: Record<string, { width: string; padding: string }> = 
     mobile: { width: "360px", padding: "8px" },
 };
 
+interface IExportPreviewViewState {
+    deviceType: keyof typeof DEVICE_WIDTH_CONFIG;
+    previewType: TExportPreviewType;
+    renderToken: number;
+}
+
 /**
  * 导出预览页签 init 回调
  *
@@ -47,36 +60,46 @@ const DEVICE_WIDTH_CONFIG: Record<string, { width: string; padding: string }> = 
  * @同步豁免: UI构建 - TabRegistry init 回调需要同步构建 DOM 结构
  */
 export function initExportPreview(model: Custom): void {
-    // data 可能来自布局恢复或外部调用，需要校验结构
     if (!isExportPreviewData(model.data)) {
         showMessage("export-preview: missing blockId");
         return;
     }
     const data = model.data;
 
-    // model.element 是 Tab.panelElement，类型为 Element，需要守卫为 HTMLElement
     if (!isHTMLElement(model.element)) {
         return;
     }
     const container = model.element;
     container.classList.add("export-preview-tab");
 
+    const state: IExportPreviewViewState = {
+        deviceType: "desktop",
+        previewType: data.previewType || EXPORT_PREVIEW_DEFAULT_TYPE,
+        renderToken: 0,
+    };
+
     const actionElement = buildActionBar();
     const previewElement = buildPreviewArea();
     container.appendChild(actionElement);
     container.appendChild(previewElement);
 
-    // @内联回调
+    applyDevicePreset(previewElement, state.deviceType);
+    syncDeviceActionState(actionElement, state.deviceType);
+    syncPreviewTypeActionState(actionElement, state.previewType);
+
     actionElement.addEventListener("click", (event) => {
-        handleActionClick(event, container, actionElement, previewElement, data);
+        void handleActionClick(event, container, actionElement, previewElement, data, state);
     });
 
-    // @内联回调
     container.addEventListener("click", (event) => {
         handleContentClick(event, container, previewElement, data, model);
     });
 
-    renderPreview(container, previewElement, data.blockId);
+    container.addEventListener(EXPORT_PREVIEW_SET_TYPE_EVENT, (event) => {
+        void handlePreviewTypeEvent(event, actionElement, previewElement, data, state);
+    });
+
+    void renderByPreviewType(container, actionElement, previewElement, data, state);
 }
 
 /** 构建操作按钮栏 */
@@ -92,60 +115,149 @@ function buildActionBar(): HTMLDivElement {
 /** 构建预览内容区域 */
 function buildPreviewArea(): HTMLDivElement {
     const previewElement = document.createElement("div");
-    previewElement.className = "b3-typography";
+    previewElement.className = "fn__flex-1";
     previewElement.style.overflow = "auto";
-    previewElement.style.flex = "1";
+    previewElement.style.minWidth = "1px";
+    previewElement.style.margin = "0 auto";
+    previewElement.style.boxSizing = "border-box";
     return previewElement;
+}
+
+/** 应用设备宽度预设 */
+function applyDevicePreset(
+    previewElement: HTMLElement,
+    type: keyof typeof DEVICE_WIDTH_CONFIG,
+): void {
+    const config = DEVICE_WIDTH_CONFIG[type];
+    previewElement.style.width = config.width;
+    previewElement.style.padding = config.padding;
+}
+
+/** 同步当前设备按钮高亮 */
+function syncDeviceActionState(
+    actionElement: HTMLElement,
+    type: keyof typeof DEVICE_WIDTH_CONFIG,
+): void {
+    const buttons = actionElement.querySelectorAll<HTMLButtonElement>('button[data-group="device"]');
+    for (const button of buttons) {
+        button.classList.toggle("protyle-preview__action--current", button.getAttribute("data-type") === type);
+    }
+}
+
+/** 同步图片预览按钮高亮 */
+function syncPreviewTypeActionState(
+    actionElement: HTMLElement,
+    previewType: TExportPreviewType,
+): void {
+    const buttons = actionElement.querySelectorAll<HTMLButtonElement>('button[data-group="preview-type"]');
+    for (const button of buttons) {
+        button.classList.toggle("protyle-preview__action--current", button.getAttribute("data-type") === previewType);
+    }
+}
+
+/** 准备普通导出预览区域 */
+function prepareStandardPreviewArea(previewElement: HTMLElement): void {
+    previewElement.classList.add("b3-typography");
+    previewElement.style.overflow = "auto";
+}
+
+/** 准备图片导出预览区域 */
+function prepareImagePreviewArea(previewElement: HTMLElement): void {
+    previewElement.classList.remove("b3-typography");
+    previewElement.style.overflow = "hidden";
+    previewElement.innerHTML = "";
+}
+
+/** 根据当前预览类型渲染对应内容 */
+async function renderByPreviewType(
+    container: HTMLElement,
+    actionElement: HTMLElement,
+    previewElement: HTMLElement,
+    data: IExportPreviewData,
+    state: IExportPreviewViewState,
+): Promise<void> {
+    syncPreviewTypeActionState(actionElement, state.previewType);
+    if (state.previewType === EXPORT_PREVIEW_IMAGE_TYPE) {
+        await renderImagePreview(container, actionElement, previewElement, data, state);
+        return;
+    }
+    await renderStandardPreview(container, previewElement, data.blockId, state);
+}
+
+/** 切换导出预览类型 */
+async function setPreviewType(
+    container: HTMLElement,
+    actionElement: HTMLElement,
+    previewElement: HTMLElement,
+    data: IExportPreviewData,
+    state: IExportPreviewViewState,
+    previewType: TExportPreviewType,
+): Promise<void> {
+    state.previewType = previewType;
+    await renderByPreviewType(container, actionElement, previewElement, data, state);
+}
+
+/** 处理外部切换预览类型事件 */
+async function handlePreviewTypeEvent(
+    event: Event,
+    actionElement: HTMLElement,
+    previewElement: HTMLElement,
+    data: IExportPreviewData,
+    state: IExportPreviewViewState,
+): Promise<void> {
+    const customEvent = event as CustomEvent<{ previewType?: TExportPreviewType }>;
+    const nextType = customEvent.detail?.previewType === EXPORT_PREVIEW_IMAGE_TYPE
+        ? EXPORT_PREVIEW_IMAGE_TYPE
+        : EXPORT_PREVIEW_DEFAULT_TYPE;
+    await setPreviewType(previewElement.parentElement || previewElement, actionElement, previewElement, data, state, nextType);
 }
 
 /**
  * 操作按钮点击处理
  *
- * 处理设备宽度切换和复制到第三方平台
+ * 处理设备宽度切换、图片导出预览切换与复制到第三方平台
  */
-function handleActionClick(
+async function handleActionClick(
     event: Event,
     container: HTMLElement,
     actionElement: HTMLElement,
     previewElement: HTMLElement,
     data: IExportPreviewData,
-): void {
+    state: IExportPreviewViewState,
+): Promise<void> {
     const eventTarget = event.target;
-    // 事件目标可能不是 HTMLElement（如 SVG 内部元素）
     if (!isHTMLElement(eventTarget)) {
         return;
     }
     const target = eventTarget.closest("button");
-    // 点击区域不在按钮内时忽略
     if (!target) {
         return;
     }
     const type = target.getAttribute("data-type");
-    // 按钮缺少 data-type 属性时忽略
     if (!type) {
         return;
     }
 
-    // 复制到第三方平台的按钮不参与设备宽度切换的高亮逻辑
     if (type === "mp-wechat" || type === "zhihu" || type === "yuque") {
+        if (state.previewType === EXPORT_PREVIEW_IMAGE_TYPE) {
+            await setPreviewType(container, actionElement, previewElement, data, state, EXPORT_PREVIEW_DEFAULT_TYPE);
+        }
         executeCopyToX(container, previewElement, data.blockId, type);
         return;
     }
 
-    // 应用设备宽度预设
-    const config = DEVICE_WIDTH_CONFIG[type];
-    // 未知的设备类型时忽略
-    if (!config) {
+    if (type === EXPORT_PREVIEW_IMAGE_TYPE) {
+        await setPreviewType(container, actionElement, previewElement, data, state, EXPORT_PREVIEW_IMAGE_TYPE);
         return;
     }
-    previewElement.style.width = config.width;
-    previewElement.style.padding = config.padding;
 
-    const buttons = actionElement.querySelectorAll("button");
-    for (const item of buttons) {
-        item.classList.remove("protyle-preview__action--current");
+    if (!(type in DEVICE_WIDTH_CONFIG)) {
+        return;
     }
-    target.classList.add("protyle-preview__action--current");
+
+    state.deviceType = type as keyof typeof DEVICE_WIDTH_CONFIG;
+    applyDevicePreset(previewElement, state.deviceType);
+    syncDeviceActionState(actionElement, state.deviceType);
 }
 
 /**
@@ -160,20 +272,16 @@ function handleContentClick(
     data: IExportPreviewData,
     model: Custom,
 ): void {
-    // MouseEvent 才有修饰键信息，普通 Event 不处理
     if (!(event instanceof MouseEvent)) {
         return;
     }
     let target = event.target;
 
-    // 从事件目标向上遍历 DOM 树，查找链接或图片元素
     while (isHTMLElement(target) && target !== container) {
-        // 点击了链接元素
         if (target.tagName === "A") {
             handleLinkClick(event, target, previewElement, data, model);
             return;
         }
-        // 点击了图片元素，打开图片查看器
         if (target.tagName === "IMG") {
             previewDocImage(target.getAttribute("src") || "", data.blockId);
             event.stopPropagation();
@@ -183,14 +291,11 @@ function handleContentClick(
         target = target.parentElement;
     }
 
-    // 点击了带 id 属性的元素，用于大纲同步定位
     const eventTarget = event.target;
-    // hasClosestByAttribute 需要 Node 类型参数
     if (!isHTMLElement(eventTarget)) {
         return;
     }
     const nodeElement = hasClosestByAttribute(eventTarget, "id", null);
-    // hasClosestByAttribute 返回 false 或匹配的元素
     if (!nodeElement) {
         return;
     }
@@ -211,7 +316,6 @@ function handleLinkClick(
 ): void {
     const linkAddress = target.getAttribute("href") || "";
 
-    // 锚点链接：导出预览模式点击块引转换后的脚注跳转
     if (linkAddress.startsWith("#")) {
         const hash = linkAddress.substring(1);
         const scrollTarget = previewElement.querySelector(
@@ -223,7 +327,6 @@ function handleLinkClick(
         return;
     }
 
-    // 移动端使用系统浏览器打开链接
     if (isMobile()) {
         openByMobile(linkAddress);
         event.stopPropagation();
@@ -234,13 +337,11 @@ function handleLinkClick(
     event.stopPropagation();
     event.preventDefault();
 
-    // 本地路径：桌面端支持通过修饰键以不同方式打开
     if (isLocalPath(linkAddress)) {
         handleLocalPathOpen(event, linkAddress, model);
         return;
     }
 
-    // 外部链接：桌面端使用系统浏览器，浏览器端新窗口打开
     if (isElectron) {
         openExternal(linkAddress).catch((e: unknown) => {
             showMessage(String(e));
@@ -260,19 +361,15 @@ function handleLocalPathOpen(
     linkAddress: string,
     model: Custom,
 ): void {
-    // Meta 键（Cmd/Ctrl）：在文件管理器中打开所在文件夹
     if (isOnlyMeta(event)) {
         openBy(linkAddress, "folder");
         return;
     }
-    // Shift 键：使用系统默认应用打开
     if (event.shiftKey) {
         openBy(linkAddress, "app");
         return;
     }
-    // 资源文件：在思源内部打开
     const ext = pathPosix().extname(linkAddress.split("?")[0] || "");
-    // 文件扩展名属于思源支持的资源类型（PDF、图片、音视频等）时，在内部打开
     if (Constants.SIYUAN_ASSETS_EXTS.includes(ext)) {
         const assetPath = linkAddress.split("?page")[0] || linkAddress;
         const pageStr = getSearch("page", linkAddress);
@@ -296,10 +393,8 @@ function syncOutlineHighlight(
     }
     nodeElement.classList.add("selected");
 
-    // 桌面端通过 model 同步大纲高亮
     if (!isMobile()) {
         for (const item of getAllModels().outline) {
-            // 仅同步当前文档对应的大纲面板
             if (item.blockId === blockId) {
                 item.setCurrentByPreview(nodeElement);
             }
@@ -307,7 +402,6 @@ function syncOutlineHighlight(
         return;
     }
 
-    // 移动端通过全局 docks 同步大纲高亮
     getSafeSiyuanMobile()?.docks?.outline?.setCurrentByPreview(nodeElement);
 }
 
@@ -323,7 +417,6 @@ function executeCopyToX(
     type: string,
 ): void {
     const copyElement = previewElement.cloneNode(true);
-    // cloneNode(true) 对 HTMLElement 返回同类型节点，但 TS 类型为 Node
     if (!isHTMLElement(copyElement)) {
         return;
     }
@@ -331,7 +424,7 @@ function executeCopyToX(
 }
 
 /**
- * 处理导出预览 API 响应
+ * 处理普通导出预览 API 响应
  *
  * 渲染预览 HTML 并执行代码高亮、语音、数学公式等后处理
  */
@@ -351,21 +444,57 @@ function applyPreviewResponse(
     loadingEl?.remove();
 }
 
-/**
- * 调用导出预览 API 并渲染
- */
-function renderPreview(
+/** 调用普通导出预览 API 并渲染 */
+function renderStandardPreview(
     container: HTMLElement,
     previewElement: HTMLElement,
     blockId: string,
-): void {
+    state: IExportPreviewViewState,
+): Promise<void> {
+    const renderToken = ++state.renderToken;
+    prepareStandardPreviewArea(previewElement);
+    previewElement.innerHTML = "";
+    const loadingEl = container.querySelector(".fn__loading");
+    loadingEl?.remove();
     container.insertAdjacentHTML("beforeend",
         `<div style="flex-direction: column;" class="fn__loading">
     <img width="48px" src="/stage/loading-pure.svg">
 </div>`
     );
 
-    fetchPost("/api/export/preview", { id: blockId }, (response) => {
-        applyPreviewResponse(previewElement, container, response);
+    return new Promise<void>((resolve) => {
+        fetchPost("/api/export/preview", { id: blockId }, (response) => {
+            if (renderToken !== state.renderToken || state.previewType !== EXPORT_PREVIEW_DEFAULT_TYPE) {
+                resolve();
+                return;
+            }
+            applyPreviewResponse(previewElement, container, response);
+            resolve();
+        });
     });
+}
+
+/** 渲染图片导出预览 panel */
+async function renderImagePreview(
+    container: HTMLElement,
+    actionElement: HTMLElement,
+    previewElement: HTMLElement,
+    data: IExportPreviewData,
+    state: IExportPreviewViewState,
+): Promise<void> {
+    const renderToken = ++state.renderToken;
+    prepareImagePreviewArea(previewElement);
+    container.querySelector(".fn__loading")?.remove();
+    const ctx = await createExportImageTabContext(data.blockId, previewElement, {
+        onCancel: () => {
+            void setPreviewType(container, actionElement, previewElement, data, state, EXPORT_PREVIEW_DEFAULT_TYPE);
+        },
+        onExported: () => {
+            syncPreviewTypeActionState(actionElement, state.previewType);
+        },
+    });
+    if (!ctx || renderToken !== state.renderToken || state.previewType !== EXPORT_PREVIEW_IMAGE_TYPE) {
+        return;
+    }
+    await initializeExportImagePanel(ctx);
 }

@@ -1,6 +1,5 @@
 import { App } from "../../..";
-import { openFile } from "../../../editor/util";
-import { EXPORT_PREVIEW_TAB_TYPE } from "../../../export-preview/constants";
+import { openExportPreviewTab } from "../../../export-preview/open";
 import { fetchPost } from "../../../ai/imports";
 import { quickMakeCard } from "../../../card/makeCard";
 import { openCardByData } from "../../../card/openCard";
@@ -360,14 +359,9 @@ export const editKeydown = (app: App, event: KeyboardEvent) => {
     }
     // preview 快捷键：打开当前文档的导出预览页签
     if (matchHotKey(window.siyuan.config.keymap.editor.general.preview.custom, event)) {
-        openFile({
+        void openExportPreviewTab({
             app,
-            custom: {
-                title: siyuanI18n.preview,
-                icon: "iconPreview",
-                id: EXPORT_PREVIEW_TAB_TYPE,
-                data: { blockId: protyle.block.rootID },
-            },
+            blockId: protyle.block.rootID,
         });
         event.preventDefault();
         return true;
