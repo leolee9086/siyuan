@@ -23,6 +23,15 @@ import { genUUID } from "../util/platform/genID";
 import { hideElements } from "../protyle/ui/hideElements";
 // 用途：启用对话框拖拽和调整大小功能；使用范围：Panel.ts 中为浮窗添加拖拽调整大小能力；解耦评估：UI交互功能，可通过依赖注入解耦，但作为基础UI功能直接导入更合理
 import { moveResize } from "../dialog/moveResize";
+/*
+ * 用途：获取编辑器当前有效选区 Range。
+ * 使用范围：块插入目标解析流程中用于定位光标所在节点。
+ * 解耦评估：可通过参数传入 Range 解耦，但当前调用方统一依赖 protyle 实例，
+ * 直接导入可减少样板代码。
+ */
+import { getEditorRange } from "../protyle/util/selection";
+// 用途：将块元素提升到可独立操作的顶层块；使用范围：块插入目标解析流程中规范化插入锚点；解耦评估：可通过策略函数注入解耦，但该规则属于编辑器核心语义，集中复用该工具更一致
+import { getTopAloneElement } from "../protyle/wysiwyg/getBlock";
 // 用途：获取全局浮窗面板列表；使用范围：Panel.ts 中管理浮窗层级和清理；解耦评估：全局状态访问，可通过依赖注入解耦，但作为全局基础设施直接导入更合理
 import { getSiyuanBlockPanels } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 // 用途：获取全局菜单实例；使用范围：Panel.ts 中销毁浮窗时清理关联菜单；解耦评估：全局状态访问，可通过依赖注入解耦，但作为全局基础设施直接导入更合理
@@ -54,6 +63,10 @@ export { genUUID };
 export { hideElements };
 // 对话框工具导出
 export { moveResize };
+// 编辑器选区工具导出
+export { getEditorRange };
+// 块归一化工具导出
+export { getTopAloneElement };
 // 全局浮窗面板列表访问导出
 export { getSiyuanBlockPanels };
 // 全局菜单访问导出

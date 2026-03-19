@@ -1,6 +1,5 @@
 import { focusByWbr, getEditorRange } from "../protyle/util/selection";
 import { getContenteditableElement, getParentBlock } from "../protyle/wysiwyg/getBlock";
-import { genListItemElement } from "../protyle/wysiwyg/list";
 import { updateListOrder } from "../protyle/wysiwyg/list.updateOrder";
 import { transaction, turnsIntoOneTransaction, updateTransaction } from "../protyle/wysiwyg/transaction";
 import { scrollCenter } from "../util/DOM/highlightById";
@@ -14,6 +13,7 @@ import { siyuanI18n } from "../util/siyuanEnvironments/i18n.getI18n.environment"
 import { getSiyuanConfig } from "../util/siyuanEnvironments/getSiyuanConfig.environment";
 import { isMobile } from "../platform";
 import { getInsertTargetBlock } from "./util.getInsertTargetBlock";
+import { createNewBlockElement } from "./util.createNewBlockElement";
 export const cancelSB = async (protyle: IProtyle, nodeElement: Element, range?: Range) => {
     const doOperations: IOperation[] = [];
     const undoOperations: IOperation[] = [];
@@ -134,36 +134,6 @@ export const jumpToParent = (protyle: IProtyle, nodeElement: Element, type: "par
         });
     };
     fetchPost("/api/block/getBlockSiblingID", { id: nodeElement.getAttribute("data-node-id") }, handleResponse);
-};
-
-const createNewBlockElement = (blockElement: Element, position: InsertPosition): { newElement: HTMLElement, orderIndex: number } => {
-    let newElement = genEmptyElement(false, true);
-    let orderIndex = 1;
-
-    if (blockElement.getAttribute("data-type") === "NodeListItem") {
-        newElement = genListItemElement(blockElement, 0, true) as HTMLDivElement;
-        const marker = blockElement.parentElement?.firstElementChild?.getAttribute("data-marker");
-        if (marker) {
-            orderIndex = parseInt(marker);
-        }
-        return { newElement, orderIndex };
-    }
-
-    if (position === "beforebegin" && blockElement.previousElementSibling &&
-        blockElement.previousElementSibling.getAttribute("data-type") === "NodeHeading" &&
-        blockElement.previousElementSibling.getAttribute("fold") === "1") {
-        newElement = genHeadingElement(blockElement.previousElementSibling, false, true) as HTMLDivElement;
-        return { newElement, orderIndex };
-    }
-
-    if (position === "afterend" && blockElement &&
-        blockElement.getAttribute("data-type") === "NodeHeading" &&
-        blockElement.getAttribute("fold") === "1") {
-        newElement = genHeadingElement(blockElement, false, true) as HTMLDivElement;
-        return { newElement, orderIndex };
-    }
-
-    return { newElement, orderIndex };
 };
 
 export const insertEmptyBlock = (protyle: IProtyle, position: InsertPosition, id?: string) => {
