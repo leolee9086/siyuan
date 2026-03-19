@@ -47,24 +47,10 @@ export const cancelSB = async (protyle: IProtyle, nodeElement: Element, range?: 
         parentID,
     });
     const children = Array.from(nodeElement.children);
-    for (const [index, item] of children.entries()) {
+    const blockChildren = children.filter((item) => item.getAttribute("data-node-id"));
+    for (const item of blockChildren) {
         const itemId = item.getAttribute("data-node-id");
         if (!itemId) {
-            continue;
-        }
-        if (index === nodeElement.childElementCount - 1) {
-            doOperations.push({
-                action: "delete",
-                id,
-            });
-            if (range) {
-                getContenteditableElement(nodeElement).insertAdjacentHTML("afterbegin", "<wbr>");
-            }
-            nodeElement.lastElementChild.remove();
-            nodeElement.replaceWith(...nodeElement.children);
-            if (range) {
-                focusByWbr(protyle.wysiwyg.element, range);
-            }
             continue;
         }
         doOperations.push({
@@ -80,6 +66,27 @@ export const cancelSB = async (protyle: IProtyle, nodeElement: Element, range?: 
             parentID: id
         });
         previousId = itemId;
+    }
+    if (blockChildren.length > 0) {
+        doOperations.push({
+            action: "delete",
+            id,
+        });
+        const editableElement = range ? getContenteditableElement(nodeElement) : undefined;
+        if (editableElement) {
+            editableElement.insertAdjacentHTML("afterbegin", "<wbr>");
+        }
+        nodeElement.lastElementChild?.remove();
+        nodeElement.replaceWith(...blockChildren);
+        if (editableElement && range) {
+            focusByWbr(protyle.wysiwyg.element, range);
+        }
+    } else {
+        doOperations.push({
+            action: "delete",
+            id,
+        });
+        nodeElement.remove();
     }
     mathRender(protyle.wysiwyg.element);
     // 超级块内嵌入块无面包屑，需重新渲染 https://github.com/siyuan-note/siyuan/issues/7574

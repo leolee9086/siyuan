@@ -232,8 +232,10 @@ const calculateInitialNode = (element: Element, _target: Element | undefined) =>
         listItem = undefined;
     }
 
-    // 如果顶级元素不是当前元素且不是标题或标注，则使用顶级元素
-    if (topElement !== nodeElement && type !== "NodeHeading" && !topElement.classList.contains("callout")) {
+    const topType = topElement.getAttribute("data-type");
+
+    // 超级块需要保留子块作为 gutter 起点，这样才能同时显示子块和超级块块标
+    if (topElement !== nodeElement && type !== "NodeHeading" && !topElement.classList.contains("callout") && topType !== "NodeSuperBlock") {
         nodeElement = topElement;
     }
 
