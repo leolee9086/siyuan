@@ -1,195 +1,55 @@
-import {escapeHtml} from "../../util/DOM/escape";
-import {hideMessage, showMessage} from "../../dialog/message";
-import {fetchPost} from "../../util/network/fetch";
-import {Dialog} from "../../dialog";
-import {addScript} from "../util/addScript";
-import {isMobile} from "../../util/platform/functions";
-import {Constants} from "../../constants";
-import {highlightRender} from "../render/highlightRender";
-import {contentRendererRegistry} from "../../registry/contentRenderer/ContentRendererRegistry";
-import {isIPhone, isSafari, openByMobile, setStorageVal} from "../util/compatibility";
-import {useShell} from "../../util/file/pathName";
-import { siyuanI18n } from "../../util/siyuanEnvironments/i18n.getI18n.environment";
-import { isElectron } from "../../platform";
+/** 用途：转义导出路径，避免消息 HTML 注入；使用范围：`afterExport` 成功提示内容；解耦评估：纯工具函数，已通过 `imports` 网关降低路径耦合。 */
+import {escapeHtml} from "./imports";
+/** 用途：隐藏消息提示；使用范围：导出完成后清理进行中提示；解耦评估：UI 基础设施能力，当前直接调用成本最低。 */
+import {hideMessage} from "./imports";
+/** 用途：展示消息提示；使用范围：导出成功提示与导出过程提示；解耦评估：UI 基础设施能力，未来可事件化，但当前直接调用更直观。 */
+import {showMessage} from "./imports";
+/** 用途：导出相关常量；使用范围：导出流程标识传递；解耦评估：全局常量依赖，不应改为硬编码。 */
+import {Constants} from "./imports";
+/** 用途：在本地文件管理器中定位导出文件；使用范围：Electron 场景点击“在文件夹中显示”；解耦评估：平台能力封装，直接复用最稳定。 */
+import {useShell} from "./imports";
+/** 用途：国际化文案访问；使用范围：导出提示与弹窗标题文案；解耦评估：文案服务全局共享，直接依赖符合项目架构。 */
+import {siyuanI18n} from "./imports";
+/** 用途：Electron 环境判断；使用范围：仅桌面端展示“在文件夹中显示”；解耦评估：平台判断基础能力，不应在业务层重写。 */
+import {isElectron} from "./imports";
+/** 用途：导出图片流程主处理器；使用范围：`exportImage` 入口调用；解耦评估：已拆分到独立 helper，显著降低入口复杂度。 */
+import {runExportImageFlow} from "./image/exportImage.helpers";
 
 /**
- * 导出后处理：展示导出成功提示，并在 Electron 环境中绑定“在文件夹中显示”按钮。
- *
- * 作用：统一处理导出完成后的用户反馈与后续交互。
- * 意图：将导出结果提示与平台能力（Electron Shell）解耦在单点函数中，避免调用方重复拼装消息与绑定事件。
- * 调用时机：由导出流程在文件成功生成后调用，入参为导出路径与消息 ID。
- * 问题/改进：当前依赖消息 DOM 结构与选择器，若消息模板变更需同步调整；后续可将按钮事件注册下沉到消息组件以降低耦合。
+ * 作用：导出完成后统一处理成功提示，并在 Electron 中绑定“在文件夹中显示”按钮。
+ * 意图：把导出成功反馈逻辑收敛到单点，避免多处重复拼装消息与事件。
+ * 调用时机：HTML/PDF/图片等导出流程成功后。
+ * 问题/改进：当前依赖消息 DOM 结构，后续可考虑让消息组件直接支持 action 回调。
  */
+// 导出语句注释：导出完成后的统一收尾逻辑。
 export const afterExport = async (exportPath: string, msgId: string) => {
-    // 仅 Electron 环境下显示导出成功消息和打开文件夹按钮
     if (!isElectron) {
         return;
     }
+
     const path = __non_webpack_require__("path");
     showMessage(`${siyuanI18n.exported} ${escapeHtml(exportPath)}
 <div class="fn__space"></div>
 <button class="b3-button b3-button--white">${siyuanI18n.showInFolder}</button>`, 6000, "info", msgId);
-    const showInFolderButton = document.querySelector(`#message [data-id="${msgId}"] button`);
-    if (!showInFolderButton) {
+
+    const buttonElement = document.querySelector(`#message [data-id="${msgId}"] button`);
+    if (!buttonElement) {
         return;
     }
-    showInFolderButton.addEventListener("click", () => {
+
+    buttonElement.addEventListener("click", () => {
         useShell("showItemInFolder", path.join(exportPath));
         hideMessage(msgId);
     });
 };
 
-export const exportImage = (id: string) => {
-    const exportDialog = new Dialog({
-        title: siyuanI18n.exportAsImage,
-        content: `<div class="b3-dialog__content" style="${isMobile() ? "padding:8px;" : ""};background-color: var(--b3-theme-background)">
-    <div style="${isMobile() ? "margin: 8px 0" : "padding: 48px;margin: 8px 0"}" class="export-img">
-        <div ${isMobile() ? 'style="padding:8px"' : ""} class="protyle-wysiwyg${window.siyuan.config.editor.displayBookmarkIcon ? " protyle-wysiwyg--attr" : ""}"></div>
-        <div class="export-img__watermark"></div>
-    </div>
-</div>
-<div class="b3-dialog__action">
-    <label class="fn__flex">
-        ${siyuanI18n.exportPDF5}
-        <span class="fn__space"></span>
-        <input id="keepFold" class="b3-switch fn__flex-center" type="checkbox" ${window.siyuan.storage[Constants.LOCAL_EXPORTIMG].keepFold ? "checked" : ""}>
-    </label>
-    <label class="fn__flex" style="margin-left: 24px">
-        ${siyuanI18n.export30}
-        <span class="fn__space"></span>
-        <input id="watermark" class="b3-switch fn__flex-center" type="checkbox" ${window.siyuan.storage[Constants.LOCAL_EXPORTIMG].watermark ? "checked" : ""}>
-    </label>
-    <span class="fn__flex-1 export-img__space"></span>
-    <button disabled class="b3-button b3-button--cancel">${siyuanI18n.cancel}</button><div class="fn__space"></div>
-    <button disabled class="b3-button b3-button--text">${siyuanI18n.confirm}</button>
-</div>
- <div class="fn__loading"><img height="128px" width="128px" src="stage/loading-pure.svg"></div>`,
-        width: isMobile() ? "92vw" : "990px",
-        height: "70vh"
-    });
-    exportDialog.element.setAttribute("data-key", Constants.DIALOG_EXPORTIMAGE);
-    const btnsElement = exportDialog.element.querySelectorAll(".b3-button");
-    btnsElement[0].addEventListener("click", () => {
-        exportDialog.destroy();
-    });
-    btnsElement[1].addEventListener("click", async () => {
-        const msgId = showMessage(siyuanI18n.exporting, 0);
-        const containerElement = exportDialog.element.querySelector(".b3-dialog__container") as HTMLElement;
-        containerElement.style.height = "";
-        // 移动端导出图片时将容器宽度设为全屏以确保截图完整
-        if (isMobile()) {
-            containerElement.style.width = "100vw";
-        }
-        const contentElement = exportDialog.element.querySelector(".b3-dialog__content") as HTMLElement;
-        contentElement.style.overflow = "hidden";
-        setStorageVal(Constants.LOCAL_EXPORTIMG, window.siyuan.storage[Constants.LOCAL_EXPORTIMG]);
-        const plantumlElements = previewElement.querySelectorAll("[data-subtype='plantuml']");
-        for (let i = 0; i < plantumlElements.length; i++) {
-            const objectElement = plantumlElements[i].querySelector("object");
-            if (objectElement) {
-                const res = await fetch(objectElement.getAttribute("data"));
-                const response = await res.text();
-                objectElement.insertAdjacentHTML("beforebegin", response as string);
-                objectElement.remove();
-            }
-        }
-        previewElement.querySelectorAll(".protyle-linenumber__rows span").forEach((item, index) => {
-            item.textContent = (index + 1).toString();
-        });
-        setTimeout(() => {
-            addScript("/stage/protyle/js/html-to-image.min.js?v=1.11.13", "protyleHtml2image").then(async () => {
-                let blob = await window.htmlToImage.toBlob(exportDialog.element.querySelector(".b3-dialog__content"));
-                if (isIPhone() || isSafari()) {
-                    await window.htmlToImage.toBlob(contentElement);
-                    await window.htmlToImage.toBlob(contentElement);
-                    await window.htmlToImage.toBlob(contentElement);
-                    blob = await window.htmlToImage.toBlob(contentElement);
-                }
-                const formData = new FormData();
-                formData.append("file", blob, btnsElement[1].getAttribute("data-title"));
-                formData.append("type", "image/png");
-                fetchPost("/api/export/exportAsFile", formData, (response) => {
-                    openByMobile(response.data.file);
-                });
-                hideMessage(msgId);
-                exportDialog.destroy();
-            });
-        }, Constants.TIMEOUT_LOAD);
-    });
-    const previewElement = exportDialog.element.querySelector(".protyle-wysiwyg") as HTMLElement;
-    const foldElement = (exportDialog.element.querySelector("#keepFold") as HTMLInputElement);
-    foldElement.addEventListener("change", () => {
-        btnsElement[0].setAttribute("disabled", "disabled");
-        btnsElement[1].setAttribute("disabled", "disabled");
-        btnsElement[1].parentElement.insertAdjacentHTML("afterend", '<div class="fn__loading"><img height="128px" width="128px" src="stage/loading-pure.svg"></div>');
-        window.siyuan.storage[Constants.LOCAL_EXPORTIMG].keepFold = foldElement.checked;
-        fetchPost("/api/export/exportPreviewHTML", {
-            id,
-            keepFold: foldElement.checked,
-            image: true,
-        }, (response) => {
-            refreshPreview(response);
-        });
-    });
-    const watermarkElement = (exportDialog.element.querySelector("#watermark") as HTMLInputElement);
-    watermarkElement.addEventListener("change", () => {
-        window.siyuan.storage[Constants.LOCAL_EXPORTIMG].watermark = watermarkElement.checked;
-        updateWatermark();
-    });
-    const updateWatermark = () => {
-        const watermarkPreviewElement = exportDialog.element.querySelector(".export-img__watermark") as HTMLElement;
-        watermarkPreviewElement.innerHTML = "";
-        if (watermarkElement.checked) {
-            if (window.siyuan.config.export.imageWatermarkDesc) {
-                watermarkPreviewElement.innerHTML = window.siyuan.config.export.imageWatermarkDesc;
-            } else if (window.siyuan.config.export.imageWatermarkStr) {
-                if (window.siyuan.config.export.imageWatermarkStr.startsWith("http")) {
-                    watermarkPreviewElement.setAttribute("style", `background-image: url(${window.siyuan.config.export.imageWatermarkStr});background-repeat: repeat;position: absolute;top: 0;left: 0;width: 100%;height: 100%;border-radius: var(--b3-border-radius-b);`);
-                } else {
-                    addScript("/stage/protyle/js/html-to-image.min.js?v=1.11.13", "protyleHtml2image").then(() => {
-                        const width = Math.max(exportDialog.element.querySelector(".export-img").clientWidth / 3, 150);
-                        watermarkPreviewElement.setAttribute("style", `width: ${width}px;height: ${width}px;display: flex;justify-content: center;align-items: center;color: var(--b3-border-color);font-size: 14px;`);
-                        watermarkPreviewElement.innerHTML = `<div style="transform: rotate(-45deg)">${window.siyuan.config.export.imageWatermarkStr}</div>`;
-                        window.htmlToImage.toCanvas(watermarkPreviewElement).then((canvas) => {
-                            watermarkPreviewElement.innerHTML = "";
-                            watermarkPreviewElement.setAttribute("style", `background-image: url(${canvas.toDataURL("image/png")});background-repeat: repeat;position: absolute;top: 0;left: 0;width: 100%;height: 100%;border-radius: var(--b3-border-radius-b);`);
-                        });
-                    });
-                }
-            }
-        } else {
-            watermarkPreviewElement.removeAttribute("style");
-        }
-    };
-    const refreshPreview = (response: IWebSocketData) => {
-        previewElement.innerHTML = response.data.content;
-        previewElement.setAttribute("data-doc-type", response.data.type || "NodeDocument");
-        Object.keys(response.data.attrs).forEach(key => {
-            previewElement.setAttribute(key, response.data.attrs[key]);
-        });
-        previewElement.querySelectorAll(".code-block").forEach(item => {
-            item.setAttribute("linewrap", "true");
-        });
-        contentRendererRegistry.renderBatch(previewElement);
-        highlightRender(previewElement);
-        previewElement.querySelectorAll("table").forEach((item: HTMLElement) => {
-            if (item.clientWidth > item.parentElement.clientWidth) {
-                item.setAttribute("style", `margin-bottom:${item.parentElement.clientWidth * item.clientHeight / item.clientWidth - item.parentElement.clientHeight + 1}px;transform: scale(${item.parentElement.clientWidth / item.clientWidth});transform-origin: top left;`);
-                item.parentElement.style.overflow = "hidden";
-            }
-        });
-
-        updateWatermark();
-        btnsElement[0].removeAttribute("disabled");
-        btnsElement[1].removeAttribute("disabled");
-        exportDialog.element.querySelector(".fn__loading").remove();
-    };
-    fetchPost("/api/export/exportPreviewHTML", {
-        id,
-        keepFold: foldElement.checked,
-        image: true,
-    }, (response) => {
-        refreshPreview(response);
-        btnsElement[1].setAttribute("data-title", response.data.name + ".png");
-    });
+/**
+ * 作用：打开“导出为图片”弹窗并执行完整导出流程。
+ * 意图：保持导出入口稳定，同时将复杂实现下沉到 helper 模块，满足函数规模与可维护性要求。
+ * 调用时机：用户在导出菜单选择“导出为图片”时。
+ * 问题/改进：后续可把 fetch 回调链路改造为 Promise 以统一异步风格。
+ */
+// 导出语句注释：导出图片功能入口。
+export const exportImage = async (id: string) => {
+    await runExportImageFlow(id, Constants.DIALOG_EXPORTIMAGE);
 };
